@@ -1,6 +1,5 @@
-package GR32_D6_CLX;
-
-{$R *.res}{$ALIGN 8}
+package GR32_D6_CLX;{$R *.res}
+{$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
 {$DEBUGINFO ON}
@@ -25,10 +24,12 @@ package GR32_D6_CLX;
 {$IMPLICITBUILD ON}
 {$DEFINE CLX}
 
-requires  rtl,
+requires
+  rtl,
   visualclx;
 
-contains  GR32 in '..\GR32.pas',
+contains
+  GR32 in '..\GR32.pas',
   GR32_Transforms in '..\GR32_Transforms.pas',
   GR32_Blend in '..\GR32_Blend.pas',
   GR32_ByteMaps in '..\GR32_ByteMaps.pas',
@@ -41,4 +42,4 @@ contains  GR32 in '..\GR32.pas',
   GR32_RangeBars in '..\GR32_RangeBars.pas',
   GR32_System in '..\GR32_System.pas';
 
-end.
+end.

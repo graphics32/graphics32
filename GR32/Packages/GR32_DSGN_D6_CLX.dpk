@@ -1,6 +1,5 @@
-package GR32_DSGN_D6_CLX;
-
-{$R *.res}{$R '..\GR32_Reg.dcr'}
+package GR32_DSGN_D6_CLX;{$R *.res}
+{$R '..\GR32_Reg.dcr'}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -26,12 +25,14 @@ package GR32_DSGN_D6_CLX;
 {$IMPLICITBUILD ON}
 {$DEFINE CLX}
 
-requires  designide,
+requires
+  designide,
   rtl,
   GR32_D6_CLX;
 
-contains  GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
+contains
+  GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
   GR32_Reg in '..\GR32_Reg.pas',
   GR32_Dsgn_Color in '..\GR32_Dsgn_Color.pas';
 
-end.
+end.
