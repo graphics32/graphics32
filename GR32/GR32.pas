@@ -634,6 +634,10 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
 
     property MeasuringMode: Boolean read FMeasuringMode;
+{$IFDEF DEPRECATEDMODE}
+    property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
+    property Resampler: TCustomResampler read FResampler write SetResampler;
+{$ENDIF}
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
     property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
@@ -641,9 +645,10 @@ type
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
 {$IFDEF DEPRECATEDMODE}
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
-{$ENDIF}
+{$ELSE}
     property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
     property Resampler: TCustomResampler read FResampler write SetResampler;
+{$ENDIF}
     property OnChange;
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
     property OnPixelCombine: TPixelCombineEvent read FOnPixelCombine write FOnPixelCombine;
@@ -1426,7 +1431,7 @@ begin
   FPenColor := clWhite32;
   FStippleStep := 1;
   FCombineMode := cmBlend;
-  FResampler := TBitmap32NearestResampler.Create(Self);
+  FResampler := TNearestResampler.Create(Self);
 end;
 
 destructor TBitmap32.Destroy;
@@ -4112,15 +4117,26 @@ end;
 
 {$IFDEF DEPRECATEDMODE}
 procedure TBitmap32.SetStretchFilter(Value: TStretchFilter);
-const
-  StretchFilterMap: array[TStretchFilter] of TAbstractResamplerClass =
-    (TNearestResampler, TDraftResampler, TLinearResampler, TCosineResampler,
-     TSplineResampler, TLanczosResampler, TMitchellResampler);
 begin
   if FStretchFilter <> Value then
   begin
     FStretchFilter := Value;
-    SetResampler(StretchFilterMap[Value].Create);
+
+    case FStretchFilter of
+      sfNearest: SetResampler(TNearestResampler.Create(Self));
+      sfDraft:   SetResampler(TDraftResampler.Create(Self));
+      sfLinear:  SetResampler(TLinearResampler.Create(Self));
+    else
+      SetResampler(TKernelResampler.Create(Self));
+      with FResampler as TKernelResampler do
+        case FStretchFilter of
+          sfCosine: Kernel := TCosineKernel.Create(Self);
+          sfSpline: Kernel := TSplineKernel.Create(Self);
+          sfLanczos: Kernel := TLanczosKernel.Create(Self);
+          sfMitchell: Kernel := TMitchellKernel.Create(Self);
+        end;
+    end;
+
     Changed;
   end;
 end;
