@@ -38,7 +38,7 @@ uses
   GR32;
 
 { Clamp function restricts Value to [0..255] range }
-function Clamp(const Value: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Clamp(const Value: Integer): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
 procedure FillLongword(var X; Count: Integer; Value: Longword);
@@ -49,10 +49,10 @@ procedure MoveLongword(const Source; var Dest; Count: Integer);
 { Exchange two 32-bit values }
 procedure Swap(var A, B: Integer);
 
-{ Exhange A <-> B only if B < A }
+{ Exchange A <-> B only if B < A }
 procedure TestSwap(var A, B: Integer);
 
-{ Exhange A <-> B only if B < A then restrict both to [0..Size-1] range }
+{ Exchange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
 function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
 function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
@@ -62,6 +62,15 @@ function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF USEINLINING} 
 
 { Returns Value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
+
+{ Clamp integer Value to [0..Max] range }
+function Clamp(Value, Max: Integer): Integer; overload;
+
+{ Wrap integer Value to [0..Max] range }
+function Wrap(Value, Max: Integer): Integer;
+
+{ Mirror integer Value in [0..Max] range }
+function Mirror(Value, Max: Integer): Integer;
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
@@ -177,6 +186,50 @@ begin
   if Value < Constrain1 then Result := Constrain1
   else if Value > Constrain2 then Result := Constrain2
   else Result := Value;
+end;
+
+function Clamp(Value, Max: Integer): Integer;
+asm
+        CMP     EAX,EDX
+        JG      @@above
+        TEST    EAX,EAX
+        JL      @@below
+        RET
+@@above:
+        MOV     EAX,EDX
+        RET
+@@below:
+        MOV     EAX,0
+        RET
+end;
+
+function Wrap(Value, Max: Integer): Integer;
+asm
+        LEA     ECX,[EDX+1]
+        CDQ
+        IDIV    ECX
+        MOV     EAX,EDX
+        TEST    EAX,EAX
+        JNL     @@exit
+        ADD     EAX,ECX
+@@exit:
+end;
+
+function Mirror(Value, Max: Integer): Integer;
+asm
+        TEST    EAX,EAX
+        JNL     @@1
+        NEG     EAX
+@@1:
+        MOV     ECX,EDX
+        CDQ
+        IDIV    ECX
+        TEST    EAX,1
+        MOV     EAX,EDX
+        JZ      @@exit
+        NEG     EAX
+        ADD     EAX,ECX
+@@exit:
 end;
 
 { shift right with sign conservation }
