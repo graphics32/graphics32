@@ -24,7 +24,6 @@ unit GR32_Filters;
  * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32_Filters.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
 
 interface
 

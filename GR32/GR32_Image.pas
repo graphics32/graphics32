@@ -27,7 +27,6 @@ unit GR32_Image;
  * Andrew P. Rybin <aprybin@users.sourceforge.net>
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32_Image.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
 
 interface
 
