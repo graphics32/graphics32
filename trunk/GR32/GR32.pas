@@ -232,6 +232,9 @@ procedure OffsetRectF(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USE
 function IsRectEmpty(const R: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmptyF(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRectSize(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRectSizeF(const R1, R2: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+
 
 
 { Other dynamic arrays }
@@ -1239,6 +1242,23 @@ end;
 function EqualRect(const R1, R2: TRect): Boolean;
 begin
   Result := CompareMem(@R1, @R2, SizeOf(TRect));
+end;
+
+function EqualRectSize(const R1, R2: TRect): Boolean;
+begin
+  Result := ((R1.Right - R1.Left) = (R2.Right - R2.Left)) and
+    ((R1.Bottom - R1.Top) = (R2.Bottom - R2.Top));
+end;
+
+function EqualRectSizeF(const R1, R2: TFloatRect): Boolean;
+var
+  _R1: TFixedRect;
+  _R2: TFixedRect;
+begin
+  _R1 := FixedRect(R1);
+  _R2 := FixedRect(R2);
+  Result := ((_R1.Right - _R1.Left) = (_R2.Right - _R2.Left)) and
+    ((_R1.Bottom - _R1.Top) = (_R2.Bottom - _R2.Top));
 end;
 
 procedure InflateRect(var R: TRect; Dx, Dy: Integer);
