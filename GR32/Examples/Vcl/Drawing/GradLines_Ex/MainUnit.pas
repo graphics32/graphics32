@@ -249,7 +249,7 @@ begin
     if Pass = 0 then with PaintBox.Buffer do
     begin
       P := @Bits[0];
-      for I := 0 to Width * Height do
+      for I := 0 to Width * Height -1 do
       begin
         BlendMem($10000000, P^);
         Inc(P);
