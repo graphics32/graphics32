@@ -2,8 +2,15 @@ unit GR32_Rasterizers;
 
 interface
 
+{$I GR32.inc}
+
 uses
-  Windows, Classes, GR32, GR32_Blend;
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ELSE}Windows, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  Classes, GR32, GR32_Blend;
 
 type
   TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;
