@@ -37,7 +37,7 @@ uses
 {$ELSE}
   Windows, Controls, Graphics, Forms,
 {$ENDIF}
-  Classes, SysUtils, GR32;
+  Classes, SysUtils, Math, GR32;
 
 const
   { Layer Options Bits }
@@ -46,7 +46,7 @@ const
   LOB_MOUSE_EVENTS      = $20000000; // 29-th bit
   LOB_NO_UPDATE         = $10000000; // 28-th bit
   LOB_NO_CAPTURE        = $08000000; // 27-th bit
-  LOB_RESERVED_26       = $04000000; // 26-th bit
+  LOB_DIRTY             = $04000000; // 26-th bit
   LOB_RESERVED_25       = $02000000; // 25-th bit
   LOB_RESERVED_24       = $01000000; // 24-th bit
   LOB_RESERVED_MASK     = $FF000000;
@@ -67,6 +67,14 @@ type
   end;
   PCoordXForm = ^TCoordXForm;
 
+  TLayerCollection = class;
+
+  TLayerUpdateEvent = procedure(Sender: TObject; Layer: TCustomLayer) of object;
+  TForcedUpdateEvent = procedure(Sender: TObject; const Rect: TRect) of object;
+  TLayerListNotification = (lnLayerAdded, lnLayerInserted, lnLayerDeleted, lnCleared);
+  TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification;
+    Layer: TCustomLayer; Index: Integer) of object;
+
   TLayerCollection = class(TPersistent)
   private
     FCoordXForm: PCoordXForm;
@@ -74,11 +82,18 @@ type
     FMouseEvents: Boolean;
     FMouseListener: TCustomLayer;
     FUpdateCount: Integer;
+    FInvalidIndex: Integer;
     FOwner: TComponent;
     FOnChanging: TNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnGDIUpdate: TNotifyEvent;
+    FOnListNotify: TLayerListNotifyEvent;
+    FOnLayerUpdated: TLayerUpdateEvent;
+    FOnLayerResized: TLayerUpdateEvent;
+    FOnForcedUpdate: TForcedUpdateEvent;
     function GetCount: Integer;
+    procedure UpdateInvalidIndex(const StartIndex: Integer);
+    procedure CheckUpdateIndexCache;
     procedure InsertItem(Item: TCustomLayer);
     procedure RemoveItem(Item: TCustomLayer);
     procedure SetMouseEvents(Value: Boolean);
@@ -92,13 +107,21 @@ type
     function  GetItem(Index: Integer): TCustomLayer;
     function  GetOwner: TPersistent; override;
     procedure GDIUpdate;
+    procedure DoUpdateLayer(Layer: TCustomLayer);
+    procedure DoLayerResized(Layer: TCustomLayer);
+    procedure DoForceUpdate(const Rect: TRect);
+    procedure Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
     procedure SetItem(Index: Integer; Value: TCustomLayer);
     function MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseMove(Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
     property OnChanging: TNotifyEvent read FOnChanging write FOnChanging;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    property OnListNotify: TLayerListNotifyEvent read FOnListNotify write FOnListNotify;
     property OnGDIUpdate: TNotifyEvent read FOnGDIUpdate write FOnGDIUpdate;
+    property OnLayerUpdated: TLayerUpdateEvent read FOnLayerUpdated write FOnLayerUpdated;
+    property OnLayerResized: TLayerUpdateEvent read FOnLayerResized write FOnLayerResized;
+    property OnForcedUpdate: TForcedUpdateEvent read FOnForcedUpdate write FOnForcedUpdate;
   public
     constructor Create(AOwner: TComponent);
     destructor Destroy; override;
@@ -135,6 +158,7 @@ type
     FOnPaint: TPaintLayerEvent;
     FTag: Integer;
     FOnDestroy: TNotifyEvent;
+    FCachedIndex: Integer;
     function  GetIndex: Integer;
     function  GetMouseEvents: Boolean;
     function  GetVisible: Boolean;
@@ -143,6 +167,8 @@ type
     procedure SetLayerOptions(Value: Cardinal);
     procedure SetMouseEvents(Value: Boolean);
     procedure SetVisible(Value: Boolean);
+    function GetDirty: Boolean;
+    procedure SetDirty(const Value: Boolean);
   protected
     procedure AddNotification(ALayer: TCustomLayer);
     procedure Changed;
@@ -158,11 +184,14 @@ type
     procedure PaintGDI(Canvas: TCanvas); virtual;
     procedure RemoveNotification(ALayer: TCustomLayer);
     procedure SetIndex(Value: Integer); virtual;
+    property Dirty: Boolean read GetDirty write SetDirty;
   public
     constructor Create(ALayerCollection: TLayerCollection); virtual;
     destructor Destroy; override;
     procedure BeforeDestruction; override;
     procedure BringToFront;
+    procedure Update;
+    procedure ForceUpdate(const Rect: TRect);
     function  HitTest(X, Y: Integer): Boolean;
     procedure SendToBack;
     procedure SetAsMouseListener;
@@ -284,7 +313,7 @@ type
 
 implementation
 
-uses TypInfo, GR32_Image, GR32_LowLevel, GR32_Transforms;
+uses TypInfo, GR32_Image, GR32_LowLevel, GR32_Transforms, GR32_Resamplers;
 
 { mouse state mapping }
 const
@@ -299,6 +328,8 @@ type
 function TLayerCollection.Add(ItemClass: TLayerClass): TCustomLayer;
 begin
   Result := ItemClass.Create(Self);
+  Result.Index := FItems.Count - 1;
+  Notify(lnLayerAdded, Result, Result.Index);
 end;
 
 procedure TLayerCollection.Assign(Source: TPersistent);
@@ -345,6 +376,8 @@ begin
   BeginUpdate;
   try
     while FItems.Count > 0 do TCustomLayer(FItems.Last).Free;
+    FInvalidIndex := FItems.Count;
+    Notify(lnCleared, nil, 0);
   finally
     EndUpdate;
   end;
@@ -359,7 +392,8 @@ end;
 
 procedure TLayerCollection.Delete(Index: Integer);
 begin
-  TCollectionItem(FItems[Index]).Free;
+  TCustomLayer(FItems[Index]).Free;
+  UpdateInvalidIndex(Index);
 end;
 
 destructor TLayerCollection.Destroy;
@@ -416,17 +450,23 @@ begin
   try
     Result := Add(ItemClass);
     Result.Index := Index;
+    UpdateInvalidIndex(Index);
+    Notify(lnLayerInserted, Result, Index);
   finally
     EndUpdate;
   end;
 end;
 
 procedure TLayerCollection.InsertItem(Item: TCustomLayer);
+var
+  Index: Integer;
 begin
   BeginUpdate;
   try
-    FItems.Add(Item);
+    Index := FItems.Add(Item);
+    UpdateInvalidIndex(Index);
     Item.FLayerCollection := Self;
+    Notify(lnLayerAdded, Item, Index);
   finally
     EndUpdate;
   end;
@@ -473,12 +513,25 @@ begin
     MouseListener := nil; // reset mouse capture
 end;
 
+procedure TLayerCollection.Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
+begin
+  if Assigned(FOnListNotify) then FOnListNotify(Self, Action, Layer, Index);
+end;
+
 procedure TLayerCollection.RemoveItem(Item: TCustomLayer);
+var
+  Index: Integer;
 begin
   BeginUpdate;
   try
-    FItems.Remove(Item);
-    Item.FLayerCollection := nil;
+    Index := FItems.IndexOf(Item);
+    if Index >= 0 then
+    begin
+      FItems.Delete(Index);
+      UpdateInvalidIndex(Index);
+      Item.FLayerCollection := nil;
+      Notify(lnLayerDeleted, Item, Index);
+    end;
   finally
     EndUpdate;
   end;
@@ -503,6 +556,38 @@ begin
       FMouseListener.FLayerStates := FMouseListener.FLayerStates -
         [lsMouseLeft, lsMouseRight, lsMouseMiddle];
     FMouseListener := Value;
+  end;
+end;
+
+procedure TLayerCollection.DoForceUpdate(const Rect: TRect);
+begin
+  if Assigned(FOnForcedUpdate) then FOnForcedUpdate(Self, Rect);
+end;
+
+procedure TLayerCollection.DoUpdateLayer(Layer: TCustomLayer);
+begin
+  if Assigned(FOnLayerUpdated) then FOnLayerUpdated(Self, Layer);
+end;
+
+procedure TLayerCollection.DoLayerResized(Layer: TCustomLayer);
+begin
+  if Assigned(FOnLayerResized) then FOnLayerResized(Self, Layer);
+end;
+
+procedure TLayerCollection.UpdateInvalidIndex(const StartIndex: Integer);
+begin
+  FInvalidIndex := Min(FInvalidIndex, StartIndex);
+end;
+
+procedure TLayerCollection.CheckUpdateIndexCache;
+var
+  I: Integer;
+begin
+  if FInvalidIndex < FItems.Count then
+  begin
+    for I := FInvalidIndex to FItems.Count - 1 do
+      TCustomLayer(FItems[I]).FCachedIndex := I;
+    FInvalidIndex := FItems.Count;
   end;
 end;
 
@@ -579,8 +664,14 @@ end;
 
 function TCustomLayer.GetIndex: Integer;
 begin
-  if FLayerCollection <> nil then Result := FLayerCollection.FItems.IndexOf(Self)
-  else Result := -1;
+  if Assigned(FLayerCollection) then
+  begin
+//    FLayerCollection.CheckUpdateIndexCache;
+//    Result := FCachedIndex;
+    Result := FLayerCollection.FItems.IndexOf(Self);
+  end
+  else
+    Result := -1;
 end;
 
 function TCustomLayer.GetMouseEvents: Boolean;
@@ -684,6 +775,7 @@ begin
         if Visible then BeginUpdate;
         try
           FLayerCollection.FItems.Move(CurIndex, Value);
+          FLayerCollection.UpdateInvalidIndex(Value);
         finally
           if Visible then EndUpdate;
         end;
@@ -724,6 +816,29 @@ begin
   else LayerOptions := LayerOptions and not LOB_VISIBLE;
 end;
 
+procedure TCustomLayer.Update;
+begin
+  FLayerCollection.DoUpdateLayer(Self);
+end;
+
+procedure TCustomLayer.ForceUpdate(const Rect: TRect);
+begin
+  FLayerCollection.DoForceUpdate(Rect);
+end;
+
+function TCustomLayer.GetDirty: Boolean;
+begin
+  Result := LayerOptions and LOB_DIRTY <> 0;
+end;
+
+procedure TCustomLayer.SetDirty(const Value: Boolean);
+begin
+  // don't use LayerOptions here since this is internal and we don't want to
+  // trigger Changing and Changed as this will definitely cause a stack overflow.
+  if Value then FLayerOptions := FLayerOptions or LOB_DIRTY
+  else FLayerOptions := FLayerOptions and not LOB_DIRTY;
+end;
+
 { TPositionedLayer }
 
 constructor TPositionedLayer.Create(ALayerCollection: TLayerCollection);
@@ -748,6 +863,7 @@ end;
 procedure TPositionedLayer.DoSetLocation(const NewLocation: TFloatRect);
 begin
   FLocation := NewLocation;
+  FLayerCollection.DoLayerResized(Self);
 end;
 
 function TPositionedLayer.GetAdjustedLocation: TFloatRect;
@@ -834,14 +950,17 @@ end;
 
 procedure TBitmapLayer.Paint(Buffer: TBitmap32);
 var
-  SrcRect, DstRect, ClipRect: TRect;
+  SrcRect, DstRect, ClipRect, TempRect: TRect;
   ImageRect: TRect;
   LayerWidth, LayerHeight: Single;
 begin
   if Bitmap.Empty then Exit;
   DstRect := MakeRect(GetAdjustedLocation);
-  SrcRect := MakeRect(0, 0, Bitmap.Width, Bitmap.Height);
   ClipRect := Buffer.ClipRect;
+  IntersectRect(TempRect, ClipRect, DstRect);
+  if IsRectEmpty(TempRect) then Exit;
+
+  SrcRect := MakeRect(0, 0, Bitmap.Width, Bitmap.Height);
   if Cropped and (LayerCollection.FOwner is TCustomImage32) and
     not (TImage32Access(LayerCollection.FOwner).PaintToMode) then
   begin
@@ -855,7 +974,7 @@ begin
     IntersectRect(ClipRect, ClipRect, ImageRect);
   end;
   StretchTransfer(Buffer, DstRect, ClipRect, FBitmap, SrcRect,
-    FBitmap.StretchFilter, FBitmap.DrawMode, FBitmap.OnPixelCombine);
+    FBitmap.Resampler, FBitmap.DrawMode, FBitmap.OnPixelCombine);
 end;
 
 procedure TBitmapLayer.SetBitmap(Value: TBitmap32);
