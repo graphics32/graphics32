@@ -22,8 +22,9 @@ unit GR32_Transforms;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Andre Beckedorf
- * Mattias Andersson
+ * Andre Beckedorf <Andre@metaException.de>
+ * Mattias Andersson <Mattias@Centaurix.com>
+ * J. Tulach <tulach@position.cz>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Transforms.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -1083,7 +1084,11 @@ begin
     DrawMode := dmOpaque;
 
   // clip SrcRect
-  R := MakeRect(Transformation.SrcRect);
+
+  // workaround C++ Builder throwing exceptions:
+  R := MakeRect(Round(Transformation.SrcRect.Left), Round(Transformation.SrcRect.Top),
+                Round(Transformation.SrcRect.Right), Round(Transformation.SrcRect.Bottom));
+
   IntersectRect(SrcRectI, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
 
   with Transformation.SrcRect do
