@@ -47,6 +47,7 @@ uses
   GR32_Dsgn_Bitmap,
   GR32_Dsgn_Misc,
   GR32_Image,
+  GR32_ExtImage,
   GR32_Layers,
   GR32_RangeBars,
   GR32_Resamplers;
