@@ -44,10 +44,11 @@ type
     constructor Create; virtual;
     function ShapeValueFixed(const Value: TFixed): TFixed; virtual;
     function ShapeValueFloat(const Value: Single): Single; virtual; abstract;
-    property ShapeWeight: Single read FShapeWeight write SetShapeWeight;
     property ShapeValid: Boolean read FShapeValid;
     procedure PrepareShape; virtual;
     procedure FinalizeShape; virtual;
+  published
+    property ShapeWeight: Single read FShapeWeight write SetShapeWeight;
   end;
   TCustomShapeClass = class of TCustomShape;
 
@@ -70,9 +71,10 @@ type
     procedure SetConstantValue(const Value: Single);
   public
     constructor Create; override;
-    property ConstantValue: Single read FConstantValue write SetConstantValue;
     function ShapeValueFixed(const Value: TFixed): TFixed; override;
     function ShapeValueFloat(const Value: Single): Single; override;
+  published
+    property ConstantValue: Single read FConstantValue write SetConstantValue;
   end;
 
   { TLinearShape }
@@ -90,7 +92,34 @@ type
     function ShapeValueFloat(const Value: Single): Single; override;
   end;
 
-  TDefaultShape = class(TLinearShape);
+  { TLinearSineShape }
+
+  TLinearSineShape = class(TCustomShape)
+  private
+    FWavesCount: Integer;
+    procedure SetWavesCount(const Value: Integer);
+  public
+    constructor Create; override;
+    function ShapeValueFloat(const Value: Single): Single; override;
+  published
+    property WavesCount: Integer read FWavesCount write SetWavesCount;
+  end;
+
+  { TStairwayShape }
+
+  TStairwayShape = class(TCustomShape)
+  private
+    Scaler : Single;
+    FStepCount: Integer;
+    procedure SetStepCount(const Value: Integer);
+ public
+    constructor Create; override;
+    function ShapeValueFloat(const Value: Single): Single; override;
+  published
+    property StepCount: Integer read FStepCount write SetStepCount;
+  end;
+
+  TDefaultShape = class(TConstantShape);
 
 
   { TCustomCombiner - Base class for combining values }
@@ -109,11 +138,11 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    property MasterWeight: Single read FMasterWeight write SetMasterWeight;
     property CombineValid: Boolean read GetCombineValid;
     procedure PrepareCombine(CombineRect: TFloatRect); virtual;
     procedure FinalizeCombine; virtual;
   published
+    property MasterWeight: Single read FMasterWeight write SetMasterWeight;
     property ShapeClassName: string read GetShapeClassName write SetShapeClassName;
     property Shape: TCustomShape read FShape write SetShape;
   end;
@@ -210,7 +239,7 @@ type
 
     procedure Clear;
     procedure Merge(DstLeft, DstTop: Integer; Src: TTransformationMap;
-      SrcRect: TRect; Weight: Single);
+      SrcRect: TRect);
 
     property Bits: PFixedPointArray read GetBits;
     function BoundsRect: TRect;
@@ -255,8 +284,13 @@ type
     DstTranslationFloat: TFloatPoint;
     DstScaleFloat: TFloatPoint;
 
+    OffsetFixed : TFixedPoint;
+    OffsetInt : TPoint;
+
     FMappingRect: TFloatRect;
+    FOffset: TFloatpoint;
     procedure SetMappingRect(Rect: TFloatRect);
+    procedure SetOffset(const Value: TFloatpoint);
   protected
     procedure PrepareTransform; override;
     procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
@@ -271,6 +305,7 @@ type
     function  GetTransformedBounds: TRect; override;
     procedure Scale(Sx, Sy: Single);
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
+    property Offset: TFloatpoint read FOffset write SetOffset;
   end;
 
 { General routines for registering and setting up custom class registerlists }
@@ -350,9 +385,9 @@ begin
   FBits := nil;
   Width := 0;
   Height := 0;
+  SetLength(FBits, NewWidth * NewHeight);
   if (NewWidth > 0) and (NewHeight > 0) then
   begin
-    SetLength(FBits, NewWidth * NewHeight);
     if FBits = nil then raise Exception.Create('Can''t allocate TransformationMap!');
     FillLongword(FBits[0], NewWidth * NewHeight * 2, 0);
   end;
@@ -523,56 +558,51 @@ begin
 end;
 
 procedure TTransformationMap.Merge(DstLeft, DstTop: Integer;
-  Src: TTransformationMap; SrcRect: TRect; Weight: Single);
+  Src: TTransformationMap; SrcRect: TRect);
 var
-  I,J,P,Q: Integer;
+  I,J,P: Integer;
   DstRect: TRect;
-  SrcP, DstP, Progression: TFixedPoint;
+  Progression: TFixedPoint;
   ProgressionX, ProgressionY: TFixed;
   Combiner: TVectorCombineFixed;
+  DstPtr : PFixedPointArray;
+  SrcPtr : PFixedPoint;
 begin
   if Src.IsEmpty then Exception.Create('Src is empty!');
   if IsEmpty then Exception.Create('Base is empty!');
-  if Weight <= 0 then Exit;
-  EnsureRange(Weight, 0, 1);
   IntersectRect( SrcRect, Src.BoundsRect, SrcRect);
 
   DstRect.Left := DstLeft;
   DstRect.Top := DstTop;
-  DstRect.Right := SrcRect.Right - SrcRect.Left;
-  DstRect.Bottom := SrcRect.Bottom - SrcRect.Top;
+  DstRect.Right := DstLeft + (SrcRect.Right - SrcRect.Left);
+  DstRect.Bottom := DstTop + (SrcRect.Bottom - SrcRect.Top);
 
   IntersectRect(DstRect, BoundsRect, DstRect);
   if IsRectEmpty(DstRect) then Exit;
 
-  P := SrcRect.Left;
-  Q := SrcRect.Top;
+  ProgressionX := Fixed(2 / (DstRect.Right - DstRect.Left - 1));
+  ProgressionY := Fixed(2 / (DstRect.Bottom - DstRect.Top - 1));
 
-  ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
-  ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
-
-  with FVectorCombiner do
+  with Src.VectorCombiner do
   begin
     Combiner := CombineFixed;
     if not CombineValid then PrepareCombine(FloatRect(DstRect));
   end;
 
-  Progression.Y := 0;
+  P := SrcRect.Top * Src.Width;
+  Progression.Y := - FixedOne;
   for I := DstRect.Top to DstRect.Bottom - 1 do
   begin
-    Progression.X := 0;
-    for J := DstRect.Top to DstRect.Bottom - 1 do
+    Progression.X := - FixedOne;
+    DstPtr := @GetBits[I * Width];
+    SrcPtr := @Src.GetBits[SrcRect.Left + P];
+    for J := DstRect.Left to DstRect.Right - 1 do
     begin
-      SrcP := Src.FixedPointMap[P, Q];
-      DstP := FixedPointMap[I, J];
-      Combiner(SrcP, Progression, DstP);
-      DstP.X := Round(DstP.X + (SrcP.X - DstP.X) * Weight);
-      DstP.Y := Round(DstP.Y + (SrcP.Y - DstP.Y) * Weight);
-      FixedPointMap[I, J] := DstP;
-      Inc(P);
+      Combiner(SrcPtr^, Progression, DstPtr[J]);
+      Inc(SrcPtr);
       Inc(Progression.X, ProgressionX);
     end;
-    Inc(Q);
+    Inc(P, Src.Width);
     Inc(Progression.Y, ProgressionY);
   end;
   VectorCombiner.FinalizeCombine;
@@ -758,6 +788,7 @@ begin
   inherited;
   ScalingFixed := FixedPoint(1, 1);
   ScalingFloat := FloatPoint(1, 1);
+  Offset := FloatPoint(0,0);
   TransformationMap := TTransformationMap.Create;
   //Ensuring initial setup to avoid exceptions
   TransformationMap.SetSize(1, 1);
@@ -770,10 +801,16 @@ begin
 end;
 
 function TRemapTransformation.GetTransformedBounds: TRect;
+var
+  R: TRect;
 begin
   Result := TransformationMap.BoundsRect;
-//  Dec(Result.Right);
-//  Dec(Result.Bottom);
+  OffsetRect(Result, Round(FOffset.X), Round(FOffset.Y));
+{  R := MakeRect(FMappingRect);
+  if R.Left < Result.Left then Result.Left := R.Left;
+  if R.Top < Result.Top then Result.Top := R.Top;
+  if R.Right > Result.Right then Result.Right := R.Right;
+  if R.Bottom > Result.Bottom then Result.Bottom := R.Bottom;   }
 end;
 
 procedure TRemapTransformation.PrepareTransform;
@@ -850,7 +887,7 @@ end;
 procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
   out SrcX256, SrcY256: Integer);
 begin
-  with TransformationMap.FixedPointMap[DstX, DstY] do
+  with TransformationMap.FixedPointMap[DstX - OffsetInt.X, DstY - OffsetInt.Y] do
   begin
     DstX:= DstX * FixedOne - DstTranslationFixed.X;
     DstY:= DstY * FixedOne - DstTranslationFixed.Y;
@@ -873,7 +910,7 @@ end;
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
   out SrcX, SrcY: TFixed);
 begin
-  with TransformationMap.FixedPointMapX[DstX, DstY] do
+  with TransformationMap.FixedPointMapX[DstX - OffsetFixed.X, DstY - OffsetFixed.Y] do
   begin
     DstX := DstX - DstTranslationFixed.X;
     DstY := DstY - DstTranslationFixed.Y;
@@ -893,7 +930,7 @@ end;
 procedure TRemapTransformation.ReverseTransformFloat(DstX, DstY: Single;
   out SrcX, SrcY: Single);
 begin
-  with TransformationMap.FloatPointMapF[DstX, DstY] do
+  with TransformationMap.FloatPointMapF[DstX - FOffset.X, DstY - FOffset.Y] do
   begin
     DstX := DstX - DstTranslationFloat.X;
     DstY := DstY - DstTranslationFloat.Y;
@@ -913,7 +950,7 @@ end;
 procedure TRemapTransformation.ReverseTransformInt(DstX, DstY: Integer;
   out SrcX, SrcY: Integer);
 begin
-  with TransformationMap.FixedPointMap[DstX, DstY] do
+  with TransformationMap.FixedPointMap[DstX - OffsetInt.X, DstY - OffsetInt.Y] do
   begin
     DstX := DstX * FixedOne - DstTranslationFixed.X;
     DstY := DstY * FixedOne - DstTranslationFixed.Y;
@@ -941,6 +978,14 @@ end;
 procedure TRemapTransformation.SetMappingRect(Rect: TFloatRect);
 begin
   FMappingRect := Rect;
+  TransformValid := False;
+end;
+
+procedure TRemapTransformation.SetOffset(const Value: TFloatpoint);
+begin
+  FOffset := Value;
+  OffsetInt := Point(Value);
+  OffsetFixed := FixedPoint(Value);
   TransformValid := False;
 end;
 
@@ -1200,6 +1245,47 @@ begin
   Result := Sqr(Sin(0.5 * Value * PI));
 end;
 
+{ TLinearSineShape }
+
+constructor TLinearSineShape.Create;
+begin
+  inherited;
+  FWavesCount := 10;
+end;
+
+procedure TLinearSineShape.SetWavesCount(const Value: Integer);
+begin
+  FWavesCount := Value;
+  FShapeValid := False;
+end;
+
+function TLinearSineShape.ShapeValueFloat(const Value: Single): Single;
+begin
+  Result := 0.5 + Cos(Value * PI * FWavesCount) * 0.5;
+  Result := 1 - Result; 
+  Result := Result * Value; // Linearity
+end;
+
+{ TStairwayShape }
+
+constructor TStairwayShape.Create;
+begin
+  inherited;
+  StepCount := 10;
+end;
+
+procedure TStairwayShape.SetStepCount(const Value: Integer);
+begin
+  FStepCount := Value;
+  Scaler := 1 / Value;
+  FShapeValid := False;
+end;
+
+function TStairwayShape.ShapeValueFloat(const Value: Single): Single;
+begin
+  Result := Round(FStepCount * Value) * Scaler;
+end;
+
 initialization
   { Register VectorCombiners }
   RegisterCustomClass(TAdditionVectorCombiner, VectorCombinerList);
@@ -1211,6 +1297,8 @@ initialization
   RegisterCustomClass(TConstantShape, ShapeList);
   RegisterCustomClass(TLinearShape, ShapeList);
   RegisterCustomClass(TGaussianShape, ShapeList);
+  RegisterCustomClass(TLinearSineShape, ShapeList);
+  RegisterCustomClass(TStairwayShape, ShapeList);
 
 finalization
   VectorCombinerList.Free;
