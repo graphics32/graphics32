@@ -1150,8 +1150,8 @@ begin
     for I := 0 to L - 1 do
       with Transformation.Transform(Points[I]) do
       begin
-        PP[I].X := AASAR(X + $00007FFF);
-        PP[I].Y := AASAR(Y + $00007FFF);
+        PP[I].X := AASAR(X + $00007FF);
+        PP[I].Y := AASAR(Y + $00007FF);
         if PP[I].Y < MinY then MinY := PP[I].Y;
         if PP[I].Y > MaxY then MaxY := PP[I].Y;
       end;
@@ -1338,8 +1338,8 @@ begin
         for I := 0 to L - 1 do
           with Transformation.Transform(Points[J][I]) do
           begin
-            PP[J][I].X := AASAR(X + $00007FFF);
-            PP[J][I].Y := AASAR(Y + $00007FFF);
+            PP[J][I].X := AASAR(X + $00007FF);
+            PP[J][I].Y := AASAR(Y + $00007FF);
             if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
             if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
           end
