@@ -678,11 +678,12 @@ var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfPoint;
-  AAShift: Integer;
+  AAShift, AABmpHeight: Integer;
   AASAR: TShiftFunc;
 begin
-  AAShift := AA_SHIFT[AAMode];  // we do the -1 here for optimization.
+  AAShift := AA_SHIFT[AAMode];
   AASAR := AA_SAR[AAMode];
+  AABmpHeight := Bitmap.Height shl AAShift - 1; // optimize a bit since that is done 3 times below...
 
   L := Length(Points);
   if (L < 3) or (Color and $FF000000 = 0) then Exit;
@@ -696,13 +697,12 @@ begin
     end;
 
   GetMinMax(PP, MinY, MaxY);
-  MinY := Constrain(MinY, 0, Bitmap.Height shl AAShift - 1);
-  MaxY := Constrain(MaxY, 0, Bitmap.Height shl AAShift - 1);
+  MinY := Constrain(MinY, 0, AABmpHeight);
+  MaxY := Constrain(MaxY, 0, AABmpHeight);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
-  AddPolygon(PP, MinY, Bitmap.Width shl AAShift - 1, Bitmap.Height shl AAShift - 1,
-    ScanLines, False);
+  AddPolygon(PP, MinY, Bitmap.Width shl AAShift - 1, AABmpHeight, ScanLines, False);
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
@@ -767,11 +767,13 @@ var
   L, I, J, min, max, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
-  AAShift: Integer;
+  AAShift, AABmpHeight, AABmpWidth: Integer;
   AASAR: TShiftFunc;
 begin
   AAShift := AA_SHIFT[AAMode];
   AASAR := AA_SAR[AAMode];
+  AABmpHeight := Bitmap.Height shl AAShift - 1; // optimize a bit since that is done 3 times below...
+  AABmpWidth := Bitmap.Width shl AAShift - 1;
 
   SetLength(PP, Length(Points));
 
@@ -800,14 +802,13 @@ begin
     if max > MaxY then MaxY := max;
   end;
 
-  MinY := Constrain(MinY, 0, Bitmap.Height shl AAShift - 1);
-  MaxY := Constrain(MaxY, 0, Bitmap.Height shl AAShift - 1);
+  MinY := Constrain(MinY, 0, AABmpHeight);
+  MaxY := Constrain(MaxY, 0, AABmpHeight);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
   for J := 0 to High(Points) do
-    AddPolygon(PP[J], MinY, Bitmap.Width shl AAShift - 1,
-      Bitmap.Height shl AAShift - 1, ScanLines, False);
+    AddPolygon(PP[J], MinY, AABmpWidth, AABmpHeight, ScanLines, False);
 
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
