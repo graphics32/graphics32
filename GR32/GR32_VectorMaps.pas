@@ -32,109 +32,109 @@ uses
 
 type
 
-  { TCustomShape - Base class for  shapes }
+  { TCustomContour - Base class for  Contours }
 
-  TCustomShape = class
+  TCustomContour = class
   private
-    FShapeValid: Boolean;
-    FShapeWeight: Single;
-    FixedShapeWeight: TFixed;
-    procedure SetShapeWeight(const Value: Single);
+    FContourValid: Boolean;
+    FContourWeight: Single;
+    FixedContourWeight: TFixed;
+    procedure SetContourWeight(const Value: Single);
   public
     constructor Create; virtual;
-    function ShapeValueFixed(const Value: TFixed): TFixed; virtual;
-    function ShapeValueFloat(const Value: Single): Single; virtual; abstract;
-    property ShapeValid: Boolean read FShapeValid;
-    procedure PrepareShape; virtual;
-    procedure FinalizeShape; virtual;
+    function ContourValueFixed(const Value: TFixed): TFixed; virtual;
+    function ContourValueFloat(const Value: Single): Single; virtual; abstract;
+    property ContourValid: Boolean read FContourValid;
+    procedure PrepareContour; virtual;
+    procedure FinalizeContour; virtual;
   published
-    property ShapeWeight: Single read FShapeWeight write SetShapeWeight;
+    property ContourWeight: Single read FContourWeight write SetContourWeight;
   end;
-  TCustomShapeClass = class of TCustomShape;
+  TCustomContourClass = class of TCustomContour;
 
-  { Shape callback proc types }
+  { Contour callback proc types }
 
-  TShapeValueFixed = function (const Value: TFixed): TFixed of object;
-  TShapeValueFloat = function (const Value: Single): Single of object;
+  TContourValueFixed = function (const Value: TFixed): TFixed of object;
+  TContourValueFloat = function (const Value: Single): Single of object;
 
 var
-  { ShapeList class registerlist }
-  ShapeList: TList;
+  { ContourList class registerlist }
+  ContourList: TList;
 
 type
-  { TConstantShape - sets result to a constant value }
+  { TConstantContour - sets result to a constant value }
 
-  TConstantShape = class(TCustomShape)
+  TConstantContour = class(TCustomContour)
   private
     FConstantValue: Single;
     FixedConstantValue: TFixed;
     procedure SetConstantValue(const Value: Single);
   public
     constructor Create; override;
-    function ShapeValueFixed(const Value: TFixed): TFixed; override;
-    function ShapeValueFloat(const Value: Single): Single; override;
+    function ContourValueFixed(const Value: TFixed): TFixed; override;
+    function ContourValueFloat(const Value: Single): Single; override;
   published
     property ConstantValue: Single read FConstantValue write SetConstantValue;
   end;
 
-  { TLinearShape }
+  { TLinearContour }
 
-  TLinearShape = class(TCustomShape)
+  TLinearContour = class(TCustomContour)
   public
-    function ShapeValueFixed(const Value: TFixed): TFixed; override;
-    function ShapeValueFloat(const Value: Single): Single; override;
+    function ContourValueFixed(const Value: TFixed): TFixed; override;
+    function ContourValueFloat(const Value: Single): Single; override;
   end;
 
-  { TGaussianShape }
+  { TGaussianContour }
 
-  TGaussianShape = class(TCustomShape)
+  TGaussianContour = class(TCustomContour)
   public
-    function ShapeValueFloat(const Value: Single): Single; override;
+    function ContourValueFloat(const Value: Single): Single; override;
   end;
 
-  { TLinearSineShape }
+  { TLinearSineContour }
 
-  TLinearSineShape = class(TCustomShape)
+  TLinearSineContour = class(TCustomContour)
   private
     FWavesCount: Integer;
     procedure SetWavesCount(const Value: Integer);
   public
     constructor Create; override;
-    function ShapeValueFloat(const Value: Single): Single; override;
+    function ContourValueFloat(const Value: Single): Single; override;
   published
     property WavesCount: Integer read FWavesCount write SetWavesCount;
   end;
 
-  { TStairwayShape }
+  { TStairwayContour }
 
-  TStairwayShape = class(TCustomShape)
+  TStairwayContour = class(TCustomContour)
   private
     Scaler : Single;
     FStepCount: Integer;
     procedure SetStepCount(const Value: Integer);
  public
     constructor Create; override;
-    function ShapeValueFloat(const Value: Single): Single; override;
+    function ContourValueFloat(const Value: Single): Single; override;
   published
     property StepCount: Integer read FStepCount write SetStepCount;
   end;
 
-  TDefaultShape = class(TConstantShape);
+  TDefaultContour = class(TConstantContour);
 
 
   { TCustomCombiner - Base class for combining values }
 
   TCustomCombiner = class
   private
-    FShape: TCustomShape;
+    FContour: TCustomContour;
     FCombineRect: TFloatRect;
     FCombineValid: Boolean;
     FMasterWeight: Single;
     procedure SetMasterWeight(Value: Single);
     function GetCombineValid: Boolean;
-    procedure SetShape(Shape: TCustomShape);
-    function GetShapeClassName: string;
-    procedure SetShapeClassName(Value: string);
+    procedure SetContour(Contour: TCustomContour);
+    function GetContourClassName: string;
+    procedure SetContourClassName(Value: string);
   public
     constructor Create;
     destructor Destroy; override;
@@ -143,8 +143,8 @@ type
     procedure FinalizeCombine; virtual;
   published
     property MasterWeight: Single read FMasterWeight write SetMasterWeight;
-    property ShapeClassName: string read GetShapeClassName write SetShapeClassName;
-    property Shape: TCustomShape read FShape write SetShape;
+    property ContourClassName: string read GetContourClassName write SetContourClassName;
+    property Contour: TCustomContour read FContour write SetContour;
   end;
 
   { TCustomVectorCombiner - baseclass for all vectorcombiners, a simple framework
@@ -995,53 +995,53 @@ constructor TCustomCombiner.Create;
 begin
   FMasterWeight := 1.0;
   FCombineValid := False;
-  Shape := TDefaultShape.Create;
+  Contour := TDefaultContour.Create;
 end;
 
 destructor TCustomCombiner.Destroy;
 begin
-  Shape.Free;
+  Contour.Free;
   inherited;
 end;
 
 procedure TCustomCombiner.FinalizeCombine;
 begin
-  Shape.FinalizeShape;
+  Contour.FinalizeContour;
   FCombineValid := False;
 end;
 
 function TCustomCombiner.GetCombineValid: Boolean;
 begin
-  Result := FCombineValid and Shape.ShapeValid;
+  Result := FCombineValid and Contour.ContourValid;
 end;
 
-function TCustomCombiner.GetShapeClassName: string;
+function TCustomCombiner.GetContourClassName: string;
 begin
-   Result := FShape.ClassName;
+   Result := FContour.ClassName;
 end;
 
-procedure TCustomCombiner.SetShape(
-  Shape: TCustomShape);
+procedure TCustomCombiner.SetContour(
+  Contour: TCustomContour);
 begin
-  if Assigned(Shape) then
+  if Assigned(Contour) then
   begin
-    if Assigned(FShape) then FShape.Free;
-    FShape := Shape;
+    if Assigned(FContour) then FContour.Free;
+    FContour := Contour;
     FCombineValid := False;
   end;
 end;
 
-procedure TCustomCombiner.SetShapeClassName(Value: string);
+procedure TCustomCombiner.SetContourClassName(Value: string);
 var
-  ShapeClass: TCustomShapeClass;
+  ContourClass: TCustomContourClass;
 begin
-  if (Value <> '') and (FShape.ClassName <> Value) then
+  if (Value <> '') and (FContour.ClassName <> Value) then
   begin
-    ShapeClass := TCustomShapeClass(FindCustomClass(Value, ShapeList));
-    if Assigned(ShapeClass) then
+    ContourClass := TCustomContourClass(FindCustomClass(Value, ContourList));
+    if Assigned(ContourClass) then
     begin
-      FShape.Free;
-      FShape := ShapeClass.Create;
+      FContour.Free;
+      FContour := ContourClass.Create;
       FCombineValid := False;
     end;
   end;
@@ -1050,7 +1050,7 @@ end;
 procedure TCustomCombiner.PrepareCombine(CombineRect: TFloatRect);
 begin
   if IsRectEmptyF(CombineRect) then raise Exception.Create('CombineRect is empty!');
-  if not Shape.ShapeValid then Shape.PrepareShape;
+  if not Contour.ContourValid then Contour.PrepareContour;
   FCombineRect := CombineRect;
   FCombineValid := True;
 end;
@@ -1098,9 +1098,9 @@ begin
   O.X := B.X + F.X;
   O.Y := B.Y + F.Y;
 
-  with Shape do
-    W := ShapeValueFloat(1 - Abs(P.X)) *
-         ShapeValueFloat(1 - Abs(P.Y)) *
+  with Contour do
+    W := EnsureRange(ContourValueFloat(1 - Abs(P.X)), 0, 1) *
+         EnsureRange(ContourValueFloat(1 - Abs(P.Y)), 0, 1) *
          FMasterWeight;
 
   B.X := B.X + (O.X - B.X) * W;
@@ -1118,9 +1118,9 @@ begin
   O.X := B.X - F.X;
   O.Y := B.Y - F.Y;
 
-  with Shape do
-    W := ShapeValueFloat(1 - Abs(P.X)) *
-         ShapeValueFloat(1 - Abs(P.Y)) *
+  with Contour do
+    W := ContourValueFloat(1 - Abs(P.X)) *
+         ContourValueFloat(1 - Abs(P.Y)) *
          FMasterWeight;
 
   B.X := B.X + (O.X - B.X) * W;
@@ -1138,9 +1138,9 @@ begin
   O.X := B.X * F.X;
   O.Y := B.Y * F.Y;
 
-  with Shape do
-    W := ShapeValueFloat(1 - Abs(P.X)) *
-         ShapeValueFloat(1 - Abs(P.Y)) *
+  with Contour do
+    W := ContourValueFloat(1 - Abs(P.X)) *
+         ContourValueFloat(1 - Abs(P.Y)) *
          FMasterWeight;
 
   B.X := B.X + (O.X - B.X) * W;
@@ -1158,130 +1158,130 @@ begin
   O.X := Abs(B.X - F.X);
   O.Y := Abs(B.Y - F.Y);
 
-  with Shape do
-    W := ShapeValueFloat(1 - Abs(P.X)) *
-         ShapeValueFloat(1 - Abs(P.Y)) *
+  with Contour do
+    W := ContourValueFloat(1 - Abs(P.X)) *
+         ContourValueFloat(1 - Abs(P.Y)) *
          FMasterWeight;
 
   B.X := B.X + (O.X - B.X) * W;
   B.Y := B.Y + (O.Y - B.Y) * W;
 end;
 
-{ TCustomShape }
+{ TCustomContour }
 
-constructor TCustomShape.Create;
+constructor TCustomContour.Create;
 begin
-  ShapeWeight := 1.0;
-  FShapeValid := False;
+  ContourWeight := 1.0;
+  FContourValid := False;
 end;
 
-procedure TCustomShape.FinalizeShape;
+procedure TCustomContour.FinalizeContour;
 begin
-  FShapeValid := False;
+  FContourValid := False;
 end;
 
-procedure TCustomShape.PrepareShape;
+procedure TCustomContour.PrepareContour;
 begin
-  FShapeValid := True;
+  FContourValid := True;
 end;
 
-procedure TCustomShape.SetShapeWeight(const Value: Single);
+procedure TCustomContour.SetContourWeight(const Value: Single);
 begin
-  FShapeWeight := Value;
-  FixedShapeWeight := Fixed(Value);
-  FShapeValid := False;
+  FContourWeight := Value;
+  FixedContourWeight := Fixed(Value);
+  FContourValid := False;
 end;
 
-function TCustomShape.ShapeValueFixed(const Value: TFixed): TFixed;
+function TCustomContour.ContourValueFixed(const Value: TFixed): TFixed;
 var
   S: Single;
 begin
   EMMS;
   S := Value * FixedToFloat;
-  Result := Fixed(ShapeValueFloat(S));
+  Result := Fixed(ContourValueFloat(S));
 end;
 
-{ TConstantShape }
+{ TConstantContour }
 
-constructor TConstantShape.Create;
+constructor TConstantContour.Create;
 begin
   inherited;
   ConstantValue := 1.0;
 end;
 
-procedure TConstantShape.SetConstantValue(const Value: Single);
+procedure TConstantContour.SetConstantValue(const Value: Single);
 begin
   FConstantValue := Value;
   FixedConstantValue := Fixed(Value);
-  FShapeValid := False;
+  FContourValid := False;
 end;
 
-function TConstantShape.ShapeValueFixed(const Value: TFixed): TFixed;
+function TConstantContour.ContourValueFixed(const Value: TFixed): TFixed;
 begin
-  Result := FixedMul(FixedConstantValue, FixedShapeWeight);
+  Result := FixedMul(FixedConstantValue, FixedContourWeight);
 end;
 
-function TConstantShape.ShapeValueFloat(const Value: Single): Single;
+function TConstantContour.ContourValueFloat(const Value: Single): Single;
 begin
-  Result := FConstantValue * FShapeWeight;
+  Result := FConstantValue * FContourWeight;
 end;
 
-{ TLinearShape }
+{ TLinearContour }
 
-function TLinearShape.ShapeValueFixed(const Value: TFixed): TFixed;
+function TLinearContour.ContourValueFixed(const Value: TFixed): TFixed;
 begin
-  Result := FixedMul(Value, FixedShapeWeight);
+  Result := FixedMul(Value, FixedContourWeight);
 end;
 
-function TLinearShape.ShapeValueFloat(const Value: Single): Single;
+function TLinearContour.ContourValueFloat(const Value: Single): Single;
 begin
-  Result := Value * FShapeWeight;
+  Result := Value * FContourWeight;
 end;
 
-{ TGaussianShape }
+{ TGaussianContour }
 
-function TGaussianShape.ShapeValueFloat(const Value: Single): Single;
+function TGaussianContour.ContourValueFloat(const Value: Single): Single;
 begin
   Result := Sqr(Sin(0.5 * Value * PI));
 end;
 
-{ TLinearSineShape }
+{ TLinearSineContour }
 
-constructor TLinearSineShape.Create;
+constructor TLinearSineContour.Create;
 begin
   inherited;
   FWavesCount := 10;
 end;
 
-procedure TLinearSineShape.SetWavesCount(const Value: Integer);
+procedure TLinearSineContour.SetWavesCount(const Value: Integer);
 begin
   FWavesCount := Value;
-  FShapeValid := False;
+  FContourValid := False;
 end;
 
-function TLinearSineShape.ShapeValueFloat(const Value: Single): Single;
+function TLinearSineContour.ContourValueFloat(const Value: Single): Single;
 begin
   Result := 0.5 + Cos(Value * PI * FWavesCount) * 0.5;
   Result := 1 - Result; 
   Result := Result * Value; // Linearity
 end;
 
-{ TStairwayShape }
+{ TStairwayContour }
 
-constructor TStairwayShape.Create;
+constructor TStairwayContour.Create;
 begin
   inherited;
   StepCount := 10;
 end;
 
-procedure TStairwayShape.SetStepCount(const Value: Integer);
+procedure TStairwayContour.SetStepCount(const Value: Integer);
 begin
   FStepCount := Value;
   Scaler := 1 / Value;
-  FShapeValid := False;
+  FContourValid := False;
 end;
 
-function TStairwayShape.ShapeValueFloat(const Value: Single): Single;
+function TStairwayContour.ContourValueFloat(const Value: Single): Single;
 begin
   Result := Round(FStepCount * Value) * Scaler;
 end;
@@ -1293,14 +1293,14 @@ initialization
   RegisterCustomClass(TMultiplicationVectorCombiner, VectorCombinerList);
   RegisterCustomClass(TDifferenceVectorCombiner, VectorCombinerList);
 
-  { Register Shapes }
-  RegisterCustomClass(TConstantShape, ShapeList);
-  RegisterCustomClass(TLinearShape, ShapeList);
-  RegisterCustomClass(TGaussianShape, ShapeList);
-  RegisterCustomClass(TLinearSineShape, ShapeList);
-  RegisterCustomClass(TStairwayShape, ShapeList);
+  { Register Contours }
+  RegisterCustomClass(TConstantContour, ContourList);
+  RegisterCustomClass(TLinearContour, ContourList);
+  RegisterCustomClass(TGaussianContour, ContourList);
+  RegisterCustomClass(TLinearSineContour, ContourList);
+  RegisterCustomClass(TStairwayContour, ContourList);
 
 finalization
   VectorCombinerList.Free;
-  ShapeList.Free;
+  ContourList.Free;
 end.
