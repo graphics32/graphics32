@@ -22,7 +22,8 @@ unit GR32_Polygons;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Andre Beckedorf <Andre@metaException.de>
+ *   Andre Beckedorf <Andre@metaException.de>
+ *   Mattias Andersson <mattias@centaurix.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Polygons.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
@@ -101,7 +102,7 @@ type
     destructor Destroy; override;
     procedure Add(const P: TFixedPoint);
     procedure AddPoints(var First: TFixedPoint; Count: Integer);
-    function ContainsPoint(const P: TFixedPoint): Boolean;
+    function  ContainsPoint(const P: TFixedPoint): Boolean;
     procedure Clear;
     function  Grow(const Delta: TFixed; EdgeSharpness: Single = 0): TPolygon32;
     procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32);
@@ -200,7 +201,7 @@ var
   I, Count: Integer;
 begin
   Count := Length(Points);
-  if (Count = 1) and Closed then with Points[0] do Bitmap.SetPixelXS(X, Y, Color);
+  if (Count = 1) and Closed then with Points[0] do Bitmap.PixelXS[X, Y] := Color;
   if Count < 2 then Exit;
   Bitmap.BeginUpdate;
   Bitmap.PenColor := Color;
