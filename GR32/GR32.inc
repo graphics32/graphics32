@@ -1,5 +1,5 @@
 {$IFDEF VER170}
-  {$DEFINE USEINLINING}
+  {$DEFINE INLININGSUPPORTED}
   {$DEFINE COMPILER2005}
   {$DEFINE COMPILER7}
   {$DEFINE COMPILER6}
@@ -71,6 +71,13 @@
 
 {$IFDEF LINUX}
   {$DEFINE CLX}
+{$ENDIF}
+
+{$IFDEF INLININGSUPPORTED}
+  // comment the following define out if you want to avoid function inlining
+  // which might increase executable size but will give better performance in
+  // most cases.
+  {$DEFINE USEINLINING}
 {$ENDIF}
 
 //{$DEFINE CLX}  // uncomment this if you want CLX for Windows
