@@ -63,6 +63,8 @@ function GetTickCount: Integer;
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
+{ HasEMMX returns 'true' if CPU supports the Extended MMX (aka Integer SSE) instructions }
+function HasEMMX: Boolean;
 { Has3DNow returns 'true' if CPU supports 3DNow! instructions }
 function Has3DNow: Boolean;
 { Has3DNowExt returns 'true' if CPU supports 3DNow! Extended instructions }
@@ -73,7 +75,7 @@ function HasSSE: Boolean;
 function HasSSE2: Boolean;
 
 type
-  TCPUInstructionSet = (ciMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
+  TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
 
 { General function that returns whether a particular instrucion set is
   supported for the current CPU or not }
@@ -81,8 +83,8 @@ function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 
 const
   CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
-    ($800000, $2000000, $4000000, $80000000, $40000000);
-//   ciMMX  , ciSSE   , ciSSE2  , ci3DNow , ci3DNowExt
+    ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
+//   ciMMX  ,  ciEMMX,  ciSSE   , ciSSE2  , ci3DNow ,  ci3DNowExt
 
 var
   GlobalPerfTimer: TPerfTimer;
@@ -284,7 +286,7 @@ asm
         MOV     EAX,EDX
 end;
 
-function CPU_AMDExtensionsAvailable: Boolean;
+function CPU_ExtensionsAvailable: Boolean;
 asm
         PUSH    EBX
         MOV     @Result, True
@@ -299,7 +301,7 @@ asm
         POP     EBX
 end;
 
-function CPU_AMDExtFeatures: Integer;
+function CPU_ExtFeatures: Integer;
 asm
         PUSH    EBX
         MOV     EAX, $80000001
@@ -313,15 +315,23 @@ begin
   Result := False;
   if not CPUID_Available then Exit;                   // no CPUID available
   if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
-  if (InstructionSet = ci3DNow) or
-     (InstructionSet = ci3DNowExt) then
-  begin
-    if not CPU_AMDExtensionsAvailable or (CPU_AMDExtFeatures and CPUISChecks[InstructionSet] = 0) then
-      Exit;
-  end
+
+  case InstructionSet of
+    ci3DNow, ci3DNowExt:
+      if not CPU_ExtensionsAvailable or (CPU_ExtFeatures and CPUISChecks[InstructionSet] = 0) then
+        Exit;
+    ciEMMX:
+      begin
+        // check for SSE, necessary for Intel CPUs because they don't implement the
+        // extended info
+        if (CPU_Features and CPUISChecks[ciSSE] = 0) and
+          (not CPU_ExtensionsAvailable or (CPU_ExtFeatures and CPUISChecks[ciEMMX] = 0)) then
+          Exit;
+      end;
   else
     if CPU_Features and CPUISChecks[InstructionSet] = 0 then
-      Exit; // no MMX
+      Exit; // return -> instruction set not supported
+  end;
 
   Result := True;
 end;
@@ -329,6 +339,11 @@ end;
 function HasMMX: Boolean;
 begin
   Result := HasInstructionSet(ciMMX);
+end;
+
+function HasEMMX: Boolean;
+begin
+  Result := HasInstructionSet(ciEMMX);
 end;
 
 function HasSSE: Boolean;
