@@ -40,9 +40,9 @@ uses
   {$IFDEF LINUX}Libc,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
 {$ELSE}
-  Windows, 
+  Windows,
 {$ENDIF}
-  Classes, SysUtils, CSIntf,
+  Classes, SysUtils,
 {$IFDEF CLX}
   QControls, QGraphics, QConsts
 {$ELSE}
@@ -3168,15 +3168,6 @@ var
   CI: Byte;
   P: PColor32;
 begin
-//  {$DEFINE CODESITE}
-//  {$DEFINE DEBUG}
-//  {$DEFINE OUTLINE}
-
-{$IFDEF CODESITE}
-  If Clipping then
-    CodeSite.AddSeparator;
-{$ENDIF}
-
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
   Dx := X2 - X1; Dy := Y2 - Y1;
@@ -3268,16 +3259,15 @@ begin
   if Y1 < Cy1 then
   begin
     tmp := (Cy1 - Y1) * 65536;
-    rem := tmp mod EA;
-    tmp := tmp div EA;
-    if rem > 0 then Inc(tmp);
+    rem := tmp - 65536; // rem := (Cy1 - Y1 - 1) * 65536;
+    if tmp mod EA > 0 then
+      tmp := tmp div EA + 1
+    else
+      tmp := tmp div EA;
 
     xd := Min(xd + tmp, X2 + 1);
+    EC := tmp * EA;
 
-    EC := EA - rem;    // faster than:   EC := tmp * EA;
-
-//    tmp := (65536 - rem) div EA;
-    rem := (Cy1 - Y1 - 1) * 65536;
     if rem mod EA > 0 then
       rem := rem div EA + 1
     else
@@ -3304,7 +3294,7 @@ begin
 
       If CornerAA then
       begin
-        Dec(ED, (xd - Cx2) * EA);
+        Dec(ED, (xd - Cx2 - 1) * EA);
         xd := Cx2 + 1;
       end;
 
@@ -3316,27 +3306,12 @@ begin
         term := -term;
       end;
 
-{$IFDEF CODESITE}
-      If Clipping then
-      begin
-        CodeSite.SendMsg('Entering cliprect');
-        CodeSite.SendInteger('xd', xd);
-        CodeSite.SendInteger('term', term);
-        if ((Sx = -1) and (xd > term)) then CodeSite.SendMsg('Entering cliprect: (Sx = -1) and (xd > term) -> CRASH!');
-        if ((Sx = 1) and (xd < term)) then  CodeSite.SendMsg('Entering cliprect: (Sx = 1) and (xd < term) -> CRASH!');
-      end;
-{$ENDIF}
-
       try
         while xd <> term do
         begin
           Inc(xd, -Sx);
           P := @Bits[D1^ + D2^ * Width];
-{$IFDEF DEBUG}
-          BlendMemEx(clGreen32, P^, 120);
-{$ELSE}
           BlendMemEx(Value, P^, GAMMA_TABLE[ED shr 8]);
-{$ENDIF}
           Dec(ED, EA);
         end;
       finally
@@ -3380,15 +3355,19 @@ begin
   if Y2 > Cy2 then
   begin
     tmp := (Cy2 - Y1) * 65536;
-    rem := tmp mod EA;
     term := X1 + tmp div EA;
+    if not(tmp mod EA > 0) then
+      Dec(Term);
 
     if term < Cx2 then
     begin
-      rem := (65536 + rem) div EA;
-      rem := term + rem;
+      rem := tmp + 65536; // rem := (Cy2 - Y1 + 1) * 65536;
+      if rem mod EA > 0 then
+        rem := X1 + rem div EA + 1
+      else
+        rem := X1 + rem div EA;
+
       if rem > Cx2 then rem := Cx2;
-      inc(rem);
       CheckVert := True;
     end;
   end;
@@ -3405,38 +3384,14 @@ begin
 
   if not CornerAA then
   try
-{$IFDEF CODESITE}
-    If Clipping then
-    begin
-      CodeSite.SendMsg('Main drawing');
-      CodeSite.SendInteger('xd', xd);
-      CodeSite.SendInteger('term', term);
-      if ((Sx = -1) and (xd < term)) then CodeSite.SendMsg('Main: (Sx = -1) and (xd < term) -> CRASH!');
-      if ((Sx = 1) and (xd > term)) then  CodeSite.SendMsg('Main: (Sx = 1) and (xd > term) -> CRASH!');
-    end;
-{$ENDIF}
-
     while xd <> term do
     begin
       CI := EC shr 8;
       P := @Bits[D1^ + D2^ * Width];
-
-{$IFNDEF OUTLINE}
-{$IFDEF DEBUG}
-      BlendMemEx(Value, P^, 120);
-{$ELSE}
       BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
-{$ENDIF}
-{$ENDIF}
       Inc(P, PI);
-{$IFNDEF OUTLINE}
-{$IFDEF DEBUG}
-      BlendMemEx(clBlack32, P^, 120);
-{$ELSE}
       BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
-{$ENDIF}
-{$ENDIF}
-
+      // check for overflow and jump to next line...
       D := EC;
       Inc(EC, EA);
       if EC <= D then
@@ -3450,24 +3405,10 @@ begin
 
   If CheckVert then
   try
-{$IFDEF CODESITE}
-    If Clipping then
-    begin
-      CodeSite.SendMsg('Exiting cliprect');
-      CodeSite.SendInteger('xd', xd);
-      CodeSite.SendInteger('rem', rem);
-      if ((Sx = -1) and (xd < rem)) then CodeSite.SendMsg('Main: (Sx = -1) and (xd < rem) -> CRASH!');
-      if ((Sx = 1) and (xd > rem)) then  CodeSite.SendMsg('Main: (Sx = 1) and (xd > rem) -> CRASH!');
-    end;
-{$ENDIF}
     while xd <> rem do
     begin
       P := @Bits[D1^ + D2^ * Width];
-{$IFDEF DEBUG}
-      BlendMemEx(clYellow32, P^, 120);
-{$ELSE}
       BlendMemEx(Value, P^, GAMMA_TABLE[EC shr 8 xor 255]);
-{$ENDIF}
       Inc(EC, EA);
       Inc(xd, Sx);
     end;
