@@ -4241,6 +4241,7 @@ begin
         StockCanvas.Font.Size := Font.Size shl AALevel;
         Sz := StockCanvas.TextExtent(PaddedText);
         Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
+        Sz.Cy := (Sz.cy shr AALevel + 1) shl AALevel;
         B2 := TBitmap32.Create;
         try
           B2.SetSize(Sz.Cx, Sz.Cy);
@@ -4317,6 +4318,7 @@ begin
           Length(PaddedText), Sz);
 {$ENDIF}
         Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
+        Sz.Cy := (Sz.cy shr AALevel + 1) shl AALevel;
         B2 := TBitmap32.Create;
         try
           B2.SetSize(Sz.Cx, Sz.Cy);
