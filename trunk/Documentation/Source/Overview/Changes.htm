@@ -4,6 +4,22 @@
 <link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
 </head>
 <body bgcolor="#FFFFFF">
+<h2 class="Body">v1.7.1 (25 February 2005)</h2>
+<p class="Body"><strong>Bugfixes:</strong></p>
+<ul>
+  <li> fixes for AVs in new line drawing methods (LineS, LineTS, LineAS)</li>
+  <li>replaced incorrect call of VertLineS and HorzLineS in LineTS and LineAS with VertLineTS and HorzLineTS</li>
+  <li>fix for buffer reallocation inefficiency in TCustomPaintBox32 (non-critical, long standing)<br>
+    This should improve performance on resizing for all TCustomPaintBox32 derived controls.</li>
+  <li>added missing call to inherited constructor in TPolygon32 constructor (caused big trouble on Win9x/WinME systems) </li>
+  <li>RenderText now ignores Windows-based font smoothing in VCL<br>
+    (VCL-only change because the QT version that's used in CLX doesn't support disabling
+font antialiasing, neither in Windows nor in Linux/X11)</li>
+  <li>CLX compilation fixes</li>
+  <li>C++ Builder  compilation fixes</li>
+  <li>ColorMul removed (duplicate of ColorModulate)</li>
+  <li>minor cleanups</li>
+</ul>
 <h2 class="Body">v1.7  (16 January 2005)</h2>
 <p class="Body"><strong>New Features:</strong></p>
 <ul>
