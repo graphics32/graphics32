@@ -483,13 +483,10 @@ type
     procedure VertLineTSP(X, Y1, Y2: Integer);
 
     procedure Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
-    procedure LineSOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineT(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
-    procedure LineTSOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineTS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineA(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
-    procedure LineASOld (X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineX(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean = False); overload;
     procedure LineF(X1, Y1, X2, Y2: Single; Value: TColor32; L: Boolean = False); overload;
@@ -2668,13 +2665,6 @@ begin
   Changed;
 end;
 
-procedure TBitmap32.LineSOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
-begin
-  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
-              ClipRect.Right - 1, ClipRect.Bottom - 1) then
-    Line(X1, Y1, X2, Y2, Value, L or FClipping);
-end;
-
 procedure TBitmap32.LineT(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Dy, Dx, Sy, Sx, I, Delta: Integer;
@@ -2754,19 +2744,6 @@ begin
     end;
   finally
     Changed;
-  end;
-end;
-
-procedure TBitmap32.LineTSOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
-var
-  OldX2, OldY2: Integer;
-begin
-  OldX2 := X2; OldY2 := Y2;
-  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
-              ClipRect.Right - 1, ClipRect.Bottom - 1) then
-  begin
-    if (OldX2 <> X2) or (OldY2 <> Y2) then L := True;
-    LineT(X1, Y1, X2, Y2, Value, L or FClipping);
   end;
 end;
 
@@ -3245,13 +3222,6 @@ begin
     EMMS;
     Changed;
   end;
-end;
-
-procedure TBitmap32.LineASOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
-begin
-  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
-              ClipRect.Right - 1, ClipRect.Bottom - 1) then
-    LineA(X1, Y1, X2, Y2, Value, L);
 end;
 
 procedure TBitmap32.LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
