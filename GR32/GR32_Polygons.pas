@@ -24,6 +24,7 @@ unit GR32_Polygons;
  * Contributor(s):
  *   Andre Beckedorf <Andre@metaException.de>
  *   Mattias Andersson <mattias@centaurix.com>
+ *   Peter Larson
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Polygons.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
@@ -38,25 +39,29 @@ uses
   {$IFDEF LINUX}Libc, {$ENDIF}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}
 {$ELSE}
-  Windows,
+  Windows, Classes,
 {$ENDIF}
-  SysUtils, GR32, GR32_LowLevel, GR32_Blend;
+  SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms;
 
 { Polylines }
 
 procedure PolylineTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean = False);
+  Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
 procedure PolylineAS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean = False);
+  Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
 procedure PolylineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean = False);
+  Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
+procedure PolylineXSP(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Closed: Boolean = False; Transformation: TTransformation = nil);
 
 procedure PolyPolylineTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean = False);
+  Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
 procedure PolyPolylineAS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean = False);
+  Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
 procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Closed: Boolean = False);
+  Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
+procedure PolyPolylineXSP(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Closed: Boolean = False; Transformation: TTransformation = nil);
 
 { Polygons }
 
@@ -70,16 +75,16 @@ const
   DefaultAAMode = am8times; // Use 54 levels of transparency for antialiasing.
 
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate);
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
-  const AAMode: TAntialiasMode = DefaultAAMode);
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil);
 
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate);
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
-  const AAMode: TAntialiasMode = DefaultAAMode);
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil);
 
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 
@@ -87,7 +92,7 @@ function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): B
 { TODO : Bezier Curves, and QSpline curves for TrueType font rendering }
 { TODO : Check if QSpline is compatible with Type1 fonts }
 type
-  TPolygon32 = class
+  TPolygon32 = class(TThreadPersistent)
   private
     FAntialiased: Boolean;
     FClosed: Boolean;
@@ -97,24 +102,32 @@ type
     FAntialiasMode: TAntialiasMode;
   protected
     procedure BuildNormals;
+    procedure AssignProperties(Dest: TPolygon32); virtual;
+    procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create; virtual;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Add(const P: TFixedPoint);
     procedure AddPoints(var First: TFixedPoint; Count: Integer);
     function  ContainsPoint(const P: TFixedPoint): Boolean;
     procedure Clear;
     function  Grow(const Delta: TFixed; EdgeSharpness: Single = 0): TPolygon32;
-    procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32);
-    procedure DrawEdge(Bitmap: TBitmap32; Color: TColor32);
-    procedure DrawFill(Bitmap: TBitmap32; Color: TColor32);
+
+    procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil);
+    procedure DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil);
+    procedure DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil);
+
     procedure NewLine;
     procedure Offset(const Dx, Dy: TFixed);
     function  Outline: TPolygon32;
+    procedure Transform(Transformation: TTransformation);
+    function GetBoundingRect: TFixedRect;
+
     property Antialiased: Boolean read FAntialiased write FAntialiased;
     property AntialiasMode: TAntialiasMode read FAntialiasMode write FAntialiasMode;
     property Closed: Boolean read FClosed write FClosed;
     property FillMode: TPolyFillMode read FFillMode write FFillMode;
+
     property Normals: TArrayOfArrayOfFixedPoint read FNormals write FNormals;
     property Points: TArrayOfArrayOfFixedPoint read FPoints write FPoints;
   end;
@@ -130,6 +143,7 @@ const
   AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_12, SAR_13, SAR_14);
 
 type
+  TBitmap32Access = class(TBitmap32);
 // These are for edge scan info. Note, that the most significant bit of the
 // edge in a scan line is used for winding (edge direction) info.
   TScanLine = TArrayOfInteger;
@@ -143,28 +157,64 @@ procedure PolylineTS(
   Bitmap: TBitmap32;
   const Points: TArrayOfFixedPoint;
   Color: TColor32;
-  Closed: Boolean);
-var                                      
+  Closed: Boolean;
+  Transformation: TTransformation);
+var
   I, Count: Integer;
   DoAlpha: Boolean;
 begin
   Count := Length(Points);
+
   if (Count = 1) and Closed then
-    with Points[0] do Bitmap.SetPixelTS(FixedRound(X), FixedRound(Y), Color);
+    if Assigned(Transformation) then
+      with Transformation.Transform(Points[0]) do
+        Bitmap.SetPixelTS(FixedRound(X), FixedRound(Y), Color)
+    else
+      with Points[0] do
+        Bitmap.SetPixelTS(FixedRound(X), FixedRound(Y), Color);
+
   if Count < 2 then Exit;
   DoAlpha := Color and $FF000000 <> $FF000000;
   Bitmap.BeginUpdate;
   Bitmap.PenColor := Color;
-  with Points[0] do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
-  if DoAlpha then
-    for I := 1 to Count - 1 do
-      with Points[I] do
+
+  If Assigned(Transformation) then
+  begin
+    with Transformation.Transform(Points[0]) do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
+    if DoAlpha then
+      for I := 1 to Count - 1 do
+        with Transformation.Transform(Points[I]) do
+          Bitmap.LineToTS(FixedRound(X), FixedRound(Y))
+    else
+      for I := 1 to Count - 1 do
+        with Transformation.Transform(Points[I]) do
+          Bitmap.LineToS(FixedRound(X), FixedRound(Y));
+
+    if Closed then with Transformation.Transform(Points[0]) do
+      if DoAlpha then
         Bitmap.LineToTS(FixedRound(X), FixedRound(Y))
-  else
-    for I := 1 to Count - 1 do
-      with Points[I] do
+      else
         Bitmap.LineToS(FixedRound(X), FixedRound(Y));
-  if Closed then with Points[0] do Bitmap.LineToTS(FixedRound(X), FixedRound(Y));
+  end
+  else
+  begin
+    with Points[0] do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
+    if DoAlpha then
+      for I := 1 to Count - 1 do
+        with Points[I] do
+          Bitmap.LineToTS(FixedRound(X), FixedRound(Y))
+    else
+      for I := 1 to Count - 1 do
+        with Points[I] do
+          Bitmap.LineToS(FixedRound(X), FixedRound(Y));
+
+    if Closed then with Points[0] do
+      if DoAlpha then
+        Bitmap.LineToTS(FixedRound(X), FixedRound(Y))
+      else
+        Bitmap.LineToS(FixedRound(X), FixedRound(Y));
+  end;
+
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
@@ -173,21 +223,41 @@ procedure PolylineAS(
   Bitmap: TBitmap32;
   const Points: TArrayOfFixedPoint;
   Color: TColor32;
-  Closed: Boolean);
+  Closed: Boolean;
+  Transformation: TTransformation);
 var
   I, Count: Integer;
 begin
   Count := Length(Points);
   if (Count = 1) and Closed then
-    with Points[0] do Bitmap.SetPixelTS(FixedRound(X), FixedRound(Y), Color);
+    if Assigned(Transformation) then
+      with Transformation.Transform(Points[0]) do
+        Bitmap.SetPixelTS(FixedRound(X), FixedRound(Y), Color)
+    else
+      with Points[0] do
+        Bitmap.SetPixelTS(FixedRound(X), FixedRound(Y), Color);
+
   if Count < 2 then Exit;
   Bitmap.BeginUpdate;
   Bitmap.PenColor := Color;
-  with Points[0] do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
-  for I := 1 to Count - 1 do
-    with Points[I] do
-      Bitmap.LineToAS(FixedRound(X), FixedRound(Y));
-  if Closed then with Points[0] do Bitmap.LineToAS(FixedRound(X), FixedRound(Y));
+
+  If Assigned(Transformation) then
+  begin
+    with Transformation.Transform(Points[0]) do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
+    for I := 1 to Count - 1 do
+      with Transformation.Transform(Points[I]) do
+        Bitmap.LineToAS(FixedRound(X), FixedRound(Y));
+    if Closed then with Transformation.Transform(Points[0]) do Bitmap.LineToAS(FixedRound(X), FixedRound(Y));
+  end
+  else
+  begin
+    with Points[0] do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
+    for I := 1 to Count - 1 do
+      with Points[I] do
+        Bitmap.LineToAS(FixedRound(X), FixedRound(Y));
+    if Closed then with Points[0] do Bitmap.LineToAS(FixedRound(X), FixedRound(Y));
+  end;
+
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
@@ -196,18 +266,63 @@ procedure PolylineXS(
   Bitmap: TBitmap32;
   const Points: TArrayOfFixedPoint;
   Color: TColor32;
-  Closed: Boolean);
+  Closed: Boolean;
+  Transformation: TTransformation);
 var
   I, Count: Integer;
 begin
   Count := Length(Points);
-  if (Count = 1) and Closed then with Points[0] do Bitmap.PixelXS[X, Y] := Color;
+  if (Count = 1) and Closed then
+    if Assigned(Transformation) then
+      with Transformation.Transform(Points[0]) do Bitmap.PixelXS[X, Y] := Color
+    else
+      with Points[0] do Bitmap.PixelXS[X, Y] := Color;
+
   if Count < 2 then Exit;
   Bitmap.BeginUpdate;
   Bitmap.PenColor := Color;
-  with Points[0] do Bitmap.MoveToX(X, Y);
-  for I := 1 to Count - 1 do with Points[I] do Bitmap.LineToXS(X, Y);
-  if Closed then with Points[0] do Bitmap.LineToXS(X, Y);
+
+  if Assigned(Transformation) then
+  begin
+    with Transformation.Transform(Points[0]) do Bitmap.MoveToX(X, Y);
+    for I := 1 to Count - 1 do with Transformation.Transform(Points[I]) do Bitmap.LineToXS(X, Y);
+    if Closed then with Transformation.Transform(Points[0]) do Bitmap.LineToXS(X, Y);
+  end
+  else
+  begin
+    with Points[0] do Bitmap.MoveToX(X, Y);
+    for I := 1 to Count - 1 do with Points[I] do Bitmap.LineToXS(X, Y);
+    if Closed then with Points[0] do Bitmap.LineToXS(X, Y);
+  end;
+
+  Bitmap.EndUpdate;
+  Bitmap.Changed;
+end;
+
+procedure PolylineXSP(
+  Bitmap: TBitmap32;
+  const Points: TArrayOfFixedPoint;
+  Closed: Boolean;
+  Transformation: TTransformation);
+var
+  I, Count: Integer;
+begin
+  Count := Length(Points);
+  if Count < 2 then Exit;
+  Bitmap.BeginUpdate;
+  if Assigned(Transformation) then
+  begin
+    with Transformation.Transform(Points[0]) do Bitmap.MoveToX(X, Y);
+    for I := 1 to Count - 1 do with Transformation.Transform(Points[I]) do Bitmap.LineToXSP(X, Y);
+    if Closed then with Transformation.Transform(Points[0]) do Bitmap.LineToXSP(X, Y);
+  end
+  else
+  begin
+    with Points[0] do Bitmap.MoveToX(X, Y);
+    for I := 1 to Count - 1 do with Points[I] do Bitmap.LineToXSP(X, Y);
+    if Closed then with Points[0] do Bitmap.LineToXSP(X, Y);
+  end;
+
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
@@ -216,33 +331,47 @@ procedure PolyPolylineTS(
   Bitmap: TBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32;
-  Closed: Boolean = False);
+  Closed: Boolean;
+  Transformation: TTransformation);
 var
   I: Integer;
 begin
-  for I := 0 to High(Points) do PolylineTS(Bitmap, Points[I], Color, Closed);
+  for I := 0 to High(Points) do PolylineTS(Bitmap, Points[I], Color, Closed, Transformation);
 end;
 
 procedure PolyPolylineAS(
   Bitmap: TBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32;
-  Closed: Boolean = False);
+  Closed: Boolean;
+  Transformation: TTransformation);
 var
   I: Integer;
 begin
-  for I := 0 to High(Points) do PolylineAS(Bitmap, Points[I], Color, Closed);
+  for I := 0 to High(Points) do PolylineAS(Bitmap, Points[I], Color, Closed, Transformation);
 end;
 
 procedure PolyPolylineXS(
   Bitmap: TBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32;
-  Closed: Boolean = False);
+  Closed: Boolean;
+  Transformation: TTransformation);
 var
   I: Integer;
 begin
-  for I := 0 to High(Points) do PolylineXS(Bitmap, Points[I], Color, Closed);
+  for I := 0 to High(Points) do PolylineXS(Bitmap, Points[I], Color, Closed, Transformation);
+end;
+
+procedure PolyPolylineXSP(
+  Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint;
+  Closed: Boolean;
+  Transformation: TTransformation);
+var
+  I: Integer;
+begin
+  for I := 0 to High(Points) do PolylineXSP(Bitmap, Points[I], Closed, Transformation);
 end;
 
 procedure QSortLine(const ALine: TScanLine; L, R: Integer);
@@ -352,7 +481,6 @@ var
       Inc(Y, Sy);
       Inc(Delta, Dx);
 
-
       // try it two times and if anything else left, use div and mod
       if Delta > Dy then
       begin
@@ -431,10 +559,13 @@ procedure FillLines(Bitmap: TBitmap32; BaseY: Integer;
 var
   I, J, L: Integer;
   Left, Right, OldRight, LP, RP: Integer;
-  DoAlpha: Boolean;
   Winding, NextWinding: Integer;
+  HorzLine: procedure(X1, Y, X2: Integer; Value: TColor32) of Object;
 begin
-  DoAlpha := Color and $FF000000 <> $FF000000;
+  if Color and $FF000000 <> $FF000000 then
+    HorzLine := Bitmap.HorzLineT
+  else
+    HorzLine := Bitmap.HorzLine;
 
   if Mode = pfAlternate then
     for J := 0 to High(ScanLines) do
@@ -460,9 +591,7 @@ begin
 
           if Left <= OldRight then Left := OldRight + 1;
           OldRight := Right;
-          if Right >= Left then
-            if DoAlpha then Bitmap.HorzLineT(Left, BaseY + J, Right, Color)
-            else Bitmap.HorzLine(Left, BaseY + J, Right, Color);
+          if Right >= Left then HorzLine(Left, BaseY + J, Right, Color);
         end;
         Inc(I);
       end
@@ -473,7 +602,6 @@ begin
       L := Length(ScanLines[J]); // assuming length is even
       if L = 0 then Continue;
       I := 0;
-      OldRight := -1;
 
       Winding := 0;
       Left := ScanLines[J][0];
@@ -496,9 +624,7 @@ begin
 
           if RP >= Bitmap.ClipRect.Right - 1 then RP := Bitmap.ClipRect.Right - 1;
 
-          if RP >= LP then
-            if DoAlpha then Bitmap.HorzLineT(LP, BaseY + J, RP, Color)
-            else Bitmap.HorzLine(LP, BaseY + J, RP, Color);
+          if RP >= LP then HorzLine(LP, BaseY + J, RP, Color);
         end;
 
         Inc(Winding, NextWinding);
@@ -635,7 +761,7 @@ begin
       end;
 
       // draw it to the screen
-      BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
+      TBitmap32Access(Bitmap).BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
       EMMS;
     end;
 
@@ -643,20 +769,8 @@ begin
   end;
 end;
 
-procedure GetMinMax(const Points: TArrayOfPoint; out MinY, MaxY: Integer); overload;
-var
-  I, Y: Integer;
-begin
-  MinY := $7F000000; MaxY := -$7F000000;
-  for I := 0 to High(Points) do
-  begin
-    Y := Points[I].Y;
-    if Y < MinY then MinY := Y;
-    if Y > MaxY then MaxY := Y;
-  end;
-end;
-
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; Mode: TPolyFillMode);
+procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; Mode: TPolyFillMode; Transformation: TTransformation);
 var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
@@ -666,14 +780,32 @@ begin
   if (L < 3) or (Color and $FF000000 = 0) then Exit;
   SetLength(PP, L);
 
-  for I := 0 to L - 1 do
-    with Points[I] do
-    begin
-      PP[I].X := SAR_16(X + $00007FFF);
-      PP[I].Y := SAR_16(Y + $00007FFF);
-    end;
+  MinY := $7F000000;
+  MaxY := -$7F000000;
 
-  GetMinMax(PP, MinY, MaxY);
+  If Assigned(Transformation) then
+  begin
+    for I := 0 to L - 1 do
+      with Transformation.Transform(Points[I]) do
+      begin
+        PP[I].X := SAR_16(X + $00007FFF);
+        PP[I].Y := SAR_16(Y + $00007FFF);
+        if PP[I].Y < MinY then MinY := PP[I].Y;
+        if PP[I].Y > MaxY then MaxY := PP[I].Y;
+      end;
+  end
+  else
+  begin
+    for I := 0 to L - 1 do
+      with Points[I] do
+      begin
+        PP[I].X := SAR_16(X + $00007FFF);
+        PP[I].Y := SAR_16(Y + $00007FFF);
+        if PP[I].Y < MinY then MinY := PP[I].Y;
+        if PP[I].Y > MaxY then MaxY := PP[I].Y;
+      end;
+  end;
+
   MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
   MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
   if MinY >= MaxY then Exit;
@@ -693,7 +825,8 @@ begin
 end;
 
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode);
+  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode;
+  Transformation: TTransformation);
 var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
@@ -707,18 +840,36 @@ begin
 
   AASAR := AA_SAR[AAMode];
 
-  for I := 0 to L - 1 do
-    with Points[I] do
-    begin
-      PP[I].X := AASAR(X + $00007FF);
-      PP[I].Y := AASAR(Y + $00007FF);
-    end;
+  MinY := $7F000000;
+  MaxY := -$7F000000;
+
+  If Assigned(Transformation) then
+  begin
+    for I := 0 to L - 1 do
+      with Transformation.Transform(Points[I]) do
+      begin
+        PP[I].X := AASAR(X + $00007FFF);
+        PP[I].Y := AASAR(Y + $00007FFF);
+        if PP[I].Y < MinY then MinY := PP[I].Y;
+        if PP[I].Y > MaxY then MaxY := PP[I].Y;
+      end;
+  end
+  else
+  begin
+    for I := 0 to L - 1 do
+      with Points[I] do
+      begin
+        PP[I].X := AASAR(X + $00007FF);
+        PP[I].Y := AASAR(Y + $00007FF);
+        if PP[I].Y < MinY then MinY := PP[I].Y;
+        if PP[I].Y > MaxY then MaxY := PP[I].Y;
+      end;
+  end;
 
   AAShift := AA_SHIFT[AAMode];
   AAClipTop := Bitmap.ClipRect.Top shl AAShift;
   AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
 
-  GetMinMax(PP, MinY, MaxY);
   MinY := Constrain(MinY, AAClipTop, AAClipBottom);
   MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
   if MinY >= MaxY then Exit;
@@ -738,33 +889,47 @@ begin
 end;
 
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate);
+  Color: TColor32; Mode: TPolyFillMode; Transformation: TTransformation);
 var
-  L, I, J, min, max, MinY, MaxY, ShiftedLeft, ShiftedRight, ClipBottom: Integer;
+  L, I, J, MinY, MaxY, ShiftedLeft, ShiftedRight, ClipBottom: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
 begin
   SetLength(PP, Length(Points));
 
-  for J := 0 to High(Points) do
-  begin
-    L := Length(Points[J]);
-    SetLength(PP[J], L);
-    for I := 0 to L - 1 do
-      with Points[J][I] do
-      begin
-        PP[J][I].X := SAR_16(X + $00007FFF);
-        PP[J][I].Y := SAR_16(Y + $00007FFF);
-      end;
-  end;
-
   MaxY := -$7FFFFFFF;
   MinY := $7FFFFFFF;
-  for J := 0 to High(PP) do
+  If Assigned(Transformation) then
   begin
-    GetMinMax(PP[J], min, max);
-    if min < MinY then MinY := min;
-    if max > MaxY then MaxY := max;
+    for J := 0 to High(Points) do
+    begin
+      L := Length(Points[J]);
+      SetLength(PP[J], L);
+      for I := 0 to L - 1 do
+        with Transformation.Transform(Points[J][I]) do
+        begin
+          PP[J][I].X := SAR_16(X + $00007FFF);
+          PP[J][I].Y := SAR_16(Y + $00007FFF);
+          if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+          if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+        end
+    end
+  end
+  else
+  begin
+    for J := 0 to High(Points) do
+    begin
+      L := Length(Points[J]);
+      SetLength(PP[J], L);
+      for I := 0 to L - 1 do
+        with Points[J][I] do
+        begin
+          PP[J][I].X := SAR_16(X + $00007FFF);
+          PP[J][I].Y := SAR_16(Y + $00007FFF);
+          if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+          if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+        end;
+    end;
   end;
 
   MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
@@ -790,9 +955,10 @@ begin
 end;
 
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode);
+  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode;
+  Transformation: TTransformation);
 var
-  L, I, J, min, max, MinY, MaxY: Integer;
+  L, I, J, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
   AAShift, AAClipLeft, AAClipTop, AAClipRight, AAClipBottom: Integer;
@@ -802,31 +968,49 @@ begin
 
   SetLength(PP, Length(Points));
 
-  for J := 0 to High(Points) do
-  begin
-    L := Length(Points[J]);
-    if L > 2 then
-    begin
-      SetLength(PP[J], L);
-      for I := 0 to L - 1 do
-        with Points[J][I] do
-        begin
-          PP[J][I].X := AASAR(X + $000007FF);
-          PP[J][I].Y := AASAR(Y + $000007FF);
-        end;
-    end
-    else SetLength(PP[J], 0);
-  end;
-
   MaxY := -$7F000000;
   MinY := $7F000000;
-  for J := 0 to High(PP) do
+  If Assigned(Transformation) then
   begin
-    GetMinMax(PP[J], min, max);
-    if min < MinY then MinY := min;
-    if max > MaxY then MaxY := max;
+    for J := 0 to High(Points) do
+    begin
+      L := Length(Points[J]);
+      if L > 2 then
+      begin
+        SetLength(PP[J], L);
+        for I := 0 to L - 1 do
+          with Transformation.Transform(Points[J][I]) do
+          begin
+            PP[J][I].X := AASAR(X + $00007FFF);
+            PP[J][I].Y := AASAR(Y + $00007FFF);
+            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+          end
+      end
+      else SetLength(PP[J], 0);
+    end
+  end
+  else
+  begin
+    for J := 0 to High(Points) do
+    begin
+      L := Length(Points[J]);
+      if L > 2 then
+      begin
+        SetLength(PP[J], L);
+        for I := 0 to L - 1 do
+          with Points[J][I] do
+          begin
+            PP[J][I].X := AASAR(X + $000007FF);
+            PP[J][I].Y := AASAR(Y + $000007FF);
+            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+          end;
+      end
+      else SetLength(PP[J], 0);
+    end;
   end;
-
+  
   AAShift := AA_SHIFT[AAMode];
   AAClipLeft := Bitmap.ClipRect.Left shl AAShift;
   AAClipTop := Bitmap.ClipRect.Top shl AAShift;
@@ -889,8 +1073,57 @@ begin
   L := Length(Points[H]);
   SetLength(Points[H], L + Count);
   for I := 0 to Count - 1 do
-    Points[H][L + I] := PFixedPointArray(@First)[I];
+    Points[H, L + I] := PFixedPointArray(@First)[I];
   Normals := nil;
+end;
+
+procedure TPolygon32.AssignProperties(Dest: TPolygon32);
+begin
+  Dest.Antialiased := Antialiased;
+  Dest.AntialiasMode := AntialiasMode;
+  Dest.Closed := Closed;
+  Dest.FillMode := FillMode;
+end;
+
+procedure TPolygon32.AssignTo(Dest: TPersistent);
+var
+  DestPolygon: TPolygon32;
+  PP: TArrayOfArrayOfFixedPoint;
+begin
+  if Dest is TPolygon32 then
+  begin
+    DestPolygon := TPolygon32(Dest);
+    AssignProperties(DestPolygon);
+    DestPolygon.Normals := Copy(Normals);
+    DestPolygon.Points := Copy(Points);
+  end
+  else
+    inherited;
+end;
+
+function TPolygon32.GetBoundingRect: TFixedRect;
+var
+  I, J, X, Y: Integer;
+begin
+  With Result do
+  begin
+    Left := $7f000000;
+    Right := -$7f000000;
+    Top := $7f000000;
+    Bottom := -$7f000000;
+
+    for I := 0 to High(Points) do
+      for J := 0 to High(Points[I]) do
+      begin
+        X := Points[I, J].X;
+        Y := Points[I, J].Y;
+
+        if X < Left   then Left := X;
+        if X > Right  then Right := X;
+        if Y < Top    then Top := Y;
+        if Y > Bottom then Bottom := Y;
+      end;
+  end;
 end;
 
 procedure TPolygon32.BuildNormals;
@@ -976,45 +1209,51 @@ begin
   inherited;
 end;
 
-procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32);
+procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
+
   if Antialiased then
   begin
     if (FillColor and $FF000000) <> 0 then
-      PolyPolygonXS(Bitmap, Points, FillColor, FillMode, AntialiasMode);
+      PolyPolygonXS(Bitmap, Points, FillColor, FillMode, AntialiasMode, Transformation);
     if (OutlineColor and $FF000000) <> 0 then
-      PolyPolylineXS(Bitmap, Points, OutlineColor, Closed);
+      PolyPolylineXS(Bitmap, Points, OutlineColor, Closed, Transformation);
   end
   else
   begin
     if (FillColor and $FF000000) <> 0 then
-      PolyPolygonTS(Bitmap, Points, FillColor, FillMode);
+      PolyPolygonTS(Bitmap, Points, FillColor, FillMode, Transformation);
     if (OutlineColor and $FF000000) <> 0 then
-      PolyPolylineTS(Bitmap, Points, OutlineColor, Closed);
+      PolyPolylineTS(Bitmap, Points, OutlineColor, Closed, Transformation);
   end;
+
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.DrawEdge(Bitmap: TBitmap32; Color: TColor32);
+procedure TPolygon32.DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
+
   if Antialiased then
-    PolyPolylineXS(Bitmap, Points, Color, Closed)
+    PolyPolylineXS(Bitmap, Points, Color, Closed, Transformation)
   else
-    PolyPolylineTS(Bitmap, Points, Color, Closed);
+    PolyPolylineTS(Bitmap, Points, Color, Closed, Transformation);
+
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Color: TColor32);
+procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
+
   if Antialiased then
-    PolyPolygonXS(Bitmap, Points, Color, FillMode, AntialiasMode)
+    PolyPolygonXS(Bitmap, Points, Color, FillMode, AntialiasMode, Transformation)
   else
-    PolyPolygonTS(Bitmap, Points, Color, FillMode);
+    PolyPolygonTS(Bitmap, Points, Color, FillMode, Transformation);
+
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
@@ -1051,9 +1290,7 @@ begin
   E := Round(D * (1 - EdgeSharpness));
 
   Result := TPolygon32.Create;
-  Result.Antialiased := Antialiased;
-  Result.Closed := Closed;
-  Result.FillMode := FillMode;
+  AssignProperties(Result);
 
   if Delta = 0 then
   begin
@@ -1141,9 +1378,7 @@ begin
   BuildNormals;
 
   Result := TPolygon32.Create;
-  Result.Antialiased := Antialiased;
-  Result.Closed := Closed;
-  Result.FillMode := FillMode;
+  AssignProperties(Result);
 
   Result.Points := nil;
 
@@ -1165,6 +1400,11 @@ begin
       for I := High(Points[J]) downto 0 do Result.Add(Points[J][I]);
     end;
   end;
+end;
+
+procedure TPolygon32.Transform(Transformation: TTransformation);
+begin
+  Points := TransformPoints(Points, Transformation);
 end;
 
 end.
