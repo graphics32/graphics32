@@ -135,7 +135,11 @@ type
 
 implementation
 
+{$IFDEF CLX}
 {$R *.xfm}
+{$ELSE}
+{$R *.dfm}
+{$ENDIF}
 
 { TPictureEditorForm }
 
@@ -272,8 +276,13 @@ end;
 procedure TPictureEditorForm.FormCreate(Sender: TObject);
 begin
   MagnCombo.ItemIndex := 2;
+{$IFDEF CLX}
   OpenDialog.Filter := GraphicFilter(TGraphic, True);
   SaveDialog.Filter := GraphicFilter(TGraphic, True);
+{$ELSE}
+  OpenDialog.Filter := GraphicFilter(TGraphic);
+  SaveDialog.Filter := GraphicFilter(TGraphic);
+{$ENDIF}
 end;
 
 procedure TPictureEditorForm.MagnComboChange(Sender: TObject);
