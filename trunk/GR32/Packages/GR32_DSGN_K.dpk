@@ -30,8 +30,8 @@ package GR32_DSGN_K;
 requires
   rtl,
   visualclx,
-  GR32_K3,
-  designide;
+  designide,
+  GR32_K;
 
 contains
   GR32_Reg in '../GR32_Reg.pas',
