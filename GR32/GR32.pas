@@ -1731,6 +1731,9 @@ var
     C1, C2, C3, C4: TColor32;
     P: PColor32;
 begin
+  if X < 0 then X:= 0 else if X > FWidth  shl 8 - 256 then X:= FWidth  shl 8 - 256;
+  if Y < 0 then Y:= 0 else if Y > FHeight shl 8 - 256 then Y:= FHeight shl 8 - 256;
+
   flrx := X and $FF;
   flry := Y and $FF;
 
@@ -1741,9 +1744,6 @@ begin
 
   celx := flrx xor 255;
   cely := flry xor 255;
-
-  if X < 0 then X:= 0 else if X >= FWidth -1  then X:= FWidth -2;
-  if Y < 0 then Y:= 0 else if Y >= FHeight -1 then Y:= FHeight -2;
 
   P := @FBits[X + Y * FWidth];
 
