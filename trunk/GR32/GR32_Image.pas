@@ -273,6 +273,7 @@ type
 {$ELSE}
     procedure MouseLeave; override;
 {$ENDIF}
+    procedure SetUseRepaintOptimizer(const Value: Boolean); override;
     procedure UpdateCache;
     property  UpdateCount: Integer read FUpdateCount;
   public
@@ -887,39 +888,38 @@ begin
     TBitmap32Access(FBuffer).ImageNeeded;
 {$ENDIF}
     DoPaintBuffer;
+{$IFDEF CLX}
+    TBitmap32Access(FBuffer).CheckPixmap;
+{$ENDIF}
   end;
 
   FBuffer.Lock;
   with Canvas do
   try
 {$IFDEF CLX}
+    if FInvalidRects.Count > 0 then
+      for i := 0 to FInvalidRects.Count - 1 do
+        with FInvalidRects[i]^ do
+          QPainter_drawImage(Canvas.Handle, Left, Top, FBuffer.Image, Left, Top, Right - Left, Bottom - Top)
+    else
     begin
       if not QPainter_isActive(FBuffer.Handle) then
         if not QPainter_begin(FBuffer.Handle, FBuffer.Pixmap) then
           raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
 
-      if FInvalidRects.Count > 0 then
-        for i := 0 to FInvalidRects.Count - 1 do
-        with FInvalidRects[i]^ do
-          QPainter_drawPixmap(Canvas.Handle, Left, Top, FBuffer.Pixmap, Left, Top, Right - Left, Bottom - Top)
-      else
-        with GetViewportRect do
-          QPainter_drawPixmap(Canvas.Handle, Left, Top, FBuffer.Pixmap, Left, Top, Right - Left, Bottom - Top);
+      with GetViewportRect do
+        QPainter_drawPixmap(Canvas.Handle, Left, Top, FBuffer.Pixmap, Left, Top, Right - Left, Bottom - Top);
 
       QPainter_end(FBuffer.Handle);
-
-      TBitmap32Access(FBuffer).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
     end;
 {$ELSE}
     if FInvalidRects.Count > 0 then
       for i := 0 to FInvalidRects.Count - 1 do
-      with FInvalidRects[i]^ do
-        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
-          FBuffer.Handle, Left, Top, SRCCOPY)
+        with FInvalidRects[i]^ do
+          BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY)
     else
       with GetViewportRect do
-        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
-          FBuffer.Handle, Left, Top, SRCCOPY);
+        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
 {$ENDIF}
   finally
     FBuffer.Unlock;
@@ -1209,7 +1209,6 @@ begin
   ControlStyle := [csAcceptsControls, csCaptureMouse, csClickEvents,
     csDoubleClicks, csReplicatable, csOpaque];
   FBitmap := TBitmap32.Create;
-  FBitmap.OnAreaChanged := BitmapAreaChangedHandler;
   FBitmap.OnResize := ResizedHandler;
 
   FLayers := TLayerCollection.Create(Self);
@@ -1809,6 +1808,15 @@ begin
   // avoid calling inherited, we have a totally different behaviour here...
   DoValidateInvalidRects;
   Result := FInvalidRects.Count > 0;
+end;
+
+procedure TCustomImage32.SetUseRepaintOptimizer(const Value: Boolean);
+begin
+  inherited;
+  if Value then
+    FBitmap.OnAreaChanged := BitmapAreaChangedHandler
+  else
+    FBitmap.OnAreaChanged := nil;
 end;
 
 { TIVScrollProperties }
