@@ -170,7 +170,7 @@ type
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
   { TBitmap32KernelResampler }
-  TBitmap32KernelResampler = class(TBitmap32Resampler)
+  TKernelResampler = class(TBitmap32Resampler)
   private
     FKernel: TCustomKernel;
     procedure SetKernel(const Value: TCustomKernel);
@@ -192,7 +192,7 @@ type
   end;
 
   { TBitmap32TableResampler }
-  TBitmap32TableResampler = class(TBitmap32KernelResampler)
+  TTableResampler = class(TKernelResampler)
   private
     FWeightTable: TArrayOfKernelEntry;
     FTableSize: Integer;
@@ -207,7 +207,7 @@ type
   end;
 
   { TBitmap32NearestResampler }
-  TBitmap32NearestResampler = class(TBitmap32Resampler)
+  TNearestResampler = class(TBitmap32Resampler)
   protected
     function GetWidth: Single; override;
   public
@@ -220,7 +220,7 @@ type
   end;
 
   { TBitmap32LinearResampler }
-  TBitmap32LinearResampler = class(TBitmap32Resampler)
+  TLinearResampler = class(TBitmap32Resampler)
   private
     FLinearKernel: TLinearKernel;
   protected
@@ -236,7 +236,7 @@ type
   end;
 
   { TBitmap32DraftResampler }
-  TBitmap32DraftResampler = class(TBitmap32LinearResampler)
+  TDraftResampler = class(TLinearResampler)
   public
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
@@ -1879,24 +1879,24 @@ end;
 
 { TBitmap32KernelResampler }
 
-constructor TBitmap32KernelResampler.Create(Bitmap: TBitmap32);
+constructor TKernelResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
   FKernel := TNearestKernel.Create(Bitmap);
 end;
 
-destructor TBitmap32KernelResampler.Destroy;
+destructor TKernelResampler.Destroy;
 begin
   FKernel.Free;
   inherited Destroy;
 end;
 
-function TBitmap32KernelResampler.GetKernelClassName: string;
+function TKernelResampler.GetKernelClassName: string;
 begin
   Result := FKernel.ClassName;
 end;
 
-procedure TBitmap32KernelResampler.SetKernelClassName(Value: string);
+procedure TKernelResampler.SetKernelClassName(Value: string);
 begin
   if (Value <> '') and (FKernel.ClassName <> Value) then
   begin
@@ -1906,7 +1906,7 @@ begin
   end;
 end;
 
-procedure TBitmap32KernelResampler.SetKernel(const Value: TCustomKernel);
+procedure TKernelResampler.SetKernel(const Value: TCustomKernel);
 begin
   if FKernel <> Value then
   begin
@@ -1916,7 +1916,7 @@ begin
   end;
 end;
 
-procedure TBitmap32KernelResampler.Resample(Dst: TBitmap32; DstRect,
+procedure TKernelResampler.Resample(Dst: TBitmap32; DstRect,
   DstClip: TRect; Src: TBitmap32; SrcRect: TRect; CombineOp: TDrawMode;
   CombineCallBack: TPixelCombineEvent);
 begin
@@ -1924,7 +1924,7 @@ begin
 end;
 
 
-function TBitmap32KernelResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
 type
   PColorEntry = ^TColorEntry;
   TColorEntry = packed record
@@ -2001,20 +2001,20 @@ begin
   end;
 end;
 
-function TBitmap32KernelResampler.GetWidth: Single;
+function TKernelResampler.GetWidth: Single;
 begin
   Result := Kernel.GetWidth;
 end;
 
 { TBitmap32TableResampler }
 
-constructor TBitmap32TableResampler.Create(Bitmap: TBitmap32);
+constructor TTableResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
   FTableSize := 32;
 end;
 
-procedure TBitmap32TableResampler.SetTableSize(const Value: Integer);
+procedure TTableResampler.SetTableSize(const Value: Integer);
 begin
   if FTableSize <> Value then
   begin
@@ -2025,7 +2025,7 @@ end;
 
 { TBitmap32Resampler }
 
-procedure TBitmap32TableResampler.PrepareRasterization;
+procedure TTableResampler.PrepareRasterization;
 var
   I, J, K, W: Integer;
   Fraction: Single;
@@ -2041,12 +2041,12 @@ begin
   end;
 end;
 
-procedure TBitmap32TableResampler.FinalizeRasterization;
+procedure TTableResampler.FinalizeRasterization;
 begin
   FWeightTable := nil;
 end;
 
-function TBitmap32TableResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TTableResampler.GetSampleFloat(X, Y: Single): TColor32;
 var
   clX, clY, fracX, fracY: Integer;
   W: Integer;
@@ -2119,22 +2119,22 @@ end;
 
 { TBitmap32NearestResampler }
 
-function TBitmap32NearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
+function TNearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
   Result := Bitmap.Pixel[FixedRound(X), FixedRound(Y)];
 end;
 
-function TBitmap32NearestResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TNearestResampler.GetSampleFloat(X, Y: Single): TColor32;
 begin
   Result := Bitmap.Pixel[Round(X), Round(Y)];
 end;
 
-function TBitmap32NearestResampler.GetWidth: Single;
+function TNearestResampler.GetWidth: Single;
 begin
   Result := 1;
 end;
 
-procedure TBitmap32NearestResampler.Resample(
+procedure TNearestResampler.Resample(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
@@ -2145,29 +2145,29 @@ end;
 
 { TBitmap32LinearResampler }
 
-constructor TBitmap32LinearResampler.Create(Bitmap: TBitmap32);
+constructor TLinearResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
   FLinearKernel := TLinearKernel.Create(Bitmap);
 end;
 
-destructor TBitmap32LinearResampler.Destroy;
+destructor TLinearResampler.Destroy;
 begin
   FLinearKernel.Free;
   inherited Destroy;
 end;
 
-function TBitmap32LinearResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TLinearResampler.GetSampleFloat(X, Y: Single): TColor32;
 begin
   Result := FBitmap.PixelFS[X, Y];
 end;
 
-function TBitmap32LinearResampler.GetWidth: Single;
+function TLinearResampler.GetWidth: Single;
 begin
   Result := 1;
 end;
 
-procedure TBitmap32LinearResampler.Resample(
+procedure TLinearResampler.Resample(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
@@ -2185,7 +2185,7 @@ begin
     GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp, CombineCallBack);
 end;
 
-procedure TBitmap32DraftResampler.Resample(
+procedure TDraftResampler.Resample(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
@@ -2273,11 +2273,11 @@ initialization
   SetupFunctions;
 
   { Register resamplers }
-  RegisterResampler(TBitmap32NearestResampler);
-  RegisterResampler(TBitmap32LinearResampler);
-  RegisterResampler(TBitmap32DraftResampler);
-  RegisterResampler(TBitmap32KernelResampler);
-  RegisterResampler(TBitmap32TableResampler);
+  RegisterResampler(TNearestResampler);
+  RegisterResampler(TLinearResampler);
+  RegisterResampler(TDraftResampler);
+  RegisterResampler(TKernelResampler);
+  RegisterResampler(TTableResampler);
 
   { Register kernels }
   RegisterKernel(TNearestKernel);
