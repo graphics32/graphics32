@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Destroy</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>destructor</b> Destroy; <b>override</b>;</p>
+<h2>Description</h2>
+<p class="Body">Removes a bitmap item from the collection, destroys it and frees 
+  allocated memory.</p>
+<p class="Body">Do not call <span class="EmptyRef">Destroy</span> in your application, 
+  use standard <span class="API">Free</span> method instead.</p>
+<p class="Body">Since bitmap items are owned by the collection, they all are destroyed 
+  automaticaly when the collection is destroyed. There is no need to call <span class="API">Free</span> 
+  method for bitmap items unless you want them to be explicitly destroyed <i>before</i> 
+  the collection is destroyed.</p>
+<p id="hidden">[See also]: <a href="../../TBitmap32Collection/Properties/Items.htm">TBitmap32Collection</a></p>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>BufferOversize</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> BufferOversize: Integer; <span class="Comment">// 
+  protected</span></p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">BufferOversize</span> specifies how the 
+  back buffer is reallocated when the control is resized. </p>
+<p class="Body">When <span class="EmptyRef">BufferOversize</span> equals 0, the 
+  back buffer is reallocated each time the control is resized to suite the new 
+  control dimensions. </p>
+<p class="Body">When set to some positive value (40 by default), the back buffer 
+  is allowed to be up to <span class="EmptyRef">BufferOversize</span> pixels larger 
+  then the control is in each direction. The buffer resizing algorithm tracks 
+  size changes and reallocates the buffer only when its size becomes smaller than 
+  size of the buffered area or when the difference between the sizes exceeds the 
+  specified amount of pixels.</p>
+<p id="hidden">[See also]: <a href="../Methods/GetViewportRect.htm">GetViewportRect</a>, 
+  <a href="Buffer.htm">Buffer</a> </p>
+</body>
+</html>
