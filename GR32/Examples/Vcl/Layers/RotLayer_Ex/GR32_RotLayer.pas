@@ -111,8 +111,9 @@ var
   BX, BY: Integer;
   Pt: TPoint;
 begin
-  with TATAccess(Transformation) do Transform(X, Y, BX, BY); // BX,BY - in 'FBitmap' coordinates
-  Pt := Point(BX, BY);
+  with TATAccess(Transformation) do
+    Pt := ReverseTransform(Point(X, Y)); // BX,BY - in 'FBitmap' coordinates
+  BX := Pt.X; BY := Pt.Y;
   if PtInRect(Rect(0, 0, Bitmap.Width, Bitmap.Height), Pt) then Result := True;
   if Result and AlphaHit and (Bitmap.PixelS[BX, BY] and $FF000000 = 0) then
     Result := False;
