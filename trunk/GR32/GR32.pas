@@ -653,10 +653,29 @@ type
   end;
 {$ENDIF}
 
+  { TAbstractTransformation }
+  { This class is truly abstract and does only provide the method framework
+    necessary for transforming eg. bitmaps }
+  TAbstractTransformation = class
+  protected
+    TransformValid: Boolean;
+
+    procedure PrepareTransform; virtual; abstract;
+
+    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); virtual; abstract; // only used in transform (draw) of bitmaps
+
+    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual; abstract;
+    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual; abstract;
+    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual; abstract;
+
+    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); virtual; abstract;
+    procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual; abstract;
+    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual; abstract;
+  end;
+
   TResampleProc = procedure(
     Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
     Src: TBitmap32; SrcRect: TRect;
-//    StretchFilter: TStretchFilter;
     CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 
   TFilterMethod = function(Value: Single): Single of object;
@@ -671,6 +690,10 @@ type
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
   end;
   TCustomResamplerClass = class of TCustomResampler;
@@ -5204,6 +5227,8 @@ begin
     Changed;
   end;
 end;
+
+{ TCustomResampler }
 
 constructor TCustomResampler.Create;
 begin
