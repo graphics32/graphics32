@@ -190,17 +190,18 @@ type
   TRectRounding = (rrClosest, rrOutside, rrInside);
 
 // Rectangle construction/conversion functions
-function MakeRect(L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FixedRect(const ARect: TRect): TFixedRect; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FloatRect(L, T, R, B: Single): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MakeRect(const L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
+function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
+function FixedRect(const L, T, R, B: TFixed): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedRect(const ARect: TRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(const L, T, R, B: Single): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const AFixedRect: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Some basic operations over rectangles
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
-function IntersectRectF(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
+function IntersectRectF(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
 function EqualRect(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRectF(var FR: TFloatRect; Dx, Dy: Single); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -227,15 +228,26 @@ type
 { TBitmap32 draw mode }
 type
   TDrawMode = (dmOpaque, dmBlend, dmCustom);
-
+  TAlphaChannelMode = (amForeground, amMerge);
 
 { Stretch filters }
   TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline, sfLanczos, sfMitchell);
+
+{ Function Prototypes }
+  TCombineReg  = function(X, Y, W: TColor32): TColor32;
+  TCombineMem  = procedure(F: TColor32; var B: TColor32; W: TColor32);
+  TBlendReg    = function(F, B: TColor32): TColor32;
+  TBlendMem    = procedure(F: TColor32; var B: TColor32);
+  TBlendRegEx  = function(F, B, M: TColor32): TColor32;
+  TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
+  TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
+  TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
 
 { Gamma bias for line/pixel antialiasing }
 
 var
   GAMMA_TABLE: array [Byte] of Byte;
+  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 procedure SetGamma(Gamma: Single = 0.7);
 
@@ -350,45 +362,55 @@ type
     FStretchFilter: TStretchFilter;
     FOnHandleChanged: TNotifyEvent;
     FOnPixelCombine: TPixelCombineEvent;
+    FAlphaChannelMode: TAlphaChannelMode;
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
-    function  GetPixel(X, Y: Integer): TColor32;
-    function  GetPixelS(X, Y: Integer): TColor32;
-    function  GetPixelF(X, Y: Single): TColor32;
-    function  GetPixelFS(X, Y: Single): TColor32;
+    function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelF(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelFS(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelX(X, Y: TFixed): TColor32;
     function  GetPixelXS(X, Y: TFixed): TColor32;
-    function  GetPixelPtr(X, Y: Integer): PColor32;
-    function  GetScanLine(Y: Integer): PColor32Array;
+    function  GetPixelPtr(X, Y: Integer): PColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetScanLine(Y: Integer): PColor32Array; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$IFDEF CLX}
     function  GetBits: PColor32Array;
     function  GetPixmap: QPixmapH;
     function  GetPainter: QPainterH;
 {$ENDIF}
+    procedure SetAlphaChannelMode(const Value: TAlphaChannelMode);
     procedure SetDrawMode(Value: TDrawMode);
     procedure SetFont(Value: TFont);
     procedure SetMasterAlpha(Value: Cardinal);
-    procedure SetPixel(X, Y: Integer; Value: TColor32);
-    procedure SetPixelS(X, Y: Integer; Value: TColor32);
+    procedure SetPixel(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetPixelS(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetStretchFilter(Value: TStretchFilter);
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
-      const Color: TColor32);
-    procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);
+      const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure UpdateClipRects;
     procedure SetClipRect(const Value: TRect);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
+
+    BlendReg: TBlendReg;
+    BlendMem: TBlendMem;
+    BlendRegEx: TBlendRegEx;
+    BlendMemEx: TBlendMemEx;
+    BlendLine: TBlendLine;
+    BlendLineEx: TBlendLineEx;
+
     procedure AssignTo(Dst: TPersistent); override;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
     procedure HandleChanged; virtual;
     function  Equal(B: TBitmap32): Boolean;
-    procedure SET_T256(X, Y: Integer; C: TColor32);
-    procedure SET_TS256(X, Y: Integer; C: TColor32);
-    function  GET_T256(X, Y: Integer): TColor32;
-    function  GET_TS256(X, Y: Integer): TColor32;
+    procedure SET_T256(X, Y: Integer; C: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SET_TS256(X, Y: Integer; C: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GET_T256(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GET_TS256(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
@@ -418,7 +440,8 @@ type
     procedure LoadFromResourceID(Instance: THandle; ResID: Integer);
     procedure LoadFromResourceName(Instance: THandle; const ResName: string);
 
-    procedure ResetAlpha;
+    procedure ResetAlpha; overload;
+    procedure ResetAlpha(const AlphaValue: Byte); overload;
 
     procedure Draw(DstX, DstY: Integer; Src: TBitmap32); overload;
     procedure Draw(DstX, DstY: Integer; const SrcRect: TRect; Src: TBitmap32); overload;
@@ -438,12 +461,12 @@ type
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
 
-    procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
-    procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
-    procedure SetPixelTS(X, Y: Integer; Value: TColor32);
-    procedure SetPixelF(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
+    procedure SetPixelT(X, Y: Integer; Value: TColor32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetPixelTS(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetPixelF(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF} {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelX(X, Y: TFixed; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
-    procedure SetPixelFS(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
+    procedure SetPixelFS(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF} {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
 
     procedure SetStipple(NewStipple: TArrayOfColor32); overload;
@@ -575,6 +598,7 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
+    property AlphaChannelMode: TAlphaChannelMode read FAlphaChannelMode write SetAlphaChannelMode default amForeground;
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
@@ -610,7 +634,6 @@ uses
 
 var
   CounterLock: TRTLCriticalSection;
-  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 {$IFDEF CLX}
   StockFont: TFont;
@@ -966,7 +989,7 @@ end;
 
 { Rectangles }
 
-function MakeRect(L, T, R, B: Integer): TRect;
+function MakeRect(const L, T, R, B: Integer): TRect;
 begin
   with Result do
   begin
@@ -1028,6 +1051,17 @@ begin
     end;
 end;
 
+function FixedRect(const L, T, R, B: TFixed): TFixedRect;
+begin
+  with Result do
+  begin
+    Left := L;
+    Top := T;
+    Right := R;
+    Bottom := B;
+  end;
+end;
+
 function FixedRect(const ARect: TRect): TFixedRect;
 begin
   with Result do
@@ -1039,7 +1073,7 @@ begin
   end;
 end;
 
-function FloatRect(L, T, R, B: Single): TFloatRect;
+function FloatRect(const L, T, R, B: Single): TFloatRect;
 begin
   with Result do
   begin
@@ -1073,8 +1107,6 @@ begin
 end;
 
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
-const
-  ZERO_RECT: TRect = (Left: 0; Top: 0; Right: 0; Bottom: 0);
 begin
   if R1.Left >= R2.Left then Dst.Left := R1.Left else Dst.Left := R2.Left;
   if R1.Right <= R2.Right then Dst.Right := R1.Right else Dst.Right := R2.Right;
@@ -1288,6 +1320,8 @@ begin
   FMasterAlpha := $FF;
   FPenColor := clWhite32;
   FStippleStep := 1;
+
+  AlphaChannelMode := amForeground;
 end;
 
 destructor TBitmap32.Destroy;
@@ -1879,6 +1913,11 @@ begin
 end;
 
 procedure TBitmap32.ResetAlpha;
+begin
+  ResetAlpha($FF);
+end;
+
+procedure TBitmap32.ResetAlpha(const AlphaValue: Byte);
 var
   I: Integer;
   P: PByte;
@@ -1893,14 +1932,14 @@ begin
   NL := I and $3;
   for I := 0 to NH - 1 do
   begin
-    P^ := $FF; Inc(P, 4);
-    P^ := $FF; Inc(P, 4);
-    P^ := $FF; Inc(P, 4);
-    P^ := $FF; Inc(P, 4);
+    P^ := AlphaValue; Inc(P, 4);
+    P^ := AlphaValue; Inc(P, 4);
+    P^ := AlphaValue; Inc(P, 4);
+    P^ := AlphaValue; Inc(P, 4);
   end;
   for I := 0 to NL - 1 do
   begin
-    P^ := $FF; Inc(P, 4);
+    P^ := AlphaValue; Inc(P, 4);
   end;
   Changed;
 end;
@@ -1950,10 +1989,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
+  {$IFDEF USEINLINING}
+  X := SAR_8(X);
+  Y := SAR_8(Y);
+  {$ELSE}
   asm
-    SAR X, 8        //X := SAR_8(X);
-    SAR Y, 8        //Y := SAR_8(Y);
+    SAR X, 8
+    SAR Y, 8
   end;
+  {$ENDIF}
 
   celx := A * GAMMA_TABLE[flrx xor 255];
   cely := GAMMA_TABLE[flry xor 255];
@@ -1982,10 +2026,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
+  {$IFDEF USEINLINING}
+  X := SAR_8(X);
+  Y := SAR_8(Y);
+  {$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
+  {$ENDIF}
 
   A := C shr 24;  // opacity
 
@@ -2052,12 +2101,12 @@ end;
 function TBitmap32.GET_T256(X, Y: Integer): TColor32;
 //When using this, remember that it interpolates towards next x and y!
 var
- Pos: Cardinal;
+  Pos: Cardinal;
 begin
   Pos := (X shr 8) + (Y shr 8) * FWidth;
-  Result := Interpolator( GAMMA_TABLE[X and $FF xor 255],
-                          GAMMA_TABLE[Y and $FF xor 255],
-                          @FBits[Pos], @FBits[Pos + FWidth] );
+  Result := Interpolator(GAMMA_TABLE[X and $FF xor 255],
+                         GAMMA_TABLE[Y and $FF xor 255],
+                         @FBits[Pos], @FBits[Pos + FWidth]);
 end;
 
 function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
@@ -3865,6 +3914,31 @@ begin
 {$ENDIF}
 end;
 
+procedure TBitmap32.SetAlphaChannelMode(const Value: TAlphaChannelMode);
+begin
+  If Value = amForeground then
+  begin
+    BlendReg := GR32_Blend.BlendReg;
+    BlendMem := GR32_Blend.BlendMem;
+    BlendRegEx := GR32_Blend.BlendRegEx;
+    BlendMemEx := GR32_Blend.BlendMemEx;
+    BlendLine := GR32_Blend.BlendLine;
+    BlendLineEx := GR32_Blend.BlendLineEx;
+  end
+  else
+  begin
+    BlendReg := GR32_Blend.MergeReg;
+    BlendMem := GR32_Blend.MergeMem;
+    BlendRegEx := GR32_Blend.MergeRegEx;
+    BlendMemEx := GR32_Blend.MergeMemEx;
+    BlendLine := GR32_Blend.MergeLine;
+    BlendLineEx := GR32_Blend.MergeLineEx;
+  end;
+
+  FAlphaChannelMode := Value;
+  Changed;
+end;
+
 procedure TBitmap32.SetDrawMode(Value: TDrawMode);
 begin
   if FDrawMode <> Value then
@@ -4182,7 +4256,7 @@ procedure TBitmap32.TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);
 var
   I: Integer;
   P: PColor32;
-  C: TColor32;  
+  C: TColor32;
 begin
   // convert blue channel to alpha and fill the color
   P := @B.Bits[0];
@@ -4264,6 +4338,7 @@ begin
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
+    B.AlphaChannelMode := AlphaChannelMode;
 
     B.DrawTo(Self, X, Y);
   finally
@@ -4341,6 +4416,7 @@ begin
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
+    B.AlphaChannelMode := AlphaChannelMode;
 
     B.DrawTo(Self, X, Y);
   finally
