@@ -233,17 +233,8 @@ type
   TCombineMode = (cmBlend, cmMerge);
 
 { Stretch filters }
-  TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline, sfLanczos, sfMitchell);
-
-{ Function Prototypes }
-  TCombineReg  = function(X, Y, W: TColor32): TColor32;
-  TCombineMem  = procedure(F: TColor32; var B: TColor32; W: TColor32);
-  TBlendReg    = function(F, B: TColor32): TColor32;
-  TBlendMem    = procedure(F: TColor32; var B: TColor32);
-  TBlendRegEx  = function(F, B, M: TColor32): TColor32;
-  TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
-  TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
-  TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
+  TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline,
+    sfLanczos, sfMitchell);
 
 { Gamma bias for line/pixel antialiasing }
 
@@ -397,16 +388,6 @@ type
     FontHandle: HFont;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
-
-    CombineReg: TCombineReg;
-    CombineMem: TCombineMem;
-    BlendReg: TBlendReg;
-    BlendMem: TBlendMem;
-    BlendRegEx: TBlendRegEx;
-    BlendMemEx: TBlendMemEx;
-    BlendLine: TBlendLine;
-    BlendLineEx: TBlendLineEx;
-
     procedure AssignTo(Dst: TPersistent); override;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
     procedure HandleChanged; virtual;
@@ -423,6 +404,7 @@ type
     procedure SetPixelX(X, Y: TFixed; Value: TColor32);
     procedure SetPixelFS(X, Y: Single; Value: TColor32);
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
+
 {$IFDEF CLX}
     procedure PixmapNeeded;
     procedure ImageNeeded;
@@ -464,6 +446,10 @@ type
   {$ENDIF}
 {$ENDIF}
 
+    procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
+    procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
+    procedure SetPixelTS(X, Y: Integer; Value: TColor32);
+
     procedure DrawTo(Dst: TBitmap32); overload;
     procedure DrawTo(Dst: TBitmap32; DstX, DstY: Integer; const SrcRect: TRect); overload;
     procedure DrawTo(Dst: TBitmap32; DstX, DstY: Integer); overload;
@@ -478,10 +464,6 @@ type
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
 {$ENDIF}
-
-    procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
-    procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
-    procedure SetPixelTS(X, Y: Integer; Value: TColor32);
 
     procedure SetStipple(NewStipple: TArrayOfColor32); overload;
     procedure SetStipple(NewStipple: array of TColor32); overload;
@@ -1996,13 +1978,13 @@ end;
 
 procedure TBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
-  BlendMem(Value, Bits[X + Y * Width]);
+  BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
   EMMS;
 end;
 
 procedure TBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
-  BlendMem(Value, Ptr^);
+  BLEND_MEM[FCombineMode](Value, Ptr^);
   EMMS;
   Inc(Ptr);
 end;
@@ -2012,7 +1994,7 @@ begin
   if (X >= FClipRect.Left) and (X < FClipRect.Right) and
      (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
-    BlendMem(Value, Bits[X + Y * Width]);
+    BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
     EMMS;
   end;
 end;
@@ -2264,7 +2246,8 @@ begin
   P := PixelPtr[X1, Y];
   for i := X1 to X2 do
   begin
-    BlendMem(Value, P^);
+    //BlendMem(Value, P^);
+    BLEND_MEM[FCombineMode](Value, P^);
     Inc(P);
   end;
   EMMS;
@@ -2361,7 +2344,8 @@ begin
   P := PixelPtr[X, Y1];
   for i := Y1 to Y2 do
   begin
-    BlendMem(Value, P^);
+    //BlendMem(Value, P^);
+    BLEND_MEM[FCombineMode](Value, P^);
     Inc(P, Width);
   end;
   EMMS;
@@ -2721,7 +2705,8 @@ begin
         Delta := Dx shr 1;
         for I := 0 to Dx - 1 do
         begin
-          BlendMem(Value, P^);
+          //BlendMem(Value, P^);
+          BLEND_MEM[FCombineMode](Value, P^);
           Inc(P, Sx);
           Inc(Delta, Dy);
           if Delta > Dx then
@@ -2736,7 +2721,8 @@ begin
         Delta := Dy shr 1;
         for I := 0 to Dy - 1 do
         begin
-          BlendMem(Value, P^);
+          //BlendMem(Value, P^);
+          BLEND_MEM[FCombineMode](Value, P^);
           Inc(P, Sy);
           Inc(Delta, Dx);
           if Delta > Dy then
@@ -3212,9 +3198,11 @@ begin
         Inc(Y1, Sy);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        //BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI xor 255]);
         Inc(P, Sx);
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+        //BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI]);
       end;
     end
     else // DY <= DX
@@ -3230,9 +3218,11 @@ begin
         Inc(X1, Sx);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        //BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI xor 255]);
         if Sy = 1 then Inc(P, Width) else Dec(P, Width);
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+        //BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI]);
       end;
     end;
   finally
@@ -3402,7 +3392,8 @@ begin
         while xd <> term do
         begin
           Inc(xd, -Sx);
-          BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
+          //BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
+          BLEND_MEM_EX[FCombineMode](Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
           Dec(ED, EA);
         end;
       finally
@@ -3478,9 +3469,11 @@ begin
     begin
       CI := EC shr 8;
       P := @Bits[D1^ + D2^ * Width];
-      BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+      //BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+      BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI xor 255]);
       Inc(P, PI);
-      BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+      //BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+      BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI]);
       // check for overflow and jump to next line...
       D := EC;
       Inc(EC, EA);
@@ -3498,7 +3491,8 @@ begin
   try
     while xd <> rem do
     begin
-      BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
+      //BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
+      BLEND_MEM_EX[FCombineMode](Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
       Inc(EC, EA);
       Inc(xd, Sx);
     end;
@@ -3946,29 +3940,6 @@ end;
 
 procedure TBitmap32.SetCombineMode(const Value: TCombineMode);
 begin
-  If Value = cmBlend then
-  begin
-    CombineReg := GR32_Blend.CombineReg;
-    CombineMem := GR32_Blend.CombineMem;
-    BlendReg := GR32_Blend.BlendReg;
-    BlendMem := GR32_Blend.BlendMem;
-    BlendRegEx := GR32_Blend.BlendRegEx;
-    BlendMemEx := GR32_Blend.BlendMemEx;
-    BlendLine := GR32_Blend.BlendLine;
-    BlendLineEx := GR32_Blend.BlendLineEx;
-  end
-  else
-  begin
-    CombineReg := GR32_Blend.CombMergeReg;
-    CombineMem := GR32_Blend.CombMergeMem;
-    BlendReg := GR32_Blend.MergeReg;
-    BlendMem := GR32_Blend.MergeMem;
-    BlendRegEx := GR32_Blend.MergeRegEx;
-    BlendMemEx := GR32_Blend.MergeMemEx;
-    BlendLine := GR32_Blend.MergeLine;
-    BlendLineEx := GR32_Blend.MergeLineEx;
-  end;
-
   FCombineMode := Value;
   Changed;
 end;

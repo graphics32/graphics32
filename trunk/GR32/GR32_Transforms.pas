@@ -252,14 +252,14 @@ begin
       if Src.MasterAlpha >= 255 then
       for DstY := DstRect.Top to DstRect.Bottom - 1 do
       begin
-        TBitmap32Access(Src).BlendLine(SrcP, DstP, W);
+        BLEND_LINE[Src.CombineMode](SrcP, DstP, W);
         Inc(SrcP, Src.Width);
         Inc(DstP, Dst.Width);
       end
       else
       for DstY := DstRect.Top to DstRect.Bottom - 1 do
       begin
-        TBitmap32Access(Src).BlendLineEx(SrcP, DstP, W, Src.MasterAlpha);
+        BLEND_LINE_EX[Src.CombineMode](SrcP, DstP, W, Src.MasterAlpha);
         Inc(SrcP, Src.Width);
         Inc(DstP, Dst.Width);
       end;
@@ -427,8 +427,10 @@ begin
 
           if CombineOp = dmBlend then
           begin
-            if Src.MasterAlpha >= 255 then TBitmap32Access(Src).BlendLine(@Buffer[0], @DstLine[0], DstClipW)
-            else TBitmap32Access(Src).BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
+            if Src.MasterAlpha >= 255 then
+              BLEND_LINE[Src.CombineMode](@Buffer[0], @DstLine[0], DstClipW)
+            else
+              BLEND_LINE_EX[Src.CombineMode](@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
           end
           else
             for I := 0 to DstClipW - 1 do
@@ -539,8 +541,10 @@ begin
           C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
                                    @SrcLine[SrcIndex + Src.Width]);
 //          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
-          if CombineOp = dmBlend then TBitmap32Access(Src).BlendMemEx(C, DstLine[I], Src.MasterAlpha)
-          else CombineCallBack(C, DstLine[I], Src.MasterAlpha);
+          if CombineOp = dmBlend then
+            BLEND_MEM_EX[Src.CombineMode](C, DstLine[I], Src.MasterAlpha)
+          else
+            CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
     end;
     Inc(DstLine, Dst.Width);
@@ -783,12 +787,15 @@ var
   SrcP: PColor32;
   DstLine: PColor32Array;
   RangeCheck: Boolean;
+  BlendMemEx: TBlendMemEx;
 begin
   if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
     CombineOp := dmOpaque;
 
   { check source and destination }
   if (CombineOp = dmBlend) and (Src.MasterAlpha = 0) then Exit;
+
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode]; // store in local variable
 
   SrcW := SrcRect.Right - SrcRect.Left;
   SrcH := SrcRect.Bottom - SrcRect.Top;
@@ -880,7 +887,7 @@ begin
         // combine it with the background
         case CombineOp of
           dmOpaque: DstLine[I] := C;
-          dmBlend: TBitmap32Access(Src).BlendMemEx(C, DstLine[I], Src.MasterAlpha);
+          dmBlend: BlendMemEx(C, DstLine[I], Src.MasterAlpha);
           dmCustom: CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
       end;
@@ -1091,6 +1098,7 @@ var
   FSrcTop,I,J,ly,
   sc, sr, cx, cy: integer;
   Y_256: TFixed;
+  BlendMemEx: TBlendMemEx;
 begin
  { rangechecking and rect intersection done by caller }
 
@@ -1103,6 +1111,7 @@ begin
   DstClipW := DstClip.Right - DstClip.Left;
   DstClipH := DstClip.Bottom - DstClip.Top;
 
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
 
   if (DstW > SrcW)or(DstH > SrcH) then begin
    if (SrcW < 2) or (SrcH < 2) then
@@ -1154,7 +1163,7 @@ begin
           begin
            dx := r2 - r1;  r1 := r2;
            r2 := I * sr shr 16;
-           TBitmap32Access(Src).BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+           BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
            xsrc := xsrc + dx shl 2;
           end;
          dmCustom: for I := 2  to DstClipW do
@@ -1343,6 +1352,7 @@ var
   I, J, X, Y: Integer;
   DrawMode: TDrawMode;
   CombineCallBack: TPixelCombineEvent;
+  BlendMemEx: TBlendMemEx;
 
   function GET_S256(X256, Y256: Integer; out C: TColor32): Boolean;
   var
@@ -1387,6 +1397,7 @@ begin
 
   CombineCallBack := Src.OnPixelCombine; // store it into a local variable
   DrawMode := Src.DrawMode;    // store it into a local variable
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode]; // store it into a local variable
   SrcAlpha := Src.MasterAlpha;
   if (DrawMode = dmCustom) and not Assigned(CombineCallBack) then
     DrawMode := dmOpaque;
@@ -1424,7 +1435,7 @@ begin
           if GET_S256(X, Y, C) then
             case DrawMode of
               dmOpaque: Pixels[I] := C;
-              dmBlend: TBitmap32Access(Src).BlendMemEx(C, Pixels[I], SrcAlpha);
+              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
             else // dmCustom:
               CombineCallBack(C, Pixels[I], SrcAlpha);
             end;
@@ -1441,7 +1452,7 @@ begin
             (Y >= SrcRectI.Top) and (Y <= SrcRectI.Bottom) then
           case DrawMode of
             dmOpaque: Pixels[I] := Src.Pixel[X, Y];
-            dmBlend: TBitmap32Access(Src).BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
+            dmBlend: BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
           else // dmCustom:
             CombineCallBack(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
           end;
