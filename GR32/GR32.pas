@@ -2588,7 +2588,7 @@ end;
 procedure TBitmap32.LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, e: Integer;
-  Swapped, CheckVert: Boolean;
+  Swapped, CheckAux: Boolean;
   P: PColor32;
 begin
   if not FMeasuringMode then
@@ -2621,7 +2621,7 @@ begin
       If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
       Sx := 1;
     end
-    else if Dx < 0 then
+    else
     begin
       If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
       Sx := -1;
@@ -2635,40 +2635,13 @@ begin
       If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
       Sy := 1;
     end
-    else if Dy < 0 then
+    else
     begin
       If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
       Sy := -1;
       Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
       Cy1 := -Cy1; Cy2 := -Cy2;
       Swap(Cy1, Cy2);
-    end;
-
-    if not L then
-    begin
-      if Dx > Dy then
-      begin
-        if Dx > 0 then
-        begin
-          Dec(Dx); Dec(X2);
-        end
-        else
-        begin
-          Inc(Dy); Inc(X2);
-        end;
-      end
-      else
-      begin
-        if Dy > 0 then
-        begin
-          Dec(Dy); Dec(Y2);
-        end
-        else
-        begin
-          Inc(Dy); Inc(Y2);
-        end;
-      end;
-      if (Dx = 0) or (Dy = 0) then Exit;
     end;
 
     if Dx < Dy then
@@ -2683,7 +2656,7 @@ begin
     // Bresenham's set up:
     Dx2 := Dx shl 1; Dy2 := Dy shl 1;
     xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
-    CheckVert := True;
+    CheckAux := True;
 
     // clipping rect horizontal entry
     if Y1 < Cy1 then
@@ -2701,12 +2674,12 @@ begin
           Inc(xd);
           Inc(e, Dy2);
         end;
-        CheckVert := False; // to avoid ugly labels we set this to omit the next check
+        CheckAux := False; // to avoid ugly labels we set this to omit the next check
       end;
     end;
 
     // clipping rect vertical entry
-    if CheckVert and (X1 < Cx1) then
+    if CheckAux and (X1 < Cx1) then
     begin
       tmp := Dy2 * (Cx1 - X1);
       Inc(yd, tmp div Dx2);
@@ -2721,6 +2694,10 @@ begin
       end;
     end;
 
+    // set auxiliary var to indicate that temp is not clipped, since
+    // temp still has the unclipped value assigned at setup.
+    CheckAux := False;
+
     // is the segment exiting the clipping rect?
     if Y2 > Cy2 then
     begin
@@ -2728,10 +2705,14 @@ begin
       term := X1 + tmp div Dy2;
       rem := tmp mod Dy2;
       if rem = 0 then Dec(term);
+      CheckAux := True; // set auxiliary var to indicate that temp is clipped
     end;
 
     if term > Cx2 then
+    begin
       term := Cx2;
+      CheckAux := True; // set auxiliary var to indicate that temp is clipped
+    end;
 
     Inc(term);
 
@@ -2756,6 +2737,15 @@ begin
       PI := Sx;
       Sy := Sy * Width;
       P := @Bits[xd + yd * Width];
+    end;
+
+    // do we need to draw the last pixel of the line and is temp not clipped?
+    if not(L or CheckAux) then
+    begin
+      if xd < term then
+        Dec(term)
+      else
+        Inc(term);
     end;
 
     while xd <> term do
@@ -2862,7 +2852,7 @@ end;
 procedure TBitmap32.LineTS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, e: Integer;
-  Swapped, CheckVert: Boolean;
+  Swapped, CheckAux: Boolean;
   P: PColor32;
   BlendMem: TBlendMem;
 begin
@@ -2894,7 +2884,7 @@ begin
       If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
       Sx := 1;
     end
-    else if Dx < 0 then
+    else
     begin
       If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
       Sx := -1;
@@ -2908,40 +2898,13 @@ begin
       If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
       Sy := 1;
     end
-    else if Dy < 0 then
+    else
     begin
       If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
       Sy := -1;
       Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
       Cy1 := -Cy1; Cy2 := -Cy2;
       Swap(Cy1, Cy2);
-    end;
-
-    if not L then
-    begin
-      if Dx > Dy then
-      begin
-        if Dx > 0 then
-        begin
-          Dec(Dx); Dec(X2);
-        end
-        else
-        begin
-          Inc(Dy); Inc(X2);
-        end;
-      end
-      else
-      begin
-        if Dy > 0 then
-        begin
-          Dec(Dy); Dec(Y2);
-        end
-        else
-        begin
-          Inc(Dy); Inc(Y2);
-        end;
-      end;
-      if (Dx = 0) or (Dy = 0) then Exit;
     end;
 
     if Dx < Dy then
@@ -2956,8 +2919,8 @@ begin
     // Bresenham's set up:
     Dx2 := Dx shl 1; Dy2 := Dy shl 1;
     xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
-    CheckVert := True;
-  
+    CheckAux := True;
+
     // clipping rect horizontal entry
     if Y1 < Cy1 then
     begin
@@ -2974,12 +2937,12 @@ begin
           Inc(xd);
           Inc(e, Dy2);
         end;
-        CheckVert := False; // to avoid ugly labels we set this to omit the next check
+        CheckAux := False; // to avoid ugly labels we set this to omit the next check
       end;
     end;
 
     // clipping rect vertical entry
-    if CheckVert and (X1 < Cx1) then
+    if CheckAux and (X1 < Cx1) then
     begin
       tmp := Dy2 * (Cx1 - X1);
       Inc(yd, tmp div Dx2);
@@ -2994,6 +2957,10 @@ begin
       end;
     end;
 
+    // set auxiliary var to indicate that temp is not clipped, since
+    // temp still has the unclipped value assigned at setup.
+    CheckAux := False;
+
     // is the segment exiting the clipping rect?
     if Y2 > Cy2 then
     begin
@@ -3001,10 +2968,14 @@ begin
       term := X1 + tmp div Dy2;
       rem := tmp mod Dy2;
       if rem = 0 then Dec(term);
+      CheckAux := True; // set auxiliary var to indicate that temp is clipped
     end;
 
     if term > Cx2 then
+    begin
       term := Cx2;
+      CheckAux := True; // set auxiliary var to indicate that temp is clipped
+    end;
 
     Inc(term);
 
@@ -3029,6 +3000,15 @@ begin
       PI := Sx;
       Sy := Sy * Width;
       P := @Bits[xd + yd * Width];
+    end;
+
+    // do we need to draw the last pixel of the line and is temp not clipped?
+    if not(L or CheckAux) then
+    begin
+      if xd < term then
+        Dec(term)
+      else
+        Inc(term);
     end;
 
     try
@@ -3361,7 +3341,7 @@ end;
 procedure TBitmap32.LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, rem, term, tmp: Integer;
-  CheckVert, CornerAA: Boolean;
+  CheckVert, CornerAA, TempClipped: Boolean;
   D1, D2: PInteger;
   EC, EA, ED, D: Word;
   CI: Byte;
@@ -3376,17 +3356,22 @@ begin
     Dx := X2 - X1; Dy := Y2 - Y1;
 
     // check for trivial cases...
-    If Dx = 0 then // vertical line?
+    if Abs(Dx) = Abs(Dy) then // diagonal line?
     begin
-    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
+      LineTS(X1, Y1, X2, Y2, Value, L);
+      Exit;
+    end
+    else if Dx = 0 then // vertical line?
+    begin
+      if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
+      else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
       if L then SetPixelTS(X2, Y2, Value);
       Exit;
     end
     else if Dy = 0 then // horizontal line?
     begin
-    if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
-    else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
+      if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
+      else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
       if L then SetPixelTS(X2, Y2, Value);
       Exit;
     end;
@@ -3399,7 +3384,7 @@ begin
       if (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
       Sx := 1;
     end
-    else if Dx < 0 then
+    else
     begin
       if (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
       Sx := -1;
@@ -3413,47 +3398,13 @@ begin
       if (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
       Sy := 1;
     end
-    else if Dy < 0 then
+    else
     begin
       if (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
       Sy := -1;
       Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
       Cy1 := -Cy1; Cy2 := -Cy2;
       Swap(Cy1, Cy2);
-    end;
-
-    if not L then
-    begin
-      if Dx > Dy then
-      begin
-        if Dx > 0 then
-        begin
-          Dec(Dx); Dec(X2);
-        end
-        else
-        begin
-          Inc(Dy); Inc(X2);
-        end;
-      end
-      else
-      begin
-        if Dy > 0 then
-        begin
-          Dec(Dy); Dec(Y2);
-        end
-        else
-        begin
-          Inc(Dy); Inc(Y2);
-        end;
-      end;
-      if (Dx = 0) or (Dy = 0) then Exit;
-    end;
-
-    // Note: can't move this up due to the swap above...
-    if Dx = Dy then // diagonal line?
-    begin
-      LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
-      Exit;
     end;
 
     if Dx < Dy then
@@ -3569,6 +3520,7 @@ begin
     end;
 
     term := X2;
+    TempClipped := False;
     CheckVert := False;
 
     // horizontal exit?
@@ -3581,7 +3533,7 @@ begin
 
       if term < Cx2 then
       begin
-        rem := tmp + 65536; // rem := (Cy2 - Y1 + 1) * 65536;
+        rem := tmp + 65536; // was: rem := (Cy2 - Y1 + 1) * 65536;
         if rem mod EA > 0 then
           rem := X1 + rem div EA + 1
         else
@@ -3590,10 +3542,18 @@ begin
         if rem > Cx2 then rem := Cx2;
         CheckVert := True;
       end;
+
+      TempClipped := True;
     end;
 
-    if term > Cx2 then term := Cx2;
+    if term > Cx2 then
+    begin
+      term := Cx2;
+      TempClipped := True;
+    end;
+
     Inc(term);
+
     if Sy = -1 then yd := -yd;
     if Sx = -1 then
     begin
@@ -3605,6 +3565,15 @@ begin
     // draw line
     if not CornerAA then
     try
+      // do we need to draw the last pixel of the line and is temp not clipped?
+      if not(L or TempClipped) and not CheckVert then
+      begin
+        if xd < term then
+          Dec(term)
+        else if xd > term then
+          Inc(term);
+      end;
+
       while xd <> term do
       begin
         CI := EC shr 8;
