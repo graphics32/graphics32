@@ -40,7 +40,7 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  SysUtils, Classes, GR32, GR32_Blend;
+  SysUtils, Classes, GR32, GR32_Blend, GR32_Rasterizers;
     
 type
   ETransformError = class(Exception);
@@ -67,10 +67,22 @@ function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
 type
-  TTransformation = class(TAbstractTransformation)
+  TTransformation = class
   private
     FSrcRect: TFloatRect;
     procedure SetSrcRect(const Value: TFloatRect);
+  protected
+    TransformValid: Boolean;
+    procedure PrepareTransform; virtual; abstract;
+
+    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); virtual; abstract; // only used in transform (draw) of bitmaps
+    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual; abstract;
+    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual; abstract;
+    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual; abstract;
+
+    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); virtual; abstract;
+    procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual; abstract;
+    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual; abstract;
   public
     function  GetTransformedBounds: TRect; virtual; abstract;
 
@@ -211,7 +223,7 @@ type
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
 { FullEdge controls how the bitmap is resampled }
@@ -340,6 +352,7 @@ begin
   end;
 end;
 
+(*
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
 var
   R, SrcRect, DstRect: TRect;
@@ -370,6 +383,32 @@ begin
       CombineOp, Src.OnPixelCombine);
   finally
     EMMS;
+  end;
+  Dst.Changed;
+end; *)
+
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
+var
+  R, DstRect: TRect;
+  TransformationSampler: TTransformationSampler;
+begin
+  if not TTransformationAccess(Transformation).TransformValid then
+    TTransformationAccess(Transformation).PrepareTransform;
+
+  // clip DstRect
+  R := Transformation.GetTransformedBounds;
+  IntersectRect(DstRect, R, MakeRect(Dst.ClipRect.Left, Dst.ClipRect.Top,
+    Dst.ClipRect.Right - 1, Dst.ClipRect.Bottom - 1));
+
+  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
+
+  TransformationSampler := TTransformationSampler.Create(Src, Transformation);
+  try
+    Rasterizer.Sampler := TransformationSampler;
+    Rasterizer.Rasterize(Dst, DstRect, Src);
+  finally
+    EMMS;
+    TransformationSampler.Free;
   end;
   Dst.Changed;
 end;
