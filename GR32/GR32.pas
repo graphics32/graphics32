@@ -1257,12 +1257,12 @@ begin
               // temporary bitmap (red masked) with the pixel of our
               // bitmap (blue masked). If they match, make that pixel opaque
               if DstColor = (SrcP^ and $00FFFFFF) then
-                Bits[I] := DstColor or $FF000000
+                DstP^ := DstColor or $FF000000
               else
               // if the colors don't match (that is the case if there is a
               // match "is clRed32 = clBlue32 ?"), just make that pixel
               // transparent:
-                Bits[I] := DstColor;
+                DstP^ := DstColor;
 
                inc(SrcP); inc(DstP);
             end;
