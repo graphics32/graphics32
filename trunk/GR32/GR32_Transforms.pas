@@ -235,9 +235,9 @@ procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 var
   FullEdge: Boolean = True;
 
+  
 implementation
 
-{$R-}{$Q-}  // switch off overflow and range checking
 
 uses GR32_LowLevel, GR32_System, GR32_Resamplers, Math;
 
