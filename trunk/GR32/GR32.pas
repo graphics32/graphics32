@@ -135,6 +135,14 @@ type
   function FixedDiv(A, B: TFixed): TFixed;
   function FixedRound(A: TFixed): Integer;
 
+{ Fixedmath related constants }
+
+const
+
+  FixedOne = $10000;
+  FixedPI  = Round( PI * FixedOne );
+  FixedToFloat = 1/FixedOne;
+
 { Points }
 
 type
@@ -188,6 +196,7 @@ function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TR
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function FloatRect(L, T, R, B: Single): TFloatRect; overload;
 function FloatRect(const ARect: TRect): TFloatRect; overload;
+function FloatRect(const AFixedRect: TFixedRect): TFloatRect; overload;
 
 // Some basic operations over rectangles
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
@@ -1024,6 +1033,17 @@ begin
     Top := ARect.Top;
     Right := ARect.Right;
     Bottom := ARect.Bottom;
+  end;
+end;
+
+function FloatRect(const AFixedRect: TFixedRect): TFloatRect;
+begin
+  with Result do
+  begin
+    Left := AFixedRect.Left * FixedToFloat;
+    Top := AFixedRect.Top * FixedToFloat;
+    Right := AFixedRect.Right * FixedToFloat;
+    Bottom := AFixedRect.Bottom * FixedToFloat;
   end;
 end;
 
