@@ -67,24 +67,10 @@ function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
 type
-  TTransformation = class(TObject)
+  TTransformation = class(TAbstractTransformation)
   private
     FSrcRect: TFloatRect;
     procedure SetSrcRect(const Value: TFloatRect);
-  protected
-    TransformValid: Boolean;
-
-    procedure PrepareTransform; virtual; abstract;
-
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); virtual; abstract; // only used in transform (draw) of bitmaps
-
-    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual; abstract;
-    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual; abstract;
-    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual; abstract;
-
-    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); virtual; abstract;
-    procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual; abstract;
-    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual; abstract;
   public
     function  GetTransformedBounds: TRect; virtual; abstract;
 
@@ -241,6 +227,7 @@ uses GR32_LowLevel, GR32_System, GR32_Resamplers, Math;
 
 type
   {provides access to proctected members of TBitmap32 by typecasting}
+  TTransformationAccess = class(TTransformation);
   TBitmap32Access = class(TBitmap32);
 
 
@@ -356,71 +343,17 @@ end;
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
 var
-  C, SrcAlpha: TColor32;
-  R, SrcRectI, DstRect, SrcRect256: TRect;
-  Pixels: PColor32Array;
-  I, J, X, Y: Integer;
-  DrawMode: TDrawMode;
-  CombineCallBack: TPixelCombineEvent;
-  BlendMemEx: TBlendMemEx;
-  fx, fy: single;
-
-  function GET_Resampled(x, y: single; out C: TColor32): Boolean;
-  begin
-    if (x < SrcRectI.Left - 1) or (y < SrcRectI.Top - 1) or
-       (x > SrcRectI.Right) or (y > SrcRectI.Bottom) then
-      begin
-        // (X,Y) coordinate is out of the SrcRect, do not interpolate
-        C := 0; // just write something to disable compiler warnings
-        Result := False;
-      end else begin
-       // everything is ok interpolate between four neighbors
-        C := ResamplePixel(Src, x, y);
-        Result := True;
-      end;
-  end;
-
-  function GET_S256_Bilinear(X256, Y256: Integer; out C: TColor32): Boolean;
-  begin
-    X := SAR_8(X256);
-    Y := SAR_8(Y256);
-    if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or
-       (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
-      begin
-        // (X,Y) coordinate is out of the SrcRect, do not interpolate
-        C := 0; // just write something to disable compiler warnings
-        Result := False;
-      end else begin
-       // everything is ok interpolate between four neighbors
-        C := TBitmap32Access(Src).GET_TS256(X256, Y256);
-        Result := True;
-      end;
-  end;
-
+  R, SrcRect, DstRect: TRect;
+  CombineOp: TDrawMode;
 begin
-  if not Transformation.TransformValid then Transformation.PrepareTransform;
-
-  CombineCallBack := Src.OnPixelCombine; // store it into a local variable
-  DrawMode := Src.DrawMode;    // store it into a local variable
-  BlendMemEx := BLEND_MEM_EX[Src.CombineMode]; // store it into a local variable
-  SrcAlpha := Src.MasterAlpha;
-  if (DrawMode = dmCustom) and not Assigned(CombineCallBack) then
-    DrawMode := dmOpaque;
+  if not TTransformationAccess(Transformation).TransformValid then
+    TTransformationAccess(Transformation).PrepareTransform;
 
   // clip SrcRect
-
   // workaround C++ Builder throwing exceptions:
   R := MakeRect(Round(Transformation.SrcRect.Left), Round(Transformation.SrcRect.Top),
                 Round(Transformation.SrcRect.Right), Round(Transformation.SrcRect.Bottom));
-
-  IntersectRect(SrcRectI, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
-
-  with Transformation.SrcRect do
-  begin
-    IntersectRect(SrcRect256, MakeRect(Round(Left * 256), Round(Top * 256),
-      Round(Right * 256), Round(Bottom * 256)), MakeRect(0, 0, (Src.Width - 1) * 256,
-      (Src.Height - 1) * 256));
-  end;
+  IntersectRect(SrcRect, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
 
   // clip DstRect
   R := Transformation.GetTransformedBounds;
@@ -430,64 +363,12 @@ begin
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
   try
-    if Src.Resampler is TNearestResampler then begin  // nearest filter
+    CombineOp := Src.DrawMode;
+    if (CombineOp = dmCustom) and not Assigned(Src.OnPixelCombine) then
+      CombineOp := dmOpaque;
 
-      for J := DstRect.Top to DstRect.Bottom do
-      begin
-        Pixels := Dst.ScanLine[J];
-        for I := DstRect.Left to DstRect.Right do
-        begin
-          Transformation.ReverseTransformInt(I, J, X, Y);
-          if (X >= SrcRectI.Left) and (X <= SrcRectI.Right) and
-            (Y >= SrcRectI.Top) and (Y <= SrcRectI.Bottom) then
-          case DrawMode of
-            dmOpaque: Pixels[I] := Src.Pixel[X, Y];
-            dmBlend: BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
-          else // dmCustom:
-            CombineCallBack(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
-          end;
-        end;
-      end;
-
-    end else if (Src.Resampler is TDraftResampler) or // draft or linear  
-      (Src.Resampler is TLinearResampler) then begin
-
-      for J := DstRect.Top to DstRect.Bottom do
-      begin
-        Pixels := Dst.ScanLine[J];
-        for I := DstRect.Left to DstRect.Right do
-        begin
-          Transformation.ReverseTransform256(I, J, X, Y);
-          if GET_S256_Bilinear(X, Y, C) then
-            case DrawMode of
-              dmOpaque: Pixels[I] := C;
-              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
-            else // dmCustom:
-              CombineCallBack(C, Pixels[I], SrcAlpha);
-            end;
-        end;
-      end;
-
-    end else begin // all other resampler filters
-
-      for J := DstRect.Top to DstRect.Bottom do
-      begin
-        Pixels := Dst.ScanLine[J];
-        for I := DstRect.Left to DstRect.Right do
-        begin
-          EMMS;
-          Transformation.ReverseTransformFloat(I, J, fx, fy);
-          if GET_Resampled(fx, fy, C) then
-            case DrawMode of
-              dmOpaque: Pixels[I] := C;
-              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
-            else // dmCustom:
-              CombineCallBack(C, Pixels[I], SrcAlpha);
-            end;
-        end;
-
-      end
-    end;
+    Src.Resampler.Transform(Dst, DstRect, Src, SrcRect, Transformation,
+      CombineOp, Src.OnPixelCombine);
   finally
     EMMS;
   end;
