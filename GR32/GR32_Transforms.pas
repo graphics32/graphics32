@@ -419,7 +419,7 @@ var
   MapHorz, MapVert: array of TPointRec;
   t2, Scale: Single;
   SrcLine, DstLine: PColor32Array;
-  SrcIndex, OldSrcIndex: Integer;
+  SrcIndex{, OldSrcIndex}: Integer;
   I, J: Integer;
   WY: Cardinal;
   C: TColor32;
@@ -481,13 +481,13 @@ begin
   begin
     SrcLine := Src.ScanLine[MapVert[J].Pos];
     WY := MapVert[J].Weight;
-    OldSrcIndex := -1;
+//    OldSrcIndex := -1;
     case CombineOp of
       dmOpaque:
         for I := 0 to DstClipW - 1 do
         begin
           SrcIndex := MapHorz[I].Pos;
-          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
+//          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
           DstLine[I] := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
                                             @SrcLine[SrcIndex + Src.Width]);
         end;
@@ -497,7 +497,7 @@ begin
           SrcIndex := MapHorz[I].Pos;
           C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
                                    @SrcLine[SrcIndex + Src.Width]);
-          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
+//          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
           if CombineOp = dmBlend then BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           else CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
@@ -1063,8 +1063,14 @@ begin
   DstClipH := DstClip.Bottom - DstClip.Top;
 
 
-  if (DstW > SrcW)or(DstH > SrcH) then
-   StretchHorzStretchVertLinear(Dst,DstRect,DstClip,Src,SrcRect,CombineOp,CombineCallBack)
+  if (DstW > SrcW)or(DstH > SrcH) then begin
+   if (SrcW < 2) or (SrcH < 2) then
+     Resample(Dst, DstRect, DstClip, Src, SrcRect, sfLinear, CombineOp,
+       CombineCallBack)
+   else
+     StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp,
+       CombineCallBack);
+   end
   else
    begin //Full Scaledown, ignores Fulledge - cannot be integrated into this resampling method
       OffSrc := Src.Width * 4;
@@ -1163,7 +1169,7 @@ begin
       sfNearest: StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
       sfDraft: DraftResample(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
       sfLinear:
-        if (DstW > SrcW) and (DstH > SrcH) then
+        if (DstW > SrcW) and (DstH > SrcH) and (SrcW > 1) and (SrcH > 1) then
           StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
         else
           Resample(Dst, DstRect, DstClip, Src, SrcRect, sfLinear, CombineOp, CombineCallBack);
