@@ -1556,7 +1556,7 @@ begin
           TempBitmap := TBitmap32.Create;
           Canvas := TCanvas.Create;
           try
-            Self.Clear(clBlue32);  // mask on blue;
+            Self.Clear(clWhite32);  // mask on white;
             Canvas.Handle := Self.Handle;
             TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Width, Height));
 
@@ -1570,9 +1570,9 @@ begin
             for I := 0 to Width * Height - 1 do
             begin
               DstColor := DstP^ and $00FFFFFF;
-              // this checks for transparency by comparing the pixel of
+              // this checks for transparency by comparing the pixel-color of the
               // temporary bitmap (red masked) with the pixel of our
-              // bitmap (blue masked). If they match, make that pixel opaque
+              // bitmap (white masked). If they match, make that pixel opaque
               if DstColor = (SrcP^ and $00FFFFFF) then
                 DstP^ := DstColor or $FF000000
               else
