@@ -1,4 +1,4 @@
-program GetPixelF_Ex;
+program PixelF_Ex;
 
 uses
   Forms,
