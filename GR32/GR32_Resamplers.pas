@@ -221,14 +221,16 @@ var
   Resampler: TCustomResampler;
   W: Integer;
   Filter: TFilterMethod;
-  I, J: Integer;
+  I, J, Incr: Integer;
   C: PColorEntry;
   LoX, HiX, LoY, HiY: Integer;
 
   MappingX: array [-3..3] of Integer;
   HorzEntry, VertEntry: TBufferEntry;
+
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 begin
   Resampler := Src.Resampler;
   Filter := Resampler.Filter;
@@ -243,16 +245,19 @@ begin
   if clY < W then LoY := -clY else LoY := -W;
   HiX := Src.Width - 1;
   HiY := Src.Height - 1;
+  Incr:= HiX;
   if clX + W >= HiX then HiX := HiX - clX else HiX := W;
   if clY + W >= HiY then HiY := HiY - clY else HiY := W;
 
   for I := LoX to HiX do MappingX[I] := Round( Filter(I + fracX) * 256 );
 
-  VertEntry := EMPTY_ENTRY;
+  VertEntry := ROUND_ENTRY;
+
+  C:= PColorEntry(Src.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
   for I := LoY to HiY do
   begin
     HorzEntry := EMPTY_ENTRY;
-    C := PColorEntry( Src.PixelPtr[LoX + clX, I + clY] );
     for J := LoX to HiX do
     begin
       W:= MappingX[J];
@@ -267,6 +272,7 @@ begin
     Inc(VertEntry.R, HorzEntry.R * W);
     Inc(VertEntry.G, HorzEntry.G * W);
     Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
   end;
   if Resampler.RangeCheck then
   begin
