@@ -137,14 +137,14 @@ uses Math, GR32_Lowlevel;
 
 function CombinePointsReg(A, B: TFixedPoint; Weight256: Integer): TFixedPoint;
 begin
-  Result.X := A.X +  SAR_8( (B.X - A.X) * Weight256 );
-  Result.Y := A.Y +  SAR_8( (B.Y - A.Y) * Weight256 );
+  Result.X := A.X +  SAR_8((B.X - A.X) * Weight256);
+  Result.Y := A.Y +  SAR_8((B.Y - A.Y) * Weight256);
 end;
 
 procedure CombinePointsMem(A: TFixedPoint;var  B: TFixedPoint; Weight256: Integer);
 begin
-  B.X := A.X +  SAR_8( (B.X - A.X) * Weight256 );
-  B.Y := A.Y +  SAR_8( (B.Y - A.Y) * Weight256 );
+  B.X := A.X +  SAR_8((B.X - A.X) * Weight256);
+  B.Y := A.Y +  SAR_8((B.Y - A.Y) * Weight256);
 end;
 
 function TTransformationMap.BoundsRect: TRect;
@@ -198,25 +198,25 @@ end;
 
 function TTransformationMap.GetFPoint(X, Y: Integer): TFloatPoint;
 begin
-  Result := FloatPoint( FBits[X + Y * Width] );
+  Result := FloatPoint(FBits[X + Y * Width]);
 end;
 
 function TTransformationMap.GetFPointF(X, Y: Single): TFloatPoint;
 begin
-  Result := FloatPoint( GetXPointX(Fixed(X), Fixed(Y)) );
+  Result := FloatPoint(GetXPointX(Fixed(X), Fixed(Y)));
 end;
 
 function TTransformationMap.GetFPointFS(X, Y: Single): TFloatPoint;
 begin
-  Result := FloatPoint( GetXPointXS(Fixed(X), Fixed(Y)) );
+  Result := FloatPoint(GetXPointXS(Fixed(X), Fixed(Y)));
 end;
 
 function TTransformationMap.GetFPointS(X, Y: Integer): TFloatPoint;
 begin
-  if X < 0 then X:= 0 else
-   if X >= Width then X:= Width - 1;
-  if Y < 0 then Y:= 0 else
-   if Y >= Height then Y:= Height - 1;
+  if X < 0 then X := 0 else
+    if X >= Width then X := Width - 1;
+  if Y < 0 then Y := 0 else
+    if Y >= Height then Y := Height - 1;
   Result := GetFPoint(X,Y);
 end;
 
@@ -227,10 +227,10 @@ end;
 
 function TTransformationMap.GetXPointS(X, Y: Integer): TFixedPoint;
 begin
-  if X < 0 then X:= 0 else
-   if X >= Width then X:= Width - 1;
-  if Y < 0 then Y:= 0 else
-   if Y >= Height then Y:= Height - 1;
+  if X < 0 then X := 0 else
+    if X >= Width then X := Width - 1;
+  if Y < 0 then Y := 0 else
+    if Y >= Height then Y := Height - 1;
   Result := GetXPoint(X,Y);
 end;
 
@@ -251,19 +251,19 @@ begin
   P12 := P^; Inc(P, Width);
   P22 := P^; Dec(P);
 
-  Result:= CombinePointsReg(CombinePointsReg(P11, P12, WX),
-                            CombinePointsReg(P^, P22, WX), WY);
+  Result := CombinePointsReg(CombinePointsReg(P11, P12, WX),
+                             CombinePointsReg(P^, P22, WX), WY);
 end;
 
 function TTransformationMap.GetXPointXS(X, Y: TFixed): TFixedPoint;
 var
   WX,WY: Integer;
 begin
-  WX:= SAR_8(X) and $FF;
-  WY:= SAR_8(Y) and $FF;
+  WX := SAR_8(X) and $FF;
+  WY := SAR_8(Y) and $FF;
 
-  X:= SAR_16(X);
-  Y:= SAR_16(Y);
+  X := SAR_16(X);
+  Y := SAR_16(Y);
 
   Result := CombinePointsReg(CombinePointsReg(FixedPointMapS[X,Y],
                                               FixedPointMapS[X + 1,Y], WX),
@@ -274,8 +274,8 @@ end;
 
 function TTransformationMap.IsEmpty: Boolean;
 begin
-  Result:= false;
-  if (Width = 0) or (Height = 0) or (FBits = nil)then Result:= True;
+  Result := false;
+  if (Width = 0) or (Height = 0) or (FBits = nil)then Result := True;
 end;
 
 const
@@ -345,16 +345,18 @@ begin
   IntersectRect(DstRect, BoundsRect, DstRect);
   if IsRectEmpty(DstRect) then Exit;
 
-  P:= SrcRect.Left;
-  Q:= SrcRect.Top;
-  for I:= DstRect.Top to DstRect.Bottom - 1 do begin
-    for J:= DstRect.Top to DstRect.Bottom - 1 do begin
-      SrcP:= Src.FixedPointMap[P, Q];
-      DstP:= FixedPointMap[I, J];
+  P := SrcRect.Left;
+  Q := SrcRect.Top;
+  for I := DstRect.Top to DstRect.Bottom - 1 do
+  begin
+    for J := DstRect.Top to DstRect.Bottom - 1 do
+    begin
+      SrcP := Src.FixedPointMap[P, Q];
+      DstP := FixedPointMap[I, J];
       MergeProc(SrcP, DstP);
-      DstP.X:= Round(DstP.X + (SrcP.X - DstP.X) * Weight);
-      DstP.Y:= Round(DstP.Y + (SrcP.Y - DstP.Y) * Weight);
-      FixedPointMap[I, J]:= DstP;
+      DstP.X := Round(DstP.X + (SrcP.X - DstP.X) * Weight);
+      DstP.Y := Round(DstP.Y + (SrcP.Y - DstP.Y) * Weight);
+      FixedPointMap[I, J] := DstP;
       Inc(P);
     end;
     Inc(Q);
@@ -366,15 +368,15 @@ procedure TTransformationMap.SaveToFile(const FileName: string);
   procedure ConvertVerticesX;
   var i: Integer;
   begin
-    for i:= 0 to Length( FBits ) - 1 do
-      FBits[i]:= FixedPoint( TFloatPoint( FBits[i] ) );
+    for i := 0 to Length(FBits) - 1 do
+      FBits[i] := FixedPoint(TFloatPoint(FBits[i]));
   end;
 
   procedure ConvertVerticesF;
   var i: Integer;
   begin
-    for i:= 0 to Length( FBits ) - 1 do
-      TFloatPoint(FBits[i]):= FloatPoint( FBits[i] );
+    for i := 0 to Length(FBits) - 1 do
+      TFloatPoint(FBits[i]) := FloatPoint(FBits[i]);
   end;
 
 var
@@ -386,20 +388,20 @@ begin
     AssignFile(MeshFile, FileName);
     Rewrite(MeshFile, 1);
     with Header do begin
-      Pad0:= $02000000;
-      Ident:= MeshIdent;
-      Pad1:= $00000002;
-      Width:= Self.Width;
-      Height:= Self.Height;
+      Pad0 := $02000000;
+      Ident := MeshIdent;
+      Pad1 := $00000002;
+      Width := Self.Width;
+      Height := Self.Height;
     end;
     BlockWrite(MeshFile, Header, SizeOf(TPSLiquifyMeshHeader));
     with Header do begin
       ConvertVerticesF;
-      BlockWrite(MeshFile, FBits[0], Length( FBits ) * SizeOf(TFixedPoint) );
+      BlockWrite(MeshFile, FBits[0], Length(FBits) * SizeOf(TFixedPoint));
       ConvertVerticesX;
     end;
-    if Odd( Length( FBits ) * SizeOf(TFixedPoint)-1 ) then begin
-      Pad:= $00000000;
+    if Odd(Length(FBits) * SizeOf(TFixedPoint)-1) then begin
+      Pad := $00000000;
       BlockWrite(MeshFile, Pad, 4);
       BlockWrite(MeshFile, Pad, 4);
     end;
@@ -410,39 +412,39 @@ end;
 
 procedure TTransformationMap.SetFPoint(X, Y: Integer; Point: TFloatPoint);
 begin
-  FBits[X + Y * Width]:= FixedPoint( Point );
+  FBits[X + Y * Width] := FixedPoint(Point);
 end;
 
 procedure TTransformationMap.SetFPointF(X, Y: Single; Point: TFloatPoint);
 begin
-  SetXPointX( Fixed(X), Fixed(Y), FixedPoint(Point) );
+  SetXPointX(Fixed(X), Fixed(Y), FixedPoint(Point));
 end;
 
 procedure TTransformationMap.SetFPointFS(X, Y: Single; Point: TFloatPoint);
 begin
-  SetXPointXS( Fixed(X), Fixed(Y), FixedPoint(Point) );
+  SetXPointXS(Fixed(X), Fixed(Y), FixedPoint(Point));
 end;
 
 procedure TTransformationMap.SetFPointS(X, Y: Integer; Point: TFloatPoint);
 begin
-  if X < 0 then X:= 0 else
-   if X >= Width then X:= Width - 1;
-  if Y < 0 then Y:= 0 else
-   if Y >= Height then Y:= Height - 1;
+  if X < 0 then X := 0 else
+    if X >= Width then X := Width - 1;
+  if Y < 0 then Y := 0 else
+    if Y >= Height then Y := Height - 1;
   SetFPoint(X, Y, Point);
 end;
 
 procedure TTransformationMap.SetXPoint(X, Y: Integer; Point: TFixedPoint);
 begin
-  FBits[X + Y * Width]:= Point;
+  FBits[X + Y * Width] := Point;
 end;
 
 procedure TTransformationMap.SetXPointS(X, Y: Integer; Point: TFixedPoint);
 begin
-  if X < 0 then X:= 0 else
-   if X >= Width then X:= Width - 1;
-  if Y < 0 then Y:= 0 else
-   if Y >= Height then Y:= Height - 1;
+  if X < 0 then X := 0 else
+    if X >= Width then X := Width - 1;
+  if Y < 0 then Y := 0 else
+    if Y >= Height then Y := Height - 1;
   SetXPoint(X, Y, Point);
 end;
 
@@ -500,10 +502,10 @@ begin
   end
   else
   begin
-    if (X >= 0) and (Y >= 0) then CombinePointsMem(Point, P^, FixedMul(celx, cely) ); Inc(P);
-    if (X < Width - 1) and (Y >= 0) then CombinePointsMem(Point, P^, FixedMul(flrx, cely) ); Inc(P, Width);
-    if (X < Width - 1) and (Y < Height - 1) then CombinePointsMem(Point, P^, FixedMul(flrx, flry) ); Dec(P);
-    if (X >= 0) and (Y < Height - 1) then CombinePointsMem(Point, P^, FixedMul(celx, flry) );
+    if (X >= 0) and (Y >= 0) then CombinePointsMem(Point, P^, FixedMul(celx, cely)); Inc(P);
+    if (X < Width - 1) and (Y >= 0) then CombinePointsMem(Point, P^, FixedMul(flrx, cely)); Inc(P, Width);
+    if (X < Width - 1) and (Y < Height - 1) then CombinePointsMem(Point, P^, FixedMul(flrx, flry)); Dec(P);
+    if (X >= 0) and (Y < Height - 1) then CombinePointsMem(Point, P^, FixedMul(celx, flry));
   end;
 end;
 
@@ -537,8 +539,10 @@ begin
   begin
     SrcTranslationFloat.X := Left;
     SrcTranslationFloat.Y := Top;
-    SrcScaleFloat.X := 1 / (TransformationMap.Width / (Right - Left));
-    SrcScaleFloat.Y := 1 / (TransformationMap.Height / (Bottom - Top));
+//    SrcScaleFloat.X := 1 / ((TransformationMap.Width - 1) / (Right - Left) );
+//    SrcScaleFloat.Y := 1 / ((TransformationMap.Height - 1) / (Bottom - Top) );
+    SrcScaleFloat.X := 1 / ((TransformationMap.Width - 1) / (Right - Left) );
+    SrcScaleFloat.Y := 1 / ((TransformationMap.Height - 1) / (Bottom - Top) );
     SrcTranslationFixed := FixedPoint(SrcTranslationFloat);
     SrcScaleFixed := FixedPoint(SrcScaleFloat);
   end;
@@ -547,8 +551,10 @@ begin
   begin
     DstTranslationFloat.X := Left;
     DstTranslationFloat.Y := Top;
-    DstScaleFloat.X := TransformationMap.Width / (Right - Left);
-    DstScaleFloat.Y := TransformationMap.Height / (Bottom - Top);
+//    DstScaleFloat.X := (TransformationMap.Width - 1) / (Right - Left);
+//    DstScaleFloat.Y := (TransformationMap.Height - 1) / (Bottom - Top);
+    DstScaleFloat.X :=  ((TransformationMap.Width - 1) / (Right - Left));
+    DstScaleFloat.Y :=  ((TransformationMap.Height - 1) / (Bottom - Top));
     DstTranslationFixed := FixedPoint(DstTranslationFloat);
     DstScaleFixed := FixedPoint(DstScaleFloat);
   end;
@@ -559,13 +565,31 @@ procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
 begin
   with TransformationMap.FixedPointMapS[DstX, DstY] do
   begin
+    DstX:= DstX * FixedOne - DstTranslationFixed.X;
+    DstY:= DstY * FixedOne - DstTranslationFixed.Y;
+    DstX := FixedMul(DstX , DstScaleFixed.X);
+    DstY := FixedMul(DstY , DstScaleFixed.Y);
+
+    DstX:= DstX + FixedMul(X, ScalingFixed.X);
+    DstY:= DstY + FixedMul(Y, ScalingFixed.Y);
+
+    DstX := FixedMul(DstX, SrcScaleFixed.X);
+    DstY := FixedMul(DstY, SrcScaleFixed.Y);
+    DstX:= DstX + SrcTranslationFixed.X;
+    DstY:= DstY + SrcTranslationFixed.Y;
+
+    SrcX256 := SAR_8(DstX + $7F);
+    SrcY256 := SAR_8(DstY + $7F);
+  end;       {
+  with TransformationMap.FixedPointMapS[DstX, DstY] do
+  begin
     //Scale the vectors
     X := FixedMul(X, ScalingFixed.X);
     Y := FixedMul(Y, ScalingFixed.Y);
 
     //Dst Translation and Scaling (controlled by DstRect)
-    Inc(X, DstX * $10000 - DstTranslationFixed.X);
-    Inc(Y, DstY * $10000 - DstTranslationFixed.Y);
+    Inc(X, DstX * FixedOne - DstTranslationFixed.X);
+    Inc(Y, DstY * FixedOne - DstTranslationFixed.Y);
     X := FixedMul(X, DstScaleFixed.X);
     Y := FixedMul(Y, DstScaleFixed.Y);
 
@@ -574,7 +598,7 @@ begin
     Y := DstY + FixedMul(Y, SrcScaleFixed.Y);
     SrcX256 := SAR_8(X + $7F + SrcTranslationFixed.X);
     SrcY256 := SAR_8(Y + $7F + SrcTranslationFixed.Y);
-  end;
+  end; }
 end;
 
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
@@ -582,19 +606,18 @@ procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
 begin
   with TransformationMap.FixedPointMapXS[DstX, DstY] do
   begin
-    //Scale the vectors
-    X := FixedMul(X, ScalingFixed.X);
-    Y := FixedMul(Y, ScalingFixed.Y);
+    DstX := DstX - DstTranslationFixed.X;
+    DstY := DstY - DstTranslationFixed.Y;
+    DstX := FixedMul(DstX , DstScaleFixed.X);
+    DstY := FixedMul(DstY , DstScaleFixed.Y);
 
-    //Dst Translation and Scaling (controlled by DstRect)
-    Inc(X, DstX - DstTranslationFixed.X);
-    Inc(Y, DstY - DstTranslationFixed.Y);
-    X := FixedMul(X, DstScaleFixed.X);
-    Y := FixedMul(Y, DstScaleFixed.Y);
+    DstX:= DstX + FixedMul(X, ScalingFixed.X);
+    DstY:= DstY + FixedMul(Y, ScalingFixed.Y);
 
-    //Src Translation and Scaling (controlled by SrcRect)
-    SrcX := DstX + FixedMul(X, SrcScaleFixed.X) + SrcTranslationFixed.X;
-    SrcY := DstY + FixedMul(Y, SrcScaleFixed.Y) + SrcTranslationFixed.Y;
+    DstX := FixedMul(DstX, SrcScaleFixed.X);
+    DstY := FixedMul(DstY, SrcScaleFixed.Y);
+    SrcX := DstX + SrcTranslationFixed.X;
+    SrcY := DstY + SrcTranslationFixed.Y;
   end;
 end;
 
@@ -603,19 +626,18 @@ procedure TRemapTransformation.ReverseTransformFloat(DstX, DstY: Single;
 begin
   with TransformationMap.FloatPointMapFS[DstX, DstY] do
   begin
-    //Scale the vectors
-    X := X * ScalingFloat.X;
-    Y := Y * ScalingFloat.Y;
+    DstX := DstX - DstTranslationFloat.X;
+    DstY := DstY - DstTranslationFloat.Y;
+    DstX := DstX * DstScaleFloat.X;
+    DstY := DstY * DstScaleFloat.Y;
 
-    //Dst Translation and Scaling (controlled by DstRect)
-    X := X + DstX - DstTranslationFloat.X;
-    Y := Y + DstY - DstTranslationFloat.Y;
-    X := X * DstScaleFloat.X;
-    Y := Y * DstScaleFloat.Y;
+    DstX:= DstX + X * ScalingFloat.X;
+    DstY:= DstY + Y * ScalingFloat.Y;
 
-    //Src Translation and Scaling (controlled by SrcRect)
-    SrcX := DstX + X * SrcScaleFloat.X + SrcTranslationFloat.X;
-    SrcY := DstY + Y * SrcScaleFloat.Y + SrcTranslationFloat.Y;
+    DstX := DstX * SrcScaleFloat.X;
+    DstY := DstY * SrcScaleFloat.Y;
+    SrcX := DstX + SrcTranslationFloat.X;
+    SrcY := DstY + SrcTranslationFloat.Y;
   end;
 end;
 
@@ -624,19 +646,18 @@ procedure TRemapTransformation.ReverseTransformInt(DstX, DstY: Integer;
 begin
   with TransformationMap.FixedPointMapS[DstX, DstY] do
   begin
-    //Scale the vectors
-    X := FixedMul(X, ScalingFixed.X);
-    Y := FixedMul(Y, ScalingFixed.Y);
+    DstX := DstX * FixedOne - DstTranslationFixed.X;
+    DstY := DstY * FixedOne - DstTranslationFixed.Y;
+    DstX := FixedMul(DstX , DstScaleFixed.X);
+    DstY := FixedMul(DstY , DstScaleFixed.Y);
 
-    //Dst Translation and Scaling (controlled by DstRect)
-    Inc(X, DstX * $10000 - DstTranslationFixed.X);
-    Inc(Y, DstY * $10000 - DstTranslationFixed.Y);
-    X := FixedMul(X, DstScaleFixed.X);
-    Y := FixedMul(Y, DstScaleFixed.Y);
+    DstX := DstX + FixedMul(X, ScalingFixed.X);
+    DstY := DstY + FixedMul(Y, ScalingFixed.Y);
 
-    //Src Translation and Scaling (controlled by SrcRect) and rounding
-    SrcX := SAR_16(DstX + FixedMul(X, SrcScaleFixed.X) + SrcTranslationFixed.X + $7FFF);
-    SrcY := SAR_16(DstY + FixedMul(Y, SrcScaleFixed.Y) + SrcTranslationFixed.Y + $7FFF);
+    DstX := FixedMul(DstX, SrcScaleFixed.X);
+    DstY := FixedMul(DstY, SrcScaleFixed.Y);
+    SrcX := FixedRound(DstX + SrcTranslationFixed.X);
+    SrcY := FixedRound(DstY + SrcTranslationFixed.Y);
   end;
 end;
 
