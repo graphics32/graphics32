@@ -41,7 +41,10 @@ uses
   Windows,
   {$ENDIF}
   SysUtils, Classes, GR32, GR32_Blend, GR32_Rasterizers;
-    
+
+const
+  DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
+
 type
   ETransformError = class(Exception);
 
@@ -223,7 +226,8 @@ type
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation); overload;
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer); overload;
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
 { FullEdge controls how the bitmap is resampled }
@@ -341,7 +345,7 @@ begin
   begin
     SetLength(Result, Length(Points));
     Transformation.PrepareTransform;
-    
+
     for I := 0 to High(Result) do
     begin
       SetLength(Result[I], Length(Points[I]));
@@ -352,40 +356,18 @@ begin
   end;
 end;
 
-(*
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
 var
-  R, SrcRect, DstRect: TRect;
-  CombineOp: TDrawMode;
+  Rasterizer: TRasterizer;
 begin
-  if not TTransformationAccess(Transformation).TransformValid then
-    TTransformationAccess(Transformation).PrepareTransform;
-
-  // clip SrcRect
-  // workaround C++ Builder throwing exceptions:
-  R := MakeRect(Round(Transformation.SrcRect.Left), Round(Transformation.SrcRect.Top),
-                Round(Transformation.SrcRect.Right), Round(Transformation.SrcRect.Bottom));
-  IntersectRect(SrcRect, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
-
-  // clip DstRect
-  R := Transformation.GetTransformedBounds;
-  IntersectRect(DstRect, R, MakeRect(Dst.ClipRect.Left, Dst.ClipRect.Top,
-    Dst.ClipRect.Right - 1, Dst.ClipRect.Bottom - 1));
-
-  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
-
+  Rasterizer := DefaultRasterizerClass.Create;
   try
-    CombineOp := Src.DrawMode;
-    if (CombineOp = dmCustom) and not Assigned(Src.OnPixelCombine) then
-      CombineOp := dmOpaque;
-
-    Src.Resampler.Transform(Dst, DstRect, Src, SrcRect, Transformation,
-      CombineOp, Src.OnPixelCombine);
+    Rasterizer.Sampler := Src.Resampler;
+    Transform(Dst, Src, Transformation, Rasterizer);
   finally
-    EMMS;
+    Rasterizer.Free;
   end;
-  Dst.Changed;
-end; *)
+end;
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
 var
