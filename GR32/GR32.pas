@@ -5199,12 +5199,18 @@ begin
 end;
 
 procedure TBitmap32.SetResamplerClassName(Value: string);
+var
+  ResamplerClass: TBitmap32ResamplerClass;
 begin
   if (Value <> '') and (FResampler.ClassName <> Value) then
   begin
-    FResampler.Free;
-    FResampler := FindResamplerClass(Value).Create(Self);
-    Changed;
+    ResamplerClass := FindResamplerClass(Value);
+    if Assigned(ResamplerClass) then
+    begin
+      FResampler.Free;
+      FResampler := ResamplerClass.Create(Self);
+      Changed;
+    end;
   end;
 end;
 
