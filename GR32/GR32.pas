@@ -157,18 +157,29 @@ type
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
 {$ENDIF}
   PPoint = ^TPoint;
+
+  PPointArray = ^TPointArray;
+  TPointArray = array [0..0] of TPoint;
+  TArrayOfPoint = array of TPoint;
+  TArrayOfArrayOfPoint = array of TArrayOfPoint;
+
+  PFloatPoint = ^TFloatPoint;
   TFloatPoint = record
     X, Y: Single;
   end;
-  PFloatPoint = ^TFloatPoint;
+
+  PFloatPointArray = ^TFloatPointArray;
+  TFloatPointArray = array [0..0] of TFloatPoint;
+  TArrayOfFloatPoint = array of TFloatPoint;
+  TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
+
+  PFixedPoint = ^TFixedPoint;
   TFixedPoint = record
     X, Y: TFixed;
   end;
-  PFixedPoint = ^TFixedPoint;
-  TArrayOfPoint = array of TPoint;
-  TArrayOfArrayOfPoint = array of TArrayOfPoint;
-  TArrayOfFloatPoint = array of TFloatPoint;
-  TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
+
+  PFixedPointArray = ^TFixedPointArray;
+  TFixedPointArray = array [0..0] of TFixedPoint;
   TArrayOfFixedPoint = array of TFixedPoint;
   TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
 
