@@ -553,6 +553,7 @@ begin
           DstLine[I] := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
                                             @SrcLine[SrcIndex + Src.Width]);
         end;
+        Inc(DstLine, Dst.Width);
       end;
     dmBlend:
       begin
