@@ -59,7 +59,10 @@ function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
 function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
 
 { Returns Value constrained to [Lo..Hi] range}
-function Constrain(Value, Lo, Hi: Integer): Integer;
+function Constrain(Value, Lo, Hi: Integer): Integer; //inline;
+
+{ Returns Value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
+function SwapConstrain(Value, Constrain1, Constrain2: Integer): Integer; //inline;
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
@@ -139,7 +142,7 @@ asm
 // EAX = [A]
 // EDX = [B]
         MOV     ECX,[EAX]     // ECX := [A]
-        CMP     ECX,[EDX]     
+        CMP     ECX,[EDX]
         JLE     @exit        // ECX <= [B]? Exit
         XCHG    ECX,[EDX]     // ECX <-> [B];
         MOV     [EAX],ECX     // [A] := ECX
@@ -166,6 +169,14 @@ function Constrain(Value, Lo, Hi: Integer): Integer;
 begin
   if Value < Lo then Result := Lo
   else if Value > Hi then Result := Hi
+  else Result := Value;
+end;
+
+function SwapConstrain(Value, Constrain1, Constrain2: Integer): Integer;
+begin
+  TestSwap(Constrain1, Constrain2);
+  if Value < Constrain1 then Result := Constrain1
+  else if Value > Constrain2 then Result := Constrain2
   else Result := Value;
 end;
 
@@ -265,4 +276,4 @@ end;
 
 
 end.
- 
+
