@@ -452,7 +452,7 @@ var
   begin
     with A.Add('img') do
     begin
-      Attributes['src'] := PathTo(Project.ImageFolder + '\' + AName);
+      Attributes['src'] := PathTo(Project.ImageFolder + '/' + AName);
       Attributes['align'] := 'absmiddle';
     end;
   end;
@@ -496,7 +496,7 @@ begin
     Attributes['align'] := 'right';
     with Add('img') do
     begin
-      Attributes['src'] := PathTo(Project.ImageFolder + '\_Project_Logo.gif');
+      Attributes['src'] := PathTo(Project.ImageFolder + '/_Project_Logo.gif');
       Attributes['align'] := 'absmiddle';
     end;
   end;
@@ -538,7 +538,8 @@ var
 begin
   if Target = '' then raise Exception.Create('Invalid target');
   S := StringReplace(Target, '/', '\', [rfReplaceAll]);
-  Result := ExtractRelativePath(FileName, S);
+  S := ExtractRelativePath(FileName, S);
+  Result := StringReplace(S, '\', '/', [rfReplaceAll]);
 end;
 
 procedure TElement.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
@@ -1167,12 +1168,12 @@ end;
 
 procedure TProject.AddClasses(Body: TDomNode);
 const
-  IMG_E = '<img src="..\Images\_BranchEmpty.gif" align="absmiddle">';
-  IMG_E1 = '<img src="..\Images\_BranchEmpty.gif" align="absmiddle" width="1" height="18">';
-  IMG_V = '<img src="..\Images\_BranchVert.gif" align="absmiddle">';
-  IMG_R = '<img src="..\Images\_BranchRight.gif" align="absmiddle">';
-  IMG_VR = '<img src="..\Images\_BranchVertRight.gif" align="absmiddle">';
-  IMG_C = '<img src="..\Images\_Class.gif" align="absmiddle">';
+  IMG_E = '<img src="../Images/_BranchEmpty.gif" align="absmiddle">';
+  IMG_E1 = '<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">';
+  IMG_V = '<img src="../Images/_BranchVert.gif" align="absmiddle">';
+  IMG_R = '<img src="../Images/_BranchRight.gif" align="absmiddle">';
+  IMG_VR = '<img src="../Images/_BranchVertRight.gif" align="absmiddle">';
+  IMG_C = '<img src="../Images/_Class.gif" align="absmiddle">';
 var
   CC: TObjectList;
   I: Integer;
@@ -1566,7 +1567,7 @@ begin
               Attributes['id'] := 'Auto';
               Attributes['class'] := 'Tree';
 
-              AddText('<img src="..\Images\_BranchEmpty.gif" align="absmiddle" width="1" height="18">');
+              AddText('<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">');
               AddParse(LinkTo(Elems[J]));
             end;
           Elems.Clear;
