@@ -31,11 +31,35 @@ interface
 {$I GR32.inc}
 
 uses
+  SysUtils,
   {$IFDEF CLX}
-  Qt, Types {$IFDEF LINUX}, Libc{$ENDIF}
+  Qt, Types {$IFDEF LINUX}, Libc {$ELSE}, Windows{$ENDIF}
   {$ELSE}
   Windows
   {$ENDIF};
+
+type
+  TPerfTimer = class
+  private
+{$IFDEF LINUX}
+    FStart: timespec;
+{$ELSE}
+    FFrequency, FPerformanceCountStart, FPerformanceCountStop: Int64;
+{$ENDIF}
+  public
+    procedure Start;
+    function ReadNanoseconds: String;
+    function ReadMilliseconds: String;
+    function ReadValue: Int64;
+  end;
+
+{$IFDEF LINUX}
+{ pseudo GetTickCount implementation for Linux - for compatibility
+  This works for basic time testing, however, it doesnt work like its
+  Windows counterpart, ie. it doesnt return the number of milliseconds since
+  system boot. Will definitely overflow. }
+function GetTickCount: Integer;
+{$ENDIF}
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
@@ -59,6 +83,9 @@ const
   CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
     ($800000, $2000000, $4000000, $80000000, $40000000);
 //   ciMMX  , ciSSE   , ciSSE2  , ci3DNow , ci3DNowExt
+
+var
+  GlobalPerfTimer: TPerfTimer;
 
 {$IFNDEF CLX}
 { Internal support for Windows XP themes }
@@ -150,6 +177,75 @@ implementation
 {$IFNDEF CLX}
 uses
   Messages, Forms, Classes;
+{$ENDIF}
+
+{$IFDEF LINUX}
+function GetTickCount: Integer;
+var
+  val: timespec;
+begin
+  clock_gettime(CLOCK_REALTIME, val);
+  Result := val.tv_sec * 1000 + val.tv_nsec div 1000000;
+end;
+
+function TPerfTimer.ReadNanoseconds: String;
+var
+  val: timespec;
+begin
+  clock_gettime(CLOCK_REALTIME, val);
+  Result := IntToStr(((val.tv_sec * 1000000000) + val.tv_nsec) -
+                     ((FStart.tv_sec * 1000000000) + FStart.tv_nsec));
+end;
+
+function TPerfTimer.ReadMilliseconds: String;
+var
+  val: timespec;
+begin
+  clock_gettime(CLOCK_REALTIME, val);
+  Result := IntToStr(((val.tv_sec * 1000) + val.tv_nsec div 1000000) -
+                     ((FStart.tv_sec * 1000) + FStart.tv_nsec div 1000000));
+end;
+
+function TPerfTimer.ReadValue: Int64;
+var
+  val: timespec;
+begin
+  clock_gettime(CLOCK_REALTIME, val);
+  Result := ((val.tv_sec * 1000000000) + val.tv_nsec) -
+            ((FStart.tv_sec * 1000000000) + FStart.tv_nsec);
+end;
+
+procedure TPerfTimer.Start;
+begin
+  clock_gettime(CLOCK_REALTIME, FStart);
+end;
+{$ELSE}
+function TPerfTimer.ReadNanoseconds: String;
+begin
+  QueryPerformanceCounter(FPerformanceCountStop);
+  QueryPerformanceFrequency(FFrequency);
+  Result := IntToStr(Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency));
+end;
+
+function TPerfTimer.ReadMilliseconds: String;
+begin
+  QueryPerformanceCounter(FPerformanceCountStop);
+  QueryPerformanceFrequency(FFrequency);
+  Result := FloatToStr(Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency) / 1000);
+end;
+
+function TPerfTimer.ReadValue: Int64;
+begin
+  QueryPerformanceCounter(FPerformanceCountStop);
+  QueryPerformanceFrequency(FFrequency);
+
+  Result := Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency);
+end;
+
+procedure TPerfTimer.Start;
+begin
+  QueryPerformanceCounter(FPerformanceCountStart);
+end;
 {$ENDIF}
 
 function CPUID_Available: Boolean;
@@ -396,8 +492,10 @@ initialization
   ThemeNexus := TThemeNexus.Create;
   {$ENDIF}
 {$ENDIF}
+  GlobalPerfTimer := TPerfTimer.Create;
 
 finalization
+  GlobalPerfTimer.Free;
 {$IFNDEF CLX}
   {$IFDEF XPTHEMES}
   ThemeNexus.Free;

@@ -115,6 +115,9 @@ procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoi
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
+function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect;
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
+
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 
 { TPolygon32 }
@@ -1054,55 +1057,58 @@ var
   ScanLines: TScanLines;
   PP: TArrayOfPoint;
 begin
-  L := Length(Points);
-  if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
-  SetLength(PP, L);
-
-  MinY := $7F000000;
-  MaxY := -$7F000000;
-
-  If Assigned(Transformation) then
+  if not Bitmap.MeasuringMode then
   begin
-    for I := 0 to L - 1 do
-      with Transformation.Transform(Points[I]) do
-      begin
-        PP[I].X := SAR_16(X + $00007FFF);
-        PP[I].Y := SAR_16(Y + $00007FFF);
-        if PP[I].Y < MinY then MinY := PP[I].Y;
-        if PP[I].Y > MaxY then MaxY := PP[I].Y;
-      end;
-  end
-  else
-  begin
-    for I := 0 to L - 1 do
-      with Points[I] do
-      begin
-        PP[I].X := SAR_16(X + $00007FFF);
-        PP[I].Y := SAR_16(Y + $00007FFF);
-        if PP[I].Y < MinY then MinY := PP[I].Y;
-        if PP[I].Y > MaxY then MaxY := PP[I].Y;
-      end;
-  end;
+    L := Length(Points);
+    if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
+    SetLength(PP, L);
 
-  MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-  MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-  if MinY >= MaxY then Exit;
+    MinY := $7F000000;
+    MaxY := -$7F000000;
 
-  SetLength(ScanLines, MaxY - MinY + 1);
-  AddPolygon(PP, Bitmap.ClipRect.Left shl 8, MinY, Bitmap.ClipRect.Right shl 8 - 1,
-    Bitmap.ClipRect.Bottom - 1, ScanLines, True);
-
-  SortLines(ScanLines);
-  Bitmap.BeginUpdate;
-  try
-    If Assigned(FillLineCallback) then
-      CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
+    If Assigned(Transformation) then
+    begin
+      for I := 0 to L - 1 do
+        with Transformation.Transform(Points[I]) do
+        begin
+          PP[I].X := SAR_16(X + $00007FFF);
+          PP[I].Y := SAR_16(Y + $00007FFF);
+          if PP[I].Y < MinY then MinY := PP[I].Y;
+          if PP[I].Y > MaxY then MaxY := PP[I].Y;
+        end;
+    end
     else
-      ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
-  finally
-    Bitmap.EndUpdate;
-    Bitmap.Changed;
+    begin
+      for I := 0 to L - 1 do
+        with Points[I] do
+        begin
+          PP[I].X := SAR_16(X + $00007FFF);
+          PP[I].Y := SAR_16(Y + $00007FFF);
+          if PP[I].Y < MinY then MinY := PP[I].Y;
+          if PP[I].Y > MaxY then MaxY := PP[I].Y;
+        end;
+    end;
+
+    MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
+    MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
+    if MinY >= MaxY then Exit;
+
+    SetLength(ScanLines, MaxY - MinY + 1);
+    AddPolygon(PP, Bitmap.ClipRect.Left shl 8, MinY, Bitmap.ClipRect.Right shl 8 - 1,
+      Bitmap.ClipRect.Bottom - 1, ScanLines, True);
+
+    SortLines(ScanLines);
+    Bitmap.BeginUpdate;
+    try
+      If Assigned(FillLineCallback) then
+        CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
+      else
+        ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
+    finally
+      Bitmap.EndUpdate;
+    end;
   end;
+  Bitmap.Changed(MakeRect(PolygonBounds(Points)));
 end;
 
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
@@ -1136,61 +1142,64 @@ var
   AAShift, AAClipTop, AAClipBottom: Integer;
   AASAR: TShiftFunc;
 begin
-  L := Length(Points);
-  if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
-  SetLength(PP, L);
-
-  AASAR := AA_SAR[AAMode];
-
-  MinY := $7F000000;
-  MaxY := -$7F000000;
-
-  If Assigned(Transformation) then
+  if not Bitmap.MeasuringMode then
   begin
-    for I := 0 to L - 1 do
-      with Transformation.Transform(Points[I]) do
-      begin
-        PP[I].X := AASAR(X + $00007FF);
-        PP[I].Y := AASAR(Y + $00007FF);
-        if PP[I].Y < MinY then MinY := PP[I].Y;
-        if PP[I].Y > MaxY then MaxY := PP[I].Y;
-      end;
-  end
-  else
-  begin
-    for I := 0 to L - 1 do
-      with Points[I] do
-      begin
-        PP[I].X := AASAR(X + $00007FF);
-        PP[I].Y := AASAR(Y + $00007FF);
-        if PP[I].Y < MinY then MinY := PP[I].Y;
-        if PP[I].Y > MaxY then MaxY := PP[I].Y;
-      end;
-  end;
+    L := Length(Points);
+    if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
+    SetLength(PP, L);
 
-  AAShift := AA_SHIFT[AAMode];
-  AAClipTop := Bitmap.ClipRect.Top shl AAShift;
-  AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
+    AASAR := AA_SAR[AAMode];
 
-  MinY := Constrain(MinY, AAClipTop, AAClipBottom);
-  MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
-  if MinY >= MaxY then Exit;
+    MinY := $7F000000;
+    MaxY := -$7F000000;
 
-  SetLength(ScanLines, MaxY - MinY + 1);
-  AddPolygon(PP, Bitmap.ClipRect.Left shl AAShift, MinY,
-    Bitmap.ClipRect.Right shl AAShift - 1, AAClipBottom, ScanLines, False);
-
-  SortLines(ScanLines);
-  Bitmap.BeginUpdate;
-  try
-    If Assigned(FillLineCallback) then
-      CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
+    If Assigned(Transformation) then
+    begin
+      for I := 0 to L - 1 do
+        with Transformation.Transform(Points[I]) do
+        begin
+          PP[I].X := AASAR(X + $00007FF);
+          PP[I].Y := AASAR(Y + $00007FF);
+          if PP[I].Y < MinY then MinY := PP[I].Y;
+          if PP[I].Y > MaxY then MaxY := PP[I].Y;
+        end;
+    end
     else
-      ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
-  finally
-    Bitmap.EndUpdate;
-    Bitmap.Changed;
+    begin
+      for I := 0 to L - 1 do
+        with Points[I] do
+        begin
+          PP[I].X := AASAR(X + $00007FF);
+          PP[I].Y := AASAR(Y + $00007FF);
+          if PP[I].Y < MinY then MinY := PP[I].Y;
+          if PP[I].Y > MaxY then MaxY := PP[I].Y;
+        end;
+    end;
+
+    AAShift := AA_SHIFT[AAMode];
+    AAClipTop := Bitmap.ClipRect.Top shl AAShift;
+    AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
+
+    MinY := Constrain(MinY, AAClipTop, AAClipBottom);
+    MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
+    if MinY >= MaxY then Exit;
+
+    SetLength(ScanLines, MaxY - MinY + 1);
+    AddPolygon(PP, Bitmap.ClipRect.Left shl AAShift, MinY,
+      Bitmap.ClipRect.Right shl AAShift - 1, AAClipBottom, ScanLines, False);
+
+    SortLines(ScanLines);
+    Bitmap.BeginUpdate;
+    try
+      If Assigned(FillLineCallback) then
+        CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
+      else
+        ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
+    finally
+      Bitmap.EndUpdate;
+    end;
   end;
+  Bitmap.Changed(MakeRect(PolygonBounds(Points)));
 end;
 
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
@@ -1226,66 +1235,69 @@ var
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
 begin
-  SetLength(PP, Length(Points));
+  if not Bitmap.MeasuringMode then
+  begin
+    SetLength(PP, Length(Points));
 
-  MaxY := -$7FFFFFFF;
-  MinY := $7FFFFFFF;
-  If Assigned(Transformation) then
-  begin
-    for J := 0 to High(Points) do
+    MaxY := -$7FFFFFFF;
+    MinY := $7FFFFFFF;
+    If Assigned(Transformation) then
     begin
-      L := Length(Points[J]);
-      SetLength(PP[J], L);
-      for I := 0 to L - 1 do
-        with Transformation.Transform(Points[J][I]) do
-        begin
-          PP[J][I].X := SAR_16(X + $00007FFF);
-          PP[J][I].Y := SAR_16(Y + $00007FFF);
-          if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-          if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-        end
+      for J := 0 to High(Points) do
+      begin
+        L := Length(Points[J]);
+        SetLength(PP[J], L);
+        for I := 0 to L - 1 do
+          with Transformation.Transform(Points[J][I]) do
+          begin
+            PP[J][I].X := SAR_16(X + $00007FFF);
+            PP[J][I].Y := SAR_16(Y + $00007FFF);
+            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+          end
+      end
     end
-  end
-  else
-  begin
-    for J := 0 to High(Points) do
+    else
     begin
-      L := Length(Points[J]);
-      SetLength(PP[J], L);
-      for I := 0 to L - 1 do
-        with Points[J][I] do
-        begin
-          PP[J][I].X := SAR_16(X + $00007FFF);
-          PP[J][I].Y := SAR_16(Y + $00007FFF);
-          if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-          if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-        end;
+      for J := 0 to High(Points) do
+      begin
+        L := Length(Points[J]);
+        SetLength(PP[J], L);
+        for I := 0 to L - 1 do
+          with Points[J][I] do
+          begin
+            PP[J][I].X := SAR_16(X + $00007FFF);
+            PP[J][I].Y := SAR_16(Y + $00007FFF);
+            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+          end;
+      end;
+    end;
+
+    MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
+    MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
+    if MinY >= MaxY then Exit;
+
+    ShiftedLeft := Bitmap.ClipRect.Left shl 8;
+    ShiftedRight := Bitmap.ClipRect.Right shl 8 - 1;
+    ClipBottom := Bitmap.ClipRect.Bottom - 1;
+
+    SetLength(ScanLines, MaxY - MinY + 1);
+    for J := 0 to High(Points) do
+      AddPolygon(PP[J], ShiftedLeft, MinY, ShiftedRight, ClipBottom, ScanLines, True);
+
+    SortLines(ScanLines);
+    Bitmap.BeginUpdate;
+    try
+      If Assigned(FillLineCallback) then
+        CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
+      else
+        ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
+    finally
+      Bitmap.EndUpdate;
     end;
   end;
-
-  MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-  MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-  if MinY >= MaxY then Exit;
-
-  ShiftedLeft := Bitmap.ClipRect.Left shl 8;
-  ShiftedRight := Bitmap.ClipRect.Right shl 8 - 1;
-  ClipBottom := Bitmap.ClipRect.Bottom - 1;
-
-  SetLength(ScanLines, MaxY - MinY + 1);
-  for J := 0 to High(Points) do
-    AddPolygon(PP[J], ShiftedLeft, MinY, ShiftedRight, ClipBottom, ScanLines, True);
-
-  SortLines(ScanLines);
-  Bitmap.BeginUpdate;
-  try
-    If Assigned(FillLineCallback) then
-      CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
-    else
-      ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
-  finally
-    Bitmap.EndUpdate;
-    Bitmap.Changed;
-  end;
+  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points)));
 end;
 
 procedure PolyPolygonTS(Bitmap: TBitmap32;
@@ -1321,78 +1333,81 @@ var
   AAShift, AAClipLeft, AAClipTop, AAClipRight, AAClipBottom: Integer;
   AASAR: TShiftFunc;
 begin
-  AASAR := AA_SAR[AAMode];
-
-  SetLength(PP, Length(Points));
-
-  MaxY := -$7F000000;
-  MinY := $7F000000;
-  If Assigned(Transformation) then
+  if not Bitmap.MeasuringMode then
   begin
-    for J := 0 to High(Points) do
+    AASAR := AA_SAR[AAMode];
+
+    SetLength(PP, Length(Points));
+
+    MaxY := -$7F000000;
+    MinY := $7F000000;
+    If Assigned(Transformation) then
     begin
-      L := Length(Points[J]);
-      if L > 2 then
+      for J := 0 to High(Points) do
       begin
-        SetLength(PP[J], L);
-        for I := 0 to L - 1 do
-          with Transformation.Transform(Points[J][I]) do
-          begin
-            PP[J][I].X := AASAR(X + $00007FF);
-            PP[J][I].Y := AASAR(Y + $00007FF);
-            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-          end
+        L := Length(Points[J]);
+        if L > 2 then
+        begin
+          SetLength(PP[J], L);
+          for I := 0 to L - 1 do
+            with Transformation.Transform(Points[J][I]) do
+            begin
+              PP[J][I].X := AASAR(X + $00007FF);
+              PP[J][I].Y := AASAR(Y + $00007FF);
+              if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+              if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+            end
+        end
+        else SetLength(PP[J], 0);
       end
-      else SetLength(PP[J], 0);
     end
-  end
-  else
-  begin
-    for J := 0 to High(Points) do
+    else
     begin
-      L := Length(Points[J]);
-      if L > 2 then
+      for J := 0 to High(Points) do
       begin
-        SetLength(PP[J], L);
-        for I := 0 to L - 1 do
-          with Points[J][I] do
-          begin
-            PP[J][I].X := AASAR(X + $000007FF);
-            PP[J][I].Y := AASAR(Y + $000007FF);
-            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-          end;
-      end
-      else SetLength(PP[J], 0);
+        L := Length(Points[J]);
+        if L > 2 then
+        begin
+          SetLength(PP[J], L);
+          for I := 0 to L - 1 do
+            with Points[J][I] do
+            begin
+              PP[J][I].X := AASAR(X + $000007FF);
+              PP[J][I].Y := AASAR(Y + $000007FF);
+              if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
+              if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
+            end;
+        end
+        else SetLength(PP[J], 0);
+      end;
+    end;
+
+    AAShift := AA_SHIFT[AAMode];
+    AAClipLeft := Bitmap.ClipRect.Left shl AAShift;
+    AAClipTop := Bitmap.ClipRect.Top shl AAShift;
+    AAClipRight := Bitmap.ClipRect.Right shl AAShift - 1;
+    AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
+
+    MinY := Constrain(MinY, AAClipTop, AAClipBottom);
+    MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
+    if MinY >= MaxY then Exit;
+
+    SetLength(ScanLines, MaxY - MinY + 1);
+    for J := 0 to High(Points) do
+      AddPolygon(PP[J], AAClipLeft, MinY, AAClipRight, AAClipBottom, ScanLines, False);
+
+    SortLines(ScanLines);
+    Bitmap.BeginUpdate;
+    try
+      If Assigned(FillLineCallback) then
+        CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
+      else
+        ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
+    finally
+      Bitmap.EndUpdate;
     end;
   end;
-  
-  AAShift := AA_SHIFT[AAMode];
-  AAClipLeft := Bitmap.ClipRect.Left shl AAShift;
-  AAClipTop := Bitmap.ClipRect.Top shl AAShift;
-  AAClipRight := Bitmap.ClipRect.Right shl AAShift - 1;
-  AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
-
-  MinY := Constrain(MinY, AAClipTop, AAClipBottom);
-  MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
-  if MinY >= MaxY then Exit;
-
-  SetLength(ScanLines, MaxY - MinY + 1);
-  for J := 0 to High(Points) do
-    AddPolygon(PP[J], AAClipLeft, MinY, AAClipRight, AAClipBottom, ScanLines, False);
-
-  SortLines(ScanLines);
-  Bitmap.BeginUpdate;
-  try
-    If Assigned(FillLineCallback) then
-      CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
-    else
-      ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
-  finally
-    Bitmap.EndUpdate;
-    Bitmap.Changed;
-  end;
+  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points)));
 end;
 
 procedure PolyPolygonXS(Bitmap: TBitmap32;
@@ -1419,6 +1434,55 @@ begin
 end;
 
 { helper routines }
+
+function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect;
+var
+  I, X, Y: Integer;
+begin
+  With Result do
+  begin
+    Left := $7f000000;
+    Right := -$7f000000;
+    Top := $7f000000;
+    Bottom := -$7f000000;
+
+    for I := 0 to High(Points) do
+    begin
+      X := Points[I].X;
+      Y := Points[I].Y;
+
+      if X < Left   then Left := X;
+      if X > Right  then Right := X;
+      if Y < Top    then Top := Y;
+      if Y > Bottom then Bottom := Y;
+    end;
+  end;
+end;
+
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
+var
+  I, J, X, Y: Integer;
+begin
+  With Result do
+  begin
+    Left := $7f000000;
+    Right := -$7f000000;
+    Top := $7f000000;
+    Bottom := -$7f000000;
+
+    for I := 0 to High(Points) do
+      for J := 0 to High(Points[I]) do
+      begin
+        X := Points[I, J].X;
+        Y := Points[I, J].Y;
+
+        if X < Left   then Left := X;
+        if X > Right  then Right := X;
+        if Y < Top    then Top := Y;
+        if Y > Bottom then Bottom := Y;
+      end;
+  end;
+end;
 
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 var
@@ -1486,28 +1550,8 @@ begin
 end;
 
 function TPolygon32.GetBoundingRect: TFixedRect;
-var
-  I, J, X, Y: Integer;
 begin
-  With Result do
-  begin
-    Left := $7f000000;
-    Right := -$7f000000;
-    Top := $7f000000;
-    Bottom := -$7f000000;
-
-    for I := 0 to High(Points) do
-      for J := 0 to High(Points[I]) do
-      begin
-        X := Points[I, J].X;
-        Y := Points[I, J].Y;
-
-        if X < Left   then Left := X;
-        if X > Right  then Right := X;
-        if Y < Top    then Top := Y;
-        if Y > Bottom then Bottom := Y;
-      end;
-  end;
+  Result := PolyPolygonBounds(Points);
 end;
 
 procedure TPolygon32.BuildNormals;
@@ -1582,7 +1626,6 @@ end;
 
 constructor TPolygon32.Create;
 begin
-  inherited;
   FClosed := True;
   FAntialiasMode := DefaultAAMode;
   NewLine; // initiate a new contour
