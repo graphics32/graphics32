@@ -206,16 +206,20 @@ begin
       end;
     else //  dmCustom:
       begin
-        SP := SrcP;
-        DP := DstP;
-        for I := 0 to W - 1 do
+        for DstY := DstRect.Top to DstRect.Bottom - 1 do
         begin
-          CombineCallBack(SP^, DP^, Src.MasterAlpha);
-          Inc(SP); Inc(DP);
+          SP := SrcP;
+          DP := DstP;
+          for I := 0 to W - 1 do
+          begin
+            CombineCallBack(SP^, DP^, Src.MasterAlpha);
+            Inc(SP); Inc(DP);
+          end;
+          Inc(SrcP, Src.Width);
+          Inc(DstP, Dst.Width);
         end;
       end;
     end;
-
 end;
 
 procedure BlockTransfer(
