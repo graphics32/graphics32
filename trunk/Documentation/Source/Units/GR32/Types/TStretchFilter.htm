@@ -9,9 +9,21 @@
   sfMitchell);</p>
 <h2>Description</h2>
 <p class="Body">When the bitmap is scaled, these filters control how the colors 
-  are interpolated. </p>
+  are interpolated:</p>
+<ul>
+  <li>sfNearest is the fastest filter, although the quality of the stretched image is fair.</li>
+  <li>sfDraft is optimized for fast downsampling. Quality is better than sfNearest. For upsampling sfLinear is used internally.</li>
+  <li>sfLinear is several times slower, but it produces more decent results in most cases.</li>
+  <li>sfCosine is almost equally fast as sfLinear, but it uses cosine interpolation, which produces a sharper image.</li>
+  <li>sfSpline is an approximation of spline interpolation, for some applications its result may be too smooth and blurry,
+    but when using with large magnification factors, it usually yields better image compared to sfLinear.</li>
+  <li>sfLanczos generally produces the sharpest image (especially when downsampling), however sometimes can produce excessive &quot;ringing&quot; effect
+    - this is the slowest filter.</li>
+  <li>sfMitchell is often considered as one of the best filters for enlarging images; generally not as sharp as Lanczos.</li>
+</ul>
 <p class="Body">In some functions filters above <strong>sfLinear</strong> may 
-  not be applicable, in this case the filter value will be substituted with <b>sfLinear</b>.</p>
+  not be applicable (for example in Transform), in this case the filter value will be substituted with <b>sfLinear</b>.</p>
+<p class="Body">&nbsp;</p>
 <p id="hidden">[See Also] <a href="../../GR32/Classes/TBitmap32/Properties/StretchFilter.htm">TBitmap32.StretchFilter</a>, 
   <a href="../../GR32_Transforms/Routines/StretchTransfer.htm">StretchTransfer</a> 
 </p>
