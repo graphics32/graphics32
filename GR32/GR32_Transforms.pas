@@ -865,26 +865,26 @@ asm
    mov        edi, edx
    sub        ecx, $04
 
-   pxor       mm1, mm1
-   pxor       mm2, mm2
-   pxor       mm7, mm7
+   db $0F,$EF,$C9           /// pxor       mm1, mm1
+   db $0F,$EF,$D2           /// pxor       mm2, mm2
+   db $0F,$EF,$FF           /// pxor       mm7, mm7
 
  @@LoopY:
    mov        esi, eax
-   pxor       mm0, mm0
+   db $0F,$EF,$C0           /// pxor       mm0, mm0
  @@LoopX:
-   movd       mm6, [ecx + esi * 4]
-   punpcklbw  mm6, mm7
-   paddw      mm0, mm6
+   db $0F,$6E,$34,$B1       /// movd       mm6, [ecx + esi * 4]
+   db $0F,$60,$F7           /// punpcklbw  mm6, mm7
+   db $0F,$FD,$C6           /// paddw      mm0, mm6
    dec        esi
    jnz        @@LoopX
 
-   movq       mm6, mm0
-   punpcklwd  mm6, mm7
-   paddd      mm1, mm6
-   movq       mm6, mm0
-   punpckhwd  mm6, mm7
-   paddd      mm2, mm6
+   db $0F,$6F,$F0           /// movq       mm6, mm0
+   db $0F,$61,$F7           /// punpcklwd  mm6, mm7
+   db $0F,$FE,$CE           /// paddd      mm1, mm6
+   db $0F,$6F,$F0           /// movq       mm6, mm0
+   db $0F,$69,$F7           /// punpckhwd  mm6, mm7
+   db $0F,$FE,$D6           /// paddd      mm2, mm6
    add        ecx, ebx
    dec        edx
    jnz        @@LoopY
@@ -895,26 +895,26 @@ asm
    div        ecx
    mov        ecx, eax
 
-   movd       eax, mm1
+   db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
    shr        eax, $18
    mov        edi, eax
 
-   psrlq      mm1, $20
-   movd       eax, mm1
+   db $0F,$73,$D1,$20       /// psrlq      mm1, $20
+   db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
    shr        eax, $10
    and        eax, $0000FF00
    add        edi, eax
 
-   movd       eax, mm2
+   db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
    shr        eax, $08
    and        eax, $00FF0000
    add        edi, eax
 
-   psrlq      mm2, $20
-   movd       eax, mm2
+   db $0F,$73,$D2,$20       /// psrlq      mm2, $20
+   db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
    and        eax, $FF000000
    add        eax, edi
@@ -937,29 +937,29 @@ asm
    shl        esi, $02
    sub        ebx, esi
 
-   pxor       mm1, mm1
-   pxor       mm2, mm2
-   pxor       mm7, mm7
+   db $0F,$EF,$C9           /// pxor       mm1, mm1
+   db $0F,$EF,$D2           /// pxor       mm2, mm2
+   db $0F,$EF,$FF           /// pxor       mm7, mm7
 
  @@LoopY:
    mov        esi, eax
-   pxor       mm0, mm0
-   prefetch   [ecx + esi * 8]
+   db $0F,$EF,$C0           /// pxor       mm0, mm0
+   db $0F,$0D,$34,$F1       /// prefetch   [ecx + esi * 8]
  @@LoopX:
-   movd       mm6, [ecx]
-   punpcklbw  mm6, mm7
-   paddw      mm0, mm6
+   db $0F,$6E,$31           /// movd       mm6, [ecx]
+   db $0F,$60,$F7           /// punpcklbw  mm6, mm7
+   db $0F,$FD,$C6           /// paddw      mm0, mm6
    add        ecx, $04
    dec        esi
 
    jnz        @@LoopX
 
-   movq       mm6, mm0
-   punpcklwd  mm6, mm7
-   paddd      mm1, mm6
-   movq       mm6, mm0
-   punpckhwd  mm6, mm7
-   paddd      mm2, mm6
+   db $0F,$6F,$F0           /// movq       mm6, mm0
+   db $0F,$61,$F7           /// punpcklwd  mm6, mm7
+   db $0F,$FE,$CE           /// paddd      mm1, mm6
+   db $0F,$6F,$F0           /// movq       mm6, mm0
+   db $0F,$69,$F7           /// punpckhwd  mm6, mm7
+   db $0F,$FE,$D6           /// paddd      mm2, mm6
    add        ecx, ebx
    dec        edx
 
@@ -971,26 +971,26 @@ asm
    div        ecx
    mov        ecx, eax
 
-   movd       eax, mm1
+   db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
    shr        eax, $18
    mov        edi, eax
 
-   psrlq      mm1, $20
-   movd       eax, mm1
+   db $0F,$73,$D1,$20       /// psrlq      mm1, $20
+   db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
    shr        eax, $10
    and        eax, $0000FF00
    add        edi, eax
 
-   movd       eax, mm2
+   db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
    shr        eax, $08
    and        eax, $00FF0000
    add        edi, eax
 
-   psrlq      mm2, $20
-   movd       eax, mm2
+   db $0F,$73,$D2,$20       /// psrlq      mm2, $20
+   db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
    and        eax, $FF000000
    add        eax, edi
@@ -1685,39 +1685,39 @@ end;
 
 function M_LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
-        MOVQ      MM1,[ECX]
+        db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
         MOV       ECX,C21
-        MOVQ      MM3,[ECX]
-        MOVQ      MM2,MM1
-        MOVQ      MM4,MM3
-        PSRLQ     MM1,32
-        PSRLQ     MM3,32
-        MOVD      MM5,EAX
-        PUNPCKLDQ MM5,MM5
-        PXOR MM0, MM0
-        PUNPCKLBW MM1,MM0
-        PUNPCKLBW MM2,MM0
-        PSUBW     MM2,MM1
-        PMULLW    MM2,MM5
-        PSLLW     MM1,8
-        PADDW     MM2,MM1
-        PSRLW     MM2,8
-        PUNPCKLBW MM3,MM0
-        PUNPCKLBW MM4,MM0
-        PSUBW     MM4,MM3
-        PMULLW    MM4,MM5
-        PSLLW     MM3,8
-        PADDW     MM4,MM3
-        PSRLW     MM4,8
-        MOVD      MM5,EDX
-        PUNPCKLDQ MM5,MM5
-        PSUBW     MM2,MM4
-        PMULLW    MM2,MM5
-        PSLLW     MM4,8
-        PADDW     MM2,MM4
-        PSRLW     MM2,8
-        PACKUSWB  MM2,MM0
-        MOVD      EAX,MM2
+        db $0F,$6F,$19           /// MOVQ      MM3,[ECX]
+        db $0F,$6F,$D1           /// MOVQ      MM2,MM1
+        db $0F,$6F,$E3           /// MOVQ      MM4,MM3
+        db $0F,$73,$D1,$20       /// PSRLQ     MM1,32
+        db $0F,$73,$D3,$20       /// PSRLQ     MM3,32
+        db $0F,$6E,$E8           /// MOVD      MM5,EAX
+        db $0F,$62,$ED           /// PUNPCKLDQ MM5,MM5
+        db $0F,$EF,$C0           /// PXOR MM0, MM0
+        db $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
+        db $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
+        db $0F,$F9,$D1           /// PSUBW     MM2,MM1
+        db $0F,$D5,$D5           /// PMULLW    MM2,MM5
+        db $0F,$71,$F1,$08       /// PSLLW     MM1,8
+        db $0F,$FD,$D1           /// PADDW     MM2,MM1
+        db $0F,$71,$D2,$08       /// PSRLW     MM2,8
+        db $0F,$60,$D8           /// PUNPCKLBW MM3,MM0
+        db $0F,$60,$E0           /// PUNPCKLBW MM4,MM0
+        db $0F,$F9,$E3           /// PSUBW     MM4,MM3
+        db $0F,$D5,$E5           /// PMULLW    MM4,MM5
+        db $0F,$71,$F3,$08       /// PSLLW     MM3,8
+        db $0F,$FD,$E3           /// PADDW     MM4,MM3
+        db $0F,$71,$D4,$08       /// PSRLW     MM4,8
+        db $0F,$6E,$EA           /// MOVD      MM5,EDX
+        db $0F,$62,$ED           /// PUNPCKLDQ MM5,MM5
+        db $0F,$F9,$D4           /// PSUBW     MM2,MM4
+        db $0F,$D5,$D5           /// PMULLW    MM2,MM5
+        db $0F,$71,$F4,$08       /// PSLLW     MM4,8
+        db $0F,$FD,$D4           /// PADDW     MM2,MM4
+        db $0F,$71,$D2,$08       /// PSRLW     MM2,8
+        db $0F,$67,$D0           /// PACKUSWB  MM2,MM0
+        db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
 
 function _LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
