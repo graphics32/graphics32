@@ -248,10 +248,10 @@ var
   I, J: Integer;
   Pixels: PColor32Array;
 begin
-  for J := DstRect.Top to DstRect.Bottom do
+  for J := DstRect.Top to DstRect.Bottom - 1 do
   begin
     Pixels := Dst.ScanLine[J];
-    for I := DstRect.Left to DstRect.Right do
+    for I := DstRect.Left to DstRect.Right - 1 do
       AssignColor(Pixels[I], FSampler.GetSampleInt(I, J));
   end;
 end;
