@@ -581,7 +581,7 @@ end;
 
 procedure TTesseralRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
 var
-  W, H: Integer;
+  W, H, I: Integer;
   GetSample: TGetSampleInt;
 
   procedure SplitHorizontal(X, Y, Width, Height: Integer); forward;
@@ -594,9 +594,9 @@ var
     if HalfWidth > 0 then
     begin
       X2 := X + HalfWidth;
-      for I := Y to Y + Height - 1 do
+      for I := Y + 1 to Y + Height - 1 do
         AssignColor(Dst.PixelPtr[X2, I]^, GetSample(X2, I));
-      Dst.Changed(Rect(X2, Y, X2 + 1, Y + Height));
+      Dst.Changed(Rect(X2, Y + 1, X2 + 1, Y + Height));
       SplitHorizontal(X, Y, HalfWidth, Height);
       SplitHorizontal(X2, Y, Width - HalfWidth, Height);
     end;
@@ -610,9 +610,9 @@ var
     if HalfHeight > 0 then
     begin
       Y2 := Y + HalfHeight;
-      for I := X to X + Width - 1 do
+      for I := X + 1 to X + Width - 1 do
         AssignColor(Dst.PixelPtr[I, Y2]^, GetSample(I, Y2));
-      Dst.Changed(Rect(X, Y2, X + Width, Y2 + 1));
+      Dst.Changed(Rect(X + 1, Y2, X + Width, Y2 + 1));
       SplitVertical(X, Y, Width, HalfHeight);
       SplitVertical(X, Y2, Width, Height - HalfHeight);
     end;
@@ -624,12 +624,16 @@ begin
   begin
     W := Right - Left + 1;
     H := Bottom - Top + 1;
+    for I := Left to Right do AssignColor(Dst.PixelPtr[I, Top]^, GetSample(I, Top));
+    Dst.Changed(Rect(Left, Top, Right, Top + 1));
+    for I := Top to Bottom do AssignColor(Dst.PixelPtr[Left, I]^, GetSample(Left, I));
+    Dst.Changed(Rect(Left, Top, Left + 1, Bottom));
+    if W > H then
+      SplitVertical(DstRect.Left, DstRect.Top, W, H)
+    else
+      SplitHorizontal(DstRect.Left, DstRect.Top, W, H);
   end;
 
-  if W > H then
-    SplitVertical(DstRect.Left, DstRect.Top, W, H)
-  else
-    SplitHorizontal(DstRect.Left, DstRect.Top, W, H);
 end;
 
 end.
