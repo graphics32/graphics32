@@ -357,10 +357,6 @@ type
     procedure SetMasterAlpha(Value: Cardinal);
     procedure SetPixel(X, Y: Integer; Value: TColor32);
     procedure SetPixelS(X, Y: Integer; Value: TColor32);
-    procedure SetPixelF(X, Y: Single; Value: TColor32);
-    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
-    procedure SetPixelFS(X, Y: Single; Value: TColor32);
-    procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetStretchFilter(Value: TStretchFilter);
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32);
@@ -426,15 +422,13 @@ type
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
 
-    property  Pixel[X, Y: Integer]: TColor32 read GetPixel write SetPixel; default;
-    property  PixelS[X, Y: Integer]: TColor32 read GetPixelS write SetPixelS;
-    property  PixelX[X, Y: TFixed]: TColor32 read GetPixelX write SetPixelX;
-    property  PixelXS[X, Y: TFixed]: TColor32 read GetPixelXS write SetPixelXS;
-    property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
-    property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
     procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
     procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
     procedure SetPixelTS(X, Y: Integer; Value: TColor32);
+    procedure SetPixelF(X, Y: Single; Value: TColor32); deprecated;
+    procedure SetPixelX(X, Y: TFixed; Value: TColor32); deprecated;
+    procedure SetPixelFS(X, Y: Single; Value: TColor32); deprecated;
+    procedure SetPixelXS(X, Y: TFixed; Value: TColor32); deprecated;
 
     procedure SetStipple(NewStipple: TArrayOfColor32); overload;
     procedure SetStipple(NewStipple: array of TColor32); overload;
@@ -533,6 +527,12 @@ type
     function CanvasAllocated: Boolean;
     procedure DeleteCanvas;
 
+    property  Pixel[X, Y: Integer]: TColor32 read GetPixel write SetPixel; default;
+    property  PixelS[X, Y: Integer]: TColor32 read GetPixelS write SetPixelS;
+    property  PixelX[X, Y: TFixed]: TColor32 read GetPixelX write SetPixelX;
+    property  PixelXS[X, Y: TFixed]: TColor32 read GetPixelXS write SetPixelXS;
+    property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
+    property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
 {$IFDEF CLX}
     property Pixmap: QPixmapH read GetPixmap;
     property Bits: PColor32Array read GetBits;
