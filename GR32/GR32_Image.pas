@@ -212,8 +212,6 @@ type
     FOnChange: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
     FOnMouseDown: TImgMouseEvent;
-    FOnMouseEnter: TNotifyEvent;
-    FOnMouseLeave: TNotifyEvent;
     FOnMouseMove: TImgMouseMoveEvent;
     FOnMouseUp: TImgMouseEvent;
     FOnPaintStage: TPaintStageEvent;
@@ -294,8 +292,6 @@ type
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnInitStages: TNotifyEvent read FOnInitStages write FOnInitStages;
     property OnMouseDown: TImgMouseEvent read FOnMouseDown write FOnMouseDown;
-    property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
-    property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
     property OnMouseMove: TImgMouseMoveEvent read FOnMouseMove write FOnMouseMove;
     property OnMouseUp: TImgMouseEvent read FOnMouseUp write FOnMouseUp;
     property OnPaintStage: TPaintStageEvent read FOnPaintStage write FOnPaintStage;
