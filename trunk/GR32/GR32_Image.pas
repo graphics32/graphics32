@@ -907,6 +907,7 @@ end;
 procedure TPaintBox32.DoPaintBuffer;
 begin
   if Assigned(FOnPaintBuffer) then FOnPaintBuffer(Self);
+  inherited;
 end;    
 
 
