@@ -34,7 +34,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, GR32, GR32_Blend, ExtCtrls, GR32_Image;
+  StdCtrls, GR32, GR32_Blend, ExtCtrls, GR32_Image, GR32_LowLevel;
 
 type
   TVector2f = record
@@ -64,14 +64,13 @@ type
     RadioGroup2: TRadioGroup;
     Label1: TLabel;
     Panel1: TPanel;
+    RepaintOpt: TCheckBox;
+    Memo2: TMemo;
+    procedure RepaintOptClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
-    procedure BitmapLayerMouseDown(Sender: TObject;
-      Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure BitmapLayerMouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
     procedure RadioGroup1Click(Sender: TObject);
     procedure RadioGroup2Click(Sender: TObject);
   protected
@@ -129,7 +128,7 @@ end;
 
 procedure TLine.Advance(DeltaT: Single);
 
-{}procedure AdvancePoint(var P, V: TVector2f; t: Single);
+  procedure AdvancePoint(var P, V: TVector2f; t: Single);
   begin
     { apply velocities }
     P.X := P.X + V.X * t;
@@ -218,10 +217,10 @@ begin
   L.t1 := Random * 3;
   L.t2 := Random * 3;
   L.t3 := Random * 3;
-  L.P1.X := Random(PaintBox.Buffer.Width - 1);
-  L.P2.X := Random(PaintBox.Buffer.Width - 1);
-  L.P1.Y := Random(PaintBox.Buffer.Height - 1);
-  L.P2.Y := Random(PaintBox.Buffer.Height - 1);
+  L.P1.X := Random(PaintBox.Buffer.Width div 2 - 1);
+  L.P2.X := Random(PaintBox.Buffer.Width div 2 - 1);
+  L.P1.Y := Random(PaintBox.Buffer.Height div 2 - 1);
+  L.P2.Y := Random(PaintBox.Buffer.Height div 2 - 1);
   Panel1.Caption := IntToStr(Length(Lines));
 end;
 
@@ -258,13 +257,18 @@ begin
     end;
     Dec(Pass);
     if (Pass < 0) or (Pass > FadeCount) then Pass := FadeCount;
-  end;
-  PaintBox.Invalidate;
+
+    // we're doing unsafe operations above, so force a complete invalidation
+    // so that wrong output of repaint optimizer doesn't show.
+    PaintBox.ForceFullInvalidate;
+  end
+  else
+    PaintBox.Invalidate;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  FadeCount := 7;
+  FadeCount := 0;
   DrawPasses := 2;
   Application.OnIdle := AppEventsIdle;
 end;
@@ -288,21 +292,7 @@ begin
   PaintBox.Buffer.Clear;
   Panel1.Caption := '0';
 end;
-
-procedure TForm1.BitmapLayerMouseDown(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  // X and Y here are relative to layer origin
-  P := Point(X, Y);
-  M := True;
-end;
-
-procedure TForm1.BitmapLayerMouseUp(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  M := False;
-end;
-
+ 
 procedure TForm1.RadioGroup1Click(Sender: TObject);
 const
   FC: array [0..2] of Integer = (0, 7, 1);
@@ -313,6 +303,11 @@ end;
 procedure TForm1.RadioGroup2Click(Sender: TObject);
 begin
   DrawPasses := (RadioGroup2.ItemIndex + 1) * 3 - 2;
+end;
+
+procedure TForm1.RepaintOptClick(Sender: TObject);
+begin
+  PaintBox.UseRepaintOptimizer := RepaintOpt.Checked;
 end;
 
 end.
