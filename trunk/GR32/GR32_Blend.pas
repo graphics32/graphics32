@@ -113,9 +113,6 @@ var
 { Misc stuff }
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
-procedure M_BlendMem(F: TColor32; var B: TColor32);
-procedure _MergeMem(F: TColor32; var B:TColor32);
-
 implementation
 
 uses Math, GR32_System;
