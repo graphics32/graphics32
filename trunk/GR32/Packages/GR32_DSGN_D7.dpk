@@ -28,11 +28,7 @@ package GR32_DSGN_D7;
 requires  designide,
   vcl,
   rtl,
-  GR32_D7,
-  vclactnband,
-  vclx,
-  CSP20I70,
-  visualclx;
+  GR32_D7;
 
 contains  GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
   GR32_Reg in '..\GR32_Reg.pas',
