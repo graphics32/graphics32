@@ -1057,7 +1057,8 @@ procedure TCustomPaintBox32.SetRepaintMode(const Value: TRepaintMode);
 begin
   if Assigned(FRepaintOptimizer) then
   begin
-    if Value = rmOptimizer then
+    // setup event handler on change of area
+    if (Value = rmOptimizer) and not(Self is TCustomImage32) then
       FBuffer.OnAreaChanged := FRepaintOptimizer.AreaUpdateHandler
     else if Value = rmDirect then
       FBuffer.OnAreaChanged := DirectAreaUpdateHandler
