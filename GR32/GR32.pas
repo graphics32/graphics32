@@ -426,10 +426,10 @@ type
     procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
     procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
     procedure SetPixelTS(X, Y: Integer; Value: TColor32);
-    procedure SetPixelF(X, Y: Single; Value: TColor32); deprecated;
-    procedure SetPixelX(X, Y: TFixed; Value: TColor32); deprecated;
-    procedure SetPixelFS(X, Y: Single; Value: TColor32); deprecated;
-    procedure SetPixelXS(X, Y: TFixed; Value: TColor32); deprecated;
+    procedure SetPixelF(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
+    procedure SetPixelX(X, Y: TFixed; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
+    procedure SetPixelFS(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
+    procedure SetPixelXS(X, Y: TFixed; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
 
     procedure SetStipple(NewStipple: TArrayOfColor32); overload;
     procedure SetStipple(NewStipple: array of TColor32); overload;

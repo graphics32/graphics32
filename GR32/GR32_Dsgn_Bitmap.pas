@@ -38,7 +38,7 @@ uses
   QMenus, QImgList, QTypes, QClipbrd,
 {$ELSE}
   Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Types, Clipbrd,
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
 {$ENDIF}
   SysUtils, Classes, Consts,
   GR32, GR32_Image, GR32_Layers, GR32_Filters,
