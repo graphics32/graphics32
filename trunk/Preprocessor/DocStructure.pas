@@ -5,6 +5,9 @@ interface
 uses
   Classes, SysUtils, Contnrs, FileCtrl, SimpleDOM;
 
+const
+  Copyright: String = 'Copyright &copy;2000-2004 Alex Denisov and Contributors';
+
 type
   TElement = class;
   TElementClass = class of TElement;
@@ -333,7 +336,7 @@ begin
   begin
     Attributes['class'] := 'Copyright';
     Attributes['id'] := 'auto';
-    AddText('<br><br>Copyright &copy;2000-2003 Alex Denissov &nbsp; - &nbsp; Graphics32 ' +
+    AddText('<br><br>' + Copyright + ' &nbsp; - &nbsp; Graphics32 ' +
     VersionString + ' &nbsp; - &nbsp; Build on ' +
       FormatDateTime('d-mmmm-yyyy', Now) + '<br><br>');
   end;
