@@ -51,7 +51,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.7.0';
+  Graphics32Version = '1.7.1';
 
 { 32-bit Color }
 
@@ -146,7 +146,9 @@ const
 { Points }
 
 type
+{$IFNDEF BCB}
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
+{$ENDIF}
   PPoint = ^TPoint;
   TFloatPoint = record
     X, Y: Single;
@@ -4348,7 +4350,6 @@ end;
 procedure SetFontAntialiasing(const Font: TFont; Enabled: Boolean);
 var
   LogFont: TLogFont;
-  Handle: HFONT;
 begin
   with LogFont do
   begin
