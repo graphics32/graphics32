@@ -1957,58 +1957,64 @@ begin
 end;
 
 function TBitmap32.GET_T256(X, Y: Integer): TColor32;
+ function Interpolate_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+ asm
+        MOVQ      MM1, [ECX]
+        MOV       ECX, C21
+        MOVQ      MM3, [ECX]
+        MOVQ      MM2, MM1
+        MOVQ      MM4, MM3
+        PSRLQ     MM1, 32
+        PSRLQ     MM3, 32
+
+        MOVD      MM5,EAX   
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
+
+        PXOR MM0, MM0
+
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        PSUBW     MM2,MM1
+        PMULLW    MM2,MM5
+        PSLLW     MM1,8
+        PADDW     MM2,MM1
+        PSRLW     MM2,8
+
+        PUNPCKLBW MM3,MM0
+        PUNPCKLBW MM4,MM0
+        PSUBW     MM4,MM3
+        PMULLW    MM4,MM5
+        PSLLW     MM3,8
+        PADDW     MM4,MM3
+        PSRLW     MM4,8
+
+        MOVD      MM5,EDX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
+
+        PSUBW     MM2,MM4
+        PMULLW    MM2,MM5
+        PSLLW     MM4,8
+        PADDW     MM2,MM4
+        PSRLW     MM2,8
+
+        PACKUSWB  MM2,MM0
+        MOVD      EAX,MM2
+ end;
 var
-    flrx, flry, celx, cely: Longword;
-    C1, C2, C3, C4: TColor32;
-    P: PColor32;
+ Pos: Cardinal;
 begin
-  flrx := X and $FF;
-  flry := Y and $FF;
-
-  asm
-    SAR X, 8
-    SAR Y, 8
-  end;
-
-  celx := flrx xor 255;
-  cely := flry xor 255;
-
-  P := @FBits[X + Y * FWidth];
-
-  C1 := P^; Inc(P);
-  C2 := P^; Inc(P, FWidth);
-  C4 := P^; Dec(P);
-  C3 := P^;
-  Result := CombineReg(CombineReg(C1, C2, celx), CombineReg(C3, C4, celx), cely);
+  Pos:= Sar_8(X) +  Sar_8(Y) * FWidth;
+  Result:= Interpolate_MMX( X and $FF xor 255, Y and $FF xor 255, @FBits[Pos],
+                            @FBits[Pos + FWidth] );
 end;
 
 function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
-var
-    flrx, flry, celx, cely: Longword;
-    C1, C2, C3, C4: TColor32;
-    P: PColor32;
 begin
-  if X < 0 then X:= 0 else if X > FWidth  shl 8 - 256 then X:= FWidth  shl 8 - 256;
-  if Y < 0 then Y:= 0 else if Y > FHeight shl 8 - 256 then Y:= FHeight shl 8 - 256;
-
-  flrx := X and $FF;
-  flry := Y and $FF;
-
-  asm
-    SAR X, 8
-    SAR Y, 8
-  end;
-
-  celx := flrx xor 255;
-  cely := flry xor 255;
-
-  P := @FBits[X + Y * FWidth];
-
-  C1 := P^; Inc(P);
-  C2 := P^; Inc(P, FWidth);
-  C4 := P^; Dec(P);
-  C3 := P^;
-  Result := CombineReg(CombineReg(C1, C2, celx), CombineReg(C3, C4, celx), cely);
+  if X < 0 then X:= 0 else if Sar_8(X) > FWidth  - 1 then X:= (FWidth  - 1)shl 8;
+  if Y < 0 then Y:= 0 else if Sar_8(Y) > FHeight - 1 then Y:= (FHeight - 1)shl 8;
+  Result:= GET_T256(X,Y);
 end;
 
 function TBitmap32.GetPixelF(X, Y: Single): TColor32;
