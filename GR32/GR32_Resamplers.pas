@@ -1897,12 +1897,18 @@ begin
 end;
 
 procedure TKernelResampler.SetKernelClassName(Value: string);
+var
+  KernelClass: TCustomKernelClass;
 begin
   if (Value <> '') and (FKernel.ClassName <> Value) then
   begin
-    FKernel.Free;
-    FKernel := FindKernelClass(Value).Create(Bitmap);
-    Bitmap.Changed;
+    KernelClass := FindKernelClass(Value);
+    if Assigned(KernelClass) then
+    begin
+      FKernel.Free;
+      FKernel := KernelClass.Create(Bitmap);
+      Bitmap.Changed;
+    end;
   end;
 end;
 
