@@ -22,6 +22,8 @@ unit GR32_Blend;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *  Mattias Anderson
+ *  Michael Hansen
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Blend.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -63,13 +65,15 @@ var
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
 
-{ Color algebra }
-function ColorAdd(C1, C2: TColor32): TColor32;
-function ColorSub(C1, C2: TColor32): TColor32;
-function ColorModulate(C1, C2: TColor32): TColor32;
-function ColorMax(C1, C2: TColor32): TColor32;
-function ColorMin(C1, C2: TColor32): TColor32;
-
+{ Color algebra functions }
+  ColorAdd: TBlendReg;
+  ColorSub: TBlendReg;
+  ColorModulate: TBlendReg;
+  ColorMax: TBlendReg;
+  ColorMin: TBlendReg;
+  ColorDifference: TBlendReg;
+  ColorExclusion: TBlendReg;
+  
 { Misc stuff }
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
@@ -893,9 +897,9 @@ asm
 @4:
 end;
 
-{ Color Algebra }
+{ Non-MMX Color algebra versions }
 
-function ColorAdd(C1, C2: TColor32): TColor32;
+function _ColorAdd(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -923,7 +927,7 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
-function ColorSub(C1, C2: TColor32): TColor32;
+function _ColorSub(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -957,7 +961,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function ColorModulate(C1, C2: TColor32): TColor32;
+function _ColorModulate(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -991,7 +995,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function ColorMax(C1, C2: TColor32): TColor32;
+function _ColorMax(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1014,7 +1018,7 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
-function ColorMin(C1, C2: TColor32): TColor32;
+function _ColorMin(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1036,6 +1040,136 @@ begin
 
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
+
+function _ColorDifference(C1, C2: TColor32): TColor32;
+var
+  r1, g1, b1, a1: TColor32;
+  r2, g2, b2, a2: TColor32;
+begin
+  a1 := C1 shr 24;
+  r1 := C1 and $00FF0000;
+  g1 := C1 and $0000FF00;
+  b1 := C1 and $000000FF;
+
+  r1 := r1 shr 16;
+  g1 := g1 shr 8;
+
+  a2 := C2 shr 24;
+  r2 := C2 and $00FF0000;
+  g2 := C2 and $0000FF00;
+  b2 := C2 and $000000FF;
+
+  r2 := r2 shr 16;
+  g2 := g2 shr 8;
+
+  a1 := abs(a2 - a1);
+  r1 := abs(r2 - r1);
+  g1 := abs(g2 - g1);
+  b1 := abs(b2 - b1);
+
+  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+end;
+
+function _ColorExclusion(C1, C2: TColor32): TColor32;
+var
+  r1, g1, b1, a1: TColor32;
+  r2, g2, b2, a2: TColor32;
+begin
+  a1 := C1 shr 24;
+  r1 := C1 and $00FF0000;
+  g1 := C1 and $0000FF00;
+  b1 := C1 and $000000FF;
+
+  r1 := r1 shr 16;
+  g1 := g1 shr 8;
+
+  a2 := C2 shr 24;
+  r2 := C2 and $00FF0000;
+  g2 := C2 and $0000FF00;
+  b2 := C2 and $000000FF;
+
+  r2 := r2 shr 16;
+  g2 := g2 shr 8;
+
+  a1 := a1 + a2 - (a1 * a2 shr 7);
+  r1 := r1 + r2 - (r1 * r2 shr 7);
+  g1 := g1 + g2 - (g1 * g2 shr 7);
+  b1 := b1 + b2 - (b1 * b2 shr 7);
+
+  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+end;
+
+{ MMX Color algebra versions }
+
+function M_ColorAdd(C1, C2: TColor32): TColor32;
+asm
+        MOVD      MM0,EAX
+        MOVD      MM1,EDX
+        PADDUSB   MM0,MM1
+        MOVD      EAX,MM0
+end;
+
+function M_ColorSub(C1, C2: TColor32): TColor32;
+asm
+        MOVD      MM0,EAX
+        MOVD      MM1,EDX
+        PSUBUSB   MM0,MM1
+        MOVD      EAX,MM0
+end;
+
+function M_ColorModulate(C1, C2: TColor32): TColor32;
+asm
+        PXOR      MM2,MM2
+        MOVD      MM0,EAX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,EDX
+        PUNPCKLBW MM1,MM2
+        PMULLW    MM0,MM1
+        PSRLW     MM0,8
+        PACKUSWB  MM0,MM2
+        MOVD      EAX,MM0
+end;
+
+function M_ColorMax(C1, C2: TColor32): TColor32;
+begin
+ {Needs MMX Optimization}
+ Result:= _ColorMax(C1, C2);
+end;
+
+function M_ColorMin(C1, C2: TColor32): TColor32;
+begin
+ {Needs MMX Optimization}
+ Result:= _ColorMin(C1, C2);
+end;
+
+function M_ColorDifference(C1, C2: TColor32): TColor32;
+asm
+        MOVD      MM0,EAX
+        MOVD      MM1,EDX
+        MOVQ      MM2,MM0
+        PSUBUSB   MM0,MM1
+        PSUBUSB   MM1,MM2
+        POR       MM0,MM1
+        MOVD      EAX,MM0
+end;
+
+function M_ColorExclusion(C1, C2: TColor32): TColor32;
+asm
+        PXOR      MM2,MM2
+        MOVD      MM0,EAX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,EDX
+        PUNPCKLBW MM1,MM2
+        MOVQ      MM3,MM0
+        PADDW     MM0,MM1
+        PMULLW    MM1,MM3
+        PSRLW     MM1,7
+        PSUBUSW   MM0,MM1
+        PACKUSWB  MM0,MM2
+        MOVD      EAX,MM0
+end;
+
+{ Misc stuff }
 
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 var
@@ -1076,6 +1210,14 @@ begin
     BlendMemEx := M_BlendMemEx;
     BlendLine := M_BlendLine;
     BlendLineEx := M_BlendLineEx;
+
+    ColorAdd := M_ColorAdd;
+    ColorSub := M_ColorSub;
+    ColorModulate:= M_ColorModulate;
+    ColorMax:= M_ColorMax;
+    ColorMin:= M_ColorMin;
+    ColorDifference:= M_ColorDifference;
+    ColorExclusion:= M_ColorExclusion;
   end
   else
   begin
@@ -1088,6 +1230,14 @@ begin
     BlendMemEx := _BlendMemEx;
     BlendLine := _BlendLine;
     BlendLineEx := _BlendLineEx;
+
+    ColorAdd := _ColorAdd;
+    ColorSub := _ColorSub;
+    ColorModulate:= _ColorModulate;
+    ColorMax:= _ColorMax;
+    ColorMin:= _ColorMin;
+    ColorDifference:= _ColorDifference;
+    ColorExclusion:= _ColorExclusion;
   end;
 end;
 
