@@ -898,10 +898,10 @@ begin
     TempRect := Area;
     InflateArea(TempRect, LineWidth, LineWidth);
     with TempRect do
-      MicroTilesAddLine(Tiles, Left, Top, Right, Bottom, LineWidth);
+      MicroTilesAddLine(Tiles, Left, Top, Right, Bottom, LineWidth, FPerformanceLevel > PL_MICROTILES);
   end
   else
-    MicroTilesAddRect(Tiles, Area, FPerformanceLevel = PL_FULLSCENE);
+    MicroTilesAddRect(Tiles, Area, FPerformanceLevel > PL_MICROTILES);
 end;
 
 procedure TMicroTilesRepaintOptimizer.LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer);
