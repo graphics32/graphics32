@@ -194,6 +194,7 @@ type
 function MakeRect(L, T, R, B: Integer): TRect; overload;
 function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
+function FixedRect(const ARect: TRect): TFixedRect;
 function FloatRect(L, T, R, B: Single): TFloatRect; overload;
 function FloatRect(const ARect: TRect): TFloatRect; overload;
 function FloatRect(const AFixedRect: TFixedRect): TFloatRect; overload;
@@ -325,6 +326,9 @@ type
   private
     FBits: PColor32Array;
     FCanvas: TCanvas;
+    FClipRect: TRect;
+    FFixedClipRect: TFixedRect;
+    FClipping: Boolean;
     FDrawMode: TDrawMode;
     FFont: TFont;
     FHandle: HBITMAP;
@@ -371,6 +375,7 @@ type
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32);
     procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);
+    procedure SetClipRect(const Value: TRect);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -533,6 +538,8 @@ type
     procedure Rotate180(Dst: TBitmap32 = nil);
     procedure Rotate270(Dst: TBitmap32 = nil);
 
+    procedure ResetClipRect;
+
     property Canvas: TCanvas read GetCanvas;
     function CanvasAllocated: Boolean;
     procedure DeleteCanvas;
@@ -554,6 +561,9 @@ type
     property Bits: PColor32Array read FBits;
     property Handle: HDC read FHDC;
 {$ENDIF}
+    property ClipRect: TRect read FClipRect write SetClipRect;
+    property Clipping: Boolean read FClipping;
+    
     property Font: TFont read FFont write SetFont;
     property PixelPtr[X, Y: Integer]: PColor32 read GetPixelPtr;
     property ScanLine[Y: Integer]: PColor32Array read GetScanLine;
@@ -1014,6 +1024,17 @@ begin
     end;
 end;
 
+function FixedRect(const ARect: TRect): TFixedRect;
+begin
+  with Result do
+  begin
+    Left := ARect.Left shl 16;
+    Top := ARect.Top shl 16;
+    Right := ARect.Right shl 16;
+    Bottom := ARect.Bottom shl 16;
+  end;
+end;
+
 function FloatRect(L, T, R, B: Single): TFloatRect;
 begin
   with Result do
@@ -1360,6 +1381,8 @@ begin
 
     Width := NewWidth;
     Height := NewHeight;
+
+    ResetClipRect;
   finally
     HandleChanged;
   end;
@@ -1645,7 +1668,8 @@ end;
 
 procedure TBitmap32.SetPixelS(X, Y: Integer; Value: TColor32);
 begin
-  if (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
+  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
     Bits[X + Y * Width] := Value;
 end;
 
@@ -1661,7 +1685,8 @@ end;
 
 function TBitmap32.GetPixelS(X, Y: Integer): TColor32;
 begin
-  if (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
+  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
     Result := Bits[X + Y * Width]
   else
     Result := OuterColor;
@@ -1731,35 +1756,35 @@ end;
 procedure TBitmap32.DrawTo(Dst: TBitmap32);
 begin
   if Empty or Dst.Empty then Exit;
-  BlockTransfer(Dst, 0, 0, Dst.BoundsRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
+  BlockTransfer(Dst, 0, 0, Dst.ClipRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
   Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; DstX, DstY: Integer);
 begin
   if Empty or Dst.Empty then Exit;
-  BlockTransfer(Dst, DstX, DstY, Dst.BoundsRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
+  BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
   Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; DstX, DstY: Integer; const SrcRect: TRect);
 begin
   if Empty or Dst.Empty then Exit;
-  BlockTransfer(Dst, DstX, DstY, Dst.BoundsRect, Self, SrcRect, DrawMode, FOnPixelCombine);
+  BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, SrcRect, DrawMode, FOnPixelCombine);
   Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; const DstRect: TRect);
 begin
   if Empty or Dst.Empty then Exit;
-  StretchTransfer(Dst, DstRect, Dst.BoundsRect, Self, BoundsRect, StretchFilter, DrawMode, FOnPixelCombine);
+  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, StretchFilter, DrawMode, FOnPixelCombine);
   Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; const DstRect, SrcRect: TRect);
 begin
   if Empty or Dst.Empty then Exit;
-  StretchTransfer(Dst, DstRect, Dst.BoundsRect, Self, SrcRect, StretchFilter, DrawMode, FOnPixelCombine);
+  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, StretchFilter, DrawMode, FOnPixelCombine);
   Dst.Changed;
 end;
 
@@ -1899,7 +1924,8 @@ end;
 
 procedure TBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
 begin
-  if (X >= 0) and (X < Width) and (Y >= 0) and (Y < Height) then
+  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
     BlendMem(Value, Bits[X + Y * Width]);
     EMMS;
@@ -1952,7 +1978,8 @@ begin
     SAR Y, 8
   end;
 
-  if (X >= FWidth) or (Y >= FHeight) then Exit;
+  if (X < FClipRect.Left) or (X >= FClipRect.Right) or
+     (Y < FClipRect.Top) or (Y >= FClipRect.Bottom) then Exit;
 
   A := C shr 24;  // opacity
 
@@ -1962,7 +1989,8 @@ begin
   flrx := A * GAMMA_TABLE[flrx];
   flry := GAMMA_TABLE[flry];
 
-  if (X >= 0) and (Y >= 0) and (X < FWidth - 1) and (Height < FHeight - 1) then
+  if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
+     (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
   begin
     CombineMem(C, P^, celx * cely shr 16); Inc(P);
     CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
@@ -1970,11 +1998,17 @@ begin
     CombineMem(C, P^, celx * flry shr 16);
   end
   else // "pixel" lies on the edge of the bitmap
+  with FClipRect do
   begin
-    if (X >= 0) and (Y >= 0) then CombineMem(C, P^, celx * cely shr 16); Inc(P);
-    if (X < FWidth - 1) and (Y >= 0) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
-    if (X < FWidth - 1) and (Y < FHeight - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
-    if (X >= 0) and (Y < FHeight - 1) then CombineMem(C, P^, celx * flry shr 16);
+    if (X >= Left) and (Y >= Top) then CombineMem(C, P^, celx * cely shr 16); Inc(P);
+    if (X < Right - 1) and (Y >= Top) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
+    if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
+    if (X >= Left) and (Y < Bottom - 1) then CombineMem(C, P^, celx * flry shr 16);
+
+//    if (X >= 0) and (Y >= 0) then CombineMem(C, P^, celx * cely shr 16); Inc(P);
+//    if (X < FWidth - 1) and (Y >= 0) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
+//    if (X < FWidth - 1) and (Y < FHeight - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
+//    if (X >= 0) and (Y < FHeight - 1) then CombineMem(C, P^, celx * flry shr 16);
   end;
 end;
 
@@ -2136,7 +2170,8 @@ end;
 
 procedure TBitmap32.HorzLineS(X1, Y, X2: Integer; Value: TColor32);
 begin
-  if (Y >= 0) and (Y < Height) and TestClip(X1, X2, Width) then
+  if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
+     TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
     HorzLine(X1, Y, X2, Value);
 end;
 
@@ -2157,7 +2192,8 @@ end;
 
 procedure TBitmap32.HorzLineTS(X1, Y, X2: Integer; Value: TColor32);
 begin
-  if (Y >= 0) and (Y < Height) and TestClip(X1, X2, Width) then
+  if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
+     TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
     HorzLineT(X1, Y, X2, Value);
 end;
 
@@ -2165,34 +2201,36 @@ procedure TBitmap32.HorzLineTSP(X1, Y, X2: Integer);
 var
   I, N: Integer;
 begin
+  { TODO : Drawing stipple while clipping needs work here... }
   if Empty then Exit;
-  if (Y >= 0) and (Y < Height) then
+  if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
-    if ((X1 < 0) and (X2 < 0)) or ((X1 >= Width) and (X2 >= Width)) then
+    if ((X1 < FClipRect.Left) and (X2 < FClipRect.Left)) or
+       ((X1 >= FClipRect.Right) and (X2 >= FClipRect.Right)) then
     begin
       AdvanceStippleCounter(Abs(X2 - X1) + 1);
       Exit;
     end;
-    if X1 < 0 then
+    if X1 < FClipRect.Left then
     begin
       AdvanceStippleCounter(-X1);
-      X1 := 0;
+      X1 := FClipRect.Left;
     end
-    else if X1 >= Width then
+    else if X1 >= FClipRect.Right then
     begin
-      AdvanceStippleCounter(X1 - (Width - 1));
-      X1 := Width - 1;
+      AdvanceStippleCounter(X1 - (FClipRect.Right - 1));
+      X1 := FClipRect.Right - 1;
     end;
     N := 0;
-    if X2 < 0 then
+    if X2 < FClipRect.Left then
     begin
       N := -X2;
-      X2 := 0;
+      X2 := FClipRect.Left;
     end
-    else if X2 >= Width then
+    else if X2 >= FClipRect.Right then
     begin
-      N := X2 - (Width - 1);
-      X2 := Width - 1;
+      N := X2 - (FClipRect.Right - 1);
+      X2 := FClipRect.Right - 1;
     end;
 
     if X2 >= X1 then
@@ -2229,7 +2267,8 @@ end;
 
 procedure TBitmap32.VertLineS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if (X >= 0) and (X < Width) and TestClip(Y1, Y2, Height) then
+  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+     TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
     VertLine(X, Y1, Y2, Value);
 end;
 
@@ -2249,7 +2288,8 @@ end;
 
 procedure TBitmap32.VertLineTS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if (X >= 0) and (X < Width) and TestClip(Y1, Y2, Height) then
+  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+     TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
     VertLineT(X, Y1, Y2, Value);
 end;
 
@@ -2257,34 +2297,36 @@ procedure TBitmap32.VertLineTSP(X, Y1, Y2: Integer);
 var
   I, N: Integer;
 begin
+  { TODO : Drawing stipple while clipping needs work here... }
   if Empty then Exit;
-  if (X >= 0) and (X < Width) then
+  if (X >= FClipRect.Left) and (X < FClipRect.Right) then
   begin
-    if ((Y1 < 0) and (Y2 < 0)) or ((Y1 >= Height) and (Y2 >= Height)) then
+    if ((Y1 < FClipRect.Top) and (Y2 < FClipRect.Top)) or
+       ((Y1 >= FClipRect.Bottom) and (Y2 >= FClipRect.Bottom)) then
     begin
       AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
       Exit;
     end;
-    if Y1 < 0 then
+    if Y1 < FClipRect.Top then
     begin
       AdvanceStippleCounter(-Y1);
-      Y1 := 0;
+      Y1 := FClipRect.Top;
     end
-    else if Y1 >= Height then
+    else if Y1 >= FClipRect.Bottom then
     begin
-      AdvanceStippleCounter(Y1 - (Height - 1));
-      Y1 := Height - 1;
+      AdvanceStippleCounter(Y1 - (FClipRect.Bottom - 1));
+      Y1 := FClipRect.Bottom - 1;
     end;
     N := 0;
-    if Y2 < 0 then
+    if Y2 < FClipRect.Top then
     begin
       N := -Y2;
-      Y2 := 0;
+      Y2 := FClipRect.Top;
     end
-    else if Y2 >= Height then
+    else if Y2 >= FClipRect.Bottom then
     begin
-      N := Y2 - (Height - 1);
-      Y2 := Height - 1;
+      N := Y2 - (FClipRect.Bottom - 1);
+      Y2 := FClipRect.Bottom - 1;
     end;
 
     if Y2 >= Y1 then
@@ -2374,7 +2416,8 @@ end;
 
 procedure TBitmap32.LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 begin
-  if ClipLine(X1, Y1, X2, Y2, 0, 0, Width - 1, Height - 1) then
+  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
+              ClipRect.Right - 1, ClipRect.Bottom - 1) then
     Line(X1, Y1, X2, Y2, Value, L);
 end;
 
@@ -2463,7 +2506,8 @@ var
   OldX2, OldY2: Integer;
 begin
   OldX2 := X2; OldY2 := Y2;
-  if ClipLine(X1, Y1, X2, Y2, 0, 0, Width - 1, Height - 1) then
+  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
+              ClipRect.Right - 1, ClipRect.Bottom - 1) then
   begin
     if (OldX2 <> X2) or (OldY2 <> Y2) then L := True;
     LineT(X1, Y1, X2, Y2, Value, L);
@@ -2515,26 +2559,23 @@ var
   n, i: Integer;
   ex, ey, nx, ny, hyp: Integer;
   A: TColor32;
-  LongWidth, LongHeight: Integer;
   h: Single;
 begin
-  LongWidth := FWidth shl 16;
-  LongHeight := FHeight shl 16;
-
   ex := X2; ey := Y2;
 
   // Check for visibility and clip the coordinates
   if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
-    -$10000, -$10000, LongWidth, LongHeight) then Exit;
+    FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+    FFixedClipRect.Right, FFixedClipRect.Bottom) then Exit;
 
   if (ex <> X2) or (ey <> Y2) then L := True;
 
   // Check if it lies entirely in the bitmap area. Even after clipping
   // some pixels may lie outside the bitmap due to antialiasing
-  if (X1 > 0) and (X1 < LongWidth - $20000) and
-     (Y1 > 0) and (Y1 < LongHeight - $20000) and
-     (X2 > 0) and (X2 < LongWidth - $20000) and
-     (Y2 > 0) and (Y2 < LongHeight - $20000) then
+  if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right - $20000) and
+     (Y1 > FFixedClipRect.Top) and (Y1 < FFixedClipRect.Bottom - $20000) and
+     (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
+     (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
   begin
     LineX(X1, Y1, X2, Y2, Value);
     Exit;
@@ -2624,16 +2665,13 @@ var
   n, i: Integer;
   sx, sy, ex, ey, nx, ny, hyp: Integer;
   A, C: TColor32;
-  LongWidth, LongHeight: Integer;
 begin
-  LongWidth := FWidth shl 16;
-  LongHeight := FHeight shl 16;
-
   sx := X1; sy := Y1; ex := X2; ey := Y2;
 
   // Check for visibility and clip the coordinates
   if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
-    -$10000, -$10000, LongWidth, LongHeight) then
+    FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+    FFixedClipRect.Right, FFixedClipRect.Bottom) then
   begin
     AdvanceStippleCounter(Hypot((X2 - X1) / 65536, (Y2 - Y1) / 65536) - StippleInc[L]);
     Exit;
@@ -2643,10 +2681,10 @@ begin
   
   // Check if it lies entirely in the bitmap area. Even after clipping
   // some pixels may lie outside the bitmap due to antialiasing
-  if (X1 > 0) and (X1 < LongWidth - $20000) and
-     (Y1 > 0) and (Y1 < LongHeight - $20000) and
-     (X2 > 0) and (X2 < LongWidth - $20000) and
-     (Y2 > 0) and (Y2 < LongHeight - $20000) then
+  if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right - $20000) and
+     (Y1 > FFixedClipRect.Top) and (Y1 < FFixedClipRect.Bottom - $20000) and
+     (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
+     (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
   begin
     LineXP(X1, Y1, X2, Y2);
     Exit;
@@ -2774,7 +2812,8 @@ end;
 
 procedure TBitmap32.LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 begin
-  if ClipLine(X1, Y1, X2, Y2, 0, 0, Width - 1, Height - 1) then
+  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
+              ClipRect.Right - 1, ClipRect.Bottom - 1) then
     LineA(X1, Y1, X2, Y2, Value, L);
 end;
 
@@ -2856,13 +2895,14 @@ end;
 
 procedure TBitmap32.FillRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and (X1 < Width) and (Y1 < Height) and
-    (X2 > 0) and (Y2 > 0) then
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
-    if X1 < 0 then X1 := 0;
-    if Y1 < 0 then Y1 := 0;
-    if X2 > Width then X2 := Width;
-    if Y2 > Height then Y2 := Height;
+    if X1 < FClipRect.Left then X1 := FClipRect.Left;
+    if Y1 < FClipRect.Top then Y1 := FClipRect.Top;
+    if X2 > FClipRect.Right then X2 := FClipRect.Right;
+    if Y2 > FClipRect.Bottom then Y2 := FClipRect.Bottom;
     FillRect(X1, Y1, X2, Y2, Value);
   end;
 end;
@@ -2896,13 +2936,14 @@ end;
 
 procedure TBitmap32.FillRectTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and (X1 < Width) and (Y1 < Height) and
-    (X2 > 0) and (Y2 > 0) then
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
-    if X1 < 0 then X1 := 0;
-    if Y1 < 0 then Y1 := 0;
-    if X2 > Width then X2 := Width;
-    if Y2 > Height then Y2 := Height;
+    if X1 < FClipRect.Left then X1 := FClipRect.Left;
+    if Y1 < FClipRect.Top then Y1 := FClipRect.Top;
+    if X2 > FClipRect.Right then X2 := FClipRect.Right;
+    if Y2 > FClipRect.Bottom then Y2 := FClipRect.Bottom;
     FillRectT(X1, Y1, X2, Y2, Value);
   end;
 end;
@@ -2919,8 +2960,9 @@ end;
 
 procedure TBitmap32.FrameRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and (X1 < Width) and (Y1 < Height) and
-    (X2 > 0) and (Y2 > 0) then
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
     Dec(Y2);
     Dec(X2);
@@ -2937,8 +2979,9 @@ end;
 
 procedure TBitmap32.FrameRectTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and (X1 < Width) and (Y1 < Height) and
-    (X2 > 0) and (Y2 > 0) then
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
     Dec(Y2);
     Dec(X2);
@@ -2955,8 +2998,9 @@ end;
 
 procedure TBitmap32.FrameRectTSP(X1, Y1, X2, Y2: Integer);
 begin
-  if (X2 > X1) and (Y2 > Y1) and (X1 < Width) and (Y1 < Height) and
-    (X2 > 0) and (Y2 > 0) then
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
     Dec(X2);
     Dec(Y2);
@@ -2990,8 +3034,9 @@ procedure TBitmap32.RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer);
 var
   C1, C2: TColor32;
 begin
-  if (X2 > X1) and (Y2 > Y1) and (X1 < Width) and (Y1 < Height) and
-    (X2 > 0) and (Y2 > 0) then
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   try
     if Contrast > 0 then
     begin
@@ -3337,7 +3382,10 @@ end;
 procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
 begin
   UpdateFont;
-  ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
+  If FClipping then
+    ExtTextout(Handle, X, Y, ETO_CLIPPED, @FClipRect, PChar(Text), Length(Text), nil)
+  else
+    ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
   Changed;
 end;
 {$ENDIF}
@@ -3354,10 +3402,20 @@ begin
   R := Rect(X, Y, High(Word), High(Word));
   QPainter_setFont(Handle, Font.Handle);
   QPainter_setPen(Handle, Font.FontPen);
+
+  If FClipping then
+  begin
+    QPainter_setClipRect(Handle, @FClipRect);
+    QPainter_setClipping(Handle, True);
+  end;
   QPainter_drawText(Handle, @R, 0, @Text, -1, nil, nil);
+  If FClipping then QPainter_setClipping(Handle, False);
   StopPainter;
 {$ELSE}
-  ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
+  If FClipping then
+    ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @FClipRect, PWideChar(Text), Length(Text), nil)
+  else
+    ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
 {$ENDIF}
   Changed;
 end;
@@ -3614,6 +3672,7 @@ begin
   AALevel := Constrain(AALevel, 0, 4);
   PaddedText := Text + ' ';
 
+  { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
     if AALevel = 0 then
@@ -3918,6 +3977,26 @@ begin
   Result.Top := 0;
   Result.Right := Width;
   Result.Bottom := Height;
+end;
+
+procedure TBitmap32.SetClipRect(const Value: TRect);
+begin
+  With FClipRect do
+  begin
+    Left := Max(0, Value.Left);
+    Top := Max(0, Value.Top);
+    Right := Min(Width, Value.Right);
+    Bottom := Min(Height, Value.Bottom);
+  end;
+  FFixedClipRect := FixedRect(FClipRect);
+  FClipping := not EqualRect(FClipRect, BoundsRect);
+end;
+
+procedure TBitmap32.ResetClipRect;
+begin
+  FClipRect := BoundsRect;
+  FFixedClipRect := FixedRect(BoundsRect);  
+  FClipping := False;
 end;
 
 {$IFDEF CLX}

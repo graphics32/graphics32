@@ -1328,7 +1328,9 @@ begin
 
   // clip DstRect
   R := Transformation.GetTransformedBounds;
-  IntersectRect(DstRect, R, MakeRect(0, 0, Dst.Width - 1, Dst.Height - 1));
+  IntersectRect(DstRect, R, MakeRect(Dst.ClipRect.Left, Dst.ClipRect.Top,
+    Dst.ClipRect.Right - 1, Dst.ClipRect.Bottom - 1));
+
   if IsRectEmpty(DstRect) then Exit;
 
   try
