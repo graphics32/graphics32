@@ -659,7 +659,11 @@ end;
 
 procedure TCustomPaintBox32.Flush;
 begin
+{$IFDEF CLX}
+  if Assigned(Canvas.Handle) and Assigned(FBuffer.Handle) then
+{$ELSE}
   if (Canvas.Handle <> 0) and (FBuffer.Handle <> 0) then
+{$ENDIF}
   begin
     Canvas.Lock;
     try
@@ -693,7 +697,11 @@ procedure TCustomPaintBox32.Flush(const SrcRect: TRect);
 var
   R: TRect;
 begin
+{$IFDEF CLX}
+  if Assigned(Canvas.Handle) and Assigned(FBuffer.Handle) then
+{$ELSE}
   if (Canvas.Handle <> 0) and (FBuffer.Handle <> 0) then
+{$ENDIF}
   begin
     Canvas.Lock;
     try
