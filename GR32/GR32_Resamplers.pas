@@ -243,8 +243,11 @@ type
   private
     FResampler: TCustomResampler;
     FTransformation: TTransformation;
-    FBoundsRect: TRect;
+    FBoundsRect: TFloatRect;
+    BoundsRectFixed: TFixedRect;
+    BoundsRectInt: TRect;
     FOuterColor: TColor32;
+    procedure SetBoundsRect(Rect: TFloatRect);
   public
     constructor Create(Src: TBitmap32; ATransformation: TTransformation);
     function GetSampleInt(X, Y: Integer): TColor32; override;
@@ -255,7 +258,7 @@ type
 
     property Resampler: TCustomResampler read FResampler write FResampler;
     property Transformation: TTransformation read FTransformation write FTransformation;
-    property BoundsRect: TRect read FBoundsRect write FBoundsRect;
+    property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
   end;
 
@@ -2107,7 +2110,7 @@ end;
 
 function TBitmap32NearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
-  Result := Bitmap.Pixel[X div $10000, Y div $10000];
+  Result := Bitmap.Pixel[FixedRound(X), FixedRound(Y)];
 end;
 
 function TBitmap32NearestResampler.GetSampleFloat(X, Y: Single): TColor32;
@@ -2174,13 +2177,13 @@ end;
 
 function TTransformationSampler.GetSampleInt(X, Y: Integer): TColor32;
 var
-  U, V: Single;
+  U, V: Integer;
 begin
-  TTransformationAccess(FTransformation).ReverseTransformFloat(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
+  TTransformationAccess(FTransformation).ReverseTransform256(X, Y, U, V);
+  if (U >= BoundsRectInt.Left * 256) and (U <= BoundsRectInt.Right * 256) and
+     (V >= BoundsRectInt.Top * 256) and (V <= BoundsRectInt.Bottom * 256) then
   begin
-    Result := FResampler.GetSampleFloat(U, V);
+    Result := FResampler.GetSampleFixed(U * 256, V * 256);
   end
   else
     Result := FOuterColor;
@@ -2191,8 +2194,8 @@ var
   U, V: TFixed;
 begin
   TTransformationAccess(FTransformation).ReverseTransformFixed(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
+  if (U >= BoundsRectFixed.Left) and (U <= BoundsRectFixed.Right) and
+     (V >= BoundsRectFixed.Top) and (V <= BoundsRectFixed.Bottom) then
   begin
     Result := FResampler.GetSampleFixed(U, V);
   end
@@ -2226,15 +2229,23 @@ end;
 
 constructor TTransformationSampler.Create(Src: TBitmap32; ATransformation: TTransformation);
 var
-  R: TRect;
+  R: TFloatRect;
 begin
   inherited Create;
   FResampler := Src.Resampler;
   FOuterColor := Src.OuterColor;
   FTransformation := ATransformation;
-  R := MakeRect(Round(ATransformation.SrcRect.Left), Round(ATransformation.SrcRect.Top),
-                Round(ATransformation.SrcRect.Right), Round(ATransformation.SrcRect.Bottom));
-  IntersectRect(FBoundsRect, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
+  IntersectRectF(R, ATransformation.SrcRect, FloatRect(0, 0, Src.Width - 1, Src.Height - 1));
+  BoundsRectInt := MakeRect(R);
+  BoundsRectFixed := FixedRect(R);
+  FBoundsRect := R;
+end;
+
+procedure TTransformationSampler.SetBoundsRect(Rect: TFloatRect);
+begin
+  BoundsRectInt := MakeRect(Rect);
+  BoundsRectFixed := FixedRect(Rect);
+  BoundsRect := Rect;
 end;
 
 initialization
