@@ -42,11 +42,9 @@ end;
 
 function TKernelClassProperty.GetAttributes: TPropertyAttributes;
 begin
-  Result := inherited GetAttributes;
-  if not HasSubProperties then
-    Exclude(Result, paSubProperties);
-  Result := Result - [paReadOnly] +
+  Result := inherited GetAttributes - [paReadOnly] +
     [paValueList, paRevertable, paVolatileSubProperties];
+  if not HasSubProperties then Exclude(Result, paSubProperties);
 end;
 
 function TKernelClassProperty.GetValue: string;
@@ -65,7 +63,7 @@ begin
   S := GetKernelClassNames;
   try
     for I := 0 to S.Count - 1 do
-      Proc(S.Strings[I]);
+      Proc(S[I]);
   finally
     S.Free;
   end;
@@ -95,11 +93,9 @@ end;
 
 function TResamplerClassProperty.GetAttributes: TPropertyAttributes;
 begin
-  Result := inherited GetAttributes;
-  if not HasSubProperties then
-    Exclude(Result, paSubProperties);
-  Result := Result - [paReadOnly] +
+  Result := inherited GetAttributes - [paReadOnly] +
     [paValueList, paRevertable, paVolatileSubProperties];
+  if not HasSubProperties then Exclude(Result, paSubProperties);
 end;
 
 function TResamplerClassProperty.GetValue: string;
