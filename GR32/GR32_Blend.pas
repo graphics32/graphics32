@@ -28,6 +28,9 @@ unit GR32_Blend;
  *  Michael Hansen <dyster_tid@hotmail.com>
  *      - 2004/07/07 - Pascal Blendmodes, function setup
  *
+ *  Bob Voigt
+ *      - 2004/08/25 - ColorMul, ColorDiv
+ *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Blend.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
 
@@ -71,6 +74,8 @@ var
 { Color algebra functions }
   ColorAdd: TBlendReg;
   ColorSub: TBlendReg;
+  ColorMul: TBlendReg;
+  ColorDiv: TBlendReg;
   ColorModulate: TBlendReg;
   ColorMax: TBlendReg;
   ColorMin: TBlendReg;
@@ -967,6 +972,61 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
+function _ColorMul(C1, C2: TColor32): TColor32;
+var
+  r1, g1, b1, a1: Integer;
+  r2, g2, b2, a2: Integer;
+begin
+  a1 := C1 shr 24;
+  r1 := (C1 and $00FF0000) shr 16;
+  g1 := (C1 and $0000FF00) shr 8;
+  b1 := C1 and $000000FF;
+
+  a2 := C2 shr 24;
+  r2 := (C2 and $00FF0000) shr 16;
+  g2 := (C2 and $0000FF00) shr 8;
+  b2 := C2 and $000000FF;
+
+  a1 := (a1 * a2) shr 8;
+  r1 := (r1 * r2) shr 8;
+  g1 := (g1 * g2) shr 8;
+  b1 := (b1 * b2) shr 8;
+
+  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+end;
+
+function _ColorDiv(C1, C2: TColor32): TColor32;
+var
+  r1, g1, b1, a1: Integer;
+  r2, g2, b2, a2: Integer;
+begin
+  a1 := C1 shr 24;
+  r1 := (C1 and $00FF0000) shr 16;
+  g1 := (C1 and $0000FF00) shr 8;
+  b1 := C1 and $000000FF;
+
+  a2 := C2 shr 24;
+  r2 := (C2 and $00FF0000) shr 16;
+  g2 := (C2 and $0000FF00) shr 8;
+  b2 := C2 and $000000FF;
+
+  if a1 = 0 then a1:=$FF
+  else a1 := (a2 shl 8) div a1;
+  if r1 = 0 then r1:=$FF
+  else r1 := (r2 shl 8) div r1;
+  if g1 = 0 then g1:=$FF
+  else g1 := (g2 shl 8) div g1;
+  if b1 = 0 then b1:=$FF
+  else b1 := (b2 shl 8) div b1;
+
+  if a1 > $FF then a1 := $FF;
+  if r1 > $FF then r1 := $FF;
+  if g1 > $FF then g1 := $FF;
+  if b1 > $FF then b1 := $FF;
+
+  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+end;
+
 function _ColorModulate(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
@@ -1244,6 +1304,8 @@ begin
 
     ColorAdd := _ColorAdd;
     ColorSub := _ColorSub;
+    ColorMul := _ColorMul;
+    ColorDiv := _ColorDiv;
     ColorModulate:= _ColorModulate;
     ColorMax:= _ColorMax;
     ColorMin:= _ColorMin;
