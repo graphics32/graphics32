@@ -16,7 +16,7 @@ unit GR32_TransformationMap;
  * The Original Code is Graphics32
  *
  * The Initial Developer of the Original Code is
- * Michael Hansen <dyster_tid@hotmail.com
+ * Michael Hansen <dyster_tid@hotmail.com>
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2004
  * the Initial Developer. All Rights Reserved.
@@ -363,19 +363,19 @@ end;
 
 function CombinePointsReg(const A, B: TFixedPoint; Weight256: Integer): TFixedPoint;
 begin
-  Result.X := A.X +  SAR_8((B.X - A.X) * Weight256);
-  Result.Y := A.Y +  SAR_8((B.Y - A.Y) * Weight256);
+  Result.X := A.X + SAR_8((B.X - A.X) * Weight256);
+  Result.Y := A.Y + SAR_8((B.Y - A.Y) * Weight256);
 end;
 
 procedure CombinePointsMem(const A: TFixedPoint;var  B: TFixedPoint; Weight256: Integer);
 begin
-  B.X := A.X +  SAR_8((B.X - A.X) * Weight256);
-  B.Y := A.Y +  SAR_8((B.Y - A.Y) * Weight256);
+  B.X := A.X + SAR_8((B.X - A.X) * Weight256);
+  B.Y := A.Y + SAR_8((B.Y - A.Y) * Weight256);
 end;
 
 function TTransformationMap.BoundsRect: TRect;
 begin
-  Result := Rect(0,0, Width, Height);
+  Result := Rect(0, 0, Width - 1, Height - 1);
 end;
 
 procedure TTransformationMap.ChangeSize(var Width, Height: Integer;
@@ -454,7 +454,7 @@ end;
 
 function TTransformationMap.GetXPoint(X, Y: Integer): TFixedPoint;
 begin
-  Result:= FBits[X + Y * Width];
+  Result := FBits[X + Y * Width];
 end;
 
 function TTransformationMap.GetXPointS(X, Y: Integer): TFixedPoint;
@@ -476,9 +476,9 @@ begin
   WX := SAR_16(X + $807E);
   WY := SAR_16(Y + $807E);
   W := Width;
-  if (WX >= 0) and (WX < W) and (WY >= 0) and (WY < Height) then
+  if (WX >= 0) and (WX < W - 1) and (WY >= 0) and (WY < Height - 1) then
   begin
-    P :=  Integer(@FBits[WX + WY * W]);
+    P := Integer(@FBits[WX + WY * W]);
     W := W * Next;
     WX := SAR_8(X + $7F) and $FF;
     WY := SAR_8(Y + $7F) and $FF;
@@ -486,8 +486,8 @@ begin
                                CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + Next)^, WX), WY);
   end else
   begin
-    Result.X:= 0;
-    Result.Y:= 0;
+    Result.X := 0;
+    Result.Y := 0;
   end;
 end;
 
@@ -591,12 +591,12 @@ begin
 
   P := SrcRect.Top * Src.Width;
   Progression.Y := - FixedOne;
-  for I := DstRect.Top to DstRect.Bottom - 1 do
+  for I := DstRect.Top to DstRect.Bottom do
   begin
     Progression.X := - FixedOne;
     DstPtr := @GetBits[I * Width];
     SrcPtr := @Src.GetBits[SrcRect.Left + P];
-    for J := DstRect.Left to DstRect.Right - 1 do
+    for J := DstRect.Left to DstRect.Right do
     begin
       Combiner(SrcPtr^, Progression, DstPtr[J]);
       Inc(SrcPtr);
@@ -863,11 +863,11 @@ begin
   end;
 
   Progression.Y := - FixedOne;
-  with DstRect do for I := Top to Bottom - 1 do
+  with DstRect do for I := Top to Bottom do
   begin
     Progression.X := - FixedOne;
     MapPtr := @TransformationMap.GetBits[I * TransformationMap.Width];
-    for J := Left to Right - 1 do
+    for J := Left to Right do
     begin
       //Subtract loop vars to ensure correct transformation output
       P := FixedPoint(J - Left, I - Top);
@@ -889,18 +889,18 @@ procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
 begin
   with TransformationMap.FixedPointMap[DstX - OffsetInt.X, DstY - OffsetInt.Y] do
   begin
-    DstX:= DstX * FixedOne - DstTranslationFixed.X;
-    DstY:= DstY * FixedOne - DstTranslationFixed.Y;
+    DstX := DstX * FixedOne - DstTranslationFixed.X;
+    DstY := DstY * FixedOne - DstTranslationFixed.Y;
     DstX := FixedMul(DstX , DstScaleFixed.X);
     DstY := FixedMul(DstY , DstScaleFixed.Y);
 
-    DstX:= DstX + FixedMul(X, ScalingFixed.X);
-    DstY:= DstY + FixedMul(Y, ScalingFixed.Y);
+    DstX := DstX + FixedMul(X, ScalingFixed.X);
+    DstY := DstY + FixedMul(Y, ScalingFixed.Y);
 
     DstX := FixedMul(DstX, SrcScaleFixed.X);
     DstY := FixedMul(DstY, SrcScaleFixed.Y);
-    DstX:= DstX + SrcTranslationFixed.X;
-    DstY:= DstY + SrcTranslationFixed.Y;
+    DstX := DstX + SrcTranslationFixed.X;
+    DstY := DstY + SrcTranslationFixed.Y;
 
     SrcX256 := SAR_8(DstX + $7F);
     SrcY256 := SAR_8(DstY + $7F);
@@ -917,8 +917,8 @@ begin
     DstX := FixedMul(DstX , DstScaleFixed.X);
     DstY := FixedMul(DstY , DstScaleFixed.Y);
 
-    DstX:= DstX + FixedMul(X, ScalingFixed.X);
-    DstY:= DstY + FixedMul(Y, ScalingFixed.Y);
+    DstX := DstX + FixedMul(X, ScalingFixed.X);
+    DstY := DstY + FixedMul(Y, ScalingFixed.Y);
 
     DstX := FixedMul(DstX, SrcScaleFixed.X);
     DstY := FixedMul(DstY, SrcScaleFixed.Y);
@@ -937,8 +937,8 @@ begin
     DstX := DstX * DstScaleFloat.X;
     DstY := DstY * DstScaleFloat.Y;
 
-    DstX:= DstX + X * ScalingFloat.X;
-    DstY:= DstY + Y * ScalingFloat.Y;
+    DstX := DstX + X * ScalingFloat.X;
+    DstY := DstY + Y * ScalingFloat.Y;
 
     DstX := DstX * SrcScaleFloat.X;
     DstY := DstY * SrcScaleFloat.Y;
