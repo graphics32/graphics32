@@ -2273,11 +2273,11 @@ initialization
   SetupFunctions;
 
   { Register resamplers }
-  RegisterResampler(TBitmap32KernelResampler);
-  RegisterResampler(TBitmap32TableResampler);
   RegisterResampler(TBitmap32NearestResampler);
   RegisterResampler(TBitmap32LinearResampler);
   RegisterResampler(TBitmap32DraftResampler);
+  RegisterResampler(TBitmap32KernelResampler);
+  RegisterResampler(TBitmap32TableResampler);
 
   { Register kernels }
   RegisterKernel(TNearestKernel);
