@@ -30,7 +30,7 @@ unit GR32_Blend;
  *      - 2004/07/07 - Pascal Blendmodes, function setup
  *
  *  Bob Voigt
- *      - 2004/08/25 - ColorMul, ColorDiv
+ *      - 2004/08/25 - ColorDiv
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -96,7 +96,6 @@ var
 { Color algebra functions }
   ColorAdd: TBlendReg;
   ColorSub: TBlendReg;
-  ColorMul: TBlendReg;
   ColorDiv: TBlendReg;
   ColorModulate: TBlendReg;
   ColorMax: TBlendReg;
@@ -1250,29 +1249,6 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function _ColorMul(C1, C2: TColor32): TColor32;
-var
-  r1, g1, b1, a1: Integer;
-  r2, g2, b2, a2: Integer;
-begin
-  a1 := C1 shr 24;
-  r1 := (C1 and $00FF0000) shr 16;
-  g1 := (C1 and $0000FF00) shr 8;
-  b1 := C1 and $000000FF;
-
-  a2 := C2 shr 24;
-  r2 := (C2 and $00FF0000) shr 16;
-  g2 := (C2 and $0000FF00) shr 8;
-  b2 := C2 and $000000FF;
-
-  a1 := (a1 * a2) shr 8;
-  r1 := (r1 * r2) shr 8;
-  g1 := (g1 * g2) shr 8;
-  b1 := (b1 * b2) shr 8;
-
-  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
-end;
-
 function _ColorDiv(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
@@ -1588,13 +1564,12 @@ begin
 
     ColorAdd := M_ColorAdd;
     ColorSub := M_ColorSub;
-    ColorMul := _ColorMul;
     ColorDiv := _ColorDiv;
-    ColorModulate:= M_ColorModulate;
-    ColorMax:= M_ColorMax;
-    ColorMin:= M_ColorMin;
-    ColorDifference:= M_ColorDifference;
-    ColorExclusion:= M_ColorExclusion;
+    ColorModulate := M_ColorModulate;
+    ColorMax := M_ColorMax;
+    ColorMin := M_ColorMin;
+    ColorDifference := M_ColorDifference;
+    ColorExclusion := M_ColorExclusion;
   end
   else
   begin
@@ -1636,13 +1611,12 @@ begin
 
     ColorAdd := _ColorAdd;
     ColorSub := _ColorSub;
-    ColorMul := _ColorMul;
     ColorDiv := _ColorDiv;
-    ColorModulate:= _ColorModulate;
-    ColorMax:= _ColorMax;
-    ColorMin:= _ColorMin;
-    ColorDifference:= _ColorDifference;
-    ColorExclusion:= _ColorExclusion;
+    ColorModulate := _ColorModulate;
+    ColorMax := _ColorMax;
+    ColorMin := _ColorMin;
+    ColorDifference := _ColorDifference;
+    ColorExclusion := _ColorExclusion;
   end;
 end;
 
