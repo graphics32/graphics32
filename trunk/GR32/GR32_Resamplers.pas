@@ -2,8 +2,6 @@ unit GR32_Resamplers;
 
 interface
 
-{$DEFINE ADDITIONAL_KERNELS}
-
 uses
   Classes, Types, GR32, GR32_Transforms;
 
@@ -112,8 +110,6 @@ type
     function Window(Value: Single): Single; override;
   end;
 
-{$IFDEF ADDITIONAL_KERNELS}
-
   { TGaussianResampler }
   TGaussianKernel = class(TWindowedSincKernel)
   private
@@ -161,7 +157,6 @@ type
     property Width: Single read GetWidth write SetWidth;
   end;
 
-{$ENDIF ADDITIONAL_RESAMPLERS}
 
   { TBitmap32Resampler }
   TBitmap32Resampler = class(TCustomResampler)
@@ -273,6 +268,14 @@ type
 
 // TLinearTransformationResampler = class(TTransformationResampler)
 
+{ Auxiliary record used in accumulation routines }
+type
+  PBufferEntry = ^TBufferEntry;
+  TBufferEntry = record
+    B, G, R, A: Integer;
+  end;
+
+{ Routines used by design-time property editors }
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 function GetKernelClassNames: TStrings;
 function FindKernelClass(ClassName: string): TCustomKernelClass;
@@ -285,15 +288,9 @@ var
   KernelList: TList;
   ResamplerList: TList;
 
-procedure StretchNearest(
-  Dst: TBitmap32; DstRect, DstClip: TRect;
-  Src: TBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
-
-procedure BlendBlock(
-  Dst: TBitmap32; DstRect: TRect;
-  Src: TBitmap32; SrcX, SrcY: Integer;
-  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+const
+  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 
 implementation
 
@@ -320,11 +317,6 @@ type
 
   TCluster = array of TPointRec;
   TMappingTable = array of TCluster;
-
-  PBufferEntry = ^TBufferEntry;
-  TBufferEntry = record
-    B, G, R, A: Integer;
-  end;
 
   TFilterMethod = function(Value: Single): Single of object;
   
@@ -1652,8 +1644,6 @@ begin
   Result := 2;
 end;
 
-{$IFDEF ADDITIONAL_KERNELS}
-
 { TGaussKernel }
 
 constructor TGaussianKernel.Create;
@@ -1743,7 +1733,6 @@ begin
   Result := FWidth;
 end;
 
-{$ENDIF}
 
 { General routines for registering kernels and setting them up }
 
@@ -1943,9 +1932,6 @@ var
   MappingX: array [-3..3] of Integer;
   MappingY: array [-3..3] of Integer;
   HorzEntry, VertEntry: TBufferEntry;
-const
-  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
-  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 begin
   Filter := FKernel.Filter;
   W := Ceil(FKernel.GetWidth);
@@ -2054,9 +2040,6 @@ var
   LoX, HiX, LoY, HiY: Integer;
   HorzEntry, VertEntry: TBufferEntry;
   HorzKernel, VertKernel: PKernelEntry;
-const
-  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
-  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 begin
   clX := Ceil(X);
   clY := Ceil(Y);
@@ -2270,13 +2253,11 @@ initialization
   RegisterKernel(TCubicKernel);
   RegisterKernel(TMitchellKernel);
   RegisterKernel(TLanczosKernel);
-{$IFDEF ADDITIONAL_KERNELS}
   RegisterKernel(TGaussianKernel);
   RegisterKernel(TBlackmanKernel);
   RegisterKernel(THannKernel);
   RegisterKernel(THammingKernel);
   RegisterKernel(TSinshKernel);
-{$ENDIF}
 
 finalization
   KernelList.Free;
