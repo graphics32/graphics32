@@ -1092,45 +1092,45 @@ asm
         CMP       EAX,$FF000000  // foreground completely opaque =>
         JNC       @2             // result = foreground
 
-        PXOR      MM3,MM3
+        db $0F,$EF,$DB           /// PXOR      MM3,MM3
         PUSH      ESI
-        MOVD      MM0,EAX        // MM0  <-  Fa Fr Fg Fb
-        PUNPCKLBW MM0,MM3        // MM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
-        MOVD      MM1,EDX        // MM1  <-  Ba Br Bg Bb
-        PUNPCKLBW MM1,MM3        // MM1  <-  00 Ba 00 Br 00 Bg 00 Bb
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX        // MM0  <-  Fa Fr Fg Fb
+        db $0F,$60,$C3           /// PUNPCKLBW MM0,MM3        // MM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX        // MM1  <-  Ba Br Bg Bb
+        db $0F,$60,$CB           /// PUNPCKLBW MM1,MM3        // MM1  <-  00 Ba 00 Br 00 Bg 00 Bb
         SHR       EAX,24         // EAX  <-  00 00 00 Fa
-        MOVQ      MM4,MM0        // MM4  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        db $0F,$6F,$E0           /// MOVQ      MM4,MM0        // MM4  <-  00 Fa 00 Fr 00 Fg 00 Fb
         SHR       EDX,24         // EDX  <-  00 00 00 Ba
-        MOVQ      MM5,MM1        // MM5  <-  00 Ba 00 Br 00 Bg 00 Bb
+        db $0F,$6F,$E9           /// MOVQ      MM5,MM1        // MM5  <-  00 Ba 00 Br 00 Bg 00 Bb
         MOV       ECX,EAX        // ECX  <-  00 00 00 Fa
-        PUNPCKHWD MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fg 00 Fg
+        db $0F,$69,$E4           /// PUNPCKHWD MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fg 00 Fg
         ADD       ECX,EDX        // ECX  <-  00 00 Sa Sa
-        PUNPCKHDQ MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fa 00 Fa
+        db $0F,$6A,$E4           /// PUNPCKHDQ MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fa 00 Fa
         MUL       EAX,EDX        // EAX  <-  00 00 Pa **
-        PUNPCKHWD MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Bg 00 Bg
+        db $0F,$69,$ED           /// PUNPCKHWD MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Bg 00 Bg
         MOV       ESI,$FF        // ESI  <-  00 00 00 00 FF
-        PUNPCKHDQ MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Ba 00 Ba
+        db $0F,$6A,$ED           /// PUNPCKHDQ MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Ba 00 Ba
         DIV       ESI
         SUB       ECX,EAX        // ECX  <-  00 00 00 Ra
         MOV       EAX,$ffff
         CDQ
-        PMULLW    MM1,MM5        // MM1  <-  B * Ba
-        PSRLW     MM1,8
+        db $0F,$D5,$CD           /// PMULLW    MM1,MM5        // MM1  <-  B * Ba
+        db $0F,$71,$D1,$08       /// PSRLW     MM1,8
         DIV       ECX
-        PMULLW    MM0,MM4        // MM0  <-  F * Fa
-        PSRLW     MM0,8
-        PMULLW    MM4,MM1        // MM4  <-  B * Ba * Fa
-        PSRLW     MM4,8
+        db $0F,$D5,$C4           /// PMULLW    MM0,MM4        // MM0  <-  F * Fa
+        db $0F,$71,$D0,$08       /// PSRLW     MM0,8
+        db $0F,$D5,$E1           /// PMULLW    MM4,MM1        // MM4  <-  B * Ba * Fa
+        db $0F,$71,$D4,$08       /// PSRLW     MM4,8
         SHL       ECX,24
-        PADDUSW   MM1,MM0        // MM1  <-  B * Ba + F * Fa
-        PSUBUSW   MM1,MM4        // MM1  <-  B * Ba + F * Fa - B * Ba * Fa
-        MOVD      MM2,EAX        // MM2  <-  Qa = 1 / Ra
-        PUNPCKLWD MM2,MM2        // MM2  <-  00 00 00 00 00 Qa 00 Qa
-        PUNPCKLWD MM2,MM2        // MM2  <-  00 Qa 00 Qa 00 Qa 00 Qa
-        PMULLW    MM1,MM2
-        PSRLW     MM1,8
-        PACKUSWB  MM1,MM3        // MM1  <-  00 00 00 00 xx Rr Rg Rb
-        MOVD      EAX,MM1        // EAX  <-  xx Rr Rg Rb
+        db $0F,$DD,$C8           /// PADDUSW   MM1,MM0        // MM1  <-  B * Ba + F * Fa
+        db $0F,$D9,$CC           /// PSUBUSW   MM1,MM4        // MM1  <-  B * Ba + F * Fa - B * Ba * Fa
+        db $0F,$6E,$D0           /// MOVD      MM2,EAX        // MM2  <-  Qa = 1 / Ra
+        db $0F,$61,$D2           /// PUNPCKLWD MM2,MM2        // MM2  <-  00 00 00 00 00 Qa 00 Qa
+        db $0F,$61,$D2           /// PUNPCKLWD MM2,MM2        // MM2  <-  00 Qa 00 Qa 00 Qa 00 Qa
+        db $0F,$D5,$CA           /// PMULLW    MM1,MM2
+        db $0F,$71,$D1,$08       /// PSRLW     MM1,8
+        db $0F,$67,$CB           /// PACKUSWB  MM1,MM3        // MM1  <-  00 00 00 00 xx Rr Rg Rb
+        db $0F,$7E,$C8           /// MOVD      EAX,MM1        // EAX  <-  xx Rr Rg Rb
         AND       EAX,$00FFFFFF  // EAX  <-  00 Rr Rg Rb
         OR        EAX,ECX        // EAX  <-  Ra Rr Rg Rb
         POP ESI
