@@ -2200,7 +2200,7 @@ begin
 end;
 
 
-{ TTransformationResampler }
+{ TTransformer }
 
 function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
