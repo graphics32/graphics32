@@ -40,7 +40,6 @@ type
     LineAlpha: TScrollBar;
     Label2: TLabel;
     FillAlpha: TScrollBar;
-    Memo1: TMemo;
     FillMode: TRadioGroup;
     Button1: TButton;
     LineThickness: TScrollBar;
@@ -48,6 +47,9 @@ type
     ThickOutline: TCheckBox;
     Label4: TLabel;
     BitmapList: TBitmap32List;
+    AntialiasMode: TRadioGroup;
+    Memo1: TMemo;
+    Memo2: TMemo;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton;
@@ -78,7 +80,14 @@ begin
   Image.Bitmap.Clear(clWhite32);
   Image.Bitmap.Draw(50, 50, BitmapList.Bitmaps[0].Bitmap);
   Polygon.Antialiased := Antialiase.Checked;
-  if UseOutlinePoly then Outline.Antialiased := Antialiase.Checked;
+  Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+
+  if UseOutlinePoly then
+  begin
+    Outline.Antialiased := Antialiase.Checked;
+    Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+  end;
+
   if FillMode.ItemIndex = 0 then Polygon.FillMode := pfAlternate else Polygon.FillMode := pfWinding;
 
   Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
@@ -123,6 +132,7 @@ end;
 
 procedure TForm1.ParamsChanged(Sender: TObject);
 begin
+  AntialiasMode.Enabled := Antialiase.Checked and ThickOutline.Checked;
   Draw;
 end;
 
@@ -154,6 +164,7 @@ end;
 
 procedure TForm1.ThicknessChanged(Sender: TObject);
 begin
+  AntialiasMode.Enabled := Antialiase.Checked and ThickOutline.Checked;
   UseOutlinePoly := ThickOutline.Checked;
   LineSize := LineThickness.Position / 10;
   Build;
