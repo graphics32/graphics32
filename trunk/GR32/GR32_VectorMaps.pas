@@ -308,56 +308,12 @@ type
     property Offset: TFloatpoint read FOffset write SetOffset;
   end;
 
-{ General routines for registering and setting up custom class registerlists }
-
-procedure RegisterCustomClass(CustomClass: TClass;var CustomRegister: TList);
-function GetCustomClassNames(CustomRegister: TList): TStrings;
-function FindCustomClass(ClassName: string; CustomRegister: TList): TClass;
-
 implementation
 
 uses Math, GR32_Lowlevel, GR32_Blend;
 
 type
   TTransformationAccess = class(TTransformation);
-
-
-{ General routines for registering and setting up custom class registerlists }
-
-procedure RegisterCustomClass(CustomClass: TClass; var CustomRegister: TList);
-begin
-  if not Assigned(CustomRegister) then
-    CustomRegister := TList.Create;
-  CustomRegister.Add(CustomClass);
-end;
-
-function GetCustomClassNames(CustomRegister: TList): TStrings;
-var
-  I: Integer;
-begin
-  if not Assigned(CustomRegister) then
-    Result := nil
-  else
-  begin
-    Result := TStringList.Create;
-    for I := 0 to CustomRegister.Count - 1 do
-      Result.Add(TClass(CustomRegister.List[I]).ClassName);
-  end;
-end;
-
-function FindCustomClass(ClassName: string; CustomRegister: TList): TClass;
-var
-  I: Integer;
-begin
-  Result := nil;
-  if Assigned(CustomRegister) then
-    for I := 0 to CustomRegister.Count - 1 do
-      if TClass(CustomRegister.List[I]).ClassName = ClassName then
-      begin
-        Result := TClass(CustomRegister.List[I]);
-        Exit;
-      end;
-end;
 
 { TTransformationMap }
 
