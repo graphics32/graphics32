@@ -1,0 +1,27 @@
+<html>
+<head>
+<title>HitTest</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> HitTest(X, Y: Integer): Boolean; </p>
+<h2>Description</h2>
+<p class="Body">Performs a hit test of the layer at specified point and returns 
+  <i>True</i> if the point have passed the test. </p>
+<p class="Body">After performing default hit test, specific for particular type 
+  of a layer, this method also calls <a href="../../../../GR32_Layers/Classes/TCustomLayer/Events/OnHitTest.htm">OnHitTest</a> 
+  event, in case you need some run-time customization.</p>
+<p class="Body">By default:</p>
+<ul>
+  <li> <a href="../../../../GR32_Layers/Classes/TCustomLayer/_Body.htm">TCustomLayer</a> always passes the hit test;</li>
+  <li> <a href="../../../../GR32_Layers/Classes/TPositionedLayer/_Body.htm">TPositionedLayer</a> passes 
+    only the points lying inside the rectangle, returned by <a href="../../../../GR32_Layers/Classes/TPositionedLayer/Methods/GetAdjustedLocation.htm">GetAdjustedLocation</a>;</li>
+  <li>Depending on the <a href="../../../../GR32_Layers/Classes/TBitmapLayer/Properties/AlphaHit.htm">AlphaHit</a> 
+    property, <a href="../../../../GR32_Layers/Classes/TBitmapLayer/_Body.htm">TBitmapLayer</a> is capable 
+    of passing only coordinates corresponding to non-transparent pixels.</li>
+</ul>
+<p id="hidden">[See also]: <a href="../../../../../Additional%20Topics/Using%20TImage32/Using%20Layers.htm">Using 
+  Layers</a></p>
+</body>
+</html>

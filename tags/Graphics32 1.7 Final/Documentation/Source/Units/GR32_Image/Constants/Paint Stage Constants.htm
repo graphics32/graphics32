@@ -1,0 +1,58 @@
+<html>
+<head>
+<title>Paint Stage Constants</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Body">Paint stage constants specify the type of operation associated 
+  with a paint stage in <a href="../../GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a> 
+  and its descendants.</p>
+<p class="Body">There is seven types of paint stages, which can be used by <a href="../../GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a> 
+  to paint its contents. Each paint stage has 'PST_' prefix:</p>
+<table border="1" cellspacing="0" cellpadding="0" bordercolor="#FFFFFF">
+  <tr> 
+    <th>Stage Name</th>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  <tr> 
+    <td>PST_CUSTOM</td>
+    <td>1</td>
+    <td>Calls the OnPaintStage event</td>
+  </tr>
+  <tr> 
+    <td>PST_CLEAR_BUFFER</td>
+    <td>2</td>
+    <td>Clears the buffer</td>
+  </tr>
+  <tr> 
+    <td>PST_CLEAR_BACKGND</td>
+    <td>3</td>
+    <td>Clears visible buffer area</td>
+  </tr>
+  <tr> 
+    <td>PST_DRAW_BITMAP</td>
+    <td>4</td>
+    <td>Draws a scaled bitmap image</td>
+  </tr>
+  <tr> 
+    <td>PST_DRAW_LAYERS</td>
+    <td>5</td>
+    <td>Draws layers</td>
+  </tr>
+  <tr>
+    <td>PST_CONTROL_FRAME</td>
+    <td>6</td>
+    <td>Draws a dotted frame around the control</td>
+  </tr>
+  <tr> 
+    <td>PST_BITMAP_FRAME</td>
+    <td>7</td>
+    <td>Draws a dotted frame around the scaled bitmap image</td>
+  </tr>
+</table>
+<p id="hidden">[See Also] <a href="../../../Additional%20Topics/Using%20TImage32/Paint%20Stages.htm">Paint 
+  Stages</a></p>
+</body>
+</html>

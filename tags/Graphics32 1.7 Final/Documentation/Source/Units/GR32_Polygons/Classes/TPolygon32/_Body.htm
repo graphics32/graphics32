@@ -1,0 +1,33 @@
+<html>
+ 
+<head>
+<title>TPolygon32</title>
+<link rel="stylesheet" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TThreadPersistent">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body">In addition to common polygon drawing functions, Graphics32 provides 
+  an auxiliary class <span class="EmptyRef">TPolygon32</span>, which may be used 
+  for storing and drawing polygons and polylines, allowes drawing of lines and 
+  polylines more than 1 pixel wide and provides some morphological modifications 
+  of polygons.</p>
+<p class="Body"><span class="EmptyRef">TPolygon32</span> is capable of storing 
+  more than a single polygon, it can represent a shape, outlines by several polygons, 
+  referred here as contours and specified in <a href="../../../GR32_Polygons/Classes/TPolygon32/Properties/Points.htm">Points</a> 
+  property. This allows rendering of comples shapes (with holes, etc.). In future 
+  versions we plan to implement direct TTF or Type1 font rendering.</p>
+<p class="Body">Contour is considered as a closed polygon if the <a href="../../../GR32_Polygons/Classes/TPolygon32/Properties/Closed.htm">Closed</a> 
+  property is <i>True</i>, otherwise it is treated as polyline. Each contour is, 
+  in turn, a dynamic array of <a href="../../../GR32/Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>.</p>
+<p class="Body">Polygons may be constructed by modifying other polygons using 
+  the <a href="../../../GR32_Polygons/Classes/TPolygon32/Methods/Grow.htm">Grow</a> method or by adding sequentially new 
+  points with <a href="../../../GR32_Polygons/Classes/TPolygon32/Methods/Add.htm">Add</a> or starting new contours with 
+  <a href="../../../GR32_Polygons/Classes/TPolygon32/Methods/NewLine.htm">NewLine</a>.</p>
+<p id="Hidden">[See also] <a href="../../../../Examples.htm#Polygons%20Example">Polygons 
+  Example</a></p>
+</body>
+
+</html>
+

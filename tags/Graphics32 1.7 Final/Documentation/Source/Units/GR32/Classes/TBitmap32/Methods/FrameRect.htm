@@ -1,0 +1,27 @@
+<html>
+<head>
+<title>FrameRect</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> FrameRectS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> FrameRectTS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> FrameRectS(const ARect: TRect; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> FrameRectTS(const ARect: TRect; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>;<br>
+  <b>procedure</b> FrameRectTSP(X1, Y1, X2, Y2: Integer);</p>
+<h2>Description</h2>
+<p class="Body">Draws a rectangle frame. Row with <span class="EmptyRef">X2</span> 
+  coordinate and column with <span class="EmptyRef">Y2</span> coordinate are excluded.</p>
+<p class="Body">If <b>X2</b> &lt;= <b>X1</b> or <b>Y2</b> &lt;=<b> Y1</b>, the 
+  function does not draw the rectangle. </p>
+<p class="Body"> <span class="EmptyRef">FrameRectTSP</span> version supports line 
+  patterns.</p>
+<p id="hidden">[See also]: <a href="FillRect.htm">FillRect</a><a href="LineTo.htm"></a>, 
+  <a href="../../../../../Overview/Naming%20Conventions.htm">Naming Conventions</a></p>
+</body>
+</html>
