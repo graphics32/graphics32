@@ -1252,6 +1252,13 @@ begin
   if Assigned(FOnMouseUp) then FOnMouseUp(Self, Button, Shift, X, Y, Layer);
 end;
 
+procedure TCustomImage32.MouseLeave;
+begin
+  if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
+    Screen.Cursor := crDefault;
+  inherited;
+end;
+
 procedure TCustomImage32.PaintTo(Dest: TBitmap32; DestRect: TRect);
 var
   I: Integer;
@@ -1405,13 +1412,6 @@ end;
 
 
 
-
-procedure TCustomImage32.MouseLeave;
-begin
-  if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
-    Screen.Cursor := crDefault;
-  inherited;
-end;
 
 { TIVScrollProperties }
 
