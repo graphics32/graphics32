@@ -1093,7 +1093,7 @@ var
   xs, xsrc, M: Cardinal;
   C: TColor32;
   DstLine: PColor32Array;
-  ScaleFactor,lx: Single;
+  ScaleFactor,lx, fe: Single;
   FSrcTop,I,J,ly,
   sc, sr, cx, cy: integer;
   Y_256: TFixed;
@@ -1113,38 +1113,59 @@ begin
 
   if (DstW > SrcW)or(DstH > SrcH) then
    begin
+      if not FullEdge then begin
+       Dec(DstW);
+       Dec(DstH);
+       Dec(SrcW);
+       Dec(SrcH);
+       fe:= 0;
+      end else fe:= 1/2;
+
       lx:= SrcW / DstW;
       ly:= Fixed(SrcH / DstH);
 
       SetLength(XLUT_256, DstClipW);
-      J:= Fixed(SrcRect.Left - 1/2);
-      for I:= 0 to DstClipW - 1 do XLUT_256[I]:= SAR_8( J + Fixed((I + DstClip.Left) * lx) );
+      J:= Fixed(SrcRect.Left - fe);
+
+      cx:= Src.Width shl 8 - 256;
+      for I:= 0 to DstClipW - 1 do
+       begin
+        Y_256:= SAR_8( J + Fixed((I + DstClip.Left) * lx) );
+        if Y_256 < 0 then Y_256:= 0 else if Y_256 > cx then Y_256:= cx;
+        XLUT_256[I]:= Y_256;
+       end;
 
       DstLine:= PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-      FSrcTop:= Fixed(SrcRect.Top - 1/2);
+      FSrcTop:= Fixed(SrcRect.Top - fe);
       M:= Src.MasterAlpha;
+      Dec(DstClip.Bottom);
+      Dec(DstClipW);
+      cy:= Src.Width shl 8 - 256;
       with TBitmap32Access(Src) do case CombineOp of
 
-       dmOpaque: for J:= DstClip.Top to DstClip.Bottom - 1 do
+       dmOpaque: for J:= DstClip.Top to DstClip.Bottom do
          begin
           Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
-          for I:= 0 to DstClipW - 1 do DstLine[I]:= GET_TS256(XLUT_256[I], Y_256);
+          if Y_256 < 0 then Y_256:= 0 else if Y_256 > cy then Y_256:= cy;
+          for I:= 0 to DstClipW do DstLine[I]:= GET_T256(XLUT_256[I], Y_256);
           Inc(DstLine, Dst.Width);
          end;
 
-       dmBlend: for J:= DstClip.Top to DstClip.Bottom - 1 do
+       dmBlend: for J:= DstClip.Top to DstClip.Bottom do
          begin
           Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
-          for I:= 0 to DstClipW - 1 do
-            BlendMemEx(GET_TS256(XLUT_256[I], Y_256), DstLine[I], M);
+          if Y_256 < 0 then Y_256:= 0 else if Y_256 > cy then Y_256:= cy;
+          for I:= 0 to DstClipW do
+            BlendMemEx(GET_T256(XLUT_256[I], Y_256), DstLine[I], M);
           Inc(DstLine, Dst.Width);
          end;
 
-       dmCustom: for J:= DstClip.Top to DstClip.Bottom - 1 do
+       dmCustom: for J:= DstClip.Top to DstClip.Bottom do
          begin
           Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
-          for I:= 0 to DstClipW - 1 do
-            CombineCallBack(GET_TS256(XLUT_256[I], Y_256), DstLine[I], M);
+          if Y_256 < 0 then Y_256:= 0 else if Y_256 > cy then Y_256:= cy;
+          for I:= 0 to DstClipW do
+            CombineCallBack(GET_T256(XLUT_256[I], Y_256), DstLine[I], M);
           Inc(DstLine, Dst.Width);
          end;
 
@@ -1156,12 +1177,12 @@ begin
       OffSrc := Src.Width * 4;
 
       ScaleFactor:= SrcW / DstW;
-      cx := Round( (DstClip.Left - DstRect.Left) * ScaleFactor);
+      cx := Trunc( (DstClip.Left - DstRect.Left) * ScaleFactor);
       r2 := Trunc(ScaleFactor);
       sr := Trunc( $10000 * ScaleFactor );
 
       ScaleFactor:= SrcH / DstH;
-      cy := Round( (DstClip.Top - DstRect.Top) * ScaleFactor );
+      cy := Trunc( (DstClip.Top - DstRect.Top) * ScaleFactor);
       c2 := Trunc(ScaleFactor);
       sc := Trunc( $10000 * ScaleFactor );
 
@@ -1171,7 +1192,9 @@ begin
       xs := r2;
       c1 := 0;
       Dec(DstClip.Left, 2);
-      for J := 2  to DstClipH + 1 do
+      Inc(DstClipW);
+      Inc(DstClipH);
+      for J := 2  to DstClipH do
       begin
         dy:= c2 - c1;
         c1:= c2;
@@ -1180,21 +1203,21 @@ begin
         r2:= xs;
         xsrc:= RowSrc;
         case CombineOp of
-         dmOpaque: for I := 2  to DstClipW + 1 do
+         dmOpaque: for I := 2  to DstClipW do
           begin
            dx := r2 - r1;  r1 := r2;
            r2 := I * sr shr 16;
            DstLine[DstClip.Left + I]:= BlockAverage(dx, dy, xsrc, OffSrc);
            xsrc := xsrc + dx shl 2;
           end;
-         dmBlend : for I := 2  to DstClipW + 1 do
+         dmBlend : for I := 2  to DstClipW do
           begin
            dx := r2 - r1;  r1 := r2;
            r2 := I * sr shr 16;
            BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
            xsrc := xsrc + dx shl 2;
           end;
-         dmCustom: for I := 2  to DstClipW + 1 do
+         dmCustom: for I := 2  to DstClipW do
           begin
            dx := r2 - r1;  r1 := r2;
            r2 := I * sr shr 16;
