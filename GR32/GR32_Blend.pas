@@ -24,6 +24,7 @@ unit GR32_Blend;
  * Contributor(s):
  *  Mattias Andersson
  *      - 2004/07/07 - MMX Blendmodes
+ *      - 2004/12/10 - _MergeReg, M_MergeReg
  *
  *  Michael Hansen <dyster_tid@hotmail.com>
  *      - 2004/07/07 - Pascal Blendmodes, function setup
@@ -44,17 +45,6 @@ uses
 var
   MMX_ACTIVE: Boolean;
 
-type
-{ Function Prototypes }
-  TCombineReg  = function(X, Y, W: TColor32): TColor32;
-  TCombineMem  = procedure(F: TColor32; var B: TColor32; W: TColor32);
-  TBlendReg    = function(F, B: TColor32): TColor32;
-  TBlendMem    = procedure(F: TColor32; var B: TColor32);
-  TBlendRegEx  = function(F, B, M: TColor32): TColor32;
-  TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
-  TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
-  TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
-
 procedure EMMS;
 
 var
@@ -70,6 +60,15 @@ var
 
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
+
+  MergeReg: TBlendReg;
+  MergeMem: TBlendMem;
+
+  MergeRegEx: TBlendRegEx;
+  MergeMemEx: TBlendMemEx;
+
+  MergeLine: TBlendLine;
+  MergeLineEx: TBlendLineEx;
 
 { Color algebra functions }
   ColorAdd: TBlendReg;
@@ -555,7 +554,6 @@ begin
   end;
 end;
 
-
 { MMX versions }
 
 
@@ -906,6 +904,245 @@ asm
         POP       EDI
         POP       ESI
 @4:
+end;
+
+{ Merge }
+
+function _MergeReg(F, B: TColor32): TColor32;
+var
+  Fa, Fr, Fg, Fb: Byte;
+  Ba, Br, Bg, Bb: Byte;
+  Ra, Rr, Rg, Rb: Byte;
+  InvRa: Integer;
+begin
+  Fa := F shr 24;
+  if Fa = $FF then
+  begin
+    Result := F;
+    exit;
+  end
+  else if Fa = 0 then
+  begin
+    Result := B;
+    Exit;
+  end;
+
+  Ba := B shr 24;
+  if Ba = 0 then
+  begin
+    Result := F;
+    exit;
+  end;
+
+  // Blended pixels
+  Fr := F shr 16;  Fg := F shr 8;  Fb := F;
+  Br := B shr 16;  Bg := B shr 8;  Bb := B;
+  Ra := Fa + Ba - (Fa * Ba) div 255;
+  InvRa := (256 * 256) div Ra;
+  Br := Br * Ba shr 8;
+  Rr := (Fa * (Fr - Br) shr 8 + Br) * InvRa shr 8;
+  Bg := Bg * Ba shr 8;
+  Rg := (Fa * (Fg - Bg) shr 8 + Bg) * InvRa shr 8;
+  Bb := Bb * Ba shr 8;
+  Rb := (Fa * (Fb - Bb) shr 8 + Bb) * InvRa shr 8;
+  Result := Ra shl 24 + Rr shl 16 + Rg shl 8 + Rb;
+end;
+
+procedure _MergeMem(F: TColor32; var B:TColor32);
+begin
+  B := _MergeReg(F, B);
+end;
+
+function _MergeRegEx(F, B, M: TColor32): TColor32;
+var
+  Fa, Fr, Fg, Fb: Byte;
+  Ba, Br, Bg, Bb: Byte;
+  Ra, Rr, Rg, Rb: Byte;
+  InvRa: Integer;
+begin
+  Fa := F shr 24;
+  if Fa = 255 then
+  begin
+    if M = 255 then
+    begin
+      Result := F;
+      Exit;
+    end
+    else if M = 0 then
+    begin
+      Result := B;
+      Exit;
+    end;
+  end
+  else if Fa = 0 then
+  begin
+    Result := B;
+    Exit;
+  end;
+
+  Fa := (Fa * M) div 255;
+  // Create F, but now with correct Alpha
+  F := F and $00FFFFFF or Fa shl 24;
+  if Fa = $FF then
+  begin
+    Result := F;
+    Exit;
+  end;
+  Ba := B shr 24;
+  if Ba = 0 then
+  begin
+    Result := F;
+    Exit;
+  end;
+
+  // Blended pixels
+  Fr := F shr 16;  Fg := F shr 8;  Fb := F;
+  Br := B shr 16;  Bg := B shr 8;  Bb := B;
+  Ra := Fa + Ba - (Fa * Ba) div 255;
+  InvRa := (256 * 256) div Ra;
+  Br := Br * Ba shr 8;
+  Rr := (Fa * (Fr - Br) shr 8 + Br) * InvRa shr 8;
+  Bg := Bg * Ba shr 8;
+  Rg := (Fa * (Fg - Bg) shr 8 + Bg) * InvRa shr 8;
+  Bb := Bb * Ba shr 8;
+  Rb := (Fa * (Fb - Bb) shr 8 + Bb) * InvRa shr 8;
+  Result := Ra shl 24 + Rr shl 16 + Rg shl 8 + Rb;
+end;
+
+procedure _MergeMemEx(F: TColor32; var B:TColor32; M: TColor32);
+begin
+  B := _MergeRegEx(F, B, M);
+end;
+
+procedure _MergeLine(Src, Dst: PColor32; Count: Integer);
+begin
+  while Count > 0 do
+  begin
+    Dst^ := _MergeReg(Src^, Dst^);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+procedure _MergeLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
+begin
+  while Count > 0 do
+  begin
+    Dst^ := _MergeRegEx(Src^, Dst^, M);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+{ MMX Merge }
+
+function M_MergeReg(F, B: TColor32): TColor32;
+asm
+  { This is an implementation of the merge formula, as described
+    in a paper by Bruce Wallace in 1981. Merging is associative,
+    that is, A over (B over C) = (A over B) over C. The formula is,
+
+      Ra = Fa + Ba - Fa * Ba
+      Rc = (Fa (Fc - Bc * Ba) + Bc * Ba) / Ra
+
+    where
+
+      Rc is the resultant color,  Ra is the resultant alpha,
+      Fc is the foreground color, Fa is the foreground alpha,
+      Bc is the background color, Ba is the background alpha.
+  }
+
+        TEST      EAX,$FF000000  // foreground completely transparent =>
+        JZ        @1             // result = background
+        TEST      EDX,$FF000000  // background completely transparent =>
+        JZ        @2             // result = foreground
+        CMP       EAX,$FF000000  // foreground completely opaque =>
+        JNC       @2             // result = foreground
+
+        PXOR      MM3,MM3
+        PUSH      ESI
+        MOVD      MM0,EAX        // MM0  <-  Fa Fr Fg Fb
+        PUNPCKLBW MM0,MM3        // MM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        MOVD      MM1,EDX        // MM1  <-  Ba Br Bg Bb
+        PUNPCKLBW MM1,MM3        // MM1  <-  00 Ba 00 Br 00 Bg 00 Bb
+        SHR       EAX,24         // EAX  <-  00 00 00 Fa
+        MOVQ      MM4,MM0        // MM4  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        SHR       EDX,24         // EDX  <-  00 00 00 Ba
+        MOVQ      MM5,MM1        // MM5  <-  00 Ba 00 Br 00 Bg 00 Bb
+        MOV       ECX,EAX        // ECX  <-  00 00 00 Fa
+        PUNPCKHWD MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fg 00 Fg
+        ADD       ECX,EDX        // ECX  <-  00 00 Sa Sa
+        PUNPCKHDQ MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fa 00 Fa
+        MUL       EAX,EDX        // EAX  <-  00 00 Pa **
+        PUNPCKHWD MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Bg 00 Bg
+        MOV       ESI,$FF        // ESI  <-  00 00 00 00 FF
+        PUNPCKHDQ MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Ba 00 Ba
+        DIV       ESI
+        SUB       ECX,EAX        // ECX  <-  00 00 00 Ra
+        MOV       EAX,$ffff
+        CDQ
+        PMULLW    MM1,MM5        // MM1  <-  B * Ba
+        PSRLW     MM1,8
+        DIV       ECX
+        PMULLW    MM0,MM4        // MM0  <-  F * Fa
+        PSRLW     MM0,8
+        PMULLW    MM4,MM1        // MM4  <-  B * Ba * Fa
+        PSRLW     MM4,8
+        SHL       ECX,24
+        PADDUSW   MM1,MM0        // MM1  <-  B * Ba + F * Fa
+        PSUBUSW   MM1,MM4        // MM1  <-  B * Ba + F * Fa - B * Ba * Fa
+        MOVD      MM2,EAX        // MM2  <-  Qa = 1 / Ra
+        PUNPCKLWD MM2,MM2        // MM2  <-  00 00 00 00 00 Qa 00 Qa
+        PUNPCKLWD MM2,MM2        // MM2  <-  00 Qa 00 Qa 00 Qa 00 Qa
+        PMULLW    MM1,MM2
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM3        // MM1  <-  00 00 00 00 xx Rr Rg Rb
+        MOVD      EAX,MM1        // EAX  <-  xx Rr Rg Rb
+        AND       EAX,$00FFFFFF  // EAX  <-  00 Rr Rg Rb
+        OR        EAX,ECX        // EAX  <-  Ra Rr Rg Rb
+        POP ESI
+        RET
+@1:     MOV       EAX,EDX
+@2:
+end;
+
+procedure M_MergeMem(F: TColor32; var B:TColor32);
+begin
+  B := M_MergeReg(F, B);
+end;
+
+function M_MergeRegEx(F, B, M: TColor32): TColor32;
+begin
+  Result := M_MergeReg(F and $00FFFFFF or ((F shr 24) * M) div 255 shl 24, B);
+end;
+
+procedure M_MergeMemEx(F: TColor32; var B:TColor32; M: TColor32);
+begin
+  B := M_MergeReg(F and $00FFFFFF or ((F shr 24) * M) div 255 shl 24, B);
+end;
+
+procedure M_MergeLine(Src, Dst: PColor32; Count: Integer);
+begin
+  while Count > 0 do
+  begin
+    Dst^ := M_MergeReg(Src^, Dst^);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+procedure M_MergeLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
+begin
+  while Count > 0 do
+  begin
+    Dst^ := M_MergeReg(Src^ and $00FFFFFF or ((Src^ shr 24) * M) div 255 shl 24, Dst^);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
 end;
 
 { Non-MMX Color algebra versions }
@@ -1282,6 +1519,13 @@ begin
     BlendLine := M_BlendLine;
     BlendLineEx := M_BlendLineEx;
 
+    MergeReg := M_MergeReg;
+    MergeMem := M_MergeMem;
+    MergeRegEx := M_MergeRegEx;
+    MergeMemEx := M_MergeMemEx;
+    MergeLine := M_MergeLine;
+    MergeLineEx := M_MergeLineEx;
+
     ColorAdd := M_ColorAdd;
     ColorSub := M_ColorSub;
     ColorMul := _ColorMul;
@@ -1303,6 +1547,13 @@ begin
     BlendMemEx := _BlendMemEx;
     BlendLine := _BlendLine;
     BlendLineEx := _BlendLineEx;
+
+    MergeReg := _MergeReg;
+    MergeMem := _MergeMem;
+    MergeRegEx := _MergeRegEx;
+    MergeMemEx := _MergeMemEx;
+    MergeLine := _MergeLine;
+    MergeLineEx := _MergeLineEx;
 
     ColorAdd := _ColorAdd;
     ColorSub := _ColorSub;
