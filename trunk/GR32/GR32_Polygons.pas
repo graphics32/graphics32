@@ -38,9 +38,9 @@ uses
   {$IFDEF LINUX}Libc, {$ENDIF}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}
 {$ELSE}
-  Windows, Classes,
+  Windows,
 {$ENDIF}
-  SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms;
+  Classes, SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms;
 
 { Polylines }
 
@@ -1582,6 +1582,7 @@ end;
 
 constructor TPolygon32.Create;
 begin
+  inherited;
   FClosed := True;
   FAntialiasMode := DefaultAAMode;
   NewLine; // initiate a new contour
