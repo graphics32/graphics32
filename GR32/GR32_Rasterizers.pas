@@ -248,10 +248,10 @@ var
   I, J: Integer;
   Pixels: PColor32Array;
 begin
-  for J := DstRect.Top to DstRect.Bottom - 1 do
+  for J := DstRect.Top to DstRect.Bottom do
   begin
     Pixels := Dst.ScanLine[J];
-    for I := DstRect.Left to DstRect.Right - 1 do
+    for I := DstRect.Left to DstRect.Right do
       AssignColor(Pixels[I], FSampler.GetSampleInt(I, J));
   end;
 end;
@@ -269,7 +269,7 @@ procedure TSuperSamplingRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
 var
   I, J, U, V, SX, SY: Integer;
   Scale: Integer;
-  X, Y, Tx, Ty, lx, ly, dx, dy: TFixed;
+  X, Y, Tx, Ty, BTx, BX, lx, ly, dx, dy: TFixed;
   Buffer: TBufferEntry;
   Pixels: PColor32Array;
   GetSample: TGetSampleFixed;
@@ -286,16 +286,27 @@ begin
     GetSample := FSampler.GetSampleFixed;
     SX := (SamplingX - 1) * dx;
     SY := (SamplingY - 1) * dy;
+
+    Y := (DstRect.Top - 1) * FixedOne + ly;
+    Ty := Y + SY;
+
+    BX := (DstRect.Left - 1) * FixedOne + lx;
+    BTx := BX + SX;
+
     for J := DstRect.Top to DstRect.Bottom do
     begin
       Pixels := Dst.ScanLine[J];
-      Y := J * FixedOne + ly;
-      Ty := Y + SY;
+      Inc(Y, FixedOne);
+      Inc(Ty, FixedOne);
+
+      X := BX;
+      Tx := BTx;
+
       for I := DstRect.Left to DstRect.Right do
       begin
         Buffer := EMPTY_ENTRY;
-        X := I * FixedOne + lx;
-        Tx := X + SX;
+        Inc(X, FixedOne);
+        Inc(Tx, FixedOne);
 
         V := Ty;
         repeat
