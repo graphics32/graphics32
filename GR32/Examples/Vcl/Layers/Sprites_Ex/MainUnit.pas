@@ -29,7 +29,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Transforms, StdCtrls, AppEvnts, GR32_Image, GR32_Layers;
+  GR32, GR32_Transforms, StdCtrls, AppEvnts, GR32_Image, GR32_Layers, ExtCtrls,
+  GR32_Containers, GR32_MicroTiles, Math, Buttons;
 
 type
   TForm1 = class(TForm)
@@ -39,6 +40,11 @@ type
     Button2: TButton;
     BitmapList: TBitmap32List;
     Label1: TLabel;
+    cbUseResizeOpt: TCheckBox;
+    Button3: TButton;
+    Image1: TImage;
+    procedure Button3Click(Sender: TObject);
+    procedure cbUseResizeOptClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -105,8 +111,8 @@ begin
       with Velocities[I] do
       begin
         OffsetRectF(R, X, Y);
-        X := X + (Random - 0.5) * 0.1;
-        Y := Y + (Random - 0.5) * 0.1;
+        X := X + (Random - 0.5) * 0.9;
+        Y := Y + (Random - 0.5) * 0.9;
         if (R.Left < 0) and (X < 0) then X := 1;
         if (R.Top < 0) and (Y < 0) then Y := 1;
         if (R.Right > Image32.Width) and (X > 0) then X := -1;
@@ -126,9 +132,23 @@ begin
   Edit1.Text := '0 layers';
 end;
 
+procedure TForm1.Button3Click(Sender: TObject);
+var
+  I: Integer;
+begin
+  for I := Image32.Layers.Count - 1 downto Max(0, Image32.Layers.Count - 10) do
+    Image32.Layers.Delete(I);
+  Edit1.Text := IntToStr(Image32.Layers.Count) + ' layers';
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   Application.OnIdle := IdleHandler;
+end;
+
+procedure TForm1.cbUseResizeOptClick(Sender: TObject);
+begin
+  Image32.UseRepaintOptimizer := cbUseResizeOpt.Checked;
 end;
 
 end.

@@ -30,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Menus, ExtCtrls, JPeg, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
-  GR32_RangeBars, GR32_Filters, GR32_Transforms;
+  GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
 type
   TMainForm = class(TForm)
@@ -90,6 +90,8 @@ type
     mnRotate270: TMenuItem;
     N6: TMenuItem;
     mnPrint: TMenuItem;
+    cbOptRedraw: TCheckBox;
+    procedure cbOptRedrawClick(Sender: TObject);
     procedure mnFileNewClick(Sender: TObject);
     procedure mnFileOpenClick(Sender: TObject);
     procedure mnNewBitmapLayerClick(Sender: TObject);
@@ -200,6 +202,8 @@ begin
   begin
     if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
   end;
+
+  ImgView.UseRepaintOptimizer := True;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -210,18 +214,18 @@ end;
 
 procedure TMainForm.ImageInterpolateClick(Sender: TObject);
 const
-  STRETCH_FILTER: array [Boolean] of TStretchFilter = (sfNearest, sfLinear);
+  RESAMPLER: array [Boolean] of TBitmap32ResamplerClass = (TNearestResampler, TDraftResampler);
 begin
-  ImgView.Bitmap.StretchFilter := STRETCH_FILTER[ImageInterpolate.Checked];
+  ImgView.Bitmap.Resampler := RESAMPLER[ImageInterpolate.Checked].Create(ImgView.Bitmap);
 end;
 
 procedure TMainForm.LayerInterpolateClick(Sender: TObject);
 const
-  STRETCH_FILTER: array [Boolean] of TStretchFilter = (sfNearest, sfLinear);
+  RESAMPLER: array [Boolean] of TBitmap32ResamplerClass = (TNearestResampler, TDraftResampler);
 begin
   if Selection is TBitmapLayer then
   begin
-    TBitmapLayer(Selection).Bitmap.StretchFilter := STRETCH_FILTER[LayerInterpolate.Checked];
+    TBitmapLayer(Selection).Bitmap.Resampler := RESAMPLER[LayerInterpolate.Checked].Create(TBitmapLayer(Selection).Bitmap);
   end;
 end;
 
@@ -249,12 +253,14 @@ begin
       T.Assign(Bitmap);
       with MakeRect(Location) do
         Bitmap.SetSize(Right - Left, Bottom - Top);
-      T.StretchFilter := sfLinear;
+      T.Resampler := TNearestResampler.Create(T);
       T.DrawMode := dmOpaque;
       T.DrawTo(Bitmap, Rect(0, 0, Bitmap.Width, Bitmap.Height));
       T.Free;
       LayerResetScaleClick(Self);
     end;
+
+  ImgView.GetBitmapRect
 end;
 
 procedure TMainForm.LayerResetScaleClick(Sender: TObject);
@@ -484,67 +490,70 @@ begin
   if Sender is TPositionedLayer then
     with TPositionedLayer(Sender) do
     begin
-      Magnification := Power(10, (MagnMagnification.Position / 50));
-      Rotation := -MagnRotation.Position;
-
       DstRect := GetAdjustedLocation;
       R := MakeRect(DstRect);
-      B := TBitmap32.Create;
-      try
-        with R do
-        begin
-          B.SetSize(Right - Left, Bottom - Top);
-          W2 := (Right - Left) / 2;
-          H2 := (Bottom - Top) / 2;
-        end;
 
-        SrcRect := DstRect;
-        with SrcRect do
-        begin
-          Left := Left - H2;
-          Right := Right + H2;
-          Top := Top - W2;
-          Bottom := Bottom + W2;
-        end;
+      if not Buffer.MeasuringMode then
+      begin
+        Magnification := Power(10, (MagnMagnification.Position / 50));
+        Rotation := -MagnRotation.Position;
 
-        T := TAffineTransformation.Create;
+        B := TBitmap32.Create;
         try
-          T.SrcRect := SrcRect;
-          T.Translate(-R.Left, -R.Top);
-
-          T.Translate(-W2, -H2);
-          T.Scale(Magnification, Magnification);
-          T.Rotate(0, 0, Rotation);
-          T.Translate(W2, H2);
-
-          if MagnInterpolate.Checked then
+          with R do
           begin
-            Buffer.BeginUpdate;
-            Buffer.StretchFilter := sfLinear;
-            Transform(B, Buffer, T);
-            Buffer.StretchFilter := sfNearest;
-            Buffer.EndUpdate;
-          end
-          else
-             Transform(B, Buffer, T);
+            B.SetSize(Right - Left, Bottom - Top);
+            W2 := (Right - Left) / 2;
+            H2 := (Bottom - Top) / 2;
+          end;
 
-          B.ResetAlpha;
-          B.DrawMode := dmBlend;
-          B.MasterAlpha := MagnOpacity.Position;
-          B.DrawTo(Buffer, R);
-
-          // draw frame
-          for I := 0 to 4 do
+          SrcRect := DstRect;
+          with SrcRect do
           begin
-             with R do Buffer.RaiseRectTS(Left, Top, Right, Bottom, 35 - I * 8);
-             InflateRect(R, -1, -1);
+            Left := Left - H2;
+            Right := Right + H2;
+            Top := Top - W2;
+            Bottom := Bottom + W2;
+          end;
+
+          T := TAffineTransformation.Create;
+          try
+            T.SrcRect := SrcRect;
+            T.Translate(-R.Left, -R.Top);
+
+            T.Translate(-W2, -H2);
+            T.Scale(Magnification, Magnification);
+            T.Rotate(0, 0, Rotation);
+            T.Translate(W2, H2);
+
+            if MagnInterpolate.Checked then
+            begin
+              Buffer.BeginUpdate;
+              Transform(B, Buffer, T);
+              Buffer.EndUpdate;
+            end
+            else
+               Transform(B, Buffer, T);
+
+            B.ResetAlpha;
+            B.DrawMode := dmBlend;
+            B.MasterAlpha := MagnOpacity.Position;
+            B.DrawTo(Buffer, R);
+
+            // draw frame
+            for I := 0 to 4 do
+            begin
+               with R do Buffer.RaiseRectTS(Left, Top, Right, Bottom, 35 - I * 8);
+               InflateRect(R, -1, -1);
+            end;
+          finally
+            T.Free;
           end;
         finally
-          T.Free;
+          B.Free;
         end;
-      finally
-        B.Free;
       end;
+      Buffer.Changed(R);
     end;
 end;
 
@@ -619,7 +628,7 @@ begin
         begin
           pnlBitmapLayer.Visible := True;
           LayerOpacity.Position := Bitmap.MasterAlpha;
-          LayerInterpolate.Checked := Bitmap.StretchFilter = sfLinear;
+          LayerInterpolate.Checked := Bitmap.Resampler.ClassType = TDraftResampler;
         end
       else if Value.Tag = 2 then
       begin
@@ -654,29 +663,37 @@ end;
 
 procedure TMainForm.ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
-const
-  Colors: array [0..1] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
+const            //0..1
+  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
 var
-  W, I, J, Parity: Integer;
-  Line1, Line2: TArrayOfColor32; // a buffer for a couple of scanlines
+  R: TRect;
+  I, J: Integer;
+  OddY: Integer;
+  TilesHorz, TilesVert: Integer;
+  TileX, TileY: Integer;
+  TileHeight, TileWidth: Integer;
 begin
-  with ImgView.Buffer do
+  TileHeight := 13;
+  TileWidth := 13;
+
+  TilesHorz := Buffer.Width div TileWidth;
+  TilesVert := Buffer.Height div TileHeight;
+  TileY := 0;
+
+  for J := 0 to TilesVert do
   begin
-    W := Width;
-    SetLength(Line1, W);
-    SetLength(Line2, W);
-    for I := 0 to W - 1 do
+    TileX := 0;
+    OddY := J and $1;
+    for I := 0 to TilesHorz do
     begin
-      Parity := I shr 3 and $1;
-      Line1[I] := Colors[Parity];
-      Line2[I] := Colors[1 - Parity];
+      R.Left := TileX;
+      R.Top := TileY;
+      R.Right := TileX + TileWidth;
+      R.Bottom := TileY + TileHeight;
+      Buffer.FillRectS(R, Colors[I and $1 = OddY]);
+      Inc(TileX, TileWidth);
     end;
-    for J := 0 to Height - 1 do
-    begin
-      Parity := J shr 3 and $1;
-      if Boolean(Parity) then MoveLongword(Line1[0], ScanLine[J]^, W)
-      else MoveLongword(Line2[0], ScanLine[J]^, W);
-    end;
+    Inc(TileY, TileHeight);
   end;
 end;
 
@@ -810,7 +827,7 @@ begin
     ImgView.PaintTo(B, Rect(0, 0, W, H));
     Printer.BeginDoc;
     Printer.Title := 'Graphics32 Demo';
-    B.StretchFilter := sfLinear;
+    B.Resampler := TLinearResampler.Create(B);
     R := GetCenteredRectToFit(Rect(0, 0, W, H), Rect(0, 0, Printer.PageWidth, Printer.PageHeight));
     B.TileTo(Printer.Canvas.Handle, R, Rect(0, 0, W, H));
     Printer.EndDoc;
@@ -897,6 +914,11 @@ end;
 procedure TMainForm.mnFileClick(Sender: TObject);
 begin
   mnPrint.Enabled := not ImgView.Bitmap.Empty;
+end;
+
+procedure TMainForm.cbOptRedrawClick(Sender: TObject);
+begin
+  ImgView.UseRepaintOptimizer := cbOptRedraw.Checked;
 end;
 
 end.
