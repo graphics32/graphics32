@@ -244,8 +244,8 @@ type
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
-  { TTransformationSampler }
-  TTransformationSampler = class(TCustomSampler)
+  { TTransformer }
+  TTransformer = class(TCustomSampler)
   private
     FResampler: TCustomResampler;
     FTransformation: TTransformation;
@@ -268,14 +268,14 @@ type
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
   end;
 
-{ TNearestTransformationResampler = class(TTransformationResampler)
+{ TNearestTransformer = class(TTransformer)
   public
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
   end; }
 
-// TLinearTransformationResampler = class(TTransformationResampler)
+// TLinearTransformer = class(TTransformer)
 
 { Auxiliary record used in accumulation routines }
 type
@@ -2202,7 +2202,7 @@ end;
 
 { TTransformationResampler }
 
-function TTransformationSampler.GetSampleInt(X, Y: Integer): TColor32;
+function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
   U, V: Integer;
 begin
@@ -2216,7 +2216,7 @@ begin
     Result := FOuterColor;
 end;
 
-function TTransformationSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
 begin
@@ -2230,7 +2230,7 @@ begin
     Result := FOuterColor;
 end;
 
-function TTransformationSampler.GetSampleFloat(X, Y: Single): TColor32;
+function TTransformer.GetSampleFloat(X, Y: Single): TColor32;
 var
   U, V: Single;
 begin
@@ -2244,17 +2244,17 @@ begin
     Result := FOuterColor;
 end;
 
-procedure TTransformationSampler.PrepareRasterization;
+procedure TTransformer.PrepareRasterization;
 begin
   FResampler.PrepareRasterization;
 end;
 
-procedure TTransformationSampler.FinalizeRasterization;
+procedure TTransformer.FinalizeRasterization;
 begin
   FResampler.FinalizeRasterization;
 end;
 
-constructor TTransformationSampler.Create(Src: TBitmap32; ATransformation: TTransformation);
+constructor TTransformer.Create(Src: TBitmap32; ATransformation: TTransformation);
 var
   R: TFloatRect;
 begin
@@ -2268,7 +2268,7 @@ begin
   FBoundsRect := R;
 end;
 
-procedure TTransformationSampler.SetBoundsRect(Rect: TFloatRect);
+procedure TTransformer.SetBoundsRect(Rect: TFloatRect);
 begin
   BoundsRectInt := MakeRect(Rect);
   BoundsRectFixed := FixedRect(Rect);
