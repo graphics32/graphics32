@@ -6,20 +6,20 @@
 <body bgcolor="#FFFFFF">
 <h2 class="Body">v1.6 (21 July 2004)</h2>
 <ul>
-  <li> CLX/Kylix/QT/Linux port</li>
-  <li> fixed access violations in GR32_Transforms</li>
-  <li>new sfDraft stretchfilter with MMX and 3Dnow optimization</li>
-  <li>new sfCosine stretchfilter</li>
-  <li>new property PixelF/X, which replaces the old SetPixelF/X and also implements an interpolated getter</li>
-  <li>new color algebra (&quot;blendmodes&quot;),
-    MMX optimized</li>
-  <li>feature to change antialiasing-level of polygons at runtime</li>
-  <li>new 4x supersampling antialias for polygons (&quot;much
-    faster but not a beauty&quot;)</li>
-  <li>Unicode support for TBitmap32.Text* and TBitmap32.Rendertext methods</li>
-  <li>Performance optimizations (MMX) in blending
-        routines and Transforms</li>
-  <li>Many other small additions</li>
+  <li> Graphics32 now fully supports CLX cross-platform development;</li>
+  <li>    Example projects have been successfully converted and tested in Linux;</li>
+  <li> Fixed issues in GR32_Transforms that could potentially cause access violation;</li>
+  <li> Added sfDraft resampling filter with MMX optimization;</li>
+  <li> Added sfCosine resampling filter;</li>
+  <li> Added PixelF/X properties that read and write pixels with antialiasing;</li>
+  <li> SetPixelF/X methods have been deprecated;</li>
+  <li> Added new MMX optimized color algebra routines to GR32_Blend (Add, Subtract, Multiply etc.);</li>
+  <li> Added AntiAliasMode property to TPolygon32 for dynamically changing antialias level at runtime;</li>
+  <li> Added support for 4x supersampling antialias of polygons (significantly faster but with less quality);</li>
+  <li> Unicode support for TBitmap32.Text* and TBitmap32.Rendertext methods;</li>
+  <li> Fixed blending bug (the &quot;not fully opaque&quot; issue);</li>
+  <li> Performance optimizations (MMX) in blending routines and Transforms;</li>
+  <li> Several minor additions and optimizations.</li>
 </ul>
 <h2 class="Body">v1.5.1b (5 July 2004)</h2>
 <p class="Body">Changed license to MPL. Everything else is identical with v1.5.1.</p>
