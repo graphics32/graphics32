@@ -834,7 +834,7 @@ begin
   if Bitmap.Empty then Exit;
   DstRect := MakeRect(GetAdjustedLocation);
   SrcRect := MakeRect(0, 0, Bitmap.Width, Bitmap.Height);
-  ClipRect := MakeRect(0, 0, Buffer.Width, Buffer.Height);
+  ClipRect := Buffer.ClipRect;
   if Cropped and (LayerCollection.FOwner is TCustomImage32) and
     not (TImage32Access(LayerCollection.FOwner).PaintToMode) then
   begin
@@ -847,35 +847,9 @@ begin
     ImageRect := TCustomImage32(LayerCollection.FOwner).GetBitmapRect;
     IntersectRect(ClipRect, ClipRect, ImageRect);
   end;
-  StretchTransfer(Buffer, DstRect, ClipRect, FBitmap, SrcRect, FBitmap.StretchFilter, FBitmap.DrawMode, FBitmap.OnPixelCombine);
-//  FBitmap.DrawTo(Buffer, DstRect, SrcRect);
+  StretchTransfer(Buffer, DstRect, ClipRect, FBitmap, SrcRect,
+    FBitmap.StretchFilter, FBitmap.DrawMode, FBitmap.OnPixelCombine);
 end;
-{var
-  SrcRect, DstRect, CroppedDst: TRect;
-  ImageRect: TRect;
-  LayerWidth, LayerHeight: Single;
-begin
-  DstRect := MakeRect(GetAdjustedLocation);
-  SrcRect := MakeRect(0, 0, Bitmap.Width, Bitmap.Height);
-  if Cropped and (LayerCollection.FOwner is TCustomImage32) and
-    not (TImage32Access(LayerCollection.FOwner).PaintToMode) then
-  begin
-    with DstRect do
-    begin
-      LayerWidth := Right - Left;
-      LayerHeight := Bottom - Top;
-    end;
-    if (LayerWidth < 0.5) or (LayerHeight < 0.5) then Exit;
-    ImageRect := TCustomImage32(LayerCollection.FOwner).GetBitmapRect;
-    IntersectRect(CroppedDst, DstRect, ImageRect);
-    SrcRect.Left := Round((CroppedDst.Left - DstRect.Left) * Bitmap.Width / LayerWidth);
-    SrcRect.Right := Round((CroppedDst.Right - DstRect.Left) * Bitmap.Width / LayerWidth);
-    SrcRect.Top := Round((CroppedDst.Top - DstRect.Top) * Bitmap.Height / LayerHeight);
-    SrcRect.Bottom := Round((CroppedDst.Bottom - DstRect.Top) * Bitmap.Height / LayerHeight);
-    DstRect := CroppedDst;
-  end;
-  FBitmap.DrawTo(Buffer, DstRect, SrcRect);
-end;  }
 
 procedure TBitmapLayer.SetBitmap(Value: TBitmap32);
 begin
