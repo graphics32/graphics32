@@ -22,7 +22,6 @@ unit GR32_LowLevel;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -77,12 +76,14 @@ function Mirror(Value, Max: Integer): Integer;
 function SAR_4(Value: Integer): Integer;
 function SAR_8(Value: Integer): Integer;
 function SAR_9(Value: Integer): Integer;
+function SAR_11(Value: Integer): Integer;
 function SAR_12(Value: Integer): Integer;
 function SAR_13(Value: Integer): Integer;
 function SAR_14(Value: Integer): Integer;
+function SAR_15(Value: Integer): Integer;
 function SAR_16(Value: Integer): Integer;
 
-{ ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
+{ ColorSwap exchanges ARGB <-> ABGR and fill A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
 { MulDiv a faster implementation of Windows.MulDiv funtion }
@@ -249,6 +250,11 @@ asm
         SAR EAX,9
 end;
 
+function SAR_11(Value: Integer): Integer;
+asm
+        SAR EAX,11
+end;
+
 function SAR_12(Value: Integer): Integer;
 asm
         SAR EAX,12
@@ -262,6 +268,11 @@ end;
 function SAR_14(Value: Integer): Integer;
 asm
         SAR EAX,14
+end;
+
+function SAR_15(Value: Integer): Integer;
+asm
+        SAR EAX,15
 end;
 
 function SAR_16(Value: Integer): Integer;
@@ -310,7 +321,7 @@ asm
 
         DIV     ECX             // Unsigned divide of product by Divisor
 
-        SUB     ECX,EDX         // Check if the result must be adjusted by adding or substracting
+        SUB     ECX,EDX         // Check if the result must be corregized by adding or substracting
         CMP     ECX,EDX         // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
         INC     EAX             // no rounding needed; add 1 to result otherwise
