@@ -25,6 +25,7 @@ unit GR32_Transforms;
  * Andre Beckedorf <Andre@metaException.de>
  * Mattias Andersson <Mattias@Centaurix.com>
  * J. Tulach <tulach@position.cz>
+ * Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Transforms.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -144,12 +145,20 @@ implementation
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
-uses GR32_LowLevel, Math;
+uses GR32_LowLevel, GR32_System, Math;
+
+type
+  {provides access to proctected members of TBitmap32 by typecasting}
+  TBitmap32Access = class(TBitmap32);
 
 const
   SDstEmpty = 'Destination bitmap is nil or empty';
   SSrcEmpty = 'Source bitmap is nil or empty';
   SSrcInvalid = 'Source rectangle is invalid';
+
+var
+ BlockAverage : function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+
 
 procedure CheckBitmaps(Dst, Src: TBitmap32);
 begin
@@ -565,6 +574,17 @@ begin
   else Result := 0;
 end;
 
+function DraftFilter(Value: Single): Single;
+//This function is only present to keep compatibility
+//Draft resampling is handled separately, and this function will never be used.
+//But since draft resampling is closest to linear, this function is provided.
+begin
+  if Value < -1 then Result := 0
+  else if Value < 0 then Result := 1 + Value
+  else if Value < 1 then Result := 1 - Value
+  else Result := 0;
+end;
+
 function CosineFilter(Value: Single): Single;
 begin
   Result := 0;
@@ -624,11 +644,11 @@ function BuildMappingTable(
   SrcLo, SrcHi: Integer;
   StretchFilter: TStretchFilter): TMappingTable;
 const
-  { the first filter from these arrays is never used since the nearest and
-    filter is implemented separately }
+  { the first filter from these arrays is never used since the nearest and linear
+    filter is implemented separately. This also applies to draft-resampling }
   FILTERS: array[TStretchFilter] of TFilterFunc = (NearestFilter, LinearFilter,
-    SplineFilter, LanczosFilter, MitchellFilter, CosineFilter);
-  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 2, 3, 2, 1);
+    SplineFilter, LanczosFilter, MitchellFilter, CosineFilter, DraftFilter);
+  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 2, 3, 2, 1, 1);
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterFunc;
@@ -878,6 +898,322 @@ begin
 end;
 {$WARNINGS ON}
 
+{ Draft Resample Routines }
+
+function BlockAverage_MMX(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+asm
+   push       ebx
+   push       esi
+   push       edi
+
+   mov        ebx, OffSrc
+   mov        esi, eax
+   mov        edi, edx
+   sub        ecx, $04
+
+   pxor       mm1, mm1
+   pxor       mm2, mm2
+   pxor       mm7, mm7
+
+ @@LoopY:
+   mov        esi, eax
+   pxor       mm0, mm0
+ @@LoopX:
+   movd       mm6, [ecx + esi * 4]
+   punpcklbw  mm6, mm7
+   paddw      mm0, mm6
+   dec        esi
+   jnz        @@LoopX
+
+   movq       mm6, mm0
+   punpcklwd  mm6, mm7
+   paddd      mm1, mm6
+   movq       mm6, mm0
+   punpckhwd  mm6, mm7
+   paddd      mm2, mm6
+   add        ecx, ebx
+   dec        edx
+   jnz        @@LoopY
+
+   mul        edi
+   mov        ecx, eax
+   mov        eax, $01000000
+   div        ecx
+   mov        ecx, eax
+
+   movd       eax, mm1
+   mul        ecx
+   shr        eax, $18
+   mov        edi, eax
+
+   psrlq      mm1, $20
+   movd       eax, mm1
+   mul        ecx
+   shr        eax, $10
+   and        eax, $0000FF00
+   add        edi, eax
+
+   movd       eax, mm2
+   mul        ecx
+   shr        eax, $08
+   and        eax, $00FF0000
+   add        edi, eax
+
+   psrlq      mm2, $20
+   movd       eax, mm2
+   mul        ecx
+   and        eax, $FF000000
+   add        eax, edi
+
+   pop        edi
+   pop        esi
+   pop        ebx
+end;
+
+function BlockAverage_3dNow(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+asm
+   push       ebx
+   push       esi
+   push       edi
+
+   mov        ebx, OffSrc
+   mov        esi, eax
+   mov        edi, edx
+
+   shl        esi, $02
+   sub        ebx, esi
+
+   pxor       mm1, mm1
+   pxor       mm2, mm2
+   pxor       mm7, mm7
+
+ @@LoopY:
+   mov        esi, eax
+   pxor       mm0, mm0
+   prefetch   [ecx + esi * 8]
+ @@LoopX:
+   movd       mm6, [ecx]
+   punpcklbw  mm6, mm7
+   paddw      mm0, mm6
+   add        ecx, $04
+   dec        esi
+
+   jnz        @@LoopX
+
+   movq       mm6, mm0
+   punpcklwd  mm6, mm7
+   paddd      mm1, mm6
+   movq       mm6, mm0
+   punpckhwd  mm6, mm7
+   paddd      mm2, mm6
+   add        ecx, ebx
+   dec        edx
+
+   jnz        @@LoopY
+
+   mul        edi
+   mov        ecx, eax
+   mov        eax, $01000000
+   div        ecx
+   mov        ecx, eax
+
+   movd       eax, mm1
+   mul        ecx
+   shr        eax, $18
+   mov        edi, eax
+
+   psrlq      mm1, $20
+   movd       eax, mm1
+   mul        ecx
+   shr        eax, $10
+   and        eax, $0000FF00
+   add        edi, eax
+
+   movd       eax, mm2
+   mul        ecx
+   shr        eax, $08
+   and        eax, $00FF0000
+   add        edi, eax
+
+   psrlq      mm2, $20
+   movd       eax, mm2
+   mul        ecx
+   and        eax, $FF000000
+   add        eax, edi
+
+   pop        edi
+   pop        esi
+   pop        ebx
+end;
+
+function BlockAverage_IA32(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+type
+ PCardinal = ^Cardinal;
+ PRGBA = ^TRGBA;
+ TRGBA = record B,G,R,A: Byte end;
+
+var
+ C: PRGBA;
+ ix,iy,
+ iA,iR,iG,iB, Area: Cardinal;
+begin
+  iR:=0; iB:=iR; iG:=iR; iA:=iR;
+  for iy := 1 to Dly do
+   begin
+    C:= PRGBA(RowSrc);
+    for ix := 1 to Dlx do
+     begin
+      inc(iB, C.B);
+      inc(iG, C.G);
+      inc(iR, C.R);
+      inc(iA, C.A);
+      inc(C);
+     end;
+     inc(RowSrc, OffSrc);
+   end;
+   Area := Dlx * Dly;
+   Area := $1000000 div Area;
+   Result:= iA * Area and $FF000000 or
+            iR * Area shr  8 and $FF0000 or
+            iG * Area shr 16 and $FF00 or
+            iB * Area shr 24 and $FF;
+end;
+
+procedure DraftResample(Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+                        Src: TBitmap32; SrcRect: TRect;
+                        CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  SrcW, SrcH,
+  DstW, DstH,
+  DstClipW, DstClipH: Cardinal;
+  R: TRect;
+  RowSrc, OffSrc,
+  dy, dx,
+  c1, c2,
+  r1, r2,
+  xs, xsrc, M: Cardinal;
+  C: TColor32;
+  DstLine: PColor32Array;
+  ScaleFactor,lx: Single;
+  FSrcTop,I,J,ly, sc, sr: integer;
+  Y_256: TFixed;
+  XLUT_256: array of TFixed;
+  Tmp: TBitmap32;
+
+begin
+ { rangechecking and rect intersection done by caller }
+
+  SrcW := SrcRect.Right  - SrcRect.Left;
+  SrcH := SrcRect.Bottom - SrcRect.Top;
+
+  DstW := DstRect.Right  - DstRect.Left;
+  DstH := DstRect.Bottom - DstRect.Top;
+
+  DstClipW := DstClip.Right - DstClip.Left;
+  DstClipH := DstClip.Bottom - DstClip.Top;
+
+
+  if (DstW > SrcW)or(DstH > SrcH) then
+   begin
+
+      lx:= SrcW / DstW;
+      ly:= Fixed(SrcH / DstH);
+
+      SetLength(XLUT_256, DstClipW);
+      J:= Fixed(SrcRect.Left - 1/2);
+      for I:= 0 to DstClipW - 1 do XLUT_256[I]:= SAR_8( J + Fixed((I + DstClip.Left) * lx) );
+
+      DstLine:= PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
+      FSrcTop:= Fixed(SrcRect.Top - 1/2);
+      M:= Src.MasterAlpha;
+      with TBitmap32Access(Src) do case CombineOp of
+
+       dmOpaque: for J:= DstClip.Top to DstClip.Bottom - 1 do
+         begin
+          Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
+          for I:= 0 to DstClipW - 1 do DstLine[I]:= GET_TS256(XLUT_256[I], Y_256);
+          Inc(DstLine, Dst.Width);
+         end;
+
+       dmBlend: for J:= DstClip.Top to DstClip.Bottom - 1 do
+         begin
+          Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
+          for I:= 0 to DstClipW - 1 do
+            BlendMemEx(GET_TS256(XLUT_256[I], Y_256), DstLine[I], M);
+          Inc(DstLine, Dst.Width);
+         end;
+
+       dmCustom: for J:= DstClip.Top to DstClip.Bottom - 1 do
+         begin
+          Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
+          for I:= 0 to DstClipW - 1 do
+            CombineCallBack(GET_TS256(XLUT_256[I], Y_256), DstLine[I], M);
+          Inc(DstLine, Dst.Width);
+         end;
+
+        end;
+      XLUT_256:= nil;
+
+   end
+  else
+   begin //Full Scaledown
+      OffSrc := Src.Width * 4;
+
+      ScaleFactor:= SrcW / DstW;
+      dx:= Round( (DstClip.Left - DstRect.Left) * ScaleFactor);
+      r2 := Trunc(ScaleFactor);
+      sr := Trunc( $10000 * ScaleFactor );
+
+      ScaleFactor:= SrcH / DstH;
+      dy:= Round( (DstClip.Top - DstRect.Top) * ScaleFactor );
+      c2 := Trunc(ScaleFactor);
+      sc := Trunc( $10000 * ScaleFactor );
+
+      DstLine := PColor32Array(Dst.PixelPtr[0, DstClip.Top]);
+      RowSrc := Cardinal(Src.PixelPtr[ SrcRect.Left +  dx, SrcRect.Top + dy ]);
+
+      xs := r2;
+      c1 := 0;
+      Dec(DstClip.Left, 2);
+      for J := 2  to DstClipH + 1 do
+      begin
+        dy:= c2 - c1;
+        c1:= c2;
+        c2:= J * sc shr 16;
+        r1:= 0;
+        r2:= xs;
+        xsrc:= RowSrc;
+        case CombineOp of
+         dmOpaque: for I := 2  to DstClipW + 1 do
+          begin
+           dx := r2 - r1;  r1 := r2;
+           r2 := I * sr shr 16;
+           DstLine[DstClip.Left + I]:= BlockAverage(dx, dy, xsrc, OffSrc);
+           xsrc := xsrc + dx shl 2;
+          end;
+         dmBlend : for I := 2  to DstClipW + 1 do
+          begin
+           dx := r2 - r1;  r1 := r2;
+           r2 := I * sr shr 16;
+           BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+           xsrc := xsrc + dx shl 2;
+          end;
+         dmCustom: for I := 2  to DstClipW + 1 do
+          begin
+           dx := r2 - r1;  r1 := r2;
+           r2 := I * sr shr 16;
+           CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+           xsrc := xsrc + dx shl 2;
+          end;
+        end;
+        Inc(DstLine, Dst.Width);
+        inc(RowSrc, OffSrc * dy);
+       end;
+     end;
+ EMMS;
+end;
+
+{ Stretch Transfer }
 
 {$WARNINGS OFF}
 procedure StretchTransfer(
@@ -913,6 +1249,7 @@ begin
         SrcRect.Top + DstClip.Top - DstRect.Top, CombineOp, CombineCallBack)
     else case StretchFilter of
       sfNearest: StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
+      sfDraft: DraftResample(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
       sfLinear:
         if (DstW > SrcW) and (DstH > SrcH) then
           StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
@@ -927,7 +1264,6 @@ begin
   end;
 end;
 {$WARNINGS ON}
-
 
 { A bit of linear algebra }
 
@@ -1452,5 +1788,33 @@ begin
     SrcY256 := Round(256 * (M[0,1] * X + M[1,1] * Y + M[2,1]) * Z);
   end;
 end;
+
+procedure SetupFunctions;
+var
+  MMX_ACTIVE: Boolean;
+  ACTIVE_3DNow: Boolean;
+begin
+  MMX_ACTIVE := HasMMX;
+  ACTIVE_3DNow := Has3DNow;
+  if ACTIVE_3DNow then
+  begin
+   // link 3DNow functions
+   BlockAverage:= BlockAverage_3DNow;
+  end
+  else
+  if MMX_ACTIVE then
+  begin
+   // link MMX functions
+   BlockAverage:= BlockAverage_MMX;
+  end
+  else
+  begin
+   // link IA32 functions
+   BlockAverage:= BlockAverage_IA32;
+  end
+end;
+
+initialization
+ SetupFunctions;
 
 end.
