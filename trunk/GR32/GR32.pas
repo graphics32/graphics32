@@ -328,6 +328,7 @@ type
     FCanvas: TCanvas;
     FClipRect: TRect;
     FFixedClipRect: TFixedRect;
+    F256ClipRect: TRect;
     FClipping: Boolean;
     FDrawMode: TDrawMode;
     FFont: TFont;
@@ -375,6 +376,7 @@ type
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32);
     procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);
+    procedure UpdateClipRects;
     procedure SetClipRect(const Value: TRect);
   protected
     FontHandle: HFont;
@@ -1968,7 +1970,10 @@ var
   A: TColor32;
 begin
   { Warning: EMMS should be called after using this method }
-  if (X < -256) or (Y < -256) then Exit;
+
+  // we're checking against Left - 1 and Top - 1 due to antialiased values...
+  if (X < F256ClipRect.Left - 256) or (X >= F256ClipRect.Right) or
+     (Y < F256ClipRect.Top - 256) or (Y >= F256ClipRect.Bottom) then Exit;
 
   flrx := X and $FF;
   flry := Y and $FF;
@@ -1977,9 +1982,6 @@ begin
     SAR X, 8
     SAR Y, 8
   end;
-
-  if (X < FClipRect.Left) or (X >= FClipRect.Right) or
-     (Y < FClipRect.Top) or (Y >= FClipRect.Bottom) then Exit;
 
   A := C shr 24;  // opacity
 
@@ -2004,11 +2006,6 @@ begin
     if (X < Right - 1) and (Y >= Top) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
     if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
     if (X >= Left) and (Y < Bottom - 1) then CombineMem(C, P^, celx * flry shr 16);
-
-//    if (X >= 0) and (Y >= 0) then CombineMem(C, P^, celx * cely shr 16); Inc(P);
-//    if (X < FWidth - 1) and (Y >= 0) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
-//    if (X < FWidth - 1) and (Y < FHeight - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
-//    if (X >= 0) and (Y < FHeight - 1) then CombineMem(C, P^, celx * flry shr 16);
   end;
 end;
 
@@ -3979,24 +3976,37 @@ begin
   Result.Bottom := Height;
 end;
 
+procedure TBitmap32.UpdateClipRects;
+begin
+  // calculate clip rects in other units, so we can speed things up a bit.
+  FFixedClipRect := FixedRect(FClipRect);
+
+  F256ClipRect.Left := FClipRect.Left shl 8;
+  F256ClipRect.Top := FClipRect.Top shl 8;
+  F256ClipRect.Right := FClipRect.Right shl 8;
+  F256ClipRect.Bottom := FClipRect.Bottom shl 8;
+
+  FClipping := not EqualRect(FClipRect, BoundsRect);
+end;
+
 procedure TBitmap32.SetClipRect(const Value: TRect);
 begin
-  With FClipRect do
-  begin
-    Left := Max(0, Value.Left);
-    Top := Max(0, Value.Top);
-    Right := Min(Width, Value.Right);
-    Bottom := Min(Height, Value.Bottom);
-  end;
-  FFixedClipRect := FixedRect(FClipRect);
-  FClipping := not EqualRect(FClipRect, BoundsRect);
+  FClipRect.Left := Max(0, Value.Left);
+  FClipRect.Top := Max(0, Value.Top);
+  FClipRect.Right := Min(Width, Value.Right);
+  FClipRect.Bottom := Min(Height, Value.Bottom);
+
+  UpdateClipRects;
 end;
 
 procedure TBitmap32.ResetClipRect;
 begin
-  FClipRect := BoundsRect;
-  FFixedClipRect := FixedRect(BoundsRect);  
-  FClipping := False;
+  FClipRect.Left := 0;
+  FClipRect.Top := 0;
+  FClipRect.Right := Width;
+  FClipRect.Bottom := Height;
+
+  UpdateClipRects;
 end;
 
 {$IFDEF CLX}
