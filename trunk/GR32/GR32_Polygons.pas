@@ -67,24 +67,37 @@ procedure PolyPolylineXSP(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedP
 
 type
   TPolyFillMode = (pfAlternate, pfWinding);
-
   TShiftFunc = function(Value: Integer): Integer;  // needed for antialiasing to speed things up
   TAntialiasMode = (am16times, am8times, am4times);
+
+  TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
 
 const
   DefaultAAMode = am8times; // Use 54 levels of transparency for antialiasing.
 
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
-  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil);
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate;
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil);
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
-  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil);
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate;
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 
@@ -113,9 +126,13 @@ type
     procedure Clear;
     function  Grow(const Delta: TFixed; EdgeSharpness: Single = 0): TPolygon32;
 
-    procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil);
+    procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
+    procedure Draw(Bitmap: TBitmap32; OutlineColor: TColor32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
+
     procedure DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil);
-    procedure DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil);
+
+    procedure DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil); overload;
+    procedure DrawFill(Bitmap: TBitmap32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
 
     procedure NewLine;
     procedure Offset(const Dx, Dy: TFixed);
@@ -131,6 +148,31 @@ type
     property Normals: TArrayOfArrayOfFixedPoint read FNormals write FNormals;
     property Points: TArrayOfArrayOfFixedPoint read FPoints write FPoints;
   end;
+
+  TCustomFiller = class
+  protected
+    function GetFillLine: TFillLineEvent; virtual; abstract;
+  public
+    property FillLine: TFillLineEvent read GetFillLine;
+  end;
+
+  TBitmapFiller = class(TCustomFiller)
+  private
+    FPattern: TBitmap32;
+    FOffsetY: Integer;
+    FOffsetX: Integer;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineCustomCombine(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  public
+    property Pattern: TBitmap32 read FPattern write FPattern;
+    property OffsetX: Integer read FOffsetX write FOffsetX;
+    property OffsetY: Integer read FOffsetY write FOffsetY;
+  end;
+
 
 implementation
 
@@ -152,6 +194,8 @@ type
   TIntegerArray = array [0..0] of Integer;
   PFixedPointArray = ^TFixedPointArray;
   TFixedPointArray = array [0..0] of TFixedPoint;
+
+{ POLYLINES }
 
 procedure PolylineTS(
   Bitmap: TBitmap32;
@@ -397,6 +441,8 @@ begin
   until I >= R;
 end;
 
+{ General routines for drawing polygons }
+
 procedure SortLine(const ALine: TScanLine);
 var
   L, Tmp: Integer;
@@ -554,7 +600,7 @@ begin
   end;
 end;
 
-procedure FillLines(Bitmap: TBitmap32; BaseY: Integer;
+procedure ColorFillLines(Bitmap: TBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode);
 var
   I, J, L: Integer;
@@ -633,7 +679,7 @@ begin
     end;
 end;
 
-procedure FillLines2(Bitmap: TBitmap32; BaseY: Integer;
+procedure ColorFillLines2(Bitmap: TBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode = DefaultAAMode);
 var
@@ -769,15 +815,233 @@ begin
   end;
 end;
 
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode; Transformation: TTransformation);
+procedure CustomFillLines(Bitmap: TBitmap32; BaseY: Integer;
+  const ScanLines: TScanLines; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode);
+var
+  I, J, L: Integer;
+  Left, Right, OldRight, LP, RP, Top: Integer;
+  Winding, NextWinding: Integer;
+begin
+  if Mode = pfAlternate then
+    for J := 0 to High(ScanLines) do
+    begin
+      L := Length(ScanLines[J]); // assuming length is even
+      if L = 0 then Continue;
+      I := 0;
+      OldRight := -1;
+
+      while I < L do
+      begin
+        Left := ScanLines[J][I] and $7FFFFFFF;
+        Inc(I);
+        Right := ScanLines[J][I] and $7FFFFFFF - 1;
+        if Right > Left then
+        begin
+          if (Left and $FF) < $80 then Left := Left shr 8
+          else Left := Left shr 8 + 1;
+          if (Right and $FF) < $80 then Right := Right shr 8
+          else Right := Right shr 8 + 1;
+
+          if Right >= Bitmap.ClipRect.Right - 1 then Right := Bitmap.ClipRect.Right - 1;
+
+          if Left <= OldRight then Left := OldRight + 1;
+          OldRight := Right;
+          if Right >= Left then
+          begin
+            Top := BaseY + J;
+            FillLineCallback(Bitmap.PixelPtr[Left, Top], Left, Top, Right - Left, nil);
+          end;
+        end;
+        Inc(I);
+      end
+    end
+  else // Mode = pfWinding
+    for J := 0 to High(ScanLines) do
+    begin
+      L := Length(ScanLines[J]); // assuming length is even
+      if L = 0 then Continue;
+      I := 0;
+
+      Winding := 0;
+      Left := ScanLines[J][0];
+      if (Left and $80000000) <> 0 then Inc(Winding) else Dec(Winding);
+      Left := Left and $7FFFFFFF;
+      Inc(I);
+      while I < L do
+      begin
+        Right := ScanLines[J][I];
+        if (Right and $80000000) <> 0 then NextWinding := 1 else NextWinding := -1;
+        Right := Right and $7FFFFFFF;
+        Inc(I);
+
+        if Winding <> 0 then
+        begin
+          if (Left and $FF) < $80 then LP := Left shr 8
+          else LP := Left shr 8 + 1;
+          if (Right and $FF) < $80 then RP := Right shr 8
+          else RP := Right shr 8 + 1;
+
+          if RP >= Bitmap.ClipRect.Right - 1 then RP := Bitmap.ClipRect.Right - 1;
+
+          if RP >= LP then
+          begin
+            Top := BaseY + J;
+            FillLineCallback(Bitmap.PixelPtr[LP, Top], LP, Top, RP - LP, nil);
+          end;
+        end;
+
+        Inc(Winding, NextWinding);
+        Left := Right;
+      end;
+    end;
+  EMMS;
+end;
+
+procedure CustomFillLines2(Bitmap: TBitmap32; BaseY: Integer;
+  const ScanLines: TScanLines; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode = DefaultAAMode);
+var
+  I, J, L, N, FA, EA: Integer;
+  MinY, MaxY, Y, Top, Bottom: Integer;
+  MinX, MaxX, X, Dx: Integer;
+  Left, Right: Integer;
+  Buffer: array of Integer;
+  AlphaBuffer: array of TColor32;
+  BufferSize: Integer;
+  ScanLine: PIntegerArray;
+  Winding, NextWinding: Integer;
+  AAShift, AALines, AAMultiplier: Integer;
+begin
+  AAShift := AA_SHIFT[AAMode];
+  AALines := AA_LINES[AAMode] - 1; // we do the -1 here for optimization.
+  AAMultiplier := AA_MULTI[AAMode];
+
+  // find the range of Y screen coordinates
+  MinY := BaseY shr AAShift;
+  MaxY := (BaseY + Length(ScanLines) + AALines) shr AAShift;
+
+  Y := MinY;
+  while Y < MaxY do
+  begin
+    Top := Y shl AAShift - BaseY;
+    Bottom := Top + AALines;
+    if Top < 0 then Top := 0;
+    if Bottom >= Length(ScanLines) then Bottom := High(ScanLines);
+
+    // find left and right edges of the screen scanline
+    MinX := $7F000000; MaxX := -$7F000000;
+    for J := Top to Bottom do
+    begin
+      L := Length(ScanLines[J]) - 1;
+      if L > 0 then
+      begin
+        Left := (ScanLines[J][0] and $7FFFFFFF);
+        Right := (ScanLines[J][L] and $7FFFFFFF + AALines);
+        if Left < MinX then MinX := Left;
+        if Right > MaxX then MaxX := Right;
+      end
+    end;
+
+    if MaxX >= MinX then
+    begin
+      MinX := MinX shr AAShift;
+      MaxX := MaxX shr AAShift;
+      // allocate buffer for a single scanline
+      BufferSize := MaxX - MinX + 2;
+      if Length(Buffer) < BufferSize then
+      begin
+        SetLength(Buffer, BufferSize + 64);
+        SetLength(AlphaBuffer, BufferSize + 64);
+      end;
+      FillLongword(Buffer[0], BufferSize, 0);
+
+      // ...and fill it
+      if Mode = pfAlternate then
+        for J := Top to Bottom do
+        begin
+          I := 0;
+          L := Length(ScanLines[J]);
+          ScanLine := @ScanLines[J][0];
+          while I < L do
+          begin
+            // Left edge
+            X := ScanLine[I] and $7FFFFFFF;
+            Dx := X and AALines;
+            X := X shr AAShift - MinX;
+            Inc(Buffer[X], Dx xor AALines);
+            Inc(Buffer[X + 1], Dx);
+            Inc(I);
+
+            // Right edge
+            X := ScanLine[I] and $7FFFFFFF;
+            Dx := X and AALines;
+            X := X shr AAShift - MinX;
+            Dec(Buffer[X], Dx xor AALines);
+            Dec(Buffer[X + 1], Dx);
+            Inc(I);
+          end
+        end
+      else // mode = pfWinding
+        for J := Top to Bottom do
+        begin
+          I := 0;
+          L := Length(ScanLines[J]);
+          ScanLine := @ScanLines[J][0];
+          Winding := 0;
+          while I < L do
+          begin
+            X := ScanLine[I];
+            Inc(I);
+            if (X and $80000000) <> 0 then NextWinding := 1 else NextWinding := -1;
+            X := X and $7FFFFFFF;
+            if Winding = 0 then
+            begin
+              Dx := X and AALines;
+              X := X shr AAShift - MinX;
+              Inc(Buffer[X], Dx xor AALines);
+              Inc(Buffer[X + 1], Dx);
+            end;
+            Inc(Winding, NextWinding);
+            if Winding = 0 then
+            begin
+              Dx := X and AALines;
+              X := X shr AAShift - MinX;
+              Dec(Buffer[X], Dx xor AALines);
+              Dec(Buffer[X + 1], Dx);
+            end;
+          end;
+        end;
+
+      // integrate the buffer
+      N := 0;
+      for I := 0 to BufferSize - 1 do
+      begin
+        Inc(N, Buffer[I]);
+        AlphaBuffer[I] := (N * AAMultiplier) shr 8;
+      end;
+
+      // draw it to the screen
+      FillLineCallback(Pointer(Bitmap.PixelPtr[MinX, Y]), MinX, Y, BufferSize, @AlphaBuffer[0]);
+      EMMS;
+    end;
+
+    Inc(Y);
+  end;
+end;
+
+{ Polygons }
+
+// only used internally to share code:
+procedure RenderPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  Transformation: TTransformation);
 var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfPoint;
 begin
   L := Length(Points);
-  if (L < 3) or (Color and $FF000000 = 0) then Exit;
+  if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
   SetLength(PP, L);
 
   MinY := $7F000000;
@@ -813,20 +1077,37 @@ begin
   SetLength(ScanLines, MaxY - MinY + 1);
   AddPolygon(PP, Bitmap.ClipRect.Left shl 8, MinY, Bitmap.ClipRect.Right shl 8 - 1,
     Bitmap.ClipRect.Bottom - 1, ScanLines, True);
-    
+
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
-    FillLines(Bitmap, MinY, ScanLines, Color, Mode);
+    If Assigned(FillLineCallback) then
+      CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
+    else
+      ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
   end;
 end;
 
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode;
+procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; Mode: TPolyFillMode; Transformation: TTransformation);
+begin
+  RenderPolygonTS(Bitmap, Points, Color, nil, Mode, Transformation);
+end;
+
+procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
   Transformation: TTransformation);
+begin
+  RenderPolygonTS(Bitmap, Points, 0, FillLineCallback, Mode, Transformation);
+end;
+
+// only used internally to share code:
+procedure RenderPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
 var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
@@ -835,7 +1116,7 @@ var
   AASAR: TShiftFunc;
 begin
   L := Length(Points);
-  if (L < 3) or (Color and $FF000000 = 0) then Exit;
+  if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
   SetLength(PP, L);
 
   AASAR := AA_SAR[AAMode];
@@ -881,15 +1162,37 @@ begin
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
-    FillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
+    If Assigned(FillLineCallback) then
+      CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
+    else
+      ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
   end;
 end;
 
-procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode; Transformation: TTransformation);
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
+begin
+  RenderPolygonXS(Bitmap, Points, Color, nil, Mode, AAMode, Transformation);
+end;
+
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
+begin
+  RenderPolygonXS(Bitmap, Points, 0, FillLineCallback, Mode, AAMode, Transformation);
+end;
+
+{ PolyPolygons }
+
+// only used internally to share code:
+procedure RenderPolyPolygonTS(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  Transformation: TTransformation);
 var
   L, I, J, MinY, MaxY, ShiftedLeft, ShiftedRight, ClipBottom: Integer;
   ScanLines: TScanLines;
@@ -947,16 +1250,35 @@ begin
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
-    FillLines(Bitmap, MinY, ScanLines, Color, Mode);
+    If Assigned(FillLineCallback) then
+      CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
+    else
+      ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
   end;
 end;
 
-procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode;
+procedure PolyPolygonTS(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; Mode: TPolyFillMode;
   Transformation: TTransformation);
+begin
+  RenderPolyPolygonTS(Bitmap, Points, Color, nil, Mode, Transformation);
+end;
+
+procedure PolyPolygonTS(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; FillLineCallback: TFillLineEvent;
+  Mode: TPolyFillMode; Transformation: TTransformation);
+begin
+  RenderPolyPolygonTS(Bitmap, Points, 0, FillLineCallback, Mode, Transformation);
+end;
+
+// only used internally to share code:
+procedure RenderPolyPolygonXS(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
 var
   L, I, J, MinY, MaxY: Integer;
   ScanLines: TScanLines;
@@ -1028,12 +1350,32 @@ begin
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
-    FillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
+    If Assigned(FillLineCallback) then
+      CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
+    else
+      ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
   end;
 end;
+
+procedure PolyPolygonXS(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
+begin
+  RenderPolyPolygonXS(Bitmap, Points, Color, nil, Mode, AAMode, Transformation);
+end;
+
+procedure PolyPolygonXS(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; FillLineCallback: TFillLineEvent;
+  Mode: TPolyFillMode; const AAMode: TAntialiasMode;
+  Transformation: TTransformation);
+begin
+  RenderPolyPolygonXS(Bitmap, Points, 0, FillLineCallback, Mode, AAMode, Transformation);
+end;
+
+{ helper routines }
 
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 var
@@ -1088,7 +1430,6 @@ end;
 procedure TPolygon32.AssignTo(Dest: TPersistent);
 var
   DestPolygon: TPolygon32;
-  PP: TArrayOfArrayOfFixedPoint;
 begin
   if Dest is TPolygon32 then
   begin
@@ -1232,6 +1573,28 @@ begin
   Bitmap.Changed;
 end;
 
+procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor: TColor32;
+  FillCallback: TFillLineEvent; Transformation: TTransformation);
+begin
+  Bitmap.BeginUpdate;
+
+  if Antialiased then
+  begin
+    PolyPolygonXS(Bitmap, Points, FillCallback, FillMode, AntialiasMode, Transformation);
+    if (OutlineColor and $FF000000) <> 0 then
+      PolyPolylineXS(Bitmap, Points, OutlineColor, Closed, Transformation);
+  end
+  else
+  begin
+    PolyPolygonTS(Bitmap, Points, FillCallback, FillMode, Transformation);
+    if (OutlineColor and $FF000000) <> 0 then
+      PolyPolylineTS(Bitmap, Points, OutlineColor, Closed, Transformation);
+  end;
+
+  Bitmap.EndUpdate;
+  Bitmap.Changed;
+end;
+
 procedure TPolygon32.DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
@@ -1253,6 +1616,20 @@ begin
     PolyPolygonXS(Bitmap, Points, Color, FillMode, AntialiasMode, Transformation)
   else
     PolyPolygonTS(Bitmap, Points, Color, FillMode, Transformation);
+
+  Bitmap.EndUpdate;
+  Bitmap.Changed;
+end;
+
+procedure TPolygon32.DrawFill(Bitmap: TBitmap32; FillCallback: TFillLineEvent;
+  Transformation: TTransformation);
+begin
+  Bitmap.BeginUpdate;
+
+  if Antialiased then
+    PolyPolygonXS(Bitmap, Points, FillCallback, FillMode, AntialiasMode, Transformation)
+  else
+    PolyPolygonTS(Bitmap, Points, FillCallback, FillMode, Transformation);
 
   Bitmap.EndUpdate;
   Bitmap.Changed;
@@ -1405,6 +1782,187 @@ end;
 procedure TPolygon32.Transform(Transformation: TTransformation);
 begin
   Points := TransformPoints(Points, Transformation);
+end;
+
+{ TBitmapFiller }
+
+procedure TBitmapFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  PatternX, PatternY, X: Integer;
+  OpaqueAlpha: TColor32;
+  Src: PColor32;
+begin
+  PatternX := (DstX - OffsetX) mod FPattern.Width;
+  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  PatternY := (DstY - OffsetY) mod FPattern.Height;
+  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+
+  Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+
+  If Assigned(AlphaValues) then
+  begin
+    OpaqueAlpha := TColor32($FF shl 24);
+
+    for X := DstX to DstX + Length - 1 do
+    begin
+      TBitmap32Access(FPattern).BlendMemEx(Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+      Inc(AlphaValues);
+    end
+  end
+  else
+    for X := DstX to DstX + Length - 1 do
+    begin
+      Dst^ := Src^;
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+    end;
+end;
+
+procedure TBitmapFiller.FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  PatternX, PatternY, X: Integer;
+  Src: PColor32;
+begin
+  PatternX := (DstX - OffsetX) mod FPattern.Width;
+  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  PatternY := (DstY - OffsetY) mod FPattern.Height;
+  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+
+  Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+
+  If Assigned(AlphaValues) then
+    for X := DstX to DstX + Length - 1 do
+    begin
+      TBitmap32Access(FPattern).BlendMemEx(Src^, Dst^, AlphaValues^);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+      Inc(AlphaValues);
+    end
+  else
+    for X := DstX to DstX + Length - 1 do
+    begin
+      TBitmap32Access(FPattern).BlendMem(Src^, Dst^);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+    end;
+end;
+
+procedure TBitmapFiller.FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  PatternX, PatternY, X: Integer;
+  Src: PColor32;
+begin
+  PatternX := (DstX - OffsetX) mod FPattern.Width;
+  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  PatternY := (DstY - OffsetY) mod FPattern.Height;
+  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+
+  Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+
+  If Assigned(AlphaValues) then
+    for X := DstX to DstX + Length - 1 do
+    begin
+      TBitmap32Access(FPattern).BlendMemEx(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+      Inc(AlphaValues);
+    end
+  else
+    for X := DstX to DstX + Length - 1 do
+    begin
+      TBitmap32Access(FPattern).BlendMemEx(Src^, Dst^, FPattern.MasterAlpha);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+    end;
+end;
+
+procedure TBitmapFiller.FillLineCustomCombine(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  PatternX, PatternY, X: Integer;
+  Src: PColor32;
+begin
+  PatternX := (DstX - OffsetX) mod FPattern.Width;
+  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  PatternY := (DstY - OffsetY) mod FPattern.Height;
+  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+
+  Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+
+  If Assigned(AlphaValues) then
+    for X := DstX to DstX + Length - 1 do
+    begin
+      FPattern.OnPixelCombine(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+      Inc(AlphaValues);
+    end
+  else
+    for X := DstX to DstX + Length - 1 do
+    begin
+      FPattern.OnPixelCombine(Src^, Dst^, FPattern.MasterAlpha);
+      Inc(Dst);  Inc(Src);  Inc(PatternX);
+      If PatternX >= FPattern.Width then
+      begin
+        PatternX := 0;
+        Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
+      end;
+    end;
+end;
+
+function TBitmapFiller.GetFillLine: TFillLineEvent;
+begin
+  if not Assigned(FPattern) then
+  begin
+    Result := nil;
+  end
+  else if FPattern.DrawMode = dmOpaque then
+    Result := FillLineOpaque
+  else if FPattern.DrawMode = dmBlend then
+  begin
+    If FPattern.MasterAlpha = 255 then
+      Result := FillLineBlend
+    else
+      Result := FillLineBlendMasterAlpha;
+  end
+  else if (FPattern.DrawMode = dmCustom) and Assigned(FPattern.OnPixelCombine) then
+  begin
+    Result := FillLineCustomCombine;
+  end
+  else
+    Result := nil;
 end;
 
 end.
