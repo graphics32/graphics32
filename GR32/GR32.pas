@@ -147,7 +147,7 @@ type
 
 const
   FixedOne = $10000;
-  FixedPI  = Round( PI * FixedOne );
+  FixedPI  = Round(PI * FixedOne);
   FixedToFloat = 1/FixedOne;
 
 { Points }
@@ -2242,7 +2242,7 @@ end;
 
 function  TBitmap32.GetPixelZ(X, Y: Single): TColor32;
 begin
-  Result := FResampler.ResamplePixel(Self, X, Y);
+  Result := TCustomResampler(FResampler).ResamplePixel(Self, X, Y);
 end;
 
 procedure TBitmap32.SetStipple(NewStipple: TArrayOfColor32);
