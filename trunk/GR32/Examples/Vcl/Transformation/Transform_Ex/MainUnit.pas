@@ -176,9 +176,9 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   ResamplerClassNamesList.Items:= GetResamplerClassNames;
 
-  SrcRubberBandLayer:= TRubberBandLayer.Create(Src.Layers);
-  SrcRubberBandLayer.OnResizing:= SrcRBResizingEvent;
-
+  SrcRubberBandLayer := TRubberBandLayer.Create(Src.Layers);
+  SrcRubberBandLayer.OnResizing := SrcRBResizingEvent;
+  SrcRubberBandLayer.Location := FloatRect(0, 0, Src.Bitmap.Width - 1, Src.Bitmap.Height - 1);
   with TCustomLayer.Create(Dst.Layers) do
   begin
     OnPaint := PaintHandles;
