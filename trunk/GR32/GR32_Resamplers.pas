@@ -270,10 +270,10 @@ begin
   end;
   if Resampler.RangeCheck then
   begin
-    VertEntry.A := EnsureRange(VertEntry.A, 0, $ff0000);
-    VertEntry.R := EnsureRange(VertEntry.R, 0, $ff0000);
-    VertEntry.G := EnsureRange(VertEntry.G, 0, $ff0000);
-    VertEntry.B := EnsureRange(VertEntry.B, 0, $ff0000);
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
   end;
   with TColorEntry(Result) do
   begin
