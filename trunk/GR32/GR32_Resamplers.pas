@@ -187,8 +187,8 @@ type
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   published
-    property Kernel: TCustomKernel read FKernel write SetKernel;
     property KernelClassName: string read GetKernelClassName write SetKernelClassName;
+    property Kernel: TCustomKernel read FKernel write SetKernel;
   end;
 
   { TBitmap32TableResampler }
