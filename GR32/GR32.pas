@@ -228,7 +228,7 @@ type
 { TBitmap32 draw mode }
 type
   TDrawMode = (dmOpaque, dmBlend, dmCustom);
-  TAlphaChannelMode = (amForeground, amMerge);
+  TCombineMode = (cmForeground, cmMerge);
 
 { Stretch filters }
   TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline, sfLanczos, sfMitchell);
@@ -362,7 +362,7 @@ type
     FStretchFilter: TStretchFilter;
     FOnHandleChanged: TNotifyEvent;
     FOnPixelCombine: TPixelCombineEvent;
-    FAlphaChannelMode: TAlphaChannelMode;
+    FCombineMode: TCombineMode;
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
@@ -379,7 +379,7 @@ type
     function  GetPixmap: QPixmapH;
     function  GetPainter: QPainterH;
 {$ENDIF}
-    procedure SetAlphaChannelMode(const Value: TAlphaChannelMode);
+    procedure SetCombineMode(const Value: TCombineMode);
     procedure SetDrawMode(Value: TDrawMode);
     procedure SetFont(Value: TFont);
     procedure SetMasterAlpha(Value: Cardinal);
@@ -396,6 +396,8 @@ type
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
 
+    CombineReg: TCombineReg;
+    CombineMem: TCombineMem;
     BlendReg: TBlendReg;
     BlendMem: TBlendMem;
     BlendRegEx: TBlendRegEx;
@@ -590,7 +592,7 @@ type
 {$ENDIF}
     property ClipRect: TRect read FClipRect write SetClipRect;
     property Clipping: Boolean read FClipping;
-    
+
     property Font: TFont read FFont write SetFont;
     property PixelPtr[X, Y: Integer]: PColor32 read GetPixelPtr;
     property ScanLine[Y: Integer]: PColor32Array read GetScanLine;
@@ -598,7 +600,7 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
-    property AlphaChannelMode: TAlphaChannelMode read FAlphaChannelMode write SetAlphaChannelMode default amForeground;
+    property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmForeground;
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
@@ -1321,7 +1323,7 @@ begin
   FPenColor := clWhite32;
   FStippleStep := 1;
 
-  AlphaChannelMode := amForeground;
+  CombineMode := cmForeground;
 end;
 
 destructor TBitmap32.Destroy;
@@ -2754,9 +2756,9 @@ begin
   end
   else // Dx = 0
   begin
-    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelS(X2, Y2, Value);
+    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
     Exit;
   end;
 
@@ -2775,9 +2777,9 @@ begin
   end
   else // Dy = 0
   begin
-    if X2 > X1 then HorzLineS(X1, Y1, X2 - 1, Value)
-    else HorzLineS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelS(X2, Y2, Value);
+    if X2 > X1 then HorzLineTS(X1, Y1, X2 - 1, Value)
+    else HorzLineTS(X2 + 1, Y1, X1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
     Exit;
   end;
 
@@ -3904,10 +3906,12 @@ begin
 {$ENDIF}
 end;
 
-procedure TBitmap32.SetAlphaChannelMode(const Value: TAlphaChannelMode);
+procedure TBitmap32.SetCombineMode(const Value: TCombineMode);
 begin
-  If Value = amForeground then
+  If Value = cmForeground then
   begin
+    CombineReg := GR32_Blend.CombineReg;
+    CombineMem := GR32_Blend.CombineMem;
     BlendReg := GR32_Blend.BlendReg;
     BlendMem := GR32_Blend.BlendMem;
     BlendRegEx := GR32_Blend.BlendRegEx;
@@ -3917,6 +3921,8 @@ begin
   end
   else
   begin
+    CombineReg := GR32_Blend.CombMergeReg;
+    CombineMem := GR32_Blend.CombMergeMem;
     BlendReg := GR32_Blend.MergeReg;
     BlendMem := GR32_Blend.MergeMem;
     BlendRegEx := GR32_Blend.MergeRegEx;
@@ -3925,7 +3931,7 @@ begin
     BlendLineEx := GR32_Blend.MergeLineEx;
   end;
 
-  FAlphaChannelMode := Value;
+  FCombineMode := Value;
   Changed;
 end;
 
@@ -4328,7 +4334,7 @@ begin
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
-    B.AlphaChannelMode := AlphaChannelMode;
+    B.CombineMode := CombineMode;
 
     B.DrawTo(Self, X, Y);
   finally
@@ -4406,7 +4412,7 @@ begin
 
     B.DrawMode := dmBlend;
     B.MasterAlpha := Alpha;
-    B.AlphaChannelMode := AlphaChannelMode;
+    B.CombineMode := CombineMode;
 
     B.DrawTo(Self, X, Y);
   finally
