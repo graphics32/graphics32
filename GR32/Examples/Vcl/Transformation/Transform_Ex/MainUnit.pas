@@ -22,6 +22,7 @@ unit MainUnit;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -29,7 +30,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Image, GR32_Transforms, GR32_Layers, ExtCtrls, StdCtrls, Buttons,
+  GR32, GR32_Image, GR32_Transforms, GR32_Resamplers, GR32_Layers, ExtCtrls, StdCtrls, Buttons,
   ComCtrls, Grids, GR32_RangeBars;
 
 type
@@ -91,7 +92,6 @@ type
     eFx: TEdit;
     eFy: TEdit;
     Label10: TLabel;
-    RadioGroup1: TRadioGroup;
     Panel3: TPanel;
     TabSheet2: TTabSheet;
     Label18: TLabel;
@@ -103,6 +103,8 @@ type
     sbAlpha: TGaugeBar;
     sbFx: TGaugeBar;
     sbFy: TGaugeBar;
+    ResamplerClassNamesList: TListBox;
+    CheckBox1: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ListBoxClick(Sender: TObject);
@@ -116,7 +118,6 @@ type
     procedure RotationScrolled(Sender: TObject);
     procedure SkewChanged(Sender: TObject);
     procedure SkewScrolled(Sender: TObject);
-    procedure RadioGroup1Click(Sender: TObject);
     procedure OpacityChange(Sender: TObject);
     procedure PageControl1Change(Sender: TObject);
 
@@ -128,6 +129,8 @@ type
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 
     procedure AppEventsIdle(Sender: TObject; var Done: Boolean);
+    procedure ResamplerClassNamesListClick(Sender: TObject);
+    procedure CheckBox1Click(Sender: TObject);
   protected
     LoadingValues: Boolean;
     DraggedVertex: Integer;
@@ -167,6 +170,8 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  ResamplerClassNamesList.Items:= GetResamplerClassNames;
+  
   with TCustomLayer.Create(Dst.Layers) do
   begin
     OnPaint := PaintHandles;
@@ -448,14 +453,6 @@ begin
   LoadingValues := False;
 end;
 
-procedure TForm1.RadioGroup1Click(Sender: TObject);
-const
-  STRETCH_FILTER: array [0..1] of TStretchFilter = (sfNearest, sfLinear);
-begin
-  Src.Bitmap.StretchFilter := STRETCH_FILTER[RadioGroup1.ItemIndex];
-  DoTransform;
-end;
-
 procedure TForm1.OpacityChange(Sender: TObject);
 begin
   OpacityBar.Update;
@@ -481,7 +478,8 @@ begin
   begin
     Mode := tmAffine;
     TT := AT;
-    RadioGroup1.Parent := TabSheet1;
+    ResamplerClassNamesList.Parent := TabSheet1;
+    ResamplerClassNamesList.Height := 100;
   end
   else {if PageControl1.ActivePage = TabSheet2 then }
   begin
@@ -489,7 +487,8 @@ begin
     Mode := tmProjective;
     TT := PT;
     InitVertices;
-    RadioGroup1.Parent := TabSheet2;
+    ResamplerClassNamesList.Parent := TabSheet2;
+    ResamplerClassNamesList.Height := 200;
   end;
   DoTransform;
 end;
@@ -589,6 +588,20 @@ begin
     Y0 := Y1;
   end;
   for I := 0 to 3 do PaintVertex(Vertices[I].X, Vertices[I].Y);
+end;
+
+procedure TForm1.ResamplerClassNamesListClick(Sender: TObject);
+begin
+  with ResamplerClassNamesList do
+    if ItemIndex >= 0 then
+      Src.Bitmap.ResamplerClassName:= Items[ ItemIndex ];
+  DoTransform;
+end;
+
+procedure TForm1.CheckBox1Click(Sender: TObject);
+begin
+  GR32_Transforms.FullEdge := CheckBox1.Checked;
+  DoTransform;
 end;
 
 end.
