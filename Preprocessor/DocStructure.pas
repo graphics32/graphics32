@@ -561,7 +561,7 @@ end;
 procedure TElement.Transform;
 var
   Dom: TDomDocument;
-  Head, Title, Body: TDomNode;
+  Head, Title, Body, Link: TDomNode;
   DestFile, DestPath, S: string;
   LinkNodes: TDomNodeList;
   Anchors, Links: TStringList;
@@ -571,6 +571,8 @@ begin
   try
     Dom.LoadFromFile(FileName);
     Head := Dom.FindNode('head', True);
+    Link := Head.FindNode('link', False);
+    Link.Attributes['href'] := StringReplace(Link.Attributes['href'], '\', '/', [rfReplaceAll]);
     Title := Head.FindNode('title', False);
     Title.Clear;
     Title.AddText(DisplayName);
