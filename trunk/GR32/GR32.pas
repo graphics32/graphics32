@@ -40,9 +40,9 @@ uses
   {$IFDEF LINUX}Libc,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
 {$ELSE}
-  Windows,
+  Windows, 
 {$ENDIF}
-  Classes, SysUtils,
+  Classes, SysUtils, CSIntf,
 {$IFDEF CLX}
   QControls, QGraphics, QConsts
 {$ELSE}
@@ -253,7 +253,7 @@ const
   DT_WORDBREAK = Integer(AlignmentFlags_WordBreak);
   DT_SINGLELINE = Integer(AlignmentFlags_SingleLine);
 { missing since there is no QT equivalent:
-  DT_CALCRECT (make no sense with TBitmap32.TextOut[2])
+  DT_CALCRECT (makes no sense with TBitmap32.TextOut[2])
   DT_EDITCONTOL
   DT_END_ELLIPSIS and DT_PATH_ELLIPSIS
   DT_EXTERNALLEADING
@@ -3161,16 +3161,24 @@ end;
 
 procedure TBitmap32.LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
-  Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, tmp2, e, D: Integer;
-  Swapped, CheckVert, CornerAA: Boolean;
+  Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, rem, term, tmp: Integer;
+  CheckVert, CornerAA: Boolean;
   D1, D2: PInteger;
-  EC, EA: Word;
+  EC, EA, ED, D: Word;
   CI: Byte;
   P: PColor32;
 begin
+//  {$DEFINE CODESITE}
+//  {$DEFINE DEBUG}
+//  {$DEFINE OUTLINE}
+
+{$IFDEF CODESITE}
+  If Clipping then
+    CodeSite.AddSeparator;
+{$ENDIF}
+
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
-
   Dx := X2 - X1; Dy := Y2 - Y1;
 
   If Dx > 0 then
@@ -3188,9 +3196,9 @@ begin
   end
   else // Dx = 0
   begin
-    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelS(X2, Y2, Value);
+    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
     Exit;
   end;
 
@@ -3209,15 +3217,35 @@ begin
   end
   else // Dy = 0
   begin
-    if X2 > X1 then HorzLineS(X1, Y1, X2 - 1, Value)
-    else HorzLineS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelS(X2, Y2, Value);
+    if X2 > X1 then HorzLineTS(X1, Y1, X2 - 1, Value)
+    else HorzLineTS(X2 + 1, Y1, X1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
     Exit;
+  end;
+
+  // diagonal line?
+  if Dx = Dy then
+  begin
+    LineTS(X1, Y1, X2, Y2, Value, L);
+    Exit;
+  end;
+
+  If not L then
+  begin
+    If Dx > Dy then
+    begin
+      If Dx > 0 then Dec(X2)
+      else Inc(X2);
+    end
+    else
+    begin
+      If Dy > 0 then Dec(Y2)
+      else Inc(Y2);
+    end;
   end;
 
   if Dx < Dy then
   begin
-    Swapped := True;
     Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
     Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
     D1 := @yd; D2 := @xd;
@@ -3225,56 +3253,59 @@ begin
   end
   else
   begin
-    Swapped := False;
     D1 := @xd; D2 := @yd;
     PI := Sy * Width;
   end;
 
-  // Bresenham's set up:
+  rem := 0;
   EA := Dy shl 16 div Dx;
-  if EA = 0 then Dec(EA);
   EC := 0;
-  Dx2 := Dx shl 1; Dy2 := Dy shl 1;
   xd := X1; yd := Y1;
   CheckVert := True;
   CornerAA := False;
 
-  // is the segment entering the clipping rect horizontally?
+  // clipping rect horizontal entry
   if Y1 < Cy1 then
   begin
     tmp := (Cy1 - Y1) * 65536;
     rem := tmp mod EA;
     tmp := tmp div EA;
-    Inc(xd, tmp);
+    if rem > 0 then Inc(tmp);
 
-    if rem > 0 then
-    begin
-      Inc(tmp);
-      Inc(xd);
-    end;
+    xd := Min(xd + tmp, X2 + 1);
 
-    EC := tmp * EA;
-    tmp := 65536 + EC;
+    EC := EA - rem;    // faster than:   EC := tmp * EA;
+
+//    tmp := (65536 - rem) div EA;
+    rem := (Cy1 - Y1 - 1) * 65536;
+    if rem mod EA > 0 then
+      rem := rem div EA + 1
+    else
+      rem := rem div EA;
+
+    tmp := tmp - rem;
 
     // check whether the line is partly visible
     if xd > Cx2 then
       // do we need to draw an antialiased part on the corner of the clip rect?
-      If xd < Cx2 + tmp div EA then
+      If xd <= Cx2 + tmp then
         CornerAA := True
       else
         Exit;
 
-    if (xd + 1 >= Cx1) or CornerAA then
+    if (xd {+ 1} >= Cx1) or CornerAA then
     begin
       yd := Cy1;
+      rem := xd; // save old xd
 
-      rem := xd;
-      term := Constrain(xd - tmp div EA, Cx1, Cx2);
+      ED := EC - EA;
+
+      term := SwapConstrain(xd - tmp, Cx1, Cx2);
 
       If CornerAA then
       begin
-        Dec(tmp, (xd - Cx2) * EA);
-        xd := Cx2;
+        Dec(ED, (xd - Cx2) * EA);
+        xd := Cx2 + 1;
       end;
 
       // do we need to negate the vars?
@@ -3285,15 +3316,28 @@ begin
         term := -term;
       end;
 
-      Inc(xd, Sx);
+{$IFDEF CODESITE}
+      If Clipping then
+      begin
+        CodeSite.SendMsg('Entering cliprect');
+        CodeSite.SendInteger('xd', xd);
+        CodeSite.SendInteger('term', term);
+        if ((Sx = -1) and (xd > term)) then CodeSite.SendMsg('Entering cliprect: (Sx = -1) and (xd > term) -> CRASH!');
+        if ((Sx = 1) and (xd < term)) then  CodeSite.SendMsg('Entering cliprect: (Sx = 1) and (xd < term) -> CRASH!');
+      end;
+{$ENDIF}
+
       try
         while xd <> term do
         begin
           Inc(xd, -Sx);
-          CI := tmp shr 8;
           P := @Bits[D1^ + D2^ * Width];
-          BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
-          Dec(tmp, EA);
+{$IFDEF DEBUG}
+          BlendMemEx(clGreen32, P^, 120);
+{$ELSE}
+          BlendMemEx(Value, P^, GAMMA_TABLE[ED shr 8]);
+{$ENDIF}
+          Dec(ED, EA);
         end;
       finally
         EMMS;
@@ -3311,31 +3355,42 @@ begin
         Exit;
       end;
 
-      xd := rem;
+      xd := rem;  // restore old xd
       CheckVert := False; // to avoid ugly labels we set this to omit the next check
     end;
   end;
 
-  // is the segment entering the clipping rect vertically?
+  // clipping rect vertical entry
   if CheckVert and (X1 < Cx1) then
   begin
     tmp := (Cx1 - X1) * EA;
     Inc(yd, tmp div 65536);
-    rem := tmp mod 65536;
     EC := tmp;
     xd := Cx1;
-    if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
+    if (yd > Cy2) then
+      Exit
+    else if (yd = Cy2) then
+      CornerAA := True;
   end;
 
   term := X2;
+  CheckVert := False;
 
-  // is the segment exiting the clipping rect?
+  // horizontal exit?
   if Y2 > Cy2 then
   begin
-    tmp := Dx2 * (Cy2 - Y1) + Dx;
-    term := X1 + tmp div Dy2;
-    rem := tmp mod Dy2;
-    if rem = 0 then Dec(term);
+    tmp := (Cy2 - Y1) * 65536;
+    rem := tmp mod EA;
+    term := X1 + tmp div EA;
+
+    if term < Cx2 then
+    begin
+      rem := (65536 + rem) div EA;
+      rem := term + rem;
+      if rem > Cx2 then rem := Cx2;
+      inc(rem);
+      CheckVert := True;
+    end;
   end;
 
   if term > Cx2 then term := Cx2;
@@ -3345,31 +3400,82 @@ begin
   begin
     xd := -xd;
     term := -term;
+    rem := -rem;
   end;
-  Dec(Dx2, Dy2);
 
+  if not CornerAA then
   try
+{$IFDEF CODESITE}
+    If Clipping then
+    begin
+      CodeSite.SendMsg('Main drawing');
+      CodeSite.SendInteger('xd', xd);
+      CodeSite.SendInteger('term', term);
+      if ((Sx = -1) and (xd < term)) then CodeSite.SendMsg('Main: (Sx = -1) and (xd < term) -> CRASH!');
+      if ((Sx = 1) and (xd > term)) then  CodeSite.SendMsg('Main: (Sx = 1) and (xd > term) -> CRASH!');
+    end;
+{$ENDIF}
+
     while xd <> term do
     begin
       CI := EC shr 8;
       P := @Bits[D1^ + D2^ * Width];
+
+{$IFNDEF OUTLINE}
+{$IFDEF DEBUG}
+      BlendMemEx(Value, P^, 120);
+{$ELSE}
       BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+{$ENDIF}
+{$ENDIF}
       Inc(P, PI);
+{$IFNDEF OUTLINE}
+{$IFDEF DEBUG}
+      BlendMemEx(clBlack32, P^, 120);
+{$ELSE}
       BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+{$ENDIF}
+{$ENDIF}
 
       D := EC;
       Inc(EC, EA);
       if EC <= D then
-      begin
         Inc(yd, Sy);
-      end;
 
       Inc(xd, Sx);
     end;
   finally
     EMMS;
-    Changed;
   end;
+
+  If CheckVert then
+  try
+{$IFDEF CODESITE}
+    If Clipping then
+    begin
+      CodeSite.SendMsg('Exiting cliprect');
+      CodeSite.SendInteger('xd', xd);
+      CodeSite.SendInteger('rem', rem);
+      if ((Sx = -1) and (xd < rem)) then CodeSite.SendMsg('Main: (Sx = -1) and (xd < rem) -> CRASH!');
+      if ((Sx = 1) and (xd > rem)) then  CodeSite.SendMsg('Main: (Sx = 1) and (xd > rem) -> CRASH!');
+    end;
+{$ENDIF}
+    while xd <> rem do
+    begin
+      P := @Bits[D1^ + D2^ * Width];
+{$IFDEF DEBUG}
+      BlendMemEx(clYellow32, P^, 120);
+{$ELSE}
+      BlendMemEx(Value, P^, GAMMA_TABLE[EC shr 8 xor 255]);
+{$ENDIF}
+      Inc(EC, EA);
+      Inc(xd, Sx);
+    end;
+  finally
+    EMMS;
+  end;
+
+  Changed;
 end;
 
 procedure TBitmap32.MoveTo(X, Y: Integer);
