@@ -1957,6 +1957,7 @@ begin
 end;
 
 function TBitmap32.GET_T256(X, Y: Integer): TColor32;
+//When using this, remember that it interpolates towards next x and y! 
  function Interpolate_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
  asm
         MOVQ      MM1, [ECX]
