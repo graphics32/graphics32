@@ -28,7 +28,6 @@ unit GR32;
  *   J. Tulach <tulach@position.cz>
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
 
 interface
 
@@ -52,7 +51,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.6.0';
+  Graphics32Version = '1.7.0';
 
 { 32-bit Color }
 
@@ -103,8 +102,8 @@ function WinColor(Color32: TColor32): TColor;
 function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
 
 // Color component access
-procedure Color32ToRGB(Color32: TColor32; var R,G,B: Byte);
-procedure Color32ToRGBA(Color32: TColor32; var R,G,B,A: Byte);
+procedure Color32ToRGB(Color32: TColor32; var R, G, B: Byte);
+procedure Color32ToRGBA(Color32: TColor32; var R, G, B, A: Byte);
 function RedComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BlueComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -197,9 +196,10 @@ function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TR
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function FixedRect(const L, T, R, B: TFixed): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedRect(const ARect: TRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedRect(const FR: TFloatRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const L, T, R, B: Single): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FloatRect(const AFixedRect: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Some basic operations over rectangles
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
@@ -230,7 +230,7 @@ type
 { TBitmap32 draw mode }
 type
   TDrawMode = (dmOpaque, dmBlend, dmCustom);
-  TCombineMode = (cmForeground, cmMerge);
+  TCombineMode = (cmBlend, cmMerge);
 
 { Stretch filters }
   TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline, sfLanczos, sfMitchell);
@@ -612,7 +612,7 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
-    property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmForeground;
+    property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
@@ -755,14 +755,14 @@ begin
   MoveLongword(Colors[0], Result[0], L);
 end;
 
-procedure Color32ToRGB(Color32: TColor32; var R,G,B: Byte);
+procedure Color32ToRGB(Color32: TColor32; var R, G, B: Byte);
 begin
   R := (Color32 and $00FF0000) shr 16;
   G := (Color32 and $0000FF00) shr 8;
   B := Color32 and $000000FF;
 end;
 
-procedure Color32ToRGBA(Color32: TColor32; var R,G,B,A: Byte);
+procedure Color32ToRGBA(Color32: TColor32; var R, G, B, A: Byte);
 begin
   A := Color32 shr 24;
   R := (Color32 and $00FF0000) shr 16;
@@ -1102,6 +1102,17 @@ begin
   end;
 end;
 
+function FixedRect(const FR: TFloatRect): TFixedRect;
+begin
+  with Result do
+  begin
+    Left := Round(FR.Left * 65536);
+    Top := Round(FR.Top * 65536);
+    Right := Round(FR.Right * 65536);
+    Bottom := Round(FR.Bottom * 65536);
+  end;
+end;
+
 function FloatRect(const L, T, R, B: Single): TFloatRect;
 begin
   with Result do
@@ -1124,14 +1135,14 @@ begin
   end;
 end;
 
-function FloatRect(const AFixedRect: TFixedRect): TFloatRect;
+function FloatRect(const FXR: TFixedRect): TFloatRect;
 begin
   with Result do
   begin
-    Left := AFixedRect.Left * FixedToFloat;
-    Top := AFixedRect.Top * FixedToFloat;
-    Right := AFixedRect.Right * FixedToFloat;
-    Bottom := AFixedRect.Bottom * FixedToFloat;
+    Left := FXR.Left * FixedToFloat;
+    Top := FXR.Top * FixedToFloat;
+    Right := FXR.Right * FixedToFloat;
+    Bottom := FXR.Bottom * FixedToFloat;
   end;
 end;
 
@@ -1350,7 +1361,7 @@ begin
   FPenColor := clWhite32;
   FStippleStep := 1;
 
-  CombineMode := cmForeground;
+  CombineMode := cmBlend;
 end;
 
 destructor TBitmap32.Destroy;
@@ -2118,9 +2129,9 @@ begin
 end;
 
 function TBitmap32.GET_T256(X, Y: Integer): TColor32;
-//When using this, remember that it interpolates towards next x and y!
+// When using this, remember that it interpolates towards next x and y!
 var
-  Pos: Cardinal;
+  Pos: Integer;
 begin
   Pos := (X shr 8) + (Y shr 8) * FWidth;
   Result := Interpolator(GAMMA_TABLE[X and $FF xor 255],
@@ -3935,7 +3946,7 @@ end;
 
 procedure TBitmap32.SetCombineMode(const Value: TCombineMode);
 begin
-  If Value = cmForeground then
+  If Value = cmBlend then
   begin
     CombineReg := GR32_Blend.CombineReg;
     CombineMem := GR32_Blend.CombineMem;
