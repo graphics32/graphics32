@@ -1,0 +1,18 @@
+<html>
+<head>
+<title>Unlock</title>
+<link rel="STYLESHEET" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Unlock; </p>
+<h2>Description</h2>
+<p class="Body">Removes the multithreading lock from the object.</p>
+<p class="Body">Each call to <span class="EmptyRef">Unlock</span> decreases the 
+  <a href="../Properties/LockCount.htm">LockCount</a> property, allowing other 
+  threads to access the object when <a href="../Properties/LockCount.htm">LockCount</a> 
+  reaches 0. Each thread must call <span class="EmptyRef">Unlock</span> once for 
+  each time that it locked the object.</p>
+<p id="hidden">[See Also]: <a href="Lock.htm">Lock</a></p>
+</body>
+</html>

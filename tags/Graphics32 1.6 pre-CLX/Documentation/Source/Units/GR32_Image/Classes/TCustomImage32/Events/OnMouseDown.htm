@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>OnMouseDown</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> OnMouseDown: TImgMouseEvent;</p>
+<p class="Decl"><b>type</b> TImgMouseEvent = <b>procedure</b>(Sender: TObject; 
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: <a href="../../../../GR32_Layers/Classes/TCustomLayer/_Body.htm">TCustomLayer</a>) 
+  <b>of object</b>;</p>
+<h2>Description</h2>
+<p class="Body">This event occurs when user pushes the mouse button in the image 
+  area. The <span class="EmptyRef">Layer</span> parameter indicates the layer 
+  under the mouse, or nil in case the mouse is over the background area. </p>
+<p class="Body">Whether the layer is under the mouse or not, is determined by 
+  the <a href="../../../../GR32_Layers/Classes/TCustomLayer/Methods/HitTest.htm">HitTest</a> 
+  function and by the LOB_MOUSE_EVENTS bit in <a href="../../../../GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a>. 
+  The top-most layer which passes the test is passed into the <span class="EmptyRef">Layer</span> 
+  parameter of the event.</p>
+<p class="Body">Note, that once mouse was pressed, the layer (or the background) 
+  captures the mouse messages until the mouse button is released.</p>
+<p id="hidden">[See also]: <a href="../../../../GR32_Image/Classes/TCustomImage32/Events/OnMouseMove.htm">OnMouseMove</a>, <a href="../../../../GR32_Image/Classes/TCustomImage32/Events/OnMouseUp.htm">OnMouseUp</a></p>
+</body>
+</html>
