@@ -12,11 +12,10 @@
 <h2>Description</h2>
 <p class="Body">Merges a foregrownd (<b>F</b>) color with the background color 
   (<b>B</b>) using the alpha component of the foreground color. It does  merge the alpha-channels.</p>
-<p class="Code"> S<span class="sub">A</span> = F<span class="sub">A</span> + B<span class="sub">A</span> - F<span class="sub">A</span> *
-  B<span class="sub">A
-  </span></p>
-<p class="Code">S<span class="sub">RGB</span> = (F<span class="sub">A</span> (F<span class="sub">RGB</span> - B<span class="sub">RGB</span> *
-B<span class="sub">A</span>) + B<span class="sub">RGB</span> * B<span class="sub">A</span>) / S<span class="sub">A</span></p>
+<p class="Code"> S<span class="sub">A</span> = 1 - (1 - F<span class="sub">A</span>) (1 -
+  B<span class="sub">A</span>)</p>
+<p class="Code">S<span class="sub">RGB</span> = (F<span class="sub">A</span> * F<span class="sub">RGB</span> + B<span class="sub">A</span> *
+  (1 - F<span class="sub">A</span>) * B<span class="sub">RGB</span>) / S<span class="sub">A</span></p>
 <p class="Body"><span class="EmptyRef">MergeReg</span> takes parameters and produces 
   the result operating on CPU registers.</p>
 <p class="Body"><span class="EmptyRef">MergeMem</span> operates with the background 

@@ -4,14 +4,17 @@
 <link rel="stylesheet" href="../Styles/Default.css">
 </head>
 <body bgcolor="#FFFFFF">
-<p class="Body">Graphics32 supports Delphi versions 4, 5, 6 and 7, and C++ Builder 
-  5.</p>
+<p class="Body">Graphics32 supports Delphi versions 4, 5, 6, 7 and 2005 (Win32), and C++ Builder 
+  5 and 6.</p>
 <p class="Body">As of version 1.6 there is also CLX support in Graphics32. That means you can use it either with CLX on
   Windows using Delphi or on x86 Linux using the Kylix Delphi environment.</p>
 <p class="Body">&nbsp;</p>
 <p class="Body"><strong>Note:</strong><em> If you want to use the Windows CLX version in Delphi, you'll have to uncomment
     the <span class="Comment">{$DEFINE
       CLX}</span>  line in <strong>GR32.inc</strong>.</em></p>
+<p class="Body"><strong>Note:</strong><em> For Delphi 2005 function inlining is automatically used to improve performance
+    in certain situations. If you want to avoid this, please comment out the <span class="Comment">{$DEFINE USEINLINING}</span> line
+    in <strong>GR32.inc</strong>.</em></p>
 <p class="Body"><b>Note: </b><em>Because some properties of range bars and gage bars 
   have been changed, you can obtain some error messages while opening your previous 
   Graphics32 projects. Just ignore these messages and Delphi will fix DFM files 
@@ -26,7 +29,8 @@ automatically.</em></p>
     <span class="Menu"><u>O</u>pen...</span> on the menu bar. Set <span class="Menu">Files 
     of <u>t</u>ype</span> to <font face="Courier New, Courier, mono">Delphi package 
     source</font>, locate and open <font face="Courier New, Courier, mono">GR32_DSGN_D6.dpk<br>
-    </font>(<font face="Courier New, Courier, mono">GR32_DSGN_K</font> for Kylix, <font face="Courier New, Courier, mono">GR32_DSGN_D7</font> for
+    </font>(<font face="Courier New, Courier, mono">GR32_DSGN_K</font> for Kylix, <font face="Courier New, Courier, mono">GR32_DSGN_D2005</font> for
+    Delphi 2005, <font face="Courier New, Courier, mono">GR32_DSGN_D7</font> for
     Delphi7, <font face="Courier New, Courier, mono">GR32_DSGN_D6</font> for
     Delphi6, <font face="Courier New, Courier, mono">GR32_DSGN_D5</font> for
     Delphi5, 
