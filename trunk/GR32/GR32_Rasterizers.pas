@@ -6,6 +6,8 @@ uses
   Windows, Classes, GR32, GR32_Blend;
 
 type
+  TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;
+
   PCombineInfo = ^TCombineInfo;
   TCombineInfo = record
     SrcAlpha: Integer;
@@ -22,16 +24,19 @@ type
   private
     FSampler: TCustomSampler;
     FSrcAlpha: Integer;
-    FDrawMode: TDrawMode;
     FBlendMemEx: TBlendMemEx;
     FCombineCallBack: TPixelCombineEvent;
+    FAssignColor: TAssignColor;
     procedure SetSampler(const Value: TCustomSampler);
+    procedure AssignColorOpaque(var Dst: TColor32; Src: TColor32);
+    procedure AssignColorBlend(var Dst: TColor32; Src: TColor32);
+    procedure AssignColorCustom(var Dst: TColor32; Src: TColor32);
   protected
-    procedure AssignColor(var Dst: TColor32; Src: TColor32);
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); virtual; abstract;
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; SrcAlpha: TColor32;
       DrawMode: TDrawMode; CombineMode: TCombineMode;
       CombineCallBack: TPixelCombineEvent); overload;
+    property AssignColor: TAssignColor read FAssignColor write FAssignColor;
   public
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect); overload;
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; const CombineInfo: TCombineInfo); overload;
@@ -39,6 +44,8 @@ type
   published
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
+
+  TRasterizerClass = class of TRasterizer;
 
   TRegularRasterizer = class(TRasterizer)
   protected
@@ -151,18 +158,20 @@ end;
 
 { TRasterizer }
 
-procedure TRasterizer.AssignColor(var Dst: TColor32; Src: TColor32);
+procedure TRasterizer.AssignColorBlend(var Dst: TColor32; Src: TColor32);
 begin
-  case FDrawMode of
-    dmOpaque: Dst := Src;
-    dmBlend:
-      begin
-        FBlendMemEx(Src, Dst, FSrcAlpha);
-        EMMS;
-      end;
-  else // dmCustom:
-    FCombineCallBack(Src, Dst, FSrcAlpha);
-  end;
+  FBlendMemEx(Src, Dst, FSrcAlpha);
+  EMMS;
+end;
+
+procedure TRasterizer.AssignColorOpaque(var Dst: TColor32; Src: TColor32);
+begin
+  Dst := Src;
+end;
+
+procedure TRasterizer.AssignColorCustom(var Dst: TColor32; Src: TColor32);
+begin
+  FCombineCallBack(Src, Dst, FSrcAlpha);
 end;
 
 procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
@@ -195,9 +204,20 @@ procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
   CombineCallBack: TPixelCombineEvent);
 begin
   FSrcAlpha := SrcAlpha;
-  FDrawMode := DrawMode;
   FBlendMemEx := BLEND_MEM_EX[CombineMode];
   FCombineCallBack := CombineCallBack;
+
+  // for the sake of speed use direct mapping to avoid unnecessary checks...
+  case DrawMode of
+    dmOpaque: FAssignColor := AssignColorOpaque;
+    dmBlend:  FAssignColor := AssignColorBlend;
+  else
+    if Assigned(FCombineCallback) then
+      FAssignColor := AssignColorCustom
+    else
+      FAssignColor := AssignColorBlend;
+  end;
+
   if not Assigned(FSampler) then
     raise Exception.Create(SSamplerNotAssigned)
   else
