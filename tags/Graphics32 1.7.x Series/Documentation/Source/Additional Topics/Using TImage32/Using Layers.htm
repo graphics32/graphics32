@@ -1,0 +1,103 @@
+<html>
+<head>
+  
+<title>Using Layers</title>
+  
+<link rel="stylesheet" href="../../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">TImage32 holds an indexed collection of layers, referenced by 
+  the <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/Layers.htm">Layers</a> 
+  property. The number of layers is limited only by the amount of free memory.</p>
+<p class="Body">Each layer is an entity, which basically 'knows' how to paint 
+  itself to the back-buffer of the control and how to interact with the mouse. 
+  Layers are indexed and their indexes are similar to the Z-order of standard 
+  controls. Layers with smaller indexes are considered to lie deeper. This common 
+  behavior is implemented in the <a href="../../Units/GR32_Layers/Classes/TCustomLayer/_Body.htm">TCustomLayer</a> 
+  class.</p>
+<h2>Common Properties and Methods</h2>
+<p class="Body">The basic layer's behavior is controlled by its <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a> 
+  property, which is a 32-bit unsigned integer value composed of <a href="../../Units/GR32_Layers/Constants/Layer%20Options%20Bits.htm">Layer 
+  Options Bits</a>. This property allows for fast and relatively simple referencing 
+  of layers and groups of layers. </p>
+<p class="Body">Consider, for example, the LOB_VISIBLE bit (31-st bit in layer 
+  options). When TImage32 repaints its layers at PST_DRAW_LAYERS stage, it uses 
+  the stage parameter from corresponding <a href="Paint%20Stages.htm#TPaintStage%20Record">TPaintStage 
+  record</a> as a bit-mask (default value is LOB_VISIBLE=$80000000). Being compared 
+  (logical AND operation) with <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a> 
+  of each layer, this mask determines whether the layer should be painted or not.</p>
+<p class="Body">Similar situation is with reaction to mouse messages (see below).</p>
+<p class="Body">Using <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a> 
+  you can easily customize the appearance and modify the order of in thich TImage32 
+  repaints layers. For example, you may assign several categories to layers, using 
+  lower 24-bits of <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a> 
+  and then just change the mask in corresponding <a href="Paint Stages.htm#TPaintStage%20Record">TPaintStage 
+  record</a> to specify exactly which category you want do be displayed. </p>
+<p class="Body">More of that, remember, that you can insert several PST_DRAW_LAYERS 
+  paint stages (even before the PST_DRAW_BITMAP stage), each with its own mask, 
+  or, alternatively, call <a href="../../Units/GR32_Image/Classes/TCustomImage32/Methods/ExecDrawLayers.htm">ExecDrawLayers</a> 
+  while handling PST_CUSTOM stages. Basically it means, that you can realize almost 
+  any complex repainting scheme, like overlay layers, underlay layers, layers, 
+  which are always on top... or always in the background, etc.</p>
+<h2>Tracking the Mouse</h2>
+<p class="Body">Each layer is capable of responding to mouse down/move/up messages, 
+  which are routed to <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnMouseDown.htm">OnMouseDown</a>, 
+  <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnMouseMove.htm">OnMouseMove</a> 
+  and <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnMouseUp.htm">OnMouseUp</a> 
+  events of the container (TImage32 control). Only one layer can receive a mouse 
+  message at the time. </p>
+<p class="Body">Searching for the layer that receives a mouse message starts from 
+  the top-most layer and ends when the first layer satisfying both of the following 
+  conditions is found:</p>
+<ul>
+  <li>Layer has LOB_MOUSE_EVENTS bit activated in its <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a>; 
+  </li>
+  <li>Layer passes a hit test (see below);</li>
+</ul>
+<p class="Body">There is also a possibility to disable passing of all mouse messages 
+  to layers. Just set the <a href="../../Units/GR32_Layers/Classes/TLayerCollection/Properties/MouseEvents.htm">MouseEvents</a> 
+  property of the layer collection to <i>False</i>, and TImage32 will generate 
+  mouse events right away, without checking for possible receiving layer.</p>
+<p class="Body">As stated earlier, layer should pass a hit test in order to receive 
+  mouse message. The hit test is, basically a boolean responce to a couple of 
+  coordinates, accomplished by the <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Methods/HitTest.htm">HitTest</a> 
+  method:</p>
+<p class="Decl"><b>function</b> HitTest(X, Y: Integer): Boolean; <b>virtual</b>;</p>
+<p class="Body"><b>X</b> and <b>Y</b> parameters here are the coordinates of the 
+  point specified relative to the top-left corner of TImage32 (in pixels). The 
+  function returns a value that indicates that the layer is 'there'. This function 
+  is overriden in descendants, for example, in <a href="../../Units/GR32_Layers/Classes/TBitmapLayer/_Body.htm">TBitmapLayer</a>, 
+  this hit test may take into consideration values stored in the alpha channel 
+  of the contained bitmap. You can also write a handler for <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Events/OnHitTest.htm">OnHitTest</a> 
+  event to customize hit tests at run-time.</p>
+<p class="Body">Similar to standard controls, layers may also capture mouse messages. 
+  By default, all mouse messages are captured automatically once the mouse is 
+  pressed on top of the layer and until the mouse is released. The layer that 
+  has captured the mouse is pointed by the <a href="../../Units/GR32_Layers/Classes/TLayerCollection/Properties/MouseListener.htm">MouseListener</a> 
+  property of the layer collection. (There is a few things to work on here... 
+  will do it later).</p>
+<h2>Painting Layers</h2>
+<p class="Body">Layers are painted in bottom-to-top order, starting from lower 
+  indexes. By default, only visible layers are painted, that is the ones with 
+  LOB_VISIBLE bit set, but as it was shown above, this order may be changed.</p>
+<h2 class="Body">Positioned Layers</h2>
+<p class="Body">Positioned layers are the layers, you will probably use most of 
+  the time. The base class for positioned layers is <a href="../../Units/GR32_Layers/Classes/TPositionedLayer/_Body.htm">TPositionedLayer</a>. 
+  In addition to basic layer behavior, it introduces <a href="../../Units/GR32_Layers/Classes/TPositionedLayer/Properties/Location.htm">Location</a> 
+  property (of the <a href="../../Units/GR32/Types/Rectangle%20Types.htm#TFloatRect">TFloatRect</a> 
+  type), which specifies layer's position and size. Having location specified 
+  as a floating point rectangle helps to avoid rounding errors when layers are 
+  resized. </p>
+<p class="Body">The location can be specified in pixels, relative to TImage32 
+  top-left corner, or in scaled pixels, relative to the top-left corner of the 
+  <a href="Bitmap%20Image.htm">bitmap image</a>. In the second case, the scale 
+  of the layer coincides with the scale of the bitmap image and the actual location 
+  of the layer relative to the top-left corner of TImage32 may be obtained with 
+  its <a href="../../Units/GR32_Layers/Classes/TPositionedLayer/Methods/GetAdjustedLocation.htm">GetAdjustedLocation</a> 
+  method.</p>
+<p id="Hidden">[See Also] <a href="../../Units/GR32_Layers/Classes/TRubberbandLayer/_Body.htm">TRubberb</a><a href="../../Units/GR32_Layers/Classes/TRubberbandLayer/_Body.htm">andLayer</a>, 
+  <a href="../../Units/GR32_Layers/Classes/TBitmapLayer/_Body.htm">TBitmapLayer</a>, 
+  <a href="../../Examples.htm#ImgView%20and%20Layers%20Example">ImgView and Layers 
+  Example</a></p>
+</body>
+</html>

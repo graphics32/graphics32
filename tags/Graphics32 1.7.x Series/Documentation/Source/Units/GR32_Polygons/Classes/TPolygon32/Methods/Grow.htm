@@ -1,0 +1,24 @@
+<html>
+<head>
+<title></title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> Grow(const Delta: <a href="../../../../GR32/Types/TFixed.htm">TFixed</a>; 
+  EdgeSharpness: Single = 0): <a href="../_Body.htm">TPolygon32</a>;</p>
+<h2>Description</h2>
+<p class="Body">Creates a new instance of <a href="../_Body.htm">TPolygon32</a> 
+  object and changes its shape similar to dilation (or erosion when <b>Delta</b> 
+  is negative) morphological filters.</p>
+<p class="Body">The direction of grouth is determined by the order of the points 
+  in the contour. Positive direction is to the left of each line (see image below).</p>
+<p class="Body">Using <span class="EmptyRef">Grow</span> method with <b>Delta</b> 
+  = 0 will simply create a new instance of the polygon with the same data as in 
+  original polygon. </p>
+<p class="Body">The <b>EdgeSharpness</b> parameter controls generation of new 
+  vertices. Its value range is [0&#133;0.99].</p>
+<p class="Body"><img src="../../../../../../Images/img_003.gif" vspace="10"></p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>
