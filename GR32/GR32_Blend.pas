@@ -101,6 +101,7 @@ var
   ColorMax: TBlendReg;
   ColorMin: TBlendReg;
   ColorDifference: TBlendReg;
+  ColorAverage: TBlendReg;
   ColorExclusion: TBlendReg;
 
 { Special LUT pointers }
@@ -1419,6 +1420,29 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
+function _ColorAverage(C1, C2: TColor32): TColor32;
+var
+  r1, g1, b1, a1: TColor32;
+  r2, g2, b2, a2: TColor32;
+begin
+  a1 := C1 shr 24;
+  r1 := C1 and $00FF0000;
+  g1 := C1 and $0000FF00;
+  b1 := C1 and $000000FF;
+
+  a2 := C2 shr 24;
+  r2 := C2 and $00FF0000;
+  g2 := C2 and $0000FF00;
+  b2 := C2 and $000000FF;
+
+  a1 := (a1 + a2) div 2;
+  r1 := (r1 + r2) div 2;
+  g1 := (g1 + g2) div 2;
+  b1 := (b1 + b2) div 2;
+
+  Result := a1 shl 24 + r1 + g1 + b1;
+end;
+
 { MMX Color algebra versions }
 
 function M_ColorAdd(C1, C2: TColor32): TColor32;
@@ -1493,6 +1517,16 @@ asm
         db $0F,$67,$C2           /// PACKUSWB  MM0,MM2
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
+
+
+function M_ColorAverage(C1, C2: TColor32): TColor32;
+asm
+        MOVD      MM0,EAX
+        MOVD      MM1,EDX
+        PAVGB     MM0,MM1
+        MOVD      EAX,MM0
+end;
+
 
 { Misc stuff }
 
@@ -1570,6 +1604,7 @@ begin
     ColorMin := M_ColorMin;
     ColorDifference := M_ColorDifference;
     ColorExclusion := M_ColorExclusion;
+    ColorAverage := M_ColorAverage;
   end
   else
   begin
@@ -1617,6 +1652,7 @@ begin
     ColorMin := _ColorMin;
     ColorDifference := _ColorDifference;
     ColorExclusion := _ColorExclusion;
+    ColorAverage := _ColorAverage;
   end;
 end;
 
