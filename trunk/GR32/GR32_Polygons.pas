@@ -508,12 +508,13 @@ var
   C, A: TColor32;
   ScanLine: PIntegerArray;
   Winding, NextWinding: Integer;
-  AAShift, AALines: Integer;
+  AAShift, AALines, AAMultiplicator: Integer;
 begin
   A := Color shr 24;
 
   AAShift := AA_SHIFT[AAMode];
   AALines := AA_LINES[AAMode] - 1; // we do the -1 here for optimization.
+  AAMultiplicator := AA_MULTI[AAMode];
 
   // find the range of Y screen coordinates
   MinY := BaseY shr AAShift;
@@ -613,7 +614,7 @@ begin
       for I := 0 to BufferSize - 1 do
       begin
         Inc(N, Buffer[I]);
-        ColorBuffer[I] := TColor32(N * AA_MULTI[AAMode] and $FF00) shl 16 or C;
+        ColorBuffer[I] := TColor32(N * AAMultiplicator and $FF00) shl 16 or C;
       end;
 
       // draw it to the screen
