@@ -168,7 +168,7 @@ var
   r, g, b: TColor32;
   C: TColor32;
 begin
-  CheckParams(Src, Dst);
+  CheckParams(Dst, Src);
   Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
