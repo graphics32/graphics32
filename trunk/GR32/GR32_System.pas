@@ -22,6 +22,7 @@ unit GR32_System;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Andre Beckedorf
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_System.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
@@ -35,6 +36,22 @@ uses
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
+{ Has3DNow returns 'true' if CPU supports 3DNow! instructions }
+function Has3DNow: Boolean;
+{ Has3DNowExt returns 'true' if CPU supports 3DNow! Extended instructions }
+function Has3DNowExt: Boolean;
+{ HasSSE returns 'true' if CPU supports SSE instructions }
+function HasSSE: Boolean;
+{ HasSSE2 returns 'true' if CPU supports SSE2 instructions }
+function HasSSE2: Boolean;
+
+type
+  TCPUInstructionSet = (ciMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
+
+const
+  CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
+    ($800000, $2000000, $4000000, $F000000, $F00000);
+//   ciMMX  , ciSSE   , ciSSE2  , ci3DNow , ci3DNowExt
 
 { Internal support for Windows XP themes }
 var
@@ -160,15 +177,68 @@ asm
         MOV     EAX,EDX
 end;
 
-function HasMMX: Boolean;
+function CPU_AMDExtensions: Integer;
+asm
+        PUSH    EBX
+        MOV     EAX, $80000000
+        DW      $A20F   // CPUID
+        POP     EBX
+        MOV     EAX,EDX
+end;
+
+function CPU_AMDExtFeatures: Integer;
+asm
+        PUSH    EBX
+        MOV     EAX, $80000001
+        DW      $A20F   // CPUID
+        POP     EBX
+        MOV     EAX,EDX
+end;
+
+function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 begin
   Result := False;
-  if not CPUID_Available then Exit;              // no CPUID available
-  if CPU_Signature shr 8 and $0F < 5 then Exit;  // not a Pentium class
-  if CPU_Features and $800000 = 0 then Exit;     // no MMX
+  if not CPUID_Available then Exit;                   // no CPUID available
+  if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
+  if (InstructionSet = ci3DNow) or
+     (InstructionSet = ci3DNowExt) then
+  begin
+    if (CPU_AMDExtensions and $F000000 = 0) or        // check bit 31
+       (CPU_AMDExtFeatures and CPUISChecks[InstructionSet] = 0) then
+      Exit; // no 3DNow(Ext)
+  end
+  else
+    if CPU_Features and CPUISChecks[InstructionSet] = 0 then
+      Exit; // no MMX
+
   Result := True;
 end;
- 
+
+function HasMMX: Boolean;
+begin
+  Result := HasInstructionSet(ciMMX);
+end;
+
+function HasSSE: Boolean;
+begin
+  Result := HasInstructionSet(ciSSE);
+end;
+
+function HasSSE2: Boolean;
+begin
+  Result := HasInstructionSet(ciSSE2);
+end;
+
+function Has3DNow: Boolean;
+begin
+  Result := HasInstructionSet(ci3DNow);
+end;
+
+function Has3DNowExt: Boolean;
+begin
+  Result := HasInstructionSet(ci3DNowExt);
+end;
+
 const
   UXTHEME_DLL = 'uxtheme.dll';
 
