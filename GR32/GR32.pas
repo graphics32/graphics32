@@ -103,6 +103,8 @@ function WinColor(Color32: TColor32): TColor;
 function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
 
 // Color component access
+procedure Color32ToRGB(Color32: TColor32; var R,G,B: Byte);
+procedure Color32ToRGBA(Color32: TColor32; var R,G,B,A: Byte);
 function RedComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BlueComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -752,6 +754,21 @@ begin
   SetLength(Result, L);
   MoveLongword(Colors[0], Result[0], L);
 end;
+
+procedure Color32ToRGB(Color32: TColor32; var R,G,B: Byte);
+begin
+  R := (Color32 and $00FF0000) shr 16;
+  G := (Color32 and $0000FF00) shr 8;
+  B := Color32 and $000000FF;
+end;
+
+procedure Color32ToRGBA(Color32: TColor32; var R,G,B,A: Byte);
+begin
+  A := Color32 shr 24;
+  R := (Color32 and $00FF0000) shr 16;
+  G := (Color32 and $0000FF00) shr 8;
+  B := Color32 and $000000FF;
+end; 
 
 function RedComponent(Color32: TColor32): Integer;
 begin
