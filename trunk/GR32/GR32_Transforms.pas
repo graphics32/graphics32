@@ -135,7 +135,7 @@ procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
 { FullEdge controls how the bitmap is resampled }
 var
-  FullEdge: Boolean = False;
+  FullEdge: Boolean = True;
 
 implementation
 
