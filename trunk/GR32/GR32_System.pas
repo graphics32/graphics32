@@ -52,13 +52,13 @@ function HasSSE2: Boolean;
 type
   TCPUInstructionSet = (ciMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
 
-{ General function that returns whether as particular instrucion set is
+{ General function that returns whether a particular instrucion set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 
 const
   CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
-    ($800000, $2000000, $4000000, $F000000, $F00000);
+    ($800000, $2000000, $4000000, $80000000, $40000000);
 //   ciMMX  , ciSSE   , ciSSE2  , ci3DNow , ci3DNowExt
 
 {$IFNDEF CLX}
@@ -189,13 +189,19 @@ asm
         MOV     EAX,EDX
 end;
 
-function CPU_AMDExtensions: Integer;
+function CPU_AMDExtensionsAvailable: Boolean;
 asm
         PUSH    EBX
+        MOV     @Result, True
         MOV     EAX, $80000000
         DW      $A20F   // CPUID
+        CMP     EAX, $80000000
+        JBE     @NOEXTENSION
+        JMP     @EXIT
+      @NOEXTENSION:
+        MOV     @Result, False
+      @EXIT:
         POP     EBX
-        MOV     EAX,EDX
 end;
 
 function CPU_AMDExtFeatures: Integer;
@@ -215,9 +221,8 @@ begin
   if (InstructionSet = ci3DNow) or
      (InstructionSet = ci3DNowExt) then
   begin
-    if (CPU_AMDExtensions and $F000000 = 0) or        // check bit 31
-       (CPU_AMDExtFeatures and CPUISChecks[InstructionSet] = 0) then
-      Exit; // no 3DNow(Ext)
+    if not CPU_AMDExtensionsAvailable or (CPU_AMDExtFeatures and CPUISChecks[InstructionSet] = 0) then
+      Exit;
   end
   else
     if CPU_Features and CPUISChecks[InstructionSet] = 0 then
