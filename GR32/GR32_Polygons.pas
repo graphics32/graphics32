@@ -818,7 +818,7 @@ begin
       end;
 
       // draw it to the screen
-      TBitmap32Access(Bitmap).BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
+      BLEND_LINE_EX[Bitmap.CombineMode](@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
       EMMS;
     end;
 
@@ -1858,7 +1858,7 @@ begin
 
     for X := DstX to DstX + Length - 1 do
     begin
-      TBitmap32Access(FPattern).BlendMemEx(Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
+      BLEND_MEM_EX[FPattern.CombineMode](Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1896,7 +1896,7 @@ begin
   If Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
-      TBitmap32Access(FPattern).BlendMemEx(Src^, Dst^, AlphaValues^);
+      BLEND_MEM_EX[FPattern.CombineMode](Src^, Dst^, AlphaValues^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1908,7 +1908,7 @@ begin
   else
     for X := DstX to DstX + Length - 1 do
     begin
-      TBitmap32Access(FPattern).BlendMem(Src^, Dst^);
+      BLEND_MEM[FPattern.CombineMode](Src^, Dst^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1934,7 +1934,7 @@ begin
   If Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
-      TBitmap32Access(FPattern).BlendMemEx(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
+      BLEND_MEM_EX[FPattern.CombineMode](Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1946,7 +1946,7 @@ begin
   else
     for X := DstX to DstX + Length - 1 do
     begin
-      TBitmap32Access(FPattern).BlendMemEx(Src^, Dst^, FPattern.MasterAlpha);
+      BLEND_MEM_EX[FPattern.CombineMode](Src^, Dst^, FPattern.MasterAlpha);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin

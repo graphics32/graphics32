@@ -46,6 +46,17 @@ var
 
 procedure EMMS;
 
+type
+{ Function Prototypes }
+  TCombineReg  = function(X, Y, W: TColor32): TColor32;
+  TCombineMem  = procedure(F: TColor32; var B: TColor32; W: TColor32);
+  TBlendReg    = function(F, B: TColor32): TColor32;
+  TBlendMem    = procedure(F: TColor32; var B: TColor32);
+  TBlendRegEx  = function(F, B, M: TColor32): TColor32;
+  TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
+  TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
+  TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
+
 var
 { Function Variables }
   CombineReg: TCombineReg;
@@ -72,6 +83,16 @@ var
   MergeLine: TBlendLine;
   MergeLineEx: TBlendLineEx;
 
+{ Access to alpha composite functions corresponding to a combine mode }
+  BLEND_REG: array[TCombineMode] of TBlendReg;
+  BLEND_MEM: array[TCombineMode] of TBlendMem;
+  COMBINE_REG: array[TCombineMode] of TCombineReg;
+  COMBINE_MEM: array[TCombineMode] of TCombineMem;
+  BLEND_REG_EX: array[TCombineMode] of TBlendRegEx;
+  BLEND_MEM_EX: array[TCombineMode] of TBlendMemEx;
+  BLEND_LINE: array[TCombineMode] of TBlendLine;
+  BLEND_LINE_EX: array[TCombineMode] of TBlendLineEx;
+
 { Color algebra functions }
   ColorAdd: TBlendReg;
   ColorSub: TBlendReg;
@@ -88,11 +109,12 @@ var
   bias_ptr: Pointer;
   alpha_ptr: Pointer;
 
+
 { Misc stuff }
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
-
-
+procedure M_BlendMem(F: TColor32; var B: TColor32);
+procedure _MergeMem(F: TColor32; var B:TColor32);
 
 implementation
 
@@ -1550,6 +1572,23 @@ begin
     MergeLine := M_MergeLine;
     MergeLineEx := M_MergeLineEx;
 
+    BLEND_MEM[cmBlend] := M_BlendMem;
+    BLEND_MEM[cmMerge] := M_MergeMem;
+    BLEND_REG[cmBlend] := M_BlendReg;
+    BLEND_REG[cmMerge] := M_MergeReg;
+    COMBINE_MEM[cmBlend] := M_CombineMem;
+    COMBINE_MEM[cmMerge] := M_CombMergeMem;
+    COMBINE_REG[cmBlend] := M_CombineReg;
+    COMBINE_REG[cmMerge] := M_CombMergeReg;
+    BLEND_MEM_EX[cmBlend] := M_BlendMemEx;
+    BLEND_MEM_EX[cmMerge] := M_MergeMemEx;
+    BLEND_REG_EX[cmBlend] := M_BlendRegEx;
+    BLEND_REG_EX[cmMerge] := M_MergeRegEx;
+    BLEND_LINE[cmBlend] := M_BlendLine;
+    BLEND_LINE[cmMerge] := M_MergeLine;
+    BLEND_LINE_EX[cmBlend] := M_BlendLineEx;
+    BLEND_LINE_EX[cmMerge] := M_MergeLineEx;
+
     ColorAdd := M_ColorAdd;
     ColorSub := M_ColorSub;
     ColorMul := _ColorMul;
@@ -1580,6 +1619,23 @@ begin
     MergeMemEx := _MergeMemEx;
     MergeLine := _MergeLine;
     MergeLineEx := _MergeLineEx;
+
+    BLEND_MEM[cmBlend] := _BlendMem;
+    BLEND_MEM[cmMerge] := _MergeMem;
+    BLEND_REG[cmBlend] := _BlendReg;
+    BLEND_REG[cmMerge] := _MergeReg;
+    COMBINE_MEM[cmBlend] := _CombineMem;
+    COMBINE_MEM[cmMerge] := _CombMergeMem;
+    COMBINE_REG[cmBlend] := _CombineReg;
+    COMBINE_REG[cmMerge] := _CombMergeReg;
+    BLEND_MEM_EX[cmBlend] := _BlendMemEx;
+    BLEND_MEM_EX[cmMerge] := _MergeMemEx;
+    BLEND_REG_EX[cmBlend] := _BlendRegEx;
+    BLEND_REG_EX[cmMerge] := _MergeRegEx;
+    BLEND_LINE[cmBlend] := _BlendLine;
+    BLEND_LINE[cmMerge] := _MergeLine;
+    BLEND_LINE_EX[cmBlend] := _BlendLineEx;
+    BLEND_LINE_EX[cmMerge] := _MergeLineEx;
 
     ColorAdd := _ColorAdd;
     ColorSub := _ColorSub;
