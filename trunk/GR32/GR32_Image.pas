@@ -674,6 +674,7 @@ begin
   FForceFullRepaint := True;
   FInvalidRects := TRectList.Create;
   FRepaintOptimizer := TMicroTilesRepaintOptimizer.Create(Buffer, InvalidRects);
+  FRepaintMode := rmOptimizer;
   Height := 192;
   Width := 192;
 end;
@@ -695,7 +696,7 @@ end;
 function TCustomPaintBox32.CustomRepaintNeeded: Boolean;
 begin
   Result := FRepaintOptimizer.Enabled and
-            not FForceFullRepaint and FRepaintOptimizer.CustomRepaintNeeded;
+    not FForceFullRepaint and FRepaintOptimizer.CustomRepaintNeeded;
 end;
 
 procedure TCustomPaintBox32.DoValidateInvalidRects;
