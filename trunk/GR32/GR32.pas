@@ -455,7 +455,11 @@ type
 {$IFDEF CLX}
     procedure Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH); overload;
 {$ELSE}
+  {$IFDEF BCB}
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: Cardinal); overload;
+  {$ELSE}
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+  {$ENDIF}
 {$ENDIF}
 
     procedure DrawTo(Dst: TBitmap32); overload;
@@ -463,9 +467,15 @@ type
     procedure DrawTo(Dst: TBitmap32; DstX, DstY: Integer); overload;
     procedure DrawTo(Dst: TBitmap32; const DstRect: TRect); overload;
     procedure DrawTo(Dst: TBitmap32; const DstRect, SrcRect: TRect); overload;
+{$IFDEF BCB}
+    procedure DrawTo(hDst: Cardinal; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: Cardinal; const DstRect, SrcRect: TRect); overload;
+    procedure TileTo(hDst: Cardinal; const DstRect, SrcRect: TRect);
+{$ELSE}
     procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
+{$ENDIF}
 
     procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
     procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
@@ -1785,7 +1795,7 @@ end;
 
 {$ELSE}
 
-procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
+procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF});
 begin
   if Empty then Exit;
   StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
@@ -1830,7 +1840,7 @@ begin
   Dst.Changed;
 end;
 
-procedure TBitmap32.DrawTo(hDst: HDC; DstX, DstY: Integer);
+procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
 begin
   if Empty then Exit;
 {$IFDEF CLX}
@@ -1844,7 +1854,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TBitmap32.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
+procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect);
 begin
   if Empty then Exit;
 {$IFDEF CLX}
@@ -1862,7 +1872,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TBitmap32.TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
+procedure TBitmap32.TileTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect);
 const
   MaxTileSize = 1024;
 var
