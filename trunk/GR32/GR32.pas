@@ -117,7 +117,7 @@ procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
 { A fixed-point type }
 
 type
-  // this type has data bits arangement compatible with Windows.TFixed
+  // this type has data bits arrangement compatible with Windows.TFixed
   TFixed = type Integer;
   PFixed = ^TFixed;
 
@@ -352,7 +352,7 @@ type
     procedure SetStretchFilter(Value: TStretchFilter);
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32);
-    procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);      
+    procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -490,22 +490,29 @@ type
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
     procedure UpdateFont;
-    procedure Textout(X, Y: Integer; const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}); overload;
+{$IFDEF CLX}
+    procedure Textout(X, Y: Integer; const Text: Widestring); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
+    procedure Textout(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    function  TextExtent(const Text: Widestring): TSize;
+    function  TextHeight(const Text: Widestring): Integer;
+    function  TextWidth(const Text: Widestring): Integer;
+    procedure RenderText(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
+{$ELSE}
+    procedure Textout(X, Y: Integer; const Text: String); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
+    procedure Textout(const DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    function  TextExtent(const Text: String): TSize;
+    function  TextHeight(const Text: String): Integer;
+    function  TextWidth(const Text: String): Integer;
+    procedure RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
+{$ENDIF}
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect;
-                      const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure Textout(const DstRect: TRect; const Flags: Cardinal;
-                      const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}); overload;
     procedure TextoutW(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
-    function  TextExtent(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): TSize;
     function  TextExtentW(const Text: Widestring): TSize;
-    function  TextHeight(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
     function  TextHeightW(const Text: Widestring): Integer;
-    function  TextWidth(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
     function  TextWidthW(const Text: Widestring): Integer;
-    procedure RenderText(X, Y: Integer; const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF};
-                         AALevel: Integer; Color: TColor32);
     procedure RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 
     procedure Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
@@ -3212,9 +3219,7 @@ function TBitmap32.TextExtent(const Text: Widestring): TSize;
 begin
   Result := TextExtentW(Text); // QT uses Unicode.
 end;
-
 {$ELSE}
-
 function TBitmap32.TextExtent(const Text: String): TSize;
 var
   DC: HDC;
@@ -3306,9 +3311,7 @@ procedure TBitmap32.Textout(X, Y: Integer; const Text: Widestring);
 begin
   TextoutW(X, Y, Text); // QT uses Unicode
 end;
-
 {$ELSE}
-
 procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
 begin
   UpdateFont;
@@ -3344,9 +3347,7 @@ procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: Wi
 begin
   TextoutW(X, Y, ClipRect, Text);
 end;
-
 {$ELSE}
-
 procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
 begin
   UpdateFont;
@@ -3382,17 +3383,19 @@ end;
 
 // -------------------------------------------------------------------
 
-procedure TBitmap32.Textout(const DstRect: TRect; const Flags: Cardinal;
-  const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF});
-begin
 {$IFDEF CLX}
+procedure TBitmap32.Textout(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
+begin
   TextoutW(DstRect, Flags, Text);
+end;
 {$ELSE}
+procedure TBitmap32.Textout(const DstRect: TRect; const Flags: Cardinal; const Text: String);
+begin
   UpdateFont;
   DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
   Changed;
-{$ENDIF}  
 end;
+{$ENDIF}
 
 procedure TBitmap32.TextoutW(const DstRect: TRect; const Flags: Cardinal;
   const Text: Widestring);
@@ -3412,14 +3415,17 @@ end;
 
 // -------------------------------------------------------------------
 
-function TBitmap32.TextHeight(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
+{$IFDEF CLX}
+function TBitmap32.TextHeight(const Text: Widestring): Integer;
 begin
-  {$IFDEF CLX}
   Result := TextExtentW(Text).cY;
-  {$ELSE}
-  Result := TextExtent(Text).cY;
-  {$ENDIF}
 end;
+{$ELSE}
+function TBitmap32.TextHeight(const Text: String): Integer;
+begin
+  Result := TextExtent(Text).cY;
+end;
+{$ENDIF}
 
 function TBitmap32.TextHeightW(const Text: Widestring): Integer;
 begin
@@ -3428,14 +3434,17 @@ end;
 
 // -------------------------------------------------------------------
 
-function TBitmap32.TextWidth(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
+{$IFDEF CLX}
+function TBitmap32.TextWidth(const Text: Widestring): Integer;
 begin
-  {$IFDEF CLX}
   Result := TextExtentW(Text).cX;
-  {$ELSE}
-  Result := TextExtent(Text).cX;
-  {$ENDIF}
 end;
+{$ELSE}
+function TBitmap32.TextWidth(const Text: String): Integer;
+begin
+  Result := TextExtent(Text).cX;
+end;
+{$ENDIF}
 
 function TBitmap32.TextWidthW(const Text: Widestring): Integer;
 begin
@@ -3497,13 +3506,13 @@ begin
   end;
 end;
 
-procedure TBitmap32.RenderText(X, Y: Integer;
-  const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF};
-  AALevel: Integer; Color: TColor32);
 {$IFDEF CLX}
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 begin
   RenderTextW(X, Y, Text, AALevel, Color); // QT does Unicode
+end;
 {$ELSE}
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
   Sz: TSize;
@@ -3565,11 +3574,10 @@ begin
   finally
     B.Free;
   end;
-{$ENDIF}
 end;
+{$ENDIF}
 
-procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: Widestring;
-  AALevel: Integer; Color: TColor32);
+procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
   Sz: TSize;
