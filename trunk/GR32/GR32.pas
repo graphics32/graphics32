@@ -1412,7 +1412,7 @@ begin
   FPenColor := clWhite32;
   FStippleStep := 1;
   FCombineMode := cmBlend;
-  FResampler := TBitmap32LinearResampler.Create(Self);
+  FResampler := TBitmap32NearestResampler.Create(Self);
 end;
 
 destructor TBitmap32.Destroy;
