@@ -2499,10 +2499,28 @@ var
   Swapped, CheckVert: Boolean;
   P: PColor32;
 begin
+  Dx := X2 - X1; Dy := Y2 - Y1;
+
+  // check for trivial cases...
+  If Dx = 0 then // vertical line?
+  begin
+    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+    if L then PixelS[X2, Y2] := Value;
+    Changed;
+    Exit;
+  end
+  else if Dy = 0 then // horizontal line?
+  begin
+    if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
+    else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+    if L then PixelS[X2, Y2] := Value;
+    Changed;
+    Exit;
+  end;
+
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
-
-  Dx := X2 - X1; Dy := Y2 - Y1;
 
   If Dx > 0 then
   begin
@@ -2516,13 +2534,6 @@ begin
     X1 := -X1;   X2 := -X2;   Dx := -Dx;
     Cx1 := -Cx1; Cx2 := -Cx2;
     Swap(Cx1, Cx2);
-  end
-  else // Dx = 0
-  begin
-    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelS(X2, Y2, Value);
-    Exit;
   end;
 
   If Dy > 0 then
@@ -2537,13 +2548,6 @@ begin
     Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
     Cy1 := -Cy1; Cy2 := -Cy2;
     Swap(Cy1, Cy2);
-  end
-  else // Dy = 0
-  begin
-    if X2 > X1 then HorzLineS(X1, Y1, X2 - 1, Value)
-    else HorzLineS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelS(X2, Y2, Value);
-    Exit;
   end;
 
   If not L then
@@ -2754,10 +2758,28 @@ var
   P: PColor32;
   BlendMem: TBlendMem;
 begin
+  Dx := X2 - X1; Dy := Y2 - Y1;
+
+  // check for trivial cases...
+  If Dx = 0 then // vertical line?
+  begin
+    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
+    Changed;
+    Exit;
+  end
+  else if Dy = 0 then // horizontal line?
+  begin
+    if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
+    else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
+    Changed;
+    Exit;
+  end;
+
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
-
-  Dx := X2 - X1; Dy := Y2 - Y1;
 
   If Dx > 0 then
   begin
@@ -2771,13 +2793,6 @@ begin
     X1 := -X1;   X2 := -X2;   Dx := -Dx;
     Cx1 := -Cx1; Cx2 := -Cx2;
     Swap(Cx1, Cx2);
-  end
-  else // Dx = 0
-  begin
-    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Exit;
   end;
 
   If Dy > 0 then
@@ -2792,13 +2807,6 @@ begin
     Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
     Cy1 := -Cy1; Cy2 := -Cy2;
     Swap(Cy1, Cy2);
-  end
-  else // Dy = 0
-  begin
-    if X2 > X1 then HorzLineTS(X1, Y1, X2 - 1, Value)
-    else HorzLineTS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Exit;
   end;
 
   If not L then
@@ -3237,9 +3245,28 @@ begin
   If (FClipRect.Right - FClipRect.Left = 0) or
      (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
 
+  Dx := X2 - X1; Dy := Y2 - Y1;
+
+  // check for trivial cases...
+  If Dx = 0 then // vertical line?
+  begin
+    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
+    Changed;
+    Exit;
+  end
+  else if Dy = 0 then // horizontal line?
+  begin
+    if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
+    else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+    if L then SetPixelTS(X2, Y2, Value);
+    Changed;
+    Exit;
+  end;
+
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
-  Dx := X2 - X1; Dy := Y2 - Y1;
 
   If Dx > 0 then
   begin
@@ -3253,13 +3280,6 @@ begin
     X1 := -X1;   X2 := -X2;   Dx := -Dx;
     Cx1 := -Cx1; Cx2 := -Cx2;
     Swap(Cx1, Cx2);
-  end
-  else // Dx = 0
-  begin
-    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Exit;
   end;
 
   If Dy > 0 then
@@ -3274,17 +3294,9 @@ begin
     Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
     Cy1 := -Cy1; Cy2 := -Cy2;
     Swap(Cy1, Cy2);
-  end
-  else // Dy = 0
-  begin
-    if X2 > X1 then HorzLineTS(X1, Y1, X2 - 1, Value)
-    else HorzLineTS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Exit;
   end;
 
-  // diagonal line?
-  if Dx = Dy then
+  if Dx = Dy then // diagonal line?
   begin
     LineTS(X1, Y1, X2, Y2, Value, L);
     Exit;
