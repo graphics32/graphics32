@@ -121,6 +121,9 @@ type
     procedure OpacityChange(Sender: TObject);
     procedure PageControl1Change(Sender: TObject);
 
+    procedure SrcRBResizingEvent(Sender: TObject; const OldLocation: TFloatRect;
+      var NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
+
     procedure RubberLayerMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure RubberLayerMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -138,6 +141,7 @@ type
     StippleStart: Single;
     procedure PaintHandles(Sender: TObject; BackBuffer: TBitmap32);
   public
+    SrcRubberBandLayer: TRubberBandLayer;
     Operation: TOpRecs;
     Current: ^TOpRec;
     AT: TAffineTransformation;
@@ -171,7 +175,10 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   ResamplerClassNamesList.Items:= GetResamplerClassNames;
-  
+
+  SrcRubberBandLayer:= TRubberBandLayer.Create(Src.Layers);
+  SrcRubberBandLayer.OnResizing:= SrcRBResizingEvent;
+
   with TCustomLayer.Create(Dst.Layers) do
   begin
     OnPaint := PaintHandles;
@@ -250,7 +257,8 @@ var
   Rec: TOpRec;
   S: string;
 begin
-  TT.SrcRect := FloatRect(0, 0, Src.Bitmap.Width - 1, Src.Bitmap.Height - 1);
+  TT.SrcRect := SrcRubberBandLayer.Location;
+
   if Mode = tmProjective then
   begin
     PT.X0 := Vertices[0].X;
@@ -601,6 +609,13 @@ end;
 procedure TForm1.CheckBox1Click(Sender: TObject);
 begin
   GR32_Transforms.FullEdge := CheckBox1.Checked;
+  DoTransform;
+end;
+
+procedure TForm1.SrcRBResizingEvent(Sender: TObject;
+  const OldLocation: TFloatRect; var NewLocation: TFloatRect;
+  DragState: TDragState; Shift: TShiftState);
+begin
   DoTransform;
 end;
 
