@@ -55,7 +55,8 @@ procedure TestSwap(var A, B: Integer);
 
 { Exhange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
-function TestClip(var A, B: Integer; Size: Integer): Boolean;
+function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
+function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
 
 { Returns Value constrained to [Lo..Hi] range}
 function Constrain(Value, Lo, Hi: Integer): Integer;
@@ -145,11 +146,19 @@ asm
 @exit:
 end;
 
-function TestClip(var A, B: Integer; Size: Integer): Boolean;
+function TestClip(var A, B: Integer; const Size: Integer): Boolean;
 begin
   TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
   if A < 0 then A := 0;
   if B >= Size then B := Size - 1;
+  Result := B >= A;
+end;
+
+function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean;
+begin
+  TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
+  if A < Start then A := Start;
+  if B >= Stop then B := Stop - 1;
   Result := B >= A;
 end;
 
