@@ -223,7 +223,7 @@ var
   i, j: Integer;
   P: PColor32;
 begin
-  Application.ProcessMessages;
+//  Application.ProcessMessages;
   GenTransform;
   Dst.BeginUpdate;
 
@@ -564,6 +564,7 @@ end;
 
 procedure TForm1.AppEventsIdle(Sender: TObject; var Done: Boolean);
 begin
+  if DraggedVertex >= 0 then Exit;
   StippleStart := StippleStart - 0.05;
   Dst.Invalidate;
 end;
@@ -616,6 +617,7 @@ procedure TForm1.SrcRBResizingEvent(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
   DragState: TDragState; Shift: TShiftState);
 begin
+  Src.Repaint;
   DoTransform;
 end;
 
