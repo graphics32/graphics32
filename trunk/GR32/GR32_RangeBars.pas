@@ -22,6 +22,7 @@ unit GR32_RangeBars;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Marc Lafon
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_RangeBars.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
