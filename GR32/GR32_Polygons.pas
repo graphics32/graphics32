@@ -59,9 +59,7 @@ type
   TAntialiasMode = (am16times, am8times, am4times);
 
 const
-{ Use 54 levels of transparency for antialiasing. Undefine it to use 240 levels,
-  however, it is almost impossible to notice the difference. }
-  DefaultAAMode = am8times;
+  DefaultAAMode = am8times; // Use 54 levels of transparency for antialiasing.
 
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate);
@@ -119,7 +117,7 @@ const
   AA_LINES: Array[TAntialiasMode] of Integer = (16, 8, 4);
   AA_SHIFT: Array[TAntialiasMode] of Integer = (4, 3, 2);
   AA_MULTI: Array[TAntialiasMode] of Integer = (273, 1167, 5460);
-  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_12, SAR_13, SAR_14); 
+  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_12, SAR_13, SAR_14);
 
 type
 // These are for edge scan info. Note, that the most significant bit of the
