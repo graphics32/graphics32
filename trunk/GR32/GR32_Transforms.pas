@@ -363,23 +363,19 @@ var
   DrawMode: TDrawMode;
   CombineCallBack: TPixelCombineEvent;
   BlendMemEx: TBlendMemEx;
+  fx, fy: single;
 
-  function GET_S256_Resamplers(X256, Y256: Integer; out C: TColor32): Boolean;
-  const
-    ByteFixedToFloat = 1/$100;
+  function GET_Resampled(x, y: single; out C: TColor32): Boolean;
   begin
-    X := SAR_8(X256);
-    Y := SAR_8(Y256);
-    if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or
-       (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
+    if (x < SrcRectI.Left - 1) or (y < SrcRectI.Top - 1) or
+       (x > SrcRectI.Right) or (y > SrcRectI.Bottom) then
       begin
         // (X,Y) coordinate is out of the SrcRect, do not interpolate
         C := 0; // just write something to disable compiler warnings
         Result := False;
       end else begin
-        EMMS;
        // everything is ok interpolate between four neighbors
-        C := ResamplePixel(Src, X256 * ByteFixedToFloat, Y256 * ByteFixedToFloat);
+        C := ResamplePixel(Src, x, y);
         Result := True;
       end;
   end;
@@ -395,7 +391,6 @@ var
         C := 0; // just write something to disable compiler warnings
         Result := False;
       end else begin
-        EMMS;
        // everything is ok interpolate between four neighbors
         C := TBitmap32Access(Src).GET_TS256(X256, Y256);
         Result := True;
@@ -454,7 +449,7 @@ begin
         end;
       end;
 
-    end else if (Src.Resampler is TDraftResampler) or // draft or linear
+    end else if (Src.Resampler is TDraftResampler) or // draft or linear  
       (Src.Resampler is TLinearResampler) then begin
 
       for J := DstRect.Top to DstRect.Bottom do
@@ -480,8 +475,9 @@ begin
         Pixels := Dst.ScanLine[J];
         for I := DstRect.Left to DstRect.Right do
         begin
-          Transformation.ReverseTransform256(I, J, X, Y);
-          if GET_S256_Resamplers(X, Y, C) then
+          EMMS;
+          Transformation.ReverseTransformFloat(I, J, fx, fy);
+          if GET_Resampled(fx, fy, C) then
             case DrawMode of
               dmOpaque: Pixels[I] := C;
               dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
