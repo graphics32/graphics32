@@ -5188,12 +5188,12 @@ end;
 
 function TCustomSampler.GetSampleInt(X, Y: Integer): TColor32;
 begin
-  Result := GetSampleFixed(X * $1000, Y * $1000);
+  Result := GetSampleFixed(X * FixedOne, Y * FixedOne);
 end;
 
 function TCustomSampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
-  Result := GetSampleFloat(X / $1000, Y / $1000);
+  Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
 end;
 
 procedure TCustomSampler.PrepareRasterization;
