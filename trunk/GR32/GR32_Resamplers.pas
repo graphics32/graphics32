@@ -3,7 +3,7 @@ unit GR32_Resamplers;
 interface
 
 uses
-  Classes, Types, GR32, GR32_Transforms;
+  Classes, Types, GR32, GR32_Transforms, GR32_Rasterizers;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -268,21 +268,74 @@ type
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
   end;
 
-{ TNearestTransformer = class(TTransformer)
+  TCustomSuperSampler = class(TCustomSampler)
+  private
+    FSampler: TCustomSampler;
   public
+    constructor Create(Sampler: TCustomSampler); virtual;
+    procedure PrepareRasterization; override;
+    procedure FinalizeRasterization; override;
+  published
+    property Sampler: TCustomSampler read FSampler write FSampler;
+  end;
+
+  TSuperSampler = class(TCustomSuperSampler)
+  private
+    FSamplingY: Integer;
+    FSamplingX: Integer;
+    FDistanceX: TFixed;
+    FDistanceY: TFixed;
+    FOffsetX: TFixed;
+    FOffsetY: TFixed;
+    FScale: TFixed;
+    procedure SetSamplingX(const Value: Integer);
+    procedure SetSamplingY(const Value: Integer);
+  public
+    constructor Create(Sampler: TCustomSampler); override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-  end; }
+  published
+    property SamplingX: Integer read FSamplingX write SetSamplingX;
+    property SamplingY: Integer read FSamplingY write SetSamplingY;
+  end;
 
-// TLinearTransformer = class(TTransformer)
 
-{ Auxiliary record used in accumulation routines }
+  TRecurseProc = function(X, Y, W: TFixed; const C1, C2: TColor32): TColor32 of object;
+
+  TAdaptiveSuperSampler = class(TCustomSuperSampler)
+  private
+    FMinOffset: TFixed;
+    FLevel: Integer;
+    FTolerance: Integer;
+    FGetSample: TGetSampleFixed;
+    procedure SetLevel(const Value: Integer);
+    procedure SetTolerance(const Value: Integer);
+    function DoRecurse(X, Y, Offset: TFixed; const A, B, C, D, E: TColor32): TColor32;
+    function QuadrantColor(const C1, C2: TColor32; X, Y, Offset: TFixed;
+      Proc: TRecurseProc): TColor32;
+    function RecurseAC(X, Y, Offset: TFixed; const A, C: TColor32): TColor32;
+    function RecurseBD(X, Y, Offset: TFixed; const B, D: TColor32): TColor32;
+  protected
+    function CompareColors(C1, C2: TColor32): Boolean; virtual;
+  public
+    constructor Create(Sampler: TCustomSampler); override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    property Level: Integer read FLevel write SetLevel;
+    property Tolerance: Integer read FTolerance write SetTolerance;
+  end;
+
 type
+{ Auxiliary record used in accumulation routines }
   PBufferEntry = ^TBufferEntry;
   TBufferEntry = record
     B, G, R, A: Integer;
   end;
+
+{ Auxiliary routines for accumulating colors in a buffer }
+procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32);
+procedure MultiplyBuffer(var Buffer: TBufferEntry; M: Integer);
+function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32;
+procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer);
 
 { Routines used by design-time property editors }
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
@@ -328,8 +381,52 @@ type
   TMappingTable = array of TCluster;
 
   TFilterMethod = function(Value: Single): Single of object;
-  
-{ procedure AccumBuffer(var Buffer: TBufferEntry; Color: TColor32; Mapping: Integer);
+
+
+{ Auxiliary routines }
+
+procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32);
+begin
+  with TColor32Entry(Color) do
+  begin
+    Inc(Buffer.B, B);
+    Inc(Buffer.G, G);
+    Inc(Buffer.R, R);
+    Inc(Buffer.A, A);
+  end;
+end;
+
+procedure MultiplyBuffer(var Buffer: TBufferEntry; M: Integer);
+begin
+  Buffer.B := Buffer.B * M;
+  Buffer.G := Buffer.G * M;
+  Buffer.R := Buffer.R * M;
+  Buffer.A := Buffer.A * M;
+end;
+
+procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer);
+begin
+  Buffer.B := Buffer.B shr Shift;
+  Buffer.G := Buffer.G shr Shift;
+  Buffer.R := Buffer.R shr Shift;
+  Buffer.A := Buffer.A shr Shift;
+end;
+
+function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32;
+var
+  Rounding: Integer;
+begin
+  Rounding := $7FFFFFFF shr Shift;
+  with TColor32Entry(Result) do
+  begin
+    B := (Buffer.B + Rounding) shr Shift;
+    G := (Buffer.G + Rounding) shr Shift;
+    R := (Buffer.R + Rounding) shr Shift;
+    A := (Buffer.A + Rounding) shr Shift;
+  end;
+end;
+
+{ procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32; Mapping: Integer);
 asm
         MOVD      MM0,EDX
         MOVD      MM1,ECX
@@ -2273,6 +2370,181 @@ begin
   BoundsRectInt := MakeRect(Rect);
   BoundsRectFixed := FixedRect(Rect);
   BoundsRect := Rect;
+end;
+
+
+{ TCustomSuperSampler }
+
+procedure TCustomSuperSampler.PrepareRasterization;
+begin
+  FSampler.PrepareRasterization;
+end;
+
+procedure TCustomSuperSampler.FinalizeRasterization;
+begin
+  FSampler.FinalizeRasterization;
+end;
+
+
+{ TSuperSampler }
+
+constructor TSuperSampler.Create(Sampler: TCustomSampler);
+begin
+  inherited Create(Sampler);
+  FSamplingX := 4;
+  FSamplingY := 4;
+  SamplingX := 4;
+  SamplingY := 4;
+end;
+
+function TSuperSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+var
+  I, J: Integer;
+  dX, dY, tX: TFixed;
+  Buffer: TBufferEntry;
+  GetSample: TGetSampleFixed;
+begin
+  Buffer := EMPTY_ENTRY;
+  GetSample := FSampler.GetSampleFixed;
+  tX := X + FOffsetX;
+  Inc(Y, FOffsetY);
+  dX := FDistanceX;
+  dY := FDistanceY;
+  for J := 1 to FSamplingY do
+  begin
+    X := tX;
+    for I := 1 to FSamplingX do
+    begin
+      IncBuffer(Buffer, GetSample(X, Y));
+      Inc(X, dX);
+    end;
+    Inc(Y, dY);
+  end;
+  MultiplyBuffer(Buffer, FScale);
+  Result := BufferToColor32(Buffer, 16);
+end;
+
+function TSuperSampler.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  Result := GetSampleFixed(X * $10000, Y * $10000);
+end;
+
+procedure TSuperSampler.SetSamplingX(const Value: Integer);
+begin
+  if Value > 0 then
+  begin
+    FSamplingX := Value;
+    FDistanceX := Fixed(1 / Value);
+    FOffsetX := Fixed(((1 / Value) - 1) / 2);
+    FScale := Fixed(1 / (FSamplingX * FSamplingY));
+  end;
+end;
+
+procedure TSuperSampler.SetSamplingY(const Value: Integer);
+begin
+  if Value > 0 then
+  begin
+    FSamplingY := Value;
+    FDistanceY := Fixed(1 / Value);
+    FOffsetY := Fixed(((1 / Value) - 1) / 2);
+    FScale := Fixed(1 / (FSamplingX * FSamplingY));
+  end;
+end;
+
+{ TAdaptiveSuperSampler }
+
+function TAdaptiveSuperSampler.CompareColors(C1, C2: TColor32): Boolean;
+var
+  Diff: TColor32Entry;
+begin
+  Diff.ARGB := ColorDifference(C1, C2);
+  Result := FTolerance < Diff.R + Diff.G + Diff.B;
+end;
+
+constructor TAdaptiveSuperSampler.Create(Sampler: TCustomSampler);
+begin
+  inherited Create(Sampler);
+  FGetSample := FSampler.GetSampleFixed;
+  Level := 4;
+  Tolerance := 256;
+end;
+
+function TAdaptiveSuperSampler.DoRecurse(X, Y, Offset: TFixed; const A, B,
+  C, D, E: TColor32): TColor32;
+var
+  C1, C2, C3, C4: TColor32;
+begin
+  C1 := QuadrantColor(A, E, X - Offset, Y - Offset, Offset, RecurseAC);
+  C2 := QuadrantColor(B, E, X + Offset, Y - Offset, Offset, RecurseBD);
+  C3 := QuadrantColor(E, C, X + Offset, Y + Offset, Offset, RecurseAC);
+  C4 := QuadrantColor(E, D, X - Offset, Y + Offset, Offset, RecurseBD);
+  Result := ColorAverage(ColorAverage(C1, C2), ColorAverage(C3, C4));
+end;
+
+function TAdaptiveSuperSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+var
+  A, B, C, D, E: TColor32;
+const
+  FIXED_HALF = 32768;
+begin
+  A := FGetSample(X - FIXED_HALF, Y - FIXED_HALF);
+  B := FGetSample(X + FIXED_HALF, Y - FIXED_HALF);
+  C := FGetSample(X + FIXED_HALF, Y + FIXED_HALF);
+  D := FGetSample(X - FIXED_HALF, Y + FIXED_HALF);
+  E := FGetSample(X, Y);
+  Result := Self.DoRecurse(X, Y, 16384, A, B, C, D, E);
+  EMMS;
+end;
+
+function TAdaptiveSuperSampler.QuadrantColor(const C1, C2: TColor32; X, Y,
+  Offset: TFixed; Proc: TRecurseProc): TColor32;
+begin
+  if CompareColors(C1, C2) and (Offset >= FMinOffset) then
+    Result := Proc(X, Y, Offset, C1, C2)
+  else
+    Result := ColorAverage(C1, C2);
+end;
+
+function TAdaptiveSuperSampler.RecurseAC(X, Y, Offset: TFixed; const A,
+  C: TColor32): TColor32;
+var
+  B, D, E: TColor32;
+begin
+  EMMS;
+  B := FGetSample(X + Offset, Y - Offset);
+  D := FGetSample(X - Offset, Y + Offset);
+  E := FGetSample(X, Y);
+  Result := DoRecurse(X, Y, Offset shr 1, A, B, C, D, E);
+end;
+
+function TAdaptiveSuperSampler.RecurseBD(X, Y, Offset: TFixed; const B,
+  D: TColor32): TColor32;
+var
+  A, C, E: TColor32;
+begin
+  EMMS;
+  A := FGetSample(X - Offset, Y - Offset);
+  C := FGetSample(X + Offset, Y + Offset);
+  E := FGetSample(X, Y);
+  Result := DoRecurse(X, Y, Offset shr 1, A, B, C, D, E);
+end;
+
+procedure TAdaptiveSuperSampler.SetLevel(const Value: Integer);
+begin
+  FLevel := Value;
+  FMinOffset := Fixed(1 / (1 shl Value));
+end;
+
+procedure TAdaptiveSuperSampler.SetTolerance(const Value: Integer);
+begin
+  FTolerance := Value;
+end;
+
+{ TCustomSuperSampler }
+
+constructor TCustomSuperSampler.Create(Sampler: TCustomSampler);
+begin
+  FSampler := Sampler;
 end;
 
 initialization
