@@ -33,7 +33,7 @@ interface
 
 uses
 {$IFDEF CLX}
-  Qt, Types, 
+  Qt, Types,
   {$IFDEF LINUX}Libc, {$ENDIF}
   {$IFDEF MSWINDOWS}Windows, {$ENDIF}
 {$ELSE}
@@ -78,8 +78,9 @@ procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoi
   Color: TColor32; Mode: TPolyFillMode = pfAlternate);
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
-  const AAMode: TAntialiasMode = DefaultAAMode);  
+  const AAMode: TAntialiasMode = DefaultAAMode);
 
+function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 
 { TPolygon32 }
 { TODO : Bezier Curves, and QSpline curves for TrueType font rendering }
@@ -756,7 +757,7 @@ begin
   SetLength(ScanLines, MaxY - MinY + 1);
   for J := 0 to High(Points) do
     AddPolygon(PP[J], MinY, Bitmap.Width shl 8 - 1, Bitmap.Height - 1, ScanLines, True);
-    
+
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
@@ -823,6 +824,23 @@ begin
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
+  end;
+end;
+
+function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
+var
+  I: Integer;
+  iPt, jPt: PFixedPoint;
+begin
+  Result := False;
+  iPt := @Points[0];
+  jPt := @Points[High(Points)];
+  for I := 0 to High(Points) do
+  begin
+    Result := Result xor (((Pt.Y >= iPt.Y) xor (Pt.Y >= jPt.Y)) and
+      (Pt.X - iPt.X < MulDiv(jPt.X - iPt.X, Pt.Y - iPt.Y, jPt.Y - iPt.Y)));
+    jPt := iPt;
+    Inc(iPt);
   end;
 end;
 
