@@ -23,6 +23,7 @@ unit GR32_Image;
  *
  * Contributor(s):
  * Andre Beckedorf <Andre@metaException.de>
+ * Andrew P. Rybin <aprybin@users.sourceforge.net>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Image.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -85,13 +86,20 @@ type
     FBufferValid: Boolean;
     FOptions: TPaintBoxOptions;
     FOnGDIOverlay: TNotifyEvent;
+    FMouseInControl: Boolean;
+    FOnMouseEnter: TNotifyEvent;
+    FOnMouseLeave: TNotifyEvent;
     procedure SetBufferOversize(Value: Integer);
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
+    procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
+    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
   protected
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseEnter; virtual;
+    procedure MouseLeave; virtual;
     procedure Paint; override;
     procedure ResizeBuffer;
     property  BufferValid: Boolean read FBufferValid write FBufferValid;
@@ -108,6 +116,9 @@ type
     property Buffer: TBitmap32 read FBuffer;
     property BufferOversize: Integer read FBufferOversize write SetBufferOversize;
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
+    property MouseInControl: Boolean read FMouseInControl;
+    property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
+    property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
     property OnGDIOverlay: TNotifyEvent read FOnGDIOverlay write FOnGDIOverlay;
   end;
 
@@ -149,6 +160,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+    property OnMouseEnter;
+    property OnMouseLeave;
     property OnPaintBuffer: TNotifyEvent read FOnPaintBuffer write FOnPaintBuffer;
     property OnResize;
     property OnStartDrag;
@@ -182,8 +195,6 @@ type
     FOnPaintStage: TPaintStageEvent;
     procedure ResizedHandler(Sender: TObject);
     procedure ChangedHandler(Sender: TObject);
-    procedure CMMouseEnter(var Msg: TMessage); message CM_MOUSEENTER;
-    procedure CMMouseLeave(var Msg: TMessage); message CM_MOUSELEAVE;
     function  GetOnPixelCombine: TPixelCombineEvent;
     procedure GDIUpdateHandler(Sender: TObject);
     procedure SetBitmap(Value: TBitmap32);
@@ -214,6 +225,7 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
+    procedure MouseLeave; override;
     procedure UpdateCache;
     property  UpdateCount: Integer read FUpdateCount;
   public
@@ -555,10 +567,19 @@ begin
 end;
 
 
-
-
-
 { TCustomPaintBox32 }
+
+procedure TCustomPaintBox32.CMMouseEnter(var Message: TMessage);
+begin
+  inherited;
+  MouseEnter;
+end;
+
+procedure TCustomPaintBox32.CMMouseLeave(var Message: TMessage);
+begin
+  MouseLeave;
+  inherited;
+end;
 
 constructor TCustomPaintBox32.Create(AOwner: TComponent);
 begin
@@ -660,6 +681,20 @@ procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState; 
 begin
   if (pboAutoFocus in Options) and CanFocus then SetFocus;
   inherited;
+end;
+
+procedure TCustomPaintBox32.MouseEnter;
+begin
+  FMouseInControl := True;
+  if Assigned(FOnMouseEnter) then
+    FOnMouseEnter(Self);
+end;
+
+procedure TCustomPaintBox32.MouseLeave;
+begin
+  FMouseInControl := False;
+  if Assigned(FOnMouseLeave) then
+    FOnMouseLeave(Self);
 end;
 
 procedure TCustomPaintBox32.Paint;
@@ -826,19 +861,6 @@ end;
 procedure TCustomImage32.ChangedHandler(Sender: TObject);
 begin
   Changed;
-end;
-
-procedure TCustomImage32.CMMouseEnter(var Msg: TMessage);
-begin
-  if Assigned(FOnMouseEnter) then FOnMouseEnter(Self);
-end;
-
-procedure TCustomImage32.CMMouseLeave(var Msg: TMessage);
-begin
-  if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
-    Screen.Cursor := crDefault;
-  if Assigned(FOnMouseLeave) then FOnMouseLeave(Self);
-  inherited;
 end;
 
 function TCustomImage32.ControlToBitmap(const APoint: TPoint): TPoint;
@@ -1383,6 +1405,13 @@ end;
 
 
 
+
+procedure TCustomImage32.MouseLeave;
+begin
+  if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
+    Screen.Cursor := crDefault;
+  inherited;
+end;
 
 { TIVScrollProperties }
 
