@@ -48,6 +48,10 @@ function HasSSE2: Boolean;
 type
   TCPUInstructionSet = (ciMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
 
+{ General function that returns whether as particular instrucion set is
+  supported for the current CPU or not }
+function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
+
 const
   CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
     ($800000, $2000000, $4000000, $F000000, $F00000);
