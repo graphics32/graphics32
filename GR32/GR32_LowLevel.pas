@@ -39,7 +39,7 @@ uses
   GR32;
 
 { Clamp function restricts Value to [0..255] range }
-function Clamp(Value: Integer): TColor32;
+function Clamp(const Value: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
 procedure FillLongword(var X; Count: Integer; Value: Longword);
@@ -55,14 +55,14 @@ procedure TestSwap(var A, B: Integer);
 
 { Exhange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
-function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
-function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
+function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Returns Value constrained to [Lo..Hi] range}
-function Constrain(Value, Lo, Hi: Integer): Integer; //inline;
+function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Returns Value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
-function SwapConstrain(Value, Constrain1, Constrain2: Integer): Integer; //inline;
+function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
@@ -83,7 +83,7 @@ implementation
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
-function Clamp(Value: Integer): TColor32;
+function Clamp(const Value: Integer): TColor32;
 begin
   if Value < 0 then Result := 0
   else if Value > 255 then Result := 255
@@ -165,14 +165,14 @@ begin
   Result := B >= A;
 end;
 
-function Constrain(Value, Lo, Hi: Integer): Integer;
+function Constrain(const Value, Lo, Hi: Integer): Integer;
 begin
   if Value < Lo then Result := Lo
   else if Value > Hi then Result := Hi
   else Result := Value;
 end;
 
-function SwapConstrain(Value, Constrain1, Constrain2: Integer): Integer;
+function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 begin
   TestSwap(Constrain1, Constrain2);
   if Value < Constrain1 then Result := Constrain1

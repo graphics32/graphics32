@@ -98,17 +98,17 @@ const
 function Color32(WinColor: TColor): TColor32; overload;
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
-function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32;
+function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 function WinColor(Color32: TColor32): TColor;
 function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
 
 // Color component access
-function RedComponent(Color32: TColor32): Integer;
-function GreenComponent(Color32: TColor32): Integer;
-function BlueComponent(Color32: TColor32): Integer;
-function AlphaComponent(Color32: TColor32): Integer;
-function Intensity(Color32: TColor32): Integer;
-function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
+function RedComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function BlueComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function AlphaComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Intensity(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Color space conversion
 function HSLtoRGB(H, S, L: Single): TColor32;
@@ -127,8 +127,8 @@ type
   PFixed = ^TFixed;
 
   // a little bit of fixed point math
-  function Fixed(S: Single): TFixed; overload;
-  function Fixed(I: Integer): TFixed; overload;
+  function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+  function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
   function FixedFloor(A: TFixed): Integer;
   function FixedCeil(A: TFixed): Integer;
   function FixedMul(A, B: TFixed): TFixed;
@@ -163,16 +163,16 @@ type
   TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
 
 // construction and conversion of point types
-function Point(X, Y: Integer): TPoint; overload;
-function Point(const FP: TFloatPoint): TPoint; overload;
-function Point(const FXP: TFixedPoint): TPoint; overload;
-function FloatPoint(X, Y: Single): TFloatPoint; overload;
-function FloatPoint(const P: TPoint): TFloatPoint; overload;
-function FloatPoint(const FXP: TFixedPoint): TFloatPoint; overload;
-function FixedPoint(X, Y: Integer): TFixedPoint; overload;
-function FixedPoint(X, Y: Single): TFixedPoint; overload;
-function FixedPoint(const P: TPoint): TFixedPoint; overload;
-function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload;
+function Point(X, Y: Integer): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Point(const FP: TFloatPoint): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Point(const FXP: TFixedPoint): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatPoint(X, Y: Single): TFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatPoint(const P: TPoint): TFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatPoint(const FXP: TFixedPoint): TFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedPoint(X, Y: Integer): TFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedPoint(X, Y: Single): TFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedPoint(const P: TPoint): TFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Rectangles }
 
@@ -190,25 +190,25 @@ type
   TRectRounding = (rrClosest, rrOutside, rrInside);
 
 // Rectangle construction/conversion functions
-function MakeRect(L, T, R, B: Integer): TRect; overload;
-function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
-function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
-function FixedRect(const ARect: TRect): TFixedRect;
-function FloatRect(L, T, R, B: Single): TFloatRect; overload;
-function FloatRect(const ARect: TRect): TFloatRect; overload;
-function FloatRect(const AFixedRect: TFixedRect): TFloatRect; overload;
+function MakeRect(L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedRect(const ARect: TRect): TFixedRect; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(L, T, R, B: Single): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(const AFixedRect: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Some basic operations over rectangles
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
-function IntersectRectF(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
-function EqualRect(const R1, R2: TRect): Boolean;
-procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload;
-procedure InflateRectF(var FR: TFloatRect; Dx, Dy: Single);
-procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload;
-procedure OffsetRectF(var FR: TFloatRect; Dx, Dy: Single); overload;
-function IsRectEmpty(const R: TRect): Boolean; overload;
-function IsRectEmptyF(const FR: TFloatRect): Boolean; overload;
-function PtInRect(const R: TRect; const P: TPoint): Boolean;
+function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IntersectRectF(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRect(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure InflateRectF(var FR: TFloatRect; Dx, Dy: Single); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure OffsetRectF(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IsRectEmpty(const R: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IsRectEmptyF(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 { Other dynamic arrays }
@@ -1073,6 +1073,8 @@ begin
 end;
 
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
+const
+  ZERO_RECT: TRect = (Left: 0; Top: 0; Right: 0; Bottom: 0);
 begin
   if R1.Left >= R2.Left then Dst.Left := R1.Left else Dst.Left := R2.Left;
   if R1.Right <= R2.Right then Dst.Right := R1.Right else Dst.Right := R2.Right;
