@@ -4,16 +4,15 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Mask, ToolEdit, FileCtrl, ComCtrls, Utils, SimpleDOM, Placemnt,
-  Contnrs, DocStructure;
+  StdCtrls, Mask, JvToolEdit, FileCtrl, ComCtrls, Utils, SimpleDOM,
+  Contnrs, DocStructure, IniFiles, JvExMask;
 
 type
   TMainForm = class(TForm)
-    DirectoryEdit1: TDirectoryEdit;
+    DirectoryEdit1: TJvDirectoryEdit;
     Label1: TLabel;
     Process: TButton;
     Log: TMemo;
-    FormStorage1: TFormStorage;
     Label2: TLabel;
     Edit1: TEdit;
     Label3: TLabel;
@@ -31,6 +30,7 @@ type
     procedure DirectoryEdit1Change(Sender: TObject);
     procedure ProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   public
     ProjectDir: string;
     SourceDir: string;
@@ -93,8 +93,41 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  Ini: TIniFile;
+  I: Integer;
+  Value: String;
 begin
   DirectoryEdit1Change(Self);
+
+  Ini := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'properties.ini');
+  try
+    for i := 0 to Self.ComponentCount-1 do
+    if Self.Components[i].InheritsFrom(TCustomEdit) and
+       not Self.Components[i].InheritsFrom(TMemo) then
+    begin
+      Value := Ini.ReadString('Settings', Self.Components[i].Name, '');
+      If Value <> '' then TEdit(Self.Components[i]).Text := Value;
+    end;
+  finally
+    Ini.Free;
+  end;
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+var
+  Ini: TIniFile;
+  I: Integer;
+begin
+  Ini := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'properties.ini');
+  try
+    for i := 0 to Self.ComponentCount-1 do
+    if Self.Components[i].InheritsFrom(TCustomEdit) and
+       not Self.Components[i].InheritsFrom(TMemo) then
+      Ini.WriteString('Settings', Self.Components[i].Name, TEdit(Self.Components[i]).Text);
+  finally
+    Ini.Free;
+  end;
 end;
 
 procedure TMainForm.ProcessClick(Sender: TObject);
