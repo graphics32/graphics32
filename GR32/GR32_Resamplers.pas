@@ -176,6 +176,8 @@ type
     procedure SetKernel(const Value: TCustomKernel);
     function GetKernelClassName: string;
     procedure SetKernelClassName(Value: string);
+  protected
+    function GetWidth: Single; override;
   public
     constructor Create(Bitmap: TBitmap32); override;
     destructor Destroy; override;
@@ -206,6 +208,8 @@ type
 
   { TBitmap32NearestResampler }
   TBitmap32NearestResampler = class(TBitmap32Resampler)
+  protected
+    function GetWidth: Single; override;
   public
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
@@ -219,6 +223,8 @@ type
   TBitmap32LinearResampler = class(TBitmap32Resampler)
   private
     FLinearKernel: TLinearKernel;
+  protected
+    function GetWidth: Single; override;
   public
     function GetSampleFloat(X, Y: Single): TColor32; override;
     constructor Create(Bitmap: TBitmap32); override;
@@ -1995,6 +2001,11 @@ begin
   end;
 end;
 
+function TBitmap32KernelResampler.GetWidth: Single;
+begin
+  Result := Kernel.GetWidth;
+end;
+
 { TBitmap32TableResampler }
 
 constructor TBitmap32TableResampler.Create(Bitmap: TBitmap32);
@@ -2118,6 +2129,11 @@ begin
   Result := Bitmap.Pixel[Round(X), Round(Y)];
 end;
 
+function TBitmap32NearestResampler.GetWidth: Single;
+begin
+  Result := 1;
+end;
+
 procedure TBitmap32NearestResampler.Resample(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
@@ -2144,6 +2160,11 @@ end;
 function TBitmap32LinearResampler.GetSampleFloat(X, Y: Single): TColor32;
 begin
   Result := FBitmap.PixelFS[X, Y];
+end;
+
+function TBitmap32LinearResampler.GetWidth: Single;
+begin
+  Result := 1;
 end;
 
 procedure TBitmap32LinearResampler.Resample(
