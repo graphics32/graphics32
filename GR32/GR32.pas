@@ -663,11 +663,14 @@ type
 
   { TCustomResampler }
   TCustomResampler = class(TCustomSampler)
+  protected
+    function GetWidth: Single; virtual; abstract;
   public
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
+    property Width: Single read GetWidth;
   end;
   TCustomResamplerClass = class of TCustomResampler;
 
@@ -4969,13 +4972,19 @@ end;
 
 procedure TBitmap32.Changed;
 begin
-  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then FOnChangedRect(Self, BoundsRect);
+  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then
+    FOnChangedRect(Self, BoundsRect);
+
+  if not FMeasuringMode then
   inherited;
 end;
 
 procedure TBitmap32.Changed(const Rect: TRect);
 begin
-  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then FOnChangedRect(Self, Rect);
+  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then
+    FOnChangedRect(Self, Rect);
+
+  if not FMeasuringMode then
   inherited Changed;
 end;
 
