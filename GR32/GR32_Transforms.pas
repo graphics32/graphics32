@@ -1337,7 +1337,7 @@ begin
   IntersectRect(DstRect, R, MakeRect(Dst.ClipRect.Left, Dst.ClipRect.Top,
     Dst.ClipRect.Right - 1, Dst.ClipRect.Bottom - 1));
 
-  if IsRectEmpty(DstRect) then Exit;
+  if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
   try
     if Src.StretchFilter <> sfNearest then
