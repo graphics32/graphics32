@@ -418,9 +418,15 @@ begin
         OldSrcY := -1;
 
         if Src.MasterAlpha >= 255 then
-          BlendLine := BLEND_LINE[Src.CombineMode]
+        begin
+          BlendLine := BLEND_LINE[Src.CombineMode];
+          BlendLineEx := nil; // stop compiler warnings...
+        end
         else
+        begin
           BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
+          BlendLine := nil; // stop compiler warnings...
+        end;
 
         for J := 0 to DstClipH - 1 do
         begin
@@ -535,9 +541,6 @@ begin
   end;
 
   DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-  SrcLine := Src.ScanLine[MapVert[J].Pos];
-  WY := MapVert[J].Weight;
-
   case CombineOp of
     dmOpaque:
       for J := 0 to DstClipH - 1 do
