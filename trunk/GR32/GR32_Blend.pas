@@ -1284,6 +1284,8 @@ begin
 
     ColorAdd := M_ColorAdd;
     ColorSub := M_ColorSub;
+    ColorMul := _ColorMul;
+    ColorDiv := _ColorDiv;
     ColorModulate:= M_ColorModulate;
     ColorMax:= M_ColorMax;
     ColorMin:= M_ColorMin;
