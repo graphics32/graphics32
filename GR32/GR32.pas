@@ -297,6 +297,8 @@ type
     procedure SetPixel(X, Y: Integer; Value: TColor32);
     procedure SetPixelS(X, Y: Integer; Value: TColor32);
     procedure SetStretchFilter(Value: TStretchFilter);
+    procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
+      const Color: TColor32);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -422,13 +424,20 @@ type
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
     procedure UpdateFont;
-    procedure Textout(X, Y: Integer; const Text: string); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: string); overload;
-    procedure Textout(ClipRect: TRect; const Flags: Cardinal; const Text: string); overload;
-    function  TextExtent(const Text: string): TSize;
-    function  TextHeight(const Text: string): Integer;
-    function  TextWidth(const Text: string): Integer;
-    procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
+    procedure Textout(X, Y: Integer; const Text: String); overload;
+    procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
+    procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
+    procedure Textout(ClipRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    procedure TextoutW(ClipRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    function  TextExtent(const Text: String): TSize;
+    function  TextExtentW(const Text: Widestring): TSize;
+    function  TextHeight(const Text: String): Integer;
+    function  TextHeightW(const Text: Widestring): Integer;
+    function  TextWidth(const Text: String): Integer;
+    function  TextWidthW(const Text: Widestring): Integer;
+    procedure RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
+    procedure RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 
     procedure Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
     procedure FlipHorz(Dst: TBitmap32 = nil);
@@ -2949,7 +2958,7 @@ end;
 
 // Text and Fonts //
 
-function TBitmap32.TextExtent(const Text: string): TSize;
+function TBitmap32.TextExtent(const Text: String): TSize;
 var
   DC: HDC;
   OldFont: HGDIOBJ;
@@ -2973,39 +2982,127 @@ begin
   end;
 end;
 
-procedure TBitmap32.Textout(X, Y: Integer; const Text: string);
+function TBitmap32.TextExtentW(const Text: Widestring): TSize;
+var
+  DC: HDC;
+  OldFont: HGDIOBJ;
+begin
+  UpdateFont;
+  Result.cX := 0;
+  Result.cY := 0;
+  if Handle <> 0 then
+    Windows.GetTextExtentPoint32W(Handle, PWideChar(Text), Length(Text), Result)
+  else
+  begin
+    StockBitmap.Canvas.Lock;
+    try
+      DC := StockBitmap.Canvas.Handle;
+      OldFont := SelectObject(DC, Font.Handle);
+      Windows.GetTextExtentPoint32W(DC, PWideChar(Text), Length(Text), Result);
+      SelectObject(DC, OldFont);
+    finally
+      StockBitmap.Canvas.Unlock;
+    end;
+  end;
+end;
+
+procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
 begin
   UpdateFont;
   ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
   Changed;
 end;
 
-procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect;
-  const Text: string);
+procedure TBitmap32.TextoutW(X, Y: Integer; const Text: Widestring);
+begin
+  UpdateFont;
+  ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
+  Changed;
+end;
+
+procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
 begin
   UpdateFont;
   ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
   Changed;
 end;
 
-procedure TBitmap32.Textout(ClipRect: TRect; const Flags: Cardinal; const Text: string);
+procedure TBitmap32.TextoutW(X, Y: Integer; const ClipRect: TRect;
+  const Text: Widestring);
+begin
+  UpdateFont;
+  ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
+  Changed;
+end;
+
+procedure TBitmap32.Textout(ClipRect: TRect; const Flags: Cardinal; const Text: String);
 begin
   UpdateFont;
   DrawText(Handle, PChar(Text), Length(Text), ClipRect, Flags);
   Changed;
 end;
 
-function TBitmap32.TextHeight(const Text: string): Integer;
+procedure TBitmap32.TextoutW(ClipRect: TRect; const Flags: Cardinal;
+  const Text: Widestring);
+begin
+  UpdateFont;
+  DrawTextW(Handle, PWideChar(Text), Length(Text), ClipRect, Flags);
+  Changed;
+end;
+
+function TBitmap32.TextHeight(const Text: String): Integer;
 begin
   Result := TextExtent(Text).cY;
 end;
 
-function TBitmap32.TextWidth(const Text: string): Integer;
+function TBitmap32.TextHeightW(const Text: Widestring): Integer;
+begin
+  Result := TextExtentW(Text).cY;
+end;
+
+function TBitmap32.TextWidth(const Text: String): Integer;
 begin
   Result := TextExtent(Text).cX;
 end;
 
-procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
+function TBitmap32.TextWidthW(const Text: Widestring): Integer;
+begin
+  Result := TextExtentW(Text).cX;
+end;
+
+procedure TBitmap32.TextScaleDown(const B, B2: TBitmap32; const N: Integer;
+  const Color: TColor32); // use only the blue channel
+var
+  I, J, X, Y, P, Q, Sz, S: Integer;
+  Src: PColor32;
+  Dst: PColor32;
+begin
+  Sz := 1 shl N - 1;
+  Dst := B.PixelPtr[0, 0];
+  for J := 0 to B.Height - 1 do
+  begin
+    Y := J shl N;
+    for I := 0 to B.Width - 1 do
+    begin
+      X := I shl N;
+      S := 0;
+      for Q := Y to Y + Sz do
+      begin
+        Src := B2.PixelPtr[X, Q];
+        for P := X to X + Sz do
+        begin
+          S := S + Integer(Src^ and $000000FF);
+          Inc(Src);
+        end;
+      end;
+      S := S shr N shr N;
+      Dst^ := TColor32(S shl 24) + Color;
+      Inc(Dst);
+    end;
+  end;
+end;
+
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
   Sz: TSize;
@@ -3013,38 +3110,6 @@ var
   I: Integer;
   P: PColor32;
   StockCanvas: TCanvas;
-
-  procedure ScaleDown(N: Integer); // use only the blue channel
-  var
-    I, J, X, Y, P, Q, Sz, S: Integer;
-    Src: PColor32;
-    Dst: PColor32;
-  begin
-    Sz := 1 shl N - 1;
-    Dst := B.PixelPtr[0, 0];
-    for J := 0 to B.Height - 1 do
-    begin
-      Y := J shl N;
-      for I := 0 to B.Width - 1 do
-      begin
-        X := I shl N;
-        S := 0;
-        for Q := Y to Y + Sz do
-        begin
-          Src := B2.PixelPtr[X, Q];
-          for P := X to X + Sz do
-          begin
-            S := S + Integer(Src^ and $000000FF);
-            Inc(Src);
-          end;
-        end;
-        S := S shr N shr N;
-        Dst^ := TColor32(S shl 24) + Color;
-        Inc(Dst);
-      end;
-    end;
-  end;
-
 begin
   if Empty then Exit;
 
@@ -3095,7 +3160,84 @@ begin
           B2.Textout(0, 0, Text);
           B2.StretchFilter := sfLinear;
           B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
-          ScaleDown(AALevel);
+          TextScaleDown(B, B2, AALevel, Color);
+        finally
+          B2.Free;
+        end;
+      finally
+        StockCanvas.Unlock;
+      end;
+    end;
+
+    B.DrawMode := dmBlend;
+    B.MasterAlpha := Alpha;
+
+    B.DrawTo(Self, X, Y);
+  finally
+    B.Free;
+  end;
+end;
+
+procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: WideString; AALevel: Integer; Color: TColor32);
+var
+  B, B2: TBitmap32;
+  Sz: TSize;
+  C, Alpha: TColor32;
+  I: Integer;
+  P: PColor32;
+  StockCanvas: TCanvas;
+begin
+  if Empty then Exit;
+
+  Alpha := Color shr 24;
+  Color := Color and $00FFFFFF;
+  AALevel := Constrain(AALevel, 0, 4);
+
+  B := TBitmap32.Create;
+  try
+    if AALevel = 0 then
+    begin
+      Sz := TextExtentW(Text + ' ');
+      B.SetSize(Sz.cX, Sz.cY);
+      B.Font := Font;
+      B.Clear(0);
+      B.Font.Color := clWhite;
+      B.TextoutW(0, 0, Text);
+
+      // convert blue channel to alpha and fill the color
+      P := @B.Bits[0];
+      for I := 0 to B.Width * B.Height - 1 do
+      begin
+        C := P^;
+        if C <> 0 then
+        begin
+          C := P^ shl 24; // transfer blue channel to alpha
+          C := C + Color;
+          P^ := C;
+        end;
+        Inc(P);
+      end;
+    end
+    else
+    begin
+      StockCanvas := StockBitmap.Canvas;
+      StockCanvas.Lock;
+      try
+        StockCanvas.Font := Font;
+        StockCanvas.Font.Size := Font.Size shl AALevel;
+        Windows.GetTextExtentPoint32W(StockCanvas.Handle, PWideChar(Text + ' '),
+          Length(Text + ' '), Sz);
+        Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
+        B2 := TBitmap32.Create;
+        try
+          B2.SetSize(Sz.Cx, Sz.Cy);
+          B2.Clear(0);
+          B2.Font := StockCanvas.Font;
+          B2.Font.Color := clWhite;
+          B2.TextoutW(0, 0, Text);
+          B2.StretchFilter := sfLinear;
+          B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
+          TextScaleDown(B, B2, AALevel, Color);
         finally
           B2.Free;
         end;
