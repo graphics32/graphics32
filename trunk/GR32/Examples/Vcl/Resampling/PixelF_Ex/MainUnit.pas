@@ -13,7 +13,7 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is GetPixelF_Ex
+ * The Original Code is PixelF_Ex
  *
  * The Initial Developer of the Original Code is
  * Michael Hansen
