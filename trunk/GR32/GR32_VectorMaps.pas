@@ -53,15 +53,15 @@ type
     function GetFPointF(X,Y: Single): TFloatPoint;
     function GetFPointFS(X,Y: Single): TFloatPoint;
 
-    procedure SetXPoint(X,Y: Integer; Point: TFixedPoint);
-    procedure SetXPointS(X,Y: Integer; Point: TFixedPoint);
-    procedure SetXPointX(X,Y: TFixed; Point: TFixedPoint);
-    procedure SetXPointXS(X,Y: TFixed; Point: TFixedPoint);
+    procedure SetXPoint(X,Y: Integer; const Point: TFixedPoint);
+    procedure SetXPointS(X,Y: Integer; const Point: TFixedPoint);
+    procedure SetXPointX(X,Y: TFixed; const Point: TFixedPoint);
+    procedure SetXPointXS(X,Y: TFixed; const Point: TFixedPoint);
 
-    procedure SetFPoint(X,Y: Integer; Point: TFloatPoint);
-    procedure SetFPointS(X,Y: Integer; Point: TFloatPoint);
-    procedure SetFPointF(X,Y: Single; Point: TFloatPoint);
-    procedure SetFPointFS(X,Y: Single; Point: TFloatPoint);
+    procedure SetFPoint(X,Y: Integer; const Point: TFloatPoint);
+    procedure SetFPointS(X,Y: Integer; const Point: TFloatPoint);
+    procedure SetFPointF(X,Y: Single; const Point: TFloatPoint);
+    procedure SetFPointFS(X,Y: Single; const Point: TFloatPoint);
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth,
       NewHeight: Integer); override;
@@ -135,13 +135,13 @@ uses Math, GR32_Lowlevel;
 
 { TTransformationMap }
 
-function CombinePointsReg(A, B: TFixedPoint; Weight256: Integer): TFixedPoint;
+function CombinePointsReg(const A, B: TFixedPoint; Weight256: Integer): TFixedPoint;
 begin
   Result.X := A.X +  SAR_8((B.X - A.X) * Weight256);
   Result.Y := A.Y +  SAR_8((B.Y - A.Y) * Weight256);
 end;
 
-procedure CombinePointsMem(A: TFixedPoint;var  B: TFixedPoint; Weight256: Integer);
+procedure CombinePointsMem(const A: TFixedPoint;var  B: TFixedPoint; Weight256: Integer);
 begin
   B.X := A.X +  SAR_8((B.X - A.X) * Weight256);
   B.Y := A.Y +  SAR_8((B.Y - A.Y) * Weight256);
@@ -235,24 +235,28 @@ begin
 end;
 
 function TTransformationMap.GetXPointX(X, Y: TFixed): TFixedPoint;
+const
+  Next = SizeOf(TFixedPoint);
 var
   WX,WY: Integer;
-  P: PFixedPoint;
-  P11, P12, P22: TFixedPoint;
+  P, W: Integer;
 begin
-  WX := SAR_8(X) and $FF;
-  WY := SAR_8(Y) and $FF;
-
-  X := SAR_16(X);
-  Y := SAR_16(Y);
-
-  P :=  @FBits[X + Y * Width];
-  P11 := P^; Inc(P);
-  P12 := P^; Inc(P, Width);
-  P22 := P^; Dec(P);
-
-  Result := CombinePointsReg(CombinePointsReg(P11, P12, WX),
-                             CombinePointsReg(P^, P22, WX), WY);
+  WX := SAR_16(X + $807E);
+  WY := SAR_16(Y + $807E);
+  W := Width;
+  if (WX >= 0) and (WX < W) and (WY >= 0) and (WY < Height) then
+  begin
+    P :=  Integer(@FBits[WX + WY * W]);
+    W := W * Next;
+    WX := SAR_8(X + $7F) and $FF;
+    WY := SAR_8(Y + $7F) and $FF;
+    Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + Next)^, WX),
+                               CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + Next)^, WX), WY);
+  end else
+  begin
+    Result.X:= 0;
+    Result.Y:= 0;
+  end;
 end;
 
 function TTransformationMap.GetXPointXS(X, Y: TFixed): TFixedPoint;
@@ -410,22 +414,22 @@ begin
   end;
 end;
 
-procedure TTransformationMap.SetFPoint(X, Y: Integer; Point: TFloatPoint);
+procedure TTransformationMap.SetFPoint(X, Y: Integer; const Point: TFloatPoint);
 begin
   FBits[X + Y * Width] := FixedPoint(Point);
 end;
 
-procedure TTransformationMap.SetFPointF(X, Y: Single; Point: TFloatPoint);
+procedure TTransformationMap.SetFPointF(X, Y: Single; const Point: TFloatPoint);
 begin
   SetXPointX(Fixed(X), Fixed(Y), FixedPoint(Point));
 end;
 
-procedure TTransformationMap.SetFPointFS(X, Y: Single; Point: TFloatPoint);
+procedure TTransformationMap.SetFPointFS(X, Y: Single; const Point: TFloatPoint);
 begin
   SetXPointXS(Fixed(X), Fixed(Y), FixedPoint(Point));
 end;
 
-procedure TTransformationMap.SetFPointS(X, Y: Integer; Point: TFloatPoint);
+procedure TTransformationMap.SetFPointS(X, Y: Integer; const Point: TFloatPoint);
 begin
   if X < 0 then X := 0 else
     if X >= Width then X := Width - 1;
@@ -434,12 +438,12 @@ begin
   SetFPoint(X, Y, Point);
 end;
 
-procedure TTransformationMap.SetXPoint(X, Y: Integer; Point: TFixedPoint);
+procedure TTransformationMap.SetXPoint(X, Y: Integer; const Point: TFixedPoint);
 begin
   FBits[X + Y * Width] := Point;
 end;
 
-procedure TTransformationMap.SetXPointS(X, Y: Integer; Point: TFixedPoint);
+procedure TTransformationMap.SetXPointS(X, Y: Integer; const Point: TFixedPoint);
 begin
   if X < 0 then X := 0 else
     if X >= Width then X := Width - 1;
@@ -448,7 +452,7 @@ begin
   SetXPoint(X, Y, Point);
 end;
 
-procedure TTransformationMap.SetXPointX(X, Y: TFixed; Point: TFixedPoint);
+procedure TTransformationMap.SetXPointX(X, Y: TFixed; const Point: TFixedPoint);
 var
   flrx, flry, celx, cely: Integer;
   P: PFixedPoint;
@@ -472,7 +476,7 @@ begin
   CombinePointsMem(Point, P^, FixedMul(celx, flry) );
 end;
 
-procedure TTransformationMap.SetXPointXS(X, Y: TFixed; Point: TFixedPoint);
+procedure TTransformationMap.SetXPointXS(X, Y: TFixed; const Point: TFixedPoint);
 var
   flrx, flry, celx, cely: Integer;
   P: PFixedPoint;
@@ -530,6 +534,8 @@ end;
 function TRemapTransformation.GetTransformedBounds: TRect;
 begin
   Result := TransformationMap.BoundsRect;
+//  Dec(Result.Right);
+//  Dec(Result.Bottom);
 end;
 
 procedure TRemapTransformation.PrepareTransform;
@@ -539,8 +545,6 @@ begin
   begin
     SrcTranslationFloat.X := Left;
     SrcTranslationFloat.Y := Top;
-//    SrcScaleFloat.X := 1 / ((TransformationMap.Width - 1) / (Right - Left) );
-//    SrcScaleFloat.Y := 1 / ((TransformationMap.Height - 1) / (Bottom - Top) );
     SrcScaleFloat.X := 1 / ((TransformationMap.Width - 1) / (Right - Left) );
     SrcScaleFloat.Y := 1 / ((TransformationMap.Height - 1) / (Bottom - Top) );
     SrcTranslationFixed := FixedPoint(SrcTranslationFloat);
@@ -551,8 +555,6 @@ begin
   begin
     DstTranslationFloat.X := Left;
     DstTranslationFloat.Y := Top;
-//    DstScaleFloat.X := (TransformationMap.Width - 1) / (Right - Left);
-//    DstScaleFloat.Y := (TransformationMap.Height - 1) / (Bottom - Top);
     DstScaleFloat.X :=  ((TransformationMap.Width - 1) / (Right - Left));
     DstScaleFloat.Y :=  ((TransformationMap.Height - 1) / (Bottom - Top));
     DstTranslationFixed := FixedPoint(DstTranslationFloat);
@@ -563,7 +565,7 @@ end;
 procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
   out SrcX256, SrcY256: Integer);
 begin
-  with TransformationMap.FixedPointMapS[DstX, DstY] do
+  with TransformationMap.FixedPointMap[DstX, DstY] do
   begin
     DstX:= DstX * FixedOne - DstTranslationFixed.X;
     DstY:= DstY * FixedOne - DstTranslationFixed.Y;
@@ -580,31 +582,13 @@ begin
 
     SrcX256 := SAR_8(DstX + $7F);
     SrcY256 := SAR_8(DstY + $7F);
-  end;       {
-  with TransformationMap.FixedPointMapS[DstX, DstY] do
-  begin
-    //Scale the vectors
-    X := FixedMul(X, ScalingFixed.X);
-    Y := FixedMul(Y, ScalingFixed.Y);
-
-    //Dst Translation and Scaling (controlled by DstRect)
-    Inc(X, DstX * FixedOne - DstTranslationFixed.X);
-    Inc(Y, DstY * FixedOne - DstTranslationFixed.Y);
-    X := FixedMul(X, DstScaleFixed.X);
-    Y := FixedMul(Y, DstScaleFixed.Y);
-
-    //Src Translation, Scaling (controlled by SrcRect) and rounding
-    X := DstX + FixedMul(X, SrcScaleFixed.X);
-    Y := DstY + FixedMul(Y, SrcScaleFixed.Y);
-    SrcX256 := SAR_8(X + $7F + SrcTranslationFixed.X);
-    SrcY256 := SAR_8(Y + $7F + SrcTranslationFixed.Y);
-  end; }
+  end;
 end;
 
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
   out SrcX, SrcY: TFixed);
 begin
-  with TransformationMap.FixedPointMapXS[DstX, DstY] do
+  with TransformationMap.FixedPointMapX[DstX, DstY] do
   begin
     DstX := DstX - DstTranslationFixed.X;
     DstY := DstY - DstTranslationFixed.Y;
@@ -624,7 +608,7 @@ end;
 procedure TRemapTransformation.ReverseTransformFloat(DstX, DstY: Single;
   out SrcX, SrcY: Single);
 begin
-  with TransformationMap.FloatPointMapFS[DstX, DstY] do
+  with TransformationMap.FloatPointMapF[DstX, DstY] do
   begin
     DstX := DstX - DstTranslationFloat.X;
     DstY := DstY - DstTranslationFloat.Y;
@@ -644,7 +628,7 @@ end;
 procedure TRemapTransformation.ReverseTransformInt(DstX, DstY: Integer;
   out SrcX, SrcY: Integer);
 begin
-  with TransformationMap.FixedPointMapS[DstX, DstY] do
+  with TransformationMap.FixedPointMap[DstX, DstY] do
   begin
     DstX := DstX * FixedOne - DstTranslationFixed.X;
     DstY := DstY * FixedOne - DstTranslationFixed.Y;
