@@ -281,8 +281,6 @@ const
 {$ENDIF}
 
 type
-  TCustomResampler = class; { forward declaration }
-
   { TThreadPersistent }
   { TThreadPersistent is an ancestor for TBitmap32 object. In addition to
     TPersistent methods, it provides thread-safe locking and change notification }
@@ -340,6 +338,8 @@ type
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
   TOnChangedRectEvent = procedure(Sender: TObject; const Rect: TRect) of object;
 
+{$I GR32_AbstractClasses.INC}
+
   TBitmap32 = class(TCustomMap)
   private
     FBits: PColor32Array;
@@ -375,7 +375,7 @@ type
     FCombineMode: TCombineMode;
     FMeasuringMode: Boolean;
     FOldOnChangedRect: TOnChangedRectEvent;
-    FResampler: TCustomResampler;
+    FResampler: TAbstractResampler;
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
@@ -409,7 +409,7 @@ type
     procedure SetClipRect(const Value: TRect);
     function GetResamplerClassName: string;
     procedure SetResamplerClassName(Value: string);
-    procedure SetResampler(R: TCustomResampler);
+    procedure SetResampler(R: TAbstractResampler);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -624,7 +624,7 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
 
     property MeasuringMode: Boolean read FMeasuringMode;
-    property Resampler: TCustomResampler read FResampler write SetResampler;
+    property Resampler: TAbstractResampler read FResampler write SetResampler;
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
     property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
@@ -652,52 +652,6 @@ type
     constructor Create(Bitmap: TBitmap32);
   end;
 {$ENDIF}
-
-  { TAbstractTransformation }
-  { This class is truly abstract and does only provide the method framework
-    necessary for transforming eg. bitmaps }
-  TAbstractTransformation = class
-  protected
-    TransformValid: Boolean;
-
-    procedure PrepareTransform; virtual; abstract;
-
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); virtual; abstract; // only used in transform (draw) of bitmaps
-
-    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual; abstract;
-    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual; abstract;
-    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual; abstract;
-
-    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); virtual; abstract;
-    procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual; abstract;
-    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual; abstract;
-  end;
-
-  TResampleProc = procedure(
-    Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-    Src: TBitmap32; SrcRect: TRect;
-    CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
-
-  TFilterMethod = function(Value: Single): Single of object;
-
-  { TCustomResampler }
-  TCustomResampler = class
-  public
-    constructor Create; virtual;
-    function Filter(Value: Single): Single; virtual; abstract;
-    function Width: Single; virtual; abstract;
-    function RangeCheck: Boolean; virtual; abstract;
-    function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;virtual; abstract;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
-    procedure Transform(
-      Dst: TBitmap32; DstRect: TRect;
-      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
-  end;
-  TCustomResamplerClass = class of TCustomResampler;
 
 implementation
 
@@ -2288,7 +2242,7 @@ end;
 
 function  TBitmap32.GetPixelZ(X, Y: Single): TColor32;
 begin
-  Result := Resampler.ResamplePixel(Self, X, Y);
+  Result := FResampler.ResamplePixel(Self, X, Y);
 end;
 
 procedure TBitmap32.SetStipple(NewStipple: TArrayOfColor32);
@@ -4157,7 +4111,7 @@ end;
 {$IFDEF DEPRECATEDMODE}
 procedure TBitmap32.SetStretchFilter(Value: TStretchFilter);
 const
-  StretchFilterMap: array[TStretchFilter] of TCustomResamplerClass =
+  StretchFilterMap: array[TStretchFilter] of TAbstractResamplerClass =
     (TNearestResampler, TDraftResampler, TLinearResampler, TCosineResampler,
      TSplineResampler, TLanczosResampler, TMitchellResampler);
 begin
@@ -5219,7 +5173,7 @@ begin
 	end;
 end;
 
-procedure TBitmap32.SetResampler(R: TCustomResampler);
+procedure TBitmap32.SetResampler(R: TAbstractResampler);
 begin
   if Assigned(R) then
   begin
@@ -5227,13 +5181,6 @@ begin
     FResampler := R;
     Changed;
   end;
-end;
-
-{ TCustomResampler }
-
-constructor TCustomResampler.Create;
-begin
-  inherited Create;
 end;
 
 initialization
