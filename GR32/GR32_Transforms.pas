@@ -163,6 +163,7 @@ const
 
 var
  BlockAverage : function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+ LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 
 procedure CheckBitmaps(Dst, Src: TBitmap32);
@@ -413,43 +414,6 @@ procedure StretchHorzStretchVertLinear(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 //Assure DstRect is >= SrcRect, otherwise quality loss will occur
 
- function sfLinear_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
- asm
-        MOVQ      MM1,[ECX]
-        MOV       ECX,C21
-        MOVQ      MM3,[ECX]
-        MOVQ      MM2,MM1
-        MOVQ      MM4,MM3
-        PSRLQ     MM1,32
-        PSRLQ     MM3,32
-        MOVD      MM5,EAX
-        PUNPCKLDQ MM5,MM5
-        PXOR MM0, MM0
-        PUNPCKLBW MM1,MM0
-        PUNPCKLBW MM2,MM0
-        PSUBW     MM2,MM1
-        PMULLW    MM2,MM5
-        PSLLW     MM1,8
-        PADDW     MM2,MM1
-        PSRLW     MM2,8
-        PUNPCKLBW MM3,MM0
-        PUNPCKLBW MM4,MM0
-        PSUBW     MM4,MM3
-        PMULLW    MM4,MM5
-        PSLLW     MM3,8
-        PADDW     MM4,MM3
-        PSRLW     MM4,8
-        MOVD      MM5,EDX
-        PUNPCKLDQ MM5,MM5
-        PSUBW     MM2,MM4
-        PMULLW    MM2,MM5
-        PSLLW     MM4,8
-        PADDW     MM2,MM4
-        PSRLW     MM2,8
-        PACKUSWB  MM2,MM0
-        MOVD      EAX,MM2
- end;
-
 var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   MapHorz, MapVert: array of TPointRec;
@@ -479,6 +443,7 @@ begin
     else if t2 > Src.Width - 1 then t2 := Src.Width - 1;
     MapHorz[I].Pos := Floor(t2);
     MapHorz[I].Weight := 256 - Round(Frac(t2) * 256);
+    //Pre-pack weights to reduce MMX Reg. setups per pixel:
     MapHorz[I].Weight:= MapHorz[I].Weight shl 16 + MapHorz[I].Weight;
   end;
   I := DstClipW - 1;
@@ -500,6 +465,7 @@ begin
     else if t2 > Src.Height - 1 then t2 := Src.Height - 1;
     MapVert[I].Pos := Floor(t2);
     MapVert[I].Weight := 256 - Round(Frac(t2) * 256);
+    //Pre-pack weights to reduce MMX Reg. setups per pixel:
     MapVert[I].Weight := MapVert[I].Weight shl 16 + MapVert[I].Weight;
   end;
   I := DstClipH - 1;
@@ -522,15 +488,15 @@ begin
         begin
           SrcIndex := MapHorz[I].Pos;
           if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
-          DstLine[I] := sfLinear_MMX( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                      @SrcLine[SrcIndex + Src.Width]);
+          DstLine[I] := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                            @SrcLine[SrcIndex + Src.Width]);
         end;
     else
         for I := 0 to DstClipW - 1 do
         begin
           SrcIndex := MapHorz[I].Pos;
-          C := sfLinear_MMX( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                             @SrcLine[SrcIndex + Src.Width]);
+          C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                   @SrcLine[SrcIndex + Src.Width]);
           if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
           if CombineOp = dmBlend then BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           else CombineCallBack(C, DstLine[I], Src.MasterAlpha);
@@ -1715,6 +1681,58 @@ begin
   end;
 end;
 
+{ Special interpolators (for sfLinear and sfDraft) }
+
+function M_LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+asm
+        MOVQ      MM1,[ECX]
+        MOV       ECX,C21
+        MOVQ      MM3,[ECX]
+        MOVQ      MM2,MM1
+        MOVQ      MM4,MM3
+        PSRLQ     MM1,32
+        PSRLQ     MM3,32
+        MOVD      MM5,EAX
+        PUNPCKLDQ MM5,MM5
+        PXOR MM0, MM0
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        PSUBW     MM2,MM1
+        PMULLW    MM2,MM5
+        PSLLW     MM1,8
+        PADDW     MM2,MM1
+        PSRLW     MM2,8
+        PUNPCKLBW MM3,MM0
+        PUNPCKLBW MM4,MM0
+        PSUBW     MM4,MM3
+        PMULLW    MM4,MM5
+        PSLLW     MM3,8
+        PADDW     MM4,MM3
+        PSRLW     MM4,8
+        MOVD      MM5,EDX
+        PUNPCKLDQ MM5,MM5
+        PSUBW     MM2,MM4
+        PMULLW    MM2,MM5
+        PSLLW     MM4,8
+        PADDW     MM2,MM4
+        PSRLW     MM2,8
+        PACKUSWB  MM2,MM0
+        MOVD      EAX,MM2
+end;
+
+function _LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+var
+  C1, C3: TColor32;
+begin
+  PWX_256:= PWX_256 shr 16; if PWX_256 > $FF then PWX_256:= $FF;
+  PWY_256:= PWY_256 shr 16; if PWY_256 > $FF then PWY_256:= $FF;
+  C1 := C11^; Inc(C11);
+  C3 := C21^; Inc(C21);
+  Result := CombineReg(CombineReg(C1, C11^, PWX_256),
+                       CombineReg(C3, C21^, PWX_256), PWY_256);
+end;
+
+
 procedure SetupFunctions;
 var
   MMX_ACTIVE: Boolean;
@@ -1726,17 +1744,20 @@ begin
   begin
    // link 3DNow functions
    BlockAverage:= BlockAverage_3DNow;
+   LinearInterpolator:= M_LinearInterpolator;
   end
   else
   if MMX_ACTIVE then
   begin
    // link MMX functions
    BlockAverage:= BlockAverage_MMX;
+   LinearInterpolator:= M_LinearInterpolator;
   end
   else
   begin
    // link IA32 functions
    BlockAverage:= BlockAverage_IA32;
+   LinearInterpolator:= _LinearInterpolator;
   end
 end;
 
