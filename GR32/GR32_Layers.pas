@@ -22,7 +22,9 @@ unit GR32_Layers;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Andre Beckedorf <Andre@metaException.de>
  * Michael Hansen <dyster_tid@hotmail.com>
+ * Dieter Köhler <dieter.koehler@philo.de>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -47,7 +49,7 @@ const
   LOB_MOUSE_EVENTS      = $20000000; // 29-th bit
   LOB_NO_UPDATE         = $10000000; // 28-th bit
   LOB_NO_CAPTURE        = $08000000; // 27-th bit
-  LOB_DIRTY             = $04000000; // 26-th bit
+  LOB_INVALID           = $04000000; // 26-th bit
   LOB_RESERVED_25       = $02000000; // 25-th bit
   LOB_RESERVED_24       = $01000000; // 24-th bit
   LOB_RESERVED_MASK     = $FF000000;
@@ -71,20 +73,23 @@ type
   TLayerCollection = class;
 
   TLayerUpdateEvent = procedure(Sender: TObject; Layer: TCustomLayer) of object;
-  TForcedUpdateEvent = procedure(Sender: TObject; const Rect: TRect) of object;
+  TForcedUpdateEvent = TAreaChangedEvent;
   TLayerListNotification = (lnLayerAdded, lnLayerInserted, lnLayerDeleted, lnCleared);
   TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification;
     Layer: TCustomLayer; Index: Integer) of object;
-
+  TGetCoordEvent = procedure(Sender: TObject; var APoint: TFloatPoint; AScaled: Boolean) of object;
+  
   TLayerCollection = class(TPersistent)
   private
+{$IFDEF DEPRECATEDMODE}
     FCoordXForm: PCoordXForm;
+{$ENDIF}
     FItems: TList;
     FMouseEvents: Boolean;
     FMouseListener: TCustomLayer;
     FUpdateCount: Integer;
+    FOwner: TPersistent;
     FInvalidIndex: Integer;
-    FOwner: TComponent;
     FOnChanging: TNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnGDIUpdate: TNotifyEvent;
@@ -92,6 +97,7 @@ type
     FOnLayerUpdated: TLayerUpdateEvent;
     FOnLayerResized: TLayerUpdateEvent;
     FOnForcedUpdate: TForcedUpdateEvent;
+    FOnGetViewportCoord: TGetCoordEvent;
     function GetCount: Integer;
     procedure UpdateInvalidIndex(const StartIndex: Integer);
     procedure CheckUpdateIndexCache;
@@ -123,17 +129,21 @@ type
     property OnLayerUpdated: TLayerUpdateEvent read FOnLayerUpdated write FOnLayerUpdated;
     property OnLayerResized: TLayerUpdateEvent read FOnLayerResized write FOnLayerResized;
     property OnForcedUpdate: TForcedUpdateEvent read FOnForcedUpdate write FOnForcedUpdate;
+    property OnGetViewportCoord: TGetCoordEvent read FOnGetViewportCoord write FOnGetViewportCoord;
   public
-    constructor Create(AOwner: TComponent);
+    constructor Create(AOwner: TPersistent);
     destructor Destroy; override;
     function  Add(ItemClass: TLayerClass): TCustomLayer;
     procedure Assign(Source: TPersistent); override;
     procedure Clear;
     procedure Delete(Index: Integer);
     function  Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
+    function  GetViewportCoord(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint; virtual;
     property Count: Integer read GetCount;
-    property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm;
-    property Owner: TComponent read FOwner;
+{$IFDEF DEPRECATEDMODE}
+    property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm; deprecated;
+{$ENDIF}
+    property Owner: TPersistent read FOwner;
     property Items[Index: Integer]: TCustomLayer read GetItem write SetItem; default;
     property MouseListener: TCustomLayer read FMouseListener write SetMouseListener;
     property MouseEvents: Boolean read FMouseEvents write SetMouseEvents;
@@ -168,8 +178,8 @@ type
     procedure SetLayerOptions(Value: Cardinal);
     procedure SetMouseEvents(Value: Boolean);
     procedure SetVisible(Value: Boolean);
-    function GetDirty: Boolean;
-    procedure SetDirty(const Value: Boolean);
+    function GetInvalid: Boolean;
+    procedure SetInvalid(const Value: Boolean);
   protected
     procedure AddNotification(ALayer: TCustomLayer);
     procedure Changed;
@@ -185,7 +195,7 @@ type
     procedure PaintGDI(Canvas: TCanvas); virtual;
     procedure RemoveNotification(ALayer: TCustomLayer);
     procedure SetIndex(Value: Integer); virtual;
-    property Dirty: Boolean read GetDirty write SetDirty;
+    property Invalid: Boolean read GetInvalid write SetInvalid;
   public
     constructor Create(ALayerCollection: TLayerCollection); virtual;
     destructor Destroy; override;
@@ -223,6 +233,7 @@ type
     procedure DoSetLocation(const NewLocation: TFloatRect); virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
+    function GetAdjustedRect(const R: TFloatRect): TFloatRect; virtual;
     function GetAdjustedLocation: TFloatRect;
     property Location: TFloatRect read FLocation write SetLocation;
     property Scaled: Boolean read FScaled write SetScaled;
@@ -387,7 +398,7 @@ begin
   end;
 end;
 
-constructor TLayerCollection.Create(AOwner: TComponent);
+constructor TLayerCollection.Create(AOwner: TPersistent);
 begin
   FOwner := AOwner;
   FItems := TList.Create;
@@ -474,6 +485,12 @@ begin
   finally
     EndUpdate;
   end;
+end;
+
+function TLayerCollection.GetViewportCoord(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+begin
+  Result := APoint;
+  if Assigned(FOnGetViewportCoord) then FOnGetViewportCoord(Self, Result, AScaled);
 end;
 
 function TLayerCollection.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
@@ -565,7 +582,7 @@ end;
 
 procedure TLayerCollection.DoForceUpdate(const Rect: TRect);
 begin
-  if Assigned(FOnForcedUpdate) then FOnForcedUpdate(Self, Rect);
+  if Assigned(FOnForcedUpdate) then FOnForcedUpdate(Self, Rect, AREAHINT_RECT);
 end;
 
 procedure TLayerCollection.DoUpdateLayer(Layer: TCustomLayer);
@@ -830,17 +847,17 @@ begin
   FLayerCollection.DoForceUpdate(Rect);
 end;
 
-function TCustomLayer.GetDirty: Boolean;
+function TCustomLayer.GetInvalid: Boolean;
 begin
-  Result := LayerOptions and LOB_DIRTY <> 0;
+  Result := LayerOptions and LOB_INVALID <> 0;
 end;
 
-procedure TCustomLayer.SetDirty(const Value: Boolean);
+procedure TCustomLayer.SetInvalid(const Value: Boolean);
 begin
   // don't use LayerOptions here since this is internal and we don't want to
   // trigger Changing and Changed as this will definitely cause a stack overflow.
-  if Value then FLayerOptions := FLayerOptions or LOB_DIRTY
-  else FLayerOptions := FLayerOptions and not LOB_DIRTY;
+  if Value then FLayerOptions := FLayerOptions or LOB_INVALID
+  else FLayerOptions := FLayerOptions and not LOB_INVALID;
 end;
 
 { TPositionedLayer }
@@ -860,7 +877,7 @@ end;
 
 function TPositionedLayer.DoHitTest(X, Y: Integer): Boolean;
 begin
-  with GetAdjustedLocation do
+  with GetAdjustedRect(FLocation) do
     Result := (X >= Left) and (X < Right) and (Y >= Top) and (Y < Bottom);
 end;
 
@@ -871,24 +888,19 @@ begin
 end;
 
 function TPositionedLayer.GetAdjustedLocation: TFloatRect;
-
-  procedure AdjustPoint(var APoint: TFloatPoint);
-  begin
-    with APoint, FLayerCollection.CoordXForm^ do
-    begin
-      X := X * ScaleX / 65536 + ShiftX;
-      Y := Y * ScaleY / 65536 + ShiftY;
-    end;
-  end;
-
 begin
-  Result := FLocation;
-  if Scaled and Assigned(FLayerCollection) and Assigned(FLayerCollection.CoordXForm) then
-    with Result do
-    begin
-      AdjustPoint(TopLeft);
-      AdjustPoint(BottomRight);
-    end;
+  Result := GetAdjustedRect(FLocation);
+end;
+
+function TPositionedLayer.GetAdjustedRect(const R: TFloatRect): TFloatRect;
+begin
+  if Assigned(FLayerCollection) then
+  begin
+    Result.TopLeft := FLayerCollection.GetViewportCoord(R.TopLeft, Scaled);
+    Result.BottomRight := FLayerCollection.GetViewportCoord(R.BottomRight, Scaled);
+  end
+  else
+    Result := R;
 end;
 
 procedure TPositionedLayer.SetLocation(const Value: TFloatRect);
@@ -930,7 +942,7 @@ begin
   Result := inherited DoHitTest(X, Y);
   if Result and AlphaHit then
   begin
-    with GetAdjustedLocation do
+    with GetAdjustedRect(FLocation) do
     begin
       LayerWidth := Round(Right - Left);
       LayerHeight := Round(Bottom - Top);
@@ -959,7 +971,7 @@ var
   LayerWidth, LayerHeight: Single;
 begin
   if Bitmap.Empty then Exit;
-  DstRect := MakeRect(GetAdjustedLocation);
+  DstRect := MakeRect(GetAdjustedRect(FLocation));
   ClipRect := Buffer.ClipRect;
   IntersectRect(TempRect, ClipRect, DstRect);
   if IsRectEmpty(TempRect) then Exit;
@@ -1042,7 +1054,8 @@ begin
   dh_center := rhCenter in FHandles;
   dh_sides := rhSides in FHandles;
   dh_corners := rhCorners in FHandles;
-  R := MakeRect(GetAdjustedLocation);
+
+  R := MakeRect(GetAdjustedRect(FLocation));
   with R do
   begin
     Dec(Right);
@@ -1076,7 +1089,8 @@ begin
   if IsDragging then
   begin
     OldLocation := Location;
-    ALoc := GetAdjustedLocation;
+
+    ALoc := GetAdjustedRect(FLocation);
     case DragState of
       dsMove: MouseShift := FloatPoint(X - ALoc.Left, Y - ALoc.Top);
     else
@@ -1122,7 +1136,7 @@ begin
     My := Y - MouseShift.Y;
     if Scaled then with Location do
     begin
-      ALoc := GetAdjustedLocation;
+      ALoc := GetAdjustedRect(FLocation);
       if IsRectEmptyF(ALoc) then Exit;
       Mx := (Mx - ALoc.Left) / (ALoc.Right - ALoc.Left) * (Right - Left) + Left;
       My := (My - ALoc.Top) / (ALoc.Bottom - ALoc.Top) * (Bottom - Top) + Top;
@@ -1188,7 +1202,7 @@ var
   end;
 
 begin
-  R := MakeRect(GetAdjustedLocation);
+  R := MakeRect(GetAdjustedRect(FLocation));
   with R do
   begin
     if rhFrame in FHandles then
