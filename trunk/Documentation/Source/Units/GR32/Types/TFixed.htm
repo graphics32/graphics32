@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>TFixed</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TFixed = <b>type</b> Integer;</p>
+<p class="Decl"><b>type</b> PFixed = ^TFixed;</p>
+<h2>Description</h2>
+<p class="Body">In order to accelerate some calculations, Graphics32 extensively 
+  uses fixed point arithmetics, which is mostly based on <span class="EmptyRef">TFixed</span> 
+  type: </p>
+<p class="Body"><span class="EmptyRef">TFixed</span> is a 32-bit fixed point value 
+  in 16.16 format, that is 16 bits represent signed integer part and 16 bits represent 
+  unsigned fractional part. This format is bitwise-compatible with <span class="API">TFixed</span> 
+  type from the Windows.pas unit, except it does not use a record to store the 
+  value, which allows for faster function parameter passing and faster value copying 
+  and assignment. </p>
+<p class="Body">Conversion from floating to fixed point is very simple: </p>
+<p class="Code">Fixed := Round(Single * 65536);</p>
+<p id="Hidden">[See Also] <a href="../../GR32/Routines/Fixed%20Point%20Math.htm">Fixed 
+  Point Math</a></p>
+</body>
+</html>

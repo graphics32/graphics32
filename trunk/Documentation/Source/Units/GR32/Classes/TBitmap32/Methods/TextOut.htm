@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>TextOut</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> TextOut(X, Y: Integer; <b>const</b> Text: <b>string</b>); 
+  <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> TextOut(X, Y: Integer; <b>const</b> ClipRect: 
+  <a href="../../../Types/Rectangle%20Types.htm#TRect">TRect</a>; <b>const</b> 
+  Text: <b>string</b>); <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> TextOut(ClipRect: <a href="../../../Types/Rectangle%20Types.htm#TRect">TRect</a>; 
+  <b>const</b> Flags: Cardinal; <b>const</b> Text: <b>string</b>); <b>overload</b>; 
+</p>
+<h2>Description</h2>
+<p class="Body">Use <span class="EmptyRef">TextOut</span> to write a string onto 
+  the bitmap. The string will be written using current <a href="../Properties/Font.htm">Font</a>. 
+</p>
+<p class="Body">Use the TextExtent method to determine the space occupied by the 
+  text in the image. <span class="EmptyRef">TextOut</span> does not support transparent 
+  text colors. The second version performs clipping of a text to the <span class="EmptyRef">ClipRect</span> 
+  rectangle. The last version provides the most flexible text formatting. See 
+  description of <span class="API">DrawText</span> function in 'Win32 Developer 
+  Reference' help file for information on <span class="EmptyRef">Flags</span> 
+  and their function. </p>
+<p id="hidden">[See also]: <a href="RenderText.htm">RenderText</a>, <a href="TextWidth.htm">TextWidth</a>, 
+  <a href="TextHeight.htm">TextHeight</a>, <a href="TextExtent.htm">TextExtent</a></p>
+</body>
+</html>

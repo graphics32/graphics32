@@ -1,0 +1,32 @@
+<html>
+<head>
+<title>Combine</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> CombineReg(X, Y, W: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>): 
+  <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+<p class="Decl"> <b>procedure</b> CombineMem(F: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  var B: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; W: 
+  <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+<h2>Description</h2>
+<p class="Body">Returns the color with components calculated as linear interpolation 
+  between <b>X</b> and <b>Y</b> colors. The <b>W</b> parameter, which sholuld 
+  be in [0..255] range, specifies the weight of the first color (<b>X</b>). The 
+  alpha channel is interpolated as well.</p>
+<p class="Body"> S<span class="sub">RGBA</span> = W * X<span class="sub">RGBA</span> 
+  + (1 – W) * Y<span class="sub">RGBA</span>;</p>
+<p class="Body"><span class="EmptyRef">CombineReg</span> takes parameters and 
+  produces the result operating on CPU registers.</p>
+<p class="Body"><span class="EmptyRef">CombineMem</span> operates with the background 
+  color referenced by a memory address. </p>
+<p class="Body">Using <span class="EmptyRef">CombineMem</span> is more efficient 
+  when blending/combining data to a bitmap since it excludes writing operation 
+  for transparent pixels and reading operation for opaque ones.</p>
+<p class="Body">Note, that after using <span class="EmptyRef">Combine</span> functions, 
+  you have to call <a href="EMMS.htm">EMMS</a>. Otherwise CPU will be unable to 
+  handle floating point instructions.</p>
+<p id="hidden">[See Also] <a href="Blend.htm">Blend</a>, <a href="BlendEx.htm">BlendEx</a></p>
+</body>
+</html>
