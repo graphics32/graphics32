@@ -22,6 +22,7 @@ unit GR32_Layers;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -263,6 +264,7 @@ type
     FChildLayer: TPositionedLayer;
     FFrameStipplePattern: TArrayOfColor32;
     FFrameStippleStep: Single;
+    FFrameStippleCounter: Single;
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
     FHandles: TRBHandles;
@@ -274,6 +276,7 @@ type
     FOnUserChange: TNotifyEvent;
     FOnResizing: TRBResizingEvent;
     procedure SetFrameStippleStep(const Value: Single);
+    procedure SetFrameStippleCounter(const Value: Single);
     procedure SetChildLayer(Value: TPositionedLayer);
     procedure SetHandleFill(Value: TColor32);
     procedure SetHandleFrame(Value: TColor32);
@@ -303,6 +306,7 @@ type
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
     property FrameStippleStep: Single read FFrameStippleStep write SetFrameStippleStep;
+    property FrameStippleCounter: Single read FFrameStippleCounter write SetFrameStippleCounter;
     property MaxHeight: Single read FMaxHeight write FMaxHeight;
     property MaxWidth: Single read FMaxWidth write FMaxWidth;
     property MinHeight: Single read FMinHeight write FMinHeight;
@@ -1005,6 +1009,7 @@ begin
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
   SetFrameStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
   FFrameStippleStep := 1;
+  FFrameStippleCounter := 0;
 end;
 
 function TRubberbandLayer.DoHitTest(X, Y: Integer): Boolean;
@@ -1191,6 +1196,7 @@ begin
       Buffer.SetStipple(FFrameStipplePattern);
       Buffer.StippleCounter := 0;
       Buffer.StippleStep := FFrameStippleStep;
+      Buffer.StippleCounter := FFrameStippleCounter;
       Buffer.FrameRectTSP(Left, Top, Right, Bottom);
     end;
     if rhCorners in FHandles then
@@ -1284,6 +1290,15 @@ end;
 procedure TRubberbandLayer.UpdateChildLayer;
 begin
   if Assigned(FChildLayer) then FChildLayer.Location := Location;
+end;
+
+procedure TRubberbandLayer.SetFrameStippleCounter(const Value: Single);
+begin
+  if Value <> FFrameStippleCounter then
+  begin
+    FFrameStippleCounter := Value;
+    FLayerCollection.GDIUpdate;
+  end;
 end;
 
 end.
