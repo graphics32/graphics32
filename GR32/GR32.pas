@@ -153,14 +153,16 @@ const
 { Points }
 
 type
+  PPoint = ^TPoint;
 {$IFNDEF BCB}
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
 {$ENDIF}
-  PPoint = ^TPoint;
 
   PPointArray = ^TPointArray;
   TPointArray = array [0..0] of TPoint;
+  PArrayOfPoint = ^TArrayOfPoint;
   TArrayOfPoint = array of TPoint;
+  PArrayOfArrayOfPoint = ^TArrayOfArrayOfPoint;
   TArrayOfArrayOfPoint = array of TArrayOfPoint;
 
   PFloatPoint = ^TFloatPoint;
@@ -170,7 +172,9 @@ type
 
   PFloatPointArray = ^TFloatPointArray;
   TFloatPointArray = array [0..0] of TFloatPoint;
+  PArrayOfFloatPoint = ^TArrayOfFloatPoint;
   TArrayOfFloatPoint = array of TFloatPoint;
+  PArrayOfArrayOfFloatPoint = ^TArrayOfArrayOfFloatPoint;
   TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
 
   PFixedPoint = ^TFixedPoint;
@@ -180,7 +184,9 @@ type
 
   PFixedPointArray = ^TFixedPointArray;
   TFixedPointArray = array [0..0] of TFixedPoint;
+  PArrayOfFixedPoint = ^TArrayOfFixedPoint;
   TArrayOfFixedPoint = array of TFixedPoint;
+  PArrayOfArrayOfFixedPoint = ^TArrayOfArrayOfFixedPoint;
   TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
 
 // construction and conversion of point types
@@ -350,7 +356,17 @@ type
     (a little bit non-standard) approach allows for faster operation. }
 
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
-  TOnChangedRectEvent = procedure(Sender: TObject; const Rect: TRect) of object;
+  TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect; const Hint: Cardinal) of object;
+
+const
+  // common cases
+  AREAHINT_RECT         = $80000000;
+  AREAHINT_LINE         = $40000000; // 24 bits for line width in pixels...
+  AREAHINT_ELLIPSE      = $20000000;
+
+  AREAHINT_MASK         = $FF000000;
+
+type
   TCustomResampler = class;
 
   TBitmap32 = class(TCustomMap)
@@ -384,10 +400,10 @@ type
 {$ENDIF}
     FOnHandleChanged: TNotifyEvent;
     FOnPixelCombine: TPixelCombineEvent;
-    FOnChangedRect: TOnChangedRectEvent;
+    FOnAreaChanged: TAreaChangedEvent;
+    FOldOnAreaChanged: TAreaChangedEvent;
     FCombineMode: TCombineMode;
     FMeasuringMode: Boolean;
-    FOldOnChangedRect: TOnChangedRectEvent;
     FResampler: TCustomResampler;
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
@@ -462,12 +478,12 @@ type
     procedure Clear(FillColor: TColor32); overload;
     procedure Delete; override;
 
-    procedure BeginMeasuring(const Callback: TOnChangedRectEvent);
+    procedure BeginMeasuring(const Callback: TAreaChangedEvent);
     procedure EndMeasuring;
 
     procedure PropertyChanged;
     procedure Changed; overload; override;
-    procedure Changed(const Rect: TRect); reintroduce; overload; virtual;
+    procedure Changed(const Area: TRect; const Hint: Cardinal = AREAHINT_RECT); reintroduce; overload; virtual;
 
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
@@ -647,7 +663,7 @@ type
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
 {$IFDEF DEPRECATEDMODE}
-    property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
+    property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest; deprecated;
 {$ELSE}
     property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
     property Resampler: TCustomResampler read FResampler write SetResampler;
@@ -655,7 +671,7 @@ type
     property OnChange;
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
     property OnPixelCombine: TPixelCombineEvent read FOnPixelCombine write FOnPixelCombine;
-    property OnChangedRect: TOnChangedRectEvent read FOnChangedRect write FOnChangedRect;
+    property OnAreaChanged: TAreaChangedEvent read FOnAreaChanged write FOnAreaChanged;
     property OnResize;
   end;
 
@@ -1624,6 +1640,7 @@ var
         inc(DstP);
       end;
     end;
+    Font.Assign(SrcBmp.Canvas.Font);
   end;
 
 begin
@@ -1652,6 +1669,7 @@ begin
 {$IFDEF DEPRECATEDMODE}
       FStretchFilter := TBitmap32(Source).FStretchFilter;
 {$ENDIF}
+      Font.Assign(TBitmap32(Source).Font);
       Exit;
     end
     else if Source is TBitmap then
@@ -1775,6 +1793,7 @@ var
     Bmp.HandleType := bmDIB;
 {$ENDIF}
     Bmp.PixelFormat := pf32Bit;
+    Bmp.Canvas.Font.Assign(Font);
     Bmp.Width := Width;
     Bmp.Height := Height;
     DrawTo(Bmp.Canvas.Handle, 0, 0);
@@ -2476,16 +2495,19 @@ begin
   begin
     P^ := Value; Inc(P, Width);
   end;
+  Changed(MakeRect(X, Y1, X + 1, Y2))
 end;
 
 procedure TBitmap32.VertLineS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (X >= FClipRect.Left) and (X < FClipRect.Right) and
-    TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
-    VertLine(X, Y1, Y2, Value);
-
-  Changed(MakeRect(X, Y1, X + 1, Y2))
+  if not FMeasuringMode then
+  begin
+    if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+      TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
+      VertLine(X, Y1, Y2, Value);
+  end
+  else
+    Changed(MakeRect(X, Y1, X + 1, Y2))
 end;
 
 procedure TBitmap32.VertLineT(X, Y1, Y2: Integer; Value: TColor32);
@@ -2571,7 +2593,9 @@ procedure TBitmap32.Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Dy, Dx, Sy, Sx, I, Delta: Integer;
   P: PColor32;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(X1, Y1, X2, Y2);
   try
     Dx := X2 - X1;
     Dy := Y2 - Y1;
@@ -2639,7 +2663,7 @@ begin
     end;
     if L then P^ := Value;
   finally
-    Changed(MakeRect(X1, Y1, X2, Y2));
+    Changed(ChangedRect, AREAHINT_LINE + 2);
   end;
 end;
 
@@ -2648,7 +2672,10 @@ var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, e: Integer;
   Swapped, CheckAux: Boolean;
   P: PColor32;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(X1, Y1, X2, Y2);
+
   if not FMeasuringMode then
   begin
     Dx := X2 - X1; Dy := Y2 - Y1;
@@ -2797,7 +2824,7 @@ begin
       P := @Bits[xd + yd * Width];
     end;
 
-    // do we need to draw the last pixel of the line and is temp not clipped?
+    // do we need to skip the last pixel of the line and is temp not clipped?
     if not(L or CheckAux) then
     begin
       if xd < term then
@@ -2822,7 +2849,7 @@ begin
     end;
   end;
 
-  Changed(MakeRect(X1, Y1, X2, Y2));
+  Changed(ChangedRect, AREAHINT_LINE + 2);
 end;
 
 procedure TBitmap32.LineT(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
@@ -2830,7 +2857,9 @@ var
   Dy, Dx, Sy, Sx, I, Delta: Integer;
   P: PColor32;
   BlendMem: TBlendMem;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(X1, Y1, X2, Y2);
   try
     Dx := X2 - X1;
     Dy := Y2 - Y1;
@@ -2903,7 +2932,7 @@ begin
       EMMS;
     end;
   finally
-    Changed(MakeRect(X1, Y1, X2, Y2));
+    Changed(ChangedRect, AREAHINT_LINE + 2);
   end;
 end;
 
@@ -2913,7 +2942,10 @@ var
   Swapped, CheckAux: Boolean;
   P: PColor32;
   BlendMem: TBlendMem;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(X1, Y1, X2, Y2);
+
   if not FMeasuringMode then
   begin
     Dx := X2 - X1; Dy := Y2 - Y1;
@@ -3060,7 +3092,7 @@ begin
       P := @Bits[xd + yd * Width];
     end;
 
-    // do we need to draw the last pixel of the line and is temp not clipped?
+    // do we need to skip the last pixel of the line and is temp not clipped?
     if not(L or CheckAux) then
     begin
       if xd < term then
@@ -3089,7 +3121,8 @@ begin
       EMMS;
     end;
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
+
+  Changed(ChangedRect, AREAHINT_LINE + 2);
 end;
 
 procedure TBitmap32.LineX(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean);
@@ -3098,7 +3131,9 @@ var
   nx, ny, hyp: Integer;
   A: TColor32;
   h: Single;
+  ChangedRect: TFixedRect;
 begin
+  ChangedRect := FixedRect(X1, Y1, X2, Y2);
   try
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
@@ -3123,7 +3158,7 @@ begin
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + A);
   finally
     EMMS;
-    Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
+    Changed(MakeRect(ChangedRect), AREAHINT_LINE + 2);
   end;
 end;
 
@@ -3138,7 +3173,10 @@ var
   ex, ey, nx, ny, hyp: Integer;
   A: TColor32;
   h: Single;
+  ChangedRect: TFixedRect;
 begin
+  ChangedRect := FixedRect(X1, Y1, X2, Y2);
+
   if not FMeasuringMode then
   begin
     ex := X2; ey := Y2;
@@ -3160,7 +3198,6 @@ begin
        (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
     begin
       LineX(X1, Y1, X2, Y2, Value);
-      Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
       Exit;
     end;
 
@@ -3192,7 +3229,7 @@ begin
       EMMS;
     end;
   end;
-  Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
+  Changed(MakeRect(ChangedRect), AREAHINT_LINE + 2);
 end;
 
 procedure TBitmap32.LineFS(X1, Y1, X2, Y2: Single; Value: TColor32; L: Boolean);
@@ -3205,7 +3242,9 @@ var
   n, i: Integer;
   nx, ny, hyp: Integer;
   A, C: TColor32;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(FixedRect(X1, Y1, X2, Y2));
   try
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
@@ -3233,7 +3272,7 @@ begin
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, C and $00FFFFFF + A);
     EMMS;
   finally
-    Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
+    Changed(ChangedRect, AREAHINT_LINE + 2);
   end;
 end;
 
@@ -3249,7 +3288,10 @@ var
   n, i: Integer;
   sx, sy, ex, ey, nx, ny, hyp: Integer;
   A, C: TColor32;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(FixedRect(X1, Y1, X2, Y2));
+  
   if not FMeasuringMode then
   begin
     sx := X1; sy := Y1; ex := X2; ey := Y2;
@@ -3273,7 +3315,6 @@ begin
        (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
     begin
       LineXP(X1, Y1, X2, Y2);
-      Changed(MakeRect(X1, Y1, X2, Y2));
       Exit;
     end;
 
@@ -3310,7 +3351,8 @@ begin
     if (ex <> X2) or (ey <> Y2) then
       AdvanceStippleCounter(Hypot((X2 - ex) / 65536, (Y2 - ey) / 65536) - StippleInc[L]);
   end;
-  Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
+
+  Changed(ChangedRect, AREAHINT_LINE + 4);
 end;
 
 procedure TBitmap32.LineFSP(X1, Y1, X2, Y2: Single; L: Boolean);
@@ -3405,7 +3447,10 @@ var
   CI: Byte;
   P: PColor32;
   BlendMemEx: TBlendMemEx;
+  ChangedRect: TRect;
 begin
+  ChangedRect := MakeRect(X1, Y1, X2, Y2);
+
   if not FMeasuringMode then
   begin
     If (FClipRect.Right - FClipRect.Left = 0) or
@@ -3623,7 +3668,7 @@ begin
     // draw line
     if not CornerAA then
     try
-      // do we need to draw the last pixel of the line and is temp not clipped?
+      // do we need to skip the last pixel of the line and is temp not clipped?
       if not(L or TempClipped) and not CheckVert then
       begin
         if xd < term then
@@ -3664,7 +3709,8 @@ begin
       EMMS;
     end;
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
+
+  Changed(ChangedRect);
 end;
 
 procedure TBitmap32.MoveTo(X, Y: Integer);
@@ -4987,17 +5033,17 @@ begin
   UpdateClipRects;
 end;
 
-procedure TBitmap32.BeginMeasuring(const Callback: TOnChangedRectEvent);
+procedure TBitmap32.BeginMeasuring(const Callback: TAreaChangedEvent);
 begin
   FMeasuringMode := True;
-  FOldOnChangedRect := FOnChangedRect;
-  FOnChangedRect := Callback;
+  FOldOnAreaChanged := FOnAreaChanged;
+  FOnAreaChanged := Callback;
 end;
 
 procedure TBitmap32.EndMeasuring;
 begin
   FMeasuringMode := False;
-  FOnChangedRect := FOldOnChangedRect;
+  FOnAreaChanged := FOldOnAreaChanged;
 end;
 
 procedure TBitmap32.PropertyChanged;
@@ -5008,17 +5054,17 @@ end;
 
 procedure TBitmap32.Changed;
 begin
-  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then
-    FOnChangedRect(Self, BoundsRect);
+  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+    FOnAreaChanged(Self, BoundsRect, AREAHINT_RECT);
 
   if not FMeasuringMode then
   inherited;
 end;
 
-procedure TBitmap32.Changed(const Rect: TRect);
+procedure TBitmap32.Changed(const Area: TRect; const Hint: Cardinal);
 begin
-  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then
-    FOnChangedRect(Self, Rect);
+  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+    FOnAreaChanged(Self, Area, Hint);
 
   if not FMeasuringMode then
   inherited Changed;
