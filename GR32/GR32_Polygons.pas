@@ -71,7 +71,7 @@ type
 
   TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
 
-  TCustomFiller = class
+  TCustomPolygonFiller = class
   protected
     function GetFillLine: TFillLineEvent; virtual; abstract;
   public
@@ -86,7 +86,7 @@ procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Filler: TCustomFiller; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+  Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
@@ -95,7 +95,7 @@ procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Filler: TCustomFiller; Mode: TPolyFillMode = pfAlternate;
+  Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
@@ -103,7 +103,7 @@ procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoi
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Filler: TCustomFiller; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
+  Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
@@ -112,7 +112,7 @@ procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoi
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Filler: TCustomFiller; Mode: TPolyFillMode = pfAlternate;
+  Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
@@ -144,13 +144,13 @@ type
 
     procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
     procedure Draw(Bitmap: TBitmap32; OutlineColor: TColor32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
-    procedure Draw(Bitmap: TBitmap32; OutlineColor: TColor32; Filler: TCustomFiller; Transformation: TTransformation = nil); overload;
+    procedure Draw(Bitmap: TBitmap32; OutlineColor: TColor32; Filler: TCustomPolygonFiller; Transformation: TTransformation = nil); overload;
 
     procedure DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil);
 
     procedure DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil); overload;
     procedure DrawFill(Bitmap: TBitmap32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
-    procedure DrawFill(Bitmap: TBitmap32; Filler: TCustomFiller; Transformation: TTransformation = nil); overload;
+    procedure DrawFill(Bitmap: TBitmap32; Filler: TCustomPolygonFiller; Transformation: TTransformation = nil); overload;
 
     procedure NewLine;
     procedure Offset(const Dx, Dy: TFixed);
@@ -167,7 +167,7 @@ type
     property Points: TArrayOfArrayOfFixedPoint read FPoints write FPoints;
   end;
 
-  TBitmapFiller = class(TCustomFiller)
+  TBitmapPolygonFiller = class(TCustomPolygonFiller)
   private
     FPattern: TBitmap32;
     FOffsetY: Integer;
@@ -1116,7 +1116,7 @@ begin
 end;
 
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Filler: TCustomFiller; Mode: TPolyFillMode;
+  Filler: TCustomPolygonFiller; Mode: TPolyFillMode;
   Transformation: TTransformation);
 begin
   RenderPolygonTS(Bitmap, Points, 0, Filler.FillLine, Mode, Transformation);
@@ -1205,7 +1205,7 @@ begin
 end;
 
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Filler: TCustomFiller; Mode: TPolyFillMode;
+  Filler: TCustomPolygonFiller; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode; Transformation: TTransformation);
 begin
   RenderPolygonXS(Bitmap, Points, 0, Filler.FillLine, Mode, AAMode, Transformation);
@@ -1300,7 +1300,7 @@ begin
 end;
 
 procedure PolyPolygonTS(Bitmap: TBitmap32;
-  const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomFiller;
+  const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomPolygonFiller;
   Mode: TPolyFillMode; Transformation: TTransformation);
 begin
   RenderPolyPolygonTS(Bitmap, Points, 0, Filler.FillLine, Mode, Transformation);
@@ -1408,7 +1408,7 @@ begin
 end;
 
 procedure PolyPolygonXS(Bitmap: TBitmap32;
-  const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomFiller;
+  const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomPolygonFiller;
   Mode: TPolyFillMode; const AAMode: TAntialiasMode;
   Transformation: TTransformation);
 begin
@@ -1636,7 +1636,7 @@ begin
 end;
 
 procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor: TColor32;
-  Filler: TCustomFiller; Transformation: TTransformation);
+  Filler: TCustomPolygonFiller; Transformation: TTransformation);
 begin
   Draw(Bitmap, OutlineColor, Filler.FillLine, Transformation);
 end;
@@ -1681,7 +1681,7 @@ begin
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Filler: TCustomFiller;
+procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Filler: TCustomPolygonFiller;
   Transformation: TTransformation);
 begin
   DrawFill(Bitmap, Filler.FillLine, Transformation);
@@ -1838,7 +1838,7 @@ end;
 
 { TBitmapFiller }
 
-procedure TBitmapFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
+procedure TBitmapPolygonFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32);
 var
   PatternX, PatternY, X: Integer;
@@ -1881,7 +1881,7 @@ begin
     end;
 end;
 
-procedure TBitmapFiller.FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+procedure TBitmapPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   PatternX, PatternY, X: Integer;
   Src: PColor32;
@@ -1918,7 +1918,7 @@ begin
     end;
 end;
 
-procedure TBitmapFiller.FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY,
+procedure TBitmapPolygonFiller.FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32);
 var
   PatternX, PatternY, X: Integer;
@@ -1956,7 +1956,7 @@ begin
     end;
 end;
 
-procedure TBitmapFiller.FillLineCustomCombine(Dst: PColor32; DstX, DstY,
+procedure TBitmapPolygonFiller.FillLineCustomCombine(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32);
 var
   PatternX, PatternY, X: Integer;
@@ -1994,7 +1994,7 @@ begin
     end;
 end;
 
-function TBitmapFiller.GetFillLine: TFillLineEvent;
+function TBitmapPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   if not Assigned(FPattern) then
   begin
