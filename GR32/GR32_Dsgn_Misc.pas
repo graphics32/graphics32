@@ -7,9 +7,10 @@ uses
 
 type
   TCustomClassProperty = class(TClassProperty)
+  private
+    function HasSubProperties: Boolean;
   protected
     class function GetClassList: TList; virtual; abstract;
-    function HasSubProperties: Boolean;
     procedure SetClassName(const CustomClass: string); virtual; abstract;
     function GetObject: TObject; virtual; abstract;
   public
