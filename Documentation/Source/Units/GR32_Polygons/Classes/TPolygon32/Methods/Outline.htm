@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>Outline</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> Outline: <a href="../_Body.htm">TPolygon32</a>;</p>
+<h2>Description</h2>
+<p class="Body">This functions takes each contour (polyline) and constructs a 
+  new <a href="../_Body.htm">TPolygon32</a> object by outlining each contour. 
+</p>
+<p class="Body">The operation is similar to using morphological edge detection 
+  filter for bitmaps, but it operates over polygon vertices. </p>
+<p class="Body">When outlining a closed polygon, this function actually returns 
+  two contours for each initial closed contour. In case of polylines (<a href="../Properties/Closed.htm">Closed</a> 
+  property is <i>False</i>), it returns a single contour (see image below). </p>
+<p class="Body">Note, this technique produces good results only for antialiased 
+  polygons. </p>
+<p class="Body">This function is essential for thick line drawing, all you have 
+  to do, is to take an original polygon, build its outline and grow it to get 
+  the desired thickness:</p>
+<p class="Body"><b>var</b> <br>
+  &nbsp;&nbsp;P, Outline: TPolygon32; <br>
+  <b>begin</b> <br>
+  &nbsp;&nbsp;Outline := P.Outline; <span class="Comment">// create an outline 
+  </span><br>
+  &nbsp;&nbsp;Outline.Grow(Fixed(1), 1); <span class="Comment">// make it 2-pixel 
+  wide outline (it grows in both directions)</span><br>
+  &nbsp;&nbsp;Outline.DrawFill(DstBitmap, clBlack32); <br>
+  <b>end</b>;</p>
+<p class="Body"><img src="../../../../../../Images/img_004.png" width="517" height="213"></p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

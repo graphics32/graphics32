@@ -1,0 +1,34 @@
+<html>
+<head>
+<title>Add</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> Add(ItemClass: TLayerClass): <a href="../../TCustomLayer/_Body.htm">TCustomLayer</a>;</p>
+<p class="Decl"><b>type</b> TLayerClass = <b>class of</b> TCustomLayer;</p>
+<h2>Description</h2>
+<p class="Body">Adds a new layer to the collection. The layer is added to the 
+  end of the list and it's <a href="../../TCustomLayer/Properties/Index.htm">Index</a> 
+  property will become equal to <a href="../Properties/Count.htm">Count</a> - 
+  1.</p>
+<p class="Body">The class of the layer is specified in the <b>ItemClass</b> parameter 
+  and you will need to typecast the result to <b>ItemClass</b> if you need to 
+  access its specific properties, for example:</p>
+<p class="Code"><b>var</b></p>
+<p class="Code">&nbsp;&nbsp;BL: TBitmapLayer;</p>
+<p class="Code"><b>begin</b></p>
+<p class="Code">&nbsp;&nbsp;BL := TBitmapLayer(MyImage32.Layers.Add(TBitmapLayer));</p>
+<p class="Code">&nbsp;&nbsp;...</p>
+<p class="Code"><b>end</b>;</p>
+<p class="Body">Alternatively, you can use another approach to add layers to the 
+  collection:</p>
+<p class="Code"><b>var</b></p>
+<p class="Code"> &nbsp;&nbsp;BL: TBitmapLayer;</p>
+<p class="Code"><b>begin</b></p>
+<p class="Code">&nbsp;&nbsp;BL := TBitmapLayer.Create(MyImage32.Layers);</p>
+<p class="Code"><b>end</b>;</p>
+<p id="hidden">[See also]: <a href="../../../../../Additional%20Topics/Using%20TImage32/Using%20Layers.htm">Using 
+  Layers</a></p>
+</body>
+</html>

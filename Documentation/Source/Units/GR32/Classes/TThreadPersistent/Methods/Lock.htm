@@ -1,0 +1,23 @@
+<html>
+ 
+<head>
+<title>Lock</title>
+<link rel="STYLESHEET" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Lock; </p>
+<h2>Description</h2>
+<p class="Body">Blocks other execution threads from locking the object until the 
+  <a href="Unlock.htm">Unlock</a> method is called. If another thread tryes to 
+  call the <span class="EmptyRef">Lock</span> method of an object which is already 
+  locked, its execution will be stalled until the lock is released with <a href="Unlock.htm">Unlock</a> 
+  method.</p>
+<p class="Body">Once a thread has locked the object, it can make additional calls 
+  to <span class="EmptyRef">Lock</span> method without blocking its own execution. 
+  This prevents the thread from deadlocking itself while waiting for releasing 
+  of a lock that it already owns. <a href="../Properties/LockCount.htm">LockCount</a> 
+  is increased each time <span class="EmptyRef">Lock</span> is called.</p>
+</body>
+</html>
+
