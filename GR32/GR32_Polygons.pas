@@ -915,7 +915,7 @@ procedure CustomFillLines2(Bitmap: TBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode = DefaultAAMode);
 var
-  I, J, L, N, FA, EA: Integer;
+  I, J, L, N: Integer;
   MinY, MaxY, Y, Top, Bottom: Integer;
   MinX, MaxX, X, Dx: Integer;
   Left, Right: Integer;
