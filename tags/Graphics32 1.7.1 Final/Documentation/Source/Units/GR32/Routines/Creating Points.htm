@@ -1,0 +1,40 @@
+<html>
+<head>
+<title></title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2><a name="Point"></a>Point</h2>
+<p class="Decl"><b>function</b> Point(X, Y: Integer): <a href="../Types/Point%20Types.htm#TPoint">TPoint</a>; 
+  <b>overload</b>;</p>
+<p class="Decl"><b>function</b> Point(<b>const</b> FP: <a href="../Types/Point%20Types.htm#TFloatPoint">TFloatPoint</a>): 
+  <a href="../Types/Point%20Types.htm#TPoint">TPoint</a>; <b>overload</b>;</p>
+<p class="Decl"><b>function</b> Point(<b>const</b> FXP: <a href="../Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>): 
+  <a href="../Types/Point%20Types.htm#TPoint">TPoint</a>; <b>overload</b>;</p>
+<p class="Body">Constructs a point with integer coordinates, or converts it from 
+  the one with fixed/floating point coordinates by rounding them to nearest integers.</p>
+<h2><a name="FloatPoint"></a>FloatPoint</h2>
+<p class="Decl"><b>function</b> FloatPoint(X, Y: Single): <a href="../Types/Point%20Types.htm#TFloatPoint">TFloatPoint</a>; 
+  <b>overload</b>;</p>
+<p class="Decl"><b>function</b> FloatPoint(<b>const</b> P: <a href="../Types/Point%20Types.htm#TPoint">TPoint</a>): 
+  <a href="../Types/Point%20Types.htm#TFloatPoint">TFloatPoint</a>; <b>overload</b>;</p>
+<p class="Decl"><b>function</b> FloatPoint(<b>const</b> FXP: <a href="../Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>): 
+  <a href="../Types/Point%20Types.htm#TFloatPoint">TFloatPoint</a>; <b>overload</b>;</p>
+<p class="Body">Provides construction and converstion of points with floating-point 
+  coordinates.</p>
+<h2><a name="FixedPoint"></a>FixedPoint</h2>
+<p class="Decl"><b>function</b> FixedPoint(X, Y: Integer): <a href="../Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>; 
+  <b>overload</b>;</p>
+<p class="Decl"><b>function</b> FixedPoint(X, Y: Single): <a href="../Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>; 
+  <b>overload</b>;</p>
+<p class="Decl"><b>function</b> FixedPoint(<b>const</b> P: <a href="../Types/Point%20Types.htm#TPoint">TPoint</a>): 
+  <a href="../Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>; <b>overload</b>;</p>
+<p class="Decl"><b>function</b> FixedPoint(<b>const</b> FP: <a href="../Types/Point%20Types.htm#TFloatPoint">TFloatPoint</a>): 
+  <a href="../Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>; <b>overload</b>;</p>
+<p class="Body">Provides construction and converstion of points with fixed-point 
+  coordinates </p>
+<p id="Hidden"></p>
+<p id="Hidden">[See also] </p>
+</body>
+</html>
