@@ -126,10 +126,8 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function  GetViewportRect: TRect; virtual;
-{$IFNDEF CLX}
     procedure Flush; overload;
     procedure Flush(const SrcRect: TRect); overload;
-{$ENDIF}
     procedure Invalidate; override;
     procedure Loaded; override;
     procedure Resize; override;
@@ -656,7 +654,6 @@ begin
   if Assigned(FOnGDIOverlay) then FOnGDIOverlay(Self);
 end;
 
-{$IFNDEF CLX}
 procedure TCustomPaintBox32.Flush;
 begin
   if (Canvas.Handle <> 0) and (FBuffer.Handle <> 0) then
@@ -666,8 +663,20 @@ begin
       FBuffer.Lock;
       try
         with GetViewportRect do
+{$IFDEF CLX}
+        begin
+          if not QPainter_isActive(FBuffer.Handle) then
+            if not QPainter_begin(FBuffer.Handle, FBuffer.Pixmap) then
+              raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+          QPainter_drawPixmap(Canvas.Handle, Top, Left, FBuffer.Pixmap, 0, 0, Right - Left, Bottom - Top);
+          QPainter_end(FBuffer.Handle);
+
+          TBitmap32Access(FBuffer).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
+        end;
+{$ELSE}
           BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
             FBuffer.Handle, 0, 0, SRCCOPY);
+{$ENDIF}
       finally
         FBuffer.Unlock;
       end;
@@ -689,8 +698,21 @@ begin
       try
         R := GetViewPortRect;
         with SrcRect do
+{$IFDEF CLX}
+        begin
+          if not QPainter_isActive(FBuffer.Handle) then
+            if not QPainter_begin(FBuffer.Handle, FBuffer.Pixmap) then
+              raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+          QPainter_drawPixmap(Canvas.Handle, Top + R.Top, Left + R.Left,
+            FBuffer.Pixmap, 0, 0, Right - Left, Bottom - Top);
+          QPainter_end(FBuffer.Handle);
+
+          TBitmap32Access(FBuffer).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
+        end;
+{$ELSE}
           BitBlt(Canvas.Handle, Left + R.Left, Top + R.Top, Right - Left, Bottom - Top,
             FBuffer.Handle, Left, Top, SRCCOPY);
+{$ENDIF}
       finally
         FBuffer.Unlock;
       end;
@@ -699,7 +721,6 @@ begin
     end;
   end;
 end;
-{$ENDIF}
 
 function TCustomPaintBox32.GetViewportRect: TRect;
 begin
