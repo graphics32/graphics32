@@ -2776,16 +2776,16 @@ begin
   // check for trivial cases...
   If Dx = 0 then // vertical line?
   begin
-    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
     if L then SetPixelTS(X2, Y2, Value);
     Changed;
     Exit;
   end
   else if Dy = 0 then // horizontal line?
   begin
-    if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
-    else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+    if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
+    else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
     if L then SetPixelTS(X2, Y2, Value);
     Changed;
     Exit;
@@ -3263,16 +3263,16 @@ begin
   // check for trivial cases...
   If Dx = 0 then // vertical line?
   begin
-    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+    if Dy > 0 then VertLineST(X1, Y1, Y2 - 1, Value)
+    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
     if L then SetPixelTS(X2, Y2, Value);
     Changed;
     Exit;
   end
   else if Dy = 0 then // horizontal line?
   begin
-    if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
-    else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+    if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
+    else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
     if L then SetPixelTS(X2, Y2, Value);
     Changed;
     Exit;
