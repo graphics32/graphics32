@@ -12,6 +12,9 @@ object Form1: TForm1
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  DesignSize = (
+    332
+    456)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -52,7 +55,7 @@ object Form1: TForm1
     Width = 321
     Height = 273
     Anchors = [akLeft, akTop, akRight, akBottom]
-    Scale = 1
+    Scale = 1.000000000000000000
     ScrollBars.Color = clBtnShadow
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
