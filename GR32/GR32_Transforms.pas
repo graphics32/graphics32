@@ -171,6 +171,7 @@ type
   protected
     procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
     procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
+    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
   public
     function  GetTransformedBounds: TRect; override;
   end;
@@ -944,6 +945,17 @@ begin
   ReverseTransformFloat(DstX, DstY, X, Y);
   SrcX256 := Round(X * 256);
   SrcY256 := Round(Y * 256);
+end;
+
+procedure TConformalTransformation.ReverseTransformFixed(DstX,
+  DstY: TFixed; out SrcX, SrcY: TFixed);
+var
+  X, Y: Single;
+begin
+  EMMS;
+  ReverseTransformFloat(DstX * FixedToFloat, DstY * FixedToFloat, X, Y);
+  SrcX := Fixed(X);
+  SrcY := Fixed(Y);
 end;
 
 procedure TConformalTransformation.ReverseTransformInt(DstX, DstY: Integer;
