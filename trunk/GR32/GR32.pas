@@ -114,9 +114,10 @@ function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
 function HSLtoRGB(H, S, L: Single): TColor32;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
 
+{$IFNDEF CLX}
 // Palette conversion functions
 function WinPalette(const P: TPalette32): HPALETTE;
-
+{$ENDIF}
 
 { A fixed-point type }
 
@@ -803,6 +804,7 @@ end;
 
 { Palette conversion }
 
+{$IFNDEF CLX}
 function WinPalette(const P: TPalette32): HPALETTE;
 var
   L: TMaxLogPalette;
@@ -825,6 +827,7 @@ begin
   end;
   Result := CreatePalette(l0);
 end;
+{$ENDIF}
 
 { Fixed-point math }
 
