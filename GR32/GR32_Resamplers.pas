@@ -16,7 +16,7 @@ procedure StretchTransfer(
   Resampler: TCustomResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
-function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+//function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
 
 const
   MaxWindowWidth = 3;
@@ -25,11 +25,12 @@ const
 type
   TResampler = class(TCustomResampler)
   protected
-     TableSizeZ : Integer; //zerobased!
+     TableSizeZ: Integer;
      WeightTable : array of array [-MaxWindowWidth..MaxWindowWidth] of Integer;
   public
     destructor Destroy; override;
     function RangeCheck: Boolean; override;
+    function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -220,7 +221,7 @@ asm
 end; }
 
 
-function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+{function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
 type
   PColorEntry = ^TColorEntry;
   TColorEntry = packed record
@@ -230,7 +231,6 @@ var
   clX, clY, fracX, fracY: Integer;
   Resampler: TCustomResampler;
   W, TableSize: Integer;
-  Filter: TFilterMethod;
   I, J, Incr: Integer;
   C: PColorEntry;
   LoX, HiX, LoY, HiY: Integer;
@@ -242,7 +242,6 @@ const
   ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 begin
   Resampler := Src.Resampler;
-  Filter := Resampler.Filter;
   W := Round(Resampler.Width);
   TableSize:= TResamplerAccess(Resampler).TableSizeZ;
 
@@ -299,7 +298,7 @@ begin
     B := VertEntry.B shr 16;
   end;
 
-end;
+end;    }
 
 procedure CheckBitmaps(Dst, Src: TBitmap32);
 begin
@@ -1414,6 +1413,82 @@ begin
   GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, Self, CombineOp, CombineCallBack);
 end;
 
+function TResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+type
+  PColorEntry = ^TColorEntry;
+  TColorEntry = packed record
+    B, G, R, A: Byte;
+  end;
+var
+  clX, clY, fracX, fracY: Integer;
+  W: Integer;
+  I, J, Incr: Integer;
+  C: PColorEntry;
+  LoX, HiX, LoY, HiY: Integer;
+
+  HorzEntry, VertEntry: TBufferEntry;
+
+const
+  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
+begin
+  W := Round(Width);
+
+  clX := Ceil(X);
+  clY := Ceil(Y);
+  fracX := Round( (clX - X) * TableSizeZ );
+  fracY := Round( (clY - Y) * TableSizeZ );
+
+  if clX < W then LoX := -clX else LoX := -W;
+  if clY < W then LoY := -clY else LoY := -W;
+  HiX := Src.Width - 1;
+  HiY := Src.Height - 1;
+  Incr:= HiX;
+  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
+  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+
+  VertEntry := ROUND_ENTRY;
+
+  C:= PColorEntry(Src.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
+  for I := LoY to HiY do
+  begin
+    HorzEntry := EMPTY_ENTRY;
+    for J := LoX to HiX do
+    begin
+      W:= WeightTable[fracX, J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
+      Inc(C);
+    end;
+    W := WeightTable[fracY, I];
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
+  end;
+
+  if RangeCheck then
+  begin
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+  end;
+
+  with TColorEntry(Result) do
+  begin
+    A := VertEntry.A shr 16;
+    R := VertEntry.R shr 16;
+    G := VertEntry.G shr 16;
+    B := VertEntry.B shr 16;
+  end;
+
+end;
+
 procedure TResampler.Transform(Dst: TBitmap32; DstRect: TRect;
   Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
@@ -1428,8 +1503,7 @@ begin
   SrcAlpha := Src.MasterAlpha;
 
   try
-    if Src.Resampler is TResampler then
-      TResampler(Src.Resampler).MakeResamplePixelTable;
+    MakeResamplePixelTable;
     for J := DstRect.Top to DstRect.Bottom do
     begin
       Pixels := Dst.ScanLine[J];
@@ -1453,8 +1527,7 @@ begin
     end;
   finally
     EMMS;
-    if Src.Resampler is TResampler then
-      TResampler(Src.Resampler).FreeResamplePixelTable;
+    FreeResamplePixelTable;
   end;
 end;
 
