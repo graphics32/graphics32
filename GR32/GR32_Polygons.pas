@@ -66,8 +66,7 @@ procedure PolyPolylineXSP(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedP
 
 type
   TPolyFillMode = (pfAlternate, pfWinding);
-  TShiftFunc = function(Value: Integer): Integer;  // needed for antialiasing to speed things up
-  TAntialiasMode = (am16times, am8times, am4times);
+  TAntialiasMode = (am32times, am16times, am8times, am4times, am2times);
 
   TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
 
@@ -192,14 +191,9 @@ implementation
 
 uses Math;
 
-const
-  AA_LINES: Array[TAntialiasMode] of Integer = (16, 8, 4);
-  AA_SHIFT: Array[TAntialiasMode] of Integer = (4, 3, 2);
-  AA_MULTI: Array[TAntialiasMode] of Integer = (273, 1167, 5460);
-  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_12, SAR_13, SAR_14);
-
 type
   TBitmap32Access = class(TBitmap32);
+  TShiftFunc = function(Value: Integer): Integer;  // needed for antialiasing to speed things up
 // These are for edge scan info. Note, that the most significant bit of the
 // edge in a scan line is used for winding (edge direction) info.
   TScanLine = TArrayOfInteger;
@@ -208,6 +202,12 @@ type
   TIntegerArray = array [0..0] of Integer;
   PFixedPointArray = ^TFixedPointArray;
   TFixedPointArray = array [0..0] of TFixedPoint;
+
+const
+  AA_LINES: Array[TAntialiasMode] of Integer = (32, 16, 8, 4, 2);
+  AA_SHIFT: Array[TAntialiasMode] of Integer = (5, 4, 3, 2, 1);
+  AA_MULTI: Array[TAntialiasMode] of Integer = (65, 273, 1167, 5460, 32662);
+  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_11, SAR_12, SAR_13, SAR_14, SAR_15);
 
 { POLYLINES }
 
@@ -497,15 +497,24 @@ var
 
   procedure AddEdgePoint(X, Y: Integer; Direction: Integer);
   var
-    L: Integer;
+    Top, L: Integer;
   begin
     // positive direction (+1) is down
     if (Y < BaseY) or (Y > MaxY) then Exit;
-    if X < BaseX then X := BaseX else if X > MaxX then X := MaxX;
-    L := Length(ScanLines[Y - BaseY]);
-    SetLength(ScanLines[Y - BaseY], L + 1);
-    if Direction < 0 then X := Integer(Longword(X) or $80000000); // set the highest bit if the winding is up
-    ScanLines[Y - BaseY][L] := X;
+
+    if X < BaseX then
+      X := BaseX
+    else if X > MaxX then
+      X := MaxX;
+
+    Top := Y - BaseY;
+    L := Length(ScanLines[Top]);
+    SetLength(ScanLines[Top], L + 1);
+
+    if Direction < 0 then
+      X := Integer(Longword(X) or $80000000); // set the highest bit if the winding is up
+
+    ScanLines[Top][L] := X;
   end;
 
   function DrawEdge(X1, Y1, X2, Y2: Integer): Integer;
@@ -520,21 +529,26 @@ var
     if Y2 = Y1 then Exit;
     Dx := X2 - X1;
     Dy := Y2 - Y1;
-    if Dy > 0 then Sy := 1 
+
+    if Dy > 0 then Sy := 1
     else
     begin
       Sy := -1;
       Dy := -Dy;
     end;
+
     Result := Sy;
+
     if Dx > 0 then Sx := 1
     else
     begin
       Sx := -1;
       Dx := -Dx;
     end;
+
     Delta := (Dx mod Dy) shr 1;
     X := X1; Y := Y1;
+
     for I := 0 to Dy - 1 do
     begin
       AddEdgePoint(X, Y, Result);
@@ -562,13 +576,17 @@ var
       end;
     end;
   end;
+
 begin
   if Length(Points) < 3 then Exit;
 
   with Points[0] do
   begin
-    X1 := X;
-    if SubSampleX then X1 := X1 shl 8;
+    if SubSampleX then
+      X1 := X shl 8
+    else
+      X1 := X;
+      
     Y1 := Y;
   end;
 
@@ -586,10 +604,14 @@ begin
   begin
     with Points[I] do
     begin
-      X2 := X;
+      if SubSampleX then
+        X2 := X shl 8
+      else
+        X2 := X;
+
       Y2 := Y;
-      if SubSampleX then X2 := X2 shl 8;
     end;
+
     if Y1 <> Y2 then
     begin
       Direction := DrawEdge(X1, Y1, X2, Y2);
@@ -599,14 +621,20 @@ begin
         PrevDirection := Direction;
       end;
     end;
+
     X1 := X2; Y1 := Y2;
   end;
+
   with Points[0] do
   begin
-    X2 := X;
+    if SubSampleX then
+      X2 := X shl 8
+    else
+      X2 := X;
+
     Y2 := Y;
-    if SubSampleX then X2 := X2 shl 8;
   end;
+
   if Y1 <> Y2 then
   begin
     Direction := DrawEdge(X1, Y1, X2, Y2);
@@ -618,7 +646,7 @@ procedure ColorFillLines(Bitmap: TBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode);
 var
   I, J, L: Integer;
-  Left, Right, OldRight, LP, RP: Integer;
+  Top, Left, Right, OldRight, LP, RP, Cx: Integer;
   Winding, NextWinding: Integer;
   HorzLine: procedure(X1, Y, X2: Integer; Value: TColor32) of Object;
 begin
@@ -627,9 +655,13 @@ begin
   else
     HorzLine := Bitmap.HorzLine;
 
+  Cx := Bitmap.ClipRect.Right - 1;
+  Top := BaseY - 1;
+
   if Mode = pfAlternate then
     for J := 0 to High(ScanLines) do
     begin
+      Inc(Top);
       L := Length(ScanLines[J]); // assuming length is even
       if L = 0 then Continue;
       I := 0;
@@ -644,14 +676,15 @@ begin
         begin
           if (Left and $FF) < $80 then Left := Left shr 8
           else Left := Left shr 8 + 1;
+
           if (Right and $FF) < $80 then Right := Right shr 8
           else Right := Right shr 8 + 1;
 
-          if Right >= Bitmap.ClipRect.Right - 1 then Right := Bitmap.ClipRect.Right - 1;
+          if Right >= Cx then Right := Cx;
 
           if Left <= OldRight then Left := OldRight + 1;
           OldRight := Right;
-          if Right >= Left then HorzLine(Left, BaseY + J, Right, Color);
+          if Right >= Left then HorzLine(Left, Top, Right, Color);
         end;
         Inc(I);
       end
@@ -659,6 +692,7 @@ begin
   else // Mode = pfWinding
     for J := 0 to High(ScanLines) do
     begin
+      Inc(Top);
       L := Length(ScanLines[J]); // assuming length is even
       if L = 0 then Continue;
       I := 0;
@@ -668,6 +702,7 @@ begin
       if (Left and $80000000) <> 0 then Inc(Winding) else Dec(Winding);
       Left := Left and $7FFFFFFF;
       Inc(I);
+
       while I < L do
       begin
         Right := ScanLines[J][I];
@@ -682,9 +717,9 @@ begin
           if (Right and $FF) < $80 then RP := Right shr 8
           else RP := Right shr 8 + 1;
 
-          if RP >= Bitmap.ClipRect.Right - 1 then RP := Bitmap.ClipRect.Right - 1;
+          if RP >= Cx then RP := Cx;
 
-          if RP >= LP then HorzLine(LP, BaseY + J, RP, Color);
+          if RP >= LP then HorzLine(LP, Top, RP, Color);
         end;
 
         Inc(Winding, NextWinding);
@@ -836,12 +871,16 @@ procedure CustomFillLines(Bitmap: TBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode);
 var
   I, J, L: Integer;
-  Left, Right, OldRight, LP, RP, Top: Integer;
+  Top, Left, Right, OldRight, LP, RP, Cx: Integer;
   Winding, NextWinding: Integer;
 begin
+  Top := BaseY - 1;
+  Cx := Bitmap.ClipRect.Right - 1;
+
   if Mode = pfAlternate then
     for J := 0 to High(ScanLines) do
     begin
+      Inc(Top);
       L := Length(ScanLines[J]); // assuming length is even
       if L = 0 then Continue;
       I := 0;
@@ -859,15 +898,12 @@ begin
           if (Right and $FF) < $80 then Right := Right shr 8
           else Right := Right shr 8 + 1;
 
-          if Right >= Bitmap.ClipRect.Right - 1 then Right := Bitmap.ClipRect.Right - 1;
+          if Right >= Cx then Right := Cx;
 
           if Left <= OldRight then Left := OldRight + 1;
           OldRight := Right;
           if Right >= Left then
-          begin
-            Top := BaseY + J;
             FillLineCallback(Bitmap.PixelPtr[Left, Top], Left, Top, Right - Left, nil);
-          end;
         end;
         Inc(I);
       end
@@ -875,6 +911,7 @@ begin
   else // Mode = pfWinding
     for J := 0 to High(ScanLines) do
     begin
+      Inc(Top);
       L := Length(ScanLines[J]); // assuming length is even
       if L = 0 then Continue;
       I := 0;
@@ -898,13 +935,10 @@ begin
           if (Right and $FF) < $80 then RP := Right shr 8
           else RP := Right shr 8 + 1;
 
-          if RP >= Bitmap.ClipRect.Right - 1 then RP := Bitmap.ClipRect.Right - 1;
+          if RP >= Cx then RP := Cx;
 
           if RP >= LP then
-          begin
-            Top := BaseY + J;
             FillLineCallback(Bitmap.PixelPtr[LP, Top], LP, Top, RP - LP, nil);
-          end;
         end;
 
         Inc(Winding, NextWinding);
