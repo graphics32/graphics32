@@ -646,9 +646,9 @@ function BuildMappingTable(
 const
   { the first filter from these arrays is never used since the nearest and linear
     filter is implemented separately. This also applies to draft-resampling }
-  FILTERS: array[TStretchFilter] of TFilterFunc = (NearestFilter, LinearFilter,
-    SplineFilter, LanczosFilter, MitchellFilter, CosineFilter, DraftFilter);
-  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 2, 3, 2, 1, 1);
+  FILTERS: array[TStretchFilter] of TFilterFunc = (NearestFilter, DraftFilter, LinearFilter,
+    CosineFilter, SplineFilter, LanczosFilter, MitchellFilter);
+  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 1, 1, 2, 3, 2);
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterFunc;
