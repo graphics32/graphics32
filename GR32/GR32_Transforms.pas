@@ -209,6 +209,8 @@ type
   public
   end;
 
+function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
+
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
