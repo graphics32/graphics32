@@ -231,6 +231,8 @@ var
   SrcP, DstP: PColor32;
   SP, DP: PColor32;
   W, I, DstY: Integer;
+  BlendLine: TBlendLine;
+  BlendLineEx: TBlendLineEx;
 begin
   { Internal routine }
   W := DstRect.Right - DstRect.Left;
@@ -250,19 +252,25 @@ begin
       end;
     dmBlend:
       if Src.MasterAlpha >= 255 then
-      for DstY := DstRect.Top to DstRect.Bottom - 1 do
       begin
-        BLEND_LINE[Src.CombineMode](SrcP, DstP, W);
-        Inc(SrcP, Src.Width);
-        Inc(DstP, Dst.Width);
+        BlendLine := BLEND_LINE[Src.CombineMode];
+        for DstY := DstRect.Top to DstRect.Bottom - 1 do
+        begin
+          BlendLine(SrcP, DstP, W);
+          Inc(SrcP, Src.Width);
+          Inc(DstP, Dst.Width);
+        end
       end
       else
-      for DstY := DstRect.Top to DstRect.Bottom - 1 do
       begin
-        BLEND_LINE_EX[Src.CombineMode](SrcP, DstP, W, Src.MasterAlpha);
-        Inc(SrcP, Src.Width);
-        Inc(DstP, Dst.Width);
-      end;
+        BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
+        for DstY := DstRect.Top to DstRect.Bottom - 1 do
+        begin
+          BlendLineEx(SrcP, DstP, W, Src.MasterAlpha);
+          Inc(SrcP, Src.Width);
+          Inc(DstP, Dst.Width);
+        end
+      end
     else //  dmCustom:
       begin
         for DstY := DstRect.Top to DstRect.Bottom - 1 do
@@ -328,6 +336,8 @@ var
   SrcLine, DstLine: PColor32Array;
   Buffer: TArrayOfColor32;
   Scale: Single;
+  BlendLine: TBlendLine;
+  BlendLineEx: TBlendLineEx;
 begin
   IntersectRect(DstClip, DstClip, MakeRect(0, 0, Dst.Width, Dst.Height));
   IntersectRect(DstClip, DstClip, DstRect);
@@ -406,6 +416,12 @@ begin
         SetLength(Buffer, DstClipW);
         DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
         OldSrcY := -1;
+
+        if Src.MasterAlpha >= 255 then
+          BlendLine := BLEND_LINE[Src.CombineMode]
+        else
+          BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
+
         for J := 0 to DstClipH - 1 do
         begin
           if DstH > 1 then
@@ -428,9 +444,9 @@ begin
           if CombineOp = dmBlend then
           begin
             if Src.MasterAlpha >= 255 then
-              BLEND_LINE[Src.CombineMode](@Buffer[0], @DstLine[0], DstClipW)
+              BlendLine(@Buffer[0], @DstLine[0], DstClipW)
             else
-              BLEND_LINE_EX[Src.CombineMode](@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
+              BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
           end
           else
             for I := 0 to DstClipW - 1 do
@@ -456,17 +472,16 @@ procedure StretchHorzStretchVertLinear(
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 //Assure DstRect is >= SrcRect, otherwise quality loss will occur
-
 var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   MapHorz, MapVert: array of TPointRec;
   t2, Scale: Single;
   SrcLine, DstLine: PColor32Array;
-  SrcIndex{, OldSrcIndex}: Integer;
+  SrcIndex: Integer;
   I, J: Integer;
   WY: Cardinal;
   C: TColor32;
-
+  BlendMemEx: TBlendMemEx;
 begin
   SrcW := SrcRect.Right - SrcRect.Left;
   SrcH := SrcRect.Bottom - SrcRect.Top;
@@ -520,36 +535,55 @@ begin
   end;
 
   DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-  for J := 0 to DstClipH - 1 do
-  begin
-    SrcLine := Src.ScanLine[MapVert[J].Pos];
-    WY := MapVert[J].Weight;
-//    OldSrcIndex := -1;
-    case CombineOp of
-      dmOpaque:
+  SrcLine := Src.ScanLine[MapVert[J].Pos];
+  WY := MapVert[J].Weight;
+
+  case CombineOp of
+    dmOpaque:
+      for J := 0 to DstClipH - 1 do
+      begin
+        SrcLine := Src.ScanLine[MapVert[J].Pos];
+        WY := MapVert[J].Weight;
         for I := 0 to DstClipW - 1 do
         begin
           SrcIndex := MapHorz[I].Pos;
-//          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
           DstLine[I] := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
                                             @SrcLine[SrcIndex + Src.Width]);
         end;
-    else
-        for I := 0 to DstClipW - 1 do
+      end;
+    dmBlend:
+      begin
+        BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+        for J := 0 to DstClipH - 1 do
         begin
-          SrcIndex := MapHorz[I].Pos;
-          C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                   @SrcLine[SrcIndex + Src.Width]);
-//          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
-          if CombineOp = dmBlend then
-            BLEND_MEM_EX[Src.CombineMode](C, DstLine[I], Src.MasterAlpha)
-          else
-            CombineCallBack(C, DstLine[I], Src.MasterAlpha);
-        end;
+          SrcLine := Src.ScanLine[MapVert[J].Pos];
+          WY := MapVert[J].Weight;
+          for I := 0 to DstClipW - 1 do
+          begin
+            SrcIndex := MapHorz[I].Pos;
+            C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                     @SrcLine[SrcIndex + Src.Width]);
+            BlendMemEx(C, DstLine[I], Src.MasterAlpha)
+          end;
+          Inc(DstLine, Dst.Width);
+        end
+      end
+  else // cmCustom
+    for J := 0 to DstClipH - 1 do
+    begin
+      SrcLine := Src.ScanLine[MapVert[J].Pos];
+      WY := MapVert[J].Weight;
+      for I := 0 to DstClipW - 1 do
+      begin
+        SrcIndex := MapHorz[I].Pos;
+        C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                 @SrcLine[SrcIndex + Src.Width]);
+        CombineCallBack(C, DstLine[I], Src.MasterAlpha);
+      end;
+      Inc(DstLine, Dst.Width);
     end;
-    Inc(DstLine, Dst.Width);
   end;
- EMMS;
+  EMMS;
 end;
 
 { StretchFlt }
@@ -820,7 +854,6 @@ begin
     { transfer pixels }
     for J := DstClip.Top to DstClip.Bottom - 1 do
     begin
-
       ClusterY := MapY[J - DstClip.Top];
       for X := MapXLoPos to MapXHiPos do
       begin
@@ -882,7 +915,6 @@ begin
         end
         else
           C := ((Ca and $00FF0000) shl 8) or (Cr and $00FF0000) or ((Cg and $00FF0000) shr 8) or ((Cb and $00FF0000) shr 16);
-
 
         // combine it with the background
         case CombineOp of
@@ -1053,29 +1085,28 @@ type
  PCardinal = ^Cardinal;
  PRGBA = ^TRGBA;
  TRGBA = record B,G,R,A: Byte end;
-
 var
  C: PRGBA;
- ix,iy,
- iA,iR,iG,iB, Area: Cardinal;
+ ix, iy, iA, iR, iG, iB, Area: Cardinal;
 begin
-  iR:=0; iB:=iR; iG:=iR; iA:=iR;
+  iR := 0;  iB := iR;  iG := iR;  iA := iR;
   for iy := 1 to Dly do
-   begin
+  begin
     C:= PRGBA(RowSrc);
     for ix := 1 to Dlx do
-     begin
+    begin
       inc(iB, C.B);
       inc(iG, C.G);
       inc(iR, C.R);
       inc(iA, C.A);
       inc(C);
-     end;
-     inc(RowSrc, OffSrc);
-   end;
-   Area := Dlx * Dly;
-   Area := $1000000 div Area;
-   Result:= iA * Area and $FF000000 or
+    end;
+    inc(RowSrc, OffSrc);
+  end;
+
+  Area := Dlx * Dly;
+  Area := $1000000 div Area;
+  Result := iA * Area and $FF000000 or
             iR * Area shr  8 and $FF0000 or
             iG * Area shr 16 and $FF00 or
             iB * Area shr 24 and $FF;
@@ -1114,15 +1145,15 @@ begin
   BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
 
   if (DstW > SrcW)or(DstH > SrcH) then begin
-   if (SrcW < 2) or (SrcH < 2) then
-     Resample(Dst, DstRect, DstClip, Src, SrcRect, sfLinear, CombineOp,
-       CombineCallBack)
-   else
-     StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp,
-       CombineCallBack);
-   end
+    if (SrcW < 2) or (SrcH < 2) then
+      Resample(Dst, DstRect, DstClip, Src, SrcRect, sfLinear, CombineOp,
+        CombineCallBack)
+    else
+      StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp,
+        CombineCallBack);
+    end
   else
-   begin //Full Scaledown, ignores Fulledge - cannot be integrated into this resampling method
+    begin //Full Scaledown, ignores Fulledge - cannot be integrated into this resampling method
       OffSrc := Src.Width * 4;
 
       ScaleFactor:= SrcW / DstW;
@@ -1143,42 +1174,48 @@ begin
       Dec(DstClip.Left, 2);
       Inc(DstClipW);
       Inc(DstClipH);
+
       for J := 2  to DstClipH do
       begin
-        dy:= c2 - c1;
-        c1:= c2;
-        c2:= J * sc shr 16;
-        r1:= 0;
-        r2:= xs;
-        xsrc:= RowSrc;
+        dy := c2 - c1;
+        c1 := c2;
+        c2 := J * sc shr 16;
+        r1 := 0;
+        r2 := xs;
+        xsrc := RowSrc;
+
         case CombineOp of
-         dmOpaque: for I := 2  to DstClipW do
-          begin
-           dx := r2 - r1;  r1 := r2;
-           r2 := I * sr shr 16;
-           DstLine[DstClip.Left + I]:= BlockAverage(dx, dy, xsrc, OffSrc);
-           xsrc := xsrc + dx shl 2;
-          end;
-         dmBlend : for I := 2  to DstClipW do
-          begin
-           dx := r2 - r1;  r1 := r2;
-           r2 := I * sr shr 16;
-           BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
-           xsrc := xsrc + dx shl 2;
-          end;
-         dmCustom: for I := 2  to DstClipW do
-          begin
-           dx := r2 - r1;  r1 := r2;
-           r2 := I * sr shr 16;
-           CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
-           xsrc := xsrc + dx shl 2;
-          end;
+          dmOpaque:
+            for I := 2  to DstClipW do
+            begin
+              dx := r2 - r1;  r1 := r2;
+              r2 := I * sr shr 16;
+              DstLine[DstClip.Left + I]:= BlockAverage(dx, dy, xsrc, OffSrc);
+              xsrc := xsrc + dx shl 2;
+            end;
+          dmBlend:
+            for I := 2  to DstClipW do
+            begin
+              dx := r2 - r1;  r1 := r2;
+              r2 := I * sr shr 16;
+              BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+              xsrc := xsrc + dx shl 2;
+            end;
+          dmCustom:
+            for I := 2  to DstClipW do
+            begin
+              dx := r2 - r1;  r1 := r2;
+              r2 := I * sr shr 16;
+              CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+              xsrc := xsrc + dx shl 2;
+            end;
         end;
+
         Inc(DstLine, Dst.Width);
-        inc(RowSrc, OffSrc * dy);
-       end;
-     end;
- EMMS;
+        Inc(RowSrc, OffSrc * dy);
+      end;
+    end;
+  EMMS;
 end;
 
 { Stretch Transfer }

@@ -705,12 +705,15 @@ var
   ScanLine: PIntegerArray;
   Winding, NextWinding: Integer;
   AAShift, AALines, AAMultiplier: Integer;
+  BlendLineEx: TBlendLineEx;
 begin
   A := Color shr 24;
 
   AAShift := AA_SHIFT[AAMode];
   AALines := AA_LINES[AAMode] - 1; // we do the -1 here for optimization.
   AAMultiplier := AA_MULTI[AAMode];
+
+  BlendLineEx := BLEND_LINE_EX[Bitmap.CombineMode];
 
   // find the range of Y screen coordinates
   MinY := BaseY shr AAShift;
@@ -818,7 +821,7 @@ begin
       end;
 
       // draw it to the screen
-      BLEND_LINE_EX[Bitmap.CombineMode](@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
+      BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
       EMMS;
     end;
 
@@ -1844,6 +1847,7 @@ var
   PatternX, PatternY, X: Integer;
   OpaqueAlpha: TColor32;
   Src: PColor32;
+  BlendMemEx: TBlendMemEx;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
   If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
@@ -1855,10 +1859,10 @@ begin
   If Assigned(AlphaValues) then
   begin
     OpaqueAlpha := TColor32($FF shl 24);
-
+    BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
     for X := DstX to DstX + Length - 1 do
     begin
-      BLEND_MEM_EX[FPattern.CombineMode](Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
+      BlendMemEx(Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1885,6 +1889,8 @@ procedure TBitmapPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY, Length: 
 var
   PatternX, PatternY, X: Integer;
   Src: PColor32;
+  BlendMemEx: TBlendMemEx;
+  BlendMem: TBlendMem;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
   If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
@@ -1894,9 +1900,11 @@ begin
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
   If Assigned(AlphaValues) then
+  begin
+    BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
     for X := DstX to DstX + Length - 1 do
     begin
-      BLEND_MEM_EX[FPattern.CombineMode](Src^, Dst^, AlphaValues^);
+      BlendMemEx(Src^, Dst^, AlphaValues^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1905,10 +1913,13 @@ begin
       end;
       Inc(AlphaValues);
     end
+  end
   else
+  begin
+    BlendMem := BLEND_MEM[FPattern.CombineMode];
     for X := DstX to DstX + Length - 1 do
     begin
-      BLEND_MEM[FPattern.CombineMode](Src^, Dst^);
+      BlendMem(Src^, Dst^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1916,6 +1927,7 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
     end;
+  end;
 end;
 
 procedure TBitmapPolygonFiller.FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY,
@@ -1923,6 +1935,7 @@ procedure TBitmapPolygonFiller.FillLineBlendMasterAlpha(Dst: PColor32; DstX, Dst
 var
   PatternX, PatternY, X: Integer;
   Src: PColor32;
+  BlendMemEx: TBlendMemEx;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
   If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
@@ -1931,10 +1944,12 @@ begin
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
+  BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
+
   If Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
-      BLEND_MEM_EX[FPattern.CombineMode](Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
+      BlendMemEx(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin
@@ -1946,7 +1961,7 @@ begin
   else
     for X := DstX to DstX + Length - 1 do
     begin
-      BLEND_MEM_EX[FPattern.CombineMode](Src^, Dst^, FPattern.MasterAlpha);
+      BlendMemEx(Src^, Dst^, FPattern.MasterAlpha);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       If PatternX >= FPattern.Width then
       begin

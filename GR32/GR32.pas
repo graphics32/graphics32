@@ -1979,14 +1979,20 @@ end;
 procedure TBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
-  EMMS;
+  if MMX_ACTIVE then
+  asm
+    db $0F,$77               /// EMMS
+  end;
 end;
 
 procedure TBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Ptr^);
-  EMMS;
   Inc(Ptr);
+  if MMX_ACTIVE then
+  asm
+    db $0F,$77               /// EMMS
+  end;
 end;
 
 procedure TBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
@@ -1995,7 +2001,10 @@ begin
      (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
     BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
-    EMMS;
+    if MMX_ACTIVE then
+    asm
+      db $0F,$77               /// EMMS
+    end;
   end;
 end;
 
@@ -2004,6 +2013,7 @@ var
   flrx, flry, celx, cely: Longword;
   P: PColor32;
   A: TColor32;
+  CombineMem: TCombineMem;
 begin
   { Warning: EMMS should be called after using this method }
   A := C shr 24;  // opacity
@@ -2022,6 +2032,7 @@ begin
   flrx := A * GAMMA_TABLE[flrx];
   flry := GAMMA_TABLE[flry];
 
+  CombineMem := COMBINE_MEM[FCombineMode];
   CombineMem(C, P^, celx * cely shr 16); Inc(P);
   CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
   CombineMem(C, P^, flrx * flry shr 16); Dec(P);
@@ -2033,6 +2044,7 @@ var
   flrx, flry, celx, cely: Longword;
   P: PColor32;
   A: TColor32;
+  CombineMem: TCombineMem;
 begin
   { Warning: EMMS should be called after using this method }
 
@@ -2055,6 +2067,8 @@ begin
   P := @FBits[X + Y * FWidth];
   flrx := A * GAMMA_TABLE[flrx];
   flry := GAMMA_TABLE[flry];
+
+  CombineMem := COMBINE_MEM[FCombineMode];
 
   if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
      (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
@@ -2216,7 +2230,7 @@ begin
   if PrevWeight = 255 then Result := FStipplePattern[PrevIndex]
   else
   begin
-    Result := CombineReg(
+    Result := COMBINE_REG[FCombineMode](
       FStipplePattern[PrevIndex],
       FStipplePattern[NextIndex],
       PrevWeight);
@@ -2241,13 +2255,14 @@ procedure TBitmap32.HorzLineT(X1, Y, X2: Integer; Value: TColor32);
 var
   i: Integer;
   P: PColor32;
+  BlendMem: TBlendMem;
 begin
   if X2 < X1 then Exit;
   P := PixelPtr[X1, Y];
+  BlendMem := BLEND_MEM[FCombineMode];
   for i := X1 to X2 do
   begin
-    //BlendMem(Value, P^);
-    BLEND_MEM[FCombineMode](Value, P^);
+    BlendMem(Value, P^);
     Inc(P);
   end;
   EMMS;
@@ -2340,12 +2355,13 @@ procedure TBitmap32.VertLineT(X, Y1, Y2: Integer; Value: TColor32);
 var
   i: Integer;
   P: PColor32;
+  BlendMem: TBlendMem;
 begin
   P := PixelPtr[X, Y1];
+  BlendMem := BLEND_MEM[FCombineMode];
   for i := Y1 to Y2 do
   begin
-    //BlendMem(Value, P^);
-    BLEND_MEM[FCombineMode](Value, P^);
+    BlendMem(Value, P^);
     Inc(P, Width);
   end;
   EMMS;
@@ -2663,6 +2679,7 @@ procedure TBitmap32.LineT(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Dy, Dx, Sy, Sx, I, Delta: Integer;
   P: PColor32;
+  BlendMem: TBlendMem;
 begin
   try
     Dx := X2 - X1;
@@ -2700,13 +2717,13 @@ begin
     Sy := Sy * Width;
 
     try
+      BlendMem := BLEND_MEM[FCombineMode];
       if Dx > Dy then
       begin
         Delta := Dx shr 1;
         for I := 0 to Dx - 1 do
         begin
-          //BlendMem(Value, P^);
-          BLEND_MEM[FCombineMode](Value, P^);
+          BlendMem(Value, P^);
           Inc(P, Sx);
           Inc(Delta, Dy);
           if Delta > Dx then
@@ -2721,8 +2738,7 @@ begin
         Delta := Dy shr 1;
         for I := 0 to Dy - 1 do
         begin
-          //BlendMem(Value, P^);
-          BLEND_MEM[FCombineMode](Value, P^);
+          BlendMem(Value, P^);
           Inc(P, Sy);
           Inc(Delta, Dx);
           if Delta > Dy then
@@ -2759,6 +2775,7 @@ var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, e: Integer;
   Swapped, CheckVert: Boolean;
   P: PColor32;
+  BlendMem: TBlendMem;
 begin
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
@@ -2909,6 +2926,7 @@ begin
   end;
 
   try
+    BlendMem := BLEND_MEM[FCombineMode];
     while xd <> term do
     begin
       Inc(xd, Sx);
@@ -3157,6 +3175,7 @@ var
   EC, EA: Word;
   CI: Byte;
   P: PColor32;
+  BlendMemEx: TBlendMemEx;
 begin
   if (X1 = X2) or (Y1 = Y2) then
   begin
@@ -3183,7 +3202,8 @@ begin
 
   try
     EC := 0;
-    BlendMem(Value, Bits[X1 + Y1 * Width]);
+    BLEND_MEM[FCombineMode](Value, Bits[X1 + Y1 * Width]);
+    BlendMemEx := BLEND_MEM_EX[FCombineMode];
 
     if Dy > Dx then
     begin
@@ -3198,11 +3218,9 @@ begin
         Inc(Y1, Sy);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        //BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
-        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI xor 255]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
         Inc(P, Sx);
-        //BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
-        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
       end;
     end
     else // DY <= DX
@@ -3218,11 +3236,9 @@ begin
         Inc(X1, Sx);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        //BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
-        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI xor 255]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
         if Sy = 1 then Inc(P, Width) else Dec(P, Width);
-        //BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
-        BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
       end;
     end;
   finally
@@ -3246,6 +3262,7 @@ var
   EC, EA, ED, D: Word;
   CI: Byte;
   P: PColor32;
+  BlendMemEx: TBlendMemEx;
 begin
   If (FClipRect.Right - FClipRect.Left = 0) or
      (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
@@ -3336,6 +3353,7 @@ begin
   xd := X1; yd := Y1;
   CheckVert := True;
   CornerAA := False;
+  BlendMemEx := BLEND_MEM_EX[FCombineMode];
 
   // clipping rect horizontal entry
   if Y1 < Cy1 then
@@ -3392,8 +3410,7 @@ begin
         while xd <> term do
         begin
           Inc(xd, -Sx);
-          //BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
-          BLEND_MEM_EX[FCombineMode](Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
+          BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
           Dec(ED, EA);
         end;
       finally
@@ -3469,11 +3486,9 @@ begin
     begin
       CI := EC shr 8;
       P := @Bits[D1^ + D2^ * Width];
-      //BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
-      BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI xor 255]);
+      BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
       Inc(P, PI);
-      //BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
-      BLEND_MEM_EX[FCombineMode](Value, P^, GAMMA_TABLE[CI]);
+      BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
       // check for overflow and jump to next line...
       D := EC;
       Inc(EC, EA);
@@ -3491,8 +3506,7 @@ begin
   try
     while xd <> rem do
     begin
-      //BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
-      BLEND_MEM_EX[FCombineMode](Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
+      BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
       Inc(EC, EA);
       Inc(xd, Sx);
     end;
@@ -3598,6 +3612,7 @@ var
   i, j: Integer;
   P: PColor32;
   A: Integer;
+  CombineMem: TCombineMem;
 begin
   A := Value shr 24;
   if A = $FF then FillRect(X1, Y1, X2, Y2, Value)
@@ -3605,6 +3620,7 @@ begin
   try
     Dec(Y2);
     Dec(X2);
+    CombineMem := COMBINE_MEM[FCombineMode];
     for j := Y1 to Y2 do
     begin
       P := GetPixelPtr(X1, j);
