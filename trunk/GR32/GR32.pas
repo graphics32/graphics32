@@ -3263,7 +3263,7 @@ begin
   // check for trivial cases...
   If Dx = 0 then // vertical line?
   begin
-    if Dy > 0 then VertLineST(X1, Y1, Y2 - 1, Value)
+    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
     else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
     if L then SetPixelTS(X2, Y2, Value);
     Changed;
