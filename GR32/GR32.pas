@@ -3833,7 +3833,7 @@ begin
     for I := 0 to Width * Height - 1 do
     begin
       Dst.Bits[I2] := Bits[I];
-      Inc(I2);
+      Dec(I2);
     end;
     Dst.Changed;
   end
