@@ -73,9 +73,17 @@ var
   ColorMin: TBlendReg;
   ColorDifference: TBlendReg;
   ColorExclusion: TBlendReg;
-  
+
+{ Special LUT pointers }
+  AlphaTable: Pointer;
+  bias_ptr: Pointer;
+  alpha_ptr: Pointer;
+
 { Misc stuff }
+  ScaleColor: function(C: TColor32; W: Integer): TColor32;
 function Lighten(C: TColor32; Amount: Integer): TColor32;
+
+
 
 
 implementation
@@ -543,10 +551,6 @@ end;
 
 { MMX versions }
 
-var
-  AlphaTable: Pointer;
-  bias_ptr: Pointer;
-  alpha_ptr: Pointer;
 
 procedure GenAlphaTable;
 var
@@ -1194,6 +1198,26 @@ begin
   Result := a shl 24 + r shl 16 + g shl 8 + b;
 end;
 
+function M_ScaleColor(C: TColor32; W: Integer): TColor32;
+asm
+        MOVD      MM1,EAX
+        PXOR      MM0,MM0
+        SHL       EDX,3
+        PUNPCKLBW MM1,MM0
+        ADD       EDX,alpha_ptr
+        PMULLW    MM1,[EDX]
+        MOV       EDX,bias_ptr    //
+        PADDW     MM1,[EDX]       //
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM0
+        MOVD      EAX,MM1
+end;
+
+function _ScaleColor(C: TColor32; W: Integer): TColor32;
+begin
+//TODO!
+end;
+
 { MMX Detection and linking }
 
 procedure SetupFunctions;
@@ -1218,6 +1242,8 @@ begin
     ColorMin:= M_ColorMin;
     ColorDifference:= M_ColorDifference;
     ColorExclusion:= M_ColorExclusion;
+
+    ScaleColor:= M_ScaleColor;
   end
   else
   begin
@@ -1238,6 +1264,8 @@ begin
     ColorMin:= _ColorMin;
     ColorDifference:= _ColorDifference;
     ColorExclusion:= _ColorExclusion;
+
+    ScaleColor:= _ScaleColor;
   end;
 end;
 
