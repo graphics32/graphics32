@@ -22,6 +22,8 @@ unit GR32_Transforms;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Andre Beckedorf
+ * Mattias Andersson
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Transforms.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -624,8 +626,8 @@ const
   { the first filter from these arrays is never used since the nearest and
     filter is implemented separately }
   FILTERS: array[TStretchFilter] of TFilterFunc = (NearestFilter, LinearFilter,
-    CosineFilter, SplineFilter, LanczosFilter, MitchellFilter);
-  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 1, 2, 3, 2);
+    SplineFilter, LanczosFilter, MitchellFilter, CosineFilter);
+  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 2, 3, 2, 1);
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterFunc;
