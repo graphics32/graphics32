@@ -1013,17 +1013,30 @@ begin
   with FR do
     case Rounding of
       rrClosest:
-        Result := MakeRect(Round(Left), Round(Top), Round(Right), Round(Bottom));
+        begin
+          Result.Left := Round(Left);
+          Result.Top := Round(Top);
+          Result.Right := Round(Right);
+          Result.Bottom := Round(Bottom);
+        end;
 
       rrInside:
         begin
-          Result := MakeRect(Ceil(Left), Ceil(Top), Floor(Right), Floor(Bottom));
+          Result.Left := Ceil(Left);
+          Result.Top := Ceil(Top);
+          Result.Right := Ceil(Right);
+          Result.Bottom := Ceil(Bottom);
           if Result.Right < Result.Left then Result.Right := Result.Left;
           if Result.Bottom < Result.Top then Result.Bottom := Result.Top;
         end;
 
       rrOutside:
-        Result := MakeRect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
+        begin
+          Result.Left := Floor(Left);
+          Result.Top := Floor(Top);
+          Result.Right := Ceil(Right);
+          Result.Bottom := Ceil(Bottom);
+        end;
     end;
 end;
 
@@ -4283,6 +4296,63 @@ begin
   RenderTextW(X, Y, Text, AALevel, Color); // QT does Unicode
 end;
 {$ELSE}
+
+procedure SetFontAntialiasing(const Font: TFont; Enabled: Boolean);
+var
+  LogFont: TLogFont;
+  Handle: HFONT;
+begin
+  with LogFont do
+  begin
+    lfHeight := Font.Height;
+    lfWidth := 0; { have font mapper choose }
+
+    {$IFDEF COMPILER2005}
+    lfEscapement := Font.Orientation;
+    lfOrientation := Font.Orientation;
+    {$ELSE}
+    lfEscapement := 0;
+    lfOrientation := 0;
+    {$ENDIF}
+
+    if fsBold in Font.Style then
+      lfWeight := FW_BOLD
+    else
+      lfWeight := FW_NORMAL;
+
+    lfItalic := Byte(fsItalic in Font.Style);
+    lfUnderline := Byte(fsUnderline in Font.Style);
+    lfStrikeOut := Byte(fsStrikeOut in Font.Style);
+    lfCharSet := Byte(Font.Charset);
+
+    if AnsiCompareText(Font.Name, 'Default') = 0 then  // do not localize
+      StrPCopy(lfFaceName, DefFontData.Name)
+    else
+      StrPCopy(lfFaceName, Font.Name);
+
+    if Enabled then
+      lfQuality := DEFAULT_QUALITY
+    else
+      lfQuality := NONANTIALIASED_QUALITY;
+
+    { Only True Type fonts support the angles }
+    if lfOrientation <> 0 then
+      lfOutPrecision := OUT_TT_ONLY_PRECIS
+    else
+      lfOutPrecision := OUT_DEFAULT_PRECIS;
+
+    lfClipPrecision := CLIP_DEFAULT_PRECIS;
+
+    case Font.Pitch of
+      fpVariable: lfPitchAndFamily := VARIABLE_PITCH;
+      fpFixed: lfPitchAndFamily := FIXED_PITCH;
+    else
+      lfPitchAndFamily := DEFAULT_PITCH;
+    end;
+  end;
+  Font.Handle := CreateFontIndirect(LogFont);
+end;
+
 procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
@@ -4297,6 +4367,8 @@ begin
   Color := Color and $00FFFFFF;
   AALevel := Constrain(AALevel, 0, 4);
   PaddedText := Text + ' ';
+
+  SetFontAntialiasing(Font, False);
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
@@ -4348,6 +4420,8 @@ begin
   finally
     B.Free;
   end;
+
+  SetFontAntialiasing(Font, True);
 end;
 {$ENDIF}
 
@@ -4365,6 +4439,10 @@ begin
   Color := Color and $00FFFFFF;
   AALevel := Constrain(AALevel, 0, 4);
   PaddedText := Text + ' ';
+
+{$IFNDEF CLX}
+  SetFontAntialiasing(Font, False);
+{$ENDIF}
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
@@ -4426,6 +4504,9 @@ begin
   finally
     B.Free;
   end;
+{$IFNDEF CLX}
+  SetFontAntialiasing(Font, True);
+{$ENDIF}
 end;
 
 // -------------------------------------------------------------------
