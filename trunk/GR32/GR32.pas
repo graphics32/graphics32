@@ -2567,13 +2567,29 @@ begin
   begin
     If Dx > Dy then
     begin
-      If Dx > 0 then Dec(X2)
-      else Inc(X2);
+      If Dx > 0 then
+      begin
+        Dec(Dx);
+        Dec(X2)
+      end
+      else
+      begin
+        Inc(Dy);
+        Inc(X2);
+      end;
     end
     else
     begin
-      If Dy > 0 then Dec(Y2)
-      else Inc(Y2);
+      If Dy > 0 then
+      begin
+        Dec(Dy);
+        Dec(Y2);
+      end
+      else
+      begin
+        Inc(Dy);
+        Inc(Y2);
+      end;
     end;
   end;
 
@@ -2826,13 +2842,29 @@ begin
   begin
     If Dx > Dy then
     begin
-      If Dx > 0 then Dec(X2)
-      else Inc(X2);
+      If Dx > 0 then
+      begin
+        Dec(Dx);
+        Dec(X2)
+      end
+      else
+      begin
+        Inc(Dy);
+        Inc(X2);
+      end;
     end
     else
     begin
-      If Dy > 0 then Dec(Y2)
-      else Inc(Y2);
+      If Dy > 0 then
+      begin
+        Dec(Dy);
+        Dec(Y2);
+      end
+      else
+      begin
+        Inc(Dy);
+        Inc(Y2);
+      end;
     end;
   end;
 
@@ -3310,7 +3342,7 @@ begin
   end;
 
   // Note: can't move this up due to the swap above...
-  if Dx = Dy then // diagonal line?
+  if (Dx = Dy) and L then // diagonal line?
   begin
     LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
     Exit;
@@ -3320,13 +3352,29 @@ begin
   begin
     If Dx > Dy then
     begin
-      If Dx > 0 then Dec(X2)
-      else Inc(X2);
+      If Dx > 0 then
+      begin
+        Dec(Dx);
+        Dec(X2)
+      end
+      else
+      begin
+        Inc(Dy);
+        Inc(X2);
+      end;
     end
     else
     begin
-      If Dy > 0 then Dec(Y2)
-      else Inc(Y2);
+      If Dy > 0 then
+      begin
+        Dec(Dy);
+        Dec(Y2);
+      end
+      else
+      begin
+        Inc(Dy);
+        Inc(Y2);
+      end;
     end;
   end;
 
