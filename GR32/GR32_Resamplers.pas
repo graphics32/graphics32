@@ -26,6 +26,10 @@ type
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TNearestResampler }
@@ -37,6 +41,10 @@ type
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TLinearResampler }
@@ -47,6 +55,10 @@ type
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
@@ -161,6 +173,9 @@ const
   SSrcInvalid = 'Source rectangle is invalid';
  
 type
+  TTransformationAccess = class(TTransformation);
+  TBitmap32Access = class(TBitmap32);
+
   TPointRec = record
     Pos: Integer;
     Weight: Cardinal;
@@ -1305,6 +1320,36 @@ begin
   StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
 end;
 
+procedure TNearestResampler.Transform(Dst: TBitmap32; DstRect: TRect;
+  Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  SrcAlpha: TColor32;
+  I, J, X, Y: Integer;
+  Pixels: PColor32Array;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  SrcAlpha := Src.MasterAlpha;
+
+  for J := DstRect.Top to DstRect.Bottom do
+  begin
+    Pixels := Dst.ScanLine[J];
+    for I := DstRect.Left to DstRect.Right do
+    begin
+      TTransformationAccess(Transformation).ReverseTransformInt(I, J, X, Y);
+      if (X >= SrcRect.Left) and (X <= SrcRect.Right) and
+        (Y >= SrcRect.Top) and (Y <= SrcRect.Bottom) then
+      case CombineOp of
+        dmOpaque: Pixels[I] := Src.Pixel[X, Y];
+        dmBlend: BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
+      else // dmCustom:
+        CombineCallBack(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
+      end;
+    end;
+  end;
+end;
+
 function TNearestResampler.Width: Single;
 begin
   Result := 1;
@@ -1323,6 +1368,46 @@ procedure TResampler.Resample(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 begin
   GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, Self, CombineOp, CombineCallBack);
+end;
+
+procedure TResampler.Transform(Dst: TBitmap32; DstRect: TRect;
+  Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  C, SrcAlpha: TColor32;
+  I, J: Integer;
+  X, Y: Single;
+  Pixels: PColor32Array;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  SrcAlpha := Src.MasterAlpha;
+
+  try
+    for J := DstRect.Top to DstRect.Bottom do
+    begin
+      Pixels := Dst.ScanLine[J];
+      for I := DstRect.Left to DstRect.Right do
+      begin
+        EMMS;
+        TTransformationAccess(Transformation).ReverseTransformFloat(I, J, X, Y);
+
+        if (X >= SrcRect.Left) and (X <= SrcRect.Right) and
+           (Y >= SrcRect.Top) and (Y <= SrcRect.Bottom) then
+        begin
+          C := ResamplePixel(Src, X, Y);
+          case CombineOp of
+            dmOpaque: Pixels[I] := C;
+            dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+          else // dmCustom:
+            CombineCallBack(C, Pixels[I], SrcAlpha);
+          end;
+        end;
+      end;
+    end;
+  finally
+    EMMS;
+  end;
 end;
 
 { TDraftResampler }
@@ -1364,6 +1449,45 @@ begin
     StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
   else
     GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, Self, CombineOp, CombineCallBack);
+end;
+
+procedure TLinearResampler.Transform(Dst: TBitmap32; DstRect: TRect;
+  Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  C, SrcAlpha: TColor32;
+  I, J: Integer;
+  X, Y, X256, Y256: Integer;
+  Pixels: PColor32Array;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  SrcAlpha := Src.MasterAlpha;
+
+  for J := DstRect.Top to DstRect.Bottom do
+  begin
+    Pixels := Dst.ScanLine[J];
+    for I := DstRect.Left to DstRect.Right do
+    begin
+      TTransformationAccess(Transformation).ReverseTransform256(I, J, X256, Y256);
+      X := SAR_8(X256);
+      Y := SAR_8(Y256);
+
+      if (X >= SrcRect.Left) and (X <= SrcRect.Right) and
+         (Y >= SrcRect.Top) and (Y <= SrcRect.Bottom) then
+      begin
+        // everything is ok interpolate between four neighbors
+        C := TBitmap32Access(Src).GET_TS256(X256, Y256);
+
+        case CombineOp of
+          dmOpaque: Pixels[I] := C;
+          dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+        else // dmCustom:
+          CombineCallBack(C, Pixels[I], SrcAlpha);
+        end;
+      end;
+    end;
+  end;
 end;
 
 function TLinearResampler.Width: Single;
