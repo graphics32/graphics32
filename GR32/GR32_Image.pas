@@ -55,8 +55,6 @@ const
 type
   TPaintStageEvent = procedure(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal) of object;
 
-  TBitmap32Access = class(TBitmap32);
-
   { TPaintStage }
   PPaintStage = ^TPaintStage;
   TPaintStage = record
@@ -524,6 +522,7 @@ implementation
 uses Math, TypInfo, GR32_System;
 
 type
+  TBitmap32Access = class(TBitmap32);
   TLayerAccess = class(TCustomLayer);
   TLayerCollectionAccess = class(TLayerCollection);
 
@@ -833,6 +832,7 @@ end;
 procedure TCustomPaintBox32.ResizeBuffer;
 var
   NewWidth, NewHeight, W, H: Integer;
+  OldWidth, OldHeight: Integer;
 begin
   // get the viewport parameters
   with GetViewportRect do
@@ -844,19 +844,31 @@ begin
   if NewHeight < 0 then NewHeight := 0;
 
   W := FBuffer.Width;
-  if NewWidth > W then W := NewWidth + FBufferOversize
-  else if NewWidth < W - FBufferOversize then W := NewWidth;
+
+  if NewWidth > W then
+    W := NewWidth + FBufferOversize
+  else if NewWidth < W - FBufferOversize then
+    W := NewWidth;
+
   if W < 1 then W := 1;
 
   H := FBuffer.Height;
-  if NewHeight > H then H := NewHeight + FBufferOversize
-  else if NewHeight < H - FBufferOversize then H := NewHeight;
+
+  if NewHeight > H then
+    H := NewHeight + FBufferOversize
+  else if NewHeight < H - FBufferOversize then
+    H := NewHeight;
+
   if H < 1 then H := 1;
 
   if (W <> FBuffer.Width) or (H <> FBuffer.Height) then
   begin
     FBuffer.Lock;
-    FBuffer.SetSize(NewWidth, NewHeight);
+    OldWidth := Buffer.Width;
+    OldHeight := Buffer.Height;
+    FBuffer.SetSize(W, H);
+    DoBufferResized(OldWidth, OldHeight);
+    ResetDirtyRects;
     FBuffer.Unlock;
     FBufferValid := False;
   end;
