@@ -3,21 +3,25 @@ unit GR32_Dsgn_Misc;
 interface
 
 uses
-  DesignIntf, DesignEditors, Classes;
+  DesignIntf, DesignEditors, Classes, TypInfo;
 
 type
 	TKernelClassProperty = class(TClassProperty)
+  private
+    function HasSubProperties: Boolean;
   public
-		function GetAttributes : TPropertyAttributes; override;
-		procedure GetValues(Proc : TGetStrProc); override;
+		function GetAttributes: TPropertyAttributes; override;
+		procedure GetValues(Proc: TGetStrProc); override;
 		function GetValue: string; override;
 		procedure SetValue(const Value: string); override;
 	end;
 
 	TResamplerClassProperty = class(TClassProperty)
+  private
+    function HasSubProperties: Boolean;
   public
-		function GetAttributes : TPropertyAttributes; override;
-		procedure GetValues(Proc : TGetStrProc); override;
+		function GetAttributes: TPropertyAttributes; override;
+		procedure GetValues(Proc: TGetStrProc); override;
 		function GetValue: string; override;
 		procedure SetValue(const Value: string); override;
 	end;
@@ -26,17 +30,31 @@ implementation
 
 uses GR32, GR32_Resamplers;
 
-
 { TKernelClassProperty }
+
+function TKernelClassProperty.HasSubProperties: Boolean;
+begin
+  if PropCount > 0 then
+    Result := GetTypeData(TBitmap32KernelResampler(GetComponent(0)).Kernel.ClassInfo)^.PropCount > 0
+  else
+    Result := False;
+end;
 
 function TKernelClassProperty.GetAttributes: TPropertyAttributes;
 begin
-	Result := [paValueList];
+  Result := inherited GetAttributes;
+  if not HasSubProperties then
+    Exclude(Result, paSubProperties);
+  Result := Result - [paReadOnly] +
+    [paValueList, paRevertable, paVolatileSubProperties];
 end;
 
 function TKernelClassProperty.GetValue: string;
 begin
-  Result := GetStrValue;
+  if PropCount > 0 then
+    Result := TBitmap32KernelResampler(GetComponent(0)).KernelClassName
+  else
+    Result := '';
 end;
 
 procedure TKernelClassProperty.GetValues(Proc: TGetStrProc);
@@ -59,7 +77,7 @@ var
 begin
 	RC := FindKernelClass(Value);
 	if Assigned(RC) then
-		SetStrValue(RC.ClassName)
+    TBitmap32KernelResampler(GetComponent(0)).KernelClassName := Value
 	else SetStrValue('');
 	Modified;
 end;
@@ -67,14 +85,29 @@ end;
 
 { TResamplerClassProperty }
 
+function TResamplerClassProperty.HasSubProperties: Boolean;
+begin
+  if PropCount > 0 then
+    Result := GetTypeData(TBitmap32(GetComponent(0)).Resampler.ClassInfo)^.PropCount > 0
+  else
+    Result := False;
+end;
+
 function TResamplerClassProperty.GetAttributes: TPropertyAttributes;
 begin
-	Result := [paValueList];
+  Result := inherited GetAttributes;
+  if not HasSubProperties then
+    Exclude(Result, paSubProperties);
+  Result := Result - [paReadOnly] +
+    [paValueList, paRevertable, paVolatileSubProperties];
 end;
 
 function TResamplerClassProperty.GetValue: string;
 begin
-  Result := GetStrValue;
+  if PropCount > 0 then
+    Result := TBitmap32(GetComponent(0)).ResamplerClassName
+  else
+    Result := '';
 end;
 
 procedure TResamplerClassProperty.GetValues(Proc: TGetStrProc);
@@ -85,7 +118,7 @@ begin
   S := GetResamplerClassNames;
   try
     for I := 0 to S.Count - 1 do
-      Proc(S.Strings[I]);
+      Proc(S[I]);
   finally
     S.Free;
   end;
@@ -97,8 +130,10 @@ var
 begin
 	RC := FindResamplerClass(Value);
 	if Assigned(RC) then
-		SetStrValue(RC.ClassName)
-	else SetStrValue('');
+    TBitmap32(GetComponent(0)).ResamplerClassName := Value
+	else
+    SetStrValue('');
+
 	Modified;
 end;
 

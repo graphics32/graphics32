@@ -642,8 +642,8 @@ type
 {$IFDEF DEPRECATEDMODE}
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
 {$ENDIF}
-    property Resampler: TCustomResampler read FResampler write SetResampler;
     property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
+    property Resampler: TCustomResampler read FResampler write SetResampler;
     property OnChange;
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
     property OnPixelCombine: TPixelCombineEvent read FOnPixelCombine write FOnPixelCombine;
