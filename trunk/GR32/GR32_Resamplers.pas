@@ -1844,37 +1844,17 @@ end;
 
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 begin
-  if not Assigned(KernelList) then
-    KernelList := TList.Create;
-  KernelList.Add(KernelClass);
+  RegisterCustomClass(KernelClass, KernelList);
 end;
 
 function GetKernelClassNames: TStrings;
-var
-  I: Integer;
 begin
-  if not Assigned(KernelList) then
-    Result := nil
-  else
-  begin
-    Result := TStringList.Create;
-    for I := 0 to KernelList.Count - 1 do
-      Result.Add(TCustomKernelClass(KernelList.List[I]).ClassName);
-  end;
+  Result := GetCustomClassNames(KernelList);
 end;
 
 function FindKernelClass(ClassName: string): TCustomKernelClass;
-var
-  I: Integer;
 begin
-  Result := nil;
-  if Assigned(KernelList) then
-    for I := 0 to KernelList.Count - 1 do
-      if TCustomKernelClass(KernelList.List[I]).ClassName = ClassName then
-      begin
-        Result := TCustomKernelClass(KernelList.List[I]);
-        Exit;
-      end;
+  Result := TCustomKernelClass(FindCustomClass(ClassName, KernelList));
 end;
 
 
@@ -1882,37 +1862,17 @@ end;
 
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 begin
-  if not Assigned(ResamplerList) then
-    ResamplerList := TList.Create;
-  ResamplerList.Add(ResamplerClass);
+  RegisterCustomClass(ResamplerClass, ResamplerList);
 end;
 
 function GetResamplerClassNames: TStrings;
-var
-  I: Integer;
 begin
-  if not Assigned(ResamplerList) then
-    Result := nil
-  else
-  begin
-    Result := TStringList.Create;
-    for I := 0 to ResamplerList.Count - 1 do
-      Result.Add(TCustomResamplerClass(ResamplerList.List[I]).ClassName);
-  end;
+  Result := GetCustomClassNames(ResamplerList);
 end;
 
 function FindResamplerClass(ClassName: string): TBitmap32ResamplerClass;
-var
-  I: Integer;
 begin
-  Result := nil;
-  if Assigned(ResamplerList) then
-    for I := 0 to ResamplerList.Count - 1 do
-      if TCustomResamplerClass(ResamplerList.List[I]).ClassName = ClassName then
-      begin
-        Result := TBitmap32ResamplerClass(ResamplerList.List[I]);
-        Exit;
-      end;
+  Result := TBitmap32ResamplerClass(FindCustomClass(ClassName, ResamplerList));
 end;
 
 
