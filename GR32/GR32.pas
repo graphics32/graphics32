@@ -3296,9 +3296,10 @@ begin
     Swap(Cy1, Cy2);
   end;
 
+  // Note: can't move this up due to the swap above...
   if Dx = Dy then // diagonal line?
   begin
-    LineTS(X1, Y1, X2, Y2, Value, L);
+    LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
     Exit;
   end;
 
