@@ -3,7 +3,7 @@ unit GR32_Rasterizers;
 interface
 
 uses
-  GR32, GR32_Blend, Windows, Classes;
+  Windows, Classes, GR32, GR32_Blend;
 
 type
   PCombineInfo = ^TCombineInfo;
@@ -135,13 +135,16 @@ begin
 end;
 
 function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32; overload;
+var
+  Rounding: Integer;
 begin
+  Rounding := $7FFFFFFF shr Shift;
   with TColor32Entry(Result) do
   begin
-    B := Buffer.B shr Shift;
-    G := Buffer.G shr Shift;
-    R := Buffer.R shr Shift;
-    A := Buffer.A shr Shift;
+    B := (Buffer.B + Rounding) shr Shift;
+    G := (Buffer.G + Rounding) shr Shift;
+    R := (Buffer.R + Rounding) shr Shift;
+    A := (Buffer.A + Rounding) shr Shift;
   end;
 end;
 
@@ -246,31 +249,31 @@ procedure TSuperSamplingRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
 var
   I, J, U, V: Integer;
   Scale: Integer;
-  X, Y, lx, ly, dx, dy: Single;
+  X, Y, lx, ly, dx, dy: TFixed;
   Buffer: TBufferEntry;
   Pixels: PColor32Array;
-  GetSample: TGetSampleFloat;
+  GetSample: TGetSampleFixed;
 begin
   if (SamplingX = 1) and (SamplingY = 1) then
     inherited
   else
   begin
-    dx := 1 / FSamplingX;
-    dy := 1 / FSamplingY;
-    lx := (dx - 1) / 2;
-    ly := (dy - 1) / 2;
-    Scale := $10000 div (FSamplingX * FSamplingY);
-    GetSample := FSampler.GetSampleFloat;
+    dx := Fixed(1 / FSamplingX);
+    dy := Fixed(1 / FSamplingY);
+    lx := Fixed(((1 / FSamplingX) - 1) / 2);
+    ly := Fixed(((1 / FSamplingY) - 1) / 2);
+    Scale := Fixed(1 / (FSamplingX * FSamplingY));
+    GetSample := FSampler.GetSampleFixed;
     for J := DstRect.Top to DstRect.Bottom do
     begin
       Pixels := Dst.ScanLine[J];
       for I := DstRect.Left to DstRect.Right do
       begin
         Buffer := EMPTY_ENTRY;
-        X := I + lx;
-        Y := J + ly;
-        for U := SamplingX - 1 downto 0 do
-          for V := SamplingY - 1 downto 0 do
+        X := I * FixedOne + lx;
+        Y := J * FixedOne + ly;
+        for V := SamplingY - 1 downto 0 do
+          for U := SamplingX - 1 downto 0 do
             IncBuffer(Buffer, GetSample(X + U * dx, Y + V * dy));
         MultiplyBuffer(Buffer, Scale);
         AssignColor(Pixels[I], BufferToColor32(Buffer, 16));
