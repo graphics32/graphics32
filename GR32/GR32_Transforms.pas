@@ -22,10 +22,10 @@ unit GR32_Transforms;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Andre Beckedorf <Andre@metaException.de>
- * Mattias Andersson <Mattias@Centaurix.com>
- * J. Tulach <tulach@position.cz>
- * Michael Hansen <dyster_tid@hotmail.com>
+ *   Andre Beckedorf <Andre@metaException.de>
+ *   Mattias Andersson <Mattias@Centaurix.com>
+ *   J. Tulach <tulach@position.cz>
+ *   Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Transforms.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -1284,7 +1284,7 @@ var
       (y > SrcRectI.Top) and (y < SrcRectI.Bottom - 1) then
     begin
       // everything is ok interpolate between four neighbors
-      C:= Src.GetPixelX(X256 shl 8,Y256 shl 8);
+      C:= Src.PixelX[X256 shl 8, Y256 shl 8];
       Result := True;
     end
     else if (x < SrcRectI.Left - 1) or (y < SrcRectI.Top - 1) or
@@ -1297,7 +1297,7 @@ var
     else
     begin
       // handle edge
-      C:= Src.GetPixelXS(X256 shl 8,Y256 shl 8);
+      C:= Src.PixelXS[X256 shl 8, Y256 shl 8];
       Result := True;
     end;
   end;
