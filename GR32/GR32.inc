@@ -80,6 +80,7 @@
   {$DEFINE USEINLINING}
 {$ENDIF}
 
+//{$DEFINE DEPRECATEDMODE}
 //{$DEFINE CLX}  // uncomment this if you want CLX for Windows
 
 {$R-}{$Q-}  // switch off overflow and range checking
