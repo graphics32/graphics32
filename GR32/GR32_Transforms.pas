@@ -364,45 +364,42 @@ var
   CombineCallBack: TPixelCombineEvent;
   BlendMemEx: TBlendMemEx;
 
-  function GET_S256(X256, Y256: Integer; out C: TColor32): Boolean;
-  var
-    celx, cely: Longword;
-    C1, C2, C3, C4: TColor32;
+  function GET_S256_Resamplers(X256, Y256: Integer; out C: TColor32): Boolean;
+  const
+    ByteFixedToFloat = 1/$100;
   begin
     X := SAR_8(X256);
     Y := SAR_8(Y256);
+    if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or
+       (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
+      begin
+        // (X,Y) coordinate is out of the SrcRect, do not interpolate
+        C := 0; // just write something to disable compiler warnings
+        Result := False;
+      end else begin
+        EMMS;
+       // everything is ok interpolate between four neighbors
+        C := ResamplePixel(Src, X256 * ByteFixedToFloat, Y256 * ByteFixedToFloat);
+        Result := True;
+      end;
+  end;
 
-    if (X > SrcRectI.Left) and (X < SrcRectI.Right - 1) and
-       (Y > SrcRectI.Top) and (Y < SrcRectI.Bottom - 1) then
-    begin
-      // everything is ok interpolate between four neighbors
-//      C := TBitmap32Access(Src).GET_T256(X256, Y256);
-{ TODO : Try to achieve better performance by treating linear transformation as special case. }
-      EMMS;
-      C := ResamplePixel(Src, X256/256, Y256/256);
-      Result := True;
-    end
-    else if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or
-            (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
-    begin
-      // (X,Y) coordinate is out of the SrcRect, do not interpolate
-      C := 0; // just write something to disable compiler warnings
-      Result := False;
-    end
-    else
-    begin
-      // handle edge in fail-safe mode...
-      C1 := Src.PixelS[X, Y];
-      C2 := Src.PixelS[X + 1, Y];
-      C3 := Src.PixelS[X, Y + 1];
-      C4 := Src.PixelS[X + 1, Y + 1];
-
-      celx := X256 and $FF xor 255;
-      cely := Y256 and $FF xor 255;
-
-      C := CombineReg(CombineReg(C1, C2, celx), CombineReg(C3, C4, celx), cely);
-      Result := True;
-    end;
+  function GET_S256_Bilinear(X256, Y256: Integer; out C: TColor32): Boolean;
+  begin
+    X := SAR_8(X256);
+    Y := SAR_8(Y256);
+    if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or
+       (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
+      begin
+        // (X,Y) coordinate is out of the SrcRect, do not interpolate
+        C := 0; // just write something to disable compiler warnings
+        Result := False;
+      end else begin
+        EMMS;
+       // everything is ok interpolate between four neighbors
+        C := TBitmap32Access(Src).GET_TS256(X256, Y256);
+        Result := True;
+      end;
   end;
 
 begin
@@ -438,23 +435,8 @@ begin
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
   try
-    if not (Src.Resampler is TNearestResampler) then
-      for J := DstRect.Top to DstRect.Bottom do
-      begin
-        Pixels := Dst.ScanLine[J];
-        for I := DstRect.Left to DstRect.Right do
-        begin
-          Transformation.ReverseTransform256(I, J, X, Y);
-          if GET_S256(X, Y, C) then
-            case DrawMode of
-              dmOpaque: Pixels[I] := C;
-              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
-            else // dmCustom:
-              CombineCallBack(C, Pixels[I], SrcAlpha);
-            end;
-        end;
-      end
-    else // nearest filter
+    if Src.Resampler is TNearestResampler then begin  // nearest filter
+
       for J := DstRect.Top to DstRect.Bottom do
       begin
         Pixels := Dst.ScanLine[J];
@@ -471,6 +453,45 @@ begin
           end;
         end;
       end;
+
+    end else if (Src.Resampler is TDraftResampler) or // draft or linear
+      (Src.Resampler is TLinearResampler) then begin
+
+      for J := DstRect.Top to DstRect.Bottom do
+      begin
+        Pixels := Dst.ScanLine[J];
+        for I := DstRect.Left to DstRect.Right do
+        begin
+          Transformation.ReverseTransform256(I, J, X, Y);
+          if GET_S256_Bilinear(X, Y, C) then
+            case DrawMode of
+              dmOpaque: Pixels[I] := C;
+              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+            else // dmCustom:
+              CombineCallBack(C, Pixels[I], SrcAlpha);
+            end;
+        end;
+      end;
+
+    end else begin // all other resampler filters
+
+      for J := DstRect.Top to DstRect.Bottom do
+      begin
+        Pixels := Dst.ScanLine[J];
+        for I := DstRect.Left to DstRect.Right do
+        begin
+          Transformation.ReverseTransform256(I, J, X, Y);
+          if GET_S256_Resamplers(X, Y, C) then
+            case DrawMode of
+              dmOpaque: Pixels[I] := C;
+              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+            else // dmCustom:
+              CombineCallBack(C, Pixels[I], SrcAlpha);
+            end;
+        end;
+
+      end
+    end;
   finally
     EMMS;
   end;
