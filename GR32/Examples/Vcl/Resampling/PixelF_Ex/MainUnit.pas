@@ -154,7 +154,8 @@ begin
  with Image32 do
   begin
    TwirlDistortion(Bitmap, Src, gbTwist.Position);
-   Invalidate;
+   gbTwist.Repaint;
+   Repaint;
   end;
 end;
 
