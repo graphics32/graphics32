@@ -832,7 +832,6 @@ end;
 procedure TCustomPaintBox32.ResizeBuffer;
 var
   NewWidth, NewHeight, W, H: Integer;
-  OldWidth, OldHeight: Integer;
 begin
   // get the viewport parameters
   with GetViewportRect do
@@ -864,11 +863,7 @@ begin
   if (W <> FBuffer.Width) or (H <> FBuffer.Height) then
   begin
     FBuffer.Lock;
-    OldWidth := Buffer.Width;
-    OldHeight := Buffer.Height;
     FBuffer.SetSize(W, H);
-    DoBufferResized(OldWidth, OldHeight);
-    ResetDirtyRects;
     FBuffer.Unlock;
     FBufferValid := False;
   end;
