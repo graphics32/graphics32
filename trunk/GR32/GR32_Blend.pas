@@ -1106,7 +1106,7 @@ asm
         db $0F,$69,$E4           /// PUNPCKHWD MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fg 00 Fg
         ADD       ECX,EDX        // ECX  <-  00 00 Sa Sa
         db $0F,$6A,$E4           /// PUNPCKHDQ MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fa 00 Fa
-        MUL       EAX,EDX        // EAX  <-  00 00 Pa **
+        MUL       EDX            // EAX  <-  00 00 Pa **
         db $0F,$69,$ED           /// PUNPCKHWD MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Bg 00 Bg
         MOV       ESI,$FF        // ESI  <-  00 00 00 00 FF
         db $0F,$6A,$ED           /// PUNPCKHDQ MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Ba 00 Ba
