@@ -366,14 +366,14 @@ type
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
-    function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
-    function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
-    function  GetPixelF(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
-    function  GetPixelFS(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixel(X, Y: Integer): TColor32;
+    function  GetPixelS(X, Y: Integer): TColor32;
+    function  GetPixelF(X, Y: Single): TColor32;
+    function  GetPixelFS(X, Y: Single): TColor32;
     function  GetPixelX(X, Y: TFixed): TColor32;
     function  GetPixelXS(X, Y: TFixed): TColor32;
-    function  GetPixelPtr(X, Y: Integer): PColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
-    function  GetScanLine(Y: Integer): PColor32Array; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelPtr(X, Y: Integer): PColor32;
+    function  GetScanLine(Y: Integer): PColor32Array;
 {$IFDEF CLX}
     function  GetBits: PColor32Array;
     function  GetPixmap: QPixmapH;
@@ -383,8 +383,8 @@ type
     procedure SetDrawMode(Value: TDrawMode);
     procedure SetFont(Value: TFont);
     procedure SetMasterAlpha(Value: Cardinal);
-    procedure SetPixel(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SetPixelS(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SetPixel(X, Y: Integer; Value: TColor32);
+    procedure SetPixelS(X, Y: Integer; Value: TColor32);
     procedure SetStretchFilter(Value: TStretchFilter);
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -407,14 +407,18 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
     procedure HandleChanged; virtual;
     function  Equal(B: TBitmap32): Boolean;
-    procedure SET_T256(X, Y: Integer; C: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SET_TS256(X, Y: Integer; C: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-    function  GET_T256(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
-    function  GET_TS256(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure SET_T256(X, Y: Integer; C: TColor32);
+    procedure SET_TS256(X, Y: Integer; C: TColor32);
+    function  GET_T256(X, Y: Integer): TColor32;
+    function  GET_TS256(X, Y: Integer): TColor32;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
     function  GetPixelB(X, Y: Integer): TColor32;
+    procedure SetPixelF(X, Y: Single; Value: TColor32);
+    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
+    procedure SetPixelFS(X, Y: Single; Value: TColor32);
+    procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
 {$IFDEF CLX}
     procedure PixmapNeeded;
     procedure ImageNeeded;
@@ -461,13 +465,9 @@ type
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
 
-    procedure SetPixelT(X, Y: Integer; Value: TColor32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SetPixelTS(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SetPixelF(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF} {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SetPixelX(X, Y: TFixed; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
-    procedure SetPixelFS(X, Y: Single; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF} {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure SetPixelXS(X, Y: TFixed; Value: TColor32); {$IFDEF COMPILER6}deprecated;{$ENDIF}
+    procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
+    procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
+    procedure SetPixelTS(X, Y: Integer; Value: TColor32);
 
     procedure SetStipple(NewStipple: TArrayOfColor32); overload;
     procedure SetStipple(NewStipple: array of TColor32); overload;
@@ -1989,15 +1989,10 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFDEF USEINLINING}
-  X := SAR_8(X);
-  Y := SAR_8(Y);
-  {$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
-  {$ENDIF}
 
   celx := A * GAMMA_TABLE[flrx xor 255];
   cely := GAMMA_TABLE[flry xor 255];
@@ -2026,15 +2021,10 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFDEF USEINLINING}
-  X := SAR_8(X);
-  Y := SAR_8(Y);
-  {$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
-  {$ENDIF}
 
   A := C shr 24;  // opacity
 
