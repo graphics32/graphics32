@@ -13,7 +13,7 @@ unit GR32_MicroTiles;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is MicroTiles Extension for Graphics32
+ * The Original Code is MicroTiles Repaint Optimizer Extension for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Andre Beckedorf - metaException OHG
@@ -37,13 +37,13 @@ interface
 
 uses
   {$IFDEF CLX}
-  Qt, Types, {$IFDEF LINUX}Libc, {$ELSE}Windows, {$ENDIF}
+  Qt, {$IFDEF LINUX}Libc, {$ELSE}Windows, {$ENDIF}
   {$ELSE}
   Windows,
   {$ENDIF}
   {$IFDEF CODESITE}CSIntf,{$ENDIF}
-  SysUtils, Classes, Math, RTLConsts, GR32, GR32_LowLevel, GR32_System,
-  GR32_Containers, GR32_Layers, GR32_Image;
+  Types, SysUtils, Classes, Math, RTLConsts, GR32, GR32_LowLevel, GR32_System,
+  GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 
 const
   MICROTILE_SHIFT = 5;
@@ -53,7 +53,6 @@ const
   // MICROTILE_EMPTY -> Left: 0, Top: 0, Right:  0, Bottom:  0
 
   MICROTILE_FULL = MICROTILE_SIZE shl 8 or MICROTILE_SIZE;
-
   // MICROTILE_FULL -> Left: 0, Top: 0, Right: MICROTILE_SIZE, Bottom: MICROTILE_SIZE
 
 type
@@ -86,6 +85,7 @@ procedure MicroTilesDestroy(var MicroTiles: TMicroTiles);
 procedure MicroTilesSetSize(var MicroTiles: TMicroTiles; const DstRect: TRect);
 procedure MicroTilesClear(var MicroTiles: TMicroTiles);
 procedure MicroTilesCopy(var DstTiles: TMicroTiles; SrcTiles: TMicroTiles);
+procedure MicroTilesAddLine(var MicroTiles: TMicroTiles; X1, Y1, X2, Y2: Integer; LineWidth: Integer; RoundToWholeTiles: Boolean = False);
 procedure MicroTilesAddRect(var MicroTiles: TMicroTiles; Rect: TRect; RoundToWholeTiles: Boolean = False);
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean = False);
 function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList; CountOnly: Boolean = False): Integer; overload;
@@ -116,7 +116,7 @@ const
   TIMER_LOWLIMIT        = 1000;
   TIMER_HIGHLIMIT       = 5000;
 
-  DIRTYRECTS_DELTA      = 10;
+  INVALIDRECTS_DELTA    = 10;
 
 type
   { TMicroTilesRepaintOptimizer }
@@ -126,18 +126,18 @@ type
     // working tiles
     FWorkMicroTiles: PMicroTiles; // used by DrawLayerToMicroTiles
     FTempTiles: TMicroTiles;
-    FDirtyTiles: TMicroTiles;
-    FForcedDirtyTiles: TMicroTiles;
+    FInvalidTiles: TMicroTiles;
+    FForcedInvalidTiles: TMicroTiles;
 
-    // list of dirty layers
-    FDirtyLayers: TList;
+    // list of invalid layers
+    FInvalidLayers: TList;
 
-    // association that maps layers to their old dirty tiles
-    FOldDirtyTilesMap: TMicroTilesMap;
+    // association that maps layers to their old invalid tiles
+    FOldInvalidTilesMap: TMicroTilesMap;
 
     FWorkingTilesValid: Boolean;
-    FOldDirtyTilesValid: Boolean;
-    FUseDirtyTiles: Boolean;
+    FOldInvalidTilesValid: Boolean;
+    FUseInvalidTiles: Boolean;
 
     // adaptive stuff...
     FAdaptiveRepaint: Boolean;
@@ -154,48 +154,49 @@ type
     FNextCheck: Cardinal;
     FTimeNeededOnLastPenalty: Int64;
 
-    // vars for dirty rect difference approach
-    FOldDirtyRectsCount: Integer;
+    // vars for invalid rect difference approach
+    FOldInvalidRectsCount: Integer;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
     FDebugMicroTiles: TMicroTiles;
-    FDebugDirtyRects: TRectList;
+    FDebugInvalidRects: TRectList;
 {$ENDIF}
 
     procedure DrawLayerToMicroTiles(var DstTiles: TMicroTiles; Layer: TCustomLayer);
+    procedure DrawMeasuringHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+    
     procedure ValidateWorkingTiles;
-    procedure UpdateOldDirtyTiles;
+    procedure UpdateOldInvalidTiles;
     procedure SetAdaptiveRepaint(const Value: Boolean);
     procedure BeginAdaption;
     procedure EndAdaption;
+
+    procedure AddArea(var Tiles: TMicroTiles; const Area: TRect; const Hint: Cardinal);
   protected
     procedure SetEnabled(const Value: Boolean); override;
+
+    // LayerCollection handler
+    procedure LayerCollectionNotifyHandler(Sender: TLayerCollection;
+      Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer); override;
   public
-    constructor Create(Buffer: TBitmap32; DirtyRects: TRectList); override;
+    constructor Create(Buffer: TBitmap32; InvalidRects: TRectList); override;
     destructor Destroy; override;
 
     procedure RegisterLayerCollection(Layers: TLayerCollection); override;
     procedure UnregisterLayerCollection(Layers: TLayerCollection); override;
 
     procedure Reset; override;
-    procedure Resized(const NewWidth, NewHeight: Integer); override;
 
     function  CustomRepaintNeeded: Boolean; override;
-    procedure PrepareDirtyRects; override;
+    procedure PrepareInvalidRects; override;
 
     procedure BeginPaintBuffer; override;
     procedure EndPaintBuffer; override;
 
-    // Layer handlers
-    procedure ForcedUpdateHandler(Sender: TObject; const Rect: TRect); override;
+    // handlers
+    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal); override;
     procedure LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer); override;
-
-    // Buffer handler
-    procedure DrawMeasuringHandler(Sender: TObject; const DstRect: TRect); override;
-
-    // LayerCollection handler
-    procedure LayerCollectionNotifyHandler(Sender: TLayerCollection;
-      Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer); override;
+    procedure BufferResizedHandler(const NewWidth, NewHeight: Integer); override;
 
     // custom settings:
     property AdaptiveRepaint: Boolean read FAdaptiveRepaint write SetAdaptiveRepaint;
@@ -301,6 +302,91 @@ begin
   end
 end;
 
+procedure MicroTilesAddLine(var MicroTiles: TMicroTiles; X1, Y1, X2, Y2: Integer; LineWidth: Integer; RoundToWholeTiles: Boolean = False);
+var
+  I: Integer;
+  Dx, Dy: Integer;
+  Sx, Sy: Integer;
+  DeltaX, DeltaY: Integer;
+  Rects: Integer;
+  NewX, NewY: Integer;
+  TempRect: TRect;
+  Swapped: Boolean;
+begin
+  Dx := X2 - X1;
+  Dy := Y2 - Y1;
+
+  LineWidth := LineWidth shl 1;
+
+  if Dx > 0 then
+    Sx := 1
+  else if Dx < 0 then
+  begin
+    Dx := -Dx;
+    Sx := -1;
+  end
+  else // Dx = 0
+  begin
+    TempRect := MakeRect(X1, Y1, X2, Y2);
+    InflateArea(TempRect, LineWidth, LineWidth);
+    MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+    Exit;
+  end;
+
+  if Dy > 0 then
+    Sy := 1
+  else if Dy < 0 then
+  begin
+    Dy := -Dy;
+    Sy := -1;
+  end
+  else // Dy = 0
+  begin
+    TempRect := MakeRect(X1, Y1, X2, Y2);
+    InflateArea(TempRect, LineWidth, LineWidth);
+    MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+    Exit;
+  end;
+
+  X1 := X1 * FixedOne;
+  Y1 := Y1 * FixedOne;
+
+  Dx := Dx * FixedOne;
+  Dy := Dy * FixedOne;
+
+  if Dx < Dy then
+  begin
+    Swapped := True;
+    Swap(Dx, Dy);
+  end
+  else
+    Swapped := False;
+
+  Rects := Dx div MICROTILE_SIZE;
+
+  DeltaX := MICROTILE_SIZE * FixedOne;
+  DeltaY := FixedDiv(Dy, Rects);
+
+  if Swapped then
+    Swap(DeltaX, DeltaY);
+
+  DeltaX := Sx * DeltaX;
+  DeltaY := Sy * DeltaY;
+
+  for I := 1 to FixedCeil(Rects) do
+  begin
+    NewX := X1 + DeltaX;
+    NewY := Y1 + DeltaY;
+
+    TempRect := MakeRect(FixedRect(X1, Y1, NewX, NewY));
+    InflateArea(TempRect, LineWidth, LineWidth);
+    MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+
+    X1 := NewX;
+    Y1 := NewY;
+  end;
+end;
+
 procedure MicroTilesAddRect(var MicroTiles: TMicroTiles; Rect: TRect; RoundToWholeTiles: Boolean);
 var
   ModLeft, ModRight, ModTop, ModBottom, Temp: Integer;
@@ -312,13 +398,16 @@ begin
 
   with Rect do
   begin
+    TestSwap(Left, Right);
+    TestSwap(Top, Bottom);
+
     if Left < 0 then Left := 0;
     if Top < 0 then Top := 0;
     Temp := MicroTiles.Columns shl MICROTILE_SHIFT;
     if Right > Temp then Right := Temp;
     Temp := MicroTiles.Rows shl MICROTILE_SHIFT;
     if Bottom > Temp then Bottom := Temp;
-
+    
     if (Left > Right) or (Top > Bottom) then Exit;
   end;
 
@@ -389,11 +478,12 @@ begin
     begin
       TilePtr2 := TilePtr;
 
-      // top-left corner
+      // TOP:
+      // render top-left corner
       MicroTileUnion(TilePtr2^, MakeMicroTile(ModLeft, ModTop, MICROTILE_SIZE, MICROTILE_SIZE));
       Inc(TilePtr2);
 
-      // top edge
+      // render top edge
       if ColSpread > 2 then
         for CurRow := LeftTile + 1 to RightTile - 1 do
         begin
@@ -401,22 +491,22 @@ begin
           Inc(TilePtr2);
         end;
 
-      // top-right corner
+      // render top-right corner
       MicroTileUnion(TilePtr2^, MakeMicroTile(0, ModTop, ModRight, MICROTILE_SIZE));
 
       Inc(TilePtr, MicroTiles.Columns);
 
-      // left edge, content, right edge
+      // INTERMEDIATE AREA:
       if RowSpread > 2 then
         for CurCol := TopTile + 1 to BottomTile - 1 do
         begin
           TilePtr2 := TilePtr;
 
-          // left edge
+          // render left edge
           MicroTileUnion(TilePtr2^, MakeMicroTile(ModLeft, 0, MICROTILE_SIZE, MICROTILE_SIZE));
           Inc(TilePtr2);
 
-          // content
+          // render content
           if ColSpread > 2 then
             for CurRow := LeftTile + 1 to RightTile - 1 do
             begin
@@ -424,7 +514,7 @@ begin
               Inc(TilePtr2);
             end;
 
-          // right edge
+          // render right edge
           MicroTileUnion(TilePtr2^, MakeMicroTile(0, 0, ModRight, MICROTILE_SIZE));
 
           Inc(TilePtr, MicroTiles.Columns);
@@ -432,11 +522,12 @@ begin
 
       TilePtr2 := TilePtr;
 
-      // bottom-left corner
+      // BOTTOM:
+      // render bottom-left corner
       MicroTileUnion(TilePtr2^, MakeMicroTile(ModLeft, 0, MICROTILE_SIZE, ModBottom));
       Inc(TilePtr2);
 
-      // bottom edge
+      // render bottom edge
       if ColSpread > 2 then
         for CurRow := LeftTile + 1 to RightTile - 1 do
         begin
@@ -444,7 +535,7 @@ begin
           Inc(TilePtr2);
         end;
 
-      // bottom-right corner
+      // render bottom-right corner
       MicroTileUnion(TilePtr2^, MakeMicroTile(0, 0, ModRight, ModBottom));
     end;
   end;
@@ -458,9 +549,7 @@ begin
   end;
 end;
 
-
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean);
-
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
   SrcTilePtr2, DstTilePtr2: PMicroTile;
@@ -631,7 +720,7 @@ begin
   Result := RectsCount;
   
   if not CountOnly then
-    for I := 0 to RectsCount do DstRects.Add(Rects[I]);
+    for I := 0 to RectsCount - 1 do DstRects.Add(Rects[I]);
 end;
 
 function MicroTilesCountEmptyTiles(const MicroTiles: TMicroTiles): Integer;
@@ -748,59 +837,80 @@ type
   TLayerCollectionAccess = class(TLayerCollection);
   TCustomLayerAccess = class(TCustomLayer);
 
-  
+
 { TMicroTilesRepaintManager }
 
-constructor TMicroTilesRepaintOptimizer.Create(Buffer: TBitmap32; DirtyRects: TRectList);
+constructor TMicroTilesRepaintOptimizer.Create(Buffer: TBitmap32; InvalidRects: TRectList);
 begin
   inherited;
-  FOldDirtyTilesMap := TMicroTilesMap.Create;
-  FDirtyLayers := TList.Create;
+  FOldInvalidTilesMap := TMicroTilesMap.Create;
+  FInvalidLayers := TList.Create;
   FPerfTimer := TPerfTimer.Create;
+{$IFNDEF MICROTILES_DEBUGDRAW}
   FAdaptiveRepaint := True;
+{$ENDIF}
 
-  MicroTilesCreate(FDirtyTiles);
+  MicroTilesCreate(FInvalidTiles);
   MicroTilesCreate(FTempTiles);
-  MicroTilesCreate(FForcedDirtyTiles);
+  MicroTilesCreate(FForcedInvalidTiles);
 
 {$IFDEF MICROTILES_DEBUGDRAW}
   MicroTilesCreate(FDebugMicroTiles);
-  FDebugDirtyRects := TRectList.Create;
+  FDebugInvalidRects := TRectList.Create;
 {$ENDIF}
 end;
 
 destructor TMicroTilesRepaintOptimizer.Destroy;
 begin
-  MicroTilesDestroy(FForcedDirtyTiles);
+  MicroTilesDestroy(FForcedInvalidTiles);
   MicroTilesDestroy(FTempTiles);
-  MicroTilesDestroy(FDirtyTiles);
+  MicroTilesDestroy(FInvalidTiles);
 
   FPerfTimer.Free;
-  FDirtyLayers.Free;
-  FOldDirtyTilesMap.Free;
+  FInvalidLayers.Free;
+  FOldInvalidTilesMap.Free;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
-  FDebugDirtyRects.Free;
+  FDebugInvalidRects.Free;
   MicroTilesDestroy(FDebugMicroTiles);
 {$ENDIF}
 
   inherited;
 end;
 
-procedure TMicroTilesRepaintOptimizer.ForcedUpdateHandler(Sender: TObject; const Rect: TRect);
+procedure TMicroTilesRepaintOptimizer.AreaUpdateHandler(Sender: TObject; const Area: TRect;
+  const Hint: Cardinal);
 begin
   ValidateWorkingTiles;
-  MicroTilesAddRect(FForcedDirtyTiles, Rect);
-  FUseDirtyTiles := True;
+  AddArea(FForcedInvalidTiles, Area, Hint);
+  FUseInvalidTiles := True;
+end;
+
+procedure TMicroTilesRepaintOptimizer.AddArea(var Tiles: TMicroTiles; const Area: TRect;
+  const Hint: Cardinal);
+var
+  LineWidth: Integer;
+  TempRect: TRect;
+begin
+  if Hint and AREAHINT_LINE <> 0 then
+  begin
+    LineWidth := Hint and $00FFFFFF;
+    TempRect := Area;
+    InflateArea(TempRect, LineWidth, LineWidth);
+    with TempRect do
+      MicroTilesAddLine(Tiles, Left, Top, Right, Bottom, LineWidth);
+  end
+  else
+    MicroTilesAddRect(Tiles, Area, FPerformanceLevel = PL_FULLSCENE);
 end;
 
 procedure TMicroTilesRepaintOptimizer.LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer);
 begin
-  if FOldDirtyTilesValid and not TCustomLayerAccess(Layer).Dirty then
+  if FOldInvalidTilesValid and not TCustomLayerAccess(Layer).Invalid then
   begin
-    FDirtyLayers.Add(Layer);
-    TCustomLayerAccess(Layer).Dirty := True;
-    FUseDirtyTiles := True;
+    FInvalidLayers.Add(Layer);
+    TCustomLayerAccess(Layer).Invalid := True;
+    FUseInvalidTiles := True;
   end;
 end;
 
@@ -812,39 +922,39 @@ begin
   case Action of
     lnLayerAdded, lnLayerInserted:
       begin
-        TilesPtr := FOldDirtyTilesMap.Add(Layer)^;
+        TilesPtr := FOldInvalidTilesMap.Add(Layer)^;
         MicroTilesSetSize(TilesPtr^, Buffer.BoundsRect);
-        FOldDirtyTilesValid := True;
+        FOldInvalidTilesValid := True;
       end;
 
     lnLayerDeleted:
       begin
-        if FOldDirtyTilesValid then
+        if FOldInvalidTilesValid then
         begin
           // force repaint of tiles that the layer did previously allocate
-          MicroTilesUnion(FDirtyTiles, FOldDirtyTilesMap[Layer]^);
-          FUseDirtyTiles := True;
+          MicroTilesUnion(FInvalidTiles, FOldInvalidTilesMap[Layer]^);
+          FUseInvalidTiles := True;
         end;
-        FDirtyLayers.Remove(Layer);
-        FOldDirtyTilesMap.Remove(Layer);
+        FInvalidLayers.Remove(Layer);
+        FOldInvalidTilesMap.Remove(Layer);
       end;
 
     lnCleared:
       begin
-        if FOldDirtyTilesValid then
+        if FOldInvalidTilesValid then
         begin
-          with TPointerMapIterator.Create(FOldDirtyTilesMap) do
+          with TPointerMapIterator.Create(FOldInvalidTilesMap) do
           try
             while Next do
-              MicroTilesUnion(FDirtyTiles, PMicroTiles(Data)^);
+              MicroTilesUnion(FInvalidTiles, PMicroTiles(Data)^);
           finally
             Free;
           end;
 
-          FUseDirtyTiles := True;
+          FUseInvalidTiles := True;
         end;
-        FOldDirtyTilesMap.Clear;
-        FOldDirtyTilesValid := True;
+        FOldInvalidTilesMap.Clear;
+        FOldInvalidTilesValid := True;
       end;
   end;
 end;
@@ -857,20 +967,20 @@ begin
   begin
     BoundsRect := Buffer.BoundsRect; // save into local var since TBitmap32.BoundsRect is a method...
     MicroTilesSetSize(FTempTiles, BoundsRect);
-    MicroTilesSetSize(FDirtyTiles, BoundsRect);
-    MicroTilesSetSize(FForcedDirtyTiles, BoundsRect);
+    MicroTilesSetSize(FInvalidTiles, BoundsRect);
+    MicroTilesSetSize(FForcedInvalidTiles, BoundsRect);
     FWorkingTilesValid := True;
   end;
 end;
 
-procedure TMicroTilesRepaintOptimizer.UpdateOldDirtyTiles;
+procedure TMicroTilesRepaintOptimizer.UpdateOldInvalidTiles;
 var
   I, J: Integer;
   BoundsRect: TRect;
   TilesPtr: PMicroTiles;
   Layer: TCustomLayer;
 begin
-  If not FOldDirtyTilesValid then  // check if old dirty tiles need resize and rerendering...
+  If not FOldInvalidTilesValid then  // check if old Invalid tiles need resize and rerendering...
   begin
     ValidateWorkingTiles;
 
@@ -881,40 +991,40 @@ begin
       for J := 0 to Count - 1 do
       begin
         Layer := Items[J];
-        TilesPtr := FOldDirtyTilesMap.Add(Layer)^;
+        TilesPtr := FOldInvalidTilesMap.Add(Layer)^;
         MicroTilesSetSize(TilesPtr^, BoundsRect);
         DrawLayerToMicroTiles(TilesPtr^, Layer);
-        TCustomLayerAccess(Layer).Dirty := False;
+        TCustomLayerAccess(Layer).Invalid := False;
       end;
 
-    FOldDirtyTilesValid := True;
-    FUseDirtyTiles := False;
+    FOldInvalidTilesValid := True;
+    FUseInvalidTiles := False;
   end;
 end;
 
 function TMicroTilesRepaintOptimizer.CustomRepaintNeeded: Boolean;
 begin
-  UpdateOldDirtyTiles;
-  Result := FUseDirtyTiles;
+  UpdateOldInvalidTiles;
+  Result := FUseInvalidTiles;
 end;
 
 procedure TMicroTilesRepaintOptimizer.Reset;
 var
   I: Integer;
 begin
-  // Unmark dirty layers
-  for I := 0 to FDirtyLayers.Count - 1 do
-    TCustomLayerAccess(FDirtyLayers[I]).Dirty := False;
+  // Unmark Invalid layers
+  for I := 0 to FInvalidLayers.Count - 1 do
+    TCustomLayerAccess(FInvalidLayers[I]).Invalid := False;
 
-  FDirtyLayers.Clear;
-  FUseDirtyTiles := False;
-  FOldDirtyTilesValid := False;
+  FInvalidLayers.Clear;
+  FUseInvalidTiles := False;
+  FOldInvalidTilesValid := False;
 end;
 
-procedure TMicroTilesRepaintOptimizer.Resized(const NewWidth, NewHeight: Integer);
+procedure TMicroTilesRepaintOptimizer.BufferResizedHandler(const NewWidth, NewHeight: Integer);
 begin
   FWorkingTilesValid := False;  // force resizing of working microtiles
-  FOldDirtyTilesValid := False; // force resizing of old dirty tiles -> force complete repaint
+  FOldInvalidTilesValid := False; // force resizing of old Invalid tiles -> force complete repaint
 end;
 
 procedure TMicroTilesRepaintOptimizer.RegisterLayerCollection(Layers: TLayerCollection);
@@ -926,7 +1036,7 @@ begin
     begin
       OnLayerUpdated := LayerUpdateHandler;
       OnLayerResized := LayerUpdateHandler;
-      OnForcedUpdate := ForcedUpdateHandler;
+      OnForcedUpdate := AreaUpdateHandler;
       OnListNotify := LayerCollectionNotifyHandler;
     end;
 end;
@@ -958,14 +1068,14 @@ begin
       begin
         OnLayerUpdated := LayerUpdateHandler;
         OnLayerResized := LayerUpdateHandler;
-        OnForcedUpdate := ForcedUpdateHandler;
+        OnForcedUpdate := AreaUpdateHandler;
         OnListNotify := LayerCollectionNotifyHandler;
       end;
 
       FWorkingTilesValid := False;
-      FOldDirtyTilesValid := False;
-      UpdateOldDirtyTiles;
-      FUseDirtyTiles := True; // force repaint of new layers on invalidation...
+      FOldInvalidTilesValid := False;
+      UpdateOldInvalidTiles;
+      FUseInvalidTiles := True; // force repaint of new layers on invalidation...
     end
     else
     begin
@@ -979,14 +1089,14 @@ begin
         OnListNotify := nil;
       end;
 
-      MicroTilesDestroy(FDirtyTiles);
+      MicroTilesDestroy(FInvalidTiles);
       MicroTilesDestroy(FTempTiles);
-      MicroTilesDestroy(FForcedDirtyTiles);
+      MicroTilesDestroy(FForcedInvalidTiles);
 
-      FUseDirtyTiles := False;
-      FOldDirtyTilesValid := False;
-      FOldDirtyTilesMap.Clear;
-      FDirtyLayers.Clear;
+      FUseInvalidTiles := False;
+      FOldInvalidTilesValid := False;
+      FOldInvalidTilesMap.Clear;
+      FInvalidLayers.Clear;
     end;
     inherited;
   end;
@@ -1010,7 +1120,7 @@ end;
 
 procedure TMicroTilesRepaintOptimizer.EndPaintBuffer;
 begin
-  FUseDirtyTiles := False;
+  FUseInvalidTiles := False;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
   {$IFDEF MICROTILES_DEBUGDRAW_UNOPTIMIZED}
@@ -1031,86 +1141,82 @@ begin
   Buffer.EndMeasuring;
 end;
 
-procedure TMicroTilesRepaintOptimizer.DrawMeasuringHandler(Sender: TObject; const DstRect: TRect);
-var
-  TempRect: TRect;
+procedure TMicroTilesRepaintOptimizer.DrawMeasuringHandler(Sender: TObject; const Area: TRect;
+  const Hint: Cardinal);
 begin
-  TempRect := DstRect;
-  TestSwap(TempRect.Left, TempRect.Right);
-  TestSwap(TempRect.Top, TempRect.Bottom);
-  InflateRect(TempRect, 2, 2);
-  MicroTilesAddRect(FWorkMicroTiles^, TempRect, FPerformanceLevel = PL_FULLSCENE);
+  AddArea(FWorkMicroTiles^, Area, Hint);
 end;
 
-procedure TMicroTilesRepaintOptimizer.PrepareDirtyRects;
+procedure TMicroTilesRepaintOptimizer.PrepareInvalidRects;
 var
   I: Integer;
   Layer: TCustomLayer;
   UseWholeTiles: Boolean;
   LayerTilesPtr: PMicroTiles;
 begin
-  if FUseDirtyTiles then
+  if FUseInvalidTiles then
   begin
     ValidateWorkingTiles;
 
-    if FDirtyLayers.Count > 0 then
+    if FInvalidLayers.Count > 0 then
     begin
       // Determine if the use of whole tiles is better for current performance level
       UseWholeTiles := FPerformanceLevel > PL_MICROTILES;
 
-      for I := 0 to FDirtyLayers.Count - 1 do
+      for I := 0 to FInvalidLayers.Count - 1 do
       begin
-        Layer := FDirtyLayers[I];
+        Layer := FInvalidLayers[I];
 
         // Clear temporary tiles
         MicroTilesClear(FTempTiles);
         // Draw layer to temporary tiles
         DrawLayerToMicroTiles(FTempTiles, Layer);
 
-        // Combine temporary tiles with the global dirty tiles
-        MicroTilesUnion(FDirtyTiles, FTempTiles, UseWholeTiles);
+        // Combine temporary tiles with the global invalid tiles
+        MicroTilesUnion(FInvalidTiles, FTempTiles, UseWholeTiles);
 
-        // Retrieve old dirty tiles for the current layer
-        LayerTilesPtr := FOldDirtyTilesMap[Layer];
+        // Retrieve old invalid tiles for the current layer
+        LayerTilesPtr := FOldInvalidTilesMap[Layer];
 
-        // Combine old dirty tiles with the global dirty tiles
-        MicroTilesUnion(FDirtyTiles, LayerTilesPtr^, UseWholeTiles);
+        // Combine old invalid tiles with the global invalid tiles
+        MicroTilesUnion(FInvalidTiles, LayerTilesPtr^, UseWholeTiles);
 
-        // Copy temporary (current) dirty tiles to the layer
+        // Copy temporary (current) invalid tiles to the layer
         MicroTilesCopy(LayerTilesPtr^, FTempTiles);
 
-        // Unmark layer as dirty
-        TCustomLayerAccess(Layer).Dirty := False;
+        // Unmark layer as invalid
+        TCustomLayerAccess(Layer).Invalid := False;
       end;
-      FDirtyLayers.Clear;
+      FInvalidLayers.Clear;
     end;
     
 {$IFDEF MICROTILES_DEBUGDRAW}
-    MicroTilesCalcRects(FDirtyTiles, DirtyRects);
-    MicroTilesCopy(FDebugMicroTiles, FDirtyTiles);
-    MicroTilesUnion(FDebugMicroTiles, FForcedDirtyTiles);
+    MicroTilesCalcRects(FInvalidTiles, InvalidRects);
+    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects);
+    MicroTilesCopy(FDebugMicroTiles, FInvalidTiles);
+    MicroTilesUnion(FDebugMicroTiles, FForcedInvalidTiles);
 {$ELSE}
-    // Calculate optimized rectangles from global dirty tiles
-    MicroTilesCalcRects(FDirtyTiles, DirtyRects);
-    // Calculate optimized rectangles from forced dirty tiles
-    MicroTilesCalcRects(FForcedDirtyTiles, DirtyRects);
+    // Calculate optimized rectangles from global invalid tiles
+    MicroTilesCalcRects(FInvalidTiles, InvalidRects);
+    // Calculate optimized rectangles from forced invalid tiles
+    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects);
 {$ENDIF}
   end;
 
   BeginAdaption;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
-  if DirtyRects.Count > 0 then
+  if InvalidRects.Count > 0 then
   begin
-    FDebugDirtyRects.Count := DirtyRects.Count;
-    Move(DirtyRects[0]^, FDebugDirtyRects[0]^, DirtyRects.Count * SizeOf(TRect));
-    DirtyRects.Clear;
+    FDebugInvalidRects.Count := InvalidRects.Count;
+    Move(InvalidRects[0]^, FDebugInvalidRects[0]^, InvalidRects.Count * SizeOf(TRect));
+    InvalidRects.Clear;
   end;
 {$ENDIF}
 
   // Rects have been created, so we don't need the tiles any longer, clear them.
-  MicroTilesClear(FDirtyTiles);
-  MicroTilesClear(FForcedDirtyTiles);
+  MicroTilesClear(FInvalidTiles);
+  MicroTilesClear(FForcedInvalidTiles);
 end;
 
 procedure TMicroTilesRepaintOptimizer.BeginAdaption;
@@ -1121,20 +1227,20 @@ begin
     begin
       FPerformanceLevel := Constrain(FPerformanceLevel - 1, PL_MICROTILES, PL_FULLSCENE);
       {$IFDEF CODESITE}
-      CodeSite.SendInteger('PrepareDirtyRects(Timed): FPerformanceLevel', FPerformanceLevel);
+      CodeSite.SendInteger('PrepareInvalidRects(Timed): FPerformanceLevel', FPerformanceLevel);
       {$ENDIF}
       FTimedCheck := True;
     end
-    else if not FAdaptionFailed and (DirtyRects.Count < FOldDirtyRectsCount - DIRTYRECTS_DELTA) then
+    else if not FAdaptionFailed and (InvalidRects.Count < FOldInvalidRectsCount - INVALIDRECTS_DELTA) then
     begin
       FPerformanceLevel := Constrain(FPerformanceLevel - 1, PL_MICROTILES, PL_FULLSCENE);
       {$IFDEF CODESITE}
-      CodeSite.SendInteger('PrepareDirtyRects: FPerformanceLevel', FPerformanceLevel);
+      CodeSite.SendInteger('PrepareInvalidRects: FPerformanceLevel', FPerformanceLevel);
       {$ENDIF}
     end
     else if FPerformanceLevel = PL_FULLSCENE then
-      // we need a full scene rendition, so clear the dirty rects
-      DirtyRects.Clear;
+      // we need a full scene rendition, so clear the invalid rects
+      InvalidRects.Clear;
   end;
 end;
 
@@ -1147,9 +1253,9 @@ begin
   TimeNeeded := FPerfTimer.ReadValue;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
-  if FDebugDirtyRects.Count = 0 then
+  if FDebugInvalidRects.Count = 0 then
 {$ELSE}
-  if DirtyRects.Count = 0 then
+  if InvalidRects.Count = 0 then
 {$ENDIF}
     FTimeNeededForFullSceneRepaint := TimeNeeded
   else if AdaptiveRepaint then
@@ -1161,11 +1267,11 @@ begin
       if Level <> FPerformanceLevel then
       begin
 {$IFDEF MICROTILES_DEBUGDRAW}
-        FOldDirtyRectsCount := FDebugDirtyRects.Count;
+        FOldInvalidRectsCount := FDebugInvalidRects.Count;
 {$ELSE}
-        // save count of old dirty rects so we can use it in PrepareDirtyRects
+        // save count of old invalid rects so we can use it in PrepareInvalidRects
         // the next time...
-        FOldDirtyRectsCount := DirtyRects.Count;
+        FOldInvalidRectsCount := InvalidRects.Count;
 {$ENDIF}
         FPerformanceLevel := Level;
         {$IFDEF CODESITE}
@@ -1208,7 +1314,7 @@ begin
       end
       else
       begin
-        // dirty rect count approach had success!!
+        // invalid rect count approach had success!!
         // shorten time for next check to benefit nonetheless in case we have a fallback...
         if FTimeDelta > TIMER_LOWLIMIT then
         begin
@@ -1217,7 +1323,7 @@ begin
           // schedule next check
           FNextCheck := GetTickCount + FTimeDelta;
           {$IFDEF CODESITE}
-          CodeSite.SendInteger('dirty rect count approach succeeded, new timer delta', FTimeDelta);
+          CodeSite.SendInteger('invalid rect count approach succeeded, new timer delta', FTimeDelta);
           CodeSite.AddSeparator;
           {$ENDIF}
         end;
