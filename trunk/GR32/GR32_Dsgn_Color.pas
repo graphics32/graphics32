@@ -35,7 +35,7 @@ uses
 {$IFDEF CLX}
   QGraphics, QDialogs, QForms,
 {$ELSE}
-  Graphics, Dialos, Forms,
+  Graphics, Dialogs, Forms,
 {$ENDIF}
   GR32, GR32_Image,
 {$IFDEF COMPILER6}
