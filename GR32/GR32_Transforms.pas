@@ -32,10 +32,15 @@ unit GR32_Transforms;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows, SysUtils, Classes, GR32, GR32_Blend;
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  SysUtils, Classes, GR32, GR32_Blend;
 
 type
   ETransformError = class(Exception);
@@ -1283,6 +1288,7 @@ begin
   end;
 end;
 {$WARNINGS ON}
+
 
 { A bit of linear algebra }
 

@@ -55,6 +55,12 @@
   {$DEFINE EXT_PROP_EDIT}
 {$ENDIF}
 
+{$IFDEF LINUX}
+  {$DEFINE CLX}
+{$ENDIF}
+
+//{$DEFINE CLX}  // uncomment this if you want CLX for Windows
+
 {$R-}{$Q-}  // switch off overflow and range checking
 
 {$DEFINE XPTHEMES} // enable support for windows xp themes

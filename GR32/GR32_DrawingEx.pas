@@ -28,10 +28,15 @@ unit GR32_DrawingEx;
 
 interface
 
-uses
-  Windows, GR32, SysUtils;
+{$I GR32.inc}
 
-{$I GR32.INC}
+uses
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  GR32, SysUtils;
 
 { ClipLine }
 { Clips the (X1, Y1)-(X2,Y2) line to the rectangle using Sutherland-Cohen Line

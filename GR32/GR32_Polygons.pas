@@ -29,10 +29,17 @@ unit GR32_Polygons;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows, SysUtils, GR32, GR32_LowLevel, GR32_Blend;
+{$IFDEF CLX}
+  Qt, Types, 
+  {$IFDEF LINUX}Libc, {$ENDIF}
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}
+{$ELSE}
+  Windows,
+{$ENDIF}
+  SysUtils, GR32, GR32_LowLevel, GR32_Blend;
 
 { Polylines }
 

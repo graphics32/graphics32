@@ -28,11 +28,17 @@ unit GR32_Layers;
 
 interface
 
-{$INCLUDE GR32.INC}
+{$INCLUDE GR32.inc}
 
 uses
-  Windows, SysUtils {$IFDEF DELPHI6}, Types{$ENDIF}, Classes, Controls, Forms, Graphics,
-  GR32, Dialogs;
+{$IFDEF CLX}
+  Qt, Types, QControls, QGraphics, QForms,
+  {$IFDEF LINUX}Libc, {$ENDIF}
+  {$IFDEF MSWINDOWS}Windows, {$ENDIF}
+{$ELSE}
+  Windows, Controls, Graphics, Forms,
+{$ENDIF}
+  Classes, SysUtils, GR32;
 
 const
   { Layer Options Bits }

@@ -22,6 +22,7 @@ unit GR32_Image;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Mattias Andersson <mattias@centaurix.com>
  * Andre Beckedorf <Andre@metaException.de>
  * Andrew P. Rybin <aprybin@users.sourceforge.net>
  *
@@ -30,11 +31,17 @@ unit GR32_Image;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows, Classes, Messages, Controls, SysUtils, StdCtrls, Forms, ExtCtrls,
-  Graphics, GR32, GR32_Layers, GR32_RangeBars;
+{$IFDEF CLX}
+  Qt, Types, QControls, QGraphics, QForms, QConsts,
+  {$IFDEF LINUX}Libc,{$ENDIF}
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+{$ELSE}
+  Windows, Messages, Controls, Graphics, Forms,
+{$ENDIF}
+  Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars;
 
 const
   { Paint Stage Constants }
@@ -48,6 +55,8 @@ const
 
 type
   TPaintStageEvent = procedure(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal) of object;
+
+  TBitmap32Access = class(TBitmap32);
 
   { TPaintStage }
   PPaintStage = ^TPaintStage;
@@ -90,25 +99,37 @@ type
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
     procedure SetBufferOversize(Value: Integer);
+{$IFNDEF CLX}
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
+{$ENDIF}
   protected
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
+{$IFDEF CLX}
+    procedure MouseEnter(AControl: TControl); override;
+    procedure MouseLeave(AControl: TControl); override;
+{$ELSE}
     procedure MouseEnter; virtual;
     procedure MouseLeave; virtual;
+{$ENDIF}
     procedure Paint; override;
     procedure ResizeBuffer;
     property  BufferValid: Boolean read FBufferValid write FBufferValid;
+{$IFDEF CLX}
+    function WidgetFlags: Integer; override;
+{$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function  GetViewportRect: TRect; virtual;
+{$IFNDEF CLX}
     procedure Flush; overload;
     procedure Flush(const SrcRect: TRect); overload;
+{$ENDIF}
     procedure Invalidate; override;
     procedure Loaded; override;
     procedure Resize; override;
@@ -133,10 +154,14 @@ type
   published
     property Align;
     property Anchors;
+{$IFNDEF CLX}
     property AutoSize;
+{$ENDIF}
     property Constraints;
     property Cursor;
+{$IFNDEF CLX}
     property DragCursor;
+{$ENDIF}
     property Options;
     property ParentShowHint;
     property PopupMenu;
@@ -144,7 +169,9 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
+{$IFNDEF CLX}
     property OnCanResize;
+{$ENDIF}
     property OnClick;
 {$IFDEF DELPHI5}
     property OnContextPopup;
@@ -197,7 +224,7 @@ type
     procedure ChangedHandler(Sender: TObject);
     function  GetOnPixelCombine: TPixelCombineEvent;
     procedure GDIUpdateHandler(Sender: TObject);
-    procedure SetBitmap(Value: TBitmap32);
+    procedure SetBitmap(Value: TBitmap32); {$IFDEF CLX}reintroduce;{$ENDIF}
     procedure SetBitmapAlign(Value: TBitmapAlign);
     procedure SetLayers(Value: TLayerCollection);
     procedure SetOffsetHorz(Value: Single);
@@ -212,7 +239,9 @@ type
     OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
     procedure BitmapResized; virtual;
+{$IFNDEF CLX}
     function  CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
+{$ENDIF}
     procedure DoInitStages; virtual;
     procedure DoPaintBuffer; override;
     procedure DoPaintGDIOverlay; override;
@@ -225,7 +254,11 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
+{$IFDEF CLX}
+    procedure MouseLeave(AControl: TControl); override;
+{$ELSE}
     procedure MouseLeave; override;
+{$ENDIF}
     procedure UpdateCache;
     property  UpdateCount: Integer read FUpdateCount;
   public
@@ -275,13 +308,17 @@ type
   published
     property Align;
     property Anchors;
+{$IFNDEF CLX}
     property AutoSize;
+{$ENDIF}
     property Bitmap;
     property BitmapAlign;
     property Color;
     property Constraints;
     property Cursor;
+{$IFNDEF CLX}
     property DragCursor;
+{$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -292,7 +329,9 @@ type
     property TabStop;
     property Visible;
     property OnBitmapResize;
+{$IFNDEF CLX}
     property OnCanResize;
+{$ENDIF}
     property OnClick;
     property OnChange;
 {$IFDEF DELPHI5}
@@ -385,13 +424,17 @@ type
   TImgView32 = class(TCustomImgView32)
     property Align;
     property Anchors;
+{$IFNDEF CLX}
     property AutoSize;
+{$ENDIF}
     property Bitmap;
     property Centered;
     property Color;
     property Constraints;
     property Cursor;
+{$IFNDEF CLX}
     property DragCursor;
+{$ENDIF}    
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -403,7 +446,9 @@ type
     property TabStop;
     property Visible;
     property OnBitmapResize;
+{$IFNDEF CLX}
     property OnCanResize;
+{$ENDIF}
     property OnClick;
     property OnChange;
 {$IFDEF DELPHI5}
@@ -569,6 +614,7 @@ end;
 
 { TCustomPaintBox32 }
 
+{$IFNDEF CLX}
 procedure TCustomPaintBox32.CMMouseEnter(var Message: TMessage);
 begin
   inherited;
@@ -580,6 +626,7 @@ begin
   MouseLeave;
   inherited;
 end;
+{$ENDIF}
 
 constructor TCustomPaintBox32.Create(AOwner: TComponent);
 begin
@@ -609,6 +656,7 @@ begin
   if Assigned(FOnGDIOverlay) then FOnGDIOverlay(Self);
 end;
 
+{$IFNDEF CLX}
 procedure TCustomPaintBox32.Flush;
 begin
   if (Canvas.Handle <> 0) and (FBuffer.Handle <> 0) then
@@ -651,6 +699,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 function TCustomPaintBox32.GetViewportRect: TRect;
 begin
@@ -683,6 +732,21 @@ begin
   inherited;
 end;
 
+{$IFDEF CLX}
+procedure TCustomPaintBox32.MouseEnter(AControl: TControl);
+begin
+  FMouseInControl := True;
+  inherited;
+end;
+
+procedure TCustomPaintBox32.MouseLeave(AControl: TControl);
+begin
+  FMouseInControl := False;
+  inherited;
+end;
+
+{$ELSE}
+
 procedure TCustomPaintBox32.MouseEnter;
 begin
   FMouseInControl := True;
@@ -696,16 +760,36 @@ begin
   if Assigned(FOnMouseLeave) then
     FOnMouseLeave(Self);
 end;
+{$ENDIF}
 
 procedure TCustomPaintBox32.Paint;
 begin
   ResizeBuffer;
-  if not FBufferValid then DoPaintBuffer;
+  if not FBufferValid then
+  begin
+{$IFDEF CLX}
+    TBitmap32Access(FBuffer).ImageNeeded;
+{$ENDIF}
+    DoPaintBuffer;
+  end;
+
   FBuffer.Lock;
   try
     with GetViewportRect do
+{$IFDEF CLX}
+    begin
+      if not QPainter_isActive(FBuffer.Handle) then
+        if not QPainter_begin(FBuffer.Handle, FBuffer.Pixmap) then
+          raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+      QPainter_drawPixmap(Canvas.Handle, Top, Left, FBuffer.Pixmap, 0, 0, Right - Left, Bottom - Top);
+      QPainter_end(FBuffer.Handle);
+
+      TBitmap32Access(FBuffer).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
+    end;
+{$ELSE}
       BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
         FBuffer.Handle, 0, 0, SRCCOPY);
+{$ENDIF}
   finally
     FBuffer.Unlock;
   end;
@@ -763,6 +847,13 @@ begin
   FBufferOversize := Value;
 end;
 
+{$IFDEF CLX}
+function TCustomPaintBox32.WidgetFlags: Integer;
+begin
+  Result := Inherited WidgetFlags or Integer(WidgetFlags_WRepaintNoErase) or
+    Integer(WidgetFlags_WResizeNoErase);
+end;
+{$ELSE}
 procedure TCustomPaintBox32.WMEraseBkgnd(var Message: TWmEraseBkgnd);
 begin
   Message.Result := 1;
@@ -775,7 +866,7 @@ begin
   else
     Result:= Result and not DLGC_WANTARROWS;
 end;
-
+{$ENDIF}
 
 
 
@@ -799,6 +890,7 @@ begin
 end;
 
 procedure TCustomImage32.BitmapResized;
+{$IFNDEF CLX}
 var
   W, H: Integer;
 begin
@@ -813,6 +905,9 @@ begin
     end;
     if AutoSize and (W > 0) and (H > 0) then SetBounds(Left, Top, W, H);
   end;
+{$ELSE}
+begin
+{$ENDIF}
   if (FUpdateCount <> 0) and Assigned(FOnBitmapResize) then FOnBitmapResize(Self);
   InvalidateCache;
   Invalidate;
@@ -829,6 +924,7 @@ begin
   end;
 end;
 
+{$IFNDEF CLX}
 function TCustomImage32.CanAutoSize(var NewWidth, NewHeight: Integer): Boolean;
 var
   W, H: Integer;
@@ -848,6 +944,7 @@ begin
     if Align in [alNone, alTop, alBottom] then NewHeight := H;
   end;
 end;
+{$ENDIF}
 
 procedure TCustomImage32.Changed;
 begin
@@ -957,7 +1054,7 @@ end;
 
 procedure TCustomImage32.ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer);
 begin
-  DrawFocusRect(Dest.Handle, CachedBitmapRect);
+  Dest.Canvas.DrawFocusRect(CachedBitmapRect);
 end;
 
 procedure TCustomImage32.ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer);
@@ -988,7 +1085,11 @@ end;
 
 procedure TCustomImage32.ExecControlFrame(Dest: TBitmap32; StageNum: Integer);
 begin
+  {$IFDEF CLX}
+  Dest.Canvas.DrawFocusRect(Rect(0, 0, Width, Height));
+  {$ELSE}
   DrawFocusRect(Dest.Handle, Rect(0, 0, Width, Height));
+  {$ENDIF}
 end;
 
 procedure TCustomImage32.ExecCustom(Dest: TBitmap32; StageNum: Integer);
@@ -1252,12 +1353,23 @@ begin
   if Assigned(FOnMouseUp) then FOnMouseUp(Self, Button, Shift, X, Y, Layer);
 end;
 
+{$IFDEF CLX}
+procedure TCustomImage32.MouseLeave(AControl: TControl);
+begin
+  if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
+    Screen.Cursor := crDefault;
+  inherited;
+end;
+
+{$ELSE}
+
 procedure TCustomImage32.MouseLeave;
 begin
   if (Layers.MouseEvents) and (Layers.MouseListener = nil) then
     Screen.Cursor := crDefault;
   inherited;
 end;
+{$ENDIF}
 
 procedure TCustomImage32.PaintTo(Dest: TBitmap32; DestRect: TRect);
 var
@@ -1309,6 +1421,11 @@ end;
 
 procedure TCustomImage32.ResizedHandler(Sender: TObject);
 begin
+{$IFDEF CLX}
+  // workaround to stop CLX from calling BitmapResized and to prevent
+  // AV when accessing Layers. Layers is already freed at that time
+  if not(csDestroying in ComponentState) then
+{$ENDIF}
   BitmapResized;
 end;
 
@@ -1446,10 +1563,17 @@ procedure TCustomImgView32.AlignAll;
 begin
   with GetViewportRect do
   begin
-    HScroll.BoundsRect := Rect(Left, Bottom, Right, Height);
-    VScroll.BoundsRect := Rect(Right, Top, Width, Bottom);
-    HScroll.Repaint;
-    VScroll.Repaint;
+    If Assigned(HScroll) then
+    begin
+      HScroll.BoundsRect := Rect(Left, Bottom, Right, Height);
+      HScroll.Repaint;
+    end;
+
+    If Assigned(VScroll) then
+    begin
+      VScroll.BoundsRect := Rect(Right, Top, Width, Bottom);
+      VScroll.Repaint;
+    end;
   end;
 end;
 
@@ -1471,15 +1595,16 @@ begin
   inherited;
 
   HScroll := TCustomRangeBar.Create(Self);
+  VScroll := TCustomRangeBar.Create(Self);
+
   with HScroll do
   begin
-    Parent := Self;
+    HScroll.Parent := Self;
     BorderStyle := bsNone;
     Centered := True;
     OnUserChange := ScrollHandler;
   end;
 
-  VScroll := TCustomRangeBar.Create(Self);
   with VScroll do
   begin
     Parent := Self;
@@ -1514,6 +1639,7 @@ end;
 
 procedure TCustomImgView32.DoDrawSizeGrip(R: TRect);
 begin
+{$IFNDEF CLX}
   if USE_THEMES then
   begin
     Canvas.Brush.Color := clBtnFace;
@@ -1522,6 +1648,7 @@ begin
   end
   else
     DrawFrameControl(Canvas.Handle, R, DFC_SCROLL, DFCS_SCROLLSIZEGRIP)
+{$ENDIF}
 end;
 
 procedure TCustomImgView32.DoScaleChange;
@@ -1538,9 +1665,18 @@ begin
 end;
 
 function TCustomImgView32.GetScrollBarSize: Integer;
+{$IFDEF CLX}
+var
+  Size: TSize;
+{$ENDIF}
 begin
   Result := FScrollBarSize;
+{$IFDEF CLX}
+  QStyle_scrollBarExtent(Application.Style.Handle, @Size);
+  if Result = 0 then Result := Size.cy;
+{$ELSE}
   if Result = 0 then Result := GetSystemMetrics(SM_CYHSCROLL);
+{$ENDIF}
 end;
 
 function TCustomImgView32.GetSizeGripRect: TRect;
@@ -1605,6 +1741,7 @@ begin
 end;
 
 procedure TCustomImgView32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+{$IFNDEF CLX}
 var
   Action: Cardinal;
   Msg: TMessage;
@@ -1624,6 +1761,9 @@ begin
       Exit;
     end;
   end;
+{$ELSE}
+begin  
+{$ENDIF}
   inherited;
 end;
 
@@ -1781,11 +1921,14 @@ var
   Sz: TSize;
   ScaledDOversize: Integer;
 begin
-  Sz := GetBitmapSize;
-  ScaledDOversize := Round(2 * FOversize * Scale);
+  If Assigned(HScroll) and Assigned(VScroll) then
+  begin
+    Sz := GetBitmapSize;
+    ScaledDOversize := Round(2 * FOversize * Scale);
 
-  HScroll.Range := Sz.Cx + ScaledDOversize;
-  VScroll.Range := Sz.Cy + ScaledDOversize;
+    HScroll.Range := Sz.Cx + ScaledDOversize;
+    VScroll.Range := Sz.Cy + ScaledDOversize;
+  end;
 end;
 
 { TBitmap32Item }

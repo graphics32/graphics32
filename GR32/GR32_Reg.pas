@@ -28,11 +28,15 @@ unit GR32_Reg;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   Classes, TypInfo,
-  {$IFDEF COMPILER6}DesignIntf{$ELSE}DsgnIntf{$ENDIF};
+{$IFDEF COMPILER6}
+  DesignIntf
+{$ELSE}
+  DsgnIntf
+{$ENDIF};
 
 procedure Register;
 

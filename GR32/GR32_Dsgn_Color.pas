@@ -28,12 +28,21 @@ unit GR32_Dsgn_Color;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows, Classes, SysUtils, Graphics, Dialogs, Forms, Registry, Consts,
+  Classes, SysUtils, Consts,
+{$IFDEF CLX}
+  QGraphics, QDialogs, QForms,
+{$ELSE}
+  Graphics, Dialos, Forms,
+{$ENDIF}
   GR32, GR32_Image,
-  {$IFDEF COMPILER6}DesignIntf, DesignEditors{$ELSE}DsgnIntf{$ENDIF};
+{$IFDEF COMPILER6}
+  DesignIntf, DesignEditors
+{$ELSE}
+  DsgnIntf
+{$ENDIF};
 
 type
   { TColorManager }
