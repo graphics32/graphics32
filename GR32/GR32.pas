@@ -153,15 +153,26 @@ const
 { Points }
 
 type
+
 {$IFNDEF BCB}
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
 {$ENDIF}
   PPoint = ^TPoint;
 
+  PPointArray = ^TPointArray;
+  TPointArray = array [0..0] of TPoint;
+  TArrayOfPoint = array of TPoint;
+  TArrayOfArrayOfPoint = array of TArrayOfPoint;
+
   PFloatPoint = ^TFloatPoint;
   TFloatPoint = record
     X, Y: Single;
   end;
+
+  PFloatPointArray = ^TFloatPointArray;
+  TFloatPointArray = array [0..0] of TFloatPoint;
+  TArrayOfFloatPoint = array of TFloatPoint;
+  TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
 
   PFixedPoint = ^TFixedPoint;
   TFixedPoint = record
@@ -171,23 +182,9 @@ type
   PFixedPointArray = ^TFixedPointArray;
   TFixedPointArray = array [0..0] of TFixedPoint;
   TArrayOfFixedPoint = array of TFixedPoint;
-
-  PPointArray = ^TPointArray;
-  TPointArray = array [0..0] of TPoint;
-  TArrayOfPoint = array of TPoint;
-
-  PFloatPointArray = ^TFloatPointArray;
-  TFloatPointArray = array [0..0] of TFloatPoint;
-  TArrayOfFloatPoint = array of TFloatPoint;
+  TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
 
 
-
-{  TArrayOfPoint = array of TPoint;
-  TArrayOfArrayOfPoint = array of TArrayOfPoint;
-  TArrayOfFloatPoint = array of TFloatPoint;
-  TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
-  TArrayOfFixedPoint = array of TFixedPoint;
-  TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;  }
 
 // construction and conversion of point types
 function Point(X, Y: Integer): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
