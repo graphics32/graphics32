@@ -46,8 +46,8 @@ procedure AlphaToGrayscale(Dst, Src: TBitmap32);
 procedure IntensityToAlpha(Dst, Src: TBitmap32);
 procedure Invert(Dst, Src: TBitmap32);
 procedure InvertRGB(Dst, Src: TBitmap32);
-procedure ColorToGrayscale(Dst, Src: TBitmap32);
-procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8);
+procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
+procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
 
 procedure CheckParams(Dst, Src: TBitmap32);
 
@@ -144,7 +144,7 @@ begin
   Dst.Changed;
 end;
 
-procedure ColorToGrayscale(Dst, Src: TBitmap32);
+procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
 var
   I: Integer;
   D, S: PColor32;
@@ -153,19 +153,28 @@ begin
   Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
-  for I := 0 to Src.Width * Src.Height - 1 do
-  begin
-    D^ := Gray32(Intensity(S^));
-    Inc(S); Inc(D);
-  end;
+  
+  if PreserveAlpha then
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      D^ := Gray32(Intensity(S^), AlphaComponent(S^));
+      Inc(S); Inc(D);
+    end
+  else
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      D^ := Gray32(Intensity(S^));
+      Inc(S); Inc(D);
+    end;
+    
   Dst.Changed;
 end;
 
-procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8);
+procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
 var
   I: Integer;
   D, S: PColor32;
-  r, g, b: TColor32;
+  a, r, g, b: TColor32;
   C: TColor32;
 begin
   CheckParams(Dst, Src);
@@ -173,21 +182,41 @@ begin
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
 
-  for I := 0 to Src.Width * Src.Height - 1 do
-  begin
-    C := S^;
-    r := C and $00FF0000;
-    g := C and $0000FF00;
-    r := r shr 16;
-    b := C and $000000FF;
-    g := g shr 8;
-    r := LUT[r];
-    g := LUT[g];
-    b := LUT[b];
-    D^ := $FF000000 or r shl 16 or g shl 8 or b;
-    Inc(S);
-    Inc(D);
-  end;
+  if PreserveAlpha then
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      C := S^;
+      a := C and $FF000000;
+      r := C and $00FF0000;
+      g := C and $0000FF00;
+      a := a shr 24;
+      r := r shr 16;
+      b := C and $000000FF;
+      g := g shr 8;
+      r := LUT[r];
+      g := LUT[g];
+      b := LUT[b];
+      D^ := a shl 24 or r shl 16 or g shl 8 or b;
+      Inc(S);
+      Inc(D);
+    end
+  else
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      C := S^;
+      r := C and $00FF0000;
+      g := C and $0000FF00;
+      r := r shr 16;
+      b := C and $000000FF;
+      g := g shr 8;
+      r := LUT[r];
+      g := LUT[g];
+      b := LUT[b];
+      D^ := $FF000000 or r shl 16 or g shl 8 or b;
+      Inc(S);
+      Inc(D);
+    end;
+    
   Dst.Changed;
 end;
 
