@@ -13,4 +13,7 @@ del /S *.mpt
 del /S *.map
 del /S *.log
 del /s *.exe
+del /s *.so
+del /s *.stat
+del /s *.tci
 del /s /A Thumbs.db
