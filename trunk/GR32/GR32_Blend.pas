@@ -61,6 +61,9 @@ var
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
 
+  CombMergeReg: TCombineReg;
+  CombMergeMem: TCombineMem;
+
   MergeReg: TBlendReg;
   MergeMem: TBlendMem;
 
@@ -1036,6 +1039,16 @@ begin
   end;
 end;
 
+function _CombMergeReg(X, Y, W: TColor32): TColor32;
+begin
+  Result := _MergeReg(X and $00FFFFFF or W shl 24, Y);
+end;
+
+procedure _CombMergeMem(X: TColor32; var Y: TColor32; W: TColor32);
+begin
+  Y := _MergeReg(X and $00FFFFFF or W shl 24, Y);
+end;
+
 { MMX Merge }
 
 function M_MergeReg(F, B: TColor32): TColor32;
@@ -1143,6 +1156,16 @@ begin
     Inc(Dst);
     Dec(Count);
   end;
+end;
+
+function M_CombMergeReg(X, Y, W: TColor32): TColor32;
+begin
+  Result := M_MergeReg(X and $00FFFFFF or W shl 24, Y);
+end;
+
+procedure M_CombMergeMem(X: TColor32; var Y: TColor32; W: TColor32);
+begin
+  Y := M_MergeReg(X and $00FFFFFF or W shl 24, Y);
 end;
 
 { Non-MMX Color algebra versions }
@@ -1519,6 +1542,8 @@ begin
     BlendLine := M_BlendLine;
     BlendLineEx := M_BlendLineEx;
 
+    CombMergeReg := M_CombMergeReg;
+    CombMergeMem := M_CombMergeMem;
     MergeReg := M_MergeReg;
     MergeMem := M_MergeMem;
     MergeRegEx := M_MergeRegEx;
@@ -1548,6 +1573,8 @@ begin
     BlendLine := _BlendLine;
     BlendLineEx := _BlendLineEx;
 
+    CombMergeReg := _CombMergeReg;
+    CombMergeMem := _CombMergeMem;
     MergeReg := _MergeReg;
     MergeMem := _MergeMem;
     MergeRegEx := _MergeRegEx;
