@@ -22,6 +22,7 @@ unit GR32_Image;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Andre Beckedorf <Andre@metaException.de>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Image.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -210,11 +211,9 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
-
-    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); overload; virtual;
-    procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); overload; virtual;
-    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); overload; virtual;
-
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
+    procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; dynamic;
     procedure UpdateCache;
     property  UpdateCount: Integer read FUpdateCount;
   public
