@@ -24,6 +24,7 @@ unit GR32;
  * Contributor(s):
  *   Michael Hansen <dyster_tid@hotmail.com>
  *   Andre Beckedorf <Andre@metaException.de>
+ *   Mattias Andersson <mattias@centaurix.com>
  *   J. Tulach <tulach@position.cz>
  *
  * ***** END LICENSE BLOCK ***** *)
@@ -112,6 +113,9 @@ function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
 // Color space conversion
 function HSLtoRGB(H, S, L: Single): TColor32;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
+
+// Palette conversion functions
+function WinPalette(const p: TPalette32): HPalette;
 
 
 { A fixed-point type }
@@ -337,6 +341,10 @@ type
     function  GetCanvas: TCanvas;
     function  GetPixel(X, Y: Integer): TColor32;
     function  GetPixelS(X, Y: Integer): TColor32;
+    function  GetPixelF(X, Y: Single): TColor32;
+    function  GetPixelFS(X, Y: Single): TColor32;
+    function  GetPixelX(X, Y: TFixed): TColor32;
+    function  GetPixelXS(X, Y: TFixed): TColor32;
     function  GetPixelPtr(X, Y: Integer): PColor32;
     function  GetScanLine(Y: Integer): PColor32Array;
 {$IFDEF CLX}
@@ -349,6 +357,10 @@ type
     procedure SetMasterAlpha(Value: Cardinal);
     procedure SetPixel(X, Y: Integer; Value: TColor32);
     procedure SetPixelS(X, Y: Integer; Value: TColor32);
+    procedure SetPixelF(X, Y: Single; Value: TColor32);
+    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
+    procedure SetPixelFS(X, Y: Single; Value: TColor32);
+    procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetStretchFilter(Value: TStretchFilter);
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32);
@@ -375,7 +387,6 @@ type
     procedure CheckPixmap;
     procedure StartPainter;
     procedure StopPainter;
-    property PixmapChanged: Boolean read FPixmapChanged write FPixmapChanged;
 {$ENDIF}
   public
     constructor Create; override;
@@ -417,17 +428,13 @@ type
 
     property  Pixel[X, Y: Integer]: TColor32 read GetPixel write SetPixel; default;
     property  PixelS[X, Y: Integer]: TColor32 read GetPixelS write SetPixelS;
+    property  PixelX[X, Y: TFixed]: TColor32 read GetPixelX write SetPixelX;
+    property  PixelXS[X, Y: TFixed]: TColor32 read GetPixelXS write SetPixelXS;
+    property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
+    property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
     procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
     procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
     procedure SetPixelTS(X, Y: Integer; Value: TColor32);
-    procedure SetPixelF(X, Y: Single; Value: TColor32);
-    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
-    procedure SetPixelFS(X, Y: Single; Value: TColor32);
-    procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
-    function  GetPixelF(X, Y: Single): TColor32;
-    function  GetPixelFS(X, Y: Single): TColor32;
-    function  GetPixelX(X, Y: TFixed): TColor32;
-    function  GetPixelXS(X, Y: TFixed): TColor32;
 
     procedure SetStipple(NewStipple: TArrayOfColor32); overload;
     procedure SetStipple(NewStipple: array of TColor32); overload;
@@ -530,6 +537,7 @@ type
     property Pixmap: QPixmapH read GetPixmap;
     property Bits: PColor32Array read GetBits;
     property Handle: QPainterH read GetPainter;
+    property PixmapChanged: Boolean read FPixmapChanged write FPixmapChanged;
 {$ELSE}
     property BitmapHandle: HBITMAP read FHandle;
     property BitmapInfo: TBitmapInfo read FBitmapInfo;
@@ -793,6 +801,30 @@ begin
   end;
 end;
 
+{ Palette conversion }
+
+function WinPalette(const P: TPalette32): HPalette;
+var
+  L: TMaxLogPalette;
+  L0: LOGPALETTE absolute L;
+  I: Cardinal;
+  Cl: TColor32;
+begin
+  L.palVersion := $300;
+  L.palNumEntries := 256;
+  for I := 0 to 255 do
+  begin
+    Cl := P[I];
+    with L.palPalEntry[I] do
+    begin
+      peFlags := 0;
+      peRed := RedComponent(Cl);
+      peGreen := GreenComponent(Cl);
+      peBlue := BlueComponent(Cl);
+    end;
+  end;
+  Result := CreatePalette(l0);
+end;
 
 { Fixed-point math }
 
@@ -1964,18 +1996,18 @@ function TBitmap32.GET_T256(X, Y: Integer): TColor32;
 var
  Pos: Cardinal;
 begin
-  Pos:= (X shr 8) +  (Y shr 8) * FWidth;
-  Result:= Interpolator( GAMMA_TABLE[X and $FF xor 255],
-                         GAMMA_TABLE[Y and $FF xor 255],
-                         @FBits[Pos], @FBits[Pos + FWidth] );
+  Pos := (X shr 8) + (Y shr 8) * FWidth;
+  Result := Interpolator( GAMMA_TABLE[X and $FF xor 255],
+                          GAMMA_TABLE[Y and $FF xor 255],
+                          @FBits[Pos], @FBits[Pos + FWidth] );
 end;
 
 function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
 begin
-  if (X > 0)and(Y > 0) and
-     (X < (FWidth  - 1)shl 8) and
-     (Y < (FHeight - 1)shl 8) then Result:= GET_T256(X,Y)
-     else Result:= FOuterColor;
+  if (X > 0) and (Y > 0) and (X < (FWidth - 1) shl 8) and (Y < (FHeight - 1) shl 8) then
+    Result := GET_T256(X,Y)
+  else
+    Result := FOuterColor;
 end;
 
 function TBitmap32.GetPixelF(X, Y: Single): TColor32;
@@ -3973,13 +4005,13 @@ end;
 
 function M_Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
-        MOVQ      MM1, [ECX]
-        MOV       ECX, C21
-        MOVQ      MM3, [ECX]
-        MOVQ      MM2, MM1
-        MOVQ      MM4, MM3
-        PSRLQ     MM1, 32
-        PSRLQ     MM3, 32
+        MOVQ      MM1,[ECX]
+        MOV       ECX,C21
+        MOVQ      MM3,[ECX]
+        MOVQ      MM2,MM1
+        MOVQ      MM4,MM3
+        PSRLQ     MM1,32
+        PSRLQ     MM3,32
 
         MOVD      MM5,EAX
         PUNPCKLWD MM5,MM5
@@ -4017,7 +4049,6 @@ asm
         MOVD      EAX,MM2
 end;
 
-
 procedure SetupFunctions;
 var
   MMX_ACTIVE: Boolean;
@@ -4028,18 +4059,18 @@ begin
   if ACTIVE_3DNow then
   begin
    // link 3DNow functions
-   Interpolator:= M_Interpolator;
+   Interpolator := M_Interpolator;
   end
   else
   if MMX_ACTIVE then
   begin
    // link MMX functions
-   Interpolator:= M_Interpolator;
+   Interpolator := M_Interpolator;
   end
   else
   begin
    // link IA32 functions
-   Interpolator:= _Interpolator;
+   Interpolator := _Interpolator;
   end
 end;
 
@@ -4064,6 +4095,3 @@ finalization
   DeleteCriticalSection(CounterLock);
 
 end.
-
-
-
