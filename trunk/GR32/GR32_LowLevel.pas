@@ -91,7 +91,7 @@ function SAL_13(Value: Integer): Integer;
 function SAL_14(Value: Integer): Integer;
 function SAL_16(Value: Integer): Integer;
 
-{ ColorSwap exchanges ARGB <-> ABGR and fill A with $FF }
+{ ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
 { MulDiv a faster implementation of Windows.MulDiv funtion }
@@ -355,7 +355,7 @@ asm
 
         DIV     ECX             // Unsigned divide of product by Divisor
 
-        SUB     ECX,EDX         // Check if the result must be corregized by adding or substracting
+        SUB     ECX,EDX         // Check if the result must be adjusted by adding or substracting
         CMP     ECX,EDX         // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
         INC     EAX             // no rounding needed; add 1 to result otherwise
