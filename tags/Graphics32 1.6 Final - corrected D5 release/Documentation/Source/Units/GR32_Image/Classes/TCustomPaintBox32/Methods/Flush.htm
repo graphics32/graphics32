@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>Flush</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Flush; <b>overload</b>;</p>
+<p class="Decl"> <b>procedure</b> Flush(<b>const</b> SrcRect: <a href="../../../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>); 
+  <b>overload</b>;</p>
+<h2>Description</h2>
+<p class="Body">Immediately copies the contents of the buffer, or its part passed 
+  in <span class="EmptyRef">SrcRect</span> to the screen. Use this function when 
+  you want to bypass normal Windows invalidating/repainting procedure, for example 
+  when the buffer is painted by the other thread.</p>
+<p class="Body">Both functions are thread-safe.</p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

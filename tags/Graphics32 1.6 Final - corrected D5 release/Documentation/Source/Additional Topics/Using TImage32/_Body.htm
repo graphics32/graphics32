@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Using TImage32</title>
+<link rel="stylesheet" href="../../../Styles/Default.css" type="text/css">
+<meta name="Order" content="Bitmap Image, Paint Stages, Using Layers">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">Starting from v0.99 of the Graphics32 library, implementation 
+  of VCL components was changed. </p>
+<p class="Body">This section describes behavior and properties of <a href="../../Units/GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a> 
+  and <a href="../../Units/GR32_Image/Classes/TImage32/_Body.htm">TImage32</a> 
+  controls, as well as new realization of layers.</p>
+<p class="Body">Since <a href="../../Units/GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a> 
+  and <a href="../../Units/GR32_Image/Classes/TImage32/_Body.htm">TImage32</a> 
+  share the same behavior, I will denote both of them here as TImage32. Most of 
+  the discussion concerns TImgView32 as well.</p>
+<h2><a name="Overview%20of%20TImage32"></a>Overview</h2>
+<p class="Body">TImage32 is an image displaying visual component, which also holds 
+  a collection of layers.</p>
+<p class="Body">The image is defined as a <a href="../../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> 
+  object and there exist several properties which specify how it is scaled and 
+  positioned within the control's boundaries. I will denote this image as <a href="Bitmap%20Image.htm" class="Bold">Bitmap 
+  Image</a> here.</p>
+<p class="Body">The layer is, generally speaking, an entity which 'knows' how 
+  to combine itself with the back buffer of the control. TImage32 maintains a 
+  collection of layers, see '<a href="Using%20Layers.htm" class="Bold">Using Layers</a>' 
+  for details.</p>
+<p class="Body">When the image paints itself, it runs through several <a href="Paint%20Stages.htm" class="Bold">Paint 
+  Stages</a> which determine the order in which layers and the bitmap image are 
+  painted. This order is completely customizeable.</p>
+<p class="Body">To avoid flicker and to speed-up scaling and blending operations, 
+  each layer and the bitmap image is painted to a back-buffer of the control. 
+  See the reference of TImage32 ancestor <a href="../../Units/GR32_Image/Classes/TCustomPaintBox32/_Body.htm">TCustomPaintBox32</a> 
+  for details of the back-buffer realization.</p>
+<p class="Body">Finally, TImage32 supports change notification (<a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnChange.htm">OnChange</a> 
+  event), which is done similar to change notification in <a href="../../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a>. 
+  Basically, it redirects change notification from its layers and the bitmap image.</p>
+<p id="Hidden">[See Also] <a href="../../Examples.htm#ImgView%20and%20Layers%20Example">ImgView 
+  and Layers Example</a></p>
+</body>
+</html>

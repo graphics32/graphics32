@@ -1,0 +1,18 @@
+<html>
+<head>
+<title>RedComponent</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> RedComponent(Color32: <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>): 
+  Integer;</p>
+<h2>Description</h2>
+<p class="Body">Extracts the red component from the parameter.</p>
+<p class="Body">This function is provided for convinience only. In performance-critical 
+  parts of your code I'd recommend the following direct conversion:</p>
+<p class="Code">Red := (Color32 <b>and</b> $00FF0000) <b>shr</b> 16;</p>
+<p id="Hidden">[See Also] <a href="AlphaComponent.htm">AlphaComponent</a>, <a href="GreenComponent.htm">GreenComponent</a>, 
+  <a href="BlueComponent.htm">BlueComponent</a></p>
+</body>
+</html>

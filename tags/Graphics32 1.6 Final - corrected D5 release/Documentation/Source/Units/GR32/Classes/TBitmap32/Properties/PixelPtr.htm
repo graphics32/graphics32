@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>PixelPtr</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> PixelPtr[X, Y: Integer]: <a href="../../../Types/Color%20Types.htm#TColor32">PColor32</a>; 
+  <i class="Comment">// read-only </i></p>
+<h2>Description</h2>
+<p class="Body">Converts coordinates of a pixel to its address in memory. Since 
+  <a href="../_Body.htm">TBitmap32</a> uses 32-bit DIBs, its memory is allocated 
+  as continuous string of 4-byte <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a> 
+  values, starting at the top left corner.</p>
+<p class="Body">Pixel with (0, 0) coordinates has the same address as specified 
+  in <a href="Bits.htm">Bits</a> property.</p>
+<p id="hidden">[See also]: <a href="Pixel.htm">Pixel</a>, <a href="ScanLine.htm">ScanLine</a></p>
+</body>
+</html>
