@@ -5,6 +5,9 @@
 </head>
 
 <body bgcolor="#FFFFFF">
+<blockquote>
+  <p class="Comment"><strong>This following only applies to the VCL version of Graphics32:</strong></p>
+</blockquote>
 <p class="Decl"><b>property</b> Handle: HDC; <span class="Comment">// read-only</span><i> 
   </i></p>
 <h2>Description</h2>
@@ -33,5 +36,15 @@
 <p class="Body">This example is just a simple illustration of using the Handle 
   property. For more information on using the TCanvas object with TBitmap32, see 
   the <a href="Canvas.htm">Canvas</a> property.</p>
+<p class="Body">&nbsp;</p>
+<blockquote>
+  <p class="Comment"><strong>This following only applies to the CLX version of Graphics32:</strong></p>
+</blockquote>
+<p class="Decl"><strong>property</strong> Handle: QPainterH;<span class="Comment"> // read-only </span></p>
+<h2>Description</h2>
+<p class="Body">This provides a pointer to the current instance of the QPainterH in TBitmap32.</p>
+<p class="Body">You can use this QPainter instance in external functions. However please notice, that the QPainter is not
+  associated with the QPixmap of TBitmap32. You'll have to call QPainter_begin and QPainter_end manually to do so. See the
+  <a href="http://doc.qt-developer.org/class.php?class=QPainter" target="_blank">QT docs</a> for more information on this topic. </p>
 </body>
 </html>
