@@ -25,11 +25,15 @@
   <span class="EmptyRef">Pixel</span> property. When reading pixels from the
   outside  the bitmap boundary, the value specified by <a href="OuterColor.htm">OuterColor</a> 
   is returned. Writing with invalid coordinates will have no effect.</p>
-<p class="Body"><b>PixelX</b> provides a method for accessing the pixels in fixed-point coordinates. 
-The returned color is computed by performing linear interpolation on four adjacent pixels.</p>
-<p class="Body"><b>PixelXS</b> is a safe version of the above property.</p>
+<p class="Body"><b>PixelX</b> provides a method for accessing the pixels in fixed-point
+  coordinates. The returned color is computed by performing linear interpolation
+  on four adjacent pixels. Similarly, when pixels are set, they are antialiased.</p>
+
+<p class="Body"><img src="../../../../../../Images/img_002.gif" vspace="10"></p>
+<p class="Body"><b>PixelXS</b> is a 'safe' version of the above property.</p>
 <p class="Body"><b>PixelF</b> is similar to PixelX but works with floating point coordinates instead of fixed point.</p>
-<p class="Body"><b>PixelFS</b> is a safe version of the above property.</p>
-<p id="hidden">[See also]: <a href="../Methods/SetPixel.htm">SetPixel</a></p>
+<p class="Body"><b>PixelFS</b> is a 'safe' version of the above property.</p>
+<p id="hidden">[See also]: <a href="../Methods/SetPixel.htm">SetPixel</a>, <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
 </body>
 </html>
