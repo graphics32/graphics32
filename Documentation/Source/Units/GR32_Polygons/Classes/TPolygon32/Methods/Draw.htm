@@ -6,9 +6,17 @@
 
 <body bgcolor="#FFFFFF">
 <p class="Decl"><b>procedure</b> Draw(Bitmap: <a href="../../../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a>; 
-  OutlineColor, FillColor: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+  OutlineColor, FillColor: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> =
+  nil); overload;</p>
+<p class="Decl"><b>procedure</b> Draw(Bitmap: <a href="../../../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a>; OutlineColor: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>;
+  FillLineCallback: <a href="../Types/TFillLineEvent.htm">TFillLineEvent</a><a href="../../../../GR32/Types/Color%20Types.htm#TColor32"></a>;
+  Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+overload;</p>
+<p class="Decl"><b>procedure</b> Draw(Bitmap: <a href="../../../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a>; OutlineColor: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Filler: <a href="../Classes/TCustomPolygonFiller/_Body.htm">TCustomPolygonFiller</a><a href="../../../../GR32/Types/Color%20Types.htm#TColor32"></a>;
+  Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+overload;</p>
 <h2>Description</h2>
-<p class="Body">Fills the polygon and draws the outline. This method is a simple 
+<p class="Body">Fills the polygon and draws the outline transformed by <strong>Transformation</strong>. This method is a simple 
   combination of <a href="DrawFill.htm">DrawFill</a> and <a href="DrawEdge.htm">DrawEdge</a> 
   methods.</p>
 <p id="hidden">[See also]: </p>
