@@ -173,6 +173,19 @@ type
     function Window(Value: Single): Single; override;
   end;
 
+  TSinshResampler = class(TCustomResampler)
+  private
+    FWidth: Single;
+    FCoeff: Single;
+  public
+    constructor Create; override;
+    property Coeff: Single read FCoeff write FCoeff;
+    procedure SetWidth(Value: Single);
+    function Width: Single; override;
+    function Filter(Value: Single): Single; override;
+    function RangeCheck: Boolean; override;
+  end;
+
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 function GetResamplerClassNames: TStrings;
 function FindResamplerClass(ClassName: string): TCustomResamplerClass;
@@ -314,7 +327,7 @@ begin
 
 end; }
 
-{function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+{ function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
 var
   clX, clY, fracX, fracY: Integer;
   W: Integer;
@@ -1878,7 +1891,6 @@ constructor TGaussianResampler.Create;
 begin
   inherited;
   FSigma := 1.33;
-
 end;
 
 function TGaussianResampler.Window(Value: Single): Single;
@@ -1906,6 +1918,38 @@ end;
 function THammingResampler.Window(Value: Single): Single;
 begin
   Result := 0.54 + 0.46 * Cos(Pi * Value / FWidth);
+end;
+
+{ TSinshResampler }
+
+constructor TSinshResampler.Create;
+begin
+  inherited;
+  FWidth := 3;
+  FCoeff := 0.5;
+end;
+
+function TSinshResampler.Filter(Value: Single): Single;
+begin
+  if Value = 0 then
+    Result := 1
+  else
+    Result := FCoeff * Sin(Pi * Value) / Sinh(Pi * FCoeff * Value);
+end;
+
+function TSinshResampler.RangeCheck: Boolean;
+begin
+  Result := True;
+end;
+
+procedure TSinshResampler.SetWidth(Value: Single);
+begin
+  FWidth := Value;
+end;
+
+function TSinshResampler.Width: Single;
+begin
+  Result := FWidth;
 end;
 
 
@@ -1988,6 +2032,7 @@ initialization
   RegisterResampler(TBlackmanResampler);
   RegisterResampler(THannResampler);
   RegisterResampler(THammingResampler);
+  RegisterResampler(TSinshResampler);
 
 finalization
   ResamplerList.Free;
