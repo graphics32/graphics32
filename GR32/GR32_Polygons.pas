@@ -22,6 +22,7 @@ unit GR32_Polygons;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Andre Beckedorf <Andre@metaException.de>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Polygons.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
@@ -29,11 +30,6 @@ unit GR32_Polygons;
 interface
 
 {$I GR32.INC}
-
-{$DEFINE FAST_AA}
-{ Use 54 levels of transparency for antialiasing. Undefine it to use 240 levels,
-  however, it is almost impossible to notice the difference. }
-
 
 uses
   Windows, SysUtils, GR32, GR32_LowLevel, GR32_Blend;
@@ -59,15 +55,25 @@ procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPo
 type
   TPolyFillMode = (pfAlternate, pfWinding);
 
+  TShiftFunc = function(Value: Integer): Integer;  // needed for antialiasing to speed things up
+  TAntialiasMode = (am16times, am8times, am4times);
+
+const
+{ Use 54 levels of transparency for antialiasing. Undefine it to use 240 levels,
+  however, it is almost impossible to notice the difference. }
+  DefaultAAMode = am8times;
+
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate);
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate);
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate;
+  const AAMode: TAntialiasMode = DefaultAAMode);
 
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate);
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate);
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate;
+  const AAMode: TAntialiasMode = DefaultAAMode);  
 
 
 { TPolygon32 }
@@ -81,6 +87,7 @@ type
     FFillMode: TPolyFillMode;
     FNormals: TArrayOfArrayOfFixedPoint;
     FPoints: TArrayOfArrayOfFixedPoint;
+    FAntialiasMode: TAntialiasMode;
   protected
     procedure BuildNormals;
   public
@@ -97,6 +104,7 @@ type
     procedure Offset(const Dx, Dy: TFixed);
     function  Outline: TPolygon32;
     property Antialiased: Boolean read FAntialiased write FAntialiased;
+    property AntialiasMode: TAntialiasMode read FAntialiasMode write FAntialiasMode;
     property Closed: Boolean read FClosed write FClosed;
     property FillMode: TPolyFillMode read FFillMode write FFillMode;
     property Normals: TArrayOfArrayOfFixedPoint read FNormals write FNormals;
@@ -108,13 +116,10 @@ implementation
 uses Math;
 
 const
-{$IFDEF FAST_AA}
-  AA_LINES = 8;
-  AA_SHIFT = 3;
-{$ELSE}
-  AA_LINES = 16;
-  AA_SHIFT = 4;
-{$ENDIF}
+  AA_LINES: Array[TAntialiasMode] of Integer = (16, 8, 4);
+  AA_SHIFT: Array[TAntialiasMode] of Integer = (4, 3, 2);
+  AA_MULTI: Array[TAntialiasMode] of Integer = (273, 1167, 5460);
+  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_12, SAR_13, SAR_14); 
 
 type
 // These are for edge scan info. Note, that the most significant bit of the
@@ -490,7 +495,8 @@ begin
 end;
 
 procedure FillLines2(Bitmap: TBitmap32; BaseY: Integer;
-  const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode);
+  const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode = DefaultAAMode);
 var
   I, J, L, N: Integer;
   MinY, MaxY, Y, Top, Bottom: Integer;
@@ -502,18 +508,22 @@ var
   C, A: TColor32;
   ScanLine: PIntegerArray;
   Winding, NextWinding: Integer;
+  AAShift, AALines: Integer;
 begin
   A := Color shr 24;
 
+  AAShift := AA_SHIFT[AAMode];
+  AALines := AA_LINES[AAMode] - 1; // we do the -1 here for optimization.
+
   // find the range of Y screen coordinates
-  MinY := BaseY shr AA_SHIFT;
-  MaxY := (BaseY + Length(ScanLines) + AA_LINES - 1) shr AA_SHIFT;
+  MinY := BaseY shr AAShift;
+  MaxY := (BaseY + Length(ScanLines) + AALines) shr AAShift;
 
   Y := MinY;
   while Y < MaxY do
   begin
-    Top := Y shl AA_SHIFT - BaseY;
-    Bottom := Top + AA_LINES - 1;
+    Top := Y shl AAShift - BaseY;
+    Bottom := Top + AALines;
     if Top < 0 then Top := 0;
     if Bottom >= Length(ScanLines) then Bottom := High(ScanLines);
 
@@ -525,7 +535,7 @@ begin
       if L > 0 then
       begin
         Left := (ScanLines[J][0] and $7FFFFFFF);
-        Right := (ScanLines[J][L] and $7FFFFFFF + AA_LINES - 1);
+        Right := (ScanLines[J][L] and $7FFFFFFF + AALines);
         if Left < MinX then MinX := Left;
         if Right > MaxX then MaxX := Right;
       end
@@ -533,8 +543,8 @@ begin
 
     if MaxX >= MinX then
     begin
-      MinX := MinX shr AA_SHIFT;
-      MaxX := MaxX shr AA_SHIFT;
+      MinX := MinX shr AAShift;
+      MaxX := MaxX shr AAShift;
       // allocate buffer for a single scanline
       BufferSize := MaxX - MinX + 2;
       if Length(Buffer) < BufferSize then
@@ -555,17 +565,17 @@ begin
           begin
             // Left edge
             X := ScanLine[I] and $7FFFFFFF;
-            Dx := X and (AA_LINES - 1);
-            X := X shr AA_SHIFT - MinX;
-            Inc(Buffer[X], Dx xor (AA_LINES - 1));
+            Dx := X and AALines;
+            X := X shr AAShift - MinX;
+            Inc(Buffer[X], Dx xor AALines);
             Inc(Buffer[X + 1], Dx);
             Inc(I);
 
             // Right edge
             X := ScanLine[I] and $7FFFFFFF;
-            Dx := X and (AA_LINES - 1);
-            X := X shr AA_SHIFT - MinX;
-            Dec(Buffer[X], Dx xor (AA_LINES - 1));
+            Dx := X and AALines;
+            X := X shr AAShift - MinX;
+            Dec(Buffer[X], Dx xor AALines);
             Dec(Buffer[X + 1], Dx);
             Inc(I);
           end
@@ -580,17 +590,17 @@ begin
             X := X and $7FFFFFFF;
             if Winding = 0 then
             begin
-              Dx := X and (AA_LINES - 1);
-              X := X shr AA_SHIFT - MinX;
-              Inc(Buffer[X], Dx xor (AA_LINES - 1));
+              Dx := X and AALines;
+              X := X shr AAShift - MinX;
+              Inc(Buffer[X], Dx xor AALines);
               Inc(Buffer[X + 1], Dx);
             end;
             Inc(Winding, NextWinding);
             if Winding = 0 then
             begin
-              Dx := X and (AA_LINES - 1);
-              X := X shr AA_SHIFT - MinX;
-              Dec(Buffer[X], Dx xor (AA_LINES - 1));
+              Dx := X and AALines;
+              X := X shr AAShift - MinX;
+              Dec(Buffer[X], Dx xor AALines);
               Dec(Buffer[X + 1], Dx);
             end;
           end;
@@ -603,11 +613,7 @@ begin
       for I := 0 to BufferSize - 1 do
       begin
         Inc(N, Buffer[I]);
-{$IFDEF FAST_AA}
-        ColorBuffer[I] := TColor32(N * 1167 and $FF00) shl 16 or C;
-{$ELSE}
-        ColorBuffer[I] := TColor32(N * 273 and $FF00) shl 16 or C;
-{$ENDIF}
+        ColorBuffer[I] := TColor32(N * AA_MULTI[AAMode] and $FF00) shl 16 or C;
       end;
 
       // draw it to the screen
@@ -666,12 +672,18 @@ begin
   end;
 end;
 
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint; Color: TColor32; Mode: TPolyFillMode);
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode);
 var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfPoint;
+  AAShift: Integer;
+  AASAR: TShiftFunc;
 begin
+  AAShift := AA_SHIFT[AAMode];  // we do the -1 here for optimization.
+  AASAR := AA_SAR[AAMode];
+
   L := Length(Points);
   if (L < 3) or (Color and $FF000000 = 0) then Exit;
   SetLength(PP, L);
@@ -679,29 +691,22 @@ begin
   for I := 0 to L - 1 do
     with Points[I] do
     begin
-{$IFDEF FAST_AA}
-      // use 8X oversampling (shl 3)
-      PP[I].X := SAR_13(X + $00007FF);
-      PP[I].Y := SAR_13(Y + $00007FF);
-{$ELSE}
-      // use 16X oversampling (shl 4)
-      PP[I].X := SAR_12(X + $00007FF);
-      PP[I].Y := SAR_12(Y + $00007FF);
-{$ENDIF}
+      PP[I].X := AASAR(X + $00007FF);
+      PP[I].Y := AASAR(Y + $00007FF);
     end;
 
   GetMinMax(PP, MinY, MaxY);
-  MinY := Constrain(MinY, 0, Bitmap.Height shl AA_SHIFT - 1);
-  MaxY := Constrain(MaxY, 0, Bitmap.Height shl AA_SHIFT - 1);
+  MinY := Constrain(MinY, 0, Bitmap.Height shl AAShift - 1);
+  MaxY := Constrain(MaxY, 0, Bitmap.Height shl AAShift - 1);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
-  AddPolygon(PP, MinY, Bitmap.Width shl AA_SHIFT - 1, Bitmap.Height shl AA_SHIFT - 1,
+  AddPolygon(PP, MinY, Bitmap.Width shl AAShift - 1, Bitmap.Height shl AAShift - 1,
     ScanLines, False);
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
-    FillLines2(Bitmap, MinY, ScanLines, Color, Mode);
+    FillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
@@ -757,12 +762,17 @@ begin
 end;
 
 procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate);
+  Color: TColor32; Mode: TPolyFillMode; const AAMode: TAntialiasMode);
 var
   L, I, J, min, max, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
+  AAShift: Integer;
+  AASAR: TShiftFunc;
 begin
+  AAShift := AA_SHIFT[AAMode];
+  AASAR := AA_SAR[AAMode];
+
   SetLength(PP, Length(Points));
 
   for J := 0 to High(Points) do
@@ -774,13 +784,8 @@ begin
       for I := 0 to L - 1 do
         with Points[J][I] do
         begin
-{$IFDEF FAST_AA}
-          PP[J][I].X := SAR_13(X + $000007FF);
-          PP[J][I].Y := SAR_13(Y + $000007FF);
-{$ELSE}
-          PP[J][I].X := SAR_12(X + $000007FF);
-          PP[J][I].Y := SAR_12(Y + $000007FF);
-{$ENDIF}
+          PP[J][I].X := AASAR(X + $000007FF);
+          PP[J][I].Y := AASAR(Y + $000007FF);
         end;
     end
     else SetLength(PP[J], 0);
@@ -795,19 +800,19 @@ begin
     if max > MaxY then MaxY := max;
   end;
 
-  MinY := Constrain(MinY, 0, Bitmap.Height shl AA_SHIFT - 1);
-  MaxY := Constrain(MaxY, 0, Bitmap.Height shl AA_SHIFT - 1);
+  MinY := Constrain(MinY, 0, Bitmap.Height shl AAShift - 1);
+  MaxY := Constrain(MaxY, 0, Bitmap.Height shl AAShift - 1);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
   for J := 0 to High(Points) do
-    AddPolygon(PP[J], MinY, Bitmap.Width shl AA_SHIFT - 1,
-      Bitmap.Height shl AA_SHIFT - 1, ScanLines, False);
+    AddPolygon(PP[J], MinY, Bitmap.Width shl AAShift - 1,
+      Bitmap.Height shl AAShift - 1, ScanLines, False);
 
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
-    FillLines2(Bitmap, MinY, ScanLines, Color, Mode);
+    FillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
   finally
     Bitmap.EndUpdate;
     Bitmap.Changed;
@@ -899,6 +904,7 @@ end;
 constructor TPolygon32.Create;
 begin
   FClosed := True;
+  FAntialiasMode := DefaultAAMode;
   NewLine; // initiate a new contour
 end;
 
@@ -914,7 +920,7 @@ begin
   if Antialiased then
   begin
     if (FillColor and $FF000000) <> 0 then
-      PolyPolygonXS(Bitmap, Points, FillColor, FillMode);
+      PolyPolygonXS(Bitmap, Points, FillColor, FillMode, AntialiasMode);
     if (OutlineColor and $FF000000) <> 0 then
       PolyPolylineXS(Bitmap, Points, OutlineColor, Closed);
   end
@@ -932,8 +938,10 @@ end;
 procedure TPolygon32.DrawEdge(Bitmap: TBitmap32; Color: TColor32);
 begin
   Bitmap.BeginUpdate;
-  if Antialiased then PolyPolylineXS(Bitmap, Points, Color, Closed)
-  else PolyPolylineTS(Bitmap, Points, Color, Closed);
+  if Antialiased then
+    PolyPolylineXS(Bitmap, Points, Color, Closed)
+  else
+    PolyPolylineTS(Bitmap, Points, Color, Closed);
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
@@ -941,8 +949,10 @@ end;
 procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Color: TColor32);
 begin
   Bitmap.BeginUpdate;
-  if Antialiased then PolyPolygonXS(Bitmap, Points, Color, FillMode)
-  else PolyPolygonTS(Bitmap, Points, Color, FillMode);
+  if Antialiased then
+    PolyPolygonXS(Bitmap, Points, Color, FillMode, AntialiasMode)
+  else
+    PolyPolygonTS(Bitmap, Points, Color, FillMode);
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
