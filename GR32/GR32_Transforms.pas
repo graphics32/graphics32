@@ -359,20 +359,23 @@ end;
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
 var
   Rasterizer: TRasterizer;
+  Transformer: TTransformer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
+  Transformer := TTransformer.Create(Src, Transformation);
   try
-    Rasterizer.Sampler := Src.Resampler;
+    Rasterizer.Sampler := Transformer;
     Transform(Dst, Src, Transformation, Rasterizer);
   finally
     Rasterizer.Free;
+    Transformer.Free;
   end;
 end;
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
 var
   R, DstRect: TRect;
-  TransformationSampler: TTransformationSampler;
+  Transformer: TTransformer;
 begin
   if not TTransformationAccess(Transformation).TransformValid then
     TTransformationAccess(Transformation).PrepareTransform;
@@ -384,13 +387,13 @@ begin
 
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
-  TransformationSampler := TTransformationSampler.Create(Src, Transformation);
+  Transformer := TTransformer.Create(Src, Transformation);
   try
-    Rasterizer.Sampler := TransformationSampler;
+    Rasterizer.Sampler := Transformer;
     Rasterizer.Rasterize(Dst, DstRect, Src);
   finally
     EMMS;
-    TransformationSampler.Free;
+    Transformer.Free;
   end;
   Dst.Changed;
 end;
