@@ -82,15 +82,6 @@ function SAR_13(Value: Integer): Integer;
 function SAR_14(Value: Integer): Integer;
 function SAR_16(Value: Integer): Integer;
 
-{ shift left with sign conservation }
-function SAL_4(Value: Integer): Integer;
-function SAL_8(Value: Integer): Integer;
-function SAL_9(Value: Integer): Integer;
-function SAL_12(Value: Integer): Integer;
-function SAL_13(Value: Integer): Integer;
-function SAL_14(Value: Integer): Integer;
-function SAL_16(Value: Integer): Integer;
-
 { ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
@@ -276,42 +267,6 @@ end;
 function SAR_16(Value: Integer): Integer;
 asm
         SAR EAX,16
-end;
-
-{ shift left with sign conservation }
-function SAL_4(Value: Integer): Integer;
-asm
-        SAL EAX,4
-end;
-
-function SAL_8(Value: Integer): Integer;
-asm
-        SAL EAX,8
-end;
-
-function SAL_9(Value: Integer): Integer;
-asm
-        SAL EAX,9
-end;
-
-function SAL_12(Value: Integer): Integer;
-asm
-        SAL EAX,12
-end;
-
-function SAL_13(Value: Integer): Integer;
-asm
-        SAL EAX,13
-end;
-
-function SAL_14(Value: Integer): Integer;
-asm
-        SAL EAX,14
-end;
-
-function SAL_16(Value: Integer): Integer;
-asm
-        SAL EAX,16
 end;
 
 { Colorswap exchanges ARGB <-> ABGR and fill A with $FF }
