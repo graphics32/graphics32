@@ -470,6 +470,7 @@ type
     procedure LineTSOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineTS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineA(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
+    procedure LineASOld (X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineX(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean = False); overload;
     procedure LineF(X1, Y1, X2, Y2: Single; Value: TColor32; L: Boolean = False); overload;
@@ -3159,6 +3160,13 @@ begin
   end;
 end;
 
+procedure TBitmap32.LineASOld(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
+begin
+  if ClipLine(X1, Y1, X2, Y2, ClipRect.Left, ClipRect.Top,
+              ClipRect.Right - 1, ClipRect.Bottom - 1) then
+    LineA(X1, Y1, X2, Y2, Value, L);
+end;
+
 procedure TBitmap32.LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, rem, term, tmp: Integer;
@@ -3168,6 +3176,9 @@ var
   CI: Byte;
   P: PColor32;
 begin
+  If (FClipRect.Right - FClipRect.Left = 0) or
+     (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
+
   Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
   Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
   Dx := X2 - X1; Dy := Y2 - Y1;
@@ -3289,7 +3300,6 @@ begin
       rem := xd; // save old xd
 
       ED := EC - EA;
-
       term := SwapConstrain(xd - tmp, Cx1, Cx2);
 
       If CornerAA then
@@ -3306,20 +3316,17 @@ begin
         term := -term;
       end;
 
+      // draw special case horizontal line entry (draw only last half of entering segment)
       try
         while xd <> term do
         begin
           Inc(xd, -Sx);
-          P := @Bits[D1^ + D2^ * Width];
-          BlendMemEx(Value, P^, GAMMA_TABLE[ED shr 8]);
+          BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
           Dec(ED, EA);
         end;
       finally
         EMMS;
       end;
-
-      // negate back...
-      if Sy = -1 then yd := -yd;
 
       If CornerAA then
       begin
@@ -3330,6 +3337,7 @@ begin
         Exit;
       end;
 
+      if Sy = -1 then yd := -yd;  // negate back
       xd := rem;  // restore old xd
       CheckVert := False; // to avoid ugly labels we set this to omit the next check
     end;
@@ -3382,6 +3390,7 @@ begin
     rem := -rem;
   end;
 
+  // draw line
   if not CornerAA then
   try
     while xd <> term do
@@ -3403,12 +3412,12 @@ begin
     EMMS;
   end;
 
+  // draw special case horizontal line exit (draw only first half of exiting segment)
   If CheckVert then
   try
     while xd <> rem do
     begin
-      P := @Bits[D1^ + D2^ * Width];
-      BlendMemEx(Value, P^, GAMMA_TABLE[EC shr 8 xor 255]);
+      BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
       Inc(EC, EA);
       Inc(xd, Sx);
     end;
