@@ -60,6 +60,29 @@ type
     property SamplingY: Integer read FSamplingY write SetSamplingY;
   end;
 
+(*
+  { Adaptive supersampling }
+  TAdaptiveRasterizer = class(TRasterizer)
+  private
+    FMinOffset: Single;
+    function DoRecurse(X, Y, Offset: Single; const A, B, C, D, E: TSample): TFloatColor;
+    function QuadrantColor(const S1, S2: TSample; X, Y, Offset: Single;
+      Proc: TRecurseProc): TFloatColor;
+    function RecurseAC(X, Y, Offset: Single; const A, C: TSample): TFloatColor;
+    function RecurseBD(X, Y, Offset: Single; const B, D: TSample): TFloatColor;
+    function GetMaxIter: Integer;
+    procedure SetMaxIter(const Value: Integer);
+  protected
+    function CompareSamples(S1, S2: TSample): Boolean; virtual; abstract;
+  public
+    constructor Create;
+    procedure PerformSampling(Dst: TBitmap32; const ClipRect: TRect); override;
+  published
+    property MinOffset: Single read FMinOffset write FMinOffset;
+    property MaxIter: Integer read GetMaxIter write SetMaxIter;
+  end;
+*)
+
   TMultiSamplingRasterizer = class(TRegularRasterizer);
 
   TIrregularRasterizer = class(TRasterizer);
@@ -238,7 +261,7 @@ begin
     ly := (dy - 1) / 2;
     Scale := $10000 div (FSamplingX * FSamplingY);
     GetSample := FSampler.GetSampleFloat;
-    for J := DstRect.Bottom to DstRect.Top do
+    for J := DstRect.Top to DstRect.Bottom do
     begin
       Pixels := Dst.ScanLine[J];
       for I := DstRect.Left to DstRect.Right do
