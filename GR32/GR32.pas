@@ -196,7 +196,7 @@ type
 
 
 { Stretch filters }
-  TStretchFilter = (sfNearest, sfLinear, sfSpline, sfLanczos, sfMitchell);
+  TStretchFilter = (sfNearest, sfLinear, sfCosine, sfSpline, sfLanczos, sfMitchell);
 
 { Gamma bias for line/pixel antialiasing }
 
