@@ -12,7 +12,11 @@
   are interpolated:</p>
 <ul>
   <li>sfNearest is the fastest filter, although the quality of the stretched image is fair.</li>
-  <li>sfDraft is a complex resampler, meaning that it uses several different methods. For downsampling it uses row-column zoneshifting to preserve more details than sfNearest, however the quality is not as good as sfLinear. For upsampling it uses a linear interpolation method that may compromise details - this happens if both downsampling and upsampling is needed. sfDraft is ideal for preview fields and thumbnails.</li>
+  <li>sfDraft is a complex resampler, meaning that it uses several different methods. For downsampling it uses row-column
+    zoneshifting to preserve more details than sfNearest, however the quality is not as good as sfLinear. For upsampling
+    it uses a linear interpolation method that may compromise details - this happens if both downsampling and upsampling
+    is needed. sfDraft is ideal for preview fields and thumbnails. Please note, that the algorithm is not pixel-perfect,
+    that why using a custom cliprect might result in a so called jitter-effect. </li>
   <li>sfLinear is several times slower, but it produces more decent results in most cases.</li>
   <li>sfCosine is almost equally fast as sfLinear, but it uses cosine interpolation, which produces a sharper image.</li>
   <li>sfSpline is an approximation of spline interpolation, for some applications its result may be too smooth and blurry,
