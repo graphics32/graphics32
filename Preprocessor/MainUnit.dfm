@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 202
-  Top = 111
+  Left = 279
+  Top = 160
   BorderStyle = bsDialog
   Caption = 'HTML Doc Processor'
   ClientHeight = 438
@@ -13,6 +13,7 @@ object MainForm: TMainForm
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   DesignSize = (
     417
     438)
@@ -77,13 +78,13 @@ object MainForm: TMainForm
     Height = 13
     Caption = 'Version:'
   end
-  object DirectoryEdit1: TDirectoryEdit
+  object DirectoryEdit1: TJvDirectoryEdit
     Left = 96
     Top = 8
     Width = 312
     Height = 21
     DialogKind = dkWin32
-    NumGlyphs = 1
+    ButtonFlat = False
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 0
     Text = 'C:\My Help Projects\G32'
@@ -165,8 +166,6 @@ object MainForm: TMainForm
     Width = 346
     Height = 16
     Anchors = [akLeft, akRight, akBottom]
-    Min = 0
-    Max = 100
     TabOrder = 8
   end
   object Edit6: TEdit
@@ -176,18 +175,5 @@ object MainForm: TMainForm
     Height = 21
     TabOrder = 9
     Text = 'v1.0'
-  end
-  object FormStorage1: TFormStorage
-    StoredProps.Strings = (
-      'DirectoryEdit1.Text'
-      'Edit1.Text'
-      'Edit2.Text'
-      'Edit3.Text'
-      'Edit4.Text'
-      'Edit5.Text'
-      'Edit6.Text')
-    StoredValues = <>
-    Left = 24
-    Top = 65520
   end
 end
