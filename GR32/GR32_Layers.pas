@@ -110,6 +110,7 @@ type
     function  Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
     property Count: Integer read GetCount;
     property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm;
+    property Owner: TComponent read FOwner;
     property Items[Index: Integer]: TCustomLayer read GetItem write SetItem; default;
     property MouseListener: TCustomLayer read FMouseListener write SetMouseListener;
     property MouseEvents: Boolean read FMouseEvents write SetMouseEvents;
@@ -219,7 +220,9 @@ type
 
   TDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB,
     dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
-  TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame);
+  TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
+    rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
+    rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner);
   TRBResizingEvent = procedure(
     Sender: TObject;
     const OldLocation: TFloatRect;
@@ -230,8 +233,10 @@ type
   TRubberbandLayer = class(TPositionedLayer)
   private
     FChildLayer: TPositionedLayer;
-    FHandleFrame: TColor;
-    FHandleFill: TColor;
+    FFrameStipplePattern: TArrayOfColor32;
+    FFrameStippleStep: Single;
+    FHandleFrame: TColor32;
+    FHandleFill: TColor32;
     FHandles: TRBHandles;
     FHandleSize: Integer;
     FMinWidth: Single;
@@ -240,9 +245,10 @@ type
     FMaxWidth: Single;
     FOnUserChange: TNotifyEvent;
     FOnResizing: TRBResizingEvent;
+    procedure SetFrameStippleStep(const Value: Single);
     procedure SetChildLayer(Value: TPositionedLayer);
-    procedure SetHandleFill(Value: TColor);
-    procedure SetHandleFrame(Value: TColor);
+    procedure SetHandleFill(Value: TColor32);
+    procedure SetHandleFrame(Value: TColor32);
     procedure SetHandles(Value: TRBHandles);
     procedure SetHandleSize(Value: Integer);
   protected
@@ -262,11 +268,13 @@ type
     procedure UpdateChildLayer;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
+    procedure SetFrameStipple(const Value: Array of TColor32);
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
     property Handles: TRBHandles read FHandles write SetHandles;
     property HandleSize: Integer read FHandleSize write SetHandleSize;
-    property HandleFill: TColor read FHandleFill write SetHandleFill;
-    property HandleFrame: TColor read FHandleFrame write SetHandleFrame;
+    property HandleFill: TColor32 read FHandleFill write SetHandleFill;
+    property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
+    property FrameStippleStep: Single read FFrameStippleStep write SetFrameStippleStep;
     property MaxHeight: Single read FMaxHeight write FMaxHeight;
     property MaxWidth: Single read FMaxWidth write FMaxWidth;
     property MinHeight: Single read FMinHeight write FMinHeight;
@@ -870,13 +878,15 @@ end;
 constructor TRubberbandLayer.Create(ALayerCollection: TLayerCollection);
 begin
   inherited;
-  FHandleFrame := clBlack;
-  FHandleFill := clWhite;
+  FHandleFrame := clBlack32;
+  FHandleFill := clWhite32;
   FHandles := [rhCenter, rhSides, rhCorners, rhFrame];
   FHandleSize := 3;
   FMinWidth := 10;
   FMinHeight := 10;
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
+  SetFrameStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
+  FFrameStippleStep := 1;
 end;
 
 function TRubberbandLayer.DoHitTest(X, Y: Integer): Boolean;
@@ -922,14 +932,14 @@ begin
     dy := Abs((Top + Bottom) div 2 - Y) <= Sz;
   end;
 
-  if dr and db and dh_corners then Result := dsSizeBR
-  else if dl and db and dh_corners then Result := dsSizeBL
-  else if dr and dt and dh_corners then Result := dsSizeTR
-  else if dl and dt and dh_corners then Result := dsSizeTL
-  else if dr and dy and dh_sides   then Result := dsSizeR
-  else if db and dx and dh_sides   then Result := dsSizeB
-  else if dl and dy and dh_sides   then Result := dsSizeL
-  else if dt and dx and dh_sides   then Result := dsSizeT
+  if dr and db and dh_corners and not(rhNotBRCorner in FHandles) then Result := dsSizeBR
+  else if dl and db and dh_corners and not(rhNotBLCorner in FHandles) then Result := dsSizeBL
+  else if dr and dt and dh_corners and not(rhNotTRCorner in FHandles) then Result := dsSizeTR
+  else if dl and dt and dh_corners and not(rhNotTLCorner in FHandles) then Result := dsSizeTL
+  else if dr and dy and dh_sides and not(rhNotRightSide in FHandles) then Result := dsSizeR
+  else if db and dx and dh_sides and not(rhNotBottomSide in FHandles) then Result := dsSizeB
+  else if dl and dy and dh_sides and not(rhNotLeftSide in FHandles) then Result := dsSizeL
+  else if dt and dx and dh_sides and not(rhNotTopSide in FHandles) then Result := dsSizeT
   else if dh_center and PtInRect(R, Point(X, Y)) then Result := dsMove;
 end;
 
@@ -1050,8 +1060,8 @@ var
 
   procedure DrawHandle(X, Y: Integer);
   begin
-    Buffer.FillRectS(X - FHandleSize, Y - FHandleSize, X + FHandleSize, Y + FHandleSize, FHandleFill);
-    Buffer.FrameRectS(X - FHandleSize, Y - FHandleSize, X + FHandleSize, Y + FHandleSize, FHandleFrame);
+    Buffer.FillRectTS(X - FHandleSize, Y - FHandleSize, X + FHandleSize, Y + FHandleSize, FHandleFill);
+    Buffer.FrameRectTS(X - FHandleSize, Y - FHandleSize, X + FHandleSize, Y + FHandleSize, FHandleFrame);
   end;
 
 begin
@@ -1060,26 +1070,26 @@ begin
   begin
     if rhFrame in FHandles then
     begin
-      Buffer.SetStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
+      Buffer.SetStipple(FFrameStipplePattern);
       Buffer.StippleCounter := 0;
-      Buffer.StippleStep := 1;
+      Buffer.StippleStep := FFrameStippleStep;
       Buffer.FrameRectTSP(Left, Top, Right, Bottom);
     end;
     if rhCorners in FHandles then
     begin
-      DrawHandle(Left, Top);
-      DrawHandle(Right, Top);
-      DrawHandle(Left, Bottom);
-      DrawHandle(Right, Bottom);
+      If not(rhNotTLCorner in FHandles) then DrawHandle(Left, Top);
+      If not(rhNotTRCorner in FHandles) then DrawHandle(Right, Top);
+      If not(rhNotBLCorner in FHandles) then DrawHandle(Left, Bottom);
+      If not(rhNotBRCorner in FHandles) then DrawHandle(Right, Bottom);
     end;
     if rhSides in FHandles then
     begin
       Cx := (Left + Right) div 2;
       Cy := (Top + Bottom) div 2;
-      DrawHandle(Cx, Top);
-      DrawHandle(Left, Cy);
-      DrawHandle(Right, Cy);
-      DrawHandle(Cx, Bottom);
+      If not(rhNotTopSide in FHandles) then DrawHandle(Cx, Top);
+      If not(rhNotLeftSide in FHandles) then DrawHandle(Left, Cy);
+      If not(rhNotRightSide in FHandles) then DrawHandle(Right, Cy);
+      If not(rhNotBottomSide in FHandles) then DrawHandle(Cx, Bottom);
     end;
   end;
 end;
@@ -1098,7 +1108,7 @@ begin
   else FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
 end;
 
-procedure TRubberbandLayer.SetHandleFill(Value: TColor);
+procedure TRubberbandLayer.SetHandleFill(Value: TColor32);
 begin
   if Value <> FHandleFill then
   begin
@@ -1107,7 +1117,7 @@ begin
   end;
 end;
 
-procedure TRubberbandLayer.SetHandleFrame(Value: TColor);
+procedure TRubberbandLayer.SetHandleFrame(Value: TColor32);
 begin
   if Value <> FHandleFrame then
   begin
@@ -1131,6 +1141,24 @@ begin
   if Value <> FHandleSize then
   begin
     FHandleSize := Value;
+    FLayerCollection.GDIUpdate;
+  end;
+end;
+
+procedure TRubberbandLayer.SetFrameStipple(const Value: Array of TColor32);
+var
+  L: Integer;
+begin
+  L := High(Value) + 1;
+  SetLength(FFrameStipplePattern, L);
+  Move(Value[0], FFrameStipplePattern[0], L shl 2);
+end;
+
+procedure TRubberbandLayer.SetFrameStippleStep(const Value: Single);
+begin
+  if Value <> FFrameStippleStep then
+  begin
+    FFrameStippleStep := Value;
     FLayerCollection.GDIUpdate;
   end;
 end;
