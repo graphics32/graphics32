@@ -1742,8 +1742,8 @@ begin
   celx := flrx xor 255;
   cely := flry xor 255;
 
-  if X < 0 then X:= 0 else if X >= FWidth  then X:= FWidth -1;
-  if Y < 0 then Y:= 0 else if Y >= FHeight then Y:= FHeight -1;
+  if X < 0 then X:= 0 else if X >= FWidth -1  then X:= FWidth -2;
+  if Y < 0 then Y:= 0 else if Y >= FHeight -1 then Y:= FHeight -2;
 
   P := @FBits[X + Y * FWidth];
 
