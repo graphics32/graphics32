@@ -25,9 +25,7 @@ package GR32_D7;
 {$IMPLICITBUILD ON}
 
 requires  vcl,
-  rtl,
-  visualclx,
-  CSP20I70;
+  rtl;
 
 contains  GR32 in '..\GR32.pas',
   GR32_Transforms in '..\GR32_Transforms.pas',
