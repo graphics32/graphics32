@@ -687,6 +687,7 @@ type
     function Filter(Value: Single): Single; virtual; abstract;
     function Width: Single; virtual; abstract;
     function RangeCheck: Boolean; virtual; abstract;
+    function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;virtual; abstract;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -2287,7 +2288,7 @@ end;
 
 function  TBitmap32.GetPixelZ(X, Y: Single): TColor32;
 begin
-  Result := ResamplePixel(Self, X, Y);
+  Result := Resampler.ResamplePixel(Self, X, Y);
 end;
 
 procedure TBitmap32.SetStipple(NewStipple: TArrayOfColor32);
