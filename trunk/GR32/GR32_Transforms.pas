@@ -558,6 +558,13 @@ begin
   else Result := 0;
 end;
 
+function CosineFilter(Value: Single): Single;
+begin
+  Result := 0;
+  if Abs(Value) < 1 then
+    Result := (Cos(Value * Pi) + 1) / 2;
+end;
+
 function SplineFilter(Value: Single): Single;
 var
   tt: Single;
@@ -613,8 +620,8 @@ const
   { the first filter from these arrays is never used since the nearest and
     filter is implemented separately }
   FILTERS: array[TStretchFilter] of TFilterFunc = (NearestFilter, LinearFilter,
-    SplineFilter, LanczosFilter, MitchellFilter);
-  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 2, 3, 2);
+    CosineFilter, SplineFilter, LanczosFilter, MitchellFilter);
+  FILTERWIDTHS: array [TStretchFilter] of Single = (1, 1, 1, 2, 3, 2);
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterFunc;
