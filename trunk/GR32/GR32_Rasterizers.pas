@@ -246,13 +246,18 @@ end;
 procedure TRegularRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
 var
   I, J: Integer;
-  Pixels: PColor32Array;
+  P: PColor32;
+  GetSample: TGetSampleInt;
 begin
+  GetSample := FSampler.GetSampleInt;
   for J := DstRect.Top to DstRect.Bottom do
   begin
-    Pixels := Dst.ScanLine[J];
+    P := @Dst.Bits[DstRect.Left + J * Dst.Width];
     for I := DstRect.Left to DstRect.Right do
-      AssignColor(Pixels[I], FSampler.GetSampleInt(I, J));
+    begin
+      AssignColor(P^, GetSample(I, J));
+      Inc(P);
+    end;
   end;
 end;
 
@@ -271,7 +276,7 @@ var
   Scale: Integer;
   X, Y, Tx, Ty, BTx, BX, lx, ly, dx, dy: TFixed;
   Buffer: TBufferEntry;
-  Pixels: PColor32Array;
+  P: PColor32;
   GetSample: TGetSampleFixed;
 begin
   if (SamplingX = 1) and (SamplingY = 1) then
@@ -295,7 +300,7 @@ begin
 
     for J := DstRect.Top to DstRect.Bottom do
     begin
-      Pixels := Dst.ScanLine[J];
+      P := @Dst.Bits[DstRect.Left + J * Dst.Width];
       Inc(Y, FixedOne);
       Inc(Ty, FixedOne);
 
@@ -319,7 +324,8 @@ begin
         until V < Y;
 
         MultiplyBuffer(Buffer, Scale);
-        AssignColor(Pixels[I], BufferToColor32(Buffer, 16));
+        AssignColor(P^, BufferToColor32(Buffer, 16));
+        Inc(P);
       end;
     end;
   end;
