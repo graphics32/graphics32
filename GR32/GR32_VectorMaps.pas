@@ -28,19 +28,73 @@ unit GR32_TransformationMap;
 interface
 
 uses
-   Windows, Types, SysUtils, GR32, GR32_Transforms;
+   Windows, Types, SysUtils, Classes, GR32, GR32_Transforms;
 
 type
-  {TFixedPointMergeProc controls what happens when a TTransformationmaps is
-   merged into another. 'F' is a fixedpoint the foreground map (the one passed
-   to TTransformationmap.Merge), 'B' is a fixedpoint in the base or background
-   map and is also where the result is put, which later on is scaled by the
-   weight parameter in TTransformationmap.Merge}
-  TFixedPointMergeProc = procedure(F: TFixedPoint; var B: TFixedPoint);
+  TCustomCombiner = class
+  private
+    FCombineRect: TFloatRect;
+    FCombineValid: Boolean;
+    FMasterWeight: Single;
+    procedure SetMasterWeight(Value: Single);
+  public
+    constructor Create;
+    property MasterWeight: Single read FMasterWeight write SetMasterWeight;
+    property CombineValid: Boolean read FCombineValid;
+    procedure PrepareCombine(CombineRect: TFloatRect); virtual;
+    procedure FinalizeCombine; virtual;
+  end;
+
+  { Simple framework for combining points
+
+   'F': point to be merged/combined, weighted by masterweight ("foreground point")
+
+   'P': progression variables from the loop, which is in the following ranges
+        for the different callback versions (both P.X and P.Y):
+          CombineInt, P = [0..256]
+          CombineFixed, P = [0..FixedOne ($10000)]
+          CombineFloat, P = [0..1]
+        The P variable allows different sorts of maskings.
+
+   'B': basepoint on which F is merged ("background point")
+   }
+
+  TCustomVectorCombiner = class(TCustomCombiner)
+  public
+    procedure CombineInt(const F, P: TPoint; var B: TPoint); virtual;
+    procedure CombineFixed(const F, P: TFixedPoint; var B: TFixedPoint); virtual;
+    procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); virtual; abstract;
+  end;
+  TCustomVectorCombinerClass = class of TCustomVectorCombiner;
+
+  { TAdditionVectorCombiner }
+  TAdditionVectorCombiner = class(TCustomVectorCombiner)
+  public
+    procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); override;
+  end;
+
+  { TSubtractionVectorCombiner }
+  TSubtractionVectorCombiner = class(TCustomVectorCombiner)
+  public
+    procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); override;
+  end;
+
+  { TMultiplicationVectorCombiner }
+  TMultiplicationVectorCombiner = class(TCustomVectorCombiner)
+  public
+    procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); override;
+  end;
+
+  { TDifferenceVectorCombiner }
+  TDifferenceVectorCombiner = class(TCustomVectorCombiner)
+  public
+    procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); override;
+  end;
 
   TTransformationMap = class(TCustomMap)
   private
     FBits: TArrayOfFixedPoint;
+    FVectorCombiner: TCustomVectorCombiner;
     function GetBits: PFixedPointArray;
 
     function GetXPoint(X,Y: Integer): TFixedPoint;
@@ -62,6 +116,10 @@ type
     procedure SetFPointS(X,Y: Integer; const Point: TFloatPoint);
     procedure SetFPointF(X,Y: Single; const Point: TFloatPoint);
     procedure SetFPointFS(X,Y: Single; const Point: TFloatPoint);
+
+    procedure SetVectorCombiner(VectorCombiner: TCustomVectorCombiner);
+    function GetVectorCombinerClassName: string;
+    procedure SetVectorCombinerClassName(Value: string);
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth,
       NewHeight: Integer); override;
@@ -71,7 +129,7 @@ type
 
     procedure Clear;
     procedure Merge(DstLeft, DstTop: Integer; Src: TTransformationMap;
-      SrcRect: TRect; Weight: Single; MergeProc: TFixedPointMergeProc);
+      SrcRect: TRect; Weight: Single);
 
     property Bits: PFixedPointArray read GetBits;
     function BoundsRect: TRect;
@@ -96,6 +154,9 @@ type
       write SetFPointF;
     property FloatPointMapFS[X, Y: Single]: TFloatPoint read GetFPointFS
       write SetFPointFS;
+  published
+    property VectorCombinerClassName: string read GetVectorCombinerClassName write SetVectorCombinerClassName;
+    property VectorCombiner: TCustomVectorCombiner read FVectorCombiner write SetVectorCombiner;
   end;
 
   TRemapTransformation = class(TTransformation)
@@ -113,7 +174,8 @@ type
     DstTranslationFloat: TFloatPoint;
     DstScaleFloat: TFloatPoint;
 
-    FDstRect: TFloatRect;
+    FMappingRect: TFloatRect;
+    procedure SetMappingRect(Rect: TFloatRect);
   protected
     procedure PrepareTransform; override;
     procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
@@ -124,14 +186,79 @@ type
     TransformationMap : TTransformationMap;
     constructor Create; virtual;
     destructor Destroy; override;
+    procedure RenderTransformation(Transformation: TTransformation; DstRect: TRect);
     function  GetTransformedBounds: TRect; override;
     procedure Scale(Sx, Sy: Single);
-    property DstRect: TFloatRect read FDstRect{GetDstRect} write FDstRect{SetDstRect};
+    property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
   end;
+
+procedure MergeProc_Add(const F: TFixedPoint; var B: TFixedPoint);
+
+
+{ General routines for registering and setting up VectorCombiners }
+
+procedure RegisterVectorCombiner(VectorCombinerClass: TCustomVectorCombinerClass);
+function GetVectorCombinerClassNames: TStrings;
+function FindVectorCombinerClass(ClassName: string): TCustomVectorCombinerClass;
+
+var
+  VectorCombinerList: TList;
 
 implementation
 
-uses Math, GR32_Lowlevel;
+uses Math, GR32_Lowlevel, GR32_Blend;
+
+type
+  TTransformationAccess = class(TTransformation);
+
+  TVectorCombineInt = procedure(const F, P: TPoint; var B: TPoint) of object;
+  TVectorCombineFixed = procedure(const F, P: TFixedPoint; var B: TFixedPoint) of object;
+  TVectorCombineFloat = procedure(const F, P: TFloatPoint; var B: TFloatPoint) of object;
+
+{ General routines for registering and setting up VectorCombiners }
+
+procedure RegisterVectorCombiner(VectorCombinerClass: TCustomVectorCombinerClass);
+begin
+  if not Assigned(VectorCombinerList) then
+    VectorCombinerList := TList.Create;
+  VectorCombinerList.Add(VectorCombinerClass);
+end;
+
+function GetVectorCombinerClassNames: TStrings;
+var
+  I: Integer;
+begin
+  if not Assigned(VectorCombinerList) then
+    Result := nil
+  else
+  begin
+    Result := TStringList.Create;
+    for I := 0 to VectorCombinerList.Count - 1 do
+      Result.Add(TCustomVectorCombinerClass(VectorCombinerList.List[I]).ClassName);
+  end;
+end;
+
+function FindVectorCombinerClass(ClassName: string): TCustomVectorCombinerClass;
+var
+  I: Integer;
+begin
+  Result := nil;
+  if Assigned(VectorCombinerList) then
+    for I := 0 to VectorCombinerList.Count - 1 do
+      if TCustomVectorCombinerClass(VectorCombinerList.List[I]).ClassName = ClassName then
+      begin
+        Result := TCustomVectorCombinerClass(VectorCombinerList.List[I]);
+        Exit;
+      end;
+end;
+
+{ Mergeprocs }
+
+procedure MergeProc_Add(const F: TFixedPoint; var B: TFixedPoint);
+begin
+  Inc(B.X, F.X);
+  Inc(B.Y, F.Y);
+end;
 
 { TTransformationMap }
 
@@ -177,7 +304,7 @@ end;
 constructor TTransformationMap.Create;
 begin
   inherited;
-//
+  FVectorCombiner := TAdditionVectorCombiner.Create;
 end;
 
 destructor TTransformationMap.Destroy;
@@ -185,6 +312,7 @@ begin
   Lock;
   try
     SetSize(0, 0);
+    FVectorCombiner.Free;
   finally
     Unlock;
   end;
@@ -218,6 +346,11 @@ begin
   if Y < 0 then Y := 0 else
     if Y >= Height then Y := Height - 1;
   Result := GetFPoint(X,Y);
+end;
+
+function TTransformationMap.GetVectorCombinerClassName: string;
+begin
+   Result := FVectorCombiner.ClassName;
 end;
 
 function TTransformationMap.GetXPoint(X, Y: Integer): TFixedPoint;
@@ -302,7 +435,7 @@ procedure TTransformationMap.LoadFromFile(const FileName: string);
     i: Integer;
   begin
     for i:= 0 to Length( FBits ) - 1 do
-      FBits[i]:= FixedPoint( TFloatPoint( FBits[i] ) );
+      FBits[i]:= FixedPoint( TFloatPoint( FBits[i] ) ); //Not a mistake!
   end;
 
 var
@@ -326,21 +459,21 @@ begin
 end;
 
 procedure TTransformationMap.Merge(DstLeft, DstTop: Integer;
-  Src: TTransformationMap; SrcRect: TRect; Weight: Single;
-  MergeProc: TFixedPointMergeProc);
+  Src: TTransformationMap; SrcRect: TRect; Weight: Single);
 var
   I,J,P,Q: Integer;
   DstRect: TRect;
-  SrcP,DstP: TFixedPoint;
+  SrcP, DstP, Progression: TFixedPoint;
+  ProgressionX, ProgressionY: TFixed;
+  Combiner: TVectorCombineFixed;
 begin
   if Src.IsEmpty then Exception.Create('Src is empty!');
   if IsEmpty then Exception.Create('Base is empty!');
-  if not Assigned(MergeProc) then Exception.Create('MergeProc is nil!');
   if Weight <= 0 then Exit;
   EnsureRange(Weight, 0, 1);
   IntersectRect( SrcRect, Src.BoundsRect, SrcRect);
 
-  DstRect := BoundsRect;
+//  DstRect := BoundsRect;
   DstRect.Left := DstLeft;
   DstRect.Top := DstTop;
   DstRect.Right := SrcRect.Right - SrcRect.Left;
@@ -351,20 +484,35 @@ begin
 
   P := SrcRect.Left;
   Q := SrcRect.Top;
+
+  ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
+  ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
+
+  with FVectorCombiner do
+  begin
+    Combiner := CombineFixed;
+    if not CombineValid then PrepareCombine(FloatRect(DstRect));
+  end;
+
+  Progression.Y := 0;
   for I := DstRect.Top to DstRect.Bottom - 1 do
   begin
+    Progression.X := 0;
     for J := DstRect.Top to DstRect.Bottom - 1 do
     begin
       SrcP := Src.FixedPointMap[P, Q];
       DstP := FixedPointMap[I, J];
-      MergeProc(SrcP, DstP);
+      Combiner(SrcP, Progression, DstP);
       DstP.X := Round(DstP.X + (SrcP.X - DstP.X) * Weight);
       DstP.Y := Round(DstP.Y + (SrcP.Y - DstP.Y) * Weight);
       FixedPointMap[I, J] := DstP;
       Inc(P);
+      Inc(Progression.X, ProgressionX);
     end;
     Inc(Q);
+    Inc(Progression.Y, ProgressionY);
   end;
+  VectorCombiner.FinalizeCombine;
 end;
 
 procedure TTransformationMap.SaveToFile(const FileName: string);
@@ -373,14 +521,14 @@ procedure TTransformationMap.SaveToFile(const FileName: string);
   var i: Integer;
   begin
     for i := 0 to Length(FBits) - 1 do
-      FBits[i] := FixedPoint(TFloatPoint(FBits[i]));
+      FBits[i] := FixedPoint(TFloatPoint(FBits[i])); //Not a mistake!
   end;
 
   procedure ConvertVerticesF;
   var i: Integer;
   begin
     for i := 0 to Length(FBits) - 1 do
-      TFloatPoint(FBits[i]) := FloatPoint(FBits[i]);
+      TFloatPoint(FBits[i]) := FloatPoint(FBits[i]); //Not a mistake!
   end;
 
 var
@@ -436,6 +584,33 @@ begin
   if Y < 0 then Y := 0 else
     if Y >= Height then Y := Height - 1;
   SetFPoint(X, Y, Point);
+end;
+
+procedure TTransformationMap.SetVectorCombiner(
+  VectorCombiner: TCustomVectorCombiner);
+begin
+  if Assigned(VectorCombiner) then
+  begin
+    if Assigned(FVectorCombiner) then FVectorCombiner.Free;
+    FVectorCombiner := VectorCombiner;
+    Changed;
+  end;
+end;
+
+procedure TTransformationMap.SetVectorCombinerClassName(Value: string);
+var
+  VectorCombinerClass: TCustomVectorCombinerClass;
+begin
+  if (Value <> '') and (FVectorCombiner.ClassName <> Value) then
+  begin
+    VectorCombinerClass := FindVectorCombinerClass(Value);
+    if Assigned(VectorCombinerClass) then
+    begin
+      FVectorCombiner.Free;
+      FVectorCombiner := VectorCombinerClass.Create;
+      Changed;
+    end;
+  end;
 end;
 
 procedure TTransformationMap.SetXPoint(X, Y: Integer; const Point: TFixedPoint);
@@ -540,26 +715,73 @@ end;
 
 procedure TRemapTransformation.PrepareTransform;
 begin
-//  if IsRectEmpty(SrcRect
+  if IsRectEmptyF(SrcRect) then raise Exception.Create('SrcRect is empty!');
+  if IsRectEmptyF(FMappingRect) then raise Exception.Create('MappingRect is empty!');
   with SrcRect do
   begin
     SrcTranslationFloat.X := Left;
     SrcTranslationFloat.Y := Top;
-    SrcScaleFloat.X := 1 / ((TransformationMap.Width - 1) / (Right - Left) );
-    SrcScaleFloat.Y := 1 / ((TransformationMap.Height - 1) / (Bottom - Top) );
+    SrcScaleFloat.X := 1 / ((TransformationMap.Width - 1) / (Right - Left));
+    SrcScaleFloat.Y := 1 / ((TransformationMap.Height - 1) / (Bottom - Top));
     SrcTranslationFixed := FixedPoint(SrcTranslationFloat);
     SrcScaleFixed := FixedPoint(SrcScaleFloat);
   end;
 
-  with FDstRect do
+  with FMappingRect do
   begin
     DstTranslationFloat.X := Left;
     DstTranslationFloat.Y := Top;
-    DstScaleFloat.X :=  ((TransformationMap.Width - 1) / (Right - Left));
-    DstScaleFloat.Y :=  ((TransformationMap.Height - 1) / (Bottom - Top));
+    DstScaleFloat.X := (TransformationMap.Width - 1) / (Right - Left);
+    DstScaleFloat.Y := (TransformationMap.Height - 1) / (Bottom - Top);
     DstTranslationFixed := FixedPoint(DstTranslationFloat);
     DstScaleFixed := FixedPoint(DstScaleFloat);
   end;
+end;
+
+procedure TRemapTransformation.RenderTransformation(
+  Transformation: TTransformation; DstRect: TRect);
+var
+  I, J: Integer;
+  P, Q, Progression: TFixedPoint;
+  ProgressionX, ProgressionY: TFixed;
+  Combiner: TVectorCombineFixed;
+  MapPtr: PFixedPointArray;
+begin
+  IntersectRect(DstRect, TransformationMap.BoundsRect, DstRect);
+  if IsRectEmpty(DstRect) then Exit;
+
+  if not TTransformationAccess(Transformation).TransformValid then
+    TTransformationAccess(Transformation).PrepareTransform;
+
+  ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
+  ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
+
+  with TransformationMap.VectorCombiner do
+  begin
+    Combiner := CombineFixed;
+    if not CombineValid then PrepareCombine(FloatRect(DstRect));
+  end;
+
+  Progression.Y := 0;
+  with DstRect do for I := Top to Bottom - 1 do
+  begin
+    Progression.X := 0;
+    MapPtr := @TransformationMap.GetBits[I * TransformationMap.Width];
+    for J := Left to Right - 1 do
+    begin
+      //Subtract loop vars to ensure correct transformation output
+      P := FixedPoint(J - Left, I - Top);
+      Q := Transformation.ReverseTransform(P);
+      //Make the transformed vector relative
+      Q.X := Q.X - P.X;
+      Q.Y := Q.Y - P.Y;
+      Combiner(Q, Progression, MapPtr[J]);
+      Inc(Progression.X, ProgressionX);
+    end;
+   Inc(Progression.Y, ProgressionY);
+  end;
+  TransformationMap.VectorCombiner.FinalizeCombine;
+  TransformValid := False;
 end;
 
 procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
@@ -652,5 +874,133 @@ begin
   ScalingFloat.X := Sx;
   ScalingFloat.Y := Sy;
 end;
+
+procedure TRemapTransformation.SetMappingRect(Rect: TFloatRect);
+begin
+  FMappingRect := Rect;
+  TransformValid := False;
+end;
+
+{ TCustomCombine }
+
+constructor TCustomCombiner.Create;
+begin
+  FMasterWeight := 1.0;
+  FCombineValid := False;
+end;
+
+procedure TCustomCombiner.FinalizeCombine;
+begin
+  FCombineValid := False;
+end;
+
+procedure TCustomCombiner.PrepareCombine(CombineRect: TFloatRect);
+begin
+  if IsRectEmptyF(CombineRect) then raise Exception.Create('CombineRect is empty!');
+  FCombineRect := CombineRect;
+  FCombineValid := True;
+end;
+
+procedure TCustomCombiner.SetMasterWeight(Value: Single);
+begin
+  FMasterWeight := Value;
+  FCombineValid := False;
+end;
+
+{ TCustomVectorCombine }
+
+procedure TCustomVectorCombiner.CombineFixed(const F, P: TFixedPoint;
+  var B: TFixedPoint);
+var
+  _B: TFloatPoint;
+begin
+  EMMS;
+  _B := FloatPoint(B);
+  CombineFloat(FloatPoint(F), FloatPoint(P), _B);
+  B := FixedPoint(_B);
+end;
+
+procedure TCustomVectorCombiner.CombineInt(const F, P: TPoint;
+  var B: TPoint);
+const
+  Fixed256ToFloat = 1/256;
+var
+  _B, _P: TFloatPoint;
+begin
+  EMMS;
+  _B := FloatPoint(B);
+  _P.X := P.X * Fixed256ToFloat;
+  _P.Y := P.Y * Fixed256ToFloat;
+  CombineFloat(FloatPoint(F), _P, _B);
+  B := Point(_B);
+end;
+
+{ TAdditionVectorCombiner }
+
+procedure TAdditionVectorCombiner.CombineFloat(const F, P: TFloatPoint;
+  var B: TFloatPoint);
+var
+  O: TFloatPoint;
+begin
+  O.X := B.X + F.X;
+  O.Y := B.Y + F.Y;
+
+  B.X := B.X + (O.X - B.X) * FMasterWeight;
+  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight;
+end;
+
+{ TSubtractionVectorCombiner }
+
+procedure TSubtractionVectorCombiner.CombineFloat(const F, P: TFloatPoint;
+  var B: TFloatPoint);
+var
+  O: TFloatPoint;
+begin
+  O.X := B.X - F.X;
+  O.Y := B.Y - F.Y;
+
+  B.X := B.X + (O.X - B.X) * FMasterWeight;
+  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight;
+end;
+
+{ TMultiplicationVectorCombiner }
+
+procedure TMultiplicationVectorCombiner.CombineFloat(const F,
+  P: TFloatPoint; var B: TFloatPoint);
+var
+  O: TFloatPoint;
+begin
+  O.X := B.X * F.X;
+  O.Y := B.Y * F.Y;
+
+  B.X := B.X + (O.X - B.X) * FMasterWeight;
+  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight;
+end;
+
+{ TDifferenceVectorCombiner }
+
+procedure TDifferenceVectorCombiner.CombineFloat(const F, P: TFloatPoint;
+  var B: TFloatPoint);
+var
+  O: TFloatPoint;
+//  Wx, Wy: Single;
+begin
+  O.X := Abs(B.X - F.X);
+  O.Y := Abs(B.Y - F.Y);
+//  Wx := (1 - (0.5 + Abs(P.X - 0.5))) * FMasterWeight;
+//  Wy := (1 - (0.5 + Abs(P.Y - 0.5))) * FMasterWeight;
+  B.X := B.X + (O.X - B.X) * FMasterWeight{* Wx};
+  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight{* Wy};
+end;
+
+initialization
+  { Register VectorCombiners }
+  RegisterVectorCombiner(TAdditionVectorCombiner);
+  RegisterVectorCombiner(TSubtractionVectorCombiner);
+  RegisterVectorCombiner(TMultiplicationVectorCombiner);
+  RegisterVectorCombiner(TDifferenceVectorCombiner);
+
+finalization
+  VectorCombinerList.Free;
 
 end.
