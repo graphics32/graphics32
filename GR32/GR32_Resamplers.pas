@@ -3,7 +3,7 @@ unit GR32_Resamplers;
 interface
 
 uses
-  Classes, Types, GR32, GR32_Transforms;
+  Classes, Types, GR32;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -13,299 +13,200 @@ procedure BlockTransfer(
 procedure StretchTransfer(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
-  Resampler: TCustomResampler;
+  Resampler: TAbstractResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
+
+//function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+
+const
+  MaxWindowWidth = 3;
+  DefaultTableSize = 5;      // default: 256
 
 type
   PKernelValue = ^TKernelValue;
   TKernelValue = type Integer;
 
-  TArrayOfKernelValue = array of TKernelValue;
   PKernelEntry = ^TKernelEntry;
-  TKernelEntry = array [0..0] of TKernelValue;
-
-  TArrayOfKernelEntry = array of TArrayOfKernelValue;
+  TKernelEntry = array [-MaxWindowWidth..MaxWindowWidth] of TKernelValue;
+  
+  TArrayOfKernelEntry = array of TKernelEntry;
   PKernelEntryArray = ^TKernelEntryArray;
-  TKernelEntryArray = array [0..0] of TArrayOfKernelValue;
+  TKernelEntryArray = array [0..0] of TKernelEntry;
 
-  { TCustomKernel }
-  TCustomKernel = class(TPersistent)
+  TCustomResamplerClass = class of TCustomResampler;
+  TCustomResampler = class(TAbstractResampler)
   protected
-    FMap: TCustomMap;
+    FWeightTable: TArrayOfKernelEntry;
   public
-    constructor Create(Map: TCustomMap); virtual;
-    function RangeCheck: Boolean; virtual;
-    function Filter(Value: Single): Single; virtual; abstract;
-    function GetWidth: Single; virtual; abstract;
+    constructor Create; virtual;
+    destructor Destroy; override;
+    function RangeCheck: Boolean; override;
+    function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32; virtual;    
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure MakeResamplePixelTable(TableSize: Integer = DefaultTableSize);
+    procedure FreeResamplePixelTable;
   end;
-  TCustomKernelClass = class of TCustomKernel;
-    
+
   { TNearestResampler }
-  TNearestKernel = class(TCustomKernel)
+  TNearestResampler = class(TCustomResampler)
   public
     function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Width: Single; override;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TLinearResampler }
-  TLinearKernel = class(TCustomKernel)
+  TLinearResampler = class(TCustomResampler)
   public
     function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Width: Single; override;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure Transform(
+      Dst: TBitmap32; DstRect: TRect;
+      Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+  end;
+
+  { TDraftResampler }
+  TDraftResampler = class(TLinearResampler)
+  public
+    function Width: Single; override;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TCosineResampler }
-  TCosineKernel = class(TCustomKernel)
+  TCosineResampler = class(TCustomResampler)
   public
     function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Width: Single; override;
   end;
 
   { TSplineResampler }
-  TSplineKernel = class(TCustomKernel)
+  TSplineResampler = class(TCustomResampler)
   public
     function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Width: Single; override;
     function RangeCheck: Boolean; override;
   end;
 
   { TMitchellResampler }
-  TMitchellKernel = class(TCustomKernel)
+  TMitchellResampler = class(TCustomResampler)
   public
     function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Width: Single; override;
     function RangeCheck: Boolean; override;
   end;
 
   { TCubicResampler }
-  TCubicKernel = class(TCustomKernel)
+  TCubicResampler = class(TCustomResampler)
   private
     FCoeff: Single;
-    procedure SetCoeff(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create; override;
     function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Width: Single; override;
     function RangeCheck: Boolean; override;
   published
-    property Coeff: Single read FCoeff write SetCoeff;
+    property Coeff: Single read FCoeff write FCoeff;
   end;
 
   { TWindowedSincResampler }
-  TWindowedSincKernel = class(TCustomKernel)
+  TWindowedSincResampler = class(TCustomResampler)
   private
     FWidth: Single;
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create; override;
     function Filter(Value: Single): Single; override;
     function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
-    function GetWidth: Single; override;
+    function Width: Single; override;
     function RangeCheck: Boolean; override;
   end;
 
   { TLanczosResampler }
-  TLanczosKernel = class(TWindowedSincKernel)
+  TLanczosResampler = class(TWindowedSincResampler)
   public
     function Window(Value: Single): Single; override;
   end;
 
   { TGaussianResampler }
-  TGaussianKernel = class(TWindowedSincKernel)
+  TGaussianResampler = class(TWindowedSincResampler)
   private
     FSigma: Single;
-    procedure SetSigma(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create; override;
     function Window(Value: Single): Single; override;
-  published
-    property Sigma: Single read FSigma write SetSigma;
   end;
 
-  { TBlackmanKernel }
-  TBlackmanKernel = class(TWindowedSincKernel)
+  TBlackmanResampler = class(TWindowedSincResampler)
   public
     function Window(Value: Single): Single; override;
   end;
 
-  { THannKernel }
-  THannKernel = class(TWindowedSincKernel)
+  THannResampler = class(TWindowedSincResampler)
   public
     function Window(Value: Single): Single; override;
   end;
 
-  { THammingKernel }
-  THammingKernel = class(TWindowedSincKernel)
+  THammingResampler = class(TWindowedSincResampler)
   public
     function Window(Value: Single): Single; override;
   end;
 
-  { TSinshKernel }
-  TSinshKernel = class(TCustomKernel)
+  TSinshResampler = class(TCustomResampler)
   private
     FWidth: Single;
     FCoeff: Single;
-    procedure SetCoeff(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create; override;
+    property Coeff: Single read FCoeff write FCoeff;
     procedure SetWidth(Value: Single);
-    function  GetWidth: Single; override;
-    function  Filter(Value: Single): Single; override;
-    function  RangeCheck: Boolean; override;
-  published
-    property Coeff: Single read FCoeff write SetCoeff;
-    property Width: Single read GetWidth write SetWidth;
+    function Width: Single; override;
+    function Filter(Value: Single): Single; override;
+    function RangeCheck: Boolean; override;
   end;
-
-
-  { TBitmap32Resampler }
-  TBitmap32Resampler = class(TCustomResampler)
-  private
-    FBitmap: TBitmap32;
-  public
-    constructor Create(Bitmap: TBitmap32); virtual;
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    property Bitmap: TBitmap32 read FBitmap write FBitmap;
-  end;
-  TBitmap32ResamplerClass = class of TBitmap32Resampler;
-
-  { TBitmap32KernelResampler }
-  TBitmap32KernelResampler = class(TBitmap32Resampler)
-  private
-    FKernel: TCustomKernel;
-    procedure SetKernel(const Value: TCustomKernel);
-    function GetKernelClassName: string;
-    procedure SetKernelClassName(Value: string);
-  public
-    constructor Create(Bitmap: TBitmap32); override;
-    destructor Destroy; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-  published
-    property Kernel: TCustomKernel read FKernel write SetKernel;
-    property KernelClassName: string read GetKernelClassName write SetKernelClassName;
-  end;
-
-  { TBitmap32TableResampler }
-  TBitmap32TableResampler = class(TBitmap32KernelResampler)
-  private
-    FWeightTable: TArrayOfKernelEntry;
-    FTableSize: Integer;
-    procedure SetTableSize(const Value: Integer);
-  public
-    constructor Create(Bitmap: TBitmap32); override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    procedure PrepareRasterization; override;
-    procedure FinalizeRasterization; override;
-  published
-    property TableSize: Integer read FTableSize write SetTableSize;
-  end;
-
-  { TBitmap32NearestResampler }
-  TBitmap32NearestResampler = class(TBitmap32Resampler)
-  public
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-  end;
-
-  { TBitmap32LinearResampler }
-  TBitmap32LinearResampler = class(TBitmap32Resampler)
-  private
-    FLinearKernel: TLinearKernel;
-  public
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    constructor Create(Bitmap: TBitmap32); override;
-    destructor Destroy; override;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-  end;
-
-  { TBitmap32DraftResampler }
-  TBitmap32DraftResampler = class(TBitmap32LinearResampler)
-  public
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-  end;
-
-  { TTransformationSampler }
-  TTransformationSampler = class(TCustomSampler)
-  private
-    FResampler: TCustomResampler;
-    FTransformation: TTransformation;
-    FBoundsRect: TRect;
-    FOuterColor: TColor32;
-  public
-    constructor Create(Src: TBitmap32; ATransformation: TTransformation);
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    procedure PrepareRasterization; override;
-    procedure FinalizeRasterization; override;
-
-    property Resampler: TCustomResampler read FResampler write FResampler;
-    property Transformation: TTransformation read FTransformation write FTransformation;
-    property BoundsRect: TRect read FBoundsRect write FBoundsRect;
-    property OuterColor: TColor32 read FOuterColor write FOuterColor;
-  end;
-
-{ TNearestTransformationResampler = class(TTransformationResampler)
-  public
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-  end; }
-
-// TLinearTransformationResampler = class(TTransformationResampler)
-
-{ Auxiliary record used in accumulation routines }
-type
-  PBufferEntry = ^TBufferEntry;
-  TBufferEntry = record
-    B, G, R, A: Integer;
-  end;
-
-{ Routines used by design-time property editors }
-procedure RegisterKernel(KernelClass: TCustomKernelClass);
-function GetKernelClassNames: TStrings;
-function FindKernelClass(ClassName: string): TCustomKernelClass;
 
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 function GetResamplerClassNames: TStrings;
-function FindResamplerClass(ClassName: string): TBitmap32ResamplerClass;
+function FindResamplerClass(ClassName: string): TCustomResamplerClass;
 
 var
-  KernelList: TList;
   ResamplerList: TList;
-
-const
-  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
-  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, SysUtils, Math;
+  GR32_Transforms, GR32_Blend, GR32_LowLevel, GR32_System, SysUtils, Math;
 
 var
-  BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
-  LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+ BlockAverage : function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+ LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 const
   SDstEmpty = 'Destination bitmap is nil or empty';
   SSrcEmpty = 'Source bitmap is nil or empty';
   SSrcInvalid = 'Source rectangle is invalid';
-
+ 
 type
   TTransformationAccess = class(TTransformation);
   TBitmap32Access = class(TBitmap32);
@@ -318,7 +219,10 @@ type
   TCluster = array of TPointRec;
   TMappingTable = array of TCluster;
 
-  TFilterMethod = function(Value: Single): Single of object;
+  PBufferEntry = ^TBufferEntry;
+  TBufferEntry = record
+    B, G, R, A: Integer;
+  end;
   
 { procedure AccumBuffer(var Buffer: TBufferEntry; Color: TColor32; Mapping: Integer);
 asm
@@ -339,46 +243,111 @@ asm
         MOVQ      [EAX+8],MM1
 end; }
 
-{ function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
-const
-  WINDOW_WIDTH = 3;
+
+{ function ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+type
+  PColorEntry = ^TColorEntry;
+  TColorEntry = packed record
+    B, G, R, A: Byte;
+  end;
 var
-  clX, clY: Integer;
+  clX, clY, fracX, fracY: Integer;
+  Resampler: TCustomResampler;
+  W, TableSize: Integer;
+  Filter: TFilterMethod;
+  I, J, Incr: Integer;
+  C: PColorEntry;
+  LoX, HiX, LoY, HiY: Integer;
+
+  HorzEntry, VertEntry: TBufferEntry;
+  Weights: PKernelEntryArray;
+const
+  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
+begin
+  Resampler := TCustomResampler(Src.Resampler);
+  Filter := Resampler.Filter;
+  W := Round(Resampler.Width);
+  TableSize := High(Resampler.FWeightTable);
+  Weights := @Resampler.FWeightTable[0];
+
+  clX := Ceil(X);
+  clY := Ceil(Y);
+  fracX := Round( (clX - X) * TableSize );
+  fracY := Round( (clY - Y) * TableSize );
+
+  if clX < W then LoX := -clX else LoX := -W;
+  if clY < W then LoY := -clY else LoY := -W;
+  HiX := Src.Width - 1;
+  HiY := Src.Height - 1;
+  Incr:= HiX;
+  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
+  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+
+  VertEntry := ROUND_ENTRY;
+
+  C:= PColorEntry(Src.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
+
+  for I := LoY to HiY do
+  begin
+    HorzEntry := EMPTY_ENTRY;
+    for J := LoX to HiX do
+    begin
+      W := Weights[fracX][J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
+      Inc(C);
+    end;
+    W := Weights[fracY][I];
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
+  end;
+
+  if Resampler.RangeCheck then
+  begin
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+  end;
+
+  with TColorEntry(Result) do
+  begin
+    A := VertEntry.A shr 16;
+    R := VertEntry.R shr 16;
+    G := VertEntry.G shr 16;
+    B := VertEntry.B shr 16;
+  end;
+
+end; }
+
+{ function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+var
+  clX, clY, fracX, fracY: Integer;
   W: Integer;
   I, J, Incr: Integer;
   C: PColor32Entry;
   LoX, HiX, LoY, HiY: Integer;
   HorzEntry, VertEntry: TBufferEntry;
-  HorzKernel, VertKernel: array [-MaxWindowWidth..MaxWindowWidth] of TKernelValue;
-  //TKernelEntry;
-
-//var
-//  KernelVert: TKernelEntry;
-//  KernelHorz: TKernelEntry;
-
-  procedure SetupKernel(FractionIndex: Single; var Kernel: TKernelEntry);
-  var
-    KF, KC: PKernelEntry;
-    I, C: Integer;
-  begin
-    KF := @FWeightTable[Floor(FractionIndex)][W];
-    C := Ceil(FractionIndex);
-    KC := @FWeightTable[C][W];
-    C := Round((C - FractionIndex) * 256);
-    for I := -MaxWindowWidth to MaxWindowWidth do
-      Kernel[I] := KC[I] + SAR_8((KF[I] - KC[I]) * C);
-  end;
-
+  HorzKernel, VertKernel: PKernelEntry;
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
   ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 begin
+
   clX := Ceil(X);
   clY := Ceil(Y);
-  I := High(FWeightTable);
+  W := High(FWeightTable);
+  fracX := Round((clX - X) * W);
+  fracY := Round((clY - Y) * W);
+
   W := Ceil(Width);
-  SetupKernel((clX - X) * I, HorzKernel[]);
-  SetupKernel((clY - Y) * I, VertKernel[]);
 
   if clX < W then LoX := -clX else LoX := -W;
   if clY < W then LoY := -clY else LoY := -W;
@@ -392,8 +361,8 @@ begin
   Dec(Incr, HiX - LoX);
 
   VertEntry := ROUND_ENTRY;
-  //HorzKernel := @KernelHorz;
-  //VertKernel := @KernelVert;
+  HorzKernel := @FWeightTable[fracX];
+  VertKernel := @FWeightTable[fracY];
 
   for I := LoY to HiY do
   begin
@@ -430,7 +399,98 @@ begin
     G := VertEntry.G shr 16;
     B := VertEntry.B shr 16;
   end;
-end; }
+end;  }
+
+function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+var
+  KernelVert: TKernelEntry;
+  KernelHorz: TKernelEntry;
+
+  procedure SetupKernel(FractionIndex: Single; var Kernel: TKernelEntry);
+  var
+     KF, KC: PKernelEntry;
+     I,C: Integer;
+  begin
+     KF := @FWeightTable[Floor(FractionIndex)];
+     C := Ceil(FractionIndex);
+     KC := @FWeightTable[C];
+     C:= Round( (C - FractionIndex)*256 );
+     for I:= -MaxWindowWidth to MaxWindowWidth do
+       Kernel[I]:= KC[I] + SAR_8((KF[I] - KC[I]) * C);
+  end;
+
+var
+  clX, clY: Integer;
+  W: Integer;
+  I, J, Incr: Integer;
+  C: PColor32Entry;
+  LoX, HiX, LoY, HiY: Integer;
+  HorzEntry, VertEntry: TBufferEntry;
+  HorzKernel, VertKernel: PKernelEntry;
+const
+  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
+begin
+
+  clX := Ceil(X);
+  clY := Ceil(Y);
+  W := High(FWeightTable);
+  SetupKernel((clX - X) * W, KernelHorz);
+  SetupKernel((clY - Y) * W, KernelVert);
+
+  W := Ceil(Width);
+
+  if clX < W then LoX := -clX else LoX := -W;
+  if clY < W then LoY := -clY else LoY := -W;
+  HiX := Src.Width - 1;
+  HiY := Src.Height - 1;
+  Incr:= HiX;
+  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
+  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+
+  C := PColor32Entry(Src.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
+
+  VertEntry := ROUND_ENTRY;
+  HorzKernel := @KernelHorz;
+  VertKernel := @KernelVert;
+
+  for I := LoY to HiY do
+  begin
+    HorzEntry := EMPTY_ENTRY;
+    for J := LoX to HiX do
+    begin
+      W := HorzKernel[J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
+      Inc(C);
+    end;
+    W := VertKernel[I];
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
+  end;
+
+  if RangeCheck then
+  begin
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+  end;
+
+  with TColor32Entry(Result) do
+  begin
+    A := VertEntry.A shr 16;
+    R := VertEntry.R shr 16;
+    G := VertEntry.G shr 16;
+    B := VertEntry.B shr 16;
+  end;
+end;
 
 procedure CheckBitmaps(Dst, Src: TBitmap32);
 begin
@@ -773,8 +833,8 @@ begin
         for I := 0 to DstClipW - 1 do
         begin
           SrcIndex := MapHorz[I].Pos;
-          DstLine[I] := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                           @SrcLine[SrcIndex + Src.Width]);
+          DstLine[I] := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                            @SrcLine[SrcIndex + Src.Width]);
         end;
         Inc(DstLine, Dst.Width);
       end;
@@ -788,8 +848,8 @@ begin
           for I := 0 to DstClipW - 1 do
           begin
             SrcIndex := MapHorz[I].Pos;
-            C := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                    @SrcLine[SrcIndex + Src.Width]);
+            C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                     @SrcLine[SrcIndex + Src.Width]);
             BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           end;
           Inc(DstLine, Dst.Width);
@@ -803,8 +863,8 @@ begin
       for I := 0 to DstClipW - 1 do
       begin
         SrcIndex := MapHorz[I].Pos;
-        C := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                @SrcLine[SrcIndex + Src.Width]);
+        C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                 @SrcLine[SrcIndex + Src.Width]);
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
       end;
       Inc(DstLine, Dst.Width);
@@ -817,7 +877,7 @@ function BuildMappingTable(
   DstLo, DstHi: Integer;
   ClipLo, ClipHi: Integer;
   SrcLo, SrcHi: Integer;
-  Kernel: TCustomKernel): TMappingTable;
+  Resampler: TAbstractResampler): TMappingTable;
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterMethod;
@@ -854,8 +914,8 @@ begin
   if FullEdge then Scale := DstW / SrcW
   else Scale := (DstW - 1) / (SrcW - 1);
 
-  Filter := Kernel.Filter;
-  FilterWidth := Kernel.GetWidth;
+  Filter := Resampler.Filter;
+  FilterWidth := Resampler.Width;
   K := 0;
 
   if Scale = 0 then
@@ -935,7 +995,7 @@ end;
 procedure Resample(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
-  Kernel: TCustomKernel;
+  Resampler: TCustomResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
   SrcW, SrcH: Single;
@@ -971,12 +1031,12 @@ begin
   DstClipH := DstClip.Bottom - DstClip.Top;
 
   // mapping tables
-  MapX := BuildMappingTable(DstRect.Left, DstRect.Right, DstClip.Left, DstClip.Right, SrcRect.Left, SrcRect.Right, Kernel);
-  MapY := BuildMappingTable(DstRect.Top, DstRect.Bottom, DstClip.Top, DstClip.Bottom, SrcRect.Top, SrcRect.Bottom, Kernel);
+  MapX := BuildMappingTable(DstRect.Left, DstRect.Right, DstClip.Left, DstClip.Right, SrcRect.Left, SrcRect.Right, Resampler);
+  MapY := BuildMappingTable(DstRect.Top, DstRect.Bottom, DstClip.Top, DstClip.Bottom, SrcRect.Top, SrcRect.Bottom, Resampler);
   ClusterX := nil;
   ClusterY := nil;
   try
-    RangeCheck := Kernel.RangeCheck; //StretchFilter in [sfLanczos, sfMitchell];
+    RangeCheck := Resampler.RangeCheck; //StretchFilter in [sfLanczos, sfMitchell];
     if (MapX = nil) or (MapY = nil) then Exit;
 
     MapXLoPos := MapX[0][0].Pos;
@@ -1246,8 +1306,9 @@ end;
 
 
 procedure DraftResample(Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-  Src: TBitmap32; SrcRect: TRect; Kernel: TCustomKernel;
-  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+                        Src: TBitmap32; SrcRect: TRect;
+                        Resampler: TCustomResampler;
+                        CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
   SrcW, SrcH,
   DstW, DstH,
@@ -1279,7 +1340,7 @@ begin
 
   if (DstW > SrcW)or(DstH > SrcH) then begin
     if (SrcW < 2) or (SrcH < 2) then
-      Resample(Dst, DstRect, DstClip, Src, SrcRect, Kernel, CombineOp,
+      Resample(Dst, DstRect, DstClip, Src, SrcRect, Resampler, CombineOp,
         CombineCallBack)
     else
       StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp,
@@ -1409,7 +1470,7 @@ end;
 procedure StretchTransfer(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
-  Resampler: TCustomResampler;
+  Resampler: TAbstractResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
   SrcW, SrcH: Integer;
@@ -1452,36 +1513,161 @@ end;
 {$WARNINGS ON}
 
 
+{ TNearestResampler }
 
-{ TCustomKernel }
-
-constructor TCustomKernel.Create(Map: TCustomMap);
-begin
-  FMap := Map;
-end;
-
-function TCustomKernel.RangeCheck: Boolean;
-begin
-  Result := False;
-end;
-
-
-{ TNearestKernel }
-
-function TNearestKernel.Filter(Value: Single): Single;
+function TNearestResampler.Filter(Value: Single): Single;
 begin
   if (Value > -0.5) and (Value <= 0.5) then Result := 1
   else Result := 0;
 end;
 
-function TNearestKernel.GetWidth: Single;
+procedure TNearestResampler.Resample(Dst: TBitmap32; DstRect,
+  DstClip: TRect; Src: TBitmap32; SrcRect: TRect; CombineOp: TDrawMode;
+  CombineCallBack: TPixelCombineEvent);
+begin
+  StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
+end;
+
+procedure TNearestResampler.Transform(Dst: TBitmap32; DstRect: TRect;
+  Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  SrcAlpha: TColor32;
+  I, J, X, Y: Integer;
+  Pixels: PColor32Array;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  SrcAlpha := Src.MasterAlpha;
+
+  for J := DstRect.Top to DstRect.Bottom do
+  begin
+    Pixels := Dst.ScanLine[J];
+    for I := DstRect.Left to DstRect.Right do
+    begin
+      TTransformationAccess(Transformation).ReverseTransformInt(I, J, X, Y);
+      if (X >= SrcRect.Left) and (X <= SrcRect.Right) and
+        (Y >= SrcRect.Top) and (Y <= SrcRect.Bottom) then
+      case CombineOp of
+        dmOpaque: Pixels[I] := Src.Pixel[X, Y];
+        dmBlend: BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
+      else // dmCustom:
+        CombineCallBack(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
+      end;
+    end;
+  end;
+end;
+
+function TNearestResampler.Width: Single;
 begin
   Result := 1;
 end;
 
-{ TLinearKernel }
+{ TResampler }
 
-function TLinearKernel.Filter(Value: Single): Single;
+constructor TCustomResampler.Create;
+begin
+  inherited;
+end;
+
+destructor TCustomResampler.Destroy;
+begin
+  SetLength(FWeightTable, 0);
+  inherited;
+end;
+
+procedure TCustomResampler.FreeResamplePixelTable;
+begin
+  FWeightTable := nil;
+end;
+
+procedure TCustomResampler.MakeResamplePixelTable(TableSize: Integer);
+var
+  I, J, K: Integer;
+  Fraction: Single;
+begin
+  SetLength(FWeightTable, TableSize);
+  K := TableSize - 1;
+  for I := 0 to K do
+  begin
+    Fraction := I / K;
+    for J := - MaxWindowWidth to MaxWindowWidth do
+      FWeightTable[I, J]:= Round(Filter(J + Fraction) * 256);
+  end;
+end;
+
+function TCustomResampler.RangeCheck: Boolean;
+begin
+  Result := False;
+end;
+
+procedure TCustomResampler.Resample(
+  Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+  Src: TBitmap32; SrcRect: TRect;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+begin
+  GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, Self, CombineOp, CombineCallBack);
+end;
+
+procedure TCustomResampler.Transform(Dst: TBitmap32; DstRect: TRect;
+  Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  C, SrcAlpha: TColor32;
+  I, J: Integer;
+  X, Y: Single;
+  Pixels: PColor32Array;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  SrcAlpha := Src.MasterAlpha;
+
+  try
+    (Src.Resampler as TCustomResampler).MakeResamplePixelTable;
+    for J := DstRect.Top to DstRect.Bottom do
+    begin
+      Pixels := Dst.ScanLine[J];
+      for I := DstRect.Left to DstRect.Right do
+      begin
+        EMMS;
+        TTransformationAccess(Transformation).ReverseTransformFloat(I, J, X, Y);
+
+        if (X >= SrcRect.Left) and (X <= SrcRect.Right) and
+           (Y >= SrcRect.Top) and (Y <= SrcRect.Bottom) then
+        begin
+          C := ResamplePixel(Src, X, Y);
+          case CombineOp of
+            dmOpaque: Pixels[I] := C;
+            dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+          else // dmCustom:
+            CombineCallBack(C, Pixels[I], SrcAlpha);
+          end;
+        end;
+      end;
+    end;
+  finally
+    EMMS;
+    (Src.Resampler as TCustomResampler).FreeResamplePixelTable;
+  end;
+end;
+
+{ TDraftResampler }
+
+procedure TDraftResampler.Resample(Dst: TBitmap32; DstRect, DstClip: TRect;
+  Src: TBitmap32; SrcRect: TRect; CombineOp: TDrawMode;
+  CombineCallBack: TPixelCombineEvent);
+begin
+  DraftResample(Dst, DstRect, DstClip, Src, SrcRect, Self, CombineOp, CombineCallBack);
+end;
+
+function TDraftResampler.Width: Single;
+begin
+  Result := 1;
+end;
+
+{ TLinearResampler }
+
+function TLinearResampler.Filter(Value: Single): Single;
 begin
   if Value < -1 then Result := 0
   else if Value < 0 then Result := 1 + Value
@@ -1489,28 +1675,84 @@ begin
   else Result := 0;
 end;
 
-function TLinearKernel.GetWidth: Single;
+procedure TLinearResampler.Resample(Dst: TBitmap32; DstRect,
+  DstClip: TRect; Src: TBitmap32; SrcRect: TRect; CombineOp: TDrawMode;
+  CombineCallBack: TPixelCombineEvent);
+var
+  SrcW, SrcH: Integer;
+  DstW, DstH: Integer;
+begin
+  SrcW := SrcRect.Right - SrcRect.Left;
+  SrcH := SrcRect.Bottom - SrcRect.Top;
+  DstW := DstRect.Right - DstRect.Left;
+  DstH := DstRect.Bottom - DstRect.Top;
+  if (DstW > SrcW) and (DstH > SrcH) and (SrcW > 1) and (SrcH > 1) then
+    StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
+  else
+    GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, Self, CombineOp, CombineCallBack);
+end;
+
+procedure TLinearResampler.Transform(Dst: TBitmap32; DstRect: TRect;
+  Src: TBitmap32; SrcRect: TRect; Transformation: TAbstractTransformation;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+var
+  C, SrcAlpha: TColor32;
+  I, J: Integer;
+  X, Y, X256, Y256: Integer;
+  Pixels: PColor32Array;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  SrcAlpha := Src.MasterAlpha;
+
+  for J := DstRect.Top to DstRect.Bottom do
+  begin
+    Pixels := Dst.ScanLine[J];
+    for I := DstRect.Left to DstRect.Right do
+    begin
+      TTransformationAccess(Transformation).ReverseTransform256(I, J, X256, Y256);
+      X := SAR_8(X256);
+      Y := SAR_8(Y256);
+
+      if (X >= SrcRect.Left) and (X <= SrcRect.Right) and
+         (Y >= SrcRect.Top) and (Y <= SrcRect.Bottom) then
+      begin
+        // everything is ok interpolate between four neighbors
+        C := TBitmap32Access(Src).GET_TS256(X256, Y256);
+
+        case CombineOp of
+          dmOpaque: Pixels[I] := C;
+          dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+        else // dmCustom:
+          CombineCallBack(C, Pixels[I], SrcAlpha);
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TLinearResampler.Width: Single;
 begin
   Result := 1;
 end;
 
-{ TCosineKernel }
+{ TCosineResampler }
 
-function TCosineKernel.Filter(Value: Single): Single;
+function TCosineResampler.Filter(Value: Single): Single;
 begin
   Result := 0;
   if Abs(Value) < 1 then
     Result := (Cos(Value * Pi) + 1) / 2;
 end;
 
-function TCosineKernel.GetWidth: Single;
+function TCosineResampler.Width: Single;
 begin
   Result := 1;
 end;
 
-{ TSplineKernel }
+{ TSplineResampler }
 
-function TSplineKernel.Filter(Value: Single): Single;
+function TSplineResampler.Filter(Value: Single): Single;
 var
   tt: Single;
 begin
@@ -1528,17 +1770,17 @@ begin
   else Result := 0;
 end;
 
-function TSplineKernel.RangeCheck: Boolean;
+function TSplineResampler.RangeCheck: Boolean;
 begin
   Result := True;
 end;
 
-function TSplineKernel.GetWidth: Single;
+function TSplineResampler.Width: Single;
 begin
   Result := 2;
 end;
 
-{ TWindowedSincKernel }
+{ TWindowedSincResampler }
 
 function Sinc(Value: Single): Single;
 begin
@@ -1550,13 +1792,12 @@ begin
   else Result := 1;
 end;
 
-constructor TWindowedSincKernel.Create(Map: TCustomMap);
+constructor TWindowedSincResampler.Create;
 begin
-  inherited Create(Map);
   FWidth := 3;
 end;
 
-function TWindowedSincKernel.Filter(Value: Single): Single;
+function TWindowedSincResampler.Filter(Value: Single): Single;
 begin
   Value := Abs(Value);
   if Value < FWidth then
@@ -1565,31 +1806,31 @@ begin
     Result := 0;
 end;
 
-function TWindowedSincKernel.RangeCheck: Boolean;
+function TWindowedSincResampler.RangeCheck: Boolean;
 begin
   Result := True;
 end;
 
-procedure TWindowedSincKernel.SetWidth(Value: Single);
+procedure TWindowedSincResampler.SetWidth(Value: Single);
 begin
   FWidth := Value;
 end;
 
-function TWindowedSincKernel.GetWidth: Single;
+function TWindowedSincResampler.Width: Single;
 begin
   Result := FWidth;
 end;
 
-{ TLanczosKernel }
+{ TLanczosResampler }
 
-function TLanczosKernel.Window(Value: Single): Single;
+function TLanczosResampler.Window(Value: Single): Single;
 begin
   Result := Sinc(Value / FWidth);
 end;
 
-{ TMitchellKernel }
+{ TMitchellResampler }
 
-function TMitchellKernel.Filter(Value: Single): Single;
+function TMitchellResampler.Filter(Value: Single): Single;
 var
   tt, ttt: Single;
 begin
@@ -1601,25 +1842,25 @@ begin
   else Result := 0;
 end;
 
-function TMitchellKernel.RangeCheck: Boolean;
+function TMitchellResampler.RangeCheck: Boolean;
 begin
   Result := True;
 end;
 
-function TMitchellKernel.GetWidth: Single;
+function TMitchellResampler.Width: Single;
 begin
   Result := 2;
 end;
 
-{ TCubicKernel }
+{ TCubicResampler }
 
-constructor TCubicKernel.Create;
+constructor TCubicResampler.Create;
 begin
-  inherited Create(Map);
+  inherited Create;
   FCoeff := -0.5;
 end;
 
-function TCubicKernel.Filter(Value: Single): Single;
+function TCubicResampler.Filter(Value: Single): Single;
 var
   tt, ttt: Single;
 begin
@@ -1634,79 +1875,61 @@ begin
     Result := 0;
 end;
 
-function TCubicKernel.RangeCheck: Boolean;
+function TCubicResampler.RangeCheck: Boolean;
 begin
   Result := True;
 end;
 
-function TCubicKernel.GetWidth: Single;
+function TCubicResampler.Width: Single;
 begin
   Result := 2;
 end;
 
-{ TGaussKernel }
+{ TGaussResampler }
 
-constructor TGaussianKernel.Create;
+constructor TGaussianResampler.Create;
 begin
   inherited;
   FSigma := 1.33;
 end;
 
-procedure TGaussianKernel.SetSigma(const Value: Single);
-begin
-  if (FSigma <> Value) and (FSigma <> 0) then
-  begin
-    FSigma := Value;
-    FMap.Changed;
-  end;
-end;
-
-function TGaussianKernel.Window(Value: Single): Single;
+function TGaussianResampler.Window(Value: Single): Single;
 begin
   Result := Power(2, -Sqr(Value) / FSigma);
 end;
 
-procedure TCubicKernel.SetCoeff(const Value: Single);
-begin
-  if Value <> FCoeff then
-  begin
-    FCoeff := Value;
-    FMap.Changed;
-  end
-end;
+{ TBlackmanResampler }
 
-{ TBlackmanKernel }
-
-function TBlackmanKernel.Window(Value: Single): Single;
+function TBlackmanResampler.Window(Value: Single): Single;
 begin
   Value := Pi * Value / FWidth;
   Result := 0.42 + 0.5 * Cos(Value) + 0.08 * Cos(2 * Value);
 end;
 
-{ THannKernel }
+{ THannResampler }
 
-function THannKernel.Window(Value: Single): Single;
+function THannResampler.Window(Value: Single): Single;
 begin
   Result := 0.5 + 0.5 * Cos(Pi * Value / FWidth);
 end;
 
-{ THammingKernel }
+{ THammingResampler }
 
-function THammingKernel.Window(Value: Single): Single;
+function THammingResampler.Window(Value: Single): Single;
 begin
   Result := 0.54 + 0.46 * Cos(Pi * Value / FWidth);
 end;
 
-{ TSinshKernel }
+{ TSinshResampler }
 
-constructor TSinshKernel.Create(Map: TCustomMap);
+constructor TSinshResampler.Create;
 begin
-  inherited Create(Map);
+  inherited;
   FWidth := 3;
   FCoeff := 0.5;
 end;
 
-function TSinshKernel.Filter(Value: Single): Single;
+function TSinshResampler.Filter(Value: Single): Single;
 begin
   if Value = 0 then
     Result := 1
@@ -1714,61 +1937,19 @@ begin
     Result := FCoeff * Sin(Pi * Value) / Sinh(Pi * FCoeff * Value);
 end;
 
-function TSinshKernel.RangeCheck: Boolean;
+function TSinshResampler.RangeCheck: Boolean;
 begin
   Result := True;
 end;
 
-procedure TSinshKernel.SetWidth(Value: Single);
+procedure TSinshResampler.SetWidth(Value: Single);
 begin
-  if FWidth <> Value then
-  begin
-    FWidth := Value;
-    FMap.Changed;
-  end;
+  FWidth := Value;
 end;
 
-function TSinshKernel.GetWidth: Single;
+function TSinshResampler.Width: Single;
 begin
   Result := FWidth;
-end;
-
-
-{ General routines for registering kernels and setting them up }
-
-procedure RegisterKernel(KernelClass: TCustomKernelClass);
-begin
-  if not Assigned(KernelList) then
-    KernelList := TList.Create;
-  KernelList.Add(KernelClass);
-end;
-
-function GetKernelClassNames: TStrings;
-var
-  I: Integer;
-begin
-  if not Assigned(KernelList) then
-    Result := nil
-  else
-  begin
-    Result := TStringList.Create;
-    for I := 0 to KernelList.Count - 1 do
-      Result.Add(TCustomKernelClass(KernelList.List[I]).ClassName);
-  end;
-end;
-
-function FindKernelClass(ClassName: string): TCustomKernelClass;
-var
-  I: Integer;
-begin
-  Result := nil;
-  if Assigned(KernelList) then
-    for I := 0 to KernelList.Count - 1 do
-      if TCustomKernelClass(KernelList.List[I]).ClassName = ClassName then
-      begin
-        Result := TCustomKernelClass(KernelList.List[I]);
-        Exit;
-      end;
 end;
 
 
@@ -1791,11 +1972,11 @@ begin
   begin
     Result := TStringList.Create;
     for I := 0 to ResamplerList.Count - 1 do
-      Result.Add(TCustomResamplerClass(ResamplerList.List[I]).ClassName);
+      Result.Add(TAbstractResamplerClass(ResamplerList.List[I]).ClassName);
   end;
 end;
 
-function FindResamplerClass(ClassName: string): TBitmap32ResamplerClass;
+function FindResamplerClass(ClassName: string): TCustomResamplerClass;
 var
   I: Integer;
 begin
@@ -1804,11 +1985,10 @@ begin
     for I := 0 to ResamplerList.Count - 1 do
       if TCustomResamplerClass(ResamplerList.List[I]).ClassName = ClassName then
       begin
-        Result := TBitmap32ResamplerClass(ResamplerList.List[I]);
+        Result := TCustomResamplerClass(ResamplerList.List[I]);
         Exit;
       end;
 end;
-
 
 procedure SetupFunctions;
 var
@@ -1819,448 +1999,42 @@ begin
   ACTIVE_3DNow := Has3DNow;
   if ACTIVE_3DNow then
   begin
-   { link 3DNow functions }
+   // link 3DNow functions
    BlockAverage := BlockAverage_3DNow;
    LinearInterpolator:= M_LinearInterpolator;
   end
   else
   if MMX_ACTIVE then
   begin
-   { link MMX functions }
+   // link MMX functions
    BlockAverage:= BlockAverage_MMX;
    LinearInterpolator:= M_LinearInterpolator;
   end
   else
   begin
-   { link IA32 functions }
+   // link IA32 functions
    BlockAverage:= BlockAverage_IA32;
    LinearInterpolator:= _LinearInterpolator;
   end
 end;
 
-
-
-
-
-//============================================================================//
-
-
-procedure TSinshKernel.SetCoeff(const Value: Single);
-begin
-  if (FCoeff <> Value) and (FCoeff <> 0) then
-  begin
-    FCoeff := Value;
-    FMap.Changed;
-  end;
-end;
-
-{ TBitmap32Resampler }
-
-constructor TBitmap32Resampler.Create(Bitmap: TBitmap32);
-begin
-  inherited Create;
-  FBitmap := Bitmap;
-end;
-
-function TBitmap32Resampler.GetSampleInt(X, Y: Integer): TColor32;
-begin
-  Result := FBitmap.Pixel[X, Y];
-end;
-
-
-{ TBitmap32KernelResampler }
-
-constructor TBitmap32KernelResampler.Create(Bitmap: TBitmap32);
-begin
-  inherited Create(Bitmap);
-  FKernel := TNearestKernel.Create(Bitmap);
-end;
-
-destructor TBitmap32KernelResampler.Destroy;
-begin
-  FKernel.Free;
-end;
-
-function TBitmap32KernelResampler.GetKernelClassName: string;
-begin
-  Result := FKernel.ClassName;
-end;
-
-procedure TBitmap32KernelResampler.SetKernelClassName(Value: string);
-begin
-  if (Value <> '') and (FKernel.ClassName <> Value) then
-  begin
-    FKernel.Free;
-    FKernel := FindKernelClass(Value).Create(Bitmap);
-    Bitmap.Changed;
-  end;
-end;
-
-procedure TBitmap32KernelResampler.SetKernel(const Value: TCustomKernel);
-begin
-  if FKernel <> Value then
-  begin
-    FKernel.Free;
-    FKernel := Value;
-    Bitmap.Changed;
-  end;
-end;
-
-procedure TBitmap32KernelResampler.Resample(Dst: TBitmap32; DstRect,
-  DstClip: TRect; Src: TBitmap32; SrcRect: TRect; CombineOp: TDrawMode;
-  CombineCallBack: TPixelCombineEvent);
-begin
-  GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FKernel, CombineOp, CombineCallBack);
-end;
-
-
-function TBitmap32KernelResampler.GetSampleFloat(X, Y: Single): TColor32;
-type
-  PColorEntry = ^TColorEntry;
-  TColorEntry = packed record
-    B, G, R, A: Byte;
-  end;
-var
-  clX, clY: Integer;
-  fracX, fracY: Single;
-  W: Integer;
-  Filter: TFilterMethod;
-  I, J, Incr: Integer;
-  C: PColor32Entry;
-  LoX, HiX, LoY, HiY: Integer;
-
-  MappingX: array [-3..3] of Integer;
-  MappingY: array [-3..3] of Integer;
-  HorzEntry, VertEntry: TBufferEntry;
-begin
-  Filter := FKernel.Filter;
-  W := Ceil(FKernel.GetWidth);
-
-  clX := Ceil(X);
-  clY := Ceil(Y);
-  fracX := clX - X;
-  fracY := clY - Y;
-
-  if clX < W then LoX := -clX else LoX := -W;
-  if clY < W then LoY := -clY else LoY := -W;
-  HiX := FBitmap.Width - 1;
-  HiY := FBitmap.Height - 1;
-  Incr := HiX;
-  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
-  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
-
-  for I := LoX to HiX do MappingX[I] := Round(Filter(I + fracX) * 256);
-  for I := LoY to HiY do MappingY[I] := Round(Filter(I + fracY) * 256);
-
-  C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-  Dec(Incr, HiX - LoX);
-
-  VertEntry := ROUND_ENTRY;
-  for I := LoY to HiY do
-  begin
-    HorzEntry := EMPTY_ENTRY;
-    for J := LoX to HiX do
-    begin
-      W := MappingX[J];
-      Inc(HorzEntry.A, C.A * W);
-      Inc(HorzEntry.R, C.R * W);
-      Inc(HorzEntry.G, C.G * W);
-      Inc(HorzEntry.B, C.B * W);
-      Inc(C);
-    end;
-    W := MappingY[I];
-    Inc(VertEntry.A, HorzEntry.A * W);
-    Inc(VertEntry.R, HorzEntry.R * W);
-    Inc(VertEntry.G, HorzEntry.G * W);
-    Inc(VertEntry.B, HorzEntry.B * W);
-    Inc(C, Incr);
-  end;
-  if FKernel.RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
-  end;
-  with TColorEntry(Result) do
-  begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
-  end;
-end;
-
-{ TBitmap32TableResampler }
-
-constructor TBitmap32TableResampler.Create(Bitmap: TBitmap32);
-begin
-  inherited Create(Bitmap);
-  FTableSize := 32;
-end;
-
-procedure TBitmap32TableResampler.SetTableSize(const Value: Integer);
-begin
-  if FTableSize <> Value then
-  begin
-    FTableSize := Value;
-    Bitmap.Changed;
-  end;
-end;
-
-{ TBitmap32Resampler }
-
-procedure TBitmap32TableResampler.PrepareRasterization;
-var
-  I, J, K, W: Integer;
-  Fraction: Single;
-begin
-  W := Ceil(FKernel.GetWidth);
-  SetLength(FWeightTable, FTableSize, W * 2 + 1);
-  K := FTableSize - 1;
-  for I := 0 to K do
-  begin
-    Fraction := I / K;
-    for J := -W to W do
-      FWeightTable[I, J + W] := Round(FKernel.Filter(J + Fraction) * 256);
-  end;
-end;
-
-procedure TBitmap32TableResampler.FinalizeRasterization;
-begin
-  FWeightTable := nil;
-end;
-
-function TBitmap32TableResampler.GetSampleFloat(X, Y: Single): TColor32;
-var
-  clX, clY, fracX, fracY: Integer;
-  W: Integer;
-  I, J, Incr: Integer;
-  C: PColor32Entry;
-  LoX, HiX, LoY, HiY: Integer;
-  HorzEntry, VertEntry: TBufferEntry;
-  HorzKernel, VertKernel: PKernelEntry;
-begin
-  clX := Ceil(X);
-  clY := Ceil(Y);
-  W := High(FWeightTable);
-  fracX := Round((clX - X) * W);
-  fracY := Round((clY - Y) * W);
-
-  W := Ceil(FKernel.GetWidth);
-
-  if clX < W then LoX := -clX else LoX := -W;
-  if clY < W then LoY := -clY else LoY := -W;
-  HiX := FBitmap.Width - 1;
-  HiY := FBitmap.Height - 1;
-  Incr := HiX;
-  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
-  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
-
-  C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-  Dec(Incr, HiX - LoX);
-
-  VertEntry := ROUND_ENTRY;
-  HorzKernel := @FWeightTable[fracX][W];
-  VertKernel := @FWeightTable[fracY][W];
-
-  for I := LoY to HiY do
-  begin
-    HorzEntry := EMPTY_ENTRY;
-    for J := LoX to HiX do
-    begin
-      W := HorzKernel[J];
-      Inc(HorzEntry.A, C.A * W);
-      Inc(HorzEntry.R, C.R * W);
-      Inc(HorzEntry.G, C.G * W);
-      Inc(HorzEntry.B, C.B * W);
-      Inc(C);
-    end;
-    W := VertKernel[I];
-    Inc(VertEntry.A, HorzEntry.A * W);
-    Inc(VertEntry.R, HorzEntry.R * W);
-    Inc(VertEntry.G, HorzEntry.G * W);
-    Inc(VertEntry.B, HorzEntry.B * W);
-    Inc(C, Incr);
-  end;
-
-  if FKernel.RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
-  end;
-
-  with TColor32Entry(Result) do
-  begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
-  end;
-end;
-
-
-{ TBitmap32NearestResampler }
-
-function TBitmap32NearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
-begin
-  Result := Bitmap.Pixel[X div $10000, Y div $10000];
-end;
-
-function TBitmap32NearestResampler.GetSampleFloat(X, Y: Single): TColor32;
-begin
-  Result := Bitmap.Pixel[Round(X), Round(Y)];
-end;
-
-procedure TBitmap32NearestResampler.Resample(
-  Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-  Src: TBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
-begin
-  StretchNearest(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
-end;
-
-
-{ TBitmap32LinearResampler }
-
-constructor TBitmap32LinearResampler.Create(Bitmap: TBitmap32);
-begin
-  inherited Create(Bitmap);
-  FLinearKernel := TLinearKernel.Create(Bitmap);
-end;
-
-destructor TBitmap32LinearResampler.Destroy;
-begin
-  FLinearKernel.Free;
-end;
-
-function TBitmap32LinearResampler.GetSampleFloat(X, Y: Single): TColor32;
-begin
-  Result := FBitmap.PixelFS[X, Y];
-end;
-
-procedure TBitmap32LinearResampler.Resample(
-  Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-  Src: TBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
-var
-  SrcW, SrcH: Single;
-  DstW, DstH: Integer;
-begin
-  SrcW := SrcRect.Right - SrcRect.Left;
-  SrcH := SrcRect.Bottom - SrcRect.Top;
-  DstW := DstRect.Right - DstRect.Left;
-  DstH := DstRect.Bottom - DstRect.Top;
-  if (DstW > SrcW) and (DstH > SrcH) and (SrcW > 1) and (SrcH > 1) then
-    StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
-  else
-    GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp, CombineCallBack);
-end;
-
-procedure TBitmap32DraftResampler.Resample(
-  Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-  Src: TBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
-begin
-  DraftResample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp, CombineCallBack)
-end;
-
-
-{ TTransformationResampler }
-
-function TTransformationSampler.GetSampleInt(X, Y: Integer): TColor32;
-var
-  U, V: Single;
-begin
-  TTransformationAccess(FTransformation).ReverseTransformFloat(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
-  begin
-    Result := FResampler.GetSampleFloat(U, V);
-  end
-  else
-    Result := FOuterColor;
-end;
-
-function TTransformationSampler.GetSampleFixed(X, Y: TFixed): TColor32;
-var
-  U, V: TFixed;
-begin
-  TTransformationAccess(FTransformation).ReverseTransformFixed(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
-  begin
-    Result := FResampler.GetSampleFixed(U, V);
-  end
-  else
-    Result := FOuterColor;
-end;
-
-function TTransformationSampler.GetSampleFloat(X, Y: Single): TColor32;
-var
-  U, V: Single;
-begin
-  TTransformationAccess(FTransformation).ReverseTransformFloat(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
-  begin
-    Result := FResampler.GetSampleFloat(U, V);
-  end
-  else
-    Result := FOuterColor;
-end;
-
-procedure TTransformationSampler.PrepareRasterization;
-begin
-  FResampler.PrepareRasterization;
-end;
-
-procedure TTransformationSampler.FinalizeRasterization;
-begin
-  FResampler.FinalizeRasterization;
-end;
-
-constructor TTransformationSampler.Create(Src: TBitmap32; ATransformation: TTransformation);
-var
-  R: TRect;
-begin
-  inherited Create;
-  FResampler := Src.Resampler;
-  FOuterColor := Src.OuterColor;
-  FTransformation := ATransformation;
-  R := MakeRect(Round(ATransformation.SrcRect.Left), Round(ATransformation.SrcRect.Top),
-                Round(ATransformation.SrcRect.Right), Round(ATransformation.SrcRect.Bottom));
-  IntersectRect(FBoundsRect, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
-end;
-
 initialization
   SetupFunctions;
-
-  { Register resamplers }
-  RegisterResampler(TBitmap32KernelResampler);
-  RegisterResampler(TBitmap32TableResampler);
-  RegisterResampler(TBitmap32NearestResampler);
-  RegisterResampler(TBitmap32LinearResampler);
-  RegisterResampler(TBitmap32DraftResampler);
-
-  { Register kernels }
-  RegisterKernel(TNearestKernel);
-  RegisterKernel(TLinearKernel);
-  RegisterKernel(TCosineKernel);
-  RegisterKernel(TSplineKernel);
-  RegisterKernel(TCubicKernel);
-  RegisterKernel(TMitchellKernel);
-  RegisterKernel(TLanczosKernel);
-  RegisterKernel(TGaussianKernel);
-  RegisterKernel(TBlackmanKernel);
-  RegisterKernel(THannKernel);
-  RegisterKernel(THammingKernel);
-  RegisterKernel(TSinshKernel);
+  RegisterResampler(TNearestResampler);
+  RegisterResampler(TDraftResampler);
+  RegisterResampler(TLinearResampler);
+  RegisterResampler(TCosineResampler);
+  RegisterResampler(TSplineResampler);
+  RegisterResampler(TCubicResampler);
+  RegisterResampler(TMitchellResampler);
+  RegisterResampler(TLanczosResampler);
+  RegisterResampler(TGaussianResampler);
+  RegisterResampler(TBlackmanResampler);
+  RegisterResampler(THannResampler);
+  RegisterResampler(THammingResampler);
+  RegisterResampler(TSinshResampler);
 
 finalization
-  KernelList.Free;
   ResamplerList.Free;
 
 end.
