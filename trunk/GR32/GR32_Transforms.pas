@@ -218,6 +218,7 @@ type
   private
     Frx, Fry: Single;
     Faw, Fsr: Single;
+    Sx, Sy: Single;
     FMinR: Single;
   protected
     procedure PrepareTransform; override;
@@ -1057,13 +1058,25 @@ end;
 
 procedure TFishEyeTransformation.PrepareTransform;
 begin
-  with FSrcRect do begin
+  with FSrcRect do
+  begin
     Frx := (Right - Left - 1) / 2;
     Fry := (Bottom - Top - 1) / 2;
-    FMinR := Min(Frx, Fry);
+    if Frx <= Fry then
+    begin
+      FMinR := Frx;
+      Sx := 1;
+      Sy:= 1 / (Fry / Frx);
+    end
+    else
+    begin
+      FMinR := Fry;
+      Sx:= 1 / (Frx / Fry);
+      Sy := 1;
+    end;
     Fsr := 1 / FMinR;
     Faw := ArcSin(EnsureRange(FMinR * Fsr, -1, 1));
-    if Faw <> 0 then Faw := 1/Faw;
+    if Faw <> 0 then Faw := 1 / Faw;
     Faw := Faw * FMinR
   end;
 end;
@@ -1073,14 +1086,14 @@ procedure TFishEyeTransformation.ReverseTransformFloat(DstX, DstY: Single;
 var
   d, Xrx, Yry: Single;
 begin
-  Yry := DstY - Fry;
-  Xrx := DstX - Frx;
+  Yry := (DstY - Fry) * sy;
+  Xrx := (DstX - Frx) * sx;
   d := Sqrt(Sqr(Xrx) + Sqr(Yry));
   if (d < FMinR) and (d > 0) then
   begin
-   d := ArcSin(d * Fsr) * Faw / d;
-   SrcX := Frx + Xrx * d;
-   SrcY := Fry + Yry * d;
+    d := ArcSin(d * Fsr) * Faw / d;
+    SrcX := Frx + Xrx * d;
+    SrcY := Fry + Yry * d;
   end
   else
   begin
