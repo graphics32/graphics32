@@ -1964,16 +1964,18 @@ function TBitmap32.GET_T256(X, Y: Integer): TColor32;
 var
  Pos: Cardinal;
 begin
-  Pos:= Sar_8(X) +  Sar_8(Y) * FWidth;
-  Result:= Interpolator( X and $FF xor 255, Y and $FF xor 255, @FBits[Pos],
-                         @FBits[Pos + FWidth] );
+  Pos:= (X shr 8) +  (Y shr 8) * FWidth;
+  Result:= Interpolator( GAMMA_TABLE[X and $FF xor 255],
+                         GAMMA_TABLE[Y and $FF xor 255],
+                         @FBits[Pos], @FBits[Pos + FWidth] );
 end;
 
 function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
 begin
-  if X < 0 then X:= 0 else if Sar_8(X) > FWidth  - 1 then X:= (FWidth  - 1)shl 8;
-  if Y < 0 then Y:= 0 else if Sar_8(Y) > FHeight - 1 then Y:= (FHeight - 1)shl 8;
-  Result:= GET_T256(X,Y);
+  if (X > 0)and(Y > 0) and
+     (X < (FWidth  - 1)shl 8) and
+     (Y < (FHeight - 1)shl 8) then Result:= GET_T256(X,Y)
+     else Result:= FOuterColor;
 end;
 
 function TBitmap32.GetPixelF(X, Y: Single): TColor32;
