@@ -23,7 +23,8 @@ unit GR32;
  *
  * Contributor(s):
  *   Michael Hansen <dyster_tid@hotmail.com>
- *      - 2004/07/08 - TBitmap32.GetPixelF routines 
+ *   Andre Beckedorf <Andre@metaException.de>
+ *   J. Tulach <tulach@position.cz>
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -38,7 +39,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.5.1b';
+  Graphics32Version = '1.6.0';
 
 { 32-bit Color }
 
@@ -437,7 +438,7 @@ type
     procedure Rotate270(Dst: TBitmap32 = nil);
 
     property Canvas: TCanvas read GetCanvas;
-    function  CanvasAllocated: Boolean;
+    function CanvasAllocated: Boolean;
     procedure DeleteCanvas;
 
     property BitmapHandle: HBITMAP read FHandle;
@@ -1155,13 +1156,32 @@ procedure TBitmap32.Assign(Source: TPersistent);
 var
   Canvas: TCanvas;
   Picture: TPicture;
+  TempBitmap: TBitmap32;
+  I: integer;
+  DstP, SrcP: PColor32;
+  DstColor: TColor32;
 
   procedure AssignFromBitmap(SrcBmp: TBitmap);
+  var
+    TransparentColor: TColor32;
+    I: integer;
   begin
     SetSize(SrcBmp.Width, SrcBmp.Height);
     if Empty then Exit;
     BitBlt(Handle, 0, 0, Width, Height, SrcBmp.Canvas.Handle, 0, 0, SRCCOPY);
     if SrcBmp.PixelFormat <> pf32bit then ResetAlpha;
+    if SrcBmp.Transparent then
+    begin
+      TransparentColor := Color32(SrcBmp.TransparentColor) and $00FFFFFF;
+      DstP := @Bits[0];
+      for I := 0 to Width * Height - 1 do
+      begin
+        DstColor := DstP^ and $00FFFFFF;
+        if DstColor = TransparentColor then
+          DstP^ := DstColor;
+        inc(DstP);
+      end;
+    end;
   end;
 
 begin
@@ -1178,7 +1198,7 @@ begin
       if Empty then Exit;
       BitBlt(Handle, 0, 0, Width, Height, TBitmap32(Source).Handle, 0, 0, SRCCOPY);
       //Move(TBitmap32(Source).Bits[0], Bits[0], Width * Height * 4);
-      { TODO : Check which copy method is faster }
+      // Move is up to 2x faster with FastMove by the FastCode Project
       FDrawMode := TBitmap32(Source).FDrawMode;
       FMasterAlpha := TBitmap32(Source).FMasterAlpha;
       FOuterColor := TBitmap32(Source).FOuterColor;
@@ -1209,9 +1229,51 @@ begin
       begin
         if TPicture(Source).Graphic is TBitmap then
           AssignFromBitmap(TBitmap(TPicture(Source).Graphic))
-        else
+        else if (TPicture(Source).Graphic is TIcon) or
+                (TPicture(Source).Graphic is TMetaFile) then
         begin
           // icons, metafiles etc...
+          SetSize(TPicture(Source).Graphic.Width, TPicture(Source).Graphic.Height);
+          if Empty then Exit;
+
+          TempBitmap := TBitmap32.Create;
+          Canvas := TCanvas.Create;
+          try
+            Self.Clear(clBlue32);  // mask on blue;
+            Canvas.Handle := Self.Handle;
+            TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Width, Height));
+
+            TempBitmap.SetSize(TPicture(Source).Graphic.Width, TPicture(Source).Graphic.Height);
+            TempBitmap.Clear(clRed32); // mask on red;
+            Canvas.Handle := TempBitmap.Handle;
+            TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Width, Height));
+
+            DstP := @Bits[0];
+            SrcP := @TempBitmap.Bits[0];
+            for I := 0 to Width * Height - 1 do
+            begin
+              DstColor := DstP^ and $00FFFFFF;
+              // this checks for transparency by comparing the pixel of
+              // temporary bitmap (red masked) with the pixel of our
+              // bitmap (blue masked). If they match, make that pixel opaque
+              if DstColor = (SrcP^ and $00FFFFFF) then
+                Bits[I] := DstColor or $FF000000
+              else
+              // if the colors don't match (that is the case if there is a
+              // match "is clRed32 = clBlue32 ?"), just make that pixel
+              // transparent:
+                Bits[I] := DstColor;
+
+               inc(SrcP); inc(DstP);
+            end;
+          finally
+            TempBitmap.Free;
+            Canvas.Free;
+          end;
+        end
+        else
+        begin
+          // anything else...
           SetSize(TPicture(Source).Graphic.Width, TPicture(Source).Graphic.Height);
           if Empty then Exit;
           Canvas := TCanvas.Create;
