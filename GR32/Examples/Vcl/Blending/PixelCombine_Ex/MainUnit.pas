@@ -43,6 +43,8 @@ type
     procedure PC_Modulate(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Min(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Max(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
   public
     PatCount: Integer;
@@ -101,6 +103,16 @@ begin
   B := ColorSub(F, B);
 end;
 
+procedure TForm1.PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := ColorDifference(F, B);
+end;
+
+procedure TForm1.PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := ColorExclusion(F, B);
+end;
+
 procedure TForm1.RadioGroup1Click(Sender: TObject);
 begin
   case RadioGroup1.ItemIndex of
@@ -110,7 +122,9 @@ begin
     3: L.Bitmap.OnPixelCombine := PC_Modulate;
     4: L.Bitmap.OnPixelCombine := PC_Min;
     5: L.Bitmap.OnPixelCombine := PC_Max;
-    6: L.Bitmap.OnPixelCombine := PC_Pattern;
+    6: L.Bitmap.OnPixelCombine := PC_Difference;
+    7: L.Bitmap.OnPixelCombine := PC_Exclusion;
+    8: L.Bitmap.OnPixelCombine := PC_Pattern;
   end;
   L.Bitmap.Changed;
 end;

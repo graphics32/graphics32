@@ -12,6 +12,9 @@ object Form1: TForm1
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  DesignSize = (
+    516
+    346)
   PixelsPerInch = 96
   TextHeight = 13
   object ImgView: TImgView32
@@ -7523,9 +7526,10 @@ object Form1: TForm1
       BE7E12FFBF8012FFBF8012FFBD7E10FFBD7E10FFBD7D11FF}
     Color = clBtnShadow
     ParentColor = False
-    Scale = 1
+    Scale = 1.000000000000000000
     ScrollBars.Color = clBtnShadow
     ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsDefault
     SizeGrip = sgAuto
     TabOrder = 0
   end
@@ -7544,6 +7548,8 @@ object Form1: TForm1
       'Modulate'
       'Min'
       'Max'
+      'Difference'
+      'Exclusion'
       'Pattern')
     TabOrder = 1
     OnClick = RadioGroup1Click
