@@ -411,6 +411,7 @@ procedure StretchHorzStretchVertLinear(
   Dst: TBitmap32; DstRect, DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+//Assure DstRect is >= SrcRect, otherwise quality loss will occur
 
  function sfLinear_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
  asm
@@ -466,7 +467,6 @@ begin
   DstH := DstRect.Bottom - DstRect.Top;
   DstClipW := DstClip.Right - DstClip.Left;
   DstClipH := DstClip.Bottom - DstClip.Top;
-  Assert((DstW > SrcW) and (DstH > SrcH));
 
   SetLength(MapHorz, DstClipW);
   if FullEdge then Scale := SrcW / DstW
