@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 272
   Top = 282
   BorderStyle = bsToolWindow
-  Caption = 'GetPixelF Ex'
+  Caption = 'PixelF Example'
   ClientHeight = 258
   ClientWidth = 459
   Color = clBtnFace
@@ -16,6 +16,7 @@ object MainForm: TMainForm
   Font.Name = 'MS Sans Serif'
   Font.Style = []
   OldCreateOrder = False
+  Position = poScreenCenter
   OnClose = FormClose
   OnCreate = FormCreate
   DesignSize = (
@@ -26,9 +27,10 @@ object MainForm: TMainForm
   object Image32: TImage32
     Left = 8
     Top = 8
-    Width = 301
-    Height = 245
+    Width = 300
+    Height = 244
     Anchors = [akLeft, akTop, akRight, akBottom]
+    AutoSize = True
     Bitmap.DrawMode = dmBlend
     Bitmap.Data = {
       2C010000F4000000C2D7D4FFACC1BEFFA7BCB9FFBACFCCFFBDD2CFFFAABFBCFF
@@ -9239,7 +9241,7 @@ object MainForm: TMainForm
       Top = 96
       Width = 129
       Height = 17
-      Caption = 'TBitmap32.GetPixelFS'
+      Caption = 'TBitmap32.PixelFS'
       TabOrder = 2
       OnClick = gbTwistChange
     end

@@ -64,29 +64,32 @@ implementation
 procedure TMainForm.TwirlDistortion(Dst, Src: TBitmap32; const Value: Integer);
 {twirl algoritm inspired by Patrick Quinn´s remap demo}
 var
-  H, X, Y: Integer;
-  r, rx, ry, t, tt: Real;
+  X, Y, DstR, DstB: Integer;
+  r, rx, ry, t, tt, v: Single;
 begin
   rx := Src.Width / 2;
   ry := Src.Height / 2;
-  H := Src.Height - 1;
+  v := -Value / 5 / Src.Height;
+  DstR := Dst.Width - 1;
+  DstB := Dst.Height - 1;
 
   if rbGetPixelFS.Checked then
-   for Y := 1 to Dst.Height - 2 do
-    for X := 1 to Dst.Width - 2 do begin
-      r := Sqrt(Sqr(X - rx) + Sqr(Y - ry));
+   for Y := 0 to DstB do
+    for X := 0 to DstR do begin
+      r := Hypot(X - rx, Y - ry);
       t := ArcTan2(Y - ry, X - rx);
-      tt := t + r * (- Value / 5 /H);
-      Dst.Pixel[X,Y] := Src.GetPixelFS( rx + r * Cos(tt), ry + r * Sin(tt) );
+      tt := t + r * v;
+      Dst.Pixel[X, Y] := Src.PixelFS[ rx + r * Cos(tt),
+                                      ry + r * Sin(tt) ];
     end
   else if rbPixelS.Checked then
-   for Y := 1 to Dst.Height - 2 do
-    for X := 1 to Dst.Width - 2 do begin
-      r := Sqrt(Sqr(X - rx) + Sqr(Y - ry));
+   for Y := 0 to DstB do
+    for X := 0 to DstR do begin
+      r := Hypot(X - rx, Y - ry);
       t := ArcTan2(Y - ry, X - rx);
-      tt := t + r * (- Value / 5 /H);
-      Dst.Pixel[X,Y] := Src.PixelS[ Round(rx + r * Cos(tt)),
-                                    Round(ry + r * Sin(tt)) ];
+      tt := t + r * v;
+      Dst.Pixel[X, Y] := Src.PixelS[ Round(rx + r * Cos(tt)),
+                                     Round(ry + r * Sin(tt)) ];
     end;
 end;
 
@@ -99,49 +102,51 @@ var
   Line1, Line2: TArrayOfColor32; // a buffer for a couple of scanlines
 begin
   with Image32.Buffer do
-  begin
-    W := Width;
-    SetLength(Line1, W);
-    SetLength(Line2, W);
-    for I := 0 to W - 1 do
+    if StageNum = 0 then
     begin
-      Parity := I shr 3 and $1;
-      Line1[I] := Colors[Parity];
-      Line2[I] := Colors[1 - Parity];
-    end;
-    for J := 0 to Height - 1 do
-    begin
-      Parity := J shr 3 and $1;
-      if Boolean(Parity) then MoveLongword(Line1[0], ScanLine[J]^, W)
-      else MoveLongword(Line2[0], ScanLine[J]^, W);
-    end;
-    FrameRectS( BoundsRect , $FF000000);
-  end;
+      W := Width;
+      SetLength(Line1, W);
+      SetLength(Line2, W);
+      for I := 0 to W - 1 do
+      begin
+        Parity := I shr 3 and $1;
+        Line1[I] := Colors[Parity];
+        Line2[I] := Colors[1 - Parity];
+      end;
+      for J := 0 to Height - 1 do
+      begin
+        Parity := J shr 3 and $1;
+        if Boolean(Parity) then MoveLongword(Line1[0], ScanLine[J]^, W)
+        else MoveLongword(Line2[0], ScanLine[J]^, W);
+      end;
+    end
+    else
+      FrameRectS(BoundsRect , $FF000000);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var i: integer;
+var
+  i: integer;
 begin
-  with Image32.PaintStages[0]^ do
+  with Image32 do
   begin
-    if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
+    if PaintStages[0].Stage = PST_CLEAR_BACKGND then PaintStages[0].Stage := PST_CUSTOM;
+    PaintStages.Add.Stage := PST_CUSTOM;
   end;
-  
-  Src:= TBitmap32.Create;
+
+  Src := TBitmap32.Create;
   with Src do begin //Making distorted borders look better
    Assign(Image32.Bitmap);
    for i:= 0 to Width - 1 do begin
-    Pixel[i, 0]:= Pixel[i,0] and $00FFFFFF;
-    Pixel[i, Height - 1]:= Pixel[i,0] and $00FFFFFF;
+    Pixel[i, 0] := Pixel[i, 0] and $00FFFFFF;
+    Pixel[i, Height - 1] := Pixel[i, 0] and $00FFFFFF;
    end;
    for i:= 0 to Height - 1 do begin
-    Pixel[0, i]:= Pixel[i,0] and $00FFFFFF or $7F000000;
-    Pixel[Width - 1, i]:= Pixel[i,0] and $00FFFFFF;
+    Pixel[0, i] := Pixel[i, 0] and $00FFFFFF or $7F000000;
+    Pixel[Width - 1, i] := Pixel[i, 0] and $00FFFFFF;
    end;
-   OuterColor:= $00000000;
+   OuterColor := $00000000;
   end;
-
-  Image32.SetupBitmap(true, $00000000);
 end;
 
 procedure TMainForm.gbTwistChange(Sender: TObject);
