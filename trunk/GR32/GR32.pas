@@ -47,7 +47,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.7.1';
+  Graphics32Version = '1.8 pre';
 
 { 32-bit Color }
 
@@ -58,6 +58,17 @@ type
   PColor32Array = ^TColor32Array;
   TColor32Array = array [0..0] of TColor32;
   TArrayOfColor32 = array of TColor32;
+
+  PColor32Entry = ^TColor32Entry;
+  TColor32Entry = packed record
+    case Integer of
+      0: (B, G, R, A: Byte);
+      1: (ARGB: TColor32);
+  end;
+
+  PColor32EntryArray = ^TColor32EntryArray;
+  TColor32EntryArray = array [0..0] of TColor32Entry;
+  TArrayOfColor32Entry = array of TColor32Entry;
 
   PPalette32 = ^TPalette32;
   TPalette32 = array [Byte] of TColor32;
@@ -230,9 +241,11 @@ type
   TDrawMode = (dmOpaque, dmBlend, dmCustom);
   TCombineMode = (cmBlend, cmMerge);
 
+{$IFDEF DEPRECATEDMODE}
 { Stretch filters }
   TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline,
     sfLanczos, sfMitchell);
+{$ENDIF}
 
 { Gamma bias for line/pixel antialiasing }
 
@@ -268,6 +281,8 @@ const
 {$ENDIF}
 
 type
+  TCustomResampler = class; { forward declaration }
+
   { TThreadPersistent }
   { TThreadPersistent is an ancestor for TBitmap32 object. In addition to
     TPersistent methods, it provides thread-safe locking and change notification }
@@ -323,6 +338,7 @@ type
     (a little bit non-standard) approach allows for faster operation. }
 
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
+  TOnChangedRectEvent = procedure(Sender: TObject; const Rect: TRect) of object;
 
   TBitmap32 = class(TCustomMap)
   private
@@ -350,10 +366,16 @@ type
     FStippleCounter: Single;
     FStipplePattern: TArrayOfColor32;
     FStippleStep: Single;
+{$IFDEF DEPRECATEDMODE}
     FStretchFilter: TStretchFilter;
+{$ENDIF}
     FOnHandleChanged: TNotifyEvent;
     FOnPixelCombine: TPixelCombineEvent;
+    FOnChangedRect: TOnChangedRectEvent;
     FCombineMode: TCombineMode;
+    FMeasuringMode: Boolean;
+    FOldOnChangedRect: TOnChangedRectEvent;
+    FResampler: TCustomResampler;
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
@@ -363,6 +385,7 @@ type
     function  GetPixelFS(X, Y: Single): TColor32;
     function  GetPixelX(X, Y: TFixed): TColor32;
     function  GetPixelXS(X, Y: TFixed): TColor32;
+    function  GetPixelZ(X, Y: Single): TColor32;
     function  GetPixelPtr(X, Y: Integer): PColor32;
     function  GetScanLine(Y: Integer): PColor32Array;
 {$IFDEF CLX}
@@ -376,12 +399,17 @@ type
     procedure SetMasterAlpha(Value: Cardinal);
     procedure SetPixel(X, Y: Integer; Value: TColor32);
     procedure SetPixelS(X, Y: Integer; Value: TColor32);
+{$IFDEF DEPRECATEDMODE}
     procedure SetStretchFilter(Value: TStretchFilter);
+{$ENDIF}
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure UpdateClipRects;
     procedure SetClipRect(const Value: TRect);
+    function GetResamplerClassName: string;
+    procedure SetResamplerClassName(Value: string);
+    procedure SetResampler(R: TCustomResampler);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -421,6 +449,13 @@ type
     procedure Clear(FillColor: TColor32); overload;
     procedure Delete; override;
 
+    procedure BeginMeasuring(const Callback: TOnChangedRectEvent);
+    procedure EndMeasuring;
+
+    procedure PropertyChanged;
+    procedure Changed; overload; override;
+    procedure Changed(const Rect: TRect); reintroduce; overload; virtual;
+
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
     procedure LoadFromFile(const FileName: string);
@@ -443,7 +478,6 @@ type
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
   {$ENDIF}
 {$ENDIF}
-
     procedure SetPixelT(X, Y: Integer; Value: TColor32); overload;
     procedure SetPixelT(var Ptr: PColor32; Value: TColor32); overload;
     procedure SetPixelTS(X, Y: Integer; Value: TColor32);
@@ -568,6 +602,7 @@ type
     property  PixelXS[X, Y: TFixed]: TColor32 read GetPixelXS write SetPixelXS;
     property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
     property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
+    property  PixelZ[X, Y: Single]: TColor32 read GetPixelZ;
 {$IFDEF CLX}
     property Pixmap: QPixmapH read GetPixmap;
     property Bits: PColor32Array read GetBits;
@@ -587,15 +622,22 @@ type
     property ScanLine[Y: Integer]: PColor32Array read GetScanLine;
     property StippleCounter: Single read FStippleCounter write FStippleCounter;
     property StippleStep: Single read FStippleStep write FStippleStep;
+
+    property MeasuringMode: Boolean read FMeasuringMode;
+    property Resampler: TCustomResampler read FResampler write SetResampler;
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
     property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
+{$IFDEF DEPRECATEDMODE}
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
+{$ENDIF}
+    property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
     property OnChange;
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
     property OnPixelCombine: TPixelCombineEvent read FOnPixelCombine write FOnPixelCombine;
+    property OnChangedRect: TOnChangedRectEvent read FOnChangedRect write FOnChangedRect;
     property OnResize;
   end;
 
@@ -611,11 +653,33 @@ type
   end;
 {$ENDIF}
 
+  TResampleProc = procedure(
+    Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+    Src: TBitmap32; SrcRect: TRect;
+//    StretchFilter: TStretchFilter;
+    CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+
+  TFilterMethod = function(Value: Single): Single of object;
+
+  { TCustomResampler }
+  TCustomResampler = class
+  public
+    constructor Create; virtual;
+    function Filter(Value: Single): Single; virtual; abstract;
+    function Width: Single; virtual; abstract;
+    function RangeCheck: Boolean; virtual; abstract;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
+  end;
+  TCustomResamplerClass = class of TCustomResampler;
+
 implementation
 
 uses
   GR32_Blend, GR32_Transforms, GR32_LowLevel, GR32_Filters, Math, TypInfo,
-  GR32_System,
+  GR32_System, GR32_Resamplers,
 {$IFDEF CLX}
   QClipbrd,
 {$ELSE}
@@ -1350,7 +1414,7 @@ begin
   FMasterAlpha := $FF;
   FPenColor := clWhite32;
   FStippleStep := 1;
-
+  FResampler := TNearestResampler.Create;
   CombineMode := cmBlend;
 end;
 
@@ -1362,6 +1426,7 @@ begin
     DeleteCanvas;
     SetSize(0, 0);
     FFont.Free;
+    FResampler.Free;
   finally
     Unlock;
   end;
@@ -1547,7 +1612,10 @@ begin
       FDrawMode := TBitmap32(Source).FDrawMode;
       FMasterAlpha := TBitmap32(Source).FMasterAlpha;
       FOuterColor := TBitmap32(Source).FOuterColor;
+      { TODO : Assign resampler here... }
+{$IFDEF DEPRECATEDMODE}
       FStretchFilter := TBitmap32(Source).FStretchFilter;
+{$ENDIF}
       Exit;
     end
     else if Source is TBitmap then
@@ -1738,9 +1806,12 @@ end;
 
 procedure TBitmap32.SetPixelS(X, Y: Integer; Value: TColor32);
 begin
-  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
-     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
+  if not FMeasuringMode and
+    (X >= FClipRect.Left) and (X < FClipRect.Right) and
+    (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
     Bits[X + Y * Width] := Value;
+
+  Changed(MakeRect(X, Y, X + 1, Y + 1));
 end;
 
 function TBitmap32.GetScanLine(Y: Integer): PColor32Array;
@@ -1789,26 +1860,29 @@ var
   SrcHeight, SrcWidth: Integer;
 begin
   if Empty then Exit;
-  StartPainter;
-  QPainter_saveWorldMatrix(Handle);
-  try
-    SrcWidth := SrcRect.Right - SrcRect.Left;
-    SrcHeight := SrcRect.Bottom - SrcRect.Top;
-    // use world transformation to translate and scale.
-    NewMatrix:= QWMatrix_create((DstRect.Right - DstRect.Left) / SrcWidth ,
-      0, 0, (DstRect.Bottom - DstRect.Top) / SrcHeight, DstRect.Left, DstRect.Top);
+  if not MeasuringMode then
+  begin
+    StartPainter;
+    QPainter_saveWorldMatrix(Handle);
     try
-      QPainter_setWorldMatrix(Handle, NewMatrix, True);
-      QPainter_drawPixmap(Handle, 0, 0, SrcPixmap,
-        SrcRect.Left, SrcRect.Top, SrcWidth, SrcHeight);
+      SrcWidth := SrcRect.Right - SrcRect.Left;
+      SrcHeight := SrcRect.Bottom - SrcRect.Top;
+      // use world transformation to translate and scale.
+      NewMatrix:= QWMatrix_create((DstRect.Right - DstRect.Left) / SrcWidth ,
+        0, 0, (DstRect.Bottom - DstRect.Top) / SrcHeight, DstRect.Left, DstRect.Top);
+      try
+        QPainter_setWorldMatrix(Handle, NewMatrix, True);
+        QPainter_drawPixmap(Handle, 0, 0, SrcPixmap,
+          SrcRect.Left, SrcRect.Top, SrcWidth, SrcHeight);
+      finally
+        QWMatrix_destroy(NewMatrix);
+      end;
     finally
-      QWMatrix_destroy(NewMatrix);
+      QPainter_restoreWorldMatrix(Handle);
+      StopPainter;
     end;
-  finally
-    QPainter_restoreWorldMatrix(Handle);
-    StopPainter;
   end;
-  Changed;
+  Changed(DstRect);
 end;
 
 {$ELSE}
@@ -1819,7 +1893,7 @@ begin
   StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
     DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
     SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
-  Changed;
+  Changed(DstRect);
 end;
 {$ENDIF}
 
@@ -1847,15 +1921,15 @@ end;
 procedure TBitmap32.DrawTo(Dst: TBitmap32; const DstRect: TRect);
 begin
   if Empty or Dst.Empty then Exit;
-  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, StretchFilter, DrawMode, FOnPixelCombine);
-  Dst.Changed;
+  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, Resampler, DrawMode, FOnPixelCombine);
+  Dst.Changed(DstRect);
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; const DstRect, SrcRect: TRect);
 begin
   if Empty or Dst.Empty then Exit;
-  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, StretchFilter, DrawMode, FOnPixelCombine);
-  Dst.Changed;
+  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
+  Dst.Changed(DstRect);
 end;
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
@@ -1923,8 +1997,7 @@ begin
         R := DstRect;
         OffsetRect(R, -X - DstRect.Left, -Y - DstRect.Top);
         Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
-        StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, StretchFilter, DrawMode, FOnPixelCombine);
-
+        StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
 {$IFDEF CLX}
         StretchPixmap(
           hDst, X + DstRect.Left, Y + DstRect.Top, ClipRect.Right, ClipRect.Bottom,
@@ -2005,8 +2078,9 @@ end;
 
 procedure TBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
 begin
-  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
-     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
+  if not FMeasuringMode and
+    (X >= FClipRect.Left) and (X < FClipRect.Right) and
+    (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
     BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
     if MMX_ACTIVE then
@@ -2014,6 +2088,7 @@ begin
       db $0F,$77               /// EMMS
     end;
   end;
+  Changed(MakeRect(X, Y, X + 1, Y + 1));
 end;
 
 procedure TBitmap32.SET_T256(X, Y: Integer; C: TColor32);
@@ -2187,6 +2262,11 @@ begin
   EMMS;
 end;
 
+function  TBitmap32.GetPixelZ(X, Y: Single): TColor32;
+begin
+  Result := ResamplePixel(Self, X, Y);
+end;
+
 procedure TBitmap32.SetStipple(NewStipple: TArrayOfColor32);
 begin
   FStippleCounter := 0;
@@ -2254,9 +2334,12 @@ end;
 
 procedure TBitmap32.HorzLineS(X1, Y, X2: Integer; Value: TColor32);
 begin
-  if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
-     TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
+  if not FMeasuringMode and
+    (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
+    TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
     HorzLine(X1, Y, X2, Value);
+
+  Changed(MakeRect(X1, Y, X2, Y + 1));
 end;
 
 procedure TBitmap32.HorzLineT(X1, Y, X2: Integer; Value: TColor32);
@@ -2278,55 +2361,62 @@ end;
 
 procedure TBitmap32.HorzLineTS(X1, Y, X2: Integer; Value: TColor32);
 begin
-  if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
-     TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
+  if not FMeasuringMode and
+    (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
+    TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
     HorzLineT(X1, Y, X2, Value);
+
+  Changed(MakeRect(X1, Y, X2, Y + 1));
 end;
 
 procedure TBitmap32.HorzLineTSP(X1, Y, X2: Integer);
 var
   I, N: Integer;
 begin
-  if Empty then Exit;
-  if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
+  if not FMeasuringMode then
   begin
-    if ((X1 < FClipRect.Left) and (X2 < FClipRect.Left)) or
-       ((X1 >= FClipRect.Right) and (X2 >= FClipRect.Right)) then
+    if Empty then Exit;
+    if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
     begin
-      AdvanceStippleCounter(Abs(X2 - X1) + 1);
-      Exit;
-    end;
-    if X1 < FClipRect.Left then
-    begin
-      AdvanceStippleCounter(FClipRect.Left - X1);
-      X1 := FClipRect.Left;
-    end
-    else if X1 >= FClipRect.Right then
-    begin
-      AdvanceStippleCounter(X1 - (FClipRect.Right - 1));
-      X1 := FClipRect.Right - 1;
-    end;
-    N := 0;
-    if X2 < FClipRect.Left then
-    begin
-      N := FClipRect.Left - X2;
-      X2 := FClipRect.Left;
-    end
-    else if X2 >= FClipRect.Right then
-    begin
-      N := X2 - (FClipRect.Right - 1);
-      X2 := FClipRect.Right - 1;
-    end;
+      if ((X1 < FClipRect.Left) and (X2 < FClipRect.Left)) or
+         ((X1 >= FClipRect.Right) and (X2 >= FClipRect.Right)) then
+      begin
+        AdvanceStippleCounter(Abs(X2 - X1) + 1);
+        Exit;
+      end;
+      if X1 < FClipRect.Left then
+      begin
+        AdvanceStippleCounter(FClipRect.Left - X1);
+        X1 := FClipRect.Left;
+      end
+      else if X1 >= FClipRect.Right then
+      begin
+        AdvanceStippleCounter(X1 - (FClipRect.Right - 1));
+        X1 := FClipRect.Right - 1;
+      end;
+      N := 0;
+      if X2 < FClipRect.Left then
+      begin
+        N := FClipRect.Left - X2;
+        X2 := FClipRect.Left;
+      end
+      else if X2 >= FClipRect.Right then
+      begin
+        N := X2 - (FClipRect.Right - 1);
+        X2 := FClipRect.Right - 1;
+      end;
 
-    if X2 >= X1 then
-      for I := X1 to X2 do SetPixelT(I, Y, GetStippleColor)
+      if X2 >= X1 then
+        for I := X1 to X2 do SetPixelT(I, Y, GetStippleColor)
+      else
+        for I := X1 downto X2 do SetPixelT(I, Y, GetStippleColor);
+
+      if N > 0 then AdvanceStippleCounter(N);
+    end
     else
-      for I := X1 downto X2 do SetPixelT(I, Y, GetStippleColor);
-
-    if N > 0 then AdvanceStippleCounter(N);
-  end
-  else
-    AdvanceStippleCounter(Abs(X2 - X1) + 1);
+      AdvanceStippleCounter(Abs(X2 - X1) + 1);
+  end;
+  Changed(MakeRect(X1, Y, X2, Y + 1))
 end;
 
 procedure TBitmap32.VertLine(X, Y1, Y2: Integer; Value: TColor32);
@@ -2354,9 +2444,12 @@ end;
 
 procedure TBitmap32.VertLineS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
-     TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
+  if not FMeasuringMode and
+    (X >= FClipRect.Left) and (X < FClipRect.Right) and
+    TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
     VertLine(X, Y1, Y2, Value);
+
+  Changed(MakeRect(X, Y1, X + 1, Y2))
 end;
 
 procedure TBitmap32.VertLineT(X, Y1, Y2: Integer; Value: TColor32);
@@ -2377,55 +2470,65 @@ end;
 
 procedure TBitmap32.VertLineTS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if (X >= FClipRect.Left) and (X < FClipRect.Right) and
-     TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
-    VertLineT(X, Y1, Y2, Value);
+  if not FMeasuringMode and
+    (X >= FClipRect.Left) and (X < FClipRect.Right) and
+    TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
+     VertLineT(X, Y1, Y2, Value);
+
+  Changed(MakeRect(X, Y1, X + 1, Y2));
 end;
 
 procedure TBitmap32.VertLineTSP(X, Y1, Y2: Integer);
 var
   I, N: Integer;
 begin
-  if Empty then Exit;
-  if (X >= FClipRect.Left) and (X < FClipRect.Right) then
+  if not FMeasuringMode then
   begin
-    if ((Y1 < FClipRect.Top) and (Y2 < FClipRect.Top)) or
-       ((Y1 >= FClipRect.Bottom) and (Y2 >= FClipRect.Bottom)) then
+    if Empty then Exit;
+    if (X >= FClipRect.Left) and (X < FClipRect.Right) then
     begin
-      AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
-      Exit;
-    end;
-    if Y1 < FClipRect.Top then
-    begin
-      AdvanceStippleCounter(FClipRect.Top - Y1);
-      Y1 := FClipRect.Top;
-    end
-    else if Y1 >= FClipRect.Bottom then
-    begin
-      AdvanceStippleCounter(Y1 - (FClipRect.Bottom - 1));
-      Y1 := FClipRect.Bottom - 1;
-    end;
-    N := 0;
-    if Y2 < FClipRect.Top then
-    begin
-      N := FClipRect.Top - Y2;
-      Y2 := FClipRect.Top;
-    end
-    else if Y2 >= FClipRect.Bottom then
-    begin
-      N := Y2 - (FClipRect.Bottom - 1);
-      Y2 := FClipRect.Bottom - 1;
-    end;
+      if ((Y1 < FClipRect.Top) and (Y2 < FClipRect.Top)) or
+         ((Y1 >= FClipRect.Bottom) and (Y2 >= FClipRect.Bottom)) then
+      begin
+        AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
+        Exit;
+      end;
+      if Y1 < FClipRect.Top then
+      begin
+        AdvanceStippleCounter(FClipRect.Top - Y1);
+        Y1 := FClipRect.Top;
+      end
+      else if Y1 >= FClipRect.Bottom then
+      begin
+        AdvanceStippleCounter(Y1 - (FClipRect.Bottom - 1));
+        Y1 := FClipRect.Bottom - 1;
+      end;
+      N := 0;
+      if Y2 < FClipRect.Top then
+      begin
+        N := FClipRect.Top - Y2;
+        Y2 := FClipRect.Top;
+      end
+      else if Y2 >= FClipRect.Bottom then
+      begin
+        N := Y2 - (FClipRect.Bottom - 1);
+        Y2 := FClipRect.Bottom - 1;
+      end;
 
-    if Y2 >= Y1 then
-      for I := Y1 to Y2 do SetPixelT(X, I, GetStippleColor)
+      if Y2 >= Y1 then
+        for I := Y1 to Y2 do SetPixelT(X, I, GetStippleColor)
+      else
+        for I := Y1 downto Y2 do SetPixelT(X, I, GetStippleColor);
+
+      Changed(MakeRect(X, Y1, X + 1, Y2));
+
+      if N > 0 then AdvanceStippleCounter(N);
+    end
     else
-      for I := Y1 downto Y2 do SetPixelT(X, I, GetStippleColor);
-
-    if N > 0 then AdvanceStippleCounter(N);
+      AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
   end
   else
-    AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
+    Changed(MakeRect(X, Y1, X + 1, Y2));
 end;
 
 procedure TBitmap32.Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
@@ -2500,7 +2603,7 @@ begin
     end;
     if L then P^ := Value;
   finally
-    Changed;
+    Changed(MakeRect(X1, Y1, X2, Y2));
   end;
 end;
 
@@ -2510,192 +2613,190 @@ var
   Swapped, CheckVert: Boolean;
   P: PColor32;
 begin
-  Dx := X2 - X1; Dy := Y2 - Y1;
+  if not FMeasuringMode then
+  begin
+    Dx := X2 - X1; Dy := Y2 - Y1;
 
-  // check for trivial cases...
-  If Dx = 0 then // vertical line?
-  begin
-    if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
-    if L then PixelS[X2, Y2] := Value;
-    Changed;
-    Exit;
-  end
-  else if Dy = 0 then // horizontal line?
-  begin
-    if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
-    else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
-    if L then PixelS[X2, Y2] := Value;
-    Changed;
-    Exit;
-  end;
-
-  Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
-  Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
-
-  If Dx > 0 then
-  begin
-    If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
-    Sx := 1;
-  end
-  else if Dx < 0 then
-  begin
-    If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
-    Sx := -1;
-    X1 := -X1;   X2 := -X2;   Dx := -Dx;
-    Cx1 := -Cx1; Cx2 := -Cx2;
-    Swap(Cx1, Cx2);
-  end;
-
-  If Dy > 0 then
-  begin
-    If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
-    Sy := 1;
-  end
-  else if Dy < 0 then
-  begin
-    If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
-    Sy := -1;
-    Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
-    Cy1 := -Cy1; Cy2 := -Cy2;
-    Swap(Cy1, Cy2);
-  end;
-
-  If not L then
-  begin
-    If Dx > Dy then
+    // check for trivial cases...
+    if Dx = 0 then // vertical line?
     begin
-      If Dx > 0 then
+      if Dy > 0 then VertLineS(X1, Y1, Y2 - 1, Value)
+      else if Dy < 0 then VertLineS(X1, Y2 + 1, Y1, Value);
+      if L then PixelS[X2, Y2] := Value;
+      Changed;
+      Exit;
+    end
+    else if Dy = 0 then // horizontal line?
+    begin
+      if Dx > 0 then HorzLineS(X1, Y1, X2 - 1, Value)
+      else if Dx < 0 then HorzLineS(X2 + 1, Y1, X1, Value);
+      if L then PixelS[X2, Y2] := Value;
+      Changed;
+      Exit;
+    end;
+
+    Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
+    Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
+
+    if Dx > 0 then
+    begin
+      If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
+      Sx := 1;
+    end
+    else if Dx < 0 then
+    begin
+      If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
+      Sx := -1;
+      X1 := -X1;   X2 := -X2;   Dx := -Dx;
+      Cx1 := -Cx1; Cx2 := -Cx2;
+      Swap(Cx1, Cx2);
+    end;
+
+    if Dy > 0 then
+    begin
+      If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
+      Sy := 1;
+    end
+    else if Dy < 0 then
+    begin
+      If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
+      Sy := -1;
+      Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
+      Cy1 := -Cy1; Cy2 := -Cy2;
+      Swap(Cy1, Cy2);
+    end;
+
+    if not L then
+    begin
+      if Dx > Dy then
       begin
-        Dec(Dx);
-        Dec(X2)
+        if Dx > 0 then
+        begin
+          Dec(Dx); Dec(X2);
+        end
+        else
+        begin
+          Inc(Dy); Inc(X2);
+        end;
       end
       else
       begin
-        Inc(Dy);
-        Inc(X2);
+        if Dy > 0 then
+        begin
+          Dec(Dy); Dec(Y2);
+        end
+        else
+        begin
+          Inc(Dy); Inc(Y2);
+        end;
       end;
+      if (Dx = 0) or (Dy = 0) then Exit;
+    end;
+
+    if Dx < Dy then
+    begin
+      Swapped := True;
+      Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
+      Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
+    end
+    else
+      Swapped := False;
+
+    // Bresenham's set up:
+    Dx2 := Dx shl 1; Dy2 := Dy shl 1;
+    xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
+    CheckVert := True;
+
+    // clipping rect horizontal entry
+    if Y1 < Cy1 then
+    begin
+      tmp := Dx2 * (Cy1 - Y1) - Dx;
+      Inc(xd, tmp div Dy2);
+      rem := tmp mod Dy2;
+      if xd > Cx2 then Exit;
+      if xd + 1 >= Cx1 then
+      begin
+        yd := Cy1;
+        Dec(e, rem + Dx);
+        if rem > 0 then
+        begin
+          Inc(xd);
+          Inc(e, Dy2);
+        end;
+        CheckVert := False; // to avoid ugly labels we set this to omit the next check
+      end;
+    end;
+
+    // clipping rect vertical entry
+    if CheckVert and (X1 < Cx1) then
+    begin
+      tmp := Dy2 * (Cx1 - X1);
+      Inc(yd, tmp div Dx2);
+      rem := tmp mod Dx2;
+      if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
+      xd := Cx1;
+      Inc(e, rem);
+      if (rem >= Dx) then
+      begin
+        Inc(yd);
+        Dec(e, Dx2);
+      end;
+    end;
+
+    // is the segment exiting the clipping rect?
+    if Y2 > Cy2 then
+    begin
+      tmp := Dx2 * (Cy2 - Y1) + Dx;
+      term := X1 + tmp div Dy2;
+      rem := tmp mod Dy2;
+      if rem = 0 then Dec(term);
+    end;
+
+    if term > Cx2 then
+      term := Cx2;
+
+    Inc(term);
+
+    if Sy = -1 then
+      yd := -yd;
+
+    if Sx = -1 then
+    begin
+      xd := -xd;
+      term := -term;
+    end;
+
+    Dec(Dx2, Dy2);
+
+    if Swapped then
+    begin
+      PI := Sx * Width;
+      P := @Bits[yd + xd * Width];
     end
     else
     begin
-      If Dy > 0 then
+      PI := Sx;
+      Sy := Sy * Width;
+      P := @Bits[xd + yd * Width];
+    end;
+
+    while xd <> term do
+    begin
+      Inc(xd, Sx);
+
+      P^ := Value;
+      Inc(P, PI);
+      if e >= 0 then
       begin
-        Dec(Dy);
-        Dec(Y2);
+        Inc(P, Sy);
+        Dec(e, Dx2);
       end
       else
-      begin
-        Inc(Dy);
-        Inc(Y2);
-      end;
-    end;
-  end;
-
-  if (Dx = 0) or (Dy = 0) then Exit;
-
-  if Dx < Dy then
-  begin
-    Swapped := True;
-    Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
-    Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
-  end
-  else
-    Swapped := False;
-
-  // Bresenham's set up:
-  Dx2 := Dx shl 1; Dy2 := Dy shl 1;
-  xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
-  CheckVert := True;
-  
-  // clipping rect horizontal entry
-  if Y1 < Cy1 then
-  begin
-    tmp := Dx2 * (Cy1 - Y1) - Dx;
-    Inc(xd, tmp div Dy2);
-    rem := tmp mod Dy2;
-    if xd > Cx2 then Exit;
-    if xd + 1 >= Cx1 then
-    begin
-      yd := Cy1;
-      Dec(e, rem + Dx);
-      if rem > 0 then
-      begin
-        Inc(xd);
         Inc(e, Dy2);
-      end;
-      CheckVert := False; // to avoid ugly labels we set this to omit the next check
     end;
   end;
 
-  // clipping rect vertical entry
-  if CheckVert and (X1 < Cx1) then
-  begin
-    tmp := Dy2 * (Cx1 - X1);
-    Inc(yd, tmp div Dx2);
-    rem := tmp mod Dx2;
-    if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
-    xd := Cx1;
-    Inc(e, rem);
-    if (rem >= Dx) then
-    begin
-      Inc(yd);
-      Dec(e, Dx2);
-    end;
-  end;
-
-  // is the segment exiting the clipping rect?
-  if Y2 > Cy2 then
-  begin
-    tmp := Dx2 * (Cy2 - Y1) + Dx;
-    term := X1 + tmp div Dy2;
-    rem := tmp mod Dy2;
-    if rem = 0 then Dec(term);
-  end;
-
-  if term > Cx2 then
-    term := Cx2;
-
-  Inc(term);
-
-  if Sy = -1 then
-    yd := -yd;
-
-  if Sx = -1 then
-  begin
-    xd := -xd;
-    term := -term;
-  end;
-
-  Dec(Dx2, Dy2);
-
-  If Swapped then
-  begin
-    PI := Sx * Width;
-    P := @Bits[yd + xd * Width];
-  end
-  else
-  begin
-    PI := Sx;
-    Sy := Sy * Width;
-    P := @Bits[xd + yd * Width];
-  end;
-
-  while xd <> term do
-  begin
-    Inc(xd, Sx);
-
-    P^ := Value;
-    Inc(P, PI);
-    if e >= 0 then
-    begin
-      Inc(P, Sy);
-      Dec(e, Dx2);
-    end
-    else
-      Inc(e, Dy2);
-  end;
-
-  Changed;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.LineT(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
@@ -2776,7 +2877,7 @@ begin
       EMMS;
     end;
   finally
-    Changed;
+    Changed(MakeRect(X1, Y1, X2, Y2));
   end;
 end;
 
@@ -2787,196 +2888,192 @@ var
   P: PColor32;
   BlendMem: TBlendMem;
 begin
-  Dx := X2 - X1; Dy := Y2 - Y1;
+  if not FMeasuringMode then
+  begin
+    Dx := X2 - X1; Dy := Y2 - Y1;
 
-  // check for trivial cases...
-  If Dx = 0 then // vertical line?
-  begin
-    if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
-    else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Changed;
-    Exit;
-  end
-  else if Dy = 0 then // horizontal line?
-  begin
-    if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
-    else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Changed;
-    Exit;
-  end;
-
-  Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
-  Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
-
-  If Dx > 0 then
-  begin
-    If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
-    Sx := 1;
-  end
-  else if Dx < 0 then
-  begin
-    If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
-    Sx := -1;
-    X1 := -X1;   X2 := -X2;   Dx := -Dx;
-    Cx1 := -Cx1; Cx2 := -Cx2;
-    Swap(Cx1, Cx2);
-  end;
-
-  If Dy > 0 then
-  begin
-    If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
-    Sy := 1;
-  end
-  else if Dy < 0 then
-  begin
-    If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
-    Sy := -1;
-    Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
-    Cy1 := -Cy1; Cy2 := -Cy2;
-    Swap(Cy1, Cy2);
-  end;
-
-  If not L then
-  begin
-    If Dx > Dy then
+    // check for trivial cases...
+    if Dx = 0 then // vertical line?
     begin
-      If Dx > 0 then
+      if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
+      else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
+      if L then SetPixelTS(X2, Y2, Value);
+      Exit;
+    end
+    else if Dy = 0 then // horizontal line?
+    begin
+      if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
+      else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
+      if L then SetPixelTS(X2, Y2, Value);
+      Exit;
+    end;
+
+    Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
+    Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
+
+    if Dx > 0 then
+    begin
+      If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
+      Sx := 1;
+    end
+    else if Dx < 0 then
+    begin
+      If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
+      Sx := -1;
+      X1 := -X1;   X2 := -X2;   Dx := -Dx;
+      Cx1 := -Cx1; Cx2 := -Cx2;
+      Swap(Cx1, Cx2);
+    end;
+
+    if Dy > 0 then
+    begin
+      If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
+      Sy := 1;
+    end
+    else if Dy < 0 then
+    begin
+      If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
+      Sy := -1;
+      Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
+      Cy1 := -Cy1; Cy2 := -Cy2;
+      Swap(Cy1, Cy2);
+    end;
+
+    if not L then
+    begin
+      if Dx > Dy then
       begin
-        Dec(Dx);
-        Dec(X2)
+        if Dx > 0 then
+        begin
+          Dec(Dx); Dec(X2);
+        end
+        else
+        begin
+          Inc(Dy); Inc(X2);
+        end;
       end
       else
       begin
-        Inc(Dy);
-        Inc(X2);
+        if Dy > 0 then
+        begin
+          Dec(Dy); Dec(Y2);
+        end
+        else
+        begin
+          Inc(Dy); Inc(Y2);
+        end;
       end;
+      if (Dx = 0) or (Dy = 0) then Exit;
+    end;
+
+    if Dx < Dy then
+    begin
+      Swapped := True;
+      Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
+      Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
+    end
+    else
+      Swapped := False;
+
+    // Bresenham's set up:
+    Dx2 := Dx shl 1; Dy2 := Dy shl 1;
+    xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
+    CheckVert := True;
+  
+    // clipping rect horizontal entry
+    if Y1 < Cy1 then
+    begin
+      tmp := Dx2 * (Cy1 - Y1) - Dx;
+      Inc(xd, tmp div Dy2);
+      rem := tmp mod Dy2;
+      if xd > Cx2 then Exit;
+      if xd + 1 >= Cx1 then
+      begin
+        yd := Cy1;
+        Dec(e, rem + Dx);
+        if rem > 0 then
+        begin
+          Inc(xd);
+          Inc(e, Dy2);
+        end;
+        CheckVert := False; // to avoid ugly labels we set this to omit the next check
+      end;
+    end;
+
+    // clipping rect vertical entry
+    if CheckVert and (X1 < Cx1) then
+    begin
+      tmp := Dy2 * (Cx1 - X1);
+      Inc(yd, tmp div Dx2);
+      rem := tmp mod Dx2;
+      if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
+      xd := Cx1;
+      Inc(e, rem);
+      if (rem >= Dx) then
+      begin
+        Inc(yd);
+        Dec(e, Dx2);
+      end;
+    end;
+
+    // is the segment exiting the clipping rect?
+    if Y2 > Cy2 then
+    begin
+      tmp := Dx2 * (Cy2 - Y1) + Dx;
+      term := X1 + tmp div Dy2;
+      rem := tmp mod Dy2;
+      if rem = 0 then Dec(term);
+    end;
+
+    if term > Cx2 then
+      term := Cx2;
+
+    Inc(term);
+
+    if Sy = -1 then
+      yd := -yd;
+
+    if Sx = -1 then
+    begin
+      xd := -xd;
+      term := -term;
+    end;
+
+    Dec(Dx2, Dy2);
+
+    if Swapped then
+    begin
+      PI := Sx * Width;
+      P := @Bits[yd + xd * Width];
     end
     else
     begin
-      If Dy > 0 then
+      PI := Sx;
+      Sy := Sy * Width;
+      P := @Bits[xd + yd * Width];
+    end;
+
+    try
+      BlendMem := BLEND_MEM[FCombineMode];
+      while xd <> term do
       begin
-        Dec(Dy);
-        Dec(Y2);
-      end
-      else
-      begin
-        Inc(Dy);
-        Inc(Y2);
+        Inc(xd, Sx);
+
+        BlendMem(Value, P^);
+        Inc(P, PI);
+        if e >= 0 then
+        begin
+          Inc(P, Sy);
+          Dec(e, Dx2);
+        end
+        else
+          Inc(e, Dy2);
       end;
+    finally
+      EMMS;
     end;
   end;
-
-  if (Dx = 0) or (Dy = 0) then Exit;
-
-  if Dx < Dy then
-  begin
-    Swapped := True;
-    Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
-    Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
-  end
-  else
-    Swapped := False;
-
-  // Bresenham's set up:
-  Dx2 := Dx shl 1; Dy2 := Dy shl 1;
-  xd := X1; yd := Y1; e := Dy2 - Dx; term := X2;
-  CheckVert := True;
-  
-  // clipping rect horizontal entry
-  if Y1 < Cy1 then
-  begin
-    tmp := Dx2 * (Cy1 - Y1) - Dx;
-    Inc(xd, tmp div Dy2);
-    rem := tmp mod Dy2;
-    if xd > Cx2 then Exit;
-    if xd + 1 >= Cx1 then
-    begin
-      yd := Cy1;
-      Dec(e, rem + Dx);
-      if rem > 0 then
-      begin
-        Inc(xd);
-        Inc(e, Dy2);
-      end;
-      CheckVert := False; // to avoid ugly labels we set this to omit the next check
-    end;
-  end;
-
-  // clipping rect vertical entry
-  if CheckVert and (X1 < Cx1) then
-  begin
-    tmp := Dy2 * (Cx1 - X1);
-    Inc(yd, tmp div Dx2);
-    rem := tmp mod Dx2;
-    if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
-    xd := Cx1;
-    Inc(e, rem);
-    if (rem >= Dx) then
-    begin
-      Inc(yd);
-      Dec(e, Dx2);
-    end;
-  end;
-
-  // is the segment exiting the clipping rect?
-  if Y2 > Cy2 then
-  begin
-    tmp := Dx2 * (Cy2 - Y1) + Dx;
-    term := X1 + tmp div Dy2;
-    rem := tmp mod Dy2;
-    if rem = 0 then Dec(term);
-  end;
-
-  if term > Cx2 then
-    term := Cx2;
-
-  Inc(term);
-
-  if Sy = -1 then
-    yd := -yd;
-
-  if Sx = -1 then
-  begin
-    xd := -xd;
-    term := -term;
-  end;
-
-  Dec(Dx2, Dy2);
-
-  If Swapped then
-  begin
-    PI := Sx * Width;
-    P := @Bits[yd + xd * Width];
-  end
-  else
-  begin
-    PI := Sx;
-    Sy := Sy * Width;
-    P := @Bits[xd + yd * Width];
-  end;
-
-  try
-    BlendMem := BLEND_MEM[FCombineMode];
-    while xd <> term do
-    begin
-      Inc(xd, Sx);
-
-      BlendMem(Value, P^);
-      Inc(P, PI);
-      if e >= 0 then
-      begin
-        Inc(P, Sy);
-        Dec(e, Dx2);
-      end
-      else
-        Inc(e, Dy2);
-    end;
-  finally
-    EMMS;
-    Changed;
-  end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.LineX(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean);
@@ -3010,7 +3107,7 @@ begin
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + A);
   finally
     EMMS;
-    Changed;
+    Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
   end;
 end;
 
@@ -3026,56 +3123,60 @@ var
   A: TColor32;
   h: Single;
 begin
-  ex := X2; ey := Y2;
-
-  // Check for visibility and clip the coordinates
-  if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
-    FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
-    FFixedClipRect.Right, FFixedClipRect.Bottom) then Exit;
-
-  { TODO : Handle L on clipping here... }
-
-  if (ex <> X2) or (ey <> Y2) then L := True;
-
-  // Check if it lies entirely in the bitmap area. Even after clipping
-  // some pixels may lie outside the bitmap due to antialiasing
-  if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right - $20000) and
-     (Y1 > FFixedClipRect.Top) and (Y1 < FFixedClipRect.Bottom - $20000) and
-     (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
-     (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
+  if not FMeasuringMode then
   begin
-    LineX(X1, Y1, X2, Y2, Value);
-    Exit;
-  end;
+    ex := X2; ey := Y2;
 
-  // If we are still here, it means that the line touches one or several bitmap
-  // boundaries. Use the safe version of antialiased pixel routine
-  try
-    nx := X2 - X1; ny := Y2 - Y1;
-    Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
-    hyp := Round(Hypot(nx, ny));
-    if L then Inc(Hyp, 65536);
-    if hyp < 256 then Exit;
-    n := hyp shr 16;
-    if n > 0 then
+    // Check for visibility and clip the coordinates
+    if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
+      FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+      FFixedClipRect.Right, FFixedClipRect.Bottom) then Exit;
+
+    { TODO : Handle L on clipping here... }
+
+    if (ex <> X2) or (ey <> Y2) then L := True;
+
+    // Check if it lies entirely in the bitmap area. Even after clipping
+    // some pixels may lie outside the bitmap due to antialiasing
+    if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right - $20000) and
+       (Y1 > FFixedClipRect.Top) and (Y1 < FFixedClipRect.Bottom - $20000) and
+       (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
+       (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
     begin
-      h := 65536 / hyp;
-      nx := Round(nx * h); ny := Round(ny * h);
-      for i := 0 to n - 1 do
-      begin
-        SET_TS256(SAR_8(X1), SAR_8(Y1), Value);
-        X1 := X1 + nx;
-        Y1 := Y1 + ny;
-      end;
+      LineX(X1, Y1, X2, Y2, Value);
+      Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
+      Exit;
     end;
-    A := Value shr 24;
-    hyp := hyp - n shl 16;
-    A := A * Longword(hyp) shl 8 and $FF000000;
-    SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), Value and $00FFFFFF + A);
-  finally
-    EMMS;
-    Changed;
+
+    // If we are still here, it means that the line touches one or several bitmap
+    // boundaries. Use the safe version of antialiased pixel routine
+    try
+      nx := X2 - X1; ny := Y2 - Y1;
+      Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
+      hyp := Round(Hypot(nx, ny));
+      if L then Inc(Hyp, 65536);
+      if hyp < 256 then Exit;
+      n := hyp shr 16;
+      if n > 0 then
+      begin
+        h := 65536 / hyp;
+        nx := Round(nx * h); ny := Round(ny * h);
+        for i := 0 to n - 1 do
+        begin
+          SET_TS256(SAR_8(X1), SAR_8(Y1), Value);
+          X1 := X1 + nx;
+          Y1 := Y1 + ny;
+        end;
+      end;
+      A := Value shr 24;
+      hyp := hyp - n shl 16;
+      A := A * Longword(hyp) shl 8 and $FF000000;
+      SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), Value and $00FFFFFF + A);
+    finally
+      EMMS;
+    end;
   end;
+  Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
 end;
 
 procedure TBitmap32.LineFS(X1, Y1, X2, Y2: Single; Value: TColor32; L: Boolean);
@@ -3116,7 +3217,7 @@ begin
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, C and $00FFFFFF + A);
     EMMS;
   finally
-    Changed;
+    Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
   end;
 end;
 
@@ -3133,36 +3234,38 @@ var
   sx, sy, ex, ey, nx, ny, hyp: Integer;
   A, C: TColor32;
 begin
-  sx := X1; sy := Y1; ex := X2; ey := Y2;
-
-  // Check for visibility and clip the coordinates
-  if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
-    FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
-    FFixedClipRect.Right, FFixedClipRect.Bottom) then
+  if not FMeasuringMode then
   begin
-    AdvanceStippleCounter(Hypot((X2 - X1) / 65536, (Y2 - Y1) / 65536) - StippleInc[L]);
-    Exit;
-  end;
+    sx := X1; sy := Y1; ex := X2; ey := Y2;
 
-  if (ex <> X2) or (ey <> Y2) then L := True;
-  
-  // Check if it lies entirely in the bitmap area. Even after clipping
-  // some pixels may lie outside the bitmap due to antialiasing
-  if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right - $20000) and
-     (Y1 > FFixedClipRect.Top) and (Y1 < FFixedClipRect.Bottom - $20000) and
-     (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
-     (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
-  begin
-    LineXP(X1, Y1, X2, Y2);
-    Exit;
-  end;
+    // Check for visibility and clip the coordinates
+    if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
+      FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+      FFixedClipRect.Right, FFixedClipRect.Bottom) then
+    begin
+      AdvanceStippleCounter(Hypot((X2 - X1) / 65536, (Y2 - Y1) / 65536) - StippleInc[L]);
+      Exit;
+    end;
 
-  if (sx <> X1) or (sy <> Y1) then
-    AdvanceStippleCounter(Hypot((X1 - sx) / 65536, (Y1 - sy) / 65536));
+    if (ex <> X2) or (ey <> Y2) then L := True;
 
-  // If we are still here, it means that the line touches one or several bitmap
-  // boundaries. Use the safe version of antialiased pixel routine
-  try
+    // Check if it lies entirely in the bitmap area. Even after clipping
+    // some pixels may lie outside the bitmap due to antialiasing
+    if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right - $20000) and
+       (Y1 > FFixedClipRect.Top) and (Y1 < FFixedClipRect.Bottom - $20000) and
+       (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
+       (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
+    begin
+      LineXP(X1, Y1, X2, Y2);
+      Changed(MakeRect(X1, Y1, X2, Y2));
+      Exit;
+    end;
+
+    if (sx <> X1) or (sy <> Y1) then
+      AdvanceStippleCounter(Hypot((X1 - sx) / 65536, (Y1 - sy) / 65536));
+
+    // If we are still here, it means that the line touches one or several bitmap
+    // boundaries. Use the safe version of antialiased pixel routine
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := Round(Hypot(nx, ny));
@@ -3188,12 +3291,10 @@ begin
     SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), C and $00FFFFFF + A);
     EMMS;
 
-  if (ex <> X2) or (ey <> Y2) then
-    AdvanceStippleCounter(Hypot((X2 - ex) / 65536, (Y2 - ey) / 65536) - StippleInc[L]);
-
-  finally
-    Changed;
+    if (ex <> X2) or (ey <> Y2) then
+      AdvanceStippleCounter(Hypot((X2 - ex) / 65536, (Y2 - ey) / 65536) - StippleInc[L]);
   end;
+  Changed(MakeRect(FixedRect(X1, Y1, X2, Y2)));
 end;
 
 procedure TBitmap32.LineFSP(X1, Y1, X2, Y2: Single; L: Boolean);
@@ -3275,7 +3376,7 @@ begin
     end;
   finally
     EMMS;
-    Changed;
+    Changed(MakeRect(X1, Y1, X2, Y2));
   end;
 end;
 
@@ -3289,280 +3390,276 @@ var
   P: PColor32;
   BlendMemEx: TBlendMemEx;
 begin
-  If (FClipRect.Right - FClipRect.Left = 0) or
-     (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
-
-  Dx := X2 - X1; Dy := Y2 - Y1;
-
-  // check for trivial cases...
-  If Dx = 0 then // vertical line?
+  if not FMeasuringMode then
   begin
+    If (FClipRect.Right - FClipRect.Left = 0) or
+       (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
+
+    Dx := X2 - X1; Dy := Y2 - Y1;
+
+    // check for trivial cases...
+    If Dx = 0 then // vertical line?
+    begin
     if Dy > 0 then VertLineTS(X1, Y1, Y2 - 1, Value)
     else if Dy < 0 then VertLineTS(X1, Y2 + 1, Y1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Changed;
-    Exit;
-  end
-  else if Dy = 0 then // horizontal line?
-  begin
+      if L then SetPixelTS(X2, Y2, Value);
+      Exit;
+    end
+    else if Dy = 0 then // horizontal line?
+    begin
     if Dx > 0 then HorzLineTS(X1, Y1, X2 - 1, Value)
     else if Dx < 0 then HorzLineTS(X2 + 1, Y1, X1, Value);
-    if L then SetPixelTS(X2, Y2, Value);
-    Changed;
-    Exit;
-  end;
+      if L then SetPixelTS(X2, Y2, Value);
+      Exit;
+    end;
 
-  Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
-  Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
+    Cx1 := FClipRect.Left; Cx2 := FClipRect.Right - 1;
+    Cy1 := FClipRect.Top;  Cy2 := FClipRect.Bottom - 1;
 
-  If Dx > 0 then
-  begin
-    If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
-    Sx := 1;
-  end
-  else if Dx < 0 then
-  begin
-    If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
-    Sx := -1;
-    X1 := -X1;   X2 := -X2;   Dx := -Dx;
-    Cx1 := -Cx1; Cx2 := -Cx2;
-    Swap(Cx1, Cx2);
-  end;
-
-  If Dy > 0 then
-  begin
-    If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
-    Sy := 1;
-  end
-  else if Dy < 0 then
-  begin
-    If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
-    Sy := -1;
-    Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
-    Cy1 := -Cy1; Cy2 := -Cy2;
-    Swap(Cy1, Cy2);
-  end;
-
-  If not L then
-  begin
-    If Dx > Dy then
+    if Dx > 0 then
     begin
-      If Dx > 0 then
+      if (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
+      Sx := 1;
+    end
+    else if Dx < 0 then
+    begin
+      if (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
+      Sx := -1;
+      X1 := -X1;   X2 := -X2;   Dx := -Dx;
+      Cx1 := -Cx1; Cx2 := -Cx2;
+      Swap(Cx1, Cx2);
+    end;
+
+    if Dy > 0 then
+    begin
+      if (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
+      Sy := 1;
+    end
+    else if Dy < 0 then
+    begin
+      if (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
+      Sy := -1;
+      Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
+      Cy1 := -Cy1; Cy2 := -Cy2;
+      Swap(Cy1, Cy2);
+    end;
+
+    if not L then
+    begin
+      if Dx > Dy then
       begin
-        Dec(Dx);
-        Dec(X2)
+        if Dx > 0 then
+        begin
+          Dec(Dx); Dec(X2);
+        end
+        else
+        begin
+          Inc(Dy); Inc(X2);
+        end;
       end
       else
       begin
-        Inc(Dy);
-        Inc(X2);
+        if Dy > 0 then
+        begin
+          Dec(Dy); Dec(Y2);
+        end
+        else
+        begin
+          Inc(Dy); Inc(Y2);
+        end;
       end;
+      if (Dx = 0) or (Dy = 0) then Exit;
+    end;
+
+    // Note: can't move this up due to the swap above...
+    if Dx = Dy then // diagonal line?
+    begin
+      LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
+      Exit;
+    end;
+
+    if Dx < Dy then
+    begin
+      Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
+      Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
+      D1 := @yd; D2 := @xd;
+      PI := Sy;
     end
     else
     begin
-      If Dy > 0 then
-      begin
-        Dec(Dy);
-        Dec(Y2);
-      end
-      else
-      begin
-        Inc(Dy);
-        Inc(Y2);
-      end;
+      D1 := @xd; D2 := @yd;
+      PI := Sy * Width;
     end;
-  end;
 
-  if (Dx = 0) or (Dy = 0) then Exit;
+    rem := 0;
+    EA := Dy shl 16 div Dx;
+    EC := 0;
+    xd := X1; yd := Y1;
+    CheckVert := True;
+    CornerAA := False;
+    BlendMemEx := BLEND_MEM_EX[FCombineMode];
 
-  // Note: can't move this up due to the swap above...
-  if Dx = Dy then // diagonal line?
-  begin
-    LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
-    Exit;
-  end;
-
-  if Dx < Dy then
-  begin
-    Swap(X1, Y1); Swap(X2, Y2); Swap(Dx, Dy);
-    Swap(Cx1, Cy1); Swap(Cx2, Cy2); Swap(Sx, Sy);
-    D1 := @yd; D2 := @xd;
-    PI := Sy;
-  end
-  else
-  begin
-    D1 := @xd; D2 := @yd;
-    PI := Sy * Width;
-  end;
-
-  rem := 0;
-  EA := Dy shl 16 div Dx;
-  EC := 0;
-  xd := X1; yd := Y1;
-  CheckVert := True;
-  CornerAA := False;
-  BlendMemEx := BLEND_MEM_EX[FCombineMode];
-
-  // clipping rect horizontal entry
-  if Y1 < Cy1 then
-  begin
-    tmp := (Cy1 - Y1) * 65536;
-    rem := tmp - 65536; // rem := (Cy1 - Y1 - 1) * 65536;
-    if tmp mod EA > 0 then
-      tmp := tmp div EA + 1
-    else
-      tmp := tmp div EA;
-
-    xd := Min(xd + tmp, X2 + 1);
-    EC := tmp * EA;
-
-    if rem mod EA > 0 then
-      rem := rem div EA + 1
-    else
-      rem := rem div EA;
-
-    tmp := tmp - rem;
-
-    // check whether the line is partly visible
-    if xd > Cx2 then
-      // do we need to draw an antialiased part on the corner of the clip rect?
-      If xd <= Cx2 + tmp then
-        CornerAA := True
+    // clipping rect horizontal entry
+    if Y1 < Cy1 then
+    begin
+      tmp := (Cy1 - Y1) * 65536;
+      rem := tmp - 65536; // rem := (Cy1 - Y1 - 1) * 65536;
+      if tmp mod EA > 0 then
+        tmp := tmp div EA + 1
       else
-        Exit;
+        tmp := tmp div EA;
 
-    if (xd {+ 1} >= Cx1) or CornerAA then
-    begin
-      yd := Cy1;
-      rem := xd; // save old xd
+      xd := Min(xd + tmp, X2 + 1);
+      EC := tmp * EA;
 
-      ED := EC - EA;
-      term := SwapConstrain(xd - tmp, Cx1, Cx2);
-
-      If CornerAA then
-      begin
-        Dec(ED, (xd - Cx2 - 1) * EA);
-        xd := Cx2 + 1;
-      end;
-
-      // do we need to negate the vars?
-      if Sy = -1 then yd := -yd;
-      if Sx = -1 then
-      begin
-        xd := -xd;
-        term := -term;
-      end;
-
-      // draw special case horizontal line entry (draw only last half of entering segment)
-      try
-        while xd <> term do
-        begin
-          Inc(xd, -Sx);
-          BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
-          Dec(ED, EA);
-        end;
-      finally
-        EMMS;
-      end;
-
-      If CornerAA then
-      begin
-        // we only needed to draw the visible antialiased part of the line,
-        // everything else is outside of our cliprect, so exit now since
-        // there is nothing more to paint...
-        Changed;
-        Exit;
-      end;
-
-      if Sy = -1 then yd := -yd;  // negate back
-      xd := rem;  // restore old xd
-      CheckVert := False; // to avoid ugly labels we set this to omit the next check
-    end;
-  end;
-
-  // clipping rect vertical entry
-  if CheckVert and (X1 < Cx1) then
-  begin
-    tmp := (Cx1 - X1) * EA;
-    Inc(yd, tmp div 65536);
-    EC := tmp;
-    xd := Cx1;
-    if (yd > Cy2) then
-      Exit
-    else if (yd = Cy2) then
-      CornerAA := True;
-  end;
-
-  term := X2;
-  CheckVert := False;
-
-  // horizontal exit?
-  if Y2 > Cy2 then
-  begin
-    tmp := (Cy2 - Y1) * 65536;
-    term := X1 + tmp div EA;
-    if not(tmp mod EA > 0) then
-      Dec(Term);
-
-    if term < Cx2 then
-    begin
-      rem := tmp + 65536; // rem := (Cy2 - Y1 + 1) * 65536;
       if rem mod EA > 0 then
-        rem := X1 + rem div EA + 1
+        rem := rem div EA + 1
       else
-        rem := X1 + rem div EA;
+        rem := rem div EA;
 
-      if rem > Cx2 then rem := Cx2;
-      CheckVert := True;
+      tmp := tmp - rem;
+
+      // check whether the line is partly visible
+      if xd > Cx2 then
+        // do we need to draw an antialiased part on the corner of the clip rect?
+        If xd <= Cx2 + tmp then
+          CornerAA := True
+        else
+          Exit;
+
+      if (xd {+ 1} >= Cx1) or CornerAA then
+      begin
+        yd := Cy1;
+        rem := xd; // save old xd
+
+        ED := EC - EA;
+        term := SwapConstrain(xd - tmp, Cx1, Cx2);
+
+        If CornerAA then
+        begin
+          Dec(ED, (xd - Cx2 - 1) * EA);
+          xd := Cx2 + 1;
+        end;
+
+        // do we need to negate the vars?
+        if Sy = -1 then yd := -yd;
+        if Sx = -1 then
+        begin
+          xd := -xd;
+          term := -term;
+        end;
+
+        // draw special case horizontal line entry (draw only last half of entering segment)
+        try
+          while xd <> term do
+          begin
+            Inc(xd, -Sx);
+            BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[ED shr 8]);
+            Dec(ED, EA);
+          end;
+        finally
+          EMMS;
+        end;
+
+        If CornerAA then
+        begin
+          // we only needed to draw the visible antialiased part of the line,
+          // everything else is outside of our cliprect, so exit now since
+          // there is nothing more to paint...
+          { TODO : Handle Changed here... }
+          Changed;
+          Exit;
+        end;
+
+        if Sy = -1 then yd := -yd;  // negate back
+        xd := rem;  // restore old xd
+        CheckVert := False; // to avoid ugly labels we set this to omit the next check
+      end;
     end;
-  end;
 
-  if term > Cx2 then term := Cx2;
-  Inc(term);
-  if Sy = -1 then yd := -yd;
-  if Sx = -1 then
-  begin
-    xd := -xd;
-    term := -term;
-    rem := -rem;
-  end;
-
-  // draw line
-  if not CornerAA then
-  try
-    while xd <> term do
+    // clipping rect vertical entry
+    if CheckVert and (X1 < Cx1) then
     begin
-      CI := EC shr 8;
-      P := @Bits[D1^ + D2^ * Width];
-      BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
-      Inc(P, PI);
-      BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
-      // check for overflow and jump to next line...
-      D := EC;
-      Inc(EC, EA);
-      if EC <= D then
-        Inc(yd, Sy);
-
-      Inc(xd, Sx);
+      tmp := (Cx1 - X1) * EA;
+      Inc(yd, tmp div 65536);
+      EC := tmp;
+      xd := Cx1;
+      if (yd > Cy2) then
+        Exit
+      else if (yd = Cy2) then
+        CornerAA := True;
     end;
-  finally
-    EMMS;
-  end;
 
-  // draw special case horizontal line exit (draw only first half of exiting segment)
-  If CheckVert then
-  try
-    while xd <> rem do
+    term := X2;
+    CheckVert := False;
+
+    // horizontal exit?
+    if Y2 > Cy2 then
     begin
-      BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
-      Inc(EC, EA);
-      Inc(xd, Sx);
-    end;
-  finally
-    EMMS;
-  end;
+      tmp := (Cy2 - Y1) * 65536;
+      term := X1 + tmp div EA;
+      if not(tmp mod EA > 0) then
+        Dec(Term);
 
-  Changed;
+      if term < Cx2 then
+      begin
+        rem := tmp + 65536; // rem := (Cy2 - Y1 + 1) * 65536;
+        if rem mod EA > 0 then
+          rem := X1 + rem div EA + 1
+        else
+          rem := X1 + rem div EA;
+
+        if rem > Cx2 then rem := Cx2;
+        CheckVert := True;
+      end;
+    end;
+
+    if term > Cx2 then term := Cx2;
+    Inc(term);
+    if Sy = -1 then yd := -yd;
+    if Sx = -1 then
+    begin
+      xd := -xd;
+      term := -term;
+      rem := -rem;
+    end;
+
+    // draw line
+    if not CornerAA then
+    try
+      while xd <> term do
+      begin
+        CI := EC shr 8;
+        P := @Bits[D1^ + D2^ * Width];
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        Inc(P, PI);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
+        // check for overflow and jump to next line...
+        D := EC;
+        Inc(EC, EA);
+        if EC <= D then
+          Inc(yd, Sy);
+
+        Inc(xd, Sx);
+      end;
+    finally
+      EMMS;
+    end;
+
+    // draw special case horizontal line exit (draw only first half of exiting segment)
+    If CheckVert then
+    try
+      while xd <> rem do
+      begin
+        BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
+        Inc(EC, EA);
+        Inc(xd, Sx);
+      end;
+    finally
+      EMMS;
+    end;
+  end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.MoveTo(X, Y: Integer);
@@ -3638,12 +3735,13 @@ begin
     P := Pointer(GetScanLine(j));
     FillLongword(P[X1], X2 - X1, Value);
   end;
-  Changed;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FillRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and
+  if not FMeasuringMode and
+    (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -3653,6 +3751,7 @@ begin
     if Y2 > FClipRect.Bottom then Y2 := FClipRect.Bottom;
     FillRect(X1, Y1, X2, Y2, Value);
   end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FillRectT(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -3680,13 +3779,14 @@ begin
     end;
   finally
     EMMS;
-    Changed;
+    Changed(MakeRect(X1, Y1, X2, Y2));
   end;
 end;
 
 procedure TBitmap32.FillRectTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and
+  if not FMeasuringMode and
+    (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -3696,6 +3796,7 @@ begin
     if Y2 > FClipRect.Bottom then Y2 := FClipRect.Bottom;
     FillRectT(X1, Y1, X2, Y2, Value);
   end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FillRectS(const ARect: TRect; Value: TColor32);
@@ -3710,7 +3811,8 @@ end;
 
 procedure TBitmap32.FrameRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and
+  if not FMeasuringMode and
+    (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -3723,13 +3825,14 @@ begin
       VertLineS(X1, Y1 + 1, Y2 - 1, Value);
       if X2 > X1 then VertLineS(X2, Y1 + 1, Y2 - 1, Value);
     end;
-    Changed;
   end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FrameRectTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if (X2 > X1) and (Y2 > Y1) and
+  if not FMeasuringMode and
+    (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -3742,15 +3845,16 @@ begin
       VertLineTS(X1, Y1 + 1, Y2 - 1, Value);
       if X2 > X1 then VertLineTS(X2, Y1 + 1, Y2 - 1, Value);
     end;
-    Changed;
   end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FrameRectTSP(X1, Y1, X2, Y2: Integer);
 begin
-  if (X2 > X1) and (Y2 > Y1) and
-     (X1 < Width) and (Y1 < Height) and  // don't check against ClipRect here
-     (X2 > 0) and (Y2 > 0) then          // due to StippleCounter
+  if not FMeasuringMode and
+    (X2 > X1) and (Y2 > Y1) and
+    (X1 < Width) and (Y1 < Height) and  // don't check against ClipRect here
+    (X2 > 0) and (Y2 > 0) then          // due to StippleCounter
   begin
     Dec(X2);
     Dec(Y2);
@@ -3766,8 +3870,8 @@ begin
         HorzLineTSP(X2, Y2, X1 + 1);
         VertLineTSP(X1, Y2, Y1 + 1);
       end;
-    Changed;
   end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FrameRectS(const ARect: TRect; Value: TColor32);
@@ -3784,11 +3888,12 @@ procedure TBitmap32.RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer);
 var
   C1, C2: TColor32;
 begin
-  if (X2 > X1) and (Y2 > Y1) and
+  if not FMeasuringMode and
+    (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
-  try
-    if Contrast > 0 then
+  begin
+    if (Contrast > 0) then
     begin
       C1 := SetAlpha(clWhite32, Clamp(Contrast * 512 div 100));
       C2 := SetAlpha(clBlack32, Clamp(Contrast * 255 div 100));
@@ -3809,9 +3914,8 @@ begin
     Dec(Y2);
     VertLineTS(X1, Y1, Y2, C1);
     VertLineTS(X2, Y1, Y2, C2);
-  finally
-    Changed;
   end;
+  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.RaiseRectTS(const ARect: TRect; Contrast: Integer);
@@ -4005,7 +4109,7 @@ end;
 procedure TBitmap32.SetCombineMode(const Value: TCombineMode);
 begin
   FCombineMode := Value;
-  Changed;
+  PropertyChanged;
 end;
 
 procedure TBitmap32.SetDrawMode(Value: TDrawMode);
@@ -4013,7 +4117,7 @@ begin
   if FDrawMode <> Value then
   begin
     FDrawMode := Value;
-    Changed;
+    PropertyChanged;
   end;
 end;
 
@@ -4022,18 +4126,25 @@ begin
   if FMasterAlpha <> Value then
   begin
     FMasterAlpha := Value;
-    Changed;
+    PropertyChanged;
   end;
 end;
 
+{$IFDEF DEPRECATEDMODE}
 procedure TBitmap32.SetStretchFilter(Value: TStretchFilter);
+const
+  StretchFilterMap: array[TStretchFilter] of TCustomResamplerClass =
+    (TNearestResampler, TDraftResampler, TLinearResampler, TCosineResampler,
+     TSplineResampler, TLanczosResampler, TMitchellResampler);
 begin
   if FStretchFilter <> Value then
   begin
     FStretchFilter := Value;
+    SetResampler(StretchFilterMap[Value].Create);
     Changed;
   end;
 end;
+{$ENDIF}
 
 // Text and Fonts //
 
@@ -4142,6 +4253,7 @@ begin
     ExtTextout(Handle, X, Y, ETO_CLIPPED, @FClipRect, PChar(Text), Length(Text), nil)
   else
     ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
+{ TODO : Handle Changed here... }
   Changed;
 end;
 {$ENDIF}
@@ -4155,7 +4267,7 @@ begin
   UpdateFont;
 {$IFDEF CLX}
   StartPainter;
-  R := Rect(X, Y, High(Word), High(Word));
+  R := MakeRect(X, Y, High(Word), High(Word));
   QPainter_setFont(Handle, Font.Handle);
   QPainter_setPen(Handle, Font.FontPen);
 
@@ -4173,6 +4285,7 @@ begin
   else
     ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
 {$ENDIF}
+{ TODO : Handle Changed here... }
   Changed;
 end;
 
@@ -4188,6 +4301,7 @@ procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: St
 begin
   UpdateFont;
   ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+{ TODO : Handle Changed here... }
   Changed;
 end;
 {$ENDIF}
@@ -4203,7 +4317,7 @@ begin
 {$IFDEF CLX}
   StartPainter;
   TextW := WideString(Text);
-  R := Rect(X, Y, High(Word), High(Word));
+  R := MakeRect(X, Y, High(Word), High(Word));
   QPainter_setFont(Handle, Font.Handle);
   QPainter_setPen(Handle, Font.FontPen);
   QPainter_setClipRect(Handle, @ClipRect);
@@ -4214,6 +4328,7 @@ begin
 {$ELSE}
   ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
 {$ENDIF}
+{ TODO : Handle Changed here... }
   Changed;
 end;
 
@@ -4229,6 +4344,7 @@ procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: S
 begin
   UpdateFont;
   DrawText(Handle, PChar(Text), Length(Text), DstRect, Flags);
+{ TODO : Handle Changed here... }
   Changed;
 end;
 {$ENDIF}
@@ -4246,6 +4362,7 @@ begin
 {$ELSE}
   DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
 {$ENDIF}
+{ TODO : Handle Changed here... }
   Changed;
 end;
 
@@ -4452,7 +4569,10 @@ begin
           B2.Font := StockCanvas.Font;
           B2.Font.Color := clWhite;
           B2.Textout(0, 0, Text);
+{$IFDEF DEPRECATEDMODE}
           B2.StretchFilter := sfLinear;
+          { TODO : Replace Stretchfilter in RenderText }
+{$ENDIF}
           B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
           TextScaleDown(B, B2, AALevel, Color);
         finally
@@ -4536,7 +4656,10 @@ begin
           B2.Font := StockCanvas.Font;
           B2.Font.Color := clWhite;
           B2.TextoutW(0, 0, Text);
+{$IFDEF DEPRECATEDMODE}
           B2.StretchFilter := sfLinear;
+          { TODO : Replace Stretchfilter in RenderText }
+{$ENDIF}
           B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
           TextScaleDown(B, B2, AALevel, Color);
         finally
@@ -4714,8 +4837,12 @@ begin
 
   if Tmp <> nil then
   begin
+    { TODO : Add AssignProperties }
     Tmp.DrawMode := DrawMode;
+{$IFDEF DEPRECATEDMODE}
     Tmp.StretchFilter := StretchFilter;
+    { TODO : Replace StretchFilter here }
+{$ENDIF}
     Tmp.MasterAlpha := MasterAlpha;
     Tmp.OuterColor := OuterColor;
     Assign(Tmp);
@@ -4789,8 +4916,12 @@ begin
 
   if Tmp <> nil then
   begin
+    { TODO : Add AssignProperties }
     Tmp.DrawMode := DrawMode;
+{$IFDEF DEPRECATEDMODE}
     Tmp.StretchFilter := StretchFilter;
+    { TODO : Replace StretchFilter here }
+{$ENDIF}
     Tmp.MasterAlpha := MasterAlpha;
     Tmp.OuterColor := OuterColor;
     Assign(Tmp);
@@ -4838,6 +4969,37 @@ begin
   FClipRect.Bottom := Height;
 
   UpdateClipRects;
+end;
+
+procedure TBitmap32.BeginMeasuring(const Callback: TOnChangedRectEvent);
+begin
+  FMeasuringMode := True;
+  FOldOnChangedRect := FOnChangedRect;
+  FOnChangedRect := Callback;
+end;
+
+procedure TBitmap32.EndMeasuring;
+begin
+  FMeasuringMode := False;
+  FOnChangedRect := FOldOnChangedRect;
+end;
+
+procedure TBitmap32.PropertyChanged;
+begin
+  // don't force invalidation of whole bitmap area as this is unnecessary
+  inherited Changed;
+end;
+
+procedure TBitmap32.Changed;
+begin
+  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then FOnChangedRect(Self, BoundsRect);
+  inherited;
+end;
+
+procedure TBitmap32.Changed(const Rect: TRect);
+begin
+  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnChangedRect) then FOnChangedRect(Self, Rect);
+  inherited Changed;
 end;
 
 {$IFDEF CLX}
@@ -5015,6 +5177,37 @@ begin
    // link IA32 functions
    Interpolator := _Interpolator;
   end
+end;
+
+
+function TBitmap32.GetResamplerClassName: string;
+begin
+  Result := FResampler.ClassName;
+end;
+
+procedure TBitmap32.SetResamplerClassName(Value: string);
+begin
+	if (Value <> '') and (FResampler.ClassName <> Value) then
+  begin
+		FResampler.Free;
+		FResampler := FindResamplerClass(Value).Create;
+    Changed;
+	end;
+end;
+
+procedure TBitmap32.SetResampler(R: TCustomResampler);
+begin
+  if Assigned(R) then
+  begin
+    if Assigned(FResampler) then FResampler.Free;
+    FResampler := R;
+    Changed;
+  end;
+end;
+
+constructor TCustomResampler.Create;
+begin
+  inherited Create;
 end;
 
 initialization
