@@ -16,21 +16,21 @@ unit GR32_TransformationMap;
  * The Original Code is Graphics32
  *
  * The Initial Developer of the Original Code is
- * Alex A. Denisov
+ * Michael Hansen <dyster_tid@hotmail.com
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2004
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Andre Beckedorf <Andre@metaException.de>
- *   Mattias Andersson <Mattias@Centaurix.com>
- *   J. Tulach <tulach@position.cz>
- *   Michael Hansen <dyster_tid@hotmail.com>
- *   Peter Larson
  *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+
+uses
+   Windows, Types, SysUtils, GR32, GR32_Transforms;
+
+type
   {TFixedPointMergeProc controls what happens when a TTransformationmaps is
    merged into another. 'F' is a fixedpoint the foreground map (the one passed
    to TTransformationmap.Merge), 'B' is a fixedpoint in the base or background
@@ -99,29 +99,39 @@ interface
   end;
 
   TRemapTransformation = class(TTransformation)
+  private
+    ScalingFixed: TFixedPoint;
+    ScalingFloat: TFloatPoint;
+
+    SrcTranslationFixed: TFixedPoint;
+    SrcScaleFixed: TFixedPoint;
+    DstTranslationFixed: TFixedPoint;
+    DstScaleFixed: TFixedPoint;
+
+    SrcTranslationFloat: TFloatPoint;
+    SrcScaleFloat: TFloatPoint;
+    DstTranslationFloat: TFloatPoint;
+    DstScaleFloat: TFloatPoint;
+
+    FDstRect: TFloatRect;
   protected
-    FTransformationMap: TTransformationMap;
-    FScaling: TFixedPoint;
-    FTranslation: TFixedPoint;
+    procedure PrepareTransform; override;
     procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
     procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
-  protected
-    property Scaling: TFixedPoint read FScaling write FScaling;
-    property Translation: TFixedPoint read FTranslation write FTranslation;
   public
+    TransformationMap : TTransformationMap;
     constructor Create; virtual;
     destructor Destroy; override;
     function  GetTransformedBounds: TRect; override;
     procedure Scale(Sx, Sy: Single);
-    procedure Translate(Dx, Dy: Single);
-    property TransformationMap read FTransformationMap write FTransformationMap;
+    property DstRect: TFloatRect read FDstRect{GetDstRect} write FDstRect{SetDstRect};
   end;
 
-function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
-
 implementation
+
+uses Math, GR32_Lowlevel;
 
 { TTransformationMap }
 
@@ -502,7 +512,11 @@ end;
 constructor TRemapTransformation.Create;
 begin
   inherited;
-  TransformationMap:= TTransformationMap.Create;
+  ScalingFixed := FixedPoint(1, 1);
+  ScalingFloat := FloatPoint(1, 1);
+  TransformationMap := TTransformationMap.Create;
+  //Ensuring initial setup to avoid exceptions
+  TransformationMap.SetSize(1, 1);
 end;
 
 destructor TRemapTransformation.Destroy;
@@ -513,82 +527,125 @@ end;
 
 function TRemapTransformation.GetTransformedBounds: TRect;
 begin
-  Result := MakeRect(FSrcRect);
+  Result := TransformationMap.BoundsRect;
+end;
+
+procedure TRemapTransformation.PrepareTransform;
+begin
+//  if IsRectEmpty(SrcRect
+  with SrcRect do
+  begin
+    SrcTranslationFloat.X := Left;
+    SrcTranslationFloat.Y := Top;
+    SrcScaleFloat.X := 1 / (TransformationMap.Width / (Right - Left));
+    SrcScaleFloat.Y := 1 / (TransformationMap.Height / (Bottom - Top));
+    SrcTranslationFixed := FixedPoint(SrcTranslationFloat);
+    SrcScaleFixed := FixedPoint(SrcScaleFloat);
+  end;
+
+  with FDstRect do
+  begin
+    DstTranslationFloat.X := Left;
+    DstTranslationFloat.Y := Top;
+    DstScaleFloat.X := TransformationMap.Width / (Right - Left);
+    DstScaleFloat.Y := TransformationMap.Height / (Bottom - Top);
+    DstTranslationFixed := FixedPoint(DstTranslationFloat);
+    DstScaleFixed := FixedPoint(DstScaleFloat);
+  end;
 end;
 
 procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
   out SrcX256, SrcY256: Integer);
-var
-  P: TFixedPoint;
 begin
-  inherited;
-  P := TransformationMap.FixedPointMapXS[DstX * 256, DstY * 256];
-  P.X := FixedMul(P.X, FScaling.X);
-  P.Y := FixedMul(P.Y, FScaling.Y);
-  Inc(P.X, FTranslation.X);
-  Inc(P.Y, FTranslation.Y);
-  SrcX256 := SAR_8(DstX + P.X);
-  SrcY256 := SAR_8(DstY + P.Y);
+  with TransformationMap.FixedPointMapS[DstX, DstY] do
+  begin
+    //Scale the vectors
+    X := FixedMul(X, ScalingFixed.X);
+    Y := FixedMul(Y, ScalingFixed.Y);
+
+    //Dst Translation and Scaling (controlled by DstRect)
+    Inc(X, DstX * $10000 - DstTranslationFixed.X);
+    Inc(Y, DstY * $10000 - DstTranslationFixed.Y);
+    X := FixedMul(X, DstScaleFixed.X);
+    Y := FixedMul(Y, DstScaleFixed.Y);
+
+    //Src Translation, Scaling (controlled by SrcRect) and rounding
+    X := DstX + FixedMul(X, SrcScaleFixed.X);
+    Y := DstY + FixedMul(Y, SrcScaleFixed.Y);
+    SrcX256 := SAR_8(X + $7F + SrcTranslationFixed.X);
+    SrcY256 := SAR_8(Y + $7F + SrcTranslationFixed.Y);
+  end;
 end;
 
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
   out SrcX, SrcY: TFixed);
-var
-  P: TFixedPoint;
 begin
-  inherited;
-  P := TransformationMap.FixedPointMapXS[DstX, DstY];
-  P.X := FixedMul(P.X, FScaling.X);
-  P.Y := FixedMul(P.Y, FScaling.Y);
-  Inc(P.X, FTranslation.X);
-  Inc(P.Y, FTranslation.Y);
-  SrcX := DstX + P.X;
-  SrcY := DstY + P.Y;
+  with TransformationMap.FixedPointMapXS[DstX, DstY] do
+  begin
+    //Scale the vectors
+    X := FixedMul(X, ScalingFixed.X);
+    Y := FixedMul(Y, ScalingFixed.Y);
+
+    //Dst Translation and Scaling (controlled by DstRect)
+    Inc(X, DstX - DstTranslationFixed.X);
+    Inc(Y, DstY - DstTranslationFixed.Y);
+    X := FixedMul(X, DstScaleFixed.X);
+    Y := FixedMul(Y, DstScaleFixed.Y);
+
+    //Src Translation and Scaling (controlled by SrcRect)
+    SrcX := DstX + FixedMul(X, SrcScaleFixed.X) + SrcTranslationFixed.X;
+    SrcY := DstY + FixedMul(Y, SrcScaleFixed.Y) + SrcTranslationFixed.Y;
+  end;
 end;
 
 procedure TRemapTransformation.ReverseTransformFloat(DstX, DstY: Single;
   out SrcX, SrcY: Single);
-var
-  P: TFixedPoint;
-  X,Y: TFixed;
 begin
-  inherited;
-  X := Fixed(DstX);
-  Y := Fixed(DstY);
-  P := TransformationMap.FixedPointMapXS[X, Y];
-  P.X := FixedMul(P.X, FScaling.X);
-  P.Y := FixedMul(P.Y, FScaling.Y);
-  Inc(P.X, FTranslation.X);
-  Inc(P.Y, FTranslation.Y);
-  SrcX:= (X + P.X) * FixedToFloat;
-  SrcY:= (Y + P.Y) * FixedToFloat;
+  with TransformationMap.FloatPointMapFS[DstX, DstY] do
+  begin
+    //Scale the vectors
+    X := X * ScalingFloat.X;
+    Y := Y * ScalingFloat.Y;
+
+    //Dst Translation and Scaling (controlled by DstRect)
+    X := X + DstX - DstTranslationFloat.X;
+    Y := Y + DstY - DstTranslationFloat.Y;
+    X := X * DstScaleFloat.X;
+    Y := Y * DstScaleFloat.Y;
+
+    //Src Translation and Scaling (controlled by SrcRect)
+    SrcX := DstX + X * SrcScaleFloat.X + SrcTranslationFloat.X;
+    SrcY := DstY + Y * SrcScaleFloat.Y + SrcTranslationFloat.Y;
+  end;
 end;
 
 procedure TRemapTransformation.ReverseTransformInt(DstX, DstY: Integer;
   out SrcX, SrcY: Integer);
-var
-  P: TFixedPoint;
 begin
-  inherited;
-  P := TransformationMap.FixedPointMapS[DstX, DstY];
-  P.X := FixedMul(P.X, FScaling.X);
-  P.Y := FixedMul(P.Y, FScaling.Y);
-  Inc(P.X, FTranslation.X);
-  Inc(P.Y, FTranslation.Y);
-  SrcX := DstX + FixedRound(P.X);
-  SrcY := DstY + FixedRound(P.Y);
+  with TransformationMap.FixedPointMapS[DstX, DstY] do
+  begin
+    //Scale the vectors
+    X := FixedMul(X, ScalingFixed.X);
+    Y := FixedMul(Y, ScalingFixed.Y);
+
+    //Dst Translation and Scaling (controlled by DstRect)
+    Inc(X, DstX * $10000 - DstTranslationFixed.X);
+    Inc(Y, DstY * $10000 - DstTranslationFixed.Y);
+    X := FixedMul(X, DstScaleFixed.X);
+    Y := FixedMul(Y, DstScaleFixed.Y);
+
+    //Src Translation and Scaling (controlled by SrcRect) and rounding
+    SrcX := SAR_16(DstX + FixedMul(X, SrcScaleFixed.X) + SrcTranslationFixed.X + $7FFF);
+    SrcY := SAR_16(DstY + FixedMul(Y, SrcScaleFixed.Y) + SrcTranslationFixed.Y + $7FFF);
+  end;
 end;
 
 procedure TRemapTransformation.Scale(Sx, Sy: Single);
 begin
-  FScaling.X := Fixed(Sx);
-  FScaling.Y := Fixed(Sy);
-end;
-
-procedure TRemapTransformation.Translate(Dx, Dy: Single);
-begin
-  FTranslation.X := Fixed(Dx);
-  FTranslation.Y := Fixed(Dy);
+  ScalingFixed.X := Fixed(Sx);
+  ScalingFixed.Y := Fixed(Sy);
+  ScalingFloat.X := Sx;
+  ScalingFloat.Y := Sy;
 end;
 
 end.
