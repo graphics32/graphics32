@@ -1,6 +1,7 @@
 program Polygons_Ex;
 
 uses
+  ExceptionLog,
   Forms,
   MainUnit in 'MainUnit.pas' {Form1};
 

@@ -50,6 +50,7 @@ type
     AntialiasMode: TRadioGroup;
     Memo1: TMemo;
     Memo2: TMemo;
+    Pattern: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton;
@@ -75,10 +76,13 @@ implementation
 {$R *.DFM}
 
 procedure TForm1.Draw;
+var
+  MyFiller: TBitmapPolygonFiller;
 begin
   Image.Bitmap.BeginUpdate;
   Image.Bitmap.Clear(clWhite32);
-  Image.Bitmap.Draw(50, 50, BitmapList.Bitmaps[0].Bitmap);
+  Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
+
   Polygon.Antialiased := Antialiase.Checked;
   Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
 
@@ -88,9 +92,25 @@ begin
     Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
   end;
 
-  if FillMode.ItemIndex = 0 then Polygon.FillMode := pfAlternate else Polygon.FillMode := pfWinding;
+  if FillMode.ItemIndex = 0 then
+    Polygon.FillMode := pfAlternate
+  else
+    Polygon.FillMode := pfWinding;
 
-  Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
+  if Pattern.Checked then
+  begin
+    BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
+    BitmapList.Bitmap[1].DrawMode := dmBlend;
+    MyFiller := TBitmapPolygonFiller.Create;
+    try
+      MyFiller.Pattern := BitmapList.Bitmap[1];
+      Polygon.DrawFill(Image.Bitmap, MyFiller);
+    finally
+      MyFiller.Free;
+    end;
+  end
+  else
+    Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
 
   if UseOutlinePoly then
     Outline.DrawFill(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
@@ -132,7 +152,7 @@ end;
 
 procedure TForm1.ParamsChanged(Sender: TObject);
 begin
-  AntialiasMode.Enabled := Antialiase.Checked and ThickOutline.Checked;
+  AntialiasMode.Enabled := Antialiase.Checked;
   Draw;
 end;
 
@@ -164,7 +184,7 @@ end;
 
 procedure TForm1.ThicknessChanged(Sender: TObject);
 begin
-  AntialiasMode.Enabled := Antialiase.Checked and ThickOutline.Checked;
+  AntialiasMode.Enabled := Antialiase.Checked;
   UseOutlinePoly := ThickOutline.Checked;
   LineSize := LineThickness.Position / 10;
   Build;
