@@ -86,12 +86,15 @@ type
   TScaleMode = (smNormal, smStretch, smScale, smResize);
   TPaintBoxOptions = set of (pboWantArrowKeys, pboAutoFocus);
 
+  TRepaintMode = (rmFull, rmDirect, rmOptimizer);
+
   { TCustomPaintBox32 }
   TCustomPaintBox32 = class(TCustomControl)
   private
     FBuffer: TBitmap32;
     FBufferOversize: Integer;
     FBufferValid: Boolean;
+    FRepaintMode: TRepaintMode;
     FInvalidRects: TRectList;
     FForceFullRepaint: Boolean;
     FRepaintOptimizer: TCustomRepaintOptimizer;
@@ -110,8 +113,8 @@ type
     procedure WMPaint(var Message: TMessage); message WM_PAINT;
 {$ENDIF}
   protected
-    function  GetUseRepaintOptimizer: Boolean; virtual;
-    procedure SetUseRepaintOptimizer(const Value: Boolean); virtual;
+    procedure SetRepaintMode(const Value: TRepaintMode); virtual;
+    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal); virtual;
     function  CustomRepaintNeeded: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
     procedure DoValidateInvalidRects; virtual;
@@ -149,7 +152,7 @@ type
     property BufferOversize: Integer read FBufferOversize write SetBufferOversize;
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
     property MouseInControl: Boolean read FMouseInControl;
-    property UseRepaintOptimizer: Boolean read GetUseRepaintOptimizer write SetUseRepaintOptimizer;
+    property RepaintMode: TRepaintMode read FRepaintMode write SetRepaintMode;
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
     property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
     property OnGDIOverlay: TNotifyEvent read FOnGDIOverlay write FOnGDIOverlay;
@@ -177,10 +180,10 @@ type
     property Options;
     property ParentShowHint;
     property PopupMenu;
+    property RepaintMode;
     property ShowHint;
     property TabOrder;
     property TabStop;
-    property UseRepaintOptimizer;
     property Visible;
 {$IFNDEF CLX}
     property OnCanResize;
@@ -234,6 +237,7 @@ type
     procedure ResizedHandler(Sender: TObject);
     procedure ChangedHandler(Sender: TObject);
     procedure BitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+    procedure DirectBitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
     procedure GetViewportCoordHandler(Sender: TObject; var APoint: TFloatPoint; AScaled: Boolean);
     function  GetOnPixelCombine: TPixelCombineEvent;
     procedure GDIUpdateHandler(Sender: TObject);
@@ -273,7 +277,7 @@ type
 {$ELSE}
     procedure MouseLeave; override;
 {$ENDIF}
-    procedure SetUseRepaintOptimizer(const Value: Boolean); override;
+    procedure SetRepaintMode(const Value: TRepaintMode); override;
     procedure UpdateCache;
     property  UpdateCount: Integer read FUpdateCount;
   public
@@ -335,12 +339,12 @@ type
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
+    property RepaintMode;
     property Scale;
     property ScaleMode;
     property ShowHint;
     property TabOrder;
     property TabStop;
-    property UseRepaintOptimizer;
     property Visible;
     property OnBitmapResize;
 {$IFNDEF CLX}
@@ -454,6 +458,7 @@ type
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
+    property RepaintMode;
     property Scale;
     property ScrollBars;
     property ShowHint;
@@ -461,7 +466,6 @@ type
     property OverSize;
     property TabOrder;
     property TabStop;
-    property UseRepaintOptimizer;
     property Visible;
     property OnBitmapResize;
 {$IFNDEF CLX}
@@ -710,7 +714,10 @@ begin
   // force full repaint, this is necessary when Buffer is invalid and was never painted
   // This will omit calculating the invalid rects, thus we paint everything.
   if FForceFullRepaint then
-    FForceFullRepaint := False
+  begin
+    FForceFullRepaint := False;
+    FInvalidRects.Clear;
+  end
   else
     DoValidateInvalidRects;
 
@@ -873,9 +880,7 @@ var
 begin
 {$IFDEF CLX}
   if CustomRepaintNeeded then
-  begin
     DoValidateInvalidRects;
-  end;
 {$ENDIF}
 
   if FRepaintOptimizer.Enabled then FRepaintOptimizer.BeginPaint;
@@ -1040,30 +1045,30 @@ begin
 end;
 {$ENDIF}
 
-function TCustomPaintBox32.GetUseRepaintOptimizer: Boolean;
+procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject;
+  const Area: TRect; const Hint: Cardinal);
 begin
-  if Assigned(FRepaintOptimizer) then
-    Result := FRepaintOptimizer.Enabled
-  else
-    Result := False;
+  FInvalidRects.Add(Area);
+  if not(csCustomPaint in ControlState) then Repaint;
 end;
 
-procedure TCustomPaintBox32.SetUseRepaintOptimizer(const Value: Boolean);
+procedure TCustomPaintBox32.SetRepaintMode(const Value: TRepaintMode);
 begin
   if Assigned(FRepaintOptimizer) then
   begin
-    // setup event handler on change of area
-    if not(Self is TCustomImage32) then
-      if Value then
-        FBuffer.OnAreaChanged := FRepaintOptimizer.AreaUpdateHandler
-      else
-        FBuffer.OnAreaChanged := nil;
+    if Value = rmOptimizer then
+      FBuffer.OnAreaChanged := FRepaintOptimizer.AreaUpdateHandler
+    else if Value = rmDirect then
+      FBuffer.OnAreaChanged := DirectAreaUpdateHandler
+    else
+      FBuffer.OnAreaChanged := nil;
 
-    FRepaintOptimizer.Enabled := Value;
+    FRepaintOptimizer.Enabled := Value = rmOptimizer;
+
+    FRepaintMode := Value;
     Invalidate;
   end;
 end;
-
 
 
 { TPaintBox32 }
@@ -1189,6 +1194,45 @@ begin
   end;
 
   Changed;
+end;
+
+procedure TCustomImage32.DirectBitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+var
+  T, R: TRect;
+  Width, Tx, Ty, I, J: Integer;
+begin
+  if Sender = FBitmap then
+  begin
+    T := Area;
+    Width := Trunc(FBitmap.Resampler.Width) + 1;
+    InflateArea(T, Width, Width);
+    T.TopLeft := BitmapToControl(T.TopLeft);
+    T.BottomRight := BitmapToControl(T.BottomRight);
+
+    if FBitmapAlign <> baTile then
+      InvalidRects.Add(T)
+    else
+    begin
+      with CachedBitmapRect do
+      begin
+        Tx := Buffer.Width div Right;
+        Ty := Buffer.Height div Bottom;
+        for J := 0 to Ty do
+          for I := 0 to Tx do
+          begin
+            R := T;
+            OffsetRect(R, Right * I, Bottom * J);
+            InvalidRects.Add(R);
+          end;
+      end;
+    end;
+  end;
+
+  if FUpdateCount = 0 then
+  begin
+    if not(csCustomPaint in ControlState) then Repaint;
+    if Assigned(FOnChange) then FOnChange(Self);
+  end;
 end;
 
 function TCustomImage32.ControlToBitmap(const APoint: TPoint): TPoint;
@@ -1810,11 +1854,13 @@ begin
   Result := FInvalidRects.Count > 0;
 end;
 
-procedure TCustomImage32.SetUseRepaintOptimizer(const Value: Boolean);
+procedure TCustomImage32.SetRepaintMode(const Value: TRepaintMode);
 begin
   inherited;
-  if Value then
+  if Value = rmOptimizer then
     FBitmap.OnAreaChanged := BitmapAreaChangedHandler
+  else if Value = rmDirect then
+    FBitmap.OnAreaChanged := DirectBitmapAreaChangedHandler
   else
     FBitmap.OnAreaChanged := nil;
 end;
