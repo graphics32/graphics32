@@ -1879,6 +1879,7 @@ end;
 destructor TBitmap32KernelResampler.Destroy;
 begin
   FKernel.Free;
+  inherited Destroy;
 end;
 
 function TBitmap32KernelResampler.GetKernelClassName: string;
@@ -2134,6 +2135,7 @@ end;
 destructor TBitmap32LinearResampler.Destroy;
 begin
   FLinearKernel.Free;
+  inherited Destroy;
 end;
 
 function TBitmap32LinearResampler.GetSampleFloat(X, Y: Single): TColor32;
