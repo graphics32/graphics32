@@ -38,15 +38,11 @@ uses
   Qt, Types,
   {$IFDEF LINUX}Libc,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+  QControls, QGraphics, QConsts,
 {$ELSE}
-  Windows,
+  Windows, Messages, Controls, Graphics,
 {$ENDIF}
-  Classes, SysUtils,
-{$IFDEF CLX}
-  QControls, QGraphics, QConsts
-{$ELSE}
-  Messages, Controls, Graphics
-{$ENDIF};
+  Classes, SysUtils;
 
 { Version Control }
 
