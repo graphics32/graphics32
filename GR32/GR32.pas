@@ -493,7 +493,7 @@ type
 {$IFDEF CLX}
     procedure Textout(X, Y: Integer; const Text: Widestring); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure Textout(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtent(const Text: Widestring): TSize;
     function  TextHeight(const Text: Widestring): Integer;
     function  TextWidth(const Text: Widestring): Integer;
@@ -501,7 +501,7 @@ type
 {$ELSE}
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
-    procedure Textout(const DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
     function  TextExtent(const Text: String): TSize;
     function  TextHeight(const Text: String): Integer;
     function  TextWidth(const Text: String): Integer;
@@ -509,7 +509,7 @@ type
 {$ENDIF}
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtentW(const Text: Widestring): TSize;
     function  TextHeightW(const Text: Widestring): Integer;
     function  TextWidthW(const Text: Widestring): Integer;
@@ -3376,7 +3376,7 @@ begin
   QPainter_setClipping(Handle, False);
   StopPainter;
 {$ELSE}
-  ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
 {$ENDIF}
   Changed;
 end;
@@ -3384,20 +3384,20 @@ end;
 // -------------------------------------------------------------------
 
 {$IFDEF CLX}
-procedure TBitmap32.Textout(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
+procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
   TextoutW(DstRect, Flags, Text);
 end;
 {$ELSE}
-procedure TBitmap32.Textout(const DstRect: TRect; const Flags: Cardinal; const Text: String);
+procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: String);
 begin
   UpdateFont;
-  DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
+  DrawText(Handle, PChar(Text), Length(Text), DstRect, Flags);
   Changed;
 end;
 {$ENDIF}
 
-procedure TBitmap32.TextoutW(const DstRect: TRect; const Flags: Cardinal;
+procedure TBitmap32.TextoutW(DstRect: TRect; const Flags: Cardinal;
   const Text: Widestring);
 begin
   UpdateFont;
