@@ -18,6 +18,7 @@ type
     FRenderThread: TRenderThread;
     FOldAreaChanged: TAreaChangedEvent;
     procedure SetRasterizer(const Value: TRasterizer);
+    procedure StopRenderThread;
   protected
     procedure RasterizerChanged(Sender: TObject);
     procedure SetParent(AParent: TWinControl); override;
@@ -39,13 +40,14 @@ type
     FRasterizer: TRasterizer;
     FOldAreaChanged: TAreaChangedEvent;
     FArea: TRect;
+    FBoundsRect: TRect;
     procedure SynchronizedAreaChanged;
     procedure AreaChanged(Sender: TObject; const Area: TRect; const Hint: Cardinal);
   protected
     procedure Execute; override;
     procedure Rasterize;
   public
-    constructor Create(Rasterizer: TRasterizer; Bitmap: TBitmap32);
+    constructor Create(Rasterizer: TRasterizer; Bitmap: TBitmap32; BoundsRect: TRect);
   end;
 
 implementation
@@ -87,8 +89,9 @@ begin
     Invalidate;
 
     { create rendering thread }
+    StopRenderThread;
     FOldAreaChanged := Buffer.OnAreaChanged;
-    FRenderThread := TRenderThread.Create(FRasterizer, Buffer);
+    FRenderThread := TRenderThread.Create(FRasterizer, Buffer, BoundsRect);
     FResized := True;
   end;
 end;
@@ -125,11 +128,7 @@ end;
 
 procedure TSyntheticImage32.Resize;
 begin
-  if Assigned(FRenderThread) and (not FRenderThread.Terminated) then
-  begin
-    FRenderThread.Terminate;
-    FRenderThread.WaitFor;
-  end;
+  StopRenderThread;
   inherited;
 end;
 
@@ -160,6 +159,7 @@ procedure TSyntheticImage32.SetRasterizer(const Value: TRasterizer);
 begin
   if Value <> FRasterizer then
   begin
+    StopRenderThread;
     if Assigned(FRasterizer) then FRasterizer.Free;
     FRasterizer := Value;
     FRasterizer.OnChange := RasterizerChanged;
@@ -168,13 +168,25 @@ begin
   end;
 end;
 
+procedure TSyntheticImage32.StopRenderThread;
+begin
+  if Assigned(FRenderThread) and (not FRenderThread.Terminated) then
+  begin
+    FRenderThread.Terminate;
+    FRenderThread.WaitFor;
+    FRenderThread.Free;
+  end;
+end;
+
 { TRenderThread }
 
-constructor TRenderThread.Create(Rasterizer: TRasterizer; Bitmap: TBitmap32);
+constructor TRenderThread.Create(Rasterizer: TRasterizer; Bitmap: TBitmap32;
+  BoundsRect: TRect);
 begin
   inherited Create(False);
   FRasterizer := Rasterizer;
   FBitmap := Bitmap;
+  FBoundsRect := BoundsRect;
   Priority := tpNormal;
 end;
 
@@ -190,7 +202,7 @@ begin
   FOldAreaChanged := FBitmap.OnAreaChanged;
   FBitmap.OnAreaChanged := AreaChanged;
   try
-    FRasterizer.Rasterize(FBitmap);
+    FRasterizer.Rasterize(FBitmap, FBoundsRect);
   except
     on EAbort do;
   end;
