@@ -22,8 +22,11 @@ unit GR32_Blend;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *  Mattias Anderson
- *  Michael Hansen
+ *  Mattias Andersson
+ *      - 2004/07/07 - MMX Blendmodes
+ *
+ *  Michael Hansen <dyster_tid@hotmail.com>
+ *      - 2004/07/07 - Pascal Blendmodes, function setup
  *
  * ***** END LICENSE BLOCK ***** *)
 // $Id: GR32_Blend.pas,v 1.2 2004/07/07 11:39:58 abeckedorf Exp $
@@ -80,7 +83,6 @@ var
   alpha_ptr: Pointer;
 
 { Misc stuff }
-  ScaleColor: function(C: TColor32; W: Integer): TColor32;
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
 
@@ -1198,26 +1200,6 @@ begin
   Result := a shl 24 + r shl 16 + g shl 8 + b;
 end;
 
-function M_ScaleColor(C: TColor32; W: Integer): TColor32;
-asm
-        MOVD      MM1,EAX
-        PXOR      MM0,MM0
-        SHL       EDX,3
-        PUNPCKLBW MM1,MM0
-        ADD       EDX,alpha_ptr
-        PMULLW    MM1,[EDX]
-        MOV       EDX,bias_ptr    //
-        PADDW     MM1,[EDX]       //
-        PSRLW     MM1,8
-        PACKUSWB  MM1,MM0
-        MOVD      EAX,MM1
-end;
-
-function _ScaleColor(C: TColor32; W: Integer): TColor32;
-begin
-//TODO!
-end;
-
 { MMX Detection and linking }
 
 procedure SetupFunctions;
@@ -1243,7 +1225,6 @@ begin
     ColorDifference:= M_ColorDifference;
     ColorExclusion:= M_ColorExclusion;
 
-    ScaleColor:= M_ScaleColor;
   end
   else
   begin
@@ -1265,7 +1246,6 @@ begin
     ColorDifference:= _ColorDifference;
     ColorExclusion:= _ColorExclusion;
 
-    ScaleColor:= _ScaleColor;
   end;
 end;
 
