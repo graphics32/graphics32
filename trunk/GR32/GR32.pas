@@ -304,6 +304,7 @@ type
     function  Equal(B: TBitmap32): Boolean;
     procedure SET_T256(X, Y: Integer; C: TColor32);
     procedure SET_TS256(X, Y: Integer; C: TColor32);
+    function  GET_TS256(X, Y: Integer): TColor32;
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
@@ -349,6 +350,8 @@ type
     procedure SetPixelTS(X, Y: Integer; Value: TColor32);
     procedure SetPixelF(X, Y: Single; Value: TColor32);
     procedure SetPixelX(X, Y: TFixed; Value: TColor32);
+    function  GetPixelF(X, Y: Single): TColor32;
+    function  GetPixelX(X, Y: TFixed): TColor32;
     procedure SetPixelFS(X, Y: Single; Value: TColor32);
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
 
@@ -1626,6 +1629,63 @@ begin
         SAR Y, 8
   end;
   SET_TS256(X, Y, Value);
+  EMMS;
+end;
+
+function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
+var
+  flrx, flry, celx, cely: Longword;
+  P: PColor32;
+begin
+  { Warning: EMMS should be called after using this method }
+
+  Result := 0;
+  if (X < -256) or (Y < -256) then Exit;
+
+  flrx := X and $FF;
+  flry := Y and $FF;
+
+  asm
+    SAR X, 8
+    SAR Y, 8
+  end;
+
+  celx := flrx xor 255;
+  cely := flry xor 255;
+
+  P := @FBits[X + Y * FWidth];
+
+  if (X >= 0) and (Y >= 0) and (X < FWidth - 1) and (Y < FHeight -1) then
+  begin
+    Result := ScaleColor(P^, celx * cely shr 8); Inc(P);
+    Inc(Result, ScaleColor(P^, flrx * cely shr 8)); Inc(P, FWidth);
+    Inc(Result, ScaleColor(P^, flrx * flry shr 8)); Dec(P);
+    Inc(Result, ScaleColor(P^, celx * flry shr 8));
+  end
+  else // "pixel" lies on the edge of the bitmap
+  begin
+    if (X >= 0) and (Y >= 0) then Inc(Result, ScaleColor(P^, celx *cely shr 8)); Inc(P);
+    if (X < FWidth - 1) and (Y >= 0) then Inc(Result, ScaleColor(P^,flrx * cely shr 8)); Inc(P, FWidth);
+    if (X < FWidth - 1) and (Y < FHeight - 1) then Inc(Result,ScaleColor(P^, flrx * flry shr 8)); Dec(P);
+    if (X >= 0) and (Y < FHeight - 1) then Inc(Result, ScaleColor(P^,celx * flry shr 8));
+  end;
+end;
+
+function TBitmap32.GetPixelF(X, Y: Single): TColor32;
+begin
+  Result := GET_TS256(Round(X * 256), Round(Y * 256));
+  EMMS;
+end;
+
+function TBitmap32.GetPixelX(X, Y: TFixed): TColor32;
+begin
+  asm
+        ADD X, $7F
+        ADD Y, $7F
+        SAR X, 8
+        SAR Y, 8
+  end;
+  Result := GET_TS256(X, Y);
   EMMS;
 end;
 
