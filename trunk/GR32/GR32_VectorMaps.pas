@@ -31,41 +31,122 @@ uses
    Windows, Types, SysUtils, Classes, GR32, GR32_Transforms;
 
 type
+
+  { TCustomShape - Base class for  shapes }
+
+  TCustomShape = class
+  private
+    FShapeValid: Boolean;
+    FShapeWeight: Single;
+    FixedShapeWeight: TFixed;
+    procedure SetShapeWeight(const Value: Single);
+  public
+    constructor Create; virtual;
+    function ShapeValueFixed(const Value: TFixed): TFixed; virtual;
+    function ShapeValueFloat(const Value: Single): Single; virtual; abstract;
+    property ShapeWeight: Single read FShapeWeight write SetShapeWeight;
+    property ShapeValid: Boolean read FShapeValid;
+    procedure PrepareShape; virtual;
+    procedure FinalizeShape; virtual;
+  end;
+  TCustomShapeClass = class of TCustomShape;
+
+  { Shape callback proc types }
+
+  TShapeValueFixed = function (const Value: TFixed): TFixed of object;
+  TShapeValueFloat = function (const Value: Single): Single of object;
+
+var
+  { ShapeList class registerlist }
+  ShapeList: TList;
+
+type
+  { TConstantShape - sets result to a constant value }
+
+  TConstantShape = class(TCustomShape)
+  private
+    FConstantValue: Single;
+    FixedConstantValue: TFixed;
+    procedure SetConstantValue(const Value: Single);
+  public
+    constructor Create; override;
+    property ConstantValue: Single read FConstantValue write SetConstantValue;
+    function ShapeValueFixed(const Value: TFixed): TFixed; override;
+    function ShapeValueFloat(const Value: Single): Single; override;
+  end;
+
+  { TLinearShape }
+
+  TLinearShape = class(TCustomShape)
+  public
+    function ShapeValueFixed(const Value: TFixed): TFixed; override;
+    function ShapeValueFloat(const Value: Single): Single; override;
+  end;
+
+  { TGaussianShape }
+
+  TGaussianShape = class(TCustomShape)
+  public
+    function ShapeValueFloat(const Value: Single): Single; override;
+  end;
+
+  TDefaultShape = class(TLinearShape);
+
+
+  { TCustomCombiner - Base class for combining values }
+
   TCustomCombiner = class
   private
+    FShape: TCustomShape;
     FCombineRect: TFloatRect;
     FCombineValid: Boolean;
     FMasterWeight: Single;
     procedure SetMasterWeight(Value: Single);
+    function GetCombineValid: Boolean;
+    procedure SetShape(Shape: TCustomShape);
+    function GetShapeClassName: string;
+    procedure SetShapeClassName(Value: string);
   public
     constructor Create;
+    destructor Destroy; override;
     property MasterWeight: Single read FMasterWeight write SetMasterWeight;
-    property CombineValid: Boolean read FCombineValid;
+    property CombineValid: Boolean read GetCombineValid;
     procedure PrepareCombine(CombineRect: TFloatRect); virtual;
     procedure FinalizeCombine; virtual;
+  published
+    property ShapeClassName: string read GetShapeClassName write SetShapeClassName;
+    property Shape: TCustomShape read FShape write SetShape;
   end;
 
-  { Simple framework for combining points
-
+  { TCustomVectorCombiner - baseclass for all vectorcombiners, a simple framework
+    for combining points
    'F': point to be merged/combined, weighted by masterweight ("foreground point")
 
    'P': progression variables from the loop, which is in the following ranges
         for the different callback versions (both P.X and P.Y):
-          CombineInt, P = [0..256]
-          CombineFixed, P = [0..FixedOne ($10000)]
+          CombineInt, CombineFixed, P = [0..FixedOne ($10000)]
           CombineFloat, P = [0..1]
         The P variable allows different sorts of maskings.
 
    'B': basepoint on which F is merged ("background point")
    }
-
   TCustomVectorCombiner = class(TCustomCombiner)
   public
-    procedure CombineInt(const F, P: TPoint; var B: TPoint); virtual;
+    procedure CombineInt(const F: TPoint; const P: TFixedPoint; var B: TPoint); virtual;
     procedure CombineFixed(const F, P: TFixedPoint; var B: TFixedPoint); virtual;
     procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); virtual; abstract;
   end;
   TCustomVectorCombinerClass = class of TCustomVectorCombiner;
+
+  { Vectorcombiner callback proc types }
+  TVectorCombineInt = procedure(const F, P: TPoint; var B: TPoint) of object;
+  TVectorCombineFixed = procedure(const F, P: TFixedPoint; var B: TFixedPoint) of object;
+  TVectorCombineFloat = procedure(const F, P: TFloatPoint; var B: TFloatPoint) of object;
+
+var
+  VectorCombinerList: TList;
+
+type
 
   { TAdditionVectorCombiner }
   TAdditionVectorCombiner = class(TCustomVectorCombiner)
@@ -192,17 +273,11 @@ type
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
   end;
 
-procedure MergeProc_Add(const F: TFixedPoint; var B: TFixedPoint);
+{ General routines for registering and setting up custom class registerlists }
 
-
-{ General routines for registering and setting up VectorCombiners }
-
-procedure RegisterVectorCombiner(VectorCombinerClass: TCustomVectorCombinerClass);
-function GetVectorCombinerClassNames: TStrings;
-function FindVectorCombinerClass(ClassName: string): TCustomVectorCombinerClass;
-
-var
-  VectorCombinerList: TList;
+procedure RegisterCustomClass(CustomClass: TClass;var CustomRegister: TList);
+function GetCustomClassNames(CustomRegister: TList): TStrings;
+function FindCustomClass(ClassName: string; CustomRegister: TList): TClass;
 
 implementation
 
@@ -211,53 +286,42 @@ uses Math, GR32_Lowlevel, GR32_Blend;
 type
   TTransformationAccess = class(TTransformation);
 
-  TVectorCombineInt = procedure(const F, P: TPoint; var B: TPoint) of object;
-  TVectorCombineFixed = procedure(const F, P: TFixedPoint; var B: TFixedPoint) of object;
-  TVectorCombineFloat = procedure(const F, P: TFloatPoint; var B: TFloatPoint) of object;
 
-{ General routines for registering and setting up VectorCombiners }
+{ General routines for registering and setting up custom class registerlists }
 
-procedure RegisterVectorCombiner(VectorCombinerClass: TCustomVectorCombinerClass);
+procedure RegisterCustomClass(CustomClass: TClass; var CustomRegister: TList);
 begin
-  if not Assigned(VectorCombinerList) then
-    VectorCombinerList := TList.Create;
-  VectorCombinerList.Add(VectorCombinerClass);
+  if not Assigned(CustomRegister) then
+    CustomRegister := TList.Create;
+  CustomRegister.Add(CustomClass);
 end;
 
-function GetVectorCombinerClassNames: TStrings;
+function GetCustomClassNames(CustomRegister: TList): TStrings;
 var
   I: Integer;
 begin
-  if not Assigned(VectorCombinerList) then
+  if not Assigned(CustomRegister) then
     Result := nil
   else
   begin
     Result := TStringList.Create;
-    for I := 0 to VectorCombinerList.Count - 1 do
-      Result.Add(TCustomVectorCombinerClass(VectorCombinerList.List[I]).ClassName);
+    for I := 0 to CustomRegister.Count - 1 do
+      Result.Add(TClass(CustomRegister.List[I]).ClassName);
   end;
 end;
 
-function FindVectorCombinerClass(ClassName: string): TCustomVectorCombinerClass;
+function FindCustomClass(ClassName: string; CustomRegister: TList): TClass;
 var
   I: Integer;
 begin
   Result := nil;
-  if Assigned(VectorCombinerList) then
-    for I := 0 to VectorCombinerList.Count - 1 do
-      if TCustomVectorCombinerClass(VectorCombinerList.List[I]).ClassName = ClassName then
+  if Assigned(CustomRegister) then
+    for I := 0 to CustomRegister.Count - 1 do
+      if TClass(CustomRegister.List[I]).ClassName = ClassName then
       begin
-        Result := TCustomVectorCombinerClass(VectorCombinerList.List[I]);
+        Result := TClass(CustomRegister.List[I]);
         Exit;
       end;
-end;
-
-{ Mergeprocs }
-
-procedure MergeProc_Add(const F: TFixedPoint; var B: TFixedPoint);
-begin
-  Inc(B.X, F.X);
-  Inc(B.Y, F.Y);
 end;
 
 { TTransformationMap }
@@ -473,7 +537,6 @@ begin
   EnsureRange(Weight, 0, 1);
   IntersectRect( SrcRect, Src.BoundsRect, SrcRect);
 
-//  DstRect := BoundsRect;
   DstRect.Left := DstLeft;
   DstRect.Top := DstTop;
   DstRect.Right := SrcRect.Right - SrcRect.Left;
@@ -603,7 +666,7 @@ var
 begin
   if (Value <> '') and (FVectorCombiner.ClassName <> Value) then
   begin
-    VectorCombinerClass := FindVectorCombinerClass(Value);
+    VectorCombinerClass := TCustomVectorCombinerClass(FindCustomClass(Value, VectorCombinerList));
     if Assigned(VectorCombinerClass) then
     begin
       FVectorCombiner.Free;
@@ -753,8 +816,8 @@ begin
   if not TTransformationAccess(Transformation).TransformValid then
     TTransformationAccess(Transformation).PrepareTransform;
 
-  ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
-  ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
+  ProgressionX := Fixed(2 / (DstRect.Right - DstRect.Left - 1));
+  ProgressionY := Fixed(2 / (DstRect.Bottom - DstRect.Top - 1));
 
   with TransformationMap.VectorCombiner do
   begin
@@ -762,10 +825,10 @@ begin
     if not CombineValid then PrepareCombine(FloatRect(DstRect));
   end;
 
-  Progression.Y := 0;
+  Progression.Y := - FixedOne;
   with DstRect do for I := Top to Bottom - 1 do
   begin
-    Progression.X := 0;
+    Progression.X := - FixedOne;
     MapPtr := @TransformationMap.GetBits[I * TransformationMap.Width];
     for J := Left to Right - 1 do
     begin
@@ -887,16 +950,62 @@ constructor TCustomCombiner.Create;
 begin
   FMasterWeight := 1.0;
   FCombineValid := False;
+  Shape := TDefaultShape.Create;
+end;
+
+destructor TCustomCombiner.Destroy;
+begin
+  Shape.Free;
+  inherited;
 end;
 
 procedure TCustomCombiner.FinalizeCombine;
 begin
+  Shape.FinalizeShape;
   FCombineValid := False;
+end;
+
+function TCustomCombiner.GetCombineValid: Boolean;
+begin
+  Result := FCombineValid and Shape.ShapeValid;
+end;
+
+function TCustomCombiner.GetShapeClassName: string;
+begin
+   Result := FShape.ClassName;
+end;
+
+procedure TCustomCombiner.SetShape(
+  Shape: TCustomShape);
+begin
+  if Assigned(Shape) then
+  begin
+    if Assigned(FShape) then FShape.Free;
+    FShape := Shape;
+    FCombineValid := False;
+  end;
+end;
+
+procedure TCustomCombiner.SetShapeClassName(Value: string);
+var
+  ShapeClass: TCustomShapeClass;
+begin
+  if (Value <> '') and (FShape.ClassName <> Value) then
+  begin
+    ShapeClass := TCustomShapeClass(FindCustomClass(Value, ShapeList));
+    if Assigned(ShapeClass) then
+    begin
+      FShape.Free;
+      FShape := ShapeClass.Create;
+      FCombineValid := False;
+    end;
+  end;
 end;
 
 procedure TCustomCombiner.PrepareCombine(CombineRect: TFloatRect);
 begin
   if IsRectEmptyF(CombineRect) then raise Exception.Create('CombineRect is empty!');
+  if not Shape.ShapeValid then Shape.PrepareShape;
   FCombineRect := CombineRect;
   FCombineValid := True;
 end;
@@ -920,17 +1029,15 @@ begin
   B := FixedPoint(_B);
 end;
 
-procedure TCustomVectorCombiner.CombineInt(const F, P: TPoint;
+procedure TCustomVectorCombiner.CombineInt(const F: TPoint; const P: TFixedPoint;
   var B: TPoint);
-const
-  Fixed256ToFloat = 1/256;
 var
   _B, _P: TFloatPoint;
 begin
   EMMS;
   _B := FloatPoint(B);
-  _P.X := P.X * Fixed256ToFloat;
-  _P.Y := P.Y * Fixed256ToFloat;
+  _P.X := P.X * FixedToFloat;
+  _P.Y := P.Y * FixedToFloat;
   CombineFloat(FloatPoint(F), _P, _B);
   B := Point(_B);
 end;
@@ -941,12 +1048,18 @@ procedure TAdditionVectorCombiner.CombineFloat(const F, P: TFloatPoint;
   var B: TFloatPoint);
 var
   O: TFloatPoint;
+  W: Single;
 begin
   O.X := B.X + F.X;
   O.Y := B.Y + F.Y;
 
-  B.X := B.X + (O.X - B.X) * FMasterWeight;
-  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight;
+  with Shape do
+    W := ShapeValueFloat(1 - Abs(P.X)) *
+         ShapeValueFloat(1 - Abs(P.Y)) *
+         FMasterWeight;
+
+  B.X := B.X + (O.X - B.X) * W;
+  B.Y := B.Y + (O.Y - B.Y) * W;
 end;
 
 { TSubtractionVectorCombiner }
@@ -955,12 +1068,18 @@ procedure TSubtractionVectorCombiner.CombineFloat(const F, P: TFloatPoint;
   var B: TFloatPoint);
 var
   O: TFloatPoint;
+  W: Single;
 begin
   O.X := B.X - F.X;
   O.Y := B.Y - F.Y;
 
-  B.X := B.X + (O.X - B.X) * FMasterWeight;
-  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight;
+  with Shape do
+    W := ShapeValueFloat(1 - Abs(P.X)) *
+         ShapeValueFloat(1 - Abs(P.Y)) *
+         FMasterWeight;
+
+  B.X := B.X + (O.X - B.X) * W;
+  B.Y := B.Y + (O.Y - B.Y) * W;
 end;
 
 { TMultiplicationVectorCombiner }
@@ -969,12 +1088,18 @@ procedure TMultiplicationVectorCombiner.CombineFloat(const F,
   P: TFloatPoint; var B: TFloatPoint);
 var
   O: TFloatPoint;
+  W: Single;
 begin
   O.X := B.X * F.X;
   O.Y := B.Y * F.Y;
 
-  B.X := B.X + (O.X - B.X) * FMasterWeight;
-  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight;
+  with Shape do
+    W := ShapeValueFloat(1 - Abs(P.X)) *
+         ShapeValueFloat(1 - Abs(P.Y)) *
+         FMasterWeight;
+
+  B.X := B.X + (O.X - B.X) * W;
+  B.Y := B.Y + (O.Y - B.Y) * W;
 end;
 
 { TDifferenceVectorCombiner }
@@ -983,24 +1108,111 @@ procedure TDifferenceVectorCombiner.CombineFloat(const F, P: TFloatPoint;
   var B: TFloatPoint);
 var
   O: TFloatPoint;
-//  Wx, Wy: Single;
+  W: Single;
 begin
   O.X := Abs(B.X - F.X);
   O.Y := Abs(B.Y - F.Y);
-//  Wx := (1 - (0.5 + Abs(P.X - 0.5))) * FMasterWeight;
-//  Wy := (1 - (0.5 + Abs(P.Y - 0.5))) * FMasterWeight;
-  B.X := B.X + (O.X - B.X) * FMasterWeight{* Wx};
-  B.Y := B.Y + (O.Y - B.Y) * FMasterWeight{* Wy};
+
+  with Shape do
+    W := ShapeValueFloat(1 - Abs(P.X)) *
+         ShapeValueFloat(1 - Abs(P.Y)) *
+         FMasterWeight;
+
+  B.X := B.X + (O.X - B.X) * W;
+  B.Y := B.Y + (O.Y - B.Y) * W;
+end;
+
+{ TCustomShape }
+
+constructor TCustomShape.Create;
+begin
+  ShapeWeight := 1.0;
+  FShapeValid := False;
+end;
+
+procedure TCustomShape.FinalizeShape;
+begin
+  FShapeValid := False;
+end;
+
+procedure TCustomShape.PrepareShape;
+begin
+  FShapeValid := True;
+end;
+
+procedure TCustomShape.SetShapeWeight(const Value: Single);
+begin
+  FShapeWeight := Value;
+  FixedShapeWeight := Fixed(Value);
+  FShapeValid := False;
+end;
+
+function TCustomShape.ShapeValueFixed(const Value: TFixed): TFixed;
+var
+  S: Single;
+begin
+  EMMS;
+  S := Value * FixedToFloat;
+  Result := Fixed(ShapeValueFloat(S));
+end;
+
+{ TConstantShape }
+
+constructor TConstantShape.Create;
+begin
+  inherited;
+  ConstantValue := 1.0;
+end;
+
+procedure TConstantShape.SetConstantValue(const Value: Single);
+begin
+  FConstantValue := Value;
+  FixedConstantValue := Fixed(Value);
+  FShapeValid := False;
+end;
+
+function TConstantShape.ShapeValueFixed(const Value: TFixed): TFixed;
+begin
+  Result := FixedMul(FixedConstantValue, FixedShapeWeight);
+end;
+
+function TConstantShape.ShapeValueFloat(const Value: Single): Single;
+begin
+  Result := FConstantValue * FShapeWeight;
+end;
+
+{ TLinearShape }
+
+function TLinearShape.ShapeValueFixed(const Value: TFixed): TFixed;
+begin
+  Result := FixedMul(Value, FixedShapeWeight);
+end;
+
+function TLinearShape.ShapeValueFloat(const Value: Single): Single;
+begin
+  Result := Value * FShapeWeight;
+end;
+
+{ TGaussianShape }
+
+function TGaussianShape.ShapeValueFloat(const Value: Single): Single;
+begin
+  Result := Sqr(Sin(0.5 * Value * PI));
 end;
 
 initialization
   { Register VectorCombiners }
-  RegisterVectorCombiner(TAdditionVectorCombiner);
-  RegisterVectorCombiner(TSubtractionVectorCombiner);
-  RegisterVectorCombiner(TMultiplicationVectorCombiner);
-  RegisterVectorCombiner(TDifferenceVectorCombiner);
+  RegisterCustomClass(TAdditionVectorCombiner, VectorCombinerList);
+  RegisterCustomClass(TSubtractionVectorCombiner, VectorCombinerList);
+  RegisterCustomClass(TMultiplicationVectorCombiner, VectorCombinerList);
+  RegisterCustomClass(TDifferenceVectorCombiner, VectorCombinerList);
+
+  { Register Shapes }
+  RegisterCustomClass(TConstantShape, ShapeList);
+  RegisterCustomClass(TLinearShape, ShapeList);
+  RegisterCustomClass(TGaussianShape, ShapeList);
 
 finalization
   VectorCombinerList.Free;
-
+  ShapeList.Free;
 end.
