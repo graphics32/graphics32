@@ -62,8 +62,8 @@ begin
 
 	RegisterPropertyEditor(TypeInfo(string), TBitmap32, 'ResamplerClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomResampler), TBitmap32, 'Resampler', TResamplerClassProperty);
-	RegisterPropertyEditor(TypeInfo(string), TBitmap32KernelResampler, 'KernelClassName', nil);
-  RegisterPropertyEditor(TypeInfo(TCustomKernel), TBitmap32KernelResampler, 'Kernel', TKernelClassProperty);
+	RegisterPropertyEditor(TypeInfo(string), TKernelResampler, 'KernelClassName', nil);
+  RegisterPropertyEditor(TypeInfo(TCustomKernel), TKernelResampler, 'Kernel', TKernelClassProperty);
 end;
 
 end.

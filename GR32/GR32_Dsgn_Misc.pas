@@ -35,7 +35,7 @@ uses GR32, GR32_Resamplers;
 function TKernelClassProperty.HasSubProperties: Boolean;
 begin
   if PropCount > 0 then
-    Result := GetTypeData(TBitmap32KernelResampler(GetComponent(0)).Kernel.ClassInfo)^.PropCount > 0
+    Result := GetTypeData(TKernelResampler(GetComponent(0)).Kernel.ClassInfo)^.PropCount > 0
   else
     Result := False;
 end;
@@ -50,7 +50,7 @@ end;
 function TKernelClassProperty.GetValue: string;
 begin
   if PropCount > 0 then
-    Result := TBitmap32KernelResampler(GetComponent(0)).KernelClassName
+    Result := TKernelResampler(GetComponent(0)).KernelClassName
   else
     Result := '';
 end;
@@ -75,7 +75,7 @@ var
 begin
 	RC := FindKernelClass(Value);
 	if Assigned(RC) then
-    TBitmap32KernelResampler(GetComponent(0)).KernelClassName := Value
+    TKernelResampler(GetComponent(0)).KernelClassName := Value
 	else SetStrValue('');
 	Modified;
 end;
