@@ -101,6 +101,7 @@ type
     destructor Destroy; override;
     procedure Add(const P: TFixedPoint);
     procedure AddPoints(var First: TFixedPoint; Count: Integer);
+    function ContainsPoint(const P: TFixedPoint): Boolean;
     procedure Clear;
     function  Grow(const Delta: TFixed; EdgeSharpness: Single = 0): TPolygon32;
     procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32);
@@ -924,6 +925,19 @@ begin
   Points := nil;
   Normals := nil;
   NewLine;
+end;
+
+function TPolygon32.ContainsPoint(const P: TFixedPoint): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to High(FPoints) do
+    if PtInPolygon(P, FPoints[I]) then
+    begin
+      Result := True;
+      Exit;
+    end;
 end;
 
 constructor TPolygon32.Create;
