@@ -25,7 +25,6 @@ unit GR32_System;
  * Andre Beckedorf
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32_System.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
 
 interface
 

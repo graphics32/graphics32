@@ -24,10 +24,9 @@ unit GR32_Polygons;
  * Contributor(s):
  *   Andre Beckedorf <Andre@metaException.de>
  *   Mattias Andersson <mattias@centaurix.com>
- *   Peter Larson
+ *   Peter Larson <peter@larson.net>
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32_Polygons.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
 
 interface
 

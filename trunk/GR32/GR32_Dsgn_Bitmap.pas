@@ -24,7 +24,6 @@ unit GR32_Dsgn_Bitmap;
  * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32_Dsgn_Bitmap.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
 
 interface
 
