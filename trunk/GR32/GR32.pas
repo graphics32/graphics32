@@ -421,6 +421,7 @@ type
     function  GetBits: PColor32Array;
     function  GetPixmap: QPixmapH;
     function  GetPainter: QPainterH;
+    function  GetImage: QImageH;
 {$ENDIF}
     procedure SetCombineMode(const Value: TCombineMode);
     procedure SetDrawMode(Value: TDrawMode);
@@ -634,6 +635,7 @@ type
     property  PixelZ[X, Y: Single]: TColor32 read GetPixelZ;
 {$IFDEF CLX}
     property Pixmap: QPixmapH read GetPixmap;
+    property Image: QImageH read GetImage;
     property Bits: PColor32Array read GetBits;
     property Handle: QPainterH read GetPainter;
     property PixmapChanged: Boolean read FPixmapChanged write FPixmapChanged;
@@ -1502,6 +1504,10 @@ begin
     FHDC := nil;
     if Assigned(FHandle) then QImage_destroy(FHandle);
     FHandle := nil;
+    if Assigned(FPixmap) then QPixmap_destroy(FPixmap);
+    FPixmap := nil;
+    FPixmapChanged := False;
+    FPixmapActive := False;
 {$ELSE}
     if FHDC <> 0 then DeleteDC(FHDC);
     FHDC := 0;
@@ -1543,7 +1549,6 @@ begin
       end;
 
       FPixmap := QPixmap_create;
-      FPixmapActive := False;
 {$ELSE}
       FHDC := CreateCompatibleDC(0);
       if FHDC = 0 then
@@ -5104,6 +5109,12 @@ function TBitmap32.GetBits: PColor32Array;
 begin
   ImageNeeded;
   Result := FBits;
+end;
+
+function TBitmap32.GetImage: QImageH;
+begin
+  ImageNeeded;
+  Result := FHandle;
 end;
 
 function TBitmap32.GetPixmap: QPixmapH;
