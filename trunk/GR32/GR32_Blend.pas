@@ -1109,70 +1109,75 @@ end;
 
 function M_ColorAdd(C1, C2: TColor32): TColor32;
 asm
-        MOVD      MM0,EAX
-        MOVD      MM1,EDX
-        PADDUSB   MM0,MM1
-        MOVD      EAX,MM0
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$DC,$C1           /// PADDUSB   MM0,MM1
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 function M_ColorSub(C1, C2: TColor32): TColor32;
 asm
-        MOVD      MM0,EAX
-        MOVD      MM1,EDX
-        PSUBUSB   MM0,MM1
-        MOVD      EAX,MM0
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$D8,$C1           /// PSUBUSB   MM0,MM1
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 function M_ColorModulate(C1, C2: TColor32): TColor32;
 asm
-        PXOR      MM2,MM2
-        MOVD      MM0,EAX
-        PUNPCKLBW MM0,MM2
-        MOVD      MM1,EDX
-        PUNPCKLBW MM1,MM2
-        PMULLW    MM0,MM1
-        PSRLW     MM0,8
-        PACKUSWB  MM0,MM2
-        MOVD      EAX,MM0
+        db $0F,$EF,$D2           /// PXOR      MM2,MM2
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$60,$C2           /// PUNPCKLBW MM0,MM2
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$60,$CA           /// PUNPCKLBW MM1,MM2
+        db $0F,$D5,$C1           /// PMULLW    MM0,MM1
+        db $0F,$71,$D0,$08       /// PSRLW     MM0,8
+        db $0F,$67,$C2           /// PACKUSWB  MM0,MM2
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 function M_ColorMax(C1, C2: TColor32): TColor32;
-begin
- {Needs MMX Optimization}
- Result:= _ColorMax(C1, C2);
+asm
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$DE,$C1           /// PMAXUB    MM0,MM1
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 function M_ColorMin(C1, C2: TColor32): TColor32;
-begin
- {Needs MMX Optimization}
- Result:= _ColorMin(C1, C2);
+asm
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$DA,$C1           /// PMINUB    MM0,MM1
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
+
 
 function M_ColorDifference(C1, C2: TColor32): TColor32;
 asm
-        MOVD      MM0,EAX
-        MOVD      MM1,EDX
-        MOVQ      MM2,MM0
-        PSUBUSB   MM0,MM1
-        PSUBUSB   MM1,MM2
-        POR       MM0,MM1
-        MOVD      EAX,MM0
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$6F,$D0           /// MOVQ      MM2,MM0
+        db $0F,$D8,$C1           /// PSUBUSB   MM0,MM1
+        db $0F,$D8,$CA           /// PSUBUSB   MM1,MM2
+        db $0F,$EB,$C1           /// POR       MM0,MM1
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 function M_ColorExclusion(C1, C2: TColor32): TColor32;
 asm
-        PXOR      MM2,MM2
-        MOVD      MM0,EAX
-        PUNPCKLBW MM0,MM2
-        MOVD      MM1,EDX
-        PUNPCKLBW MM1,MM2
-        MOVQ      MM3,MM0
-        PADDW     MM0,MM1
-        PMULLW    MM1,MM3
-        PSRLW     MM1,7
-        PSUBUSW   MM0,MM1
-        PACKUSWB  MM0,MM2
-        MOVD      EAX,MM0
+        db $0F,$EF,$D2           /// PXOR      MM2,MM2
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$60,$C2           /// PUNPCKLBW MM0,MM2
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$60,$CA           /// PUNPCKLBW MM1,MM2
+        db $0F,$6F,$D8           /// MOVQ      MM3,MM0
+        db $0F,$FD,$C1           /// PADDW     MM0,MM1
+        db $0F,$D5,$CB           /// PMULLW    MM1,MM3
+        db $0F,$71,$D1,$07       /// PSRLW     MM1,7
+        db $0F,$D9,$C1           /// PSUBUSW   MM0,MM1
+        db $0F,$67,$C2           /// PACKUSWB  MM0,MM2
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 { Misc stuff }
@@ -1224,7 +1229,6 @@ begin
     ColorMin:= M_ColorMin;
     ColorDifference:= M_ColorDifference;
     ColorExclusion:= M_ColorExclusion;
-
   end
   else
   begin
@@ -1245,7 +1249,6 @@ begin
     ColorMin:= _ColorMin;
     ColorDifference:= _ColorDifference;
     ColorExclusion:= _ColorExclusion;
-
   end;
 end;
 
