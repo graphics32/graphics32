@@ -115,7 +115,7 @@ function HSLtoRGB(H, S, L: Single): TColor32;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
 
 // Palette conversion functions
-function WinPalette(const p: TPalette32): HPalette;
+function WinPalette(const P: TPalette32): HPALETTE;
 
 
 { A fixed-point type }
@@ -803,7 +803,7 @@ end;
 
 { Palette conversion }
 
-function WinPalette(const P: TPalette32): HPalette;
+function WinPalette(const P: TPalette32): HPALETTE;
 var
   L: TMaxLogPalette;
   L0: LOGPALETTE absolute L;
