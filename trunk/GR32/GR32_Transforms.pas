@@ -411,18 +411,54 @@ procedure StretchHorzStretchVertLinear(
   Dst: TBitmap32; DstRect, DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+
+ function sfLinear_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+ asm
+        MOVQ      MM1,[ECX]
+        MOV       ECX,C21
+        MOVQ      MM3,[ECX]
+        MOVQ      MM2,MM1
+        MOVQ      MM4,MM3
+        PSRLQ     MM1,32
+        PSRLQ     MM3,32
+        MOVD      MM5,EAX
+        PUNPCKLDQ MM5,MM5
+        PXOR MM0, MM0
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        PSUBW     MM2,MM1
+        PMULLW    MM2,MM5
+        PSLLW     MM1,8
+        PADDW     MM2,MM1
+        PSRLW     MM2,8
+        PUNPCKLBW MM3,MM0
+        PUNPCKLBW MM4,MM0
+        PSUBW     MM4,MM3
+        PMULLW    MM4,MM5
+        PSLLW     MM3,8
+        PADDW     MM4,MM3
+        PSRLW     MM4,8
+        MOVD      MM5,EDX
+        PUNPCKLDQ MM5,MM5
+        PSUBW     MM2,MM4
+        PMULLW    MM2,MM5
+        PSLLW     MM4,8
+        PADDW     MM2,MM4
+        PSRLW     MM2,8
+        PACKUSWB  MM2,MM0
+        MOVD      EAX,MM2
+ end;
+
 var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   MapHorz, MapVert: array of TPointRec;
-  t: Integer;
   t2, Scale: Single;
   SrcLine, DstLine: PColor32Array;
   SrcIndex, OldSrcIndex: Integer;
   I, J: Integer;
-  WX, WY, WY2: Cardinal;
-  C, C11, C12, C21, C22, CL, CR: TColor32;
-  LeftAG, LeftRB, RightAG, RightRB, AG, RB: Cardinal;
-  R, G, B, A: Cardinal;
+  WY: Cardinal;
+  C: TColor32;
+
 begin
   SrcW := SrcRect.Right - SrcRect.Left;
   SrcH := SrcRect.Bottom - SrcRect.Top;
@@ -443,6 +479,7 @@ begin
     else if t2 > Src.Width - 1 then t2 := Src.Width - 1;
     MapHorz[I].Pos := Floor(t2);
     MapHorz[I].Weight := 256 - Round(Frac(t2) * 256);
+    MapHorz[I].Weight:= MapHorz[I].Weight shl 16 + MapHorz[I].Weight;
   end;
   I := DstClipW - 1;
   while MapHorz[I].Pos = SrcRect.Right - 1 do
@@ -463,6 +500,7 @@ begin
     else if t2 > Src.Height - 1 then t2 := Src.Height - 1;
     MapVert[I].Pos := Floor(t2);
     MapVert[I].Weight := 256 - Round(Frac(t2) * 256);
+    MapVert[I].Weight := MapVert[I].Weight shl 16 + MapVert[I].Weight;
   end;
   I := DstClipH - 1;
   while MapVert[I].Pos = SrcRect.Bottom - 1 do
@@ -473,89 +511,34 @@ begin
   end;
 
   DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-  LeftRB := 0;
-  LeftAG := 0;
-  RightRB := 0;
-  RightAG := 0;
   for J := 0 to DstClipH - 1 do
   begin
     SrcLine := Src.ScanLine[MapVert[J].Pos];
     WY := MapVert[J].Weight;
-    WY2 := 256 - WY;
     OldSrcIndex := -1;
     case CombineOp of
       dmOpaque:
         for I := 0 to DstClipW - 1 do
         begin
           SrcIndex := MapHorz[I].Pos;
-          if SrcIndex <> OldSrcIndex then
-          begin
-            C11 := SrcLine[SrcIndex];
-            LeftRB := (C11 and $00FF00FF) * WY;
-            C12 := SrcLine[SrcIndex + 1];
-            LeftAG := (C11 shr 8 and $00FF00FF) * WY;
-            RightRB := (C12 and $00FF00FF) * WY;
-            C21 := SrcLine[SrcIndex + Src.Width];
-            RightAG := (C12 shr 8 and $00FF00FF) * WY;
-
-            Inc(LeftRB, (C21 and $00FF00FF) * WY2);
-            C22 := SrcLine[SrcIndex + Src.Width + 1];
-            Inc(LeftAG, (C21 shr 8 and $00FF00FF) * WY2);
-            Inc(RightRB, (C22 and $00FF00FF) * WY2);
-            Inc(RightAG, (C22 shr 8 and $00FF00FF) * WY2);
-
-            LeftRB := LeftRB shr 8 and $00FF00FF;
-            LeftAG := LeftAG shr 8 and $00FF00FF;
-            OldSrcIndex := SrcIndex;
-            RightRB := RightRB shr 8 and $00FF00FF;
-            RightAG := RightAG shr 8 and $00FF00FF;
-          end;
-
-          WX := MapHorz[I].Weight;
-          RB := LeftRB * WX;
-          AG := LeftAG * WX;
-          WX := 256 - WX;
-          DstLine[I] := (AG  + RightAG * WX) and $FF00FF00 or (RB + RightRB * WX) shr 8 and $00FF00FF;
+          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
+          DstLine[I] := sfLinear_MMX( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                      @SrcLine[SrcIndex + Src.Width]);
         end;
     else
         for I := 0 to DstClipW - 1 do
         begin
           SrcIndex := MapHorz[I].Pos;
-          if SrcIndex <> OldSrcIndex then
-          begin
-            C11 := SrcLine[SrcIndex];
-            LeftRB := (C11 and $00FF00FF) * WY;
-            C12 := SrcLine[SrcIndex + 1];
-            LeftAG := (C11 shr 8 and $00FF00FF) * WY;
-            RightRB := (C12 and $00FF00FF) * WY;
-            C21 := SrcLine[SrcIndex + Src.Width];
-            RightAG := (C12 shr 8 and $00FF00FF) * WY;
-
-            Inc(LeftRB, (C21 and $00FF00FF) * WY2);
-            C22 := SrcLine[SrcIndex + Src.Width + 1];
-            Inc(LeftAG, (C21 shr 8 and $00FF00FF) * WY2);
-            Inc(RightRB, (C22 and $00FF00FF) * WY2);
-            Inc(RightAG, (C22 shr 8 and $00FF00FF) * WY2);
-
-            LeftRB := LeftRB shr 8 and $00FF00FF;
-            LeftAG := LeftAG shr 8 and $00FF00FF;
-            OldSrcIndex := SrcIndex;
-            RightRB := RightRB shr 8 and $00FF00FF;
-            RightAG := RightAG shr 8 and $00FF00FF;
-          end;
-
-          WX := MapHorz[I].Weight;
-          RB := LeftRB * WX;
-          AG := LeftAG * WX;
-          WX := 256 - WX;
-          C := (AG  + RightAG * WX) and $FF00FF00 or (RB + RightRB * WX) shr 8 and $00FF00FF;
-
+          C := sfLinear_MMX( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                             @SrcLine[SrcIndex + Src.Width]);
+          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
           if CombineOp = dmBlend then BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           else CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
     end;
     Inc(DstLine, Dst.Width);
   end;
+ EMMS;
 end;
 
 { StretchFlt }
@@ -1091,7 +1074,6 @@ var
   SrcW, SrcH,
   DstW, DstH,
   DstClipW, DstClipH: Cardinal;
-  R: TRect;
   RowSrc, OffSrc,
   dy, dx,
   c1, c2, r1, r2,
@@ -1102,7 +1084,6 @@ var
   FSrcTop,I,J,ly,
   sc, sr, cx, cy: integer;
   Y_256: TFixed;
-  XLUT_256: array of TFixed;
 begin
  { rangechecking and rect intersection done by caller }
 
@@ -1117,68 +1098,9 @@ begin
 
 
   if (DstW > SrcW)or(DstH > SrcH) then
-   begin
-      if not FullEdge then begin
-       Dec(DstW);
-       Dec(DstH);
-       Dec(SrcW);
-       Dec(SrcH);
-       fe:= 0;
-      end else fe:= 1/2;
-
-      lx:= SrcW / DstW;
-      ly:= Fixed(SrcH / DstH);
-
-      SetLength(XLUT_256, DstClipW);
-      J:= Fixed(SrcRect.Left - fe);
-
-      cx:= Src.Width shl 8 - 256;
-      for I:= 0 to DstClipW - 1 do
-       begin
-        Y_256:= SAR_8( J + Fixed((I + DstClip.Left) * lx) );
-        if Y_256 < 0 then Y_256:= 0 else if Y_256 > cx then Y_256:= cx;
-        XLUT_256[I]:= Y_256;
-       end;
-
-      DstLine:= PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-      FSrcTop:= Fixed(SrcRect.Top - fe);
-      M:= Src.MasterAlpha;
-      Dec(DstClip.Bottom);
-      Dec(DstClipW);
-      cy:= Src.Width shl 8 - 256;
-      with TBitmap32Access(Src) do case CombineOp of
-
-       dmOpaque: for J:= DstClip.Top to DstClip.Bottom do
-         begin
-          Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
-          if Y_256 < 0 then Y_256:= 0 else if Y_256 > cy then Y_256:= cy;
-          for I:= 0 to DstClipW do DstLine[I]:= GET_T256(XLUT_256[I], Y_256);
-          Inc(DstLine, Dst.Width);
-         end;
-
-       dmBlend: for J:= DstClip.Top to DstClip.Bottom do
-         begin
-          Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
-          if Y_256 < 0 then Y_256:= 0 else if Y_256 > cy then Y_256:= cy;
-          for I:= 0 to DstClipW do
-            BlendMemEx(GET_T256(XLUT_256[I], Y_256), DstLine[I], M);
-          Inc(DstLine, Dst.Width);
-         end;
-
-       dmCustom: for J:= DstClip.Top to DstClip.Bottom do
-         begin
-          Y_256:= SAR_8(FSrcTop + FixedMul(J shl 16 , ly));
-          if Y_256 < 0 then Y_256:= 0 else if Y_256 > cy then Y_256:= cy;
-          for I:= 0 to DstClipW do
-            CombineCallBack(GET_T256(XLUT_256[I], Y_256), DstLine[I], M);
-          Inc(DstLine, Dst.Width);
-         end;
-
-        end;
-      XLUT_256:= nil;
-   end
+   StretchHorzStretchVertLinear(Dst,DstRect,DstClip,Src,SrcRect,CombineOp,CombineCallBack)
   else
-   begin //Full Scaledown, ignores Fulledge, since this cannot be integrated into this type of resampling
+   begin //Full Scaledown, ignores Fulledge - cannot be integrated into this resampling method
       OffSrc := Src.Width * 4;
 
       ScaleFactor:= SrcW / DstW;
@@ -1389,36 +1311,18 @@ var
   CombineCallBack: TPixelCombineEvent;
 
   function GET_S256(X256, Y256: Integer; out C: TColor32): Boolean;
-  var
-    flrx, flry, celx, cely: Longword;
-    C1, C2, C3, C4: TColor32;
-    P: PColor32;
   begin
-    flrx := X256 and $FF;
-    flry := Y256 and $FF;
-
-    X := SAR_8(X256);
-    Y := SAR_8(Y256);
-
-    celx := flrx xor 255;
-    cely := flry xor 255;
-
-    if (X > SrcRectI.Left) and (X < SrcRectI.Right - 1) and
-      (Y > SrcRectI.Top) and (Y < SrcRectI.Bottom - 1) then
+   X := SAR_8(X256);
+   Y := SAR_8(Y256);
+   if (x > SrcRectI.Left) and (x < SrcRectI.Right - 1) and
+      (y > SrcRectI.Top) and (y < SrcRectI.Bottom - 1) then
     begin
       // everything is ok interpolate between four neighbors
-      P := Src.PixelPtr[X, Y];
-      C1 := P^;
-      Inc(P);
-      C2 := P^;
-      Inc(P, Src.Width);
-      C4 := P^;
-      Dec(P);
-      C3 := P^;
-      C := CombineReg(CombineReg(C1, C2, celx), CombineReg(C3, C4, celx), cely);
+      C:= Src.GetPixelX(X256 shl 8,Y256 shl 8);
       Result := True;
     end
-    else if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
+    else if (x < SrcRectI.Left - 1) or (y < SrcRectI.Top - 1) or
+            (x >= SrcRectI.Right) or (y >= SrcRectI.Bottom) then
     begin
       // (X,Y) coordinate is out of the SrcRect, do not interpolate
       C := 0; // just write something to disable compiler warnings
@@ -1427,14 +1331,11 @@ var
     else
     begin
       // handle edge
-      C1 := Src.PixelS[X, Y];
-      C2 := Src.PixelS[X + 1, Y];
-      C3 := Src.PixelS[X, Y + 1];
-      C4 := Src.PixelS[X + 1, Y + 1];
-      C := CombineReg(CombineReg(C1, C2, celx), CombineReg(C3, C4, celx), cely);   
+      C:= Src.GetPixelXS(X256 shl 8,Y256 shl 8);
       Result := True;
     end;
   end;
+
 begin
   if not Transformation.TransformValid then Transformation.PrepareTransform;
 
