@@ -1115,7 +1115,6 @@ begin
 
   if (DstW > SrcW)or(DstH > SrcH) then
    begin
-
       lx:= SrcW / DstW;
       ly:= Fixed(SrcH / DstH);
 
@@ -1153,19 +1152,18 @@ begin
 
         end;
       XLUT_256:= nil;
-
    end
   else
    begin //Full Scaledown
       OffSrc := Src.Width * 4;
 
       ScaleFactor:= SrcW / DstW;
-      dx:= Round( (DstClip.Left - DstRect.Left) * ScaleFactor);
+      dx := Round( (DstClip.Left - DstRect.Left) * ScaleFactor);
       r2 := Trunc(ScaleFactor);
       sr := Trunc( $10000 * ScaleFactor );
 
       ScaleFactor:= SrcH / DstH;
-      dy:= Round( (DstClip.Top - DstRect.Top) * ScaleFactor );
+      dy := Round( (DstClip.Top - DstRect.Top) * ScaleFactor );
       c2 := Trunc(ScaleFactor);
       sc := Trunc( $10000 * ScaleFactor );
 
