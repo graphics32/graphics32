@@ -253,14 +253,14 @@ begin
       if Src.MasterAlpha >= 255 then
       for DstY := DstRect.Top to DstRect.Bottom - 1 do
       begin
-        BlendLine(SrcP, DstP, W);
+        TBitmap32Access(Src).BlendLine(SrcP, DstP, W);
         Inc(SrcP, Src.Width);
         Inc(DstP, Dst.Width);
       end
       else
       for DstY := DstRect.Top to DstRect.Bottom - 1 do
       begin
-        BlendLineEx(SrcP, DstP, W, Src.MasterAlpha);
+        TBitmap32Access(Src).BlendLineEx(SrcP, DstP, W, Src.MasterAlpha);
         Inc(SrcP, Src.Width);
         Inc(DstP, Dst.Width);
       end;
@@ -428,8 +428,8 @@ begin
 
           if CombineOp = dmBlend then
           begin
-            if Src.MasterAlpha >= 255 then BlendLine(@Buffer[0], @DstLine[0], DstClipW)
-            else BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
+            if Src.MasterAlpha >= 255 then TBitmap32Access(Src).BlendLine(@Buffer[0], @DstLine[0], DstClipW)
+            else TBitmap32Access(Src).BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
           end
           else
             for I := 0 to DstClipW - 1 do
@@ -540,7 +540,7 @@ begin
           C := LinearInterpolator( MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
                                    @SrcLine[SrcIndex + Src.Width]);
 //          if SrcIndex <> OldSrcIndex then OldSrcIndex := SrcIndex;
-          if CombineOp = dmBlend then BlendMemEx(C, DstLine[I], Src.MasterAlpha)
+          if CombineOp = dmBlend then TBitmap32Access(Src).BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           else CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
     end;
@@ -881,7 +881,7 @@ begin
         // combine it with the background
         case CombineOp of
           dmOpaque: DstLine[I] := C;
-          dmBlend: BlendMemEx(C, DstLine[I], Src.MasterAlpha);
+          dmBlend: TBitmap32Access(Src).BlendMemEx(C, DstLine[I], Src.MasterAlpha);
           dmCustom: CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
       end;
@@ -1155,7 +1155,7 @@ begin
           begin
            dx := r2 - r1;  r1 := r2;
            r2 := I * sr shr 16;
-           BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+           TBitmap32Access(Src).BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
            xsrc := xsrc + dx shl 2;
           end;
          dmCustom: for I := 2  to DstClipW do
@@ -1346,18 +1346,22 @@ var
   CombineCallBack: TPixelCombineEvent;
 
   function GET_S256(X256, Y256: Integer; out C: TColor32): Boolean;
+  var
+    celx, cely: Longword;
+    C1, C2, C3, C4: TColor32;
   begin
-   X := SAR_8(X256);
-   Y := SAR_8(Y256);
-   if (x > SrcRectI.Left) and (x < SrcRectI.Right - 1) and
-      (y > SrcRectI.Top) and (y < SrcRectI.Bottom - 1) then
+    X := SAR_8(X256);
+    Y := SAR_8(Y256);
+
+    if (X > SrcRectI.Left) and (X < SrcRectI.Right - 1) and
+       (Y > SrcRectI.Top) and (Y < SrcRectI.Bottom - 1) then
     begin
       // everything is ok interpolate between four neighbors
-      C:= Src.PixelX[X256 shl 8, Y256 shl 8];
+      C := TBitmap32Access(Src).GET_T256(X256, Y256);
       Result := True;
     end
-    else if (x < SrcRectI.Left - 1) or (y < SrcRectI.Top - 1) or
-            (x >= SrcRectI.Right) or (y >= SrcRectI.Bottom) then
+    else if (X < SrcRectI.Left - 1) or (Y < SrcRectI.Top - 1) or
+            (X >= SrcRectI.Right) or (Y >= SrcRectI.Bottom) then
     begin
       // (X,Y) coordinate is out of the SrcRect, do not interpolate
       C := 0; // just write something to disable compiler warnings
@@ -1365,8 +1369,16 @@ var
     end
     else
     begin
-      // handle edge
-      C:= Src.PixelXS[X256 shl 8, Y256 shl 8];
+      // handle edge in fail-safe mode...
+      C1 := Src.PixelS[X, Y];
+      C2 := Src.PixelS[X + 1, Y];
+      C3 := Src.PixelS[X, Y + 1];
+      C4 := Src.PixelS[X + 1, Y + 1];
+
+      celx := X256 and $FF xor 255;
+      cely := Y256 and $FF xor 255;
+
+      C := CombineReg(CombineReg(C1, C2, celx), CombineReg(C3, C4, celx), cely);
       Result := True;
     end;
   end;
@@ -1413,7 +1425,7 @@ begin
           if GET_S256(X, Y, C) then
             case DrawMode of
               dmOpaque: Pixels[I] := C;
-              dmBlend: BlendMemEx(C, Pixels[I], SrcAlpha);
+              dmBlend: TBitmap32Access(Src).BlendMemEx(C, Pixels[I], SrcAlpha);
             else // dmCustom:
               CombineCallBack(C, Pixels[I], SrcAlpha);
             end;
@@ -1430,7 +1442,7 @@ begin
             (Y >= SrcRectI.Top) and (Y <= SrcRectI.Bottom) then
           case DrawMode of
             dmOpaque: Pixels[I] := Src.Pixel[X, Y];
-            dmBlend: BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
+            dmBlend: TBitmap32Access(Src).BlendMemEx(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
           else // dmCustom:
             CombineCallBack(Src.Pixel[X, Y], Pixels[I], SrcAlpha);
           end;
@@ -1471,16 +1483,19 @@ end;
 
 function TTransformation.ReverseTransform(const P: TFloatPoint): TFloatPoint;
 begin
+  If not TransformValid then PrepareTransform;
   ReverseTransformFloat(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.ReverseTransform(const P: TFixedPoint): TFixedPoint;
 begin
+  If not TransformValid then PrepareTransform;
   ReverseTransformFixed(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.ReverseTransform(const P: TPoint): TPoint;
 begin
+  If not TransformValid then PrepareTransform;
   ReverseTransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
@@ -1493,16 +1508,19 @@ end;
 
 function TTransformation.Transform(const P: TFloatPoint): TFloatPoint;
 begin
+  If not TransformValid then PrepareTransform;
   TransformFloat(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.Transform(const P: TFixedPoint): TFixedPoint;
 begin
+  If not TransformValid then PrepareTransform;
   TransformFixed(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.Transform(const P: TPoint): TPoint;
 begin
+  If not TransformValid then PrepareTransform;
   TransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
