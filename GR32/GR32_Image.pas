@@ -472,8 +472,6 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
-    property OnMouseEnter;
-    property OnMouseLeave;
     property OnPaintStage;
     property OnResize;
     property OnScroll;
