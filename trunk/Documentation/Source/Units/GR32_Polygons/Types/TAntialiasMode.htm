@@ -1,0 +1,22 @@
+<html>
+<head>
+<title>TPolyFillMode</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TAntialiasMode = (am16times, am8times, am4times);</p>
+<h2>Description</h2>
+<p class="Body">Specifies how polygons are antialiased.</p>
+<p class="Body">Here is a small illustration that demonstrates the different modes and their output quality:</p>
+<p class="Body"><img src="../../../../Images/img_020.png" width="230" height="136"></p>
+<p class="Body">&nbsp;</p>
+<p class="Body"><strong>16x</strong> supersampling generally generates the best result, however, it's also the slowest mode.<br>
+  <strong>8x</strong> supersampling is a good compromise between speed and quality. <br>
+  <strong>4x</strong> supersampling - while being the worst quality-wise next to no antialiasing - is generally the fastest of the three.</p>
+<p class="Body">If you need fast but still antialiased polygons (for example in an editor) we recommend using the 4x or 8x
+  antialias mode.</p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See Also] <a href="../Routines/Polygon.htm">Polygon</a></p>
+</body>
+</html>
