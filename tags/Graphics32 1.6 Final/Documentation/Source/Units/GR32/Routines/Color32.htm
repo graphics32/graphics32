@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Color32</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> Color32(R, G, B: Byte; A: Byte = $FF): <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>overload</b>; </p>
+<p class="Body">This function combines its parameters into a 4-byte <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>. 
+</p>
+<p class="Decl"><b>function</b> Color32(WinColor: TColor): <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>overload</b>; </p>
+<p class="Body">This function provides conversion of <span class="API">TColor</span> 
+  into <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>. </p>
+<p class="Body">The pixel format of 32-bit DIBs (ARGB) is different from that 
+  used in the standard <span class="API">TColor</span> type (ABGR). Some standard 
+  windows colors are coded using special constants which are encoded into RGB 
+  form.</p>
+<p class="Body">The alpha of the resulting color is set to $FF;</p>
+<p class="Decl"><b>function</b> Color32(Index: Byte; Palette: <a href="../Types/Color%20Types.htm#TPalette32">PPalette32</a>): 
+  <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>; <b>overload</b>; 
+</p>
+<p class="Body">This function simply picks the color value from the palette, same 
+  as</p>
+<p class="Code">Result := Palette[Index];</p>
+<p id="hidden">[See Also]: <a href="Gray32.htm">Gray32</a>, <a href="WinColor.htm">WinColor</a></p>
+<p class="Body">&nbsp;</p>
+</body>
+</html>
