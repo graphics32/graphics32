@@ -389,18 +389,11 @@ end; *)
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
 var
-  R, { SrcRect,  } DstRect: TRect;
-  CombineOp: TDrawMode;
+  R, DstRect: TRect;
   TransformationSampler: TTransformationSampler;
 begin
   if not TTransformationAccess(Transformation).TransformValid then
     TTransformationAccess(Transformation).PrepareTransform;
-
-  // clip SrcRect
-  // workaround C++ Builder throwing exceptions:
-  //R := MakeRect(Round(Transformation.SrcRect.Left), Round(Transformation.SrcRect.Top),
-  //              Round(Transformation.SrcRect.Right), Round(Transformation.SrcRect.Bottom));
-  //IntersectRect(SrcRect, R, MakeRect(0, 0, Src.Width - 1, Src.Height - 1));
 
   // clip DstRect
   R := Transformation.GetTransformedBounds;
@@ -411,14 +404,8 @@ begin
 
   TransformationSampler := TTransformationSampler.Create(Src, Transformation);
   try
-    CombineOp := Src.DrawMode;
-    if (CombineOp = dmCustom) and not Assigned(Src.OnPixelCombine) then
-      CombineOp := dmOpaque;
-
     Rasterizer.Sampler := TransformationSampler;
-    Rasterizer.Rasterize(Dst, DstRect, Src.MasterAlpha, CombineOp, Src.CombineMode, Src.OnPixelCombine);
-    //Src.Resampler.Transform(Dst, DstRect, Src, SrcRect, Transformation,
-    //  CombineOp, Src.OnPixelCombine);
+    Rasterizer.Rasterize(Dst, DstRect, Src);
   finally
     EMMS;
     TransformationSampler.Free;
