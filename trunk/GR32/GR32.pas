@@ -31,10 +31,22 @@ unit GR32;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows, Classes, SysUtils, Messages, Controls, Graphics;
+{$IFDEF CLX}
+  Qt, Types,
+  {$IFDEF LINUX}Libc,{$ENDIF}
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+{$ELSE}
+  Windows,
+{$ENDIF}
+  Classes, SysUtils,
+{$IFDEF CLX}
+  QControls, QGraphics, QConsts
+{$ELSE}
+  Messages, Controls, Graphics
+{$ENDIF};
 
 { Version Control }
 
@@ -121,7 +133,7 @@ type
 { Points }
 
 type
-  TPoint = Windows.TPoint;
+  TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
   PPoint = ^TPoint;
   TFloatPoint = record
     X, Y: Single;
@@ -192,6 +204,11 @@ type
   TArrayOfArrayOfInteger = array of TArrayOfInteger;
   TArrayOfSingle = array of Single;
 
+{$IFDEF CLX}
+  HBITMAP = QImageH;
+  HDC = QPainterH;
+  HFont = QFontH;
+{$ENDIF}
 
 { TBitmap32 draw mode }
 type
@@ -208,6 +225,30 @@ var
 
 procedure SetGamma(Gamma: Single = 0.7);
 
+{$IFDEF CLX}
+{ TextOut Flags for WinAPI compatibility }
+const
+  DT_LEFT = Integer(AlignmentFlags_AlignLeft);
+  DT_RIGHT = Integer(AlignmentFlags_AlignRight);
+  DT_TOP = Integer(AlignmentFlags_AlignTop);
+  DT_BOTTOM = Integer(AlignmentFlags_AlignBottom);
+  DT_CENTER = Integer(AlignmentFlags_AlignHCenter);
+  DT_VCENTER = Integer(AlignmentFlags_AlignVCenter);
+  DT_EXPANDTABS = Integer(AlignmentFlags_ExpandTabs);
+  DT_NOCLIP = Integer(AlignmentFlags_DontClip);
+  DT_WORDBREAK = Integer(AlignmentFlags_WordBreak);
+  DT_SINGLELINE = Integer(AlignmentFlags_SingleLine);
+{ missing since there is no QT equivalent:
+  DT_CALCRECT (make no sense with TBitmap32.TextOut[2])
+  DT_EDITCONTOL
+  DT_END_ELLIPSIS and DT_PATH_ELLIPSIS
+  DT_EXTERNALLEADING
+  DT_MODIFYSTRING
+  DT_NOPREFIX
+  DT_RTLREADING
+  DT_TABSTOP
+}
+{$ENDIF}
 
 type
   { TThreadPersistent }
@@ -268,13 +309,20 @@ type
 
   TBitmap32 = class(TCustomMap)
   private
-    FBitmapInfo: TBitmapInfo;
     FBits: PColor32Array;
     FCanvas: TCanvas;
     FDrawMode: TDrawMode;
     FFont: TFont;
     FHandle: HBITMAP;
     FHDC: HDC;
+{$IFDEF CLX}
+    FPixmap: QPixmapH;
+    FPainterCount: Integer;
+    FPixmapActive: Boolean;
+    FPixmapChanged: Boolean;
+{$ELSE}
+    FBitmapInfo: TBitmapInfo;
+{$ENDIF}
     FMasterAlpha: Cardinal;
     FOuterColor: TColor32;
     FPenColor: TColor32;
@@ -291,6 +339,11 @@ type
     function  GetPixelS(X, Y: Integer): TColor32;
     function  GetPixelPtr(X, Y: Integer): PColor32;
     function  GetScanLine(Y: Integer): PColor32Array;
+{$IFDEF CLX}
+    function  GetBits: PColor32Array;
+    function  GetPixmap: QPixmapH;
+    function  GetPainter: QPainterH;
+{$ENDIF}
     procedure SetDrawMode(Value: TDrawMode);
     procedure SetFont(Value: TFont);
     procedure SetMasterAlpha(Value: Cardinal);
@@ -299,6 +352,7 @@ type
     procedure SetStretchFilter(Value: TStretchFilter);
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32);
+    procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);      
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -315,6 +369,14 @@ type
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
     function  GetPixelB(X, Y: Integer): TColor32;
+{$IFDEF CLX}
+    procedure PixmapNeeded;
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+    procedure StartPainter;
+    procedure StopPainter;
+    property PixmapChanged: Boolean read FPixmapChanged write FPixmapChanged;
+{$ENDIF}
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -338,7 +400,11 @@ type
     procedure Draw(DstX, DstY: Integer; Src: TBitmap32); overload;
     procedure Draw(DstX, DstY: Integer; const SrcRect: TRect; Src: TBitmap32); overload;
     procedure Draw(const DstRect, SrcRect: TRect; Src: TBitmap32); overload;
+{$IFDEF CLX}
+    procedure Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH); overload;
+{$ELSE}
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+{$ENDIF}
 
     procedure DrawTo(Dst: TBitmap32); overload;
     procedure DrawTo(Dst: TBitmap32; DstX, DstY: Integer; const SrcRect: TRect); overload;
@@ -424,19 +490,22 @@ type
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
     procedure UpdateFont;
-    procedure Textout(X, Y: Integer; const Text: String); overload;
+    procedure Textout(X, Y: Integer; const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}); overload;
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect;
+                      const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure Textout(ClipRect: TRect; const Flags: Cardinal; const Text: String); overload;
-    procedure TextoutW(ClipRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
-    function  TextExtent(const Text: String): TSize;
+    procedure Textout(const DstRect: TRect; const Flags: Cardinal;
+                      const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}); overload;
+    procedure TextoutW(const DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    function  TextExtent(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): TSize;
     function  TextExtentW(const Text: Widestring): TSize;
-    function  TextHeight(const Text: String): Integer;
+    function  TextHeight(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
     function  TextHeightW(const Text: Widestring): Integer;
-    function  TextWidth(const Text: String): Integer;
+    function  TextWidth(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
     function  TextWidthW(const Text: Widestring): Integer;
-    procedure RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
+    procedure RenderText(X, Y: Integer; const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF};
+                         AALevel: Integer; Color: TColor32);
     procedure RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 
     procedure Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
@@ -450,11 +519,17 @@ type
     function CanvasAllocated: Boolean;
     procedure DeleteCanvas;
 
+{$IFDEF CLX}
+    property Pixmap: QPixmapH read GetPixmap;
+    property Bits: PColor32Array read GetBits;
+    property Handle: QPainterH read GetPainter;
+{$ELSE}
     property BitmapHandle: HBITMAP read FHandle;
     property BitmapInfo: TBitmapInfo read FBitmapInfo;
     property Bits: PColor32Array read FBits;
-    property Font: TFont read FFont write SetFont;
     property Handle: HDC read FHDC;
+{$ENDIF}
+    property Font: TFont read FFont write SetFont;
     property PixelPtr[X, Y: Integer]: PColor32 read GetPixelPtr;
     property ScanLine[Y: Integer]: PColor32Array read GetScanLine;
     property StippleCounter: Single read FStippleCounter write FStippleCounter;
@@ -470,15 +545,36 @@ type
     property OnResize;
   end;
 
+{$IFDEF CLX}
+  TBitmap32Canvas = class(TCanvas)
+  private
+    FBitmap: TBitmap32;
+  protected
+    procedure BeginPainting; override;
+    procedure CreateHandle; override;
+  public
+    constructor Create(Bitmap: TBitmap32);
+  end;
+{$ENDIF}
 
 implementation
 
-uses GR32_Blend, GR32_Transforms, GR32_LowLevel, GR32_Filters, Math, TypInfo,
-  Clipbrd, GR32_DrawingEx;
+uses
+  GR32_Blend, GR32_Transforms, GR32_LowLevel, GR32_Filters, Math, TypInfo,
+{$IFDEF CLX}
+  QClipbrd,
+{$ELSE}
+  Clipbrd,
+{$ENDIF}
+  GR32_DrawingEx;
 
 var
   CounterLock: TRTLCriticalSection;
+{$IFDEF CLX}
+  StockFont: TFont;
+{$ELSE}
   StockFont: HFONT;
+{$ENDIF}
   StockBitmap: TBitmap;
 
 type
@@ -486,6 +582,29 @@ type
 
 const
   ZERO_RECT: TRect = (Left: 0; Top: 0; Right: 0; Bottom: 0);
+
+
+{$IFDEF CLX}
+function StretchPixmap(DestPainter: QPainterH; DestX, DestY, DestWidth, DestHeight,
+  SrcX, SrcY, SrcWidth, SrcHeight: Integer; SrcPixmap: QPixmapH): Integer;
+var
+  NewMatrix: QWMatrixH;
+begin
+  QPainter_saveWorldMatrix(DestPainter);
+  try
+    NewMatrix:= QWMatrix_create(DestWidth / SrcWidth, 0, 0, DestHeight / SrcHeight, DestX, DestY);
+    try
+      QPainter_setWorldMatrix(DestPainter, NewMatrix, True);
+      QPainter_drawPixmap(DestPainter, 0, 0, SrcPixmap, SrcX, SrcY, SrcWidth, SrcHeight);
+    finally
+      QWMatrix_destroy(NewMatrix);
+    end;
+  finally
+    QPainter_restoreWorldMatrix(DestPainter);
+  end;
+  Result := 0;
+end;
+{$ENDIF}
 
 { Color construction and conversion functions }
 
@@ -495,7 +614,12 @@ var
   I: Longword;
 {$ENDIF}
 begin
+{$IFDEF CLX}
+  WinColor := ColorToRGB(WinColor);
+{$ELSE}
   if WinColor < 0 then WinColor := GetSysColor(WinColor and $000000FF);
+{$ENDIF}
+  
 {$IFDEF WIN_COLOR_FIX}
   Result := $FF000000;
   I := (WinColor and $00FF0000) shr 16;
@@ -1053,6 +1177,7 @@ end;
 constructor TBitmap32.Create;
 begin
   inherited;
+{$IFNDEF CLX}
   FillChar(FBitmapInfo, SizeOf(TBitmapInfo), 0);
   with FBitmapInfo.bmiHeader do
   begin
@@ -1061,10 +1186,13 @@ begin
     biBitCount := 32;
     biCompression := BI_RGB;
   end;
+{$ENDIF}
   FOuterColor := $00000000;  // by default as full transparency black
   FFont := TFont.Create;
   FFont.OnChange := FontChanged;
+{$IFNDEF CLX}
   FFont.OwnerCriticalSection := @FLock;
+{$ENDIF}
   FMasterAlpha := $FF;
   FPenColor := clWhite32;
   FStippleStep := 1;
@@ -1095,23 +1223,55 @@ begin
   try
     FontChanged(Self);
     DeleteCanvas; // Patch by Thomas Bauer.....
+
+{$IFDEF CLX}
+    if Assigned(FHDC) then QPainter_destroy(FHDC);
+    FHDC := nil;
+    if Assigned(FHandle) then QImage_destroy(FHandle);
+    FHandle := nil;
+{$ELSE}
     if FHDC <> 0 then DeleteDC(FHDC);
     FHDC := 0;
     if FHandle <> 0 then DeleteObject(FHandle);
     FHandle := 0;
+{$ENDIF}
+
     FBits := nil;
     Width := 0;
     Height := 0;
     if (NewWidth > 0) and (NewHeight > 0) then
     begin
+{$IFDEF CLX}
+      FHandle := QImage_create(NewWidth, NewHeight, 32, 1, QImageEndian_IgnoreEndian);
+      if FHandle <> nil then
+      begin
+        FBits := Pointer(QImage_bits(FHandle));
+        // clear it since QT doesn't initialize the image data:
+        FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+      end;
+{$ELSE}
       with FBitmapInfo.bmiHeader do
       begin
         biWidth := NewWidth;
         biHeight := -NewHeight;
       end;
       FHandle := CreateDIBSection(0, FBitmapInfo, DIB_RGB_COLORS, Pointer(FBits), 0, 0);
+{$ENDIF}
+
       if FBits = nil then raise Exception.Create('Can''t allocate the DIB handle');
 
+{$IFDEF CLX}
+      FHDC := QPainter_create;
+      if FHDC = nil then
+      begin
+        QImage_destroy(FHandle);
+        FBits := nil;
+        raise Exception.Create('Can''t create compatible DC');
+      end;
+
+      FPixmap := QPixmap_create;
+      FPixmapActive := False;
+{$ELSE}
       FHDC := CreateCompatibleDC(0);
       if FHDC = 0 then
       begin
@@ -1130,6 +1290,7 @@ begin
         FBits := nil;
         raise Exception.Create('Can''t select an object into DC');
       end;
+{$ENDIF}
     end;
 
     Width := NewWidth;
@@ -1141,7 +1302,11 @@ end;
 
 function TBitmap32.Empty: Boolean;
 begin
+{$IFDEF CLX}
+  Result := not(Assigned(FHandle) or Assigned(FPixmap)) or inherited Empty;
+{$ELSE}
   Result := (FHandle = 0) or inherited Empty;
+{$ENDIF}
 end;
 
 procedure TBitmap32.Clear;
@@ -1177,7 +1342,16 @@ var
   begin
     SetSize(SrcBmp.Width, SrcBmp.Height);
     if Empty then Exit;
+{$IFDEF CLX}
+    if not QPainter_isActive(Handle) then
+      if not QPainter_begin(Handle, Pixmap) then
+        raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+    QPainter_drawPixmap(Handle, 0, 0, SrcBmp.Handle, 0, 0, Width, Height);
+    QPainter_end(Handle);
+    PixmapChanged := True;
+{$ELSE}
     BitBlt(Handle, 0, 0, Width, Height, SrcBmp.Canvas.Handle, 0, 0, SRCCOPY);
+{$ENDIF}
     if SrcBmp.PixelFormat <> pf32bit then ResetAlpha;
     if SrcBmp.Transparent then
     begin
@@ -1205,9 +1379,13 @@ begin
     begin
       SetSize(TBitmap32(Source).Width, TBitmap32(Source).Height);
       if Empty then Exit;
+{$IFDEF CLX}
+      Move(TBitmap32(Source).Bits[0], Bits[0], Width * Height * 4);
+{$ELSE}
       BitBlt(Handle, 0, 0, Width, Height, TBitmap32(Source).Handle, 0, 0, SRCCOPY);
       //Move(TBitmap32(Source).Bits[0], Bits[0], Width * Height * 4);
       // Move is up to 2x faster with FastMove by the FastCode Project
+{$ENDIF}
       FDrawMode := TBitmap32(Source).FDrawMode;
       FMasterAlpha := TBitmap32(Source).FMasterAlpha;
       FOuterColor := TBitmap32(Source).FOuterColor;
@@ -1238,8 +1416,8 @@ begin
       begin
         if TPicture(Source).Graphic is TBitmap then
           AssignFromBitmap(TBitmap(TPicture(Source).Graphic))
-        else if (TPicture(Source).Graphic is TIcon) or
-                (TPicture(Source).Graphic is TMetaFile) then
+        else if (TPicture(Source).Graphic is TIcon) {$IFNDEF CLX}or
+                (TPicture(Source).Graphic is TMetaFile) {$ENDIF} then
         begin
           // icons, metafiles etc...
           SetSize(TPicture(Source).Graphic.Width, TPicture(Source).Graphic.Height);
@@ -1331,7 +1509,9 @@ var
 
   procedure CopyToBitmap(Bmp: TBitmap);
   begin
+{$IFNDEF CLX}
     Bmp.HandleType := bmDIB;
+{$ENDIF}
     Bmp.PixelFormat := pf32Bit;
     Bmp.Width := Width;
     Bmp.Height := Height;
@@ -1358,7 +1538,11 @@ function TBitmap32.GetCanvas: TCanvas;
 begin
   if FCanvas = nil then
   begin
+{$IFDEF CLX}
+    FCanvas := TBitmap32Canvas.Create(Self);
+{$ELSE}
     FCanvas := TCanvas.Create;
+{$ENDIF}
     FCanvas.Handle := Handle;
     FCanvas.OnChange := CanvasChanged;
   end;
@@ -1379,7 +1563,11 @@ procedure TBitmap32.DeleteCanvas;
 begin
   if FCanvas <> nil then
   begin
+{$IFDEF CLX}
+    FCanvas.Handle := nil;
+{$ELSE}
     FCanvas.Handle := 0;
+{$ENDIF}
     FCanvas.Free;
     FCanvas := nil;
   end;
@@ -1434,6 +1622,37 @@ begin
   if Assigned(Src) then Src.DrawTo(Self, DstRect, SrcRect);
 end;
 
+{$IFDEF CLX}
+procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH);
+var
+  NewMatrix: QWMatrixH;
+  SrcHeight, SrcWidth: Integer;
+begin
+  if Empty then Exit;
+  StartPainter;
+  QPainter_saveWorldMatrix(Handle);
+  try
+    SrcWidth := SrcRect.Right - SrcRect.Left;
+    SrcHeight := SrcRect.Bottom - SrcRect.Top;
+    // use world transformation to translate and scale.
+    NewMatrix:= QWMatrix_create((DstRect.Right - DstRect.Left) / SrcWidth ,
+      0, 0, (DstRect.Bottom - DstRect.Top) / SrcHeight, DstRect.Left, DstRect.Top);
+    try
+      QPainter_setWorldMatrix(Handle, NewMatrix, True);
+      QPainter_drawPixmap(Handle, 0, 0, SrcPixmap,
+        SrcRect.Left, SrcRect.Top, SrcWidth, SrcHeight);
+    finally
+      QWMatrix_destroy(NewMatrix);
+    end;
+  finally
+    QPainter_restoreWorldMatrix(Handle);
+    StopPainter;
+  end;
+  Changed;
+end;
+
+{$ELSE}
+
 procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
   if Empty then Exit;
@@ -1442,6 +1661,7 @@ begin
     SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
   Changed;
 end;
+{$ENDIF}
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32);
 begin
@@ -1481,19 +1701,33 @@ end;
 procedure TBitmap32.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
   if Empty then Exit;
+{$IFDEF CLX}
+  StretchPixmap(
+    hDst, DstX, DstY, Width, Height,
+    0, 0, Width, Height, GetPixmap);
+{$ELSE}
   StretchDIBits(
     hDst, DstX, DstY, Width, Height,
     0, 0, Width, Height, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+{$ENDIF}
 end;
 
 procedure TBitmap32.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
 begin
   if Empty then Exit;
+{$IFDEF CLX}
+  StretchPixmap(
+    hDst,
+    DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
+    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left,
+    SrcRect.Bottom - SrcRect.Top, GetPixmap);
+{$ELSE}
   StretchDIBits(
     hDst,
     DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
     SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left,
     SrcRect.Bottom - SrcRect.Top, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+{$ENDIF}
 end;
 
 procedure TBitmap32.TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
@@ -1530,10 +1764,17 @@ begin
         OffsetRect(R, -X - DstRect.Left, -Y - DstRect.Top);
         Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
         StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, StretchFilter, DrawMode, FOnPixelCombine);
+
+{$IFDEF CLX}
+        StretchPixmap(
+          hDst, X + DstRect.Left, Y + DstRect.Top, ClipRect.Right, ClipRect.Bottom,
+          0, 0, Buffer.Width, Buffer.Height, GetPixmap);
+{$ELSE}
         StretchDIBits(
           hDst, X + DstRect.Left, Y + DstRect.Top, ClipRect.Right, ClipRect.Bottom,
           0, 0, Buffer.Width, Buffer.Height,
           Buffer.Bits, Buffer.FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+{$ENDIF}
       end;
     end;
   finally
@@ -2905,15 +3146,22 @@ end;
 
 procedure TBitmap32.FontChanged(Sender: TObject);
 begin
+{$IFDEF CLX}
+  if Assigned(FontHandle) then FontHandle := nil;
+{$ELSE}
   if FontHandle <> 0 then
   begin
     if Handle <> 0 then SelectObject(Handle, StockFont);
     FontHandle := 0;
   end;
+{$ENDIF}
 end;
 
 procedure TBitmap32.UpdateFont;
 begin
+{$IFDEF CLX}
+  FontHandle := Font.Handle;
+{$ELSE}
   if (FontHandle = 0) and (Handle <> 0) then
   begin
     SelectObject(Handle, Font.Handle);
@@ -2927,6 +3175,7 @@ begin
     SetTextColor(Handle, ColorToRGB(Font.Color));
     SetBkMode(Handle, Windows.TRANSPARENT); 
   end;
+{$ENDIF}
 end;
 
 procedure TBitmap32.SetDrawMode(Value: TDrawMode);
@@ -2958,6 +3207,14 @@ end;
 
 // Text and Fonts //
 
+{$IFDEF CLX}
+function TBitmap32.TextExtent(const Text: Widestring): TSize;
+begin
+  Result := TextExtentW(Text); // QT uses Unicode.
+end;
+
+{$ELSE}
+
 function TBitmap32.TextExtent(const Text: String): TSize;
 var
   DC: HDC;
@@ -2981,15 +3238,50 @@ begin
     end;
   end;
 end;
+{$ENDIF}
+
+// -------------------------------------------------------------------
 
 function TBitmap32.TextExtentW(const Text: Widestring): TSize;
 var
+{$IFDEF CLX}
+  OldFont: TFont;
+{$ELSE}
   DC: HDC;
   OldFont: HGDIOBJ;
+{$ENDIF}
 begin
   UpdateFont;
   Result.cX := 0;
   Result.cY := 0;
+{$IFDEF CLX}
+  if Assigned(Handle) then
+  begin // doing it the ugly way to avoid QImage <-> QPixMap conversion.
+    with TBitmap.Create do
+    try
+      Width := 5;
+      Height := 5;
+      Canvas.Font.Assign(Font);
+      Result := Canvas.TextExtent(Text);
+    finally
+      Free;
+    end;
+  end
+  else
+  begin
+    StockBitmap.Canvas.Lock;
+    try
+      OldFont := TFont.Create;
+      OldFont.Assign(StockBitmap.Canvas.Font);
+      StockBitmap.Canvas.Font.Assign(Font);
+      Result := StockBitmap.Canvas.TextExtent(Text);
+      StockBitmap.Canvas.Font.Assign(OldFont);
+      OldFont.Free;
+    finally
+      StockBitmap.Canvas.Unlock;
+    end;
+  end;
+{$ELSE}
   if Handle <> 0 then
     Windows.GetTextExtentPoint32W(Handle, PWideChar(Text), Length(Text), Result)
   else
@@ -3004,7 +3296,18 @@ begin
       StockBitmap.Canvas.Unlock;
     end;
   end;
+{$ENDIF};
 end;
+
+// -------------------------------------------------------------------
+
+{$IFDEF CLX}
+procedure TBitmap32.Textout(X, Y: Integer; const Text: Widestring);
+begin
+  TextoutW(X, Y, Text); // QT uses Unicode
+end;
+
+{$ELSE}
 
 procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
 begin
@@ -3012,13 +3315,37 @@ begin
   ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
   Changed;
 end;
+{$ENDIF}
 
 procedure TBitmap32.TextoutW(X, Y: Integer; const Text: Widestring);
+{$IFDEF CLX}
+var
+  R: TRect;
+{$ENDIF}
 begin
   UpdateFont;
+{$IFDEF CLX}
+  StartPainter;
+  R := Rect(X, Y, High(Word), High(Word));
+  QPainter_setFont(Handle, Font.Handle);
+  QPainter_setPen(Handle, Font.FontPen);
+  QPainter_drawText(Handle, @R, 0, @Text, -1, nil, nil);
+  StopPainter;
+{$ELSE}
   ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
+{$ENDIF}
   Changed;
 end;
+
+// -------------------------------------------------------------------
+
+{$IFDEF CLX}
+procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
+begin
+  TextoutW(X, Y, ClipRect, Text);
+end;
+
+{$ELSE}
 
 procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
 begin
@@ -3026,33 +3353,72 @@ begin
   ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
   Changed;
 end;
+{$ENDIF}
 
-procedure TBitmap32.TextoutW(X, Y: Integer; const ClipRect: TRect;
+procedure TBitmap32.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
+{$IFDEF CLX}
+var
+  TextW: WideString;
+  R: TRect;
+{$ENDIF}
+begin
+  UpdateFont;
+{$IFDEF CLX}
+  StartPainter;
+  TextW := WideString(Text);
+  R := Rect(X, Y, High(Word), High(Word));
+  QPainter_setFont(Handle, Font.Handle);
+  QPainter_setPen(Handle, Font.FontPen);
+  QPainter_setClipRect(Handle, @ClipRect);
+  QPainter_setClipping(Handle, True);
+  QPainter_drawText(Handle, @R, 0, @TextW, -1, nil, nil);
+  QPainter_setClipping(Handle, False);
+  StopPainter;
+{$ELSE}
+  ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+{$ENDIF}
+  Changed;
+end;
+
+// -------------------------------------------------------------------
+
+procedure TBitmap32.Textout(const DstRect: TRect; const Flags: Cardinal;
+  const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF});
+begin
+{$IFDEF CLX}
+  TextoutW(DstRect, Flags, Text);
+{$ELSE}
+  UpdateFont;
+  DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
+  Changed;
+{$ENDIF}  
+end;
+
+procedure TBitmap32.TextoutW(const DstRect: TRect; const Flags: Cardinal;
   const Text: Widestring);
 begin
   UpdateFont;
-  ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
+{$IFDEF CLX}
+  StartPainter;
+  QPainter_setFont(Handle, Font.Handle);
+  QPainter_setPen(Handle, Font.FontPen);
+  QPainter_drawText(Handle, @DstRect, Flags, @Text, -1, nil, nil);
+  StopPainter;
+{$ELSE}
+  DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
+{$ENDIF}
   Changed;
 end;
 
-procedure TBitmap32.Textout(ClipRect: TRect; const Flags: Cardinal; const Text: String);
-begin
-  UpdateFont;
-  DrawText(Handle, PChar(Text), Length(Text), ClipRect, Flags);
-  Changed;
-end;
+// -------------------------------------------------------------------
 
-procedure TBitmap32.TextoutW(ClipRect: TRect; const Flags: Cardinal;
-  const Text: Widestring);
+function TBitmap32.TextHeight(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
 begin
-  UpdateFont;
-  DrawTextW(Handle, PWideChar(Text), Length(Text), ClipRect, Flags);
-  Changed;
-end;
-
-function TBitmap32.TextHeight(const Text: String): Integer;
-begin
+  {$IFDEF CLX}
+  Result := TextExtentW(Text).cY;
+  {$ELSE}
   Result := TextExtent(Text).cY;
+  {$ENDIF}
 end;
 
 function TBitmap32.TextHeightW(const Text: Widestring): Integer;
@@ -3060,15 +3426,23 @@ begin
   Result := TextExtentW(Text).cY;
 end;
 
-function TBitmap32.TextWidth(const Text: String): Integer;
+// -------------------------------------------------------------------
+
+function TBitmap32.TextWidth(const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF}): Integer;
 begin
+  {$IFDEF CLX}
+  Result := TextExtentW(Text).cX;
+  {$ELSE}
   Result := TextExtent(Text).cX;
+  {$ENDIF}
 end;
 
 function TBitmap32.TextWidthW(const Text: Widestring): Integer;
 begin
   Result := TextExtentW(Text).cX;
 end;
+
+// -------------------------------------------------------------------
 
 procedure TBitmap32.TextScaleDown(const B, B2: TBitmap32; const N: Integer;
   const Color: TColor32); // use only the blue channel
@@ -3102,45 +3476,60 @@ begin
   end;
 end;
 
-procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
+procedure TBitmap32.TextBlueToAlpha(const B: TBitmap32; const Color: TColor32);
+var
+  I: Integer;
+  P: PColor32;
+  C: TColor32;  
+begin
+  // convert blue channel to alpha and fill the color
+  P := @B.Bits[0];
+  for I := 0 to B.Width * B.Height - 1 do
+  begin
+    C := P^;
+    if C <> 0 then
+    begin
+      C := P^ shl 24; // transfer blue channel to alpha
+      C := C + Color;
+      P^ := C;
+    end;
+    Inc(P);
+  end;
+end;
+
+procedure TBitmap32.RenderText(X, Y: Integer;
+  const Text: {$IFDEF CLX}Widestring{$ELSE}String{$ENDIF};
+  AALevel: Integer; Color: TColor32);
+{$IFDEF CLX}
+begin
+  RenderTextW(X, Y, Text, AALevel, Color); // QT does Unicode
+{$ELSE}
 var
   B, B2: TBitmap32;
   Sz: TSize;
-  C, Alpha: TColor32;
-  I: Integer;
-  P: PColor32;
+  Alpha: TColor32;
   StockCanvas: TCanvas;
+  PaddedText: String;
 begin
   if Empty then Exit;
 
   Alpha := Color shr 24;
   Color := Color and $00FFFFFF;
   AALevel := Constrain(AALevel, 0, 4);
+  PaddedText := Text + ' ';
 
   B := TBitmap32.Create;
   try
     if AALevel = 0 then
     begin
-      Sz := TextExtent(Text + ' ');
+      TextBlueToAlpha(B, Color);
+      Sz := TextExtent(PaddedText);
       B.SetSize(Sz.cX, Sz.cY);
       B.Font := Font;
       B.Clear(0);
       B.Font.Color := clWhite;
       B.Textout(0, 0, Text);
-
-      // convert blue channel to alpha and fill the color
-      P := @B.Bits[0];
-      for I := 0 to B.Width * B.Height - 1 do
-      begin
-        C := P^;
-        if C <> 0 then
-        begin
-          C := P^ shl 24; // transfer blue channel to alpha
-          C := C + Color;
-          P^ := C;
-        end;
-        Inc(P);
-      end;
+      TextBlueToAlpha(B, Color);
     end
     else
     begin
@@ -3149,7 +3538,7 @@ begin
       try
         StockCanvas.Font := Font;
         StockCanvas.Font.Size := Font.Size shl AALevel;
-        Sz := StockCanvas.TextExtent(Text + ' ');
+        Sz := StockCanvas.TextExtent(PaddedText);
         Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
         B2 := TBitmap32.Create;
         try
@@ -3176,47 +3565,42 @@ begin
   finally
     B.Free;
   end;
+{$ENDIF}
 end;
 
-procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: WideString; AALevel: Integer; Color: TColor32);
+procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: Widestring;
+  AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
   Sz: TSize;
-  C, Alpha: TColor32;
-  I: Integer;
-  P: PColor32;
+  Alpha: TColor32;
   StockCanvas: TCanvas;
+  PaddedText: Widestring;
 begin
   if Empty then Exit;
 
   Alpha := Color shr 24;
   Color := Color and $00FFFFFF;
   AALevel := Constrain(AALevel, 0, 4);
+  PaddedText := Text + ' ';
 
   B := TBitmap32.Create;
   try
     if AALevel = 0 then
     begin
-      Sz := TextExtentW(Text + ' ');
+{$IFDEF CLX}
+      B.Font := Font;
+      Sz := B.TextExtentW(PaddedText);
+      B.SetSize(Sz.cX, Sz.cY);
+{$ELSE}
+      Sz := TextExtentW(PaddedText);
       B.SetSize(Sz.cX, Sz.cY);
       B.Font := Font;
+{$ENDIF}
       B.Clear(0);
       B.Font.Color := clWhite;
-      B.TextoutW(0, 0, Text);
-
-      // convert blue channel to alpha and fill the color
-      P := @B.Bits[0];
-      for I := 0 to B.Width * B.Height - 1 do
-      begin
-        C := P^;
-        if C <> 0 then
-        begin
-          C := P^ shl 24; // transfer blue channel to alpha
-          C := C + Color;
-          P^ := C;
-        end;
-        Inc(P);
-      end;
+      B.Textout(0, 0, Text);
+      TextBlueToAlpha(B, Color);
     end
     else
     begin
@@ -3225,8 +3609,12 @@ begin
       try
         StockCanvas.Font := Font;
         StockCanvas.Font.Size := Font.Size shl AALevel;
-        Windows.GetTextExtentPoint32W(StockCanvas.Handle, PWideChar(Text + ' '),
-          Length(Text + ' '), Sz);
+{$IFDEF CLX}
+        Sz := StockCanvas.TextExtent(PaddedText);
+{$ELSE}
+        Windows.GetTextExtentPoint32W(StockCanvas.Handle, PWideChar(PaddedText),
+          Length(PaddedText), Sz);
+{$ENDIF}
         Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
         B2 := TBitmap32.Create;
         try
@@ -3254,6 +3642,8 @@ begin
     B.Free;
   end;
 end;
+
+// -------------------------------------------------------------------
 
 procedure TBitmap32.Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
 var
@@ -3500,15 +3890,114 @@ begin
   Result.Bottom := Height;
 end;
 
+{$IFDEF CLX}
+procedure TBitmap32.PixmapNeeded;
+begin
+  if Assigned(FPixmap) and Assigned(FHandle) and not FPixmapActive then
+  begin
+    QPixmap_convertFromImage(FPixmap, FHandle, QPixmapColorMode(QPixmapColorMode_Auto));
+    FPixmapActive := True;
+    FPixmapChanged := False;
+  end;
+end;
+
+procedure TBitmap32.ImageNeeded;
+begin
+  if Assigned(FPixmap) and Assigned(FHandle) and FPixmapActive and FPixmapChanged then
+  begin
+    QPixmap_convertToImage(FPixmap, FHandle);
+    FPixmapActive := False;
+    FPixmapChanged := False;
+    FBits := Pointer(QImage_bits(FHandle));
+  end;
+end;
+
+procedure TBitmap32.CheckPixmap;
+begin
+  if not FPixmapChanged then
+    // try to avoid QPixmap -> QImage conversion, since we don't need that.
+    FPixmapActive := False;
+  // else the conversion takes place as soon as the Bits property is accessed.
+end;
+
+function TBitmap32.GetBits: PColor32Array;
+begin
+  ImageNeeded;
+  Result := FBits;
+end;
+
+function TBitmap32.GetPixmap: QPixmapH;
+begin
+  PixmapNeeded;
+  Result := FPixmap;
+end;
+
+function TBitmap32.GetPainter: QPainterH;
+begin
+  PixmapNeeded;
+  Result := FHDC;
+end;
+
+procedure TBitmap32.StartPainter;
+begin
+  If (FPainterCount = 0) and not QPainter_isActive(Handle) then
+    if not QPainter_begin(Handle, Pixmap) then
+      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+
+  Inc(FPainterCount);
+end;
+
+procedure TBitmap32.StopPainter;
+begin
+  Dec(FPainterCount);
+  If (FPainterCount = 0) then
+  begin
+    QPainter_end(Handle);
+    FPixmapChanged := True;
+  end;
+end;
+
+{ TBitmap32Canvas }
+
+procedure TBitmap32Canvas.BeginPainting;
+begin
+  if not QPainter_isActive(FBitmap.Handle) then
+    if not QPainter_begin(FBitmap.Handle, FBitmap.Pixmap) then
+      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+
+  FBitmap.PixmapChanged := True; // whatever happens, we've potentially changed
+                                 // the Pixmap, so propagate that status...
+end;
+
+constructor TBitmap32Canvas.Create(Bitmap: TBitmap32);
+begin
+  inherited Create;
+  FBitmap := Bitmap;
+end;
+
+procedure TBitmap32Canvas.CreateHandle;
+begin
+  Handle := QPainter_create;
+end;
+
+{$ENDIF}
+
 initialization
   InitializeCriticalSection(CounterLock);
   SetGamma;
+{$IFDEF CLX}
+  StockFont := TFont.Create;
+{$ELSE}
   StockFont := GetStockObject(SYSTEM_FONT);
+{$ENDIF}
   StockBitmap := TBitmap.Create;
   StockBitmap.Width := 8;
   StockBitmap.Height := 8;
 
 finalization
+{$IFDEF CLX}
+  StockFont.Free;
+{$ENDIF}
   StockBitmap.Free;
   DeleteCriticalSection(CounterLock);
 

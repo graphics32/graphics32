@@ -28,10 +28,15 @@ unit GR32_LowLevel;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Graphics, GR32;
+  {$IFDEF CLX}
+  QGraphics,
+  {$ELSE}
+  Graphics,
+  {$ENDIF}
+  GR32;
 
 { Clamp function restricts Value to [0..255] range }
 function Clamp(Value: Integer): TColor32;

@@ -28,10 +28,15 @@ unit GR32_Filters;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows, Classes, SysUtils, GR32, GR32_Blend, GR32_ByteMaps;
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  Classes, SysUtils, GR32, GR32_Blend, GR32_ByteMaps;
 
 { Basic processing }
 type

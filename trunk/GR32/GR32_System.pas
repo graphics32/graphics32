@@ -29,10 +29,14 @@ unit GR32_System;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
-  Windows;
+  {$IFDEF CLX}
+  Qt, Types {$IFDEF LINUX}, Libc{$ENDIF}
+  {$ELSE}
+  Windows
+  {$ENDIF};
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
@@ -57,6 +61,7 @@ const
     ($800000, $2000000, $4000000, $F000000, $F00000);
 //   ciMMX  , ciSSE   , ciSSE2  , ci3DNow , ci3DNowExt
 
+{$IFNDEF CLX}
 { Internal support for Windows XP themes }
 var
   USE_THEMES: Boolean = False;
@@ -139,11 +144,14 @@ var
   IsThemeActive: function: BOOL; stdcall;
   IsAppThemed: function: BOOL; stdcall;
   EnableTheming: function(fEnable: BOOL): HRESULT; stdcall;
+{$ENDIF}
 
 implementation
 
+{$IFNDEF CLX}
 uses
-  Messages, Classes, Forms;
+  Messages, Forms, Classes;
+{$ENDIF}
 
 function CPUID_Available: Boolean;
 asm
@@ -243,6 +251,7 @@ begin
   Result := HasInstructionSet(ci3DNowExt);
 end;
 
+{$IFNDEF CLX}
 const
   UXTHEME_DLL = 'uxtheme.dll';
 
@@ -375,15 +384,20 @@ begin
   end;
   with Message do Result := DefWindowProc(FWindowHandle, Msg, wParam, lParam);
 end;
+{$ENDIF}
 
 initialization
-{$IFDEF XPTHEMES}
-ThemeNexus := TThemeNexus.Create;
+{$IFNDEF CLX}
+  {$IFDEF XPTHEMES}
+  ThemeNexus := TThemeNexus.Create;
+  {$ENDIF}
 {$ENDIF}
 
 finalization
-{$IFDEF XPTHEMES}
-ThemeNexus.Free;
+{$IFNDEF CLX}
+  {$IFDEF XPTHEMES}
+  ThemeNexus.Free;
+  {$ENDIF}
 {$ENDIF}
 
 end.
