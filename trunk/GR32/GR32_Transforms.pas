@@ -1089,17 +1089,15 @@ var
   R: TRect;
   RowSrc, OffSrc,
   dy, dx,
-  c1, c2,
-  r1, r2,
+  c1, c2, r1, r2,
   xs, xsrc, M: Cardinal;
   C: TColor32;
   DstLine: PColor32Array;
   ScaleFactor,lx: Single;
-  FSrcTop,I,J,ly, sc, sr: integer;
+  FSrcTop,I,J,ly,
+  sc, sr, cx, cy: integer;
   Y_256: TFixed;
   XLUT_256: array of TFixed;
-  Tmp: TBitmap32;
-
 begin
  { rangechecking and rect intersection done by caller }
 
@@ -1158,17 +1156,17 @@ begin
       OffSrc := Src.Width * 4;
 
       ScaleFactor:= SrcW / DstW;
-      dx := Round( (DstClip.Left - DstRect.Left) * ScaleFactor);
+      cx := Round( (DstClip.Left - DstRect.Left) * ScaleFactor);
       r2 := Trunc(ScaleFactor);
       sr := Trunc( $10000 * ScaleFactor );
 
       ScaleFactor:= SrcH / DstH;
-      dy := Round( (DstClip.Top - DstRect.Top) * ScaleFactor );
+      cy := Round( (DstClip.Top - DstRect.Top) * ScaleFactor );
       c2 := Trunc(ScaleFactor);
       sc := Trunc( $10000 * ScaleFactor );
 
       DstLine := PColor32Array(Dst.PixelPtr[0, DstClip.Top]);
-      RowSrc := Cardinal(Src.PixelPtr[ SrcRect.Left +  dx, SrcRect.Top + dy ]);
+      RowSrc := Cardinal(Src.PixelPtr[ SrcRect.Left +  cx, SrcRect.Top + cy ]);
 
       xs := r2;
       c1 := 0;
