@@ -568,6 +568,7 @@ implementation
 
 uses
   GR32_Blend, GR32_Transforms, GR32_LowLevel, GR32_Filters, Math, TypInfo,
+  GR32_System,
 {$IFDEF CLX}
   QClipbrd,
 {$ELSE}
@@ -577,6 +578,8 @@ uses
 
 var
   CounterLock: TRTLCriticalSection;
+  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+
 {$IFDEF CLX}
   StockFont: TFont;
 {$ELSE}
@@ -1957,58 +1960,13 @@ begin
 end;
 
 function TBitmap32.GET_T256(X, Y: Integer): TColor32;
-//When using this, remember that it interpolates towards next x and y! 
- function Interpolate_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
- asm
-        MOVQ      MM1, [ECX]
-        MOV       ECX, C21
-        MOVQ      MM3, [ECX]
-        MOVQ      MM2, MM1
-        MOVQ      MM4, MM3
-        PSRLQ     MM1, 32
-        PSRLQ     MM3, 32
-
-        MOVD      MM5,EAX   
-        PUNPCKLWD MM5,MM5
-        PUNPCKLDQ MM5,MM5
-
-        PXOR MM0, MM0
-
-        PUNPCKLBW MM1,MM0
-        PUNPCKLBW MM2,MM0
-        PSUBW     MM2,MM1
-        PMULLW    MM2,MM5
-        PSLLW     MM1,8
-        PADDW     MM2,MM1
-        PSRLW     MM2,8
-
-        PUNPCKLBW MM3,MM0
-        PUNPCKLBW MM4,MM0
-        PSUBW     MM4,MM3
-        PMULLW    MM4,MM5
-        PSLLW     MM3,8
-        PADDW     MM4,MM3
-        PSRLW     MM4,8
-
-        MOVD      MM5,EDX
-        PUNPCKLWD MM5,MM5
-        PUNPCKLDQ MM5,MM5
-
-        PSUBW     MM2,MM4
-        PMULLW    MM2,MM5
-        PSLLW     MM4,8
-        PADDW     MM2,MM4
-        PSRLW     MM2,8
-
-        PACKUSWB  MM2,MM0
-        MOVD      EAX,MM2
- end;
+//When using this, remember that it interpolates towards next x and y!
 var
  Pos: Cardinal;
 begin
   Pos:= Sar_8(X) +  Sar_8(Y) * FWidth;
-  Result:= Interpolate_MMX( X and $FF xor 255, Y and $FF xor 255, @FBits[Pos],
-                            @FBits[Pos + FWidth] );
+  Result:= Interpolator( X and $FF xor 255, Y and $FF xor 255, @FBits[Pos],
+                         @FBits[Pos + FWidth] );
 end;
 
 function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
@@ -3997,8 +3955,95 @@ end;
 
 {$ENDIF}
 
+{ Interpolators }
+
+function _Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+var
+  C1, C3: TColor32;
+begin
+  if WX_256 > $FF then WX_256:= $FF;
+  if WY_256 > $FF then WY_256:= $FF;
+  C1 := C11^; Inc(C11);
+  C3 := C21^; Inc(C21);
+  Result := CombineReg(CombineReg(C1, C11^, WX_256),
+                       CombineReg(C3, C21^, WX_256), WY_256);
+end;
+
+function M_Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+asm
+        MOVQ      MM1, [ECX]
+        MOV       ECX, C21
+        MOVQ      MM3, [ECX]
+        MOVQ      MM2, MM1
+        MOVQ      MM4, MM3
+        PSRLQ     MM1, 32
+        PSRLQ     MM3, 32
+
+        MOVD      MM5,EAX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
+
+        PXOR MM0, MM0
+
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        PSUBW     MM2,MM1
+        PMULLW    MM2,MM5
+        PSLLW     MM1,8
+        PADDW     MM2,MM1
+        PSRLW     MM2,8
+
+        PUNPCKLBW MM3,MM0
+        PUNPCKLBW MM4,MM0
+        PSUBW     MM4,MM3
+        PMULLW    MM4,MM5
+        PSLLW     MM3,8
+        PADDW     MM4,MM3
+        PSRLW     MM4,8
+
+        MOVD      MM5,EDX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
+
+        PSUBW     MM2,MM4
+        PMULLW    MM2,MM5
+        PSLLW     MM4,8
+        PADDW     MM2,MM4
+        PSRLW     MM2,8
+
+        PACKUSWB  MM2,MM0
+        MOVD      EAX,MM2
+end;
+
+
+procedure SetupFunctions;
+var
+  MMX_ACTIVE: Boolean;
+  ACTIVE_3DNow: Boolean;
+begin
+  MMX_ACTIVE := HasMMX;
+  ACTIVE_3DNow := Has3DNow;
+  if ACTIVE_3DNow then
+  begin
+   // link 3DNow functions
+   Interpolator:= M_Interpolator;
+  end
+  else
+  if MMX_ACTIVE then
+  begin
+   // link MMX functions
+   Interpolator:= M_Interpolator;
+  end
+  else
+  begin
+   // link IA32 functions
+   Interpolator:= _Interpolator;
+  end
+end;
+
 initialization
   InitializeCriticalSection(CounterLock);
+  SetupFunctions;
   SetGamma;
 {$IFDEF CLX}
   StockFont := TFont.Create;
