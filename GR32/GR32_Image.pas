@@ -350,6 +350,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+    property OnMouseEnter;
+    property OnMouseLeave;
     property OnPaintStage;
     property OnResize;
     property OnStartDrag;
@@ -440,6 +442,7 @@ type
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
+    property OverSize;
     property TabOrder;
     property TabStop;
     property Visible;
@@ -469,6 +472,8 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+    property OnMouseEnter;
+    property OnMouseLeave;
     property OnPaintStage;
     property OnResize;
     property OnScroll;
