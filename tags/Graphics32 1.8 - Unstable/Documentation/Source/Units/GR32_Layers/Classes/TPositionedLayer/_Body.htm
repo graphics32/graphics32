@@ -1,0 +1,27 @@
+<html>
+ 
+<head>
+<title>TPositionedLayer</title>
+<link rel="stylesheet" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TCustomLayer">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TPositionedLayer</span> is the base class 
+  for layers that are positioned withing the boundaries of their container (<a href="../../../GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a> 
+  or its descendant). The position and size is determined by the <a href="../../../GR32_Layers/Classes/TPositionedLayer/Properties/Location.htm">Location</a> 
+  property.</p>
+<p class="Body">When <span class="EmptyRef">TPositionedLayer</span> performs its 
+  <a href="../../../GR32_Layers/Classes/TCustomLayer/Methods/HitTest.htm">HitTest</a>, those points inside 
+  the rectangle returned by <a href="../../../GR32_Layers/Classes/TPositionedLayer/Methods/GetAdjustedLocation.htm">GetAdjustedLocation</a> 
+  pass the test.</p>
+<p class="Body">The class does not perform any drawing itself, however it is capable 
+  of calling the <a href="../../../GR32_Layers/Classes/TCustomLayer/Events/OnPaint.htm">OnPaint</a> event, 
+  where you can perform cutom drawing.</p>
+<p id="Hidden">[See Also] <a href="../../../../Additional%20Topics/Using%20TImage32/Using%20Layers.htm">Using 
+  Layers</a></p>
+</body>
+
+</html>
+
