@@ -1173,7 +1173,7 @@ begin
       XLUT_256:= nil;
    end
   else
-   begin //Full Scaledown
+   begin //Full Scaledown, ignores Fulledge, since this cannot be integrated into this type of resampling
       OffSrc := Src.Width * 4;
 
       ScaleFactor:= SrcW / DstW;
