@@ -37,7 +37,7 @@ uses
   {$IFDEF LINUX}Libc,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
 {$ELSE}
-  Windows, Messages, Types, GR32,
+  Windows, Messages, GR32, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF} 
 {$ENDIF}
   SysUtils, Classes,
 {$IFDEF CLX}
