@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>BufferValid</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> BufferValid: Boolean; <span class="Comment">// 
+  protected</span></p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">BufferValid</span> specifies if the current 
+  content of the <a href="Buffer.htm">Buffer</a> bitmap is up-to-date and whether 
+  the buffer needs to be repainted.</p>
+<p class="Body">When <a href="../_Body.htm">TCustomPaintBox32</a> repaints itself, 
+  it checks whether the buffer is valid. If <span class="EmptyRef">BufferValid</span> 
+  is <i>True</i>, the control simply flushes its contents to the screen, otherwise, 
+  it executes <a href="../Methods/DoPaintBuffer.htm">DoPaintBuffer</a> method, 
+  which updates the buffer and sets <span class="EmptyRef">BufferValid</span> 
+  to <i>True</i>, then it copies content of the buffer to the screen.</p>
+<p class="Body">Normally, this property should not be accessed in your application, 
+  since <a href="../_Body.htm">TCustomPaintBox32</a> tracks the buffer state and 
+  updates it automatically.</p>
+<p class="Body"></p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

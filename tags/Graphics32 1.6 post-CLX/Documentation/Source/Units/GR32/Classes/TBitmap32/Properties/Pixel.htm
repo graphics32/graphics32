@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>Pixel</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Pixel[X, Y: Integer]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>default</b>;</p>
+<p class="Decl"><b>property</b> PixelS[X, Y: Integer]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">Pixel</span> property sets the value of 
+  the pixel in the bitmap. Reading it, will return the color value of the pixel 
+  located at specified coordinates. This property does not validate the specified 
+  coordinates, so use it only then you are completely sure that you are not trying 
+  to read from or write to the outside of the bitmap boundary. <span class="EmptyRef">Pixel</span> 
+  is declared as default property, you may use it as shown below: </p>
+<p class="Code">Bitmap32[10, 20] := Bitmap32[20, 10]; <span class="Comment">// 
+  copy a pixel from (20,10) to (10,20) position</span></p>
+<p class="Body"><span class="EmptyRef">PixelS</span> is a 'safe' version of the 
+  <span class="EmptyRef">Pixel</span> property. When reading pixels from the outside 
+  the bitmap boundary, the value specified by <a href="OuterColor.htm">OuterColor</a> 
+  is returned. Writing with invalid coordinates will have no effect.</p>
+<p id="hidden">[See also]: <a href="../Methods/SetPixel.htm">SetPixel</a></p>
+</body>
+</html>
