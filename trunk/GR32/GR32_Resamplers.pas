@@ -226,7 +226,6 @@ var
   LoX, HiX, LoY, HiY: Integer;
 
   MappingX: array [-3..3] of Integer;
-  MappingY: array [-3..3] of Integer;
   HorzEntry, VertEntry: TBufferEntry;
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
@@ -247,26 +246,27 @@ begin
   if clX + W >= HiX then HiX := HiX - clX else HiX := W;
   if clY + W >= HiY then HiY := HiY - clY else HiY := W;
 
-  for I := LoX to HiX do MappingX[I] := Round(Filter(I + fracX) * 256);
-  for I := LoY to HiY do MappingY[I] := Round(Filter(I + fracY) * 256);
+  for I := LoX to HiX do MappingX[I] := Round( Filter(I + fracX) * 256 );
 
   VertEntry := EMPTY_ENTRY;
   for I := LoY to HiY do
   begin
     HorzEntry := EMPTY_ENTRY;
-    C := PColorEntry(Src.PixelPtr[LoX + clX, I + clY]);
+    C := PColorEntry( Src.PixelPtr[LoX + clX, I + clY] );
     for J := LoX to HiX do
     begin
-      Inc(HorzEntry.A, C.A * MappingX[J]);
-      Inc(HorzEntry.R, C.R * MappingX[J]);
-      Inc(HorzEntry.G, C.G * MappingX[J]);
-      Inc(HorzEntry.B, C.B * MappingX[J]);
+      W:= MappingX[J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
       Inc(C);
     end;
-    Inc(VertEntry.A, HorzEntry.A * MappingY[I]);
-    Inc(VertEntry.R, HorzEntry.R * MappingY[I]);
-    Inc(VertEntry.G, HorzEntry.G * MappingY[I]);
-    Inc(VertEntry.B, HorzEntry.B * MappingY[I]);
+    W := Round( Filter(I + fracY) * 256 );
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
   end;
   if Resampler.RangeCheck then
   begin
