@@ -20,7 +20,7 @@ procedure StretchTransfer(
 
 const
   MaxWindowWidth = 3;
-  DefaultTableSize = 256;
+  DefaultTableSize = 5;      // default: 256
 
 type
   PKernelValue = ^TKernelValue;
@@ -314,7 +314,7 @@ begin
 
 end; }
 
-function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+{function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
 var
   clX, clY, fracX, fracY: Integer;
   W: Integer;
@@ -327,12 +327,14 @@ const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
   ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 begin
-  W := Round(Width);
 
   clX := Ceil(X);
   clY := Ceil(Y);
-  fracX := Round((clX - X) * High(FWeightTable));
-  fracY := Round((clY - Y) * High(FWeightTable));
+  W := High(FWeightTable);
+  fracX := Round((clX - X) * W);
+  fracY := Round((clY - Y) * W);
+
+  W := Ceil(Width);
 
   if clX < W then LoX := -clX else LoX := -W;
   if clY < W then LoY := -clY else LoY := -W;
@@ -348,6 +350,98 @@ begin
   VertEntry := ROUND_ENTRY;
   HorzKernel := @FWeightTable[fracX];
   VertKernel := @FWeightTable[fracY];
+
+  for I := LoY to HiY do
+  begin
+    HorzEntry := EMPTY_ENTRY;
+    for J := LoX to HiX do
+    begin
+      W := HorzKernel[J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
+      Inc(C);
+    end;
+    W := VertKernel[I];
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
+  end;
+
+  if RangeCheck then
+  begin
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+  end;
+
+  with TColor32Entry(Result) do
+  begin
+    A := VertEntry.A shr 16;
+    R := VertEntry.R shr 16;
+    G := VertEntry.G shr 16;
+    B := VertEntry.B shr 16;
+  end;
+end;  }
+
+function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
+var
+  KernelVert: TKernelEntry;
+  KernelHorz: TKernelEntry;
+
+  procedure SetupKernel(FractionIndex: Single; var Kernel: TKernelEntry);
+  var
+     KF, KC: PKernelEntry;
+     I,C: Integer;
+  begin
+     KF := @FWeightTable[Floor(FractionIndex)];
+     C := Ceil(FractionIndex);
+     KC := @FWeightTable[C];
+     C:= Round( (C - FractionIndex)*256 );
+     for I:= -MaxWindowWidth to MaxWindowWidth do
+       Kernel[I]:= KC[I] + SAR_8((KF[I] - KC[I]) * C);
+  end;
+
+var
+  clX, clY: Integer;
+  W: Integer;
+  I, J, Incr: Integer;
+  C: PColor32Entry;
+  LoX, HiX, LoY, HiY: Integer;
+  HorzEntry, VertEntry: TBufferEntry;
+  HorzKernel, VertKernel: PKernelEntry;
+const
+  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
+  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
+begin
+
+  clX := Ceil(X);
+  clY := Ceil(Y);
+  W := High(FWeightTable);
+  SetupKernel((clX - X) * W, KernelHorz);
+  SetupKernel((clY - Y) * W, KernelVert);
+
+  W := Ceil(Width);
+
+  if clX < W then LoX := -clX else LoX := -W;
+  if clY < W then LoY := -clY else LoY := -W;
+  HiX := Src.Width - 1;
+  HiY := Src.Height - 1;
+  Incr:= HiX;
+  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
+  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+
+  C := PColor32Entry(Src.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
+
+  VertEntry := ROUND_ENTRY;
+  HorzKernel := @KernelHorz;
+  VertKernel := @KernelVert;
+
   for I := LoY to HiY do
   begin
     HorzEntry := EMPTY_ENTRY;
