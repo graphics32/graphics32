@@ -48,7 +48,8 @@ uses
   GR32_Dsgn_Misc,
   GR32_Image,
   GR32_Layers,
-  GR32_RangeBars;
+  GR32_RangeBars,
+  GR32_Resamplers;
 
 { Registration }
 procedure Register;
@@ -58,7 +59,9 @@ begin
   RegisterPropertyEditor(TypeInfo(TColor32), nil, '', TColor32Property);
   RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
   RegisterComponentEditor(TCustomImage32, TImage32Editor);
+
 	RegisterPropertyEditor(TypeInfo(string), TBitmap32, 'ResamplerClassName', TResamplerClassProperty);
+	RegisterPropertyEditor(TypeInfo(string), TBitmap32KernelResampler, 'KernelClassName', TKernelClassProperty);
 end;
 
 end.

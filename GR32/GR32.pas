@@ -130,18 +130,18 @@ function WinPalette(const P: TPalette32): HPALETTE;
 { A fixed-point type }
 
 type
-  // this type has data bits arrangement compatible with Windows.TFixed
+// this type has data bits arrangement compatible with Windows.TFixed
   TFixed = type Integer;
   PFixed = ^TFixed;
 
-  // a little bit of fixed point math
-  function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-  function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-  function FixedFloor(A: TFixed): Integer;
-  function FixedCeil(A: TFixed): Integer;
-  function FixedMul(A, B: TFixed): TFixed;
-  function FixedDiv(A, B: TFixed): TFixed;
-  function FixedRound(A: TFixed): Integer;
+// a little bit of fixed point math
+function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedFloor(A: TFixed): Integer;
+function FixedCeil(A: TFixed): Integer;
+function FixedMul(A, B: TFixed): TFixed;
+function FixedDiv(A, B: TFixed): TFixed;
+function FixedRound(A: TFixed): Integer;
 
 { Fixedmath related constants }
 
@@ -153,38 +153,24 @@ const
 { Points }
 
 type
-
 {$IFNDEF BCB}
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
 {$ENDIF}
   PPoint = ^TPoint;
-
-  PPointArray = ^TPointArray;
-  TPointArray = array [0..0] of TPoint;
-  TArrayOfPoint = array of TPoint;
-  TArrayOfArrayOfPoint = array of TArrayOfPoint;
-
-  PFloatPoint = ^TFloatPoint;
   TFloatPoint = record
     X, Y: Single;
   end;
-
-  PFloatPointArray = ^TFloatPointArray;
-  TFloatPointArray = array [0..0] of TFloatPoint;
-  TArrayOfFloatPoint = array of TFloatPoint;
-  TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
-
-  PFixedPoint = ^TFixedPoint;
+  PFloatPoint = ^TFloatPoint;
   TFixedPoint = record
     X, Y: TFixed;
   end;
-
-  PFixedPointArray = ^TFixedPointArray;
-  TFixedPointArray = array [0..0] of TFixedPoint;
+  PFixedPoint = ^TFixedPoint;
+  TArrayOfPoint = array of TPoint;
+  TArrayOfArrayOfPoint = array of TArrayOfPoint;
+  TArrayOfFloatPoint = array of TFloatPoint;
+  TArrayOfArrayOfFloatPoint = array of TArrayOfFloatPoint;
   TArrayOfFixedPoint = array of TFixedPoint;
   TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
-
-
 
 // construction and conversion of point types
 function Point(X, Y: Integer): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -351,8 +337,7 @@ type
 
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
   TOnChangedRectEvent = procedure(Sender: TObject; const Rect: TRect) of object;
-
-{$I GR32_AbstractClasses.INC}
+  TCustomResampler = class;
 
   TBitmap32 = class(TCustomMap)
   private
@@ -389,7 +374,7 @@ type
     FCombineMode: TCombineMode;
     FMeasuringMode: Boolean;
     FOldOnChangedRect: TOnChangedRectEvent;
-    FResampler: TAbstractResampler;
+    FResampler: TCustomResampler;
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
@@ -421,9 +406,9 @@ type
     procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure UpdateClipRects;
     procedure SetClipRect(const Value: TRect);
+    procedure SetResampler(Resampler: TCustomResampler);
     function GetResamplerClassName: string;
     procedure SetResamplerClassName(Value: string);
-    procedure SetResampler(R: TAbstractResampler);
   protected
     FontHandle: HFont;
     RasterX, RasterY: Integer;
@@ -638,7 +623,6 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
 
     property MeasuringMode: Boolean read FMeasuringMode;
-    property Resampler: TAbstractResampler read FResampler write SetResampler;
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
     property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
@@ -647,6 +631,7 @@ type
 {$IFDEF DEPRECATEDMODE}
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
 {$ENDIF}
+    property Resampler: TCustomResampler read FResampler write SetResampler;
     property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
     property OnChange;
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
@@ -654,6 +639,26 @@ type
     property OnChangedRect: TOnChangedRectEvent read FOnChangedRect write FOnChangedRect;
     property OnResize;
   end;
+
+  { TCustomSampler }
+  TCustomSampler = class(TPersistent)
+  public
+    function GetSampleInt(X, Y: Integer): TColor32; virtual;
+    function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
+    function GetSampleFloat(X, Y: Single): TColor32; virtual; abstract;
+    procedure PrepareRasterization; virtual;
+    procedure FinalizeRasterization; virtual;
+  end;
+
+  { TCustomResampler }
+  TCustomResampler = class(TCustomSampler)
+  public
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
+  end;
+  TCustomResamplerClass = class of TCustomResampler;
 
 {$IFDEF CLX}
   TBitmap32Canvas = class(TCanvas)
@@ -1406,8 +1411,8 @@ begin
   FMasterAlpha := $FF;
   FPenColor := clWhite32;
   FStippleStep := 1;
-  FResampler := TNearestResampler.Create;
-  CombineMode := cmBlend;
+  FCombineMode := cmBlend;
+  FResampler := TBitmap32LinearResampler.Create(Self);
 end;
 
 destructor TBitmap32.Destroy;
@@ -2256,7 +2261,7 @@ end;
 
 function  TBitmap32.GetPixelZ(X, Y: Single): TColor32;
 begin
-  Result := TCustomResampler(FResampler).ResamplePixel(Self, X, Y);
+  Result := FResampler.GetSampleFloat(X, Y);
 end;
 
 procedure TBitmap32.SetStipple(NewStipple: TArrayOfColor32);
@@ -5141,6 +5146,17 @@ begin
 end;
 
 
+
+procedure TBitmap32.SetResampler(Resampler: TCustomResampler);
+begin
+  if Assigned(Resampler) then
+  begin
+    if Assigned(FResampler) then FResampler.Free;
+    FResampler := Resampler;
+    Changed;
+  end;
+end;
+
 function TBitmap32.GetResamplerClassName: string;
 begin
   Result := FResampler.ClassName;
@@ -5148,22 +5164,33 @@ end;
 
 procedure TBitmap32.SetResamplerClassName(Value: string);
 begin
-	if (Value <> '') and (FResampler.ClassName <> Value) then
+  if (Value <> '') and (FResampler.ClassName <> Value) then
   begin
-		FResampler.Free;
-		FResampler := FindResamplerClass(Value).Create;
-    Changed;
-	end;
-end;
-
-procedure TBitmap32.SetResampler(R: TAbstractResampler);
-begin
-  if Assigned(R) then
-  begin
-    if Assigned(FResampler) then FResampler.Free;
-    FResampler := R;
+    FResampler.Free;
+    FResampler := FindResamplerClass(Value).Create(Self);
     Changed;
   end;
+end;
+
+
+{ TCustomSampler }
+
+function TCustomSampler.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  Result := GetSampleFixed(X * $1000, Y * $1000);
+end;
+
+function TCustomSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  Result := GetSampleFloat(X / $1000, Y / $1000);
+end;
+
+procedure TCustomSampler.PrepareRasterization;
+begin
+end;
+
+procedure TCustomSampler.FinalizeRasterization;
+begin
 end;
 
 initialization
