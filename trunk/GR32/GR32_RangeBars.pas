@@ -36,15 +36,12 @@ uses
   Qt, Types,
   {$IFDEF LINUX}Libc,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+  QGraphics, QControls, QForms, QDialogs, QExtCtrls,
 {$ELSE}
-  Windows, Messages, GR32, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF} 
+  Windows, Messages, GR32, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
+  Graphics, Controls, Forms, Dialogs, ExtCtrls,
 {$ENDIF}
-  SysUtils, Classes,
-{$IFDEF CLX}
-  QGraphics, QControls, QForms, QDialogs, QExtCtrls
-{$ELSE}
-  Graphics, Controls, Forms, Dialogs, ExtCtrls
-{$ENDIF};
+  SysUtils, Classes;
 
 {$IFDEF CLX}
 const
