@@ -3341,13 +3341,6 @@ begin
     Swap(Cy1, Cy2);
   end;
 
-  // Note: can't move this up due to the swap above...
-  if (Dx = Dy) and L then // diagonal line?
-  begin
-    LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
-    Exit;
-  end;
-
   If not L then
   begin
     If Dx > Dy then
@@ -3376,6 +3369,13 @@ begin
         Inc(Y2);
       end;
     end;
+  end;
+
+  // Note: can't move this up due to the swap above...
+  if Dx = Dy then // diagonal line?
+  begin
+    LineTS(Sx * X1, Sy * Y1, Sx * X2, Sy * Y2, Value, L);
+    Exit;
   end;
 
   if Dx < Dy then
