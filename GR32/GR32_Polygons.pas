@@ -293,8 +293,8 @@ begin
   for I := 0 to High(ScanLines) do SortLine(ScanLines[I]);
 end;
 
-procedure AddPolygon(const Points: TArrayOfPoint; BaseY: Integer;
-  MaxX, MaxY: Integer; var ScanLines: TScanLines; SubSampleX: Boolean);
+procedure AddPolygon(const Points: TArrayOfPoint; const BaseX, BaseY: Integer;
+  const MaxX, MaxY: Integer; var ScanLines: TScanLines; SubSampleX: Boolean);
 var
   I, X1, Y1, X2, Y2: Integer;
   Direction, PrevDirection: Integer; // up = 1 or down = -1
@@ -311,8 +311,8 @@ var
     L: Integer;
   begin
     // positive direction (+1) is down
-    if (Y < 0) or (Y > MaxY) then Exit;
-    if X < 0 then X := 0 else if X > MaxX then X := MaxX;
+    if (Y < BaseY) or (Y > MaxY) then Exit;
+    if X < BaseX then X := BaseX else if X > MaxX then X := MaxX;
     L := Length(ScanLines[Y - BaseY]);
     SetLength(ScanLines[Y - BaseY], L + 1);
     if Direction < 0 then X := Integer(Longword(X) or $80000000); // set the highest bit if the winding is up
@@ -435,13 +435,15 @@ var
   Winding, NextWinding: Integer;
 begin
   DoAlpha := Color and $FF000000 <> $FF000000;
-  for J := 0 to High(ScanLines) do
-  begin
-    L := Length(ScanLines[J]); // assuming length is even
-    if L = 0 then Continue;
-    I := 0;
-    OldRight := -1;
-    if Mode = pfAlternate then
+
+  if Mode = pfAlternate then
+    for J := 0 to High(ScanLines) do
+    begin
+      L := Length(ScanLines[J]); // assuming length is even
+      if L = 0 then Continue;
+      I := 0;
+      OldRight := -1;
+
       while I < L do
       begin
         Left := ScanLines[J][I] and $7FFFFFFF;
@@ -449,26 +451,30 @@ begin
         Right := ScanLines[J][I] and $7FFFFFFF - 1;
         if Right > Left then
         begin
-          if Mode = pfAlternate then
-          begin
-            if (Left and $FF) < $80 then Left := Left shr 8
-            else Left := Left shr 8 + 1;
-            if (Right and $FF) < $80 then Right := Right shr 8
-            else Right := Right shr 8 + 1;
+          if (Left and $FF) < $80 then Left := Left shr 8
+          else Left := Left shr 8 + 1;
+          if (Right and $FF) < $80 then Right := Right shr 8
+          else Right := Right shr 8 + 1;
 
-            if Right >= Bitmap.Width - 1 then Right := Bitmap.Width - 1;
+          if Right >= Bitmap.ClipRect.Right - 1 then Right := Bitmap.ClipRect.Right - 1;
 
-            if Left <= OldRight then Left := OldRight + 1;
-            OldRight := Right;
-            if Right >= Left then
-              if DoAlpha then Bitmap.HorzLineT(Left, BaseY + J, Right, Color)
-              else Bitmap.HorzLine(Left, BaseY + J, Right, Color);
-          end;
+          if Left <= OldRight then Left := OldRight + 1;
+          OldRight := Right;
+          if Right >= Left then
+            if DoAlpha then Bitmap.HorzLineT(Left, BaseY + J, Right, Color)
+            else Bitmap.HorzLine(Left, BaseY + J, Right, Color);
         end;
         Inc(I);
       end
-    else // Mode = pfWinding
+    end
+  else // Mode = pfWinding
+    for J := 0 to High(ScanLines) do
     begin
+      L := Length(ScanLines[J]); // assuming length is even
+      if L = 0 then Continue;
+      I := 0;
+      OldRight := -1;
+
       Winding := 0;
       Left := ScanLines[J][0];
       if (Left and $80000000) <> 0 then Inc(Winding) else Dec(Winding);
@@ -488,7 +494,7 @@ begin
           if (Right and $FF) < $80 then RP := Right shr 8
           else RP := Right shr 8 + 1;
 
-          if RP >= Bitmap.Width - 1 then RP := Bitmap.Width - 1;
+          if RP >= Bitmap.ClipRect.Right - 1 then RP := Bitmap.ClipRect.Right - 1;
 
           if RP >= LP then
             if DoAlpha then Bitmap.HorzLineT(LP, BaseY + J, RP, Color)
@@ -499,7 +505,6 @@ begin
         Left := Right;
       end;
     end;
-  end;
 end;
 
 procedure FillLines2(Bitmap: TBitmap32; BaseY: Integer;
@@ -516,13 +521,13 @@ var
   C, A: TColor32;
   ScanLine: PIntegerArray;
   Winding, NextWinding: Integer;
-  AAShift, AALines, AAMultiplicator: Integer;
+  AAShift, AALines, AAMultiplier: Integer;
 begin
   A := Color shr 24;
 
   AAShift := AA_SHIFT[AAMode];
   AALines := AA_LINES[AAMode] - 1; // we do the -1 here for optimization.
-  AAMultiplicator := AA_MULTI[AAMode];
+  AAMultiplier := AA_MULTI[AAMode];
 
   // find the range of Y screen coordinates
   MinY := BaseY shr AAShift;
@@ -564,12 +569,12 @@ begin
       FillLongword(Buffer[0], BufferSize, 0);
 
       // ...and fill it
-      for J := Top to Bottom do
-      begin
-        I := 0;
-        L := Length(ScanLines[J]);
-        ScanLine := @ScanLines[J][0];
-        if Mode = pfAlternate then
+      if Mode = pfAlternate then
+        for J := Top to Bottom do
+        begin
+          I := 0;
+          L := Length(ScanLines[J]);
+          ScanLine := @ScanLines[J][0];
           while I < L do
           begin
             // Left edge
@@ -588,8 +593,13 @@ begin
             Dec(Buffer[X + 1], Dx);
             Inc(I);
           end
-        else // mode = pfWinding
+        end
+      else // mode = pfWinding
+        for J := Top to Bottom do
         begin
+          I := 0;
+          L := Length(ScanLines[J]);
+          ScanLine := @ScanLines[J][0];
           Winding := 0;
           while I < L do
           begin
@@ -614,7 +624,6 @@ begin
             end;
           end;
         end;
-      end;
 
       // integrate the buffer
       N := 0;
@@ -622,7 +631,7 @@ begin
       for I := 0 to BufferSize - 1 do
       begin
         Inc(N, Buffer[I]);
-        ColorBuffer[I] := TColor32(N * AAMultiplicator and $FF00) shl 16 or C;
+        ColorBuffer[I] := TColor32(N * AAMultiplier and $FF00) shl 16 or C;
       end;
 
       // draw it to the screen
@@ -665,12 +674,14 @@ begin
     end;
 
   GetMinMax(PP, MinY, MaxY);
-  MinY := Constrain(MinY, 0, Bitmap.Height);
-  MaxY := Constrain(MaxY, 0, Bitmap.Height);
+  MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
+  MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
-  AddPolygon(PP, MinY, Bitmap.Width shl 8 - 1, Bitmap.Height - 1, ScanLines, True);
+  AddPolygon(PP, Bitmap.ClipRect.Left shl 8, MinY, Bitmap.ClipRect.Right shl 8 - 1,
+    Bitmap.ClipRect.Bottom - 1, ScanLines, True);
+    
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
@@ -687,16 +698,14 @@ var
   L, I, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfPoint;
-  AAShift, AABmpHeight: Integer;
+  AAShift, AAClipTop, AAClipBottom: Integer;
   AASAR: TShiftFunc;
 begin
-  AAShift := AA_SHIFT[AAMode];
-  AASAR := AA_SAR[AAMode];
-  AABmpHeight := Bitmap.Height shl AAShift - 1; // optimize a bit since that is done 3 times below...
-
   L := Length(Points);
   if (L < 3) or (Color and $FF000000 = 0) then Exit;
   SetLength(PP, L);
+
+  AASAR := AA_SAR[AAMode];
 
   for I := 0 to L - 1 do
     with Points[I] do
@@ -705,13 +714,19 @@ begin
       PP[I].Y := AASAR(Y + $00007FF);
     end;
 
+  AAShift := AA_SHIFT[AAMode];
+  AAClipTop := Bitmap.ClipRect.Top shl AAShift;
+  AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
+
   GetMinMax(PP, MinY, MaxY);
-  MinY := Constrain(MinY, 0, AABmpHeight);
-  MaxY := Constrain(MaxY, 0, AABmpHeight);
+  MinY := Constrain(MinY, AAClipTop, AAClipBottom);
+  MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
-  AddPolygon(PP, MinY, Bitmap.Width shl AAShift - 1, AABmpHeight, ScanLines, False);
+  AddPolygon(PP, Bitmap.ClipRect.Left shl AAShift, MinY,
+    Bitmap.ClipRect.Right shl AAShift - 1, AAClipBottom, ScanLines, False);
+
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
   try
@@ -725,7 +740,7 @@ end;
 procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate);
 var
-  L, I, J, min, max, MinY, MaxY: Integer;
+  L, I, J, min, max, MinY, MaxY, ShiftedLeft, ShiftedRight, ClipBottom: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
 begin
@@ -752,13 +767,17 @@ begin
     if max > MaxY then MaxY := max;
   end;
 
-  MinY := Constrain(MinY, 0, Bitmap.Height);
-  MaxY := Constrain(MaxY, 0, Bitmap.Height);
+  MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
+  MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
   if MinY >= MaxY then Exit;
+
+  ShiftedLeft := Bitmap.ClipRect.Left shl 8;
+  ShiftedRight := Bitmap.ClipRect.Right shl 8 - 1;
+  ClipBottom := Bitmap.ClipRect.Bottom - 1;
 
   SetLength(ScanLines, MaxY - MinY + 1);
   for J := 0 to High(Points) do
-    AddPolygon(PP[J], MinY, Bitmap.Width shl 8 - 1, Bitmap.Height - 1, ScanLines, True);
+    AddPolygon(PP[J], ShiftedLeft, MinY, ShiftedRight, ClipBottom, ScanLines, True);
 
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
@@ -776,13 +795,10 @@ var
   L, I, J, min, max, MinY, MaxY: Integer;
   ScanLines: TScanLines;
   PP: TArrayOfArrayOfPoint;
-  AAShift, AABmpHeight, AABmpWidth: Integer;
+  AAShift, AAClipLeft, AAClipTop, AAClipRight, AAClipBottom: Integer;
   AASAR: TShiftFunc;
 begin
-  AAShift := AA_SHIFT[AAMode];
   AASAR := AA_SAR[AAMode];
-  AABmpHeight := Bitmap.Height shl AAShift - 1; // optimize a bit since that is done 3 times below...
-  AABmpWidth := Bitmap.Width shl AAShift - 1;
 
   SetLength(PP, Length(Points));
 
@@ -811,13 +827,19 @@ begin
     if max > MaxY then MaxY := max;
   end;
 
-  MinY := Constrain(MinY, 0, AABmpHeight);
-  MaxY := Constrain(MaxY, 0, AABmpHeight);
+  AAShift := AA_SHIFT[AAMode];
+  AAClipLeft := Bitmap.ClipRect.Left shl AAShift;
+  AAClipTop := Bitmap.ClipRect.Top shl AAShift;
+  AAClipRight := Bitmap.ClipRect.Right shl AAShift - 1;
+  AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
+
+  MinY := Constrain(MinY, AAClipTop, AAClipBottom);
+  MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
   if MinY >= MaxY then Exit;
 
   SetLength(ScanLines, MaxY - MinY + 1);
   for J := 0 to High(Points) do
-    AddPolygon(PP[J], MinY, AABmpWidth, AABmpHeight, ScanLines, False);
+    AddPolygon(PP[J], AAClipLeft, MinY, AAClipRight, AAClipBottom, ScanLines, False);
 
   SortLines(ScanLines);
   Bitmap.BeginUpdate;
