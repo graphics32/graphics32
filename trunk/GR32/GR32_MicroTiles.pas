@@ -76,7 +76,9 @@ type
 function MakeMicroTile(const Left, Top, Right, Bottom: Integer): TMicroTile; {$IFDEF USEINLINING} inline; {$ENDIF}
 function MicroTileHeight(const Tile: TMicroTile): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function MicroTileWidth(const Tile: TMicroTile): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+
+var
+  MicroTileUnion: procedure(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 
 // MicroTiles auxiliary routines
 function MakeEmptyMicroTiles: TMicroTiles;
@@ -214,29 +216,78 @@ end;
 
 function MicroTileHeight(const Tile: TMicroTile): Integer;
 begin
-  Result := (Tile and $FF) - (Tile shl 16 and $FF);
+  Result := (Tile and $FF) - (Tile shr 16 and $FF);
 end;
 
 function MicroTileWidth(const Tile: TMicroTile): Integer;
 begin
-  Result := (Tile shl 8 and $FF) - (Tile shl 24);
+  Result := (Tile shr 8 and $FF) - (Tile shr 24);
 end;
 
-procedure MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+procedure _MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+var
+  SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
 begin
-  if not((DstTile = MICROTILE_FULL) or (SrcTile = MICROTILE_EMPTY) or
-         (MicroTileWidth(SrcTile) = 0) or (MicroTileHeight(SrcTile) = 0)) then
+  SrcLeft := SrcTile shr 24;
+  SrcTop := (SrcTile and $FF0000) shr 16;
+  SrcRight := (SrcTile and $FF00) shr 8;
+  SrcBottom := SrcTile and $FF;
+
+  if (DstTile <> MICROTILE_FULL) and (SrcTile <> MICROTILE_EMPTY) and
+     (SrcRight - SrcLeft <> 0) and (SrcBottom - SrcTop <> 0) then
   begin
     if (DstTile = MICROTILE_EMPTY) or (SrcTile = MICROTILE_FULL) then
       DstTile := SrcTile
     else
-      DstTile := Min(DstTile shr 24, SrcTile shr 24) shl 24 or
-                 Min(DstTile shr 16 and $FF, SrcTile shr 16 and $FF) shl 16 or
-                 Max(DstTile shr 8 and $FF, SrcTile shr 8 and $FF) shl 8 or
-                 Max(DstTile and $FF, SrcTile and $FF);
+    begin
+      DstTile := Min(DstTile shr 24, SrcLeft) shl 24 or
+                 Min(DstTile shr 16 and $FF, SrcTop) shl 16 or
+                 Max(DstTile shr 8 and $FF, SrcRight) shl 8 or
+                 Max(DstTile and $FF, SrcBottom);
+    end;
   end;
 end;
 
+procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+var
+  SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
+begin
+  SrcLeft := SrcTile shr 24;
+  SrcTop := (SrcTile and $FF0000) shr 16;
+  SrcRight := (SrcTile and $FF00) shr 8;
+  SrcBottom := SrcTile and $FF;
+
+  if (DstTile <> MICROTILE_FULL) and (SrcTile <> MICROTILE_EMPTY) and
+     (SrcRight - SrcLeft <> 0) and (SrcBottom - SrcTop <> 0) then
+  begin
+    if (DstTile = MICROTILE_EMPTY) or (SrcTile = MICROTILE_FULL) then
+      DstTile := SrcTile
+    else
+    asm
+      MOVD   MM1, [SrcTile]
+
+      MOV    EAX, [DstTile]
+      MOVD   MM2, [EAX]
+
+      MOVQ   MM3, MM1
+
+      MOV    ECX, $FFFF0000  // Mask
+      MOVD   MM0, ECX
+      PMINUB MM1, MM2
+      PAND   MM1, MM0
+
+      PSRLD  MM0, 16         // shift mask right by 16 bits
+      PMAXUB MM2, MM3
+      PAND   MM2, MM0
+
+      POR    MM1, MM2
+
+      MOVD   [EAX], MM1
+
+      EMMS
+    end;
+  end;
+end;
 
 { MicroTiles auxiliary routines }
 
@@ -549,26 +600,145 @@ begin
   end;
 end;
 
+var
+  MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+
+procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+var
+  SrcTilePtr, DstTilePtr: PMicroTile;
+  SrcTilePtr2, DstTilePtr2: PMicroTile;
+  X, Y: Integer;
+  SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
+  SrcTile: TMicroTile;
+begin
+  SrcTilePtr := @SrcTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * SrcTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
+  DstTilePtr := @DstTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * DstTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
+
+  for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
+  begin
+    SrcTilePtr2 := SrcTilePtr;
+    DstTilePtr2 := DstTilePtr;
+    for X := SrcTiles.BoundsUsedTiles.Left to SrcTiles.BoundsUsedTiles.Right do
+    begin
+      SrcTile := SrcTilePtr2^;
+      SrcLeft := SrcTile shr 24;
+      SrcTop := (SrcTile and $FF0000) shr 16;
+      SrcRight := (SrcTile and $FF00) shr 8;
+      SrcBottom := SrcTile and $FF;
+
+      if (DstTilePtr2^ <> MICROTILE_FULL) and (SrcTilePtr2^ <> MICROTILE_EMPTY) and
+         (SrcRight - SrcLeft <> 0) and (SrcBottom - SrcTop <> 0) then
+      begin
+        if (DstTilePtr2^ = MICROTILE_EMPTY) or (SrcTilePtr2^ = MICROTILE_FULL) then
+          DstTilePtr2^ := SrcTilePtr2^
+        else
+          DstTilePtr2^ := Min(DstTilePtr2^ shr 24, SrcLeft) shl 24 or
+                          Min(DstTilePtr2^ shr 16 and $FF, SrcTop) shl 16 or
+                          Max(DstTilePtr2^ shr 8 and $FF, SrcRight) shl 8 or
+                          Max(DstTilePtr2^ and $FF, SrcBottom);
+      end;
+
+      Inc(DstTilePtr2);
+      Inc(SrcTilePtr2);
+    end;
+    Inc(DstTilePtr, DstTiles.Columns);
+    Inc(SrcTilePtr, SrcTiles.Columns);
+  end;
+end;
+
+procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+var
+  SrcTilePtr, DstTilePtr: PMicroTile;
+  SrcTilePtr2, DstTilePtr2: PMicroTile;
+  X, Y: Integer;
+  SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
+  SrcTile: TMicroTile;
+begin
+  SrcTilePtr := @SrcTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * SrcTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
+  DstTilePtr := @DstTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * DstTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
+
+  asm
+    MOV    ECX, $FFFF  // Mask
+    MOVD   MM0, ECX
+  end;
+
+  for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
+  begin
+    SrcTilePtr2 := SrcTilePtr;
+    DstTilePtr2 := DstTilePtr;
+    for X := SrcTiles.BoundsUsedTiles.Left to SrcTiles.BoundsUsedTiles.Right do
+    begin
+      SrcLeft := SrcTilePtr2^ shr 24;
+      SrcTop := (SrcTilePtr2^ and $FF0000) shr 16;
+      SrcRight := (SrcTilePtr2^ and $FF00) shr 8;
+      SrcBottom := SrcTilePtr2^ and $FF;
+
+      if (DstTilePtr2^ <> MICROTILE_FULL) and (SrcTilePtr2^ <> MICROTILE_EMPTY) and
+         (SrcRight - SrcLeft <> 0) and (SrcBottom - SrcTop <> 0) then
+      begin
+        if (DstTilePtr2^ = MICROTILE_EMPTY) or (SrcTilePtr2^ = MICROTILE_FULL) then
+          DstTilePtr2^ := SrcTilePtr2^
+        else
+        asm
+          MOV    EAX, [DstTilePtr2]
+          MOVD   MM2, [EAX]
+
+          MOV    ECX, [SrcTilePtr2]
+          MOVD   MM1, [ECX]
+          MOVQ   MM3, MM1
+
+          PSLLD  MM0, 16         // shift mask left by 16 bits
+          PMINUB MM1, MM2
+          PAND   MM1, MM0
+
+          PSRLD  MM0, 16         // shift mask right by 16 bits
+          PMAXUB MM2, MM3
+          PAND   MM2, MM0
+
+          POR    MM1, MM2
+
+          MOVD   [EAX], MM1
+        end;
+      end;
+
+      Inc(DstTilePtr2);
+      Inc(SrcTilePtr2);
+    end;
+    Inc(DstTilePtr, DstTiles.Columns);
+    Inc(SrcTilePtr, SrcTiles.Columns);
+  end;
+
+  asm EMMS end;
+end;
+
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
   SrcTilePtr2, DstTilePtr2: PMicroTile;
   X, Y: Integer;
+  SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
+  SrcTile: TMicroTile;
 begin
   if SrcTiles.Count = 0 then Exit;
-  
-  SrcTilePtr := @SrcTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * SrcTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
-  DstTilePtr := @DstTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * DstTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
 
   if RoundToWholeTiles then
+  begin
+    SrcTilePtr := @SrcTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * SrcTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
+    DstTilePtr := @DstTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * DstTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
+
     for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
     begin
       SrcTilePtr2 := SrcTilePtr;
       DstTilePtr2 := DstTilePtr;
       for X := SrcTiles.BoundsUsedTiles.Left to SrcTiles.BoundsUsedTiles.Right do
       begin
-        if not((DstTilePtr2^ = MICROTILE_FULL) or (SrcTilePtr2^ = MICROTILE_EMPTY) or
-               (MicroTileWidth(SrcTilePtr2^) = 0) or (MicroTileHeight(SrcTilePtr2^) = 0)) then
+        SrcLeft := SrcTilePtr2^ shr 24;
+        SrcTop := (SrcTilePtr2^ and $FF0000) shr 16;
+        SrcRight := (SrcTilePtr2^ and $FF00) shr 8;
+        SrcBottom := SrcTilePtr2^ and $FF;
+
+        if (DstTilePtr2^ <> MICROTILE_FULL) and (SrcTilePtr2^ <> MICROTILE_EMPTY) and
+           (SrcRight - SrcLeft <> 0) and (SrcBottom - SrcTop <> 0) then
           DstTilePtr2^ := MICROTILE_FULL;
 
         Inc(DstTilePtr2);
@@ -577,31 +747,9 @@ begin
       Inc(DstTilePtr, DstTiles.Columns);
       Inc(SrcTilePtr, SrcTiles.Columns);
     end
+  end
   else
-    for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
-    begin
-      SrcTilePtr2 := SrcTilePtr;
-      DstTilePtr2 := DstTilePtr;
-      for X := SrcTiles.BoundsUsedTiles.Left to SrcTiles.BoundsUsedTiles.Right do
-      begin
-        if not((DstTilePtr2^ = MICROTILE_FULL) or (SrcTilePtr2^ = MICROTILE_EMPTY) or
-               (MicroTileWidth(SrcTilePtr2^) = 0) or (MicroTileHeight(SrcTilePtr2^) = 0)) then
-        begin
-          if (DstTilePtr2^ = MICROTILE_EMPTY) or (SrcTilePtr2^ = MICROTILE_FULL) then
-            DstTilePtr2^ := SrcTilePtr2^
-          else
-            DstTilePtr2^ := Min(DstTilePtr2^ shr 24, SrcTilePtr2^ shr 24) shl 24 or
-                            Min(DstTilePtr2^ shr 16 and $FF, SrcTilePtr2^ shr 16 and $FF) shl 16 or
-                            Max(DstTilePtr2^ shr 8 and $FF, SrcTilePtr2^ shr 8 and $FF) shl 8 or
-                            Max(DstTilePtr2^ and $FF, SrcTilePtr2^ and $FF);
-        end;
-
-        Inc(DstTilePtr2);
-        Inc(SrcTilePtr2);
-      end;
-      Inc(DstTilePtr, DstTiles.Columns);
-      Inc(SrcTilePtr, SrcTiles.Columns);
-    end;
+    MicroTilesU(DstTiles, SrcTiles);
 
   with DstTiles.BoundsUsedTiles do
   begin
@@ -611,7 +759,6 @@ begin
     if SrcTiles.BoundsUsedTiles.Bottom > Bottom then Bottom := SrcTiles.BoundsUsedTiles.Bottom;
   end;
 end;
-
 
 function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList;
   CountOnly: Boolean = False): Integer;
@@ -1346,5 +1493,22 @@ begin
 
   FTimeNeededForLastRepaint := TimeNeeded;
 end;
+
+procedure SetupFunctions;
+begin
+  if HasEMMX then
+  begin
+    MicroTileUnion := M_MicroTileUnion;
+    MicroTilesU := M_MicroTilesUnion;    // internal
+  end
+  else
+  begin
+    MicroTileUnion := _MicroTileUnion;
+    MicroTilesU := _MicroTilesUnion;     // internal
+  end;
+end;
+
+initialization
+  SetupFunctions;
 
 end.
