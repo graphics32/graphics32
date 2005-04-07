@@ -205,6 +205,15 @@ type
   end;
 
 
+// only for direct debugging - will be removed on final:
+var
+  MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+
+procedure _MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+
 implementation
 
 { MicroTile auxiliary routines }
@@ -600,8 +609,6 @@ begin
   end;
 end;
 
-var
-  MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 
 procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
@@ -660,6 +667,8 @@ begin
   asm
     MOV    ECX, $FFFF  // Mask
     MOVD   MM0, ECX
+    MOVQ   MM4, MM0
+    PSLLD  MM4, 16     // shift mask left by 16 bits
   end;
 
   for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
@@ -687,11 +696,9 @@ begin
           MOVD   MM1, [ECX]
           MOVQ   MM3, MM1
 
-          PSLLD  MM0, 16         // shift mask left by 16 bits
           PMINUB MM1, MM2
-          PAND   MM1, MM0
+          PAND   MM1, MM4
 
-          PSRLD  MM0, 16         // shift mask right by 16 bits
           PMAXUB MM2, MM3
           PAND   MM2, MM0
 
