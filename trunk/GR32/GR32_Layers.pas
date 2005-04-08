@@ -141,7 +141,7 @@ type
     function  GetViewportCoord(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint; virtual;
     property Count: Integer read GetCount;
 {$IFDEF DEPRECATEDMODE}
-    property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm; deprecated;
+    property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm;
 {$ENDIF}
     property Owner: TPersistent read FOwner;
     property Items[Index: Integer]: TCustomLayer read GetItem write SetItem; default;
