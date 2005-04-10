@@ -3,14 +3,14 @@ unit GR32_Dsgn_Misc;
 interface
 
 uses
-  DesignIntf, DesignEditors, Classes, TypInfo;
+  DesignIntf, DesignEditors, Classes, TypInfo, GR32_Containers;
 
 type
   TCustomClassProperty = class(TClassProperty)
   private
     function HasSubProperties: Boolean;
   protected
-    class function GetClassList: TList; virtual; abstract;
+    class function GetClassList: TClassList; virtual; abstract;
     procedure SetClassName(const CustomClass: string); virtual; abstract;
     function GetObject: TObject; virtual; abstract;
   public
@@ -22,14 +22,14 @@ type
 
 	TKernelClassProperty = class(TCustomClassProperty)
   protected
-    class function GetClassList: TList; override;
+    class function GetClassList: TClassList; override;
     procedure SetClassName(const CustomClass: string); override;
     function GetObject: TObject; override;
 	end;
 
 	TResamplerClassProperty = class(TCustomClassProperty)
   protected
-    class function GetClassList: TList; override;
+    class function GetClassList: TClassList; override;
     procedure SetClassName(const CustomClass: string); override;
     function GetObject: TObject; override;
 	end;
@@ -58,15 +58,12 @@ end;
 procedure TCustomClassProperty.GetValues(Proc: TGetStrProc);
 var
   I: Integer;
-  S: TStrings;
+  L: TClassList;
 begin
-  S := GetCustomClassNames(GetClassList);
-  try
-    for I := 0 to S.Count - 1 do
-      Proc(S[I]);
-  finally
-    S.Free;
-  end;
+  L := GetClassList;
+  if Assigned(L) then
+    for I := 0 to L.Count - 1 do
+      Proc(L.Items[I].ClassName);
 end;
 
 function TCustomClassProperty.HasSubProperties: Boolean;
@@ -78,8 +75,11 @@ begin
 end;
 
 procedure TCustomClassProperty.SetValue(const Value: string);
+var
+  L: TClassList;
 begin
-	if Assigned(FindCustomClass(Value, GetClassList)) then
+  L := GetClassList;
+  if Assigned(L) and Assigned(L.Find(Value)) then
     SetClassName(Value)
 	else SetStrValue('');
 	Modified;
@@ -87,7 +87,7 @@ end;
 
 { TKernelClassProperty }
 
-class function TKernelClassProperty.GetClassList: TList;
+class function TKernelClassProperty.GetClassList: TClassList;
 begin
   Result := KernelList;
 end;
@@ -104,7 +104,7 @@ end;
 
 { TResamplerClassProperty }
 
-class function TResamplerClassProperty.GetClassList: TList;
+class function TResamplerClassProperty.GetClassList: TClassList;
 begin
   Result := ResamplerList;
 end;
