@@ -712,12 +712,6 @@ type
   end;
   TCustomResamplerClass = class of TCustomResampler;
 
-{ General routines for registering and setting up custom classes }
-
-procedure RegisterCustomClass(CustomClass: TClass;var ClassList: TList);
-function GetCustomClassNames(ClassList: TList): TStrings;
-function FindCustomClass(ClassName: string; ClassList: TList): TClass;
-
 implementation
 
 uses
@@ -5285,9 +5279,9 @@ procedure TBitmap32.SetResamplerClassName(Value: string);
 var
   ResamplerClass: TBitmap32ResamplerClass;
 begin
-  if (Value <> '') and (FResampler.ClassName <> Value) then
+  if (Value <> '') and (FResampler.ClassName <> Value) and Assigned(ResamplerList) then
   begin
-    ResamplerClass := FindResamplerClass(Value);
+    ResamplerClass := TBitmap32ResamplerClass(ResamplerList.Find(Value));
     if Assigned(ResamplerClass) then
     begin
       FResampler.Free;
@@ -5316,43 +5310,6 @@ end;
 
 procedure TCustomSampler.FinalizeRasterization;
 begin
-end;
-
-{ General routines for registering and setting up custom classes }
-
-procedure RegisterCustomClass(CustomClass: TClass; var ClassList: TList);
-begin
-  if not Assigned(ClassList) then
-    ClassList := TList.Create;
-  ClassList.Add(CustomClass);
-end;
-
-function GetCustomClassNames(ClassList: TList): TStrings;
-var
-  I: Integer;
-begin
-  if not Assigned(ClassList) then
-    Result := nil
-  else
-  begin
-    Result := TStringList.Create;
-    for I := 0 to ClassList.Count - 1 do
-      Result.Add(TClass(ClassList.List[I]).ClassName);
-  end;
-end;
-
-function FindCustomClass(ClassName: string; ClassList: TList): TClass;
-var
-  I: Integer;
-begin
-  Result := nil;
-  if Assigned(ClassList) then
-    for I := 0 to ClassList.Count - 1 do
-      if TClass(ClassList.List[I]).ClassName = ClassName then
-      begin
-        Result := TClass(ClassList.List[I]);
-        Exit;
-      end;
 end;
 
 initialization

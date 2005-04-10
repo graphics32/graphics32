@@ -3,7 +3,7 @@ unit GR32_Resamplers;
 interface
 
 uses
-  Classes, Types, GR32, GR32_Transforms, GR32_Rasterizers;
+  Classes, Types, GR32, GR32_Transforms, GR32_Rasterizers, GR32_Containers;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -337,18 +337,9 @@ procedure MultiplyBuffer(var Buffer: TBufferEntry; M: Integer);
 function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32;
 procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer);
 
-{ Routines used by design-time property editors }
-procedure RegisterKernel(KernelClass: TCustomKernelClass);
-function GetKernelClassNames: TStrings;
-function FindKernelClass(ClassName: string): TCustomKernelClass;
-
-procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
-function GetResamplerClassNames: TStrings;
-function FindResamplerClass(ClassName: string): TBitmap32ResamplerClass;
-
 var
-  KernelList: TList;
-  ResamplerList: TList;
+  KernelList: TClassList;
+  ResamplerList: TClassList;
 
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
@@ -1839,78 +1830,6 @@ begin
   Result := FWidth;
 end;
 
-
-{ General routines for registering kernels and setting them up }
-
-procedure RegisterKernel(KernelClass: TCustomKernelClass);
-begin
-  RegisterCustomClass(KernelClass, KernelList);
-end;
-
-function GetKernelClassNames: TStrings;
-begin
-  Result := GetCustomClassNames(KernelList);
-end;
-
-function FindKernelClass(ClassName: string): TCustomKernelClass;
-begin
-  Result := TCustomKernelClass(FindCustomClass(ClassName, KernelList));
-end;
-
-
-{ General routines for registering resamplers and setting them up }
-
-procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
-begin
-  RegisterCustomClass(ResamplerClass, ResamplerList);
-end;
-
-function GetResamplerClassNames: TStrings;
-begin
-  Result := GetCustomClassNames(ResamplerList);
-end;
-
-function FindResamplerClass(ClassName: string): TBitmap32ResamplerClass;
-begin
-  Result := TBitmap32ResamplerClass(FindCustomClass(ClassName, ResamplerList));
-end;
-
-
-procedure SetupFunctions;
-var
-  MMX_ACTIVE: Boolean;
-  ACTIVE_3DNow: Boolean;
-begin
-  MMX_ACTIVE := HasMMX;
-  ACTIVE_3DNow := Has3DNow;
-  if ACTIVE_3DNow then
-  begin
-   { link 3DNow functions }
-   BlockAverage := BlockAverage_3DNow;
-   LinearInterpolator:= M_LinearInterpolator;
-  end
-  else
-  if MMX_ACTIVE then
-  begin
-   { link MMX functions }
-   BlockAverage:= BlockAverage_MMX;
-   LinearInterpolator:= M_LinearInterpolator;
-  end
-  else
-  begin
-   { link IA32 functions }
-   BlockAverage:= BlockAverage_IA32;
-   LinearInterpolator:= _LinearInterpolator;
-  end
-end;
-
-
-
-
-
-//============================================================================//
-
-
 procedure TSinshKernel.SetCoeff(const Value: Single);
 begin
   if (FCoeff <> Value) and (FCoeff <> 0) then
@@ -1957,9 +1876,9 @@ procedure TKernelResampler.SetKernelClassName(Value: string);
 var
   KernelClass: TCustomKernelClass;
 begin
-  if (Value <> '') and (FKernel.ClassName <> Value) then
+  if (Value <> '') and (FKernel.ClassName <> Value) and Assigned(KernelList) then
   begin
-    KernelClass := FindKernelClass(Value);
+    KernelClass := TCustomKernelClass(KernelList.Find(Value));
     if Assigned(KernelClass) then
     begin
       FKernel.Free;
@@ -2335,6 +2254,11 @@ end;
 
 { TCustomSuperSampler }
 
+constructor TCustomSuperSampler.Create(Sampler: TCustomSampler);
+begin
+  FSampler := Sampler;
+end;
+
 procedure TCustomSuperSampler.PrepareRasterization;
 begin
   FSampler.PrepareRasterization;
@@ -2500,39 +2424,64 @@ begin
   FTolerance := Value;
 end;
 
-{ TCustomSuperSampler }
 
-constructor TCustomSuperSampler.Create(Sampler: TCustomSampler);
+procedure SetupFunctions;
+var
+  MMX_ACTIVE: Boolean;
+  ACTIVE_3DNow: Boolean;
 begin
-  FSampler := Sampler;
+  MMX_ACTIVE := HasMMX;
+  ACTIVE_3DNow := Has3DNow;
+  if ACTIVE_3DNow then
+  begin
+   { link 3DNow functions }
+   BlockAverage := BlockAverage_3DNow;
+   LinearInterpolator:= M_LinearInterpolator;
+  end
+  else
+  if MMX_ACTIVE then
+  begin
+   { link MMX functions }
+   BlockAverage:= BlockAverage_MMX;
+   LinearInterpolator:= M_LinearInterpolator;
+  end
+  else
+  begin
+   { link IA32 functions }
+   BlockAverage:= BlockAverage_IA32;
+   LinearInterpolator:= _LinearInterpolator;
+  end
 end;
+
 
 initialization
   SetupFunctions;
 
   { Register resamplers }
-  RegisterResampler(TNearestResampler);
-  RegisterResampler(TLinearResampler);
-  RegisterResampler(TDraftResampler);
-  RegisterResampler(TKernelResampler);
-  RegisterResampler(TTableResampler);
+  ResamplerList := TClassList.Create;
+  ResamplerList.Add(TNearestResampler);
+  ResamplerList.Add(TLinearResampler);
+  ResamplerList.Add(TDraftResampler);
+  ResamplerList.Add(TKernelResampler);
+  ResamplerList.Add(TTableResampler);
 
   { Register kernels }
-  RegisterKernel(TNearestKernel);
-  RegisterKernel(TLinearKernel);
-  RegisterKernel(TCosineKernel);
-  RegisterKernel(TSplineKernel);
-  RegisterKernel(TCubicKernel);
-  RegisterKernel(TMitchellKernel);
-  RegisterKernel(TLanczosKernel);
-  RegisterKernel(TGaussianKernel);
-  RegisterKernel(TBlackmanKernel);
-  RegisterKernel(THannKernel);
-  RegisterKernel(THammingKernel);
-  RegisterKernel(TSinshKernel);
+  KernelList := TClassList.Create;
+  KernelList.Add(TNearestKernel);
+  KernelList.Add(TLinearKernel);
+  KernelList.Add(TCosineKernel);
+  KernelList.Add(TSplineKernel);
+  KernelList.Add(TCubicKernel);
+  KernelList.Add(TMitchellKernel);
+  KernelList.Add(TLanczosKernel);
+  KernelList.Add(TGaussianKernel);
+  KernelList.Add(TBlackmanKernel);
+  KernelList.Add(THannKernel);
+  KernelList.Add(THammingKernel);
+  KernelList.Add(TSinshKernel);
 
 finalization
-  KernelList.Free;
   ResamplerList.Free;
+  KernelList.Free;
 
 end.
