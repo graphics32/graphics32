@@ -482,12 +482,7 @@ begin
   begin
     for CurRow := TopTile to BottomTile do
     begin
-      TilePtr2 := TilePtr;
-      for CurCol := LeftTile to RightTile do
-      begin
-        TilePtr2^ := MICROTILE_FULL;
-        Inc(TilePtr2);
-      end;
+      FillLongword(TilePtr^, RightTile - LeftTile + 1, MICROTILE_FULL);
       Inc(TilePtr, MicroTiles.Columns);
     end;
   end
@@ -568,11 +563,10 @@ begin
 
           // render content
           if ColSpread > 2 then
-            for CurRow := LeftTile + 1 to RightTile - 1 do
-            begin
-              TilePtr2^ := MICROTILE_FULL;
-              Inc(TilePtr2);
-            end;
+          begin
+            FillLongword(TilePtr2^, RightTile - LeftTile - 1, MICROTILE_FULL);
+            Inc(TilePtr2, RightTile - LeftTile - 1);
+          end;
 
           // render right edge
           MicroTileUnion(TilePtr2^, MakeMicroTile(0, 0, ModRight, MICROTILE_SIZE));
@@ -872,7 +866,7 @@ begin
   end;
 
   Result := RectsCount;
-  
+
   if not CountOnly then
     for I := 0 to RectsCount - 1 do DstRects.Add(Rects[I]);
 end;
