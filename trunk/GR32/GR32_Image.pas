@@ -829,6 +829,7 @@ end;
 
 procedure TCustomPaintBox32.ForceFullInvalidate;
 begin
+  if FRepaintOptimizer.Enabled then FRepaintOptimizer.Reset;
   FForceFullRepaint := True;
   Invalidate;
 end;
@@ -1110,7 +1111,7 @@ begin
 {$ENDIF}
   if (FUpdateCount <> 0) and Assigned(FOnBitmapResize) then FOnBitmapResize(Self);
   InvalidateCache;
-  Invalidate;
+  ForceFullInvalidate;
 end;
 
 function TCustomImage32.BitmapToControl(const APoint: TPoint): TPoint;
