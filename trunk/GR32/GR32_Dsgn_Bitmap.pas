@@ -1,4 +1,4 @@
-unit GR32_Dsgn_Bitmap;
+{$IFNDEF CLX}unit GR32_Dsgn_Bitmap;{$ENDIF}
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
@@ -24,6 +24,7 @@ unit GR32_Dsgn_Bitmap;
  * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
+// $Id: GR32_Dsgn_Bitmap.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
 
 interface
 
@@ -35,12 +36,13 @@ uses
   {$IFDEF LINUX}Libc,{$ENDIF}
   QT, QGraphics, QControls, QForms, QDialogs, QExtCtrls, QStdCtrls, QComCtrls,
   QMenus, QImgList, QTypes, QClipbrd,
+  QGR32, QGR32_Image, QGR32_Layers, QGR32_Filters,
 {$ELSE}
   Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Types, Clipbrd,
+  GR32, GR32_Image, GR32_Layers, GR32_Filters,
 {$ENDIF}
   SysUtils, Classes, Consts,
-  GR32, GR32_Image, GR32_Layers, GR32_Filters,
 {$IFDEF COMPILER6}
   DesignIntf, DesignEditors
 {$ELSE}
@@ -61,11 +63,6 @@ type
     PageControl: TPageControl;
     ImageSheet: TTabSheet;
     AlphaSheet: TTabSheet;
-    // TODO: Remove
-    //OpenDialog: TOpenPictureDialog;
-    //SaveDialog: TSavePictureDialog;
-    OpenDialog: TOpenDialog;
-    SaveDialog: TSaveDialog;
     PopupMenu: TPopupMenu;
     mnSave: TMenuItem;
     mnSeparator: TMenuItem;
@@ -93,6 +90,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure MagnComboChange(Sender: TObject);
   protected
+    OpenDialog: {$IFDEF CLX}TOpenDialog{$ELSE}TOpenPictureDialog{$ENDIF};
+    SaveDialog: {$IFDEF CLX}TSaveDialog{$ELSE}TSavePictureDialog{$ENDIF};
     AlphaChannel: TImage32;
     RGBChannels: TImage32;
     procedure AlphaChannelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -316,6 +315,13 @@ begin
   AlphaChannel.Parent := AlphaSheet;
   AlphaChannel.Align := alClient;
   AlphaChannel.OnMouseMove := AlphaChannelMouseMove;
+{$IFDEF CLX}
+  OpenDialog := TOpenDialog.Create(Self);
+  SaveDialog := TSaveDialog.Create(Self);
+{$ELSE}
+  OpenDialog := TOpenPictureDialog.Create(Self);
+  SaveDialog := TSavePictureDialog.Create(Self);
+{$ENDIF}
 end;
 
 
