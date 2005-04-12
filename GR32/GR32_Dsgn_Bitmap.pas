@@ -24,7 +24,6 @@
  * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
-// $Id: GR32_Dsgn_Bitmap.pas,v 1.1 2004/07/05 15:32:04 abeckedorf Exp $
 
 interface
 
@@ -36,13 +35,12 @@ uses
   {$IFDEF LINUX}Libc,{$ENDIF}
   QT, QGraphics, QControls, QForms, QDialogs, QExtCtrls, QStdCtrls, QComCtrls,
   QMenus, QImgList, QTypes, QClipbrd,
-  QGR32, QGR32_Image, QGR32_Layers, QGR32_Filters,
 {$ELSE}
   Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Types, Clipbrd,
-  GR32, GR32_Image, GR32_Layers, GR32_Filters,
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
 {$ENDIF}
   SysUtils, Classes, Consts,
+  GR32, GR32_Image, GR32_Layers, GR32_Filters,
 {$IFDEF COMPILER6}
   DesignIntf, DesignEditors
 {$ELSE}
