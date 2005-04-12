@@ -1,4 +1,4 @@
-{$IFNDEF CLX}unit GR32_Dsgn_Bitmap;{$ENDIF}
+unit GR32_Dsgn_Bitmap;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
