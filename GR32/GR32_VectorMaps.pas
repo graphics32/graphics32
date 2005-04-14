@@ -28,7 +28,7 @@ unit GR32_TransformationMap;
 interface
 
 uses
-   Windows, Types, SysUtils, Classes, GR32, GR32_Transforms;
+   Windows, Types, SysUtils, Classes, GR32, GR32_Transforms, GR32_Containers;
 
 type
 
@@ -59,7 +59,7 @@ type
 
 var
   { ContourList class registerlist }
-  ContourList: TList;
+  ContourList: TClassList;
 
 type
   { TConstantContour - sets result to a constant value }
@@ -173,7 +173,7 @@ type
   TVectorCombineFloat = procedure(const F, P: TFloatPoint; var B: TFloatPoint) of object;
 
 var
-  VectorCombinerList: TList;
+  VectorCombinerList: TClassList;
 
 type
 
@@ -652,7 +652,7 @@ var
 begin
   if (Value <> '') and (FVectorCombiner.ClassName <> Value) then
   begin
-    VectorCombinerClass := TCustomVectorCombinerClass(FindCustomClass(Value, VectorCombinerList));
+    VectorCombinerClass := TCustomVectorCombinerClass(VectorCombinerList.Find(Value));
     if Assigned(VectorCombinerClass) then
     begin
       FVectorCombiner.Free;
@@ -993,7 +993,7 @@ var
 begin
   if (Value <> '') and (FContour.ClassName <> Value) then
   begin
-    ContourClass := TCustomContourClass(FindCustomClass(Value, ContourList));
+    ContourClass := TCustomContourClass(ContourList.Find(Value));
     if Assigned(ContourClass) then
     begin
       FContour.Free;
@@ -1244,17 +1244,19 @@ end;
 
 initialization
   { Register VectorCombiners }
-  RegisterCustomClass(TAdditionVectorCombiner, VectorCombinerList);
-  RegisterCustomClass(TSubtractionVectorCombiner, VectorCombinerList);
-  RegisterCustomClass(TMultiplicationVectorCombiner, VectorCombinerList);
-  RegisterCustomClass(TDifferenceVectorCombiner, VectorCombinerList);
+  VectorCombinerList := TClassList.Create;
+  VectorCombinerList.Add(TAdditionVectorCombiner);
+  VectorCombinerList.Add(TSubtractionVectorCombiner);
+  VectorCombinerList.Add(TMultiplicationVectorCombiner);
+  VectorCombinerList.Add(TDifferenceVectorCombiner);
 
   { Register Contours }
-  RegisterCustomClass(TConstantContour, ContourList);
-  RegisterCustomClass(TLinearContour, ContourList);
-  RegisterCustomClass(TGaussianContour, ContourList);
-  RegisterCustomClass(TLinearSineContour, ContourList);
-  RegisterCustomClass(TStairwayContour, ContourList);
+  ContourList := TClassList.Create;
+  ContourList.Add(TConstantContour);
+  ContourList.Add(TLinearContour);
+  ContourList.Add(TGaussianContour);
+  ContourList.Add(TLinearSineContour);
+  ContourList.Add(TStairwayContour);
 
 finalization
   VectorCombinerList.Free;
