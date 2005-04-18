@@ -397,7 +397,7 @@ begin
     EMMS;
     Transformer.Free;
   end;
-  Dst.Changed;
+  Dst.Changed(DstRect);
 end;
 
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
