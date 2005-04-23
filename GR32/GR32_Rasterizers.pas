@@ -30,7 +30,8 @@ type
 type
   TCustomRasterizer = class(TThreadPersistent);
 
-  { TBitmap32 specific rasterizer }
+  { TRasterizer }
+  { A base class for TBitmap32-specific rasterizers. }
   TRasterizer = class(TCustomRasterizer)
   private
     FSampler: TCustomSampler;
@@ -59,6 +60,8 @@ type
 
   TRasterizerClass = class of TRasterizer;
 
+  { TRegularSamplingRasterizer }
+  { This rasterizer simply picks one sample for each pixel in the output bitmap. }
   TRegularRasterizer = class(TRasterizer)
   private
     FUpdateRowCount: Integer;
@@ -70,6 +73,9 @@ type
     property UpdateRowCount: Integer read FUpdateRowCount write FUpdateRowCount;
   end;
 
+  { TSuperSamplingRasterizer }
+  { This class implements ordinary supersampling, where samples are gathered
+    from a regular square grid for each pixel. }
   TSuperSamplingRasterizer = class(TRegularRasterizer)
   private
     FSamplingX: Integer;
@@ -85,6 +91,12 @@ type
     property SamplingY: Integer read FSamplingY write SetSamplingY;
   end;
 
+  { TSwizzlingRasterizer }
+  { An interesting rasterization method where sample locations are choosen
+    according to a fractal pattern called 'swizzling'. With a slight
+    modification to the algorithm this routine will actually yield the
+    well-known sierpinski triangle fractal. An advantage with this pattern
+    is that it may benefit from local coherency in the sampling method used. }
   TSwizzlingRasterizer = class(TRasterizer)
   private
     FBlockSize: Integer;
@@ -97,9 +109,14 @@ type
     property BlockSize: Integer read FBlockSize write SetBlockSize;
   end;
 
+  { TProgressiveRasterizer }
+  { This class will perform rasterization in a progressive manner. It performs
+    subsampling with a block size of 2^n and will successively decrease n in
+    each iteration until n equals zero.  }
   TProgressiveRasterizer = class(TRasterizer)
   private
     FLevel: Integer;
+    FProgressLines: Boolean;
     procedure SetLevel(const Value: Integer);
   protected
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
@@ -107,39 +124,64 @@ type
     constructor Create; override;
   published
     property Level: Integer read FLevel write SetLevel;
+    property ProgressLines: Boolean read FProgressLines write FProgressLines;
   end;
 
+  { TTesseralRasterizer }
+  { This is a recursive rasterization method. It uses a divide-and-conquer
+    scheme to subdivide blocks vertically and horizontally into smaller blocks. }
   TTesseralRasterizer = class(TRasterizer)
-  private
+  protected
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
   end;
 
-(*
-  { Adaptive supersampling }
-  TAdaptiveRasterizer = class(TRasterizer)
-  private
-    FMinOffset: Single;
-    function DoRecurse(X, Y, Offset: Single; const A, B, C, D, E: TSample): TFloatColor;
-    function QuadrantColor(const S1, S2: TSample; X, Y, Offset: Single;
-      Proc: TRecurseProc): TFloatColor;
-    function RecurseAC(X, Y, Offset: Single; const A, C: TSample): TFloatColor;
-    function RecurseBD(X, Y, Offset: Single; const B, D: TSample): TFloatColor;
-    function GetMaxIter: Integer;
-    procedure SetMaxIter(const Value: Integer);
-  protected
-    function CompareSamples(S1, S2: TSample): Boolean; virtual; abstract;
-  public
-    constructor Create;
-    procedure PerformSampling(Dst: TBitmap32; const ClipRect: TRect); override;
-  published
-    property MinOffset: Single read FMinOffset write FMinOffset;
-    property MaxIter: Integer read GetMaxIter write SetMaxIter;
+  { TMultiSamplingRasterizer}
+  { Multisampling means that you use a predefined sampling pattern for each
+    output pixel. Several output pixels may also share the same samples
+    (if they are located on the edge between two pixels). }
+  TSample = record
+    Coord: TFloatPoint;
+    Weight: Single;
   end;
-*)
+  TSampleList = array of TSample;
+  TSamplePattern = array of array of TSampleList;
 
-  TMultiSamplingRasterizer = class(TRegularRasterizer);
+  TFixedSample = record
+    Coord: TFixedPoint;
+    Shift: Integer;
+  end;
+  TFixedSampleList = array of TFixedSample;
+  TFixedSamplePattern = array of array of TFixedSampleList;
 
+  TSampleMode = (smSingle, smFixed);
+
+  TMultiSamplingRasterizer = class(TRegularRasterizer)
+  private
+    FPattern: TSamplePattern;
+    FSampleMode: TSampleMode;
+    FFixedPattern: TFixedSamplePattern;
+    FShiftRight: Integer;
+    procedure SetPattern(const Value: TSamplePattern);
+  protected
+    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+  published
+    property Pattern: TSamplePattern read FPattern write SetPattern;
+  end;
+
+const
+  Quincunx: array [0..4] of TSample = (
+    (Coord: (X: -0.5; Y: -0.5); Weight: 1),
+    (Coord: (X:  0.5; Y: -0.5); Weight: 1),
+    (Coord: (X:  0.5; Y:  0.5); Weight: 1),
+    (Coord: (X: -0.5; Y:  0.5); Weight: 1),
+    (Coord: (X:    0; Y:    0); Weight: 4)
+  );
+
+type
   TIrregularRasterizer = class(TRasterizer);
+
+type
+  TThreadPersistentAccess = class(TThreadPersistent);
 
 { Auxiliary routines }
 
@@ -148,9 +190,6 @@ function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 implementation
 
 uses GR32_Resamplers, Math, SysUtils;
-
-const
-  SSamplerNotAssigned = 'No sampler has been assigned to rasterizer';
 
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 begin
@@ -212,6 +251,8 @@ end;
 procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
   SrcAlpha: TColor32; DrawMode: TDrawMode; CombineMode: TCombineMode;
   CombineCallBack: TPixelCombineEvent);
+var
+  UpdateCount: Integer;
 begin
   FSrcAlpha := SrcAlpha;
   FBlendMemEx := BLEND_MEM_EX[CombineMode];
@@ -228,15 +269,15 @@ begin
       FAssignColor := AssignColorBlend;
   end;
 
-  //if not Assigned(FSampler) then
-  //  raise Exception.Create(SSamplerNotAssigned)
-  //else
+  UpdateCount := TThreadPersistentAccess(Dst).UpdateCount;
   if Assigned(FSampler) then
   begin
     FSampler.PrepareRasterization;
     try
       DoRasterize(Dst, DstRect);
     finally
+      while TThreadPersistentAccess(Dst).UpdateCount > UpdateCount do
+        TThreadPersistentAccess(Dst).EndUpdate;
       FSampler.FinalizeRasterization;
     end;
   end;
@@ -407,7 +448,7 @@ end;
 
 procedure TSwizzlingRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
 var
-  I, J, L, T, W, H, Size, RowSize, D: Integer;
+  I, L, T, W, H, Size, RowSize, D: Integer;
   P1, P2, PBlock: TPoint;
   GetSample: TGetSampleInt;
   ForwardBuffer: array of Integer;
@@ -505,67 +546,73 @@ constructor TProgressiveRasterizer.Create;
 begin
   inherited;
   FLevel := 4;
+  FProgressLines := True;
 end;
 
 procedure TProgressiveRasterizer.DoRasterize(Dst: TBitmap32;
   DstRect: TRect);
 var
-  I, J, Shift, L, T, W, H, Wk, Hk, X, Y: Integer;
+  I, J, Shift, W, H, B, Wk, Hk, X, Y: Integer;
+  DoUpdate: Boolean;
+  OnChanged: TAreaChangedEvent;
   Step: Integer;
   GetSample: TGetSampleInt;
 begin
   GetSample := FSampler.GetSampleInt;
-  Step := 1 shl FLevel;
-
-  with DstRect do
-  begin
-    L := Left;
-    T := Top;
-    W := Right - Left;
-    H := Bottom - Top;
-  end;
+  OnChanged := Dst.OnAreaChanged;
+  DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
   Dst.BeginUpdate;
+  W := DstRect.Right - DstRect.Left;
+  H := DstRect.Bottom - DstRect.Top;
   J := DstRect.Top;
+  Step := 1 shl FLevel;
   while J < DstRect.Bottom do
   begin
     I := DstRect.Left;
-    while I < DstRect.Right do
+    B := Min(J + Step, DstRect.Bottom);
+    while I < DstRect.Right - Step do
     begin
-      Dst.FillRectS(I, J, I + Step, J + Step, GetSample(I, J));
+      Dst.FillRect(I, J, I + Step, B, GetSample(I, J));
       Inc(I, Step);
     end;
+    Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
+    if DoUpdate and FProgressLines then
+      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step));
     Inc(J, Step);
   end;
-  Dst.EndUpdate;
-  Dst.Changed;
+  if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect);
 
   Shift := FLevel;
   repeat
     Dec(Shift);
-    Dst.BeginUpdate;
     Step := Step div 2;
-    Wk := W div Step;
+    Wk := W div Step - 1;
     Hk := H div Step;
     for J := 0 to Hk do
     begin
-      Y := T + J shl Shift;
+      Y := DstRect.Top + J shl Shift;
+      B := Min(Y + Step, DstRect.Bottom);
       if Odd(J) then
         for I := 0 to Wk do
         begin
-          X := L + I shl Shift;
-          Dst.FillRectS(X, Y, X + Step, Y + Step, GetSample(X, Y));
+          X := DstRect.Left + I shl Shift;
+          Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
         end
       else
         for I := 0 to Wk do
           if Odd(I) then
           begin
-            X := L + I shl Shift;
-            Dst.FillRectS(X, Y, X + Step, Y + Step, GetSample(X, Y));
+            X := DstRect.Left + I shl Shift;
+            Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
           end;
+      X := DstRect.Left + Wk shl Shift;
+      Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
+      if FProgressLines and DoUpdate then
+        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step));
     end;
-    Dst.EndUpdate;
-    Dst.Changed;
+    if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect);
   until Step = 1;
+  Dst.EndUpdate;
 end;
 
 procedure TProgressiveRasterizer.SetLevel(const Value: Integer);
@@ -634,6 +681,50 @@ begin
       SplitHorizontal(DstRect.Left, DstRect.Top, W, H);
   end;
 
+end;
+
+
+function GetSampleMode(Pattern: TSamplePattern): TSampleMode;
+begin
+
+end;
+
+{ TMultiSamplingRasterizer }
+
+procedure TMultiSamplingRasterizer.DoRasterize(Dst: TBitmap32;
+  DstRect: TRect);
+var
+  I, J, UpdateCount: Integer;
+  P: PColor32;
+  GetSample: TGetSampleInt;
+begin
+  GetSample := FSampler.GetSampleInt;
+  UpdateCount := 0;
+  for J := DstRect.Top to DstRect.Bottom do
+  begin
+    P := @Dst.Bits[DstRect.Left + J * Dst.Width];
+    for I := DstRect.Left to DstRect.Right do
+    begin
+      AssignColor(P^, GetSample(I, J));
+      Inc(P);
+    end;
+    
+    Inc(UpdateCount);
+    if UpdateCount = FUpdateRowCount then
+    begin
+      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right + 1, J));
+      UpdateCount := 0;
+    end;
+  end;
+  with DstRect do
+    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom + 1));
+end;
+
+procedure TMultiSamplingRasterizer.SetPattern(const Value: TSamplePattern);
+begin
+  FPattern := Value;
+  FSampleMode := GetSampleMode(Value);
+  Changed;
 end;
 
 end.
