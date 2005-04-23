@@ -139,43 +139,13 @@ type
   { Multisampling means that you use a predefined sampling pattern for each
     output pixel. Several output pixels may also share the same samples
     (if they are located on the edge between two pixels). }
-  TSample = record
-    Coord: TFloatPoint;
-    Weight: Single;
-  end;
-  TSampleList = array of TSample;
-  TSamplePattern = array of array of TSampleList;
 
-  TFixedSample = record
-    Coord: TFixedPoint;
-    Shift: Integer;
-  end;
-  TFixedSampleList = array of TFixedSample;
-  TFixedSamplePattern = array of array of TFixedSampleList;
-
-  TSampleMode = (smSingle, smFixed);
-
+  { Note: This should be used exclusively for Quincunx and Flipquad }
   TMultiSamplingRasterizer = class(TRegularRasterizer)
   private
-    FPattern: TSamplePattern;
-    FSampleMode: TSampleMode;
-    FFixedPattern: TFixedSamplePattern;
-    FShiftRight: Integer;
-    procedure SetPattern(const Value: TSamplePattern);
   protected
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
-  published
-    property Pattern: TSamplePattern read FPattern write SetPattern;
   end;
-
-const
-  Quincunx: array [0..4] of TSample = (
-    (Coord: (X: -0.5; Y: -0.5); Weight: 1),
-    (Coord: (X:  0.5; Y: -0.5); Weight: 1),
-    (Coord: (X:  0.5; Y:  0.5); Weight: 1),
-    (Coord: (X: -0.5; Y:  0.5); Weight: 1),
-    (Coord: (X:    0; Y:    0); Weight: 4)
-  );
 
 type
   TIrregularRasterizer = class(TRasterizer);
@@ -684,11 +654,6 @@ begin
 end;
 
 
-function GetSampleMode(Pattern: TSamplePattern): TSampleMode;
-begin
-
-end;
-
 { TMultiSamplingRasterizer }
 
 procedure TMultiSamplingRasterizer.DoRasterize(Dst: TBitmap32;
@@ -708,7 +673,7 @@ begin
       AssignColor(P^, GetSample(I, J));
       Inc(P);
     end;
-    
+
     Inc(UpdateCount);
     if UpdateCount = FUpdateRowCount then
     begin
@@ -720,11 +685,5 @@ begin
     Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom + 1));
 end;
 
-procedure TMultiSamplingRasterizer.SetPattern(const Value: TSamplePattern);
-begin
-  FPattern := Value;
-  FSampleMode := GetSampleMode(Value);
-  Changed;
-end;
 
 end.
