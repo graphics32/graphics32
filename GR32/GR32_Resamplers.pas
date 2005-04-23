@@ -245,6 +245,10 @@ type
   end;
 
   { TTransformer }
+  TReverseTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
+  TReverseTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
+  TReverseTransformFloat = procedure(DstX, DstY: Single; out SrcX, SrcY: Single) of object;
+
   TTransformer = class(TCustomSampler)
   private
     FResampler: TCustomResampler;
@@ -253,7 +257,15 @@ type
     BoundsRectFixed: TFixedRect;
     BoundsRectInt: TRect;
     FOuterColor: TColor32;
+    FResamplerGetSampleInt: TGetSampleInt;
+    FResamplerGetSampleFixed: TGetSampleFixed;
+    FResamplerGetSampleFloat: TGetSampleFloat;
+    FTransformationReverseTransformInt: TReverseTransformInt;
+    FTransformationReverseTransformFixed: TReverseTransformFixed;
+    FTransformationReverseTransformFloat: TReverseTransformFloat;
     procedure SetBoundsRect(Rect: TFloatRect);
+    procedure SetResampler(const Value: TCustomResampler);
+    procedure SetTransformation(const Value: TTransformation);
   public
     constructor Create(Src: TBitmap32; ATransformation: TTransformation);
     function GetSampleInt(X, Y: Integer): TColor32; override;
@@ -262,8 +274,8 @@ type
     procedure PrepareRasterization; override;
     procedure FinalizeRasterization; override;
 
-    property Resampler: TCustomResampler read FResampler write FResampler;
-    property Transformation: TTransformation read FTransformation write FTransformation;
+    property Resampler: TCustomResampler read FResampler write SetResampler;
+    property Transformation: TTransformation read FTransformation write SetTransformation;
     property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
   end;
@@ -2182,11 +2194,11 @@ function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
   U, V: Integer;
 begin
-  TTransformationAccess(FTransformation).ReverseTransform256(X, Y, U, V);
-  if (U >= BoundsRectInt.Left * 256) and (U <= BoundsRectInt.Right * 256) and
-     (V >= BoundsRectInt.Top * 256) and (V <= BoundsRectInt.Bottom * 256) then
+  FTransformationReverseTransformInt(X, Y, U, V);
+  if (U >= BoundsRectInt.Left) and (U <= BoundsRectInt.Right) and
+     (V >= BoundsRectInt.Top) and (V <= BoundsRectInt.Bottom) then
   begin
-    Result := FResampler.GetSampleFixed(U * 256, V * 256);
+    Result := FResamplerGetSampleInt(U, V);
   end
   else
     Result := FOuterColor;
@@ -2196,11 +2208,11 @@ function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
 begin
-  TTransformationAccess(FTransformation).ReverseTransformFixed(X, Y, U, V);
+  FTransformationReverseTransformFixed(X, Y, U, V);
   if (U >= BoundsRectFixed.Left) and (U <= BoundsRectFixed.Right) and
      (V >= BoundsRectFixed.Top) and (V <= BoundsRectFixed.Bottom) then
   begin
-    Result := FResampler.GetSampleFixed(U, V);
+    Result := FResamplerGetSampleFixed(U, V);
   end
   else
     Result := FOuterColor;
@@ -2210,11 +2222,11 @@ function TTransformer.GetSampleFloat(X, Y: Single): TColor32;
 var
   U, V: Single;
 begin
-  TTransformationAccess(FTransformation).ReverseTransformFloat(X, Y, U, V);
+  FTransformationReverseTransformFloat(X, Y, U, V);
   if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
      (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
   begin
-    Result := FResampler.GetSampleFloat(U, V);
+    Result := FResamplerGetSampleFloat(U, V);
   end
   else
     Result := FOuterColor;
@@ -2235,9 +2247,9 @@ var
   R: TFloatRect;
 begin
   inherited Create;
-  FResampler := Src.Resampler;
   FOuterColor := Src.OuterColor;
-  FTransformation := ATransformation;
+  Resampler := Src.Resampler;
+  Transformation := ATransformation;
   IntersectRectF(R, ATransformation.SrcRect, FloatRect(0, 0, Src.Width - 1, Src.Height - 1));
   BoundsRectInt := MakeRect(R);
   BoundsRectFixed := FixedRect(R);
@@ -2251,6 +2263,21 @@ begin
   BoundsRect := Rect;
 end;
 
+procedure TTransformer.SetResampler(const Value: TCustomResampler);
+begin
+  FResampler := Value;
+  FResamplerGetSampleInt := FResampler.GetSampleInt;
+  FResamplerGetSampleFixed := FResampler.GetSampleFixed;
+  FResamplerGetSampleFloat := FResampler.GetSampleFloat;
+end;
+
+procedure TTransformer.SetTransformation(const Value: TTransformation);
+begin
+  FTransformation := Value;
+  FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
+  FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
+  FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+end;
 
 { TCustomSuperSampler }
 
