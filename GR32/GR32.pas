@@ -355,9 +355,6 @@ type
     "Sender" parameter and is not called through some virtual method. This
     (a little bit non-standard) approach allows for faster operation. }
 
-  TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
-  TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect; const Hint: Cardinal) of object;
-
 const
   // common cases
   AREAHINT_RECT         = $80000000;
@@ -367,6 +364,10 @@ const
   AREAHINT_MASK         = $FF000000;
 
 type
+  TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
+  TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect;
+    const Hint: Cardinal = AREAHINT_RECT) of object;
+
   TCustomResampler = class;
 
   TBitmap32 = class(TCustomMap)
