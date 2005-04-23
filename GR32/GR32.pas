@@ -2756,7 +2756,7 @@ begin
       Inc(xd, tmp div Dy2);
       rem := tmp mod Dy2;
       if xd > Cx2 then Exit;
-      if xd + 1 >= Cx1 then
+      if xd >= Cx1 then
       begin
         yd := Cy1;
         Dec(e, rem + Dx);
@@ -3024,7 +3024,7 @@ begin
       Inc(xd, tmp div Dy2);
       rem := tmp mod Dy2;
       if xd > Cx2 then Exit;
-      if xd + 1 >= Cx1 then
+      if xd >= Cx1 then
       begin
         yd := Cy1;
         Dec(e, rem + Dx);
@@ -3440,7 +3440,7 @@ begin
     end;
   finally
     EMMS;
-    Changed(MakeRect(X1, Y1, X2, Y2));
+    Changed(MakeRect(X1, Y1, X2, Y2), AREAHINT_LINE + 2);
   end;
 end;
 
@@ -3716,7 +3716,7 @@ begin
     end;
   end;
 
-  Changed(ChangedRect);
+  Changed(ChangedRect, AREAHINT_LINE + 2);
 end;
 
 procedure TBitmap32.MoveTo(X, Y: Integer);
