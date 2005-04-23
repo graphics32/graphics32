@@ -217,15 +217,15 @@ begin
   if Terminated then Abort else
   begin
     FArea := Area;
+    FBitmap.Unlock;
     Synchronize(SynchronizedAreaChanged);
+    FBitmap.Lock;
   end;
 end;
 
 procedure TRenderThread.SynchronizedAreaChanged;
 begin
-  FBitmap.Unlock;
   FOldAreaChanged(FBitmap, FArea, 0);
-  FBitmap.Lock;
 end;
 
 end.
