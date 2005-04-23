@@ -172,7 +172,7 @@ procedure TSyntheticImage32.StopRenderThread;
 begin
   if Assigned(FRenderThread) and (not FRenderThread.Terminated) then
   begin
-    FRenderThread.Terminate;
+    Synchronize(FRenderThread.Terminate);
     FRenderThread.WaitFor;
     FRenderThread.Free;
   end;
@@ -207,8 +207,8 @@ begin
     on EAbort do;
   end;
   FBitmap.OnAreaChanged := FOldAreaChanged;
-  FBitmap.Unlock;
-  FRasterizer.Unlock;
+  Synchronize(FBitmap.Unlock);
+  Synchronize(FRasterizer.Unlock);
 end;
 
 procedure TRenderThread.AreaChanged(Sender: TObject; const Area: TRect;
