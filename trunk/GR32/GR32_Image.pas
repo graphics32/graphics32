@@ -238,7 +238,8 @@ type
     procedure ChangedHandler(Sender: TObject);
     procedure BitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
     procedure DirectBitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
-    procedure GetViewportCoordHandler(Sender: TObject; var APoint: TFloatPoint; AScaled: Boolean);
+    procedure GetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
+    procedure GetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
     function  GetOnPixelCombine: TPixelCombineEvent;
     procedure GDIUpdateHandler(Sender: TObject);
     procedure SetBitmap(Value: TBitmap32); {$IFDEF CLX}reintroduce;{$ENDIF}
@@ -547,7 +548,8 @@ type
 
 implementation
 
-uses Math, TypInfo, GR32_MicroTiles;
+uses 
+  Math, TypInfo, GR32_MicroTiles;
 
 type
   TBitmap32Access = class(TBitmap32);
@@ -674,7 +676,6 @@ begin
   FForceFullRepaint := True;
   FInvalidRects := TRectList.Create;
   FRepaintOptimizer := TMicroTilesRepaintOptimizer.Create(Buffer, InvalidRects);
-  FRepaintMode := rmOptimizer;
   Height := 192;
   Width := 192;
 end;
@@ -880,12 +881,13 @@ procedure TCustomPaintBox32.Paint;
 var
   I: Integer;
 begin
+  if FRepaintOptimizer.Enabled then
+  begin
 {$IFDEF CLX}
-  if CustomRepaintNeeded then
-    DoValidateInvalidRects;
+    if CustomRepaintNeeded then DoValidateInvalidRects;
 {$ENDIF}
-
-  if FRepaintOptimizer.Enabled then FRepaintOptimizer.BeginPaint;
+    FRepaintOptimizer.BeginPaint;
+  end;
 
   ResizeBuffer;
 
@@ -934,10 +936,12 @@ begin
   
   DoPaintGDIOverlay;
 
-  if FRepaintOptimizer.Enabled then FRepaintOptimizer.EndPaint;
+  if FRepaintOptimizer.Enabled then
+  begin
+    FRepaintOptimizer.EndPaint;
+    ResetInvalidRects;
+  end;
   FForceFullRepaint := False;
-
-  ResetInvalidRects;
 end;
 
 procedure TCustomPaintBox32.ResetInvalidRects;
@@ -1266,10 +1270,12 @@ begin
 {$ENDIF}
     OnChange := ChangedHandler;
     OnGDIUpdate := GDIUpdateHandler;
-    OnGetViewportCoord := GetViewportCoordHandler;
+    OnGetViewportScale := GetViewportScaleHandler;
+    OnGetViewportShift := GetViewportShiftHandler;
   end;
 
   FRepaintOptimizer.RegisterLayerCollection(FLayers);
+  RepaintMode := rmFull;
 
   FPaintStages := TPaintStages.Create;
   FScale := 1.0;
@@ -1534,17 +1540,18 @@ begin
   Result := FBitmap.OnPixelCombine;
 end;
 
-procedure TCustomImage32.GetViewportCoordHandler(Sender: TObject; var APoint: TFloatPoint; AScaled: Boolean); // Added by d.k. on 2004-01-06.
+procedure TCustomImage32.GetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
 begin
-  if AScaled then begin
-    // convert coordinates from bitmap's ref. frame to control's ref. frame
-    UpdateCache;
-    with APoint, CachedXForm do
-    begin
-      X := X * ScaleX / $10000 + ShiftX;
-      Y := Y * ScaleY / $10000 + ShiftY;
-    end;
-  end;
+  UpdateCache;
+  ScaleX := CachedXForm.ScaleX / FixedOne;
+  ScaleY := CachedXForm.ScaleY / FixedOne;
+end;
+
+procedure TCustomImage32.GetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
+begin
+  UpdateCache;
+  ShiftX := CachedXForm.ShiftX;
+  ShiftY := CachedXForm.ShiftY;
 end;
 
 procedure TCustomImage32.InitDefaultStages;
@@ -1600,6 +1607,7 @@ end;
 
 procedure TCustomImage32.InvalidateCache;
 begin
+  if FRepaintOptimizer.Enabled then FRepaintOptimizer.Reset;
   CacheValid := False;
 end;
 
