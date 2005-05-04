@@ -389,13 +389,16 @@ begin
 
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
-  Transformer := TTransformer.Create(Src, Transformation);
-  try
-    Rasterizer.Sampler := Transformer;
-    Rasterizer.Rasterize(Dst, DstRect, Src);
-  finally
-    EMMS;
-    Transformer.Free;
+  if not Dst.MeasuringMode then
+  begin
+    Transformer := TTransformer.Create(Src, Transformation);
+    try
+      Rasterizer.Sampler := Transformer;
+      Rasterizer.Rasterize(Dst, DstRect, Src);
+    finally
+      EMMS;
+      Transformer.Free;
+    end;
   end;
   Dst.Changed(DstRect);
 end;
