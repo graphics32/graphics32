@@ -1183,8 +1183,7 @@ begin
     with TLayerCollectionAccess(Layers) do
     begin
       OnLayerUpdated := LayerUpdateHandler;
-      OnLayerResized := LayerUpdateHandler;
-      OnForcedUpdate := AreaUpdateHandler;
+      OnAreaUpdated := AreaUpdateHandler;
       OnListNotify := LayerCollectionNotifyHandler;
     end;
 end;
@@ -1194,8 +1193,7 @@ begin
   with TLayerCollectionAccess(Layers) do
   begin
     OnLayerUpdated := nil;
-    OnLayerResized := nil;
-    OnForcedUpdate := nil;
+    OnAreaUpdated := nil;
     OnListNotify := nil;
   end;
 
@@ -1215,8 +1213,7 @@ begin
       with TLayerCollectionAccess(LayerCollections[I]) do
       begin
         OnLayerUpdated := LayerUpdateHandler;
-        OnLayerResized := LayerUpdateHandler;
-        OnForcedUpdate := AreaUpdateHandler;
+        OnAreaUpdated := AreaUpdateHandler;
         OnListNotify := LayerCollectionNotifyHandler;
       end;
 
@@ -1232,8 +1229,7 @@ begin
       with TLayerCollectionAccess(LayerCollections[I]) do
       begin
         OnLayerUpdated := nil;
-        OnLayerResized := nil;
-        OnForcedUpdate := nil;
+        OnAreaUpdated := nil;
         OnListNotify := nil;
       end;
 
