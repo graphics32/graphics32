@@ -73,11 +73,12 @@ type
   TLayerCollection = class;
 
   TLayerUpdateEvent = procedure(Sender: TObject; Layer: TCustomLayer) of object;
-  TForcedUpdateEvent = TAreaChangedEvent;
+  TAreaUpdateEvent = TAreaChangedEvent;
   TLayerListNotification = (lnLayerAdded, lnLayerInserted, lnLayerDeleted, lnCleared);
   TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification;
     Layer: TCustomLayer; Index: Integer) of object;
-  TGetCoordEvent = procedure(Sender: TObject; var APoint: TFloatPoint; AScaled: Boolean) of object;
+  TGetScaleEvent = procedure(Sender: TObject; var ScaleX, ScaleY: Single) of object;
+  TGetShiftEvent = procedure(Sender: TObject; var ShiftX, ShiftY: Single) of object;
   
   TLayerCollection = class(TPersistent)
   private
@@ -89,18 +90,15 @@ type
     FMouseListener: TCustomLayer;
     FUpdateCount: Integer;
     FOwner: TPersistent;
-    FInvalidIndex: Integer;
     FOnChanging: TNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnGDIUpdate: TNotifyEvent;
     FOnListNotify: TLayerListNotifyEvent;
     FOnLayerUpdated: TLayerUpdateEvent;
-    FOnLayerResized: TLayerUpdateEvent;
-    FOnForcedUpdate: TForcedUpdateEvent;
-    FOnGetViewportCoord: TGetCoordEvent;
+    FOnAreaUpdated: TAreaUpdateEvent;
+    FOnGetViewportScale: TGetScaleEvent;
+    FOnGetViewportShift: TGetShiftEvent;
     function GetCount: Integer;
-    procedure UpdateInvalidIndex(const StartIndex: Integer);
-    procedure CheckUpdateIndexCache;
     procedure InsertItem(Item: TCustomLayer);
     procedure RemoveItem(Item: TCustomLayer);
     procedure SetMouseEvents(Value: Boolean);
@@ -115,8 +113,7 @@ type
     function  GetOwner: TPersistent; override;
     procedure GDIUpdate;
     procedure DoUpdateLayer(Layer: TCustomLayer);
-    procedure DoLayerResized(Layer: TCustomLayer);
-    procedure DoForceUpdate(const Rect: TRect);
+    procedure DoUpdateArea(const Rect: TRect);
     procedure Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
     procedure SetItem(Index: Integer; Value: TCustomLayer);
     function MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
@@ -127,9 +124,9 @@ type
     property OnListNotify: TLayerListNotifyEvent read FOnListNotify write FOnListNotify;
     property OnGDIUpdate: TNotifyEvent read FOnGDIUpdate write FOnGDIUpdate;
     property OnLayerUpdated: TLayerUpdateEvent read FOnLayerUpdated write FOnLayerUpdated;
-    property OnLayerResized: TLayerUpdateEvent read FOnLayerResized write FOnLayerResized;
-    property OnForcedUpdate: TForcedUpdateEvent read FOnForcedUpdate write FOnForcedUpdate;
-    property OnGetViewportCoord: TGetCoordEvent read FOnGetViewportCoord write FOnGetViewportCoord;
+    property OnAreaUpdated: TAreaUpdateEvent read FOnAreaUpdated write FOnAreaUpdated;
+    property OnGetViewportScale: TGetScaleEvent read FOnGetViewportScale write FOnGetViewportScale;
+    property OnGetViewportShift: TGetShiftEvent read FOnGetViewportShift write FOnGetViewportShift;
   public
     constructor Create(AOwner: TPersistent);
     destructor Destroy; override;
@@ -138,7 +135,10 @@ type
     procedure Clear;
     procedure Delete(Index: Integer);
     function  Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
-    function  GetViewportCoord(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint; virtual;
+    function  LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+    function  ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+    procedure GetViewportScale(var ScaleX, ScaleY: Single); virtual;
+    procedure GetViewportShift(var ShiftX, ShiftY: Single); virtual;
     property Count: Integer read GetCount;
 {$IFDEF DEPRECATEDMODE}
     property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm;
@@ -169,7 +169,6 @@ type
     FOnPaint: TPaintLayerEvent;
     FTag: Integer;
     FOnDestroy: TNotifyEvent;
-    FCachedIndex: Integer;
     function  GetIndex: Integer;
     function  GetMouseEvents: Boolean;
     function  GetVisible: Boolean;
@@ -182,7 +181,8 @@ type
     procedure SetInvalid(const Value: Boolean);
   protected
     procedure AddNotification(ALayer: TCustomLayer);
-    procedure Changed;
+    procedure Changed; overload;
+    procedure Changed(const Rect: TRect); overload;
     procedure Changing;
     function  DoHitTest(X, Y: Integer): Boolean; virtual;
     procedure DoPaint(Buffer: TBitmap32);
@@ -201,8 +201,8 @@ type
     destructor Destroy; override;
     procedure BeforeDestruction; override;
     procedure BringToFront;
-    procedure Update;
-    procedure ForceUpdate(const Rect: TRect);
+    procedure Update; overload;
+    procedure Update(const Rect: TRect); overload;
     function  HitTest(X, Y: Integer): Boolean;
     procedure SendToBack;
     procedure SetAsMouseListener;
@@ -391,7 +391,6 @@ begin
   BeginUpdate;
   try
     while FItems.Count > 0 do TCustomLayer(FItems.Last).Free;
-    FInvalidIndex := FItems.Count;
     Notify(lnCleared, nil, 0);
   finally
     EndUpdate;
@@ -408,13 +407,12 @@ end;
 procedure TLayerCollection.Delete(Index: Integer);
 begin
   TCustomLayer(FItems[Index]).Free;
-  UpdateInvalidIndex(Index);
 end;
 
 destructor TLayerCollection.Destroy;
 begin
   FUpdateCount := 1; // disable update notification
-  if FItems <> nil then Clear;
+  if Assigned(FItems) then Clear;
   FItems.Free;
   inherited;
 end;
@@ -465,7 +463,6 @@ begin
   try
     Result := Add(ItemClass);
     Result.Index := Index;
-    UpdateInvalidIndex(Index);
     Notify(lnLayerInserted, Result, Index);
   finally
     EndUpdate;
@@ -479,7 +476,6 @@ begin
   BeginUpdate;
   try
     Index := FItems.Add(Item);
-    UpdateInvalidIndex(Index);
     Item.FLayerCollection := Self;
     Notify(lnLayerAdded, Item, Index);
   finally
@@ -487,16 +483,44 @@ begin
   end;
 end;
 
-function TLayerCollection.GetViewportCoord(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+function TLayerCollection.LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+var
+  ScaleX, ScaleY, ShiftX, ShiftY: Single;
 begin
-  Result := APoint;
-  if Assigned(FOnGetViewportCoord) then FOnGetViewportCoord(Self, Result, AScaled);
+  if AScaled then
+  begin
+    GetViewportShift(ShiftX, ShiftY);
+    GetViewportScale(ScaleX, ScaleY);
+
+    Result.X := APoint.X * ScaleX + ShiftX;
+    Result.Y := APoint.Y * ScaleY + ShiftY;
+  end
+  else
+    Result := APoint;
+end;
+
+function TLayerCollection.ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
+var
+  ScaleX, ScaleY, ShiftX, ShiftY: Single;
+begin
+  if AScaled then
+  begin
+    GetViewportShift(ShiftX, ShiftY);
+    GetViewportScale(ScaleX, ScaleY);
+
+    Result.X := APoint.X / ScaleX - ShiftX;
+    Result.Y := APoint.Y / ScaleY - ShiftY;
+  end
+  else
+    Result := APoint;
 end;
 
 function TLayerCollection.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
 begin
-  if MouseListener <> nil then Result := MouseListener
-  else Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
+  if Assigned(MouseListener) then
+    Result := MouseListener
+  else
+    Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
   if (Button = mbLeft) and (Result <> MouseListener) and
     ((Result = nil) or ((Result.FLayerOptions and LOB_NO_CAPTURE) = 0)) then
@@ -549,7 +573,6 @@ begin
     if Index >= 0 then
     begin
       FItems.Delete(Index);
-      UpdateInvalidIndex(Index);
       Item.FLayerCollection := nil;
       Notify(lnLayerDeleted, Item, Index);
     end;
@@ -573,16 +596,16 @@ procedure TLayerCollection.SetMouseListener(Value: TCustomLayer);
 begin
   if Value <> FMouseListener then
   begin
-    if FMouseListener <> nil then
+    if Assigned(FMouseListener) then
       FMouseListener.FLayerStates := FMouseListener.FLayerStates -
         [lsMouseLeft, lsMouseRight, lsMouseMiddle];
     FMouseListener := Value;
   end;
 end;
 
-procedure TLayerCollection.DoForceUpdate(const Rect: TRect);
+procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
 begin
-  if Assigned(FOnForcedUpdate) then FOnForcedUpdate(Self, Rect, AREAHINT_RECT);
+  if Assigned(FOnAreaUpdated) then FOnAreaUpdated(Self, Rect, AREAHINT_RECT);
 end;
 
 procedure TLayerCollection.DoUpdateLayer(Layer: TCustomLayer);
@@ -590,25 +613,25 @@ begin
   if Assigned(FOnLayerUpdated) then FOnLayerUpdated(Self, Layer);
 end;
 
-procedure TLayerCollection.DoLayerResized(Layer: TCustomLayer);
+procedure TLayerCollection.GetViewportScale(var ScaleX, ScaleY: Single);
 begin
-  if Assigned(FOnLayerResized) then FOnLayerResized(Self, Layer);
-end;
-
-procedure TLayerCollection.UpdateInvalidIndex(const StartIndex: Integer);
-begin
-  FInvalidIndex := Min(FInvalidIndex, StartIndex);
-end;
-
-procedure TLayerCollection.CheckUpdateIndexCache;
-var
-  I: Integer;
-begin
-  if FInvalidIndex < FItems.Count then
+  if Assigned(FOnGetViewportScale) then
+    FOnGetViewportScale(Self, ScaleX, ScaleY)
+  else
   begin
-    for I := FInvalidIndex to FItems.Count - 1 do
-      TCustomLayer(FItems[I]).FCachedIndex := I;
-    FInvalidIndex := FItems.Count;
+    ScaleX := 1;
+    ScaleY := 1;
+  end;
+end;
+
+procedure TLayerCollection.GetViewportShift(var ShiftX, ShiftY: Single);
+begin
+  if Assigned(FOnGetViewportShift) then
+    FOnGetViewportShift(Self, ShiftX, ShiftY)
+  else
+  begin
+    ShiftX := 0;
+    ShiftY := 0;
   end;
 end;
 
@@ -633,7 +656,19 @@ end;
 
 procedure TCustomLayer.Changed;
 begin
-  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  Update;
+  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  begin
+    if Visible then FLayerCollection.Changed
+    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+      FLayerCollection.GDIUpdate;
+  end;
+end;
+
+procedure TCustomLayer.Changed(const Rect: TRect);
+begin
+  Update(Rect);
+  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     if Visible then FLayerCollection.Changed
     else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
@@ -643,7 +678,7 @@ end;
 
 procedure TCustomLayer.Changing;
 begin
-  if Visible and (FLayerCollection <> nil) and
+  if Visible and Assigned(FLayerCollection) and
     ((FLayerOptions and LOB_NO_UPDATE) = 0) then
     FLayerCollection.Changing;
 end;
@@ -658,7 +693,7 @@ destructor TCustomLayer.Destroy;
 var
   I: Integer;
 begin
-  if FFreeNotifies <> nil then
+  if Assigned(FFreeNotifies) then
   begin
     for I := FFreeNotifies.Count - 1 downto 0 do
     begin
@@ -686,11 +721,7 @@ end;
 function TCustomLayer.GetIndex: Integer;
 begin
   if Assigned(FLayerCollection) then
-  begin
-//    FLayerCollection.CheckUpdateIndexCache;
-//    Result := FCachedIndex;
-    Result := FLayerCollection.FItems.IndexOf(Self);
-  end
+    Result := FLayerCollection.FItems.IndexOf(Self)
   else
     Result := -1;
 end;
@@ -750,7 +781,7 @@ end;
 
 procedure TCustomLayer.RemoveNotification(ALayer: TCustomLayer);
 begin
-  if FFreeNotifies <> nil then
+  if Assigned(FFreeNotifies) then
   begin
     FFreeNotifies.Remove(ALayer);
     if FFreeNotifies.Count = 0 then
@@ -796,7 +827,6 @@ begin
         if Visible then BeginUpdate;
         try
           FLayerCollection.FItems.Move(CurIndex, Value);
-          FLayerCollection.UpdateInvalidIndex(Value);
         finally
           if Visible then EndUpdate;
         end;
@@ -808,13 +838,14 @@ procedure TCustomLayer.SetLayerCollection(Value: TLayerCollection);
 begin
   if FLayerCollection <> Value then
   begin
-    if FLayerCollection <> nil then
+    if Assigned(FLayerCollection) then
     begin
       if FLayerCollection.MouseListener = Self then
         FLayerCollection.MouseListener := nil;
       FLayerCollection.RemoveItem(Self);
     end;
-    if Value <> nil then Value.InsertItem(Self);
+    if Assigned(Value) then
+      Value.InsertItem(Self);
   end;
 end;
 
@@ -839,12 +870,14 @@ end;
 
 procedure TCustomLayer.Update;
 begin
-  FLayerCollection.DoUpdateLayer(Self);
+  if Assigned(FLayerCollection) and Visible then
+    FLayerCollection.DoUpdateLayer(Self);
 end;
 
-procedure TCustomLayer.ForceUpdate(const Rect: TRect);
+procedure TCustomLayer.Update(const Rect: TRect);
 begin
-  FLayerCollection.DoForceUpdate(Rect);
+  if Assigned(FLayerCollection) then
+    FLayerCollection.DoUpdateArea(Rect);
 end;
 
 function TCustomLayer.GetInvalid: Boolean;
@@ -884,7 +917,6 @@ end;
 procedure TPositionedLayer.DoSetLocation(const NewLocation: TFloatRect);
 begin
   FLocation := NewLocation;
-  FLayerCollection.DoLayerResized(Self);
 end;
 
 function TPositionedLayer.GetAdjustedLocation: TFloatRect;
@@ -893,11 +925,21 @@ begin
 end;
 
 function TPositionedLayer.GetAdjustedRect(const R: TFloatRect): TFloatRect;
+var
+  ScaleX, ScaleY, ShiftX, ShiftY: Single;
 begin
-  if Assigned(FLayerCollection) then
+  if Scaled and Assigned(FLayerCollection) then
   begin
-    Result.TopLeft := FLayerCollection.GetViewportCoord(R.TopLeft, Scaled);
-    Result.BottomRight := FLayerCollection.GetViewportCoord(R.BottomRight, Scaled);
+    FLayerCollection.GetViewportShift(ShiftX, ShiftY);
+    FLayerCollection.GetViewportScale(ScaleX, ScaleY);
+
+    with Result do
+    begin
+      Left := R.Left * ScaleX + ShiftX;
+      Top := R.Top * ScaleY + ShiftY;
+      Right := R.Right * ScaleX + ShiftX;
+      Bottom := R.Bottom * ScaleY + ShiftY;
+    end;
   end
   else
     Result := R;
@@ -1185,9 +1227,13 @@ end;
 
 procedure TRubberbandLayer.Notification(ALayer: TCustomLayer);
 begin
-  if ALayer = FChildLayer then FChildLayer := nil;
-  if FChildLayer <> nil then FLayerOptions := FLayerOptions or LOB_NO_UPDATE
-  else FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
+  if ALayer = FChildLayer then
+    FChildLayer := nil;
+
+  if Assigned(FChildLayer) then
+    FLayerOptions := FLayerOptions or LOB_NO_UPDATE
+  else
+    FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
 end;
 
 procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
@@ -1234,16 +1280,21 @@ end;
 
 procedure TRubberbandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
-  if FChildLayer <> nil then RemoveNotification(FChildLayer);
+  if Assigned(FChildLayer) then
+    RemoveNotification(FChildLayer);
+    
   FChildLayer := Value;
-  if Value <> nil then
+  if Assigned(Value) then
   begin
     Location := Value.Location;
     Scaled := Value.Scaled;
     AddNotification(FChildLayer);
   end;
-  if FChildLayer <> nil then FLayerOptions := FLayerOptions or LOB_NO_UPDATE
-  else FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
+
+  if Assigned(FChildLayer) then
+    FLayerOptions := FLayerOptions or LOB_NO_UPDATE
+  else
+    FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
 end;
 
 procedure TRubberbandLayer.SetHandleFill(Value: TColor32);
