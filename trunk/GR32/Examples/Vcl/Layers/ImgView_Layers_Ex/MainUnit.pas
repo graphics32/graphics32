@@ -203,7 +203,7 @@ begin
     if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
   end;
 
-  ImgView.UseRepaintOptimizer := True;
+  ImgView.RepaintMode := rmOptimizer;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -917,8 +917,10 @@ begin
 end;
 
 procedure TMainForm.cbOptRedrawClick(Sender: TObject);
+const
+  RepaintMode: array[Boolean] of TRepaintMode = (rmFull, rmOptimizer);
 begin
-  ImgView.UseRepaintOptimizer := cbOptRedraw.Checked;
+  ImgView.RepaintMode := RepaintMode[cbOptRedraw.Checked];
 end;
 
 end.
