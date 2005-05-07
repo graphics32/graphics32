@@ -169,6 +169,7 @@ type
     function First: TClass;
     function Last: TClass;
     function Find(AClassName: string): TClass;
+    procedure GetClassNames(Strings: TStrings);
     procedure Insert(Index: Integer; AClass: TClass);
     property Items[Index: Integer]: TClass read GetItems write SetItems; default;
   end;
@@ -546,6 +547,14 @@ end;
 function TClassList.First: TClass;
 begin
   Result := TClass(inherited First);
+end;
+
+procedure TClassList.GetClassNames(Strings: TStrings);
+var
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+    Strings.Add(TClass(List[I]).ClassName);
 end;
 
 function TClassList.GetItems(Index: Integer): TClass;
