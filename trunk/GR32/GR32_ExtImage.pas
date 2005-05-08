@@ -172,7 +172,7 @@ procedure TSyntheticImage32.StopRenderThread;
 begin
   if Assigned(FRenderThread) and (not FRenderThread.Terminated) then
   begin
-    Synchronize(FRenderThread.Terminate);
+    FRenderThread.Synchronize(FRenderThread.Terminate);
     FRenderThread.WaitFor;
     FRenderThread.Free;
   end;
