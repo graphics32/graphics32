@@ -98,7 +98,6 @@ end;
 
 procedure TSyntheticImage32.FormWindowProc(var Message: TMessage);
 var
-  M: TMessage;
   CmdType: Integer;
 begin
   FDefaultProc(Message);
