@@ -229,7 +229,9 @@ type
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation); overload;
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer); overload;
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+  Rasterizer: TRasterizer); overload;
+
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
 { FullEdge controls how the bitmap is resampled }
@@ -364,7 +366,7 @@ var
   Transformer: TTransformer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
-  Transformer := TTransformer.Create(Src, Transformation);
+  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src, Transformation);
   try
     Rasterizer.Sampler := Transformer;
     Transform(Dst, Src, Transformation, Rasterizer);
@@ -391,7 +393,7 @@ begin
 
   if not Dst.MeasuringMode then
   begin
-    Transformer := TTransformer.Create(Src, Transformation);
+    Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src, Transformation);
     try
       Rasterizer.Sampler := Transformer;
       Rasterizer.Rasterize(Dst, DstRect, Src);
