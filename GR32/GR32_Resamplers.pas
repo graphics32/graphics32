@@ -210,7 +210,7 @@ type
     function GetSampleFloatDefault(X, Y: Single): TColor32;
     function GetSampleFloatTableNearest(X, Y: Single): TColor32;
     function GetSampleFloatTableLinear(X, Y: Single): TColor32;
-    procedure SetTableSize(const Value: Integer);
+    procedure SetTableSize(Value: Integer);
   protected
     function GetWidth: Single; override;
   public
@@ -2062,8 +2062,9 @@ begin
   end;
 end;
 
-procedure TKernelResampler.SetTableSize(const Value: Integer);
+procedure TKernelResampler.SetTableSize(Value: Integer);
 begin
+  if Value < 2 then Value := 2;
   if FTableSize <> Value then
   begin
     FTableSize := Value;
@@ -2253,7 +2254,7 @@ begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
     W := Ceil(FKernel.GetWidth);
-    SetLength(FWeightTable, FTableSize, W * 2 + 1);
+    SetLength(FWeightTable, FTableSize, W * 2 + 1 + 1);
     K := FTableSize - 1;
     for I := 0 to K do
     begin
