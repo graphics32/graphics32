@@ -1633,7 +1633,7 @@ end;
 
 function TNearestKernel.Filter(Value: Single): Single;
 begin
-  if (Value > -0.5) and (Value <= 0.5) then Result := 1
+  if (Value > -0.5) and (Value <= 0.5) then Result := 1.0
   else Result := 0;
 end;
 
@@ -2137,7 +2137,7 @@ begin
 
   for I := HiX downto 0 do
   begin
-    HorzKernel^:= FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F);
+    HorzKernel^:= FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F + $7FF);
     Inc(HorzKernel);
     Inc(FloorKernel);
     Inc(CeilKernel);
@@ -2166,7 +2166,7 @@ begin
       Inc(HorzEntry.B, C.B * W);
       Inc(C);
     end;
-    W := FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F);
+    W := FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F  + $7FF);
     Inc(FloorKernel);
     Inc(CeilKernel);
     Inc(VertEntry.A, HorzEntry.A * W);
