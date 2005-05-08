@@ -179,14 +179,19 @@ type
   end;
 
 
+  TTransformer = class;
+  TTransformerClass = class of TTransformer;
+
   { TBitmap32Resampler }
   TBitmap32Resampler = class(TCustomResampler)
   private
     FBitmap: TBitmap32;
+    FTransformerClass: TTransformerClass;
   public
     constructor Create(Bitmap: TBitmap32); virtual;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
+    property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
@@ -235,6 +240,7 @@ type
   protected
     function GetWidth: Single; override;
   public
+    constructor Create(Bitmap: TBitmap32); override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure Resample(
@@ -278,8 +284,8 @@ type
     FResampler: TCustomResampler;
     FTransformation: TTransformation;
     FBoundsRect: TFloatRect;
-    BoundsRectFixed: TFixedRect;
-    BoundsRectInt: TRect;
+    FBoundsRectFixed: TFixedRect;
+    FBoundsRectInt: TRect;
     FOuterColor: TColor32;
     FResamplerGetSampleInt: TGetSampleInt;
     FResamplerGetSampleFixed: TGetSampleFixed;
@@ -292,7 +298,6 @@ type
     procedure SetTransformation(const Value: TTransformation);
   public
     constructor Create(Src: TBitmap32; ATransformation: TTransformation);
-    function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure PrepareRasterization; override;
@@ -302,6 +307,13 @@ type
     property Transformation: TTransformation read FTransformation write SetTransformation;
     property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
+  end;
+
+  TNearestTransformer = class(TTransformer)
+  public
+    function GetSampleInt(X, Y: Integer): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    function GetSampleFloat(X, Y: Single): TColor32; override;
   end;
 
   TCustomSuperSampler = class(TCustomSampler)
@@ -1904,13 +1916,13 @@ constructor TBitmap32Resampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create;
   FBitmap := Bitmap;
+  FTransformerClass := TTransformer;
 end;
 
 function TBitmap32Resampler.GetSampleInt(X, Y: Integer): TColor32;
 begin
   Result := FBitmap.Pixel[X, Y];
 end;
-
 
 { TKernelResampler }
 
@@ -2274,6 +2286,12 @@ end;
 
 { TBitmap32NearestResampler }
 
+constructor TNearestResampler.Create(Bitmap: TBitmap32);
+begin
+  inherited;
+  FTransformerClass := TNearestTransformer;
+end;
+
 function TNearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
   Result := Bitmap.Pixel[FixedRound(X), FixedRound(Y)];
@@ -2351,27 +2369,13 @@ end;
 
 { TTransformer }
 
-function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
-var
-  U, V: Integer;
-begin
-  FTransformationReverseTransformInt(X, Y, U, V);
-  if (U >= BoundsRectInt.Left) and (U <= BoundsRectInt.Right) and
-     (V >= BoundsRectInt.Top) and (V <= BoundsRectInt.Bottom) then
-  begin
-    Result := FResamplerGetSampleInt(U, V);
-  end
-  else
-    Result := FOuterColor;
-end;
-
 function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
 begin
   FTransformationReverseTransformFixed(X, Y, U, V);
-  if (U >= BoundsRectFixed.Left) and (U <= BoundsRectFixed.Right) and
-     (V >= BoundsRectFixed.Top) and (V <= BoundsRectFixed.Bottom) then
+  if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
+     (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
   begin
     Result := FResamplerGetSampleFixed(U, V);
   end
@@ -2412,16 +2416,16 @@ begin
   Resampler := Src.Resampler;
   Transformation := ATransformation;
   IntersectRectF(R, ATransformation.SrcRect, FloatRect(0, 0, Src.Width - 1, Src.Height - 1));
-  BoundsRectInt := MakeRect(R);
-  BoundsRectFixed := FixedRect(R);
+  FBoundsRectInt := MakeRect(R);
+  FBoundsRectFixed := FixedRect(R);
   FBoundsRect := R;
 end;
 
 procedure TTransformer.SetBoundsRect(Rect: TFloatRect);
 begin
-  BoundsRectInt := MakeRect(Rect);
-  BoundsRectFixed := FixedRect(Rect);
-  BoundsRect := Rect;
+  FBoundsRectInt := MakeRect(Rect);
+  FBoundsRectFixed := FixedRect(Rect);
+  FBoundsRect := Rect;
 end;
 
 procedure TTransformer.SetResampler(const Value: TCustomResampler);
@@ -2438,6 +2442,50 @@ begin
   FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
   FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
   FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+end;
+
+{ TNearestTransformer }
+
+function TNearestTransformer.GetSampleInt(X, Y: Integer): TColor32;
+var
+  U, V: Integer;
+begin
+  FTransformationReverseTransformInt(X, Y, U, V);
+  if (U >= FBoundsRectInt.Left) and (U <= FBoundsRectInt.Right) and
+     (V >= FBoundsRectInt.Top) and (V <= FBoundsRectInt.Bottom) then
+  begin
+    Result := FResamplerGetSampleInt(U, V);
+  end
+  else
+    Result := FOuterColor;
+end;
+
+function TNearestTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
+var
+  U, V: TFixed;
+begin
+  FTransformationReverseTransformFixed(X, Y, U, V);
+  if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
+     (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
+  begin
+    Result := FResamplerGetSampleInt(U shr 16, V shr 16);
+  end
+  else
+    Result := FOuterColor;
+end;
+
+function TNearestTransformer.GetSampleFloat(X, Y: Single): TColor32;
+var
+  U, V: Single;
+begin
+  FTransformationReverseTransformFloat(X, Y, U, V);
+  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
+     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
+  begin
+    Result := FResamplerGetSampleInt(Round(U), Round(V));
+  end
+  else
+    Result := FOuterColor;
 end;
 
 { TCustomSuperSampler }
