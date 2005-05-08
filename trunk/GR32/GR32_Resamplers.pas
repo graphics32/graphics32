@@ -28,6 +28,8 @@ type
   PKernelEntryArray = ^TKernelEntryArray;
   TKernelEntryArray = array [0..0] of TArrayOfKernelValue;
 
+  TFilterMethod = function(Value: Single): Single of object;
+
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
@@ -91,6 +93,23 @@ type
     property Coeff: Single read FCoeff write SetCoeff;
   end;
 
+  { THermiteKernel }
+  THermiteKernel = class(TCustomKernel)
+  private
+    FBias: Single;
+    FTension: Single;
+    procedure SetBias(const Value: Single);
+    procedure SetTension(const Value: Single);
+  public
+    constructor Create(Map: TCustomMap); override;
+    function Filter(Value: Single): Single; override;
+    function GetWidth: Single; override;
+    function RangeCheck: Boolean; override;
+  published
+    property Bias: Single read FBias write SetBias;
+    property Tension: Single read FTension write SetTension;
+  end;
+
   { TWindowedSincResampler }
   TWindowedSincKernel = class(TCustomKernel)
   private
@@ -102,6 +121,8 @@ type
     procedure SetWidth(Value: Single);
     function GetWidth: Single; override;
     function RangeCheck: Boolean; override;
+  published
+    property Width: Single read FWidth write SetWidth;
   end;
 
   { TLanczosResampler }
@@ -170,12 +191,26 @@ type
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
   { TBitmap32KernelResampler }
+
+  TKernelMode = (kmDefault, kmTableNearest, kmTableLinear);
+
   TKernelResampler = class(TBitmap32Resampler)
   private
     FKernel: TCustomKernel;
+    FKernelMode: TKernelMode;
+    FWeightTable: TArrayOfKernelEntry;
+    FTableSize: Integer;
+    FVertKernel: TArrayOfKernelValue;
+    FHorzKernel: TArrayOfKernelValue;
+    FGetSampleFloat: TGetSampleFloat;
     procedure SetKernel(const Value: TCustomKernel);
     function GetKernelClassName: string;
     procedure SetKernelClassName(Value: string);
+    procedure SetKernelMode(const Value: TKernelMode);
+    function GetSampleFloatDefault(X, Y: Single): TColor32;
+    function GetSampleFloatTableNearest(X, Y: Single): TColor32;
+    function GetSampleFloatTableLinear(X, Y: Single): TColor32;
+    procedure SetTableSize(const Value: Integer);
   protected
     function GetWidth: Single; override;
   public
@@ -186,23 +221,12 @@ type
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-  published
-    property KernelClassName: string read GetKernelClassName write SetKernelClassName;
-    property Kernel: TCustomKernel read FKernel write SetKernel;
-  end;
-
-  { TBitmap32TableResampler }
-  TTableResampler = class(TKernelResampler)
-  private
-    FWeightTable: TArrayOfKernelEntry;
-    FTableSize: Integer;
-    procedure SetTableSize(const Value: Integer);
-  public
-    constructor Create(Bitmap: TBitmap32); override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure PrepareRasterization; override;
     procedure FinalizeRasterization; override;
   published
+    property KernelClassName: string read GetKernelClassName write SetKernelClassName;
+    property Kernel: TCustomKernel read FKernel write SetKernel;
+    property KernelMode: TKernelMode read FKernelMode write SetKernelMode;
     property TableSize: Integer read FTableSize write SetTableSize;
   end;
 
@@ -365,10 +389,10 @@ type
   end;
 
 { Auxiliary routines for accumulating colors in a buffer }
-procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32);
-procedure MultiplyBuffer(var Buffer: TBufferEntry; M: Integer);
-function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32;
-procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer);
+procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
+function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 
 var
   KernelList: TClassList;
@@ -404,8 +428,6 @@ type
   TCluster = array of TPointRec;
   TMappingTable = array of TCluster;
 
-  TFilterMethod = function(Value: Single): Single of object;
-
 
 { Auxiliary routines }
 
@@ -420,12 +442,12 @@ begin
   end;
 end;
 
-procedure MultiplyBuffer(var Buffer: TBufferEntry; M: Integer);
+procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer);
 begin
-  Buffer.B := Buffer.B * M;
-  Buffer.G := Buffer.G * M;
-  Buffer.R := Buffer.R * M;
-  Buffer.A := Buffer.A * M;
+  Buffer.B := Buffer.B * W;
+  Buffer.G := Buffer.G * W;
+  Buffer.R := Buffer.R * W;
+  Buffer.A := Buffer.A * W;
 end;
 
 procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer);
@@ -1702,7 +1724,11 @@ end;
 
 procedure TWindowedSincKernel.SetWidth(Value: Single);
 begin
-  FWidth := Value;
+  if Value <> FWidth then
+  begin
+    FWidth := Value;
+    if Assigned(FMap) then FMap.Changed;
+  end;
 end;
 
 function TWindowedSincKernel.GetWidth: Single;
@@ -1787,7 +1813,7 @@ begin
   if (FSigma <> Value) and (FSigma <> 0) then
   begin
     FSigma := Value;
-    FMap.Changed;
+    if Assigned(FMap) then FMap.Changed;
   end;
 end;
 
@@ -1801,7 +1827,7 @@ begin
   if Value <> FCoeff then
   begin
     FCoeff := Value;
-    FMap.Changed;
+    if Assigned(FMap) then FMap.Changed;
   end
 end;
 
@@ -1854,7 +1880,7 @@ begin
   if FWidth <> Value then
   begin
     FWidth := Value;
-    FMap.Changed;
+    if Assigned(FMap) then FMap.Changed;
   end;
 end;
 
@@ -1868,7 +1894,7 @@ begin
   if (FCoeff <> Value) and (FCoeff <> 0) then
   begin
     FCoeff := Value;
-    FMap.Changed;
+    if Assigned(FMap) then FMap.Changed;
   end;
 end;
 
@@ -1886,12 +1912,14 @@ begin
 end;
 
 
-{ TBitmap32KernelResampler }
+{ TKernelResampler }
 
 constructor TKernelResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
   FKernel := TNearestKernel.Create(Bitmap);
+  FTableSize := 32;
+  FGetSampleFloat := GetSampleFloatDefault;
 end;
 
 destructor TKernelResampler.Destroy;
@@ -1938,8 +1966,7 @@ begin
   GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FKernel, CombineOp, CombineCallBack);
 end;
 
-
-function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TKernelResampler.GetSampleFloatDefault(X, Y: Single): TColor32;
 type
   PColorEntry = ^TColorEntry;
   TColorEntry = packed record
@@ -2021,20 +2048,226 @@ begin
   Result := Kernel.GetWidth;
 end;
 
-{ TBitmap32TableResampler }
-
-constructor TTableResampler.Create(Bitmap: TBitmap32);
+procedure TKernelResampler.SetKernelMode(const Value: TKernelMode);
 begin
-  inherited Create(Bitmap);
-  FTableSize := 32;
+  if FKernelMode <> Value then
+  begin
+    FKernelMode := Value;
+    case FKernelMode of
+      kmDefault: FGetSampleFloat := GetSampleFloatDefault;
+      kmTableNearest: FGetSampleFloat := GetSampleFloatTableNearest;
+      kmTableLinear: FGetSampleFloat := GetSampleFloatTableLinear;
+    end;
+    FBitmap.Changed;
+  end;
 end;
 
-procedure TTableResampler.SetTableSize(const Value: Integer);
+procedure TKernelResampler.SetTableSize(const Value: Integer);
 begin
   if FTableSize <> Value then
   begin
     FTableSize := Value;
-    Bitmap.Changed;
+    FBitmap.Changed;
+  end;
+end;
+
+function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
+begin
+  Result := FGetSampleFloat(X, Y);
+end;
+
+function TKernelResampler.GetSampleFloatTableLinear(X, Y: Single): TColor32;
+var
+  clX, clY: Integer;
+  W, I, J, Incr: Integer;
+  C: PColor32Entry;
+  LoX, HiX, LoY, HiY: Integer;
+  HorzEntry, VertEntry: TBufferEntry;
+
+  procedure InterpLinear(P: Integer; Kernel: PKernelEntry);
+  var
+    A, B: PKernelEntry;
+    I, flrp, frac: Integer;
+  begin
+    flrp := P shr 8;
+    frac := P and $FF;
+    A := @FWeightTable[flrp][W];
+    B := @FWeightTable[flrp + 1][W];
+    for I := -W to W do
+      Kernel[I] := A[I] + SAR_8((B[I] - A[I]) * frac);
+  end;
+
+begin
+  clX := Ceil(X);
+  clY := Ceil(Y);
+
+  W := Ceil(FKernel.GetWidth);
+  I := High(FWeightTable) * $FF;
+
+  InterpLinear(Round((clX - X) * I), @FHorzKernel[0]);
+  InterpLinear(Round((clY - Y) * I), @FVertKernel[0]);
+
+  if clX < W then LoX := -clX else LoX := -W;
+  if clY < W then LoY := -clY else LoY := -W;
+  HiX := FBitmap.Width - 1;
+  HiY := FBitmap.Height - 1;
+  Incr := HiX;
+  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
+  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+
+  C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
+
+  VertEntry := ROUND_ENTRY;
+
+  for I := LoY to HiY do
+  begin
+    HorzEntry := EMPTY_ENTRY;
+    for J := LoX to HiX do
+    begin
+      W := FHorzKernel[J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
+      Inc(C);
+    end;
+    W := FVertKernel[I];
+
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
+  end;
+
+  if FKernel.RangeCheck then
+  begin
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+  end;
+
+  with TColor32Entry(Result) do
+  begin
+    A := VertEntry.A shr 16;
+    R := VertEntry.R shr 16;
+    G := VertEntry.G shr 16;
+    B := VertEntry.B shr 16;
+  end;
+end;
+
+function TKernelResampler.GetSampleFloatTableNearest(X, Y: Single): TColor32;
+var
+  clX, clY, fracX, fracY: Integer;
+  W, I, J, Incr: Integer;
+  C: PColor32Entry;
+  LoX, HiX, LoY, HiY: Integer;
+  HorzEntry, VertEntry: TBufferEntry;
+  HorzKernel, VertKernel: PKernelEntry;
+begin
+  clX := Ceil(X);
+  clY := Ceil(Y);
+  W := High(FWeightTable);
+  fracX := Round((clX - X) * W);
+  fracY := Round((clY - Y) * W);
+
+  W := Ceil(FKernel.GetWidth);
+
+  if clX < W then LoX := -clX else LoX := -W;
+  if clY < W then LoY := -clY else LoY := -W;
+  HiX := FBitmap.Width - 1;
+  HiY := FBitmap.Height - 1;
+  Incr := HiX;
+  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
+  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+
+  C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
+  Dec(Incr, HiX - LoX);
+
+  VertEntry := ROUND_ENTRY;
+  HorzKernel := @FWeightTable[fracX][W];
+  VertKernel := @FWeightTable[fracY][W];
+
+  for I := LoY to HiY do
+  begin
+    HorzEntry := EMPTY_ENTRY;
+    for J := LoX to HiX do
+    begin
+      W := HorzKernel[J];
+      Inc(HorzEntry.A, C.A * W);
+      Inc(HorzEntry.R, C.R * W);
+      Inc(HorzEntry.G, C.G * W);
+      Inc(HorzEntry.B, C.B * W);
+      Inc(C);
+    end;
+    W := VertKernel[I];
+    Inc(VertEntry.A, HorzEntry.A * W);
+    Inc(VertEntry.R, HorzEntry.R * W);
+    Inc(VertEntry.G, HorzEntry.G * W);
+    Inc(VertEntry.B, HorzEntry.B * W);
+    Inc(C, Incr);
+  end;
+
+  if FKernel.RangeCheck then
+  begin
+    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+  end;
+
+  with TColor32Entry(Result) do
+  begin
+    A := VertEntry.A shr 16;
+    R := VertEntry.R shr 16;
+    G := VertEntry.G shr 16;
+    B := VertEntry.B shr 16;
+  end;
+end;
+
+procedure TKernelResampler.FinalizeRasterization;
+var
+  W: Integer;
+begin
+  if FKernelMode in [kmTableNearest, kmTableLinear] then
+  begin
+    FWeightTable := nil;
+    if FKernelMode = kmTableLinear then
+    begin
+      W := Ceil(FKernel.GetWidth);
+      FVertKernel := Pointer(Integer(FVertKernel) - W * SizeOf(TKernelValue));
+      FHorzKernel := Pointer(Integer(FHorzKernel) - W * SizeOf(TKernelValue));
+      FVertKernel := nil;
+      FHorzKernel := nil;
+    end;
+  end;
+end;
+
+procedure TKernelResampler.PrepareRasterization;
+var
+  I, J, K, W: Integer;
+  Fraction: Single;
+begin
+  if FKernelMode in [kmTableNearest, kmTableLinear] then
+  begin
+    W := Ceil(FKernel.GetWidth);
+    SetLength(FWeightTable, FTableSize, W * 2 + 1);
+    K := FTableSize - 1;
+    for I := 0 to K do
+    begin
+      Fraction := I / K;
+      for J := -W to W do
+        FWeightTable[I, J + W] := Round(FKernel.Filter(J + Fraction) * 256);
+    end;
+    if FKernelMode = kmTableLinear then
+    begin
+      SetLength(FVertKernel, W * 2 + 1);
+      SetLength(FHorzKernel, W * 2 + 1);
+      FVertKernel := Pointer(Integer(FVertKernel) + W * SizeOf(TKernelValue));
+      FHorzKernel := Pointer(Integer(FHorzKernel) + W * SizeOf(TKernelValue));
+    end;
   end;
 end;
 
@@ -2556,6 +2789,75 @@ begin
       Result[J][I] := JitteredPattern(SamplesX, SamplesY);
 end;
 
+{ THermiteKernel }
+
+constructor THermiteKernel.Create(Map: TCustomMap);
+begin
+  inherited;
+  FBias := 0;
+  FTension := 0;
+end;
+
+function THermiteKernel.Filter(Value: Single): Single;
+var
+  Z: Integer;
+  t, t2, t3, m0, m1, a0, a1, a2, a3: Single;
+begin
+  // TODO: precompute this:
+  t := (1 - FTension) * 0.5;
+  m0 := (1 + FBias) * t;
+  m1 := (1 - FBias) * t;
+
+  Z := Floor(Value);
+  t := Abs(Z - Value);
+  t2 := t * t;
+  t3 := t2 * t;
+
+  a1 := t3 - 2 * t2 + t;
+  a2 := t3 - t2;
+  a3 := -2 * t3 + 3 * t2;
+  a0 := -a3 + 1;
+
+  //a1 + a2 = 2 t3 - 3 t2 + t
+
+  case Z of
+    -2: Result := a2 * m1;
+    -1: Result := a3 + a1 * m1 + a2 * (m0 - m1);
+     0: Result := a0 + a1 * (m0 - m1) - a2 * m0;
+     1: Result := -a1 * m0;
+  else
+    Result := 0;
+  end;
+end;
+
+function THermiteKernel.GetWidth: Single;
+begin
+  Result := 2;
+end;
+
+function THermiteKernel.RangeCheck: Boolean;
+begin
+  Result := True;
+end;
+
+procedure THermiteKernel.SetBias(const Value: Single);
+begin
+  if FBias <> Value then
+  begin
+    FBias := Value;
+    if Assigned(FMap) then FMap.Changed;
+  end;
+end;
+
+procedure THermiteKernel.SetTension(const Value: Single);
+begin
+  if FTension <> Value then
+  begin
+    FTension := Value;
+    if Assigned(FMap) then FMap.Changed;
+  end;
+end;
+
 initialization
   SetupFunctions;
 
@@ -2565,7 +2867,6 @@ initialization
   ResamplerList.Add(TLinearResampler);
   ResamplerList.Add(TDraftResampler);
   ResamplerList.Add(TKernelResampler);
-  ResamplerList.Add(TTableResampler);
 
   { Register kernels }
   KernelList := TClassList.Create;
@@ -2581,6 +2882,7 @@ initialization
   KernelList.Add(THannKernel);
   KernelList.Add(THammingKernel);
   KernelList.Add(TSinshKernel);
+  KernelList.Add(THermiteKernel);
 
 finalization
   ResamplerList.Free;
