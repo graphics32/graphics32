@@ -258,7 +258,7 @@ type
 
 { TBitmap32 draw mode }
 type
-  TDrawMode = (dmOpaque, dmBlend, dmCustom);
+  TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);
   TCombineMode = (cmBlend, cmMerge);
 
 {$IFDEF DEPRECATEDMODE}
