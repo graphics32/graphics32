@@ -618,6 +618,7 @@ procedure BlendBlock(
 var
   SrcP, DstP: PColor32;
   SP, DP: PColor32;
+  MC: TColor32;
   W, I, DstY: Integer;
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
@@ -658,7 +659,24 @@ begin
           Inc(SrcP, Src.Width);
           Inc(DstP, Dst.Width);
         end
-      end
+      end;
+    dmTransparent:
+      begin
+        MC := Src.OuterColor;
+        for DstY := DstRect.Top to DstRect.Bottom - 1 do
+        begin
+          SP := SrcP;
+          DP := DstP;
+          { TODO: Write an optimized routine for fast masked transfers. }
+          for I := 0 to W - 1 do
+          begin
+            if MC <> SP^ then DP^ := SP^;
+            Inc(SP); Inc(DP);
+          end;
+          Inc(SrcP, Src.Width);
+          Inc(DstP, Dst.Width);
+        end;
+      end;
     else //  dmCustom:
       begin
         for DstY := DstRect.Top to DstRect.Bottom - 1 do
@@ -839,16 +857,19 @@ begin
             OldSrcY := SrcY;
           end;
 
-          if CombineOp = dmBlend then
-          begin
-            if Src.MasterAlpha >= 255 then
-              BlendLine(@Buffer[0], @DstLine[0], DstClipW)
-            else
-              BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
-          end
-          else
-            for I := 0 to DstClipW - 1 do
-              CombineCallBack(Buffer[I], DstLine[I], Src.MasterAlpha);
+          case CombineOp of
+            dmBlend:
+              if Src.MasterAlpha >= 255 then
+                BlendLine(@Buffer[0], @DstLine[0], DstClipW)
+              else
+                BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
+            dmTransparent:
+              for I := 0 to DstClipW - 1 do
+                if Buffer[I] <> Src.OuterColor then DstLine[I] := Buffer[I];
+            dmCustom:
+              for I := 0 to DstClipW - 1 do
+                CombineCallBack(Buffer[I], DstLine[I], Src.MasterAlpha);
+          end;
 
           Inc(DstLine, Dst.Width);
         end;
@@ -957,7 +978,23 @@ begin
           end;
           Inc(DstLine, Dst.Width);
         end
-      end
+      end;
+    dmTransparent:
+      begin
+        for J := 0 to DstClipH - 1 do
+        begin
+          SrcLine := Src.ScanLine[MapVert[J].Pos];
+          WY := MapVert[J].Weight;
+          for I := 0 to DstClipW - 1 do
+          begin
+            SrcIndex := MapHorz[I].Pos;
+            C := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
+                                    @SrcLine[SrcIndex + Src.Width]);
+            if C <> Src.OuterColor then DstLine[I] := C;
+          end;
+          Inc(DstLine, Dst.Width);
+        end
+      end;
   else // cmCustom
     for J := 0 to DstClipH - 1 do
     begin
@@ -1215,6 +1252,7 @@ begin
         case CombineOp of
           dmOpaque: DstLine[I] := C;
           dmBlend: BlendMemEx(C, DstLine[I], Src.MasterAlpha);
+          dmTransparent: if C <> Src.OuterColor then DstLine[I] := C;
           dmCustom: CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
       end;
@@ -1486,7 +1524,7 @@ begin
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := I * sr shr 16;
-              DstLine[DstClip.Left + I]:= BlockAverage(dx, dy, xsrc, OffSrc);
+              DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
               xsrc := xsrc + dx shl 2;
             end;
           dmBlend:
@@ -1495,6 +1533,15 @@ begin
               dx := r2 - r1;  r1 := r2;
               r2 := I * sr shr 16;
               BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+              xsrc := xsrc + dx shl 2;
+            end;
+          dmTransparent:
+            for I := 2  to DstClipW do
+            begin
+              dx := r2 - r1;  r1 := r2;
+              r2 := I * sr shr 16;
+              C := BlockAverage(dx, dy, xsrc, OffSrc);
+              if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
               xsrc := xsrc + dx shl 2;
             end;
           dmCustom:
