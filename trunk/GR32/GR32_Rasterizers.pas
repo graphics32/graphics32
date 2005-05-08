@@ -21,6 +21,7 @@ type
     DrawMode: TDrawMode;
     CombineMode: TCombineMode;
     CombineCallBack: TPixelCombineEvent;
+    TransparentColor: TColor32;
   end;
 
   TGetSampleInt = function(X, Y: Integer): TColor32 of object;
@@ -39,10 +40,12 @@ type
     FBlendMemEx: TBlendMemEx;
     FCombineCallBack: TPixelCombineEvent;
     FAssignColor: TAssignColor;
+    FTransparentColor: TColor32; 
     procedure SetSampler(const Value: TCustomSampler);
     procedure AssignColorOpaque(var Dst: TColor32; Src: TColor32);
     procedure AssignColorBlend(var Dst: TColor32; Src: TColor32);
     procedure AssignColorCustom(var Dst: TColor32; Src: TColor32);
+    procedure AssignColorTransparent(var Dst: TColor32; Src: TColor32);
   protected
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); virtual; abstract;
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; SrcAlpha: TColor32;
@@ -171,6 +174,7 @@ begin
     CombineCallBack := Bitmap.OnPixelCombine;
     if (DrawMode = dmCustom) and not Assigned(CombineCallBack) then
       DrawMode := dmOpaque;
+    TransparentColor := Bitmap.OuterColor;
   end;
 end;
 
@@ -193,6 +197,12 @@ begin
   FCombineCallBack(Src, Dst, FSrcAlpha);
 end;
 
+procedure TRasterizer.AssignColorTransparent(var Dst: TColor32;
+  Src: TColor32);
+begin
+  if Src <> FTransparentColor then Dst := Src;
+end;
+
 procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
   Src: TBitmap32);
 begin
@@ -205,7 +215,8 @@ const
     SrcAlpha: $FF;
     DrawMode: dmOpaque;
     CombineMode: cmBlend;
-    CombineCallBack: nil
+    CombineCallBack: nil;
+    TransparentColor: clBlack32;
   );
 begin
   Rasterize(Dst, DstRect, DEFAULT_COMBINE_INFO);
@@ -214,6 +225,7 @@ end;
 procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
   const CombineInfo: TCombineInfo);
 begin
+  FTransparentColor := CombineInfo.TransparentColor;
   with CombineInfo do
     Rasterize(Dst, DstRect, SrcAlpha, DrawMode, CombineMode, CombineCallBack);
 end;
@@ -232,6 +244,7 @@ begin
   case DrawMode of
     dmOpaque: FAssignColor := AssignColorOpaque;
     dmBlend:  FAssignColor := AssignColorBlend;
+    dmTransparent: FAssignColor := AssignColorTransparent;
   else
     if Assigned(FCombineCallback) then
       FAssignColor := AssignColorCustom
