@@ -179,19 +179,14 @@ type
   end;
 
 
-  TTransformer = class;
-  TTransformerClass = class of TTransformer;
-
   { TBitmap32Resampler }
   TBitmap32Resampler = class(TCustomResampler)
   private
     FBitmap: TBitmap32;
-    FTransformerClass: TTransformerClass;
   public
     constructor Create(Bitmap: TBitmap32); virtual;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
-    property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
@@ -205,7 +200,7 @@ type
     FKernelMode: TKernelMode;
     FWeightTable: TArrayOfKernelEntry;
     FTableSize: Integer;
-    FVertKernel: TArrayOfKernelValue;
+//    FVertKernel: TArrayOfKernelValue;
     FHorzKernel: TArrayOfKernelValue;
     FGetSampleFloat: TGetSampleFloat;
     procedure SetKernel(const Value: TCustomKernel);
@@ -240,7 +235,6 @@ type
   protected
     function GetWidth: Single; override;
   public
-    constructor Create(Bitmap: TBitmap32); override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure Resample(
@@ -284,8 +278,8 @@ type
     FResampler: TCustomResampler;
     FTransformation: TTransformation;
     FBoundsRect: TFloatRect;
-    FBoundsRectFixed: TFixedRect;
-    FBoundsRectInt: TRect;
+    BoundsRectFixed: TFixedRect;
+    BoundsRectInt: TRect;
     FOuterColor: TColor32;
     FResamplerGetSampleInt: TGetSampleInt;
     FResamplerGetSampleFixed: TGetSampleFixed;
@@ -298,6 +292,7 @@ type
     procedure SetTransformation(const Value: TTransformation);
   public
     constructor Create(Src: TBitmap32; ATransformation: TTransformation);
+    function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure PrepareRasterization; override;
@@ -307,13 +302,6 @@ type
     property Transformation: TTransformation read FTransformation write SetTransformation;
     property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
-  end;
-
-  TNearestTransformer = class(TTransformer)
-  public
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
   end;
 
   TCustomSuperSampler = class(TCustomSampler)
@@ -1916,13 +1904,13 @@ constructor TBitmap32Resampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create;
   FBitmap := Bitmap;
-  FTransformerClass := TTransformer;
 end;
 
 function TBitmap32Resampler.GetSampleInt(X, Y: Integer): TColor32;
 begin
   Result := FBitmap.Pixel[X, Y];
 end;
+
 
 { TKernelResampler }
 
@@ -2091,62 +2079,85 @@ end;
 
 function TKernelResampler.GetSampleFloatTableLinear(X, Y: Single): TColor32;
 var
-  clX, clY: Integer;
-  W, I, J, Incr: Integer;
+  clX, clY, FracX, FracY, HiWT: Integer;
+  W, I, J, F, Incr: Integer;
   C: PColor32Entry;
   LoX, HiX, LoY, HiY: Integer;
   HorzEntry, VertEntry: TBufferEntry;
-
-  procedure InterpLinear(P: Integer; Kernel: PKernelEntry);
-  var
-    A, B: PKernelEntry;
-    I, flrp, frac: Integer;
-  begin
-    flrp := P shr 8;
-    frac := P and $FF;
-    A := @FWeightTable[flrp][W];
-    B := @FWeightTable[flrp + 1][W];
-    for I := -W to W do
-      Kernel[I] := A[I] + SAR_8((B[I] - A[I]) * frac);
-  end;
+  HorzKernel: PKernelValue;
+  FloorKernel, CeilKernel: PKernelValue;
+  HorzKernelStart: PKernelValue;
 
 begin
   clX := Ceil(X);
   clY := Ceil(Y);
-
   W := Ceil(FKernel.GetWidth);
-  I := High(FWeightTable) * $FF;
 
-  InterpLinear(Round((clX - X) * I), @FHorzKernel[0]);
-  InterpLinear(Round((clY - Y) * I), @FVertKernel[0]);
+  HiWT := High(FWeightTable);
+  I := HiWT * $1000;
+  FracX := Round((clX - X) * I);
+  FracY := Round((clY - Y) * I);
 
-  if clX < W then LoX := -clX else LoX := -W;
-  if clY < W then LoY := -clY else LoY := -W;
-  HiX := FBitmap.Width - 1;
-  HiY := FBitmap.Height - 1;
-  Incr := HiX;
-  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
-  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
+  HiX := W; LoX := -W;
+  HiY := W; LoY := -W;
+
+  I := FBitmap.Width - 1;
+  J := FBitmap.Height - 1;
+
+  if clX < W then LoX := -clX;
+  if clX + W >= I then HiX := I - clX;
+  if clY < W then LoY := -clY;
+  if clY + W >= J then HiY := J - clY;
 
   C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-  Dec(Incr, HiX - LoX);
+
+  HiX := HiX - LoX;
+  Incr := I  - HiX;
+  HiY := HiY - LoY;
+  Inc(LoX, W);
+  Inc(LoY, W);
+
+  F := FracX and $FFF;
+  FracX := FracX shr 12;
+  FloorKernel := @FWeightTable[FracX][LoX];
+  if FracX < HiWT then Inc(FracX);
+  CeilKernel := @FWeightTable[FracX][LoX];
+  HorzKernel :=  @FHorzKernel[LoX];
+
+  for I := HiX downto 0 do
+  begin
+    HorzKernel^:= FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F);
+    Inc(HorzKernel);
+    Inc(FloorKernel);
+    Inc(CeilKernel);
+  end;
+
+  F := FracY and $FFF;
+  FracY := FracY shr 12;
+  FloorKernel := @FWeightTable[FracY][LoY];
+  if FracY < HiWT then Inc(FracY);
+  CeilKernel := @FWeightTable[FracY][LoY];
+
+  HorzKernelStart := @FHorzKernel[LoX];
 
   VertEntry := ROUND_ENTRY;
-
-  for I := LoY to HiY do
+  for I := HiY downto 0 do
   begin
     HorzEntry := EMPTY_ENTRY;
-    for J := LoX to HiX do
+    HorzKernel := HorzKernelStart;
+    for J := HiX downto 0 do
     begin
-      W := FHorzKernel[J];
+      W := HorzKernel^;
+      Inc(HorzKernel);
       Inc(HorzEntry.A, C.A * W);
       Inc(HorzEntry.R, C.R * W);
       Inc(HorzEntry.G, C.G * W);
       Inc(HorzEntry.B, C.B * W);
       Inc(C);
     end;
-    W := FVertKernel[I];
-
+    W := FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F);
+    Inc(FloorKernel);
+    Inc(CeilKernel);
     Inc(VertEntry.A, HorzEntry.A * W);
     Inc(VertEntry.R, HorzEntry.R * W);
     Inc(VertEntry.G, HorzEntry.G * W);
@@ -2178,7 +2189,8 @@ var
   C: PColor32Entry;
   LoX, HiX, LoY, HiY: Integer;
   HorzEntry, VertEntry: TBufferEntry;
-  HorzKernel, VertKernel: PKernelEntry;
+  HorzKernel, VertKernel: PKernelValue;
+  HorzKernelStart: PKernelValue;
 begin
   clX := Ceil(X);
   clY := Ceil(Y);
@@ -2197,25 +2209,32 @@ begin
   if clY + W >= HiY then HiY := HiY - clY else HiY := W;
 
   C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-  Dec(Incr, HiX - LoX);
 
   VertEntry := ROUND_ENTRY;
-  HorzKernel := @FWeightTable[fracX][W];
-  VertKernel := @FWeightTable[fracY][W];
+  HorzKernelStart := @FWeightTable[fracX][LoX + W];
+  VertKernel := @FWeightTable[fracY][LoY + W];
 
-  for I := LoY to HiY do
+  HiX := HiX - LoX;
+  HiY := HiY - LoY;
+
+  Dec(Incr, HiX);
+
+  for I := HiY downto 0 do
   begin
     HorzEntry := EMPTY_ENTRY;
-    for J := LoX to HiX do
+    HorzKernel := HorzKernelStart;
+    for J := HiX downto 0 do
     begin
-      W := HorzKernel[J];
+      W := HorzKernel^;
+      Inc(HorzKernel);
       Inc(HorzEntry.A, C.A * W);
       Inc(HorzEntry.R, C.R * W);
       Inc(HorzEntry.G, C.G * W);
       Inc(HorzEntry.B, C.B * W);
       Inc(C);
     end;
-    W := VertKernel[I];
+    W := VertKernel^;
+    Inc(VertKernel);
     Inc(VertEntry.A, HorzEntry.A * W);
     Inc(VertEntry.R, HorzEntry.R * W);
     Inc(VertEntry.G, HorzEntry.G * W);
@@ -2241,20 +2260,12 @@ begin
 end;
 
 procedure TKernelResampler.FinalizeRasterization;
-var
-  W: Integer;
 begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
     FWeightTable := nil;
     if FKernelMode = kmTableLinear then
-    begin
-      W := Ceil(FKernel.GetWidth);
-      FVertKernel := Pointer(Integer(FVertKernel) - W * SizeOf(TKernelValue));
-      FHorzKernel := Pointer(Integer(FHorzKernel) - W * SizeOf(TKernelValue));
-      FVertKernel := nil;
       FHorzKernel := nil;
-    end;
   end;
 end;
 
@@ -2266,7 +2277,7 @@ begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
     W := Ceil(FKernel.GetWidth);
-    SetLength(FWeightTable, FTableSize, W * 2 + 1 + 1);
+    SetLength(FWeightTable, FTableSize, W * 2 + 1);
     K := FTableSize - 1;
     for I := 0 to K do
     begin
@@ -2275,22 +2286,11 @@ begin
         FWeightTable[I, J + W] := Round(FKernel.Filter(J + Fraction) * 256);
     end;
     if FKernelMode = kmTableLinear then
-    begin
-      SetLength(FVertKernel, W * 2 + 1);
       SetLength(FHorzKernel, W * 2 + 1);
-      FVertKernel := Pointer(Integer(FVertKernel) + W * SizeOf(TKernelValue));
-      FHorzKernel := Pointer(Integer(FHorzKernel) + W * SizeOf(TKernelValue));
-    end;
   end;
 end;
 
 { TBitmap32NearestResampler }
-
-constructor TNearestResampler.Create(Bitmap: TBitmap32);
-begin
-  inherited;
-  FTransformerClass := TNearestTransformer;
-end;
 
 function TNearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
@@ -2369,13 +2369,27 @@ end;
 
 { TTransformer }
 
+function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
+var
+  U, V: Integer;
+begin
+  FTransformationReverseTransformInt(X, Y, U, V);
+  if (U >= BoundsRectInt.Left) and (U <= BoundsRectInt.Right) and
+     (V >= BoundsRectInt.Top) and (V <= BoundsRectInt.Bottom) then
+  begin
+    Result := FResamplerGetSampleInt(U, V);
+  end
+  else
+    Result := FOuterColor;
+end;
+
 function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
 begin
   FTransformationReverseTransformFixed(X, Y, U, V);
-  if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
-     (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
+  if (U >= BoundsRectFixed.Left) and (U <= BoundsRectFixed.Right) and
+     (V >= BoundsRectFixed.Top) and (V <= BoundsRectFixed.Bottom) then
   begin
     Result := FResamplerGetSampleFixed(U, V);
   end
@@ -2416,16 +2430,16 @@ begin
   Resampler := Src.Resampler;
   Transformation := ATransformation;
   IntersectRectF(R, ATransformation.SrcRect, FloatRect(0, 0, Src.Width - 1, Src.Height - 1));
-  FBoundsRectInt := MakeRect(R);
-  FBoundsRectFixed := FixedRect(R);
+  BoundsRectInt := MakeRect(R);
+  BoundsRectFixed := FixedRect(R);
   FBoundsRect := R;
 end;
 
 procedure TTransformer.SetBoundsRect(Rect: TFloatRect);
 begin
-  FBoundsRectInt := MakeRect(Rect);
-  FBoundsRectFixed := FixedRect(Rect);
-  FBoundsRect := Rect;
+  BoundsRectInt := MakeRect(Rect);
+  BoundsRectFixed := FixedRect(Rect);
+  BoundsRect := Rect;
 end;
 
 procedure TTransformer.SetResampler(const Value: TCustomResampler);
@@ -2442,50 +2456,6 @@ begin
   FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
   FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
   FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
-end;
-
-{ TNearestTransformer }
-
-function TNearestTransformer.GetSampleInt(X, Y: Integer): TColor32;
-var
-  U, V: Integer;
-begin
-  FTransformationReverseTransformInt(X, Y, U, V);
-  if (U >= FBoundsRectInt.Left) and (U <= FBoundsRectInt.Right) and
-     (V >= FBoundsRectInt.Top) and (V <= FBoundsRectInt.Bottom) then
-  begin
-    Result := FResamplerGetSampleInt(U, V);
-  end
-  else
-    Result := FOuterColor;
-end;
-
-function TNearestTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
-var
-  U, V: TFixed;
-begin
-  FTransformationReverseTransformFixed(X, Y, U, V);
-  if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
-     (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
-  begin
-    Result := FResamplerGetSampleInt(U shr 16, V shr 16);
-  end
-  else
-    Result := FOuterColor;
-end;
-
-function TNearestTransformer.GetSampleFloat(X, Y: Single): TColor32;
-var
-  U, V: Single;
-begin
-  FTransformationReverseTransformFloat(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
-  begin
-    Result := FResamplerGetSampleInt(Round(U), Round(V));
-  end
-  else
-    Result := FOuterColor;
 end;
 
 { TCustomSuperSampler }
