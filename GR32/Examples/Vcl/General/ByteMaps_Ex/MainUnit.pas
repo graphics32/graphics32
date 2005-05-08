@@ -196,8 +196,9 @@ end;
 
 procedure TForm1.CheckBox1Click(Sender: TObject);
 begin
-  if bLinear.Down then Image.Bitmap.StretchFilter := sfLinear
-  else Image.Bitmap.StretchFilter := sfNearest;
+  // Don't use aux. resampler setup, pass class names directly:
+  if bLinear.Down then Image.Bitmap.ResamplerClassName := 'TLinearResampler'
+  else Image.Bitmap.ResamplerClassName := 'TNearestResampler';
 end;
 
 procedure TForm1.CopyClick(Sender: TObject);
