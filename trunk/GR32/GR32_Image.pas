@@ -943,14 +943,12 @@ begin
   finally
     FBuffer.Unlock;
   end;
-  
+
   DoPaintGDIOverlay;
 
   if FRepaintOptimizer.Enabled then
-  begin
     FRepaintOptimizer.EndPaint;
-    ResetInvalidRects;
-  end;
+  ResetInvalidRects;
   FForceFullRepaint := False;
 end;
 
