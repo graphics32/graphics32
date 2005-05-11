@@ -1566,11 +1566,11 @@ end;
 function M_LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
+        db $0F,$6F,$D1           /// MOVQ      MM2,MM1
         MOV       ECX,C21
         db $0F,$6F,$19           /// MOVQ      MM3,[ECX]
-        db $0F,$6F,$D1           /// MOVQ      MM2,MM1
-        db $0F,$6F,$E3           /// MOVQ      MM4,MM3
         db $0F,$73,$D1,$20       /// PSRLQ     MM1,32
+        db $0F,$6F,$E3           /// MOVQ      MM4,MM3
         db $0F,$73,$D3,$20       /// PSRLQ     MM3,32
         db $0F,$6E,$E8           /// MOVD      MM5,EAX
         db $0F,$62,$ED           /// PUNPCKLDQ MM5,MM5
@@ -1585,8 +1585,8 @@ asm
         db $0F,$60,$D8           /// PUNPCKLBW MM3,MM0
         db $0F,$60,$E0           /// PUNPCKLBW MM4,MM0
         db $0F,$F9,$E3           /// PSUBW     MM4,MM3
-        db $0F,$D5,$E5           /// PMULLW    MM4,MM5
         db $0F,$71,$F3,$08       /// PSLLW     MM3,8
+        db $0F,$D5,$E5           /// PMULLW    MM4,MM5
         db $0F,$FD,$E3           /// PADDW     MM4,MM3
         db $0F,$71,$D4,$08       /// PSRLW     MM4,8
         db $0F,$6E,$EA           /// MOVD      MM5,EDX
