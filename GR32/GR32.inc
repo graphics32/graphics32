@@ -80,8 +80,20 @@
   {$DEFINE USEINLINING}
 {$ENDIF}
 
+// uncomment the following define if you want CLX for Windows:
+//{$DEFINE CLX}
+
+// uncomment the following define if you want GR32 to behave like version
+// 1.7.x and down
+// Please note: support for this will be dropped at some time and is only
+// provided for smooth transition
 //{$DEFINE DEPRECATEDMODE}
-//{$DEFINE CLX}  // uncomment this if you want CLX for Windows
+
+// uncomment the following define if you want to have an OnChange / OnAreaChange
+// event with safe pixel setters (PixelS, PixelTS, PixelFS etc.)
+// Please note: while enabling this feature is generally better for the repaint
+// and layer optimization in "lazy code" it's also much slower.
+//{$DEFINE CHANGED_IN_PIXELS}
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
