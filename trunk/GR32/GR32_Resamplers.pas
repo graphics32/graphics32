@@ -186,6 +186,7 @@ type
   TTransformerClass = class of TTransformer;
 
   { TBitmap32Resampler }
+  { Base class for TBitmap32 specific resamplers. }
   TBitmap32Resampler = class(TCustomResampler)
   private
     FBitmap: TBitmap32;
@@ -198,8 +199,12 @@ type
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
-  { TBitmap32KernelResampler }
-
+  { TKernelResampler }
+  { This resampler class will perform resampling by using an arbitrary
+    reconstruction kernel. By using the kmTableNearest and kmTableLinear
+    kernel modes, kernel values are precomputed in a look-up table. This
+    allows GetSample to execute faster for complex kernels. }
+    
   TKernelMode = (kmDefault, kmTableNearest, kmTableLinear);
 
   TKernelResampler = class(TBitmap32Resampler)
@@ -407,6 +412,10 @@ procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLIN
 procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
+
+{ Registration routines }
+procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
+procedure RegisterKernel(KernelClass: TCustomKernelClass);
 
 var
   KernelList: TClassList;
@@ -2871,31 +2880,41 @@ begin
   end;
 end;
 
+procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
+begin
+  if not Assigned(ResamplerList) then ResamplerList := TClassList.Create;
+  ResamplerList.Add(ResamplerClass);
+end;
+
+procedure RegisterKernel(KernelClass: TCustomKernelClass);
+begin
+  if not Assigned(KernelList) then KernelList := TClassList.Create;
+  KernelList.Add(KernelClass);
+end;
+
 initialization
   SetupFunctions;
 
   { Register resamplers }
-  ResamplerList := TClassList.Create;
-  ResamplerList.Add(TNearestResampler);
-  ResamplerList.Add(TLinearResampler);
-  ResamplerList.Add(TDraftResampler);
-  ResamplerList.Add(TKernelResampler);
+  RegisterResampler(TNearestResampler);
+  RegisterResampler(TLinearResampler);
+  RegisterResampler(TDraftResampler);
+  RegisterResampler(TKernelResampler);
 
   { Register kernels }
-  KernelList := TClassList.Create;
-  KernelList.Add(TNearestKernel);
-  KernelList.Add(TLinearKernel);
-  KernelList.Add(TCosineKernel);
-  KernelList.Add(TSplineKernel);
-  KernelList.Add(TCubicKernel);
-  KernelList.Add(TMitchellKernel);
-  KernelList.Add(TLanczosKernel);
-  KernelList.Add(TGaussianKernel);
-  KernelList.Add(TBlackmanKernel);
-  KernelList.Add(THannKernel);
-  KernelList.Add(THammingKernel);
-  KernelList.Add(TSinshKernel);
-  KernelList.Add(THermiteKernel);
+  RegisterKernel(TNearestKernel);
+  RegisterKernel(TLinearKernel);
+  RegisterKernel(TCosineKernel);
+  RegisterKernel(TSplineKernel);
+  RegisterKernel(TCubicKernel);
+  RegisterKernel(TMitchellKernel);
+  RegisterKernel(TLanczosKernel);
+  RegisterKernel(TGaussianKernel);
+  RegisterKernel(TBlackmanKernel);
+  RegisterKernel(THannKernel);
+  RegisterKernel(THammingKernel);
+  RegisterKernel(TSinshKernel);
+  RegisterKernel(THermiteKernel);
 
 finalization
   ResamplerList.Free;
