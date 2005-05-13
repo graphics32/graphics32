@@ -1598,7 +1598,8 @@ end;
 procedure TBitmap32.Clear(FillColor: TColor32);
 begin
   if Empty then Exit;
-  FillLongword(Bits[0], Width * Height, FillColor);
+  if not MeasuringMode then
+    FillLongword(Bits[0], Width * Height, FillColor);
   Changed;
 end;
 
@@ -1867,12 +1868,14 @@ end;
 
 procedure TBitmap32.SetPixelS(X, Y: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
+  if {$IFDEF CHANGED_IN_PIXELS}not FMeasuringMode and{$ENDIF}
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
     Bits[X + Y * Width] := Value;
 
+{$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
+{$ENDIF}
 end;
 
 function TBitmap32.GetScanLine(Y: Integer): PColor32Array;
@@ -1921,7 +1924,7 @@ var
   SrcHeight, SrcWidth: Integer;
 begin
   if Empty then Exit;
-  if not MeasuringMode then
+  if not FMeasuringMode then
   begin
     StartPainter;
     QPainter_saveWorldMatrix(Handle);
@@ -1951,46 +1954,37 @@ end;
 procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF});
 begin
   if Empty then Exit;
-  StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
-    DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
-    SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
+  if not FMeasuringMode then
+    StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
+      DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
+      SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
   Changed(DstRect);
 end;
 {$ENDIF}
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32);
 begin
-  if Empty or Dst.Empty then Exit;
   BlockTransfer(Dst, 0, 0, Dst.ClipRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
-  Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; DstX, DstY: Integer);
 begin
-  if Empty or Dst.Empty then Exit;
   BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
-  Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; DstX, DstY: Integer; const SrcRect: TRect);
 begin
-  if Empty or Dst.Empty then Exit;
   BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, SrcRect, DrawMode, FOnPixelCombine);
-  Dst.Changed;
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; const DstRect: TRect);
 begin
-  if Empty or Dst.Empty then Exit;
   StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, Resampler, DrawMode, FOnPixelCombine);
-  Dst.Changed(DstRect);
 end;
 
 procedure TBitmap32.DrawTo(Dst: TBitmap32; const DstRect, SrcRect: TRect);
 begin
-  if Empty or Dst.Empty then Exit;
   StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
-  Dst.Changed(DstRect);
 end;
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
@@ -2087,23 +2081,26 @@ var
   P: PByte;
   NH, NL: Integer;
 begin
-  P := Pointer(FBits);
-  Inc(P, 3); // shift the pointer to 'alpha' component of the first pixel
+  if not FMeasuringMode then
+  begin
+    P := Pointer(FBits);
+    Inc(P, 3); // shift the pointer to 'alpha' component of the first pixel
 
-  { Enroll the loop 4 times }
-  I := Width * Height;
-  NH := I shr 2;
-  NL := I and $3;
-  for I := 0 to NH - 1 do
-  begin
-    P^ := AlphaValue; Inc(P, 4);
-    P^ := AlphaValue; Inc(P, 4);
-    P^ := AlphaValue; Inc(P, 4);
-    P^ := AlphaValue; Inc(P, 4);
-  end;
-  for I := 0 to NL - 1 do
-  begin
-    P^ := AlphaValue; Inc(P, 4);
+    { Enroll the loop 4 times }
+    I := Width * Height;
+    NH := I shr 2;
+    NL := I and $3;
+    for I := 0 to NH - 1 do
+    begin
+      P^ := AlphaValue; Inc(P, 4);
+      P^ := AlphaValue; Inc(P, 4);
+      P^ := AlphaValue; Inc(P, 4);
+      P^ := AlphaValue; Inc(P, 4);
+    end;
+    for I := 0 to NL - 1 do
+    begin
+      P^ := AlphaValue; Inc(P, 4);
+    end;
   end;
   Changed;
 end;
@@ -2139,7 +2136,7 @@ end;
 
 procedure TBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
+  if {$IFDEF CHANGED_IN_PIXELS}not FMeasuringMode and{$ENDIF}
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
@@ -2149,7 +2146,9 @@ begin
       db $0F,$77               /// EMMS
     end;
   end;
+{$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
+{$ENDIF}
 end;
 
 procedure TBitmap32.SET_T256(X, Y: Integer; C: TColor32);
@@ -2252,20 +2251,36 @@ end;
 
 procedure TBitmap32.SetPixelFS(X, Y: Single; Value: TColor32);
 begin
-  SET_TS256(Round(X * 256), Round(Y * 256), Value);
-  EMMS;
+{$IFDEF CHANGED_IN_PIXELS}
+  if not FMeasuringMode then
+  begin
+{$ENDIF}
+    SET_TS256(Round(X * 256), Round(Y * 256), Value);
+    EMMS;
+{$IFDEF CHANGED_IN_PIXELS}
+  end;
+  Changed(MakeRect(X, Y, X + 1, Y + 1));
+{$ENDIF}
 end;
 
 procedure TBitmap32.SetPixelXS(X, Y: TFixed; Value: TColor32);
 begin
-  asm
-        ADD X, $7F
-        ADD Y, $7F
-        SAR X, 8
-        SAR Y, 8
+{$IFDEF CHANGED_IN_PIXELS}
+  if not FMeasuringMode then
+  begin
+{$ENDIF}
+    asm
+          ADD X, $7F
+          ADD Y, $7F
+          SAR X, 8
+          SAR Y, 8
+    end;
+    SET_TS256(X, Y, Value);
+    EMMS;
+{$IFDEF CHANGED_IN_PIXELS}
   end;
-  SET_TS256(X, Y, Value);
-  EMMS;
+  Changed(MakeRect(X, Y, X + 1, Y + 1));
+{$ENDIF}
 end;
 
 function TBitmap32.GET_T256(X, Y: Integer): TColor32;
@@ -2395,12 +2410,14 @@ end;
 
 procedure TBitmap32.HorzLineS(X1, Y, X2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
+  if FMeasuringMode then
+    Changed(MakeRect(X1, Y, X2, Y + 1))
+  else if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
     TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
+  begin
     HorzLine(X1, Y, X2, Value);
-
-  Changed(MakeRect(X1, Y, X2, Y + 1));
+    Changed(MakeRect(X1, Y, X2, Y + 1));
+  end;
 end;
 
 procedure TBitmap32.HorzLineT(X1, Y, X2: Integer; Value: TColor32);
@@ -2422,19 +2439,23 @@ end;
 
 procedure TBitmap32.HorzLineTS(X1, Y, X2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
+  if FMeasuringMode then
+    Changed(MakeRect(X1, Y, X2, Y + 1))
+  else if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) and
     TestClip(X1, X2, FClipRect.Left, FClipRect.Right) then
+  begin
     HorzLineT(X1, Y, X2, Value);
-
-  Changed(MakeRect(X1, Y, X2, Y + 1));
+    Changed(MakeRect(X1, Y, X2, Y + 1));
+  end;
 end;
 
 procedure TBitmap32.HorzLineTSP(X1, Y, X2: Integer);
 var
   I, N: Integer;
 begin
-  if not FMeasuringMode then
+  if FMeasuringMode then
+    Changed(MakeRect(X1, Y, X2, Y + 1))
+  else
   begin
     if Empty then Exit;
     if (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
@@ -2472,12 +2493,13 @@ begin
       else
         for I := X1 downto X2 do SetPixelT(I, Y, GetStippleColor);
 
+      Changed(MakeRect(X1, Y, X2, Y + 1));
+      
       if N > 0 then AdvanceStippleCounter(N);
     end
     else
       AdvanceStippleCounter(Abs(X2 - X1) + 1);
   end;
-  Changed(MakeRect(X1, Y, X2, Y + 1))
 end;
 
 procedure TBitmap32.VertLine(X, Y1, Y2: Integer; Value: TColor32);
@@ -2501,19 +2523,18 @@ begin
   begin
     P^ := Value; Inc(P, Width);
   end;
-  Changed(MakeRect(X, Y1, X + 1, Y2))
 end;
 
 procedure TBitmap32.VertLineS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode then
-  begin
-    if (X >= FClipRect.Left) and (X < FClipRect.Right) and
-      TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
-      VertLine(X, Y1, Y2, Value);
-  end
-  else
+  if FMeasuringMode then
     Changed(MakeRect(X, Y1, X + 1, Y2))
+  else if (X >= FClipRect.Left) and (X < FClipRect.Right) and
+    TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
+  begin
+    VertLine(X, Y1, Y2, Value);
+    Changed(MakeRect(X, Y1, X + 1, Y2));
+  end;
 end;
 
 procedure TBitmap32.VertLineT(X, Y1, Y2: Integer; Value: TColor32);
@@ -2534,19 +2555,23 @@ end;
 
 procedure TBitmap32.VertLineTS(X, Y1, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (X >= FClipRect.Left) and (X < FClipRect.Right) and
+  if FMeasuringMode then
+    Changed(MakeRect(X, Y1, X + 1, Y2))
+  else if (X >= FClipRect.Left) and (X < FClipRect.Right) and
     TestClip(Y1, Y2, FClipRect.Top, FClipRect.Bottom) then
-     VertLineT(X, Y1, Y2, Value);
-
-  Changed(MakeRect(X, Y1, X + 1, Y2));
+  begin
+    VertLineT(X, Y1, Y2, Value);
+    Changed(MakeRect(X, Y1, X + 1, Y2));
+  end;
 end;
 
 procedure TBitmap32.VertLineTSP(X, Y1, Y2: Integer);
 var
   I, N: Integer;
 begin
-  if not FMeasuringMode then
+  if FMeasuringMode then
+    Changed(MakeRect(X, Y1, X + 1, Y2))
+  else
   begin
     if Empty then Exit;
     if (X >= FClipRect.Left) and (X < FClipRect.Right) then
@@ -2590,9 +2615,7 @@ begin
     end
     else
       AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
-  end
-  else
-    Changed(MakeRect(X, Y1, X + 1, Y2));
+  end;
 end;
 
 procedure TBitmap32.Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
@@ -3789,7 +3812,7 @@ var
 begin
   for j := Y1 to Y2 - 1 do
   begin
-    P := Pointer(GetScanLine(j));
+    P := Pointer(@Bits[j * FWidth]);
     FillLongword(P[X1], X2 - X1, Value);
   end;
   Changed(MakeRect(X1, Y1, X2, Y2));
@@ -3819,7 +3842,8 @@ var
   CombineMem: TCombineMem;
 begin
   A := Value shr 24;
-  if A = $FF then FillRect(X1, Y1, X2, Y2, Value)
+  if A = $FF then
+    FillRect(X1, Y1, X2, Y2, Value) // calls Changed...
   else
   try
     Dec(Y2);
@@ -3836,7 +3860,7 @@ begin
     end;
   finally
     EMMS;
-    Changed(MakeRect(X1, Y1, X2, Y2));
+    Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
   end;
 end;
 
@@ -3858,18 +3882,24 @@ end;
 
 procedure TBitmap32.FillRectS(const ARect: TRect; Value: TColor32);
 begin
-  with ARect do FillRectS(Left, Top, Right, Bottom, Value);
+  if FMeasuringMode then // shortcut...
+    Changed(ARect)
+  else
+    with ARect do FillRectS(Left, Top, Right, Bottom, Value);
 end;
 
 procedure TBitmap32.FillRectTS(const ARect: TRect; Value: TColor32);
 begin
-  with ARect do FillRectTS(Left, Top, Right, Bottom, Value);
+  if FMeasuringMode then // shortcut...
+    Changed(ARect)
+  else
+    with ARect do FillRectTS(Left, Top, Right, Bottom, Value);
 end;
 
 procedure TBitmap32.FrameRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (X2 > X1) and (Y2 > Y1) and
+  // measuring is handled in inner drawing operations...
+  if (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -3883,13 +3913,12 @@ begin
       if X2 > X1 then VertLineS(X2, Y1 + 1, Y2 - 1, Value);
     end;
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FrameRectTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (X2 > X1) and (Y2 > Y1) and
+  // measuring is handled in inner drawing operations...
+  if (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -3903,21 +3932,25 @@ begin
       if X2 > X1 then VertLineTS(X2, Y1 + 1, Y2 - 1, Value);
     end;
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FrameRectTSP(X1, Y1, X2, Y2: Integer);
 begin
-  if not FMeasuringMode and
-    (X2 > X1) and (Y2 > Y1) and
+  // measuring is handled in inner drawing operations...
+  if (X2 > X1) and (Y2 > Y1) and
     (X1 < Width) and (Y1 < Height) and  // don't check against ClipRect here
     (X2 > 0) and (Y2 > 0) then          // due to StippleCounter
   begin
     Dec(X2);
     Dec(Y2);
     if X1 = X2 then
-      if Y1 = Y2 then SetPixelT(X1, Y1, GetStippleColor)
-      else VertLineTSP(X1, Y1, Y2)
+      if Y1 = Y2 then
+      begin
+        SetPixelT(X1, Y1, GetStippleColor);
+        Changed(MakeRect(X1, Y1, X1 + 1, Y1 + 1));
+      end
+      else
+        VertLineTSP(X1, Y1, Y2)
     else
       if Y1 = Y2 then HorzLineTSP(X1, Y1, X2)
       else
@@ -3928,7 +3961,6 @@ begin
         VertLineTSP(X1, Y2, Y1 + 1);
       end;
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.FrameRectS(const ARect: TRect; Value: TColor32);
@@ -3945,10 +3977,10 @@ procedure TBitmap32.RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer);
 var
   C1, C2: TColor32;
 begin
-  if not FMeasuringMode and
-    (X2 > X1) and (Y2 > Y1) and
-    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
-    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
+  // measuring is handled in inner drawing operations...
+  if (X2 > X1) and (Y2 > Y1) and
+     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
     if (Contrast > 0) then
     begin
@@ -3972,7 +4004,6 @@ begin
     VertLineTS(X1, Y1, Y2, C1);
     VertLineTS(X2, Y1, Y2, C2);
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TBitmap32.RaiseRectTS(const ARect: TRect; Contrast: Integer);
@@ -4165,8 +4196,11 @@ end;
 
 procedure TBitmap32.SetCombineMode(const Value: TCombineMode);
 begin
-  FCombineMode := Value;
-  PropertyChanged;
+  if FCombineMode <> Value then
+  begin
+  	FCombineMode := Value;
+  	Changed;
+  end;
 end;
 
 procedure TBitmap32.SetDrawMode(Value: TDrawMode);
@@ -4174,7 +4208,7 @@ begin
   if FDrawMode <> Value then
   begin
     FDrawMode := Value;
-    PropertyChanged;
+    Changed;
   end;
 end;
 
@@ -4183,7 +4217,7 @@ begin
   if FMasterAlpha <> Value then
   begin
     FMasterAlpha := Value;
-    PropertyChanged;
+    Changed;
   end;
 end;
 
@@ -4315,46 +4349,57 @@ begin
 end;
 {$ELSE}
 procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
+var
+  Extent: TSize;
 begin
   UpdateFont;
-  If FClipping then
-    ExtTextout(Handle, X, Y, ETO_CLIPPED, @FClipRect, PChar(Text), Length(Text), nil)
-  else
-    ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
-{ TODO : Handle Changed here... }
-  Changed;
+
+  if not FMeasuringMode then
+  begin
+    if FClipping then
+      ExtTextout(Handle, X, Y, ETO_CLIPPED, @FClipRect, PChar(Text), Length(Text), nil)
+    else
+      ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
+  end;
+
+  Extent := TextExtent(Text);
+  Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 {$ENDIF}
 
 procedure TBitmap32.TextoutW(X, Y: Integer; const Text: Widestring);
-{$IFDEF CLX}
 var
+  Extent: TSize;
+{$IFDEF CLX}
   R: TRect;
 {$ENDIF}
 begin
   UpdateFont;
-{$IFDEF CLX}
-  StartPainter;
-  R := MakeRect(X, Y, High(Word), High(Word));
-  QPainter_setFont(Handle, Font.Handle);
-  QPainter_setPen(Handle, Font.FontPen);
-
-  If FClipping then
+  if not FMeasuringMode then
   begin
-    QPainter_setClipRect(Handle, @FClipRect);
-    QPainter_setClipping(Handle, True);
-  end;
-  QPainter_drawText(Handle, @R, 0, @Text, -1, nil, nil);
-  If FClipping then QPainter_setClipping(Handle, False);
-  StopPainter;
+{$IFDEF CLX}
+    StartPainter;
+    R := MakeRect(X, Y, High(Word), High(Word));
+    QPainter_setFont(Handle, Font.Handle);
+    QPainter_setPen(Handle, Font.FontPen);
+
+    If FClipping then
+    begin
+      QPainter_setClipRect(Handle, @FClipRect);
+      QPainter_setClipping(Handle, True);
+    end;
+    QPainter_drawText(Handle, @R, 0, @Text, -1, nil, nil);
+    If FClipping then QPainter_setClipping(Handle, False);
+    StopPainter;
 {$ELSE}
-  If FClipping then
-    ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @FClipRect, PWideChar(Text), Length(Text), nil)
-  else
-    ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
+    if FClipping then
+      ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @FClipRect, PWideChar(Text), Length(Text), nil)
+    else
+      ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
 {$ENDIF}
-{ TODO : Handle Changed here... }
-  Changed;
+  end;
+  Extent := TextExtentW(Text);
+  Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
 // -------------------------------------------------------------------
@@ -4366,38 +4411,45 @@ begin
 end;
 {$ELSE}
 procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
+var
+  Extent: TSize;
 begin
   UpdateFont;
-  ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
-{ TODO : Handle Changed here... }
-  Changed;
+  if not FMeasuringMode then
+    ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  Extent := TextExtent(Text);
+  Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 {$ENDIF}
 
 procedure TBitmap32.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
-{$IFDEF CLX}
 var
+  Extent: TSize;
+{$IFDEF CLX}
   TextW: WideString;
   R: TRect;
 {$ENDIF}
 begin
   UpdateFont;
+  if not FMeasuringMode then
+  begin
 {$IFDEF CLX}
-  StartPainter;
-  TextW := WideString(Text);
-  R := MakeRect(X, Y, High(Word), High(Word));
-  QPainter_setFont(Handle, Font.Handle);
-  QPainter_setPen(Handle, Font.FontPen);
-  QPainter_setClipRect(Handle, @ClipRect);
-  QPainter_setClipping(Handle, True);
-  QPainter_drawText(Handle, @R, 0, @TextW, -1, nil, nil);
-  QPainter_setClipping(Handle, False);
-  StopPainter;
+    StartPainter;
+    TextW := WideString(Text);
+    R := MakeRect(X, Y, High(Word), High(Word));
+    QPainter_setFont(Handle, Font.Handle);
+    QPainter_setPen(Handle, Font.FontPen);
+    QPainter_setClipRect(Handle, @ClipRect);
+    QPainter_setClipping(Handle, True);
+    QPainter_drawText(Handle, @R, 0, @TextW, -1, nil, nil);
+    QPainter_setClipping(Handle, False);
+    StopPainter;
 {$ELSE}
-  ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
+    ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
 {$ENDIF}
-{ TODO : Handle Changed here... }
-  Changed;
+  end;
+  Extent := TextExtentW(Text);
+  Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
 // -------------------------------------------------------------------
@@ -4411,9 +4463,9 @@ end;
 procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: String);
 begin
   UpdateFont;
-  DrawText(Handle, PChar(Text), Length(Text), DstRect, Flags);
-{ TODO : Handle Changed here... }
-  Changed;
+  if not FMeasuringMode then
+    DrawText(Handle, PChar(Text), Length(Text), DstRect, Flags);
+  Changed(DstRect);
 end;
 {$ENDIF}
 
@@ -4421,17 +4473,19 @@ procedure TBitmap32.TextoutW(DstRect: TRect; const Flags: Cardinal;
   const Text: Widestring);
 begin
   UpdateFont;
+  if not FMeasuringMode then
+  begin
 {$IFDEF CLX}
-  StartPainter;
-  QPainter_setFont(Handle, Font.Handle);
-  QPainter_setPen(Handle, Font.FontPen);
-  QPainter_drawText(Handle, @DstRect, Flags, @Text, -1, nil, nil);
-  StopPainter;
+    StartPainter;
+    QPainter_setFont(Handle, Font.Handle);
+    QPainter_setPen(Handle, Font.FontPen);
+    QPainter_drawText(Handle, @DstRect, Flags, @Text, -1, nil, nil);
+    StopPainter;
 {$ELSE}
-  DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
+    DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
 {$ENDIF}
-{ TODO : Handle Changed here... }
-  Changed;
+  end;
+  Changed(DstRect);
 end;
 
 // -------------------------------------------------------------------
@@ -4534,7 +4588,7 @@ begin
 end;
 {$ELSE}
 
-procedure SetFontAntialiasing(const Font: TFont; Enabled: Boolean);
+procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal);
 var
   LogFont: TLogFont;
 begin
@@ -4566,10 +4620,7 @@ begin
     else
       StrPCopy(lfFaceName, Font.Name);
 
-    if Enabled then
-      lfQuality := DEFAULT_QUALITY
-    else
-      lfQuality := NONANTIALIASED_QUALITY;
+    lfQuality := Quality;
 
     { Only True Type fonts support the angles }
     if lfOrientation <> 0 then
@@ -4601,10 +4652,13 @@ begin
 
   Alpha := Color shr 24;
   Color := Color and $00FFFFFF;
-  AALevel := Constrain(AALevel, 0, 4);
+  AALevel := Constrain(AALevel, -1, 4);
   PaddedText := Text + ' ';
 
-  SetFontAntialiasing(Font, False);
+  if AALevel > -1 then
+    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
+  else
+    SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
@@ -4637,10 +4691,6 @@ begin
           B2.Font := StockCanvas.Font;
           B2.Font.Color := clWhite;
           B2.Textout(0, 0, Text);
-{$IFDEF DEPRECATEDMODE}
-          B2.StretchFilter := sfLinear;
-          { TODO : Replace Stretchfilter in RenderText }
-{$ENDIF}
           B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
           TextScaleDown(B, B2, AALevel, Color);
         finally
@@ -4660,7 +4710,7 @@ begin
     B.Free;
   end;
 
-  SetFontAntialiasing(Font, True);
+  SetFontAntialiasing(Font, DEFAULT_QUALITY);
 end;
 {$ENDIF}
 
@@ -4676,11 +4726,14 @@ begin
 
   Alpha := Color shr 24;
   Color := Color and $00FFFFFF;
-  AALevel := Constrain(AALevel, 0, 4);
+  AALevel := Constrain(AALevel, -1, 4);
   PaddedText := Text + ' ';
 
 {$IFNDEF CLX}
-  SetFontAntialiasing(Font, False);
+  if AALevel > -1 then
+    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
+  else
+    SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
 {$ENDIF}
 
   { TODO : Optimize Clipping here }
@@ -4724,10 +4777,6 @@ begin
           B2.Font := StockCanvas.Font;
           B2.Font.Color := clWhite;
           B2.TextoutW(0, 0, Text);
-{$IFDEF DEPRECATEDMODE}
-          B2.StretchFilter := sfLinear;
-          { TODO : Replace Stretchfilter in RenderText }
-{$ENDIF}
           B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
           TextScaleDown(B, B2, AALevel, Color);
         finally
@@ -4747,7 +4796,7 @@ begin
     B.Free;
   end;
 {$IFNDEF CLX}
-  SetFontAntialiasing(Font, True);
+  SetFontAntialiasing(Font, DEFAULT_QUALITY);
 {$ENDIF}
 end;
 
@@ -5064,7 +5113,7 @@ begin
     FOnAreaChanged(Self, BoundsRect, AREAHINT_RECT);
 
   if not FMeasuringMode then
-  inherited;
+    inherited;
 end;
 
 procedure TBitmap32.Changed(const Area: TRect; const Hint: Cardinal);
@@ -5073,7 +5122,7 @@ begin
     FOnAreaChanged(Self, Area, Hint);
 
   if not FMeasuringMode then
-  inherited Changed;
+    inherited Changed;
 end;
 
 {$IFDEF CLX}
