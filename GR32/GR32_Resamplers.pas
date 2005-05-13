@@ -3,7 +3,7 @@ unit GR32_Resamplers;
 interface
 
 uses
-  Classes, Types, GR32, GR32_Transforms, GR32_Rasterizers, GR32_Containers;
+  SysUtils, Classes, Types, GR32, GR32_Transforms, GR32_Rasterizers, GR32_Containers;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -29,6 +29,9 @@ type
   TKernelEntryArray = array [0..0] of TArrayOfKernelValue;
 
   TFilterMethod = function(Value: Single): Single of object;
+
+  EBitmapException = class(Exception);
+  ESrcInvalidException = class(Exception);
 
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
@@ -416,15 +419,15 @@ const
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, SysUtils, Math;
+  GR32_Blend, GR32_LowLevel, GR32_System, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
   LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 const
-  SDstEmpty = 'Destination bitmap is nil or empty';
-  SSrcEmpty = 'Source bitmap is nil or empty';
+  SDstNil = 'Destination bitmap is nil';
+  SSrcNil = 'Source bitmap is nil';
   SSrcInvalid = 'Source rectangle is invalid';
 
 type
@@ -595,10 +598,10 @@ begin
   end;
 end; }
 
-procedure CheckBitmaps(Dst, Src: TBitmap32);
+procedure CheckBitmaps(Dst, Src: TBitmap32); {$IFDEF USEINLINING}inline;{$ENDIF}
 begin
-  if not Assigned(Dst) or Dst.Empty then raise ETransformError.Create(SDstEmpty);
-  if not Assigned(Src) or Src.Empty then raise ETransformError.Create(SSrcEmpty);
+  if not Assigned(Dst) then raise EBitmapException.Create(SDstNil);
+  if not Assigned(Src) then raise EBitmapException.Create(SSrcNil);
 end;
 
 function CheckSrcRect(Src: TBitmap32; const SrcRect: TRect): Boolean;
@@ -607,7 +610,7 @@ begin
   if IsRectEmpty(SrcRect) then Exit;
   if (SrcRect.Left < 0) or (SrcRect.Right > Src.Width) or
     (SrcRect.Top < 0) or (SrcRect.Bottom > Src.Height) then
-    raise ETransformError.Create(SSrcInvalid);
+    raise ESrcInvalidException.Create(SSrcInvalid);
   Result := True;
 end;
 
@@ -702,8 +705,8 @@ procedure BlockTransfer(
 var
   SrcX, SrcY: Integer;
 begin
-  if Src.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) then Exit;
-  CheckBitmaps(Src, Dst);
+  CheckBitmaps(Dst, Src);
+  if Dst.Empty or Src.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) then Exit;
 
   if not Dst.MeasuringMode then
   begin
@@ -1626,9 +1629,9 @@ var
   DstW, DstH: Integer;
   R: TRect;
 begin
-  if Src.Empty then Exit;
   CheckBitmaps(Dst, Src);
-  if not CheckSrcRect(Src, SrcRect) then Exit;
+  if Src.Empty or Dst.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) or
+    not CheckSrcRect(Src, SrcRect) then Exit;
 
   if not Dst.MeasuringMode then
   begin
@@ -1639,7 +1642,6 @@ begin
     if IsRectEmpty(R) then Exit;
 
     if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then CombineOp := dmOpaque;
-    if (CombineOp = dmBlend) and (Src.MasterAlpha = 0) then Exit;
 
     SrcW := SrcRect.Right - SrcRect.Left;
     SrcH := SrcRect.Bottom - SrcRect.Top;
