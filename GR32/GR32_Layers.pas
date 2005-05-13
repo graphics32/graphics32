@@ -606,11 +606,13 @@ end;
 procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
 begin
   if Assigned(FOnAreaUpdated) then FOnAreaUpdated(Self, Rect, AREAHINT_RECT);
+  Changed;  
 end;
 
 procedure TLayerCollection.DoUpdateLayer(Layer: TCustomLayer);
 begin
   if Assigned(FOnLayerUpdated) then FOnLayerUpdated(Self, Layer);
+  Changed;
 end;
 
 procedure TLayerCollection.GetViewportScale(var ScaleX, ScaleY: Single);
