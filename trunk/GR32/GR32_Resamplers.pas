@@ -2825,7 +2825,6 @@ var
   Z: Integer;
   t, t2, t3, m0, m1, a0, a1, a2, a3: Single;
 begin
-  // TODO: precompute this:
   t := (1 - FTension) * 0.5;
   m0 := (1 + FBias) * t;
   m1 := (1 - FBias) * t;
@@ -2839,8 +2838,6 @@ begin
   a2 := t3 - t2;
   a3 := -2 * t3 + 3 * t2;
   a0 := -a3 + 1;
-
-  //a1 + a2 = 2 t3 - 3 t2 + t
 
   case Z of
     -2: Result := a2 * m1;
