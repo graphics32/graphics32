@@ -142,7 +142,7 @@ type
     FUseInvalidTiles: Boolean;
 
     // adaptive stuff...
-    FAdaptiveRepaint: Boolean;
+    FAdaptiveMode: Boolean;
 
     FPerfTimer: TPerfTimer;
     FPerformanceLevel: Integer;
@@ -169,7 +169,8 @@ type
     
     procedure ValidateWorkingTiles;
     procedure UpdateOldInvalidTiles;
-    procedure SetAdaptiveRepaint(const Value: Boolean);
+    procedure SetAdaptiveMode(const Value: Boolean);
+    procedure ResetAdaptiveMode;
     procedure BeginAdaption;
     procedure EndAdaption;
 
@@ -201,7 +202,7 @@ type
     procedure BufferResizedHandler(const NewWidth, NewHeight: Integer); override;
 
     // custom settings:
-    property AdaptiveRepaint: Boolean read FAdaptiveRepaint write SetAdaptiveRepaint;
+    property AdaptiveMode: Boolean read FAdaptiveMode write SetAdaptiveMode;
   end;
 
 
@@ -995,7 +996,7 @@ begin
   FInvalidLayers := TList.Create;
   FPerfTimer := TPerfTimer.Create;
 {$IFNDEF MICROTILES_DEBUGDRAW}
-  FAdaptiveRepaint := True;
+  FAdaptiveMode := True;
 {$ENDIF}
 
   MicroTilesCreate(FInvalidTiles);
@@ -1100,6 +1101,7 @@ begin
           end;
 
           FUseInvalidTiles := True;
+          ResetAdaptiveMode;
         end;
         FOldInvalidTilesMap.Clear;
         FOldInvalidTilesValid := True;
@@ -1246,20 +1248,25 @@ begin
   end;
 end;
 
-procedure TMicroTilesRepaintOptimizer.SetAdaptiveRepaint(const Value: Boolean);
+procedure TMicroTilesRepaintOptimizer.SetAdaptiveMode(const Value: Boolean);
 begin
-  if FAdaptiveRepaint <> Value then
+  if FAdaptiveMode <> Value then
   begin
-    FAdaptiveRepaint := Value;
-    FTimeDelta := TIMER_LOWLIMIT;
-    FAdaptionFailed := False;
-    FPerformanceLevel := PL_MICROTILES;
+    FAdaptiveMode := Value;
+    ResetAdaptiveMode;
   end;
+end;
+
+procedure TMicroTilesRepaintOptimizer.ResetAdaptiveMode;
+begin
+  FTimeDelta := TIMER_LOWLIMIT;
+  FAdaptionFailed := False;
+  FPerformanceLevel := PL_MICROTILES;
 end;
 
 procedure TMicroTilesRepaintOptimizer.BeginPaintBuffer;
 begin
-  if AdaptiveRepaint then FPerfTimer.Start;
+  if AdaptiveMode then FPerfTimer.Start;
 end;
 
 procedure TMicroTilesRepaintOptimizer.EndPaintBuffer;
@@ -1365,7 +1372,7 @@ end;
 
 procedure TMicroTilesRepaintOptimizer.BeginAdaption;
 begin
-  if AdaptiveRepaint and (FPerformanceLevel > PL_MICROTILES) then
+  if AdaptiveMode and (FPerformanceLevel > PL_MICROTILES) then
   begin
     if GetTickCount > FNextCheck then
     begin
@@ -1402,7 +1409,7 @@ begin
   if InvalidRects.Count = 0 then
 {$ENDIF}
     FTimeNeededForFullSceneRepaint := TimeNeeded
-  else if AdaptiveRepaint then
+  else if AdaptiveMode then
   begin
     if TimeNeeded > FTimeNeededForFullSceneRepaint then
     begin
