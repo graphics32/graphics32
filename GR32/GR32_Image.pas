@@ -215,6 +215,7 @@ type
     Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer) of object;
   TImgMouseMoveEvent = procedure(Sender: TObject; Shift: TShiftState;
     X, Y: Integer; Layer: TCustomLayer) of object;
+  TPaintStageHandler = procedure(Dest: TBitmap32; StageNum: Integer) of object;
 
   TCustomImage32 = class(TCustomPaintBox32)
   private
@@ -224,6 +225,8 @@ type
     FOffsetHorz: Single;
     FOffsetVert: Single;
     FPaintStages: TPaintStages;
+    FPaintStageHandlers: array of TPaintStageHandler;
+    FPaintStageNum: array of Integer;
     FScale: Single;
     FScaleMode: TScaleMode;
     FUpdateCount: Integer;
@@ -1307,42 +1310,58 @@ end;
 
 procedure TCustomImage32.DoPaintBuffer;
 var
-  I: Integer;
+  PaintStageHandlerCount: Integer;
+  I, J: Integer;
   DT, RT: Boolean;
-
-  procedure PaintStagesInRect(const DstRect: TRect);
-  var
-    I: Integer;
-  begin
-    FBuffer.ClipRect := DstRect;
-    for I := 0 to FPaintStages.Count - 1 do
-      with FPaintStages[I]^ do
-        if (DsgnTime and DT) or (RunTime and RT) then
-          case Stage of
-            PST_CUSTOM: ExecCustom(Buffer, I);
-            PST_CLEAR_BUFFER: ExecClearBuffer(Buffer, I);
-            PST_CLEAR_BACKGND: ExecClearBackgnd(Buffer, I);
-            PST_DRAW_BITMAP: ExecDrawBitmap(Buffer, I);
-            PST_DRAW_LAYERS: ExecDrawLayers(Buffer, I);
-            PST_CONTROL_FRAME: ExecControlFrame(Buffer, I);
-            PST_BITMAP_FRAME: ExecBitmapFrame(Buffer, I);
-          end;
-  end;
-
 begin
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.BeginPaintBuffer;
 
   UpdateCache;
+
+  SetLength(FPaintStageHandlers, FPaintStages.Count);
+  SetLength(FPaintStageNum, FPaintStages.Count);
+  PaintStageHandlerCount := 0;
+
   DT := csDesigning in ComponentState;
   RT := not DT;
 
+  // compile list of paintstage handler methods
+  for I := 0 to FPaintStages.Count - 1 do
+  begin
+    with FPaintStages[I]^ do
+      if (DsgnTime and DT) or (RunTime and RT) then
+      begin
+        FPaintStageNum[PaintStageHandlerCount] := I;
+        case Stage of
+          PST_CUSTOM: FPaintStageHandlers[PaintStageHandlerCount] := ExecCustom;
+          PST_CLEAR_BUFFER: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBuffer;
+          PST_CLEAR_BACKGND: FPaintStageHandlers[PaintStageHandlerCount] := ExecClearBackgnd;
+          PST_DRAW_BITMAP: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawBitmap;
+          PST_DRAW_LAYERS: FPaintStageHandlers[PaintStageHandlerCount] := ExecDrawLayers;
+          PST_CONTROL_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecControlFrame;
+          PST_BITMAP_FRAME: FPaintStageHandlers[PaintStageHandlerCount] := ExecBitmapFrame;
+        else
+          Dec(PaintStageHandlerCount); // this should not happen .
+        end;
+        Inc(PaintStageHandlerCount);
+      end;
+  end;
+
   if FInvalidRects.Count = 0 then
-    PaintStagesInRect(GetViewportRect)
+  begin
+    Buffer.ResetClipRect;
+    for I := 0 to PaintStageHandlerCount - 1 do
+      FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
+  end
   else
   begin
-    for I := 0 to FInvalidRects.Count - 1 do
-      PaintStagesInRect(FInvalidRects[I]^);
+    for J := 0 to FInvalidRects.Count - 1 do
+    begin
+      Buffer.ClipRect := FInvalidRects[J]^;
+      for I := 0 to PaintStageHandlerCount - 1 do
+        FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
+    end;
 
     Buffer.ResetClipRect;
   end;
@@ -2037,7 +2056,7 @@ end;
 
 destructor TCustomImgView32.Destroy;
 begin
-  FScrollBars.Free;
+  FreeAndNil(FScrollBars);
   inherited;
 end;
 
@@ -2090,7 +2109,7 @@ end;
 
 function TCustomImgView32.GetScrollBarsVisible: Boolean;
 begin
-  if Assigned(FScrollBars) then
+  if Assigned(FScrollBars) and Assigned(HScroll) and Assigned(VScroll) then
   case FScrollBars.Visibility of
     svAlways:
       Result := True;
