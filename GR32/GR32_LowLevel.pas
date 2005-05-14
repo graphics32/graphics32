@@ -44,10 +44,18 @@ uses
 function Clamp(const Value: Integer): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
+{$IFDEF USEFILLCHAR}
+procedure FillLongword(var X; Count: Integer; Value: Longword); {$IFDEF USEINLINING} inline; {$ENDIF}
+{$ELSE}
 procedure FillLongword(var X; Count: Integer; Value: Longword);
+{$ENDIF}
 
 { An analogue of Move for 32 bit values }
+{$IFDEF USEMOVE}
+procedure MoveLongword(const Source; var Dest; Count: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
+{$ELSE}
 procedure MoveLongword(const Source; var Dest; Count: Integer);
+{$ENDIF}
 
 { Exchange two 32-bit values }
 procedure Swap(var A, B: Integer);
@@ -103,6 +111,12 @@ begin
   else Result := Value;
 end;
 
+{$IFDEF USEFILLCHAR}
+procedure FillLongword(var X; Count: Integer; Value: Longword);
+begin
+  FillChar(X, Count shl 2, Value);
+end;
+{$ELSE}
 procedure FillLongword(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
@@ -120,7 +134,14 @@ asm
 @exit:
         POP     EDI
 end;
+{$ENDIF}
 
+{$IFDEF USEMOVE}
+procedure MoveLongword(const Source; var Dest; Count: Integer);
+begin
+  Move(Source, Dest, Count shl 2);
+end;
+{$ELSE}
 procedure MoveLongword(const Source; var Dest; Count: Integer);
 asm
 // EAX = Source
@@ -140,6 +161,7 @@ asm
         POP     EDI
         POP     ESI
 end;
+{$ENDIF}
 
 procedure Swap(var A, B: Integer);
 asm
