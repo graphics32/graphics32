@@ -112,9 +112,9 @@ type
     procedure CMInvalidate(var Message: TMessage); message CM_INVALIDATE;
     procedure WMPaint(var Message: TMessage); message WM_PAINT;
 {$ENDIF}
+    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
   protected
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
-    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal); virtual;
     function  CustomRepaintNeeded: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
     procedure DoValidateInvalidRects; virtual;
@@ -227,7 +227,8 @@ type
     FPaintStages: TPaintStages;
     FPaintStageHandlers: array of TPaintStageHandler;
     FPaintStageNum: array of Integer;
-    FScale: Single;
+    FScaleX: Single;
+    FScaleY: Single;
     FScaleMode: TScaleMode;
     FUpdateCount: Integer;
     FOnBitmapResize: TNotifyEvent;
@@ -237,20 +238,24 @@ type
     FOnMouseMove: TImgMouseMoveEvent;
     FOnMouseUp: TImgMouseEvent;
     FOnPaintStage: TPaintStageEvent;
-    procedure ResizedHandler(Sender: TObject);
-    procedure ChangedHandler(Sender: TObject);
-    procedure BitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
-    procedure DirectBitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
-    procedure GetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
-    procedure GetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
+    FOnScaleChange: TNotifyEvent;
+    procedure BitmapResizeHandler(Sender: TObject);
+    procedure BitmapChangeHandler(Sender: TObject);
+    procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+    procedure BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+    procedure LayerCollectionChangeHandler(Sender: TObject);
+    procedure LayerCollectionGDIUpdateHandler(Sender: TObject);
+    procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
+    procedure LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
     function  GetOnPixelCombine: TPixelCombineEvent;
-    procedure GDIUpdateHandler(Sender: TObject);
     procedure SetBitmap(Value: TBitmap32); {$IFDEF CLX}reintroduce;{$ENDIF}
     procedure SetBitmapAlign(Value: TBitmapAlign);
     procedure SetLayers(Value: TLayerCollection);
     procedure SetOffsetHorz(Value: Single);
     procedure SetOffsetVert(Value: Single);
     procedure SetScale(Value: Single);
+    procedure SetScaleX(Value: Single);
+    procedure SetScaleY(Value: Single);
     procedure SetOnPixelCombine(Value: TPixelCombineEvent);
   protected
     CachedBitmapRect: TRect;
@@ -259,6 +264,7 @@ type
     OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
     procedure BitmapResized; virtual;
+    procedure BitmapChanged(const Area: TRect); virtual;
 {$IFNDEF CLX}
     function  CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
 {$ENDIF}
@@ -303,9 +309,9 @@ type
     function  GetBitmapSize: TSize; virtual;
     procedure Invalidate; override;
     procedure Loaded; override;
-    procedure PaintTo(Dest: TBitmap32; DestRect: TRect);
+    procedure PaintTo(Dest: TBitmap32; DestRect: TRect); virtual;
     procedure Resize; override;
-    procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000);
+    procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
     property Canvas;
@@ -313,7 +319,9 @@ type
     property OffsetHorz: Single read FOffsetHorz write SetOffsetHorz;
     property OffsetVert: Single read FOffsetVert write SetOffsetVert;
     property PaintStages: TPaintStages read FPaintStages;
-    property Scale: Single read FScale write SetScale;
+    property Scale: Single read FScaleX write SetScale;
+    property ScaleX: Single read FScaleX write SetScaleX;
+    property ScaleY: Single read FScaleY write SetScaleY;
     property ScaleMode: TScaleMode read FScaleMode write SetScaleMode;
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
@@ -323,6 +331,7 @@ type
     property OnMouseMove: TImgMouseMoveEvent read FOnMouseMove write FOnMouseMove;
     property OnMouseUp: TImgMouseEvent read FOnMouseUp write FOnMouseUp;
     property OnPaintStage: TPaintStageEvent read FOnPaintStage write FOnPaintStage;
+    property OnScaleChange: TNotifyEvent read FOnScaleChange write FOnScaleChange;
   end;
 
   TImage32 = class(TCustomImage32)
@@ -1109,7 +1118,9 @@ procedure TCustomImage32.BitmapResized;
 {$IFNDEF CLX}
 var
   W, H: Integer;
+{$ENDIF}
 begin
+{$IFNDEF CLX}
   if AutoSize then
   begin
     W := Bitmap.Width;
@@ -1121,12 +1132,15 @@ begin
     end;
     if AutoSize and (W > 0) and (H > 0) then SetBounds(Left, Top, W, H);
   end;
-{$ELSE}
-begin
 {$ENDIF}
   if (FUpdateCount <> 0) and Assigned(FOnBitmapResize) then FOnBitmapResize(Self);
   InvalidateCache;
   ForceFullInvalidate;
+end;
+
+procedure TCustomImage32.BitmapChanged(const Area: TRect);
+begin
+  Changed;
 end;
 
 function TCustomImage32.BitmapToControl(const APoint: TPoint): TPoint;
@@ -1171,15 +1185,23 @@ begin
   end;
 end;
 
-procedure TCustomImage32.ChangedHandler(Sender: TObject);
+procedure TCustomImage32.BitmapResizeHandler(Sender: TObject);
 begin
-  if Sender = FBitmap then
-    FRepaintOptimizer.Reset;
-
-  Changed;
+{$IFDEF CLX}
+  // workaround to stop CLX from calling BitmapResized and to prevent
+  // AV when accessing Layers. Layers is already freed at that time
+  if not(csDestroying in ComponentState) then
+{$ENDIF}
+  BitmapResized;
 end;
 
-procedure TCustomImage32.BitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+procedure TCustomImage32.BitmapChangeHandler(Sender: TObject);
+begin
+  FRepaintOptimizer.Reset;
+  BitmapChanged(Bitmap.Boundsrect);
+end;
+
+procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -1211,10 +1233,10 @@ begin
     end;
   end;
 
-  Changed;
+  BitmapChanged(Area);
 end;
 
-procedure TCustomImage32.DirectBitmapAreaChangedHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -1253,6 +1275,30 @@ begin
   end;
 end;
 
+procedure TCustomImage32.LayerCollectionChangeHandler(Sender: TObject);
+begin
+  Changed;
+end;
+
+procedure TCustomImage32.LayerCollectionGDIUpdateHandler(Sender: TObject);
+begin
+  Paint;
+end;
+
+procedure TCustomImage32.LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
+begin
+  UpdateCache;
+  ScaleX := CachedXForm.ScaleX / FixedOne;
+  ScaleY := CachedXForm.ScaleY / FixedOne;
+end;
+
+procedure TCustomImage32.LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
+begin
+  UpdateCache;
+  ShiftX := CachedXForm.ShiftX;
+  ShiftY := CachedXForm.ShiftY;
+end;
+
 function TCustomImage32.ControlToBitmap(const APoint: TPoint): TPoint;
 begin
   // convert point coords from control's ref. frame to bitmap's ref. frame
@@ -1271,7 +1317,7 @@ begin
   ControlStyle := [csAcceptsControls, csCaptureMouse, csClickEvents,
     csDoubleClicks, csReplicatable, csOpaque];
   FBitmap := TBitmap32.Create;
-  FBitmap.OnResize := ResizedHandler;
+  FBitmap.OnResize := BitmapResizeHandler;
 
   FLayers := TLayerCollection.Create(Self);
   with TLayerCollectionAccess(FLayers) do
@@ -1279,17 +1325,18 @@ begin
 {$IFDEF DEPRECATEDMODE}
     CoordXForm := @CachedXForm;
 {$ENDIF}
-    OnChange := ChangedHandler;
-    OnGDIUpdate := GDIUpdateHandler;
-    OnGetViewportScale := GetViewportScaleHandler;
-    OnGetViewportShift := GetViewportShiftHandler;
+    OnChange := LayerCollectionChangeHandler;
+    OnGDIUpdate := LayerCollectionGDIUpdateHandler;
+    OnGetViewportScale := LayerCollectionGetViewportScaleHandler;
+    OnGetViewportShift := LayerCollectionGetViewportShiftHandler;
   end;
 
   FRepaintOptimizer.RegisterLayerCollection(FLayers);
   RepaintMode := rmFull;
 
   FPaintStages := TPaintStages.Create;
-  FScale := 1.0;
+  FScaleX := 1.0;
+  FScaleY := 1.0;
   InitDefaultStages;
 end;
 
@@ -1386,6 +1433,7 @@ end;
 procedure TCustomImage32.DoScaleChange;
 begin
   if FRepaintOptimizer.Enabled then FRepaintOptimizer.Reset;
+  if Assigned(FOnScaleChange) then FOnScaleChange(Self);  
 end;
 
 procedure TCustomImage32.EndUpdate;
@@ -1477,11 +1525,6 @@ begin
       TLayerAccess(Layers.Items[I]).DoPaint(Dest);
 end;
 
-procedure TCustomImage32.GDIUpdateHandler(Sender: TObject);
-begin
-  Paint;
-end;
-
 function TCustomImage32.GetBitmapRect: TRect;
 var
   Size: TSize;
@@ -1512,7 +1555,7 @@ function TCustomImage32.GetBitmapSize: TSize;
 var
   Mode: TScaleMode;
   ViewportWidth, ViewportHeight: Integer;
-  ScaleX, ScaleY: Single;
+  RScaleX, RScaleY: Single;
 begin
   with Result do
   begin
@@ -1561,23 +1604,23 @@ begin
         begin
           Cx := Bitmap.Width;
           Cy := Bitmap.Height;
-          ScaleX := ViewportWidth / Cx;
-          ScaleY := ViewportHeight / Cy;
-          if ScaleX >= ScaleY then
+          RScaleX := ViewportWidth / Cx;
+          RScaleY := ViewportHeight / Cy;
+          if RScaleX >= RScaleY then
           begin
-            Cx := Round(Cx * ScaleY);
+            Cx := Round(Cx * RScaleY);
             Cy := ViewportHeight;
           end
           else
           begin
             Cx := ViewportWidth;
-            Cy := Round(Cy * ScaleX);
+            Cy := Round(Cy * RScaleX);
           end;
         end;
     else // smScale
       begin
-        Cx := Round(Bitmap.Width * Scale);
-        Cy := Round(Bitmap.Height * Scale);
+        Cx := Round(Bitmap.Width * ScaleX);
+        Cy := Round(Bitmap.Height * ScaleY);
       end;
     end;
     if Cx <= 0 then Cx := 0;
@@ -1588,20 +1631,6 @@ end;
 function TCustomImage32.GetOnPixelCombine: TPixelCombineEvent;
 begin
   Result := FBitmap.OnPixelCombine;
-end;
-
-procedure TCustomImage32.GetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
-begin
-  UpdateCache;
-  ScaleX := CachedXForm.ScaleX / FixedOne;
-  ScaleY := CachedXForm.ScaleY / FixedOne;
-end;
-
-procedure TCustomImage32.GetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
-begin
-  UpdateCache;
-  ShiftX := CachedXForm.ShiftX;
-  ShiftY := CachedXForm.ShiftY;
 end;
 
 procedure TCustomImage32.InitDefaultStages;
@@ -1754,8 +1783,12 @@ end;
 
 procedure TCustomImage32.PaintTo(Dest: TBitmap32; DestRect: TRect);
 var
+  OldRepaintMode: TRepaintMode;
   I: Integer;
 begin
+  OldRepaintMode := RepaintMode;
+  RepaintMode := rmFull;
+
   CachedBitmapRect := DestRect;
 
   with CachedBitmapRect, CachedXForm do
@@ -1792,22 +1825,14 @@ begin
     PaintToMode := False;
   end;
   CacheValid := False;
+
+  RepaintMode := OldRepaintMode;
 end;
 
 procedure TCustomImage32.Resize;
 begin
   InvalidateCache;
   inherited;
-end;
-
-procedure TCustomImage32.ResizedHandler(Sender: TObject);
-begin
-{$IFDEF CLX}
-  // workaround to stop CLX from calling BitmapResized and to prevent
-  // AV when accessing Layers. Layers is already freed at that time
-  if not(csDestroying in ComponentState) then
-{$ENDIF}
-  BitmapResized;
 end;
 
 procedure TCustomImage32.SetBitmap(Value: TBitmap32);
@@ -1857,10 +1882,35 @@ end;
 procedure TCustomImage32.SetScale(Value: Single);
 begin
   if Value < 0.001 then Value := 0.001;
-  if Value <> FScale then
+  if Value <> FScaleX then
   begin
     InvalidateCache;
-    FScale := Value;
+    FScaleX := Value;
+    FScaleY := Value;
+    DoScaleChange;
+    Changed;
+  end;
+end;
+
+procedure TCustomImage32.SetScaleX(Value: Single);
+begin
+  if Value < 0.001 then Value := 0.001;
+  if Value <> FScaleX then
+  begin
+    InvalidateCache;
+    FScaleX := Value;
+    DoScaleChange;
+    Changed;
+  end;
+end;
+
+procedure TCustomImage32.SetScaleY(Value: Single);
+begin
+  if Value < 0.001 then Value := 0.001;
+  if Value <> FScaleY then
+  begin
+    InvalidateCache;
+    FScaleY := Value;
     DoScaleChange;
     Changed;
   end;
@@ -1922,17 +1972,17 @@ begin
   case Value of
     rmOptimizer:
       begin
-        FBitmap.OnAreaChanged := BitmapAreaChangedHandler;
+        FBitmap.OnAreaChanged := BitmapAreaChangeHandler;
         FBitmap.OnChange := nil;
       end;
     rmDirect:
       begin
-        FBitmap.OnAreaChanged := DirectBitmapAreaChangedHandler;
+        FBitmap.OnAreaChanged := BitmapDirectAreaChangeHandler;
         FBitmap.OnChange := nil;
       end;
   else
     FBitmap.OnAreaChanged := nil;
-    FBitmap.OnChange := ChangedHandler;
+    FBitmap.OnChange := BitmapChangeHandler;
   end;
 end;
 
