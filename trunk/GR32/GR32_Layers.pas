@@ -1342,7 +1342,7 @@ var
 begin
   L := High(Value) + 1;
   SetLength(FFrameStipplePattern, L);
-  Move(Value[0], FFrameStipplePattern[0], L shl 2);
+  MoveLongword(Value[0], FFrameStipplePattern[0], L);
 end;
 
 procedure TRubberbandLayer.SetFrameStippleStep(const Value: Single);

@@ -1662,13 +1662,9 @@ begin
     begin
       SetSize(TBitmap32(Source).Width, TBitmap32(Source).Height);
       if Empty then Exit;
-{$IFDEF CLX}
-      Move(TBitmap32(Source).Bits[0], Bits[0], Width * Height * 4);
-{$ELSE}
-      BitBlt(Handle, 0, 0, Width, Height, TBitmap32(Source).Handle, 0, 0, SRCCOPY);
-      //Move(TBitmap32(Source).Bits[0], Bits[0], Width * Height * 4);
-      // Move is up to 2x faster with FastMove by the FastCode Project
-{$ENDIF}
+
+      MoveLongword(TBitmap32(Source).Bits[0], Bits[0], Width * Height);
+
       FDrawMode := TBitmap32(Source).FDrawMode;
       FMasterAlpha := TBitmap32(Source).FMasterAlpha;
       FOuterColor := TBitmap32(Source).FOuterColor;
@@ -2356,7 +2352,7 @@ begin
   FStippleCounter := 0;
   L := High(NewStipple) + 1;
   SetLength(FStipplePattern, L);
-  Move(NewStipple[0], FStipplePattern[0], L shl 2);
+  MoveLongword(NewStipple[0], FStipplePattern[0], L);
 end;
 
 procedure TBitmap32.AdvanceStippleCounter(LengthPixels: Single);
@@ -4815,9 +4811,11 @@ begin
   end;
 
   Shift := Dx + Dy * Width;
-  L := (Width * Height - Abs(Shift)) shl 2;
-  if Shift > 0 then Move(Bits[0], Bits[Shift], L)
-  else Move(Bits[-Shift], Bits[0], L);
+  L := (Width * Height - Abs(Shift));
+  if Shift > 0 then
+    MoveLongword(Bits[0], Bits[Shift], L)
+  else
+    MoveLongword(Bits[-Shift], Bits[0], L);
 
   if FillBack then
   begin
