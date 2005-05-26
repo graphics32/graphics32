@@ -148,7 +148,10 @@ end;
 
 procedure TForm1.cbUseResizeOptClick(Sender: TObject);
 begin
-  Image32.UseRepaintOptimizer := cbUseResizeOpt.Checked;
+  if cbUseResizeOpt.Checked then
+    Image32.RepaintMode := rmOptimizer
+  else
+    Image32.RepaintMode := rmFull;
 end;
 
 end.
