@@ -3222,7 +3222,7 @@ begin
        (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
        (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
     begin
-      LineX(X1, Y1, X2, Y2, Value);
+      LineX(X1, Y1, X2, Y2, Value, L);
       Exit;
     end;
 
@@ -3339,7 +3339,7 @@ begin
        (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right - $20000) and
        (Y2 > FFixedClipRect.Top) and (Y2 < FFixedClipRect.Bottom - $20000) then
     begin
-      LineXP(X1, Y1, X2, Y2);
+      LineXP(X1, Y1, X2, Y2, L);
       Exit;
     end;
 
