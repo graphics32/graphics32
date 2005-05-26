@@ -307,7 +307,10 @@ end;
 
 procedure TForm1.RepaintOptClick(Sender: TObject);
 begin
-  PaintBox.UseRepaintOptimizer := RepaintOpt.Checked;
+  if RepaintOpt.Checked then
+    PaintBox.RepaintMode := rmOptimizer
+  else
+    PaintBox.RepaintMode := rmFull;
 end;
 
 end.
