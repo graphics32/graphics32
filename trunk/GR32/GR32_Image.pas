@@ -1453,7 +1453,8 @@ var
   C: TColor32;
 begin
   C := Color32(Color);
-  if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then Dest.Clear(C)
+  if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
+    Dest.Clear(C)
   else
     with CachedBitmapRect do
     begin
