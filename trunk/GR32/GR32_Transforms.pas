@@ -825,7 +825,7 @@ var
   X, Y, Z: Single;
 begin
   EMMS;
-  X := DstX; Y := DstY;
+  X := DstX * FixedToFloat; Y := DstY * FixedToFloat;
   Z := FInverseMatrix[0,2] * X + FInverseMatrix[1,2] * Y + FInverseMatrix[2,2];
   if Z = 0 then Exit
   else if Z = 1 then
