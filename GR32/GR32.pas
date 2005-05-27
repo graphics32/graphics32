@@ -1599,7 +1599,10 @@ procedure TBitmap32.Clear(FillColor: TColor32);
 begin
   if Empty then Exit;
   if not MeasuringMode then
-    FillLongword(Bits[0], Width * Height, FillColor);
+    if Clipping then
+      FillRect(FClipRect.Left, FClipRect.Top, FClipRect.Right, FClipRect.Bottom, FillColor)
+    else
+      FillLongword(Bits[0], Width * Height, FillColor);
   Changed;
 end;
 
