@@ -50,7 +50,7 @@ type
 
 type
   TFloatMatrix = array[0..2, 0..2] of Single;     // 3x3 single precision
-  TIntegerMatrix = array[0..2, 0..2] of Integer;  // 3x3 whatever
+  TFixedMatrix = array[0..2, 0..2] of TFixed;     // 3x3 fixed precision
 
 const
   IdentityMatrix: TFloatMatrix = (
@@ -61,6 +61,10 @@ const
 type
   TVector3f = array[0..2] of Single;
   TVector3i = array[0..2] of Integer;
+
+// Matrix conversion routines
+function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix; overload;
+function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix; overload;
 
 procedure Adjoint(var M: TFloatMatrix);
 function Determinant(const M: TFloatMatrix): Single;
@@ -77,44 +81,30 @@ type
   protected
     TransformValid: Boolean;
     procedure PrepareTransform; virtual; abstract;
-
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); virtual; abstract; // only used in transform (draw) of bitmaps
-    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual; abstract;
-    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual; abstract;
-    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual; abstract;
-
-    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); virtual; abstract;
-    procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual; abstract;
-    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual; abstract;
+    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual;
+    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual;
+    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual;
+    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); virtual;
+    procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual;
+    procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual;
   public
-    function  GetTransformedBounds: TRect; virtual; abstract;
-
+    function  GetTransformedBounds: TRect; virtual;
     function  ReverseTransform(const P: TPoint): TPoint; overload; virtual;
     function  ReverseTransform(const P: TFixedPoint): TFixedPoint; overload; virtual;
     function  ReverseTransform(const P: TFloatPoint): TFloatPoint; overload; virtual;
-
     function  Transform(const P: TPoint): TPoint; overload; virtual;
     function  Transform(const P: TFixedPoint): TFixedPoint; overload; virtual;
     function  Transform(const P: TFloatPoint): TFloatPoint; overload; virtual;
-
     property SrcRect: TFloatRect read FSrcRect write SetSrcRect;
   end;
 
   TAffineTransformation = class(TTransformation)
   protected
     FInverseMatrix: TFloatMatrix;
-    FIntMatrix, FInverseIntMatrix: TIntegerMatrix;
-    FFixedMatrix, FInverseFixedMatrix: TIntegerMatrix;
-
+    FFixedMatrix, FInverseFixedMatrix: TFixedMatrix;
     procedure PrepareTransform; override;
-
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
-
-    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
-
-    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); override;
     procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); override;
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
   public
@@ -142,17 +132,10 @@ type
     procedure SetY3(Value: Single);
   protected
     FMatrix, FInverseMatrix: TFloatMatrix;
-    FIntMatrix, FInverseIntMatrix: TIntegerMatrix;
-    FFixedMatrix, FInverseFixedMatrix: TIntegerMatrix;
-
+    FFixedMatrix, FInverseFixedMatrix: TFixedMatrix;
     procedure PrepareTransform; override;
-
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
-    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
-
-    procedure TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer); override;
     procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); override;
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
   public
@@ -167,16 +150,7 @@ type
     property Y3: Single read Wy3 write SetY3;
   end;
 
-  TConformalTransformation = class(TTransformation)
-  protected
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
-    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
-    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
-  public
-    function  GetTransformedBounds: TRect; override;
-  end;
-
-  TTwirlTransformation = class(TConformalTransformation)
+  TTwirlTransformation = class(TTransformation)
   private
     Frx, Fry: Single;
     FTwirl: Single;
@@ -189,7 +163,7 @@ type
     property Twirl: Single read FTwirl write SetTwirl;
   end;
 
-  TBloatTransformation = class(TConformalTransformation)
+  TBloatTransformation = class(TTransformation)
   private
     FBloatPower: Single;
     FBP: Single;
@@ -202,7 +176,7 @@ type
     property BloatPower: Single read FBloatPower write SetBloatPower;
   end;
 
-  TDisturbanceTransformation = class(TConformalTransformation)
+  TDisturbanceTransformation = class(TTransformation)
   private
     Frx, Fry: Single;
     FDisturbance: Single;
@@ -214,7 +188,7 @@ type
     property Disturbance: Single read FDisturbance write SetDisturbance;
   end;
 
-  TFishEyeTransformation = class(TConformalTransformation)
+  TFishEyeTransformation = class(TTransformation)
   private
     Frx, Fry: Single;
     Faw, Fsr: Single;
@@ -336,7 +310,6 @@ begin
   Result[2] := M[0,2] * V[0] + M[1,2] * V[1] + M[2,2] * V[2];
 end;
 
-
 { Transformation functions }
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
@@ -429,8 +402,12 @@ begin
   end;
 end;
 
-
 { TTransformation }
+
+function TTransformation.GetTransformedBounds: TRect;
+begin
+  Result := MakeRect(FSrcRect);
+end;
 
 function TTransformation.ReverseTransform(const P: TFloatPoint): TFloatPoint;
 begin
@@ -450,12 +427,39 @@ begin
   ReverseTransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
+procedure TTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
+  out SrcX, SrcY: TFixed);
+var
+  X, Y: Single;
+begin
+  ReverseTransformFloat(DstX * FixedToFloat, DstY * FixedToFloat, X, Y);
+  SrcX := Fixed(X);
+  SrcY := Fixed(Y);
+end;
+
+procedure TTransformation.ReverseTransformFloat(DstX, DstY: Single;
+  out SrcX, SrcY: Single);
+begin
+// Dummy routine, ReverseTransformFloat is the top precisionlevel, all decendants must override at least this level!
+  SrcX := DstX;
+  SrcY := DstY;
+end;
+
+procedure TTransformation.ReverseTransformInt(DstX, DstY: Integer;
+  out SrcX, SrcY: Integer);
+var
+  X, Y: TFixed;
+begin
+  ReverseTransformFixed(DstX shl 16, DstY shl 16, X, Y);
+  SrcX := FixedRound(X);
+  SrcY := FixedRound(Y);
+end;
+
 procedure TTransformation.SetSrcRect(const Value: TFloatRect);
 begin
   FSrcRect := Value;
   TransformValid := False;
 end;
-
 
 function TTransformation.Transform(const P: TFloatPoint): TFloatPoint;
 begin
@@ -473,6 +477,34 @@ function TTransformation.Transform(const P: TPoint): TPoint;
 begin
   If not TransformValid then PrepareTransform;
   TransformInt(P.X, P.Y, Result.X, Result.Y);
+end;
+
+procedure TTransformation.TransformFixed(SrcX, SrcY: TFixed; out DstX,
+  DstY: TFixed);
+var
+  X, Y: Single;
+begin
+  ReverseTransformFloat(SrcX * FixedToFloat, SrcY * FixedToFloat, X, Y);
+  DstX := Fixed(X);
+  DstY := Fixed(Y);
+end;
+
+procedure TTransformation.TransformFloat(SrcX, SrcY: Single; out DstX,
+  DstY: Single);
+begin
+// Dummy routine, TransformFloat is the top precisionlevel, all decendants must override at least this level!
+  DstX := SrcX;
+  DstY := SrcY;
+end;
+
+procedure TTransformation.TransformInt(SrcX, SrcY: Integer; out DstX,
+  DstY: Integer);
+var
+  X, Y: TFixed;
+begin
+  TransformFixed(SrcX shl 16, SrcY shl 16, X, Y);
+  DstX := FixedRound(X);
+  DstY := FixedRound(Y);
 end;
 
 { TAffineTransformation }
@@ -511,35 +543,9 @@ begin
   FInverseMatrix := Matrix;
   Invert(FInverseMatrix);
 
-  // calculate a fixed point (4096) factors
-  FInverseIntMatrix[0,0] := Round(FInverseMatrix[0,0] * 4096);
-  FInverseIntMatrix[1,0] := Round(FInverseMatrix[1,0] * 4096);
-  FInverseIntMatrix[2,0] := Round(FInverseMatrix[2,0] * 4096);
-  FInverseIntMatrix[0,1] := Round(FInverseMatrix[0,1] * 4096);
-  FInverseIntMatrix[1,1] := Round(FInverseMatrix[1,1] * 4096);
-  FInverseIntMatrix[2,1] := Round(FInverseMatrix[2,1] * 4096);
-
-  FIntMatrix[0,0] := Round(Matrix[0,0] * 4096);
-  FIntMatrix[1,0] := Round(Matrix[1,0] * 4096);
-  FIntMatrix[2,0] := Round(Matrix[2,0] * 4096);
-  FIntMatrix[0,1] := Round(Matrix[0,1] * 4096);
-  FIntMatrix[1,1] := Round(Matrix[1,1] * 4096);
-  FIntMatrix[2,1] := Round(Matrix[2,1] * 4096);
-
   // calculate a fixed point (65536) factors
-  FInverseFixedMatrix[0,0] := Round(FInverseMatrix[0,0] * 65536);
-  FInverseFixedMatrix[1,0] := Round(FInverseMatrix[1,0] * 65536);
-  FInverseFixedMatrix[2,0] := Round(FInverseMatrix[2,0] * 65536);
-  FInverseFixedMatrix[0,1] := Round(FInverseMatrix[0,1] * 65536);
-  FInverseFixedMatrix[1,1] := Round(FInverseMatrix[1,1] * 65536);
-  FInverseFixedMatrix[2,1] := Round(FInverseMatrix[2,1] * 65536);
-
-  FFixedMatrix[0,0] := Round(Matrix[0,0] * 65536);
-  FFixedMatrix[1,0] := Round(Matrix[1,0] * 65536);
-  FFixedMatrix[2,0] := Round(Matrix[2,0] * 65536);
-  FFixedMatrix[0,1] := Round(Matrix[0,1] * 65536);
-  FFixedMatrix[1,1] := Round(Matrix[1,1] * 65536);
-  FFixedMatrix[2,1] := Round(Matrix[2,1] * 65536);
+  FInverseFixedMatrix := FixedMatrix(FInverseMatrix);
+  FFixedMatrix := FixedMatrix(Matrix);
 
   TransformValid := True;
 end;
@@ -582,14 +588,6 @@ begin
   Matrix := Mult(M, Matrix);
 end;
 
-procedure TAffineTransformation.ReverseTransformInt(
-  DstX, DstY: Integer;
-  out SrcX, SrcY: Integer);
-begin
-  SrcX := SAR_12(DstX * FInverseIntMatrix[0,0] + DstY * FInverseIntMatrix[1,0] + FInverseIntMatrix[2,0] + 2047);
-  SrcY := SAR_12(DstX * FInverseIntMatrix[0,1] + DstY * FInverseIntMatrix[1,1] + FInverseIntMatrix[2,1] + 2047);
-end;
-
 procedure TAffineTransformation.ReverseTransformFloat(
   DstX, DstY: Single;
   out SrcX, SrcY: Single);
@@ -604,22 +602,6 @@ procedure TAffineTransformation.ReverseTransformFixed(
 begin
   SrcX := FixedMul(DstX, FInverseFixedMatrix[0,0]) + FixedMul(DstY, FInverseFixedMatrix[1,0]) + FInverseFixedMatrix[2,0];
   SrcY := FixedMul(DstX, FInverseFixedMatrix[0,1]) + FixedMul(DstY, FInverseFixedMatrix[1,1]) + FInverseFixedMatrix[2,1];
-end;
-
-procedure TAffineTransformation.ReverseTransform256(
-  DstX, DstY: Integer;
-  out SrcX256, SrcY256: Integer);
-begin
-  SrcX256 := SAR_4(DstX * FInverseIntMatrix[0,0] + DstY * FInverseIntMatrix[1,0] + FInverseIntMatrix[2,0] + 7);
-  SrcY256 := SAR_4(DstX * FInverseIntMatrix[0,1] + DstY * FInverseIntMatrix[1,1] + FInverseIntMatrix[2,1] + 7);
-end;
-
-procedure TAffineTransformation.TransformInt(
-  SrcX, SrcY: Integer;
-  out DstX, DstY: Integer);
-begin
-  DstX := SAR_12(SrcX * FIntMatrix[0,0] + SrcY * FIntMatrix[1,0] + FIntMatrix[2,0] + 2047);
-  DstY := SAR_12(SrcX * FIntMatrix[0,1] + SrcY * FIntMatrix[1,1] + FIntMatrix[2,1] + 2047);
 end;
 
 procedure TAffineTransformation.TransformFloat(
@@ -729,6 +711,9 @@ begin
   FInverseMatrix := FMatrix;
   Invert(FInverseMatrix);
 
+  FInverseFixedMatrix := FixedMatrix(FInverseMatrix);
+  FFixedMatrix := FixedMatrix(FMatrix);
+
   TransformValid := True;
 end;
 
@@ -772,29 +757,6 @@ begin
   Wy3 := Value;  TransformValid := False;
 end;
 
-procedure TProjectiveTransformation.ReverseTransformInt(
-  DstX, DstY: Integer;
-  out SrcX, SrcY: Integer);
-var
-  X, Y, Z: Single;
-begin
-  EMMS;
-  X := DstX; Y := DstY;
-  Z := FInverseMatrix[0,2] * X + FInverseMatrix[1,2] * Y + FInverseMatrix[2,2];
-  if Z = 0 then Exit
-  else if Z = 1 then
-  begin
-    SrcX := Round(FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]);
-    SrcY := Round(FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]);
-  end
-  else
-  begin
-    Z := 1 / Z;
-    SrcX := Round((FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]) * Z);
-    SrcY := Round((FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]) * Z);
-  end;
-end;
-
 procedure TProjectiveTransformation.ReverseTransformFloat(
   DstX, DstY: Single;
   out SrcX, SrcY: Single);
@@ -804,6 +766,7 @@ begin
   EMMS;
   X := DstX; Y := DstY;
   Z := FInverseMatrix[0,2] * X + FInverseMatrix[1,2] * Y + FInverseMatrix[2,2];
+
   if Z = 0 then Exit
   else if Z = 1 then
   begin
@@ -818,78 +781,66 @@ begin
   end;
 end;
 
-procedure TProjectiveTransformation.ReverseTransformFixed(
-  DstX, DstY: TFixed;
+procedure TProjectiveTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
   out SrcX, SrcY: TFixed);
 var
-  X, Y, Z: Single;
+  Z: TFixed;
+  Zf: Single;
 begin
-  EMMS;
-  X := DstX * FixedToFloat; Y := DstY * FixedToFloat;
-  Z := FInverseMatrix[0,2] * X + FInverseMatrix[1,2] * Y + FInverseMatrix[2,2];
-  if Z = 0 then Exit
-  else if Z = 1 then
-  begin
-    SrcX := Round((FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]) * 65536);
-    SrcY := Round((FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]) * 65536);
-  end
-  else
-  begin
-    Z := 1 / Z;
-    SrcX := Round(((FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]) * Z) * 65536);
-    SrcY := Round(((FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]) * Z) * 65536);
-  end;
-end;
+  Z := FixedMul(FInverseFixedMatrix[0,2], DstX) +
+       FixedMul(FInverseFixedMatrix[1,2], DstY) +
+       FInverseFixedMatrix[2,2];
 
-procedure TProjectiveTransformation.ReverseTransform256(
-  DstX, DstY: Integer;
-  out SrcX256, SrcY256: Integer);
-var
-  X, Y, Z: Single;
-begin
-  EMMS;
-  X := DstX; Y := DstY;
-  Z := FInverseMatrix[0,2] * X + FInverseMatrix[1,2] * Y + FInverseMatrix[2,2];
-  if Z = 0 then Exit
-  else if Z = 1 then
+  if Z = 0 then Exit;
+
+  SrcX := FixedMul(FInverseFixedMatrix[0,0], DstX) +
+          FixedMul(FInverseFixedMatrix[1,0], DstY) +
+          FInverseFixedMatrix[2,0];
+
+  SrcY := FixedMul(FInverseFixedMatrix[0,1], DstX) +
+          FixedMul(FInverseFixedMatrix[1,1], DstY) +
+          FInverseFixedMatrix[2,1];
+
+  if Z <> FixedOne then
   begin
-    SrcX256 := Round(256 * (FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]));
-    SrcY256 := Round(256 * (FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]));
-  end
-  else
-  begin
-    Z := 1 / Z;
-    SrcX256 := Round(256 * (FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]) * Z);
-    SrcY256 := Round(256 * (FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]) * Z);
+    EMMS;
+    Zf := FixedOne / Z;
+    SrcX := Round(SrcX * Zf);
+    SrcY := Round(SrcY * Zf);
   end;
 end;
 
 
-procedure TProjectiveTransformation.TransformFixed(
-  SrcX, SrcY: TFixed;
+procedure TProjectiveTransformation.TransformFixed(SrcX, SrcY: TFixed;
   out DstX, DstY: TFixed);
 var
-  X, Y, Z: Single;
+  Z: TFixed;
+  Zf: Single;
 begin
-  EMMS;
-  X := DstX; Y := DstY;
-  Z := FMatrix[0,2] * X + FMatrix[1,2] * Y + FMatrix[2,2];
-  if Z = 0 then Exit
-  else if Z = 1 then
+  Z := FixedMul(FFixedMatrix[0,2], SrcX) +
+       FixedMul(FFixedMatrix[1,2], SrcY) +
+       FFixedMatrix[2,2];
+
+  if Z = 0 then Exit;
+
+  DstX := FixedMul(FFixedMatrix[0,0], SrcX) +
+          FixedMul(FFixedMatrix[1,0], SrcY) +
+          FFixedMatrix[2,0];
+
+  DstY := FixedMul(FFixedMatrix[0,1], SrcX) +
+          FixedMul(FFixedMatrix[1,1], SrcY) +
+          FFixedMatrix[2,1];
+
+  if Z <> FixedOne then
   begin
-    DstX := Round((FMatrix[0,0] * X + FMatrix[1,0] * Y + FMatrix[2,0]) * 65536);
-    DstY := Round((FMatrix[0,1] * X + FMatrix[1,1] * Y + FMatrix[2,1]) * 65536);
-  end
-  else
-  begin
-    Z := 1 / Z;
-    DstX := Round(((FMatrix[0,0] * X + FMatrix[1,0] * Y + FMatrix[2,0]) * Z) * 65536);
-    DstY := Round(((FMatrix[0,1] * X + FMatrix[1,1] * Y + FMatrix[2,1]) * Z) * 65536);
+    EMMS;
+    Zf := FixedOne / Z;
+    DstX := Round(DstX * Zf);
+    DstY := Round(DstY * Zf);
   end;
 end;
 
-procedure TProjectiveTransformation.TransformFloat(
-  SrcX, SrcY: Single;
+procedure TProjectiveTransformation.TransformFloat(SrcX, SrcY: Single;
   out DstX, DstY: Single);
 var
   X, Y, Z: Single;
@@ -909,70 +860,6 @@ begin
     DstX := (FMatrix[0,0] * X + FMatrix[1,0] * Y + FMatrix[2,0]) * Z;
     DstY := (FMatrix[0,1] * X + FMatrix[1,1] * Y + FMatrix[2,1]) * Z;
   end;
-end;
-
-procedure TProjectiveTransformation.TransformInt(
-  SrcX, SrcY: Integer;
-  out DstX, DstY: Integer);
-var
-  X, Y, Z: Single;
-begin
-  EMMS;
-  X := DstX; Y := DstY;
-  Z := FInverseMatrix[0,2] * X + FInverseMatrix[1,2] * Y + FInverseMatrix[2,2];
-  if Z = 0 then Exit
-  else if Z = 1 then
-  begin
-    DstX := Round(FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]);
-    DstY := Round(FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]);
-  end
-  else
-  begin
-    Z := 1 / Z;
-    DstX := Round((FInverseMatrix[0,0] * X + FInverseMatrix[1,0] * Y + FInverseMatrix[2,0]) * Z);
-    DstY := Round((FInverseMatrix[0,1] * X + FInverseMatrix[1,1] * Y + FInverseMatrix[2,1]) * Z);
-  end;
-end;
-
-
-{ TConformalTransformation }
-
-function TConformalTransformation.GetTransformedBounds: TRect;
-begin
-  Result := MakeRect(FSrcRect);
-end;
-
-procedure TConformalTransformation.ReverseTransform256(DstX, DstY: Integer;
-  out SrcX256, SrcY256: Integer);
-var
-  X, Y: Single;
-begin
-  EMMS;
-  ReverseTransformFloat(DstX, DstY, X, Y);
-  SrcX256 := Round(X * 256);
-  SrcY256 := Round(Y * 256);
-end;
-
-procedure TConformalTransformation.ReverseTransformFixed(DstX,
-  DstY: TFixed; out SrcX, SrcY: TFixed);
-var
-  X, Y: Single;
-begin
-  EMMS;
-  ReverseTransformFloat(DstX * FixedToFloat, DstY * FixedToFloat, X, Y);
-  SrcX := Fixed(X);
-  SrcY := Fixed(Y);
-end;
-
-procedure TConformalTransformation.ReverseTransformInt(DstX, DstY: Integer;
-  out SrcX, SrcY: Integer);
-var
-  X, Y: Single;
-begin
-  EMMS;
-  ReverseTransformFloat(DstX, DstY, X, Y);
-  SrcX := Round(X);
-  SrcY := Round(Y);
 end;
 
 { TTwirlTransformation }
@@ -1058,7 +945,6 @@ begin
   TransformValid := False;
 end;
 
-
 { TFishEyeTransformation }
 
 procedure TFishEyeTransformation.PrepareTransform;
@@ -1128,6 +1014,34 @@ end;
 procedure TDisturbanceTransformation.SetDisturbance(const Value: Single);
 begin
   FDisturbance := Value;
+end;
+
+{ Matrix conversion routines }
+
+function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix;
+begin
+  Result[0,0] := Round(FloatMatrix[0,0] * FixedOne);
+  Result[0,1] := Round(FloatMatrix[0,1] * FixedOne);
+  Result[0,2] := Round(FloatMatrix[0,2] * FixedOne);
+  Result[1,0] := Round(FloatMatrix[1,0] * FixedOne);
+  Result[1,1] := Round(FloatMatrix[1,1] * FixedOne);
+  Result[1,2] := Round(FloatMatrix[1,2] * FixedOne);
+  Result[2,0] := Round(FloatMatrix[2,0] * FixedOne);
+  Result[2,1] := Round(FloatMatrix[2,1] * FixedOne);
+  Result[2,2] := Round(FloatMatrix[2,2] * FixedOne);
+end;
+
+function FloatMatrix(const FixedMatrix: TFixedMatrix): TFloatMatrix;
+begin
+  Result[0,0] := FixedMatrix[0,0] * FixedToFloat;
+  Result[0,1] := FixedMatrix[0,1] * FixedToFloat;
+  Result[0,2] := FixedMatrix[0,2] * FixedToFloat;
+  Result[1,0] := FixedMatrix[1,0] * FixedToFloat;
+  Result[1,1] := FixedMatrix[1,1] * FixedToFloat;
+  Result[1,2] := FixedMatrix[1,2] * FixedToFloat;
+  Result[2,0] := FixedMatrix[2,0] * FixedToFloat;
+  Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
+  Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
 end;
 
 end.
