@@ -1142,7 +1142,7 @@ begin
       Bitmap.EndUpdate;
     end;
   end;
-  Bitmap.Changed(MakeRect(PolygonBounds(Points)));
+  Bitmap.Changed(MakeRect(PolygonBounds(Points), rrOutside));
 end;
 
 procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
@@ -1233,7 +1233,7 @@ begin
       Bitmap.EndUpdate;
     end;
   end;
-  Bitmap.Changed(MakeRect(PolygonBounds(Points)));
+  Bitmap.Changed(MakeRect(PolygonBounds(Points), rrOutside));
 end;
 
 procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
@@ -1331,7 +1331,7 @@ begin
       Bitmap.EndUpdate;
     end;
   end;
-  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points)));
+  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points), rrOutside));
 end;
 
 procedure PolyPolygonTS(Bitmap: TBitmap32;
@@ -1441,7 +1441,7 @@ begin
       Bitmap.EndUpdate;
     end;
   end;
-  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points)));
+  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points), rrOutside));
 end;
 
 procedure PolyPolygonXS(Bitmap: TBitmap32;
