@@ -713,7 +713,6 @@ begin
       2: Buffer.FrameRectS(R , $FF000000); //Draw Frame
     end;
     EndUpdate;
-    Invalidate;
   end;
 end;
 
