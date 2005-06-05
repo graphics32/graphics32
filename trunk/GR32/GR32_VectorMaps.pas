@@ -177,6 +177,12 @@ var
 
 type
 
+  { TReplacementVectorCombiner }
+  TReplacementVectorCombiner = class(TCustomVectorCombiner)
+  public
+    procedure CombineFloat(const F, P: TFloatPoint; var B: TFloatPoint); override;
+  end;
+
   { TAdditionVectorCombiner }
   TAdditionVectorCombiner = class(TCustomVectorCombiner)
   public
@@ -239,7 +245,7 @@ type
 
     procedure Clear;
     procedure Merge(DstLeft, DstTop: Integer; Src: TTransformationMap;
-      SrcRect: TRect);
+      SrcRect: TRect);  
 
     property Bits: PFixedPointArray read GetBits;
     function BoundsRect: TRect;
@@ -293,7 +299,7 @@ type
     procedure SetOffset(const Value: TFloatpoint);
   protected
     procedure PrepareTransform; override;
-    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
+//    procedure ReverseTransform256(DstX, DstY: Integer; out SrcX256, SrcY256: Integer); override;
     procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
@@ -796,6 +802,24 @@ end;
 
 procedure TRemapTransformation.RenderTransformation(
   Transformation: TTransformation; DstRect: TRect);
+
+ function FitPoint(P: TFixedPoint): TFixedPoint;
+ begin
+    Dec(P.X, OffsetFixed.X);
+    P.X := P.X - DstTranslationFixed.X;
+    P.X := FixedMul(P.X , DstScaleFixed.X);
+    P.X := P.X + FixedMul(P.X, ScalingFixed.X);
+    P.X := FixedMul(P.X, SrcScaleFixed.X);
+    Result.X := P.X + SrcTranslationFixed.X;
+
+    Dec(P.Y, OffsetFixed.Y);
+    P.Y := P.Y - DstTranslationFixed.Y;
+    P.Y := FixedMul(P.Y , DstScaleFixed.Y);
+    P.Y := P.Y + FixedMul(P.Y, ScalingFixed.Y);
+    P.Y := FixedMul(P.Y, SrcScaleFixed.Y);
+    Result.Y := P.Y + SrcTranslationFixed.Y;
+ end;
+
 var
   I, J: Integer;
   P, Q, Progression: TFixedPoint;
@@ -809,8 +833,8 @@ begin
   if not TTransformationAccess(Transformation).TransformValid then
     TTransformationAccess(Transformation).PrepareTransform;
 
-  ProgressionX := Fixed(2 / (DstRect.Right - DstRect.Left - 1));
-  ProgressionY := Fixed(2 / (DstRect.Bottom - DstRect.Top - 1));
+  ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
+  ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
 
   with TransformationMap.VectorCombiner do
   begin
@@ -818,15 +842,17 @@ begin
     if not CombineValid then PrepareCombine(FloatRect(DstRect));
   end;
 
-  Progression.Y := - FixedOne;
+  Progression.Y := 0;
   with DstRect do for I := Top to Bottom do
   begin
-    Progression.X := - FixedOne;
+    Progression.X := 0;
     MapPtr := @TransformationMap.GetBits[I * TransformationMap.Width];
     for J := Left to Right do
     begin
       //Subtract loop vars to ensure correct transformation output
       P := FixedPoint(J - Left, I - Top);
+//      P := FitPoint(P);
+
       Q := Transformation.ReverseTransform(P);
       //Make the transformed vector relative
       Q.X := Q.X - P.X;
@@ -840,7 +866,7 @@ begin
   TransformValid := False;
 end;
 
-procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
+{procedure TRemapTransformation.ReverseTransform256(DstX, DstY: Integer;
   out SrcX256, SrcY256: Integer);
 begin
   with TransformationMap.FixedPointMap[DstX - OffsetInt.X, DstY - OffsetInt.Y] do
@@ -861,7 +887,7 @@ begin
     SrcX256 := SAR_8(DstX + $7F);
     SrcY256 := SAR_8(DstY + $7F);
   end;
-end;
+end;  }
 
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
   out SrcX, SrcY: TFixed);
@@ -869,16 +895,15 @@ begin
   with TransformationMap.FixedPointMapX[DstX - OffsetFixed.X, DstY - OffsetFixed.Y] do
   begin
     DstX := DstX - DstTranslationFixed.X;
-    DstY := DstY - DstTranslationFixed.Y;
     DstX := FixedMul(DstX , DstScaleFixed.X);
-    DstY := FixedMul(DstY , DstScaleFixed.Y);
-
     DstX := DstX + FixedMul(X, ScalingFixed.X);
-    DstY := DstY + FixedMul(Y, ScalingFixed.Y);
-
     DstX := FixedMul(DstX, SrcScaleFixed.X);
-    DstY := FixedMul(DstY, SrcScaleFixed.Y);
     SrcX := DstX + SrcTranslationFixed.X;
+
+    DstY := DstY - DstTranslationFixed.Y;
+    DstY := FixedMul(DstY , DstScaleFixed.Y);
+    DstY := DstY + FixedMul(Y, ScalingFixed.Y);
+    DstY := FixedMul(DstY, SrcScaleFixed.Y);
     SrcY := DstY + SrcTranslationFixed.Y;
   end;
 end;
@@ -1242,9 +1267,26 @@ begin
   Result := Round(FStepCount * Value) * Scaler;
 end;
 
+{ TReplacementVectorCombiner }
+
+procedure TReplacementVectorCombiner.CombineFloat(const F, P: TFloatPoint;
+  var B: TFloatPoint);
+var
+  W: Single;
+begin
+  with Contour do
+    W := EnsureRange(ContourValueFloat(1 - Abs(P.X)), 0, 1) *
+         EnsureRange(ContourValueFloat(1 - Abs(P.Y)), 0, 1) *
+         FMasterWeight;
+
+  B.X := F.X * W;
+  B.Y := F.Y * W;
+end;
+
 initialization
   { Register VectorCombiners }
   VectorCombinerList := TClassList.Create;
+  VectorCombinerList.Add(TReplacementVectorCombiner);
   VectorCombinerList.Add(TAdditionVectorCombiner);
   VectorCombinerList.Add(TSubtractionVectorCombiner);
   VectorCombinerList.Add(TMultiplicationVectorCombiner);
