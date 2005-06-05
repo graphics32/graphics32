@@ -103,8 +103,11 @@ type
     sbAlpha: TGaugeBar;
     sbFx: TGaugeBar;
     sbFy: TGaugeBar;
-    ResamplerClassNamesList: TListBox;
     CheckBox1: TCheckBox;
+    ResamplerLabel: TLabel;
+    ResamplerClassNamesList: TComboBox;
+    KernelLabel: TLabel;
+    KernelClassNamesList: TComboBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ListBoxClick(Sender: TObject);
@@ -134,6 +137,10 @@ type
     procedure AppEventsIdle(Sender: TObject; var Done: Boolean);
     procedure ResamplerClassNamesListClick(Sender: TObject);
     procedure CheckBox1Click(Sender: TObject);
+    procedure ResamplerClassNamesListChange(Sender: TObject);
+    procedure KernelClassNamesListChange(Sender: TObject);
+    procedure DstPaintStage(Sender: TObject; Buffer: TBitmap32;
+      StageNum: Cardinal);
   protected
     LoadingValues: Boolean;
     DraggedVertex: Integer;
@@ -174,7 +181,39 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  ResamplerClassNamesList.Items:= GetResamplerClassNames;
+  //Setup custom paintstages ("checkerboard" and border)
+  with Dst do
+  begin
+    with PaintStages[0]^ do //Set up custom paintstage to draw checkerboard
+    begin
+      Stage := PST_CUSTOM;
+      Parameter := 1; // use parameter to tag the stage, we inspect this in OnPaintStage
+    end;
+    with PaintStages.Add^ do  //Insert new paintstage on top of everything else, we use this to draw border
+    begin
+      Stage := PST_CUSTOM;
+      Parameter := 2;
+    end;
+  end;
+
+  with Src do
+  begin
+    with PaintStages[0]^ do
+    begin
+      Stage := PST_CUSTOM;
+      Parameter := 1;
+    end;
+    with PaintStages.Add^ do
+    begin
+      Stage := PST_CUSTOM;
+      Parameter := 2;
+    end;
+  end;
+
+  ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
+  KernelList.GetClassNames(KernelClassNamesList.Items);
+  ResamplerClassNamesList.ItemIndex := 0;
+  KernelClassNamesList.ItemIndex := 0;
 
   SrcRubberBandLayer := TRubberBandLayer.Create(Src.Layers);
   SrcRubberBandLayer.OnResizing := SrcRBResizingEvent;
@@ -221,25 +260,15 @@ end;
 procedure TForm1.DoTransform;
 var
   i, j: Integer;
-  P: PColor32;
 begin
-//  Application.ProcessMessages;
   GenTransform;
   Dst.BeginUpdate;
 
-  // Fill Dst with checkerboard pattern
-  P := Dst.Bitmap.PixelPtr[0, 0];
-  for j := 0 to Dst.Bitmap.Height - 1 do
-    for i := 0 to Dst.Bitmap.Width - 1 do
-    begin
-      if Odd(i shr 4) = Odd(j shr 4) then P^ := clGray32
-      else P^ := clWhite32;
-      Inc(P);
-    end;
-
+  Dst.Bitmap.Clear($00000000);
   Transform(Dst.Bitmap, Src.Bitmap, TT);
+
   Dst.EndUpdate;
-  Dst.Repaint;
+  Dst.Invalidate;
 
   if Mode = tmAffine then
   begin
@@ -257,8 +286,6 @@ var
   Rec: TOpRec;
   S: string;
 begin
-  TT.SrcRect := SrcRubberBandLayer.Location;
-
   if Mode = tmProjective then
   begin
     PT.X0 := Vertices[0].X;
@@ -293,6 +320,7 @@ begin
     if Length(s) = 0 then s := 'Clear;';
     CodeString.Text := s;
   end;
+  TT.SrcRect := SrcRubberBandLayer.Location;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -487,7 +515,9 @@ begin
     Mode := tmAffine;
     TT := AT;
     ResamplerClassNamesList.Parent := TabSheet1;
-    ResamplerClassNamesList.Height := 100;
+    ResamplerLabel.Parent := TabSheet1;
+    KernelClassNamesList.Parent := TabSheet1;
+    KernelLabel.Parent := TabSheet1;
   end
   else {if PageControl1.ActivePage = TabSheet2 then }
   begin
@@ -496,7 +526,9 @@ begin
     TT := PT;
     InitVertices;
     ResamplerClassNamesList.Parent := TabSheet2;
-    ResamplerClassNamesList.Height := 200;
+    ResamplerLabel.Parent := TabSheet2;
+    KernelClassNamesList.Parent := TabSheet2;
+    KernelLabel.Parent := TabSheet2;
   end;
   DoTransform;
 end;
@@ -617,8 +649,72 @@ procedure TForm1.SrcRBResizingEvent(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
   DragState: TDragState; Shift: TShiftState);
 begin
-  Src.Repaint;
+  Src.Invalidate;
   DoTransform;
+end;
+
+procedure TForm1.ResamplerClassNamesListChange(Sender: TObject);
+begin
+  with ResamplerClassNamesList, Src.Bitmap do
+    if ItemIndex >= 0 then
+    begin
+      ResamplerClassName:= Items[ItemIndex];
+      KernelClassNamesList.Enabled := (Resampler is TKernelResampler);
+      KernelLabel.Enabled := KernelClassNamesList.Enabled;
+      KernelClassNamesListChange(Self);
+    end;
+end;
+
+procedure TForm1.KernelClassNamesListChange(Sender: TObject);
+begin
+  with KernelClassNamesList, Src.Bitmap do
+    if (ItemIndex >= 0) and (Resampler is TKernelResampler) then
+      TKernelResampler(Resampler).KernelClassName:= Items[ItemIndex];
+  DoTransform; //Update the transformation with new resampler   
+end;
+
+procedure TForm1.DstPaintStage(Sender: TObject; Buffer: TBitmap32;
+  StageNum: Cardinal);
+const            //0..1
+  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0); 
+var 
+  R: TRect;
+  I, J: Integer; 
+  OddY: Integer; 
+  TilesHorz, TilesVert: Integer; 
+  TileX, TileY: Integer;
+  TileHeight, TileWidth: Integer; 
+begin
+  if Sender is TImage32 then with TImage32(Sender) do
+  begin
+    BeginUpdate;
+    R := GetViewportRect;
+    case PaintStages[StageNum].Parameter of
+      1: begin //Draw Checkerboard
+           TileHeight := 8;
+           TileWidth := 8;
+
+           TilesHorz := (R.Right - R.Left) div TileWidth;
+           TilesVert := (R.Bottom - R.Top) div TileHeight;
+           TileY := 0;
+
+           for J := 0 to TilesVert do
+           begin
+             TileX := 0;
+             OddY := J and $1;
+             for I := 0 to TilesHorz do
+             begin
+               Buffer.FillRect(TileX, TileY, TileX + TileWidth, TileY + TileHeight,Colors[I and $1 = OddY]);
+               Inc(TileX, TileWidth);
+             end;
+             Inc(TileY, TileHeight);
+           end
+         end;
+      2: Buffer.FrameRectS(R , $FF000000); //Draw Frame
+    end;
+    EndUpdate;
+    Invalidate;
+  end;
 end;
 
 end.
