@@ -704,7 +704,7 @@ begin
              OddY := J and $1;
              for I := 0 to TilesHorz do
              begin
-               Buffer.FillRect(TileX, TileY, TileX + TileWidth, TileY + TileHeight,Colors[I and $1 = OddY]);
+               Buffer.FillRectS(TileX, TileY, TileX + TileWidth, TileY + TileHeight,Colors[I and $1 = OddY]);
                Inc(TileX, TileWidth);
              end;
              Inc(TileY, TileHeight);
