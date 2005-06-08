@@ -696,8 +696,8 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; virtual;
     function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
     function GetSampleFloat(X, Y: Single): TColor32; virtual; abstract;
-    procedure PrepareRasterization; virtual;
-    procedure FinalizeRasterization; virtual;
+    procedure PrepareSampling; virtual;
+    procedure FinalizeSampling; virtual;
   end;
 
   { TCustomResampler }
@@ -5355,11 +5355,11 @@ begin
   Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
 end;
 
-procedure TCustomSampler.PrepareRasterization;
+procedure TCustomSampler.PrepareSampling;
 begin
 end;
 
-procedure TCustomSampler.FinalizeRasterization;
+procedure TCustomSampler.FinalizeSampling;
 begin
 end;
 
