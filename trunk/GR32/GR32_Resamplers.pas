@@ -233,8 +233,8 @@ type
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-    procedure PrepareRasterization; override;
-    procedure FinalizeRasterization; override;
+    procedure PrepareSampling; override;
+    procedure FinalizeSampling; override;
   published
     property KernelClassName: string read GetKernelClassName write SetKernelClassName;
     property Kernel: TCustomKernel read FKernel write SetKernel;
@@ -281,41 +281,49 @@ type
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
+  { TNestedSampler }
+  TNestedSampler = class(TCustomSampler)
+  private
+    FSampler: TCustomSampler;
+    FGetSampleInt: TGetSampleInt;
+    FGetSampleFixed: TGetSampleFixed;
+    FGetSampleFloat: TGetSampleFloat;
+    procedure SetSampler(const Value: TCustomSampler);
+  public
+    constructor Create(ASampler: TCustomSampler); virtual;
+    procedure PrepareSampling; override;
+    procedure FinalizeSampling; override;
+  published
+    property Sampler: TCustomSampler read FSampler write SetSampler;
+  end;
+
   { TTransformer }
   TReverseTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
   TReverseTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
   TReverseTransformFloat = procedure(DstX, DstY: Single; out SrcX, SrcY: Single) of object;
 
-  TTransformer = class(TCustomSampler)
+  TTransformer = class(TNestedSampler)
   private
-    FResampler: TCustomResampler;
     FTransformation: TTransformation;
     FBoundsRect: TFloatRect;
     FBoundsRectFixed: TFixedRect;
     FBoundsRectInt: TRect;
     FOuterColor: TColor32;
-    FResamplerGetSampleInt: TGetSampleInt;
-    FResamplerGetSampleFixed: TGetSampleFixed;
-    FResamplerGetSampleFloat: TGetSampleFloat;
     FTransformationReverseTransformInt: TReverseTransformInt;
     FTransformationReverseTransformFixed: TReverseTransformFixed;
     FTransformationReverseTransformFloat: TReverseTransformFloat;
     procedure SetBoundsRect(Rect: TFloatRect);
-    procedure SetResampler(const Value: TCustomResampler);
     procedure SetTransformation(const Value: TTransformation);
   public
-    constructor Create(Src: TBitmap32; ATransformation: TTransformation);
+    constructor Create(Src: TBitmap32; ATransformation: TTransformation); reintroduce;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
-    procedure PrepareRasterization; override;
-    procedure FinalizeRasterization; override;
-
-    property Resampler: TCustomResampler read FResampler write SetResampler;
     property Transformation: TTransformation read FTransformation write SetTransformation;
     property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
   end;
 
+  { TNearestTransformer }
   TNearestTransformer = class(TTransformer)
   public
     function GetSampleInt(X, Y: Integer): TColor32; override;
@@ -323,18 +331,8 @@ type
     function GetSampleFloat(X, Y: Single): TColor32; override;
   end;
 
-  TCustomSuperSampler = class(TCustomSampler)
-  private
-    FSampler: TCustomSampler;
-  public
-    constructor Create(Sampler: TCustomSampler); virtual;
-    procedure PrepareRasterization; override;
-    procedure FinalizeRasterization; override;
-  published
-    property Sampler: TCustomSampler read FSampler write FSampler;
-  end;
-
-  TSuperSampler = class(TCustomSuperSampler)
+  { TSuperSampler }
+  TSuperSampler = class(TNestedSampler)
   private
     FSamplingY: Integer;
     FSamplingX: Integer;
@@ -353,15 +351,14 @@ type
     property SamplingY: Integer read FSamplingY write SetSamplingY;
   end;
 
-
+  { TAdaptiveSuperSampler }
   TRecurseProc = function(X, Y, W: TFixed; const C1, C2: TColor32): TColor32 of object;
 
-  TAdaptiveSuperSampler = class(TCustomSuperSampler)
+  TAdaptiveSuperSampler = class(TNestedSampler)
   private
     FMinOffset: TFixed;
     FLevel: Integer;
     FTolerance: Integer;
-    FGetSample: TGetSampleFixed;
     procedure SetLevel(const Value: Integer);
     procedure SetTolerance(const Value: Integer);
     function DoRecurse(X, Y, Offset: TFixed; const A, B, C, D, E: TColor32): TColor32;
@@ -379,14 +376,13 @@ type
   end;
 
   { TPatternSampler }
-
   TFloatPointList = array of TFloatPoint;
   TFloatSamplePattern = array of array of TFloatPointList;
 
   TFixedPointList = array of TFixedPoint;
   TFixedSamplePattern = array of array of TFixedPointList;
 
-  TPatternSampler = class(TCustomSuperSampler)
+  TPatternSampler = class(TNestedSampler)
   private
     FPattern: TFixedSamplePattern;
     FPatternWidth: Integer;
@@ -2320,7 +2316,7 @@ begin
   end;
 end;
 
-procedure TKernelResampler.FinalizeRasterization;
+procedure TKernelResampler.FinalizeSampling;
 begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
@@ -2330,7 +2326,7 @@ begin
   end;
 end;
 
-procedure TKernelResampler.PrepareRasterization;
+procedure TKernelResampler.PrepareSampling;
 var
   I, J, K, W: Integer;
   Fraction: Single;
@@ -2444,7 +2440,7 @@ begin
   if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
      (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
   begin
-    Result := FResamplerGetSampleFixed(U, V);
+    Result := FGetSampleFixed(U, V);
   end
   else
     Result := FOuterColor;
@@ -2458,29 +2454,19 @@ begin
   if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
      (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
   begin
-    Result := FResamplerGetSampleFloat(U, V);
+    Result := FGetSampleFloat(U, V);
   end
   else
     Result := FOuterColor;
-end;
-
-procedure TTransformer.PrepareRasterization;
-begin
-  FResampler.PrepareRasterization;
-end;
-
-procedure TTransformer.FinalizeRasterization;
-begin
-  FResampler.FinalizeRasterization;
 end;
 
 constructor TTransformer.Create(Src: TBitmap32; ATransformation: TTransformation);
 var
   R: TFloatRect;
 begin
-  inherited Create;
+  inherited Create(Src.Resampler);
   FOuterColor := Src.OuterColor;
-  Resampler := Src.Resampler;
+  Sampler := Src.Resampler;
   Transformation := ATransformation;
   IntersectRectF(R, ATransformation.SrcRect, FloatRect(0, 0, Src.Width - 1, Src.Height - 1));
   FBoundsRectInt := MakeRect(R);
@@ -2493,14 +2479,6 @@ begin
   FBoundsRectInt := MakeRect(Rect);
   FBoundsRectFixed := FixedRect(Rect);
   FBoundsRect := Rect;
-end;
-
-procedure TTransformer.SetResampler(const Value: TCustomResampler);
-begin
-  FResampler := Value;
-  FResamplerGetSampleInt := FResampler.GetSampleInt;
-  FResamplerGetSampleFixed := FResampler.GetSampleFixed;
-  FResamplerGetSampleFloat := FResampler.GetSampleFloat;
 end;
 
 procedure TTransformer.SetTransformation(const Value: TTransformation);
@@ -2521,7 +2499,7 @@ begin
   if (U >= FBoundsRectInt.Left) and (U <= FBoundsRectInt.Right) and
      (V >= FBoundsRectInt.Top) and (V <= FBoundsRectInt.Bottom) then
   begin
-    Result := FResamplerGetSampleInt(U, V);
+    Result := FGetSampleInt(U, V);
   end
   else
     Result := FOuterColor;
@@ -2535,7 +2513,7 @@ begin
   if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
      (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
   begin
-    Result := FResamplerGetSampleInt(U shr 16, V shr 16);
+    Result := FGetSampleInt(U shr 16, V shr 16);
   end
   else
     Result := FOuterColor;
@@ -2549,27 +2527,10 @@ begin
   if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
      (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
   begin
-    Result := FResamplerGetSampleInt(Round(U), Round(V));
+    Result := FGetSampleInt(Round(U), Round(V));
   end
   else
     Result := FOuterColor;
-end;
-
-{ TCustomSuperSampler }
-
-constructor TCustomSuperSampler.Create(Sampler: TCustomSampler);
-begin
-  FSampler := Sampler;
-end;
-
-procedure TCustomSuperSampler.PrepareRasterization;
-begin
-  FSampler.PrepareRasterization;
-end;
-
-procedure TCustomSuperSampler.FinalizeRasterization;
-begin
-  FSampler.FinalizeRasterization;
 end;
 
 
@@ -2589,10 +2550,8 @@ var
   I, J: Integer;
   dX, dY, tX: TFixed;
   Buffer: TBufferEntry;
-  GetSample: TGetSampleFixed;
 begin
   Buffer := EMPTY_ENTRY;
-  GetSample := FSampler.GetSampleFixed;
   tX := X + FOffsetX;
   Inc(Y, FOffsetY);
   dX := FDistanceX;
@@ -2602,7 +2561,7 @@ begin
     X := tX;
     for I := 1 to FSamplingX do
     begin
-      IncBuffer(Buffer, GetSample(X, Y));
+      IncBuffer(Buffer, FGetSampleFixed(X, Y));
       Inc(X, dX);
     end;
     Inc(Y, dY);
@@ -2646,7 +2605,6 @@ end;
 constructor TAdaptiveSuperSampler.Create(Sampler: TCustomSampler);
 begin
   inherited Create(Sampler);
-  FGetSample := FSampler.GetSampleFixed;
   Level := 4;
   Tolerance := 256;
 end;
@@ -2669,11 +2627,11 @@ var
 const
   FIXED_HALF = 32768;
 begin
-  A := FGetSample(X - FIXED_HALF, Y - FIXED_HALF);
-  B := FGetSample(X + FIXED_HALF, Y - FIXED_HALF);
-  C := FGetSample(X + FIXED_HALF, Y + FIXED_HALF);
-  D := FGetSample(X - FIXED_HALF, Y + FIXED_HALF);
-  E := FGetSample(X, Y);
+  A := FGetSampleFixed(X - FIXED_HALF, Y - FIXED_HALF);
+  B := FGetSampleFixed(X + FIXED_HALF, Y - FIXED_HALF);
+  C := FGetSampleFixed(X + FIXED_HALF, Y + FIXED_HALF);
+  D := FGetSampleFixed(X - FIXED_HALF, Y + FIXED_HALF);
+  E := FGetSampleFixed(X, Y);
   Result := Self.DoRecurse(X, Y, 16384, A, B, C, D, E);
   EMMS;
 end;
@@ -2693,9 +2651,9 @@ var
   B, D, E: TColor32;
 begin
   EMMS;
-  B := FGetSample(X + Offset, Y - Offset);
-  D := FGetSample(X - Offset, Y + Offset);
-  E := FGetSample(X, Y);
+  B := FGetSampleFixed(X + Offset, Y - Offset);
+  D := FGetSampleFixed(X - Offset, Y + Offset);
+  E := FGetSampleFixed(X, Y);
   Result := DoRecurse(X, Y, Offset shr 1, A, B, C, D, E);
 end;
 
@@ -2705,9 +2663,9 @@ var
   A, C, E: TColor32;
 begin
   EMMS;
-  A := FGetSample(X - Offset, Y - Offset);
-  C := FGetSample(X + Offset, Y + Offset);
-  E := FGetSample(X, Y);
+  A := FGetSampleFixed(X - Offset, Y - Offset);
+  C := FGetSampleFixed(X + Offset, Y + Offset);
+  E := FGetSampleFixed(X, Y);
   Result := DoRecurse(X, Y, Offset shr 1, A, B, C, D, E);
 end;
 
@@ -2887,6 +2845,31 @@ procedure RegisterKernel(KernelClass: TCustomKernelClass);
 begin
   if not Assigned(KernelList) then KernelList := TClassList.Create;
   KernelList.Add(KernelClass);
+end;
+
+{ TNestedSampler }
+
+constructor TNestedSampler.Create(ASampler: TCustomSampler);
+begin
+  FSampler := ASampler;
+end;
+
+procedure TNestedSampler.FinalizeSampling;
+begin
+  FSampler.FinalizeSampling;
+end;
+
+procedure TNestedSampler.PrepareSampling;
+begin
+  FSampler.PrepareSampling;
+end;
+
+procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
+begin
+  FSampler := Value;
+  FGetSampleInt := FSampler.GetSampleInt;
+  FGetSampleFixed := FSampler.GetSampleFixed;
+  FGetSampleFloat := FSampler.GetSampleFloat;
 end;
 
 initialization
