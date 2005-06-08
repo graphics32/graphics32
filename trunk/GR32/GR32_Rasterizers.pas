@@ -255,13 +255,13 @@ begin
   UpdateCount := TThreadPersistentAccess(Dst).UpdateCount;
   if Assigned(FSampler) then
   begin
-    FSampler.PrepareRasterization;
+    FSampler.PrepareSampling;
     try
       DoRasterize(Dst, DstRect);
     finally
       while TThreadPersistentAccess(Dst).UpdateCount > UpdateCount do
         TThreadPersistentAccess(Dst).EndUpdate;
-      FSampler.FinalizeRasterization;
+      FSampler.FinalizeSampling;
     end;
   end;
 end;
