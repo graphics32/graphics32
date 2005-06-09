@@ -3,7 +3,8 @@ unit Utils;
 interface
 
 uses
-  Windows, Classes, SysUtils, FileCtrl, Contnrs, SimpleDOM, DocStructure;
+  Windows, Classes, SysUtils, FileCtrl, Contnrs, SimpleDOM, DocStructure,
+  Forms, StdCtrls;
 
 function DirName(const FullPath: string): string;
 function FileNameNoExt(const FileName: string): string;
@@ -14,6 +15,7 @@ function CompareDirectories(List: TStringList; Index1, Index2: Integer): Integer
 function GetLinkName(const Target: string): string;
 function CompareLinks(List: TStringList; Index1, Index2: Integer): Integer;
 function CompareElements(Item1, Item2: Pointer): Integer;
+procedure RunCommandInMemo(const Command: String; AMemo: TMemo);
 
 implementation
 
@@ -155,6 +157,59 @@ end;
 function CompareElements(Item1, Item2: Pointer): Integer;
 begin
   Result := AnsiCompareStr(TElement(Item1).DisplayName, TElement(Item2).DisplayName);
+end;
+
+procedure RunCommandInMemo(const Command: String; AMemo: TMemo);
+const
+  ReadBuffer = 2400;
+var
+  Security: TSecurityAttributes;
+  ReadPipe, WritePipe: THandle;
+  BytesRead, AppRunning: DWord;
+  Start: TStartUpInfo;
+  ProcessInfo: TProcessInformation;
+  Buffer: PChar;
+begin
+   with Security do
+   begin
+     nlength := SizeOf(TSecurityAttributes);
+     binherithandle := true;
+     lpsecuritydescriptor := nil;
+   end;
+
+  if CreatePipe(ReadPipe, WritePipe, @Security, 0) then
+  begin
+    Buffer := AllocMem(ReadBuffer + 1);
+    FillChar(Start,Sizeof(Start),#0);
+    start.cb := SizeOf(start);
+    start.hStdOutput := WritePipe;
+    start.hStdInput := ReadPipe;
+    start.dwFlags := STARTF_USESTDHANDLES + STARTF_USESHOWWINDOW;
+    start.wShowWindow := SW_HIDE;
+
+    if CreateProcess(nil, PChar(Command), @Security, @Security, true,
+      NORMAL_PRIORITY_CLASS, nil, nil, start, ProcessInfo) then
+    begin
+      repeat
+        AppRunning := WaitForSingleObject(ProcessInfo.hProcess, 100);
+        Application.ProcessMessages;
+      until AppRunning <> WAIT_TIMEOUT;
+
+      repeat
+        BytesRead := 0;
+        ReadFile(ReadPipe, Buffer[0], ReadBuffer, BytesRead, nil);
+        Buffer[BytesRead] := #0;
+        OemToAnsi(Buffer, Buffer);
+        AMemo.Text := AMemo.Text + String(Buffer);
+      until BytesRead < ReadBuffer;
+    end;
+
+    FreeMem(Buffer);
+    CloseHandle(ProcessInfo.hProcess);
+    CloseHandle(ProcessInfo.hThread);
+    CloseHandle(ReadPipe);
+    CloseHandle(WritePipe);
+  end;
 end;
 
 end.

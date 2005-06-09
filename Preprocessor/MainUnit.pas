@@ -4,39 +4,58 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Mask, JvToolEdit, FileCtrl, ComCtrls, Utils, SimpleDOM,
-  Contnrs, DocStructure, IniFiles, JvExMask;
+  StdCtrls, Mask, FileCtrl, ComCtrls, Utils, SimpleDOM,
+  Contnrs, DocStructure, IniFiles, ExtCtrls;
 
 type
   TMainForm = class(TForm)
-    DirectoryEdit1: TJvDirectoryEdit;
-    Label1: TLabel;
-    Process: TButton;
+    Panel1: TPanel;
     Log: TMemo;
-    Label2: TLabel;
-    Edit1: TEdit;
-    Label3: TLabel;
-    Edit2: TEdit;
-    Label4: TLabel;
-    Edit3: TEdit;
-    Label5: TLabel;
-    Edit4: TEdit;
-    Label6: TLabel;
-    Edit5: TEdit;
-    Progress: TProgressBar;
+    Panel2: TPanel;
     Label7: TLabel;
+    Progress: TProgressBar;
+    Panel3: TPanel;
+    Panel4: TPanel;
+    Panel5: TPanel;
+    Label1: TLabel;
+    DirectoryEdit1: TEdit;
+    Panel6: TPanel;
+    Panel7: TPanel;
+    Panel8: TPanel;
+    Label9: TLabel;
+    Edit7: TEdit;
+    CheckBox1: TCheckBox;
+    Panel9: TPanel;
     Edit6: TEdit;
     Label8: TLabel;
+    Edit1: TEdit;
+    Label2: TLabel;
+    Label3: TLabel;
+    Edit2: TEdit;
+    Edit3: TEdit;
+    Label4: TLabel;
+    Label5: TLabel;
+    Edit4: TEdit;
+    Edit5: TEdit;
+    Label6: TLabel;
+    Panel10: TPanel;
+    Process: TButton;
+    Panel11: TPanel;
+    Button1: TButton;
+    Button2: TButton;
     procedure DirectoryEdit1Change(Sender: TObject);
     procedure ProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   public
     ProjectDir: string;
     SourceDir: string;
     CompiledDir: string;
     StyleFile: string;
-    procedure StartProcessing;
+    procedure StartTransforming;
+    procedure StartCompile;
     procedure WriteProject(const FileName: string);
   end;
 
@@ -96,19 +115,21 @@ procedure TMainForm.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
   I: Integer;
-  Value: String;
+  SValue, BValue: String;
 begin
   DirectoryEdit1Change(Self);
 
   Ini := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'properties.ini');
   try
-    for i := 0 to Self.ComponentCount-1 do
+    for i := 0 to Self.ComponentCount - 1 do
     if Self.Components[i].InheritsFrom(TCustomEdit) and
        not Self.Components[i].InheritsFrom(TMemo) then
     begin
-      Value := Ini.ReadString('Settings', Self.Components[i].Name, '');
-      If Value <> '' then TEdit(Self.Components[i]).Text := Value;
-    end;
+      SValue := Ini.ReadString('Settings', Self.Components[i].Name, '');
+      if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
+    end
+    else if Self.Components[i].InheritsFrom(TCheckBox) then
+      TCheckBox(Self.Components[i]).Checked := Ini.ReadBool('Settings', Self.Components[i].Name, False);
   finally
     Ini.Free;
   end;
@@ -124,7 +145,9 @@ begin
     for i := 0 to Self.ComponentCount-1 do
     if Self.Components[i].InheritsFrom(TCustomEdit) and
        not Self.Components[i].InheritsFrom(TMemo) then
-      Ini.WriteString('Settings', Self.Components[i].Name, TEdit(Self.Components[i]).Text);
+      Ini.WriteString('Settings', Self.Components[i].Name, TEdit(Self.Components[i]).Text)
+    else if Self.Components[i].InheritsFrom(TCheckBox) then
+      Ini.WriteBool('Settings', Self.Components[i].Name, TCheckBox(Self.Components[i]).Checked)
   finally
     Ini.Free;
   end;
@@ -132,15 +155,27 @@ end;
 
 procedure TMainForm.ProcessClick(Sender: TObject);
 begin
-  VersionString := Edit6.Text;
-  StartProcessing;
+  StartTransforming;
+  if CheckBox1.Checked then
+  begin
+    LogAdd(#13#10);
+    StartCompile;
+  end;
 end;
 
-procedure TMainForm.StartProcessing;
+procedure TMainForm.StartCompile;
+begin
+  LogAdd('Starting HTML Help compiler...'#13#10);
+  RunCommandInMemo(Edit7.Text + ' ' + ProjectDir + Edit5.Text, Log);
+  LogAdd('Done.'#13#10);
+end;
+
+procedure TMainForm.StartTransforming;
 var
   I: Integer;
   S: string;
 begin
+  VersionString := Edit6.Text;
   if ProjectDir = '' then Exit;
   Log.Clear;
   Log.Color := clWhite;
@@ -156,6 +191,8 @@ begin
     Project.DisplayName := Edit1.Text;
     Project.DestinationFolder := ProjectDir + 'Compiled';
     Project.ImageFolder := ProjectDir + 'Images';
+    LogAdd('Transforming'#13#10);
+
     LogAdd('Reading files ...');
     Project.Read;
     Progress.Position := 2;
@@ -199,7 +236,7 @@ begin
     WriteProject(ProjectDir + Edit5.Text);
     LogAdd('... done'#13#10);
 
-    LogAdd('Project Transformed');
+    LogAdd('Project transformed.'#13#10);
     Progress.Position := 0;
     Log.Color := $E7FFE7;
   finally
@@ -235,6 +272,17 @@ begin
   finally
     Lines.Free;
   end;
+end;
+
+procedure TMainForm.Button1Click(Sender: TObject);
+begin
+  StartTransforming;
+end;
+
+procedure TMainForm.Button2Click(Sender: TObject);
+begin
+  Log.Clear;
+  StartCompile;
 end;
 
 end.
