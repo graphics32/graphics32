@@ -134,6 +134,13 @@ type
   TFixed = type Integer;
   PFixed = ^TFixed;
 
+  PFixedArray = ^TFixedArray;
+  TFixedArray = array [0..0] of TFixed;
+  PArrayOfFixed = ^TArrayOfFixed;
+  TArrayOfFixed = array of TFixed;
+  PArrayOfArrayOfFixed = ^TArrayOfArrayOfFixed;
+  TArrayOfArrayOfFixed = array of TArrayOfFixed;
+
 // a little bit of fixed point math
 function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
