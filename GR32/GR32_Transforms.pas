@@ -204,7 +204,11 @@ function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTra
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation); overload;
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+  const DstClip: TRect); overload;
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer); overload;
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+  Rasterizer: TRasterizer; const DstClip: TRect); overload;
 
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
@@ -349,18 +353,43 @@ begin
   end;
 end;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; Rasterizer: TRasterizer);
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; const DstClip: TRect);
 var
-  R, DstRect: TRect;
+  Rasterizer: TRasterizer;
+  Transformer: TTransformer;
+begin
+  Rasterizer := DefaultRasterizerClass.Create;
+  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src, Transformation);
+  try
+    Rasterizer.Sampler := Transformer;
+    Transform(Dst, Src, Transformation, Rasterizer, DstClip);
+  finally
+    Rasterizer.Free;
+    Transformer.Free;
+  end;
+end;
+
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+  Rasterizer: TRasterizer);
+begin
+  Transform(Dst, Src, Transformation, Rasterizer, Dst.BoundsRect);
+end;
+
+procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+  Rasterizer: TRasterizer; const DstClip: TRect);
+var
+  DstRect: TRect;
   Transformer: TTransformer;
 begin
   if not TTransformationAccess(Transformation).TransformValid then
     TTransformationAccess(Transformation).PrepareTransform;
 
   // clip DstRect
-  R := Transformation.GetTransformedBounds;
-  IntersectRect(DstRect, R, MakeRect(Dst.ClipRect.Left, Dst.ClipRect.Top,
-    Dst.ClipRect.Right - 1, Dst.ClipRect.Bottom - 1));
+  DstRect := Transformation.GetTransformedBounds;
+  DstRect.Right := DstRect.Right + 1;
+  DstRect.Bottom := DstRect.Bottom + 1;  
+  IntersectRect(DstRect, DstRect, Dst.ClipRect);
+  IntersectRect(DstRect, DstRect, DstClip);
 
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
