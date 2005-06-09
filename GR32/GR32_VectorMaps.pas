@@ -337,7 +337,7 @@ end;
 
 function TTransformationMap.BoundsRect: TRect;
 begin
-  Result := Rect(0, 0, Width - 1, Height - 1);
+  Result := Rect(0, 0, Width, Height);
 end;
 
 procedure TTransformationMap.ChangeSize(var Width, Height: Integer;
@@ -763,8 +763,6 @@ begin
 end;
 
 function TRemapTransformation.GetTransformedBounds: TRect;
-var
-  R: TRect;
 begin
   Result := TransformationMap.BoundsRect;
   OffsetRect(Result, Round(FOffset.X), Round(FOffset.Y));
