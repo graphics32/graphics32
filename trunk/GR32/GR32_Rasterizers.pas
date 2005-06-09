@@ -302,10 +302,10 @@ var
 begin
   GetSample := FSampler.GetSampleInt;
   UpdateCount := 0;
-  for J := DstRect.Top to DstRect.Bottom do
+  for J := DstRect.Top to DstRect.Bottom - 1 do
   begin
     P := @Dst.Bits[DstRect.Left + J * Dst.Width];
-    for I := DstRect.Left to DstRect.Right do
+    for I := DstRect.Left to DstRect.Right - 1 do
     begin
       AssignColor(P^, GetSample(I, J));
       Inc(P);
@@ -313,12 +313,12 @@ begin
     Inc(UpdateCount);
     if UpdateCount = FUpdateRowCount then
     begin
-      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right + 1, J));
+      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right, J));
       UpdateCount := 0;
     end;
   end;
   with DstRect do
-    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom + 1));
+    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom));
 end;
 
 { TSuperSamplingRasterizer }
@@ -362,7 +362,7 @@ begin
 
   UpdateCount := 0;
 
-  for J := DstRect.Top to DstRect.Bottom do
+  for J := DstRect.Top to DstRect.Bottom - 1 do
   begin
     P := @Dst.Bits[DstRect.Left + J * Dst.Width];
     Inc(Y, FixedOne);
@@ -371,7 +371,7 @@ begin
     X := BX;
     Tx := BTx;
 
-    for I := DstRect.Left to DstRect.Right do
+    for I := DstRect.Left to DstRect.Right - 1 do
     begin
       Buffer := EMPTY_ENTRY;
       Inc(X, FixedOne);
@@ -394,12 +394,12 @@ begin
     Inc(UpdateCount);
     if UpdateCount = FUpdateRowCount then
     begin
-      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right + 1, J));
+      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right, J));
       UpdateCount := 0;
     end;
   end;
   with DstRect do
-    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom + 1));
+    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom));
 end;
 
 procedure TSuperSamplingRasterizer.SetSamplingX(const Value: Integer);
@@ -473,8 +473,8 @@ var
   end;
 
 begin
-  W := DstRect.Right - DstRect.Left + 1;
-  H := DstRect.Bottom - DstRect.Top + 1;
+  W := DstRect.Right - DstRect.Left;
+  H := DstRect.Bottom - DstRect.Top;
   L := DstRect.Left; T := DstRect.Top;
   Size := 1 shl (ScanReverse(Max(W, H)) + 1) + 1;
 
@@ -652,18 +652,19 @@ begin
   GetSample := FSampler.GetSampleInt;
   with DstRect do
   begin
-    W := Right - Left + 1;
-    H := Bottom - Top + 1;
-    for I := Left to Right do AssignColor(Dst.PixelPtr[I, Top]^, GetSample(I, Top));
+    W := Right - Left;
+    H := Bottom - Top;
+    for I := Left to Right - 1 do
+      AssignColor(Dst.PixelPtr[I, Top]^, GetSample(I, Top));
     Dst.Changed(Rect(Left, Top, Right, Top + 1));
-    for I := Top to Bottom do AssignColor(Dst.PixelPtr[Left, I]^, GetSample(Left, I));
+    for I := Top to Bottom - 1 do
+      AssignColor(Dst.PixelPtr[Left, I]^, GetSample(Left, I));
     Dst.Changed(Rect(Left, Top, Left + 1, Bottom));
     if W > H then
-      SplitVertical(DstRect.Left, DstRect.Top, W, H)
+      SplitVertical(Left, Top, W, H)
     else
-      SplitHorizontal(DstRect.Left, DstRect.Top, W, H);
+      SplitHorizontal(Left, Top, W, H);
   end;
-
 end;
 
 
