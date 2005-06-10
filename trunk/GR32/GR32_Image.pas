@@ -115,9 +115,9 @@ type
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
   protected
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
-    function  CustomRepaintNeeded: Boolean; virtual;
+    function  CustomRepaint: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
-    procedure DoValidateInvalidRects; virtual;
+    procedure DoPrepareInvalidRects; virtual;
     procedure DoPaintBuffer; virtual;
     procedure DoPaintGDIOverlay; virtual;
     procedure DoBufferResized(const OldWidth, OldHeight: Integer); virtual;
@@ -664,16 +664,13 @@ end;
 {$IFNDEF CLX}
 procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
 begin
-  if HandleAllocated then
-  begin
-    if CustomRepaintNeeded then
-      // we might have invalid rects, so just go ahead without invalidating
-      // the whole client area...
-      PostMessage(Handle, WM_PAINT, 0, 0)
-    else
-      // no invalid rects, so just invalidate the whole client area...
-      inherited;
-  end;
+  if CustomRepaint and HandleAllocated then
+    // we might have invalid rects, so just go ahead without invalidating
+    // the whole client area...
+    PostMessage(Handle, WM_PAINT, 0, 0)
+  else
+    // no invalid rects, so just invalidate the whole client area...
+    inherited;
 end;
 
 procedure TCustomPaintBox32.CMMouseEnter(var Message: TMessage);
@@ -693,7 +690,6 @@ constructor TCustomPaintBox32.Create(AOwner: TComponent);
 begin
   inherited;
   FBuffer := TBitmap32.Create;
-//  FBuffer.BeginUpdate; // just to speed the things up a little
   FBufferOversize := 40;
   FForceFullRepaint := True;
   FInvalidRects := TRectList.Create;
@@ -716,13 +712,13 @@ begin
     FRepaintOptimizer.BufferResizedHandler(FBuffer.Width, FBuffer.Height);
 end;
 
-function TCustomPaintBox32.CustomRepaintNeeded: Boolean;
+function TCustomPaintBox32.CustomRepaint: Boolean;
 begin
-  Result := FRepaintOptimizer.Enabled and
-    not FForceFullRepaint and FRepaintOptimizer.CustomRepaintNeeded;
+  Result := FRepaintOptimizer.Enabled and not FForceFullRepaint and
+    FRepaintOptimizer.UpdatesAvailable;
 end;
 
-procedure TCustomPaintBox32.DoValidateInvalidRects;
+procedure TCustomPaintBox32.DoPrepareInvalidRects;
 begin
   if FRepaintOptimizer.Enabled and not FForceFullRepaint then
     FRepaintOptimizer.PrepareInvalidRects;
@@ -743,7 +739,7 @@ begin
     FInvalidRects.Clear;
   end
   else
-    DoValidateInvalidRects;
+    DoPrepareInvalidRects;
 
   // descendants should override this method for painting operations,
   // not the Paint method!!!
@@ -911,8 +907,6 @@ begin
     FRepaintOptimizer.BeginPaint;
   end;
 
-  ResizeBuffer;
-
   if not FBufferValid then
   begin
 {$IFDEF CLX}
@@ -1014,10 +1008,10 @@ begin
     OldWidth := Buffer.Width;
     OldHeight := Buffer.Height;
     FBuffer.SetSize(W, H);
-    DoBufferResized(OldWidth, OldHeight);
-    ResetInvalidRects;
     FBuffer.Unlock;
-    FBufferValid := False;
+
+    DoBufferResized(OldWidth, OldHeight);
+    ForceFullInvalidate;
   end;
 end;
 
@@ -1056,7 +1050,7 @@ end;
 
 procedure TCustomPaintBox32.WMPaint(var Message: TMessage);
 begin
-  if CustomRepaintNeeded then
+  if CustomRepaint then
   begin
     if InvalidRectsAvailable then
       // BeginPaint deeper might set invalid clipping, so we call Paint here
@@ -1962,7 +1956,7 @@ end;
 function TCustomImage32.InvalidRectsAvailable: Boolean;
 begin
   // avoid calling inherited, we have a totally different behaviour here...
-  DoValidateInvalidRects;
+  DoPrepareInvalidRects;
   Result := FInvalidRects.Count > 0;
 end;
 
