@@ -190,7 +190,7 @@ type
 
     procedure Reset; override;
 
-    function  CustomRepaintNeeded: Boolean; override;
+    function  UpdatesAvailable: Boolean; override;
     procedure PrepareInvalidRects; override;
 
     procedure BeginPaintBuffer; override;
@@ -1152,7 +1152,7 @@ begin
   end;
 end;
 
-function TMicroTilesRepaintOptimizer.CustomRepaintNeeded: Boolean;
+function TMicroTilesRepaintOptimizer.UpdatesAvailable: Boolean;
 begin
   UpdateOldInvalidTiles;
   Result := FUseInvalidTiles;

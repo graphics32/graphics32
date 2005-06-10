@@ -71,7 +71,7 @@ type
     procedure EndPaintBuffer; virtual;
 
     procedure Reset; virtual; abstract;
-    function CustomRepaintNeeded: Boolean; virtual; abstract;
+    function UpdatesAvailable: Boolean; virtual; abstract;
     procedure PrepareInvalidRects; virtual; abstract;
 
     // handlers
