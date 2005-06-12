@@ -323,16 +323,16 @@ type
 
 { TTransformationMap }
 
-function CombinePointsReg(const A, B: TFixedPoint; Weight256: Integer): TFixedPoint;
+function CombinePointsReg(const A, B: TFixedPoint; Weight: TFixed): TFixedPoint;
 begin
-  Result.X := A.X + SAR_8((B.X - A.X) * Weight256);
-  Result.Y := A.Y + SAR_8((B.Y - A.Y) * Weight256);
+  Result.X := A.X + FixedMul(B.X - A.X, Weight);
+  Result.Y := A.Y + FixedMul(B.Y - A.Y, Weight);
 end;
 
-procedure CombinePointsMem(const A: TFixedPoint;var  B: TFixedPoint; Weight256: Integer);
+procedure CombinePointsMem(const A: TFixedPoint;var  B: TFixedPoint; Weight: TFixed);
 begin
-  B.X := A.X + SAR_8((B.X - A.X) * Weight256);
-  B.Y := A.Y + SAR_8((B.Y - A.Y) * Weight256);
+  B.X := A.X + FixedMul(B.X - A.X, Weight);
+  B.Y := A.Y + FixedMul(B.Y - A.Y, Weight);
 end;
 
 function TTransformationMap.BoundsRect: TRect;
@@ -432,7 +432,7 @@ function TTransformationMap.GetXPointX(X, Y: TFixed): TFixedPoint;
 const
   Next = SizeOf(TFixedPoint);
 var
-  WX,WY: Integer;
+  WX,WY: TFixed;
   P, W: Integer;
 begin
   WX := SAR_16(X + $807E);
@@ -442,8 +442,8 @@ begin
   begin
     P := Integer(@FBits[WX + WY * W]);
     W := W * Next;
-    WX := SAR_8(X + $7F) and $FF;
-    WY := SAR_8(Y + $7F) and $FF;
+    WX := (X + $807E) and $FFFF;
+    WY := (Y + $807E) and $FFFF;
     Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + Next)^, WX),
                                CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + Next)^, WX), WY);
   end else
@@ -455,10 +455,10 @@ end;
 
 function TTransformationMap.GetXPointXS(X, Y: TFixed): TFixedPoint;
 var
-  WX,WY: Integer;
+  WX,WY: TFixed;
 begin
-  WX := SAR_8(X) and $FF;
-  WY := SAR_8(Y) and $FF;
+  WX := X and $FFFF;
+  WY := Y and $FFFF;
 
   X := SAR_16(X);
   Y := SAR_16(Y);
