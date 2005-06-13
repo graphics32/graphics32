@@ -1100,13 +1100,10 @@ end;
 
 function TRemapTransformation.GetTransformedBounds: TRect;
 begin
-  Result := FVectorMap.BoundsRect;
-  OffsetRect(Result, Round(FOffset.X), Round(FOffset.Y));
-{  R := MakeRect(FMappingRect);
-  if R.Left < Result.Left then Result.Left := R.Left;
-  if R.Top < Result.Top then Result.Top := R.Top;
-  if R.Right > Result.Right then Result.Right := R.Right;
-  if R.Bottom > Result.Bottom then Result.Bottom := R.Bottom;   }
+  // We can't predict the ultimate bounds without transforming each vector in
+  // the vector map, return the absolute biggest possible transformation possible
+  Result := Rect(FixedRound(- MaxInt), FixedRound(- MaxInt), FixedRound(MaxInt),
+    FixedRound(MaxInt));
 end;
 
 procedure TRemapTransformation.PrepareTransform;
@@ -1154,10 +1151,10 @@ begin
     vcmAdd:
       begin
         with DstRect do
-        for I := Top to Bottom do
+        for I := Top to Bottom - 1 do
         begin
           MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
-          for J := Left to Right do
+          for J := Left to Right - 1 do
           begin
             P := FixedPoint(J - Left, I - Top);
             Q := Transformation.ReverseTransform(P);
@@ -1169,10 +1166,10 @@ begin
     vcmReplace:
       begin
         with DstRect do
-        for I := Top to Bottom do
+        for I := Top to Bottom - 1 do
         begin
           MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
-          for J := Left to Right do
+          for J := Left to Right - 1 do
           begin
             P := FixedPoint(J - Left, I - Top);
             Q := Transformation.ReverseTransform(P);
@@ -1185,11 +1182,11 @@ begin
     ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
     ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
     Progression.Y := 0;
-    with DstRect do for I := Top to Bottom do
+    with DstRect do for I := Top to Bottom - 1 do
     begin
       Progression.X := 0;
       MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
-      for J := Left to Right do
+      for J := Left to Right - 1 do
       begin
         P := FixedPoint(J - Left, I - Top);
         Q := Transformation.ReverseTransform(P);

@@ -555,7 +555,7 @@ var
   J: Integer;
   VectorPtr : PFixedVector;
 label
-  TopDone, BottomDone, LeftDone;
+  TopDone, BottomDone, LeftDone, RightDone;
 
 begin
   with Result do
@@ -600,12 +600,17 @@ begin
     repeat
       J := Bottom;
       repeat
-        if Int64(FixedVector[Right, J])<> 0 then Exit;
+        if Int64(FixedVector[Right, J])<> 0 then goto RightDone;
         Dec(J);
       until J <= Top;
       Dec(Right)
     until Right <= Left;
+
+
   end;
+  RightDone:
+  if IsRectEmpty(Result) then
+    Result := Rect(0,0,0,0);
 end;
 
 end.
