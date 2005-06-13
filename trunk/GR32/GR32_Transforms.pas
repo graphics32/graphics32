@@ -232,6 +232,8 @@ type
     procedure Scale(Sx, Sy: Single);
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
     property Offset: TFloatVector read FOffset write SetOffset;
+  published
+    property VectorMap: TVectorMap read FVectorMap write FVectorMap;
   end;
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
