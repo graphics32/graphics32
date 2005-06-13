@@ -386,8 +386,6 @@ begin
 
   // clip DstRect
   DstRect := Transformation.GetTransformedBounds;
-  DstRect.Right := DstRect.Right + 1;
-  DstRect.Bottom := DstRect.Bottom + 1;  
   IntersectRect(DstRect, DstRect, Dst.ClipRect);
   IntersectRect(DstRect, DstRect, DstClip);
 
