@@ -40,7 +40,7 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  SysUtils, Classes, GR32, GR32_Blend, GR32_Rasterizers;
+  SysUtils, Classes, GR32, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
 
 const
   DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
@@ -197,7 +197,41 @@ type
   protected
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
+  end;
+
+  TRemapTransformation = class(TTransformation)
+  private
+    FVectorMap : TVectorMap;
+    FScalingFixed: TFixedVector;
+    FScalingFloat: TFloatVector;
+    FSrcTranslationFixed: TFixedVector;
+    FSrcScaleFixed: TFixedVector;
+    FDstTranslationFixed: TFixedVector;
+    FDstScaleFixed: TFixedVector;
+    FSrcTranslationFloat: TFloatVector;
+    FSrcScaleFloat: TFloatVector;
+    FDstTranslationFloat: TFloatVector;
+    FDstScaleFloat: TFloatVector;
+    FOffsetFixed : TFixedVector;
+    FOffsetInt : TPoint;
+    FMappingRect: TFloatRect;
+    FOffset: TFloatVector;
+    procedure SetMappingRect(Rect: TFloatRect);
+    procedure SetOffset(const Value: TFloatVector);
+  protected
+    procedure PrepareTransform; override;
+    procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); override;
+    procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
+    procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
   public
+    constructor Create; virtual;
+    destructor Destroy; override;
+    procedure RenderTransformation(Transformation: TTransformation; DstRect: TRect;
+      CombineMode: TVectorCombineMode = vcmAdd; CombineCallback: TVectorCombineEvent = nil);
+    function  GetTransformedBounds: TRect; override;
+    procedure Scale(Sx, Sy: Single);
+    property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
+    property Offset: TFloatVector read FOffset write SetOffset;
   end;
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
@@ -219,8 +253,8 @@ var
   
 implementation
 
-
-uses GR32_LowLevel, GR32_System, GR32_Resamplers, Math;
+uses
+  GR32_LowLevel, GR32_System, GR32_Resamplers, Math;
 
 type
   {provides access to proctected members of TBitmap32 by typecasting}
@@ -1042,6 +1076,214 @@ procedure TDisturbanceTransformation.SetDisturbance(const Value: Single);
 begin
   FDisturbance := Value;
 end;
+
+{ TRemapTransformation }
+
+constructor TRemapTransformation.Create;
+begin
+  inherited;
+  FScalingFixed := FixedPoint(1, 1);
+  FScalingFloat := FloatPoint(1, 1);
+  FOffset := FloatPoint(0,0);
+  FVectorMap := TVectorMap.Create;
+  //Ensuring initial setup to avoid exceptions
+  FVectorMap.SetSize(1, 1);
+end;
+
+destructor TRemapTransformation.Destroy;
+begin
+  FVectorMap.Free;
+  inherited;
+end;
+
+function TRemapTransformation.GetTransformedBounds: TRect;
+begin
+  Result := FVectorMap.BoundsRect;
+  OffsetRect(Result, Round(FOffset.X), Round(FOffset.Y));
+{  R := MakeRect(FMappingRect);
+  if R.Left < Result.Left then Result.Left := R.Left;
+  if R.Top < Result.Top then Result.Top := R.Top;
+  if R.Right > Result.Right then Result.Right := R.Right;
+  if R.Bottom > Result.Bottom then Result.Bottom := R.Bottom;   }
+end;
+
+procedure TRemapTransformation.PrepareTransform;
+begin
+  if IsRectEmptyF(SrcRect) then raise Exception.Create('SrcRect is empty!');
+  if IsRectEmptyF(FMappingRect) then raise Exception.Create('MappingRect is empty!');
+  with SrcRect do
+  begin
+    FSrcTranslationFloat.X := Left;
+    FSrcTranslationFloat.Y := Top;
+    FSrcScaleFloat.X := 1 / ((FVectorMap.Width - 1) / (Right - Left));
+    FSrcScaleFloat.Y := 1 / ((FVectorMap.Height - 1) / (Bottom - Top));
+    FSrcTranslationFixed := FixedPoint(FSrcTranslationFloat);
+    FSrcScaleFixed := FixedPoint(FSrcScaleFloat);
+  end;
+
+  with FMappingRect do
+  begin
+    FDstTranslationFloat.X := Left;
+    FDstTranslationFloat.Y := Top;
+    FDstScaleFloat.X := (FVectorMap.Width - 1) / (Right - Left);
+    FDstScaleFloat.Y := (FVectorMap.Height - 1) / (Bottom - Top);
+    FDstTranslationFixed := FixedPoint(FDstTranslationFloat);
+    FDstScaleFixed := FixedPoint(FDstScaleFloat);
+  end;
+end;
+
+procedure TRemapTransformation.RenderTransformation(
+  Transformation: TTransformation; DstRect: TRect;
+  CombineMode: TVectorCombineMode = vcmAdd;
+  CombineCallback: TVectorCombineEvent = nil);
+var
+  I, J: Integer;
+  P, Q, Progression: TFixedVector;
+  ProgressionX, ProgressionY: TFixed;
+  MapPtr: PFixedPointArray;
+begin
+  IntersectRect(DstRect, FVectorMap.BoundsRect, DstRect);
+  if IsRectEmpty(DstRect) then Exit;
+
+  if not TTransformationAccess(Transformation).TransformValid then
+    TTransformationAccess(Transformation).PrepareTransform;
+
+  case CombineMode of
+    vcmAdd:
+      begin
+        with DstRect do
+        for I := Top to Bottom do
+        begin
+          MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
+          for J := Left to Right do
+          begin
+            P := FixedPoint(J - Left, I - Top);
+            Q := Transformation.ReverseTransform(P);
+            Inc(MapPtr[J].X, Q.X - P.X);
+            Inc(MapPtr[J].Y, Q.Y - P.Y);
+          end;
+        end;
+      end;
+    vcmReplace:
+      begin
+        with DstRect do
+        for I := Top to Bottom do
+        begin
+          MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
+          for J := Left to Right do
+          begin
+            P := FixedPoint(J - Left, I - Top);
+            Q := Transformation.ReverseTransform(P);
+            MapPtr[J].X := Q.X - P.X;
+            MapPtr[J].Y := Q.Y - P.Y;
+          end;
+        end;
+      end;
+  else // vcmCustom
+    ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
+    ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
+    Progression.Y := 0;
+    with DstRect do for I := Top to Bottom do
+    begin
+      Progression.X := 0;
+      MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
+      for J := Left to Right do
+      begin
+        P := FixedPoint(J - Left, I - Top);
+        Q := Transformation.ReverseTransform(P);
+        Q.X := Q.X - P.X;
+        Q.Y := Q.Y - P.Y;
+        CombineCallback(Q, Progression, MapPtr[J]);
+
+        Inc(Progression.X, ProgressionX);
+      end;
+     Inc(Progression.Y, ProgressionY);
+    end;
+  end;
+  TransformValid := False;
+end;
+
+procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
+  out SrcX, SrcY: TFixed);
+begin
+  with FVectorMap.FixedVectorX[DstX - FOffsetFixed.X, DstY - FOffsetFixed.Y] do
+  begin
+    DstX := DstX - FDstTranslationFixed.X;
+    DstX := FixedMul(DstX , FDstScaleFixed.X);
+    DstX := DstX + FixedMul(X, FScalingFixed.X);
+    DstX := FixedMul(DstX, FSrcScaleFixed.X);
+    SrcX := DstX + FSrcTranslationFixed.X;
+
+    DstY := DstY - FDstTranslationFixed.Y;
+    DstY := FixedMul(DstY, FDstScaleFixed.Y);
+    DstY := DstY + FixedMul(Y, FScalingFixed.Y);
+    DstY := FixedMul(DstY, FSrcScaleFixed.Y);
+    SrcY := DstY + FSrcTranslationFixed.Y;
+  end;
+end;
+
+procedure TRemapTransformation.ReverseTransformFloat(DstX, DstY: Single;
+  out SrcX, SrcY: Single);
+begin
+  with FVectorMap.FloatVectorF[DstX - FOffset.X, DstY - FOffset.Y] do
+  begin
+    DstX := DstX - FDstTranslationFloat.X;
+    DstY := DstY - FDstTranslationFloat.Y;
+    DstX := DstX * FDstScaleFloat.X;
+    DstY := DstY * FDstScaleFloat.Y;
+
+    DstX := DstX + X * FScalingFloat.X;
+    DstY := DstY + Y * FScalingFloat.Y;
+
+    DstX := DstX * FSrcScaleFloat.X;
+    DstY := DstY * FSrcScaleFloat.Y;
+    SrcX := DstX + FSrcTranslationFloat.X;
+    SrcY := DstY + FSrcTranslationFloat.Y;
+  end;
+end;
+
+procedure TRemapTransformation.ReverseTransformInt(DstX, DstY: Integer;
+  out SrcX, SrcY: Integer);
+begin
+  with FVectorMap.FixedVector[DstX - FOffsetInt.X, DstY - FOffsetInt.Y] do
+  begin
+    DstX := DstX * FixedOne - FDstTranslationFixed.X;
+    DstY := DstY * FixedOne - FDstTranslationFixed.Y;
+    DstX := FixedMul(DstX, FDstScaleFixed.X);
+    DstY := FixedMul(DstY, FDstScaleFixed.Y);
+
+    DstX := DstX + FixedMul(X, FScalingFixed.X);
+    DstY := DstY + FixedMul(Y, FScalingFixed.Y);
+
+    DstX := FixedMul(DstX, FSrcScaleFixed.X);
+    DstY := FixedMul(DstY, FSrcScaleFixed.Y);
+    SrcX := FixedRound(DstX + FSrcTranslationFixed.X);
+    SrcY := FixedRound(DstY + FSrcTranslationFixed.Y);
+  end;
+end;
+
+procedure TRemapTransformation.Scale(Sx, Sy: Single);
+begin
+  FScalingFixed.X := Fixed(Sx);
+  FScalingFixed.Y := Fixed(Sy);
+  FScalingFloat.X := Sx;
+  FScalingFloat.Y := Sy;
+end;
+
+procedure TRemapTransformation.SetMappingRect(Rect: TFloatRect);
+begin
+  FMappingRect := Rect;
+  TransformValid := False;
+end;
+
+procedure TRemapTransformation.SetOffset(const Value: TFloatVector);
+begin
+  FOffset := Value;
+  FOffsetInt := Point(Value);
+  FOffsetFixed := FixedPoint(Value);
+  TransformValid := False;
+end;
+
 
 { Matrix conversion routines }
 
