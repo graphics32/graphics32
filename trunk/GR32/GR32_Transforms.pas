@@ -1102,8 +1102,7 @@ function TRemapTransformation.GetTransformedBounds: TRect;
 begin
   // We can't predict the ultimate bounds without transforming each vector in
   // the vector map, return the absolute biggest possible transformation possible
-  Result := Rect(FixedRound(- MaxInt), FixedRound(- MaxInt), FixedRound(MaxInt),
-    FixedRound(MaxInt));
+  Result := Rect(- MaxInt, - MaxInt, MaxInt, MaxInt);
 end;
 
 procedure TRemapTransformation.PrepareTransform;
