@@ -433,19 +433,21 @@ const
   Next = SizeOf(TFixedPoint);
 var
   WX,WY: TFixed;
-  P, W: Integer;
+  P, W, H: Integer;
 begin
   WX := SAR_16(X + $807E);
   WY := SAR_16(Y + $807E);
   W := Width;
-  if (WX >= 0) and (WX < W - 1) and (WY >= 0) and (WY < Height - 1) then
+  H := Next;
+  if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= Height - 1) then
   begin
     P := Integer(@FBits[WX + WY * W]);
-    W := W * Next;
+    if (WY = Height - 1) then W := 0 else W := W * Next;
+    if (WX = W - 1) then H := Next else H := 0;
     WX := (X + $807E) and $FFFF;
     WY := (Y + $807E) and $FFFF;
-    Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + Next)^, WX),
-                               CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + Next)^, WX), WY);
+    Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + H)^, WX),
+                               CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + H)^, WX), WY);
   end else
   begin
     Result.X := 0;
