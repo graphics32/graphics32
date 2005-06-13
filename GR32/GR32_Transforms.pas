@@ -226,8 +226,6 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure RenderTransformation(Transformation: TTransformation; DstRect: TRect;
-      CombineMode: TVectorCombineMode = vcmAdd; CombineCallback: TVectorCombineEvent = nil);
     function  GetTransformedBounds: TRect; override;
     procedure Scale(Sx, Sy: Single);
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
@@ -245,6 +243,11 @@ procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer); overload;
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer; const DstClip: TRect); overload;
+
+procedure RasterizeTransformation(Vectormap: TVectormap;
+  Transformation: TTransformation; DstRect: TRect;
+  CombineMode: TVectorCombineMode = vcmAdd;
+  CombineCallback: TVectorCombineEvent = nil);
 
 procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 
@@ -1130,77 +1133,6 @@ begin
   end;
 end;
 
-procedure TRemapTransformation.RenderTransformation(
-  Transformation: TTransformation; DstRect: TRect;
-  CombineMode: TVectorCombineMode = vcmAdd;
-  CombineCallback: TVectorCombineEvent = nil);
-var
-  I, J: Integer;
-  P, Q, Progression: TFixedVector;
-  ProgressionX, ProgressionY: TFixed;
-  MapPtr: PFixedPointArray;
-begin
-  IntersectRect(DstRect, FVectorMap.BoundsRect, DstRect);
-  if IsRectEmpty(DstRect) then Exit;
-
-  if not TTransformationAccess(Transformation).TransformValid then
-    TTransformationAccess(Transformation).PrepareTransform;
-
-  case CombineMode of
-    vcmAdd:
-      begin
-        with DstRect do
-        for I := Top to Bottom - 1 do
-        begin
-          MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
-          for J := Left to Right - 1 do
-          begin
-            P := FixedPoint(J - Left, I - Top);
-            Q := Transformation.ReverseTransform(P);
-            Inc(MapPtr[J].X, Q.X - P.X);
-            Inc(MapPtr[J].Y, Q.Y - P.Y);
-          end;
-        end;
-      end;
-    vcmReplace:
-      begin
-        with DstRect do
-        for I := Top to Bottom - 1 do
-        begin
-          MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
-          for J := Left to Right - 1 do
-          begin
-            P := FixedPoint(J - Left, I - Top);
-            Q := Transformation.ReverseTransform(P);
-            MapPtr[J].X := Q.X - P.X;
-            MapPtr[J].Y := Q.Y - P.Y;
-          end;
-        end;
-      end;
-  else // vcmCustom
-    ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
-    ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
-    Progression.Y := 0;
-    with DstRect do for I := Top to Bottom - 1 do
-    begin
-      Progression.X := 0;
-      MapPtr := @FVectorMap.Vectors[I * FVectorMap.Width];
-      for J := Left to Right - 1 do
-      begin
-        P := FixedPoint(J - Left, I - Top);
-        Q := Transformation.ReverseTransform(P);
-        Q.X := Q.X - P.X;
-        Q.Y := Q.Y - P.Y;
-        CombineCallback(Q, Progression, MapPtr[J]);
-
-        Inc(Progression.X, ProgressionX);
-      end;
-     Inc(Progression.Y, ProgressionY);
-    end;
-  end;
-  TransformValid := False;
-end;
-
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
   out SrcX, SrcY: TFixed);
 begin
@@ -1282,6 +1214,75 @@ begin
   TransformValid := False;
 end;
 
+procedure RasterizeTransformation(Vectormap: TVectormap;
+  Transformation: TTransformation; DstRect: TRect;
+  CombineMode: TVectorCombineMode = vcmAdd;
+  CombineCallback: TVectorCombineEvent = nil);
+var
+  I, J: Integer;
+  P, Q, Progression: TFixedVector;
+  ProgressionX, ProgressionY: TFixed;
+  MapPtr: PFixedPointArray;
+begin
+  IntersectRect(DstRect, VectorMap.BoundsRect, DstRect);
+  if IsRectEmpty(DstRect) then Exit;
+
+  if not TTransformationAccess(Transformation).TransformValid then
+    TTransformationAccess(Transformation).PrepareTransform;
+
+  case CombineMode of
+    vcmAdd:
+      begin
+        with DstRect do
+        for I := Top to Bottom - 1 do
+        begin
+          MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
+          for J := Left to Right - 1 do
+          begin
+            P := FixedPoint(J - Left, I - Top);
+            Q := Transformation.ReverseTransform(P);
+            Inc(MapPtr[J].X, Q.X - P.X);
+            Inc(MapPtr[J].Y, Q.Y - P.Y);
+          end;
+        end;
+      end;
+    vcmReplace:
+      begin
+        with DstRect do
+        for I := Top to Bottom - 1 do
+        begin
+          MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
+          for J := Left to Right - 1 do
+          begin
+            P := FixedPoint(J - Left, I - Top);
+            Q := Transformation.ReverseTransform(P);
+            MapPtr[J].X := Q.X - P.X;
+            MapPtr[J].Y := Q.Y - P.Y;
+          end;
+        end;
+      end;
+  else // vcmCustom
+    ProgressionX := Fixed(1 / (DstRect.Right - DstRect.Left - 1));
+    ProgressionY := Fixed(1 / (DstRect.Bottom - DstRect.Top - 1));
+    Progression.Y := 0;
+    with DstRect do for I := Top to Bottom - 1 do
+    begin
+      Progression.X := 0;
+      MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
+      for J := Left to Right - 1 do
+      begin
+        P := FixedPoint(J - Left, I - Top);
+        Q := Transformation.ReverseTransform(P);
+        Q.X := Q.X - P.X;
+        Q.Y := Q.Y - P.Y;
+        CombineCallback(Q, Progression, MapPtr[J]);
+
+        Inc(Progression.X, ProgressionX);
+      end;
+     Inc(Progression.Y, ProgressionY);
+    end;
+  end;
+end;
 
 { Matrix conversion routines }
 
