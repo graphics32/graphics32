@@ -79,6 +79,7 @@ type
 
     property Vectors: PFixedPointArray read GetVectors;
     function BoundsRect: TRect;
+    function GetTrimmedBounds: TRect;
     function IsEmpty: Boolean;
     procedure LoadFromFile(const FileName: string);
     procedure SaveToFile(const FileName: string);
@@ -546,6 +547,64 @@ begin
   begin
     FVectorCombineMode := Value;
     Changed;
+  end;
+end;
+
+function TVectorMap.GetTrimmedBounds: TRect;
+var
+  J: Integer;
+  VectorPtr : PFixedVector;
+label
+  TopDone, BottomDone, LeftDone;
+
+begin
+  with Result do
+  begin
+    //Find Top
+    Top := 0;
+    VectorPtr := @Vectors[Top];
+    repeat
+      if Int64(VectorPtr^)<> 0 then goto TopDone;
+      Inc(VectorPtr);
+      Inc(Top);
+    until Top = Width * Height;
+
+    TopDone: Top := Top div Width;
+
+    //Find Bottom
+    Bottom := Width * Height - 1;
+    VectorPtr := @Vectors[Bottom];
+    repeat
+      if Int64(VectorPtr^)<> 0 then goto BottomDone;
+      Dec(VectorPtr);
+      Dec(Bottom);
+    until Bottom < 0;
+
+    BottomDone: Bottom := Bottom div Width - 1;
+
+    //Find Left
+    Left := 0;
+    repeat
+      J := Top;
+      repeat
+        if Int64(FixedVector[Left, J])<> 0 then goto LeftDone;
+        Inc(J);
+      until J >= Bottom;
+      Inc(Left)
+    until Left >= Width;
+
+    LeftDone:
+
+    //Find Right
+    Right := Width - 1;
+    repeat
+      J := Bottom;
+      repeat
+        if Int64(FixedVector[Right, J])<> 0 then Exit;
+        Dec(J);
+      until J <= Top;
+      Dec(Right)
+    until Right <= Left;
   end;
 end;
 
