@@ -204,6 +204,8 @@ type
     FVectorMap : TVectorMap;
     FScalingFixed: TFixedVector;
     FScalingFloat: TFloatVector;
+    FCombinedScalingFixed: TFixedVector;
+    FCombinedScalingFloat: TFloatVector;
     FSrcTranslationFixed: TFixedVector;
     FSrcScaleFixed: TFixedVector;
     FDstTranslationFixed: TFixedVector;
@@ -1128,6 +1130,9 @@ begin
     FDstTranslationFloat.Y := Top;
     FDstScaleFloat.X := (FVectorMap.Width - 1) / (Right - Left);
     FDstScaleFloat.Y := (FVectorMap.Height - 1) / (Bottom - Top);
+    FCombinedScalingFloat.X := FDstScaleFloat.X * FScalingFloat.X;
+    FCombinedScalingFloat.Y := FDstScaleFloat.Y * FScalingFloat.Y;
+    FCombinedScalingFixed := FixedPoint(FCombinedScalingFloat);
     FDstTranslationFixed := FixedPoint(FDstTranslationFloat);
     FDstScaleFixed := FixedPoint(FDstScaleFloat);
   end;
@@ -1140,13 +1145,13 @@ begin
   begin
     DstX := DstX - FDstTranslationFixed.X;
     DstX := FixedMul(DstX , FDstScaleFixed.X);
-    DstX := DstX + FixedMul(X, FScalingFixed.X);
+    DstX := DstX + FixedMul(X, FCombinedScalingFixed.X);
     DstX := FixedMul(DstX, FSrcScaleFixed.X);
     SrcX := DstX + FSrcTranslationFixed.X;
 
     DstY := DstY - FDstTranslationFixed.Y;
     DstY := FixedMul(DstY, FDstScaleFixed.Y);
-    DstY := DstY + FixedMul(Y, FScalingFixed.Y);
+    DstY := DstY + FixedMul(Y, FCombinedScalingFixed.Y);
     DstY := FixedMul(DstY, FSrcScaleFixed.Y);
     SrcY := DstY + FSrcTranslationFixed.Y;
   end;
@@ -1162,8 +1167,8 @@ begin
     DstX := DstX * FDstScaleFloat.X;
     DstY := DstY * FDstScaleFloat.Y;
 
-    DstX := DstX + X * FScalingFloat.X;
-    DstY := DstY + Y * FScalingFloat.Y;
+    DstX := DstX + X * FCombinedScalingFloat.X;
+    DstY := DstY + Y * FCombinedScalingFloat.Y;
 
     DstX := DstX * FSrcScaleFloat.X;
     DstY := DstY * FSrcScaleFloat.Y;
@@ -1182,8 +1187,8 @@ begin
     DstX := FixedMul(DstX, FDstScaleFixed.X);
     DstY := FixedMul(DstY, FDstScaleFixed.Y);
 
-    DstX := DstX + FixedMul(X, FScalingFixed.X);
-    DstY := DstY + FixedMul(Y, FScalingFixed.Y);
+    DstX := DstX + FixedMul(X, FCombinedScalingFixed.X);
+    DstY := DstY + FixedMul(Y, FCombinedScalingFixed.Y);
 
     DstX := FixedMul(DstX, FSrcScaleFixed.X);
     DstY := FixedMul(DstY, FSrcScaleFixed.Y);
