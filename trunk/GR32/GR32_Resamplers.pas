@@ -2851,7 +2851,7 @@ end;
 
 constructor TNestedSampler.Create(ASampler: TCustomSampler);
 begin
-  FSampler := ASampler;
+  Sampler := ASampler;
 end;
 
 procedure TNestedSampler.FinalizeSampling;
