@@ -1017,6 +1017,7 @@ end;
 
 procedure TCustomPaintBox32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
+  if csDesigning in ComponentState then ResizeBuffer;
   FBufferValid := False;
   inherited;
 end;
