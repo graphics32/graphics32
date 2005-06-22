@@ -49,6 +49,7 @@ procedure FillLongword(var X; Count: Integer; Value: Longword); {$IFDEF USEINLIN
 {$ELSE}
 procedure FillLongword(var X; Count: Integer; Value: Longword);
 {$ENDIF}
+procedure FillWord(var X; Count: Integer; Value: Longword);
 
 { An analogue of Move for 32 bit values }
 {$IFDEF USEMOVE}
@@ -56,6 +57,7 @@ procedure MoveLongword(const Source; var Dest; Count: Integer); {$IFDEF USEINLIN
 {$ELSE}
 procedure MoveLongword(const Source; var Dest; Count: Integer);
 {$ENDIF}
+procedure MoveWord(const Source; var Dest; Count: Integer);
 
 { Exchange two 32-bit values }
 procedure Swap(var A, B: Integer);
@@ -139,6 +141,24 @@ asm
 end;
 {$ENDIF}
 
+procedure FillWord(var X; Count: Integer; Value: Longword);
+asm
+// EAX = X
+// EDX = Count
+// ECX = Value
+        PUSH    EDI
+
+        MOV     EDI,EAX  // Point EDI to destination
+        MOV     EAX,ECX
+        MOV     ECX,EDX
+        TEST    ECX,ECX
+        JS      @exit
+
+        REP     STOSW    // Fill count words
+@exit:
+        POP     EDI
+end;
+
 {$IFDEF USEMOVE}
 procedure MoveLongword(const Source; var Dest; Count: Integer);
 begin
@@ -165,6 +185,26 @@ asm
         POP     ESI
 end;
 {$ENDIF}
+
+procedure MoveWord(const Source; var Dest; Count: Integer);
+asm
+// EAX = Source
+// EDX = Dest
+// ECX = Count
+        PUSH    ESI
+        PUSH    EDI
+
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+        MOV     EAX,ECX
+        CMP     EDI,ESI
+        JE      @exit
+
+        REP     MOVSW
+@exit:
+        POP     EDI
+        POP     ESI
+end;
 
 procedure Swap(var A, B: Integer);
 asm
@@ -204,10 +244,18 @@ begin
 end;
 
 function Constrain(const Value, Lo, Hi: Integer): Integer;
+{$IFDEF USEINLINING}
 begin
   if Value < Lo then Result := Lo
   else if Value > Hi then Result := Hi
   else Result := Value;
+{$ELSE}
+asm
+      CMP       EDX,EAX
+      CMOVG     EAX,EDX
+      CMP       ECX,EAX
+      CMOVL     EAX,ECX
+{$ENDIF}
 end;
 
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
