@@ -8,6 +8,8 @@ uses
 type
   TRenderThread = class;
 
+  TRenderMode = (rmFull, rmConstrained);
+
   { TSyntheticImage32 }
   TSyntheticImage32 = class(TPaintBox32)
   private
@@ -17,44 +19,67 @@ type
     FResized: Boolean;
     FRenderThread: TRenderThread;
     FOldAreaChanged: TAreaChangedEvent;
+    FBitmapAlign: TBitmapAlign;
+    FDstRect: TRect;
+    FRenderMode: TRenderMode;
     procedure SetRasterizer(const Value: TRasterizer);
     procedure StopRenderThread;
+    procedure SetBitmapAlign(const Value: TBitmapAlign);
+    procedure SetDstRect(const Value: TRect);
+    procedure SetRenderMode(const Value: TRenderMode);
   protected
     procedure RasterizerChanged(Sender: TObject);
     procedure SetParent(AParent: TWinControl); override;
     procedure FormWindowProc(var Message: TMessage);
     procedure DoRasterize;
+    property RepaintMode;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure Resize; override;
+    procedure Rasterize;
   published
     property AutoRasterize: Boolean read FAutoRasterize write FAutoRasterize;
     property Rasterizer: TRasterizer read FRasterizer write SetRasterizer;
     property Buffer;
+    property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
+    property RenderMode: TRenderMode read FRenderMode write SetRenderMode;
+    property DstRect: TRect read FDstRect write SetDstRect;
   end;
 
+  { TRenderThread }
   TRenderThread = class(TThread)
   private
     FBitmap: TBitmap32;
     FRasterizer: TRasterizer;
     FOldAreaChanged: TAreaChangedEvent;
     FArea: TRect;
-    FBoundsRect: TRect;
+    FDstRect: TRect;
     procedure SynchronizedAreaChanged;
     procedure AreaChanged(Sender: TObject; const Area: TRect; const Hint: Cardinal);
   protected
     procedure Execute; override;
     procedure Rasterize;
   public
-    constructor Create(Rasterizer: TRasterizer; Bitmap: TBitmap32; BoundsRect: TRect);
+    constructor Create(Rasterizer: TRasterizer; Bitmap: TBitmap32; DstRect: TRect; Suspended: Boolean);
   end;
+
+procedure Rasterize(Rasterizer: TRasterizer; Bitmap: TBitmap32; DstRect: TRect);
 
 implementation
 
 uses
   Forms, SysUtils;
-  
+
+procedure Rasterize(Rasterizer: TRasterizer; Bitmap: TBitmap32; DstRect: TRect);
+var
+  R: TRenderThread;
+begin
+  R := TRenderThread.Create(Rasterizer, Bitmap, DstRect, True);
+  R.FreeOnTerminate := True;
+  R.Resume;
+end;
+
 { TSyntheticImage32 }
 
 constructor TSyntheticImage32.Create(AOwner: TComponent);
@@ -64,6 +89,8 @@ begin
   FRasterizer.Sampler := Buffer.Resampler;
   FAutoRasterize := True;
   FResized := False;
+  RepaintMode := rmDirect;
+  RenderMode := rmFull;
 end;
 
 destructor TSyntheticImage32.Destroy;
@@ -82,18 +109,7 @@ end;
 
 procedure TSyntheticImage32.DoRasterize;
 begin
-  //if FAutoRasterize then
-  begin
-    { clear buffer before rasterization }
-    Buffer.Clear(clBlack32);
-    Invalidate;
-
-    { create rendering thread }
-    StopRenderThread;
-    FOldAreaChanged := Buffer.OnAreaChanged;
-    FRenderThread := TRenderThread.Create(FRasterizer, Buffer, BoundsRect);
-    FResized := True;
-  end;
+  if FAutoRasterize then Rasterize;
 end;
 
 procedure TSyntheticImage32.FormWindowProc(var Message: TMessage);
@@ -120,6 +136,26 @@ begin
   end;
 end;
 
+procedure TSyntheticImage32.Rasterize;
+var
+  R: TRect;
+begin
+  { clear buffer before rasterization }
+  Buffer.Clear(clBlack32);
+  Invalidate;
+
+  { create rendering thread }
+  StopRenderThread;
+  FOldAreaChanged := Buffer.OnAreaChanged;
+  if FRenderMode = rmFull then
+    R := Rect(0, 0, Width, Height)
+  else
+    R := FDstRect;
+
+  FRenderThread := TRenderThread.Create(FRasterizer, Buffer, R, False);
+  FResized := True;
+end;
+
 procedure TSyntheticImage32.RasterizerChanged(Sender: TObject);
 begin
   DoRasterize;
@@ -131,6 +167,16 @@ begin
   inherited;
 end;
 
+procedure TSyntheticImage32.SetBitmapAlign(const Value: TBitmapAlign);
+begin
+  FBitmapAlign := Value;
+end;
+
+procedure TSyntheticImage32.SetDstRect(const Value: TRect);
+begin
+  FDstRect := Value;
+end;
+
 procedure TSyntheticImage32.SetParent(AParent: TWinControl);
 var
   ParentForm: TCustomForm;
@@ -138,10 +184,8 @@ begin
   ParentForm := GetParentForm(Self);
   if ParentForm = AParent then Exit;
   if ParentForm <> nil then
-  begin
     if Assigned(FDefaultProc) then
       ParentForm.WindowProc := FDefaultProc;
-  end;
   inherited;
   if AParent <> nil then
   begin
@@ -167,6 +211,11 @@ begin
   end;
 end;
 
+procedure TSyntheticImage32.SetRenderMode(const Value: TRenderMode);
+begin
+  FRenderMode := Value;
+end;
+
 procedure TSyntheticImage32.StopRenderThread;
 begin
   if Assigned(FRenderThread) and (not FRenderThread.Terminated) then
@@ -180,12 +229,13 @@ end;
 { TRenderThread }
 
 constructor TRenderThread.Create(Rasterizer: TRasterizer; Bitmap: TBitmap32;
-  BoundsRect: TRect);
+  DstRect: TRect; Suspended: Boolean);
 begin
-  inherited Create(False);
+  inherited Create(Suspended);
   FRasterizer := Rasterizer;
   FBitmap := Bitmap;
-  FBoundsRect := BoundsRect;
+  //FBoundsRect := BoundsRect;
+  FDstRect := DstRect;
   Priority := tpNormal;
 end;
 
@@ -201,7 +251,8 @@ begin
   FOldAreaChanged := FBitmap.OnAreaChanged;
   FBitmap.OnAreaChanged := AreaChanged;
   try
-    FRasterizer.Rasterize(FBitmap, FBoundsRect);
+    // TODO: allow arbitrary destination rectangle
+    FRasterizer.Rasterize(FBitmap, FDstRect);
   except
     on EAbort do;
   end;
