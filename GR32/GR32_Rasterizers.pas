@@ -24,10 +24,6 @@ type
     TransparentColor: TColor32;
   end;
 
-  TGetSampleInt = function(X, Y: Integer): TColor32 of object;
-  TGetSampleFloat = function(X, Y: Single): TColor32 of object;
-  TGetSampleFixed = function(X, Y: TFixed): TColor32 of object;
-
 type
   TCustomRasterizer = class(TThreadPersistent);
 
@@ -40,7 +36,7 @@ type
     FBlendMemEx: TBlendMemEx;
     FCombineCallBack: TPixelCombineEvent;
     FAssignColor: TAssignColor;
-    FTransparentColor: TColor32; 
+    FTransparentColor: TColor32;
     procedure SetSampler(const Value: TCustomSampler);
     procedure AssignColorOpaque(var Dst: TColor32; Src: TColor32);
     procedure AssignColorBlend(var Dst: TColor32; Src: TColor32);
