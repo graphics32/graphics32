@@ -269,13 +269,13 @@ begin
     FArea := Area;
     FBitmap.Unlock;
     Synchronize(SynchronizedAreaChanged);
-    FBitmap.Lock;
   end;
 end;
 
 procedure TRenderThread.SynchronizedAreaChanged;
 begin
   FOldAreaChanged(FBitmap, FArea, 0);
+  FBitmap.Lock;
 end;
 
 end.
