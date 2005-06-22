@@ -3,7 +3,8 @@ unit GR32_Resamplers;
 interface
 
 uses
-  SysUtils, Classes, Types, GR32, GR32_Transforms, GR32_Rasterizers, GR32_Containers;
+  Classes, Types, SysUtils, GR32, GR32_Transforms, GR32_Containers,
+  GR32_IntegerMaps;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -33,6 +34,10 @@ type
   EBitmapException = class(Exception);
   ESrcInvalidException = class(Exception);
 
+  TGetSampleInt = function(X, Y: Integer): TColor32 of object;
+  TGetSampleFloat = function(X, Y: Single): TColor32 of object;
+  TGetSampleFixed = function(X, Y: TFixed): TColor32 of object;
+
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
@@ -45,7 +50,7 @@ type
   end;
   TCustomKernelClass = class of TCustomKernel;
     
-  { TNearestResampler }
+  { TNearestKernel }
   TNearestKernel = class(TCustomKernel)
   public
     function Filter(Value: Single): Single; override;
@@ -204,7 +209,7 @@ type
     reconstruction kernel. By using the kmTableNearest and kmTableLinear
     kernel modes, kernel values are precomputed in a look-up table. This
     allows GetSample to execute faster for complex kernels. }
-    
+
   TKernelMode = (kmDefault, kmTableNearest, kmTableLinear);
 
   TKernelResampler = class(TBitmap32Resampler)
@@ -242,7 +247,7 @@ type
     property TableSize: Integer read FTableSize write SetTableSize;
   end;
 
-  { TBitmap32NearestResampler }
+  { TNearestResampler }
   TNearestResampler = class(TBitmap32Resampler)
   protected
     function GetWidth: Single; override;
@@ -256,7 +261,7 @@ type
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
-  { TBitmap32LinearResampler }
+  { TLinearResampler }
   TLinearResampler = class(TBitmap32Resampler)
   private
     FLinearKernel: TLinearKernel;
@@ -272,7 +277,7 @@ type
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
-  { TBitmap32DraftResampler }
+  { TDraftResampler }
   TDraftResampler = class(TLinearResampler)
   public
     procedure Resample(
@@ -315,12 +320,14 @@ type
     procedure SetBoundsRect(Rect: TFloatRect);
     procedure SetTransformation(const Value: TTransformation);
   public
-    constructor Create(Src: TBitmap32; ATransformation: TTransformation); reintroduce;
+    constructor Create(Src: TBitmap32; ATransformation: TTransformation); overload;
+    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); overload;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
-    property Transformation: TTransformation read FTransformation write SetTransformation;
     property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
     property OuterColor: TColor32 read FOuterColor write FOuterColor;
+  published
+    property Transformation: TTransformation read FTransformation write SetTransformation;
   end;
 
   { TNearestTransformer }
@@ -332,23 +339,25 @@ type
   end;
 
   { TSuperSampler }
+  TSamplingRange = 1..MaxInt;
+
   TSuperSampler = class(TNestedSampler)
   private
-    FSamplingY: Integer;
-    FSamplingX: Integer;
+    FSamplingY: TSamplingRange;
+    FSamplingX: TSamplingRange;
     FDistanceX: TFixed;
     FDistanceY: TFixed;
     FOffsetX: TFixed;
     FOffsetY: TFixed;
     FScale: TFixed;
-    procedure SetSamplingX(const Value: Integer);
-    procedure SetSamplingY(const Value: Integer);
+    procedure SetSamplingX(const Value: TSamplingRange);
+    procedure SetSamplingY(const Value: TSamplingRange);
   public
     constructor Create(Sampler: TCustomSampler); override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property SamplingX: Integer read FSamplingX write SetSamplingX;
-    property SamplingY: Integer read FSamplingY write SetSamplingY;
+    property SamplingX: TSamplingRange read FSamplingX write SetSamplingX;
+    property SamplingY: TSamplingRange read FSamplingY write SetSamplingY;
   end;
 
   { TAdaptiveSuperSampler }
@@ -371,6 +380,7 @@ type
   public
     constructor Create(Sampler: TCustomSampler); override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
+  published
     property Level: Integer read FLevel write SetLevel;
     property Tolerance: Integer read FTolerance write SetTolerance;
   end;
@@ -394,14 +404,91 @@ type
     property Pattern: TFixedSamplePattern read FPattern write SetPattern;
   end;
 
-function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
-
-type
-{ Auxiliary record used in accumulation routines }
+  { Auxiliary record used in accumulation routines }
   PBufferEntry = ^TBufferEntry;
   TBufferEntry = record
     B, G, R, A: Integer;
   end;
+
+  { TKernelSampler }
+  TKernelSampler = class(TNestedSampler)
+  private
+    FWeightTable: TIntegerMap;
+    FStartEntry: TBufferEntry;
+    FCenterX: Integer;
+    FCenterY: Integer;
+  public
+    constructor Create(ASampler: TCustomSampler); override;
+    destructor Destroy; override;
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); virtual; abstract;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+  published
+    property WeightTable: TIntegerMap read FWeightTable write FWeightTable;
+    property CenterX: Integer read FCenterX write FCenterX;
+    property CenterY: Integer read FCenterY write FCenterY;
+  end;
+
+  { TConvolver }
+  TConvolver = class(TKernelSampler)
+  public
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+  end;
+
+  { TDilater }
+  TDilater = class(TKernelSampler)
+  public
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+  end;
+
+  { TEroder }
+  TEroder = class(TKernelSampler)
+    constructor Create(ASampler: TCustomSampler); override;
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+  end;
+
+
+  { TExpander }
+  TExpander = class(TKernelSampler)
+  public
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+  end;
+
+  { TContracter }
+  TContracter = class(TExpander)
+  private
+    FMaxWeight: TColor32;
+  public
+    procedure PrepareSampling; override;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+  end;
+
+  TSafeSampler = class(TNestedSampler)
+  private
+    FClipRectInt: TRect;
+    FClipRectFixed: TFixedRect;
+    FClipRectFloat: TFloatRect;
+    FOuterColor: TColor32;
+    procedure SetClipRect(const Value: TRect);
+  public
+    constructor Create(ASampler: TCustomSampler; const AClipRect: TRect; OuterColor: TColor32 = clBlack32); overload;
+    constructor Create(Src: TBitmap32); overload;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    function GetSampleFloat(X, Y: Single): TColor32; override;
+    property ClipRect: TRect read FClipRectInt write SetClipRect;
+    property OuterColor: TColor32 read FOuterColor write FOuterColor;
+  end;
+
+function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
 { Auxiliary routines for accumulating colors in a buffer }
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -481,13 +568,20 @@ function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32;
 var
   Rounding: Integer;
 begin
-  Rounding := $7FFFFFFF shr Shift;
+{   Rounding := $7FFFFFFF shr (32 - Shift);
   with TColor32Entry(Result) do
   begin
     B := (Buffer.B + Rounding) shr Shift;
     G := (Buffer.G + Rounding) shr Shift;
     R := (Buffer.R + Rounding) shr Shift;
     A := (Buffer.A + Rounding) shr Shift;
+  end; }
+  with TColor32Entry(Result) do
+  begin
+    B := Buffer.B shr Shift;
+    G := Buffer.G shr Shift;
+    R := Buffer.R shr Shift;
+    A := Buffer.A shr Shift;
   end;
 end;
 
@@ -2094,10 +2188,10 @@ begin
   end;
   if FKernel.RangeCheck then
   begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
   end;
   with TColorEntry(Result) do
   begin
@@ -2232,10 +2326,10 @@ begin
 
   if FKernel.RangeCheck then
   begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
   end;
 
   with TColor32Entry(Result) do
@@ -2301,10 +2395,10 @@ begin
 
   if FKernel.RangeCheck then
   begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
+    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
+    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
+    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
+    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
   end;
 
   with TColor32Entry(Result) do
@@ -2489,6 +2583,13 @@ begin
   FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
 end;
 
+constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTransformation);
+begin
+  Transformation := ATransformation;
+  Sampler := ASampler;
+  BoundsRect := FloatRect(-32768, -32768, 32767, 32767);
+end;
+
 { TNearestTransformer }
 
 function TNearestTransformer.GetSampleInt(X, Y: Integer): TColor32;
@@ -2570,7 +2671,7 @@ begin
   Result := BufferToColor32(Buffer, 16);
 end;
 
-procedure TSuperSampler.SetSamplingX(const Value: Integer);
+procedure TSuperSampler.SetSamplingX(const Value: TSamplingRange);
 begin
   if Value > 0 then
   begin
@@ -2581,7 +2682,7 @@ begin
   end;
 end;
 
-procedure TSuperSampler.SetSamplingY(const Value: Integer);
+procedure TSuperSampler.SetSamplingY(const Value: TSamplingRange);
 begin
   if Value > 0 then
   begin
@@ -2735,7 +2836,7 @@ begin
     Inc(P);
   end;
   MultiplyBuffer(Buffer, 65536 div Length(Points));
-  Result := BufferToColor32(Buffer, 16); 
+  Result := BufferToColor32(Buffer, 16);
 end;
 
 procedure TPatternSampler.SetPattern(const Value: TFixedSamplePattern);
@@ -2870,6 +2971,207 @@ begin
   FGetSampleInt := FSampler.GetSampleInt;
   FGetSampleFixed := FSampler.GetSampleFixed;
   FGetSampleFloat := FSampler.GetSampleFloat;
+end;
+
+
+{ TSafeSampler }
+
+constructor TSafeSampler.Create(ASampler: TCustomSampler; const AClipRect: TRect; OuterColor: TColor32 = clBlack32);
+begin
+  inherited Create(ASampler);
+  ClipRect := AClipRect;
+  FOuterColor := OuterColor;
+end;
+
+constructor TSafeSampler.Create(Src: TBitmap32);
+begin
+  inherited Create(Src.Resampler);
+  ClipRect := Src.ClipRect;
+  FOuterColor := Src.OuterColor;
+end;
+
+function TSafeSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  if (X >= FClipRectFixed.Left) and (X < FClipRectFixed.Right) and
+     (Y >= FClipRectFixed.Top) and (Y < FClipRectFixed.Bottom) then
+    Result := FGetSampleFixed(X, Y)
+  else
+    Result := FOuterColor;
+end;
+
+function TSafeSampler.GetSampleFloat(X, Y: Single): TColor32;
+begin
+  if (X >= FClipRectFloat.Left) and (X < FClipRectFloat.Right) and
+     (Y >= FClipRectFloat.Top) and (Y < FClipRectFloat.Bottom) then
+    Result := FGetSampleFloat(X, Y)
+  else
+    Result := FOuterColor;
+end;
+
+function TSafeSampler.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  if (X >= FClipRectInt.Left) and (X < FClipRectInt.Right) and
+     (Y >= FClipRectInt.Top) and (Y < FClipRectInt.Bottom) then
+    Result := FGetSampleInt(X, Y)
+  else
+    Result := FOuterColor;
+end;
+
+procedure TSafeSampler.SetClipRect(const Value: TRect);
+begin
+  FClipRectInt := Value;
+  FClipRectFixed := FixedRect(Value);
+  FClipRectFloat := FloatRect(Value);
+end;
+
+{ TKernelSampler }
+
+constructor TKernelSampler.Create(ASampler: TCustomSampler);
+begin
+  inherited;
+  FWeightTable := TIntegerMap.Create;
+  FStartEntry := EMPTY_ENTRY;
+end;
+
+destructor TKernelSampler.Destroy;
+begin
+  FWeightTable.Free;
+  inherited;
+end;
+
+function TKernelSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+var
+  I, J: Integer;
+  Buffer: TBufferEntry;
+begin
+  X := X + FCenterX shl 16;
+  Y := Y + FCenterY shl 16;
+  Buffer := FStartEntry;
+  for I := 0 to FWeightTable.Width - 1 do
+    for J := 0 to FWeightTable.Height - 1 do
+      UpdateBuffer(Buffer, FGetSampleFixed(X - I shl 16, Y - J shl 16), FWeightTable[I, J]);
+
+  Buffer.A := Constrain(Buffer.A, 0, $FFFF);
+  Buffer.R := Constrain(Buffer.R, 0, $FFFF);
+  Buffer.G := Constrain(Buffer.G, 0, $FFFF);
+  Buffer.B := Constrain(Buffer.B, 0, $FFFF);
+
+  Result := BufferToColor32(Buffer, 8);
+end;
+
+function TKernelSampler.GetSampleInt(X, Y: Integer): TColor32;
+var
+  I, J: Integer;
+  Buffer: TBufferEntry;
+begin
+  X := X + FCenterX;
+  Y := Y + FCenterY;
+  Buffer := FStartEntry;
+  for I := 0 to FWeightTable.Width - 1 do
+    for J := 0 to FWeightTable.Height - 1 do
+      UpdateBuffer(Buffer, FGetSampleInt(X - I, Y - J), FWeightTable[I, J]);
+
+  Buffer.A := Constrain(Buffer.A, 0, $FFFF);
+  Buffer.R := Constrain(Buffer.R, 0, $FFFF);
+  Buffer.G := Constrain(Buffer.G, 0, $FFFF);
+  Buffer.B := Constrain(Buffer.B, 0, $FFFF);
+
+  Result := BufferToColor32(Buffer, 8)
+end;
+
+
+{ TConvolver }
+
+procedure TConvolver.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+  Weight: Integer);
+begin
+  with TColor32Entry(Color) do
+  begin
+    Inc(Buffer.A, A * Weight);
+    Inc(Buffer.R, R * Weight);
+    Inc(Buffer.G, G * Weight);
+    Inc(Buffer.B, B * Weight);
+  end;
+end;
+
+{ TDilater }
+
+procedure TDilater.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+  Weight: Integer);
+begin
+  with TColor32Entry(Color) do
+  begin
+    Buffer.A := Max(Buffer.A, (A + Weight) shl 8);
+    Buffer.R := Max(Buffer.R, (R + Weight) shl 8);
+    Buffer.G := Max(Buffer.G, (G + Weight) shl 8);
+    Buffer.B := Max(Buffer.B, (B + Weight) shl 8);
+  end;
+end;
+
+{ TEroder }
+
+constructor TEroder.Create(ASampler: TCustomSampler);
+const
+  START_ENTRY: TBufferEntry = (B: $FFFF; G: $FFFF; R: $FFFF; A: $FFFF);
+begin
+  inherited;
+  FStartEntry := START_ENTRY;
+end;
+
+procedure TEroder.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+  Weight: Integer);
+begin
+  with TColor32Entry(Color) do
+  begin
+    Buffer.A := Min(Buffer.A, (A - Weight) shl 8);
+    Buffer.R := Min(Buffer.R, (R - Weight) shl 8);
+    Buffer.G := Min(Buffer.G, (G - Weight) shl 8);
+    Buffer.B := Min(Buffer.B, (B - Weight) shl 8);
+  end;
+end;
+
+{ TExpander }
+
+procedure TExpander.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+  Weight: Integer);
+begin
+  with TColor32Entry(Color) do
+  begin
+    Buffer.A := Max(Buffer.A, A * Weight);
+    Buffer.R := Max(Buffer.R, R * Weight);
+    Buffer.G := Max(Buffer.G, G * Weight);
+    Buffer.B := Max(Buffer.B, B * Weight);
+  end;
+end;
+
+{ TContracter }
+
+function TContracter.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  Result := ColorSub(FMaxWeight, inherited GetSampleInt(X, Y));
+end;
+
+function TContracter.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  Result := ColorSub(FMaxWeight, inherited GetSampleInt(X, Y));
+end;
+
+procedure TContracter.PrepareSampling;
+var
+  I, J, W: Integer;
+begin
+  W := Low(Integer);
+  for I := 0 to FWeightTable.Width - 1 do
+    for J := 0 to FWeightTable.Height - 1 do
+      W := Max(W, FWeightTable[I, J]);
+  if W > 255 then W := 255;
+  FMaxWeight := Gray32(W, W);
+end;
+
+procedure TContracter.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+  Weight: Integer);
+begin
+  inherited UpdateBuffer(Buffer, Color xor $FFFFFFFF, Weight);
 end;
 
 initialization
