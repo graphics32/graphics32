@@ -511,7 +511,7 @@ const
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, Math;
+  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Math, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;

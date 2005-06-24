@@ -74,7 +74,7 @@ function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
 type
-  TTransformation = class
+  TTransformation = class(TPersistent)
   private
     FSrcRect: TFloatRect;
     procedure SetSrcRect(const Value: TFloatRect);
@@ -140,6 +140,7 @@ type
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
   public
     function  GetTransformedBounds: TRect; override;
+  published
     property X0: Single read Wx0 write SetX0;
     property X1: Single read Wx1 write SetX1;
     property X2: Single read Wx2 write SetX2;
@@ -160,6 +161,7 @@ type
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
   public
     function  GetTransformedBounds: TRect; override;
+  published
     property Twirl: Single read FTwirl write SetTwirl;
   end;
 
@@ -184,7 +186,7 @@ type
   protected
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
-  public
+  published
     property Disturbance: Single read FDisturbance write SetDisturbance;
   end;
 
@@ -230,9 +232,9 @@ type
     destructor Destroy; override;
     function  GetTransformedBounds: TRect; override;
     procedure Scale(Sx, Sy: Single);
+  published
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
     property Offset: TFloatVector read FOffset write SetOffset;
-  published
     property VectorMap: TVectorMap read FVectorMap write FVectorMap;
   end;
 
@@ -261,7 +263,7 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Resamplers, Math;
+  GR32_LowLevel, GR32_System, GR32_Resamplers, GR32_Math, Math;
 
 type
   {provides access to proctected members of TBitmap32 by typecasting}

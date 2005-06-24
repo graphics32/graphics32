@@ -158,7 +158,8 @@ function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 
 implementation
 
-uses GR32_Resamplers, Math, SysUtils;
+uses
+  GR32_Resamplers, GR32_Math, Math, SysUtils;
 
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 begin
@@ -483,7 +484,6 @@ begin
     Inc(I, 2);
   end;
 
-  Dst.Clear(clBlack32);
   Size := W * H - 1;
   GetSample := FSampler.GetSampleInt;
 
