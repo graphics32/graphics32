@@ -102,9 +102,6 @@ function ColorSwap(WinColor: TColor): TColor32;
 { MulDiv a faster implementation of Windows.MulDiv funtion }
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
-procedure SinCos(const Theta: Single; var Sin, Cos: Single); overload;
-procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
-
 implementation
 
 {$R-}{$Q-}  // switch off overflow and range checking
@@ -412,24 +409,6 @@ asm
 @exit:
         POP     ESI             // Restore
         POP     EBX             // esi and ebx
-end;
-
-procedure SinCos(const Theta: Single; var Sin, Cos: Single);
-asm
-   FLD  Theta
-   FSINCOS
-   FSTP DWORD PTR [EDX]    // cosine
-   FSTP DWORD PTR [EAX]    // sine
-end;
-
-procedure SinCos(const theta, radius : Single; var Sin, Cos: Single);
-asm
-   FLD  theta
-   FSINCOS
-   FMUL radius
-   FSTP DWORD PTR [EDX]    // cosine
-   FMUL radius
-   FSTP DWORD PTR [EAX]    // sine
 end;
 
 end.
