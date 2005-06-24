@@ -130,9 +130,16 @@ function WinPalette(const P: TPalette32): HPALETTE;
 { A fixed-point type }
 
 type
-// this type has data bits arrangement compatible with Windows.TFixed
-  TFixed = type Integer;
+  // This type has data bits arrangement compatible with Windows.TFixed
   PFixed = ^TFixed;
+  TFixed = type Integer;
+
+  PFixedRec = ^TFixedRec;
+  TFixedRec = packed record
+    case Integer of
+      0: (Fixed: TFixed);
+      1: (Frac: Word; Int: SmallInt);
+  end;
 
   PFixedArray = ^TFixedArray;
   TFixedArray = array [0..0] of TFixed;
@@ -141,18 +148,8 @@ type
   PArrayOfArrayOfFixed = ^TArrayOfArrayOfFixed;
   TArrayOfArrayOfFixed = array of TArrayOfFixed;
 
-// a little bit of fixed point math
-function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FixedFloor(A: TFixed): Integer;
-function FixedCeil(A: TFixed): Integer;
-function FixedMul(A, B: TFixed): TFixed;
-function FixedDiv(A, B: TFixed): TFixed;
-function FixedRound(A: TFixed): Integer;
-
-{ Fixedmath related constants }
-
-const
+const                 
+  // Fixed point math constants
   FixedOne = $10000;
   FixedPI  = Round(PI * FixedOne);
   FixedToFloat = 1/FixedOne;
@@ -723,8 +720,8 @@ type
 implementation
 
 uses
-  GR32_Blend, GR32_Transforms, GR32_LowLevel, GR32_Filters, Math, TypInfo,
-  GR32_System, GR32_Resamplers,
+  GR32_Blend, GR32_Transforms, GR32_Filters, GR32_LowLevel, GR32_Math, Math,
+  { TypInfo, } GR32_System, GR32_Resamplers,
 {$IFDEF CLX}
   QClipbrd,
 {$ELSE}
@@ -989,50 +986,6 @@ begin
   Result := CreatePalette(l0);
 end;
 {$ENDIF}
-
-{ Fixed-point math }
-
-function Fixed(S: Single): TFixed;
-begin
-  Result := Round(S * 65536);
-end;
-
-function Fixed(I: Integer): TFixed;
-begin
-  Result := I * $10000{I shl 16};
-end;
-
-function FixedFloor(A: TFixed): Integer;
-asm
-        SAR     EAX, 16;
-end;
-
-function FixedCeil(A: TFixed): Integer;
-asm
-        ADD     EAX, $0000FFFF
-        SAR     EAX, 16;
-end;
-
-function FixedRound(A: TFixed): Integer;
-asm
-        ADD     EAX, $00007FFF
-        SAR     EAX, 16
-end;
-
-function FixedMul(A, B: TFixed): TFixed;
-asm
-        IMUL    EDX
-        SHRD    EAX, EDX, 16
-end;
-
-function FixedDiv(A, B: TFixed): TFixed;
-asm
-        MOV     ECX, B
-        CDQ
-        SHLD    EDX, EAX, 16
-        SHL     EAX, 16
-        IDIV    ECX
-end;
 
 { Points }
 
