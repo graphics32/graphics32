@@ -42,8 +42,8 @@ uses
   Windows,
   {$ENDIF}
   {$IFDEF CODESITE}CSIntf,{$ENDIF}
-  Types, SysUtils, Classes, Math, RTLConsts, GR32, GR32_LowLevel, GR32_System,
-  GR32_Containers, GR32_Layers, GR32_RepaintOpt;
+  Types, SysUtils, Classes, RTLConsts, GR32, GR32_Containers, GR32_Layers,
+  GR32_System, GR32_RepaintOpt;
 
 const
   MICROTILE_SHIFT = 5;
@@ -216,6 +216,9 @@ procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTile
 procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 
 implementation
+
+uses
+  GR32_LowLevel, GR32_Math, Math;
 
 { MicroTile auxiliary routines }
 

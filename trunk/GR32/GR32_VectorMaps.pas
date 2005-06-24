@@ -101,7 +101,7 @@ type
 implementation
 
 uses
-  Math, SysUtils, GR32_Lowlevel, GR32_Blend, GR32_Transforms;
+  GR32_Lowlevel, GR32_Blend, GR32_Transforms, GR32_Math, Math, SysUtils;
 
 type
   TTransformationAccess = class(TTransformation);
