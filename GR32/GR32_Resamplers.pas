@@ -1,5 +1,32 @@
 unit GR32_Resamplers;
 
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Alex A. Denisov
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Mattias Andersson <mattias@centaurix.com>
+ *   Michael Hansen <dyster_tid@hotmail.com>
+ * 
+ * ***** END LICENSE BLOCK ***** *)
+
 interface
 
 uses
@@ -322,6 +349,7 @@ type
   public
     constructor Create(Src: TBitmap32; ATransformation: TTransformation); overload;
     constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); overload;
+    procedure PrepareSampling; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
@@ -451,7 +479,6 @@ type
       Weight: Integer); override;
   end;
 
-
   { TExpander }
   TExpander = class(TKernelSampler)
   public
@@ -471,6 +498,7 @@ type
       Weight: Integer); override;
   end;
 
+  { TSafeSampler }
   TSafeSampler = class(TNestedSampler)
   private
     FClipRectInt: TRect;
@@ -2588,6 +2616,11 @@ begin
   Transformation := ATransformation;
   Sampler := ASampler;
   BoundsRect := FloatRect(-32768, -32768, 32767, 32767);
+end;
+
+procedure TTransformer.PrepareSampling;
+begin
+  TTransformationAccess(FTransformation).PrepareTransform;
 end;
 
 { TNearestTransformer }
