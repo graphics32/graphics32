@@ -236,11 +236,12 @@ begin
   WX := SAR_16(X + $807E);
   WY := SAR_16(Y + $807E);
   W := Width;
-  if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= Height - 1) then
+  H := Height;
+  if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
   begin
     P := Integer(@FVectors[WX + WY * W]);
-    if (WY = Height - 1) then W := 0 else W := W * Next;
-    if (WX = W - 1) then H := Next else H := 0;
+    if (WY = H - 1) then W := 0 else W := W * Next;
+    if (WX = W - 1) then H := 0 else H := Next;
     WX := (X + $807E) and $FFFF;
     WY := (Y + $807E) and $FFFF;
     Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + H)^, WX),
