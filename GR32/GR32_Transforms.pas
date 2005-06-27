@@ -424,9 +424,6 @@ var
   DstRect: TRect;
   Transformer: TTransformer;
 begin
-  if not TTransformationAccess(Transformation).TransformValid then
-    TTransformationAccess(Transformation).PrepareTransform;
-
   // clip DstRect
   DstRect := Transformation.GetTransformedBounds;
   IntersectRect(DstRect, DstRect, Dst.ClipRect);

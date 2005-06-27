@@ -2620,7 +2620,9 @@ end;
 
 procedure TTransformer.PrepareSampling;
 begin
-  TTransformationAccess(FTransformation).PrepareTransform;
+  inherited;
+  with TTransformationAccess(FTransformation) do
+    if not TransformValid then PrepareTransform;
 end;
 
 { TNearestTransformer }
