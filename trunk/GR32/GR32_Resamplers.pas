@@ -68,12 +68,14 @@ type
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
-    FMap: TCustomMap;
+    FOwner: TThreadPersistent;
   public
-    constructor Create(Map: TCustomMap); virtual;
+    constructor Create(AOwner: TThreadPersistent); virtual;
+    procedure Changed; virtual;
     function RangeCheck: Boolean; virtual;
     function Filter(Value: Single): Single; virtual; abstract;
     function GetWidth: Single; virtual; abstract;
+    property Owner: TThreadPersistent read FOwner;
   end;
   TCustomKernelClass = class of TCustomKernel;
     
@@ -120,7 +122,7 @@ type
     FCoeff: Single;
     procedure SetCoeff(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create(AOwner: TThreadPersistent); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
     function RangeCheck: Boolean; override;
@@ -136,7 +138,7 @@ type
     procedure SetBias(const Value: Single);
     procedure SetTension(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create(AOwner: TThreadPersistent); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
     function RangeCheck: Boolean; override;
@@ -150,7 +152,7 @@ type
   private
     FWidth: Single;
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create(AOwner: TThreadPersistent); override;
     function Filter(Value: Single): Single; override;
     function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
@@ -172,7 +174,7 @@ type
     FSigma: Single;
     procedure SetSigma(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create(AOwner: TThreadPersistent); override;
     function Window(Value: Single): Single; override;
   published
     property Sigma: Single read FSigma write SetSigma;
@@ -203,7 +205,7 @@ type
     FCoeff: Single;
     procedure SetCoeff(const Value: Single);
   public
-    constructor Create(Map: TCustomMap); override;
+    constructor Create(AOwner: TThreadPersistent); override;
     procedure SetWidth(Value: Single);
     function  GetWidth: Single; override;
     function  Filter(Value: Single): Single; override;
@@ -224,6 +226,7 @@ type
     FBitmap: TBitmap32;
     FTransformerClass: TTransformerClass;
   public
+    procedure Changed; virtual;
     constructor Create(Bitmap: TBitmap32); virtual;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
@@ -347,8 +350,8 @@ type
     procedure SetBoundsRect(Rect: TFloatRect);
     procedure SetTransformation(const Value: TTransformation);
   public
-    constructor Create(Src: TBitmap32; ATransformation: TTransformation); overload;
-    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); overload;
+    constructor Create(Src: TBitmap32; ATransformation: TTransformation); reintroduce; overload;
+    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); reintroduce; overload;
     procedure PrepareSampling; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
@@ -507,8 +510,9 @@ type
     FOuterColor: TColor32;
     procedure SetClipRect(const Value: TRect);
   public
-    constructor Create(ASampler: TCustomSampler; const AClipRect: TRect; OuterColor: TColor32 = clBlack32); overload;
-    constructor Create(Src: TBitmap32); overload;
+    constructor Create(ASampler: TCustomSampler; const AClipRect: TRect;
+      OuterColor: TColor32 = clBlack32); reintroduce; overload;
+    constructor Create(Src: TBitmap32); reintroduce; overload;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
@@ -593,17 +597,7 @@ begin
 end;
 
 function BufferToColor32(Buffer: TBufferEntry; Shift: Integer): TColor32;
-var
-  Rounding: Integer;
 begin
-{   Rounding := $7FFFFFFF shr (32 - Shift);
-  with TColor32Entry(Result) do
-  begin
-    B := (Buffer.B + Rounding) shr Shift;
-    G := (Buffer.G + Rounding) shr Shift;
-    R := (Buffer.R + Rounding) shr Shift;
-    A := (Buffer.A + Rounding) shr Shift;
-  end; }
   with TColor32Entry(Result) do
   begin
     B := Buffer.B shr Shift;
@@ -1794,9 +1788,14 @@ end;
 
 { TCustomKernel }
 
-constructor TCustomKernel.Create(Map: TCustomMap);
+procedure TCustomKernel.Changed;
 begin
-  FMap := Map;
+  if Assigned(FOwner) then FOwner.Changed;
+end;
+
+constructor TCustomKernel.Create(AOwner: TThreadPersistent);
+begin
+  FOwner := AOwner;
 end;
 
 function TCustomKernel.RangeCheck: Boolean;
@@ -1889,9 +1888,9 @@ begin
   else Result := 1;
 end;
 
-constructor TWindowedSincKernel.Create(Map: TCustomMap);
+constructor TWindowedSincKernel.Create(AOwner: TThreadPersistent);
 begin
-  inherited Create(Map);
+  inherited Create(AOwner);
   FWidth := 3;
 end;
 
@@ -1914,7 +1913,7 @@ begin
   if Value <> FWidth then
   begin
     FWidth := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end;
 end;
 
@@ -1956,9 +1955,9 @@ end;
 
 { TCubicKernel }
 
-constructor TCubicKernel.Create;
+constructor TCubicKernel.Create(AOwner: TThreadPersistent);
 begin
-  inherited Create(Map);
+  inherited Create(AOwner);
   FCoeff := -0.5;
 end;
 
@@ -2000,7 +1999,7 @@ begin
   if (FSigma <> Value) and (FSigma <> 0) then
   begin
     FSigma := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end;
 end;
 
@@ -2014,7 +2013,7 @@ begin
   if Value <> FCoeff then
   begin
     FCoeff := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end
 end;
 
@@ -2042,9 +2041,9 @@ end;
 
 { TSinshKernel }
 
-constructor TSinshKernel.Create(Map: TCustomMap);
+constructor TSinshKernel.Create(AOwner: TThreadPersistent);
 begin
-  inherited Create(Map);
+  inherited Create(AOwner);
   FWidth := 3;
   FCoeff := 0.5;
 end;
@@ -2067,7 +2066,7 @@ begin
   if FWidth <> Value then
   begin
     FWidth := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end;
 end;
 
@@ -2081,11 +2080,17 @@ begin
   if (FCoeff <> Value) and (FCoeff <> 0) then
   begin
     FCoeff := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end;
 end;
 
 { TBitmap32Resampler }
+
+procedure TBitmap32Resampler.Changed;
+begin
+  inherited;
+  if Assigned(FBitmap) then FBitmap.Changed;
+end;
 
 constructor TBitmap32Resampler.Create(Bitmap: TBitmap32);
 begin
@@ -2131,7 +2136,7 @@ begin
     begin
       FKernel.Free;
       FKernel := KernelClass.Create(Bitmap);
-      Bitmap.Changed;
+      Changed;
     end;
   end;
 end;
@@ -2142,7 +2147,7 @@ begin
   begin
     FKernel.Free;
     FKernel := Value;
-    Bitmap.Changed;
+    Changed;
   end;
 end;
 
@@ -2245,7 +2250,7 @@ begin
       kmTableNearest: FGetSampleFloat := GetSampleFloatTableNearest;
       kmTableLinear: FGetSampleFloat := GetSampleFloatTableLinear;
     end;
-    FBitmap.Changed;
+    Changed;
   end;
 end;
 
@@ -2255,7 +2260,7 @@ begin
   if FTableSize <> Value then
   begin
     FTableSize := Value;
-    FBitmap.Changed;
+    Changed;
   end;
 end;
 
@@ -2274,7 +2279,6 @@ var
   HorzKernel: PKernelValue;
   FloorKernel, CeilKernel: PKernelValue;
   HorzKernelStart: PKernelValue;
-
 begin
   clX := Ceil(X);
   clY := Ceil(Y);
@@ -2907,9 +2911,9 @@ end;
 
 { THermiteKernel }
 
-constructor THermiteKernel.Create(Map: TCustomMap);
+constructor THermiteKernel.Create(AOwner: TThreadPersistent);
 begin
-  inherited;
+  inherited Create(AOwner);
   FBias := 0;
   FTension := 0;
 end;
@@ -2958,7 +2962,7 @@ begin
   if FBias <> Value then
   begin
     FBias := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end;
 end;
 
@@ -2967,7 +2971,7 @@ begin
   if FTension <> Value then
   begin
     FTension := Value;
-    if Assigned(FMap) then FMap.Changed;
+    Changed;
   end;
 end;
 
