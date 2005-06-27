@@ -119,8 +119,10 @@ function Intensity(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$E
 function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Color space conversion
-function HSLtoRGB(H, S, L: Single): TColor32;
-procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
+function HSLtoRGB(H, S, L: Single): TColor32; overload;
+procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
+function HSLtoRGB(H, S, L: Integer): TColor32; overload;
+procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
 
 {$IFNDEF CLX}
 // Palette conversion functions
@@ -957,6 +959,86 @@ begin
       else H := 4 + (R - G) / D;
     H := H / 6;
     if H < 0 then H := H + 1
+  end;
+end;
+
+function HSLtoRGB(H, S, L: Integer): TColor32;
+var
+  V, M, VSF: Integer;
+begin
+  if L <= $7F then
+    V := L * (256 + S) shr 8
+  else
+    V := L + S - L * S div 255;
+  if V <= 0 then
+    Result := Color32(0, 0, 0, 0)
+  else
+  begin
+    M := L * 2 - V;
+    H := H * 6;
+    VSF := (V - M) * (H and $ff) shr 8;
+    case H shr 8 of
+      0: Result := Color32(V, M + VSF, M, 0);
+      1: Result := Color32(M - VSF, V, M, 0);
+      2: Result := Color32(M, V, M + VSF, 0);
+      3: Result := Color32(M, M - VSF, V, 0);
+      4: Result := Color32(M + VSF, M, V, 0);
+      5: Result := Color32(V, M, M - VSF, 0);
+    end;
+  end;
+end;
+
+function Max(const A, B, C: Integer): Integer; overload;
+asm
+      CMP       EDX,EAX
+      CMOVG     EAX,EDX
+      CMP       ECX,EAX
+      CMOVG     EAX,ECX
+end;
+
+function Min(const A, B, C: Integer): Integer; overload;
+asm
+      CMP       EDX,EAX
+      CMOVL     EAX,EDX
+      CMP       ECX,EAX
+      CMOVL     EAX,ECX
+end;
+
+procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte);
+var
+  R, G, B, D, Cmax, Cmin, HL: Integer;
+begin
+  R := (RGB shr 16) and $ff;
+  G := (RGB shr 8) and $ff;
+  B := RGB and $ff;
+
+  Cmax := Max(R, G, B);
+  Cmin := Min(R, G, B);
+  L := (Cmax + Cmin) div 2;
+
+  if Cmax = Cmin then
+  begin
+    H := 0;
+    S := 0
+  end
+  else
+  begin
+    D := (Cmax - Cmin) * 255;
+    if L <= $7F then
+      S := D div (Cmax + Cmin)
+    else
+      S := D div (255 * 2 - Cmax - Cmin);
+
+    D := D * 6;
+    if R = Cmax then
+      HL := (G - B) * 255 * 255 div D
+    else if G = Cmax then
+      HL := 255 * 2 div 6 + (B - R) * 255 * 255 div D
+    else
+      HL := 255 * 4 div 6 + (R - G) * 255 * 255 div D;
+
+    if HL < 0 then HL := HL + 255 * 2;
+    H := HL;
   end;
 end;
 
