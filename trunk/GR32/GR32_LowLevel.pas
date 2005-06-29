@@ -78,12 +78,26 @@ function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): I
 
 { Clamp integer Value to [0..Max] range }
 function Clamp(Value, Max: Integer): Integer; overload;
+{ Same but [Min..Max] range }
+function Clamp(Value, Min, Max: Integer): Integer; overload;
 
 { Wrap integer Value to [0..Max] range }
-function Wrap(Value, Max: Integer): Integer;
+function Wrap(Value, Max: Integer): Integer; overload;
+{ Same but [Min..Max] range }
+function Wrap(Value, Min, Max: Integer): Integer; overload;
 
 { Mirror integer Value in [0..Max] range }
-function Mirror(Value, Max: Integer): Integer;
+function Mirror(Value, Max: Integer): Integer; overload;
+{ Same but [Min..Max] range }
+function Mirror(Value, Min, Max: Integer): Integer; overload;
+
+type
+  TWrapProc = function(Value, Max: Integer): Integer;
+  TWrapProcEx = function(Value, Min, Max: Integer): Integer;
+
+const
+  WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
+  WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
@@ -103,6 +117,8 @@ function ColorSwap(WinColor: TColor): TColor32;
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
 implementation
+
+uses Math;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -278,6 +294,14 @@ asm
         RET
 end;
 
+function Clamp(Value, Min, Max: Integer): Integer;
+asm
+        CMP       EDX,EAX
+        CMOVG     EAX,EDX
+        CMP       ECX,EAX
+        CMOVL     EAX,ECX
+end;
+
 function Wrap(Value, Max: Integer): Integer;
 asm
         LEA     ECX,[EDX+1]
@@ -289,6 +313,42 @@ asm
         ADD     EAX,ECX
 @@exit:
 end;
+
+function Wrap(Value, Min, Max: Integer): Integer;
+begin
+  if Value < Min then
+    Result := Max + (Value - Max) mod (Max - Min + 1)
+  else
+    Result := Min + (Value - Min) mod (Max - Min + 1);
+end;
+
+(*
+asm
+        CMP     EAX,EDX
+        JL      @@below
+
+        SUB     EAX,ECX
+        SUB     ECX,EDX
+        DEC     ECX
+        CDQ
+        IDIV    ECX
+
+
+        RET
+@@below:
+
+        SUB     EAX,EDX
+        NEG     EDX
+        LEA     ECX,[ECX-EDX+1]
+        CDQ
+        IDIV    ECX
+        MOV     EAX,EDX
+        TEST    EAX,EAX
+        JNL     @@exit
+        ADD     EAX,ECX
+@@exit:
+end;*)
+
 
 function Mirror(Value, Max: Integer): Integer;
 asm
@@ -305,6 +365,34 @@ asm
         NEG     EAX
         ADD     EAX,ECX
 @@exit:
+end;
+
+
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
+asm
+        PUSH EBX
+        MOV EBX,EDX
+        CDQ
+        IDIV EBX
+        MOV [ECX],EDX
+        POP EBX
+end;
+
+function Mirror(Value, Min, Max: Integer): Integer;
+var
+  DivResult: Integer;
+begin
+  if Value < Min then
+  begin
+    DivResult := DivMod(Value - Max, Max - Min + 1, Result);
+    Inc(Result, Max);
+  end
+  else
+  begin
+    DivResult := DivMod(Value - Min, Max - Min + 1, Result);
+    Inc(Result, Min);
+  end;
+  if Odd(DivResult) then Result := Max+Min-Result;
 end;
 
 { shift right with sign conservation }
