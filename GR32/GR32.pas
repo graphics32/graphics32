@@ -266,6 +266,7 @@ type
 type
   TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);
   TCombineMode = (cmBlend, cmMerge);
+  TWrapMode = (wmClamp, wmRepeat, wmMirror);
 
 {$IFDEF DEPRECATEDMODE}
 { Stretch filters }
@@ -385,6 +386,8 @@ type
     F256ClipRect: TRect;
     FClipping: Boolean;
     FDrawMode: TDrawMode;
+    FCombineMode: TCombineMode;
+    FWrapMode: TWrapMode;
     FFont: TFont;
     FHandle: HBITMAP;
     FHDC: HDC;
@@ -409,7 +412,6 @@ type
     FOnPixelCombine: TPixelCombineEvent;
     FOnAreaChanged: TAreaChangedEvent;
     FOldOnAreaChanged: TAreaChangedEvent;
-    FCombineMode: TCombineMode;
     FMeasuringMode: Boolean;
     FResampler: TCustomResampler;
     procedure FontChanged(Sender: TObject);
@@ -417,11 +419,18 @@ type
     function  GetCanvas: TCanvas;
     function  GetPixel(X, Y: Integer): TColor32;
     function  GetPixelS(X, Y: Integer): TColor32;
+    function  GetPixelW(X, Y: Integer): TColor32;
+
     function  GetPixelF(X, Y: Single): TColor32;
     function  GetPixelFS(X, Y: Single): TColor32;
+    //function  GetPixelFW(X, Y: Single): TColor32;
+
     function  GetPixelX(X, Y: TFixed): TColor32;
     function  GetPixelXS(X, Y: TFixed): TColor32;
+    function  GetPixelXW(X, Y: TFixed): TColor32;
+
     function  GetPixelZ(X, Y: Single): TColor32;
+
     function  GetPixelPtr(X, Y: Integer): PColor32;
     function  GetScanLine(Y: Integer): PColor32Array;
 {$IFDEF CLX}
@@ -432,10 +441,12 @@ type
 {$ENDIF}
     procedure SetCombineMode(const Value: TCombineMode);
     procedure SetDrawMode(Value: TDrawMode);
+    procedure SetWrapMode(Value: TWrapMode);
     procedure SetFont(Value: TFont);
     procedure SetMasterAlpha(Value: Cardinal);
     procedure SetPixel(X, Y: Integer; Value: TColor32);
     procedure SetPixelS(X, Y: Integer; Value: TColor32);
+    procedure SetPixelW(X, Y: Integer; Value: TColor32);
 {$IFDEF DEPRECATEDMODE}
     procedure SetStretchFilter(Value: TStretchFilter);
 {$ENDIF}
@@ -464,10 +475,11 @@ type
     procedure DefineProperties(Filer: TFiler); override;
     function  GetPixelB(X, Y: Integer): TColor32;
     procedure SetPixelF(X, Y: Single; Value: TColor32);
-    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
     procedure SetPixelFS(X, Y: Single; Value: TColor32);
+    //procedure SetPixelFW(X, Y: Single; Value: TColor32);
+    procedure SetPixelX(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
-
+    procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
 {$IFDEF CLX}
     procedure PixmapNeeded;
     procedure ImageNeeded;
@@ -629,16 +641,19 @@ type
 
     procedure ResetClipRect;
 
-    property Canvas: TCanvas read GetCanvas;
-    function CanvasAllocated: Boolean;
+    property  Canvas: TCanvas read GetCanvas;
+    function  CanvasAllocated: Boolean;
     procedure DeleteCanvas;
 
     property  Pixel[X, Y: Integer]: TColor32 read GetPixel write SetPixel; default;
     property  PixelS[X, Y: Integer]: TColor32 read GetPixelS write SetPixelS;
+    property  PixelW[X, Y: Integer]: TColor32 read GetPixelW write SetPixelW;
     property  PixelX[X, Y: TFixed]: TColor32 read GetPixelX write SetPixelX;
     property  PixelXS[X, Y: TFixed]: TColor32 read GetPixelXS write SetPixelXS;
+    property  PixelXW[X, Y: TFixed]: TColor32 read GetPixelXW write SetPixelXW;
     property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
     property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
+    //property  PixelFW[X, Y: Single]: TColor32 read GetPixelFW write SetPixelFW;
     property  PixelZ[X, Y: Single]: TColor32 read GetPixelZ;
 {$IFDEF CLX}
     property Pixmap: QPixmapH read GetPixmap;
@@ -669,6 +684,7 @@ type
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
     property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
+    property WrapMode: TWrapMode read FWrapMode write SetWrapMode default wmClamp;
     property MasterAlpha: Cardinal read FMasterAlpha write SetMasterAlpha default $FF;
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
 {$IFDEF DEPRECATEDMODE}
@@ -697,7 +713,7 @@ type
 {$ENDIF}
 
   { TCustomSampler }
-  TCustomSampler = class(TPersistent)
+  TCustomSampler = class(TThreadPersistent)
   public
     function GetSampleInt(X, Y: Integer): TColor32; virtual;
     function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
@@ -2379,10 +2395,61 @@ begin
   EMMS;
 end;
 
-function  TBitmap32.GetPixelZ(X, Y: Single): TColor32;
+function TBitmap32.GetPixelZ(X, Y: Single): TColor32;
 begin
   Result := FResampler.GetSampleFloat(X, Y);
 end;
+
+function TBitmap32.GetPixelW(X, Y: Integer): TColor32;
+var
+  WrapProc: TWrapProcEx;
+begin
+  WrapProc := WRAP_PROCS_EX[FWrapMode];
+  with FClipRect do
+    Result := FBits[FWidth * WrapProc(Y, Top, Bottom) + WrapProc(X, Left, Right)];
+end;
+
+procedure TBitmap32.SetPixelW(X, Y: Integer; Value: TColor32);
+var
+  WrapProc: TWrapProcEx;
+begin
+  WrapProc := WRAP_PROCS_EX[FWrapMode];
+  with FClipRect do
+    FBits[FWidth * WrapProc(Y, Top, Bottom) + WrapProc(X, Left, Right)] := Value;
+end;
+
+function TBitmap32.GetPixelXW(X, Y: TFixed): TColor32;
+var
+  WrapProc: TWrapProcEx;
+begin
+  asm
+        ADD X, $7F
+        ADD Y, $7F
+        SAR X, 8
+        SAR Y, 8
+  end;
+  WrapProc := WRAP_PROCS_EX[FWrapMode];
+  with F256ClipRect do
+    Result := GET_T256(WrapProc(X, Left, Right), WrapProc(Y, Top, Bottom));
+  EMMS;
+end;
+
+procedure TBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
+var
+  WrapProc: TWrapProcEx;
+begin
+  asm
+        ADD X, $7F
+        ADD Y, $7F
+        SAR X, 8
+        SAR Y, 8
+  end;
+  WrapProc := WRAP_PROCS_EX[FWrapMode];
+  with F256ClipRect do
+    SET_T256(WrapProc(X, Left, Right), WrapProc(Y, Top, Bottom), Value);
+  EMMS;
+end;
+
 
 procedure TBitmap32.SetStipple(NewStipple: TArrayOfColor32);
 begin
@@ -4253,6 +4320,15 @@ begin
   end;
 end;
 
+procedure TBitmap32.SetWrapMode(Value: TWrapMode);
+begin
+  if FWrapMode <> Value then
+  begin
+    FWrapMode := Value;
+    Changed;
+  end;
+end;
+
 procedure TBitmap32.SetMasterAlpha(Value: Cardinal);
 begin
   if FMasterAlpha <> Value then
@@ -5113,21 +5189,13 @@ end;
 
 procedure TBitmap32.SetClipRect(const Value: TRect);
 begin
-  FClipRect.Right := Constrain(Value.Right, 0, Width);
-  FClipRect.Bottom := Constrain(Value.Bottom, 0, Height);
-  FClipRect.Left := Constrain(Value.Left, 0, FClipRect.Right);
-  FClipRect.Top := Constrain(Value.Top, 0, FClipRect.Bottom);
-
+  IntersectRect(FClipRect, Value, BoundsRect);
   UpdateClipRects;
 end;
 
 procedure TBitmap32.ResetClipRect;
 begin
-  FClipRect.Left := 0;
-  FClipRect.Top := 0;
-  FClipRect.Right := Width;
-  FClipRect.Bottom := Height;
-
+  FClipRect := BoundsRect;
   UpdateClipRects;
 end;
 
@@ -5375,12 +5443,7 @@ begin
   if (Value <> '') and (FResampler.ClassName <> Value) and Assigned(ResamplerList) then
   begin
     ResamplerClass := TBitmap32ResamplerClass(ResamplerList.Find(Value));
-    if Assigned(ResamplerClass) then
-    begin
-      FResampler.Free;
-      FResampler := ResamplerClass.Create(Self);
-      Changed;
-    end;
+    if Assigned(ResamplerClass) then ResamplerClass.Create(Self);
   end;
 end;
 
