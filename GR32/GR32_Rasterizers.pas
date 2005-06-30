@@ -1,5 +1,28 @@
 unit GR32_Rasterizers;
 
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Mattias Andersson
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
 interface
 
 {$I GR32.inc}
@@ -10,7 +33,7 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  Classes, GR32, GR32_Blend;
+  Classes, GR32, GR32_Blend, GR32_IntegerMaps;
 
 type
   TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;
@@ -134,32 +157,26 @@ type
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
   end;
 
-  { TMultiSamplingRasterizer}
-  { Multisampling means that you use a predefined sampling pattern for each
-    output pixel. Several output pixels may also share the same samples
-    (if they are located on the edge between two pixels). }
-
-  { Note: This should be used exclusively for Quincunx and Flipquad }
-  TMultiSamplingRasterizer = class(TRegularRasterizer)
-  private
+  { TContourRasterizer }
+  TContourRasterizer = class(TRasterizer)
   protected
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
   end;
 
-type
-  TIrregularRasterizer = class(TRasterizer);
-
-type
-  TThreadPersistentAccess = class(TThreadPersistent);
 
 { Auxiliary routines }
-
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
+
+const
+  DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
 
 implementation
 
 uses
   GR32_Resamplers, GR32_Math, Math, SysUtils;
+
+type
+  TThreadPersistentAccess = class(TThreadPersistent);
 
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 begin
@@ -272,16 +289,11 @@ begin
   end;
 end;
 
-
 procedure TRasterizer.Rasterize(Dst: TBitmap32);
-var
-  R: TRect;
 begin
-  R := Dst.BoundsRect;
-  Dec(R.Bottom);
-  Dec(R.Right);
-  Rasterize(Dst, R);
+  Rasterize(Dst, Dst.BoundsRect);
 end;
+
 
 { TRegularRasterizer }
 
@@ -664,36 +676,134 @@ begin
 end;
 
 
-{ TMultiSamplingRasterizer }
+{ TContourRasterizer }
 
-procedure TMultiSamplingRasterizer.DoRasterize(Dst: TBitmap32;
-  DstRect: TRect);
-var
-  I, J, UpdateCount: Integer;
-  P: PColor32;
-  GetSample: TGetSampleInt;
+procedure InflateRect(const P: TPoint; var R: TRect);
 begin
-  GetSample := FSampler.GetSampleInt;
-  UpdateCount := 0;
-  for J := DstRect.Top to DstRect.Bottom do
-  begin
-    P := @Dst.Bits[DstRect.Left + J * Dst.Width];
-    for I := DstRect.Left to DstRect.Right do
-    begin
-      AssignColor(P^, GetSample(I, J));
-      Inc(P);
-    end;
-
-    Inc(UpdateCount);
-    if UpdateCount = FUpdateRowCount then
-    begin
-      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right + 1, J));
-      UpdateCount := 0;
-    end;
-  end;
-  with DstRect do
-    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom + 1));
+  if P.X < R.Left then R.Left := P.X;
+  if P.Y < R.Top then R.Top := P.Y;
+  if P.X >= R.Right then R.Right := P.X + 1;
+  if P.Y >= R.Bottom then R.Bottom := P.Y + 1;
 end;
 
+procedure TContourRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+type
+  TDirection = (North, East, South, West);
+var
+  I, J, D, Count, Diff: Integer;
+  C, CLast: TColor32;
+  P, PLast: TPoint;
+  GetSample: TGetSampleInt;
+  NewDir, Dir: TDirection;
+  Visited: TBooleanMap;
+  UpdateRect: TRect;
+const
+  LEFT: array[TDirection] of TDirection = (West, North, East, South);
+  RIGHT: array[TDirection] of TDirection = (East, South, West, North);
+  COORDS: array[TDirection] of TPoint = ((X: 0; Y: -1), (X: 1; Y: 0), (X: 0; Y: 1), (X: -1; Y: 0));
+  UpdateSteps = 100;
+label
+  MainLoop;
+begin
+  GetSample := FSampler.GetSampleInt;
+  Visited := TBooleanMap.Create;
+  try
+    with DstRect do
+      Visited.SetSize(Right - Left, Bottom - Top);
+
+    I := 0; J := 0;
+    Dir := East;
+
+    PLast := Point(DstRect.Left, DstRect.Top);
+    CLast := GetSample(PLast.X, PLast.Y);
+    AssignColor(Dst.PixelPtr[PLast.X, PLast.Y]^, CLast);
+
+    UpdateRect := Rect(PLast.X, PLast.Y, PLast.X + 1, PLast.Y + 1);
+    Count := 0;
+    while True do
+    begin
+      MainLoop:
+      //if z > 85 then
+      //  Sleep(0);
+
+      Diff := MaxInt;
+
+      // forward
+      with COORDS[Dir] do P := Point(PLast.X + X, PLast.Y + Y);
+      if PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
+      begin
+        C := GetSample(P.X, P.Y);
+        Diff := Intensity(ColorSub(C, CLast));
+        NewDir := Dir;
+        AssignColor(Dst.PixelPtr[P.X, P.Y]^, C);
+        Visited[P.X - DstRect.Left, P.Y - DstRect.Top] := True;
+        InflateRect(P, UpdateRect);
+      end;
+
+      // left
+      with COORDS[LEFT[Dir]] do P := Point(PLast.X + X, PLast.Y + Y);
+      if PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
+      begin
+        C := GetSample(P.X, P.Y);
+        D := Intensity(ColorSub(C, CLast));
+        if D < Diff then
+        begin
+          NewDir := LEFT[Dir];
+          Diff := D;
+        end;
+        AssignColor(Dst.PixelPtr[P.X, P.Y]^, C);
+        Visited[P.X - DstRect.Left, P.Y - DstRect.Top] := True;
+        InflateRect(P, UpdateRect);
+      end;
+
+      // right
+      with COORDS[RIGHT[Dir]] do P := Point(PLast.X + X, PLast.Y + Y);
+      if PtInRect(DstRect, P) and (not Visited[P.X, P.Y]) then
+      begin
+        C := GetSample(P.X, P.Y);
+        D := Intensity(ColorSub(C, CLast));
+        if D < Diff then
+        begin
+          NewDir := RIGHT[Dir];
+          Diff := D;
+        end;
+        AssignColor(Dst.PixelPtr[P.X, P.Y]^, C);
+        Visited[P.X - DstRect.Left, P.Y - DstRect.Top] := True;
+        InflateRect(P, UpdateRect);
+      end;
+
+      if Diff = MaxInt then
+      begin
+        Dst.Changed(UpdateRect);
+        while J < Visited.Height do
+        begin
+          while I < Visited.Width do
+          begin
+            if not Visited[I, J] then
+            begin
+              Visited[I, J] := True;
+              PLast := Point(DstRect.Left + I, DstRect.Top + J);
+              CLast := GetSample(PLast.X, PLast.Y);
+              AssignColor(Dst.PixelPtr[PLast.X, PLast.Y]^, CLast);
+              UpdateRect := Rect(PLast.X, PLast.Y, PLast.X + 1, PLast.Y + 1);
+              goto MainLoop;
+            end;
+            Inc(I);
+          end;
+          I := 0;
+          Inc(J);
+        end;
+        Break;
+      end;
+
+      Dir := NewDir;
+      with COORDS[Dir] do PLast := Point(PLast.X + X, PLast.Y + Y);
+      CLast := Dst[PLast.X, PLast.Y];
+    end;
+
+  finally
+    Visited.Free;
+  end;
+end;
 
 end.
