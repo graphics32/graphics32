@@ -2287,7 +2287,7 @@ begin
         Incr := HiX;
         if clX + Width >= HiX then
         begin
-          if clX > HiX then
+          if clX > HiX + 1 then
           begin
             Result := FBitmap.OuterColor;
             Exit;
@@ -2300,7 +2300,7 @@ begin
         end;
         if clY + Width >= HiY then
         begin
-          if clY > HiY then
+          if clY > HiY + 1 then
           begin
             Result := FBitmap.OuterColor;
             Exit;
