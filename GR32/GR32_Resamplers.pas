@@ -45,6 +45,10 @@ procedure StretchTransfer(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
 type
+  //PKernelValue = ^TKernelValue;
+  //TKernelValue = type Integer;
+
+  //TArrayOfKernelValue = array of TKernelValue;
   PKernelEntry = ^TKernelEntry;
   TKernelEntry = array [0..0] of Integer;
 
@@ -522,6 +526,12 @@ type
 
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
+procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Expand(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Contract(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+
 { Auxiliary routines for accumulating colors in a buffer }
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -543,7 +553,7 @@ const
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Math, Math;
+  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Rasterizers, GR32_Math, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
@@ -568,6 +578,57 @@ type
 
 
 { Auxiliary routines }
+
+type
+  TKernelSamplerClass = class of TKernelSampler;
+
+procedure RasterizeKernelSampler(Src, Dst: TBitmap32; Kernel: TIntegerMap;
+  CenterX, CenterY: Integer; SamplerClass: TKernelSamplerClass);
+var
+  Sampler: TKernelSampler;
+  Rasterizer: TRasterizer;
+begin
+  Rasterizer := DefaultRasterizerClass.Create;
+  try
+    Dst.SetSizeFrom(Src);
+    Sampler := SamplerClass.Create(Src.Resampler);
+    Sampler.WeightTable := Kernel;
+    try
+      Rasterizer.Sampler := Sampler;
+      Rasterizer.Rasterize(Dst);
+    finally
+      Sampler.Free;
+    end;
+  finally
+    Rasterizer.Free;
+  end;
+end;
+
+procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TConvolver);
+end;
+
+procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TDilater);
+end;
+
+procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TEroder);
+end;
+
+procedure Expand(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TExpander);
+end;
+
+procedure Contract(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TContracter);
+end;
+
 
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32);
 begin
@@ -2170,9 +2231,9 @@ var
   fracYS: Single absolute fracY;
 
   Filter: TFilterMethod;
-  WrapProc: TWrapProcEx absolute Filter;
+  WrapProc: TWrapProcEx;
   Colors: PColor32EntryArray;
-  Width, W, I, J, Incr: Integer;
+  Width, W, F, I, J, Incr: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -2251,6 +2312,8 @@ begin
         begin
           HiY := Width;
         end;
+        SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
+        Dec(Incr, HiX - LoX);
       end;
   end;
 
@@ -2283,52 +2346,47 @@ begin
         HorzKernel := @FHorzKernel[Width];
         VertKernel := @FVertKernel[Width];
 
-        J := fracX and $FFF;
+        F := fracX and $FFF;
         fracX := fracX shr 12;
         FloorKernel := @FWeightTable[fracX][Width];
         if FracX < W then Inc(FracX);
         CeilKernel := @FWeightTable[fracX][Width];
 
         for I := LoX to HiX do
-          HorzKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * J + $7FF);
+          HorzKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * F + $7FF);
 
-        J := fracY and $FFF;
+        F := fracY and $FFF;
         fracY := fracY shr 12;
         FloorKernel := @FWeightTable[fracY][Width];
         if fracY < W then Inc(fracY);
         CeilKernel := @FWeightTable[fracY][Width];
 
         for I := LoY to HiY do
-          VertKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * J  + $7FF);
+          VertKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * F  + $7FF);
       end;
   end;
 
   VertEntry := ROUND_ENTRY;
   case EdgeCheckMode of
     ecmDefault, ecmSafe:
+      for I := LoY to HiY do
       begin
-        SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-        Incr := FBitmap.Width - (HiX - LoX);
-
-        for I := LoY to HiY do
+        HorzEntry := EMPTY_ENTRY;
+        for J := LoX to HiX do
         begin
-          HorzEntry := EMPTY_ENTRY;
-          for J := LoX to HiX do
-          begin
-            W := HorzKernel[J];
-            Inc(HorzEntry.A, SrcP.A * W);
-            Inc(HorzEntry.R, SrcP.R * W);
-            Inc(HorzEntry.G, SrcP.G * W);
-            Inc(HorzEntry.B, SrcP.B * W);
-            Inc(SrcP);
-          end;
-          W := VertKernel[I];
-          Inc(VertEntry.A, HorzEntry.A * W);
-          Inc(VertEntry.R, HorzEntry.R * W);
-          Inc(VertEntry.G, HorzEntry.G * W);
-          Inc(VertEntry.B, HorzEntry.B * W);
-          Inc(SrcP, Incr);
+          W := HorzKernel[J];
+          Inc(HorzEntry.A, SrcP.A * W);
+          Inc(HorzEntry.R, SrcP.R * W);
+          Inc(HorzEntry.G, SrcP.G * W);
+          Inc(HorzEntry.B, SrcP.B * W);
+          Inc(SrcP);
         end;
+        W := VertKernel[I];
+        Inc(VertEntry.A, HorzEntry.A * W);
+        Inc(VertEntry.R, HorzEntry.R * W);
+        Inc(VertEntry.G, HorzEntry.G * W);
+        Inc(VertEntry.B, HorzEntry.B * W);
+        Inc(SrcP, Incr);
       end;
 
     ecmWrap:
