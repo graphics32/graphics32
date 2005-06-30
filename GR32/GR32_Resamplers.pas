@@ -45,10 +45,6 @@ procedure StretchTransfer(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
 type
-  //PKernelValue = ^TKernelValue;
-  //TKernelValue = type Integer;
-
-  //TArrayOfKernelValue = array of TKernelValue;
   PKernelEntry = ^TKernelEntry;
   TKernelEntry = array [0..0] of Integer;
 
@@ -60,6 +56,7 @@ type
 
   EBitmapException = class(Exception);
   ESrcInvalidException = class(Exception);
+  ENestedException = class(Exception);
 
   TGetSampleInt = function(X, Y: Integer): TColor32 of object;
   TGetSampleFloat = function(X, Y: Single): TColor32 of object;
@@ -526,6 +523,7 @@ type
 
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
+{ Convolution and morphological routines }
 procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
 procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
@@ -563,6 +561,7 @@ const
   SDstNil = 'Destination bitmap is nil';
   SSrcNil = 'Source bitmap is nil';
   SSrcInvalid = 'Source rectangle is invalid';
+  SSamplerNil = 'Nested sampler is nil';
 
 type
   TTransformationAccess = class(TTransformation);
@@ -577,11 +576,10 @@ type
   TMappingTable = array of TCluster;
 
 
-{ Auxiliary routines }
-
 type
   TKernelSamplerClass = class of TKernelSampler;
 
+{ Auxiliary rasterization routine for kernel-based samplers }
 procedure RasterizeKernelSampler(Src, Dst: TBitmap32; Kernel: TIntegerMap;
   CenterX, CenterY: Integer; SamplerClass: TKernelSamplerClass);
 var
@@ -629,6 +627,7 @@ begin
   RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TContracter);
 end;
 
+{ Auxiliary routines }
 
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32);
 begin
@@ -2231,9 +2230,9 @@ var
   fracYS: Single absolute fracY;
 
   Filter: TFilterMethod;
-  WrapProc: TWrapProcEx;
+  WrapProc: TWrapProcEx absolute Filter;
   Colors: PColor32EntryArray;
-  Width, W, F, I, J, Incr: Integer;
+  Width, W, I, J, Incr: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -2312,8 +2311,6 @@ begin
         begin
           HiY := Width;
         end;
-        SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-        Dec(Incr, HiX - LoX);
       end;
   end;
 
@@ -2346,47 +2343,52 @@ begin
         HorzKernel := @FHorzKernel[Width];
         VertKernel := @FVertKernel[Width];
 
-        F := fracX and $FFF;
+        J := fracX and $FFF;
         fracX := fracX shr 12;
         FloorKernel := @FWeightTable[fracX][Width];
         if FracX < W then Inc(FracX);
         CeilKernel := @FWeightTable[fracX][Width];
 
         for I := LoX to HiX do
-          HorzKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * F + $7FF);
+          HorzKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * J + $7FF);
 
-        F := fracY and $FFF;
+        J := fracY and $FFF;
         fracY := fracY shr 12;
         FloorKernel := @FWeightTable[fracY][Width];
         if fracY < W then Inc(fracY);
         CeilKernel := @FWeightTable[fracY][Width];
 
         for I := LoY to HiY do
-          VertKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * F  + $7FF);
+          VertKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * J  + $7FF);
       end;
   end;
 
   VertEntry := ROUND_ENTRY;
   case EdgeCheckMode of
     ecmDefault, ecmSafe:
-      for I := LoY to HiY do
       begin
-        HorzEntry := EMPTY_ENTRY;
-        for J := LoX to HiX do
+        SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
+        Incr := FBitmap.Width - (HiX - LoX) - 1;
+
+        for I := LoY to HiY do
         begin
-          W := HorzKernel[J];
-          Inc(HorzEntry.A, SrcP.A * W);
-          Inc(HorzEntry.R, SrcP.R * W);
-          Inc(HorzEntry.G, SrcP.G * W);
-          Inc(HorzEntry.B, SrcP.B * W);
-          Inc(SrcP);
+          HorzEntry := EMPTY_ENTRY;
+          for J := LoX to HiX do
+          begin
+            W := HorzKernel[J];
+            Inc(HorzEntry.A, SrcP.A * W);
+            Inc(HorzEntry.R, SrcP.R * W);
+            Inc(HorzEntry.G, SrcP.G * W);
+            Inc(HorzEntry.B, SrcP.B * W);
+            Inc(SrcP);
+          end;
+          W := VertKernel[I];
+          Inc(VertEntry.A, HorzEntry.A * W);
+          Inc(VertEntry.R, HorzEntry.R * W);
+          Inc(VertEntry.G, HorzEntry.G * W);
+          Inc(VertEntry.B, HorzEntry.B * W);
+          Inc(SrcP, Incr);
         end;
-        W := VertKernel[I];
-        Inc(VertEntry.A, HorzEntry.A * W);
-        Inc(VertEntry.R, HorzEntry.R * W);
-        Inc(VertEntry.G, HorzEntry.G * W);
-        Inc(VertEntry.B, HorzEntry.B * W);
-        Inc(SrcP, Incr);
       end;
 
     ecmWrap:
@@ -3030,12 +3032,18 @@ end;
 
 procedure TNestedSampler.FinalizeSampling;
 begin
-  FSampler.FinalizeSampling;
+  if not Assigned(FSampler) then
+    ENestedException.Create(SSamplerNil)
+  else
+    FSampler.FinalizeSampling;
 end;
 
 procedure TNestedSampler.PrepareSampling;
 begin
-  FSampler.PrepareSampling;
+  if not Assigned(FSampler) then
+    ENestedException.Create(SSamplerNil)
+  else
+    FSampler.PrepareSampling;
 end;
 
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
