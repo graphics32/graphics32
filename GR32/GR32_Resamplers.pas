@@ -56,6 +56,7 @@ type
 
   EBitmapException = class(Exception);
   ESrcInvalidException = class(Exception);
+  ENestedException = class(Exception);
 
   TGetSampleInt = function(X, Y: Integer): TColor32 of object;
   TGetSampleFloat = function(X, Y: Single): TColor32 of object;
@@ -522,6 +523,13 @@ type
 
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
+{ Convolution and morphological routines }
+procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Expand(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+procedure Contract(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+
 { Auxiliary routines for accumulating colors in a buffer }
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -543,7 +551,7 @@ const
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Math, Math;
+  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Rasterizers, GR32_Math, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
@@ -553,6 +561,7 @@ const
   SDstNil = 'Destination bitmap is nil';
   SSrcNil = 'Source bitmap is nil';
   SSrcInvalid = 'Source rectangle is invalid';
+  SSamplerNil = 'Nested sampler is nil';
 
 type
   TTransformationAccess = class(TTransformation);
@@ -566,6 +575,57 @@ type
   TCluster = array of TPointRec;
   TMappingTable = array of TCluster;
 
+
+type
+  TKernelSamplerClass = class of TKernelSampler;
+
+{ Auxiliary rasterization routine for kernel-based samplers }
+procedure RasterizeKernelSampler(Src, Dst: TBitmap32; Kernel: TIntegerMap;
+  CenterX, CenterY: Integer; SamplerClass: TKernelSamplerClass);
+var
+  Sampler: TKernelSampler;
+  Rasterizer: TRasterizer;
+begin
+  Rasterizer := DefaultRasterizerClass.Create;
+  try
+    Dst.SetSizeFrom(Src);
+    Sampler := SamplerClass.Create(Src.Resampler);
+    Sampler.WeightTable := Kernel;
+    try
+      Rasterizer.Sampler := Sampler;
+      Rasterizer.Rasterize(Dst);
+    finally
+      Sampler.Free;
+    end;
+  finally
+    Rasterizer.Free;
+  end;
+end;
+
+procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TConvolver);
+end;
+
+procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TDilater);
+end;
+
+procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TEroder);
+end;
+
+procedure Expand(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TExpander);
+end;
+
+procedure Contract(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
+begin
+  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TContracter);
+end;
 
 { Auxiliary routines }
 
@@ -2303,7 +2363,7 @@ begin
     ecmDefault, ecmSafe:
       begin
         SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-        Incr := FBitmap.Width - (HiX - LoX);
+        Incr := FBitmap.Width - (HiX - LoX) - 1;
 
         for I := LoY to HiY do
         begin
@@ -2972,12 +3032,18 @@ end;
 
 procedure TNestedSampler.FinalizeSampling;
 begin
-  FSampler.FinalizeSampling;
+  if not Assigned(FSampler) then
+    ENestedException.Create(SSamplerNil)
+  else
+    FSampler.FinalizeSampling;
 end;
 
 procedure TNestedSampler.PrepareSampling;
 begin
-  FSampler.PrepareSampling;
+  if not Assigned(FSampler) then
+    ENestedException.Create(SSamplerNil)
+  else
+    FSampler.PrepareSampling;
 end;
 
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
