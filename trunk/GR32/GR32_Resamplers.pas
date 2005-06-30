@@ -256,15 +256,12 @@ type
     FMappingX: TIntegerDynArray;
     FVertKernel: TIntegerDynArray;
     FHorzKernel: TIntegerDynArray;
-    FGetSampleFloat: TGetSampleFloat;
     procedure SetKernel(const Value: TCustomKernel);
     function GetKernelClassName: string;
     procedure SetKernelClassName(Value: string);
     procedure SetKernelMode(const Value: TKernelMode);
-    //function GetSampleFloatDefaultNew(X, Y: Single): TColor32;
-    //function GetSampleFloatDefault(X, Y: Single): TColor32;
-    function GetSampleFloatTableNearest(X, Y: Single): TColor32;
-    function GetSampleFloatTableLinear(X, Y: Single): TColor32;
+    //function GetSampleFloatTableNearest(X, Y: Single): TColor32;
+    //function GetSampleFloatTableLinear(X, Y: Single): TColor32;
     procedure SetTableSize(Value: Integer);
   protected
     function GetWidth: Single; override;
@@ -2171,78 +2168,6 @@ begin
   GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FKernel, CombineOp, CombineCallBack);
 end;
 
-(*
-function TKernelResampler.GetSampleFloatDefaultNew(X, Y: Single): TColor32;
-var
-  clX, clY: Integer;
-  fracX, fracY: Single;
-  W, Width: Integer;
-  Filter: TFilterMethod;
-  I, J, Incr: Integer;
-  C: TColor32Entry;
-  Colors: PColor32EntryArray;
-  LoX, HiX, LoY, HiY: Integer;
-
-  MappingX: array[-3..3] of Integer;
-  //MappingY: array[-3..3] of Integer;
-
-  PosX: array[-3..3] of Integer;
-  PosY: Integer;
-  HorzEntry, VertEntry: TBufferEntry;
-begin
-  Filter := FKernel.Filter;
-  Width := Ceil(FKernel.GetWidth);
-
-  clX := Ceil(X);
-  clY := Ceil(Y);
-  fracX := clX - X;
-  fracY := clY - Y;
-
-  for I := -Width to Width do
-  begin
-    MappingX[I] := Round(Filter(I + fracX) * 256);
-    PosX[I] := Clamp(clX + I, FClipRect.Left, FClipRect.Right - 1);
-  end;
-
-  VertEntry := ROUND_ENTRY;
-  for I := -Width to Width do
-  begin
-    PosY := Clamp(clY + I, FClipRect.Top, FClipRect.Bottom - 1);
-    Colors := PColor32EntryArray(FBitmap.ScanLine[PosY]);
-    HorzEntry := EMPTY_ENTRY;
-    for J := -Width to Width do
-    begin
-      W := MappingX[J];
-      C := Colors[PosX[J]];
-      Inc(HorzEntry.A, C.A * W);
-      Inc(HorzEntry.R, C.R * W);
-      Inc(HorzEntry.G, C.G * W);
-      Inc(HorzEntry.B, C.B * W);
-    end;
-    W := Round(Filter(I + fracY) * 256); //MappingY[I];
-    Inc(VertEntry.A, HorzEntry.A * W);
-    Inc(VertEntry.R, HorzEntry.R * W);
-    Inc(VertEntry.G, HorzEntry.G * W);
-    Inc(VertEntry.B, HorzEntry.B * W);
-  end;
-
-  if FKernel.RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
-  end;
-  with TColor32Entry(Result) do
-  begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
-  end;
-end;
-*)
-
 function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
 var
   clX, clY: Integer;
@@ -2253,12 +2178,12 @@ var
   Filter: TFilterMethod;
   WrapProc: TWrapProcEx;
   Colors: PColor32EntryArray;
-  Width, W, I, J, Incr: Integer;
+  Width, W, F, I, J, Incr: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
 
-  HorzKernel, VertKernel: PKernelEntry;
+  HorzKernel, VertKernel, FloorKernel, CeilKernel: PKernelEntry;
   HorzEntry, VertEntry: TBufferEntry;
   MappingX: PKernelEntry;
 begin
@@ -2276,13 +2201,62 @@ begin
     ecmSafe:
       begin
         // TODO: use clipping rectangle instead of bitmap bounds (?)
-        if clX < Width then LoX := -clX else LoX := -Width;
-        if clY < Width then LoY := -clY else LoY := -Width;
+        if clX < Width then
+        begin
+          if clX < 0 then
+          begin
+            Result := FBitmap.OuterColor;
+            Exit;
+          end;
+          LoX := -clX
+        end
+        else
+        begin
+          LoX := -Width;
+        end;
+
+        if clY < Width then
+        begin
+          if clY < 0 then
+          begin
+            Result := FBitmap.OuterColor;
+            Exit;
+          end;
+          LoY := -clY
+        end
+        else
+        begin
+          LoY := -Width;
+        end;
         HiX := FBitmap.Width - 1;
         HiY := FBitmap.Height - 1;
         Incr := HiX;
-        if clX + W >= HiX then HiX := HiX - clX else HiX := Width;
-        if clY + W >= HiY then HiY := HiY - clY else HiY := Width;
+        if clX + Width >= HiX then
+        begin
+          if clX > HiX then
+          begin
+            Result := FBitmap.OuterColor;
+            Exit;
+          end;
+          HiX := HiX - clX
+        end
+        else
+        begin
+          HiX := Width;
+        end;
+        if clY + Width >= HiY then
+        begin
+          if clY > HiY then
+          begin
+            Result := FBitmap.OuterColor;
+            Exit;
+          end;
+          HiY := HiY - clY
+        end
+        else
+        begin
+          HiY := Width;
+        end;
         SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
         Dec(Incr, HiX - LoX);
       end;
@@ -2294,56 +2268,46 @@ begin
         Filter := FKernel.Filter;
         fracXS := clX - X;
         fracYS := clY - Y;
-        HorzKernel := @FHorzKernel[LoX];
-        VertKernel := @FVertKernel[LoY];
-        for I := LoX to HiX do HorzKernel[I] := Round(Filter(I + fracX) * 256);
-        for I := LoY to HiY do VertKernel[I] := Round(Filter(I + fracY) * 256);
+        HorzKernel := @FHorzKernel[Width];
+        VertKernel := @FVertKernel[Width];
+        for I := LoX to HiX do HorzKernel[I] := Round(Filter(I + fracXS) * 256);
+        for I := LoY to HiY do VertKernel[I] := Round(Filter(I + fracYS) * 256);
       end;
 
     kmTableNearest:
       begin
-        fracX := Round((clX - X) * Width);
-        fracY := Round((clY - Y) * Width);
+        W := High(FWeightTable);
+        fracX := Round((clX - X) * W);
+        fracY := Round((clY - Y) * W);
         HorzKernel := @FWeightTable[fracX][Width];
         VertKernel := @FWeightTable[fracY][Width];
       end;
-
     kmTableLinear:
       begin
-      // TODO: add linear table interpolation method.
-      (*
-        HiWT := High(FWeightTable);
+        W := High(FWeightTable);
+        fracX := Round((clX - X) * W * $1000);
+        fracY := Round((clY - Y) * W * $1000);
 
-        HorzKernel := @FHorzKernel[LoX];
-        VertKernel := @FVertKernel[LoX];
+        HorzKernel := @FHorzKernel[Width];
+        VertKernel := @FVertKernel[Width];
 
-        F := FracX and $FFF;
-        FracX := FracX shr 12;
-        FloorKernel := @FWeightTable[FracX][LoX];
-        if FracX < HiWT then Inc(FracX);
-        CeilKernel := @FWeightTable[FracX][LoX];
+        F := fracX and $FFF;
+        fracX := fracX shr 12;
+        FloorKernel := @FWeightTable[fracX][Width];
+        if FracX < W then Inc(FracX);
+        CeilKernel := @FWeightTable[fracX][Width];
 
-        for I := HiX downto 0 do
-        begin
-          HorzKernel^:= FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F + $7FF);
-          Inc(HorzKernel);
-          Inc(FloorKernel);
-          Inc(CeilKernel);
-        end;
+        for I := LoX to HiX do
+          HorzKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * F + $7FF);
 
-        F := FracY and $FFF;
-        FracY := FracY shr 12;
-        FloorKernel := @FWeightTable[FracY][LoY];
-        if FracY < HiWT then Inc(FracY);
-        CeilKernel := @FWeightTable[FracY][LoY];
+        F := fracY and $FFF;
+        fracY := fracY shr 12;
+        FloorKernel := @FWeightTable[fracY][Width];
+        if fracY < W then Inc(fracY);
+        CeilKernel := @FWeightTable[fracY][Width];
 
-        for I := HiY downto 0 do
-        begin
-          VertKernel^ := FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F  + $7FF);
-          Inc(FloorKernel);
-          Inc(CeilKernel);
-        end;
-        *)
+        for I := LoY to HiY do
+          VertKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * F  + $7FF);
       end;
   end;
 
@@ -2426,12 +2390,6 @@ begin
   if FKernelMode <> Value then
   begin
     FKernelMode := Value;
-{     case FKernelMode of
-      kmDefault: FGetSampleFloat := GetSampleFloatDefault;
-      kmTableNearest: FGetSampleFloat := GetSampleFloatTableNearest;
-      kmTableLinear: FGetSampleFloat := GetSampleFloatTableLinear;
-      kmTest: FGetSampleFloat := GetSampleFloatDefaultNew;
-    end; }
     Changed;
   end;
 end;
@@ -2446,188 +2404,20 @@ begin
   end;
 end;
 
-function TKernelResampler.GetSampleFloatTableNearest(X, Y: Single): TColor32;
-var
-  clX, clY, fracX, fracY: Integer;
-  W, I, J, Incr: Integer;
-  C: PColor32Entry;
-  LoX, HiX, LoY, HiY: Integer;
-  HorzEntry, VertEntry: TBufferEntry;
-  HorzKernel, VertKernel: PKernelEntry;
-begin
-  clX := Ceil(X);
-  clY := Ceil(Y);
-  W := High(FWeightTable);
-  fracX := Round((clX - X) * W);
-  fracY := Round((clY - Y) * W);
-
-  W := Ceil(FKernel.GetWidth);
-
-  if clX < W then LoX := -clX else LoX := -W;
-  if clY < W then LoY := -clY else LoY := -W;
-  HiX := FBitmap.Width - 1;
-  HiY := FBitmap.Height - 1;
-  Incr := HiX;
-  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
-  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
-
-  C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-  Dec(Incr, HiX - LoX);
-
-  VertEntry := ROUND_ENTRY;
-  HorzKernel := @FWeightTable[fracX][W];
-  VertKernel := @FWeightTable[fracY][W];
-
-  for I := LoY to HiY do
-  begin
-    HorzEntry := EMPTY_ENTRY;
-    for J := LoX to HiX do
-    begin
-      W := HorzKernel[J];
-      Inc(HorzEntry.A, C.A * W);
-      Inc(HorzEntry.R, C.R * W);
-      Inc(HorzEntry.G, C.G * W);
-      Inc(HorzEntry.B, C.B * W);
-      Inc(C);
-    end;
-    W := VertKernel[I];
-    Inc(VertEntry.A, HorzEntry.A * W);
-    Inc(VertEntry.R, HorzEntry.R * W);
-    Inc(VertEntry.G, HorzEntry.G * W);
-    Inc(VertEntry.B, HorzEntry.B * W);
-    Inc(C, Incr);
-  end;
-
-  if FKernel.RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
-  end;
-
-  with TColor32Entry(Result) do
-  begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
-  end;
-end;
-
-function TKernelResampler.GetSampleFloatTableLinear(X, Y: Single): TColor32;
-var
-  clX, clY, FracX, FracY, HiWT: Integer;
-  W, I, J, F, Incr: Integer;
-  C: PColor32Entry;
-  LoX, HiX, LoY, HiY: Integer;
-  HorzEntry, VertEntry: TBufferEntry;
-  HorzKernel: PInteger;
-  FloorKernel, CeilKernel: PInteger;
-  HorzKernelStart: PInteger;
-begin
-  clX := Ceil(X);
-  clY := Ceil(Y);
-  W := Ceil(FKernel.GetWidth);
-
-  HiWT := High(FWeightTable);
-  I := HiWT * $1000;
-  FracX := Round((clX - X) * I);
-  FracY := Round((clY - Y) * I);
-
-  HiX := W; LoX := -W;
-  HiY := W; LoY := -W;
-
-  I := FBitmap.Width - 1;
-  J := FBitmap.Height - 1;
-
-  if clX < W then LoX := -clX;
-  if clX + W >= I then HiX := I - clX;
-  if clY < W then LoY := -clY;
-  if clY + W >= J then HiY := J - clY;
-
-  C := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-
-  HiX := HiX - LoX;
-  Incr := I  - HiX;
-  HiY := HiY - LoY;
-  Inc(LoX, W);
-  Inc(LoY, W);
-
-  F := FracX and $FFF;
-  FracX := FracX shr 12;
-  FloorKernel := @FWeightTable[FracX][LoX];
-  if FracX < HiWT then Inc(FracX);
-  CeilKernel := @FWeightTable[FracX][LoX];
-  HorzKernel :=  @FHorzKernel[LoX];
-
-  for I := HiX downto 0 do
-  begin
-    HorzKernel^:= FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F + $7FF);
-    Inc(HorzKernel);
-    Inc(FloorKernel);
-    Inc(CeilKernel);
-  end;
-
-  F := FracY and $FFF;
-  FracY := FracY shr 12;
-  FloorKernel := @FWeightTable[FracY][LoY];
-  if FracY < HiWT then Inc(FracY);
-  CeilKernel := @FWeightTable[FracY][LoY];
-
-  HorzKernelStart := @FHorzKernel[LoX];
-
-  VertEntry := ROUND_ENTRY;
-  for I := HiY downto 0 do
-  begin
-    HorzEntry := EMPTY_ENTRY;
-    HorzKernel := HorzKernelStart;
-    for J := HiX downto 0 do
-    begin
-      // HorzKernel[J]
-      W := HorzKernel^;
-      Inc(HorzKernel);
-      Inc(HorzEntry.A, C.A * W);
-      Inc(HorzEntry.R, C.R * W);
-      Inc(HorzEntry.G, C.G * W);
-      Inc(HorzEntry.B, C.B * W);
-      Inc(C);
-    end;
-    W := FloorKernel^ + SAR_12((CeilKernel^ - FloorKernel^) * F  + $7FF);
-    Inc(FloorKernel);
-    Inc(CeilKernel);
-    Inc(VertEntry.A, HorzEntry.A * W);
-    Inc(VertEntry.R, HorzEntry.R * W);
-    Inc(VertEntry.G, HorzEntry.G * W);
-    Inc(VertEntry.B, HorzEntry.B * W);
-    Inc(C, Incr);
-  end;
-
-  if FKernel.RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
-  end;
-
-  with TColor32Entry(Result) do
-  begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
-  end;
-end;
-
 procedure TKernelResampler.FinalizeSampling;
 begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
     FWeightTable := nil;
-    if FKernelMode = kmTableLinear then
-      FHorzKernel := nil;
   end;
+  if FKernelMode in [kmDefault, kmTableLinear] then
+  begin
+    FHorzKernel := nil;
+    FVertKernel := nil;
+  end;
+  if FEdgeCheckMode = ecmWrap then
+    FMappingX := nil;
+  inherited;
 end;
 
 procedure TKernelResampler.PrepareSampling;
@@ -2636,11 +2426,11 @@ var
   Fraction: Single;
 begin
   inherited;
+  W := Ceil(FKernel.GetWidth);
   if FEdgeCheckMode = ecmWrap then
     SetLength(FMappingX, W * 2 + 1);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
-    W := Ceil(FKernel.GetWidth);
     SetLength(FWeightTable, FTableSize, W * 2 + 1);
     K := FTableSize - 1;
     for I := 0 to K do
@@ -2652,10 +2442,9 @@ begin
   end;
   if FKernelMode in [kmDefault, kmTableLinear] then
   begin
-    SetLength(FVertKernel, W * 2 + 1);  
+    SetLength(FVertKernel, W * 2 + 1);
     SetLength(FHorzKernel, W * 2 + 1);
   end;
-
 end;
 
 { TBitmap32NearestResampler }
