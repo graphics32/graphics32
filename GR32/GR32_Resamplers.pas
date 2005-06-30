@@ -248,7 +248,7 @@ type
   private
     FKernel: TCustomKernel;
     FKernelMode: TKernelMode;
-    FWeightTable: TArrayOfKernelEntry;
+    FWeightTable: TIntegerMap;
     FTableSize: Integer;
     FMappingX: TIntegerDynArray;
     FVertKernel: TIntegerDynArray;
@@ -2328,33 +2328,35 @@ begin
 
     kmTableNearest:
       begin
-        W := High(FWeightTable);
-        fracX := Round((clX - X) * W);
-        fracY := Round((clY - Y) * W);
-        HorzKernel := @FWeightTable[fracX][Width];
-        VertKernel := @FWeightTable[fracY][Width];
+        W := FWeightTable.Height - 2;
+        HorzKernel := @FWeightTable.ValPtr[Width, Round((clX - X) * W)]^;
+        VertKernel := @FWeightTable.ValPtr[Width, Round((clY - Y) * W)]^;
       end;
     kmTableLinear:
       begin
-        W := (High(FWeightTable) - 1) * $10000;
+        W := (FWeightTable.Height - 2) * $10000;
+        J := FWeightTable.Width * 4;
 
-        fracX := Round((clX - X) * W);
-        fracY := Round((clY - Y) * W);
+        with TFixedRec(FracX) do
+        begin
+          Fixed := Round((clX - X) * W);
+          HorzKernel := @FHorzKernel[Width];
+          FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
+          CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
+          for I := LoX to HiX do
+            HorzKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac).Int;
+        end;
 
-        HorzKernel := @FHorzKernel[Width];
-        VertKernel := @FVertKernel[Width];
+        with TFixedRec(FracY) do
+        begin
+          Fixed := Round((clY - Y) * W);
+          VertKernel := @FVertKernel[Width];
+          FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
+          CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
+          for I := LoY to HiY do
+            VertKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac).Int;
+        end;
 
-        FloorKernel := @FWeightTable[TFixedRec(fracX).Int][Width];
-        CeilKernel := @FWeightTable[TFixedRec(fracX).Int + 1][Width];
-
-        for I := LoX to HiX do
-          HorzKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * TFixedRec(fracX).Frac).Int;
-
-        FloorKernel := @FWeightTable[TFixedRec(fracY).Int][Width];
-        CeilKernel := @FWeightTable[TFixedRec(fracY).Int + 1][Width];
-
-        for I := LoY to HiY do
-          VertKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * TFixedRec(fracY).Frac).Int;
       end;
   end;
 
@@ -2460,7 +2462,7 @@ procedure TKernelResampler.FinalizeSampling;
 begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
-    FWeightTable := nil;
+    FWeightTable.Free;
   end;
   if FKernelMode in [kmDefault, kmTableLinear] then
   begin
@@ -2476,6 +2478,7 @@ procedure TKernelResampler.PrepareSampling;
 var
   I, J, K, W: Integer;
   Fraction: Single;
+  KernelPtr: PKernelEntry;
 begin
   inherited;
   W := Ceil(FKernel.GetWidth);
@@ -2483,19 +2486,15 @@ begin
     SetLength(FMappingX, W * 2 + 1);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
-    SetLength(FWeightTable, FTableSize + 1, W * 2 + 1);
-    K := FTableSize - 1;
-    for I := 0 to K do
+    FWeightTable := TIntegerMap.Create;
+    FWeightTable.SetSize(W * 2 + 1, FTableSize + 1);
+    for I := 0 to FTableSize do
     begin
-      Fraction := I / K;
+      Fraction := I / (FTableSize - 1);
+      KernelPtr :=  @FWeightTable.ValPtr[0, I]^;
       for J := -W to W do
-        FWeightTable[I, J + W] := Round(FKernel.Filter(J + Fraction) * 256);
+        KernelPtr[J + W] := Round(FKernel.Filter(J + Fraction) * 256);
     end;
-
-    I := FTableSize;
-    for J := -W to W do
-       FWeightTable[I, J + W] := FWeightTable[I - 1, J + W];
-
   end;
   if FKernelMode in [kmDefault, kmTableLinear] then
   begin
