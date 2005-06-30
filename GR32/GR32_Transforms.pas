@@ -42,9 +42,6 @@ uses
   {$ENDIF}
   SysUtils, Classes, GR32, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
 
-const
-  DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
-
 type
   ETransformError = class(Exception);
 
@@ -259,7 +256,7 @@ procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 var
   FullEdge: Boolean = True;
 
-  
+
 implementation
 
 uses
@@ -949,8 +946,8 @@ begin
   FTwirl := 0.03;
   with FSrcRect do
   begin
-    Frx := (Right - Left -1) / 2;
-    Fry := (Bottom - Top -1) / 2;
+    Frx := (Right - Left) / 2;
+    Fry := (Bottom - Top) / 2;
   end;
 end;
 
@@ -981,7 +978,7 @@ end;
 procedure TTwirlTransformation.SetTwirl(const Value: Single);
 begin
   FTwirl := Value;
-  TransformValid := False;  
+  TransformValid := False;
 end;
 
 { TBloatTransformation }
@@ -989,8 +986,8 @@ end;
 procedure TBloatTransformation.PrepareTransform;
 begin
   FBloatPower := 0.3;
-  FPiW := (Pi / (FSrcRect.Right - FSrcRect.Left - 1));
-  FPiH := (Pi / (FSrcRect.Bottom - FSrcRect.Top - 1));
+  FPiW := (Pi / (FSrcRect.Right - FSrcRect.Left));
+  FPiH := (Pi / (FSrcRect.Bottom - FSrcRect.Top));
   FBP := FBloatPower * Max(FSrcRect.Right - FSrcRect.Left, FSrcRect.Bottom - FSrcRect.Top);
 end;
 
@@ -1018,8 +1015,8 @@ procedure TFishEyeTransformation.PrepareTransform;
 begin
   with FSrcRect do
   begin
-    Frx := (Right - Left - 1) / 2;
-    Fry := (Bottom - Top - 1) / 2;
+    Frx := (Right - Left) / 2;
+    Fry := (Bottom - Top) / 2;
     if Frx <= Fry then
     begin
       FMinR := Frx;
