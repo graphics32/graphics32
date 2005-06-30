@@ -56,7 +56,6 @@ type
 
   EBitmapException = class(Exception);
   ESrcInvalidException = class(Exception);
-  ENestedException = class(Exception);
 
   TGetSampleInt = function(X, Y: Integer): TColor32 of object;
   TGetSampleFloat = function(X, Y: Single): TColor32 of object;
@@ -523,13 +522,6 @@ type
 
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
-{ Convolution and morphological routines }
-procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-procedure Expand(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-procedure Contract(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-
 { Auxiliary routines for accumulating colors in a buffer }
 procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -551,7 +543,7 @@ const
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Rasterizers, GR32_Math, Math;
+  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Math, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
@@ -561,7 +553,6 @@ const
   SDstNil = 'Destination bitmap is nil';
   SSrcNil = 'Source bitmap is nil';
   SSrcInvalid = 'Source rectangle is invalid';
-  SSamplerNil = 'Nested sampler is nil';
 
 type
   TTransformationAccess = class(TTransformation);
@@ -575,57 +566,6 @@ type
   TCluster = array of TPointRec;
   TMappingTable = array of TCluster;
 
-
-type
-  TKernelSamplerClass = class of TKernelSampler;
-
-{ Auxiliary rasterization routine for kernel-based samplers }
-procedure RasterizeKernelSampler(Src, Dst: TBitmap32; Kernel: TIntegerMap;
-  CenterX, CenterY: Integer; SamplerClass: TKernelSamplerClass);
-var
-  Sampler: TKernelSampler;
-  Rasterizer: TRasterizer;
-begin
-  Rasterizer := DefaultRasterizerClass.Create;
-  try
-    Dst.SetSizeFrom(Src);
-    Sampler := SamplerClass.Create(Src.Resampler);
-    Sampler.WeightTable := Kernel;
-    try
-      Rasterizer.Sampler := Sampler;
-      Rasterizer.Rasterize(Dst);
-    finally
-      Sampler.Free;
-    end;
-  finally
-    Rasterizer.Free;
-  end;
-end;
-
-procedure Convolve(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-begin
-  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TConvolver);
-end;
-
-procedure Dilate(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-begin
-  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TDilater);
-end;
-
-procedure Erode(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-begin
-  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TEroder);
-end;
-
-procedure Expand(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-begin
-  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TExpander);
-end;
-
-procedure Contract(Src, Dst: TBitmap32; Kernel: TIntegerMap; CenterX, CenterY: Integer);
-begin
-  RasterizeKernelSampler(Src, Dst, Kernel, CenterX, CenterY, TContracter);
-end;
 
 { Auxiliary routines }
 
@@ -2336,30 +2276,25 @@ begin
       end;
     kmTableLinear:
       begin
-        W := High(FWeightTable);
-        fracX := Round((clX - X) * W * $1000);
-        fracY := Round((clY - Y) * W * $1000);
+        W := (High(FWeightTable) - 1) * $10000;
+
+        fracX := Round((clX - X) * W);
+        fracY := Round((clY - Y) * W);
 
         HorzKernel := @FHorzKernel[Width];
         VertKernel := @FVertKernel[Width];
 
-        J := fracX and $FFF;
-        fracX := fracX shr 12;
-        FloorKernel := @FWeightTable[fracX][Width];
-        if FracX < W then Inc(FracX);
-        CeilKernel := @FWeightTable[fracX][Width];
+        FloorKernel := @FWeightTable[TFixedRec(fracX).Int][Width];
+        CeilKernel := @FWeightTable[TFixedRec(fracX).Int + 1][Width];
 
         for I := LoX to HiX do
-          HorzKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * J + $7FF);
+          HorzKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * TFixedRec(fracX).Frac).Int;
 
-        J := fracY and $FFF;
-        fracY := fracY shr 12;
-        FloorKernel := @FWeightTable[fracY][Width];
-        if fracY < W then Inc(fracY);
-        CeilKernel := @FWeightTable[fracY][Width];
+        FloorKernel := @FWeightTable[TFixedRec(fracY).Int][Width];
+        CeilKernel := @FWeightTable[TFixedRec(fracY).Int + 1][Width];
 
         for I := LoY to HiY do
-          VertKernel[I] := FloorKernel[I] + SAR_12((CeilKernel[I] - FloorKernel[I]) * J  + $7FF);
+          VertKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * TFixedRec(fracY).Frac).Int;
       end;
   end;
 
@@ -2368,7 +2303,7 @@ begin
     ecmDefault, ecmSafe:
       begin
         SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-        Incr := FBitmap.Width - (HiX - LoX) - 1;
+        Incr := FBitmap.Width - (HiX - LoX);
 
         for I := LoY to HiY do
         begin
@@ -2488,7 +2423,7 @@ begin
     SetLength(FMappingX, W * 2 + 1);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
-    SetLength(FWeightTable, FTableSize, W * 2 + 1);
+    SetLength(FWeightTable, FTableSize + 1, W * 2 + 1);
     K := FTableSize - 1;
     for I := 0 to K do
     begin
@@ -2496,6 +2431,11 @@ begin
       for J := -W to W do
         FWeightTable[I, J + W] := Round(FKernel.Filter(J + Fraction) * 256);
     end;
+
+    I := FTableSize;
+    for J := -W to W do
+       FWeightTable[I, J + W] := FWeightTable[I - 1, J + W];
+
   end;
   if FKernelMode in [kmDefault, kmTableLinear] then
   begin
@@ -3032,18 +2972,12 @@ end;
 
 procedure TNestedSampler.FinalizeSampling;
 begin
-  if not Assigned(FSampler) then
-    ENestedException.Create(SSamplerNil)
-  else
-    FSampler.FinalizeSampling;
+  FSampler.FinalizeSampling;
 end;
 
 procedure TNestedSampler.PrepareSampling;
 begin
-  if not Assigned(FSampler) then
-    ENestedException.Create(SSamplerNil)
-  else
-    FSampler.PrepareSampling;
+  FSampler.PrepareSampling;
 end;
 
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
