@@ -167,7 +167,7 @@ type
 { Auxiliary routines }
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 
-const
+var
   DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
 
 implementation
@@ -723,8 +723,6 @@ begin
     while True do
     begin
       MainLoop:
-      //if z > 85 then
-      //  Sleep(0);
 
       Diff := MaxInt;
 
