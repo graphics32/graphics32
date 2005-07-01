@@ -254,6 +254,7 @@ type
     FMappingX: TIntegerDynArray;
     FVertKernel: TIntegerDynArray;
     FHorzKernel: TIntegerDynArray;
+    FOuterColor: TColor32;
     procedure SetKernel(const Value: TCustomKernel);
     function GetKernelClassName: string;
     procedure SetKernelClassName(Value: string);
@@ -2267,7 +2268,7 @@ begin
           begin
             if clX < Left then
             begin
-              Result := FBitmap.OuterColor;
+              Result := FOuterColor;
               Exit;
             end;
             LoX := Left - clX
@@ -2281,7 +2282,7 @@ begin
           begin
             if clY < Top then
             begin
-              Result := FBitmap.OuterColor;
+              Result := FOuterColor;
               Exit;
             end;
             LoY := Top - clY
@@ -2294,7 +2295,7 @@ begin
           begin
             if clX > Right then
             begin
-              Result := FBitmap.OuterColor;
+              Result := FOuterColor;
               Exit;
             end;
             HiX := Right - clX - 1;
@@ -2307,7 +2308,7 @@ begin
           begin
             if clY > Bottom then
             begin
-              Result := FBitmap.OuterColor;
+              Result := FOuterColor;
               Exit;
             end;
             HiY := Bottom - clY - 1;
@@ -2487,6 +2488,7 @@ var
   KernelPtr: PKernelEntry;
 begin
   inherited;
+  FOuterColor := FBitmap.OuterColor;
   W := Ceil(FKernel.GetWidth);
   if FPixelAccessMode = pamWrap then
     SetLength(FMappingX, W * 2 + 1);
