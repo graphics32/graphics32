@@ -417,20 +417,8 @@ type
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
     function  GetCanvas: TCanvas;
-    function  GetPixel(X, Y: Integer): TColor32;
-    function  GetPixelS(X, Y: Integer): TColor32;
-    function  GetPixelW(X, Y: Integer): TColor32;
 
-    function  GetPixelF(X, Y: Single): TColor32;
-    function  GetPixelFS(X, Y: Single): TColor32;
-    //function  GetPixelFW(X, Y: Single): TColor32;
-
-    function  GetPixelX(X, Y: TFixed): TColor32;
-    function  GetPixelXS(X, Y: TFixed): TColor32;
-    function  GetPixelXW(X, Y: TFixed): TColor32;
-
-    function  GetPixelZ(X, Y: Single): TColor32;
-
+    function  GetPixelR(X, Y: Single): TColor32;
     function  GetPixelPtr(X, Y: Integer): PColor32;
     function  GetScanLine(Y: Integer): PColor32Array;
 {$IFDEF CLX}
@@ -444,9 +432,6 @@ type
     procedure SetWrapMode(Value: TWrapMode);
     procedure SetFont(Value: TFont);
     procedure SetMasterAlpha(Value: Cardinal);
-    procedure SetPixel(X, Y: Integer; Value: TColor32);
-    procedure SetPixelS(X, Y: Integer; Value: TColor32);
-    procedure SetPixelW(X, Y: Integer; Value: TColor32);
 {$IFDEF DEPRECATEDMODE}
     procedure SetStretchFilter(Value: TStretchFilter);
 {$ENDIF}
@@ -473,10 +458,29 @@ type
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
+
+    function  GetPixel(X, Y: Integer): TColor32;
+    function  GetPixelS(X, Y: Integer): TColor32;
+    function  GetPixelW(X, Y: Integer): TColor32;
+
+    function  GetPixelF(X, Y: Single): TColor32;
+    function  GetPixelFS(X, Y: Single): TColor32;
+    function  GetPixelFW(X, Y: Single): TColor32;
+
+    function  GetPixelX(X, Y: TFixed): TColor32;
+    function  GetPixelXS(X, Y: TFixed): TColor32;
+    function  GetPixelXW(X, Y: TFixed): TColor32;
+
     function  GetPixelB(X, Y: Integer): TColor32;
+
+    procedure SetPixel(X, Y: Integer; Value: TColor32);
+    procedure SetPixelS(X, Y: Integer; Value: TColor32);
+    procedure SetPixelW(X, Y: Integer; Value: TColor32);
+
     procedure SetPixelF(X, Y: Single; Value: TColor32);
     procedure SetPixelFS(X, Y: Single; Value: TColor32);
-    //procedure SetPixelFW(X, Y: Single; Value: TColor32);
+    procedure SetPixelFW(X, Y: Single; Value: TColor32);
+
     procedure SetPixelX(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
@@ -653,8 +657,8 @@ type
     property  PixelXW[X, Y: TFixed]: TColor32 read GetPixelXW write SetPixelXW;
     property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
     property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
-    //property  PixelFW[X, Y: Single]: TColor32 read GetPixelFW write SetPixelFW;
-    property  PixelZ[X, Y: Single]: TColor32 read GetPixelZ;
+    property  PixelFW[X, Y: Single]: TColor32 read GetPixelFW write SetPixelFW;
+    property  PixelR[X, Y: Single]: TColor32 read GetPixelR;
 {$IFDEF CLX}
     property Pixmap: QPixmapH read GetPixmap;
     property Image: QImageH read GetImage;
@@ -2320,6 +2324,20 @@ begin
 {$ENDIF}
 end;
 
+procedure TBitmap32.SetPixelFW(X, Y: Single; Value: TColor32);
+begin
+{$IFDEF CHANGED_IN_PIXELS}
+  if not FMeasuringMode then
+  begin
+{$ENDIF}
+    SetPixelXW(X * FixedOne, Y * FixedOne);
+    EMMS;
+{$IFDEF CHANGED_IN_PIXELS}
+  end;
+  Changed(MakeRect(X, Y, X + 1, Y + 1));
+{$ENDIF}
+end;
+
 procedure TBitmap32.SetPixelXS(X, Y: TFixed; Value: TColor32);
 begin
 {$IFDEF CHANGED_IN_PIXELS}
@@ -2371,6 +2389,12 @@ begin
   EMMS;
 end;
 
+function TBitmap32.GetPixelFS(X, Y: Single): TColor32;
+begin
+  Result := GetPixelXW(X * FixedOne, Y * FixedOne);
+  EMMS;
+end;
+
 function TBitmap32.GetPixelX(X, Y: TFixed): TColor32;
 begin
   asm
@@ -2395,7 +2419,7 @@ begin
   EMMS;
 end;
 
-function TBitmap32.GetPixelZ(X, Y: Single): TColor32;
+function TBitmap32.GetPixelR(X, Y: Single): TColor32;
 begin
   Result := FResampler.GetSampleFloat(X, Y);
 end;
