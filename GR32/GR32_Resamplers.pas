@@ -232,6 +232,7 @@ type
     procedure PrepareSampling; override;
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
     property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
+  published
     property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write FPixelAccessMode;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
@@ -296,7 +297,7 @@ type
   end;
 
   { TLinearResampler }
-  TLinearResampler = class(TNearestResampler)
+  TLinearResampler = class(TBitmap32Resampler)
   private
     FLinearKernel: TLinearKernel;
     FGetSampleFixed: TGetSampleFixed;
@@ -2182,7 +2183,6 @@ begin
   inherited Create(Bitmap);
   FKernel := TNearestKernel.Create(Bitmap);
   FTableSize := 32;
-  //FGetSampleFloat := GetSampleFloatDefault;
 end;
 
 destructor TKernelResampler.Destroy;
@@ -2540,6 +2540,7 @@ end;
 
 procedure TNearestResampler.PrepareSampling;
 begin
+  inherited;
   case FPixelAccessMode of
     pamUnsafe: FGetSampleInt := TBitmap32Access(FBitmap).GetPixel;
     pamSafe: FGetSampleInt := TBitmap32Access(FBitmap).GetPixelS;
@@ -2577,11 +2578,12 @@ end;
 
 function TLinearResampler.GetSampleFloat(X, Y: Single): TColor32;
 begin
-  Result := FGetSampleFixed(X * FixedOne, Y * FixedOne);
+  Result := FGetSampleFixed(Round(X * FixedOne), Round(Y * FixedOne));
 end;
 
 procedure TLinearResampler.PrepareSampling;
 begin
+  inherited;
   case FPixelAccessMode of
     pamUnsafe: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelX;
     pamSafe: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelXS;

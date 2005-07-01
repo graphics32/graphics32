@@ -2330,7 +2330,7 @@ begin
   if not FMeasuringMode then
   begin
 {$ENDIF}
-    SetPixelXW(X * FixedOne, Y * FixedOne);
+    SetPixelXW(Round(X * FixedOne), Round(Y * FixedOne), Value);
     EMMS;
 {$IFDEF CHANGED_IN_PIXELS}
   end;
@@ -2389,9 +2389,9 @@ begin
   EMMS;
 end;
 
-function TBitmap32.GetPixelFS(X, Y: Single): TColor32;
+function TBitmap32.GetPixelFW(X, Y: Single): TColor32;
 begin
-  Result := GetPixelXW(X * FixedOne, Y * FixedOne);
+  Result := GetPixelXW(Round(X * FixedOne), Round(Y * FixedOne));
   EMMS;
 end;
 
