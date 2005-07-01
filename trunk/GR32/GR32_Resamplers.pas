@@ -216,7 +216,7 @@ type
   TTransformer = class;
   TTransformerClass = class of TTransformer;
 
-  TEdgeCheckMode = (ecmDefault, ecmSafe, ecmWrap);
+  TPixelAccessMode = (pamUnsafe, pamSafe, pamWrap);
 
   { TBitmap32Resampler }
   { Base class for TBitmap32 specific resamplers. }
@@ -225,14 +225,14 @@ type
     FBitmap: TBitmap32;
     FClipRect: TRect;
     FTransformerClass: TTransformerClass;
-    FEdgeCheckMode: TEdgeCheckMode;
+    FPixelAccessMode: TPixelAccessMode;
   public
     constructor Create(ABitmap: TBitmap32); virtual;
     procedure Changed; override;
     procedure PrepareSampling; override;
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
     property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
-    property EdgeCheckMode: TEdgeCheckMode read FEdgeCheckMode write FEdgeCheckMode;
+    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write FPixelAccessMode;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
@@ -279,6 +279,8 @@ type
 
   { TNearestResampler }
   TNearestResampler = class(TBitmap32Resampler)
+  private
+    FGetSampleInt: TGetSampleInt;
   protected
     function GetWidth: Single; override;
   public
@@ -286,6 +288,7 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
+    procedure PrepareSampling; override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -296,12 +299,15 @@ type
   TLinearResampler = class(TNearestResampler)
   private
     FLinearKernel: TLinearKernel;
+    FGetSampleFixed: TGetSampleFixed;
   protected
     function GetWidth: Single; override;
   public
-    function GetSampleFloat(X, Y: Single): TColor32; override;
     constructor Create(Bitmap: TBitmap32); override;
     destructor Destroy; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    function GetSampleFloat(X, Y: Single): TColor32; override;
+    procedure PrepareSampling; override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -445,7 +451,7 @@ type
   { TKernelSampler }
   TKernelSampler = class(TNestedSampler)
   private
-    FWeightTable: TIntegerMap;
+    FKernel: TIntegerMap;
     FStartEntry: TBufferEntry;
     FCenterX: Integer;
     FCenterY: Integer;
@@ -457,7 +463,7 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property WeightTable: TIntegerMap read FWeightTable write FWeightTable;
+    property Kernel: TIntegerMap read FKernel write FKernel;
     property CenterX: Integer read FCenterX write FCenterX;
     property CenterY: Integer read FCenterY write FCenterY;
   end;
@@ -590,7 +596,7 @@ begin
   try
     Dst.SetSizeFrom(Src);
     Sampler := SamplerClass.Create(Src.Resampler);
-    Sampler.WeightTable := Kernel;
+    Sampler.Kernel := Kernel;
     try
       Rasterizer.Sampler := Sampler;
       Rasterizer.Rasterize(Dst);
@@ -2159,6 +2165,7 @@ begin
   inherited Create;
   FBitmap := ABitmap;
   FTransformerClass := TTransformer;
+  FPixelAccessMode := pamSafe;
   if Assigned(ABitmap) then ABitmap.Resampler := Self;
 end;
 
@@ -2246,13 +2253,13 @@ begin
   clX := Ceil(X);
   clY := Ceil(Y);
 
-  case FEdgeCheckMode of
-    ecmDefault, ecmWrap:
+  case FPixelAccessMode of
+    pamUnsafe, pamWrap:
       begin
         LoX := -Width; HiX := Width;
         LoY := -Width; HiY := Width;
       end;
-    ecmSafe:
+    pamSafe:
       begin
         // TODO: use clipping rectangle instead of bitmap bounds (?)
         if clX < Width then
@@ -2361,8 +2368,8 @@ begin
   end;
 
   VertEntry := ROUND_ENTRY;
-  case EdgeCheckMode of
-    ecmDefault, ecmSafe:
+  case FPixelAccessMode of
+    pamUnsafe, pamSafe:
       begin
         SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
         Incr := FBitmap.Width - (HiX - LoX) - 1;
@@ -2388,7 +2395,7 @@ begin
         end;
       end;
 
-    ecmWrap:
+    pamWrap:
       begin
         WrapProc := WRAP_PROCS_EX[FBitmap.WrapMode];
         MappingX := @FMappingX[Width];
@@ -2469,7 +2476,7 @@ begin
     FHorzKernel := nil;
     FVertKernel := nil;
   end;
-  if FEdgeCheckMode = ecmWrap then
+  if FPixelAccessMode = pamWrap then
     FMappingX := nil;
   inherited;
 end;
@@ -2482,7 +2489,7 @@ var
 begin
   inherited;
   W := Ceil(FKernel.GetWidth);
-  if FEdgeCheckMode = ecmWrap then
+  if FPixelAccessMode = pamWrap then
     SetLength(FMappingX, W * 2 + 1);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
@@ -2513,22 +2520,31 @@ end;
 
 function TNearestResampler.GetSampleInt(X, Y: Integer): TColor32;
 begin
-  Result := FBitmap.Pixel[X, Y];
+  Result := FGetSampleInt(X, Y);
 end;
 
 function TNearestResampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
-  Result := Bitmap.Pixel[FixedRound(X), FixedRound(Y)];
+  Result := FGetSampleInt(FixedRound(X), FixedRound(Y));
 end;
 
 function TNearestResampler.GetSampleFloat(X, Y: Single): TColor32;
 begin
-  Result := Bitmap.Pixel[Round(X), Round(Y)];
+  Result := FGetSampleInt(Round(X), Round(Y));
 end;
 
 function TNearestResampler.GetWidth: Single;
 begin
   Result := 1;
+end;
+
+procedure TNearestResampler.PrepareSampling;
+begin
+  case FPixelAccessMode of
+    pamUnsafe: FGetSampleInt := TBitmap32Access(FBitmap).GetPixel;
+    pamSafe: FGetSampleInt := TBitmap32Access(FBitmap).GetPixelS;
+    pamWrap: FGetSampleInt := TBitmap32Access(FBitmap).GetPixelW;
+  end;
 end;
 
 procedure TNearestResampler.Resample(
@@ -2554,9 +2570,23 @@ begin
   inherited Destroy;
 end;
 
+function TLinearResampler.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  Result := FGetSampleFixed(X, Y);
+end;
+
 function TLinearResampler.GetSampleFloat(X, Y: Single): TColor32;
 begin
-  Result := FBitmap.PixelFS[X, Y];
+  Result := FGetSampleFixed(X * FixedOne, Y * FixedOne);
+end;
+
+procedure TLinearResampler.PrepareSampling;
+begin
+  case FPixelAccessMode of
+    pamUnsafe: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelX;
+    pamSafe: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelXS;
+    pamWrap: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelXW;
+  end;
 end;
 
 function TLinearResampler.GetWidth: Single;
@@ -3109,13 +3139,13 @@ end;
 constructor TKernelSampler.Create(ASampler: TCustomSampler);
 begin
   inherited;
-  FWeightTable := TIntegerMap.Create;
+  FKernel := TIntegerMap.Create;
   FStartEntry := EMPTY_ENTRY;
 end;
 
 destructor TKernelSampler.Destroy;
 begin
-  FWeightTable.Free;
+  FKernel.Free;
   inherited;
 end;
 
@@ -3127,9 +3157,9 @@ begin
   X := X + FCenterX shl 16;
   Y := Y + FCenterY shl 16;
   Buffer := FStartEntry;
-  for I := 0 to FWeightTable.Width - 1 do
-    for J := 0 to FWeightTable.Height - 1 do
-      UpdateBuffer(Buffer, FGetSampleFixed(X - I shl 16, Y - J shl 16), FWeightTable[I, J]);
+  for I := 0 to FKernel.Width - 1 do
+    for J := 0 to FKernel.Height - 1 do
+      UpdateBuffer(Buffer, FGetSampleFixed(X - I shl 16, Y - J shl 16), FKernel[I, J]);
 
   Buffer.A := Constrain(Buffer.A, 0, $FFFF);
   Buffer.R := Constrain(Buffer.R, 0, $FFFF);
@@ -3147,9 +3177,9 @@ begin
   X := X + FCenterX;
   Y := Y + FCenterY;
   Buffer := FStartEntry;
-  for I := 0 to FWeightTable.Width - 1 do
-    for J := 0 to FWeightTable.Height - 1 do
-      UpdateBuffer(Buffer, FGetSampleInt(X - I, Y - J), FWeightTable[I, J]);
+  for I := 0 to FKernel.Width - 1 do
+    for J := 0 to FKernel.Height - 1 do
+      UpdateBuffer(Buffer, FGetSampleInt(X - I, Y - J), FKernel[I, J]);
 
   Buffer.A := Constrain(Buffer.A, 0, $FFFF);
   Buffer.R := Constrain(Buffer.R, 0, $FFFF);
@@ -3241,9 +3271,9 @@ var
   I, J, W: Integer;
 begin
   W := Low(Integer);
-  for I := 0 to FWeightTable.Width - 1 do
-    for J := 0 to FWeightTable.Height - 1 do
-      W := Max(W, FWeightTable[I, J]);
+  for I := 0 to FKernel.Width - 1 do
+    for J := 0 to FKernel.Height - 1 do
+      W := Max(W, FKernel[I, J]);
   if W > 255 then W := 255;
   FMaxWeight := Gray32(W, W);
 end;
