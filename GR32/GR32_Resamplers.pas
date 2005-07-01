@@ -233,7 +233,7 @@ type
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
     property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
   published
-    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write FPixelAccessMode;
+    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write FPixelAccessMode default pamSafe;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
@@ -2261,62 +2261,61 @@ begin
       end;
     pamSafe:
       begin
-        // TODO: use clipping rectangle instead of bitmap bounds (?)
-        if clX < Width then
+        with FClipRect do
         begin
-          if clX < 0 then
+          if clX - Width < Left then
           begin
-            Result := FBitmap.OuterColor;
-            Exit;
+            if clX < Left then
+            begin
+              Result := FBitmap.OuterColor;
+              Exit;
+            end;
+            LoX := Left - clX
+          end
+          else
+          begin
+            LoX := -Width;
           end;
-          LoX := -clX
-        end
-        else
-        begin
-          LoX := -Width;
-        end;
 
-        if clY < Width then
-        begin
-          if clY < 0 then
+          if clY - Width < Top then
           begin
-            Result := FBitmap.OuterColor;
-            Exit;
-          end;
-          LoY := -clY
-        end
-        else
-        begin
-          LoY := -Width;
-        end;
-        HiX := FBitmap.Width - 1;
-        HiY := FBitmap.Height - 1;
-        Incr := HiX;
-        if clX + Width >= HiX then
-        begin
-          if clX > HiX + 1 then
+            if clY < Top then
+            begin
+              Result := FBitmap.OuterColor;
+              Exit;
+            end;
+            LoY := Top - clY
+          end
+          else
           begin
-            Result := FBitmap.OuterColor;
-            Exit;
+            LoY := -Width;
           end;
-          HiX := HiX - clX
-        end
-        else
-        begin
-          HiX := Width;
-        end;
-        if clY + Width >= HiY then
-        begin
-          if clY > HiY + 1 then
+          if clX + Width >= Right then
           begin
-            Result := FBitmap.OuterColor;
-            Exit;
+            if clX > Right then
+            begin
+              Result := FBitmap.OuterColor;
+              Exit;
+            end;
+            HiX := Right - clX - 1;
+          end
+          else
+          begin
+            HiX := Width;
           end;
-          HiY := HiY - clY
-        end
-        else
-        begin
-          HiY := Width;
+          if clY + Width >= Bottom then
+          begin
+            if clY > Bottom then
+            begin
+              Result := FBitmap.OuterColor;
+              Exit;
+            end;
+            HiY := Bottom - clY - 1;
+          end
+          else
+          begin
+            HiY := Width;
+          end;
         end;
       end;
   end;
