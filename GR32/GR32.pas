@@ -2459,14 +2459,14 @@ begin
     X1 := WrapProc(X2, Left, W);
     X2 := WrapProc(X2 + 1, Left, W);
     W := Bottom - 1;
-    Y1 := WrapProc(Y2, Top, W);
-    Y2 := WrapProc(Y2 + 1, Top, W);
+    Y1 := WrapProc(Y2, Top, W) * Width;
+    Y2 := WrapProc(Y2 + 1, Top, W) * Width;
   end;
 
   W := WordRec(TFixedRec(X).Frac).Hi;
 
-  Result := CombineReg(CombineReg(GetPixel(X2, Y2), GetPixel(X1, Y2), W),
-                       CombineReg(GetPixel(X2, Y1), GetPixel(X1, Y1), W),
+  Result := CombineReg(CombineReg(Bits[X2 + Y2], Bits[X1 + Y2], W),
+                       CombineReg(Bits[X2 + Y1], Bits[X1 + Y1], W),
                        WordRec(TFixedRec(Y).Frac).Hi);
   EMMS;
 end;
