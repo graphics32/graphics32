@@ -2445,16 +2445,29 @@ end;
 function TBitmap32.GetPixelXW(X, Y: TFixed): TColor32;
 var
   WrapProc: TWrapProcEx;
+  X1, X2, Y1, Y2 :Integer;
+  W: Integer;
 begin
-  asm
-        ADD X, $7F
-        ADD Y, $7F
-        SAR X, 8
-        SAR Y, 8
-  end;
   WrapProc := WRAP_PROCS_EX[FWrapMode];
-  with F256ClipRect do
-    Result := GET_T256(WrapProc(X, Left, Right - 128), WrapProc(Y, Top, Bottom - 128));
+
+  X2 := TFixedRec(X).Int;
+  Y2 := TFixedRec(Y).Int;
+
+  with FClipRect do
+  begin
+    W := Right - 1;
+    X1 := WrapProc(X2, Left, W);
+    X2 := WrapProc(X2 + 1, Left, W);
+    W := Bottom - 1;
+    Y1 := WrapProc(Y2, Top, W);
+    Y2 := WrapProc(Y2 + 1, Top, W);
+  end;
+
+  W := WordRec(TFixedRec(X).Frac).Hi;
+
+  Result := CombineReg(CombineReg(GetPixel(X2, Y2), GetPixel(X1, Y2), W),
+                       CombineReg(GetPixel(X2, Y1), GetPixel(X1, Y1), W),
+                       WordRec(TFixedRec(Y).Frac).Hi);
   EMMS;
 end;
 
