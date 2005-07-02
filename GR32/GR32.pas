@@ -2439,7 +2439,7 @@ var
 begin
   WrapProc := WRAP_PROCS_EX[FWrapMode];
   with FClipRect do
-    FBits[FWidth * WrapProc(Y, Top, Bottom) + WrapProc(X, Left, Right)] := Value;
+    FBits[FWidth * WrapProc(Y, Top, Bottom - 1) + WrapProc(X, Left, Right - 1)] := Value;
 end;
 
 function TBitmap32.GetPixelXW(X, Y: TFixed): TColor32;
