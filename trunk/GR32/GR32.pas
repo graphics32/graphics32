@@ -2430,7 +2430,7 @@ var
 begin
   WrapProc := WRAP_PROCS_EX[FWrapMode];
   with FClipRect do
-    Result := FBits[FWidth * WrapProc(Y, Top, Bottom) + WrapProc(X, Left, Right)];
+    Result := FBits[FWidth * WrapProc(Y, Top, Bottom - 1) + WrapProc(X, Left, Right - 1)];
 end;
 
 procedure TBitmap32.SetPixelW(X, Y: Integer; Value: TColor32);
@@ -2454,7 +2454,7 @@ begin
   end;
   WrapProc := WRAP_PROCS_EX[FWrapMode];
   with F256ClipRect do
-    Result := GET_T256(WrapProc(X, Left, Right), WrapProc(Y, Top, Bottom));
+    Result := GET_T256(WrapProc(X, Left, Right - 128), WrapProc(Y, Top, Bottom - 128));
   EMMS;
 end;
 
@@ -2470,7 +2470,7 @@ begin
   end;
   WrapProc := WRAP_PROCS_EX[FWrapMode];
   with F256ClipRect do
-    SET_T256(WrapProc(X, Left, Right), WrapProc(Y, Top, Bottom), Value);
+    SET_T256(WrapProc(X, Left, Right - 128), WrapProc(Y, Top, Bottom - 128), Value);
   EMMS;
 end;
 
