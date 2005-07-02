@@ -438,7 +438,6 @@ type
     procedure TextScaleDown(const B, B2: TBitmap32; const N: Integer;
       const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure TextBlueToAlpha(const B: TBitmap32; const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure UpdateClipRects;
     procedure SetClipRect(const Value: TRect);
     procedure SetResampler(Resampler: TCustomResampler);
     function GetResamplerClassName: string;
