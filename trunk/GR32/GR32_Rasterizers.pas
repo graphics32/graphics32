@@ -249,6 +249,7 @@ procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
   CombineCallBack: TPixelCombineEvent);
 var
   UpdateCount: Integer;
+  R: TRect;
 begin
   FSrcAlpha := SrcAlpha;
   FBlendMemEx := BLEND_MEM_EX[CombineMode];
@@ -270,8 +271,10 @@ begin
   if Assigned(FSampler) then
   begin
     FSampler.PrepareSampling;
+    if FSampler.HasBounds then
+      IntersectRect(R, DstRect, FSampler.GetSampleBounds);
     try
-      DoRasterize(Dst, DstRect);
+      DoRasterize(Dst, R);
     finally
       while TThreadPersistentAccess(Dst).UpdateCount > UpdateCount do
         TThreadPersistentAccess(Dst).EndUpdate;
