@@ -230,6 +230,8 @@ type
     constructor Create(ABitmap: TBitmap32); virtual;
     procedure Changed; override;
     procedure PrepareSampling; override;
+    function HasBounds: Boolean; override;
+    function GetSampleBounds: TRect; override;
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
     property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
   published
@@ -337,6 +339,8 @@ type
     constructor Create(ASampler: TCustomSampler); virtual;
     procedure PrepareSampling; override;
     procedure FinalizeSampling; override;
+    function HasBounds: Boolean; override;
+    function GetSampleBounds: TRect; override;
   published
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
@@ -349,23 +353,17 @@ type
   TTransformer = class(TNestedSampler)
   private
     FTransformation: TTransformation;
-    FBoundsRect: TFloatRect;
-    FBoundsRectFixed: TFixedRect;
-    FBoundsRectInt: TRect;
-    FOuterColor: TColor32;
     FTransformationReverseTransformInt: TReverseTransformInt;
     FTransformationReverseTransformFixed: TReverseTransformFixed;
     FTransformationReverseTransformFloat: TReverseTransformFloat;
-    procedure SetBoundsRect(Rect: TFloatRect);
     procedure SetTransformation(const Value: TTransformation);
   public
-    constructor Create(Src: TBitmap32; ATransformation: TTransformation); reintroduce; overload;
-    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); reintroduce; overload;
+    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); reintroduce;
     procedure PrepareSampling; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
-    property BoundsRect: TFloatRect read FBoundsRect write SetBoundsRect;
-    property OuterColor: TColor32 read FOuterColor write FOuterColor;
+    function HasBounds: Boolean; override;
+    function GetSampleBounds: TRect; override;
   published
     property Transformation: TTransformation read FTransformation write SetTransformation;
   end;
@@ -2171,6 +2169,16 @@ begin
   if Assigned(ABitmap) then ABitmap.Resampler := Self;
 end;
 
+function TBitmap32Resampler.GetSampleBounds: TRect;
+begin
+  Result := FBitmap.ClipRect;
+end;
+
+function TBitmap32Resampler.HasBounds: Boolean;
+begin
+  Result := True;
+end;
+
 procedure TBitmap32Resampler.PrepareSampling;
 begin
   inherited;
@@ -2631,13 +2639,7 @@ var
   U, V: TFixed;
 begin
   FTransformationReverseTransformFixed(X, Y, U, V);
-  if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
-     (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
-  begin
-    Result := FGetSampleFixed(U, V);
-  end
-  else
-    Result := FOuterColor;
+  Result := FGetSampleFixed(U, V);
 end;
 
 function TTransformer.GetSampleFloat(X, Y: Single): TColor32;
@@ -2645,34 +2647,7 @@ var
   U, V: Single;
 begin
   FTransformationReverseTransformFloat(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
-  begin
-    Result := FGetSampleFloat(U, V);
-  end
-  else
-    Result := FOuterColor;
-end;
-
-constructor TTransformer.Create(Src: TBitmap32; ATransformation: TTransformation);
-var
-  R: TFloatRect;
-begin
-  inherited Create(Src.Resampler);
-  FOuterColor := Src.OuterColor;
-  Sampler := Src.Resampler;
-  Transformation := ATransformation;
-  IntersectRectF(R, ATransformation.SrcRect, FloatRect(0, 0, Src.Width - 1, Src.Height - 1));
-  FBoundsRectInt := MakeRect(R);
-  FBoundsRectFixed := FixedRect(R);
-  FBoundsRect := R;
-end;
-
-procedure TTransformer.SetBoundsRect(Rect: TFloatRect);
-begin
-  FBoundsRectInt := MakeRect(Rect);
-  FBoundsRectFixed := FixedRect(Rect);
-  FBoundsRect := Rect;
+  Result := FGetSampleFloat(U, V);
 end;
 
 procedure TTransformer.SetTransformation(const Value: TTransformation);
@@ -2687,7 +2662,6 @@ constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTran
 begin
   Transformation := ATransformation;
   Sampler := ASampler;
-  BoundsRect := FloatRect(-32768, -32768, 32767, 32767);
 end;
 
 procedure TTransformer.PrepareSampling;
@@ -2697,6 +2671,16 @@ begin
     if not TransformValid then PrepareTransform;
 end;
 
+function TTransformer.GetSampleBounds: TRect;
+begin
+  Result := FTransformation.GetTransformedBounds(FloatRect(inherited GetSampleBounds));
+end;
+
+function TTransformer.HasBounds: Boolean;
+begin
+  Result := FTransformation.HasTransformedBounds and inherited HasBounds;
+end;
+
 { TNearestTransformer }
 
 function TNearestTransformer.GetSampleInt(X, Y: Integer): TColor32;
@@ -2704,13 +2688,7 @@ var
   U, V: Integer;
 begin
   FTransformationReverseTransformInt(X, Y, U, V);
-  if (U >= FBoundsRectInt.Left) and (U <= FBoundsRectInt.Right) and
-     (V >= FBoundsRectInt.Top) and (V <= FBoundsRectInt.Bottom) then
-  begin
-    Result := FGetSampleInt(U, V);
-  end
-  else
-    Result := FOuterColor;
+  Result := FGetSampleInt(U, V);
 end;
 
 function TNearestTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
@@ -2718,13 +2696,7 @@ var
   U, V: TFixed;
 begin
   FTransformationReverseTransformFixed(X, Y, U, V);
-  if (U >= FBoundsRectFixed.Left) and (U <= FBoundsRectFixed.Right) and
-     (V >= FBoundsRectFixed.Top) and (V <= FBoundsRectFixed.Bottom) then
-  begin
-    Result := FGetSampleInt(U shr 16, V shr 16);
-  end
-  else
-    Result := FOuterColor;
+  Result := FGetSampleInt(U shr 16, V shr 16);
 end;
 
 function TNearestTransformer.GetSampleFloat(X, Y: Single): TColor32;
@@ -2732,13 +2704,7 @@ var
   U, V: Single;
 begin
   FTransformationReverseTransformFloat(X, Y, U, V);
-  if (U >= FBoundsRect.Left) and (U <= FBoundsRect.Right) and
-     (V >= FBoundsRect.Top) and (V <= FBoundsRect.Bottom) then
-  begin
-    Result := FGetSampleInt(Round(U), Round(V));
-  end
-  else
-    Result := FOuterColor;
+  Result := FGetSampleInt(Round(U), Round(V));
 end;
 
 
@@ -3068,6 +3034,22 @@ begin
     ENestedException.Create(SSamplerNil)
   else
     FSampler.FinalizeSampling;
+end;
+
+function TNestedSampler.GetSampleBounds: TRect;
+begin
+  if not Assigned(FSampler) then
+    ENestedException.Create(SSamplerNil)
+  else
+    Result := FSampler.GetSampleBounds;
+end;
+
+function TNestedSampler.HasBounds: Boolean;
+begin
+  if not Assigned(FSampler) then
+    ENestedException.Create(SSamplerNil)
+  else
+    Result := FSampler.HasBounds;
 end;
 
 procedure TNestedSampler.PrepareSampling;
