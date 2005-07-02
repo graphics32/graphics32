@@ -85,13 +85,15 @@ type
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual;
     procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); virtual;
   public
-    function  GetTransformedBounds: TRect; virtual;
-    function  ReverseTransform(const P: TPoint): TPoint; overload; virtual;
-    function  ReverseTransform(const P: TFixedPoint): TFixedPoint; overload; virtual;
-    function  ReverseTransform(const P: TFloatPoint): TFloatPoint; overload; virtual;
-    function  Transform(const P: TPoint): TPoint; overload; virtual;
-    function  Transform(const P: TFixedPoint): TFixedPoint; overload; virtual;
-    function  Transform(const P: TFloatPoint): TFloatPoint; overload; virtual;
+    function HasTransformedBounds: Boolean; virtual;
+    function GetTransformedBounds: TRect; overload;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; overload; virtual;
+    function ReverseTransform(const P: TPoint): TPoint; overload; virtual;
+    function ReverseTransform(const P: TFixedPoint): TFixedPoint; overload; virtual;
+    function ReverseTransform(const P: TFloatPoint): TFloatPoint; overload; virtual;
+    function Transform(const P: TPoint): TPoint; overload; virtual;
+    function Transform(const P: TFixedPoint): TFixedPoint; overload; virtual;
+    function Transform(const P: TFloatPoint): TFloatPoint; overload; virtual;
     property SrcRect: TFloatRect read FSrcRect write SetSrcRect;
   end;
 
@@ -107,7 +109,7 @@ type
   public
     Matrix: TFloatMatrix;
     constructor Create; virtual;
-    function  GetTransformedBounds: TRect; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
     procedure Clear;
     procedure Rotate(Cx, Cy, Alpha: Single); // degrees
     procedure Skew(Fx, Fy: Single);
@@ -136,7 +138,7 @@ type
     procedure TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single); override;
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
   public
-    function  GetTransformedBounds: TRect; override;
+    function  GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
   published
     property X0: Single read Wx0 write SetX0;
     property X1: Single read Wx1 write SetX1;
@@ -157,7 +159,7 @@ type
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
   public
-    function  GetTransformedBounds: TRect; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
   published
     property Twirl: Single read FTwirl write SetTwirl;
   end;
@@ -227,7 +229,8 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    function  GetTransformedBounds: TRect; override;
+    function HasTransformedBounds: Boolean; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
     procedure Scale(Sx, Sy: Single);
   published
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
@@ -383,7 +386,7 @@ var
   Transformer: TTransformer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
-  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src, Transformation);
+  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src.Resampler, Transformation);
   try
     Rasterizer.Sampler := Transformer;
     Transform(Dst, Src, Transformation, Rasterizer);
@@ -399,7 +402,7 @@ var
   Transformer: TTransformer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
-  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src, Transformation);
+  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src.Resampler, Transformation);
   try
     Rasterizer.Sampler := Transformer;
     Transform(Dst, Src, Transformation, Rasterizer, DstClip);
@@ -421,8 +424,9 @@ var
   DstRect: TRect;
   Transformer: TTransformer;
 begin
-  // clip DstRect
   DstRect := Transformation.GetTransformedBounds;
+
+  // clip DstRect
   IntersectRect(DstRect, DstRect, Dst.ClipRect);
   IntersectRect(DstRect, DstRect, DstClip);
 
@@ -430,7 +434,7 @@ begin
 
   if not Dst.MeasuringMode then
   begin
-    Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src, Transformation);
+    Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src.Resampler, Transformation);
     try
       Rasterizer.Sampler := Transformer;
       Rasterizer.Rasterize(Dst, DstRect, Src);
@@ -470,7 +474,17 @@ end;
 
 function TTransformation.GetTransformedBounds: TRect;
 begin
-  Result := MakeRect(FSrcRect);
+  Result := GetTransformedBounds(FSrcRect);
+end;
+
+function TTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
+begin
+  Result := MakeRect(ASrcRect);
+end;
+
+function TTransformation.HasTransformedBounds: Boolean;
+begin
+  Result := True;
 end;
 
 function TTransformation.ReverseTransform(const P: TFloatPoint): TFloatPoint;
@@ -584,7 +598,7 @@ begin
   Clear;
 end;
 
-function TAffineTransformation.GetTransformedBounds: TRect;
+function TAffineTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 var
   V1, V2, V3, V4: TVector3f;
 begin
@@ -698,7 +712,7 @@ end;
 
 { TProjectiveTransformation }
 
-function TProjectiveTransformation.GetTransformedBounds: TRect;
+function TProjectiveTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 begin
   Result.Left   := Round(Min(Min(Wx0, Wx1), Min(Wx2, Wx3)) - 0.5);
   Result.Right  := Round(Max(Max(Wx0, Wx1), Max(Wx2, Wx3)) + 0.5);
@@ -928,7 +942,7 @@ end;
 
 { TTwirlTransformation }
 
-function TTwirlTransformation.GetTransformedBounds: TRect;
+function TTwirlTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 var
   Cx, Cy, R: Single;
 begin
@@ -1099,11 +1113,16 @@ begin
   inherited;
 end;
 
-function TRemapTransformation.GetTransformedBounds: TRect;
+function TRemapTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 begin
   // We can't predict the ultimate bounds without transforming each vector in
   // the vector map, return the absolute biggest possible transformation possible
-  Result := Rect(- MaxInt, - MaxInt, MaxInt, MaxInt);
+  Result := Rect(-MaxInt, -MaxInt, MaxInt, MaxInt);
+end;
+
+function TRemapTransformation.HasTransformedBounds: Boolean;
+begin
+  Result := False;
 end;
 
 procedure TRemapTransformation.PrepareTransform;
