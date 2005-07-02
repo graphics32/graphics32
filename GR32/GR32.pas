@@ -724,6 +724,8 @@ type
     function GetSampleFloat(X, Y: Single): TColor32; virtual; abstract;
     procedure PrepareSampling; virtual;
     procedure FinalizeSampling; virtual;
+    function HasBounds: Boolean; virtual;
+    function GetSampleBounds: TRect; virtual; abstract;
   end;
 
   { TCustomResampler }
@@ -5211,29 +5213,17 @@ begin
   Result.Bottom := Height;
 end;
 
-procedure TBitmap32.UpdateClipRects;
-begin
-  // calculate clip rects in other units, so we can speed things up a bit.
-  FFixedClipRect := FixedRect(FClipRect);
-
-  F256ClipRect.Left := FClipRect.Left shl 8;
-  F256ClipRect.Top := FClipRect.Top shl 8;
-  F256ClipRect.Right := FClipRect.Right shl 8;
-  F256ClipRect.Bottom := FClipRect.Bottom shl 8;
-
-  FClipping := not EqualRect(FClipRect, BoundsRect);
-end;
-
 procedure TBitmap32.SetClipRect(const Value: TRect);
 begin
   IntersectRect(FClipRect, Value, BoundsRect);
-  UpdateClipRects;
+  FFixedClipRect := FixedRect(FClipRect);
+  with FClipRect do
+    F256ClipRect := Rect(Left shl 8, Top shl 8, Right shl 8, Bottom shl 8);
 end;
 
 procedure TBitmap32.ResetClipRect;
 begin
-  FClipRect := BoundsRect;
-  UpdateClipRects;
+  ClipRect := BoundsRect;
 end;
 
 procedure TBitmap32.BeginMeasuring(const Callback: TAreaChangedEvent);
@@ -5503,6 +5493,11 @@ end;
 
 procedure TCustomSampler.FinalizeSampling;
 begin
+end;
+
+function TCustomSampler.HasBounds: Boolean;
+begin
+  Result := False;
 end;
 
 initialization
