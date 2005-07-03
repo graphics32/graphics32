@@ -271,6 +271,7 @@ begin
   if Assigned(FSampler) then
   begin
     FSampler.PrepareSampling;
+    R := DstRect;
     if FSampler.HasBounds then
       IntersectRect(R, DstRect, FSampler.GetSampleBounds);
     try
