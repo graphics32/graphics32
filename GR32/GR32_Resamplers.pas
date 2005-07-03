@@ -508,25 +508,6 @@ type
       Weight: Integer); override;
   end;
 
-  { TSafeSampler }
-  TSafeSampler = class(TNestedSampler)
-  private
-    FClipRectInt: TRect;
-    FClipRectFixed: TFixedRect;
-    FClipRectFloat: TFloatRect;
-    FOuterColor: TColor32;
-    procedure SetClipRect(const Value: TRect);
-  public
-    constructor Create(ASampler: TCustomSampler; const AClipRect: TRect;
-      OuterColor: TColor32 = clBlack32); reintroduce; overload;
-    constructor Create(Src: TBitmap32); reintroduce; overload;
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    property ClipRect: TRect read FClipRectInt write SetClipRect;
-    property OuterColor: TColor32 read FOuterColor write FOuterColor;
-  end;
-
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
 
 { Convolution and morphological routines }
@@ -3068,56 +3049,6 @@ begin
   FGetSampleFloat := FSampler.GetSampleFloat;
 end;
 
-
-{ TSafeSampler }
-
-constructor TSafeSampler.Create(ASampler: TCustomSampler; const AClipRect: TRect; OuterColor: TColor32 = clBlack32);
-begin
-  inherited Create(ASampler);
-  ClipRect := AClipRect;
-  FOuterColor := OuterColor;
-end;
-
-constructor TSafeSampler.Create(Src: TBitmap32);
-begin
-  inherited Create(Src.Resampler);
-  ClipRect := Src.ClipRect;
-  FOuterColor := Src.OuterColor;
-end;
-
-function TSafeSampler.GetSampleFixed(X, Y: TFixed): TColor32;
-begin
-  if (X >= FClipRectFixed.Left) and (X < FClipRectFixed.Right) and
-     (Y >= FClipRectFixed.Top) and (Y < FClipRectFixed.Bottom) then
-    Result := FGetSampleFixed(X, Y)
-  else
-    Result := FOuterColor;
-end;
-
-function TSafeSampler.GetSampleFloat(X, Y: Single): TColor32;
-begin
-  if (X >= FClipRectFloat.Left) and (X < FClipRectFloat.Right) and
-     (Y >= FClipRectFloat.Top) and (Y < FClipRectFloat.Bottom) then
-    Result := FGetSampleFloat(X, Y)
-  else
-    Result := FOuterColor;
-end;
-
-function TSafeSampler.GetSampleInt(X, Y: Integer): TColor32;
-begin
-  if (X >= FClipRectInt.Left) and (X < FClipRectInt.Right) and
-     (Y >= FClipRectInt.Top) and (Y < FClipRectInt.Bottom) then
-    Result := FGetSampleInt(X, Y)
-  else
-    Result := FOuterColor;
-end;
-
-procedure TSafeSampler.SetClipRect(const Value: TRect);
-begin
-  FClipRectInt := Value;
-  FClipRectFixed := FixedRect(Value);
-  FClipRectFloat := FloatRect(Value);
-end;
 
 { TKernelSampler }
 
