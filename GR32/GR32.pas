@@ -5218,6 +5218,7 @@ begin
   FFixedClipRect := FixedRect(FClipRect);
   with FClipRect do
     F256ClipRect := Rect(Left shl 8, Top shl 8, Right shl 8, Bottom shl 8);
+  FClipping := not EqualRect(FClipRect, BoundsRect);
 end;
 
 procedure TBitmap32.ResetClipRect;
