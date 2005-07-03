@@ -255,7 +255,6 @@ begin
   FBlendMemEx := BLEND_MEM_EX[CombineMode];
   FCombineCallBack := CombineCallBack;
 
-  // for the sake of speed use direct mapping to avoid unnecessary checks...
   case DrawMode of
     dmOpaque: FAssignColor := AssignColorOpaque;
     dmBlend:  FAssignColor := AssignColorBlend;
@@ -271,7 +270,7 @@ begin
   if Assigned(FSampler) then
   begin
     FSampler.PrepareSampling;
-    R := DstRect;
+    IntersectRect(R, DstRect, Dst.BoundsRect);
     if FSampler.HasBounds then
       IntersectRect(R, DstRect, FSampler.GetSampleBounds);
     try
