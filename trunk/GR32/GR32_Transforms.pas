@@ -450,23 +450,25 @@ procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
 var
   I: Integer;
 begin
-  if TestClip(ARect.Left, ARect.Right, ABitmap.Width) and
-    TestClip(ARect.Top, ARect.Bottom, ABitmap.Height) then
+  IntersectRect(ARect, ARect, ABitmap.BoundsRect);
+  with ARect, ABitmap do
+  if (Right > Left) and (Bottom > Top) and
+    (Left < ClipRect.Right) and (Top < ClipRect.Bottom) and
+    (Right > ClipRect.Left) and (Bottom > ClipRect.Top) then
   begin
-    for I := ARect.Left to ARect.Right do
-      ABitmap[I, ARect.Top] := ABitmap[I, ARect.Top] and $00FFFFFF;
-
-    for I := ARect.Left to ARect.Right do
-      ABitmap[I, ARect.Bottom] := ABitmap[I, ARect.Bottom] and $00FFFFFF;
-
-    if ARect.Bottom > ARect.Top + 1 then
-      for I := ARect.Top + 1 to ARect.Bottom - 1 do
-      begin
-        ABitmap[ARect.Left, I] := ABitmap[ARect.Left, I] and $00FFFFFF;
-        ABitmap[ARect.Right, I] := ABitmap[ARect.Right, I] and $00FFFFFF;
-      end;
-
-    ABitmap.Changed;
+    Dec(Right);
+    Dec(Bottom);
+    for I := Left to Right do
+    begin
+      ABitmap[I, Top] := ABitmap[I, Top] and $00FFFFFF;
+      ABitmap[I, Bottom] := ABitmap[I, Bottom] and $00FFFFFF;
+    end;
+    for I := Top to Bottom do
+    begin
+      ABitmap[Left, I] := ABitmap[Left, I] and $00FFFFFF;
+      ABitmap[Right, I] := ABitmap[Right, I] and $00FFFFFF;
+    end;
+    Changed;
   end;
 end;
 
