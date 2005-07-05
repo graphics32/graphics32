@@ -31,7 +31,7 @@ interface
 
 uses
   Classes, Types, SysUtils, GR32, GR32_Transforms, GR32_Containers,
-  GR32_IntegerMaps;
+  GR32_IntegerMaps, GR32_Blend;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -43,6 +43,11 @@ procedure StretchTransfer(
   Src: TBitmap32; SrcRect: TRect;
   Resampler: TCustomResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
+
+procedure BlendTransfer(
+  Dst: TBitmap32; DstX, DstY: Integer; DstClip: TRect;
+  SrcF, SrcB: TBitmap32; SrcRect: TRect;
+  BlendCallback: TBlendReg);
 
 type
   PKernelEntry = ^TKernelEntry;
@@ -538,7 +543,7 @@ const
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Rasterizers, GR32_Math, Math;
+  GR32_LowLevel, GR32_System, GR32_Rasterizers, GR32_Math, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
@@ -898,11 +903,54 @@ begin
       EMMS;
     end;
   end;
-
   Dst.Changed(MakeRect(DstX, DstY, DstX + SrcRect.Right - SrcRect.Left,
     DstY + SrcRect.Bottom - SrcRect.Top));
 end;
 
+procedure BlendTransfer(
+  Dst: TBitmap32; DstX, DstY: Integer; DstClip: TRect;
+  SrcF, SrcB: TBitmap32; SrcRect: TRect;
+  BlendCallback: TBlendReg);
+var
+  I, J, SrcX, SrcY: Integer;
+  SrcClip: TRect;
+  PSrcF, PSrcB, PDst: PColor32Array;
+begin
+  if not Assigned(Dst) then raise EBitmapException.Create(SDstNil);
+  if not Assigned(SrcF) then raise EBitmapException.Create(SSrcNil);
+  if not Assigned(SrcB) then raise EBitmapException.Create(SSrcNil);
+
+  if Dst.Empty or SrcF.Empty or SrcB.Empty or not Assigned(BlendCallback) then Exit;
+
+  SrcX := SrcRect.Left;
+  SrcY := SrcRect.Top;
+
+  IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+  IntersectRect(SrcRect, SrcRect, SrcF.BoundsRect);
+  IntersectRect(SrcRect, SrcRect, SrcB.BoundsRect);
+
+  SrcClip := DstClip;
+  OffsetRect(SrcClip, SrcX - DstX, SrcY - DstY);
+  IntersectRect(SrcClip, SrcClip, SrcRect);
+
+  if not IsRectEmpty(SrcClip) then
+  try
+    DstX := DstX - SrcX + SrcClip.Left;
+    DstY := DstY - SrcY;
+    for I := SrcClip.Top to SrcClip.Bottom - 1 do
+    begin
+      PSrcF := SrcF.Scanline[I];
+      PSrcB := SrcB.Scanline[I];
+      PDst := PColor32Array(Dst.PixelPtr[DstX, I + DstY]);
+      for J := SrcClip.Left to SrcClip.Right - 1 do
+        PDst[J] := BlendCallback(PSrcF[J], PSrcB[J]);
+    end;
+  finally
+    EMMS;
+  end;
+  OffsetRect(SrcClip, DstX - SrcX, DstY - SrcY);
+  Dst.Changed(SrcClip);
+end;
 
 procedure StretchNearest(
   Dst: TBitmap32; DstRect, DstClip: TRect;
