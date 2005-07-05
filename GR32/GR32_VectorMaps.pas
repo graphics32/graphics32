@@ -135,7 +135,7 @@ begin
   SetLength(FVectors, NewWidth * NewHeight);
   if (NewWidth > 0) and (NewHeight > 0) then
   begin
-    if FVectors = nil then raise Exception.Create('Can''t allocate TransformationMap!');
+    if FVectors = nil then raise Exception.Create('Can''t allocate VectorMap!');
     FillLongword(FVectors[0], NewWidth * NewHeight * 2, 0);
   end;
   Width := NewWidth;
@@ -233,8 +233,8 @@ var
   WX,WY: TFixed;
   P, W, H: Integer;
 begin
-  WX := SAR_16(X + $807E);
-  WY := SAR_16(Y + $807E);
+  WX := TFixedRec(X).Int;
+  WY := TFixedRec(Y).Int;
   W := Width;
   H := Height;
   if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
@@ -242,8 +242,8 @@ begin
     P := Integer(@FVectors[WX + WY * W]);
     if (WY = H - 1) then W := 0 else W := W * Next;
     if (WX = W - 1) then H := 0 else H := Next;
-    WX := (X + $807E) and $FFFF;
-    WY := (Y + $807E) and $FFFF;
+    WX := TFixedRec(X).Frac;
+    WY := TFixedRec(Y).Frac;
     Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + H)^, WX),
                                CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + H)^, WX), WY);
   end else
@@ -257,11 +257,12 @@ function TVectorMap.GetFixedVectorXS(X, Y: TFixed): TFixedVector;
 var
   WX,WY: TFixed;
 begin
-  WX := X and $FFFF;
-  WY := Y and $FFFF;
 
-  X := SAR_16(X);
-  Y := SAR_16(Y);
+  WX := TFixedRec(X).Frac;
+  X := TFixedRec(X).Int;
+
+  WY := TFixedRec(Y).Frac;
+  Y := TFixedRec(Y).Int;
 
   Result := CombinePointsReg(CombinePointsReg(FixedVectorS[X,Y],
                                               FixedVectorS[X + 1,Y], WX),
@@ -293,30 +294,33 @@ procedure TVectorMap.LoadFromFile(const FileName: string);
 
   procedure ConvertVertices;
   var
-    i: Integer;
+    I: Integer;
   begin
-    for i:= 0 to Length( FVectors ) - 1 do
-      FVectors[i]:= FixedPoint( TFloatVector( FVectors[i] ) ); //Not a mistake!
+    for I := 0 to Length(FVectors) - 1 do
+      FVectors[I] := FixedPoint(TFloatVector(FVectors[I])); //Not a mistake!
   end;
 
 var
   Header: TPSLiquifyMeshHeader;
   MeshFile: File;
 begin
-  If FileExists( Filename ) then try
+  If FileExists(Filename) then
+  try
     AssignFile(MeshFile, FileName);
     Reset(MeshFile, 1);
     BlockRead(MeshFile, Header, SizeOf(TPSLiquifyMeshHeader));
     if Lowercase(String(Header.Ident)) <> Lowercase(MeshIdent) then
       Exception.Create('Bad format - Photoshop .msh expected!');
-    with Header do begin
-      SetSize( Width, Height );
+    with Header do
+    begin
+      SetSize(Width, Height);
       BlockRead(MeshFile, FVectors[0], Width * Height * SizeOf(TFixedVector));
       ConvertVertices;
     end;
   finally
     CloseFile(MeshFile);
-  end else Exception.Create('File not found!');
+  end
+    else Exception.Create('File not found!');
 end;
 
 procedure TVectorMap.Merge(DstLeft, DstTop: Integer; Src: TVectorMap; SrcRect: TRect);
@@ -393,23 +397,24 @@ begin
       Inc(Progression.Y, ProgressionY);
     end;
   end;
-  //VectorCombiner.FinalizeCombine;
 end;
 
 procedure TVectorMap.SaveToFile(const FileName: string);
 
   procedure ConvertVerticesX;
-  var i: Integer;
+  var
+    I: Integer;
   begin
-    for i := 0 to Length(FVectors) - 1 do
-      FVectors[i] := FixedPoint(TFloatVector(FVectors[i])); //Not a mistake!
+    for I := 0 to Length(FVectors) - 1 do
+      FVectors[I] := FixedPoint(TFloatVector(FVectors[I])); //Not a mistake!
   end;
 
   procedure ConvertVerticesF;
-  var i: Integer;
+  var
+    I: Integer;
   begin
-    for i := 0 to Length(FVectors) - 1 do
-      TFloatVector(FVectors[i]) := FloatPoint(FVectors[i]); //Not a mistake!
+    for I := 0 to Length(FVectors) - 1 do
+      TFloatVector(FVectors[I]) := FloatPoint(FVectors[I]); //Not a mistake!
   end;
 
 var
@@ -420,7 +425,8 @@ begin
   try
     AssignFile(MeshFile, FileName);
     Rewrite(MeshFile, 1);
-    with Header do begin
+    with Header do
+    begin
       Pad0 := $02000000;
       Ident := MeshIdent;
       Pad1 := $00000002;
@@ -428,12 +434,14 @@ begin
       Height := Self.Height;
     end;
     BlockWrite(MeshFile, Header, SizeOf(TPSLiquifyMeshHeader));
-    with Header do begin
+    with Header do
+    begin
       ConvertVerticesF;
       BlockWrite(MeshFile, FVectors[0], Length(FVectors) * SizeOf(TFixedVector));
       ConvertVerticesX;
     end;
-    if Odd(Length(FVectors) * SizeOf(TFixedVector)-1) then begin
+    if Odd(Length(FVectors) * SizeOf(TFixedVector) - 1) then
+    begin
       Pad := $00000000;
       BlockWrite(MeshFile, Pad, 4);
       BlockWrite(MeshFile, Pad, 4);
@@ -460,11 +468,9 @@ end;
 
 procedure TVectorMap.SetFloatVectorS(X, Y: Integer; const Point: TFloatVector);
 begin
-  if X < 0 then X := 0 else
-    if X >= Width then X := Width - 1;
-  if Y < 0 then Y := 0 else
-    if Y >= Height then Y := Height - 1;
-  SetFloatVector(X, Y, Point);
+  if (X >= 0) and (X < Width) and
+     (Y >= 0) and (Y < Height) then
+       FVectors[X + Y * Width] := FixedPoint(Point);
 end;
 
 procedure TVectorMap.SetFixedVector(X, Y: Integer; const Point: TFixedVector);
@@ -474,11 +480,9 @@ end;
 
 procedure TVectorMap.SetFixedVectorS(X, Y: Integer; const Point: TFixedVector);
 begin
-  if X < 0 then X := 0 else
-    if X >= Width then X := Width - 1;
-  if Y < 0 then Y := 0 else
-    if Y >= Height then Y := Height - 1;
-  SetFixedVector(X, Y, Point);
+  if (X >= 0) and (X < Width) and
+     (Y >= 0) and (Y < Height) then
+       FVectors[X + Y * Width] := Point;
 end;
 
 procedure TVectorMap.SetFixedVectorX(X, Y: TFixed; const Point: TFixedVector);
@@ -486,18 +490,12 @@ var
   flrx, flry, celx, cely: Integer;
   P: PFixedPoint;
 begin
-  flrx := X and $FFFF;
-  flry := Y and $FFFF;
-
-  asm
-    SAR X, 16
-    SAR Y, 16
-  end;
-
+  flrx := TFixedRec(X).Frac;
   celx := flrx xor $FFFF;
+  flry := TFixedRec(Y).Frac;
   cely := flry xor $FFFF;
 
-  P := @FVectors[X + Y * Width];
+  P := @FVectors[TFixedRec(X).Int + TFixedRec(Y).Int * Width];
 
   CombinePointsMem(Point, P^, FixedMul(celx, cely) ); Inc(P);
   CombinePointsMem(Point, P^, FixedMul(flrx, cely) ); Inc(P, Width);
@@ -512,13 +510,10 @@ var
 begin
   if (X < -$10000) or (Y < -$10000) then Exit;
 
-  flrx := X and $FFFF;
-  flry := Y and $FFFF;
-
-  asm
-    SAR X, 16
-    SAR Y, 16
-  end;
+  flrx := TFixedRec(X).Frac;
+  X := TFixedRec(X).Int;
+  flry := TFixedRec(Y).Frac;
+  Y := TFixedRec(Y).Int;
 
   if (X >= Width) or (Y >= Height) then Exit;
 
@@ -565,7 +560,7 @@ begin
     Top := 0;
     VectorPtr := @Vectors[Top];
     repeat
-      if Int64(VectorPtr^)<> 0 then goto TopDone;
+      if Int64(VectorPtr^) <> 0 then goto TopDone;
       Inc(VectorPtr);
       Inc(Top);
     until Top = Width * Height;
@@ -576,7 +571,7 @@ begin
     Bottom := Width * Height - 1;
     VectorPtr := @Vectors[Bottom];
     repeat
-      if Int64(VectorPtr^)<> 0 then goto BottomDone;
+      if Int64(VectorPtr^) <> 0 then goto BottomDone;
       Dec(VectorPtr);
       Dec(Bottom);
     until Bottom < 0;
@@ -588,7 +583,7 @@ begin
     repeat
       J := Top;
       repeat
-        if Int64(FixedVector[Left, J])<> 0 then goto LeftDone;
+        if Int64(FixedVector[Left, J]) <> 0 then goto LeftDone;
         Inc(J);
       until J >= Bottom;
       Inc(Left)
@@ -601,7 +596,7 @@ begin
     repeat
       J := Bottom;
       repeat
-        if Int64(FixedVector[Right, J])<> 0 then goto RightDone;
+        if Int64(FixedVector[Right, J]) <> 0 then goto RightDone;
         Dec(J);
       until J <= Top;
       Dec(Right)
