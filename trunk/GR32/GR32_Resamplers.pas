@@ -923,27 +923,23 @@ begin
 
   if Dst.Empty or SrcF.Empty or SrcB.Empty or not Assigned(BlendCallback) then Exit;
 
-  SrcFX := SrcRectF.Left;
-  SrcFY := SrcRectF.Top;
-  SrcBX := SrcRectB.Left;
-  SrcBY := SrcRectB.Top;
+  SrcFX := SrcRectF.Left - DstX;
+  SrcFY := SrcRectF.Top - DstY;
+  SrcBX := SrcRectB.Left - DstX;
+  SrcBY := SrcRectB.Top - DstY;
 
   IntersectRect(DstClip, DstClip, Dst.BoundsRect);
   IntersectRect(SrcRectF, SrcRectF, SrcF.BoundsRect);
   IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
 
-  OffsetRect(SrcRectF, DstX - SrcFX, DstY - SrcFY);
-  OffsetRect(SrcRectB, DstX - SrcBX, DstY - SrcFY);
+  OffsetRect(SrcRectF, -SrcFX, -SrcFY);
+  OffsetRect(SrcRectB, -SrcBX, -SrcFY);
 
   IntersectRect(DstClip, DstClip, SrcRectF);
   IntersectRect(DstClip, DstClip, SrcRectB);
 
   if not IsRectEmpty(DstClip) then
   try
-    SrcFX := SrcFX - DstX;
-    SrcFY := SrcFY - DstY;
-    SrcBX := SrcBX - DstX;
-    SrcBY := SrcBY - DstY;
     for I := DstClip.Top to DstClip.Bottom - 1 do
     begin
       PSrcF := PColor32Array(SrcF.PixelPtr[SrcFX, SrcFY + I]);
@@ -2479,15 +2475,15 @@ begin
 
   with TColor32Entry(Result) do
   begin
-    if FKernel.RangeCheck then
-    begin
+  if FKernel.RangeCheck then
+  begin
       A := Constrain(Fixed30Mul(VertEntry.A, SumScale), 0, $FF);
       R := Constrain(Fixed30Mul(VertEntry.R, SumScale), 0, $FF);
       G := Constrain(Fixed30Mul(VertEntry.G, SumScale), 0, $FF);
       B := Constrain(Fixed30Mul(VertEntry.B, SumScale), 0, $FF);
     end
     else
-    begin
+  begin
       A := Fixed30Mul(VertEntry.A, SumScale);
       R := Fixed30Mul(VertEntry.R, SumScale);
       G := Fixed30Mul(VertEntry.G, SumScale);
