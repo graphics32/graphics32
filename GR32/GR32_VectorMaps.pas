@@ -108,13 +108,13 @@ type
 
 { TVectorMap }
 
-function CombinePointsReg(const A, B: TFixedVector; Weight: TFixed): TFixedVector;
+function CombineVectorsReg(const A, B: TFixedVector; Weight: TFixed): TFixedVector;
 begin
   Result.X := A.X + FixedMul(B.X - A.X, Weight);
   Result.Y := A.Y + FixedMul(B.Y - A.Y, Weight);
 end;
 
-procedure CombinePointsMem(const A: TFixedVector;var  B: TFixedVector; Weight: TFixed);
+procedure CombineVectorsMem(const A: TFixedVector;var  B: TFixedVector; Weight: TFixed);
 begin
   B.X := A.X + FixedMul(B.X - A.X, Weight);
   B.Y := A.Y + FixedMul(B.Y - A.Y, Weight);
@@ -201,31 +201,6 @@ begin
   Result := GetFixedVector(X,Y);
 end;
 
-{ function TVectorMap.GetFixedVectorX(X, Y: TFixed): TFixedVector;
-const
-  Next = SizeOf(TFixedVector);
-var
-  WX,WY: TFixed;
-  P, W: Integer;
-begin
-  WX := SAR_16(X + $807E);
-  WY := SAR_16(Y + $807E);
-  W := Width;
-  if (WX >= 0) and (WX < W - 1) and (WY >= 0) and (WY < Height - 1) then
-  begin
-    P := Integer(@FVectors[WX + WY * W]);
-    W := W * Next;
-    WX := (X + $807E) and $FFFF;
-    WY := (Y + $807E) and $FFFF;
-    Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + Next)^, WX),
-                               CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + Next)^, WX), WY);
-  end else
-  begin
-    Result.X := 0;
-    Result.Y := 0;
-  end;
-end; }
-
 function TVectorMap.GetFixedVectorX(X, Y: TFixed): TFixedVector;
 const
   Next = SizeOf(TFixedVector);
@@ -244,8 +219,8 @@ begin
     if (WX = W - 1) then H := 0 else H := Next;
     WX := TFixedRec(X).Frac;
     WY := TFixedRec(Y).Frac;
-    Result := CombinePointsReg(CombinePointsReg(PFixedPoint(P)^, PFixedPoint(P + H)^, WX),
-                               CombinePointsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + H)^, WX), WY);
+    Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^, PFixedPoint(P + H)^, WX),
+                                CombineVectorsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + H)^, WX), WY);
   end else
   begin
     Result.X := 0;
@@ -264,11 +239,8 @@ begin
   WY := TFixedRec(Y).Frac;
   Y := TFixedRec(Y).Int;
 
-  Result := CombinePointsReg(CombinePointsReg(FixedVectorS[X,Y],
-                                              FixedVectorS[X + 1,Y], WX),
-                             CombinePointsReg(FixedVectorS[X,Y + 1],
-                                              FixedVectorS[X + 1,Y + 1], WX),
-                                              WY);
+  Result := CombineVectorsReg(CombineVectorsReg(FixedVectorS[X,Y], FixedVectorS[X + 1,Y], WX),
+                              CombineVectorsReg(FixedVectorS[X,Y + 1], FixedVectorS[X + 1,Y + 1], WX), WY);
 end;
 
 function TVectorMap.IsEmpty: Boolean;
@@ -497,10 +469,10 @@ begin
 
   P := @FVectors[TFixedRec(X).Int + TFixedRec(Y).Int * Width];
 
-  CombinePointsMem(Point, P^, FixedMul(celx, cely) ); Inc(P);
-  CombinePointsMem(Point, P^, FixedMul(flrx, cely) ); Inc(P, Width);
-  CombinePointsMem(Point, P^, FixedMul(flrx, flry) ); Dec(P);
-  CombinePointsMem(Point, P^, FixedMul(celx, flry) );
+  CombineVectorsMem(Point, P^, FixedMul(celx, cely)); Inc(P);
+  CombineVectorsMem(Point, P^, FixedMul(flrx, cely)); Inc(P, Width);
+  CombineVectorsMem(Point, P^, FixedMul(flrx, flry)); Dec(P);
+  CombineVectorsMem(Point, P^, FixedMul(celx, flry));
 end;
 
 procedure TVectorMap.SetFixedVectorXS(X, Y: TFixed; const Point: TFixedVector);
@@ -523,17 +495,17 @@ begin
 
   if (X >= 0) and (Y >= 0)then
   begin
-    CombinePointsMem(Point, P^, FixedMul(celx, cely) ); Inc(P);
-    CombinePointsMem(Point, P^, FixedMul(flrx, cely) ); Inc(P, Width);
-    CombinePointsMem(Point, P^, FixedMul(flrx, flry) ); Dec(P);
-    CombinePointsMem(Point, P^, FixedMul(celx, flry) );
+    CombineVectorsMem(Point, P^, FixedMul(celx, cely) ); Inc(P);
+    CombineVectorsMem(Point, P^, FixedMul(flrx, cely) ); Inc(P, Width);
+    CombineVectorsMem(Point, P^, FixedMul(flrx, flry) ); Dec(P);
+    CombineVectorsMem(Point, P^, FixedMul(celx, flry) );
   end
   else
   begin
-    if (X >= 0) and (Y >= 0) then CombinePointsMem(Point, P^, FixedMul(celx, cely)); Inc(P);
-    if (X < Width - 1) and (Y >= 0) then CombinePointsMem(Point, P^, FixedMul(flrx, cely)); Inc(P, Width);
-    if (X < Width - 1) and (Y < Height - 1) then CombinePointsMem(Point, P^, FixedMul(flrx, flry)); Dec(P);
-    if (X >= 0) and (Y < Height - 1) then CombinePointsMem(Point, P^, FixedMul(celx, flry));
+    if (X >= 0) and (Y >= 0) then CombineVectorsMem(Point, P^, FixedMul(celx, cely)); Inc(P);
+    if (X < Width - 1) and (Y >= 0) then CombineVectorsMem(Point, P^, FixedMul(flrx, cely)); Inc(P, Width);
+    if (X < Width - 1) and (Y < Height - 1) then CombineVectorsMem(Point, P^, FixedMul(flrx, flry)); Dec(P);
+    if (X >= 0) and (Y < Height - 1) then CombineVectorsMem(Point, P^, FixedMul(celx, flry));
   end;
 end;
 
