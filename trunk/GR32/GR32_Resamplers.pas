@@ -2274,6 +2274,15 @@ begin
 end;
 
 function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
+const
+  SumScale = Round((1/65024) * (1 shl 30));
+
+  function Fixed30Mul(A, B: TFixed): TFixed;
+  asm
+        IMUL    EDX
+        SHRD    EAX, EDX, 30
+  end;
+
 var
   clX, clY: Integer;
   fracX, fracY: Integer;
@@ -2394,7 +2403,7 @@ begin
           FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           for I := LoX to HiX do
-            HorzKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac).Int;
+            HorzKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
         end;
 
         with TFixedRec(FracY) do
@@ -2404,13 +2413,13 @@ begin
           FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           for I := LoY to HiY do
-            VertKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac).Int;
+            VertKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
         end;
 
       end;
   end;
 
-  VertEntry := ROUND_ENTRY;
+  VertEntry := EMPTY_ENTRY;//ROUND_ENTRY;
   case FPixelAccessMode of
     pamUnsafe, pamSafe:
       begin
@@ -2468,19 +2477,22 @@ begin
       end;
   end;
 
-  if FKernel.RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $FF0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $FF0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $FF0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $FF0000);
-  end;
   with TColor32Entry(Result) do
   begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
+    if FKernel.RangeCheck then
+    begin
+      A := Constrain(Fixed30Mul(VertEntry.A, SumScale), 0, $FF);
+      R := Constrain(Fixed30Mul(VertEntry.R, SumScale), 0, $FF);
+      G := Constrain(Fixed30Mul(VertEntry.G, SumScale), 0, $FF);
+      B := Constrain(Fixed30Mul(VertEntry.B, SumScale), 0, $FF);
+    end
+    else
+    begin
+      A := Fixed30Mul(VertEntry.A, SumScale);
+      R := Fixed30Mul(VertEntry.R, SumScale);
+      G := Fixed30Mul(VertEntry.G, SumScale);
+      B := Fixed30Mul(VertEntry.B, SumScale);
+    end;
   end;
 end;
 
