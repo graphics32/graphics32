@@ -2270,15 +2270,6 @@ begin
 end;
 
 function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
-const
-  SumScale = Round((1/65024) * (1 shl 30));
-
-  function Fixed30Mul(A, B: TFixed): TFixed;
-  asm
-        IMUL    EDX
-        SHRD    EAX, EDX, 30
-  end;
-
 var
   clX, clY: Integer;
   fracX, fracY: Integer;
@@ -2288,7 +2279,7 @@ var
   Filter: TFilterMethod;
   WrapProc: TWrapProcEx absolute Filter;
   Colors: PColor32EntryArray;
-  Width, W, I, J, Incr: Integer;
+  Width, W, Wv, I, J, Incr: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -2421,24 +2412,32 @@ begin
       begin
         SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
         Incr := FBitmap.Width - (HiX - LoX) - 1;
-
         for I := LoY to HiY do
         begin
-          HorzEntry := EMPTY_ENTRY;
-          for J := LoX to HiX do
+          Wv := VertKernel[I];
+          if Wv <> 0 then
           begin
-            W := HorzKernel[J];
-            Inc(HorzEntry.A, SrcP.A * W);
-            Inc(HorzEntry.R, SrcP.R * W);
-            Inc(HorzEntry.G, SrcP.G * W);
-            Inc(HorzEntry.B, SrcP.B * W);
-            Inc(SrcP);
+            HorzEntry := EMPTY_ENTRY;
+            for J := LoX to HiX do
+            begin
+              W := HorzKernel[J];
+              with HorzEntry do
+              begin
+                Inc(A, SrcP.A * W);
+                Inc(R, SrcP.R * W);
+                Inc(G, SrcP.G * W);
+                Inc(B, SrcP.B * W);
+              end;
+              Inc(SrcP);
+            end;
+            with VertEntry do
+            begin
+              Inc(A, HorzEntry.A * Wv);
+              Inc(R, HorzEntry.R * Wv);
+              Inc(G, HorzEntry.G * Wv);
+              Inc(B, HorzEntry.B * Wv);
+            end;
           end;
-          W := VertKernel[I];
-          Inc(VertEntry.A, HorzEntry.A * W);
-          Inc(VertEntry.R, HorzEntry.R * W);
-          Inc(VertEntry.G, HorzEntry.G * W);
-          Inc(VertEntry.B, HorzEntry.B * W);
           Inc(SrcP, Incr);
         end;
       end;
@@ -2452,23 +2451,26 @@ begin
 
         for I := -Width to Width do
         begin
-          MappingY := WrapProc(clY + I, FClipRect.Top, FClipRect.Bottom - 1);
-          Colors := PColor32EntryArray(FBitmap.ScanLine[MappingY]);
-          HorzEntry := EMPTY_ENTRY;
-          for J := -Width to Width do
+          Wv := VertKernel[I];
+          if Wv <> 0 then
           begin
-            W := HorzKernel[J];
-            C := Colors[MappingX[J]];
-            Inc(HorzEntry.A, C.A * W);
-            Inc(HorzEntry.R, C.R * W);
-            Inc(HorzEntry.G, C.G * W);
-            Inc(HorzEntry.B, C.B * W);
+            MappingY := WrapProc(clY + I, FClipRect.Top, FClipRect.Bottom - 1);
+            Colors := PColor32EntryArray(FBitmap.ScanLine[MappingY]);
+            HorzEntry := EMPTY_ENTRY;
+            for J := -Width to Width do
+            begin
+              W := HorzKernel[J];
+              C := Colors[MappingX[J]];
+              Inc(HorzEntry.A, C.A * W);
+              Inc(HorzEntry.R, C.R * W);
+              Inc(HorzEntry.G, C.G * W);
+              Inc(HorzEntry.B, C.B * W);
+            end;
+            Inc(VertEntry.A, HorzEntry.A * Wv);
+            Inc(VertEntry.R, HorzEntry.R * Wv);
+            Inc(VertEntry.G, HorzEntry.G * Wv);
+            Inc(VertEntry.B, HorzEntry.B * Wv);
           end;
-          W := VertKernel[I];
-          Inc(VertEntry.A, HorzEntry.A * W);
-          Inc(VertEntry.R, HorzEntry.R * W);
-          Inc(VertEntry.G, HorzEntry.G * W);
-          Inc(VertEntry.B, HorzEntry.B * W);
         end;
       end;
   end;
@@ -2477,17 +2479,17 @@ begin
   begin
   if FKernel.RangeCheck then
   begin
-      A := Constrain(Fixed30Mul(VertEntry.A, SumScale), 0, $FF);
-      R := Constrain(Fixed30Mul(VertEntry.R, SumScale), 0, $FF);
-      G := Constrain(Fixed30Mul(VertEntry.G, SumScale), 0, $FF);
-      B := Constrain(Fixed30Mul(VertEntry.B, SumScale), 0, $FF);
+      A := Constrain(TFixedRec(VertEntry.A).Int, 0, $FF);
+      R := Constrain(TFixedRec(VertEntry.R).Int, 0, $FF);
+      G := Constrain(TFixedRec(VertEntry.G).Int, 0, $FF);
+      B := Constrain(TFixedRec(VertEntry.B).Int, 0, $FF);
     end
     else
   begin
-      A := Fixed30Mul(VertEntry.A, SumScale);
-      R := Fixed30Mul(VertEntry.R, SumScale);
-      G := Fixed30Mul(VertEntry.G, SumScale);
-      B := Fixed30Mul(VertEntry.B, SumScale);
+      A := TFixedRec(VertEntry.A).Int;
+      R := TFixedRec(VertEntry.R).Int;
+      G := TFixedRec(VertEntry.G).Int;
+      B := TFixedRec(VertEntry.B).Int;
     end;
   end;
 end;
