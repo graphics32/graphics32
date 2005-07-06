@@ -1,8 +1,8 @@
 object MainForm: TMainForm
-  Left = 410
-  Top = 241
-  Width = 624
-  Height = 635
+  Left = 526
+  Top = 322
+  Width = 703
+  Height = 600
   Caption = 'Image Warping Ex'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -10,6 +10,7 @@ object MainForm: TMainForm
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  Menu = MainMenu
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
@@ -26,27 +27,26 @@ object MainForm: TMainForm
     TabOrder = 0
   end
   object MainPanel: TPanel
-    Left = 0
+    Left = 554
     Top = 0
     Width = 141
-    Height = 608
-    Align = alLeft
+    Height = 554
+    Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
-    BorderStyle = bsSingle
     Caption = 'MainPanel'
     TabOrder = 1
     object GeneralPanel: TPanel
       Left = 0
       Top = 0
-      Width = 137
-      Height = 137
+      Width = 141
+      Height = 73
       Align = alTop
       TabOrder = 0
       object Label4: TLabel
         Left = 1
         Top = 1
-        Width = 135
+        Width = 139
         Height = 16
         Align = alTop
         Alignment = taCenter
@@ -69,56 +69,6 @@ object MainForm: TMainForm
         Height = 13
         Caption = 'Remap Scale:'
       end
-      object ToolBar: TToolBar
-        Left = 8
-        Top = 65
-        Width = 121
-        Height = 59
-        Align = alNone
-        ButtonHeight = 19
-        ButtonWidth = 92
-        Caption = 'ToolBar'
-        Flat = True
-        Indent = 8
-        List = True
-        ShowCaptions = True
-        TabOrder = 0
-        object ImgButton: TToolButton
-          Left = 8
-          Top = 0
-          Hint = 'Image ...'
-          Caption = 'Image options'
-          DropdownMenu = ImgBtnPopup
-          ImageIndex = 0
-          PopupMenu = ImgBtnPopup
-          Wrap = True
-          Style = tbsDropDown
-          OnClick = ImgButtonClick
-        end
-        object MshButton: TToolButton
-          Left = 8
-          Top = 19
-          Hint = 'Mesh ...'
-          Caption = 'Mesh options'
-          DropdownMenu = MshBtnPopup
-          ImageIndex = 1
-          PopupMenu = MshBtnPopup
-          Wrap = True
-          Style = tbsDropDown
-          OnClick = ImgButtonClick
-        end
-        object SampleButton: TToolButton
-          Left = 8
-          Top = 38
-          Hint = 'Sampling options...'
-          Caption = 'Sampling options'
-          DropdownMenu = SmplBtnPopup
-          ImageIndex = 2
-          PopupMenu = SmplBtnPopup
-          Style = tbsDropDown
-          OnClick = ImgButtonClick
-        end
-      end
       object ScaleBar: TGaugeBar
         Left = 8
         Top = 40
@@ -136,15 +86,15 @@ object MainForm: TMainForm
     end
     object BrushPanel: TPanel
       Left = 0
-      Top = 297
-      Width = 137
+      Top = 233
+      Width = 141
       Height = 304
       Align = alTop
       TabOrder = 1
       object Label6: TLabel
         Left = 1
         Top = 1
-        Width = 135
+        Width = 139
         Height = 16
         Align = alTop
         Alignment = taCenter
@@ -215,7 +165,6 @@ object MainForm: TMainForm
         Style = rbsMac
         Position = 12
         OnChange = PressureBarChange
-        OnMouseUp = GaugeMouseUp
       end
       object PressureBar: TGaugeBar
         Left = 8
@@ -228,7 +177,6 @@ object MainForm: TMainForm
         Style = rbsMac
         Position = 50
         OnChange = PressureBarChange
-        OnMouseUp = GaugeMouseUp
       end
       object PinchBar: TGaugeBar
         Left = 8
@@ -242,7 +190,6 @@ object MainForm: TMainForm
         Style = rbsMac
         Position = 0
         OnChange = PressureBarChange
-        OnMouseUp = GaugeMouseUp
       end
       object SizeBar: TGaugeBar
         Left = 8
@@ -271,15 +218,15 @@ object MainForm: TMainForm
     end
     object ToolPanel: TPanel
       Left = 0
-      Top = 137
-      Width = 137
+      Top = 73
+      Width = 141
       Height = 160
       Align = alTop
       TabOrder = 2
       object Label7: TLabel
         Left = 1
         Top = 1
-        Width = 135
+        Width = 139
         Height = 16
         Align = alTop
         Alignment = taCenter
@@ -358,10 +305,10 @@ object MainForm: TMainForm
     end
   end
   object DstImg: TImgView32
-    Left = 141
+    Left = 0
     Top = 0
-    Width = 475
-    Height = 608
+    Width = 554
+    Height = 554
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     RepaintMode = rmOptimizer
@@ -377,138 +324,143 @@ object MainForm: TMainForm
     OnPaintStage = DstImgPaintStage
   end
   object OpenPictureDialog: TOpenPictureDialog
-    Left = 176
+    Left = 136
     Top = 8
   end
   object UpdateTimer: TTimer
     Interval = 50
     OnTimer = UpdateTimerTimer
-    Left = 240
+    Left = 344
     Top = 8
   end
   object OpenMeshDialog: TOpenDialog
     Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
-    Left = 208
+    Left = 240
     Top = 8
   end
   object SaveMeshDialog: TSaveDialog
     Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
     Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
-    Left = 208
-    Top = 40
-  end
-  object ImgBtnPopup: TPopupMenu
-    Left = 144
-    Top = 8
-    object SaveImage1: TMenuItem
-      Caption = 'Save Image ...'
-      OnClick = SaveImage1Click
-    end
-    object OpenImage1: TMenuItem
-      Caption = 'Open Image ...'
-      OnClick = OpenImage1Click
-    end
-  end
-  object MshBtnPopup: TPopupMenu
-    Left = 144
-    Top = 40
-    object ResetMesh1: TMenuItem
-      Caption = 'Reset Mesh'
-      OnClick = ResetMesh1Click
-    end
-    object SaveMesh1: TMenuItem
-      Caption = 'Save Mesh ...'
-      OnClick = SaveMesh1Click
-    end
-    object OpenMesh1: TMenuItem
-      Caption = 'Open Mesh ...'
-      OnClick = OpenMesh1Click
-    end
-  end
-  object SmplBtnPopup: TPopupMenu
-    Left = 144
-    Top = 72
-    object SupersampleNow: TMenuItem
-      Caption = 'Supersample Now!'
-      OnClick = SupersampleNowClick
-    end
-    object N1: TMenuItem
-      Caption = '-'
-    end
-    object SamplingKernel1: TMenuItem
-      Caption = 'Sampling Kernel'
-    end
-    object KernelMode1: TMenuItem
-      Caption = 'KernelMode'
-      object kmDefaultrealtime1: TMenuItem
-        AutoCheck = True
-        Caption = 'kmDefault (slow, but exact)'
-        RadioItem = True
-        OnClick = kmDefaultrealtime1Click
-      end
-      object kmNearestfastbutfair1: TMenuItem
-        Tag = 1
-        AutoCheck = True
-        Caption = 'kmTableNearest (fastest, "curve" sampling)'
-        RadioItem = True
-        OnClick = kmDefaultrealtime1Click
-      end
-      object kmTableLinear1: TMenuItem
-        Tag = 2
-        AutoCheck = True
-        Caption = 'kmTableLinear (fast, "curve" approximation)'
-        Checked = True
-        RadioItem = True
-        OnClick = kmDefaultrealtime1Click
-      end
-    end
-    object SamplingGrid1: TMenuItem
-      Caption = 'Sampling Grid'
-      object N2x21: TMenuItem
-        Tag = 2
-        Caption = '2x2'
-        OnClick = N3x31Click
-      end
-      object N3x31: TMenuItem
-        Tag = 3
-        AutoCheck = True
-        Caption = '3x3'
-        Checked = True
-        RadioItem = True
-        OnClick = N3x31Click
-      end
-      object N5x51: TMenuItem
-        Tag = 5
-        AutoCheck = True
-        Caption = '5x5'
-        RadioItem = True
-        OnClick = N3x31Click
-      end
-      object N7x71: TMenuItem
-        Tag = 7
-        AutoCheck = True
-        Caption = '7x7'
-        RadioItem = True
-        OnClick = N3x31Click
-      end
-    end
-    object N2: TMenuItem
-      Caption = '-'
-    end
-    object Bi1: TMenuItem
-      AutoCheck = True
-      Caption = 'Bilinear Warp'
-      Checked = True
-      OnClick = Bi1Click
-    end
+    Left = 240
+    Top = 64
   end
   object SavePictureDialog: TSavePictureDialog
     DefaultExt = '*.bmp'
     Filter = 'Bitmaps (*.bmp)|*.bmp'
     FilterIndex = 0
     Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
-    Left = 176
-    Top = 40
+    Left = 136
+    Top = 64
+  end
+  object MainMenu: TMainMenu
+    Left = 344
+    Top = 64
+    object File1: TMenuItem
+      Caption = 'File'
+      object mOpenImage: TMenuItem
+        Caption = '&Open Image...'
+        ShortCut = 16463
+        OnClick = mOpenImageClick
+      end
+      object mSaveImage: TMenuItem
+        Caption = '&Save Image...'
+        ShortCut = 16467
+        OnClick = mSaveImageClick
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object mOpenMesh: TMenuItem
+        Caption = 'Open Mesh...'
+        OnClick = mOpenMeshClick
+      end
+      object mSaveMesh: TMenuItem
+        Caption = 'Save Mesh...'
+        OnClick = mSaveMeshClick
+      end
+      object mResetMesh: TMenuItem
+        Caption = 'Reset Mesh'
+        ShortCut = 16466
+        OnClick = mResetMeshClick
+      end
+      object N4: TMenuItem
+        Caption = '-'
+      end
+      object mExit: TMenuItem
+        Caption = 'Exit'
+        OnClick = mExitClick
+      end
+    end
+    object Sampling1: TMenuItem
+      Caption = 'Sampling'
+      object mSupersampleNow: TMenuItem
+        Caption = 'Supersample Now!'
+        OnClick = mSupersampleNowClick
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
+      object mSamplingKernel: TMenuItem
+        Caption = 'Sampling Kernel'
+      end
+      object mKernelMode: TMenuItem
+        Caption = 'KernelMode'
+        object mKmDefault: TMenuItem
+          Caption = 'kmDefault (slow, but exact)'
+          RadioItem = True
+          OnClick = mkmDefaultClick
+        end
+        object mKmTableNearest: TMenuItem
+          Tag = 1
+          Caption = 'kmTableNearest (fastest, "curve" sampling)'
+          RadioItem = True
+          OnClick = mkmDefaultClick
+        end
+        object mKmTableLinear: TMenuItem
+          Tag = 2
+          Caption = 'kmTableLinear (fast, "curve" approximation)'
+          Checked = True
+          RadioItem = True
+          OnClick = mkmDefaultClick
+        end
+      end
+      object mSamplingGrid: TMenuItem
+        Caption = 'Sampling Grid'
+        object m2x2: TMenuItem
+          Tag = 2
+          Caption = '2x2'
+          OnClick = m3x3Click
+        end
+        object m3x3: TMenuItem
+          Tag = 3
+          Caption = '3x3'
+          Checked = True
+          RadioItem = True
+          OnClick = m3x3Click
+        end
+        object m5x5: TMenuItem
+          Tag = 5
+          Caption = '5x5'
+          RadioItem = True
+          OnClick = m3x3Click
+        end
+        object m7x7: TMenuItem
+          Tag = 7
+          Caption = '7x7'
+          RadioItem = True
+          OnClick = m3x3Click
+        end
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object mBilinearWarp: TMenuItem
+        AutoCheck = True
+        Caption = 'Bilinear Warp'
+        Checked = True
+        OnClick = Bi1Click
+      end
+    end
   end
 end
