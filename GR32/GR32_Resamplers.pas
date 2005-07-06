@@ -2279,7 +2279,7 @@ var
   Filter: TFilterMethod;
   WrapProc: TWrapProcEx absolute Filter;
   Colors: PColor32EntryArray;
-  Width, W, Wv, I, J, Incr: Integer;
+  Width, W, Wv, I, J, Incr, Dev: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -2368,10 +2368,25 @@ begin
         fracYS := clY - Y;
         HorzKernel := @FHorzKernel[Width];
         VertKernel := @FVertKernel[Width];
-        for I := LoX to HiX do HorzKernel[I] := Round(Filter(I + fracXS) * 256);
-        for I := LoY to HiY do VertKernel[I] := Round(Filter(I + fracYS) * 256);
-      end;
 
+        Dev := -256;
+        for I := LoX to HiX do
+        begin
+          W := Round(Filter(I + fracXS) * 256);
+          HorzKernel[I] := W;
+          Inc(Dev, W);
+        end;
+        Dec(HorzKernel[0], Dev);
+
+        Dev := -256;
+        for I := LoY to HiY do
+        begin
+          W := Round(Filter(I + fracYS) * 256);
+          VertKernel[I] := W;
+          Inc(Dev, W);
+        end;
+        Dec(VertKernel[0], Dev);
+      end;
     kmTableNearest:
       begin
         W := FWeightTable.Height - 2;
@@ -2389,8 +2404,14 @@ begin
           HorzKernel := @FHorzKernel[Width];
           FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
+          Dev := -256;
           for I := LoX to HiX do
-            HorzKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+          begin
+            Wv :=  FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+            HorzKernel[I] := Wv;
+            Inc(Dev, Wv);
+          end;
+          Dec(HorzKernel[0], Dev);
         end;
 
         with TFixedRec(FracY) do
@@ -2399,10 +2420,15 @@ begin
           VertKernel := @FVertKernel[Width];
           FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
+          Dev := -256;
           for I := LoY to HiY do
-            VertKernel[I] := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+          begin
+            Wv := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+            VertKernel[I] := Wv;
+            Inc(Dev, Wv);
+          end;
+          Dec(VertKernel[0], Dev);
         end;
-
       end;
   end;
 
