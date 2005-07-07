@@ -2447,23 +2447,17 @@ begin
             for J := LoX to HiX do
             begin
               W := HorzKernel[J];
-              with HorzEntry do
-              begin
-                Inc(A, SrcP.A * W);
-                Inc(R, SrcP.R * W);
-                Inc(G, SrcP.G * W);
-                Inc(B, SrcP.B * W);
-              end;
+              Inc(HorzEntry.A, SrcP.A * W);
+              Inc(HorzEntry.R, SrcP.R * W);
+              Inc(HorzEntry.G, SrcP.G * W);
+              Inc(HorzEntry.B, SrcP.B * W);
               Inc(SrcP);
             end;
-            with VertEntry do
-            begin
-              Inc(A, HorzEntry.A * Wv);
-              Inc(R, HorzEntry.R * Wv);
-              Inc(G, HorzEntry.G * Wv);
-              Inc(B, HorzEntry.B * Wv);
-            end;
-          end;
+            Inc(VertEntry.A, HorzEntry.A * Wv);
+            Inc(VertEntry.R, HorzEntry.R * Wv);
+            Inc(VertEntry.G, HorzEntry.G * Wv);
+            Inc(VertEntry.B, HorzEntry.B * Wv);
+          end else Inc(SrcP, HiX - LoX + 1);
           Inc(SrcP, Incr);
         end;
       end;
