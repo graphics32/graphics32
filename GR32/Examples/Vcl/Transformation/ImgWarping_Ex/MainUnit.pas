@@ -258,6 +258,7 @@ begin
   Src.LoadFromFile('image.jpg');
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;
+  Src.CombineMode := cmMerge;
   SetBorderTransparent(Src, Src.BoundsRect); //Fix against border issues
 
   with DstImg do
@@ -607,7 +608,7 @@ begin
   end;
 
   case ToolGroup.ItemIndex of
-    1: ParamLabel.Caption := 'Ratio';
+    1: ParamLabel.Caption := 'Softness';
     2: ParamLabel.Caption := 'Strength';
     3: ParamLabel.Caption := 'Leaves Count';
   end;
@@ -763,10 +764,11 @@ end;
 
 function TMainForm.GetParam: Single;
 begin
-  Result := ParamBar.Position / 100;
   case TBrushTool(ToolGroup.ItemIndex) of
     btFlower: Result := Round(ParamBar.Position / 100 * 16 + 1);
-  end;
+    btZoom: Result := 1 - ParamBar.Position / 100;
+  else Result := ParamBar.Position / 100
+  end
 end;
 
 procedure TMainForm.PressureBarChange(Sender: TObject);
@@ -956,3 +958,4 @@ begin
 end;
 
 end.
+
