@@ -391,7 +391,8 @@ end;
 
 destructor TRectList.Destroy;
 begin
-  Clear;
+  SetCount(0);
+  SetCapacity(0);
 end;
 
 function TRectList.Add(const Rect: TRect): Integer;
