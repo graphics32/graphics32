@@ -130,12 +130,10 @@ begin
 end;
 
 {$IFDEF USEFILLCHAR}
-procedure FillLongword(var X; Count: Integer; Value: Longword);
-begin
-  FillChar(X, Count shl 2, Value);
-end;
+procedure D_FillLongword(var X; Count: Integer; Value: Longword);
 {$ELSE}
 procedure FillLongword(var X; Count: Integer; Value: Longword);
+{$ENDIF}
 asm
 // EAX = X
 // EDX = Count
@@ -151,6 +149,19 @@ asm
         REP     STOSD    // Fill count dwords
 @exit:
         POP     EDI
+end;
+
+{$IFDEF USEFILLCHAR}
+procedure FillLongword(var X; Count: Integer; Value: Longword);
+var
+  Comp: Longword;
+begin
+  Comp := Value and $FF;
+  Comp := Comp shl 24 or Comp shl 16 or Comp shl 8 or Comp;
+  if Value = Comp then
+    FillChar(X, Count shl 2, Value)
+  else
+    D_FillLongword(X, Count, Value);
 end;
 {$ENDIF}
 
