@@ -138,7 +138,8 @@ asm
 // EAX = X
 // EDX = Count
 // ECX = Value
-        PUSH    EDI
+
+{        PUSH    EDI
 
         MOV     EDI,EAX  // Point EDI to destination
         MOV     EAX,ECX
@@ -148,8 +149,41 @@ asm
 
         REP     STOSD    // Fill count dwords
 @exit:
-        POP     EDI
+        POP     EDI  }
+
+        CMP        EDX, 0
+        JBE        @Exit
+
+        PUSH       EDI
+        PUSH       EBX
+        MOV        EBX, EDX
+        MOV        EDI, EDX
+
+        SHR        EDI, 1
+        SHL        EDI, 1
+        SUB        EBX, EDI
+        JE         @QLoopIni
+
+        MOV        [EAX], ECX
+        ADD        EAX, 4
+        DEC        EDX
+        JZ         @ExitPOP
+   @QLoopIni:
+        MOVD       MM1, ECX
+        PUNPCKLDQ  MM1, MM1
+        SHR        EDX, 1
+    @QLoop:
+        MOVQ       [EAX], MM1
+        ADD        EAX, 8
+        DEC        EDX
+        JNZ        @QLoop
+        EMMS
+    @ExitPOP:
+        POP        EBX
+        POP        EDI
+    @Exit:
 end;
+
 
 {$IFDEF USEFILLCHAR}
 procedure FillLongword(var X; Count: Integer; Value: Longword);
