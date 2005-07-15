@@ -29,7 +29,7 @@ unit GR32_VectorMaps;
 interface
 
 uses
-  Windows, Types, Classes, GR32, GR32_Containers;
+  Types, Classes, GR32, GR32_Containers;
 
 type
   TFixedVector = TFixedPoint;
