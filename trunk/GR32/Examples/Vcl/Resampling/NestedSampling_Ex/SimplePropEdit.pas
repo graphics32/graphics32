@@ -170,7 +170,7 @@ begin
 
     ALabel := TLabel.Create(nil);
     ALabel.Caption := 'Kernel / Structuring Element:';
-    ALabel.Left := 4;
+    ALabel.Left := 8;
     ALabel.Top := MARGIN_CONTROLS + 8;
     ALabel.Width := 84;
     ALabel.Parent := Self;
@@ -193,7 +193,6 @@ begin
         tkInteger, tkFloat:
           begin
             Control := TTrackBar.Create(nil);
-            TTrackBar(Control).OnChange := TrackBarHandler;
             TTrackBar(Control).ThumbLength := 16;
             TTrackBar(Control).Min := 0;
             TTrackBar(Control).Max := 20;
@@ -201,6 +200,7 @@ begin
               TTrackBar(Control).Position := GetOrdProp(FSelectedObject, P)
             else
               TTrackBar(Control).Position := Round(GetFloatProp(FSelectedObject, P));
+            TTrackBar(Control).OnChange := TrackBarHandler;
             Control.Width := 98;
             Control.Height := 25;
             Control.Left := 88;
