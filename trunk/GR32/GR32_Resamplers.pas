@@ -468,6 +468,7 @@ type
       Weight: Integer); virtual; abstract;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; virtual;
   published
     property Kernel: TIntegerMap read FKernel write FKernel;
     property CenterX: Integer read FCenterX write FCenterX;
@@ -481,15 +482,38 @@ type
       Weight: Integer); override;
   end;
 
+  { TSelectiveConvolver }
+  TSelectiveConvolver = class(TConvolver)
+  private
+    FRefColor: TColor32;
+    FDelta: Integer;
+    FWeightSum: TBufferEntry;
+  public
+    constructor Create(ASampler: TCustomSampler); override;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
+  published
+    property Delta: Integer read FDelta write FDelta;
+  end;
+
+  { TMorphologicSampler }
+  TMorphologicSampler = class(TKernelSampler)
+  public
+    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
+  end;
+
   { TDilater }
-  TDilater = class(TKernelSampler)
+  TDilater = class(TMorphologicSampler)
   public
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
 
   { TEroder }
-  TEroder = class(TKernelSampler)
+  TEroder = class(TMorphologicSampler)
     constructor Create(ASampler: TCustomSampler); override;
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
@@ -3136,6 +3160,16 @@ end;
 
 { TKernelSampler }
 
+function TKernelSampler.ConvertBuffer(var Buffer: TBufferEntry): TColor32;
+begin
+  Buffer.A := Constrain(Buffer.A, 0, $FFFF);
+  Buffer.R := Constrain(Buffer.R, 0, $FFFF);
+  Buffer.G := Constrain(Buffer.G, 0, $FFFF);
+  Buffer.B := Constrain(Buffer.B, 0, $FFFF);
+
+  Result := BufferToColor32(Buffer, 8);
+end;
+
 constructor TKernelSampler.Create(ASampler: TCustomSampler);
 begin
   inherited;
@@ -3161,12 +3195,7 @@ begin
     for J := 0 to FKernel.Height - 1 do
       UpdateBuffer(Buffer, FGetSampleFixed(X - I shl 16, Y - J shl 16), FKernel[I, J]);
 
-  Buffer.A := Constrain(Buffer.A, 0, $FFFF);
-  Buffer.R := Constrain(Buffer.R, 0, $FFFF);
-  Buffer.G := Constrain(Buffer.G, 0, $FFFF);
-  Buffer.B := Constrain(Buffer.B, 0, $FFFF);
-
-  Result := BufferToColor32(Buffer, 8);
+  Result := ConvertBuffer(Buffer);
 end;
 
 function TKernelSampler.GetSampleInt(X, Y: Integer): TColor32;
@@ -3181,12 +3210,7 @@ begin
     for J := 0 to FKernel.Height - 1 do
       UpdateBuffer(Buffer, FGetSampleInt(X - I, Y - J), FKernel[I, J]);
 
-  Buffer.A := Constrain(Buffer.A, 0, $FFFF);
-  Buffer.R := Constrain(Buffer.R, 0, $FFFF);
-  Buffer.G := Constrain(Buffer.G, 0, $FFFF);
-  Buffer.B := Constrain(Buffer.B, 0, $FFFF);
-
-  Result := BufferToColor32(Buffer, 8)
+  Result := ConvertBuffer(Buffer);
 end;
 
 
@@ -3211,10 +3235,10 @@ procedure TDilater.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
 begin
   with TColor32Entry(Color) do
   begin
-    Buffer.A := Max(Buffer.A, (A + Weight) shl 8);
-    Buffer.R := Max(Buffer.R, (R + Weight) shl 8);
-    Buffer.G := Max(Buffer.G, (G + Weight) shl 8);
-    Buffer.B := Max(Buffer.B, (B + Weight) shl 8);
+    Buffer.A := Max(Buffer.A, A + Weight);
+    Buffer.R := Max(Buffer.R, R + Weight);
+    Buffer.G := Max(Buffer.G, G + Weight);
+    Buffer.B := Max(Buffer.B, B + Weight);
   end;
 end;
 
@@ -3233,10 +3257,10 @@ procedure TEroder.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
 begin
   with TColor32Entry(Color) do
   begin
-    Buffer.A := Min(Buffer.A, (A - Weight) shl 8);
-    Buffer.R := Min(Buffer.R, (R - Weight) shl 8);
-    Buffer.G := Min(Buffer.G, (G - Weight) shl 8);
-    Buffer.B := Min(Buffer.B, (B - Weight) shl 8);
+    Buffer.A := Min(Buffer.A, A - Weight);
+    Buffer.R := Min(Buffer.R, R - Weight);
+    Buffer.G := Min(Buffer.G, G - Weight);
+    Buffer.B := Min(Buffer.B, B - Weight);
   end;
 end;
 
@@ -3258,7 +3282,7 @@ end;
 
 function TContracter.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
-  Result := ColorSub(FMaxWeight, inherited GetSampleInt(X, Y));
+  Result := ColorSub(FMaxWeight, inherited GetSampleFixed(X, Y));
 end;
 
 function TContracter.GetSampleInt(X, Y: Integer): TColor32;
@@ -3282,6 +3306,86 @@ procedure TContracter.UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
   Weight: Integer);
 begin
   inherited UpdateBuffer(Buffer, Color xor $FFFFFFFF, Weight);
+end;
+
+{ TMorphologicSampler }
+
+function TMorphologicSampler.ConvertBuffer(
+  var Buffer: TBufferEntry): TColor32;
+begin
+  Buffer.A := Constrain(Buffer.A, 0, $FF);
+  Buffer.R := Constrain(Buffer.R, 0, $FF);
+  Buffer.G := Constrain(Buffer.G, 0, $FF);
+  Buffer.B := Constrain(Buffer.B, 0, $FF);
+
+  with TColor32Entry(Result) do
+  begin
+    A := Buffer.A;
+    R := Buffer.R;
+    G := Buffer.G;
+    B := Buffer.B;
+  end;
+end;
+
+{ TSelectiveConvolver }
+
+function TSelectiveConvolver.ConvertBuffer(var Buffer: TBufferEntry): TColor32;
+begin
+  with TColor32Entry(Result) do
+  begin
+    A := Buffer.A div FWeightSum.A;
+    R := Buffer.R div FWeightSum.R;
+    G := Buffer.G div FWeightSum.G;
+    B := Buffer.B div FWeightSum.B;
+  end;
+end;
+
+constructor TSelectiveConvolver.Create(ASampler: TCustomSampler);
+begin
+  inherited;
+  FDelta := 50;
+end;
+
+function TSelectiveConvolver.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  FRefColor := FGetSampleFixed(X, Y);
+  FWeightSum := EMPTY_ENTRY;
+  Result := inherited GetSampleFixed(X, Y);
+end;
+
+function TSelectiveConvolver.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  FRefColor := FGetSampleInt(X, Y);
+  FWeightSum := EMPTY_ENTRY;
+  Result := inherited GetSampleInt(X, Y);
+end;
+
+procedure TSelectiveConvolver.UpdateBuffer(var Buffer: TBufferEntry;
+  Color: TColor32; Weight: Integer);
+begin
+  with TColor32Entry(Color) do
+  begin
+    if Abs(TColor32Entry(FRefColor).A - A) <= FDelta then
+    begin
+      Inc(Buffer.A, A * Weight);
+      Inc(FWeightSum.A, Weight);
+    end;
+    if Abs(TColor32Entry(FRefColor).R - R) <= FDelta then
+    begin
+      Inc(Buffer.R, R * Weight);
+      Inc(FWeightSum.R, Weight);
+    end;
+    if Abs(TColor32Entry(FRefColor).G - G) <= FDelta then
+    begin
+      Inc(Buffer.G, G * Weight);
+      Inc(FWeightSum.G, Weight);
+    end;
+    if Abs(TColor32Entry(FRefColor).B - B) <= FDelta then
+    begin
+      Inc(Buffer.B, B * Weight);
+      Inc(FWeightSum.B, Weight);
+    end;
+  end;
 end;
 
 initialization
