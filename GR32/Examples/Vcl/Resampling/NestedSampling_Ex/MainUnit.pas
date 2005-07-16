@@ -1,5 +1,32 @@
 unit MainUnit;
 
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Mattias Andersson <mattias@centaurix.com>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Michael Hansen <dyster_tid@hotmail.com>
+ *   Andre Beckedorf <Andre@metaException.de>
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
 interface
 
 uses
@@ -122,6 +149,7 @@ type
     { Private declarations }
     procedure SetSourceResampler(const Value: TCustomResampler);
     function GetSourceResampler: TCustomResampler;
+    procedure UpdateTransformations;
   public
     { Public declarations }
     Source: TBitmap32;
@@ -233,6 +261,10 @@ begin
     RegisterClassPropertyRange(TTwirlTransformation, 'Twirl', 0, 0.1);
     RegisterClassPropertyRange(TBloatTransformation, 'BloatPower', 0, 1);
 
+    RegisterClassPropertyRange(TWindowedSincKernel, 'Width', 0, 5);
+    RegisterClassPropertyRange(TSinshKernel, 'Width', 0, 5);
+    RegisterClassPropertyRange(TSinshKernel, 'Coeff', 0, 1);
+    RegisterClassPropertyRange(TCubicKernel, 'Coeff', -1.5, 1.5);
   end;
 
   btnRasterizeClick(nil);
@@ -267,6 +299,9 @@ begin
   end
   else
   begin
+    File1.Enabled := False;
+    Resampler1.Enabled := False;
+    Rasterizer1.Enabled := False;
     tbManager.Enabled := False;
     btnRasterize.Caption := 'Stop Rasterization';
     with ImgView do
@@ -310,7 +345,9 @@ begin
   if OpenPictureDialog1.Execute then
   begin
     Source.LoadFromFile(OpenPictureDialog1.FileName);
+    UpdateTransformations;
     ImgView.Bitmap.SetSizeFrom(Source);
+    btnRasterizeClick(nil);
   end;
 end;
 
@@ -407,6 +444,9 @@ procedure TForm1.ThreadTerminated(Sender: TObject);
 begin
   if Assigned(Source2) then FreeAndNil(Source2);
   tbManager.Enabled := True;
+  File1.Enabled := True;
+  Resampler1.Enabled := True;
+  Rasterizer1.Enabled := True;
   btnRasterize.Caption := 'Rasterize Image';
   IsRasterizing := False;
 end;
@@ -592,6 +632,22 @@ begin
   end;
 end;
 
+procedure TForm1.RGBNoise1Click(Sender: TObject);
+begin
+  AddSampler(TNoiseSampler.Create(LastSampler));
+end;
+
+procedure TForm1.UpdateTransformations;
+var
+  I: Integer;
+  SrcRect: TRect;
+begin
+  SrcRect := Source.BoundsRect;
+  for I := 0 to Samplers.Count - 1 do
+    if TPersistent(Samplers[I]) is TTransformer then
+      TTransformer(Samplers[I]).Transformation.SrcRect := FloatRect(SrcRect);
+end;
+
 { TNoiseSampler }
 
 function TNoiseSampler.GetSampleFixed(X, Y: TFixed): TColor32;
@@ -604,11 +660,5 @@ begin
     B := Constrain(B + FBlue + Random(FBlueNoise), 0, 255);
   end;
 end;
-
-procedure TForm1.RGBNoise1Click(Sender: TObject);
-begin
-  AddSampler(TNoiseSampler.Create(LastSampler));
-end;
-
 
 end.

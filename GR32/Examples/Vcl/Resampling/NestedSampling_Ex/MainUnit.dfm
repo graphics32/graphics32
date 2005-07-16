@@ -1678,7 +1678,7 @@ object Form1: TForm1
         Caption = '-'
       end
       object Edit1: TMenuItem
-        Caption = 'Edit'
+        Caption = 'Edit Resampler'
         OnClick = Edit1Click
       end
     end
@@ -1719,7 +1719,7 @@ object Form1: TForm1
         Caption = '-'
       end
       object Edit2: TMenuItem
-        Caption = 'Edit'
+        Caption = 'Edit Rasterizer'
         OnClick = Edit2Click
       end
     end

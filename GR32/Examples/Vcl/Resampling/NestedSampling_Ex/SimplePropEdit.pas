@@ -1,5 +1,32 @@
 unit SimplePropEdit;
 
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Mattias Andersson <mattias@centaurix.com>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Michael Hansen <dyster_tid@hotmail.com>
+ *   Andre Beckedorf <Andre@metaException.de>
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
 interface
 
 uses
@@ -52,6 +79,7 @@ type
   end;
 
 const
+  // scale trackbar min and max values for floating-point properties
   SCALE_FLOAT = 10000;
 
 implementation
@@ -137,13 +165,16 @@ end;
 procedure TSimplePropertyEditor.Paint;
 begin
   inherited;
-  Canvas.Brush.Color := clSilver;
-  Canvas.Pen.Color := clWhite;
-  Canvas.Font.Style := [fsBold];
-  Canvas.Font.Size := 8;
-  Canvas.Font.Name := 'Tahoma';
-  if FCaption <> '' then
-    Canvas.TextRect(Rect(0, 0, Width, 18), 6, 2, FCaption);
+  with Canvas do
+  begin
+    Brush.Color := clSilver;
+    Pen.Color := clWhite;
+    Font.Style := [fsBold];
+    Font.Size := 8;
+    Font.Name := 'Tahoma';
+    if FCaption <> '' then
+      TextRect(Rect(0, 0, Width, 18), 6, 2, FCaption);
+  end;
 end;
 
 procedure TSimplePropertyEditor.RegisterClassPropertyRange(AClass: TClass;
@@ -208,19 +239,22 @@ begin
     Map := AObject as TIntegerMap;
 
     Control := TStringGrid.Create(nil);
-    TStringGrid(Control).RowCount := 5;
-    TStringGrid(Control).ColCount := 5;
-    TStringGrid(Control).FixedCols := 0;
-    TStringGrid(Control).FixedRows := 0;
-    TStringGrid(Control).DefaultColWidth := 32;
-    TStringGrid(Control).DefaultRowHeight := 16;
-    TStringGrid(Control).Options := TStringGrid(Control).Options + [goEditing];
+    with TStringGrid(Control) do
+    begin
+      RowCount := 5;
+      ColCount := 5;
+      FixedCols := 0;
+      FixedRows := 0;
+      DefaultColWidth := 32;
+      DefaultRowHeight := 16;
+      Options := Options + [goEditing];
 
-    for K := 0 to 4 do
-      for L := 0 to 4 do
-        TStringGrid(Control).Cells[K, L] := FloatToStr(Map[K, L]/256);
+      for K := 0 to 4 do
+        for L := 0 to 4 do
+          Cells[K, L] := FloatToStr(Map[K, L]/256);
 
-    TStringGrid(Control).OnSetEditText := StringGridEditHandler;
+      OnSetEditText := StringGridEditHandler;
+    end;
 
     Control.Width := 168;
     Control.Height := 89;
@@ -257,28 +291,31 @@ begin
             GetPropertyRange(AObject, P.Name, LoValue, HiValue);
 
             Control := TTrackBar.Create(nil);
-            if P.PropType^.Kind = tkInteger then
+            with TTrackBar(Control) do
             begin
-              TTrackBar(Control).Min := Round(LoValue);
-              TTrackBar(Control).Max := Round(HiValue);
-              TTrackBar(Control).Frequency := Max(1, Round(HiValue - LoValue) div 20);
-              TTrackBar(Control).Position := GetOrdProp(FSelectedObject, P)
-            end
-            else
-            begin
-              LoValue := LoValue * SCALE_FLOAT;
-              HiValue := HiValue * SCALE_FLOAT;
-              TTrackBar(Control).Min := Round(LoValue);
-              TTrackBar(Control).Max := Round(HiValue);
-              TTrackBar(Control).Frequency := Max(1, Round((HiValue - LoValue)/20));
-              TTrackBar(Control).Position := Round(GetFloatProp(FSelectedObject, P) * SCALE_FLOAT);
+              if P.PropType^.Kind = tkInteger then
+              begin
+                Min := Round(LoValue);
+                Max := Round(HiValue);
+                Frequency := Math.Max(1, Round(HiValue - LoValue) div 20);
+                Position := GetOrdProp(FSelectedObject, P)
+              end
+              else
+              begin
+                LoValue := LoValue * SCALE_FLOAT;
+                HiValue := HiValue * SCALE_FLOAT;
+                Min := Round(LoValue);
+                Max := Round(HiValue);
+                Frequency := Math.Max(1, Round((HiValue - LoValue)/20));
+                Position := Round(GetFloatProp(FSelectedObject, P) * SCALE_FLOAT);
+              end;
+              ThumbLength := 16;
+              OnChange := TrackBarHandler;
             end;
-            TTrackBar(Control).ThumbLength := 16;
-            TTrackBar(Control).OnChange := TrackBarHandler;
             Control.Width := 98;
             Control.Height := 25;
             Control.Left := 88;
-            Control.Top := T + 4; //MARGIN_CONTROLS + I * ROW_SIZE;
+            Control.Top := T + 4;
           end;
         tkClass:
           begin
@@ -288,7 +325,7 @@ begin
             Control.Width := 60;
             Control.Height := 20;
             Control.Left := 90;
-            Control.Top := T + 4; //MARGIN_CONTROLS + I * ROW_SIZE;
+            Control.Top := T + 4;
             if GetObjectProp(FSelectedObject, P) = nil then
               Control.Enabled := False;
           end;
@@ -320,11 +357,10 @@ procedure TSimplePropertyEditor.StringGridEditHandler(Sender: TObject;
   ACol, ARow: Integer; const Value: string);
 var
   Weights: TIntegerMap;
-  PropInfo: PPropInfo;
   W: Real;
   Code: Integer;
 begin
-  Weights := FSelectedObject as TIntegerMap; //TIntegerMap(GetObjectProp(FSelectedObject, PropInfo));
+  Weights := FSelectedObject as TIntegerMap;
   Val(Value, W, Code);
   if Code = 0 then
     Weights[ACol, ARow] := Round(W * 256);
