@@ -366,6 +366,7 @@ type
   public
     constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); reintroduce;
     procedure PrepareSampling; override;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     function HasBounds: Boolean; override;
@@ -2725,6 +2726,14 @@ end;
 
 { TTransformer }
 
+function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
+var
+  U, V: TFixed;
+begin
+  FTransformationReverseTransformFixed(X * FixedOne, Y * FixedOne, U, V);
+  Result := FGetSampleFixed(U, V);
+end;
+
 function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
@@ -2759,7 +2768,8 @@ procedure TTransformer.PrepareSampling;
 begin
   inherited;
   with TTransformationAccess(FTransformation) do
-    if not TransformValid then PrepareTransform;
+    if not TransformValid then
+      PrepareTransform;
 end;
 
 function TTransformer.GetSampleBounds: TRect;
@@ -2771,6 +2781,7 @@ function TTransformer.HasBounds: Boolean;
 begin
   Result := FTransformation.HasTransformedBounds and inherited HasBounds;
 end;
+
 
 { TNearestTransformer }
 
