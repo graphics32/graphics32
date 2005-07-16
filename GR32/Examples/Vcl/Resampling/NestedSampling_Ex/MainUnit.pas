@@ -25,67 +25,7 @@ type
     SavePictureDialog1: TSavePictureDialog;
     DisabledImages: TImageList;
     HotImages: TImageList;
-    ToolBarMenu: TMainMenu;
-    New1: TMenuItem;
-    Copy1: TMenuItem;
-    Cut1: TMenuItem;
-    Paste1: TMenuItem;
-    Copy2: TMenuItem;
-    N4: TMenuItem;
-    Up1: TMenuItem;
-    Down1: TMenuItem;
-    Delete1: TMenuItem;
-    ransformer1: TMenuItem;
-    Antialiasing1: TMenuItem;
-    Kernel1: TMenuItem;
-    wirl1: TMenuItem;
-    Bloat1: TMenuItem;
-    Disturbance1: TMenuItem;
-    Fisheye1: TMenuItem;
-    Supersampler1: TMenuItem;
-    AdaptiveSuperSampler1: TMenuItem;
-    JitteredPattern1: TMenuItem;
-    Convolver1: TMenuItem;
-    N5: TMenuItem;
-    Dilater1: TMenuItem;
-    Eroder1: TMenuItem;
-    N6: TMenuItem;
-    Expander1: TMenuItem;
-    Contracter1: TMenuItem;
-    Rotation1: TMenuItem;
-    Skew1: TMenuItem;
-    ranslation1: TMenuItem;
-    N7: TMenuItem;
-    Scale1: TMenuItem;
-    Projective1: TMenuItem;
-    N8: TMenuItem;
-    ToolBar1: TToolBar;
-    MainMenu1: TMainMenu;
-    File1: TMenuItem;
-    Open1: TMenuItem;
-    SaveImage1: TMenuItem;
-    N1: TMenuItem;
-    Exit1: TMenuItem;
-    Resampler1: TMenuItem;
-    Nearest1: TMenuItem;
-    Linear1: TMenuItem;
-    Draft1: TMenuItem;
-    Lanczos1: TMenuItem;
-    Spline1: TMenuItem;
-    Sinsh1: TMenuItem;
-    N2: TMenuItem;
-    Edit1: TMenuItem;
-    Rasterizer1: TMenuItem;
-    Regular1: TMenuItem;
-    Progressive1: TMenuItem;
-    Swizzling1: TMenuItem;
-    Tesseral1: TMenuItem;
-    Contour1: TMenuItem;
-    N3: TMenuItem;
-    Edit2: TMenuItem;
-    StaticText3: TStaticText;
     btnRasterize: TSpeedButton;
-    Rasterize1: TMenuItem;
     NewItemMenu: TPopupMenu;
     ransformer2: TMenuItem;
     ranslation2: TMenuItem;
@@ -121,8 +61,35 @@ type
     ToolButton8: TToolButton;
     ToolButton9: TToolButton;
     SelectiveConvolver1: TMenuItem;
+    MainMenu1: TMainMenu;
+    File1: TMenuItem;
+    Open1: TMenuItem;
+    SaveImage1: TMenuItem;
+    N1: TMenuItem;
+    Exit1: TMenuItem;
+    Resampler1: TMenuItem;
+    Nearest1: TMenuItem;
+    Linear1: TMenuItem;
+    Draft1: TMenuItem;
+    Lanczos1: TMenuItem;
+    Spline1: TMenuItem;
+    Sinsh1: TMenuItem;
+    N2: TMenuItem;
+    Edit1: TMenuItem;
+    Rasterizer1: TMenuItem;
+    Regular1: TMenuItem;
+    Progressive1: TMenuItem;
+    Swizzling1: TMenuItem;
+    Tesseral1: TMenuItem;
+    Contour1: TMenuItem;
+    N3: TMenuItem;
+    Edit2: TMenuItem;
+    Rasterize1: TMenuItem;
     chkClear: TMenuItem;
     chkReset: TMenuItem;
+    StaticText3: TStaticText;
+    Help1: TMenuItem;
+    RGBNoise1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure lvSamplersSelectItem(Sender: TObject; Item: TListItem;
@@ -136,9 +103,6 @@ type
     procedure Exit1Click(Sender: TObject);
     procedure Nearest1Click(Sender: TObject);
     procedure Linear1Click(Sender: TObject);
-    procedure Draft1Click(Sender: TObject);
-    procedure Lanczos1Click(Sender: TObject);
-    procedure Spline1Click(Sender: TObject);
     procedure Progressive1Click(Sender: TObject);
     procedure Regular1Click(Sender: TObject);
     procedure Swizzling1Click(Sender: TObject);
@@ -152,6 +116,8 @@ type
     procedure Copy2Click(Sender: TObject);
     procedure Cut1Click(Sender: TObject);
     procedure Paste1Click(Sender: TObject);
+    procedure RGBNoise1Click(Sender: TObject);
+    procedure SelectKernel(Sender: TObject);
   private
     { Private declarations }
     procedure SetSourceResampler(const Value: TCustomResampler);
@@ -159,6 +125,7 @@ type
   public
     { Public declarations }
     Source: TBitmap32;
+    Source2: TBitmap32;
     Rasterizer: TRasterizer;
     Samplers: TList;
     PropertyEditor: TSimplePropertyEditor;
@@ -180,6 +147,22 @@ type
     procedure DeleteSampler(Index: Integer; FreeItem: Boolean = True);
   end;
 
+
+  { Simple implementation of a nested sampler }
+  TNoiseSampler = class(TNestedSampler)
+  public
+    FRed, FGreen, FBlue: Integer;
+    FRedNoise, FGreenNoise, FBlueNoise: Integer;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+  published
+    property Red: Integer read FRed write FRed;
+    property Green: Integer read FGreen write FGreen;
+    property Blue: Integer read FBlue write FBlue;
+    property RedNoise: Integer read FRedNoise write FRedNoise;
+    property GreenNoise: Integer read FGreenNoise write FGreenNoise;
+    property BlueNoise: Integer read FBlueNoise write FBlueNoise;
+  end;
+
 var
   Form1: TForm1;
 
@@ -188,7 +171,7 @@ implementation
 {$R *.dfm}
 
 uses
-  GR32_ByteMaps, GR32_LowLevel, Math, GraphicEx;
+  GR32_ByteMaps, GR32_LowLevel, Math, Jpeg;
 
 procedure SetupToolBar(ToolBar: TToolBar);
 var
@@ -215,20 +198,42 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  //SetupToolBar(tbManager);
-
-  //Source := BitmapList[0];
   Source := TBitmap32.Create;
   Source.LoadFromFile(ExtractFileDir(Application.ExeName) + '\orchide.jpg');
   ImgView.Bitmap.SetSizeFrom(Source);
-  Rasterizer := TSwizzlingRasterizer.Create;
-  TSwizzlingRasterizer(Rasterizer).BlockSize := 5;
+  Rasterizer := TRegularRasterizer.Create;
+  TRegularRasterizer(Rasterizer).UpdateRowCount := 16;
   Rasterizer.Sampler := Source.Resampler;
 
   Samplers := TList.Create;
   PropertyEditor := TSimplePropertyEditor.Create(Self);
   PropertyEditor.Parent := LeftPanel;
   PropertyEditor.Align := alClient;
+
+  with PropertyEditor do
+  begin
+    RegisterClassPropertyRange(TNoiseSampler, 'Red', -255, 255);
+    RegisterClassPropertyRange(TNoiseSampler, 'Green', -255, 255);
+    RegisterClassPropertyRange(TNoiseSampler, 'Blue', -255, 255);
+
+    RegisterClassPropertyRange(TNoiseSampler, 'RedNoise', 0, 255);
+    RegisterClassPropertyRange(TNoiseSampler, 'GreenNoise', 0, 255);
+    RegisterClassPropertyRange(TNoiseSampler, 'BlueNoise', 0, 255);
+
+    RegisterClassPropertyRange(TSuperSampler, 'SamplingX', 1, 8);
+    RegisterClassPropertyRange(TSuperSampler, 'SamplingY', 1, 8);
+    RegisterClassPropertyRange(TAdaptiveSuperSampler, 'Level', 0, 8);
+    RegisterClassPropertyRange(TAdaptiveSuperSampler, 'Tolerance', 0, 255);
+
+    RegisterClassPropertyRange(TKernelSampler, 'CenterX', 0, 4);
+    RegisterClassPropertyRange(TKernelSampler, 'CenterY', 0, 4);
+
+    RegisterClassPropertyRange(TSelectiveConvolver, 'Delta', 0, 255);
+
+    RegisterClassPropertyRange(TTwirlTransformation, 'Twirl', 0, 0.1);
+    RegisterClassPropertyRange(TBloatTransformation, 'BloatPower', 0, 1);
+
+  end;
 
   btnRasterizeClick(nil);
 end;
@@ -263,11 +268,19 @@ begin
   else
   begin
     tbManager.Enabled := False;
-    btnRasterize.Caption := 'Stop';
+    btnRasterize.Caption := 'Stop Rasterization';
     with ImgView do
     begin
       StopThread;
       if Assigned(RenderThread) then RenderThread.Free;
+      if chkReset.Checked then
+        SourceResampler := Source.Resampler
+      else
+      begin
+        Source2 := TBitmap32.Create;
+        Source2.Assign(Bitmap);
+        SourceResampler := Source2.Resampler;
+      end;
       if chkClear.Checked then Bitmap.Clear;
       RenderThread := TRenderThread.Create(Rasterizer, Bitmap, Bitmap.BoundsRect, False);
       RenderThread.OnTerminate := ThreadTerminated;
@@ -322,28 +335,16 @@ begin
   SourceResampler := TLinearResampler.Create(Source);
 end;
 
-procedure TForm1.Draft1Click(Sender: TObject);
-begin
-  SourceResampler := TKernelResampler.Create(Source);
-  TCubicKernel.Create(SourceResampler);
-end;
-
-procedure TForm1.Lanczos1Click(Sender: TObject);
+procedure TForm1.SelectKernel(Sender: TObject);
 var
   R: TKernelResampler;
+const
+  KERNELS: array[0..3] of TCustomKernelClass =
+    (TCubicKernel, TSplineKernel, TLanczosKernel, TSinshKernel);
 begin
   R := TKernelResampler.Create(Source);
-  TLanczosKernel.Create(R);
+  KERNELS[TComponent(Sender).Tag].Create(R);
   R.KernelMode := kmTableLinear;
-  SourceResampler := R;
-end;
-
-procedure TForm1.Spline1Click(Sender: TObject);
-var
-  R: TKernelResampler;
-begin
-  R := TKernelResampler.Create(Source);
-  R.Kernel := TSplineKernel.Create(Source);
   SourceResampler := R;
 end;
 
@@ -404,8 +405,9 @@ end;
 
 procedure TForm1.ThreadTerminated(Sender: TObject);
 begin
+  if Assigned(Source2) then FreeAndNil(Source2);
   tbManager.Enabled := True;
-  btnRasterize.Caption := 'Rasterize';
+  btnRasterize.Caption := 'Rasterize Image';
   IsRasterizing := False;
 end;
 
@@ -589,5 +591,24 @@ begin
     PropertyEditor.SelectObject(nil);
   end;
 end;
+
+{ TNoiseSampler }
+
+function TNoiseSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  Result := Sampler.GetSampleFixed(X, Y);
+  with TColor32Entry(Result) do
+  begin
+    R := Constrain(R + FRed + Random(FRedNoise), 0, 255);
+    G := Constrain(G + FGreen + Random(FGreenNoise), 0, 255);
+    B := Constrain(B + FBlue + Random(FBlueNoise), 0, 255);
+  end;
+end;
+
+procedure TForm1.RGBNoise1Click(Sender: TObject);
+begin
+  AddSampler(TNoiseSampler.Create(LastSampler));
+end;
+
 
 end.

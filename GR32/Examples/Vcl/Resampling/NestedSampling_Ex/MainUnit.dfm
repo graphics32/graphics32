@@ -1,6 +1,6 @@
 object Form1: TForm1
-  Left = 286
-  Top = 134
+  Left = 348
+  Top = 171
   Width = 811
   Height = 627
   Anchors = [akLeft, akTop, akRight, akBottom]
@@ -11,7 +11,9 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  Menu = MainMenu1
   OldCreateOrder = False
+  Position = poDesktopCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
@@ -20,21 +22,23 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 190
-    Height = 598
+    Height = 578
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 269
+      Top = 256
       Width = 190
       Height = 3
       Cursor = crVSplit
       Align = alTop
+      Color = clAppWorkSpace
+      ParentColor = False
     end
     object tbManager: TToolBar
       Left = 0
-      Top = 83
+      Top = 70
       Width = 190
       Height = 24
       Anchors = []
@@ -116,7 +120,7 @@ object Form1: TForm1
     end
     object lvSamplers: TListView
       Left = 0
-      Top = 107
+      Top = 94
       Width = 190
       Height = 162
       Align = alTop
@@ -133,18 +137,18 @@ object Form1: TForm1
     end
     object StaticText1: TStaticText
       Left = 0
-      Top = 65
+      Top = 53
       Width = 190
-      Height = 18
+      Height = 17
       Align = alTop
       Alignment = taCenter
       BorderStyle = sbsSingle
       Caption = 'Sampler Manager'
-      Color = 10053171
+      Color = clGradientActiveCaption
       Font.Charset = DEFAULT_CHARSET
       Font.Color = 16776176
       Font.Height = -11
-      Font.Name = 'Arial'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
@@ -152,9 +156,9 @@ object Form1: TForm1
     end
     object Panel1: TPanel
       Left = 0
-      Top = 41
+      Top = 17
       Width = 190
-      Height = 24
+      Height = 36
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 3
@@ -162,9 +166,8 @@ object Form1: TForm1
         Left = 0
         Top = 0
         Width = 190
-        Height = 24
-        Caption = 'Rasterize'
-        Flat = True
+        Height = 36
+        Caption = 'Rasterize Image'
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -199,70 +202,50 @@ object Form1: TForm1
     end
     object StaticText2: TStaticText
       Left = 0
-      Top = 272
+      Top = 259
       Width = 190
-      Height = 18
+      Height = 17
       Align = alTop
       Alignment = taCenter
       BevelInner = bvLowered
       BevelOuter = bvRaised
       BorderStyle = sbsSingle
       Caption = 'Object Inspector'
-      Color = 10053171
+      Color = clGradientActiveCaption
       Font.Charset = DEFAULT_CHARSET
       Font.Color = 16776176
       Font.Height = -11
-      Font.Name = 'Arial'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
       TabOrder = 4
     end
-    object ToolBar1: TToolBar
-      Left = 0
-      Top = 18
-      Width = 190
-      Height = 23
-      ButtonHeight = 21
-      ButtonWidth = 57
-      Caption = 'ToolBar1'
-      EdgeBorders = [ebBottom]
-      Flat = True
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      Menu = MainMenu1
-      ParentFont = False
-      ShowCaptions = True
-      TabOrder = 5
-    end
     object StaticText3: TStaticText
       Left = 0
       Top = 0
       Width = 190
-      Height = 18
+      Height = 17
       Align = alTop
       Alignment = taCenter
       BorderStyle = sbsSingle
-      Caption = 'Main Options'
-      Color = 10053171
+      Caption = 'Rasterization'
+      Color = clGradientActiveCaption
       Font.Charset = DEFAULT_CHARSET
       Font.Color = 16776176
       Font.Height = -11
-      Font.Name = 'Arial'
+      Font.Name = 'Tahoma'
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
-      TabOrder = 6
+      TabOrder = 5
     end
   end
   object ImgView: TImgView32
     Left = 190
     Top = 0
     Width = 613
-    Height = 598
+    Height = 578
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     Color = clAppWorkSpace
@@ -279,7 +262,7 @@ object Form1: TForm1
     Left = 216
     Top = 16
     Bitmap = {
-      494C010107000900040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010107000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -679,21 +662,22 @@ object Form1: TForm1
       C001DD77F8018001C001CD67F8018001C001E10F80018001C001F01F80018001
       C001FC7F80018001C001F83F80018001C001F81F80018001C001F01F80018003
       C001E10F80038003C001E38F80078003C001E38F801F8003C003E7CF801F8003
-      C007EFEF803FC007C00FFFFF807FE00F}
+      C007EFEF803FC007C00FFFFF807FE00F00000000000000000000000000000000
+      000000000000}
   end
   object OpenPictureDialog1: TOpenPictureDialog
-    Left = 248
-    Top = 48
+    Left = 312
+    Top = 16
   end
   object SavePictureDialog1: TSavePictureDialog
-    Left = 280
-    Top = 48
+    Left = 344
+    Top = 16
   end
   object DisabledImages: TImageList
     Left = 280
     Top = 16
     Bitmap = {
-      494C010107000900040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010107000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1093,13 +1077,14 @@ object Form1: TForm1
       C001DD77F8018001C001CD67F8018001C001E10F80018001C001F01F80018001
       C001FC7F80018001C001F83F80018001C001F81F80018001C001F01F80018003
       C001E10F80038003C001E38F80078003C001E38F801F8003C003E7CF801F8003
-      C007EFEF803FC007C00FFFFF807FE00F}
+      C007EFEF803FC007C00FFFFF807FE00F00000000000000000000000000000000
+      000000000000}
   end
   object HotImages: TImageList
     Left = 248
     Top = 16
     Bitmap = {
-      494C010107000900040010001000FFFFFFFFFF00FFFFFFFFFFFFFFFF424D3600
+      494C010107000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -1499,274 +1484,12 @@ object Form1: TForm1
       C001DD77F8018001C001CD67F8018001C001E10F80018001C001F01F80018001
       C001FC7F80018001C001F83F80018001C001F81F80018001C001F01F80018003
       C001E10F80038003C001E38F80078003C001E38F801F8003C003E7CF801F8003
-      C007EFEF803FC007C00FFFFF807FE00F}
-  end
-  object ToolBarMenu: TMainMenu
-    Left = 248
-    Top = 80
-    object New1: TMenuItem
-      Caption = 'New'
-      ImageIndex = 3
-      object ransformer1: TMenuItem
-        Caption = 'Transformation'
-        object ranslation1: TMenuItem
-          Caption = 'Translation'
-          Enabled = False
-          OnClick = TransformationClick
-        end
-        object Rotation1: TMenuItem
-          Tag = 1
-          Caption = 'Rotation'
-          Enabled = False
-          OnClick = TransformationClick
-        end
-        object Scale1: TMenuItem
-          Tag = 2
-          Caption = 'Scale'
-          Enabled = False
-          OnClick = TransformationClick
-        end
-        object Skew1: TMenuItem
-          Tag = 3
-          Caption = 'Skew'
-          Enabled = False
-          OnClick = TransformationClick
-        end
-        object N8: TMenuItem
-          Caption = '-'
-        end
-        object Projective1: TMenuItem
-          Tag = 4
-          Caption = 'Projective'
-          OnClick = TransformationClick
-        end
-        object N7: TMenuItem
-          Caption = '-'
-        end
-        object wirl1: TMenuItem
-          Tag = 5
-          Caption = 'Twirl'
-          OnClick = TransformationClick
-        end
-        object Bloat1: TMenuItem
-          Tag = 6
-          Caption = 'Bloat'
-          OnClick = TransformationClick
-        end
-        object Disturbance1: TMenuItem
-          Tag = 7
-          Caption = 'Disturbance'
-          OnClick = TransformationClick
-        end
-        object Fisheye1: TMenuItem
-          Tag = 8
-          Caption = 'Fish-eye'
-          OnClick = TransformationClick
-        end
-      end
-      object Antialiasing1: TMenuItem
-        Caption = 'Antialiasing'
-        object Supersampler1: TMenuItem
-          Caption = 'Super Sampler'
-          OnClick = AntialiasClick
-        end
-        object AdaptiveSuperSampler1: TMenuItem
-          Tag = 1
-          Caption = 'Adaptive Super Sampler'
-          OnClick = AntialiasClick
-        end
-        object JitteredPattern1: TMenuItem
-          Tag = 2
-          Caption = 'Pattern Sampler (jittered)'
-          OnClick = AntialiasClick
-        end
-      end
-      object Kernel1: TMenuItem
-        Caption = 'Kernel Samplers'
-        object Convolver1: TMenuItem
-          Caption = 'Convolver'
-          OnClick = KernelClick
-        end
-        object N5: TMenuItem
-          Caption = '-'
-        end
-        object Dilater1: TMenuItem
-          Tag = 1
-          Caption = 'Dilater'
-          OnClick = KernelClick
-        end
-        object Eroder1: TMenuItem
-          Tag = 2
-          Caption = 'Eroder'
-          OnClick = KernelClick
-        end
-        object N6: TMenuItem
-          Caption = '-'
-        end
-        object Expander1: TMenuItem
-          Tag = 3
-          Caption = 'Expander'
-          OnClick = KernelClick
-        end
-        object Contracter1: TMenuItem
-          Tag = 4
-          Caption = 'Contracter'
-          OnClick = KernelClick
-        end
-      end
-    end
-    object Copy1: TMenuItem
-      Caption = '|'
-    end
-    object Cut1: TMenuItem
-      Caption = 'Cut'
-      ImageIndex = 1
-      OnClick = Cut1Click
-    end
-    object Copy2: TMenuItem
-      Caption = 'Copy'
-      ImageIndex = 0
-      OnClick = Copy2Click
-    end
-    object Paste1: TMenuItem
-      Caption = 'Paste'
-      ImageIndex = 4
-      OnClick = Paste1Click
-    end
-    object Delete1: TMenuItem
-      Caption = 'Delete'
-      ImageIndex = 2
-      OnClick = tbDeleteClick
-    end
-    object N4: TMenuItem
-      Caption = '|'
-    end
-    object Up1: TMenuItem
-      Caption = 'Up'
-      ImageIndex = 5
-    end
-    object Down1: TMenuItem
-      Caption = 'Down'
-      ImageIndex = 6
-    end
-  end
-  object MainMenu1: TMainMenu
-    Images = HotImages
-    Left = 216
-    Top = 80
-    object File1: TMenuItem
-      Caption = 'File'
-      object Open1: TMenuItem
-        Caption = 'Open...'
-        OnClick = Open1Click
-      end
-      object SaveImage1: TMenuItem
-        Caption = 'Save...'
-        OnClick = SaveImage1Click
-      end
-      object N1: TMenuItem
-        Caption = '-'
-      end
-      object Exit1: TMenuItem
-        Caption = 'Exit'
-        OnClick = Exit1Click
-      end
-    end
-    object Resampler1: TMenuItem
-      Caption = 'Resampler'
-      object Nearest1: TMenuItem
-        Caption = 'Nearest'
-        RadioItem = True
-        OnClick = Nearest1Click
-      end
-      object Linear1: TMenuItem
-        Tag = 1
-        Caption = 'Linear'
-        RadioItem = True
-        OnClick = Linear1Click
-      end
-      object Draft1: TMenuItem
-        Tag = 2
-        Caption = 'Cubic'
-        RadioItem = True
-        OnClick = Draft1Click
-      end
-      object Lanczos1: TMenuItem
-        Tag = 3
-        Caption = 'Lanczos'
-        RadioItem = True
-        OnClick = Lanczos1Click
-      end
-      object Spline1: TMenuItem
-        Tag = 4
-        Caption = 'Spline'
-        RadioItem = True
-        OnClick = Spline1Click
-      end
-      object Sinsh1: TMenuItem
-        Caption = 'Sinsh'
-      end
-      object N2: TMenuItem
-        Caption = '-'
-      end
-      object Edit1: TMenuItem
-        Caption = 'Edit'
-        OnClick = Edit1Click
-      end
-    end
-    object Rasterizer1: TMenuItem
-      Caption = 'Rasterizer'
-      object Regular1: TMenuItem
-        Caption = 'Regular'
-        Checked = True
-        RadioItem = True
-        OnClick = Regular1Click
-      end
-      object Progressive1: TMenuItem
-        Caption = 'Progressive'
-        RadioItem = True
-        OnClick = Progressive1Click
-      end
-      object Swizzling1: TMenuItem
-        Caption = 'Swizzling'
-        RadioItem = True
-        OnClick = Swizzling1Click
-      end
-      object Tesseral1: TMenuItem
-        Caption = 'Tesseral'
-        RadioItem = True
-        OnClick = Tesseral1Click
-      end
-      object Contour1: TMenuItem
-        Caption = 'Contour'
-        OnClick = Contour1Click
-      end
-      object N3: TMenuItem
-        Caption = '-'
-      end
-      object Edit2: TMenuItem
-        Caption = 'Edit'
-        OnClick = Edit2Click
-      end
-    end
-    object Rasterize1: TMenuItem
-      Caption = 'Misc'
-      ImageIndex = 0
-      object chkClear: TMenuItem
-        AutoCheck = True
-        Caption = 'Clear Bitmap'
-        Checked = True
-      end
-      object chkReset: TMenuItem
-        AutoCheck = True
-        Caption = 'Reset Bitmap'
-        Checked = True
-      end
-    end
+      C007EFEF803FC007C00FFFFF807FE00F00000000000000000000000000000000
+      000000000000}
   end
   object NewItemMenu: TPopupMenu
-    Left = 224
-    Top = 128
+    Left = 248
+    Top = 48
     object ransformer2: TMenuItem
       Caption = 'Transformation'
       object ranslation2: TMenuItem
@@ -1881,6 +1604,141 @@ object Form1: TForm1
         Caption = 'Contracter'
         OnClick = KernelClick
       end
+    end
+    object RGBNoise1: TMenuItem
+      Caption = 'RGB Noise'
+      OnClick = RGBNoise1Click
+    end
+  end
+  object MainMenu1: TMainMenu
+    Left = 216
+    Top = 48
+    object File1: TMenuItem
+      Caption = 'File'
+      object Open1: TMenuItem
+        Caption = 'Open...'
+        OnClick = Open1Click
+      end
+      object SaveImage1: TMenuItem
+        Caption = 'Save...'
+        OnClick = SaveImage1Click
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
+      object Exit1: TMenuItem
+        Caption = 'Exit'
+        OnClick = Exit1Click
+      end
+    end
+    object Resampler1: TMenuItem
+      Caption = 'Resampler'
+      object Nearest1: TMenuItem
+        AutoCheck = True
+        Caption = 'Nearest'
+        Checked = True
+        RadioItem = True
+        OnClick = Nearest1Click
+      end
+      object Linear1: TMenuItem
+        Tag = 1
+        AutoCheck = True
+        Caption = 'Linear'
+        RadioItem = True
+        OnClick = Linear1Click
+      end
+      object Draft1: TMenuItem
+        AutoCheck = True
+        Caption = 'Cubic'
+        RadioItem = True
+        OnClick = SelectKernel
+      end
+      object Spline1: TMenuItem
+        Tag = 1
+        AutoCheck = True
+        Caption = 'Spline'
+        RadioItem = True
+        OnClick = SelectKernel
+      end
+      object Lanczos1: TMenuItem
+        Tag = 2
+        AutoCheck = True
+        Caption = 'Lanczos'
+        RadioItem = True
+        OnClick = SelectKernel
+      end
+      object Sinsh1: TMenuItem
+        Tag = 3
+        AutoCheck = True
+        Caption = 'Sinsh'
+        RadioItem = True
+        OnClick = SelectKernel
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object Edit1: TMenuItem
+        Caption = 'Edit'
+        OnClick = Edit1Click
+      end
+    end
+    object Rasterizer1: TMenuItem
+      Caption = 'Rasterizer'
+      object Regular1: TMenuItem
+        AutoCheck = True
+        Caption = 'Regular'
+        Checked = True
+        RadioItem = True
+        OnClick = Regular1Click
+      end
+      object Progressive1: TMenuItem
+        AutoCheck = True
+        Caption = 'Progressive'
+        RadioItem = True
+        OnClick = Progressive1Click
+      end
+      object Swizzling1: TMenuItem
+        AutoCheck = True
+        Caption = 'Swizzling'
+        RadioItem = True
+        OnClick = Swizzling1Click
+      end
+      object Tesseral1: TMenuItem
+        AutoCheck = True
+        Caption = 'Tesseral'
+        RadioItem = True
+        OnClick = Tesseral1Click
+      end
+      object Contour1: TMenuItem
+        AutoCheck = True
+        Caption = 'Contour'
+        RadioItem = True
+        OnClick = Contour1Click
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object Edit2: TMenuItem
+        Caption = 'Edit'
+        OnClick = Edit2Click
+      end
+    end
+    object Rasterize1: TMenuItem
+      Caption = 'Options'
+      ImageIndex = 0
+      object chkClear: TMenuItem
+        AutoCheck = True
+        Caption = 'Clear Bitmap'
+        Checked = True
+      end
+      object chkReset: TMenuItem
+        AutoCheck = True
+        Caption = 'Reset Bitmap'
+        Checked = True
+      end
+    end
+    object Help1: TMenuItem
+      Caption = 'Help'
     end
   end
 end

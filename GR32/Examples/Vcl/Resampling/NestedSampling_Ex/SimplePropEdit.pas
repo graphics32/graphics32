@@ -17,10 +17,19 @@ type
     Result: Longint;
   end;
 
+  PPropertyRangeEntry = ^TPropertyRangeEntry;
+  TPropertyRangeEntry = record
+    AClass: TClass;
+    PropName: string;
+    LoValue: Single;
+    HiValue: Single;
+  end;
+
   TSimplePropertyEditor = class(TCustomPanel)
   private
     FLabels: TList;
     FPropertyControls: TList;
+    FPropertyRangeList: TList;
     FSelectedObject: TPersistent;
     FProps: PPropList;
     FCaption: string;
@@ -36,12 +45,19 @@ type
     destructor Destroy; override;
     procedure RemoveSelectedObject;
     procedure SelectObject(AObject: TPersistent);
+    procedure RegisterClassPropertyRange(AClass: TClass; const PropName: string;
+      LoValue, HiValue: Single);
+    procedure GetPropertyRange(Instance: TObject; const PropName: string;
+      out LoValue, HiValue: Single);
   end;
+
+const
+  SCALE_FLOAT = 10000;
 
 implementation
 
 uses
-  GR32_Resamplers, GR32_LowLevel, SysUtils;
+  GR32_Resamplers, GR32_LowLevel, SysUtils, Math;
 
 { TSimplePropertyEditor }
 
@@ -60,6 +76,7 @@ begin
   inherited Create(AOwner);
   FPropertyControls := TList.Create;
   FLabels := TList.Create;
+  FPropertyRangeList := TList.Create;
   BorderWidth := 1;
   BorderStyle := bsNone;
   Ctl3D := False;
@@ -71,11 +88,17 @@ begin
 end;
 
 destructor TSimplePropertyEditor.Destroy;
+var
+  I: Integer;
 begin
   if Assigned(FSelectedObject) then
     RemoveSelectedObject;
   FPropertyControls.Free;
   FLabels.Free;
+  for I := 0 to FPropertyRangeList.Count - 1 do
+    Dispose(PPropertyRangeEntry(FPropertyRangeList.Items[I]));
+  FPropertyRangeList.Clear;
+  FPropertyRangeList.Free;
   inherited;
 end;
 
@@ -90,6 +113,27 @@ begin
   end;
 end;
 
+procedure TSimplePropertyEditor.GetPropertyRange(Instance: TObject;
+  const PropName: string; out LoValue, HiValue: Single);
+var
+  I: Integer;
+  P: PPropertyRangeEntry;
+begin
+  LoValue := 0;
+  HiValue := 100;
+  for I := 0 to FPropertyRangeList.Count - 1 do
+  begin
+    P := FPropertyRangeList.Items[I];
+    if Instance is P.AClass then
+      if P.PropName = PropName then
+      begin
+        LoValue := P.LoValue;
+        HiValue := P.HiValue;
+        Exit;
+      end;
+  end;
+end;
+
 procedure TSimplePropertyEditor.Paint;
 begin
   inherited;
@@ -100,6 +144,19 @@ begin
   Canvas.Font.Name := 'Tahoma';
   if FCaption <> '' then
     Canvas.TextRect(Rect(0, 0, Width, 18), 6, 2, FCaption);
+end;
+
+procedure TSimplePropertyEditor.RegisterClassPropertyRange(AClass: TClass;
+  const PropName: string; LoValue, HiValue: Single);
+var
+  P: PPropertyRangeEntry;
+begin
+  New(P);
+  P.AClass := AClass;
+  P.PropName := PropName;
+  P.LoValue := LoValue;
+  P.HiValue := HiValue;
+  FPropertyRangeList.Add(P);
 end;
 
 procedure TSimplePropertyEditor.RemoveSelectedObject;
@@ -121,11 +178,11 @@ end;
 
 procedure TSimplePropertyEditor.SelectObject(AObject: TPersistent);
 var
-  I, Count, T, T1: Integer;
+  I, L, K, Count, T, T1: Integer;
   Control: TWinControl;
   ALabel: TLabel;
   Map: TIntegerMap;
-  K, L: Integer;
+  LoValue, HiValue: Single;
   P: PPropInfo;
 const
   ROW_SPACE = 30;
@@ -136,7 +193,12 @@ begin
   if Assigned(FSelectedObject) then
     RemoveSelectedObject;
   FSelectedObject := AObject;
-  if not Assigned(AObject) then Exit;
+  if not Assigned(AObject) then
+  begin
+    FCaption := '';
+    Repaint;
+    Exit;
+  end;
 
   FCaption := 'Object: ' + AObject.ClassName;
   Count := GetTypeData(AObject.ClassInfo).PropCount;
@@ -192,14 +254,26 @@ begin
       case P.PropType^.Kind of
         tkInteger, tkFloat:
           begin
+            GetPropertyRange(AObject, P.Name, LoValue, HiValue);
+
             Control := TTrackBar.Create(nil);
-            TTrackBar(Control).ThumbLength := 16;
-            TTrackBar(Control).Min := 0;
-            TTrackBar(Control).Max := 20;
             if P.PropType^.Kind = tkInteger then
+            begin
+              TTrackBar(Control).Min := Round(LoValue);
+              TTrackBar(Control).Max := Round(HiValue);
+              TTrackBar(Control).Frequency := Max(1, Round(HiValue - LoValue) div 20);
               TTrackBar(Control).Position := GetOrdProp(FSelectedObject, P)
+            end
             else
-              TTrackBar(Control).Position := Round(GetFloatProp(FSelectedObject, P));
+            begin
+              LoValue := LoValue * SCALE_FLOAT;
+              HiValue := HiValue * SCALE_FLOAT;
+              TTrackBar(Control).Min := Round(LoValue);
+              TTrackBar(Control).Max := Round(HiValue);
+              TTrackBar(Control).Frequency := Max(1, Round((HiValue - LoValue)/20));
+              TTrackBar(Control).Position := Round(GetFloatProp(FSelectedObject, P) * SCALE_FLOAT);
+            end;
+            TTrackBar(Control).ThumbLength := 16;
             TTrackBar(Control).OnChange := TrackBarHandler;
             Control.Width := 98;
             Control.Height := 25;
@@ -250,8 +324,7 @@ var
   W: Real;
   Code: Integer;
 begin
-  PropInfo := FProps[TComponent(Sender).Tag];
-  Weights := TIntegerMap(GetObjectProp(FSelectedObject, PropInfo));
+  Weights := FSelectedObject as TIntegerMap; //TIntegerMap(GetObjectProp(FSelectedObject, PropInfo));
   Val(Value, W, Code);
   if Code = 0 then
     Weights[ACol, ARow] := Round(W * 256);
@@ -268,7 +341,7 @@ begin
       tkInteger:
         SetOrdProp(FSelectedObject, PropInfo, TTrackBar(Sender).Position);
       tkFloat:
-        SetFloatProp(FSelectedObject, PropInfo, TTrackBar(Sender).Position);
+        SetFloatProp(FSelectedObject, PropInfo, TTrackBar(Sender).Position / SCALE_FLOAT);
     end;
   end;
 end;
