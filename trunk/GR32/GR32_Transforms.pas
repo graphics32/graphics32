@@ -159,6 +159,7 @@ type
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
   public
+    constructor Create; virtual;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
   published
     property Twirl: Single read FTwirl write SetTwirl;
@@ -174,17 +175,19 @@ type
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
   public
+    constructor Create; virtual;
+  published
     property BloatPower: Single read FBloatPower write SetBloatPower;
   end;
 
   TDisturbanceTransformation = class(TTransformation)
   private
-    Frx, Fry: Single;
     FDisturbance: Single;
     procedure SetDisturbance(const Value: Single);
   protected
-    procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); override;
+  public
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
   published
     property Disturbance: Single read FDisturbance write SetDisturbance;
   end;
@@ -383,32 +386,24 @@ end;
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
 var
   Rasterizer: TRasterizer;
-  Transformer: TTransformer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
-  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src.Resampler, Transformation);
   try
-    Rasterizer.Sampler := Transformer;
     Transform(Dst, Src, Transformation, Rasterizer);
   finally
     Rasterizer.Free;
-    Transformer.Free;
   end;
 end;
 
 procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; const DstClip: TRect);
 var
   Rasterizer: TRasterizer;
-  Transformer: TTransformer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
-  Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src.Resampler, Transformation);
   try
-    Rasterizer.Sampler := Transformer;
     Transform(Dst, Src, Transformation, Rasterizer, DstClip);
   finally
     Rasterizer.Free;
-    Transformer.Free;
   end;
 end;
 
@@ -459,10 +454,10 @@ begin
     Dec(Right);
     Dec(Bottom);
     for I := Left to Right do
-    begin
+      begin
       ABitmap[I, Top] := ABitmap[I, Top] and $00FFFFFF;
       ABitmap[I, Bottom] := ABitmap[I, Bottom] and $00FFFFFF;
-    end;
+      end;
     for I := Top to Bottom do
     begin
       ABitmap[Left, I] := ABitmap[Left, I] and $00FFFFFF;
@@ -944,6 +939,11 @@ end;
 
 { TTwirlTransformation }
 
+constructor TTwirlTransformation.Create;
+begin
+  FTwirl := 0.03;
+end;
+
 function TTwirlTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 var
   Cx, Cy, R: Single;
@@ -959,7 +959,6 @@ end;
 
 procedure TTwirlTransformation.PrepareTransform;
 begin
-  FTwirl := 0.03;
   with FSrcRect do
   begin
     Frx := (Right - Left) / 2;
@@ -999,9 +998,13 @@ end;
 
 { TBloatTransformation }
 
-procedure TBloatTransformation.PrepareTransform;
+constructor TBloatTransformation.Create;
 begin
   FBloatPower := 0.3;
+end;
+
+procedure TBloatTransformation.PrepareTransform;
+begin
   FPiW := (Pi / (FSrcRect.Right - FSrcRect.Left));
   FPiH := (Pi / (FSrcRect.Bottom - FSrcRect.Top));
   FBP := FBloatPower * Max(FSrcRect.Right - FSrcRect.Left, FSrcRect.Bottom - FSrcRect.Top);
@@ -1075,20 +1078,21 @@ end;
 
 { TDisturbanceTransformation }
 
-procedure TDisturbanceTransformation.PrepareTransform;
+function TDisturbanceTransformation.GetTransformedBounds(
+  const ASrcRect: TFloatRect): TRect;
+var
+  R: TFloatRect;
 begin
-  with FSrcRect do
-  begin
-    Frx := Right - Left - 1;
-    Fry := Bottom - Top - 1;
-  end;
+  R := ASrcRect;
+  InflateRectF(R, FDisturbance, FDisturbance);
+  Result := MakeRect(R);
 end;
 
 procedure TDisturbanceTransformation.ReverseTransformFloat(DstX,
   DstY: Single; out SrcX, SrcY: Single);
 begin
-  SrcX := DstX + (Random - 0.5) * Frx * FDisturbance;
-  SrcY := DstY + (Random - 0.5) * Fry * FDisturbance;
+  SrcX := DstX + (Random - 0.5) * FDisturbance;
+  SrcY := DstY + (Random - 0.5) * FDisturbance;
 end;
 
 procedure TDisturbanceTransformation.SetDisturbance(const Value: Single);
