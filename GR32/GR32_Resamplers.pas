@@ -233,7 +233,7 @@ type
     FTransformerClass: TTransformerClass;
     FPixelAccessMode: TPixelAccessMode;
   public
-    constructor Create(ABitmap: TBitmap32); virtual;
+    constructor Create(ABitmap: TBitmap32); reintroduce; virtual; 
     procedure Changed; override;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
@@ -342,7 +342,7 @@ type
     FGetSampleFloat: TGetSampleFloat;
     procedure SetSampler(const Value: TCustomSampler);
   public
-    constructor Create(ASampler: TCustomSampler); virtual;
+    constructor Create(ASampler: TCustomSampler); reintroduce; virtual; 
     procedure PrepareSampling; override;
     procedure FinalizeSampling; override;
     function HasBounds: Boolean; override;
@@ -2293,6 +2293,7 @@ begin
   GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FKernel, CombineOp, CombineCallBack);
 end;
 
+{$WARNINGS OFF}
 function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
 var
   clX, clY: Integer;
@@ -2537,6 +2538,7 @@ begin
     end;
   end;
 end;
+{$WARNINGS ON}
 
 function TKernelResampler.GetWidth: Single;
 begin
@@ -2580,7 +2582,7 @@ end;
 
 procedure TKernelResampler.PrepareSampling;
 var
-  I, J, K, W: Integer;
+  I, J, W: Integer;
   Fraction: Single;
   KernelPtr: PKernelEntry;
 begin
@@ -3114,6 +3116,7 @@ end;
 
 constructor TNestedSampler.Create(ASampler: TCustomSampler);
 begin
+  inherited Create;
   Sampler := ASampler;
 end;
 
@@ -3125,6 +3128,7 @@ begin
     FSampler.FinalizeSampling;
 end;
 
+{$WARNINGS OFF}
 function TNestedSampler.GetSampleBounds: TRect;
 begin
   if not Assigned(FSampler) then
@@ -3140,6 +3144,7 @@ begin
   else
     Result := FSampler.HasBounds;
 end;
+{$WARNINGS ON}
 
 procedure TNestedSampler.PrepareSampling;
 begin
@@ -3343,7 +3348,7 @@ end;
 constructor TSelectiveConvolver.Create(ASampler: TCustomSampler);
 begin
   inherited;
-  FDelta := 50;
+  FDelta := 30;
 end;
 
 function TSelectiveConvolver.GetSampleFixed(X, Y: TFixed): TColor32;
