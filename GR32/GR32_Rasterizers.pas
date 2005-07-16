@@ -716,6 +716,7 @@ begin
 
     I := 0; J := 0;
     Dir := East;
+    NewDir := East;
 
     PLast := Point(DstRect.Left, DstRect.Top);
     CLast := GetSample(PLast.X, PLast.Y);
