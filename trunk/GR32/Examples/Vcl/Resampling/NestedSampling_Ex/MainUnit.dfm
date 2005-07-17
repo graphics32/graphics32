@@ -1,6 +1,6 @@
 object Form1: TForm1
-  Left = 348
-  Top = 171
+  Left = 212
+  Top = 160
   Width = 811
   Height = 627
   Anchors = [akLeft, akTop, akRight, akBottom]
@@ -22,23 +22,23 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 190
-    Height = 578
+    Height = 576
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 256
+      Top = 244
       Width = 190
       Height = 3
       Cursor = crVSplit
       Align = alTop
-      Color = clAppWorkSpace
+      Color = clBtnFace
       ParentColor = False
     end
     object tbManager: TToolBar
       Left = 0
-      Top = 70
+      Top = 58
       Width = 190
       Height = 24
       Anchors = []
@@ -62,7 +62,7 @@ object Form1: TForm1
         Style = tbsDropDown
       end
       object ToolButton2: TToolButton
-        Left = 36
+        Left = 38
         Top = 0
         Width = 8
         Caption = 'ToolButton2'
@@ -70,57 +70,61 @@ object Form1: TForm1
         Style = tbsSeparator
       end
       object ToolButton3: TToolButton
-        Left = 44
+        Left = 46
         Top = 0
         Caption = 'ToolButton3'
         ImageIndex = 1
         OnClick = Cut1Click
       end
       object ToolButton4: TToolButton
-        Left = 67
+        Left = 69
         Top = 0
         Caption = 'ToolButton4'
         ImageIndex = 2
         OnClick = Copy2Click
       end
       object ToolButton5: TToolButton
-        Left = 90
+        Left = 92
         Top = 0
         Caption = 'ToolButton5'
         ImageIndex = 3
         OnClick = Paste1Click
       end
       object ToolButton6: TToolButton
-        Left = 113
+        Left = 115
         Top = 0
         Caption = 'ToolButton6'
         ImageIndex = 4
         OnClick = tbDeleteClick
       end
       object ToolButton7: TToolButton
-        Left = 136
+        Left = 138
         Top = 0
         Width = 8
         Caption = 'ToolButton7'
         ImageIndex = 5
         Style = tbsSeparator
       end
-      object ToolButton8: TToolButton
-        Left = 144
+      object tbUp: TToolButton
+        Tag = -1
+        Left = 146
         Top = 0
-        Caption = 'ToolButton8'
+        Caption = 'tbUp'
         ImageIndex = 5
+        OnClick = tbUpDownClick
       end
-      object ToolButton9: TToolButton
-        Left = 167
+      object tbDown: TToolButton
+        Tag = 1
+        Left = 169
         Top = 0
-        Caption = 'ToolButton9'
+        Caption = 'tbDown'
         ImageIndex = 6
+        OnClick = tbUpDownClick
       end
     end
     object lvSamplers: TListView
       Left = 0
-      Top = 94
+      Top = 82
       Width = 190
       Height = 162
       Align = alTop
@@ -129,24 +133,32 @@ object Form1: TForm1
       Columns = <
         item
           AutoSize = True
+          Caption = 'Object Name'
+        end
+        item
+          AutoSize = True
+          Caption = 'Class Name'
         end>
-      ShowColumnHeaders = False
       TabOrder = 1
       ViewStyle = vsReport
       OnSelectItem = lvSamplersSelectItem
     end
     object StaticText1: TStaticText
       Left = 0
-      Top = 53
+      Top = 41
       Width = 190
       Height = 17
       Align = alTop
       Alignment = taCenter
-      BorderStyle = sbsSingle
+      AutoSize = False
+      BevelEdges = [beTop, beBottom]
+      BevelInner = bvLowered
+      BevelKind = bkSoft
+      BevelOuter = bvNone
       Caption = 'Sampler Manager'
-      Color = clGradientActiveCaption
+      Color = 9790720
       Font.Charset = DEFAULT_CHARSET
-      Font.Color = 16776176
+      Font.Color = clWhite
       Font.Height = -11
       Font.Name = 'Tahoma'
       Font.Style = [fsBold]
@@ -158,7 +170,7 @@ object Form1: TForm1
       Left = 0
       Top = 17
       Width = 190
-      Height = 36
+      Height = 24
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 3
@@ -166,13 +178,14 @@ object Form1: TForm1
         Left = 0
         Top = 0
         Width = 190
-        Height = 36
+        Height = 24
         Caption = 'Rasterize Image'
+        Flat = True
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
-        Font.Name = 'Tahoma'
-        Font.Style = []
+        Font.Name = 'Verdana'
+        Font.Style = [fsBold]
         Glyph.Data = {
           A6020000424DA602000000000000A60100002800000010000000100000000100
           08000000000000010000120B0000120B00005C0000005C00000000000000FFFF
@@ -202,18 +215,20 @@ object Form1: TForm1
     end
     object StaticText2: TStaticText
       Left = 0
-      Top = 259
+      Top = 247
       Width = 190
       Height = 17
       Align = alTop
       Alignment = taCenter
+      AutoSize = False
+      BevelEdges = [beTop, beBottom]
       BevelInner = bvLowered
-      BevelOuter = bvRaised
-      BorderStyle = sbsSingle
+      BevelKind = bkSoft
+      BevelOuter = bvNone
       Caption = 'Object Inspector'
-      Color = clGradientActiveCaption
+      Color = 9790720
       Font.Charset = DEFAULT_CHARSET
-      Font.Color = 16776176
+      Font.Color = clWhite
       Font.Height = -11
       Font.Name = 'Tahoma'
       Font.Style = [fsBold]
@@ -228,11 +243,15 @@ object Form1: TForm1
       Height = 17
       Align = alTop
       Alignment = taCenter
-      BorderStyle = sbsSingle
+      AutoSize = False
+      BevelEdges = [beTop, beBottom]
+      BevelInner = bvLowered
+      BevelKind = bkSoft
+      BevelOuter = bvNone
       Caption = 'Rasterization'
-      Color = clGradientActiveCaption
+      Color = 9790720
       Font.Charset = DEFAULT_CHARSET
-      Font.Color = 16776176
+      Font.Color = clWhite
       Font.Height = -11
       Font.Name = 'Tahoma'
       Font.Style = [fsBold]
@@ -245,7 +264,7 @@ object Form1: TForm1
     Left = 190
     Top = 0
     Width = 613
-    Height = 578
+    Height = 576
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     Color = clAppWorkSpace

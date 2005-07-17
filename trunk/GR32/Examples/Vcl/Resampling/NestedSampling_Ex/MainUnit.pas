@@ -85,8 +85,8 @@ type
     ToolButton5: TToolButton;
     ToolButton6: TToolButton;
     ToolButton7: TToolButton;
-    ToolButton8: TToolButton;
-    ToolButton9: TToolButton;
+    tbUp: TToolButton;
+    tbDown: TToolButton;
     SelectiveConvolver1: TMenuItem;
     MainMenu1: TMainMenu;
     File1: TMenuItem;
@@ -145,11 +145,13 @@ type
     procedure Paste1Click(Sender: TObject);
     procedure RGBNoise1Click(Sender: TObject);
     procedure SelectKernel(Sender: TObject);
+    procedure tbUpDownClick(Sender: TObject);
   private
     { Private declarations }
     procedure SetSourceResampler(const Value: TCustomResampler);
     function GetSourceResampler: TCustomResampler;
     procedure UpdateTransformations;
+    function NewInstanceName(Sampler: TNestedSampler): string;
   public
     { Public declarations }
     Source: TBitmap32;
@@ -162,16 +164,17 @@ type
     IsRasterizing: Boolean;
 
     ClipBoardItem: TNestedSampler;
+    ObjectName: string;
     property SourceResampler: TCustomResampler read GetSourceResampler write SetSourceResampler;
     procedure ThreadTerminated(Sender: TObject);
-    procedure AddSampler(Sampler: TNestedSampler);
     procedure SetResampler(ResamplerClass: TBitmap32ResamplerClass);
     procedure StopThread;
     function LastSampler: TCustomSampler;
     function SelectedSampler: TNestedSampler;
     function SelectedIndex: Integer;
     function ValidSelection: Boolean;
-    procedure InsertSampler(Index: Integer; Sampler: TNestedSampler);
+    procedure AddSampler(Sampler: TNestedSampler);
+    procedure InsertSampler(Index: Integer; ObjName: string; Sampler: TNestedSampler);
     procedure DeleteSampler(Index: Integer; FreeItem: Boolean = True);
   end;
 
@@ -275,7 +278,7 @@ var
   I: Integer;
 begin
   for I := 0 to Samplers.Count - 1 do
-    TCustomSampler(Samplers[I]).Free;
+    if not Assigned(Samplers[I]) then TCustomSampler(Samplers[I]).Free;
   Samplers.Clear;
   Samplers.Free;
 end;
@@ -284,7 +287,7 @@ procedure TForm1.lvSamplersSelectItem(Sender: TObject; Item: TListItem;
   Selected: Boolean);
 begin
   if Selected and (Item.Index >= 0) and (Item.Index < Samplers.Count) then
-    PropertyEditor.SelectObject(Samplers[Item.Index]);
+    PropertyEditor.SelectObject(Item.Caption, Samplers[Item.Index]);
 end;
 
 procedure TForm1.SetResampler(ResamplerClass: TBitmap32ResamplerClass);
@@ -326,12 +329,12 @@ end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
-  PropertyEditor.SelectObject(Source.Resampler);
+  PropertyEditor.SelectObject('Resampler', Source.Resampler);
 end;
 
 procedure TForm1.Button3Click(Sender: TObject);
 begin
-  PropertyEditor.SelectObject(Rasterizer);
+  PropertyEditor.SelectObject('Rasterizer', Rasterizer);
 end;
 
 procedure TForm1.tbDeleteClick(Sender: TObject);
@@ -432,12 +435,12 @@ end;
 
 procedure TForm1.Edit1Click(Sender: TObject);
 begin
-  PropertyEditor.SelectObject(Source.Resampler);
+  PropertyEditor.SelectObject('Resampler', Source.Resampler);
 end;
 
 procedure TForm1.Edit2Click(Sender: TObject);
 begin
-  PropertyEditor.SelectObject(Rasterizer);
+  PropertyEditor.SelectObject('Rasterizer', Rasterizer);
 end;
 
 procedure TForm1.ThreadTerminated(Sender: TObject);
@@ -557,7 +560,10 @@ end;
 procedure TForm1.Copy2Click(Sender: TObject);
 begin
   if ValidSelection then
+  begin
     ClipBoardItem := SelectedSampler;
+    ObjectName := lvSamplers.Selected.Caption;    
+  end;
 end;
 
 procedure TForm1.Cut1Click(Sender: TObject);
@@ -565,6 +571,7 @@ begin
   if ValidSelection then
   begin
     ClipBoardItem := SelectedSampler;
+    ObjectName := lvSamplers.Selected.Caption;
     DeleteSampler(SelectedIndex, False);
   end;
 end;
@@ -573,9 +580,25 @@ procedure TForm1.Paste1Click(Sender: TObject);
 begin
   if Assigned(ClipBoardItem) then
     if ValidSelection then
-      InsertSampler(SelectedIndex, ClipBoardItem)
+      InsertSampler(SelectedIndex, ObjectName, ClipBoardItem)
     else
-      AddSampler(ClipBoardItem);
+      InsertSampler(MaxInt, ObjectName, ClipBoardItem);
+end;
+
+procedure TForm1.tbUpDownClick(Sender: TObject);
+var
+  Index: Integer;
+  S: TNestedSampler;
+  ObjName: string;
+begin
+  if ValidSelection then
+  begin
+    Index := SelectedIndex;
+    S := SelectedSampler;
+    ObjName := lvSamplers.Selected.Caption;
+    DeleteSampler(Index, False);
+    InsertSampler(Index + TComponent(Sender).Tag, ObjName, S);
+  end;
 end;
 
 procedure TForm1.AddSampler(Sampler: TNestedSampler);
@@ -585,15 +608,17 @@ begin
   Samplers.Add(Sampler);
   Rasterizer.Sampler := Sampler;
   NewItem := lvSamplers.Items.Add;
-  NewItem.Caption := Sampler.ClassName;
+  NewItem.Caption := NewInstanceName(Sampler);
+  NewItem.SubItems.Add(Sampler.ClassName);
   NewItem.Data := Sampler;
 end;
 
-procedure TForm1.InsertSampler(Index: Integer; Sampler: TNestedSampler);
+procedure TForm1.InsertSampler(Index: Integer; ObjName: string; Sampler: TNestedSampler);
 var
   NewItem: TListItem;
 begin
-  if Index >= lvSamplers.Items.Count then
+  Index := EnsureRange(Index, 0, lvSamplers.Items.Count);
+  if Index = lvSamplers.Items.Count then
   begin
     Samplers.Add(Sampler);
     Sampler.Sampler := LastSampler;
@@ -609,8 +634,11 @@ begin
     Samplers.Insert(Index, Sampler);
   end;
   NewItem := lvSamplers.Items.Insert(Index);
-  NewItem.Caption := Sampler.ClassName;
+  NewItem.Caption := ObjName;
+  NewItem.SubItems.Add(Sampler.ClassName);
   NewItem.Data := Sampler;
+  lvSamplers.Selected := NewItem;
+  lvSamplers.Selected.Focused := True;
 end;
 
 procedure TForm1.DeleteSampler(Index: Integer; FreeItem: Boolean);
@@ -626,9 +654,11 @@ begin
       Rasterizer.Sampler := S.Sampler;
     Samplers.Delete(Index);
 
-    if FreeItem then S.Free;
+    if FreeItem and (Samplers.IndexOf(S) = -1) then
+      S.Free;
+      
     lvSamplers.Selected.Delete;
-    PropertyEditor.SelectObject(nil);
+    PropertyEditor.SelectObject('', nil);
   end;
 end;
 
@@ -658,6 +688,21 @@ begin
     R := Constrain(R + FRed + Random(FRedNoise), 0, 255);
     G := Constrain(G + FGreen + Random(FGreenNoise), 0, 255);
     B := Constrain(B + FBlue + Random(FBlueNoise), 0, 255);
+  end;
+end;
+
+function TForm1.NewInstanceName(Sampler: TNestedSampler): string;
+var
+  S: string;
+  I: Integer;
+begin
+  S := Sampler.ClassName;
+  S := Copy(S, 2, Length(S) - 1);
+  for I := 1 to MaxInt do
+  begin
+    Result := S + IntToStr(I);
+    if lvSamplers.FindCaption(0, Result, False, True, False) = nil then
+      Exit;
   end;
 end;
 

@@ -71,7 +71,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure RemoveSelectedObject;
-    procedure SelectObject(AObject: TPersistent);
+    procedure SelectObject(ObjName: string; AObject: TPersistent);
     procedure RegisterClassPropertyRange(AClass: TClass; const PropName: string;
       LoValue, HiValue: Single);
     procedure GetPropertyRange(Instance: TObject; const PropName: string;
@@ -207,7 +207,7 @@ begin
     FreeMem(FProps);
 end;
 
-procedure TSimplePropertyEditor.SelectObject(AObject: TPersistent);
+procedure TSimplePropertyEditor.SelectObject(ObjName: string; AObject: TPersistent);
 var
   I, L, K, Count, T, T1: Integer;
   Control: TWinControl;
@@ -231,7 +231,7 @@ begin
     Exit;
   end;
 
-  FCaption := 'Object: ' + AObject.ClassName;
+  FCaption := ObjName + ': ' + AObject.ClassName;
   Count := GetTypeData(AObject.ClassInfo).PropCount;
 
   if AObject is TIntegerMap then
@@ -384,7 +384,7 @@ end;
 
 procedure TSimplePropertyEditor.WMSelectObject(var Msg: TWMSelectObject);
 begin
-  SelectObject(Msg.Obj);
+  SelectObject('Object', Msg.Obj);
 end;
 
 end.
