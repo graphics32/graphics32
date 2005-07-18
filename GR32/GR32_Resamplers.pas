@@ -48,7 +48,13 @@ procedure BlendTransfer(
   Dst: TBitmap32; DstX, DstY: Integer; DstClip: TRect;
   SrcF: TBitmap32; SrcRectF: TRect;
   SrcB: TBitmap32; SrcRectB: TRect;
-  BlendCallback: TBlendReg);
+  BlendCallback: TBlendReg); overload;
+
+procedure BlendTransfer(
+  Dst: TBitmap32; DstX, DstY: Integer; DstClip: TRect;
+  SrcF: TBitmap32; SrcRectF: TRect;
+  SrcB: TBitmap32; SrcRectB: TRect;
+  BlendCallback: TBlendRegEx; MasterAlpha: Integer); overload;
 
 type
   PKernelEntry = ^TKernelEntry;
@@ -972,6 +978,52 @@ begin
       PDst := Dst.ScanLine[I];
       for J := DstClip.Left to DstClip.Right - 1 do
         PDst[J] := BlendCallback(PSrcF[J], PSrcB[J]);
+    end;
+  finally
+    EMMS;
+  end;
+  Dst.Changed(DstClip);
+end;
+
+procedure BlendTransfer(
+  Dst: TBitmap32; DstX, DstY: Integer; DstClip: TRect;
+  SrcF: TBitmap32; SrcRectF: TRect;
+  SrcB: TBitmap32; SrcRectB: TRect;
+  BlendCallback: TBlendRegEx; MasterAlpha: Integer);
+var
+  I, J, SrcFX, SrcFY, SrcBX, SrcBY: Integer;
+  PSrcF, PSrcB, PDst: PColor32Array;
+begin
+  if not Assigned(Dst) then raise EBitmapException.Create(SDstNil);
+  if not Assigned(SrcF) then raise EBitmapException.Create(SSrcNil);
+  if not Assigned(SrcB) then raise EBitmapException.Create(SSrcNil);
+
+  if Dst.Empty or SrcF.Empty or SrcB.Empty or not Assigned(BlendCallback) then Exit;
+
+  SrcFX := SrcRectF.Left - DstX;
+  SrcFY := SrcRectF.Top - DstY;
+  SrcBX := SrcRectB.Left - DstX;
+  SrcBY := SrcRectB.Top - DstY;
+
+  IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+  IntersectRect(SrcRectF, SrcRectF, SrcF.BoundsRect);
+  IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
+
+  OffsetRect(SrcRectF, -SrcFX, -SrcFY);
+  OffsetRect(SrcRectB, -SrcBX, -SrcFY);
+
+  IntersectRect(DstClip, DstClip, SrcRectF);
+  IntersectRect(DstClip, DstClip, SrcRectB);
+
+  if not IsRectEmpty(DstClip) then
+  try
+    for I := DstClip.Top to DstClip.Bottom - 1 do
+    begin
+      PSrcF := PColor32Array(SrcF.PixelPtr[SrcFX, SrcFY + I]);
+      PSrcB := PColor32Array(SrcB.PixelPtr[SrcBX, SrcBY + I]);
+      PDst := Dst.ScanLine[I];
+      for J := DstClip.Left to DstClip.Right - 1 do
+        PDst[J] := BlendCallback(PSrcF[J], PSrcB[J], MasterAlpha);
     end;
   finally
     EMMS;
