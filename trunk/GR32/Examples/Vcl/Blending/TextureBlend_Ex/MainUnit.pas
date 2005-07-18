@@ -13,9 +13,9 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Texture Blend Example
  *
- * The Initial Developers of the Original Code is:
+ * The Initial Developer(s) of the Original Code is:
  * Michael Hansen <dyster_tid@hotmail.com>
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2005
@@ -90,16 +90,16 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-// Load the textures (note size 256x256 is implicity expected!)
+  // Load the textures (note size 256x256 is implicity expected!)
   TexAImg.Bitmap.LoadFromFile('texture_a.jpg');
   TexBImg.Bitmap.LoadFromFile('texture_b.jpg');
   CombImg.Bitmap.SetSizeFrom(TexBImg.Bitmap);
 
-// Set up Weightmap and trigger generate
+  // Set up Weightmap and trigger generate
   WeightmapImg.Bitmap.SetSize(256, 256);
   GenerateButton.OnClick := GenerateWeightmap;
 
-//we don't want the same series of weightmaps repeat every time the app is run
+  //we don't want the same series of weightmaps repeat every time the app is run
   Randomize;
 
   GenerateWeightmap(Self);
@@ -120,7 +120,8 @@ begin
   c := random - random;
   b := random * random(100) - 50;
 
-  D := @TexBImg.Bitmap.Bits[0]; //We use the weightmap as TexB alpha
+  //We use the weightmap as TexB alpha, so we write that on the loop too
+  D := @TexBImg.Bitmap.Bits[0];
   WImg := @WeightmapImg.Bitmap.Bits[0];
   for J := 0 to 255 do
     for I := 0 to 255 do
@@ -167,12 +168,12 @@ begin
     end;
  end;
 
-// Combine Texture A with B
+  // Combine Texture A with B
   BlendTransfer(CombImg.Bitmap, 0, 0, CombImg.Bitmap.BoundsRect, TexBImg.Bitmap,
     TexBImg.Bitmap.BoundsRect, TexAImg.Bitmap, TexAImg.Bitmap.BoundsRect,
     ABlendRegEx, MasterAlphaBar.Position);
 
-//This is needed because we may use MMX in the custom pixelcombiners
+  //This is needed because we may use MMX in the custom pixelcombiners
   EMMS;
 end;
 

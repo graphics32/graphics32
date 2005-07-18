@@ -4,7 +4,7 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Texture Blend Example'
-  ClientHeight = 650
+  ClientHeight = 665
   ClientWidth = 537
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -26,7 +26,7 @@ object MainForm: TMainForm
   end
   object Label4: TLabel
     Left = 272
-    Top = 72
+    Top = 88
     Width = 258
     Height = 17
     Alignment = taCenter
@@ -44,7 +44,7 @@ object MainForm: TMainForm
   end
   object Label3: TLabel
     Left = 8
-    Top = 72
+    Top = 88
     Width = 258
     Height = 17
     Alignment = taCenter
@@ -62,7 +62,7 @@ object MainForm: TMainForm
   end
   object Label1: TLabel
     Left = 8
-    Top = 360
+    Top = 368
     Width = 258
     Height = 17
     Alignment = taCenter
@@ -80,7 +80,7 @@ object MainForm: TMainForm
   end
   object Label2: TLabel
     Left = 272
-    Top = 360
+    Top = 368
     Width = 258
     Height = 17
     Alignment = taCenter
@@ -115,7 +115,7 @@ object MainForm: TMainForm
   end
   object Label7: TLabel
     Left = 272
-    Top = 48
+    Top = 56
     Width = 53
     Height = 13
     Caption = 'Blendmode'
@@ -152,7 +152,7 @@ object MainForm: TMainForm
   end
   object BlendBox: TComboBox
     Left = 336
-    Top = 48
+    Top = 56
     Width = 193
     Height = 21
     Style = csDropDownList
@@ -176,7 +176,7 @@ object MainForm: TMainForm
   end
   object CombImg: TImage32
     Left = 272
-    Top = 96
+    Top = 112
     Width = 258
     Height = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -190,7 +190,7 @@ object MainForm: TMainForm
   end
   object WeightmapImg: TImage32
     Left = 8
-    Top = 96
+    Top = 112
     Width = 258
     Height = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -204,7 +204,7 @@ object MainForm: TMainForm
   end
   object TexAImg: TImage32
     Left = 8
-    Top = 384
+    Top = 400
     Width = 258
     Height = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -218,7 +218,7 @@ object MainForm: TMainForm
   end
   object TexBImg: TImage32
     Left = 272
-    Top = 384
+    Top = 400
     Width = 258
     Height = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
