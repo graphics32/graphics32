@@ -62,7 +62,7 @@ object MainForm: TMainForm
   end
   object Label1: TLabel
     Left = 8
-    Top = 368
+    Top = 376
     Width = 258
     Height = 17
     Alignment = taCenter
@@ -80,7 +80,7 @@ object MainForm: TMainForm
   end
   object Label2: TLabel
     Left = 272
-    Top = 368
+    Top = 376
     Width = 258
     Height = 17
     Alignment = taCenter
@@ -141,11 +141,11 @@ object MainForm: TMainForm
     Left = 336
     Top = 32
     Width = 193
-    Height = 12
+    Height = 16
     Backgnd = bgPattern
     Max = 255
     ShowArrows = False
-    ShowHandleGrip = False
+    ShowHandleGrip = True
     Style = rbsMac
     Position = 200
     OnChange = MasterAlphaBarChange
