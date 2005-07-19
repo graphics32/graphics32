@@ -107,18 +107,32 @@ end;
 
 procedure TMainForm.GenerateWeightmap(Sender: TObject);
 // Below code is very much based on experimentation, feel free to play around..
+var
+  a, b, c: Single;
+
+  function GenerateSomething(x,y : Single): Single;
+  begin
+    if a < 0.6 then
+      Result := Max(Cos(x * PI * a * 2 + b), Sqr(0.1 + c + x*y - y)) *
+        (Sin(y * b * a) - c + ArcTan2(x + Cos((x - y) * b), y + a))
+    else
+      Result := Cos(x * PI * a * 2 + c) * Sin(y * b * a) +
+        Sin(ArcTan2(x + Cos((x - y) * b), y * c * Sin(x - a)));
+  end;
+
 const
   nS = 1 / 255;
+
 var
   I, J: Integer;
   W : TColor32;
   D, WImg: PColor32;
-  s, a, b, c, x, y: Single;
+  x,y: Single;
 begin
   // Setup some random factors:
-  a := random;
+  a := 0.01 + random;
+  b := random * random * (PI * (20 * a)) - PI * (10 * a);
   c := random - random;
-  b := random * random(100) - 50;
 
   //We use the weightmap as TexB alpha, so we write that on the loop too
   D := @TexBImg.Bitmap.Bits[0];
@@ -128,12 +142,13 @@ begin
     begin
       x := Cos(I * nS + (PI * a));
       y := Sin(J * nS * (PI * c));
-      if a > 0.5 then
-        s := Min(Cos(x * PI * a * 2 + b), Sqr(0.1 + c + x*y) - y) * Min(Sin(y * b * a) - c,  ArcTan2(x + Cos((x - y)*b), y + a))
+      W := Round(EnsureRange(Abs(Min(GenerateSomething(x * c, y),
+        GenerateSomething(y + c , x * a))) * 200, 0, 255));
+      if c > 0 then
+        WImg^ := ColorDifference(WImg^, $FF000000 + W shl 16 + W shl 8 + W)
       else
-        s := Cos(x * PI * a * 2 + c) * Sin(y * b * a) +  ArcTan2(x + Cos((x - y) * b), y * c * Sin(x - a));
-      W := Round(EnsureRange(Abs(S - a) * 200, 0, 255));
-      WImg^ := $FF000000 + W shl 16 + W shl 8 + W;
+        WImg^ := $FF000000 + W shl 16 + W shl 8 + W;
+      EMMS;
       D^ := D^ and $00FFFFFF or W shl 24;
       Inc(D);
       Inc(WImg);
