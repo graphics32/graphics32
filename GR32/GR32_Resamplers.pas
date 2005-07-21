@@ -506,21 +506,21 @@ type
     property Delta: Integer read FDelta write FDelta;
   end;
 
-  { TMorphologicSampler }
-  TMorphologicSampler = class(TKernelSampler)
+  { TMorphologicalSampler }
+  TMorphologicalSampler = class(TKernelSampler)
   public
     function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
   end;
 
   { TDilater }
-  TDilater = class(TMorphologicSampler)
+  TDilater = class(TMorphologicalSampler)
   public
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
 
   { TEroder }
-  TEroder = class(TMorphologicSampler)
+  TEroder = class(TMorphologicalSampler)
     constructor Create(ASampler: TCustomSampler); override;
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
@@ -3376,9 +3376,9 @@ begin
   inherited UpdateBuffer(Buffer, Color xor $FFFFFFFF, Weight);
 end;
 
-{ TMorphologicSampler }
+{ TMorphologicalSampler }
 
-function TMorphologicSampler.ConvertBuffer(
+function TMorphologicalSampler.ConvertBuffer(
   var Buffer: TBufferEntry): TColor32;
 begin
   Buffer.A := Constrain(Buffer.A, 0, $FF);
