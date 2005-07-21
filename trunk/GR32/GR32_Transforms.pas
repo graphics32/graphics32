@@ -1122,7 +1122,7 @@ end;
 function TRemapTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 begin
   // We can't predict the ultimate bounds without transforming each vector in
-  // the vector map, return the absolute biggest possible transformation possible
+  // the vector map, return the absolute biggest possible transformation bounds
   Result := Rect(-MaxInt, -MaxInt, MaxInt, MaxInt);
 end;
 
