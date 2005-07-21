@@ -1,0 +1,34 @@
+<html>
+<head>
+<title>Point Coordinate Types</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Body">Graphics32 currently uses a relative vector system, meaning that a vector have to be applied to a given absolute vector. The relative system propose a wider flexibility, but also a small overhead (the two additions needed). Future versions may introduce a relative/absolute distinction in relevant routines. To make a vector absolute, simply apply actual absolute vertices, but keep in mind that some implementations may expect relative vectors (e.g. <a href="../Classes/TVectorMap/_Body.htm">TRemapTransformation.Vectormap</a> uses relative vectors).</p>
+		<p class="Body">Vector types are defined with following structures:</p>
+		<h2><a name="TFloatVector"></a>TFloatVector</h2>
+		<p class="Decl"><b>type</b> TFloatVector = TFloatPoint;<br>
+		</p>
+<p class="Decl"><b>type</b> PFloatVector = ^TFloatVector;</p>
+<p class="Body">Provides convenient naming, and compatibility with TFloatPoint.</p>
+		<h2><a name="TFixedVector"></a>TFixedVector</h2>
+		<p class="Decl"><b>type</b> TFloatVector = TFixedPoint;<br>
+		</p>
+		<p class="Decl"><b>type</b> PFloatVector = ^TFloatVector;</p>
+		<p class="Body">Provides convenient naming, and compatibility with TFixedPoint.</p>
+		<h2><a name="TArrayOfFloatPoint"></a>TArrayOfFloatPoint</h2>
+		<p class="Decl"><b>type</b> TArrayOfFloatVector = <b>array</b> <b>of</b> <a href="#TFloatVector">TFloatVector</a>; 
+</p>
+		<p class="Decl"><b>type</b> PArrayOfFloatVector = ^TArrayOfFloatVector;</p>
+		<p class="Body">A dynamic array of <a href="#TFloatVector">TFloatVector</a>.</p>
+		<h2><a name="TArrayOfFixedPoint"></a>TArrayOfFixedPoint </h2>
+<p class="Decl"><b>type</b> TArrayOfFixedVector = <b>array</b> <b>of</b> <a href="#TFixedVector">TFixedVector</a>; 
+</p>
+		<p class="Decl"><b>type</b> PArrayOfFixedVector = ^TArrayOfFixedVector;</p>
+		<p class="Body">A dynamic array of <a href="#TFixedVector">TFixedVector</a>.</p>
+		<h2></h2>
+		<p id="Hidden">[See Also] <a href="../../GR32/Routines/Creating%20Points.htm">Creating 
+  Points</a></p>
+	</body>
+</html>
