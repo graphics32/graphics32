@@ -720,7 +720,7 @@ type
   public
     function GetSampleInt(X, Y: Integer): TColor32; virtual;
     function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
-    function GetSampleFloat(X, Y: Single): TColor32; virtual; abstract;
+    function GetSampleFloat(X, Y: Single): TColor32; virtual;
     procedure PrepareSampling; virtual;
     procedure FinalizeSampling; virtual;
     function HasBounds: Boolean; virtual;
@@ -744,7 +744,7 @@ implementation
 
 uses
   GR32_Blend, GR32_Transforms, GR32_Filters, GR32_LowLevel, GR32_Math, Math,
-  { TypInfo, } GR32_System, GR32_Resamplers,
+  GR32_System, GR32_Resamplers,
 {$IFDEF CLX}
   QClipbrd,
 {$ELSE}
@@ -1005,6 +1005,9 @@ begin
       3: Result := Color32(M, M - VSF, V, 0);
       4: Result := Color32(M + VSF, M, V, 0);
       5: Result := Color32(V, M, M - VSF, 0);
+    else
+      // This should never happen
+      Result := clBlack32;
     end;
   end;
 end;
@@ -5485,6 +5488,11 @@ end;
 function TCustomSampler.GetSampleFixed(X, Y: TFixed): TColor32;
 begin
   Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
+end;
+
+function TCustomSampler.GetSampleFloat(X, Y: Single): TColor32;
+begin
+  Result := GetSampleFixed(Fixed(X), Fixed(Y));
 end;
 
 procedure TCustomSampler.PrepareSampling;
