@@ -1,0 +1,15 @@
+<html>
+<head>
+<title>GetTransformedBounds</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> GetTransformedBounds: <a href="../../../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>; 
+  <b>override</b>;</p>
+		<h2>Description</h2>
+		<p class="Body">TRemapTransformation does not support transformed bounds retrieval. This can be determined calling <a href="HasTransformedBounds.htm">HasTransformedBounds</a>. However if called anyway, it returns Rect(-MaxInt, -MaxInt, MaxInt, MaxInt). The reason is that the transformed bounds cannot be predicted without transforming each vector in the vector map (an extreme overhead in performance), so the absolute most extreme transformed bounds will be returned.</p>
+		<p class="Code"></p>
+		<p id="hidden">[See also]: </p>
+</body>
+</html>
