@@ -13,7 +13,7 @@ unit GR32_VectorMaps;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is GR32_VectorMaps
  *
  * The Initial Developer of the Original Code is
  * Michael Hansen <dyster_tid@hotmail.com>
@@ -80,7 +80,7 @@ type
     property Vectors: PFixedPointArray read GetVectors;
     function BoundsRect: TRect;
     function GetTrimmedBounds: TRect;
-    function IsEmpty: Boolean;
+    function Empty: Boolean;
     procedure LoadFromFile(const FileName: string);
     procedure SaveToFile(const FileName: string);
 
@@ -180,11 +180,14 @@ end;
 
 function TVectorMap.GetFloatVectorS(X, Y: Integer): TFloatVector;
 begin
-  if X < 0 then X := 0 else
-    if X >= Width then X := Width - 1;
-  if Y < 0 then Y := 0 else
-    if Y >= Height then Y := Height - 1;
-  Result := GetFloatVector(X,Y);
+  if (X >= 0) and (Y >= 0) and
+   (X < Width) and (Y < Height) then
+     Result := GetFloatVector(X,Y)
+    else
+    begin
+      Result.X := 0;
+      Result.Y := 0;
+    end;
 end;
 
 function TVectorMap.GetFixedVector(X, Y: Integer): TFixedVector;
@@ -194,11 +197,14 @@ end;
 
 function TVectorMap.GetFixedVectorS(X, Y: Integer): TFixedVector;
 begin
-  if X < 0 then X := 0 else
-    if X >= Width then X := Width - 1;
-  if Y < 0 then Y := 0 else
-    if Y >= Height then Y := Height - 1;
-  Result := GetFixedVector(X,Y);
+  if (X >= 0) and (Y >= 0) and
+    (X < Width) and (Y < Height) then
+      Result := GetFixedVector(X,Y)
+    else
+    begin
+      Result.X := 0;
+      Result.Y := 0;
+    end;
 end;
 
 function TVectorMap.GetFixedVectorX(X, Y: TFixed): TFixedVector;
@@ -232,7 +238,6 @@ function TVectorMap.GetFixedVectorXS(X, Y: TFixed): TFixedVector;
 var
   WX,WY: TFixed;
 begin
-
   WX := TFixedRec(X).Frac;
   X := TFixedRec(X).Int;
 
@@ -243,7 +248,7 @@ begin
                               CombineVectorsReg(FixedVectorS[X,Y + 1], FixedVectorS[X + 1,Y + 1], WX), WY);
 end;
 
-function TVectorMap.IsEmpty: Boolean;
+function TVectorMap.Empty: Boolean;
 begin
   Result := false;
   if (Width = 0) or (Height = 0) or (FVectors = nil)then Result := True;
@@ -305,8 +310,8 @@ var
   DstPtr : PFixedPointArray;
   SrcPtr : PFixedPoint;
 begin
-  if Src.IsEmpty then Exception.Create('Src is empty!');
-  if IsEmpty then Exception.Create('Base is empty!');
+  if Src.Empty then Exception.Create('Src is empty!');
+  if Empty then Exception.Create('Base is empty!');
   IntersectRect( SrcRect, Src.BoundsRect, SrcRect);
 
   DstRect.Left := DstLeft;
