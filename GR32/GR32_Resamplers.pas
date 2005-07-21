@@ -78,10 +78,11 @@ type
   TCustomKernel = class(TPersistent)
   protected
     FOwner: TThreadPersistent;
-  public
-    constructor Create(AOwner: TThreadPersistent); virtual;
-    procedure Changed; virtual;
+  protected
     function RangeCheck: Boolean; virtual;
+  public
+    procedure Changed; virtual;
+    constructor Create(AOwner: TThreadPersistent); virtual;
     function Filter(Value: Single): Single; virtual; abstract;
     function GetWidth: Single; virtual; abstract;
     property Owner: TThreadPersistent read FOwner;
@@ -111,18 +112,20 @@ type
 
   { TSplineResampler }
   TSplineKernel = class(TCustomKernel)
+  protected
+    function RangeCheck: Boolean; override;
   public
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
-    function RangeCheck: Boolean; override;
   end;
 
   { TMitchellResampler }
   TMitchellKernel = class(TCustomKernel)
+  protected
+    function RangeCheck: Boolean; override;
   public
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
-    function RangeCheck: Boolean; override;
   end;
 
   { TCubicResampler }
@@ -130,11 +133,12 @@ type
   private
     FCoeff: Single;
     procedure SetCoeff(const Value: Single);
+  protected
+    function RangeCheck: Boolean; override;
   public
     constructor Create(AOwner: TThreadPersistent); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
-    function RangeCheck: Boolean; override;
   published
     property Coeff: Single read FCoeff write SetCoeff;
   end;
@@ -146,11 +150,12 @@ type
     FTension: Single;
     procedure SetBias(const Value: Single);
     procedure SetTension(const Value: Single);
+  protected
+    function RangeCheck: Boolean; override;
   public
     constructor Create(AOwner: TThreadPersistent); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
-    function RangeCheck: Boolean; override;
   published
     property Bias: Single read FBias write SetBias;
     property Tension: Single read FTension write SetTension;
@@ -160,13 +165,14 @@ type
   TWindowedSincKernel = class(TCustomKernel)
   private
     FWidth: Single;
+  protected
+    function RangeCheck: Boolean; override;
   public
     constructor Create(AOwner: TThreadPersistent); override;
     function Filter(Value: Single): Single; override;
     function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
     function GetWidth: Single; override;
-    function RangeCheck: Boolean; override;
   published
     property Width: Single read FWidth write SetWidth;
   end;
@@ -213,12 +219,13 @@ type
     FWidth: Single;
     FCoeff: Single;
     procedure SetCoeff(const Value: Single);
+  protected
+    function  RangeCheck: Boolean; override;
   public
     constructor Create(AOwner: TThreadPersistent); override;
     procedure SetWidth(Value: Single);
     function  GetWidth: Single; override;
     function  Filter(Value: Single): Single; override;
-    function  RangeCheck: Boolean; override;
   published
     property Coeff: Single read FCoeff write SetCoeff;
     property Width: Single read GetWidth write SetWidth;
@@ -238,8 +245,9 @@ type
     FClipRect: TRect;
     FTransformerClass: TTransformerClass;
     FPixelAccessMode: TPixelAccessMode;
+    procedure SetPixelAccessMode(const Value: TPixelAccessMode);
   public
-    constructor Create(ABitmap: TBitmap32); reintroduce; virtual; 
+    constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     procedure Changed; override;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
@@ -247,7 +255,7 @@ type
     property Bitmap: TBitmap32 read FBitmap write FBitmap;
     property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
   published
-    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write FPixelAccessMode default pamSafe;
+    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write SetPixelAccessMode default pamSafe;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
 
@@ -468,6 +476,9 @@ type
     FStartEntry: TBufferEntry;
     FCenterX: Integer;
     FCenterY: Integer;
+    procedure SetCenterX(const Value: Integer);
+    procedure SetCenterY(const Value: Integer);
+    procedure SetKernel(const Value: TIntegerMap);
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); virtual; abstract;
@@ -478,9 +489,9 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property Kernel: TIntegerMap read FKernel write FKernel;
-    property CenterX: Integer read FCenterX write FCenterX;
-    property CenterY: Integer read FCenterY write FCenterY;
+    property Kernel: TIntegerMap read FKernel write SetKernel;
+    property CenterX: Integer read FCenterX write SetCenterX;
+    property CenterY: Integer read FCenterY write SetCenterY;
   end;
 
   { TConvolver }
@@ -496,6 +507,7 @@ type
     FRefColor: TColor32;
     FDelta: Integer;
     FWeightSum: TBufferEntry;
+    procedure SetDelta(const Value: Integer);
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
@@ -505,7 +517,7 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property Delta: Integer read FDelta write FDelta;
+    property Delta: Integer read FDelta write SetDelta;
   end;
 
   { TMorphologicalSampler }
@@ -2298,6 +2310,16 @@ begin
   FClipRect := FBitmap.ClipRect;
 end;
 
+procedure TBitmap32Resampler.SetPixelAccessMode(
+  const Value: TPixelAccessMode);
+begin
+  if FPixelAccessMode <> Value then
+  begin
+    FPixelAccessMode := Value;
+    Changed;
+  end;
+end;
+
 { TKernelResampler }
 
 constructor TKernelResampler.Create(Bitmap: TBitmap32);
@@ -2809,10 +2831,14 @@ end;
 
 procedure TTransformer.SetTransformation(const Value: TTransformation);
 begin
-  FTransformation := Value;
-  FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
-  FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
-  FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+  if FTransformation <> Value then
+  begin
+    FTransformation := Value;
+    FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
+    FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
+    FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+    Changed;
+  end;
 end;
 
 constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTransformation);
@@ -2905,23 +2931,25 @@ end;
 
 procedure TSuperSampler.SetSamplingX(const Value: TSamplingRange);
 begin
-  if Value > 0 then
+  if FSamplingX <> Value then
   begin
     FSamplingX := Value;
     FDistanceX := Fixed(1 / Value);
     FOffsetX := Fixed(((1 / Value) - 1) / 2);
     FScale := Fixed(1 / (FSamplingX * FSamplingY));
+    Changed;
   end;
 end;
 
 procedure TSuperSampler.SetSamplingY(const Value: TSamplingRange);
 begin
-  if Value > 0 then
+  if FSamplingY <> Value then
   begin
     FSamplingY := Value;
     FDistanceY := Fixed(1 / Value);
     FOffsetY := Fixed(((1 / Value) - 1) / 2);
     FScale := Fixed(1 / (FSamplingX * FSamplingY));
+    Changed;
   end;
 end;
 
@@ -3004,13 +3032,21 @@ end;
 
 procedure TAdaptiveSuperSampler.SetLevel(const Value: Integer);
 begin
-  FLevel := Value;
-  FMinOffset := Fixed(1 / (1 shl Value));
+  if FLevel <> Value then
+  begin
+    FLevel := Value;
+    FMinOffset := Fixed(1 / (1 shl Value));
+    Changed;
+  end;
 end;
 
 procedure TAdaptiveSuperSampler.SetTolerance(const Value: Integer);
 begin
-  FTolerance := Value;
+  if FTolerance <> Value then
+  begin
+    FTolerance := Value;
+    Changed;
+  end;
 end;
 
 
@@ -3076,6 +3112,7 @@ begin
   FPattern := Value;
   FPatternHeight := Length(FPattern);
   FPatternWidth := Length(FPattern[0]);
+  Changed;
 end;
 
 function JitteredPattern(XRes, YRes: Integer): TFixedPointList;
@@ -3224,10 +3261,14 @@ end;
 
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
 begin
-  FSampler := Value;
-  FGetSampleInt := FSampler.GetSampleInt;
-  FGetSampleFixed := FSampler.GetSampleFixed;
-  FGetSampleFloat := FSampler.GetSampleFloat;
+  if FSampler <> Value then
+  begin
+    FSampler := Value;
+    FGetSampleInt := FSampler.GetSampleInt;
+    FGetSampleFixed := FSampler.GetSampleFixed;
+    FGetSampleFloat := FSampler.GetSampleFloat;
+    Changed;
+  end;
 end;
 
 
@@ -3286,6 +3327,33 @@ begin
   Result := ConvertBuffer(Buffer);
 end;
 
+
+procedure TKernelSampler.SetCenterX(const Value: Integer);
+begin
+  if FCenterX <> Value then
+  begin
+    FCenterX := Value;
+    Changed;
+  end;
+end;
+
+procedure TKernelSampler.SetCenterY(const Value: Integer);
+begin
+  if FCenterY <> Value then
+  begin
+    FCenterY := Value;
+    Changed;
+  end;
+end;
+
+procedure TKernelSampler.SetKernel(const Value: TIntegerMap);
+begin
+  if FKernel <> Value then
+  begin
+    FKernel := Value;
+    Changed;
+  end;
+end;
 
 { TConvolver }
 
@@ -3431,6 +3499,15 @@ begin
   FRefColor := FGetSampleInt(X, Y);
   FWeightSum := EMPTY_ENTRY;
   Result := inherited GetSampleInt(X, Y);
+end;
+
+procedure TSelectiveConvolver.SetDelta(const Value: Integer);
+begin
+  if FDelta <> Value then
+  begin
+    FDelta := Value;
+    Changed;
+  end;
 end;
 
 procedure TSelectiveConvolver.UpdateBuffer(var Buffer: TBufferEntry;
