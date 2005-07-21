@@ -468,14 +468,15 @@ type
     FStartEntry: TBufferEntry;
     FCenterX: Integer;
     FCenterY: Integer;
+  protected
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); virtual; abstract;
+    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; virtual;
   public
     constructor Create(ASampler: TCustomSampler); override;
     destructor Destroy; override;
-    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
-      Weight: Integer); virtual; abstract;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; virtual;
   published
     property Kernel: TIntegerMap read FKernel write FKernel;
     property CenterX: Integer read FCenterX write FCenterX;
@@ -484,7 +485,7 @@ type
 
   { TConvolver }
   TConvolver = class(TKernelSampler)
-  public
+  protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
@@ -495,40 +496,43 @@ type
     FRefColor: TColor32;
     FDelta: Integer;
     FWeightSum: TBufferEntry;
+  protected
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
+    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
   public
     constructor Create(ASampler: TCustomSampler); override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
-      Weight: Integer); override;
-    function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
   published
     property Delta: Integer read FDelta write FDelta;
   end;
 
   { TMorphologicalSampler }
   TMorphologicalSampler = class(TKernelSampler)
-  public
+  protected
     function ConvertBuffer(var Buffer: TBufferEntry): TColor32; override;
   end;
 
   { TDilater }
   TDilater = class(TMorphologicalSampler)
-  public
+  protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
 
   { TEroder }
   TEroder = class(TMorphologicalSampler)
-    constructor Create(ASampler: TCustomSampler); override;
+  protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
+  public
+    constructor Create(ASampler: TCustomSampler); override;
   end;
 
   { TExpander }
   TExpander = class(TKernelSampler)
-  public
+  protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
   end;
@@ -537,12 +541,13 @@ type
   TContracter = class(TExpander)
   private
     FMaxWeight: TColor32;
+  protected
+    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
+      Weight: Integer); override;
   public
     procedure PrepareSampling; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
-      Weight: Integer); override;
   end;
 
 function CreateJitteredPattern(TileWidth, TileHeight, SamplesX, SamplesY: Integer): TFixedSamplePattern;
