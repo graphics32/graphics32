@@ -1392,7 +1392,7 @@ begin
 
   if FInvalidRects.Count = 0 then
   begin
-    Buffer.ResetClipRect;
+    Buffer.ClipRect := Self.GetViewportRect;
     for I := 0 to PaintStageHandlerCount - 1 do
       FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
   end
