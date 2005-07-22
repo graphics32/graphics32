@@ -716,7 +716,7 @@ type
 {$ENDIF}
 
   { TCustomSampler }
-  TCustomSampler = class(TThreadPersistent)
+  TCustomSampler = class(TPersistent)
   public
     function GetSampleInt(X, Y: Integer): TColor32; virtual;
     function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
