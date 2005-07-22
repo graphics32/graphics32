@@ -2536,7 +2536,7 @@ begin
         VertKernel := @FVertKernel[Width];
 
         Dev := -256;
-        for I := LoX to HiX do
+        for I := -Width to Width do
         begin
           W := Round(Filter(I + fracXS) * 256);
           HorzKernel[I] := W;
@@ -2545,7 +2545,7 @@ begin
         Dec(HorzKernel[0], Dev);
 
         Dev := -256;
-        for I := LoY to HiY do
+        for I := -Width to Width do
         begin
           W := Round(Filter(I + fracYS) * 256);
           VertKernel[I] := W;
@@ -2571,7 +2571,7 @@ begin
           FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           Dev := -256;
-          for I := LoX to HiX do
+          for I := -Width to Width do
           begin
             Wv :=  FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
             HorzKernel[I] := Wv;
@@ -2587,7 +2587,7 @@ begin
           FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           Dev := -256;
-          for I := LoY to HiY do
+          for I := -Width to Width do
           begin
             Wv := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
             VertKernel[I] := Wv;
