@@ -74,18 +74,20 @@ type
   TGetSampleFloat = function(X, Y: Single): TColor32 of object;
   TGetSampleFixed = function(X, Y: TFixed): TColor32 of object;
 
+  TBitmap32Resampler = class;
+
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
-    FOwner: TThreadPersistent;
+    FResampler: TBitmap32Resampler;
   protected
     function RangeCheck: Boolean; virtual;
   public
-    procedure Changed; virtual;
-    constructor Create(AOwner: TThreadPersistent); virtual;
+    procedure Changed;
+    constructor Create(AResampler: TBitmap32Resampler); virtual;
     function Filter(Value: Single): Single; virtual; abstract;
     function GetWidth: Single; virtual; abstract;
-    property Owner: TThreadPersistent read FOwner;
+    property Resampler: TBitmap32Resampler read FResampler;
   end;
   TCustomKernelClass = class of TCustomKernel;
     
@@ -136,7 +138,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create(AOwner: TThreadPersistent); override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
   published
@@ -153,7 +155,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create(AOwner: TThreadPersistent); override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
   published
@@ -168,7 +170,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create(AOwner: TThreadPersistent); override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Filter(Value: Single): Single; override;
     function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
@@ -189,7 +191,7 @@ type
     FSigma: Single;
     procedure SetSigma(const Value: Single);
   public
-    constructor Create(AOwner: TThreadPersistent); override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Window(Value: Single): Single; override;
   published
     property Sigma: Single read FSigma write SetSigma;
@@ -222,7 +224,7 @@ type
   protected
     function  RangeCheck: Boolean; override;
   public
-    constructor Create(AOwner: TThreadPersistent); override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     procedure SetWidth(Value: Single);
     function  GetWidth: Single; override;
     function  Filter(Value: Single): Single; override;
@@ -246,9 +248,9 @@ type
     FTransformerClass: TTransformerClass;
     FPixelAccessMode: TPixelAccessMode;
     procedure SetPixelAccessMode(const Value: TPixelAccessMode);
-  public
+  public      
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
-    procedure Changed; override;
+    procedure Changed;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
     function GetSampleBounds: TRect; override;
@@ -285,7 +287,7 @@ type
   protected
     function GetWidth: Single; override;
   public
-    constructor Create(Bitmap: TBitmap32); override;
+    constructor Create(ABitmap: TBitmap32); override;
     destructor Destroy; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure Resample(
@@ -428,7 +430,6 @@ type
     FLevel: Integer;
     FTolerance: Integer;
     procedure SetLevel(const Value: Integer);
-    procedure SetTolerance(const Value: Integer);
     function DoRecurse(X, Y, Offset: TFixed; const A, B, C, D, E: TColor32): TColor32;
     function QuadrantColor(const C1, C2: TColor32; X, Y, Offset: TFixed;
       Proc: TRecurseProc): TColor32;
@@ -441,7 +442,7 @@ type
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
     property Level: Integer read FLevel write SetLevel;
-    property Tolerance: Integer read FTolerance write SetTolerance;
+    property Tolerance: Integer read FTolerance write FTolerance;
   end;
 
   { TPatternSampler }
@@ -476,9 +477,6 @@ type
     FStartEntry: TBufferEntry;
     FCenterX: Integer;
     FCenterY: Integer;
-    procedure SetCenterX(const Value: Integer);
-    procedure SetCenterY(const Value: Integer);
-    procedure SetKernel(const Value: TIntegerMap);
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); virtual; abstract;
@@ -489,9 +487,9 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property Kernel: TIntegerMap read FKernel write SetKernel;
-    property CenterX: Integer read FCenterX write SetCenterX;
-    property CenterY: Integer read FCenterY write SetCenterY;
+    property Kernel: TIntegerMap read FKernel write FKernel;
+    property CenterX: Integer read FCenterX write FCenterX;
+    property CenterY: Integer read FCenterY write FCenterY;
   end;
 
   { TConvolver }
@@ -507,7 +505,6 @@ type
     FRefColor: TColor32;
     FDelta: Integer;
     FWeightSum: TBufferEntry;
-    procedure SetDelta(const Value: Integer);
   protected
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); override;
@@ -517,7 +514,7 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property Delta: Integer read FDelta write SetDelta;
+    property Delta: Integer read FDelta write FDelta;
   end;
 
   { TMorphologicalSampler }
@@ -1981,14 +1978,12 @@ end;
 
 procedure TCustomKernel.Changed;
 begin
-  if Assigned(FOwner) then FOwner.Changed;
+  if Assigned(FResampler) then FResampler.Changed;
 end;
 
-constructor TCustomKernel.Create(AOwner: TThreadPersistent);
+constructor TCustomKernel.Create(AResampler: TBitmap32Resampler);
 begin
-  FOwner := AOwner;
-  if AOwner is TKernelResampler then
-    TKernelResampler(AOwner).Kernel := Self;
+  FResampler := AResampler;
 end;
 
 function TCustomKernel.RangeCheck: Boolean;
@@ -2081,9 +2076,9 @@ begin
   else Result := 1;
 end;
 
-constructor TWindowedSincKernel.Create(AOwner: TThreadPersistent);
+constructor TWindowedSincKernel.Create(AResampler: TBitmap32Resampler);
 begin
-  inherited Create(AOwner);
+  inherited Create(AResampler);
   FWidth := 3;
 end;
 
@@ -2148,9 +2143,9 @@ end;
 
 { TCubicKernel }
 
-constructor TCubicKernel.Create(AOwner: TThreadPersistent);
+constructor TCubicKernel.Create(AResampler: TBitmap32Resampler);
 begin
-  inherited Create(AOwner);
+  inherited Create(AResampler);
   FCoeff := -0.5;
 end;
 
@@ -2234,9 +2229,9 @@ end;
 
 { TSinshKernel }
 
-constructor TSinshKernel.Create(AOwner: TThreadPersistent);
+constructor TSinshKernel.Create(AResampler: TBitmap32Resampler);
 begin
-  inherited Create(AOwner);
+  inherited Create(AResampler);
   FWidth := 3;
   FCoeff := 0.5;
 end;
@@ -2277,11 +2272,77 @@ begin
   end;
 end;
 
+{ THermiteKernel }
+
+constructor THermiteKernel.Create(AResampler: TBitmap32Resampler);
+begin
+  inherited Create(AResampler);
+  FBias := 0;
+  FTension := 0;
+end;
+
+function THermiteKernel.Filter(Value: Single): Single;
+var
+  Z: Integer;
+  t, t2, t3, m0, m1, a0, a1, a2, a3: Single;
+begin
+  t := (1 - FTension) * 0.5;
+  m0 := (1 + FBias) * t;
+  m1 := (1 - FBias) * t;
+
+  Z := Floor(Value);
+  t := Abs(Z - Value);
+  t2 := t * t;
+  t3 := t2 * t;
+
+  a1 := t3 - 2 * t2 + t;
+  a2 := t3 - t2;
+  a3 := -2 * t3 + 3 * t2;
+  a0 := -a3 + 1;
+
+  case Z of
+    -2: Result := a2 * m1;
+    -1: Result := a3 + a1 * m1 + a2 * (m0 - m1);
+     0: Result := a0 + a1 * (m0 - m1) - a2 * m0;
+     1: Result := -a1 * m0;
+  else
+    Result := 0;
+  end;
+end;
+
+function THermiteKernel.GetWidth: Single;
+begin
+  Result := 2;
+end;
+
+function THermiteKernel.RangeCheck: Boolean;
+begin
+  Result := True;
+end;
+
+procedure THermiteKernel.SetBias(const Value: Single);
+begin
+  if FBias <> Value then
+  begin
+    FBias := Value;
+    Changed;
+  end;
+end;
+
+procedure THermiteKernel.SetTension(const Value: Single);
+begin
+  if FTension <> Value then
+  begin
+    FTension := Value;
+    Changed;
+  end;
+end;
+
+
 { TBitmap32Resampler }
 
 procedure TBitmap32Resampler.Changed;
 begin
-  inherited;
   if Assigned(FBitmap) then FBitmap.Changed;
 end;
 
@@ -2322,10 +2383,10 @@ end;
 
 { TKernelResampler }
 
-constructor TKernelResampler.Create(Bitmap: TBitmap32);
+constructor TKernelResampler.Create(ABitmap: TBitmap32);
 begin
-  inherited Create(Bitmap);
-  FKernel := TNearestKernel.Create(Bitmap);
+  inherited Create(ABitmap);
+  FKernel := TNearestKernel.Create(Self);
   FTableSize := 32;
 end;
 
@@ -2350,7 +2411,7 @@ begin
     if Assigned(KernelClass) then
     begin
       FKernel.Free;
-      FKernel := KernelClass.Create(Bitmap);
+      FKernel := KernelClass.Create(Self);
       Changed;
     end;
   end;
@@ -2742,7 +2803,7 @@ end;
 constructor TLinearResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
-  FLinearKernel := TLinearKernel.Create(Bitmap);
+  FLinearKernel := TLinearKernel.Create(Self);
 end;
 
 destructor TLinearResampler.Destroy;
@@ -2831,14 +2892,10 @@ end;
 
 procedure TTransformer.SetTransformation(const Value: TTransformation);
 begin
-  if FTransformation <> Value then
-  begin
-    FTransformation := Value;
-    FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
-    FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
-    FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
-    Changed;
-  end;
+  FTransformation := Value;
+  FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
+  FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
+  FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
 end;
 
 constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTransformation);
@@ -2931,26 +2988,18 @@ end;
 
 procedure TSuperSampler.SetSamplingX(const Value: TSamplingRange);
 begin
-  if FSamplingX <> Value then
-  begin
-    FSamplingX := Value;
-    FDistanceX := Fixed(1 / Value);
-    FOffsetX := Fixed(((1 / Value) - 1) / 2);
-    FScale := Fixed(1 / (FSamplingX * FSamplingY));
-    Changed;
-  end;
+  FSamplingX := Value;
+  FDistanceX := Fixed(1 / Value);
+  FOffsetX := Fixed(((1 / Value) - 1) / 2);
+  FScale := Fixed(1 / (FSamplingX * FSamplingY));
 end;
 
 procedure TSuperSampler.SetSamplingY(const Value: TSamplingRange);
 begin
-  if FSamplingY <> Value then
-  begin
-    FSamplingY := Value;
-    FDistanceY := Fixed(1 / Value);
-    FOffsetY := Fixed(((1 / Value) - 1) / 2);
-    FScale := Fixed(1 / (FSamplingX * FSamplingY));
-    Changed;
-  end;
+  FSamplingY := Value;
+  FDistanceY := Fixed(1 / Value);
+  FOffsetY := Fixed(((1 / Value) - 1) / 2);
+  FScale := Fixed(1 / (FSamplingX * FSamplingY));
 end;
 
 { TAdaptiveSuperSampler }
@@ -3032,50 +3081,8 @@ end;
 
 procedure TAdaptiveSuperSampler.SetLevel(const Value: Integer);
 begin
-  if FLevel <> Value then
-  begin
-    FLevel := Value;
-    FMinOffset := Fixed(1 / (1 shl Value));
-    Changed;
-  end;
-end;
-
-procedure TAdaptiveSuperSampler.SetTolerance(const Value: Integer);
-begin
-  if FTolerance <> Value then
-  begin
-    FTolerance := Value;
-    Changed;
-  end;
-end;
-
-
-procedure SetupFunctions;
-var
-  MMX_ACTIVE: Boolean;
-  ACTIVE_3DNow: Boolean;
-begin
-  MMX_ACTIVE := HasMMX;
-  ACTIVE_3DNow := Has3DNow;
-  if ACTIVE_3DNow then
-  begin
-   { link 3DNow functions }
-   BlockAverage := BlockAverage_3DNow;
-   LinearInterpolator:= M_LinearInterpolator;
-  end
-  else
-  if MMX_ACTIVE then
-  begin
-   { link MMX functions }
-   BlockAverage:= BlockAverage_MMX;
-   LinearInterpolator:= M_LinearInterpolator;
-  end
-  else
-  begin
-   { link IA32 functions }
-   BlockAverage:= BlockAverage_IA32;
-   LinearInterpolator:= _LinearInterpolator;
-  end
+  FLevel := Value;
+  FMinOffset := Fixed(1 / (1 shl Value));
 end;
 
 { TPatternSampler }
@@ -3112,7 +3119,6 @@ begin
   FPattern := Value;
   FPatternHeight := Length(FPattern);
   FPatternWidth := Length(FPattern[0]);
-  Changed;
 end;
 
 function JitteredPattern(XRes, YRes: Integer): TFixedPointList;
@@ -3137,72 +3143,6 @@ begin
   for I := 0 to TileWidth - 1 do
     for J := 0 to TileHeight - 1 do
       Result[J][I] := JitteredPattern(SamplesX, SamplesY);
-end;
-
-{ THermiteKernel }
-
-constructor THermiteKernel.Create(AOwner: TThreadPersistent);
-begin
-  inherited Create(AOwner);
-  FBias := 0;
-  FTension := 0;
-end;
-
-function THermiteKernel.Filter(Value: Single): Single;
-var
-  Z: Integer;
-  t, t2, t3, m0, m1, a0, a1, a2, a3: Single;
-begin
-  t := (1 - FTension) * 0.5;
-  m0 := (1 + FBias) * t;
-  m1 := (1 - FBias) * t;
-
-  Z := Floor(Value);
-  t := Abs(Z - Value);
-  t2 := t * t;
-  t3 := t2 * t;
-
-  a1 := t3 - 2 * t2 + t;
-  a2 := t3 - t2;
-  a3 := -2 * t3 + 3 * t2;
-  a0 := -a3 + 1;
-
-  case Z of
-    -2: Result := a2 * m1;
-    -1: Result := a3 + a1 * m1 + a2 * (m0 - m1);
-     0: Result := a0 + a1 * (m0 - m1) - a2 * m0;
-     1: Result := -a1 * m0;
-  else
-    Result := 0;
-  end;
-end;
-
-function THermiteKernel.GetWidth: Single;
-begin
-  Result := 2;
-end;
-
-function THermiteKernel.RangeCheck: Boolean;
-begin
-  Result := True;
-end;
-
-procedure THermiteKernel.SetBias(const Value: Single);
-begin
-  if FBias <> Value then
-  begin
-    FBias := Value;
-    Changed;
-  end;
-end;
-
-procedure THermiteKernel.SetTension(const Value: Single);
-begin
-  if FTension <> Value then
-  begin
-    FTension := Value;
-    Changed;
-  end;
 end;
 
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
@@ -3261,14 +3201,10 @@ end;
 
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
 begin
-  if FSampler <> Value then
-  begin
-    FSampler := Value;
-    FGetSampleInt := FSampler.GetSampleInt;
-    FGetSampleFixed := FSampler.GetSampleFixed;
-    FGetSampleFloat := FSampler.GetSampleFloat;
-    Changed;
-  end;
+  FSampler := Value;
+  FGetSampleInt := FSampler.GetSampleInt;
+  FGetSampleFixed := FSampler.GetSampleFixed;
+  FGetSampleFloat := FSampler.GetSampleFloat;
 end;
 
 
@@ -3325,34 +3261,6 @@ begin
       UpdateBuffer(Buffer, FGetSampleInt(X - I, Y - J), FKernel[I, J]);
 
   Result := ConvertBuffer(Buffer);
-end;
-
-
-procedure TKernelSampler.SetCenterX(const Value: Integer);
-begin
-  if FCenterX <> Value then
-  begin
-    FCenterX := Value;
-    Changed;
-  end;
-end;
-
-procedure TKernelSampler.SetCenterY(const Value: Integer);
-begin
-  if FCenterY <> Value then
-  begin
-    FCenterY := Value;
-    Changed;
-  end;
-end;
-
-procedure TKernelSampler.SetKernel(const Value: TIntegerMap);
-begin
-  if FKernel <> Value then
-  begin
-    FKernel := Value;
-    Changed;
-  end;
 end;
 
 { TConvolver }
@@ -3501,15 +3409,6 @@ begin
   Result := inherited GetSampleInt(X, Y);
 end;
 
-procedure TSelectiveConvolver.SetDelta(const Value: Integer);
-begin
-  if FDelta <> Value then
-  begin
-    FDelta := Value;
-    Changed;
-  end;
-end;
-
 procedure TSelectiveConvolver.UpdateBuffer(var Buffer: TBufferEntry;
   Color: TColor32; Weight: Integer);
 begin
@@ -3536,6 +3435,34 @@ begin
       Inc(FWeightSum.B, Weight);
     end;
   end;
+end;
+
+procedure SetupFunctions;
+var
+  MMX_ACTIVE: Boolean;
+  ACTIVE_3DNow: Boolean;
+begin
+  MMX_ACTIVE := HasMMX;
+  ACTIVE_3DNow := Has3DNow;
+  if ACTIVE_3DNow then
+  begin
+    { link 3DNow functions }
+    BlockAverage := BlockAverage_3DNow;
+    LinearInterpolator:= M_LinearInterpolator;
+  end
+  else
+  if MMX_ACTIVE then
+  begin
+    { link MMX functions }
+    BlockAverage := BlockAverage_MMX;
+    LinearInterpolator := M_LinearInterpolator;
+  end
+  else
+  begin
+    { link IA32 functions }
+    BlockAverage := BlockAverage_IA32;
+    LinearInterpolator := _LinearInterpolator;
+  end
 end;
 
 initialization
