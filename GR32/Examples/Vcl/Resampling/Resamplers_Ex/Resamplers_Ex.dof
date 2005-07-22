@@ -151,10 +151,3 @@ d:\program\borland\delphi7\Projects\Bpl\andre.bpl=(untitled)
 d:\program\borland\delphi7\Projects\Bpl\DelphiX_for7.bpl=UnDelphiX - DirectX components for Delphi
 d:\program\borland\delphi7\Projects\Bpl\W2kDebugFix50.bpl=W2k Debug Breakpoint Fixup
 d:\program\borland\delphi7\Projects\Bpl\GLCg7.bpl=GLScene - Cg Shaders
-[HistoryLists\hlUnitAliases]
-Count=1
-Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
-[HistoryLists\hlSearchPath]
-Count=2
-Item0=..\..\..
-Item1=..\..
