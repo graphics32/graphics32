@@ -1,9 +1,9 @@
 object Form1: TForm1
-  Left = 298
-  Top = 268
-  Width = 488
-  Height = 418
-  Caption = 'FineResample Ex'
+  Left = 270
+  Top = 228
+  Width = 483
+  Height = 422
+  Caption = 'Resamplers Ex'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -16,10 +16,10 @@ object Form1: TForm1
   PixelsPerInch = 96
   TextHeight = 13
   object SidePanel: TPanel
-    Left = 334
+    Left = 329
     Top = 0
     Width = 146
-    Height = 389
+    Height = 374
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -150,9 +150,9 @@ object Form1: TForm1
       object TableSizeLabel: TLabel
         Left = 8
         Top = 116
-        Width = 67
+        Width = 97
         Height = 13
-        Caption = 'Table Size: 32'
+        Caption = 'Table Size (32/100):'
       end
       object Panel1: TPanel
         Left = 1
@@ -219,8 +219,8 @@ object Form1: TForm1
   object PageControl1: TPageControl
     Left = 0
     Top = 0
-    Width = 334
-    Height = 389
+    Width = 329
+    Height = 374
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
@@ -229,8 +229,8 @@ object Form1: TForm1
       object DstImg: TImage32
         Left = 0
         Top = 0
-        Width = 326
-        Height = 361
+        Width = 321
+        Height = 346
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
         Bitmap.Resampler.KernelClassName = 'TCosineKernel'
@@ -252,6 +252,30 @@ object Form1: TForm1
       Caption = 'Curve'
       ImageIndex = 2
       TabVisible = False
+      object CurveImage: TImage32
+        Left = 0
+        Top = 0
+        Width = 321
+        Height = 346
+        Align = alClient
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+        BitmapAlign = baTopLeft
+        RepaintMode = rmFull
+        Scale = 1.000000000000000000
+        ScaleMode = smNormal
+        TabOrder = 0
+        OnPaintStage = CurveImagePaintStage
+      end
     end
+  end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Top = 374
+    Width = 475
+    Height = 19
+    Panels = <
+      item
+        Width = 50
+      end>
   end
 end
