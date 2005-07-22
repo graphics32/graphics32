@@ -308,10 +308,17 @@ const
 {$ENDIF}
 
 type
+  { TNotifiablePersistent }
+  { TNotifiablePersistent provides a change notification mechanism }
+  TNotifiablePersistent = class(TPersistent)
+  public
+    procedure Changed; virtual; abstract;
+  end;
+
   { TThreadPersistent }
   { TThreadPersistent is an ancestor for TBitmap32 object. In addition to
     TPersistent methods, it provides thread-safe locking and change notification }
-  TThreadPersistent = class(TPersistent)
+  TThreadPersistent = class(TNotifiablePersistent)
   private
     FLock: TRTLCriticalSection;
     FLockCount: Integer;
@@ -323,7 +330,7 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Changed; virtual;
+    procedure Changed; override;
     procedure BeginUpdate;
     procedure EndUpdate;
     procedure Lock;
@@ -716,7 +723,7 @@ type
 {$ENDIF}
 
   { TCustomSampler }
-  TCustomSampler = class(TPersistent)
+  TCustomSampler = class(TNotifiablePersistent)
   public
     function GetSampleInt(X, Y: Integer): TColor32; virtual;
     function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
