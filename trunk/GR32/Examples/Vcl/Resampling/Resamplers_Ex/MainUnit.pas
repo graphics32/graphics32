@@ -57,6 +57,8 @@ type
     KernelModeList: TComboBox;
     TableSizeLabel: TLabel;
     gbTableSize: TGaugeBar;
+    CurveImage: TImage32;
+    StatusBar1: TStatusBar;
     procedure FormCreate(Sender: TObject);
     procedure KernelClassNamesListClick(Sender: TObject);
     procedure ResamplerClassNamesListChange(Sender: TObject);
@@ -67,6 +69,8 @@ type
     procedure gbTableSizeMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure gbTableSizeChange(Sender: TObject);
+    procedure CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
+      StageNum: Cardinal);
   private
     { Private declarations }
   public
@@ -125,14 +129,21 @@ begin
       for J := 2 to 3 do
         Pixels[I, J] := $FFAFAFAF;
   end;
+
+  with CurveImage.PaintStages[0]^ do
+  begin
+    if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
+  end;
 end;
 
 procedure TForm1.KernelClassNamesListClick(Sender: TObject);
 begin
+//  if ResamplerChanging then Exit;
   with KernelClassNamesList, Src do
     if (ItemIndex >= 0) and (Resampler is TKernelResampler) then
     begin
       TKernelResampler(Resampler).KernelClassName:= Items[ItemIndex];
+      CurveImage.Repaint;
     end;
 end;
 
@@ -144,10 +155,17 @@ begin
     if ItemIndex >= 0 then
     begin
       ResamplerChanging := True;
+      // gr32_containers
       R := TBitmap32ResamplerClass(ResamplerList[ItemIndex]).Create(Src);
-
-      pnlKernel.Visible := R is TKernelResampler;
-      tabKernel.TabVisible := R is TKernelResampler;
+      //ResamplerClassName := Items[ItemIndex];
+      //KernelClassNamesList.Enabled := (Resampler is TKernelResampler);
+      //KernelModeList.Enabled := KernelClassNamesList.Enabled;
+      if R is TKernelResampler then
+      begin
+        pnlKernel.Visible := True;
+        tabKernel.TabVisible := True;
+        CurveImage.Repaint;
+      end;
 
       ResamplerChanging := False;
       KernelClassNamesListClick(Self);
@@ -156,7 +174,7 @@ end;
 
 procedure TForm1.DstImgResize(Sender: TObject);
 begin
-  DstImg.SetupBitmap();
+  DstImg.SetupBitmap;
   SrcChanged(Self);
 end;
 
@@ -171,7 +189,9 @@ begin
     Src.OuterColor := $FFFF7F7F;
     OuterColor := Src.OuterColor;
     
-    if Empty then DstImg.SetupBitmap();
+    if Empty then
+      DstImg.SetupBitmap;
+      
     sw := Src.Width / DstImg.Bitmap.Width;
     sh := Src.Height / DstImg.Bitmap.Height;
 
@@ -185,7 +205,8 @@ begin
       end;
     Src.Resampler.FinalizeSampling;
 
-    Caption := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
+    //Caption := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
+    StatusBar1.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
 
   end;
   DstImg.Repaint;
@@ -223,7 +244,47 @@ end;
 
 procedure TForm1.gbTableSizeChange(Sender: TObject);
 begin
-  TableSizeLabel.Caption := 'Table Size: ' + IntToStr(gbTableSize.Position);
+  TableSizeLabel.Caption := 'Table Size (' + IntToStr(gbTableSize.Position) + '/100):';
+end;
+
+procedure TForm1.CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
+  StageNum: Cardinal);
+var
+  Kernel: TCustomKernel;
+  I, BufWidth, BufHeight: Integer;
+  W, X, Y, Scale: Single;
+  ClipRect: TRect;
+begin
+  if Src.Resampler is TKernelResampler then
+  begin
+    Kernel := TKernelResampler(Src.Resampler).Kernel;
+    W := Kernel.GetWidth;
+    ClipRect := Buffer.ClipRect;
+    BufWidth := ClipRect.Right - ClipRect.Left;
+    BufHeight := ClipRect.Bottom - ClipRect.Top;
+    Buffer.Clear(clBlack32);
+    Buffer.PenColor := clWhite32;
+    Buffer.MoveToF(0, BufHeight / 2);
+
+    Scale := 2 * W / BufWidth;
+    for I := Round(-W)*2 to Round(W)*2 do
+    begin
+      X := 0.5 * I / Scale + BufWidth/2;
+      Buffer.LineFS(X, 0, X, BufHeight - 1, clGray32);
+    end;
+
+    for I := -2 to 2 do
+    begin
+      Y := I * BufHeight / 4.4 + BufHeight/2;
+      Buffer.LineFS(0, Y, BufWidth - 1, Y, clGray32);
+    end;
+
+    for I := 0 to BufWidth - 1 do
+    begin
+      Y := (1.1 - Kernel.Filter(-W + I * Scale)) * BufHeight / 2.2;
+      Buffer.LineToFS(I, Y);
+    end;
+  end;
 end;
 
 end.

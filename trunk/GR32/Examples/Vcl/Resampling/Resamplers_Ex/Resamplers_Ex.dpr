@@ -2,7 +2,7 @@ program Resamplers_Ex;
 
 uses
   Forms,
-  MainUnit in '..\..\..\..\Experimental\Michael\FineResample_Mod\FineResample_Mod\MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {Form1};
 
 {$R *.res}
 
