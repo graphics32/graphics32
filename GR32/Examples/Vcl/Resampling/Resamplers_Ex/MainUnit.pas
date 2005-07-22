@@ -81,7 +81,6 @@ type
 
 var
   Form1: TForm1;
-  ResamplerChanging : Boolean = False;
 
 implementation
 
@@ -137,14 +136,15 @@ begin
 end;
 
 procedure TForm1.KernelClassNamesListClick(Sender: TObject);
+var
+  Index: Integer;
 begin
-//  if ResamplerChanging then Exit;
-  with KernelClassNamesList, Src do
-    if (ItemIndex >= 0) and (Resampler is TKernelResampler) then
-    begin
-      TKernelResampler(Resampler).KernelClassName:= Items[ItemIndex];
-      CurveImage.Repaint;
-    end;
+  Index := KernelClassNamesList.ItemIndex;
+  if Src.Resampler is TKernelResampler then
+  begin
+    TKernelResampler(Src.Resampler).Kernel := TCustomKernelClass(KernelList[Index]).Create;
+    CurveImage.Repaint;
+  end;
 end;
 
 procedure TForm1.ResamplerClassNamesListChange(Sender: TObject);
@@ -154,15 +154,14 @@ begin
   with ResamplerClassNamesList do
     if ItemIndex >= 0 then
     begin
-      ResamplerChanging := True;
+      Src.BeginUpdate;
       R := TBitmap32ResamplerClass(ResamplerList[ItemIndex]).Create(Src);
-
+      KernelClassNamesListClick(nil);
+      Src.EndUpdate;
+      Src.Changed;
+      
       pnlKernel.Visible := R is TKernelResampler;
       tabKernel.TabVisible := R is TKernelResampler;
-      CurveImage.Repaint;
-
-      ResamplerChanging := False;
-      KernelClassNamesListClick(Self);
     end;
 end;
 
@@ -177,12 +176,11 @@ var
   I,J : Integer;
   sw, sh : Single;
 begin
-  if ResamplerChanging then Exit;
   with DstImg.Bitmap do
   begin
     Src.OuterColor := $FFFF7F7F;
     OuterColor := Src.OuterColor;
-    
+
     if Empty then
       DstImg.SetupBitmap;
       
@@ -199,9 +197,7 @@ begin
       end;
     Src.Resampler.FinalizeSampling;
 
-    //Caption := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
     StatusBar1.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
-
   end;
   DstImg.Repaint;
 end;
@@ -223,7 +219,6 @@ end;
 
 procedure TForm1.EdgecheckBoxChange(Sender: TObject);
 begin
-  //!!! dirty fix ..
   Src.WrapMode := TWrapMode(WrapBox.ItemIndex);
   TBitmap32Resampler(Src.Resampler).PixelAccessMode := TPixelAccessMode(EdgecheckBox.ItemIndex);
 end;
@@ -247,15 +242,15 @@ var
   Kernel: TCustomKernel;
   I, BufWidth, BufHeight: Integer;
   W, X, Y, Scale: Single;
-  ClipRect: TRect;
+  R: TRect;
 begin
   if Src.Resampler is TKernelResampler then
   begin
     Kernel := TKernelResampler(Src.Resampler).Kernel;
     W := Kernel.GetWidth;
-    ClipRect := Buffer.ClipRect;
-    BufWidth := ClipRect.Right - ClipRect.Left;
-    BufHeight := ClipRect.Bottom - ClipRect.Top;
+    R := CurveImage.GetViewPortRect;
+    BufWidth := R.Right - R.Left;
+    BufHeight := R.Bottom - R.Top;
     Buffer.Clear(clBlack32);
     Buffer.PenColor := clWhite32;
     Buffer.MoveToF(0, BufHeight / 2);
