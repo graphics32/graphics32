@@ -93,9 +93,9 @@ object Form1: TForm1
         Style = csDropDownList
         Anchors = [akTop, akRight]
         ItemHeight = 13
-        ItemIndex = 0
+        ItemIndex = 1
         TabOrder = 2
-        Text = 'Unsafe'
+        Text = 'Safe'
         OnChange = EdgecheckBoxChange
         Items.Strings = (
           'Unsafe'

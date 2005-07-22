@@ -155,17 +155,11 @@ begin
     if ItemIndex >= 0 then
     begin
       ResamplerChanging := True;
-      // gr32_containers
       R := TBitmap32ResamplerClass(ResamplerList[ItemIndex]).Create(Src);
-      //ResamplerClassName := Items[ItemIndex];
-      //KernelClassNamesList.Enabled := (Resampler is TKernelResampler);
-      //KernelModeList.Enabled := KernelClassNamesList.Enabled;
-      if R is TKernelResampler then
-      begin
-        pnlKernel.Visible := True;
-        tabKernel.TabVisible := True;
-        CurveImage.Repaint;
-      end;
+
+      pnlKernel.Visible := R is TKernelResampler;
+      tabKernel.TabVisible := R is TKernelResampler;
+      CurveImage.Repaint;
 
       ResamplerChanging := False;
       KernelClassNamesListClick(Self);
