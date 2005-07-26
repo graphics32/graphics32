@@ -15,15 +15,15 @@ unit GR32_Resamplers;
  *
  * The Original Code is Graphics32
  *
- * The Initial Developer of the Original Code is
- * Alex A. Denisov
+ * The Initial Developers of the Original Code is
+ * Mattias Andersson <mattias@centaurix.com>
+ * (parts of this unit were taken from GR32_Transforms.pas by Alex A. Denisov)
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Mattias Andersson <mattias@centaurix.com>
- *   Michael Hansen <dyster_tid@hotmail.com>
+ * Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -79,15 +79,15 @@ type
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
-    FResampler: TBitmap32Resampler;
+    FObserver: TNotifiablePersistent;
   protected
     function RangeCheck: Boolean; virtual;
   public
+    constructor Create; virtual;
     procedure Changed;
-    constructor Create(AResampler: TBitmap32Resampler); virtual;
     function Filter(Value: Single): Single; virtual; abstract;
     function GetWidth: Single; virtual; abstract;
-    property Resampler: TBitmap32Resampler read FResampler;
+    property Observer: TNotifiablePersistent read FObserver;
   end;
   TCustomKernelClass = class of TCustomKernel;
     
@@ -138,7 +138,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create(AResampler: TBitmap32Resampler); override;
+    constructor Create; override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
   published
@@ -155,7 +155,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create(AResampler: TBitmap32Resampler); override;
+    constructor Create; override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
   published
@@ -170,7 +170,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create(AResampler: TBitmap32Resampler); override;
+    constructor Create; override;
     function Filter(Value: Single): Single; override;
     function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
@@ -191,7 +191,7 @@ type
     FSigma: Single;
     procedure SetSigma(const Value: Single);
   public
-    constructor Create(AResampler: TBitmap32Resampler); override;
+    constructor Create; override;
     function Window(Value: Single): Single; override;
   published
     property Sigma: Single read FSigma write SetSigma;
@@ -224,7 +224,7 @@ type
   protected
     function  RangeCheck: Boolean; override;
   public
-    constructor Create(AResampler: TBitmap32Resampler); override;
+    constructor Create; override;
     procedure SetWidth(Value: Single);
     function  GetWidth: Single; override;
     function  Filter(Value: Single): Single; override;
@@ -250,7 +250,7 @@ type
     procedure SetPixelAccessMode(const Value: TPixelAccessMode);
   public      
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
-    procedure Changed;
+    procedure Changed; override;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
     function GetSampleBounds: TRect; override;
@@ -260,48 +260,6 @@ type
     property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write SetPixelAccessMode default pamSafe;
   end;
   TBitmap32ResamplerClass = class of TBitmap32Resampler;
-
-  { TKernelResampler }
-  { This resampler class will perform resampling by using an arbitrary
-    reconstruction kernel. By using the kmTableNearest and kmTableLinear
-    kernel modes, kernel values are precomputed in a look-up table. This
-    allows GetSample to execute faster for complex kernels. }
-
-  TKernelMode = (kmDefault, kmTableNearest, kmTableLinear);
-
-  TKernelResampler = class(TBitmap32Resampler)
-  private
-    FKernel: TCustomKernel;
-    FKernelMode: TKernelMode;
-    FWeightTable: TIntegerMap;
-    FTableSize: Integer;
-    FMappingX: TIntegerDynArray;
-    FVertKernel: TIntegerDynArray;
-    FHorzKernel: TIntegerDynArray;
-    FOuterColor: TColor32;
-    procedure SetKernel(const Value: TCustomKernel);
-    function GetKernelClassName: string;
-    procedure SetKernelClassName(Value: string);
-    procedure SetKernelMode(const Value: TKernelMode);
-    procedure SetTableSize(Value: Integer);
-  protected
-    function GetWidth: Single; override;
-  public
-    constructor Create(ABitmap: TBitmap32); override;
-    destructor Destroy; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
-    procedure PrepareSampling; override;
-    procedure FinalizeSampling; override;
-  published
-    property KernelClassName: string read GetKernelClassName write SetKernelClassName;
-    property Kernel: TCustomKernel read FKernel write SetKernel;
-    property KernelMode: TKernelMode read FKernelMode write SetKernelMode;
-    property TableSize: Integer read FTableSize write SetTableSize;
-  end;
 
   { TNearestResampler }
   TNearestResampler = class(TBitmap32Resampler)
@@ -347,6 +305,48 @@ type
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+  end;
+
+  { TKernelResampler }
+  { This resampler class will perform resampling by using an arbitrary
+    reconstruction kernel. By using the kmTableNearest and kmTableLinear
+    kernel modes, kernel values are precomputed in a look-up table. This
+    allows GetSample to execute faster for complex kernels. }
+
+  TKernelMode = (kmDefault, kmTableNearest, kmTableLinear);
+
+  TKernelResampler = class(TBitmap32Resampler)
+  private
+    FKernel: TCustomKernel;
+    FKernelMode: TKernelMode;
+    FWeightTable: TIntegerMap;
+    FTableSize: Integer;
+    FMappingX: TIntegerDynArray;
+    FVertKernel: TIntegerDynArray;
+    FHorzKernel: TIntegerDynArray;
+    FOuterColor: TColor32;
+    procedure SetKernel(const Value: TCustomKernel);
+    function GetKernelClassName: string;
+    procedure SetKernelClassName(Value: string);
+    procedure SetKernelMode(const Value: TKernelMode);
+    procedure SetTableSize(Value: Integer);
+  protected
+    function GetWidth: Single; override;
+  public
+    constructor Create(ABitmap: TBitmap32); override;
+    destructor Destroy; override;
+    function GetSampleFloat(X, Y: Single): TColor32; override;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
+    procedure PrepareSampling; override;
+    procedure FinalizeSampling; override;
+  published
+    property KernelClassName: string read GetKernelClassName write SetKernelClassName;
+    property Kernel: TCustomKernel read FKernel write SetKernel;
+    property KernelMode: TKernelMode read FKernelMode write SetKernelMode;
+    property TableSize: Integer read FTableSize write SetTableSize;
   end;
 
   { TNestedSampler }
@@ -704,118 +704,6 @@ begin
     A := Buffer.A shr Shift;
   end;
 end;
-
-{ procedure IncBuffer(var Buffer: TBufferEntry; Color: TColor32; Mapping: Integer);
-asm
-        MOVD      MM0,EDX
-        MOVD      MM1,ECX
-        PXOR      MM3,MM3
-        PUNPCKLBW MM0,MM3
-        PUNPCKLBW MM1,MM1
-        PUNPCKLWD MM1,MM1
-        PUNPCKLBW MM1,MM3
-        PMULLW    MM0,MM1
-        MOVQ      MM1,MM0
-        PUNPCKLWD MM0,MM3
-        PUNPCKHWD MM1,MM3
-        PADDD     MM0,[EAX]
-        PADDD     MM1,[EAX+8]
-        MOVQ      [EAX],MM0
-        MOVQ      [EAX+8],MM1
-end; }
-
-{ function TCustomResampler.ResamplePixel(Src: TBitmap32; X, Y: Single): TColor32;
-const
-  WINDOW_WIDTH = 3;
-var
-  clX, clY: Integer;
-  W: Integer;
-  I, J, Incr: Integer;
-  C: PColor32Entry;
-  LoX, HiX, LoY, HiY: Integer;
-  HorzEntry, VertEntry: TBufferEntry;
-  HorzKernel, VertKernel: array [-MaxWindowWidth..MaxWindowWidth] of TKernelValue;
-  //TKernelEntry;
-
-//var
-//  KernelVert: TKernelEntry;
-//  KernelHorz: TKernelEntry;
-
-  procedure SetupKernel(FractionIndex: Single; var Kernel: TKernelEntry);
-  var
-    KF, KC: PKernelEntry;
-    I, C: Integer;
-  begin
-    KF := @FWeightTable[Floor(FractionIndex)][W];
-    C := Ceil(FractionIndex);
-    KC := @FWeightTable[C][W];
-    C := Round((C - FractionIndex) * 256);
-    for I := -MaxWindowWidth to MaxWindowWidth do
-      Kernel[I] := KC[I] + SAR_8((KF[I] - KC[I]) * C);
-  end;
-
-const
-  EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
-  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
-begin
-  clX := Ceil(X);
-  clY := Ceil(Y);
-  I := High(FWeightTable);
-  W := Ceil(Width);
-  SetupKernel((clX - X) * I, HorzKernel[]);
-  SetupKernel((clY - Y) * I, VertKernel[]);
-
-  if clX < W then LoX := -clX else LoX := -W;
-  if clY < W then LoY := -clY else LoY := -W;
-  HiX := Src.Width - 1;
-  HiY := Src.Height - 1;
-  Incr:= HiX;
-  if clX + W >= HiX then HiX := HiX - clX else HiX := W;
-  if clY + W >= HiY then HiY := HiY - clY else HiY := W;
-
-  C := PColor32Entry(Src.PixelPtr[LoX + clX, LoY + clY]);
-  Dec(Incr, HiX - LoX);
-
-  VertEntry := ROUND_ENTRY;
-  //HorzKernel := @KernelHorz;
-  //VertKernel := @KernelVert;
-
-  for I := LoY to HiY do
-  begin
-    HorzEntry := EMPTY_ENTRY;
-    for J := LoX to HiX do
-    begin
-      W := HorzKernel[J];
-      Inc(HorzEntry.A, C.A * W);
-      Inc(HorzEntry.R, C.R * W);
-      Inc(HorzEntry.G, C.G * W);
-      Inc(HorzEntry.B, C.B * W);
-      Inc(C);
-    end;
-    W := VertKernel[I];
-    Inc(VertEntry.A, HorzEntry.A * W);
-    Inc(VertEntry.R, HorzEntry.R * W);
-    Inc(VertEntry.G, HorzEntry.G * W);
-    Inc(VertEntry.B, HorzEntry.B * W);
-    Inc(C, Incr);
-  end;
-
-  if RangeCheck then
-  begin
-    VertEntry.A := Constrain(VertEntry.A, 0, $ff0000);
-    VertEntry.R := Constrain(VertEntry.R, 0, $ff0000);
-    VertEntry.G := Constrain(VertEntry.G, 0, $ff0000);
-    VertEntry.B := Constrain(VertEntry.B, 0, $ff0000);
-  end;
-
-  with TColor32Entry(Result) do
-  begin
-    A := VertEntry.A shr 16;
-    R := VertEntry.R shr 16;
-    G := VertEntry.G shr 16;
-    B := VertEntry.B shr 16;
-  end;
-end; }
 
 procedure CheckBitmaps(Dst, Src: TBitmap32); {$IFDEF USEINLINING}inline;{$ENDIF}
 begin
@@ -1978,12 +1866,11 @@ end;
 
 procedure TCustomKernel.Changed;
 begin
-  if Assigned(FResampler) then FResampler.Changed;
+  if Assigned(FObserver) then FObserver.Changed;
 end;
 
-constructor TCustomKernel.Create(AResampler: TBitmap32Resampler);
+constructor TCustomKernel.Create;
 begin
-  FResampler := AResampler;
 end;
 
 function TCustomKernel.RangeCheck: Boolean;
@@ -1996,7 +1883,7 @@ end;
 
 function TNearestKernel.Filter(Value: Single): Single;
 begin
-  if (Value > -0.5) and (Value <= 0.5) then Result := 1.0
+  if (Value >= -0.5) and (Value <= 0.5) then Result := 1.0
   else Result := 0;
 end;
 
@@ -2076,9 +1963,8 @@ begin
   else Result := 1;
 end;
 
-constructor TWindowedSincKernel.Create(AResampler: TBitmap32Resampler);
+constructor TWindowedSincKernel.Create;
 begin
-  inherited Create(AResampler);
   FWidth := 3;
 end;
 
@@ -2143,9 +2029,8 @@ end;
 
 { TCubicKernel }
 
-constructor TCubicKernel.Create(AResampler: TBitmap32Resampler);
+constructor TCubicKernel.Create;
 begin
-  inherited Create(AResampler);
   FCoeff := -0.5;
 end;
 
@@ -2229,9 +2114,8 @@ end;
 
 { TSinshKernel }
 
-constructor TSinshKernel.Create(AResampler: TBitmap32Resampler);
+constructor TSinshKernel.Create;
 begin
-  inherited Create(AResampler);
   FWidth := 3;
   FCoeff := 0.5;
 end;
@@ -2274,9 +2158,8 @@ end;
 
 { THermiteKernel }
 
-constructor THermiteKernel.Create(AResampler: TBitmap32Resampler);
+constructor THermiteKernel.Create;
 begin
-  inherited Create(AResampler);
   FBias := 0;
   FTension := 0;
 end;
@@ -2367,7 +2250,6 @@ end;
 
 procedure TBitmap32Resampler.PrepareSampling;
 begin
-  inherited;
   FClipRect := FBitmap.ClipRect;
 end;
 
@@ -2386,7 +2268,7 @@ end;
 constructor TKernelResampler.Create(ABitmap: TBitmap32);
 begin
   inherited Create(ABitmap);
-  FKernel := TNearestKernel.Create(Self);
+  Kernel := TNearestKernel.Create;
   FTableSize := 32;
 end;
 
@@ -2411,7 +2293,7 @@ begin
     if Assigned(KernelClass) then
     begin
       FKernel.Free;
-      FKernel := KernelClass.Create(Self);
+      FKernel := KernelClass.Create;
       Changed;
     end;
   end;
@@ -2577,7 +2459,7 @@ begin
             HorzKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
-//          Dec(HorzKernel[0], Dev);
+          Dec(HorzKernel[0], Dev);
         end;
 
         with TFixedRec(FracY) do
@@ -2593,12 +2475,13 @@ begin
             VertKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
-//          Dec(VertKernel[0], Dev);
+          Dec(VertKernel[0], Dev);
         end;
       end;
+
   end;
 
-  VertEntry := EMPTY_ENTRY;//ROUND_ENTRY;
+  VertEntry := EMPTY_ENTRY;
   case FPixelAccessMode of
     pamUnsafe, pamSafe:
       begin
@@ -2740,10 +2623,6 @@ begin
     begin
       Fraction := I / (FTableSize - 1);
       KernelPtr :=  @FWeightTable.ValPtr[0, I]^;
-     { for J := -W to W do
-        KernelPtr[J + W] := Round(FKernel.Filter(J + Fraction) * 256);   }
-
-
       Dev := - 256;
       for J := -W to W do
       begin
@@ -2752,7 +2631,6 @@ begin
         Inc(Dev, Weight);
       end;
       Dec(KernelPtr[W], Dev);
-
     end;
   end;
   if FKernelMode in [kmDefault, kmTableLinear] then
@@ -2814,7 +2692,7 @@ end;
 constructor TLinearResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
-  FLinearKernel := TLinearKernel.Create(Self);
+  FLinearKernel := TLinearKernel.Create;
 end;
 
 destructor TLinearResampler.Destroy;
