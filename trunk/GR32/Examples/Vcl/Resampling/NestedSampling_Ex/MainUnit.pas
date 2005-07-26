@@ -530,7 +530,9 @@ end;
 procedure TForm1.SetSourceResampler(const Value: TCustomResampler);
 begin
   if Samplers.Count > 0 then
-    TNestedSampler(Samplers[0]).Sampler := Value;
+    TNestedSampler(Samplers[0]).Sampler := Value
+  else
+    Rasterizer.Sampler := Value;
 end;
 
 function TForm1.GetSourceResampler: TCustomResampler;
