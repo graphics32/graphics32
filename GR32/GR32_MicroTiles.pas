@@ -34,6 +34,8 @@ interface
 {-$DEFINE PROFILINGDRYRUN}
 {-$DEFINE MICROTILES_DEBUGDRAW}
   {-$DEFINE MICROTILES_DEBUGDRAW_UNOPTIMIZED}
+{-$DEFINE MICROTILES_NO_ADAPTION}
+  {-$DEFINE MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
 
 uses
   {$IFDEF CLX}
@@ -42,8 +44,8 @@ uses
   Windows,
   {$ENDIF}
   {$IFDEF CODESITE}CSIntf,{$ENDIF}
-  Types, SysUtils, Classes, RTLConsts, GR32, GR32_Containers, GR32_Layers,
-  GR32_System, GR32_RepaintOpt;
+  Types, SysUtils, Classes, RTLConsts,
+  GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 
 const
   MICROTILE_SHIFT = 5;
@@ -86,14 +88,14 @@ procedure MicroTilesCreate(var MicroTiles: TMicroTiles);
 procedure MicroTilesDestroy(var MicroTiles: TMicroTiles);
 procedure MicroTilesSetSize(var MicroTiles: TMicroTiles; const DstRect: TRect);
 procedure MicroTilesClear(var MicroTiles: TMicroTiles);
+procedure MicroTilesClearUsed(var MicroTiles: TMicroTiles);
 procedure MicroTilesCopy(var DstTiles: TMicroTiles; SrcTiles: TMicroTiles);
 procedure MicroTilesAddLine(var MicroTiles: TMicroTiles; X1, Y1, X2, Y2: Integer; LineWidth: Integer; RoundToWholeTiles: Boolean = False);
 procedure MicroTilesAddRect(var MicroTiles: TMicroTiles; Rect: TRect; RoundToWholeTiles: Boolean = False);
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean = False);
-function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList; CountOnly: Boolean = False): Integer; overload;
-function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList; const Clip: TRect; CountOnly: Boolean = False): Integer; overload;
+function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList; CountOnly: Boolean = False; RoundToWholeTiles: Boolean = False): Integer; overload;
+function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList; const Clip: TRect; CountOnly: Boolean = False; RoundToWholeTiles: Boolean = False): Integer; overload;
 function MicroTilesCountEmptyTiles(const MicroTiles: TMicroTiles): Integer;
-function MicroTilesCoherency(const MicroTiles: TMicroTiles): Single;
 
 type
   { TMicroTilesMap }
@@ -109,16 +111,6 @@ type
     property Data[Item: Pointer]: PMicroTiles read GetData write SetData; default;
   end;
 
-const
-  PL_MICROTILES         = 0;
-  PL_WHOLETILES         = 1;
-  PL_FULLSCENE          = 2;
-
-  TIMER_PENALTY         = 250;
-  TIMER_LOWLIMIT        = 1000;
-  TIMER_HIGHLIMIT       = 5000;
-
-  INVALIDRECTS_DELTA    = 10;
 
 type
   { TMicroTilesRepaintOptimizer }
@@ -160,6 +152,7 @@ type
     FOldInvalidRectsCount: Integer;
 
 {$IFDEF MICROTILES_DEBUGDRAW}
+    FDebugWholeTiles: Boolean;
     FDebugMicroTiles: TMicroTiles;
     FDebugInvalidRects: TRectList;
 {$ENDIF}
@@ -191,7 +184,7 @@ type
     procedure Reset; override;
 
     function  UpdatesAvailable: Boolean; override;
-    procedure PrepareInvalidRects; override;
+    procedure PerformOptimization; override;
 
     procedure BeginPaintBuffer; override;
     procedure EndPaintBuffer; override;
@@ -330,8 +323,7 @@ begin
   MicroTiles.Count := (MicroTiles.Columns + 1) * (MicroTiles.Rows + 1);
   ReallocMem(MicroTiles.Tiles, MicroTiles.Count * SizeOf(TMicroTile));
 
-  MicroTiles.BoundsUsedTiles := MakeRect(MicroTiles.Columns, MicroTiles.Rows, 0, 0);
-  FillLongword(MicroTiles.Tiles^[0], MicroTiles.Count, MICROTILE_EMPTY);
+  MicroTilesClear(MicroTiles)
 end;
 
 procedure MicroTilesClear(var MicroTiles: TMicroTiles);
@@ -340,19 +332,36 @@ begin
   FillLongword(MicroTiles.Tiles^[0], MicroTiles.Count, MICROTILE_EMPTY);
 end;
 
+procedure MicroTilesClearUsed(var MicroTiles: TMicroTiles);
+var
+  I: Integer;
+begin
+  for I := MicroTiles.BoundsUsedTiles.Top to MicroTiles.BoundsUsedTiles.Bottom do
+    FillLongword(MicroTiles.Tiles^[I * MicroTiles.Columns + MicroTiles.BoundsUsedTiles.Left],
+      MicroTiles.BoundsUsedTiles.Right - MicroTiles.BoundsUsedTiles.Left + 1, MICROTILE_EMPTY);
+
+  MicroTiles.BoundsUsedTiles := MakeRect(MicroTiles.Columns, MicroTiles.Rows, 0, 0);
+end;
+
 procedure MicroTilesCopy(var DstTiles: TMicroTiles; SrcTiles: TMicroTiles);
 var
   CurRow, Width: Integer;
   SrcTilePtr, DstTilePtr: PMicroTile;
 begin
+  if Assigned(DstTiles.Tiles) and (DstTiles.Count > 0) then
+    MicroTilesClearUsed(DstTiles);
+
   DstTiles.BoundsRect := SrcTiles.BoundsRect;
   DstTiles.Columns := SrcTiles.Columns;
   DstTiles.Rows := SrcTiles.Rows;
   DstTiles.BoundsUsedTiles := SrcTiles.BoundsUsedTiles;
 
-  DstTiles.Count := SrcTiles.Count;
   ReallocMem(DstTiles.Tiles, SrcTiles.Count * SizeOf(TMicroTile));
-  FillLongword(DstTiles.Tiles^[0], SrcTiles.Count, MICROTILE_EMPTY);
+
+  if DstTiles.Count < SrcTiles.Count then
+    FillLongword(DstTiles.Tiles^[DstTiles.Count], SrcTiles.Count - DstTiles.Count, MICROTILE_EMPTY);
+
+  DstTiles.Count := SrcTiles.Count;
 
   SrcTilePtr := @SrcTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * SrcTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
   DstTilePtr := @DstTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * DstTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
@@ -657,7 +666,6 @@ var
   SrcTilePtr2, DstTilePtr2: PMicroTile;
   X, Y: Integer;
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
-  SrcTile: TMicroTile;
 begin
   SrcTilePtr := @SrcTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * SrcTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
   DstTilePtr := @DstTiles.Tiles^[SrcTiles.BoundsUsedTiles.Top * DstTiles.Columns + SrcTiles.BoundsUsedTiles.Left];
@@ -722,7 +730,6 @@ var
   SrcTilePtr2, DstTilePtr2: PMicroTile;
   X, Y: Integer;
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
-  SrcTile: TMicroTile;
 begin
   if SrcTiles.Count = 0 then Exit;
 
@@ -766,20 +773,21 @@ begin
 end;
 
 function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList;
-  CountOnly: Boolean = False): Integer;
+  CountOnly, RoundToWholeTiles: Boolean): Integer;
 begin
   Result := MicroTilesCalcRects(MicroTiles, DstRects, MicroTiles.BoundsRect, CountOnly);
 end;
 
 
 function MicroTilesCalcRects(const MicroTiles: TMicroTiles; DstRects: TRectList;
-  const Clip: TRect; CountOnly: Boolean = False): Integer;
+  const Clip: TRect; CountOnly, RoundToWholeTiles: Boolean): Integer;
 var
   Rects: Array Of TRect;
-  Glom: Array Of Integer;
+  Rect: PRect;
+  CombLUT: Array Of Integer;
   StartIndex: Integer;
-  RectPtr: PRect;
-  TempTile: TMicroTile;
+  CurTile, TempTile: TMicroTile;
+  Temp: Integer;
   NewLeft, NewTop, NewRight, NewBottom: Integer;
   CurCol, CurRow, I, RectsCount: Integer;
 begin
@@ -788,86 +796,154 @@ begin
   if (MicroTiles.Count = 0) or
      (MicroTiles.BoundsUsedTiles.Right - MicroTiles.BoundsUsedTiles.Left < 0) or
      (MicroTiles.BoundsUsedTiles.Bottom - MicroTiles.BoundsUsedTiles.Top < 0) then Exit;
-  
+
   SetLength(Rects, MicroTiles.Columns * MicroTiles.Rows);
-  SetLength(Glom, MicroTiles.Columns * MicroTiles.Rows);
-  FillLongword(Glom[0], Length(Glom), Cardinal(-1));
+  SetLength(CombLUT, MicroTiles.Columns * MicroTiles.Rows);
+  FillLongword(CombLUT[0], Length(CombLUT), Cardinal(-1));
 
   I := 0;
   RectsCount := 0;
 
-  for CurRow := 0 to MicroTiles.Rows - 1 do
-  begin
-    CurCol := 0;
-    while CurCol < MicroTiles.Columns do
+  if not RoundToWholeTiles then
+    for CurRow := 0 to MicroTiles.Rows - 1 do
     begin
-      TempTile := MicroTiles.Tiles[I];
-
-      if not(MicroTiles.Tiles[I] = MICROTILE_EMPTY) then
+      CurCol := 0;
+      while CurCol < MicroTiles.Columns do
       begin
-        NewLeft := Constrain(CurCol shl MICROTILE_SHIFT + MicroTiles.Tiles[I] shr 24,
-                             Clip.Left, Clip.Right);
+        CurTile := MicroTiles.Tiles[I];
 
-        NewTop := Constrain(CurRow shl MICROTILE_SHIFT + MicroTiles.Tiles[I] shr 16 and $FF,
-                            Clip.Top, Clip.Bottom);
-
-        NewBottom := Constrain(CurRow shl MICROTILE_SHIFT + MicroTiles.Tiles[I] and $FF,
-                               Clip.Top, Clip.Bottom);
-
-        StartIndex := I;
-
-        if not((MicroTiles.Tiles[I] shr 8 and $FF <> MICROTILE_SIZE) or
-               (CurCol = MicroTiles.Columns - 1)) then
+        if CurTile <> MICROTILE_EMPTY then
         begin
-          while True do
-          begin
-            Inc(CurCol);
-            Inc(I);
+          Temp := CurRow shl MICROTILE_SHIFT;
+          NewTop := Constrain(Temp + CurTile shr 16 and $FF, Clip.Top, Clip.Bottom);
+          NewBottom := Constrain(Temp + CurTile and $FF, Clip.Top, Clip.Bottom);
+          NewLeft := Constrain(CurCol shl MICROTILE_SHIFT + CurTile shr 24, Clip.Left, Clip.Right);
 
-            if (CurCol = MicroTiles.Columns) or
-               ((MicroTiles.Tiles[I] shr 16 and $FF) <> (TempTile shr 16 and $FF)) or
-               ((MicroTiles.Tiles[I] and $FF) <> (TempTile and $FF)) or
-               ((MicroTiles.Tiles[I] shr 24) <> 0) then
+          StartIndex := I;
+
+          if (CurTile shr 8 and $FF = MICROTILE_SIZE) and (CurCol <> MicroTiles.Columns - 1) then
+          begin
+            while True do
             begin
-              Dec(CurCol);
-              Dec(I);
-              Break;
+              Inc(CurCol);
+              Inc(I);
+
+              TempTile := MicroTiles.Tiles[I];
+              if (CurCol = MicroTiles.Columns) or
+                 (TempTile shr 16 and $FF <> CurTile shr 16 and $FF) or
+                 (TempTile and $FF <> CurTile and $FF) or
+                 (TempTile shr 24 <> 0) then
+              begin
+                Dec(CurCol);
+                Dec(I);
+                Break;
+              end;
             end;
           end;
-        end;
 
-        NewRight := Constrain(CurCol shl MICROTILE_SHIFT + MicroTiles.Tiles[I] shr 8 and $FF,
-                              Clip.Left, Clip.Right);
+          NewRight := Constrain(CurCol shl MICROTILE_SHIFT + MicroTiles.Tiles[I] shr 8 and $FF, Clip.Left, Clip.Right);
 
-        if (Glom[StartIndex] <> -1) and
-           (Rects[Glom[StartIndex]].Left = NewLeft) and
-           (Rects[Glom[StartIndex]].Right = NewRight) and
-           (Rects[Glom[StartIndex]].Bottom = NewTop) then
-        begin
-          Rects[Glom[StartIndex]].Bottom := NewBottom;
+          Temp := CombLUT[StartIndex];
 
-          if CurRow <> MicroTiles.Rows - 1 then
-            Glom[StartIndex + MicroTiles.Columns] := Glom[StartIndex];
-        end
-        else
-          with Rects[RectsCount] do
+          Rect := nil;
+          if Temp <> -1 then Rect := @Rects[Temp];
+
+          if Assigned(Rect) and
+             (Rect.Left = NewLeft) and
+             (Rect.Right = NewRight) and
+             (Rect.Bottom = NewTop) then
           begin
-            Left := NewLeft;
-            Top := NewTop;
-            Right := NewRight;
-            Bottom := NewBottom;
+            Rect.Bottom := NewBottom;
 
             if CurRow <> MicroTiles.Rows - 1 then
-              Glom[StartIndex + MicroTiles.Columns] := RectsCount;
+              CombLUT[StartIndex + MicroTiles.Columns] := Temp;
+          end
+          else
+            with Rects[RectsCount] do
+            begin
+              Left := NewLeft;    Top := NewTop;
+              Right := NewRight;  Bottom := NewBottom;
 
-            Inc(RectsCount);
-          end;
+              if CurRow <> MicroTiles.Rows - 1 then
+                CombLUT[StartIndex + MicroTiles.Columns] := RectsCount;
+
+              Inc(RectsCount);
+            end;
+        end;
+
+        Inc(I);
+        Inc(CurCol);
       end;
+    end
+  else
+    for CurRow := 0 to MicroTiles.Rows - 1 do
+    begin
+      CurCol := 0;
+      while CurCol < MicroTiles.Columns do
+      begin
+        CurTile := MicroTiles.Tiles[I];
 
-      Inc(I);
-      Inc(CurCol);
+        if CurTile <> MICROTILE_EMPTY then
+        begin
+          Temp := CurRow shl MICROTILE_SHIFT;
+          NewTop := Constrain(Temp, Clip.Top, Clip.Bottom);
+          NewBottom := Constrain(Temp + MICROTILE_SIZE, Clip.Top, Clip.Bottom);
+          NewLeft := Constrain(CurCol shl MICROTILE_SHIFT, Clip.Left, Clip.Right);
+
+          StartIndex := I;
+
+          if CurCol <> MicroTiles.Columns - 1 then
+          begin
+            while True do
+            begin
+              Inc(CurCol);
+              Inc(I);
+
+              TempTile := MicroTiles.Tiles[I];
+              if (CurCol = MicroTiles.Columns) or (TempTile = MICROTILE_EMPTY) then
+              begin
+                Dec(CurCol);
+                Dec(I);
+                Break;
+              end;
+            end;
+          end;
+
+          NewRight := Constrain(CurCol shl MICROTILE_SHIFT + MICROTILE_SIZE, Clip.Left, Clip.Right);
+
+          Temp := CombLUT[StartIndex];
+
+          Rect := nil;
+          if Temp <> -1 then Rect := @Rects[Temp];
+
+          if Assigned(Rect) and
+             (Rect.Left = NewLeft) and
+             (Rect.Right = NewRight) and
+             (Rect.Bottom = NewTop) then
+          begin
+            Rect.Bottom := NewBottom;
+
+            if CurRow <> MicroTiles.Rows - 1 then
+              CombLUT[StartIndex + MicroTiles.Columns] := Temp;
+          end
+          else
+            with Rects[RectsCount] do
+            begin
+              Left := NewLeft;    Top := NewTop;
+              Right := NewRight;  Bottom := NewBottom;
+
+              if CurRow <> MicroTiles.Rows - 1 then
+                CombLUT[StartIndex + MicroTiles.Columns] := RectsCount;
+
+              Inc(RectsCount);
+            end;
+        end;
+
+        Inc(I);
+        Inc(CurCol);
+      end;
     end;
-  end;
+
 
   Result := RectsCount;
 
@@ -893,22 +969,8 @@ begin
   end;
 end;
 
-function MicroTilesCoherency(const MicroTiles: TMicroTiles): Single;
-var
-  EmptyTilesCount: Integer;
-begin
-  { TODO : Needs work. }
-  if MicroTiles.Count > 0 then
-  begin
-    EmptyTilesCount := MicroTilesCountEmptyTiles(MicroTiles);
-    Result := EmptyTilesCount / MicroTiles.Count;
-  end
-  else
-    Result := 0;
-end;
-
 {$IFDEF MICROTILES_DEBUGDRAW}
-procedure MicroTilesDebugDraw(const MicroTiles: TMicroTiles; DstBitmap: TBitmap32; DrawOptimized: Boolean);
+procedure MicroTilesDebugDraw(const MicroTiles: TMicroTiles; DstBitmap: TBitmap32; DrawOptimized, RoundToWholeTiles: Boolean);
 var
   I: Integer;
   TempRect: TRect;
@@ -917,7 +979,7 @@ begin
   if DrawOptimized then
   begin
     Rects := TRectList.Create;
-    MicroTilesCalcRects(MicroTiles, Rects);
+    MicroTilesCalcRects(MicroTiles, Rects, False, RoundToWholeTiles);
     try
       if Rects.Count > 0 then
       begin
@@ -985,12 +1047,23 @@ begin
 end;
 
 
+
+{ TMicroTilesRepaintManager }
+
 type
   TLayerCollectionAccess = class(TLayerCollection);
   TCustomLayerAccess = class(TCustomLayer);
 
+const
+  PL_MICROTILES         = 0;
+  PL_WHOLETILES         = 1;
+  PL_FULLSCENE          = 2;
 
-{ TMicroTilesRepaintManager }
+  TIMER_PENALTY         = 250;
+  TIMER_LOWLIMIT        = 1000;
+  TIMER_HIGHLIMIT       = 5000;
+
+  INVALIDRECTS_DELTA    = 10;
 
 constructor TMicroTilesRepaintOptimizer.Create(Buffer: TBitmap32; InvalidRects: TRectList);
 begin
@@ -999,7 +1072,9 @@ begin
   FInvalidLayers := TList.Create;
   FPerfTimer := TPerfTimer.Create;
 {$IFNDEF MICROTILES_DEBUGDRAW}
+  {$IFNDEF MICROTILES_NO_ADAPTION}
   FAdaptiveMode := True;
+  {$ENDIF}
 {$ENDIF}
 
   MicroTilesCreate(FInvalidTiles);
@@ -1278,13 +1353,15 @@ begin
 
 {$IFDEF MICROTILES_DEBUGDRAW}
   {$IFDEF MICROTILES_DEBUGDRAW_UNOPTIMIZED}
-    MicroTilesDebugDraw(FDebugMicroTiles, Buffer, False);
+    MicroTilesDebugDraw(FDebugMicroTiles, Buffer, False, FDebugWholeTiles);
   {$ELSE}
-    MicroTilesDebugDraw(FDebugMicroTiles, Buffer, True);
+    MicroTilesDebugDraw(FDebugMicroTiles, Buffer, True, FDebugWholeTiles);
   {$ENDIF}
 {$ENDIF}
 
+{$IFNDEF MICROTILES_NO_ADAPTION}
   EndAdaption;
+{$ENDIF}
 end;
 
 procedure TMicroTilesRepaintOptimizer.DrawLayerToMicroTiles(var DstTiles: TMicroTiles; Layer: TCustomLayer);
@@ -1301,7 +1378,7 @@ begin
   AddArea(FWorkMicroTiles^, Area, Hint);
 end;
 
-procedure TMicroTilesRepaintOptimizer.PrepareInvalidRects;
+procedure TMicroTilesRepaintOptimizer.PerformOptimization;
 var
   I: Integer;
   Layer: TCustomLayer;
@@ -1311,18 +1388,25 @@ begin
   if FUseInvalidTiles then
   begin
     ValidateWorkingTiles;
+    // Determine if the use of whole tiles is better for current performance level
+{$IFNDEF MICROTILES_NO_ADAPTION}
+    UseWholeTiles := FPerformanceLevel > PL_MICROTILES;
+{$ELSE}
+  {$IFDEF MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
+    UseWholeTiles := True;
+  {$ELSE}
+    UseWholeTiles := False;
+  {$ENDIF}
+{$ENDIF}
 
     if FInvalidLayers.Count > 0 then
     begin
-      // Determine if the use of whole tiles is better for current performance level
-      UseWholeTiles := FPerformanceLevel > PL_MICROTILES;
-
       for I := 0 to FInvalidLayers.Count - 1 do
       begin
         Layer := FInvalidLayers[I];
 
         // Clear temporary tiles
-        MicroTilesClear(FTempTiles);
+        MicroTilesClearUsed(FTempTiles);
         // Draw layer to temporary tiles
         DrawLayerToMicroTiles(FTempTiles, Layer);
 
@@ -1343,21 +1427,24 @@ begin
       end;
       FInvalidLayers.Clear;
     end;
-    
+
 {$IFDEF MICROTILES_DEBUGDRAW}
-    MicroTilesCalcRects(FInvalidTiles, InvalidRects);
-    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects);
+    MicroTilesCalcRects(FInvalidTiles, InvalidRects, False, UseWholeTiles);
+    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects, False, UseWholeTiles);
     MicroTilesCopy(FDebugMicroTiles, FInvalidTiles);
     MicroTilesUnion(FDebugMicroTiles, FForcedInvalidTiles);
+    FDebugWholeTiles := UseWholeTiles;
 {$ELSE}
     // Calculate optimized rectangles from global invalid tiles
-    MicroTilesCalcRects(FInvalidTiles, InvalidRects);
+    MicroTilesCalcRects(FInvalidTiles, InvalidRects, False, UseWholeTiles);
     // Calculate optimized rectangles from forced invalid tiles
-    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects);
+    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects, False, UseWholeTiles);
 {$ENDIF}
   end;
 
+{$IFNDEF MICROTILES_NO_ADAPTION}
   BeginAdaption;
+{$ENDIF}
 
 {$IFDEF MICROTILES_DEBUGDRAW}
   if InvalidRects.Count > 0 then
@@ -1369,8 +1456,8 @@ begin
 {$ENDIF}
 
   // Rects have been created, so we don't need the tiles any longer, clear them.
-  MicroTilesClear(FInvalidTiles);
-  MicroTilesClear(FForcedInvalidTiles);
+  MicroTilesClearUsed(FInvalidTiles);
+  MicroTilesClearUsed(FForcedInvalidTiles);
 end;
 
 procedure TMicroTilesRepaintOptimizer.BeginAdaption;
