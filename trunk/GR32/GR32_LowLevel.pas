@@ -44,11 +44,9 @@ uses
 function Clamp(const Value: Integer): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
-{$IFDEF USEFILLCHAR}
-procedure FillLongword(var X; Count: Integer; Value: Longword); {$IFDEF USEINLINING} inline; {$ENDIF}
-{$ELSE}
-procedure FillLongword(var X; Count: Integer; Value: Longword);
-{$ENDIF}
+var
+  FillLongword: procedure(var X; Count: Integer; Value: Longword);
+
 procedure FillWord(var X; Count: Integer; Value: Longword);
 
 { An analogue of Move for 32 bit values }
@@ -118,7 +116,8 @@ function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
 implementation
 
-uses Math;
+uses
+  Math, GR32_System;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -129,17 +128,12 @@ begin
   else Result := Value;
 end;
 
-{$IFDEF USEFILLCHAR}
-procedure D_FillLongword(var X; Count: Integer; Value: Longword);
-{$ELSE}
-procedure FillLongword(var X; Count: Integer; Value: Longword);
-{$ENDIF}
+procedure _FillLongword(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
 // EDX = Count
 // ECX = Value
-
-{        PUSH    EDI
+        PUSH    EDI
 
         MOV     EDI,EAX  // Point EDI to destination
         MOV     EAX,ECX
@@ -149,8 +143,15 @@ asm
 
         REP     STOSD    // Fill count dwords
 @exit:
-        POP     EDI  }
+        POP     EDI
+end;
 
+
+procedure M_FillLongword(var X; Count: Integer; Value: Longword);
+asm
+// EAX = X
+// EDX = Count
+// ECX = Value
         CMP        EDX, 0
         JBE        @Exit
 
@@ -183,21 +184,6 @@ asm
         POP        EDI
     @Exit:
 end;
-
-
-{$IFDEF USEFILLCHAR}
-procedure FillLongword(var X; Count: Integer; Value: Longword);
-var
-  Comp: Longword;
-begin
-  Comp := Value and $FF;
-  Comp := Comp shl 24 or Comp shl 16 or Comp shl 8 or Comp;
-  if Value = Comp then
-    FillChar(X, Count shl 2, Value)
-  else
-    D_FillLongword(X, Count, Value);
-end;
-{$ENDIF}
 
 procedure FillWord(var X; Count: Integer; Value: Longword);
 asm
@@ -543,6 +529,18 @@ asm
         POP     ESI             // Restore
         POP     EBX             // esi and ebx
 end;
+
+
+procedure SetupFunctions;
+begin
+  if HasMMX then
+    FillLongword := M_FillLongword
+  else
+    FillLongword := _FillLongword;
+end;
+
+initialization
+  SetupFunctions;
 
 end.
 
