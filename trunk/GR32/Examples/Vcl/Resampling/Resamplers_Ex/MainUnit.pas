@@ -16,13 +16,13 @@ unit MainUnit;
  * The Original Code is Graphics32
  *
  * The Initial Developer of the Original Code is
- * Alex A. Denisov
+ * Michael Hansen <dyster_tid@hotmail.com> 
+ * Mattias Andersson <mattias@centaurix.com> 
  *
  * Portions created by the Initial Developer are Copyright (C) 2000-2004
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Michael Hansen <dyster_tid@hotmail.com> 
  *
  * ***** END LICENSE BLOCK ***** *)
 
