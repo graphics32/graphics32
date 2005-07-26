@@ -22,7 +22,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 190
-    Height = 576
+    Height = 581
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
@@ -62,7 +62,7 @@ object Form1: TForm1
         Style = tbsDropDown
       end
       object ToolButton2: TToolButton
-        Left = 38
+        Left = 36
         Top = 0
         Width = 8
         Caption = 'ToolButton2'
@@ -70,35 +70,35 @@ object Form1: TForm1
         Style = tbsSeparator
       end
       object ToolButton3: TToolButton
-        Left = 46
+        Left = 44
         Top = 0
         Caption = 'ToolButton3'
         ImageIndex = 1
         OnClick = Cut1Click
       end
       object ToolButton4: TToolButton
-        Left = 69
+        Left = 67
         Top = 0
         Caption = 'ToolButton4'
         ImageIndex = 2
         OnClick = Copy2Click
       end
       object ToolButton5: TToolButton
-        Left = 92
+        Left = 90
         Top = 0
         Caption = 'ToolButton5'
         ImageIndex = 3
         OnClick = Paste1Click
       end
       object ToolButton6: TToolButton
-        Left = 115
+        Left = 113
         Top = 0
         Caption = 'ToolButton6'
         ImageIndex = 4
         OnClick = tbDeleteClick
       end
       object ToolButton7: TToolButton
-        Left = 138
+        Left = 136
         Top = 0
         Width = 8
         Caption = 'ToolButton7'
@@ -107,7 +107,7 @@ object Form1: TForm1
       end
       object tbUp: TToolButton
         Tag = -1
-        Left = 146
+        Left = 144
         Top = 0
         Caption = 'tbUp'
         ImageIndex = 5
@@ -115,7 +115,7 @@ object Form1: TForm1
       end
       object tbDown: TToolButton
         Tag = 1
-        Left = 169
+        Left = 167
         Top = 0
         Caption = 'tbDown'
         ImageIndex = 6
@@ -264,7 +264,7 @@ object Form1: TForm1
     Left = 190
     Top = 0
     Width = 613
-    Height = 576
+    Height = 581
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     Color = clAppWorkSpace
