@@ -80,7 +80,7 @@ type
     property Vectors: PFixedPointArray read GetVectors;
     function BoundsRect: TRect;
     function GetTrimmedBounds: TRect;
-    function Empty: Boolean;
+    function Empty: Boolean; override;
     procedure LoadFromFile(const FileName: string);
     procedure SaveToFile(const FileName: string);
 
@@ -251,7 +251,7 @@ end;
 function TVectorMap.Empty: Boolean;
 begin
   Result := false;
-  if (Width = 0) or (Height = 0) or (FVectors = nil)then Result := True;
+  if (Width = 0) or (Height = 0) or (FVectors = nil) then Result := True;
 end;
 
 const
