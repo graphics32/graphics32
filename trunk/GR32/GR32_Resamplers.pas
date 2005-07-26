@@ -79,18 +79,18 @@ type
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
-    FObserver: TNotifiablePersistent;
+    FResampler: TBitmap32Resampler;
   protected
     function RangeCheck: Boolean; virtual;
   public
-    constructor Create; virtual;
     procedure Changed;
+    constructor Create(AResampler: TBitmap32Resampler); virtual;
     function Filter(Value: Single): Single; virtual; abstract;
     function GetWidth: Single; virtual; abstract;
-    property Observer: TNotifiablePersistent read FObserver;
+    property Resampler: TBitmap32Resampler read FResampler;
   end;
   TCustomKernelClass = class of TCustomKernel;
-
+    
   { TNearestKernel }
   TNearestKernel = class(TCustomKernel)
   public
@@ -138,7 +138,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create; override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
   published
@@ -155,7 +155,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create; override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
   published
@@ -170,7 +170,7 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    constructor Create; override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Filter(Value: Single): Single; override;
     function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
@@ -191,7 +191,7 @@ type
     FSigma: Single;
     procedure SetSigma(const Value: Single);
   public
-    constructor Create; override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     function Window(Value: Single): Single; override;
   published
     property Sigma: Single read FSigma write SetSigma;
@@ -224,7 +224,7 @@ type
   protected
     function  RangeCheck: Boolean; override;
   public
-    constructor Create; override;
+    constructor Create(AResampler: TBitmap32Resampler); override;
     procedure SetWidth(Value: Single);
     function  GetWidth: Single; override;
     function  Filter(Value: Single): Single; override;
@@ -248,9 +248,9 @@ type
     FTransformerClass: TTransformerClass;
     FPixelAccessMode: TPixelAccessMode;
     procedure SetPixelAccessMode(const Value: TPixelAccessMode);
-  public
+  public      
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
-    procedure Changed; override;
+    procedure Changed;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
     function GetSampleBounds: TRect; override;
@@ -1978,11 +1978,12 @@ end;
 
 procedure TCustomKernel.Changed;
 begin
-  if Assigned(FObserver) then FObserver.Changed;
+  if Assigned(FResampler) then FResampler.Changed;
 end;
 
-constructor TCustomKernel.Create;
+constructor TCustomKernel.Create(AResampler: TBitmap32Resampler);
 begin
+  FResampler := AResampler;
 end;
 
 function TCustomKernel.RangeCheck: Boolean;
@@ -1995,7 +1996,7 @@ end;
 
 function TNearestKernel.Filter(Value: Single): Single;
 begin
-  if (Value >= -0.5) and (Value <= 0.5) then Result := 1.0
+  if (Value > -0.5) and (Value <= 0.5) then Result := 1.0
   else Result := 0;
 end;
 
@@ -2075,8 +2076,9 @@ begin
   else Result := 1;
 end;
 
-constructor TWindowedSincKernel.Create;
+constructor TWindowedSincKernel.Create(AResampler: TBitmap32Resampler);
 begin
+  inherited Create(AResampler);
   FWidth := 3;
 end;
 
@@ -2141,8 +2143,9 @@ end;
 
 { TCubicKernel }
 
-constructor TCubicKernel.Create;
+constructor TCubicKernel.Create(AResampler: TBitmap32Resampler);
 begin
+  inherited Create(AResampler);
   FCoeff := -0.5;
 end;
 
@@ -2226,8 +2229,9 @@ end;
 
 { TSinshKernel }
 
-constructor TSinshKernel.Create;
+constructor TSinshKernel.Create(AResampler: TBitmap32Resampler);
 begin
+  inherited Create(AResampler);
   FWidth := 3;
   FCoeff := 0.5;
 end;
@@ -2270,8 +2274,9 @@ end;
 
 { THermiteKernel }
 
-constructor THermiteKernel.Create;
+constructor THermiteKernel.Create(AResampler: TBitmap32Resampler);
 begin
+  inherited Create(AResampler);
   FBias := 0;
   FTension := 0;
 end;
@@ -2362,6 +2367,7 @@ end;
 
 procedure TBitmap32Resampler.PrepareSampling;
 begin
+  inherited;
   FClipRect := FBitmap.ClipRect;
 end;
 
@@ -2380,7 +2386,7 @@ end;
 constructor TKernelResampler.Create(ABitmap: TBitmap32);
 begin
   inherited Create(ABitmap);
-  Kernel := TNearestKernel.Create;
+  FKernel := TNearestKernel.Create(Self);
   FTableSize := 32;
 end;
 
@@ -2405,7 +2411,7 @@ begin
     if Assigned(KernelClass) then
     begin
       FKernel.Free;
-      FKernel := KernelClass.Create;
+      FKernel := KernelClass.Create(Self);
       Changed;
     end;
   end;
@@ -2571,7 +2577,7 @@ begin
             HorzKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
-          Dec(HorzKernel[0], Dev);
+//          Dec(HorzKernel[0], Dev);
         end;
 
         with TFixedRec(FracY) do
@@ -2587,7 +2593,7 @@ begin
             VertKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
-          Dec(VertKernel[0], Dev);
+//          Dec(VertKernel[0], Dev);
         end;
       end;
   end;
@@ -2717,7 +2723,7 @@ end;
 
 procedure TKernelResampler.PrepareSampling;
 var
-  I, J, W: Integer;
+  I, J, W, Weight, Dev: Integer;
   Fraction: Single;
   KernelPtr: PKernelEntry;
 begin
@@ -2734,8 +2740,19 @@ begin
     begin
       Fraction := I / (FTableSize - 1);
       KernelPtr :=  @FWeightTable.ValPtr[0, I]^;
+     { for J := -W to W do
+        KernelPtr[J + W] := Round(FKernel.Filter(J + Fraction) * 256);   }
+
+
+      Dev := - 256;
       for J := -W to W do
-        KernelPtr[J + W] := Round(FKernel.Filter(J + Fraction) * 256);
+      begin
+        Weight := Round(FKernel.Filter(J + Fraction) * 256);
+        KernelPtr[J + W] := Weight;
+        Inc(Dev, Weight);
+      end;
+      Dec(KernelPtr[W], Dev);
+
     end;
   end;
   if FKernelMode in [kmDefault, kmTableLinear] then
@@ -2797,7 +2814,7 @@ end;
 constructor TLinearResampler.Create(Bitmap: TBitmap32);
 begin
   inherited Create(Bitmap);
-  FLinearKernel := TLinearKernel.Create;
+  FLinearKernel := TLinearKernel.Create(Self);
 end;
 
 destructor TLinearResampler.Destroy;
