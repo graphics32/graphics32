@@ -30,8 +30,6 @@ interface
 uses GR32;
 
 { Fixed point math routines }
-function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedFloor(A: TFixed): Integer;
 function FixedCeil(A: TFixed): Integer;
 function FixedMul(A, B: TFixed): TFixed;
@@ -48,16 +46,6 @@ procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
 implementation
 
 { Fixed-point math }
-
-function Fixed(S: Single): TFixed;
-begin
-  Result := Round(S * 65536);
-end;
-
-function Fixed(I: Integer): TFixed;
-begin
-  Result := I shl 16;
-end;
 
 function FixedFloor(A: TFixed): Integer;
 asm

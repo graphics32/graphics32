@@ -156,6 +156,9 @@ const
   FixedPI  = Round(PI * FixedOne);
   FixedToFloat = 1/FixedOne;
 
+function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
 { Points }
 
 type
@@ -1099,6 +1102,20 @@ begin
   Result := CreatePalette(l0);
 end;
 {$ENDIF}
+
+
+{ Fixed-point conversion routines }
+
+function Fixed(S: Single): TFixed;
+begin
+  Result := Round(S * 65536);
+end;
+
+function Fixed(I: Integer): TFixed;
+begin
+  Result := I shl 16;
+end;
+
 
 { Points }
 
