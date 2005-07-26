@@ -721,7 +721,7 @@ end;
 procedure TCustomPaintBox32.DoPrepareInvalidRects;
 begin
   if FRepaintOptimizer.Enabled and not FForceFullRepaint then
-    FRepaintOptimizer.PrepareInvalidRects;
+    FRepaintOptimizer.PerformOptimization;
 end;
 
 function TCustomPaintBox32.InvalidRectsAvailable: Boolean;
@@ -902,7 +902,7 @@ begin
   if FRepaintOptimizer.Enabled then
   begin
 {$IFDEF CLX}
-    if CustomRepaintNeeded then DoValidateInvalidRects;
+    if CustomRepaint then DoPrepareInvalidRects;
 {$ENDIF}
     FRepaintOptimizer.BeginPaint;
   end;
@@ -1405,7 +1405,7 @@ begin
         FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
     end;
 
-    Buffer.ResetClipRect;
+    Buffer.ClipRect := GetViewportRect;
   end;
 
   if FRepaintOptimizer.Enabled then
@@ -2155,6 +2155,7 @@ end;
 
 function TCustomImgView32.GetScrollBarsVisible: Boolean;
 begin
+  Result := True;
   if Assigned(FScrollBars) and Assigned(HScroll) and Assigned(VScroll) then
   case FScrollBars.Visibility of
     svAlways:
@@ -2164,9 +2165,7 @@ begin
     svAuto:
       Result := (HScroll.Range > TRangeBarAccess(HScroll).EffectiveWindow) or
                 (VScroll.Range > TRangeBarAccess(VScroll).EffectiveWindow);
-  end
-  else
-    Result := True;
+  end;
 end;
 
 function TCustomImgView32.GetSizeGripRect: TRect;
