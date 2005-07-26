@@ -693,7 +693,7 @@ procedure TContourRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
 type
   TDirection = (North, East, South, West);
 var
-  I, J, D, Count, Diff: Integer;
+  I, J, D, Diff: Integer;
   C, CLast: TColor32;
   P, PLast: TPoint;
   GetSample: TGetSampleInt;
@@ -723,7 +723,6 @@ begin
     AssignColor(Dst.PixelPtr[PLast.X, PLast.Y]^, CLast);
 
     UpdateRect := Rect(PLast.X, PLast.Y, PLast.X + 1, PLast.Y + 1);
-    Count := 0;
     while True do
     begin
       MainLoop:
