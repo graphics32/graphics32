@@ -60,8 +60,6 @@ type
     constructor Create(Buffer: TBitmap32; InvalidRects: TRectList); virtual;
     destructor Destroy; override;
 
-    property Enabled: Boolean read GetEnabled write SetEnabled;
-
     procedure RegisterLayerCollection(Layers: TLayerCollection); virtual;
     procedure UnregisterLayerCollection(Layers: TLayerCollection); virtual;
 
@@ -71,13 +69,15 @@ type
     procedure EndPaintBuffer; virtual;
 
     procedure Reset; virtual; abstract;
-    function UpdatesAvailable: Boolean; virtual; abstract;
-    procedure PrepareInvalidRects; virtual; abstract;
+    function  UpdatesAvailable: Boolean; virtual; abstract;
+    procedure PerformOptimization; virtual; abstract;
 
     // handlers
     procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal); virtual; abstract;
     procedure LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer); virtual; abstract;
     procedure BufferResizedHandler(const NewWidth, NewHeight: Integer); virtual; abstract;
+
+    property Enabled: Boolean read GetEnabled write SetEnabled;
   end;
 
 // differs from InflateRect in the way that it does also handle negative rects
