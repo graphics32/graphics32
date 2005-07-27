@@ -31,11 +31,14 @@ requires
   rtl,
   visualclx,
   designide,
-  GR32_K;
+  GR32_K,
+  vcl,
+  designhooks;
 
 contains
   GR32_Reg in '../GR32_Reg.pas',
   GR32_Dsgn_Bitmap in '../GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
-  GR32_Dsgn_Color in '../GR32_Dsgn_Color.pas';
+  GR32_Dsgn_Color in '../GR32_Dsgn_Color.pas',
+  GR32_Dsgn_Misc in '../../../../../../../../../home/darkstar/Development/CVS/Libs/Visual/Graphics32/GR32_Dsgn_Misc.pas';
 
 end.
