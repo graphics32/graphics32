@@ -58,7 +58,7 @@ type
   This works for basic time testing, however, it doesnt work like its
   Windows counterpart, ie. it doesnt return the number of milliseconds since
   system boot. Will definitely overflow. }
-function GetTickCount: Integer;
+function GetTickCount: Cardinal;
 {$ENDIF}
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
@@ -182,7 +182,7 @@ uses
 {$ENDIF}
 
 {$IFDEF LINUX}
-function GetTickCount: Integer;
+function GetTickCount: Cardinal;
 var
   val: timespec;
 begin
