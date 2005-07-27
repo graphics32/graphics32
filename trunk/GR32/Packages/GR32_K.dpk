@@ -42,6 +42,14 @@ contains
   GR32_Polygons in '../GR32_Polygons.pas',
   GR32_RangeBars in '../GR32_RangeBars.pas',
   GR32_System in '../GR32_System.pas',
+  GR32_Containers in '../GR32_Containers.pas',
+  GR32_MicroTiles in '../GR32_MicroTiles.pas',
+  GR32_RepaintOpt in '../GR32_RepaintOpt.pas',
+  GR32_Rasterizers in '../GR32_Rasterizers.pas',
+  GR32_Resamplers in '../GR32_Resamplers.pas',
+  GR32_IntegerMaps in '../GR32_IntegerMaps.pas',
+  GR32_VectorMaps in '../GR32_VectorMaps.pas',
+  GR32_Math in '../GR32_Math.pas',  
   GR32_Transforms in '../GR32_Transforms.pas';
 
 end.
