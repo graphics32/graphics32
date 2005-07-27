@@ -314,8 +314,16 @@ type
   { TNotifiablePersistent }
   { TNotifiablePersistent provides a change notification mechanism }
   TNotifiablePersistent = class(TPersistent)
+  private
+    FUpdateCount: Integer;
+    FOnChange: TNotifyEvent;
+  protected
+    property UpdateCount: Integer read FUpdateCount;
   public
-    procedure Changed; virtual; abstract;
+    procedure Changed; virtual;
+    procedure BeginUpdate; virtual;
+    procedure EndUpdate; virtual;
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
   { TThreadPersistent }
@@ -325,20 +333,13 @@ type
   private
     FLock: TRTLCriticalSection;
     FLockCount: Integer;
-    FUpdateCount: Integer;
-    FOnChange: TNotifyEvent;
   protected
     property LockCount: Integer read FLockCount;
-    property UpdateCount: Integer read FUpdateCount;
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Changed; override;
-    procedure BeginUpdate;
-    procedure EndUpdate;
     procedure Lock;
     procedure Unlock;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
   { TCustomMap }
@@ -383,7 +384,7 @@ const
 type
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
   TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect;
-    const Hint: Cardinal = AREAHINT_RECT) of object;
+    const Hint: Cardinal) of object;
 
   TCustomResampler = class;
 
@@ -1427,6 +1428,24 @@ begin
 end;
 
 
+{ TNotifiablePersistent }
+
+procedure TNotifiablePersistent.BeginUpdate;
+begin
+  Inc(FUpdateCount);
+end;
+
+procedure TNotifiablePersistent.Changed;
+begin
+  if (FUpdateCount = 0) and Assigned(FOnChange) then FOnChange(Self);
+end;
+
+procedure TNotifiablePersistent.EndUpdate;
+begin
+  Assert(FUpdateCount > 0, 'Unpaired TThreadPersistent.EndUpdate');
+  Dec(FUpdateCount);
+end;
+
 
 { TThreadPersistent }
 
@@ -1439,22 +1458,6 @@ destructor TThreadPersistent.Destroy;
 begin
   DeleteCriticalSection(FLock);
   inherited;
-end;
-
-procedure TThreadPersistent.BeginUpdate;
-begin
-  Inc(FUpdateCount);
-end;
-
-procedure TThreadPersistent.Changed;
-begin
-  if (FUpdateCount = 0) and Assigned(FOnChange) then FOnChange(Self);
-end;
-
-procedure TThreadPersistent.EndUpdate;
-begin
-  Assert(FUpdateCount > 0, 'Unpaired TThreadPersistent.EndUpdate');
-  Dec(FUpdateCount);
 end;
 
 procedure TThreadPersistent.Lock;
@@ -2040,7 +2043,11 @@ end;
 
 {$ELSE}
 
-procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF});
+{$IFDEF BCB}
+procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: Cardinal);
+{$ELSE}
+procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
+{$ENDIF}
 begin
   if Empty then Exit;
   if not FMeasuringMode then
@@ -4362,7 +4369,7 @@ begin
   begin
     SelectObject(Handle, FontHandle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT); 
+    SetBkMode(Handle, Windows.TRANSPARENT);
   end;
 {$ENDIF}
 end;

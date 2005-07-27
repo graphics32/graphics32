@@ -571,10 +571,10 @@ begin
     end;
     Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
     if DoUpdate and FProgressLines then
-      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step));
+      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step), AREAHINT_RECT);
     Inc(J, Step);
   end;
-  if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect);
+  if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect, AREAHINT_RECT);
 
   Shift := FLevel;
   repeat
@@ -602,9 +602,9 @@ begin
       X := DstRect.Left + Wk shl Shift;
       Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
       if FProgressLines and DoUpdate then
-        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step));
+        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step), AREAHINT_RECT);
     end;
-    if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect);
+    if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect, AREAHINT_RECT);
   until Step = 1;
   Dst.EndUpdate;
 end;
