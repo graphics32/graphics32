@@ -13,12 +13,12 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Rotation Layer Example
  *
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -29,7 +29,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, GR32, GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars;
+  StdCtrls, GR32, GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars,
+  GR32_Resamplers;
 
 type
   TForm1 = class(TForm)
@@ -73,12 +74,12 @@ begin
   with L.Bitmap do
   begin
     BeginUpdate;
+    TLinearResampler.Create(L.Bitmap);
     SetSize(100, 60);
     L.BitmapCenter := FloatPoint(Width / 2, Height / 2);
     FillBitmap(L.Bitmap, 127);
-    SetBorderTransparent(L.Bitmap, Rect(0, 0, Width - 1, Height - 1));
+    SetBorderTransparent(L.Bitmap, BoundsRect);
     DrawMode := dmBlend;
-    StretchFilter := sfLinear;
     EndUpdate;
     Changed;
   end;

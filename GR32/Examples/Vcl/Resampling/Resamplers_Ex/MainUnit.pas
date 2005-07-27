@@ -13,16 +13,19 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Resamplers Example
  *
  * The Initial Developer of the Original Code is
  * Michael Hansen <dyster_tid@hotmail.com> 
  * Mattias Andersson <mattias@centaurix.com> 
+ * (parts of this example were taken from the previously published example,
+ * FineResample Example by Alex A. Denisov)
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -31,13 +34,13 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ExtCtrls, GR32, GR32_Image, GR32_Transforms,
-  GR32_Resamplers, GR32_System, ComCtrls, GR32_RangeBars;
+  GR32_Resamplers, GR32_System, ComCtrls, GR32_RangeBars, Jpeg, Math;
 
 type
   TForm1 = class(TForm)
     PageControl1: TPageControl;
     TabSheet1: TTabSheet;
-    TabSheet2: TTabSheet;
+    ResamplingTabSheet: TTabSheet;
     DstImg: TImage32;
     tabKernel: TTabSheet;
     SidePanel: TPanel;
@@ -59,6 +62,7 @@ type
     gbTableSize: TGaugeBar;
     CurveImage: TImage32;
     StatusBar1: TStatusBar;
+    ResamplingPaintBox: TPaintBox32;
     procedure FormCreate(Sender: TObject);
     procedure KernelClassNamesListClick(Sender: TObject);
     procedure ResamplerClassNamesListChange(Sender: TObject);
@@ -71,11 +75,13 @@ type
     procedure gbTableSizeChange(Sender: TObject);
     procedure CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
+    procedure ResamplingPaintBoxResize(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
     Src : TBitmap32;
+    ResamplingSrc: TBitmap32;
     procedure SrcChanged(Sender: TObject);
   end;
 
@@ -91,7 +97,13 @@ var
   I, J: Integer;
 begin
   Src := TBitmap32.Create;
+  Src.OuterColor := $FFFF7F7F;
+  DstImg.Bitmap.OuterColor := Src.OuterColor;
+  DstImg.SetupBitmap;
   Src.OnChange := SrcChanged;
+
+  ResamplingSrc := TBitmap32.Create;
+  ResamplingSrc.LoadFromFile('../../Media/iceland.jpg');
 
   ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
   KernelList.GetClassNames(KernelClassNamesList.Items);
@@ -133,6 +145,8 @@ begin
   begin
     if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
   end;
+
+  ResamplingPaintBox.BufferOversize := 0;
 end;
 
 procedure TForm1.KernelClassNamesListClick(Sender: TObject);
@@ -178,25 +192,22 @@ var
 begin
   with DstImg.Bitmap do
   begin
-    Src.OuterColor := $FFFF7F7F;
-    OuterColor := Src.OuterColor;
-
-    if Empty then
-      DstImg.SetupBitmap;
-      
     sw := Src.Width / DstImg.Bitmap.Width;
     sh := Src.Height / DstImg.Bitmap.Height;
 
     GlobalPerfTimer.Start;
-
-    Src.Resampler.PrepareSampling;
-    for J := 0 to Height - 1 do
-      for I := 0 to Width - 1 do
+    if ResamplingTabSheet.Visible then
+      ResamplingPaintBoxResize(Self)
+    else
       begin
-        Pixel[I,J] := Src.Resampler.GetSampleFloat(I * sw - 0.5, J * sh - 0.5);
-      end;
-    Src.Resampler.FinalizeSampling;
-
+        Src.Resampler.PrepareSampling;
+        for J := 0 to Height - 1 do
+          for I := 0 to Width - 1 do
+          begin
+            Pixel[I,J] := Src.Resampler.GetSampleFloat(I * sw - 0.5, J * sh - 0.5);
+          end;
+      Src.Resampler.FinalizeSampling;
+    end;
     StatusBar1.Panels[0].Text := GlobalPerfTimer.ReadMilliseconds + ' ms for rendering.';
   end;
   DstImg.Repaint;
@@ -215,6 +226,7 @@ end;
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   Src.Free;
+  ResamplingSrc.Free;
 end;
 
 procedure TForm1.EdgecheckBoxChange(Sender: TObject);
@@ -274,6 +286,57 @@ begin
       Buffer.LineToFS(I, Y);
     end;
   end;
+end;
+
+procedure TForm1.ResamplingPaintBoxResize(Sender: TObject);
+var
+  I, W, H, C: Integer;
+  Tmp: TBitmap32;
+  R: TRect;
+  ScaleRatioX, ScaleRatioY: Single;
+  CurrentBitmaps: array [0..1] of TBitmap32;
+begin
+  if not ResamplingTabSheet.Visible then exit;
+  Tmp := TBitmap32.Create;
+  CurrentBitmaps[0] := Tmp;
+  CurrentBitmaps[1] := ResamplingSrc;
+
+  for I := 0 to 1 do
+  begin
+    TBitmap32ResamplerClass(ResamplerList[ResamplerClassNamesList.ItemIndex]).Create(CurrentBitmaps[I]);
+    if CurrentBitmaps[I].Resampler is TKernelResampler then
+      with CurrentBitmaps[I].Resampler as TKernelResampler do
+      begin
+        Kernel := TCustomKernelClass(KernelList[KernelClassNamesList.ItemIndex]).Create;
+        KernelMode := TKernelMode(KernelModeList.ItemIndex);
+        TableSize := gbTableSize.Position;
+      end;
+  end;
+
+  ResamplingPaintBox.Buffer.BeginUpdate;
+
+  with ResamplingPaintBox.Buffer do
+  begin
+    ScaleRatioX := 1 / (ResamplingSrc.Width / (Width / 3));
+    ScaleRatioY := 1 / (ResamplingSrc.Height / (Height / 4));
+    Tmp.SetSize(Round(ResamplingSrc.Width * ScaleRatioX),
+      Round(ResamplingSrc.Height * ScaleRatioY));
+    Tmp.Draw(Tmp.BoundsRect, ResamplingSrc.BoundsRect, ResamplingSrc);
+    C := Width div 2;
+    ResamplingPaintBox.Buffer.Draw(C - Tmp.Width div 2, 10, Tmp);
+
+    ScaleRatioX := 1 / (ResamplingSrc.Width / (Width - 20));
+    ScaleRatioY := 1 / (ResamplingSrc.Height / (((Height - 20) / 4) * 3));
+    W := Round(ResamplingSrc.Width * ScaleRatioX);
+    H := Round(ResamplingSrc.Height * ScaleRatioY);
+    R.Left := C - W div 2; R.Right := C + W div 2;
+    R.Top := Tmp.Height + 20; R.Bottom := R.Top + H - 15;
+    ResamplingPaintBox.Buffer.Draw(R, Tmp.BoundsRect, Tmp);
+  end;
+
+  ResamplingPaintBox.Buffer.EndUpdate;
+  Tmp.Free;
+  ResamplingPaintBox.Repaint;
 end;
 
 end.

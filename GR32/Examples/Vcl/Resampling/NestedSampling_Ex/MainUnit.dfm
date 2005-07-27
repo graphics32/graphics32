@@ -28,7 +28,7 @@ object Form1: TForm1
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 244
+      Top = 260
       Width = 190
       Height = 3
       Cursor = crVSplit
@@ -38,7 +38,7 @@ object Form1: TForm1
     end
     object tbManager: TToolBar
       Left = 0
-      Top = 58
+      Top = 74
       Width = 190
       Height = 24
       Anchors = []
@@ -124,7 +124,7 @@ object Form1: TForm1
     end
     object lvSamplers: TListView
       Left = 0
-      Top = 82
+      Top = 98
       Width = 190
       Height = 162
       Align = alTop
@@ -145,7 +145,7 @@ object Form1: TForm1
     end
     object StaticText1: TStaticText
       Left = 0
-      Top = 41
+      Top = 57
       Width = 190
       Height = 17
       Align = alTop
@@ -170,17 +170,16 @@ object Form1: TForm1
       Left = 0
       Top = 17
       Width = 190
-      Height = 24
+      Height = 40
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 3
       object btnRasterize: TSpeedButton
-        Left = 0
-        Top = 0
-        Width = 190
-        Height = 24
+        Left = 8
+        Top = 8
+        Width = 169
+        Height = 25
         Caption = 'Rasterize Image'
-        Flat = True
         Font.Charset = DEFAULT_CHARSET
         Font.Color = clWindowText
         Font.Height = -11
@@ -215,7 +214,7 @@ object Form1: TForm1
     end
     object StaticText2: TStaticText
       Left = 0
-      Top = 247
+      Top = 263
       Width = 190
       Height = 17
       Align = alTop

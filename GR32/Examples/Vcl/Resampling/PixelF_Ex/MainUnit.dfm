@@ -32,6 +32,7 @@ object MainForm: TMainForm
     Anchors = [akLeft, akTop, akRight, akBottom]
     AutoSize = True
     Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
     Bitmap.Data = {
       2C010000F4000000C2D7D4FFACC1BEFFA7BCB9FFBACFCCFFBDD2CFFFAABFBCFF
       A2B7B4FFAABFBCFFB6CBC8FF97ACA9FF9EB3B0FFB9CECBFFBACFCCFFB5CAC7FF
@@ -9185,6 +9186,7 @@ object MainForm: TMainForm
       686D64FF80857CFF747970FF73786FFF848C82FF535B51FF5C655BFF5F685EFF
       656E64FF687167FF}
     BitmapAlign = baCenter
+    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 0

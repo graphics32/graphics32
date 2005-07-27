@@ -91,8 +91,8 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // Load the textures (note size 256x256 is implicity expected!)
-  TexAImg.Bitmap.LoadFromFile('texture_a.jpg');
-  TexBImg.Bitmap.LoadFromFile('texture_b.jpg');
+  TexAImg.Bitmap.LoadFromFile('../../Media/texture_a.jpg');
+  TexBImg.Bitmap.LoadFromFile('../../Media/texture_b.jpg');
   CombImg.Bitmap.SetSizeFrom(TexBImg.Bitmap);
 
   // Set up Weightmap and trigger generate

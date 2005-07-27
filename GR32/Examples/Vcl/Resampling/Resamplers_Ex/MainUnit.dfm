@@ -3,8 +3,10 @@ object Form1: TForm1
   Top = 228
   Width = 483
   Height = 422
-  Caption = 'Resamplers Ex'
+  Caption = 'Resamplers Example'
   Color = clBtnFace
+  Constraints.MinHeight = 200
+  Constraints.MinWidth = 200
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -19,7 +21,7 @@ object Form1: TForm1
     Left = 329
     Top = 0
     Width = 146
-    Height = 374
+    Height = 376
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -190,14 +192,12 @@ object Form1: TForm1
         Style = csDropDownList
         Anchors = [akTop, akRight]
         ItemHeight = 13
-        ItemIndex = 0
         TabOrder = 2
-        Text = 'Default'
         OnChange = KernelModeListChange
         Items.Strings = (
-          'Default'
-          'Table Nearest'
-          'Table Linear')
+          'Default (precise, slow)'
+          'Table Nearest (truncated, fastest)'
+          'Table Linear (interpolated, fast)')
       end
       object gbTableSize: TGaugeBar
         Left = 16
@@ -220,17 +220,18 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 329
-    Height = 374
+    Height = 376
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
+    OnChange = ResamplerClassNamesListChange
     object TabSheet1: TTabSheet
       Caption = 'Details'
       object DstImg: TImage32
         Left = 0
         Top = 0
         Width = 321
-        Height = 346
+        Height = 348
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
         Bitmap.Resampler.KernelClassName = 'TCosineKernel'
@@ -244,9 +245,19 @@ object Form1: TForm1
         OnResize = DstImgResize
       end
     end
-    object TabSheet2: TTabSheet
+    object ResamplingTabSheet: TTabSheet
       Caption = 'Resampling'
       ImageIndex = 1
+      object ResamplingPaintBox: TPaintBox32
+        Left = 0
+        Top = 0
+        Width = 321
+        Height = 348
+        Align = alClient
+        RepaintMode = rmOptimizer
+        TabOrder = 0
+        OnResize = ResamplingPaintBoxResize
+      end
     end
     object tabKernel: TTabSheet
       Caption = 'Curve'
@@ -270,7 +281,7 @@ object Form1: TForm1
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 374
+    Top = 376
     Width = 475
     Height = 19
     Panels = <

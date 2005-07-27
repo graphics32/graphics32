@@ -18,7 +18,7 @@ unit MainUnit;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -103,7 +103,6 @@ type
     sbAlpha: TGaugeBar;
     sbFx: TGaugeBar;
     sbFy: TGaugeBar;
-    CheckBox1: TCheckBox;
     ResamplerLabel: TLabel;
     ResamplerClassNamesList: TComboBox;
     KernelLabel: TLabel;
@@ -136,7 +135,6 @@ type
 
     procedure AppEventsIdle(Sender: TObject; var Done: Boolean);
     procedure ResamplerClassNamesListClick(Sender: TObject);
-    procedure CheckBox1Click(Sender: TObject);
     procedure ResamplerClassNamesListChange(Sender: TObject);
     procedure KernelClassNamesListChange(Sender: TObject);
     procedure DstPaintStage(Sender: TObject; Buffer: TBitmap32;
@@ -253,8 +251,7 @@ end;
 procedure TForm1.PrepareSource;
 begin
   // make the border pixels transparent while keeping their RGB components
-  SetBorderTransparent(Src.Bitmap,
-    Rect(0, 0, Src.Bitmap.Width - 1, Src.Bitmap.Height - 1));
+  SetBorderTransparent(Src.Bitmap, Src.Bitmap.BoundsRect);
 end;
 
 procedure TForm1.DoTransform;
@@ -297,7 +294,7 @@ begin
     PT.X3 := Vertices[3].X;
     PT.Y3 := Vertices[3].Y;
   end
-  else {if Mode = tmAffine then }
+  else
   begin
     // affine mode
     AT.Clear;
@@ -519,7 +516,7 @@ begin
     KernelClassNamesList.Parent := TabSheet1;
     KernelLabel.Parent := TabSheet1;
   end
-  else {if PageControl1.ActivePage = TabSheet2 then }
+  else
   begin
     // set current transformation as projective
     Mode := tmProjective;
@@ -639,12 +636,6 @@ begin
   DoTransform;
 end;
 
-procedure TForm1.CheckBox1Click(Sender: TObject);
-begin
-  GR32_Transforms.FullEdge := CheckBox1.Checked;
-  DoTransform;
-end;
-
 procedure TForm1.SrcRBResizingEvent(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
   DragState: TDragState; Shift: TShiftState);
@@ -654,23 +645,33 @@ begin
 end;
 
 procedure TForm1.ResamplerClassNamesListChange(Sender: TObject);
+var
+  R: TBitmap32Resampler;
 begin
-  with ResamplerClassNamesList, Src.Bitmap do
+  with ResamplerClassNamesList do
     if ItemIndex >= 0 then
     begin
-      ResamplerClassName:= Items[ItemIndex];
-      KernelClassNamesList.Enabled := (Resampler is TKernelResampler);
-      KernelLabel.Enabled := KernelClassNamesList.Enabled;
-      KernelClassNamesListChange(Self);
+      Src.Bitmap.BeginUpdate;
+      R := TBitmap32ResamplerClass(ResamplerList[ItemIndex]).Create(Src.Bitmap);
+      KernelClassNamesListChange(nil);
+      Src.Bitmap.EndUpdate;
+      Src.Bitmap.Changed;
+
+      KernelClassNamesList.Visible := R is TKernelResampler;
+      KernelLabel.Visible := KernelClassNamesList.Visible;
     end;
 end;
 
 procedure TForm1.KernelClassNamesListChange(Sender: TObject);
+var
+  Index: Integer;
 begin
-  with KernelClassNamesList, Src.Bitmap do
-    if (ItemIndex >= 0) and (Resampler is TKernelResampler) then
-      TKernelResampler(Resampler).KernelClassName:= Items[ItemIndex];
-  DoTransform; //Update the transformation with new resampler   
+  Index := KernelClassNamesList.ItemIndex;
+  if Src.Bitmap.Resampler is TKernelResampler then
+  begin
+    TKernelResampler(Src.Bitmap.Resampler).Kernel := TCustomKernelClass(KernelList[Index]).Create;
+  end;
+  DoTransform;
 end;
 
 procedure TForm1.DstPaintStage(Sender: TObject; Buffer: TBitmap32;

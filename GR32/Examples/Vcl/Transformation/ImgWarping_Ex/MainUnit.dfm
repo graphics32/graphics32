@@ -1,9 +1,9 @@
 object MainForm: TMainForm
-  Left = 526
-  Top = 322
-  Width = 703
-  Height = 583
-  Caption = 'Image Warping Ex'
+  Left = 254
+  Top = 244
+  Width = 631
+  Height = 669
+  Caption = 'Image Warping Example'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -27,10 +27,10 @@ object MainForm: TMainForm
     TabOrder = 0
   end
   object MainPanel: TPanel
-    Left = 554
+    Left = 482
     Top = 0
     Width = 141
-    Height = 537
+    Height = 623
     Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
@@ -307,8 +307,8 @@ object MainForm: TMainForm
   object DstImg: TImgView32
     Left = 0
     Top = 0
-    Width = 554
-    Height = 537
+    Width = 482
+    Height = 623
     Align = alClient
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'

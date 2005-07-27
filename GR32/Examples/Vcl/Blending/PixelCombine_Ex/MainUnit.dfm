@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 110
   Width = 524
   Height = 373
-  Caption = 'Form1'
+  Caption = 'PixelCombine Example'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -23,6 +23,7 @@ object Form1: TForm1
     Width = 367
     Height = 309
     Anchors = [akLeft, akTop, akRight, akBottom]
+    Bitmap.ResamplerClassName = 'TNearestResampler'
     Bitmap.Data = {
       1B010000D40000003A1EC5FF3820C2FF3922C0FF3924C0FF3823C5FF3925C4FF
       3C28C1FF3D2ABFFF3F29BEFF3526A6FF33318AFF3A4382FF3C4B83FF354980FF
@@ -7526,11 +7527,13 @@ object Form1: TForm1
       BE7E12FFBF8012FFBF8012FFBD7E10FFBD7E10FFBD7D11FF}
     Color = clBtnShadow
     ParentColor = False
+    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScrollBars.Color = clBtnShadow
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     SizeGrip = sgAuto
+    OverSize = 0
     TabOrder = 0
   end
   object RadioGroup1: TRadioGroup

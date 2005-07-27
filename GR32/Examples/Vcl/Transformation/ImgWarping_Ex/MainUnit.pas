@@ -13,14 +13,14 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Image Warping Example
  *
  * The Initial Developers of the Original Code is:
  *
  * Michael Hansen <dyster_tid@hotmail.com>
  * Mattias Andersson < chesslooserX2@SwedesThatCantPlayChess.SE >
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2005
+ * Portions created by the Initial Developer are Copyright (C) 2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -38,7 +38,7 @@ uses
   ToolWin;
 
 const
-  cAppName = 'Image Warping Ex';
+  cAppName = 'Image Warping Example';
 
 type
   TBrushTool = (btWarp, btZoom, btTwirl, btFlower);
@@ -255,11 +255,11 @@ var
   Item: TMenuItem;
 begin
   Src := TBitmap32.Create;
-  Src.LoadFromFile('image.jpg');
+  Src.LoadFromFile('../../Media/monalisa.jpg');
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;
   Src.CombineMode := cmMerge;
-  SetBorderTransparent(Src, Src.BoundsRect); //Fix against border issues
+  SetBorderTransparent(Src, Src.BoundsRect);
 
   with DstImg do
   begin
@@ -298,7 +298,7 @@ begin
   RESAMPLERS[mBilinearWarp.Checked].Create(Src);
   BrushLayer := TBrushLayer.Create(DstImg.Layers);
   SampleClipRect := Rect(MaxInt, MaxInt, -MaxInt, -MaxInt);
-
+  SamplingGridSize := 3;
   PressureBarChange(Self);
   UpdateBrush;
 end;
@@ -841,9 +841,12 @@ begin
   Screen.Cursor := crHourGlass;
   KernelResampler := TKernelResampler.Create(Src);
   KernelResampler.KernelMode := KernelMode;
-  KernelResampler.TableSize := 4; //Normally this should be higher, its set low here to display perceptual consequences
 
-  KERNELS[KernelIndex].Create(KernelResampler);
+  // Normally this should be set higher.
+  // It is set low here to display perceptual consequences
+  KernelResampler.TableSize := 4;
+
+  KernelResampler.Kernel := KERNELS[KernelIndex].Create;
 
   Transformer := TTransformer.Create(Src.Resampler, Remapper);
   SuperSampler := TSuperSampler.Create(Transformer);
