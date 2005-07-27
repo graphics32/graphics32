@@ -13,12 +13,12 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is PixelF_Ex
+ * The Original Code is PixelF Example
  *
  * The Initial Developer of the Original Code is
  * Michael Hansen
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -30,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, GR32, GR32_Lowlevel, GR32_Image, StdCtrls, GR32_RangeBars,
-  ExtCtrls, Math;
+  ExtCtrls, Math, GR32_Transforms;
 
 type
   TMainForm = class(TForm)
@@ -133,19 +133,13 @@ begin
     if PaintStages[0].Stage = PST_CLEAR_BACKGND then PaintStages[0].Stage := PST_CUSTOM;
     PaintStages.Add.Stage := PST_CUSTOM;
   end;
-
+  Image32.BufferOversize := 0;
   Src := TBitmap32.Create;
-  with Src do begin //Making distorted borders look better
-   Assign(Image32.Bitmap);
-   for i:= 0 to Width - 1 do begin
-    Pixel[i, 0] := Pixel[i, 0] and $00FFFFFF;
-    Pixel[i, Height - 1] := Pixel[i, 0] and $00FFFFFF;
-   end;
-   for i:= 0 to Height - 1 do begin
-    Pixel[0, i] := Pixel[i, 0] and $00FFFFFF or $7F000000;
-    Pixel[Width - 1, i] := Pixel[i, 0] and $00FFFFFF;
-   end;
-   OuterColor := $00000000;
+  with Src do
+  begin
+    SetBorderTransparent(Src, BoundsRect);
+    Assign(Image32.Bitmap);
+    OuterColor := $00000000;
   end;
 end;
 

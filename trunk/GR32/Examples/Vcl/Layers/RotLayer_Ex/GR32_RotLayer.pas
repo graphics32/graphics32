@@ -13,12 +13,12 @@ unit GR32_RotLayer;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Rotation Layer Example
  *
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -87,7 +87,7 @@ end;
 
 procedure TCustomAffineLayer.BitmapChanged(Sender: TObject);
 begin
-  Transformation.SrcRect := FloatRect(0, 0, Bitmap.Width - 1, Bitmap.Height - 1);
+  Transformation.SrcRect := FloatRect(Bitmap.BoundsRect);
   Changed;
 end;
 
@@ -133,15 +133,20 @@ end;
 { TRotLayer }
 
 procedure TRotLayer.AdjustTransformation;
+var
+  ScaleX, ScaleY,
+  ShiftX, ShiftY: Single;
 begin
   Transformation.Clear;
   Transformation.Translate(-BitmapCenter.X, -BitmapCenter.Y);
   Transformation.Rotate(0, 0, Angle);
   Transformation.Translate(Position.X, Position.Y);
-  if Scaled and Assigned(LayerCollection) and Assigned(LayerCollection.CoordXForm) then
-    with LayerCollection.CoordXForm^ do
+  if Scaled and Assigned(LayerCollection) then
+    with LayerCollection do
     begin
-      Transformation.Scale(ScaleX / 65536, ScaleY / 65536);
+      GetViewportScale(ScaleX, ScaleY);
+      GetViewportShift(ShiftX, ShiftY);
+      Transformation.Scale(ScaleX, ScaleY);
       Transformation.Translate(ShiftX, ShiftY);
     end;
 end;

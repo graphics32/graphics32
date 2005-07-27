@@ -13,15 +13,16 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Image View Layers Example
  *
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -151,9 +152,13 @@ var
 
 implementation
 
-uses NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
-
 {$R *.DFM}
+
+uses
+  NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
+
+const
+  RESAMPLER: array [Boolean] of TBitmap32ResamplerClass = (TNearestResampler, TDraftResampler);
 
 { TForm1 }
 
@@ -213,19 +218,15 @@ begin
 end;
 
 procedure TMainForm.ImageInterpolateClick(Sender: TObject);
-const
-  RESAMPLER: array [Boolean] of TBitmap32ResamplerClass = (TNearestResampler, TDraftResampler);
 begin
-  ImgView.Bitmap.Resampler := RESAMPLER[ImageInterpolate.Checked].Create(ImgView.Bitmap);
+  RESAMPLER[ImageInterpolate.Checked].Create(ImgView.Bitmap);
 end;
 
 procedure TMainForm.LayerInterpolateClick(Sender: TObject);
-const
-  RESAMPLER: array [Boolean] of TBitmap32ResamplerClass = (TNearestResampler, TDraftResampler);
 begin
   if Selection is TBitmapLayer then
   begin
-    TBitmapLayer(Selection).Bitmap.Resampler := RESAMPLER[LayerInterpolate.Checked].Create(TBitmapLayer(Selection).Bitmap);
+    RESAMPLER[LayerInterpolate.Checked].Create(TBitmapLayer(Selection).Bitmap);
   end;
 end;
 
@@ -826,7 +827,7 @@ begin
     B.SetSize(W, H);
     ImgView.PaintTo(B, Rect(0, 0, W, H));
     Printer.BeginDoc;
-    Printer.Title := 'Graphics32 Demo';
+    Printer.Title := 'Image View Layers Example';
     B.Resampler := TLinearResampler.Create(B);
     R := GetCenteredRectToFit(Rect(0, 0, W, H), Rect(0, 0, Printer.PageWidth, Printer.PageHeight));
     B.TileTo(Printer.Canvas.Handle, R, Rect(0, 0, W, H));

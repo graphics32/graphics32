@@ -4,7 +4,7 @@ object MainForm: TMainForm
   Width = 408
   Height = 327
   Cursor = crCross
-  BorderStyle = bsSizeToolWin
+  BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Visualization Example'
   Color = clBlack
   Font.Charset = DEFAULT_CHARSET

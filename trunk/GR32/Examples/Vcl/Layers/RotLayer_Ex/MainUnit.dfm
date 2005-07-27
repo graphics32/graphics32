@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 110
   Width = 340
   Height = 483
-  Caption = 'Form1'
+  Caption = 'Rotation Layer Example'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -55,11 +55,14 @@ object Form1: TForm1
     Width = 321
     Height = 273
     Anchors = [akLeft, akTop, akRight, akBottom]
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScrollBars.Color = clBtnShadow
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     SizeGrip = sgAuto
+    OverSize = 0
     TabOrder = 0
   end
   object GaugeBar1: TGaugeBar

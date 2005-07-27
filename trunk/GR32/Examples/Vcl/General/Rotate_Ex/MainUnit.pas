@@ -13,12 +13,12 @@ unit MainUnit;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * The Original Code is Rotate Example
  *
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -53,8 +53,8 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);
 
-  // erase the transparency of edge pixels
-  SetBorderTransparent(Src.Bitmap, Rect(0, 0, Src.Bitmap.Width - 1, Src.Bitmap.Height - 1));
+  // a workaround to the edge antialiasing problem
+  SetBorderTransparent(Src.Bitmap, Src.Bitmap.BoundsRect);
 
   // show the picture
   ScaleRot(0);
@@ -78,7 +78,7 @@ begin
     // move the origin to a center for scaling and rotation
     T.Translate(-SrcR / 2, -SrcB / 2);
     T.Rotate(0, 0, Alpha);
-    Alpha := Alpha * 3.14159265358979 / 180;
+    Alpha := Alpha * PI / 180;
 
     // get the width and height of rotated image (without scaling)
     Sx := Abs(SrcR * Cos(Alpha)) + Abs(SrcB * Sin(Alpha));
