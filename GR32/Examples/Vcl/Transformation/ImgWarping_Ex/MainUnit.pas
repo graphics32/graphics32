@@ -18,7 +18,7 @@ unit MainUnit;
  * The Initial Developers of the Original Code is:
  *
  * Michael Hansen <dyster_tid@hotmail.com>
- * Mattias Andersson < chesslooserX2@SwedesThatCantPlayChess.SE >
+ * Mattias Andersson <mattias@centaurix.com>
  *
  * Portions created by the Initial Developer are Copyright (C) 2005
  * the Initial Developer. All Rights Reserved.
