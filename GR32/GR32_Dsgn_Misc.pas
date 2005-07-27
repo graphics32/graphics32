@@ -2,6 +2,8 @@ unit GR32_Dsgn_Misc;
 
 interface
 
+{$I GR32.inc}
+
 uses
   DesignIntf, DesignEditors, Classes, TypInfo, GR32_Containers;
 
@@ -10,9 +12,9 @@ type
   private
     function HasSubProperties: Boolean;
   protected
-    class function GetClassList: TClassList; virtual; abstract;
-    procedure SetClassName(const CustomClass: string); virtual; abstract;
-    function GetObject: TObject; virtual; abstract;
+    class function GetClassList: TClassList; virtual; {$IFNDEF BCB} abstract; {$ENDIF}
+    procedure SetClassName(const CustomClass: string); virtual; {$IFNDEF BCB} abstract; {$ENDIF}
+    function GetObject: TObject; virtual; {$IFNDEF BCB} abstract; {$ENDIF}
   public
 		function GetAttributes: TPropertyAttributes; override;
 		procedure GetValues(Proc: TGetStrProc); override;
@@ -32,7 +34,7 @@ type
     class function GetClassList: TClassList; override;
     procedure SetClassName(const CustomClass: string); override;
     function GetObject: TObject; override;
-	end;
+  end;
 
 implementation
 
@@ -85,6 +87,22 @@ begin
 	Modified;
 end;
 
+{$IFDEF BCB}
+class function TCustomClassProperty.GetClassList: TClassList;
+begin
+  Result := nil;
+end;
+
+procedure TCustomClassProperty.SetClassName(const CustomClass: string);
+begin
+end;
+
+function TCustomClassProperty.GetObject: TObject;
+begin
+  Result := nil;
+end;
+{$ENDIF}
+
 { TKernelClassProperty }
 
 class function TKernelClassProperty.GetClassList: TClassList;
@@ -121,3 +139,4 @@ begin
 end;
 
 end.
+
