@@ -264,7 +264,7 @@ type
     OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
     procedure BitmapResized; virtual;
-    procedure BitmapChanged(const Area: TRect); virtual;
+    procedure BitmapChanged(const Area: TRect); reintroduce; virtual;
 {$IFNDEF CLX}
     function  CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
 {$ENDIF}
