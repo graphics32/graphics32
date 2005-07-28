@@ -44,6 +44,7 @@ uses
 
 type
   ETransformError = class(Exception);
+  ETransformNotImplemented = class(Exception);
 
 type
   TFloatMatrix = array[0..2, 0..2] of Single;     // 3x3 single precision
@@ -515,9 +516,8 @@ end;
 procedure TTransformation.ReverseTransformFloat(DstX, DstY: Single;
   out SrcX, SrcY: Single);
 begin
-// Dummy routine, ReverseTransformFloat is the top precisionlevel, all decendants must override at least this level!
-  SrcX := DstX;
-  SrcY := DstY;
+  // ReverseTransformFloat is the top precisionlevel, all decendants must override at least this level!
+  raise ETransformNotImplemented.Create(Format('Reverse transformation is not implemented in %s.', [Self.Classname]));
 end;
 
 procedure TTransformation.ReverseTransformInt(DstX, DstY: Integer;
@@ -559,21 +559,18 @@ procedure TTransformation.TransformFixed(SrcX, SrcY: TFixed; out DstX,
 var
   X, Y: Single;
 begin
-  ReverseTransformFloat(SrcX * FixedToFloat, SrcY * FixedToFloat, X, Y);
+  TransformFloat(SrcX * FixedToFloat, SrcY * FixedToFloat, X, Y);
   DstX := Fixed(X);
   DstY := Fixed(Y);
 end;
 
-procedure TTransformation.TransformFloat(SrcX, SrcY: Single; out DstX,
-  DstY: Single);
+procedure TTransformation.TransformFloat(SrcX, SrcY: Single; out DstX, DstY: Single);
 begin
-// Dummy routine, TransformFloat is the top precisionlevel, all decendants must override at least this level!
-  DstX := SrcX;
-  DstY := SrcY;
+  // TransformFloat is the top precisionlevel, all decendants must override at least this level!
+  raise ETransformNotImplemented.Create(Format('Forward transformation is not implemented in %s.', [Self.Classname]));
 end;
 
-procedure TTransformation.TransformInt(SrcX, SrcY: Integer; out DstX,
-  DstY: Integer);
+procedure TTransformation.TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer);
 var
   X, Y: TFixed;
 begin
