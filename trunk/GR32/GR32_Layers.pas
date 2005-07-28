@@ -155,7 +155,7 @@ type
   TPaintLayerEvent = procedure(Sender: TObject; Buffer: TBitmap32) of object;
   THitTestEvent = procedure(Sender: TObject; X, Y: Integer; var Passed: Boolean) of object;
 
-  TCustomLayer = class(TPersistent)
+  TCustomLayer = class(TNotifiablePersistent)
   private
     FCursor: TCursor;
     FFreeNotifies: TList;
@@ -181,8 +181,6 @@ type
     procedure SetInvalid(const Value: Boolean);
   protected
     procedure AddNotification(ALayer: TCustomLayer);
-    procedure Changed; overload;
-    procedure Changed(const Rect: TRect); overload;
     procedure Changing;
     function  DoHitTest(X, Y: Integer): Boolean; virtual;
     procedure DoPaint(Buffer: TBitmap32);
@@ -201,6 +199,8 @@ type
     destructor Destroy; override;
     procedure BeforeDestruction; override;
     procedure BringToFront;
+    procedure Changed; overload; override;
+    procedure Changed(const Rect: TRect); reintroduce; overload;
     procedure Update; overload;
     procedure Update(const Rect: TRect); overload;
     function  HitTest(X, Y: Integer): Boolean;
@@ -664,6 +664,8 @@ begin
     if Visible then FLayerCollection.Changed
     else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
+
+    inherited;
   end;
 end;
 
@@ -675,6 +677,8 @@ begin
     if Visible then FLayerCollection.Changed
     else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
+
+    inherited Changed;
   end;
 end;
 
