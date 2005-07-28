@@ -78,7 +78,7 @@ type
     procedure SetSrcRect(const Value: TFloatRect);
   protected
     TransformValid: Boolean;
-    procedure PrepareTransform; virtual; abstract;
+    procedure PrepareTransform; virtual;
     procedure ReverseTransformInt(DstX, DstY: Integer; out SrcX, SrcY: Integer); virtual;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); virtual;
     procedure ReverseTransformFloat(DstX, DstY: Single; out SrcX, SrcY: Single); virtual;
@@ -483,6 +483,11 @@ end;
 function TTransformation.HasTransformedBounds: Boolean;
 begin
   Result := True;
+end;
+
+procedure TTransformation.PrepareTransform;
+begin
+  // Dummy
 end;
 
 function TTransformation.ReverseTransform(const P: TFloatPoint): TFloatPoint;
