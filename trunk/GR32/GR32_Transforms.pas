@@ -267,7 +267,7 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Resamplers, GR32_Math, Math;
+  GR32_LowLevel, GR32_System, GR32_Resamplers, Math, GR32_Math;
 
 type
   {provides access to proctected members of TBitmap32 by typecasting}
@@ -966,14 +966,6 @@ begin
     Frx := (Right - Left) / 2;
     Fry := (Bottom - Top) / 2;
   end;
-end;
-
-procedure SinCos(const Theta: Single; var Sin, Cos: Single);
-asm
-        FLD  Theta
-        FSINCOS
-        FSTP DWORD PTR [EDX]    // cosine
-        FSTP DWORD PTR [EAX]    // sine
 end;
 
 procedure TTwirlTransformation.ReverseTransformFloat(DstX, DstY: Single;
