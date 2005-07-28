@@ -48,11 +48,9 @@ type
   end;
 
 type
-  TCustomRasterizer = class(TThreadPersistent);
-
   { TRasterizer }
   { A base class for TBitmap32-specific rasterizers. }
-  TRasterizer = class(TCustomRasterizer)
+  TRasterizer = class(TThreadPersistent)
   private
     FSampler: TCustomSampler;
     FSrcAlpha: Integer;
