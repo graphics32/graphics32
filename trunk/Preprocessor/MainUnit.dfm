@@ -1,10 +1,9 @@
 object MainForm: TMainForm
   Left = 295
   Top = 297
-  BorderStyle = bsDialog
+  Width = 877
+  Height = 548
   Caption = 'HTML Document Processor'
-  ClientHeight = 521
-  ClientWidth = 869
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -57,7 +56,7 @@ object MainForm: TMainForm
         Left = 5
         Top = 5
         Width = 46
-        Height = 16
+        Height = 13
         Anchors = [akLeft, akBottom]
         Caption = 'Progress:'
       end
