@@ -33,7 +33,7 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  Classes, GR32, GR32_Blend, GR32_IntegerMaps;
+  Classes, GR32, GR32_Blend, GR32_OrdinalMaps;
 
 type
   TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;
@@ -108,7 +108,7 @@ type
   public
     constructor Create; override;
   published
-    property BlockSize: Integer read FBlockSize write SetBlockSize;
+    property BlockSize: Integer read FBlockSize write SetBlockSize default 3;
   end;
 
   { TProgressiveRasterizer }
@@ -117,16 +117,17 @@ type
     each iteration until n equals zero.  }
   TProgressiveRasterizer = class(TRasterizer)
   private
-    FLevel: Integer;
-    FProgressLines: Boolean;
-    procedure SetLevel(const Value: Integer);
+    FSteps: Integer;
+    FUpdateRows: Boolean;
+    procedure SetSteps(const Value: Integer);
+    procedure SetUpdateRows(const Value: Boolean);
   protected
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
   public
     constructor Create; override;
   published
-    property Level: Integer read FLevel write SetLevel;
-    property ProgressLines: Boolean read FProgressLines write FProgressLines;
+    property Steps: Integer read FSteps write SetSteps default 4;
+    property UpdateRows: Boolean read FUpdateRows write SetUpdateRows default True;
   end;
 
   { TTesseralRasterizer }
@@ -419,8 +420,8 @@ end;
 constructor TProgressiveRasterizer.Create;
 begin
   inherited;
-  FLevel := 4;
-  FProgressLines := True;
+  FSteps := 4;
+  FUpdateRows := True;
 end;
 
 procedure TProgressiveRasterizer.DoRasterize(Dst: TBitmap32;
@@ -439,7 +440,7 @@ begin
   W := DstRect.Right - DstRect.Left;
   H := DstRect.Bottom - DstRect.Top;
   J := DstRect.Top;
-  Step := 1 shl FLevel;
+  Step := 1 shl FSteps;
   while J < DstRect.Bottom do
   begin
     I := DstRect.Left;
@@ -450,14 +451,15 @@ begin
       Inc(I, Step);
     end;
     Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
-    if DoUpdate and FProgressLines then
+    if DoUpdate and FUpdateRows then
       OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step), AREAHINT_RECT);
     Inc(J, Step);
   end;
-  if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect, AREAHINT_RECT);
+  if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAHINT_RECT);
 
-  Shift := FLevel;
-  repeat
+  Shift := FSteps;
+  while Step > 1 do
+  begin
     Dec(Shift);
     Step := Step div 2;
     Wk := W div Step - 1;
@@ -481,19 +483,28 @@ begin
           end;
       X := DstRect.Left + Wk shl Shift;
       Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
-      if FProgressLines and DoUpdate then
+      if FUpdateRows and DoUpdate then
         OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step), AREAHINT_RECT);
     end;
-    if DoUpdate and (not FProgressLines) then OnChanged(Dst, DstRect, AREAHINT_RECT);
-  until Step = 1;
+    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAHINT_RECT);
+  end;
   Dst.EndUpdate;
 end;
 
-procedure TProgressiveRasterizer.SetLevel(const Value: Integer);
+procedure TProgressiveRasterizer.SetSteps(const Value: Integer);
 begin
-  if FLevel <> Value then
+  if FSteps <> Value then
   begin
-    FLevel := Value;
+    FSteps := Value;
+    Changed;
+  end;
+end;
+
+procedure TProgressiveRasterizer.SetUpdateRows(const Value: Boolean);
+begin
+  if FUpdateRows <> Value then
+  begin
+    FUpdateRows := Value;
     Changed;
   end;
 end;
