@@ -1,4 +1,4 @@
-unit GR32_IntegerMaps;
+unit GR32_OrdinalMaps;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
