@@ -7,6 +7,7 @@ uses
 
 const
   Copyright: String = 'Copyright &copy;2000-2004 Alex Denisov and Contributors';
+  cColumnCount = 5;
 
 type
   TElement = class;
@@ -1545,6 +1546,20 @@ begin
 
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
+    // units
+    for I := 0 to Units.Count - 1 do Elems.Add(TUnitElement(Units[I]));
+    if Elems.Count > 0 then
+    begin
+      with Body.Add('h2') do
+      begin
+        Attributes['id'] := 'Auto';
+        AddText('Units');
+      end;
+      Elems.Sort(CompareElements);
+      AddElems(cColumnCount);
+      Elems.Clear;
+    end;
+
     with Body.Add('table') do
     begin
       Attributes['id'] := 'Auto';
@@ -1597,7 +1612,7 @@ begin
         Attributes['id'] := 'Auto';
         AddText('Routines');
       end;
-      AddElems(3);
+      AddElems(cColumnCount);
       Elems.Clear;
     end;
 
@@ -1611,7 +1626,7 @@ begin
         Attributes['id'] := 'Auto';
         AddText('Types');
       end;
-      AddElems(3);
+      AddElems(cColumnCount);
       Elems.Clear;
     end;
 
@@ -1625,7 +1640,7 @@ begin
         Attributes['id'] := 'Auto';
         AddText('Variables');
       end;
-      AddElems(3);
+      AddElems(cColumnCount);
       Elems.Clear;
     end;
 
@@ -1639,21 +1654,7 @@ begin
         Attributes['id'] := 'Auto';
         AddText('Constants');
       end;
-      AddElems(3);
-      Elems.Clear;
-    end;
-
-    // units
-    for I := 0 to Units.Count - 1 do Elems.Add(TUnitElement(Units[I]));
-    if Elems.Count > 0 then
-    begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto';
-        AddText('Units');
-      end;
-      Elems.Sort(CompareElements);
-      AddElems(3);
+      AddElems(cColumnCount);
       Elems.Clear;
     end;
 
