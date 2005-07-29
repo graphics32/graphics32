@@ -93,24 +93,6 @@ type
     property UpdateRowCount: Integer read FUpdateRowCount write FUpdateRowCount;
   end;
 
-  { TSuperSamplingRasterizer }
-  { This class implements ordinary supersampling, where samples are gathered
-    from a regular square grid for each pixel. }
-  TSuperSamplingRasterizer = class(TRegularRasterizer)
-  private
-    FSamplingX: Integer;
-    FSamplingY: Integer;
-    procedure SetSamplingX(const Value: Integer);
-    procedure SetSamplingY(const Value: Integer);
-  protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
-  public
-    constructor Create; override;
-  published
-    property SamplingX: Integer read FSamplingX write SetSamplingX;
-    property SamplingY: Integer read FSamplingY write SetSamplingY;
-  end;
-
   { TSwizzlingRasterizer }
   { An interesting rasterization method where sample locations are choosen
     according to a fractal pattern called 'swizzling'. With a slight
@@ -330,106 +312,6 @@ begin
   with DstRect do
     Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom));
 end;
-
-{ TSuperSamplingRasterizer }
-
-constructor TSuperSamplingRasterizer.Create;
-begin
-  inherited;
-  SamplingX := 1;
-  SamplingY := 1;
-end;
-
-procedure TSuperSamplingRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
-var
-  I, J, U, V, SX, SY, UpdateCount: Integer;
-  Scale: TFixed;
-  X, Y, Tx, Ty, BTx, BX, lx, ly, dx, dy: TFixed;
-  Buffer: TBufferEntry;
-  P: PColor32;
-  GetSample: TGetSampleFixed;
-begin
-  if (SamplingX = 1) and (SamplingY = 1) then
-  begin
-    inherited;
-    Exit;
-  end;
-
-  dx := Fixed(1 / FSamplingX);
-  dy := Fixed(1 / FSamplingY);
-  lx := Fixed(((1 / FSamplingX) - 1) / 2);
-  ly := Fixed(((1 / FSamplingY) - 1) / 2);
-  Scale := Fixed(1 / (FSamplingX * FSamplingY));
-  GetSample := FSampler.GetSampleFixed;
-  SX := (SamplingX - 1) * dx;
-  SY := (SamplingY - 1) * dy;
-
-  Y := (DstRect.Top - 1) * FixedOne + ly;
-  Ty := Y + SY;
-
-  BX := (DstRect.Left - 1) * FixedOne + lx;
-  BTx := BX + SX;
-
-  UpdateCount := 0;
-
-  for J := DstRect.Top to DstRect.Bottom - 1 do
-  begin
-    P := @Dst.Bits[DstRect.Left + J * Dst.Width];
-    Inc(Y, FixedOne);
-    Inc(Ty, FixedOne);
-
-    X := BX;
-    Tx := BTx;
-
-    for I := DstRect.Left to DstRect.Right - 1 do
-    begin
-      Buffer := EMPTY_ENTRY;
-      Inc(X, FixedOne);
-      Inc(Tx, FixedOne);
-
-      V := Ty;
-      repeat
-        U := Tx;
-        repeat
-          IncBuffer(Buffer, GetSample(U, V));
-          Dec(U, dx);
-        until U < X;
-        Dec(V, dy);
-      until V < Y;
-
-      MultiplyBuffer(Buffer, Scale);
-      AssignColor(P^, BufferToColor32(Buffer, 16));
-      Inc(P);
-    end;
-    Inc(UpdateCount);
-    if UpdateCount = FUpdateRowCount then
-    begin
-      Dst.Changed(Rect(DstRect.Left, J - UpdateCount, DstRect.Right, J));
-      UpdateCount := 0;
-    end;
-  end;
-  with DstRect do
-    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom));
-end;
-
-procedure TSuperSamplingRasterizer.SetSamplingX(const Value: Integer);
-begin
-  if (FSamplingX <> Value) and (Value > 0) then
-  begin
-    FSamplingX := Value;
-    Changed;
-  end;
-end;
-
-procedure TSuperSamplingRasterizer.SetSamplingY(const Value: Integer);
-begin
-  if (FSamplingY <> Value) and (Value > 0) then
-  begin
-    FSamplingY := Value;
-    Changed;
-  end;
-end;
-
 
 { TSwizzlingRasterizer }
 
