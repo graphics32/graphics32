@@ -445,7 +445,7 @@ var
 
 procedure TThemeNexus.CloseVisualStyles;
 begin
-  if UseXPThemes then
+  if UseXPThemes and not IsLibrary then
   begin
     if SCROLLBAR_THEME <> 0 then
     begin
