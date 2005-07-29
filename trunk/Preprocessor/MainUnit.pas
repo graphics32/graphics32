@@ -166,7 +166,7 @@ end;
 procedure TMainForm.StartCompile;
 begin
   LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(Edit7.Text + ' ' + ProjectDir + Edit5.Text, Log);
+  RunCommandInMemo(Edit7.Text + ' "' + ProjectDir + Edit5.Text + '"', Log);
   LogAdd('Done.'#13#10);
 end;
 
