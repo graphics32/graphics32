@@ -2,10 +2,13 @@ unit GR32_ExtImage;
 
 interface
 
+{$I GR32.INC}
+
 uses
   GR32, GR32_Image, GR32_Rasterizers, Classes, Controls, Messages, Windows;
 
 type
+  {$IFNDEF CLX}
   TRenderThread = class;
 
   TRenderMode = (rmFull, rmConstrained);
@@ -46,6 +49,7 @@ type
     property RenderMode: TRenderMode read FRenderMode write SetRenderMode;
     property DstRect: TRect read FDstRect write SetDstRect;
   end;
+  {$ENDIF}
 
   { TRenderThread }
   TRenderThread = class(TThread)
@@ -82,6 +86,7 @@ end;
 
 { TSyntheticImage32 }
 
+{$IFNDEF CLX}
 constructor TSyntheticImage32.Create(AOwner: TComponent);
 begin
   inherited;
@@ -225,6 +230,7 @@ begin
     FRenderThread.Free;
   end;
 end;
+{$ENDIF}
 
 { TRenderThread }
 
