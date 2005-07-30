@@ -111,8 +111,6 @@ function SAR_16(Value: Integer): Integer;
 { ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
-{ MulDiv a faster implementation of Windows.MulDiv funtion }
-function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
 implementation
 
@@ -481,53 +479,6 @@ asm
         BSWAP   EAX
         MOV     AL, $FF
         ROR     EAX,8
-end;
-
-function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
-asm
-        PUSH    EBX             // Imperative save
-        PUSH    ESI             // of EBX and ESI
-
-        MOV     EBX,EAX         // Result will be negative or positive so set rounding direction
-        XOR     EBX,EDX         //  Negative: substract 1 in case of rounding
-        XOR     EBX,ECX         //  Positive: add 1
-
-        OR      EAX,EAX         // Make all operands positive, ready for unsigned operations
-        JNS     @m1Ok           // minimizing branching
-        NEG     EAX
-@m1Ok:
-        OR      EDX,EDX
-        JNS     @m2Ok
-        NEG     EDX
-@m2Ok:
-        OR      ECX,ECX
-        JNS     @DivOk
-        NEG     ECX
-@DivOK:
-        MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
-
-        MOV     ESI,EDX         // Check for overflow, by comparing
-        SHL     ESI,1           // 2 times the high-order 32 bits of the product (edx)
-        CMP     ESI,ECX         // with the Divisor.
-        JAE     @Overfl         // If equal or greater than overflow with division anticipated
-
-        DIV     ECX             // Unsigned divide of product by Divisor
-
-        SUB     ECX,EDX         // Check if the result must be adjusted by adding or substracting
-        CMP     ECX,EDX         // 1 (*.5 -> nearest integer), by comparing the difference of
-        JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
-        INC     EAX             // no rounding needed; add 1 to result otherwise
-@NoAdd:
-        OR      EBX,EDX         // From unsigned operations back the to original sign of the result
-        JNS     @exit           // must be positive
-        NEG     EAX             // must be negative
-        JMP     @exit
-@Overfl:
-        OR      EAX,-1          //  3 bytes alternative for mov eax,-1. Windows.MulDiv "overflow"
-                                //  and "zero-divide" return value
-@exit:
-        POP     ESI             // Restore
-        POP     EBX             // esi and ebx
 end;
 
 
