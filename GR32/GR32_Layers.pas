@@ -62,7 +62,7 @@ type
   { TCoordXForm - transformations from bitmap image to buffer origin }
   TCoordXForm = record
     ScaleX: TFixed;       // bitmap image to buf
-    ScaleY: TFixed;       
+    ScaleY: TFixed;
     ShiftX: Integer;
     ShiftY: Integer;
     RevScaleX: TFixed;
@@ -79,7 +79,7 @@ type
     Layer: TCustomLayer; Index: Integer) of object;
   TGetScaleEvent = procedure(Sender: TObject; var ScaleX, ScaleY: Single) of object;
   TGetShiftEvent = procedure(Sender: TObject; var ShiftX, ShiftY: Single) of object;
-  
+
   TLayerCollection = class(TPersistent)
   private
 {$IFDEF DEPRECATEDMODE}
@@ -605,7 +605,7 @@ end;
 
 procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
 begin
-  if Assigned(FOnAreaUpdated) then FOnAreaUpdated(Self, Rect, AREAHINT_RECT);
+  if Assigned(FOnAreaUpdated) then FOnAreaUpdated(Self, Rect, AREAINFO_RECT);
   Changed;  
 end;
 
