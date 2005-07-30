@@ -73,7 +73,7 @@ type
     procedure PerformOptimization; virtual; abstract;
 
     // handlers
-    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal); virtual; abstract;
+    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal); virtual; abstract;
     procedure LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer); virtual; abstract;
     procedure BufferResizedHandler(const NewWidth, NewHeight: Integer); virtual; abstract;
 
