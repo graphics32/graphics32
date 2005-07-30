@@ -158,8 +158,8 @@ type
 {$ENDIF}
 
     procedure DrawLayerToMicroTiles(var DstTiles: TMicroTiles; Layer: TCustomLayer);
-    procedure DrawMeasuringHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
-    
+    procedure DrawMeasuringHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+
     procedure ValidateWorkingTiles;
     procedure UpdateOldInvalidTiles;
     procedure SetAdaptiveMode(const Value: Boolean);
@@ -167,7 +167,7 @@ type
     procedure BeginAdaption;
     procedure EndAdaption;
 
-    procedure AddArea(var Tiles: TMicroTiles; const Area: TRect; const Hint: Cardinal);
+    procedure AddArea(var Tiles: TMicroTiles; const Area: TRect; const Info: Cardinal);
   protected
     procedure SetEnabled(const Value: Boolean); override;
 
@@ -190,7 +190,7 @@ type
     procedure EndPaintBuffer; override;
 
     // handlers
-    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal); override;
+    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal); override;
     procedure LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer); override;
     procedure BufferResizedHandler(const NewWidth, NewHeight: Integer); override;
 
@@ -1106,22 +1106,22 @@ begin
 end;
 
 procedure TMicroTilesRepaintOptimizer.AreaUpdateHandler(Sender: TObject; const Area: TRect;
-  const Hint: Cardinal);
+  const Info: Cardinal);
 begin
   ValidateWorkingTiles;
-  AddArea(FForcedInvalidTiles, Area, Hint);
+  AddArea(FForcedInvalidTiles, Area, Info);
   FUseInvalidTiles := True;
 end;
 
 procedure TMicroTilesRepaintOptimizer.AddArea(var Tiles: TMicroTiles; const Area: TRect;
-  const Hint: Cardinal);
+  const Info: Cardinal);
 var
   LineWidth: Integer;
   TempRect: TRect;
 begin
-  if Hint and AREAHINT_LINE <> 0 then
+  if Info and AREAINFO_LINE <> 0 then
   begin
-    LineWidth := Hint and $00FFFFFF;
+    LineWidth := Info and $00FFFFFF;
     TempRect := Area;
     InflateArea(TempRect, LineWidth, LineWidth);
     with TempRect do
@@ -1373,9 +1373,9 @@ begin
 end;
 
 procedure TMicroTilesRepaintOptimizer.DrawMeasuringHandler(Sender: TObject; const Area: TRect;
-  const Hint: Cardinal);
+  const Info: Cardinal);
 begin
-  AddArea(FWorkMicroTiles^, Area, Hint);
+  AddArea(FWorkMicroTiles^, Area, Info);
 end;
 
 procedure TMicroTilesRepaintOptimizer.PerformOptimization;
