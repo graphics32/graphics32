@@ -11,7 +11,7 @@ type
   {$IFNDEF CLX}
   TRenderThread = class;
 
-  TRenderMode = (rmFull, rmConstrained);
+  TRenderMode = (rnmFull, rnmConstrained);
 
   { TSyntheticImage32 }
   TSyntheticImage32 = class(TPaintBox32)
@@ -95,7 +95,7 @@ begin
   FAutoRasterize := True;
   FResized := False;
   RepaintMode := rmDirect;
-  RenderMode := rmFull;
+  RenderMode := rnmFull;
 end;
 
 destructor TSyntheticImage32.Destroy;
@@ -152,7 +152,7 @@ begin
   { create rendering thread }
   StopRenderThread;
   FOldAreaChanged := Buffer.OnAreaChanged;
-  if FRenderMode = rmFull then
+  if FRenderMode = rnmFull then
     R := Rect(0, 0, Width, Height)
   else
     R := FDstRect;
