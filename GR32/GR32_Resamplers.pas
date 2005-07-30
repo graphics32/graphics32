@@ -267,16 +267,16 @@ type
     FGetSampleInt: TGetSampleInt;
   protected
     function GetWidth: Single; override;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   public
     constructor Create(Bitmap: TBitmap32); override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure PrepareSampling; override;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TLinearResampler }
@@ -286,21 +286,21 @@ type
     FGetSampleFixed: TGetSampleFixed;
   protected
     function GetWidth: Single; override;
+    procedure Resample(
+      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;    
   public
     constructor Create(Bitmap: TBitmap32); override;
     destructor Destroy; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: Single): TColor32; override;
     procedure PrepareSampling; override;
-    procedure Resample(
-      Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
-      Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TDraftResampler }
   TDraftResampler = class(TLinearResampler)
-  public
+  protected
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -604,6 +604,7 @@ const
 type
   TTransformationAccess = class(TTransformation);
   TBitmap32Access = class(TBitmap32);
+  TCustomResamplerAccess = class(TCustomResampler);
 
   TPointRec = record
     Pos: Integer;
@@ -1850,7 +1851,8 @@ begin
         BlendBlock(Dst, DstClip, Src, SrcRect.Left + DstClip.Left - DstRect.Left,
           SrcRect.Top + DstClip.Top - DstRect.Top, CombineOp, CombineCallBack)
       else
-        Resampler.Resample(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
+        TCustomResamplerAccess(Resampler).Resample(
+          Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack);
     finally
       EMMS;
     end;
