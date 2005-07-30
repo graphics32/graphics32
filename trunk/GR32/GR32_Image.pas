@@ -112,7 +112,7 @@ type
     procedure CMInvalidate(var Message: TMessage); message CM_INVALIDATE;
     procedure WMPaint(var Message: TMessage); message WM_PAINT;
 {$ENDIF}
-    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+    procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
     function  CustomRepaint: Boolean; virtual;
@@ -241,8 +241,8 @@ type
     FOnScaleChange: TNotifyEvent;
     procedure BitmapResizeHandler(Sender: TObject);
     procedure BitmapChangeHandler(Sender: TObject);
-    procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
-    procedure BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+    procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+    procedure BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure LayerCollectionChangeHandler(Sender: TObject);
     procedure LayerCollectionGDIUpdateHandler(Sender: TObject);
     procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
@@ -1067,7 +1067,7 @@ end;
 {$ENDIF}
 
 procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject;
-  const Area: TRect; const Hint: Cardinal);
+  const Area: TRect; const Info: Cardinal);
 begin
   FInvalidRects.Add(Area);
   if not(csCustomPaint in ControlState) then Repaint;
@@ -1196,7 +1196,7 @@ begin
   BitmapChanged(Bitmap.Boundsrect);
 end;
 
-procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -1210,7 +1210,7 @@ begin
     T.BottomRight := BitmapToControl(T.BottomRight);
 
     if FBitmapAlign <> baTile then
-      FRepaintOptimizer.AreaUpdateHandler(Self, T, AREAHINT_RECT)
+      FRepaintOptimizer.AreaUpdateHandler(Self, T, AREAINFO_RECT)
     else
     begin
       with CachedBitmapRect do
@@ -1222,7 +1222,7 @@ begin
           begin
             R := T;
             OffsetRect(R, Right * I, Bottom * J);
-            FRepaintOptimizer.AreaUpdateHandler(Self, R, AREAHINT_RECT);
+            FRepaintOptimizer.AreaUpdateHandler(Self, R, AREAINFO_RECT);
           end;
       end;
     end;
@@ -1231,7 +1231,7 @@ begin
   BitmapChanged(Area);
 end;
 
-procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Hint: Cardinal);
+procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;

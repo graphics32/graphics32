@@ -375,16 +375,17 @@ type
 
 const
   // common cases
-  AREAHINT_RECT         = $80000000;
-  AREAHINT_LINE         = $40000000; // 24 bits for line width in pixels...
-  AREAHINT_ELLIPSE      = $20000000;
+  AREAINFO_RECT         = $80000000;
+  AREAINFO_LINE         = $40000000; // 24 bits for line width in pixels...
+  AREAINFO_ELLIPSE      = $20000000;
+  AREAINFO_ABSOLUTE     = $10000000;
 
-  AREAHINT_MASK         = $FF000000;
+  AREAINFO_MASK         = $FF000000;
 
 type
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
   TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect;
-    const Hint: Cardinal) of object;
+    const Info: Cardinal) of object;
 
   TCustomResampler = class;
 
@@ -517,7 +518,7 @@ type
 
     procedure PropertyChanged;
     procedure Changed; overload; override;
-    procedure Changed(const Area: TRect; const Hint: Cardinal = AREAHINT_RECT); reintroduce; overload; virtual;
+    procedure Changed(const Area: TRect; const Info: Cardinal = AREAINFO_RECT); reintroduce; overload; virtual;
 
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
@@ -2872,7 +2873,7 @@ begin
     end;
     if L then P^ := Value;
   finally
-    Changed(ChangedRect, AREAHINT_LINE + 2);
+    Changed(ChangedRect, AREAINFO_LINE + 2);
   end;
 end;
 
@@ -3058,7 +3059,7 @@ begin
     end;
   end;
 
-  Changed(ChangedRect, AREAHINT_LINE + 2);
+  Changed(ChangedRect, AREAINFO_LINE + 2);
 end;
 
 procedure TBitmap32.LineT(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
@@ -3141,7 +3142,7 @@ begin
       EMMS;
     end;
   finally
-    Changed(ChangedRect, AREAHINT_LINE + 2);
+    Changed(ChangedRect, AREAINFO_LINE + 2);
   end;
 end;
 
@@ -3331,7 +3332,7 @@ begin
     end;
   end;
 
-  Changed(ChangedRect, AREAHINT_LINE + 2);
+  Changed(ChangedRect, AREAINFO_LINE + 2);
 end;
 
 procedure TBitmap32.LineX(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean);
@@ -3367,7 +3368,7 @@ begin
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + A);
   finally
     EMMS;
-    Changed(MakeRect(ChangedRect), AREAHINT_LINE + 2);
+    Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
   end;
 end;
 
@@ -3438,7 +3439,7 @@ begin
       EMMS;
     end;
   end;
-  Changed(MakeRect(ChangedRect), AREAHINT_LINE + 2);
+  Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
 end;
 
 procedure TBitmap32.LineFS(X1, Y1, X2, Y2: Single; Value: TColor32; L: Boolean);
@@ -3481,7 +3482,7 @@ begin
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, C and $00FFFFFF + A);
     EMMS;
   finally
-    Changed(ChangedRect, AREAHINT_LINE + 2);
+    Changed(ChangedRect, AREAINFO_LINE + 2);
   end;
 end;
 
@@ -3561,7 +3562,7 @@ begin
       AdvanceStippleCounter(Hypot((X2 - ex) / 65536, (Y2 - ey) / 65536) - StippleInc[L]);
   end;
 
-  Changed(ChangedRect, AREAHINT_LINE + 4);
+  Changed(ChangedRect, AREAINFO_LINE + 4);
 end;
 
 procedure TBitmap32.LineFSP(X1, Y1, X2, Y2: Single; L: Boolean);
@@ -3643,7 +3644,7 @@ begin
     end;
   finally
     EMMS;
-    Changed(MakeRect(X1, Y1, X2, Y2), AREAHINT_LINE + 2);
+    Changed(MakeRect(X1, Y1, X2, Y2), AREAINFO_LINE + 2);
   end;
 end;
 
@@ -3919,7 +3920,7 @@ begin
     end;
   end;
 
-  Changed(ChangedRect, AREAHINT_LINE + 2);
+  Changed(ChangedRect, AREAINFO_LINE + 2);
 end;
 
 procedure TBitmap32.MoveTo(X, Y: Integer);
@@ -5282,16 +5283,16 @@ end;
 procedure TBitmap32.Changed;
 begin
   if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
-    FOnAreaChanged(Self, BoundsRect, AREAHINT_RECT);
+    FOnAreaChanged(Self, BoundsRect, AREAINFO_RECT);
 
   if not FMeasuringMode then
     inherited;
 end;
 
-procedure TBitmap32.Changed(const Area: TRect; const Hint: Cardinal);
+procedure TBitmap32.Changed(const Area: TRect; const Info: Cardinal);
 begin
   if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
-    FOnAreaChanged(Self, Area, Hint);
+    FOnAreaChanged(Self, Area, Info);
 
   if not FMeasuringMode then
     inherited Changed;
@@ -5344,7 +5345,6 @@ begin
   PixmapNeeded;
   Result := FPixmap;
 end;
-
 function TBitmap32.GetPainter: QPainterH;
 begin
   PixmapNeeded;

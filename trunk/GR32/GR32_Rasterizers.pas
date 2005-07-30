@@ -452,10 +452,10 @@ begin
     end;
     Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
     if DoUpdate and FUpdateRows then
-      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step), AREAHINT_RECT);
+      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step), AREAINFO_RECT);
     Inc(J, Step);
   end;
-  if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAHINT_RECT);
+  if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
 
   Shift := FSteps;
   while Step > 1 do
@@ -484,9 +484,9 @@ begin
       X := DstRect.Left + Wk shl Shift;
       Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
       if FUpdateRows and DoUpdate then
-        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step), AREAHINT_RECT);
+        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step), AREAINFO_RECT);
     end;
-    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAHINT_RECT);
+    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
   end;
   Dst.EndUpdate;
 end;
