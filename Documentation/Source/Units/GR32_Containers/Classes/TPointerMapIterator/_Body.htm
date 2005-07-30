@@ -7,9 +7,19 @@
 
 <body bgcolor="#FFFFFF">
 <h2>Description</h2>
-<p class="Body">Description</p>
-<p id="hidden">[See Also] <a href="../../../../Examples.htm#Resampler%20Example">Resampler 
-  Example</a>, <a href="../../../../Examples.htm#Kernel%20Example">Kernel Example</a>
-</p>
+<p class="Body">TPointerMapIterator is an auxiliary class for iterating through pointer maps - an operation not directly supported by TPointerMap.</p>
+<p class="Body">The iterator should be used in the following fashion:</p>
+<blockquote>
+  <p class="pascalcode"> with TPointerMapIterator.Create(MyPointerMap) do<br>
+    try<br>
+    &nbsp;&nbsp;while Next do<br>
+    &nbsp;&nbsp;begin<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;// do something with Item and Data here...<br>
+    &nbsp;&nbsp;end;<br>
+    finally<br>
+    &nbsp;&nbsp;Free;<br>
+    end;</p>
+</blockquote>
+<p id="hidden">[See Also] </p>
 </body>
 </html>
