@@ -29,8 +29,6 @@ uses
   GR32; 
 
 type
-  TArrayOfWord = array of Word;
-  TArrayOfInteger = array of Integer;
 
   TBooleanMap = class(TCustomMap)
   private
