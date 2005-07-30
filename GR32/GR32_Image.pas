@@ -152,7 +152,7 @@ type
     property BufferOversize: Integer read FBufferOversize write SetBufferOversize;
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
     property MouseInControl: Boolean read FMouseInControl;
-    property RepaintMode: TRepaintMode read FRepaintMode write SetRepaintMode;
+    property RepaintMode: TRepaintMode read FRepaintMode write SetRepaintMode default rmFull;
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
     property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
     property OnGDIOverlay: TNotifyEvent read FOnGDIOverlay write FOnGDIOverlay;
@@ -458,7 +458,7 @@ type
     procedure Scroll(Dx, Dy: Integer);
     property Centered: Boolean read FCentered write SetCentered default True;
     property ScrollBars: TIVScrollProperties read FScrollBars write SetScrollBars;
-    property SizeGrip: TSizeGripStyle read FSizeGrip write SetSizeGrip;
+    property SizeGrip: TSizeGripStyle read FSizeGrip write SetSizeGrip default sgAuto;
     property OverSize: Integer read FOverSize write SetOverSize;    
     property OnScroll: TNotifyEvent read FOnScroll write FOnScroll;
   end;
@@ -1576,8 +1576,8 @@ begin
         else
           Mode := smNormal;
       smOptimalScaled:
-        if (Round(Bitmap.Width * Scale) > ViewportWidth) or
-          (Round(Bitmap.Height * Scale) > ViewportHeight) then
+        if (Round(Bitmap.Width * ScaleX) > ViewportWidth) or
+          (Round(Bitmap.Height * ScaleY) > ViewportHeight) then
           Mode := smResize
         else
           Mode := smScale;
@@ -2122,6 +2122,7 @@ end;
 
 procedure TCustomImgView32.DoScaleChange;
 begin
+  inherited;
   InvalidateCache;
   UpdateScrollBars;
   UpdateImage;
