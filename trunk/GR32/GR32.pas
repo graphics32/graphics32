@@ -758,11 +758,11 @@ type
   TCustomResampler = class(TCustomSampler)
   protected
     function GetWidth: Single; virtual; abstract;
-  public
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
+  public
     property Width: Single read GetWidth;
   end;
   TCustomResamplerClass = class of TCustomResampler;
