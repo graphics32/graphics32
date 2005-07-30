@@ -1660,6 +1660,7 @@ end;
 
 constructor TPolygon32.Create;
 begin
+  inherited;
   FClosed := True;
   FAntialiasMode := DefaultAAMode;
   NewLine; // initiate a new contour
