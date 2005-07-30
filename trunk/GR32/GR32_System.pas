@@ -377,7 +377,9 @@ procedure FreeXPThemes;
 begin
   if DllHandle <> 0 then
   begin
-    FreeLibrary(DllHandle);
+    if not IsLibrary then
+      FreeLibrary(DllHandle);
+      
     DllHandle := 0;
     OpenThemeData := nil;
     CloseThemeData := nil;
@@ -420,7 +422,7 @@ end;
 
 function UseXPThemes: Boolean;
 begin
-  Result := (DllHandle > 0) and IsAppThemed  and IsThemeActive;
+  Result := (DllHandle > 0) and IsAppThemed and IsThemeActive;
 end;
 
 type
@@ -445,7 +447,7 @@ var
 
 procedure TThemeNexus.CloseVisualStyles;
 begin
-  if UseXPThemes and not IsLibrary then
+  if not IsLibrary and UseXPThemes then
   begin
     if SCROLLBAR_THEME <> 0 then
     begin
