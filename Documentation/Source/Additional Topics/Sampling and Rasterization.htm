@@ -26,7 +26,7 @@
 <h2 class="Body">Nested sampling </h2>
 <p class="Body">If the input of one sampler is the output from another, then we have a <em>nested sampler</em>. Nested samplers are derived from the class <a href="../Units/GR32_Resamplers/Classes/TNestedSampler/_Body.htm">TNestedSampler</a>. </p>
 <p class="Body">By nesting samplers, it is possible to create a chain of nested samplers between the sampler that generates the actual sample and the rasterizer. This mechanism is illustrated in the below image. </p>
-<p class="Body"><img src="../../Images/img_nested.gif" width="729" height="92"></p>
+<p align="center" class="Body"><img src="../../Images/img_nested.gif" width="729" height="92"></p>
 <p class="Body">There are many different useful applications for nested samplers. A sampler may be associated with a transformation, and thus transform each input coordinate for the sampler at the next level. It is possible to collect more than one sample in a local neighborhood of the pixel coordinate of the output pixel. This allows us to perform <em>super sampling</em>, and thus to better approximate the value of the pixel at a certain coordinate of the output bitmap. If super sampling is not performed, it may cause jagginess and aliasing artifacts in the output image. However, this also depends on what kind of method is used for generating samples.</p>
 <p class="Body">Another important class of nested samplers is <em>kernel samplers</em>. Kernel samplers compute an output sample from several subsamples in a local region of the input coordinate. Each subsample is combined with a kernel (a map of weights). A class-specific kernel operation is used to update a buffer for each collected sample. This permits a very simplistic implementation of convolution and morphological operations.</p>
 <p class="Body">The following is a list of the different nested samplers that are included in Graphics32. </p>
@@ -46,7 +46,7 @@
   </li>
   <li><span class="EmptyRef">Kernel samplers </span>    
     <ul>
-      <li><a href="../Units/GR32_Resamplers/Classes/TConvolver/_Body.htm">TConvolver</a> &#8212; performs convolution ;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TConvolver/_Body.htm">TConvolver</a> &#8212; performs convolution;</li>
       <li><a href="../Units/GR32_Resamplers/Classes/TSelectiveConvolver/_Body.htm">TSelectiveConvolver</a> &#8212; performs selective convolution;</li>
       <li><a href="../Units/GR32_Resamplers/Classes/TDilater/_Body.htm">TDilater</a> &#8212; performs morphological dilation;</li>
       <li><a href="../Units/GR32_Resamplers/Classes/TEroder/_Body.htm">TEroder</a> &#8212; performs morphological erosion;</li>
