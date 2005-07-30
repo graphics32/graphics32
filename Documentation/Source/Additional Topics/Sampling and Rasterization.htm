@@ -1,0 +1,61 @@
+<html>
+<head>
+  
+<title>Sampling and Rasterization</title>
+  
+<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<h2 class="Body">Sampling</h2>
+<p class="Body">Sampling is a very important concept within digital image processing and image analysis. Sampling is a process where color samples are acquired given their logical coordinates in the (x, y) coordinate space. Graphics32 provides a special class called <a href="../Units/GR32/Classes/TCustomSampler/_Body.htm">TCustomSampler</a>, that provides the necessary mechanism for implementing different sampling techniques. A <em>sampler</em> can be conceived as a scalar function f(x, y) that returns a color sample given a logical coordinate (x, y). A sample may be created synthetically (this is a common technique within ray-tracing, fractal rendering and pattern generation). It may also be acquired from some input hardware device. Another very common  method for acquiring samples is <em>resampling</em>.</p>
+<h2 class="Body">Resampling</h2>
+<p class="Body">Resampling is the process of reconstructing samples from a discrete input signal. The idea can also be extended from the 1D case to 2D. In the 2D case we can think of the bitmap as our signal. We have a number of pixels, aligned on a regular square grid. Hence we only know the actual color values at a number of discrete coordinates. In order to determine the color value of a sample at an arbitrary coordinate in a continuous image space, we need to perform interpolation for reconstructing this sample. </p>
+<p class="Body">Descendants of <a href="../Units/GR32/Classes/TCustomResampler/_Body.htm">TCustomResampler</a> implement various algorithms for performing resampling and sample acquisition. A general  algorithm reconstructing samples is to perform convolution in a local neighborhood of the actual sample coordinate. This method is used in <a href="../Units/GR32_Resamplers/Classes/TKernelResampler/_Body.htm">TKernelResampler</a>, where a convolution filter is specified by the <a href="../Units/GR32_Resamplers/Classes/TKernelSampler/Properties/Kernel.htm">TKernelSampler.Kernel</a> property.</p>
+<p class="Body">Graphics32 includes a class called <a href="../Units/GR32_Resamplers/Classes/TCustomKernel/_Body.htm">TCustomKernel</a> that can be used for deriving new convolution kernels. For high quality resampling, one should use a kernel that approximates the ideal low-pass filter. The ideal filter has infinite extent, so it's not practical for use in real-world applications. <a href="../Units/GR32_Resamplers/Classes/TWindowedSincKernel/_Body.htm">TWindowedSincKernel</a>  can be used for this purpose, as descendants only need to implement a window function for constraining the <em>Sinc</em> filter. </p>
+<p class="Body">For further details about resampling, see <a href="../Examples.htm#Resamplers%20Example">Resamplers_Ex</a> example project.</p>
+<h2 class="Body">Rasterization</h2>
+<p class="Body">By <em>rasterizing</em> an image, we collect  samples for each pixel of an output bitmap. The <em>rasterizer</em> is responsible for the order in which output pixels are sampled and how the destination bitmap is updated. A rasterizer class is derived from <a href="../Units/GR32_Rasterizers/Classes/TRasterizer/_Body.htm">TRasterizer</a>, by overriding the protected <em>DoRasterize</em> method. </p>
+<p class="Body"> Instances of TRasterizer needs to be associated with a sampler and an output destination bitmap. Some rasterization schemes, such as <em>swizzling</em>, may improve cache-performance for certain applications, since samples are collected in a local neighborhood rather than row by row. Rasterizers can also provide various transition effects for creating transitions between bitmaps. </p>
+<p class="Body">Graphics32 includes the following rasterizers:</p>
+<ul>
+  <li><a href="../Units/GR32_Rasterizers/Classes/TRegularRasterizer/_Body.htm">TRegularRasterizer</a> &#8212; rasterizes the bitmap row by row;</li>
+  <li><a href="../Units/GR32_Rasterizers/Classes/TProgressiveRasterizer/_Body.HTM">TProgressiveRasterizer</a> &#8212; rasterizes in a progressive manner by successively increasing the resolution of the image;</li>
+  <li><a href="../Units/GR32_Rasterizers/Classes/TTesseralRasterizer/_Body.htm">TTesseralRasterizer</a>  &#8212; rasterization by sub-division;</li>
+  <li><a href="../Units/GR32_Rasterizers/Classes/TContourRasterizer/_Body.htm">TContourRasterizer</a> &#8212; the  rasterization path is determined from the intensity of the collected samples.</li>
+</ul>
+<h2 class="Body">Nested sampling </h2>
+<p class="Body">If the input of one sampler is the output from another, then we have a <em>nested sampler</em>. Nested samplers are derived from the class <a href="../Units/GR32_Resamplers/Classes/TNestedSampler/_Body.htm">TNestedSampler</a>. </p>
+<p class="Body">By nesting samplers, it is possible to create a chain of nested samplers between the sampler that generates the actual sample and the rasterizer. This mechanism is illustrated in the below image. </p>
+<p class="Body"><img src="../../Images/img_nested.gif" width="729" height="92"></p>
+<p class="Body">There are many different useful applications for nested samplers. A sampler may be associated with a transformation, and thus transform each input coordinate for the sampler at the next level. It is possible to collect more than one sample in a local neighborhood of the pixel coordinate of the output pixel. This allows us to perform <em>super sampling</em>, and thus to better approximate the value of the pixel at a certain coordinate of the output bitmap. If super sampling is not performed, it may cause jagginess and aliasing artifacts in the output image. However, this also depends on what kind of method is used for generating samples.</p>
+<p class="Body">Another important class of nested samplers is <em>kernel samplers</em>. Kernel samplers compute an output sample from several subsamples in a local region of the input coordinate. Each subsample is combined with a kernel (a map of weights). A class-specific kernel operation is used to update a buffer for each collected sample. This permits a very simplistic implementation of convolution and morphological operations.</p>
+<p class="Body">The following is a list of the different nested samplers that are included in Graphics32. </p>
+<ul>
+  <li><span class="EmptyRef">Transformers</span>    
+    <ul>
+      <li><a href="../Units/GR32_Resamplers/Classes/TTransformer/_Body.htm">TTransformer</a> &#8212; transforms coordinates using an associated <a href="../Units/GR32_Transforms/Classes/TTransformation/_Body.HTM">TTransformation</a> object;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TNearestTransformer/_Body.htm">TNearestTransformer</a> &#8212; the same as above, but for nearest neighbor resampling. </li>
+    </ul>
+  </li>
+  <li><span class="EmptyRef">Super samplers</span>    
+    <ul>
+      <li><a href="../Units/GR32_Resamplers/Classes/TSuperSampler/_Body.htm">TSuperSampler</a>  &#8212; performs regular super sampling;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TAdaptiveSuperSampler/_Body.htm">TAdaptiveSuperSampler</a> &#8212; performs adaptive super sampling;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TPatternSampler/_Body.htm">TPatternSampler</a> &#8212; performs sampling according to a predefined pattern.</li>
+    </ul>
+  </li>
+  <li><span class="EmptyRef">Kernel samplers </span>    
+    <ul>
+      <li><a href="../Units/GR32_Resamplers/Classes/TConvolver/_Body.htm">TConvolver</a> &#8212; performs convolution ;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TSelectiveConvolver/_Body.htm">TSelectiveConvolver</a> &#8212; performs selective convolution;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TDilater/_Body.htm">TDilater</a> &#8212; performs morphological dilation;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TEroder/_Body.htm">TEroder</a> &#8212; performs morphological erosion;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TExpander/_Body.htm">TExpander</a> &#8212; special expansion operation;</li>
+      <li><a href="../Units/GR32_Resamplers/Classes/TContracter/_Body.htm">TContracter</a> &#8212; special contraction operation.</li>
+    </ul>
+    <p>For further details about nested sampling, see the <a href="../Examples.htm#Nested%20Sampling%20Example">NestedSampling_Ex</a> example project. </p>
+  </li>
+</ul>
+<p id="hidden">[See also]: </p>
+</body>
+</html>
