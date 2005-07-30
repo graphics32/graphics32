@@ -150,6 +150,30 @@ type
   PArrayOfArrayOfFixed = ^TArrayOfArrayOfFixed;
   TArrayOfArrayOfFixed = array of TArrayOfFixed;
 
+{ Other dynamic arrays }
+type
+  PByteArray = ^TByteArray;
+  TByteArray = array [0..0] of Byte;
+  PArrayOfByte = ^TArrayOfByte;
+  TArrayOfByte = array of Byte;
+
+  PWordArray = ^TWordArray;
+  TWordArray = array [0..0] of Word;
+  PArrayOfWord = ^TArrayOfWord;
+  TArrayOfWord = array of Word;
+
+  PIntegerArray = ^TIntegerArray;
+  TIntegerArray = array [0..0] of Integer;
+  PArrayOfInteger = ^TArrayOfInteger;
+  TArrayOfInteger = array of Integer;
+  PArrayOfArrayOfInteger = ^TArrayOfArrayOfInteger;
+  TArrayOfArrayOfInteger = array of TArrayOfInteger;
+
+  PSingleArray = ^TSingleArray;
+  TSingleArray = array [0..0] of Single;
+  PArrayOfSingle = ^TArrayOfSingle;
+  TArrayOfSingle = array of Single;
+
 const                 
   // Fixed point math constants
   FixedOne = $10000;
@@ -250,16 +274,7 @@ function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING
 function EqualRectSize(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSizeF(const R1, R2: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-
-
-{ Other dynamic arrays }
 type
-  TArrayOfByte = array of Byte;
-  TArrayOfWord = array of Word;
-  TArrayOfInteger = array of Integer;
-  TArrayOfArrayOfInteger = array of TArrayOfInteger;
-  TArrayOfSingle = array of Single;
-
 {$IFDEF CLX}
   HBITMAP = QImageH;
   HDC = QPainterH;
@@ -267,7 +282,6 @@ type
 {$ENDIF}
 
 { TBitmap32 draw mode }
-type
   TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);
   TCombineMode = (cmBlend, cmMerge);
   TWrapMode = (wmClamp, wmRepeat, wmMirror);
