@@ -230,3 +230,7 @@ span.Menu {
 }
 
 p.Copyright {font-size: 7pt; color: #808090; text-align: center; font-family: Tahoma, Arial, sans-serif}
+
+.pascalcode {
+  font-family: "Courier New", Courier, mono;
+}
