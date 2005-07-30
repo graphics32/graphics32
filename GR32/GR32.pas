@@ -255,6 +255,7 @@ function EqualRectSizeF(const R1, R2: TFloatRect): Boolean; {$IFDEF USEINLINING}
 { Other dynamic arrays }
 type
   TArrayOfByte = array of Byte;
+  TArrayOfWord = array of Word;
   TArrayOfInteger = array of Integer;
   TArrayOfArrayOfInteger = array of TArrayOfInteger;
   TArrayOfSingle = array of Single;
