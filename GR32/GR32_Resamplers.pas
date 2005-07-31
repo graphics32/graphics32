@@ -169,10 +169,10 @@ type
     FWidth: Single;
   protected
     function RangeCheck: Boolean; override;
+    function Window(Value: Single): Single; virtual; abstract;
   public
     constructor Create; override;
     function Filter(Value: Single): Single; override;
-    function Window(Value: Single): Single; virtual; abstract;
     procedure SetWidth(Value: Single);
     function GetWidth: Single; override;
   published
@@ -181,7 +181,7 @@ type
 
   { TLanczosResampler }
   TLanczosKernel = class(TWindowedSincKernel)
-  public
+  protected
     function Window(Value: Single): Single; override;
   end;
 
@@ -190,28 +190,29 @@ type
   private
     FSigma: Single;
     procedure SetSigma(const Value: Single);
+  protected
+    function Window(Value: Single): Single; override;
   public
     constructor Create; override;
-    function Window(Value: Single): Single; override;
   published
     property Sigma: Single read FSigma write SetSigma;
   end;
 
   { TBlackmanKernel }
   TBlackmanKernel = class(TWindowedSincKernel)
-  public
+  protected
     function Window(Value: Single): Single; override;
   end;
 
   { THannKernel }
   THannKernel = class(TWindowedSincKernel)
-  public
+  protected
     function Window(Value: Single): Single; override;
   end;
 
   { THammingKernel }
   THammingKernel = class(TWindowedSincKernel)
-  public
+  protected
     function Window(Value: Single): Single; override;
   end;
 
