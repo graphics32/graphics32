@@ -21,8 +21,8 @@
     - Added TPolygon32.ContainsPoint method.</p>
   <p> <span class="API">GR32_Transforms.pas:</span><br>
     - Added sfCosine resampling filter.</p>
-  <p> <span class="API">GR32_Blend.pas</span></p>
-  <p>- Pascal and MMX version of Merge algorithm.<br>
+  <p> <span class="API">GR32_Blend.pas<br>
+  </span>- Pascal and MMX version of Merge algorithm.<br>
     - Added MMX versions of almost all PixelCombine functions.<br>
   </p>
   <p><strong>Andre Beckedorf</strong> &lt;andre@metaexception.de&gt;:</p>
@@ -31,27 +31,33 @@
     - Ported to CLX/Kylix.<br>
     - Added CombineMode.<br>
     - Added clipping rect support.<br>
-    - pixel-perfect line drawing methods (LineS, LineTS, LineAS).</p>
+    - pixel-perfect line drawing methods (LineS, LineTS, LineAS).<br>
+    - Added MeasuringMode required for repaint optimizer
+  </p>
   <p> <span class="API">GR32_Image.pas:</span><br>
     - Some part of the CLX/Kylix related changes in this unit.<br>
     - Added new overrideable Mouse* methods with Layer information.<br>
-    - Added OverSize property in TCustomImgView32</p>
+    - Added OverSize property in TCustomImgView32<br>
+    - Added support for repaint optimization<br>
+    - Added scrollbar visibility property and additional scale modes smOptimal and smOptimalScaled</p>
   <p><span class="API">GR32_Layers.pas:</span><br>
     - enhancements to TRubberbandLayer
   </p>
   <p> <span class="API">GR32_Polygon.pas:</span><br>
-    - Added option for dynamic antialias level adjustment at runtime.<br>
-    - Added new 4x sampling mode (very fast but mediocre quality).<br>
+    - Added option for dynamic antialias level adjustment at runtime along with 2x, 4x and 32x supersampling mode<br>
     - Added support for custom polygon fillings (TCustomPolygonFiller, TBitmapPolygonFiller) and transformations.<br>
     - Added support for clipping to rect.<br>
     - Added PolylineXSP and PolyPolylineXSP.<br>
     - Additional performance tuning.</p>
+  <p><span class="API">GR32_RepaintOpt.pas<br>
+    GR32_MicroTiles.pas<br>
+    </span>- <a href="Additional%20Topics/Repaint%20Optimization.htm">Repaint optimizer</a> based on MicroTiles and Tiles approach
+ with adaptive balancing </p>
   <p> <span class="API">GR32_RangeBars.pas:</span><br>
     - Ported to CLX/Kylix.</p>
   <p> <span class="API">GR32_System.pas:</span><br>
-    - Added support for SSE, SSE2, 3DNow and 3DNow Ext detection.</p>
+    - Added support for EMMX, SSE, SSE2, 3DNow and 3DNow Ext detection.</p>
   <p> <span class="API">GR32_Transforms.pas:</span><br>
-    - Minor tweak to the BlendBlock procedure.<br>
     - Update to transformation classes to make them suited for general usage.<br>
   </p>
   <p><strong>Michael Hansen </strong>&lt;dyster_tid@hotmail.com&gt;:</p>
@@ -64,8 +70,8 @@
   <p> <span class="API">GR32_Transforms.pas:</span><br>
     - Added sfDraft resampling routines <br>
     - MMX optimized sfLinear and sfDraft<br>
-    - Updated Transform to use PixelX and PixelXS</p>
-  <p>&nbsp;</p>
+    - Updated Transform to use PixelX and PixelXS<br>
+    </p>
   <p><strong>Contributors:</strong><br>
   </p>
   <p><strong>Arioch /BDV/</strong>:</p>
