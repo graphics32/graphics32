@@ -64,6 +64,7 @@ type
     case Integer of
       0: (B, G, R, A: Byte);
       1: (ARGB: TColor32);
+      2: (Planes: array[0..3] of Byte);
   end;
 
   PColor32EntryArray = ^TColor32EntryArray;
