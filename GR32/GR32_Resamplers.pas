@@ -31,7 +31,7 @@ interface
 
 uses
   Classes, Types, SysUtils, GR32, GR32_Transforms, GR32_Containers,
-  GR32_IntegerMaps, GR32_Blend;
+  GR32_OrdinalMaps, GR32_Blend;
 
 procedure BlockTransfer(
   Dst: TBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
