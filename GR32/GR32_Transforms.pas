@@ -1078,7 +1078,7 @@ var
   R: TFloatRect;
 begin
   R := ASrcRect;
-  InflateRectF(R, FDisturbance, FDisturbance);
+  InflateRect(R, FDisturbance, FDisturbance);
   Result := MakeRect(R);
 end;
 
@@ -1127,8 +1127,8 @@ end;
 
 procedure TRemapTransformation.PrepareTransform;
 begin
-  if IsRectEmptyF(SrcRect) then raise Exception.Create('SrcRect is empty!');
-  if IsRectEmptyF(FMappingRect) then raise Exception.Create('MappingRect is empty!');
+  if IsRectEmpty(SrcRect) then raise Exception.Create('SrcRect is empty!');
+  if IsRectEmpty(FMappingRect) then raise Exception.Create('MappingRect is empty!');
   with SrcRect do
   begin
     FSrcTranslationFloat.X := Left;
