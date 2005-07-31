@@ -35,7 +35,7 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  Classes, SysUtils, GR32, GR32_Blend, GR32_ByteMaps;
+  Classes, SysUtils, GR32, GR32_Blend;
 
 { Basic processing }
 type
