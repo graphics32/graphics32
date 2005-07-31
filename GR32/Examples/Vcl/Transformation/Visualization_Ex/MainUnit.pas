@@ -22,7 +22,7 @@ unit MainUnit;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Mattias Andersson <mattias@?>
+ * Mattias Andersson <mattias@centaurix.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
