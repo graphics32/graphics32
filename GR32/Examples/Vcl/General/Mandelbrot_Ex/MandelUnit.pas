@@ -39,16 +39,15 @@ type
     Exit1: TMenuItem;
     Img: TSyntheticImage32;
     Sampler1: TMenuItem;
-    Supersampler1: TMenuItem;
     Default1: TMenuItem;
     N5: TMenuItem;
     N2x2: TMenuItem;
     N3x2: TMenuItem;
     N4x2: TMenuItem;
-    N6: TMenuItem;
     Adaptive2: TMenuItem;
     PatternSampler1: TMenuItem;
     Contour1: TMenuItem;
+    N1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure Swizzling1Click(Sender: TObject);
     procedure Regularsampling1Click(Sender: TObject);

@@ -2,8 +2,7 @@ program Mandelbrot_Ex;
 
 uses
   Forms,
-  MandelUnit in 'MandelUnit.pas' {Form1},
-  GR32_ExtImage in '..\..\GR32\GR32_ExtImage.pas';
+  MandelUnit in 'MandelUnit.pas' {Form1};
 
 {$R *.res}
 

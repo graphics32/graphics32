@@ -20,7 +20,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 387
-    Height = 349
+    Height = 353
     Align = alClient
     RepaintMode = rmDirect
     TabOrder = 0
@@ -28,7 +28,7 @@ object Form1: TForm1
     AutoRasterize = True
     Rasterizer.UpdateRowCount = 0
     BitmapAlign = baTopLeft
-    RenderMode = rmFull
+    RenderMode = rnmFull
   end
   object MainMenu1: TMainMenu
     Left = 48
@@ -80,6 +80,7 @@ object Form1: TForm1
     object Sampler1: TMenuItem
       Caption = 'Sampler'
       object Default1: TMenuItem
+        AutoCheck = True
         Caption = 'Default'
         Checked = True
         RadioItem = True
@@ -88,39 +89,35 @@ object Form1: TForm1
       object N5: TMenuItem
         Caption = '-'
       end
-      object Supersampler1: TMenuItem
-        Caption = 'Supersampler'
+      object N2x2: TMenuItem
+        AutoCheck = True
+        Caption = 'Supersampling 2x'
         RadioItem = True
-        object N2x2: TMenuItem
-          AutoCheck = True
-          Caption = '2x'
-          Checked = True
-          RadioItem = True
-          OnClick = N2x2Click
-        end
-        object N3x2: TMenuItem
-          AutoCheck = True
-          Caption = '3x'
-          RadioItem = True
-          OnClick = N3x2Click
-        end
-        object N4x2: TMenuItem
-          AutoCheck = True
-          Caption = '4x'
-          RadioItem = True
-          OnClick = N4x2Click
-        end
-        object N6: TMenuItem
-          Caption = '-'
-        end
-        object Adaptive2: TMenuItem
-          AutoCheck = True
-          Caption = 'Adaptive'
-          OnClick = Adaptive2Click
-        end
+        OnClick = N2x2Click
+      end
+      object N3x2: TMenuItem
+        AutoCheck = True
+        Caption = 'Supersampling 3x'
+        RadioItem = True
+        OnClick = N3x2Click
+      end
+      object N4x2: TMenuItem
+        AutoCheck = True
+        Caption = 'Supersampling 4x'
+        RadioItem = True
+        OnClick = N4x2Click
       end
       object PatternSampler1: TMenuItem
+        AutoCheck = True
         Caption = 'PatternSampler'
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
+      object Adaptive2: TMenuItem
+        AutoCheck = True
+        Caption = 'Adaptive'
+        OnClick = Adaptive2Click
       end
     end
   end
