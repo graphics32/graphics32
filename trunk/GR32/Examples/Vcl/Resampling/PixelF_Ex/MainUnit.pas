@@ -61,6 +61,9 @@ implementation
 
 {$R *.dfm}
 
+uses
+  JPEG;
+
 procedure TMainForm.TwirlDistortion(Dst, Src: TBitmap32; const Value: Integer);
 {twirl algoritm inspired by Patrick Quinn´s remap demo}
 var
@@ -128,6 +131,8 @@ procedure TMainForm.FormCreate(Sender: TObject);
 var
   i: integer;
 begin
+  Image32.Bitmap.LoadFromFile('..\..\..\Media\stones.jpg');
+
   with Image32 do
   begin
     if PaintStages[0].Stage = PST_CLEAR_BACKGND then PaintStages[0].Stage := PST_CUSTOM;
