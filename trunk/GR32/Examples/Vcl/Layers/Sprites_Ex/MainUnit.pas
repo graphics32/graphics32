@@ -151,7 +151,7 @@ begin
       R := Location;
       with Velocities[I] do
       begin
-        OffsetRectF(R, X, Y);
+        OffsetRect(R, X, Y);
         X := X + (Random - 0.5) * 0.9;
         Y := Y + (Random - 0.5) * 0.9;
         if (R.Left < 0) and (X < 0) then X := 1;
@@ -209,6 +209,8 @@ begin
   if BenchmarkMode then
   begin
     BenchmarkList.Add(Format('%d ' + #9 + '%.2f', [Image32.Layers.Count, FPS]));
+
+    Diff := 0;  // stop complaining, ye my evil compiler!
 
     if Image32.Layers.Count = 10 then
       Diff := 4
