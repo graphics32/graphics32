@@ -18,10 +18,11 @@ unit MainUnit;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Andre Beckedorf <andre@metaexception.de>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -29,7 +30,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, GR32, GR32_Image, GR32_RangeBars;
+  StdCtrls, ExtCtrls, GR32, GR32_Image, GR32_Resamplers, GR32_RangeBars;
 
 type
   TForm1 = class(TForm)
@@ -37,14 +38,15 @@ type
     Panel2: TPanel;
     Image: TImage32;
     rgScaleMode: TRadioGroup;
-    rgStretchFilter: TRadioGroup;
+    rgKernel: TRadioGroup;
     rgBitmapAlign: TRadioGroup;
     StaticText1: TStaticText;
     sbScale: TGaugeBar;
     procedure rgBitmapAlignClick(Sender: TObject);
     procedure sbScaleChange(Sender: TObject);
     procedure rgScaleModeClick(Sender: TObject);
-    procedure rgStretchFilterClick(Sender: TObject);
+    procedure rgKernelClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   public
     Time: Single;
   end;
@@ -71,19 +73,31 @@ end;
 
 procedure TForm1.rgScaleModeClick(Sender: TObject);
 const
-  SM_CONSTS: array [0..3] of TScaleMode = (smNormal, smStretch, smScale, smResize);
+  SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
+var
+  ScaleEnabled: Boolean;
 begin
   Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
-  sbScale.Enabled := rgScaleMode.ItemIndex = 2;
-  StaticText1.Enabled := rgScaleMode.ItemIndex = 2;
+  ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
+  sbScale.Enabled := ScaleEnabled;
+  StaticText1.Enabled := ScaleEnabled;
 end;
 
-procedure TForm1.rgStretchFilterClick(Sender: TObject);
+procedure TForm1.rgKernelClick(Sender: TObject);
 const
-  SF_CONSTS: array [0..4] of TStretchFilter =
-    (sfNearest, sfLinear, sfSpline, sfLanczos, sfMitchell);
+  K_CONSTS: array [0..4] of TCustomKernelClass =
+    (TNearestKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
 begin
-  Image.Bitmap.StretchFilter := SF_CONSTS[rgStretchFilter.ItemIndex];
+  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  with TKernelResampler.Create(Image.Bitmap) do
+  begin
+    KernelMode := kmTableNearest;
+    TableSize := 16;
+  end;
 end;
 
 end.
