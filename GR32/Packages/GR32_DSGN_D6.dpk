@@ -32,9 +32,11 @@ requires
   GR32_D6,
   rtl;
 
-contains
-  GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
-  GR32_Reg in '..\GR32_Reg.pas',
-  GR32_Dsgn_Color in '..\GR32_Dsgn_Color.pas';
+contains
+  GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
+  GR32_Reg in '..\GR32_Reg.pas',
+  GR32_Dsgn_Color in '..\GR32_Dsgn_Color.pas',
+  GR32_Dsgn_Misc in '..\GR32_Dsgn_Misc.pas';
+
 
 end.
