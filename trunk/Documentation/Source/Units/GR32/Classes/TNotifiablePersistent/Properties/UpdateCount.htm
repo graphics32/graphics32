@@ -1,0 +1,20 @@
+<html>
+ 
+<head>
+<title>UpdateCount</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> UpdateCount: Integer; <span class="Comment">// 
+  Read-only; protected;</span></p>
+<h2>Description</h2>
+<p class="Body">The current nesting level of the update lock.</p>
+<p class="Body"><span class="EmptyRef">UpdateCount</span> is increased each time 
+  you call the <a href="../Methods/BeginUpdate.htm">BeginUpdate</a> method and 
+  is decreased with <a href="../Methods/EndUpdate.htm">EndUpdate</a> calls. The 
+  object does not generate <a href="../Events/OnChange.htm">OnChange</a> as long 
+  as its <span class="EmptyRef">UpdateCount</span> is greater than 0.</p>
+</body>
+</html>
+
