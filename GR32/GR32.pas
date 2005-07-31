@@ -261,18 +261,18 @@ function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLININ
 function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Some basic operations over rectangles
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
-function IntersectRectF(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
+function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload;
+function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload;
 function EqualRect(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure InflateRectF(var FR: TFloatRect; Dx, Dy: Single); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure InflateRect(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure OffsetRectF(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure OffsetRect(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmpty(const R: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function IsRectEmptyF(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
-function EqualRectSize(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
-function EqualRectSizeF(const R1, R2: TFloatRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
 {$IFDEF CLX}
@@ -1355,7 +1355,7 @@ begin
   if not Result then Dst := ZERO_RECT;
 end;
 
-function IntersectRectF(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
+function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
 begin
   Dst.Left   := Max(FR1.Left,   FR2.Left);
   Dst.Right  := Min(FR1.Right,  FR2.Right);
@@ -1376,7 +1376,7 @@ begin
     ((R1.Bottom - R1.Top) = (R2.Bottom - R2.Top));
 end;
 
-function EqualRectSizeF(const R1, R2: TFloatRect): Boolean;
+function EqualRectSize(const R1, R2: TFloatRect): Boolean;
 var
   _R1: TFixedRect;
   _R2: TFixedRect;
@@ -1393,7 +1393,7 @@ begin
   Inc(R.Right, Dx); Inc(R.Bottom, Dy);
 end;
 
-procedure InflateRectF(var FR: TFloatRect; Dx, Dy: Single);
+procedure InflateRect(var FR: TFloatRect; Dx, Dy: Single);
 begin
   with FR do
   begin
@@ -1408,7 +1408,7 @@ begin
   Inc(R.Right, Dx); Inc(R.Bottom, Dy);
 end;
 
-procedure OffsetRectF(var FR: TFloatRect; Dx, Dy: Single);
+procedure OffsetRect(var FR: TFloatRect; Dx, Dy: Single);
 begin
   with FR do
   begin
@@ -1422,7 +1422,7 @@ begin
   Result := (R.Right <= R.Left) or (R.Bottom <= R.Top);
 end;
 
-function IsRectEmptyF(const FR: TFloatRect): Boolean;
+function IsRectEmpty(const FR: TFloatRect): Boolean;
 begin
   Result := (FR.Right <= FR.Left) or (FR.Bottom <= FR.Top);
 end;
