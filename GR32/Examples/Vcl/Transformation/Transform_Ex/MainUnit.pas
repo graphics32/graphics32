@@ -167,6 +167,11 @@ var
 
 implementation
 
+{$R *.DFM}
+
+uses
+  JPEG;
+
 function GetVal(Src: string; var Dst: Extended): Boolean;
 var
   Code: Integer;
@@ -175,10 +180,10 @@ begin
   Result := Code = 0;
 end;
 
-{$R *.DFM}
-
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  Src.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
+
   //Setup custom paintstages ("checkerboard" and border)
   with Dst do
   begin

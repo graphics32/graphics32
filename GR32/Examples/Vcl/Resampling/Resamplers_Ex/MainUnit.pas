@@ -103,7 +103,7 @@ begin
   Src.OnChange := SrcChanged;
 
   ResamplingSrc := TBitmap32.Create;
-  ResamplingSrc.LoadFromFile('../../Media/iceland.jpg');
+  ResamplingSrc.LoadFromFile('..\..\..\Media\iceland.jpg');
 
   ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
   KernelList.GetClassNames(KernelClassNamesList.Items);

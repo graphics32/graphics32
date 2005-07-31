@@ -255,7 +255,7 @@ var
   Item: TMenuItem;
 begin
   Src := TBitmap32.Create;
-  Src.LoadFromFile('../../Media/monalisa.jpg');
+  Src.LoadFromFile('..\..\..\Media\monalisa.jpg');
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;
   Src.CombineMode := cmMerge;

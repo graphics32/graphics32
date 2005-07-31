@@ -230,7 +230,7 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   Source := TBitmap32.Create;
-  Source.LoadFromFile(ExtractFileDir(Application.ExeName) + '\orchide.jpg');
+  Source.LoadFromFile('..\..\..\Media\stoneweed.jpg');
   ImgView.Bitmap.SetSizeFrom(Source);
   Rasterizer := TRegularRasterizer.Create;
   TRegularRasterizer(Rasterizer).UpdateRowCount := 16;

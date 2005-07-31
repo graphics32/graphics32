@@ -46,7 +46,6 @@ type
     Label1: TLabel;
     cbUseRepaintOpt: TCheckBox;
     bRemove: TButton;
-    Image1: TImage;
     Memo1: TMemo;
     lbFPS: TLabel;
     TimerFPS: TTimer;
@@ -83,8 +82,32 @@ implementation
 
 {$R *.DFM}
 
+uses
+  GR32_Filters, JPEG;
+
 procedure TForm1.FormCreate(Sender: TObject);
+
+  procedure LoadImage(Dst: TBitmap32; const Filename, AlphaFilename: String);
+  var
+    TempBitmap: TBitmap32;
+  begin
+    TempBitmap := TBitmap32.Create;
+    try
+      Dst.LoadFromFile(Filename);
+      TempBitmap.LoadFromFile(AlphaFilename);
+      IntensityToAlpha(Dst, TempBitmap);
+    finally
+      TempBitmap.Free;
+    end;
+  end;
+
 begin
+  Image32.Bitmap.LoadFromFile('..\..\..\Media\sprite_texture.bmp');
+
+  LoadImage(BitmapList.Bitmap[0], '..\..\..\Media\sprite1.bmp', '..\..\..\Media\sprite1a.bmp');
+  LoadImage(BitmapList.Bitmap[1], '..\..\..\Media\sprite2.bmp', '..\..\..\Media\sprite2a.bmp');
+  LoadImage(BitmapList.Bitmap[2], '..\..\..\Media\sprite3.bmp', '..\..\..\Media\sprite3a.bmp');
+
   LastSeed := 0;
   BenchmarkList := TStringList.Create;
   Application.OnIdle := IdleHandler;
