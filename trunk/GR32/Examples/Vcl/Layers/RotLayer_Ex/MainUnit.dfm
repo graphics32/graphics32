@@ -58,7 +58,6 @@ object Form1: TForm1
     Bitmap.ResamplerClassName = 'TNearestResampler'
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
-    ScrollBars.Color = clBtnShadow
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     SizeGrip = sgAuto
