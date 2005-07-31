@@ -91,8 +91,8 @@ type
   end;
   TCustomKernelClass = class of TCustomKernel;
     
-  { TNearestKernel }
-  TNearestKernel = class(TCustomKernel)
+  { TBoxKernel }
+  TBoxKernel = class(TCustomKernel)
   public
     function Filter(Value: Single): Single; override;
     function GetWidth: Single; override;
@@ -1882,15 +1882,15 @@ begin
 end;
 
 
-{ TNearestKernel }
+{ TBoxKernel }
 
-function TNearestKernel.Filter(Value: Single): Single;
+function TBoxKernel.Filter(Value: Single): Single;
 begin
   if (Value >= -0.5) and (Value <= 0.5) then Result := 1.0
   else Result := 0;
 end;
 
-function TNearestKernel.GetWidth: Single;
+function TBoxKernel.GetWidth: Single;
 begin
   Result := 1;
 end;
@@ -2271,7 +2271,7 @@ end;
 constructor TKernelResampler.Create(ABitmap: TBitmap32);
 begin
   inherited Create(ABitmap);
-  Kernel := TNearestKernel.Create;
+  Kernel := TBoxKernel.Create;
   FTableSize := 32;
 end;
 
@@ -3367,7 +3367,7 @@ initialization
   RegisterResampler(TKernelResampler);
 
   { Register kernels }
-  RegisterKernel(TNearestKernel);
+  RegisterKernel(TBoxKernel);
   RegisterKernel(TLinearKernel);
   RegisterKernel(TCosineKernel);
   RegisterKernel(TSplineKernel);
