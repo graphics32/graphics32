@@ -1942,7 +1942,6 @@ begin
     if Bitmap.Empty then CachedXForm := UnitXForm
     else
     begin
-      Assert((Right > Left) and (Bottom > Top));
       ShiftX := Left;
       ShiftY := Top;
       ScaleX := MulDiv(Right - Left, $10000, Bitmap.Width);
