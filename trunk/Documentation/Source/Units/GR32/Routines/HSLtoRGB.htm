@@ -5,11 +5,11 @@
 </head>
 
 <body bgcolor="#FFFFFF">
-<p class="Decl"><b>function</b> HSLtoRGB(H, S, L: Single): <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>; 
-</p>
+<p class="Decl"><b>function</b> HSLtoRGB(H, S, L: Single): <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>;  <span class="EmptyRef">overload</span>; </p>
+<p class="Decl"><span class="EmptyRef">function</span> HSLtoRGB(H, S, L: Integer): <a href="../Types/Color%20Types.htm#TColor32">TColor32</a>;  <span class="EmptyRef">overload</span>; </p>
 <h2>Description</h2>
 <p class="Body">Conversion from HSL to RGB color space. Each argument should normally 
-  be in [0…1] range, although the <span class="EmptyRef">H</span> value is automatically 
+  be in [0…1] range for the float version and in the [0...255] range for the integer version, although the <span class="EmptyRef">H</span> value is automatically 
   wrapped.</p>
 <p id="hidden">[See Also]: <a href="RGBtoHSL.htm">RGBtoHSL</a><a href="Gray32.htm"></a></p>
 </body>
