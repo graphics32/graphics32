@@ -87,6 +87,7 @@ initialization
   Add('title'           , etBlock  ,  ctAlways , True);
   Add('u'               , etInline ,  ctAlways , True);
   Add('ul'              , etBlock  ,  ctAlways , False);
+  Add('input'           , etBlock  ,  ctNever , False);
 
 finalization
   Tags := nil;
