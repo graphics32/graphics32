@@ -75,6 +75,9 @@ implementation
 
 {$R *.DFM}
 
+uses
+  JPEG;
+
 procedure TForm1.Draw;
 var
   MyFiller: TBitmapPolygonFiller;
@@ -124,6 +127,8 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  BitmapList.Bitmap[0].LoadFromFile('..\..\..\Media\delphi.jpg');
+  BitmapList.Bitmap[1].LoadFromFile('..\..\..\Media\texture_b.jpg');  
   Image.SetupBitmap;
   Polygon := TPolygon32.Create;
 end;
