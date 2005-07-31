@@ -49,8 +49,13 @@ implementation
 
 {$R *.DFM}
 
+uses
+  JPEG;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  Src.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
+
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);
 
   // a workaround to the edge antialiasing problem

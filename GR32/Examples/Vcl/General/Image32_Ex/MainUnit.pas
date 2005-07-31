@@ -58,6 +58,9 @@ implementation
 
 {$R *.DFM}
 
+uses
+  JPEG;
+
 procedure TForm1.rgBitmapAlignClick(Sender: TObject);
 const
   BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
@@ -93,6 +96,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  Image.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
   with TKernelResampler.Create(Image.Bitmap) do
   begin
     KernelMode := kmTableNearest;
