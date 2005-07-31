@@ -58,10 +58,15 @@ implementation
 
 {$R *.DFM}
 
+uses
+  JPEG;
+
 procedure TForm1.FormCreate(Sender: TObject);
 var
   I, J: Integer;
 begin
+  ImgView.Bitmap.LoadFromFile('..\..\..\Media\runner.jpg');
+
   L := TBitmapLayer.Create(ImgView.Layers);
   L.Bitmap.SetSize(200, 200);
   L.Bitmap.DrawMode := dmCustom;
