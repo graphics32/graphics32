@@ -96,7 +96,7 @@ begin
 
     // transform the bitmap
     Dst.BeginUpdate;
-    Dst.Bitmap.Clear(clGray32);
+    Dst.Bitmap.Clear(clBlack32);
     Transform(Dst.Bitmap, Src.Bitmap, T);
     Dst.EndUpdate;
     Dst.Repaint;
