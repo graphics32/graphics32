@@ -1,7 +1,6 @@
 program ImgView_Layers_Ex;
 
 uses
-  ExceptionLog,
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm},
   NewImageUnit in 'NewImageUnit.pas' {NewImageForm},

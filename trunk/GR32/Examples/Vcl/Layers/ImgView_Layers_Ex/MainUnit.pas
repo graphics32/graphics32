@@ -22,7 +22,7 @@ unit MainUnit;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *
+ * Andre Beckedorf <andre@metaexception.de>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -529,12 +529,14 @@ begin
 
             if MagnInterpolate.Checked then
             begin
-              Buffer.BeginUpdate;
+              TLinearResampler.Create(Buffer);
               Transform(B, Buffer, T);
-              Buffer.EndUpdate;
             end
             else
-               Transform(B, Buffer, T);
+            begin
+              TNearestResampler.Create(Buffer);
+              Transform(B, Buffer, T);
+            end;
 
             B.ResetAlpha;
             B.DrawMode := dmBlend;
@@ -554,7 +556,7 @@ begin
           B.Free;
         end;
       end;
-      Buffer.Changed(R);
+      Buffer.Changed;
     end;
 end;
 
