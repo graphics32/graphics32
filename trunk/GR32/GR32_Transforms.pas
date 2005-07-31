@@ -1078,7 +1078,7 @@ var
   R: TFloatRect;
 begin
   R := ASrcRect;
-  InflateRect(R, FDisturbance, FDisturbance);
+  InflateRect(R, 0.5 * FDisturbance, 0.5 * FDisturbance);
   Result := MakeRect(R);
 end;
 
