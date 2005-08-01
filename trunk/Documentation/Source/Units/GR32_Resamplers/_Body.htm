@@ -6,15 +6,12 @@
 </head>
 
 <body bgcolor="#FFFFFF">
-<p class="Body">GR32_Resamplers.pas provides a framework for performing image resampling.
-  We distinguish between <i>resamplers</i>, <i>kernels</i>, <i>transformers</i> and <i>super samplers</i>.
-</p>
-<p class="Body">Resamplers are meant to reconstruct image samples from
-  the discrete representation of a bitmap. Generally this is done using
-  some kind of interpolation filter, which is also known as a <i>kernel</i></p>
-<p class="Body">Kernels ...</p>  
-<p class="Body">Transformers ...</p>  
-<p class="Body">Super samplers ...</p>  
-
+<p class="Body">GR32_Resamplers.pas provides a comprehensive set of classes that are used within image resampling and rasterization. These classes can roughly be categorized as follows: </p>
+<ul>
+  <li><span class="EmptyRef">Resamplers</span> &#8212; classes that implement different resampling algorithms; </li>
+  <li><span class="EmptyRef">Kernels</span> &#8212; convolution kernels used by <a href="Classes/TKernelResampler/_Body.HTM">TKernelResampler</a>; </li>
+  <li><span class="EmptyRef">Nested samplers</span> &#8212; <em>transformers</em>, <em>super samplers</em> and <em>kernel samplers</em>. </li>
+</ul>
+<p class="Body">For further information, see topic about <a href="../../Additional%20Topics/Sampling%20and%20Rasterization.htm">Sampling and Rasterization</a>.</p>
 </body>
 </html>
