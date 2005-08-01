@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>TCombineMode</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type </b>TKernelMode = (kmDynamic, kmTableNearest, kmTableLinear);</p>
+<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">TKernelMode</span> defines how a <a href="../Classes/TCustomKernel/_Body.HTM">kernel</a> will be used in <a href="../Classes/TKernelResampler/_Body.HTM">TKernelResampler</a>, when <a href="../Classes/TKernelResampler/Methods/GetSample.htm">GetSample</a> methods are called. When using the Resample</p>
+		<ul>
+  <li><strong>kmDynamic</strong> - .</li>
+  <li><strong>kmTableNearest</strong> - 
+Uses a completely different formula that also merges the alpha-channels. This mode is slower than blending but
+is suited for working with alpha-channels (eg. when composing in temporary buffers).</li>
+			<li><strong>kmTableLinear</strong> - 
+Uses a completely different formula that also merges the alpha-channels. This mode is slower than blending but
+is suited for working with alpha-channels (eg. when composing in temporary buffers).
+		</ul>
+	</body>
+</html>
