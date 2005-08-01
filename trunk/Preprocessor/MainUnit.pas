@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Mask, FileCtrl, ComCtrls, Utils, SimpleDOM,
-  Contnrs, DocStructure, IniFiles, ExtCtrls;
+  Contnrs, DocStructure, IniFiles, ExtCtrls, ShellApi;
 
 type
   TMainForm = class(TForm)
@@ -39,16 +39,19 @@ type
     Edit5: TEdit;
     Label6: TLabel;
     Panel10: TPanel;
-    Process: TButton;
+    bProcess: TButton;
     Panel11: TPanel;
-    Button1: TButton;
-    Button2: TButton;
+    bTransform: TButton;
+    bCompile: TButton;
+    cbOpenAfterProcess: TCheckBox;
+    bOpen: TButton;
     procedure DirectoryEdit1Change(Sender: TObject);
-    procedure ProcessClick(Sender: TObject);
+    procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    procedure bTransformClick(Sender: TObject);
+    procedure bCompileClick(Sender: TObject);
+    procedure bOpenClick(Sender: TObject);
   public
     ProjectDir: string;
     SourceDir: string;
@@ -102,11 +105,11 @@ begin
     if DirectoryExists(ProjectDir + 'Source') then
     begin
       SourceDir := ProjectDir + 'Source\';
-      Process.Enabled := True;
+      bProcess.Enabled := True;
       Exit;
     end;
   end;
-  Process.Enabled := False;
+  bProcess.Enabled := False;
   ProjectDir := '';
   SourceDir := '';
 end;
@@ -153,7 +156,7 @@ begin
   end;
 end;
 
-procedure TMainForm.ProcessClick(Sender: TObject);
+procedure TMainForm.bProcessClick(Sender: TObject);
 begin
   StartTransforming;
   if CheckBox1.Checked then
@@ -161,6 +164,8 @@ begin
     LogAdd(#13#10);
     StartCompile;
   end;
+  if cbOpenAfterProcess.Checked then
+    bOpenClick(nil);
 end;
 
 procedure TMainForm.StartCompile;
@@ -274,15 +279,20 @@ begin
   end;
 end;
 
-procedure TMainForm.Button1Click(Sender: TObject);
+procedure TMainForm.bTransformClick(Sender: TObject);
 begin
   StartTransforming;
 end;
 
-procedure TMainForm.Button2Click(Sender: TObject);
+procedure TMainForm.bCompileClick(Sender: TObject);
 begin
   Log.Clear;
   StartCompile;
+end;
+
+procedure TMainForm.bOpenClick(Sender: TObject);
+begin
+  ShellExecute(Self.Handle, 'open', PAnsiChar(IncludeTrailingBackslash(DirectoryEdit1.Text) + Edit4.Text), '', '', SW_SHOW);
 end;
 
 end.
