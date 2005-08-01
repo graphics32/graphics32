@@ -1,8 +1,8 @@
 object MainForm: TMainForm
-  Left = 295
-  Top = 297
+  Left = 309
+  Top = 218
   Width = 877
-  Height = 548
+  Height = 551
   Caption = 'HTML Document Processor'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 573
-    Height = 521
+    Height = 524
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Panel1'
@@ -28,7 +28,7 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 573
-      Height = 497
+      Height = 500
       Align = alClient
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -43,7 +43,7 @@ object MainForm: TMainForm
     end
     object Panel2: TPanel
       Left = 0
-      Top = 497
+      Top = 500
       Width = 573
       Height = 24
       Align = alBottom
@@ -74,7 +74,7 @@ object MainForm: TMainForm
     Left = 573
     Top = 0
     Width = 296
-    Height = 521
+    Height = 524
     Align = alRight
     BevelOuter = bvNone
     BorderWidth = 2
@@ -314,7 +314,7 @@ object MainForm: TMainForm
       DesignSize = (
         292
         123)
-      object Process: TButton
+      object bProcess: TButton
         Left = 144
         Top = 28
         Width = 140
@@ -322,7 +322,7 @@ object MainForm: TMainForm
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Process'
         TabOrder = 0
-        OnClick = ProcessClick
+        OnClick = bProcessClick
       end
       object Panel11: TPanel
         Left = 0
@@ -341,7 +341,7 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 1
       end
-      object Button1: TButton
+      object bTransform: TButton
         Left = 8
         Top = 28
         Width = 125
@@ -349,9 +349,9 @@ object MainForm: TMainForm
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Transform only'
         TabOrder = 2
-        OnClick = Button1Click
+        OnClick = bTransformClick
       end
-      object Button2: TButton
+      object bCompile: TButton
         Left = 8
         Top = 60
         Width = 125
@@ -359,7 +359,24 @@ object MainForm: TMainForm
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Compile only'
         TabOrder = 3
-        OnClick = Button2Click
+        OnClick = bCompileClick
+      end
+      object cbOpenAfterProcess: TCheckBox
+        Left = 8
+        Top = 96
+        Width = 129
+        Height = 17
+        Caption = 'Open after processing'
+        TabOrder = 4
+      end
+      object bOpen: TButton
+        Left = 144
+        Top = 92
+        Width = 139
+        Height = 24
+        Caption = 'Open'
+        TabOrder = 5
+        OnClick = bOpenClick
       end
     end
   end
