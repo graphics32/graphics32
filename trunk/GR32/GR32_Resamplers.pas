@@ -447,11 +447,8 @@ type
   end;
 
   { TPatternSampler }
-  TFloatPointList = array of TFloatPoint;
-  TFloatSamplePattern = array of array of TFloatPointList;
-
-  TFixedPointList = array of TFixedPoint;
-  TFixedSamplePattern = array of array of TFixedPointList;
+  TFloatSamplePattern = array of array of TArrayOfFloatPoint;
+  TFixedSamplePattern = array of array of TArrayOfFixedPoint;
 
   TPatternSampler = class(TNestedSampler)
   private
@@ -585,7 +582,6 @@ var
 
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
-  ROUND_ENTRY: TBufferEntry = (B: $7FFF; G: $7FFF; R: $7FFF; A: $7FFF);
 
 implementation
 
@@ -2987,7 +2983,7 @@ end;
 
 function TPatternSampler.GetSampleFixed(X, Y: TFixed): TColor32;
 var
-  Points: TFixedPointList;
+  Points: TArrayOfFixedPoint;
   P: PFixedPoint;
   I: Integer;
   Buffer: TBufferEntry;
@@ -3013,7 +3009,7 @@ begin
   FPatternWidth := Length(FPattern[0]);
 end;
 
-function JitteredPattern(XRes, YRes: Integer): TFixedPointList;
+function JitteredPattern(XRes, YRes: Integer): TArrayOfFixedPoint;
 var
   I, J: Integer;
 begin
