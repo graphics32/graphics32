@@ -314,7 +314,7 @@ type
     kernel modes, kernel values are precomputed in a look-up table. This
     allows GetSample to execute faster for complex kernels. }
 
-  TKernelMode = (kmDefault, kmTableNearest, kmTableLinear);
+  TKernelMode = (kmDynamic, kmTableNearest, kmTableLinear);
 
   TKernelResampler = class(TBitmap32Resampler)
   private
@@ -2412,7 +2412,7 @@ begin
   end;
 
   case FKernelMode of
-    kmDefault:
+    kmDynamic:
       begin
         Filter := FKernel.Filter;
         fracXS := clX - X;
@@ -2597,7 +2597,7 @@ begin
   begin
     FWeightTable.Free;
   end;
-  if FKernelMode in [kmDefault, kmTableLinear] then
+  if FKernelMode in [kmDynamic, kmTableLinear] then
   begin
     FHorzKernel := nil;
     FVertKernel := nil;
@@ -2636,7 +2636,7 @@ begin
       Dec(KernelPtr[W], Dev);
     end;
   end;
-  if FKernelMode in [kmDefault, kmTableLinear] then
+  if FKernelMode in [kmDynamic, kmTableLinear] then
   begin
     SetLength(FVertKernel, W * 2 + 1);
     SetLength(FHorzKernel, W * 2 + 1);
