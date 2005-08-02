@@ -1542,24 +1542,8 @@ var
   end;
 
 begin
-  InsertBanner(Body);
-
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
-    // units
-    for I := 0 to Units.Count - 1 do Elems.Add(TUnitElement(Units[I]));
-    if Elems.Count > 0 then
-    begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto';
-        AddText('Units');
-      end;
-      Elems.Sort(CompareElements);
-      AddElems(cColumnCount);
-      Elems.Clear;
-    end;
-
     with Body.Add('table') do
     begin
       Attributes['id'] := 'Auto';
@@ -1658,6 +1642,19 @@ begin
       Elems.Clear;
     end;
 
+    // units
+    for I := 0 to Units.Count - 1 do Elems.Add(TUnitElement(Units[I]));
+    if Elems.Count > 0 then
+    begin
+      with Body.Add('h2') do
+      begin
+        Attributes['id'] := 'Auto';
+        AddText('Units');
+      end;
+      Elems.Sort(CompareElements);
+      AddElems(cColumnCount);
+      Elems.Clear;
+    end;
   finally
     Elems.Free;
   end;

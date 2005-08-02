@@ -85,6 +85,7 @@ initialization
   Add('tr'              , etBlock  ,  ctAlways , False);
   Add('td'              , etBlock  ,  ctAlways , False);
   Add('title'           , etBlock  ,  ctAlways , True);
+  Add('script'          , etBlock  ,  ctAlways , True);
   Add('u'               , etInline ,  ctAlways , True);
   Add('ul'              , etBlock  ,  ctAlways , False);
   Add('input'           , etBlock  ,  ctNever , False);

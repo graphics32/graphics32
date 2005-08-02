@@ -164,8 +164,6 @@ begin
     LogAdd(#13#10);
     StartCompile;
   end;
-  if cbOpenAfterProcess.Checked then
-    bOpenClick(nil);
 end;
 
 procedure TMainForm.StartCompile;
@@ -173,6 +171,8 @@ begin
   LogAdd('Starting HTML Help compiler...'#13#10);
   RunCommandInMemo(Edit7.Text + ' "' + ProjectDir + Edit5.Text + '"', Log);
   LogAdd('Done.'#13#10);
+  if cbOpenAfterProcess.Checked then
+    bOpenClick(nil);
 end;
 
 procedure TMainForm.StartTransforming;
