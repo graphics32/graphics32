@@ -252,16 +252,20 @@ end;
 procedure TRenderThread.Rasterize;
 begin
   FRasterizer.Lock;
-  FBitmap.Lock;
+
+  // save current AreaChanged handler
   FOldAreaChanged := FBitmap.OnAreaChanged;
+
   FBitmap.OnAreaChanged := AreaChanged;
   try
     FRasterizer.Rasterize(FBitmap, FDstRect);
   except
     on EAbort do;
   end;
+
+  // reset old AreaChanged handler
   FBitmap.OnAreaChanged := FOldAreaChanged;
-  Synchronize(FBitmap.Unlock);
+
   Synchronize(FRasterizer.Unlock);
 end;
 
@@ -271,15 +275,13 @@ begin
   if Terminated then Abort else
   begin
     FArea := Area;
-    FBitmap.Unlock;
     Synchronize(SynchronizedAreaChanged);
   end;
 end;
 
 procedure TRenderThread.SynchronizedAreaChanged;
 begin
-  FOldAreaChanged(FBitmap, FArea, 0);
-  FBitmap.Lock;
+  FOldAreaChanged(FBitmap, FArea, AREAINFO_RECT);
 end;
 
 end.
