@@ -120,9 +120,9 @@ table.Home {
   width: 100%;
 ; padding-right: 0px
 }
-table.menu   { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin-top: 0; margin-right: 0; margin-left: 0; padding: 3px 4px; position: static }
-table.menudrop { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin: 0 0; padding: 0; position: absolute }
-table.menu td  { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; border-right: 1px solid #3d3d7d; border-bottom: 1px solid #2f2f60; border-left: 1px solid #636393 }
+table.menu    { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin-top: 0; margin-right: 0; margin-left: 0; padding: 3px 4px; position: static; border-style: solid; border-width: 1px; border-color: #272758 #656596 #272758 #272758 }
+table.menudrop  { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin: 0; padding: 0; position: absolute; border-left: 1px solid #444475 }
+table.menu td   { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; border-right: 1px solid #3d3d7d; border-left: 1px solid #636393 }
 table.menudrop td { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; padding: 3px 4px; border-right: 1px solid #3d3d7d; border-bottom: 1px solid #2f2f60; border-left: 1px solid #636393 }
 td.Home {
   background-color: #FFFFFF;

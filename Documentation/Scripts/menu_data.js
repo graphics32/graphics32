@@ -129,8 +129,14 @@ td_5_16 = "GR32_VectorMaps.pas"
 url_5_16 = "Units/GR32_VectorMaps/_Body.htm"
 
 
-td_6 = "Contributers"
-url_6 = "Contributers.htm"
+td_6 = "Contributors"
+url_6 = "Contributors.htm"
+
+td_7 = "Internet"
+td_7_1 = "Graphics32.org"
+url_7_1 = "http://www.graphics32.org"
+td_7_2 = "Newsgroups"
+url_7_2 = "news://news.graphics32.org"
 
 
 
