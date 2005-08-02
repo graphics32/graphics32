@@ -240,7 +240,6 @@ begin
   inherited Create(Suspended);
   FRasterizer := Rasterizer;
   FBitmap := Bitmap;
-  //FBoundsRect := BoundsRect;
   FDstRect := DstRect;
   Priority := tpNormal;
 end;
@@ -257,7 +256,6 @@ begin
   FOldAreaChanged := FBitmap.OnAreaChanged;
   FBitmap.OnAreaChanged := AreaChanged;
   try
-    // TODO: allow arbitrary destination rectangle
     FRasterizer.Rasterize(FBitmap, FDstRect);
   except
     on EAbort do;
