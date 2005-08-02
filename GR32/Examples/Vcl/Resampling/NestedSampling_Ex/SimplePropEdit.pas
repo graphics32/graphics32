@@ -31,7 +31,7 @@ interface
 
 uses
   Windows, Forms, Controls, StdCtrls, ExtCtrls, ComCtrls, Grids, Messages, Classes,
-  Graphics, TypInfo, GR32_IntegerMaps;
+  Graphics, TypInfo, GR32_OrdinalMaps;
 
 const
   WM_SELECTOBJECT = WM_USER + 2000;

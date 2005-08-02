@@ -1,6 +1,6 @@
 object Form1: TForm1
-  Left = 212
-  Top = 160
+  Left = 382
+  Top = 279
   Width = 811
   Height = 627
   Anchors = [akLeft, akTop, akRight, akBottom]
@@ -272,7 +272,6 @@ object Form1: TForm1
     Scale = 1.000000000000000000
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
-    SizeGrip = sgAuto
     OverSize = 0
     TabOrder = 1
   end

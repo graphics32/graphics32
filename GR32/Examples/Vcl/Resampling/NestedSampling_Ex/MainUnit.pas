@@ -202,7 +202,7 @@ implementation
 {$R *.dfm}
 
 uses
-  GR32_ByteMaps, GR32_LowLevel, Math, Jpeg;
+  GR32_OrdinalMaps, GR32_LowLevel, Math, Jpeg;
 
 procedure SetupToolBar(ToolBar: TToolBar);
 var
