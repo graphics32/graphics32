@@ -366,7 +366,7 @@ object MainForm: TMainForm
         Top = 96
         Width = 129
         Height = 17
-        Caption = 'Open after processing'
+        Caption = 'Open after compiling'
         TabOrder = 4
       end
       object bOpen: TButton
