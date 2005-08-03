@@ -109,6 +109,8 @@ begin
     if ParentForm <> nil then
       ParentForm.WindowProc := FDefaultProc;
   end;
+  StopRenderThread;
+  if Assigned(FRenderThread) then FRenderThread.Free;
   inherited;
 end;
 
@@ -156,6 +158,8 @@ begin
     R := Rect(0, 0, Width, Height)
   else
     R := FDstRect;
+
+  if Assigned(FRenderThread) then FreeAndNil(FRenderThread);
 
   FRenderThread := TRenderThread.Create(FRasterizer, Buffer, R, False);
   FResized := True;
@@ -227,7 +231,7 @@ begin
   begin
     FRenderThread.Synchronize(FRenderThread.Terminate);
     FRenderThread.WaitFor;
-    FRenderThread.Free;
+    FreeAndNil(FRenderThread);
   end;
 end;
 {$ENDIF}
