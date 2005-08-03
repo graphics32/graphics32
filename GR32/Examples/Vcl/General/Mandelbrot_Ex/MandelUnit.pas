@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers, GR32_Rasterizers,
-  StdCtrls, ExtCtrls, Menus;
+  StdCtrls, ExtCtrls, Menus, ExtDlgs, Jpeg;
 
 const
   MAX_ITER = 320;
@@ -14,7 +14,7 @@ const
 type
   TRasterizerKind = (rkRegular, rkSwizzling, rkProgressive, rkTesseral, rkContour);
 
-  TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skJittered);
+  TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skPattern2, skPattern3, skPattern4);
 
   TMandelbrotSampler = class(TCustomSampler)
   public
@@ -44,10 +44,13 @@ type
     N2x2: TMenuItem;
     N3x2: TMenuItem;
     N4x2: TMenuItem;
-    Adaptive2: TMenuItem;
+    Adaptive: TMenuItem;
     PatternSampler1: TMenuItem;
     Contour1: TMenuItem;
-    N1: TMenuItem;
+    SavePictureDialog1: TSavePictureDialog;
+    PatternSampler2: TMenuItem;
+    N2: TMenuItem;
+    PatternSampler3x1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure Swizzling1Click(Sender: TObject);
     procedure Regularsampling1Click(Sender: TObject);
@@ -57,12 +60,16 @@ type
     procedure N2x2Click(Sender: TObject);
     procedure N3x2Click(Sender: TObject);
     procedure N4x2Click(Sender: TObject);
-    procedure Adaptive2Click(Sender: TObject);
+    procedure AdaptiveClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure Jitteredsampling1Click(Sender: TObject);
     procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure Contour1Click(Sender: TObject);
+    procedure Save1Click(Sender: TObject);
+    procedure PatternSampler2Click(Sender: TObject);
+    procedure PatternSampler1Click(Sender: TObject);
+    procedure PatternSampler3x1Click(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   public
     { Public declarations }
     Rasterizer: TRasterizer;
@@ -72,7 +79,6 @@ type
     AdaptiveSampler: TAdaptiveSuperSampler;
     JitteredSampler: TPatternSampler;
     AutoUpdate: Boolean;
-    Adaptive: Boolean;
     SamplerKind: TSamplerKind;
     procedure SelectRasterizer(RasterizerKind: TRasterizerKind);
     procedure SelectSampler(ASamplerKind: TSamplerKind);
@@ -138,7 +144,6 @@ begin
   AdaptiveSampler := TAdaptiveSuperSampler.Create(MandelSampler);
   SuperSampler := TSuperSampler.Create(MandelSampler);
   JitteredSampler := TPatternSampler.Create(MandelSampler);
-  JitteredSampler.Pattern := CreateJitteredPattern(3, 3, 3, 3);
   Sampler := MandelSampler;
 end;
 
@@ -207,13 +212,16 @@ end;
 procedure TForm1.SelectSampler(ASamplerKind: TSamplerKind);
 const
   SLEVEL: array [skSS2X..skSS4X] of Integer = (2, 3, 4);
+  PSAMPLES: array [skPattern2..skPattern4] of Integer = (2, 3, 4);
 begin
   SamplerKind := ASamplerKind;
+  Adaptive.Enabled := False;
   case SamplerKind of
     skDefault: Sampler := MandelSampler;
-    skSS2X, skSS3X, skSS4X:
+    skSS2X..skSS4X:
       begin
-        if Adaptive then
+        Adaptive.Enabled := True;
+        if Adaptive.Checked then
         begin
           Sampler := AdaptiveSampler;
           AdaptiveSampler.Level := SLEVEL[SamplerKind];
@@ -225,12 +233,14 @@ begin
           SuperSampler.SamplingY := SLEVEL[SamplerKind];
         end;
       end;
-    skJittered:
+    skPattern2..skPattern4:
       begin
+        JitteredSampler.Pattern := CreateJitteredPattern(8, 8, PSAMPLES[SamplerKind], PSAMPLES[SamplerKind]);
         Sampler := JitteredSampler;
       end;
   end;
   Rasterizer.Sampler := Sampler;
+  Img.Rasterize;
 end;
 
 procedure TForm1.N2x2Click(Sender: TObject);
@@ -248,20 +258,29 @@ begin
   SelectSampler(skSS4X);
 end;
 
-procedure TForm1.Jitteredsampling1Click(Sender: TObject);
+procedure TForm1.AdaptiveClick(Sender: TObject);
 begin
-  SelectSampler(skJittered);
-end;
-
-procedure TForm1.Adaptive2Click(Sender: TObject);
-begin
-  Adaptive := Adaptive2.Checked;
   SelectSampler(SamplerKind);
 end;
 
 procedure TForm1.FormShow(Sender: TObject);
 begin
-  SelectRasterizer(rkRegular);
+  SelectRasterizer(rkProgressive);
+end;
+
+procedure TForm1.PatternSampler2Click(Sender: TObject);
+begin
+  SelectSampler(skPattern2);
+end;
+
+procedure TForm1.PatternSampler3x1Click(Sender: TObject);
+begin
+  SelectSampler(skPattern3);
+end;
+
+procedure TForm1.PatternSampler1Click(Sender: TObject);
+begin
+  SelectSampler(skPattern4);
 end;
 
 
@@ -293,6 +312,20 @@ end;
 procedure TForm1.Contour1Click(Sender: TObject);
 begin
   SelectRasterizer(rkContour);
+end;
+
+procedure TForm1.Save1Click(Sender: TObject);
+begin
+  if SavePictureDialog1.Execute then
+    Img.Buffer.SaveToFile(SavePictureDialog1.FileName);
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  MandelSampler.Free;
+  SuperSampler.Free;
+  AdaptiveSampler.Free;
+  JitteredSampler.Free;
 end;
 
 end.
