@@ -44,7 +44,7 @@ uses
   Windows,
   {$ENDIF}
   {$IFDEF CODESITE}CSIntf,{$ENDIF}
-  Types, SysUtils, Classes, RTLConsts,
+  {Types, }SysUtils, Classes, {RTLConsts,}
   GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 
 const
@@ -144,8 +144,8 @@ type
 
     // vars for time based approach
     FTimedCheck: Boolean;
-    FTimeDelta: Cardinal;
-    FNextCheck: Cardinal;
+    FTimeDelta: Integer;
+    FNextCheck: Integer;
     FTimeNeededOnLastPenalty: Int64;
 
     // vars for invalid rect difference approach
@@ -270,27 +270,32 @@ begin
       DstTile := SrcTile
     else
     asm
-      MOVD   MM1, [SrcTile]
+      {$IFDEF COMPILER6}
+      MOVD   MM1,[SrcTile]
+      {$ELSE}
+      MOV    EAX,[SrcTile]
+      db $0F,$6E,$C8           /// MOVD   MM1,EAX
+      {$ENDIF}
 
-      MOV    EAX, [DstTile]
-      MOVD   MM2, [EAX]
+      MOV    EAX,[DstTile]
+      db $0F,$6E,$10           /// MOVD   MM2, [EAX]
 
-      MOVQ   MM3, MM1
+      db $0F,$6F,$D9           /// MOVQ   MM3, MM1
 
-      MOV    ECX, $FFFF0000  // Mask
-      MOVD   MM0, ECX
-      PMINUB MM1, MM2
-      PAND   MM1, MM0
+      MOV    ECX,$FFFF0000   // Mask
+      db $0F,$6E,$C1           /// MOVD   MM0, ECX
+      db $0F,$DA,$CA           /// PMINUB MM1, MM2
+      db $0F,$DB,$C8           /// PAND   MM1, MM0
 
-      PSRLD  MM0, 16         // shift mask right by 16 bits
-      PMAXUB MM2, MM3
-      PAND   MM2, MM0
+      db $0F,$72,$D0,$10       /// PSRLD  MM0, 16         // shift mask right by 16 bits
+      db $0F,$DE,$D3           /// PMAXUB MM2, MM3
+      db $0F,$DB,$D0           /// PAND   MM2, MM0
 
-      POR    MM1, MM2
+      db $0F,$EB,$CA           /// POR    MM1, MM2
 
-      MOVD   [EAX], MM1
+      db $0F,$7E,$08           /// MOVD   [EAX], MM1
 
-      EMMS
+      db $0F,$77               /// EMMS
     end;
   end;
 end;
@@ -672,9 +677,9 @@ begin
 
   asm
     MOV    ECX, $FFFF  // Mask
-    MOVD   MM0, ECX
-    MOVQ   MM4, MM0
-    PSLLD  MM4, 16     // shift mask left by 16 bits
+    db $0F,$6E,$C1           /// MOVD   MM0, ECX
+    db $0F,$6F,$E0           /// MOVQ   MM4, MM0
+    db $0F,$72,$F4,$10       /// PSLLD  MM4, 16     // shift mask left by 16 bits
   end;
 
   for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
@@ -696,21 +701,21 @@ begin
         else
         asm
           MOV    EAX, [DstTilePtr2]
-          MOVD   MM2, [EAX]
+          db $0F,$6E,$10           /// MOVD   MM2, [EAX]
 
           MOV    ECX, [SrcTilePtr2]
-          MOVD   MM1, [ECX]
-          MOVQ   MM3, MM1
+          db $0F,$6E,$09           /// MOVD   MM1, [ECX]
+          db $0F,$6F,$D9           /// MOVQ   MM3, MM1
 
-          PMINUB MM1, MM2
-          PAND   MM1, MM4
+          db $0F,$DA,$CA           /// PMINUB MM1, MM2
+          db $0F,$DB,$CC           /// PAND   MM1, MM4
 
-          PMAXUB MM2, MM3
-          PAND   MM2, MM0
+          db $0F,$DE,$D3           /// PMAXUB MM2, MM3
+          db $0F,$DB,$D0           /// PAND   MM2, MM0
 
-          POR    MM1, MM2
+          db $0F,$EB,$CA           /// POR    MM1, MM2
 
-          MOVD   [EAX], MM1
+          db $0F,$7E,$08           /// MOVD   [EAX], MM1
         end;
       end;
 
@@ -721,7 +726,9 @@ begin
     Inc(SrcTilePtr, SrcTiles.Columns);
   end;
 
-  asm EMMS end;
+  asm
+    db $0F,$77               /// EMMS
+  end;
 end;
 
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean);
@@ -1464,7 +1471,7 @@ procedure TMicroTilesRepaintOptimizer.BeginAdaption;
 begin
   if AdaptiveMode and (FPerformanceLevel > PL_MICROTILES) then
   begin
-    if GetTickCount > FNextCheck then
+    if Integer(GetTickCount) > FNextCheck then
     begin
       FPerformanceLevel := Constrain(FPerformanceLevel - 1, PL_MICROTILES, PL_FULLSCENE);
       {$IFDEF CODESITE}
@@ -1522,9 +1529,9 @@ begin
         if FTimedCheck then
         begin
           // time based approach failed, so add penalty
-          FTimeDelta := Constrain(FTimeDelta + TIMER_PENALTY, TIMER_LOWLIMIT, TIMER_HIGHLIMIT);
+          FTimeDelta := Constrain(Integer(FTimeDelta + TIMER_PENALTY), TIMER_LOWLIMIT, TIMER_HIGHLIMIT);
           // schedule next check
-          FNextCheck := GetTickCount + FTimeDelta;
+          FNextCheck := Integer(GetTickCount) + FTimeDelta;
           FTimeNeededOnLastPenalty := TimeNeeded;
           FTimedCheck := False;
           {$IFDEF CODESITE}
@@ -1545,7 +1552,7 @@ begin
         // reset time delta back to lower limit, ie. remove penalties
         FTimeDelta := TIMER_LOWLIMIT;
         // schedule next check
-        FNextCheck := GetTickCount + FTimeDelta;
+        FNextCheck := Integer(GetTickCount) + FTimeDelta;
         FTimedCheck := False;
         {$IFDEF CODESITE}
         CodeSite.SendInteger('timed check succeeded, new delta', FTimeDelta);
@@ -1562,7 +1569,7 @@ begin
           // remove the penalty value 4 times from the current time delta
           FTimeDelta := Constrain(FTimeDelta - 4 * TIMER_PENALTY, TIMER_LOWLIMIT, TIMER_HIGHLIMIT);
           // schedule next check
-          FNextCheck := GetTickCount + FTimeDelta;
+          FNextCheck := Integer(GetTickCount) + FTimeDelta;
           {$IFDEF CODESITE}
           CodeSite.SendInteger('invalid rect count approach succeeded, new timer delta', FTimeDelta);
           CodeSite.AddSeparator;
@@ -1576,7 +1583,7 @@ begin
       // time approach had success optimizing the situation, so shorten time until next check
       FTimeDelta := Constrain(FTimeDelta - TIMER_PENALTY, TIMER_LOWLIMIT, TIMER_HIGHLIMIT);
       // schedule next check
-      FNextCheck := GetTickCount + FTimeDelta;
+      FNextCheck := Integer(GetTickCount) + FTimeDelta;
       FTimedCheck := False;
       {$IFDEF CODESITE}
       CodeSite.SendInteger('timed check succeeded, new delta', FTimeDelta);

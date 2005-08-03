@@ -1521,10 +1521,10 @@ end;
 
 function M_ColorAverage(C1, C2: TColor32): TColor32;
 asm
-        MOVD      MM0,EAX
-        MOVD      MM1,EDX
-        PAVGB     MM0,MM1
-        MOVD      EAX,MM0
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$6E,$CA           /// MOVD      MM1,EDX
+        db $0F,$E0,$C1           /// PAVGB     MM0,MM1
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 

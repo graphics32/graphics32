@@ -69,7 +69,8 @@ function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
 function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
 
 { Returns Value constrained to [Lo..Hi] range}
-function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
 { Returns Value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
@@ -294,10 +295,17 @@ begin
 {$ELSE}
 asm
       CMP       EDX,EAX
-      CMOVG     EAX,EDX
+      db $0F,$4F,$D0           /// CMOVG     EAX,EDX
       CMP       ECX,EAX
-      CMOVL     EAX,ECX
+      db $0F,$4C,$C8           /// CMOVL     EAX,ECX
 {$ENDIF}
+end;
+
+function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+begin
+  if Value < Lo then Result := Lo
+  else if Value > Hi then Result := Hi
+  else Result := Value;
 end;
 
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
@@ -326,9 +334,9 @@ end;
 function Clamp(Value, Min, Max: Integer): Integer;
 asm
         CMP       EDX,EAX
-        CMOVG     EAX,EDX
+        db $0F,$4F,$D0           /// CMOVG     EAX,EDX
         CMP       ECX,EAX
-        CMOVL     EAX,ECX
+        db $0F,$4C,$C8           /// CMOVL     EAX,ECX
 end;
 
 function Wrap(Value, Max: Integer): Integer;

@@ -1043,7 +1043,7 @@ begin
       Sy := 1;
     end;
     Fsr := 1 / FMinR;
-    Faw := ArcSin(EnsureRange(FMinR * Fsr, -1, 1));
+    Faw := ArcSin(Constrain(FMinR * Fsr, -1, 1));
     if Faw <> 0 then Faw := 1 / Faw;
     Faw := Faw * FMinR
   end;
