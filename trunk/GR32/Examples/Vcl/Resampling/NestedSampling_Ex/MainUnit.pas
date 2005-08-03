@@ -115,7 +115,6 @@ type
     chkClear: TMenuItem;
     chkReset: TMenuItem;
     StaticText3: TStaticText;
-    Help1: TMenuItem;
     RGBNoise1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -416,6 +415,7 @@ procedure TForm1.Regular1Click(Sender: TObject);
 begin
   Rasterizer.Free;
   Rasterizer := TRegularRasterizer.Create;
+  TRegularRasterizer(Rasterizer).UpdateRowCount := 16;  
   Rasterizer.Sampler := LastSampler;
 end;
 
