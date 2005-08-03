@@ -168,15 +168,15 @@ asm
         DEC        EDX
         JZ         @ExitPOP
    @QLoopIni:
-        MOVD       MM1, ECX
-        PUNPCKLDQ  MM1, MM1
+        db $0F,$6E,$C9           /// MOVD       MM1, ECX
+        db $0F,$62,$C9           /// PUNPCKLDQ  MM1, MM1
         SHR        EDX, 1
     @QLoop:
-        MOVQ       [EAX], MM1
+        db $0F,$7F,$08           /// MOVQ       [EAX], MM1
         ADD        EAX, 8
         DEC        EDX
         JNZ        @QLoop
-        EMMS
+        db $0F,$77               /// EMMS
     @ExitPOP:
         POP        EBX
         POP        EDI
@@ -377,7 +377,6 @@ asm
         ADD     EAX,ECX
 @@exit:
 end;*)
-
 
 function Mirror(Value, Max: Integer): Integer;
 asm
