@@ -36,7 +36,7 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  Classes, SysUtils, RTLConsts, GR32, GR32_LowLevel, GR32_Containers, GR32_Layers;
+  Classes, SysUtils, {RTLConsts, }GR32, GR32_LowLevel, GR32_Containers, GR32_Layers;
 
 type
   { TCustomRepaintOptimizer }

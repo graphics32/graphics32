@@ -30,7 +30,7 @@ unit GR32_Resamplers;
 interface
 
 uses
-  Classes, Types, SysUtils, GR32, GR32_Transforms, GR32_Containers,
+  Windows, Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
   GR32_OrdinalMaps, GR32_Blend;
 
 procedure BlockTransfer(
@@ -60,9 +60,9 @@ type
   PKernelEntry = ^TKernelEntry;
   TKernelEntry = array [0..0] of Integer;
 
-  TArrayOfKernelEntry = array of TIntegerDynArray;
+  TArrayOfKernelEntry = array of TArrayOfInteger;
   PKernelEntryArray = ^TKernelEntryArray;
-  TKernelEntryArray = array [0..0] of TIntegerDynArray;
+  TKernelEntryArray = array [0..0] of TArrayOfInteger;
 
   TFilterMethod = function(Value: Single): Single of object;
 
@@ -322,9 +322,9 @@ type
     FKernelMode: TKernelMode;
     FWeightTable: TIntegerMap;
     FTableSize: Integer;
-    FMappingX: TIntegerDynArray;
-    FVertKernel: TIntegerDynArray;
-    FHorzKernel: TIntegerDynArray;
+    FMappingX: TArrayOfInteger;
+    FVertKernel: TArrayOfInteger;
+    FHorzKernel: TArrayOfInteger;
     FOuterColor: TColor32;
     procedure SetKernel(const Value: TCustomKernel);
     function GetKernelClassName: string;

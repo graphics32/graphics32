@@ -5,7 +5,12 @@ interface
 {$I GR32.inc}
 
 uses
-  DesignIntf, DesignEditors, Classes, TypInfo, GR32_Containers;
+  {$IFDEF COMPILER6}
+  DesignIntf, DesignEditors,
+  {$ELSE}
+  DsgnIntf,
+  {$ENDIF}
+  Classes, TypInfo, GR32_Containers;
 
 type
   TCustomClassProperty = class(TClassProperty)
@@ -16,20 +21,20 @@ type
     procedure SetClassName(const CustomClass: string); virtual; {$IFNDEF BCB} abstract; {$ENDIF}
     function GetObject: TObject; virtual; {$IFNDEF BCB} abstract; {$ENDIF}
   public
-		function GetAttributes: TPropertyAttributes; override;
-		procedure GetValues(Proc: TGetStrProc); override;
-		procedure SetValue(const Value: string); override;
-		function GetValue: string; override;
+    function GetAttributes: TPropertyAttributes; override;
+    procedure GetValues(Proc: TGetStrProc); override;
+    procedure SetValue(const Value: string); override;
+    function GetValue: string; override;
   end;
 
-	TKernelClassProperty = class(TCustomClassProperty)
+  TKernelClassProperty = class(TCustomClassProperty)
   protected
     class function GetClassList: TClassList; override;
     procedure SetClassName(const CustomClass: string); override;
     function GetObject: TObject; override;
-	end;
+  end;
 
-	TResamplerClassProperty = class(TCustomClassProperty)
+  TResamplerClassProperty = class(TCustomClassProperty)
   protected
     class function GetClassList: TClassList; override;
     procedure SetClassName(const CustomClass: string); override;
@@ -39,13 +44,13 @@ type
 implementation
 
 uses GR32, GR32_Resamplers;
-
+                        
 { TCustomClassProperty }
 
 function TCustomClassProperty.GetAttributes: TPropertyAttributes;
 begin
   Result := inherited GetAttributes - [paReadOnly] +
-    [paValueList, paRevertable, paVolatileSubProperties];
+    [paValueList, paRevertable {$IFDEF COMPILER6}, paVolatileSubProperties{$ENDIF}];
   if not HasSubProperties then Exclude(Result, paSubProperties);
 end;
 

@@ -1043,17 +1043,17 @@ end;
 function Max(const A, B, C: Integer): Integer; overload;
 asm
       CMP       EDX,EAX
-      CMOVG     EAX,EDX
+      db $0F,$4F,$D0           /// CMOVG     EAX,EDX
       CMP       ECX,EAX
-      CMOVG     EAX,ECX
+      db $0F,$4F,$C8           /// CMOVG     EAX,ECX
 end;
 
 function Min(const A, B, C: Integer): Integer; overload;
 asm
       CMP       EDX,EAX
-      CMOVL     EAX,EDX
+      db $0F,$4C,$D0           /// CMOVL     EAX,EDX
       CMP       ECX,EAX
-      CMOVL     EAX,ECX
+      db $0F,$4C,$C8           /// CMOVL     EAX,ECX
 end;
 
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte);
