@@ -1,5 +1,4 @@
-package GR32_D7;
-
+package GR32_D7;  
 {$R *.res}
 {$ALIGN 8}
 {$ASSERTIONS ON}

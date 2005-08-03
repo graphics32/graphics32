@@ -1,5 +1,4 @@
 package GR32_DSGN_D7;
-
 {$R *.res}
 {$R '..\GR32_Reg.dcr'}
 {$ALIGN 8}
@@ -38,4 +37,5 @@ contains
   GR32_Dsgn_Color in '..\GR32_Dsgn_Color.pas',
   GR32_Dsgn_Misc in '..\GR32_Dsgn_Misc.pas';
 
-end.
+end.
+
