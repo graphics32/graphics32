@@ -22,13 +22,13 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 190
-    Height = 581
+    Height = 578
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
     object Splitter1: TSplitter
       Left = 0
-      Top = 260
+      Top = 250
       Width = 190
       Height = 3
       Cursor = crVSplit
@@ -38,7 +38,7 @@ object Form1: TForm1
     end
     object tbManager: TToolBar
       Left = 0
-      Top = 74
+      Top = 64
       Width = 190
       Height = 24
       Anchors = []
@@ -124,7 +124,7 @@ object Form1: TForm1
     end
     object lvSamplers: TListView
       Left = 0
-      Top = 98
+      Top = 88
       Width = 190
       Height = 162
       Align = alTop
@@ -145,7 +145,7 @@ object Form1: TForm1
     end
     object StaticText1: TStaticText
       Left = 0
-      Top = 57
+      Top = 47
       Width = 190
       Height = 17
       Align = alTop
@@ -170,14 +170,14 @@ object Form1: TForm1
       Left = 0
       Top = 17
       Width = 190
-      Height = 40
+      Height = 30
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 3
       object btnRasterize: TSpeedButton
-        Left = 8
-        Top = 8
-        Width = 169
+        Left = 3
+        Top = 3
+        Width = 183
         Height = 25
         Caption = 'Rasterize Image'
         Font.Charset = DEFAULT_CHARSET
@@ -214,7 +214,7 @@ object Form1: TForm1
     end
     object StaticText2: TStaticText
       Left = 0
-      Top = 263
+      Top = 253
       Width = 190
       Height = 17
       Align = alTop
@@ -263,7 +263,7 @@ object Form1: TForm1
     Left = 190
     Top = 0
     Width = 613
-    Height = 581
+    Height = 578
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     Color = clAppWorkSpace
@@ -683,10 +683,26 @@ object Form1: TForm1
       000000000000}
   end
   object OpenPictureDialog1: TOpenPictureDialog
+    Filter = 
+      'All (*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.e' +
+      'mf;*.wmf)|*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ic' +
+      'o;*.emf;*.wmf| (*.gif)|*.gif|ANI Image (*.ani)|*.ani|PCX Image (' +
+      '*.pcx)|*.pcx|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jp' +
+      'eg)|*.jpeg|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg' +
+      ')|*.jpeg|Bitmaps (*.bmp)|*.bmp|Icons (*.ico)|*.ico|Enhanced Meta' +
+      'files (*.emf)|*.emf|Metafiles (*.wmf)|*.wmf'
     Left = 312
     Top = 16
   end
   object SavePictureDialog1: TSavePictureDialog
+    Filter = 
+      'All (*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.e' +
+      'mf;*.wmf)|*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ic' +
+      'o;*.emf;*.wmf| (*.gif)|*.gif|ANI Image (*.ani)|*.ani|PCX Image (' +
+      '*.pcx)|*.pcx|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jp' +
+      'eg)|*.jpeg|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg' +
+      ')|*.jpeg|Bitmaps (*.bmp)|*.bmp|Icons (*.ico)|*.ico|Enhanced Meta' +
+      'files (*.emf)|*.emf|Metafiles (*.wmf)|*.wmf'
     Left = 344
     Top = 16
   end
@@ -1512,37 +1528,44 @@ object Form1: TForm1
       object ranslation2: TMenuItem
         Caption = 'Translation'
         Enabled = False
+        Visible = False
         OnClick = TransformationClick
       end
       object Rotation2: TMenuItem
         Tag = 1
         Caption = 'Rotation'
         Enabled = False
+        Visible = False
         OnClick = TransformationClick
       end
       object Scale2: TMenuItem
         Tag = 2
         Caption = 'Scale'
         Enabled = False
+        Visible = False
         OnClick = TransformationClick
       end
       object Skew2: TMenuItem
         Tag = 3
         Caption = 'Skew'
         Enabled = False
+        Visible = False
         OnClick = TransformationClick
       end
       object N9: TMenuItem
         Caption = '-'
+        Visible = False
         OnClick = TransformationClick
       end
       object Projective2: TMenuItem
         Tag = 4
         Caption = 'Projective'
+        Visible = False
         OnClick = TransformationClick
       end
       object N10: TMenuItem
         Caption = '-'
+        Visible = False
         OnClick = TransformationClick
       end
       object wirl2: TMenuItem
@@ -1753,9 +1776,6 @@ object Form1: TForm1
         Caption = 'Reset Bitmap'
         Checked = True
       end
-    end
-    object Help1: TMenuItem
-      Caption = 'Help'
     end
   end
 end
