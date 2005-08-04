@@ -294,10 +294,10 @@ begin
   else Result := Value;
 {$ELSE}
 asm
-      CMP       EDX,EAX
-      db $0F,$4F,$D0           /// CMOVG     EAX,EDX
-      CMP       ECX,EAX
-      db $0F,$4C,$C8           /// CMOVL     EAX,ECX
+        CMP       EDX,EAX
+        db $0F,$4F,$C2           /// CMOVG     EAX,EDX
+        CMP       ECX,EAX
+        db $0F,$4C,$C1           /// CMOVL     EAX,ECX
 {$ENDIF}
 end;
 
@@ -334,9 +334,9 @@ end;
 function Clamp(Value, Min, Max: Integer): Integer;
 asm
         CMP       EDX,EAX
-        db $0F,$4F,$D0           /// CMOVG     EAX,EDX
+        db $0F,$4F,$C2           /// CMOVG     EAX,EDX
         CMP       ECX,EAX
-        db $0F,$4C,$C8           /// CMOVL     EAX,ECX
+        db $0F,$4C,$C1           /// CMOVL     EAX,ECX
 end;
 
 function Wrap(Value, Max: Integer): Integer;
