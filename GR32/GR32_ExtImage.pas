@@ -103,14 +103,14 @@ destructor TSyntheticImage32.Destroy;
 var
   ParentForm: TCustomForm;
 begin
+  StopRenderThread;
+  if Assigned(FRenderThread) then FRenderThread.Free;
   if Assigned(FDefaultProc) then
   begin
     ParentForm := GetParentForm(Self);
     if ParentForm <> nil then
       ParentForm.WindowProc := FDefaultProc;
   end;
-  StopRenderThread;
-  if Assigned(FRenderThread) then FRenderThread.Free;
   FRasterizer.Free;
   inherited;
 end;
