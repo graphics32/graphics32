@@ -38,8 +38,7 @@ const
   DEF_ITER = 16;
 
 type
-  TRasterizerKind = (rkRegular, rkProgressive, rkTesseral, rkSwizzling, rkContour);
-
+  TRasterizerKind = (rkRegular, rkProgressive, rkSwizzling, rkTesseral, rkContour);
   TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skPattern2, skPattern3, skPattern4);
 
   TMandelbrotSampler = class(TCustomSampler)
@@ -173,14 +172,12 @@ begin
 end;
 
 procedure TForm1.SelectRasterizer(RasterizerKind: TRasterizerKind);
+const
+  RASTERIZERCLASS: array[TRasterKind] of TRasterizerClass =
+    (TRegularRasterizer, TProgressiveRasterizer, TSwizzlingRasterizer,
+     TTesseralRasterizer, TContourRasterizer);
 begin
-  case RasterizerKind of
-    rkRegular: Rasterizer := TRegularRasterizer.Create;
-    rkSwizzling: Rasterizer := TSwizzlingRasterizer.Create;
-    rkProgressive: Rasterizer := TProgressiveRasterizer.Create;
-    rkTesseral: Rasterizer := TTesseralRasterizer.Create;
-    rkContour: Rasterizer := TContourRasterizer.Create;
-  end;
+  Rasterizer := RASTERIZERCLASS[RasterizerKind].Create;
   if Rasterizer is TRegularRasterizer then
     TRegularRasterizer(Rasterizer).UpdateRowCount := 1;
   Rasterizer.Sampler := Sampler;

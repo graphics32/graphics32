@@ -21,7 +21,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 387
-    Height = 353
+    Height = 350
     Align = alClient
     RepaintMode = rmDirect
     TabOrder = 0
@@ -63,17 +63,17 @@ object Form1: TForm1
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Tesseral1: TMenuItem
+      object Swizzling1: TMenuItem
         Tag = 2
         AutoCheck = True
-        Caption = 'Tesseral'
+        Caption = 'Swizzling'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Swizzling1: TMenuItem
+      object Tesseral1: TMenuItem
         Tag = 3
         AutoCheck = True
-        Caption = 'Swizzling'
+        Caption = 'Tesseral'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
