@@ -137,6 +137,14 @@ td_7_1 = "Graphics32.org"
 url_7_1 = "%http://www.graphics32.org"
 td_7_2 = "Newsgroups"
 url_7_2 = "news://news.graphics32.org"
+td_7_3 = "F.A.Q."
+url_7_3 = "%http://www.graphics32.org/wiki/pub/page/FAQ/FrequentlyAskedQuestions"
+td_7_4 = "Third party extensions"
+url_7_4 = "%http://www.graphics32.org/wiki/pub/page/Main/ThirdParty"
+td_7_5 = "Chat applet (IRC freenode: #graphics32)"
+url_7_5 = "%http://graphics32.org/chat/index.php"
+td_7_6 = "Graphics32 at Source Forge"
+url_7_6 = "%http://sf.net/projects/graphics32"
 
 
 
