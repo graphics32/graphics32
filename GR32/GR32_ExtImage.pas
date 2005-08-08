@@ -96,6 +96,7 @@ begin
   FResized := False;
   RepaintMode := rmDirect;
   RenderMode := rnmFull;
+  BufferOversize := 0;
 end;
 
 destructor TSyntheticImage32.Destroy;
