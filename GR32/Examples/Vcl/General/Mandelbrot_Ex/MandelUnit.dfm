@@ -1,6 +1,6 @@
 object Form1: TForm1
-  Left = 381
-  Top = 212
+  Left = 393
+  Top = 538
   Width = 395
   Height = 399
   Caption = 'Mandelbrot Example'
@@ -21,7 +21,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 387
-    Height = 350
+    Height = 353
     Align = alClient
     RepaintMode = rmDirect
     TabOrder = 0
@@ -53,30 +53,34 @@ object Form1: TForm1
         AutoCheck = True
         Caption = 'Regular Sampling'
         RadioItem = True
-        OnClick = Regularsampling1Click
+        OnClick = RasterizerMenuClick
       end
       object Progressive1: TMenuItem
+        Tag = 1
         AutoCheck = True
         Caption = 'Progressive'
         Checked = True
         RadioItem = True
-        OnClick = Progressive1Click
+        OnClick = RasterizerMenuClick
       end
       object Tesseral1: TMenuItem
+        Tag = 2
         AutoCheck = True
         Caption = 'Tesseral'
         RadioItem = True
-        OnClick = Tesseral1Click
+        OnClick = RasterizerMenuClick
       end
       object Swizzling1: TMenuItem
+        Tag = 3
         AutoCheck = True
         Caption = 'Swizzling'
         RadioItem = True
-        OnClick = Swizzling1Click
+        OnClick = RasterizerMenuClick
       end
       object Contour1: TMenuItem
+        Tag = 4
         Caption = 'Contour'
-        OnClick = Contour1Click
+        OnClick = RasterizerMenuClick
       end
     end
     object Sampler1: TMenuItem
@@ -92,22 +96,25 @@ object Form1: TForm1
         Caption = '-'
       end
       object N2x2: TMenuItem
+        Tag = 1
         AutoCheck = True
         Caption = 'SuperSampler 2x'
         RadioItem = True
-        OnClick = N2x2Click
+        OnClick = Default1Click
       end
       object N3x2: TMenuItem
+        Tag = 2
         AutoCheck = True
         Caption = 'SuperSampler 3x'
         RadioItem = True
-        OnClick = N3x2Click
+        OnClick = Default1Click
       end
       object N4x2: TMenuItem
+        Tag = 3
         AutoCheck = True
         Caption = 'SuperSampler 4x'
         RadioItem = True
-        OnClick = N4x2Click
+        OnClick = Default1Click
       end
       object Adaptive: TMenuItem
         AutoCheck = True
@@ -119,22 +126,25 @@ object Form1: TForm1
         Caption = '-'
       end
       object PatternSampler2: TMenuItem
+        Tag = 4
         AutoCheck = True
         Caption = 'PatternSampler 2x'
         RadioItem = True
-        OnClick = PatternSampler2Click
+        OnClick = Default1Click
       end
       object PatternSampler3x1: TMenuItem
+        Tag = 5
         AutoCheck = True
         Caption = 'PatternSampler 3x'
         RadioItem = True
-        OnClick = PatternSampler3x1Click
+        OnClick = Default1Click
       end
       object PatternSampler1: TMenuItem
+        Tag = 6
         AutoCheck = True
         Caption = 'PatternSampler 4x'
         RadioItem = True
-        OnClick = PatternSampler1Click
+        OnClick = Default1Click
       end
     end
   end
