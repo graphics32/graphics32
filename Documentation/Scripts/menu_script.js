@@ -71,6 +71,10 @@ function runMenu(strURL){
 	location.href=strURL;
 }
 
+function runMenuNW(strURL){
+    window.open(strURL); // Opens in new window
+}
+
 var tt="";
 var sT="";
 var pT=new Array();
