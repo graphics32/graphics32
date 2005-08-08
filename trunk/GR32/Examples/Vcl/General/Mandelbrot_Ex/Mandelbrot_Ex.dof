@@ -135,6 +135,7 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 [Excluded Packages]
+D:\Program\Borland\Delphi7\Projects\Bpl\GLScene7.bpl=GLScene - OpenGL 3D library
 d:\program\borland\delphi7\Projects\Bpl\IdeManifestExpert.bpl=IDE XP Manifest support in Project Option dialog
 D:\Program\Borland\Delphi7\Projects\Bpl\tb2k_d7.bpl=Toolbar2000 Components (Jordan Russell)
 d:\program\borland\delphi7\Projects\Bpl\te_dsgn_d7.bpl=ThemeEngine
