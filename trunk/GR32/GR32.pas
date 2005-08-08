@@ -752,7 +752,7 @@ type
     procedure PrepareSampling; virtual;
     procedure FinalizeSampling; virtual;
     function HasBounds: Boolean; virtual;
-    function GetSampleBounds: TRect; virtual; abstract;
+    function GetSampleBounds: TRect; virtual;
   end;
 
   { TCustomResampler }
@@ -5553,6 +5553,11 @@ end;
 function TCustomSampler.HasBounds: Boolean;
 begin
   Result := False;
+end;
+
+function TCustomSampler.GetSampleBounds: TRect;
+begin
+  Result := Rect(Low(Integer), Low(Integer), High(Integer), High(Integer));
 end;
 
 initialization
