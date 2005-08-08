@@ -173,7 +173,7 @@ end;
 
 procedure TForm1.SelectRasterizer(RasterizerKind: TRasterizerKind);
 const
-  RASTERIZERCLASS: array[TRasterKind] of TRasterizerClass =
+  RASTERIZERCLASS: array[TRasterizerKind] of TRasterizerClass =
     (TRegularRasterizer, TProgressiveRasterizer, TSwizzlingRasterizer,
      TTesseralRasterizer, TContourRasterizer);
 begin
@@ -276,6 +276,10 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
+  // Note: the synthetic image control must be freed before the samplers,
+  // since they are potentially used by the rendering thread.
+  Img.Free;
+
   MandelSampler.Free;
   SuperSampler.Free;
   AdaptiveSampler.Free;
