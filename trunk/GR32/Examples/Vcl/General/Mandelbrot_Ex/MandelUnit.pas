@@ -1,4 +1,30 @@
 unit MandelUnit;
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is MandelBrot Example
+ *
+ * The Initial Developer of the Original Code is
+ * Mattias Andersson <mattias@centaurix.com>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2005
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Michael Hansen <dyster_tid@hotmail.com>
+ *   Andre Beckedorf <Andre@metaException.de>
+ *
+ * ***** END LICENSE BLOCK ***** *)
 
 interface
 
@@ -12,7 +38,7 @@ const
   DEF_ITER = 16;
 
 type
-  TRasterizerKind = (rkRegular, rkSwizzling, rkProgressive, rkTesseral, rkContour);
+  TRasterizerKind = (rkRegular, rkProgressive, rkTesseral, rkSwizzling, rkContour);
 
   TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skPattern2, skPattern3, skPattern4);
 
@@ -52,23 +78,13 @@ type
     N2: TMenuItem;
     PatternSampler3x1: TMenuItem;
     procedure FormCreate(Sender: TObject);
-    procedure Swizzling1Click(Sender: TObject);
-    procedure Regularsampling1Click(Sender: TObject);
-    procedure Progressive1Click(Sender: TObject);
-    procedure Tesseral1Click(Sender: TObject);
+    procedure RasterizerMenuClick(Sender: TObject);
     procedure Default1Click(Sender: TObject);
-    procedure N2x2Click(Sender: TObject);
-    procedure N3x2Click(Sender: TObject);
-    procedure N4x2Click(Sender: TObject);
     procedure AdaptiveClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure Contour1Click(Sender: TObject);
     procedure Save1Click(Sender: TObject);
-    procedure PatternSampler2Click(Sender: TObject);
-    procedure PatternSampler1Click(Sender: TObject);
-    procedure PatternSampler3x1Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   public
     { Public declarations }
@@ -137,6 +153,15 @@ begin
   EMMS;
 end;
 
+procedure TMandelbrotSampler.PrepareSampling;
+var
+  I: Integer;
+begin
+  for I := 0 to MAX_ITER + 255 do
+    Palette[I] := HSLtoRGB(I/DEF_ITER + 0.5, 1 - I/DEF_ITER,
+      0.5 * (1 + Sin(3 + 14 * I / DEF_ITER)));
+end;
+
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   AutoUpdate := True;
@@ -147,66 +172,31 @@ begin
   Sampler := MandelSampler;
 end;
 
-procedure TMandelbrotSampler.PrepareSampling;
-var
-  I: Integer;
-begin
-  for I := 0 to MAX_ITER + 255 do
-    Palette[I] := HSLtoRGB(I/DEF_ITER + 0.5, 1-I/DEF_ITER, 0.5*(1 + Sin(3+14*I/DEF_ITER)));
-end;
-
 procedure TForm1.SelectRasterizer(RasterizerKind: TRasterizerKind);
 begin
   case RasterizerKind of
-    rkRegular:
-      begin
-        Rasterizer := TRegularRasterizer.Create;
-        TRegularRasterizer(Rasterizer).UpdateRowCount := 1;
-      end;
-    rkSwizzling:
-      begin
-        Rasterizer := TSwizzlingRasterizer.Create;
-      end;
-    rkProgressive:
-      begin
-        Rasterizer := TProgressiveRasterizer.Create;
-      end;
-    rkTesseral:
-      begin
-        Rasterizer := TTesseralRasterizer.Create;
-      end;
-    rkContour:
-      begin
-        Rasterizer := TContourRasterizer.Create;
-      end;
+    rkRegular: Rasterizer := TRegularRasterizer.Create;
+    rkSwizzling: Rasterizer := TSwizzlingRasterizer.Create;
+    rkProgressive: Rasterizer := TProgressiveRasterizer.Create;
+    rkTesseral: Rasterizer := TTesseralRasterizer.Create;
+    rkContour: Rasterizer := TContourRasterizer.Create;
   end;
+  if Rasterizer is TRegularRasterizer then
+    TRegularRasterizer(Rasterizer).UpdateRowCount := 1;
   Rasterizer.Sampler := Sampler;
   Img.Rasterizer := Rasterizer;
 end;
 
-procedure TForm1.Regularsampling1Click(Sender: TObject);
+procedure TForm1.RasterizerMenuClick(Sender: TObject);
 begin
-  SelectRasterizer(rkRegular);
-end;
-
-procedure TForm1.Swizzling1Click(Sender: TObject);
-begin
-  SelectRasterizer(rkSwizzling);
-end;
-
-procedure TForm1.Progressive1Click(Sender: TObject);
-begin
-  SelectRasterizer(rkProgressive);
-end;
-
-procedure TForm1.Tesseral1Click(Sender: TObject);
-begin
-  SelectRasterizer(rkTesseral);
+  if Sender is TMenuItem then
+    SelectRasterizer(TRasterizerKind(TMenuItem(Sender).Tag));
 end;
 
 procedure TForm1.Default1Click(Sender: TObject);
 begin
-  SelectSampler(skDefault);
+  if Sender is TMenuItem then
+    SelectSampler(TSamplerKind(TMenuItem(Sender).Tag));
 end;
 
 procedure TForm1.SelectSampler(ASamplerKind: TSamplerKind);
@@ -243,21 +233,6 @@ begin
   Img.Rasterize;
 end;
 
-procedure TForm1.N2x2Click(Sender: TObject);
-begin
-  SelectSampler(skSS2X);
-end;
-
-procedure TForm1.N3x2Click(Sender: TObject);
-begin
-  SelectSampler(skSS3X);
-end;
-
-procedure TForm1.N4x2Click(Sender: TObject);
-begin
-  SelectSampler(skSS4X);
-end;
-
 procedure TForm1.AdaptiveClick(Sender: TObject);
 begin
   SelectSampler(SamplerKind);
@@ -268,31 +243,18 @@ begin
   SelectRasterizer(rkProgressive);
 end;
 
-procedure TForm1.PatternSampler2Click(Sender: TObject);
-begin
-  SelectSampler(skPattern2);
-end;
-
-procedure TForm1.PatternSampler3x1Click(Sender: TObject);
-begin
-  SelectSampler(skPattern3);
-end;
-
-procedure TForm1.PatternSampler1Click(Sender: TObject);
-begin
-  SelectSampler(skPattern4);
-end;
-
-
 procedure TForm1.ImgMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   cX, cY, L, T, W, H, Scale: Extended;
 begin
   case Button of
-    mbLeft: Scale := 1/2;
+    mbLeft: Scale := 1 / 2;
     mbRight: Scale := 2;
+  else
+    Scale := 1;
   end;
+
   cX := X / Img.Width;
   cY := Y / Img.Height;
   with MandelSampler do
@@ -301,17 +263,12 @@ begin
     T := Bounds.Top;
     W := Bounds.Right - Bounds.Left;
     H := Bounds.Bottom - Bounds.Top;
-    Bounds.Left := L + cX * W - W * Scale/2;
-    Bounds.Top := T + cY * H - H * Scale/2;
+    Bounds.Left := L + cX * W - W * Scale / 2;
+    Bounds.Top := T + cY * H - H * Scale / 2;
     Bounds.Right := Bounds.Left + W * Scale;
     Bounds.Bottom := Bounds.Top + H * Scale;
   end;
   Img.Rasterize;
-end;
-
-procedure TForm1.Contour1Click(Sender: TObject);
-begin
-  SelectRasterizer(rkContour);
 end;
 
 procedure TForm1.Save1Click(Sender: TObject);
