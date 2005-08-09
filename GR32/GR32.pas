@@ -4435,17 +4435,17 @@ begin
     FStretchFilter := Value;
 
     case FStretchFilter of
-      sfNearest: SetResampler(TNearestResampler.Create(Self));
-      sfDraft:   SetResampler(TDraftResampler.Create(Self));
-      sfLinear:  SetResampler(TLinearResampler.Create(Self));
+      sfNearest: TNearestResampler.Create(Self);
+      sfDraft:   TDraftResampler.Create(Self);
+      sfLinear:  TLinearResampler.Create(Self);
     else
-      SetResampler(TKernelResampler.Create(Self));
+      TKernelResampler.Create(Self);
       with FResampler as TKernelResampler do
         case FStretchFilter of
-          sfCosine: Kernel := TCosineKernel.Create(Self);
-          sfSpline: Kernel := TSplineKernel.Create(Self);
-          sfLanczos: Kernel := TLanczosKernel.Create(Self);
-          sfMitchell: Kernel := TMitchellKernel.Create(Self);
+          sfCosine: Kernel := TCosineKernel.Create;
+          sfSpline: Kernel := TSplineKernel.Create;
+          sfLanczos: Kernel := TLanczosKernel.Create;
+          sfMitchell: Kernel := TMitchellKernel.Create;
         end;
     end;
 
