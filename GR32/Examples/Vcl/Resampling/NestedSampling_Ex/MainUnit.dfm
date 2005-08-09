@@ -128,7 +128,6 @@ object Form1: TForm1
       Width = 190
       Height = 162
       Align = alTop
-      BevelInner = bvNone
       BorderStyle = bsNone
       Columns = <
         item
@@ -151,10 +150,6 @@ object Form1: TForm1
       Align = alTop
       Alignment = taCenter
       AutoSize = False
-      BevelEdges = [beTop, beBottom]
-      BevelInner = bvLowered
-      BevelKind = bkSoft
-      BevelOuter = bvNone
       Caption = 'Sampler Manager'
       Color = 9790720
       Font.Charset = DEFAULT_CHARSET
@@ -220,10 +215,6 @@ object Form1: TForm1
       Align = alTop
       Alignment = taCenter
       AutoSize = False
-      BevelEdges = [beTop, beBottom]
-      BevelInner = bvLowered
-      BevelKind = bkSoft
-      BevelOuter = bvNone
       Caption = 'Object Inspector'
       Color = 9790720
       Font.Charset = DEFAULT_CHARSET
@@ -243,10 +234,6 @@ object Form1: TForm1
       Align = alTop
       Alignment = taCenter
       AutoSize = False
-      BevelEdges = [beTop, beBottom]
-      BevelInner = bvLowered
-      BevelKind = bkSoft
-      BevelOuter = bvNone
       Caption = 'Rasterization'
       Color = 9790720
       Font.Charset = DEFAULT_CHARSET
@@ -269,7 +256,7 @@ object Form1: TForm1
     Color = clAppWorkSpace
     ParentColor = False
     RepaintMode = rmOptimizer
-    Scale = 1.000000000000000000
+    Scale = 1
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     OverSize = 0
@@ -1674,7 +1661,6 @@ object Form1: TForm1
     object Resampler1: TMenuItem
       Caption = 'Resampler'
       object Nearest1: TMenuItem
-        AutoCheck = True
         Caption = 'Nearest'
         Checked = True
         RadioItem = True
@@ -1682,34 +1668,29 @@ object Form1: TForm1
       end
       object Linear1: TMenuItem
         Tag = 1
-        AutoCheck = True
         Caption = 'Linear'
         RadioItem = True
         OnClick = Linear1Click
       end
       object Draft1: TMenuItem
-        AutoCheck = True
         Caption = 'Cubic'
         RadioItem = True
         OnClick = SelectKernel
       end
       object Spline1: TMenuItem
         Tag = 1
-        AutoCheck = True
         Caption = 'Spline'
         RadioItem = True
         OnClick = SelectKernel
       end
       object Lanczos1: TMenuItem
         Tag = 2
-        AutoCheck = True
         Caption = 'Lanczos'
         RadioItem = True
         OnClick = SelectKernel
       end
       object Sinsh1: TMenuItem
         Tag = 3
-        AutoCheck = True
         Caption = 'Sinsh'
         RadioItem = True
         OnClick = SelectKernel
@@ -1725,32 +1706,27 @@ object Form1: TForm1
     object Rasterizer1: TMenuItem
       Caption = 'Rasterizer'
       object Regular1: TMenuItem
-        AutoCheck = True
         Caption = 'Regular'
         Checked = True
         RadioItem = True
         OnClick = Regular1Click
       end
       object Progressive1: TMenuItem
-        AutoCheck = True
         Caption = 'Progressive'
         RadioItem = True
         OnClick = Progressive1Click
       end
       object Swizzling1: TMenuItem
-        AutoCheck = True
         Caption = 'Swizzling'
         RadioItem = True
         OnClick = Swizzling1Click
       end
       object Tesseral1: TMenuItem
-        AutoCheck = True
         Caption = 'Tesseral'
         RadioItem = True
         OnClick = Tesseral1Click
       end
       object Contour1: TMenuItem
-        AutoCheck = True
         Caption = 'Contour'
         RadioItem = True
         OnClick = Contour1Click
@@ -1767,12 +1743,10 @@ object Form1: TForm1
       Caption = 'Options'
       ImageIndex = 0
       object chkClear: TMenuItem
-        AutoCheck = True
         Caption = 'Clear Bitmap'
         Checked = True
       end
       object chkReset: TMenuItem
-        AutoCheck = True
         Caption = 'Reset Bitmap'
         Checked = True
       end

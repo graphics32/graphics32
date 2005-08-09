@@ -30,13 +30,12 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, TypInfo, SimplePropEdit,
-
-  GR32_Rasterizers, GR32_Resamplers, GR32_Transforms, GR32_Blend, GR32_Image,
-  GR32_Containers, ComCtrls, Menus, ToolWin, ImgList, Buttons,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, ExtCtrls, TypInfo, SimplePropEdit, GR32_Rasterizers,
+  GR32_Resamplers, GR32_Transforms, GR32_Blend, GR32_Image, GR32_Containers,
+  ComCtrls, Menus, ToolWin, ImgList, Buttons,
   GR32_ExtImage, GR32, GR32_Math, ExtDlgs;
-
+  
 type
   TForm1 = class(TForm)
     EnabledImages: TImageList;
@@ -619,7 +618,7 @@ procedure TForm1.InsertSampler(Index: Integer; ObjName: string; Sampler: TNested
 var
   NewItem: TListItem;
 begin
-  Index := EnsureRange(Index, 0, lvSamplers.Items.Count);
+  Index := Constrain(Index, 0, lvSamplers.Items.Count);
   if Index = lvSamplers.Items.Count then
   begin
     Samplers.Add(Sampler);

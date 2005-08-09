@@ -29,9 +29,9 @@ unit MandelUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers, GR32_Rasterizers,
-  StdCtrls, ExtCtrls, Menus, ExtDlgs, Jpeg;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, StdCtrls,
+  ExtCtrls, Menus, ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32,
+  GR32_Resamplers, GR32_Rasterizers, Jpeg;
 
 const
   MAX_ITER = 320;
@@ -106,7 +106,8 @@ implementation
 
 {$R *.dfm}
 
-uses GR32_Blend, Math;
+uses
+  GR32_Blend, GR32_LowLevel, Math;
 
 { TMandelbrotSampler }
 
@@ -144,7 +145,7 @@ begin
     Inc(I);
   until I = MAX_ITER;
   W := Round(16 * (ZX * ZX + ZY * ZY - 4));
-  W := EnsureRange(W, 0, 255);
+  W := Clamp(W);
 
   C1 := Palette[I];
   C2 := Palette[I + 1];
