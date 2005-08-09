@@ -44,6 +44,7 @@ ul.barebones h2 {
 	padding: 0px;
 	display:inline;
 }
+#dots { list-style-type: square }
 </style>
 </head>
 <body bgcolor="#FFFFFF">
@@ -70,13 +71,13 @@ ul.barebones h2 {
             - independent scales in TCustomImgView32/TImgView32<br>
             - FastMove support<br>
             - restructured examples:<br>
+          </p>            
           <ul>
             <p><em>new examples:</em> <br>
               TextureBlend_Ex, NestedSampling_Ex, Resamplers_Ex, ImgWarping_Ex, Visualization_Ex</p>
             <p><em>changed examples: </em><br>
               GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
           </ul>
-          </p>
         </ul>
       </li>
       <li>
@@ -355,67 +356,95 @@ ul.barebones h2 {
     </ul>
   </li>
 </ul>
+
 <h2 class="Body">v1.7.1 (25 February 2005)</h2>
-<p class="Body"><strong>Bugfixes:</strong></p>
-<ul>
-  <li> fixes for AVs in new line drawing methods (LineS, LineTS, LineAS)</li>
-  <li>replaced incorrect call of VertLineS and HorzLineS in LineTS and LineAS with VertLineTS and HorzLineTS</li>
-  <li>fix for buffer reallocation inefficiency in TCustomPaintBox32 (non-critical, long standing)<br>
-    This should improve performance on resizing for all TCustomPaintBox32 derived controls.</li>
-  <li>added missing call to inherited constructor in TPolygon32 constructor (caused big trouble on Win9x/WinME systems) </li>
-  <li>RenderText now ignores Windows-based font smoothing in VCL<br>
-    (VCL-only change because the QT version that's used in CLX doesn't support disabling font antialiasing, neither in Windows nor in Linux/X11)</li>
-  <li>CLX compilation fixes</li>
-  <li>C++ Builder compilation fixes</li>
-  <li>ColorMul removed (duplicate of ColorModulate)</li>
-  <li>minor cleanups</li>
-</ul>
+  <ul class="barebones expandable">
+    <li>
+      <h2>Bugfixes</h2>    
+	    <ul>
+          <li id="dots"> fixes for AVs in new line drawing methods (LineS, LineTS, LineAS)</li>
+  		  <li id="dots">replaced incorrect call of VertLineS and HorzLineS in LineTS and LineAS with VertLineTS and HorzLineTS</li>
+          <li id="dots">fix for buffer reallocation inefficiency in TCustomPaintBox32 (non-critical, long standing)<br>
+            This should improve performance on resizing for all TCustomPaintBox32 derived controls.</li>
+          <li id="dots">added missing call to inherited constructor in TPolygon32 constructor (caused big trouble on Win9x/WinME systems) </li>
+          <li id="dots">RenderText now ignores Windows-based font smoothing in VCL<br>
+            (VCL-only change because the QT version that's used in CLX doesn't support disabling font antialiasing, neither in Windows nor in Linux/X11)</li>
+          <li id="dots">CLX compilation fixes</li>
+          <li id="dots">C++ Builder compilation fixes</li>
+          <li id="dots">ColorMul removed (duplicate of ColorModulate)</li>
+          <li id="dots">minor cleanups</li>
+        </ul>
+    </li>
+  </ul>
+
 <h2 class="Body">v1.7 (16 January 2005)</h2>
-<p class="Body"><strong>New Features:</strong></p>
-<ul>
-  <li>clipping rect support (all safe drawing operations are clipped to a rect)</li>
-  <li>support for custom polygon fillings (via callback or polygon filler objects)</li>
-  <li>support for polygon transformation (permanent or while drawing)</li>
-  <li>update to transformation classes to make them more suited for general usage</li>
-  <li>polygon performance enhancements</li>
-  <li>new CombineMode property in TBitmap32</li>
-  <li>TRubberbandLayer enhancements</li>
-  <li>additional color algebra functions</li>
-  <li>more versatile TBitmap32.ResetAlpha method (overloaded)</li>
-  <li>Delphi 2005 (Win32) support (optional inlining where applicable)</li>
-  <li>small speed enhancements</li>
-</ul>
-<p class="Body"><strong>Bugfixes:</strong></p>
-<ul>
-  <li> fix for RenderText problems with letters that spread below baseline</li>
-  <li>fix for bug in TBitmap32.Rotate180</li>
-  <li>fix for problem in TBitmap32.Assign that caused transparent regions in metafiles and icons to appear in blue when they really should be white.</li>
-  <li>fix for problem where the buffer content on repaint in TPaintBox32 wasn't validated</li>
-  <li>fix for problem where C++ Builder threw linker errors (HDC methods and "hoisted overload" or E2113) in GR32.pas and GR32_Image.pas</li>
-  <li>fix for linear/draft bug with bitmaps of size 100x1 et al.</li>
-  <li>fix for bug in Transform that caused the outline of the source bitmap to appear in OuterColor</li>
-  <li>fix for the 3DNow detection (caused "external exception" on some machines when sfDraft was used)</li>
-  <li>fix for dysfunctional OnMouseEnter and OnMouseLeave in TCustomImage32 </li>
-  <li>fix for CheckParams problem in ApplyLUT</li>
-  <li>fix to preserve alpha channel in ApplyLUT and ColorToGrayscale</li>
-</ul>
+  <ul class="barebones expandable">
+    <li>
+      <h2>New Features</h2>    
+	    <ul>
+  <li id="dots">clipping rect support (all safe drawing operations are clipped to a rect)</li>
+  <li id="dots">support for custom polygon fillings (via callback or polygon filler objects)</li>
+  <li id="dots">support for polygon transformation (permanent or while drawing)</li>
+  <li id="dots">update to transformation classes to make them more suited for general usage</li>
+  <li id="dots">polygon performance enhancements</li>
+  <li id="dots">new CombineMode property in TBitmap32</li>
+  <li id="dots">TRubberbandLayer enhancements</li>
+  <li id="dots">additional color algebra functions</li>
+  <li id="dots">more versatile TBitmap32.ResetAlpha method (overloaded)</li>
+  <li id="dots">Delphi 2005 (Win32) support (optional inlining where applicable)</li>
+  <li id="dots">small speed enhancements</li>
+        </ul>
+    </li>
+  </ul>
+  
+  <ul class="barebones expandable">
+    <li>
+      <h2>Bugfixes</h2>    
+	    <ul>
+  <li id="dots"> fix for RenderText problems with letters that spread below baseline</li>
+  <li id="dots">fix for bug in TBitmap32.Rotate180</li>
+  <li id="dots">fix for problem in TBitmap32.Assign that caused transparent regions in metafiles and icons to appear in blue when they really should be white.</li>
+  <li id="dots">fix for problem where the buffer content on repaint in TPaintBox32 wasn't validated</li>
+  <li id="dots">fix for problem where C++ Builder threw linker errors (HDC methods and "hoisted overload" or E2113) in GR32.pas and GR32_Image.pas</li>
+  <li id="dots">fix for linear/draft bug with bitmaps of size 100x1 et al.</li>
+  <li id="dots">fix for bug in Transform that caused the outline of the source bitmap to appear in OuterColor</li>
+  <li id="dots">fix for the 3DNow detection (caused "external exception" on some machines when sfDraft was used)</li>
+  <li id="dots">fix for dysfunctional OnMouseEnter and OnMouseLeave in TCustomImage32 </li>
+  <li id="dots">fix for CheckParams problem in ApplyLUT</li>
+  <li id="dots">fix to preserve alpha channel in ApplyLUT and ColorToGrayscale</li>
+        </ul>
+    </li>
+  </ul>
+
 <h2 class="Body">v1.6 (21 July 2004)</h2>
-<ul>
-  <li> Graphics32 now fully supports CLX cross-platform development;</li>
-  <li> Example projects have been successfully converted and tested in Linux;</li>
-  <li> Fixed issues in GR32_Transforms that could potentially cause access violation;</li>
-  <li> Added sfDraft resampling filter with MMX optimization;</li>
-  <li> Added sfCosine resampling filter;</li>
-  <li> Added PixelF/X properties that read and write pixels with antialiasing;</li>
-  <li> SetPixelF/X methods have been deprecated;</li>
-  <li> Added new MMX optimized color algebra routines to GR32_Blend (Add, Subtract, Multiply etc.);</li>
-  <li> Added AntiAliasMode property to TPolygon32 for dynamically changing antialias level at runtime;</li>
-  <li> Added support for 4x supersampling antialias of polygons (significantly faster but with less quality);</li>
-  <li> Unicode support for TBitmap32.Text* and TBitmap32.Rendertext methods;</li>
-  <li> Fixed blending bug (the &quot;not fully opaque&quot; issue);</li>
-  <li> Performance optimizations (MMX) in blending routines and Transforms;</li>
-  <li> Several minor additions and optimizations.</li>
-</ul>
+  <ul class="barebones expandable">
+    <li>
+      <h2>Changes</h2>    
+	    <ul>  
+  <li id="dots"> Graphics32 now fully supports CLX cross-platform development;</li>
+  <li id="dots"> Example projects have been successfully converted and tested in Linux;</li>
+  <li id="dots"> Fixed issues in GR32_Transforms that could potentially cause access violation;</li>
+  <li id="dots"> Added sfDraft resampling filter with MMX optimization;</li>
+  <li id="dots"> Added sfCosine resampling filter;</li>
+  <li id="dots"> Added PixelF/X properties that read and write pixels with antialiasing;</li>
+  <li id="dots"> SetPixelF/X methods have been deprecated;</li>
+  <li id="dots"> Added new MMX optimized color algebra routines to GR32_Blend (Add, Subtract, Multiply etc.);</li>
+  <li id="dots"> Added AntiAliasMode property to TPolygon32 for dynamically changing antialias level at runtime;</li>
+  <li id="dots"> Added support for 4x supersampling antialias of polygons (significantly faster but with less quality);</li>
+  <li id="dots"> Unicode support for TBitmap32.Text* and TBitmap32.Rendertext methods;</li>
+  <li id="dots"> Fixed blending bug (the &quot;not fully opaque&quot; issue);</li>
+  <li id="dots"> Performance optimizations (MMX) in blending routines and Transforms;</li>
+  <li id="dots"> Several minor additions and optimizations.</li>
+        </ul>
+    </li>
+  </ul>
+  
+<h2 class="Body">Earlier releases (v0.9 - v1.5.1b)</h2>
+  <ul class="barebones expandable">
+    <li>
+      <h2>Summary</h2>    
+	    <ul style="display:none">  
+	    
 <h2 class="Body">v1.5.1b (5 July 2004)</h2>
 <p class="Body">Changed license to MPL. Everything else is identical with v1.5.1.</p>
 <h2 class="Body">v1.5.1 (8 June 2003)</h2>
@@ -495,6 +524,10 @@ ul.barebones h2 {
 <h2 class="Body">v0.9 (9 March 2000) </h2>
 <p class="Body">First public release.</p>
 <p class="Body">&nbsp;</p>
+        </ul>
+    </li>
+  </ul>
+  
 <p id="hidden">[See also]: <a href="Features.htm">Features</a>, <a href="License.htm">License</a>, <a href="Donate.htm">Donate</a>, <a href="Contacts.htm">Contacts</a>, <a href="Naming%20Conventions.htm">Naming Conventions</a></p>
 <img src="../../Images/buttons.gif" width="1" height="1">
 </body>
