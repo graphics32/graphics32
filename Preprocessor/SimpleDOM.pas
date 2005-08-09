@@ -2,8 +2,10 @@ unit SimpleDOM;
 
 interface
 
+{-$DEFINE CODESITE}
+
 uses
-  Classes, SysUtils, Contnrs, HTML_Tags;
+  Classes, SysUtils, Contnrs, HTML_Tags{$IFDEF CODESITE}, CSIntf{$ENDIF};
 
 type
   EDomError = class(Exception);
@@ -581,6 +583,7 @@ var
     N := Dst.Add(GetName(Pos));
     with N do
     begin
+      {$IFDEF CODESITE}CodeSite.EnterMethod('Tag ' + Name);{$ENDIF}
       TagInfo := GetTagInfo(Name);
       DoHTML := TagInfo.ElemType <> etUnknown;
       if DoHTML then Name := LowerCase(Name);
@@ -671,6 +674,7 @@ var
       end;
       Inc(P);
     end;
+    {$IFDEF CODESITE}CodeSite.EnterMethod('Text ' + S);{$ENDIF}
     Pos := P;
     Dst.AddText(ConvertWhiteSpace(S));
   end;
@@ -684,6 +688,7 @@ var
       NodeType := ntPI;
       Name := GetName(Pos);
       Value := SubString(Pos + 1, P);
+      {$IFDEF CODESITE}CodeSite.EnterMethod('PI ' + Name);{$ENDIF}
     end;
     Pos := P + 2;
   end;
@@ -701,6 +706,7 @@ var
     begin
       NodeType := ntComment;
       Value := SubString(Pos + 4, P);
+      {$IFDEF CODESITE}CodeSite.EnterMethod('Comment ' + Value);{$ENDIF}
     end;
     Pos := P + 3;
   end;
@@ -718,6 +724,7 @@ var
     begin
       NodeType := ntCDATA;
       Value := SubString(Pos + 9, P);
+      {$IFDEF CODESITE}CodeSite.EnterMethod('CDATA ' + Value);{$ENDIF}
     end;
     Pos := P + 3;
   end;
@@ -741,12 +748,14 @@ begin
     else GetTag;
   end
   else GetText;
+  {$IFDEF CODESITE}CodeSite.ExitMethod('');{$ENDIF}
 end;
 
 procedure TDomParser.ReadFile(Dst: TDomNode; const FileName: string);
 var
   Stream: TStream;
 begin
+  {$IFDEF CODESITE}CodeSite.SendString('FileName', FileName);{$ENDIF}
   Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
     ReadStream(Dst, Stream);
