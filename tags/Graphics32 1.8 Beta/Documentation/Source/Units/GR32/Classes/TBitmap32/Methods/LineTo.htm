@@ -1,0 +1,34 @@
+<html>
+<head>
+<title>LineTo</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> LineToS(X, Y: Integer);</p>
+<p class="Decl"><b>procedure</b> LineToTS(X, Y: Integer);</p>
+<p class="Decl"><b>procedure</b> LineToAS(X, Y: Integer);</p>
+<p class="Decl"><b>procedure</b> LineToXS(X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>);</p>
+<p class="Decl"><b>procedure</b> LineToFS(X, Y: Single);</p>
+<p class="Decl"><b>procedure</b> LineToXSP(X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>);</p>
+<p class="Decl"><b>procedure</b> LineToFSP(X, Y: Single);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">LineTo*</span> methods are similar to <span class="API">TCanvas.LineTo</span>. 
+  The line is drawn from the current raster position, to the position specified 
+  by <span class="EmptyRef">X</span> and <span class="EmptyRef">Y</span> parameters 
+  excluding the last point. Then raster position is shifted to (<span class="EmptyRef">X</span>, 
+  <span class="EmptyRef">Y</span>) point. </p>
+<p class="Body">The line is drawn with the color specified in <a href="../Properties/PenColor.htm">PenColor</a> 
+  property. 'S', 'TS', and 'AS' versions use and update integer integer raster 
+  position, while 'FS' and 'XS' versions use and update independent fixed-point 
+  raster position. </p>
+<p class="Body"><span class="EmptyRef">LineToXSP</span> and <span class="EmptyRef">LineToFSP</span> 
+  do not use <a href="../Properties/PenColor.htm">PenColor</a>, instead, they 
+  draw a line using currend stipple pattern.</p>
+<p class="Body">To start a new line or sequence of lines, use <a href="MoveTo.htm">MoveTo</a> 
+  methods.</p>
+<p id="hidden">[See also]: <a href="Line.htm">Line</a>, <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a>, <a href="../../../../../Additional%20Topics/Line%20Patterns.htm">Line 
+  Patterns</a></p>
+</body>
+</html>

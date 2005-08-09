@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>InflateRect</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> InflateRect(<b>var</b> R: <a href="../Types/Rectangle%20Types.htm#TRect">TRect</a>; 
+  Dx, Dy: Integer); <b>overload</b>;</p>
+<p class="Decl"> <b>procedure</b> InflateRect(<b>var</b> FR: <a href="../Types/Rectangle%20Types.htm#TFloatRect">TFloatRect</a>; 
+  Dx, Dy: Single); <b>overload</b>;</p>
+<h2>Description</h2>
+<p class="Body">Increases (or decreases if <b>Dx</b>, <b>Dy</b> negative) the 
+  width and height of the specified rectangle:</p>
+<p class="Code">R.Left := R.Left - Dx;</p>
+<p class="Code">R.Right := R.Right + Dx;</p>
+<p class="Code"> R.Top := R.Top - Dy;</p>
+<p class="Code"> R.Bottom := R.Bottom + Dy;</p>
+<p id="Hidden">[See also] <a href="OffsetRect.htm">OffsetRect</a></p>
+</body>
+</html>

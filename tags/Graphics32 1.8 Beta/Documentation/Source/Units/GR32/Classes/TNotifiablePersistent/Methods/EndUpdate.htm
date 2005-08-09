@@ -1,0 +1,22 @@
+<html>
+ 
+<head>
+<title>EndUpdate</title>
+<link rel="STYLESHEET" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> EndUpdate; </p>
+<h2>Description</h2>
+<p class="Body">Re-enables change notification previously disabled with <a href="BeginUpdate.htm">BeginUpdate</a>. 
+</p>
+<p class="Body"><span class="EmptyRef">EndUpdate</span> decreases the <a
+href="../Properties/UpdateCount.htm">UpdateCount</a> property and re-enables generation 
+  of <a href="../Events/OnChange.htm">OnChange</a> events.</p>
+<p class="Body"><span class="EmptyRef">EndUpdate</span> itself does not generate 
+  the <a href="../Events/OnChange.htm">OnChange</a> event. You will need to call 
+  <a href="Changed.htm">Changed</a> explicitly, after calling <span class="EmptyRef">EndUpdate</span> 
+  in case the change notification is required.</p>
+</body>
+</html>
+
