@@ -65,7 +65,7 @@ blockquote {
         <ul class="dots">
           <li>Resampler Framework / Nested Sampling</li>
           <li>Rasterizer Framework</li>
-          <li>Buffered transformations / Warping / Remaptransformation</li>
+          <li>Buffered transformations / Warping / Remap Transformation</li>
           <li>Repaint optimizations (MicroTiles Repaint optimizer)</li>
         </ul>
       </li>
@@ -74,21 +74,21 @@ blockquote {
         <ul class="dots">
           <li>New transformations (Twirl, Bloat, Disturbance, FishEye)</li>
           <li>Fast transformations using TRemapTransformation</li>
-          <li>Kernel classes (implmenting reconstruction filters) for TKernelResampler</li>
+          <li>Kernel classes (implementing reconstruction filters) for TKernelResampler</li>
           <li>Antialiasing by using regular and irregular super sampling methods</li>
           <li>Spatial convolution and morphological operations</li>
           <li>Vector maps, supporting .msh fileformat (useful for rasterizing/buffering transformations)</li>
-          <li>New ordinal map classes for boolean-, word- and integer-sized data elements</li>
+          <li>New ordinal map classes for Boolean-, Word- and Integer-sized data elements</li>
           <li>New WrapMode property and wrapping Pixel properties</li>
           <li>Scrollbar visibility control and new scale modes</li>
-          <li>Independent scales in TCustomImgView32/TImgView32</li>
+          <li>Independent scales in TCustomImgView32 / TImgView32</li>
           <li>TRubberbandLayer enhancements</li>
           <li>New BlendTransfer routine for blending two bitmaps using an arbitrary blend callback routine</li>
-          <li>FastMove support</li>
-          <li>New class registration mechanism using TClassList</li>
           <li>New polygonal antialiasing modes for 2x and 32x antialiasing</li>
           <li>Improved performance in TPolygon32 rasterization routines</li>
           <li>New draw mode, dmTransparent, for color key tranparency</li>
+          <li>FastMove support</li>
+          <li>New class registration mechanism using TClassList</li>
           <li>Help documents updated with new additional topics</li>
           <li>Restructured examples:<br>
             <blockquote>
@@ -97,13 +97,14 @@ blockquote {
               <p><em>changed examples:</em><br>
                 GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
             </blockquote>
-		  </li>
+          </li>
         </ul>
       </li>
       <li>
         <h2>Bugfixes:</h2>
         <ul class="dots">
           <li>Fixed AV with Graphics32 usage in DLLs on WinXP</li>
+          <li>Fixed jagged lines problem in LineS, LineTS and LineAS</li>		  
         </ul>
       </li>
     </ul>
@@ -258,13 +259,13 @@ blockquote {
             <li>MoveWord</li>
           </ul>
         </ul>
-      </li>
-      <ul>
-        <p class="EmptyRef">Structural changes:</p>
-        <ul class="dots">
-          <li>MulDiv moved to GR32_Math</li>
+        <ul>
+          <p class="EmptyRef">Structural changes:</p>
+          <ul class="dots">
+            <li>MulDiv moved to GR32_Math</li>
+          </ul>
         </ul>
-      </ul>
+      </li>
       <li>
         <h2>GR32_Math (New Unit)</h2>
         <ul>
@@ -352,7 +353,11 @@ blockquote {
       <li>
         <h2>GR32_Resamplers (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New routines: </p>
+          <p class="EmptyRef">New types:</p>
+          <ul class="dots">
+            <li>TKernelMode</li>
+          </ul>
+          <p class="EmptyRef">New routines:</p>
           <ul class="dots">
             <li>BlendTransfer</li>
             <li>BlockTransfer, StretchTransfer (moved from GR32_Transforms)</li>
