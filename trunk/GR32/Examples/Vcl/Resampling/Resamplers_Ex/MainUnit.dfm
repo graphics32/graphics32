@@ -21,7 +21,7 @@ object Form1: TForm1
     Left = 329
     Top = 0
     Width = 146
-    Height = 376
+    Height = 374
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -32,9 +32,6 @@ object Form1: TForm1
       Height = 160
       Align = alTop
       TabOrder = 0
-      DesignSize = (
-        146
-        160)
       object Label1: TLabel
         Left = 12
         Top = 24
@@ -95,9 +92,7 @@ object Form1: TForm1
         Style = csDropDownList
         Anchors = [akTop, akRight]
         ItemHeight = 13
-        ItemIndex = 1
         TabOrder = 2
-        Text = 'Safe'
         OnChange = EdgecheckBoxChange
         Items.Strings = (
           'Unsafe'
@@ -112,9 +107,7 @@ object Form1: TForm1
         Style = csDropDownList
         Anchors = [akTop, akRight]
         ItemHeight = 13
-        ItemIndex = 0
         TabOrder = 3
-        Text = 'Clamp'
         OnChange = EdgecheckBoxChange
         Items.Strings = (
           'Clamp'
@@ -130,9 +123,6 @@ object Form1: TForm1
       Align = alTop
       TabOrder = 1
       Visible = False
-      DesignSize = (
-        146
-        160)
       object Label2: TLabel
         Left = 12
         Top = 24
@@ -220,7 +210,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 329
-    Height = 376
+    Height = 374
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 0
@@ -231,7 +221,7 @@ object Form1: TForm1
         Left = 0
         Top = 0
         Width = 321
-        Height = 348
+        Height = 346
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
         Bitmap.Resampler.KernelClassName = 'TCosineKernel'
@@ -239,7 +229,7 @@ object Form1: TForm1
         Bitmap.Resampler.TableSize = 32
         BitmapAlign = baTopLeft
         RepaintMode = rmOptimizer
-        Scale = 1.000000000000000000
+        Scale = 1
         ScaleMode = smStretch
         TabOrder = 0
         OnResize = DstImgResize
@@ -271,8 +261,7 @@ object Form1: TForm1
         Align = alClient
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baTopLeft
-        RepaintMode = rmFull
-        Scale = 1.000000000000000000
+        Scale = 1
         ScaleMode = smNormal
         TabOrder = 0
         OnPaintStage = CurveImagePaintStage
@@ -281,12 +270,13 @@ object Form1: TForm1
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 376
+    Top = 374
     Width = 475
     Height = 19
     Panels = <
       item
         Width = 50
       end>
+    SimplePanel = False
   end
 end
