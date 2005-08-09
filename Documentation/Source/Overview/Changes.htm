@@ -50,307 +50,415 @@ ul.barebones h2 {
 <body bgcolor="#FFFFFF">
 <h2 class="Body">v1.8 beta (3 August 2005)</h2>
 <ul class="barebones expandable">
-  <li>
+  <li> 
     <h2>General changes</h2>
     <ul>
-      <li>
+      <li> 
         <h2>Major enhancements:</h2>
         <ul>
-          <p> - Resampler Framework / Nested Sampling<br>
-            - Rasterizer Framework<br>
-            - Buffered transformations / Warping / Remaptransformation<br>
-            - Repaint optimizations (MicroTiles Repaint optimizer) </p>
+          <li id="dots"> Resampler Framework / Nested Sampling</li>
+          <li id="dots"> Rasterizer Framework</li>
+          <li id="dots"> Buffered transformations / Warping / Remaptransformation</li>
+          <li id="dots"> Repaint optimizations (MicroTiles Repaint optimizer) 
+          </li>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>Other enhancements:</h2>
         <ul>
-          <p> - New transformations (Twirl, Bloat, Disturbance, FishEye)<br>
-            - new WrapMode property and wrapping Pixel properties<br>
-            - Scrollbar visibility control and new scale modes<br>
-            - independent scales in TCustomImgView32/TImgView32<br>
-            - FastMove support<br>
-            - restructured examples:<br>
-          </p>            
-          <ul>
-            <p><em>new examples:</em> <br>
-              TextureBlend_Ex, NestedSampling_Ex, Resamplers_Ex, ImgWarping_Ex, Visualization_Ex</p>
-            <p><em>changed examples: </em><br>
-              GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
-          </ul>
+          <li id="dots"> New transformations (Twirl, Bloat, Disturbance, FishEye)</li>
+          <li id="dots">Fast transformations using TRemapTransformation</li>
+          <li id="dots">Kernel classes (implmenting reconstruction filters) for TKernelResampler</li>
+          <li id="dots">Antialiasing by using regular and irregular super sampling methods</li>
+          <li id="dots">Spatial convolution and morphological operations</li>
+          <li id="dots">Vector maps, supporting .msh fileformat (useful for rasterizing/buffering 
+            transformations)</li>
+          <li id="dots">New ordinal map classes for boolean-, word- and integer-sized data 
+            elements</li>
+          <li id="dots"> New WrapMode property and wrapping Pixel properties</li>
+          <li id="dots"> Scrollbar visibility control and new scale modes</li>
+          <li id="dots"> Independent scales in TCustomImgView32/TImgView32</li>
+          <li id="dots">TRubberbandLayer enhancements</li>
+          <li id="dots">New BlendTransfer routine for blending two bitmaps using an arbitrary 
+            blend callback routine</li>
+          <li id="dots"> FastMove support</li>
+          <li id="dots">New class registration mechanism using TClassList</li>
+          <li id="dots">New polygonal antialiasing modes for 2x and 32x antialiasing</li>
+          <li id="dots">Improved performance in TPolygon32 rasterization routines</li>
+          <li id="dots">New draw mode, dmTransparent, for color key tranparency</li>
+          <li id="dots">Help documents updated with new additional topics</li>
+          <li> Restructured examples:<br>
+            <ul>
+              <p><em>new examples:</em> <br>
+                TextureBlend_Ex, NestedSampling_Ex, Resamplers_Ex, ImgWarping_Ex, 
+                Visualization_Ex</p>
+              <p><em>changed examples: </em><br>
+                GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
+            </ul>
+          </li>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>Bugfixes:</h2>
         <ul>
-          <p> - Fixed AV with Graphics32 usage in DLLs on WinXP </p>
+          <li id="dots"> Fixed AV with Graphics32 usage in DLLs on WinXP </li>
         </ul>
       </li>
     </ul>
   </li>
-  <li>
+  <li> 
     <h2>Detailed changes</h2>
     <ul style="display:none">
-      <li>
+      <li> 
         <h2>GR32:</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - RGBtoHSL(RGB: TColor32; out H, S, L: Byte)<br>
-            - HSLtoRGB(H, S, L: Integer)<br>
-            - optimized ternary Min / Max<br>
-            - EqualRectSize </p>
+          <strong>New routines: </strong> 
+          <ul>
+            <li id="dots"> RGBtoHSL(RGB: TColor32; <strong>out</strong> H, S, 
+              L: Byte)</li>
+            <li id="dots"> HSLtoRGB(H, S, L: Integer)</li>
+            <li id="dots"> EqualRectSize </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TNotifiablePersistent<br>
-            - TThreadPersistent (changed)<br>
-            - TCustomSampler<br>
-            - TCustomResampler </p>
+          <ul>
+            <li id="dots"> TNotifiablePersistent</li>
+            <li id="dots"> TThreadPersistent (changed)</li>
+            <li id="dots"> TCustomSampler</li>
+            <li id="dots"> TCustomResampler </li>
+          </ul>
           <p class="EmptyRef">Changes in TBitmap32:</p>
           <ul>
-            <p class="EmptyRef">New methods:</p>
-            <p> - BeginMeasuringMode<br>
-              - EndMeasuringMode<br>
-              - OnAreaChanged </p>
+            <strong>New methods: </strong> 
+            <ul>
+              <li id="dots"> BeginMeasuringMode</li>
+              <li id="dots"> EndMeasuringMode</li>
+              <li id="dots"> OnAreaChanged </li>
+            </ul>
             <p class="EmptyRef">New properties:</p>
-            <p> - MeasuringMode<br>
-              - StretchFilter deprecated, use TBitmap32.Resampler / TBitmap32.ResamplerClassName instead<br>
-              - WrapMode<br>
-              - PixelW / TBitmap32.PixelXW / TBitmap32.PixelFW </p>
+            <ul>
+              <li id="dots"> MeasuringMode</li>
+              <li id="dots"> StretchFilter deprecated, use TBitmap32.Resampler 
+                / TBitmap32.ResamplerClassName instead</li>
+              <li id="dots"> WrapMode</li>
+              <li id="dots"> PixelW / TBitmap32.PixelXW / TBitmap32.PixelFW </li>
+            </ul>
           </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Blend:</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - ColorAverage </p>
+          <strong>New routines: </strong> 
+          <ul>
+            <li id="dots"> ColorAverage </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Containers (New Unit):</h2>
         <ul>
-          <p class="EmptyRef">New classes:</p>
-          <p> - TRectList<br>
-            - TPointerMap<br>
-            - TPointerMapIterator<br>
-            - TClassList </p>
+          <strong>New classes: </strong> 
+          <ul>
+            <li id="dots"> TRectList</li>
+            <li id="dots"> TPointerMap</li>
+            <li id="dots"> TPointerMapIterator</li>
+            <li id="dots"> TClassList </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Image:</h2>
         <ul>
-          <p class="EmptyRef">Changed types:</p>
-          <p> - TScaleMode: new modes smOptimal and smOptimalScaled </p>
+          <strong>Changed types: </strong> 
+          <ul>
+            <li id="dots"> TScaleMode: new modes smOptimal and smOptimalScaled 
+            </li>
+          </ul>
           <p class="EmptyRef">Changes in TCustomPaintBox32:</p>
           <ul>
-            <p class="EmptyRef">New methods:</p>
-            <p> - ForceFullInvalidate </p>
+            <span class="EmptyRef">New methods:</span> 
+            <ul>
+              <li id="dots"> ForceFullInvalidate </li>
+            </ul>
             <p class="EmptyRef">New properties:</p>
-            <p> - RepaintMode </p>
+            <ul>
+              <li id="dots"> RepaintMode </li>
+            </ul>
           </ul>
           <p class="EmptyRef">Changes in TCustomImage32:</p>
           <ul>
-            <p class="EmptyRef">New properties:</p>
-            <p> - ScaleX<br>
-              - ScaleY </p>
+            <span class="EmptyRef">New properties: </span> 
+            <ul>
+              <li id="dots"> ScaleX</li>
+              <li id="dots"> ScaleY </li>
+            </ul>
             <p class="EmptyRef">New events:</p>
-            <p> - OnScaleChange </p>
+            <ul>
+              <li id="dots"> OnScaleChange </li>
+            </ul>
           </ul>
           <p class="EmptyRef">Changes in TIVScrollProperties:</p>
           <ul>
-            <p class="EmptyRef">New properties:</p>
-            <p> - Visibility (see TCustomImgView32.Scrollbars.Visibility) </p>
+            <span class="EmptyRef">New properties: </span> 
+            <ul>
+              <li id="dots"> Visibility (see TCustomImgView32.Scrollbars.Visibility) 
+              </li>
+            </ul>
           </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Layers:</h2>
         <ul>
           <p class="EmptyRef">Changes in TLayerCollection:</p>
           <ul>
-            <p class="EmptyRef">New methods:</p>
-            <p> - ViewportToLocal, LocalToViewport<br>
-              - GetViewportScale, GetViewportShift </p>
-            <p class="EmptyRef">Structural changes:</p>
-            <p> - CoordXForm deprecated, use ViewportToLocal, LocalToViewport, GetViewportScale, GetViewportShift instead<br>
-              - Owner type changed to TPersistent</p>
+            <strong>New methods: </strong> 
+            <ul>
+              <li id="dots"> ViewportToLocal, LocalToViewport</li>
+              <li id="dots"> GetViewportScale, GetViewportShift</li>
+            </ul>
+          </ul>
+          <ul>
+            <p><strong>Structural changes:</strong></p>
+            <ul>
+              <li id="dots"> CoordXForm deprecated, use ViewportToLocal, LocalToViewport, 
+                GetViewportScale, GetViewportShift instead</li>
+              <li id="dots"> Owner type changed to TPersistent</li>
+            </ul>
           </ul>
           <p class="EmptyRef">Changes in TCustomLayer:</p>
           <ul>
-            <p class="EmptyRef">New methods:</p>
-            <p> - Update<br>
-              - Update(Rect)<br>
-              - Changed(Rect) </p>
+            <span class="EmptyRef">New methods: </span> 
+            <ul>
+              <li id="dots"> Update</li>
+              <li id="dots"> Update(Rect)</li>
+              <li id="dots"> Changed(Rect) </li>
+            </ul>
           </ul>
           <p class="EmptyRef">Changes in TPositionedLayer:</p>
           <ul>
-            <p class="EmptyRef">New methods:</p>
-            <p> - GetAdjustedRect(const R: TFloatRect): TFloatRect; </p>
+            <span class="EmptyRef">New methods: </span> 
+            <ul>
+              <li id="dots"> GetAdjustedRect(const R: TFloatRect): TFloatRect; 
+              </li>
+            </ul>
           </ul>
           <p class="EmptyRef">Changes in TRubberbandLayer:</p>
           <ul>
-            <p class="EmptyRef">New properties:</p>
-            <p> - TRubberbandLayer.FrameStippleCounter </p>
+            <span class="EmptyRef">New properties:</span> 
+            <ul>
+              <li id="dots"> TRubberbandLayer.FrameStippleCounter </li>
+            </ul>
           </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_LowLevel:</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - FillLongword MMX optimized<br>
-            - MoveLongword with FastCode FastMove support via GR32.inc or project define<br>
-            - MoveWord </p>
-          <p class="EmptyRef">Structural changes:</p>
-          <p> - MulDiv moved to GR32_Math </p>
+          <span class="EmptyRef">New routines: </span> 
+          <ul>
+            <li id="dots"> FillLongword MMX optimized</li>
+            <li id="dots"> MoveLongword with FastCode FastMove support via GR32.inc 
+              or project define</li>
+            <li id="dots"> MoveWord </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <ul>
+        <p class="EmptyRef">Structural changes:</p>
+        <ul>
+          <li id="dots"> MulDiv moved to GR32_Math </li>
+        </ul>
+      </ul>
+      <li> 
         <h2>GR32_Math (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - FixedFloor, FixedCeil<br>
-            - FixedMul, FixedDiv<br>
-            - FixedRound<br>
-            - FixedSqr, FixedSqrtLP, FixedSqrtHP<br>
-            - SinCos<br>
-            - MulDiv (moved from GR32_LowLevel) </p>
+          <span class="EmptyRef"><strong>New routines: </strong></span> 
+          <ul>
+            <li id="dots"> FixedFloor, FixedCeil</li>
+            <li id="dots"> FixedMul, FixedDiv</li>
+            <li id="dots"> FixedRound</li>
+            <li id="dots"> FixedSqr, FixedSqrtLP, FixedSqrtHP</li>
+            <li id="dots"> SinCos</li>
+            <li id="dots"> MulDiv (moved from GR32_LowLevel) </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_MicroTiles (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - many MicroTiles auxiliary routines </p>
+          <strong>New routines:</strong> 
+          <ul>
+            <li id="dots"> many MicroTiles auxiliary routines </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TMicroTilesMap<br>
-            - TMicroTilesRepaintOptimizer </p>
+          <ul>
+            <li id="dots"> TMicroTilesMap</li>
+            <li id="dots"> TMicroTilesRepaintOptimizer </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_OrdinalMaps.pas (New Unit) / replaces GR32_ByteMaps.pas</h2>
         <ul>
-          <p class="EmptyRef">New classes</p>
-          <p> - TBooleanMap<br>
-            - TByteMap (moved from GR32_ByteMaps)<br>
-            - TWordMap<br>
-            - TIntegerMap </p>
+          <strong>New classes:</strong> 
+          <ul>
+            <li id="dots"> TBooleanMap</li>
+            <li id="dots"> TByteMap (moved from GR32_ByteMaps)</li>
+            <li id="dots"> TWordMap</li>
+            <li id="dots"> TIntegerMap </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Polygons:</h2>
         <ul>
-          <p class="EmptyRef">Changed types:</p>
-          <p> - TAntialiasMode: new modes am2times and am32times </p>
+          <strong>Changed types: </strong> 
+          <ul>
+            <li id="dots"> TAntialiasMode: new modes am2times and am32times </li>
+          </ul>
           <p class="EmptyRef">New routines:</p>
-          <p> - PolygonBounds<br>
-            - PolyPolyBounds </p>
+          <ul>
+            <li id="dots"> PolygonBounds</li>
+            <li id="dots"> PolyPolyBounds </li>
+          </ul>
           <p class="EmptyRef">Miscellaneous changes:</p>
-          <p> - minor optimizations to polygon rendering </p>
+          <ul>
+            <li id="dots"> minor optimizations to polygon rendering </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Rasterizers (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New routine:</p>
-          <p> - CombineInfo </p>
+          <strong>New routine:</strong> 
+          <ul>
+            <li id="dots"> CombineInfo </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TRasterizer<br>
-            - TRegularRasterizer<br>
-            - TSwizzlingRasterizer<br>
-            - TProgressiveRasterizer<br>
-            - TTesseralRasterizer<br>
-            - TContourRasterizer </p>
+          <ul>
+            <li id="dots"> TRasterizer</li>
+            <li id="dots"> TRegularRasterizer</li>
+            <li id="dots"> TSwizzlingRasterizer</li>
+            <li id="dots"> TProgressiveRasterizer</li>
+            <li id="dots"> TTesseralRasterizer</li>
+            <li id="dots"> TContourRasterizer </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_RepaintOpt (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New classes:</p>
-          <p> - TRepaintOptimizer </p>
+          <strong>New classes: </strong> 
+          <ul>
+            <li id="dots"> TRepaintOptimizer </li>
+          </ul>
         </ul>
-      </li>
-      <li>
+      <li> 
         <h2>GR32_Resamplers (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - BlendTransfer<br>
-            - BlockTransfer, StretchTransfer (moved from GR32_Transforms)<br>
-            - Convolve, Dilate, Erode, Expand, Contract<br>
-            - IncBuffer, MulitplyBuffer, BufferToColor32, ShrBuffer<br>
-            - CreateJitteredPattern<br>
-            - RegisterResampler, RegisterKernel </p>
+          <span class="EmptyRef">New routines: </span> 
+          <ul>
+            <li id="dots"> BlendTransfer</li>
+            <li id="dots"> BlockTransfer, StretchTransfer (moved from GR32_Transforms)</li>
+            <li id="dots"> Convolve, Dilate, Erode, Expand, Contract</li>
+            <li id="dots"> IncBuffer, MulitplyBuffer, BufferToColor32, ShrBuffer</li>
+            <li id="dots"> CreateJitteredPattern</li>
+            <li id="dots"> RegisterResampler, RegisterKernel </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TCustomKernel<br>
-            - TNearestKernel<br>
-            - TLinearKernel<br>
-            - TCosineKernel<br>
-            - TSplineKernel<br>
-            - TMichellKernel<br>
-            - TCubicKernel<br>
-            - THermiteKernel<br>
-            - TWindowedSinKernel<br>
-            - TLanczosKernel<br>
-            - TGaussianKernel<br>
-            - TBlackmanKernel<br>
-            - THannKernel<br>
-            - THammingKernel<br>
-            - TSinshKernel<br>
-            - TBitmap32Resampler<br>
-            - TNearestResampler<br>
-            - TLinearResampler<br>
-            - TDraftResampler<br>
-            - TKernelResampler<br>
-            - TNestedSampler<br>
-            - TTransformer<br>
-            - TNearestTransformer<br>
-            - TSuperSampler<br>
-            - TAdaptiveSuperSampler<br>
-            - TPatternSampler<br>
-            - TKernelSampler<br>
-            - TConvolver<br>
-            - TSelectiveConvolver<br>
-            - TMorphologicalSampler<br>
-            - TDilater<br>
-            - TEroder<br>
-            - TExpander<br>
-            - TContracter </p>
+          <ul>
+            <li id="dots"> TCustomKernel</li>
+            <li id="dots"> TNearestKernel</li>
+            <li id="dots"> TLinearKernel</li>
+            <li id="dots"> TCosineKernel</li>
+            <li id="dots"> TSplineKernel</li>
+            <li id="dots"> TMichellKernel</li>
+            <li id="dots"> TCubicKernel</li>
+            <li id="dots"> THermiteKernel</li>
+            <li id="dots"> TWindowedSinKernel</li>
+            <li id="dots"> TLanczosKernel</li>
+            <li id="dots"> TGaussianKernel</li>
+            <li id="dots"> TBlackmanKernel</li>
+            <li id="dots"> THannKernel</li>
+            <li id="dots"> THammingKernel</li>
+            <li id="dots"> TSinshKernel</li>
+            <li id="dots"> TBitmap32Resampler</li>
+            <li id="dots"> TNearestResampler</li>
+            <li id="dots"> TLinearResampler</li>
+            <li id="dots"> TDraftResampler</li>
+            <li id="dots"> TKernelResampler</li>
+            <li id="dots"> TNestedSampler</li>
+            <li id="dots"> TTransformer</li>
+            <li id="dots"> TNearestTransformer</li>
+            <li id="dots"> TSuperSampler</li>
+            <li id="dots"> TAdaptiveSuperSampler</li>
+            <li id="dots"> TPatternSampler</li>
+            <li id="dots"> TKernelSampler</li>
+            <li id="dots"> TConvolver</li>
+            <li id="dots"> TSelectiveConvolver</li>
+            <li id="dots"> TMorphologicalSampler</li>
+            <li id="dots"> TDilater</li>
+            <li id="dots"> TEroder</li>
+            <li id="dots"> TExpander</li>
+            <li id="dots"> TContracter </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_System:</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - GetTickCount (for Linux) </p>
+          <span class="EmptyRef">New routines: </span> 
+          <ul>
+            <li id="dots"> GetTickCount (for Linux) </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TPerfTimer </p>
+          <ul>
+            <li id="dots"> TPerfTimer </li>
+          </ul>
           <p class="EmptyRef">Miscellaneous changes:</p>
-          <p> - EMMX/MMX2 detection added (used for MicroTiles Repaint Optimizer),<br>
-            - global performance timer named GlobalPerfTimer added </p>
+          <ul>
+            <li id="dots"> EMMX/MMX2 detection added (used for MicroTiles Repaint 
+              Optimizer),</li>
+            <li id="dots"> global performance timer named GlobalPerfTimer added 
+            </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_Transforms:</h2>
         <ul>
-          <p class="EmptyRef">New routines:</p>
-          <p> - RasterizeTransformation<br>
-            - new overloaded Transform routines </p>
+          <span class="EmptyRef">New routines: </span> 
+          <ul>
+            <li id="dots"> RasterizeTransformation</li>
+            <li id="dots"> new overloaded Transform routines </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TTwirlTransformation<br>
-            - TBloatTransformation<br>
-            - TDisturbanceTransformation<br>
-            - TFishEyeTransformation<br>
-            - TRemapTransformation </p>
+          <ul>
+            <li id="dots"> TTwirlTransformation</li>
+            <li id="dots"> TBloatTransformation</li>
+            <li id="dots"> TDisturbanceTransformation</li>
+            <li id="dots"> TFishEyeTransformation</li>
+            <li id="dots"> TRemapTransformation </li>
+          </ul>
           <p class="EmptyRef">Structural Changes:</p>
-          <p> - BlockTransfer and StretchTransfer moved to GR32_Resamplers </p>
+          <ul>
+            <li id="dots"> BlockTransfer and StretchTransfer moved to GR32_Resamplers 
+            </li>
+          </ul>
         </ul>
       </li>
-      <li>
+      <li> 
         <h2>GR32_VectorMaps (New Unit)</h2>
         <ul>
-          <p class="EmptyRef">New types:</p>
-          <p> - TFixedVector </p>
+          <span class="EmptyRef">New types:</span> 
+          <ul>
+            <li id="dots"> TFixedVector </li>
+          </ul>
           <p class="EmptyRef">New classes:</p>
-          <p> - TVectorMap </p>
+          <ul>
+            <li id="dots"> TVectorMap </li>
+          </ul>
         </ul>
       </li>
     </ul>
