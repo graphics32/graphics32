@@ -35,7 +35,7 @@ uses
   Dialogs, ExtCtrls, GR32, GR32_Image, GR32_Transforms, GR32_VectorMaps,
   GR32_Layers, StdCtrls, ComCtrls, Math, GR32_Blend, GR32_RangeBars,
   ExtDlgs, jpeg, GR32_Rasterizers, GR32_Resamplers, GR32_Math, Menus,
-  ToolWin;
+  ToolWin, BrushAuxiliaries;
 
 const
   cAppName = 'Image Warping Example';
@@ -44,35 +44,6 @@ type
   TBrushTool = (btWarp, btZoom, btTwirl, btFlower);
   TBrushToolMode = (btmLeft, btmRight);
   TToolProc = procedure(var D, R: Single; Param: Single);
-
-  TBrushLayer = class(TPositionedLayer)
-  private
-    FCenter: TPoint;
-    Radius: Integer;
-    procedure SetCenter(const Value: TPoint);
-  protected
-    procedure Paint(Buffer: TBitmap32); override;
-  public
-    property Center: TPoint read FCenter write SetCenter;
-  end;
-
-  { TGenericBrush }
-  TGenericBrush = class
-  private
-    FPressure: Single;
-    FPinch: Single;
-    FFeather: Single;
-    procedure SetPinch(const Value: Single);
-    procedure SetPressure(const Value: Single);
-    procedure SetFeather(const Value: Single);
-  public
-    constructor Create;
-    property Pressure : Single read FPressure write SetPressure;
-    property Pinch: Single read FPinch write SetPinch;
-    property Feather: Single read FFeather write SetFeather;
-    function Weight(X, Y: Single): Single;
-  end;
-
 
   { TMainForm }
   TMainForm = class(TForm)
@@ -349,80 +320,6 @@ begin
         Y - CurrentBrush[BrushMode].Height div 2));
 end;
 
-function PinchPop(X, Pinch: Single): Single;
-begin
-  if (X <= -1) or (X >= 1) then
-  begin
-    Result := 0;
-    Exit;
-  end
-  else if Pinch = 1 then
-  begin
-    Result := 1;
-  end
-  else if Pinch = -1 then
-  begin
-    if Fixed(X) = 0 then
-      Result := 1
-    else
-      Result := 0;
-  end
-  else
-  begin
-    if Pinch > 0 then
-      Pinch := 1 / (1 - Pinch)
-    else
-      Pinch := Pinch + 1;
-    Result := Power(Abs(1 - Abs(Power(X, Pinch))), 1 / Pinch);
-  end;
-end;
-
-function FeatherFunc(R, Feather: Single): Single;
-begin
-  if Feather <= 0 then
-    Result := 1
-  else
-  begin
-    Feather := 1 / Feather;
-    Result := (1 - R) * Feather;
-    Result := EnsureRange(Result, 0, 1);
-  end;
-end;
-
-{ TGenericBrush }
-
-function TGenericBrush.Weight(X, Y: Single): Single;
-var
-  R: Single;
-begin
-  R := Hypot(X, Y);
-  Result := PinchPop(R, Pinch);
-  Result := Result * FeatherFunc(R, Feather);
-  Result := EnsureRange(Result * Pressure, 0, 1);
-end;
-
-constructor TGenericBrush.Create;
-begin
-  inherited;
-  FPinch := 0;
-  FPressure := 1.0;
-  FFeather := 0;
-end;
-
-procedure TGenericBrush.SetPinch(const Value: Single);
-begin
-  FPinch := EnsureRange(Value, -1, 1);
-end;
-
-procedure TGenericBrush.SetPressure(const Value: Single);
-begin
-  FPressure := EnsureRange(Value, 0, 1);
-end;
-
-procedure TGenericBrush.SetFeather(const Value: Single);
-begin
-  FFeather := EnsureRange(Value, 0, 1);
-end;
 
 procedure TMainForm.RateBarChange(Sender: TObject);
 begin
@@ -727,40 +624,6 @@ begin
   Transform(DstImg.Bitmap, Src, Remapper);
 end;
 
-{ TBrushLayer }
-
-procedure TBrushLayer.Paint(Buffer: TBitmap32);
-var
-  I: Integer;
-  P: TFixedPoint;
-  Steps: Integer;
-  Scale: Single;
-begin
-  Buffer.MoveToF(Center.X + Radius, Center.Y);
-  Buffer.PenColor := $A0ffffff;
-  Steps := Radius + 4;
-  If Odd(Steps) then Inc(Steps);
-  Scale := 2*PI/STEPS;
-  for I := 1 to STEPS do
-  begin
-    Buffer.PenColor := (not Buffer.PenColor) and $00ffffff + $A0000000;
-    P.X := Fixed(Center.X + Cos(I * SCALE) * Radius);
-    P.Y := Fixed(Center.Y + Sin(I * SCALE) * Radius);
-    Buffer.LineToXS(P.X, P.Y);
-  end;
-end;
-
-procedure TBrushLayer.SetCenter(const Value: TPoint);
-begin
-  if (Value.X <> FCenter.X) or (Value.Y <> FCenter.Y) then
-  begin
-    with FCenter do
-      Changed(Rect(X - Radius, Y - Radius, X + Radius + 1, Y + Radius + 1));
-    FCenter := Value;
-    with FCenter do
-      Changed(Rect(X - Radius, Y - Radius, X + Radius + 1, Y + Radius + 1));
-  end;
-end;
 
 function TMainForm.GetParam: Single;
 begin
@@ -775,8 +638,7 @@ procedure TMainForm.PressureBarChange(Sender: TObject);
 begin
   GenericBrush.Pressure := PressureBar.Position / 100;
   GenericBrush.Pinch := PinchBar.Position / 100;
-  GenericBrush.FFeather := FeatherBar.Position / 100;
-
+  GenericBrush.Feather := FeatherBar.Position / 100;
   UpdateBrush;
 end;
 
@@ -899,7 +761,6 @@ begin
   DstImg.Repaint;
   BrushLayer.Radius := SizeBar.Position div 2;
   BrushLayer.Center := Point(DstImg.Width div 2, DstImg.Height div 2);
-  BrushLayer.Changed;
 end;
 
 procedure TMainForm.ImgButtonClick(Sender: TObject);

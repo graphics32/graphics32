@@ -2,7 +2,8 @@ program ImgWarping_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
+  MainUnit in 'MainUnit.pas' {MainForm},
+  BrushAuxiliaries in 'BrushAuxiliaries.pas';
 
 {$R *.res}
 

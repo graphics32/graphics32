@@ -211,7 +211,6 @@ object MainForm: TMainForm
         Top = 176
         Width = 121
         Height = 121
-        RepaintMode = rmFull
         TabOrder = 4
         OnResize = BrushMeshPreviewResize
       end
@@ -317,7 +316,6 @@ object MainForm: TMainForm
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Visibility = svAuto
-    SizeGrip = sgAuto
     OverSize = 0
     TabOrder = 2
     OnMouseDown = DstImgMouseDown
