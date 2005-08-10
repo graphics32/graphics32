@@ -183,7 +183,6 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 2
@@ -197,7 +196,6 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 3
@@ -211,7 +209,6 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 4
@@ -225,7 +222,6 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 5
