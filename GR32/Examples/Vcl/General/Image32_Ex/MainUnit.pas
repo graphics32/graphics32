@@ -89,7 +89,7 @@ end;
 procedure TForm1.rgKernelClick(Sender: TObject);
 const
   K_CONSTS: array [0..4] of TCustomKernelClass =
-    (TNearestKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
+    (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
 begin
   TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
 end;
