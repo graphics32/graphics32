@@ -200,7 +200,7 @@ const
 
 
   // Pick some attractive kernels for the antialiasing methods
-  KERNELS: array [0..6] of TCustomKernelClass = (TNearestKernel, TLinearKernel,
+  KERNELS: array [0..6] of TCustomKernelClass = (TBoxKernel, TLinearKernel,
     TSplineKernel, TMitchellKernel, TSinshKernel, TGaussianKernel, TCubicKernel);
 var
   KernelIndex : 0..6 = 6; //TCubicKernel
