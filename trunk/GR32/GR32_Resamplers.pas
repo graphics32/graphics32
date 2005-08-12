@@ -2300,7 +2300,7 @@ end;
 
 procedure TKernelResampler.SetKernel(const Value: TCustomKernel);
 begin
-  if FKernel <> Value then
+  if Assigned(Value) and (FKernel <> Value) then
   begin
     FKernel.Free;
     FKernel := Value;
