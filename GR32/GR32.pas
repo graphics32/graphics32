@@ -5500,7 +5500,7 @@ end;
 
 procedure TBitmap32.SetResampler(Resampler: TCustomResampler);
 begin
-  if Assigned(Resampler) then
+  if Assigned(Resampler) and (FResampler <> Resampler) then
   begin
     if Assigned(FResampler) then FResampler.Free;
     FResampler := Resampler;
