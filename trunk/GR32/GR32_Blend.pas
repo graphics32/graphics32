@@ -1628,8 +1628,8 @@ end;
 
 procedure SetupFunctions;
 begin
-{$IFNDEF DISABLE_MMX}
   MMX_ACTIVE := HasMMX;
+{$IFNDEF DISABLE_MMX}
   if MMX_ACTIVE then
   begin
     // link MMX functions
