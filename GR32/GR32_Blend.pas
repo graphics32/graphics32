@@ -56,6 +56,7 @@ type
   TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
   TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
   TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
+  TCombineLine = procedure(Src, Dst: PColor32; Count: Integer; W: TColor32);
 
 var
 { Function Variables }
@@ -70,6 +71,8 @@ var
 
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
+
+  CombineLine: TCombineLine;
 
   CombMergeReg: TCombineReg;
   CombMergeMem: TCombineMem;
@@ -115,7 +118,7 @@ function Lighten(C: TColor32; Amount: Integer): TColor32;
 
 implementation
 
-uses Math, GR32_System;
+uses Math, GR32_System, GR32_LowLevel;
 
 { Non-MMX versions }
 
@@ -575,6 +578,18 @@ begin
   end;
 end;
 
+procedure _CombineLine(Src, Dst: PColor32; Count: Integer; W: TColor32);
+begin
+  while Count > 0 do
+  begin
+    _CombineMem(Src^, Dst^, W);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+
 { MMX versions }
 
 
@@ -925,6 +940,62 @@ asm
         POP       EDI
         POP       ESI
 @4:
+end;
+
+procedure M_CombineLine(Src, Dst: PColor32; Count: Integer; W: TColor32);
+asm
+  // EAX <- Src
+  // EDX <- Dst
+  // ECX <- Count
+
+  // Result := W * (X - Y) + Y
+
+        TEST      ECX,ECX
+        JS        @3
+
+        PUSH      EBX
+        MOV       EBX,W
+
+        TEST      EBX,EBX
+        JZ        @2              // weight is zero
+
+        CMP       EDX,$FF
+        JZ        @4              // weight = 255  =>  copy src to dst
+
+        SHL       EBX,3
+        ADD       EBX,alpha_ptr
+        db $0F,$6F,$1B           /// MOVQ      MM3,[EBX]
+        MOV       EBX,bias_ptr
+        db $0F,$6F,$23           /// MOVQ      MM4,[EBX]
+
+   // loop start
+@1:     MOVD      MM1,[EAX]
+        db $0F,$EF,$C0           /// PXOR      MM0,MM0
+        db $0F,$6E,$12           /// MOVD      MM2,[EDX]
+        db $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
+        db $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
+
+        db $0F,$F9,$CA           /// PSUBW     MM1,MM2
+        db $0F,$D5,$CB           /// PMULLW    MM1,MM3
+        db $0F,$71,$F2,$08       /// PSLLW     MM2,8
+
+        db $0F,$FD,$D4           /// PADDW     MM2,MM4
+        db $0F,$FD,$CA           /// PADDW     MM1,MM2
+        db $0F,$71,$D1,$08       /// PSRLW     MM1,8
+        db $0F,$67,$C8           /// PACKUSWB  MM1,MM0
+        db $0F,$7E,$0A           /// MOVD      [EDX],MM1
+
+        ADD       EAX,4
+        ADD       EDX,4
+
+        DEC       ECX
+        JNZ       @1
+@2:     POP       EBX
+        POP       EBP
+@3:     RET       $0004
+
+@4:     CALL      GR32_LowLevel.MoveLongword
+        POP       EBX
 end;
 
 { Merge }
@@ -1569,6 +1640,7 @@ begin
     BlendMemEx := M_BlendMemEx;
     BlendLine := M_BlendLine;
     BlendLineEx := M_BlendLineEx;
+    CombineLine := M_CombineLine;
 
     CombMergeReg := M_CombMergeReg;
     CombMergeMem := M_CombMergeMem;
@@ -1617,6 +1689,7 @@ begin
     BlendMemEx := _BlendMemEx;
     BlendLine := _BlendLine;
     BlendLineEx := _BlendLineEx;
+    CombineLine := _CombineLine;
 
     CombMergeReg := _CombMergeReg;
     CombMergeMem := _CombMergeMem;
