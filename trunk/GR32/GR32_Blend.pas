@@ -38,6 +38,8 @@ interface
 
 {$I GR32.inc}
 
+{$DEFINE DISABLE_MMX}
+
 uses
   GR32;
 
@@ -195,31 +197,31 @@ asm
   // P = W * F
         MOV     EBX,EAX         // EBX  <-  ** Fr Fg Fb
         AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Fg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
         IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
-        SHR     EBX,8           // EBX  <-  00 00 00 Fg
+        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
         IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
 
   // W = 1 - W; Q = W * B
         MOV     ESI,[EDX]
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
-        MOV     EBX,ESI         // EBX  <-  00 Br Bg Bb
+        MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Bg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
         IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
-        SHR     EBX,8           // EBX  <-  00 00 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Qg **
+        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
+        IMUL    EBX,ECX         // EBX  <-  Qa 00 Qg **
         ADD     ESI,bias
         AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
         SHR     ESI,8           // ESI  <-  00 Qr ** Qb
         ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Qg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
         OR      EBX,ESI         // EBX  <-  00 Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
@@ -969,7 +971,7 @@ asm
         db $0F,$6F,$23           /// MOVQ      MM4,[EBX]
 
    // loop start
-@1:     MOVD      MM1,[EAX]
+@1:     db $0F,$6E,$08           /// MOVD      MM1,[EAX]
         db $0F,$EF,$C0           /// PXOR      MM0,MM0
         db $0F,$6E,$12           /// MOVD      MM2,[EDX]
         db $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
@@ -1628,6 +1630,7 @@ end;
 
 procedure SetupFunctions;
 begin
+{$IFNDEF DISABLE_MMX}
   MMX_ACTIVE := HasMMX;
   if MMX_ACTIVE then
   begin
@@ -1640,7 +1643,7 @@ begin
     BlendMemEx := M_BlendMemEx;
     BlendLine := M_BlendLine;
     BlendLineEx := M_BlendLineEx;
-    CombineLine := M_CombineLine;
+    CombineLine := _CombineLine;
 
     CombMergeReg := M_CombMergeReg;
     CombMergeMem := M_CombMergeMem;
@@ -1680,6 +1683,7 @@ begin
   end
   else
   begin
+{$ENDIF}
     // link non-MMX functions
     CombineReg := _CombineReg;
     CombineMem := _CombineMem;
@@ -1726,7 +1730,9 @@ begin
     ColorDifference := _ColorDifference;
     ColorExclusion := _ColorExclusion;
     ColorAverage := _ColorAverage;
+{$IFNDEF DISABLE_MMX}
   end;
+{$ENDIF}
 end;
 
 initialization
