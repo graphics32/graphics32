@@ -38,8 +38,6 @@ interface
 
 {$I GR32.inc}
 
-{$DEFINE DISABLE_MMX}
-
 uses
   GR32;
 
@@ -1643,7 +1641,7 @@ begin
     BlendMemEx := M_BlendMemEx;
     BlendLine := M_BlendLine;
     BlendLineEx := M_BlendLineEx;
-    CombineLine := _CombineLine;
+    CombineLine := M_CombineLine;
 
     CombMergeReg := M_CombMergeReg;
     CombMergeMem := M_CombMergeMem;
