@@ -38,6 +38,11 @@ procedure BlockTransfer(
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
+procedure BlockTransferX(
+  Dst: TBitmap32; DstX, DstY: TFixed; 
+  Src: TBitmap32; SrcRect: TRect;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
+
 procedure StretchTransfer(
   Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TBitmap32; SrcRect: TRect;
@@ -837,6 +842,223 @@ begin
   end;
   Dst.Changed(MakeRect(DstX, DstY, DstX + SrcRect.Right - SrcRect.Left,
     DstY + SrcRect.Bottom - SrcRect.Top));
+end;
+
+procedure BlockTransferX(
+  Dst: TBitmap32; DstX, DstY: TFixed;
+  Src: TBitmap32; SrcRect: TRect;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
+type
+  TColor32Array = array [0..1] of TColor32;
+  PColor32Array = ^TColor32Array;
+var
+  I, Index, SrcW, SrcRectW, SrcRectH, DstW, DstH: Integer;
+  FracX, FracY: Integer;
+  Buffer: array [0..1] of TArrayOfColor32;
+  SrcP, Buf1, Buf2: PColor32Array;
+  DstP: PColor32;
+  C1, C2, C3, C4: TColor32;
+  LW, RW, TW, BW: Integer;
+  DstBounds: TRect;
+
+  BlendLine: TBlendLine;
+  BlendLineEx: TBlendLineEx;
+  BlendMemEx: TBlendMemEx;
+begin
+  CheckBitmaps(Dst, Src);
+  if Dst.Empty or Src.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) then Exit;
+
+  FracX := (DstX and $FFFF) shr 8;
+  FracY := (DstY and $FFFF) shr 8;
+
+  DstX := DstX div $10000;
+  DstY := DstY div $10000;
+
+  DstW := Dst.Width;
+  DstH := Dst.Height;
+
+  if (DstX >= DstW) or (DstY >= DstH) then Exit;
+
+  SrcRectW := SrcRect.Right - SrcRect.Left;
+  SrcRectH := SrcRect.Bottom - SrcRect.Top;
+
+  if (DstX + SrcRectW <= 0) or (Dsty + SrcRectH <= 0) then Exit;
+
+  if DstX < 0 then LW := $FF else LW := FracX xor $FF;
+  if DstY < 0 then TW := $FF else TW := FracY xor $FF;
+  if DstX + SrcRectW >= DstW then RW := $FF else RW := FracX;
+  if DstY + SrcRectH >= DstH then BW := $FF else BW := FracY;
+
+  DstBounds := Dst.BoundsRect;
+  Dec(DstBounds.Right);
+  Dec(DstBounds.Bottom);
+  OffsetRect(DstBounds, SrcRect.Left - DstX, SrcRect.Top - DstY);
+  IntersectRect(SrcRect, SrcRect, DstBounds);
+
+  SrcW := Src.Width;
+
+  SetLength(Buffer[0], SrcRectW + 1);
+  SetLength(Buffer[1], SrcRectW + 1);
+
+  SrcRectW := SrcRect.Right - SrcRect.Left;
+  SrcRectH := SrcRect.Bottom - SrcRect.Top;
+
+  if DstX < 0 then DstX := 0;
+  if DstY < 0 then DstY := 0;
+
+  BlendLine := BLEND_LINE[Src.CombineMode];
+  BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+
+  try
+    SrcP := PColor32Array(Src.PixelPtr[SrcRect.Left, SrcRect.Top - 1]);
+    DstP := Dst.PixelPtr[DstX, DstY];
+
+    Buf1 := @Buffer[0][0];
+    Buf2 := @Buffer[1][0];
+
+    if SrcRect.Top > 0 then
+    begin
+      MoveLongWord(SrcP[0], Buf1[0], SrcRectW);
+      BlendLineEx(@Buf1[1], @Buf1[0], SrcRectW, FracX);
+
+      if SrcRect.Left > 0 then
+        C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+      else
+        C2 := SrcP[0];
+
+      if SrcRect.Right < SrcW then
+        C4 := CombineReg(SrcP[SrcRectW - 1], SrcP[SrcRectW], FracX)
+      else
+        C4 := SrcP[SrcRectW - 1];
+    end;
+
+    Inc(PColor32(SrcP), SrcW);
+
+    MoveLongWord(SrcP^, Buf2^, SrcRectW);
+    CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracX xor $FF);
+
+    if SrcRect.Left > 0 then
+      C1 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX)
+    else
+      C1 := SrcP[0];
+
+
+    if SrcRect.Right < SrcW then
+      C3 := CombineReg(SrcP[SrcRectW - 1], SrcP[SrcRectW], FracX)
+    else
+      C3 := SrcP[SrcRectW - 1];
+
+    if SrcRect.Top > 0 then
+    begin
+      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * TW shr 8);
+      CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
+    end
+    else
+    begin
+      BlendMemEx(C1, DstP^, LW * TW shr 8);
+      MoveLongWord(Buf2^, Buf1^, SrcRectW);
+    end;
+
+    Inc(DstP, 1);
+    BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, TW);
+
+    Inc(DstP, SrcRectW - 1);
+
+    // case DrawMode of
+    if SrcRect.Top > 0 then
+      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * TW shr 8)
+    else
+      BlendMemEx(C3, DstP^, RW * TW shr 8);
+
+    Inc(DstP, DstW - SrcRectW);
+
+    Index := 1;
+    for I := SrcRect.Top to SrcRect.Bottom - 2 do
+    begin
+      Buf1 := @Buffer[Index][0];
+      Buf2 := @Buffer[Index xor 1][0];
+      Inc(PColor32(SrcP), SrcW);
+
+      MoveLongWord(SrcP[0], Buf2^, SrcRectW);
+
+      // Horizontal translation
+      CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracX xor $FF);
+
+      if SrcRect.Left > 0 then
+        C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+      else
+        C2 := SrcP[0];
+
+      // case DrawMode of
+      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW);
+      Inc(DstP);
+      C1 := C2;
+
+      // Vertical translation
+      CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
+
+      // Blend horizontal line to Dst
+      // case DrawMode of
+      BlendLine(@Buf1[0], DstP, SrcRectW - 1);
+      Inc(DstP, SrcRectW - 1);
+
+      if SrcRect.Right < SrcW then
+        C4 := CombineReg(SrcP[SrcRectW - 1], SrcP[SrcRectW], FracX)
+      else
+        C4 := SrcP[SrcRectW - 1];
+
+      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW);
+
+      Inc(DstP, DstW - SrcRectW);
+      C3 := C4;
+
+      Index := Index xor 1;
+    end;
+
+    Buf1 := @Buffer[Index][0];
+    Buf2 := @Buffer[Index xor 1][0];
+    Inc(PColor32(SrcP), SrcW);
+
+    if SrcRect.Bottom < Src.Height then
+    begin
+      MoveLongWord(SrcP[0], Buf2^, SrcRectW);
+      CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
+
+      if SrcRect.Left > 0 then
+        C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+      else
+        C2 := SrcP[0];
+
+      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * BW shr 8)
+    end
+    else
+    begin
+      BlendMemEx(C1, DstP^, LW * BW shr 8);
+    end;
+
+    Inc(DstP);
+    BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, BW);
+    Inc(DstP, SrcRectW - 1);
+
+    if SrcRect.Bottom < Src.Height then
+    begin
+      if SrcRect.Right < SrcW then
+        C4 := CombineReg(SrcP[SrcRectW - 1], SrcP[SrcRectW], FracX)
+      else
+        C4 := SrcP[SrcRectW - 1];
+
+      // case DrawMode of
+      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * BW shr 8);
+    end
+    else
+      BlendMemEx(C3, DstP^, RW * BW shr 8);
+
+  finally
+    EMMS;
+    Buffer[0] := nil;
+    Buffer[1] := nil;
+  end;
 end;
 
 procedure BlendTransfer(
