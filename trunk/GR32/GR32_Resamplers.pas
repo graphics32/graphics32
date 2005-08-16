@@ -1059,6 +1059,7 @@ begin
     Buffer[0] := nil;
     Buffer[1] := nil;
   end;
+  Dst.Changed(Rect(DstX, DstY, DstX + SrcRectW + 1, DstY + SrcRectH + 1));
 end;
 
 procedure BlendTransfer(
