@@ -1024,6 +1024,11 @@ begin
   begin
     Result := F;
     exit;
+  end
+  else if Ba = $FF then
+  begin
+    Result := _BlendReg(F, B) or $FF000000;
+    Exit;
   end;
 
   // Blended pixels
@@ -1084,6 +1089,11 @@ begin
   if Ba = 0 then
   begin
     Result := F;
+    Exit;
+  end
+  else if Ba = $FF then
+  begin
+    Result := _BlendRegEx(F, B, M) or $FF000000;
     Exit;
   end;
 
@@ -1162,6 +1172,8 @@ asm
         JZ        @2             // result = foreground
         CMP       EAX,$FF000000  // foreground completely opaque =>
         JNC       @2             // result = foreground
+        CMP       EDX,$FF000000  // background completely opaque =>
+        JNC       @3             // perform ordinary blending
 
         db $0F,$EF,$DB           /// PXOR      MM3,MM3
         PUSH      ESI
@@ -1169,18 +1181,22 @@ asm
         db $0F,$60,$C3           /// PUNPCKLBW MM0,MM3        // MM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
         db $0F,$6E,$CA           /// MOVD      MM1,EDX        // MM1  <-  Ba Br Bg Bb
         db $0F,$60,$CB           /// PUNPCKLBW MM1,MM3        // MM1  <-  00 Ba 00 Br 00 Bg 00 Bb
-        SHR       EAX,24         // EAX  <-  00 00 00 Fa
+        
         db $0F,$6F,$E0           /// MOVQ      MM4,MM0        // MM4  <-  00 Fa 00 Fr 00 Fg 00 Fb
-        SHR       EDX,24         // EDX  <-  00 00 00 Ba
         db $0F,$6F,$E9           /// MOVQ      MM5,MM1        // MM5  <-  00 Ba 00 Br 00 Bg 00 Bb
+
+        SHR       EAX,24         // EAX  <-  00 00 00 Fa
+        SHR       EDX,24         // EDX  <-  00 00 00 Ba
         MOV       ECX,EAX        // ECX  <-  00 00 00 Fa
+
         db $0F,$69,$E4           /// PUNPCKHWD MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fg 00 Fg
-        ADD       ECX,EDX        // ECX  <-  00 00 Sa Sa
         db $0F,$6A,$E4           /// PUNPCKHDQ MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fa 00 Fa
-        MUL       EDX            // EAX  <-  00 00 Pa **
         db $0F,$69,$ED           /// PUNPCKHWD MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Bg 00 Bg
-        MOV       ESI,$FF        // ESI  <-  00 00 00 00 FF
         db $0F,$6A,$ED           /// PUNPCKHDQ MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Ba 00 Ba
+
+        ADD       ECX,EDX        // ECX  <-  00 00 Sa Sa
+        MUL       EDX            // EAX  <-  00 00 Pa **
+        MOV       ESI,$FF        // ESI  <-  00 00 00 FF
         DIV       ESI
         SUB       ECX,EAX        // ECX  <-  00 00 00 Ra
         MOV       EAX,$ffff
@@ -1196,8 +1212,7 @@ asm
         db $0F,$DD,$C8           /// PADDUSW   MM1,MM0        // MM1  <-  B * Ba + F * Fa
         db $0F,$D9,$CC           /// PSUBUSW   MM1,MM4        // MM1  <-  B * Ba + F * Fa - B * Ba * Fa
         db $0F,$6E,$D0           /// MOVD      MM2,EAX        // MM2  <-  Qa = 1 / Ra
-        db $0F,$61,$D2           /// PUNPCKLWD MM2,MM2        // MM2  <-  00 00 00 00 00 Qa 00 Qa
-        db $0F,$61,$D2           /// PUNPCKLWD MM2,MM2        // MM2  <-  00 Qa 00 Qa 00 Qa 00 Qa
+        db $0F,$70,$D2,$00       /// PSHUFW    MM2,MM2,$00    // MM2  <-  00 Qa 00 Qa 00 Qa 00 Qa
         db $0F,$D5,$CA           /// PMULLW    MM1,MM2
         db $0F,$71,$D1,$08       /// PSRLW     MM1,8
         db $0F,$67,$CB           /// PACKUSWB  MM1,MM3        // MM1  <-  00 00 00 00 xx Rr Rg Rb
@@ -1207,7 +1222,9 @@ asm
         POP ESI
         RET
 @1:     MOV       EAX,EDX
-@2:
+@2:     RET
+@3:     CALL      M_BlendReg
+        OR        EAX,$FF000000
 end;
 
 procedure M_MergeMem(F: TColor32; var B:TColor32);
