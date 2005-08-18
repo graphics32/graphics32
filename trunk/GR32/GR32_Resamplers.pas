@@ -858,7 +858,7 @@ var
   SrcP, Buf1, Buf2: PColor32Array;
   DstP: PColor32;
   C1, C2, C3, C4: TColor32;
-  LW, RW, TW, BW: Integer;
+  LW, RW, TW, BW, MA: Integer;
   DstBounds: TRect;
 
   BlendLine: TBlendLine;
@@ -877,7 +877,9 @@ begin
   DstW := Dst.Width;
   DstH := Dst.Height;
 
-  if (DstX >= DstW) or (DstY >= DstH) then Exit;
+  MA := Src.MasterAlpha;
+
+  if (DstX >= DstW) or (DstY >= DstH) or (MA = 0) then Exit;
 
   SrcRectW := SrcRect.Right - SrcRect.Left-1;
   SrcRectH := SrcRect.Bottom - SrcRect.Top-1;
@@ -951,24 +953,24 @@ begin
 
     if SrcRect.Top > 0 then
     begin
-      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * TW shr 8);
+      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * TW * MA shr 16);
       CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
     end
     else
     begin
-      BlendMemEx(C1, DstP^, LW * TW shr 8);
+      BlendMemEx(C1, DstP^, LW * TW * MA shr 16);
       MoveLongWord(Buf2^, Buf1^, SrcRectW);
     end;
 
     Inc(DstP, 1);
-    BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, TW);
+    BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, TW * MA shr 8);
 
     Inc(DstP, SrcRectW - 1);
 
     if SrcRect.Top > 0 then
-      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * TW shr 8)
+      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * TW * MA shr 16)
     else
-      BlendMemEx(C3, DstP^, RW * TW shr 8);
+      BlendMemEx(C3, DstP^, RW * TW * MA shr 16);
 
     Inc(DstP, DstW - SrcRectW);
 
@@ -989,7 +991,7 @@ begin
       else
         C2 := SrcP[0];
 
-      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW);
+      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * MA shr 8);
       Inc(DstP);
       C1 := C2;
 
@@ -997,7 +999,7 @@ begin
       CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
 
       // Blend horizontal line to Dst
-      BlendLine(@Buf1[0], DstP, SrcRectW - 1);
+      BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, MA);
       Inc(DstP, SrcRectW - 1);
 
       if SrcRect.Right < SrcW then
@@ -1005,7 +1007,7 @@ begin
       else
         C4 := SrcP[SrcRectW - 1];
 
-      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW);
+      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * MA shr 8);
 
       Inc(DstP, DstW - SrcRectW);
       C3 := C4;
@@ -1027,13 +1029,13 @@ begin
         C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
       else
         C2 := SrcP[0];
-      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * BW shr 8)
+      BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * BW * MA shr 16)
     end
     else
-      BlendMemEx(C1, DstP^, LW * BW shr 8);
+      BlendMemEx(C1, DstP^, LW * BW * MA shr 16);
 
     Inc(DstP);
-    BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, BW);
+    BlendLineEx(@Buf1[0], DstP, SrcRectW - 1, BW * MA shr 8);
     Inc(DstP, SrcRectW - 1);
 
     if SrcRect.Bottom < Src.Height then
@@ -1042,10 +1044,10 @@ begin
         C4 := CombineReg(SrcP[SrcRectW - 1], SrcP[SrcRectW], FracX)
       else
         C4 := SrcP[SrcRectW - 1];
-      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * BW shr 8);
+      BlendMemEx(CombineReg(C3, C4, FracY), DstP^, RW * BW * MA shr 16);
     end
     else
-      BlendMemEx(C3, DstP^, RW * BW shr 8);
+      BlendMemEx(C3, DstP^, RW * BW * MA shr 16);
 
   finally
     EMMS;
