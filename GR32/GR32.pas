@@ -1013,7 +1013,7 @@ end;
 
 function HSLtoRGB(H, S, L: Integer): TColor32;
 var
-  V, M, VSF: Integer;
+  V, M, M1, M2, VSF: Integer;
 begin
   if L <= $7F then
     V := L * (256 + S) shr 8
@@ -1026,16 +1026,15 @@ begin
     M := L * 2 - V;
     H := H * 6;
     VSF := (V - M) * (H and $ff) shr 8;
+    M1 := M + VSF;
+    M2 := V - VSF;
     case H shr 8 of
-      0: Result := Color32(V, M + VSF, M, 0);
-      1: Result := Color32(M - VSF, V, M, 0);
-      2: Result := Color32(M, V, M + VSF, 0);
-      3: Result := Color32(M, M - VSF, V, 0);
-      4: Result := Color32(M + VSF, M, V, 0);
-      5: Result := Color32(V, M, M - VSF, 0);
-    else
-      // This should never happen
-      Result := clBlack32;
+      0: Result := Color32(V, M1, M, 0);
+      1: Result := Color32(M2, V, M, 0);
+      2: Result := Color32(M, V, M1, 0);
+      3: Result := Color32(M, M2, V, 0);
+      4: Result := Color32(M1, M, V, 0);
+      5: Result := Color32(V, M, M2, 0);
     end;
   end;
 end;
@@ -2269,10 +2268,8 @@ var
   flrx, flry, celx, cely: Longword;
   P: PColor32;
   A: TColor32;
-  CombineMem: TCombineMem;
 begin
   { Warning: EMMS should be called after using this method }
-  A := C shr 24;  // opacity
 
   flrx := X and $FF;
   flry := Y and $FF;
@@ -2282,17 +2279,32 @@ begin
     SAR Y, 8
   end;
 
-  celx := A * GAMMA_TABLE[flrx xor 255];
-  cely := GAMMA_TABLE[flry xor 255];
   P := @FBits[X + Y * FWidth];
-  flrx := A * GAMMA_TABLE[flrx];
-  flry := GAMMA_TABLE[flry];
+  if FCombineMode = cmBlend then
+  begin
+    A := C shr 24;  // opacity
+    celx := A * GAMMA_TABLE[flrx xor 255];
+    cely := GAMMA_TABLE[flry xor 255];
+    flrx := A * GAMMA_TABLE[flrx];
+    flry := GAMMA_TABLE[flry];
 
-  CombineMem := COMBINE_MEM[FCombineMode];
-  CombineMem(C, P^, celx * cely shr 16); Inc(P);
-  CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
-  CombineMem(C, P^, flrx * flry shr 16); Dec(P);
-  CombineMem(C, P^, celx * flry shr 16);
+    CombineMem(C, P^, celx * cely shr 16); Inc(P);
+    CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
+    CombineMem(C, P^, flrx * flry shr 16); Dec(P);
+    CombineMem(C, P^, celx * flry shr 16);
+  end
+  else
+  begin
+    celx := GAMMA_TABLE[flrx xor 255];
+    cely := GAMMA_TABLE[flry xor 255];
+    flrx := GAMMA_TABLE[flrx];
+    flry := GAMMA_TABLE[flry];
+    
+    CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
+    CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
+    CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Dec(P);
+    CombineMem(MergeReg(C, P^), P^, celx * flry shr 8);
+  end;
 end;
 
 procedure TBitmap32.SET_TS256(X, Y: Integer; C: TColor32);
@@ -2300,7 +2312,6 @@ var
   flrx, flry, celx, cely: Longword;
   P: PColor32;
   A: TColor32;
-  CombineMem: TCombineMem;
 begin
   { Warning: EMMS should be called after using this method }
 
@@ -2316,31 +2327,55 @@ begin
     SAR Y, 8
   end;
 
-  A := C shr 24;  // opacity
-
-  celx := A * GAMMA_TABLE[flrx xor 255];
-  cely := GAMMA_TABLE[flry xor 255];
   P := @FBits[X + Y * FWidth];
-  flrx := A * GAMMA_TABLE[flrx];
-  flry := GAMMA_TABLE[flry];
-
-  CombineMem := COMBINE_MEM[FCombineMode];
-
-  if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
-     (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
+  if FCombineMode = cmBlend then
   begin
-    CombineMem(C, P^, celx * cely shr 16); Inc(P);
-    CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
-    CombineMem(C, P^, flrx * flry shr 16); Dec(P);
-    CombineMem(C, P^, celx * flry shr 16);
+    A := C shr 24;  // opacity
+    celx := A * GAMMA_TABLE[flrx xor 255];
+    cely := GAMMA_TABLE[flry xor 255];
+    flrx := A * GAMMA_TABLE[flrx];
+    flry := GAMMA_TABLE[flry];
+
+    if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
+       (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
+    begin
+      CombineMem(C, P^, celx * cely shr 16); Inc(P);
+      CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
+      CombineMem(C, P^, flrx * flry shr 16); Dec(P);
+      CombineMem(C, P^, celx * flry shr 16);
+    end
+    else // "pixel" lies on the edge of the bitmap
+    with FClipRect do
+    begin
+      if (X >= Left) and (Y >= Top) then CombineMem(C, P^, celx * cely shr 16); Inc(P);
+      if (X < Right - 1) and (Y >= Top) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
+      if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
+      if (X >= Left) and (Y < Bottom - 1) then CombineMem(C, P^, celx * flry shr 16);
+    end;
   end
-  else // "pixel" lies on the edge of the bitmap
-  with FClipRect do
+  else
   begin
-    if (X >= Left) and (Y >= Top) then CombineMem(C, P^, celx * cely shr 16); Inc(P);
-    if (X < Right - 1) and (Y >= Top) then CombineMem(C, P^, flrx * cely shr 16); Inc(P, FWidth);
-    if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(C, P^, flrx * flry shr 16); Dec(P);
-    if (X >= Left) and (Y < Bottom - 1) then CombineMem(C, P^, celx * flry shr 16);
+    celx := GAMMA_TABLE[flrx xor 255];
+    cely := GAMMA_TABLE[flry xor 255];
+    flrx := GAMMA_TABLE[flrx];
+    flry := GAMMA_TABLE[flry];
+
+    if (X >= FClipRect.Left) and (Y >= FClipRect.Top) and
+       (X < FClipRect.Right - 1) and (Y < FClipRect.Bottom - 1) then
+    begin
+      CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
+      CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
+      CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Inc(P);
+      CombineMem(MergeReg(C, P^), P^, celx * flry shr 8);
+    end
+    else // "pixel" lies on the edge of the bitmap
+    with FClipRect do
+    begin
+      if (X >= Left) and (Y >= Top) then CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
+      if (X < Right - 1) and (Y >= Top) then CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
+      if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Inc(P);
+      if (X >= Left) and (Y < Bottom - 1) then CombineMem(MergeReg(C, P^), P^, celx * flry shr 8);
+    end;
   end;
 end;
 
@@ -2591,7 +2626,7 @@ begin
   if PrevWeight = 255 then Result := FStipplePattern[PrevIndex]
   else
   begin
-    Result := COMBINE_REG[FCombineMode](
+    Result := CombineReg(
       FStipplePattern[PrevIndex],
       FStipplePattern[NextIndex],
       PrevWeight);
