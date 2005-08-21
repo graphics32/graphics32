@@ -4071,23 +4071,32 @@ var
   i, j: Integer;
   P: PColor32;
   A: Integer;
-  CombineMem: TCombineMem;
 begin
   A := Value shr 24;
   if A = $FF then
     FillRect(X1, Y1, X2, Y2, Value) // calls Changed...
-  else
+  else if A <> 0 then
   try
     Dec(Y2);
     Dec(X2);
-    CombineMem := COMBINE_MEM[FCombineMode];
     for j := Y1 to Y2 do
     begin
       P := GetPixelPtr(X1, j);
-      for i := X1 to X2 do
+      if CombineMode = cmBlend then
       begin
-        CombineMem(Value, P^, A);
-        Inc(P);
+        for i := X1 to X2 do
+        begin
+          CombineMem(Value, P^, A);
+          Inc(P);
+        end;
+      end
+      else
+      begin
+        for i := X1 to X2 do
+        begin
+          MergeMem(Value, P^);
+          Inc(P);
+        end;
       end;
     end;
   finally
