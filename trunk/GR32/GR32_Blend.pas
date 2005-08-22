@@ -28,6 +28,7 @@ unit GR32_Blend;
  *
  *  Michael Hansen <dyster_tid@hotmail.com>
  *      - 2004/07/07 - Pascal Blendmodes, function setup
+ *      - 2005/08/19 - New merge table concept and reference implementations
  *
  *  Bob Voigt
  *      - 2004/08/25 - ColorDiv
@@ -39,7 +40,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32;
+  GR32, SysUtils;
 
 var
   MMX_ACTIVE: Boolean;
@@ -74,9 +75,6 @@ var
 
   CombineLine: TCombineLine;
 
-  CombMergeReg: TCombineReg;
-  CombMergeMem: TCombineMem;
-
   MergeReg: TBlendReg;
   MergeMem: TBlendMem;
 
@@ -89,8 +87,6 @@ var
 { Access to alpha composite functions corresponding to a combine mode }
   BLEND_REG: array[TCombineMode] of TBlendReg;
   BLEND_MEM: array[TCombineMode] of TBlendMem;
-  COMBINE_REG: array[TCombineMode] of TCombineReg;
-  COMBINE_MEM: array[TCombineMode] of TCombineMem;
   BLEND_REG_EX: array[TCombineMode] of TBlendRegEx;
   BLEND_MEM_EX: array[TCombineMode] of TBlendMemEx;
   BLEND_LINE: array[TCombineMode] of TBlendLine;
@@ -116,9 +112,233 @@ var
 { Misc stuff }
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
+
 implementation
 
-uses Math, GR32_System, GR32_LowLevel;
+uses Math, GR32_System, GR32_LowLevel, GR32_Math;
+
+var
+  RcTable: array [Byte, Byte] of Byte;
+  DivTable: array [Byte, Byte] of Byte;
+
+{ Merge }
+
+function _MergeReg(F, B: TColor32): TColor32;
+asm
+  // EAX <- F
+  // EDX <- B
+
+  // GR32_Blend.pas.156: if F.A = 0 then
+    test eax,$ff000000
+    jz   @exit0
+
+  // GR32_Blend.pas.160: else if B.A = 255 then
+    cmp     edx,$ff000000
+    jnc     @blend
+
+  // GR32_Blend.pas.158: else if F.A = 255 then
+    cmp     eax,$ff000000
+    jnc     @exit
+
+  // else if B.A = 0 then
+    test    edx,$ff000000
+    jz      @exit
+
+@4:
+    push ebx
+    push esi
+    push edi
+    add  esp,-$0c
+    mov  [esp+$04],edx
+    mov  [esp],eax
+
+  // AH <- F.A
+  // DL, CL <- B.A
+    shr eax,16
+    and eax,$0000ff00
+    shr edx,24
+    mov cl,dl
+    nop
+    nop
+    nop
+
+  // EDI <- PF
+  // EDX <- PB
+  // ESI <- PR
+
+  // GR32_Blend.pas.164: PF := @DivTable[F.A];
+    lea edi,[eax+DivTable]
+  // GR32_Blend.pas.165: PB := @DivTable[B.A];
+    shl edx,$08
+    lea edx,[edx+DivTable]
+  // GR32_Blend.pas.166: Result.A := B.A + F.A - PB[F.A];
+    shr eax,8
+    //add cl,al
+    add ecx,eax
+    //sub cl,[edx+eax]
+    sub ecx,[edx+eax]
+    mov [esp+$0b],cl
+  // GR32_Blend.pas.167: PR := @RcTable[Result.A];
+    shl ecx,$08
+    and ecx,$0000ffff
+    lea esi,[ecx+RcTable]
+
+  { Red component }
+
+  // GR32_Blend.pas.169: Result.R := PB[B.R];
+    xor eax,eax
+    mov al,[esp+$06]
+    mov cl,[edx+eax]
+    mov [esp+$0a],cl
+  // GR32_Blend.pas.170: X := F.R - Result.R;
+    mov al,[esp+$02]
+    xor ebx,ebx
+    mov bl,cl
+    sub eax,ebx
+  // GR32_Blend.pas.171: if X >= 0 then
+    jl @5
+  // GR32_Blend.pas.172: Result.R := PR[PF[X] + Result.R]
+    movzx eax,[edi+eax]
+    and ecx,$000000ff
+    add eax,ecx
+    mov al,[esi+eax]
+    mov [esp+$0a],al
+    jmp @6
+@5:
+  // GR32_Blend.pas.252: Result.R := PR[Result.R - PF[-X]];
+    neg eax
+    movzx eax,[edi+eax]
+    xor ecx,ecx
+    mov cl,[esp+$0a]
+    sub ecx,eax
+    mov al,[esi+ecx]
+    mov [esp+$0a],al
+
+
+  { Green component }
+
+@6:
+  // GR32_Blend.pas.176: Result.G := PB[B.G];
+    xor eax,eax
+    mov al,[esp+$05]
+    mov cl,[edx+eax]
+    mov [esp+$09],cl
+  // GR32_Blend.pas.177: X := F.G - Result.G;
+    mov al,[esp+$01]
+    xor ebx,ebx
+    mov bl,cl
+    sub eax,ebx
+  // GR32_Blend.pas.178: if X >= 0 then
+    jl @7
+  // GR32_Blend.pas.179: Result.G := PR[PF[X] + Result.G]
+    movzx eax,[edi+eax]
+    and ecx,$000000ff
+    add eax,ecx
+    mov al,[esi+eax]
+    mov [esp+$09],al
+    jmp @8
+@7:
+  // GR32_Blend.pas.259: Result.G := PR[Result.G - PF[-X]];
+    neg eax
+    movzx eax,[edi+eax]
+    xor ecx,ecx
+    mov cl,[esp+$09]
+    sub ecx,eax
+    mov al,[esi+ecx]
+    mov [esp+$09],al
+
+
+  { Blue component }
+
+@8:
+  // GR32_Blend.pas.183: Result.B := PB[B.B];
+    xor eax,eax
+    mov al,[esp+$04]
+    mov cl,[edx+eax]
+    mov [esp+$08],cl
+  // GR32_Blend.pas.184: X := F.B - Result.B;
+    mov al,[esp]
+    xor edx,edx
+    mov dl,cl
+    sub eax,edx
+  // GR32_Blend.pas.185: if X >= 0 then
+    jl @9
+  // GR32_Blend.pas.186: Result.B := PR[PF[X] + Result.B]
+    movzx eax,[edi+eax]
+    xor edx,edx
+    mov dl,cl
+    add eax,edx
+    mov al,[esi+eax]
+    mov [esp+$08],al
+    jmp @10
+@9:
+  // GR32_Blend.pas.266: Result.B := PR[Result.B - PF[-X]];
+    neg eax
+    movzx eax,[edi+eax]
+    xor edx,edx
+    mov dl,cl
+    sub edx,eax
+    mov al,[esi+edx]
+    mov [esp+$08],al
+
+@10:
+  // EAX <- Result
+    mov eax,[esp+$08]
+
+  // GR32_Blend.pas.190: end;
+    add esp,$0c
+    pop edi
+    pop esi
+    pop ebx
+    ret
+@blend:
+    call dword ptr [BlendReg]
+    or   eax,$ff000000
+    ret
+@exit0:
+    mov eax,edx
+@exit:
+end;
+
+function _MergeRegEx(F, B, M: TColor32): TColor32;
+begin
+  Result := _MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+end;
+
+procedure _MergeMem(F: TColor32; var B: TColor32);
+begin
+  B := _MergeReg(F, B);
+end;
+
+procedure _MergeMemEx(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := _MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+end;
+
+procedure _MergeLine(Src, Dst: PColor32; Count: Integer);
+begin
+  while Count > 0 do
+  begin
+    Dst^ := _MergeReg(Src^, Dst^);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
+procedure _MergeLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
+var
+  PM: PByteArray absolute M;
+begin
+  PM := @DivTable[M];
+  while Count > 0 do
+  begin
+    Dst^ := _MergeReg(PM[Src^ shr 24] shl 24 or Src^ and $00FFFFFF, Dst^);
+    Inc(Src);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
 
 { Non-MMX versions }
 
@@ -998,282 +1218,6 @@ asm
         POP       EBX
 end;
 
-{ Merge }
-
-function _MergeReg(F, B: TColor32): TColor32;
-var
-  Fa, Fr, Fg, Fb: Byte;
-  Ba, Br, Bg, Bb: Byte;
-  Ra, Rr, Rg, Rb: Byte;
-  InvRa: Integer;
-begin
-  Fa := F shr 24;
-  if Fa = $FF then
-  begin
-    Result := F;
-    exit;
-  end
-  else if Fa = 0 then
-  begin
-    Result := B;
-    Exit;
-  end;
-
-  Ba := B shr 24;
-  if Ba = 0 then
-  begin
-    Result := F;
-    exit;
-  end
-  else if Ba = $FF then
-  begin
-    Result := _BlendReg(F, B) or $FF000000;
-    Exit;
-  end;
-
-  // Blended pixels
-  Fr := F shr 16;  Fg := F shr 8;  Fb := F;
-  Br := B shr 16;  Bg := B shr 8;  Bb := B;
-  Ra := Fa + Ba - (Fa * Ba) div 255;
-  InvRa := (256 * 256) div Ra;
-  Br := Br * Ba shr 8;
-  Rr := (Fa * (Fr - Br) shr 8 + Br) * InvRa shr 8;
-  Bg := Bg * Ba shr 8;
-  Rg := (Fa * (Fg - Bg) shr 8 + Bg) * InvRa shr 8;
-  Bb := Bb * Ba shr 8;
-  Rb := (Fa * (Fb - Bb) shr 8 + Bb) * InvRa shr 8;
-  Result := Ra shl 24 + Rr shl 16 + Rg shl 8 + Rb;
-end;
-
-procedure _MergeMem(F: TColor32; var B:TColor32);
-begin
-  B := _MergeReg(F, B);
-end;
-
-function _MergeRegEx(F, B, M: TColor32): TColor32;
-var
-  Fa, Fr, Fg, Fb: Byte;
-  Ba, Br, Bg, Bb: Byte;
-  Ra, Rr, Rg, Rb: Byte;
-  InvRa: Integer;
-begin
-  Fa := F shr 24;
-  if Fa = 255 then
-  begin
-    if M = 255 then
-    begin
-      Result := F;
-      Exit;
-    end
-    else if M = 0 then
-    begin
-      Result := B;
-      Exit;
-    end;
-  end
-  else if Fa = 0 then
-  begin
-    Result := B;
-    Exit;
-  end;
-
-  Fa := (Fa * M) div 255;
-  // Create F, but now with correct Alpha
-  F := F and $00FFFFFF or Fa shl 24;
-  if Fa = $FF then
-  begin
-    Result := F;
-    Exit;
-  end;
-  Ba := B shr 24;
-  if Ba = 0 then
-  begin
-    Result := F;
-    Exit;
-  end
-  else if Ba = $FF then
-  begin
-    Result := _BlendRegEx(F, B, M) or $FF000000;
-    Exit;
-  end;
-
-  // Blended pixels
-  Fr := F shr 16;  Fg := F shr 8;  Fb := F;
-  Br := B shr 16;  Bg := B shr 8;  Bb := B;
-  Ra := Fa + Ba - (Fa * Ba) div 255;
-  InvRa := (256 * 256) div Ra;
-  Br := Br * Ba shr 8;
-  Rr := (Fa * (Fr - Br) shr 8 + Br) * InvRa shr 8;
-  Bg := Bg * Ba shr 8;
-  Rg := (Fa * (Fg - Bg) shr 8 + Bg) * InvRa shr 8;
-  Bb := Bb * Ba shr 8;
-  Rb := (Fa * (Fb - Bb) shr 8 + Bb) * InvRa shr 8;
-  Result := Ra shl 24 + Rr shl 16 + Rg shl 8 + Rb;
-end;
-
-procedure _MergeMemEx(F: TColor32; var B:TColor32; M: TColor32);
-begin
-  B := _MergeRegEx(F, B, M);
-end;
-
-procedure _MergeLine(Src, Dst: PColor32; Count: Integer);
-begin
-  while Count > 0 do
-  begin
-    Dst^ := _MergeReg(Src^, Dst^);
-    Inc(Src);
-    Inc(Dst);
-    Dec(Count);
-  end;
-end;
-
-procedure _MergeLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
-begin
-  while Count > 0 do
-  begin
-    Dst^ := _MergeRegEx(Src^, Dst^, M);
-    Inc(Src);
-    Inc(Dst);
-    Dec(Count);
-  end;
-end;
-
-function _CombMergeReg(X, Y, W: TColor32): TColor32;
-begin
-  Result := _MergeReg(X and $00FFFFFF or W shl 24, Y);
-end;
-
-procedure _CombMergeMem(X: TColor32; var Y: TColor32; W: TColor32);
-begin
-  Y := _MergeReg(X and $00FFFFFF or W shl 24, Y);
-end;
-
-{ MMX Merge }
-
-function M_MergeReg(F, B: TColor32): TColor32;
-asm
-  { This is an implementation of the merge formula, as described
-    in a paper by Bruce Wallace in 1981. Merging is associative,
-    that is, A over (B over C) = (A over B) over C. The formula is,
-
-      Ra = Fa + Ba - Fa * Ba
-      Rc = (Fa (Fc - Bc * Ba) + Bc * Ba) / Ra
-
-    where
-
-      Rc is the resultant color,  Ra is the resultant alpha,
-      Fc is the foreground color, Fa is the foreground alpha,
-      Bc is the background color, Ba is the background alpha.
-  }
-
-        TEST      EAX,$FF000000  // foreground completely transparent =>
-        JZ        @1             // result = background
-        TEST      EDX,$FF000000  // background completely transparent =>
-        JZ        @2             // result = foreground
-        CMP       EAX,$FF000000  // foreground completely opaque =>
-        JNC       @2             // result = foreground
-        CMP       EDX,$FF000000  // background completely opaque =>
-        JNC       @3             // perform ordinary blending
-
-        db $0F,$EF,$DB           /// PXOR      MM3,MM3
-        PUSH      ESI
-        db $0F,$6E,$C0           /// MOVD      MM0,EAX        // MM0  <-  Fa Fr Fg Fb
-        db $0F,$60,$C3           /// PUNPCKLBW MM0,MM3        // MM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
-        db $0F,$6E,$CA           /// MOVD      MM1,EDX        // MM1  <-  Ba Br Bg Bb
-        db $0F,$60,$CB           /// PUNPCKLBW MM1,MM3        // MM1  <-  00 Ba 00 Br 00 Bg 00 Bb
-        
-        db $0F,$6F,$E0           /// MOVQ      MM4,MM0        // MM4  <-  00 Fa 00 Fr 00 Fg 00 Fb
-        db $0F,$6F,$E9           /// MOVQ      MM5,MM1        // MM5  <-  00 Ba 00 Br 00 Bg 00 Bb
-
-        SHR       EAX,24         // EAX  <-  00 00 00 Fa
-        SHR       EDX,24         // EDX  <-  00 00 00 Ba
-        MOV       ECX,EAX        // ECX  <-  00 00 00 Fa
-
-        db $0F,$69,$E4           /// PUNPCKHWD MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fg 00 Fg
-        db $0F,$6A,$E4           /// PUNPCKHDQ MM4,MM4        // MM4  <-  00 Fa 00 Fa 00 Fa 00 Fa
-        db $0F,$69,$ED           /// PUNPCKHWD MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Bg 00 Bg
-        db $0F,$6A,$ED           /// PUNPCKHDQ MM5,MM5        // MM5  <-  00 Ba 00 Ba 00 Ba 00 Ba
-
-        ADD       ECX,EDX        // ECX  <-  00 00 Sa Sa
-        MUL       EDX            // EAX  <-  00 00 Pa **
-        MOV       ESI,$FF        // ESI  <-  00 00 00 FF
-        DIV       ESI
-        SUB       ECX,EAX        // ECX  <-  00 00 00 Ra
-        MOV       EAX,$ffff
-        CDQ
-        db $0F,$D5,$CD           /// PMULLW    MM1,MM5        // MM1  <-  B * Ba
-        db $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DIV       ECX
-        db $0F,$D5,$C4           /// PMULLW    MM0,MM4        // MM0  <-  F * Fa
-        db $0F,$71,$D0,$08       /// PSRLW     MM0,8
-        db $0F,$D5,$E1           /// PMULLW    MM4,MM1        // MM4  <-  B * Ba * Fa
-        db $0F,$71,$D4,$08       /// PSRLW     MM4,8
-        SHL       ECX,24
-        db $0F,$DD,$C8           /// PADDUSW   MM1,MM0        // MM1  <-  B * Ba + F * Fa
-        db $0F,$D9,$CC           /// PSUBUSW   MM1,MM4        // MM1  <-  B * Ba + F * Fa - B * Ba * Fa
-        db $0F,$6E,$D0           /// MOVD      MM2,EAX        // MM2  <-  Qa = 1 / Ra
-        db $0F,$70,$D2,$00       /// PSHUFW    MM2,MM2,$00    // MM2  <-  00 Qa 00 Qa 00 Qa 00 Qa
-        db $0F,$D5,$CA           /// PMULLW    MM1,MM2
-        db $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        db $0F,$67,$CB           /// PACKUSWB  MM1,MM3        // MM1  <-  00 00 00 00 xx Rr Rg Rb
-        db $0F,$7E,$C8           /// MOVD      EAX,MM1        // EAX  <-  xx Rr Rg Rb
-        AND       EAX,$00FFFFFF  // EAX  <-  00 Rr Rg Rb
-        OR        EAX,ECX        // EAX  <-  Ra Rr Rg Rb
-        POP ESI
-        RET
-@1:     MOV       EAX,EDX
-@2:     RET
-@3:     CALL      M_BlendReg
-        OR        EAX,$FF000000
-end;
-
-procedure M_MergeMem(F: TColor32; var B:TColor32);
-begin
-  B := M_MergeReg(F, B);
-end;
-
-function M_MergeRegEx(F, B, M: TColor32): TColor32;
-begin
-  Result := M_MergeReg(F and $00FFFFFF or ((F shr 24) * M) div 255 shl 24, B);
-end;
-
-procedure M_MergeMemEx(F: TColor32; var B:TColor32; M: TColor32);
-begin
-  B := M_MergeReg(F and $00FFFFFF or ((F shr 24) * M) div 255 shl 24, B);
-end;
-
-procedure M_MergeLine(Src, Dst: PColor32; Count: Integer);
-begin
-  while Count > 0 do
-  begin
-    Dst^ := M_MergeReg(Src^, Dst^);
-    Inc(Src);
-    Inc(Dst);
-    Dec(Count);
-  end;
-end;
-
-procedure M_MergeLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
-begin
-  while Count > 0 do
-  begin
-    Dst^ := M_MergeReg(Src^ and $00FFFFFF or ((Src^ shr 24) * M) div 255 shl 24, Dst^);
-    Inc(Src);
-    Inc(Dst);
-    Dec(Count);
-  end;
-end;
-
-function M_CombMergeReg(X, Y, W: TColor32): TColor32;
-begin
-  Result := M_MergeReg(X and $00FFFFFF or W shl 24, Y);
-end;
-
-procedure M_CombMergeMem(X: TColor32; var Y: TColor32; W: TColor32);
-begin
-  Y := M_MergeReg(X and $00FFFFFF or W shl 24, Y);
-end;
-
 { Non-MMX Color algebra versions }
 
 function _ColorAdd(C1, C2: TColor32): TColor32;
@@ -1641,11 +1585,41 @@ begin
   Result := a shl 24 + r shl 16 + g shl 8 + b;
 end;
 
+procedure MakeMergeTables;
+var
+  I, J: Integer;
+begin
+  for J := 0 to 255 do
+    for I := 0 to 255 do
+    begin
+      DivTable[I, J] := Round(I * J / 255);
+      if I > 0 then
+        RcTable[I, J] := Round(J * 255 / I)
+      else
+        RcTable[I, J] := 0;
+    end;
+end;
+
 { MMX Detection and linking }
 
 procedure SetupFunctions;
 begin
   MMX_ACTIVE := HasMMX;
+
+  MergeReg := _MergeReg;
+  MergeMem := _MergeMem;
+  MergeRegEx := _MergeRegEx;
+  MergeMemEx := _MergeMemEx;
+  MergeLine := _MergeLine;
+  MergeLineEx := _MergeLineEx;
+
+  BLEND_MEM[cmMerge] := _MergeMem;
+  BLEND_REG[cmMerge] := _MergeReg;
+  BLEND_MEM_EX[cmMerge] := _MergeMemEx;
+  BLEND_REG_EX[cmMerge] := _MergeRegEx;
+  BLEND_LINE[cmMerge] := _MergeLine;
+  BLEND_LINE_EX[cmMerge] := _MergeLineEx;
+
 {$IFNDEF DISABLE_MMX}
   if MMX_ACTIVE then
   begin
@@ -1660,31 +1634,12 @@ begin
     BlendLineEx := M_BlendLineEx;
     CombineLine := M_CombineLine;
 
-    CombMergeReg := M_CombMergeReg;
-    CombMergeMem := M_CombMergeMem;
-    MergeReg := M_MergeReg;
-    MergeMem := M_MergeMem;
-    MergeRegEx := M_MergeRegEx;
-    MergeMemEx := M_MergeMemEx;
-    MergeLine := M_MergeLine;
-    MergeLineEx := M_MergeLineEx;
-
     BLEND_MEM[cmBlend] := M_BlendMem;
-    BLEND_MEM[cmMerge] := M_MergeMem;
     BLEND_REG[cmBlend] := M_BlendReg;
-    BLEND_REG[cmMerge] := M_MergeReg;
-    COMBINE_MEM[cmBlend] := M_CombineMem;
-    COMBINE_MEM[cmMerge] := M_CombMergeMem;
-    COMBINE_REG[cmBlend] := M_CombineReg;
-    COMBINE_REG[cmMerge] := M_CombMergeReg;
     BLEND_MEM_EX[cmBlend] := M_BlendMemEx;
-    BLEND_MEM_EX[cmMerge] := M_MergeMemEx;
     BLEND_REG_EX[cmBlend] := M_BlendRegEx;
-    BLEND_REG_EX[cmMerge] := M_MergeRegEx;
     BLEND_LINE[cmBlend] := M_BlendLine;
-    BLEND_LINE[cmMerge] := M_MergeLine;
     BLEND_LINE_EX[cmBlend] := M_BlendLineEx;
-    BLEND_LINE_EX[cmMerge] := M_MergeLineEx;
 
     ColorAdd := M_ColorAdd;
     ColorSub := M_ColorSub;
@@ -1710,31 +1665,12 @@ begin
     BlendLineEx := _BlendLineEx;
     CombineLine := _CombineLine;
 
-    CombMergeReg := _CombMergeReg;
-    CombMergeMem := _CombMergeMem;
-    MergeReg := _MergeReg;
-    MergeMem := _MergeMem;
-    MergeRegEx := _MergeRegEx;
-    MergeMemEx := _MergeMemEx;
-    MergeLine := _MergeLine;
-    MergeLineEx := _MergeLineEx;
-
     BLEND_MEM[cmBlend] := _BlendMem;
-    BLEND_MEM[cmMerge] := _MergeMem;
     BLEND_REG[cmBlend] := _BlendReg;
-    BLEND_REG[cmMerge] := _MergeReg;
-    COMBINE_MEM[cmBlend] := _CombineMem;
-    COMBINE_MEM[cmMerge] := _CombMergeMem;
-    COMBINE_REG[cmBlend] := _CombineReg;
-    COMBINE_REG[cmMerge] := _CombMergeReg;
     BLEND_MEM_EX[cmBlend] := _BlendMemEx;
-    BLEND_MEM_EX[cmMerge] := _MergeMemEx;
     BLEND_REG_EX[cmBlend] := _BlendRegEx;
-    BLEND_REG_EX[cmMerge] := _MergeRegEx;
     BLEND_LINE[cmBlend] := _BlendLine;
-    BLEND_LINE[cmMerge] := _MergeLine;
     BLEND_LINE_EX[cmBlend] := _BlendLineEx;
-    BLEND_LINE_EX[cmMerge] := _MergeLineEx;
 
     ColorAdd := _ColorAdd;
     ColorSub := _ColorSub;
@@ -1751,6 +1687,7 @@ begin
 end;
 
 initialization
+  MakeMergeTables;
   SetupFunctions;
   if MMX_ACTIVE then GenAlphaTable;
 
