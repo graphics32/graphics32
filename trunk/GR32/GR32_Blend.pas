@@ -102,6 +102,7 @@ var
   ColorDifference: TBlendReg;
   ColorAverage: TBlendReg;
   ColorExclusion: TBlendReg;
+  ColorScale: TBlendReg;
 
 { Special LUT pointers }
   AlphaTable: Pointer;
@@ -1475,6 +1476,31 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
+function _ColorScale(C, W: TColor32): TColor32;
+var
+  r1, g1, b1, a1: Cardinal;
+begin
+  a1 := C shr 24;
+  r1 := C and $00FF0000;
+  g1 := C and $0000FF00;
+  b1 := C and $000000FF;
+
+  r1 := r1 shr 16;
+  g1 := g1 shr 8;
+
+  a1 := a1 * W shr 8;
+  r1 := r1 * W shr 8;
+  g1 := g1 * W shr 8;
+  b1 := b1 * W shr 8;
+
+  if a1 > 255 then a1 := 255;
+  if r1 > 255 then r1 := 255;
+  if g1 > 255 then g1 := 255;
+  if b1 > 255 then b1 := 255;
+
+  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+end;
+
 { MMX Color algebra versions }
 
 function M_ColorAdd(C1, C2: TColor32): TColor32;
@@ -1557,6 +1583,19 @@ asm
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
         db $0F,$E0,$C1           /// PAVGB     MM0,MM1
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
+end;
+
+function M_ColorScale(C, W: TColor32): TColor32;
+asm
+        PXOR      MM2,MM2
+        SHL       EDX,3
+        MOVD      MM0,EAX
+        PUNPCKLBW MM0,MM2
+        ADD       EDX,alpha_ptr
+        PMULLW    MM0,[EDX]
+        PSRLW     MM0,8
+        PACKUSWB  MM0,MM2
+        MOVD      EAX,MM0
 end;
 
 
@@ -1650,6 +1689,7 @@ begin
     ColorDifference := M_ColorDifference;
     ColorExclusion := M_ColorExclusion;
     ColorAverage := M_ColorAverage;
+    ColorScale := M_ColorScale;
   end
   else
   begin
@@ -1681,6 +1721,7 @@ begin
     ColorDifference := _ColorDifference;
     ColorExclusion := _ColorExclusion;
     ColorAverage := _ColorAverage;
+    ColorScale := _ColorScale;    
 {$IFNDEF DISABLE_MMX}
   end;
 {$ENDIF}
