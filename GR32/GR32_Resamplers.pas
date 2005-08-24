@@ -848,9 +848,6 @@ procedure BlockTransferX(
   Dst: TBitmap32; DstX, DstY: TFixed;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
-type
-  TColor32Array = array [0..1] of TColor32;
-  PColor32Array = ^TColor32Array;
 var
   I, Index, SrcW, SrcRectW, SrcRectH, DstW, DstH: Integer;
   FracX, FracY: Integer;
@@ -861,7 +858,6 @@ var
   LW, RW, TW, BW, MA: Integer;
   DstBounds: TRect;
 
-  BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
   BlendMemEx: TBlendMemEx;
 begin
@@ -910,7 +906,6 @@ begin
   if DstX < 0 then DstX := 0;
   if DstY < 0 then DstY := 0;
 
-  BlendLine := BLEND_LINE[Src.CombineMode];
   BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
   BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
 
