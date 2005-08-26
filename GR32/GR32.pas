@@ -151,6 +151,10 @@ type
   PArrayOfArrayOfFixed = ^TArrayOfArrayOfFixed;
   TArrayOfArrayOfFixed = array of TArrayOfFixed;
 
+  // TFloat determines the precision level for certain floating-point operations 
+  PFloat = ^TFloat;
+  TFloat = type Single;
+
 { Other dynamic arrays }
 type
   PByteArray = ^TByteArray;
@@ -201,7 +205,7 @@ type
 
   PFloatPoint = ^TFloatPoint;
   TFloatPoint = record
-    X, Y: Single;
+    X, Y: TFloat;
   end;
 
   PFloatPointArray = ^TFloatPointArray;
