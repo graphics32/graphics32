@@ -94,7 +94,7 @@ var
 begin
   dx := B.X - A.X;
   dy := B.Y - A.Y;
-  r := ((C.X - A.X) * dx + (C.X - A.Y) * dy) / (Sqr(dx) + Sqr(dy));
+  r := ((C.X - A.X) * dx + (C.Y - A.Y) * dy) / (Sqr(dx) + Sqr(dy));
   Result.X := A.X + r * dx;
   Result.Y := A.Y + r * dy;
 end;
@@ -169,7 +169,12 @@ end;
 
 function TBezierSegment.FindClosestPoint(const P1, P2, P3: TFloatPoint): TFloatPoint;
 begin
-  //
+{      = (1-t)^3 c30 +
+       3(1-t)^2 t c21 +
+       3(1-t) t^2 c12 +
+       t^3 c03. }
+
+  Result := PointOnLine(P1, P2, P3);
 end;
 
 function TBezierSegment.GetControlPoints: PControlPoints;
@@ -264,7 +269,7 @@ var
   I: Integer;
   d, d_min: TFloat;
 begin
-  d := MaxSingle;
+  d_min := MaxSingle;
   Segment := nil;
   for I := 0 to FSegmentList.Count - 1 do
   begin
