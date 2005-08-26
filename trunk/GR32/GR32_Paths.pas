@@ -67,6 +67,7 @@ type
     function IndexOf(Segment: TCustomSegment): Integer;
     property VertexCapacity: Integer read GetVertexCapacity write SetVertexCapacity;
     property OutputCapacity: Integer read GetOutputCapacity write SetOutputCapacity;
+    property Count: Integer read FVertCount;
     property StartPoint: TFloatPoint read GetStartPoint write SetStartPoint;
     property EndPoint: TFloatPoint read GetEndPoint write SetEndPoint;
     property Segments[Index: Integer]: TCustomSegment read GetSegment;
@@ -188,7 +189,7 @@ procedure TCustomPath.AddSegment(const P: TFloatPoint; Segment: TCustomSegment);
 begin
   FSegmentList.Add(Segment);
   if High(FVertices) < FVertCount then
-    SetLength(FVertices, Length(FVertices));
+    SetLength(FVertices, Length(FVertices) * 2);
 
   FVertices[FVertCount] := P;
   Inc(FVertCount);
