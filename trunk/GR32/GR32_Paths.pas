@@ -100,7 +100,7 @@ begin
   Result.Y := A.Y + r * dy;
 end;
 
-function Flatness(P1, P2, P3, P4: TFloatPoint): Single;
+function Flatness(const P1, P2, P3, P4: TFloatPoint): Single;
 begin
   Result :=
     Abs(P1.X + P3.X - 2*P2.X) +
