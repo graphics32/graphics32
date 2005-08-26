@@ -11,13 +11,13 @@ type
   TCustomSegment = class(TPersistent)
   protected
     procedure BreakSegment(Path: TCustomPath; const P1, P2: TFloatPoint); virtual; abstract;
-    function FindClosestPoint(const P1, P2, P3: TFloatPoint): TFloatPoint; virtual; abstract;
+    function FindClosestPoint(const P1, P2, P: TFloatPoint): TFloatPoint; virtual; abstract;
   end;
 
   TLineSegment = class(TCustomSegment)
   protected
     procedure BreakSegment(Path: TCustomPath; const P1, P2: TFloatPoint); override;
-    function FindClosestPoint(const P1, P2, P3: TFloatPoint): TFloatPoint; override;
+    function FindClosestPoint(const P1, P2, P: TFloatPoint): TFloatPoint; override;
   end;
 
   PControlPoints = ^TControlPoints;
@@ -29,7 +29,7 @@ type
     function GetControlPoints: PControlPoints;
   protected
     procedure BreakSegment(Path: TCustomPath; const P1, P2: TFloatPoint); override;
-    function FindClosestPoint(const P1, P2, P3: TFloatPoint): TFloatPoint; override;
+    function FindClosestPoint(const P1, P2, P: TFloatPoint): TFloatPoint; override;
   public
     constructor Create; overload;
     constructor Create(const C1, C2: TFloatPoint); overload;
@@ -52,6 +52,7 @@ type
     procedure SetEndPoint(const Value: TFloatPoint);
     procedure SetStartPoint(const Value: TFloatPoint);
     function GetSegment(Index: Integer): TCustomSegment;
+    function GetVertex(Index: Integer): TFloatPoint;
   protected
     procedure AppendPoint(const Point: TFloatPoint);
   public
@@ -67,10 +68,11 @@ type
     function IndexOf(Segment: TCustomSegment): Integer;
     property VertexCapacity: Integer read GetVertexCapacity write SetVertexCapacity;
     property OutputCapacity: Integer read GetOutputCapacity write SetOutputCapacity;
-    property Count: Integer read FVertCount;
     property StartPoint: TFloatPoint read GetStartPoint write SetStartPoint;
     property EndPoint: TFloatPoint read GetEndPoint write SetEndPoint;
     property Segments[Index: Integer]: TCustomSegment read GetSegment;
+    property Vertices[Index: Integer]: TFloatPoint read GetVertex;
+    property VertexCount: Integer read FVertCount;
   end;
 
 var
@@ -96,11 +98,21 @@ begin
   dx := B.X - A.X;
   dy := B.Y - A.Y;
   r := ((C.X - A.X) * dx + (C.Y - A.Y) * dy) / (Sqr(dx) + Sqr(dy));
-  Result.X := A.X + r * dx;
-  Result.Y := A.Y + r * dy;
+  if InRange(r, 0, 1) then
+  begin
+    Result.X := A.X + r * dx;
+    Result.Y := A.Y + r * dy;
+  end
+  else
+  begin
+    if SqrDistance(A, C) < SqrDistance(B, C) then
+      Result := A
+    else
+      Result := B;
+  end;
 end;
 
-function Flatness(const P1, P2, P3, P4: TFloatPoint): Single;
+function Flatness(P1, P2, P3, P4: TFloatPoint): Single;
 begin
   Result :=
     Abs(P1.X + P3.X - 2*P2.X) +
@@ -116,9 +128,9 @@ begin
   Path.AppendPoint(P2);
 end;
 
-function TLineSegment.FindClosestPoint(const P1, P2, P3: TFloatPoint): TFloatPoint;
+function TLineSegment.FindClosestPoint(const P1, P2, P: TFloatPoint): TFloatPoint;
 begin
-  Result := PointOnLine(P1, P2, P3);
+  Result := PointOnLine(P1, P2, P);
 end;
 
 { TBezierSegment }
@@ -168,14 +180,49 @@ begin
   //
 end;
 
-function TBezierSegment.FindClosestPoint(const P1, P2, P3: TFloatPoint): TFloatPoint;
-begin
-{      = (1-t)^3 c30 +
-       3(1-t)^2 t c21 +
-       3(1-t) t^2 c12 +
-       t^3 c03. }
 
-  Result := PointOnLine(P1, P2, P3);
+function TBezierSegment.FindClosestPoint(const P1, P2, P: TFloatPoint): TFloatPoint;
+const
+  Epsilon = 0.01;
+
+  function FindPoint(const P1, P2, P3, P4: TFloatPoint; D1, D2: TFloat): TFloatPoint;
+  var
+    P12, P23, P34, P123, P234, P1234: TFloatPoint;
+    NewD: TFloat;
+  begin
+    P12.X   := (P1.X + P2.X) * 1/2;
+    P12.Y   := (P1.Y + P2.Y) * 1/2;
+    P23.X   := (P2.X + P3.X) * 1/2;
+    P23.Y   := (P2.Y + P3.Y) * 1/2;
+    P34.X   := (P3.X + P4.X) * 1/2;
+    P34.Y   := (P3.Y + P4.Y) * 1/2;
+    P123.X  := (P12.X + P23.X) * 1/2;
+    P123.Y  := (P12.Y + P23.Y) * 1/2;
+    P234.X  := (P23.X + P34.X) * 1/2;
+    P234.Y  := (P23.Y + P34.Y) * 1/2;
+    P1234.X := (P123.X + P234.X) * 1/2;
+    P1234.Y := (P123.Y + P234.Y) * 1/2;
+
+    NewD := SqrDistance(P, P1234);
+    if (NewD < D1) and (NewD < D2) then
+    begin
+      P12 := FindPoint(P1, P12, P123, P1234, D1, NewD);
+      P23 := FindPoint(P1234, P234, P34, P4, NewD, D2);
+      if SqrDistance(P, P12) < SqrDistance(P, P23) then
+        Result := P12
+      else
+        Result := P23;
+    end
+    else
+      case CompareValue(D1, D2, Epsilon) of
+       -1: Result := FindPoint(P1, P12, P123, P1234, D1, NewD);
+        1: Result := FindPoint(P1234, P234, P34, P4, NewD, D2);
+        0: Result := P1234;
+      end;
+  end;
+
+begin
+  Result := FindPoint(P1, FControlPoints[0], FControlPoints[1], P2, Infinity, Infinity);
 end;
 
 function TBezierSegment.GetControlPoints: PControlPoints;
@@ -304,6 +351,11 @@ end;
 function TCustomPath.GetStartPoint: TFloatPoint;
 begin
   Result := FVertices[0];
+end;
+
+function TCustomPath.GetVertex(Index: Integer): TFloatPoint;
+begin
+  Result := FVertices[Index];
 end;
 
 function TCustomPath.GetVertexCapacity: Integer;
