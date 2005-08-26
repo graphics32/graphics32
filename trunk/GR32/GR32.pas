@@ -244,7 +244,7 @@ function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEIN
 type
   TFloatRect = packed record
     case Integer of
-      0: (Left, Top, Right, Bottom: Single);
+      0: (Left, Top, Right, Bottom: TFloat);
       1: (TopLeft, BottomRight: TFloatPoint);
   end;
   TFixedRect = packed record
@@ -261,7 +261,7 @@ function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): T
 function FixedRect(const L, T, R, B: TFixed): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedRect(const ARect: TRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedRect(const FR: TFloatRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function FloatRect(const L, T, R, B: Single): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(const L, T, R, B: TFloat): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -270,9 +270,9 @@ function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload;
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload;
 function EqualRect(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure InflateRect(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure InflateRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure OffsetRect(var FR: TFloatRect; Dx, Dy: Single); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure OffsetRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmpty(const R: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -752,7 +752,7 @@ type
   public
     function GetSampleInt(X, Y: Integer): TColor32; virtual;
     function GetSampleFixed(X, Y: TFixed): TColor32; virtual;
-    function GetSampleFloat(X, Y: Single): TColor32; virtual;
+    function GetSampleFloat(X, Y: TFloat): TColor32; virtual;
     procedure PrepareSampling; virtual;
     procedure FinalizeSampling; virtual;
     function HasBounds: Boolean; virtual;
@@ -762,13 +762,13 @@ type
   { TCustomResampler }
   TCustomResampler = class(TCustomSampler)
   protected
-    function GetWidth: Single; virtual; abstract;
+    function GetWidth: TFloat; virtual; abstract;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
   public
-    property Width: Single read GetWidth;
+    property Width: TFloat read GetWidth;
   end;
   TCustomResamplerClass = class of TCustomResampler;
 
@@ -1316,7 +1316,7 @@ begin
   end;
 end;
 
-function FloatRect(const L, T, R, B: Single): TFloatRect;
+function FloatRect(const L, T, R, B: TFloat): TFloatRect;
 begin
   with Result do
   begin
@@ -1397,7 +1397,7 @@ begin
   Inc(R.Right, Dx); Inc(R.Bottom, Dy);
 end;
 
-procedure InflateRect(var FR: TFloatRect; Dx, Dy: Single);
+procedure InflateRect(var FR: TFloatRect; Dx, Dy: TFloat);
 begin
   with FR do
   begin
@@ -1412,7 +1412,7 @@ begin
   Inc(R.Right, Dx); Inc(R.Bottom, Dy);
 end;
 
-procedure OffsetRect(var FR: TFloatRect; Dx, Dy: Single);
+procedure OffsetRect(var FR: TFloatRect; Dx, Dy: TFloat);
 begin
   with FR do
   begin
@@ -5585,7 +5585,7 @@ begin
   Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
 end;
 
-function TCustomSampler.GetSampleFloat(X, Y: Single): TColor32;
+function TCustomSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 begin
   Result := GetSampleFixed(Fixed(X), Fixed(Y));
 end;

@@ -69,14 +69,14 @@ type
   PKernelEntryArray = ^TKernelEntryArray;
   TKernelEntryArray = array [0..0] of TArrayOfInteger;
 
-  TFilterMethod = function(Value: Single): Single of object;
+  TFilterMethod = function(Value: TFloat): TFloat of object;
 
   EBitmapException = class(Exception);
   ESrcInvalidException = class(Exception);
   ENestedException = class(Exception);
 
   TGetSampleInt = function(X, Y: Integer): TColor32 of object;
-  TGetSampleFloat = function(X, Y: Single): TColor32 of object;
+  TGetSampleFloat = function(X, Y: TFloat): TColor32 of object;
   TGetSampleFixed = function(X, Y: TFixed): TColor32 of object;
 
   TBitmap32Resampler = class;
@@ -90,8 +90,8 @@ type
   public
     constructor Create; virtual;
     procedure Changed;
-    function Filter(Value: Single): Single; virtual; abstract;
-    function GetWidth: Single; virtual; abstract;
+    function Filter(Value: TFloat): TFloat; virtual; abstract;
+    function GetWidth: TFloat; virtual; abstract;
     property Observer: TNotifiablePersistent read FObserver;
   end;
   TCustomKernelClass = class of TCustomKernel;
@@ -99,22 +99,22 @@ type
   { TBoxKernel }
   TBoxKernel = class(TCustomKernel)
   public
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   end;
 
   { TLinearResampler }
   TLinearKernel = class(TCustomKernel)
   public
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   end;
 
   { TCosineResampler }
   TCosineKernel = class(TCustomKernel)
   public
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   end;
 
   { TSplineResampler }
@@ -122,8 +122,8 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   end;
 
   { TMitchellResampler }
@@ -131,112 +131,112 @@ type
   protected
     function RangeCheck: Boolean; override;
   public
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   end;
 
   { TCubicResampler }
   TCubicKernel = class(TCustomKernel)
   private
-    FCoeff: Single;
-    procedure SetCoeff(const Value: Single);
+    FCoeff: TFloat;
+    procedure SetCoeff(const Value: TFloat);
   protected
     function RangeCheck: Boolean; override;
   public
     constructor Create; override;
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   published
-    property Coeff: Single read FCoeff write SetCoeff;
+    property Coeff: TFloat read FCoeff write SetCoeff;
   end;
 
   { THermiteKernel }
   THermiteKernel = class(TCustomKernel)
   private
-    FBias: Single;
-    FTension: Single;
-    procedure SetBias(const Value: Single);
-    procedure SetTension(const Value: Single);
+    FBias: TFloat;
+    FTension: TFloat;
+    procedure SetBias(const Value: TFloat);
+    procedure SetTension(const Value: TFloat);
   protected
     function RangeCheck: Boolean; override;
   public
     constructor Create; override;
-    function Filter(Value: Single): Single; override;
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    function GetWidth: TFloat; override;
   published
-    property Bias: Single read FBias write SetBias;
-    property Tension: Single read FTension write SetTension;
+    property Bias: TFloat read FBias write SetBias;
+    property Tension: TFloat read FTension write SetTension;
   end;
 
   { TWindowedSincResampler }
   TWindowedSincKernel = class(TCustomKernel)
   private
-    FWidth: Single;
+    FWidth: TFloat;
   protected
     function RangeCheck: Boolean; override;
-    function Window(Value: Single): Single; virtual; abstract;
+    function Window(Value: TFloat): TFloat; virtual; abstract;
   public
     constructor Create; override;
-    function Filter(Value: Single): Single; override;
-    procedure SetWidth(Value: Single);
-    function GetWidth: Single; override;
+    function Filter(Value: TFloat): TFloat; override;
+    procedure SetWidth(Value: TFloat);
+    function GetWidth: TFloat; override;
   published
-    property Width: Single read FWidth write SetWidth;
+    property Width: TFloat read FWidth write SetWidth;
   end;
 
   { TLanczosResampler }
   TLanczosKernel = class(TWindowedSincKernel)
   protected
-    function Window(Value: Single): Single; override;
+    function Window(Value: TFloat): TFloat; override;
   end;
 
   { TGaussianResampler }
   TGaussianKernel = class(TWindowedSincKernel)
   private
-    FSigma: Single;
-    procedure SetSigma(const Value: Single);
+    FSigma: TFloat;
+    procedure SetSigma(const Value: TFloat);
   protected
-    function Window(Value: Single): Single; override;
+    function Window(Value: TFloat): TFloat; override;
   public
     constructor Create; override;
   published
-    property Sigma: Single read FSigma write SetSigma;
+    property Sigma: TFloat read FSigma write SetSigma;
   end;
 
   { TBlackmanKernel }
   TBlackmanKernel = class(TWindowedSincKernel)
   protected
-    function Window(Value: Single): Single; override;
+    function Window(Value: TFloat): TFloat; override;
   end;
 
   { THannKernel }
   THannKernel = class(TWindowedSincKernel)
   protected
-    function Window(Value: Single): Single; override;
+    function Window(Value: TFloat): TFloat; override;
   end;
 
   { THammingKernel }
   THammingKernel = class(TWindowedSincKernel)
   protected
-    function Window(Value: Single): Single; override;
+    function Window(Value: TFloat): TFloat; override;
   end;
 
   { TSinshKernel }
   TSinshKernel = class(TCustomKernel)
   private
-    FWidth: Single;
-    FCoeff: Single;
-    procedure SetCoeff(const Value: Single);
+    FWidth: TFloat;
+    FCoeff: TFloat;
+    procedure SetCoeff(const Value: TFloat);
   protected
     function  RangeCheck: Boolean; override;
   public
     constructor Create; override;
-    procedure SetWidth(Value: Single);
-    function  GetWidth: Single; override;
-    function  Filter(Value: Single): Single; override;
+    procedure SetWidth(Value: TFloat);
+    function  GetWidth: TFloat; override;
+    function  Filter(Value: TFloat): TFloat; override;
   published
-    property Coeff: Single read FCoeff write SetCoeff;
-    property Width: Single read GetWidth write SetWidth;
+    property Coeff: TFloat read FCoeff write SetCoeff;
+    property Width: TFloat read GetWidth write SetWidth;
   end;
 
 
@@ -272,7 +272,7 @@ type
   private
     FGetSampleInt: TGetSampleInt;
   protected
-    function GetWidth: Single; override;
+    function GetWidth: TFloat; override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -281,7 +281,7 @@ type
     constructor Create(Bitmap: TBitmap32); override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure PrepareSampling; override;
   end;
 
@@ -291,7 +291,7 @@ type
     FLinearKernel: TLinearKernel;
     FGetSampleFixed: TGetSampleFixed;
   protected
-    function GetWidth: Single; override;
+    function GetWidth: TFloat; override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -300,7 +300,7 @@ type
     constructor Create(Bitmap: TBitmap32); override;
     destructor Destroy; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure PrepareSampling; override;
   end;
 
@@ -337,11 +337,11 @@ type
     procedure SetKernelMode(const Value: TKernelMode);
     procedure SetTableSize(Value: Integer);
   protected
-    function GetWidth: Single; override;
+    function GetWidth: TFloat; override;
   public
     constructor Create(ABitmap: TBitmap32); override;
     destructor Destroy; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -376,7 +376,7 @@ type
   { TTransformer }
   TReverseTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
   TReverseTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
-  TReverseTransformFloat = procedure(DstX, DstY: Single; out SrcX, SrcY: Single) of object;
+  TReverseTransformFloat = procedure(DstX, DstY: TFloat; out SrcX, SrcY: TFloat) of object;
 
   TTransformer = class(TNestedSampler)
   private
@@ -390,7 +390,7 @@ type
     procedure PrepareSampling; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
     function HasBounds: Boolean; override;
     function GetSampleBounds: TRect; override;
   published
@@ -402,7 +402,7 @@ type
   public
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: Single): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
 
   { TSuperSampler }
@@ -1156,7 +1156,7 @@ var
   MapHorz: array of Integer;
   SrcLine, DstLine: PColor32Array;
   Buffer: TArrayOfColor32;
-  Scale: Single;
+  Scale: TFloat;
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
 begin
@@ -1299,7 +1299,7 @@ procedure StretchHorzStretchVertLinear(
 var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   MapHorz, MapVert: array of TPointRec;
-  t2, Scale: Single;
+  t2, Scale: TFloat;
   SrcLine, DstLine: PColor32Array;
   SrcIndex: Integer;
   I, J: Integer;
@@ -1432,9 +1432,9 @@ function BuildMappingTable(
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterMethod;
-  FilterWidth: Single;
-  Scale, OldScale: Single;
-  Center: Single;
+  FilterWidth: TFloat;
+  Scale, OldScale: TFloat;
+  Center: TFloat;
   Count: Integer;
   Left, Right: Integer;
   I, J, K: Integer;
@@ -1549,10 +1549,10 @@ procedure Resample(
   Kernel: TCustomKernel;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
-  SrcW, SrcH: Single;
+  SrcW, SrcH: TFloat;
   DstW, DstH: Integer;
   DstClipW, DstClipH: Integer;
-  t: Single;
+  t: TFloat;
   MapX, MapY: TMappingTable;
   I, J, X, Y, Index: Integer;
   MapXLoPos, MapXHiPos: Integer;
@@ -1870,7 +1870,7 @@ var
   xs, xsrc, M: Cardinal;
   C: TColor32;
   DstLine: PColor32Array;
-  ScaleFactor,lx, fe: Single;
+  ScaleFactor,lx, fe: TFloat;
   FSrcTop,I,J,ly,
   sc, sr, cx, cy: integer;
   Y_256: TFixed;
@@ -2093,20 +2093,20 @@ end;
 
 { TBoxKernel }
 
-function TBoxKernel.Filter(Value: Single): Single;
+function TBoxKernel.Filter(Value: TFloat): TFloat;
 begin
   if (Value >= -0.5) and (Value <= 0.5) then Result := 1.0
   else Result := 0;
 end;
 
-function TBoxKernel.GetWidth: Single;
+function TBoxKernel.GetWidth: TFloat;
 begin
   Result := 1;
 end;
 
 { TLinearKernel }
 
-function TLinearKernel.Filter(Value: Single): Single;
+function TLinearKernel.Filter(Value: TFloat): TFloat;
 begin
   if Value < -1 then Result := 0
   else if Value < 0 then Result := 1 + Value
@@ -2114,30 +2114,30 @@ begin
   else Result := 0;
 end;
 
-function TLinearKernel.GetWidth: Single;
+function TLinearKernel.GetWidth: TFloat;
 begin
   Result := 1;
 end;
 
 { TCosineKernel }
 
-function TCosineKernel.Filter(Value: Single): Single;
+function TCosineKernel.Filter(Value: TFloat): TFloat;
 begin
   Result := 0;
   if Abs(Value) < 1 then
     Result := (Cos(Value * Pi) + 1) / 2;
 end;
 
-function TCosineKernel.GetWidth: Single;
+function TCosineKernel.GetWidth: TFloat;
 begin
   Result := 1;
 end;
 
 { TSplineKernel }
 
-function TSplineKernel.Filter(Value: Single): Single;
+function TSplineKernel.Filter(Value: TFloat): TFloat;
 var
-  tt: Single;
+  tt: TFloat;
 begin
   Value := Abs(Value);
   if Value < 1 then
@@ -2158,14 +2158,14 @@ begin
   Result := True;
 end;
 
-function TSplineKernel.GetWidth: Single;
+function TSplineKernel.GetWidth: TFloat;
 begin
   Result := 2;
 end;
 
 { TWindowedSincKernel }
 
-function Sinc(Value: Single): Single;
+function Sinc(Value: TFloat): TFloat;
 begin
   if Value <> 0 then
   begin
@@ -2180,7 +2180,7 @@ begin
   FWidth := 3;
 end;
 
-function TWindowedSincKernel.Filter(Value: Single): Single;
+function TWindowedSincKernel.Filter(Value: TFloat): TFloat;
 begin
   Value := Abs(Value);
   if Value < FWidth then
@@ -2194,7 +2194,7 @@ begin
   Result := True;
 end;
 
-procedure TWindowedSincKernel.SetWidth(Value: Single);
+procedure TWindowedSincKernel.SetWidth(Value: TFloat);
 begin
   if Value <> FWidth then
   begin
@@ -2203,23 +2203,23 @@ begin
   end;
 end;
 
-function TWindowedSincKernel.GetWidth: Single;
+function TWindowedSincKernel.GetWidth: TFloat;
 begin
   Result := FWidth;
 end;
 
 { TLanczosKernel }
 
-function TLanczosKernel.Window(Value: Single): Single;
+function TLanczosKernel.Window(Value: TFloat): TFloat;
 begin
   Result := Sinc(Value / FWidth);
 end;
 
 { TMitchellKernel }
 
-function TMitchellKernel.Filter(Value: Single): Single;
+function TMitchellKernel.Filter(Value: TFloat): TFloat;
 var
-  tt, ttt: Single;
+  tt, ttt: TFloat;
 begin
   Value := Abs(Value);
   tt := Sqr(Value);
@@ -2234,7 +2234,7 @@ begin
   Result := True;
 end;
 
-function TMitchellKernel.GetWidth: Single;
+function TMitchellKernel.GetWidth: TFloat;
 begin
   Result := 2;
 end;
@@ -2246,9 +2246,9 @@ begin
   FCoeff := -0.5;
 end;
 
-function TCubicKernel.Filter(Value: Single): Single;
+function TCubicKernel.Filter(Value: TFloat): TFloat;
 var
-  tt, ttt: Single;
+  tt, ttt: TFloat;
 begin
   Value := Abs(Value);
   tt := Sqr(Value);
@@ -2266,7 +2266,7 @@ begin
   Result := True;
 end;
 
-function TCubicKernel.GetWidth: Single;
+function TCubicKernel.GetWidth: TFloat;
 begin
   Result := 2;
 end;
@@ -2279,7 +2279,7 @@ begin
   FSigma := 1.33;
 end;
 
-procedure TGaussianKernel.SetSigma(const Value: Single);
+procedure TGaussianKernel.SetSigma(const Value: TFloat);
 begin
   if (FSigma <> Value) and (FSigma <> 0) then
   begin
@@ -2288,12 +2288,12 @@ begin
   end;
 end;
 
-function TGaussianKernel.Window(Value: Single): Single;
+function TGaussianKernel.Window(Value: TFloat): TFloat;
 begin
   Result := Power(2, -Sqr(Value) / FSigma);
 end;
 
-procedure TCubicKernel.SetCoeff(const Value: Single);
+procedure TCubicKernel.SetCoeff(const Value: TFloat);
 begin
   if Value <> FCoeff then
   begin
@@ -2304,7 +2304,7 @@ end;
 
 { TBlackmanKernel }
 
-function TBlackmanKernel.Window(Value: Single): Single;
+function TBlackmanKernel.Window(Value: TFloat): TFloat;
 begin
   Value := Pi * Value / FWidth;
   Result := 0.42 + 0.5 * Cos(Value) + 0.08 * Cos(2 * Value);
@@ -2312,14 +2312,14 @@ end;
 
 { THannKernel }
 
-function THannKernel.Window(Value: Single): Single;
+function THannKernel.Window(Value: TFloat): TFloat;
 begin
   Result := 0.5 + 0.5 * Cos(Pi * Value / FWidth);
 end;
 
 { THammingKernel }
 
-function THammingKernel.Window(Value: Single): Single;
+function THammingKernel.Window(Value: TFloat): TFloat;
 begin
   Result := 0.54 + 0.46 * Cos(Pi * Value / FWidth);
 end;
@@ -2332,7 +2332,7 @@ begin
   FCoeff := 0.5;
 end;
 
-function TSinshKernel.Filter(Value: Single): Single;
+function TSinshKernel.Filter(Value: TFloat): TFloat;
 begin
   if Value = 0 then
     Result := 1
@@ -2345,7 +2345,7 @@ begin
   Result := True;
 end;
 
-procedure TSinshKernel.SetWidth(Value: Single);
+procedure TSinshKernel.SetWidth(Value: TFloat);
 begin
   if FWidth <> Value then
   begin
@@ -2354,12 +2354,12 @@ begin
   end;
 end;
 
-function TSinshKernel.GetWidth: Single;
+function TSinshKernel.GetWidth: TFloat;
 begin
   Result := FWidth;
 end;
 
-procedure TSinshKernel.SetCoeff(const Value: Single);
+procedure TSinshKernel.SetCoeff(const Value: TFloat);
 begin
   if (FCoeff <> Value) and (FCoeff <> 0) then
   begin
@@ -2376,10 +2376,10 @@ begin
   FTension := 0;
 end;
 
-function THermiteKernel.Filter(Value: Single): Single;
+function THermiteKernel.Filter(Value: TFloat): TFloat;
 var
   Z: Integer;
-  t, t2, t3, m0, m1, a0, a1, a2, a3: Single;
+  t, t2, t3, m0, m1, a0, a1, a2, a3: TFloat;
 begin
   t := (1 - FTension) * 0.5;
   m0 := (1 + FBias) * t;
@@ -2405,7 +2405,7 @@ begin
   end;
 end;
 
-function THermiteKernel.GetWidth: Single;
+function THermiteKernel.GetWidth: TFloat;
 begin
   Result := 2;
 end;
@@ -2415,7 +2415,7 @@ begin
   Result := True;
 end;
 
-procedure THermiteKernel.SetBias(const Value: Single);
+procedure THermiteKernel.SetBias(const Value: TFloat);
 begin
   if FBias <> Value then
   begin
@@ -2424,7 +2424,7 @@ begin
   end;
 end;
 
-procedure THermiteKernel.SetTension(const Value: Single);
+procedure THermiteKernel.SetTension(const Value: TFloat);
 begin
   if FTension <> Value then
   begin
@@ -2529,12 +2529,12 @@ begin
 end;
 
 {$WARNINGS OFF}
-function TKernelResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TKernelResampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   clX, clY: Integer;
   fracX, fracY: Integer;
-  fracXS: Single absolute fracX;
-  fracYS: Single absolute fracY;
+  fracXS: TFloat absolute fracX;
+  fracYS: TFloat absolute fracY;
 
   Filter: TFilterMethod;
   WrapProc: TWrapProcEx absolute Filter;
@@ -2776,7 +2776,7 @@ begin
 end;
 {$WARNINGS ON}
 
-function TKernelResampler.GetWidth: Single;
+function TKernelResampler.GetWidth: TFloat;
 begin
   Result := Kernel.GetWidth;
 end;
@@ -2819,7 +2819,7 @@ end;
 procedure TKernelResampler.PrepareSampling;
 var
   I, J, W, Weight, Dev: Integer;
-  Fraction: Single;
+  Fraction: TFloat;
   KernelPtr: PKernelEntry;
 begin
   inherited;
@@ -2870,12 +2870,12 @@ begin
   Result := FGetSampleInt(FixedRound(X), FixedRound(Y));
 end;
 
-function TNearestResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TNearestResampler.GetSampleFloat(X, Y: TFloat): TColor32;
 begin
   Result := FGetSampleInt(Round(X), Round(Y));
 end;
 
-function TNearestResampler.GetWidth: Single;
+function TNearestResampler.GetWidth: TFloat;
 begin
   Result := 1;
 end;
@@ -2918,7 +2918,7 @@ begin
   Result := FGetSampleFixed(X, Y);
 end;
 
-function TLinearResampler.GetSampleFloat(X, Y: Single): TColor32;
+function TLinearResampler.GetSampleFloat(X, Y: TFloat): TColor32;
 begin
   Result := FGetSampleFixed(Round(X * FixedOne), Round(Y * FixedOne));
 end;
@@ -2933,7 +2933,7 @@ begin
   end;
 end;
 
-function TLinearResampler.GetWidth: Single;
+function TLinearResampler.GetWidth: TFloat;
 begin
   Result := 1;
 end;
@@ -2943,7 +2943,7 @@ procedure TLinearResampler.Resample(
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
-  SrcW, SrcH: Single;
+  SrcW, SrcH: TFloat;
   DstW, DstH: Integer;
 begin
   SrcW := SrcRect.Right - SrcRect.Left;
@@ -2983,9 +2983,9 @@ begin
   Result := FGetSampleFixed(U, V);
 end;
 
-function TTransformer.GetSampleFloat(X, Y: Single): TColor32;
+function TTransformer.GetSampleFloat(X, Y: TFloat): TColor32;
 var
-  U, V: Single;
+  U, V: TFloat;
 begin
   FTransformationReverseTransformFloat(X, Y, U, V);
   Result := FGetSampleFloat(U, V);
@@ -3042,9 +3042,9 @@ begin
   Result := FGetSampleInt(U shr 16, V shr 16);
 end;
 
-function TNearestTransformer.GetSampleFloat(X, Y: Single): TColor32;
+function TNearestTransformer.GetSampleFloat(X, Y: TFloat): TColor32;
 var
-  U, V: Single;
+  U, V: TFloat;
 begin
   FTransformationReverseTransformFloat(X, Y, U, V);
   Result := FGetSampleInt(Round(U), Round(V));
