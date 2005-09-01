@@ -29,6 +29,8 @@ unit GR32_Resamplers;
 
 interface
 
+{$I GR32.inc}
+
 uses
   Windows, Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
   GR32_OrdinalMaps, GR32_Blend;
