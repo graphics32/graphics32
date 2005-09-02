@@ -56,7 +56,7 @@ type
   TColor32 = type Cardinal;
 
   PColor32Array = ^TColor32Array;
-  TColor32Array = array [0..MaxListSize-1] of TColor32;
+  TColor32Array = array [0..0] of TColor32;
   TArrayOfColor32 = array of TColor32;
 
   PColor32Entry = ^TColor32Entry;

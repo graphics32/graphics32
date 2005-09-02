@@ -850,6 +850,9 @@ procedure BlockTransferX(
   Dst: TBitmap32; DstX, DstY: TFixed;
   Src: TBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
+type
+  TColor32Array = array [0..1] of TColor32;
+  PColor32Array = ^TColor32Array;
 var
   I, Index, SrcW, SrcRectW, SrcRectH, DstW, DstH: Integer;
   FracX, FracY: Integer;
