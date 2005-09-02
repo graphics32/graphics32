@@ -508,8 +508,8 @@ begin
     GetViewportShift(ShiftX, ShiftY);
     GetViewportScale(ScaleX, ScaleY);
 
-    Result.X := APoint.X / ScaleX - ShiftX;
-    Result.Y := APoint.Y / ScaleY - ShiftY;
+    Result.X := (APoint.X - ShiftX) / ScaleX;
+    Result.Y := (APoint.Y - ShiftY) / ScaleY;
   end
   else
     Result := APoint;
