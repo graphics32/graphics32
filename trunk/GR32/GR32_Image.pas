@@ -569,7 +569,7 @@ type
 
 implementation
 
-uses 
+uses
   Math, TypInfo, GR32_MicroTiles;
 
 type
@@ -938,13 +938,13 @@ begin
       QPainter_end(FBuffer.Handle);
     end;
 {$ELSE}
-    if FInvalidRects.Count > 0 then
-      for i := 0 to FInvalidRects.Count - 1 do
-        with FInvalidRects[i]^ do
-          BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY)
-    else
-      with GetViewportRect do
-        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
+  if FInvalidRects.Count > 0 then
+    for i := 0 to FInvalidRects.Count - 1 do
+      with FInvalidRects[i]^ do
+        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY)
+  else
+    with GetViewportRect do
+      BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
 {$ENDIF}
   finally
     FBuffer.Unlock;
@@ -1051,17 +1051,8 @@ end;
 
 procedure TCustomPaintBox32.WMPaint(var Message: TMessage);
 begin
-  if CustomRepaint then
-  begin
-    if InvalidRectsAvailable then
-      // BeginPaint deeper might set invalid clipping, so we call Paint here
-      // to force repaint of our invalid rects...
-      Paint
-    else
-      // no invalid rects available? Invalidate the whole client area
-      InvalidateRect(Handle, nil, False);
-  end;
-
+  DoPrepareInvalidRects;
+  InvalidateRect(Handle, nil, False);
   inherited;
 end;
 {$ENDIF}
@@ -1227,7 +1218,6 @@ begin
       end;
     end;
   end;
-
   BitmapChanged(Area);
 end;
 
