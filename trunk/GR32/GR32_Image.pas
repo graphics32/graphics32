@@ -109,8 +109,6 @@ type
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-    procedure CMInvalidate(var Message: TMessage); message CM_INVALIDATE;
-    procedure WMPaint(var Message: TMessage); message WM_PAINT;
 {$ENDIF}
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
@@ -662,17 +660,6 @@ end;
 { TCustomPaintBox32 }
 
 {$IFNDEF CLX}
-procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
-begin
-  if CustomRepaint and HandleAllocated then
-    // we might have invalid rects, so just go ahead without invalidating
-    // the whole client area...
-    PostMessage(Handle, WM_PAINT, 0, 0)
-  else
-    // no invalid rects, so just invalidate the whole client area...
-    inherited;
-end;
-
 procedure TCustomPaintBox32.CMMouseEnter(var Message: TMessage);
 begin
   inherited;
@@ -909,6 +896,8 @@ begin
 
   if not FBufferValid then
   begin
+    DoPrepareInvalidRects;
+
 {$IFDEF CLX}
     TBitmap32Access(FBuffer).ImageNeeded;
 {$ENDIF}
@@ -1049,12 +1038,6 @@ begin
     Result:= Result and not DLGC_WANTARROWS;
 end;
 
-procedure TCustomPaintBox32.WMPaint(var Message: TMessage);
-begin
-  DoPrepareInvalidRects;
-  InvalidateRect(Handle, nil, False);
-  inherited;
-end;
 {$ENDIF}
 
 procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject;
@@ -1218,6 +1201,7 @@ begin
       end;
     end;
   end;
+
   BitmapChanged(Area);
 end;
 
@@ -1689,7 +1673,7 @@ begin
   inherited;
 
   if TabStop and CanFocus then SetFocus;
-  
+
   if Layers.MouseEvents then
     Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
   else
