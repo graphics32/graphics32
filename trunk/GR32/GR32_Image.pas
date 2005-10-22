@@ -109,6 +109,8 @@ type
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
+    procedure CMInvalidate(var Message: TMessage); message CM_INVALIDATE;
+    procedure WMPaint(var Message: TMessage); message WM_PAINT;
 {$ENDIF}
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
@@ -660,6 +662,17 @@ end;
 { TCustomPaintBox32 }
 
 {$IFNDEF CLX}
+procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
+begin
+  if CustomRepaint and HandleAllocated then
+    // we might have invalid rects, so just go ahead without invalidating
+    // the whole client area...
+    PostMessage(Handle, WM_PAINT, 0, 0)
+  else
+    // no invalid rects, so just invalidate the whole client area...
+    inherited;
+end;
+
 procedure TCustomPaintBox32.CMMouseEnter(var Message: TMessage);
 begin
   inherited;
@@ -896,8 +909,6 @@ begin
 
   if not FBufferValid then
   begin
-    DoPrepareInvalidRects;
-
 {$IFDEF CLX}
     TBitmap32Access(FBuffer).ImageNeeded;
 {$ENDIF}
@@ -927,13 +938,13 @@ begin
       QPainter_end(FBuffer.Handle);
     end;
 {$ELSE}
-  if FInvalidRects.Count > 0 then
-    for i := 0 to FInvalidRects.Count - 1 do
-      with FInvalidRects[i]^ do
-        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY)
-  else
-    with GetViewportRect do
-      BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
+    if FInvalidRects.Count > 0 then
+      for i := 0 to FInvalidRects.Count - 1 do
+        with FInvalidRects[i]^ do
+          BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY)
+    else
+      with GetViewportRect do
+        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
 {$ENDIF}
   finally
     FBuffer.Unlock;
@@ -1038,6 +1049,21 @@ begin
     Result:= Result and not DLGC_WANTARROWS;
 end;
 
+procedure TCustomPaintBox32.WMPaint(var Message: TMessage);
+begin
+  if CustomRepaint then
+  begin
+    if InvalidRectsAvailable then
+      // BeginPaint deeper might set invalid clipping, so we call Paint here
+      // to force repaint of our invalid rects...
+      Paint
+    else
+      // no invalid rects available? Invalidate the whole client area
+      InvalidateRect(Handle, nil, False);
+  end;
+
+  inherited;
+end;
 {$ENDIF}
 
 procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject;
@@ -1239,11 +1265,12 @@ begin
 
   if FUpdateCount = 0 then
   begin
-    if not (csCustomPaint in ControlState) then
+    if not(csCustomPaint in ControlState) then Repaint;
+{     if not (csCustomPaint in ControlState) then
     begin
       FBufferValid := False;
       Paint;
-    end;
+    end; }
     if Assigned(FOnChange) then FOnChange(Self);
   end;
 end;
@@ -1437,22 +1464,22 @@ begin
   end
   else
   begin
-    if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
-      Dest.Clear(C)
-    else
-      with CachedBitmapRect do
+  if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
+    Dest.Clear(C)
+  else
+    with CachedBitmapRect do
+    begin
+      if (Left > 0) or (Right < Width) or (Top > 0) or (Bottom < Height) and
+        not (BitmapAlign = baTile) then
       begin
-        if (Left > 0) or (Right < Width) or (Top > 0) or (Bottom < Height) and
-          not (BitmapAlign = baTile) then
-        begin
-          // clean only the part of the buffer lying around image edges
-          Dest.FillRectS(0, 0, Width, Top, C);          // top
-          Dest.FillRectS(0, Bottom, Width, Height, C);  // bottom
-          Dest.FillRectS(0, Top, Left, Bottom, C);      // left
-          Dest.FillRectS(Right, Top, Width, Bottom, C); // right
+        // clean only the part of the buffer lying around image edges
+        Dest.FillRectS(0, 0, Width, Top, C);          // top
+        Dest.FillRectS(0, Bottom, Width, Height, C);  // bottom
+        Dest.FillRectS(0, Top, Left, Bottom, C);      // left
+        Dest.FillRectS(Right, Top, Width, Bottom, C); // right
         end;
       end;
-  end;
+    end;
 end;
 
 procedure TCustomImage32.ExecClearBuffer(Dest: TBitmap32; StageNum: Integer);
@@ -1689,7 +1716,7 @@ begin
   inherited;
 
   if TabStop and CanFocus then SetFocus;
-
+  
   if Layers.MouseEvents then
     Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
   else
