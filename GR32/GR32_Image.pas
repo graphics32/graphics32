@@ -1239,7 +1239,11 @@ begin
 
   if FUpdateCount = 0 then
   begin
-    if not(csCustomPaint in ControlState) then Repaint;
+    if not (csCustomPaint in ControlState) then
+    begin
+      FBufferValid := False;
+      Paint;
+    end;
     if Assigned(FOnChange) then FOnChange(Self);
   end;
 end;
@@ -1364,6 +1368,7 @@ begin
       end;
   end;
 
+  Buffer.BeginUpdate;
   if FInvalidRects.Count = 0 then
   begin
     Buffer.ClipRect := GetViewportRect;
@@ -1381,6 +1386,7 @@ begin
 
     Buffer.ClipRect := GetViewportRect;
   end;
+  Buffer.EndUpdate;
 
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.EndPaintBuffer;
@@ -1420,23 +1426,33 @@ end;
 procedure TCustomImage32.ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer);
 var
   C: TColor32;
+  I: Integer;
 begin
   C := Color32(Color);
-  if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
-    Dest.Clear(C)
+  if FInvalidRects.Count > 0 then
+  begin
+    for I := 0 to FInvalidRects.Count - 1 do
+      with FInvalidRects[I]^ do
+        Dest.FillRectS(Left, Top, Right, Bottom, C);
+  end
   else
-    with CachedBitmapRect do
-    begin
-      if (Left > 0) or (Right < Width) or (Top > 0) or (Bottom < Height) and
-        not (BitmapAlign = baTile) then
+  begin
+    if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
+      Dest.Clear(C)
+    else
+      with CachedBitmapRect do
       begin
-        // clean only the part of the buffer lying around image edges
-        Dest.FillRectS(0, 0, Width, Top, C);          // top
-        Dest.FillRectS(0, Bottom, Width, Height, C);  // bottom
-        Dest.FillRectS(0, Top, Left, Bottom, C);      // left
-        Dest.FillRectS(Right, Top, Width, Bottom, C); // right
+        if (Left > 0) or (Right < Width) or (Top > 0) or (Bottom < Height) and
+          not (BitmapAlign = baTile) then
+        begin
+          // clean only the part of the buffer lying around image edges
+          Dest.FillRectS(0, 0, Width, Top, C);          // top
+          Dest.FillRectS(0, Bottom, Width, Height, C);  // bottom
+          Dest.FillRectS(0, Top, Left, Bottom, C);      // left
+          Dest.FillRectS(Right, Top, Width, Bottom, C); // right
+        end;
       end;
-    end;
+  end;
 end;
 
 procedure TCustomImage32.ExecClearBuffer(Dest: TBitmap32; StageNum: Integer);
