@@ -22,12 +22,11 @@ type
     FResized: Boolean;
     FRenderThread: TRenderThread;
     FOldAreaChanged: TAreaChangedEvent;
-    FBitmapAlign: TBitmapAlign;
     FDstRect: TRect;
     FRenderMode: TRenderMode;
+    FClearBuffer: Boolean;
     procedure SetRasterizer(const Value: TRasterizer);
     procedure StopRenderThread;
-    procedure SetBitmapAlign(const Value: TBitmapAlign);
     procedure SetDstRect(const Value: TRect);
     procedure SetRenderMode(const Value: TRenderMode);
   protected
@@ -41,13 +40,14 @@ type
     destructor Destroy; override;
     procedure Resize; override;
     procedure Rasterize;
+    property DstRect: TRect read FDstRect write SetDstRect;
   published
     property AutoRasterize: Boolean read FAutoRasterize write FAutoRasterize;
     property Rasterizer: TRasterizer read FRasterizer write SetRasterizer;
     property Buffer;
-    property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
+    property Color;
+    property ClearBuffer: Boolean read FClearBuffer write FClearBuffer;
     property RenderMode: TRenderMode read FRenderMode write SetRenderMode;
-    property DstRect: TRect read FDstRect write SetDstRect;
   end;
   {$ENDIF}
 
@@ -129,10 +129,7 @@ begin
     WM_MOVING: FResized := False;
     WM_EXITSIZEMOVE:
       begin
-        if FResized then
-        begin
-          DoRasterize;
-        end;
+        if FResized then DoRasterize;
         FResized := True;
       end;
     WM_SYSCOMMAND:
@@ -148,19 +145,20 @@ procedure TSyntheticImage32.Rasterize;
 var
   R: TRect;
 begin
-  { clear buffer before rasterization }
-  Buffer.Clear(clBlack32);
-  Invalidate;
+  { Clear buffer before rasterization }
+  if FClearBuffer then
+  begin
+    Buffer.Clear(Color32(Color));
+    Invalidate;
+  end;
 
-  { create rendering thread }
+  { Create rendering thread }
   StopRenderThread;
   FOldAreaChanged := Buffer.OnAreaChanged;
   if FRenderMode = rnmFull then
     R := Rect(0, 0, Width, Height)
   else
     R := FDstRect;
-
-  if Assigned(FRenderThread) then FreeAndNil(FRenderThread);
 
   FRenderThread := TRenderThread.Create(FRasterizer, Buffer, R, False);
   FResized := True;
@@ -173,13 +171,8 @@ end;
 
 procedure TSyntheticImage32.Resize;
 begin
-  StopRenderThread;
+  if not FResized then StopRenderThread;
   inherited;
-end;
-
-procedure TSyntheticImage32.SetBitmapAlign(const Value: TBitmapAlign);
-begin
-  FBitmapAlign := Value;
 end;
 
 procedure TSyntheticImage32.SetDstRect(const Value: TRect);
@@ -242,11 +235,12 @@ end;
 constructor TRenderThread.Create(Rasterizer: TRasterizer; Bitmap: TBitmap32;
   DstRect: TRect; Suspended: Boolean);
 begin
-  inherited Create(Suspended);
+  inherited Create(True);
   FRasterizer := Rasterizer;
   FBitmap := Bitmap;
   FDstRect := DstRect;
   Priority := tpNormal;
+  if not Suspended then Resume;
 end;
 
 procedure TRenderThread.Execute;
@@ -258,7 +252,7 @@ procedure TRenderThread.Rasterize;
 begin
   FRasterizer.Lock;
 
-  // save current AreaChanged handler
+  { Save current AreaChanged handler }
   FOldAreaChanged := FBitmap.OnAreaChanged;
 
   FBitmap.OnAreaChanged := AreaChanged;
@@ -268,7 +262,7 @@ begin
     on EAbort do;
   end;
 
-  // reset old AreaChanged handler
+  { Reset old AreaChanged handler }
   FBitmap.OnAreaChanged := FOldAreaChanged;
 
   Synchronize(FRasterizer.Unlock);
