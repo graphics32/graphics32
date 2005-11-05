@@ -50,7 +50,7 @@ const
   LOB_NO_UPDATE         = $10000000; // 28-th bit
   LOB_NO_CAPTURE        = $08000000; // 27-th bit
   LOB_INVALID           = $04000000; // 26-th bit
-  LOB_RESERVED_25       = $02000000; // 25-th bit
+  LOB_FORCE_UPDATE      = $02000000; // 25-th bit
   LOB_RESERVED_24       = $01000000; // 24-th bit
   LOB_RESERVED_MASK     = $FF000000;
 
@@ -172,13 +172,12 @@ type
     function  GetIndex: Integer;
     function  GetMouseEvents: Boolean;
     function  GetVisible: Boolean;
-    procedure SetCursor(Value: TCursor);
-    procedure SetLayerCollection(Value: TLayerCollection);
-    procedure SetLayerOptions(Value: Cardinal);
     procedure SetMouseEvents(Value: Boolean);
     procedure SetVisible(Value: Boolean);
     function GetInvalid: Boolean;
-    procedure SetInvalid(const Value: Boolean);
+    procedure SetInvalid(Value: Boolean);
+    function GetForceUpdate: Boolean;
+    procedure SetForceUpdate(Value: Boolean);
   protected
     procedure AddNotification(ALayer: TCustomLayer);
     procedure Changing;
@@ -193,7 +192,11 @@ type
     procedure PaintGDI(Canvas: TCanvas); virtual;
     procedure RemoveNotification(ALayer: TCustomLayer);
     procedure SetIndex(Value: Integer); virtual;
+    procedure SetCursor(Value: TCursor); virtual;
+    procedure SetLayerCollection(Value: TLayerCollection); virtual;
+    procedure SetLayerOptions(Value: Cardinal); virtual;
     property Invalid: Boolean read GetInvalid write SetInvalid;
+    property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;    
   public
     constructor Create(ALayerCollection: TLayerCollection); virtual;
     destructor Destroy; override;
@@ -307,6 +310,7 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Notification(ALayer: TCustomLayer); override;
     procedure Paint(Buffer: TBitmap32); override;
+    procedure SetLayerOptions(Value: Cardinal); override;    
     procedure UpdateChildLayer;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
@@ -658,9 +662,9 @@ end;
 
 procedure TCustomLayer.Changed;
 begin
-  Update;
   if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
+    Update;
     if Visible then FLayerCollection.Changed
     else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
@@ -671,9 +675,9 @@ end;
 
 procedure TCustomLayer.Changed(const Rect: TRect);
 begin
-  Update(Rect);
   if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
+    Update(Rect);
     if Visible then FLayerCollection.Changed
     else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
@@ -864,19 +868,28 @@ end;
 
 procedure TCustomLayer.SetMouseEvents(Value: Boolean);
 begin
-  if Value then LayerOptions := LayerOptions or LOB_MOUSE_EVENTS
-  else LayerOptions := LayerOptions and not LOB_MOUSE_EVENTS;
+  if Value then
+    LayerOptions := LayerOptions or LOB_MOUSE_EVENTS
+  else
+    LayerOptions := LayerOptions and not LOB_MOUSE_EVENTS;
 end;
 
 procedure TCustomLayer.SetVisible(Value: Boolean);
 begin
-  if Value then LayerOptions := LayerOptions or LOB_VISIBLE
-  else LayerOptions := LayerOptions and not LOB_VISIBLE;
+  if Value then
+    LayerOptions := LayerOptions or LOB_VISIBLE
+  else
+  begin
+    ForceUpdate := True;
+    LayerOptions := LayerOptions and not LOB_VISIBLE;
+    ForceUpdate := False;    
+  end;
 end;
 
 procedure TCustomLayer.Update;
 begin
-  if Assigned(FLayerCollection) and Visible then
+  if Assigned(FLayerCollection) and
+    (Visible or (LayerOptions and LOB_FORCE_UPDATE <> 0)) then
     FLayerCollection.DoUpdateLayer(Self);
 end;
 
@@ -891,12 +904,29 @@ begin
   Result := LayerOptions and LOB_INVALID <> 0;
 end;
 
-procedure TCustomLayer.SetInvalid(const Value: Boolean);
+procedure TCustomLayer.SetInvalid(Value: Boolean);
 begin
   // don't use LayerOptions here since this is internal and we don't want to
   // trigger Changing and Changed as this will definitely cause a stack overflow.
-  if Value then FLayerOptions := FLayerOptions or LOB_INVALID
-  else FLayerOptions := FLayerOptions and not LOB_INVALID;
+  if Value then
+    FLayerOptions := FLayerOptions or LOB_INVALID
+  else
+    FLayerOptions := FLayerOptions and not LOB_INVALID;
+end;
+
+function TCustomLayer.GetForceUpdate: Boolean;
+begin
+  Result := LayerOptions and LOB_FORCE_UPDATE <> 0;
+end;
+
+procedure TCustomLayer.SetForceUpdate(Value: Boolean);
+begin
+  // don't use LayerOptions here since this is internal and we don't want to
+  // trigger Changing and Changed as this will definitely cause a stack overflow.
+  if Value then
+    FLayerOptions := FLayerOptions or LOB_FORCE_UPDATE
+  else
+    FLayerOptions := FLayerOptions and not LOB_FORCE_UPDATE;
 end;
 
 { TPositionedLayer }
@@ -1235,11 +1265,6 @@ procedure TRubberbandLayer.Notification(ALayer: TCustomLayer);
 begin
   if ALayer = FChildLayer then
     FChildLayer := nil;
-
-  if Assigned(FChildLayer) then
-    FLayerOptions := FLayerOptions or LOB_NO_UPDATE
-  else
-    FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
 end;
 
 procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
@@ -1296,11 +1321,6 @@ begin
     Scaled := Value.Scaled;
     AddNotification(FChildLayer);
   end;
-
-  if Assigned(FChildLayer) then
-    FLayerOptions := FLayerOptions or LOB_NO_UPDATE
-  else
-    FLayerOptions := FLayerOptions and not LOB_NO_UPDATE;
 end;
 
 procedure TRubberbandLayer.SetHandleFill(Value: TColor32);
@@ -1370,6 +1390,13 @@ begin
     FFrameStippleCounter := Value;
     FLayerCollection.GDIUpdate;
   end;
+end;
+
+procedure TRubberbandLayer.SetLayerOptions(Value: Cardinal);
+begin
+  Changing;
+  FLayerOptions := Value and not LOB_NO_UPDATE; // workaround for changed behaviour
+  Changed;
 end;
 
 end.
