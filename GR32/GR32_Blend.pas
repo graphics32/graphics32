@@ -199,7 +199,7 @@ asm
   // GR32_Blend.pas.171: if X >= 0 then
     jl @5
   // GR32_Blend.pas.172: Result.R := PR[PF[X] + Result.R]
-    movzx eax,[edi+eax]
+    movzx eax,byte ptr[edi+eax]
     and ecx,$000000ff
     add eax,ecx
     mov al,[esi+eax]
@@ -208,7 +208,7 @@ asm
 @5:
   // GR32_Blend.pas.252: Result.R := PR[Result.R - PF[-X]];
     neg eax
-    movzx eax,[edi+eax]
+    movzx eax,byte ptr[edi+eax]
     xor ecx,ecx
     mov cl,[esp+$0a]
     sub ecx,eax
@@ -232,7 +232,7 @@ asm
   // GR32_Blend.pas.178: if X >= 0 then
     jl @7
   // GR32_Blend.pas.179: Result.G := PR[PF[X] + Result.G]
-    movzx eax,[edi+eax]
+    movzx eax,byte ptr[edi+eax]
     and ecx,$000000ff
     add eax,ecx
     mov al,[esi+eax]
@@ -241,7 +241,7 @@ asm
 @7:
   // GR32_Blend.pas.259: Result.G := PR[Result.G - PF[-X]];
     neg eax
-    movzx eax,[edi+eax]
+    movzx eax,byte ptr[edi+eax]
     xor ecx,ecx
     mov cl,[esp+$09]
     sub ecx,eax
@@ -265,7 +265,7 @@ asm
   // GR32_Blend.pas.185: if X >= 0 then
     jl @9
   // GR32_Blend.pas.186: Result.B := PR[PF[X] + Result.B]
-    movzx eax,[edi+eax]
+    movzx eax,byte ptr[edi+eax]
     xor edx,edx
     mov dl,cl
     add eax,edx
@@ -275,7 +275,7 @@ asm
 @9:
   // GR32_Blend.pas.266: Result.B := PR[Result.B - PF[-X]];
     neg eax
-    movzx eax,[edi+eax]
+    movzx eax,byte ptr[edi+eax]
     xor edx,edx
     mov dl,cl
     sub edx,eax
@@ -1587,15 +1587,15 @@ end;
 
 function M_ColorScale(C, W: TColor32): TColor32;
 asm
-        PXOR      MM2,MM2
+        db $0F,$EF,$D2           /// PXOR      MM2,MM2
         SHL       EDX,3
-        MOVD      MM0,EAX
-        PUNPCKLBW MM0,MM2
+        db $0F,$6E,$C0           /// MOVD      MM0,EAX
+        db $0F,$60,$C2           /// PUNPCKLBW MM0,MM2
         ADD       EDX,alpha_ptr
-        PMULLW    MM0,[EDX]
-        PSRLW     MM0,8
-        PACKUSWB  MM0,MM2
-        MOVD      EAX,MM0
+        db $0F,$D5,$02           /// PMULLW    MM0,[EDX]
+        db $0F,$71,$D0,$08       /// PSRLW     MM0,8
+        db $0F,$67,$C2           /// PACKUSWB  MM0,MM2
+        db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
 
