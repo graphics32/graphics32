@@ -30,7 +30,7 @@ unit BrushAuxiliaries;
 interface
 
 uses
-  Classes, Math, GR32, GR32_Layers;
+  Classes, GR32, GR32_Layers;
 
 type
   { TBrushLayer }
@@ -69,6 +69,8 @@ function FeatherFunc(R, Feather: Single): Single;
 
 implementation
 
+uses Math, GR32_LowLevel;
+
 function PinchPop(X, Pinch: Single): Single;
 begin
   if (X <= -1) or (X >= 1) then
@@ -105,7 +107,7 @@ begin
   begin
     Feather := 1 / Feather;
     Result := (1 - R) * Feather;
-    Result := EnsureRange(Result, 0, 1);
+    Result := Constrain(Result, 0, 1);
   end;
 end;
 
@@ -162,7 +164,7 @@ begin
   R := Hypot(X, Y);
   Result := PinchPop(R, Pinch);
   Result := Result * FeatherFunc(R, Feather);
-  Result := EnsureRange(Result * Pressure, 0, 1);
+  Result := Constrain(Result * Pressure, 0, 1);
 end;
 
 constructor TGenericBrush.Create;
