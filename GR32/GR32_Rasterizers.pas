@@ -311,7 +311,7 @@ begin
     end;
   end;
   with DstRect do
-    Dst.Changed(Rect(Left, Bottom - UpdateCount, Right, Bottom));
+    Dst.Changed(Rect(Left, Bottom - UpdateCount - 1, Right, Bottom));
 end;
 
 { TSwizzlingRasterizer }
@@ -452,7 +452,7 @@ begin
     end;
     Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
     if DoUpdate and FUpdateRows then
-      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, J + Step), AREAINFO_RECT);
+      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, B), AREAINFO_RECT);
     Inc(J, Step);
   end;
   if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
@@ -484,7 +484,7 @@ begin
       X := DstRect.Left + Wk shl Shift;
       Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
       if FUpdateRows and DoUpdate then
-        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, Y + Step), AREAINFO_RECT);
+        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, B), AREAINFO_RECT);
     end;
     if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
   end;
@@ -528,7 +528,7 @@ var
       X2 := X + HalfWidth;
       for I := Y + 1 to Y + Height - 1 do
         AssignColor(Dst.PixelPtr[X2, I]^, GetSample(X2, I));
-      Dst.Changed(Rect(X2, Y + 1, X2 + 1, Y + Height));
+      Dst.Changed(Rect(X2, Y, X2 + 1, Y + Height));
       SplitHorizontal(X, Y, HalfWidth, Height);
       SplitHorizontal(X2, Y, Width - HalfWidth, Height);
     end;
@@ -544,7 +544,7 @@ var
       Y2 := Y + HalfHeight;
       for I := X + 1 to X + Width - 1 do
         AssignColor(Dst.PixelPtr[I, Y2]^, GetSample(I, Y2));
-      Dst.Changed(Rect(X + 1, Y2, X + Width, Y2 + 1));
+      Dst.Changed(Rect(X, Y2, X + Width, Y2 + 1));
       SplitVertical(X, Y, Width, HalfHeight);
       SplitVertical(X, Y2, Width, Height - HalfHeight);
     end;
