@@ -27,10 +27,10 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs,  Math, StdCtrls, ExtCtrls, Jpeg,
-  GR32, GR32_Image, GR32_Blend, GR32_RangeBars, GR32_Resamplers;
-  
+  GR32_Image, GR32_RangeBars;
+
 type
   TMainForm = class(TForm)
     MasterAlphaBar: TGaugeBar;
@@ -64,6 +64,9 @@ implementation
 
 {$R *.dfm}
 
+uses
+  GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
+
 var
   ColorAlgebraReg: TBlendReg;
 
@@ -90,6 +93,8 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  BlendBox.ItemIndex := 0;
+  
   // Load the textures (note size 256x256 is implicity expected!)
   TexAImg.Bitmap.LoadFromFile('..\..\..\Media\texture_a.jpg');
   TexBImg.Bitmap.LoadFromFile('..\..\..\Media\texture_b.jpg');
@@ -142,7 +147,7 @@ begin
     begin
       x := Cos(I * nS + (PI * a));
       y := Sin(J * nS * (PI * c));
-      W := Round(EnsureRange(Abs(Min(GenerateSomething(x * c, y),
+      W := Round(Constrain(Abs(Min(GenerateSomething(x * c, y),
         GenerateSomething(y + c , x * a))) * 200, 0, 255));
       if c > 0 then
         WImg^ := ColorDifference(WImg^, $FF000000 + W shl 16 + W shl 8 + W)

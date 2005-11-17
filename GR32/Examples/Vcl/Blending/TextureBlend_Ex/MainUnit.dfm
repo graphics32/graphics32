@@ -157,9 +157,7 @@ object MainForm: TMainForm
     Height = 21
     Style = csDropDownList
     ItemHeight = 13
-    ItemIndex = 0
     TabOrder = 1
-    Text = 'Normal'
     OnChange = MasterAlphaBarChange
     Items.Strings = (
       'Normal'
@@ -183,7 +181,7 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smNormal
     TabOrder = 2
   end
@@ -196,7 +194,7 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smNormal
     TabOrder = 3
   end
@@ -209,7 +207,7 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smNormal
     TabOrder = 4
   end
@@ -222,7 +220,7 @@ object MainForm: TMainForm
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smNormal
     TabOrder = 5
   end

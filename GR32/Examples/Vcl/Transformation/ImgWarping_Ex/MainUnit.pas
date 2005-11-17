@@ -30,8 +30,10 @@ unit MainUnit;
 
 interface
 
+{$I GR32.INC}
+
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, GR32, GR32_Image, GR32_Transforms, GR32_VectorMaps,
   GR32_Layers, StdCtrls, ComCtrls, Math, GR32_Blend, GR32_RangeBars,
   ExtDlgs, jpeg, GR32_Rasterizers, GR32_Resamplers, GR32_Math, Menus,
@@ -258,7 +260,9 @@ begin
     Item.Caption := KERNELS[J].ClassName;
     Item.Tag := J;
     Item.OnClick := KernelChanged;
+    {$IFDEF DELPHI6}
     Item.AutoCheck := True;
+    {$ENDIF}
     Item.RadioItem := True;
     if J = KernelIndex then Item.Checked := True;
     mSamplingKernel.Add(Item);

@@ -30,7 +30,7 @@ object MainForm: TMainForm
     Left = 482
     Top = 0
     Width = 141
-    Height = 623
+    Height = 620
     Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
@@ -307,12 +307,12 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 482
-    Height = 623
+    Height = 620
     Align = alClient
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
     RepaintMode = rmOptimizer
-    Scale = 1.000000000000000000
+    Scale = 1
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Visibility = svAuto
@@ -407,21 +407,18 @@ object MainForm: TMainForm
       object mKernelMode: TMenuItem
         Caption = 'KernelMode'
         object mKmDefault: TMenuItem
-          AutoCheck = True
           Caption = 'kmDefault (slow, but exact)'
           RadioItem = True
           OnClick = mkmDefaultClick
         end
         object mKmTableNearest: TMenuItem
           Tag = 1
-          AutoCheck = True
           Caption = 'kmTableNearest (fastest, "curve" sampling)'
           RadioItem = True
           OnClick = mkmDefaultClick
         end
         object mKmTableLinear: TMenuItem
           Tag = 2
-          AutoCheck = True
           Caption = 'kmTableLinear (fast, "curve" approximation)'
           Checked = True
           RadioItem = True
@@ -432,13 +429,11 @@ object MainForm: TMainForm
         Caption = 'Sampling Grid'
         object m2x2: TMenuItem
           Tag = 2
-          AutoCheck = True
           Caption = '2x2'
           OnClick = m3x3Click
         end
         object m3x3: TMenuItem
           Tag = 3
-          AutoCheck = True
           Caption = '3x3'
           Checked = True
           RadioItem = True
@@ -446,14 +441,12 @@ object MainForm: TMainForm
         end
         object m5x5: TMenuItem
           Tag = 5
-          AutoCheck = True
           Caption = '5x5'
           RadioItem = True
           OnClick = m3x3Click
         end
         object m7x7: TMenuItem
           Tag = 7
-          AutoCheck = True
           Caption = '7x7'
           RadioItem = True
           OnClick = m3x3Click
@@ -463,7 +456,6 @@ object MainForm: TMainForm
         Caption = '-'
       end
       object mBilinearWarp: TMenuItem
-        AutoCheck = True
         Caption = 'Bilinear Warp'
         Checked = True
         OnClick = Bi1Click
