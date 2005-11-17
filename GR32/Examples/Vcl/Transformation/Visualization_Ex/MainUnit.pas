@@ -28,10 +28,12 @@ unit MainUnit;
 
 interface
 
+{I GR32.INC}
+
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Menus, Math, GR32, GR32_Blend, GR32_Image, GR32_VectorMaps,
-  ExtCtrls, GR32_Lowlevel, StdCtrls, GR32_Math, GR32_ExtImage, GR32_Rasterizers;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Menus, StdCtrls, ExtCtrls, GR32, GR32_Image, GR32_VectorMaps, GR32_ExtImage,
+  GR32_Rasterizers;
 
 type
   TMainForm = class(TForm)
@@ -82,6 +84,9 @@ var
 implementation
 
 {$R *.dfm}
+
+uses
+  Math, GR32_Lowlevel, GR32_Math, GR32_Blend;
 
 var
   MovementIndex : Integer = 9;
@@ -197,6 +202,23 @@ const
   Movements : array [1..9] of TMovementProc = (Movement1, Movement2, Movement3,
     Movement4, Movement5, Movement6, Movement7, Movement8, Movement9);
 
+
+{ Delphi 5 compatibility }
+
+{$IFNDEF DELPHI6}
+function InRange(const AValue, AMin, AMax: Double): Boolean;
+begin
+  Result := (AValue >= AMin) and (AValue <= AMax);
+end;
+
+function TryStrToInt(const S: string; out Value: Integer): Boolean;
+var
+  E: Integer;
+begin
+  Val(S, Value, E);
+  Result := E = 0;
+end;
+{$ENDIF}
 
 procedure FastRemap(Src, Dst: TBitmap32; VectorMap: TVectorMap);
 var
@@ -445,7 +467,7 @@ begin
     TimeDarkening := - Round(7 * Activity);
     FeedBack := Activity;
   end;
-  MovementIndex := EnsureRange(Random(10), 1, 9);
+  MovementIndex := Constrain(Random(10), 1, 9);
   RenderMovement;
   ShowHelp := False;
 end;
@@ -558,14 +580,14 @@ begin
       PathAngle := PathAngle - PathStep;
       if not InRange(PathAngle, 0, PI2) then
       begin
-        EnsureRange(PathAngle, 0, PI2);
+        Constrain(PathAngle, 0, PI2);
         PathStep := - PathStep;
       end;
 
       PathRadius := PathRadius - PathRadiusStep;
       if not InRange(Abs(PathRadius), 1, Min(CX, CY) * Random) then
       begin
-        EnsureRange(PathRadius, 1, Min(CX, CY));
+        Constrain(PathRadius, 1, Min(CX, CY));
         PathRadiusStep := - PathRadiusStep;
       end;
 
@@ -578,10 +600,10 @@ begin
         L1 := LastPoint[I][1];
         with LastPoint[I][0] do
         begin
-          OX := EnsureRange(X - L1.X, -2, 2) + Random(3) - 1 + X;
-          OY := EnsureRange(Y - L1.Y, -2, 2) + Random(3) - 1 + Y;
-          OX := EnsureRange(OX, CX - 60, CX + 80);
-          OY := EnsureRange(OY, CY - 40, CY + 60);
+          OX := Constrain(X - L1.X, -2, 2) + Random(3) - 1 + X;
+          OY := Constrain(Y - L1.Y, -2, 2) + Random(3) - 1 + Y;
+          OX := Constrain(OX, CX - 60, CX + 80);
+          OY := Constrain(OY, CY - 40, CY + 60);
           LineS(X, Y, OX, OY, HSLtoRGB(Hue - 0.2 * random, Sat, 0));
           LineS(X, Y+1, OX, OY+1, HSLtoRGB(Hue, Sat, 0.4));
           LineS(X, Y-1, OX, OY-1, HSLtoRGB(Hue, Sat, 0.6));
@@ -600,19 +622,19 @@ begin
   Hue := Hue + (Random - 0.15) * HueIncreaser;
   if (Hue > 1) or (Hue < 0) then
   begin
-    Hue := EnsureRange(Hue, 0, 1);
+    Hue := Constrain(Hue, 0, 1);
     HueIncreaser := - HueIncreaser;
   end;
   Sat := Sat + (Random - 0.15) * SatIncreaser;
   if (Sat > 0.75) or (Sat < 0.25) then
   begin
-    Sat := EnsureRange(Sat, 0.25, 0.75);
+    Sat := Constrain(Sat, 0.25, 0.75);
     SatIncreaser := - SatIncreaser;
   end;
   Lns := Lns + (Random - 0.15) * LnsIncreaser;
   if (Lns > 1) or (Lns < 0) then
   begin
-    Lns := EnsureRange(Lns, 0, 1);
+    Lns := Constrain(Lns, 0, 1);
     LnsIncreaser := - LnsIncreaser;
   end;
   ARandomNumber := Random;
