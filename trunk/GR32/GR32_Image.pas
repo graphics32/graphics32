@@ -1266,11 +1266,6 @@ begin
   if FUpdateCount = 0 then
   begin
     if not(csCustomPaint in ControlState) then Repaint;
-{     if not (csCustomPaint in ControlState) then
-    begin
-      FBufferValid := False;
-      Paint;
-    end; }
     if Assigned(FOnChange) then FOnChange(Self);
   end;
 end;
