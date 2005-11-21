@@ -36,7 +36,13 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  GR32, SysUtils, RTLConsts, GR32_LowLevel, Classes;
+  {$IFDEF COMPILER6}RTLConsts, {$ENDIF}
+  GR32, SysUtils, GR32_LowLevel, Classes;
+
+{$IFNDEF COMPILER6}
+const
+  SItemNotFound = 'Item not found ($0%x)';
+{$ENDIF}
 
 const
   BUCKET_MASK = $FF;               
