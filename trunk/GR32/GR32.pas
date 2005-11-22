@@ -153,7 +153,7 @@ type
 
   // TFloat determines the precision level for certain floating-point operations 
   PFloat = ^TFloat;
-  TFloat = type Single;
+  TFloat = Single;
 
 { Other dynamic arrays }
 type
