@@ -846,6 +846,7 @@ begin
     DstY + SrcRect.Bottom - SrcRect.Top));
 end;
 
+{$WARNINGS OFF}
 procedure BlockTransferX(
   Dst: TBitmap32; DstX, DstY: TFixed;
   Src: TBitmap32; SrcRect: TRect;
@@ -1056,6 +1057,7 @@ begin
   end;
   Dst.Changed(Rect(DstX, DstY, DstX + SrcRectW + 1, DstY + SrcRectH + 1));
 end;
+{$WARNINGS ON}
 
 procedure BlendTransfer(
   Dst: TBitmap32; DstX, DstY: Integer; DstClip: TRect;
