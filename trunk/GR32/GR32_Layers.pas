@@ -247,7 +247,7 @@ type
     FBitmap: TBitmap32;
     FAlphaHit: Boolean;
     FCropped: Boolean;
-    procedure BitmapChanged(Sender: TObject);
+    procedure BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure SetBitmap(Value: TBitmap32);
     procedure SetCropped(Value: Boolean);
   protected
@@ -332,7 +332,9 @@ type
 
 implementation
 
-uses TypInfo, GR32_Image, GR32_LowLevel, GR32_Transforms, GR32_Resamplers;
+uses
+  TypInfo, GR32_Image, GR32_LowLevel, GR32_Transforms, GR32_Resamplers,
+  GR32_RepaintOpt;
 
 { mouse state mapping }
 const
@@ -1000,16 +1002,38 @@ end;
 
 { TBitmapLayer }
 
-procedure TBitmapLayer.BitmapChanged(Sender: TObject);
+procedure TBitmapLayer.BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
+var
+  T: TRect;
+  ScaleX, ScaleY: Single;
+  Width: Integer;
 begin
-  Changed;
+  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  begin
+    with GetAdjustedLocation do
+    begin
+      { TODO : Optimize me! }
+      ScaleX := (Right - Left) / FBitmap.Width;
+      ScaleY := (Bottom - Top) / FBitmap.Height;
+
+      T.Left := Floor(Left + Area.Left * ScaleX);
+      T.Top := Floor(Top + Area.Top * ScaleY);
+      T.Right := Ceil(Left + Area.Right * ScaleX);
+      T.Bottom := Ceil(Top + Area.Bottom * ScaleY);
+    end;
+
+    Width := Trunc(FBitmap.Resampler.Width) + 1;
+    InflateArea(T, Width, Width);
+
+    Changed(T);
+  end;
 end;
 
 constructor TBitmapLayer.Create(ALayerCollection: TLayerCollection);
 begin
   inherited;
   FBitmap := TBitmap32.Create;
-  FBitmap.OnChange := BitmapChanged;
+  FBitmap.OnAreaChanged := BitmapAreaChanged;
 end;
 
 function TBitmapLayer.DoHitTest(X, Y: Integer): Boolean;
