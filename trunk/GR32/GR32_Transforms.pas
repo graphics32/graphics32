@@ -72,7 +72,7 @@ function Mult(const M1, M2: TFloatMatrix): TFloatMatrix;
 function VectorTransform(const M: TFloatMatrix; const V: TVector3f): TVector3f;
 
 type
-  TTransformation = class(TPersistent)
+  TTransformation = class(TNotifiablePersistent)
   private
     FSrcRect: TFloatRect;
     procedure SetSrcRect(const Value: TFloatRect);
@@ -86,6 +86,7 @@ type
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual;
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); virtual;
   public
+    procedure Changed; override;
     function HasTransformedBounds: Boolean; virtual;
     function GetTransformedBounds: TRect; overload;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; overload; virtual;
@@ -475,6 +476,12 @@ begin
   Result := GetTransformedBounds(FSrcRect);
 end;
 
+procedure TTransformation.Changed;
+begin
+  TransformValid := False;
+  inherited;
+end;
+
 function TTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
 begin
   Result := MakeRect(ASrcRect);
@@ -492,19 +499,19 @@ end;
 
 function TTransformation.ReverseTransform(const P: TFloatPoint): TFloatPoint;
 begin
-  If not TransformValid then PrepareTransform;
+  if not TransformValid then PrepareTransform;
   ReverseTransformFloat(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.ReverseTransform(const P: TFixedPoint): TFixedPoint;
 begin
-  If not TransformValid then PrepareTransform;
+  if not TransformValid then PrepareTransform;
   ReverseTransformFixed(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.ReverseTransform(const P: TPoint): TPoint;
 begin
-  If not TransformValid then PrepareTransform;
+  if not TransformValid then PrepareTransform;
   ReverseTransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
@@ -538,7 +545,7 @@ end;
 procedure TTransformation.SetSrcRect(const Value: TFloatRect);
 begin
   FSrcRect := Value;
-  TransformValid := False;
+  Changed;
 end;
 
 function TTransformation.Transform(const P: TFloatPoint): TFloatPoint;
@@ -589,7 +596,7 @@ end;
 procedure TAffineTransformation.Clear;
 begin
   Matrix := IdentityMatrix;
-  TransformValid := False;
+  Changed;
 end;
 
 constructor TAffineTransformation.Create;
@@ -632,7 +639,6 @@ var
   S, C: TFloat;
   M: TFloatMatrix;
 begin
-  TransformValid := False;
   if (Cx <> 0) or (Cy <> 0) then Translate(-Cx, -Cy);
   Alpha := DegToRad(Alpha);
   S := Sin(Alpha); C := Cos(Alpha);
@@ -641,28 +647,29 @@ begin
   M[0,1] := -S;  M[1,1] := C;
   Matrix := Mult(M, Matrix);
   if (Cx <> 0) or (Cy <> 0) then Translate(Cx, Cy);
+  Changed;
 end;
 
 procedure TAffineTransformation.Scale(Sx, Sy: TFloat);
 var
   M: TFloatMatrix;
 begin
-  TransformValid := False;
   M := IdentityMatrix;
   M[0,0] := Sx;
   M[1,1] := Sy;
   Matrix := Mult(M, Matrix);
+  Changed;  
 end;
 
 procedure TAffineTransformation.Skew(Fx, Fy: TFloat);
 var
   M: TFloatMatrix;
 begin
-  TransformValid := False;
   M := IdentityMatrix;
   M[1, 0] := Fx;
   M[0, 1] := Fy;
   Matrix := Mult(M, Matrix);
+  Changed;  
 end;
 
 procedure TAffineTransformation.ReverseTransformFloat(
@@ -686,7 +693,7 @@ procedure TAffineTransformation.TransformFloat(
   out DstX, DstY: TFloat);
 begin
   DstX := SrcX * Matrix[0,0] + SrcY * Matrix[1,0] + Matrix[2,0];
-  DstY := SrcY * Matrix[0,1] + SrcY * Matrix[1,1] + Matrix[2,1];
+  DstY := SrcX * Matrix[0,1] + SrcY * Matrix[1,1] + Matrix[2,1];
 end;
 
 procedure TAffineTransformation.TransformFixed(
@@ -701,11 +708,11 @@ procedure TAffineTransformation.Translate(Dx, Dy: TFloat);
 var
   M: TFloatMatrix;
 begin
-  TransformValid := False;
   M := IdentityMatrix;
   M[2,0] := Dx;
   M[2,1] := Dy;
   Matrix := Mult(M, Matrix);
+  Changed;  
 end;
 
 
@@ -796,42 +803,50 @@ end;
 
 procedure TProjectiveTransformation.SetX0(Value: TFloat);
 begin
-  Wx0 := Value;  TransformValid := False;
+  Wx0 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetX1(Value: TFloat);
 begin
-  Wx1 := Value;  TransformValid := False;
+  Wx1 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetX2(Value: TFloat);
 begin
-  Wx2 := Value;  TransformValid := False;
+  Wx2 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetX3(Value: TFloat);
 begin
-  Wx3 := Value;  TransformValid := False;
+  Wx3 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetY0(Value: TFloat);
 begin
-  Wy0 := Value;  TransformValid := False;
+  Wy0 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetY1(Value: TFloat);
 begin
-  Wy1 := Value;  TransformValid := False;
+  Wy1 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetY2(Value: TFloat);
 begin
-  Wy2 := Value;  TransformValid := False;
+  Wy2 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.SetY3(Value: TFloat);
 begin
-  Wy3 := Value;  TransformValid := False;
+  Wy3 := Value;
+  Changed;
 end;
 
 procedure TProjectiveTransformation.ReverseTransformFloat(
@@ -987,7 +1002,7 @@ end;
 procedure TTwirlTransformation.SetTwirl(const Value: TFloat);
 begin
   FTwirl := Value;
-  TransformValid := False;
+  Changed;
 end;
 
 { TBloatTransformation }
@@ -1019,7 +1034,7 @@ end;
 procedure TBloatTransformation.SetBloatPower(const Value: TFloat);
 begin
   FBloatPower := Value;
-  TransformValid := False;
+  Changed;
 end;
 
 { TFishEyeTransformation }
@@ -1092,6 +1107,7 @@ end;
 procedure TDisturbanceTransformation.SetDisturbance(const Value: TFloat);
 begin
   FDisturbance := Value;
+  Changed;  
 end;
 
 { TRemapTransformation }
@@ -1218,12 +1234,13 @@ begin
   FScalingFixed.Y := Fixed(Sy);
   FScalingFloat.X := Sx;
   FScalingFloat.Y := Sy;
+  Changed;  
 end;
 
 procedure TRemapTransformation.SetMappingRect(Rect: TFloatRect);
 begin
   FMappingRect := Rect;
-  TransformValid := False;
+  Changed;
 end;
 
 procedure TRemapTransformation.SetOffset(const Value: TFloatVector);
@@ -1231,7 +1248,7 @@ begin
   FOffset := Value;
   FOffsetInt := Point(Value);
   FOffsetFixed := FixedPoint(Value);
-  TransformValid := False;
+  Changed;
 end;
 
 procedure RasterizeTransformation(Vectormap: TVectormap;
