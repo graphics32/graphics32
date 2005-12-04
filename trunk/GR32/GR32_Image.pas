@@ -527,6 +527,8 @@ type
   private
     FBitmap: TBitmap32;
     procedure SetBitmap(ABitmap: TBitmap32);
+  protected
+    procedure AssignTo(Dest: TPersistent); override;  
   public
     constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
@@ -2451,6 +2453,14 @@ begin
 end;
 
 { TBitmap32Item }
+
+procedure TBitmap32Item.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TBitmap32Item then
+    TBitmap32Item(Dest).Bitmap.Assign(Bitmap)
+  else
+    inherited;
+end;
 
 constructor TBitmap32Item.Create(Collection: TCollection);
 begin
