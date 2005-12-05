@@ -593,7 +593,6 @@ end;
 
 function DrawEdge(const P1, P2: TFixedPoint; const ClipRect: TFixedRect; const ScanLines: TScanLines): Integer;
 var
-  //P: TFixedPoint;
   X, Y: Integer;
   I, K: Integer;
   Dx, Dy, Sx, Sy: Integer;
@@ -808,9 +807,12 @@ begin
     Dec(PPtr);
   end;
 
-  if PrevDirection > 0 then PrevDirection := 1
-  else if PrevDirection < 0 then PrevDirection := -1
-  else PrevDirection := 0;
+  if PrevDirection > 0 then
+    PrevDirection := 1
+  else if PrevDirection < 0 then
+    PrevDirection := -1
+  else
+    PrevDirection := 0;
 
   PPtr := @Points[1];
   for I := 1 to High(Points) do
@@ -1615,11 +1617,11 @@ begin
     Count := Length(Points[J]);
     SetLength(Normals[J], Count);
 
-    if Count = 0 then Exit;
+    if Count = 0 then Continue;
     if Count = 1 then
     begin
       FillChar(Normals[J][0], SizeOf(TFixedPoint), 0);
-      Exit;
+      Continue;
     end;
 
     I := 0;
@@ -1808,8 +1810,10 @@ var
 begin
   BuildNormals;
 
-  if EdgeSharpness > 0.99 then EdgeSharpness := 0.99
-  else if EdgeSharpness < 0 then EdgeSharpness := 0;
+  if EdgeSharpness > 0.99 then
+    EdgeSharpness := 0.99
+  else if EdgeSharpness < 0 then
+    EdgeSharpness := 0;
 
   D := Delta;
   E := Round(D * (1 - EdgeSharpness));
