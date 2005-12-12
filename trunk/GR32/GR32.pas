@@ -1748,7 +1748,12 @@ var
     QPainter_end(Handle);
     PixmapChanged := True;
 {$ELSE}
-    BitBlt(Handle, 0, 0, Width, Height, SrcBmp.Canvas.Handle, 0, 0, SRCCOPY);
+    SrcBmp.Canvas.Lock; // lock to avoid GDI memory leaks, eg. when calling from threads
+    try
+      BitBlt(Handle, 0, 0, Width, Height, SrcBmp.Canvas.Handle, 0, 0, SRCCOPY);
+    finally
+      SrcBmp.Canvas.UnLock;
+    end;       
 {$ENDIF}
     if SrcBmp.PixelFormat <> pf32bit then ResetAlpha;
     if SrcBmp.Transparent then
