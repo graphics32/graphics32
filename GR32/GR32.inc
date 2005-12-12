@@ -1,3 +1,18 @@
+{$IFDEF VER180}
+  {$DEFINE INLININGSUPPORTED}
+  {$DEFINE COMPILER2006}
+  {$DEFINE COMPILER2005}
+  {$DEFINE COMPILER7}
+  {$DEFINE COMPILER6}
+  {$DEFINE COMPILER5}
+  {$DEFINE COMPILER4}
+  {$IFNDEF BCB}
+    {$DEFINE DELPHI2006}
+  {$ELSE}
+    {$DEFINE BCB7}
+  {$ENDIF}
+{$ENDIF}
+
 {$IFDEF VER170}
   {$DEFINE INLININGSUPPORTED}
   {$DEFINE COMPILER2005}
@@ -115,11 +130,6 @@
   {$DEFINE USEINLINING}
 {$ENDIF}
 
-(* Symbol USEFILLCHAR :
-    Defines whether to use FillChar instead of FillLongword. *)
-
-  {-$DEFINE USEFILLCHAR}
-
 
 (* Symbol USEMOVE :
     Defines whether to use Move instead of MoveLongword. *)
@@ -132,7 +142,6 @@
     particular routine over the standard GR32 routine.
 
    GR32_FASTCODEMOVE     - Uses the patched Move routine rather than MoveLongword.
-   GR32_FASTCODEFILLCHAR - Uses the patched FillChar routine rather than FillLongword.
 
    For more information on the FastCode project take a look at this URL:
      http://dennishomepage.gugs-cats.dk/FastCodeProject.htm
@@ -143,10 +152,6 @@
 
 {$IFDEF GR32_FASTCODEMOVE}
   {$DEFINE USEMOVE}
-{$ENDIF}
-
-{$IFDEF GR32_FASTCODEFILLCHAR}
-  {$DEFINE USEFILLCHAR}
 {$ENDIF}
 
 {$R-}{$Q-}  // switch off overflow and range checking
