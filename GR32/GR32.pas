@@ -26,6 +26,7 @@ unit GR32;
  *   Andre Beckedorf <Andre@metaException.de>
  *   Mattias Andersson <mattias@centaurix.com>
  *   J. Tulach <tulach@position.cz>
+ *   Jouni Airaksinen <markvera@spacesynth.net>
  *
  * ***** END LICENSE BLOCK ***** *)
 
