@@ -785,8 +785,6 @@ uses
   GR32_DrawingEx;
 
 var
-  CounterLock: TRTLCriticalSection;
-
 {$IFDEF CLX}
   StockFont: TFont;
 {$ELSE}
@@ -1029,7 +1027,7 @@ begin
   begin
     M := L * 2 - V;
     H := H * 6;
-    VSF := (V - M) * (H and $ff) shr 8;
+    VSF := (V - M) * (H and $FF) shr 8;
     M1 := M + VSF;
     M2 := V - VSF;
     case H shr 8 of
@@ -1039,6 +1037,8 @@ begin
       3: Result := Color32(M, M2, V, 0);
       4: Result := Color32(M1, M, V, 0);
       5: Result := Color32(V, M, M2, 0);
+    else
+      Result := 0;
     end;
   end;
 end;
@@ -1482,18 +1482,14 @@ end;
 
 procedure TThreadPersistent.Lock;
 begin
-  EnterCriticalSection(CounterLock);
-  Inc(FLockCount);
-  LeaveCriticalSection(CounterLock);
+  InterlockedIncrement(FLockCount);
   EnterCriticalSection(FLock);
 end;
 
 procedure TThreadPersistent.Unlock;
 begin
   LeaveCriticalSection(FLock);
-  EnterCriticalSection(CounterLock);
-  Dec(FLockCount);
-  LeaveCriticalSection(CounterLock);
+  InterlockedDecrement(FLockCount);
 end;
 
 
@@ -5614,7 +5610,6 @@ begin
 end;
 
 initialization
-  InitializeCriticalSection(CounterLock);
   SetupFunctions;
   SetGamma;
 {$IFDEF CLX}
@@ -5631,6 +5626,5 @@ finalization
   StockFont.Free;
 {$ENDIF}
   StockBitmap.Free;
-  DeleteCriticalSection(CounterLock);
 
 end.
