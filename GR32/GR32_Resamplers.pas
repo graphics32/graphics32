@@ -88,6 +88,7 @@ type
   protected
     FObserver: TNotifiablePersistent;
   protected
+    procedure AssignTo(Dst: TPersistent); override;
     function RangeCheck: Boolean; virtual;
   public
     constructor Create; virtual;
@@ -256,7 +257,9 @@ type
     FTransformerClass: TTransformerClass;
     FPixelAccessMode: TPixelAccessMode;
     procedure SetPixelAccessMode(const Value: TPixelAccessMode);
-  public      
+  protected
+    procedure AssignTo(Dst: TPersistent); override;
+  public
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     procedure Changed; override;
     procedure PrepareSampling; override;
@@ -297,7 +300,7 @@ type
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
-      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;    
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   public
     constructor Create(Bitmap: TBitmap32); override;
     destructor Destroy; override;
@@ -365,6 +368,8 @@ type
     FGetSampleFixed: TGetSampleFixed;
     FGetSampleFloat: TGetSampleFloat;
     procedure SetSampler(const Value: TCustomSampler);
+  protected
+    procedure AssignTo(Dst: TPersistent); override;
   public
     constructor Create(ASampler: TCustomSampler); reintroduce; virtual; 
     procedure PrepareSampling; override;
@@ -2083,6 +2088,14 @@ end;
 
 { TCustomKernel }
 
+procedure TCustomKernel.AssignTo(Dst: TPersistent);
+begin
+  if Dst is TCustomKernel then
+    SmartAssign(Self, Dst)
+  else
+    inherited;
+end;
+
 procedure TCustomKernel.Changed;
 begin
   if Assigned(FObserver) then FObserver.Changed;
@@ -2442,6 +2455,14 @@ end;
 
 
 { TBitmap32Resampler }
+
+procedure TBitmap32Resampler.AssignTo(Dst: TPersistent);
+begin
+  if Dst is TBitmap32Resampler then
+    SmartAssign(Self, Dst)
+  else
+    inherited;
+end;
 
 procedure TBitmap32Resampler.Changed;
 begin
@@ -3266,6 +3287,14 @@ begin
 end;
 
 { TNestedSampler }
+
+procedure TNestedSampler.AssignTo(Dst: TPersistent);
+begin
+  if Dst is TNestedSampler then
+    SmartAssign(Self, Dst)
+  else
+    inherited;
+end;
 
 constructor TNestedSampler.Create(ASampler: TCustomSampler);
 begin
