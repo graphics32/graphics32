@@ -37,7 +37,7 @@ uses
   Windows,
   {$ENDIF}
   {$IFDEF COMPILER6}RTLConsts, {$ENDIF}
-  GR32, SysUtils, GR32_LowLevel, Classes;
+  GR32, SysUtils, GR32_LowLevel, Classes, TypInfo;
 
 {$IFNDEF COMPILER6}
 const
@@ -180,7 +180,41 @@ type
     property Items[Index: Integer]: TClass read GetItems write SetItems; default;
   end;
 
+procedure SmartAssign(Src, Dst: TPersistent; TypeKinds: TTypeKinds = tkProperties);
+
 implementation
+
+procedure SmartAssign(Src, Dst: TPersistent; TypeKinds: TTypeKinds = tkProperties);
+var
+  Count, I: Integer;
+  Props: PPropList;
+  SubSrc, SubDst: TPersistent;
+begin
+  Count := GetTypeData(Src.ClassInfo).PropCount;
+  if Count = 0 then Exit;
+
+  GetMem(Props, Count * SizeOf(PPropInfo));
+  try
+    Count := GetPropList(Src.ClassInfo, TypeKinds, Props);
+
+    for I := 0 to Count - 1 do
+    with Props^[I]^ do
+    begin
+      if PropType^.Kind = tkClass then
+      begin
+        SubDst := TPersistent(GetObjectProp(Dst, Name));
+        if not Assigned(SubDst) then Continue;
+
+        SubSrc := TPersistent(GetObjectProp(Src, Name));
+        if Assigned(SubSrc) then SubDst.Assign(SubSrc);
+      end
+      else
+        SetPropValue(Dst, Name, GetPropValue(Src, Name, false));
+    end;
+  finally
+    FreeMem(Props, Count * SizeOf(PPropInfo));
+  end;
+end;
 
 { TPointerMap }
 
