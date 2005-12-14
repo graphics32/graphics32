@@ -133,8 +133,8 @@ type
     FAntialiasMode: TAntialiasMode;
   protected
     procedure BuildNormals;
-    procedure AssignProperties(Dest: TPolygon32); virtual;
-    procedure AssignTo(Dest: TPersistent); override;
+    procedure CopyPropertiesTo(Dst: TPolygon32); virtual;
+    procedure AssignTo(Dst: TPersistent); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -1576,24 +1576,24 @@ begin
   Normals := nil;
 end;
 
-procedure TPolygon32.AssignProperties(Dest: TPolygon32);
+procedure TPolygon32.CopyPropertiesTo(Dst: TPolygon32);
 begin
-  Dest.Antialiased := Antialiased;
-  Dest.AntialiasMode := AntialiasMode;
-  Dest.Closed := Closed;
-  Dest.FillMode := FillMode;
+  Dst.Antialiased := Antialiased;
+  Dst.AntialiasMode := AntialiasMode;
+  Dst.Closed := Closed;
+  Dst.FillMode := FillMode;
 end;
 
-procedure TPolygon32.AssignTo(Dest: TPersistent);
+procedure TPolygon32.AssignTo(Dst: TPersistent);
 var
-  DestPolygon: TPolygon32;
+  DstPolygon: TPolygon32;
 begin
-  if Dest is TPolygon32 then
+  if Dst is TPolygon32 then
   begin
-    DestPolygon := TPolygon32(Dest);
-    AssignProperties(DestPolygon);
-    DestPolygon.Normals := Copy(Normals);
-    DestPolygon.Points := Copy(Points);
+    DstPolygon := TPolygon32(Dst);
+    CopyPropertiesTo(DstPolygon);
+    DstPolygon.Normals := Copy(Normals);
+    DstPolygon.Points := Copy(Points);
   end
   else
     inherited;
@@ -1819,7 +1819,7 @@ begin
   E := Round(D * (1 - EdgeSharpness));
 
   Result := TPolygon32.Create;
-  AssignProperties(Result);
+  CopyPropertiesTo(Result);
 
   if Delta = 0 then
   begin
@@ -1907,7 +1907,7 @@ begin
   BuildNormals;
 
   Result := TPolygon32.Create;
-  AssignProperties(Result);
+  CopyPropertiesTo(Result);
 
   Result.Points := nil;
 
