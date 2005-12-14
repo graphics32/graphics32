@@ -481,6 +481,8 @@ type
     RasterXF, RasterYF: TFixed;
     procedure AssignTo(Dst: TPersistent); override;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
+    procedure CopyMapTo(Dst: TBitmap32); virtual;
+    procedure CopyPropertiesTo(Dst: TBitmap32); virtual;
     procedure HandleChanged; virtual;
     function  Equal(B: TBitmap32): Boolean;
     procedure SET_T256(X, Y: Integer; C: TColor32);
@@ -713,10 +715,6 @@ type
     property StippleStep: Single read FStippleStep write FStippleStep;
 
     property MeasuringMode: Boolean read FMeasuringMode;
-{$IFDEF DEPRECATEDMODE}
-    property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
-    property Resampler: TCustomResampler read FResampler write SetResampler;
-{$ENDIF}
   published
     property DrawMode: TDrawMode read FDrawMode write SetDrawMode default dmOpaque;
     property CombineMode: TCombineMode read FCombineMode write SetCombineMode default cmBlend;
@@ -725,10 +723,9 @@ type
     property OuterColor: TColor32 read FOuterColor write FOuterColor default 0;
 {$IFDEF DEPRECATEDMODE}
     property StretchFilter: TStretchFilter read FStretchFilter write SetStretchFilter default sfNearest;
-{$ELSE}
+{$ENDIF}
     property ResamplerClassName: string read GetResamplerClassName write SetResamplerClassName;
     property Resampler: TCustomResampler read FResampler write SetResampler;
-{$ENDIF}
     property OnChange;
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
     property OnPixelCombine: TPixelCombineEvent read FOnPixelCombine write FOnPixelCombine;
@@ -1777,20 +1774,10 @@ begin
       Exit;
     end
     else if Source is TBitmap32 then
+    with Source as TBitmap32 do
     begin
-      SetSize(TBitmap32(Source).Width, TBitmap32(Source).Height);
-      if Empty then Exit;
-
-      MoveLongword(TBitmap32(Source).Bits[0], Bits[0], Width * Height);
-
-      FDrawMode := TBitmap32(Source).FDrawMode;
-      FMasterAlpha := TBitmap32(Source).FMasterAlpha;
-      FOuterColor := TBitmap32(Source).FOuterColor;
-      { TODO : Assign resampler here... }
-{$IFDEF DEPRECATEDMODE}
-      FStretchFilter := TBitmap32(Source).FStretchFilter;
-{$ENDIF}
-      Font.Assign(TBitmap32(Source).Font);
+      CopyMapTo(Self);
+      CopyPropertiesTo(Self);
       Exit;
     end
     else if Source is TBitmap then
@@ -1901,6 +1888,34 @@ begin
   finally;
     EndUpdate;
     Changed;
+  end;
+end;
+
+procedure TBitmap32.CopyMapTo(Dst: TBitmap32);
+begin
+  Dst.SetSize(Width, Height);
+  if not Empty then
+    MoveLongword(Bits[0], Dst.Bits[0], Width * Height);
+end;
+
+procedure TBitmap32.CopyPropertiesTo(Dst: TBitmap32);
+begin
+  with Dst do
+  begin
+    DrawMode := Self.DrawMode;
+    CombineMode := Self.CombineMode;
+    WrapMode := Self.WrapMode;
+    MasterAlpha := Self.MasterAlpha;
+    OuterColor := Self.OuterColor;
+
+{$IFDEF DEPRECATEDMODE}
+    StretchFilter := Self.StretchFilter;
+{$ENDIF}
+    ResamplerClassName := Self.ResamplerClassName;
+    if Assigned(Resampler) and Assigned(Self.Resampler) then
+      Resampler.Assign(Self.Resampler);
+
+    Font.Assign(Self.Font);
   end;
 end;
 
@@ -5212,15 +5227,7 @@ begin
 
   if Tmp <> nil then
   begin
-    { TODO : Add AssignProperties }
-    Tmp.DrawMode := DrawMode;
-{$IFDEF DEPRECATEDMODE}
-    Tmp.StretchFilter := StretchFilter;
-    { TODO : Replace StretchFilter here }
-{$ENDIF}
-    Tmp.MasterAlpha := MasterAlpha;
-    Tmp.OuterColor := OuterColor;
-    Assign(Tmp);
+    Tmp.CopyMapTo(Self);
     Tmp.Free;
   end
   else
@@ -5291,15 +5298,7 @@ begin
 
   if Tmp <> nil then
   begin
-    { TODO : Add AssignProperties }
-    Tmp.DrawMode := DrawMode;
-{$IFDEF DEPRECATEDMODE}
-    Tmp.StretchFilter := StretchFilter;
-    { TODO : Replace StretchFilter here }
-{$ENDIF}
-    Tmp.MasterAlpha := MasterAlpha;
-    Tmp.OuterColor := OuterColor;
-    Assign(Tmp);
+    Tmp.CopyMapTo(Self);
     Tmp.Free;
   end
   else Dst.Changed;
