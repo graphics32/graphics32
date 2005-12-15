@@ -195,7 +195,10 @@ begin
 
   GetMem(Props, Count * SizeOf(PPropInfo));
   try
-    Count := GetPropList(Src.ClassInfo, TypeKinds, Props);
+    // Get the property list in an unsorted fashion.
+    // This is important so the order in which the properties are defined is obeyed,
+    // ie. mimic how the Delphi form loader would set the properties.
+    Count := GetPropList(Src.ClassInfo, TypeKinds, Props, False);
 
     for I := 0 to Count - 1 do
     with Props^[I]^ do
@@ -209,7 +212,7 @@ begin
         if Assigned(SubSrc) then SubDst.Assign(SubSrc);
       end
       else
-        SetPropValue(Dst, Name, GetPropValue(Src, Name, false));
+        SetPropValue(Dst, Name, GetPropValue(Src, Name, False));
     end;
   finally
     FreeMem(Props, Count * SizeOf(PPropInfo));
