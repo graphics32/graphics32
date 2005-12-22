@@ -1008,6 +1008,8 @@ var
   ScaleX, ScaleY: Single;
   Width: Integer;
 begin
+  if Bitmap.Empty then Exit;  
+
   if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     with GetAdjustedLocation do
@@ -1316,19 +1318,19 @@ begin
     end;
     if rhCorners in FHandles then
     begin
-      If not(rhNotTLCorner in FHandles) then DrawHandle(Left, Top);
-      If not(rhNotTRCorner in FHandles) then DrawHandle(Right, Top);
-      If not(rhNotBLCorner in FHandles) then DrawHandle(Left, Bottom);
-      If not(rhNotBRCorner in FHandles) then DrawHandle(Right, Bottom);
+      if not(rhNotTLCorner in FHandles) then DrawHandle(Left, Top);
+      if not(rhNotTRCorner in FHandles) then DrawHandle(Right, Top);
+      if not(rhNotBLCorner in FHandles) then DrawHandle(Left, Bottom);
+      if not(rhNotBRCorner in FHandles) then DrawHandle(Right, Bottom);
     end;
     if rhSides in FHandles then
     begin
       Cx := (Left + Right) div 2;
       Cy := (Top + Bottom) div 2;
-      If not(rhNotTopSide in FHandles) then DrawHandle(Cx, Top);
-      If not(rhNotLeftSide in FHandles) then DrawHandle(Left, Cy);
-      If not(rhNotRightSide in FHandles) then DrawHandle(Right, Cy);
-      If not(rhNotBottomSide in FHandles) then DrawHandle(Cx, Bottom);
+      if not(rhNotTopSide in FHandles) then DrawHandle(Cx, Top);
+      if not(rhNotLeftSide in FHandles) then DrawHandle(Left, Cy);
+      if not(rhNotRightSide in FHandles) then DrawHandle(Right, Cy);
+      if not(rhNotBottomSide in FHandles) then DrawHandle(Cx, Bottom);
     end;
   end;
 end;
