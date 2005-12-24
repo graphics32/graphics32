@@ -43,8 +43,9 @@ uses
   {$ELSE}
   Windows,
   {$ENDIF}
-  {$IFDEF CODESITE}CSIntf,{$ENDIF}
-  {Types, }SysUtils, Classes, {RTLConsts,}
+  {$IFDEF CODESITE}CSIntf, {$ENDIF}
+  {$IFDEF COMPILER2005}Types, {$ENDIF}
+  SysUtils, Classes,
   GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 
 const
