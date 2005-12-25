@@ -29,9 +29,10 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Transforms, StdCtrls, AppEvnts, GR32_Image, GR32_Layers, ExtCtrls,
-  GR32_Containers, GR32_MicroTiles, Math, Buttons;
+  {$IFNDEF CLX}Windows,{$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Transforms,
+  StdCtrls, AppEvnts, GR32_Image, GR32_Layers, ExtCtrls, GR32_Containers,
+  GR32_MicroTiles, Math, Buttons;
 
 const
   MAX_RUNS = 3;
@@ -83,7 +84,7 @@ implementation
 {$R *.DFM}
 
 uses
-  GR32_Filters, JPEG;
+  GR32_Filters, GR32_System, JPEG;
 
 procedure TForm1.FormCreate(Sender: TObject);
 
@@ -277,8 +278,10 @@ procedure TForm1.bBenchmarkClick(Sender: TObject);
 begin
   if BenchmarkMode then
   begin
+    {$IFNDEF CLX}
     SetThreadPriority(GetCurrentThread, Priority);
     SetPriorityClass(GetCurrentProcess, PriorityClass);
+    {$ENDIF}
 
     bBenchmark.Caption := 'Benchmark';
 
@@ -296,13 +299,14 @@ begin
     'Benchmarking runs with a higher task priority. Your system might become unresponsive for several seconds.',
     mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
   begin
+    {$IFNDEF CLX}
     PriorityClass := GetPriorityClass(GetCurrentProcess);
     Priority := GetThreadPriority(GetCurrentThread);
 
     SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
     SetThreadPriority(GetCurrentThread,
                       THREAD_PRIORITY_TIME_CRITICAL);
-
+    {$ENDIF}
 
     bBenchmark.Caption := 'Stop';
 

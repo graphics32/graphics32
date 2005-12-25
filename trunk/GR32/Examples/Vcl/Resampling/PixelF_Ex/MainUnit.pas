@@ -28,9 +28,8 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, GR32, GR32_Lowlevel, GR32_Image, StdCtrls, GR32_RangeBars,
-  ExtCtrls, Math, GR32_Transforms;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Lowlevel,
+  GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls, Math, GR32_Transforms;
 
 type
   TMainForm = class(TForm)
@@ -128,8 +127,6 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  i: integer;
 begin
   Image32.Bitmap.LoadFromFile('..\..\..\Media\stones.jpg');
 

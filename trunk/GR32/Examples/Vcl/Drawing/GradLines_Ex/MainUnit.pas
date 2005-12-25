@@ -29,8 +29,8 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, GR32, GR32_Blend, ExtCtrls, GR32_Image, GR32_LowLevel;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
+  GR32_Blend, ExtCtrls, GR32_Image, GR32_LowLevel;
 
 type
   TVector2f = record

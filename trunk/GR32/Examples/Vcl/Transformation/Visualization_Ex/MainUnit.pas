@@ -31,9 +31,8 @@ interface
 {I GR32.INC}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, StdCtrls, ExtCtrls, GR32, GR32_Image, GR32_VectorMaps, GR32_ExtImage,
-  GR32_Rasterizers;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, StdCtrls,
+  ExtCtrls, GR32, GR32_Image, GR32_VectorMaps, GR32_ExtImage, GR32_Rasterizers;
 
 type
   TMainForm = class(TForm)

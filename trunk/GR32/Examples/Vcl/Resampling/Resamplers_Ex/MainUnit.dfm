@@ -32,6 +32,9 @@ object Form1: TForm1
       Height = 160
       Align = alTop
       TabOrder = 0
+      DesignSize = (
+        146
+        160)
       object Label1: TLabel
         Left = 12
         Top = 24
@@ -123,6 +126,9 @@ object Form1: TForm1
       Align = alTop
       TabOrder = 1
       Visible = False
+      DesignSize = (
+        146
+        160)
       object Label2: TLabel
         Left = 12
         Top = 24
@@ -229,7 +235,7 @@ object Form1: TForm1
         Bitmap.Resampler.TableSize = 32
         BitmapAlign = baTopLeft
         RepaintMode = rmOptimizer
-        Scale = 1
+        Scale = 1.000000000000000000
         ScaleMode = smStretch
         TabOrder = 0
         OnResize = DstImgResize
@@ -261,7 +267,7 @@ object Form1: TForm1
         Align = alClient
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baTopLeft
-        Scale = 1
+        Scale = 1.000000000000000000
         ScaleMode = smNormal
         TabOrder = 0
         OnPaintStage = CurveImagePaintStage
@@ -277,6 +283,5 @@ object Form1: TForm1
       item
         Width = 50
       end>
-    SimplePanel = False
   end
 end

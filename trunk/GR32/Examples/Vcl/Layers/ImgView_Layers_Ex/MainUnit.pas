@@ -29,8 +29,8 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, ExtCtrls, JPeg, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
+  ExtCtrls, JPeg, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
   GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
 type
@@ -133,7 +133,6 @@ type
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
-    procedure WMEraseBkgnd(var Msg: TMessage); message WM_ERASEBKGND;
   protected
     RBLayer: TRubberbandLayer;
     function CreatePositionedLayer: TPositionedLayer;
@@ -642,12 +641,6 @@ begin
   end;
 end;
 
-procedure TMainForm.WMEraseBkgnd(var Msg: TMessage);
-begin
-  // disable form background cleaning
-  Msg.Result := 1;
-end;
-
 procedure TMainForm.mnScaledClick(Sender: TObject);
 begin
   if Selection <> nil then Selection.Scaled := not Selection.Scaled;
@@ -660,7 +653,6 @@ begin
   if Layer = nil then
   begin
     Selection := nil;
-    ReleaseCapture;
   end;
 end;
 

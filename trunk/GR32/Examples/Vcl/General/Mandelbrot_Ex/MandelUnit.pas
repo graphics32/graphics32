@@ -29,9 +29,9 @@ unit MandelUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, StdCtrls,
-  ExtCtrls, Menus, ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32,
-  GR32_Resamplers, GR32_Rasterizers, Jpeg;
+  SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, Menus,
+  ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers,
+  GR32_Rasterizers, Jpeg;
 
 const
   MAX_ITER = 320;
@@ -47,7 +47,7 @@ type
     Image: TCustomPaintBox32;
     Palette: array [0..MAX_ITER + 255] of TColor32;
     constructor Create(AImage: TCustomPaintBox32);
-    function GetSampleFloat(X, Y: Single): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure PrepareSampling; override;
   end;
 
@@ -80,7 +80,6 @@ type
     procedure RasterizerMenuClick(Sender: TObject);
     procedure Default1Click(Sender: TObject);
     procedure AdaptiveClick(Sender: TObject);
-    procedure FormShow(Sender: TObject);
     procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure Save1Click(Sender: TObject);
@@ -117,7 +116,7 @@ begin
   Image := AImage;
 end;
 
-function TMandelbrotSampler.GetSampleFloat(X, Y: Single): TColor32;
+function TMandelbrotSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   CX, CY, ZX, ZY, ZXSqr, ZYSqr: Extended;
   I: Integer;
@@ -170,6 +169,7 @@ begin
   SuperSampler := TSuperSampler.Create(MandelSampler);
   JitteredSampler := TPatternSampler.Create(MandelSampler);
   Sampler := MandelSampler;
+  SelectRasterizer(rkProgressive);
 end;
 
 procedure TForm1.SelectRasterizer(RasterizerKind: TRasterizerKind);
@@ -236,11 +236,6 @@ begin
   SelectSampler(SamplerKind);
 end;
 
-procedure TForm1.FormShow(Sender: TObject);
-begin
-  SelectRasterizer(rkProgressive);
-end;
-
 procedure TForm1.ImgMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -277,8 +272,8 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  // Note: the synthetic image control must be freed before the samplers,
-  // since they are potentially used by the rendering thread.
+{ Note: The synthetic image control must be freed before the samplers,
+  since they are potentially used by the rendering thread. }
   Img.Free;
 
   MandelSampler.Free;

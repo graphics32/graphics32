@@ -14,7 +14,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   DesignSize = (
     332
-    456)
+    454)
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -60,7 +60,6 @@ object Form1: TForm1
     Scale = 1.000000000000000000
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
-    SizeGrip = sgAuto
     OverSize = 0
     TabOrder = 0
   end
