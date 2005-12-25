@@ -152,7 +152,7 @@ type
   PArrayOfArrayOfFixed = ^TArrayOfArrayOfFixed;
   TArrayOfArrayOfFixed = array of TArrayOfFixed;
 
-  // TFloat determines the precision level for certain floating-point operations 
+  // TFloat determines the precision level for certain floating-point operations
   PFloat = ^TFloat;
   TFloat = Single;
 
@@ -180,7 +180,7 @@ type
   PArrayOfSingle = ^TArrayOfSingle;
   TArrayOfSingle = array of Single;
 
-const                 
+const
   // Fixed point math constants
   FixedOne = $10000;
   FixedPI  = Round(PI * FixedOne);
@@ -243,16 +243,28 @@ function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEIN
 { Rectangles }
 
 type
+{$IFDEF CLX}
+  PRect = Types.PRect;
+  TRect = Types.TRect;
+{$ELSE}
+  PRect = Windows.PRect;
+  TRect = Windows.TRect;
+{$ENDIF}
+
+  PFloatRect = ^TFloatRect;
   TFloatRect = packed record
     case Integer of
       0: (Left, Top, Right, Bottom: TFloat);
       1: (TopLeft, BottomRight: TFloatPoint);
   end;
+
+  PFixedRect = ^TFixedRect;
   TFixedRect = packed record
     case Integer of
       0: (Left, Top, Right, Bottom: TFixed);
       1: (TopLeft, BottomRight: TFixedPoint);
   end;
+
   TRectRounding = (rrClosest, rrOutside, rrInside);
 
 // Rectangle construction/conversion functions
@@ -279,6 +291,7 @@ function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINI
 function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
 
 type
 {$IFDEF CLX}
@@ -1433,6 +1446,20 @@ function PtInRect(const R: TRect; const P: TPoint): Boolean;
 begin
   Result := (P.X >= R.Left) and (P.X < R.Right) and
     (P.Y >= R.Top) and (P.Y < R.Bottom);
+end;
+
+function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
+begin
+  Rect := R1;
+  if not IsRectEmpty(R2) then
+  begin
+    if R2.Left < R1.Left then Rect.Left := R2.Left;
+    if R2.Top < R1.Top then Rect.Top := R2.Top;
+    if R2.Right > R1.Right then Rect.Right := R2.Right;
+    if R2.Bottom > R1.Bottom then Rect.Bottom := R2.Bottom;
+  end;
+  Result := not IsRectEmpty(Rect);
+  if not Result then Rect := ZERO_RECT;
 end;
 
 { Gamma / Pixel Shape Correction table }
