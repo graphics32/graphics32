@@ -1,8 +1,8 @@
 object Form1: TForm1
-  Left = 437
-  Top = 242
-  Width = 395
-  Height = 399
+  Left = 388
+  Top = 137
+  Width = 468
+  Height = 439
   Caption = 'Mandelbrot Example'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -12,24 +12,23 @@ object Form1: TForm1
   Font.Style = []
   Menu = MainMenu1
   OldCreateOrder = False
-  Position = poDesktopCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object Img: TSyntheticImage32
     Left = 0
     Top = 0
-    Width = 387
-    Height = 350
+    Width = 460
+    Height = 390
     Align = alClient
     RepaintMode = rmDirect
     TabOrder = 0
     OnMouseDown = ImgMouseDown
     AutoRasterize = True
     Rasterizer.UpdateRowCount = 0
-    BitmapAlign = baTopLeft
+    Color = clBlack
+    ClearBuffer = True
     RenderMode = rnmFull
   end
   object MainMenu1: TMainMenu

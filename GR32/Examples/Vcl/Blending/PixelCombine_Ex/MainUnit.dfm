@@ -14,7 +14,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   DesignSize = (
     516
-    346)
+    344)
   PixelsPerInch = 96
   TextHeight = 13
   object ImgView: TImgView32
@@ -26,11 +26,9 @@ object Form1: TForm1
     Bitmap.ResamplerClassName = 'TNearestResampler'
     Color = clBtnShadow
     ParentColor = False
-    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
-    SizeGrip = sgAuto
     OverSize = 0
     TabOrder = 0
   end

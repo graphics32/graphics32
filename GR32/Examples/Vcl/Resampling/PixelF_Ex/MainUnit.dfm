@@ -6,7 +6,7 @@ object MainForm: TMainForm
   ClientHeight = 258
   ClientWidth = 459
   Color = clBtnFace
-  Constraints.MaxHeight = 285
+  Constraints.MaxHeight = 287
   Constraints.MaxWidth = 467
   Constraints.MinHeight = 285
   Constraints.MinWidth = 467
@@ -34,7 +34,6 @@ object MainForm: TMainForm
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCenter
-    RepaintMode = rmFull
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 0

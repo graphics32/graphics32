@@ -28,8 +28,8 @@ unit RGBALoaderUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, GR32_Image, GR32_Filters, ExtCtrls, ExtDlgs, Buttons;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls,
+  GR32_Image, GR32_Filters, ExtCtrls, ExtDlgs, Buttons;
 
 type
   TRGBALoaderForm = class(TForm)

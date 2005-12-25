@@ -33,11 +33,10 @@ interface
 {$I GR32.INC}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, GR32, GR32_Image, GR32_Transforms, GR32_VectorMaps,
-  GR32_Layers, StdCtrls, ComCtrls, Math, GR32_Blend, GR32_RangeBars,
-  ExtDlgs, jpeg, GR32_Rasterizers, GR32_Resamplers, GR32_Math, Menus,
-  ToolWin, BrushAuxiliaries;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, GR32,
+  GR32_Image, GR32_Transforms, GR32_VectorMaps, GR32_Layers, StdCtrls,
+  ComCtrls, Math, GR32_Blend, GR32_RangeBars, ExtDlgs, jpeg, GR32_Rasterizers,
+  GR32_Resamplers, GR32_Math, Menus, ToolWin, BrushAuxiliaries;
 
 const
   cAppName = 'Image Warping Example';

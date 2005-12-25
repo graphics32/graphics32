@@ -27,8 +27,7 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs,  Math, StdCtrls, ExtCtrls, Jpeg,
+  SysUtils, Classes, Graphics, Controls, Forms, Math, StdCtrls, ExtCtrls, Jpeg,
   GR32_Image, GR32_RangeBars;
 
 type

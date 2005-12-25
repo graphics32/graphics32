@@ -312,7 +312,7 @@ object MainForm: TMainForm
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
     RepaintMode = rmOptimizer
-    Scale = 1
+    Scale = 1.000000000000000000
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Visibility = svAuto

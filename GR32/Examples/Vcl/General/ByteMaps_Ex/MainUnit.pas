@@ -28,9 +28,9 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, ComCtrls, Math, Clipbrd, ExtDlgs, GR32, GR32_OrdinalMaps,
-  GR32_RangeBars, GR32_Image, GR32_Layers, ToolWin, ImgList, Menus, JPeg;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
+  ComCtrls, Math, Clipbrd, ExtDlgs, GR32, GR32_OrdinalMaps, GR32_RangeBars,
+  GR32_Image, GR32_Layers, ToolWin, ImgList, Menus, JPeg;
 
 type
   TForm1 = class(TForm)
