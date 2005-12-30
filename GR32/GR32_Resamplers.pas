@@ -3305,7 +3305,7 @@ end;
 procedure TNestedSampler.FinalizeSampling;
 begin
   if not Assigned(FSampler) then
-    ENestedException.Create(SSamplerNil)
+    raise ENestedException.Create(SSamplerNil)
   else
     FSampler.FinalizeSampling;
 end;
@@ -3314,7 +3314,7 @@ end;
 function TNestedSampler.GetSampleBounds: TRect;
 begin
   if not Assigned(FSampler) then
-    ENestedException.Create(SSamplerNil)
+    raise ENestedException.Create(SSamplerNil)
   else
     Result := FSampler.GetSampleBounds;
 end;
@@ -3322,7 +3322,7 @@ end;
 function TNestedSampler.HasBounds: Boolean;
 begin
   if not Assigned(FSampler) then
-    ENestedException.Create(SSamplerNil)
+    raise ENestedException.Create(SSamplerNil)
   else
     Result := FSampler.HasBounds;
 end;
@@ -3331,7 +3331,7 @@ end;
 procedure TNestedSampler.PrepareSampling;
 begin
   if not Assigned(FSampler) then
-    ENestedException.Create(SSamplerNil)
+    raise ENestedException.Create(SSamplerNil)
   else
     FSampler.PrepareSampling;
 end;
