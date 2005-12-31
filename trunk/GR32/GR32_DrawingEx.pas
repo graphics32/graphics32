@@ -47,7 +47,8 @@ type
 
 implementation
 
-uses GR32_LowLevel, GR32_Blend, Math;
+uses
+  GR32_LowLevel, GR32_Blend, GR32_Math, Math;
 
 function ClipLine(var X1, Y1, X2, Y2: Integer; MinX, MinY, MaxX, MaxY: Integer): Boolean;
 var
