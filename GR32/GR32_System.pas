@@ -53,13 +53,11 @@ type
     function ReadValue: Int64;
   end;
 
-{$IFDEF LINUX}
 { pseudo GetTickCount implementation for Linux - for compatibility
   This works for basic time testing, however, it doesnt work like its
   Windows counterpart, ie. it doesnt return the number of milliseconds since
   system boot. Will definitely overflow. }
 function GetTickCount: Cardinal;
-{$ENDIF}
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
@@ -222,6 +220,11 @@ begin
   clock_gettime(CLOCK_REALTIME, FStart);
 end;
 {$ELSE}
+function GetTickCount: Cardinal;
+begin
+  Result := Windows.GetTickCount;
+end;
+
 function TPerfTimer.ReadNanoseconds: String;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
