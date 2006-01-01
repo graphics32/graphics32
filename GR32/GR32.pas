@@ -291,7 +291,7 @@ function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINI
 function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
+function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
 {$IFDEF CLX}
