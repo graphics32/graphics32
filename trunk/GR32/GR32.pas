@@ -281,6 +281,8 @@ function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLI
 // Some basic operations over rectangles
 function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload;
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload;
+function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload;
+function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean; overload;
 function EqualRect(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -291,7 +293,6 @@ function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINI
 function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
 {$IFDEF CLX}
@@ -1380,6 +1381,34 @@ begin
   if not Result then FillLongword(Dst, 4, 0);
 end;
 
+function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
+begin
+  Rect := R1;
+  if not IsRectEmpty(R2) then
+  begin
+    if R2.Left < R1.Left then Rect.Left := R2.Left;
+    if R2.Top < R1.Top then Rect.Top := R2.Top;
+    if R2.Right > R1.Right then Rect.Right := R2.Right;
+    if R2.Bottom > R1.Bottom then Rect.Bottom := R2.Bottom;
+  end;
+  Result := not IsRectEmpty(Rect);
+  if not Result then Rect := ZERO_RECT;
+end;
+
+function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean;
+begin
+  Rect := R1;
+  if not IsRectEmpty(R2) then
+  begin
+    if R2.Left < R1.Left then Rect.Left := R2.Left;
+    if R2.Top < R1.Top then Rect.Top := R2.Top;
+    if R2.Right > R1.Right then Rect.Right := R2.Right;
+    if R2.Bottom > R1.Bottom then Rect.Bottom := R2.Bottom;
+  end;
+  Result := not IsRectEmpty(Rect);
+  if not Result then FillLongword(Rect, 4, 0);;
+end;
+
 function EqualRect(const R1, R2: TRect): Boolean;
 begin
   Result := CompareMem(@R1, @R2, SizeOf(TRect));
@@ -1446,20 +1475,6 @@ function PtInRect(const R: TRect; const P: TPoint): Boolean;
 begin
   Result := (P.X >= R.Left) and (P.X < R.Right) and
     (P.Y >= R.Top) and (P.Y < R.Bottom);
-end;
-
-function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
-begin
-  Rect := R1;
-  if not IsRectEmpty(R2) then
-  begin
-    if R2.Left < R1.Left then Rect.Left := R2.Left;
-    if R2.Top < R1.Top then Rect.Top := R2.Top;
-    if R2.Right > R1.Right then Rect.Right := R2.Right;
-    if R2.Bottom > R1.Bottom then Rect.Bottom := R2.Bottom;
-  end;
-  Result := not IsRectEmpty(Rect);
-  if not Result then Rect := ZERO_RECT;
 end;
 
 { Gamma / Pixel Shape Correction table }
