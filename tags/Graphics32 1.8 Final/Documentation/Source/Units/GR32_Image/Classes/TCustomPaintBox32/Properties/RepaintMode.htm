@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>RepaintMode</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> RepaintMode: <a href="../../../Types/TPaintBoxOptions.htm">TRepaintMode</a>;</p>
+<p class="Decl"><b>type</b> TRepaintMode = (rmFull, rmDirect, rmOptimizer);</p>
+<h2>Description</h2>
+<p class="Body">This property controls the way repaints of the contents are handled by TCustomPaintBox32 and 
+  its descendants:</p>
+<p class="Body"><b>rmFull</b> - indicates whether always to repaint everything;</p>
+<p class="Body"><b>rmDirect</b> - indicates to use a direct repaint rather than a deferred invalidation. Please note, that this mode is not supported for layer supporting control like <a href="../../TCustomImage32/_Body.htm">TCustomImage32</a> and its descendants;</p>
+<p class="Body"><b>rmOptimizer</b> - indicates to use the <a href="../../../../../Additional%20Topics/Repaint%20Optimization.htm">repaint optimizer</a> to just repaint changed areas. Especially layer operations benefit from this mode. </p>
+<p class="Body"></p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<html>
+<head>
+<title></title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+		<p class="Decl"><strong>function </strong>TestClip(<strong>var</strong> A: Integer; <strong>var</strong> B: Integer; <strong>const</strong> Size: Integer): Boolean; <strong>overload</strong>;</p>
+		<p class="Decl"><b>function</b> TestClip(<strong>var</strong> A: Integer; <strong>var</strong> B: Integer; <strong>const</strong> Start: Integer; <strong>const</strong> Stop: Integer): Boolean; <strong>overload</strong>;</p>
+		<h2>Description</h2>
+		<p class="Body">First version: Exchange <i>A &lt;-&gt; B</i> only if <i>B &lt; A</i>, then restrict both to [0..<i>Size</i>-1] range. Returns true if resulting range has common points with [0..<i>Size</i>-1] range.</p>
+		<p class="Body">Second version: Exchange <i>A &lt;-&gt; B</i> only if <i>B &lt; A</i>, then restrict both to [<i>Start</i>..<i>Stop</i>-1] range. Returns true if resulting range has common points with [<i>Start</i>..<i>Stop</i>-1] range.</p>
+		<p class="Body"></p>
+		<p class="Code"><b> </b></p>
+		<p id="hidden">[See Also]: <a href="Constrain.htm">Constrain</a>, <a href="Clamp.htm">Clamp</a></p>
+</body>
+</html>

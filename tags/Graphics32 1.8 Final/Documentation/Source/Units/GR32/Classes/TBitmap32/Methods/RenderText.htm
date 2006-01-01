@@ -1,0 +1,28 @@
+<html>
+<head>
+<title></title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> RenderText(&nbsp;X, Y: <strong>Integer</strong>;&nbsp;<b>const</b> Text: <strong>String</strong>;&nbsp;AALevel: <strong>Integer</strong>;&nbsp;Color: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32"><strong>TColor32</strong></a>); </p>
+<p class="Decl"><b>procedure</b> RenderTextW(&nbsp;X, Y: <strong>Integer</strong>;&nbsp;<b>const</b> Text: <strong>Widestring</strong>;&nbsp;AALevel: <strong>Integer</strong>;&nbsp;Color: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32"><strong>TColor32</strong></a>);  </p>
+<h2>Description</h2>
+<p class="Body">The <span class="EmptyRef">RenderText</span> or <span class="EmptyRef">RenderTextW</span> (the Unicode-Version) method draws a string 
+  of characters. This method is much slower compared to TextOut functions, however 
+  it supports antialiasing and transparency. <span class="EmptyRef">AALevel</span> 
+  specifies how the text is antialiased. If it is zero, no antialiasing is performed, 
+  the value of 4 corresponds to a maximum quality.</p>
+<p class="Body">Note, that quality of the text is also influenced by the system 
+  font antialiasing.</p>
+<p class="Body">This method draws a string using current <a href="../../../../GR32/Classes/TBitmap32/Properties/Font.htm">Font</a>, 
+  but it ignores the <a href="../../../../GR32/Classes/TBitmap32/Properties/Font.htm">Font</a>.<span class="API">Color</span> 
+property, substituting it with the <span class="EmptyRef">Color</span> parameter. </p>
+<p class="Body">&nbsp;</p>
+<p class="Body"><span class="Comment">Please note that the CLX versions of the non-Unicode methods do also default to Widestring
+because that is the native QT string format.</span></p>
+<p class="Body">&nbsp; </p>
+<p id="hidden">[See also]: <a href="../../../../GR32/Classes/TBitmap32/Methods/TextOut.htm">TextOut</a>, <a href="../../../../GR32/Classes/TBitmap32/Methods/TextExtent.htm">TextExtent</a>, 
+  <a href="../../../../../Examples.htm#RenderText%20Example">RenderText Example</a></p>
+</body>
+</html>

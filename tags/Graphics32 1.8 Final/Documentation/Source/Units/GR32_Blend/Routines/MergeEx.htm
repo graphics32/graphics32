@@ -1,0 +1,33 @@
+<html>
+<head>
+<title>BlendEx</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b><a name="BlendRegEx"></a>function</b> MergeRegEx(F, B, M: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>): 
+  <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; </p>
+<p class="Decl"><b><a name="BlendMemEx"></a>procedure</b> MergeMemEx(F: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>;
+   var B: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; M: 
+  <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>); </p>
+<h2>Description</h2>
+<p class="Body">Merges the foreground color with the background color using alpha 
+  of the foreground color scaled by the master alpha value <b>M</b>. Alpha-Channels are also merged. </p>
+<p class="Code">S<span class="sub">A</span> = 1 - (1 - (M
+* F<span class="sub">A</span>)) (1 - B<span class="sub">A</span>)</p>
+<p class="Code">S<span class="sub">RGB</span> = ((M * F<span class="sub">A</span>) * F<span class="sub">RGB</span> + B<span class="sub">A</span> *
+(1 - F<span class="sub">A</span>) * B<span class="sub">RGB</span>) / S<span class="sub">A</span></p>
+<p class="Body"><b>M</b> is defined as <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a> 
+  to avoid unnecessary type conversions, it must store only values in [0..255] 
+  range, the function does not perform range checking and the result in case <b>M</b> 
+  > 255 is not specified.</p>
+<p class="Body"><span class="EmptyRef">MergeRegEx</span> takes parameters and 
+  produces the result operating on CPU registers.</p>
+<p class="Body"><span class="EmptyRef">MergeMemEx</span> operates with the background 
+  color referenced by a memory address. </p>
+<p class="Body">Note, that after using <span class="EmptyRef">MergeEx</span> functions, 
+  you have to call <a href="../../GR32_Blend/Routines/EMMS.htm">EMMS</a>. Otherwise CPU will be unable to 
+  handle floating point instructions.</p>
+<p id="hidden">[See Also] <a href="Merge.htm">Merge</a>, <a href="../../GR32_Blend/Routines/Blend.htm">Blend</a>, <a href="BlendEx.htm">BlendEx</a>, <a href="../../GR32_Blend/Routines/Combine.htm">Combine</a></p>
+</body>
+</html>

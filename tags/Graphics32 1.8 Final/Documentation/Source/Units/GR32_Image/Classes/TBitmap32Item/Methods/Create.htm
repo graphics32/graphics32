@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>Create</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>constructor</b> Create(Collection: TCollection); <b>override</b>;</p>
+<h2>Description</h2>
+<p class="Body">Creates an instance of <a href="../_Body.htm">TBitmap32Item</a>. 
+</p>
+<p class="Body">When creating bitmap items at run time, pass the corresponding 
+  <a href="../../TBitmap32Collection/_Body.htm">TBitmap32Collection</a> object 
+  as the parameter.</p>
+<p class="Body">Alternatively, you may use <a href="../../TBitmap32Collection/Methods/Add.htm">TBitmap32Collection.Add</a> 
+  method to create new bitmap items:</p>
+<p class="Code"><b>var</b><br>
+  &nbsp;&nbsp;BitmapCollection: TBitmap32Collection;<br>
+  &nbsp;&nbsp;B1, B2: TBitmap32Item;<br>
+  <b>begin</b><br>
+  &nbsp;&nbsp;BitmapCollection := TBitmap32Collection.Create;<br>
+  &nbsp;&nbsp;<b>try</b><br>
+  &nbsp;&nbsp;&nbsp;&nbsp; B1 := TBitmap32Item.Create(BitmapCollection);<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;B2 := BitmapCollection.Add;<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="Comment">// some operations with 
+  B1, B2...</span><br>
+  &nbsp;&nbsp;<b>finally</b> <br>
+  &nbsp;&nbsp;&nbsp;&nbsp;BitmapCollection.Free;<br>
+  &nbsp;&nbsp;<b>end</b>;<br>
+  <b>end</b>;</p>
+<p class="Body">Note, that it is not necessary to call the <span class="API">Free</span> 
+  method for bitmap items, since they are owned by the collection.</p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>
