@@ -106,21 +106,21 @@ type
     function GetWidth: TFloat; override;
   end;
 
-  { TLinearResampler }
+  { TLinearKernel }
   TLinearKernel = class(TCustomKernel)
   public
     function Filter(Value: TFloat): TFloat; override;
     function GetWidth: TFloat; override;
   end;
 
-  { TCosineResampler }
+  { TCosineKernel }
   TCosineKernel = class(TCustomKernel)
   public
     function Filter(Value: TFloat): TFloat; override;
     function GetWidth: TFloat; override;
   end;
 
-  { TSplineResampler }
+  { TSplineKernel }
   TSplineKernel = class(TCustomKernel)
   protected
     function RangeCheck: Boolean; override;
@@ -129,7 +129,7 @@ type
     function GetWidth: TFloat; override;
   end;
 
-  { TMitchellResampler }
+  { TMitchellKernel }
   TMitchellKernel = class(TCustomKernel)
   protected
     function RangeCheck: Boolean; override;
@@ -138,7 +138,7 @@ type
     function GetWidth: TFloat; override;
   end;
 
-  { TCubicResampler }
+  { TCubicKernel }
   TCubicKernel = class(TCustomKernel)
   private
     FCoeff: TFloat;
@@ -171,7 +171,7 @@ type
     property Tension: TFloat read FTension write SetTension;
   end;
 
-  { TWindowedSincResampler }
+  { TWindowedSincKernel }
   TWindowedSincKernel = class(TCustomKernel)
   private
     FWidth: TFloat;
@@ -187,13 +187,13 @@ type
     property Width: TFloat read FWidth write SetWidth;
   end;
 
-  { TLanczosResampler }
+  { TLanczosKernel }
   TLanczosKernel = class(TWindowedSincKernel)
   protected
     function Window(Value: TFloat): TFloat; override;
   end;
 
-  { TGaussianResampler }
+  { TGaussianKernel }
   TGaussianKernel = class(TWindowedSincKernel)
   private
     FSigma: TFloat;
