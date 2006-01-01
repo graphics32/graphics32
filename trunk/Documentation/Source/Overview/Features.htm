@@ -14,16 +14,21 @@
 <ul>
   <li>Fast per-pixel access up to 100 times faster compared to standard <span class="API">TCanvas</span>/<span class="API">TBitmap</span>;</li>
   <li>High-performance Bitmap alpha blending (including per-pixel alpha blending);</li>
-  <li>Pixel, line and polygon antialiasing along with sub-pixel accuracy (combined with alpha blending);</li>
+  <li>Pixel, line and polygon antialiasing with sub-pixel accuracy (combined with 
+    alpha blending);</li>
   <li>Arbitrary polygon transformations and custom fillings;</li>
-  <li>Enhanced scaling of bitmaps (e.g. Lanczos, Mitchell);</li>
-  <li>State-of-the-art <a href="../Additional Topics/Sampling and Rasterization.htm">sampling system</a>;</li>
+  <li>Bitmap resampling with high quality reconstruction filters (e.g. Lanczos, 
+    Cubic, Mitchell);</li>
+  <li>A unique state-of-the-art <a href="../Additional Topics/Sampling and Rasterization.htm">rasterization 
+    system</a>;</li>
   <li>Affine transformations of bitmaps: rotations, scaling, etc with sub-pixel 
-  accuracy;</li>
+    accuracy;</li>
   <li>Arbitrary projective transformations of bitmaps;</li>
   <li>Arbitrary remapping transformations of bitmaps (e.g. for Warping, Morphing);</li>
-  <li>Flexible supersampling implementation to achieve maximum quality;</li>
-  <li>Flicker-free image displaying components with optimized double buffering via advanced <a href="../Additional Topics/Repaint Optimization.htm">MicroTiles based repaint optimizer</a>;</li>
+  <li>Flexible supersampling implementation for maximum sampling quality;</li>
+  <li>Flicker-free image displaying components with optimized double buffering 
+    via advanced <a href="../Additional Topics/Repaint Optimization.htm">MicroTiles 
+    based repaint optimizer</a>;</li>
   <li>Multiple customizible easy-to-use overlay layers;</li>
   <li>Locking of bitmaps for safe multithreading;</li>
   <li>A property editor for RGB and alpha channel loading;</li>
