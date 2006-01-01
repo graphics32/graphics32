@@ -55,6 +55,91 @@ blockquote {
 </style>
 </head>
 <body bgcolor="#FFFFFF">
+<h2 class="Body">v1.8 (1 January 2006)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+    <ul>
+      <li>
+        <h2>Other enhancements:</h2>
+        <ul class="dots">
+		  <li>Global usage of new TFloat type alias instead of Single.</li>
+		  <li>Area update support for TBitmapLayer added.</li>
+		  <li>TTransformation changed from TPersistent to TNotifiablePersistent so as to implement a Changed method that sets TransformValid to False automatically.</li>
+		  <li>Incorporated the Interlocked* functions in TBitmap32.Lock and TBitmap32.Unlock according to Jouni Airaksinen's suggestions.</li>
+		  <li>Redundant code clean up + better maintainability using central protected CopyMapTo and CopyPropertiesTo methods.</li>
+        </ul>
+      </li>
+      <li>
+        <h2>Bugfixes:</h2>
+        <ul class="dots">
+          <li>Bug in TLayerCollection.ViewportToLocal method fixed.</li>
+          <li>Misbehaviour of  TCustomLayer.Visible property fixed.</li>
+          <li>TCustomLayer.Changed and TCustomLayer.Update methods fixed (NO_UPDATE problem)</li>
+          <li>Update region fix in rasterizers</li>
+          <li>Image was not automatically rasterized upon creation.</li>
+		  <li>TAffineTransformation.TransformFloat fixed (SF bug 1372023).</li>
+		  <li>TBitmap32Item.AssignTo implemented to fix problem "Cannot assign a TBitmap32Item to a TBitmap32Item" (SF bug 1329566).</li>
+		  <li>Prevent AV if user sets resampler directly (similar to Bitmap.Resampler := TLinearResampler.Create(Bitmap);).</li>
+		  <li>Fix for memory leaks in AssignFromBitmap sub-method due to thread <-> GDI interaction.</li>
+		  <li>Fixed a problem in integer version of HSLtoRGB.</li>
+		  <li>Fixed TBitmap32.GetStippleColor (the ordinary interpolation routine must be used).</li>
+		  <li>Fixed TBitmap32.SET_T256 and TBitmap32.SET_TS256 for color merging. cmMerge is now handled as a separate case.</li>
+		  <li>Fixed TBitmap32.FillRectT for cmMerge.</li>
+		  <li>Fixed bug in _CombineMem routine. The alpha channel was not interpolated, which is contradictory to documentation.</li>
+		  <li>Revised Merge routines. Merge is now based on precise lookup tables. Moreover the new version is faster than the old buggy MMX version.</li>
+		  <li>D5 compilation fixes.</li>
+		</ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h2>Detailed changes</h2>
+    <ul style="display:none">
+      <li>
+        <h2>GR32:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>UnionRect</li>
+          </ul>
+          <p class="EmptyRef">New types:</p>
+          <ul class="dots">
+			<li>TFloat: alias for Single</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Blend:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>CombineLine</li>
+			<li>ColorScale</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Containers:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>SmartAssign</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Resamplers:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>BlockTransferX</li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
 <h2 class="Body">v1.8 beta (9 August 2005)</h2>
 <ul class="barebones expandable">
   <li>
