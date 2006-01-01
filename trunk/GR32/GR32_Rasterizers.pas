@@ -64,6 +64,7 @@ type
     procedure AssignColorCustom(var Dst: TColor32; Src: TColor32);
     procedure AssignColorTransparent(var Dst: TColor32; Src: TColor32);
   protected
+    procedure AssignTo(Dst: TPersistent); override;
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); virtual; abstract;
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; SrcAlpha: TColor32;
       DrawMode: TDrawMode; CombineMode: TCombineMode;
@@ -154,7 +155,7 @@ var
 implementation
 
 uses
-  GR32_Resamplers, GR32_Math, Math, SysUtils;
+  GR32_Resamplers, GR32_Math, GR32_Containers, Math, SysUtils;
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
@@ -196,6 +197,14 @@ procedure TRasterizer.AssignColorTransparent(var Dst: TColor32;
   Src: TColor32);
 begin
   if Src <> FTransparentColor then Dst := Src;
+end;
+
+procedure TRasterizer.AssignTo(Dst: TPersistent);
+begin
+  if Dst is TRasterizer then
+    SmartAssign(Self, Dst)
+  else
+    inherited;
 end;
 
 procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
