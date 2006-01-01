@@ -256,7 +256,7 @@ object Form1: TForm1
     Color = clAppWorkSpace
     ParentColor = False
     RepaintMode = rmOptimizer
-    Scale = 1
+    Scale = 1.000000000000000000
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     OverSize = 0
@@ -1706,27 +1706,32 @@ object Form1: TForm1
     object Rasterizer1: TMenuItem
       Caption = 'Rasterizer'
       object Regular1: TMenuItem
+        AutoCheck = True
         Caption = 'Regular'
         Checked = True
         RadioItem = True
         OnClick = Regular1Click
       end
       object Progressive1: TMenuItem
+        AutoCheck = True
         Caption = 'Progressive'
         RadioItem = True
         OnClick = Progressive1Click
       end
       object Swizzling1: TMenuItem
+        AutoCheck = True
         Caption = 'Swizzling'
         RadioItem = True
         OnClick = Swizzling1Click
       end
       object Tesseral1: TMenuItem
+        AutoCheck = True
         Caption = 'Tesseral'
         RadioItem = True
         OnClick = Tesseral1Click
       end
       object Contour1: TMenuItem
+        AutoCheck = True
         Caption = 'Contour'
         RadioItem = True
         OnClick = Contour1Click
