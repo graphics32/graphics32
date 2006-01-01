@@ -5,6 +5,7 @@ del /S *.dpu
 del /S *.dsk
 del /S *.cfg
 del /S *.dof
+del /S *.kof
 del /S *.obj
 del /S *.hpp
 del /S *.ddp
