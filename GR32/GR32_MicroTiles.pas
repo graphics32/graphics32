@@ -19,7 +19,7 @@ unit GR32_MicroTiles;
  * Andre Beckedorf - metaException OHG
  * Andre@metaException.de
  *
- * Portions created by the Initial Developer are Copyright (C) 2005
+ * Portions created by the Initial Developer are Copyright (C) 2005-2006
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
