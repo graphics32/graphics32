@@ -48,7 +48,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.8 pre';
+  Graphics32Version = '1.8.0';
 
 { 32-bit Color }
 
