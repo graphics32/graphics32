@@ -13,22 +13,24 @@
 <p class="Body">Some of its features include:</p>
 <ul>
   <li>Fast per-pixel access up to 100 times faster compared to standard <span class="API">TCanvas</span>/<span class="API">TBitmap</span>;</li>
-  <li>Bitmap alpha blending (including per-pixel alpha blending);</li>
-  <li>Pixel, line and polygon antialiasing (combined with alpha blending);</li>
-  <li>polygon transformations and custom fillings;</li>
-  <li>Locking the bitmap for safe multithreading;</li>
-  <li>Enhanced scaling of bitmaps;</li>
+  <li>High-performance Bitmap alpha blending (including per-pixel alpha blending);</li>
+  <li>Pixel, line and polygon antialiasing along with sub-pixel accuracy (combined with alpha blending);</li>
+  <li>Arbitrary polygon transformations and custom fillings;</li>
+  <li>Enhanced scaling of bitmaps (e.g. Lanczos, Mitchell);</li>
+  <li>State-of-the-art <a href="../Additional Topics/Sampling and Rasterization.htm">sampling system</a>;</li>
   <li>Affine transformations of bitmaps: rotations, scaling, etc with sub-pixel 
-    accuracy;</li>
+  accuracy;</li>
   <li>Arbitrary projective transformations of bitmaps;</li>
-  <li>Flicker-free image displaying components with optimized double buffering; 
-  </li>
+  <li>Arbitrary remapping transformations of bitmaps (e.g. for Warping, Morphing);</li>
+  <li>Flexible supersampling implementation to achieve maximum quality;</li>
+  <li>Flicker-free image displaying components with optimized double buffering via advanced <a href="../Additional Topics/Repaint Optimization.htm">MicroTiles based repaint optimizer</a>;</li>
   <li>Multiple customizible easy-to-use overlay layers;</li>
+  <li>Locking of bitmaps for safe multithreading;</li>
   <li>A property editor for RGB and alpha channel loading;</li>
   <li>Design-time loading of image formats supported by standard <span class="API">TPicture</span>;</li>
 </ul>
 <p class="Body">Except for extended features, Graphics32 has some important differences 
-  from standard components. It does not heavily rely on Windows GDI, most of the 
+  from the standard components. It does not heavily rely on Windows GDI, most of the 
   functions are reimplemented and optimized specifically for 32-bit pixel format.</p>
 <p id="hidden">[See also]: <a href="Contacts.htm">Contacts</a>, <a href="License.htm">License</a>, 
   <a href="Donate.htm">Donate</a>, <a href="Naming%20Conventions.htm">Naming Conventions</a>, 
