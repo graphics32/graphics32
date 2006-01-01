@@ -13,12 +13,13 @@ unit GR32_Math;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is MicroTiles Repaint Optimizer Extension for Graphics32
+ * The Original Code is Additional Math Routines for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Mattias Andersson <mattias@centaurix.com>
+ * (parts of this unit were moved here from GR32_System.pas and GR32.pas by Alex A. Denisov)
  *
- * Portions created by the Initial Developer are Copyright (C) 2005
+ * Portions created by the Initial Developer are Copyright (C) 2005-2006
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -26,6 +27,8 @@ unit GR32_Math;
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+
+{$I GR32.inc}
 
 uses GR32;
 

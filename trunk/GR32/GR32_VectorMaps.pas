@@ -18,7 +18,7 @@ unit GR32_VectorMaps;
  * The Initial Developer of the Original Code is
  * Michael Hansen <dyster_tid@hotmail.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2006
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):

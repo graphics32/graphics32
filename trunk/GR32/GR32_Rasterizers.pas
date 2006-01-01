@@ -18,7 +18,7 @@ unit GR32_Rasterizers;
  * The Initial Developer of the Original Code is
  * Mattias Andersson
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2006
  * the Initial Developer. All Rights Reserved.
  *
  * ***** END LICENSE BLOCK ***** *)

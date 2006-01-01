@@ -18,7 +18,7 @@ unit GR32_Polygons;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2004
+ * Portions created by the Initial Developer are Copyright (C) 2000-2006
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
