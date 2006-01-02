@@ -6,7 +6,7 @@ uses
   Classes, SysUtils, Contnrs, FileCtrl, SimpleDOM;
 
 const
-  Copyright: String = 'Copyright &copy;2000-2004 Alex Denisov and Contributors';
+  Copyright: String = 'Copyright &copy;2000-2006 Alex Denisov and Contributors';
   cColumnCount = 5;
 
 type
@@ -1284,7 +1284,7 @@ var
 
   function Link(const Target: string): string;
   begin
-    Result := 'Compiled\' + ExtractRelativePath(Base, Target);
+    Result := 'Docs\' + ExtractRelativePath(Base, Target);
   end;
 
 begin
@@ -1345,7 +1345,7 @@ var
     begin
       AddObjectParam('Name', NE.DisplayName);
       if NE.FileName <> '' then
-        AddObjectParam('Local', 'Compiled\' + ExtractRelativePath(Base, NE.FileName));
+        AddObjectParam('Local', 'Docs\' + ExtractRelativePath(Base, NE.FileName));
       if NE.Count = 0 then AddObjectParam('ImageNumber', '11');
     end;
     if NE.Count > 0 then
@@ -1393,7 +1393,7 @@ var
         begin
           AddObjectParam('Name', E.DisplayName);
           if E.FileName <> '' then
-            AddObjectParam('Local', 'Compiled\' + ExtractRelativePath(Base, E.FileName));
+            AddObjectParam('Local', 'Docs\' + ExtractRelativePath(Base, E.FileName));
           if E.IsTopic then AddObjectParam('ImageNumber', '11');
           if E is TClassElement then AddObjectParam('ImageNumber', '11');
         end;
@@ -1409,7 +1409,7 @@ var
           begin
             AddObjectParam('Name', E.DisplayName);
             if E.FileName <> '' then
-              AddObjectParam('Local', 'Compiled\' + ExtractRelativePath(Base, E.FileName));
+              AddObjectParam('Local', 'Docs\' + ExtractRelativePath(Base, E.FileName));
             AddObjectParam('ImageNumber', '21');
           end;
       end;

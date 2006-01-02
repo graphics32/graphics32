@@ -269,7 +269,7 @@ begin
     Lines.Add('Title=' + Edit1.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
-    Lines.Add(Format('Main Window="%s","%s","%s","Compiled\_Body.htm","Compiled\_Body.htm",,,,,0x23520,200,0x10384e,,0xb0000,,,1,,,0',
+    Lines.Add(Format('Main Window="%s","%s","%s","Compiled\_Body.htm","Compiled\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
       [Edit1.Text, Edit3.Text, Edit2.Text]));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
