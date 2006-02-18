@@ -28,7 +28,7 @@ unit MainUnit;
 
 interface
 
-{I GR32.INC}
+{$I GR32.INC}
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, StdCtrls,
