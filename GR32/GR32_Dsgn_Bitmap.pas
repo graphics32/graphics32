@@ -88,8 +88,13 @@ type
     procedure FormCreate(Sender: TObject);
     procedure MagnComboChange(Sender: TObject);
   protected
-    OpenDialog: {$IFDEF CLX}TOpenDialog{$ELSE}TOpenPictureDialog{$ENDIF};
-    SaveDialog: {$IFDEF CLX}TSaveDialog{$ELSE}TSavePictureDialog{$ENDIF};
+{$IFDEF CLX}
+    OpenDialog: TOpenDialog;
+    SaveDialog: TSaveDialog;
+{$ELSE}
+    OpenDialog: TOpenPictureDialog;
+    SaveDialog: TSavePictureDialog;
+{$ENDIF}
     AlphaChannel: TImage32;
     RGBChannels: TImage32;
     procedure AlphaChannelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -148,10 +153,10 @@ implementation
 uses
   GR32_Resamplers;
 
-{$IFDEF CLX}
-{$R *.xfm}
-{$ELSE}
+{$IFNDEF CLX}
 {$R *.dfm}
+{$ELSE}
+{$R *.xfm}
 {$ENDIF}
 
 { TPictureEditorForm }
@@ -439,7 +444,12 @@ var
   R: TRect;
 begin
   Bitmap32 := TBitmap32(GetOrdValue);
-  if Bitmap32.Empty then inherited
+  if Bitmap32.Empty then
+{$IFDEF DELPHI5}
+    inherited
+{$ELSE}
+    DefaultPropertyDrawValue(Self, Canvas, ARect)
+{$ENDIF}
   else
   begin
     R := ARect;
@@ -478,7 +488,10 @@ end;
 
 function TBitmap32Property.PropDrawValueRect(const ARect: TRect): TRect;
 begin
-  Result := Rect(ARect.Left, ARect.Top, (ARect.Bottom - ARect.Top) + ARect.Left, ARect.Bottom);
+  if TBitmap32(GetOrdValue).Empty then
+    Result := ARect
+  else
+    Result := Rect(ARect.Left, ARect.Top, (ARect.Bottom - ARect.Top) + ARect.Left, ARect.Bottom);
 end;
 {$ENDIF}
 
