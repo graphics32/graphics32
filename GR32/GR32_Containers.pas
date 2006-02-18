@@ -198,7 +198,7 @@ begin
     // Get the property list in an unsorted fashion.
     // This is important so the order in which the properties are defined is obeyed,
     // ie. mimic how the Delphi form loader would set the properties.
-    Count := GetPropList(Src.ClassInfo, TypeKinds, Props, False);
+    Count := GetPropList(Src.ClassInfo, TypeKinds, Props{$IFDEF COMPILER6}, False{$ENDIF});
 
     for I := 0 to Count - 1 do
     with Props^[I]^ do
@@ -632,3 +632,4 @@ begin
 end;
 
 end.
+
