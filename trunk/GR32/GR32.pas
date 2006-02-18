@@ -25,8 +25,9 @@ unit GR32;
  *   Michael Hansen <dyster_tid@hotmail.com>
  *   Andre Beckedorf <Andre@metaException.de>
  *   Mattias Andersson <mattias@centaurix.com>
- *   J. Tulach <tulach@position.cz>
- *   Jouni Airaksinen <markvera@spacesynth.net>
+ *   J. Tulach <tulach at position.cz>
+ *   Jouni Airaksinen <markvera at spacesynth.net>
+ *   Timothy Weber <teejaydub at users.sourceforge.net>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -48,7 +49,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.8.0';
+  Graphics32Version = '1.8.1';
 
 { 32-bit Color }
 
@@ -2428,7 +2429,7 @@ begin
     begin
       CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
       CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
-      CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Inc(P);
+      CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Dec(P);
       CombineMem(MergeReg(C, P^), P^, celx * flry shr 8);
     end
     else // "pixel" lies on the edge of the bitmap
@@ -2436,7 +2437,7 @@ begin
     begin
       if (X >= Left) and (Y >= Top) then CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
       if (X < Right - 1) and (Y >= Top) then CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
-      if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Inc(P);
+      if (X < Right - 1) and (Y < Bottom - 1) then CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Dec(P);
       if (X >= Left) and (Y < Bottom - 1) then CombineMem(MergeReg(C, P^), P^, celx * flry shr 8);
     end;
   end;
@@ -2520,11 +2521,27 @@ begin
 end;
 
 function TBitmap32.GET_TS256(X, Y: Integer): TColor32;
+var
+  Width256, Height256: Integer;
 begin
-  if (X > 0) and (Y > 0) and (X < (FWidth - 1) shl 8) and (Y < (FHeight - 1) shl 8) then
-    Result := GET_T256(X,Y)
+	if (X >= 0) and (Y >= 0) then
+  begin
+    Width256 := (FWidth - 1) shl 8;
+    Height256 := (FHeight - 1) shl 8;
+
+		if (X < Width256) and (Y < Height256) then
+			Result := GET_T256(X,Y)
+		else if (X = Width256) and (Y <= Height256) then
+			// We're exactly on the right border: no need to interpolate.
+			Result := Pixel[FWidth - 1, Y shr 8]
+		else if (X <= Width256) and (Y = Height256) then
+			// We're exactly on the bottom border: no need to interpolate.
+			Result := Pixel[X shr 8, FHeight - 1]
+		else
+			Result := FOuterColor;
+	end
   else
-    Result := FOuterColor;
+		Result := FOuterColor;
 end;
 
 function TBitmap32.GetPixelF(X, Y: Single): TColor32;
@@ -2963,7 +2980,7 @@ begin
         P^ := Value;
         Inc(P, Sx);
         Inc(Delta, Dy);
-        if Delta > Dx then
+        if Delta >= Dx then
         begin
           Inc(P, Sy);
           Dec(Delta, Dx);
@@ -2978,7 +2995,7 @@ begin
         P^ := Value;
         Inc(P, Sy);
         Inc(Delta, Dx);
-        if Delta > Dy then
+        if Delta >= Dy then
         begin
           Inc(P, Sx);
           Dec(Delta, Dy);
@@ -3229,7 +3246,7 @@ begin
           BlendMem(Value, P^);
           Inc(P, Sx);
           Inc(Delta, Dy);
-          if Delta > Dx then
+          if Delta >= Dx then
           begin
             Inc(P, Sy);
             Dec(Delta, Dx);
@@ -3244,7 +3261,7 @@ begin
           BlendMem(Value, P^);
           Inc(P, Sy);
           Inc(Delta, Dx);
-          if Delta > Dy then
+          if Delta >= Dy then
           begin
             Inc(P, Sx);
             Dec(Delta, Dy);
@@ -5129,8 +5146,9 @@ begin
 
   Shift := Dx + Dy * Width;
   L := (Width * Height - Abs(Shift));
+
   if Shift > 0 then
-    MoveLongword(Bits[0], Bits[Shift], L)
+    Move(Bits[0], Bits[Shift], L shl 2)
   else
     MoveLongword(Bits[-Shift], Bits[0], L);
 
