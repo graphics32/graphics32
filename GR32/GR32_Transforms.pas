@@ -608,9 +608,9 @@ function TAffineTransformation.GetTransformedBounds(const ASrcRect: TFloatRect):
 var
   V1, V2, V3, V4: TVector3f;
 begin
-  V1[0] := FSrcRect.Left;  V1[1] := FSrcRect.Top;    V1[2] := 1;
-  V2[0] := FSrcRect.Right; V2[1] := V1[1];           V2[2] := 1;
-  V3[0] := V1[0];          V3[1] := FSrcRect.Bottom; V3[2] := 1;
+  V1[0] := ASrcRect.Left;  V1[1] := ASrcRect.Top;    V1[2] := 1;
+  V2[0] := ASrcRect.Right; V2[1] := V1[1];           V2[2] := 1;
+  V3[0] := V1[0];          V3[1] := ASrcRect.Bottom; V3[2] := 1;
   V4[0] := V2[0];          V4[1] := V3[1];           V4[2] := 1;
   V1 := VectorTransform(Matrix, V1);
   V2 := VectorTransform(Matrix, V2);
@@ -965,9 +965,9 @@ function TTwirlTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): 
 var
   Cx, Cy, R: TFloat;
 begin
-  Cx := (FSrcRect.Left + FSrcRect.Right) / 2;
-  Cy := (FSrcRect.Top + FSrcRect.Bottom) / 2;
-  R := Max(Cx - FSrcRect.Left, Cy - FSrcRect.Top);
+  Cx := (ASrcRect.Left + ASrcRect.Right) / 2;
+  Cy := (ASrcRect.Top + ASrcRect.Bottom) / 2;
+  R := Max(Cx - ASrcRect.Left, Cy - ASrcRect.Top);
   Result.Left := Round(Cx - R * Pi/2);
   Result.Right := Round(Cx + R * Pi/2);
   Result.Top := Round(Cy - R * Pi/2);
