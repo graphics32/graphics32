@@ -42,7 +42,7 @@ uses
   SysUtils, Classes, Consts,
   GR32, GR32_Image, GR32_Layers, GR32_Filters,
 {$IFDEF COMPILER6}
-  DesignIntf, DesignEditors
+  DesignIntf, DesignEditors, VCLEditors
 {$ELSE}
   DsgnIntf
 {$ENDIF};
@@ -111,14 +111,28 @@ type
     property Bitmap32: TBitmap32 read FBitmap32 write SetBitmap32;
   end;
 
-  TBitmap32Property = class(TClassProperty)
+  TBitmap32Property = class(TClassProperty
+    {$IFDEF COMPILER6}, ICustomPropertyDrawing{$ENDIF}
+    {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF})
   public
     procedure Edit; override;
     function GetAttributes: TPropertyAttributes; override;
     function GetValue: string; override;
     procedure SetValue(const Value: string); override;
 {$IFDEF EXT_PROP_EDIT}
-    procedure PropDrawValue(Canvas: TCanvas; const ARect: TRect; Selected: Boolean); override;
+  {$IFDEF DELPHI5}
+    procedure PropDrawValue(Canvas: TCanvas; const ARect: TRect; ASelected: Boolean); override;
+  {$ENDIF}
+  {$IFDEF COMPILER6}
+    { ICustomPropertyDrawing }
+    procedure PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
+    procedure PropDrawValue(Canvas: TCanvas; const ARect: TRect; ASelected: Boolean);
+  {$ENDIF}
+  {$IFDEF COMPILER2005}
+    { ICustomPropertyDrawing80 }
+    function PropDrawNameRect(const ARect: TRect): TRect;
+    function PropDrawValueRect(const ARect: TRect): TRect;
+  {$ENDIF}
 {$ENDIF}
   end;
 
@@ -130,6 +144,9 @@ type
   end;
 
 implementation
+
+uses
+  GR32_Resamplers;
 
 {$IFDEF CLX}
 {$R *.xfm}
@@ -415,9 +432,10 @@ end;
 
 {$IFDEF EXT_PROP_EDIT}
 procedure TBitmap32Property.PropDrawValue(Canvas: TCanvas;
-  const ARect: TRect; Selected: Boolean);
+  const ARect: TRect; ASelected: Boolean);
 var
   Bitmap32: TBitmap32;
+  TmpBitmap: TBitmap32;
   R: TRect;
 begin
   Bitmap32 := TBitmap32(GetOrdValue);
@@ -426,12 +444,44 @@ begin
   begin
     R := ARect;
     R.Right := R.Left + R.Bottom - R.Top;
-    Bitmap32.DrawTo(Canvas.Handle, R, Classes.Rect(0, 0, Bitmap32.Width, Bitmap32.Height));
+
+    TmpBitmap := TBitmap32.Create;
+    TmpBitmap.Width := R.Right - R.Left;
+    TmpBitmap.Height := R.Bottom - R.Top;
+    TDraftResampler.Create(TmpBitmap);
+    TmpBitmap.Draw(TmpBitmap.BoundsRect, Bitmap32.BoundsRect, Bitmap32);
+    TmpBitmap.DrawTo(Canvas.Handle, R, TmpBitmap.BoundsRect);
+    TmpBitmap.Free;
+
     R.Left := R.Right;
     R.Right := ARect.Right;
-    inherited PropDrawValue(Canvas, R, Selected);
+{$IFDEF DELPHI5}
+    inherited PropDrawValue(Canvas, R, ASelected);
+{$ELSE}
+    DefaultPropertyDrawValue(Self, Canvas, R);
+{$ENDIF}
   end;
 end;
+
+{$IFDEF COMPILER6}
+procedure TBitmap32Property.PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
+begin
+  DefaultPropertyDrawName(Self, ACanvas, ARect);
+end;
+{$ENDIF}
+
+{$IFDEF COMPILER2005}
+function TBitmap32Property.PropDrawNameRect(const ARect: TRect): TRect;
+begin
+  Result := ARect;
+end;
+
+function TBitmap32Property.PropDrawValueRect(const ARect: TRect): TRect;
+begin
+  Result := Rect(ARect.Left, ARect.Top, (ARect.Bottom - ARect.Top) + ARect.Left, ARect.Bottom);
+end;
+{$ENDIF}
+
 {$ENDIF}
 
 procedure TBitmap32Property.SetValue(const Value: string);

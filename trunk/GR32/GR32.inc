@@ -106,7 +106,7 @@
 //////////////////////////////////////////////////////////////////////
 {$ENDIF}
 
-{$IFDEF DELPHI5}
+{$IFDEF COMPILER5}
   {$DEFINE EXT_PROP_EDIT}
 {$ENDIF}
 
