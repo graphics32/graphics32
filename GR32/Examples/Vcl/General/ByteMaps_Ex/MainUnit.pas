@@ -81,8 +81,6 @@ type
     procedure ImageMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure mnExitClick(Sender: TObject);
     procedure OpenClick(Sender: TObject);
-  private
-    procedure WMEraseBkgnd(var Msg: TMessage); message WM_ERASEBKGND;
   public
     DataSet: TByteMap;
     palGrayscale: TPalette32;
@@ -100,6 +98,10 @@ var
   Form1: TForm1;
 
 implementation
+{$IFNDEF CLX}
+uses
+  Windows;
+{$ENDIF}
 
 {$R *.DFM}
 
@@ -222,7 +224,9 @@ begin
     MouseDragging := True;
     Image.Cursor := crSizeAll;
   end
+{$IFNDEF CLX}
   else ReleaseCapture;
+{$ENDIF}  
 end;
 
 procedure TForm1.ImageMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -274,12 +278,6 @@ begin
       bSave.Enabled := True;
       bCopy.Enabled := True;
     end;
-end;
-
-procedure TForm1.WMEraseBkgnd(var Msg: TMessage);
-begin
-  { Accelerate repainting of the form a little bit }
-  Msg.Result := -1;
 end;
 
 end.
