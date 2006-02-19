@@ -2184,14 +2184,13 @@ begin
   StretchPixmap(
     hDst,
     DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
-    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left,
-    SrcRect.Bottom - SrcRect.Top, GetPixmap);
+    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top,
+    GetPixmap);
 {$ELSE}
-  StretchDIBits(
+  StretchBlt(
     hDst,
-    DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
-    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left,
-    SrcRect.Bottom - SrcRect.Top, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+    DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Handle,
+    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
 {$ENDIF}
 end;
 
