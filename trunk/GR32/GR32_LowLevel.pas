@@ -41,7 +41,7 @@ uses
   GR32;
 
 { Clamp function restricts Value to [0..255] range }
-function Clamp(const Value: Integer): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
 var
@@ -120,11 +120,21 @@ uses
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
-function Clamp(const Value: Integer): TColor32;
+function Clamp(const Value: Integer): Integer;
+{$IFDEF USEINLINING}
 begin
-  if Value < 0 then Result := 0
-  else if Value > 255 then Result := 255
+  if Value > 255 then Result := 255
+  else if Value < 0 then Result := 0
   else Result := Value;
+{$ELSE}
+asm
+        MOV   EDX,$FF
+        CMP   EDX,EAX
+        DB $0F,$4C,$C2   /// CMOVL EAX,EDX
+        XOR   EDX,EDX
+        CMP   EDX,EAX
+        DB $0F,$4F,$C2   /// CMOVG EAX,EDX
+{$ENDIF}
 end;
 
 procedure _FillLongword(var X; Count: Integer; Value: Longword);
@@ -168,7 +178,7 @@ asm
         ADD        EAX, 4
         DEC        EDX
         JZ         @ExitPOP
-   @QLoopIni:
+    @QLoopIni:
         db $0F,$6E,$C9           /// MOVD       MM1, ECX
         db $0F,$62,$C9           /// PUNPCKLDQ  MM1, MM1
         SHR        EDX, 1
