@@ -117,8 +117,11 @@ type
   end;
 
   TBitmap32Property = class(TClassProperty
+{$IFDEF EXT_PROP_EDIT}
     {$IFDEF COMPILER6}, ICustomPropertyDrawing{$ENDIF}
-    {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF})
+    {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
+{$ENDIF}
+  )
   public
     procedure Edit; override;
     function GetAttributes: TPropertyAttributes; override;
