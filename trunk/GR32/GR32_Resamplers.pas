@@ -32,7 +32,12 @@ interface
 {$I GR32.inc}
 
 uses
-  Windows, Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
   GR32_OrdinalMaps, GR32_Blend;
 
 procedure BlockTransfer(
@@ -1185,6 +1190,7 @@ var
   Scale: TFloat;
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
+  DstLinePtr, MapPtr: PColor32;
 begin
   IntersectRect(DstClip, DstClip, MakeRect(0, 0, Dst.Width, Dst.Height));
   IntersectRect(DstClip, DstClip, DstRect);
@@ -1225,6 +1231,7 @@ begin
           for I := 0 to DstClipW - 1 do
             MapHorz[I] := Round(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
         end;
+        
         Assert(MapHorz[0] >= SrcRect.Left);
         Assert(MapHorz[DstClipW - 1] < SrcRect.Right);
       end
@@ -1239,6 +1246,7 @@ begin
       begin
         DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
         OldSrcY := -1;
+        
         for J := 0 to DstClipH - 1 do
         begin
           if DstH <= 1 then
@@ -1247,10 +1255,18 @@ begin
             SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
           else
             SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
+            
           if SrcY <> OldSrcY then
           begin
             SrcLine := Src.ScanLine[SrcY];
-            for I := 0 to DstClipW - 1 do DstLine[I] := SrcLine[MapHorz[I]];
+            DstLinePtr := @DstLine[0];
+            MapPtr := @MapHorz[0];
+            for I := 0 to DstClipW - 1 do
+            begin
+              DstLinePtr^ := SrcLine[MapPtr^];
+              Inc(DstLinePtr);
+              Inc(MapPtr);
+            end;
             OldSrcY := SrcY;
           end
           else
@@ -1287,10 +1303,18 @@ begin
           end
           else
             SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2;
+            
           if SrcY <> OldSrcY then
           begin
             SrcLine := Src.ScanLine[SrcY];
-            for I := 0 to DstClipW - 1 do Buffer[I] := SrcLine[MapHorz[I]];
+            DstLinePtr := @Buffer[0];
+            MapPtr := @MapHorz[0];
+            for I := 0 to DstClipW - 1 do
+            begin
+              DstLinePtr^ := SrcLine[MapPtr^];
+              Inc(DstLinePtr);
+              Inc(MapPtr);
+            end;
             OldSrcY := SrcY;
           end;
 
