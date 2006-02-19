@@ -196,7 +196,7 @@ type
     procedure SetLayerCollection(Value: TLayerCollection); virtual;
     procedure SetLayerOptions(Value: Cardinal); virtual;
     property Invalid: Boolean read GetInvalid write SetInvalid;
-    property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;    
+    property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;
   public
     constructor Create(ALayerCollection: TLayerCollection); virtual;
     destructor Destroy; override;
@@ -528,8 +528,7 @@ begin
   else
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
-  if (Button = mbLeft) and (Result <> MouseListener) and
-    ((Result = nil) or ((Result.FLayerOptions and LOB_NO_CAPTURE) = 0)) then
+  if (Result <> MouseListener) and ((Result = nil) or ((Result.FLayerOptions and LOB_NO_CAPTURE) = 0)) then
     MouseListener := Result; // capture the mouse
 
   if Assigned(MouseListener) then
@@ -664,6 +663,7 @@ end;
 
 procedure TCustomLayer.Changed;
 begin
+  if UpdateCount > 0 then Exit;
   if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update;
@@ -677,6 +677,7 @@ end;
 
 procedure TCustomLayer.Changed(const Rect: TRect);
 begin
+  if UpdateCount > 0 then Exit;
   if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update(Rect);
@@ -690,6 +691,7 @@ end;
 
 procedure TCustomLayer.Changing;
 begin
+  if UpdateCount > 0 then Exit;
   if Visible and Assigned(FLayerCollection) and
     ((FLayerOptions and LOB_NO_UPDATE) = 0) then
     FLayerCollection.Changing;
