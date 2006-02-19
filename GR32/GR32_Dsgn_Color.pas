@@ -65,8 +65,11 @@ type
 
   { TColor32Property }
   TColor32Property = class(TIntegerProperty
+{$IFDEF EXT_PROP_EDIT}
     {$IFDEF COMPILER6}, ICustomPropertyListDrawing, ICustomPropertyDrawing{$ENDIF}
-    {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF})
+    {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
+{$ENDIF}
+  )
   public
     function GetAttributes: TPropertyAttributes; override;
     function GetValue: string; override;
