@@ -106,10 +106,6 @@
 //////////////////////////////////////////////////////////////////////
 {$ENDIF}
 
-{$IFDEF COMPILER5}
-  {$DEFINE EXT_PROP_EDIT}
-{$ENDIF}
-
 {$IFDEF LINUX}
   {$DEFINE CLX}
 {$ENDIF}
@@ -184,5 +180,11 @@
 {$ENDIF}
 
 {$R-}{$Q-}  // switch off overflow and range checking
+
+{$IFDEF COMPILER5}
+  {$IFNDEF CLX}
+    {$DEFINE EXT_PROP_EDIT}
+  {$ENDIF}
+{$ENDIF}
 
 {$DEFINE XPTHEMES} // enable support for windows xp themes
