@@ -27,9 +27,16 @@ unit GR32_VectorMaps;
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+     
+{$I GR32.inc}
 
 uses
-  Windows, Classes, GR32, GR32_Containers;
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  Classes, GR32, GR32_Containers;
 
 type
   TFixedVector = TFixedPoint;
