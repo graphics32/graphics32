@@ -80,6 +80,8 @@ type
     property Enabled: Boolean read GetEnabled write SetEnabled;
   end;
 
+  TCustomRepaintOptimizerClass = class of TCustomRepaintOptimizer;
+
 // differs from InflateRect in the way that it does also handle negative rects
 procedure InflateArea(var Area: TRect; Dx, Dy: Integer);
 
