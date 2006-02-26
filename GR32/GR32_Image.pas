@@ -581,6 +581,7 @@ type
   TRangeBarAccess = class(TRangeBar);
 
 const
+  DefaultRepaintOptimizerClass: TCustomRepaintOptimizerClass = TMicroTilesRepaintOptimizer;
   UnitXForm: TCoordXForm = (
     ScaleX: $10000;
     ScaleY: $10000;
@@ -695,7 +696,7 @@ begin
   FBufferOversize := 40;
   FForceFullRepaint := True;
   FInvalidRects := TRectList.Create;
-  FRepaintOptimizer := TMicroTilesRepaintOptimizer.Create(Buffer, InvalidRects);
+  FRepaintOptimizer := DefaultRepaintOptimizerClass.Create(Buffer, InvalidRects);
   Height := 192;
   Width := 192;
 end;
@@ -1431,8 +1432,7 @@ end;
 
 procedure TCustomImage32.DoScaleChange;
 begin
-  if FRepaintOptimizer.Enabled then FRepaintOptimizer.Reset;
-  if Assigned(FOnScaleChange) then FOnScaleChange(Self);  
+  if Assigned(FOnScaleChange) then FOnScaleChange(Self);
 end;
 
 procedure TCustomImage32.EndUpdate;
