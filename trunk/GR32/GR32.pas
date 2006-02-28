@@ -2470,7 +2470,7 @@ begin
     EMMS;
 {$IFDEF CHANGED_IN_PIXELS}
   end;
-  Changed(MakeRect(X, Y, X + 1, Y + 1));
+  Changed(MakeRect(FloatRect(X, Y, X + 1, Y + 1)));
 {$ENDIF}
 end;
 
@@ -2484,7 +2484,7 @@ begin
     EMMS;
 {$IFDEF CHANGED_IN_PIXELS}
   end;
-  Changed(MakeRect(X, Y, X + 1, Y + 1));
+  Changed(MakeRect(FloatRect(X, Y, X + 1, Y + 1)));
 {$ENDIF}
 end;
 
