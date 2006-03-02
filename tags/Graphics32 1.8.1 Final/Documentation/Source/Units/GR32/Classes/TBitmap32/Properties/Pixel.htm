@@ -1,0 +1,46 @@
+<html>
+<head>
+<title>Pixel</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Pixel[X, Y: Integer]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>default</b>;</p>
+		<p class="Decl"><b>property</b> PixelS[X, Y: Integer]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<p class="Decl"><b>property</b> PixelW[X, Y: Integer]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<p class="Decl"></p>
+		<p class="Decl"><b>property</b> PixelX[X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+<p class="Decl"><b>property</b> PixelXS[X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<p class="Decl"><b>property</b> PixelXW[X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<p class="Decl"></p>
+		<p class="Decl"><b>property</b> PixelF[X, Y: Single]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<p class="Decl"><b>property</b> PixelFS[X, Y: Single]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<p class="Decl"><b>property</b> PixelFW[X, Y: Single]: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+		<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">Pixel</span> property sets the value of 
+  the pixel in the bitmap. Reading it, will return the color value of the pixel 
+  located at specified coordinates. This property does not validate the specified 
+  coordinates, so use it only then you are completely sure that you are not trying 
+  to read from or write to the outside of the bitmap boundary. <span class="EmptyRef">Pixel</span> 
+  is declared as default property, you may use it as shown below: </p>
+<p class="Code">Bitmap32[10, 20] := Bitmap32[20, 10]; <span class="Comment">// 
+  copy a pixel from (20,10) to (10,20) position</span></p>
+<p class="Body"><span class="EmptyRef">PixelS</span> is a 'safe' version of the 
+  <span class="EmptyRef">Pixel</span> property. When reading pixels from the
+  outside  the bitmap boundary, the value specified by <a href="OuterColor.htm">OuterColor</a> 
+  is returned. Writing with invalid coordinates will have no effect.</p>
+		<p class="Body"><span class="EmptyRef">PixelW</span> is the wrapping version of the Pixel property. When reading pixels from outside the bitmap boundary, the value returned is determined by the currently selected <a href="WrapMode.htm">WrapMode</a>. Thus always safe.</p>
+		<p class="Body"><b>PixelX</b> provides a method for accessing the pixels in fixed-point
+  coordinates. The returned color is computed by performing linear interpolation
+  on four adjacent pixels. Similarly, when pixels are set, they are antialiased.</p>
+		<p class="Body"><img src="../../../../../../Images/img_002.gif" vspace="10"></p>
+<p class="Body"><b>PixelXS</b> is a 'safe' version of the above property.</p>
+<p class="Body"><b>PixelXW</b> is a wrapping version of the property <b>PixelX</b>.</p>
+<p class="Body"><b>PixelF</b> is similar to PixelX but works with floating point coordinates instead of fixed point.</p>
+<p class="Body"><b>PixelFS</b> is a 'safe' version of the above property.</p>
+<p class="Body"><b>PixelFW</b> is a wrapping version of the above property.</p>
+<p id="hidden">[See also]: <a href="../Methods/SetPixel.htm">SetPixel</a>, <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

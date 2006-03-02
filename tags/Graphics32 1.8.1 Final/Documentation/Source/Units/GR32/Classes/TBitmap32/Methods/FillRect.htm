@@ -1,0 +1,31 @@
+<html>
+<head>
+<title>FillRect</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> FillRect(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+</p>
+<p class="Decl"><b>procedure</b> FillRectS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> FillRectT(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+</p>
+<p class="Decl"><b>procedure</b> FillRectTS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> FillRectS(<b>const</b> ARect: TRect; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> FillRectS(<b>const</b> ARect: TRect; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>; </p>
+<h2>Description</h2>
+<p class="Body">Fills the rectangle with a specified color. Methods with 'S' postfix 
+  provide necessary clipping to bitmap boundaries, versions without 'S' must be 
+  supplied with valid parameters and <span class="EmptyRef">X2</span> > <span class="EmptyRef">X1</span>; 
+  <span class="EmptyRef">Y2</span> > <span class="EmptyRef">Y1</span>.</p>
+<p class="Body">The function fills the rectangle up to, but not including the 
+  right column and bottom row. When <b>X2</b> &lt;= <b>X1</b> or <b>Y2</b> &lt;= 
+  <b>Y1</b>, nothing is drawn.</p>
+<p id="hidden">[See also]: <a href="FrameRect.htm">FrameRect</a>, <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

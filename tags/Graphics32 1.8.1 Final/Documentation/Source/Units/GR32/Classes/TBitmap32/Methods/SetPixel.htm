@@ -1,0 +1,56 @@
+<html>
+<head>
+<title>SetPixel</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+<style type="text/css">
+<!--
+.style1 {font-size: 100%}
+-->
+</style>
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> SetPixelT(X, Y: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> SetPixelT(<b>var</b> Ptr: <a href="../../../Types/Color%20Types.htm#TColor32">PColor32</a>; 
+  Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> SetPixelTS(X, Y: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);  <br>
+</p>
+<p class="Decl"><b>procedure</b> SetPixelX(X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>; 
+  Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); <strong>deprecated</strong>;</p>
+<p class="Decl"><b>procedure</b> SetPixelXS(X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>; 
+  Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); <strong>deprecated</strong>;</p>
+<p class="Decl"><b>procedure</b> SetPixelF(X, Y: Single; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);
+<strong>deprecated</strong>;</p>
+<p class="Decl"><b>procedure</b> SetPixelFS(X, Y: Single; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);
+  <strong>deprecated</strong>;
+</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">SetPixelT</span> blends the pixel with 
+  a bitmap at specified coordinates using the specified color. The pixel’s alpha 
+  channel is used, but the coordinates are not validated.</p>
+<p class="Body">The overloaded version of <span class="EmptyRef">SetPixelT</span> 
+  with a pixel pointer argument allows setting pixels addressed with the pointer 
+  rather than with coordinates. The pointer is automatically incremented to a 
+  next pixel position with each call to <span class="EmptyRef">SetPixelT</span>, 
+  for example:</p>
+<p class="Code"><b>var</b> <br>
+  &nbsp;&nbsp;P: PColor32; <br>
+  &nbsp;&nbsp;I: Integer; <br>
+  <b>begin</b> <span class="Comment">{ Draw a fading white line from (10, 20) 
+  to (265, 20) } </span><br>
+  &nbsp;&nbsp;P := PixelPtr[10, 20]; <br>
+  &nbsp;&nbsp;<b>for</b> I := 0 to 255 <b>do</b> SetPixelT(P, Color32(255, 255, 
+  255, 255 - I)); <br>
+  <b>end</b>;</p>
+<p class="Body"><span class="EmptyRef">SetPixelTS</span> is the <span class="EmptyRef">SetPixelT</span> 
+  method with added coordinate verification. If pixel coordinates lie outside 
+  the bitmap area, <span class="EmptyRef">SetPixelTS</span> does nothing.</p>
+<p class="Body">&nbsp;</p>
+<p class="Body style1"><span class="EmptyRef">SetPixelX/F/XS/FS</span> methods are <strong>deprecated</strong>. Please use the <a href="../Properties/Pixel.htm"><strong>PixelX/F/XS/FS</strong></a> property
+  instead.</p>
+<p class="Code">&nbsp;</p>
+<p id="hidden">[See also]: <a href="../Properties/Pixel.htm">Pixel</a>, <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<html>
+<head>
+<title>Layer Options Bits</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Body">The basic behavior of the layer is controlled by its <a href="../../GR32_Layers/Classes/TCustomLayer/Properties/LayerOptions.htm">LayerOptions</a> 
+  property, an unsigned 32-bit integer field of bits. The upper 8 bits in this 
+  field are reserved for default options:</p>
+<table border="1" cellspacing="0" cellpadding="0" bordercolor="#FFFFFF">
+  <tr>
+    <th>Bit #</th>
+    <th>Constant Name</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>31</td>
+    <td>LOB_VISIBLE</td>
+    <td>Controls the layer visibility</td>
+  </tr>
+  <tr>
+    <td>30</td>
+    <td>LOB_GDI_OVERLAY</td>
+    <td>
+      <p>Indicates that the layer performs drawing when its owner (TCustomImage32 
+        control or its descendant) draws its GDI Overlays.</p>
+      <p><font color="#FF3333">[ Note: Most likely, this constant will not be 
+        used in future versions. Do not use it ]</font></p>
+    </td>
+  </tr>
+  <tr>
+    <td>29</td>
+    <td>LOB_MOUSE_EVENTS</td>
+    <td>Specifies whether the layer responds to mouse messages.</td>
+  </tr>
+  <tr>
+    <td>28</td>
+    <td>LOB_NO_UPDATE</td>
+    <td>Disables automatic repainting when the layer changes its location or other 
+      properties. </td>
+  </tr>
+  <tr>
+    <td>27</td>
+    <td>LOB_NO_CAPTURE</td>
+    <td>Allows to override automatic capturing of mouse messages when the left 
+      mouse is pressed on top of the layer. This bit has no effect if LOB_MOUSE_EVENTS 
+      is not set.</td>
+  </tr>
+  <tr>
+    <td>26</td>
+    <td>LOB_RESERVED_26</td>
+    <td>Reserved for future use</td>
+  </tr>
+  <tr>
+    <td>25</td>
+    <td>LOB_RESERVED_25</td>
+    <td>Reserved for future use</td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>LOB_RESERVED_24</td>
+    <td>Reserved for future use</td>
+  </tr>
+</table>
+<p class="Body"> Other 24 bits can be used for any other purpose, as customized 
+  layer classification etc.</p>
+<p id="hidden">[See Also] </p>
+</body>
+</html>

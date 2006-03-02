@@ -1,0 +1,44 @@
+<html>
+<head>
+<title>Color Types</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+		<h2>Dynamic Array Types<br>
+		</h2>
+		<h2><a name="TArrayOfByte"></a>TArrayOfByte</h2>
+		<p class="Decl"><b>type</b> TArrayOfByte =<b> array of</b> Byte;</p>
+		<p class="Decl"><b>type</b> PArrayOfByte = ^TArrayOfByte;</p>
+		<p class="Body">A dynamic array of bytes.</p>
+		<h2><a name="TArrayOfInteger"></a>TArrayOfWord</h2>
+		<p class="Decl"><b>type</b> TArrayOfInteger = <b>array</b> <b>of</b> Word;</p>
+		<p class="Body">A dynamic array of words.</p>
+		<h2><a name="TArrayOfInteger"></a>TArrayOfInteger</h2>
+<p class="Decl"><b>type</b> TArrayOfInteger = <b>array</b> <b>of</b> Integer;</p>
+<p class="Body">A dynamic array of integers.</p>
+<h2><a name="TArrayOfSingle"></a>TArrayOfSingle</h2>
+<p class="Decl"><b>type</b> TArrayOfSingle = <b>array</b> <b>of</b> Single;</p>
+<p class="Body">A dynamic array of single-precision floating-point values.</p>
+<h2><a name="TArrayOfArrayOfInteger"></a>TArrayOfArrayOfInteger</h2>
+<p class="Decl"><b>type</b> TArrayOfArrayOfInteger = <b>array</b> <b>of</b> <a href="#TArrayOfInteger">TArrayOfInteger</a>;</p>
+<p class="Body">A dynamic array of dynamic arrays of integers.</p>
+		<p class="Body">&nbsp;</p>
+		<h2>Array Reference Types</h2>
+		<p>Most likely you will never use the reference types directly, however the pointer is the one of some importance. It provides indexed access to values stored in memory, and is used as the result type of the ordinal maps bits properties.</p>
+		<h2><a name="TByteArray"></a>TByteArray</h2>
+		<p class="Decl"><b>type</b> TByteArray = <b>array</b> [0..0] <b>of </b>Byte;</p>
+		<p class="Decl"><b>type</b> PByteArray = ^TByteArray;</p>
+		<p class="Body">A reference to array of byte-typed values. </p>
+		<h2><a name="TWordArray"></a>TWordArray</h2>
+		<p class="Decl"><b>type</b> TWordArray = <b>array</b> [0..0] <b>of </b>Word;</p>
+		<p class="Decl"><b>type</b> PWordArray = ^TWordArray;</p>
+		<p class="Body">A reference to array of word-typed values.</p>
+		<h2><a name="TIntegerArray"></a>TIntegerArray</h2>
+		<p class="Decl"><b>type</b> TIntegerArray = <b>array</b> [0..0] <b>of </b>Integer;</p>
+		<p class="Decl"><b>type</b> PIntegerArray = ^TIntegerArray;</p>
+		<p class="Body">A reference to array of integer-typed values.</p>
+		<p class="Body"></p>
+<p id="hidden">[See also]: <a href="../../GR32_OrdinalMaps/Classes/TByteMap/_Body.htm">TByteMap</a>, <a href="../../GR32_OrdinalMaps/Classes/TWordMap/_Body.htm">TWordMap</a>, <a href="../../GR32_OrdinalMaps/Classes/TIntegerMap/_Body.htm">TIntegerMap</a></p>
+	</body>
+</html>

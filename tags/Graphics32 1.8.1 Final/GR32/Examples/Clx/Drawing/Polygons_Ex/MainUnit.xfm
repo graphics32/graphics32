@@ -1,0 +1,28 @@
+object Form1: TForm1
+  Left = 277
+  Top = 106
+  Width = 665
+  Height = 554
+  Caption = 'Polygons Example'
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Image: TImage32
+    Left = 0
+    Top = 0
+    Width = 512
+    Height = 525
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TKernelResampler'
+    Bitmap.Resampler.KernelClassName = 'TCubicKernel'
+    Bitmap.Resampler.Kernel.Coeff = -0.800000011920929000
+    Bitmap.Resampler.KernelMode = ˇãÿ3¿ZYYdâhj◊;çEÙãG<ËŒ:ˇˇ√Èÿ9ˇˇÎÍã√_^[ãÂ]√êSVãÚãÿçC0ã÷ã
+ty;ËÆ:ˇˇãC0Ëv:ˇˇâC8ãC0ã

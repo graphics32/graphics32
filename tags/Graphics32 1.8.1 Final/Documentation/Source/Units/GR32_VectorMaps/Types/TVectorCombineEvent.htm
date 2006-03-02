@@ -1,0 +1,14 @@
+<html>
+<head>
+<title>TPixelCombineEvent</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TVectorCombineEvent = <strong>procedure</strong> (F, P: <a href="Vector%20Types.htm">TFixedVector</a>; <strong>var</strong> B: <a href="Vector%20Types.htm">TFixedVector</a>) <strong>of</strong> <strong>object</strong>;</p>
+<h2>Desctiption</h2>
+		<p class="Body"><span class="EmptyRef">TVectorCombineEvent</span> is a type for <a href="../Classes/TVectorMap/Events/OnVectorCombine.htm">OnVectorCombine</a> callback function, used in <a href="../Classes/TVectorMap/Methods/Merge.htm">Merge</a>, when <a href="../Classes/TVectorMap/Properties/VectorCombineMode.htm">VectorCombineMode</a> is vcmCustom. It specifies a function which takes foreground vector (<span class="EmptyRef">F</span>) and mixes it with the background vector (<span class="EmptyRef">B</span>). </p>
+		<p class="Body">This function may optionally use progresson vector (<span class="EmptyRef">P</span>). The progression vector will by the merge routine be specified in the range X,Y: [-FIXEDONE..FIXEDONE], regardless of the specified source rect in <a href="../Classes/TVectorMap/Methods/Merge.htm">Merge</a>. This enables in-place masking of the vector map to be merged.</p>
+		<p id="hidden">[See also]: </p>
+	</body>
+</html>

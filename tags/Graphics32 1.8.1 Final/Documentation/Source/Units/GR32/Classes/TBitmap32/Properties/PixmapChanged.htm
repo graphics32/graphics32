@@ -1,0 +1,23 @@
+<html>
+<head>
+<title>BIts</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> PixmapChanged: Boolean; </p>
+<h2>Description</h2>
+<p class="Body">Returns whether the current QPixmap instance has changed or not. You can use that if you're working
+  directly with QT related methods.</p>
+<p class="Body"><strong>Important Note: </strong>Due to the nature of QT handling images and bitmap information, there is
+  a need to notify <span class="API">TBitmap32</span> about changes you made to the <span class="API">QPixmap</span>. You can use this property to
+  do so.<br>
+  This will copy the <span class="API">QPixmap</span> content as
+  soon as the Bits property is accessed or some internal function is accessing the image data directly. This will make sure
+that the content is copied from the <span class="API">QPixmap</span> to the internal <span class="API">QImage</span> in <span class="API">TBitmap32</span>.</p>
+<blockquote>
+  <p class="Comment">This property is only available in the CLX version.</p>
+</blockquote>
+<p id="hidden">[See also]: <a href="Pixmap.htm">Pixmap</a></p>
+</body>
+</html>

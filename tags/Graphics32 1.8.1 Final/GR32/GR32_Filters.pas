@@ -1,0 +1,242 @@
+unit GR32_Filters;
+
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Alex A. Denisov
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
+interface
+
+{$I GR32.inc}
+
+uses
+  {$IFDEF CLX}
+  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$ELSE}
+  Windows,
+  {$ENDIF}
+  Classes, SysUtils, GR32, GR32_Blend;
+
+{ Basic processing }
+type
+  TLUT8 = array [Byte] of Byte;
+
+procedure AlphaToGrayscale(Dst, Src: TBitmap32);
+procedure IntensityToAlpha(Dst, Src: TBitmap32);
+procedure Invert(Dst, Src: TBitmap32);
+procedure InvertRGB(Dst, Src: TBitmap32);
+procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
+procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
+procedure CromaKey(ABitmap: TBitmap32; TrColor: TColor32);
+
+procedure CheckParams(Dst, Src: TBitmap32);
+
+implementation
+
+const
+  SEmptySource = 'The source is nil';
+  SEmptyDestination = 'Destination is nil';
+  SNoInPlace = 'In-place operation is unsupported';
+
+procedure CheckParams(Dst, Src: TBitmap32);
+begin
+  if Src = nil then raise Exception.Create(SEmptySource);
+  if Dst = nil then raise Exception.Create(SEmptyDestination);
+  Dst.SetSize(Src.Width, Src.Height);
+end;
+
+{rocedure CheckParamsNoInPlace(Dst, Src: TBitmap32);
+begin
+  if (Src = nil) then
+    raise Exception.Create(SEmptySource);
+  if Dst = nil then
+    raise Exception.Create(SEmptyDestination);
+  if Dst = Src then
+    raise Exception.Create(SNoInPlace);
+  Dst.SetSize(Src);
+end;       }
+
+procedure AlphaToGrayscale(Dst, Src: TBitmap32);
+var
+  I: Integer;
+  D, S: PColor32;
+begin
+  CheckParams(Dst, Src);
+  Dst.SetSize(Src.Width, Src.Height);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+  for I := 0 to Src.Width * Src.Height - 1 do
+  begin
+    D^ := Gray32(AlphaComponent(S^));
+    Inc(S); Inc(D);
+  end;
+  Dst.Changed;
+end;
+
+procedure IntensityToAlpha(Dst, Src: TBitmap32);
+var
+  I: Integer;
+  D, S: PColor32;
+begin
+  CheckParams(Dst, Src);
+  Dst.SetSize(Src.Width, Src.Height);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+  for I := 0 to Src.Width * Src.Height - 1 do
+  begin
+    D^ := SetAlpha(D^, Intensity(S^));
+    Inc(S); Inc(D);
+  end;
+  Dst.Changed;
+end;
+
+procedure Invert(Dst, Src: TBitmap32);
+var
+  I: Integer;
+  D, S: PColor32;
+begin
+  CheckParams(Dst, Src);
+  Dst.SetSize(Src.Width, Src.Height);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+  for I := 0 to Src.Width * Src.Height - 1 do
+  begin
+    D^ := S^ xor $FFFFFFFF;
+    Inc(S); Inc(D);
+  end;
+  Dst.Changed;
+end;
+
+procedure InvertRGB(Dst, Src: TBitmap32);
+var
+  I: Integer;
+  D, S: PColor32;
+begin
+  CheckParams(Dst, Src);
+  Dst.SetSize(Src.Width, Src.Height);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+  for I := 0 to Src.Width * Src.Height - 1 do
+  begin
+    D^ := S^ xor $00FFFFFF;
+    Inc(S); Inc(D);
+  end;
+  Dst.Changed;
+end;
+
+procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
+var
+  I: Integer;
+  D, S: PColor32;
+begin
+  CheckParams(Dst, Src);
+  Dst.SetSize(Src.Width, Src.Height);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+  
+  if PreserveAlpha then
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      D^ := Gray32(Intensity(S^), AlphaComponent(S^));
+      Inc(S); Inc(D);
+    end
+  else
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      D^ := Gray32(Intensity(S^));
+      Inc(S); Inc(D);
+    end;
+    
+  Dst.Changed;
+end;
+
+procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
+var
+  I: Integer;
+  D, S: PColor32;
+  a, r, g, b: TColor32;
+  C: TColor32;
+begin
+  CheckParams(Dst, Src);
+  Dst.SetSize(Src.Width, Src.Height);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+
+  if PreserveAlpha then
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      C := S^;
+      a := C and $FF000000;
+      r := C and $00FF0000;
+      g := C and $0000FF00;
+      a := a shr 24;
+      r := r shr 16;
+      b := C and $000000FF;
+      g := g shr 8;
+      r := LUT[r];
+      g := LUT[g];
+      b := LUT[b];
+      D^ := a shl 24 or r shl 16 or g shl 8 or b;
+      Inc(S);
+      Inc(D);
+    end
+  else
+    for I := 0 to Src.Width * Src.Height - 1 do
+    begin
+      C := S^;
+      r := C and $00FF0000;
+      g := C and $0000FF00;
+      r := r shr 16;
+      b := C and $000000FF;
+      g := g shr 8;
+      r := LUT[r];
+      g := LUT[g];
+      b := LUT[b];
+      D^ := $FF000000 or r shl 16 or g shl 8 or b;
+      Inc(S);
+      Inc(D);
+    end;
+    
+  Dst.Changed;
+end;
+
+procedure CromaKey(ABitmap: TBitmap32; TrColor: TColor32);
+var
+  P: PColor32;
+  C: TColor32;
+  I: Integer;
+begin
+  TrColor := TrColor and $00FFFFFF;
+  with ABitmap do
+  begin
+    P := PixelPtr[0, 0];
+    for I := 0 to Width * Height - 1 do
+    begin
+      C := P^ and $00FFFFFF;
+      if C = TrColor then P^ := C;
+      Inc(P)
+    end;
+  end;
+end;
+
+end.

@@ -1,0 +1,23 @@
+<html>
+ 
+<head>
+<title>LockCount</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<p class="Decl"><b>property</b> LockCount: Integer; <span class="Comment">// Read-only; 
+  protected;</span></p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">LockCount</span> represents the current 
+  nesting level of the threading lock. This is a counter shared by all running 
+  threads in the curent process. </p>
+<p class="Body">The object is unlocked only when <span class="EmptyRef">LockCount</span> 
+  is 0 and only one thread can lock the object at the time. Call <a href="../Methods/Lock.htm">Lock</a> 
+  to increase <span class="EmptyRef">LockCount</span> value and <a href="../Methods/Unlock.htm">Unlock</a> 
+  to decrease it.</p>
+
+</body>
+</html>
+

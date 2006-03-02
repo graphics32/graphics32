@@ -1,0 +1,2 @@
+For a list of contributors please have a look into the 
+Graphics32.chm file or the Graphics32 HTML documentation.
