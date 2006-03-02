@@ -55,12 +55,117 @@ blockquote {
 </style>
 </head>
 <body bgcolor="#FFFFFF">
-<h2 class="Body">v1.8 (1 January 2006)</h2>
+<h2 class="Body">v1.8.1 (1 March 2006)</h2>
 <ul class="barebones expandable">
-  <li> 
+  <li>
     <h2>General changes</h2>
     <ul>
-      <li> 
+      <li>
+        <h2>Other enhancements:</h2>
+        <ul class="dots">
+          <li>Reintroduced property editor features for all Delphi versions after D5.</li>
+          <li>BDS2k6 C++ personality supported.</li>
+        </ul>
+      </li>
+      <li>
+        <h2>Bugfixes:</h2>
+        <ul class="dots">
+          <li>Fixes for various bugs reported on the SourceForge tracker: 1369894, 1398880, 1403949, 1404989, 1409711, 1412953</li>
+          <li>Fixed problem in method TBitmap32.DrawTo(HDC, DstRect, SrcRect).</li>
+          <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+          <li>Removed mbLeft MouseDown filter in TCustomLayer.</li>
+          <li>TCustomLayer.Changed obeys UpdateCount.</li>
+          <li>Fixed a bug in the MicroTiles repaint optimizer where the buffer wasn't completely invalidated.</li>
+          <li>CLX and D5 compilation issues fixed (GetPropList).</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h2>Detailed changes</h2>
+    <ul style="display:none">
+      <li>
+        <h2>GR32:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>Fixed problem in method TBitmap32.DrawTo(HDC, DstRect, SrcRect).</li>
+            <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+            <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+            <li>[SF 1404989] SET_TS256/LineXS with CombineMode = cmMerge -> wrong output</li>
+            <li>[SF 1403949] Line BUG</li>
+            <li>[SF 1398880] Incorrect boundary test in TBitmap32.GET_TS256</li>
+            <li>[SF 1369894] Bug in TBitmap.Roll method</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Containers:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>GetPropList compilation issue fixed on D5.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Images:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>[SF 1412953] TImgView32 holes (repaint problems in design-time).</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Layers:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>mbLeft check removed from TCustomLayer.MouseDown.</li>
+            <li>TCustomLayer.Changed obeys UpdateCount.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_LowLevel:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>ASM version of simple Clamp added.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_MicroTiles:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>Bug in TMicroTilesRepaintOptimizer.Reset method fixed where the buffer wasn't completely invalidated.</li>
+            <li>Enhanced debug draw</li>
+            <li>Additional inlining support</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Transforms:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>[SF 1409711 ] TAffineTransformation.GetTransformedBounds ignores ASrcRect.</li>
+            <li>Various CLX compilation fixes</li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">v1.8 (1 January 2006)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+    <ul>
+      <li>
         <h2>Other enhancements:</h2>
         <ul class="dots">
           <li>Global usage of new TFloat type alias instead of Single.</li>
@@ -76,9 +181,10 @@ blockquote {
             coordinates (using linear interpolation).</li>
           <li>CLX versions of all example projects added (no guarantee that all 
             projects are 100% CLX-compatible).</li>
+		  <li>Delphi 4 support officially dropped as of this release.</li>
         </ul>
       </li>
-      <li> 
+      <li>
         <h2>Bugfixes:</h2>
         <ul class="dots">
           <li>Bug in TLayerCollection.ViewportToLocal method fixed.</li>
@@ -95,7 +201,7 @@ blockquote {
           <li>TSyntheticImage was not automatically rasterized upon creation.</li>
           <li>Update regions in TTesseralRaserizer were not pixel-perfect.</li>
           <li>Fix for memory leaks in AssignFromBitmap sub-method due to thread 
-           &lt;-&gt; GDI interaction.</li>
+            &lt;-&gt; GDI interaction.</li>
           <li>Fixed a problem in integer version of HSLtoRGB.</li>
           <li>Fixed TBitmap32.GetStippleColor (the ordinary interpolation routine 
             must be used).</li>
@@ -111,10 +217,10 @@ blockquote {
       </li>
     </ul>
   </li>
-  <li> 
+  <li>
     <h2>Detailed changes</h2>
     <ul style="display:none">
-      <li> 
+      <li>
         <h2>GR32:</h2>
         <ul>
           <p class="EmptyRef">New routines:</p>
@@ -127,7 +233,7 @@ blockquote {
           </ul>
         </ul>
       </li>
-      <li> 
+      <li>
         <h2>GR32_Blend:</h2>
         <ul>
           <p class="EmptyRef">New routines:</p>
@@ -137,7 +243,7 @@ blockquote {
           </ul>
         </ul>
       </li>
-      <li> 
+      <li>
         <h2>GR32_Containers:</h2>
         <ul>
           <p class="EmptyRef">New routines:</p>
@@ -146,7 +252,7 @@ blockquote {
           </ul>
         </ul>
       </li>
-      <li> 
+      <li>
         <h2>GR32_Resamplers:</h2>
         <ul>
           <p class="EmptyRef">New routines:</p>
@@ -194,12 +300,12 @@ blockquote {
           <li>New class registration mechanism using TClassList</li>
           <li>Help documents updated with new additional topics</li>
           <li>Restructured examples:</li>
-            <blockquote>
-              <p><em>new examples:</em><br>
-                TextureBlend_Ex, NestedSampling_Ex, Resamplers_Ex, ImgWarping_Ex, Visualization_Ex</p>
-              <p><em>changed examples:</em><br>
-                GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
-            </blockquote>
+          <blockquote>
+            <p><em>new examples:</em><br>
+              TextureBlend_Ex, NestedSampling_Ex, Resamplers_Ex, ImgWarping_Ex, Visualization_Ex</p>
+            <p><em>changed examples:</em><br>
+              GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
+          </blockquote>
         </ul>
       </li>
       <li>
