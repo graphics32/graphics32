@@ -43,7 +43,7 @@ type
   private
     function HasSubProperties: Boolean;
   protected
-    class function GetClassList: TClassList; virtual; {$IFNDEF BCB} abstract; {$ENDIF}
+    class function GetClassList: TClassList; virtual;
     procedure SetClassName(const CustomClass: string); virtual; {$IFNDEF BCB} abstract; {$ENDIF}
     function GetObject: TObject; virtual; {$IFNDEF BCB} abstract; {$ENDIF}
   public
@@ -78,6 +78,11 @@ begin
   Result := inherited GetAttributes - [paReadOnly] +
     [paValueList, paRevertable {$IFDEF COMPILER6}, paVolatileSubProperties{$ENDIF}];
   if not HasSubProperties then Exclude(Result, paSubProperties);
+end;
+
+class function TCustomClassProperty.GetClassList: TClassList;
+begin
+  Result := nil;
 end;
 
 function TCustomClassProperty.GetValue: string;
