@@ -938,8 +938,9 @@ var
   X, Y, Z: TFloat;
 begin
   EMMS;
-  X := DstX; Y := DstY;
+  X := SrcX; Y := SrcY;
   Z := FMatrix[0,2] * X + FMatrix[1,2] * Y + FMatrix[2,2];
+
   if Z = 0 then Exit
   else if Z = 1 then
   begin
