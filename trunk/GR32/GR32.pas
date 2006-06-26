@@ -508,25 +508,25 @@ type
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
 
-    function  GetPixel(X, Y: Integer): TColor32;
-    function  GetPixelS(X, Y: Integer): TColor32;
-    function  GetPixelW(X, Y: Integer): TColor32;
+    function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelW(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-    function  GetPixelF(X, Y: Single): TColor32;
-    function  GetPixelFS(X, Y: Single): TColor32;
-    function  GetPixelFW(X, Y: Single): TColor32;
+    function  GetPixelF(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelFS(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+    function  GetPixelFW(X, Y: Single): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     function  GetPixelX(X, Y: TFixed): TColor32;
     function  GetPixelXS(X, Y: TFixed): TColor32;
     function  GetPixelXW(X, Y: TFixed): TColor32;
 
-    function  GetPixelB(X, Y: Integer): TColor32;
+    function  GetPixelB(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
-    procedure SetPixel(X, Y: Integer; Value: TColor32);
+    procedure SetPixel(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelS(X, Y: Integer; Value: TColor32);
-    procedure SetPixelW(X, Y: Integer; Value: TColor32);
+    procedure SetPixelW(X, Y: Integer; Value: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
 
-    procedure SetPixelF(X, Y: Single; Value: TColor32);
+    procedure SetPixelF(X, Y: Single; Value: TColor32);  {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure SetPixelFS(X, Y: Single; Value: TColor32);
     procedure SetPixelFW(X, Y: Single; Value: TColor32);
 
@@ -3009,7 +3009,8 @@ end;
 
 procedure TBitmap32.LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
-  Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, e: Integer;
+  Dx2, Dy2,Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, rem, term, e: Integer;
+  OC: Int64;
   Swapped, CheckAux: Boolean;
   P: PColor32;
   ChangedRect: TRect;
@@ -3086,9 +3087,9 @@ begin
     // clipping rect horizontal entry
     if Y1 < Cy1 then
     begin
-      tmp := Dx2 * (Cy1 - Y1) - Dx;
-      Inc(xd, tmp div Dy2);
-      rem := tmp mod Dy2;
+      OC := Int64(Dx2) * (Cy1 - Y1) - Dx;
+      Inc(xd, OC div Dy2);
+      rem := OC mod Dy2;
       if xd > Cx2 then Exit;
       if xd >= Cx1 then
       begin
@@ -3106,9 +3107,9 @@ begin
     // clipping rect vertical entry
     if CheckAux and (X1 < Cx1) then
     begin
-      tmp := Dy2 * (Cx1 - X1);
-      Inc(yd, tmp div Dx2);
-      rem := tmp mod Dx2;
+      OC := Int64(Dy2) * (Cx1 - X1);
+      Inc(yd, OC div Dx2);
+      rem := OC mod Dx2;
       if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
       xd := Cx1;
       Inc(e, rem);
@@ -3126,9 +3127,9 @@ begin
     // is the segment exiting the clipping rect?
     if Y2 > Cy2 then
     begin
-      tmp := Dx2 * (Cy2 - Y1) + Dx;
-      term := X1 + tmp div Dy2;
-      rem := tmp mod Dy2;
+      OC := Dx2 * (Cy2 - Y1) + Dx;
+      term := X1 + OC div Dy2;
+      rem := OC mod Dy2;
       if rem = 0 then Dec(term);
       CheckAux := True; // set auxiliary var to indicate that temp is clipped
     end;
@@ -3278,7 +3279,8 @@ end;
 
 procedure TBitmap32.LineTS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
-  Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, tmp, e: Integer;
+  Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, Dx2, Dy2, rem, term, e: Integer;
+  OC: Int64;
   Swapped, CheckAux: Boolean;
   P: PColor32;
   BlendMem: TBlendMem;
@@ -3354,9 +3356,9 @@ begin
     // clipping rect horizontal entry
     if Y1 < Cy1 then
     begin
-      tmp := Dx2 * (Cy1 - Y1) - Dx;
-      Inc(xd, tmp div Dy2);
-      rem := tmp mod Dy2;
+      OC := Int64(Dx2) * (Cy1 - Y1) - Dx;
+      Inc(xd, OC div Dy2);
+      rem := OC mod Dy2;
       if xd > Cx2 then Exit;
       if xd >= Cx1 then
       begin
@@ -3374,9 +3376,9 @@ begin
     // clipping rect vertical entry
     if CheckAux and (X1 < Cx1) then
     begin
-      tmp := Dy2 * (Cx1 - X1);
-      Inc(yd, tmp div Dx2);
-      rem := tmp mod Dx2;
+      OC := Int64(Dy2) * (Cx1 - X1);
+      Inc(yd, OC div Dx2);
+      rem := OC mod Dx2;
       if (yd > Cy2) or (yd = Cy2) and (rem >= Dx) then Exit;
       xd := Cx1;
       Inc(e, rem);
@@ -3394,9 +3396,9 @@ begin
     // is the segment exiting the clipping rect?
     if Y2 > Cy2 then
     begin
-      tmp := Dx2 * (Cy2 - Y1) + Dx;
-      term := X1 + tmp div Dy2;
-      rem := tmp mod Dy2;
+      OC := Int64(Dx2) * (Cy2 - Y1) + Dx;
+      term := X1 + OC div Dy2;
+      rem := OC mod Dy2;
       if rem = 0 then Dec(term);
       CheckAux := True; // set auxiliary var to indicate that temp is clipped
     end;
