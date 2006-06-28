@@ -162,7 +162,7 @@ end;
 
 function FixedCombine(W, X, Y: TFixed): TFixed;
 // EAX <- W, EDX <- X, ECX <- Y
-// combine fixed value X and fixed value Y with the weight given in W
+// combine fixed value X and fixed value Y with the weight of X given in W
 // Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
 asm
