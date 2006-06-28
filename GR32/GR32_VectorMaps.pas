@@ -117,14 +117,14 @@ type
 
 function CombineVectorsReg(const A, B: TFixedVector; Weight: TFixed): TFixedVector;
 begin
-  Result.X := A.X + FixedMul(B.X - A.X, Weight);
-  Result.Y := A.Y + FixedMul(B.Y - A.Y, Weight);
+  Result.X := FixedCombine(Weight, B.X, A.X);
+  Result.Y := FixedCombine(Weight, B.Y, A.Y);
 end;
 
 procedure CombineVectorsMem(const A: TFixedVector;var  B: TFixedVector; Weight: TFixed);
 begin
-  B.X := A.X + FixedMul(B.X - A.X, Weight);
-  B.Y := A.Y + FixedMul(B.Y - A.Y, Weight);
+  B.X := FixedCombine(Weight, B.X, A.X);
+  B.Y := FixedCombine(Weight, B.Y, A.Y);
 end;
 
 function TVectorMap.BoundsRect: TRect;
