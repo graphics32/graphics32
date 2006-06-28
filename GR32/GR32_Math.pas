@@ -50,11 +50,6 @@ procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
 
 { Misc. Routines }
 
-{ SoftCurve, a gaussian/bell-like function useful for hiding artifacts of
-  linear interpolation }
-function SoftCurveX(X: TFixed): TFixed;
-function SoftCurve(X: TFloat): TFloat;
-
 { MulDiv a faster implementation of Windows.MulDiv funtion }
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
@@ -198,24 +193,6 @@ asm
 end;
 
 { Misc. }
-
-function SoftCurveX(X: TFixed): TFixed;
-// Result = (X * X) * (3 - 2 * X)
-asm
-          MOV     ECX, EAX
-          IMUL    EAX
-          SHRD    EAX, EDX, 16
-          SHL     ECX, 1
-          MOV     EDX, $30000
-          SUB     EDX, ECX
-          IMUL    EDX
-          SHRD    EAX, EDX, 16
-end;
-
-function SoftCurve(X: TFloat): TFloat;
-begin
-  Result := (X * X) * (3 - 2 * X)
-end;
 
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 asm
