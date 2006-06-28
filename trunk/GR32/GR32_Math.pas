@@ -23,6 +23,7 @@ unit GR32_Math;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *  Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -41,10 +42,18 @@ function FixedRound(A: TFixed): Integer;
 function FixedSqr(Value: TFixed): TFixed;
 function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
 function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
+function FixedCombine(W, X, Y: TFixed): TFixed;   // Fixed point interpolation
 
 { Trigonometric routines }
 procedure SinCos(const Theta: Single; var Sin, Cos: Single); overload;
 procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
+
+{ Misc. Routines }
+
+{ SoftCurve, a gaussian/bell-like function useful for hiding artifacts of
+  linear interpolation }
+function SoftCurveX(X: TFixed): TFixed;
+function SoftCurve(X: TFloat): TFloat;
 
 { MulDiv a faster implementation of Windows.MulDiv funtion }
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
@@ -156,9 +165,21 @@ asm
 @sqrtHP6: pop ebx
 end;
 
+function FixedCombine(W, X, Y: TFixed): TFixed;
+// EAX <- W, EDX <- X, ECX <- Y
+// combine fixed value X and fixed value Y with the weight given in W
+// Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
+// Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
+asm
+      SUB  EDX,ECX
+      IMUL EDX
+      SHRD EAX,EDX,16
+      ADD  EAX,ECX
+end;
+
 { Trigonometry }
 
-procedure SinCos(const Theta: Single; var Sin, Cos: Single);
+procedure SinCos(const Theta: TFloat; var Sin, Cos: TFloat);
 asm
    FLD  Theta
    FSINCOS
@@ -166,7 +187,7 @@ asm
    FSTP DWORD PTR [EAX]    // sine
 end;
 
-procedure SinCos(const theta, radius : Single; var Sin, Cos: Single);
+procedure SinCos(const Theta, Radius : TFloat; var Sin, Cos: TFloat);
 asm
    FLD  theta
    FSINCOS
@@ -174,6 +195,26 @@ asm
    FSTP DWORD PTR [EDX]    // cosine
    FMUL radius
    FSTP DWORD PTR [EAX]    // sine
+end;
+
+{ Misc. }
+
+function SoftCurveX(X: TFixed): TFixed;
+// Result = (X * X) * (3 - 2 * X)
+asm
+          MOV     ECX, EAX
+          IMUL    EAX
+          SHRD    EAX, EDX, 16
+          SHL     ECX, 1
+          MOV     EDX, $30000
+          SUB     EDX, ECX
+          IMUL    EDX
+          SHRD    EAX, EDX, 16
+end;
+
+function SoftCurve(X: TFloat): TFloat;
+begin
+  Result := (X * X) * (3 - 2 * X)
 end;
 
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
