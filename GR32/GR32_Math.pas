@@ -246,11 +246,9 @@ end;
 function IsPowerOf2(X: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
 asm
-  BSF ECX,EAX
-  MOV EDX,$FFFFFFFE
-  ROL EDX,CL
-  AND EAX,EDX
-  SETZ AL
+   LEA   EDX, [EAX -1]
+   AND   EAX, EDX
+   SETZ  AL
 end;
 
 end.
