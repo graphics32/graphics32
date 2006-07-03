@@ -52,6 +52,8 @@ procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
 
 { MulDiv a faster implementation of Windows.MulDiv funtion }
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
+function IsPowerOf2(X: Integer): Boolean;
+
 
 implementation
 
@@ -241,5 +243,14 @@ asm
         POP     EBX             // esi and ebx
 end;
 
+function IsPowerOf2(X: Integer): Boolean;
+//returns true when X = 1,2,4,8,16 etc.
+asm
+  BSF ECX,EAX
+  MOV EDX,$FFFFFFFE
+  ROL EDX,CL
+  AND EAX,EDX
+  SETZ AL
+end;
 
 end.
