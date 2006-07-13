@@ -128,12 +128,13 @@ begin
   else Result := Value;
 {$ELSE}
 asm
-        MOV   EDX,$FF
-        CMP   EDX,EAX
-        DB $0F,$4C,$C2   /// CMOVL EAX,EDX
-        XOR   EDX,EDX
-        CMP   EDX,EAX
-        DB $0F,$4F,$C2   /// CMOVG EAX,EDX
+        TEST    EAX,$FFFFFF00
+        JNZ     @1
+        RET
+@1:     JS      @2
+        MOV     EAX,$FF
+        RET
+@2:     XOR     EAX,EAX
 {$ENDIF}
 end;
 
