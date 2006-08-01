@@ -278,7 +278,7 @@ asm
         SHL     EAX,CL
 end;
 
-function NextPowerOf2(X: Integer): Integer;
+function NextPowerOf2(Value: Integer): Integer;
 //returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
 asm
         DEC     EAX
