@@ -17,8 +17,7 @@ implementation
 
 procedure Register; 
 begin
-  RegisterUnit('GR32_Reg', @GR32_Reg.Register); 
-end; 
+end;
 
 initialization
   RegisterPackage('GR32_L', @Register); 
