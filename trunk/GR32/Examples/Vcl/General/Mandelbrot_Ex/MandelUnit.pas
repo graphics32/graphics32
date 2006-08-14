@@ -31,7 +31,7 @@ interface
 uses
   SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, Menus,
   ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers,
-  GR32_Rasterizers, Jpeg;
+  GR32_Rasterizers, {$IFNDEF FPC} Jpeg{$ELSE} LResources, LazJpeg{$ENDIF};
 
 const
   MAX_ITER = 320;
@@ -103,7 +103,9 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.dfm}
+{$ENDIF}
 
 uses
   GR32_Blend, GR32_LowLevel, Math;
@@ -281,5 +283,10 @@ begin
   AdaptiveSampler.Free;
   JitteredSampler.Free;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MandelUnit.lrs}
+{$ENDIF}
 
 end.
