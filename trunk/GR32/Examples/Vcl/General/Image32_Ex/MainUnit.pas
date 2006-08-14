@@ -30,6 +30,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  {$IFNDEF FPC} {$ELSE}LResources, {$ENDIF}
   GR32, GR32_Image, GR32_Resamplers, GR32_RangeBars;
 
 type
@@ -56,10 +57,13 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
 
-uses
-  JPEG;
+uses JPEG;
+{$ELSE}
+uses LazJPEG;
+{$ENDIF}
 
 procedure TForm1.rgBitmapAlignClick(Sender: TObject);
 const
@@ -103,5 +107,10 @@ begin
     TableSize := 16;
   end;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

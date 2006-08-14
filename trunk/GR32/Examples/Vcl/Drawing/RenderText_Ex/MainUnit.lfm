@@ -1,0 +1,138 @@
+object Form1: TForm1
+  Left = 213
+  Height = 228
+  Top = 113
+  Width = 337
+  HorzScrollBar.Page = 336
+  VertScrollBar.Page = 227
+  Caption = 'RenderText Example'
+  Constraints.MinWidth = 256
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  object Image: TImage32
+    Height = 138
+    Top = 61
+    Width = 329
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    Scale = 1
+    TabOrder = 0
+    OnResize = ImageResize
+  end
+  object Panel1: TPanel
+    Height = 61
+    Width = 329
+    Align = alTop
+    BevelOuter = bvNone
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    TabOrder = 1
+    object Label1: TLabel
+      Left = 4
+      Height = 13
+      Top = 36
+      Width = 46
+      Caption = 'AA Level:'
+      Color = clNone
+      ParentColor = False
+    end
+    object Label2: TLabel
+      Left = 4
+      Height = 13
+      Top = 6
+      Width = 78
+      Caption = 'Enter text here:'
+      Color = clNone
+      ParentColor = False
+    end
+    object SpeedButton1: TSpeedButton
+      Left = 92
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '0'
+      Color = clBtnFace
+      Down = True
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SpeedButton1Click
+    end
+    object SpeedButton2: TSpeedButton
+      Tag = 1
+      Left = 116
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '1'
+      Color = clBtnFace
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SpeedButton1Click
+    end
+    object SpeedButton3: TSpeedButton
+      Tag = 2
+      Left = 140
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '2'
+      Color = clBtnFace
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SpeedButton1Click
+    end
+    object SpeedButton4: TSpeedButton
+      Tag = 3
+      Left = 164
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '3'
+      Color = clBtnFace
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SpeedButton1Click
+    end
+    object SpeedButton5: TSpeedButton
+      Tag = 4
+      Left = 188
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '4'
+      Color = clBtnFace
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SpeedButton1Click
+    end
+    object Edit1: TEdit
+      Left = 92
+      Height = 21
+      Top = 4
+      Width = 234
+      Anchors = [akTop, akLeft, akRight]
+      OnChange = Edit1Change
+      TabOrder = 0
+      Text = 'Edit1'
+    end
+    object Button1: TButton
+      Left = 253
+      Height = 21
+      Top = 32
+      Width = 73
+      Anchors = [akTop, akRight]
+      BorderSpacing.InnerBorder = 4
+      Caption = 'Click me!'
+      OnClick = Button1Click
+      TabOrder = 1
+    end
+  end
+end

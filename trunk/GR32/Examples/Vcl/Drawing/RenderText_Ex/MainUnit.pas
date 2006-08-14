@@ -29,6 +29,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  {$IFNDEF FPC} {$ELSE}LResources, {$ENDIF}
   GR32, ComCtrls, GR32_Image, Buttons;
 
 type
@@ -59,7 +60,10 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
+
 
 procedure TForm1.Draw;
 begin
@@ -112,5 +116,10 @@ begin
   AALevel := TControl(Sender).Tag;
   Draw;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
