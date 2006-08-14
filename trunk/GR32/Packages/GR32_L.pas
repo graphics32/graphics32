@@ -17,7 +17,7 @@ implementation
 
 procedure Register; 
 begin
-end;
+end; 
 
 initialization
   RegisterPackage('GR32_L', @Register); 
