@@ -29,9 +29,11 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Lowlevel,
+  {$IFDEF FPC} LResources, {$ENDIF}
   GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls, Math, GR32_Transforms;
 
 type
+  { TMainForm }
   TMainForm = class(TForm)
     Image32: TImage32;
     PnlSettings: TPanel;
@@ -40,17 +42,15 @@ type
     gbTwist: TGaugeBar;
     rbGetPixelFS: TRadioButton;
     rbPixelS: TRadioButton;
+    procedure FormDestroy(Sender: TObject);
     procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure FormCreate(Sender: TObject);
     procedure gbTwistChange(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    { Private declarations }
   public
-    { Public declarations }
     Src: TBitmap32;
-    procedure TwirlDistortion(Dst, Src: TBitmap32; const Value: Integer);
+    procedure TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
   end;
 
 var
@@ -58,20 +58,21 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.dfm}
 
-uses
-  JPEG;
+uses JPEG;
+{$ENDIF}
 
-procedure TMainForm.TwirlDistortion(Dst, Src: TBitmap32; const Value: Integer);
+procedure TMainForm.TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
 {twirl algoritm inspired by Patrick Quinn´s remap demo}
 var
   X, Y, DstR, DstB: Integer;
   r, rx, ry, t, tt, v: Single;
 begin
-  rx := Src.Width / 2;
-  ry := Src.Height / 2;
-  v := -Value / 5 / Src.Height;
+  rx := Srcb.Width / 2;
+  ry := Srcb.Height / 2;
+  v := -Value / 5 / Srcb.Height;
   DstR := Dst.Width - 1;
   DstB := Dst.Height - 1;
 
@@ -81,7 +82,7 @@ begin
       r := Hypot(X - rx, Y - ry);
       t := ArcTan2(Y - ry, X - rx);
       tt := t + r * v;
-      Dst.Pixel[X, Y] := Src.PixelFS[ rx + r * Cos(tt),
+      Dst.Pixel[X, Y] := Srcb.PixelFS[ rx + r * Cos(tt),
                                       ry + r * Sin(tt) ];
     end
   else if rbPixelS.Checked then
@@ -90,8 +91,8 @@ begin
       r := Hypot(X - rx, Y - ry);
       t := ArcTan2(Y - ry, X - rx);
       tt := t + r * v;
-      Dst.Pixel[X, Y] := Src.PixelS[ Round(rx + r * Cos(tt)),
-                                     Round(ry + r * Sin(tt)) ];
+      Dst.Pixel[X, Y] := Srcb.PixelS[ Round(rx + r * Cos(tt)),
+                                      Round(ry + r * Sin(tt)) ];
     end;
 end;
 
@@ -126,14 +127,19 @@ begin
       FrameRectS(BoundsRect , $FF000000);
 end;
 
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+ Src.Free;
+end;
+
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   Image32.Bitmap.LoadFromFile('..\..\..\Media\stones.jpg');
 
   with Image32 do
   begin
-    if PaintStages[0].Stage = PST_CLEAR_BACKGND then PaintStages[0].Stage := PST_CUSTOM;
-    PaintStages.Add.Stage := PST_CUSTOM;
+    if PaintStages[0]^.Stage = PST_CLEAR_BACKGND then PaintStages[0]^.Stage := PST_CUSTOM;
+    PaintStages.Add^.Stage := PST_CUSTOM;
   end;
   Image32.BufferOversize := 0;
   Src := TBitmap32.Create;
@@ -155,9 +161,9 @@ begin
   end;
 end;
 
-procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
- Src.Free;
-end;
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
