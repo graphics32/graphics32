@@ -2613,6 +2613,9 @@ var
   HorzKernel, VertKernel, FloorKernel, CeilKernel: PKernelEntry;
   HorzEntry, VertEntry: TBufferEntry;
   MappingX: PKernelEntry;
+{$IFDEF FPC}
+  Lazfix : TFixedRec;
+{$ENDIF}
 begin
   Width := Ceil(FKernel.GetWidth);
 
@@ -2733,7 +2736,12 @@ begin
           Dev := -256;
           for I := -Width to Width do
           begin
+            {$IFDEF FPC}
+            Lazfix:=TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF);
+            Wv :=  FloorKernel[I] + Lazfix.Int;
+            {$ELSE}
             Wv :=  FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+            {$ENDIF}
             HorzKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
@@ -2749,7 +2757,12 @@ begin
           Dev := -256;
           for I := -Width to Width do
           begin
+            {$IFDEF FPC}
+            Lazfix:=TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF);
+            Wv := FloorKernel[I] + Lazfix.Int;
+            {$ELSE}
             Wv := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+            {$ENDIF}
             VertKernel[I] := Wv;
             Inc(Dev, Wv);
           end;

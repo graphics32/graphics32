@@ -27,7 +27,8 @@ unit MainUnit;
 interface
 
 uses
-  SysUtils, Classes, Graphics, Controls, Forms, Math, StdCtrls, ExtCtrls, Jpeg,
+  SysUtils, Classes, Graphics, Controls, Forms, Math, StdCtrls, ExtCtrls,
+  {$IFNDEF FPC} Jpeg, {$ELSE}LazJpeg, LResources, Buttons, {$ENDIF}
   GR32_Image, GR32_RangeBars;
 
 type
@@ -61,7 +62,9 @@ var
 
 implementation
 
-{$R *.dfm}
+{$IFNDEF FPC}
+{$R *.DFM}
+{$ENDIF}
 
 uses
   GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
@@ -195,5 +198,10 @@ begin
   //This is needed because we may use MMX in the custom pixelcombiners
   EMMS;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

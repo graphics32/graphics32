@@ -32,6 +32,9 @@ interface
 {$I GR32.inc}
 
 uses
+{$IFDEF FPC}
+  LMessages, LCLType,
+{$ENDIF}
 {$IFDEF CLX}
   Qt, Types,
   {$IFDEF LINUX}Libc,{$ENDIF}
@@ -93,7 +96,11 @@ type
 {$IFNDEF CLX}
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
+{$IFDEF FPC}
+    procedure WMNCCalcSize(var Message: TLMNCCalcSize); message WM_NCCALCSIZE;
+{$ELSE}
     procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
+{$ENDIF}
     procedure WMNCPaint(var Message: TMessage); message WM_NCPAINT;
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
 {$ENDIF}
@@ -402,6 +409,138 @@ begin
     (Cardinal(C2) and $00FF00) * W2) and $00FF0000) shr 8;
 end;
 
+{$IFDEF FPC}
+type
+  PPattern = ^TPattern;
+  TPattern = record
+    Next: PPattern;
+    Bitmap: TBitmap;
+    BkColorRef: TColorRef;
+    FgColorRef: TColorRef;
+  end;
+
+  TPatternManager = class(TObject)
+  private
+    List: PPattern;
+    FLock: TRTLCriticalSection;
+    function CreateBitmap(BkColor, FgColor: TColor): TBitmap;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function AllocPattern(BkColor, FgColor: TColorRef): PPattern;
+    procedure FreePatterns;
+    procedure Lock;
+    procedure Unlock;
+  end;
+
+constructor TPatternManager.Create;
+begin
+  InitializeCriticalSection(FLock);
+end;
+
+destructor TPatternManager.Destroy;
+begin
+  FreePatterns;
+  DeleteCriticalSection(FLock);
+end;
+
+procedure TPatternManager.Lock;
+begin
+  EnterCriticalSection(FLock);
+end;
+
+procedure TPatternManager.Unlock;
+begin
+  LeaveCriticalSection(FLock);
+end;
+
+function TPatternManager.AllocPattern(BkColor, FgColor: TColorRef): PPattern;
+begin
+  Lock;
+  try
+    Result := List;
+    while (Result <> nil) and ((Result^.BkColorRef <> BkColor) or
+      (Result^.FgColorRef <> FgColor)) do
+      Result := Result^.Next;
+    if Result = nil then
+    begin
+      GetMem(Result, SizeOf(TPattern));
+      with Result^ do
+      begin
+        Next := List;
+        Bitmap := CreateBitmap(BkColor, FgColor);
+        BkColorRef := BkColor;
+        FgColorRef := FgColor;
+      end;
+      List := Result;
+    end;
+  finally
+    Unlock;
+  end;
+end;
+
+function TPatternManager.CreateBitmap(BkColor, FgColor: TColor): TBitmap;
+var
+  X, Y: Integer;
+begin
+  Result := TBitmap.Create;
+  try
+    with Result do
+    begin
+      Width := 8;
+      Height := 8;
+      with Canvas do
+      begin
+        Brush.Style := bsSolid;
+        Brush.Color := BkColor;
+        FillRect(Rect(0, 0, Width, Height));
+        for Y := 0 to 8 do
+          for X := 0 to 8 do
+            if (Y mod 2) = (X mod 2) then  { toggles between even/odd pixles }
+              Pixels[X, Y] := FgColor;     { on even/odd rows }
+      end;
+//      Dormant;
+    end;
+  except
+    Result.Free;
+    raise;
+  end;
+end;
+
+procedure TPatternManager.FreePatterns;
+var
+  P: PPattern;
+begin
+  while List <> nil do
+  begin
+    P := List;
+    with P^ do
+    begin
+      Lock;
+      try
+        List := Next
+      finally
+        Unlock;
+      end;
+      if Bitmap <> nil then Bitmap.Free;
+    end;
+    FreeMem(P);
+  end;
+end;
+
+var
+  PatternManager: TPatternManager;
+
+function AllocPatternBitmap(BkColor, FgColor: TColor): TBitmap;
+begin
+  if PatternManager <> nil then
+    Result := PatternManager.AllocPattern(ColorToRGB(BkColor),
+      ColorToRGB(FgColor)).Bitmap
+    else
+      Result := nil;
+end;
+{$ENDIF}
+
 procedure DitherRect(Canvas: TCanvas; const R: TRect; C1, C2: TColor);
 var
   B: TBitmap;
@@ -432,6 +571,7 @@ begin
   Brush.Free;
   OldBrush.Free;
 {$ELSE}
+  {$IFNDEF FPC}
   if C1 = C2 then
     Brush := CreateSolidBrush(ColorToRGB(C1))
   else
@@ -442,6 +582,7 @@ begin
   end;
   FillRect(Canvas.Handle, R, Brush);
   DeleteObject(Brush);
+  {$ENDIF}
 {$ENDIF}
 end;
 
@@ -1143,10 +1284,14 @@ begin
   if Value <> FBorderStyle then
   begin
     FBorderStyle := Value;
-{$IFDEF CLX}
-    Invalidate;
-{$ELSE}
+{$IFNDEF FPC}
+{$IFNDEF CLX}
     RecreateWnd;
+{$ELSE}
+    Invalidate;
+{$ENDIF}
+{$ELSE}
+    Invalidate;
 {$ENDIF}
   end;
 end;
@@ -1246,8 +1391,11 @@ begin
 {$IFDEF CLX}
   Invalidate;
 {$ELSE}
+ {$IFDEF FPC}
+  Invalidate;
+ {$ELSE}
   RecreateWnd;
-{$ENDIF}
+{$ENDIF}{$ENDIF}
 end;
 
 procedure TArrowBar.StartDragTracking;
@@ -1306,7 +1454,11 @@ begin
   Message.Result := -1;
 end;
 
+{$IFDEF FPC}
+procedure TArrowBar.WMNCCalcSize(var Message: TLMNCCalcSize);
+{$ELSE}
 procedure TArrowBar.WMNCCalcSize(var Message: TWMNCCalcSize);
+{$ENDIF}
 var
   Sz: Integer;
 begin
@@ -1917,5 +2069,11 @@ begin
   if FSlave <> nil then FSlave.Style := Value;
 end;
 
-end.
+{$IFDEF FPC}
+initialization
+//  PatternManager := TPatternManager.Create;
+finalization
+//  PatternManager.Free;
+{$ENDIF}
 
+end.

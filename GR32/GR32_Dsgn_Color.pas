@@ -30,18 +30,22 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils, Consts,
+  Classes, SysUtils,
+{$IFDEF FPC} {LConsts, } LazIDEIntf, PropEdits,
+{$ELSE}
+  Consts,
+  {$IFDEF COMPILER6}
+  DesignIntf, DesignEditors, VCLEditors,
+  {$ELSE}
+  DsgnIntf,
+  {$ENDIF}
+{$ENDIF}
 {$IFDEF CLX}
   QGraphics, QDialogs, QForms,
 {$ELSE}
   Windows, Registry, Graphics, Dialogs, Forms,
 {$ENDIF}
-  GR32, GR32_Image,
-{$IFDEF COMPILER6}
-  DesignIntf, DesignEditors, VCLEditors
-{$ELSE}
-  DsgnIntf
-{$ENDIF};
+  GR32, GR32_Image;
 
 type
   { TColorManager }

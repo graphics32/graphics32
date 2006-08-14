@@ -30,6 +30,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
+  {$IFNDEF FPC} Jpeg, {$ELSE}LazJpeg, LResources, Buttons, {$ENDIF}
   GR32_Blend, ExtCtrls, GR32_Image, GR32_LowLevel;
 
 type
@@ -117,8 +118,9 @@ begin
   Result.Y := A.Y * Factor;
 end;
 
+{$IFNDEF FPC}
 {$R *.DFM}
-
+{$ENDIF}
 
 { TLine }
 
@@ -153,8 +155,8 @@ procedure TLine.Advance(DeltaT: Single);
     end;
 
     { change velocity a little bit }
-    V.X := V.X + t * (Random - 0.5) / 4;
-    V.Y := V.Y + t * (Random - 0.5) / 4;
+    V.X := V.X + t * (Random - 0.5) * 0.25;
+    V.Y := V.Y + t * (Random - 0.5) * 0.25;
 
     { limit velocity }
     if vLen(V1) > MaxVelocity then V1 := vScale(V1, 1 / vLen(V1));
@@ -164,15 +166,15 @@ begin
   AdvancePoint(P1, V1, DeltaT);
   AdvancePoint(P2, V2, DeltaT);
 
-  C1 := HSLtoRGB(t1, Sin(t1 / 1.8) * 0.4 + 0.6, 0.5);
+  C1 := HSLtoRGB(t1, Sin(t1 * 0.55) * 0.4 + 0.6, 0.5);
   C1 := SetAlpha(C1, Round(Sin(t1) * 25 + 50));
   t1 := t1 + Random / 300;
 
-  C2 := HSLtoRGB(t2, Sin(t2 / 1.8) * 0.4 + 0.6, 0.5);
+  C2 := HSLtoRGB(t2, Sin(t2 * 0.55) * 0.4 + 0.6, 0.5);
   C2 := SetAlpha(C2, Round(Sin(t2) * 25 + 50));
   t2 := t2 + Random / 400;
 
-  C3 := HSLtoRGB(t3, Sin(t3 / 1.8) * 0.4 + 0.6, 0.5);
+  C3 := HSLtoRGB(t3, Sin(t3 * 0.55) * 0.4 + 0.6, 0.5);
   C3 := SetAlpha(C3, Round(Sin(t3) * 25 + 50));
   t3 := t3 + Random / 400;
 end;
@@ -308,5 +310,10 @@ begin
   else
     PaintBox.RepaintMode := rmFull;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
