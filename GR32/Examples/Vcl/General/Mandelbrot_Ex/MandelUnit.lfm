@@ -1,0 +1,138 @@
+object Form1: TForm1
+  Left = 388
+  Height = 439
+  Top = 137
+  Width = 468
+  HorzScrollBar.Page = 467
+  VertScrollBar.Page = 419
+  Caption = 'Mandelbrot Example'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Menu = MainMenu1
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object Img: TSyntheticImage32
+    Height = 420
+    Width = 468
+    Align = alClient
+    RepaintMode = rmDirect
+    TabOrder = 0
+    OnMouseDown = ImgMouseDown
+    AutoRasterize = True
+    Buffer.ResamplerClassName = 'TNearestResampler'
+    Buffer.OnAreaChanged = nil
+    Color = clBlack
+    ClearBuffer = True
+  end
+  object MainMenu1: TMainMenu
+    left = 24
+    top = 16
+    object File1: TMenuItem
+      Caption = 'File'
+      object Save1: TMenuItem
+        Caption = 'Save...'
+        OnClick = Save1Click
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object Exit1: TMenuItem
+        Caption = 'Exit'
+      end
+    end
+    object Rasterizer1: TMenuItem
+      Caption = 'Rasterizer'
+      object Regularsampling1: TMenuItem
+        Caption = 'Regular Sampling'
+        RadioItem = True
+        OnClick = RasterizerMenuClick
+      end
+      object Progressive1: TMenuItem
+        Tag = 1
+        Caption = 'Progressive'
+        Checked = True
+        RadioItem = True
+        OnClick = RasterizerMenuClick
+      end
+      object Swizzling1: TMenuItem
+        Tag = 2
+        Caption = 'Swizzling'
+        RadioItem = True
+        OnClick = RasterizerMenuClick
+      end
+      object Tesseral1: TMenuItem
+        Tag = 3
+        Caption = 'Tesseral'
+        RadioItem = True
+        OnClick = RasterizerMenuClick
+      end
+      object Contour1: TMenuItem
+        Tag = 4
+        Caption = 'Contour'
+        OnClick = RasterizerMenuClick
+      end
+    end
+    object Sampler1: TMenuItem
+      Caption = 'SuperSampler'
+      object Default1: TMenuItem
+        Caption = 'None'
+        Checked = True
+        RadioItem = True
+        OnClick = Default1Click
+      end
+      object N5: TMenuItem
+        Caption = '-'
+      end
+      object N2x2: TMenuItem
+        Tag = 1
+        Caption = 'SuperSampler 2x'
+        RadioItem = True
+        OnClick = Default1Click
+      end
+      object N3x2: TMenuItem
+        Tag = 2
+        Caption = 'SuperSampler 3x'
+        RadioItem = True
+        OnClick = Default1Click
+      end
+      object N4x2: TMenuItem
+        Tag = 3
+        Caption = 'SuperSampler 4x'
+        RadioItem = True
+        OnClick = Default1Click
+      end
+      object Adaptive: TMenuItem
+        Caption = 'Adaptive'
+        Enabled = False
+        OnClick = AdaptiveClick
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object PatternSampler2: TMenuItem
+        Tag = 4
+        Caption = 'PatternSampler 2x'
+        RadioItem = True
+        OnClick = Default1Click
+      end
+      object PatternSampler3x1: TMenuItem
+        Tag = 5
+        Caption = 'PatternSampler 3x'
+        RadioItem = True
+        OnClick = Default1Click
+      end
+      object PatternSampler1: TMenuItem
+        Tag = 6
+        Caption = 'PatternSampler 4x'
+        RadioItem = True
+        OnClick = Default1Click
+      end
+    end
+  end
+  object SavePictureDialog1: TSavePictureDialog
+    Title = 'Save file as'
+    FilterIndex = 0
+    left = 64
+    top = 16
+  end
+end
