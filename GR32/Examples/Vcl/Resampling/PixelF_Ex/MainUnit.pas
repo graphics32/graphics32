@@ -29,7 +29,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Lowlevel,
-  {$IFDEF FPC} LResources, {$ENDIF}
+  {$IFDEF FPC} LResources, LazJpeg, Variants,{$ENDIF}
   GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls, Math, GR32_Transforms;
 
 type
