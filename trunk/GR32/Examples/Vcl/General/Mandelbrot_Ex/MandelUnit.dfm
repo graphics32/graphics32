@@ -20,7 +20,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 460
-    Height = 390
+    Height = 393
     Align = alClient
     RepaintMode = rmDirect
     TabOrder = 0
@@ -45,6 +45,7 @@ object Form1: TForm1
       end
       object Exit1: TMenuItem
         Caption = 'Exit'
+        OnClick = Exit1Click
       end
     end
     object Rasterizer1: TMenuItem

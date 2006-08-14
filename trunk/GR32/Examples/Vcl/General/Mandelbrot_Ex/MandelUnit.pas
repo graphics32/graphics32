@@ -84,6 +84,7 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure Save1Click(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Exit1Click(Sender: TObject);
   public
     { Public declarations }
     Rasterizer: TRasterizer;
@@ -244,7 +245,7 @@ var
   cX, cY, L, T, W, H, Scale: Extended;
 begin
   case Button of
-    mbLeft: Scale := 1 / 2;
+    mbLeft: Scale := 0.5;
     mbRight: Scale := 2;
   else
     Scale := 1;
@@ -258,8 +259,8 @@ begin
     T := Bounds.Top;
     W := Bounds.Right - Bounds.Left;
     H := Bounds.Bottom - Bounds.Top;
-    Bounds.Left := L + cX * W - W * Scale / 2;
-    Bounds.Top := T + cY * H - H * Scale / 2;
+    Bounds.Left := L + cX * W - W * Scale * 0.5;
+    Bounds.Top := T + cY * H - H * Scale * 0.5;
     Bounds.Right := Bounds.Left + W * Scale;
     Bounds.Bottom := Bounds.Top + H * Scale;
   end;
@@ -282,6 +283,11 @@ begin
   SuperSampler.Free;
   AdaptiveSampler.Free;
   JitteredSampler.Free;
+end;
+
+procedure TForm1.Exit1Click(Sender: TObject);
+begin
+ Close;
 end;
 
 {$IFDEF FPC}
