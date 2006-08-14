@@ -34,7 +34,7 @@ interface
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   GR32, GR32_Image, GR32_Transforms, GR32_Resamplers, GR32_System, ComCtrls,
-  GR32_RangeBars, Jpeg, Math;
+  GR32_RangeBars, {$IFNDEF FPC} Jpeg, {$ELSE} LazJpeg, LResources, {$ENDIF}Math;
 
 type
   TForm1 = class(TForm)
@@ -90,7 +90,9 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.dfm}
+{$ENDIF}
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
@@ -338,5 +340,10 @@ begin
   Tmp.Free;
   ResamplingPaintBox.Repaint;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
