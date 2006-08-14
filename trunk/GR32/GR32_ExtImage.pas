@@ -181,7 +181,7 @@ begin
   StopRenderThread;
   FOldAreaChanged := Buffer.OnAreaChanged;
   if FRenderMode = rnmFull then
-    R := Rect(0, 0, Width, Height)
+    R := Classes.Rect(0, 0, Width, Height)
   else
     R := FDstRect;
 

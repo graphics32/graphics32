@@ -31,11 +31,14 @@ interface
 
 uses
   Classes, TypInfo,
+{$IFDEF FPC}
+  LazIDEIntf, PropEdits, ComponentEditors
+{$ELSE}
 {$IFDEF COMPILER6}
   DesignIntf
 {$ELSE}
   DsgnIntf
-{$ENDIF};
+{$ENDIF}{$ENDIF};
 
 procedure Register;
 
@@ -63,9 +66,9 @@ begin
   RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
   RegisterComponentEditor(TCustomImage32, TImage32Editor);
 
-	RegisterPropertyEditor(TypeInfo(string), TBitmap32, 'ResamplerClassName', nil);
+  RegisterPropertyEditor(TypeInfo(string), TBitmap32, 'ResamplerClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomResampler), TBitmap32, 'Resampler', TResamplerClassProperty);
-	RegisterPropertyEditor(TypeInfo(string), TKernelResampler, 'KernelClassName', nil);
+  RegisterPropertyEditor(TypeInfo(string), TKernelResampler, 'KernelClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomKernel), TKernelResampler, 'Kernel', TKernelClassProperty);
 end;
 

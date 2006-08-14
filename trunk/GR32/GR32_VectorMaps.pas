@@ -336,8 +336,9 @@ begin
       begin
         for I := DstRect.Top to DstRect.Bottom do
         begin
-          DstPtr := @GetVectors[I * Width];
-          SrcPtr := @Src.GetVectors[SrcRect.Left + P];
+          // Added ^ for FPC
+          DstPtr := @GetVectors^[I * Width];
+          SrcPtr := @Src.GetVectors^[SrcRect.Left + P];
           for J := DstRect.Left to DstRect.Right do
           begin
             Inc(SrcPtr^.X, DstPtr[J].X);
@@ -351,8 +352,9 @@ begin
       begin
         for I := DstRect.Top to DstRect.Bottom do
         begin
-          DstPtr := @GetVectors[I * Width];
-          SrcPtr := @Src.GetVectors[SrcRect.Left + P];
+          // Added ^ for FPC
+          DstPtr := @GetVectors^[I * Width];
+          SrcPtr := @Src.GetVectors^[SrcRect.Left + P];
           for J := DstRect.Left to DstRect.Right do
           begin
             SrcPtr^.X := DstPtr[J].X;
@@ -369,8 +371,9 @@ begin
     for I := DstRect.Top to DstRect.Bottom do
     begin
       Progression.X := - FixedOne;
-      DstPtr := @GetVectors[I * Width];
-      SrcPtr := @Src.GetVectors[SrcRect.Left + P];
+      // Added ^ for FPC
+      DstPtr := @GetVectors^[I * Width];
+      SrcPtr := @Src.GetVectors^[SrcRect.Left + P];
       for J := DstRect.Left to DstRect.Right do
       begin
         CombineCallback(SrcPtr^, Progression, DstPtr[J]);

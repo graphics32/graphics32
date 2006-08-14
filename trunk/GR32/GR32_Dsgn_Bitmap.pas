@@ -30,22 +30,26 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF CLX}
-  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  {$IFDEF LINUX}Libc,{$ENDIF}
-  QT, QGraphics, QControls, QForms, QDialogs, QExtCtrls, QStdCtrls, QComCtrls,
+  {$IFDEF FPC} LResources, LazIDEIntf, PropEdits, Buttons, ComponentEditors,
+  {$ELSE}
+  Consts,
+  {$IFDEF COMPILER6}
+  DesignIntf, DesignEditors, VCLEditors
+  {$ELSE}
+  DsgnIntf
+  {$ENDIF}
+  {$ENDIF}
+ {$IFDEF CLX}
+ {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+ {$IFDEF LINUX}Libc,{$ENDIF}
+ QT, QGraphics, QControls, QForms, QDialogs, QExtCtrls, QStdCtrls, QComCtrls,
   QMenus, QImgList, QTypes, QClipbrd,
 {$ELSE}
   Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
   ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
 {$ENDIF}
-  SysUtils, Classes, Consts,
-  GR32, GR32_Image, GR32_Layers, GR32_Filters,
-{$IFDEF COMPILER6}
-  DesignIntf, DesignEditors, VCLEditors
-{$ELSE}
-  DsgnIntf
-{$ENDIF};
+  SysUtils, Classes,
+  GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
   TPictureEditorForm = class(TForm)
@@ -156,11 +160,14 @@ implementation
 uses
   GR32_Resamplers;
 
+{$IFNDEF FPC}
 {$IFNDEF CLX}
 {$R *.dfm}
 {$ELSE}
 {$R *.xfm}
 {$ENDIF}
+{$ENDIF}
+
 
 { TPictureEditorForm }
 
@@ -410,7 +417,9 @@ begin
       if BitmapEditor.Execute then
       begin
         SetOrdValue(Longint(BitmapEditor.Bitmap32));
+{$IFNDEF FPC}
         Designer.Modified;
+{$ENDIF}
       end;
     finally
       BitmapEditor.Free;
@@ -431,7 +440,7 @@ var
 begin
   try
     Bitmap := TBitmap32(GetOrdValue);
-    if (Bitmap = nil) or Bitmap.Empty then Result := srNone
+    if (Bitmap = nil) or Bitmap.Empty then {$IFNDEF FPC}Result := srNone {$ELSE} Result := '(Empty)'{$ENDIF}
     else Result := Format('%s [%d,%d]', [Bitmap.ClassName, Bitmap.Width, Bitmap.Height]);
   except
     on E: Exception do ShowMessage(E.Message);
@@ -580,5 +589,10 @@ begin
   end
   else Panel2.Caption := '';
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I GR32_Dsgn_Bitmap.lrs}
+{$ENDIF}
 
 end.

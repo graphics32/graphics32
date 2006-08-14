@@ -237,10 +237,17 @@ type
     function HasTransformedBounds: Boolean; override;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
     procedure Scale(Sx, Sy: TFloat);
-  published
+{$IFDEF FPC}
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
     property Offset: TFloatVector read FOffset write SetOffset;
     property VectorMap: TVectorMap read FVectorMap write FVectorMap;
+{$ENDIF}
+  published
+{$IFNDEF FPC}
+    property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
+    property Offset: TFloatVector read FOffset write SetOffset;
+    property VectorMap: TVectorMap read FVectorMap write FVectorMap;
+{$ENDIF}
   end;
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;

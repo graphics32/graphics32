@@ -31,10 +31,13 @@ interface
 {$I GR32.inc}
 
 uses
+  {$IFDEF FPC} LazIDEIntf, PropEdits, Buttons, ComponentEditors,
+  {$ELSE}
   {$IFDEF COMPILER6}
   DesignIntf, DesignEditors,
   {$ELSE}
   DsgnIntf,
+  {$ENDIF}
   {$ENDIF}
   Classes, TypInfo, GR32_Containers;
 

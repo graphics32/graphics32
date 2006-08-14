@@ -1374,10 +1374,10 @@ end;
 
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
 begin
-  Dst.Left   := Max(FR1.Left,   FR2.Left);
-  Dst.Right  := Min(FR1.Right,  FR2.Right);
-  Dst.Top    := Max(FR1.Top,    FR2.Top);
-  Dst.Bottom := Min(FR1.Bottom, FR2.Bottom);
+  Dst.Left   := Math.Max(FR1.Left,   FR2.Left);
+  Dst.Right  := Math.Min(FR1.Right,  FR2.Right);
+  Dst.Top    := Math.Max(FR1.Top,    FR2.Top);
+  Dst.Bottom := Math.Min(FR1.Bottom, FR2.Bottom);
   Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
   if not Result then FillLongword(Dst, 4, 0);
 end;
@@ -1613,9 +1613,10 @@ begin
   FOuterColor := $00000000;  // by default as full transparency black
   FFont := TFont.Create;
   FFont.OnChange := FontChanged;
+{$IFNDEF FPC}
 {$IFNDEF CLX}
   FFont.OwnerCriticalSection := @FLock;
-{$ENDIF}
+{$ENDIF}{$ENDIF}
   FMasterAlpha := $FF;
   FPenColor := clWhite32;
   FStippleStep := 1;
@@ -1847,8 +1848,8 @@ begin
       begin
         if TPicture(Source).Graphic is TBitmap then
           AssignFromBitmap(TBitmap(TPicture(Source).Graphic))
-        else if (TPicture(Source).Graphic is TIcon) {$IFNDEF CLX}or
-                (TPicture(Source).Graphic is TMetaFile) {$ENDIF} then
+        else if (TPicture(Source).Graphic is TIcon) {$IFNDEF CLX}{$IFNDEF FPC}or
+                (TPicture(Source).Graphic is TMetaFile) {$ENDIF}{$ENDIF} then
         begin
           // icons, metafiles etc...
           SetSize(TPicture(Source).Graphic.Width, TPicture(Source).Graphic.Height);
@@ -3883,7 +3884,7 @@ begin
       else
         tmp := tmp div EA;
 
-      xd := Min(xd + tmp, X2 + 1);
+      xd := Math.Min(xd + tmp, X2 + 1);
       EC := tmp * EA;
 
       if rem mod EA > 0 then
@@ -4968,7 +4969,11 @@ begin
       lfPitchAndFamily := DEFAULT_PITCH;
     end;
   end;
+{$IFDEF FPC}
+  Font.Handle := CreateFontIndirect(LPLOGFONT(@LogFont));
+{$ELSE}
   Font.Handle := CreateFontIndirect(LogFont);
+{$ENDIF}
 end;
 
 procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);

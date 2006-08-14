@@ -29,6 +29,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  {$IFNDEF FPC} {$ELSE}LResources, {$ENDIF}
   GR32, GR32_Image, GR32_Layers, GR32_Blend;
 
 type
@@ -56,10 +57,13 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
 
-uses
-  JPEG;
+uses JPEG;
+{$ELSE}
+uses LazJPEG;
+{$ENDIF}
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
@@ -133,5 +137,10 @@ begin
   end;
   L.Bitmap.Changed;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
