@@ -1,0 +1,141 @@
+object Form1: TForm1
+  Left = 224
+  Height = 445
+  Top = 159
+  Width = 550
+  HorzScrollBar.Page = 549
+  VertScrollBar.Page = 444
+  Caption = 'TImage32 Example'
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  object Panel1: TPanel
+    Left = 8
+    Height = 402
+    Top = 8
+    Width = 385
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    BevelOuter = bvLowered
+    BorderWidth = 1
+    TabOrder = 0
+    object Image: TImage32
+      Left = 2
+      Height = 398
+      Top = 2
+      Width = 381
+      Align = alClient
+      Bitmap.ResamplerClassName = 'TNearestResampler'
+      Bitmap.OnChange = nil
+      Bitmap.OnResize = nil
+      Scale = 1
+      TabOrder = 0
+    end
+  end
+  object Panel2: TPanel
+    Left = 400
+    Height = 416
+    Width = 142
+    Align = alRight
+    BevelOuter = bvNone
+    TabOrder = 1
+    object rgScaleMode: TRadioGroup
+      Left = 8
+      Height = 129
+      Top = 104
+      Width = 129
+      AutoFill = True
+      Caption = 'ScaleMode'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ItemIndex = 0
+      Items.Strings = (
+        'smNormal'
+        'smStretch'
+        'smScale'
+        'smResize'
+        'smOptimal'
+        'smOptimalScaled'
+      )
+      OnClick = rgScaleModeClick
+      TabOrder = 0
+    end
+    object rgKernel: TRadioGroup
+      Left = 8
+      Height = 121
+      Top = 288
+      Width = 129
+      AutoFill = True
+      Caption = 'Kernels'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ItemIndex = 0
+      Items.Strings = (
+        'TBoxKernel'
+        'TLinearKernel'
+        'TSplineKernel'
+        'TLanczosKernel'
+        'TMitchellKernel'
+      )
+      OnClick = rgKernelClick
+      TabOrder = 1
+    end
+    object rgBitmapAlign: TRadioGroup
+      Left = 8
+      Height = 89
+      Top = 8
+      Width = 129
+      AutoFill = True
+      Caption = 'BitmapAlign'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ItemIndex = 0
+      Items.Strings = (
+        'baTopLeft'
+        'baCenter'
+        'baTile'
+      )
+      OnClick = rgBitmapAlignClick
+      TabOrder = 2
+    end
+    object StaticText1: TStaticText
+      Left = 8
+      Height = 17
+      Top = 242
+      Width = 33
+      Caption = 'Scale:'
+    end
+    object sbScale: TGaugeBar
+      Left = 8
+      Height = 16
+      Top = 260
+      Width = 129
+      Color = clScrollBar
+      BorderStyle = bsNone
+      Enabled = False
+      Max = 1000
+      Min = 25
+      ShowHandleGrip = True
+      Position = 100
+      OnChange = sbScaleChange
+    end
+  end
+end
