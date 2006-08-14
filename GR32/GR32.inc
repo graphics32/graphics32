@@ -99,6 +99,27 @@
   {$DEFINE DELPHI4}
 {$ENDIF}
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+  {$WARNINGS OFF}
+  {$HINTS OFF}
+  {$OVERFLOWCHECKS OFF}
+  {$RANGECHECKS OFF}
+  {$IFDEF CPUI386}
+    {$DEFINE CPU386}
+    {$ASMMODE INTEL}
+  {$ENDIF}
+
+  {$IFDEF FPC_LITTLE_ENDIAN}
+    {$DEFINE LITTLE_ENDIAN}
+  {$ELSE}
+    {$IFDEF FPC_BIG_ENDIAN}
+      {$DEFINE BIG_ENDIAN}
+    {$ENDIF}
+  {$ENDIF}
+  {$DEFINE COMPILER4}
+{$ENDIF}
+
 {$IFNDEF COMPILER4}
 //////////////////////////////////////////////////////////////////////
 '  Graphics32 may only be installed with Delphi 4, Delphi 5,         '
