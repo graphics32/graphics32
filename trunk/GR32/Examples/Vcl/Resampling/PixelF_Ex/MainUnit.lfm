@@ -25,6 +25,8 @@ object MainForm: TMainForm
     AutoSize = True
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
     BitmapAlign = baCenter
     Scale = 1
     TabOrder = 0
