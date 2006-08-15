@@ -29,10 +29,15 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
+  {$IFDEF FPC} LResources, Buttons, {$ENDIF}
   GR32_Layers, GR32_Polygons, StdCtrls, ExtCtrls;
 
 type
+
+  { TForm1 }
+
   TForm1 = class(TForm)
+    Button1: TButton;
     Image: TImage32;
     Panel1: TPanel;
     Antialiase: TCheckBox;
@@ -41,7 +46,6 @@ type
     Label2: TLabel;
     FillAlpha: TScrollBar;
     FillMode: TRadioGroup;
-    Button1: TButton;
     LineThickness: TScrollBar;
     Label3: TLabel;
     ThickOutline: TCheckBox;
@@ -73,10 +77,12 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
-
-uses
-  JPEG;
+uses JPEG;
+{$ELSE}
+uses LazJPEG;
+{$ENDIF}
 
 procedure TForm1.Draw;
 var
@@ -195,5 +201,10 @@ begin
   Build;
   Draw;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
