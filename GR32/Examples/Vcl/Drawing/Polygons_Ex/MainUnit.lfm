@@ -1,10 +1,10 @@
 object Form1: TForm1
-  Left = 363
+  Left = 257
   Height = 533
-  Top = 301
+  Top = 129
   Width = 665
   HorzScrollBar.Page = 664
-  VertScrollBar.Page = 553
+  VertScrollBar.Page = 532
   Caption = 'Polygons Example'
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
@@ -213,10 +213,10 @@ object Form1: TForm1
     Width = 504
     Align = alClient
     Bitmap.ResamplerClassName = 'TKernelResampler'
-    Bitmap.Resampler.KernelClassName = 'TBoxKernel'
+    Bitmap.Resampler.KernelClassName = 'TCubicKernel'
+    Bitmap.Resampler.Kernel.Coeff = -0.5
+    Bitmap.Resampler.KernelMode = kmTableLinear
     Bitmap.Resampler.TableSize = 32
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     Scale = 1
     ScaleMode = smStretch
     TabOrder = 1
