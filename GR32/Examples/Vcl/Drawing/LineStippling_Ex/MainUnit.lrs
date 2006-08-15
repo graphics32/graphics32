@@ -1,0 +1,13 @@
+{ This is an automatically generated lazarus resource file }
+
+LazarusResources.Add('TForm1','FORMDATA',[
+  'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#216#0#6'Height'#3#215#0#3'Top'#2'm'#5'Wid'
+  +'th'#3#249#0#18'HorzScrollBar.Page'#3#248#0#18'VertScrollBar.Page'#3#214#0#7
+  +'Caption'#6#22'Line Stippling Example'#11'Font.Height'#2#245#9'Font.Name'#6
+  +#13'MS Sans Serif'#8'OnCreate'#7#10'FormCreate'#0#8'TImage32'#5'Image'#4'Lef'
+  +'t'#2#8#6'Height'#3#200#0#3'Top'#2#8#5'Width'#3#200#0#25'Bitmap.ResamplerCla'
+  +'ssName'#6#17'TNearestResampler'#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'TabOr'
+  +'der'#2#0#0#0#10'TScrollBar'#10'ScrollBar1'#4'Left'#3#224#0#6'Height'#3#201#0
+  +#3'Top'#2#8#5'Width'#2#16#4'Kind'#7#10'sbVertical'#3'Min'#2#1#8'Position'#2
+  +'4'#8'TabOrder'#2#1#8'OnChange'#7#15'ScrollBarChange'#0#0#0
+]);

@@ -1,0 +1,32 @@
+object Form1: TForm1
+  Left = 216
+  Height = 215
+  Top = 109
+  Width = 249
+  HorzScrollBar.Page = 248
+  VertScrollBar.Page = 214
+  Caption = 'Line Stippling Example'
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  object Image: TImage32
+    Left = 8
+    Height = 200
+    Top = 8
+    Width = 200
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Scale = 1
+    TabOrder = 0
+  end
+  object ScrollBar1: TScrollBar
+    Left = 224
+    Height = 201
+    Top = 8
+    Width = 16
+    Kind = sbVertical
+    Min = 1
+    Position = 52
+    TabOrder = 1
+    OnChange = ScrollBarChange
+  end
+end
