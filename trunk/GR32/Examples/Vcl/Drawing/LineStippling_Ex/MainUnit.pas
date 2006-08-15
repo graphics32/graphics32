@@ -29,6 +29,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
+  {$IFDEF FPC} LResources, {$ENDIF}
   GR32_Image;
 
 type
@@ -48,13 +49,15 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 procedure TForm1.ScrollBarChange(Sender: TObject);
 var
   Step: Single;
 begin
-  Step := ScrollBar1.Position / 100;
+  Step := ScrollBar1.Position * 0.01;
 
   with Image.Bitmap do
   begin
@@ -95,5 +98,10 @@ begin
   Image.SetupBitmap;
   ScrollBarChange(Sender);
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
