@@ -68,9 +68,12 @@ procedure BlendTransfer(
   SrcB: TBitmap32; SrcRectB: TRect;
   BlendCallback: TBlendRegEx; MasterAlpha: Integer); overload;
 
+const
+  MAX_KERNEL_WIDTH = 4;
+
 type
   PKernelEntry = ^TKernelEntry;
-  TKernelEntry = array [0..0] of Integer;
+  TKernelEntry = array [-MAX_KERNEL_WIDTH..MAX_KERNEL_WIDTH] of Integer;
 
   TArrayOfKernelEntry = array of TArrayOfInteger;
   PKernelEntryArray = ^TKernelEntryArray;
@@ -337,9 +340,6 @@ type
     FKernelMode: TKernelMode;
     FWeightTable: TIntegerMap;
     FTableSize: Integer;
-    FMappingX: TArrayOfInteger;
-    FVertKernel: TArrayOfInteger;
-    FHorzKernel: TArrayOfInteger;
     FOuterColor: TColor32;
     procedure SetKernel(const Value: TCustomKernel);
     function GetKernelClassName: string;
@@ -384,6 +384,24 @@ type
   published
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
+
+  { TNestedSamplerList }
+  TNestedSamplerList = class(TList)
+  private
+    FSource: TCustomSampler;
+    function NextSampler(Index: Integer): TCustomSampler;
+    function GetItems(Index: Integer): TNestedSampler;
+    procedure SetItems(Index: Integer; const Value: TNestedSampler);
+    procedure SetSource(const Value: TCustomSampler);
+    function GetSink: TCustomSampler;
+  protected
+    property Items[Index: Integer]: TNestedSampler read GetItems write SetItems;
+    property Source: TCustomSampler read FSource write SetSource;
+    //property Sink: TCustomSampler read GetSink write SetSink;
+    //property OwnsObjects: Boolean;
+  end;
+
+  // function NestSamplers(Source: TCustomSampler; Samplers: array of TNestedSampler): TNestedSamplerList;
 
   { TTransformer }
   TReverseTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
@@ -2254,6 +2272,7 @@ end;
 
 procedure TWindowedSincKernel.SetWidth(Value: TFloat);
 begin
+  Value := Min(MAX_KERNEL_WIDTH, Value);
   if Value <> FWidth then
   begin
     FWidth := Value;
@@ -2610,12 +2629,11 @@ var
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
 
-  HorzKernel, VertKernel, FloorKernel, CeilKernel: PKernelEntry;
+  HorzKernel, VertKernel: TKernelEntry;
+  PHorzKernel, PVertKernel, FloorKernel, CeilKernel: PKernelEntry;
+
   HorzEntry, VertEntry: TBufferEntry;
-  MappingX: PKernelEntry;
-{$IFDEF FPC}
-  Lazfix : TFixedRec;
-{$ENDIF}
+  MappingX: TKernelEntry;
 begin
   Width := Ceil(FKernel.GetWidth);
 
@@ -2695,8 +2713,9 @@ begin
         Filter := FKernel.Filter;
         fracXS := clX - X;
         fracYS := clY - Y;
-        HorzKernel := @FHorzKernel[Width];
-        VertKernel := @FVertKernel[Width];
+
+        PHorzKernel := @HorzKernel;
+        PVertKernel := @VertKernel;
 
         Dev := -256;
         for I := -Width to Width do
@@ -2719,8 +2738,8 @@ begin
     kmTableNearest:
       begin
         W := FWeightTable.Height - 2;
-        HorzKernel := @FWeightTable.ValPtr[Width, Round((clX - X) * W)]^;
-        VertKernel := @FWeightTable.ValPtr[Width, Round((clY - Y) * W)]^;
+        PHorzKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Round((clX - X) * W)]^;
+        PVertKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Round((clY - Y) * W)]^;
       end;
     kmTableLinear:
       begin
@@ -2730,18 +2749,13 @@ begin
         with TFixedRec(FracX) do
         begin
           Fixed := Round((clX - X) * W);
-          HorzKernel := @FHorzKernel[Width];
-          FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
+          PHorzKernel := @HorzKernel;
+          FloorKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           Dev := -256;
           for I := -Width to Width do
           begin
-            {$IFDEF FPC}
-            Lazfix:=TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF);
-            Wv :=  FloorKernel[I] + Lazfix.Int;
-            {$ELSE}
             Wv :=  FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
-            {$ENDIF}
             HorzKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
@@ -2751,18 +2765,13 @@ begin
         with TFixedRec(FracY) do
         begin
           Fixed := Round((clY - Y) * W);
-          VertKernel := @FVertKernel[Width];
-          FloorKernel := @FWeightTable.ValPtr[Width, Int]^;
+          PVertKernel := @VertKernel;
+          FloorKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           Dev := -256;
           for I := -Width to Width do
           begin
-            {$IFDEF FPC}
-            Lazfix:=TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF);
-            Wv := FloorKernel[I] + Lazfix.Int;
-            {$ELSE}
             Wv := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
-            {$ENDIF}
             VertKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
@@ -2780,13 +2789,13 @@ begin
         Incr := FBitmap.Width - (HiX - LoX) - 1;
         for I := LoY to HiY do
         begin
-          Wv := VertKernel[I];
+          Wv := PVertKernel[I];
           if Wv <> 0 then
           begin
             HorzEntry := EMPTY_ENTRY;
             for J := LoX to HiX do
             begin
-              W := HorzKernel[J];
+              W := PHorzKernel[J];
               Inc(HorzEntry.A, SrcP.A * W);
               Inc(HorzEntry.R, SrcP.R * W);
               Inc(HorzEntry.G, SrcP.G * W);
@@ -2805,13 +2814,13 @@ begin
     pamWrap:
       begin
         WrapProc := WRAP_PROCS_EX[FBitmap.WrapMode];
-        MappingX := @FMappingX[Width];
+
         for I := -Width to Width do
           MappingX[I] := WrapProc(clX + I, FClipRect.Left, FClipRect.Right - 1);
 
         for I := -Width to Width do
         begin
-          Wv := VertKernel[I];
+          Wv := PVertKernel[I];
           if Wv <> 0 then
           begin
             MappingY := WrapProc(clY + I, FClipRect.Top, FClipRect.Bottom - 1);
@@ -2819,7 +2828,7 @@ begin
             HorzEntry := EMPTY_ENTRY;
             for J := -Width to Width do
             begin
-              W := HorzKernel[J];
+              W := PHorzKernel[J];
               C := Colors[MappingX[J]];
               Inc(HorzEntry.A, C.A * W);
               Inc(HorzEntry.R, C.R * W);
@@ -2882,16 +2891,7 @@ end;
 procedure TKernelResampler.FinalizeSampling;
 begin
   if FKernelMode in [kmTableNearest, kmTableLinear] then
-  begin
     FWeightTable.Free;
-  end;
-  if FKernelMode in [kmDynamic, kmTableLinear] then
-  begin
-    FHorzKernel := nil;
-    FVertKernel := nil;
-  end;
-  if FPixelAccessMode = pamWrap then
-    FMappingX := nil;
   inherited;
 end;
 
@@ -2904,8 +2904,6 @@ begin
   inherited;
   FOuterColor := FBitmap.OuterColor;
   W := Ceil(FKernel.GetWidth);
-  if FPixelAccessMode = pamWrap then
-    SetLength(FMappingX, W * 2 + 1);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
     FWeightTable := TIntegerMap.Create;
@@ -2913,21 +2911,16 @@ begin
     for I := 0 to FTableSize do
     begin
       Fraction := I / (FTableSize - 1);
-      KernelPtr :=  @FWeightTable.ValPtr[0, I]^;
+      KernelPtr :=  @FWeightTable.ValPtr[W - MAX_KERNEL_WIDTH, I]^;
       Dev := - 256;
       for J := -W to W do
       begin
         Weight := Round(FKernel.Filter(J + Fraction) * 256);
-        KernelPtr[J + W] := Weight;
+        KernelPtr[J] := Weight;
         Inc(Dev, Weight);
       end;
-      Dec(KernelPtr[W], Dev);
+      Dec(KernelPtr[0], Dev);
     end;
-  end;
-  if FKernelMode in [kmDynamic, kmTableLinear] then
-  begin
-    SetLength(FVertKernel, W * 2 + 1);
-    SetLength(FHorzKernel, W * 2 + 1);
   end;
 end;
 
@@ -3651,6 +3644,41 @@ begin
     BlockAverage := BlockAverage_IA32;
     LinearInterpolator := _LinearInterpolator;
   end
+end;
+
+{ TNestedSamplerList }
+
+function TNestedSamplerList.GetItems(Index: Integer): TNestedSampler;
+begin
+  Result := inherited Items[Index]; 
+end;
+
+function TNestedSamplerList.GetSink: TCustomSampler;
+begin
+  if Count <> 0 then
+    Result := Last
+  else
+    Result := FSource;
+end;
+
+function TNestedSamplerList.NextSampler(Index: Integer): TCustomSampler;
+begin
+  if Index = 0 then
+    Result := Source
+  else
+    Result := Items[Index - 1];
+end;
+
+procedure TNestedSamplerList.SetItems(Index: Integer;
+  const Value: TNestedSampler);
+begin
+  Items[Index] := Value;
+  Value.Sampler := NextSampler(Index);
+end;
+
+procedure TNestedSamplerList.SetSource(const Value: TCustomSampler);
+begin
+  FSource := Value;
 end;
 
 initialization
