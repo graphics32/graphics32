@@ -1755,7 +1755,9 @@ asm
    mov        ebx, OffSrc
    mov        esi, eax
    mov        edi, edx
-   sub        ecx, $04
+
+   shl        esi, $02
+   sub        ebx, esi
 
    db $0F,$EF,$C9           /// pxor       mm1, mm1
    db $0F,$EF,$D2           /// pxor       mm2, mm2
@@ -1764,11 +1766,13 @@ asm
  @@LoopY:
    mov        esi, eax
    db $0F,$EF,$C0           /// pxor       mm0, mm0
+   lea        ecx, [ecx + esi * 4]
+   neg        esi
  @@LoopX:
-   db $0F,$6E,$34,$B1       /// movd       mm6, [ecx + esi * 4]
+   movd       mm6, [ecx + esi * 4]
    db $0F,$60,$F7           /// punpcklbw  mm6, mm7
    db $0F,$FD,$C6           /// paddw      mm0, mm6
-   dec        esi
+   inc        esi
    jnz        @@LoopX
 
    db $0F,$6F,$F0           /// movq       mm6, mm0
@@ -1836,13 +1840,14 @@ asm
  @@LoopY:
    mov        esi, eax
    db $0F,$EF,$C0           /// pxor       mm0, mm0
-   db $0F,$0D,$34,$F1       /// prefetch   [ecx + esi * 8]
+   lea        ecx, [ecx + esi * 4]
+   neg        esi
+   PREFETCH [ecx + esi * 4 + 512]
  @@LoopX:
-   db $0F,$6E,$31           /// movd       mm6, [ecx]
+   movd       mm6, [ecx + esi * 4]
    db $0F,$60,$F7           /// punpcklbw  mm6, mm7
    db $0F,$FD,$C6           /// paddw      mm0, mm6
-   add        ecx, $04
-   dec        esi
+   inc        esi
 
    jnz        @@LoopX
 
@@ -3643,7 +3648,7 @@ begin
     { link IA32 functions }
     BlockAverage := BlockAverage_IA32;
     LinearInterpolator := _LinearInterpolator;
-  end
+  end;
 end;
 
 { TNestedSamplerList }
