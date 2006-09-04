@@ -1992,7 +1992,7 @@ begin
       begin
         dy := c2 - c1;
         c1 := c2;
-        c2 := J * sc shr 16;
+        c2 := FixedMul(J, sc);
         r1 := 0;
         r2 := xs;
         xsrc := RowSrc;
@@ -2002,7 +2002,7 @@ begin
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
-              r2 := I * sr shr 16;
+              r2 := FixedMul(I, sr);
               DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
               xsrc := xsrc + dx shl 2;
             end;
@@ -2010,7 +2010,7 @@ begin
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
-              r2 := I * sr shr 16;
+              r2 := FixedMul(I, sr);
               BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
               xsrc := xsrc + dx shl 2;
             end;
@@ -2018,7 +2018,7 @@ begin
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
-              r2 := I * sr shr 16;
+              r2 := FixedMul(I, sr);
               C := BlockAverage(dx, dy, xsrc, OffSrc);
               if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
               xsrc := xsrc + dx shl 2;
@@ -2027,7 +2027,7 @@ begin
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
-              r2 := I * sr shr 16;
+              r2 := FixedMul(I, sr);
               CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
               xsrc := xsrc + dx shl 2;
             end;
