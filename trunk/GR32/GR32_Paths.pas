@@ -3,11 +3,115 @@ unit GR32_Paths;
 interface
 
 uses
-  Classes, GR32, GR32_Polygons, Math;
+  Windows, Classes, Math, GR32, GR32_Polygons, GR32_Transforms;
 
 type
-  TCustomPath = class;
+  { Vertex type constants }
+{   VT_PATH_POINT    = $8000000;
+  VT_CONTROL_POINT = $4000000;
+  VT_BEZIER        = $2000000;
+  VT_LINE          = $1000000;
 
+  PVertex = ^TVertex;
+  TVertex = record
+    Point: TFloatPoint;
+    Flags: Integer;
+  end; }
+
+{   PArrayOfVertex = ^TArrayOfVertex;
+  TArrayOfVertex = array of TVertex;
+
+  PVertexArray = ^TVertexArray;
+  TVertexArray = array [0..0] of TVertex; }
+
+//  TCustomPath = class;
+
+  { TCustomCurve2D }
+  TCustomCurve2D = class(TPersistent)
+  private
+    procedure SetPoint(Index: Integer; Value: TFloatPoint);
+    function GetEndPoint: PFloatPoint;
+    function GetStartPoint: PFloatPoint;
+    function GetPoint(Index: Integer): TFloatPoint;
+    //function GetPointPtr(Index: Integer): PFloatPoint;
+  protected
+    function GetPointPtr(Index: Integer): PFloatPoint; virtual; abstract;
+    function GetNumPoints: Integer; virtual; abstract;
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    function ConvertToPolygon: TPolygon32;
+    function FindClosestPoint(const P: TFloatPoint): PFloatPoint;
+    function ClosestPointOnCurve(const P: TFloatPoint): TFloatPoint; virtual; abstract;
+    procedure AppendToPolygon(Polygon: TPolygon32); virtual; abstract;
+    procedure AddPoint(const P: TFloatPoint); virtual; abstract;
+    procedure RemovePoint(Index: Integer); virtual; abstract;
+    property StartPoint: PFloatPoint read GetStartPoint;
+    property EndPoint: PFloatPoint read GetEndPoint;
+    property PointPtr[Index: Integer]: PFloatPoint read GetPointPtr;
+    property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+    property NumPoints: Integer read GetNumPoints;
+  end;
+
+
+  { TBezierCurve2D }
+
+  TControlPoints = array [0..1] of TFloatPoint;
+
+  PBezierVertex = ^TBezierVertex;
+  TBezierVertex = record
+    Point: TFloatPoint;
+    ControlPoints: TControlPoints;
+  end;
+
+  TArrayOfBezierVertex = array of TBezierVertex;
+  TArrayOfArrayOfBezierVertex = array of TArrayOfBezierVertex;
+
+  TBezierCurve2D = class(TCustomCurve2D)
+  private
+    FVertices: TArrayOfArrayOfBezierVertex;
+    function GetFirstContour: TArrayOfBezierVertex;
+    function GetFirstVertex: PBezierVertex;
+    function GetLastContour: TArrayOfBezierVertex;
+    function GetLastVertex: PBezierVertex;
+  protected
+    function GetPointPtr(Index: Integer): PFloatPoint; override;
+    function GetNumPoints: Integer; override;
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    constructor Create;
+    procedure NewContour;
+    procedure AddPoint(const P: TFloatPoint); override;
+    procedure RemovePoint(Index: Integer); override;
+    procedure AddVertex(const V: TBezierVertex);
+    procedure AppendToPolygon(Polygon: TPolygon32); override;
+    function ClosestPointOnCurve(const P: TFloatPoint): TFloatPoint; override;
+    //property Vertex[Index: Integer]: TBezierVertex read GetBezierVertex write SetBezierVertex;
+    property Vertices: TArrayOfArrayOfBezierVertex read FVertices write FVertices;
+    property FirstVertex: PBezierVertex read GetFirstVertex;
+    property LastVertex: PBezierVertex read GetLastVertex;
+    property FirstContour: TArrayOfBezierVertex read GetFirstContour;
+    property LastContour: TArrayOfBezierVertex read GetLastContour;
+  end;
+
+  TPolyLine2D = class(TCustomCurve2D)
+  private
+    FPoints: TArrayOfFloatPoint;
+  protected
+    constructor Create;
+    function GetPointPtr(Index: Integer): PFloatPoint; override;
+    function GetNumPoints: Integer; override;
+  public
+    procedure AddPoint(const P: TFloatPoint); override;
+    procedure RemovePoint(Index: Integer); override;
+    procedure AppendToPolygon(Polygon: TPolygon32); override;
+  end;
+
+
+  // TParametricCurve2D = class(TCustomCurve2D)
+  // end;
+//============================================================================//
+
+(*
   TCustomSegment = class(TPersistent)
   protected
     procedure BreakSegment(Path: TCustomPath; const P1, P2: TFloatPoint); virtual; abstract;
@@ -95,12 +199,30 @@ type
     property SegmentCount: Integer read GetSegmentCount;
     property LastSegment: TCustomSegment read GetLastSegment;
   end;
+*)
+
+const
+  Epsilon = 1;
 
 var
-  BezierTolerance: Single = 1;
+  BezierTolerance: Single = 0.001;
 
 function SqrDistance(const A, B: TFloatPoint): TFloat;
+function DotProduct(const A, B: TFloatPoint): TFloat;
 function AddPoints(const A, B: TFloatPoint): TFloatPoint;
+function SubPoints(const A, B: TFloatPoint): TFloatPoint;
+
+
+{ Text routines }
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  OutlineColor: TColor32; Filler: TCustomPolygonFiller;
+  Transformation: TTransformation = nil); overload;
+procedure DrawTextOutline(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  Color: TColor32; Transformation: TTransformation = nil);
+procedure FillText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  Filler: TCustomPolygonFiller; Transformation: TTransformation = nil);
 
 implementation
 
@@ -113,12 +235,22 @@ begin
   Result.Y := A.Y + B.Y;
 end;
 
+function SubPoints(const A, B: TFloatPoint): TFloatPoint;
+begin
+  Result.X := A.X - B.X;
+  Result.Y := A.Y - B.Y;
+end;
+
 // Returns square of the distance between points A and B.
 function SqrDistance(const A, B: TFloatPoint): TFloat;
 begin
   Result := Sqr(A.X - B.X) + Sqr(A.Y - B.Y);
 end;
 
+function DotProduct(const A, B: TFloatPoint): TFloat;
+begin
+  Result := A.X * B.X + A.Y * B.Y;
+end;
 
 // Returns a point on the line from A to B perpendicular to C.
 function PointOnLine(const A, B, C: TFloatPoint): TFloatPoint;
@@ -150,6 +282,19 @@ begin
     Abs(P2.X + P4.X - 2*P3.X) +
     Abs(P2.Y + P4.Y - 2*P3.Y);
 end;
+
+
+procedure OffsetVertex(var Vertex: TBezierVertex; const Dx, Dy: TFloat);
+begin
+  Vertex.Point.X := Vertex.Point.X + Dx;
+  Vertex.Point.Y := Vertex.Point.Y + Dy;
+  Vertex.ControlPoints[0].X := Vertex.ControlPoints[0].X + Dx;
+  Vertex.ControlPoints[0].Y := Vertex.ControlPoints[0].Y + Dy;
+  Vertex.ControlPoints[1].X := Vertex.ControlPoints[1].X + Dx;
+  Vertex.ControlPoints[1].Y := Vertex.ControlPoints[1].Y + Dy;
+end;
+
+(*
 
 { TLineSegment }
 
@@ -213,9 +358,6 @@ constructor TBezierSegment.Create;
 begin
   //
 end;
-
-const
-  Epsilon = 1;
 
 function TBezierSegment.FindClosestPoint(const P1, P2, P: TFloatPoint): TFloatPoint;
 var
@@ -644,6 +786,593 @@ procedure TSegmentList.SetCustomSegment(Index: Integer;
   const Value: TCustomSegment);
 begin
   List[Index] := Value;
+end;
+*)
+
+{ TBezierCurve2D }
+
+procedure TBezierCurve2D.AddPoint(const P: TFloatPoint);
+var
+  V: TBezierVertex;
+begin
+  V.Point := P;
+  V.ControlPoints[0] := P;
+  V.ControlPoints[1] := P;
+  AddVertex(V);
+end;
+
+procedure TBezierCurve2D.AddVertex(const V: TBezierVertex);
+var
+  H, L: Integer;
+begin
+  H := High(FVertices);
+  L := Length(FVertices[H]);
+  SetLength(FVertices[H], L + 1);
+  FVertices[H][L] := V;
+end;
+
+procedure BezierCurveToPolygon(Polygon: TPolygon32; const Vertices: TArrayOfBezierVertex);
+var
+  P1, P2, P3, P4: TFloatPoint;
+  I, H: Integer;
+
+  procedure Recurse(const P1, P2, P3, P4: TFloatPoint);
+  var
+    P12, P23, P34, P123, P234, P1234: TFloatPoint;
+  begin
+    if Flatness(P1, P2, P3, P4) < BezierTolerance then
+    begin
+      Polygon.Add(FixedPoint(P4));
+    end
+    else
+    begin
+      P12.X   := (P1.X + P2.X) * 1/2;
+      P12.Y   := (P1.Y + P2.Y) * 1/2;
+      P23.X   := (P2.X + P3.X) * 1/2;
+      P23.Y   := (P2.Y + P3.Y) * 1/2;
+      P34.X   := (P3.X + P4.X) * 1/2;
+      P34.Y   := (P3.Y + P4.Y) * 1/2;
+      P123.X  := (P12.X + P23.X) * 1/2;
+      P123.Y  := (P12.Y + P23.Y) * 1/2;
+      P234.X  := (P23.X + P34.X) * 1/2;
+      P234.Y  := (P23.Y + P34.Y) * 1/2;
+      P1234.X := (P123.X + P234.X) * 1/2;
+      P1234.Y := (P123.Y + P234.Y) * 1/2;
+
+      Recurse(P1, P12, P123, P1234);
+      Recurse(P1234, P234, P34, P4);
+    end;
+  end;
+
+begin
+  H := High(Vertices);
+  for I := 0 to H - 1 do
+  begin
+    with Vertices[I] do
+    begin
+      P1 := Point;
+      P2 := ControlPoints[1];
+    end;
+    with Vertices[I + 1] do
+    begin
+      P3 := ControlPoints[0];
+      P4 := Point;
+    end;
+    Recurse(P1, P2, P3, P4);
+  end;
+{ P1 := Vertices[H].Point;
+  P2 := Vertices[H].ControlPoints[1];
+  P3 := Vertices[0].ControlPoints[0];
+  P4 := Vertices[0].Point;
+  Recurse(P1, P2, P3, P4); }
+end;
+
+procedure TBezierCurve2D.AppendToPolygon(Polygon: TPolygon32);
+var
+  I: Integer;
+begin
+  for I := 0 to High(FVertices) do
+  begin
+    Polygon.NewLine;
+    BezierCurveToPolygon(Polygon, FVertices[I]);
+  end;
+end;
+
+procedure TBezierCurve2D.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TPolygon32 then
+  begin
+    TPolygon32(Dest).Points := nil;
+    TPolygon32(Dest).Normals := nil;
+    AppendToPolygon(TPolygon32(Dest));
+  end
+  else
+    inherited;
+end;
+
+function TBezierCurve2D.ClosestPointOnCurve(const P: TFloatPoint): TFloatPoint;
+var
+  P1, P2, C1, C2: TFloatPoint;
+  I: Integer;
+
+  function FindPoint(const P1, P2, P3, P4: TFloatPoint; D1, D2: TFloat): TFloatPoint;
+  var
+    P12, P23, P34, P123, P234, P1234: TFloatPoint;
+    NewD: TFloat;
+  begin
+    P12.X   := (P1.X + P2.X) * 1/2;
+    P12.Y   := (P1.Y + P2.Y) * 1/2;
+    P23.X   := (P2.X + P3.X) * 1/2;
+    P23.Y   := (P2.Y + P3.Y) * 1/2;
+    P34.X   := (P3.X + P4.X) * 1/2;
+    P34.Y   := (P3.Y + P4.Y) * 1/2;
+    P123.X  := (P12.X + P23.X) * 1/2;
+    P123.Y  := (P12.Y + P23.Y) * 1/2;
+    P234.X  := (P23.X + P34.X) * 1/2;
+    P234.Y  := (P23.Y + P34.Y) * 1/2;
+    P1234.X := (P123.X + P234.X) * 1/2;
+    P1234.Y := (P123.Y + P234.Y) * 1/2;
+
+    NewD := SqrDistance(P, P1234);
+    if (NewD < D1) and (NewD < D2) then
+    begin
+      P12 := FindPoint(P1, P12, P123, P1234, D1, NewD);
+      P23 := FindPoint(P1234, P234, P34, P4, NewD, D2);
+      if SqrDistance(P, P12) < SqrDistance(P, P23) then
+        Result := P12
+      else
+        Result := P23;
+    end
+    else
+      case CompareValue(D1, D2, Epsilon) of
+       -1: Result := FindPoint(P1, P12, P123, P1234, D1, NewD);
+        1: Result := FindPoint(P1234, P234, P34, P4, NewD, D2);
+        0: Result := P1234;
+      end;
+  end;
+
+begin
+{   for I := 0 to FVertexCount - 2 do
+  begin
+    P1 := FVertices[I].P;
+    C1 :=
+    C2 :=
+  end; }
+end;
+
+constructor TBezierCurve2D.Create;
+begin
+
+end;
+
+function TBezierCurve2D.GetFirstContour: TArrayOfBezierVertex;
+begin
+  Result := nil;
+  if High(FVertices) >= 0 then
+    Result := FVertices[0];
+end;
+
+function TBezierCurve2D.GetFirstVertex: PBezierVertex;
+var
+  C: TArrayOfBezierVertex;
+begin
+  C := LastContour;
+  Result := nil;
+  if Assigned(C) and (High(C) >= 0) then
+    Result := @C[0];
+end;
+
+function TBezierCurve2D.GetLastContour: TArrayOfBezierVertex;
+var
+  H: Integer;
+begin
+  Result := nil;
+  H := High(FVertices);
+  if H >= 0 then
+    Result := FVertices[H];
+end;
+
+function TBezierCurve2D.GetLastVertex: PBezierVertex;
+var
+  C: TArrayOfBezierVertex;
+begin
+  C := LastContour;
+  Result := nil;
+  if Assigned(C) and (High(C) >= 0) then
+    Result := @C[High(C)];
+end;
+
+function TBezierCurve2D.GetNumPoints: Integer;
+begin
+  Result := Length(FVertices);
+end;
+
+function TBezierCurve2D.GetPointPtr(Index: Integer): PFloatPoint;
+begin
+  Result := @FVertices[High(FVertices)][Index].Point;
+end;
+
+procedure TBezierCurve2D.NewContour;
+begin
+  SetLength(FVertices, Length(FVertices) + 1);
+end;
+
+procedure TBezierCurve2D.RemovePoint(Index: Integer);
+var
+  L: Integer;
+begin
+  L := Length(FVertices);
+  Move(FVertices[Index + 1], FVertices[Index], (L - Index) * SizeOf(TBezierVertex));
+  SetLength(FVertices, L - 1);
+end;
+
+{ TPolyLine2D }
+
+procedure TPolyLine2D.AddPoint(const P: TFloatPoint);
+begin
+  SetLength(FPoints, Length(FPoints) + 1);
+  FPoints[High(FPoints)] := P;
+end;
+
+procedure TPolyLine2D.AppendToPolygon(Polygon: TPolygon32);
+begin
+
+end;
+
+constructor TPolyLine2D.Create;
+begin
+
+end;
+
+
+function TPolyLine2D.GetNumPoints: Integer;
+begin
+  Result := Length(FPoints);
+end;
+
+function TPolyLine2D.GetPointPtr(Index: Integer): PFloatPoint;
+begin
+  Result := @FPoints[Index];
+end;
+
+procedure TPolyLine2D.RemovePoint(Index: Integer);
+var
+  L: Integer;
+begin
+  L := Length(FPoints);
+  Move(FPoints[Index + 1], FPoints[Index], (L - Index) * SizeOf(TFloatPoint));
+  SetLength(FPoints, L - 1);
+end;
+
+{ TCustomCurve2D }
+
+procedure TCustomCurve2D.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TPolygon32 then
+  begin
+    TPolygon32(Dest).Clear;
+    AppendToPolygon(TPolygon32(Dest));
+  end;
+end;
+
+function TCustomCurve2D.ConvertToPolygon: TPolygon32;
+begin
+  Result := TPolygon32.Create;
+  AppendToPolygon(Result);
+end;
+
+function TCustomCurve2D.FindClosestPoint(const P: TFloatPoint): PFloatPoint;
+var
+  I: Integer;
+  D, MinD: TFloat;
+begin
+  MinD := Infinity;
+  for I := 0 to NumPoints - 1 do
+  begin
+    D := SqrDistance(P, Point[I]);
+    if D < MinD then
+    begin
+      Result := PointPtr[I];
+      MinD := D;
+    end;
+  end;
+end;
+
+function TCustomCurve2D.GetEndPoint: PFloatPoint;
+begin
+  Result := GetPointPtr(NumPoints - 1);
+end;
+
+function TCustomCurve2D.GetPoint(Index: Integer): TFloatPoint;
+begin
+  Result := GetPointPtr(Index)^;
+end;
+
+function TCustomCurve2D.GetStartPoint: PFloatPoint;
+begin
+  Result := GetPointPtr(0);
+end;
+
+procedure TCustomCurve2D.SetPoint(Index: Integer; Value: TFloatPoint);
+begin
+  GetPointPtr(Index)^ := Value;
+end;
+
+
+//============================================================================//
+// Text routines
+//============================================================================//
+
+const
+  Identity_mat2: tmat2 = (
+    eM11: (fract: 0; Value: 1);
+    eM12: (fract: 0; Value: 0);
+    eM21: (fract: 0; Value: 0);
+    eM22: (fract: 0; Value: 1);
+  );
+
+  VertFlip_mat2: tmat2 = (
+    eM11: (fract: 0; Value: 1);
+    eM12: (fract: 0; Value: 0);
+    eM21: (fract: 0; Value: 0);
+    eM22: (fract: 0; Value: -1);
+  );
+
+function QuadToBezier(Q0, Q1, Q2: TFixedPoint): TBezierVertex;
+// Q-spline to Bezier curve:
+// B0 = Q0
+// B1 = (Q0 + 2*Q1) / 3
+// B2 = (Q2 + 2*Q1) / 3
+// B3 = Q2
+begin
+  with Result do
+  begin
+    Point := FloatPoint(Q0);
+    ControlPoints[0].X := (Q0.X + 2*Q1.X) / (3 * FixedOne);
+    ControlPoints[0].Y := (Q0.Y + 2*Q1.Y) / (3 * FixedOne);
+    ControlPoints[1].X := (Q0.X + 2*Q2.X) / (3 * FixedOne);
+    ControlPoints[1].Y := (Q0.Y + 2*Q2.Y) / (3 * FixedOne);
+  end;
+end;
+
+function PointFXtoFixedPoint(const Point: tagPointFX): TFixedPoint;
+begin
+  Result.X := Point.X.Value shl 16 or Point.X.Fract;
+  Result.Y := Point.Y.Value shl 16 or Point.Y.Fract;
+end;
+
+
+function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
+  const Character: WideChar; out Metrics: TGlyphMetrics): TBezierCurve2D; overload;
+var
+  I, J, K, S, Res: Integer;
+  Code: LongWord;
+  PGlyphMem, PBuffer: PTTPolygonHeader;
+  PPCurve: PTTPolyCurve;
+
+  Handle: HDC;
+  BezierCurve: TBezierCurve2D;
+  P: TFloatPoint;
+  V: TBezierVertex;
+  Q0, Q1, Q2: TFixedPoint;
+
+  procedure AddToBezierCurve;
+  begin
+    V := QuadToBezier(Q0, Q2, Q1);
+    V.Point.X := V.Point.X + DstX;
+    V.Point.Y := V.Point.Y + DstY;
+    V.ControlPoints[0].X := V.ControlPoints[0].X + DstX;
+    V.ControlPoints[0].Y := V.ControlPoints[0].Y + DstY;
+    V.ControlPoints[1].X := V.ControlPoints[1].X + DstX;
+    V.ControlPoints[1].Y := V.ControlPoints[1].Y + DstY;
+    BezierCurve.AddVertex(V);
+  end;
+
+begin
+  Dst.UpdateFont;
+  Handle := Dst.Handle;
+
+  Dst.UpdateFont;
+  SelectObject(Handle, Dst.Font.Handle);
+
+  Code := Ord(Character);
+  Res := GetGlyphOutline(Handle, Code, GGO_NATIVE, Metrics, 0, nil, VertFlip_mat2);
+
+  PGlyphMem := StackAlloc(Res);
+  PBuffer := PGlyphMem;
+
+  Res := GetGlyphOutline(Handle, Code, GGO_NATIVE, Metrics, Res, PBuffer, VertFlip_mat2);
+
+  if (Res = GDI_ERROR) or (PBuffer^.dwType <> TT_POLYGON_TYPE) then
+  begin
+    Result := nil;
+    StackFree(PGlyphMem);
+    Exit;
+  end;
+
+  BezierCurve := TBezierCurve2D.Create;
+  try
+    while Res > 0 do
+    begin
+      BezierCurve.NewContour;
+
+      S := PBuffer.cb - SizeOf(TTTPolygonHeader);
+      PChar(PPCurve) := PChar(PBuffer) + SizeOf(TTTPolygonHeader);
+      Q0 := PointFXtoFixedPoint(PBuffer.pfxStart);
+      Q2 := Q0;
+
+      while S > 0 do
+      begin
+        case PPCurve.wType of
+          TT_PRIM_LINE:
+            begin
+              Q1 := Q0;
+              AddToBezierCurve;
+
+              P := FloatPoint(TFixedPoint(Q0));
+              P.X := P.X + DstX;
+              P.Y := P.Y + DstY;
+              BezierCurve.AddPoint(P);
+              for J := 0 to PPCurve.cpfx - 1 do
+              begin
+                P := FloatPoint(TFixedPoint(PPCurve.apfx[J]));
+                P.X := P.X + DstX;
+                P.Y := P.Y + DstY;
+                BezierCurve.AddPoint(P);
+              end;
+
+              Q0 := PointFXtoFixedPoint(PPCurve.apfx[PPCurve.cpfx - 1]);
+              Q2 := Q0;
+            end;
+          TT_PRIM_QSPLINE:
+            begin
+
+              for J := 0 to PPCurve.cpfx - 2 do
+              begin
+                Q1 := PointFXtoFixedPoint(PPCurve.apfx[J]);
+                AddToBezierCurve;
+
+                if J < PPCurve.cpfx - 2 then
+                with PointFXtoFixedPoint(PPCurve.apfx[J + 1]) do
+                  begin
+                    Q0.x := (Q1.x + x) div 2;
+                    Q0.y := (Q1.y + y) div 2;
+                  end
+                else
+                  Q0 := PointFXtoFixedPoint(PPCurve.apfx[J + 1]);
+
+                Q2 := Q1;
+              end;
+            end;
+        end;
+        K := (PPCurve.cpfx - 1) * SizeOf(TPointFX) + SizeOf(TTPolyCurve);
+        Dec(S, K);
+        Inc(PChar(PPCurve), K);
+      end;
+
+      Dec(PChar(PPCurve), K);
+      if PPCurve.wType = TT_PRIM_QSPLINE then
+      begin
+        Q1 := PointFXtoFixedPoint(PPCurve.apfx[PPCurve.cpfx - 1]);
+        AddToBezierCurve;
+      end;
+
+      Dec(Res, PBuffer.cb);
+      Inc(PChar(PBuffer), PBuffer.cb);
+    end;
+
+  except
+    BezierCurve.Free;
+  end;
+  Result := BezierCurve;
+  StackFree(PGlyphMem);
+end;
+
+function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
+  const Character: Char; out Metrics: TGlyphMetrics): TBezierCurve2D; overload;
+var
+  C: WideChar;
+begin
+  C := WideChar(Character);
+  Result := GlyphOutlineToBezierCurve(Dst, DstX, DstY, C, Metrics);
+end;
+
+{ procedure RenderText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  OutlineColor, FillColor: TColor32; FillCallback: TFillLineEvent;
+  Transformation: TTransformation = nil);
+var
+  I: Integer;
+  B: TBezierCurve2D;
+  P: TPolygon32;
+  Metrics: TGlyphMetrics;
+begin
+  P := TPolygon32.Create;
+  P.Antialiased := True;
+  P.AntialiasMode := am32times;
+  P.FillMode := pfWinding;
+  Y := Y - Dst.Font.Height;
+  try
+    for I := 1 to Length(Text) do
+    begin
+      B := GlyphOutlineToBezierCurve(Dst, X, Y, Text[I], Metrics);
+      try
+        P.Assign(B);
+        if Assigned(FillCallback) then
+          P.Draw(Dst, OutlineColor, FillCallback, Transformation)
+        else
+          P.Draw(Dst, OutlineColor, FillColor, Transformation);
+        X := X + Metrics.gmCellIncX;
+      finally
+        B.Free;
+      end;
+    end;
+  finally
+    P.Free;
+  end;
+end; }
+
+procedure RenderText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  OutlineColor, FillColor: TColor32; FillCallback: TFillLineEvent;
+  Transformation: TTransformation = nil);
+var
+  I: Integer;
+  B: TBezierCurve2D;
+  P: TPolygon32;
+  Metrics: TGlyphMetrics;
+  TextMetric: TTextMetric;
+begin
+  P := TPolygon32.Create;
+  P.Antialiased := True;
+  P.AntialiasMode := am32times;
+  P.FillMode := pfWinding;
+
+  Dst.UpdateFont;
+  SelectObject(Dst.Handle, Dst.Font.Handle);
+  GetTextMetrics(Dst.Handle, TextMetric);
+  Y := Y + TextMetric.tmAscent;
+
+  try
+    for I := 1 to Length(Text) do
+    begin
+      B := GlyphOutlineToBezierCurve(Dst, X, Y, Text[I], Metrics);
+      try
+        B.AppendToPolygon(P);
+        X := X + Metrics.gmCellIncX;
+      finally
+        B.Free;
+      end;
+    end;
+    if Assigned(FillCallback) then
+      P.Draw(Dst, OutlineColor, FillCallback, Transformation)
+    else
+      P.Draw(Dst, OutlineColor, FillColor, Transformation);
+  finally
+    P.Free;
+  end;
+end;
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
+begin
+  RenderText(Dst, X, Y, Text, OutlineColor, FillColor, nil, Transformation);
+end;
+
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  OutlineColor: TColor32; Filler: TCustomPolygonFiller;
+  Transformation: TTransformation = nil); overload;
+begin
+  RenderText(Dst, X, Y, Text, OutlineColor, 0, Filler.FillLine, Transformation);
+end;
+
+procedure DrawTextOutline(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  Color: TColor32; Transformation: TTransformation = nil);
+begin
+  RenderText(Dst, X, Y, Text, Color, 0, nil, Transformation);
+end;
+
+procedure FillText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+  Filler: TCustomPolygonFiller; Transformation: TTransformation = nil);
+begin
+  RenderText(Dst, X, Y, Text, 0, 0, Filler.FillLine, Transformation);
 end;
 
 end.
