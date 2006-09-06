@@ -214,15 +214,16 @@ function SubPoints(const A, B: TFloatPoint): TFloatPoint;
 
 
 { Text routines }
-procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
-procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   OutlineColor: TColor32; Filler: TCustomPolygonFiller;
   Transformation: TTransformation = nil); overload;
-procedure DrawTextOutline(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure DrawTextOutline(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   Color: TColor32; Transformation: TTransformation = nil);
-procedure FillText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure FillText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   Filler: TCustomPolygonFiller; Transformation: TTransformation = nil);
+function TextToPolygon(Dst: TBitmap32; X, Y: TFloat; const Text: WideString): TPolygon32;
 
 implementation
 
@@ -1143,7 +1144,7 @@ end;
 
 
 function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
-  const Character: WideChar; out Metrics: TGlyphMetrics): TBezierCurve2D; overload;
+  const Character: WideChar; out Metrics: TGlyphMetrics): TBezierCurve2D;
 var
   I, J, K, S, Res: Integer;
   Code: LongWord;
@@ -1171,9 +1172,6 @@ var
 begin
   Dst.UpdateFont;
   Handle := Dst.Handle;
-
-  Dst.UpdateFont;
-  SelectObject(Handle, Dst.Font.Handle);
 
   Code := Ord(Character);
   Res := GetGlyphOutline(Handle, Code, GGO_NATIVE, Metrics, 0, nil, VertFlip_mat2);
@@ -1268,14 +1266,14 @@ begin
   StackFree(PGlyphMem);
 end;
 
-function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
+{ function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
   const Character: Char; out Metrics: TGlyphMetrics): TBezierCurve2D; overload;
 var
   C: WideChar;
 begin
   C := WideChar(Character);
   Result := GlyphOutlineToBezierCurve(Dst, DstX, DstY, C, Metrics);
-end;
+end; }
 
 { procedure RenderText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
   OutlineColor, FillColor: TColor32; FillCallback: TFillLineEvent;
@@ -1311,37 +1309,43 @@ begin
   end;
 end; }
 
-procedure RenderText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
-  OutlineColor, FillColor: TColor32; FillCallback: TFillLineEvent;
-  Transformation: TTransformation = nil);
+function TextToPolygon(Dst: TBitmap32; X, Y: TFloat; const Text: WideString): TPolygon32;
 var
   I: Integer;
   B: TBezierCurve2D;
-  P: TPolygon32;
   Metrics: TGlyphMetrics;
   TextMetric: TTextMetric;
 begin
-  P := TPolygon32.Create;
-  P.Antialiased := True;
-  P.AntialiasMode := am32times;
-  P.FillMode := pfWinding;
+  Result := TPolygon32.Create;
+  Result.Antialiased := True;
+  Result.AntialiasMode := am32times;
+  Result.FillMode := pfWinding;
 
   Dst.UpdateFont;
   SelectObject(Dst.Handle, Dst.Font.Handle);
   GetTextMetrics(Dst.Handle, TextMetric);
   Y := Y + TextMetric.tmAscent;
-
-  try
-    for I := 1 to Length(Text) do
-    begin
-      B := GlyphOutlineToBezierCurve(Dst, X, Y, Text[I], Metrics);
-      try
-        B.AppendToPolygon(P);
-        X := X + Metrics.gmCellIncX;
-      finally
-        B.Free;
-      end;
+  for I := 1 to Length(Text) do
+  begin
+    B := GlyphOutlineToBezierCurve(Dst, X, Y, Text[I], Metrics);
+    if Assigned(B) then
+    try
+      B.AppendToPolygon(Result);
+    finally
+      B.Free;
     end;
+    X := X + Metrics.gmCellIncX;
+  end;
+end;
+
+procedure RenderText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
+  OutlineColor, FillColor: TColor32; FillCallback: TFillLineEvent;
+  Transformation: TTransformation = nil);
+var
+  P: TPolygon32;
+begin
+  P := TextToPolygon(Dst, X, Y, Text);
+  try
     if Assigned(FillCallback) then
       P.Draw(Dst, OutlineColor, FillCallback, Transformation)
     else
@@ -1350,26 +1354,27 @@ begin
     P.Free;
   end;
 end;
-procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
 begin
   RenderText(Dst, X, Y, Text, OutlineColor, FillColor, nil, Transformation);
 end;
 
-procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   OutlineColor: TColor32; Filler: TCustomPolygonFiller;
   Transformation: TTransformation = nil); overload;
 begin
   RenderText(Dst, X, Y, Text, OutlineColor, 0, Filler.FillLine, Transformation);
 end;
 
-procedure DrawTextOutline(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure DrawTextOutline(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   Color: TColor32; Transformation: TTransformation = nil);
 begin
   RenderText(Dst, X, Y, Text, Color, 0, nil, Transformation);
 end;
 
-procedure FillText(Dst: TBitmap32; X, Y: TFloat; const Text: string;
+procedure FillText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   Filler: TCustomPolygonFiller; Transformation: TTransformation = nil);
 begin
   RenderText(Dst, X, Y, Text, 0, 0, Filler.FillLine, Transformation);
