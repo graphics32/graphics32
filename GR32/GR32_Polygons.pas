@@ -40,7 +40,8 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms, GR32_Math;
+  Classes, SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms,
+  GR32_Resamplers, GR32_Math;
 
 { Polylines }
 
@@ -169,6 +170,7 @@ type
     property Points: TArrayOfArrayOfFixedPoint read FPoints write FPoints;
   end;
 
+  { TBitmapPolygonFiller }
   TBitmapPolygonFiller = class(TCustomPolygonFiller)
   private
     FPattern: TBitmap32;
@@ -186,6 +188,19 @@ type
     property OffsetY: Integer read FOffsetY write FOffsetY;
   end;
 
+  { TSamplerFiller }
+  TSamplerFiller = class(TCustomPolygonFiller)
+  private
+    FSampler: TCustomSampler;
+    FGetSample: TGetSampleInt;
+    procedure SetSampler(const Value: TCustomSampler);
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  published
+    property Sampler: TCustomSampler read FSampler write SetSampler;
+  end;
+    
 implementation
 
 uses Math;
@@ -1983,7 +1998,7 @@ begin
   Points := TransformPoints(Points, Transformation);
 end;
 
-{ TBitmapFiller }
+{ TBitmapPolygonFiller }
 
 procedure TBitmapPolygonFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32);
@@ -2174,6 +2189,35 @@ begin
   end
   else
     Result := nil;
+end;
+
+{ TSamplerFiller }
+
+procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[cmBlend];
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGetSample(X, DstY) and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+function TSamplerFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := SampleLineOpaque;
+end;
+
+procedure TSamplerFiller.SetSampler(const Value: TCustomSampler);
+begin
+  FSampler := Value;
+  FGetSample := FSampler.GetSampleInt;
 end;
 
 end.
