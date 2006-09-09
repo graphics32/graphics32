@@ -57,6 +57,12 @@ procedure MoveLongword(const Source; var Dest; Count: Integer);
 {$ENDIF}
 procedure MoveWord(const Source; var Dest; Count: Integer);
 
+{ Allocates a 'small' block of memory on the stack }
+function StackAlloc(Size: Integer): Pointer; register;
+
+{ Pops memory allocated by StackAlloc }
+procedure StackFree(P: Pointer); register;
+
 { Exchange two 32-bit values }
 procedure Swap(var A, B: Integer);
 
@@ -499,6 +505,56 @@ asm
         ROR     EAX,8
 end;
 
+{ StackAlloc allocates a 'small' block of memory from the stack by
+  decrementing SP.  This provides the allocation speed of a local variable,
+  but the runtime size flexibility of heap allocated memory.  }
+function StackAlloc(Size: Integer): Pointer; register;
+asm
+  POP   ECX          { return address }
+  MOV   EDX, ESP
+  ADD   EAX, 3
+  AND   EAX, not 3   // round up to keep ESP dword aligned
+  CMP   EAX, 4092
+  JLE   @@2
+@@1:
+  SUB   ESP, 4092
+  PUSH  EAX          { make sure we touch guard page, to grow stack }
+  SUB   EAX, 4096
+  JNS   @@1
+  ADD   EAX, 4096
+@@2:
+  SUB   ESP, EAX
+  MOV   EAX, ESP     { function result = low memory address of block }
+  PUSH  EDX          { save original SP, for cleanup }
+  MOV   EDX, ESP
+  SUB   EDX, 4
+  PUSH  EDX          { save current SP, for sanity check  (sp = [sp]) }
+  PUSH  ECX          { return to caller }
+end;
+
+{ StackFree pops the memory allocated by StackAlloc off the stack.
+- Calling StackFree is optional - SP will be restored when the calling routine
+  exits, but it's a good idea to free the stack allocated memory ASAP anyway.
+- StackFree must be called in the same stack context as StackAlloc - not in
+  a subroutine or finally block.
+- Multiple StackFree calls must occur in reverse order of their corresponding
+  StackAlloc calls.
+- Built-in sanity checks guarantee that an improper call to StackFree will not
+  corrupt the stack. Worst case is that the stack block is not released until
+  the calling routine exits. }
+procedure StackFree(P: Pointer); register;
+asm
+  POP   ECX                     { return address }
+  MOV   EDX, DWORD PTR [ESP]
+  SUB   EAX, 8
+  CMP   EDX, ESP                { sanity check #1 (SP = [SP]) }
+  JNE   @@1
+  CMP   EDX, EAX                { sanity check #2 (P = this stack block) }
+  JNE   @@1
+  MOV   ESP, DWORD PTR [ESP+4]  { restore previous SP  }
+@@1:
+  PUSH  ECX                     { return to caller }
+end;
 
 procedure SetupFunctions;
 begin
