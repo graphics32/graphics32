@@ -1015,7 +1015,7 @@ begin
   xf := DstX - Frx;
   yf := DstY - Fry;
 
-  r := Sqrt(Sqr(xf) + Sqr(yf));
+  r := Hypot(xf, yf);
   t := ArcTan2(yf, xf) + r * FTwirl;
   SinCos(t, yf, xf);
 
@@ -1095,7 +1095,7 @@ var
 begin
   Yry := (DstY - Fry) * sy;
   Xrx := (DstX - Frx) * sx;
-  d := Sqrt(Sqr(Xrx) + Sqr(Yry));
+  d := Hypot(Xrx, Yry);
   if (d < FMinR) and (d > 0) then
   begin
     d := ArcSin(d * Fsr) * Faw / d;
@@ -1123,8 +1123,9 @@ begin
 
   Rt := (1 / (PI * 2)) * Sx;
 
-  Rt2 := Sx * 2 * Pi;
-  if Rt2 <> 0 then Rt2 := 1 / Rt2 else Rt2 := 0.00000001;
+  Rt2 := Sx;
+  if Rt2 <> 0 then Rt2 := 1 / Sx else Rt2 := 0.00000001;
+  Rt2 := Rt2 * 2 * Pi;
 
   Rr := Sy;
   if Rr <> 0 then Rr := 1 / Rr else Rr := 0.00000001;
@@ -1141,25 +1142,6 @@ begin
   FDstRect := Value;
   Changed;
 end;
-{
-procedure TPolarTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX,
-  DstY: TFloat);
-var
-  Sx, Sy, Cx, Cy, Dx, Dy, r, theta: TFloat;
-begin
-  Sx := SrcRect.Right - SrcRect.Left;
-  Sy := SrcRect.Bottom - SrcRect.Top;
-  Cx := (DstRect.Left + DstRect.Right) * 0.5;
-  Cy := (DstRect.Top + DstRect.Bottom) * 0.5;
-  Dx := DstRect.Right - Cx;
-  Dy := DstRect.Bottom - Cy;
-
-  theta := (SrcX - SrcRect.Left) / Sx*2*Pi + Phase;
-  r := (SrcY - SrcRect.Bottom) / Sy;
-
-  DstX := Dx * r * Cos(theta) + Cx;
-  DstY := Dy * r * Sin(theta) + Cy;
-end;  }
 
 procedure TPolarTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX,
   DstY: TFloat);
