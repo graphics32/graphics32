@@ -209,9 +209,11 @@ type
   private
     FDstRect: TFloatRect;
     FPhase: TFloat;
+    Sx, Sy, Cx, Cy, Dx, Dy, Rt, Rt2, Rr, Rcx, Rcy: TFloat;
     procedure SetDstRect(const Value: TFloatRect);
     procedure SetPhase(const Value: TFloat);
   protected
+    procedure PrepareTransform; override;
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   public
@@ -1110,12 +1112,36 @@ end;
 
 { TPolarTransformation }
 
+procedure TPolarTransformation.PrepareTransform;
+begin
+  Sx := SrcRect.Right - SrcRect.Left;
+  Sy := SrcRect.Bottom - SrcRect.Top;
+  Cx := (DstRect.Left + DstRect.Right) / 2;
+  Cy := (DstRect.Top + DstRect.Bottom) / 2;
+  Dx := DstRect.Right - Cx;
+  Dy := DstRect.Bottom - Cy;
+
+  Rt := (1 / (PI * 2)) * Sx;
+
+  Rt2 := Sx * 2 * Pi;
+  if Rt2 <> 0 then Rt2 := 1 / Rt2 else Rt2 := 0.00000001;
+
+  Rr := Sy;
+  if Rr <> 0 then Rr := 1 / Rr else Rr := 0.00000001;
+
+  Rcx := Cx;
+  if Rcx <> 0 then Rcx := 1 / Rcx else Rcx := 0.00000001;
+
+  Rcy := Cy;
+  if Rcy <> 0 then Rcy := 1 / Rcy else Rcy := 0.00000001;
+end;
+
 procedure TPolarTransformation.SetDstRect(const Value: TFloatRect);
 begin
   FDstRect := Value;
   Changed;
 end;
-
+{
 procedure TPolarTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX,
   DstY: TFloat);
 var
@@ -1133,33 +1159,45 @@ begin
 
   DstX := Dx * r * Cos(theta) + Cx;
   DstY := Dy * r * Sin(theta) + Cy;
+end;  }
+
+procedure TPolarTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX,
+  DstY: TFloat);
+var
+  R, Theta, S, C: TFloat;
+begin
+  Theta := (SrcX - SrcRect.Left) * Rt2 + Phase;
+  R := (SrcY - SrcRect.Bottom) * Rr;
+  SinCos(Theta, S, C);
+
+  DstX := Dx * R * C + Cx;
+  DstY := Dy * R * S + Cy;
 end;
 
 procedure TPolarTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
   out SrcX, SrcY: TFloat);
+const
+  PI2 = 2 * PI;
 var
-  Sx, Sy, Cx, Cy, Dx, Dy, r, theta: TFloat;
+  Dcx, Dcy, Theta: TFloat;
 begin
-  Sx := SrcRect.Right - SrcRect.Left;
-  Sy := SrcRect.Bottom - SrcRect.Top;
-  Cx := (DstRect.Left + DstRect.Right) * 0.5;
-  Cy := (DstRect.Top + DstRect.Bottom) * 0.5;
-  Dx := (DstX - Cx) / Cx;
-  Dy := (DstY - Cy) / Cy;
+  Dcx := (DstX - Cx) * Rcx;
+  Dcy := (DstY - Cy) * Rcy;
 
-  r := Sqrt(Sqr(Dx) + Sqr(Dy));
-  theta := ArcTan2(Dy, Dx) + Pi - Phase;
-  if theta < 0 then theta := theta + 2*Pi;
+  Theta := ArcTan2(Dcy, Dcx) + Pi - Phase;
+  if Theta < 0 then Theta := Theta + PI2;
 
-  SrcX := SrcRect.Left + theta/(2*Pi) * Sx;
-  SrcY := SrcRect.Bottom - r * Sy;
+  SrcX := SrcRect.Left + Theta * Rt;
+  SrcY := SrcRect.Bottom - Hypot(Dcx, Dcy) * Sy;
 end;
+
 
 procedure TPolarTransformation.SetPhase(const Value: TFloat);
 begin
   FPhase := Value;
   Changed;
 end;
+
 
 
 { TDisturbanceTransformation }
