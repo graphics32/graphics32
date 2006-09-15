@@ -44,11 +44,15 @@ function FixedSqr(Value: TFixed): TFixed;
 function FixedSqrtLP(Value: TFixed): TFixed;      // 8-bit precision
 function FixedSqrtHP(Value: TFixed): TFixed;      // 16-bit precision
 // Fixed point interpolation
-function FixedCombine(W, X, Y: TFixed): TFixed; 
+function FixedCombine(W, X, Y: TFixed): TFixed;
+
 
 { Trigonometric routines }
+
 procedure SinCos(const Theta: Single; var Sin, Cos: Single); overload;
 procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
+function Hypot(const X, Y: TFloat): TFloat;
+
 
 { Misc. Routines }
 
@@ -212,6 +216,17 @@ asm
    FSTP DWORD PTR [EDX]    // cosine
    FMUL radius
    FSTP DWORD PTR [EAX]    // sine
+end;
+
+function Hypot(const X, Y: TFloat): TFloat;
+asm
+        FLD     X
+        FMUL    ST,ST
+        FLD     Y
+        FMUL    ST,ST
+        FADD
+        FSQRT
+        FWAIT
 end;
 
 { Misc. }
