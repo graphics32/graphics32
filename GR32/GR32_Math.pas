@@ -55,16 +55,17 @@ procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
 { MulDiv a faster implementation of Windows.MulDiv funtion }
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
-//tells if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
+// tells if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
 function IsPowerOf2(Value: Integer): Boolean;
-//returns X rounded down to the nearest power of two
+// returns X rounded down to the nearest power of two
 function PrevPowerOf2(Value: Integer): Integer;
-//returns X rounded down to the nearest power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
+// returns X rounded down to the nearest power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
 function NextPowerOf2(Value: Integer): Integer;
 
-//fast average without overflow, useful for e.g. fixed point math
+// fast average without overflow, useful for e.g. fixed point math
 function Average(A, B: Integer): Integer;
-
+// fast sign function
+function Sign(Value: Integer): Integer;
 
 implementation
 
@@ -299,6 +300,14 @@ asm
         SAR     EDX,1
         AND     EAX,ECX
         ADD     EAX,EDX
+end;
+
+function Sign(Value: Integer): Integer;
+asm
+        CDQ
+        NEG     EAX
+        ADC     EDX,EDX
+        MOV     EAX,EDX
 end;
 
 end.
