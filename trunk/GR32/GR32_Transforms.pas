@@ -221,6 +221,24 @@ type
     property Phase: TFloat read FPhase write SetPhase;
   end;
 
+  TPathTransformation = class(TTransformation)
+  private
+    FTopLength: TFloat;
+    FBottomLength: TFloat;
+    FBottomCurve: TArrayOfFloatPoint;
+    FTopCurve: TArrayOfFloatPoint;
+    FTopHypot: TArrayOfFloat;
+    FBottomHypot: TArrayOfFloat;
+    procedure SetBottomCurve(const Value: TArrayOfFloatPoint);
+    procedure SetTopCurve(const Value: TArrayOfFloatPoint);
+  protected
+    procedure PrepareTransform; override;
+    procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
+  public
+    property TopCurve: TArrayOfFloatPoint read FTopCurve write SetTopCurve;
+    property BottomCurve: TArrayOfFloatPoint read FBottomCurve write SetBottomCurve;
+  end;
+
   TRemapTransformation = class(TTransformation)
   private
     FVectorMap : TVectorMap;
@@ -1180,6 +1198,78 @@ begin
   Changed;
 end;
 
+
+{ TPathTransformation }
+
+procedure TPathTransformation.PrepareTransform;
+var
+  I: Integer;
+  L: TFloat;
+begin
+  SetLength(FTopHypot, Length(FTopCurve));
+  SetLength(FBottomHypot, Length(FBottomCurve));
+
+  L := 0;
+  for I := 0 to High(FTopCurve) - 1 do
+  begin
+    FTopHypot[I] := L;
+    L := L + Hypot(FTopCurve[I].X - FTopCurve[I + 1].X, FTopCurve[I].Y - FTopCurve[I + 1].Y);
+  end;
+  FTopLength := L;
+
+  L := 0;
+  for I := 0 to High(FBottomCurve) - 1 do
+  begin
+    FBottomHypot[I] := L;
+    L := L + Hypot(FBottomCurve[I].X - FBottomCurve[I + 1].X, FBottomCurve[I].Y - FBottomCurve[I + 1].Y);
+  end;
+  FBottomLength := L;
+end;
+
+procedure TPathTransformation.SetBottomCurve(const Value: TArrayOfFloatPoint);
+begin
+  FBottomCurve := Value;
+  Changed;
+end;
+
+procedure TPathTransformation.SetTopCurve(const Value: TArrayOfFloatPoint);
+begin
+  FTopCurve := Value;
+  Changed;
+end;
+
+procedure TPathTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX,
+  DstY: TFloat);
+var
+  I: Integer;
+  X, Y, fx, dx, dy, r, Tx, Ty, Bx, By: TFloat;
+begin
+  X := (SrcX - SrcRect.Left) / (SrcRect.Right - SrcRect.Left);
+  Y := (SrcY - SrcRect.Top) / (SrcRect.Bottom - SrcRect.Top);
+
+  fx := X * FTopLength;
+  I := 1;
+  while (FTopHypot[I] < fx) and (I < High(FTopHypot)) do Inc(I);
+
+  r := (FTopHypot[I] - fx) / (FTopHypot[I] - FTopHypot[I - 1]);
+  dx := (FTopCurve[I - 1].X - FTopCurve[I].X);
+  dy := (FTopCurve[I - 1].Y - FTopCurve[I].Y);
+  Tx := FTopCurve[I].X + r * dx;
+  Ty := FTopCurve[I].Y + r * dy;
+
+  fx := X * FBottomLength;
+  I := 1;
+  while (FBottomHypot[I] < fx) and (I < High(FBottomHypot)) do Inc(I);
+
+  r := (FBottomHypot[I] - fx) / (FBottomHypot[I] - FBottomHypot[I - 1]);
+  dx := (FBottomCurve[I - 1].X - FBottomCurve[I].X);
+  dy := (FBottomCurve[I - 1].Y - FBottomCurve[I].Y);
+  Bx := FBottomCurve[I].X + r * dx;
+  By := FBottomCurve[I].Y + r * dy;
+
+  DstX := Tx + Y * (Bx - Tx);
+  DstY := Ty + Y * (By - Ty);
+end;
 
 
 { TDisturbanceTransformation }
