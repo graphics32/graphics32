@@ -181,6 +181,11 @@ type
   PArrayOfSingle = ^TArrayOfSingle;
   TArrayOfSingle = array of Single;
 
+  PFloatArray = ^TFloatArray;
+  TFloatArray = array [0..0] of TFloat;
+  PArrayOfFloat = ^TArrayOfFloat;
+  TArrayOfFloat = array of TFloat;
+
 const
   // Fixed point math constants
   FixedOne = $10000;
