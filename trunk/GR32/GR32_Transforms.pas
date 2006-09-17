@@ -1023,6 +1023,7 @@ begin
     Frx := (Right - Left) / 2;
     Fry := (Bottom - Top) / 2;
   end;
+  TransformValid := True;
 end;
 
 procedure TTwirlTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
@@ -1059,6 +1060,7 @@ begin
   FPiW := (Pi / (FSrcRect.Right - FSrcRect.Left));
   FPiH := (Pi / (FSrcRect.Bottom - FSrcRect.Top));
   FBP := FBloatPower * Max(FSrcRect.Right - FSrcRect.Left, FSrcRect.Bottom - FSrcRect.Top);
+  TransformValid := True;  
 end;
 
 procedure TBloatTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
@@ -1104,6 +1106,7 @@ begin
     if Faw <> 0 then Faw := 1 / Faw;
     Faw := Faw * FMinR
   end;
+  TransformValid := True;  
 end;
 
 procedure TFishEyeTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
@@ -1360,6 +1363,7 @@ begin
     FDstTranslationFixed := FixedPoint(FDstTranslationFloat);
     FDstScaleFixed := FixedPoint(FDstScaleFloat);
   end;
+  TransformValid := True;
 end;
 
 procedure TRemapTransformation.ReverseTransformFixed(DstX, DstY: TFixed;
