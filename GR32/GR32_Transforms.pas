@@ -1153,6 +1153,8 @@ begin
 
   Rcy := Cy;
   if Rcy <> 0 then Rcy := 1 / Rcy else Rcy := 0.00000001;
+
+  TransformValid := True;
 end;
 
 procedure TPolarTransformation.SetDstRect(const Value: TFloatRect);
@@ -1224,6 +1226,8 @@ begin
     L := L + Hypot(FBottomCurve[I].X - FBottomCurve[I + 1].X, FBottomCurve[I].Y - FBottomCurve[I + 1].Y);
   end;
   FBottomLength := L;
+
+  TransformValid := True;
 end;
 
 procedure TPathTransformation.SetBottomCurve(const Value: TArrayOfFloatPoint);
@@ -1241,7 +1245,7 @@ end;
 procedure TPathTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX,
   DstY: TFloat);
 var
-  I: Integer;
+  I, H: Integer;
   X, Y, fx, dx, dy, r, Tx, Ty, Bx, By: TFloat;
 begin
   X := (SrcX - SrcRect.Left) / (SrcRect.Right - SrcRect.Left);
@@ -1249,7 +1253,8 @@ begin
 
   fx := X * FTopLength;
   I := 1;
-  while (FTopHypot[I] < fx) and (I < High(FTopHypot)) do Inc(I);
+  H := High(FTopHypot);
+  while (FTopHypot[I] < fx) and (I < H) do Inc(I);
 
   r := (FTopHypot[I] - fx) / (FTopHypot[I] - FTopHypot[I - 1]);
   dx := (FTopCurve[I - 1].X - FTopCurve[I].X);
@@ -1259,7 +1264,8 @@ begin
 
   fx := X * FBottomLength;
   I := 1;
-  while (FBottomHypot[I] < fx) and (I < High(FBottomHypot)) do Inc(I);
+  H := High(FBottomHypot);
+  while (FBottomHypot[I] < fx) and (I < H) do Inc(I);
 
   r := (FBottomHypot[I] - fx) / (FBottomHypot[I] - FBottomHypot[I - 1]);
   dx := (FBottomCurve[I - 1].X - FBottomCurve[I].X);
