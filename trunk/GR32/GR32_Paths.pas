@@ -122,9 +122,16 @@ type
   private
     FBoundsRect: TFloatRect;
   public
-    procedure AppendToPolygon(Polygon: TPolygon32); override;  
+    procedure AppendToPolygon(Polygon: TPolygon32); override;
     property BoundsRect: TFloatRect read FBoundsRect write FBoundsRect;
   end;
+
+{   TRegularPolygon = class(TCustomShape)
+  public
+  public
+    property Corners: Integer;
+    property BoundsRect: TFloatRect;
+  end; }
 
 (*
   TPolyLine = class(TCustomShape)
@@ -246,6 +253,11 @@ function DotProduct(const A, B: TFloatPoint): TFloat;
 function AddPoints(const A, B: TFloatPoint): TFloatPoint;
 function SubPoints(const A, B: TFloatPoint): TFloatPoint;
 
+{ Bezier curve routines }
+function BezierCurveToPolygonX(const Vertices: TArrayOfBezierVertex;
+  Closed: Boolean = True): TArrayOfFixedPoint; overload;
+function BezierCurveToPolygonF(const Vertices: TArrayOfBezierVertex;
+  Closed: Boolean = True): TArrayOfFloatPoint; overload;
 
 { Text routines }
 procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
@@ -342,10 +354,20 @@ end;
 
 function BezierSegment(const Vertices: TArrayOfBezierVertex; Index: Integer): TBezierSegment;
 begin
-  Result.P1 := Vertices[Index].Points[0];
-  Result.P2 := Vertices[Index].Points[2];
-  Result.P3 := Vertices[Index + 1].Points[1];
-  Result.P4 := Vertices[Index + 1].Points[0];
+  if Index = High(Vertices) then
+  begin
+    Result.P1 := Vertices[Index].Points[0];
+    Result.P2 := Vertices[Index].Points[2];
+    Result.P3 := Vertices[0].Points[1];
+    Result.P4 := Vertices[0].Points[0];
+  end
+  else
+  begin
+    Result.P1 := Vertices[Index].Points[0];
+    Result.P2 := Vertices[Index].Points[2];
+    Result.P3 := Vertices[Index + 1].Points[1];
+    Result.P4 := Vertices[Index + 1].Points[0];
+  end;
 end;
 (*
 
@@ -864,9 +886,10 @@ begin
   FVertices[H][L] := V;
 end;
 
-procedure BezierCurveToPolygon(Polygon: TPolygon32; const Vertices: TArrayOfBezierVertex);
+function BezierCurveToPolygonX(const Vertices: TArrayOfBezierVertex;
+  Closed: Boolean = True): TArrayOfFixedPoint;
 var
-  I: Integer;
+  I, Index: Integer;
 
   procedure Recurse(const P1, P2, P3, P4: TFloatPoint);
   var
@@ -874,7 +897,10 @@ var
   begin
     if Flatness(P1, P2, P3, P4) < BezierTolerance then
     begin
-      Polygon.Add(FixedPoint(P4));
+      if High(Result) < Index then
+        SetLength(Result, Length(Result) * 2);
+      Result[Index] := FixedPoint(P4);
+      Inc(Index);
     end
     else
     begin
@@ -897,19 +923,70 @@ var
   end;
 
 begin
-  for I := 0 to High(Vertices) - 1 do
+  Index := 0;
+  SetLength(Result, 8);
+  for I := 0 to High(Vertices) + Ord(Closed) - 1 do
     with BezierSegment(Vertices, I) do
       Recurse(P1, P2, P3, P4);
+  SetLength(Result, Index);
 end;
+
+function BezierCurveToPolygonF(const Vertices: TArrayOfBezierVertex;
+  Closed: Boolean = True): TArrayOfFloatPoint;
+var
+  I, Index: Integer;
+
+  procedure Recurse(const P1, P2, P3, P4: TFloatPoint);
+  var
+    P12, P23, P34, P123, P234, P1234: TFloatPoint;
+  begin
+    if Flatness(P1, P2, P3, P4) < BezierTolerance then
+    begin
+      if High(Result) < Index then
+        SetLength(Result, Length(Result) * 2);
+      Result[Index] := P4;
+      Inc(Index);
+    end
+    else
+    begin
+      P12.X   := (P1.X + P2.X) * 1/2;
+      P12.Y   := (P1.Y + P2.Y) * 1/2;
+      P23.X   := (P2.X + P3.X) * 1/2;
+      P23.Y   := (P2.Y + P3.Y) * 1/2;
+      P34.X   := (P3.X + P4.X) * 1/2;
+      P34.Y   := (P3.Y + P4.Y) * 1/2;
+      P123.X  := (P12.X + P23.X) * 1/2;
+      P123.Y  := (P12.Y + P23.Y) * 1/2;
+      P234.X  := (P23.X + P34.X) * 1/2;
+      P234.Y  := (P23.Y + P34.Y) * 1/2;
+      P1234.X := (P123.X + P234.X) * 1/2;
+      P1234.Y := (P123.Y + P234.Y) * 1/2;
+
+      Recurse(P1, P12, P123, P1234);
+      Recurse(P1234, P234, P34, P4);
+    end;
+  end;
+
+begin
+  Index := 0;
+  SetLength(Result, 8);
+  for I := 0 to High(Vertices) + Ord(Closed) - 1 do
+    with BezierSegment(Vertices, I) do
+      Recurse(P1, P2, P3, P4);
+  SetLength(Result, Index);
+end;
+
 
 procedure TBezierCurve.AppendToPolygon(Polygon: TPolygon32);
 var
-  I: Integer;
+  I, J: Integer;
 begin
+  J := High(Polygon.Points);
   for I := 0 to High(FVertices) do
   begin
     Polygon.NewLine;
-    BezierCurveToPolygon(Polygon, FVertices[I]);
+    Polygon.Points[I + J] := BezierCurveToPolygonX(FVertices[I]);
+    //BezierCurveToPolygon(Polygon, FVertices[I]);
   end;
 end;
 
@@ -1156,16 +1233,15 @@ function QuadToBezier(Q0, Q1, Q2: TFixedPoint): TBezierVertex;
 // Q-spline to Bezier curve:
 // B0 = Q0
 // B1 = (Q0 + 2*Q1) / 3
-// B2 = (Q2 + 2*Q1) / 3
-// B3 = Q2
+// B2 = (Q0 + 2*Q2) / 3
 begin
   with Result do
   begin
-    Point := FloatPoint(Q0);
-    ControlPoints[0].X := (Q0.X + 2*Q1.X) / (3 * FixedOne);
-    ControlPoints[0].Y := (Q0.Y + 2*Q1.Y) / (3 * FixedOne);
-    ControlPoints[1].X := (Q0.X + 2*Q2.X) / (3 * FixedOne);
-    ControlPoints[1].Y := (Q0.Y + 2*Q2.Y) / (3 * FixedOne);
+    Points[0] := FloatPoint(Q0);
+    Points[1].X := (Q0.X + 2*Q1.X) / (3 * FixedOne);
+    Points[1].Y := (Q0.Y + 2*Q1.Y) / (3 * FixedOne);
+    Points[2].X := (Q0.X + 2*Q2.X) / (3 * FixedOne);
+    Points[2].Y := (Q0.Y + 2*Q2.Y) / (3 * FixedOne);
   end;
 end;
 
@@ -1346,7 +1422,7 @@ var
 begin
   Result := TPolygon32.Create;
   Result.Antialiased := True;
-  Result.AntialiasMode := am32times;
+  Result.AntialiasMode := am4times;
   Result.FillMode := pfWinding;
 
   Dst.UpdateFont;
@@ -1411,6 +1487,7 @@ end;
 
 //============================================================================//
 
+// SplineToPolygon
 function MakeCurve(const Points: TArrayOfFloatPoint; Kernel: TCustomKernel;
   Closed: Boolean; StepSize: Integer): TArrayOfFixedPoint; overload;
 var
