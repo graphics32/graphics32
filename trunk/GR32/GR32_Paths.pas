@@ -1278,12 +1278,12 @@ begin
   Handle := Dst.Handle;
 
   Code := Ord(Character);
-  Res := GetGlyphOutline(Handle, Code, GGO_NATIVE, Metrics, 0, nil, VertFlip_mat2);
+  Res := GetGlyphOutlineW(Handle, Code, GGO_NATIVE, Metrics, 0, nil, VertFlip_mat2);
 
   PGlyphMem := StackAlloc(Res);
   PBuffer := PGlyphMem;
 
-  Res := GetGlyphOutline(Handle, Code, GGO_NATIVE, Metrics, Res, PBuffer, VertFlip_mat2);
+  Res := GetGlyphOutlineW(Handle, Code, GGO_NATIVE, Metrics, Res, PBuffer, VertFlip_mat2);
 
   if (Res = GDI_ERROR) or (PBuffer^.dwType <> TT_POLYGON_TYPE) then
   begin
