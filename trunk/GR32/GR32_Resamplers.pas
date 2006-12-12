@@ -268,7 +268,8 @@ type
   protected
     procedure AssignTo(Dst: TPersistent); override;
   public
-    constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
+    constructor Create; overload; virtual;
+    constructor Create(ABitmap: TBitmap32); overload; virtual;
     procedure Changed; override;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
@@ -291,7 +292,7 @@ type
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   public
-    constructor Create(Bitmap: TBitmap32); override;
+    constructor Create; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
@@ -310,7 +311,7 @@ type
       Src: TBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   public
-    constructor Create(Bitmap: TBitmap32); override;
+    constructor Create; override;
     destructor Destroy; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
@@ -349,7 +350,7 @@ type
   protected
     function GetWidth: TFloat; override;
   public
-    constructor Create(ABitmap: TBitmap32); override;
+    constructor Create; override;
     destructor Destroy; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure Resample(
@@ -2531,12 +2532,17 @@ begin
   if Assigned(FBitmap) then FBitmap.Changed;
 end;
 
-constructor TBitmap32Resampler.Create(ABitmap: TBitmap32);
+constructor TBitmap32Resampler.Create;
 begin
-  inherited Create;
-  FBitmap := ABitmap;
+  inherited;
   FTransformerClass := TTransformer;
   FPixelAccessMode := pamSafe;
+end;
+
+constructor TBitmap32Resampler.Create(ABitmap: TBitmap32);
+begin
+  Create;
+  FBitmap := ABitmap;  
   if Assigned(ABitmap) then ABitmap.Resampler := Self;
 end;
 
@@ -2567,9 +2573,9 @@ end;
 
 { TKernelResampler }
 
-constructor TKernelResampler.Create(ABitmap: TBitmap32);
+constructor TKernelResampler.Create;
 begin
-  inherited Create(ABitmap);
+  inherited;
   Kernel := TBoxKernel.Create;
   FTableSize := 32;
 end;
@@ -2577,7 +2583,7 @@ end;
 destructor TKernelResampler.Destroy;
 begin
   FKernel.Free;
-  inherited Destroy;
+  inherited;
 end;
 
 function TKernelResampler.GetKernelClassName: string;
@@ -2931,7 +2937,7 @@ end;
 
 { TBitmap32NearestResampler }
 
-constructor TNearestResampler.Create(Bitmap: TBitmap32);
+constructor TNearestResampler.Create;
 begin
   inherited;
   FTransformerClass := TNearestTransformer;
@@ -2978,9 +2984,9 @@ end;
 
 { TBitmap32LinearResampler }
 
-constructor TLinearResampler.Create(Bitmap: TBitmap32);
+constructor TLinearResampler.Create;
 begin
-  inherited Create(Bitmap);
+  inherited;
   FLinearKernel := TLinearKernel.Create;
 end;
 
