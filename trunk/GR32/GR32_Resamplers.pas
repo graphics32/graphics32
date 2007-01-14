@@ -386,24 +386,6 @@ type
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
 
-  { TNestedSamplerList }
-  TNestedSamplerList = class(TList)
-  private
-    FSource: TCustomSampler;
-    function NextSampler(Index: Integer): TCustomSampler;
-    function GetItems(Index: Integer): TNestedSampler;
-    procedure SetItems(Index: Integer; const Value: TNestedSampler);
-    procedure SetSource(const Value: TCustomSampler);
-    function GetSink: TCustomSampler;
-  protected
-    property Items[Index: Integer]: TNestedSampler read GetItems write SetItems;
-    property Source: TCustomSampler read FSource write SetSource;
-    //property Sink: TCustomSampler read GetSink write SetSink;
-    //property OwnsObjects: Boolean;
-  end;
-
-  // function NestSamplers(Source: TCustomSampler; Samplers: array of TNestedSampler): TNestedSamplerList;
-
   { TTransformer }
   TReverseTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
   TReverseTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
@@ -3655,41 +3637,6 @@ begin
     BlockAverage := BlockAverage_IA32;
     LinearInterpolator := _LinearInterpolator;
   end;
-end;
-
-{ TNestedSamplerList }
-
-function TNestedSamplerList.GetItems(Index: Integer): TNestedSampler;
-begin
-  Result := inherited Items[Index]; 
-end;
-
-function TNestedSamplerList.GetSink: TCustomSampler;
-begin
-  if Count <> 0 then
-    Result := Last
-  else
-    Result := FSource;
-end;
-
-function TNestedSamplerList.NextSampler(Index: Integer): TCustomSampler;
-begin
-  if Index = 0 then
-    Result := Source
-  else
-    Result := Items[Index - 1];
-end;
-
-procedure TNestedSamplerList.SetItems(Index: Integer;
-  const Value: TNestedSampler);
-begin
-  Items[Index] := Value;
-  Value.Sampler := NextSampler(Index);
-end;
-
-procedure TNestedSamplerList.SetSource(const Value: TCustomSampler);
-begin
-  FSource := Value;
 end;
 
 initialization
