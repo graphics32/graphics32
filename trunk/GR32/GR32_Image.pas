@@ -18,7 +18,7 @@ unit GR32_Image;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -34,9 +34,6 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  LMessages, LCLType,
-{$ENDIF}
 {$IFDEF CLX}
   Qt, Types, QControls, QGraphics, QForms, QConsts,
   {$IFDEF LINUX}Libc,{$ENDIF}
@@ -188,10 +185,8 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
-{$IFNDEF FPC}
 {$IFNDEF CLX}
     property OnCanResize;
-{$ENDIF}
 {$ENDIF}
     property OnClick;
 {$IFDEF DELPHI5}
@@ -365,10 +360,8 @@ type
     property TabStop;
     property Visible;
     property OnBitmapResize;
-{$IFNDEF FPC}
 {$IFNDEF CLX}
     property OnCanResize;
-{$ENDIF}
 {$ENDIF}
     property OnClick;
     property OnChange;
@@ -497,10 +490,9 @@ type
     property TabStop;
     property Visible;
     property OnBitmapResize;
-{$IFNDEF FPC}
 {$IFNDEF CLX}
     property OnCanResize;
-{$ENDIF}{$ENDIF}
+{$ENDIF}
     property OnClick;
     property OnChange;
 {$IFDEF DELPHI5}
@@ -1494,14 +1486,11 @@ end;
 
 procedure TCustomImage32.ExecControlFrame(Dest: TBitmap32; StageNum: Integer);
 begin
-  {$IFDEF FPC}
-  Dest.Canvas.DrawFocusRect(Rect(0, 0, Width, Height));
-  {$ELSE}
   {$IFDEF CLX}
   Dest.Canvas.DrawFocusRect(Rect(0, 0, Width, Height));
   {$ELSE}
   DrawFocusRect(Dest.Handle, Rect(0, 0, Width, Height));
-  {$ENDIF}{$ENDIF}
+  {$ENDIF}
 end;
 
 procedure TCustomImage32.ExecCustom(Dest: TBitmap32; StageNum: Integer);

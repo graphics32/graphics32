@@ -19,7 +19,7 @@ unit GR32_OrdinalMaps;
  * Mattias Andersson
  * (parts of this unit were merged from GR32_ByteMaps.pas by Alex A. Denisov)
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):

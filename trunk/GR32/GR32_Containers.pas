@@ -19,7 +19,7 @@ unit GR32_Containers;
  * Andre Beckedorf - metaException OHG
  * Andre@metaException.de
  *
- * Portions created by the Initial Developer are Copyright (C) 2005-2006
+ * Portions created by the Initial Developer are Copyright (C) 2005-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):

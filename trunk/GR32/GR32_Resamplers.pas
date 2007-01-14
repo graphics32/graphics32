@@ -19,7 +19,7 @@ unit GR32_Resamplers;
  * Mattias Andersson <mattias@centaurix.com>
  * (parts of this unit were taken from GR32_Transforms.pas by Alex A. Denisov)
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):

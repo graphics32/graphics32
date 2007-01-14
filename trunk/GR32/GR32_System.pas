@@ -18,7 +18,7 @@ unit GR32_System;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
