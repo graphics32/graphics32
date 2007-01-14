@@ -18,7 +18,7 @@ unit GR32_ExtImage;
  * The Initial Developer of the Original Code is
  * Mattias Andersson <mattias@centaurix.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2005-2006
+ * Portions created by the Initial Developer are Copyright (C) 2005-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -181,7 +181,7 @@ begin
   StopRenderThread;
   FOldAreaChanged := Buffer.OnAreaChanged;
   if FRenderMode = rnmFull then
-    R := Classes.Rect(0, 0, Width, Height)
+    R := Rect(0, 0, Width, Height)
   else
     R := FDstRect;
 

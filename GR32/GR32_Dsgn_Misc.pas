@@ -19,7 +19,7 @@ unit GR32_Dsgn_Misc;
  * Mattias Andersson <mattias@centaurix.com>
  * Andre Beckedorf <andre@metaexception.de>
  *
- * Portions created by the Initial Developer are Copyright (C) 2005-2006
+ * Portions created by the Initial Developer are Copyright (C) 2005-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -31,13 +31,10 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LazIDEIntf, PropEdits, Buttons, ComponentEditors,
-  {$ELSE}
   {$IFDEF COMPILER6}
   DesignIntf, DesignEditors,
   {$ELSE}
   DsgnIntf,
-  {$ENDIF}
   {$ENDIF}
   Classes, TypInfo, GR32_Containers;
 

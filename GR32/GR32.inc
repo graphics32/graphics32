@@ -16,7 +16,7 @@
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -97,27 +97,6 @@
 {$IFDEF VER120}
   {$DEFINE COMPILER4}
   {$DEFINE DELPHI4}
-{$ENDIF}
-
-{$IFDEF FPC}
-  {$MODE DELPHI}
-  {$WARNINGS OFF}
-  {$HINTS OFF}
-  {$OVERFLOWCHECKS OFF}
-  {$RANGECHECKS OFF}
-  {$IFDEF CPUI386}
-    {$DEFINE CPU386}
-    {$ASMMODE INTEL}
-  {$ENDIF}
-
-  {$IFDEF FPC_LITTLE_ENDIAN}
-    {$DEFINE LITTLE_ENDIAN}
-  {$ELSE}
-    {$IFDEF FPC_BIG_ENDIAN}
-      {$DEFINE BIG_ENDIAN}
-    {$ENDIF}
-  {$ENDIF}
-  {$DEFINE COMPILER4}
 {$ENDIF}
 
 {$IFNDEF COMPILER4}

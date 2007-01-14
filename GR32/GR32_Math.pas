@@ -19,7 +19,7 @@ unit GR32_Math;
  * Mattias Andersson <mattias@centaurix.com>
  * (parts of this unit were moved here from GR32_System.pas and GR32.pas by Alex A. Denisov)
  *
- * Portions created by the Initial Developer are Copyright (C) 2005-2006
+ * Portions created by the Initial Developer are Copyright (C) 2005-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):

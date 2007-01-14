@@ -18,7 +18,7 @@ unit GR32_Dsgn_Color;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -30,22 +30,18 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils,
-{$IFDEF FPC} {LConsts, } LazIDEIntf, PropEdits,
-{$ELSE}
-  Consts,
-  {$IFDEF COMPILER6}
-  DesignIntf, DesignEditors, VCLEditors,
-  {$ELSE}
-  DsgnIntf,
-  {$ENDIF}
-{$ENDIF}
+  Classes, SysUtils, Consts,
 {$IFDEF CLX}
   QGraphics, QDialogs, QForms,
 {$ELSE}
   Windows, Registry, Graphics, Dialogs, Forms,
 {$ENDIF}
-  GR32, GR32_Image;
+  GR32, GR32_Image,
+{$IFDEF COMPILER6}
+  DesignIntf, DesignEditors, VCLEditors
+{$ELSE}
+  DsgnIntf
+{$ENDIF};
 
 type
   { TColorManager }

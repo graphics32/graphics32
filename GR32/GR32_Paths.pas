@@ -277,7 +277,7 @@ function TextToPolygon(Dst: TBitmap32; X, Y: TFloat; const Text: WideString): TP
 implementation
 
 uses
-  SysUtils, GR32_LowLevel;
+  SysUtils, Types, GR32_LowLevel;
 
 function AddPoints(const A, B: TFloatPoint): TFloatPoint;
 begin
@@ -925,6 +925,9 @@ var
 begin
   Index := 0;
   SetLength(Result, 8);
+  Result[Index] := FixedPoint(Vertices[0].Point);
+  Inc(Index);
+
   for I := 0 to High(Vertices) + Ord(Closed) - 1 do
     with BezierSegment(Vertices, I) do
       Recurse(P1, P2, P3, P4);
@@ -1253,7 +1256,7 @@ end;
 
 
 function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
-  const Character: WideChar; out Metrics: TGlyphMetrics): TBezierCurve;
+  const Glyph: Integer; out Metrics: TGlyphMetrics): TBezierCurve;
 var
   I, J, K, S, Res: Integer;
   Code: LongWord;
@@ -1277,13 +1280,13 @@ begin
   Dst.UpdateFont;
   Handle := Dst.Handle;
 
-  Code := Ord(Character);
-  Res := GetGlyphOutlineW(Handle, Code, GGO_NATIVE, Metrics, 0, nil, VertFlip_mat2);
+  //Code := Ord(Character);
+  Res := GetGlyphOutlineW(Handle, Glyph, GGO_NATIVE, Metrics, 0, nil, VertFlip_mat2);
 
   PGlyphMem := StackAlloc(Res);
   PBuffer := PGlyphMem;
 
-  Res := GetGlyphOutlineW(Handle, Code, GGO_NATIVE, Metrics, Res, PBuffer, VertFlip_mat2);
+  Res := GetGlyphOutlineW(Handle, Glyph, GGO_NATIVE, Metrics, Res, PBuffer, VertFlip_mat2);
 
   if (Res = GDI_ERROR) or (PBuffer^.dwType <> TT_POLYGON_TYPE) then
   begin
@@ -1413,25 +1416,118 @@ begin
   end;
 end; }
 
+(*
 function TextToPolygon(Dst: TBitmap32; X, Y: TFloat; const Text: WideString): TPolygon32;
 var
-  I: Integer;
+  I, TextLen: Integer;
   B: TBezierCurve;
   Metrics: TGlyphMetrics;
   TextMetric: TTextMetric;
+  GCPResults: TGCPResults;
+  GCPResultsW: TGCPResultsW absolute GCPResults;
+  FontInfo: DWORD;
+  DC: HDC;
+  Glyphs: PUINT;
+  Dx: Integer;
+
+
+  lpOutStringOrg: PWideChar;
+  lpDxOrg       : PINT;
+  lpCaretPosOrg : PINT;
+  lpGlyphsOrg   : PUINT;
+
 begin
+  DC := Dst.Handle;
+  Dst.UpdateFont;
+  SelectObject(DC, Dst.Font.Handle);
+  GetTextMetrics(DC, TextMetric);
+
+  // Prepare string
+  TextLen := Length(Text);
+
+  FontInfo := GetFontLanguageInfo(DC);
+
+  ZeroMemory(@GCPResults, SizeOf(TGCPResultsW));
+{   GCPResults.lStructSize := SizeOf(TGCPResultsW);
+  GCPResults.nGlyphs := TextLen;
+  GCPResults.nMaxFit := 0;
+  GCPResults.lpGlyphs := nil;
+  GCPResults.lpDx := @Dx; }
+
+  GetMem(lpOutStringOrg, SizeOf(integer) * (TextLen+1));
+  GetMem(lpDxOrg,        SizeOf(integer) * (TextLen+1));
+  GetMem(lpCaretPosOrg,  SizeOf(integer) * (TextLen+1));
+  GetMem(lpGlyphsOrg,    SizeOf(integer) * (TextLen+1));
+
+  with GCPResults do
+  begin
+    nMaxFit     := 0;
+    nGlyphs     := TextLen;
+    lStructSize := SizeOf(TGCPResults);
+    lpOutString := PAnsiChar(lpOutStringOrg);
+    lpOrder     := nil;
+    lpDx        := lpDxOrg;
+    lpCaretPos  := lpCaretPosOrg;
+    lpClass     := nil;
+    lpGlyphs    := lpGlyphsOrg;
+    lpGlyphs^   := 0;
+  end;
+
+  GetCharacterPlacementW(DC, @Text[1], TextLen, 0, GCPResults, FontInfo);
+  Glyphs := GCPResults.lpGlyphs;
+
+  // Initialize polygon
   Result := TPolygon32.Create;
   Result.Antialiased := True;
   Result.AntialiasMode := am4times;
   Result.FillMode := pfWinding;
 
-  Dst.UpdateFont;
-  SelectObject(Dst.Handle, Dst.Font.Handle);
-  GetTextMetrics(Dst.Handle, TextMetric);
   Y := Y + TextMetric.tmAscent;
-  for I := 1 to Length(Text) do
+  for I := 0 to GCPResults.nGlyphs - 1 do
   begin
-    B := GlyphOutlineToBezierCurve(Dst, X, Y, Text[I], Metrics);
+
+    //B := GlyphOutlineToBezierCurve(Dst, X, Y, Glyphs^, Metrics);
+    B := GlyphOutlineToBezierCurve(Dst, X, Y, Ord(lpOutStringOrg[I]), Metrics);
+    Inc(Glyphs);
+    if Assigned(B) then
+    try
+      B.AppendToPolygon(Result);
+    finally
+      B.Free;
+    end;
+    X := X + Metrics.gmCellIncX;
+  end;
+
+  FreeMem(lpOutStringOrg);
+  FreeMem(lpDxOrg);
+  FreeMem(lpCaretPosOrg);
+  FreeMem(lpGlyphsOrg);
+end;*)
+function TextToPolygon(Dst: TBitmap32; X, Y: TFloat; const Text: WideString): TPolygon32;
+var
+  I, TextLen: Integer;
+  B: TBezierCurve;
+  Metrics: TGlyphMetrics;
+  TextMetric: TTextMetric;
+  DC: HDC;
+begin
+  DC := Dst.Handle;
+  Dst.UpdateFont;
+  SelectObject(DC, Dst.Font.Handle);
+  GetTextMetrics(DC, TextMetric);
+
+  TextLen := Length(Text);
+
+  // Initialize polygon
+  Result := TPolygon32.Create;
+  Result.Antialiased := True;
+  Result.AntialiasMode := am4times;
+  Result.FillMode := pfWinding;
+
+  Y := Y + TextMetric.tmAscent;
+  for I := 1 to TextLen do
+  begin
+    B := GlyphOutlineToBezierCurve(Dst, X, Y, Ord(Text[I]), Metrics);
     if Assigned(B) then
     try
       B.AppendToPolygon(Result);
@@ -1441,6 +1537,7 @@ begin
     X := X + Metrics.gmCellIncX;
   end;
 end;
+
 
 procedure RenderText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   OutlineColor, FillColor: TColor32; FillCallback: TFillLineEvent;
