@@ -288,7 +288,7 @@ type
 {$ENDIF}
     procedure SetRepaintMode(const Value: TRepaintMode); override;
     procedure SetScaleMode(Value: TScaleMode); virtual;
-    procedure UpdateCache;
+    procedure UpdateCache; virtual;
     property  UpdateCount: Integer read FUpdateCount;
   public
     constructor Create(AOwner: TComponent); override;
