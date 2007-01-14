@@ -470,6 +470,7 @@ type
     property AutoSize;
 {$ENDIF}
     property Bitmap;
+    property BitmapAlign;    
     property Centered;
     property Color;
     property Constraints;
@@ -482,6 +483,7 @@ type
     property PopupMenu;
     property RepaintMode;
     property Scale;
+    property ScaleMode;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
