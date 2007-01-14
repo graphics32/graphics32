@@ -177,6 +177,7 @@ type
 {$IFNDEF CLX}
     property DragCursor;
 {$ENDIF}
+    property DragMode;
     property Options;
     property ParentShowHint;
     property PopupMenu;
@@ -349,6 +350,7 @@ type
 {$IFNDEF CLX}
     property DragCursor;
 {$ENDIF}
+    property DragMode;
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -478,6 +480,7 @@ type
 {$IFNDEF CLX}
     property DragCursor;
 {$ENDIF}
+    property DragMode;
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
