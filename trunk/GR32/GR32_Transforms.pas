@@ -18,7 +18,7 @@ unit GR32_Transforms;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2006
+ * Portions created by the Initial Developer are Copyright (C) 2000-2007
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -271,17 +271,9 @@ type
     function HasTransformedBounds: Boolean; override;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
     procedure Scale(Sx, Sy: TFloat);
-{$IFDEF FPC}
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
     property Offset: TFloatVector read FOffset write SetOffset;
     property VectorMap: TVectorMap read FVectorMap write FVectorMap;
-{$ENDIF}
-  published
-{$IFNDEF FPC}
-    property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
-    property Offset: TFloatVector read FOffset write SetOffset;
-    property VectorMap: TVectorMap read FVectorMap write FVectorMap;
-{$ENDIF}
   end;
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
