@@ -31,14 +31,11 @@ interface
 
 uses
   Classes, TypInfo,
-{$IFDEF FPC}
-  LazIDEIntf, PropEdits, ComponentEditors
-{$ELSE}
 {$IFDEF COMPILER6}
   DesignIntf
 {$ELSE}
   DsgnIntf
-{$ENDIF}{$ENDIF};
+{$ENDIF};
 
 procedure Register;
 
