@@ -93,7 +93,7 @@ var
 function MakeEmptyMicroTiles: TMicroTiles; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MicroTilesCreate(var MicroTiles: TMicroTiles); {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MicroTilesDestroy(var MicroTiles: TMicroTiles); {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure MicroTilesSetSize(var MicroTiles: TMicroTiles; const DstRect: TRect); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure MicroTilesSetSize(var MicroTiles: TMicroTiles; const DstRect: TRect);
 procedure MicroTilesClear(var MicroTiles: TMicroTiles; const Value: TMicroTile = MICROTILE_EMPTY); {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure MicroTilesClearUsed(var MicroTiles: TMicroTiles; const Value: TMicroTile = MICROTILE_EMPTY);
 procedure MicroTilesCopy(var DstTiles: TMicroTiles; SrcTiles: TMicroTiles);
