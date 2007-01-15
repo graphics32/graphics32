@@ -1,0 +1,28 @@
+<html>
+<head>
+<title>TPaintStage</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"> <b>type</b> TPaintStage = <b>record</b> <br>
+  &nbsp;&nbsp;DsgnTime: Boolean;<br>
+  &nbsp;&nbsp;RunTime: Boolean; <br>
+  &nbsp;&nbsp;Stage: Cardinal;<span class="Comment"> // a PST_* constant</span><br>
+  &nbsp;&nbsp;Parameter: Cardinal; <span class="Comment">// an optional parameter</span><br>
+  <b>end</b>;</p>
+<p class="Decl"><b>type</b> PPaintStage = ^TPaintStage;</p>
+<h2>Description</h2>
+<p class="Body">Defines a drawing stage in <a href="../../GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a>.</p>
+<p class="Body"><b>DsgnTime</b> &#151; indicates that the stage must be executed 
+  at design-time;</p>
+<p class="Body"><b>RunTime</b> &#151; indicates that the stage must be executed 
+  at run-time;</p>
+<p class="Body"><b>Stage</b> &#151; is one of the <a href="../../GR32_Image/Constants/Paint%20Stage%20Constants.htm">Paint 
+  Stage Constants</a>, which specifies the stage action;</p>
+<p class="Body"><b>Parameter</b> &#151; is an optional parameter used in some 
+  paint stages. </p>
+<p id="hidden">[See Also] <a href="../../../Additional%20Topics/Using%20TImage32/Paint%20Stages.htm">Paint 
+Stages</a>, <a href="../../GR32_Image/Classes/TCustomImage32/Properties/PaintStages.htm">PaintStages</a>, <a href="../../../Additional%20Topics/Repaint%20Optimization.htm">Repaint Optimization</a></p>
+</body>
+</html>

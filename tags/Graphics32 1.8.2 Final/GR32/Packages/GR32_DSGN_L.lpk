@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="2">
+    <PathDelim Value="\"/>
+    <Name Value="GR32_DSGN_L"/>
+    <CompilerOptions>
+      <Version Value="5"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
+        <OtherUnitFiles Value="C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <D2Extensions Value="False"/>
+          <CStyleOperator Value="False"/>
+          <AllowLabel Value="False"/>
+          <CPPInline Value="False"/>
+          <DelphiCompat Value="True"/>
+        </SyntaxOptions>
+      </Parsing>
+      <CodeGeneration>
+        <Generate Value="Faster"/>
+      </CodeGeneration>
+      <Linking>
+        <Debugging>
+          <UseLineInfoUnit Value="False"/>
+        </Debugging>
+      </Linking>
+      <Other>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Files Count="6">
+      <Item1>
+        <Filename Value="..\GR32_Reg.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="GR32_Reg"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\GR32_Dsgn_Misc.pas"/>
+        <UnitName Value="GR32_Dsgn_Misc"/>
+      </Item2>
+      <Item3>
+        <Filename Value="..\GR32_Dsgn_Color.pas"/>
+        <UnitName Value="GR32_Dsgn_Color"/>
+      </Item3>
+      <Item4>
+        <Filename Value="..\GR32_Dsgn_Bitmap.lfm"/>
+        <Type Value="LFM"/>
+      </Item4>
+      <Item5>
+        <Filename Value="..\GR32_Dsgn_Bitmap.lrs"/>
+        <Type Value="LRS"/>
+      </Item5>
+      <Item6>
+        <Filename Value="..\GR32_Dsgn_Bitmap.pas"/>
+        <UnitName Value="GR32_Dsgn_Bitmap"/>
+      </Item6>
+    </Files>
+    <Type Value="DesignTime"/>
+    <RequiredPkgs Count="4">
+      <Item1>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="imagesforlazarus"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="IDEIntf"/>
+      </Item3>
+      <Item4>
+        <PackageName Value="GR32_L"/>
+      </Item4>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)\"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

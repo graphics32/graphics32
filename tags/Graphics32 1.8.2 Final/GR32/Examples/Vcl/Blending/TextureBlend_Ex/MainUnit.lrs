@@ -1,0 +1,69 @@
+{ This is an automatically generated lazarus resource file }
+
+LazarusResources.Add('TMainForm','FORMDATA',[
+  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3#151#0#6'Height'#3#153#2#3'Top'#2'G'
+  +#5'Width'#3#25#2#18'HorzScrollBar.Page'#3#24#2#18'VertScrollBar.Page'#3#152#2
+  +#11'BorderIcons'#11#12'biSystemMenu'#10'biMinimize'#0#11'BorderStyle'#7#8'bs'
+  +'Single'#7'Caption'#6#21'Texture Blend Example'#11'Font.Height'#2#245#9'Font'
+  +'.Name'#6#13'MS Sans Serif'#8'OnCreate'#7#10'FormCreate'#8'Position'#7#14'po'
+  +'ScreenCenter'#0#6'TLabel'#6'Label5'#4'Left'#3#16#1#6'Height'#2#14#3'Top'#2
+  +' '#5'Width'#2'='#7'Caption'#6#11'MasterAlpha'#5'Color'#7#6'clNone'#11'Paren'
+  +'tColor'#8#0#0#6'TLabel'#6'Label4'#4'Left'#3#16#1#6'Height'#2#17#3'Top'#2'X'
+  +#5'Width'#3#2#1#9'Alignment'#7#8'taCenter'#8'AutoSize'#8#7'Caption'#6#16'Com'
+  +'bined Texture'#5'Color'#7#14'clAppWorkspace'#10'Font.Color'#7#7'clWhite'#11
+  +'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6
+  +'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Transparent'#8#0#0#6'TLabel'#6'L'
+  +'abel3'#4'Left'#2#8#6'Height'#2#17#3'Top'#2'X'#5'Width'#3#2#1#9'Alignment'#7
+  +#8'taCenter'#8'AutoSize'#8#7'Caption'#6#9'Weightmap'#5'Color'#7#14'clAppWork'
+  +'space'#10'Font.Color'#7#7'clWhite'#11'Font.Height'#2#245#9'Font.Name'#6#6'T'
+  +'ahoma'#10'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCenter'#11'ParentColor'
+  +#8#11'Transparent'#8#0#0#6'TLabel'#6'Label1'#4'Left'#2#8#6'Height'#2#17#3'To'
+  +'p'#3'x'#1#5'Width'#3#2#1#9'Alignment'#7#8'taCenter'#8'AutoSize'#8#7'Caption'
+  +#6#9'Texture A'#5'Color'#7#14'clAppWorkspace'#10'Font.Color'#7#7'clWhite'#11
+  +'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6
+  +'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Transparent'#8#0#0#6'TLabel'#6'L'
+  +'abel2'#4'Left'#3#16#1#6'Height'#2#17#3'Top'#3'x'#1#5'Width'#3#2#1#9'Alignme'
+  +'nt'#7#8'taCenter'#8'AutoSize'#8#7'Caption'#6#9'Texture B'#5'Color'#7#14'clA'
+  +'ppWorkspace'#10'Font.Color'#7#7'clWhite'#11'Font.Height'#2#245#9'Font.Name'
+  +#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCenter'#11'Parent'
+  +'Color'#8#11'Transparent'#8#0#0#6'TLabel'#6'Label6'#4'Left'#3#16#1#6'Height'
+  +#2#17#3'Top'#2#8#5'Width'#3#2#1#8'AutoSize'#8#7'Caption'#6#15' Blend Setting'
+  +'s'#5'Color'#7#14'clAppWorkspace'#10'Font.Color'#7#7'clWhite'#11'Font.Height'
+  +#2#245#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8
+  +'tlCenter'#11'ParentColor'#8#11'Transparent'#8#0#0#6'TLabel'#6'Label7'#4'Lef'
+  +'t'#3#16#1#6'Height'#2#14#3'Top'#2'8'#5'Width'#2'5'#7'Caption'#6#9'Blendmode'
+  +#5'Color'#7#6'clNone'#11'ParentColor'#8#0#0#6'TLabel'#6'Label8'#4'Left'#2#8#6
+  +'Height'#2#17#3'Top'#2#8#5'Width'#3#2#1#8'AutoSize'#8#7'Caption'#6#19' Weigh'
+  +'tmap Settings'#5'Color'#7#14'clAppWorkspace'#10'Font.Color'#7#7'clWhite'#11
+  +'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6
+  +'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Transparent'#8#0#0#9'TGaugeBar'
+  +#14'MasterAlphaBar'#4'Left'#3'P'#1#6'Height'#2#16#3'Top'#2' '#5'Width'#3#192
+  +#0#5'Color'#7#11'clScrollBar'#3'Max'#3#255#0#10'ShowArrows'#8#14'ShowHandleG'
+  +'rip'#9#5'Style'#7#6'rbsMac'#8'Position'#3#200#0#8'OnChange'#7#20'MasterAlph'
+  +'aBarChange'#0#0#9'TComboBox'#8'BlendBox'#4'Left'#3'P'#1#6'Height'#2#21#3'To'
+  +'p'#2'8'#5'Width'#3#193#0#16'AutoCompleteText'#11#22'cbactEndOfLineComplete'
+  +#20'cbactSearchAscending'#0#10'ItemHeight'#2#13#13'Items.Strings'#1#6#6'Norm'
+  +'al'#6#11'Soft Masked'#6#9'Color Add'#6#9'Color Sub'#6#9'Color Div'#6#14'Col'
+  +'or Modulate'#6#9'Color Max'#6#9'Color Min'#6#16'Color Difference'#6#13'Colo'
+  +'r Average'#6#15'Color Exclusion'#0#9'MaxLength'#2#0#8'OnChange'#7#20'Master'
+  +'AlphaBarChange'#5'Style'#7#14'csDropDownList'#8'TabOrder'#2#0#0#0#8'TImage3'
+  +'2'#7'CombImg'#4'Left'#3#16#1#6'Height'#3#0#1#3'Top'#2'p'#5'Width'#3#0#1#25
+  +'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#15'Bitmap.OnChange'#13#15
+  +'Bitmap.OnResize'#13#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7'clBlack'#11
+  +'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'TabOrder'#2#1#0#0#8'TI'
+  +'mage32'#12'WeightmapImg'#4'Left'#2#8#6'Height'#3#0#1#3'Top'#2'p'#5'Width'#3
+  +#1#1#25'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#15'Bitmap.OnChang'
+  +'e'#13#15'Bitmap.OnResize'#13#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7'clB'
+  +'lack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'TabOrder'#2#2
+  +#0#0#8'TImage32'#7'TexAImg'#4'Left'#2#8#6'Height'#3#0#1#3'Top'#3#144#1#5'Wid'
+  +'th'#3#0#1#25'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#15'Bitmap.O'
+  +'nChange'#13#15'Bitmap.OnResize'#13#11'BitmapAlign'#7#8'baCenter'#5'Color'#7
+  +#7'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'TabOrder'
+  +#2#3#0#0#8'TImage32'#7'TexBImg'#4'Left'#3#16#1#6'Height'#3#0#1#3'Top'#3#144#1
+  +#5'Width'#3#0#1#25'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#15'Bit'
+  +'map.OnChange'#13#15'Bitmap.OnResize'#13#11'BitmapAlign'#7#8'baCenter'#5'Col'
+  +'or'#7#7'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'Ta'
+  +'bOrder'#2#4#0#0#7'TButton'#14'GenerateButton'#4'Left'#2#8#6'Height'#2#25#3
+  +'Top'#2' '#5'Width'#3#1#1#25'BorderSpacing.InnerBorder'#2#4#7'Caption'#6#25
+  ,'Generate Random Weightmap'#8'TabOrder'#2#5#0#0#0
+]);

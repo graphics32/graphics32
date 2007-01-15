@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>TRectRounding</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TRectRounding = (rrClosest, rrOutside, rrInside); 
+</p>
+<h2>Desctiption</h2>
+<p class="Body"><span class="EmptyRef">TRectRounding</span> type is involved in 
+  conversion from <a href="Rectangle%20Types.htm#TFloatRect">TFloatRect</a>/<a href="Rectangle%20Types.htm#TFixedRect">TFixedRect</a> 
+  to <a href="Rectangle%20Types.htm#TRect">TRect</a>. It specifies how the coordinates 
+  are rounded: </p>
+<ul>
+  <li>rrClosest – a simple <span class="API">Round</span>() function is used for 
+    each coordinate;</li>
+  <li>rrOutside – <span class="API">Floor</span>() is used for <span class="EmptyRef">Left</span> 
+    and <span class="EmptyRef">Top</span>; <span class="API">Ceil</span>() – for 
+    <span class="EmptyRef">Right</span> and <span class="EmptyRef">Bottom</span>; 
+  </li>
+  <li>rrInside – <span class="API">Ceil</span>() is used for <span class="EmptyRef">Left</span> 
+    and <span class="EmptyRef">Top</span>; <span class="API">Floor</span>() – 
+    for <span class="EmptyRef">Right</span> and <span class="EmptyRef">Bottom</span>;</li>
+  <p></p>
+</ul>
+<p id="hidden">[See Also] <a href="../Routines/Creating%20Rectangles.htm">Constructing 
+  and Converting Rectangles</a></p>
+</body>
+</html>

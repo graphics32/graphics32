@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>TKernelResampler</title>
+<link rel="STYLESHEET" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TBitmap32Resampler">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TKernelResampler</span> is a general class for image resampling using arbitrary convolution filters. It implements a fast method for resizing images, by precomputing kernel weights in  <em>mapping tables</em> or <em>coefficient bins</em>.</p>
+<p class="Body">For single-sample look-ups, the <a href="Methods/GetSample.htm">GetSample</a> method supports three different kernel modes:</p>
+<ul>
+  <li>kmDynamic &#8212; kernel weights are computed on-the-fly;</li>
+  <li>kmTableNearest &#8212; kernel weights are stored in a table, nearest-neighbor is used for the look-up;</li>
+  <li>kmTableLinear &#8212; same as above, but uses linear interpolation for the look-up.</li>
+</ul>
+<p class="Body">For further information, see topic about <a href="../../../../Additional%20Topics/Sampling%20and%20Rasterization.htm">Sampling and Rasterization</a>. </p>
+<p id="hidden">[See Also] <a href="../../../../Examples.htm#Resamplers%20Example">Resamplers 
+Example</a></p>
+</body>
+</html>

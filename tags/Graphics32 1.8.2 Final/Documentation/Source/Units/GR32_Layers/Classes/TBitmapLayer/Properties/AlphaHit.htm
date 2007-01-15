@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>AlphaHit</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> AlphaHit: Boolean;</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">AlphaHit</span> determines how the layer 
+  performs its <a href="../../TCustomLayer/Methods/HitTest.htm">HitTest</a>. </p>
+<p class="Body">If <span class="EmptyRef">AlphaHit</span><i>=False</i>, layer 
+  only passes points inside the rectangle returned by <a href="../../TPositionedLayer/Methods/GetAdjustedLocation.htm">GetAdjustedLocation</a>.</p>
+<p class="Body">If <span class="EmptyRef">AlphaHit</span>=<i>True</i>, layer checks 
+  the opacity of the pixel lying under the specified point and passes the hit 
+  test only when the alpha channel of the pixel is greater when zero.</p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

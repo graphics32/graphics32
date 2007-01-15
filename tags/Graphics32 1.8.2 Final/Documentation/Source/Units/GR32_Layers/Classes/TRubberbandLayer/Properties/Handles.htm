@@ -1,0 +1,28 @@
+<html>
+<head>
+<title>Handles</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Handles: <a href="../../../Types/TRBHandles.htm">TRBHandles</a>;</p>
+<p class="Decl"><b>type</b> TRBHandles = <b>set of</b> (rhCenter, rhSides, rhCorners, rhFrame,<br>
+  rhNotLeftSide, rhNotRightSide,
+rhNotTopSide, rhNotBottomSide, <br>
+rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner);</p>
+<h2>Description</h2>
+<p class="Body">Determines which handles are visible and draggable by the mouse.</p>
+<ul>
+  <li>rhCenter &#150; corresponds to the internal area of the control, that is 
+    the area inside the rectangle specified by <a href="../../TPositionedLayer/Properties/Location.htm">Location</a>;</li>
+  <li>rhSides &#150; corresponds to the handles on the edges of the layer;</li>
+  <li>rhCorners &#150; corresponds to the handles at the corners of the layer;</li>
+  <li>rhFrame - corresponds to the frame surrounding the layer;</li>
+  <li>rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide - set to disable one
+    or more sides (needs rhSides);</li>
+  <li>rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner - set to disable one or more corners
+    (needs rhCorners);</li>
+</ul>
+<p id="hidden">[See also]: </p>
+</body>
+</html>
