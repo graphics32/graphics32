@@ -1684,16 +1684,13 @@ begin
     ColorSub := M_ColorSub;
     ColorDiv := _ColorDiv;
     ColorModulate := M_ColorModulate;
-    ColorMax := M_ColorMax;
-    ColorMin := M_ColorMin;
     ColorDifference := M_ColorDifference;
     ColorExclusion := M_ColorExclusion;
-    ColorAverage := M_ColorAverage;
     ColorScale := M_ColorScale;
   end
   else
-  begin
 {$ENDIF}
+  begin
     // link non-MMX functions
     CombineReg := _CombineReg;
     CombineMem := _CombineMem;
@@ -1716,15 +1713,25 @@ begin
     ColorSub := _ColorSub;
     ColorDiv := _ColorDiv;
     ColorModulate := _ColorModulate;
-    ColorMax := _ColorMax;
-    ColorMin := _ColorMin;
     ColorDifference := _ColorDifference;
     ColorExclusion := _ColorExclusion;
-    ColorAverage := _ColorAverage;
-    ColorScale := _ColorScale;    
-{$IFNDEF DISABLE_MMX}
+    ColorScale := _ColorScale;
   end;
+
+{$IFNDEF DISABLE_MMX}
+  if HasEMMX then
+  begin
+    ColorMax := M_ColorMax;
+    ColorMin := M_ColorMin;
+    ColorAverage := M_ColorAverage;
+  end
+  else
 {$ENDIF}
+  begin
+    ColorMax := _ColorMax;
+    ColorMin := _ColorMin;
+    ColorAverage := _ColorAverage;
+  end;
 end;
 
 initialization
