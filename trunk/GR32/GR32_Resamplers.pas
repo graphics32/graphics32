@@ -1735,24 +1735,24 @@ asm
    push       esi
    push       edi
 
-   mov        ebx, OffSrc
-   mov        esi, eax
-   mov        edi, edx
+   mov        ebx,OffSrc
+   mov        esi,eax
+   mov        edi,edx
 
-   shl        esi, $02
-   sub        ebx, esi
+   shl        esi,$02
+   sub        ebx,esi
 
    db $0F,$EF,$C9           /// pxor       mm1, mm1
    db $0F,$EF,$D2           /// pxor       mm2, mm2
    db $0F,$EF,$FF           /// pxor       mm7, mm7
 
  @@LoopY:
-   mov        esi, eax
+   mov        esi,eax
    db $0F,$EF,$C0           /// pxor       mm0, mm0
-   lea        ecx, [ecx + esi * 4]
+   lea        ecx,[ecx+esi*4]
    neg        esi
  @@LoopX:
-   movd       mm6, [ecx + esi * 4]
+   db $0F,$63,$34,$B1       /// movd       mm6,[ecx+esi*4]
    db $0F,$60,$F7           /// punpcklbw  mm6, mm7
    db $0F,$FD,$C6           /// paddw      mm0, mm6
    inc        esi
@@ -1764,39 +1764,39 @@ asm
    db $0F,$6F,$F0           /// movq       mm6, mm0
    db $0F,$69,$F7           /// punpckhwd  mm6, mm7
    db $0F,$FE,$D6           /// paddd      mm2, mm6
-   add        ecx, ebx
+   add        ecx,ebx
    dec        edx
    jnz        @@LoopY
 
    mul        edi
-   mov        ecx, eax
-   mov        eax, $01000000
+   mov        ecx,eax
+   mov        eax,$01000000
    div        ecx
-   mov        ecx, eax
+   mov        ecx,eax
 
    db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
-   shr        eax, $18
-   mov        edi, eax
+   shr        eax,$18
+   mov        edi,eax
 
    db $0F,$73,$D1,$20       /// psrlq      mm1, $20
    db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
-   shr        eax, $10
-   and        eax, $0000FF00
-   add        edi, eax
+   shr        eax,$10
+   and        eax,$0000FF00
+   add        edi,eax
 
    db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
-   shr        eax, $08
-   and        eax, $00FF0000
-   add        edi, eax
+   shr        eax,$08
+   and        eax,$00FF0000
+   add        edi,eax
 
    db $0F,$73,$D2,$20       /// psrlq      mm2, $20
    db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
-   and        eax, $FF000000
-   add        eax, edi
+   and        eax,$FF000000
+   add        eax,edi
 
    pop        edi
    pop        esi
@@ -1809,25 +1809,25 @@ asm
    push       esi
    push       edi
 
-   mov        ebx, OffSrc
-   mov        esi, eax
-   mov        edi, edx
+   mov        ebx,OffSrc
+   mov        esi,eax
+   mov        edi,edx
 
-   shl        esi, $02
-   sub        ebx, esi
+   shl        esi,$02
+   sub        ebx,esi
 
    db $0F,$EF,$C9           /// pxor       mm1, mm1
    db $0F,$EF,$D2           /// pxor       mm2, mm2
    db $0F,$EF,$FF           /// pxor       mm7, mm7
 
  @@LoopY:
-   mov        esi, eax
+   mov        esi,eax
    db $0F,$EF,$C0           /// pxor       mm0, mm0
-   lea        ecx, [ecx + esi * 4]
+   lea        ecx,[ecx+esi*4]
    neg        esi
-   PREFETCH [ecx + esi * 4 + 512]
+   db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ecx + esi * 4 + 512]
  @@LoopX:
-   movd       mm6, [ecx + esi * 4]
+   db $0F,$6E,$34,$B1       /// movd       mm6, [ecx + esi * 4]
    db $0F,$60,$F7           /// punpcklbw  mm6, mm7
    db $0F,$FD,$C6           /// paddw      mm0, mm6
    inc        esi
@@ -1840,40 +1840,40 @@ asm
    db $0F,$6F,$F0           /// movq       mm6, mm0
    db $0F,$69,$F7           /// punpckhwd  mm6, mm7
    db $0F,$FE,$D6           /// paddd      mm2, mm6
-   add        ecx, ebx
+   add        ecx,ebx
    dec        edx
 
    jnz        @@LoopY
 
    mul        edi
-   mov        ecx, eax
-   mov        eax, $01000000
+   mov        ecx,eax
+   mov        eax,$01000000
    div        ecx
-   mov        ecx, eax
+   mov        ecx,eax
 
    db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
-   shr        eax, $18
-   mov        edi, eax
+   shr        eax,$18
+   mov        edi,eax
 
    db $0F,$73,$D1,$20       /// psrlq      mm1, $20
    db $0F,$7E,$C8           /// movd       eax, mm1
    mul        ecx
-   shr        eax, $10
-   and        eax, $0000FF00
-   add        edi, eax
+   shr        eax,$10
+   and        eax,$0000FF00
+   add        edi,eax
 
    db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
-   shr        eax, $08
-   and        eax, $00FF0000
-   add        edi, eax
+   shr        eax,$08
+   and        eax,$00FF0000
+   add        edi,eax
 
    db $0F,$73,$D2,$20       /// psrlq      mm2, $20
    db $0F,$7E,$D0           /// movd       eax, mm2
    mul        ecx
-   and        eax, $FF000000
-   add        eax, edi
+   and        eax,$FF000000
+   add        eax,edi
 
    pop        edi
    pop        esi
