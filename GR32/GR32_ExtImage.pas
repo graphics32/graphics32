@@ -79,7 +79,7 @@ type
   { TRenderThread }
   TRenderThread = class(TThread)
   private
-    FBitmap: TBitmap32;
+    FDest: TBitmap32;
     FRasterizer: TRasterizer;
     FOldAreaChanged: TAreaChangedEvent;
     FArea: TRect;
@@ -90,21 +90,22 @@ type
     procedure Execute; override;
     procedure Rasterize;
   public
-    constructor Create(Rasterizer: TRasterizer; Bitmap: TBitmap32; DstRect: TRect; Suspended: Boolean);
+    constructor Create(Rasterizer: TRasterizer; Dst: TBitmap32; DstRect: TRect;
+      Suspended: Boolean);
   end;
 
-procedure Rasterize(Rasterizer: TRasterizer; Bitmap: TBitmap32; DstRect: TRect);
+procedure Rasterize(Rasterizer: TRasterizer; Dst: TBitmap32; DstRect: TRect);
 
 implementation
 
 uses
   Forms, SysUtils;
 
-procedure Rasterize(Rasterizer: TRasterizer; Bitmap: TBitmap32; DstRect: TRect);
+procedure Rasterize(Rasterizer: TRasterizer; Dst: TBitmap32; DstRect: TRect);
 var
   R: TRenderThread;
 begin
-  R := TRenderThread.Create(Rasterizer, Bitmap, DstRect, True);
+  R := TRenderThread.Create(Rasterizer, Dst, DstRect, True);
   R.FreeOnTerminate := True;
   R.Resume;
 end;
@@ -257,12 +258,12 @@ end;
 
 { TRenderThread }
 
-constructor TRenderThread.Create(Rasterizer: TRasterizer; Bitmap: TBitmap32;
+constructor TRenderThread.Create(Rasterizer: TRasterizer; Dst: TBitmap32;
   DstRect: TRect; Suspended: Boolean);
 begin
   inherited Create(True);
   FRasterizer := Rasterizer;
-  FBitmap := Bitmap;
+  FDest := Dst;
   FDstRect := DstRect;
   Priority := tpNormal;
   if not Suspended then Resume;
@@ -278,17 +279,17 @@ begin
   FRasterizer.Lock;
 
   { Save current AreaChanged handler }
-  FOldAreaChanged := FBitmap.OnAreaChanged;
+  FOldAreaChanged := FDest.OnAreaChanged;
 
-  FBitmap.OnAreaChanged := AreaChanged;
+  FDest.OnAreaChanged := AreaChanged;
   try
-    FRasterizer.Rasterize(FBitmap, FDstRect);
+    FRasterizer.Rasterize(FDest, FDstRect);
   except
     on EAbort do;
   end;
 
   { Reset old AreaChanged handler }
-  FBitmap.OnAreaChanged := FOldAreaChanged;
+  FDest.OnAreaChanged := FOldAreaChanged;
 
   Synchronize(FRasterizer.Unlock);
 end;
@@ -305,7 +306,8 @@ end;
 
 procedure TRenderThread.SynchronizedAreaChanged;
 begin
-  FOldAreaChanged(FBitmap, FArea, AREAINFO_RECT);
+  if Assigned(FOldAreaChanged) then
+    FOldAreaChanged(FDest, FArea, AREAINFO_RECT);
 end;
 
 end.
