@@ -145,12 +145,14 @@ type
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
   end;
 
+  { TMultithreadedRegularRasterizer }
+  TMultithreadedRegularRasterizer = class(TRasterizer)
+  protected
+    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+  end;
 
 { Auxiliary routines }
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
-
-var
-  DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
 
 const
   DEFAULT_COMBINE_INFO: TCombineInfo = (
@@ -161,6 +163,16 @@ const
     TransparentColor: clBlack32;
   );
 
+var
+  DefaultRasterizerClass: TRasterizerClass =
+{$IFDEF USEMULTITHREADING}
+    TMultithreadedRegularRasterizer;
+{$ELSE}
+    TRegularRasterizer;
+{$ENDIF}
+
+  NumberOfProcessors: Integer = 1;
+
 implementation
 
 uses
@@ -168,6 +180,21 @@ uses
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
+
+  TLineRasterizerData = record
+    ScanLine: Integer;
+  end;
+  PLineRasterizerData = ^TLineRasterizerData;
+
+  TScanLineRasterizerThread = class(TThread)
+  protected
+    Data: PLineRasterizerData;
+    DstRect: TRect;
+    Dst: TBitmap32;
+    GetSample: TGetSampleInt;
+    AssignColor: TAssignColor;
+    procedure Execute; override;
+  end;
 
 function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 begin
@@ -729,5 +756,79 @@ begin
     Visited.Free;
   end;
 end;
+
+{ TMultithreadedRegularRasterizer }
+
+procedure TMultithreadedRegularRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+var
+  I: Integer;
+  Threads: array of TScanLineRasterizerThread;
+  Data: TLineRasterizerData;
+
+  function CreateThread: TScanLineRasterizerThread;
+  begin
+    Result := TScanLineRasterizerThread.Create(True);
+    Result.Data := @Data;
+    Result.DstRect := DstRect;
+    Result.GetSample := Sampler.GetSampleInt;
+    Result.AssignColor := AssignColor;
+    Result.Dst := Dst;
+    Result.Resume;
+  end;
+
+begin
+  Data.ScanLine := DstRect.Top - 1;
+
+  { Start Threads }
+  SetLength(Threads, NumberOfProcessors);
+  try
+    for I := 0 to NumberOfProcessors - 1 do
+      Threads[I] := CreateThread;
+
+    { Wait for Threads to be ready }
+    for I := 0 to High(Threads) do
+    begin
+      Threads[I].WaitFor;
+      Threads[I].Free;
+    end;
+
+  finally
+    Dst.Changed(DstRect);
+  end;
+end;
+
+{ TLineRasterizerThread }
+
+procedure TScanLineRasterizerThread.Execute;
+var
+  ScanLine: Integer;
+  I: Integer;
+  P: PColor32;
+begin
+  ScanLine := InterlockedIncrement(Data^.ScanLine);
+  while ScanLine < DstRect.Bottom do
+  begin
+    P := @Dst.Bits[DstRect.Left + ScanLine * Dst.Width];
+
+    for I := DstRect.Left to DstRect.Right - 1 do
+    begin
+      AssignColor(P^, GetSample(I, ScanLine));
+      Inc(P);
+    end;
+
+    ScanLine := InterlockedIncrement(Data^.ScanLine);
+  end;
+end;
+
+function GetProcessorCount: Integer;
+var
+  SystemInfo: _SYSTEM_INFO;
+begin
+  GetSystemInfo(SystemInfo);
+  Result := SystemInfo.dwNumberOfProcessors;
+end;
+
+initialization
+  NumberOfProcessors := GetProcessorCount;
 
 end.
