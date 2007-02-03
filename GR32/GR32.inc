@@ -159,6 +159,11 @@
   {-$DEFINE USEMOVE}
 
 
+(* Symbol USEMULTITHREADING :
+    Use multithreading by default if possible. *)
+
+  {-$DEFINE USEMULTITHREADING}
+
 (* FastCode specific symbols:
     Adding these symbols to your project's define list will force use of the
     particular routine over the standard GR32 routine.
