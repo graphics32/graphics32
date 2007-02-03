@@ -59,6 +59,7 @@ type
     FAssignColor: TAssignColor;
     FTransparentColor: TColor32;
     procedure SetSampler(const Value: TCustomSampler);
+    procedure SetCombineInfo(const CombineInfo: TCombineInfo);
     procedure AssignColorOpaque(var Dst: TColor32; Src: TColor32);
     procedure AssignColorBlend(var Dst: TColor32; Src: TColor32);
     procedure AssignColorCustom(var Dst: TColor32; Src: TColor32);
@@ -66,11 +67,10 @@ type
   protected
     procedure AssignTo(Dst: TPersistent); override;
     procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); virtual; abstract;
-    procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; SrcAlpha: TColor32;
-      DrawMode: TDrawMode; CombineMode: TCombineMode;
-      CombineCallBack: TPixelCombineEvent); overload;
     property AssignColor: TAssignColor read FAssignColor write FAssignColor;
   public
+    constructor Create; override;
+    procedure Assign(Source: TPersistent); override;
     procedure Rasterize(Dst: TBitmap32); overload;
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect); overload;
     procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; const CombineInfo: TCombineInfo); overload;
@@ -152,6 +152,15 @@ function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
 var
   DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
 
+const
+  DEFAULT_COMBINE_INFO: TCombineInfo = (
+    SrcAlpha: $FF;
+    DrawMode: dmOpaque;
+    CombineMode: cmBlend;
+    CombineCallBack: nil;
+    TransparentColor: clBlack32;
+  );
+
 implementation
 
 uses
@@ -213,49 +222,41 @@ begin
   Rasterize(Dst, DstRect, CombineInfo(Src));
 end;
 
-procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect);
-const
-  DEFAULT_COMBINE_INFO: TCombineInfo = (
-    SrcAlpha: $FF;
-    DrawMode: dmOpaque;
-    CombineMode: cmBlend;
-    CombineCallBack: nil;
-    TransparentColor: clBlack32;
-  );
-begin
-  Rasterize(Dst, DstRect, DEFAULT_COMBINE_INFO);
-end;
-
 procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
   const CombineInfo: TCombineInfo);
 begin
-  FTransparentColor := CombineInfo.TransparentColor;
-  with CombineInfo do
-    Rasterize(Dst, DstRect, SrcAlpha, DrawMode, CombineMode, CombineCallBack);
+  SetCombineInfo(CombineInfo);
+  Rasterize(Dst, DstRect);
 end;
 
-procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
-  SrcAlpha: TColor32; DrawMode: TDrawMode; CombineMode: TCombineMode;
-  CombineCallBack: TPixelCombineEvent);
+procedure TRasterizer.SetCombineInfo(const CombineInfo: TCombineInfo);
+begin
+  with CombineInfo do
+  begin
+    FTransparentColor := TransparentColor;
+
+    FSrcAlpha := SrcAlpha;
+    FBlendMemEx := BLEND_MEM_EX[CombineMode];
+    FCombineCallBack := CombineCallBack;
+
+    case DrawMode of
+      dmOpaque: FAssignColor := AssignColorOpaque;
+      dmBlend:  FAssignColor := AssignColorBlend;
+      dmTransparent: FAssignColor := AssignColorTransparent;
+    else
+      if Assigned(FCombineCallback) then
+        FAssignColor := AssignColorCustom
+      else
+        FAssignColor := AssignColorBlend;
+    end;
+  end;
+end;
+
+procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect);
 var
   UpdateCount: Integer;
   R: TRect;
 begin
-  FSrcAlpha := SrcAlpha;
-  FBlendMemEx := BLEND_MEM_EX[CombineMode];
-  FCombineCallBack := CombineCallBack;
-
-  case DrawMode of
-    dmOpaque: FAssignColor := AssignColorOpaque;
-    dmBlend:  FAssignColor := AssignColorBlend;
-    dmTransparent: FAssignColor := AssignColorTransparent;
-  else
-    if Assigned(FCombineCallback) then
-      FAssignColor := AssignColorCustom
-    else
-      FAssignColor := AssignColorBlend;
-  end;
-
   UpdateCount := TThreadPersistentAccess(Dst).UpdateCount;
   if Assigned(FSampler) then
   begin
@@ -287,6 +288,25 @@ begin
   Rasterize(Dst, Dst.BoundsRect);
 end;
 
+constructor TRasterizer.Create;
+begin
+  inherited;
+  SetCombineInfo(DEFAULT_COMBINE_INFO);
+end;
+
+procedure TRasterizer.Assign(Source: TPersistent);
+begin
+  BeginUpdate;
+  try
+    if Source is TBitmap32 then
+      SetCombineInfo(CombineInfo(TBitmap32(Source)))
+    else
+      inherited;
+  finally
+    EndUpdate;
+    Changed;
+  end;
+end;
 
 { TRegularRasterizer }
 
