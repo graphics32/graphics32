@@ -21,6 +21,9 @@ unit GR32_Rasterizers;
  * Portions created by the Initial Developer are Copyright (C) 2004-2007
  * the Initial Developer. All Rights Reserved.
  *
+ * Contributor(s):
+ *   Steffen Binas <steffen.binas@aquasoft.de>
+ *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
@@ -164,13 +167,7 @@ const
   );
 
 var
-  DefaultRasterizerClass: TRasterizerClass =
-{$IFDEF USEMULTITHREADING}
-    TMultithreadedRegularRasterizer;
-{$ELSE}
-    TRegularRasterizer;
-{$ENDIF}
-
+  DefaultRasterizerClass: TRasterizerClass = TRegularRasterizer;
   NumberOfProcessors: Integer = 1;
 
 implementation
@@ -830,5 +827,10 @@ end;
 
 initialization
   NumberOfProcessors := GetProcessorCount;
+{$IFDEF USEMULTITHREADING}
+  if NumberOfProcessors > 1 then
+    DefaultRasterizerClass := TMultithreadedRegularRasterizer;
+{$ENDIF}
+
 
 end.
