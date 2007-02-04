@@ -254,7 +254,7 @@ type
   TTransformer = class;
   TTransformerClass = class of TTransformer;
 
-  TPixelAccessMode = (pamUnsafe, pamSafe, pamWrap);
+  TPixelAccessMode = (pamUnsafe, pamSafe, pamWrap, pamTransparentEdge);
 
   { TBitmap32Resampler }
   { Base class for TBitmap32 specific resamplers. }
@@ -286,6 +286,7 @@ type
   private
     FGetSampleInt: TGetSampleInt;
   protected
+    function GetPixelTransparentEdge(X, Y: Integer): TColor32;
     function GetWidth: TFloat; override;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
@@ -306,6 +307,7 @@ type
     FGetSampleFixed: TGetSampleFixed;
   protected
     function GetWidth: TFloat; override;
+    function GetPixelTransparentEdge(X, Y: TFixed): TColor32;
     procedure Resample(
       Dst: TBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TBitmap32; SrcRect: TRect;
@@ -2531,6 +2533,8 @@ end;
 function TBitmap32Resampler.GetSampleBounds: TRect;
 begin
   Result := FBitmap.ClipRect;
+  if PixelAccessMode = pamTransparentEdge then
+    InflateRect(Result, 1, 1);
 end;
 
 function TBitmap32Resampler.HasBounds: Boolean;
@@ -2617,7 +2621,7 @@ var
   Filter: TFilterMethod;
   WrapProc: TWrapProcEx absolute Filter;
   Colors: PColor32EntryArray;
-  Width, W, Wv, I, J, Incr, Dev: Integer;
+  Width, W, Wv, I, J, P, Incr, Dev: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -2627,6 +2631,8 @@ var
 
   HorzEntry, VertEntry: TBufferEntry;
   MappingX: TKernelEntry;
+  Outside: Boolean;
+  Edge: Boolean;
 begin
   Width := Ceil(FKernel.GetWidth);
 
@@ -2639,63 +2645,52 @@ begin
         LoX := -Width; HiX := Width;
         LoY := -Width; HiY := Width;
       end;
-    pamSafe:
+
+    pamSafe, pamTransparentEdge:
       begin
         with FClipRect do
         begin
-          if clX - Width < Left then
+          Outside := (clX < Left) or (clX > Right) or (clY < Top) or (clY > Bottom);
+          if not Outside then
           begin
-            if clX < Left then
+            Edge := False;
+
+            if clX - Width < Left then
             begin
-              Result := FOuterColor;
-              Exit;
-            end;
-            LoX := Left - clX
+              LoX := Left - clX;
+              Edge := True;
+            end
+            else LoX := -Width;
+
+            if clX + Width >= Right then
+            begin
+              HiX := Right - clX - 1;
+              Edge := True;
+            end
+            else HiX := Width;
+
+            if clY - Width < Top then
+            begin
+              LoY := Top - clY;
+              Edge := True;
+            end else LoY := -Width;
+
+            if clY + Width >= Bottom then
+            begin
+              HiY := Bottom - clY - 1;
+              Edge := True;
+            end else HiY := Width;
+
           end
           else
           begin
-            LoX := -Width;
+            if FPixelAccessMode = pamTransparentEdge then
+              Result := 0
+            else
+              Result := FOuterColor;
+            Exit;
           end;
 
-          if clY - Width < Top then
-          begin
-            if clY < Top then
-            begin
-              Result := FOuterColor;
-              Exit;
-            end;
-            LoY := Top - clY
-          end
-          else
-          begin
-            LoY := -Width;
-          end;
-          if clX + Width >= Right then
-          begin
-            if clX > Right then
-            begin
-              Result := FOuterColor;
-              Exit;
-            end;
-            HiX := Right - clX - 1;
-          end
-          else
-          begin
-            HiX := Width;
-          end;
-          if clY + Width >= Bottom then
-          begin
-            if clY > Bottom then
-            begin
-              Result := FOuterColor;
-              Exit;
-            end;
-            HiY := Bottom - clY - 1;
-          end
-          else
-          begin
-            HiY := Width;
-          end;
         end;
       end;
   end;
@@ -2727,6 +2722,7 @@ begin
           Inc(Dev, W);
         end;
         Dec(VertKernel[0], Dev);
+
       end;
     kmTableNearest:
       begin
@@ -2776,7 +2772,7 @@ begin
 
   VertEntry := EMPTY_ENTRY;
   case FPixelAccessMode of
-    pamUnsafe, pamSafe:
+    pamUnsafe, pamSafe, pamTransparentEdge:
       begin
         SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
         Incr := FBitmap.Width - (HiX - LoX) - 1;
@@ -2801,6 +2797,55 @@ begin
             Inc(VertEntry.B, HorzEntry.B * Wv);
           end else Inc(SrcP, HiX - LoX + 1);
           Inc(SrcP, Incr);
+        end;
+
+        if (FPixelAccessMode <> pamUnsafe) and Edge then
+        begin
+          if FPixelAccessMode = pamSafe then
+           for I := -Width to Width do
+           begin
+             Wv := PVertKernel[I];
+             if Wv <> 0 then
+             begin
+               HorzEntry := EMPTY_ENTRY;
+               for J := -Width to Width do
+               if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
+               begin
+                 W := PHorzKernel[J];
+                 Inc(HorzEntry.A, TColor32Entry(FOuterColor).A * W);
+                 Inc(HorzEntry.R, TColor32Entry(FOuterColor).R * W);
+                 Inc(HorzEntry.G, TColor32Entry(FOuterColor).G * W);
+                 Inc(HorzEntry.B, TColor32Entry(FOuterColor).B * W);
+               end;
+               Inc(VertEntry.A, HorzEntry.A * Wv);
+               Inc(VertEntry.R, HorzEntry.R * Wv);
+               Inc(VertEntry.G, HorzEntry.G * Wv);
+               Inc(VertEntry.B, HorzEntry.B * Wv);
+             end;
+           end
+          else
+           for I := -Width to Width do
+           begin
+             Wv := PVertKernel[I];
+             if Wv <> 0 then
+             begin
+               HorzEntry := EMPTY_ENTRY;
+               P := Clamp(clY + I, FBitmap.Height - 1);
+               for J := -Width to Width do
+               if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
+               with TColor32Entry(FBitmap.Pixel[Clamp(clX + J, FBitmap.Width - 1), P]) do
+               begin
+                 W := PHorzKernel[J];
+                 //exclude alpha, implicit transparent edge
+                 Inc(HorzEntry.R, R * W);
+                 Inc(HorzEntry.G, G * W);
+                 Inc(HorzEntry.B, B * W);
+               end;
+               Inc(VertEntry.R, HorzEntry.R * Wv);
+               Inc(VertEntry.G, HorzEntry.G * Wv);
+               Inc(VertEntry.B, HorzEntry.B * Wv);
+             end;
+           end;
         end;
       end;
 
@@ -2841,10 +2886,10 @@ begin
   begin
   if FKernel.RangeCheck then
   begin
-      A := Constrain(TFixedRec(VertEntry.A).Int, 0, $FF);
-      R := Constrain(TFixedRec(VertEntry.R).Int, 0, $FF);
-      G := Constrain(TFixedRec(VertEntry.G).Int, 0, $FF);
-      B := Constrain(TFixedRec(VertEntry.B).Int, 0, $FF);
+      A := Clamp(TFixedRec(VertEntry.A).Int);
+      R := Clamp(TFixedRec(VertEntry.R).Int);
+      G := Clamp(TFixedRec(VertEntry.G).Int);
+      B := Clamp(TFixedRec(VertEntry.B).Int);
     end
     else
   begin
@@ -2945,6 +2990,17 @@ begin
   Result := 1;
 end;
 
+function TNearestResampler.GetPixelTransparentEdge(X,Y: Integer): TColor32;
+var
+  I, J: Integer;
+begin
+  I := Clamp(X, FBitmap.Width - 1);
+  J := Clamp(Y, FBitmap.Height - 1);
+  Result := FBitmap.Pixel[I, J];
+  if (I <> X) or (J <> Y) then
+    Result := Result and $00FFFFFF;
+end;
+
 procedure TNearestResampler.PrepareSampling;
 begin
   inherited;
@@ -2952,6 +3008,7 @@ begin
     pamUnsafe: FGetSampleInt := TBitmap32Access(FBitmap).GetPixel;
     pamSafe: FGetSampleInt := TBitmap32Access(FBitmap).GetPixelS;
     pamWrap: FGetSampleInt := TBitmap32Access(FBitmap).GetPixelW;
+    pamTransparentEdge: FGetSampleInt := GetPixelTransparentEdge;
   end;
 end;
 
@@ -2988,6 +3045,73 @@ begin
   Result := FGetSampleFixed(Round(X * FixedOne), Round(Y * FixedOne));
 end;
 
+function TLinearResampler.GetPixelTransparentEdge(X, Y: TFixed): TColor32;
+var
+  I, J, X1, X2, Y1, Y2, WX, WY, W, H: TFixed;
+  C1, C2, C3, C4: TColor32;
+
+begin
+
+  I := X div FixedOne;
+  J := Y div FixedOne;
+  W := FBitmap.Width - 1;
+  H := FBitmap.Height - 1;
+
+  if (X >= 0) and (Y >= 0) and (I < W) and (J < H) then
+  begin //Safe
+    Result := TBitmap32Access(FBitmap).GET_T256(X shr 8, Y shr 8);
+    EMMS;
+  end
+  else
+  begin //Near edge, on edge or outside
+    if (X >= -FixedOne) and (Y >= -FixedOne) and (I <= W) and (J <= H) then
+       begin
+
+         X1 := Clamp(I, W);
+         X2 := Clamp(I + Sign(X), W);
+         Y1 := Clamp(J, H);
+         Y2 := Clamp(J + Sign(Y), H);
+
+         C1 := FBitmap.Pixel[X1, Y1];
+         C2 := FBitmap.Pixel[X2, Y1];
+         C3 := FBitmap.Pixel[X1, Y2];
+         C4 := FBitmap.Pixel[X2, Y2];
+
+         if X <= 0 then
+         begin
+           C1 := C1 and $00FFFFFF;
+           C3 := C3 and $00FFFFFF;
+         end
+         else
+         if I >= W then
+         begin
+           C2 := C2 and $00FFFFFF;
+           C4 := C4 and $00FFFFFF;
+         end;
+
+         if Y <= 0 then
+         begin
+           C1 := C1 and $00FFFFFF;
+           C2 := C2 and $00FFFFFF;
+         end
+         else
+         if J >= H then
+         begin
+           C3 := C3 and $00FFFFFF;
+           C4 := C4 and $00FFFFFF;
+         end;
+
+         WX := GAMMA_TABLE[((X shr 8) and $FF) xor $FF];
+         WY := GAMMA_TABLE[((Y shr 8) and $FF) xor $FF];
+
+         Result := CombineReg(CombineReg(C1, C2, WX), CombineReg(C3, C4, WX), WY);
+         EMMS;
+       end
+       else
+         Result := 0; //Nothing really makes sense here, return zero
+  end;
+end;
+
 procedure TLinearResampler.PrepareSampling;
 begin
   inherited;
@@ -2995,6 +3119,7 @@ begin
     pamUnsafe: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelX;
     pamSafe: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelXS;
     pamWrap: FGetSampleFixed := TBitmap32Access(FBitmap).GetPixelXW;
+    pamTransparentEdge: FGetSampleFixed := GetPixelTransparentEdge;
   end;
 end;
 
@@ -3028,7 +3153,6 @@ procedure TDraftResampler.Resample(
 begin
   DraftResample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp, CombineCallBack)
 end;
-
 
 { TTransformer }
 
