@@ -65,6 +65,7 @@ blockquote {
         <ul class="dots">
           <li>Added new TMultiThreadedRasterizer class for performing regular rasterization using multiple threads. By defining the symbol USE_MULTITHREADING this rasterizer becomes default on multi-core systems. </li>
           <li>Added TPolarTransformation and TPathTransformation classes. </li>
+          <li>Added TPixelAccessMode pamTransparentEdge, useful for getting smooth edges with transformations.</li>
           <li>Added new optimized low-level routines to GR32_Math.pas.</li>
         </ul>
       </li>
@@ -78,6 +79,7 @@ blockquote {
 		  <li>Fixed buffer overrun error in polygon rasterization.</li>
 		  <li>Fix: M_ColorMax, M_ColorMin, M_ColorAverage
 			  raised critical exception on old Celeron CPU.</li>
+          <li>Fixed problem in TKernelResampler that caused artifacts at edges for pamSafe pixel access mode.</li>
           <li>Fixed installation problems in D2005. </li>
           <li>Minor tweaks and optimizations. </li>
         </ul>
