@@ -55,6 +55,142 @@ blockquote {
 </style>
 </head>
 <body bgcolor="#FFFFFF">
+<h2 class="Body">v1.8.2 (14 January 2007)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+    <ul>
+      <li>
+        <h2>Other enhancements:</h2>
+        <ul class="dots">
+          <li>Added new TMultiThreadedRasterizer class for performing regular rasterization using multiple threads. By defining the symbol USE_MULTITHREADING this rasterizer becomes default on multi-core systems. </li>
+          <li>Added TPolarTransformation and TPathTransformation classes. </li>
+          <li>Added new optimized low-level routines to GR32_Math.pas.</li>
+        </ul>
+      </li>
+      <li>
+        <h2>Bugfixes:</h2>
+        <ul class="dots">
+          <li>Fixes for various bugs reported on the SourceForge tracker: 
+
+
+ 1445701, 
+
+
+ 
+
+
+ 1448030, 
+
+
+ 1486180, 
+
+
+ 1456950, 
+
+
+ 1460821, 
+
+
+ 1493697, 1610287, 
+
+
+ 1610292,
+
+1611173</li>
+          <li>Fixed a problem in TRenderThread that cause an AV when OnAreaChanged of the destination bitmap was unassigned. </li>
+          <li> Fixed overflow on calculation in LineS / LineTS with big line coordinates.</li>
+          <li>Fixed buffer overrun error in polygon rasterization.</li>
+          <li> Fix: M_ColorMax, M_ColorMin, M_ColorAverage 
+
+
+ raised critical exception on old Celeron CPU.</li>
+          <li>Fixed installation problems in D2005. </li>
+          <li>Minor tweaks and optimizations. </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h2>Detailed changes</h2>
+    <ul style="display:none">
+      <li>
+        <h2>GR32:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>Fixed problem in method TBitmap32.DrawTo(HDC, DstRect, SrcRect).</li>
+            <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+            <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+            <li>[SF 1404989] SET_TS256/LineXS with CombineMode = cmMerge -> wrong output</li>
+            <li>[SF 1403949] Line BUG</li>
+            <li>[SF 1398880] Incorrect boundary test in TBitmap32.GET_TS256</li>
+            <li>[SF 1369894] Bug in TBitmap.Roll method</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Containers:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>GetPropList compilation issue fixed on D5.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Images:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>[SF 1412953] TImgView32 holes (repaint problems in design-time).</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Layers:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>mbLeft check removed from TCustomLayer.MouseDown.</li>
+            <li>TCustomLayer.Changed obeys UpdateCount.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_LowLevel:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>ASM version of simple Clamp added.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_MicroTiles:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>Bug in TMicroTilesRepaintOptimizer.Reset method fixed where the buffer wasn't completely invalidated.</li>
+            <li>Enhanced debug draw</li>
+            <li>Additional inlining support</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Transforms:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>[SF 1409711 ] TAffineTransformation.GetTransformedBounds ignores ASrcRect.</li>
+            <li>Various CLX compilation fixes</li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
 <h2 class="Body">v1.8.1 (1 March 2006)</h2>
 <ul class="barebones expandable">
   <li>
