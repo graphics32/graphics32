@@ -1,4 +1,5 @@
 del /S *.~*
+del /S *.bak
 del /S *.dcu
 del /S *.elf
 del /S *.dpu
