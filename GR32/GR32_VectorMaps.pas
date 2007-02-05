@@ -281,7 +281,12 @@ procedure TVectorMap.LoadFromFile(const FileName: string);
     I: Integer;
   begin
     for I := 0 to Length(FVectors) - 1 do
-      FVectors[I] := FixedPoint(TFloatVector(FVectors[I])); //Not a mistake!
+    begin
+      //Not a mistake! Converting physical mem. directly to avoid temporary floating point buffer
+      //Do no change to PFloat.. the type is relative to the msh format.
+      FVectors[I].X := Fixed(PSingle(@FVectors[I].X)^);
+      FVectors[I].Y := Fixed(PSingle(@FVectors[I].Y)^);
+    end;
   end;
 
 var
@@ -393,7 +398,12 @@ procedure TVectorMap.SaveToFile(const FileName: string);
     I: Integer;
   begin
     for I := 0 to Length(FVectors) - 1 do
-      FVectors[I] := FixedPoint(TFloatVector(FVectors[I])); //Not a mistake!
+    begin
+      //Not a mistake! Converting physical mem. directly to avoid temporary floating point buffer
+      //Do no change to PFloat.. the type is relative to the msh format.
+      FVectors[I].X := Fixed(PSingle(@FVectors[I].X)^);
+      FVectors[I].Y := Fixed(PSingle(@FVectors[I].Y)^);
+    end;
   end;
 
   procedure ConvertVerticesF;
@@ -401,7 +411,12 @@ procedure TVectorMap.SaveToFile(const FileName: string);
     I: Integer;
   begin
     for I := 0 to Length(FVectors) - 1 do
-      TFloatVector(FVectors[I]) := FloatPoint(FVectors[I]); //Not a mistake!
+    begin
+      //Not a mistake! Converting physical mem. directly to avoid temporary floating point buffer
+      //Do no change to PFloat.. the type is relative to the msh format.
+      PSingle(@FVectors[I].X)^ := FVectors[I].X * FixedToFloat;
+      PSingle(@FVectors[I].Y)^ := FVectors[I].Y * FixedToFloat;
+    end;
   end;
 
 var
