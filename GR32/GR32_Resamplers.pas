@@ -2998,11 +2998,14 @@ function TNearestResampler.GetPixelTransparentEdge(X,Y: Integer): TColor32;
 var
   I, J: Integer;
 begin
-  I := Clamp(X, FBitmap.ClipRect.Left, FBitmap.ClipRect.Right - 1);
-  J := Clamp(Y, FBitmap.ClipRect.Top, FBitmap.ClipRect.Bottom - 1);
-  Result := FBitmap.Pixel[I, J];
-  if (I <> X) or (J <> Y) then
-    Result := Result and $00FFFFFF;
+  with FBitmap, FBitmap.ClipRect do
+  begin
+    I := Clamp(X, Left, Right - 1);
+    J := Clamp(Y, Top, Bottom - 1);
+    Result := Pixel[I, J];
+    if (I <> X) or (J <> Y) then
+      Result := Result and $00FFFFFF;
+  end;
 end;
 
 procedure TNearestResampler.PrepareSampling;
@@ -3051,74 +3054,68 @@ end;
 
 function TLinearResampler.GetPixelTransparentEdge(X, Y: TFixed): TColor32;
 var
-  I, J, X1, X2, Y1, Y2, WX, WY, L, T, W, H: TFixed;
+  I, J, X1, X2, Y1, Y2, WX, R, B: TFixed;
   C1, C2, C3, C4: TColor32;
-
+  PSrc: PColor32Array;
 begin
-
-  I := X div FixedOne;
-  J := Y div FixedOne;
-
-  with FBitmap.ClipRect do
+  with TBitmap32Access(FBitmap), FBitmap.ClipRect do
   begin
-    L := Fixed(Left);
-    T := Fixed(Top);
-    W := Right - 1;
-    H := Bottom - 1;
+    R := Right - 1;
+    B := Bottom - 1;
 
-    if (X >= L) and (Y >= T) and (I < W) and (J < H) then
+    I := TFixedRec(X).Int;
+    J := TFixedRec(Y).Int;
+
+    if (I >= Left) and (J >= Top) and (I < R) and (J < B) then
     begin //Safe
-      Result := TBitmap32Access(FBitmap).GET_T256(X shr 8, Y shr 8);
+      Result := GET_T256(X shr 8, Y shr 8);
       EMMS;
     end
     else
+    if (I >= Left - 1) and (J >= Top - 1) and (I <= R) and (J <= B) then
     begin //Near edge, on edge or outside
-      if (X >= (L - FixedOne)) and (Y >= (T - FixedOne)) and (I <= W) and (J <= H) then
-         begin
 
-           X1 := Clamp(I, W);
-           X2 := Clamp(I + Sign(X), W);
-           Y1 := Clamp(J, H);
-           Y2 := Clamp(J + Sign(Y), H);
+      X1 := Clamp(I, R);
+      X2 := Clamp(I + Sign(X), R);
+      Y1 := Clamp(J, B) * Width;
+      Y2 := Clamp(J + Sign(Y), B) * Width;
 
-           C1 := FBitmap.Pixel[X1, Y1];
-           C2 := FBitmap.Pixel[X2, Y1];
-           C3 := FBitmap.Pixel[X1, Y2];
-           C4 := FBitmap.Pixel[X2, Y2];
+      PSrc := @Bits[0];
+      C1 := PSrc[X1 + Y1];
+      C2 := PSrc[X2 + Y1];
+      C3 := PSrc[X1 + Y2];
+      C4 := PSrc[X2 + Y2];
 
-           if X <= L then
-           begin
-             C1 := C1 and $00FFFFFF;
-             C3 := C3 and $00FFFFFF;
-           end
-           else
-           if I >= W then
-           begin
-             C2 := C2 and $00FFFFFF;
-             C4 := C4 and $00FFFFFF;
-           end;
+      if X <= Fixed(Left) then
+      begin
+        C1 := C1 and $00FFFFFF;
+        C3 := C3 and $00FFFFFF;
+      end
+      else if I = R then
+      begin
+        C2 := C2 and $00FFFFFF;
+        C4 := C4 and $00FFFFFF;
+      end;
 
-           if Y <= T then
-           begin
-             C1 := C1 and $00FFFFFF;
-             C2 := C2 and $00FFFFFF;
-           end
-           else
-           if J >= H then
-           begin
-             C3 := C3 and $00FFFFFF;
-             C4 := C4 and $00FFFFFF;
-           end;
+      if Y <= Fixed(Top) then
+      begin
+        C1 := C1 and $00FFFFFF;
+        C2 := C2 and $00FFFFFF;
+      end
+      else if J = B then
+      begin
+        C3 := C3 and $00FFFFFF;
+        C4 := C4 and $00FFFFFF;
+      end;
 
-           WX := GAMMA_TABLE[((X shr 8) and $FF) xor $FF];
-           WY := GAMMA_TABLE[((Y shr 8) and $FF) xor $FF];
-
-           Result := CombineReg(CombineReg(C1, C2, WX), CombineReg(C3, C4, WX), WY);
-           EMMS;
-         end
-         else
-           Result := 0; //Nothing really makes sense here, return zero
-    end;
+      WX := GAMMA_TABLE[((X shr 8) and $FF) xor $FF];
+      Result := CombineReg(CombineReg(C1, C2, WX),
+                           CombineReg(C3, C4, WX),
+                           GAMMA_TABLE[((Y shr 8) and $FF) xor $FF]);
+      EMMS;  
+    end  
+    else  
+      Result := 0; //Nothing really makes sense here, return zero
   end;
 end;
 
