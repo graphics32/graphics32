@@ -49,7 +49,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.8.1';
+  Graphics32Version = '1.8.2';
 
 { 32-bit Color }
 
