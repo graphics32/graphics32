@@ -1754,7 +1754,7 @@ asm
    lea        ecx,[ecx+esi*4]
    neg        esi
  @@LoopX:
-   db $0F,$63,$34,$B1       /// movd       mm6,[ecx+esi*4]
+   db $0F,$6E,$34,$B1       /// movd       mm6,[ecx+esi*4]
    db $0F,$60,$F7           /// punpcklbw  mm6, mm7
    db $0F,$FD,$C6           /// paddw      mm0, mm6
    inc        esi
