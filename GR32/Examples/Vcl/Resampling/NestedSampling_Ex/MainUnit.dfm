@@ -22,7 +22,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 190
-    Height = 578
+    Height = 581
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 0
@@ -250,7 +250,7 @@ object Form1: TForm1
     Left = 190
     Top = 0
     Width = 613
-    Height = 578
+    Height = 581
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     Color = clAppWorkSpace
