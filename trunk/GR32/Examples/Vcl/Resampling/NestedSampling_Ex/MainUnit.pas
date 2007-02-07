@@ -606,6 +606,9 @@ procedure TForm1.AddSampler(Sampler: TNestedSampler);
 var
   NewItem: TListItem;
 begin
+  if Sampler is TPatternSampler then
+    with Sampler as TPatternSampler do
+      Pattern := CreateJitteredPattern(10, 10, 3, 3);
   Samplers.Add(Sampler);
   Rasterizer.Sampler := Sampler;
   NewItem := lvSamplers.Items.Add;
