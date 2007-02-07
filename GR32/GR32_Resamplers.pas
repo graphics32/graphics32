@@ -473,8 +473,6 @@ type
   TPatternSampler = class(TNestedSampler)
   private
     FPattern: TFixedSamplePattern;
-    FPatternWidth: Integer;
-    FPatternHeight: Integer;
     procedure SetPattern(const Value: TFixedSamplePattern);
   public
     destructor Destroy; override;
@@ -3394,12 +3392,13 @@ function TPatternSampler.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   Points: TArrayOfFixedPoint;
   P: PFixedPoint;
-  I: Integer;
+  I, PY: Integer;
   Buffer: TBufferEntry;
   GetSample: TGetSampleFixed;
 begin
   GetSample := FSampler.GetSampleFixed;
-  Points := FPattern[(Y shr 16) mod FPatternHeight][(X shr 16) mod FPatternWidth];
+  PY := Wrap(TFixedRec(Y).Int, High(FPattern));
+  Points := FPattern[PY][Wrap(TFixedRec(X).Int, High(FPattern[PY]))];
   Buffer := EMPTY_ENTRY;
   P := @Points[0];
   for I := 0 to High(Points) do
@@ -3407,15 +3406,17 @@ begin
     IncBuffer(Buffer, GetSample(P.X + X, P.Y + Y));
     Inc(P);
   end;
-  MultiplyBuffer(Buffer, 65536 div Length(Points));
+  MultiplyBuffer(Buffer, FixedOne div Length(Points));
   Result := BufferToColor32(Buffer, 16);
 end;
 
 procedure TPatternSampler.SetPattern(const Value: TFixedSamplePattern);
 begin
-  FPattern := Value;
-  FPatternHeight := Length(FPattern);
-  FPatternWidth := Length(FPattern[0]);
+  if Assigned(Value) then
+  begin
+    FPattern := nil;
+    FPattern := Value;
+  end;
 end;
 
 function JitteredPattern(XRes, YRes: Integer): TArrayOfFixedPoint;
