@@ -2746,7 +2746,7 @@ begin
           Dev := -256;
           for I := -Width to Width do
           begin
-            Wv :=  FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+            Wv :=  FloorKernel[I] + ((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF) div FixedOne;
             HorzKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
@@ -2762,7 +2762,7 @@ begin
           Dev := -256;
           for I := -Width to Width do
           begin
-            Wv := FloorKernel[I] + TFixedRec((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF).Int;
+            Wv := FloorKernel[I] + ((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF) div FixedOne;
             VertKernel[I] := Wv;
             Inc(Dev, Wv);
           end;
