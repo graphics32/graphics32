@@ -47,7 +47,7 @@ procedure Invert(Dst, Src: TBitmap32);
 procedure InvertRGB(Dst, Src: TBitmap32);
 procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
 procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
-procedure CromaKey(ABitmap: TBitmap32; TrColor: TColor32);
+procedure ChromaKey(ABitmap: TBitmap32; TrColor: TColor32);
 
 procedure CheckParams(Dst, Src: TBitmap32);
 
@@ -220,7 +220,7 @@ begin
   Dst.Changed;
 end;
 
-procedure CromaKey(ABitmap: TBitmap32; TrColor: TColor32);
+procedure ChromaKey(ABitmap: TBitmap32; TrColor: TColor32);
 var
   P: PColor32;
   C: TColor32;
