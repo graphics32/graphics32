@@ -2027,6 +2027,7 @@ procedure TIVScrollProperties.SetSize(Value: Integer);
 begin
   ImgView.FScrollBarSize := Value;
   ImgView.AlignAll;
+  ImgView.UpdateImage;
 end;
 
 procedure TIVScrollProperties.SetVisibility(const Value: TScrollbarVisibility);
