@@ -53,11 +53,14 @@ type
     function ReadValue: Int64;
   end;
 
-{ pseudo GetTickCount implementation for Linux - for compatibility
+{ Pseudo GetTickCount implementation for Linux - for compatibility
   This works for basic time testing, however, it doesnt work like its
   Windows counterpart, ie. it doesnt return the number of milliseconds since
   system boot. Will definitely overflow. }
 function GetTickCount: Cardinal;
+
+{ Returns the number of processors configured by the operating system. }
+function GetProcessorCount: Cardinal;
 
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
@@ -250,6 +253,21 @@ end;
 procedure TPerfTimer.Start;
 begin
   QueryPerformanceCounter(FPerformanceCountStart);
+end;
+{$ENDIF}
+
+{$IFDEF LINUX}
+function GetProcessorCount: Cardinal;
+begin
+  Result := get_nprocs_conf;
+end;
+{$ELSE}
+function GetProcessorCount: Cardinal;
+var
+  lpSysInfo: TSystemInfo;
+begin
+  GetSystemInfo(lpSysInfo);
+  Result := lpSysInfo.dwNumberOfProcessors;
 end;
 {$ENDIF}
 
