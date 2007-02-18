@@ -173,7 +173,7 @@ var
 implementation
 
 uses
-  GR32_Resamplers, GR32_Math, GR32_Containers, Math, SysUtils;
+  GR32_Resamplers, GR32_Math, GR32_Containers, GR32_System, Math, SysUtils;
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
@@ -486,62 +486,65 @@ var
   Step: Integer;
   GetSample: TGetSampleInt;
 begin
-  GetSample := FSampler.GetSampleInt;
-  OnChanged := Dst.OnAreaChanged;
-  DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
   Dst.BeginUpdate;
-  W := DstRect.Right - DstRect.Left;
-  H := DstRect.Bottom - DstRect.Top;
-  J := DstRect.Top;
-  Step := 1 shl FSteps;
-  while J < DstRect.Bottom do
-  begin
-    I := DstRect.Left;
-    B := Min(J + Step, DstRect.Bottom);
-    while I < DstRect.Right - Step do
+  try
+    GetSample := FSampler.GetSampleInt;
+    OnChanged := Dst.OnAreaChanged;
+    DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
+    W := DstRect.Right - DstRect.Left;
+    H := DstRect.Bottom - DstRect.Top;
+    J := DstRect.Top;
+    Step := 1 shl FSteps;
+    while J < DstRect.Bottom do
     begin
-      Dst.FillRect(I, J, I + Step, B, GetSample(I, J));
-      Inc(I, Step);
+      I := DstRect.Left;
+      B := Min(J + Step, DstRect.Bottom);
+      while I < DstRect.Right - Step do
+      begin
+        Dst.FillRect(I, J, I + Step, B, GetSample(I, J));
+        Inc(I, Step);
+      end;
+      Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
+      if DoUpdate and FUpdateRows then
+        OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, B), AREAINFO_RECT);
+      Inc(J, Step);
     end;
-    Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
-    if DoUpdate and FUpdateRows then
-      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, B), AREAINFO_RECT);
-    Inc(J, Step);
-  end;
-  if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
+    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
 
-  Shift := FSteps;
-  while Step > 1 do
-  begin
-    Dec(Shift);
-    Step := Step div 2;
-    Wk := W div Step - 1;
-    Hk := H div Step;
-    for J := 0 to Hk do
+    Shift := FSteps;
+    while Step > 1 do
     begin
-      Y := DstRect.Top + J shl Shift;
-      B := Min(Y + Step, DstRect.Bottom);
-      if Odd(J) then
-        for I := 0 to Wk do
-        begin
-          X := DstRect.Left + I shl Shift;
-          Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
-        end
-      else
-        for I := 0 to Wk do
-          if Odd(I) then
+      Dec(Shift);
+      Step := Step div 2;
+      Wk := W div Step - 1;
+      Hk := H div Step;
+      for J := 0 to Hk do
+      begin
+        Y := DstRect.Top + J shl Shift;
+        B := Min(Y + Step, DstRect.Bottom);
+        if Odd(J) then
+          for I := 0 to Wk do
           begin
             X := DstRect.Left + I shl Shift;
             Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
-          end;
-      X := DstRect.Left + Wk shl Shift;
-      Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
-      if FUpdateRows and DoUpdate then
-        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, B), AREAINFO_RECT);
+          end
+        else
+          for I := 0 to Wk do
+            if Odd(I) then
+            begin
+              X := DstRect.Left + I shl Shift;
+              Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
+            end;
+        X := DstRect.Left + Wk shl Shift;
+        Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
+        if FUpdateRows and DoUpdate then
+          OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, B), AREAINFO_RECT);
+      end;
+      if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
     end;
-    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
+  finally
+    Dst.EndUpdate;
   end;
-  Dst.EndUpdate;
 end;
 
 procedure TProgressiveRasterizer.SetSteps(const Value: Integer);
@@ -815,14 +818,6 @@ begin
 
     ScanLine := InterlockedIncrement(Data^.ScanLine);
   end;
-end;
-
-function GetProcessorCount: Integer;
-var
-  SystemInfo: _SYSTEM_INFO;
-begin
-  GetSystemInfo(SystemInfo);
-  Result := SystemInfo.dwNumberOfProcessors;
 end;
 
 initialization
