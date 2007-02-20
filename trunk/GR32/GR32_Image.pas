@@ -1033,7 +1033,12 @@ end;
 procedure TCustomPaintBox32.SetBufferOversize(Value: Integer);
 begin
   if Value < 0 then Value := 0;
-  FBufferOversize := Value;
+  if Value <> FBufferOversize then
+  begin
+    FBufferOversize := Value;
+    ResizeBuffer;
+    FBufferValid := False
+  end;
 end;
 
 {$IFDEF CLX}
