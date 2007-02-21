@@ -41,6 +41,7 @@ uses
 type
   TLUT8 = array [Byte] of Byte;
 
+procedure CopyAlpha(Dst, Src: TBitmap32);
 procedure AlphaToGrayscale(Dst, Src: TBitmap32);
 procedure IntensityToAlpha(Dst, Src: TBitmap32);
 procedure Invert(Dst, Src: TBitmap32);
@@ -60,21 +61,30 @@ const
 
 procedure CheckParams(Dst, Src: TBitmap32);
 begin
-  if Src = nil then raise Exception.Create(SEmptySource);
-  if Dst = nil then raise Exception.Create(SEmptyDestination);
+  if not Assigned(Src) then
+    raise Exception.Create(SEmptySource);
+
+  if not Assigned(Dst) then
+    raise Exception.Create(SEmptyDestination);
+
   Dst.SetSize(Src.Width, Src.Height);
 end;
 
-{rocedure CheckParamsNoInPlace(Dst, Src: TBitmap32);
+procedure CopyAlpha(Dst, Src: TBitmap32);
+var
+  I: Integer;
+  D, S: PColor32;
 begin
-  if (Src = nil) then
-    raise Exception.Create(SEmptySource);
-  if Dst = nil then
-    raise Exception.Create(SEmptyDestination);
-  if Dst = Src then
-    raise Exception.Create(SNoInPlace);
-  Dst.SetSize(Src);
-end;       }
+  CheckParams(Dst, Src);
+  D := @Dst.Bits[0];
+  S := @Src.Bits[0];
+  for I := 0 to Src.Width * Src.Height - 1 do
+  begin
+    D^ := (D^ and $00FFFFFF) or (S^ and $FF000000);
+    Inc(S); Inc(D);
+  end;
+  Dst.Changed;
+end;
 
 procedure AlphaToGrayscale(Dst, Src: TBitmap32);
 var
@@ -82,7 +92,6 @@ var
   D, S: PColor32;
 begin
   CheckParams(Dst, Src);
-  Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
   for I := 0 to Src.Width * Src.Height - 1 do
@@ -116,7 +125,6 @@ var
   D, S: PColor32;
 begin
   CheckParams(Dst, Src);
-  Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
   for I := 0 to Src.Width * Src.Height - 1 do
@@ -133,7 +141,6 @@ var
   D, S: PColor32;
 begin
   CheckParams(Dst, Src);
-  Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
   for I := 0 to Src.Width * Src.Height - 1 do
@@ -150,7 +157,6 @@ var
   D, S: PColor32;
 begin
   CheckParams(Dst, Src);
-  Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
   
@@ -178,7 +184,6 @@ var
   C: TColor32;
 begin
   CheckParams(Dst, Src);
-  Dst.SetSize(Src.Width, Src.Height);
   D := @Dst.Bits[0];
   S := @Src.Bits[0];
 
@@ -237,6 +242,8 @@ begin
       Inc(P)
     end;
   end;
+
+  ABitmap.Changed;
 end;
 
 end.
