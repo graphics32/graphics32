@@ -23,7 +23,8 @@ unit GR32_Filters;
  *
  * Contributor(s):
  *  Michael Hansen <dyster_tid@hotmail.com>
- *      - 2007/02/25 - Logical Mask Operations
+ *      - 2007/02/25 - Logical Mask Operations and related types
+ *      - 2007/02/27 - CopyComponents
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -63,22 +64,24 @@ var
   LOGICALMASKPROC_INPLACE: array[TLogicalOperator] of  TLogicalMaskInplace;
   LOGICALMASKPROC_SRCTODST: array[TLogicalOperator] of TLogicalMaskSrcToDst;
 
-procedure CopyAlpha(Dst, Src: TBitmap32);
+procedure CopyComponents(Dst, Src: TBitmap32; Components: TColor32Components);overload;
+procedure CopyComponents(Src: TBitmap32; SrcRect: TRect; Dst: TBitmap32;
+  DstX, DstY: Integer; Components: TColor32Components); overload;
+
 procedure AlphaToGrayscale(Dst, Src: TBitmap32);
 procedure IntensityToAlpha(Dst, Src: TBitmap32);
-procedure Invert(Dst, Src: TBitmap32; A: Boolean = True; R: Boolean = True;
-  G: Boolean = True; B : Boolean = True);
+procedure Invert(Dst, Src: TBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
 procedure InvertRGB(Dst, Src: TBitmap32);
 procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
 procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
 procedure ChromaKey(ABitmap: TBitmap32; TrColor: TColor32);
 
-function CreateBooleanMask(A,R,G,B: Boolean): TColor32;
-function CreateByteMask(A,R,G,B: Byte): TColor32;
+function CreateBitmask(Components: TColor32Components): TColor32;overload;
+function CreateBitmask(A, R, G, B: Byte): TColor32;overload;
 
-procedure ApplyLogicalMask(Src: TBitmap32; SrcRect: TRect; Dst: TBitmap32;
-  DstX, DstY: Integer; Mask: TColor32; LogicalOperator: TLogicalOperator);  overload;
-procedure ApplyLogicalMask(ABitmap: TBitmap32; ARect: TRect; Mask: TColor32;
+procedure ApplyBitmask(Src: TBitmap32; SrcRect: TRect; Dst: TBitmap32;
+  DstX, DstY: Integer; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
+procedure ApplyBitmask(ABitmap: TBitmap32; ARect: TRect; Bitmask: TColor32;
   LogicalOperator: TLogicalOperator); overload;
 
 procedure CheckParams(Dst, Src: TBitmap32; ResizeDst: Boolean = True);
@@ -105,21 +108,184 @@ begin
   if ResizeDst then Dst.SetSize(Src.Width, Src.Height);
 end;
 
-procedure CopyAlpha(Dst, Src: TBitmap32);
-var
-  I: Integer;
-  D, S: PColor32;
+procedure CopyComponents(Dst, Src: TBitmap32; Components: TColor32Components);
 begin
+  if Components = [] then Exit;
   CheckParams(Dst, Src);
-  D := @Dst.Bits[0];
-  S := @Src.Bits[0];
-  for I := 0 to Src.Width * Src.Height - 1 do
-  begin
-    D^ := (D^ and $00FFFFFF) or (S^ and $FF000000);
-    Inc(S); Inc(D);
-  end;
-  Dst.Changed;
+  CopyComponents(Src, Src.BoundsRect, Dst, 0, 0, Components);
 end;
+
+procedure CopyComponents(Src: TBitmap32; SrcRect: TRect; Dst: TBitmap32;
+  DstX, DstY: Integer; Components: TColor32Components);
+var
+  I, J, Count, ComponentCount, Offset: Integer;
+  Mask: TColor32;
+  SrcRow, DstRow: PColor32Array;
+  PBDst, PBSrc: PByteArray;
+  DstRect: TRect;
+begin
+  if Components = [] then Exit;
+  CheckParams(Dst, Src, False);
+
+  ComponentCount := 0;
+  Offset := 0;
+  Mask := 0;
+  if ccAlpha in Components then
+  begin
+    Inc(ComponentCount);
+    Inc(Mask, $FF000000);
+    Offset := 3;
+  end;
+  if ccRed in Components then
+  begin
+    Inc(ComponentCount);
+    Inc(Mask, $00FF0000);
+    Offset := 2;
+  end;
+  if ccGreen in Components then
+  begin
+    Inc(ComponentCount);
+    Inc(Mask, $0000FF00);
+    Offset := 1;
+  end;
+  if ccBlue in Components then
+  begin
+    Inc(ComponentCount);
+    Inc(Mask, $000000FF);
+  end;
+
+  with Dst do
+  begin
+    IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+    if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then Exit;
+
+    DstX := Clamp(DstX, 0, Width - 1);
+    DstY := Clamp(DstY, 0, Height - 1);
+
+    DstRect.TopLeft := Point(DstX, DstY);
+    DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
+    DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
+
+    IntersectRect(DstRect, DstRect, BoundsRect);
+    IntersectRect(DstRect, DstRect, ClipRect);
+
+    if not MeasuringMode then
+    begin
+      BeginUpdate;
+      try
+        with DstRect do
+        if (Bottom - Top) > 0 then
+        begin
+          SrcRow := Pointer(Src.PixelPtr[SrcRect.Left, SrcRect.Top]);
+          DstRow := Pointer(PixelPtr[Left, Top]);
+          Count := Right - Left;
+          if Count > 0 then
+          case ComponentCount of
+            1://Byte ptr approach
+              begin
+                PBSrc := Pointer(SrcRow);
+                Inc(PBSrc, Offset); // shift the pointer to the given component of the first pixel
+                PBDst := Pointer(DstRow);
+                Inc(PBDst, Offset);
+
+                Count := Count * 4 - 64;
+                Inc(PBSrc, Count);
+                Inc(PBDst, Count);
+
+                for I := 0 to Bottom - Top - 1 do
+                begin
+                  //16x enrolled loop
+                  J := - Count;
+                  repeat
+                    PBDst[J] := PBSrc[J];
+                    PBDst[J +  4] := PBSrc[J +  4];
+                    PBDst[J +  8] := PBSrc[J +  8];
+                    PBDst[J + 12] := PBSrc[J + 12];
+                    PBDst[J + 16] := PBSrc[J + 16];
+                    PBDst[J + 20] := PBSrc[J + 20];
+                    PBDst[J + 24] := PBSrc[J + 24];
+                    PBDst[J + 28] := PBSrc[J + 28];
+                    PBDst[J + 32] := PBSrc[J + 32];
+                    PBDst[J + 36] := PBSrc[J + 36];
+                    PBDst[J + 40] := PBSrc[J + 40];
+                    PBDst[J + 44] := PBSrc[J + 44];
+                    PBDst[J + 48] := PBSrc[J + 48];
+                    PBDst[J + 52] := PBSrc[J + 52];
+                    PBDst[J + 56] := PBSrc[J + 56];
+                    PBDst[J + 60] := PBSrc[J + 60];
+                    Inc(J, 64)
+                  until J > 0;
+                  //The rest
+                  Dec(J, 64);
+                  while J < 0 do
+                  begin
+                    PBDst[J + 64] := PBSrc[J + 64];
+                    Inc(J, 4);
+                  end;
+                  Inc(PBSrc, Src.Width * 4);
+                  Inc(PBDst, Width * 4);
+                end;
+              end;
+            2, 3: //Masked approach
+              begin
+                Count := Count - 1;
+                Inc(DstRow, Count);
+                Inc(SrcRow, Count);
+                for I := 0 to Bottom - Top - 1 do
+                begin
+                  //8x enrolled loop
+                  J := - Count;
+                  repeat
+                    Mask := not Mask;
+                    DstRow[J] := DstRow[J] and Mask;
+                    DstRow[J + 1] := DstRow[J + 1] and Mask;
+                    DstRow[J + 2] := DstRow[J + 2] and Mask;
+                    DstRow[J + 3] := DstRow[J + 3] and Mask;
+                    DstRow[J + 4] := DstRow[J + 4] and Mask;
+                    DstRow[J + 5] := DstRow[J + 5] and Mask;
+                    DstRow[J + 6] := DstRow[J + 6] and Mask;
+                    DstRow[J + 7] := DstRow[J + 7] and Mask;
+
+                    Mask := not Mask;
+                    DstRow[J] := DstRow[J] or SrcRow[J] and Mask;
+                    DstRow[J + 1] := DstRow[J + 1] or SrcRow[J + 1] and Mask;
+                    DstRow[J + 2] := DstRow[J + 2] or SrcRow[J + 2] and Mask;
+                    DstRow[J + 3] := DstRow[J + 3] or SrcRow[J + 3] and Mask;
+                    DstRow[J + 4] := DstRow[J + 4] or SrcRow[J + 4] and Mask;
+                    DstRow[J + 5] := DstRow[J + 5] or SrcRow[J + 5] and Mask;
+                    DstRow[J + 6] := DstRow[J + 6] or SrcRow[J + 6] and Mask;
+                    DstRow[J + 7] := DstRow[J + 7] or SrcRow[J + 7] and Mask;
+
+                    Inc(J, 8);
+                  until J > 0;
+                  //The rest
+                  Dec(J, 8);
+                  while J < 0 do
+                  begin
+                    DstRow[J] := DstRow[J] and not Mask or SrcRow[J] and Mask;
+                    Inc(J);
+                  end;
+                  Inc(SrcRow, Src.Width);
+                  Inc(DstRow, Width);
+                end;
+              end;
+            4: //full copy approach approach, use MoveLongWord
+              for I := 0 to Bottom - Top - 1 do
+              begin
+                MoveLongWord(SrcRow^, DstRow^, Count);
+                Inc(SrcRow, Src.Width);
+                Inc(DstRow, Width);
+              end;
+          end;
+        end;
+      finally
+        EndUpdate;
+      end;
+    end;
+    Changed(DstRect);
+  end;
+end;
+
 
 procedure AlphaToGrayscale(Dst, Src: TBitmap32);
 var
@@ -154,28 +320,29 @@ begin
   Dst.Changed;
 end;
 
-procedure Invert(Dst, Src: TBitmap32; A,R,G,B: Boolean);
+procedure Invert(Dst, Src: TBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
 var
   Mask: TColor32;
 begin
-  Mask := CreateBooleanMask(A, R, G, B);
+  if Components = [] then Exit;
+  Mask := CreateBitmask(Components);
   if Src = Dst then
   begin
     //Inplace
     CheckParams(Dst, Src, False);
-    ApplyLogicalMask(Src, Src.BoundsRect, Mask, loXOR);
+    ApplyBitmask(Src, Src.BoundsRect, Mask, loXOR);
   end
   else
   begin
     //Src -> Dst
     CheckParams(Dst, Src);
-    ApplyLogicalMask(Src, Src.BoundsRect, Dst, 0, 0, Mask, loXOR);
+    ApplyBitmask(Src, Src.BoundsRect, Dst, 0, 0, Mask, loXOR);
   end;
 end;
 
 procedure InvertRGB(Dst, Src: TBitmap32);
 begin
-  Invert(Src, Dst, False, True, True, True);
+  Invert(Src, Dst, [ccRed, ccGreen, ccBlue]);
 end;
 
 procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
@@ -251,22 +418,22 @@ begin
   ABitmap.Changed;
 end;
 
-function CreateBooleanMask(A,R,G,B: Boolean): TColor32;
+function CreateBitmask(Components: TColor32Components): TColor32;
 begin
   Result := 0;
-  if A then Inc(Result, $FF000000);
-  if R then Inc(Result, $00FF0000);
-  if G then Inc(Result, $0000FF00);
-  if B then Inc(Result, $000000FF);
+  if ccAlpha in Components then Inc(Result, $FF000000);
+  if ccRed in Components then Inc(Result, $00FF0000);
+  if ccGreen in Components then Inc(Result, $0000FF00);
+  if ccBlue in Components then Inc(Result, $000000FF);
 end;
 
-function CreateByteMask(A,R,G,B: Byte): TColor32;
+function CreateBitmask(A, R, G, B: Byte): TColor32;
 begin
   Result := Color32(R, G, B, A);
 end;
 
-procedure ApplyLogicalMask(Src: TBitmap32; SrcRect: TRect; Dst: TBitmap32;
-  DstX, DstY: Integer; Mask: TColor32; LogicalOperator: TLogicalOperator);
+procedure ApplyBitmask(Src: TBitmap32; SrcRect: TRect; Dst: TBitmap32;
+  DstX, DstY: Integer; Bitmask: TColor32; LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
   DstRect: TRect;
@@ -303,7 +470,7 @@ begin
           Count := Right - Left;
           if Count > 0 then
               for I := 0 to Bottom - Top - 1 do
-                SrcDstProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], PixelPtr[Left, Top + I], Count, Mask)
+                SrcDstProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], PixelPtr[Left, Top + I], Count, Bitmask)
         end;
       finally
         EndUpdate;
@@ -314,7 +481,7 @@ begin
   end;
 end;
 
-procedure ApplyLogicalMask(ABitmap: TBitmap32; ARect: TRect; Mask: TColor32;
+procedure ApplyBitmask(ABitmap: TBitmap32; ARect: TRect; Bitmask: TColor32;
   LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
@@ -343,10 +510,10 @@ begin
           if Count > 0 then
           begin
             if Count = Width then
-              InplaceProc(PixelPtr[Left, Top], Mask, Count * (Bottom - Top))
+              InplaceProc(PixelPtr[Left, Top], Bitmask, Count * (Bottom - Top))
             else
               for I := Top to Bottom - 1 do
-                InplaceProc(PixelPtr[Left, I], Mask, Count);
+                InplaceProc(PixelPtr[Left, I], Bitmask, Count);
           end;
         end;
       finally
