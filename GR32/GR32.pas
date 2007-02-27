@@ -61,12 +61,16 @@ type
   TColor32Array = array [0..0] of TColor32;
   TArrayOfColor32 = array of TColor32;
 
+  TColor32Component = (ccBlue, ccGreen, ccRed, ccAlpha);
+  TColor32Components = set of TColor32Component;
+
   PColor32Entry = ^TColor32Entry;
   TColor32Entry = packed record
     case Integer of
       0: (B, G, R, A: Byte);
       1: (ARGB: TColor32);
       2: (Planes: array[0..3] of Byte);
+      3: (Components: array[TColor32Component] of Byte);
   end;
 
   PColor32EntryArray = ^TColor32EntryArray;
@@ -114,6 +118,7 @@ function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
 // Color component access
 procedure Color32ToRGB(Color32: TColor32; var R, G, B: Byte);
 procedure Color32ToRGBA(Color32: TColor32; var R, G, B, A: Byte);
+function GetComponent(Color32: TColor32; Component: TColor32Component): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function RedComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BlueComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -923,6 +928,11 @@ begin
   G := (Color32 and $0000FF00) shr 8;
   B := Color32 and $000000FF;
 end; 
+
+function GetComponent(Color32: TColor32; Component: TColor32Component): Integer;
+begin
+  Result := TColor32Entry(Color32).Components[Component];
+end;
 
 function RedComponent(Color32: TColor32): Integer;
 begin
@@ -2258,29 +2268,46 @@ end;
 procedure TBitmap32.ResetAlpha(const AlphaValue: Byte);
 var
   I: Integer;
-  P: PByte;
-  NH, NL: Integer;
+  P: PByteArray;
 begin
   if not FMeasuringMode then
   begin
     P := Pointer(FBits);
-    Inc(P, 3); // shift the pointer to 'alpha' component of the first pixel
+    Inc(P, 3); //shift the pointer to 'alpha' component of the first pixel
 
-    { Enroll the loop 4 times }
-    I := Width * Height;
-    NH := I shr 2;
-    NL := I and $3;
-    for I := 0 to NH - 1 do
+    I := (Width * Height) * 4 - 64;
+    Inc(P, I);
+
+    //16x enrolled loop  
+    I := - I;
+    repeat  
+      P[I] := AlphaValue;
+      P[I +  4] := AlphaValue;
+      P[I +  8] := AlphaValue;
+      P[I + 12] := AlphaValue;
+      P[I + 16] := AlphaValue;
+      P[I + 20] := AlphaValue;
+      P[I + 24] := AlphaValue;
+      P[I + 28] := AlphaValue;
+      P[I + 32] := AlphaValue;
+      P[I + 36] := AlphaValue;
+      P[I + 40] := AlphaValue;
+      P[I + 44] := AlphaValue;
+      P[I + 48] := AlphaValue;
+      P[I + 52] := AlphaValue;
+      P[I + 56] := AlphaValue;
+      P[I + 60] := AlphaValue;
+      Inc(I, 64)
+    until I > 0;
+
+    //eventually remaining bits
+    Dec(I, 64);
+    while I < 0 do
     begin
-      P^ := AlphaValue; Inc(P, 4);
-      P^ := AlphaValue; Inc(P, 4);
-      P^ := AlphaValue; Inc(P, 4);
-      P^ := AlphaValue; Inc(P, 4);
+      P[I + 64] := AlphaValue;
+      Inc(I, 4);
     end;
-    for I := 0 to NL - 1 do
-    begin
-      P^ := AlphaValue; Inc(P, 4);
-    end;
+
   end;
   Changed;
 end;
