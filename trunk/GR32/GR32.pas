@@ -118,8 +118,7 @@ function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
 // Color component access
 procedure Color32ToRGB(Color32: TColor32; var R, G, B: Byte);
 procedure Color32ToRGBA(Color32: TColor32; var R, G, B, A: Byte);
-function Color32Components(R, G, B, A: Boolean): TColor32Components; {$IFDEF USEINLINING} inline; {$ENDIF}
-function GetComponentValue(Color32: TColor32; Component: TColor32Component): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Color32Components(R, G, B, A: Boolean): TColor32Components;
 function RedComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BlueComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -938,11 +937,6 @@ const
   ccA : array[Boolean] of TColor32Components = ([], [ccAlpha]);
 begin
   Result := ccR[R] + ccG[G] + ccB[B] + ccA[A];
-end;
-
-function GetComponentValue(Color32: TColor32; Component: TColor32Component): Integer;
-begin
-  Result := TColor32Entry(Color32).Components[Component];
 end;
 
 function RedComponent(Color32: TColor32): Integer;
