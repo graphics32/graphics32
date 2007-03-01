@@ -2280,39 +2280,52 @@ begin
     P := Pointer(FBits);
     Inc(P, 3); //shift the pointer to 'alpha' component of the first pixel
 
-    I := (Width * Height) * 4 - 64;
-    Inc(P, I);
+    I := Width * Height;
 
-    //16x enrolled loop  
-    I := - I;
-    repeat  
-      P[I] := AlphaValue;
-      P[I +  4] := AlphaValue;
-      P[I +  8] := AlphaValue;
-      P[I + 12] := AlphaValue;
-      P[I + 16] := AlphaValue;
-      P[I + 20] := AlphaValue;
-      P[I + 24] := AlphaValue;
-      P[I + 28] := AlphaValue;
-      P[I + 32] := AlphaValue;
-      P[I + 36] := AlphaValue;
-      P[I + 40] := AlphaValue;
-      P[I + 44] := AlphaValue;
-      P[I + 48] := AlphaValue;
-      P[I + 52] := AlphaValue;
-      P[I + 56] := AlphaValue;
-      P[I + 60] := AlphaValue;
-      Inc(I, 64)
-    until I > 0;
-
-    //eventually remaining bits
-    Dec(I, 64);
-    while I < 0 do
+    if I > 16 then
     begin
-      P[I + 64] := AlphaValue;
-      Inc(I, 4);
-    end;
+      I := I * 4 - 64;
+      Inc(P, I);
 
+      //16x enrolled loop
+      I := - I;
+      repeat
+        P[I] := AlphaValue;
+        P[I +  4] := AlphaValue;
+        P[I +  8] := AlphaValue;
+        P[I + 12] := AlphaValue;
+        P[I + 16] := AlphaValue;
+        P[I + 20] := AlphaValue;
+        P[I + 24] := AlphaValue;
+        P[I + 28] := AlphaValue;
+        P[I + 32] := AlphaValue;
+        P[I + 36] := AlphaValue;
+        P[I + 40] := AlphaValue;
+        P[I + 44] := AlphaValue;
+        P[I + 48] := AlphaValue;
+        P[I + 52] := AlphaValue;
+        P[I + 56] := AlphaValue;
+        P[I + 60] := AlphaValue;
+        Inc(I, 64)
+      until I > 0;
+
+      //eventually remaining bits
+      Dec(I, 64);
+      while I < 0 do
+      begin
+        P[I + 64] := AlphaValue;
+        Inc(I, 4);
+      end;
+    end
+    else
+    begin
+      Dec(I);
+      while I >= 0 do
+      begin
+        P[I] := AlphaValue;
+        Dec(I, 4);
+      end;
+    end;
   end;
   Changed;
 end;
