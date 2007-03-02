@@ -78,8 +78,7 @@ procedure InvertRGB(Dst, Src: TBitmap32);
 procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
 procedure ChromaKey(ABitmap: TBitmap32; TrColor: TColor32);
 
-function CreateBitmask(Components: TColor32Components): TColor32;overload;
-function CreateBitmask(A, R, G, B: Byte): TColor32;overload;
+function CreateBitmask(Components: TColor32Components): TColor32;
 
 procedure ApplyBitmask(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
   SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
@@ -440,11 +439,6 @@ begin
   if ccRed in Components then Inc(Result, $00FF0000);
   if ccGreen in Components then Inc(Result, $0000FF00);
   if ccBlue in Components then Inc(Result, $000000FF);
-end;
-
-function CreateBitmask(A, R, G, B: Byte): TColor32;
-begin
-  Result := Color32(R, G, B, A);
 end;
 
 procedure ApplyBitmask(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
