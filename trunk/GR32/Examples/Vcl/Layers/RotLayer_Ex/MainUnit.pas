@@ -22,6 +22,8 @@ unit MainUnit;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *    Michael Hansen <dyster_tid@hotmail.com>
+ *    - 2007/02/27 - pamTransparentEdge setup, minor GUI changes, image loading
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -29,7 +31,8 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
-  GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars, GR32_Resamplers;
+  GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars, GR32_Resamplers,
+  Jpeg, GR32_Filters;
 
 type
   TForm1 = class(TForm)
@@ -52,7 +55,6 @@ type
     { Private declarations }
   public
     L: TRotLayer;
-    procedure FillBitmap(B: TBitmap32; N: Integer);
   end;
 
 var
@@ -67,17 +69,22 @@ uses Math;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   ImgView.Bitmap.SetSize(200, 200);
-  FillBitmap(ImgView.Bitmap, 0);
+  ImgView.Bitmap.LoadFromFile('..\..\..\Media\stones.jpg');
   L := TRotLayer.Create(ImgView.Layers);
   L.Bitmap := TBitmap32.Create;
   with L.Bitmap do
   begin
     BeginUpdate;
+    LoadFromFile('..\..\..\Media\sprite_texture.bmp');
+
     TLinearResampler.Create(L.Bitmap);
-    SetSize(100, 60);
+
+    //ensure good looking edge, dynamic alternative to SetBorderTransparent
+    TBitmap32Resampler(L.Bitmap.Resampler).PixelAccessMode := pamTransparentEdge;
+
     L.BitmapCenter := FloatPoint(Width / 2, Height / 2);
-    FillBitmap(L.Bitmap, 127);
-    SetBorderTransparent(L.Bitmap, BoundsRect);
+    MasterAlpha := 200;
+    FrameRectS(BoundsRect, $FFFFFFFF);
     DrawMode := dmBlend;
     EndUpdate;
     Changed;
@@ -110,15 +117,6 @@ end;
 procedure TForm1.CheckBox1Click(Sender: TObject);
 begin
   L.Scaled := not L.Scaled;
-end;
-
-procedure TForm1.FillBitmap(B: TBitmap32; N: Integer);
-var
-  X, Y: Integer;
-begin
-  for Y := 0 to B.Height - 1 do
-    for X := 0 to B.Width - 1 do
-      B[X, Y] := Color32(Random(127) + N, Random(127) + N, Random(127) + N, Random(127) + N);
 end;
 
 end.
