@@ -23,7 +23,7 @@ unit MainUnit;
  *
  * Contributor(s):
  *    Michael Hansen <dyster_tid@hotmail.com>
- *    - 2007/02/27 - pamTransparentEdge setup, minor GUI changes, image loading
+ *    - 2007/03/02 - pamTransparentEdge setup, minor GUI changes, image loading
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -32,7 +32,7 @@ interface
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
   GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars, GR32_Resamplers,
-  Jpeg, GR32_Filters;
+  Jpeg;
 
 type
   TForm1 = class(TForm)
