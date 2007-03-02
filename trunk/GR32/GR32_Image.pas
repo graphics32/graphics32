@@ -1693,7 +1693,7 @@ begin
     DsgnTime := True;
     RunTime := True;
     Stage := PST_DRAW_LAYERS;
-    Parameter := $80000000;
+    Parameter := LOB_VISIBLE;
   end;
 end;
 
