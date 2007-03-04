@@ -12,7 +12,7 @@ blockquote {
 <blockquote>
   <p>(in alphabetical order):<br>
   </p>
-  <p><b>v1.8</b></p>
+  <p><b>v1.8.x</b></p>
   <blockquote>
     <p><b> <br>
       Mattias Andersson </b>&lt;mattias@centaurix.com&gt;:</p>
@@ -92,22 +92,32 @@ blockquote {
       </span>- Modified Sprites_Ex, ImgView32_Ex, GradLines_Ex, Polygons_Ex and Image32_Ex Example</p>
     <p>&nbsp;</p>
     <p><strong>Michael Hansen </strong>&lt;dyster_tid@hotmail.com&gt;:</p>
-    <p><span class="API">GR32.pas:</span><br>
+				<p><span class="API">GR32.pas:</span><br>
       - Fixed Math related additions<br>
       - Auxiliary rectangle routines<br>
-      - Misc. array types</p>
-    <p><span class="API">GR32_Layers.pas:</span><br>
+      - Misc. array types<br>
+					- Added TColor32Component, TColor32Components and related routines (TColorEntry updated)<br>
+					- Optimized TBitmap32.ResetAlpha</p>
+				<p><span class="API">GR32_Layers.pas:</span><br>
       - Enhancements to TRubberbandLayer</p>
-    <p><span class="API">GR32_Lowlevel.pas:</span><br>
+				<p><span class="API">GR32_Lowlevel.pas:</span><br>
       - MMX optimized FillLongword</p>
-    <p><span class="API">GR32_OrdinalMaps.pas (new unit):</span><br>
+				<p><span class="API">GR32_Filters.pas:</span><br>
+					- ASM/MMX/EMMX optimized Invert<br>
+					- Added fast CopyComponents routine for copying selected ARGB components btwn. bitmaps<br>
+					- Added ASM/MMX/EMMX ApplyBitmask routine for bitwise Xor/Or/And operations using a bitmask<br>
+				</p>
+				<p><span class="API">GR32_OrdinalMaps.pas (new unit):</span><br>
       - Minor tweaks for TByteMap</p>
     <p><span class="API">GR32_Resamplers.pas (new unit):<br>
       </span>- Added kmTableLinear and kmTableNearest kernel modes<br>
       - Optimized TLinearResampler<br>
       - Fixed TDraftResampler<br>
       - GetSampleFloat optimizations<br>
-      - New overloaded BlendTransfer routine, supporting TBlendRegEx and MasterAlpha</p>
+      - New overloaded BlendTransfer routine, supporting TBlendRegEx and MasterAlpha<br>
+					- New PixelAccessMode pamTransparentEdge as a dynamic and fast alternative to SetBorderTransparent<br>
+					- Minor tweaks in TPatternSampler<br>
+					- Minor optimizations in pamTransparentEdge related routines</p>
     <p><span class="API">GR32_Transforms.pas:</span><br>
       - Added following transformation types:</p>
     <blockquote>
