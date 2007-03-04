@@ -136,11 +136,6 @@
 
   {-$DEFINE CHANGED_IN_PIXELS}
 
-(* Symbol DISABLE_MMX :
-    Defining this symbol will disable any MMX instructions (e.g. for GR32_Blend). *)
-
-  {-$DEFINE DISABLE_MMX}
-
 
 {$IFDEF INLININGSUPPORTED}
 (* Symbol USEINLINING :

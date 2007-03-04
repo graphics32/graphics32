@@ -1659,7 +1659,6 @@ begin
   BLEND_LINE[cmMerge] := _MergeLine;
   BLEND_LINE_EX[cmMerge] := _MergeLineEx;
 
-{$IFNDEF DISABLE_MMX}
   if MMX_ACTIVE then
   begin
     // link MMX functions
@@ -1689,7 +1688,6 @@ begin
     ColorScale := M_ColorScale;
   end
   else
-{$ENDIF}
   begin
     // link non-MMX functions
     CombineReg := _CombineReg;
@@ -1718,7 +1716,6 @@ begin
     ColorScale := _ColorScale;
   end;
 
-{$IFNDEF DISABLE_MMX}
   if HasEMMX then
   begin
     ColorMax := M_ColorMax;
@@ -1726,7 +1723,6 @@ begin
     ColorAverage := M_ColorAverage;
   end
   else
-{$ENDIF}
   begin
     ColorMax := _ColorMax;
     ColorMin := _ColorMin;
