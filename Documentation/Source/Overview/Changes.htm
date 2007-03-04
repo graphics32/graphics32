@@ -55,23 +55,58 @@ blockquote {
 </style>
 </head>
 <body bgcolor="#FFFFFF">
+<h2 class="Body">v1.8.3 (5 March 2007)</h2>
+<ul class="barebones expandable">
+  <li>
+	<h2>General changes</h2>
+	<ul>
+	  <li>
+		<h2>Additions:</h2>
+		<ul class="dots">
+		  <li>Added new ASM/(E)MMX optimized ApplyBitmask routine for logical (bitwise) Xor/Or/And operations using a bitmask.</li>
+		  <li>Added new TColor32Component basetypes for specifying a component or component sets (related updates to TColor32Entry).</li>
+		  <li>Added new CopyComponents routine for copying selected ARGB components btwn bitmaps.</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Optimizations:</h2>
+		<ul class="dots">
+		  <li>Optimized TBitmap32.ResetAlpha, Invert and InvertRGB.</li>
+		  <li>Optimizations in pamTransparentEdge related routines.</li>
+		  <li>TPatternSampler now supports nonrectangular sampling patterns.</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Bugfixes:</h2>
+		<ul class="dots">
+		  <li>Bugfix in MMX version of BlockAverage that caused access violations on resampling.</li>
+		  <li>Fixes for the following bugs reported on the SourceForge tracker:
+			  1560912, 1556318</li>
+		  <li>Fixed misbehvior when setting TCustomImage32.BufferOversize property. Changes now directly force resizing of the buffer.</li>
+		  <li>Fixed Kylix compilation issue introduced with new multithreading support.</li>
+		  <li>Several minor cleanups and fixes.</li>
+		</ul>
+	  </li>
+	</ul>
+  </li>
+</ul>
 <h2 class="Body">v1.8.2 (5 February 2007)</h2>
 <ul class="barebones expandable">
   <li>
-    <h2>General changes</h2>
-    <ul>
-      <li>
+	<h2>General changes</h2>
+	<ul>
+	  <li>
 		<h2>Additions:</h2>
-        <ul class="dots">
-          <li>Added new TMultiThreadedRasterizer class for performing regular rasterization using multiple threads. By defining the symbol USE_MULTITHREADING this rasterizer becomes default on multi-core systems. </li>
-          <li>Added TPolarTransformation and TPathTransformation classes. </li>
-          <li>Added TPixelAccessMode pamTransparentEdge, useful for getting smooth edges with transformations.</li>
-          <li>Added new optimized low-level routines to GR32_Math.pas.</li>
-        </ul>
-      </li>
-      <li>
-        <h2>Bugfixes:</h2>
-        <ul class="dots">
+		<ul class="dots">
+		  <li>Added new TMultiThreadedRasterizer class for performing regular rasterization using multiple threads. By defining the symbol USE_MULTITHREADING this rasterizer becomes default on multi-core systems. </li>
+		  <li>Added TPolarTransformation and TPathTransformation classes. </li>
+		  <li>Added TPixelAccessMode pamTransparentEdge, useful for getting smooth edges with transformations.</li>
+		  <li>Added new optimized low-level routines to GR32_Math.pas.</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Bugfixes:</h2>
+		<ul class="dots">
 		  <li>Fixes for various bugs reported on the SourceForge tracker:
 			  1445701, 1448030, 1486180, 1456950, 1460821, 1493697, 1610287, 1610292, 1611173</li>
 		  <li>Fixed a problem in TRenderThread that cause an AV when OnAreaChanged of the destination bitmap was unassigned. </li>
@@ -79,12 +114,12 @@ blockquote {
 		  <li>Fixed buffer overrun error in polygon rasterization.</li>
 		  <li>Fix: M_ColorMax, M_ColorMin, M_ColorAverage
 			  raised critical exception on old Celeron CPU.</li>
-          <li>Fixed problem in TKernelResampler that caused artifacts at edges for pamSafe pixel access mode.</li>
-          <li>Fixed installation problems in D2005. </li>
-          <li>Minor tweaks and optimizations. </li>
-        </ul>
-      </li>
-    </ul>
+		  <li>Fixed problem in TKernelResampler that caused artifacts at edges for pamSafe pixel access mode.</li>
+		  <li>Fixed installation problems in D2005. </li>
+		  <li>Minor tweaks and optimizations. </li>
+		</ul>
+	  </li>
+	</ul>
   </li>
 </ul>
 <h2 class="Body">v1.8.1 (1 March 2006)</h2>
