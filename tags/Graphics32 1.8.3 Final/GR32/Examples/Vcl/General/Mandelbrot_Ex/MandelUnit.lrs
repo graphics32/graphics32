@@ -1,0 +1,39 @@
+LazarusResources.Add('TForm1','FORMDATA',[
+  'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#132#1#6'Height'#3#183#1#3'Top'#3#137#0#5
+  +'Width'#3#212#1#18'HorzScrollBar.Page'#3#211#1#18'VertScrollBar.Page'#3#163#1
+  +#7'Caption'#6#18'Mandelbrot Example'#11'Font.Height'#2#245#9'Font.Name'#6#6
+  +'Tahoma'#4'Menu'#7#9'MainMenu1'#8'OnCreate'#7#10'FormCreate'#9'OnDestroy'#7
+  +#11'FormDestroy'#0#17'TSyntheticImage32'#3'Img'#6'Height'#3#164#1#5'Width'#3
+  +#212#1#5'Align'#7#8'alClient'#11'RepaintMode'#7#8'rmDirect'#8'TabOrder'#2#0
+  +#11'OnMouseDown'#7#12'ImgMouseDown'#13'AutoRasterize'#9#25'Buffer.ResamplerC'
+  +'lassName'#6#17'TNearestResampler'#20'Buffer.OnAreaChanged'#13#5'Color'#7#7
+  +'clBlack'#11'ClearBuffer'#9#0#0#9'TMainMenu'#9'MainMenu1'#4'left'#2#24#3'top'
+  +#2#16#0#9'TMenuItem'#5'File1'#7'Caption'#6#4'File'#0#9'TMenuItem'#5'Save1'#7
+  +'Caption'#6#7'Save...'#7'OnClick'#7#10'Save1Click'#0#0#9'TMenuItem'#2'N3'#7
+  +'Caption'#6#1'-'#0#0#9'TMenuItem'#5'Exit1'#7'Caption'#6#4'Exit'#0#0#0#9'TMen'
+  +'uItem'#11'Rasterizer1'#7'Caption'#6#10'Rasterizer'#0#9'TMenuItem'#16'Regula'
+  +'rsampling1'#7'Caption'#6#16'Regular Sampling'#9'RadioItem'#9#7'OnClick'#7#19
+  +'RasterizerMenuClick'#0#0#9'TMenuItem'#12'Progressive1'#3'Tag'#2#1#7'Caption'
+  +#6#11'Progressive'#7'Checked'#9#9'RadioItem'#9#7'OnClick'#7#19'RasterizerMen'
+  +'uClick'#0#0#9'TMenuItem'#10'Swizzling1'#3'Tag'#2#2#7'Caption'#6#9'Swizzling'
+  +#9'RadioItem'#9#7'OnClick'#7#19'RasterizerMenuClick'#0#0#9'TMenuItem'#9'Tess'
+  +'eral1'#3'Tag'#2#3#7'Caption'#6#8'Tesseral'#9'RadioItem'#9#7'OnClick'#7#19'R'
+  +'asterizerMenuClick'#0#0#9'TMenuItem'#8'Contour1'#3'Tag'#2#4#7'Caption'#6#7
+  +'Contour'#7'OnClick'#7#19'RasterizerMenuClick'#0#0#0#9'TMenuItem'#8'Sampler1'
+  +#7'Caption'#6#12'SuperSampler'#0#9'TMenuItem'#8'Default1'#7'Caption'#6#4'Non'
+  +'e'#7'Checked'#9#9'RadioItem'#9#7'OnClick'#7#13'Default1Click'#0#0#9'TMenuIt'
+  +'em'#2'N5'#7'Caption'#6#1'-'#0#0#9'TMenuItem'#4'N2x2'#3'Tag'#2#1#7'Caption'#6
+  +#15'SuperSampler 2x'#9'RadioItem'#9#7'OnClick'#7#13'Default1Click'#0#0#9'TMe'
+  +'nuItem'#4'N3x2'#3'Tag'#2#2#7'Caption'#6#15'SuperSampler 3x'#9'RadioItem'#9#7
+  +'OnClick'#7#13'Default1Click'#0#0#9'TMenuItem'#4'N4x2'#3'Tag'#2#3#7'Caption'
+  +#6#15'SuperSampler 4x'#9'RadioItem'#9#7'OnClick'#7#13'Default1Click'#0#0#9'T'
+  +'MenuItem'#8'Adaptive'#7'Caption'#6#8'Adaptive'#7'Enabled'#8#7'OnClick'#7#13
+  +'AdaptiveClick'#0#0#9'TMenuItem'#2'N2'#7'Caption'#6#1'-'#0#0#9'TMenuItem'#15
+  +'PatternSampler2'#3'Tag'#2#4#7'Caption'#6#17'PatternSampler 2x'#9'RadioItem'
+  +#9#7'OnClick'#7#13'Default1Click'#0#0#9'TMenuItem'#17'PatternSampler3x1'#3'T'
+  +'ag'#2#5#7'Caption'#6#17'PatternSampler 3x'#9'RadioItem'#9#7'OnClick'#7#13'D'
+  +'efault1Click'#0#0#9'TMenuItem'#15'PatternSampler1'#3'Tag'#2#6#7'Caption'#6
+  +#17'PatternSampler 4x'#9'RadioItem'#9#7'OnClick'#7#13'Default1Click'#0#0#0#0
+  +#18'TSavePictureDialog'#18'SavePictureDialog1'#5'Title'#6#12'Save file as'#11
+  +'FilterIndex'#2#0#4'left'#2'@'#3'top'#2#16#0#0#0
+]);

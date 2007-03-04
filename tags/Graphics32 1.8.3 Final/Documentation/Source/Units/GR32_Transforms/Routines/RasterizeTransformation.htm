@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Transform</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> RasterizeTransformation(Vectormap: <a href="../../GR32_VectorMaps/Classes/TVectorMap/_Body.htm">TVectormap</a>; Transformation: <a href="../Classes/TTransformation/_Body.htm">TTransformation</a>; DstRect: <a href="../../GR32/Types/Rectangle%20Types.htm">TRect</a>; CombineMode: <a href="../../GR32_VectorMaps/Types/TVectorCombineMode.htm">TVectorCombineMode</a> = vcmAdd; CombineCallback: <a href="../../GR32_VectorMaps/Types/TVectorCombineEvent.htm">TVectorCombineEvent</a> = nil);</p>
+<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">RasterizeTransformation</span> provides a convenient <a href="../Classes/TRemapTransformation/_Body.htm">TTransformation</a> rendering/buffering system, meaning that other transformationclasses can be precalculated into the vector map.</p>
+		<p class="Body"></p>
+		<p class="Body">The <b>Transformation</b> parameter is a reference to a descendant 
+  of an abstract <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> 
+  class. It specifies all necessary transformation parameters. </p>
+		<p class="Body"></p>
+		<p class="Body"><b>CombineMode </b>is vcmAdd by default, and the transformation will be added to the existing vectors (note that the routine will handle the conversion to relative vector space). When combine mode is vcmReplace, transformation vectors will replace the existing ones in the vectormap. When combine mode is vcmCustom, the last parameter <b>CombineCallback </b>will be used. Note that even in vcmCustom mode, vectors will be made relative by RasterizeTransformation.</p>
+		<p class="Body"></p>
+		<p id="hidden">[See Also] </p>
+	</body>
+</html>

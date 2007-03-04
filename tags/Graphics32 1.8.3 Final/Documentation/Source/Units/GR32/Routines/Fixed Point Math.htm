@@ -1,0 +1,26 @@
+<html>
+<head>
+<title></title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Fixed</h2>
+<p class="Decl"><b>function</b> Fixed(S: Single): <a href="../Types/TFixed.htm">TFixed</a>; 
+  <b>overload</b>;</p>
+<p class="Decl"><b>function</b> Fixed(I: Integer): <a href="../Types/TFixed.htm">TFixed</a>; 
+  <b>overload</b>;</p>
+<p class="Body">A couple of <a href="../Types/TFixed.htm">TFixed</a> constructors.</p>
+<p class="Body">In case you don't want your program to loose time on extra function 
+  call, you can use another method of converting <span class="API">Integer</span> 
+  to <a href="../Types/TFixed.htm">TFixed</a>:</p>
+<p class="Code"><b>var</b></p>
+<p class="Code"> &nbsp;&nbsp;FX: TFixed;</p>
+<p class="Code"> <b>begin</b></p>
+<p class="Code"> &nbsp;&nbsp;FX := IntVal <b>shl</b> 16;</p>
+<p class="Code"> &nbsp;&nbsp;...</p>
+		<p class="Code"> <b>end</b>;</p>
+		<p id="Hidden"></p>
+		<p id="Hidden">[See also] <a href="../../GR32_Math/_Body.htm">GR32_Math</a></p>
+</body>
+</html>

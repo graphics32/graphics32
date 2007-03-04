@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>BIts</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Pixmap: QPixmapH; <span class="Comment">// 
+  read-only;</span></p>
+<h2>Description</h2>
+<p class="Body">Returns a pointer to the current Pixmap instance. You can use that if you're working directly with QT related
+  methods.</p>
+<p class="Body"><strong>Important Note: </strong>Due to the nature of QT handling images and bitmap information, there is
+  a need to notify TBitmap32 about changes you made to the QPixmap. You can use the PixmapChanged property to
+  do so.<br>
+  This will copy the Pixmap content as
+  soon as the Bits property is accessed or some internal function is accessing the image data directly. This will make sure
+  that the content is copied from the QPixmap to the internal QImage in TBitmap32.</p>
+<blockquote>
+  <p class="Comment">This property is only available in the CLX version. For VCL use the property <a href="BitmapHandle.htm">BitmapHandle</a> instead.</p>
+</blockquote>
+<p id="hidden">[See also]: <a href="BitmapHandle.htm">BitmapHandle</a> </p>
+</body>
+</html>

@@ -1,0 +1,282 @@
+object Form1: TForm1
+  Left = 270
+  Height = 422
+  Top = 228
+  Width = 483
+  HorzScrollBar.Page = 482
+  VertScrollBar.Page = 421
+  Caption = 'Resamplers Example'
+  Constraints.MinHeight = 200
+  Constraints.MinWidth = 200
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnClose = FormClose
+  OnCreate = FormCreate
+  object SidePanel: TPanel
+    Left = 329
+    Height = 374
+    Width = 146
+    Align = alRight
+    BevelOuter = bvNone
+    TabOrder = 1
+    object pnlResampler: TPanel
+      Height = 160
+      Width = 146
+      Align = alTop
+      TabOrder = 0
+      object Label1: TLabel
+        Left = 12
+        Height = 13
+        Top = 24
+        Width = 82
+        Anchors = [akTop, akRight]
+        Caption = 'Resampler Class:'
+        Color = clNone
+        ParentColor = False
+      end
+      object Label4: TLabel
+        Left = 12
+        Height = 13
+        Top = 67
+        Width = 91
+        Anchors = [akTop, akRight]
+        Caption = 'Pixel Access Mode:'
+        Color = clNone
+        ParentColor = False
+      end
+      object Label5: TLabel
+        Left = 12
+        Height = 13
+        Top = 110
+        Width = 59
+        Anchors = [akTop, akRight]
+        Caption = 'Wrap Mode:'
+        Color = clNone
+        ParentColor = False
+      end
+      object Panel2: TPanel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 144
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Resampler Properties'
+        Color = clBtnShadow
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        ParentColor = False
+        TabOrder = 0
+      end
+      object ResamplerClassNamesList: TComboBox
+        Left = 16
+        Height = 21
+        Top = 40
+        Width = 119
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
+        MaxLength = 0
+        OnChange = ResamplerClassNamesListChange
+        Style = csDropDownList
+        TabOrder = 1
+      end
+      object EdgecheckBox: TComboBox
+        Left = 16
+        Height = 21
+        Top = 83
+        Width = 119
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
+        Items.Strings = (
+          'Unsafe'
+          'Safe'
+          'Wrap'
+        )
+        MaxLength = 0
+        OnChange = EdgecheckBoxChange
+        Style = csDropDownList
+        TabOrder = 2
+      end
+      object WrapBox: TComboBox
+        Left = 16
+        Height = 21
+        Top = 126
+        Width = 119
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
+        Items.Strings = (
+          'Clamp'
+          'Repeat'
+          'Mirror'
+        )
+        MaxLength = 0
+        OnChange = EdgecheckBoxChange
+        Style = csDropDownList
+        TabOrder = 3
+      end
+    end
+    object pnlKernel: TPanel
+      Height = 160
+      Top = 160
+      Width = 146
+      Align = alTop
+      TabOrder = 1
+      Visible = False
+      object Label2: TLabel
+        Left = 12
+        Height = 13
+        Top = 24
+        Width = 62
+        Anchors = [akTop, akRight]
+        Caption = 'Kernel Class:'
+        Color = clNone
+        ParentColor = False
+      end
+      object Label3: TLabel
+        Left = 12
+        Height = 13
+        Top = 67
+        Width = 63
+        Anchors = [akTop, akRight]
+        Caption = 'Kernel Mode:'
+        Color = clNone
+        ParentColor = False
+      end
+      object TableSizeLabel: TLabel
+        Left = 8
+        Height = 13
+        Top = 116
+        Width = 97
+        Caption = 'Table Size (32/100):'
+        Color = clNone
+        ParentColor = False
+      end
+      object Panel1: TPanel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 144
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Kernel Properties'
+        Color = clBtnShadow
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        ParentColor = False
+        TabOrder = 0
+      end
+      object KernelClassNamesList: TComboBox
+        Left = 16
+        Height = 21
+        Top = 40
+        Width = 119
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
+        MaxLength = 0
+        OnChange = KernelClassNamesListClick
+        Style = csDropDownList
+        TabOrder = 1
+      end
+      object KernelModeList: TComboBox
+        Left = 16
+        Height = 21
+        Top = 83
+        Width = 119
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
+        Items.Strings = (
+          'Default (precise, slow)'
+          'Table Nearest (truncated, fastest)'
+          'Table Linear (interpolated, fast)'
+        )
+        MaxLength = 0
+        OnChange = KernelModeListChange
+        Style = csDropDownList
+        TabOrder = 2
+      end
+      object gbTableSize: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 136
+        Width = 113
+        Color = clScrollBar
+        HandleSize = 16
+        Min = 1
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 32
+        OnChange = gbTableSizeChange
+        OnMouseUp = gbTableSizeMouseUp
+      end
+    end
+  end
+  object PageControl1: TPageControl
+    Height = 374
+    Width = 329
+    ActivePage = TabSheet1
+    Align = alClient
+    TabIndex = 0
+    TabOrder = 0
+    OnChange = ResamplerClassNamesListChange
+    object TabSheet1: TTabSheet
+      Caption = 'Details'
+      object DstImg: TImage32
+        Height = 348
+        Width = 321
+        Align = alClient
+        Bitmap.ResamplerClassName = 'TKernelResampler'
+        Bitmap.Resampler.KernelClassName = 'TBoxKernel'
+        Bitmap.Resampler.TableSize = 32
+        Bitmap.OnAreaChanged = nil
+        RepaintMode = rmOptimizer
+        Scale = 1
+        ScaleMode = smStretch
+        TabOrder = 0
+        OnResize = DstImgResize
+      end
+    end
+    object ResamplingTabSheet: TTabSheet
+      Caption = 'Resampling'
+      ImageIndex = 1
+      object ResamplingPaintBox: TPaintBox32
+        Height = 348
+        Width = 321
+        Align = alClient
+        RepaintMode = rmOptimizer
+        TabOrder = 0
+        OnResize = ResamplingPaintBoxResize
+      end
+    end
+    object tabKernel: TTabSheet
+      Caption = 'Curve'
+      ImageIndex = 2
+      TabVisible = False
+      object CurveImage: TImage32
+        Height = 346
+        Width = 321
+        Align = alClient
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+        Scale = 1
+        TabOrder = 0
+        OnPaintStage = CurveImagePaintStage
+      end
+    end
+  end
+  object StatusBar1: TStatusBar
+    Height = 20
+    Top = 402
+    Width = 483
+    Panels = <    
+      item
+        Width = 50
+      end>
+  end
+end

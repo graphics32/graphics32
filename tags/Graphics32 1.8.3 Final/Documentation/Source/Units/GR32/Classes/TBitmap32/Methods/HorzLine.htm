@@ -1,0 +1,32 @@
+<html>
+<head>
+<title>HorzLine</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> HorzLine(X1, Y, X2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+</p>
+<p class="Decl"><b>procedure</b> HorzLineS(X1, Y, X2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+</p>
+<p class="Decl"><b>procedure</b> HorzLineT(X1, Y, X2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+</p>
+<p class="Decl"><b>procedure</b> HorzLineTS(X1, Y, X2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>); 
+</p>
+<p class="Decl"><b>procedure</b> HorzLineTSP(X1, Y, X2: Integer); </p>
+<h2>Description</h2>
+<p class="Body">Draws a horizontal line from (<span class="EmptyRef">X1</span>,<span class="EmptyRef">Y</span>) 
+  to (<span class="EmptyRef">X2</span>, <span class="EmptyRef">Y</span>). The 
+  last point is always included. </p>
+<p class="Body">These functions works faster compared to Line (I think <span class="EmptyRef">HorzLine</span> 
+  is the fastest line drawing function in the world :) . In versions with 'S' 
+  postfix necessary clipping to a bitmap coordinate range is provided. In versions 
+  without 'S' postfix, the <span class="EmptyRef">X1</span> value should be less 
+  than or equal to <span class="EmptyRef">X2</span>. </p>
+<p class="Body"><span class="EmptyRef">HorzLineTSP</span> uses a stipple pattern 
+  to vary the color along the line.</p>
+<p id="hidden">[See also]: <a href="Line.htm">Line</a>, <a href="VertLine.htm">VertLine</a>, 
+  <a href="../../../../../Additional%20Topics/Line%20Patterns.htm">Line Patterns</a>, 
+  <a href="../../../../../Overview/Naming%20Conventions.htm">Naming Conventions</a></p>
+</body>
+</html>

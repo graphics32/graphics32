@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>ScaleMode</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> ScaleMode: <a href="../../../Types/TScaleMode.htm">TScaleMode</a>;</p>
+<p class="Decl"><b>type</b> TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);</p>
+<h2>Description</h2>
+<p class="Body">Specifies the current scale mode for the bitmap image.</p>
+<p class="Body"><strong>smNormal</strong> will display the bitmap image with its original size;</p>
+<p class="Body"><strong>smStretch</strong> will stretch the bitmap image to fit the control's boundaries;</p>
+<p class="Body"><strong>smResize</strong> will proportionally resize the bitmap image to fit the control's boundaries;</p>
+<p class="Body"><strong>smScale</strong> will proportionally scale the bitmap image using the factor provided by the <a href="Scale.htm">Scale</a> property;</p>
+<p class="Body"><strong>smOptimal</strong> will proportionally fit the bitmap image into the control's boundaries if the viewport is smaller than the image size. Otherwise it will be displayed with its original size;</p>
+<p class="Body"><strong>smOptimalScaled</strong> will proportionally fit the bitmap image into the control's boundaries if the viewport is smaller than the image size multiplied by the <a href="Scale.htm">Scale</a> property. Otherwise it will be displayed with its original size.</p>
+<p class="Body">&nbsp;</p>
+<p class="Body">Note, that <a href="../../../../GR32_Image/Classes/TCustomImgView32/_Body.htm">TCustomImgView32</a> 
+  descendants only support smScale, smOptimal and smOptimalScaled mode.</p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]: <a href="../../../../../Additional%20Topics/Using%20TImage32/Bitmap%20Image.htm">Bitmap 
+  Image</a></p>
+</body>
+</html>

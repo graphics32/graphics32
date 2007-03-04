@@ -1,0 +1,100 @@
+object MainForm: TMainForm
+  Left = 272
+  Height = 285
+  Top = 282
+  Width = 467
+  HorzScrollBar.Page = 466
+  VertScrollBar.Page = 284
+  BorderStyle = bsToolWindow
+  Caption = 'PixelF Example'
+  Constraints.MaxHeight = 287
+  Constraints.MaxWidth = 467
+  Constraints.MinHeight = 285
+  Constraints.MinWidth = 467
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Position = poScreenCenter
+  object Image32: TImage32
+    Left = 8
+    Height = 244
+    Top = 8
+    Width = 300
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    AutoSize = True
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baCenter
+    Scale = 1
+    TabOrder = 0
+    OnPaintStage = Image32PaintStage
+  end
+  object PnlSettings: TPanel
+    Left = 316
+    Height = 258
+    Width = 143
+    Align = alRight
+    TabOrder = 1
+    object Label3: TLabel
+      Left = 8
+      Height = 13
+      Top = 32
+      Width = 58
+      Caption = 'Twirl Power:'
+      Color = clNone
+      ParentColor = False
+    end
+    object Panel4: TPanel
+      Left = 1
+      Height = 16
+      Top = 1
+      Width = 141
+      Align = alTop
+      BevelOuter = bvNone
+      Caption = 'Twirl Distortion'
+      Color = clBtnShadow
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentColor = False
+      TabOrder = 0
+    end
+    object gbTwist: TGaugeBar
+      Left = 8
+      Height = 12
+      Top = 48
+      Width = 129
+      Color = clScrollBar
+      HandleSize = 16
+      Max = 50
+      Min = -50
+      ShowArrows = False
+      ShowHandleGrip = True
+      Style = rbsMac
+      OnChange = gbTwistChange
+    end
+    object rbGetPixelFS: TRadioButton
+      Left = 8
+      Height = 17
+      Top = 96
+      Width = 129
+      Caption = 'TBitmap32.PixelFS'
+      OnClick = gbTwistChange
+      TabOrder = 1
+    end
+    object rbPixelS: TRadioButton
+      Left = 8
+      Height = 17
+      Top = 72
+      Width = 105
+      Caption = 'TBitmap32.PixelS'
+      Checked = True
+      OnClick = gbTwistChange
+      State = cbChecked
+      TabOrder = 2
+    end
+  end
+end
