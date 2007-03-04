@@ -787,6 +787,8 @@ asm
    POP   EBX
 end;
 
+{$IFDEF COMPILER6}
+
 { MMX versions}
 
 procedure M_XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
@@ -1307,6 +1309,7 @@ asm
    POP   EBX
 end;
 
+{$ENDIF}
 
 procedure SetupFunctions;
 begin
@@ -1314,6 +1317,7 @@ begin
   LOGICAL_MASK_LINE[loOR] := _OrLine;
   LOGICAL_MASK_LINE[loAND] := _AndLine;
 
+{$IFDEF COMPILER6}
   if HasEMMX then
   begin
     //Link Extended MMX functions
@@ -1330,6 +1334,7 @@ begin
     LOGICAL_MASK_LINE_EX[loAND] := M_AndLineEx;
   end
   else
+{$ENDIF}
   begin
     //Link non-MMX functions
     LOGICAL_MASK_LINE_EX[loXOR] := _XorLineEx;
