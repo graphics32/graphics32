@@ -45,25 +45,6 @@ type
   TLUT8 = array [Byte] of Byte;
   TLogicalOperator = (loXOR, loAND, loOR);
 
-{ Function Prototypes }
-  TLogicalMaskInplace  = procedure(RowPtr: PColor32; Mask: TColor32; Count: Integer);
-  TLogicalMaskSrcToDst  = procedure(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
-
-var
-{ Function Variables }
-  MaskInplace_XOR: TLogicalMaskInplace;
-  MaskSrcToDst_XOR: TLogicalMaskSrcToDst;
-
-  MaskInplace_AND: TLogicalMaskInplace;
-  MaskSrcToDst_AND: TLogicalMaskSrcToDst;
-
-  MaskInplace_OR: TLogicalMaskInplace;
-  MaskSrcToDst_OR: TLogicalMaskSrcToDst;
-
-{ Access to masked logical operation functions corresponding to a logical operation mode }
-  LOGICALMASKPROC_INPLACE: array[TLogicalOperator] of  TLogicalMaskInplace;
-  LOGICALMASKPROC_SRCTODST: array[TLogicalOperator] of TLogicalMaskSrcToDst;
-
 procedure CopyComponents(Dst, Src: TBitmap32; Components: TColor32Components);overload;
 procedure CopyComponents(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
   SrcRect: TRect; Components: TColor32Components); overload;
@@ -97,6 +78,16 @@ const
   SEmptySource = 'The source is nil';
   SEmptyDestination = 'Destination is nil';
   SNoInPlace = 'In-place operation is not supported here';
+
+type
+{ Function Prototypes }
+  TLogicalMaskLine  = procedure(Dst: PColor32; Mask: TColor32; Count: Integer); //Inplace
+  TLogicalMaskLineEx  = procedure(Src, Dst: PColor32; Count: Integer; Mask: TColor32); //"Src To Dst"
+
+var
+{ Access to masked logical operation functions corresponding to a logical operation mode }
+  LOGICAL_MASK_LINE: array[TLogicalOperator] of  TLogicalMaskLine;
+  LOGICAL_MASK_LINE_EX: array[TLogicalOperator] of TLogicalMaskLineEx;
 
 procedure CheckParams(Dst, Src: TBitmap32; ResizeDst: Boolean = True);
 begin
@@ -446,13 +437,13 @@ procedure ApplyBitmask(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
 var
   I, Count: Integer;
   DstRect: TRect;
-  SrcDstProc : TLogicalMaskSrcToDst;
+  MaskProc : TLogicalMaskLineEx;
 begin
   CheckParams(Dst, Src, False);
 
-  SrcDstProc := LOGICALMASKPROC_SRCTODST[LogicalOperator];
+  MaskProc := LOGICAL_MASK_LINE_EX[LogicalOperator];
 
-  if Assigned(SrcDstProc) then
+  if Assigned(MaskProc) then
   with Dst do
   begin
     IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
@@ -480,7 +471,7 @@ begin
           Count := Right - Left;
           if Count > 0 then
               for I := 0 to Bottom - Top - 1 do
-                SrcDstProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], PixelPtr[Left, Top + I], Count, Bitmask)
+                MaskProc(Src.PixelPtr[SrcRect.Left, SrcRect.Top + I], PixelPtr[Left, Top + I], Count, Bitmask)
         end;
       finally
         EndUpdate;
@@ -495,14 +486,14 @@ procedure ApplyBitmask(ABitmap: TBitmap32; ARect: TRect; Bitmask: TColor32;
   LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
-  InplaceProc : TLogicalMaskInplace;
+  MaskProc : TLogicalMaskLine;
 begin
   if not Assigned(ABitmap) then
     raise Exception.Create(SEmptyBitmap);
 
-  InplaceProc := LOGICALMASKPROC_INPLACE[LogicalOperator];
+  MaskProc := LOGICAL_MASK_LINE[LogicalOperator];
 
-  if Assigned(InplaceProc) then
+  if Assigned(MaskProc) then
   with ABitmap do
   begin
     IntersectRect(ARect, ARect, BoundsRect);
@@ -520,10 +511,10 @@ begin
           if Count > 0 then
           begin
             if Count = Width then
-              InplaceProc(PixelPtr[Left, Top], Bitmask, Count * (Bottom - Top))
+              MaskProc(PixelPtr[Left, Top], Bitmask, Count * (Bottom - Top))
             else
               for I := Top to Bottom - 1 do
-                InplaceProc(PixelPtr[Left, I], Bitmask, Count);
+                MaskProc(PixelPtr[Left, I], Bitmask, Count);
           end;
         end;
       finally
@@ -538,7 +529,7 @@ end;
 { In-place logical mask functions }
 { Non - MMX versions}
 
-procedure _XOR_Inplace(Row: PColor32; Mask: TColor32; Count: Integer);
+procedure _XorLine(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
    TEST  ECX, ECX
@@ -599,7 +590,7 @@ asm
   @Exit:
 end;
 
-procedure _OR_Inplace(Row: PColor32; Mask: TColor32; Count: Integer);
+procedure _OrLine(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
    TEST  ECX, ECX
@@ -660,7 +651,7 @@ asm
   @Exit:
 end;
 
-procedure _AND_Inplace(Row: PColor32; Mask: TColor32; Count: Integer);
+procedure _AndLine(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
    TEST  ECX, ECX
@@ -721,10 +712,10 @@ asm
   @Exit:
 end;
 
-{ Src -> Dst logical mask functions  }
+{ extended logical mask functions Src -> Dst }
 { Non - MMX versions}
 
-procedure _XOR_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure _XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
    PUSH  EBX
    PUSH  EDI
@@ -748,7 +739,7 @@ asm
    POP   EBX
 end;
 
-procedure _OR_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure _OrLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
    PUSH  EBX
    PUSH  EDI
@@ -772,7 +763,7 @@ asm
    POP   EBX
 end;
 
-procedure _AND_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure _AndLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
    PUSH  EBX
    PUSH  EDI
@@ -798,7 +789,7 @@ end;
 
 { MMX versions}
 
-procedure M_XOR_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure M_XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
@@ -884,7 +875,7 @@ asm
    POP   EBX
 end;
 
-procedure M_OR_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure M_OrLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
@@ -970,7 +961,7 @@ asm
    POP   EBX
 end;
 
-procedure M_AND_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure M_AndLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
@@ -1058,7 +1049,7 @@ end;
 
 { Extended MMX versions}
 
-procedure EM_XOR_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure EM_XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
   QMask: Int64;
@@ -1144,7 +1135,7 @@ asm
    POP   EBX
 end;
 
-procedure EM_OR_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure EM_OrLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
   QMask: Int64;
@@ -1230,7 +1221,7 @@ asm
    POP   EBX
 end;
 
-procedure EM_AND_SrcToDst(SrcRow, DstRow: PColor32; Count: Integer; Mask: TColor32);
+procedure EM_AndLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
   QMask: Int64;
@@ -1319,40 +1310,32 @@ end;
 
 procedure SetupFunctions;
 begin
-  MaskInplace_XOR := _XOR_Inplace;
-  MaskInplace_OR := _OR_Inplace;
-  MaskInplace_AND := _AND_Inplace;
+  LOGICAL_MASK_LINE[loXOR] := _XorLine;
+  LOGICAL_MASK_LINE[loOR] := _OrLine;
+  LOGICAL_MASK_LINE[loAND] := _AndLine;
 
   if HasEMMX then
   begin
     //Link Extended MMX functions
-    MaskSrcToDst_XOR := EM_XOR_SrcToDst;
-    MaskSrcToDst_OR := EM_OR_SrcToDst;
-    MaskSrcToDst_AND := EM_AND_SrcToDst;
+    LOGICAL_MASK_LINE_EX[loXOR] := EM_XorLineEx;
+    LOGICAL_MASK_LINE_EX[loOR] := EM_OrLineEx;
+    LOGICAL_MASK_LINE_EX[loAND] := EM_AndLineEx;
   end
   else
   if HasMMX then
   begin
     //Link MMX functions
-    MaskSrcToDst_XOR := M_XOR_SrcToDst;
-    MaskSrcToDst_OR := M_OR_SrcToDst;
-    MaskSrcToDst_AND := M_AND_SrcToDst;
+    LOGICAL_MASK_LINE_EX[loXOR] := M_XorLineEx;
+    LOGICAL_MASK_LINE_EX[loOR] := M_OrLineEx;
+    LOGICAL_MASK_LINE_EX[loAND] := M_AndLineEx;
   end
   else
   begin
     //Link non-MMX functions
-    MaskSrcToDst_XOR := _XOR_SrcToDst;
-    MaskSrcToDst_OR := _OR_SrcToDst;
-    MaskSrcToDst_AND := _AND_SrcToDst;
+    LOGICAL_MASK_LINE_EX[loXOR] := _XorLineEx;
+    LOGICAL_MASK_LINE_EX[loOR] := _OrLineEx;
+    LOGICAL_MASK_LINE_EX[loAND] := _AndLineEx;
   end;
-
-  LOGICALMASKPROC_INPLACE[loXOR] := MaskInplace_XOR;
-  LOGICALMASKPROC_INPLACE[loOR] := MaskInplace_OR;
-  LOGICALMASKPROC_INPLACE[loAND] := MaskInplace_AND;
-
-  LOGICALMASKPROC_SRCTODST[loXOR] := MaskSrcToDst_XOR;
-  LOGICALMASKPROC_SRCTODST[loOR] := MaskSrcToDst_OR;
-  LOGICALMASKPROC_SRCTODST[loAND] := MaskSrcToDst_AND;
 end;
 
 initialization
