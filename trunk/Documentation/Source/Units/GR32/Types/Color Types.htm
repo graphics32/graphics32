@@ -52,7 +52,7 @@
 			&nbsp;&nbsp;3: (Components: <b>array</b> [<a href="#TColor32Component">TColor32Component</a>] <b>of</b> Byte);<br>
 			<strong>end</strong>;</p>
 		<p class="Decl"><b>type</b> PColor32Entry = ^TColor32Entry;</p>
-		<p class="Body">A useful type for gaining fast direct read/write access to the components of <a href="(EmptyReference!)">TColor32</a> by typecasting. The following code segment shows how this typecasting can be used in different manners -  we recommend using these approaches instead of auxiliary functions like <a href="../Routines/RedComponent.htm">RedComponent</a> etc.:<br>
+		<p class="Body">A useful type for gaining fast direct read/write access to the components of <span class="EmptyRef">TColor32</span> by typecasting. The following code segment shows how this typecasting can be used in different manners -  we recommend using these approaches instead of auxiliary functions like <a href="../Routines/RedComponent.htm">RedComponent</a> etc.:<br>
 			<br>
 		</p>
 		<blockquote>
@@ -72,7 +72,7 @@
 			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Planes[I] := Random(255);</p>
 			<p></p>
 			<p class="Comment">&nbsp;&nbsp;&nbsp;&nbsp;//Write value of Alpha component to Red, Green and Blue components</p>
-			<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>with</strong> TColor32Entry(AColor32) <strong>do</strong><br>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>with</strong> TColor32Entry(AColor32) <strong>do</strong><br></p>
 			
 			<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>begin</strong></p>
 			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Components[ccRed] := Components[ccAlpha];</p>
