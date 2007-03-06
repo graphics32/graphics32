@@ -1141,7 +1141,7 @@ begin
     if AutoSize and (W > 0) and (H > 0) then SetBounds(Left, Top, W, H);
   end;
 {$ENDIF}
-  if (FUpdateCount <> 0) and Assigned(FOnBitmapResize) then FOnBitmapResize(Self);
+  if (FUpdateCount = 0) and Assigned(FOnBitmapResize) then FOnBitmapResize(Self);
   InvalidateCache;
   ForceFullInvalidate;
 end;
