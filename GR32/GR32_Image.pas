@@ -2188,8 +2188,8 @@ begin
     svHidden:
       Result := False;
     svAuto:
-      Result := (HScroll.Range > TRangeBarAccess(HScroll).EffectiveWindow) or
-                (VScroll.Range > TRangeBarAccess(VScroll).EffectiveWindow);
+      Result := (HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
+                (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height));
   end;
 end;
 
