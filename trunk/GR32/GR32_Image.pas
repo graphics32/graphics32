@@ -132,6 +132,7 @@ type
     procedure Paint; override;
     procedure ResetInvalidRects;
     procedure ResizeBuffer;
+    property  RepaintOptimizer: TCustomRepaintOptimizer read FRepaintOptimizer;
     property  BufferValid: Boolean read FBufferValid write FBufferValid;
     property  InvalidRects: TRectList read FInvalidRects;
 {$IFDEF CLX}
@@ -297,6 +298,7 @@ type
     procedure BeginUpdate; virtual;
     function  BitmapToControl(const APoint: TPoint): TPoint;
     procedure Changed; virtual;
+    procedure Update(const Rect: TRect); virtual;
     function  ControlToBitmap(const APoint: TPoint): TPoint;
     procedure EndUpdate; virtual;
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
@@ -1191,6 +1193,12 @@ begin
     Invalidate;
     if Assigned(FOnChange) then FOnChange(Self);
   end;
+end;
+
+procedure TCustomImage32.Update(const Rect: TRect);
+begin
+  if FRepaintOptimizer.Enabled then
+    FRepaintOptimizer.AreaUpdateHandler(Self, Rect, AREAINFO_RECT);
 end;
 
 procedure TCustomImage32.BitmapResizeHandler(Sender: TObject);
