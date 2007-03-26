@@ -34,13 +34,10 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF CLX}
-  Qt, Types, QControls, QGraphics, QForms, QConsts,
-  {$IFDEF LINUX}Libc,{$ENDIF}
-  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-{$ELSE}
-  Windows, Messages, Controls, Graphics, Forms,
-{$ENDIF}
+  {$IFDEF FPC} LCLIntf, LCLType, LMessages, Controls, Forms, Graphics, Types,
+  {$ELSE} {$IFDEF CLX} Qt, Types, QControls, QGraphics, QForms, QConsts,
+  {$IFDEF LINUX}Libc,{$ENDIF} {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+  {$ELSE} Windows, Messages, Controls, Graphics, Forms, {$ENDIF} {$ENDIF}
   Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_LowLevel,
   GR32_System, GR32_Containers, GR32_RepaintOpt;
 
@@ -105,12 +102,21 @@ type
     FOnMouseLeave: TNotifyEvent;
     procedure SetBufferOversize(Value: Integer);
 {$IFNDEF CLX}
+{$IFDEF FPC}
+    procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
+    procedure WMGetDlgCode(var Msg: TLMessage); message LM_GETDLGCODE;
+    procedure WMPaint(var Message: TLMessage); message LM_PAINT;
+    procedure CMMouseEnter(var Message: TLMessage); message LM_MOUSEENTER;
+    procedure CMMouseLeave(var Message: TLMessage); message LM_MOUSELEAVE;
+    procedure CMInvalidate(var Message: TLMessage); message CM_INVALIDATE;
+{$ELSE}
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
+    procedure WMPaint(var Message: TMessage); message WM_PAINT;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure CMInvalidate(var Message: TMessage); message CM_INVALIDATE;
-    procedure WMPaint(var Message: TMessage); message WM_PAINT;
+{$ENDIF}
 {$ENDIF}
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
@@ -187,7 +193,7 @@ type
     property TabOrder;
     property TabStop;
     property Visible;
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
     property OnClick;
@@ -364,7 +370,7 @@ type
     property TabStop;
     property Visible;
     property OnBitmapResize;
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
     property OnClick;
@@ -497,7 +503,7 @@ type
     property TabStop;
     property Visible;
     property OnBitmapResize;
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
     property OnClick;
@@ -672,24 +678,30 @@ end;
 { TCustomPaintBox32 }
 
 {$IFNDEF CLX}
+{$IFDEF FPC}
+procedure TCustomPaintBox32.CMInvalidate(var Message: TLMessage);
+begin
+ if CustomRepaint and HandleAllocated
+  then PostMessage(Handle, LM_PAINT, 0, 0)
+  else inherited;
+end;
+{$ELSE}
 procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
 begin
-  if CustomRepaint and HandleAllocated then
-    // we might have invalid rects, so just go ahead without invalidating
-    // the whole client area...
-    PostMessage(Handle, WM_PAINT, 0, 0)
-  else
-    // no invalid rects, so just invalidate the whole client area...
-    inherited;
+ if CustomRepaint and HandleAllocated
+  then PostMessage(Handle, WM_PAINT, 0, 0)
+  else inherited;
 end;
+{$ENDIF}
 
-procedure TCustomPaintBox32.CMMouseEnter(var Message: TMessage);
+
+procedure TCustomPaintBox32.CMMouseEnter(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   inherited;
   MouseEnter;
 end;
 
-procedure TCustomPaintBox32.CMMouseLeave(var Message: TMessage);
+procedure TCustomPaintBox32.CMMouseLeave(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   MouseLeave;
   inherited;
@@ -1051,12 +1063,12 @@ begin
 end;
 {$ELSE}
 
-procedure TCustomPaintBox32.WMEraseBkgnd(var Message: TWmEraseBkgnd);
+procedure TCustomPaintBox32.WMEraseBkgnd(var Message: {$IFDEF FPC}TLmEraseBkgnd{$ELSE}TWmEraseBkgnd{$ENDIF});
 begin
   Message.Result := 1;
 end;
 
-procedure TCustomPaintBox32.WMGetDlgCode(var Msg: TWmGetDlgCode);
+procedure TCustomPaintBox32.WMGetDlgCode(var Msg: {$IFDEF FPC}TLMessage{$ELSE}TWmGetDlgCode{$ENDIF});
 begin
   with Msg do if pboWantArrowKeys in Options then
     Result:= Result or DLGC_WANTARROWS
@@ -1064,7 +1076,7 @@ begin
     Result:= Result and not DLGC_WANTARROWS;
 end;
 
-procedure TCustomPaintBox32.WMPaint(var Message: TMessage);
+procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   if CustomRepaint then
   begin
@@ -2263,14 +2275,14 @@ begin
 end;
 
 procedure TCustomImgView32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
 var
   Action: Cardinal;
   Msg: TMessage;
   P: TPoint;
 {$ENDIF}
 begin
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
   if IsSizeGripVisible and (Owner is TCustomForm) then
   begin
     P.X := X; P.Y := Y;

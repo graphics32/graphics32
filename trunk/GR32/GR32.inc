@@ -99,6 +99,12 @@
   {$DEFINE DELPHI4}
 {$ENDIF}
 
+{$IFDEF FPC}
+  {$DEFINE COMPILER4}
+  {$DEFINE PLATFORM_INDEPENDENT}
+  {$MODE Delphi}
+{$ENDIF}
+
 {$IFNDEF COMPILER4}
 //////////////////////////////////////////////////////////////////////
 '  Graphics32 may only be installed with Delphi 4, Delphi 5,         '
@@ -108,6 +114,7 @@
 
 {$IFDEF LINUX}
   {$DEFINE CLX}
+  {$DEFINE PLATFORM_INDEPENDENT}
 {$ENDIF}
 
 (* Symbol CLX :

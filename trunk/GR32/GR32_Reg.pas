@@ -31,11 +31,9 @@ interface
 
 uses
   Classes, TypInfo,
-{$IFDEF COMPILER6}
-  DesignIntf
-{$ELSE}
-  DsgnIntf
-{$ENDIF};
+  {$IFDEF FPC} LCLIntf, LazIDEIntf, PropEdits, ComponentEditors {$ELSE}
+  {$IFDEF COMPILER6} DesignIntf {$ELSE}
+  DsgnIntf{$ENDIF}{$ENDIF};
 
 procedure Register;
 

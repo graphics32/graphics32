@@ -30,7 +30,9 @@ interface
 {$I GR32.INC}
 
 uses
-  GR32, GR32_Image, GR32_Rasterizers, Classes, Controls, Messages, Windows;
+  {$IFDEF FPC} LCLIntf, LCLType, Types, LMessages,
+  {$ELSE} Windows, Messages,{$ENDIF}
+  GR32, GR32_Image, GR32_Rasterizers, Classes, Controls;
 
 type
   {$IFNDEF CLX}
@@ -57,7 +59,11 @@ type
   protected
     procedure RasterizerChanged(Sender: TObject);
     procedure SetParent(AParent: TWinControl); override;
+    {$IFDEF FPC}
+    procedure FormWindowProc(var Message: TLMessage);
+    {$ELSE}
     procedure FormWindowProc(var Message: TMessage);
+    {$ENDIF}
     procedure DoRasterize;
     property RepaintMode;
   public
@@ -146,6 +152,28 @@ begin
   if FAutoRasterize then Rasterize;
 end;
 
+{$IFDEF FPC}
+procedure TSyntheticImage32.FormWindowProc(var Message: TLMessage);
+var
+  CmdType: Integer;
+begin
+  FDefaultProc(Message);
+  case Message.Msg of
+    534: FResized := False;
+    562:
+      begin
+        if FResized then DoRasterize;
+        FResized := True;
+      end;
+    274:
+      begin
+        CmdType := Message.WParam and $FFF0;
+        if (CmdType = SC_MAXIMIZE) or (CmdType = SC_RESTORE) then
+          DoRasterize;
+      end;
+  end;
+end;
+{$ELSE}
 procedure TSyntheticImage32.FormWindowProc(var Message: TMessage);
 var
   CmdType: Integer;
@@ -166,6 +194,7 @@ begin
       end;
   end;
 end;
+{$ENDIF}
 
 procedure TSyntheticImage32.Rasterize;
 var
