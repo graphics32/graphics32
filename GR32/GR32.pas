@@ -36,14 +36,12 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF CLX}
-  Qt, Types,
+  {$IFDEF FPC} LCLIntf, LCLType, types, Controls, Graphics,{$ELSE}
+  {$IFDEF CLX} Qt, Types,
   {$IFDEF LINUX}Libc,{$ENDIF}
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  QControls, QGraphics, QConsts,
-{$ELSE}
-  Windows, Messages, Controls, Graphics,
-{$ENDIF}
+  QControls, QGraphics, QConsts,{$ELSE}
+  Windows, Messages, Controls, Graphics,{$ENDIF}{$ENDIF}
   Classes, SysUtils;
 
 { Version Control }
@@ -132,7 +130,7 @@ procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
 function HSLtoRGB(H, S, L: Integer): TColor32; overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
 
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
 // Palette conversion functions
 function WinPalette(const P: TPalette32): HPALETTE;
 {$ENDIF}
@@ -204,8 +202,10 @@ function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$END
 
 type
   PPoint = ^TPoint;
+{$IFNDEF FPC}
 {$IFNDEF BCB}
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
+{$ENDIF}
 {$ENDIF}
 
   PPointArray = ^TPointArray;
@@ -254,12 +254,14 @@ function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEIN
 { Rectangles }
 
 type
+{$IFNDEF FPC}
 {$IFDEF CLX}
   PRect = Types.PRect;
   TRect = Types.TRect;
 {$ELSE}
   PRect = Windows.PRect;
   TRect = Windows.TRect;
+{$ENDIF}
 {$ENDIF}
 
   PFloatRect = ^TFloatRect;
@@ -306,10 +308,12 @@ function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLIN
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
+{$IFNDEF FPC}
 {$IFDEF CLX}
   HBITMAP = QImageH;
   HDC = QPainterH;
   HFont = QFontH;
+{$ENDIF}
 {$ENDIF}
 
 { TBitmap32 draw mode }
@@ -1023,8 +1027,8 @@ begin
   R := RedComponent(RGB) / 255;
   G := GreenComponent(RGB) / 255;
   B := BlueComponent(RGB) / 255;
-  Cmax := Max(R, Max(G, B));
-  Cmin := Min(R, Min(G, B));
+  Cmax := Math.Max(R, Math.Max(G, B));
+  Cmin := Math.Min(R, Math.Min(G, B));
   L := (Cmax + Cmin) / 2;
 
   if Cmax = Cmin then
@@ -1394,10 +1398,10 @@ end;
 
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
 begin
-  Dst.Left   := Max(FR1.Left,   FR2.Left);
-  Dst.Right  := Min(FR1.Right,  FR2.Right);
-  Dst.Top    := Max(FR1.Top,    FR2.Top);
-  Dst.Bottom := Min(FR1.Bottom, FR2.Bottom);
+  Dst.Left   := Math.Max(FR1.Left,   FR2.Left);
+  Dst.Right  := Math.Min(FR1.Right,  FR2.Right);
+  Dst.Top    := Math.Max(FR1.Top,    FR2.Top);
+  Dst.Bottom := Math.Min(FR1.Bottom, FR2.Bottom);
   Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
   if not Result then FillLongword(Dst, 4, 0);
 end;
@@ -1532,24 +1536,40 @@ end;
 
 constructor TThreadPersistent.Create;
 begin
+{$IFDEF FPC}
+  InitializeCriticalSection(TCriticalSection(FLock));
+{$ELSE}
   InitializeCriticalSection(FLock);
+{$ENDIF}
 end;
 
 destructor TThreadPersistent.Destroy;
 begin
+{$IFDEF FPC}
+  DeleteCriticalSection({$IFDEF FPC}TCriticalSection{$ENDIF}(FLock));
+{$ELSE}
   DeleteCriticalSection(FLock);
+{$ENDIF}
   inherited;
 end;
 
 procedure TThreadPersistent.Lock;
 begin
   InterlockedIncrement(FLockCount);
+{$IFDEF FPC}
+  EnterCriticalSection({$IFDEF FPC}TCriticalSection{$ENDIF}(FLock));
+{$ELSE}
   EnterCriticalSection(FLock);
+{$ENDIF}
 end;
 
 procedure TThreadPersistent.Unlock;
 begin
+{$IFDEF FPC}
+  LeaveCriticalSection({$IFDEF FPC}TCriticalSection{$ENDIF}(FLock));
+{$ELSE}
   LeaveCriticalSection(FLock);
+{$ENDIF}
   InterlockedDecrement(FLockCount);
 end;
 
@@ -1633,7 +1653,7 @@ begin
   FOuterColor := $00000000;  // by default as full transparency black
   FFont := TFont.Create;
   FFont.OnChange := FontChanged;
-{$IFNDEF CLX}
+{$IFNDEF PLATFORM_INDEPENDENT}
   FFont.OwnerCriticalSection := @FLock;
 {$ENDIF}
   FMasterAlpha := $FF;
@@ -1867,7 +1887,7 @@ begin
       begin
         if TPicture(Source).Graphic is TBitmap then
           AssignFromBitmap(TBitmap(TPicture(Source).Graphic))
-        else if (TPicture(Source).Graphic is TIcon) {$IFNDEF CLX}or
+        else if (TPicture(Source).Graphic is TIcon) {$IFNDEF   PLATFORM_INDEPENDENT}or
                 (TPicture(Source).Graphic is TMetaFile) {$ENDIF} then
         begin
           // icons, metafiles etc...
@@ -3933,7 +3953,7 @@ begin
       else
         tmp := tmp div EA;
 
-      xd := Min(xd + tmp, X2 + 1);
+      xd := Math.Min(xd + tmp, X2 + 1);
       EC := tmp * EA;
 
       if rem mod EA > 0 then
@@ -4554,14 +4574,14 @@ begin
   begin
     SelectObject(Handle, Font.Handle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT);
+    SetBkMode(Handle, {$IFNDEF FPC}Windows.{$ENDIF}TRANSPARENT);
     FontHandle := Font.Handle;
   end
   else
   begin
     SelectObject(Handle, FontHandle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT);
+    SetBkMode(Handle, {$IFNDEF FPC}Windows.{$ENDIF}TRANSPARENT);
   end;
 {$ENDIF}
 end;
@@ -4631,6 +4651,12 @@ end;
 
 // Text and Fonts //
 
+{$IFDEF FPC}
+function TBitmap32.TextExtent(const Text: String): TSize;
+begin
+  Result := TextExtentW(Text);
+end;
+{$ELSE}
 {$IFDEF CLX}
 function TBitmap32.TextExtent(const Text: Widestring): TSize;
 begin
@@ -4661,6 +4687,7 @@ begin
   end;
 end;
 {$ENDIF}
+{$ENDIF}
 
 // -------------------------------------------------------------------
 
@@ -4670,7 +4697,11 @@ var
   OldFont: TFont;
 {$ELSE}
   DC: HDC;
+{$IFDEF FPC}
+  OldFont: TFont;
+{$ELSE}
   OldFont: HGDIOBJ;
+{$ENDIF}
 {$ENDIF}
 begin
   UpdateFont;
@@ -4678,6 +4709,34 @@ begin
   Result.cY := 0;
 {$IFDEF CLX}
   if Assigned(Handle) then
+  begin // doing it the ugly way to avoid QImage <-> QPixMap conversion.
+    with TBitmap.Create do
+    try
+      Width := 5;
+      Height := 5;
+      Canvas.Font.Assign(Font);
+      Result := Canvas.TextExtent(Text);
+    finally
+      Free;
+    end;
+  end
+  else
+  begin
+    StockBitmap.Canvas.Lock;
+    try
+      OldFont := TFont.Create;
+      OldFont.Assign(StockBitmap.Canvas.Font);
+      StockBitmap.Canvas.Font.Assign(Font);
+      Result := StockBitmap.Canvas.TextExtent(Text);
+      StockBitmap.Canvas.Font.Assign(OldFont);
+      OldFont.Free;
+    finally
+      StockBitmap.Canvas.Unlock;
+    end;
+  end;
+{$ELSE}
+{$IFDEF FPC}
+  if Handle<>0 then
   begin // doing it the ugly way to avoid QImage <-> QPixMap conversion.
     with TBitmap.Create do
     try
@@ -4718,6 +4777,7 @@ begin
       StockBitmap.Canvas.Unlock;
     end;
   end;
+{$ENDIF};
 {$ENDIF};
 end;
 
@@ -4773,10 +4833,14 @@ begin
     If FClipping then QPainter_setClipping(Handle, False);
     StopPainter;
 {$ELSE}
+
+  {$IFNDEF FPC}
     if FClipping then
       ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @FClipRect, PWideChar(Text), Length(Text), nil)
     else
       ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
+  {$ENDIF}
+
 {$ENDIF}
   end;
   Extent := TextExtentW(Text);
@@ -4826,7 +4890,9 @@ begin
     QPainter_setClipping(Handle, False);
     StopPainter;
 {$ELSE}
+  {$IFNDEF FPC}
     ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
+  {$ENDIF}
 {$ENDIF}
   end;
   Extent := TextExtentW(Text);
@@ -4863,7 +4929,9 @@ begin
     QPainter_drawText(Handle, @DstRect, Flags, @Text, -1, nil, nil);
     StopPainter;
 {$ELSE}
+  {$IFNDEF FPC}
     DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
+  {$ENDIF}
 {$ENDIF}
   end;
   Changed(DstRect);
@@ -5143,7 +5211,7 @@ begin
       try
         StockCanvas.Font := Font;
         StockCanvas.Font.Size := Font.Size shl AALevel;
-{$IFDEF CLX}
+{$IFDEF PLATFORM_INDEPENDENT}
         Sz := StockCanvas.TextExtent(PaddedText);
 {$ELSE}
         Windows.GetTextExtentPoint32W(StockCanvas.Handle, PWideChar(PaddedText),

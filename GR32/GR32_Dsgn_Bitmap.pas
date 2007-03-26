@@ -30,22 +30,20 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF CLX}
-  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  {$IFDEF LINUX}Libc,{$ENDIF}
+  {$IFNDEF FPC}
+  {$IFDEF CLX} {$IFDEF MSWINDOWS}Windows,{$ENDIF} {$IFDEF LINUX}Libc,{$ENDIF}
   QT, QGraphics, QControls, QForms, QDialogs, QExtCtrls, QStdCtrls, QComCtrls,
   QMenus, QImgList, QTypes, QClipbrd,
-{$ELSE}
+  {$ELSE}
   Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
-{$ENDIF}
-  SysUtils, Classes, Consts,
-  GR32, GR32_Image, GR32_Layers, GR32_Filters,
-{$IFDEF COMPILER6}
-  DesignIntf, DesignEditors, VCLEditors
-{$ELSE}
-  DsgnIntf
-{$ENDIF};
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, {$ENDIF}
+  Consts,
+  {$IFDEF COMPILER6} DesignIntf, DesignEditors, VCLEditors, {$ELSE} DsgnIntf,
+  {$ENDIF}{$ELSE} LCLIntf, LCLClasses, LCLType, RtlConsts, Forms, ComCtrls,
+  Menus, ToolWin, Registry, ImgList, Clipbrd, Graphics, Controls, ExtCtrls,
+  StdCtrls, Buttons, Dialogs, LazIDEIntf, PropEdits, ComponentEditors,
+  FormEditingIntf, {$ENDIF}
+  SysUtils, Classes, GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
   TPictureEditorForm = class(TForm)
@@ -88,7 +86,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure MagnComboChange(Sender: TObject);
   protected
-{$IFDEF CLX}
+{$IFDEF PLATFORM_INDEPENDENT}
     OpenDialog: TOpenDialog;
     SaveDialog: TSaveDialog;
 {$ELSE}
@@ -156,10 +154,12 @@ implementation
 uses
   GR32_Resamplers;
 
+{$IFNDEF FPC}
 {$IFNDEF CLX}
 {$R *.dfm}
 {$ELSE}
 {$R *.xfm}
+{$ENDIF}
 {$ENDIF}
 
 { TPictureEditorForm }
@@ -338,7 +338,7 @@ begin
   AlphaChannel.Parent := AlphaSheet;
   AlphaChannel.Align := alClient;
   AlphaChannel.OnMouseMove := AlphaChannelMouseMove;
-{$IFDEF CLX}
+{$IFDEF PLATFORM_INDEPENDENT}
   OpenDialog := TOpenDialog.Create(Self);
   SaveDialog := TSaveDialog.Create(Self);
 {$ELSE}
@@ -410,7 +410,7 @@ begin
       if BitmapEditor.Execute then
       begin
         SetOrdValue(Longint(BitmapEditor.Bitmap32));
-        Designer.Modified;
+        {$IFNDEF FPC} Designer.Modified; {$ENDIF}
       end;
     finally
       BitmapEditor.Free;

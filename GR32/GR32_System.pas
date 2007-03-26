@@ -31,12 +31,11 @@ interface
 {$I GR32.inc}
 
 uses
-  SysUtils,
-  {$IFDEF CLX}
-  Qt, Types {$IFDEF LINUX}, Libc {$ELSE}, Windows{$ENDIF}
-  {$ELSE}
-  Windows
-  {$ENDIF};
+  {$IFDEF FPC} LCLIntf, Windows, {$ELSE}
+  {$IFDEF CLX} Qt, Types,
+  {$IFDEF LINUX}, Libc {$ELSE}, Windows,{$ENDIF}
+  {$ELSE} Windows, {$ENDIF}
+  {$ENDIF} SysUtils;
 
 type
   TPerfTimer = class

@@ -31,11 +31,8 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF COMPILER6}
-  DesignIntf, DesignEditors,
-  {$ELSE}
-  DsgnIntf,
-  {$ENDIF}
+  {$IFDEF FPC} LCLIntf, LazIDEIntf, PropEdits,{$ELSE}
+  {$IFDEF COMPILER6}DesignIntf, DesignEditors,{$ELSE}DsgnIntf,{$ENDIF}{$ENDIF}
   Classes, TypInfo, GR32_Containers;
 
 type
