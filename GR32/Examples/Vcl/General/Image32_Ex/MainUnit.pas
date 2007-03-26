@@ -29,8 +29,8 @@ unit MainUnit;
 interface
 
 uses
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  {$IFNDEF FPC} {$ELSE}LResources, {$ENDIF}
   GR32, GR32_Image, GR32_Resamplers, GR32_RangeBars;
 
 type

@@ -21,7 +21,7 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="4">
+    <Units Count="6">
       <Unit0>
         <Filename Value="TextureBlend_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -56,21 +56,37 @@
       <Unit3>
         <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
-        <CursorPos X="1" Y="1169"/>
-        <TopLine Value="1154"/>
+        <CursorPos X="65" Y="39"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\components\jpeg\lazjpeg.pas"/>
+        <UnitName Value="LazJPEG"/>
+        <CursorPos X="30" Y="32"/>
+        <TopLine Value="10"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.1.1\source\packages\base\pasjpeg\jpeglib.pas"/>
+        <UnitName Value="JPEGLib"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit5>
     </Units>
     <JumpHistory Count="2" HistoryIndex="1">
       <Position1>
-        <Filename Value="MainUnit.lfm"/>
-        <Caret Line="14" Column="18" TopLine="14"/>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\components\jpeg\lazjpeg.pas"/>
+        <Caret Line="19" Column="15" TopLine="10"/>
       </Position1>
       <Position2>
         <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
-        <Caret Line="1161" Column="34" TopLine="1124"/>
+        <Caret Line="1169" Column="1" TopLine="1154"/>
       </Position2>
     </JumpHistory>
   </ProjectOptions>
@@ -78,7 +94,7 @@
     <Version Value="5"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\GR32\"/>
+      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
       <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
     </SearchPaths>
     <Parsing>

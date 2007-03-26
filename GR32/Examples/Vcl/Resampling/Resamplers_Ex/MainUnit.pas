@@ -32,9 +32,10 @@ unit MainUnit;
 interface
 
 uses
+  {$IFDEF FPC} LCLIntf, LResources, LazJpeg, {$ELSE} Jpeg, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   GR32, GR32_Image, GR32_Transforms, GR32_Resamplers, GR32_System, ComCtrls,
-  GR32_RangeBars, {$IFNDEF FPC} Jpeg, {$ELSE} LazJpeg, LResources, {$ENDIF}Math;
+  GR32_RangeBars, Math;
 
 type
   TForm1 = class(TForm)

@@ -5,6 +5,7 @@ object Form1: TForm1
   Width = 631
   HorzScrollBar.Page = 630
   VertScrollBar.Page = 582
+  ActiveControl = Button1
   Caption = 'Gradient Lines Example'
   Font.Height = -11
   Font.Name = 'Tahoma'
@@ -135,7 +136,7 @@ object Form1: TForm1
     Font.Height = -9
     Font.Name = 'Tahoma'
     OnClick = RepaintOptClick
-    TabOrder = 7
+    TabOrder = 8
   end
   object Memo2: TMemo
     Left = 510
@@ -152,7 +153,7 @@ object Form1: TForm1
       'optimization.'
     )
     ReadOnly = True
-    TabOrder = 8
+    TabOrder = 7
     TabStop = False
   end
 end

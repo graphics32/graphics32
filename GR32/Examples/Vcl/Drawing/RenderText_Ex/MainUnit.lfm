@@ -5,26 +5,25 @@ object Form1: TForm1
   Width = 337
   HorzScrollBar.Page = 336
   VertScrollBar.Page = 227
+  ActiveControl = Edit1
   Caption = 'RenderText Example'
   Constraints.MinWidth = 256
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   object Image: TImage32
-    Height = 138
+    Height = 167
     Top = 61
-    Width = 329
+    Width = 337
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     Scale = 1
     TabOrder = 0
     OnResize = ImageResize
   end
   object Panel1: TPanel
     Height = 61
-    Width = 329
+    Width = 337
     Align = alTop
     BevelOuter = bvNone
     Font.Height = -11
@@ -32,18 +31,18 @@ object Form1: TForm1
     TabOrder = 1
     object Label1: TLabel
       Left = 4
-      Height = 13
+      Height = 14
       Top = 36
-      Width = 46
+      Width = 47
       Caption = 'AA Level:'
       Color = clNone
       ParentColor = False
     end
     object Label2: TLabel
       Left = 4
-      Height = 13
+      Height = 14
       Top = 6
-      Width = 78
+      Width = 79
       Caption = 'Enter text here:'
       Color = clNone
       ParentColor = False
@@ -117,14 +116,14 @@ object Form1: TForm1
       Left = 92
       Height = 21
       Top = 4
-      Width = 234
+      Width = 242
       Anchors = [akTop, akLeft, akRight]
       OnChange = Edit1Change
       TabOrder = 0
       Text = 'Edit1'
     end
     object Button1: TButton
-      Left = 253
+      Left = 261
       Height = 21
       Top = 32
       Width = 73

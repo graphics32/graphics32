@@ -26,7 +26,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="7">
       <Unit0>
         <Filename Value="Mandelbrot_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -43,8 +43,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MandelUnit.lrs"/>
         <UnitName Value="MandelUnit"/>
-        <CursorPos X="36" Y="24"/>
-        <TopLine Value="1"/>
+        <CursorPos X="58" Y="32"/>
+        <TopLine Value="11"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -71,8 +71,41 @@
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
+        <UnitName Value="GR32_Resamplers"/>
+        <CursorPos X="32" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\components\jpeg\lazjpeg.pas"/>
+        <UnitName Value="LazJPEG"/>
+        <CursorPos X="43" Y="35"/>
+        <TopLine Value="11"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit6>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="4" HistoryIndex="3">
+      <Position1>
+        <Filename Value="MandelUnit.pas"/>
+        <Caret Line="32" Column="37" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MandelUnit.pas"/>
+        <Caret Line="112" Column="30" TopLine="91"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MandelUnit.pas"/>
+        <Caret Line="290" Column="21" TopLine="256"/>
+      </Position3>
+      <Position4>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\components\jpeg\lazjpeg.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position4>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
@@ -91,9 +124,15 @@
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
       <Generate Value="Faster"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <UseLineInfoUnit Value="False"/>
+        <StripSymbols Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>

@@ -2,18 +2,18 @@
 
 LazarusResources.Add('TForm1','FORMDATA',[
   'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#224#0#6'Height'#3#189#1#3'Top'#3#159#0#5
-  +'Width'#3'&'#2#18'HorzScrollBar.Page'#3'%'#2#18'VertScrollBar.Page'#3#188#1#7
-  +'Caption'#6#16'TImage32 Example'#11'Font.Height'#2#245#9'Font.Name'#6#6'Taho'
-  +'ma'#8'OnCreate'#7#10'FormCreate'#8'Position'#7#14'poScreenCenter'#0#6'TPane'
-  +'l'#6'Panel1'#4'Left'#2#8#6'Height'#3#146#1#3'Top'#2#8#5'Width'#3#129#1#7'An'
-  +'chors'#11#5'akTop'#6'akLeft'#7'akRight'#8'akBottom'#0#10'BevelOuter'#7#9'bv'
-  +'Lowered'#11'BorderWidth'#2#1#8'TabOrder'#2#0#0#8'TImage32'#5'Image'#4'Left'
-  +#2#2#6'Height'#3#142#1#3'Top'#2#2#5'Width'#3'}'#1#5'Align'#7#8'alClient'#25
-  +'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#15'Bitmap.OnChange'#13#15
-  +'Bitmap.OnResize'#13#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'TabOrder'#2#0#0#0
-  +#0#6'TPanel'#6'Panel2'#4'Left'#3#144#1#6'Height'#3#160#1#5'Width'#3#142#0#5
-  +'Align'#7#7'alRight'#10'BevelOuter'#7#6'bvNone'#8'TabOrder'#2#1#0#11'TRadioG'
-  +'roup'#11'rgScaleMode'#4'Left'#2#8#6'Height'#3#129#0#3'Top'#2'h'#5'Width'#3
+  +'Width'#3'&'#2#18'HorzScrollBar.Page'#3'%'#2#18'VertScrollBar.Page'#3#188#1
+  +#13'ActiveControl'#7#24'rgScaleMode.RadioButton0'#7'Caption'#6#16'TImage32 E'
+  +'xample'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#8'OnCreate'#7#10'For'
+  +'mCreate'#8'Position'#7#14'poScreenCenter'#0#6'TPanel'#6'Panel1'#4'Left'#2#8
+  +#6'Height'#3#146#1#3'Top'#2#8#5'Width'#3#129#1#7'Anchors'#11#5'akTop'#6'akLe'
+  +'ft'#7'akRight'#8'akBottom'#0#10'BevelOuter'#7#9'bvLowered'#11'BorderWidth'#2
+  +#1#8'TabOrder'#2#0#0#8'TImage32'#5'Image'#4'Left'#2#2#6'Height'#3#142#1#3'To'
+  +'p'#2#2#5'Width'#3'}'#1#5'Align'#7#8'alClient'#25'Bitmap.ResamplerClassName'
+  +#6#17'TNearestResampler'#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#8'TabOrder'#2#0
+  +#0#0#0#6'TPanel'#6'Panel2'#4'Left'#3#152#1#6'Height'#3#189#1#5'Width'#3#142#0
+  +#5'Align'#7#7'alRight'#10'BevelOuter'#7#6'bvNone'#8'TabOrder'#2#1#0#11'TRadi'
+  +'oGroup'#11'rgScaleMode'#4'Left'#2#8#6'Height'#3#129#0#3'Top'#2'h'#5'Width'#3
   +#129#0#8'AutoFill'#9#7'Caption'#6#9'ScaleMode'#28'ChildSizing.LeftRightSpaci'
   +'ng'#2#6#28'ChildSizing.TopBottomSpacing'#2#6#29'ChildSizing.EnlargeHorizont'
   +'al'#7#24'crsHomogenousChildResize'#27'ChildSizing.EnlargeVertical'#7#24'crs'

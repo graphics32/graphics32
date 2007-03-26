@@ -28,8 +28,8 @@ unit MainUnit;
 interface
 
 uses
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  {$IFNDEF FPC} {$ELSE}LResources, {$ENDIF}
   GR32, GR32_Image, GR32_Layers, GR32_Blend;
 
 type
@@ -59,11 +59,9 @@ implementation
 
 {$IFNDEF FPC}
 {$R *.DFM}
-
-uses JPEG;
-{$ELSE}
-uses LazJPEG;
 {$ENDIF}
+
+uses {$IFNDEF FPC}JPEG,{$ELSE}JPEGForLazarus{$ENDIF};
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
@@ -138,9 +136,9 @@ begin
   L.Bitmap.Changed;
 end;
 
-{$IFDEF FPC}
+{$IFNDEF FPC}
 initialization
-  {$I MainUnit.lrs}
+{$i MainUnit.lrs}
 {$ENDIF}
 
 end.
