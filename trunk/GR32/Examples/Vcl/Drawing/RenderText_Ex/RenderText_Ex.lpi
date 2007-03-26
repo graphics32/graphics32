@@ -5,8 +5,9 @@
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
+      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="2"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -42,8 +43,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="96" Y="109"/>
-        <TopLine Value="96"/>
+        <CursorPos X="5" Y="125"/>
+        <TopLine Value="82"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -60,141 +61,21 @@
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="1" Y="773"/>
         <TopLine Value="758"/>
-        <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
         <CursorPos X="1" Y="1065"/>
         <TopLine Value="1050"/>
-        <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit4>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="1" HistoryIndex="0">
       <Position1>
-        <Filename Value="..\..\..\..\..\GR32_Resamplers.pas"/>
-        <Caret Line="773" Column="1" TopLine="758"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="31" Column="39" TopLine="1"/>
       </Position1>
-      <Position2>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1054" Column="1" TopLine="1039"/>
-      </Position2>
-      <Position3>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1055" Column="1" TopLine="1040"/>
-      </Position3>
-      <Position4>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1057" Column="1" TopLine="1042"/>
-      </Position4>
-      <Position5>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1058" Column="1" TopLine="1043"/>
-      </Position5>
-      <Position6>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1060" Column="1" TopLine="1045"/>
-      </Position6>
-      <Position7>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1061" Column="1" TopLine="1046"/>
-      </Position7>
-      <Position8>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1064" Column="1" TopLine="1049"/>
-      </Position8>
-      <Position9>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1065" Column="1" TopLine="1050"/>
-      </Position9>
-      <Position10>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1066" Column="1" TopLine="1051"/>
-      </Position10>
-      <Position11>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1091" Column="1" TopLine="1076"/>
-      </Position11>
-      <Position12>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1092" Column="1" TopLine="1077"/>
-      </Position12>
-      <Position13>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1095" Column="1" TopLine="1080"/>
-      </Position13>
-      <Position14>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1096" Column="1" TopLine="1081"/>
-      </Position14>
-      <Position15>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1064" Column="1" TopLine="1049"/>
-      </Position15>
-      <Position16>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1065" Column="1" TopLine="1050"/>
-      </Position16>
-      <Position17>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1066" Column="1" TopLine="1051"/>
-      </Position17>
-      <Position18>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1091" Column="1" TopLine="1076"/>
-      </Position18>
-      <Position19>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1092" Column="1" TopLine="1077"/>
-      </Position19>
-      <Position20>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1095" Column="1" TopLine="1080"/>
-      </Position20>
-      <Position21>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1096" Column="1" TopLine="1081"/>
-      </Position21>
-      <Position22>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1064" Column="1" TopLine="1049"/>
-      </Position22>
-      <Position23>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1065" Column="1" TopLine="1050"/>
-      </Position23>
-      <Position24>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1066" Column="1" TopLine="1051"/>
-      </Position24>
-      <Position25>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1091" Column="1" TopLine="1076"/>
-      </Position25>
-      <Position26>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1092" Column="1" TopLine="1077"/>
-      </Position26>
-      <Position27>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1095" Column="1" TopLine="1080"/>
-      </Position27>
-      <Position28>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1096" Column="1" TopLine="1081"/>
-      </Position28>
-      <Position29>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1064" Column="1" TopLine="1049"/>
-      </Position29>
-      <Position30>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
-        <Caret Line="1065" Column="1" TopLine="1050"/>
-      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

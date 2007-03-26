@@ -21,7 +21,7 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="3">
+    <Units Count="4">
       <Unit0>
         <Filename Value="LineStippling_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -37,8 +37,8 @@
         <HasResources Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="41" Y="12"/>
-        <TopLine Value="1"/>
+        <CursorPos X="5" Y="107"/>
+        <TopLine Value="64"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
@@ -50,23 +50,26 @@
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
+        <UnitName Value="Interfaces"/>
+        <CursorPos X="24" Y="30"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit3>
     </Units>
-    <JumpHistory Count="2" HistoryIndex="1">
+    <JumpHistory Count="1" HistoryIndex="0">
       <Position1>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="55" Column="1" TopLine="31"/>
+        <Caret Line="31" Column="37" TopLine="1"/>
       </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="72" Column="5" TopLine="43"/>
-      </Position2>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\GR32\"/>
+      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
       <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
     </SearchPaths>
     <Parsing>
@@ -79,9 +82,15 @@
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
       <Generate Value="Faster"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <UseLineInfoUnit Value="False"/>
+        <StripSymbols Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>

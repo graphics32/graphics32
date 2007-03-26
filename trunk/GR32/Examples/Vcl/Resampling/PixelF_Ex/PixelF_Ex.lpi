@@ -91,28 +91,7 @@
         <Loaded Value="True"/>
       </Unit6>
     </Units>
-    <JumpHistory Count="5" HistoryIndex="4">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="32" Column="36" TopLine="16"/>
-      </Position1>
-      <Position2>
-        <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="31" Column="22" TopLine="16"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="32" Column="44" TopLine="16"/>
-      </Position4>
-      <Position5>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\include\application.inc"/>
-        <Caret Line="1526" Column="1" TopLine="1511"/>
-      </Position5>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

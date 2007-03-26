@@ -1,36 +1,31 @@
 object Form1: TForm1
   Left = 295
+  Height = 373
   Top = 110
   Width = 524
-  Height = 373
+  HorzScrollBar.Page = 523
+  VertScrollBar.Page = 372
+  ActiveControl = RadioGroup1.RadioButton0
   Caption = 'PixelCombine Example'
-  Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
-  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
   OnCreate = FormCreate
-  PixelsPerInch = 96
-  TextHeight = 13
-  object ImgView: TImgView32
-    Anchors = [akLeft, akTop, akRight, akBottom]
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Color = clBtnShadow
-    ParentColor = False
-    Scale = 1.000000000000000000
-    ScrollBars.ShowHandleGrip = True
-    ScrollBars.Style = rbsDefault
-    OverSize = 0
-    TabOrder = 0
-  end
   object RadioGroup1: TRadioGroup
     Left = 394
+    Height = 185
     Top = 20
     Width = 109
-    Height = 185
     Anchors = [akTop, akRight]
+    AutoFill = True
     Caption = 'Operation'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
     ItemIndex = 0
     Items.Strings = (
       'Opaque'
@@ -41,8 +36,13 @@ object Form1: TForm1
       'Max'
       'Difference'
       'Exclusion'
-      'Pattern')
-    TabOrder = 1
+      'Pattern'
+    )
     OnClick = RadioGroup1Click
+    TabOrder = 0
+  end
+  object TImgView32
+    Height = 192
+    Centered = False
   end
 end

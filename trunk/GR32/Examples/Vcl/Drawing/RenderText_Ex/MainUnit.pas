@@ -28,8 +28,8 @@ unit MainUnit;
 interface
 
 uses
+  {$IFDEF FPC} LCLType, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  {$IFNDEF FPC} {$ELSE}LResources, {$ENDIF}
   GR32, ComCtrls, GR32_Image, Buttons;
 
 type
