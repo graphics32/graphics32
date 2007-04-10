@@ -39,8 +39,6 @@ type
   PFloatVector = ^TFloatVector;
   TFloatVector = TFloatPoint;
 
-  Abs = System.Abs overload;
-
 function Add(const V1, V2: TFloatVector): TFloatVector;  overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Add(const V: TFloatVector; Value: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Sub(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
