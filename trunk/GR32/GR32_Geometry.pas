@@ -39,24 +39,24 @@ type
   PFloatVector = ^TFloatVector;
   TFloatVector = TFloatPoint;
 
-function Add(const V1, V2: TFloatVector): TFloatVector;  overload;
-function Add(const V: TFloatVector; Value: TFloat): TFloatVector; overload;
-function Sub(const V1, V2: TFloatVector): TFloatVector; overload;
-function Sub(const V: TFloatVector; Value: TFloat): TFloatVector; overload;
-function Mul(const V1, V2: TFloatVector): TFloatVector; overload;
-function Mul(const V: TFloatVector; Multiplier: TFloat): TFloatVector; overload;
-function Divide(const V: TFloatVector; Divisor: TFloat): TFloatVector; overload;
-function Divide(const V1, V2: TFloatVector): TFloatVector; overload;
+function Add(const V1, V2: TFloatVector): TFloatVector;  overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Add(const V: TFloatVector; Value: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Sub(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Sub(const V: TFloatVector; Value: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Mul(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Mul(const V: TFloatVector; Multiplier: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Divide(const V: TFloatVector; Divisor: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Divide(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
-function Combine(const V1, V2: TFloatVector; W: TFloat): TFloatVector; overload;
-function Abs(const V: TFloatVector): TFloatVector; overload;
-function Neg(const V: TFloatVector): TFloatVector;
-function Average(const V1, V2: TFloatVector): TFloatVector; overload;
-function Max(const V1, V2: TFloatVector): TFloatVector; overload;
-function Min(const V1, V2: TFloatVector): TFloatVector; overload;
+function Combine(const V1, V2: TFloatVector; W: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Abs(const V: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Neg(const V: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Average(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Max(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Min(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
-function Dot(const V1, V2: TFloatVector): TFloat; overload;
-function Distance(const V1, V2: TFloatVector): TFloat; overload;
+function Dot(const V1, V2: TFloatVector): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Distance(const V1, V2: TFloatVector): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 
 implementation
