@@ -118,7 +118,7 @@ begin
   Result.Y := V2.Y + (V1.Y - V2.Y) * W;
 end;
 
-function Abs(const V: TFloatVector): TFloatVector;
+function AbsV(const V: TFloatVector): TFloatVector;
 begin
   Result.X := System.Abs(V.X);
   Result.Y := System.Abs(V.Y);
