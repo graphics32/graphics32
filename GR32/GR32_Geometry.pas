@@ -39,6 +39,8 @@ type
   PFloatVector = ^TFloatVector;
   TFloatVector = TFloatPoint;
 
+  Abs = System.Abs overload;
+
 function Add(const V1, V2: TFloatVector): TFloatVector;  overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Add(const V: TFloatVector; Value: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Sub(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -49,7 +51,7 @@ function Divide(const V: TFloatVector; Divisor: TFloat): TFloatVector; overload;
 function Divide(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 function Combine(const V1, V2: TFloatVector; W: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function Abs(const V: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function AbsV(const V: TFloatVector): TFloatVector; overload{$IFDEF USEINLINING} inline; {$ENDIF}
 function Neg(const V: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Average(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Max(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
