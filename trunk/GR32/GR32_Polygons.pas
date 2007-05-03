@@ -675,12 +675,12 @@ begin
 end;
 
 
-procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
-procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
-procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
-procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
-procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
-procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 type
   TTransformProc = procedure(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -692,7 +692,12 @@ begin
   RoundShift1(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+{$IFDEF PUREPASCAL}
+begin
+  DstPoint.X := (SrcPoint.X + $7F) div 256;
+  DstPoint.Y := (SrcPoint.Y + $7FFF) div 65536;
+{$ELSE}
 asm
     MOV ECX, [SrcPoint.X]
     ADD ECX, $0000007F
@@ -702,6 +707,7 @@ asm
     ADD EDX, $00007FFF
     SAR EDX, 16
     MOV [DstPoint.Y], EDX
+{$ENDIF}
 end;
 
 procedure Transform2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -710,7 +716,12 @@ begin
   RoundShift2(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+{$IFDEF PUREPASCAL}
+begin
+  DstPoint.X := (SrcPoint.X + $3FFF) div 32768;
+  DstPoint.Y := (SrcPoint.Y + $3FFF) div 32768;
+{$ELSE}
 asm
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00003FFF
@@ -720,6 +731,7 @@ asm
     ADD EDX, $00003FFF
     SAR EDX, 15
     MOV [DstPoint.Y], EDX
+{$ENDIF}
 end;
 
 procedure Transform4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -728,7 +740,12 @@ begin
   RoundShift4(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+{$IFDEF PUREPASCAL}
+begin
+  DstPoint.X := (SrcPoint.X + $1FFF) div 16384;
+  DstPoint.Y := (SrcPoint.Y + $1FFF) div 16384;
+{$ELSE}
 asm
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00001FFF
@@ -738,6 +755,7 @@ asm
     ADD EDX, $00001FFF
     SAR EDX, 14
     MOV [DstPoint.Y], EDX
+{$ENDIF}
 end;
 
 procedure Transform8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -746,7 +764,12 @@ begin
   RoundShift8(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+{$IFDEF PUREPASCAL}
+begin
+  DstPoint.X := (SrcPoint.X + $FFF) div 8192;
+  DstPoint.Y := (SrcPoint.Y + $FFF) div 8192;
+{$ELSE}
 asm
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00000FFF
@@ -756,6 +779,7 @@ asm
     ADD EDX, $00000FFF
     SAR EDX, 13
     MOV [DstPoint.Y], EDX
+{$ENDIF}
 end;
 
 procedure Transform16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -764,7 +788,12 @@ begin
   RoundShift16(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+{$IFDEF PUREPASCAL}
+begin
+  DstPoint.X := (SrcPoint.X + $7FF) div 4096;
+  DstPoint.Y := (SrcPoint.Y + $7FF) div 4096;
+{$ELSE}
 asm
     MOV ECX, [SrcPoint.X]
     ADD ECX, $000007FF
@@ -774,6 +803,7 @@ asm
     ADD EDX, $000007FF
     SAR EDX, 12
     MOV [DstPoint.Y], EDX
+{$ENDIF}
 end;
 
 procedure Transform32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -782,7 +812,12 @@ begin
   RoundShift32(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+{$IFDEF PUREPASCAL}
+begin
+  DstPoint.X := (SrcPoint.X + $3FF) div 2048;
+  DstPoint.Y := (SrcPoint.Y + $3FF) div 2048;
+{$ELSE}
 asm
     MOV ECX, [SrcPoint.X]
     ADD ECX, $000003FF
@@ -792,6 +827,7 @@ asm
     ADD EDX, $000003FF
     SAR EDX, 11
     MOV [DstPoint.Y], EDX
+{$ENDIF}
 end;
 
 const
