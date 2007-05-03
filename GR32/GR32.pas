@@ -2071,8 +2071,8 @@ begin
   flry := Y and $FF;
 
   {$IFDEF PUREPASCAL}
-  X := X div $FF;
-  Y := Y div $FF;
+  X := X div 256;
+  Y := Y div 256;
   {$ELSE}
   asm
     SAR X, 8
@@ -2124,8 +2124,8 @@ begin
   flry := Y and $FF;
 
   {$IFDEF PUREPASCAL}
-  X := X div $FF;
-  Y := Y div $FF;
+  X := X div 256;
+  Y := Y div 256;
   {$ELSE}
   asm
     SAR X, 8
@@ -2194,8 +2194,8 @@ end;
 procedure TCustomBitmap32.SetPixelX(X, Y: TFixed; Value: TColor32);
 {$IFDEF PUREPASCAL}
 begin
-  X := (X+$7F) div $FF;
-  Y := (Y+$7F) div $FF;
+  X := (X + $7F) div 256;
+  Y := (Y + $7F) div 256;
   SET_T256(X, Y, Value);
   EMMS;
 {$ELSE}
@@ -2252,8 +2252,8 @@ begin
   begin
 {$ENDIF}
     {$IFDEF PUREPASCAL}
-    X := (X + $7F) div $FF;
-    Y := (Y + $7F) div $FF;
+    X := (X + $7F) div 256;
+    Y := (Y + $7F) div 256;
     {$ELSE}
     asm
           ADD X, $7F
@@ -2327,8 +2327,8 @@ end;
 function TCustomBitmap32.GetPixelX(X, Y: TFixed): TColor32;
 {$IFDEF PUREPASCAL}
 begin
-  X := (X + $7F) div $FF;
-  Y := (Y + $7F) div $FF;
+  X := (X + $7F) div 256;
+  Y := (Y + $7F) div 256;
   Result := GET_T256(X, Y);
   EMMS;
 {$ELSE}
@@ -2349,8 +2349,8 @@ end;
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;
 {$IFDEF PUREPASCAL}
 begin
-  X := (X + $7F) div $FF;
-  Y := (Y + $7F) div $FF;
+  X := (X + $7F) div 256;
+  Y := (Y + $7F) div 256;
   Result := GET_TS256(X, Y);
   EMMS;
 {$ELSE}
@@ -2425,8 +2425,8 @@ var
   WrapProc: TWrapProcEx;
 begin
   {$IFDEF PUREPASCAL}
-  X := (X + $7F) div $FF;
-  Y := (Y + $7F) div $FF;
+  X := (X + $7F) div 256;
+  Y := (Y + $7F) div 256;
   {$ELSE}
   asm
         ADD X, $7F
