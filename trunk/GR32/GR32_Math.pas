@@ -73,55 +73,97 @@ function Sign(Value: Integer): Integer;
 
 implementation
 
+{$IFDEF PUREPASCAL} uses Math; {$ENDIF}
+
 { Fixed-point math }
 
 function FixedFloor(A: TFixed): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := A DIV $10000;
+{$ELSE}
 asm
         SAR     EAX, 16;
+{$ENDIF}
 end;
 
 function FixedCeil(A: TFixed): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := (A+$FFFF) DIV $10000;
+{$ELSE}
 asm
         ADD     EAX, $0000FFFF
         SAR     EAX, 16;
+{$ENDIF}
 end;
 
 function FixedRound(A: TFixed): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := (A+$7FFF) DIV $10000;
+{$ELSE}
 asm
         ADD     EAX, $00007FFF
         SAR     EAX, 16
+{$ENDIF}
 end;
 
 function FixedMul(A, B: TFixed): TFixed;
+{$IFDEF PUREPASCAL}
+begin
+  result:=A*B;
+{$ELSE}
 asm
         IMUL    EDX
         SHRD    EAX, EDX, 16
+{$ENDIF}
 end;
 
 function FixedDiv(A, B: TFixed): TFixed;
+{$IFDEF PUREPASCAL}
+begin
+  result:=A div B;
+{$ELSE}
 asm
         MOV     ECX, B
         CDQ
         SHLD    EDX, EAX, 16
         SHL     EAX, 16
         IDIV    ECX
+{$ENDIF}
 end;
 
 function OneOver(Value: TFixed): TFixed;
+{$IFDEF PUREPASCAL}
+const MulFac : Double = 1/65536;
+begin
+  Result := round(FixedOne / (Value * FixedToFloat));
+{$ELSE}
 asm
         MOV     ECX,EAX
         XOR     EAX,EAX
         MOV     EDX,1
         IDIV    ECX
+{$ENDIF}
 end;
 
 function FixedSqr(Value: TFixed): TFixed;
+{$IFDEF PUREPASCAL}
+begin
+  result:=sqr(Value);
+{$ELSE}
 asm
           IMUL    EAX
           SHRD    EAX, EDX, 16
+{$ENDIF}
 end;
 
 function FixedSqrtLP(Value: TFixed): TFixed;
+{$IFDEF PUREPASCAL}
+begin
+  result := Round(FixedOne * Sqrt(Value * FixedToFloat));
+{$ELSE}
 asm
           push    ebx
           mov     ecx, eax
@@ -144,9 +186,14 @@ asm
           jnz     @sqrtLP1
           shl     eax, 8
 @sqrtLP3: pop     ebx
+{$ENDIF}
 end;
 
 function FixedSqrtHP(Value: TFixed): TFixed;
+{$IFDEF PUREPASCAL}
+begin
+  result := Round(FixedOne * Sqrt(Value * FixedToFloat));
+{$ELSE}
 asm
           push ebx
           mov ecx, eax
@@ -184,6 +231,7 @@ asm
           shr ebx, 2
           jnz @sqrtHP3
 @sqrtHP6: pop ebx
+{$ENDIF}
 end;
 
 function FixedCombine(W, X, Y: TFixed): TFixed;
@@ -191,24 +239,40 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // combine fixed value X and fixed value Y with the weight of X given in W
 // Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
+{$IFDEF PUREPASCAL}
+begin
+ result := Y + (X - Y) * W div FixedOne;
+{$ELSE}
 asm
       SUB  EDX,ECX
       IMUL EDX
       SHRD EAX,EDX,16
       ADD  EAX,ECX
+{$ENDIF}
 end;
 
 { Trigonometry }
 
 procedure SinCos(const Theta: TFloat; var Sin, Cos: TFloat);
+{$IFDEF PUREPASCAL}
+begin
+  Sin:=System.Sin(Theta);
+  Cos:=System.Cos(Theta);
+{$ELSE}
 asm
    FLD  Theta
    FSINCOS
    FSTP DWORD PTR [EDX]    // cosine
    FSTP DWORD PTR [EAX]    // sine
+{$ENDIF}
 end;
 
 procedure SinCos(const Theta, Radius : TFloat; var Sin, Cos: TFloat);
+{$IFDEF PUREPASCAL}
+begin
+  Sin := System.Sin(Theta) * Radius;
+  Cos := System.Cos(Theta) * Radius;
+{$ELSE}
 asm
    FLD  theta
    FSINCOS
@@ -216,22 +280,32 @@ asm
    FSTP DWORD PTR [EDX]    // cosine
    FMUL radius
    FSTP DWORD PTR [EAX]    // sine
+{$ENDIF}
 end;
 
 function Hypot(const X, Y: TFloat): TFloat;
+{$IFDEF PUREPASCAL}
+begin
+  Math.Hypot(X, Y);
+{$ELSE}
 asm
         FLD     X
         FMUL    ST,ST
         FLD     Y
         FMUL    ST,ST
-        FADD
+        FADDP
         FSQRT
         FWAIT
+{$ENDIF}
 end;
 
 { Misc. }
 
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := (Multiplicand * Multiplier) div Divisor;
+{$ELSE}
 asm
         PUSH    EBX             // Imperative save
         PUSH    ESI             // of EBX and ESI
@@ -276,26 +350,46 @@ asm
 @exit:
         POP     ESI             // Restore
         POP     EBX             // esi and ebx
+{$ENDIF}
 end;
 
 function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
+{$IFDEF PUREPASCAL}
+var i : Integer;
+begin
+  Result := value and (value - 1) <> 0;
+{$ELSE}
 asm
         LEA     EDX,[EAX-1]
         AND     EAX,EDX
         SETZ    AL
+{$ENDIF}
 end;
 
 function PrevPowerOf2(Value: Integer): Integer;
 //returns X rounded down to the power of two
+{$IFDEF PUREPASCAL}
+begin
+  Result:=1;
+  while Value shr 1 > 0
+   do Result:= Result shl 1;
+{$ELSE}
 asm
         BSR     ECX,EAX
         SHR     EAX,CL
         SHL     EAX,CL
+{$ENDIF}
 end;
 
 function NextPowerOf2(Value: Integer): Integer;
 //returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
+{$IFDEF PUREPASCAL}
+begin
+  Result:=2;
+  while Value shr 1 > 0
+   do Result:= Result shl 1;
+{$ELSE}
 asm
         DEC     EAX
         JLE     @1
@@ -304,25 +398,37 @@ asm
         SHL     EAX,CL
         RET
 @1:     MOV     EAX,1
+{$ENDIF}
 end;
 
 function Average(A, B: Integer): Integer;
 //fast average without overflow, useful e.g. for fixed point math
 //(A + B)/2 = (A and B) + (A xor B)/2
+{$IFDEF PUREPASCAL}
+begin
+  result:=(A and B) + (A xor B) div 2;
+{$ELSE}
 asm
         MOV     ECX,EDX
         XOR     EDX,EAX
         SAR     EDX,1
         AND     EAX,ECX
         ADD     EAX,EDX
+{$ENDIF}
 end;
 
 function Sign(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  if Value<0 then result:=-1
+  else result:=1;
+{$ELSE}
 asm
         CDQ
         NEG     EAX
         ADC     EDX,EDX
         MOV     EAX,EDX
+{$ENDIF}
 end;
 
 end.
