@@ -32,6 +32,8 @@ interface
 
 {$I GR32.inc}
 
+{$IFDEF PUREPASCAL} {$DEFINE USEMOVE} {$ENDIF}
+
 uses
   {$IFDEF CLX}
   QGraphics,
@@ -64,10 +66,10 @@ function StackAlloc(Size: Integer): Pointer; register;
 procedure StackFree(P: Pointer); register;
 
 { Exchange two 32-bit values }
-procedure Swap(var A, B: Integer);
+procedure Swap(var A, B: Integer); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Exchange A <-> B only if B < A }
-procedure TestSwap(var A, B: Integer);
+procedure TestSwap(var A, B: Integer); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Exchange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
@@ -82,9 +84,9 @@ function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} in
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 
 { Clamp integer Value to [0..Max] range }
-function Clamp(Value, Max: Integer): Integer; overload;
+function Clamp(Value, Max: Integer): Integer; overload; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 { Same but [Min..Max] range }
-function Clamp(Value, Min, Max: Integer): Integer; overload;
+function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Wrap integer Value to [0..Max] range }
 function Wrap(Value, Max: Integer): Integer; overload;
@@ -122,7 +124,7 @@ function ColorSwap(WinColor: TColor): TColor32;
 implementation
 
 uses
-  Math, GR32_System;
+  GR32_System;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -145,6 +147,16 @@ asm
 end;
 
 procedure _FillLongword(var X; Count: Integer; Value: Longword);
+{$IFDEF PUREPASCAL}
+inline;
+var
+  I: Integer;
+  P: PIntegerArray;
+begin
+  P := PIntegerArray(@X);
+  for I := count-1 downto 0 do
+    P[I] := Integer(Value);
+{$ELSE}
 asm
 // EAX = X
 // EDX = Count
@@ -160,9 +172,10 @@ asm
         REP     STOSD    // Fill count dwords
 @exit:
         POP     EDI
+{$ENDIF}
 end;
 
-
+{$IFNDEF PUREPASCAL}
 procedure M_FillLongword(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
@@ -200,8 +213,18 @@ asm
         POP        EDI
     @Exit:
 end;
+{$ENDIF}
 
-procedure FillWord(var X; Count: Integer; Value: Longword);
+procedure FillWord(var X; Count: Integer; Value: LongWord);
+{$IFDEF PUREPASCAL}
+var
+  I: Integer;
+  P: PWordArray;
+begin
+  P := PWordArray(@X);
+  for I := count-1 downto 0 do
+    P[I] := Low(Value);
+{$ELSE}
 asm
 // EAX = X
 // EDX = Count
@@ -217,6 +240,7 @@ asm
         REP     STOSW    // Fill count words
 @exit:
         POP     EDI
+{$ENDIF}
 end;
 
 {$IFDEF USEMOVE}
@@ -267,15 +291,35 @@ asm
 end;
 
 procedure Swap(var A, B: Integer);
+{$IFDEF PUREPASCAL}
+var 
+  T: Integer;
+begin
+  T := A;
+  A := B;
+  B := T;
+{$ELSE}
 asm
 // EAX = [A]
 // EDX = [B]
         MOV     ECX,[EAX]     // ECX := [A]
         XCHG    ECX,[EDX]     // ECX <> [B];
         MOV     [EAX],ECX     // [A] := ECX
+{$ENDIF}
 end;
 
 procedure TestSwap(var A, B: Integer);
+{$IFDEF PUREPASCAL}
+var 
+  T: Integer;
+begin
+  if B < A then
+  begin
+    T := A;
+    A := B;
+    B := T;
+  end;
+{$ELSE}
 asm
 // EAX = [A]
 // EDX = [B]
@@ -285,30 +329,38 @@ asm
         XCHG    ECX,[EDX]     // ECX <-> [B];
         MOV     [EAX],ECX     // [A] := ECX
 @exit:
+{$ENDIF}
 end;
 
 function TestClip(var A, B: Integer; const Size: Integer): Boolean;
 begin
   TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
-  if A < 0 then A := 0;
-  if B >= Size then B := Size - 1;
+  if A < 0 then
+  	A := 0;
+  if B >= Size then 
+  	B := Size - 1;
   Result := B >= A;
 end;
 
 function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean;
 begin
   TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
-  if A < Start then A := Start;
-  if B >= Stop then B := Stop - 1;
+  if A < Start then 
+  	A := Start;
+  if B >= Stop then 
+  	B := Stop - 1;
   Result := B >= A;
 end;
 
 function Constrain(const Value, Lo, Hi: Integer): Integer;
 {$IFDEF USEINLINING}
 begin
-  if Value < Lo then Result := Lo
-  else if Value > Hi then Result := Hi
-  else Result := Value;
+  if Value < Lo then
+  	Result := Lo
+  else if Value > Hi then 
+  	Result := Hi
+  else 
+  	Result := Value;
 {$ELSE}
 asm
         CMP       EDX,EAX
@@ -334,6 +386,15 @@ begin
 end;
 
 function Clamp(Value, Max: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  if Value > Max then 
+  	Result := Max
+  else if Value < 0 then 
+  	Result := 0
+  else 
+  	Result := Value;
+{$ELSE}
 asm
         CMP     EAX,EDX
         JG      @@above
@@ -346,17 +407,35 @@ asm
 @@below:
         MOV     EAX,0
         RET
+{$ENDIF}
 end;
 
 function Clamp(Value, Min, Max: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  if Value > Max then 
+  	Result := Max
+  else if Value < Min then 
+  	Result := Min
+  else 
+  	Result := Value;
+{$ELSE}
 asm
         CMP       EDX,EAX
         db $0F,$4F,$C2           /// CMOVG     EAX,EDX
         CMP       ECX,EAX
         db $0F,$4C,$C1           /// CMOVL     EAX,ECX
+{$ENDIF}
 end;
 
 function Wrap(Value, Max: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  if Value < 0 then
+    Result := Max + (Value - Max) mod (Max + 1)
+  else
+    Result := (Value) mod (Max + 1);
+{$ELSE}
 asm
         LEA     ECX,[EDX+1]
         CDQ
@@ -366,17 +445,18 @@ asm
         JNL     @@exit
         ADD     EAX,ECX
 @@exit:
+{$ENDIF}
 end;
 
 function Wrap(Value, Min, Max: Integer): Integer;
+{_$IFNDEF PUREPASCAL}
 begin
   if Value < Min then
     Result := Max + (Value - Max) mod (Max - Min + 1)
   else
     Result := Min + (Value - Min) mod (Max - Min + 1);
-end;
-
 (*
+{$ELSE}
 asm
         CMP     EAX,EDX
         JL      @@below
@@ -401,9 +481,42 @@ asm
         JNL     @@exit
         ADD     EAX,ECX
 @@exit:
-end;*)
+{$ENDIF}
+*)
+end;
+
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Remainder := Dividend mod Divisor;
+  Result := Dividend div Divisor;
+{$ELSE}
+asm
+        PUSH EBX
+        MOV EBX,EDX
+        CDQ
+        IDIV EBX
+        MOV [ECX],EDX
+        POP EBX
+{$ENDIF}
+end;
 
 function Mirror(Value, Max: Integer): Integer;
+{$IFDEF PUREPASCAL}
+var
+  DivResult: Integer;
+begin
+  if Value < 0 then
+  begin
+    DivResult := DivMod(Value - Max, Max + 1, Result);
+    Inc(Result, Max);
+  end
+  else
+  	DivResult := DivMod(Value, Max + 1, Result);
+  	
+  if Odd(DivResult) then
+  	Result := Max-Result;
+{$ELSE}
 asm
         TEST    EAX,EAX
         JNL     @@1
@@ -418,17 +531,7 @@ asm
         NEG     EAX
         ADD     EAX,ECX
 @@exit:
-end;
-
-
-function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
-asm
-        PUSH EBX
-        MOV EBX,EDX
-        CDQ
-        IDIV EBX
-        MOV [ECX],EDX
-        POP EBX
+{$ENDIF}
 end;
 
 function Mirror(Value, Min, Max: Integer): Integer;
@@ -450,52 +553,104 @@ end;
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 16;
+{$ELSE}
 asm
         SAR EAX,4
+{$ENDIF}
 end;
 
 function SAR_8(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 256;
+{$ELSE}
 asm
         SAR EAX,8
+{$ENDIF}
 end;
 
 function SAR_9(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 512;
+{$ELSE}
 asm
         SAR EAX,9
+{$ENDIF}
 end;
 
 function SAR_11(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 2048;
+{$ELSE}
 asm
         SAR EAX,11
+{$ENDIF}
 end;
 
 function SAR_12(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 4096;
+{$ELSE}
 asm
         SAR EAX,12
+{$ENDIF}
 end;
 
 function SAR_13(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 8192;
+{$ELSE}
 asm
         SAR EAX,13
+{$ENDIF}
 end;
 
 function SAR_14(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 16384;
+{$ELSE}
 asm
         SAR EAX,14
+{$ENDIF}
 end;
 
 function SAR_15(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 32768;
+{$ELSE}
 asm
         SAR EAX,15
+{$ENDIF}
 end;
 
 function SAR_16(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 65536;
+{$ELSE}
 asm
         SAR EAX,16
+{$ENDIF}
 end;
 
 { Colorswap exchanges ARGB <-> ABGR and fill A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
+{$IFDEF PUREPASCAL}
+begin
+  Result := $FF000000 or
+  	((WinColor and $00FF0000) shr 16 or
+   	(WinColor and $0000FF00) or
+   	(WinColor and $000000FF) shl 16);
+{$ELSE}
 asm
 // EAX = WinColor
 // this function swaps R and B bytes in ABGR
@@ -503,6 +658,7 @@ asm
         BSWAP   EAX
         MOV     AL, $FF
         ROR     EAX,8
+{$ENDIF}
 end;
 
 { StackAlloc allocates a 'small' block of memory from the stack by
@@ -558,9 +714,11 @@ end;
 
 procedure SetupFunctions;
 begin
+{$IFNDEF PUREPASCAL}
   if HasMMX then
     FillLongword := M_FillLongword
   else
+{$ENDIF}
     FillLongword := _FillLongword;
 end;
 
