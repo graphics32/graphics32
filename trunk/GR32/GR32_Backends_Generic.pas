@@ -31,7 +31,19 @@ interface
 {$I GR32.inc}
 
 uses
-  Windows, SysUtils, Classes, GR32, GR32_Backends;
+  {$IFDEF FPC}
+    Types,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
+  {$ELSE}
+    {$IFDEF CLX}
+      Qt, Types,
+    {$ELSE}
+      Windows,
+    {$ENDIF}
+  {$ENDIF}
+  SysUtils, Classes, GR32, GR32_Backends;
 
 type
   { TMemoryBackend }
@@ -42,6 +54,8 @@ type
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
   end;
+
+{$IFDEF Windows}
 
   { TMMFBackend }
   { A backend that uses memory mapped files or mapped swap space for the
@@ -63,6 +77,8 @@ type
     class procedure DeinititializeFileMapping(MapHandle, MapFileHandle: THandle; const MapFileName: string);
     class procedure CreateFileMapping(var MapHandle, MapFileHandle: THandle; const MapFileName: string; NewWidth, NewHeight: Integer);
   end;
+
+{$ENDIF}
 
 implementation
 
@@ -86,6 +102,8 @@ begin
     FBits := nil;
   end;
 end;
+
+{$IFDEF Windows}
 
 { TMMFBackend }
 
@@ -180,5 +198,7 @@ begin
   if MapHandle = 0 then
     raise Exception.Create('Failed to map file');
 end;
+
+{$ENDIF}
 
 end.
