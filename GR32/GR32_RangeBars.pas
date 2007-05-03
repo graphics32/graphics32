@@ -33,9 +33,7 @@ interface
 
 uses
   {$IFDEF FPC}
-    LMessages, LCLType, LCLIntf,
-    Messages, Types,
-    Graphics, Controls, Forms, Dialogs, ExtCtrls,
+    LMessages, LCLType, LCLIntf, Graphics, Controls, Forms, Dialogs, ExtCtrls,
     {$IFDEF Windows}
       Windows,
     {$ENDIF}
@@ -413,7 +411,7 @@ begin
     (Cardinal(C2) and $00FF00) * W2) and $00FF0000) shr 8;
 end;
 
-{$IFDEF FPC}
+{$IFDEF xFPC}
 type
   PPattern = ^TPattern;
   TPattern = record
@@ -1462,11 +1460,7 @@ begin
   Message.Result := -1;
 end;
 
-{$IFDEF FPC}
-procedure TArrowBar.WMNCCalcSize(var Message: TLMNCCalcSize);
-{$ELSE}
 procedure TArrowBar.WMNCCalcSize(var Message: TWMNCCalcSize);
-{$ENDIF}
 var
   Sz: Integer;
 begin

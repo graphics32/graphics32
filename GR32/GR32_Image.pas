@@ -585,7 +585,7 @@ type
 implementation
 
 uses
-  Math, TypInfo, GR32_MicroTiles, GR32_Backends;
+  TypInfo, GR32_MicroTiles, GR32_Backends;
 
 type
   TBitmap32Access = class(TBitmap32);

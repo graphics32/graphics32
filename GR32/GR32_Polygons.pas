@@ -35,9 +35,6 @@ interface
 uses
   {$IFDEF FPC}
     Types,
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
   {$ELSE}
     {$IFDEF CLX}
       Qt,
