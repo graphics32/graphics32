@@ -116,7 +116,8 @@ function Lighten(C: TColor32; Amount: Integer): TColor32;
 
 implementation
 
-uses Math, GR32_System, GR32_LowLevel, GR32_Math;
+uses 
+  GR32_System, GR32_LowLevel;
 
 var
   RcTable: array [Byte, Byte] of Byte;
@@ -125,6 +126,50 @@ var
 { Merge }
 
 function _MergeReg(F, B: TColor32): TColor32;
+{$IFDEF PUREPASCAL}
+var
+  PF, PB, PR: PByteArray;
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+  RX: TColor32Entry absolute Result;
+  X: Byte;
+begin
+  if FX.A = $FF then 
+    Result := F
+  else if FX.A = $0 then
+    Result := B
+  else if BX.A = $0 then 
+    Result := F
+  else if BX.A = $FF then
+    Result := BlendReg(F,B)
+  else
+  begin
+    PF := @DivTable[FX.A];
+    PB := @DivTable[BX.A];
+    RX.A := BX.A + FX.A - PB^[FX.A];
+    PR := @RcTable[RX.A];
+
+    // Red component
+    RX.R := PB[BX.R];
+    X := FX.R - RX.R;
+    if X >= 0 then
+      RX.R := PR[PF[X] + RX.R]
+    else
+      RX.R := PR[RX.R - PF[-X]];
+
+    // Green component
+    RX.G := PB[BX.G];
+    X := FX.G - RX.G;
+    if X >= 0 then RX.G := PR[PF[X] + RX.G]
+    else RX.G := PR[RX.G - PF[-X]];
+
+    // Blue component
+    RX.B := PB[BX.B];
+    X := FX.B - RX.B;
+    if X >= 0 then RX.B := PR[PF[X] + RX.B]
+    else RX.B := PR[RX.B - PF[-X]];
+  end;
+{$ELSE}
 asm
   // EAX <- F
   // EDX <- B
@@ -299,6 +344,7 @@ asm
 @exit0:
     mov eax,edx
 @exit:
+{$ENDIF}
 end;
 
 function _MergeRegEx(F, B, M: TColor32): TColor32;
@@ -346,6 +392,18 @@ end;
 const bias = $00800080;
 
 function _CombineReg(X, Y, W: TColor32): TColor32;
+{$IFDEF PUREPASCAL}
+var
+  Xe: TColor32Entry absolute X;
+  Ye: TColor32Entry absolute Y;
+  Re: TColor32Entry absolute Result;
+  We: TColor32Entry absolute W;
+begin
+  Re.A := (We.A * Xe.A + ($FF - We.A) * Ye.A) div $FF;
+  Re.R := (We.A * Xe.R + ($FF - We.A) * Ye.R) div $FF;
+  Re.G := (We.A * Xe.G + ($FF - We.A) * Ye.G) div $FF;
+  Re.B := (We.A * Xe.B + ($FF - We.A) * Ye.B) div $FF;
+{$ELSE}
 asm
   // combine RGBA channels of colors X and Y with the weight of X given in W
   // Result Z = W * X + (1 - W) * Y (all channels are combined, including alpha)
@@ -397,9 +455,21 @@ asm
 
 @1:     MOV     EAX,EDX
 @2:     RET
+{$ENDIF}
 end;
 
 procedure _CombineMem(F: TColor32; var B: TColor32; W: TColor32);
+{$IFDEF PUREPASCAL}
+var
+  Fe: TColor32Entry absolute F;
+  Be: TColor32Entry absolute B;
+  We: TColor32Entry absolute W;
+begin
+  Be.A := (We.A * Fe.A + ($FF - We.A) * Be.A) div $FF;
+  Be.R := (We.A * Fe.R + ($FF - We.A) * Be.R) div $FF;
+  Be.G := (We.A * Fe.G + ($FF - We.A) * Be.G) div $FF;
+  Be.B := (We.A * Fe.B + ($FF - We.A) * Be.B) div $FF;
+{$ELSE}
 asm
   // EAX <- F
   // [EDX] <- B
@@ -454,9 +524,28 @@ asm
 
 @2:     MOV     [EDX],EAX
         RET
+{$ENDIF}
 end;
 
 function _BlendReg(F, B: TColor32): TColor32;
+{$IFDEF PUREPASCAL}
+var
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+  RX: TColor32Entry absolute Result;
+begin
+ if FX.A = $FF then 
+   Result := F
+ else if FX.A = $0 then 
+   Result := B
+ else
+ begin
+   RX.A := BX.A;
+   RX.R := (FX.A * FX.R + ($FF - FX.A) * BX.R) div $FF;
+   RX.G := (FX.A * FX.G + ($FF - FX.A) * BX.G) div $FF;
+   RX.B := (FX.A * FX.B + ($FF - FX.A) * BX.B) div $FF;
+ end;
+{$ELSE}
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
@@ -515,9 +604,24 @@ asm
 
 @1:     MOV     EAX,EDX
 @2:     RET
+{$ENDIF}
 end;
 
 procedure _BlendMem(F: TColor32; var B: TColor32);
+{$IFDEF PUREPASCAL}
+var
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+begin
+ if FX.A = $FF then 
+   B := F
+ else
+ begin
+   BX.R := (FX.A * FX.R + ($FF - FX.A) * BX.R) div $FF;
+   BX.G := (FX.A * FX.G + ($FF - FX.A) * BX.G) div $FF;
+   BX.B := (FX.A * FX.B + ($FF - FX.A) * BX.B) div $FF;
+ end;
+{$ELSE}
 asm
   // EAX <- F
   // [EDX] <- B
@@ -578,9 +682,28 @@ asm
 
 @1:     MOV     [EDX],EAX
 @2:     RET
+{$ENDIF}
 end;
 
 function _BlendRegEx(F, B, M: TColor32): TColor32;
+{$IFDEF PUREPASCAL}
+var
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+  RX: TColor32Entry absolute Result;
+  MX: TColor32Entry absolute M;
+begin
+  M := MX.A * FX.A div $FF;
+  if M = $FF then
+  	Result := F
+  else
+  begin
+    RX.A := BX.A;
+    RX.R := (M * FX.R + ($FF - M) * BX.R) div $FF;
+    RX.G := (M * FX.G + ($FF - M) * BX.G) div $FF;
+    RX.B := (M * FX.B + ($FF - M) * BX.B) div $FF;
+  end;
+{$ELSE}
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
@@ -638,13 +761,30 @@ asm
 
         POP     EBX
         RET
-        
+
 @1:     POP     EBX
 @2:     MOV     EAX,EDX
         RET
+{$ENDIF}
 end;
 
 procedure _BlendMemEx(F: TColor32; var B: TColor32; M: TColor32);
+{$IFDEF PUREPASCAL}
+var
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+  MX: TColor32Entry absolute M;
+begin
+  M := MX.A * FX.A div $FF;
+  if M = $FF then 
+    B := F
+  else
+  begin
+    BX.R := (M * FX.R + ($FF - M) * BX.R) div $FF;
+    BX.G := (M * FX.G + ($FF - M) * BX.G) div $FF;
+    BX.B := (M * FX.B + ($FF - M) * BX.B) div $FF;
+  end;
+{$ELSE}
 asm
   // EAX <- F
   // [EDX] <- B
@@ -704,9 +844,30 @@ asm
 
 @1:     POP     EBX
 @2:     RET
+{$ENDIF}
 end;
 
 procedure _BlendLine(Src, Dst: PColor32; Count: Integer);
+{$IFDEF PUREPASCAL}
+var
+  SX: PColor32Entry absolute Src;
+  DX: PColor32Entry absolute Dst;
+  I: Integer;
+begin
+  for I := 0 to Count - 1 do
+  begin
+    if SX.A = $FF then 
+    	Dst^ := Src^
+    else
+    begin
+      DX.R := (SX.A * SX.R + ($FF - SX.A) * DX.R) div $FF;
+      DX.G := (SX.A * SX.G + ($FF - SX.A) * DX.G) div $FF;
+      DX.B := (SX.A * SX.B + ($FF - SX.A) * DX.B) div $FF;
+    end;
+    Inc(Src);
+    Inc(Dst);
+  end;
+{$ELSE}
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -786,6 +947,7 @@ asm
         POP     EBX
 
 @4:     RET
+{$ENDIF}
 end;
 
 procedure _BlendLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
@@ -813,6 +975,17 @@ end;
 
 { MMX versions }
 
+procedure EMMS;
+begin
+{$IFNDEF PUREPASCAL}
+  if MMX_ACTIVE then
+  asm
+    db $0F,$77               /// EMMS
+  end;
+{$ENDIF}
+end;
+
+{$IFNDEF PUREPASCAL}
 
 procedure GenAlphaTable;
 var
@@ -839,14 +1012,6 @@ end;
 procedure FreeAlphaTable;
 begin
   FreeMem(AlphaTable);
-end;
-
-procedure EMMS;
-begin
-  if MMX_ACTIVE then
-  asm
-    db $0F,$77               /// EMMS
-  end;
 end;
 
 function M_CombineReg(X, Y, W: TColor32): TColor32;
@@ -1218,6 +1383,7 @@ asm
 @4:     CALL      GR32_LowLevel.MoveLongword
         POP       EBX
 end;
+{$ENDIF}
 
 { Non-MMX Color algebra versions }
 
@@ -1503,6 +1669,7 @@ end;
 
 { MMX Color algebra versions }
 
+{$IFNDEF PUREPASCAL}
 function M_ColorAdd(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
@@ -1597,7 +1764,7 @@ asm
         db $0F,$67,$C2           /// PACKUSWB  MM0,MM2
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
-
+{$ENDIF}
 
 { Misc stuff }
 
@@ -1606,12 +1773,9 @@ var
   r, g, b, a: Integer;
 begin
   a := C shr 24;
-  r := C and $00FF0000;
-  g := C and $0000FF00;
+  r := (C and $00FF0000) shr 16;
+  g := (C and $0000FF00) shr 8;
   b := C and $000000FF;
-
-  r := r shr 16;
-  g := g shr 8;
 
   Inc(r, Amount);
   Inc(g, Amount);
@@ -1659,6 +1823,7 @@ begin
   BLEND_LINE[cmMerge] := _MergeLine;
   BLEND_LINE_EX[cmMerge] := _MergeLineEx;
 
+  {$IFNDEF PUREPASCAL}
   if MMX_ACTIVE then
   begin
     // link MMX functions
@@ -1688,6 +1853,7 @@ begin
     ColorScale := M_ColorScale;
   end
   else
+  {$ENDIF}
   begin
     // link non-MMX functions
     CombineReg := _CombineReg;
@@ -1716,6 +1882,7 @@ begin
     ColorScale := _ColorScale;
   end;
 
+  {$IFNDEF PUREPASCAL}
   if HasEMMX then
   begin
     ColorMax := M_ColorMax;
@@ -1723,6 +1890,7 @@ begin
     ColorAverage := M_ColorAverage;
   end
   else
+  {$ENDIF}
   begin
     ColorMax := _ColorMax;
     ColorMin := _ColorMin;
@@ -1733,10 +1901,12 @@ end;
 initialization
   MakeMergeTables;
   SetupFunctions;
+{$IFNDEF PUREPASCAL}
   if MMX_ACTIVE then GenAlphaTable;
 
 finalization
   if MMX_ACTIVE then FreeAlphaTable;
+{$ENDIF}
 
 end.
 
