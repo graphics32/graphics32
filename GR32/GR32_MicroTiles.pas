@@ -39,10 +39,22 @@ interface
   {-$DEFINE MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
 
 uses
-  {$IFDEF CLX}
-  Qt, {$IFDEF LINUX}Libc, {$ELSE}Windows, {$ENDIF}
+  {$IFDEF FPC}
+    Types,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
   {$ELSE}
-  Windows,
+    {$IFDEF CLX}
+      Qt,
+      {$IFDEF LINUX}
+        Libc,
+      {$ELSE}
+        Windows,
+      {$ENDIF}
+    {$ELSE}
+      Windows,
+    {$ENDIF}
   {$ENDIF}
   {$IFDEF CODESITE}CSIntf, CSAux,{$ENDIF}
   {$IFDEF COMPILER2005}Types, {$ENDIF}
@@ -223,9 +235,11 @@ type
 {$ENDIF}
 
 procedure _MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
-procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+{$IFNDEF PUREPASCAL}
+procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+{$ENDIF}
 
 implementation
 
@@ -276,6 +290,7 @@ begin
   end;
 end;
 
+{$IFNDEF PUREPASCAL}
 procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 var
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
@@ -321,6 +336,7 @@ begin
     end;
   end;
 end;
+{$ENDIF}
 
 { MicroTiles auxiliary routines }
 
@@ -687,6 +703,7 @@ begin
   end;
 end;
 
+{$IFNDEF PUREPASCAL}
 procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
@@ -752,6 +769,7 @@ begin
     db $0F,$77               /// EMMS
   end;
 end;
+{$ENDIF}
 
 procedure MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles; RoundToWholeTiles: Boolean);
 var
@@ -1683,12 +1701,14 @@ end;
 
 procedure SetupFunctions;
 begin
+{$IFNDEF PUREPASCAL}
   if HasEMMX then
   begin
     MicroTileUnion := M_MicroTileUnion;
     MicroTilesU := M_MicroTilesUnion;    // internal
   end
   else
+{$ENDIF}
   begin
     MicroTileUnion := _MicroTileUnion;
     MicroTilesU := _MicroTilesUnion;     // internal
