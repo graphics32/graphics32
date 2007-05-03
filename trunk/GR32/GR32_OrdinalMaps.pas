@@ -75,9 +75,9 @@ type
     procedure Assign(Source: TPersistent); override;
     function  Empty: Boolean; override;
     procedure Clear(FillValue: Byte);
-    procedure ReadFrom(Source: TBitmap32; Conversion: TConversionType);
-    procedure WriteTo(Dest: TBitmap32; Conversion: TConversionType); overload;
-    procedure WriteTo(Dest: TBitmap32; const Palette: TPalette32); overload;
+    procedure ReadFrom(Source: TCustomBitmap32; Conversion: TConversionType);
+    procedure WriteTo(Dest: TCustomBitmap32; Conversion: TConversionType); overload;
+    procedure WriteTo(Dest: TCustomBitmap32; const Palette: TPalette32); overload;
     property Bits: PByteArray read GetBits;
     property ValPtr[X, Y: Integer]: PByte read GetValPtr;
     property Value[X, Y: Integer]: Byte read GetValue write SetValue; default;
@@ -248,7 +248,7 @@ begin
   Result := FBits[X + Y * Width];
 end;
 
-procedure TByteMap.ReadFrom(Source: TBitmap32; Conversion: TConversionType);
+procedure TByteMap.ReadFrom(Source: TCustomBitmap32; Conversion: TConversionType);
 var
   W, H, I, N: Integer;
   SrcC: PColor32;
@@ -346,7 +346,7 @@ begin
   FBits[X + Y * Width] := Value;
 end;
 
-procedure TByteMap.WriteTo(Dest: TBitmap32; Conversion: TConversionType);
+procedure TByteMap.WriteTo(Dest: TCustomBitmap32; Conversion: TConversionType);
 var
   W, H, I, N: Integer;
   DstC: PColor32;
@@ -427,7 +427,7 @@ begin
   end;
 end;
 
-procedure TByteMap.WriteTo(Dest: TBitmap32; const Palette: TPalette32);
+procedure TByteMap.WriteTo(Dest: TCustomBitmap32; const Palette: TPalette32);
 var
   W, H, I, N: Integer;
   DstC: PColor32;

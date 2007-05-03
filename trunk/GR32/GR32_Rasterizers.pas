@@ -52,7 +52,7 @@ type
 
 type
   { TRasterizer }
-  { A base class for TBitmap32-specific rasterizers. }
+  { A base class for TCustomBitmap32-specific rasterizers. }
   TRasterizer = class(TThreadPersistent)
   private
     FSampler: TCustomSampler;
@@ -69,15 +69,15 @@ type
     procedure AssignColorTransparent(var Dst: TColor32; Src: TColor32);
   protected
     procedure AssignTo(Dst: TPersistent); override;
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); virtual; abstract;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); virtual; abstract;
     property AssignColor: TAssignColor read FAssignColor write FAssignColor;
   public
     constructor Create; override;
     procedure Assign(Source: TPersistent); override;
-    procedure Rasterize(Dst: TBitmap32); overload;
-    procedure Rasterize(Dst: TBitmap32; const DstRect: TRect); overload;
-    procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; const CombineInfo: TCombineInfo); overload;
-    procedure Rasterize(Dst: TBitmap32; const DstRect: TRect; Src: TBitmap32); overload;
+    procedure Rasterize(Dst: TCustomBitmap32); overload;
+    procedure Rasterize(Dst: TCustomBitmap32; const DstRect: TRect); overload;
+    procedure Rasterize(Dst: TCustomBitmap32; const DstRect: TRect; const CombineInfo: TCombineInfo); overload;
+    procedure Rasterize(Dst: TCustomBitmap32; const DstRect: TRect; Src: TCustomBitmap32); overload;
   published
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
@@ -90,7 +90,7 @@ type
   private
     FUpdateRowCount: Integer;
   protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   public
     constructor Create; override;
   published
@@ -108,7 +108,7 @@ type
     FBlockSize: Integer;
     procedure SetBlockSize(const Value: Integer);
   protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   public
     constructor Create; override;
   published
@@ -126,7 +126,7 @@ type
     procedure SetSteps(const Value: Integer);
     procedure SetUpdateRows(const Value: Boolean);
   protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   public
     constructor Create; override;
   published
@@ -139,23 +139,23 @@ type
     scheme to subdivide blocks vertically and horizontally into smaller blocks. }
   TTesseralRasterizer = class(TRasterizer)
   protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   end;
 
   { TContourRasterizer }
   TContourRasterizer = class(TRasterizer)
   protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   end;
 
   { TMultithreadedRegularRasterizer }
   TMultithreadedRegularRasterizer = class(TRasterizer)
   protected
-    procedure DoRasterize(Dst: TBitmap32; DstRect: TRect); override;
+    procedure DoRasterize(Dst: TCustomBitmap32; DstRect: TRect); override;
   end;
 
 { Auxiliary routines }
-function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
+function CombineInfo(Bitmap: TCustomBitmap32): TCombineInfo;
 
 const
   DEFAULT_COMBINE_INFO: TCombineInfo = (
@@ -187,13 +187,13 @@ type
   protected
     Data: PLineRasterizerData;
     DstRect: TRect;
-    Dst: TBitmap32;
+    Dst: TCustomBitmap32;
     GetSample: TGetSampleInt;
     AssignColor: TAssignColor;
     procedure Execute; override;
   end;
 
-function CombineInfo(Bitmap: TBitmap32): TCombineInfo;
+function CombineInfo(Bitmap: TCustomBitmap32): TCombineInfo;
 begin
   with Result do
   begin
@@ -240,13 +240,13 @@ begin
     inherited;
 end;
 
-procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
-  Src: TBitmap32);
+procedure TRasterizer.Rasterize(Dst: TCustomBitmap32; const DstRect: TRect;
+  Src: TCustomBitmap32);
 begin
   Rasterize(Dst, DstRect, CombineInfo(Src));
 end;
 
-procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect;
+procedure TRasterizer.Rasterize(Dst: TCustomBitmap32; const DstRect: TRect;
   const CombineInfo: TCombineInfo);
 begin
   SetCombineInfo(CombineInfo);
@@ -276,7 +276,7 @@ begin
   end;
 end;
 
-procedure TRasterizer.Rasterize(Dst: TBitmap32; const DstRect: TRect);
+procedure TRasterizer.Rasterize(Dst: TCustomBitmap32; const DstRect: TRect);
 var
   UpdateCount: Integer;
   R: TRect;
@@ -307,7 +307,7 @@ begin
   end;
 end;
 
-procedure TRasterizer.Rasterize(Dst: TBitmap32);
+procedure TRasterizer.Rasterize(Dst: TCustomBitmap32);
 begin
   Rasterize(Dst, Dst.BoundsRect);
 end;
@@ -322,8 +322,8 @@ procedure TRasterizer.Assign(Source: TPersistent);
 begin
   BeginUpdate;
   try
-    if Source is TBitmap32 then
-      SetCombineInfo(CombineInfo(TBitmap32(Source)))
+    if Source is TCustomBitmap32 then
+      SetCombineInfo(CombineInfo(TCustomBitmap32(Source)))
     else
       inherited;
   finally
@@ -340,7 +340,7 @@ begin
   FUpdateRowCount := 0;
 end;
 
-procedure TRegularRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+procedure TRegularRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 var
   I, J, UpdateCount: Integer;
   P: PColor32;
@@ -375,7 +375,7 @@ begin
   FBlockSize := 3;
 end;
 
-procedure TSwizzlingRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+procedure TSwizzlingRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 var
   I, L, T, W, H, Size, RowSize, D: Integer;
   P1, P2, PBlock: TPoint;
@@ -477,7 +477,7 @@ begin
   FUpdateRows := True;
 end;
 
-procedure TProgressiveRasterizer.DoRasterize(Dst: TBitmap32;
+procedure TProgressiveRasterizer.DoRasterize(Dst: TCustomBitmap32;
   DstRect: TRect);
 var
   I, J, Shift, W, H, B, Wk, Hk, X, Y: Integer;
@@ -567,7 +567,7 @@ end;
 
 { TTesseralRasterizer }
 
-procedure TTesseralRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+procedure TTesseralRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 var
   W, H, I: Integer;
   GetSample: TGetSampleInt;
@@ -636,7 +636,7 @@ begin
   if P.Y >= R.Bottom then R.Bottom := P.Y + 1;
 end;
 
-procedure TContourRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+procedure TContourRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 type
   TDirection = (North, East, South, West);
 var
@@ -759,7 +759,7 @@ end;
 
 { TMultithreadedRegularRasterizer }
 
-procedure TMultithreadedRegularRasterizer.DoRasterize(Dst: TBitmap32; DstRect: TRect);
+procedure TMultithreadedRegularRasterizer.DoRasterize(Dst: TCustomBitmap32; DstRect: TRect);
 var
   I: Integer;
   Threads: array of TScanLineRasterizerThread;
