@@ -916,11 +916,18 @@ begin
 end;
 
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
+{$IFDEF PUREPASCAL}
+begin
+  Result := (A shl 24) or
+            (R shl 16) or
+            (G shl  8) or B;
+{$ELSE}
 asm
         MOV  AH,A
         SHL  EAX,16
         MOV  AH,DL
         MOV  AL,CL
+{$ENDIF}
 end;
 
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
@@ -935,11 +942,18 @@ begin
 end;
 
 function WinColor(Color32: TColor32): TColor;
+{$IFDEF PUREPASCAL}
+begin
+  Result := ((Color32 and $00FF0000) shl 16) or
+             (Color32 and $0000FF00) or
+            ((Color32 and $000000FF) shr 16);
+{$ELSE}
 asm
   // the alpha channel byte is set to zero!
         ROL    EAX,8  // ABGR  ->  BGRA
         XOR    AL,AL  // BGRA  ->  BGR0
         BSWAP  EAX    // BGR0  ->  0RGB
+{$ENDIF}
 end;
 
 function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
@@ -1115,19 +1129,41 @@ begin
 end;
 
 function Max(const A, B, C: Integer): Integer; overload;
+{$IFDEF PUREPASCAL}
+begin
+  if A > B then 
+  	Result := A
+  else 
+  	Result := B;
+  	
+  if C > Result then 
+  	Result := C;   
+{$ELSE}
 asm
       CMP       EDX,EAX
       db $0F,$4F,$C2           /// CMOVG     EAX,EDX
       CMP       ECX,EAX
       db $0F,$4F,$C1           /// CMOVG     EAX,ECX
+{$ENDIF}
 end;
 
 function Min(const A, B, C: Integer): Integer; overload;
+{$IFDEF PUREPASCAL}
+begin
+  if A < B then 
+  	Result := A
+  else 
+  	Result := B;
+  
+  if C < Result then 
+  	Result := C;
+{$ELSE}
 asm
       CMP       EDX,EAX
       db $0F,$4C,$C2           /// CMOVL     EAX,EDX
       CMP       ECX,EAX
       db $0F,$4C,$C1           /// CMOVL     EAX,ECX
+{$ENDIF}
 end;
 
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte);
@@ -1978,20 +2014,28 @@ end;
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
+{$IFDEF PUREPASCAL}
+  EMMS;
+{$ELSE}
   if MMX_ACTIVE then
   asm
     db $0F,$77               /// EMMS
   end;
+{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Ptr^);
   Inc(Ptr);
+{$IFDEF PUREPASCAL}
+  EMMS;
+{$ELSE}
   if MMX_ACTIVE then
   asm
     db $0F,$77               /// EMMS
   end;
+{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
@@ -2001,10 +2045,14 @@ begin
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
     BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
+  {$IFDEF PUREPASCAL}
+    EMMS;
+  {$ELSE}
     if MMX_ACTIVE then
     asm
       db $0F,$77               /// EMMS
     end;
+  {$ENDIF}
   end;
 {$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
@@ -2022,10 +2070,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
+  {$IFDEF PUREPASCAL}
+  X := X div $FF;
+  Y := Y div $FF;
+  {$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
+  {$ENDIF}
 
   P := @Bits[X + Y * FWidth];
   if FCombineMode = cmBlend then
@@ -2070,10 +2123,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
+  {$IFDEF PUREPASCAL}
+  X := X div $FF;
+  Y := Y div $FF;
+  {$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
+  {$ENDIF}
 
   P := @Bits[X + Y * FWidth];
   if FCombineMode = cmBlend then
@@ -2134,15 +2192,29 @@ begin
 end;
 
 procedure TCustomBitmap32.SetPixelX(X, Y: TFixed; Value: TColor32);
+{$IFDEF PUREPASCAL}
 begin
-  asm
-        ADD X, $7F
-        ADD Y, $7F
-        SAR X, 8
-        SAR Y, 8
-  end;
+  X := (X+$7F) div $FF;
+  Y := (Y+$7F) div $FF;
   SET_T256(X, Y, Value);
   EMMS;
+{$ELSE}
+asm
+  PUSH EBX
+  ADD X, $7F
+  ADD Y, $7F
+  SAR X, 8
+  SAR Y, 8
+  MOV EBX,[EBP+$08]
+  PUSH EBX
+
+  CALL TCustomBitmap32.SET_T256
+  cmp MMX_ACTIVE.Integer,$00
+  jz @Exit
+  db $0F,$77               /// EMMS
+@Exit:
+  POP EBX
+{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelFS(X, Y: Single; Value: TColor32);
@@ -2179,12 +2251,18 @@ begin
   if not FMeasuringMode then
   begin
 {$ENDIF}
+    {$IFDEF PUREPASCAL}
+    X := (X + $7F) div $FF;
+    Y := (Y + $7F) div $FF;
+    {$ELSE}
     asm
           ADD X, $7F
           ADD Y, $7F
           SAR X, 8
           SAR Y, 8
     end;
+    {$ENDIF}
+
     SET_TS256(X, Y, Value);
     EMMS;
 {$IFDEF CHANGED_IN_PIXELS}
@@ -2247,27 +2325,47 @@ begin
 end;
 
 function TCustomBitmap32.GetPixelX(X, Y: TFixed): TColor32;
+{$IFDEF PUREPASCAL}
 begin
-  asm
-        ADD X, $7F
-        ADD Y, $7F
-        SAR X, 8
-        SAR Y, 8
-  end;
+  X := (X + $7F) div $FF;
+  Y := (Y + $7F) div $FF;
   Result := GET_T256(X, Y);
   EMMS;
+{$ELSE}
+asm
+  ADD X, $7F
+  ADD Y, $7F
+  SAR X, 8
+  SAR Y, 8
+  CALL TCustomBitmap32.GET_T256
+  MOV Result, EAX
+  cmp MMX_ACTIVE.Integer, $00
+  jz @Exit  
+  db $0F, $77               /// EMMS
+@Exit:
+{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;
+{$IFDEF PUREPASCAL}
 begin
-  asm
-        ADD X, $7F
-        ADD Y, $7F
-        SAR X, 8
-        SAR Y, 8
-  end;
+  X := (X + $7F) div $FF;
+  Y := (Y + $7F) div $FF;
   Result := GET_TS256(X, Y);
   EMMS;
+{$ELSE}
+asm
+  ADD X, $7F
+  ADD Y, $7F
+  SAR X, 8
+  SAR Y, 8
+  CALL TCustomBitmap32.GET_TS256
+  MOV Result, EAX
+  cmp MMX_ACTIVE.Integer, $00
+  jz @Exit
+  db $0F, $77               /// EMMS  
+@Exit:
+{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelR(X, Y: Single): TColor32;
@@ -2326,12 +2424,17 @@ procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 var
   WrapProc: TWrapProcEx;
 begin
+  {$IFDEF PUREPASCAL}
+  X := (X + $7F) div $FF;
+  Y := (Y + $7F) div $FF;
+  {$ELSE}
   asm
         ADD X, $7F
         ADD Y, $7F
         SAR X, 8
         SAR Y, 8
   end;
+  {$ENDIF}
   WrapProc := WRAP_PROCS_EX[FWrapMode];
   with F256ClipRect do
     SET_T256(WrapProc(X, Left, Right - 128), WrapProc(Y, Top, Bottom - 128), Value);
@@ -4518,6 +4621,7 @@ begin
                        CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
+{$IFDEF PUREPASCAL}
 function M_Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
@@ -4563,6 +4667,7 @@ asm
         db $0F,$67,$D0           /// PACKUSWB  MM2,MM0
         db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
+{$ENDIF}
 
 procedure SetupFunctions;
 var
@@ -4570,6 +4675,7 @@ var
   ACTIVE_3DNow: Boolean;
 begin
   MMX_ACTIVE := HasMMX;
+  {$IFDEF PUREPASCAL}
   ACTIVE_3DNow := Has3DNow;
   if ACTIVE_3DNow then
   begin
@@ -4583,6 +4689,7 @@ begin
    Interpolator := M_Interpolator;
   end
   else
+  {$ENDIF}
   begin
    // link IA32 functions
    Interpolator := _Interpolator;
