@@ -31,12 +31,24 @@ interface
 
 uses
   Classes, SysUtils,
-  {$IFDEF FPC}RTLConsts, LazIDEIntf, PropEdits,
-  {$ELSE} Consts, {$IFDEF COMPILER6}
-  DesignIntf, DesignEditors, VCLEditors,
-  {$ELSE} DsgnIntf, {$ENDIF} {$ENDIF}
-  {$IFDEF CLX} QGraphics, QDialogs, QForms, {$ELSE}
-  Windows, Registry, Graphics, Dialogs, Forms, {$ENDIF}
+  {$IFDEF FPC}
+    RTLConsts, LazIDEIntf, PropEdits, Graphics, Dialogs, Forms,
+    {$IFDEF Windows}
+      Windows, Registry,
+    {$ENDIF}
+  {$ELSE}
+    Consts,
+    {$IFDEF COMPILER6}
+      DesignIntf, DesignEditors, VCLEditors,
+    {$ELSE}
+      DsgnIntf,
+    {$ENDIF}
+    {$IFDEF CLX}
+      QGraphics, QDialogs, QForms,
+    {$ELSE}
+      Windows, Registry, Graphics, Dialogs, Forms,
+    {$ENDIF}
+  {$ENDIF}
   GR32, GR32_Image;
 
 type
