@@ -45,28 +45,28 @@ type
   TLUT8 = array [Byte] of Byte;
   TLogicalOperator = (loXOR, loAND, loOR);
 
-procedure CopyComponents(Dst, Src: TBitmap32; Components: TColor32Components);overload;
-procedure CopyComponents(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
+procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);overload;
+procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Components: TColor32Components); overload;
 
-procedure AlphaToGrayscale(Dst, Src: TBitmap32);
-procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
-procedure IntensityToAlpha(Dst, Src: TBitmap32);
+procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32);
+procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean = False);
+procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 
-procedure Invert(Dst, Src: TBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
-procedure InvertRGB(Dst, Src: TBitmap32);
+procedure Invert(Dst, Src: TCustomBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
+procedure InvertRGB(Dst, Src: TCustomBitmap32);
 
-procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
-procedure ChromaKey(ABitmap: TBitmap32; TrColor: TColor32);
+procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
+procedure ChromaKey(ABitmap: TCustomBitmap32; TrColor: TColor32);
 
 function CreateBitmask(Components: TColor32Components): TColor32;
 
-procedure ApplyBitmask(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
+procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator); overload;
-procedure ApplyBitmask(ABitmap: TBitmap32; ARect: TRect; Bitmask: TColor32;
+procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32;
   LogicalOperator: TLogicalOperator); overload;
 
-procedure CheckParams(Dst, Src: TBitmap32; ResizeDst: Boolean = True);
+procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 
 implementation
 
@@ -89,7 +89,7 @@ var
   LOGICAL_MASK_LINE: array[TLogicalOperator] of  TLogicalMaskLine;
   LOGICAL_MASK_LINE_EX: array[TLogicalOperator] of TLogicalMaskLineEx;
 
-procedure CheckParams(Dst, Src: TBitmap32; ResizeDst: Boolean = True);
+procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 begin
   if not Assigned(Src) then
     raise Exception.Create(SEmptySource);
@@ -100,14 +100,14 @@ begin
   if ResizeDst then Dst.SetSize(Src.Width, Src.Height);
 end;
 
-procedure CopyComponents(Dst, Src: TBitmap32; Components: TColor32Components);
+procedure CopyComponents(Dst, Src: TCustomBitmap32; Components: TColor32Components);
 begin
   if Components = [] then Exit;
   CheckParams(Dst, Src);
   CopyComponents(Dst, 0, 0, Src, Src.BoundsRect, Components);
 end;
 
-procedure CopyComponents(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
+procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Components: TColor32Components);
 var
   I, J, Count, ComponentCount, Offset: Integer;
@@ -292,7 +292,7 @@ begin
 end;
 
 
-procedure AlphaToGrayscale(Dst, Src: TBitmap32);
+procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32);
 var
   I: Integer;
   D, S: PColor32;
@@ -308,7 +308,7 @@ begin
   Dst.Changed;
 end;
 
-procedure IntensityToAlpha(Dst, Src: TBitmap32);
+procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 var
   I: Integer;
   D, S: PColor32;
@@ -325,7 +325,7 @@ begin
   Dst.Changed;
 end;
 
-procedure Invert(Dst, Src: TBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
+procedure Invert(Dst, Src: TCustomBitmap32; Components : TColor32Components = [ccAlpha, ccRed, ccGreen, ccBlue]);
 var
   Mask: TColor32;
 begin
@@ -345,12 +345,12 @@ begin
   end;
 end;
 
-procedure InvertRGB(Dst, Src: TBitmap32);
+procedure InvertRGB(Dst, Src: TCustomBitmap32);
 begin
   Invert(Src, Dst, [ccRed, ccGreen, ccBlue]);
 end;
 
-procedure ColorToGrayscale(Dst, Src: TBitmap32; PreserveAlpha: Boolean = False);
+procedure ColorToGrayscale(Dst, Src: TCustomBitmap32; PreserveAlpha: Boolean = False);
 var
   I: Integer;
   D, S: PColor32;
@@ -375,7 +375,7 @@ begin
   Dst.Changed;
 end;
 
-procedure ApplyLUT(Dst, Src: TBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
+procedure ApplyLUT(Dst, Src: TCustomBitmap32; const LUT: TLUT8; PreserveAlpha: Boolean = False);
 var
   I: Integer;
   D, S: PColor32Entry;
@@ -402,7 +402,7 @@ begin
   Dst.Changed;
 end;
 
-procedure ChromaKey(ABitmap: TBitmap32; TrColor: TColor32);
+procedure ChromaKey(ABitmap: TCustomBitmap32; TrColor: TColor32);
 var
   P: PColor32;
   C: TColor32;
@@ -432,7 +432,7 @@ begin
   if ccBlue in Components then Inc(Result, $000000FF);
 end;
 
-procedure ApplyBitmask(Dst: TBitmap32; DstX, DstY: Integer; Src: TBitmap32;
+procedure ApplyBitmask(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Bitmask: TColor32; LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
@@ -482,7 +482,7 @@ begin
   end;
 end;
 
-procedure ApplyBitmask(ABitmap: TBitmap32; ARect: TRect; Bitmask: TColor32;
+procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32;
   LogicalOperator: TLogicalOperator);
 var
   I, Count: Integer;
