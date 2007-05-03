@@ -103,18 +103,31 @@
   {$DEFINE COMPILER4}
   {$DEFINE PLATFORM_INDEPENDENT}
   {$MODE Delphi}
+
+  {$IFNDEF CPUI386}
+  {$DEFINE PUREPASCAL}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFNDEF COMPILER4}
 //////////////////////////////////////////////////////////////////////
 '  Graphics32 may only be installed with Delphi 4, Delphi 5,         '
-'  Delphi6, Delphi7, C++ Builder 4, C++ Builder 5, or C++Builder 6 ! '
+'  Delphi6, Delphi7, C++ Builder 4, C++ Builder 5, C++Builder 6 or Lazarus! '
 //////////////////////////////////////////////////////////////////////
 {$ENDIF}
 
 {$IFDEF LINUX}
-  {$DEFINE CLX}
-  {$DEFINE PLATFORM_INDEPENDENT}
+  {$IFNDEF FPC}
+    {$DEFINE CLX}
+    {$DEFINE PLATFORM_INDEPENDENT}
+  {$ENDIF}
+  {$DEFINE UNIX}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$IFNDEF LINUX}
+    {$DEFINE Windows}
+  {$ENDIF}
 {$ENDIF}
 
 (* Symbol CLX :
