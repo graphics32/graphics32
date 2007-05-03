@@ -32,7 +32,7 @@ interface
 uses
   Classes, TypInfo,
 {$IFDEF FPC}
-  LCLIntf, LazIDEIntf, PropEdits, ComponentEditors
+  LCLIntf, LResources, LazIDEIntf, PropEdits, ComponentEditors
 {$ELSE}
 {$IFDEF COMPILER6}
   DesignIntf
@@ -72,5 +72,10 @@ begin
   RegisterPropertyEditor(TypeInfo(string), TKernelResampler, 'KernelClassName', nil);
   RegisterPropertyEditor(TypeInfo(TCustomKernel), TKernelResampler, 'Kernel', TKernelClassProperty);
 end;
+
+initialization
+  {$IFDEF FPC}
+  {$i gr32_reg.lrs}
+  {$ENDIF}
 
 end.
