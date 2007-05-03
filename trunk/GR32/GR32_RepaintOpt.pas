@@ -32,10 +32,7 @@ interface
 
 uses
   {$IFDEF FPC}
-    Types,
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
+    LCLIntf,
   {$ELSE}
     {$IFDEF CLX}
       Qt, Types,
@@ -46,7 +43,7 @@ uses
       Windows,
     {$ENDIF}
   {$ENDIF}
-  Classes, SysUtils, {RTLConsts, }GR32, GR32_LowLevel, GR32_Containers, GR32_Layers;
+  Classes, SysUtils, GR32, GR32_LowLevel, GR32_Containers, GR32_Layers;
 
 type
   { TCustomRepaintOptimizer }
