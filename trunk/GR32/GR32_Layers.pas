@@ -34,10 +34,7 @@ interface
 
 uses
   {$IFDEF FPC}
-    Types, Controls, Graphics, Forms,
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
+    Controls, Graphics, Forms,
   {$ELSE}
     {$IFDEF CLX}
       Qt, Types, QControls, QGraphics, QForms,
@@ -344,8 +341,7 @@ type
 implementation
 
 uses
-  TypInfo, GR32_Image, GR32_LowLevel, GR32_Transforms, GR32_Resamplers,
-  GR32_RepaintOpt;
+  TypInfo, GR32_Image, GR32_LowLevel, GR32_Resamplers, GR32_RepaintOpt;
 
 { mouse state mapping }
 const

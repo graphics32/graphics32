@@ -30,7 +30,7 @@ interface
 {$I GR32.INC}
 
 uses
-  {$IFDEF FPC} LCLIntf, LCLType, Types, LMessages,
+  {$IFDEF FPC} LCLIntf, LCLType, LMessages,
   {$ELSE} Windows, Messages,{$ENDIF}
   GR32, GR32_Image, GR32_Rasterizers, Classes, Controls;
 
