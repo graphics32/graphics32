@@ -31,9 +31,15 @@ interface
 
 uses
   Classes, TypInfo,
-  {$IFDEF FPC} LCLIntf, LazIDEIntf, PropEdits, ComponentEditors {$ELSE}
-  {$IFDEF COMPILER6} DesignIntf {$ELSE}
-  DsgnIntf{$ENDIF}{$ENDIF};
+{$IFDEF FPC}
+  LCLIntf, LazIDEIntf, PropEdits, ComponentEditors
+{$ELSE}
+{$IFDEF COMPILER6}
+  DesignIntf
+{$ELSE}
+  DsgnIntf
+{$ENDIF}
+{$ENDIF};
 
 procedure Register;
 
@@ -45,7 +51,7 @@ uses
   GR32_Dsgn_Bitmap,
   GR32_Dsgn_Misc,
   GR32_Image,
-  {$IFNDEF CLX}
+  {$IFDEF Windows}
   GR32_ExtImage,
   {$ENDIF}
   GR32_Layers,
@@ -56,7 +62,7 @@ uses
 procedure Register;
 begin
   RegisterComponents('Graphics32', [TPaintBox32, TImage32, TBitmap32List,
-    TRangeBar, TGaugeBar, TImgView32{$IFNDEF CLX}, TSyntheticImage32{$ENDIF}]);
+    TRangeBar, TGaugeBar, TImgView32{$IFDEF Windows}, TSyntheticImage32{$ENDIF}]);
   RegisterPropertyEditor(TypeInfo(TColor32), nil, '', TColor32Property);
   RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
   RegisterComponentEditor(TCustomImage32, TImage32Editor);

@@ -32,19 +32,25 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF FPC}
-  LMessages, LCLType,
-{$ENDIF}
-{$IFDEF CLX}
-  Qt, Types,
-  {$IFDEF LINUX}Libc,{$ENDIF}
-  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  QGraphics, QControls, QForms, QDialogs, QExtCtrls,
-{$ELSE}
-  Windows, Messages, GR32, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
-  Graphics, Controls, Forms, Dialogs, ExtCtrls,
-{$ENDIF}
-  SysUtils, Classes;
+  {$IFDEF FPC}
+    LMessages, LCLType, LCLIntf,
+    Messages, Types,
+    Graphics, Controls, Forms, Dialogs, ExtCtrls,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
+  {$ELSE}
+    {$IFDEF CLX}
+      Qt, Types,
+      {$IFDEF LINUX}Libc,{$ENDIF}
+      {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+      QGraphics, QControls, QForms, QDialogs, QExtCtrls,
+    {$ELSE}
+      Windows, Messages, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
+      Graphics, Controls, Forms, Dialogs, ExtCtrls,
+    {$ENDIF}
+  {$ENDIF}
+  SysUtils, Classes, GR32;
 
 {$IFDEF CLX}
 const
@@ -96,13 +102,11 @@ type
 {$IFNDEF CLX}
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-{$IFDEF FPC}
-    procedure WMNCCalcSize(var Message: TLMNCCalcSize); message WM_NCCALCSIZE;
-{$ELSE}
+{$IFDEF Windows}
     procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
-{$ENDIF}
     procedure WMNCPaint(var Message: TMessage); message WM_NCPAINT;
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
+{$ENDIF}
 {$ENDIF}
   protected
     GenChange: Boolean;
@@ -116,7 +120,7 @@ type
     procedure DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean); virtual;
     procedure DoDrawHandle(R: TRect; Horz: Boolean; Pushed, Hot: Boolean); virtual;
     procedure DoDrawTrack(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean); virtual;
-{$IFNDEF CLX}
+{$IFDEF Windows}
     procedure DrawNCArea(ADC: HDC; const Clip: HRGN); dynamic;
 {$ENDIF}
     function  DrawEnabled: Boolean; virtual;
@@ -375,10 +379,10 @@ function ClrLighten(C: TColor; Amount: Integer): TColor;
 var
   R, G, B: Integer;
 begin
-{$IFDEF CLX}
-  C := ColorToRGB(C);
-{$ELSE}
+{$IFDEF Windows}
   if C < 0 then C := GetSysColor(C and $000000FF);
+{$ELSE}
+  C := ColorToRGB(C);
 {$ENDIF}
   R := C and $FF + Amount;
   G := C shr 8 and $FF + Amount;
@@ -395,12 +399,12 @@ var
 begin
   Assert(W1 in [0..255]);
   W2 := W1 xor 255;
-{$IFDEF CLX}
-  C1 := ColorToRGB(C1);
-  C2 := ColorToRGB(C2);
-{$ELSE}
+{$IFDEF Windows}
   if Integer(C1) < 0 then C1 := GetSysColor(C1 and $000000FF);
   if Integer(C2) < 0 then C2 := GetSysColor(C2 and $000000FF);
+{$ELSE}
+  C1 := ColorToRGB(C1);
+  C2 := ColorToRGB(C2);
 {$ENDIF}
   Result := Integer(
     ((Cardinal(C1) and $FF00FF) * Cardinal(W1) +
@@ -422,7 +426,7 @@ type
   TPatternManager = class(TObject)
   private
     List: PPattern;
-    FLock: TRTLCriticalSection;
+    FLock: System.TRTLCriticalSection;
     function CreateBitmap(BkColor, FgColor: TColor): TBitmap;
   public
     constructor Create;
@@ -435,23 +439,23 @@ type
 
 constructor TPatternManager.Create;
 begin
-  InitializeCriticalSection(FLock);
+  InitCriticalSection(FLock);
 end;
 
 destructor TPatternManager.Destroy;
 begin
   FreePatterns;
-  DeleteCriticalSection(FLock);
+  DoneCriticalSection(FLock);
 end;
 
 procedure TPatternManager.Lock;
 begin
-  EnterCriticalSection(FLock);
+  System.EnterCriticalSection(FLock);
 end;
 
 procedure TPatternManager.Unlock;
 begin
-  LeaveCriticalSection(FLock);
+  System.LeaveCriticalSection(FLock);
 end;
 
 function TPatternManager.AllocPattern(BkColor, FgColor: TColorRef): PPattern;
@@ -812,13 +816,13 @@ const
   PushedFlags: array [Boolean] of Integer = (0, DFCS_PUSHED or DFCS_FLAT);
   DirectionFlags: array [TRBDirection] of Integer = (DFCS_SCROLLLEFT, DFCS_SCROLLUP,
     DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN);
-{$IFNDEF CLX}
+{$IFDEF Windows}
   DirectionXPFlags: array [TRBDirection] of Cardinal = (ABS_LEFTNORMAL, ABS_UPNORMAL,
     ABS_RIGHTNORMAL, ABS_DOWNNORMAL);
 {$ENDIF}
 var
   Edges: TRBDirections;
-{$IFNDEF CLX}
+{$IFDEF Windows}
   Flags: Integer;
 {$ENDIF}
 begin
@@ -843,7 +847,8 @@ begin
       If Pushed then OffsetRect(R, 1, 1);
       DrawArrow(Canvas, R, Direction, clButtonText);
     end;
-{$ELSE}
+{$ENDIF}
+{$IFDEF Windows}
     if USE_THEMES then
     begin
       Flags := DirectionXPFlags[Direction];
@@ -907,7 +912,7 @@ begin
 end;
 
 procedure TArrowBar.DoDrawHandle(R: TRect; Horz, Pushed, Hot: Boolean);
-{$IFNDEF CLX}
+{$IFDEF Windows}
 const
   PartXPFlags: array [Boolean] of Cardinal = (SBP_THUMBBTNVERT, SBP_THUMBBTNHORZ);
   GripperFlags: array [Boolean] of Cardinal = (SBP_GRIPPERVERT, SBP_GRIPPERHORZ);
@@ -918,7 +923,7 @@ begin
   if IsRectEmpty(R) then Exit;
   case Style of
     rbsDefault:
-{$IFNDEF CLX}
+{$IFDEF Windows}
       if USE_THEMES then
       begin
         Flags := SCRBS_NORMAL;
@@ -931,26 +936,29 @@ begin
       end
       else
         DrawEdge(Canvas.Handle, R, EDGE_RAISED, BF_RECT or BF_MIDDLE);
-{$ELSE}
+{$ENDIF}
+{$IFDEF CLX}
       begin
         Canvas.Brush.Color := clButton;
         Canvas.FillRect(R);
         DrawWinButton(Canvas, R, False);
       end;
 {$ENDIF}
+{$IFNDEF FPC}
     rbsMac:
       DrawHandle(Canvas, R, HandleColor, Pushed, ShowHandleGrip, Horz, fBorderColor);
+{$ENDIF}
   end;
 end;
 
 procedure TArrowBar.DoDrawTrack(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean);
-{$IFNDEF CLX}
+{$IFDEF Windows}
 const
   PartXPFlags: array [TRBDirection] of Cardinal =
     (SBP_LOWERTRACKHORZ, SBP_LOWERTRACKVERT, SBP_UPPERTRACKHORZ, SBP_UPPERTRACKVERT);
 {$ENDIF}
 var
-{$IFNDEF CLX}
+{$IFDEF Windows}
   Flags: Cardinal;
 {$ENDIF}
   C: TColor;
@@ -959,7 +967,7 @@ begin
   if (R.Right <= R.Left) or (R.Bottom <= R.Top) then Exit;
   if Style = rbsDefault then
   begin
-{$IFNDEF CLX}
+{$IFDEF Windows}
     if USE_THEMES then
     begin
       Flags := SCRBS_NORMAL;
@@ -1021,7 +1029,7 @@ begin
   Result := Enabled;
 end;
 
-{$IFNDEF CLX}
+{$IFDEF Windows}
 procedure TArrowBar.DrawNCArea(ADC: HDC; const Clip: HRGN);
 var
   DC: HDC;
@@ -1448,7 +1456,7 @@ begin
   end;
 end;
 
-{$IFNDEF CLX}
+{$IFDEF Windows}
 procedure TArrowBar.WMEraseBkgnd(var Message: TWmEraseBkgnd);
 begin
   Message.Result := -1;
@@ -1470,7 +1478,8 @@ procedure TArrowBar.WMNCPaint(var Message: TMessage);
 begin
   DrawNCArea(0, HRGN(Message.WParam));
 end;
-{$ELSE}
+{$ENDIF}
+{$IFDEF CLX}
 
 function TArrowBar.WidgetFlags: Integer;
 begin
