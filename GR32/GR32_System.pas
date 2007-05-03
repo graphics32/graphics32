@@ -31,18 +31,41 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, Windows, {$ELSE}
-  {$IFDEF CLX} Qt, Types,
-  {$IFDEF LINUX}, Libc {$ELSE}, Windows,{$ENDIF}
-  {$ELSE} Windows, {$ENDIF}
-  {$ENDIF} SysUtils;
+  {$IFDEF FPC}
+    LCLIntf, LCLType,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
+    {$IFDEF UNIX}
+      Unix, BaseUnix,
+    {$ENDIF}
+  {$ELSE}
+    {$IFDEF CLX}
+      Qt, Types,
+      {$IFDEF LINUX}
+        Libc,
+      {$ELSE}
+        Windows,
+      {$ENDIF}
+    {$ELSE}
+      Windows,
+    {$ENDIF}
+  {$ENDIF}
+
+  SysUtils;
 
 type
   TPerfTimer = class
   private
-{$IFDEF LINUX}
+{$IFDEF UNIX}
+  {$IFDEF FPC}
+    FStart: Int64;
+  {$ENDIF}
+  {$IFDEF CLX}
     FStart: timespec;
-{$ELSE}
+  {$ENDIF}
+{$ENDIF}
+{$IFDEF Windows}
     FFrequency, FPerformanceCountStart, FPerformanceCountStop: Int64;
 {$ENDIF}
   public
@@ -89,7 +112,7 @@ const
 var
   GlobalPerfTimer: TPerfTimer;
 
-{$IFNDEF CLX}
+{$IFDEF Windows}
 { Internal support for Windows XP themes }
 var
   USE_THEMES: Boolean = False;
@@ -181,7 +204,51 @@ uses
   Messages, Forms, Classes;
 {$ENDIF}
 
-{$IFDEF LINUX}
+{$IFDEF UNIX}
+{$IFDEF FPC}
+function GetTickCount: Cardinal;
+var t : timeval;
+begin
+  fpgettimeofday(@t,nil);
+   // Build a 64 bit microsecond tick from the seconds and microsecond longints
+  Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
+end;
+
+function TPerfTimer.ReadNanoseconds: String;
+var t : timeval;
+begin
+  fpgettimeofday(@t,nil);
+   // Build a 64 bit microsecond tick from the seconds and microsecond longints
+  Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) div 1000 );
+end;
+
+function TPerfTimer.ReadMilliseconds: String;
+var t : timeval;
+begin
+  fpgettimeofday(@t,nil);
+   // Build a 64 bit microsecond tick from the seconds and microsecond longints
+  Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) * 1000 );
+end;
+
+function TPerfTimer.ReadValue: Int64;
+var t : timeval;
+begin
+  fpgettimeofday(@t,nil);
+   // Build a 64 bit microsecond tick from the seconds and microsecond longints
+  Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
+  Result := Result div 1000;
+end;
+
+procedure TPerfTimer.Start;
+var t : timeval;
+begin
+  fpgettimeofday(@t,nil);
+   // Build a 64 bit microsecond tick from the seconds and microsecond longints
+  FStart := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
+end;
+
+{$ENDIF}
+{$IFDEF CLX}
 function GetTickCount: Cardinal;
 var
   val: timespec;
@@ -221,7 +288,9 @@ procedure TPerfTimer.Start;
 begin
   clock_gettime(CLOCK_REALTIME, FStart);
 end;
-{$ELSE}
+{$ENDIF}
+{$ENDIF}
+{$IFDEF Windows}
 function GetTickCount: Cardinal;
 begin
   Result := Windows.GetTickCount;
@@ -255,12 +324,21 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINUX}
+{$IFDEF UNIX}
+{$IFDEF FPC}
+function GetProcessorCount: Cardinal;
+begin
+  Result := 1;
+end;
+{$ENDIF}
+{$IFDEF CLX}
 function GetProcessorCount: Cardinal;
 begin
   Result := get_nprocs_conf;
 end;
-{$ELSE}
+{$ENDIF}
+{$ENDIF}
+{$IFDEF Windows}
 function GetProcessorCount: Cardinal;
 var
   lpSysInfo: TSystemInfo;
@@ -386,7 +464,7 @@ begin
   Result := HasInstructionSet(ci3DNowExt);
 end;
 
-{$IFNDEF CLX}
+{$IFDEF Windows}
 const
   UXTHEME_DLL = 'uxtheme.dll';
 
@@ -524,7 +602,7 @@ end;
 {$ENDIF}
 
 initialization
-{$IFNDEF CLX}
+{$IFDEF Windows}
   {$IFDEF XPTHEMES}
   ThemeNexus := TThemeNexus.Create;
   {$ENDIF}
@@ -533,7 +611,7 @@ initialization
 
 finalization
   GlobalPerfTimer.Free;
-{$IFNDEF CLX}
+{$IFDEF Windows}
   {$IFDEF XPTHEMES}
   ThemeNexus.Free;
   {$ENDIF}
