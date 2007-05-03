@@ -18,7 +18,7 @@ unit GR32_Polygons;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2007
+ * Portions created by the Initial Developer are Copyright (C) 2000-2004
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -33,40 +33,51 @@ interface
 {$I GR32.inc}
 
 uses
-{$IFDEF CLX}
-  Qt, Types,
-  {$IFDEF LINUX}Libc, {$ENDIF}
-  {$IFDEF MSWINDOWS}Windows, {$ENDIF}
-{$ELSE}
-  Windows,
-{$ENDIF}
-  Classes, SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms, GR32_Math;
+  {$IFDEF FPC}
+    Types,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
+  {$ELSE}
+    {$IFDEF CLX}
+      Qt,
+      {$IFDEF LINUX}
+        Libc,
+      {$ELSE}
+        Windows,
+      {$ENDIF}
+    {$ELSE}
+      Windows,
+    {$ENDIF}
+  {$ENDIF}
+  Classes, SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms,
+  GR32_Resamplers, GR32_Math;
 
 { Polylines }
 
-procedure PolylineTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolylineTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
-procedure PolylineAS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolylineAS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
-procedure PolylineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
-procedure PolylineXSP(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolylineXSP(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Closed: Boolean = False; Transformation: TTransformation = nil);
 
-procedure PolyPolylineTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolylineTS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
-procedure PolyPolylineAS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolylineAS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
-procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolylineXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Closed: Boolean = False; Transformation: TTransformation = nil);
-procedure PolyPolylineXSP(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolylineXSP(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Closed: Boolean = False; Transformation: TTransformation = nil);
 
 { Polygons }
 
 type
   TPolyFillMode = (pfAlternate, pfWinding);
-  TAntialiasMode = (am32times, am16times, am8times, am4times, am2times);
+  TAntialiasMode = (am32times, am16times, am8times, am4times, am2times, amNone);
 
   TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
 
@@ -80,42 +91,42 @@ type
 const
   DefaultAAMode = am8times; // Use 54 levels of transparency for antialiasing.
 
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
-procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
-procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
-procedure PolyPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate; Transformation: TTransformation = nil); overload;
 
-procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
-  Color: TColor32; Mode: TPolyFillMode = pfAlternate;
-  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
-procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
-procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; Mode: TPolyFillMode = pfAlternate;
+  const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode = pfAlternate;
   const AAMode: TAntialiasMode = DefaultAAMode; Transformation: TTransformation = nil); overload;
 
-function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect;
-function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
+function PolygonBounds(const Points: TArrayOfFixedPoint; Transformation: TTransformation = nil): TFixedRect;
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation = nil): TFixedRect;
 
 function PtInPolygon(const Pt: TFixedPoint; const Points: TArrayOfFixedPoint): Boolean;
 
@@ -144,15 +155,15 @@ type
     procedure Clear;
     function  Grow(const Delta: TFixed; EdgeSharpness: Single = 0): TPolygon32;
 
-    procedure Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
-    procedure Draw(Bitmap: TBitmap32; OutlineColor: TColor32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
-    procedure Draw(Bitmap: TBitmap32; OutlineColor: TColor32; Filler: TCustomPolygonFiller; Transformation: TTransformation = nil); overload;
+    procedure Draw(Bitmap: TCustomBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
+    procedure Draw(Bitmap: TCustomBitmap32; OutlineColor: TColor32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
+    procedure Draw(Bitmap: TCustomBitmap32; OutlineColor: TColor32; Filler: TCustomPolygonFiller; Transformation: TTransformation = nil); overload;
 
-    procedure DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil);
+    procedure DrawEdge(Bitmap: TCustomBitmap32; Color: TColor32; Transformation: TTransformation = nil);
 
-    procedure DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation = nil); overload;
-    procedure DrawFill(Bitmap: TBitmap32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
-    procedure DrawFill(Bitmap: TBitmap32; Filler: TCustomPolygonFiller; Transformation: TTransformation = nil); overload;
+    procedure DrawFill(Bitmap: TCustomBitmap32; Color: TColor32; Transformation: TTransformation = nil); overload;
+    procedure DrawFill(Bitmap: TCustomBitmap32; FillCallback: TFillLineEvent; Transformation: TTransformation = nil); overload;
+    procedure DrawFill(Bitmap: TCustomBitmap32; Filler: TCustomPolygonFiller; Transformation: TTransformation = nil); overload;
 
     procedure NewLine;
     procedure Offset(const Dx, Dy: TFixed);
@@ -169,9 +180,10 @@ type
     property Points: TArrayOfArrayOfFixedPoint read FPoints write FPoints;
   end;
 
+  { TBitmapPolygonFiller }
   TBitmapPolygonFiller = class(TCustomPolygonFiller)
   private
-    FPattern: TBitmap32;
+    FPattern: TCustomBitmap32;
     FOffsetY: Integer;
     FOffsetX: Integer;
   protected
@@ -181,38 +193,59 @@ type
     procedure FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineCustomCombine(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
   public
-    property Pattern: TBitmap32 read FPattern write FPattern;
+    property Pattern: TCustomBitmap32 read FPattern write FPattern;
     property OffsetX: Integer read FOffsetX write FOffsetX;
     property OffsetY: Integer read FOffsetY write FOffsetY;
   end;
 
-
+  { TSamplerFiller }
+  TSamplerFiller = class(TCustomPolygonFiller)
+  private
+    FSampler: TCustomSampler;
+    FGetSample: TGetSampleInt;
+    procedure SetSampler(const Value: TCustomSampler);
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  published
+    property Sampler: TCustomSampler read FSampler write SetSampler;
+  end;
+    
 implementation
 
 uses Math;
 
 type
-  TBitmap32Access = class(TBitmap32);
+  TCustomBitmap32Access = class(TCustomBitmap32);
   TShiftFunc = function(Value: Integer): Integer;  // needed for antialiasing to speed things up
 // These are for edge scan info. Note, that the most significant bit of the
 // edge in a scan line is used for winding (edge direction) info.
-  TScanLine = TArrayOfInteger;
-  TScanLines = TArrayOfArrayOfInteger;
-  PIntegerArray = ^TIntegerArray;
-  TIntegerArray = array [0..0] of Integer;
-  PFixedPointArray = ^TFixedPointArray;
-  TFixedPointArray = array [0..0] of TFixedPoint;
+
+  TEdgePoint = Integer;
+
+  PEdgePoints = ^TEdgePoints;
+  TEdgePoints = array [0..MaxListSize-1] of TEdgePoint;
+
+  PScanLine = ^TScanLine;
+  TScanLine = record
+    Count: Integer;
+    EdgePoints: PEdgePoints;
+    EdgePointsLength: Integer;
+  end;
+
+  TScanLines = array of TScanLine;
 
 const
-  AA_LINES: Array[TAntialiasMode] of Integer = (32, 16, 8, 4, 2);
-  AA_SHIFT: Array[TAntialiasMode] of Integer = (5, 4, 3, 2, 1);
-  AA_MULTI: Array[TAntialiasMode] of Integer = (65, 273, 1167, 5460, 32662);
-  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_11, SAR_12, SAR_13, SAR_14, SAR_15);
+  AA_LINES: Array[TAntialiasMode] of Integer = (32, 16, 8, 4, 2, 1);
+  AA_SHIFT: Array[TAntialiasMode] of Integer = (5, 4, 3, 2, 1, 0);
+  AA_MULTI: Array[TAntialiasMode] of Integer = (65, 273, 1167, 5460, 32662, 0);
+  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_11, SAR_12, SAR_13, SAR_14, SAR_15, nil);
+  AA_BitShift: Array[TAntialiasMode] of Integer = (11, 12, 13, 14, 15, 16);
 
 { POLYLINES }
 
 procedure PolylineTS(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfFixedPoint;
   Color: TColor32;
   Closed: Boolean;
@@ -236,7 +269,7 @@ begin
   Bitmap.BeginUpdate;
   Bitmap.PenColor := Color;
 
-  If Assigned(Transformation) then
+  if Assigned(Transformation) then
   begin
     with Transformation.Transform(Points[0]) do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
     if DoAlpha then
@@ -278,7 +311,7 @@ begin
 end;
 
 procedure PolylineAS(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfFixedPoint;
   Color: TColor32;
   Closed: Boolean;
@@ -299,7 +332,7 @@ begin
   Bitmap.BeginUpdate;
   Bitmap.PenColor := Color;
 
-  If Assigned(Transformation) then
+  if Assigned(Transformation) then
   begin
     with Transformation.Transform(Points[0]) do Bitmap.MoveTo(FixedRound(X), FixedRound(Y));
     for I := 1 to Count - 1 do
@@ -321,7 +354,7 @@ begin
 end;
 
 procedure PolylineXS(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfFixedPoint;
   Color: TColor32;
   Closed: Boolean;
@@ -358,7 +391,7 @@ begin
 end;
 
 procedure PolylineXSP(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfFixedPoint;
   Closed: Boolean;
   Transformation: TTransformation);
@@ -386,7 +419,7 @@ begin
 end;
 
 procedure PolyPolylineTS(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32;
   Closed: Boolean;
@@ -398,7 +431,7 @@ begin
 end;
 
 procedure PolyPolylineAS(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32;
   Closed: Boolean;
@@ -410,7 +443,7 @@ begin
 end;
 
 procedure PolyPolylineXS(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Color: TColor32;
   Closed: Boolean;
@@ -422,7 +455,7 @@ begin
 end;
 
 procedure PolyPolylineXSP(
-  Bitmap: TBitmap32;
+  Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint;
   Closed: Boolean;
   Transformation: TTransformation);
@@ -432,47 +465,117 @@ begin
   for I := 0 to High(Points) do PolylineXSP(Bitmap, Points[I], Closed, Transformation);
 end;
 
-procedure QSortLine(const ALine: TScanLine; L, R: Integer);
-var
-  I, J, P: Integer;
-begin
-  repeat
-    I := L;
-    J := R;
-    P := ALine[(L + R) shr 1] and $7FFFFFFF;
-    repeat
-      while (ALine[I] and $7FFFFFFF) < P do Inc(I);
-      while (ALine[J] and $7FFFFFFF) > P do Dec(J);
-      if I <= J then
-      begin
-        Swap(ALine[I], ALine[J]);
-        Inc(I);
-        Dec(J);
-      end;
-    until I > J;
-    if L < J then QSortLine(ALine, L, J);
-    L := I;
-  until I >= R;
-end;
 
 { General routines for drawing polygons }
 
+procedure ScanLinesCreate(var ScanLines: TScanLines; Length: Integer);
+begin
+  SetLength(ScanLines, Length);
+end;
+
+procedure ScanLinesDestroy(var ScanLines: TScanLines);
+var
+  I: Integer;
+begin
+  for I := 0 to High(ScanLines) do
+    FreeMem(ScanLines[I].EdgePoints);
+
+  SetLength(ScanLines, 0);
+end;
+
+
+{ Routines for sorting edge points in scanlines }
+
+const
+  SortThreshold = 10;
+  ReallocationThreshold = 64;
+
+procedure InsertionSort(LPtr, RPtr: PInteger);
+var
+  IPtr, JPtr: PInteger;
+  P, C, T: Integer;
+begin
+  IPtr := LPtr;
+  Inc(IPtr);
+  repeat
+    C := IPtr^;
+    P := C and $7FFFFFFF;
+    JPtr := IPtr;
+
+    if Integer(JPtr) > Integer(LPtr) then
+    repeat
+      T := PInteger(Integer(JPtr) - SizeOf(Integer))^;
+      if T and $7FFFFFFF > P then
+      begin
+        JPtr^ := T;
+        Dec(JPtr);
+      end
+      else
+        Break;
+    until Integer(JPtr) <= Integer(LPtr);
+
+    JPtr^ := C;
+    Inc(IPtr);
+  until Integer(IPtr) > Integer(RPtr);
+end;
+
+procedure QuickSort(LPtr, RPtr: PInteger);
+var
+  P: Integer;
+  IPtr, JPtr: PInteger;
+  Temp: Integer;
+const
+  OddMask = SizeOf(Integer) and not(SizeOf(Integer) - 1);
+begin
+  if Integer(RPtr) - Integer(LPtr) > SortThreshold shl 2 then
+  repeat
+//    P := PInteger(Integer(LPtr) + (((Integer(RPtr) - Integer(LPtr)) shr 2) shr 1) shl 2)^ and $7FFFFFFF;
+
+    P := Integer(RPtr) - Integer(LPtr);
+    if (P and OddMask > 0) then Dec(P, SizeOf(Integer));
+    P := PInteger(Integer(LPtr) + P shr 1)^ and $7FFFFFFF;
+
+    IPtr := LPtr;
+    JPtr := RPtr;
+    repeat
+      while (IPtr^ and $7FFFFFFF) < P do Inc(IPtr);
+      while (JPtr^ and $7FFFFFFF) > P do Dec(JPtr);
+      if Integer(IPtr) <= Integer(JPtr) then
+      begin
+        Temp := IPtr^;
+        IPtr^ := JPtr^;
+        JPtr^ := Temp;
+//        Swap(IPtr^, JPtr^);
+        Inc(IPtr);
+        Dec(JPtr);
+      end;
+    until Integer(IPtr) > Integer(JPtr);
+    if Integer(LPtr) < Integer(JPtr) then QuickSort(LPtr, JPtr);
+    LPtr := IPtr;
+  until Integer(IPtr) >= Integer(RPtr)
+  else
+    InsertionSort(LPtr, RPtr);
+end;
+
 procedure SortLine(const ALine: TScanLine);
 var
-  L, Tmp: Integer;
+  L, T: Integer;
 begin
-  L := Length(ALine);
+  L := ALine.Count;
   Assert(not Odd(L));
   if L = 2 then
   begin
-    if (ALine[0] and $7FFFFFFF) > (ALine[1] and $7FFFFFFF) then
+    if (ALine.EdgePoints[0] and $7FFFFFFF) > (ALine.EdgePoints[1] and $7FFFFFFF) then
     begin
-      Tmp := ALine[0];
-      ALine[0] := ALine[1];
-      ALine[1] := Tmp;
+      T := ALine.EdgePoints[0];
+      ALine.EdgePoints[0] := ALine.EdgePoints[1];
+      ALine.EdgePoints[1] := T;
     end;
   end
-  else if L > 2 then QSortLine(ALine, 0, L - 1);
+  else if L > SortThreshold then
+    QuickSort(@ALine.EdgePoints[0], @ALine.EdgePoints[L - 1])
+  else if L > 2 then
+    InsertionSort(@ALine.EdgePoints[0], @ALine.EdgePoints[L - 1]);
 end;
 
 procedure SortLines(const ScanLines: TScanLines);
@@ -482,167 +585,294 @@ begin
   for I := 0 to High(ScanLines) do SortLine(ScanLines[I]);
 end;
 
-procedure AddPolygon(const Points: TArrayOfPoint; const BaseX, BaseY: Integer;
-  const MaxX, MaxY: Integer; var ScanLines: TScanLines; SubSampleX: Boolean);
+
+{ Routines for rendering polygon edges to scanlines }
+
+procedure AddEdgePoint(X: Integer; const Y: Integer; const ClipRect: TFixedRect; const ScanLines: TScanLines; const Direction: Integer);
 var
-  I, X1, Y1, X2, Y2: Integer;
-  Direction, PrevDirection: Integer; // up = 1 or down = -1
+  L: Integer;
+  ScanLine: PScanLine;
+begin
+  if (Y < ClipRect.Top) or (Y > ClipRect.Bottom) then Exit;
 
-  function Sign(I: Integer): Integer;
+  if X < ClipRect.Left then
+    X := ClipRect.Left
+  else if X > ClipRect.Right then
+    X := ClipRect.Right;
+
+  // positive direction (+1) is down
+  if Direction < 0 then
+    X := Integer(Longword(X) or $80000000); // set the highest bit if the winding is up
+
+  ScanLine := @ScanLines[Y - ClipRect.Top];
+
+  L := ScanLine.Count;
+  Inc(ScanLine.Count);
+  if ScanLine.Count > ScanLine.EdgePointsLength then
   begin
-    if I > 0 then Result := 1
-    else if I < 0 then Result := -1
-    else Result := 0;
+    ScanLine.EdgePointsLength := L + ReallocationThreshold;
+    ReallocMem(ScanLine.EdgePoints, ScanLine.EdgePointsLength * SizeOf(TEdgePoint));
+  end;
+  ScanLine.EdgePoints[L] := X;  
+end;
+
+function DrawEdge(const P1, P2: TFixedPoint; const ClipRect: TFixedRect; const ScanLines: TScanLines): Integer;
+var
+  X, Y: Integer;
+  I, K: Integer;
+  Dx, Dy, Sx, Sy: Integer;
+  Delta: Integer;
+begin
+  // this function 'renders' a line into the edge point (ScanLines) buffer
+  // and returns the line direction (1 - down, -1 - up, 0 - horizontal)
+  Result := 0;
+  if P2.Y = P1.Y then Exit;
+  Dx := P2.X - P1.X;
+  Dy := P2.Y - P1.Y;
+
+  if Dy > 0 then Sy := 1
+  else
+  begin
+    Sy := -1;
+    Dy := -Dy;
   end;
 
-  procedure AddEdgePoint(X, Y: Integer; Direction: Integer);
-  var
-    Top, L: Integer;
+  Result := Sy;
+
+  if Dx > 0 then Sx := 1
+  else
   begin
-    // positive direction (+1) is down
-    if (Y < BaseY) or (Y > MaxY) then Exit;
-
-    if X < BaseX then
-      X := BaseX
-    else if X > MaxX then
-      X := MaxX;
-
-    Top := Y - BaseY;
-    L := Length(ScanLines[Top]);
-    SetLength(ScanLines[Top], L + 1);
-
-    if Direction < 0 then
-      X := Integer(Longword(X) or $80000000); // set the highest bit if the winding is up
-
-    ScanLines[Top][L] := X;
+    Sx := -1;
+    Dx := -Dx;
   end;
 
-  function DrawEdge(X1, Y1, X2, Y2: Integer): Integer;
-  var
-    X, Y, I, K: Integer;
-    Dx, Dy, Sx, Sy: Integer;
-    Delta: Integer;
+  Delta := (Dx mod Dy) shr 1;
+  X := P1.X; Y := P1.Y;
+
+  for I := 0 to Dy - 1 do
   begin
-    // this function 'renders' a line into the edge (ScanLines) buffer
-    // and returns the line direction (1 - down, -1 - up, 0 - horizontal)
-    Result := 0;
-    if Y2 = Y1 then Exit;
-    Dx := X2 - X1;
-    Dy := Y2 - Y1;
+    AddEdgePoint(X, Y, ClipRect, ScanLines, Result);
+    Inc(Y, Sy);
+    Inc(Delta, Dx);
 
-    if Dy > 0 then Sy := 1
-    else
+    // try it two times and if anything else left, use div and mod
+    if Delta > Dy then
     begin
-      Sy := -1;
-      Dy := -Dy;
-    end;
+      Inc(X, Sx);
+      Dec(Delta, Dy);
 
-    Result := Sy;
-
-    if Dx > 0 then Sx := 1
-    else
-    begin
-      Sx := -1;
-      Dx := -Dx;
-    end;
-
-    Delta := (Dx mod Dy) shr 1;
-    X := X1; Y := Y1;
-
-    for I := 0 to Dy - 1 do
-    begin
-      AddEdgePoint(X, Y, Result);
-      Inc(Y, Sy);
-      Inc(Delta, Dx);
-
-      // try it two times and if anything else left, use div and mod
-      if Delta > Dy then
+      if Delta > Dy then  // segment is tilted more than 45 degrees?
       begin
         Inc(X, Sx);
         Dec(Delta, Dy);
 
-        if Delta > Dy then  // segment is tilted more than 45 degrees?
+        if Delta > Dy then // are we still here?
         begin
-          Inc(X, Sx);
-          Dec(Delta, Dy);
-
-          if Delta > Dy then // are we still here?
-          begin
-            K := (Delta + Dy - 1) div Dy;
-            Inc(X, Sx * K);
-            Dec(Delta, Dy * K);
-          end;
+          K := (Delta + Dy - 1) div Dy;
+          Inc(X, Sx * K);
+          Dec(Delta, Dy * K);
         end;
       end;
     end;
   end;
+end;
 
+
+procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward;
+
+type
+  TTransformProc = procedure(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+  TTransformationAccess = class(TTransformation);
+
+procedure Transform1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+begin
+  TTransformationAccess(T).TransformFixed(SrcPoint.X, SrcPoint.Y, DstPoint.X, DstPoint.Y);
+  RoundShift1(DstPoint, DstPoint, nil);
+end;
+
+procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+asm
+    MOV ECX, [SrcPoint.X]
+    ADD ECX, $0000007F
+    SAR ECX, 8 // sub-sampled
+    MOV [DstPoint.X], ECX
+    MOV EDX, [SrcPoint.Y]
+    ADD EDX, $00007FFF
+    SAR EDX, 16
+    MOV [DstPoint.Y], EDX
+end;
+
+procedure Transform2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+begin
+  TTransformationAccess(T).TransformFixed(SrcPoint.X, SrcPoint.Y, DstPoint.X, DstPoint.Y);
+  RoundShift2(DstPoint, DstPoint, nil);
+end;
+
+procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+asm
+    MOV ECX, [SrcPoint.X]
+    ADD ECX, $00003FFF
+    SAR ECX, 15
+    MOV [DstPoint.X], ECX
+    MOV EDX, [SrcPoint.Y]
+    ADD EDX, $00003FFF
+    SAR EDX, 15
+    MOV [DstPoint.Y], EDX
+end;
+
+procedure Transform4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+begin
+  TTransformationAccess(T).TransformFixed(SrcPoint.X, SrcPoint.Y, DstPoint.X, DstPoint.Y);
+  RoundShift4(DstPoint, DstPoint, nil);
+end;
+
+procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+asm
+    MOV ECX, [SrcPoint.X]
+    ADD ECX, $00001FFF
+    SAR ECX, 14
+    MOV [DstPoint.X], ECX
+    MOV EDX, [SrcPoint.Y]
+    ADD EDX, $00001FFF
+    SAR EDX, 14
+    MOV [DstPoint.Y], EDX
+end;
+
+procedure Transform8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+begin
+  TTransformationAccess(T).TransformFixed(SrcPoint.X, SrcPoint.Y, DstPoint.X, DstPoint.Y);
+  RoundShift8(DstPoint, DstPoint, nil);
+end;
+
+procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+asm
+    MOV ECX, [SrcPoint.X]
+    ADD ECX, $00000FFF
+    SAR ECX, 13
+    MOV [DstPoint.X], ECX
+    MOV EDX, [SrcPoint.Y]
+    ADD EDX, $00000FFF
+    SAR EDX, 13
+    MOV [DstPoint.Y], EDX
+end;
+
+procedure Transform16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+begin
+  TTransformationAccess(T).TransformFixed(SrcPoint.X, SrcPoint.Y, DstPoint.X, DstPoint.Y);
+  RoundShift16(DstPoint, DstPoint, nil);
+end;
+
+procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+asm
+    MOV ECX, [SrcPoint.X]
+    ADD ECX, $000007FF
+    SAR ECX, 12
+    MOV [DstPoint.X], ECX
+    MOV EDX, [SrcPoint.Y]
+    ADD EDX, $000007FF
+    SAR EDX, 12
+    MOV [DstPoint.Y], EDX
+end;
+
+procedure Transform32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+begin
+  TTransformationAccess(T).TransformFixed(SrcPoint.X, SrcPoint.Y, DstPoint.X, DstPoint.Y);
+  RoundShift32(DstPoint, DstPoint, nil);
+end;
+
+procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+asm
+    MOV ECX, [SrcPoint.X]
+    ADD ECX, $000003FF
+    SAR ECX, 11
+    MOV [DstPoint.X], ECX
+    MOV EDX, [SrcPoint.Y]
+    ADD EDX, $000003FF
+    SAR EDX, 11
+    MOV [DstPoint.Y], EDX
+end;
+
+const
+  RoundShiftProcs: array[TAntialiasMode] of TTransformProc = (RoundShift32, RoundShift16, RoundShift8, RoundShift4, RoundShift2, RoundShift1);
+  TransformProcs:  array[TAntialiasMode] of TTransformProc = (Transform32, Transform16, Transform8, Transform4, Transform2, Transform1);
+
+procedure AddPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect;
+  var ScanLines: TScanLines; AAMode: TAntialiasMode; Transformation: TTransformation);
+var
+  P1, P2: TFixedPoint;
+  I: Integer;
+  PPtr: PFixedPoint;
+  Transform: TTransformProc;
+  Direction, PrevDirection: Integer; // up = 1 or down = -1
 begin
   if Length(Points) < 3 then Exit;
 
-  with Points[0] do
-  begin
-    if SubSampleX then
-      X1 := X shl 8
-    else
-      X1 := X;
-      
-    Y1 := Y;
-  end;
+  if Assigned(Transformation) then
+    Transform := TransformProcs[AAMode]
+  else
+    Transform := RoundShiftProcs[AAMode];
 
-  // find the last Y different from Y1 and assign it to Y0
+  Transform(P1, Points[0], Transformation);
+
+  // find the last Y different from Y1 and get direction
   PrevDirection := 0;
   I := High(Points);
-  while I > 0 do
+  PPtr := @Points[I];
+
+  while (I > 0) and (PrevDirection = 0) do
   begin
-    PrevDirection := Sign(Y1 - Points[I].Y);
-    if PrevDirection <> 0 then Break;
     Dec(I);
+    Transform(P2, PPtr^, Transformation); { TODO : optimize minor inefficiency... }
+    PrevDirection := P1.Y - P2.Y;
+    Dec(PPtr);
   end;
 
+  if PrevDirection > 0 then
+    PrevDirection := 1
+  else if PrevDirection < 0 then
+    PrevDirection := -1
+  else
+    PrevDirection := 0;
+
+  PPtr := @Points[1];
   for I := 1 to High(Points) do
   begin
-    with Points[I] do
-    begin
-      if SubSampleX then
-        X2 := X shl 8
-      else
-        X2 := X;
+    Transform(P2, PPtr^, Transformation);
 
-      Y2 := Y;
-    end;
-
-    if Y1 <> Y2 then
+    if P1.Y <> P2.Y then
     begin
-      Direction := DrawEdge(X1, Y1, X2, Y2);
+      Direction := DrawEdge(P1, P2, ClipRect, ScanLines);
       if Direction <> PrevDirection then
       begin
-        AddEdgePoint(X1, Y1, -Direction);
+        AddEdgePoint(P1.X, P1.Y, ClipRect, ScanLines, -Direction);
         PrevDirection := Direction;
       end;
     end;
 
-    X1 := X2; Y1 := Y2;
+    P1 := P2;
+    Inc(PPtr);
   end;
 
-  with Points[0] do
-  begin
-    if SubSampleX then
-      X2 := X shl 8
-    else
-      X2 := X;
+  Transform(P2, Points[0], Transformation);
 
-    Y2 := Y;
-  end;
-
-  if Y1 <> Y2 then
+  if P1.Y <> P2.Y then
   begin
-    Direction := DrawEdge(X1, Y1, X2, Y2);
-    if Direction <> PrevDirection then AddEdgePoint(X1, Y1, -Direction);
+    Direction := DrawEdge(P1, P2, ClipRect, ScanLines);
+    if Direction <> PrevDirection then AddEdgePoint(P1.X, P1.Y, ClipRect, ScanLines, -Direction);
   end;
 end;
 
-procedure ColorFillLines(Bitmap: TBitmap32; BaseY: Integer;
+
+{ FillLines routines }
+{ These routines rasterize the sorted edge points in the scanlines to
+  the bitmap buffer }
+
+procedure ColorFillLines(Bitmap: TCustomBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode);
 var
   I, J, L: Integer;
@@ -662,16 +892,16 @@ begin
     for J := 0 to High(ScanLines) do
     begin
       Inc(Top);
-      L := Length(ScanLines[J]); // assuming length is even
+      L := ScanLines[J].Count; // assuming length is even
       if L = 0 then Continue;
       I := 0;
       OldRight := -1;
 
       while I < L do
       begin
-        Left := ScanLines[J][I] and $7FFFFFFF;
+        Left := ScanLines[J].EdgePoints[I] and $7FFFFFFF;
         Inc(I);
-        Right := ScanLines[J][I] and $7FFFFFFF - 1;
+        Right := ScanLines[J].EdgePoints[I] and $7FFFFFFF - 1;
         if Right > Left then
         begin
           if (Left and $FF) < $80 then Left := Left shr 8
@@ -693,19 +923,19 @@ begin
     for J := 0 to High(ScanLines) do
     begin
       Inc(Top);
-      L := Length(ScanLines[J]); // assuming length is even
+      L := ScanLines[J].Count; // assuming length is even
       if L = 0 then Continue;
       I := 0;
 
       Winding := 0;
-      Left := ScanLines[J][0];
+      Left := ScanLines[J].EdgePoints[0];
       if (Left and $80000000) <> 0 then Inc(Winding) else Dec(Winding);
       Left := Left and $7FFFFFFF;
       Inc(I);
 
       while I < L do
       begin
-        Right := ScanLines[J][I];
+        Right := ScanLines[J].EdgePoints[I];
         if (Right and $80000000) <> 0 then NextWinding := 1 else NextWinding := -1;
         Right := Right and $7FFFFFFF;
         Inc(I);
@@ -728,7 +958,7 @@ begin
     end;
 end;
 
-procedure ColorFillLines2(Bitmap: TBitmap32; BaseY: Integer;
+procedure ColorFillLines2(Bitmap: TCustomBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; Color: TColor32; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode = DefaultAAMode);
 var
@@ -769,11 +999,11 @@ begin
     MinX := $7F000000; MaxX := -$7F000000;
     for J := Top to Bottom do
     begin
-      L := Length(ScanLines[J]) - 1;
+      L := ScanLines[J].Count - 1;
       if L > 0 then
       begin
-        Left := (ScanLines[J][0] and $7FFFFFFF);
-        Right := (ScanLines[J][L] and $7FFFFFFF + AALines);
+        Left := (ScanLines[J].EdgePoints[0] and $7FFFFFFF);
+        Right := (ScanLines[J].EdgePoints[L] and $7FFFFFFF + AALines);
         if Left < MinX then MinX := Left;
         if Right > MaxX then MaxX := Right;
       end
@@ -797,8 +1027,8 @@ begin
         for J := Top to Bottom do
         begin
           I := 0;
-          L := Length(ScanLines[J]);
-          ScanLine := @ScanLines[J][0];
+          L := ScanLines[J].Count;
+          ScanLine := @ScanLines[J].EdgePoints[0];
           while I < L do
           begin
             // Left edge
@@ -822,8 +1052,8 @@ begin
         for J := Top to Bottom do
         begin
           I := 0;
-          L := Length(ScanLines[J]);
-          ScanLine := @ScanLines[J][0];
+          L := ScanLines[J].Count;
+          ScanLine := @ScanLines[J].EdgePoints[0];
           Winding := 0;
           while I < L do
           begin
@@ -859,7 +1089,7 @@ begin
       end;
 
       // draw it to the screen
-      BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), Min(BufferSize, Bitmap.Width - MinX), A);
+      BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
       EMMS;
     end;
 
@@ -867,7 +1097,7 @@ begin
   end;
 end;
 
-procedure CustomFillLines(Bitmap: TBitmap32; BaseY: Integer;
+procedure CustomFillLines(Bitmap: TCustomBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode);
 var
   I, J, L: Integer;
@@ -881,16 +1111,16 @@ begin
     for J := 0 to High(ScanLines) do
     begin
       Inc(Top);
-      L := Length(ScanLines[J]); // assuming length is even
+      L := ScanLines[J].Count; // assuming length is even
       if L = 0 then Continue;
       I := 0;
       OldRight := -1;
 
       while I < L do
       begin
-        Left := ScanLines[J][I] and $7FFFFFFF;
+        Left := ScanLines[J].EdgePoints[I] and $7FFFFFFF;
         Inc(I);
-        Right := ScanLines[J][I] and $7FFFFFFF - 1;
+        Right := ScanLines[J].EdgePoints[I] and $7FFFFFFF - 1;
         if Right > Left then
         begin
           if (Left and $FF) < $80 then Left := Left shr 8
@@ -912,18 +1142,18 @@ begin
     for J := 0 to High(ScanLines) do
     begin
       Inc(Top);
-      L := Length(ScanLines[J]); // assuming length is even
+      L := ScanLines[J].Count; // assuming length is even
       if L = 0 then Continue;
       I := 0;
 
       Winding := 0;
-      Left := ScanLines[J][0];
+      Left := ScanLines[J].EdgePoints[0];
       if (Left and $80000000) <> 0 then Inc(Winding) else Dec(Winding);
       Left := Left and $7FFFFFFF;
       Inc(I);
       while I < L do
       begin
-        Right := ScanLines[J][I];
+        Right := ScanLines[J].EdgePoints[I];
         if (Right and $80000000) <> 0 then NextWinding := 1 else NextWinding := -1;
         Right := Right and $7FFFFFFF;
         Inc(I);
@@ -948,7 +1178,7 @@ begin
   EMMS;
 end;
 
-procedure CustomFillLines2(Bitmap: TBitmap32; BaseY: Integer;
+procedure CustomFillLines2(Bitmap: TCustomBitmap32; BaseY: Integer;
   const ScanLines: TScanLines; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode = DefaultAAMode);
 var
@@ -983,11 +1213,11 @@ begin
     MinX := $7F000000; MaxX := -$7F000000;
     for J := Top to Bottom do
     begin
-      L := Length(ScanLines[J]) - 1;
+      L := ScanLines[J].Count - 1;
       if L > 0 then
       begin
-        Left := (ScanLines[J][0] and $7FFFFFFF);
-        Right := (ScanLines[J][L] and $7FFFFFFF + AALines);
+        Left := (ScanLines[J].EdgePoints[0] and $7FFFFFFF);
+        Right := (ScanLines[J].EdgePoints[L] and $7FFFFFFF + AALines);
         if Left < MinX then MinX := Left;
         if Right > MaxX then MaxX := Right;
       end
@@ -1011,8 +1241,8 @@ begin
         for J := Top to Bottom do
         begin
           I := 0;
-          L := Length(ScanLines[J]);
-          ScanLine := @ScanLines[J][0];
+          L := ScanLines[J].Count;
+          ScanLine := @ScanLines[J].EdgePoints[0];
           while I < L do
           begin
             // Left edge
@@ -1036,8 +1266,8 @@ begin
         for J := Top to Bottom do
         begin
           I := 0;
-          L := Length(ScanLines[J]);
-          ScanLine := @ScanLines[J][0];
+          L := ScanLines[J].Count;
+          ScanLine := @ScanLines[J].EdgePoints[0];
           Winding := 0;
           while I < L do
           begin
@@ -1080,441 +1310,252 @@ begin
   end;
 end;
 
-{ Polygons }
 
-// only used internally to share code:
-procedure RenderPolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
-  Transformation: TTransformation);
+{ Helper routines for drawing Polygons and PolyPolygons }
+
+procedure RenderPolyPolygon(Bitmap: TCustomBitmap32;
+  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
 var
-  L, I, MinY, MaxY: Integer;
+  ChangedRect, DstRect: TFixedRect;
+  P: TFixedPoint;
+  AAShift: Integer;
+  I: Integer;
   ScanLines: TScanLines;
-  PP: TArrayOfPoint;
 begin
   if not Bitmap.MeasuringMode then
   begin
-    L := Length(Points);
-    if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
-    SetLength(PP, L);
+    ChangedRect := PolyPolygonBounds(Points, Transformation);
 
-    MinY := $7F000000;
-    MaxY := -$7F000000;
-
-    If Assigned(Transformation) then
+    with DstRect do
+    if AAMode <> amNone then
     begin
-      for I := 0 to L - 1 do
-        with Transformation.Transform(Points[I]) do
-        begin
-          PP[I].X := SAR_16(X + $00007FFF);
-          PP[I].Y := SAR_16(Y + $00007FFF);
-          if PP[I].Y < MinY then MinY := PP[I].Y;
-          if PP[I].Y > MaxY then MaxY := PP[I].Y;
-        end;
+      AAShift := AA_SHIFT[AAMode];
+      Left := Bitmap.ClipRect.Left shl AAShift;
+      Right := Bitmap.ClipRect.Right shl AAShift - 1;
+      Top := Bitmap.ClipRect.Top shl AAShift;
+      Bottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
+
+      P.X := ChangedRect.Top;
+      P.Y := ChangedRect.Bottom;
+      RoundShiftProcs[AAMode](P, P, nil);
+      Top := Constrain(P.X, Top, Bottom);
+      Bottom := Constrain(P.Y, Top, Bottom);
     end
     else
     begin
-      for I := 0 to L - 1 do
-        with Points[I] do
-        begin
-          PP[I].X := SAR_16(X + $00007FFF);
-          PP[I].Y := SAR_16(Y + $00007FFF);
-          if PP[I].Y < MinY then MinY := PP[I].Y;
-          if PP[I].Y > MaxY then MaxY := PP[I].Y;
-        end;
+      Left := Bitmap.ClipRect.Left shl 8;
+      Right := Bitmap.ClipRect.Right shl 8 - 1;
+      Top := Constrain(SAR_16(ChangedRect.Top + $00007FFF),
+        Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom - 1);
+      Bottom := Constrain(SAR_16(ChangedRect.Bottom + $00007FFF),
+        Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom - 1);
     end;
 
-    MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-    MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-    if MinY >= MaxY then Exit;
+    if DstRect.Top >= DstRect.Bottom then Exit;
 
-    SetLength(ScanLines, MaxY - MinY + 1);
-    AddPolygon(PP, Bitmap.ClipRect.Left shl 8, MinY, Bitmap.ClipRect.Right shl 8 - 1,
-      Bitmap.ClipRect.Bottom - 1, ScanLines, True);
+    ScanLinesCreate(ScanLines, DstRect.Bottom - DstRect.Top + 1);
+    for I := 0 to High(Points) do
+      AddPolygon(Points[I], DstRect, ScanLines, AAMode, Transformation);
 
     SortLines(ScanLines);
     Bitmap.BeginUpdate;
     try
-      If Assigned(FillLineCallback) then
-        CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
+      if AAMode <> amNone then
+        if Assigned(FillLineCallback) then
+          CustomFillLines2(Bitmap, DstRect.Top, ScanLines, FillLineCallback, Mode, AAMode)
+        else
+          ColorFillLines2(Bitmap, DstRect.Top, ScanLines, Color, Mode, AAMode)
       else
-        ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
+        if Assigned(FillLineCallback) then
+          CustomFillLines(Bitmap, DstRect.Top, ScanLines, FillLineCallback, Mode)
+        else
+          ColorFillLines(Bitmap, DstRect.Top, ScanLines, Color, Mode);
     finally
       Bitmap.EndUpdate;
+      ScanLinesDestroy(ScanLines);
     end;
-  end;
-  Bitmap.Changed(MakeRect(PolygonBounds(Points), rrOutside));
+    Bitmap.Changed(MakeRect(ChangedRect, rrOutside));
+  end
+  else
+    Bitmap.Changed(MakeRect(PolyPolygonBounds(Points, Transformation), rrOutside));
 end;
 
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure RenderPolygon(Bitmap: TCustomBitmap32;
+  const Points: TArrayOfFixedPoint; Color: TColor32;
+  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
+  const AAMode: TAntialiasMode; Transformation: TTransformation);
+var
+  H: TArrayOfArrayOfFixedPoint;
+begin
+  SetLength(H, 1);
+  H[0] := Points;
+  RenderPolyPolygon(Bitmap, H, Color, FillLineCallback, Mode, AAMode, Transformation);
+  H[0] := nil;
+end;
+
+
+{ Polygons }
+
+procedure PolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode; Transformation: TTransformation);
 begin
-  RenderPolygonTS(Bitmap, Points, Color, nil, Mode, Transformation);
+  RenderPolygon(Bitmap, Points, Color, nil, Mode, amNone, Transformation);
 end;
 
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
   Transformation: TTransformation);
 begin
-  RenderPolygonTS(Bitmap, Points, 0, FillLineCallback, Mode, Transformation);
+  RenderPolygon(Bitmap, Points, 0, FillLineCallback, Mode, amNone, Transformation);
 end;
 
-procedure PolygonTS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonTS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode;
   Transformation: TTransformation);
 begin
-  RenderPolygonTS(Bitmap, Points, 0, Filler.FillLine, Mode, Transformation);
+  RenderPolygon(Bitmap, Points, 0, Filler.FillLine, Mode, amNone, Transformation);
 end;
 
-// only used internally to share code:
-procedure RenderPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
-  Color: TColor32; FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
-  const AAMode: TAntialiasMode; Transformation: TTransformation);
-var
-  L, I, MinY, MaxY: Integer;
-  ScanLines: TScanLines;
-  PP: TArrayOfPoint;
-  AAShift, AAClipTop, AAClipBottom: Integer;
-  AASAR: TShiftFunc;
-begin
-  if not Bitmap.MeasuringMode then
-  begin
-    L := Length(Points);
-    if (L < 3) or not Assigned(FillLineCallback) and (Color and $FF000000 = 0) then Exit;
-    SetLength(PP, L);
-
-    AASAR := AA_SAR[AAMode];
-
-    MinY := $7F000000;
-    MaxY := -$7F000000;
-
-    If Assigned(Transformation) then
-    begin
-      for I := 0 to L - 1 do
-        with Transformation.Transform(Points[I]) do
-        begin
-          PP[I].X := AASAR(X + $00007FF);
-          PP[I].Y := AASAR(Y + $00007FF);
-          if PP[I].Y < MinY then MinY := PP[I].Y;
-          if PP[I].Y > MaxY then MaxY := PP[I].Y;
-        end;
-    end
-    else
-    begin
-      for I := 0 to L - 1 do
-        with Points[I] do
-        begin
-          PP[I].X := AASAR(X + $00007FF);
-          PP[I].Y := AASAR(Y + $00007FF);
-          if PP[I].Y < MinY then MinY := PP[I].Y;
-          if PP[I].Y > MaxY then MaxY := PP[I].Y;
-        end;
-    end;
-
-    AAShift := AA_SHIFT[AAMode];
-    AAClipTop := Bitmap.ClipRect.Top shl AAShift;
-    AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
-
-    MinY := Constrain(MinY, AAClipTop, AAClipBottom);
-    MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
-    if MinY >= MaxY then Exit;
-
-    SetLength(ScanLines, MaxY - MinY + 1);
-    AddPolygon(PP, Bitmap.ClipRect.Left shl AAShift, MinY,
-      Bitmap.ClipRect.Right shl AAShift - 1, AAClipBottom, ScanLines, False);
-
-    SortLines(ScanLines);
-    Bitmap.BeginUpdate;
-    try
-      If Assigned(FillLineCallback) then
-        CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
-      else
-        ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
-    finally
-      Bitmap.EndUpdate;
-    end;
-  end;
-  Bitmap.Changed(MakeRect(PolygonBounds(Points), rrOutside));
-end;
-
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Color: TColor32; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode; Transformation: TTransformation);
 begin
-  RenderPolygonXS(Bitmap, Points, Color, nil, Mode, AAMode, Transformation);
+  RenderPolygon(Bitmap, Points, Color, nil, Mode, AAMode, Transformation);
 end;
 
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode; Transformation: TTransformation);
 begin
-  RenderPolygonXS(Bitmap, Points, 0, FillLineCallback, Mode, AAMode, Transformation);
+  RenderPolygon(Bitmap, Points, 0, FillLineCallback, Mode, AAMode, Transformation);
 end;
 
-procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+procedure PolygonXS(Bitmap: TCustomBitmap32; const Points: TArrayOfFixedPoint;
   Filler: TCustomPolygonFiller; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode; Transformation: TTransformation);
 begin
-  RenderPolygonXS(Bitmap, Points, 0, Filler.FillLine, Mode, AAMode, Transformation);
+  RenderPolygon(Bitmap, Points, 0, Filler.FillLine, Mode, AAMode, Transformation);
 end;
+
 
 { PolyPolygons }
 
-// only used internally to share code:
-procedure RenderPolyPolygonTS(Bitmap: TBitmap32;
-  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32;
-  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
-  Transformation: TTransformation);
-var
-  L, I, J, MinY, MaxY, ShiftedLeft, ShiftedRight, ClipBottom: Integer;
-  ScanLines: TScanLines;
-  PP: TArrayOfArrayOfPoint;
-begin
-  if not Bitmap.MeasuringMode then
-  begin
-    SetLength(PP, Length(Points));
-
-    MaxY := -$7FFFFFFF;
-    MinY := $7FFFFFFF;
-    If Assigned(Transformation) then
-    begin
-      for J := 0 to High(Points) do
-      begin
-        L := Length(Points[J]);
-        SetLength(PP[J], L);
-        for I := 0 to L - 1 do
-          with Transformation.Transform(Points[J][I]) do
-          begin
-            PP[J][I].X := SAR_16(X + $00007FFF);
-            PP[J][I].Y := SAR_16(Y + $00007FFF);
-            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-          end
-      end
-    end
-    else
-    begin
-      for J := 0 to High(Points) do
-      begin
-        L := Length(Points[J]);
-        SetLength(PP[J], L);
-        for I := 0 to L - 1 do
-          with Points[J][I] do
-          begin
-            PP[J][I].X := SAR_16(X + $00007FFF);
-            PP[J][I].Y := SAR_16(Y + $00007FFF);
-            if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-            if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-          end;
-      end;
-    end;
-
-    MinY := Constrain(MinY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-    MaxY := Constrain(MaxY, Bitmap.ClipRect.Top, Bitmap.ClipRect.Bottom);
-    if MinY >= MaxY then Exit;
-
-    ShiftedLeft := Bitmap.ClipRect.Left shl 8;
-    ShiftedRight := Bitmap.ClipRect.Right shl 8 - 1;
-    ClipBottom := Bitmap.ClipRect.Bottom - 1;
-
-    SetLength(ScanLines, MaxY - MinY + 1);
-    for J := 0 to High(Points) do
-      AddPolygon(PP[J], ShiftedLeft, MinY, ShiftedRight, ClipBottom, ScanLines, True);
-
-    SortLines(ScanLines);
-    Bitmap.BeginUpdate;
-    try
-      If Assigned(FillLineCallback) then
-        CustomFillLines(Bitmap, MinY, ScanLines, FillLineCallback, Mode)
-      else
-        ColorFillLines(Bitmap, MinY, ScanLines, Color, Mode);
-    finally
-      Bitmap.EndUpdate;
-    end;
-  end;
-  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points), rrOutside));
-end;
-
-procedure PolyPolygonTS(Bitmap: TBitmap32;
+procedure PolyPolygonTS(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; Mode: TPolyFillMode;
   Transformation: TTransformation);
 begin
-  RenderPolyPolygonTS(Bitmap, Points, Color, nil, Mode, Transformation);
+  RenderPolyPolygon(Bitmap, Points, Color, nil, Mode, amNone, Transformation);
 end;
 
-procedure PolyPolygonTS(Bitmap: TBitmap32;
+procedure PolyPolygonTS(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint; FillLineCallback: TFillLineEvent;
   Mode: TPolyFillMode; Transformation: TTransformation);
 begin
-  RenderPolyPolygonTS(Bitmap, Points, 0, FillLineCallback, Mode, Transformation);
+  RenderPolyPolygon(Bitmap, Points, 0, FillLineCallback, Mode, amNone, Transformation);
 end;
 
-procedure PolyPolygonTS(Bitmap: TBitmap32;
+procedure PolyPolygonTS(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomPolygonFiller;
   Mode: TPolyFillMode; Transformation: TTransformation);
 begin
-  RenderPolyPolygonTS(Bitmap, Points, 0, Filler.FillLine, Mode, Transformation);
+  RenderPolyPolygon(Bitmap, Points, 0, Filler.FillLine, Mode, amNone, Transformation);
 end;
 
-// only used internally to share code:
-procedure RenderPolyPolygonXS(Bitmap: TBitmap32;
-  const Points: TArrayOfArrayOfFixedPoint; Color: TColor32;
-  FillLineCallback: TFillLineEvent; Mode: TPolyFillMode;
-  const AAMode: TAntialiasMode; Transformation: TTransformation);
-var
-  L, I, J, MinY, MaxY: Integer;
-  ScanLines: TScanLines;
-  PP: TArrayOfArrayOfPoint;
-  AAShift, AAClipLeft, AAClipTop, AAClipRight, AAClipBottom: Integer;
-  AASAR: TShiftFunc;
-begin
-  if not Bitmap.MeasuringMode then
-  begin
-    AASAR := AA_SAR[AAMode];
-
-    SetLength(PP, Length(Points));
-
-    MaxY := -$7F000000;
-    MinY := $7F000000;
-    If Assigned(Transformation) then
-    begin
-      for J := 0 to High(Points) do
-      begin
-        L := Length(Points[J]);
-        if L > 2 then
-        begin
-          SetLength(PP[J], L);
-          for I := 0 to L - 1 do
-            with Transformation.Transform(Points[J][I]) do
-            begin
-              PP[J][I].X := AASAR(X + $00007FF);
-              PP[J][I].Y := AASAR(Y + $00007FF);
-              if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-              if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-            end
-        end
-        else SetLength(PP[J], 0);
-      end
-    end
-    else
-    begin
-      for J := 0 to High(Points) do
-      begin
-        L := Length(Points[J]);
-        if L > 2 then
-        begin
-          SetLength(PP[J], L);
-          for I := 0 to L - 1 do
-            with Points[J][I] do
-            begin
-              PP[J][I].X := AASAR(X + $000007FF);
-              PP[J][I].Y := AASAR(Y + $000007FF);
-              if PP[J][I].Y < MinY then MinY := PP[J][I].Y;
-              if PP[J][I].Y > MaxY then MaxY := PP[J][I].Y;
-            end;
-        end
-        else SetLength(PP[J], 0);
-      end;
-    end;
-
-    AAShift := AA_SHIFT[AAMode];
-    AAClipLeft := Bitmap.ClipRect.Left shl AAShift;
-    AAClipTop := Bitmap.ClipRect.Top shl AAShift;
-    AAClipRight := Bitmap.ClipRect.Right shl AAShift - 1;
-    AAClipBottom := Bitmap.ClipRect.Bottom shl AAShift - 1;
-
-    MinY := Constrain(MinY, AAClipTop, AAClipBottom);
-    MaxY := Constrain(MaxY, AAClipTop, AAClipBottom);
-    if MinY >= MaxY then Exit;
-
-    SetLength(ScanLines, MaxY - MinY + 1);
-    for J := 0 to High(Points) do
-      AddPolygon(PP[J], AAClipLeft, MinY, AAClipRight, AAClipBottom, ScanLines, False);
-
-    SortLines(ScanLines);
-    Bitmap.BeginUpdate;
-    try
-      If Assigned(FillLineCallback) then
-        CustomFillLines2(Bitmap, MinY, ScanLines, FillLineCallback, Mode, AAMode)
-      else
-        ColorFillLines2(Bitmap, MinY, ScanLines, Color, Mode, AAMode);
-    finally
-      Bitmap.EndUpdate;
-    end;
-  end;
-  Bitmap.Changed(MakeRect(PolyPolygonBounds(Points), rrOutside));
-end;
-
-procedure PolyPolygonXS(Bitmap: TBitmap32;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint; Color: TColor32; Mode: TPolyFillMode;
   const AAMode: TAntialiasMode; Transformation: TTransformation);
 begin
-  RenderPolyPolygonXS(Bitmap, Points, Color, nil, Mode, AAMode, Transformation);
+  RenderPolyPolygon(Bitmap, Points, Color, nil, Mode, AAMode, Transformation);
 end;
 
-procedure PolyPolygonXS(Bitmap: TBitmap32;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint; FillLineCallback: TFillLineEvent;
   Mode: TPolyFillMode; const AAMode: TAntialiasMode;
   Transformation: TTransformation);
 begin
-  RenderPolyPolygonXS(Bitmap, Points, 0, FillLineCallback, Mode, AAMode, Transformation);
+  RenderPolyPolygon(Bitmap, Points, 0, FillLineCallback, Mode, AAMode, Transformation);
 end;
 
-procedure PolyPolygonXS(Bitmap: TBitmap32;
+procedure PolyPolygonXS(Bitmap: TCustomBitmap32;
   const Points: TArrayOfArrayOfFixedPoint; Filler: TCustomPolygonFiller;
   Mode: TPolyFillMode; const AAMode: TAntialiasMode;
   Transformation: TTransformation);
 begin
-  RenderPolyPolygonXS(Bitmap, Points, 0, Filler.FillLine, Mode, AAMode, Transformation);
+  RenderPolyPolygon(Bitmap, Points, 0, Filler.FillLine, Mode, AAMode, Transformation);
 end;
 
-{ helper routines }
 
-function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect;
+{ Helper routines }
+
+function PolygonBounds(const Points: TArrayOfFixedPoint;
+  Transformation: TTransformation): TFixedRect;
 var
-  I, X, Y: Integer;
+  I: Integer;
 begin
-  With Result do
+  with Result do
   begin
-    Left := $7f000000;
-    Right := -$7f000000;
-    Top := $7f000000;
-    Bottom := -$7f000000;
+    Left := $7FFFFFFF;
+    Right := -$7FFFFFFF;
+    Top := $7FFFFFFF;
+    Bottom := -$7FFFFFFF;
 
-    for I := 0 to High(Points) do
+    if Assigned(Transformation) then
     begin
-      X := Points[I].X;
-      Y := Points[I].Y;
-
-      if X < Left   then Left := X;
-      if X > Right  then Right := X;
-      if Y < Top    then Top := Y;
-      if Y > Bottom then Bottom := Y;
-    end;
-  end;
-end;
-
-function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
-var
-  I, J, X, Y: Integer;
-begin
-  With Result do
-  begin
-    Left := $7f000000;
-    Right := -$7f000000;
-    Top := $7f000000;
-    Bottom := -$7f000000;
-
-    for I := 0 to High(Points) do
-      for J := 0 to High(Points[I]) do
+      for I := 0 to High(Points) do
+      with Transformation.Transform(Points[I]) do
       begin
-        X := Points[I, J].X;
-        Y := Points[I, J].Y;
-
+        if X < Left   then Left := X;
+        if X > Right  then Right := X;
+        if Y < Top    then Top := Y;
+        if Y > Bottom then Bottom := Y;
+      end
+    end
+    else
+      for I := 0 to High(Points) do
+      with Points[I] do
+      begin
         if X < Left   then Left := X;
         if X > Right  then Right := X;
         if Y < Top    then Top := Y;
         if Y > Bottom then Bottom := Y;
       end;
+  end;
+end;
+
+function PolyPolygonBounds(const Points: TArrayOfArrayOfFixedPoint;
+  Transformation: TTransformation): TFixedRect;
+var
+  I, J: Integer;
+begin
+  with Result do
+  begin
+    Left := $7FFFFFFF;
+    Right := -$7FFFFFFF;
+    Top := $7FFFFFFF;
+    Bottom := -$7FFFFFFF;
+
+    if Assigned(Transformation) then
+      for I := 0 to High(Points) do
+        for J := 0 to High(Points[I]) do
+        with Transformation.Transform(Points[I, J]) do
+        begin
+          if X < Left   then Left := X;
+          if X > Right  then Right := X;
+          if Y < Top    then Top := Y;
+          if Y > Bottom then Bottom := Y;
+        end
+    else
+      for I := 0 to High(Points) do
+        for J := 0 to High(Points[I]) do
+        with Points[I, J] do
+        begin
+          if X < Left   then Left := X;
+          if X > Right  then Right := X;
+          if Y < Top    then Top := Y;
+          if Y > Bottom then Bottom := Y;
+        end;
   end;
 end;
 
@@ -1672,7 +1713,7 @@ begin
   inherited;
 end;
 
-procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation);
+procedure TPolygon32.Draw(Bitmap: TCustomBitmap32; OutlineColor, FillColor: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
 
@@ -1695,20 +1736,28 @@ begin
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor: TColor32;
+procedure TPolygon32.Draw(Bitmap: TCustomBitmap32; OutlineColor: TColor32;
   FillCallback: TFillLineEvent; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
 
   if Antialiased then
   begin
+{$IFDEF FPC}
+    RenderPolyPolygon(Bitmap, Points, 0, FillCallback, FillMode, AntialiasMode, Transformation);
+{$ELSE}
     PolyPolygonXS(Bitmap, Points, FillCallback, FillMode, AntialiasMode, Transformation);
+{$ENDIF}
     if (OutlineColor and $FF000000) <> 0 then
       PolyPolylineXS(Bitmap, Points, OutlineColor, Closed, Transformation);
   end
   else
   begin
+{$IFDEF FPC}
+    RenderPolyPolygon(Bitmap, Points, 0, FillCallback, FillMode, amNone, Transformation);
+{$ELSE}
     PolyPolygonTS(Bitmap, Points, FillCallback, FillMode, Transformation);
+{$ENDIF}
     if (OutlineColor and $FF000000) <> 0 then
       PolyPolylineTS(Bitmap, Points, OutlineColor, Closed, Transformation);
   end;
@@ -1717,13 +1766,34 @@ begin
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.Draw(Bitmap: TBitmap32; OutlineColor: TColor32;
+procedure TPolygon32.Draw(Bitmap: TCustomBitmap32; OutlineColor: TColor32;
   Filler: TCustomPolygonFiller; Transformation: TTransformation);
 begin
+{$IFDEF FPC}
+  Bitmap.BeginUpdate;
+
+  if Antialiased then
+  begin
+    RenderPolyPolygon(Bitmap, Points, 0, Filler.FillLine, FillMode, AntialiasMode, Transformation);
+    if (OutlineColor and $FF000000) <> 0 then
+      PolyPolylineXS(Bitmap, Points, OutlineColor, Closed, Transformation);
+  end
+  else
+  begin
+    RenderPolyPolygon(Bitmap, Points, 0, Filler.FillLine, FillMode, amNone, Transformation);
+    if (OutlineColor and $FF000000) <> 0 then
+      PolyPolylineTS(Bitmap, Points, OutlineColor, Closed, Transformation);
+  end;
+
+  Bitmap.EndUpdate;
+  Bitmap.Changed;
+
+{$ELSE}
   Draw(Bitmap, OutlineColor, Filler.FillLine, Transformation);
+{$ENDIF}
 end;
 
-procedure TPolygon32.DrawEdge(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation);
+procedure TPolygon32.DrawEdge(Bitmap: TCustomBitmap32; Color: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
 
@@ -1736,7 +1806,7 @@ begin
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Color: TColor32; Transformation: TTransformation);
+procedure TPolygon32.DrawFill(Bitmap: TCustomBitmap32; Color: TColor32; Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
 
@@ -1749,24 +1819,42 @@ begin
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.DrawFill(Bitmap: TBitmap32; FillCallback: TFillLineEvent;
+procedure TPolygon32.DrawFill(Bitmap: TCustomBitmap32; FillCallback: TFillLineEvent;
   Transformation: TTransformation);
 begin
   Bitmap.BeginUpdate;
 
+{$IFDEF FPC}
+  if Antialiased then
+    RenderPolyPolygon(Bitmap, Points, 0, FillCallback, FillMode, AntialiasMode, Transformation)
+  else
+    RenderPolyPolygon(Bitmap, Points, 0, FillCallback, FillMode, amNone, Transformation);
+{$ELSE}
   if Antialiased then
     PolyPolygonXS(Bitmap, Points, FillCallback, FillMode, AntialiasMode, Transformation)
   else
     PolyPolygonTS(Bitmap, Points, FillCallback, FillMode, Transformation);
+{$ENDIF}
 
   Bitmap.EndUpdate;
   Bitmap.Changed;
 end;
 
-procedure TPolygon32.DrawFill(Bitmap: TBitmap32; Filler: TCustomPolygonFiller;
+procedure TPolygon32.DrawFill(Bitmap: TCustomBitmap32; Filler: TCustomPolygonFiller;
   Transformation: TTransformation);
 begin
+{$IFDEF FPC}
+  Bitmap.BeginUpdate;
+  if Antialiased then
+    RenderPolyPolygon(Bitmap, Points, 0, Filler.FillLine, FillMode, AntialiasMode, Transformation)
+  else
+    RenderPolyPolygon(Bitmap, Points, 0, Filler.FillLine, FillMode, amNone, Transformation);
+
+  Bitmap.EndUpdate;
+  Bitmap.Changed;
+{$ELSE}
   DrawFill(Bitmap, Filler.FillLine, Transformation);
+{$ENDIF}
 end;
 
 function TPolygon32.Grow(const Delta: TFixed; EdgeSharpness: Single = 0): TPolygon32;
@@ -1920,7 +2008,7 @@ begin
   Points := TransformPoints(Points, Transformation);
 end;
 
-{ TBitmapFiller }
+{ TBitmapPolygonFiller }
 
 procedure TBitmapPolygonFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32);
@@ -1931,13 +2019,13 @@ var
   BlendMemEx: TBlendMemEx;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  If Assigned(AlphaValues) then
+  if Assigned(AlphaValues) then
   begin
     OpaqueAlpha := TColor32($FF shl 24);
     BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
@@ -1945,7 +2033,7 @@ begin
     begin
       BlendMemEx(Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -1958,7 +2046,7 @@ begin
     begin
       Dst^ := Src^;
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -1974,20 +2062,20 @@ var
   BlendMem: TBlendMem;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  If Assigned(AlphaValues) then
+  if Assigned(AlphaValues) then
   begin
     BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMemEx(Src^, Dst^, AlphaValues^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -2002,7 +2090,7 @@ begin
     begin
       BlendMem(Src^, Dst^);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -2019,20 +2107,20 @@ var
   BlendMemEx: TBlendMemEx;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
   BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
 
-  If Assigned(AlphaValues) then
+  if Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMemEx(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -2044,7 +2132,7 @@ begin
     begin
       BlendMemEx(Src^, Dst^, FPattern.MasterAlpha);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -2059,18 +2147,18 @@ var
   Src: PColor32;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  If PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  If PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  If Assigned(AlphaValues) then
+  if Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
       FPattern.OnPixelCombine(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -2082,7 +2170,7 @@ begin
     begin
       FPattern.OnPixelCombine(Src^, Dst^, FPattern.MasterAlpha);
       Inc(Dst);  Inc(Src);  Inc(PatternX);
-      If PatternX >= FPattern.Width then
+      if PatternX >= FPattern.Width then
       begin
         PatternX := 0;
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
@@ -2100,7 +2188,7 @@ begin
     Result := FillLineOpaque
   else if FPattern.DrawMode = dmBlend then
   begin
-    If FPattern.MasterAlpha = 255 then
+    if FPattern.MasterAlpha = 255 then
       Result := FillLineBlend
     else
       Result := FillLineBlendMasterAlpha;
@@ -2111,6 +2199,35 @@ begin
   end
   else
     Result := nil;
+end;
+
+{ TSamplerFiller }
+
+procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[cmBlend];
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGetSample(X, DstY) and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+function TSamplerFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := SampleLineOpaque;
+end;
+
+procedure TSamplerFiller.SetSampler(const Value: TCustomSampler);
+begin
+  FSampler := Value;
+  FGetSample := FSampler.GetSampleInt;
 end;
 
 end.
