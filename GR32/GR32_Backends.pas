@@ -1,0 +1,205 @@
+unit GR32_Backends;
+
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Backend Extension for Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Andre Beckedorf - metaException OHG
+ * Andre@metaException.de
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2007
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
+interface
+
+{$I GR32.inc}
+
+uses
+{$IFDEF FPC} LCLIntf, LCLType, types, Controls, Graphics,{$ELSE}
+{$IFDEF CLX}
+  Qt, Types,
+  {$IFDEF LINUX}Libc,{$ENDIF}
+  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+  QControls, QGraphics, QConsts,
+{$ELSE}
+  Windows, Messages, Controls, Graphics,
+{$ENDIF}
+{$ENDIF}
+  Classes, SysUtils, GR32;
+  
+type
+  ITextSupport = interface
+  ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']
+    procedure Textout(X, Y: Integer; const Text: String); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
+    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    function  TextExtent(const Text: String): TSize;
+
+    procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
+    procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
+    procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    function  TextExtentW(const Text: Widestring): TSize;
+  end;
+
+  IFontSupport = interface
+  ['{67C73044-1EFF-4FDE-AEA2-56BFADA50A48}']
+    function GetOnFontChange: TNotifyEvent;
+    procedure SetOnFontChange(Handler: TNotifyEvent);
+    function GetFont: TFont;
+    procedure SetFont(const Font: TFont);
+
+    procedure UpdateFont;
+    property Font: TFont read GetFont write SetFont;
+    property OnFontChange: TNotifyEvent read GetOnFontChange write SetOnFontChange;
+  end;
+
+  ICanvasSupport = interface
+  ['{5ACFEEC7-0123-4AD8-8AE6-145718438E01}']
+    function GetCanvasChange: TNotifyEvent;
+    procedure SetCanvasChange(Handler: TNotifyEvent);
+    function GetCanvas: TCanvas;
+
+    procedure DeleteCanvas;
+    function CanvasAllocated: Boolean;
+
+    property Canvas: TCanvas read GetCanvas;
+    property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
+  end;
+
+  IDeviceContextSupport = interface
+  ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
+    function GetHandle: HDC;
+
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
+
+    property Handle: HDC read GetHandle;
+  end;
+
+  IBitmapContextSupport = interface
+  ['{DF0F9475-BA13-4C6B-81C3-D138624C4D08}']
+    function GetBitmapInfo: TBitmapInfo;
+    function GetBitmapHandle: THandle;
+
+    property BitmapInfo: TBitmapInfo read GetBitmapInfo;
+    property BitmapHandle: THandle read GetBitmapHandle;
+  end;
+
+  ICopyFromBitmapSupport = interface
+  ['{1951D646-BCC4-4847-9EB4-0315BF914547}']
+    procedure CopyFromBitmap(SrcBmp: TBitmap);
+  end;
+
+  IDDBContextSupport = interface
+  ['{CE64DBEE-C4A9-4E8E-ABCA-1B1FD6F45924}']
+    procedure PixmapNeeded;
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+  end;
+
+  { TCustomBackend }
+  { This class functions as backend for the TBitmap32 class.
+    It manages and provides the backing buffer as well as OS or
+    graphics subsystem specific features.}
+
+  TCustomBackend = class(TBackend)
+  protected
+    procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); virtual; abstract;
+    procedure FinalizeSurface; virtual; abstract;
+
+{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+    function GetBits: PColor32Array; override;
+{$ENDIF}
+  public
+    procedure Assign(Source: TPersistent); override;
+    function Empty: Boolean; override;
+    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
+  end;
+
+implementation
+
+uses
+  GR32_LowLevel;
+
+type
+  TBitmap32Access = class(TBitmap32);
+
+{ TCustomBackend }
+
+{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+function TCustomBackend.GetBits: PColor32Array;
+begin
+  Result := FBits;
+end;
+{$ENDIF}
+
+procedure TCustomBackend.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+begin
+  try
+    Changing;
+
+    FinalizeSurface;
+
+    Width := 0;
+    Height := 0;
+
+    if (NewWidth > 0) and (NewHeight > 0) then
+      InitializeSurface(NewWidth, NewHeight, ClearBuffer);
+
+    Width := NewWidth;
+    Height := NewHeight;
+  finally
+    Changed;
+  end;
+end;
+
+procedure TCustomBackend.Assign(Source: TPersistent);
+var
+  SrcBackend: TCustomBackend;
+begin
+  if Source is TCustomBackend then
+  begin
+    if Assigned(FOwner) then
+    begin
+      SrcBackend := TCustomBackend(Source);
+
+      ChangeSize(
+        TBitmap32Access(FOwner).FWidth, TBitmap32Access(FOwner).FHeight,
+        SrcBackend.FOwner.Width, SrcBackend.FOwner.Height,
+        False
+      );
+
+      if not SrcBackend.Empty then
+        MoveLongword(
+          SrcBackend.Bits[0], Bits[0],
+          SrcBackend.FOwner.Width * SrcBackend.FOwner.Height
+        );
+    end;
+  end
+  else
+    inherited;
+end;
+
+function TCustomBackend.Empty: Boolean;
+begin
+  Result := False;
+end;
+
+end.
