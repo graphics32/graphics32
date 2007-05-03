@@ -585,7 +585,7 @@ type
 implementation
 
 uses
-  Math, TypInfo, GR32_MicroTiles;
+  Math, TypInfo, GR32_MicroTiles, GR32_Backends;
 
 type
   TBitmap32Access = class(TBitmap32);
@@ -681,16 +681,21 @@ end;
 {$IFDEF FPC}
 procedure TCustomPaintBox32.CMInvalidate(var Message: TLMessage);
 begin
- if CustomRepaint and HandleAllocated
-  then PostMessage(Handle, LM_PAINT, 0, 0)
-  else inherited;
+  if CustomRepaint and HandleAllocated then 
+    PostMessage(Handle, LM_PAINT, 0, 0)
+  else
+    inherited;
 end;
 {$ELSE}
 procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
 begin
- if CustomRepaint and HandleAllocated
-  then PostMessage(Handle, WM_PAINT, 0, 0)
-  else inherited;
+  if CustomRepaint and HandleAllocated then
+    // we might have invalid rects, so just go ahead without invalidating
+    // the whole client area...
+    PostMessage(Handle, WM_PAINT, 0, 0)
+  else
+    // no invalid rects, so just invalidate the whole client area...
+    inherited;
 end;
 {$ENDIF}
 
@@ -794,7 +799,7 @@ begin
           QPainter_drawPixmap(Canvas.Handle, Top, Left, FBuffer.Pixmap, 0, 0, Right - Left, Bottom - Top);
           QPainter_end(FBuffer.Handle);
 
-          TBitmap32Access(FBuffer).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
+          (FBuffer as IDDBContextSupport).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
         end;
 {$ELSE}
           BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
@@ -834,7 +839,7 @@ begin
             FBuffer.Pixmap, 0, 0, Right - Left, Bottom - Top);
           QPainter_end(FBuffer.Handle);
 
-          TBitmap32Access(FBuffer).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
+          (FBuffer as IDDBContextSupport).CheckPixmap; // try to avoid QPixmap -> QImage conversion, since we don't need that.
         end;
 {$ELSE}
           BitBlt(Canvas.Handle, Left + R.Left, Top + R.Top, Right - Left, Bottom - Top,
@@ -932,11 +937,11 @@ begin
   if not FBufferValid then
   begin
 {$IFDEF CLX}
-    TBitmap32Access(FBuffer).ImageNeeded;
+    (FBuffer as IDDBContextSupport).ImageNeeded;
 {$ENDIF}
     DoPaintBuffer;
 {$IFDEF CLX}
-    TBitmap32Access(FBuffer).CheckPixmap;
+    (FBuffer as IDDBContextSupport).CheckPixmap;
 {$ENDIF}
   end;
 
@@ -2152,7 +2157,7 @@ end;
 
 procedure TCustomImgView32.DoDrawSizeGrip(R: TRect);
 begin
-{$IFNDEF CLX}
+{$IFDEF Windows}
   if USE_THEMES then
   begin
     Canvas.Brush.Color := clBtnFace;

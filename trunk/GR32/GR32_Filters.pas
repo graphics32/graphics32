@@ -33,10 +33,20 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF CLX}
-  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$IFDEF FPC}
+    Types,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
   {$ELSE}
-  Windows,
+    {$IFDEF CLX}
+      Qt, Types,
+      {$IFDEF LINUX}
+        Libc,
+      {$ENDIF}
+    {$ELSE}
+      Windows,
+    {$ENDIF}
   {$ENDIF}
   Classes, SysUtils, GR32, GR32_Blend, GR32_System;
 
