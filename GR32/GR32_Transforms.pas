@@ -35,10 +35,19 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF CLX}
-  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
+  {$IFDEF FPC}
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
   {$ELSE}
-  Windows,
+    {$IFDEF CLX}
+      Qt, Types,
+      {$IFDEF LINUX}
+        Libc,
+      {$ENDIF}
+    {$ELSE}
+      Windows,
+    {$ENDIF}
   {$ENDIF}
   SysUtils, Classes, GR32, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
 
@@ -278,12 +287,12 @@ type
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation); overload;
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation); overload;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
   const DstClip: TRect); overload;
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer); overload;
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer; const DstClip: TRect); overload;
 
 procedure RasterizeTransformation(Vectormap: TVectormap;
@@ -291,7 +300,7 @@ procedure RasterizeTransformation(Vectormap: TVectormap;
   CombineMode: TVectorCombineMode = vcmAdd;
   CombineCallback: TVectorCombineEvent = nil);
 
-procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
+procedure SetBorderTransparent(ABitmap: TCustomBitmap32; ARect: TRect);
 
 { FullEdge controls how the bitmap is resampled }
 var
@@ -304,9 +313,9 @@ uses
   GR32_LowLevel, GR32_System, GR32_Resamplers, Math, GR32_Math;
 
 type
-  {provides access to proctected members of TBitmap32 by typecasting}
+  {provides access to proctected members of TCustomBitmap32 by typecasting}
   TTransformationAccess = class(TTransformation);
-  TBitmap32Access = class(TBitmap32);
+  TCustomBitmap32Access = class(TCustomBitmap32);
 
 
 { A bit of linear algebra }
@@ -418,7 +427,7 @@ begin
   end;
 end;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation);
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation);
 var
   Rasterizer: TRasterizer;
 begin
@@ -430,7 +439,7 @@ begin
   end;
 end;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation; const DstClip: TRect);
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect);
 var
   Rasterizer: TRasterizer;
 begin
@@ -442,13 +451,13 @@ begin
   end;
 end;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer);
 begin
   Transform(Dst, Src, Transformation, Rasterizer, Dst.BoundsRect);
 end;
 
-procedure Transform(Dst, Src: TBitmap32; Transformation: TTransformation;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
   Rasterizer: TRasterizer; const DstClip: TRect);
 var
   DstRect: TRect;
@@ -476,7 +485,7 @@ begin
   Dst.Changed(DstRect);
 end;
 
-procedure SetBorderTransparent(ABitmap: TBitmap32; ARect: TRect);
+procedure SetBorderTransparent(ABitmap: TCustomBitmap32; ARect: TRect);
 var
   I: Integer;
 begin
