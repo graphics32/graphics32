@@ -41,8 +41,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="19" Y="213"/>
-        <TopLine Value="176"/>
+        <CursorPos X="1" Y="102"/>
+        <TopLine Value="86"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
@@ -114,32 +114,7 @@
         <Loaded Value="True"/>
       </Unit10>
     </Units>
-    <JumpHistory Count="6" HistoryIndex="5">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="104" Column="28" TopLine="97"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="181" Column="20" TopLine="175"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="102" Column="24" TopLine="67"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="350" Column="5" TopLine="307"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="199" Column="48" TopLine="176"/>
-      </Position5>
-      <Position6>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="5680" Column="39" TopLine="5658"/>
-      </Position6>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

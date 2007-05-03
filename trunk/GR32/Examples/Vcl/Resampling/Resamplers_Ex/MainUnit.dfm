@@ -1,9 +1,9 @@
-object Form1: TForm1
+object fmResamplersExample: TfmResamplersExample
   Left = 270
   Top = 228
-  Width = 483
-  Height = 422
   Caption = 'Resamplers Example'
+  ClientHeight = 395
+  ClientWidth = 475
   Color = clBtnFace
   Constraints.MinHeight = 200
   Constraints.MinWidth = 200
@@ -21,7 +21,7 @@ object Form1: TForm1
     Left = 329
     Top = 0
     Width = 146
-    Height = 374
+    Height = 376
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -35,7 +35,7 @@ object Form1: TForm1
       DesignSize = (
         146
         160)
-      object Label1: TLabel
+      object lbResamplersClass: TLabel
         Left = 12
         Top = 24
         Width = 82
@@ -43,7 +43,7 @@ object Form1: TForm1
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class:'
       end
-      object Label4: TLabel
+      object lbPixelAccessMode: TLabel
         Left = 12
         Top = 67
         Width = 91
@@ -51,7 +51,7 @@ object Form1: TForm1
         Anchors = [akTop, akRight]
         Caption = 'Pixel Access Mode:'
       end
-      object Label5: TLabel
+      object lbWrapMode: TLabel
         Left = 12
         Top = 110
         Width = 59
@@ -59,7 +59,7 @@ object Form1: TForm1
         Anchors = [akTop, akRight]
         Caption = 'Wrap Mode:'
       end
-      object Panel2: TPanel
+      object pnResamplerProperties: TPanel
         Left = 1
         Top = 1
         Width = 144
@@ -122,14 +122,14 @@ object Form1: TForm1
       Left = 0
       Top = 160
       Width = 146
-      Height = 160
+      Height = 201
       Align = alTop
       TabOrder = 1
       Visible = False
       DesignSize = (
         146
-        160)
-      object Label2: TLabel
+        201)
+      object lbKernelClass: TLabel
         Left = 12
         Top = 24
         Width = 62
@@ -137,7 +137,7 @@ object Form1: TForm1
         Anchors = [akTop, akRight]
         Caption = 'Kernel Class:'
       end
-      object Label3: TLabel
+      object lbKernelMode: TLabel
         Left = 12
         Top = 67
         Width = 63
@@ -145,14 +145,22 @@ object Form1: TForm1
         Anchors = [akTop, akRight]
         Caption = 'Kernel Mode:'
       end
-      object TableSizeLabel: TLabel
+      object lbTableSize: TLabel
         Left = 8
         Top = 116
         Width = 97
         Height = 13
         Caption = 'Table Size (32/100):'
       end
-      object Panel1: TPanel
+      object lbParameter: TLabel
+        Left = 8
+        Top = 155
+        Width = 54
+        Height = 13
+        Caption = 'Parameter:'
+        Visible = False
+      end
+      object pnKernelProperties: TPanel
         Left = 1
         Top = 1
         Width = 144
@@ -208,26 +216,41 @@ object Form1: TForm1
         Style = rbsMac
         Position = 32
         OnChange = gbTableSizeChange
-        OnMouseUp = gbTableSizeMouseUp
+      end
+      object gbParameter: TGaugeBar
+        Left = 16
+        Top = 175
+        Width = 113
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Min = 1
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Visible = False
+        Position = 50
+        OnChange = gbParameterChange
+        OnMouseUp = gbParameterMouseUp
       end
     end
   end
-  object PageControl1: TPageControl
+  object PageControl: TPageControl
     Left = 0
     Top = 0
     Width = 329
-    Height = 374
-    ActivePage = TabSheet1
+    Height = 376
+    ActivePage = tabDetails
     Align = alClient
     TabOrder = 0
     OnChange = ResamplerClassNamesListChange
-    object TabSheet1: TTabSheet
+    object tabDetails: TTabSheet
       Caption = 'Details'
       object DstImg: TImage32
         Left = 0
         Top = 0
         Width = 321
-        Height = 346
+        Height = 348
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
         Bitmap.Resampler.KernelClassName = 'TCosineKernel'
@@ -263,7 +286,7 @@ object Form1: TForm1
         Left = 0
         Top = 0
         Width = 321
-        Height = 346
+        Height = 348
         Align = alClient
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baTopLeft
@@ -274,9 +297,9 @@ object Form1: TForm1
       end
     end
   end
-  object StatusBar1: TStatusBar
+  object StatusBar: TStatusBar
     Left = 0
-    Top = 374
+    Top = 376
     Width = 475
     Height = 19
     Panels = <
