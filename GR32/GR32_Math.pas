@@ -73,14 +73,17 @@ function Sign(Value: Integer): Integer;
 
 implementation
 
-{$IFDEF PUREPASCAL} uses Math; {$ENDIF}
+{$IFDEF PUREPASCAL}
+uses 
+  Math;
+{$ENDIF}
 
 { Fixed-point math }
 
 function FixedFloor(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := A DIV $10000;
+  Result := A div 65536;
 {$ELSE}
 asm
         SAR     EAX, 16;
@@ -90,7 +93,7 @@ end;
 function FixedCeil(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := (A+$FFFF) DIV $10000;
+  Result := (A + $FFFF) div $10000;
 {$ELSE}
 asm
         ADD     EAX, $0000FFFF
@@ -101,7 +104,7 @@ end;
 function FixedRound(A: TFixed): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := (A+$7FFF) DIV $10000;
+  Result := (A + $7FFF) div $10000;
 {$ELSE}
 asm
         ADD     EAX, $00007FFF
@@ -112,7 +115,7 @@ end;
 function FixedMul(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  result:=A*B;
+  Result := A * B;
 {$ELSE}
 asm
         IMUL    EDX
@@ -123,7 +126,7 @@ end;
 function FixedDiv(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  result:=A div B;
+  Result := A div B;
 {$ELSE}
 asm
         MOV     ECX, B
@@ -136,9 +139,10 @@ end;
 
 function OneOver(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
-const MulFac : Double = 1/65536;
+const
+  MulFac: Double = 1 / 65536;
 begin
-  Result := round(FixedOne / (Value * FixedToFloat));
+  Result := Round(FixedOne / (Value * FixedToFloat));
 {$ELSE}
 asm
         MOV     ECX,EAX
@@ -151,7 +155,7 @@ end;
 function FixedSqr(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  result:=sqr(Value);
+  Result := Sqr(Value);
 {$ELSE}
 asm
           IMUL    EAX
@@ -162,7 +166,7 @@ end;
 function FixedSqrtLP(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  result := Round(FixedOne * Sqrt(Value * FixedToFloat));
+  Result := Round(FixedOne * Sqrt(Value * FixedToFloat));
 {$ELSE}
 asm
           push    ebx
@@ -192,7 +196,7 @@ end;
 function FixedSqrtHP(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  result := Round(FixedOne * Sqrt(Value * FixedToFloat));
+  Result := Round(FixedOne * Sqrt(Value * FixedToFloat));
 {$ELSE}
 asm
           push ebx
@@ -241,7 +245,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
 {$IFDEF PUREPASCAL}
 begin
- result := Y + (X - Y) * W div FixedOne;
+  Result := Y + (X - Y) * W div FixedOne;
 {$ELSE}
 asm
       SUB  EDX,ECX
@@ -256,8 +260,8 @@ end;
 procedure SinCos(const Theta: TFloat; var Sin, Cos: TFloat);
 {$IFDEF PUREPASCAL}
 begin
-  Sin:=System.Sin(Theta);
-  Cos:=System.Cos(Theta);
+  Sin := System.Sin(Theta);
+  Cos := System.Cos(Theta);
 {$ELSE}
 asm
    FLD  Theta
@@ -356,9 +360,8 @@ end;
 function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
 {$IFDEF PUREPASCAL}
-var i : Integer;
 begin
-  Result := value and (value - 1) <> 0;
+  Result := Value and (Value - 1) <> 0;
 {$ELSE}
 asm
         LEA     EDX,[EAX-1]
@@ -371,9 +374,9 @@ function PrevPowerOf2(Value: Integer): Integer;
 //returns X rounded down to the power of two
 {$IFDEF PUREPASCAL}
 begin
-  Result:=1;
-  while Value shr 1 > 0
-   do Result:= Result shl 1;
+  Result := 1;
+  while Value shr 1 > 0 do
+    Result := Result shl 1;
 {$ELSE}
 asm
         BSR     ECX,EAX
@@ -386,9 +389,9 @@ function NextPowerOf2(Value: Integer): Integer;
 //returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
 {$IFDEF PUREPASCAL}
 begin
-  Result:=2;
-  while Value shr 1 > 0
-   do Result:= Result shl 1;
+  Result := 2;
+  while Value shr 1 > 0 do 
+  	Result := Result shl 1;
 {$ELSE}
 asm
         DEC     EAX
@@ -406,7 +409,7 @@ function Average(A, B: Integer): Integer;
 //(A + B)/2 = (A and B) + (A xor B)/2
 {$IFDEF PUREPASCAL}
 begin
-  result:=(A and B) + (A xor B) div 2;
+  Result := (A and B) + (A xor B) div 2;
 {$ELSE}
 asm
         MOV     ECX,EDX
@@ -420,8 +423,10 @@ end;
 function Sign(Value: Integer): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  if Value<0 then result:=-1
-  else result:=1;
+  if Value < 0 then
+  	Result := -1
+  else 
+  	Result := 1;
 {$ELSE}
 asm
         CDQ
