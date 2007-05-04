@@ -115,7 +115,7 @@ end;
 function FixedMul(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  Result := A * B;
+  Result := Round(A * B * FixedToFloat);
 {$ELSE}
 asm
         IMUL    EDX
@@ -126,7 +126,7 @@ end;
 function FixedDiv(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  Result := A div B;
+  Result := Round(A / B * FixedOne);
 {$ELSE}
 asm
         MOV     ECX, B
@@ -140,9 +140,9 @@ end;
 function OneOver(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 const
-  MulFac: Double = 1 / 65536;
+  Dividend = FixedOne * FixedOne;
 begin
-  Result := Round(FixedOne / (Value * FixedToFloat));
+  Result := Round(Dividend / Value);
 {$ELSE}
 asm
         MOV     ECX,EAX
@@ -155,7 +155,7 @@ end;
 function FixedSqr(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  Result := Sqr(Value);
+  Result := Sqr(Value) * FixedToFloat;
 {$ELSE}
 asm
           IMUL    EAX
@@ -166,7 +166,7 @@ end;
 function FixedSqrtLP(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  Result := Round(FixedOne * Sqrt(Value * FixedToFloat));
+  Result := Round(Sqrt(Value * FixedOne));
 {$ELSE}
 asm
           push    ebx
@@ -196,7 +196,7 @@ end;
 function FixedSqrtHP(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
-  Result := Round(FixedOne * Sqrt(Value * FixedToFloat));
+  Result := Round(Sqrt(Value * FixedOne));
 {$ELSE}
 asm
           push ebx
@@ -245,7 +245,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
 {$IFDEF PUREPASCAL}
 begin
-  Result := Y + (X - Y) * W div FixedOne;
+  Result := Round(Y + (X - Y) * W * FixedToFloat);
 {$ELSE}
 asm
       SUB  EDX,ECX
@@ -308,7 +308,7 @@ end;
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := (Multiplicand * Multiplier) div Divisor;
+  Result := Round(Multiplicand * Multiplier / Divisor);
 {$ELSE}
 asm
         PUSH    EBX             // Imperative save
