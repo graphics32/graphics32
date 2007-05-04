@@ -1,0 +1,49 @@
+<html>
+<head>
+<title>ReadFrom</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> ReadFrom(Source: <a href="../../../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a>; 
+  Conversion: <a href="../../../Types/TConversionType.htm">TConversionType</a>);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">ReadFrom</span> allows reading and converting 
+  data from <a href="../../../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> 
+  objects into the byte map. </p>
+<p class="Body">First, the byte map is resized to fit the <b>Source</b> bitmap 
+  dimensions, then the 32-bit RGBA color is transformed to 8-bits depending on 
+  the conversion type:</p>
+<table border="1" cellspacing="0" cellpadding="0" bordercolor="#FFFFFF">
+  <tr> 
+    <th>Conversion</th>
+    <th>Action</th>
+  </tr>
+  <tr> 
+    <td>ctRed</td>
+    <td>Copies red channel</td>
+  </tr>
+  <tr> 
+    <td>ctGreen</td>
+    <td>Copies green channel</td>
+  </tr>
+  <tr> 
+    <td>ctBlue</td>
+    <td>Copies blue channel</td>
+  </tr>
+  <tr> 
+    <td>ctAlpha</td>
+    <td>Copies alpha channel</td>
+  </tr>
+  <tr>
+    <td>ctUniformRGB</td>
+    <td>Copies averaged value: (R + G + B) / 3</td>
+  </tr>
+  <tr> 
+    <td>ctWeightedRGB</td>
+    <td> Copies intensity: R * 0.21 + G * 0.71 + B * 0.08</td>
+  </tr>
+</table>
+<p id="hidden">[See Also] </p>
+</body>
+</html>

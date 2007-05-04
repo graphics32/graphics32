@@ -1,0 +1,23 @@
+<html>
+<head>
+<title>Insert</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> Insert(Index: Integer): <a href="../../../Types/TPaintStage.htm">PPaintStage</a>;</p>
+<h2>Description</h2>
+<p class="Body">Insert a new stage into the list at specified position and returns 
+  a pointer to it.</p>
+<p class="Body"><b>Index</b> indicates the position, where the new stage is inserted. 
+  The item that occupied that position before insertion, is shifted up together 
+  with all subsequent items.</p>
+<p class="Body">If Index is greater than the number of stages, the new stage will 
+  be added at the end of the list. Similarly, if Index is less or equal than zero, 
+  all previous elements are shifted up and the new stage is inserted in the beginning 
+  of the list.</p>
+<p class="Body">By default, new stages have their RunTime member set to <i>True</i>.</p>
+<p id="hidden"></p>
+<p id="hidden">[See also]: <a href="Add.htm">Add</a>, <a href="Delete.htm">Delete</a></p>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <PathDelim Value="\"/>
+    <Version Value="5"/>
+    <General>
+      <MainUnit Value="0"/>
+      <IconPath Value="./"/>
+      <TargetFileExt Value=".exe"/>
+      <ActiveEditorIndexAtStart Value="4"/>
+    </General>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+    </RequiredPackages>
+    <Units Count="9">
+      <Unit0>
+        <Filename Value="PixelCombine_Ex.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="8" Y="8"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="MainUnit.pas"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <IsPartOfProject Value="True"/>
+        <ResourceFilename Value="MainUnit.lrs"/>
+        <UnitName Value="MainUnit"/>
+        <CursorPos X="18" Y="141"/>
+        <TopLine Value="101"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\..\..\..\GR32_MicroTiles.pas"/>
+        <UnitName Value="GR32_MicroTiles"/>
+        <CursorPos X="17" Y="2"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="MainUnit.lfm"/>
+        <CursorPos X="18" Y="12"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
+        <UnitName Value="GR32_DrawingEx"/>
+        <CursorPos X="19" Y="36"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="5"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\..\..\..\..\..\..\..\..\Lazarus\lcl\lclproc.pas"/>
+        <UnitName Value="LCLProc"/>
+        <CursorPos X="1" Y="775"/>
+        <TopLine Value="748"/>
+        <UsageCount Value="10"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
+        <UnitName Value="Interfaces"/>
+        <CursorPos X="54" Y="35"/>
+        <TopLine Value="2"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
+        <UnitName Value="GR32_Resamplers"/>
+        <CursorPos X="23" Y="37"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\..\..\GR32_LowLevel.pas"/>
+        <UnitName Value="GR32_LowLevel"/>
+        <CursorPos X="3" Y="125"/>
+        <TopLine Value="103"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit8>
+    </Units>
+    <JumpHistory Count="10" HistoryIndex="9">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="137" Column="5" TopLine="94"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="23" Column="1" TopLine="23"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="61" Column="1" TopLine="23"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="3" TopLine="100"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="64" Column="24" TopLine="43"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="141" Column="5" TopLine="101"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="14" TopLine="1"/>
+      </Position7>
+      <Position8>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position8>
+      <Position9>
+        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position9>
+      <Position10>
+        <Filename Value="..\..\..\..\GR32_LowLevel.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position10>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <SearchPaths>
+      <OtherUnitFiles Value="C:\Programme\Borland\Library\Bitmap\Graphics32\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\"/>
+      <ObjectPath Value="..\..\..\"/>
+      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <D2Extensions Value="False"/>
+        <CStyleOperator Value="False"/>
+        <AllowLabel Value="False"/>
+        <CPPInline Value="False"/>
+        <DelphiCompat Value="True"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <Generate Value="Faster"/>
+    </CodeGeneration>
+    <Linking>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="2">
+      <Item1>
+        <Name Value="ECodetoolError"/>
+      </Item1>
+      <Item2>
+        <Name Value="EFOpenError"/>
+      </Item2>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

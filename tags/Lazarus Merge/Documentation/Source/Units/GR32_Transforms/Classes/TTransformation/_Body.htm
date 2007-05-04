@@ -1,0 +1,17 @@
+<html>
+<head>
+<title>TTransformation</title>
+<link rel="STYLESHEET" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TObject">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TTransformation</span> is an abstract ancestor 
+  for bitmap transformation classes. <span class="EmptyRef">TTransformation</span> 
+  objects are passed as parameter in the <a href="../../Routines/Transform.htm">Transform</a> function, which actually performs the bitmap transformation. Custom decendants must at least implement ReverseTransformFloat (and TransformFloat, if forward transformation is supported), since this is the top precision level in the transformation system of Graphics32. All decendants must override at least this level, but for optimal performance, it is recommended that the integer and fixed versions are implemented, respectively.</p>
+		<p class="Body"></p>
+		<p id="hidden">[See Also] <a href="../TAffineTransformation/_Body.htm">TAffineTransformation</a>, 
+  <a href="_Body.htm">TProjectiveTransformation</a></p>
+</body>
+</html>

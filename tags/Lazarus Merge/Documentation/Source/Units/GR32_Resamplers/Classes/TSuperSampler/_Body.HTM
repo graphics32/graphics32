@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>TSuperSampler</title>
+<link rel="STYLESHEET" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TNestedSampler">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TSuperSampler</span> is a <em>nested sampler</em> 
+  that adds a mechanism for performing super sampling. By adding a super sampler 
+  to a chain of samplers, it is possible to increase the sampling density, which 
+  will improve the quality of the rasterized output image. </p>
+<p class="Body">For each input sample <span class="API">(x, y)</span>, we find the subsamples by using a rectangular grid, regularly subdivided (according to <a href="Properties/SamplingX.htm">SamplingX</a> and <a href="Properties/SamplingY.htm">SamplingY</a>) within the region (x - 0.5, y - 0.5, x + 0.5, y + 0.5).</p>
+<p id="hidden">[See Also] <a href="../../../../Examples.htm#Resampler%20Example">Resampler 
+  Example</a>, <a href="../../../../Examples.htm#Kernel%20Example">Kernel Example</a>
+</p>
+</body>
+</html>

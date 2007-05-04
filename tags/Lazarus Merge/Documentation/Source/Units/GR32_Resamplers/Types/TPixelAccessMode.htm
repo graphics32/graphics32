@@ -1,0 +1,18 @@
+<html>
+<head>
+<title>TPixelAccessMode</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type </b>TPixelAccessMode = (pamUnsafe, pamSafe, pamWrap);</p>
+<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">TPixelAccessMode</span> determines how <a href="../Classes/TKernelResampler/_Body.HTM">TKernelResampler</a> handles pixels outside the bitmap boundary when invoking the <a href="../Classes/TKernelResampler/Methods/GetSample.htm">GetSample</a> method. </p>
+		<ul>
+  			<li><strong>pamUnsafe</strong> - No boundary checks are performed. This means that we will read from memory outside the bitmap, if coordinates outside the bitmap area are passed.</li>
+ 			<li><strong>pamSafe</strong> - If the coordinate is outside the clipping rectangle of the bitmap, then the bitmap's outer color will be returned.</li>
+			<li><strong>pamWrap</strong> - Coordinates will be wrapped using the current <a href="../../GR32/Classes/TBitmap32/Properties/WrapMode.htm">WrapMode</a> and will be restricted to the clipping rectangle. </li>
+ 			<li><strong>pamTransparentEdge</strong> - If the coordinate is outside the clipping rectangle of the bitmap, then a transparent result is returned. Moreover edges are resampled as if there were transparent outer edges. This can be used to achieve antialiased edges when transforming bitmaps with opaque edges; The functionality is similar to <a href="../../GR32_Transforms/Routines/SetBorderTransparent.htm">SetBorderTransparent</a>.</li>
+		</ul>
+</body>
+</html>
