@@ -21,8 +21,10 @@
  *
  * Contributor(s):
  *   Andre Beckedorf <Andre@metaException.de>
+ *   Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
+
 
 {$IFDEF VER180}
   {$DEFINE INLININGSUPPORTED}
@@ -99,15 +101,43 @@
   {$DEFINE DELPHI4}
 {$ENDIF}
 
+
+(* Symbol PUREPASCAL :
+    Forces GR32 into pure pascal mode. Should be used only for testing and
+    debugging purposes.
+
+    Note: don't change this to compile for other targets than x86 - configure
+    FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
+
+    {-$DEFINE PUREPASCAL}
+
+
 {$IFDEF FPC}
   {$DEFINE COMPILER4}
   {$DEFINE PLATFORM_INDEPENDENT}
   {$MODE Delphi}
 
-  {$IFNDEF CPUI386}
-  {$DEFINE PUREPASCAL}
+  {$IFNDEF PUREPASCAL}
+    // Set up internal CPU target directives according to FPC directives
+    {$IFDEF CPUI386}
+      // target is an Intel 80386 or later.
+      {$DEFINE TARGET_x86}
+    {$ELSEIF CPUPOWERPC}
+      // target is a 32-bit PowerPC or compatible.
+      // currently only indirect support, added here as example on how to add
+      // future specific targets
+      {-$DEFINE TARGET_POWERPC}
+    {$IFEND}
+  {$ENDIF}
+
+{$ELSE}
+  {$IFNDEF PUREPASCAL}
+    // define default (delphi etc) target (32 bit Intel 80386 or later)
+    {$DEFINE TARGET_x86}
   {$ENDIF}
 {$ENDIF}
+
+
 
 {$IFNDEF COMPILER4}
 //////////////////////////////////////////////////////////////////////
@@ -129,6 +159,11 @@
     {$DEFINE Windows}
   {$ENDIF}
 {$ENDIF}
+
+(* Symbol PUREPASCAL :
+    Forces GR32 into pure pascal mode. Should be used only for testing and
+    debugging purposes. *)
+    {-$DEFINE PUREPASCAL}
 
 (* Symbol CLX :
     Defines whether CLX/QT rather than VCL/WinAPI should be used as toolkit on Windows.
