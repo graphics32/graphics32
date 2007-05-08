@@ -365,7 +365,7 @@ type
 
 implementation
 
-uses Math, GR32_System;
+uses Math, GR32_XPThemes;
 
 const
   OppositeDirection: array [TRBDirection] of TRBDirection = (drRight, drDown, drLeft, drUp);
