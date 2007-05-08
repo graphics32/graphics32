@@ -77,19 +77,39 @@ function HasSSE: Boolean;
 function HasSSE2: Boolean;
 
 type
-  TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
+
+  // TCPUInstructionSet, defines specific CPU technologies
+
+  {$IFDEF TARGET_x86}
+    TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
+  {$ELSE}
+    TCPUInstructionSet = (ciGeneric); // pascal only
+  {$ENDIF}
+
+  TCPUFeatures = set of TCPUInstructionSet;
+
+  TFunctionInfo = record
+    Address: Pointer;
+    Requires: TCPUFeatures;
+  end;
+
+  TFunctionProcs = array of TFunctionInfo;
+
+{ General function that sets up the correct function depending on detected CPU
+  features and present implementations }
+function SetupFunction(const Procs : array of TFunctionInfo): Pointer;
 
 { General function that returns whether a particular instrucion set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 
-const
-  CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
-    ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
-    {ciMMX  ,  ciEMMX,  ciSSE   , ciSSE2  , ci3DNow ,  ci3DNowExt}
 
 var
   GlobalPerfTimer: TPerfTimer;
+  CPUFeatures: TCPUFeatures;
+  CPUFeaturesInitialized : Boolean = False;
+
+procedure InitCPUFeatures;
 
 implementation
 
@@ -242,6 +262,44 @@ begin
 end;
 {$ENDIF}
 
+
+{$IFDEF TARGET_x86}
+
+function HasMMX: Boolean;
+begin
+  Result := HasInstructionSet(ciMMX);
+end;
+
+function HasEMMX: Boolean;
+begin
+  Result := HasInstructionSet(ciEMMX);
+end;
+
+function HasSSE: Boolean;
+begin
+  Result := HasInstructionSet(ciSSE);
+end;
+
+function HasSSE2: Boolean;
+begin
+  Result := HasInstructionSet(ciSSE2);
+end;
+
+function Has3DNow: Boolean;
+begin
+  Result := HasInstructionSet(ci3DNow);
+end;
+
+function Has3DNowExt: Boolean;
+begin
+  Result := HasInstructionSet(ci3DNowExt);
+end;
+
+const
+  CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
+    ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
+    {ciMMX  ,  ciEMMX,  ciSSE   , ciSSE2  , ci3DNow ,  ci3DNowExt}
+
 function CPUID_Available: Boolean;
 asm
         MOV       EDX,False
@@ -303,7 +361,20 @@ asm
 end;
 
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
+// Must be implemented for each target CPU
 begin
+
+  {
+  //Hack for simulation of other i386 types
+  if [InstructionSet] <= [ciMMX, ciEMMX, ciSSE] then
+    Result := True
+  else
+  begin
+    Result := False;
+    Exit;
+  end;
+  }
+
   Result := False;
   if not CPUID_Available then Exit;                   // no CPUID available
   if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
@@ -328,37 +399,59 @@ begin
   Result := True;
 end;
 
-function HasMMX: Boolean;
+{$ELSE}
+
+function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
+// Generic
 begin
-  Result := HasInstructionSet(ciMMX);
+  Result := (InstructionSet = ciGeneric);
 end;
 
-function HasEMMX: Boolean;
+{$ENDIF}
+
+function SetupFunction(const Procs : array of TFunctionInfo): Pointer;
+var
+  I: Integer;
 begin
-  Result := HasInstructionSet(ciEMMX);
+
+  for I := High(Procs) downto Low(Procs) do
+     with Procs[I] do
+        if Requires <= CPUFeatures then
+        begin
+          Result := Address;
+          if Assigned(Result) then
+            Exit;
+        end;
+
+  if Length(Procs) = 0 then
+    raise Exception.Create('Cannot initialize empty array.');
+
+  //Try to link generic
+  if not Assigned(Result) then
+    Result := Procs[0].Address
+  else
+    Result := nil;
+
+  if not Assigned(Result) then
+    raise Exception.Create('Invalid Function Info (address is nil)');
+
 end;
 
-function HasSSE: Boolean;
+procedure InitCPUFeatures;
+var
+  I: TCPUInstructionSet;
 begin
-  Result := HasInstructionSet(ciSSE);
-end;
+  if CPUFeaturesInitialized then Exit;
 
-function HasSSE2: Boolean;
-begin
-  Result := HasInstructionSet(ciSSE2);
-end;
+  CPUFeatures := [];
+  for I := Low(TCPUInstructionSet) to High(TCPUInstructionSet) do
+    if HasInstructionSet(I) then CPUFeatures := CPUFeatures + [I];
 
-function Has3DNow: Boolean;
-begin
-  Result := HasInstructionSet(ci3DNow);
-end;
-
-function Has3DNowExt: Boolean;
-begin
-  Result := HasInstructionSet(ci3DNowExt);
+  CPUFeaturesInitialized := True;
 end;
 
 initialization
+  InitCPUFeatures;
   GlobalPerfTimer := TPerfTimer.Create;
 
 finalization
