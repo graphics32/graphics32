@@ -361,11 +361,11 @@ asm
 end;
 
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
-// Must be implemented for each target CPU
+// Must be implemented for each target CPU on which specific functions rely
 begin
 
   {
-  //Hack for simulation of other i386 types
+  //Simulation of other i386 types, example feature set shown
   if [InstructionSet] <= [ciMMX, ciEMMX, ciSSE] then
     Result := True
   else
@@ -400,6 +400,36 @@ begin
 end;
 
 {$ELSE}
+ 
+function HasMMX: Boolean;
+begin
+  Result := False;
+end;
+
+function HasEMMX: Boolean;
+begin
+  Result := False;
+end;
+
+function HasSSE: Boolean;
+begin
+  Result := False;
+end;
+
+function HasSSE2: Boolean;
+begin
+  Result := False;
+end;
+
+function Has3DNow: Boolean;
+begin
+  Result := False;
+end;
+
+function Has3DNowExt: Boolean;
+begin
+  Result := False;
+end;
 
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 // Generic
@@ -428,9 +458,7 @@ begin
 
   //Try to link generic
   if not Assigned(Result) then
-    Result := Procs[0].Address
-  else
-    Result := nil;
+    Result := Procs[0].Address;
 
   if not Assigned(Result) then
     raise Exception.Create('Invalid Function Info (address is nil)');
