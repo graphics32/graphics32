@@ -126,7 +126,7 @@ var
 { Merge }
 
 function _MergeReg(F, B: TColor32): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   PF, PB, PR: PByteArray;
   FX: TColor32Entry absolute F;
@@ -392,7 +392,7 @@ end;
 const bias = $00800080;
 
 function _CombineReg(X, Y, W: TColor32): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
@@ -459,7 +459,7 @@ asm
 end;
 
 procedure _CombineMem(F: TColor32; var B: TColor32; W: TColor32);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   Fe: TColor32Entry absolute F;
   Be: TColor32Entry absolute B;
@@ -528,7 +528,7 @@ asm
 end;
 
 function _BlendReg(F, B: TColor32): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -608,7 +608,7 @@ asm
 end;
 
 procedure _BlendMem(F: TColor32; var B: TColor32);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -686,7 +686,7 @@ asm
 end;
 
 function _BlendRegEx(F, B, M: TColor32): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -769,7 +769,7 @@ asm
 end;
 
 procedure _BlendMemEx(F: TColor32; var B: TColor32; M: TColor32);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -848,7 +848,7 @@ asm
 end;
 
 procedure _BlendLine(Src, Dst: PColor32; Count: Integer);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   SX: PColor32Entry absolute Src;
   DX: PColor32Entry absolute Dst;
