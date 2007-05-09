@@ -45,8 +45,6 @@ uses
 var
   MMX_ACTIVE: Boolean;
 
-procedure EMMS;
-
 type
 { Function Prototypes }
   TCombineReg  = function(X, Y, W: TColor32): TColor32;
@@ -60,6 +58,7 @@ type
   TCombineLine = procedure(Src, Dst: PColor32; Count: Integer; W: TColor32);
 
 var
+  EMMS: procedure;
 { Function Variables }
   CombineReg: TCombineReg;
   CombineMem: TCombineMem;
@@ -972,18 +971,31 @@ begin
   end;
 end;
 
-
 { MMX versions }
 
-procedure EMMS;
+procedure _EMMS;
 begin
-{$IFDEF TARGET_x86}
-  if MMX_ACTIVE then
-  asm
-    db $0F,$77               /// EMMS
-  end;
-{$ENDIF}
+//Dummy
 end;
+
+{$IFDEF TARGET_x86}
+procedure M_EMMS;
+asm
+  db $0F,$77               /// EMMS
+end;
+
+const
+  EMMSProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_EMMS; Requires: []),
+    (Address : @M_EMMS; Requires: [ciMMX])
+  );
+
+{$ELSE}
+const
+  EMMSProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_EMMS; Requires: [])
+  );
+{$ENDIF}
 
 {$IFDEF TARGET_x86}
 
@@ -1803,109 +1815,233 @@ begin
     end;
 end;
 
-{ MMX Detection and linking }
+{ Function Sets and Setup }
+
+const
+
+  MergeMemProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MergeMem; Requires: []));
+
+  MergeRegProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MergeReg; Requires: []));
+
+  MergeMemExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MergeMemEx; Requires: []));
+
+  MergeRegExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MergeRegEx; Requires: []));
+
+  MergeLineProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MergeLine; Requires: []));
+
+  MergeLineExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MergeLineEx; Requires: []));
+
+  ColorDivProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorDiv; Requires: []));
+
+{$IFDEF TARGET_x86}
+
+  CombineRegProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_CombineReg; Requires: []),
+    (Address : @M_CombineReg; Requires: [ciMMX]));
+
+  CombineMemProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_CombineMem; Requires: []),
+    (Address : @M_CombineMem; Requires: [ciMMX]));
+
+  CombineLineProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_CombineLine; Requires: []),
+    (Address : @M_CombineLine; Requires: [ciMMX]));
+
+  BlendRegProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_BlendReg; Requires: []),
+    (Address : @M_BlendReg; Requires: [ciMMX]));
+
+  BlendMemProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_BlendMem; Requires: []),
+    (Address : @M_BlendMem; Requires: [ciMMX]));
+
+  BlendRegExProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_BlendRegEx; Requires: []),
+    (Address : @M_BlendRegEx; Requires: [ciMMX]));
+
+  BlendMemExProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_BlendMemEx; Requires: []),
+    (Address : @M_BlendMemEx; Requires: [ciMMX]));
+
+  BlendLineProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_BlendLine; Requires: []),
+    (Address : @M_BlendLine; Requires: [ciMMX]));
+
+  BlendLineExProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_BlendLineEx; Requires: []),
+    (Address : @M_BlendLineEx; Requires: [ciMMX]));
+
+
+
+  ColorMaxProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorMax; Requires: []),
+    (Address : @M_ColorMax; Requires: [ciEMMX]));
+
+  ColorMinProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorMin; Requires: []),
+    (Address : @M_ColorMin; Requires: [ciEMMX]));
+
+  ColorAverageProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorAverage; Requires: []),
+    (Address : @M_ColorAverage; Requires: [ciEMMX]));
+
+  ColorAddProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorAdd; Requires: []),
+    (Address : @M_ColorAdd; Requires: [ciMMX]));
+
+  ColorSubProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorSub; Requires: []),
+    (Address : @M_ColorSub; Requires: [ciMMX]));
+
+  ColorModulateProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorModulate; Requires: []),
+    (Address : @M_ColorModulate; Requires: [ciMMX]));
+
+  ColorDifferenceProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorDifference; Requires: []),
+    (Address : @M_ColorDifference; Requires: [ciMMX]));
+
+  ColorExclusionProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorExclusion; Requires: []), 
+    (Address : @M_ColorExclusion; Requires: [ciMMX]));
+
+  ColorScaleProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_ColorScale; Requires: []),
+    (Address : @M_ColorScale; Requires: [ciMMX]));
+
+{$ELSE}
+
+  CombineRegProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_CombineReg; Requires: []));
+
+  CombineMemProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_CombineMem; Requires: []));
+
+  CombineLineProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_CombineLine; Requires: []));
+
+
+  BlendRegProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlendReg; Requires: []));
+
+  BlendMemProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlendMem; Requires: []));
+
+  BlendLineProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlendLine; Requires: []));
+
+
+  BlendRegExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlendRegEx; Requires: []));
+
+  BlendMemExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlendMemEx; Requires: []));
+
+  BlendLineExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlendLineEx; Requires: []));
+
+
+
+  ColorMaxProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorMax; Requires: []));
+
+  ColorMinProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorMin; Requires: []));
+
+  ColorAverageProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorAverage; Requires: []));
+
+  ColorAddProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorAdd; Requires: []));
+
+  ColorSubProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorSub; Requires: []));
+
+  ColorModulateProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorModulate; Requires: []));
+
+  ColorDifferenceProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorDifference; Requires: []));
+
+  ColorExclusionProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorExclusion; Requires: []));
+
+  ColorScaleProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_ColorScale; Requires: []));
+
+{$ENDIF}
+
 
 procedure SetupFunctions;
 begin
-  MMX_ACTIVE := HasMMX;
+  EMMS := SetupFunction(EMMSProcs);
 
-  MergeReg := _MergeReg;
-  MergeMem := _MergeMem;
-  MergeRegEx := _MergeRegEx;
-  MergeMemEx := _MergeMemEx;
-  MergeLine := _MergeLine;
-  MergeLineEx := _MergeLineEx;
+  MergeReg := SetupFunction(MergeRegProcs);
+  MergeMem := SetupFunction(MergeMemProcs);
+  MergeLine := SetupFunction(MergeLineProcs);
+  MergeRegEx := SetupFunction(MergeRegExProcs);
+  MergeMemEx := SetupFunction(MergeMemExProcs);
+  MergeLineEx := SetupFunction(MergeLineExProcs);
 
-  BLEND_MEM[cmMerge] := _MergeMem;
-  BLEND_REG[cmMerge] := _MergeReg;
-  BLEND_MEM_EX[cmMerge] := _MergeMemEx;
-  BLEND_REG_EX[cmMerge] := _MergeRegEx;
-  BLEND_LINE[cmMerge] := _MergeLine;
-  BLEND_LINE_EX[cmMerge] := _MergeLineEx;
+  CombineReg := SetupFunction(CombineRegProcs);
+  CombineMem := SetupFunction(CombineMemProcs);
+  CombineLine := SetupFunction(CombineLineProcs);
 
-  {$IFDEF TARGET_x86}
-  if MMX_ACTIVE then
-  begin
-    // link MMX functions
-    CombineReg := M_CombineReg;
-    CombineMem := M_CombineMem;
-    BlendReg := M_BlendReg;
-    BlendMem := M_BlendMem;
-    BlendRegEx := M_BlendRegEx;
-    BlendMemEx := M_BlendMemEx;
-    BlendLine := M_BlendLine;
-    BlendLineEx := M_BlendLineEx;
-    CombineLine := M_CombineLine;
+  BlendReg := SetupFunction(BlendRegProcs);
+  BlendMem := SetupFunction(BlendMemProcs);
+  BlendLine := SetupFunction(BlendLineProcs);
+  BlendRegEx := SetupFunction(BlendRegExProcs);
+  BlendMemEx := SetupFunction(BlendMemExProcs);
+  BlendLineEx := SetupFunction(BlendLineExProcs);
 
-    BLEND_MEM[cmBlend] := M_BlendMem;
-    BLEND_REG[cmBlend] := M_BlendReg;
-    BLEND_MEM_EX[cmBlend] := M_BlendMemEx;
-    BLEND_REG_EX[cmBlend] := M_BlendRegEx;
-    BLEND_LINE[cmBlend] := M_BlendLine;
-    BLEND_LINE_EX[cmBlend] := M_BlendLineEx;
+  //No setup needed, use already set up variables
+  BLEND_REG[cmMerge] := MergeReg;
+  BLEND_MEM[cmMerge] := MergeMem;
+  BLEND_REG_EX[cmMerge] := MergeRegEx;
+  BLEND_MEM_EX[cmMerge] := MergeMemEx;
+  BLEND_LINE[cmMerge] := MergeLine;
+  BLEND_LINE_EX[cmMerge] := MergeLineEx;
+  BLEND_MEM[cmBlend] := BlendMem;
+  BLEND_REG[cmBlend] := BlendReg;
+  BLEND_MEM_EX[cmBlend] := BlendMemEx;
+  BLEND_REG_EX[cmBlend] := BlendRegEx;
+  BLEND_LINE[cmBlend] := BlendLine;
+  BLEND_LINE_EX[cmBlend] := BlendLineEx;
 
-    ColorAdd := M_ColorAdd;
-    ColorSub := M_ColorSub;
-    ColorDiv := _ColorDiv;
-    ColorModulate := M_ColorModulate;
-    ColorDifference := M_ColorDifference;
-    ColorExclusion := M_ColorExclusion;
-    ColorScale := M_ColorScale;
-  end
-  else
-  {$ENDIF}
-  begin
-    // link non-MMX functions
-    CombineReg := _CombineReg;
-    CombineMem := _CombineMem;
-    BlendReg := _BlendReg;
-    BlendMem := _BlendMem;
-    BlendRegEx := _BlendRegEx;
-    BlendMemEx := _BlendMemEx;
-    BlendLine := _BlendLine;
-    BlendLineEx := _BlendLineEx;
-    CombineLine := _CombineLine;
 
-    BLEND_MEM[cmBlend] := _BlendMem;
-    BLEND_REG[cmBlend] := _BlendReg;
-    BLEND_MEM_EX[cmBlend] := _BlendMemEx;
-    BLEND_REG_EX[cmBlend] := _BlendRegEx;
-    BLEND_LINE[cmBlend] := _BlendLine;
-    BLEND_LINE_EX[cmBlend] := _BlendLineEx;
+  ColorMax := SetupFunction(ColorMaxProcs);
+  ColorMin := SetupFunction(ColorMinProcs);
+  ColorAverage := SetupFunction(ColorAverageProcs);
+  ColorAdd := SetupFunction(ColorAddProcs);
+  ColorSub := SetupFunction(ColorSubProcs);
+  ColorDiv := SetupFunction(ColorDivProcs);
+  ColorModulate := SetupFunction(ColorModulateProcs);
+  ColorDifference := SetupFunction(ColorDifferenceProcs);
+  ColorExclusion := SetupFunction(ColorExclusionProcs);
+  ColorScale := SetupFunction(ColorScaleProcs);
 
-    ColorAdd := _ColorAdd;
-    ColorSub := _ColorSub;
-    ColorDiv := _ColorDiv;
-    ColorModulate := _ColorModulate;
-    ColorDifference := _ColorDifference;
-    ColorExclusion := _ColorExclusion;
-    ColorScale := _ColorScale;
-  end;
-
-  {$IFDEF TARGET_x86}
-  if HasEMMX then
-  begin
-    ColorMax := M_ColorMax;
-    ColorMin := M_ColorMin;
-    ColorAverage := M_ColorAverage;
-  end
-  else
-  {$ENDIF}
-  begin
-    ColorMax := _ColorMax;
-    ColorMin := _ColorMin;
-    ColorAverage := _ColorAverage;
-  end;
+{$IFDEF TARGET_x86}
+  MMX_ACTIVE := (ciMMX in CPUFeatures);
+{$ELSE}
+  MMX_ACTIVE := False;
+{$ENDIF}
 end;
 
 initialization
   MakeMergeTables;
   SetupFunctions;
 {$IFDEF TARGET_x86}
-  if MMX_ACTIVE then GenAlphaTable;
+  if (ciMMX in CPUFeatures) then GenAlphaTable;
 
 finalization
-  if MMX_ACTIVE then FreeAlphaTable;
+  if (ciMMX in CPUFeatures) then FreeAlphaTable;
 {$ENDIF}
 
 end.

@@ -107,7 +107,6 @@ function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 var
   GlobalPerfTimer: TPerfTimer;
   CPUFeatures: TCPUFeatures;
-  CPUFeaturesInitialized : Boolean = False;
 
 procedure InitCPUFeatures;
 
@@ -117,6 +116,9 @@ implementation
 uses
   Messages, Forms, Classes;
 {$ENDIF}
+
+var
+  CPUFeaturesInitialized : Boolean = False;
 
 {$IFDEF UNIX}
 {$IFDEF FPC}
@@ -400,7 +402,7 @@ begin
 end;
 
 {$ELSE}
- 
+
 function HasMMX: Boolean;
 begin
   Result := False;
@@ -443,7 +445,7 @@ function SetupFunction(const Procs : array of TFunctionInfo): Pointer;
 var
   I: Integer;
 begin
-
+  //Assumes ordering after estimated performance, fastest last in Procs array
   for I := High(Procs) downto Low(Procs) do
      with Procs[I] do
         if Requires <= CPUFeatures then

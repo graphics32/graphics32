@@ -2014,28 +2014,14 @@ end;
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
-{$IFNDEF TARGET_x86}
   EMMS;
-{$ELSE}
-  if MMX_ACTIVE then
-  asm
-    db $0F,$77               /// EMMS
-  end;
-{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Ptr^);
   Inc(Ptr);
-{$IFNDEF TARGET_x86}
   EMMS;
-{$ELSE}
-  if MMX_ACTIVE then
-  asm
-    db $0F,$77               /// EMMS
-  end;
-{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelTS(X, Y: Integer; Value: TColor32);
@@ -2045,14 +2031,7 @@ begin
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
     BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
-  {$IFNDEF TARGET_x86}
     EMMS;
-  {$ELSE}
-    if MMX_ACTIVE then
-    asm
-      db $0F,$77               /// EMMS
-    end;
-  {$ENDIF}
   end;
 {$IFDEF CHANGED_IN_PIXELS}
   Changed(MakeRect(X, Y, X + 1, Y + 1));
@@ -2192,29 +2171,11 @@ begin
 end;
 
 procedure TCustomBitmap32.SetPixelX(X, Y: TFixed; Value: TColor32);
-{$IFNDEF TARGET_x86}
 begin
-  X := (X + $7F) div 256;
-  Y := (Y + $7F) div 256;
+  X := (X + $7F) shr 8;
+  Y := (Y + $7F) shr 8;
   SET_T256(X, Y, Value);
   EMMS;
-{$ELSE}
-asm
-  PUSH EBX
-  ADD X, $7F
-  ADD Y, $7F
-  SAR X, 8
-  SAR Y, 8
-  MOV EBX,[EBP+$08]
-  PUSH EBX
-
-  CALL TCustomBitmap32.SET_T256
-  cmp MMX_ACTIVE.Integer,$00
-  jz @Exit
-  db $0F,$77               /// EMMS
-@Exit:
-  POP EBX
-{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelFS(X, Y: Single; Value: TColor32);
@@ -2325,25 +2286,11 @@ begin
 end;
 
 function TCustomBitmap32.GetPixelX(X, Y: TFixed): TColor32;
-{$IFNDEF TARGET_x86}
 begin
-  X := (X + $7F) div 256;
-  Y := (Y + $7F) div 256;
+  X := (X + $7F) shr 8;
+  Y := (Y + $7F) shr 8;
   Result := GET_T256(X, Y);
   EMMS;
-{$ELSE}
-asm
-  ADD X, $7F
-  ADD Y, $7F
-  SAR X, 8
-  SAR Y, 8
-  CALL TCustomBitmap32.GET_T256
-  MOV Result, EAX
-  cmp MMX_ACTIVE.Integer, $00
-  jz @Exit  
-  db $0F, $77               /// EMMS
-@Exit:
-{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;
