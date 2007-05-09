@@ -73,7 +73,7 @@ function Sign(Value: Integer): Integer;
 
 implementation
 
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 uses 
   Math;
 {$ENDIF}
@@ -81,7 +81,7 @@ uses
 { Fixed-point math }
 
 function FixedFloor(A: TFixed): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := A div 65536;
 {$ELSE}
@@ -91,7 +91,7 @@ asm
 end;
 
 function FixedCeil(A: TFixed): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := (A + $FFFF) div $10000;
 {$ELSE}
@@ -102,7 +102,7 @@ asm
 end;
 
 function FixedRound(A: TFixed): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := (A + $7FFF) div $10000;
 {$ELSE}
@@ -113,7 +113,7 @@ asm
 end;
 
 function FixedMul(A, B: TFixed): TFixed;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Round(A * B * FixedToFloat);
 {$ELSE}
@@ -124,7 +124,7 @@ asm
 end;
 
 function FixedDiv(A, B: TFixed): TFixed;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Round(A / B * FixedOne);
 {$ELSE}
@@ -138,7 +138,7 @@ asm
 end;
 
 function OneOver(Value: TFixed): TFixed;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 const
   Dividend = FixedOne * FixedOne;
 begin
@@ -153,7 +153,7 @@ asm
 end;
 
 function FixedSqr(Value: TFixed): TFixed;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Sqr(Value) * FixedToFloat;
 {$ELSE}
@@ -164,7 +164,7 @@ asm
 end;
 
 function FixedSqrtLP(Value: TFixed): TFixed;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Round(Sqrt(Value * FixedOne));
 {$ELSE}
@@ -194,7 +194,7 @@ asm
 end;
 
 function FixedSqrtHP(Value: TFixed): TFixed;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Round(Sqrt(Value * FixedOne));
 {$ELSE}
@@ -243,7 +243,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // combine fixed value X and fixed value Y with the weight of X given in W
 // Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Round(Y + (X - Y) * W * FixedToFloat);
 {$ELSE}
@@ -258,7 +258,7 @@ end;
 { Trigonometry }
 
 procedure SinCos(const Theta: TFloat; var Sin, Cos: TFloat);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Sin := System.Sin(Theta);
   Cos := System.Cos(Theta);
@@ -272,7 +272,7 @@ asm
 end;
 
 procedure SinCos(const Theta, Radius : TFloat; var Sin, Cos: TFloat);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Sin := System.Sin(Theta) * Radius;
   Cos := System.Cos(Theta) * Radius;
@@ -288,7 +288,7 @@ asm
 end;
 
 function Hypot(const X, Y: TFloat): TFloat;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Math.Hypot(X, Y);
 {$ELSE}
@@ -306,7 +306,7 @@ end;
 { Misc. }
 
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Round(Multiplicand * Multiplier / Divisor);
 {$ELSE}
@@ -359,7 +359,7 @@ end;
 
 function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value and (Value - 1) <> 0;
 {$ELSE}
@@ -372,7 +372,7 @@ end;
 
 function PrevPowerOf2(Value: Integer): Integer;
 //returns X rounded down to the power of two
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := 1;
   while Value shr 1 > 0 do
@@ -387,7 +387,7 @@ end;
 
 function NextPowerOf2(Value: Integer): Integer;
 //returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := 2;
   while Value shr 1 > 0 do 
@@ -407,7 +407,7 @@ end;
 function Average(A, B: Integer): Integer;
 //fast average without overflow, useful e.g. for fixed point math
 //(A + B)/2 = (A and B) + (A xor B)/2
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := (A and B) + (A xor B) div 2;
 {$ELSE}
@@ -421,7 +421,7 @@ asm
 end;
 
 function Sign(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   if Value < 0 then
   	Result := -1
