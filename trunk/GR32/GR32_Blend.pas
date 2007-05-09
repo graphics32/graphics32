@@ -977,7 +977,7 @@ end;
 
 procedure EMMS;
 begin
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
   if MMX_ACTIVE then
   asm
     db $0F,$77               /// EMMS
@@ -985,7 +985,7 @@ begin
 {$ENDIF}
 end;
 
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
 
 procedure GenAlphaTable;
 var
@@ -1669,7 +1669,7 @@ end;
 
 { MMX Color algebra versions }
 
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
 function M_ColorAdd(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
@@ -1823,7 +1823,7 @@ begin
   BLEND_LINE[cmMerge] := _MergeLine;
   BLEND_LINE_EX[cmMerge] := _MergeLineEx;
 
-  {$IFNDEF PUREPASCAL}
+  {$IFDEF TARGET_x86}
   if MMX_ACTIVE then
   begin
     // link MMX functions
@@ -1882,7 +1882,7 @@ begin
     ColorScale := _ColorScale;
   end;
 
-  {$IFNDEF PUREPASCAL}
+  {$IFDEF TARGET_x86}
   if HasEMMX then
   begin
     ColorMax := M_ColorMax;
@@ -1901,7 +1901,7 @@ end;
 initialization
   MakeMergeTables;
   SetupFunctions;
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
   if MMX_ACTIVE then GenAlphaTable;
 
 finalization

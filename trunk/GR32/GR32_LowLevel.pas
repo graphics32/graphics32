@@ -147,7 +147,7 @@ asm
 end;
 
 procedure _FillLongword(var X; Count: Integer; Value: Longword);
-{$IFDEF purepascal}
+{$IFNDEF TARGET_x86}
 var
   I: Integer;
   P: PIntegerArray;
@@ -174,7 +174,7 @@ asm
 {$ENDIF}
 end;
 
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
 procedure M_FillLongword(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
@@ -448,7 +448,7 @@ asm
 end;
 
 function Wrap(Value, Min, Max: Integer): Integer;
-{_$IFNDEF PUREPASCAL}
+{_$IFDEF TARGET_x86}
 begin
   if Value < Min then
     Result := Max + (Value - Max) mod (Max - Min + 1)
@@ -713,7 +713,7 @@ end;
 
 procedure SetupFunctions;
 begin
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
   if HasMMX then
     FillLongword := M_FillLongword
   else
