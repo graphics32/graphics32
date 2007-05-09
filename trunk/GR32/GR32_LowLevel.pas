@@ -212,6 +212,17 @@ asm
         POP        EDI
     @Exit:
 end;
+
+const
+  FillLongwordProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_FillLongword; Requires: []),
+    (Address : @M_FillLongword; Requires: [ciMMX])
+  );
+{$ELSE}
+const
+  FillLongwordProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_FillLongword; Requires: [])
+  );
 {$ENDIF}
 
 procedure FillWord(var X; Count: Integer; Value: LongWord);
@@ -713,12 +724,7 @@ end;
 
 procedure SetupFunctions;
 begin
-{$IFDEF TARGET_x86}
-  if HasMMX then
-    FillLongword := M_FillLongword
-  else
-{$ENDIF}
-    FillLongword := _FillLongword;
+  FillLongword := SetupFunction(FillLongwordProcs);
 end;
 
 initialization
