@@ -916,7 +916,7 @@ begin
 end;
 
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := (A shl 24) or
             (R shl 16) or
@@ -942,7 +942,7 @@ begin
 end;
 
 function WinColor(Color32: TColor32): TColor;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := ((Color32 and $00FF0000) shl 16) or
              (Color32 and $0000FF00) or
@@ -1129,7 +1129,7 @@ begin
 end;
 
 function Max(const A, B, C: Integer): Integer; overload;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   if A > B then 
   	Result := A
@@ -1148,7 +1148,7 @@ asm
 end;
 
 function Min(const A, B, C: Integer): Integer; overload;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   if A < B then 
   	Result := A
@@ -2014,7 +2014,7 @@ end;
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
   EMMS;
 {$ELSE}
   if MMX_ACTIVE then
@@ -2028,7 +2028,7 @@ procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
   BLEND_MEM[FCombineMode](Value, Ptr^);
   Inc(Ptr);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
   EMMS;
 {$ELSE}
   if MMX_ACTIVE then
@@ -2045,7 +2045,7 @@ begin
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
     BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
-  {$IFDEF PUREPASCAL}
+  {$IFNDEF TARGET_x86}
     EMMS;
   {$ELSE}
     if MMX_ACTIVE then
@@ -2070,7 +2070,7 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFDEF PUREPASCAL}
+  {$IFNDEF TARGET_x86}
   X := X div 256;
   Y := Y div 256;
   {$ELSE}
@@ -2123,7 +2123,7 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFDEF PUREPASCAL}
+  {$IFNDEF TARGET_x86}
   X := X div 256;
   Y := Y div 256;
   {$ELSE}
@@ -2192,7 +2192,7 @@ begin
 end;
 
 procedure TCustomBitmap32.SetPixelX(X, Y: TFixed; Value: TColor32);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
@@ -2251,7 +2251,7 @@ begin
   if not FMeasuringMode then
   begin
 {$ENDIF}
-    {$IFDEF PUREPASCAL}
+    {$IFNDEF TARGET_x86}
     X := (X + $7F) div 256;
     Y := (Y + $7F) div 256;
     {$ELSE}
@@ -2325,7 +2325,7 @@ begin
 end;
 
 function TCustomBitmap32.GetPixelX(X, Y: TFixed): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
@@ -2347,7 +2347,7 @@ asm
 end;
 
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
@@ -2424,7 +2424,7 @@ procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 var
   WrapProc: TWrapProcEx;
 begin
-  {$IFDEF PUREPASCAL}
+  {$IFNDEF TARGET_x86}
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
   {$ELSE}
@@ -4621,7 +4621,7 @@ begin
                        CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 function M_Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
@@ -4675,7 +4675,7 @@ var
   ACTIVE_3DNow: Boolean;
 begin
   MMX_ACTIVE := HasMMX;
-  {$IFDEF PUREPASCAL}
+  {$IFNDEF TARGET_x86}
   ACTIVE_3DNow := Has3DNow;
   if ACTIVE_3DNow then
   begin

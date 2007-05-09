@@ -32,7 +32,7 @@ interface
 
 {$I GR32.inc}
 
-{$IFDEF PUREPASCAL} {$DEFINE USEMOVE} {$ENDIF}
+{$IFNDEF TARGET_x86} {$DEFINE USEMOVE} {$ENDIF}
 
 uses
   {$IFDEF CLX}
@@ -66,10 +66,10 @@ function StackAlloc(Size: Integer): Pointer; register;
 procedure StackFree(P: Pointer); register;
 
 { Exchange two 32-bit values }
-procedure Swap(var A, B: Integer); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure Swap(var A, B: Integer); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Exchange A <-> B only if B < A }
-procedure TestSwap(var A, B: Integer); {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure TestSwap(var A, B: Integer); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Exchange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
@@ -84,9 +84,9 @@ function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} in
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 
 { Clamp integer Value to [0..Max] range }
-function Clamp(Value, Max: Integer): Integer; overload; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function Clamp(Value, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 { Same but [Min..Max] range }
-function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFDEF PUREPASCAL}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Wrap integer Value to [0..Max] range }
 function Wrap(Value, Max: Integer): Integer; overload;
@@ -147,8 +147,7 @@ asm
 end;
 
 procedure _FillLongword(var X; Count: Integer; Value: Longword);
-{$IFDEF PUREPASCAL}
-inline;
+{$IFDEF purepascal}
 var
   I: Integer;
   P: PIntegerArray;
@@ -216,7 +215,7 @@ end;
 {$ENDIF}
 
 procedure FillWord(var X; Count: Integer; Value: LongWord);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   I: Integer;
   P: PWordArray;
@@ -291,7 +290,7 @@ asm
 end;
 
 procedure Swap(var A, B: Integer);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var 
   T: Integer;
 begin
@@ -309,7 +308,7 @@ asm
 end;
 
 procedure TestSwap(var A, B: Integer);
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var 
   T: Integer;
 begin
@@ -386,7 +385,7 @@ begin
 end;
 
 function Clamp(Value, Max: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   if Value > Max then 
   	Result := Max
@@ -411,7 +410,7 @@ asm
 end;
 
 function Clamp(Value, Min, Max: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   if Value > Max then 
   	Result := Max
@@ -429,7 +428,7 @@ asm
 end;
 
 function Wrap(Value, Max: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   if Value < 0 then
     Result := Max + (Value - Max) mod (Max + 1)
@@ -486,7 +485,7 @@ asm
 end;
 
 function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Remainder := Dividend mod Divisor;
   Result := Dividend div Divisor;
@@ -502,7 +501,7 @@ asm
 end;
 
 function Mirror(Value, Max: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 var
   DivResult: Integer;
 begin
@@ -553,7 +552,7 @@ end;
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 16;
 {$ELSE}
@@ -563,7 +562,7 @@ asm
 end;
 
 function SAR_8(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 256;
 {$ELSE}
@@ -573,7 +572,7 @@ asm
 end;
 
 function SAR_9(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 512;
 {$ELSE}
@@ -583,7 +582,7 @@ asm
 end;
 
 function SAR_11(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 2048;
 {$ELSE}
@@ -593,7 +592,7 @@ asm
 end;
 
 function SAR_12(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 4096;
 {$ELSE}
@@ -603,7 +602,7 @@ asm
 end;
 
 function SAR_13(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 8192;
 {$ELSE}
@@ -613,7 +612,7 @@ asm
 end;
 
 function SAR_14(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 16384;
 {$ELSE}
@@ -623,7 +622,7 @@ asm
 end;
 
 function SAR_15(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 32768;
 {$ELSE}
@@ -633,7 +632,7 @@ asm
 end;
 
 function SAR_16(Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := Value div 65536;
 {$ELSE}
@@ -644,7 +643,7 @@ end;
 
 { Colorswap exchanges ARGB <-> ABGR and fill A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
-{$IFDEF PUREPASCAL}
+{$IFNDEF TARGET_x86}
 begin
   Result := $FF000000 or
   	((WinColor and $00FF0000) shr 16 or
