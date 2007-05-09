@@ -140,7 +140,7 @@ end;
 function OneOver(Value: TFixed): TFixed;
 {$IFNDEF TARGET_x86}
 const
-  Dividend = FixedOne * FixedOne;
+  Dividend: Single = 4294967296; // FixedOne * FixedOne
 begin
   Result := Round(Dividend / Value);
 {$ELSE}
@@ -155,7 +155,7 @@ end;
 function FixedSqr(Value: TFixed): TFixed;
 {$IFNDEF TARGET_x86}
 begin
-  Result := Sqr(Value) * FixedToFloat;
+  Result := Round(Sqr(Value) * FixedToFloat);
 {$ELSE}
 asm
           IMUL    EAX
