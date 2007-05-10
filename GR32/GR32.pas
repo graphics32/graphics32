@@ -4568,7 +4568,7 @@ begin
                        CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
-{$IFNDEF TARGET_x86}
+{$IFDEF TARGET_x86}
 function M_Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
@@ -4614,34 +4614,21 @@ asm
         db $0F,$67,$D0           /// PACKUSWB  MM2,MM0
         db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
-{$ENDIF}
 
-procedure SetupFunctions;
-var
-  MMX_ACTIVE: Boolean;
-  ACTIVE_3DNow: Boolean;
-begin
-  MMX_ACTIVE := HasMMX;
-  {$IFNDEF TARGET_x86}
-  ACTIVE_3DNow := Has3DNow;
-  if ACTIVE_3DNow then
-  begin
-   // link 3DNow functions
-   Interpolator := M_Interpolator;
-  end
-  else
-  if MMX_ACTIVE then
-  begin
-   // link MMX functions
-   Interpolator := M_Interpolator;
-  end
-  else
-  {$ENDIF}
-  begin
-   // link IA32 functions
-   Interpolator := _Interpolator;
-  end
-end;
+const
+  InterpolatorProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_Interpolator; Requires: []),
+    (Address : @M_Interpolator; Requires: [ciMMX])
+  );
+
+{$ELSE}
+
+const
+  InterpolatorProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_Interpolator; Requires: [])
+  );
+
+{$ENDIF}
 
 procedure TCustomBitmap32.SetResampler(Resampler: TCustomResampler);
 begin
@@ -5547,6 +5534,11 @@ end;
 function TCustomSampler.GetSampleBounds: TRect;
 begin
   Result := Rect(Low(Integer), Low(Integer), High(Integer), High(Integer));
+end;
+
+procedure SetupFunctions;
+begin
+   Interpolator := SetupFunction(InterpolatorProcs);
 end;
 
 initialization
