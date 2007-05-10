@@ -25,6 +25,7 @@ unit GR32_Filters;
  *  Michael Hansen <dyster_tid@hotmail.com>
  *      - 2007/02/25 - Logical Mask Operations and related types
  *      - 2007/02/27 - CopyComponents
+ *      - 2007/05/10 - Logical Mask Operation functions in pascal versions
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -77,6 +78,9 @@ procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32
   LogicalOperator: TLogicalOperator); overload;
 
 procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
+
+var
+  GR32_Filters_FunctionTemplates : PFunctionTemplates;
 
 implementation
 
@@ -539,7 +543,45 @@ end;
 { In-place logical mask functions }
 { Non - MMX versions}
 
-procedure _XorLine(Dst: PColor32; Mask: TColor32; Count: Integer);
+procedure XorLine_Pas(Dst: PColor32; Mask: TColor32; Count: Integer);
+var
+  DstRow: PColor32Array absolute Dst;
+begin
+  Inc(Dst, Count);
+  Count := - Count;
+  repeat
+    DstRow[Count] := DstRow[Count] xor Mask;
+    Inc(Count);
+  until Count = 0;
+end;
+
+procedure OrLine_Pas(Dst: PColor32; Mask: TColor32; Count: Integer);
+var
+  DstRow: PColor32Array absolute Dst;
+begin
+  Inc(Dst, Count);
+  Count := - Count;
+  repeat
+    DstRow[Count] := DstRow[Count] or Mask;
+    Inc(Count);
+  until Count = 0;
+end;
+
+procedure AndLine_Pas(Dst: PColor32; Mask: TColor32; Count: Integer);
+var
+  DstRow: PColor32Array absolute Dst;
+begin
+  Inc(Dst, Count);
+  Count := - Count;
+  repeat
+    DstRow[Count] := DstRow[Count] and Mask;
+    Inc(Count);
+  until Count = 0;
+end;
+
+{$IFDEF TARGET_x86}
+
+procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
    TEST  ECX, ECX
@@ -600,7 +642,7 @@ asm
   @Exit:
 end;
 
-procedure _OrLine(Dst: PColor32; Mask: TColor32; Count: Integer);
+procedure OrLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
    TEST  ECX, ECX
@@ -661,7 +703,7 @@ asm
   @Exit:
 end;
 
-procedure _AndLine(Dst: PColor32; Mask: TColor32; Count: Integer);
+procedure AndLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
    TEST  ECX, ECX
@@ -722,10 +764,56 @@ asm
   @Exit:
 end;
 
+{$ENDIF}
+
 { extended logical mask functions Src -> Dst }
 { Non - MMX versions}
 
-procedure _XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure XorLineEx_Pas(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+var
+  SrcRow: PColor32Array absolute Src;
+  DstRow: PColor32Array absolute Dst;
+begin
+  Inc(Dst, Count);
+  Inc(Src, Count);
+  Count := - Count;
+  repeat
+    DstRow[Count] := SrcRow[Count] xor Mask;
+    Inc(Count);
+  until Count = 0;
+end;
+
+procedure OrLineEx_Pas(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+var
+  SrcRow: PColor32Array absolute Src;
+  DstRow: PColor32Array absolute Dst;
+begin
+  Inc(Dst, Count);
+  Inc(Src, Count);
+  Count := - Count;
+  repeat
+    DstRow[Count] := SrcRow[Count] or Mask;
+    Inc(Count);
+  until Count = 0;
+end;
+
+procedure AndLineEx_Pas(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+var
+  SrcRow: PColor32Array absolute Src;
+  DstRow: PColor32Array absolute Dst;
+begin
+  Inc(Dst, Count);
+  Inc(Src, Count);
+  Count := - Count;
+  repeat
+    DstRow[Count] := SrcRow[Count] and Mask;
+    Inc(Count);
+  until Count = 0;
+end;
+
+{$IFDEF TARGET_x86}
+
+procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
    PUSH  EBX
    PUSH  EDI
@@ -749,7 +837,7 @@ asm
    POP   EBX
 end;
 
-procedure _OrLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure OrLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
    PUSH  EBX
    PUSH  EDI
@@ -773,7 +861,7 @@ asm
    POP   EBX
 end;
 
-procedure _AndLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure AndLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
    PUSH  EBX
    PUSH  EDI
@@ -797,11 +885,9 @@ asm
    POP   EBX
 end;
 
-{$IFDEF COMPILER6}
-
 { MMX versions}
 
-procedure M_XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure XorLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
@@ -887,7 +973,7 @@ asm
    POP   EBX
 end;
 
-procedure M_OrLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure OrLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
@@ -973,7 +1059,7 @@ asm
    POP   EBX
 end;
 
-procedure M_AndLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure AndLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
@@ -1061,7 +1147,7 @@ end;
 
 { Extended MMX versions}
 
-procedure EM_XorLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure XorLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
   QMask: Int64;
@@ -1147,7 +1233,7 @@ asm
    POP   EBX
 end;
 
-procedure EM_OrLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure OrLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
   QMask: Int64;
@@ -1233,7 +1319,7 @@ asm
    POP   EBX
 end;
 
-procedure EM_AndLineEx(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure AndLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //EMMX version
 var
   QMask: Int64;
@@ -1321,39 +1407,93 @@ end;
 
 {$ENDIF}
 
-procedure SetupFunctions;
-begin
-  LOGICAL_MASK_LINE[loXOR] := _XorLine;
-  LOGICAL_MASK_LINE[loOR] := _OrLine;
-  LOGICAL_MASK_LINE[loAND] := _AndLine;
+{CPU target and feature Function templates}
 
-{$IFDEF COMPILER6}
-  if HasEMMX then
-  begin
-    //Link Extended MMX functions
-    LOGICAL_MASK_LINE_EX[loXOR] := EM_XorLineEx;
-    LOGICAL_MASK_LINE_EX[loOR] := EM_OrLineEx;
-    LOGICAL_MASK_LINE_EX[loAND] := EM_AndLineEx;
-  end
-  else
-  if HasMMX then
-  begin
-    //Link MMX functions
-    LOGICAL_MASK_LINE_EX[loXOR] := M_XorLineEx;
-    LOGICAL_MASK_LINE_EX[loOR] := M_OrLineEx;
-    LOGICAL_MASK_LINE_EX[loAND] := M_AndLineEx;
-  end
-  else
+const
+
+{$IFDEF TARGET_x86}
+
+  XorLineProcs : array [0..1] of TFunctionInfo = (
+    (Address : @XorLine_Pas; Requires: []),
+    (Address : @XorLine_ASM; Requires: [])
+  );
+
+  OrLineProcs : array [0..1] of TFunctionInfo = (
+    (Address : @OrLine_Pas; Requires: []),
+    (Address : @OrLine_ASM; Requires: [])
+  );
+
+  AndLineProcs : array [0..1] of TFunctionInfo = (
+    (Address : @AndLine_Pas; Requires: []),
+    (Address : @AndLine_ASM; Requires: [])
+  );
+
+
+  XorLineExProcs : array [0..3] of TFunctionInfo = (
+    (Address : @XorLineEx_Pas; Requires: []),
+    (Address : @XorLineEx_ASM; Requires: []),
+    (Address : @XorLineEx_MMX; Requires: [ciMMX]),
+    (Address : @XorLineEx_EMMX; Requires: [ciEMMX])
+  );
+
+  OrLineExProcs : array [0..3] of TFunctionInfo = (
+    (Address : @OrLineEx_Pas; Requires: []),
+    (Address : @OrLineEx_ASM; Requires: []),
+    (Address : @OrLineEx_MMX; Requires: [ciMMX]),
+    (Address : @OrLineEx_EMMX; Requires: [ciEMMX])
+  );
+
+  AndLineExProcs : array [0..3] of TFunctionInfo = (
+    (Address : @AndLineEx_Pas; Requires: []),
+    (Address : @AndLineEx_ASM; Requires: []),
+    (Address : @AndLineEx_MMX; Requires: [ciMMX]),
+    (Address : @AndLineEx_EMMX; Requires: [ciEMMX])
+  );
+
+{$ELSE}
+
+  XorLineProcs : array [0..0] of TFunctionInfo = (
+    (Address : @XorLine_Pas; Requires: [])
+  );
+
+  OrLineProcs : array [0..0] of TFunctionInfo = (
+    (Address : @OrLine_Pas; Requires: [])
+  );
+
+  AndLineProcs : array [0..0] of TFunctionInfo = (
+    (Address : @AndLine_Pas; Requires: [])
+  );
+
+
+  XorLineExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @XorLineEx_Pas; Requires: [])
+  );
+
+  OrLineExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @OrLineEx_Pas; Requires: [])
+  );
+
+  AndLineExProcs : array [0..0] of TFunctionInfo = (
+    (Address : @AndLineEx_Pas; Requires: [])
+  );
+
 {$ENDIF}
-  begin
-    //Link non-MMX functions
-    LOGICAL_MASK_LINE_EX[loXOR] := _XorLineEx;
-    LOGICAL_MASK_LINE_EX[loOR] := _OrLineEx;
-    LOGICAL_MASK_LINE_EX[loAND] := _AndLineEx;
-  end;
-end;
+
+{Complete collection of unit templates}
+
+var
+  FunctionTemplates : array [0..5] of TFunctionTemplate = (
+     (FunctionVar: @@LOGICAL_MASK_LINE[loXOR]; FunctionProcs : @XorLineProcs; Count: Length(XorLineProcs)), 
+     (FunctionVar: @@LOGICAL_MASK_LINE[loOR]; FunctionProcs : @OrLineProcs; Count: Length(OrLineProcs)), 
+     (FunctionVar: @@LOGICAL_MASK_LINE[loAND]; FunctionProcs : @AndLineProcs; Count: Length(AndLineProcs)), 
+ 
+     (FunctionVar: @@LOGICAL_MASK_LINE_EX[loXOR]; FunctionProcs : @XorLineExProcs; Count: Length(XorLineExProcs)), 
+     (FunctionVar: @@LOGICAL_MASK_LINE_EX[loOR]; FunctionProcs : @OrLineExProcs; Count: Length(OrLineExProcs)), 
+     (FunctionVar: @@LOGICAL_MASK_LINE_EX[loAND]; FunctionProcs : @AndLineExProcs; Count: Length(AndLineExProcs)) 
+   );
 
 initialization
-  SetupFunctions;
+  GR32_Filters_FunctionTemplates := @FunctionTemplates;
+  Rebind(FunctionTemplates);
 
 end.
