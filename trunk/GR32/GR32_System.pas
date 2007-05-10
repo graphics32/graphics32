@@ -62,7 +62,7 @@ function GetTickCount: Cardinal;
 
 { Returns the number of processors configured by the operating system. }
 function GetProcessorCount: Cardinal;
-
+//(*
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
 { HasEMMX returns 'true' if CPU supports the Extended MMX (aka Integer SSE) instructions }
@@ -75,7 +75,7 @@ function Has3DNowExt: Boolean;
 function HasSSE: Boolean;
 { HasSSE2 returns 'true' if CPU supports SSE2 instructions }
 function HasSSE2: Boolean;
-
+//*)
 type
 
   // TCPUInstructionSet, defines specific CPU technologies
@@ -86,6 +86,7 @@ type
     TCPUInstructionSet = (ciGeneric); // pascal only
   {$ENDIF}
 
+  PCPUFeatures = ^TCPUFeatures;
   TCPUFeatures = set of TCPUInstructionSet;
 
   TFunctionInfo = record
@@ -93,7 +94,17 @@ type
     Requires: TCPUFeatures;
   end;
 
-  TFunctionProcs = array of TFunctionInfo;
+  PArrayOfFunctionInfo = ^TArrayOfFunctionInfo;
+  TArrayOfFunctionInfo = array [0..0] of TFunctionInfo;
+
+  TFunctionTemplate = packed record
+    FunctionVar: PPointer;
+    FunctionProcs: PArrayOfFunctionInfo;
+    Count: Integer;
+  end;
+
+  PFunctionTemplates = ^TFunctionTemplates;
+  TFunctionTemplates = array of TFunctionTemplate;
 
 { General function that sets up the correct function depending on detected CPU
   features and present implementations }
@@ -103,6 +114,8 @@ function SetupFunction(const Procs : array of TFunctionInfo): Pointer;
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 
+procedure Rebind(Templates: array of TFunctionTemplate;
+  Requirements: PCPUFeatures = nil);
 
 var
   GlobalPerfTimer: TPerfTimer;
@@ -465,6 +478,48 @@ begin
   if not Assigned(Result) then
     raise Exception.Create('Invalid Function Info (address is nil)');
 
+end;
+
+function BindFunction(const Procs : array of TFunctionInfo;
+  Requirements: TCPUFeatures): Pointer;
+var
+  I: Integer;
+begin
+  for I := High(Procs) downto Low(Procs) do
+     with Procs[I] do
+        if Requires <= Requirements then
+        begin
+          Result := Address;
+          if Assigned(Result) then
+            Exit;
+        end;
+
+  if Length(Procs) = 0 then
+    raise Exception.Create('Cannot initialize empty array.');
+
+  //Try to link generic
+  if not Assigned(Result) then
+    Result := Procs[0].Address;
+
+  if not Assigned(Result) then
+    raise Exception.Create('Invalid Function Info (address is nil)');
+end;
+
+
+procedure Rebind(Templates: array of TFunctionTemplate;
+  Requirements: PCPUFeatures = nil);
+var
+  I: Integer;
+begin
+  //if nil then assume actually detected features are to be used
+  if Requirements = nil then
+    Requirements := @CPUFeatures;
+
+  for I := Low(Templates) to High(Templates) do
+  begin
+    with Templates[I] do
+      FunctionVar^ := BindFunction(Slice(FunctionProcs^, Count), Requirements^);
+  end;
 end;
 
 procedure InitCPUFeatures;
