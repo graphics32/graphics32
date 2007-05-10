@@ -234,12 +234,8 @@ type
   end;
 {$ENDIF}
 
-procedure _MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
-procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
-{$IFNDEF PUREPASCAL}
-procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
-procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
-{$ENDIF}
+var
+  GR32_Micro_FunctionTemplates : PFunctionTemplates;
 
 implementation
 
@@ -266,7 +262,7 @@ begin
   Result := (Tile shr 8 and $FF) - (Tile shr 24);
 end;
 
-procedure _MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+procedure MicroTileUnion_Pas(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 var
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
 begin
@@ -291,7 +287,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-procedure M_MicroTileUnion(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+procedure MicroTileUnion_MMX(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 var
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
 begin
@@ -660,7 +656,7 @@ begin
 end;
 
 
-procedure _MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+procedure MicroTilesUnion_Pas(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
   SrcTilePtr2, DstTilePtr2: PMicroTile;
@@ -704,7 +700,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-procedure M_MicroTilesUnion(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+procedure MicroTilesUnion_MMX(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
   SrcTilePtr2, DstTilePtr2: PMicroTile;
@@ -1699,24 +1695,50 @@ end;
 
 {$ENDIF}
 
-procedure SetupFunctions;
-begin
-{$IFNDEF PUREPASCAL}
-  if HasEMMX then
-  begin
-    MicroTileUnion := M_MicroTileUnion;
-    MicroTilesU := M_MicroTilesUnion;    // internal
-  end
-  else
+{CPU target and feature Function templates}
+
+const
+
+{$IFDEF TARGET_x86}
+
+  MicroTileUnionProcs : array [0..1] of TFunctionInfo = (
+    (Address : @MicroTileUnion_Pas; Requires: []),
+    (Address : @MicroTileUnion_MMX; Requires: [ciMMX])
+  );
+
+  MicroTilesUProcs : array [0..1] of TFunctionInfo = (
+    (Address : @MicroTilesUnion_Pas; Requires: []),
+    (Address : @MicroTilesUnion_MMX; Requires: [ciMMX])
+  );
+
+{$ELSE}
+
+  MicroTileUnionProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MicroTileUnion; Requires: []),
+  );
+
+  MicroTilesUProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_MicroTilesUnion; Requires: []),
+  );
+
 {$ENDIF}
-  begin
-    MicroTileUnion := _MicroTileUnion;
-    MicroTilesU := _MicroTilesUnion;     // internal
-  end;
-end;
+
+{Complete collection of unit templates}
+
+var
+  FunctionTemplates : array [0..1] of TFunctionTemplate = (
+     (FunctionVar: @@MicroTileUnion;
+      FunctionProcs : @MicroTileUnionProcs;
+      Count: Length(MicroTileUnionProcs)),
+
+     (FunctionVar: @@MicroTilesU;
+      FunctionProcs : @MicroTilesUProcs;
+      Count: Length(MicroTilesUProcs))
+  );
 
 
 initialization
-  SetupFunctions;
+  GR32_Micro_FunctionTemplates := @FunctionTemplates;
+  Rebind(FunctionTemplates);
 
 end.
