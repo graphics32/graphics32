@@ -1789,7 +1789,40 @@ end;
 
 { Draft Resample Routines }
 
-function BlockAverage_MMX(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+function _BlockAverage(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+type
+ PCardinal = ^Cardinal;
+ PRGBA = ^TRGBA;
+ TRGBA = record B,G,R,A: Byte end;
+var
+ C: PRGBA;
+ ix, iy, iA, iR, iG, iB, Area: Cardinal;
+begin
+  iR := 0;  iB := iR;  iG := iR;  iA := iR;
+  for iy := 1 to Dly do
+  begin
+    C:= PRGBA(RowSrc);
+    for ix := 1 to Dlx do
+    begin
+      inc(iB, C.B);
+      inc(iG, C.G);
+      inc(iR, C.R);
+      inc(iA, C.A);
+      inc(C);
+    end;
+    inc(RowSrc, OffSrc);
+  end;
+
+  Area := Dlx * Dly;
+  Area := $1000000 div Area;
+  Result := iA * Area and $FF000000 or
+            iR * Area shr  8 and $FF0000 or
+            iG * Area shr 16 and $FF00 or
+            iB * Area shr 24 and $FF;
+end;
+
+{$IFDEF TARGET_x86}
+function M_BlockAverage(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
 asm
    push       ebx
    push       esi
@@ -1940,37 +1973,19 @@ asm
    pop        ebx
 end;
 
-function BlockAverage_IA32(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
-type
- PCardinal = ^Cardinal;
- PRGBA = ^TRGBA;
- TRGBA = record B,G,R,A: Byte end;
-var
- C: PRGBA;
- ix, iy, iA, iR, iG, iB, Area: Cardinal;
-begin
-  iR := 0;  iB := iR;  iG := iR;  iA := iR;
-  for iy := 1 to Dly do
-  begin
-    C:= PRGBA(RowSrc);
-    for ix := 1 to Dlx do
-    begin
-      inc(iB, C.B);
-      inc(iG, C.G);
-      inc(iR, C.R);
-      inc(iA, C.A);
-      inc(C);
-    end;
-    inc(RowSrc, OffSrc);
-  end;
+const
+  BlockAverageProcs : array [0..2] of TFunctionInfo = (
+    (Address : @_BlockAverage; Requires: []),
+    (Address : @M_BlockAverage; Requires: [ciMMX]),
+    (Address : @BlockAverage_3DNow; Requires: [ci3DNow])
+  );
 
-  Area := Dlx * Dly;
-  Area := $1000000 div Area;
-  Result := iA * Area and $FF000000 or
-            iR * Area shr  8 and $FF0000 or
-            iG * Area shr 16 and $FF00 or
-            iB * Area shr 24 and $FF;
-end;
+{$ELSE}
+  BlockAverageProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_BlockAverage; Requires: [])
+  );
+
+{$ENDIF}
 
 
 procedure DraftResample(Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
@@ -2090,6 +2105,19 @@ end;
 
 { Special interpolators (for sfLinear and sfDraft) }
 
+function _LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+var
+  C1, C3: TColor32;
+begin
+  PWX_256:= PWX_256 shr 16; if PWX_256 > $FF then PWX_256:= $FF;
+  PWY_256:= PWY_256 shr 16; if PWY_256 > $FF then PWY_256:= $FF;
+  C1 := C11^; Inc(C11);
+  C3 := C21^; Inc(C21);
+  Result := CombineReg(CombineReg(C1, C11^, PWX_256),
+                       CombineReg(C3, C21^, PWX_256), PWY_256);
+end;
+
+{$IFDEF TARGET_x86}
 function M_LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
@@ -2127,18 +2155,19 @@ asm
         db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
 
-function _LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
-var
-  C1, C3: TColor32;
-begin
-  PWX_256:= PWX_256 shr 16; if PWX_256 > $FF then PWX_256:= $FF;
-  PWY_256:= PWY_256 shr 16; if PWY_256 > $FF then PWY_256:= $FF;
-  C1 := C11^; Inc(C11);
-  C3 := C21^; Inc(C21);
-  Result := CombineReg(CombineReg(C1, C11^, PWX_256),
-                       CombineReg(C3, C21^, PWX_256), PWY_256);
-end;
+const
+  LinearInterpolatorProcs : array [0..1] of TFunctionInfo = (
+    (Address : @_LinearInterpolator; Requires: []),
+    (Address : @M_LinearInterpolator; Requires: [ciMMX])
+  );
 
+{$ELSE}
+
+  LinearInterpolatorProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_LinearInterpolator; Requires: [])
+  );
+
+{$ENDIF}
 
 { Stretch Transfer }
 
@@ -3857,31 +3886,9 @@ begin
 end;
 
 procedure SetupFunctions;
-var
-  MMX_ACTIVE: Boolean;
-  ACTIVE_3DNow: Boolean;
 begin
-  MMX_ACTIVE := HasMMX;
-  ACTIVE_3DNow := Has3DNow;
-  if ACTIVE_3DNow then
-  begin
-    { link 3DNow functions }
-    BlockAverage := BlockAverage_3DNow;
-    LinearInterpolator:= M_LinearInterpolator;
-  end
-  else
-  if MMX_ACTIVE then
-  begin
-    { link MMX functions }
-    BlockAverage := BlockAverage_MMX;
-    LinearInterpolator := M_LinearInterpolator;
-  end
-  else
-  begin
-    { link IA32 functions }
-    BlockAverage := BlockAverage_IA32;
-    LinearInterpolator := _LinearInterpolator;
-  end;
+  BlockAverage := SetupFunction(BlockAverageProcs);
+  LinearInterpolator := SetupFunction(LinearInterpolatorProcs);
 end;
 
 initialization
