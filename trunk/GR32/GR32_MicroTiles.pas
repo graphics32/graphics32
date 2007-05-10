@@ -286,7 +286,7 @@ begin
   end;
 end;
 
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
 procedure MicroTileUnion_MMX(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 var
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
@@ -699,7 +699,7 @@ begin
   end;
 end;
 
-{$IFNDEF PUREPASCAL}
+{$IFDEF TARGET_x86}
 procedure MicroTilesUnion_MMX(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
