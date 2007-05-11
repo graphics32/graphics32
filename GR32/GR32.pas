@@ -2014,13 +2014,13 @@ end;
 
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
-  BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
+  BLEND_MEM[FCombineMode]^(Value, Bits[X + Y * Width]);
   EMMS;
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
-  BLEND_MEM[FCombineMode](Value, Ptr^);
+  BLEND_MEM[FCombineMode]^(Value, Ptr^);
   Inc(Ptr);
   EMMS;
 end;
@@ -2031,7 +2031,7 @@ begin
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
-    BLEND_MEM[FCombineMode](Value, Bits[X + Y * Width]);
+    BLEND_MEM[FCombineMode]^(Value, Bits[X + Y * Width]);
     EMMS;
   end;
 {$IFDEF CHANGED_IN_PIXELS}
@@ -2475,7 +2475,7 @@ var
 begin
   if X2 < X1 then Exit;
   P := PixelPtr[X1, Y];
-  BlendMem := BLEND_MEM[FCombineMode];
+  BlendMem := BLEND_MEM[FCombineMode]^;
   for i := X1 to X2 do
   begin
     BlendMem(Value, P^);
@@ -2591,7 +2591,7 @@ var
   BlendMem: TBlendMem;
 begin
   P := PixelPtr[X, Y1];
-  BlendMem := BLEND_MEM[FCombineMode];
+  BlendMem := BLEND_MEM[FCombineMode]^;
   for i := Y1 to Y2 do
   begin
     BlendMem(Value, P^);
@@ -2973,7 +2973,7 @@ begin
     Sy := Sy * Width;
 
     try
-      BlendMem := BLEND_MEM[FCombineMode];
+      BlendMem := BLEND_MEM[FCombineMode]^;
       if Dx > Dy then
       begin
         Delta := Dx shr 1;
@@ -3180,7 +3180,7 @@ begin
     end;
 
     try
-      BlendMem := BLEND_MEM[FCombineMode];
+      BlendMem := BLEND_MEM[FCombineMode]^;
       while xd <> term do
       begin
         Inc(xd, Sx);
@@ -3471,8 +3471,8 @@ begin
 
   try
     EC := 0;
-    BLEND_MEM[FCombineMode](Value, Bits[X1 + Y1 * Width]);
-    BlendMemEx := BLEND_MEM_EX[FCombineMode];
+    BLEND_MEM[FCombineMode]^(Value, Bits[X1 + Y1 * Width]);
+    BlendMemEx := BLEND_MEM_EX[FCombineMode]^;
 
     if Dy > Dx then
     begin
@@ -3607,7 +3607,7 @@ begin
     xd := X1; yd := Y1;
     CheckVert := True;
     CornerAA := False;
-    BlendMemEx := BLEND_MEM_EX[FCombineMode];
+    BlendMemEx := BLEND_MEM_EX[FCombineMode]^;
 
     // clipping rect horizontal entry
     if Y1 < Cy1 then
