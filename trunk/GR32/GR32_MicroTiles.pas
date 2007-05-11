@@ -1714,11 +1714,11 @@ const
 {$ELSE}
 
   MicroTileUnionProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MicroTileUnion; Requires: []),
+    (Address : @MicroTileUnion_Pas; Requires: [])
   );
 
   MicroTilesUProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MicroTilesUnion; Requires: []),
+    (Address : @MicroTilesUnion_Pas; Requires: [])
   );
 
 {$ENDIF}
