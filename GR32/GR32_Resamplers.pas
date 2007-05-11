@@ -831,7 +831,7 @@ begin
     dmBlend:
       if Src.MasterAlpha >= 255 then
       begin
-        BlendLine := BLEND_LINE[Src.CombineMode];
+        BlendLine := BLEND_LINE[Src.CombineMode]^;
         for DstY := DstRect.Top to DstRect.Bottom - 1 do
         begin
           BlendLine(SrcP, DstP, W);
@@ -841,7 +841,7 @@ begin
       end
       else
       begin
-        BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
+        BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
         for DstY := DstRect.Top to DstRect.Bottom - 1 do
         begin
           BlendLineEx(SrcP, DstP, W, Src.MasterAlpha);
@@ -992,8 +992,8 @@ begin
     if DstX < 0 then DstX := 0;
     if DstY < 0 then DstY := 0;
 
-    BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
-    BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+    BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
+    BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
 
     try
       SrcP := PColor32Array(Src.PixelPtr[SrcRect.Left, SrcRect.Top - 1]);
@@ -1346,12 +1346,12 @@ begin
 
         if Src.MasterAlpha >= 255 then
         begin
-          BlendLine := BLEND_LINE[Src.CombineMode];
+          BlendLine := BLEND_LINE[Src.CombineMode]^;
           BlendLineEx := nil; // stop compiler warnings...
         end
         else
         begin
-          BlendLineEx := BLEND_LINE_EX[Src.CombineMode];
+          BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
           BlendLine := nil; // stop compiler warnings...
         end;
 
@@ -1489,7 +1489,7 @@ begin
       end;
     dmBlend:
       begin
-        BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+        BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
         for J := 0 to DstClipH - 1 do
         begin
           SrcLine := Src.ScanLine[MapVert[J].Pos];
@@ -1686,7 +1686,7 @@ begin
   { check source and destination }
   if (CombineOp = dmBlend) and (Src.MasterAlpha = 0) then Exit;
 
-  BlendMemEx := BLEND_MEM_EX[Src.CombineMode]; // store in local variable
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^; // store in local variable
 
   SrcW := SrcRect.Right - SrcRect.Left;
   SrcH := SrcRect.Bottom - SrcRect.Top;
@@ -2009,7 +2009,7 @@ begin
   DstClipW := DstClip.Right - DstClip.Left;
   DstClipH := DstClip.Bottom - DstClip.Top;
 
-  BlendMemEx := BLEND_MEM_EX[Src.CombineMode];
+  BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
 
   if (DstW > SrcW)or(DstH > SrcH) then begin
     if (SrcW < 2) or (SrcH < 2) then

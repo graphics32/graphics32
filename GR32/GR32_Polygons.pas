@@ -1014,7 +1014,7 @@ begin
   AALines := AA_LINES[AAMode] - 1; // we do the -1 here for optimization.
   AAMultiplier := AA_MULTI[AAMode];
 
-  BlendLineEx := BLEND_LINE_EX[Bitmap.CombineMode];
+  BlendLineEx := BLEND_LINE_EX[Bitmap.CombineMode]^;
 
   // find the range of Y screen coordinates
   MinY := BaseY shr AAShift;
@@ -2061,7 +2061,7 @@ begin
   if Assigned(AlphaValues) then
   begin
     OpaqueAlpha := TColor32($FF shl 24);
-    BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
+    BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode]^;
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMemEx(Src^ and $00FFFFFF or OpaqueAlpha, Dst^, AlphaValues^);
@@ -2103,7 +2103,7 @@ begin
 
   if Assigned(AlphaValues) then
   begin
-    BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
+    BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode]^;
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMemEx(Src^, Dst^, AlphaValues^);
@@ -2118,7 +2118,7 @@ begin
   end
   else
   begin
-    BlendMem := BLEND_MEM[FPattern.CombineMode];
+    BlendMem := BLEND_MEM[FPattern.CombineMode]^;
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMem(Src^, Dst^);
@@ -2146,7 +2146,7 @@ begin
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode];
+  BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode]^;
 
   if Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
@@ -2242,7 +2242,7 @@ var
   X: Integer;
   BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend];
+  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   for X := DstX to DstX + Length - 1 do
   begin
     BlendMemEx(FGetSample(X, DstY) and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
