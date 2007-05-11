@@ -1517,82 +1517,44 @@ end;
 
 function ColorModulate_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: Integer;
-  r2, g2, b2, a2: Integer;
+  REnt: TColor32Entry absolute Result;
+  C2Ent: TColor32Entry absolute C2;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  r1 := r1 shr 16;
-  g1 := g1 shr 8;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  r2 := r2 shr 16;
-  g2 := g2 shr 8;
-
-  a1 := a1 * a2 shr 8;
-  r1 := r1 * r2 shr 8;
-  g1 := g1 * g2 shr 8;
-  b1 := b1 * b2 shr 8;
-
-  if a1 > 255 then a1 := 255;
-  if r1 > 255 then r1 := 255;
-  if g1 > 255 then g1 := 255;
-  if b1 > 255 then b1 := 255;
-
-  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+  Result := C1;
+  REnt.A := (C2Ent.A * REnt.A) shr 8;
+  REnt.R := (C2Ent.R * REnt.R) shr 8;
+  REnt.G := (C2Ent.G * REnt.G) shr 8;
+  REnt.B := (C2Ent.B * REnt.B) shr 8;
 end;
 
 function ColorMax_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: TColor32;
-  r2, g2, b2, a2: TColor32;
+  REnt: TColor32Entry absolute Result;
+  C2Ent: TColor32Entry absolute C2;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  if a2 > a1 then a1 := a2;
-  if r2 > r1 then r1 := r2;
-  if g2 > g1 then g1 := g2;
-  if b2 > b1 then b1 := b2;
-
-  Result := a1 shl 24 + r1 + g1 + b1;
+  Result := C1;
+  with C2Ent do
+  begin
+    if A > REnt.A then REnt.A := A;
+    if R > REnt.R then REnt.R := R;
+    if G > REnt.G then REnt.G := G;
+    if B > REnt.B then REnt.B := B;
+  end;
 end;
 
 function ColorMin_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: TColor32;
-  r2, g2, b2, a2: TColor32;
+  REnt: TColor32Entry absolute Result;
+  C2Ent: TColor32Entry absolute C2;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  if a2 < a1 then a1 := a2;
-  if r2 < r1 then r1 := r2;
-  if g2 < g1 then g1 := g2;
-  if b2 < b1 then b1 := b2;
-
-  Result := a1 shl 24 + r1 + g1 + b1;
+  Result := C1;
+  with C2Ent do
+  begin
+    if A < REnt.A then REnt.A := A;
+    if R < REnt.R then REnt.R := R;
+    if G < REnt.G then REnt.G := G;
+    if B < REnt.B then REnt.B := B;
+  end;
 end;
 
 function ColorDifference_Pas(C1, C2: TColor32): TColor32;
@@ -1654,26 +1616,16 @@ begin
 end;
 
 function ColorAverage_Pas(C1, C2: TColor32): TColor32;
+//(A + B)/2 = (A and B) + (A xor B)/2
 var
-  r1, g1, b1, a1: TColor32;
-  r2, g2, b2, a2: TColor32;
+  C3 : TColor32;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  a1 := (a1 + a2) div 2;
-  r1 := (r1 + r2) div 2;
-  g1 := (g1 + g2) div 2;
-  b1 := (b1 + b2) div 2;
-
-  Result := a1 shl 24 + r1 + g1 + b1;
+  C3 := C1;
+  C1 := C1 xor C2;
+  C1 := C1 shr 1;
+  C1 := C1 and $7F7F7F7F;
+  C3 := C3 and C2;
+  Result := C3 + C1;
 end;
 
 function ColorScale_Pas(C, W: TColor32): TColor32;
@@ -1749,7 +1701,6 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-
 function ColorDifference_MMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
@@ -1774,25 +1725,6 @@ asm
         db $0F,$71,$D1,$07       /// PSRLW     MM1,7
         db $0F,$D9,$C1           /// PSUBUSW   MM0,MM1
         db $0F,$67,$C2           /// PACKUSWB  MM0,MM2
-        db $0F,$7E,$C0           /// MOVD      EAX,MM0
-end;
-
-function ColorAverage_ASM(C1, C2: TColor32): TColor32;
-//(A + B)/2 = (A and B) + (A xor B)/2 
-asm 
-        MOV       ECX,EAX
-        XOR       EAX,EDX         // EAX = A xor B 
-        SHR       EAX,1           // EAX = (A xor B)/2 
-        AND       EAX,$7F7F7F7F   // clear MSB in each byte 
-        AND       ECX,EDX         // ECX = A and B 
-        ADD       EAX,ECX         // EAX = (A and B) + (A xor B)/2 
-end;
-
-function ColorAverage_EMMX(C1, C2: TColor32): TColor32;
-asm
-        db $0F,$6E,$C0           /// MOVD      MM0,EAX
-        db $0F,$6E,$CA           /// MOVD      MM1,EDX
-        db $0F,$E0,$C1           /// PAVGB     MM0,MM1
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
@@ -1870,6 +1802,9 @@ const
   ColorDivProcs : array [0..0] of TFunctionInfo = (
     (Address : @ColorDiv_Pas; Requires: []));
 
+  ColorAverageProcs : array [0..0] of TFunctionInfo = (
+    (Address : @ColorAverage_Pas; Requires: []));
+
 {$IFDEF TARGET_x86}
 
   MergeRegProcs : array [0..1] of TFunctionInfo = (
@@ -1933,11 +1868,6 @@ const
     (Address : @ColorMin_Pas; Requires: []),
     (Address : @ColorMin_EMMX; Requires: [ciEMMX]));
 
-  ColorAverageProcs : array [0..2] of TFunctionInfo = (
-    (Address : @ColorAverage_Pas; Requires: []),
-    (Address : @ColorAverage_ASM; Requires: []),
-    (Address : @ColorAverage_EMMX; Requires: [ciEMMX]));
-
   ColorAddProcs : array [0..1] of TFunctionInfo = (
     (Address : @ColorAdd_Pas; Requires: []),
     (Address : @ColorAdd_MMX; Requires: [ciMMX]));
@@ -1971,62 +1901,59 @@ const
     (Address : @EMMS_Pas; Requires: []));
 
   CombineRegProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_CombineReg; Requires: []));
+    (Address : @CombineReg_Pas; Requires: []));
 
   CombineMemProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_CombineMem; Requires: []));
+    (Address : @CombineMem_Pas; Requires: []));
 
   CombineLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_CombineLine; Requires: []));
+    (Address : @CombineLine_Pas; Requires: []));
 
 
   BlendRegProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlendReg; Requires: []));
+    (Address : @BlendReg_Pas; Requires: []));
 
   BlendMemProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlendMem; Requires: []));
+    (Address : @BlendMem_Pas; Requires: []));
 
   BlendLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlendLine; Requires: []));
+    (Address : @BlendLine_Pas; Requires: []));
 
 
   BlendRegExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlendRegEx; Requires: []));
+    (Address : @BlendRegEx_Pas; Requires: []));
 
   BlendMemExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlendMemEx; Requires: []));
+    (Address : @BlendMemEx_Pas; Requires: []));
 
   BlendLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlendLineEx; Requires: []));
+    (Address : @BlendLineEx_Pas; Requires: []));
 
 
 
   ColorMaxProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorMax; Requires: []));
+    (Address : @ColorMax_Pas; Requires: []));
 
   ColorMinProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorMin; Requires: []));
-
-  ColorAverageProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorAverage; Requires: []));
+    (Address : @ColorMin_Pas; Requires: []));
 
   ColorAddProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorAdd; Requires: []));
+    (Address : @ColorAdd_Pas; Requires: []));
 
   ColorSubProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorSub; Requires: []));
+    (Address : @ColorSub_Pas; Requires: []));
 
   ColorModulateProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorModulate; Requires: []));
+    (Address : @ColorModulate_Pas; Requires: []));
 
   ColorDifferenceProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorDifference; Requires: []));
+    (Address : @ColorDifference_Pas; Requires: []));
 
   ColorExclusionProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorExclusion; Requires: []));
+    (Address : @ColorExclusion_Pas; Requires: []));
 
   ColorScaleProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorScale; Requires: []));
+    (Address : @ColorScale_Pas; Requires: []));
 
 {$ENDIF}
 
@@ -2091,12 +2018,12 @@ initialization
   end
   else
     MMX_ACTIVE := False;
-    
 {$ELSE}
-
   MMX_ACTIVE := False;
+{$ENDIF}
 
 finalization
+{$IFDEF TARGET_x86}
   if (ciMMX in CPUFeatures) then FreeAlphaTable;
 {$ENDIF}
 
