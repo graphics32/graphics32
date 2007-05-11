@@ -99,9 +99,28 @@ type
   TLogicalMaskLineEx  = procedure(Src, Dst: PColor32; Count: Integer; Mask: TColor32); //"Src To Dst"
 
 var
+
+{ masked logical operation functions }
+  LogicalMaskLineXor: TLogicalMaskLine;
+  LogicalMaskLineOr: TLogicalMaskLine;
+  LogicalMaskLineAnd: TLogicalMaskLine;
+
+  LogicalMaskLineXorEx: TLogicalMaskLineEx;
+  LogicalMaskLineOrEx: TLogicalMaskLineEx;
+  LogicalMaskLineAndEx: TLogicalMaskLineEx;
+
 { Access to masked logical operation functions corresponding to a logical operation mode }
-  LOGICAL_MASK_LINE: array[TLogicalOperator] of  TLogicalMaskLine;
-  LOGICAL_MASK_LINE_EX: array[TLogicalOperator] of TLogicalMaskLineEx;
+const
+  LOGICAL_MASK_LINE: array[TLogicalOperator] of ^TLogicalMaskLine = (
+    (@@LogicalMaskLineXor),
+    (@@LogicalMaskLineOr),
+    (@@LogicalMaskLineAnd)
+  );
+  LOGICAL_MASK_LINE_EX: array[TLogicalOperator] of ^TLogicalMaskLineEx = (
+    (@@LogicalMaskLineXorEx),
+    (@@LogicalMaskLineOrEx),
+    (@@LogicalMaskLineAndEx)
+  );
 
 procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 begin
@@ -455,7 +474,7 @@ var
 begin
   CheckParams(Dst, Src, False);
 
-  MaskProc := LOGICAL_MASK_LINE_EX[LogicalOperator];
+  MaskProc := LOGICAL_MASK_LINE_EX[LogicalOperator]^;
 
   if Assigned(MaskProc) then
   with Dst do
@@ -505,7 +524,7 @@ begin
   if not Assigned(ABitmap) then
     raise Exception.Create(SEmptyBitmap);
 
-  MaskProc := LOGICAL_MASK_LINE[LogicalOperator];
+  MaskProc := LOGICAL_MASK_LINE[LogicalOperator]^;
 
   if Assigned(MaskProc) then
   with ABitmap do
@@ -1483,13 +1502,13 @@ const
 
 var
   FunctionTemplates : array [0..5] of TFunctionTemplate = (
-     (FunctionVar: @@LOGICAL_MASK_LINE[loXOR]; FunctionProcs : @XorLineProcs; Count: Length(XorLineProcs)), 
-     (FunctionVar: @@LOGICAL_MASK_LINE[loOR]; FunctionProcs : @OrLineProcs; Count: Length(OrLineProcs)), 
-     (FunctionVar: @@LOGICAL_MASK_LINE[loAND]; FunctionProcs : @AndLineProcs; Count: Length(AndLineProcs)), 
- 
-     (FunctionVar: @@LOGICAL_MASK_LINE_EX[loXOR]; FunctionProcs : @XorLineExProcs; Count: Length(XorLineExProcs)), 
-     (FunctionVar: @@LOGICAL_MASK_LINE_EX[loOR]; FunctionProcs : @OrLineExProcs; Count: Length(OrLineExProcs)), 
-     (FunctionVar: @@LOGICAL_MASK_LINE_EX[loAND]; FunctionProcs : @AndLineExProcs; Count: Length(AndLineExProcs)) 
+     (FunctionVar: @@LogicalMaskLineXor; FunctionProcs : @XorLineProcs; Count: Length(XorLineProcs)),
+     (FunctionVar: @@LogicalMaskLineOr; FunctionProcs : @OrLineProcs; Count: Length(OrLineProcs)),
+     (FunctionVar: @@LogicalMaskLineAnd; FunctionProcs : @AndLineProcs; Count: Length(AndLineProcs)),
+
+     (FunctionVar: @@LogicalMaskLineXorEx; FunctionProcs : @XorLineExProcs; Count: Length(XorLineExProcs)),
+     (FunctionVar: @@LogicalMaskLineOrEx; FunctionProcs : @OrLineExProcs; Count: Length(OrLineExProcs)),
+     (FunctionVar: @@LogicalMaskLineAndEx; FunctionProcs : @AndLineExProcs; Count: Length(AndLineExProcs))
    );
 
 initialization
