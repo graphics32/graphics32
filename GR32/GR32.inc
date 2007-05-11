@@ -122,12 +122,13 @@
     {$IFDEF CPUI386}
       // target is an Intel 80386 or later.
       {$DEFINE TARGET_x86}
-    {$ELSEIF CPUPOWERPC}
+    {$ENDIF}
+    {$IFDEF CPUPOWERPC}
       // target is a 32-bit PowerPC or compatible.
       // currently only indirect support, added here as example on how to add
       // future specific targets
-      {-$DEFINE TARGET_POWERPC}
-    {$IFEND}
+      {$DEFINE TARGET_POWERPC}
+    {$ENDIF}
   {$ENDIF}
 
 {$ELSE}
