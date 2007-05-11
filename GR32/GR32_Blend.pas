@@ -83,14 +83,6 @@ var
   MergeLine: TBlendLine;
   MergeLineEx: TBlendLineEx;
 
-{ Access to alpha composite functions corresponding to a combine mode }
-  BLEND_REG: array[TCombineMode] of TBlendReg;
-  BLEND_MEM: array[TCombineMode] of TBlendMem;
-  BLEND_REG_EX: array[TCombineMode] of TBlendRegEx;
-  BLEND_MEM_EX: array[TCombineMode] of TBlendMemEx;
-  BLEND_LINE: array[TCombineMode] of TBlendLine;
-  BLEND_LINE_EX: array[TCombineMode] of TBlendLineEx;
-
 { Color algebra functions }
   ColorAdd: TBlendReg;
   ColorSub: TBlendReg;
@@ -115,6 +107,16 @@ function Lighten(C: TColor32; Amount: Integer): TColor32;
 
 var
   GR32_Blend_FunctionTemplates : TFunctionTemplates;
+
+{ Access to alpha composite functions corresponding to a combine mode }
+
+const
+  BLEND_REG: array[TCombineMode] of ^TBlendReg = ((@@BlendReg),(@@MergeReg));
+  BLEND_MEM: array[TCombineMode] of ^TBlendMem = ((@@BlendMem),(@@MergeMem));
+  BLEND_REG_EX: array[TCombineMode] of ^TBlendRegEx = ((@@BlendRegEx),(@@MergeRegEx));
+  BLEND_MEM_EX: array[TCombineMode] of ^TBlendMemEx = ((@@BlendMemEx),(@@MergeMemEx));
+  BLEND_LINE: array[TCombineMode] of ^TBlendLine = ((@@BlendLine),(@@MergeLine));
+  BLEND_LINE_EX: array[TCombineMode] of ^TBlendLineEx = ((@@BlendLineEx),(@@MergeLineEx));
 
 implementation
 
@@ -1960,7 +1962,7 @@ const
 {Complete collection of unit templates}
 
 var
-  FunctionTemplates : array [0..37] of TFunctionTemplate = (
+  FunctionTemplates : array [0..25] of TFunctionTemplate = (
      (FunctionVar: @@EMMS; FunctionProcs : @EMMSProcs; Count: Length(EMMSProcs)),
 
      (FunctionVar: @@MergeReg; FunctionProcs : @MergeRegProcs; Count: Length(MergeRegProcs)),
@@ -1969,19 +1971,6 @@ var
      (FunctionVar: @@MergeRegEx; FunctionProcs : @MergeRegExProcs; Count: Length(MergeRegExProcs)),
      (FunctionVar: @@MergeMemEx; FunctionProcs : @MergeMemExProcs; Count: Length(MergeMemExProcs)),
      (FunctionVar: @@MergeLineEx; FunctionProcs : @MergeLineExProcs; Count: Length(MergeLineExProcs)),
-
-     (FunctionVar: @@BLEND_REG[cmMerge]; FunctionProcs : @MergeRegProcs; Count: Length(MergeRegProcs)),
-     (FunctionVar: @@BLEND_MEM[cmMerge]; FunctionProcs : @MergeMemProcs; Count: Length(MergeMemProcs)),
-     (FunctionVar: @@BLEND_REG_EX[cmMerge]; FunctionProcs : @MergeRegExProcs; Count: Length(MergeRegExProcs)),
-     (FunctionVar: @@BLEND_MEM_EX[cmMerge]; FunctionProcs : @MergeMemExProcs; Count: Length(MergeMemExProcs)),
-     (FunctionVar: @@BLEND_LINE[cmMerge]; FunctionProcs : @MergeLineProcs; Count: Length(MergeLineProcs)),
-     (FunctionVar: @@BLEND_LINE_EX[cmMerge]; FunctionProcs : @MergeLineExProcs; Count: Length(MergeLineExProcs)),
-     (FunctionVar: @@BLEND_MEM[cmBlend]; FunctionProcs : @BlendMemProcs; Count: Length(BlendMemProcs)),
-     (FunctionVar: @@BLEND_REG[cmBlend]; FunctionProcs : @BlendRegProcs; Count: Length(BlendRegProcs)),
-     (FunctionVar: @@BLEND_MEM_EX[cmBlend]; FunctionProcs : @BlendMemExProcs; Count: Length(BlendMemExProcs)),
-     (FunctionVar: @@BLEND_REG_EX[cmBlend]; FunctionProcs : @BlendRegExProcs; Count: Length(BlendRegExProcs)),
-     (FunctionVar: @@BLEND_LINE[cmBlend]; FunctionProcs : @BlendLineProcs; Count: Length(BlendLineProcs)),
-     (FunctionVar: @@BLEND_LINE_EX[cmBlend]; FunctionProcs : @BlendLineExProcs; Count: Length(BlendLineExProcs)),
 
      (FunctionVar: @@CombineReg; FunctionProcs : @CombineRegProcs; Count: Length(CombineRegProcs)),
      (FunctionVar: @@CombineMem; FunctionProcs : @CombineMemProcs; Count: Length(CombineMemProcs)),
