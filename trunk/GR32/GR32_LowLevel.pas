@@ -644,11 +644,14 @@ end;
 { Colorswap exchanges ARGB <-> ABGR and fill A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 {$IFNDEF TARGET_x86}
+var
+  WCEn: TColor32Entry absolute WinColor;
+  REn : TColor32Entry absolute Result;
 begin
-  Result := $FF000000 or
-  	((WinColor and $00FF0000) shr 16 or
-   	(WinColor and $0000FF00) or
-   	(WinColor and $000000FF) shl 16);
+  Result := WCEn.ARGB;
+  REn.A := $FF;
+  REn.R := WCEn.B;
+  REn.B := WCEn.R;
 {$ELSE}
 asm
 // EAX = WinColor
