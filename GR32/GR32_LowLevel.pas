@@ -726,7 +726,7 @@ const
 {$ELSE}
 
   FillLongwordProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_FillLongword; Requires: [])
+    (Address : @FillLongword_Pas; Requires: [])
   );
 
 {$ENDIF}
