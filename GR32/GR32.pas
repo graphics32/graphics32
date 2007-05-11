@@ -42,7 +42,7 @@ uses
   {$IFDEF MSWINDOWS}Windows,{$ENDIF}
   QControls, QGraphics, QConsts,{$ELSE}
   Windows, Messages, Controls, Graphics,{$ENDIF}{$ENDIF}
-  Classes, SysUtils;  
+  Classes, SysUtils, GR32_System;
   
 { Version Control }
 
@@ -858,12 +858,13 @@ type
 
 var
   StockBitmap: TBitmap;
+  GR32_FunctionTemplates : TFunctionTemplates;
 
 implementation
 
 uses
   GR32_Blend, GR32_Transforms, GR32_Filters, GR32_LowLevel, Math, GR32_Math,
-  GR32_System, GR32_Resamplers, GR32_Backends, GR32_Backends_Generic,
+  GR32_Resamplers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd, GR32_Backends_LCL,
 {$ELSE}
@@ -4556,7 +4557,7 @@ end;
 
 { Interpolators }
 
-function _Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 var
   C1, C3: TColor32;
 begin
@@ -4569,7 +4570,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
-function M_Interpolator(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
         MOV       ECX,C21
@@ -4614,19 +4615,6 @@ asm
         db $0F,$67,$D0           /// PACKUSWB  MM2,MM0
         db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
-
-const
-  InterpolatorProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_Interpolator; Requires: []),
-    (Address : @M_Interpolator; Requires: [ciMMX])
-  );
-
-{$ELSE}
-
-const
-  InterpolatorProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_Interpolator; Requires: [])
-  );
 
 {$ENDIF}
 
@@ -5536,13 +5524,38 @@ begin
   Result := Rect(Low(Integer), Low(Integer), High(Integer), High(Integer));
 end;
 
-procedure SetupFunctions;
-begin
-   Interpolator := SetupFunction(InterpolatorProcs);
-end;
+{CPU target and feature Function templates}
+
+const
+
+{$IFDEF TARGET_x86}
+
+  InterpolatorProcs : array [0..1] of TFunctionInfo = (
+    (Address : @Interpolator_Pas; Requires: []),
+    (Address : @Interpolator_MMX; Requires: [ciMMX])
+  );
+
+{$ELSE}
+
+const
+  InterpolatorProcs : array [0..0] of TFunctionInfo = (
+    (Address : @Interpolator_Pas; Requires: [])
+  );
+
+{$ENDIF}
+
+{Complete collection of unit templates}
+
+var
+  FunctionTemplates : array [0..0] of TFunctionTemplate = (
+     (FunctionVar: @@Interpolator;
+      FunctionProcs : @InterpolatorProcs;
+      Count: Length(InterpolatorProcs))
+  );
 
 initialization
-  SetupFunctions;
+  GR32_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+
   SetGamma;
   StockBitmap := TBitmap.Create;
   StockBitmap.Width := 8;
