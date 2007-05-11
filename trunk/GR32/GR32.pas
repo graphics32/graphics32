@@ -5537,7 +5537,6 @@ const
 
 {$ELSE}
 
-const
   InterpolatorProcs : array [0..0] of TFunctionInfo = (
     (Address : @Interpolator_Pas; Requires: [])
   );
