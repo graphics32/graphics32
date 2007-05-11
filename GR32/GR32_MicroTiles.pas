@@ -235,7 +235,7 @@ type
 {$ENDIF}
 
 var
-  GR32_Micro_FunctionTemplates : PFunctionTemplates;
+  GR32_Micro_FunctionTemplates : TFunctionTemplates;
 
 implementation
 
@@ -1738,7 +1738,6 @@ var
 
 
 initialization
-  GR32_Micro_FunctionTemplates := @FunctionTemplates;
-  Rebind(FunctionTemplates);
+  GR32_Micro_FunctionTemplates := RegisterTemplates(FunctionTemplates);
 
 end.
