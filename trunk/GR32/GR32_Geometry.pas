@@ -33,170 +33,261 @@ uses
   Math, GR32, GR32_Math;
 
 type
-  PVector2X = ^TVector2X;
-  //TFixedVector = TFixedPoint;
-  TVector2X = array [0..1] of TFixed;
+  PFixedVector = ^TFixedVector;
+  TFixedVector = TFixedPoint;
 
-  PVector2F = ^TVector2F;
-  //TVector2F = TFloatPoint;
-  TVector2F = array [0..1] of TFloat;
+  PFloatVector = ^TFloatVector;
+  TFloatVector = TFloatPoint;
 
-function VectorAdd(const V1, V2: TVector2F): TVector2F;  overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorAdd(const V: TVector2F; Value: TFloat): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorSub(const V1, V2: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorSub(const V: TVector2F; Value: TFloat): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorMul(const V1, V2: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorScale(const V: TVector2F; Scale: TFloat): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorDiv(const V: TVector2F; Divisor: TFloat): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorDiv(const V1, V2: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Add(const V1, V2: TFloatVector): TFloatVector;  overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Add(const V: TFloatVector; Value: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Sub(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Sub(const V: TFloatVector; Value: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Mul(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Mul(const V: TFloatVector; Multiplier: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Divide(const V: TFloatVector; Divisor: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Divide(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
-function VectorCombine(const V1, V2: TVector2F; W: TFloat): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorAbs(const V: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorNeg(const V: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorAverage(const V1, V2: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorMax(const V1, V2: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorMin(const V1, V2: TVector2F): TVector2F; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Combine(const V1, V2: TFloatVector; W: TFloat): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function AbsV(const V: TFloatVector): TFloatVector; overload{$IFDEF USEINLINING} inline; {$ENDIF}
+function Neg(const V: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Average(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Max(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Min(const V1, V2: TFloatVector): TFloatVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
-function VectorDot(const V1, V2: TVector2F): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorDistance(const V1, V2: TVector2F): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function VectorNorm(const V: TVector2F): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Dot(const V1, V2: TFloatVector): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Distance(const V1, V2: TFloatVector): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function SqrDistance(const V1, V2: TFloatVector): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
-function VectorNormalize(const V: TVector2F): TFloat;
+// Fixed Overloads
+function Add(const V1, V2: TFixedVector): TFixedVector;  overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Add(const V: TFixedVector; Value: TFixed): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Sub(const V1, V2: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Sub(const V: TFixedVector; Value: TFixed): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Mul(const V1, V2: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Mul(const V: TFixedVector; Multiplier: TFixed): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Divide(const V: TFixedVector; Divisor: TFixed): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Divide(const V1, V2: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
+function Combine(const V1, V2: TFixedVector; W: TFixed): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function AbsV(const V: TFixedVector): TFixedVector; overload{$IFDEF USEINLINING} inline; {$ENDIF}
+function Neg(const V: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Average(const V1, V2: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Max(const V1, V2: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Min(const V1, V2: TFixedVector): TFixedVector; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
-// Returns true if the line segments AB and CD intersect.
-function SegmentsIntersect(const A, B, C, D: TVector2F): Boolean;
+function Dot(const V1, V2: TFixedVector): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Distance(const V1, V2: TFixedVector): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function SqrDistance(const V1, V2: TFixedVector): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
 
-function VectorAdd(const V1, V2: TVector2F): TVector2F;
+function Add(const V1, V2: TFloatVector): TFloatVector;
 begin
-  Result[0] := V1[0] + V2[0];
-  Result[1] := V1[1] + V2[1];
+  Result.X := V1.X + V2.X;
+  Result.Y := V1.Y + V2.Y;
 end;
 
-function VectorAdd(const V: TVector2F; Value: TFloat): TVector2F;
+function Add(const V: TFloatVector; Value: TFloat): TFloatVector;
 begin
-  Result[0] := V[0] + Value;
-  Result[1] := V[1] + Value;
+  Result.X := V.X + Value;
+  Result.Y := V.Y + Value;
 end;
 
-function VectorSub(const V1, V2: TVector2F): TVector2F;
+function Sub(const V1, V2: TFloatVector): TFloatVector;
 begin
-  Result[0] := V1[0] - V2[0];
-  Result[1] := V1[1] - V2[1];
+  Result.X := V1.X - V2.X;
+  Result.Y := V1.Y - V2.Y;
 end;
 
-function VectorSub(const V: TVector2F; Value: TFloat): TVector2F;
+function Sub(const V: TFloatVector; Value: TFloat): TFloatVector;
 begin
-  Result[0] := V[0] - Value;
-  Result[1] := V[1] - Value;
+  Result.X := V.X - Value;
+  Result.Y := V.Y - Value;
 end;
 
-function VectorMul(const V1, V2: TVector2F): TVector2F;
+function Mul(const V1, V2: TFloatVector): TFloatVector;
 begin
-  Result[0] := V1[0] * V2[0];
-  Result[1] := V1[1] * V2[1];
+  Result.X := V1.X * V2.X;
+  Result.Y := V1.Y * V2.Y;
 end;
 
-function VectorScale(const V: TVector2F; Scale: TFloat): TVector2F;
+function Mul(const V: TFloatVector; Multiplier: TFloat): TFloatVector;
 begin
-  Result[0] := V[0] * Scale;
-  Result[1] := V[1] * Scale;
+  Result.X := V.X * Multiplier;
+  Result.Y := V.Y * Multiplier;
 end;
 
-function VectorDiv(const V: TVector2F; Divisor: TFloat): TVector2F;
+function Divide(const V: TFloatVector; Divisor: TFloat): TFloatVector;
 begin
   Divisor := 1 / Divisor;
-  Result[0] := V[0] * Divisor;
-  Result[1] := V[1] * Divisor;
+  Result.X := V.X * Divisor;
+  Result.Y := V.Y * Divisor;
 end;
 
-function VectorDiv(const V1, V2: TVector2F): TVector2F;
+function Divide(const V1, V2: TFloatVector): TFloatVector;
 begin
-  Result[0] := V1[0] / V2[0];
-  Result[1] := V1[1] / V2[1];
+  Result.X := V1.X / V2.X;
+  Result.Y := V1.Y / V2.Y;
 end;
 
-function VectorCombine(const V1, V2: TVector2F; W: TFloat): TVector2F;
+function Combine(const V1, V2: TFloatVector; W: TFloat): TFloatVector;
 begin
-  Result[0] := V2[0] + (V1[0] - V2[0]) * W;
-  Result[1] := V2[1] + (V1[1] - V2[1]) * W;
+  Result.X := V2.X + (V1.X - V2.X) * W;
+  Result.Y := V2.Y + (V1.Y - V2.Y) * W;
 end;
 
-function VectorAbs(const V: TVector2F): TVector2F;
+function AbsV(const V: TFloatVector): TFloatVector;
 begin
-  Result[0] := System.Abs(V[0]);
-  Result[1] := System.Abs(V[1]);
+  Result.X := System.Abs(V.X);
+  Result.Y := System.Abs(V.Y);
 end;
 
-function VectorNeg(const V: TVector2F): TVector2F;
+function Neg(const V: TFloatVector): TFloatVector;
 begin
-  Result[0] := -V[0];
-  Result[1] := -V[1];
+  Result.X := - V.X;
+  Result.Y := - V.Y;
 end;
 
-function VectorAverage(const V1, V2: TVector2F): TVector2F;
+function Average(const V1, V2: TFloatVector): TFloatVector;
 begin
-  Result[0] := (V1[0] + V2[0]) * 0.5;
-  Result[1] := (V1[1] + V2[1]) * 0.5;
+  Result.X := (V1.X + V2.X) * 0.5;
+  Result.Y := (V1.Y + V2.Y) * 0.5;
 end;
 
-function VectorMax(const V1, V2: TVector2F): TVector2F;
-begin
-  Result := V1;
-  if V2[0] > V1[0] then Result[0] := V2[0];
-  if V2[1] > V1[1] then Result[1] := V2[1];
-end;
-
-function VectorMin(const V1, V2: TVector2F): TVector2F;
+function Max(const V1, V2: TFloatVector): TFloatVector;
 begin
   Result := V1;
-  if V2[0] < V1[0] then Result[0] := V2[0];
-  if V2[1] < V1[1] then Result[1] := V2[1];
+  if V2.X > V1.X then Result.X := V2.X;
+  if V2.Y > V1.Y then Result.Y := V2.Y;
 end;
 
-function VectorDot(const V1, V2: TVector2F): TFloat;
+function Min(const V1, V2: TFloatVector): TFloatVector;
 begin
-  Result := V1[0] * V2[0] + V1[1] * V2[1];
+  Result := V1;
+  if V2.X < V1.X then Result.X := V2.X;
+  if V2.Y < V1.Y then Result.Y := V2.Y;
 end;
 
-function VectorDistance(const V1, V2: TVector2F): TFloat;
+function Dot(const V1, V2: TFloatVector): TFloat;
 begin
-  Result := Hypot(V2[0] - V1[0], V2[1] - V1[1]);
+  Result := V1.X * V2.X + V1.Y * V2.Y;
 end;
 
-function VectorNorm(const V: TVector2F): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Distance(const V1, V2: TFloatVector): TFloat;
 begin
-  Result := Sqr(V[0]) + Sqr(V[1]);
+  Result := Hypot(V2.X - V1.X, V2.Y - V1.Y);
 end;
 
-function VectorNormalize(const V: TVector2F): TFloat;
+function SqrDistance(const V1, V2: TFloatVector): TFloat;
 begin
-  Result := Hypot(V[0], V[1]);
-
-  Result := V[0] + V[1];
+  Result := Sqr(V2.X - V1.X) + Sqr(V2.Y - V1.Y);
 end;
 
-{ Intersection routines }
+// Fixed overloads
 
-function SegmentsIntersect(const A, B, C, D: TVector2F): Boolean;
+function Add(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result.X := V1.X + V2.X;
+  Result.Y := V1.Y + V2.Y;
+end;
+
+function Add(const V: TFixedVector; Value: TFixed): TFixedVector;
+begin
+  Result.X := V.X + Value;
+  Result.Y := V.Y + Value;
+end;
+
+function Sub(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result.X := V1.X - V2.X;
+  Result.Y := V1.Y - V2.Y;
+end;
+
+function Sub(const V: TFixedVector; Value: TFixed): TFixedVector;
+begin
+  Result.X := V.X - Value;
+  Result.Y := V.Y - Value;
+end;
+
+function Mul(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result.X := FixedMul(V1.X, V2.X);
+  Result.Y := FixedMul(V1.Y, V2.Y);
+end;
+
+function Mul(const V: TFixedVector; Multiplier: TFixed): TFixedVector;
+begin
+  Result.X := FixedMul(V.X, Multiplier);
+  Result.Y := FixedMul(V.Y, Multiplier);
+end;
+
+function Divide(const V: TFixedVector; Divisor: TFixed): TFixedVector;
 var
-  BA, DC, AC: TVector2F;
-  r, s, t: TFloat;
+  D: TFloat;
 begin
-  BA[0] := B[0] - A[0];
-  BA[1] := B[1] - A[1];
-  DC[0] := D[0] - C[0];
-  DC[1] := D[1] - C[1];
-  AC[0] := A[0] - C[0];
-  AC[1] := A[1] - C[1];
+  D := FIXEDONE / Divisor;
+  Result.X := Round(V.X * Divisor);
+  Result.Y := Round(V.Y * Divisor);
+end;
 
-  r := AC[1] * DC[0] - AC[0] * DC[1];
-  s := AC[1] * BA[0] - AC[0] * BA[1];
-  t := BA[0] * DC[1] - BA[1] * DC[0];
+function Divide(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result.X := FixedDiv(V1.X, V2.X);
+  Result.Y := FixedDiv(V1.Y, V2.Y);
+end;
 
-  Result := InRange(r, 0, t) and InRange(s, 0, t);
+function Combine(const V1, V2: TFixedVector; W: TFixed): TFixedVector;
+begin
+  Result.X := V2.X + FixedMul(V1.X - V2.X, W);
+  Result.Y := V2.Y + FixedMul(V1.Y - V2.Y, W);
+end;
+
+function AbsV(const V: TFixedVector): TFixedVector;
+begin
+  Result.X := System.Abs(V.X);
+  Result.Y := System.Abs(V.Y);
+end;
+
+function Neg(const V: TFixedVector): TFixedVector;
+begin
+  Result.X := - V.X;
+  Result.Y := - V.Y;
+end;
+
+function Average(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result.X := (V1.X + V2.X) div 2;
+  Result.Y := (V1.Y + V2.Y) div 2;
+end;
+
+function Max(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result := V1;
+  if V2.X > V1.X then Result.X := V2.X;
+  if V2.Y > V1.Y then Result.Y := V2.Y;
+end;
+
+function Min(const V1, V2: TFixedVector): TFixedVector;
+begin
+  Result := V1;
+  if V2.X < V1.X then Result.X := V2.X;
+  if V2.Y < V1.Y then Result.Y := V2.Y;
+end;
+
+function Dot(const V1, V2: TFixedVector): TFixed;
+begin
+  Result := FixedMul(V1.X, V2.X) + FixedMul(V1.Y, V2.Y);
+end;
+
+function Distance(const V1, V2: TFixedVector): TFixed;
+begin
+  Result := Fixed(Hypot((V2.X - V1.X) * FixedToFloat, (V2.Y - V1.Y) * FixedToFloat));
+end;
+
+function SqrDistance(const V1, V2: TFixedVector): TFixed;
+begin
+  Result := FixedSqr(V2.X - V1.X) + FixedSqr(V2.Y - V1.Y);
 end;
 
 end.
