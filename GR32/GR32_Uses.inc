@@ -28,18 +28,18 @@
 {$IFDEF FPC}
   LCLIntf, LCLType,
   {$IFDEF Windows}
-    Windows,
+    Windows
   {$ENDIF}
   {$IFDEF UNIX}
-    Unix, BaseUnix,
+    Unix, BaseUnix
   {$ENDIF}
 {$ELSE}
   {$IFDEF CLX}
     Qt, Types,
     {$IFDEF LINUX}
-      Libc,
+      Libc
     {$ELSE}
-      Windows,
+      Windows
     {$ENDIF}
   {$ELSE}
     Windows
