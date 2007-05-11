@@ -80,7 +80,7 @@ procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32
 procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 
 var
-  GR32_Filters_FunctionTemplates : PFunctionTemplates;
+  GR32_Filters_FunctionTemplates : TFunctionTemplates;
 
 implementation
 
@@ -1493,7 +1493,6 @@ var
    );
 
 initialization
-  GR32_Filters_FunctionTemplates := @FunctionTemplates;
-  Rebind(FunctionTemplates);
+  GR32_Filters_FunctionTemplates := RegisterTemplates(FunctionTemplates);
 
 end.

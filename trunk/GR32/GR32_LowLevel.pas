@@ -40,7 +40,7 @@ uses
   {$ELSE}
   Graphics,
   {$ENDIF}
-  GR32;
+  GR32, GR32_System;
 
 { Clamp function restricts Value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -120,11 +120,10 @@ function SAR_16(Value: Integer): Integer;
 { ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
+var
+  GR32_Lowlevel_FunctionTemplates : TFunctionTemplates;
 
 implementation
-
-uses
-  GR32_System;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -146,8 +145,7 @@ asm
 {$ENDIF}
 end;
 
-procedure _FillLongword(var X; Count: Integer; Value: Longword);
-{$IFNDEF TARGET_x86}
+procedure FillLongword_Pas(var X; Count: Integer; Value: Longword);
 var
   I: Integer;
   P: PIntegerArray;
@@ -155,7 +153,10 @@ begin
   P := PIntegerArray(@X);
   for I := count-1 downto 0 do
     P[I] := Integer(Value);
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+procedure FillLongword_ASM(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
 // EDX = Count
@@ -171,11 +172,9 @@ asm
         REP     STOSD    // Fill count dwords
 @exit:
         POP     EDI
-{$ENDIF}
 end;
 
-{$IFDEF TARGET_x86}
-procedure M_FillLongword(var X; Count: Integer; Value: Longword);
+procedure FillLongword_MMX(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
 // EDX = Count
@@ -213,16 +212,6 @@ asm
     @Exit:
 end;
 
-const
-  FillLongwordProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_FillLongword; Requires: []),
-    (Address : @M_FillLongword; Requires: [ciMMX])
-  );
-{$ELSE}
-const
-  FillLongwordProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_FillLongword; Requires: [])
-  );
 {$ENDIF}
 
 procedure FillWord(var X; Count: Integer; Value: LongWord);
@@ -722,13 +711,37 @@ asm
   PUSH  ECX                     { return to caller }
 end;
 
-procedure SetupFunctions;
-begin
-  FillLongword := SetupFunction(FillLongwordProcs);
-end;
+{CPU target and feature Function templates}
+
+const
+
+{$IFDEF TARGET_x86}
+
+  FillLongwordProcs : array [0..2] of TFunctionInfo = (
+    (Address : @FillLongword_Pas; Requires: []),
+    (Address : @FillLongword_ASM; Requires: []),
+    (Address : @FillLongword_MMX; Requires: [ciMMX])
+  );
+
+{$ELSE}
+
+  FillLongwordProcs : array [0..0] of TFunctionInfo = (
+    (Address : @_FillLongword; Requires: [])
+  );
+
+{$ENDIF}
+
+{Complete collection of unit templates}
+
+var
+  FunctionTemplates : array [0..0] of TFunctionTemplate = (
+     (FunctionVar: @@FillLongword;
+      FunctionProcs : @FillLongwordProcs;
+      Count: Length(FillLongwordProcs))
+  );
 
 initialization
-  SetupFunctions;
+  GR32_Lowlevel_FunctionTemplates := RegisterTemplates(FunctionTemplates);
 
 end.
 

@@ -40,7 +40,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, SysUtils;
+  GR32, GR32_System, SysUtils;
 
 var
   MMX_ACTIVE: Boolean;
@@ -113,10 +113,13 @@ var
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
 
+var
+  GR32_Blend_FunctionTemplates : TFunctionTemplates;
+
 implementation
 
-uses 
-  GR32_System, GR32_LowLevel;
+uses
+  GR32_LowLevel;
 
 var
   RcTable: array [Byte, Byte] of Byte;
@@ -124,20 +127,19 @@ var
 
 { Merge }
 
-function _MergeReg(F, B: TColor32): TColor32;
-{$IFNDEF TARGET_x86}
+function MergeReg_Pas(F, B: TColor32): TColor32;
 var
   PF, PB, PR: PByteArray;
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
   RX: TColor32Entry absolute Result;
-  X: Byte;
+  X: Integer;
 begin
-  if FX.A = $FF then 
+  if FX.A = $FF then
     Result := F
   else if FX.A = $0 then
     Result := B
-  else if BX.A = $0 then 
+  else if BX.A = $0 then
     Result := F
   else if BX.A = $FF then
     Result := BlendReg(F,B)
@@ -168,7 +170,11 @@ begin
     if X >= 0 then RX.B := PR[PF[X] + RX.B]
     else RX.B := PR[RX.B - PF[-X]];
   end;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+function MergeReg_ASM(F, B: TColor32): TColor32;
 asm
   // EAX <- F
   // EDX <- B
@@ -343,43 +349,44 @@ asm
 @exit0:
     mov eax,edx
 @exit:
+end;
+
 {$ENDIF}
-end;
 
-function _MergeRegEx(F, B, M: TColor32): TColor32;
+function MergeRegEx_Pas(F, B, M: TColor32): TColor32;
 begin
-  Result := _MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+  Result := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
 
-procedure _MergeMem(F: TColor32; var B: TColor32);
+procedure MergeMem_Pas(F: TColor32; var B: TColor32);
 begin
-  B := _MergeReg(F, B);
+  B := MergeReg(F, B);
 end;
 
-procedure _MergeMemEx(F: TColor32; var B: TColor32; M: TColor32);
+procedure MergeMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
 begin
-  B := _MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+  B := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
 
-procedure _MergeLine(Src, Dst: PColor32; Count: Integer);
+procedure MergeLine_Pas(Src, Dst: PColor32; Count: Integer);
 begin
   while Count > 0 do
   begin
-    Dst^ := _MergeReg(Src^, Dst^);
+    Dst^ := MergeReg(Src^, Dst^);
     Inc(Src);
     Inc(Dst);
     Dec(Count);
   end;
 end;
 
-procedure _MergeLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
+procedure MergeLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: TColor32);
 var
   PM: PByteArray absolute M;
 begin
   PM := @DivTable[M];
   while Count > 0 do
   begin
-    Dst^ := _MergeReg(PM[Src^ shr 24] shl 24 or Src^ and $00FFFFFF, Dst^);
+    Dst^ := MergeReg(PM[Src^ shr 24] shl 24 or Src^ and $00FFFFFF, Dst^);
     Inc(Src);
     Inc(Dst);
     Dec(Count);
@@ -390,8 +397,7 @@ end;
 
 const bias = $00800080;
 
-function _CombineReg(X, Y, W: TColor32): TColor32;
-{$IFNDEF TARGET_x86}
+function CombineReg_Pas(X, Y, W: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
@@ -402,7 +408,12 @@ begin
   Re.R := (We.A * Xe.R + ($FF - We.A) * Ye.R) div $FF;
   Re.G := (We.A * Xe.G + ($FF - We.A) * Ye.G) div $FF;
   Re.B := (We.A * Xe.B + ($FF - We.A) * Ye.B) div $FF;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+function CombineReg_ASM(X, Y, W: TColor32): TColor32;
+
 asm
   // combine RGBA channels of colors X and Y with the weight of X given in W
   // Result Z = W * X + (1 - W) * Y (all channels are combined, including alpha)
@@ -454,11 +465,11 @@ asm
 
 @1:     MOV     EAX,EDX
 @2:     RET
-{$ENDIF}
 end;
 
-procedure _CombineMem(F: TColor32; var B: TColor32; W: TColor32);
-{$IFNDEF TARGET_x86}
+{$ENDIF}
+
+procedure CombineMem_Pas(F: TColor32; var B: TColor32; W: TColor32);
 var
   Fe: TColor32Entry absolute F;
   Be: TColor32Entry absolute B;
@@ -468,7 +479,11 @@ begin
   Be.R := (We.A * Fe.R + ($FF - We.A) * Be.R) div $FF;
   Be.G := (We.A * Fe.G + ($FF - We.A) * Be.G) div $FF;
   Be.B := (We.A * Fe.B + ($FF - We.A) * Be.B) div $FF;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+procedure CombineMem_ASM(F: TColor32; var B: TColor32; W: TColor32);
 asm
   // EAX <- F
   // [EDX] <- B
@@ -523,19 +538,19 @@ asm
 
 @2:     MOV     [EDX],EAX
         RET
-{$ENDIF}
 end;
 
-function _BlendReg(F, B: TColor32): TColor32;
-{$IFNDEF TARGET_x86}
+{$ENDIF}
+
+function BlendReg_Pas(F, B: TColor32): TColor32;
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
   RX: TColor32Entry absolute Result;
 begin
- if FX.A = $FF then 
+ if FX.A = $FF then
    Result := F
- else if FX.A = $0 then 
+ else if FX.A = $0 then
    Result := B
  else
  begin
@@ -544,7 +559,11 @@ begin
    RX.G := (FX.A * FX.G + ($FF - FX.A) * BX.G) div $FF;
    RX.B := (FX.A * FX.B + ($FF - FX.A) * BX.B) div $FF;
  end;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+function BlendReg_ASM(F, B: TColor32): TColor32;
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
@@ -603,16 +622,16 @@ asm
 
 @1:     MOV     EAX,EDX
 @2:     RET
-{$ENDIF}
-end;
 
-procedure _BlendMem(F: TColor32; var B: TColor32);
-{$IFNDEF TARGET_x86}
+end;
+{$ENDIF}
+
+procedure BlendMem_Pas(F: TColor32; var B: TColor32);
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
 begin
- if FX.A = $FF then 
+ if FX.A = $FF then
    B := F
  else
  begin
@@ -620,7 +639,11 @@ begin
    BX.G := (FX.A * FX.G + ($FF - FX.A) * BX.G) div $FF;
    BX.B := (FX.A * FX.B + ($FF - FX.A) * BX.B) div $FF;
  end;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+procedure BlendMem_ASM(F: TColor32; var B: TColor32);
 asm
   // EAX <- F
   // [EDX] <- B
@@ -681,11 +704,11 @@ asm
 
 @1:     MOV     [EDX],EAX
 @2:     RET
-{$ENDIF}
 end;
 
-function _BlendRegEx(F, B, M: TColor32): TColor32;
-{$IFNDEF TARGET_x86}
+{$ENDIF}
+
+function BlendRegEx_Pas(F, B, M: TColor32): TColor32;
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -702,7 +725,11 @@ begin
     RX.G := (M * FX.G + ($FF - M) * BX.G) div $FF;
     RX.B := (M * FX.B + ($FF - M) * BX.B) div $FF;
   end;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+function BlendRegEx_ASM(F, B, M: TColor32): TColor32;
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
@@ -764,18 +791,18 @@ asm
 @1:     POP     EBX
 @2:     MOV     EAX,EDX
         RET
-{$ENDIF}
 end;
 
-procedure _BlendMemEx(F: TColor32; var B: TColor32; M: TColor32);
-{$IFNDEF TARGET_x86}
+{$ENDIF}
+
+procedure BlendMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
   MX: TColor32Entry absolute M;
 begin
   M := MX.A * FX.A div $FF;
-  if M = $FF then 
+  if M = $FF then
     B := F
   else
   begin
@@ -783,7 +810,11 @@ begin
     BX.G := (M * FX.G + ($FF - M) * BX.G) div $FF;
     BX.B := (M * FX.B + ($FF - M) * BX.B) div $FF;
   end;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+procedure BlendMemEx_ASM(F: TColor32; var B: TColor32; M: TColor32);
 asm
   // EAX <- F
   // [EDX] <- B
@@ -843,11 +874,11 @@ asm
 
 @1:     POP     EBX
 @2:     RET
-{$ENDIF}
 end;
 
-procedure _BlendLine(Src, Dst: PColor32; Count: Integer);
-{$IFNDEF TARGET_x86}
+{$ENDIF}
+
+procedure BlendLine_Pas(Src, Dst: PColor32; Count: Integer);
 var
   SX: PColor32Entry absolute Src;
   DX: PColor32Entry absolute Dst;
@@ -855,7 +886,7 @@ var
 begin
   for I := 0 to Count - 1 do
   begin
-    if SX.A = $FF then 
+    if SX.A = $FF then
     	Dst^ := Src^
     else
     begin
@@ -866,7 +897,11 @@ begin
     Inc(Src);
     Inc(Dst);
   end;
-{$ELSE}
+end;
+
+{$IFDEF TARGET_x86}
+
+procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer);
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -946,25 +981,26 @@ asm
         POP     EBX
 
 @4:     RET
-{$ENDIF}
 end;
 
-procedure _BlendLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
+{$ENDIF}
+
+procedure BlendLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: TColor32);
 begin
   while Count > 0 do
   begin
-    _BlendMemEx(Src^, Dst^, M);
+    BlendMemEx(Src^, Dst^, M);
     Inc(Src);
     Inc(Dst);
     Dec(Count);
   end;
 end;
 
-procedure _CombineLine(Src, Dst: PColor32; Count: Integer; W: TColor32);
+procedure CombineLine_Pas(Src, Dst: PColor32; Count: Integer; W: TColor32);
 begin
   while Count > 0 do
   begin
-    _CombineMem(Src^, Dst^, W);
+    CombineMem(Src^, Dst^, W);
     Inc(Src);
     Inc(Dst);
     Dec(Count);
@@ -973,31 +1009,17 @@ end;
 
 { MMX versions }
 
-procedure _EMMS;
+procedure EMMS_Pas;
 begin
 //Dummy
 end;
 
 {$IFDEF TARGET_x86}
-procedure M_EMMS;
+
+procedure EMMS_MMX;
 asm
   db $0F,$77               /// EMMS
 end;
-
-const
-  EMMSProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_EMMS; Requires: []),
-    (Address : @M_EMMS; Requires: [ciMMX])
-  );
-
-{$ELSE}
-const
-  EMMSProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_EMMS; Requires: [])
-  );
-{$ENDIF}
-
-{$IFDEF TARGET_x86}
 
 procedure GenAlphaTable;
 var
@@ -1026,7 +1048,7 @@ begin
   FreeMem(AlphaTable);
 end;
 
-function M_CombineReg(X, Y, W: TColor32): TColor32;
+function CombineReg_MMX(X, Y, W: TColor32): TColor32;
 asm
   // EAX - Color X
   // EDX - Color Y
@@ -1051,7 +1073,7 @@ asm
         db $0F,$7E,$C8           /// MOVD      EAX,MM1
 end;
 
-procedure M_CombineMem(F: TColor32; var B: TColor32; W: TColor32);
+procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: TColor32);
 asm
   // EAX - Color X
   // [EDX] - Color Y
@@ -1083,7 +1105,7 @@ asm
 @2:     MOV       [EDX],EAX
 end;
 
-function M_BlendReg(F, B: TColor32): TColor32;
+function BlendReg_MMX(F, B: TColor32): TColor32;
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
@@ -1109,7 +1131,7 @@ asm
         db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
 
-procedure M_BlendMem(F: TColor32; var B: TColor32);
+procedure BlendMem_MMX(F: TColor32; var B: TColor32);
 asm
   // EAX - Color X
   // [EDX] - Color Y
@@ -1142,7 +1164,7 @@ asm
 @2:     MOV       [EDX],EAX
 end;
 
-function M_BlendRegEx(F, B, M: TColor32): TColor32;
+function BlendRegEx_MMX(F, B, M: TColor32): TColor32;
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
@@ -1182,7 +1204,7 @@ asm
         POP       EBX
 end;
 
-procedure M_BlendMemEx(F: TColor32; var B:TColor32; M: TColor32);
+procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32);
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
@@ -1221,7 +1243,7 @@ asm
 @2:
 end;
 
-procedure M_BlendLine(Src, Dst: PColor32; Count: Integer);
+procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer);
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -1278,7 +1300,7 @@ asm
 @4:     RET
 end;
 
-procedure M_BlendLineEx(Src, Dst: PColor32; Count: Integer; M: TColor32);
+procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: TColor32);
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -1340,7 +1362,7 @@ asm
 @4:
 end;
 
-procedure M_CombineLine(Src, Dst: PColor32; Count: Integer; W: TColor32);
+procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: TColor32);
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -1399,7 +1421,7 @@ end;
 
 { Non-MMX Color algebra versions }
 
-function _ColorAdd(C1, C2: TColor32): TColor32;
+function ColorAdd_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -1427,7 +1449,7 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
-function _ColorSub(C1, C2: TColor32): TColor32;
+function ColorSub_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -1461,7 +1483,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function _ColorDiv(C1, C2: TColor32): TColor32;
+function ColorDiv_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -1493,7 +1515,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function _ColorModulate(C1, C2: TColor32): TColor32;
+function ColorModulate_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: Integer;
   r2, g2, b2, a2: Integer;
@@ -1527,7 +1549,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function _ColorMax(C1, C2: TColor32): TColor32;
+function ColorMax_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1550,7 +1572,7 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
-function _ColorMin(C1, C2: TColor32): TColor32;
+function ColorMin_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1573,7 +1595,7 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
-function _ColorDifference(C1, C2: TColor32): TColor32;
+function ColorDifference_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1602,7 +1624,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function _ColorExclusion(C1, C2: TColor32): TColor32;
+function ColorExclusion_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1631,7 +1653,7 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
-function _ColorAverage(C1, C2: TColor32): TColor32;
+function ColorAverage_Pas(C1, C2: TColor32): TColor32;
 var
   r1, g1, b1, a1: TColor32;
   r2, g2, b2, a2: TColor32;
@@ -1654,7 +1676,7 @@ begin
   Result := a1 shl 24 + r1 + g1 + b1;
 end;
 
-function _ColorScale(C, W: TColor32): TColor32;
+function ColorScale_Pas(C, W: TColor32): TColor32;
 var
   r1, g1, b1, a1: Cardinal;
 begin
@@ -1682,7 +1704,7 @@ end;
 { MMX Color algebra versions }
 
 {$IFDEF TARGET_x86}
-function M_ColorAdd(C1, C2: TColor32): TColor32;
+function ColorAdd_MMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
@@ -1690,7 +1712,7 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-function M_ColorSub(C1, C2: TColor32): TColor32;
+function ColorSub_MMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
@@ -1698,7 +1720,7 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-function M_ColorModulate(C1, C2: TColor32): TColor32;
+function ColorModulate_MMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$EF,$D2           /// PXOR      MM2,MM2
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
@@ -1711,7 +1733,7 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-function M_ColorMax(C1, C2: TColor32): TColor32;
+function ColorMax_EMMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
@@ -1719,7 +1741,7 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-function M_ColorMin(C1, C2: TColor32): TColor32;
+function ColorMin_EMMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
@@ -1728,7 +1750,7 @@ asm
 end;
 
 
-function M_ColorDifference(C1, C2: TColor32): TColor32;
+function ColorDifference_MMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
@@ -1739,7 +1761,7 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-function M_ColorExclusion(C1, C2: TColor32): TColor32;
+function ColorExclusion_MMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$EF,$D2           /// PXOR      MM2,MM2
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
@@ -1755,8 +1777,18 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
+function ColorAverage_ASM(C1, C2: TColor32): TColor32;
+//(A + B)/2 = (A and B) + (A xor B)/2 
+asm 
+        MOV       ECX,EAX
+        XOR       EAX,EDX         // EAX = A xor B 
+        SHR       EAX,1           // EAX = (A xor B)/2 
+        AND       EAX,$7F7F7F7F   // clear MSB in each byte 
+        AND       ECX,EDX         // ECX = A and B 
+        ADD       EAX,ECX         // EAX = (A and B) + (A xor B)/2 
+end;
 
-function M_ColorAverage(C1, C2: TColor32): TColor32;
+function ColorAverage_EMMX(C1, C2: TColor32): TColor32;
 asm
         db $0F,$6E,$C0           /// MOVD      MM0,EAX
         db $0F,$6E,$CA           /// MOVD      MM1,EDX
@@ -1764,7 +1796,7 @@ asm
         db $0F,$7E,$C0           /// MOVD      EAX,MM0
 end;
 
-function M_ColorScale(C, W: TColor32): TColor32;
+function ColorScale_MMX(C, W: TColor32): TColor32;
 asm
         db $0F,$EF,$D2           /// PXOR      MM2,MM2
         SHL       EDX,3
@@ -1815,108 +1847,128 @@ begin
     end;
 end;
 
-{ Function Sets and Setup }
+{CPU target and feature Function templates}
 
 const
 
   MergeMemProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MergeMem; Requires: []));
+    (Address : @MergeMem_Pas; Requires: []));
 
-  MergeRegProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MergeReg; Requires: []));
 
   MergeMemExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MergeMemEx; Requires: []));
+    (Address : @MergeMemEx_Pas; Requires: []));
 
   MergeRegExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MergeRegEx; Requires: []));
+    (Address : @MergeRegEx_Pas; Requires: []));
 
   MergeLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MergeLine; Requires: []));
+    (Address : @MergeLine_Pas; Requires: []));
 
   MergeLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_MergeLineEx; Requires: []));
+    (Address : @MergeLineEx_Pas; Requires: []));
 
   ColorDivProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_ColorDiv; Requires: []));
+    (Address : @ColorDiv_Pas; Requires: []));
 
 {$IFDEF TARGET_x86}
 
-  CombineRegProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_CombineReg; Requires: []),
-    (Address : @M_CombineReg; Requires: [ciMMX]));
+  MergeRegProcs : array [0..1] of TFunctionInfo = (
+    (Address : @MergeReg_Pas; Requires: []),
+    (Address : @MergeReg_ASM; Requires: []));
 
-  CombineMemProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_CombineMem; Requires: []),
-    (Address : @M_CombineMem; Requires: [ciMMX]));
+  EMMSProcs : array [0..1] of TFunctionInfo = (
+    (Address : @EMMS_Pas; Requires: []),
+    (Address : @EMMS_MMX; Requires: [ciMMX]));
+
+  CombineRegProcs : array [0..2] of TFunctionInfo = (
+    (Address : @CombineReg_Pas; Requires: []),
+    (Address : @CombineReg_ASM; Requires: []),
+    (Address : @CombineReg_MMX; Requires: [ciMMX]));
+
+  CombineMemProcs : array [0..2] of TFunctionInfo = (
+    (Address : @CombineMem_Pas; Requires: []),
+    (Address : @CombineMem_ASM; Requires: []),
+    (Address : @CombineMem_MMX; Requires: [ciMMX]));
 
   CombineLineProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_CombineLine; Requires: []),
-    (Address : @M_CombineLine; Requires: [ciMMX]));
+    (Address : @CombineLine_Pas; Requires: []),
+    (Address : @CombineLine_MMX; Requires: [ciMMX]));
 
-  BlendRegProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_BlendReg; Requires: []),
-    (Address : @M_BlendReg; Requires: [ciMMX]));
+  BlendRegProcs : array [0..2] of TFunctionInfo = (
+    (Address : @BlendReg_Pas; Requires: []),
+    (Address : @BlendReg_ASM; Requires: []),
+    (Address : @BlendReg_MMX; Requires: [ciMMX]));
 
-  BlendMemProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_BlendMem; Requires: []),
-    (Address : @M_BlendMem; Requires: [ciMMX]));
+  BlendMemProcs : array [0..2] of TFunctionInfo = (
+    (Address : @BlendMem_Pas; Requires: []),
+    (Address : @BlendMem_ASM; Requires: []),
+    (Address : @BlendMem_MMX; Requires: [ciMMX]));
 
-  BlendRegExProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_BlendRegEx; Requires: []),
-    (Address : @M_BlendRegEx; Requires: [ciMMX]));
+  BlendRegExProcs : array [0..2] of TFunctionInfo = (
+    (Address : @BlendRegEx_Pas; Requires: []),
+    (Address : @BlendRegEx_ASM; Requires: []),
+    (Address : @BlendRegEx_MMX; Requires: [ciMMX]));
 
-  BlendMemExProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_BlendMemEx; Requires: []),
-    (Address : @M_BlendMemEx; Requires: [ciMMX]));
+  BlendMemExProcs : array [0..2] of TFunctionInfo = (
+    (Address : @BlendMemEx_Pas; Requires: []),
+    (Address : @BlendMemEx_ASM; Requires: []),
+    (Address : @BlendMemEx_MMX; Requires: [ciMMX]));
 
-  BlendLineProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_BlendLine; Requires: []),
-    (Address : @M_BlendLine; Requires: [ciMMX]));
+  BlendLineProcs : array [0..2] of TFunctionInfo = (
+    (Address : @BlendLine_Pas; Requires: []),
+    (Address : @BlendLine_ASM; Requires: []),
+    (Address : @BlendLine_MMX; Requires: [ciMMX]));
 
   BlendLineExProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_BlendLineEx; Requires: []),
-    (Address : @M_BlendLineEx; Requires: [ciMMX]));
+    (Address : @BlendLineEx_Pas; Requires: []),
+    (Address : @BlendLineEx_MMX; Requires: [ciMMX]));
 
 
 
   ColorMaxProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorMax; Requires: []),
-    (Address : @M_ColorMax; Requires: [ciEMMX]));
+    (Address : @ColorMax_Pas; Requires: []),
+    (Address : @ColorMax_EMMX; Requires: [ciEMMX]));
 
   ColorMinProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorMin; Requires: []),
-    (Address : @M_ColorMin; Requires: [ciEMMX]));
+    (Address : @ColorMin_Pas; Requires: []),
+    (Address : @ColorMin_EMMX; Requires: [ciEMMX]));
 
-  ColorAverageProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorAverage; Requires: []),
-    (Address : @M_ColorAverage; Requires: [ciEMMX]));
+  ColorAverageProcs : array [0..2] of TFunctionInfo = (
+    (Address : @ColorAverage_Pas; Requires: []),
+    (Address : @ColorAverage_ASM; Requires: []),
+    (Address : @ColorAverage_EMMX; Requires: [ciEMMX]));
 
   ColorAddProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorAdd; Requires: []),
-    (Address : @M_ColorAdd; Requires: [ciMMX]));
+    (Address : @ColorAdd_Pas; Requires: []),
+    (Address : @ColorAdd_MMX; Requires: [ciMMX]));
 
   ColorSubProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorSub; Requires: []),
-    (Address : @M_ColorSub; Requires: [ciMMX]));
+    (Address : @ColorSub_Pas; Requires: []),
+    (Address : @ColorSub_MMX; Requires: [ciMMX]));
 
   ColorModulateProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorModulate; Requires: []),
-    (Address : @M_ColorModulate; Requires: [ciMMX]));
+    (Address : @ColorModulate_Pas; Requires: []),
+    (Address : @ColorModulate_MMX; Requires: [ciMMX]));
 
   ColorDifferenceProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorDifference; Requires: []),
-    (Address : @M_ColorDifference; Requires: [ciMMX]));
+    (Address : @ColorDifference_Pas; Requires: []),
+    (Address : @ColorDifference_MMX; Requires: [ciMMX]));
 
   ColorExclusionProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorExclusion; Requires: []), 
-    (Address : @M_ColorExclusion; Requires: [ciMMX]));
+    (Address : @ColorExclusion_Pas; Requires: []),
+    (Address : @ColorExclusion_MMX; Requires: [ciMMX]));
 
   ColorScaleProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_ColorScale; Requires: []),
-    (Address : @M_ColorScale; Requires: [ciMMX]));
+    (Address : @ColorScale_Pas; Requires: []),
+    (Address : @ColorScale_MMX; Requires: [ciMMX]));
 
 {$ELSE}
+
+  MergeRegProcs : array [0..0] of TFunctionInfo = (
+    (Address : @MergeReg_Pas; Requires: []));
+
+  EMMSProcs : array [0..0] of TFunctionInfo = (
+    (Address : @EMMS_Pas; Requires: []));
 
   CombineRegProcs : array [0..0] of TFunctionInfo = (
     (Address : @_CombineReg; Requires: []));
@@ -1978,67 +2030,71 @@ const
 
 {$ENDIF}
 
+{Complete collection of unit templates}
 
-procedure SetupFunctions;
-begin
-  EMMS := SetupFunction(EMMSProcs);
+var
+  FunctionTemplates : array [0..37] of TFunctionTemplate = (
+     (FunctionVar: @@EMMS; FunctionProcs : @EMMSProcs; Count: Length(EMMSProcs)),
 
-  MergeReg := SetupFunction(MergeRegProcs);
-  MergeMem := SetupFunction(MergeMemProcs);
-  MergeLine := SetupFunction(MergeLineProcs);
-  MergeRegEx := SetupFunction(MergeRegExProcs);
-  MergeMemEx := SetupFunction(MergeMemExProcs);
-  MergeLineEx := SetupFunction(MergeLineExProcs);
+     (FunctionVar: @@MergeReg; FunctionProcs : @MergeRegProcs; Count: Length(MergeRegProcs)),
+     (FunctionVar: @@MergeMem; FunctionProcs : @MergeMemProcs; Count: Length(MergeMemProcs)),
+     (FunctionVar: @@MergeLine; FunctionProcs : @MergeLineProcs; Count: Length(MergeLineProcs)),
+     (FunctionVar: @@MergeRegEx; FunctionProcs : @MergeRegExProcs; Count: Length(MergeRegExProcs)),
+     (FunctionVar: @@MergeMemEx; FunctionProcs : @MergeMemExProcs; Count: Length(MergeMemExProcs)),
+     (FunctionVar: @@MergeLineEx; FunctionProcs : @MergeLineExProcs; Count: Length(MergeLineExProcs)),
 
-  CombineReg := SetupFunction(CombineRegProcs);
-  CombineMem := SetupFunction(CombineMemProcs);
-  CombineLine := SetupFunction(CombineLineProcs);
+     (FunctionVar: @@BLEND_REG[cmMerge]; FunctionProcs : @MergeRegProcs; Count: Length(MergeRegProcs)),
+     (FunctionVar: @@BLEND_MEM[cmMerge]; FunctionProcs : @MergeMemProcs; Count: Length(MergeMemProcs)),
+     (FunctionVar: @@BLEND_REG_EX[cmMerge]; FunctionProcs : @MergeRegExProcs; Count: Length(MergeRegExProcs)),
+     (FunctionVar: @@BLEND_MEM_EX[cmMerge]; FunctionProcs : @MergeMemExProcs; Count: Length(MergeMemExProcs)),
+     (FunctionVar: @@BLEND_LINE[cmMerge]; FunctionProcs : @MergeLineProcs; Count: Length(MergeLineProcs)),
+     (FunctionVar: @@BLEND_LINE_EX[cmMerge]; FunctionProcs : @MergeLineExProcs; Count: Length(MergeLineExProcs)),
+     (FunctionVar: @@BLEND_MEM[cmBlend]; FunctionProcs : @BlendMemProcs; Count: Length(BlendMemProcs)),
+     (FunctionVar: @@BLEND_REG[cmBlend]; FunctionProcs : @BlendRegProcs; Count: Length(BlendRegProcs)),
+     (FunctionVar: @@BLEND_MEM_EX[cmBlend]; FunctionProcs : @BlendMemExProcs; Count: Length(BlendMemExProcs)),
+     (FunctionVar: @@BLEND_REG_EX[cmBlend]; FunctionProcs : @BlendRegExProcs; Count: Length(BlendRegExProcs)),
+     (FunctionVar: @@BLEND_LINE[cmBlend]; FunctionProcs : @BlendLineProcs; Count: Length(BlendLineProcs)),
+     (FunctionVar: @@BLEND_LINE_EX[cmBlend]; FunctionProcs : @BlendLineExProcs; Count: Length(BlendLineExProcs)),
 
-  BlendReg := SetupFunction(BlendRegProcs);
-  BlendMem := SetupFunction(BlendMemProcs);
-  BlendLine := SetupFunction(BlendLineProcs);
-  BlendRegEx := SetupFunction(BlendRegExProcs);
-  BlendMemEx := SetupFunction(BlendMemExProcs);
-  BlendLineEx := SetupFunction(BlendLineExProcs);
+     (FunctionVar: @@CombineReg; FunctionProcs : @CombineRegProcs; Count: Length(CombineRegProcs)),
+     (FunctionVar: @@CombineMem; FunctionProcs : @CombineMemProcs; Count: Length(CombineMemProcs)),
+     (FunctionVar: @@CombineLine; FunctionProcs : @CombineLineProcs; Count: Length(CombineLineProcs)),
 
-  //No setup needed, use already set up variables
-  BLEND_REG[cmMerge] := MergeReg;
-  BLEND_MEM[cmMerge] := MergeMem;
-  BLEND_REG_EX[cmMerge] := MergeRegEx;
-  BLEND_MEM_EX[cmMerge] := MergeMemEx;
-  BLEND_LINE[cmMerge] := MergeLine;
-  BLEND_LINE_EX[cmMerge] := MergeLineEx;
-  BLEND_MEM[cmBlend] := BlendMem;
-  BLEND_REG[cmBlend] := BlendReg;
-  BLEND_MEM_EX[cmBlend] := BlendMemEx;
-  BLEND_REG_EX[cmBlend] := BlendRegEx;
-  BLEND_LINE[cmBlend] := BlendLine;
-  BLEND_LINE_EX[cmBlend] := BlendLineEx;
+     (FunctionVar: @@BlendReg; FunctionProcs : @BlendRegProcs; Count: Length(BlendRegProcs)),
+     (FunctionVar: @@BlendMem; FunctionProcs : @BlendMemProcs; Count: Length(BlendMemProcs)),
+     (FunctionVar: @@BlendLine; FunctionProcs : @BlendLineProcs; Count: Length(BlendLineProcs)),
+     (FunctionVar: @@BlendRegEx; FunctionProcs : @BlendRegExProcs; Count: Length(BlendRegExProcs)),
+     (FunctionVar: @@BlendMemEx; FunctionProcs : @BlendMemExProcs; Count: Length(BlendMemExProcs)),
+     (FunctionVar: @@BlendLineEx; FunctionProcs : @BlendLineExProcs; Count: Length(BlendLineExProcs)),
 
-
-  ColorMax := SetupFunction(ColorMaxProcs);
-  ColorMin := SetupFunction(ColorMinProcs);
-  ColorAverage := SetupFunction(ColorAverageProcs);
-  ColorAdd := SetupFunction(ColorAddProcs);
-  ColorSub := SetupFunction(ColorSubProcs);
-  ColorDiv := SetupFunction(ColorDivProcs);
-  ColorModulate := SetupFunction(ColorModulateProcs);
-  ColorDifference := SetupFunction(ColorDifferenceProcs);
-  ColorExclusion := SetupFunction(ColorExclusionProcs);
-  ColorScale := SetupFunction(ColorScaleProcs);
-
-{$IFDEF TARGET_x86}
-  MMX_ACTIVE := (ciMMX in CPUFeatures);
-{$ELSE}
-  MMX_ACTIVE := False;
-{$ENDIF}
-end;
+     (FunctionVar: @@ColorMax; FunctionProcs : @ColorMaxProcs; Count: Length(ColorMaxProcs)),
+     (FunctionVar: @@ColorMin; FunctionProcs : @ColorMinProcs; Count: Length(ColorMinProcs)),
+     (FunctionVar: @@ColorAverage; FunctionProcs : @ColorAverageProcs; Count: Length(ColorAverageProcs)),
+     (FunctionVar: @@ColorAdd; FunctionProcs : @ColorAddProcs; Count: Length(ColorAddProcs)),
+     (FunctionVar: @@ColorSub; FunctionProcs : @ColorSubProcs; Count: Length(ColorSubProcs)),
+     (FunctionVar: @@ColorDiv; FunctionProcs : @ColorDivProcs; Count: Length(ColorDivProcs)),
+     (FunctionVar: @@ColorModulate; FunctionProcs : @ColorModulateProcs; Count: Length(ColorModulateProcs)),
+     (FunctionVar: @@ColorDifference; FunctionProcs : @ColorDifferenceProcs; Count: Length(ColorDifferenceProcs)),
+     (FunctionVar: @@ColorExclusion; FunctionProcs : @ColorExclusionProcs; Count: Length(ColorExclusionProcs)),
+     (FunctionVar: @@ColorScale; FunctionProcs : @ColorScaleProcs; Count: Length(ColorScaleProcs))
+   );
 
 initialization
   MakeMergeTables;
-  SetupFunctions;
+  GR32_Blend_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+
 {$IFDEF TARGET_x86}
-  if (ciMMX in CPUFeatures) then GenAlphaTable;
+  if (ciMMX in CPUFeatures) then
+  begin
+    GenAlphaTable;
+    MMX_ACTIVE := (ciMMX in CPUFeatures);
+  end
+  else
+    MMX_ACTIVE := False;
+    
+{$ELSE}
+
+  MMX_ACTIVE := False;
 
 finalization
   if (ciMMX in CPUFeatures) then FreeAlphaTable;
