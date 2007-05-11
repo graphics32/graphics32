@@ -42,7 +42,7 @@ uses
 {$ENDIF}
 {$ENDIF}
   Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
-  GR32_OrdinalMaps, GR32_Blend;
+  GR32_OrdinalMaps, GR32_Blend, GR32_System;
 
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -626,10 +626,13 @@ var
 const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
 
+var
+  GR32_Resamplers_FunctionTemplates : TFunctionTemplates;
+
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Rasterizers, GR32_Math, Math;
+  GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
@@ -1789,7 +1792,7 @@ end;
 
 { Draft Resample Routines }
 
-function _BlockAverage(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+function BlockAverage_Pas(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
 type
  PCardinal = ^Cardinal;
  PRGBA = ^TRGBA;
@@ -1822,7 +1825,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
-function M_BlockAverage(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+function BlockAverage_MMX(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
 asm
    push       ebx
    push       esi
@@ -1973,18 +1976,6 @@ asm
    pop        ebx
 end;
 
-const
-  BlockAverageProcs : array [0..2] of TFunctionInfo = (
-    (Address : @_BlockAverage; Requires: []),
-    (Address : @M_BlockAverage; Requires: [ciMMX]),
-    (Address : @BlockAverage_3DNow; Requires: [ci3DNow])
-  );
-
-{$ELSE}
-  BlockAverageProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_BlockAverage; Requires: [])
-  );
-
 {$ENDIF}
 
 
@@ -2105,7 +2096,7 @@ end;
 
 { Special interpolators (for sfLinear and sfDraft) }
 
-function _LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+function LinearInterpolator_Pas(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 var
   C1, C3: TColor32;
 begin
@@ -2118,7 +2109,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
-function M_LinearInterpolator(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+function LinearInterpolator_MMX(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
         db $0F,$6F,$D1           /// MOVQ      MM2,MM1
@@ -2154,18 +2145,6 @@ asm
         db $0F,$67,$D0           /// PACKUSWB  MM2,MM0
         db $0F,$7E,$D0           /// MOVD      EAX,MM2
 end;
-
-const
-  LinearInterpolatorProcs : array [0..1] of TFunctionInfo = (
-    (Address : @_LinearInterpolator; Requires: []),
-    (Address : @M_LinearInterpolator; Requires: [ciMMX])
-  );
-
-{$ELSE}
-
-  LinearInterpolatorProcs : array [0..0] of TFunctionInfo = (
-    (Address : @_LinearInterpolator; Requires: [])
-  );
 
 {$ENDIF}
 
@@ -3885,14 +3864,50 @@ begin
   end;
 end;
 
-procedure SetupFunctions;
-begin
-  BlockAverage := SetupFunction(BlockAverageProcs);
-  LinearInterpolator := SetupFunction(LinearInterpolatorProcs);
-end;
+{CPU target and feature Function templates}
+
+const
+
+{$IFDEF TARGET_x86}
+
+  BlockAverageProcs : array [0..2] of TFunctionInfo = (
+    (Address : @BlockAverage_Pas; Requires: []),
+    (Address : @BlockAverage_MMX; Requires: [ciMMX]),
+    (Address : @BlockAverage_3DNow; Requires: [ci3DNow])
+  );
+
+  LinearInterpolatorProcs : array [0..1] of TFunctionInfo = (
+    (Address : @LinearInterpolator_Pas; Requires: []),
+    (Address : @LinearInterpolator_MMX; Requires: [ciMMX])
+  );
+
+{$ELSE}
+
+  BlockAverageProcs : array [0..0] of TFunctionInfo = (
+    (Address : @BlockAverage_Pas; Requires: [])
+  );
+
+  LinearInterpolatorProcs : array [0..0] of TFunctionInfo = (
+    (Address : @LinearInterpolator_Pas; Requires: [])
+  );
+
+{$ENDIF}
+
+{Complete collection of unit templates}
+
+var
+  FunctionTemplates : array [0..1] of TFunctionTemplate = (
+     (FunctionVar: @@BlockAverage;
+      FunctionProcs : @BlockAverageProcs;
+      Count: Length(BlockAverageProcs)),
+
+     (FunctionVar: @@LinearInterpolator;
+      FunctionProcs : @LinearInterpolatorProcs;
+      Count: Length(LinearInterpolatorProcs))
+  );
 
 initialization
-  SetupFunctions;
+  GR32_Resamplers_FunctionTemplates := RegisterTemplates(FunctionTemplates);
 
   { Register resamplers }
   RegisterResampler(TNearestResampler);

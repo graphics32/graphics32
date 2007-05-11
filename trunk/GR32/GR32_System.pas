@@ -62,7 +62,7 @@ function GetTickCount: Cardinal;
 
 { Returns the number of processors configured by the operating system. }
 function GetProcessorCount: Cardinal;
-//(*
+(*
 { HasMMX returns 'true' if CPU supports MMX instructions }
 function HasMMX: Boolean;
 { HasEMMX returns 'true' if CPU supports the Extended MMX (aka Integer SSE) instructions }
@@ -75,7 +75,7 @@ function Has3DNowExt: Boolean;
 function HasSSE: Boolean;
 { HasSSE2 returns 'true' if CPU supports SSE2 instructions }
 function HasSSE2: Boolean;
-//*)
+*)
 type
 
   // TCPUInstructionSet, defines specific CPU technologies
@@ -103,23 +103,31 @@ type
     Count: Integer;
   end;
 
-  PFunctionTemplates = ^TFunctionTemplates;
-  TFunctionTemplates = array of TFunctionTemplate;
+  PFunctionTemplateArray = ^TFunctionTemplateArray;
+  TFunctionTemplateArray = array [0..0] of TFunctionTemplate;
 
-{ General function that sets up the correct function depending on detected CPU
-  features and present implementations }
-function SetupFunction(const Procs : array of TFunctionInfo): Pointer;
+  TFunctionTemplates = record
+    Templates : PFunctionTemplateArray;
+    Count: Integer;
+  end;
+
+
+
 
 { General function that returns whether a particular instrucion set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 
-procedure Rebind(Templates: array of TFunctionTemplate;
-  Requirements: PCPUFeatures = nil);
+{ General functions that sets up the correct function(s) depending on detected CPU
+  features and present implementations }
+procedure RebindTemplates(const Templates: array of TFunctionTemplate; Requirements: TCPUFeatures);
+procedure RebindSystem(Requirements: TCPUFeatures);
+function RegisterTemplates(const Templates: array of TFunctionTemplate) : TFunctionTemplates;
 
 var
   GlobalPerfTimer: TPerfTimer;
   CPUFeatures: TCPUFeatures;
+  Graphics32_FunctionTemplates : array of TFunctionTemplates;
 
 procedure InitCPUFeatures;
 
@@ -454,37 +462,13 @@ end;
 
 {$ENDIF}
 
-function SetupFunction(const Procs : array of TFunctionInfo): Pointer;
-var
-  I: Integer;
-begin
-  //Assumes ordering after estimated performance, fastest last in Procs array
-  for I := High(Procs) downto Low(Procs) do
-     with Procs[I] do
-        if Requires <= CPUFeatures then
-        begin
-          Result := Address;
-          if Assigned(Result) then
-            Exit;
-        end;
-
-  if Length(Procs) = 0 then
-    raise Exception.Create('Cannot initialize empty array.');
-
-  //Try to link generic
-  if not Assigned(Result) then
-    Result := Procs[0].Address;
-
-  if not Assigned(Result) then
-    raise Exception.Create('Invalid Function Info (address is nil)');
-
-end;
-
 function BindFunction(const Procs : array of TFunctionInfo;
   Requirements: TCPUFeatures): Pointer;
 var
   I: Integer;
 begin
+  Result := nil;
+
   for I := High(Procs) downto Low(Procs) do
      with Procs[I] do
         if Requires <= Requirements then
@@ -506,20 +490,32 @@ begin
 end;
 
 
-procedure Rebind(Templates: array of TFunctionTemplate;
-  Requirements: PCPUFeatures = nil);
+procedure RebindTemplates(const Templates: array of TFunctionTemplate; Requirements: TCPUFeatures);
 var
   I: Integer;
 begin
-  //if nil then assume actually detected features are to be used
-  if Requirements = nil then
-    Requirements := @CPUFeatures;
-
   for I := Low(Templates) to High(Templates) do
-  begin
     with Templates[I] do
-      FunctionVar^ := BindFunction(Slice(FunctionProcs^, Count), Requirements^);
-  end;
+      FunctionVar^ := BindFunction(Slice(FunctionProcs^, Count), Requirements);
+end;
+
+procedure RebindSystem(Requirements: TCPUFeatures);
+var
+  I: Integer;
+begin
+  for I := Low(Graphics32_FunctionTemplates) to High(Graphics32_FunctionTemplates) do
+    with Graphics32_FunctionTemplates[I] do
+      RebindTemplates(Slice(Templates^, Count), Requirements);
+end;
+
+function RegisterTemplates(const Templates: array of TFunctionTemplate) : TFunctionTemplates;
+begin
+  RebindTemplates(Templates, CPUFeatures);
+  Result.Templates := @Templates;
+  Result.Count := High(Templates) - Low(Templates) + 1;
+
+  SetLength(Graphics32_FunctionTemplates, Length(Graphics32_FunctionTemplates) + 1);
+  Graphics32_FunctionTemplates[High(Graphics32_FunctionTemplates)] := Result;
 end;
 
 procedure InitCPUFeatures;
@@ -541,5 +537,6 @@ initialization
 
 finalization
   GlobalPerfTimer.Free;
+  Graphics32_FunctionTemplates := nil;
 
 end.
