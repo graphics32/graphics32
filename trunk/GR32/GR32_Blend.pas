@@ -48,7 +48,7 @@ var
 type
 { Function Prototypes }
   TCombineReg  = function(X, Y, W: TColor32): TColor32;
-  TCombineMem  = procedure(F: TColor32; var B: TColor32; W: TColor32);
+  TCombineMem  = procedure(X: TColor32; var Y: TColor32; W: TColor32);
   TBlendReg    = function(F, B: TColor32): TColor32;
   TBlendMem    = procedure(F: TColor32; var B: TColor32);
   TBlendRegEx  = function(F, B, M: TColor32): TColor32;
@@ -403,13 +403,29 @@ function CombineReg_Pas(X, Y, W: TColor32): TColor32;
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
-  Re: TColor32Entry absolute Result;
-  We: TColor32Entry absolute W;
+  Af, Ab: PByteArray;
 begin
-  Re.A := (We.A * Xe.A + ($FF - We.A) * Ye.A) div $FF;
-  Re.R := (We.A * Xe.R + ($FF - We.A) * Ye.R) div $FF;
-  Re.G := (We.A * Xe.G + ($FF - We.A) * Ye.G) div $FF;
-  Re.B := (We.A * Xe.B + ($FF - We.A) * Ye.B) div $FF;
+  if W = 0 then
+  begin
+    Result := Y;
+    Exit;
+  end;
+
+  if W >= $FF then
+  begin
+    Result := X;
+    Exit;
+  end;
+
+  with Xe do
+  begin
+    Af := @DivTable[W];
+    Ab := @DivTable[255 - W];
+    R := Ab[Ye.R] + Af[R];
+    G := Ab[Ye.G] + Af[G];
+    B := Ab[Ye.B] + Af[B];
+  end;
+  Result := X;
 end;
 
 {$IFDEF TARGET_x86}
@@ -471,21 +487,37 @@ end;
 
 {$ENDIF}
 
-procedure CombineMem_Pas(F: TColor32; var B: TColor32; W: TColor32);
+procedure CombineMem_Pas(X: TColor32; var Y: TColor32; W: TColor32);
 var
-  Fe: TColor32Entry absolute F;
-  Be: TColor32Entry absolute B;
-  We: TColor32Entry absolute W;
+  Xe: TColor32Entry absolute X;
+  Ye: TColor32Entry absolute Y;
+  Af, Ab: PByteArray;
 begin
-  Be.A := (We.A * Fe.A + ($FF - We.A) * Be.A) div $FF;
-  Be.R := (We.A * Fe.R + ($FF - We.A) * Be.R) div $FF;
-  Be.G := (We.A * Fe.G + ($FF - We.A) * Be.G) div $FF;
-  Be.B := (We.A * Fe.B + ($FF - We.A) * Be.B) div $FF;
+  if W = 0 then
+  begin
+    Exit;
+  end;
+
+  if W >= $FF then
+  begin
+    Y := X;
+    Exit;
+  end;
+
+  with Xe do
+  begin
+    Af := @DivTable[W];
+    Ab := @DivTable[255 - W];
+    R := Ab[Ye.R] + Af[R];
+    G := Ab[Ye.G] + Af[G];
+    B := Ab[Ye.B] + Af[B];
+  end;
+  Y := X;
 end;
 
 {$IFDEF TARGET_x86}
 
-procedure CombineMem_ASM(F: TColor32; var B: TColor32; W: TColor32);
+procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32);
 asm
   // EAX <- F
   // [EDX] <- B
@@ -548,19 +580,32 @@ function BlendReg_Pas(F, B: TColor32): TColor32;
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
-  RX: TColor32Entry absolute Result;
+  Af, Ab: PByteArray;
+  FA : Byte;
 begin
- if FX.A = $FF then
-   Result := F
- else if FX.A = $0 then
-   Result := B
- else
- begin
-   RX.A := BX.A;
-   RX.R := (FX.A * FX.R + ($FF - FX.A) * BX.R) div $FF;
-   RX.G := (FX.A * FX.G + ($FF - FX.A) * BX.G) div $FF;
-   RX.B := (FX.A * FX.B + ($FF - FX.A) * BX.B) div $FF;
- end;
+  FA := FX.A;
+
+  if FA = 0 then
+  begin
+    Result := B;
+    Exit;
+  end;
+
+  if FA = $FF then
+  begin
+    Result := F;
+    Exit;
+  end;
+
+  with BX do
+  begin
+    Af := @DivTable[FA];
+    Ab := @DivTable[not FA];
+    R := Af[FX.R] + Ab[R];
+    G := Af[FX.G] + Ab[G];
+    B := Af[FX.B] + Ab[B];
+  end;
+  Result := B;
 end;
 
 {$IFDEF TARGET_x86}
@@ -632,15 +677,27 @@ procedure BlendMem_Pas(F: TColor32; var B: TColor32);
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
+  Af, Ab: PByteArray;
+  FA : Byte;
 begin
- if FX.A = $FF then
-   B := F
- else
- begin
-   BX.R := (FX.A * FX.R + ($FF - FX.A) * BX.R) div $FF;
-   BX.G := (FX.A * FX.G + ($FF - FX.A) * BX.G) div $FF;
-   BX.B := (FX.A * FX.B + ($FF - FX.A) * BX.B) div $FF;
- end;
+  FA := FX.A;
+
+  if FA = 0 then Exit;
+
+  if FA = $FF then
+  begin
+    B := F;
+    Exit;
+  end;
+
+  with BX do
+  begin
+    Af := @DivTable[FA];
+    Ab := @DivTable[not FA];
+    R := Af[FX.R] + Ab[R];
+    G := Af[FX.G] + Ab[G];
+    B := Af[FX.B] + Ab[B];
+  end;
 end;
 
 {$IFDEF TARGET_x86}
@@ -714,20 +771,36 @@ function BlendRegEx_Pas(F, B, M: TColor32): TColor32;
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
-  RX: TColor32Entry absolute Result;
-  MX: TColor32Entry absolute M;
+  Af, Ab: PByteArray;
 begin
-  M := MX.A * FX.A div $FF;
-  if M = $FF then
-  	Result := F
-  else
+  Af := @DivTable[M];
+
+  M := Af[FX.A];
+
+  if M = 0 then
   begin
-    RX.A := BX.A;
-    RX.R := (M * FX.R + ($FF - M) * BX.R) div $FF;
-    RX.G := (M * FX.G + ($FF - M) * BX.G) div $FF;
-    RX.B := (M * FX.B + ($FF - M) * BX.B) div $FF;
+    Result := B;
+    Exit;
   end;
+
+  if M = $FF then
+  begin
+    Result := F;
+    Exit;
+  end;
+
+  with BX do
+  begin
+    Af := @DivTable[M];
+    Ab := @DivTable[255 - M];
+    R := Af[FX.R] + Ab[R];
+    G := Af[FX.G] + Ab[G];
+    B := Af[FX.B] + Ab[B];
+  end;
+  Result := B;
 end;
+
+
 
 {$IFDEF TARGET_x86}
 
@@ -801,16 +874,30 @@ procedure BlendMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
-  MX: TColor32Entry absolute M;
+  Af, Ab: PByteArray;
 begin
-  M := MX.A * FX.A div $FF;
-  if M = $FF then
-    B := F
-  else
+  Af := @DivTable[M];
+
+  M := Af[FX.A];
+
+  if M = 0 then
   begin
-    BX.R := (M * FX.R + ($FF - M) * BX.R) div $FF;
-    BX.G := (M * FX.G + ($FF - M) * BX.G) div $FF;
-    BX.B := (M * FX.B + ($FF - M) * BX.B) div $FF;
+    Exit;
+  end;
+
+  if M = $FF then
+  begin
+    B := F;
+    Exit;
+  end;
+
+  with BX do
+  begin
+    Af := @DivTable[M];
+    Ab := @DivTable[255 - M];
+    R := Af[FX.R] + Ab[R];
+    G := Af[FX.G] + Ab[G];
+    B := Af[FX.B] + Ab[B];
   end;
 end;
 
@@ -881,23 +968,13 @@ end;
 {$ENDIF}
 
 procedure BlendLine_Pas(Src, Dst: PColor32; Count: Integer);
-var
-  SX: PColor32Entry absolute Src;
-  DX: PColor32Entry absolute Dst;
-  I: Integer;
 begin
-  for I := 0 to Count - 1 do
+  while Count > 0 do
   begin
-    if SX.A = $FF then
-    	Dst^ := Src^
-    else
-    begin
-      DX.R := (SX.A * SX.R + ($FF - SX.A) * DX.R) div $FF;
-      DX.G := (SX.A * SX.G + ($FF - SX.A) * DX.G) div $FF;
-      DX.B := (SX.A * SX.B + ($FF - SX.A) * DX.B) div $FF;
-    end;
+    BlendMem(Src^, Dst^);
     Inc(Src);
     Inc(Dst);
+    Dec(Count);
   end;
 end;
 
