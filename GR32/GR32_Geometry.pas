@@ -227,8 +227,8 @@ var
   D: TFloat;
 begin
   D := FIXEDONE / Divisor;
-  Result.X := Round(V.X * Divisor);
-  Result.Y := Round(V.Y * Divisor);
+  Result.X := Round(V.X * D);
+  Result.Y := Round(V.Y * D);
 end;
 
 function Divide(const V1, V2: TFixedVector): TFixedVector;
