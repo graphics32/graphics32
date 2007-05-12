@@ -1721,6 +1721,8 @@ begin
   FPenColor := clWhite32;
   FStippleStep := 1;
   FCombineMode := cmBlend;
+  BlendProc := @BLEND_MEM[FCombineMode]^;
+  
   FResampler := TNearestResampler.Create(Self);
 end;
 
