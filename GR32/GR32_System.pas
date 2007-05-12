@@ -62,20 +62,7 @@ function GetTickCount: Cardinal;
 
 { Returns the number of processors configured by the operating system. }
 function GetProcessorCount: Cardinal;
-(*
-{ HasMMX returns 'true' if CPU supports MMX instructions }
-function HasMMX: Boolean;
-{ HasEMMX returns 'true' if CPU supports the Extended MMX (aka Integer SSE) instructions }
-function HasEMMX: Boolean;
-{ Has3DNow returns 'true' if CPU supports 3DNow! instructions }
-function Has3DNow: Boolean;
-{ Has3DNowExt returns 'true' if CPU supports 3DNow! Extended instructions }
-function Has3DNowExt: Boolean;
-{ HasSSE returns 'true' if CPU supports SSE instructions }
-function HasSSE: Boolean;
-{ HasSSE2 returns 'true' if CPU supports SSE2 instructions }
-function HasSSE2: Boolean;
-*)
+
 type
 
   // TCPUInstructionSet, defines specific CPU technologies
@@ -83,7 +70,9 @@ type
   {$IFDEF TARGET_x86}
     TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
   {$ELSE}
-    TCPUInstructionSet = (ciGeneric); // pascal only
+    // target specific set not defined, force pascal only
+    TCPUInstructionSet = (ciDummy);
+    {$DEFINE NO_REQUIREMENTS}
   {$ENDIF}
 
   PCPUFeatures = ^TCPUFeatures;
@@ -288,36 +277,6 @@ end;
 
 {$IFDEF TARGET_x86}
 
-function HasMMX: Boolean;
-begin
-  Result := HasInstructionSet(ciMMX);
-end;
-
-function HasEMMX: Boolean;
-begin
-  Result := HasInstructionSet(ciEMMX);
-end;
-
-function HasSSE: Boolean;
-begin
-  Result := HasInstructionSet(ciSSE);
-end;
-
-function HasSSE2: Boolean;
-begin
-  Result := HasInstructionSet(ciSSE2);
-end;
-
-function Has3DNow: Boolean;
-begin
-  Result := HasInstructionSet(ci3DNow);
-end;
-
-function Has3DNowExt: Boolean;
-begin
-  Result := HasInstructionSet(ci3DNowExt);
-end;
-
 const
   CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
     ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
@@ -424,40 +383,9 @@ end;
 
 {$ELSE}
 
-function HasMMX: Boolean;
-begin
-  Result := False;
-end;
-
-function HasEMMX: Boolean;
-begin
-  Result := False;
-end;
-
-function HasSSE: Boolean;
-begin
-  Result := False;
-end;
-
-function HasSSE2: Boolean;
-begin
-  Result := False;
-end;
-
-function Has3DNow: Boolean;
-begin
-  Result := False;
-end;
-
-function Has3DNowExt: Boolean;
-begin
-  Result := False;
-end;
-
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
-// Generic
 begin
-  Result := (InstructionSet = ciGeneric);
+  Result := True;
 end;
 
 {$ENDIF}
@@ -468,6 +396,10 @@ var
   I: Integer;
 begin
   Result := nil;
+
+  {$IFDEF NO_REQUIREMENTS}
+  Requirements := [];
+  {$ENDIF}
 
   for I := High(Procs) downto Low(Procs) do
      with Procs[I] do
@@ -480,10 +412,6 @@ begin
 
   if Length(Procs) = 0 then
     raise Exception.Create('Cannot initialize empty array.');
-
-  //Try to link generic
-  if not Assigned(Result) then
-    Result := Procs[0].Address;
 
   if not Assigned(Result) then
     raise Exception.Create('Invalid Function Info (address is nil)');
