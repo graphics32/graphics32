@@ -491,6 +491,7 @@ type
     procedure SetResamplerClassName(Value: string);
     procedure SetBackend(const Backend: TBackend); virtual;
   protected
+    BlendProc: Pointer;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
@@ -2014,13 +2015,13 @@ end;
 
 procedure TCustomBitmap32.SetPixelT(X, Y: Integer; Value: TColor32);
 begin
-  BLEND_MEM[FCombineMode]^(Value, Bits[X + Y * Width]);
+  TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
   EMMS;
 end;
 
 procedure TCustomBitmap32.SetPixelT(var Ptr: PColor32; Value: TColor32);
 begin
-  BLEND_MEM[FCombineMode]^(Value, Ptr^);
+  TBlendMem(BlendProc)(Value, Ptr^);
   Inc(Ptr);
   EMMS;
 end;
@@ -2031,7 +2032,7 @@ begin
     (X >= FClipRect.Left) and (X < FClipRect.Right) and
     (Y >= FClipRect.Top) and (Y < FClipRect.Bottom) then
   begin
-    BLEND_MEM[FCombineMode]^(Value, Bits[X + Y * Width]);
+    TBlendMem(BlendProc)(Value, Bits[X + Y * Width]);
     EMMS;
   end;
 {$IFDEF CHANGED_IN_PIXELS}
@@ -2475,7 +2476,7 @@ var
 begin
   if X2 < X1 then Exit;
   P := PixelPtr[X1, Y];
-  BlendMem := BLEND_MEM[FCombineMode]^;
+  BlendMem := TBlendMem(BlendProc);
   for i := X1 to X2 do
   begin
     BlendMem(Value, P^);
@@ -2591,7 +2592,7 @@ var
   BlendMem: TBlendMem;
 begin
   P := PixelPtr[X, Y1];
-  BlendMem := BLEND_MEM[FCombineMode]^;
+  BlendMem := TBlendMem(BlendProc);
   for i := Y1 to Y2 do
   begin
     BlendMem(Value, P^);
@@ -2973,7 +2974,7 @@ begin
     Sy := Sy * Width;
 
     try
-      BlendMem := BLEND_MEM[FCombineMode]^;
+      BlendMem := TBlendMem(BlendProc);
       if Dx > Dy then
       begin
         Delta := Dx shr 1;
@@ -4189,6 +4190,7 @@ begin
   if FCombineMode <> Value then
   begin
   	FCombineMode := Value;
+    BlendProc := @BLEND_MEM[FCombineMode]^;
   	Changed;
   end;
 end;
