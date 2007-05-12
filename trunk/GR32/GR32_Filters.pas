@@ -98,8 +98,8 @@ type
   TLogicalMaskLine  = procedure(Dst: PColor32; Mask: TColor32; Count: Integer); //Inplace
   TLogicalMaskLineEx  = procedure(Src, Dst: PColor32; Count: Integer; Mask: TColor32); //"Src To Dst"
 
+{$HINTS OFF}
 var
-
 { masked logical operation functions }
   LogicalMaskLineXor: TLogicalMaskLine;
   LogicalMaskLineOr: TLogicalMaskLine;
@@ -108,6 +108,7 @@ var
   LogicalMaskLineXorEx: TLogicalMaskLineEx;
   LogicalMaskLineOrEx: TLogicalMaskLineEx;
   LogicalMaskLineAndEx: TLogicalMaskLineEx;
+{$HINTS ON}
 
 { Access to masked logical operation functions corresponding to a logical operation mode }
 const
