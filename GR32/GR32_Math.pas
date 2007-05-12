@@ -290,7 +290,7 @@ end;
 function Hypot(const X, Y: TFloat): TFloat;
 {$IFNDEF TARGET_x86}
 begin
-  Math.Hypot(X, Y);
+  Result := Math.Hypot(X, Y);
 {$ELSE}
 asm
         FLD     X
