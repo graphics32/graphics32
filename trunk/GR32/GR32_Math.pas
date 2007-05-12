@@ -78,12 +78,15 @@ uses
   Math;
 {$ENDIF}
 
+const
+  FixedOneS: Single = 65536;
+
 { Fixed-point math }
 
 function FixedFloor(A: TFixed): Integer;
 {$IFNDEF TARGET_x86}
 begin
-  Result := A div 65536;
+  Result := A div FIXEDONE;
 {$ELSE}
 asm
         SAR     EAX, 16;
@@ -93,7 +96,7 @@ end;
 function FixedCeil(A: TFixed): Integer;
 {$IFNDEF TARGET_x86}
 begin
-  Result := (A + $FFFF) div $10000;
+  Result := (A + $FFFF) div FIXEDONE;
 {$ELSE}
 asm
         ADD     EAX, $0000FFFF
@@ -104,7 +107,7 @@ end;
 function FixedRound(A: TFixed): Integer;
 {$IFNDEF TARGET_x86}
 begin
-  Result := (A + $7FFF) div $10000;
+  Result := (A + $7FFF) div FIXEDONE;
 {$ELSE}
 asm
         ADD     EAX, $00007FFF
@@ -115,7 +118,7 @@ end;
 function FixedMul(A, B: TFixed): TFixed;
 {$IFNDEF TARGET_x86}
 begin
-  Result := Round(A * B * FixedToFloat);
+  Result := Round(A * FixedToFloat * B);
 {$ELSE}
 asm
         IMUL    EDX
@@ -155,7 +158,7 @@ end;
 function FixedSqr(Value: TFixed): TFixed;
 {$IFNDEF TARGET_x86}
 begin
-  Result := Round(Sqr(Value) * FixedToFloat);
+  Result := Round(Value * FixedToFloat * Value);
 {$ELSE}
 asm
           IMUL    EAX
@@ -163,10 +166,11 @@ asm
 {$ENDIF}
 end;
 
+
 function FixedSqrtLP(Value: TFixed): TFixed;
 {$IFNDEF TARGET_x86}
 begin
-  Result := Round(Sqrt(Value * FixedOne));
+  Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
 asm
           push    ebx
@@ -196,7 +200,7 @@ end;
 function FixedSqrtHP(Value: TFixed): TFixed;
 {$IFNDEF TARGET_x86}
 begin
-  Result := Round(Sqrt(Value * FixedOne));
+  Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
 asm
           push ebx
@@ -245,7 +249,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
 {$IFNDEF TARGET_x86}
 begin
-  Result := Round(Y + (X - Y) * W * FixedToFloat);
+  Result := Round(Y + (X - Y) * FixedToFloat * W );
 {$ELSE}
 asm
       SUB  EDX,ECX
@@ -259,9 +263,12 @@ end;
 
 procedure SinCos(const Theta: TFloat; var Sin, Cos: TFloat);
 {$IFNDEF TARGET_x86}
+var
+  S, C: Extended;
 begin
-  Sin := System.Sin(Theta);
-  Cos := System.Cos(Theta);
+  Math.SinCos(Theta, S, C);
+  Sin := S;
+  Cos := C;
 {$ELSE}
 asm
    FLD  Theta
@@ -273,9 +280,12 @@ end;
 
 procedure SinCos(const Theta, Radius : TFloat; var Sin, Cos: TFloat);
 {$IFNDEF TARGET_x86}
+var
+  S, C: Extended;
 begin
-  Sin := System.Sin(Theta) * Radius;
-  Cos := System.Cos(Theta) * Radius;
+  Math.SinCos(Theta, S, C);
+  Sin := S * Radius;
+  Cos := C * Radius;
 {$ELSE}
 asm
    FLD  theta
