@@ -31,10 +31,22 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF CLX}
-  Qt, Types, {$IFDEF LINUX}Libc, {$ELSE}Windows, {$ENDIF}
+  {$IFDEF FPC}
+    Types,
+    {$IFDEF Windows}
+      Windows,
+    {$ENDIF}
   {$ELSE}
-  Windows,
+    {$IFDEF CLX}
+      Qt,
+      {$IFDEF LINUX}
+        Libc,
+      {$ELSE}
+        Windows,
+      {$ENDIF}
+    {$ELSE}
+      Windows,
+    {$ENDIF}
   {$ENDIF}
   Classes, GR32, GR32_Blend, GR32_OrdinalMaps;
 
@@ -260,7 +272,7 @@ begin
     FTransparentColor := TransparentColor;
 
     FSrcAlpha := SrcAlpha;
-    FBlendMemEx := BLEND_MEM_EX[CombineMode]^;
+    FBlendMemEx := BLEND_MEM_EX[CombineMode];
     FCombineCallBack := CombineCallBack;
 
     case DrawMode of

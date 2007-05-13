@@ -75,7 +75,7 @@ end;
 
 initialization
   {$IFDEF FPC}
-  {$i gr32_reg.lrs}
+  {$i GR32_reg.lrs}
   {$ENDIF}
 
 end.

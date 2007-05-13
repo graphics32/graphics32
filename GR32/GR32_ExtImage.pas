@@ -27,7 +27,7 @@ unit GR32_ExtImage;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC} LCLIntf, LCLType, LMessages,
