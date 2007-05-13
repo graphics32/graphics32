@@ -303,7 +303,10 @@ procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINI
 procedure OffsetRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmpty(const R: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function PtInRect(const R: TRect; const P: TPoint): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function PtInRect(const R: TRect; const P: TPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function PtInRect(const R: TFloatRect; const P: TPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function PtInRect(const R: TRect; const P: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function PtInRect(const R: TFloatRect; const P: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -1569,6 +1572,24 @@ begin
 end;
 
 function PtInRect(const R: TRect; const P: TPoint): Boolean;
+begin
+  Result := (P.X >= R.Left) and (P.X < R.Right) and
+    (P.Y >= R.Top) and (P.Y < R.Bottom);
+end;
+
+function PtInRect(const R: TFloatRect; const P: TPoint): Boolean;
+begin
+  Result := (P.X >= R.Left) and (P.X < R.Right) and
+    (P.Y >= R.Top) and (P.Y < R.Bottom);
+end;
+
+function PtInRect(const R: TRect; const P: TFloatPoint): Boolean;
+begin
+  Result := (P.X >= R.Left) and (P.X < R.Right) and
+    (P.Y >= R.Top) and (P.Y < R.Bottom);
+end;
+
+function PtInRect(const R: TFloatRect; const P: TFloatPoint): Boolean;
 begin
   Result := (P.X >= R.Left) and (P.X < R.Right) and
     (P.Y >= R.Top) and (P.Y < R.Bottom);
