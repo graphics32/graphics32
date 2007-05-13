@@ -98,8 +98,13 @@ type
     procedure SetStyle(Value: TRBStyle);
     procedure SetBackgnd(Value: TRBBackgnd);
 {$IFNDEF CLX}
+{$IFDEF Windows}
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
+{$ELSE}
+    procedure CMEnabledChanged(var Message: TLMessage); message CM_ENABLEDCHANGED;
+    procedure CMMouseLeave(var Message: TLMessage); message CM_MOUSELEAVE;
+{$ENDIF}
 {$IFDEF Windows}
     procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
     procedure WMNCPaint(var Message: TMessage); message WM_NCPAINT;
@@ -365,7 +370,7 @@ type
 
 implementation
 
-uses Math, GR32_XPThemes;
+uses Math, GR32_System;
 
 const
   OppositeDirection: array [TRBDirection] of TRBDirection = (drRight, drDown, drLeft, drUp);
@@ -766,7 +771,11 @@ const
 {$IFDEF CLX}
 procedure TArrowBar.EnabledChanged;
 {$ELSE}
+{$IFDEF Windows}
 procedure TArrowBar.CMEnabledChanged(var Message: TMessage);
+{$ELSE}
+procedure TArrowBar.CMEnabledChanged(var Message: TLMessage);
+{$ENDIF}
 {$ENDIF}
 begin
   inherited;
@@ -776,7 +785,11 @@ end;
 {$IFDEF CLX}
 procedure TArrowBar.MouseLeave(AControl: TControl);
 {$ELSE}
+{$IFDEF Windows}
 procedure TArrowBar.CMMouseLeave(var Message: TMessage);
+{$ELSE}
+procedure TArrowBar.CMMouseLeave(var Message: TLMessage);
+{$ENDIF}
 {$ENDIF}
 begin
   MouseLeft;
