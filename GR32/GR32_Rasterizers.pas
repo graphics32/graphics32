@@ -272,7 +272,7 @@ begin
     FTransparentColor := TransparentColor;
 
     FSrcAlpha := SrcAlpha;
-    FBlendMemEx := BLEND_MEM_EX[CombineMode];
+    FBlendMemEx := BLEND_MEM_EX[CombineMode]^;
     FCombineCallBack := CombineCallBack;
 
     case DrawMode of
