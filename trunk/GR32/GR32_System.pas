@@ -65,12 +65,13 @@ function GetProcessorCount: Cardinal;
 
 type
 
-  // TCPUInstructionSet, defines specific CPU technologies
-
+   { TCPUInstructionSet, defines specific CPU technologies }
   {$IFDEF TARGET_x86}
     TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
   {$ELSE}
-    // target specific set not defined, force pascal only
+    { target specific set not defined, force pascal only, ciDummy is simply
+      there because enum types can't be empty - in this mode TCPUFeatures = []
+      and TCPUFeatures = [ciDummy] are treated the same way. }
     TCPUInstructionSet = (ciDummy);
     {$DEFINE NO_REQUIREMENTS}
   {$ENDIF}
@@ -98,20 +99,25 @@ type
   TFunctionTemplates = record
     Templates : PFunctionTemplateArray;
     Count: Integer;
+    Name: String;
   end;
 
-
+  TTemplatesHandle = type Integer;
 
 
 { General function that returns whether a particular instrucion set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 
+
 { General functions that sets up the correct function(s) depending on detected CPU
-  features and present implementations }
-procedure RebindTemplates(const Templates: array of TFunctionTemplate; Requirements: TCPUFeatures);
+  features, present implementations and/or compiler directives }
+
+procedure BindFunction(var FunctionPtr: Pointer; const Procs : array of TFunctionInfo; Requirements: TCPUFeatures);
+procedure RebindTemplates(const Templates: array of TFunctionTemplate;Requirements: TCPUFeatures);
 procedure RebindSystem(Requirements: TCPUFeatures);
-function RegisterTemplates(const Templates: array of TFunctionTemplate) : TFunctionTemplates;
+function RegisterTemplates(const Templates: array of TFunctionTemplate; const TemplateName: String): TTemplatesHandle;
+function GetUnitName(const TypeInfoPtr: Pointer): String;
 
 var
   GlobalPerfTimer: TPerfTimer;
@@ -124,7 +130,7 @@ implementation
 
 {$IFNDEF CLX}
 uses
-  Messages, Forms, Classes;
+  Messages, Forms, Classes, TypInfo;
 {$ENDIF}
 
 var
@@ -346,17 +352,6 @@ function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 // Must be implemented for each target CPU on which specific functions rely
 begin
 
-  {
-  //Simulation of other i386 types, example feature set shown
-  if [InstructionSet] <= [ciMMX, ciEMMX, ciSSE] then
-    Result := True
-  else
-  begin
-    Result := False;
-    Exit;
-  end;
-  }
-
   Result := False;
   if not CPUID_Available then Exit;                   // no CPUID available
   if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
@@ -390,12 +385,13 @@ end;
 
 {$ENDIF}
 
-function BindFunction(const Procs : array of TFunctionInfo;
-  Requirements: TCPUFeatures): Pointer;
+procedure BindFunction(var FunctionPtr: Pointer;
+  const Procs : array of TFunctionInfo; Requirements: TCPUFeatures);
 var
   I: Integer;
+  InputNotAssigned: Boolean;
 begin
-  Result := nil;
+  InputNotAssigned := Assigned(FunctionPtr);
 
   {$IFDEF NO_REQUIREMENTS}
   Requirements := [];
@@ -405,16 +401,23 @@ begin
      with Procs[I] do
         if Requires <= Requirements then
         begin
-          Result := Address;
-          if Assigned(Result) then
+          FunctionPtr := Address;
+          if Assigned(FunctionPtr) then
             Exit;
         end;
 
-  if Length(Procs) = 0 then
-    raise Exception.Create('Cannot initialize empty array.');
+  if InputNotAssigned then
+  begin
+    { Only raise exceptions if FunctionPtr was nil initially
+      - we only reach this situation on first binding steps }
 
-  if not Assigned(Result) then
-    raise Exception.Create('Invalid Function Info (address is nil)');
+    if Length(Procs) = 0 then
+      raise Exception.Create('Cannot initialize function based on empty array.');
+
+    if not Assigned(FunctionPtr) then
+      raise Exception.Create('Invalid Function Info (address is nil)');
+  end;
+
 end;
 
 
@@ -424,7 +427,7 @@ var
 begin
   for I := Low(Templates) to High(Templates) do
     with Templates[I] do
-      FunctionVar^ := BindFunction(Slice(FunctionProcs^, Count), Requirements);
+      BindFunction(FunctionVar^, Slice(FunctionProcs^, Count), Requirements);
 end;
 
 procedure RebindSystem(Requirements: TCPUFeatures);
@@ -436,14 +439,19 @@ begin
       RebindTemplates(Slice(Templates^, Count), Requirements);
 end;
 
-function RegisterTemplates(const Templates: array of TFunctionTemplate) : TFunctionTemplates;
+function RegisterTemplates(const Templates: array of TFunctionTemplate; const TemplateName: String) : TTemplatesHandle;
+var
+  GR32TmplPtr: ^TFunctionTemplates;
 begin
   RebindTemplates(Templates, CPUFeatures);
-  Result.Templates := @Templates;
-  Result.Count := High(Templates) - Low(Templates) + 1;
 
-  SetLength(Graphics32_FunctionTemplates, Length(Graphics32_FunctionTemplates) + 1);
-  Graphics32_FunctionTemplates[High(Graphics32_FunctionTemplates)] := Result;
+  Result := Length(Graphics32_FunctionTemplates);
+  SetLength(Graphics32_FunctionTemplates, Result + 1);
+
+  GR32TmplPtr := @Graphics32_FunctionTemplates[Result];
+  GR32TmplPtr.Templates := @Templates;
+  GR32TmplPtr.Count := High(Templates) - Low(Templates) + 1;
+  GR32TmplPtr.Name := TemplateName;
 end;
 
 procedure InitCPUFeatures;
@@ -457,6 +465,19 @@ begin
     if HasInstructionSet(I) then CPUFeatures := CPUFeatures + [I];
 
   CPUFeaturesInitialized := True;
+end;
+
+function GetUnitName(const TypeInfoPtr: Pointer): String;
+var
+  TD: PTypeData;
+begin
+  Result := 'Unknown';
+  if Assigned(TypeInfoPtr) then
+  begin
+    TD := GetTypeData(TypeInfoPtr);
+    if Assigned(TD) then
+      Result := TD^.UnitName;
+  end;
 end;
 
 initialization
