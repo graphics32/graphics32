@@ -627,16 +627,14 @@ const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
 
 var
-  GR32_Resamplers_FunctionTemplates : TFunctionTemplates;
+  BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+  LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+  GR32_Resamplers_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
 uses
   GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
-
-var
-  BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
-  LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 const
   SDstNil = 'Destination bitmap is nil';
@@ -684,6 +682,7 @@ type
   TCustomBitmap32Access = class(TCustomBitmap32);
   TCustomResamplerAccess = class(TCustomResampler);
 
+  PPointRec = ^TPointRec;
   TPointRec = record
     Pos: Integer;
     Weight: Cardinal;
@@ -1413,9 +1412,11 @@ procedure StretchHorzStretchVertLinear(
 var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   MapHorz, MapVert: array of TPointRec;
+  MapPtr: PPointRec;
   t2, Scale: TFloat;
   SrcLine, DstLine: PColor32Array;
   SrcIndex: Integer;
+  SrcPtr1, SrcPtr2: PColor32;
   I, J: Integer;
   WY: Cardinal;
   C: TColor32;
@@ -1473,19 +1474,29 @@ begin
   end;
 
   DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
+  SrcW := Src.Width;
+  DstW := Dst.Width;
   case CombineOp of
     dmOpaque:
       for J := 0 to DstClipH - 1 do
       begin
         SrcLine := Src.ScanLine[MapVert[J].Pos];
         WY := MapVert[J].Weight;
+
+        SrcIndex := MapHorz[0].Pos;
+        SrcPtr1 := @SrcLine[SrcIndex];
+        SrcPtr2 := @SrcLine[SrcIndex + SrcW];
         for I := 0 to DstClipW - 1 do
         begin
-          SrcIndex := MapHorz[I].Pos;
-          DstLine[I] := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                           @SrcLine[SrcIndex + Src.Width]);
+          if SrcIndex <> MapHorz[I].Pos then
+          begin
+            SrcIndex := MapHorz[I].Pos;
+            SrcPtr1 := @SrcLine[SrcIndex];
+            SrcPtr2 := @SrcLine[SrcIndex + SrcW];
+          end;
+          DstLine[I] := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
         end;
-        Inc(DstLine, Dst.Width);
+        Inc(DstLine, DstW);
       end;
     dmBlend:
       begin
@@ -1494,11 +1505,18 @@ begin
         begin
           SrcLine := Src.ScanLine[MapVert[J].Pos];
           WY := MapVert[J].Weight;
+          SrcIndex := MapHorz[0].Pos;
+          SrcPtr1 := @SrcLine[SrcIndex];
+          SrcPtr2 := @SrcLine[SrcIndex + SrcW];
           for I := 0 to DstClipW - 1 do
           begin
-            SrcIndex := MapHorz[I].Pos;
-            C := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                    @SrcLine[SrcIndex + Src.Width]);
+            if SrcIndex <> MapHorz[I].Pos then
+            begin
+              SrcIndex := MapHorz[I].Pos;
+              SrcPtr1 := @SrcLine[SrcIndex];
+              SrcPtr2 := @SrcLine[SrcIndex + SrcW];
+            end;
+            C := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
             BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           end;
           Inc(DstLine, Dst.Width);
@@ -1510,11 +1528,18 @@ begin
         begin
           SrcLine := Src.ScanLine[MapVert[J].Pos];
           WY := MapVert[J].Weight;
+          SrcIndex := MapHorz[0].Pos;
+          SrcPtr1 := @SrcLine[SrcIndex];
+          SrcPtr2 := @SrcLine[SrcIndex + SrcW];
           for I := 0 to DstClipW - 1 do
           begin
-            SrcIndex := MapHorz[I].Pos;
-            C := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                    @SrcLine[SrcIndex + Src.Width]);
+            if SrcIndex <> MapHorz[I].Pos then
+            begin
+              SrcIndex := MapHorz[I].Pos;
+              SrcPtr1 := @SrcLine[SrcIndex];
+              SrcPtr2 := @SrcLine[SrcIndex + SrcW];
+            end;
+            C := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
             if C <> Src.OuterColor then DstLine[I] := C;
           end;
           Inc(DstLine, Dst.Width);
@@ -1525,11 +1550,18 @@ begin
     begin
       SrcLine := Src.ScanLine[MapVert[J].Pos];
       WY := MapVert[J].Weight;
-      for I := 0 to DstClipW - 1 do
-      begin
-        SrcIndex := MapHorz[I].Pos;
-        C := LinearInterpolator(MapHorz[I].Weight, WY, @SrcLine[SrcIndex],
-                                @SrcLine[SrcIndex + Src.Width]);
+      SrcIndex := MapHorz[0].Pos;    
+      SrcPtr1 := @SrcLine[SrcIndex];    
+      SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
+      for I := 0 to DstClipW - 1 do    
+      begin    
+        if SrcIndex <> MapHorz[I].Pos then    
+        begin    
+          SrcIndex := MapHorz[I].Pos;    
+          SrcPtr1 := @SrcLine[SrcIndex];    
+          SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
+        end;    
+        C := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
       end;
       Inc(DstLine, Dst.Width);
@@ -3906,8 +3938,13 @@ var
       Count: Length(LinearInterpolatorProcs))
   );
 
+type
+  TUnitAccess = class
+  end;
+
 initialization
-  GR32_Resamplers_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+  GR32_Resamplers_FunctionTemplates := RegisterTemplates(FunctionTemplates,
+    GetUnitName(TypeInfo(TUnitAccess)));
 
   { Register resamplers }
   RegisterResampler(TNearestResampler);
