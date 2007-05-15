@@ -64,18 +64,19 @@ type
   TMMFBackend = class(TMemoryBackend)
   private
     FMapHandle: THandle;
+    FMapIsTemporary: boolean;
     FMapFileHandle: THandle;
     FMapFileName: string;
   protected
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
   public
-    constructor Create(Owner: TCustomBitmap32; const MapFileName: string = ''); virtual;
+    constructor Create(Owner: TCustomBitmap32; IsTemporary: Boolean = True; const MapFileName: string = ''); virtual;
     destructor Destroy; override;
 
-    class procedure InititializeFileMapping(var MapHandle, MapFileHandle: THandle; var MapFileName: string);
-    class procedure DeinititializeFileMapping(MapHandle, MapFileHandle: THandle; const MapFileName: string);
-    class procedure CreateFileMapping(var MapHandle, MapFileHandle: THandle; const MapFileName: string; NewWidth, NewHeight: Integer);
+    class procedure InitializeFileMapping(var MapHandle, MapFileHandle: THandle; var MapFileName: string);
+    class procedure DeinitializeFileMapping(MapHandle, MapFileHandle: THandle; const MapFileName: string);
+    class procedure CreateFileMapping(var MapHandle, MapFileHandle: THandle; var MapFileName: string; IsTemporary: Boolean; NewWidth, NewHeight: Integer);
   end;
 
 {$ENDIF}
@@ -107,16 +108,17 @@ end;
 
 { TMMFBackend }
 
-constructor TMMFBackend.Create(Owner: TCustomBitmap32; const MapFileName: string = '');
+constructor TMMFBackend.Create(Owner: TCustomBitmap32; IsTemporary: Boolean = True; const MapFileName: string = '');
 begin
   FMapFileName := MapFileName;
-  InititializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
+  FMapIsTemporary := IsTemporary;
+  InitializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
   inherited Create(Owner);
 end;
 
 destructor TMMFBackend.Destroy;
 begin
-  DeinititializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
+  DeinitializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
   inherited;
 end;
 
@@ -131,7 +133,7 @@ end;
 
 procedure TMMFBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
-  CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, NewWidth, NewHeight);
+  CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, FMapIsTemporary, NewWidth, NewHeight);
   FBits := MapViewOfFile(FMapHandle, FILE_MAP_COPY, 0, 0, 0);
 
   if not Assigned(FBits) then
@@ -142,7 +144,7 @@ begin
 end;
 
 
-class procedure TMMFBackend.InititializeFileMapping(var MapHandle, MapFileHandle: THandle; var MapFileName: string);
+class procedure TMMFBackend.InitializeFileMapping(var MapHandle, MapFileHandle: THandle; var MapFileName: string);
 begin
   MapHandle := INVALID_HANDLE_VALUE;
   MapFileHandle := INVALID_HANDLE_VALUE;
@@ -150,7 +152,7 @@ begin
     ForceDirectories(IncludeTrailingPathDelimiter(ExtractFilePath(MapFileName)));
 end;
 
-class procedure TMMFBackend.DeinititializeFileMapping(MapHandle, MapFileHandle: THandle; const MapFileName: string);
+class procedure TMMFBackend.DeinitializeFileMapping(MapHandle, MapFileHandle: THandle; const MapFileName: string);
 begin
   if MapFileName <> '' then
   begin
@@ -161,7 +163,31 @@ begin
   end;
 end;
 
-class procedure TMMFBackend.CreateFileMapping(var MapHandle, MapFileHandle: THandle; const MapFileName: string; NewWidth, NewHeight: Integer);
+class procedure TMMFBackend.CreateFileMapping(var MapHandle, MapFileHandle: THandle;
+  var MapFileName: string; IsTemporary: Boolean; NewWidth, NewHeight: Integer);
+var
+  Flags: Cardinal;
+
+  function GetTempPath: string;
+  var
+    PC: PChar;
+  begin
+    PC := StrAlloc(MAX_PATH + 1);
+    Windows.GetTempPath(MAX_PATH, PC);
+    Result := string(PC);
+    StrDispose(PC);
+  end;
+
+  function GetTempFileName(const Prefix: string): string;
+  var
+    PC: PChar;
+  begin
+    PC := StrAlloc(MAX_PATH + 1);
+    Windows.GetTempFileName(PChar(GetTempPath), PChar(Prefix), 0, PC);
+    Result := string(PC);
+    StrDispose(PC);
+  end;
+
 begin
   // close previous handles
   if MapHandle <> INVALID_HANDLE_VALUE then
@@ -177,14 +203,23 @@ begin
   end;
 
   // Do we want to use an external map file?
-  if MapFileName <> '' then
+  if (MapFileName <> '') or IsTemporary then
   begin
+    if MapFileName = '' then
+      MapFileName := GetTempFileName(IntToStr(Integer(Self)));
+
     // delete file if exists
     if FileExists(MapFileName) then
       DeleteFile(MapFileName);
 
     // open file
-    MapFileHandle := FileCreate(MapFileName, fmShareExclusive);
+    if IsTemporary then
+      Flags := FILE_ATTRIBUTE_TEMPORARY OR FILE_FLAG_DELETE_ON_CLOSE
+    else
+      Flags := FILE_ATTRIBUTE_NORMAL;
+
+    MapFileHandle := CreateFile(PChar(MapFileName), GENERIC_READ or GENERIC_WRITE,
+      0, nil, CREATE_ALWAYS, Flags, 0);
 
     if MapFileHandle = INVALID_HANDLE_VALUE then
       raise Exception.Create('Failed to create map file (' + MapFileName + ')');

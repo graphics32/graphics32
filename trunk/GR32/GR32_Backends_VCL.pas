@@ -130,11 +130,12 @@ type
   TGDIMMFBackend = class(TGDIBackend)
   private
     FMapFileHandle: THandle;
+    FMapIsTemporary: Boolean;
     FMapFileName: string;
   protected
     procedure PrepareFileMapping(NewWidth, NewHeight: Integer); override;
   public
-    constructor Create(Owner: TBitmap32; const MapFileName: string = ''); virtual;
+    constructor Create(Owner: TBitmap32; IsTemporary: Boolean = True; const MapFileName: string = ''); virtual;
     destructor Destroy; override;
   end;
 
@@ -528,22 +529,23 @@ end;
 
 { TGDIMMFBackend }
 
-constructor TGDIMMFBackend.Create(Owner: TBitmap32; const MapFileName: string = '');
+constructor TGDIMMFBackend.Create(Owner: TBitmap32; IsTemporary: Boolean = True; const MapFileName: string = '');
 begin
   FMapFileName := MapFileName;
-  TMMFBackend.InititializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
+  FMapIsTemporary := IsTemporary;
+  TMMFBackend.InitializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
   inherited Create(Owner);
 end;
 
 destructor TGDIMMFBackend.Destroy;
 begin
-  TMMFBackend.DeinititializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
+  TMMFBackend.DeinitializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
   inherited;
 end;
 
 procedure TGDIMMFBackend.PrepareFileMapping(NewWidth, NewHeight: Integer);
 begin
-  TMMFBackend.CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, NewWidth, NewHeight);
+  TMMFBackend.CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, FMapIsTemporary, NewWidth, NewHeight);
 end;
 
 initialization
