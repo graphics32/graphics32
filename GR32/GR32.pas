@@ -862,7 +862,7 @@ type
 
 var
   StockBitmap: TBitmap;
-  GR32_FunctionTemplates : TFunctionTemplates;
+  GR32_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
@@ -5577,8 +5577,13 @@ var
       Count: Length(InterpolatorProcs))
   );
 
+type
+  TUnitAccess = class
+  end;
+
 initialization
-  GR32_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+  GR32_FunctionTemplates := RegisterTemplates(FunctionTemplates,
+    GetUnitName(TypeInfo(TUnitAccess)));
 
   SetGamma;
   StockBitmap := TBitmap.Create;
