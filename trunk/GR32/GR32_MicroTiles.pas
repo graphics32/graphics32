@@ -235,7 +235,7 @@ type
 {$ENDIF}
 
 var
-  GR32_Micro_FunctionTemplates : TFunctionTemplates;
+  GR32_Micro_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
@@ -1736,8 +1736,12 @@ var
       Count: Length(MicroTilesUProcs))
   );
 
+type
+  TUnitAccess = class
+  end;
 
 initialization
-  GR32_Micro_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+  GR32_Micro_FunctionTemplates := RegisterTemplates(FunctionTemplates,
+    GetUnitName(TypeInfo(TUnitAccess)));
 
 end.

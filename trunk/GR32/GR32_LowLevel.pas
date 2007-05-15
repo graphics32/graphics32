@@ -121,7 +121,7 @@ function SAR_16(Value: Integer): Integer;
 function ColorSwap(WinColor: TColor): TColor32;
 
 var
-  GR32_Lowlevel_FunctionTemplates : TFunctionTemplates;
+  GR32_Lowlevel_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
@@ -743,8 +743,13 @@ var
       Count: Length(FillLongwordProcs))
   );
 
+type
+  TUnitAccess = class
+  end;
+
 initialization
-  GR32_Lowlevel_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+  GR32_Lowlevel_FunctionTemplates := RegisterTemplates(FunctionTemplates,
+    GetUnitName(TypeInfo(TUnitAccess)));
 
 end.
 

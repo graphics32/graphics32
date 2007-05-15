@@ -106,7 +106,7 @@ function Lighten(C: TColor32; Amount: Integer): TColor32;
 
 
 var
-  GR32_Blend_FunctionTemplates : TFunctionTemplates;
+  GR32_Blend_FunctionTemplates : TTemplatesHandle;
 
 { Access to alpha composite functions corresponding to a combine mode }
 
@@ -2072,9 +2072,14 @@ var
      (FunctionVar: @@ColorScale; FunctionProcs : @ColorScaleProcs; Count: Length(ColorScaleProcs))
    );
 
+type
+  TUnitAccess = class
+  end;
+
 initialization
   MakeMergeTables;
-  GR32_Blend_FunctionTemplates := RegisterTemplates(FunctionTemplates);
+  GR32_Blend_FunctionTemplates := RegisterTemplates(FunctionTemplates,
+    GetUnitName(TypeInfo(TUnitAccess)));
 
 {$IFDEF TARGET_x86}
   if (ciMMX in CPUFeatures) then
