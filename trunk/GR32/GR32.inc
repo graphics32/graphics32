@@ -109,7 +109,7 @@
     Note: don't change this to compile for other targets than x86 - configure
     FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
 
-    {-$DEFINE PUREPASCAL}
+  {.$DEFINE PUREPASCAL}
 
 
 {$IFDEF FPC}
@@ -129,6 +129,11 @@
       // future specific targets
       {$DEFINE TARGET_POWERPC}
     {$ENDIF}
+  {$ENDIF}
+
+  // Widgetsets other then Windows will want to implement BITS_GETTER
+  {$IFNDEF Windows}
+    {$DEFINE BITS_GETTER}
   {$ENDIF}
 
 {$ELSE}
@@ -151,6 +156,7 @@
   {$IFNDEF FPC}
     {$DEFINE CLX}
     {$DEFINE PLATFORM_INDEPENDENT}
+    {$DEFINE BITS_GETTER}
   {$ENDIF}
   {$DEFINE UNIX}
 {$ENDIF}

@@ -126,7 +126,7 @@ type
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); virtual; abstract;
     procedure FinalizeSurface; virtual; abstract;
 
-{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+{$IFDEF BITS_GETTER}
     function GetBits: PColor32Array; override;
 {$ENDIF}
   public
@@ -145,7 +145,7 @@ type
 
 { TCustomBackend }
 
-{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+{$IFDEF BITS_GETTER}
 function TCustomBackend.GetBits: PColor32Array;
 begin
   Result := FBits;
