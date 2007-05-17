@@ -35,7 +35,7 @@ uses
 {$IFDEF LCLGtk2}
   gdk2, gtk2, gdk2pixbuf, glib2,
 {$ELSE}
-  gdk, gtk,
+  gdk, gtk, gdkpixbuf, glib,
 {$ENDIF}
   Graphics, GR32, GR32_Backends;
 
@@ -62,9 +62,6 @@ type
     procedure FontChanged;
   protected
     FontHandle: HFont;
-
-    procedure StartPainter;
-    procedure StopPainter;
 
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -183,8 +180,13 @@ end;
 
 procedure TLCLBackend.FinalizeSurface;
 begin
+{$IFDEF LCLGtk2}
   if Assigned(FPixbuf) then g_object_unref(FPixbuf);
   FPixbuf := nil;
+{$ELSE}
+  if Assigned(FPixbuf) then gdk_pixbuf_unref(FPixbuf);
+  FPixbuf := nil;
+{$ENDIF}
 
   if Assigned(FBits) then FreeMem(FBits);
   FBits := nil;
@@ -211,42 +213,44 @@ end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
-//  TextOutW(X, Y, Text);
+
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
-//  TextOutW(X, Y, ClipRect, Text);
+
 end;
 
 procedure TLCLBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
-//  TextOutW(DstRect, Flags, Text);
+
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
 begin
-//  Result := TextExtentW(Text); // Gtk 2 uses UTF-8
+
 end;
+
+{ Gtk uses UTF-8, so all W functions are converted to UTF-8 ones }
 
 procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
 begin
-
+  TextOut(X, Y, Utf8Encode(Text));
 end;
 
 procedure TLCLBackend.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
 begin
-
+  TextOut(X, Y, ClipRect, Utf8Encode(Text));
 end;
 
 procedure TLCLBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
-
+  TextOut(DstRect, Flags, Utf8Encode(Text));
 end;
 
 function TLCLBackend.TextExtentW(const Text: Widestring): TSize;
 begin
-
+  Result := TextExtent(Utf8Encode(Text));
 end;
 
 { IFontSupport }
@@ -309,9 +313,9 @@ function TLCLBackend.GetCanvas: TCanvas;
 begin
   if FCanvas = nil then
   begin
-    FCanvas := TBitmap32Canvas.Create(Self);
-    FCanvas.Handle := Painter;
-    FCanvas.OnChange := CanvasChangedHandler;
+    FCanvas := TCanvas.Create;
+//    FCanvas.Handle := Painter;
+//    FCanvas.OnChange := CanvasChangedHandler;
   end;
   Result := FCanvas;
 end;
