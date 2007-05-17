@@ -1882,7 +1882,7 @@ begin
   end;
 end;
 
-{$IFDEF CLX}
+{$IFDEF BITS_GETTER}
 function TCustomBitmap32.GetBits: PColor32Array;
 begin
   Result := FBackend.Bits;
