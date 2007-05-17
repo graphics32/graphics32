@@ -31,11 +31,11 @@ interface
 {$I GR32.inc}
 
 uses
-  SysUtils, Classes, Qt, Types, QConsts, QGraphics, QControls,
-  GR32, GR32_Backends;
+  LCLIntf, LCLType, types, Controls, SysUtils, Classes,
+  Graphics, GR32, GR32_Backends;
 
 type
-  IQtDeviceContextSupport = interface
+{  IQtDeviceContextSupport = interface
   ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
     function GetPixmap: QPixmapH;
     function GetPixmapChanged: Boolean;
@@ -51,17 +51,16 @@ type
     property PixmapChanged: Boolean read GetPixmapChanged write SetPixmapChanged;
     property Image: QImageH read GetImage;
     property Painter: QPainterH read GetPainter;
-  end;
+  end; }
 
-  TCLXBackend = class(TCustomBackend, IDDBContextSupport,
-    ICopyFromBitmapSupport, ICanvasSupport, ITextSupport, IFontSupport,
-    IQtDeviceContextSupport)
+  TLCLBackend = class(TCustomBackend, IDDBContextSupport,
+    ICopyFromBitmapSupport, ICanvasSupport, ITextSupport, IFontSupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
-    FPixmap: QPixmapH;
-    FImage: QImageH;
-    FPainter: QPainterH;
+//    FPixmap: QPixmapH;
+//    FImage: QImageH;
+//    FPainter: QPainterH;
     FPainterCount: Integer;
     FPixmapActive: Boolean;
     FPixmapChanged: Boolean;
@@ -101,7 +100,7 @@ type
     procedure CopyFromBitmap(SrcBmp: TBitmap);
 
     { IQtDeviceContextSupport }
-    function GetPixmap: QPixmapH;
+{    function GetPixmap: QPixmapH;
     function GetPixmapChanged: Boolean;
     procedure SetPixmapChanged(Value: Boolean);
     function GetImage: QImageH;
@@ -114,7 +113,7 @@ type
     property Pixmap: QPixmapH read GetPixmap;
     property PixmapChanged: Boolean read GetPixmapChanged write SetPixmapChanged;
     property Image: QImageH read GetImage;
-    property Painter: QPainterH read GetPainter;
+    property Painter: QPainterH read GetPainter;}
 
     { ITextSupport }
     procedure Textout(X, Y: Integer; const Text: string); overload;
@@ -167,29 +166,9 @@ uses
 var
   StockFont: TFont;
 
-function StretchPixmap(DestPainter: QPainterH; DestX, DestY, DestWidth, DestHeight,
-  SrcX, SrcY, SrcWidth, SrcHeight: Integer; SrcPixmap: QPixmapH): Integer;
-var
-  NewMatrix: QWMatrixH;
-begin
-  QPainter_saveWorldMatrix(DestPainter);
-  try
-    NewMatrix:= QWMatrix_create(DestWidth / SrcWidth, 0, 0, DestHeight / SrcHeight, DestX, DestY);
-    try
-      QPainter_setWorldMatrix(DestPainter, NewMatrix, True);
-      QPainter_drawPixmap(DestPainter, 0, 0, SrcPixmap, SrcX, SrcY, SrcWidth, SrcHeight);
-    finally
-      QWMatrix_destroy(NewMatrix);
-    end;
-  finally
-    QPainter_restoreWorldMatrix(DestPainter);
-  end;
-  Result := 0;
-end;
+{ TLCLBackend }
 
-{ TCLXBackend }
-
-constructor TCLXBackend.Create;
+constructor TLCLBackend.Create;
 begin
   inherited;
 
@@ -197,7 +176,7 @@ begin
   FFont.OnChange := FontChangedHandler;
 end;
 
-destructor TCLXBackend.Destroy;
+destructor TLCLBackend.Destroy;
 begin
   FFont.Free;
 
@@ -207,17 +186,17 @@ begin
   inherited;
 end;
 
-procedure TCLXBackend.UpdateFont;
+procedure TLCLBackend.UpdateFont;
 begin
   FontHandle := Font.Handle;
 end;
 
-procedure TCLXBackend.FontChangedHandler(Sender: TObject);
+procedure TLCLBackend.FontChangedHandler(Sender: TObject);
 begin
   if Assigned(FontHandle) then FontHandle := nil;
 end;
 
-procedure TCLXBackend.DeleteCanvas;
+procedure TLCLBackend.DeleteCanvas;
 begin
   if FCanvas <> nil then
   begin
@@ -227,7 +206,7 @@ begin
   end;
 end;
 
-procedure TCLXBackend.PixmapNeeded;
+procedure TLCLBackend.PixmapNeeded;
 begin
   if Assigned(FPixmap) and Assigned(FImage) and not FPixmapActive then
   begin
@@ -237,7 +216,7 @@ begin
   end;
 end;
 
-procedure TCLXBackend.ImageNeeded;
+procedure TLCLBackend.ImageNeeded;
 begin
   if Assigned(FPixmap) and Assigned(FImage) and FPixmapActive and FPixmapChanged then
   begin
@@ -248,7 +227,7 @@ begin
   end;
 end;
 
-procedure TCLXBackend.CheckPixmap;
+procedure TLCLBackend.CheckPixmap;
 begin
   if not FPixmapChanged then
     // try to avoid QPixmap -> QImage conversion, since we don't need that.
@@ -256,31 +235,31 @@ begin
   // else the conversion takes place as soon as the Bits property is accessed.
 end;
 
-function TCLXBackend.GetBits: PColor32Array;
+function TLCLBackend.GetBits: PColor32Array;
 begin
   ImageNeeded;
   Result := FBits;
 end;
 
-function TCLXBackend.GetImage: QImageH;
+function TLCLBackend.GetImage: QImageH;
 begin
   ImageNeeded;
   Result := FImage;
 end;
 
-function TCLXBackend.GetPixmap: QPixmapH;
+function TLCLBackend.GetPixmap: QPixmapH;
 begin
   PixmapNeeded;
   Result := FPixmap;
 end;
 
-function TCLXBackend.GetPainter: QPainterH;
+function TLCLBackend.GetPainter: QPainterH;
 begin
   PixmapNeeded;
   Result := FPainter;
 end;
 
-procedure TCLXBackend.StartPainter;
+procedure TLCLBackend.StartPainter;
 begin
   if (FPainterCount = 0) and not QPainter_isActive(Painter) then
     if not QPainter_begin(Painter, Pixmap) then
@@ -289,7 +268,7 @@ begin
   Inc(FPainterCount);
 end;
 
-procedure TCLXBackend.StopPainter;
+procedure TLCLBackend.StopPainter;
 begin
   Dec(FPainterCount);
   If (FPainterCount = 0) then
@@ -299,27 +278,27 @@ begin
   end;
 end;
 
-procedure TCLXBackend.Textout(X, Y: Integer; const Text: string);
+procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
   TextOutW(X, Y, Text);
 end;
 
-procedure TCLXBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
+procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
   TextOutW(X, Y, ClipRect, Text);
 end;
 
-procedure TCLXBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: string);
+procedure TLCLBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   TextOutW(DstRect, Flags, Text);
 end;
 
-function TCLXBackend.TextExtent(const Text: string): TSize;
+function TLCLBackend.TextExtent(const Text: string): TSize;
 begin
   Result := TextExtentW(Text); // QT uses Unicode.
 end;
 
-procedure TCLXBackend.TextoutW(X, Y: Integer; const Text: Widestring);
+procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
 var
   Extent: TSize;
   R: TRect;
@@ -345,7 +324,7 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TCLXBackend.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
+procedure TLCLBackend.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
 var
   Extent: TSize;
   TextW: WideString;
@@ -369,7 +348,7 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TCLXBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
+procedure TLCLBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
   UpdateFont;
   if not FOwner.MeasuringMode then
@@ -383,7 +362,7 @@ begin
   FOwner.Changed(DstRect);
 end;
 
-function TCLXBackend.TextExtentW(const Text: Widestring): TSize;
+function TLCLBackend.TextExtentW(const Text: Widestring): TSize;
 var
   OldFont: TFont;
 begin
@@ -419,7 +398,7 @@ begin
   end;
 end;
 
-function TCLXBackend.GetCanvas: TCanvas;
+function TLCLBackend.GetCanvas: TCanvas;
 begin
   if FCanvas = nil then
   begin
@@ -430,7 +409,7 @@ begin
   Result := FCanvas;
 end;
 
-procedure TCLXBackend.DrawTo(hDst: QPainterH; DstX, DstY: Integer);
+procedure TLCLBackend.DrawTo(hDst: QPainterH; DstX, DstY: Integer);
 begin
   if Empty then Exit;
   StretchPixmap(
@@ -438,7 +417,7 @@ begin
     0, 0, FOwner.Width, FOwner.Height, GetPixmap);
 end;
 
-procedure TCLXBackend.DrawTo(hDst: QPainterH; const DstRect, SrcRect: TRect);
+procedure TLCLBackend.DrawTo(hDst: QPainterH; const DstRect, SrcRect: TRect);
 begin
   if Empty then Exit;
   StretchPixmap(
@@ -448,7 +427,7 @@ begin
     GetPixmap);
 end;
 
-procedure TCLXBackend.Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH);
+procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH);
 var
   NewMatrix: QWMatrixH;
   SrcHeight, SrcWidth: Integer;
@@ -479,17 +458,17 @@ begin
   FOwner.Changed(DstRect);
 end;
 
-function TCLXBackend.CanvasAllocated: Boolean;
+function TLCLBackend.CanvasAllocated: Boolean;
 begin
   Result := Assigned(FCanvas);
 end;
 
-function TCLXBackend.Empty: Boolean;
+function TLCLBackend.Empty: Boolean;
 begin
   Result := not(Assigned(FImage) or Assigned(FPixmap) or (FBits = nil));
 end;
 
-procedure TCLXBackend.CopyFromBitmap(SrcBmp: TBitmap);
+procedure TLCLBackend.CopyFromBitmap(SrcBmp: TBitmap);
 begin
   if not QPainter_isActive(Painter) then
     if not QPainter_begin(Painter, Pixmap) then
@@ -500,50 +479,50 @@ begin
   PixmapChanged := True;
 end;
 
-procedure TCLXBackend.CanvasChanged;
+procedure TLCLBackend.CanvasChanged;
 begin
   if Assigned(FOnCanvasChange) then
     FOnCanvasChange(Self);
 end;
 
-procedure TCLXBackend.FontChanged;
+procedure TLCLBackend.FontChanged;
 begin
   if Assigned(FOnFontChange) then
     FOnFontChange(Self);
 end;
 
-function TCLXBackend.GetCanvasChange: TNotifyEvent;
+function TLCLBackend.GetCanvasChange: TNotifyEvent;
 begin
   Result := FOnCanvasChange;
 end;
 
-procedure TCLXBackend.SetCanvasChange(Handler: TNotifyEvent);
+procedure TLCLBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
   FOnCanvasChange := Handler;
 end;
 
-function TCLXBackend.GetFont: TFont;
+function TLCLBackend.GetFont: TFont;
 begin
   Result := FFont;
 end;
 
-procedure TCLXBackend.SetFont(const Font: TFont);
+procedure TLCLBackend.SetFont(const Font: TFont);
 begin
   FFont.Assign(Font);
   FontChanged;
 end;
 
-function TCLXBackend.GetOnFontChange: TNotifyEvent;
+function TLCLBackend.GetOnFontChange: TNotifyEvent;
 begin
   Result := FOnFontChange;
 end;
 
-procedure TCLXBackend.SetOnFontChange(Handler: TNotifyEvent);
+procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);
 begin
   FOnFontChange := Handler;
 end;
 
-procedure TCLXBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+procedure TLCLBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
   FImage := QImage_create(NewWidth, NewHeight, 32, 1, QImageEndian_IgnoreEndian);
   if FImage <> nil then
@@ -568,7 +547,7 @@ begin
   FPixmap := QPixmap_create;
 end;
 
-procedure TCLXBackend.FinalizeSurface;
+procedure TLCLBackend.FinalizeSurface;
 begin
   if Assigned(FPainter) then QPainter_destroy(FPainter);
   FPainter := nil;
@@ -582,30 +561,30 @@ begin
   FBits := nil;
 end;
 
-procedure TCLXBackend.Changed;
+procedure TLCLBackend.Changed;
 begin
   if FCanvas <> nil then FCanvas.Handle := Self.Painter;
   inherited;
 end;
 
-procedure TCLXBackend.CanvasChangedHandler(Sender: TObject);
+procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
 begin
   Changed;
 end;
 
-function TCLXBackend.GetPixmapChanged: Boolean;
+function TLCLBackend.GetPixmapChanged: Boolean;
 begin
   Result := FPixmapChanged;
 end;
 
-procedure TCLXBackend.SetPixmapChanged(Value: Boolean);
+procedure TLCLBackend.SetPixmapChanged(Value: Boolean);
 begin
   FPixmapChanged := Value;
 end;
 
 { TBitmap32Canvas }
 
-constructor TBitmap32Canvas.Create(Backend: TCLXBackend);
+{constructor TBitmap32Canvas.Create(Backend: TLCLBackend);
 begin
   inherited Create;
   FBackend := Backend;
@@ -624,7 +603,7 @@ begin
 
   FBackend.PixmapChanged := True; // whatever happens, we've potentially changed
                                   // the Pixmap, so propagate that status...
-end;
+end;}
 
 initialization
   StockFont := TFont.Create;
