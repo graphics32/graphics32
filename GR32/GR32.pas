@@ -473,7 +473,7 @@ type
     procedure BackendChangedHandler(Sender: TObject); virtual;
     procedure BackendChangingHandler(Sender: TObject); virtual;
 
-{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+{$IFDEF BITS_GETTER}
     function GetBits: PColor32Array;     {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
@@ -661,7 +661,7 @@ type
 
     property Backend: TBackend read FBackend write SetBackend;
 
-{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+{$IFDEF BITS_GETTER}
     property Bits: PColor32Array read GetBits;
 {$ELSE}
     property Bits: PColor32Array read FBits;
@@ -815,7 +815,7 @@ type
 
     procedure Changing; virtual;
 
-{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+{$IFDEF BITS_GETTER}
     function GetBits: PColor32Array; virtual; abstract;
 {$ENDIF}
   public
@@ -826,7 +826,7 @@ type
 
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual; abstract;
 
-{$IFDEF CLX} // TODO: change CLX to BITS_GETTER here
+{$IFDEF BITS_GETTER}
     property Bits: PColor32Array read GetBits;
 {$ELSE}
     property Bits: PColor32Array read FBits;
@@ -870,7 +870,16 @@ uses
   GR32_Blend, GR32_Transforms, GR32_Filters, GR32_LowLevel, Math, GR32_Math,
   GR32_Resamplers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
-  Clipbrd, GR32_Backends_LCL,
+  Clipbrd,
+  {$IFDEF LCLWin32}
+    GR32_Backends_LCL_Win,
+  {$ENDIF}
+  {$IF defined(LCLGtk) or defined(LCLGtk2)}
+    GR32_Backends_LCL_Gtk,
+  {$ENDIF}
+  {$IFDEF LCLCarbon}
+    GR32_Backends_LCL_Carbon,
+  {$ENDIF}
 {$ELSE}
 {$IFDEF CLX}
   QClipbrd, GR32_Backends_CLX,
