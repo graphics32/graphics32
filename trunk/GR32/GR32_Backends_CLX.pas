@@ -207,9 +207,9 @@ begin
   inherited;
 end;
 
-procedure TCLXBackend.UpdateFont;
+procedure TCLXBackend.CanvasChangedHandler(Sender: TObject);
 begin
-  FontHandle := Font.Handle;
+  Changed;
 end;
 
 procedure TCLXBackend.FontChangedHandler(Sender: TObject);
@@ -217,15 +217,94 @@ begin
   if Assigned(FontHandle) then FontHandle := nil;
 end;
 
-procedure TCLXBackend.DeleteCanvas;
+procedure TCLXBackend.CanvasChanged;
 begin
-  if FCanvas <> nil then
+  if Assigned(FOnCanvasChange) then
+    FOnCanvasChange(Self);
+end;
+
+procedure TCLXBackend.FontChanged;
+begin
+  if Assigned(FOnFontChange) then
+    FOnFontChange(Self);
+end;
+
+procedure TCLXBackend.StartPainter;
+begin
+  if (FPainterCount = 0) and not QPainter_isActive(Painter) then
+    if not QPainter_begin(Painter, Pixmap) then
+      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+
+  Inc(FPainterCount);
+end;
+
+procedure TCLXBackend.StopPainter;
+begin
+  Dec(FPainterCount);
+  If (FPainterCount = 0) then
   begin
-    FCanvas.Handle := nil;
-    FCanvas.Free;
-    FCanvas := nil;
+    QPainter_end(FPainter);
+    FPixmapChanged := True;
   end;
 end;
+
+function TCLXBackend.GetBits: PColor32Array;
+begin
+  ImageNeeded;
+  Result := FBits;
+end;
+
+procedure TCLXBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+begin
+  FImage := QImage_create(NewWidth, NewHeight, 32, 1, QImageEndian_IgnoreEndian);
+  if FImage <> nil then
+  begin
+    FBits := Pointer(QImage_bits(FImage));
+    // clear it since QT doesn't initialize the image data:
+    if ClearBuffer then
+      FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+  end;
+
+  if FBits = nil then
+    raise Exception.Create('Can''t allocate the DIB handle');
+
+  FPainter := QPainter_create;
+  if FPainter = nil then
+  begin
+    QImage_destroy(FImage);
+    FBits := nil;
+    raise Exception.Create('Can''t create compatible DC');
+  end;
+
+  FPixmap := QPixmap_create;
+end;
+
+procedure TCLXBackend.FinalizeSurface;
+begin
+  if Assigned(FPainter) then QPainter_destroy(FPainter);
+  FPainter := nil;
+  if Assigned(FImage) then QImage_destroy(FImage);
+  FImage := nil;
+  if Assigned(FPixmap) then QPixmap_destroy(FPixmap);
+  FPixmap := nil;
+  FPixmapChanged := False;
+  FPixmapActive := False;
+
+  FBits := nil;
+end;
+
+procedure TCLXBackend.Changed;
+begin
+  if FCanvas <> nil then FCanvas.Handle := Self.Painter;
+  inherited;
+end;
+
+function TCLXBackend.Empty: Boolean;
+begin
+  Result := not(Assigned(FImage) or Assigned(FPixmap) or (FBits = nil));
+end;
+
+{ IDDBContextSupport }
 
 procedure TCLXBackend.PixmapNeeded;
 begin
@@ -256,10 +335,35 @@ begin
   // else the conversion takes place as soon as the Bits property is accessed.
 end;
 
-function TCLXBackend.GetBits: PColor32Array;
+{ ICopyFromBitmapSupport }
+
+procedure TCLXBackend.CopyFromBitmap(SrcBmp: TBitmap);
 begin
-  ImageNeeded;
-  Result := FBits;
+  if not QPainter_isActive(Painter) then
+    if not QPainter_begin(Painter, Pixmap) then
+      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+
+  QPainter_drawPixmap(Painter, 0, 0, SrcBmp.Handle, 0, 0, FOwner.Width, FOwner.Height);
+  QPainter_end(Painter);
+  PixmapChanged := True;
+end;
+
+{ IQtDeviceContextSupport }
+
+function TCLXBackend.GetPixmap: QPixmapH;
+begin
+  PixmapNeeded;
+  Result := FPixmap;
+end;
+
+function TCLXBackend.GetPixmapChanged: Boolean;
+begin
+  Result := FPixmapChanged;
+end;
+
+procedure TCLXBackend.SetPixmapChanged(Value: Boolean);
+begin
+  FPixmapChanged := Value;
 end;
 
 function TCLXBackend.GetImage: QImageH;
@@ -268,36 +372,62 @@ begin
   Result := FImage;
 end;
 
-function TCLXBackend.GetPixmap: QPixmapH;
-begin
-  PixmapNeeded;
-  Result := FPixmap;
-end;
-
 function TCLXBackend.GetPainter: QPainterH;
 begin
   PixmapNeeded;
   Result := FPainter;
 end;
 
-procedure TCLXBackend.StartPainter;
+procedure TCLXBackend.Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH);
+var
+  NewMatrix: QWMatrixH;
+  SrcHeight, SrcWidth: Integer;
 begin
-  if (FPainterCount = 0) and not QPainter_isActive(Painter) then
-    if not QPainter_begin(Painter, Pixmap) then
-      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
-
-  Inc(FPainterCount);
-end;
-
-procedure TCLXBackend.StopPainter;
-begin
-  Dec(FPainterCount);
-  If (FPainterCount = 0) then
+  if Empty then Exit;
+  if not FOwner.MeasuringMode then
   begin
-    QPainter_end(FPainter);
-    FPixmapChanged := True;
+    StartPainter;
+    QPainter_saveWorldMatrix(Painter);
+    try
+      SrcWidth := SrcRect.Right - SrcRect.Left;
+      SrcHeight := SrcRect.Bottom - SrcRect.Top;
+      // use world transformation to translate and scale.
+      NewMatrix:= QWMatrix_create((DstRect.Right - DstRect.Left) / SrcWidth ,
+        0, 0, (DstRect.Bottom - DstRect.Top) / SrcHeight, DstRect.Left, DstRect.Top);
+      try
+        QPainter_setWorldMatrix(Painter, NewMatrix, True);
+        QPainter_drawPixmap(Painter, 0, 0, SrcPixmap,
+          SrcRect.Left, SrcRect.Top, SrcWidth, SrcHeight);
+      finally
+        QWMatrix_destroy(NewMatrix);
+      end;
+    finally
+      QPainter_restoreWorldMatrix(Painter);
+      StopPainter;
+    end;
   end;
+  FOwner.Changed(DstRect);
 end;
+
+procedure TCLXBackend.DrawTo(hDst: QPainterH; DstX, DstY: Integer);
+begin
+  if Empty then Exit;
+  StretchPixmap(
+    hDst, DstX, DstY, FOwner.Width, FOwner.Height,
+    0, 0, FOwner.Width, FOwner.Height, GetPixmap);
+end;
+
+procedure TCLXBackend.DrawTo(hDst: QPainterH; const DstRect, SrcRect: TRect);
+begin
+  if Empty then Exit;
+  StretchPixmap(
+    hDst,
+    DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
+    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top,
+    GetPixmap);
+end;
+
+{ ITextSupport }
 
 procedure TCLXBackend.Textout(X, Y: Integer; const Text: string);
 begin
@@ -419,107 +549,21 @@ begin
   end;
 end;
 
-function TCLXBackend.GetCanvas: TCanvas;
+{ IFontSupport }
+
+function TCLXBackend.GetOnFontChange: TNotifyEvent;
 begin
-  if FCanvas = nil then
-  begin
-    FCanvas := TBitmap32Canvas.Create(Self);
-    FCanvas.Handle := Painter;
-    FCanvas.OnChange := CanvasChangedHandler;
-  end;
-  Result := FCanvas;
+  Result := FOnFontChange;
 end;
 
-procedure TCLXBackend.DrawTo(hDst: QPainterH; DstX, DstY: Integer);
+procedure TCLXBackend.SetOnFontChange(Handler: TNotifyEvent);
 begin
-  if Empty then Exit;
-  StretchPixmap(
-    hDst, DstX, DstY, FOwner.Width, FOwner.Height,
-    0, 0, FOwner.Width, FOwner.Height, GetPixmap);
+  FOnFontChange := Handler;
 end;
 
-procedure TCLXBackend.DrawTo(hDst: QPainterH; const DstRect, SrcRect: TRect);
+procedure TCLXBackend.UpdateFont;
 begin
-  if Empty then Exit;
-  StretchPixmap(
-    hDst,
-    DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
-    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top,
-    GetPixmap);
-end;
-
-procedure TCLXBackend.Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH);
-var
-  NewMatrix: QWMatrixH;
-  SrcHeight, SrcWidth: Integer;
-begin
-  if Empty then Exit;
-  if not FOwner.MeasuringMode then
-  begin
-    StartPainter;
-    QPainter_saveWorldMatrix(Painter);
-    try
-      SrcWidth := SrcRect.Right - SrcRect.Left;
-      SrcHeight := SrcRect.Bottom - SrcRect.Top;
-      // use world transformation to translate and scale.
-      NewMatrix:= QWMatrix_create((DstRect.Right - DstRect.Left) / SrcWidth ,
-        0, 0, (DstRect.Bottom - DstRect.Top) / SrcHeight, DstRect.Left, DstRect.Top);
-      try
-        QPainter_setWorldMatrix(Painter, NewMatrix, True);
-        QPainter_drawPixmap(Painter, 0, 0, SrcPixmap,
-          SrcRect.Left, SrcRect.Top, SrcWidth, SrcHeight);
-      finally
-        QWMatrix_destroy(NewMatrix);
-      end;
-    finally
-      QPainter_restoreWorldMatrix(Painter);
-      StopPainter;
-    end;
-  end;
-  FOwner.Changed(DstRect);
-end;
-
-function TCLXBackend.CanvasAllocated: Boolean;
-begin
-  Result := Assigned(FCanvas);
-end;
-
-function TCLXBackend.Empty: Boolean;
-begin
-  Result := not(Assigned(FImage) or Assigned(FPixmap) or (FBits = nil));
-end;
-
-procedure TCLXBackend.CopyFromBitmap(SrcBmp: TBitmap);
-begin
-  if not QPainter_isActive(Painter) then
-    if not QPainter_begin(Painter, Pixmap) then
-      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
-      
-  QPainter_drawPixmap(Painter, 0, 0, SrcBmp.Handle, 0, 0, FOwner.Width, FOwner.Height);
-  QPainter_end(Painter);
-  PixmapChanged := True;
-end;
-
-procedure TCLXBackend.CanvasChanged;
-begin
-  if Assigned(FOnCanvasChange) then
-    FOnCanvasChange(Self);
-end;
-
-procedure TCLXBackend.FontChanged;
-begin
-  if Assigned(FOnFontChange) then
-    FOnFontChange(Self);
-end;
-
-function TCLXBackend.GetCanvasChange: TNotifyEvent;
-begin
-  Result := FOnCanvasChange;
-end;
-
-procedure TCLXBackend.SetCanvasChange(Handler: TNotifyEvent);
-begin
-  FOnCanvasChange := Handler;
+  FontHandle := Font.Handle;
 end;
 
 function TCLXBackend.GetFont: TFont;
@@ -533,74 +577,42 @@ begin
   FontChanged;
 end;
 
-function TCLXBackend.GetOnFontChange: TNotifyEvent;
-begin
-  Result := FOnFontChange;
-end;
+{ ICanvasSupport }
 
-procedure TCLXBackend.SetOnFontChange(Handler: TNotifyEvent);
+procedure TCLXBackend.DeleteCanvas;
 begin
-  FOnFontChange := Handler;
-end;
-
-procedure TCLXBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
-begin
-  FImage := QImage_create(NewWidth, NewHeight, 32, 1, QImageEndian_IgnoreEndian);
-  if FImage <> nil then
+  if FCanvas <> nil then
   begin
-    FBits := Pointer(QImage_bits(FImage));
-    // clear it since QT doesn't initialize the image data:
-    if ClearBuffer then
-      FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+    FCanvas.Handle := nil;
+    FCanvas.Free;
+    FCanvas := nil;
   end;
+end;
 
-  if FBits = nil then
-    raise Exception.Create('Can''t allocate the DIB handle');
-
-  FPainter := QPainter_create;
-  if FPainter = nil then
+function TCLXBackend.GetCanvas: TCanvas;
+begin
+  if FCanvas = nil then
   begin
-    QImage_destroy(FImage);
-    FBits := nil;
-    raise Exception.Create('Can''t create compatible DC');
+    FCanvas := TBitmap32Canvas.Create(Self);
+    FCanvas.Handle := Painter;
+    FCanvas.OnChange := CanvasChangedHandler;
   end;
-
-  FPixmap := QPixmap_create;
+  Result := FCanvas;
 end;
 
-procedure TCLXBackend.FinalizeSurface;
+function TCLXBackend.CanvasAllocated: Boolean;
 begin
-  if Assigned(FPainter) then QPainter_destroy(FPainter);
-  FPainter := nil;
-  if Assigned(FImage) then QImage_destroy(FImage);
-  FImage := nil;
-  if Assigned(FPixmap) then QPixmap_destroy(FPixmap);
-  FPixmap := nil;
-  FPixmapChanged := False;
-  FPixmapActive := False;
-
-  FBits := nil;
+  Result := Assigned(FCanvas);
 end;
 
-procedure TCLXBackend.Changed;
+function TCLXBackend.GetCanvasChange: TNotifyEvent;
 begin
-  if FCanvas <> nil then FCanvas.Handle := Self.Painter;
-  inherited;
+  Result := FOnCanvasChange;
 end;
 
-procedure TCLXBackend.CanvasChangedHandler(Sender: TObject);
+procedure TCLXBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
-  Changed;
-end;
-
-function TCLXBackend.GetPixmapChanged: Boolean;
-begin
-  Result := FPixmapChanged;
-end;
-
-procedure TCLXBackend.SetPixmapChanged(Value: Boolean);
-begin
-  FPixmapChanged := Value;
+  FOnCanvasChange := Handler;
 end;
 
 { TBitmap32Canvas }
