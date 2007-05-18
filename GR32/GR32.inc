@@ -109,8 +109,9 @@
     Note: don't change this to compile for other targets than x86 - configure
     FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
 
-  {.$DEFINE PUREPASCAL}
-
+{$IFDEF FPC}
+  {$DEFINE PUREPASCAL}
+{$ENDIF}
 
 {$IFDEF FPC}
   {$DEFINE COMPILER4}
