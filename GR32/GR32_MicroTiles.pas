@@ -287,7 +287,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
-procedure MicroTileUnion_MMX(var DstTile: TMicroTile; const SrcTile: TMicroTile);
+procedure MicroTileUnion_EMMX(var DstTile: TMicroTile; const SrcTile: TMicroTile);
 var
   SrcLeft, SrcTop, SrcRight, SrcBottom: Integer;
 begin
@@ -700,7 +700,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
-procedure MicroTilesUnion_MMX(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
+procedure MicroTilesUnion_EMMX(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 var
   SrcTilePtr, DstTilePtr: PMicroTile;
   SrcTilePtr2, DstTilePtr2: PMicroTile;
@@ -1703,12 +1703,12 @@ const
 
   MicroTileUnionProcs : array [0..1] of TFunctionInfo = (
     (Address : @MicroTileUnion_Pas; Requires: []),
-    (Address : @MicroTileUnion_MMX; Requires: [ciMMX])
+    (Address : @MicroTileUnion_EMMX; Requires: [ciEMMX])
   );
 
   MicroTilesUProcs : array [0..1] of TFunctionInfo = (
     (Address : @MicroTilesUnion_Pas; Requires: []),
-    (Address : @MicroTilesUnion_MMX; Requires: [ciMMX])
+    (Address : @MicroTilesUnion_EMMX; Requires: [ciEMMX])
   );
 
 {$ELSE}
