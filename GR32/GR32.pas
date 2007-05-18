@@ -876,7 +876,7 @@ uses
   {$ENDIF}
   {$IF defined(LCLGtk) or defined(LCLGtk2)}
     GR32_Backends_LCL_Gtk,
-  {$ENDIF}
+  {$IFEND}
   {$IFDEF LCLCarbon}
     GR32_Backends_LCL_Carbon,
   {$ENDIF}
