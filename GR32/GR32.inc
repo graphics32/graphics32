@@ -133,7 +133,7 @@
   {$ENDIF}
 
   // Widgetsets other then Windows will want to implement BITS_GETTER
-  {$IFNDEF Windows}
+  {$IFNDEF LCLWin32}
     {$DEFINE BITS_GETTER}
   {$ENDIF}
 
