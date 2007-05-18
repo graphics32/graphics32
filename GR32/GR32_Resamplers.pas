@@ -55,8 +55,8 @@ procedure BlockTransferX(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
 procedure StretchTransfer(
-  Dst: TCustomBitmap32; const DstRect: TRect; DstClip: TRect;
-  Src: TCustomBitmap32; const SrcRect: TRect;
+  Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
+  Src: TCustomBitmap32; SrcRect: TRect;
   Resampler: TCustomResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
@@ -787,16 +787,6 @@ procedure CheckBitmaps(Dst, Src: TCustomBitmap32); {$IFDEF USEINLINING}inline;{$
 begin
   if not Assigned(Dst) then raise EBitmapException.Create(SDstNil);
   if not Assigned(Src) then raise EBitmapException.Create(SSrcNil);
-end;
-
-function CheckSrcRect(Src: TCustomBitmap32; const SrcRect: TRect): Boolean;
-begin
-  Result := False;
-  if IsRectEmpty(SrcRect) then Exit;
-  if (SrcRect.Left < 0) or (SrcRect.Right > Src.Width) or
-    (SrcRect.Top < 0) or (SrcRect.Bottom > Src.Height) then
-    raise ESrcInvalidException.Create(SSrcInvalid);
-  Result := True;
 end;
 
 procedure BlendBlock(
@@ -2184,22 +2174,57 @@ end;
 
 {$WARNINGS OFF}
 procedure StretchTransfer(
-  Dst: TCustomBitmap32; const DstRect: TRect; DstClip: TRect;
-  Src: TCustomBitmap32; const SrcRect: TRect;
+  Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
+  Src: TCustomBitmap32; SrcRect: TRect;
   Resampler: TCustomResampler;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
   SrcW, SrcH: Integer;
   DstW, DstH: Integer;
   R: TRect;
+  RatioX, RatioY: Single;
+  Temp: Integer;
 begin
   CheckBitmaps(Dst, Src);
-  if Src.Empty or Dst.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) or
-    not CheckSrcRect(Src, SrcRect) then Exit;
+
+  // transform dest rect when the src rect is out of the src bitmap's bounds
+  if (SrcRect.Left < 0) or (SrcRect.Right > Src.Width) or
+    (SrcRect.Top < 0) or (SrcRect.Bottom > Src.Height) then
+  begin
+    RatioX := (DstRect.Right - DstRect.Left) / (SrcRect.Right - SrcRect.Left);
+    RatioY := (DstRect.Bottom - DstRect.Top) / (SrcRect.Bottom - SrcRect.Top);
+
+    if SrcRect.Left < 0 then
+    begin
+      DstRect.Left := DstRect.Left + Ceil(-SrcRect.Left * RatioX);
+      SrcRect.Left := 0;
+    end;
+
+    if SrcRect.Top < 0 then
+    begin
+      DstRect.Top := DstRect.Top + Ceil(-SrcRect.Top * RatioY);
+      SrcRect.Top := 0;
+    end;
+
+    if SrcRect.Right > Src.Width then
+    begin
+      DstRect.Right := DstRect.Right - Floor((SrcRect.Right - Src.Width) * RatioX);
+      SrcRect.Right := Src.Width;
+    end;
+
+    if SrcRect.Bottom > Src.Height then
+    begin
+      DstRect.Bottom := DstRect.Bottom - Floor((SrcRect.Bottom - Src.Height) * RatioY);
+      SrcRect.Bottom := Src.Height;
+    end;
+  end;
+
+  if Src.Empty or Dst.Empty or
+    ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) or IsRectEmpty(SrcRect) then Exit;
 
   if not Dst.MeasuringMode then
   begin
-    IntersectRect(DstClip, DstClip, MakeRect(0, 0, Dst.Width, Dst.Height));
+    IntersectRect(DstClip, DstClip, Dst.BoundsRect);
     IntersectRect(DstClip, DstClip, DstRect);
     if IsRectEmpty(DstClip) then Exit;
     IntersectRect(R, DstClip, DstRect);
