@@ -190,7 +190,42 @@ type
     property Items[Index: Integer]: TClass read GetItems write SetItems; default;
   end;
 
+
+  PLinkedNode = ^TLinkedNode;
+  TLinkedNode = record
+    Prev: PLinkedNode;
+    Next: PLinkedNode;
+    Data: Pointer;
+  end;
+
+  TIteratorProc = procedure(Node: PLinkedNode; Index: Integer);
+
+  { TLinkedList }
+  { A class for maintaining a linked list }
+  TLinkedList = class
+   private
+     FCount: Integer;
+     FHead: PLinkedNode;
+     FTail: PLinkedNode;
+   public
+     destructor Destroy; override;
+     function Add: PLinkedNode;
+     procedure Remove(Node: PLinkedNode);
+     function IndexOf(Node: PLinkedNode): Integer;
+     function GetNode(Index: Integer): PLinkedNode;
+     procedure Exchange(Node1, Node2: PLinkedNode);
+     procedure InsertBefore(Node, NewNode: PLinkedNode);
+     procedure InsertAfter(Node, NewNode: PLinkedNode);
+     procedure Clear;
+     procedure IterateList(CallBack: TIteratorProc);
+     property Head: PLinkedNode read FHead write FHead;
+     property Tail: PLinkedNode read FTail write FTail;
+     property Count: Integer read FCount write FCount;
+   end;
+
+
 procedure SmartAssign(Src, Dst: TPersistent; TypeKinds: TTypeKinds = tkProperties);
+procedure Advance(var Node: PLinkedNode; Steps: Integer = 1);
 
 implementation
 
@@ -228,6 +263,27 @@ begin
     FreeMem(Props, Count * SizeOf(PPropInfo));
   end;
 end;
+
+procedure Advance(var Node: PLinkedNode; Steps: Integer);
+begin
+  if Steps > 0 then
+  begin
+    while Assigned(Node) and (Steps > 0) do
+    begin
+      Dec(Steps);
+      Node := Node.Next;
+    end;
+  end
+  else
+  begin
+    while Assigned(Node) and (Steps < 0) do
+    begin
+      Inc(Steps);
+      Node := Node.Prev;
+    end;
+  end;
+end;
+
 
 { TPointerMap }
 
@@ -639,6 +695,125 @@ end;
 procedure TClassList.SetItems(Index: Integer; AClass: TClass);
 begin
   inherited Items[Index] := AClass;
+end;
+
+{ TLinkedList }
+
+function TLinkedList.Add: PLinkedNode;
+begin
+  New(Result);
+  Result.Data := nil;
+  Result.Next := nil;
+  Result.Prev := nil;
+  InsertAfter(FTail, Result);
+end;
+
+procedure TLinkedList.Clear;
+var
+  P, NextP: PLinkedNode;
+begin
+  P := Head;
+  while Assigned(P) do
+  begin
+    NextP := P.Next;
+    Dispose(P);
+    P := NextP;
+  end;
+  Head := nil;
+  Tail := nil;
+  Count := 0;
+end;
+
+destructor TLinkedList.Destroy;
+begin
+  Clear;
+end;
+
+procedure TLinkedList.Exchange(Node1, Node2: PLinkedNode);
+begin
+  if Assigned(Node1) and Assigned(Node2) and (Node1 <> Node2) then
+  begin
+    if Assigned(Node1.Prev) then Node1.Prev.Next := Node2;
+    if Assigned(Node1.Next) then Node1.Next.Prev := Node2;
+    if Assigned(Node2.Prev) then Node2.Prev.Next := Node1;
+    if Assigned(Node2.Next) then Node2.Next.Prev := Node1;
+    if Head = Node1 then Head := Node2 else if Head = Node2 then Head := Node1;
+    if Tail = Node1 then Tail := Node2 else if Tail = Node2 then Tail := Node1;
+    Swap(Integer(Node1.Next), Integer(Node2.Next));
+    Swap(Integer(Node1.Prev), Integer(Node2.Prev));
+  end;
+end;
+
+function TLinkedList.GetNode(Index: Integer): PLinkedNode;
+begin
+  Result := Head;
+  Advance(Result, Index);
+end;
+
+function TLinkedList.IndexOf(Node: PLinkedNode): Integer;
+var
+  I: Integer;
+  P: PLinkedNode;
+begin
+  Result := -1;
+  P := Head;
+  for I := 0 to Count - 1 do
+  begin
+    if P = Node then
+    begin
+      Result := I;
+      Exit;
+    end;
+    P := P.Next;
+  end;
+end;
+
+procedure TLinkedList.InsertAfter(Node, NewNode: PLinkedNode);
+begin
+  if Assigned(Node) and Assigned(NewNode) then
+  begin
+    if Assigned(Node.Next) then Node.Next.Prev := NewNode;
+    Node.Next := NewNode;
+    if Node = Tail then Tail := NewNode;
+    Inc(FCount);
+  end;
+end;
+
+procedure TLinkedList.InsertBefore(Node, NewNode: PLinkedNode);
+begin
+  if Assigned(Node) and Assigned(NewNode) then
+  begin
+    if Assigned(Node.Prev) then Node.Prev.Next := NewNode;
+    Node.Prev := NewNode;
+    if Node = Head then Head := NewNode;
+    Inc(FCount);
+  end;
+end;
+
+procedure TLinkedList.IterateList(CallBack: TIteratorProc);
+var
+  I: Integer;
+  P: PLinkedNode;
+begin
+  P := Head;
+  for I := 0 to Count - 1 do
+  begin
+    CallBack(P, I);
+    P := P.Next;
+  end;
+end;
+
+procedure TLinkedList.Remove(Node: PLinkedNode);
+begin
+  if Assigned(Node) then
+  begin
+    if Assigned(Node.Prev) then Node.Prev.Next := Node.Next;
+    if Assigned(Node.Next) then Node.Next.Prev := Node.Prev;
+    if Node = Head then Head := Node.Next;
+    if Node = Tail then Tail := Node.Prev;
+    Dispose(Node);
+    Dec(FCount);
+  end;
 end;
 
 end.
