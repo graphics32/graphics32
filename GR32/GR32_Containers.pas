@@ -200,6 +200,8 @@ type
 
   TIteratorProc = procedure(Node: PLinkedNode; Index: Integer);
 
+  TFreeDataEvent = procedure(Data: Pointer) of object;
+
   { TLinkedList }
   { A class for maintaining a linked list }
   TLinkedList = class
@@ -207,6 +209,9 @@ type
      FCount: Integer;
      FHead: PLinkedNode;
      FTail: PLinkedNode;
+     FOnFreeData: TFreeDataEvent;
+   protected
+     procedure DoFreeData(Data: Pointer); virtual;
    public
      destructor Destroy; override;
      function Add: PLinkedNode;
@@ -221,6 +226,7 @@ type
      property Head: PLinkedNode read FHead write FHead;
      property Tail: PLinkedNode read FTail write FTail;
      property Count: Integer read FCount write FCount;
+     property OnFreeData: TFreeDataEvent read FOnFreeData write FOnFreeData;
    end;
 
 
@@ -716,6 +722,7 @@ begin
   while Assigned(P) do
   begin
     NextP := P.Next;
+    DoFreeData(P.Data);
     Dispose(P);
     P := NextP;
   end;
@@ -727,6 +734,11 @@ end;
 destructor TLinkedList.Destroy;
 begin
   Clear;
+end;
+
+procedure TLinkedList.DoFreeData(Data: Pointer);
+begin
+  if Assigned(FOnFreeData) then FOnFreeData(Data);
 end;
 
 procedure TLinkedList.Exchange(Node1, Node2: PLinkedNode);
@@ -807,6 +819,7 @@ procedure TLinkedList.Remove(Node: PLinkedNode);
 begin
   if Assigned(Node) then
   begin
+    DoFreeData(Node.Data);
     if Assigned(Node.Prev) then Node.Prev.Next := Node.Next;
     if Assigned(Node.Next) then Node.Next.Prev := Node.Prev;
     if Node = Head then Head := Node.Next;
