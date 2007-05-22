@@ -1777,7 +1777,8 @@ end;
 
 procedure TCustomBitmap32.FinalizeBackend;
 begin
-  FreeAndNil(FBackend);
+  FBackend.Free;
+  FBackend := nil;
 end;
 
 function TCustomBitmap32.QueryInterface(const IID: TGUID; out Obj): HResult;
