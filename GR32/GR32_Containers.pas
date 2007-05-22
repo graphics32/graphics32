@@ -784,6 +784,8 @@ procedure TLinkedList.InsertAfter(Node, NewNode: PLinkedNode);
 begin
   if Assigned(Node) and Assigned(NewNode) then
   begin
+    NewNode.Prev := Node;
+    NewNode.Next := Node.Next;
     if Assigned(Node.Next) then Node.Next.Prev := NewNode;
     Node.Next := NewNode;
     if Node = Tail then Tail := NewNode;
@@ -795,6 +797,8 @@ procedure TLinkedList.InsertBefore(Node, NewNode: PLinkedNode);
 begin
   if Assigned(Node) and Assigned(NewNode) then
   begin
+    NewNode.Next := Node;
+    NewNode.Prev := Node.Prev;
     if Assigned(Node.Prev) then Node.Prev.Next := NewNode;
     Node.Prev := NewNode;
     if Node = Head then Head := NewNode;
