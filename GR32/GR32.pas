@@ -2026,6 +2026,7 @@ begin
     else
     begin
       Dec(I);
+      I := I * 4;
       while I >= 0 do
       begin
         P[I] := AlphaValue;
