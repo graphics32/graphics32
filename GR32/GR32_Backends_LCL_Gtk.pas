@@ -35,31 +35,26 @@ uses
 {$IFDEF LCLGtk2}
   gdk2, gtk2, gdk2pixbuf, glib2,
 {$ELSE}
-  gdk, gtk, gdkpixbuf, glib,
+  gdk, gtk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
   Graphics, GR32, GR32_Backends;
 
 type
 
+  { TLCLBackend }
+
   TLCLBackend = class(TCustomBackend,
-    ICopyFromBitmapSupport, ICanvasSupport, ITextSupport, IFontSupport)
+    ICopyFromBitmapSupport, ITextSupport, IFontSupport, ICanvasSupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
-    
-    { Gtk specific variables }
-    FPixbuf: PGdkPixBuf;
-//    FPainterCount: Integer;
-//    FPixmapActive: Boolean;
-//    FPixmapChanged: Boolean;
-
     FOnFontChange: TNotifyEvent;
     FOnCanvasChange: TNotifyEvent;
 
-    procedure CanvasChangedHandler(Sender: TObject);
+    { Gtk specific variables }
+    FPixbuf: PGdkPixBuf;
+
     procedure FontChangedHandler(Sender: TObject);
-    procedure CanvasChanged;
-    procedure FontChanged;
   protected
     FontHandle: HFont;
 
@@ -138,14 +133,9 @@ begin
   inherited;
 end;
 
-procedure TLCLBackend.DeleteCanvas;
+procedure TLCLBackend.FontChangedHandler(Sender: TObject);
 begin
-  if FCanvas <> nil then
-  begin
-    FCanvas.Handle := 0;
-    FCanvas.Free;
-    FCanvas := nil;
-  end;
+  FontHandle := 0;
 end;
 
 function TLCLBackend.GetBits: PColor32Array;
@@ -163,7 +153,7 @@ begin
   FBits := GetMem(NewHeight * Stride);
 
   if FBits = nil then
-    raise Exception.Create('Can''t allocate the memory for the DIB');
+    raise Exception.Create('Can''t allocate memory for the DIB');
 
   { We didn't pass a memory freeing function, so we will have to take
     care of that ourselves }
@@ -273,7 +263,6 @@ end;
 procedure TLCLBackend.SetFont(const Font: TFont);
 begin
   FFont.Assign(Font);
-  FontChanged;
 end;
 
 procedure TLCLBackend.UpdateFont;
@@ -281,54 +270,31 @@ begin
   FontHandle := Font.Handle;
 end;
 
-procedure TLCLBackend.FontChangedHandler(Sender: TObject);
-begin
-  FontHandle := 0;
-end;
-
-procedure TLCLBackend.FontChanged;
-begin
-  if Assigned(FOnFontChange) then
-    FOnFontChange(Self);
-end;
-
 { ICanvasSupport }
 
 function TLCLBackend.GetCanvasChange: TNotifyEvent;
 begin
-  Result := FOnCanvasChange;
+  Exit;
 end;
 
 procedure TLCLBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
-  FOnCanvasChange := Handler;
-end;
-
-procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
-begin
-  Changed;
+  Exit;
 end;
 
 function TLCLBackend.GetCanvas: TCanvas;
 begin
-  if FCanvas = nil then
-  begin
-    FCanvas := TCanvas.Create;
-//    FCanvas.Handle := Painter;
-//    FCanvas.OnChange := CanvasChangedHandler;
-  end;
-  Result := FCanvas;
+  Exit;
+end;
+
+procedure TLCLBackend.DeleteCanvas;
+begin
+  Exit;
 end;
 
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
-  Result := Assigned(FCanvas);
-end;
-
-procedure TLCLBackend.CanvasChanged;
-begin
-  if Assigned(FOnCanvasChange) then
-    FOnCanvasChange(Self);
+  Exit;
 end;
 
 initialization
