@@ -433,10 +433,8 @@ end;
 function Sign(Value: Integer): Integer;
 {$IFNDEF TARGET_x86}
 begin
-  if Value < 0 then
-  	Result := -1
-  else 
-  	Result := 1;
+  //Assumes 32 bit integer
+  Result := (- Value) shr 31 - (Value shr 31);
 {$ELSE}
 asm
         CDQ
