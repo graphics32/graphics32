@@ -31,7 +31,8 @@ interface
 {$I GR32.inc}
 
 uses
-  SysUtils, Classes, Windows, Graphics, GR32, GR32_Backends;
+  SysUtils, Classes, Windows, Graphics, GR32, GR32_Backends, GR32_Containers,
+  GR32_Image;
 
 type
   { TGDIBackend }
@@ -39,7 +40,7 @@ type
     It uses the GDI to manage and provide the buffer and additional
     graphics sub system features. The backing buffer is kept in memory. }
 
-  TGDIBackend = class(TCustomBackend,
+  TGDIBackend = class(TCustomBackend, IPaintSupport,
     ICopyFromBitmapSupport, IBitmapContextSupport,
     IDeviceContextSupport, ITextSupport, IFontSupport, ICanvasSupport)
   private
@@ -71,6 +72,11 @@ type
 
     function Empty: Boolean; override;
   public
+    { IPaintSupport }
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
     { ICopyFromBitmapSupport }
     procedure CopyFromBitmap(SrcBmp: TBitmap);
 
@@ -525,6 +531,32 @@ end;
 procedure TGDIBackend.CanvasChangedHandler(Sender: TObject);
 begin
   CanvasChanged;
+end;
+
+{ IPaintSupport }
+
+procedure TGDIBackend.ImageNeeded;
+begin
+
+end;
+
+procedure TGDIBackend.CheckPixmap;
+begin
+
+end;
+
+procedure TGDIBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
+  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  i: Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      with AInvalidRects[i]^ do
+        BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
+  else
+    with APaintBox.GetViewportRect do
+      BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
 end;
 
 { TGDIMMFBackend }

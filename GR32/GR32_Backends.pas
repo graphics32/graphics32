@@ -43,7 +43,7 @@ uses
     Windows, Messages, Controls, Graphics,
   {$ENDIF}
 {$ENDIF}
-  Classes, SysUtils, GR32;
+  Classes, SysUtils, GR32, GR32_Containers, GR32_Image;
   
 type
   ITextSupport = interface
@@ -109,11 +109,11 @@ type
     procedure CopyFromBitmap(SrcBmp: TBitmap);
   end;
 
-  IDDBContextSupport = interface
+  IPaintSupport = interface
   ['{CE64DBEE-C4A9-4E8E-ABCA-1B1FD6F45924}']
-    procedure PixmapNeeded;
     procedure ImageNeeded;
     procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
   end;
 
   { TCustomBackend }

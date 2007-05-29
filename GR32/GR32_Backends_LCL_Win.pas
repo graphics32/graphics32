@@ -32,14 +32,14 @@ interface
 
 uses
   LCLIntf, LCLType, types, Controls, SysUtils, Classes,
-  Graphics, GR32, GR32_Backends;
+  Graphics, GR32, GR32_Backends, GR32_Containers, GR32_Image;
 
 type
   { TLCLBackend }
   { This backend uses the LCL to manage and provide the buffer and additional
     graphics sub system features. The backing buffer is kept in memory. }
 
-  TLCLBackend = class(TCustomBackend,
+  TLCLBackend = class(TCustomBackend, IPaintSupport,
     ICopyFromBitmapSupport, IBitmapContextSupport,
     IDeviceContextSupport, ITextSupport, IFontSupport, ICanvasSupport)
   private
@@ -72,6 +72,11 @@ type
 
     function Empty: Boolean; override;
   public
+    { IPaintSupport }
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
     { ICopyFromBitmapSupport }
     procedure CopyFromBitmap(SrcBmp: TBitmap);
 
@@ -525,6 +530,32 @@ end;
 procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
 begin
   CanvasChanged;
+end;
+
+{ IPaintSupport }
+
+procedure TLCLBackend.ImageNeeded;
+begin
+
+end;
+
+procedure TLCLBackend.CheckPixmap;
+begin
+
+end;
+
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
+  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  i: Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      with AInvalidRects[i]^ do
+        BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
+  else
+    with APaintBox.GetViewportRect do
+      BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
 end;
 
 initialization

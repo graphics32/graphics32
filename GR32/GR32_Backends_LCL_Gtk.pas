@@ -37,7 +37,7 @@ uses
 {$ELSE}
   gdk, gtk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
-  Graphics, GR32, GR32_Backends;
+  Graphics, GR32, GR32_Backends, GR32_Containers, GR32_Image;
 
 type
 
@@ -72,6 +72,11 @@ type
 
     function Empty: Boolean; override;
   public
+    { IPaintSupport }
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
     { ICopyFromBitmapSupport }
     procedure CopyFromBitmap(SrcBmp: TBitmap);
 
@@ -190,6 +195,24 @@ end;
 function TLCLBackend.Empty: Boolean;
 begin
   Result := (FPixBuf = nil) or (FBits = nil);
+end;
+
+{ IPaintSupport }
+
+procedure TLCLBackend.ImageNeeded;
+begin
+
+end;
+
+procedure TLCLBackend.CheckPixmap;
+begin
+
+end;
+
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
+  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+begin
+
 end;
 
 { ICopyFromBitmapSupport }
