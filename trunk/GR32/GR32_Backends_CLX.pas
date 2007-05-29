@@ -32,7 +32,7 @@ interface
 
 uses
   SysUtils, Classes, Qt, Types, QConsts, QGraphics, QControls,
-  GR32, GR32_Backends;
+  GR32, GR32_Backends, GR32_Containers, GR32_Image;
 
 type
   IQtDeviceContextSupport = interface
@@ -53,7 +53,7 @@ type
     property Painter: QPainterH read GetPainter;
   end;
 
-  TCLXBackend = class(TCustomBackend, IDDBContextSupport,
+  TCLXBackend = class(TCustomBackend, IPaintSupport,
     ICopyFromBitmapSupport, ICanvasSupport, ITextSupport, IFontSupport,
     IQtDeviceContextSupport)
   private
@@ -90,13 +90,14 @@ type
 
     procedure Changed; override;
 
+    procedure PixmapNeeded;
     function Empty: Boolean; override;
   public
-    { IDDBContextSupport }
-    procedure PixmapNeeded;
+    { IPaintSupport }
     procedure ImageNeeded;
     procedure CheckPixmap;
-
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    
     { ICopyFromBitmapSupport }
     procedure CopyFromBitmap(SrcBmp: TBitmap);
 
@@ -299,13 +300,6 @@ begin
   inherited;
 end;
 
-function TCLXBackend.Empty: Boolean;
-begin
-  Result := not(Assigned(FImage) or Assigned(FPixmap) or (FBits = nil));
-end;
-
-{ IDDBContextSupport }
-
 procedure TCLXBackend.PixmapNeeded;
 begin
   if Assigned(FPixmap) and Assigned(FImage) and not FPixmapActive then
@@ -315,6 +309,13 @@ begin
     FPixmapChanged := False;
   end;
 end;
+
+function TCLXBackend.Empty: Boolean;
+begin
+  Result := not(Assigned(FImage) or Assigned(FPixmap) or (FBits = nil));
+end;
+
+{ IPaintSupport }
 
 procedure TCLXBackend.ImageNeeded;
 begin
@@ -333,6 +334,29 @@ begin
     // try to avoid QPixmap -> QImage conversion, since we don't need that.
     FPixmapActive := False;
   // else the conversion takes place as soon as the Bits property is accessed.
+end;
+
+{ The code was located on TCustomPaintBox32.Paint
+  TODO: Make sure it actually works }
+procedure TCLXBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  i: Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      with AInvalidRects[i]^ do
+        QPainter_drawImage(ACanvas.Handle, ALeft, ATop, ABuffer.Image, ALeft, ATop, ARight - ALeft, ABottom - ATop)
+  else
+  begin
+    if not QPainter_isActive(ABuffer.Handle) then
+      if not QPainter_begin(ABuffer.Handle, ABuffer.Pixmap) then
+        raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
+
+    with APaintBox.GetViewportRect do
+      QPainter_drawPixmap(ACanvas.Handle, ALeft, ATop, ABuffer.Pixmap, ALeft, ATop, ARight - ALeft, ABottom - ATop);
+
+    QPainter_end(ACanvas.Handle);
+  end;
 end;
 
 { ICopyFromBitmapSupport }

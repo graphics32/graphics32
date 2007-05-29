@@ -923,8 +923,6 @@ end;
 {$ENDIF}
 
 procedure TCustomPaintBox32.Paint;
-var
-  I: Integer;
 begin
   if FRepaintOptimizer.Enabled then
   begin
@@ -936,43 +934,15 @@ begin
 
   if not FBufferValid then
   begin
-{$IFDEF CLX}
-    (FBuffer as IDDBContextSupport).ImageNeeded;
-{$ENDIF}
+    (FBuffer as IPaintSupport).ImageNeeded;
     DoPaintBuffer;
-{$IFDEF CLX}
-    (FBuffer as IDDBContextSupport).CheckPixmap;
-{$ENDIF}
+    (FBuffer as IPaintSupport).CheckPixmap;
   end;
 
   FBuffer.Lock;
   with Canvas do
   try
-{$IFDEF CLX}
-    if FInvalidRects.Count > 0 then
-      for i := 0 to FInvalidRects.Count - 1 do
-        with FInvalidRects[i]^ do
-          QPainter_drawImage(Canvas.Handle, Left, Top, FBuffer.Image, Left, Top, Right - Left, Bottom - Top)
-    else
-    begin
-      if not QPainter_isActive(FBuffer.Handle) then
-        if not QPainter_begin(FBuffer.Handle, FBuffer.Pixmap) then
-          raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
-
-      with GetViewportRect do
-        QPainter_drawPixmap(Canvas.Handle, Left, Top, FBuffer.Pixmap, Left, Top, Right - Left, Bottom - Top);
-
-      QPainter_end(FBuffer.Handle);
-    end;
-{$ELSE}
-    if FInvalidRects.Count > 0 then
-      for i := 0 to FInvalidRects.Count - 1 do
-        with FInvalidRects[i]^ do
-          BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY)
-    else
-      with GetViewportRect do
-        BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
-{$ENDIF}
+    (FBuffer as IPaintSupport).DoPaint(FBuffer, FInvalidRects, Canvas, Self);
   finally
     FBuffer.Unlock;
   end;
