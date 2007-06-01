@@ -304,7 +304,7 @@ type
     procedure BeginUpdate; virtual;
     function  BitmapToControl(const APoint: TPoint): TPoint;
     procedure Changed; virtual;
-    procedure Update(const Rect: TRect); virtual;
+    procedure Update(const Rect: TRect); overload; virtual;
     function  ControlToBitmap(const APoint: TPoint): TPoint;
     procedure EndUpdate; virtual;
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
@@ -1063,9 +1063,13 @@ begin
       // no invalid rects available? Invalidate the whole client area
       InvalidateRect(Handle, nil, False);
   end;
-
+  
+  {$IFDEF FPC}
   { On FPC we need to specify the name of the ancestor here }
   inherited WMPaint(Message);
+  {$ELSE}
+  inherited;
+  {$ENDIF}
 end;
 {$ENDIF}
 
