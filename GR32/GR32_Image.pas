@@ -105,7 +105,7 @@ type
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TLMessage); message LM_GETDLGCODE;
-    procedure WMPaint(var Message: TLMessage); message LM_PAINT;
+    procedure WMPaint(var Message: TLMPaint); message LM_PAINT;
     procedure CMMouseEnter(var Message: TLMessage); message LM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TLMessage); message LM_MOUSELEAVE;
     procedure CMInvalidate(var Message: TLMessage); message CM_INVALIDATE;
@@ -934,15 +934,15 @@ begin
 
   if not FBufferValid then
   begin
-    (FBuffer as IPaintSupport).ImageNeeded;
+    (FBuffer.Backend as IPaintSupport).ImageNeeded;
     DoPaintBuffer;
-    (FBuffer as IPaintSupport).CheckPixmap;
+    (FBuffer.Backend as IPaintSupport).CheckPixmap;
   end;
 
   FBuffer.Lock;
   with Canvas do
   try
-    (FBuffer as IPaintSupport).DoPaint(FBuffer, FInvalidRects, Canvas, Self);
+    (FBuffer.Backend as IPaintSupport).DoPaint(FBuffer, FInvalidRects, Canvas, Self);
   finally
     FBuffer.Unlock;
   end;
@@ -1051,7 +1051,7 @@ begin
     Result:= Result and not DLGC_WANTARROWS;
 end;
 
-procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
+procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMPaint{$ELSE}TMessage{$ENDIF});
 begin
   if CustomRepaint then
   begin
@@ -1063,8 +1063,13 @@ begin
       // no invalid rects available? Invalidate the whole client area
       InvalidateRect(Handle, nil, False);
   end;
-
+  
+  {$IFDEF FPC}
+  { On FPC we need to specify the name of the ancestor here }
+  inherited WMPaint(Message);
+  {$ELSE}
   inherited;
+  {$ENDIF}
 end;
 {$ENDIF}
 
