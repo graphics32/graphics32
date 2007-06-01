@@ -44,7 +44,8 @@ type
   { TLCLBackend }
 
   TLCLBackend = class(TCustomBackend,
-    ICopyFromBitmapSupport, ITextSupport, IFontSupport, ICanvasSupport)
+    IPaintSupport, ICopyFromBitmapSupport, ITextSupport, IFontSupport,
+    ICanvasSupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
@@ -212,7 +213,21 @@ end;
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 begin
+  WriteLn('[TLCLBackend.DoPaint]');
 
+{  gdk_pixbuf_render_to_drawable(
+    FPixbuf,
+    TDeviceContext(ACanvas.Handle).Drawable,
+    TDeviceContext(ACanvas.Handle).GetGC,
+    0,                     // src_x
+    0,                     // src_y
+    0,                     // dest_x
+    0,                     // dest_y
+    ABuffer.Width,         // width
+    ABuffer.Height,        // height
+    GDK_RGB_DITHER_NORMAL, // dither
+    0,                     // x_dither
+    0);    }                // y_dither
 end;
 
 { ICopyFromBitmapSupport }
