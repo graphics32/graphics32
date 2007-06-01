@@ -1063,13 +1063,9 @@ begin
       // no invalid rects available? Invalidate the whole client area
       InvalidateRect(Handle, nil, False);
   end;
-  
-  {$IFDEF FPC}
+
   { On FPC we need to specify the name of the ancestor here }
   inherited WMPaint(Message);
-  {$ELSE}
-  inherited;
-  {$ENDIF}
 end;
 {$ENDIF}
 
