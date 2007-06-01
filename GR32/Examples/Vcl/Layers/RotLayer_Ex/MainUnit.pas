@@ -111,7 +111,6 @@ end;
 procedure TForm1.GaugeBar4Change(Sender: TObject);
 begin
   ImgView.Scale := Power(10, GaugeBar4.Position / 100);
-  ImgView.Update;
 end;
 
 procedure TForm1.CheckBox1Click(Sender: TObject);
