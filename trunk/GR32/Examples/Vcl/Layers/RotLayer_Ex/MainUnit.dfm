@@ -56,10 +56,12 @@ object Form1: TForm1
     Height = 294
     Anchors = [akLeft, akTop, akRight, akBottom]
     Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
     Color = clAppWorkSpace
     ParentColor = False
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
+    ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsMac
     OverSize = 0
