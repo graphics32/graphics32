@@ -711,7 +711,13 @@ begin
   Result.Data := nil;
   Result.Next := nil;
   Result.Prev := nil;
-  InsertAfter(FTail, Result);
+  if Head = nil then
+  begin
+    Head := Result;
+    Tail := Result;
+  end
+  else
+    InsertAfter(FTail, Result);
 end;
 
 procedure TLinkedList.Clear;
