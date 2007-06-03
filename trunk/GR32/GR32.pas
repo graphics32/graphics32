@@ -477,7 +477,6 @@ type
     function GetBits: PColor32Array;     {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
-    function GetPixelR(X, Y: Single): TColor32;
     function GetPixelPtr(X, Y: Integer): PColor32;
     function GetScanLine(Y: Integer): PColor32Array;
 
@@ -520,6 +519,9 @@ type
     function  GetPixelX(X, Y: TFixed): TColor32;
     function  GetPixelXS(X, Y: TFixed): TColor32;
     function  GetPixelXW(X, Y: TFixed): TColor32;
+
+    function GetPixelFR(X, Y: Single): TColor32;
+    function GetPixelXR(X, Y: TFixed): TColor32;
 
     function  GetPixelB(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -657,7 +659,8 @@ type
     property  PixelF[X, Y: Single]: TColor32 read GetPixelF write SetPixelF;
     property  PixelFS[X, Y: Single]: TColor32 read GetPixelFS write SetPixelFS;
     property  PixelFW[X, Y: Single]: TColor32 read GetPixelFW write SetPixelFW;
-    property  PixelR[X, Y: Single]: TColor32 read GetPixelR;
+    property  PixelFR[X, Y: Single]: TColor32 read GetPixelFR;
+    property  PixelXR[X, Y: TFixed]: TColor32 read GetPixelXR;
 
     property Backend: TBackend read FBackend write SetBackend;
 
@@ -2351,9 +2354,14 @@ asm
 {$ENDIF}
 end;
 
-function TCustomBitmap32.GetPixelR(X, Y: Single): TColor32;
+function TCustomBitmap32.GetPixelFR(X, Y: Single): TColor32;
 begin
   Result := FResampler.GetSampleFloat(X, Y);
+end;
+
+function TCustomBitmap32.GetPixelXR(X, Y: TFixed): TColor32;
+begin
+  Result := FResampler.GetSampleFixed(X, Y);
 end;
 
 function TCustomBitmap32.GetPixelW(X, Y: Integer): TColor32;
