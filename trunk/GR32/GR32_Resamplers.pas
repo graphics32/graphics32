@@ -2183,7 +2183,6 @@ var
   DstW, DstH: Integer;
   R: TRect;
   RatioX, RatioY: Single;
-  Temp: Integer;
 begin
   CheckBitmaps(Dst, Src);
 
