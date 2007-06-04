@@ -322,7 +322,10 @@ type
 { TBitmap32 draw mode }
   TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);
   TCombineMode = (cmBlend, cmMerge);
+
   TWrapMode = (wmClamp, wmRepeat, wmMirror);
+  TWrapProc = function(Value, Max: Integer): Integer;
+  TWrapProcEx = function(Value, Min, Max: Integer): Integer;
 
 {$IFDEF DEPRECATEDMODE}
 { Stretch filters }
@@ -493,6 +496,7 @@ type
     procedure SetResamplerClassName(Value: string);
     procedure SetBackend(const Backend: TBackend); virtual;
   protected
+    WrapProc: TWrapProcEx;
     BlendProc: Pointer;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
@@ -1755,7 +1759,7 @@ begin
   FStippleStep := 1;
   FCombineMode := cmBlend;
   BlendProc := @BLEND_MEM[FCombineMode]^;
-  
+  WrapProc := WRAP_PROCS_EX[WrapMode];
   FResampler := TNearestResampler.Create(Self);
 end;
 
@@ -2365,31 +2369,22 @@ begin
 end;
 
 function TCustomBitmap32.GetPixelW(X, Y: Integer): TColor32;
-var
-  WrapProc: TWrapProcEx;
 begin
-  WrapProc := WRAP_PROCS_EX[FWrapMode];
   with FClipRect do
     Result := Bits[FWidth * WrapProc(Y, Top, Bottom - 1) + WrapProc(X, Left, Right - 1)];
 end;
 
 procedure TCustomBitmap32.SetPixelW(X, Y: Integer; Value: TColor32);
-var
-  WrapProc: TWrapProcEx;
 begin
-  WrapProc := WRAP_PROCS_EX[FWrapMode];
   with FClipRect do
     Bits[FWidth * WrapProc(Y, Top, Bottom - 1) + WrapProc(X, Left, Right - 1)] := Value;
 end;
 
 function TCustomBitmap32.GetPixelXW(X, Y: TFixed): TColor32;
 var
-  WrapProc: TWrapProcEx;
   X1, X2, Y1, Y2 :Integer;
   W: Integer;
 begin
-  WrapProc := WRAP_PROCS_EX[FWrapMode];
-
   X2 := TFixedRec(X).Int;
   Y2 := TFixedRec(Y).Int;
 
@@ -2412,8 +2407,6 @@ begin
 end;
 
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
-var
-  WrapProc: TWrapProcEx;
 begin
   {$IFNDEF TARGET_x86}
   X := (X + $7F) div 256;
@@ -2426,7 +2419,7 @@ begin
         SAR Y, 8
   end;
   {$ENDIF}
-  WrapProc := WRAP_PROCS_EX[FWrapMode];
+
   with F256ClipRect do
     SET_T256(WrapProc(X, Left, Right - 128), WrapProc(Y, Top, Bottom - 128), Value);
   EMMS;
@@ -4251,6 +4244,7 @@ begin
   if FWrapMode <> Value then
   begin
     FWrapMode := Value;
+    WrapProc := WRAP_PROCS_EX[FWrapMode];
     Changed;
   end;
 end;
