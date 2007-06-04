@@ -299,7 +299,7 @@ begin
     FSampler.PrepareSampling;
     IntersectRect(R, DstRect, Dst.BoundsRect);
     if FSampler.HasBounds then
-      IntersectRect(R, DstRect, FSampler.GetSampleBounds);
+      IntersectRect(R, DstRect, MakeRect(FSampler.GetSampleBounds, rrOutside));
     try
       DoRasterize(Dst, R);
     finally

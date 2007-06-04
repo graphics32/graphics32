@@ -298,7 +298,7 @@ type
     procedure Changed; override;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
-    function GetSampleBounds: TRect; override;
+    function GetSampleBounds: TFloatRect; override;
     property Bitmap: TCustomBitmap32 read FBitmap write FBitmap;
     property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
   published
@@ -408,7 +408,7 @@ type
     procedure PrepareSampling; override;
     procedure FinalizeSampling; override;
     function HasBounds: Boolean; override;
-    function GetSampleBounds: TRect; override;
+    function GetSampleBounds: TFloatRect; override;
   published
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
@@ -432,7 +432,7 @@ type
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
     function HasBounds: Boolean; override;
-    function GetSampleBounds: TRect; override;
+    function GetSampleBounds: TFloatRect; override;
   published
     property Transformation: TTransformation read FTransformation write SetTransformation;
   end;
@@ -2705,16 +2705,16 @@ begin
   if Assigned(ABitmap) then ABitmap.Resampler := Self;
 end;
 
-function TBitmap32Resampler.GetSampleBounds: TRect;
+function TBitmap32Resampler.GetSampleBounds: TFloatRect;
 begin
-  Result := FBitmap.ClipRect;
+  Result := FloatRect(FBitmap.ClipRect);
   if PixelAccessMode = pamTransparentEdge then
     InflateRect(Result, 1, 1);
 end;
 
 function TBitmap32Resampler.HasBounds: Boolean;
 begin
-  Result := True;
+  Result := FPixelAccessMode <> pamWrap;
 end;
 
 procedure TBitmap32Resampler.PrepareSampling;
@@ -3384,9 +3384,10 @@ begin
       PrepareTransform;
 end;
 
-function TTransformer.GetSampleBounds: TRect;
+function TTransformer.GetSampleBounds: TFloatRect;
 begin
-  Result := FTransformation.GetTransformedBounds(FloatRect(inherited GetSampleBounds));
+  IntersectRect(Result, inherited GetSampleBounds, FTransformation.SrcRect);
+  Result := FTransformation.GetTransformedBounds(Result);
 end;
 
 function TTransformer.HasBounds: Boolean;
@@ -3657,7 +3658,7 @@ begin
 end;
 
 {$WARNINGS OFF}
-function TNestedSampler.GetSampleBounds: TRect;
+function TNestedSampler.GetSampleBounds: TFloatRect;
 begin
   if not Assigned(FSampler) then
     raise ENestedException.Create(SSamplerNil)

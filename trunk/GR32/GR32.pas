@@ -847,7 +847,7 @@ type
     procedure PrepareSampling; virtual;
     procedure FinalizeSampling; virtual;
     function HasBounds: Boolean; virtual;
-    function GetSampleBounds: TRect; virtual;
+    function GetSampleBounds: TFloatRect; virtual;
   end;
 
   { TCustomResampler }
@@ -5563,9 +5563,11 @@ begin
   Result := False;
 end;
 
-function TCustomSampler.GetSampleBounds: TRect;
+function TCustomSampler.GetSampleBounds: TFloatRect;
+const
+  InfRect: TFloatRect = (Left: NegInfinity; Top: NegInfinity; Right: Infinity; Bottom: Infinity);
 begin
-  Result := Rect(Low(Integer), Low(Integer), High(Integer), High(Integer));
+  Result := InfRect;
 end;
 
 {CPU target and feature Function templates}
