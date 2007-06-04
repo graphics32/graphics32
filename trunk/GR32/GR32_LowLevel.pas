@@ -98,10 +98,6 @@ function Mirror(Value, Max: Integer): Integer; overload;
 { Same but [Min..Max] range }
 function Mirror(Value, Min, Max: Integer): Integer; overload;
 
-type
-  TWrapProc = function(Value, Max: Integer): Integer;
-  TWrapProcEx = function(Value, Min, Max: Integer): Integer;
-
 const
   WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
   WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
