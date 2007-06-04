@@ -97,8 +97,8 @@ type
   public
     procedure Changed; override;
     function HasTransformedBounds: Boolean; virtual;
-    function GetTransformedBounds: TRect; overload;
-    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; overload; virtual;
+    function GetTransformedBounds: TFloatRect; overload;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; overload; virtual;
     function ReverseTransform(const P: TPoint): TPoint; overload; virtual;
     function ReverseTransform(const P: TFixedPoint): TFixedPoint; overload; virtual;
     function ReverseTransform(const P: TFloatPoint): TFloatPoint; overload; virtual;
@@ -120,7 +120,7 @@ type
   public
     Matrix: TFloatMatrix;
     constructor Create; virtual;
-    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
     procedure Clear;
     procedure Rotate(Cx, Cy, Alpha: TFloat); // degrees
     procedure Skew(Fx, Fy: TFloat);
@@ -149,7 +149,7 @@ type
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
   public
-    function  GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
+    function  GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
   published
     property X0: TFloat read Wx0 write SetX0;
     property X1: TFloat read Wx1 write SetX1;
@@ -171,7 +171,7 @@ type
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   public
     constructor Create; virtual;
-    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
   published
     property Twirl: TFloat read FTwirl write SetTwirl;
   end;
@@ -198,7 +198,7 @@ type
   protected
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   public
-    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
   published
     property Disturbance: TFloat read FDisturbance write SetDisturbance;
   end;
@@ -278,7 +278,7 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
     function HasTransformedBounds: Boolean; override;
-    function GetTransformedBounds(const ASrcRect: TFloatRect): TRect; override;
+    function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
     procedure Scale(Sx, Sy: TFloat);
     property MappingRect: TFloatRect read FMappingRect write SetMappingRect;
     property Offset: TFloatVector read FOffset write SetOffset;
@@ -463,11 +463,7 @@ var
   DstRect: TRect;
   Transformer: TTransformer;
 begin
-  DstRect := Transformation.GetTransformedBounds;
-
-  // clip DstRect
-  IntersectRect(DstRect, DstRect, Dst.ClipRect);
-  IntersectRect(DstRect, DstRect, DstClip);
+  IntersectRect(DstRect, DstClip, Dst.ClipRect);
 
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
@@ -513,7 +509,7 @@ end;
 
 { TTransformation }
 
-function TTransformation.GetTransformedBounds: TRect;
+function TTransformation.GetTransformedBounds: TFloatRect;
 begin
   Result := GetTransformedBounds(FSrcRect);
 end;
@@ -524,9 +520,9 @@ begin
   inherited;
 end;
 
-function TTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
+function TTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 begin
-  Result := MakeRect(ASrcRect);
+  Result := ASrcRect;
 end;
 
 function TTransformation.HasTransformedBounds: Boolean;
@@ -646,7 +642,7 @@ begin
   Clear;
 end;
 
-function TAffineTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
+function TAffineTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 var
   V1, V2, V3, V4: TVector3f;
 begin
@@ -658,10 +654,10 @@ begin
   V2 := VectorTransform(Matrix, V2);
   V3 := VectorTransform(Matrix, V3);
   V4 := VectorTransform(Matrix, V4);
-  Result.Left   := Round(Min(Min(V1[0], V2[0]), Min(V3[0], V4[0])) - 0.5);
-  Result.Right  := Round(Max(Max(V1[0], V2[0]), Max(V3[0], V4[0])) + 0.5);
-  Result.Top    := Round(Min(Min(V1[1], V2[1]), Min(V3[1], V4[1])) - 0.5);
-  Result.Bottom := Round(Max(Max(V1[1], V2[1]), Max(V3[1], V4[1])) + 0.5);
+  Result.Left   := Min(Min(V1[0], V2[0]), Min(V3[0], V4[0]));
+  Result.Right  := Max(Max(V1[0], V2[0]), Max(V3[0], V4[0]));
+  Result.Top    := Min(Min(V1[1], V2[1]), Min(V3[1], V4[1]));
+  Result.Bottom := Max(Max(V1[1], V2[1]), Max(V3[1], V4[1]));
 end;
 
 procedure TAffineTransformation.PrepareTransform;
@@ -760,12 +756,12 @@ end;
 
 { TProjectiveTransformation }
 
-function TProjectiveTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
+function TProjectiveTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 begin
-  Result.Left   := Round(Min(Min(Wx0, Wx1), Min(Wx2, Wx3)) - 0.5);
-  Result.Right  := Round(Max(Max(Wx0, Wx1), Max(Wx2, Wx3)) + 0.5);
-  Result.Top    := Round(Min(Min(Wy0, Wy1), Min(Wy2, Wy3)) - 0.5);
-  Result.Bottom := Round(Max(Max(Wy0, Wy1), Max(Wy2, Wy3)) + 0.5);
+  Result.Left   := Min(Min(Wx0, Wx1), Min(Wx2, Wx3));
+  Result.Right  := Max(Max(Wx0, Wx1), Max(Wx2, Wx3));
+  Result.Top    := Min(Min(Wy0, Wy1), Min(Wy2, Wy3));
+  Result.Bottom := Max(Max(Wy0, Wy1), Max(Wy2, Wy3));
 end;
 
 procedure TProjectiveTransformation.PrepareTransform;
@@ -1004,17 +1000,17 @@ begin
   FTwirl := 0.03;
 end;
 
-function TTwirlTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
+function TTwirlTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 var
   Cx, Cy, R: TFloat;
 begin
   Cx := (ASrcRect.Left + ASrcRect.Right) / 2;
   Cy := (ASrcRect.Top + ASrcRect.Bottom) / 2;
   R := Max(Cx - ASrcRect.Left, Cy - ASrcRect.Top);
-  Result.Left := Round(Cx - R * Pi/2);
-  Result.Right := Round(Cx + R * Pi/2);
-  Result.Top := Round(Cy - R * Pi/2);
-  Result.Bottom := Round(Cy + R * Pi/2);
+  Result.Left := Cx - R * Pi/2;
+  Result.Right := Cx + R * Pi/2;
+  Result.Top := Cy - R * Pi/2;
+  Result.Bottom := Cy + R * Pi/2;
 end;
 
 procedure TTwirlTransformation.PrepareTransform;
@@ -1285,13 +1281,10 @@ end;
 { TDisturbanceTransformation }
 
 function TDisturbanceTransformation.GetTransformedBounds(
-  const ASrcRect: TFloatRect): TRect;
-var
-  R: TFloatRect;
+  const ASrcRect: TFloatRect): TFloatRect;
 begin
-  R := ASrcRect;
-  InflateRect(R, 0.5 * FDisturbance, 0.5 * FDisturbance);
-  Result := MakeRect(R);
+  Result := ASrcRect;
+  InflateRect(Result, 0.5 * FDisturbance, 0.5 * FDisturbance);
 end;
 
 procedure TDisturbanceTransformation.ReverseTransformFloat(DstX,
@@ -1326,11 +1319,13 @@ begin
   inherited;
 end;
 
-function TRemapTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TRect;
+function TRemapTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
+const
+  InfRect: TFloatRect = (Left: NegInfinity; Top: NegInfinity; Right: Infinity; Bottom: Infinity);
 begin
   // We can't predict the ultimate bounds without transforming each vector in
   // the vector map, return the absolute biggest possible transformation bounds
-  Result := Rect(-MaxInt, -MaxInt, MaxInt, MaxInt);
+  Result := InfRect;
 end;
 
 function TRemapTransformation.HasTransformedBounds: Boolean;
