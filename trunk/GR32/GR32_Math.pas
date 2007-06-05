@@ -60,7 +60,7 @@ function Hypot(const X, Y: TFloat): TFloat;
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 
 // tells if X is a power of 2, returns true when X = 1,2,4,8,16 etc.
-function IsPowerOf2(Value: Integer): Boolean;
+function IsPowerOf2(Value: Integer): Boolean; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 // returns X rounded down to the nearest power of two
 function PrevPowerOf2(Value: Integer): Integer;
 // returns X rounded down to the nearest power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
@@ -369,15 +369,8 @@ end;
 
 function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
-{$IFNDEF TARGET_x86}
 begin
   Result := Value and (Value - 1) = 0;
-{$ELSE}
-asm
-        LEA     EDX,[EAX-1]
-        AND     EAX,EDX
-        SETZ    AL
-{$ENDIF}
 end;
 
 function PrevPowerOf2(Value: Integer): Integer;
