@@ -371,7 +371,7 @@ function IsPowerOf2(Value: Integer): Boolean;
 //returns true when X = 1,2,4,8,16 etc.
 {$IFNDEF TARGET_x86}
 begin
-  Result := Value and (Value - 1) <> 0;
+  Result := Value and (Value - 1) = 0;
 {$ELSE}
 asm
         LEA     EDX,[EAX-1]
