@@ -4513,7 +4513,11 @@ begin
     Tmp.CopyMapTo(Self);
     Tmp.Free;
   end
-  else Dst.Changed;
+  else
+  begin
+    Dst.EndUpdate;
+    Dst.Changed;
+  end;
 end;
 
 function TCustomBitmap32.BoundsRect: TRect;
