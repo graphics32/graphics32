@@ -854,16 +854,36 @@ type
     function GetSampleBounds: TFloatRect; virtual;
   end;
 
+
+  TPixelAccessMode = (pamUnsafe, pamSafe, pamWrap, pamTransparentEdge);
+
   { TCustomResampler }
+  { Base class for TCustomBitmap32 specific resamplers. }
   TCustomResampler = class(TCustomSampler)
+  private
+    FBitmap: TCustomBitmap32;
+    FClipRect: TRect;
+    FPixelAccessMode: TPixelAccessMode;
+    procedure SetPixelAccessMode(const Value: TPixelAccessMode);
   protected
-    function GetWidth: TFloat; virtual; abstract;
+    function GetWidth: TFloat; virtual;
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TCustomBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
+    procedure AssignTo(Dst: TPersistent); override;
+    property ClipRect: TRect read FClipRect;
   public
+    constructor Create; overload; virtual;
+    constructor Create(ABitmap: TCustomBitmap32); overload; virtual;
+    procedure Changed; override;
+    procedure PrepareSampling; override;
+    function HasBounds: Boolean; override;
+    function GetSampleBounds: TFloatRect; override;
+    property Bitmap: TCustomBitmap32 read FBitmap write FBitmap;
     property Width: TFloat read GetWidth;
+  published
+    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write SetPixelAccessMode default pamSafe;
   end;
   TCustomResamplerClass = class of TCustomResampler;
 
@@ -875,7 +895,7 @@ implementation
 
 uses
   GR32_Blend, GR32_Transforms, GR32_Filters, GR32_LowLevel, Math, GR32_Math,
-  GR32_Resamplers, GR32_Backends, GR32_Backends_Generic,
+  GR32_Resamplers, GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
   {$IFDEF LCLWin32}
@@ -4677,11 +4697,11 @@ end;
 
 procedure TCustomBitmap32.SetResamplerClassName(Value: string);
 var
-  ResamplerClass: TBitmap32ResamplerClass;
+  ResamplerClass: TCustomResamplerClass;
 begin
   if (Value <> '') and (FResampler.ClassName <> Value) and Assigned(ResamplerList) then
   begin
-    ResamplerClass := TBitmap32ResamplerClass(ResamplerList.Find(Value));
+    ResamplerClass := TCustomResamplerClass(ResamplerList.Find(Value));
     if Assigned(ResamplerClass) then ResamplerClass.Create(Self);
   end;
 end;
@@ -5567,6 +5587,68 @@ const
 begin
   Result := InfRect;
 end;
+
+
+{ TCustomResampler }
+
+procedure TCustomResampler.AssignTo(Dst: TPersistent);
+begin
+  if Dst is TCustomResampler then
+    SmartAssign(Self, Dst)
+  else
+    inherited;
+end;
+
+procedure TCustomResampler.Changed;
+begin
+  if Assigned(FBitmap) then FBitmap.Changed;
+end;
+
+constructor TCustomResampler.Create;
+begin
+  inherited;
+  FPixelAccessMode := pamSafe;
+end;
+
+constructor TCustomResampler.Create(ABitmap: TCustomBitmap32);
+begin
+  Create;
+  FBitmap := ABitmap;
+  if Assigned(ABitmap) then ABitmap.Resampler := Self;
+end;
+
+function TCustomResampler.GetSampleBounds: TFloatRect;
+begin
+  Result := FloatRect(FBitmap.ClipRect);
+  if PixelAccessMode = pamTransparentEdge then
+    InflateRect(Result, 1, 1);
+end;
+
+function TCustomResampler.GetWidth: TFloat;
+begin
+  Result := 0;
+end;
+
+function TCustomResampler.HasBounds: Boolean;
+begin
+  Result := FPixelAccessMode <> pamWrap;
+end;
+
+procedure TCustomResampler.PrepareSampling;
+begin
+  FClipRect := FBitmap.ClipRect;
+end;
+
+procedure TCustomResampler.SetPixelAccessMode(
+  const Value: TPixelAccessMode);
+begin
+  if FPixelAccessMode <> Value then
+  begin
+    FPixelAccessMode := Value;
+    Changed;
+  end;
+end;
+
 
 {CPU target and feature Function templates}
 
