@@ -469,7 +469,7 @@ begin
 
   if not Dst.MeasuringMode then
   begin
-    Transformer := (Src.Resampler as TBitmap32Resampler).TransformerClass.Create(Src.Resampler, Transformation);
+    Transformer := TTransformer.Create(Src.Resampler, Transformation);
     try
       Rasterizer.Sampler := Transformer;
       Rasterizer.Rasterize(Dst, DstRect, Src);
