@@ -107,6 +107,7 @@ type
     ResamplerClassNamesList: TComboBox;
     KernelLabel: TLabel;
     KernelClassNamesList: TComboBox;
+    cbRepeat: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ListBoxClick(Sender: TObject);
@@ -139,6 +140,7 @@ type
     procedure KernelClassNamesListChange(Sender: TObject);
     procedure DstPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
+    procedure cbRepeatClick(Sender: TObject);
   protected
     LoadingValues: Boolean;
     DraggedVertex: Integer;
@@ -256,7 +258,8 @@ end;
 procedure TForm1.PrepareSource;
 begin
   // make the border pixels transparent while keeping their RGB components
-  SetBorderTransparent(Src.Bitmap, Src.Bitmap.BoundsRect);
+  if not cbRepeat.Checked then
+    SetBorderTransparent(Src.Bitmap, Src.Bitmap.BoundsRect);
 end;
 
 procedure TForm1.DoTransform;
@@ -651,13 +654,13 @@ end;
 
 procedure TForm1.ResamplerClassNamesListChange(Sender: TObject);
 var
-  R: TBitmap32Resampler;
+  R: TCustomResampler;
 begin
   with ResamplerClassNamesList do
     if ItemIndex >= 0 then
     begin
       Src.Bitmap.BeginUpdate;
-      R := TBitmap32ResamplerClass(ResamplerList[ItemIndex]).Create(Src.Bitmap);
+      R := TCustomResamplerClass(ResamplerList[ItemIndex]).Create(Src.Bitmap);
       KernelClassNamesListChange(nil);
       Src.Bitmap.EndUpdate;
       Src.Bitmap.Changed;
@@ -682,14 +685,14 @@ end;
 procedure TForm1.DstPaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
 const            //0..1
-  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0); 
-var 
+  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
+var
   R: TRect;
-  I, J: Integer; 
-  OddY: Integer; 
-  TilesHorz, TilesVert: Integer; 
+  I, J: Integer;
+  OddY: Integer;
+  TilesHorz, TilesVert: Integer;
   TileX, TileY: Integer;
-  TileHeight, TileWidth: Integer; 
+  TileHeight, TileWidth: Integer;
 begin
   if Sender is TImage32 then with TImage32(Sender) do
   begin
@@ -720,6 +723,15 @@ begin
     end;
     EndUpdate;
   end;
+end;
+
+procedure TForm1.cbRepeatClick(Sender: TObject);
+const
+  AccessMode: array [Boolean] of TPixelAccessMode = (pamSafe, pamWrap);
+begin
+  Src.Bitmap.WrapMode := wmRepeat;
+  Src.Bitmap.Resampler.PixelAccessMode := AccessMode[cbRepeat.Checked];
+  DoTransform;
 end;
 
 end.
