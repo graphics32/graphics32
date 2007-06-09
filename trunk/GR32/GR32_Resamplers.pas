@@ -96,8 +96,6 @@ type
   TCDType = (cdFrequency, cdTime);
   TBurgessOpt = (bo59, bo71);
 
-  TBitmap32Resampler = class;
-
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
@@ -276,38 +274,8 @@ type
   end;
 
 
-  TTransformer = class;
-  TTransformerClass = class of TTransformer;
-
-  TPixelAccessMode = (pamUnsafe, pamSafe, pamWrap, pamTransparentEdge);
-
-  { TBitmap32Resampler }
-  { Base class for TCustomBitmap32 specific resamplers. }
-  TBitmap32Resampler = class(TCustomResampler)
-  private
-    FBitmap: TCustomBitmap32;
-    FClipRect: TRect;
-    FTransformerClass: TTransformerClass;
-    FPixelAccessMode: TPixelAccessMode;
-    procedure SetPixelAccessMode(const Value: TPixelAccessMode);
-  protected
-    procedure AssignTo(Dst: TPersistent); override;
-  public
-    constructor Create; overload; virtual;
-    constructor Create(ABitmap: TCustomBitmap32); overload; virtual;
-    procedure Changed; override;
-    procedure PrepareSampling; override;
-    function HasBounds: Boolean; override;
-    function GetSampleBounds: TFloatRect; override;
-    property Bitmap: TCustomBitmap32 read FBitmap write FBitmap;
-    property TransformerClass: TTransformerClass read FTransformerClass write FTransformerClass;
-  published
-    property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write SetPixelAccessMode default pamSafe;
-  end;
-  TBitmap32ResamplerClass = class of TBitmap32Resampler;
-
   { TNearestResampler }
-  TNearestResampler = class(TBitmap32Resampler)
+  TNearestResampler = class(TCustomResampler)
   private
     FGetSampleInt: TGetSampleInt;
   protected
@@ -318,7 +286,6 @@ type
       Src: TCustomBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); override;
   public
-    constructor Create; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
@@ -326,7 +293,7 @@ type
   end;
 
   { TLinearResampler }
-  TLinearResampler = class(TBitmap32Resampler)
+  TLinearResampler = class(TCustomResampler)
   private
     FLinearKernel: TLinearKernel;
     FGetSampleFixed: TGetSampleFixed;
@@ -362,7 +329,7 @@ type
 
   TKernelMode = (kmDynamic, kmTableNearest, kmTableLinear);
 
-  TKernelResampler = class(TBitmap32Resampler)
+  TKernelResampler = class(TCustomResampler)
   private
     FKernel: TCustomKernel;
     FKernelMode: TKernelMode;
@@ -435,14 +402,6 @@ type
     function GetSampleBounds: TFloatRect; override;
   published
     property Transformation: TTransformation read FTransformation write SetTransformation;
-  end;
-
-  { TNearestTransformer }
-  TNearestTransformer = class(TTransformer)
-  public
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
 
   { TSuperSampler }
@@ -2676,61 +2635,6 @@ begin
 end;
 
 
-{ TBitmap32Resampler }
-
-procedure TBitmap32Resampler.AssignTo(Dst: TPersistent);
-begin
-  if Dst is TBitmap32Resampler then
-    SmartAssign(Self, Dst)
-  else
-    inherited;
-end;
-
-procedure TBitmap32Resampler.Changed;
-begin
-  if Assigned(FBitmap) then FBitmap.Changed;
-end;
-
-constructor TBitmap32Resampler.Create;
-begin
-  inherited;
-  FTransformerClass := TTransformer;
-  FPixelAccessMode := pamSafe;
-end;
-
-constructor TBitmap32Resampler.Create(ABitmap: TCustomBitmap32);
-begin
-  Create;
-  FBitmap := ABitmap;
-  if Assigned(ABitmap) then ABitmap.Resampler := Self;
-end;
-
-function TBitmap32Resampler.GetSampleBounds: TFloatRect;
-begin
-  Result := FloatRect(FBitmap.ClipRect);
-  if PixelAccessMode = pamTransparentEdge then
-    InflateRect(Result, 1, 1);
-end;
-
-function TBitmap32Resampler.HasBounds: Boolean;
-begin
-  Result := FPixelAccessMode <> pamWrap;
-end;
-
-procedure TBitmap32Resampler.PrepareSampling;
-begin
-  FClipRect := FBitmap.ClipRect;
-end;
-
-procedure TBitmap32Resampler.SetPixelAccessMode(
-  const Value: TPixelAccessMode);
-begin
-  if FPixelAccessMode <> Value then
-  begin
-    FPixelAccessMode := Value;
-    Changed;
-  end;
-end;
 
 { TKernelResampler }
 
@@ -2813,7 +2717,7 @@ begin
   clX := Ceil(X);
   clY := Ceil(Y);
 
-  case FPixelAccessMode of
+  case PixelAccessMode of
     pamUnsafe, pamWrap:
       begin
         LoX := -Width; HiX := Width;
@@ -2822,7 +2726,7 @@ begin
 
     pamSafe, pamTransparentEdge:
       begin
-        with FClipRect do
+        with ClipRect do
         begin
           if not ((clX < Left) or (clX > Right) or (clY < Top) or (clY > Bottom)) then
           begin
@@ -2863,7 +2767,7 @@ begin
           end
           else
           begin
-            if FPixelAccessMode = pamTransparentEdge then
+            if PixelAccessMode = pamTransparentEdge then
               Result := 0
             else
               Result := FOuterColor;
@@ -2950,11 +2854,11 @@ begin
   end;
 
   VertEntry := EMPTY_ENTRY;
-  case FPixelAccessMode of
+  case PixelAccessMode of
     pamUnsafe, pamSafe, pamTransparentEdge:
       begin
-        SrcP := PColor32Entry(FBitmap.PixelPtr[LoX + clX, LoY + clY]);
-        Incr := FBitmap.Width - (HiX - LoX) - 1;
+        SrcP := PColor32Entry(Bitmap.PixelPtr[LoX + clX, LoY + clY]);
+        Incr := Bitmap.Width - (HiX - LoX) - 1;
         for I := LoY to HiY do
         begin
           Wv := PVertKernel[I];
@@ -2978,9 +2882,9 @@ begin
           Inc(SrcP, Incr);
         end;
 
-        if (FPixelAccessMode <> pamUnsafe) and Edge then
+        if (PixelAccessMode <> pamUnsafe) and Edge then
         begin
-          if FPixelAccessMode = pamSafe then
+          if PixelAccessMode = pamSafe then
            for I := -Width to Width do
            begin
              Wv := PVertKernel[I];
@@ -3009,10 +2913,10 @@ begin
              if Wv <> 0 then
              begin
                HorzEntry := EMPTY_ENTRY;
-               P := Clamp(clY + I, FBitmap.Height - 1);
+               P := Clamp(clY + I, Bitmap.Height - 1);
                for J := -Width to Width do
                if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
-               with TColor32Entry(FBitmap.Pixel[Clamp(clX + J, FBitmap.Width - 1), P]) do
+               with TColor32Entry(Bitmap.Pixel[Clamp(clX + J, Bitmap.Width - 1), P]) do
                begin
                  W := PHorzKernel[J];
                  //exclude alpha, implicit transparent edge
@@ -3030,18 +2934,18 @@ begin
 
     pamWrap:
       begin
-        WrapProc := WRAP_PROCS_EX[FBitmap.WrapMode];
+        WrapProc := WRAP_PROCS_EX[Bitmap.WrapMode];
 
         for I := -Width to Width do
-          MappingX[I] := WrapProc(clX + I, FClipRect.Left, FClipRect.Right - 1);
+          MappingX[I] := WrapProc(clX + I, ClipRect.Left, ClipRect.Right - 1);
 
         for I := -Width to Width do
         begin
           Wv := PVertKernel[I];
           if Wv <> 0 then
           begin
-            MappingY := WrapProc(clY + I, FClipRect.Top, FClipRect.Bottom - 1);
-            Colors := PColor32EntryArray(FBitmap.ScanLine[MappingY]);
+            MappingY := WrapProc(clY + I, ClipRect.Top, ClipRect.Bottom - 1);
+            Colors := PColor32EntryArray(Bitmap.ScanLine[MappingY]);
             HorzEntry := EMPTY_ENTRY;
             for J := -Width to Width do
             begin
@@ -3119,7 +3023,7 @@ var
   KernelPtr: PKernelEntry;
 begin
   inherited;
-  FOuterColor := FBitmap.OuterColor;
+  FOuterColor := Bitmap.OuterColor;
   W := Ceil(FKernel.GetWidth);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
@@ -3142,12 +3046,6 @@ begin
 end;
 
 { TCustomBitmap32NearestResampler }
-
-constructor TNearestResampler.Create;
-begin
-  inherited;
-  FTransformerClass := TNearestTransformer;
-end;
 
 function TNearestResampler.GetSampleInt(X, Y: Integer): TColor32;
 begin
@@ -3173,7 +3071,7 @@ function TNearestResampler.GetPixelTransparentEdge(X,Y: Integer): TColor32;
 var
   I, J: Integer;
 begin
-  with FBitmap, FBitmap.ClipRect do
+  with Bitmap, Bitmap.ClipRect do
   begin
     I := Clamp(X, Left, Right - 1);
     J := Clamp(Y, Top, Bottom - 1);
@@ -3186,10 +3084,10 @@ end;
 procedure TNearestResampler.PrepareSampling;
 begin
   inherited;
-  case FPixelAccessMode of
-    pamUnsafe: FGetSampleInt := TCustomBitmap32Access(FBitmap).GetPixel;
-    pamSafe: FGetSampleInt := TCustomBitmap32Access(FBitmap).GetPixelS;
-    pamWrap: FGetSampleInt := TCustomBitmap32Access(FBitmap).GetPixelW;
+  case PixelAccessMode of
+    pamUnsafe: FGetSampleInt := TCustomBitmap32Access(Bitmap).GetPixel;
+    pamSafe: FGetSampleInt := TCustomBitmap32Access(Bitmap).GetPixelS;
+    pamWrap: FGetSampleInt := TCustomBitmap32Access(Bitmap).GetPixelW;
     pamTransparentEdge: FGetSampleInt := GetPixelTransparentEdge;
   end;
 end;
@@ -3233,7 +3131,7 @@ var
   C1, C2, C3, C4: TColor32;
   PSrc: PColor32Array;
 begin
-  with TCustomBitmap32Access(FBitmap), FBitmap.ClipRect do
+  with TCustomBitmap32Access(Bitmap), Bitmap.ClipRect do
   begin
     R := Right - 1;
     B := Bottom - 1;
@@ -3297,10 +3195,10 @@ end;
 procedure TLinearResampler.PrepareSampling;
 begin
   inherited;
-  case FPixelAccessMode of
-    pamUnsafe: FGetSampleFixed := TCustomBitmap32Access(FBitmap).GetPixelX;
-    pamSafe: FGetSampleFixed := TCustomBitmap32Access(FBitmap).GetPixelXS;
-    pamWrap: FGetSampleFixed := TCustomBitmap32Access(FBitmap).GetPixelXW;
+  case PixelAccessMode of
+    pamUnsafe: FGetSampleFixed := TCustomBitmap32Access(Bitmap).GetPixelX;
+    pamSafe: FGetSampleFixed := TCustomBitmap32Access(Bitmap).GetPixelXS;
+    pamWrap: FGetSampleFixed := TCustomBitmap32Access(Bitmap).GetPixelXW;
     pamTransparentEdge: FGetSampleFixed := GetPixelTransparentEdge;
   end;
 end;
@@ -3393,33 +3291,6 @@ end;
 function TTransformer.HasBounds: Boolean;
 begin
   Result := FTransformation.HasTransformedBounds and inherited HasBounds;
-end;
-
-
-{ TNearestTransformer }
-
-function TNearestTransformer.GetSampleInt(X, Y: Integer): TColor32;
-var
-  U, V: Integer;
-begin
-  FTransformationReverseTransformInt(X, Y, U, V);
-  Result := FGetSampleInt(U, V);
-end;
-
-function TNearestTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
-var
-  U, V: TFixed;
-begin
-  FTransformationReverseTransformFixed(X, Y, U, V);
-  Result := FGetSampleInt(U shr 16, V shr 16);
-end;
-
-function TNearestTransformer.GetSampleFloat(X, Y: TFloat): TColor32;
-var
-  U, V: TFloat;
-begin
-  FTransformationReverseTransformFloat(X, Y, U, V);
-  Result := FGetSampleInt(Round(U), Round(V));
 end;
 
 
