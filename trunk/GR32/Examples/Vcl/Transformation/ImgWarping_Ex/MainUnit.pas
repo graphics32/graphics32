@@ -167,7 +167,7 @@ var
 
 const
   // Provide two attractive fast resampling modes for the realtime brush warping
-  RESAMPLERS: array [Boolean] of TBitmap32ResamplerClass =(TNearestResampler,
+  RESAMPLERS: array [Boolean] of TCustomResamplerClass =(TNearestResampler,
     TLinearResampler);
 
 

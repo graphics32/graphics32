@@ -186,13 +186,13 @@ end;
 
 procedure TfmResamplersExample.ResamplerClassNamesListChange(Sender: TObject);
 var
-  R: TBitmap32Resampler;
+  R: TCustomResampler;
 begin
   with ResamplerClassNamesList do
     if ItemIndex >= 0 then
     begin
       Src.BeginUpdate;
-      R := TBitmap32ResamplerClass(ResamplerList[ItemIndex]).Create(Src);
+      R := TCustomResamplerClass(ResamplerList[ItemIndex]).Create(Src);
       KernelClassNamesListClick(nil);
       Src.EndUpdate;
       Src.Changed;
@@ -255,7 +255,7 @@ end;
 procedure TfmResamplersExample.EdgecheckBoxChange(Sender: TObject);
 begin
   Src.WrapMode := TWrapMode(WrapBox.ItemIndex);
-  TBitmap32Resampler(Src.Resampler).PixelAccessMode := TPixelAccessMode(EdgecheckBox.ItemIndex);
+  TCustomResampler(Src.Resampler).PixelAccessMode := TPixelAccessMode(EdgecheckBox.ItemIndex);
 end;
 
 procedure TfmResamplersExample.gbParameterChange(Sender: TObject);
@@ -366,7 +366,7 @@ begin
 
   for I := 0 to 1 do
   begin
-    TBitmap32ResamplerClass(ResamplerList[ResamplerClassNamesList.ItemIndex]).Create(CurrentBitmaps[I]);
+    TCustomResamplerClass(ResamplerList[ResamplerClassNamesList.ItemIndex]).Create(CurrentBitmaps[I]);
     if CurrentBitmaps[I].Resampler is TKernelResampler then
       with CurrentBitmaps[I].Resampler as TKernelResampler do
       begin

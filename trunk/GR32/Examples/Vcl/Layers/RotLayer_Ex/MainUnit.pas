@@ -80,7 +80,7 @@ begin
     TLinearResampler.Create(L.Bitmap);
 
     //ensure good looking edge, dynamic alternative to SetBorderTransparent
-    TBitmap32Resampler(L.Bitmap.Resampler).PixelAccessMode := pamTransparentEdge;
+    TCustomResampler(L.Bitmap.Resampler).PixelAccessMode := pamTransparentEdge;
 
     L.BitmapCenter := FloatPoint(Width / 2, Height / 2);
     MasterAlpha := 200;
