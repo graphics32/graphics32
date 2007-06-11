@@ -61,7 +61,7 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-uses {$IFNDEF FPC}JPEG,{$ELSE}JPEGForLazarus{$ENDIF};
+uses {$IFNDEF FPC}JPEG{$ELSE}JPEGForLazarus{$ENDIF};
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
@@ -136,7 +136,7 @@ begin
   L.Bitmap.Changed;
 end;
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
 initialization
 {$i MainUnit.lrs}
 {$ENDIF}
