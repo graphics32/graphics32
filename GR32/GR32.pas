@@ -5583,7 +5583,7 @@ end;
 
 function TCustomSampler.GetSampleBounds: TFloatRect;
 const
-  InfRect: TFloatRect = (Left: NegInfinity; Top: NegInfinity; Right: Infinity; Bottom: Infinity);
+  InfRect: TFloatRect = (Left: -Infinity; Top: -Infinity; Right: Infinity; Bottom: Infinity);
 begin
   Result := InfRect;
 end;
