@@ -7,7 +7,7 @@
       <MainUnit Value="0"/>
       <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -26,13 +26,13 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="9">
       <Unit0>
         <Filename Value="Image32_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="14" Y="6"/>
+        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="6"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -59,7 +59,9 @@
         <Filename Value="MainUnit.lfm"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit3>
       <Unit4>
@@ -68,13 +70,46 @@
         <TopLine Value="78"/>
         <UsageCount Value="10"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="..\..\..\..\GR32_Transforms.pas"/>
+        <UnitName Value="GR32_Transforms"/>
+        <CursorPos X="45" Y="1327"/>
+        <TopLine Value="1299"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\..\..\GR32.pas"/>
+        <UnitName Value="GR32"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\ide\buildlazdialog.pas"/>
+        <ComponentName Value="ConfigureBuildLazarusDlg"/>
+        <HasResources Value="True"/>
+        <UnitName Value="BuildLazDialog"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\ide\buildlazdialog.lfm"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="5"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit8>
     </Units>
-    <JumpHistory Count="1" HistoryIndex="0">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="99" Column="91" TopLine="72"/>
-      </Position1>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

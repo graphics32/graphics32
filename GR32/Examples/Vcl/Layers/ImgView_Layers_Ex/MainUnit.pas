@@ -157,7 +157,7 @@ uses
   NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
 
 const
-  RESAMPLER: array [Boolean] of TBitmap32ResamplerClass = (TNearestResampler, TDraftResampler);
+  RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
 
 { TForm1 }
 

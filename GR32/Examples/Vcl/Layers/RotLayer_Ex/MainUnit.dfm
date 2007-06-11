@@ -1,9 +1,9 @@
 object Form1: TForm1
   Left = 208
   Top = 110
-  Width = 373
-  Height = 504
   Caption = 'Rotation Layer Example'
+  ClientHeight = 477
+  ClientWidth = 365
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -22,6 +22,7 @@ object Form1: TForm1
     Top = 313
     Width = 76
     Height = 13
+    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Angle:'
   end
@@ -30,6 +31,7 @@ object Form1: TForm1
     Top = 345
     Width = 96
     Height = 13
+    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.X:'
   end
@@ -38,6 +40,7 @@ object Form1: TForm1
     Top = 373
     Width = 96
     Height = 13
+    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.Y:'
   end
@@ -46,6 +49,7 @@ object Form1: TForm1
     Top = 441
     Width = 85
     Height = 13
+    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'ImgView32.Scale:'
   end

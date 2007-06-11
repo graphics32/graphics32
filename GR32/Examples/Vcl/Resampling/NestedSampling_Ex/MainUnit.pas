@@ -165,7 +165,7 @@ type
     ObjectName: string;
     property SourceResampler: TCustomResampler read GetSourceResampler write SetSourceResampler;
     procedure ThreadTerminated(Sender: TObject);
-    procedure SetResampler(ResamplerClass: TBitmap32ResamplerClass);
+    procedure SetResampler(ResamplerClass: TCustomResamplerClass);
     procedure StopThread;
     function LastSampler: TCustomSampler;
     function SelectedSampler: TNestedSampler;
@@ -288,7 +288,7 @@ begin
     PropertyEditor.SelectObject(Item.Caption, Samplers[Item.Index]);
 end;
 
-procedure TForm1.SetResampler(ResamplerClass: TBitmap32ResamplerClass);
+procedure TForm1.SetResampler(ResamplerClass: TCustomResamplerClass);
 begin
 end;
 

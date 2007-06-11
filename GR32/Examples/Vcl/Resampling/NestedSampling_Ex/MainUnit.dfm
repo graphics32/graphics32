@@ -1,10 +1,10 @@
 object Form1: TForm1
   Left = 382
   Top = 279
-  Width = 811
-  Height = 627
   Anchors = [akLeft, akTop, akRight, akBottom]
   Caption = 'Nested Sampling Example'
+  ClientHeight = 581
+  ClientWidth = 803
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -45,7 +45,6 @@ object Form1: TForm1
       Caption = 'tbManager'
       DisabledImages = DisabledImages
       EdgeBorders = [ebBottom]
-      Flat = True
       HotImages = HotImages
       Images = EnabledImages
       List = True
@@ -253,10 +252,12 @@ object Form1: TForm1
     Height = 581
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
     Color = clAppWorkSpace
     ParentColor = False
     RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
+    ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     OverSize = 0
@@ -1661,6 +1662,7 @@ object Form1: TForm1
     object Resampler1: TMenuItem
       Caption = 'Resampler'
       object Nearest1: TMenuItem
+        AutoCheck = True
         Caption = 'Nearest'
         Checked = True
         RadioItem = True
@@ -1668,29 +1670,34 @@ object Form1: TForm1
       end
       object Linear1: TMenuItem
         Tag = 1
+        AutoCheck = True
         Caption = 'Linear'
         RadioItem = True
         OnClick = Linear1Click
       end
       object Draft1: TMenuItem
+        AutoCheck = True
         Caption = 'Cubic'
         RadioItem = True
         OnClick = SelectKernel
       end
       object Spline1: TMenuItem
         Tag = 1
+        AutoCheck = True
         Caption = 'Spline'
         RadioItem = True
         OnClick = SelectKernel
       end
       object Lanczos1: TMenuItem
         Tag = 2
+        AutoCheck = True
         Caption = 'Lanczos'
         RadioItem = True
         OnClick = SelectKernel
       end
       object Sinsh1: TMenuItem
         Tag = 3
+        AutoCheck = True
         Caption = 'Sinsh'
         RadioItem = True
         OnClick = SelectKernel
