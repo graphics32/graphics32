@@ -29,7 +29,7 @@ unit MandelUnit;
 interface
 
 uses
-  {$IFNDEF FPC} Jpeg{$ELSE} LCLIntf, LResources, LazJpeg,{$ENDIF}
+  {$IFNDEF FPC} Jpeg,{$ELSE} LCLIntf, LResources, LazJpeg,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, Menus,
   ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers,
   GR32_Rasterizers;

@@ -20,7 +20,7 @@ object Form1: TForm1
     Left = 0
     Top = 0
     Width = 460
-    Height = 393
+    Height = 385
     Align = alClient
     RepaintMode = rmDirect
     TabOrder = 0
