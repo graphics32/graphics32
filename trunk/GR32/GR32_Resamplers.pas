@@ -458,6 +458,8 @@ type
   private
     FPattern: TFixedSamplePattern;
     procedure SetPattern(const Value: TFixedSamplePattern);
+  protected
+    WrapProcVert: TWrapProc;
   public
     destructor Destroy; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
@@ -2698,7 +2700,8 @@ var
   fracYS: TFloat absolute fracY;
 
   Filter: TFilterMethod;
-  WrapProc: TWrapProcEx absolute Filter;
+  WrapProcVert: TWrapProcEx absolute Filter;
+  WrapProcHorz: TWrapProcEx;
   Colors: PColor32EntryArray;
   Width, W, Wv, I, J, P, Incr, Dev: Integer;
   SrcP: PColor32Entry;
@@ -2934,17 +2937,18 @@ begin
 
     pamWrap:
       begin
-        WrapProc := WRAP_PROCS_EX[Bitmap.WrapMode];
+        WrapProcHorz := GetWrapProcEx(Bitmap.WrapMode, ClipRect.Left, ClipRect.Right - 1);
+        WrapProcVert := GetWrapProcEx(Bitmap.WrapMode, ClipRect.Top, ClipRect.Bottom - 1);
 
         for I := -Width to Width do
-          MappingX[I] := WrapProc(clX + I, ClipRect.Left, ClipRect.Right - 1);
+          MappingX[I] := WrapProcHorz(clX + I, ClipRect.Left, ClipRect.Right - 1);
 
         for I := -Width to Width do
         begin
           Wv := PVertKernel[I];
           if Wv <> 0 then
           begin
-            MappingY := WrapProc(clY + I, ClipRect.Top, ClipRect.Bottom - 1);
+            MappingY := WrapProcVert(clY + I, ClipRect.Top, ClipRect.Bottom - 1);
             Colors := PColor32EntryArray(Bitmap.ScanLine[MappingY]);
             HorzEntry := EMPTY_ENTRY;
             for J := -Width to Width do
@@ -3444,10 +3448,13 @@ var
   I, PY: Integer;
   Buffer: TBufferEntry;
   GetSample: TGetSampleFixed;
+  WrapProcHorz: TWrapProc;
 begin
   GetSample := FSampler.GetSampleFixed;
-  PY := Wrap(TFixedRec(Y).Int, High(FPattern));
-  Points := FPattern[PY][Wrap(TFixedRec(X).Int, High(FPattern[PY]))];
+  PY := WrapProcVert(TFixedRec(Y).Int, High(FPattern));
+  I := High(FPattern[PY]);
+  WrapProcHorz := GetOptimalWrap(I);
+  Points := FPattern[PY][WrapProcHorz(TFixedRec(X).Int, I)];
   Buffer := EMPTY_ENTRY;
   P := @Points[0];
   for I := 0 to High(Points) do
@@ -3465,6 +3472,7 @@ begin
   begin
     FPattern := nil;
     FPattern := Value;
+    WrapProcVert := GetOptimalWrap(High(FPattern));
   end;
 end;
 
