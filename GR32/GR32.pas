@@ -496,7 +496,8 @@ type
     procedure SetResamplerClassName(Value: string);
     procedure SetBackend(const Backend: TBackend); virtual;
   protected
-    WrapProc: TWrapProcEx;
+    WrapProcHorz: TWrapProcEx;
+    WrapProcVert: TWrapProcEx;
     BlendProc: Pointer;
     RasterX, RasterY: Integer;
     RasterXF, RasterYF: TFixed;
@@ -1779,7 +1780,8 @@ begin
   FStippleStep := 1;
   FCombineMode := cmBlend;
   BlendProc := @BLEND_MEM[FCombineMode]^;
-  WrapProc := WRAP_PROCS_EX[WrapMode];
+  WrapProcHorz := GetWrapProcEx(WrapMode);
+  WrapProcVert := GetWrapProcEx(WrapMode);
   FResampler := TNearestResampler.Create(Self);
 end;
 
@@ -2391,13 +2393,13 @@ end;
 function TCustomBitmap32.GetPixelW(X, Y: Integer): TColor32;
 begin
   with FClipRect do
-    Result := Bits[FWidth * WrapProc(Y, Top, Bottom - 1) + WrapProc(X, Left, Right - 1)];
+    Result := Bits[FWidth * WrapProcVert(Y, Top, Bottom - 1) + WrapProcHorz(X, Left, Right - 1)];
 end;
 
 procedure TCustomBitmap32.SetPixelW(X, Y: Integer; Value: TColor32);
 begin
   with FClipRect do
-    Bits[FWidth * WrapProc(Y, Top, Bottom - 1) + WrapProc(X, Left, Right - 1)] := Value;
+    Bits[FWidth * WrapProcVert(Y, Top, Bottom - 1) + WrapProcHorz(X, Left, Right - 1)] := Value;
 end;
 
 function TCustomBitmap32.GetPixelXW(X, Y: TFixed): TColor32;
@@ -2411,11 +2413,11 @@ begin
   with FClipRect do
   begin
     W := Right - 1;
-    X1 := WrapProc(X2, Left, W);
-    X2 := WrapProc(X2 + 1, Left, W);
+    X1 := WrapProcHorz(X2, Left, W);
+    X2 := WrapProcHorz(X2 + 1, Left, W);
     W := Bottom - 1;
-    Y1 := WrapProc(Y2, Top, W) * Width;
-    Y2 := WrapProc(Y2 + 1, Top, W) * Width;
+    Y1 := WrapProcVert(Y2, Top, W) * Width;
+    Y2 := WrapProcVert(Y2 + 1, Top, W) * Width;
   end;
 
   W := WordRec(TFixedRec(X).Frac).Hi;
@@ -2441,7 +2443,7 @@ begin
   {$ENDIF}
 
   with F256ClipRect do
-    SET_T256(WrapProc(X, Left, Right - 128), WrapProc(Y, Top, Bottom - 128), Value);
+    SET_T256(WrapProcHorz(X, Left, Right - 128), WrapProcVert(Y, Top, Bottom - 128), Value);
   EMMS;
 end;
 
@@ -4264,7 +4266,8 @@ begin
   if FWrapMode <> Value then
   begin
     FWrapMode := Value;
-    WrapProc := WRAP_PROCS_EX[FWrapMode];
+    WrapProcHorz := GetWrapProcEx(WrapMode, FClipRect.Left, FClipRect.Right - 1);
+    WrapProcVert := GetWrapProcEx(WrapMode, FClipRect.Top, FClipRect.Bottom - 1);
     Changed;
   end;
 end;
@@ -4573,6 +4576,8 @@ begin
   with FClipRect do
     F256ClipRect := Rect(Left shl 8, Top shl 8, Right shl 8, Bottom shl 8);
   FClipping := not EqualRect(FClipRect, BoundsRect);
+  WrapProcHorz := GetWrapProcEx(WrapMode, FClipRect.Left, FClipRect.Right - 1);
+  WrapProcVert := GetWrapProcEx(WrapMode, FClipRect.Top, FClipRect.Bottom - 1);
 end;
 
 procedure TCustomBitmap32.ResetClipRect;
