@@ -93,10 +93,25 @@ function Wrap(Value, Max: Integer): Integer; overload;
 { Same but [Min..Max] range }
 function Wrap(Value, Min, Max: Integer): Integer; overload;
 
+{ Fast Wrap alternatives for cases where range + 1 is a power of two }
+function WrapPow2(Value, Max: Integer): Integer; overload;
+function WrapPow2(Value, Min, Max: Integer): Integer; overload;
+
 { Mirror integer Value in [0..Max] range }
 function Mirror(Value, Max: Integer): Integer; overload;
 { Same but [Min..Max] range }
 function Mirror(Value, Min, Max: Integer): Integer; overload;
+
+{ Functions to determine appropiate Wrap (Wrap or WrapPow2 }
+function GetOptimalWrap(Max: Integer): TWrapProc; overload;
+function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload;
+
+{ Functions to retrieve correct WrapProc given WrapMode (and range) }
+function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
+function GetWrapProc(WrapMode: TWrapMode; Max: Integer): TWrapProc; overload;
+function GetWrapProcEx(WrapMode: TWrapMode): TWrapProcEx; overload;
+function GetWrapProcEx(WrapMode: TWrapMode; Min, Max: Integer): TWrapProcEx; overload;
+
 
 const
   WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
@@ -122,6 +137,9 @@ var
 implementation
 
 {$R-}{$Q-}  // switch off overflow and range checking
+
+uses
+  GR32_Math;
 
 function Clamp(const Value: Integer): Integer;
 {$IFDEF USEINLINING}
@@ -387,7 +405,7 @@ begin
   	Result := Max
   else if Value < 0 then 
   	Result := 0
-  else 
+  else
   	Result := Value;
 {$ELSE}
 asm
@@ -410,7 +428,7 @@ function Clamp(Value, Min, Max: Integer): Integer;
 begin
   if Value > Max then 
   	Result := Max
-  else if Value < Min then 
+  else if Value < Min then
   	Result := Min
   else 
   	Result := Value;
@@ -444,40 +462,11 @@ asm
 end;
 
 function Wrap(Value, Min, Max: Integer): Integer;
-{_$IFDEF TARGET_x86}
 begin
   if Value < Min then
     Result := Max + (Value - Max) mod (Max - Min + 1)
   else
     Result := Min + (Value - Min) mod (Max - Min + 1);
-(*
-{$ELSE}
-asm
-        CMP     EAX,EDX
-        JL      @@below
-
-        SUB     EAX,ECX
-        SUB     ECX,EDX
-        DEC     ECX
-        CDQ
-        IDIV    ECX
-
-
-        RET
-@@below:
-
-        SUB     EAX,EDX
-        NEG     EDX
-        LEA     ECX,[ECX-EDX+1]
-        CDQ
-        IDIV    ECX
-        MOV     EAX,EDX
-        TEST    EAX,EAX
-        JNL     @@exit
-        ADD     EAX,ECX
-@@exit:
-{$ENDIF}
-*)
 end;
 
 function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
@@ -544,6 +533,80 @@ begin
     Inc(Result, Min);
   end;
   if Odd(DivResult) then Result := Max+Min-Result;
+end;
+
+function WrapPow2(Value, Max: Integer): Integer; overload;
+begin
+  Result := Value and Max;
+end;
+
+function WrapPow2(Value, Min, Max: Integer): Integer; overload;
+begin
+  Result := (Value - Min) and (Max - Min) + Min;
+end;
+
+function GetOptimalWrap(Max: Integer): TWrapProc; overload;
+begin
+  if (Max >= 0) and IsPowerOf2(Max + 1) then
+    Result := WrapPow2
+  else
+    Result := Wrap;
+end;
+
+function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload;
+begin
+  if (Min >= 0) and (Max >= Min) and IsPowerOf2(Max - Min + 1) then
+    Result := WrapPow2
+  else
+    Result := Wrap;
+end;
+
+function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
+begin
+  case WrapMode of
+    wmRepeat:
+      Result := Wrap;
+    wmMirror:
+      Result := Mirror;
+    else //wmClamp:
+      Result := Clamp;
+  end;
+end;
+
+function GetWrapProc(WrapMode: TWrapMode; Max: Integer): TWrapProc; overload;
+begin
+  case WrapMode of
+    wmRepeat:
+      Result := GetOptimalWrap(Max);
+    wmMirror:
+      Result := Mirror;
+    else //wmClamp:
+      Result := Clamp;
+  end;
+end;
+
+function GetWrapProcEx(WrapMode: TWrapMode): TWrapProcEx; overload;
+begin
+  case WrapMode of
+    wmRepeat:
+      Result := Wrap;
+    wmMirror:
+      Result := Mirror;
+    else //wmClamp:
+      Result := Clamp;
+  end;
+end;
+
+function GetWrapProcEx(WrapMode: TWrapMode; Min, Max: Integer): TWrapProcEx; overload;
+begin
+  case WrapMode of
+    wmRepeat:
+      Result := GetOptimalWrap(Min, Max);
+    wmMirror:
+      Result := Mirror;
+    else //wmClamp:
+      Result := Clamp;
+  end;
 end;
 
 { shift right with sign conservation }
