@@ -552,11 +552,16 @@ end;
 procedure DitherRect(Canvas: TCanvas; const R: TRect; C1, C2: TColor);
 var
   B: TBitmap;
-{$IFNDEF CLX}
-  Brush: HBRUSH;
-{$ELSE}
+{$IFDEF CLX}
   Brush: TBrush;
   OldBrush: TBrush;
+{$ELSE}
+  {$IFDEF FPC}
+    Brush: TBrush;
+    OldBrush: TBrush;
+  {$ELSE}
+    Brush: HBRUSH;
+  {$ENDIF}
 {$ENDIF}
 begin
   if IsRectEmpty(R) then Exit;
@@ -579,17 +584,35 @@ begin
   Brush.Free;
   OldBrush.Free;
 {$ELSE}
-  {$IFNDEF FPC}
-  if C1 = C2 then
-    Brush := CreateSolidBrush(ColorToRGB(C1))
-  else
-  begin
-    B := AllocPatternBitmap(C1, C2);
-    B.HandleType := bmDDB;
-    Brush := CreatePatternBrush(B.Handle);
-  end;
-  FillRect(Canvas.Handle, R, Brush);
-  DeleteObject(Brush);
+  {$IFDEF FPC}
+    Brush := TBrush.Create;
+    if C1 = C2 then
+    begin
+      Brush.Color := ColorToRGB(C1);
+    end
+    else
+    begin
+      { TODO: Alloc intermediate color }
+      Brush.Color := ColorToRGB(C1);
+    end;
+    OldBrush := TBrush.Create;
+    OldBrush.Assign(Canvas.Brush);
+    Canvas.Brush.Assign(Brush);
+    Canvas.FillRect(R);
+    Canvas.Brush.Assign(OldBrush);
+    Brush.Free;
+    OldBrush.Free;
+  {$ELSE}
+    if C1 = C2 then
+      Brush := CreateSolidBrush(ColorToRGB(C1))
+    else
+    begin
+      B := AllocPatternBitmap(C1, C2);
+      B.HandleType := bmDDB;
+      Brush := CreatePatternBrush(B.Handle);
+    end;
+    FillRect(Canvas.Handle, R, Brush);
+    DeleteObject(Brush);
   {$ENDIF}
 {$ENDIF}
 end;
@@ -872,6 +895,27 @@ begin
     else
       DrawFrameControl(Canvas.Handle, R, DFC_SCROLL,
         DirectionFlags[Direction] or EnabledFlags[DrawEnabled] or PushedFlags[Pushed])
+{$ELSE}
+  {$IFDEF FPC}
+    Canvas.Brush.Color := clButton;
+    Canvas.FillRect(R);
+    LCLIntf.DrawFrameControl(Canvas.Handle, R, DFC_BUTTON, 0);
+    InflateRect(R, -2, -2);
+
+    If not DrawEnabled then
+    begin
+      InflateRect(R, -1, -1);
+      OffsetRect(R, 1, 1);
+      DrawArrow(Canvas, R, Direction, clWhite);
+      OffsetRect(R, -1, -1);
+      DrawArrow(Canvas, R, Direction, clDisabledButtonText);
+    end
+    else
+    begin
+      If Pushed then OffsetRect(R, 1, 1);
+      DrawArrow(Canvas, R, Direction, clButtonText);
+    end;
+  {$ENDIF}
 {$ENDIF}
   end
   else
@@ -935,6 +979,7 @@ begin
   if IsRectEmpty(R) then Exit;
   case Style of
     rbsDefault:
+    begin
 {$IFDEF Windows}
       if USE_THEMES then
       begin
@@ -948,18 +993,22 @@ begin
       end
       else
         DrawEdge(Canvas.Handle, R, EDGE_RAISED, BF_RECT or BF_MIDDLE);
+{$ELSE}
+  {$IFDEF FPC}
+      LCLIntf.DrawFrameControl(Canvas.Handle, R, DFC_BUTTON, 0);
+  {$ENDIF}
 {$ENDIF}
 {$IFDEF CLX}
-      begin
-        Canvas.Brush.Color := clButton;
-        Canvas.FillRect(R);
-        DrawWinButton(Canvas, R, False);
-      end;
+      Canvas.Brush.Color := clButton;
+      Canvas.FillRect(R);
+      DrawWinButton(Canvas, R, False);
 {$ENDIF}
-{$IFNDEF FPC}
+    end;
+
     rbsMac:
+    begin
       DrawHandle(Canvas, R, HandleColor, Pushed, ShowHandleGrip, Horz, fBorderColor);
-{$ENDIF}
+    end;
   end;
 end;
 
