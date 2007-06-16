@@ -45,6 +45,10 @@ contains  GR32 in '..\GR32.pas',
   GR32_RepaintOpt in '..\GR32_RepaintOpt.pas',
   GR32_MicroTiles in '..\GR32_MicroTiles.pas',
   GR32_Rasterizers in '..\GR32_Rasterizers.pas',
-  GR32_Resamplers in '..\GR32_Resamplers.pas';
+  GR32_Resamplers in '..\GR32_Resamplers.pas',
+  GR32_Backends in '..\GR32_Backends.pas',
+  GR32_Backends_Generic in '..\GR32_Backends_Generic.pas',
+  GR32_Backends_VCL in '..\GR32_Backends_VCL.pas',
+  GR32_XPThemes in '..\GR32_XPThemes.pas';
 
 end.
