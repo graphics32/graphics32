@@ -40,7 +40,7 @@ uses
   {$ELSE}
   Graphics,
   {$ENDIF}
-  GR32, GR32_System;
+  GR32, GR32_Math, GR32_System;
 
 { Clamp function restricts Value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -143,9 +143,6 @@ var
 implementation
 
 {$R-}{$Q-}  // switch off overflow and range checking
-
-uses
-  GR32_Math;
 
 function Clamp(const Value: Integer): Integer;
 {$IFDEF USEINLINING}
