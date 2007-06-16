@@ -33,10 +33,8 @@ interface
 
 uses
   {$IFDEF FPC}
-    LMessages, LCLType, LCLIntf, Graphics, Controls, Forms, Dialogs, ExtCtrls,
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
+    LCLIntf, LMessages, LCLType, Graphics, Controls, Forms, Dialogs, ExtCtrls,
+    {$IFDEF Windows} Windows, {$ENDIF}
   {$ELSE}
     {$IFDEF CLX}
       Qt, Types,
@@ -97,17 +95,20 @@ type
     procedure SetShowHandleGrip(Value: Boolean);
     procedure SetStyle(Value: TRBStyle);
     procedure SetBackgnd(Value: TRBBackgnd);
-{$IFNDEF CLX}
-{$IFDEF Windows}
-    procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
-    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-{$ELSE}
+{$IFDEF FPC}
     procedure CMEnabledChanged(var Message: TLMessage); message CM_ENABLEDCHANGED;
     procedure CMMouseLeave(var Message: TLMessage); message CM_MOUSELEAVE;
-{$ENDIF}
+    procedure WMNCCalcSize(var Message: TLMNCCalcSize); message LM_NCCALCSIZE;
+    procedure WMEraseBkgnd(var Message: TLmEraseBkgnd); message LM_ERASEBKGND;
 {$IFDEF Windows}
+    procedure WMNCPaint(var Message: TWMNCPaint); message LM_NCPAINT;
+{$ENDIF}
+{$ELSE}
+{$IFNDEF CLX}
+    procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
+    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
-    procedure WMNCPaint(var Message: TMessage); message WM_NCPAINT;
+    procedure WMNCPaint(var Message: TWMNCPaint); message WM_NCPAINT;
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
 {$ENDIF}
 {$ENDIF}
@@ -123,9 +124,6 @@ type
     procedure DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean); virtual;
     procedure DoDrawHandle(R: TRect; Horz: Boolean; Pushed, Hot: Boolean); virtual;
     procedure DoDrawTrack(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean); virtual;
-{$IFDEF Windows}
-    procedure DrawNCArea(ADC: HDC; const Clip: HRGN); dynamic;
-{$ENDIF}
     function  DrawEnabled: Boolean; virtual;
     function  GetBorderSize: Integer;
     function  GetHandleRect: TRect; virtual;
@@ -417,146 +415,14 @@ begin
     (Cardinal(C2) and $00FF00) * W2) and $00FF0000) shr 8;
 end;
 
-{$IFDEF xFPC}
-type
-  PPattern = ^TPattern;
-  TPattern = record
-    Next: PPattern;
-    Bitmap: TBitmap;
-    BkColorRef: TColorRef;
-    FgColorRef: TColorRef;
-  end;
-
-  TPatternManager = class(TObject)
-  private
-    List: PPattern;
-    FLock: System.TRTLCriticalSection;
-    function CreateBitmap(BkColor, FgColor: TColor): TBitmap;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    function AllocPattern(BkColor, FgColor: TColorRef): PPattern;
-    procedure FreePatterns;
-    procedure Lock;
-    procedure Unlock;
-  end;
-
-constructor TPatternManager.Create;
-begin
-  InitCriticalSection(FLock);
-end;
-
-destructor TPatternManager.Destroy;
-begin
-  FreePatterns;
-  DoneCriticalSection(FLock);
-end;
-
-procedure TPatternManager.Lock;
-begin
-  System.EnterCriticalSection(FLock);
-end;
-
-procedure TPatternManager.Unlock;
-begin
-  System.LeaveCriticalSection(FLock);
-end;
-
-function TPatternManager.AllocPattern(BkColor, FgColor: TColorRef): PPattern;
-begin
-  Lock;
-  try
-    Result := List;
-    while (Result <> nil) and ((Result^.BkColorRef <> BkColor) or
-      (Result^.FgColorRef <> FgColor)) do
-      Result := Result^.Next;
-    if Result = nil then
-    begin
-      GetMem(Result, SizeOf(TPattern));
-      with Result^ do
-      begin
-        Next := List;
-        Bitmap := CreateBitmap(BkColor, FgColor);
-        BkColorRef := BkColor;
-        FgColorRef := FgColor;
-      end;
-      List := Result;
-    end;
-  finally
-    Unlock;
-  end;
-end;
-
-function TPatternManager.CreateBitmap(BkColor, FgColor: TColor): TBitmap;
-var
-  X, Y: Integer;
-begin
-  Result := TBitmap.Create;
-  try
-    with Result do
-    begin
-      Width := 8;
-      Height := 8;
-      with Canvas do
-      begin
-        Brush.Style := bsSolid;
-        Brush.Color := BkColor;
-        FillRect(Rect(0, 0, Width, Height));
-        for Y := 0 to 8 do
-          for X := 0 to 8 do
-            if (Y mod 2) = (X mod 2) then  { toggles between even/odd pixles }
-              Pixels[X, Y] := FgColor;     { on even/odd rows }
-      end;
-//      Dormant;
-    end;
-  except
-    Result.Free;
-    raise;
-  end;
-end;
-
-procedure TPatternManager.FreePatterns;
-var
-  P: PPattern;
-begin
-  while List <> nil do
-  begin
-    P := List;
-    with P^ do
-    begin
-      Lock;
-      try
-        List := Next
-      finally
-        Unlock;
-      end;
-      if Bitmap <> nil then Bitmap.Free;
-    end;
-    FreeMem(P);
-  end;
-end;
-
-var
-  PatternManager: TPatternManager;
-
-function AllocPatternBitmap(BkColor, FgColor: TColor): TBitmap;
-begin
-  if PatternManager <> nil then
-    Result := PatternManager.AllocPattern(ColorToRGB(BkColor),
-      ColorToRGB(FgColor)).Bitmap
-    else
-      Result := nil;
-end;
-{$ENDIF}
-
 procedure DitherRect(Canvas: TCanvas; const R: TRect; C1, C2: TColor);
 var
   B: TBitmap;
-{$IFDEF CLX}
+{$IFDEF FPC}
   Brush: TBrush;
   OldBrush: TBrush;
 {$ELSE}
-  {$IFDEF FPC}
+  {$IFDEF CLX}
     Brush: TBrush;
     OldBrush: TBrush;
   {$ELSE}
@@ -586,13 +452,19 @@ begin
 {$ELSE}
   {$IFDEF FPC}
     Brush := TBrush.Create;
-    if C1 = C2 then
+    Brush.Color := ColorToRGB(C1);
+    if C1 <> C2 then
     begin
-      Brush.Color := ColorToRGB(C1);
-    end
-    else
-    begin
-      { TODO: Alloc intermediate color }
+      Brush.Bitmap := Graphics.TBitmap.Create;
+      with Brush.Bitmap do
+      begin
+        Height := 2;
+        Width := 2;
+        Canvas.Pixels[0,0] := C1;
+        Canvas.Pixels[1,0] := C2;
+        Canvas.Pixels[0,1] := C2;
+        Canvas.Pixels[1,1] := C1;
+      end;
       Brush.Color := ColorToRGB(C1);
     end;
     OldBrush := TBrush.Create;
@@ -728,10 +600,7 @@ begin
       Inc(R.Left);
 
       OffsetRect(R, 0, -4);
-      if S > 10 then
-      begin
-        Frame3D(Canvas, R, CHi, CLo, False);
-      end;
+      if S > 10 then Frame3D(Canvas, R, CHi, CLo, False);
 
       OffsetRect(R, 0, 3);
       Frame3D(Canvas, R, CHi, CLo, False);
@@ -795,10 +664,10 @@ const
 {$IFDEF CLX}
 procedure TArrowBar.EnabledChanged;
 {$ELSE}
-{$IFDEF Windows}
-procedure TArrowBar.CMEnabledChanged(var Message: TMessage);
-{$ELSE}
+{$IFDEF FPC}
 procedure TArrowBar.CMEnabledChanged(var Message: TLMessage);
+{$ELSE}
+procedure TArrowBar.CMEnabledChanged(var Message: TMessage);
 {$ENDIF}
 {$ENDIF}
 begin
@@ -809,10 +678,10 @@ end;
 {$IFDEF CLX}
 procedure TArrowBar.MouseLeave(AControl: TControl);
 {$ELSE}
-{$IFDEF Windows}
-procedure TArrowBar.CMMouseLeave(var Message: TMessage);
-{$ELSE}
+{$IFDEF FPC}
 procedure TArrowBar.CMMouseLeave(var Message: TLMessage);
+{$ELSE}
+procedure TArrowBar.CMMouseLeave(var Message: TMessage);
 {$ENDIF}
 {$ENDIF}
 begin
@@ -852,8 +721,8 @@ const
   DirectionFlags: array [TRBDirection] of Integer = (DFCS_SCROLLLEFT, DFCS_SCROLLUP,
     DFCS_SCROLLRIGHT, DFCS_SCROLLDOWN);
 {$IFDEF Windows}
-  DirectionXPFlags: array [TRBDirection] of Cardinal = (ABS_LEFTNORMAL, ABS_UPNORMAL,
-    ABS_RIGHTNORMAL, ABS_DOWNNORMAL);
+  DirectionXPFlags: array [TRBDirection] of Cardinal = (ABS_LEFTNORMAL,
+    ABS_UPNORMAL, ABS_RIGHTNORMAL, ABS_DOWNNORMAL);
 {$ENDIF}
 var
   Edges: TRBDirections;
@@ -863,6 +732,29 @@ var
 begin
   if Style = rbsDefault then
   begin
+{$IFDEF FPC}
+{$IFNDEF Windows}
+    Canvas.Brush.Color := clButton;
+    Canvas.FillRect(R);
+    LCLIntf.DrawFrameControl(Canvas.Handle, R, DFC_BUTTON, 0);
+    InflateRect(R, -2, -2);
+
+    If not DrawEnabled then
+    begin
+      InflateRect(R, -1, -1);
+      OffsetRect(R, 1, 1);
+      DrawArrow(Canvas, R, Direction, clWhite);
+      OffsetRect(R, -1, -1);
+      DrawArrow(Canvas, R, Direction, clDisabledButtonText);
+    end
+    else
+    begin
+      If Pushed then OffsetRect(R, 1, 1);
+      DrawArrow(Canvas, R, Direction, clButtonText);
+    end;
+{$ENDIF}
+{$ENDIF}
+
 {$IFDEF CLX}
     Canvas.Brush.Color := clButton;
     Canvas.FillRect(R);
@@ -883,6 +775,7 @@ begin
       DrawArrow(Canvas, R, Direction, clButtonText);
     end;
 {$ENDIF}
+
 {$IFDEF Windows}
     if USE_THEMES then
     begin
@@ -895,27 +788,6 @@ begin
     else
       DrawFrameControl(Canvas.Handle, R, DFC_SCROLL,
         DirectionFlags[Direction] or EnabledFlags[DrawEnabled] or PushedFlags[Pushed])
-{$ELSE}
-  {$IFDEF FPC}
-    Canvas.Brush.Color := clButton;
-    Canvas.FillRect(R);
-    LCLIntf.DrawFrameControl(Canvas.Handle, R, DFC_BUTTON, 0);
-    InflateRect(R, -2, -2);
-
-    If not DrawEnabled then
-    begin
-      InflateRect(R, -1, -1);
-      OffsetRect(R, 1, 1);
-      DrawArrow(Canvas, R, Direction, clWhite);
-      OffsetRect(R, -1, -1);
-      DrawArrow(Canvas, R, Direction, clDisabledButtonText);
-    end
-    else
-    begin
-      If Pushed then OffsetRect(R, 1, 1);
-      DrawArrow(Canvas, R, Direction, clButtonText);
-    end;
-  {$ENDIF}
 {$ENDIF}
   end
   else
@@ -993,10 +865,6 @@ begin
       end
       else
         DrawEdge(Canvas.Handle, R, EDGE_RAISED, BF_RECT or BF_MIDDLE);
-{$ELSE}
-  {$IFDEF FPC}
-      LCLIntf.DrawFrameControl(Canvas.Handle, R, DFC_BUTTON, 0);
-  {$ENDIF}
 {$ENDIF}
 {$IFDEF CLX}
       Canvas.Brush.Color := clButton;
@@ -1089,25 +957,6 @@ function TArrowBar.DrawEnabled: Boolean;
 begin
   Result := Enabled;
 end;
-
-{$IFDEF Windows}
-procedure TArrowBar.DrawNCArea(ADC: HDC; const Clip: HRGN);
-var
-  DC: HDC;
-  R: TRect;
-begin
-  if BorderStyle = bsNone then Exit;
-  if ADC = 0 then DC := GetWindowDC(Handle)
-  else DC := ADC;
-  try
-    GetWindowRect(Handle, R);
-    OffsetRect(R, -R.Left, -R.Top);
-    DrawEdge(DC, R, BDR_SUNKENOUTER, BF_RECT);
-  finally
-    if ADC = 0 then ReleaseDC(Handle, DC);
-  end;
-end;
-{$ENDIF}
 
 function TArrowBar.GetBorderSize: Integer;
 const
@@ -1517,7 +1366,47 @@ begin
   end;
 end;
 
+{$IFDEF FPC}
+procedure TArrowBar.WMEraseBkgnd(var Message: TLmEraseBkgnd);
+begin
+  Message.Result := -1;
+end;
+
+procedure TArrowBar.WMNCCalcSize(var Message: TLMNCCalcSize);
+var
+  Sz: Integer;
+begin
+  Sz := GetBorderSize;
+  InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
+end;
+
 {$IFDEF Windows}
+procedure TArrowBar.WMNCPaint(var Message: TWMNCPaint);
+
+  procedure DrawNCArea(ADC: HDC; const Clip: HRGN);
+  var
+    DC: HDC;
+    R: TRect;
+  begin
+    if BorderStyle = bsNone then Exit;
+    if ADC = 0 then DC := GetWindowDC(Handle)
+    else DC := ADC;
+    try
+      GetWindowRect(Handle, R);
+      OffsetRect(R, -R.Left, -R.Top);
+      DrawEdge(DC, R, BDR_SUNKENOUTER, BF_RECT);
+    finally
+      if ADC = 0 then ReleaseDC(Handle, DC);
+    end;
+  end;
+
+begin
+  DrawNCArea(0, Message.RGN);
+end;
+{$ENDIF}
+
+{$ELSE}
+
 procedure TArrowBar.WMEraseBkgnd(var Message: TWmEraseBkgnd);
 begin
   Message.Result := -1;
@@ -1531,13 +1420,31 @@ begin
   InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
 end;
 
-procedure TArrowBar.WMNCPaint(var Message: TMessage);
+procedure TArrowBar.WMNCPaint(var Message: TWMNCPaint);
+
+  procedure DrawNCArea(ADC: HDC; const Clip: HRGN);
+  var
+    DC: HDC;
+    R: TRect;
+  begin
+    if BorderStyle = bsNone then Exit;
+    if ADC = 0 then DC := GetWindowDC(Handle)
+    else DC := ADC;
+    try
+      GetWindowRect(Handle, R);
+      OffsetRect(R, -R.Left, -R.Top);
+      DrawEdge(DC, R, BDR_SUNKENOUTER, BF_RECT);
+    finally
+      if ADC = 0 then ReleaseDC(Handle, DC);
+    end;
+  end;
+
 begin
-  DrawNCArea(0, HRGN(Message.WParam));
+  DrawNCArea(0, Message.RGN);
 end;
 {$ENDIF}
-{$IFDEF CLX}
 
+{$IFDEF CLX}
 function TArrowBar.WidgetFlags: Integer;
 begin
   Result := Inherited WidgetFlags or Integer(WidgetFlags_WRepaintNoErase) or
@@ -1561,9 +1468,10 @@ end;
 
 function TCustomRangeBar.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
   {$IFDEF CLX}const{$ENDIF} MousePos: TPoint): Boolean;
+const OneHundredTwenteenth = 1 / 120;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
-  if not Result then Position := Position + Increment * WheelDelta / 120;
+  if not Result then Position := Position + Increment * WheelDelta * OneHundredTwenteenth;
   Result := True;
 end;
 
