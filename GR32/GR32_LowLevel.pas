@@ -94,17 +94,23 @@ function Wrap(Value, Max: Integer): Integer; overload;
 function Wrap(Value, Min, Max: Integer): Integer; overload;
 
 { Fast Wrap alternatives for cases where range + 1 is a power of two }
-function WrapPow2(Value, Max: Integer): Integer; overload;
-function WrapPow2(Value, Min, Max: Integer): Integer; overload;
+function WrapPow2(Value, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function WrapPow2(Value, Min, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
 { Mirror integer Value in [0..Max] range }
 function Mirror(Value, Max: Integer): Integer; overload;
 { Same but [Min..Max] range }
 function Mirror(Value, Min, Max: Integer): Integer; overload;
 
-{ Functions to determine appropiate Wrap (Wrap or WrapPow2 }
-function GetOptimalWrap(Max: Integer): TWrapProc; overload;
-function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; overload;
+{ Fast Mirror alternatives for cases where range + 1 is a power of two }
+function MirrorPow2(Value, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function MirrorPow2(Value, Min, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+
+{ Functions to determine appropiate wrap procs (normal or power of 2 optimized)}
+function GetOptimalWrap(Max: Integer): TWrapProc; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function GetOptimalWrap(Min, Max: Integer): TWrapProcEx; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function GetOptimalMirror(Max: Integer): TWrapProc; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function GetOptimalMirror(Min, Max: Integer): TWrapProcEx; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
 { Functions to retrieve correct WrapProc given WrapMode (and range) }
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
@@ -545,6 +551,25 @@ begin
   Result := (Value - Min) and (Max - Min) + Min;
 end;
 
+function MirrorPow2(Value, Max: Integer): Integer; overload;
+begin
+  if Value and (Max + 1) = 0 then
+    Result := Value and Max
+  else
+    Result := Max - Value and Max;
+end;
+
+function MirrorPow2(Value, Min, Max: Integer): Integer; overload;
+begin
+  Value := Value - Min;
+  Result := Max - Min;
+
+  if Value and (Result + 1) = 0 then
+    Result := Min + Value and Result
+  else
+    Result := Max - Value and Result;
+end;
+
 function GetOptimalWrap(Max: Integer): TWrapProc; overload;
 begin
   if (Max >= 0) and IsPowerOf2(Max + 1) then
@@ -559,6 +584,22 @@ begin
     Result := WrapPow2
   else
     Result := Wrap;
+end;
+
+function GetOptimalMirror(Max: Integer): TWrapProc; overload;
+begin
+  if (Max >= 0) and IsPowerOf2(Max + 1) then
+    Result := MirrorPow2
+  else
+    Result := Mirror;
+end;
+
+function GetOptimalMirror(Min, Max: Integer): TWrapProcEx; overload;
+begin
+  if (Min >= 0) and (Max >= Min) and IsPowerOf2(Max - Min + 1) then
+    Result := MirrorPow2
+  else
+    Result := Mirror;
 end;
 
 function GetWrapProc(WrapMode: TWrapMode): TWrapProc; overload;
@@ -579,7 +620,7 @@ begin
     wmRepeat:
       Result := GetOptimalWrap(Max);
     wmMirror:
-      Result := Mirror;
+      Result := GetOptimalMirror(Max);
     else //wmClamp:
       Result := Clamp;
   end;
@@ -603,7 +644,7 @@ begin
     wmRepeat:
       Result := GetOptimalWrap(Min, Max);
     wmMirror:
-      Result := Mirror;
+      Result := GetOptimalMirror(Min, Max);
     else //wmClamp:
       Result := Clamp;
   end;
