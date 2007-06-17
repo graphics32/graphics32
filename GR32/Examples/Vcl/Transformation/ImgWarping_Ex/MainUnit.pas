@@ -48,6 +48,15 @@ type
 
   { TMainForm }
   TMainForm = class(TForm)
+    ParamBar: TGaugeBar;
+    RateBar: TGaugeBar;
+    FeatherBar: TGaugeBar;
+    PressureBar: TGaugeBar;
+    PinchBar: TGaugeBar;
+    SizeBar: TGaugeBar;
+    BrushMeshPreview: TPaintBox32;
+    ScaleBar: TGaugeBar;
+    DstImg: TImgView32;
     OpenPictureDialog: TOpenPictureDialog;
     UpdateTimer: TTimer;
     Panel1: TPanel;
@@ -62,24 +71,15 @@ type
     Label7: TLabel;
     ToolGroup: TRadioGroup;
     ParamLabel: TLabel;
-    ParamBar: TGaugeBar;
     RateLabel: TLabel;
-    RateBar: TGaugeBar;
-    FeatherBar: TGaugeBar;
     FeatherLabel: TLabel;
     Label2: TLabel;
-    PressureBar: TGaugeBar;
     Label3: TLabel;
-    PinchBar: TGaugeBar;
     Label1: TLabel;
-    SizeBar: TGaugeBar;
     Bevel2: TBevel;
     Label9: TLabel;
-    BrushMeshPreview: TPaintBox32;
     Label5: TLabel;
-    ScaleBar: TGaugeBar;
     SavePictureDialog: TSavePictureDialog;
-    DstImg: TImgView32;
     MainMenu: TMainMenu;
     File1: TMenuItem;
     Sampling1: TMenuItem;
