@@ -26,23 +26,31 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC}LCLIntf, LResources, Buttons, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Math, StdCtrls, ExtCtrls,
-  {$IFNDEF FPC} Jpeg, {$ELSE}LazJpeg, LResources, Buttons, {$ENDIF}
   GR32_Image, GR32_RangeBars;
 
 type
   TMainForm = class(TForm)
     MasterAlphaBar: TGaugeBar;
+    CombImg: TImage32;
+    WeightmapImg: TImage32;
+    TexAImg: TImage32;
+    TexBImg: TImage32;
     Label5: TLabel;
     BlendBox: TComboBox;
-    CombImg: TImage32;
     Label4: TLabel;
-    WeightmapImg: TImage32;
     Label3: TLabel;
-    TexAImg: TImage32;
     Label1: TLabel;
-    TexBImg: TImage32;
     Label2: TLabel;
     Label6: TLabel;
     Label7: TLabel;
@@ -67,6 +75,14 @@ implementation
 {$ENDIF}
 
 uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG,
+{$ELSE}
+  LazJPEG,
+{$ENDIF}
   GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
 
 var
@@ -94,12 +110,118 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  MasterAlphaBar := TGaugeBar.Create(Self);
+  MasterAlphaBar.Parent := Self;
+  MasterAlphaBar.Left := 336;
+  MasterAlphaBar.Height := 16;
+  MasterAlphaBar.Top := 32;
+  MasterAlphaBar.Width := 192;
+  MasterAlphaBar.Color := clScrollBar;
+  MasterAlphaBar.Max := 255;
+  MasterAlphaBar.ShowArrows := False;
+  MasterAlphaBar.ShowHandleGrip := True;
+  MasterAlphaBar.Style := rbsMac;
+  MasterAlphaBar.Position := 200;
+  MasterAlphaBar.OnChange := MasterAlphaBarChange;
+
+  CombImg := TImage32.Create(Self);
+  CombImg.Parent := Self;
+  CombImg.Left := 272;
+  CombImg.Height := 256;
+  CombImg.Top := 112;
+  CombImg.Width := 256;
+  CombImg.Bitmap.ResamplerClassName := 'TNearestResampler';
+  CombImg.Bitmap.OnChange := nil;
+  CombImg.Bitmap.OnResize := nil;
+  CombImg.BitmapAlign := baCenter;
+  CombImg.Color := clBlack;
+  CombImg.ParentColor := False;
+  CombImg.Scale := 1;
+  CombImg.TabOrder := 1;
+
+  WeightmapImg := TImage32.Create(Self);
+  WeightmapImg.Parent := Self;
+  WeightmapImg.Left := 8;
+  WeightmapImg.Height := 256;
+  WeightmapImg.Top := 112;
+  WeightmapImg.Width := 257;
+  WeightmapImg.Bitmap.ResamplerClassName := 'TNearestResampler';
+  WeightmapImg.Bitmap.OnChange := nil;
+  WeightmapImg.Bitmap.OnResize := nil;
+  WeightmapImg.BitmapAlign := baCenter;
+  WeightmapImg.Color := clBlack;
+  WeightmapImg.ParentColor := False;
+  WeightmapImg.Scale := 1;
+  WeightmapImg.TabOrder := 2;
+
+  TexAImg := TImage32.Create(Self);
+  TexAImg.Parent := Self;
+  TexAImg.Left := 8;
+  TexAImg.Height := 256;
+  TexAImg.Top := 400;
+  TexAImg.Width := 256;
+  TexAImg.Bitmap.ResamplerClassName := 'TNearestResampler';
+  TexAImg.Bitmap.OnChange := nil;
+  TexAImg.Bitmap.OnResize := nil;
+  TexAImg.BitmapAlign := baCenter;
+  TexAImg.Color := clBlack;
+  TexAImg.ParentColor := False;
+  TexAImg.Scale := 1;
+  TexAImg.TabOrder := 3;
+
+  TexBImg := TImage32.Create(Self);
+  TexBImg.Parent := Self;
+  TexBImg.Left := 272;
+  TexBImg.Height := 256;
+  TexBImg.Top := 400;
+  TexBImg.Width := 256;
+  TexBImg.Bitmap.ResamplerClassName := 'TNearestResampler';
+  TexBImg.Bitmap.OnChange := nil;
+  TexBImg.Bitmap.OnResize := nil;
+  TexBImg.BitmapAlign := baCenter;
+  TexBImg.Color := clBlack;
+  TexBImg.ParentColor := False;
+  TexBImg.Scale := 1;
+  TexBImg.TabOrder := 4;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
   BlendBox.ItemIndex := 0;
   
   // Load the textures (note size 256x256 is implicity expected!)
-  TexAImg.Bitmap.LoadFromFile('..\..\..\Media\texture_a.jpg');
-  TexBImg.Bitmap.LoadFromFile('..\..\..\Media\texture_b.jpg');
+  TexAImg.Bitmap.LoadFromFile(pathMedia + 'texture_a.jpg');
+  TexBImg.Bitmap.LoadFromFile(pathMedia + 'texture_b.jpg');
   CombImg.Bitmap.SetSizeFrom(TexBImg.Bitmap);
 
   // Set up Weightmap and trigger generate

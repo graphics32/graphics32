@@ -5,20 +5,22 @@ object MainForm: TMainForm
   Width = 537
   HorzScrollBar.Page = 536
   VertScrollBar.Page = 664
+  ActiveControl = BlendBox
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Texture Blend Example'
+  ClientHeight = 665
+  ClientWidth = 537
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   Position = poScreenCenter
   object Label5: TLabel
     Left = 272
-    Height = 14
+    Height = 13
     Top = 32
-    Width = 61
+    Width = 72
     Caption = 'MasterAlpha'
-    Color = clNone
     ParentColor = False
   end
   object Label4: TLabel
@@ -107,11 +109,10 @@ object MainForm: TMainForm
   end
   object Label7: TLabel
     Left = 272
-    Height = 14
+    Height = 13
     Top = 56
-    Width = 53
+    Width = 63
     Caption = 'Blendmode'
-    Color = clNone
     ParentColor = False
   end
   object Label8: TLabel
@@ -130,26 +131,12 @@ object MainForm: TMainForm
     ParentColor = False
     Transparent = False
   end
-  object MasterAlphaBar: TGaugeBar
-    Left = 336
-    Height = 16
-    Top = 32
-    Width = 192
-    Color = clScrollBar
-    Max = 255
-    ShowArrows = False
-    ShowHandleGrip = True
-    Style = rbsMac
-    Position = 200
-    OnChange = MasterAlphaBarChange
-  end
   object BlendBox: TComboBox
     Left = 336
     Height = 21
     Top = 56
     Width = 193
     AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-    ItemHeight = 13
     Items.Strings = (
       'Normal'
       'Soft Masked'
@@ -168,62 +155,6 @@ object MainForm: TMainForm
     Style = csDropDownList
     TabOrder = 0
   end
-  object CombImg: TImage32
-    Left = 272
-    Height = 256
-    Top = 112
-    Width = 256
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
-    BitmapAlign = baCenter
-    Color = clBlack
-    ParentColor = False
-    Scale = 1
-    TabOrder = 1
-  end
-  object WeightmapImg: TImage32
-    Left = 8
-    Height = 256
-    Top = 112
-    Width = 257
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
-    BitmapAlign = baCenter
-    Color = clBlack
-    ParentColor = False
-    Scale = 1
-    TabOrder = 2
-  end
-  object TexAImg: TImage32
-    Left = 8
-    Height = 256
-    Top = 400
-    Width = 256
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
-    BitmapAlign = baCenter
-    Color = clBlack
-    ParentColor = False
-    Scale = 1
-    TabOrder = 3
-  end
-  object TexBImg: TImage32
-    Left = 272
-    Height = 256
-    Top = 400
-    Width = 256
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
-    BitmapAlign = baCenter
-    Color = clBlack
-    ParentColor = False
-    Scale = 1
-    TabOrder = 4
-  end
   object GenerateButton: TButton
     Left = 8
     Height = 25
@@ -231,6 +162,6 @@ object MainForm: TMainForm
     Width = 257
     BorderSpacing.InnerBorder = 4
     Caption = 'Generate Random Weightmap'
-    TabOrder = 5
+    TabOrder = 1
   end
 end
