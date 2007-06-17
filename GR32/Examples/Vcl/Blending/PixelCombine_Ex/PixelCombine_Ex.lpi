@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
       <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="4"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -21,16 +21,22 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="3">
       <Item1>
         <PackageName Value="LCL"/>
       </Item1>
+      <Item2>
+        <PackageName Value="JPEGForLazarus"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="GR32_L"/>
+      </Item3>
     </RequiredPackages>
-    <Units Count="9">
+    <Units Count="14">
       <Unit0>
         <Filename Value="PixelCombine_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="8" Y="8"/>
+        <CursorPos X="23" Y="10"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -43,14 +49,14 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="18" Y="141"/>
-        <TopLine Value="101"/>
+        <CursorPos X="1" Y="59"/>
+        <TopLine Value="34"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="..\..\..\..\GR32_MicroTiles.pas"/>
+        <Filename Value="../../../../GR32_MicroTiles.pas"/>
         <UnitName Value="GR32_MicroTiles"/>
         <CursorPos X="17" Y="2"/>
         <TopLine Value="1"/>
@@ -58,105 +64,92 @@
       </Unit2>
       <Unit3>
         <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="18" Y="12"/>
-        <TopLine Value="1"/>
+        <CursorPos X="1" Y="44"/>
+        <TopLine Value="16"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
+        <Filename Value="../../../../GR32_DrawingEx.pas"/>
         <UnitName Value="GR32_DrawingEx"/>
         <CursorPos X="19" Y="36"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="5"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\..\..\..\..\..\..\..\..\Lazarus\lcl\lclproc.pas"/>
+        <Filename Value="/Lazarus/lcl/lclproc.pas"/>
         <UnitName Value="LCLProc"/>
         <CursorPos X="1" Y="775"/>
         <TopLine Value="748"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
+        <Filename Value="/Lazarus/lcl/interfaces/win32/interfaces.pp"/>
         <UnitName Value="Interfaces"/>
         <CursorPos X="54" Y="35"/>
         <TopLine Value="2"/>
-        <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit6>
       <Unit7>
-        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
+        <Filename Value="../../../../GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="23" Y="37"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
       </Unit7>
       <Unit8>
-        <Filename Value="..\..\..\..\GR32_LowLevel.pas"/>
+        <Filename Value="../../../../GR32_LowLevel.pas"/>
         <UnitName Value="GR32_LowLevel"/>
         <CursorPos X="3" Y="125"/>
         <TopLine Value="103"/>
-        <EditorIndex Value="4"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit8>
+      <Unit9>
+        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <UnitName Value="MainUnit"/>
+        <CursorPos X="1" Y="144"/>
+        <TopLine Value="134"/>
+        <UsageCount Value="10"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="../../../../Packages/GR32_L.pas"/>
+        <UnitName Value="GR32_L"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="../../../../GR32_Image.pas"/>
+        <UnitName Value="GR32_Image"/>
+        <CursorPos X="14" Y="717"/>
+        <TopLine Value="708"/>
+        <UsageCount Value="10"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="../../../../GR32_RangeBars.pas"/>
+        <UnitName Value="GR32_RangeBars"/>
+        <CursorPos X="25" Y="68"/>
+        <TopLine Value="54"/>
+        <UsageCount Value="10"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="temp.lfm"/>
+        <CursorPos X="1" Y="20"/>
+        <TopLine Value="13"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit13>
     </Units>
-    <JumpHistory Count="10" HistoryIndex="9">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="137" Column="5" TopLine="94"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="23" Column="1" TopLine="23"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="61" Column="1" TopLine="23"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="142" Column="3" TopLine="100"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="64" Column="24" TopLine="43"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="141" Column="5" TopLine="101"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="14" TopLine="1"/>
-      </Position7>
-      <Position8>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position8>
-      <Position9>
-        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position9>
-      <Position10>
-        <Filename Value="..\..\..\..\GR32_LowLevel.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position10>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
-      <OtherUnitFiles Value="C:\Programme\Borland\Library\Bitmap\Graphics32\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\"/>
-      <ObjectPath Value="..\..\..\"/>
-      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
+      <LCLWidgetType Value="carbon"/>
+      <ObjectPath Value="../../../"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -172,6 +165,8 @@
     </CodeGeneration>
     <Linking>
       <Options>
+        <PassLinkerOptions Value="True"/>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>

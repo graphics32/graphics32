@@ -27,10 +27,18 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  GR32, GR32_Image, GR32_Layers, GR32_Blend;
+  GR32, GR32_Image, GR32_Layers, GR32_Blend, GR32_RangeBars;
 
 type
   TForm1 = class(TForm)
@@ -61,14 +69,71 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-uses {$IFNDEF FPC}JPEG{$ELSE}JPEGForLazarus{$ENDIF};
+uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
   I, J: Integer;
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
-  ImgView.Bitmap.LoadFromFile('..\..\..\Media\runner.jpg');
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
 
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  ImgView := TImgView32.Create(Self);
+  ImgView.Parent := Self;
+  ImgView.Left := 16;
+  ImgView.Top := 20;
+  ImgView.Width := 367;
+  ImgView.Height := 309;
+  ImgView.Anchors := [akLeft, akTop, akRight, akBottom];
+  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
+  ImgView.BitmapAlign := baCustom;
+  ImgView.Color := clBtnShadow;
+  ImgView.ParentColor := False;
+  ImgView.Scale := 1.000000000000000000;
+  ImgView.ScaleMode := smScale;
+  ImgView.ScrollBars.ShowHandleGrip := True;
+  ImgView.ScrollBars.Style := rbsDefault;
+  ImgView.OverSize := 0;
+  ImgView.TabOrder := 0;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  ImgView.Bitmap.LoadFromFile(pathMedia + 'runner.jpg');
+  
   L := TBitmapLayer.Create(ImgView.Layers);
   L.Bitmap.SetSize(200, 200);
   L.Bitmap.DrawMode := dmCustom;

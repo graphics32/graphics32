@@ -7,6 +7,8 @@ object Form1: TForm1
   VertScrollBar.Page = 372
   ActiveControl = RadioGroup1.RadioButton0
   Caption = 'PixelCombine Example'
+  ClientHeight = 373
+  ClientWidth = 524
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
@@ -26,6 +28,8 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
+    ClientHeight = 168
+    ClientWidth = 105
     ItemIndex = 0
     Items.Strings = (
       'Opaque'
@@ -40,9 +44,5 @@ object Form1: TForm1
     )
     OnClick = RadioGroup1Click
     TabOrder = 0
-  end
-  object TImgView32
-    Height = 192
-    Centered = False
   end
 end

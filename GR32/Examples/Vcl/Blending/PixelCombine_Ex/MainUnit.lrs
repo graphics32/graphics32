@@ -1,20 +1,18 @@
-{ Das ist eine automatisch erzeugte Lazarus-Ressourcendatei }
-
 LazarusResources.Add('TForm1','FORMDATA',[
   'TPF0'#6'TForm1'#5'Form1'#4'Left'#3''''#1#6'Height'#3'u'#1#3'Top'#2'n'#5'Widt'
   +'h'#3#12#2#18'HorzScrollBar.Page'#3#11#2#18'VertScrollBar.Page'#3't'#1#13'Ac'
   +'tiveControl'#7#24'RadioGroup1.RadioButton0'#7'Caption'#6#20'PixelCombine Ex'
-  +'ample'#11'Font.Height'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7
-  +#10'FormCreate'#0#11'TRadioGroup'#11'RadioGroup1'#4'Left'#3#138#1#6'Height'#3
-  +#185#0#3'Top'#2#20#5'Width'#2'm'#7'Anchors'#11#5'akTop'#7'akRight'#0#8'AutoF'
-  +'ill'#9#7'Caption'#6#9'Operation'#28'ChildSizing.LeftRightSpacing'#2#6#28'Ch'
-  +'ildSizing.TopBottomSpacing'#2#6#29'ChildSizing.EnlargeHorizontal'#7#24'crsH'
-  +'omogenousChildResize'#27'ChildSizing.EnlargeVertical'#7#24'crsHomogenousChi'
-  +'ldResize'#28'ChildSizing.ShrinkHorizontal'#7#14'crsScaleChilds'#26'ChildSiz'
-  +'ing.ShrinkVertical'#7#14'crsScaleChilds'#18'ChildSizing.Layout'#7#29'cclLef'
-  +'tToRightThenTopToBottom'#27'ChildSizing.ControlsPerLine'#2#1#9'ItemIndex'#2
-  +#0#13'Items.Strings'#1#6#6'Opaque'#6#3'Add'#6#3'Sub'#6#8'Modulate'#6#3'Min'#6
-  +#3'Max'#6#10'Difference'#6#9'Exclusion'#6#7'Pattern'#0#7'OnClick'#7#16'Radio'
-  +'Group1Click'#8'TabOrder'#2#0#0#0#10'TImgView32'#0#6'Height'#3#192#0#8'Cente'
-  +'red'#8#0#0#0
+  +'ample'#12'ClientHeight'#3'u'#1#11'ClientWidth'#3#12#2#11'Font.Height'#2#245
+  +#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7#10'FormCreate'#0#11'TRadioGr'
+  +'oup'#11'RadioGroup1'#4'Left'#3#138#1#6'Height'#3#185#0#3'Top'#2#20#5'Width'
+  +#2'm'#7'Anchors'#11#5'akTop'#7'akRight'#0#8'AutoFill'#9#7'Caption'#6#9'Opera'
+  +'tion'#28'ChildSizing.LeftRightSpacing'#2#6#28'ChildSizing.TopBottomSpacing'
+  +#2#6#29'ChildSizing.EnlargeHorizontal'#7#24'crsHomogenousChildResize'#27'Chi'
+  +'ldSizing.EnlargeVertical'#7#24'crsHomogenousChildResize'#28'ChildSizing.Shr'
+  +'inkHorizontal'#7#14'crsScaleChilds'#26'ChildSizing.ShrinkVertical'#7#14'crs'
+  +'ScaleChilds'#18'ChildSizing.Layout'#7#29'cclLeftToRightThenTopToBottom'#27
+  +'ChildSizing.ControlsPerLine'#2#1#12'ClientHeight'#3#168#0#11'ClientWidth'#2
+  +'i'#9'ItemIndex'#2#0#13'Items.Strings'#1#6#6'Opaque'#6#3'Add'#6#3'Sub'#6#8'M'
+  +'odulate'#6#3'Min'#6#3'Max'#6#10'Difference'#6#9'Exclusion'#6#7'Pattern'#0#7
+  +'OnClick'#7#16'RadioGroup1Click'#8'TabOrder'#2#0#0#0#0
 ]);
