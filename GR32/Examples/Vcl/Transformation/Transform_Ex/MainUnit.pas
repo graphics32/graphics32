@@ -28,7 +28,16 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC} LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
   GR32_Transforms, GR32_Resamplers, GR32_Layers, ExtCtrls, StdCtrls, Buttons,
   ComCtrls, Grids, GR32_RangeBars;
@@ -54,7 +63,22 @@ type
   TForm1 = class(TForm)
     Src: TImage32;
     Dst: TImage32;
+    OpacityBar: TGaugeBar;
+    sbDx: TGaugeBar;
+    sbDy: TGaugeBar;
+    sbSx: TGaugeBar;
+    sbSy: TGaugeBar;
+    sbAlpha: TGaugeBar;
+    sbFx: TGaugeBar;
+    sbFy: TGaugeBar;
     PageControl1: TPageControl;
+{$IFDEF FPC}
+    Page1: TPage;
+    Page2: TPage;
+    Page3: TPage;
+    Page4: TPage;
+    Page5: TPage;
+{$ENDIF}
     TabSheet1: TTabSheet;
     Panel2: TPanel;
     Shape1: TShape;
@@ -95,14 +119,6 @@ type
     Panel3: TPanel;
     TabSheet2: TTabSheet;
     Label18: TLabel;
-    OpacityBar: TGaugeBar;
-    sbDx: TGaugeBar;
-    sbDy: TGaugeBar;
-    sbSx: TGaugeBar;
-    sbSy: TGaugeBar;
-    sbAlpha: TGaugeBar;
-    sbFx: TGaugeBar;
-    sbFy: TGaugeBar;
     ResamplerLabel: TLabel;
     ResamplerClassNamesList: TComboBox;
     KernelLabel: TLabel;
@@ -169,10 +185,19 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
   JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
 
 function GetVal(Src: string; var Dst: Extended): Boolean;
 var
@@ -183,8 +208,178 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
-  Src.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Src := TImage32.Create(Self);
+  Src.Parent := Self;
+  Src.Left := 2;
+  Src.Top := 2;
+  Src.Width := 256;
+  Src.Height := 256;
+  Src.Bitmap.DrawMode := dmBlend;
+  Src.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Src.BitmapAlign := baTopLeft;
+  Src.Color := clAppWorkSpace;
+  Src.ParentColor := False;
+  Src.RepaintMode := rmOptimizer;
+  Src.Scale := 1;
+  Src.ScaleMode := smNormal;
+  Src.TabOrder := 0;
+  Src.OnPaintStage := DstPaintStage;
+
+  Dst := TImage32.Create(Self);
+  Dst.Parent := Self;
+  Dst.Left := 264;
+  Dst.Top := 2;
+  Dst.Width := 351;
+  Dst.Height := 256;
+  Dst.Bitmap.DrawMode := dmBlend;
+  Dst.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Dst.BitmapAlign := baTopLeft;
+  Dst.Color := clAppWorkSpace;
+  Dst.ParentColor := False;
+  Dst.RepaintMode := rmOptimizer;
+  Dst.Scale := 1;
+  Dst.ScaleMode := smNormal;
+  Dst.TabOrder := 1;
+  Dst.OnMouseDown := RubberLayerMouseDown;
+  Dst.OnMouseMove := RubberLayerMouseMove;
+  Dst.OnMouseUp := RubberLayerMouseUp;
+  Dst.OnPaintStage := DstPaintStage;
+
+  sbDx := TGaugeBar.Create(Notebook.Page[0]);
+  sbDx.Parent := Notebook.Page[0];
+  sbDx.Left := 120;
+  sbDx.Top := 58;
+  sbDx.Width := 173;
+  sbDx.Height := 16;
+  sbDx.Backgnd := bgPattern;
+  sbDx.Max := 1000;
+  sbDx.Min := -1000;
+  sbDx.ShowHandleGrip := True;
+  sbDx.Position := 0;
+  sbDx.OnUserChange := TranslationScrolled;
+
+  sbDy := TGaugeBar.Create(Notebook.Page[0]);
+  sbDy.Parent := Notebook.Page[0];
+  sbDy.Left := 120;
+  sbDy.Top := 90;
+  sbDy.Width := 173;
+  sbDy.Height := 16;
+  sbDy.Backgnd := bgPattern;
+  sbDy.Max := 1000;
+  sbDy.Min := -1000;
+  sbDy.ShowHandleGrip := True;
+  sbDy.Position := 0;
+  sbDy.OnUserChange := TranslationScrolled;
+
+  sbSx := TGaugeBar.Create(Notebook.Page[2]);
+  sbSx.Parent := Notebook.Page[2];
+  sbSx.Left := 116;
+  sbSx.Top := 58;
+  sbSx.Width := 177;
+  sbSx.Height := 16;
+  sbSx.Backgnd := bgPattern;
+  sbSx.Max := 1000;
+  sbSx.Min := -1000;
+  sbSx.ShowHandleGrip := True;
+  sbSx.Position := 0;
+  sbSx.OnUserChange := ScaleScrolled;
+
+  sbSy := TGaugeBar.Create(Notebook.Page[2]);
+  sbSy.Parent := Notebook.Page[2];
+  sbSy.Left := 116;
+  sbSy.Top := 90;
+  sbSy.Width := 177;
+  sbSy.Height := 16;
+  sbSy.Backgnd := bgPattern;
+  sbSy.Max := 1000;
+  sbSy.Min := -1000;
+  sbSy.ShowHandleGrip := True;
+  sbSy.Position := 0;
+  sbSy.OnUserChange := ScaleScrolled;
+
+  sbAlpha := TGaugeBar.Create(Notebook.Page[3]);
+  sbAlpha.Parent := Notebook.Page[3];
+  sbAlpha.Left := 112;
+  sbAlpha.Top := 90;
+  sbAlpha.Width := 181;
+  sbAlpha.Height := 16;
+  sbAlpha.Backgnd := bgPattern;
+  sbAlpha.Max := 1000;
+  sbAlpha.Min := -1000;
+  sbAlpha.ShowHandleGrip := True;
+  sbAlpha.Position := 0;
+  sbAlpha.OnUserChange := RotationScrolled;
+
+  sbFx := TGaugeBar.Create(Notebook.Page[4]);
+  sbFx.Parent := Notebook.Page[4];
+  sbFx.Left := 116;
+  sbFx.Top := 58;
+  sbFx.Width := 177;
+  sbFx.Height := 16;
+  sbFx.Backgnd := bgPattern;
+  sbFx.Min := -100;
+  sbFx.ShowHandleGrip := True;
+  sbFx.Position := 0;
+  sbFx.OnUserChange := SkewScrolled;
+
+  sbFy := TGaugeBar.Create(Notebook.Page[4]);
+  sbFy.Parent := Notebook.Page[4];
+  sbFy.Left := 116;
+  sbFy.Top := 90;
+  sbFy.Width := 177;
+  sbFy.Height := 16;
+  sbFy.Backgnd := bgPattern;
+  sbFy.Min := -100;
+  sbFy.ShowHandleGrip := True;
+  sbFy.Position := 0;
+  sbFy.OnUserChange := SkewScrolled;
+
+  OpacityBar := TGaugeBar.Create(Panel3);
+  OpacityBar.Parent := Panel3;
+  OpacityBar.Left := 56;
+  OpacityBar.Top := 2;
+  OpacityBar.Width := 213;
+  OpacityBar.Height := 16;
+  OpacityBar.Backgnd := bgPattern;
+  OpacityBar.Max := 255;
+  OpacityBar.ShowHandleGrip := True;
+  OpacityBar.Position := 255;
+  OpacityBar.OnChange := OpacityChange;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   //Setup custom paintstages ("checkerboard" and border)
   with Dst do
@@ -559,7 +754,7 @@ begin
   if DraggedVertex = -1 then DraggedVertex := 4;
 
   // store current mouse position
-  LastMousePos := Point(X, Y);
+  LastMousePos := Classes.Point(X, Y);
 end;
 
 procedure TForm1.RubberLayerMouseMove(Sender: TObject; Shift: TShiftState;
@@ -573,7 +768,7 @@ begin
 
   Dx := X - LastMousePos.X;
   Dy := Y - LastMousePos.Y;
-  LastMousePos := Point(X, Y);
+  LastMousePos := Classes.Point(X, Y);
 
   // update coords
   if DraggedVertex = 4 then
@@ -733,5 +928,10 @@ begin
   Src.Bitmap.Resampler.PixelAccessMode := AccessMode[cbRepeat.Checked];
   DoTransform;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
