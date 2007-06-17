@@ -3,13 +3,13 @@ program PixelF_Ex;
 {$MODE Delphi}
 
 uses
-  {$IFDEF FPC}
   Interfaces,
-  {$ENDIF}
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
+  MainUnit in 'MainUnit.pas' {MainForm}, GR32_L, JPEGForLazarus;
 
+{$IFDEF Windows}
 {$R *.res}
+{$ENDIF}
 
 begin
   Application.Initialize;

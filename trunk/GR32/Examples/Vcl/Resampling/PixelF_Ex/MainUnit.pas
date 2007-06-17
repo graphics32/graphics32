@@ -27,19 +27,27 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC} LResources, Variants,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Lowlevel,
-  {$IFDEF FPC} LResources, LazJpeg, Variants,{$ENDIF}
   GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls, Math, GR32_Transforms;
 
 type
   { TMainForm }
   TMainForm = class(TForm)
     Image32: TImage32;
+    gbTwist: TGaugeBar;
     PnlSettings: TPanel;
     Label3: TLabel;
     Panel4: TPanel;
-    gbTwist: TGaugeBar;
     rbGetPixelFS: TRadioButton;
     rbPixelS: TRadioButton;
     procedure FormDestroy(Sender: TObject);
@@ -59,10 +67,106 @@ var
 implementation
 
 {$IFNDEF FPC}
-{$R *.dfm}
-
-uses JPEG;
+{$R *.DFM}
 {$ENDIF}
+
+uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
+
+procedure TMainForm.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
+begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Image32 := TImage32.Create(Self);
+  Image32.Parent := Self;
+  Image32.Left := 8;
+  Image32.Height := 244;
+  Image32.Top := 8;
+  Image32.Width := 300;
+  Image32.Anchors := [akTop, akLeft, akRight, akBottom];
+  Image32.AutoSize := True;
+  Image32.Bitmap.DrawMode := dmBlend;
+  Image32.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Image32.Bitmap.OnChange := nil;
+  Image32.Bitmap.OnResize := nil;
+  Image32.BitmapAlign := baCenter;
+  Image32.Scale := 1;
+  Image32.TabOrder := 0;
+  Image32.OnPaintStage := Image32PaintStage;
+
+  gbTwist := TGaugeBar.Create(PnlSettings);
+  gbTwist.Parent := PnlSettings;
+  gbTwist.Left := 8;
+  gbTwist.Height := 12;
+  gbTwist.Top := 48;
+  gbTwist.Width := 129;
+  gbTwist.Color := clScrollBar;
+  gbTwist.HandleSize := 16;
+  gbTwist.Max := 50;
+  gbTwist.Min := -50;
+  gbTwist.ShowArrows := False;
+  gbTwist.ShowHandleGrip := True;
+  gbTwist.Style := rbsMac;
+  gbTwist.OnChange := gbTwistChange;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  Image32.Bitmap.LoadFromFile(pathMedia + 'stones.jpg');
+
+  with Image32 do
+  begin
+    if PaintStages[0]^.Stage = PST_CLEAR_BACKGND then PaintStages[0]^.Stage := PST_CUSTOM;
+    PaintStages.Add^.Stage := PST_CUSTOM;
+  end;
+  Image32.BufferOversize := 0;
+  Src := TBitmap32.Create;
+  with Src do
+  begin
+    SetBorderTransparent(Src, BoundsRect);
+    Assign(Image32.Bitmap);
+    OuterColor := $00000000;
+  end;
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+ Src.Free;
+end;
 
 procedure TMainForm.TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
 {twirl algoritm inspired by Patrick Quinn´s remap demo}
@@ -125,30 +229,6 @@ begin
     end
     else
       FrameRectS(BoundsRect , $FF000000);
-end;
-
-procedure TMainForm.FormDestroy(Sender: TObject);
-begin
- Src.Free;
-end;
-
-procedure TMainForm.FormCreate(Sender: TObject);
-begin
-  Image32.Bitmap.LoadFromFile('..\..\..\Media\stones.jpg');
-
-  with Image32 do
-  begin
-    if PaintStages[0]^.Stage = PST_CLEAR_BACKGND then PaintStages[0]^.Stage := PST_CUSTOM;
-    PaintStages.Add^.Stage := PST_CUSTOM;
-  end;
-  Image32.BufferOversize := 0;
-  Src := TBitmap32.Create;
-  with Src do
-  begin
-    SetBorderTransparent(Src, BoundsRect);
-    Assign(Image32.Bitmap);
-    OuterColor := $00000000;
-  end;
 end;
 
 procedure TMainForm.gbTwistChange(Sender: TObject);
