@@ -48,7 +48,6 @@ type
     procedure CanvasChanged;
     procedure FontChanged;
   protected
-    FBits: Pointer;
     FBitmapInfo: TBitmapInfo;
     FBitmapHandle: HBITMAP;
     FHDC: HDC;
@@ -128,8 +127,26 @@ type
     property Canvas: TCanvas read GetCanvas;
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
   end;
+  { TLCLGDIMMFBackend }
+  { Same as TGDIBackend but relies on memory mapped files or mapped swap space
+    for the backing buffer. }
+
+  TLCLMMFBackend = class(TLCLBackend)
+  private
+    FMapFileHandle: THandle;
+    FMapIsTemporary: Boolean;
+    FMapFileName: string;
+  protected
+    procedure PrepareFileMapping(NewWidth, NewHeight: Integer); override;
+  public
+    constructor Create(Owner: TBitmap32; IsTemporary: Boolean = True; const MapFileName: string = ''); virtual;
+    destructor Destroy; override;
+  end;
 
 implementation
+
+uses
+  GR32_Backends_Generic;
 
 var
   StockFont: HFONT;
@@ -281,7 +298,7 @@ var
   OldFont: HGDIOBJ;
 begin
   Result := TextExtent(Text);
-  
+
   {TODO: implement Widestring capable text method here...}
   (*
   UpdateFont;
@@ -352,7 +369,7 @@ var
   Extent: TSize;
 begin
   Textout(X, Y, ClipRect, Text);
-  
+
   {TODO: implement Widestring capable text method here...}
 
   (*
@@ -382,7 +399,7 @@ end;
 procedure TLCLBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
   Textout(DstRect, Flags, Text);
-  
+
   {TODO: implement Widestring capable text method here...}
 
   (*
@@ -556,6 +573,27 @@ begin
   else
     with APaintBox.GetViewportRect do
       BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+end;
+
+{ TLCLMMFBackend }
+
+constructor TLCLMMFBackend.Create(Owner: TBitmap32; IsTemporary: Boolean = True; const MapFileName: string = '');
+begin
+  FMapFileName := MapFileName;
+  FMapIsTemporary := IsTemporary;
+  TMMFBackend.InitializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
+  inherited Create(Owner);
+end;
+
+destructor TLCLMMFBackend.Destroy;
+begin
+  TMMFBackend.DeinitializeFileMapping(FMapHandle, FMapFileHandle, FMapFileName);
+  inherited;
+end;
+
+procedure TLCLMMFBackend.PrepareFileMapping(NewWidth, NewHeight: Integer);
+begin
+  TMMFBackend.CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, FMapIsTemporary, NewWidth, NewHeight);
 end;
 
 initialization

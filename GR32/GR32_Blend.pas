@@ -100,10 +100,8 @@ var
   bias_ptr: Pointer;
   alpha_ptr: Pointer;
 
-
 { Misc stuff }
 function Lighten(C: TColor32; Amount: Integer): TColor32;
-
 
 var
   GR32_Blend_FunctionTemplates : TTemplatesHandle;
@@ -120,8 +118,9 @@ const
 
 implementation
 
-uses
-  GR32_LowLevel;
+{$IFDEF TARGET_x86}
+uses GR32_LowLevel;
+{$ENDIF}
 
 var
   RcTable: array [Byte, Byte] of Byte;
@@ -2099,6 +2098,3 @@ finalization
 {$ENDIF}
 
 end.
-
-
-

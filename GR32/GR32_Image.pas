@@ -1471,7 +1471,7 @@ begin
   end
   else
   begin
-  if (Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque) then
+  if ((Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque)) and assigned(Dest) then
     Dest.Clear(C)
   else
     with CachedBitmapRect do
@@ -1806,6 +1806,7 @@ var
   OldRepaintMode: TRepaintMode;
   I: Integer;
 begin
+  if not assigned(Dest)then exit;
   OldRepaintMode := RepaintMode;
   RepaintMode := rmFull;
 
