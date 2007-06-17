@@ -1,5 +1,7 @@
 unit RGBALoaderUnit;
 
+{$MODE Delphi}
+
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -69,7 +71,9 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 procedure TRGBALoaderForm.Button1Click(Sender: TObject);
 begin
@@ -112,5 +116,10 @@ begin
   ImgRGB.Scale := 1;
   ImgAlpha.Scale := 1;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
