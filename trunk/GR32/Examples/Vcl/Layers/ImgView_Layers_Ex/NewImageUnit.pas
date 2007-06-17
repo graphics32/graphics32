@@ -1,5 +1,7 @@
 unit NewImageUnit;
 
+{$MODE Delphi}
+
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -29,7 +31,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  ComCtrls;
+  ComCtrls, Buttons;
 
 type
   TNewImageForm = class(TForm)
@@ -59,7 +61,9 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 procedure TNewImageForm.Button1Click(Sender: TObject);
 begin
@@ -69,5 +73,10 @@ begin
     if Execute then Panel1.Color := Color;
   end;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

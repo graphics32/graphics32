@@ -27,6 +27,14 @@ unit GR32_RotLayer;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
   SysUtils, Classes, Controls, Forms, Graphics, GR32, GR32_Layers, GR32_Transforms;
 

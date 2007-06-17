@@ -1,5 +1,7 @@
 unit MainUnit;
 
+{$MODE Delphi}
+
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -30,12 +32,17 @@ interface
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
-  ExtCtrls, JPeg, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
-  GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers;
+  ExtCtrls, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
+  GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers,
+  Buttons;
 
 type
   TMainForm = class(TForm)
     ImgView: TImgView32;
+    LayerOpacity: TGaugeBar;
+    MagnOpacity: TGaugeBar;
+    MagnMagnification: TGaugeBar;
+    MagnRotation: TGaugeBar;
     SidePanel: TPanel;
     MainMenu: TMainMenu;
     mnFileNew: TMenuItem;
@@ -53,7 +60,6 @@ type
     pnlBitmapLayer: TPanel;
     Panel3: TPanel;
     Label2: TLabel;
-    LayerOpacity: TGaugeBar;
     LayerInterpolate: TCheckBox;
     mnNewBitmapRGBA: TMenuItem;
     LayerRescale: TButton;
@@ -64,12 +70,9 @@ type
     PnlMagn: TPanel;
     Label3: TLabel;
     Panel4: TPanel;
-    MagnOpacity: TGaugeBar;
     SaveDialog1: TSaveDialog;
     Label4: TLabel;
-    MagnMagnification: TGaugeBar;
     Label5: TLabel;
-    MagnRotation: TGaugeBar;
     MagnInterpolate: TCheckBox;
     mnSimpleDrawing: TMenuItem;
     mnArrange: TMenuItem;
@@ -151,9 +154,19 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG,
+{$ELSE}
+  LazJPEG,
+{$ENDIF}
   NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
 
 const
@@ -198,6 +211,99 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+  ImgView := TImgView32.Create(Self);
+  ImgView.Parent := Self;
+    Left = 0
+    Top = 0
+    Width = 656
+    Height = 575
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsDefault
+    SizeGrip = sgNone
+    OverSize = 0
+    TabOrder = 0
+    TabStop = True
+    OnMouseDown = ImgViewMouseDown
+    OnMouseWheelDown = ImgViewMouseWheelDown
+    OnMouseWheelUp = ImgViewMouseWheelUp
+    OnPaintStage = ImgViewPaintStage
+  end
+
+  object SidePanel: TPanel
+
+    object pnlBitmapLayer: TPanel
+
+      object LayerOpacity: TGaugeBar
+        Left = 16
+        Top = 40
+        Width = 105
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 255
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 255
+        OnChange = LayerOpacityChange
+      end
+
+    end
+
+    object PnlMagn: TPanel
+
+      object MagnOpacity: TGaugeBar
+        Left = 16
+        Top = 40
+        Width = 105
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 255
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 255
+        OnChange = MagnChange
+      end
+      object MagnMagnification: TGaugeBar
+        Left = 16
+        Top = 80
+        Width = 105
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 50
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 10
+        OnChange = MagnChange
+      end
+      object MagnRotation: TGaugeBar
+        Left = 16
+        Top = 120
+        Width = 105
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 180
+        Min = -180
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 0
+        OnChange = MagnChange
+      end
+    end
+  end
+
   // by default, PST_CLEAR_BACKGND is executed at this stage,
   // which, in turn, calls ExecClearBackgnd method of ImgView.
   // Here I substitute PST_CLEAR_BACKGND with PST_CUSTOM, so force ImgView
@@ -917,5 +1023,10 @@ const
 begin
   ImgView.RepaintMode := RepaintMode[cbOptRedraw.Checked];
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
