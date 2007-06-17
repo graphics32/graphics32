@@ -28,8 +28,16 @@ unit MandelUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
-  {$IFNDEF FPC} Jpeg,{$ELSE} LCLIntf, LResources, LazJpeg,{$ENDIF}
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, Menus,
   ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers,
   GR32_Rasterizers;
@@ -53,6 +61,7 @@ type
   end;
 
   TForm1 = class(TForm)
+    Img: TSyntheticImage32;
     MainMenu1: TMainMenu;
     Rasterizer1: TMenuItem;
     File1: TMenuItem;
@@ -63,7 +72,6 @@ type
     Save1: TMenuItem;
     N3: TMenuItem;
     Exit1: TMenuItem;
-    Img: TSyntheticImage32;
     Sampler1: TMenuItem;
     Default1: TMenuItem;
     N5: TMenuItem;
@@ -106,10 +114,13 @@ var
 implementation
 
 {$IFNDEF FPC}
-{$R *.dfm}
+{$R *.DFM}
 {$ENDIF}
 
 uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
   GR32_Blend, GR32_LowLevel, Math;
 
 { TMandelbrotSampler }
@@ -166,7 +177,38 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Img := TSyntheticImage32.Create(Self);
+  Img.Parent := Self;
+  Img.Height := 420;
+  Img.Width := 468;
+  Img.Align := alClient;
+  Img.RepaintMode := rmDirect;
+  Img.TabOrder := 0;
+  Img.OnMouseDown := ImgMouseDown;
+  Img.AutoRasterize := True;
+  Img.Color := clBlack;
+  Img.ClearBuffer := True;
+{$ENDIF}
+
   AutoUpdate := True;
   MandelSampler := TMandelbrotSampler.Create(Img);
   AdaptiveSampler := TAdaptiveSuperSampler.Create(MandelSampler);
