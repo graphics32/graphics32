@@ -27,13 +27,24 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
   ComCtrls, Math, Clipbrd, ExtDlgs, GR32, GR32_OrdinalMaps, GR32_RangeBars,
-  GR32_Image, GR32_Layers, ToolWin, ImgList, Menus, JPeg;
+  GR32_Image, GR32_Layers, ToolWin, ImgList, Menus;
 
 type
   TForm1 = class(TForm)
+    ScaleBar: TGaugeBar;
+    Image: TImgView32;
     Panel1: TPanel;
     Panel3: TPanel;
     Panel4: TPanel;
@@ -47,7 +58,6 @@ type
     ToolBar2: TToolBar;
     Label2: TLabel;
     Panel2: TPanel;
-    ScaleBar: TGaugeBar;
     bLinear: TToolButton;
     ToolButton7: TToolButton;
     Label1: TLabel;
@@ -65,7 +75,6 @@ type
     mnEdit: TMenuItem;
     mnCopy: TMenuItem;
     ToolButton8: TToolButton;
-    Image: TImgView32;
     OpenPictureDialog: TOpenPictureDialog;
     SavePictureDialog: TSavePictureDialog;
     procedure PaletteComboChange(Sender: TObject);
@@ -98,17 +107,63 @@ var
   Form1: TForm1;
 
 implementation
-{$IFNDEF CLX}
+
+{$IFNDEF FPC}
+{$R *.DFM}
+{$ENDIF}
+
+{$IFNDEF FPC}
 uses
   Windows;
 {$ENDIF}
-
-{$R *.DFM}
+{$IFNDEF FPC}
+//  JPEG;
+{$ELSE}
+//  LazJPEG;
+{$ENDIF}
 
 { TForm1 }
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Image := TImgView32.Create(Panel1);
+  Image.Parent := Panel1;
+  Image.Left := 0;
+  Image.Top := 0;
+  Image.Width := 490;
+  Image.Height := 297;
+  Image.Align := alClient;
+  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Image.RepaintMode := rmOptimizer;
+  Image.Scale := 1;
+  Image.ScrollBars.ShowHandleGrip := True;
+  Image.ScrollBars.Style := rbsDefault;
+  Image.OverSize := 0;
+  Image.TabOrder := 0;
+  Image.OnMouseDown := ImageMouseDown;
+  Image.OnMouseMove := ImageMouseMove;
+  Image.OnMouseUp := ImageMouseUp;
+
+  ScaleBar := TGaugeBar.Create(Panel2);
+  ScaleBar.Parent := Panel2;
+  ScaleBar.Left := 2;
+  ScaleBar.Top := 2;
+  ScaleBar.Width := 107;
+  ScaleBar.Height := 18;
+  ScaleBar.Hint := 'Zoom';
+  ScaleBar.Align := alClient;
+  ScaleBar.Backgnd := bgPattern;
+  ScaleBar.ButtonSize := 14;
+  ScaleBar.LargeChange := 20;
+  ScaleBar.Min := -100;
+  ScaleBar.ShowHandleGrip := True;
+  ScaleBar.Style := rbsMac;
+  ScaleBar.Position := 0;
+  ScaleBar.OnChange := ScaleChange;
+{$ENDIF}
+
   PaletteCombo.ItemIndex := 0;
   GenPalettes;
   DataSet := TByteMap.Create;
