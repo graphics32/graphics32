@@ -7,44 +7,36 @@ object Form1: TForm1
   VertScrollBar.Page = 227
   ActiveControl = Edit1
   Caption = 'RenderText Example'
+  ClientHeight = 228
+  ClientWidth = 337
   Constraints.MinWidth = 256
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  object Image: TImage32
-    Height = 167
-    Top = 61
-    Width = 337
-    Align = alClient
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Scale = 1
-    TabOrder = 0
-    OnResize = ImageResize
-  end
   object Panel1: TPanel
     Height = 61
     Width = 337
     Align = alTop
     BevelOuter = bvNone
+    ClientHeight = 61
+    ClientWidth = 337
     Font.Height = -11
     Font.Name = 'Tahoma'
-    TabOrder = 1
+    TabOrder = 0
     object Label1: TLabel
       Left = 4
-      Height = 14
+      Height = 13
       Top = 36
-      Width = 47
+      Width = 57
       Caption = 'AA Level:'
-      Color = clNone
       ParentColor = False
     end
     object Label2: TLabel
       Left = 4
-      Height = 14
+      Height = 13
       Top = 6
-      Width = 79
+      Width = 85
       Caption = 'Enter text here:'
-      Color = clNone
       ParentColor = False
     end
     object SpeedButton1: TSpeedButton

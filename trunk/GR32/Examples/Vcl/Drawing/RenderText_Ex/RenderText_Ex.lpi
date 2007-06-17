@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
@@ -21,16 +21,19 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="2">
       <Item1>
         <PackageName Value="LCL"/>
       </Item1>
+      <Item2>
+        <PackageName Value="GR32_L"/>
+      </Item2>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="7">
       <Unit0>
         <Filename Value="RenderText_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="14" Y="6"/>
+        <CursorPos X="7" Y="7"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -43,8 +46,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="5" Y="125"/>
-        <TopLine Value="82"/>
+        <CursorPos X="1" Y="45"/>
+        <TopLine Value="42"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -57,34 +60,43 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="..\..\..\..\..\GR32_Resamplers.pas"/>
+        <Filename Value="../../../../../GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="1" Y="773"/>
         <TopLine Value="758"/>
         <UsageCount Value="10"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
+        <Filename Value="../../../../../GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
         <CursorPos X="1" Y="1065"/>
         <TopLine Value="1050"/>
         <UsageCount Value="10"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="../../../../GR32.pas"/>
+        <UnitName Value="GR32"/>
+        <CursorPos X="3" Y="5366"/>
+        <TopLine Value="5350"/>
+        <UsageCount Value="10"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../../../../GR32_Backends_LCL_Carbon.pas"/>
+        <UnitName Value="GR32_Backends_LCL_Carbon"/>
+        <CursorPos X="18" Y="323"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit6>
     </Units>
-    <JumpHistory Count="1" HistoryIndex="0">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="31" Column="39" TopLine="1"/>
-      </Position1>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
-      <ObjectPath Value="..\..\..\"/>
-      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
+      <LCLWidgetType Value="carbon"/>
+      <ObjectPath Value="../../../"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -99,7 +111,12 @@
       <Generate Value="Faster"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
       <Options>
+        <PassLinkerOptions Value="True"/>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
