@@ -27,14 +27,23 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
-  {$IFDEF FPC} LResources, Buttons,{$ENDIF}
   GR32_Layers, GR32_Polygons, StdCtrls, ExtCtrls;
 
 type
   TForm1 = class(TForm)
     Image: TImage32;
+    BitmapList: TBitmap32List;
     Panel1: TPanel;
     Antialiase: TCheckBox;
     Label1: TLabel;
@@ -47,7 +56,6 @@ type
     Label3: TLabel;
     ThickOutline: TCheckBox;
     Label4: TLabel;
-    BitmapList: TBitmap32List;
     AntialiasMode: TRadioGroup;
     Memo1: TMemo;
     Memo2: TMemo;
@@ -76,11 +84,17 @@ implementation
 
 {$IFNDEF FPC}
 {$R *.DFM}
-uses JPEG;
-{$ELSE}
-uses LazJPEG;
 {$ENDIF}
 
+uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
 
 procedure TForm1.Draw;
 var
@@ -130,9 +144,64 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
+  Item: TBitmap32Item;
 begin
-  BitmapList.Bitmap[0].LoadFromFile('..\..\..\Media\delphi.jpg');
-  BitmapList.Bitmap[1].LoadFromFile('..\..\..\Media\texture_b.jpg');  
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Image := TImage32.Create(Self);
+  Image.Parent := Self;
+  Image.Height := 528;
+  Image.Width := 504;
+  Image.Align := alClient;
+  Image.Bitmap.ResamplerClassName := 'TKernelResampler';
+//  Image.Bitmap.Resampler.KernelClassName := 'TCubicKernel';
+//  Image.Bitmap.Resampler.Kernel.Coeff := -0.5;
+//  Image.Bitmap.Resampler.KernelMode := kmTableLinear;
+//  Image.Bitmap.Resampler.TableSize := 32;
+  Image.Scale := 1;
+  Image.ScaleMode := smStretch;
+  Image.TabOrder := 1;
+  Image.OnMouseDown := ImageMouseDown;
+  Image.OnResize := ImageResize;
+
+  BitmapList := TBitmap32List.Create(Self);
+  Item := BitmapList.Bitmaps.Add;
+  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Item := BitmapList.Bitmaps.Add;
+  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  BitmapList.Bitmap[0].LoadFromFile(pathMedia + 'delphi.jpg');
+  BitmapList.Bitmap[1].LoadFromFile(pathMedia + 'texture_b.jpg');
   Image.SetupBitmap;
   Polygon := TPolygon32.Create;
 end;
@@ -146,7 +215,7 @@ end;
 procedure TForm1.ImageMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
-  if Button = mbLeft then Polygon.Add(FixedPoint(X, Y))
+  if Button = mbLeft then Polygon.Add(GR32.FixedPoint(X, Y))
   else Polygon.Clear;
   Build;
   Draw;

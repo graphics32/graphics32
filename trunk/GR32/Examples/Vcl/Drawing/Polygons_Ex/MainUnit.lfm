@@ -208,30 +208,4 @@ object Form1: TForm1
       TabOrder = 10
     end
   end
-  object Image: TImage32
-    Height = 528
-    Width = 504
-    Align = alClient
-    Bitmap.ResamplerClassName = 'TKernelResampler'
-    Bitmap.Resampler.KernelClassName = 'TCubicKernel'
-    Bitmap.Resampler.Kernel.Coeff = -0.5
-    Bitmap.Resampler.KernelMode = kmTableLinear
-    Bitmap.Resampler.TableSize = 32
-    Scale = 1
-    ScaleMode = smStretch
-    TabOrder = 1
-    OnMouseDown = ImageMouseDown
-    OnResize = ImageResize
-  end
-  object BitmapList: TBitmap32List
-    Bitmaps = <    
-      item
-        Bitmap.ResamplerClassName = 'TNearestResampler'
-      end    
-      item
-        Bitmap.ResamplerClassName = 'TNearestResampler'
-      end>
-    left = 312
-    top = 328
-  end
 end

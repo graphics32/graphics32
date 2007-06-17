@@ -3,9 +3,11 @@ program Polygons_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_DSGN_L;
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
 
+{$IFDEF Windows}
 {$R *.RES}
+{$ENDIF}
 
 begin
   Application.Initialize;
