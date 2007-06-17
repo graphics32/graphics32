@@ -27,7 +27,16 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
   GR32_Transforms, ComCtrls, Math, GR32_RangeBars;
 
@@ -47,14 +56,98 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
   JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
 
 procedure TForm1.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
-  Src.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Src := TImage32.Create(Self);
+  Src.Parent := Self;
+  Src.Left := 16;
+  Src.Top := 16;
+  Src.Width := 192;
+  Src.Height := 192;
+  Src.Bitmap.DrawMode := dmBlend;
+  Src.Bitmap.ResamplerClassName := 'TLinearResampler';
+  Src.BitmapAlign := baCenter;
+  Src.Color := clWindowText;
+  Src.ParentColor := False;
+  Src.Scale := 1;
+  Src.ScaleMode := smNormal;
+  Src.TabOrder := 0;
+
+  Dst := TImage32.Create(Self);
+  Dst.Parent := Self;
+  Dst.Left := 232;
+  Dst.Top := 16;
+  Dst.Width := 192;
+  Dst.Height := 192;
+  Dst.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Dst.BitmapAlign := baCenter;
+  Dst.Color := clWindowText;
+  Dst.ParentColor := False;
+  Dst.Scale := 1;
+  Dst.ScaleMode := smNormal;
+  Dst.TabOrder := 1;
+
+  Angle := TGaugeBar.Create(Self);
+  Angle.Parent := Self;
+  Angle.Left := 16;
+  Angle.Top := 220;
+  Angle.Width := 409;
+  Angle.Height := 19;
+  Angle.Backgnd := bgPattern;
+  Angle.Max := 180;
+  Angle.Min := -180;
+  Angle.ShowHandleGrip := True;
+  Angle.Style := rbsMac;
+  Angle.Position := 0;
+  Angle.OnChange := AngleChange;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);
 
@@ -114,5 +207,10 @@ procedure TForm1.AngleChange(Sender: TObject);
 begin
   ScaleRot(-Angle.Position);
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
