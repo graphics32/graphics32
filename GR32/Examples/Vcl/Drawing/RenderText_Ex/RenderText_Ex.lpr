@@ -5,9 +5,11 @@ program RenderText_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
+{$IFDEF Windows}
 {$R *.RES}
+{$ENDIF}
 
 begin
   Application.Initialize;

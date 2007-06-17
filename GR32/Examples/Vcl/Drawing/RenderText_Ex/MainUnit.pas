@@ -27,6 +27,14 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
   {$IFDEF FPC} LCLType, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
@@ -64,7 +72,6 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-
 procedure TForm1.Draw;
 begin
   Image.Bitmap.Clear;
@@ -78,6 +85,19 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+{$IFDEF FPC}
+  Image := TImage32.Create(Self);
+  Image.Parent := Self;
+  Image.Height := 167;
+  Image.Top := 61;
+  Image.Width := 337;
+  Image.Align := alClient;
+  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Image.Scale := 1;
+  Image.TabOrder := 0;
+  Image.OnResize := ImageResize;
+{$ENDIF}
+
   Image.SetupBitmap;
   with Image.Bitmap.Font do
   begin
