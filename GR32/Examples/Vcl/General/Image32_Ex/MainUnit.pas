@@ -28,6 +28,14 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
@@ -59,10 +67,16 @@ implementation
 
 {$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
-uses JPEG;
+uses
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG;
 {$ELSE}
-uses LazJPEG;
+  LazJPEG;
 {$ENDIF}
 
 procedure TForm1.rgBitmapAlignClick(Sender: TObject);
@@ -99,8 +113,49 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+{$IFDEF Darwin}
+var
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Image := TImage32.Create(Self);
+  Image.Parent := Self;
+  Image.Left := 2;
+  Image.Height := 398;
+  Image.Top := 2;
+  Image.Width := 381;
+  Image.Align := alClient;
+  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Image.Scale := 1;
+  Image.TabOrder := 0;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
   Image.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    Image.Bitmap.LoadFromFile(pathStr + '/Contents/Resources/Media/delphi.jpg');
+  {$ELSE}
+    Image.Bitmap.LoadFromFile('../../../Media/delphi.jpg');
+  {$ENDIF}
+{$ENDIF}
+
   with TKernelResampler.Create(Image.Bitmap) do
   begin
     KernelMode := kmTableNearest;
