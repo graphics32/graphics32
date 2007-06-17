@@ -41,10 +41,16 @@ uses
 
 type
   TfmResamplersExample = class(TForm)
+{$IFNDEF FPC}
+    DstImg: TImage32;
+    gbTableSize: TGaugeBar;
+    CurveImage: TImage32;
+    ResamplingPaintBox: TPaintBox32;
+    gbParameter: TGaugeBar;
+{$ENDIF}
     PageControl: TPageControl;
     tabDetails: TTabSheet;
     ResamplingTabSheet: TTabSheet;
-    DstImg: TImage32;
     tabKernel: TTabSheet;
     SidePanel: TPanel;
     pnlResampler: TPanel;
@@ -62,11 +68,7 @@ type
     lbKernelMode: TLabel;
     KernelModeList: TComboBox;
     lbTableSize: TLabel;
-    gbTableSize: TGaugeBar;
-    CurveImage: TImage32;
     StatusBar: TStatusBar;
-    ResamplingPaintBox: TPaintBox32;
-    gbParameter: TGaugeBar;
     lbParameter: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure KernelClassNamesListClick(Sender: TObject);
