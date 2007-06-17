@@ -899,7 +899,7 @@ uses
   GR32_Resamplers, GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
-  {$IFDEF LCLWin32}
+  {$IFDEF Windows}
     GR32_Backends_LCL_Win,
   {$ENDIF}
   {$IF defined(LCLGtk) or defined(LCLGtk2)}
@@ -3917,6 +3917,7 @@ var
   j: Integer;
   P: PColor32Array;
 begin
+  if assigned(FBits) then
   for j := Y1 to Y2 - 1 do
   begin
     P := Pointer(@Bits[j * FWidth]);

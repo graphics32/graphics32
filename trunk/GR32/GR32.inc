@@ -110,7 +110,9 @@
     FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
 
 {$IFDEF FPC}
-  {$DEFINE PUREPASCAL}
+  {$IFNDEF LCLWin32}
+    {$DEFINE PUREPASCAL}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF FPC}
