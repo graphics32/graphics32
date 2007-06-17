@@ -1,0 +1,469 @@
+object Form1: TForm1
+  Left = 646
+  Height = 529
+  Top = 114
+  Width = 619
+  HorzScrollBar.Page = 618
+  VertScrollBar.Page = 528
+  ActiveControl = cbRepeat
+  BorderStyle = bsDialog
+  Caption = 'Transform Demo'
+  ClientHeight = 529
+  ClientWidth = 619
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object PageControl1: TPageControl
+    Height = 265
+    Top = 264
+    Width = 617
+    ActivePage = TabSheet1
+    TabIndex = 0
+    TabOrder = 2
+    OnChange = PageControl1Change
+    OnPageChanged = PageControl1Change
+    object TabSheet1: TTabSheet
+      Caption = 'Affine'
+      ClientHeight = 235
+      ClientWidth = 613
+      object Label9: TLabel
+        Left = 8
+        Height = 13
+        Top = 212
+        Width = 68
+        Caption = 'Code string:'
+        ParentColor = False
+      end
+      object Label10: TLabel
+        Left = 443
+        Height = 13
+        Top = 96
+        Width = 121
+        Caption = 'Transformation matrix:'
+        ParentColor = False
+      end
+      object ResamplerLabel: TLabel
+        Left = 397
+        Height = 13
+        Top = 8
+        Width = 94
+        Anchors = [akTop, akRight]
+        Caption = 'Resampler Class'
+        ParentColor = False
+      end
+      object KernelLabel: TLabel
+        Left = 394
+        Height = 13
+        Top = 48
+        Width = 115
+        Anchors = [akTop, akRight]
+        Caption = 'Kernel Class (if any)'
+        ParentColor = False
+        Visible = False
+      end
+      object Panel2: TPanel
+        Left = 445
+        Height = 73
+        Top = 112
+        Width = 105
+        BevelOuter = bvNone
+        ClientHeight = 73
+        ClientWidth = 105
+        TabOrder = 0
+        object Shape1: TShape
+          Height = 73
+          Width = 9
+          Align = alLeft
+          Brush.Style = bsClear
+        end
+        object Shape2: TShape
+          Left = 96
+          Height = 73
+          Width = 9
+          Align = alRight
+          Brush.Style = bsClear
+        end
+        object StringGrid: TStringGrid
+          Left = 8
+          Height = 71
+          Top = 1
+          Width = 93
+          Anchors = [akTop, akLeft, akRight, akBottom]
+          BorderStyle = bsNone
+          ColCount = 4
+          DefaultColWidth = 37
+          DefaultRowHeight = 26
+          Enabled = False
+          FixedColor = clBtnFace
+          FixedCols = 0
+          FixedRows = 0
+          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goSmoothScroll]
+          RowCount = 3
+          ScrollBars = ssAutoBoth
+          TabOrder = 0
+          TabStop = True
+        end
+      end
+      object ListBox: TListBox
+        Left = 8
+        Height = 161
+        Top = 8
+        Width = 72
+        BorderStyle = bsNone
+        Items.Strings = (
+          'Operation 1'
+          'Operation 2'
+          'Operation 3'
+          'Operation 4'
+          'Operation 5'
+          'Operation 6'
+          'Operation 7'
+          'Operation 8'
+        )
+        ItemHeight = 20
+        OnClick = ListBoxClick
+        Style = lbOwnerDrawFixed
+        TabOrder = 1
+      end
+      object Button1: TButton
+        Left = 8
+        Height = 23
+        Top = 178
+        Width = 65
+        BorderSpacing.InnerBorder = 4
+        Caption = 'Clear All'
+        OnClick = Button1Click
+        TabOrder = 2
+      end
+      object CodeString: TEdit
+        Left = 80
+        Height = 21
+        Top = 208
+        Width = 521
+        ReadOnly = True
+        TabOrder = 3
+        Text = 'Clear;'
+      end
+      object Panel1: TPanel
+        Left = 80
+        Height = 193
+        Top = 8
+        Width = 321
+        ClientHeight = 193
+        ClientWidth = 321
+        TabOrder = 4
+        object Label1: TLabel
+          Left = 8
+          Height = 13
+          Top = 11
+          Width = 32
+          Caption = 'Type:'
+          ParentColor = False
+        end
+        object ComboBox: TComboBox
+          Left = 48
+          Height = 21
+          Top = 8
+          Width = 265
+          AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+          Items.Strings = (
+            'None'
+            'Translate'
+            'Scale'
+            'Rotate'
+            'Skew'
+          )
+          MaxLength = 0
+          OnChange = ComboBoxChange
+          Style = csDropDownList
+          TabOrder = 0
+        end
+        object Notebook: TNotebook
+          Left = 8
+          Height = 145
+          Top = 40
+          Width = 305
+          PageIndex = 4
+          TabOrder = 1
+          object Page1: TPage
+            Caption = 'opNone'
+            ClientWidth = 305
+            ClientHeight = 145
+            object Label2: TLabel
+              Left = 16
+              Height = 26
+              Top = 16
+              Width = 235
+              Caption = 'No type is specified for this operation.'#13#10'Select operation type from the combo box above'
+              ParentColor = False
+            end
+          end
+          object Page2: TPage
+            Caption = 'opTranslate'
+            ClientWidth = 305
+            ClientHeight = 145
+            object Label3: TLabel
+              Left = 8
+              Height = 26
+              Top = 8
+              Width = 195
+              Caption = 'method declaration:'#13#10'procedure Translate(Dx, Dy: Extended);'
+              ParentColor = False
+            end
+            object Label4: TLabel
+              Left = 16
+              Height = 13
+              Top = 59
+              Width = 17
+              Caption = 'Dx:'
+              ParentColor = False
+            end
+            object Label5: TLabel
+              Left = 16
+              Height = 13
+              Top = 91
+              Width = 17
+              Caption = 'Dy:'
+              ParentColor = False
+            end
+            object eDx: TEdit
+              Left = 48
+              Height = 21
+              Top = 56
+              Width = 57
+              OnChange = TranslationChanged
+              TabOrder = 0
+              Text = '0'
+            end
+            object eDy: TEdit
+              Left = 48
+              Height = 21
+              Top = 88
+              Width = 57
+              OnChange = TranslationChanged
+              TabOrder = 1
+              Text = '0'
+            end
+          end
+          object Page3: TPage
+            Caption = 'opScale'
+            ClientWidth = 305
+            ClientHeight = 145
+            object Label6: TLabel
+              Left = 16
+              Height = 13
+              Top = 91
+              Width = 16
+              Caption = 'Sy:'
+              ParentColor = False
+            end
+            object Label7: TLabel
+              Left = 16
+              Height = 13
+              Top = 59
+              Width = 16
+              Caption = 'Sx:'
+              ParentColor = False
+            end
+            object Label8: TLabel
+              Left = 8
+              Height = 26
+              Top = 8
+              Width = 173
+              Caption = 'method declaration:'#13#10'procedure Scale(Sx, Sy: Extended);'
+              ParentColor = False
+            end
+            object eSy: TEdit
+              Left = 48
+              Height = 21
+              Top = 88
+              Width = 57
+              OnChange = ScaleChanged
+              TabOrder = 0
+              Text = '0'
+            end
+            object eSx: TEdit
+              Left = 48
+              Height = 21
+              Top = 56
+              Width = 57
+              OnChange = ScaleChanged
+              TabOrder = 1
+              Text = '0'
+            end
+          end
+          object Page4: TPage
+            Caption = 'opRotate'
+            ClientWidth = 305
+            ClientHeight = 145
+            object Label11: TLabel
+              Left = 8
+              Height = 26
+              Top = 8
+              Width = 214
+              Caption = 'method declaration:'#13#10'procedureRotate(Cx, Cy, Alpha: Extended);'
+              ParentColor = False
+            end
+            object Label13: TLabel
+              Left = 16
+              Height = 13
+              Top = 59
+              Width = 17
+              Caption = 'Cx:'
+              ParentColor = False
+            end
+            object Label16: TLabel
+              Left = 16
+              Height = 13
+              Top = 91
+              Width = 31
+              Caption = 'Alpha:'
+              ParentColor = False
+            end
+            object Label15: TLabel
+              Left = 152
+              Height = 13
+              Top = 59
+              Width = 17
+              Caption = 'Cy:'
+              ParentColor = False
+            end
+            object eCx: TEdit
+              Left = 48
+              Height = 21
+              Top = 56
+              Width = 57
+              OnChange = RotationChanged
+              TabOrder = 0
+              Text = '0'
+            end
+            object eAlpha: TEdit
+              Left = 48
+              Height = 21
+              Top = 88
+              Width = 57
+              OnChange = RotationChanged
+              TabOrder = 1
+              Text = '0'
+            end
+            object eCy: TEdit
+              Left = 184
+              Height = 21
+              Top = 56
+              Width = 57
+              OnChange = RotationChanged
+              TabOrder = 2
+              Text = '0'
+            end
+          end
+          object Page5: TPage
+            Caption = 'opSkew'
+            ClientWidth = 301
+            ClientHeight = 115
+            object Label12: TLabel
+              Left = 8
+              Height = 28
+              Top = 8
+              Width = 199
+              Caption = 'method declaration:'#13#10'procedure Skew(Fx, Fy: Extended);'
+              ParentColor = False
+            end
+            object Label14: TLabel
+              Left = 16
+              Height = 13
+              Top = 59
+              Width = 18
+              Caption = 'Fx:'
+              ParentColor = False
+            end
+            object Label17: TLabel
+              Left = 16
+              Height = 13
+              Top = 91
+              Width = 19
+              Caption = 'Fy:'
+              ParentColor = False
+            end
+            object eFx: TEdit
+              Left = 48
+              Height = 21
+              Top = 56
+              Width = 57
+              OnChange = SkewChanged
+              TabOrder = 0
+              Text = '0'
+            end
+            object eFy: TEdit
+              Left = 48
+              Height = 21
+              Top = 88
+              Width = 57
+              OnChange = SkewChanged
+              TabOrder = 1
+              Text = '0'
+            end
+          end
+        end
+      end
+      object ResamplerClassNamesList: TComboBox
+        Left = 413
+        Height = 21
+        Top = 24
+        Width = 177
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        MaxLength = 0
+        OnChange = ResamplerClassNamesListChange
+        Style = csDropDownList
+        TabOrder = 5
+      end
+      object KernelClassNamesList: TComboBox
+        Left = 413
+        Height = 21
+        Top = 64
+        Width = 177
+        Anchors = [akTop, akRight]
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        MaxLength = 0
+        OnChange = KernelClassNamesListChange
+        Style = csDropDownList
+        TabOrder = 6
+        Visible = False
+      end
+    end
+    object TabSheet2: TTabSheet
+      Caption = 'Projective'
+      ClientHeight = 265
+      ClientWidth = 617
+      ImageIndex = 1
+      object Label18: TLabel
+        Left = 48
+        Height = 26
+        Top = 24
+        Width = 230
+        Caption = 'Note:'#13#10'Only convex polygons are transormed normally!'
+        ParentColor = False
+      end
+    end
+  end
+  object Panel3: TPanel
+    Left = 264
+    Height = 20
+    Top = 260
+    Width = 281
+    Alignment = taLeftJustify
+    BevelOuter = bvNone
+    Caption = '  Opacity:'
+    TabOrder = 0
+  end
+  object cbRepeat: TCheckBox
+    Left = 544
+    Height = 20
+    Top = 260
+    Width = 63
+    Caption = 'Repeat'
+    OnClick = cbRepeatClick
+    TabOrder = 1
+  end
+end
