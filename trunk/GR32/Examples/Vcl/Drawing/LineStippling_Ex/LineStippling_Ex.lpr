@@ -2,10 +2,12 @@ program LineStippling_Ex;
 
 uses
   Interfaces,
-  Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  Forms, SysUtils,
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
+{$IFDEF Windows}
 {$R *.RES}
+{$ENDIF}
 
 begin
   Application.Initialize;

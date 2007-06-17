@@ -7,20 +7,11 @@ object Form1: TForm1
   VertScrollBar.Page = 214
   ActiveControl = ScrollBar1
   Caption = 'Line Stippling Example'
+  ClientHeight = 215
+  ClientWidth = 249
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  object Image: TImage32
-    Left = 8
-    Height = 200
-    Top = 8
-    Width = 200
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
-    Scale = 1
-    TabOrder = 0
-  end
   object ScrollBar1: TScrollBar
     Left = 224
     Height = 201
@@ -29,7 +20,7 @@ object Form1: TForm1
     Kind = sbVertical
     Min = 1
     Position = 52
-    TabOrder = 1
+    TabOrder = 0
     OnChange = ScrollBarChange
   end
 end
