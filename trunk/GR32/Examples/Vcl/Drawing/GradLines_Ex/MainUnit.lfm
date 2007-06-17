@@ -7,25 +7,20 @@ object Form1: TForm1
   VertScrollBar.Page = 582
   ActiveControl = Button1
   Caption = 'Gradient Lines Example'
+  ClientHeight = 583
+  ClientWidth = 631
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
   object Label1: TLabel
-    Left = 518
-    Height = 14
+    Left = 516
+    Height = 13
     Top = 92
-    Width = 29
+    Width = 31
     Anchors = [akTop, akRight]
     Caption = 'Total:'
-    Color = clNone
     ParentColor = False
-  end
-  object PaintBox: TPaintBox32
-    Height = 576
-    Width = 504
-    Anchors = [akTop, akLeft, akRight, akBottom]
-    TabOrder = 0
   end
   object Button1: TButton
     Left = 515
@@ -36,7 +31,7 @@ object Form1: TForm1
     BorderSpacing.InnerBorder = 4
     Caption = 'Add One'
     OnClick = Button1Click
-    TabOrder = 1
+    TabOrder = 0
   end
   object Button2: TButton
     Left = 515
@@ -47,7 +42,7 @@ object Form1: TForm1
     BorderSpacing.InnerBorder = 4
     Caption = 'Add Ten'
     OnClick = Button2Click
-    TabOrder = 2
+    TabOrder = 1
   end
   object Button3: TButton
     Left = 515
@@ -58,7 +53,7 @@ object Form1: TForm1
     BorderSpacing.InnerBorder = 4
     Caption = 'Clear'
     OnClick = Button3Click
-    TabOrder = 3
+    TabOrder = 2
   end
   object RadioGroup1: TRadioGroup
     Left = 510
@@ -76,6 +71,8 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
+    ClientHeight = 72
+    ClientWidth = 105
     Ctl3D = True
     ItemIndex = 0
     Items.Strings = (
@@ -85,7 +82,7 @@ object Form1: TForm1
     )
     OnClick = RadioGroup1Click
     ParentCtl3D = False
-    TabOrder = 4
+    TabOrder = 3
   end
   object RadioGroup2: TRadioGroup
     Left = 510
@@ -103,6 +100,8 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
+    ClientHeight = 64
+    ClientWidth = 105
     Ctl3D = True
     ItemIndex = 0
     Items.Strings = (
@@ -112,7 +111,7 @@ object Form1: TForm1
     )
     OnClick = RadioGroup2Click
     ParentCtl3D = False
-    TabOrder = 5
+    TabOrder = 4
   end
   object Panel1: TPanel
     Left = 519
@@ -127,16 +126,16 @@ object Form1: TForm1
     TabOrder = 6
   end
   object RepaintOpt: TCheckBox
-    Left = 514
-    Height = 13
+    Left = 476
+    Height = 15
     Top = 320
-    Width = 106
+    Width = 144
     Anchors = [akTop, akRight]
     Caption = 'Repaint Optimization'
     Font.Height = -9
     Font.Name = 'Tahoma'
     OnClick = RepaintOptClick
-    TabOrder = 8
+    TabOrder = 5
   end
   object Memo2: TMemo
     Left = 510
