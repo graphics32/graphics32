@@ -27,6 +27,14 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
@@ -95,6 +103,20 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+{$IFDEF FPC}
+  Image := TImage32.Create(Self);
+  Image.Parent := Self;
+  Image.Left := 8;
+  Image.Top := 8;
+  Image.Width := 200;
+  Image.Height := 200;
+  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Image.BitmapAlign := baTopLeft;
+  Image.Scale := 1;
+  Image.ScaleMode := smNormal;
+  Image.TabOrder := 0;
+{$ENDIF}
+
   Image.SetupBitmap;
   ScrollBarChange(Sender);
 end;

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
@@ -21,14 +21,22 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="4">
+    <RequiredPackages Count="2">
+      <Item1>
+        <PackageName Value="LCL"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="GR32_L"/>
+      </Item2>
+    </RequiredPackages>
+    <Units Count="6">
       <Unit0>
         <Filename Value="LineStippling_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="14" Y="4"/>
+        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -37,10 +45,10 @@
         <HasResources Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="5" Y="107"/>
-        <TopLine Value="64"/>
+        <CursorPos X="7" Y="43"/>
+        <TopLine Value="36"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="12"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
@@ -51,26 +59,33 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
+        <Filename Value="/Lazarus/lcl/interfaces/win32/interfaces.pp"/>
         <UnitName Value="Interfaces"/>
         <CursorPos X="24" Y="30"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="MainUnit.dfm"/>
+        <CursorPos X="17" Y="7"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="tmp.lfm"/>
+        <CursorPos X="1" Y="28"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit5>
     </Units>
-    <JumpHistory Count="1" HistoryIndex="0">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="31" Column="37" TopLine="1"/>
-      </Position1>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
-      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
+      <LCLWidgetType Value="carbon"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -87,11 +102,13 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
-        <UseLineInfoUnit Value="False"/>
+        <GenerateDebugInfo Value="True"/>
         <StripSymbols Value="True"/>
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
+        <PassLinkerOptions Value="True"/>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
