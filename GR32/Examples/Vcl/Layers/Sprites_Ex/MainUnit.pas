@@ -28,10 +28,20 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
-  {$IFNDEF CLX}Windows,{$ENDIF}
+  {$IFDEF FPC} LCLIntf, LResources, Variants, {$ENDIF}
+  {$IFNDEF FPC} AppEvnts, {$ENDIF}
+  {$IFDEF Windows}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Transforms,
-  StdCtrls, AppEvnts, GR32_Image, GR32_Layers, ExtCtrls, GR32_Containers,
+  StdCtrls, GR32_Image, GR32_Layers, ExtCtrls, GR32_Containers,
   GR32_MicroTiles, Math, Buttons;
 
 const
@@ -40,10 +50,10 @@ const
 type
   TForm1 = class(TForm)
     Image32: TImage32;
+    BitmapList: TBitmap32List;
     bAdd: TButton;
     edLayerCount: TEdit;
     bClearAll: TButton;
-    BitmapList: TBitmap32List;
     Label1: TLabel;
     cbUseRepaintOpt: TCheckBox;
     bRemove: TButton;
@@ -81,10 +91,20 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.DFM}
+{$ENDIF}
 
 uses
-  GR32_Filters, GR32_System, JPEG;
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG,
+{$ELSE}
+  LazJPEG,
+{$ENDIF}
+  GR32_Filters, GR32_System;
 
 procedure TForm1.FormCreate(Sender: TObject);
 
@@ -102,12 +122,69 @@ procedure TForm1.FormCreate(Sender: TObject);
     end;
   end;
 
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
+  Item: TBitmap32Item;
 begin
-  Image32.Bitmap.LoadFromFile('..\..\..\Media\sprite_texture.bmp');
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
 
-  LoadImage(BitmapList.Bitmap[0], '..\..\..\Media\sprite1.bmp', '..\..\..\Media\sprite1a.bmp');
-  LoadImage(BitmapList.Bitmap[1], '..\..\..\Media\sprite2.bmp', '..\..\..\Media\sprite2a.bmp');
-  LoadImage(BitmapList.Bitmap[2], '..\..\..\Media\sprite3.bmp', '..\..\..\Media\sprite3a.bmp');
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  Image32 := TImage32.Create(Self);
+  Image32.Parent := Self;
+  Image32.Left := 8;
+  Image32.Top := 48;
+  Image32.Width := 836;
+  Image32.Height := 592;
+  Image32.Anchors := [akLeft, akTop, akRight, akBottom];
+  Image32.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Image32.BitmapAlign := baTile;
+  Image32.Color := clWhite;
+  Image32.ParentColor := False;
+  Image32.Scale := 2;
+  Image32.ScaleMode := smScale;
+  Image32.TabOrder := 0;
+  Image32.OnResize := Image32Resize;
+
+  BitmapList := TBitmap32List.Create(Self);
+  Item := BitmapList.Bitmaps.Add;
+  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Item := BitmapList.Bitmaps.Add;
+  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
+  Item := BitmapList.Bitmaps.Add;
+  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  Image32.Bitmap.LoadFromFile(pathMedia + 'sprite_texture.bmp');
+
+  LoadImage(BitmapList.Bitmap[0], pathMedia + 'sprite1.bmp', pathMedia + 'sprite1a.bmp');
+  LoadImage(BitmapList.Bitmap[1], pathMedia + 'sprite2.bmp', pathMedia + 'sprite2a.bmp');
+  LoadImage(BitmapList.Bitmap[2], pathMedia + 'sprite3.bmp', pathMedia + 'sprite3a.bmp');
 
   LastSeed := 0;
   BenchmarkList := TStringList.Create;
@@ -133,13 +210,13 @@ begin
     ALayer := TBitmapLayer.Create(Image32.Layers);
     with ALayer do
     begin
-      Bitmap := BitmapList.Bitmaps[Random(BitmapList.Bitmaps.Count)].Bitmap;
+      Bitmap := BitmapList.Bitmaps[System.Random(BitmapList.Bitmaps.Count)].Bitmap;
       Bitmap.DrawMode := dmBlend;
-      Bitmap.MasterAlpha := Random(255);
+      Bitmap.MasterAlpha := System.Random(255);
 
       // put it somethere
-      L.Left := Random(Image32.Width);
-      L.Top := Random(Image32.Height);
+      L.Left := System.Random(Image32.Width);
+      L.Top := System.Random(Image32.Height);
       L.Right := L.Left + Bitmap.Width;
       L.Bottom := L.Top + Bitmap.Height;
       ALayer.Location := L;
@@ -175,7 +252,7 @@ begin
       R := Location;
       with Velocities[I] do
       begin
-        OffsetRect(R, X, Y);
+        GR32.OffsetRect(R, X, Y);
         X := X + (Random - 0.5) * 0.9;
         Y := Y + (Random - 0.5) * 0.9;
         if (R.Left < 0) and (X < 0) then X := 1;
@@ -279,8 +356,10 @@ begin
   if BenchmarkMode then
   begin
     {$IFNDEF CLX}
+    {$IFNDEF FPC}
     SetThreadPriority(GetCurrentThread, Priority);
     SetPriorityClass(GetCurrentProcess, PriorityClass);
+    {$ENDIF}
     {$ENDIF}
 
     bBenchmark.Caption := 'Benchmark';
@@ -300,12 +379,14 @@ begin
     mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
   begin
     {$IFNDEF CLX}
+    {$IFNDEF FPC}
     PriorityClass := GetPriorityClass(GetCurrentProcess);
     Priority := GetThreadPriority(GetCurrentThread);
 
     SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
     SetThreadPriority(GetCurrentThread,
                       THREAD_PRIORITY_TIME_CRITICAL);
+    {$ENDIF}
     {$ENDIF}
 
     bBenchmark.Caption := 'Stop';
@@ -331,5 +412,9 @@ end;
 
 initialization
   DecimalSeparator := '.';
+
+{$IFDEF FPC}
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
