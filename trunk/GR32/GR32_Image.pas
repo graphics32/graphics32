@@ -721,8 +721,12 @@ begin
   FForceFullRepaint := True;
   FInvalidRects := TRectList.Create;
   FRepaintOptimizer := DefaultRepaintOptimizerClass.Create(Buffer, InvalidRects);
+
+  { Setting a initial size here will cause the control to crash under LCL }
+{$IFNDEF FPC}
   Height := 192;
   Width := 192;
+{$ENDIF}
 end;
 
 destructor TCustomPaintBox32.Destroy;
