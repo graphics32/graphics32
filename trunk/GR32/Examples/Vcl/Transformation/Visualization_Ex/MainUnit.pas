@@ -28,9 +28,18 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{.$I GR32.INC}
+
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
 
 uses
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, StdCtrls,
   ExtCtrls, GR32, GR32_Image, GR32_VectorMaps, GR32_ExtImage, GR32_Rasterizers;
 
@@ -82,15 +91,17 @@ var
 
 implementation
 
-{$R *.dfm}
+{$IFNDEF FPC}
+{$R *.DFM}
+{$ENDIF}
 
 uses
   Math, GR32_Lowlevel, GR32_Math, GR32_Blend;
 
 var
   MovementIndex : Integer = 9;
-  ShowHelp: Boolean = True;
-  ShowFPS: Boolean = False;
+  vShowHelp: Boolean = True;
+  vShowFPS: Boolean = False;
   FPS : Integer = 0;
   FPSMeasure: Integer = 0;
   IsClosing : Boolean = false;
@@ -339,7 +350,7 @@ end;
 
 procedure TMainForm.TransformFrame(Sender: TObject; var Done: Boolean);
 begin
-  if ShowHelp then
+  if vShowHelp then
     RenderHelpScreen
   else
     FastRemap(Buffers[CurrentBuffer], Buffers[not CurrentBuffer], VectorMap);
@@ -347,7 +358,7 @@ begin
   CurrentBuffer := not CurrentBuffer; //Swap Buffer Index
   Buffers[CurrentBuffer].DrawTo(MainForm.Canvas.Handle, 0,0);
 
-  if ShowFPS then
+  if vShowFPS then
   begin
     Canvas.TextOut(3, 3, IntToStr(FPS) + ' FPS');
     Inc(FPSMeasure);
@@ -468,7 +479,7 @@ begin
   end;
   MovementIndex := Constrain(Random(10), 1, 9);
   RenderMovement;
-  ShowHelp := False;
+  vShowHelp := False;
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
@@ -660,7 +671,11 @@ var
   C: Char;
   I: Integer;
 begin
+{$IFNDEF FPC}
   C := Lowercase(Char(Key))[1];
+{$ELSE}
+  C := Lowercase(Char(Key));
+{$ENDIF}
   if TryStrToInt(C, I) and InRange(I, 1, 9) then
   begin
     if ssShift in Shift then
@@ -673,8 +688,8 @@ begin
   end
   else
   case C of
-    'f': ShowFPS := not ShowFPS;
-    'h': ShowHelp := not ShowHelp;
+    'f': vShowFPS := not vShowFPS;
+    'h': vShowHelp := not vShowHelp;
     'r': MovementTimer.Enabled := not MovementTimer.Enabled;
   end;
 end;
@@ -688,5 +703,9 @@ begin
       TTimer(Components[I]).Enabled := Enabled;
 end;
 
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
