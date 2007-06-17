@@ -28,6 +28,14 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
@@ -88,6 +96,10 @@ var
 
 implementation
 
+{$IFNDEF FPC}
+{$R *.DFM}
+{$ENDIF}
+
 uses Math;
 
 function vAdd(const A, B: TVector2f): TVector2f;
@@ -117,10 +129,6 @@ begin
   Result.X := A.X * Factor;
   Result.Y := A.Y * Factor;
 end;
-
-{$IFNDEF FPC}
-{$R *.DFM}
-{$ENDIF}
 
 { TLine }
 
@@ -266,6 +274,15 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+{$IFDEF FPC}
+  PaintBox := TPaintBox32.Create(Self);
+  PaintBox.Parent := Self;
+  PaintBox.Height := 576;
+  PaintBox.Width := 504;
+  PaintBox.Anchors := [akTop, akLeft, akRight, akBottom];
+  PaintBox.TabOrder := 0;
+{$ENDIF}
+
   FadeCount := 0;
   DrawPasses := 2;
   Application.OnIdle := AppEventsIdle;
