@@ -5,9 +5,11 @@ program Resamplers_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
 
+{$IFDEF Windows}
 {$R *.res}
+{$ENDIF}
 
 begin
   Application.Initialize;
