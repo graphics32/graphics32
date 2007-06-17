@@ -4,24 +4,13 @@ object Form1: TForm1
   Top = 137
   Width = 468
   HorzScrollBar.Page = 467
-  VertScrollBar.Page = 419
+  VertScrollBar.Page = 414
   Caption = 'Mandelbrot Example'
   Font.Height = -11
   Font.Name = 'Tahoma'
   Menu = MainMenu1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  object Img: TSyntheticImage32
-    Height = 420
-    Width = 468
-    Align = alClient
-    RepaintMode = rmDirect
-    TabOrder = 0
-    OnMouseDown = ImgMouseDown
-    AutoRasterize = True
-    Color = clBlack
-    ClearBuffer = True
-  end
   object MainMenu1: TMainMenu
     left = 24
     top = 16

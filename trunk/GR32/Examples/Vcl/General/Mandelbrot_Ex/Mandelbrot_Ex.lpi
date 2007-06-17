@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
@@ -21,19 +21,22 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="2">
       <Item1>
         <PackageName Value="LCL"/>
       </Item1>
+      <Item2>
+        <PackageName Value="GR32_L"/>
+      </Item2>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="9">
       <Unit0>
         <Filename Value="Mandelbrot_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="10" Y="8"/>
+        <CursorPos X="12" Y="14"/>
         <TopLine Value="1"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -43,14 +46,14 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MandelUnit.lrs"/>
         <UnitName Value="MandelUnit"/>
-        <CursorPos X="58" Y="32"/>
-        <TopLine Value="11"/>
+        <CursorPos X="1" Y="99"/>
+        <TopLine Value="84"/>
         <EditorIndex Value="2"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="..\..\..\..\GR32_ExtImage.pas"/>
+        <Filename Value="../../../../GR32_ExtImage.pas"/>
         <UnitName Value="GR32_ExtImage"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="19"/>
@@ -72,47 +75,42 @@
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
+        <Filename Value="../../../../GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="32" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\components\jpeg\lazjpeg.pas"/>
+        <Filename Value="/Lazarus/components/jpeg/lazjpeg.pas"/>
         <UnitName Value="LazJPEG"/>
         <CursorPos X="43" Y="35"/>
         <TopLine Value="11"/>
-        <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit6>
+      <Unit7>
+        <Filename Value="../Rotate_Ex/MainUnit.pas"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <UnitName Value="MainUnit"/>
+        <CursorPos X="1" Y="99"/>
+        <TopLine Value="174"/>
+        <UsageCount Value="10"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="../ByteMaps_Ex/ByteMaps_Ex.lpr"/>
+        <UnitName Value="ByteMaps_Ex"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit8>
     </Units>
-    <JumpHistory Count="4" HistoryIndex="3">
-      <Position1>
-        <Filename Value="MandelUnit.pas"/>
-        <Caret Line="32" Column="37" TopLine="1"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MandelUnit.pas"/>
-        <Caret Line="112" Column="30" TopLine="91"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MandelUnit.pas"/>
-        <Caret Line="290" Column="21" TopLine="256"/>
-      </Position3>
-      <Position4>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\components\jpeg\lazjpeg.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position4>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
-      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
+      <LCLWidgetType Value="carbon"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -129,11 +127,13 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
-        <UseLineInfoUnit Value="False"/>
+        <GenerateDebugInfo Value="True"/>
         <StripSymbols Value="True"/>
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
+        <PassLinkerOptions Value="True"/>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
