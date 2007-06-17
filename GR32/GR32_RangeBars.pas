@@ -1589,7 +1589,7 @@ begin
     UpdateEffectiveWindow;
     if Range > EffectiveWindow then
     begin
-      if Range > OldWindow then Center := (FPosition + OldWindow * 0.5) / Range
+      if (Range > OldWindow) and (Range <> 0) then Center := (FPosition + OldWindow * 0.5) / Range
       else Center := 0.5;
       FPosition := Center * Range - EffectiveWindow * 0.5;
     end;
