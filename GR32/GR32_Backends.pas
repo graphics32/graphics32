@@ -148,14 +148,8 @@ type
 { TCustomBackend }
 
 destructor TCustomBackend.Destroy;
-var
-  Width, Height: Integer;
 begin
-  if Assigned(FOwner) then
-    ChangeSize(TBitmap32Access(FOwner).FWidth, TBitmap32Access(FOwner).FHeight, 0, 0, False)
-  else
-    ChangeSize(Width, Height, 0, 0, False);
-
+  Clear;
   inherited;
 end;
 
