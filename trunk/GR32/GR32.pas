@@ -367,9 +367,31 @@ const
 {$ENDIF}
 
 type
+  { TPlainInterfacedPersistent }
+  { TPlainInterfacedPersistent provides simple interface support with
+    optional reference-counting operation. }
+  TPlainInterfacedPersistent = class(TPersistent, IInterface)
+  private
+    FRefCounted: Boolean;
+    FRefCount: Integer;
+  protected
+    { IInterface }
+    function _AddRef: Integer; stdcall;
+    function _Release: Integer; stdcall;
+    function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
+
+    property RefCounted: Boolean read FRefCounted write FRefCounted;
+  public
+    procedure AfterConstruction; override;
+    procedure BeforeDestruction; override;
+    class function NewInstance: TObject; override;
+
+    property RefCount: Integer read FRefCount;
+  end;
+
   { TNotifiablePersistent }
   { TNotifiablePersistent provides a change notification mechanism }
-  TNotifiablePersistent = class(TInterfacedPersistent)
+  TNotifiablePersistent = class(TPlainInterfacedPersistent)
   private
     FUpdateCount: Integer;
     FOnChange: TNotifyEvent;
@@ -494,7 +516,6 @@ type
     procedure SetResampler(Resampler: TCustomResampler);
     function GetResamplerClassName: string;
     procedure SetResamplerClassName(Value: string);
-    procedure SetBackend(const Backend: TBackend); virtual;
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -512,6 +533,10 @@ type
     procedure ReadData(Stream: TStream); virtual;
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
+
+    procedure InitializeBackend; virtual;
+    procedure FinalizeBackend; virtual;
+    procedure SetBackend(const Backend: TBackend); virtual;
 
     function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -544,9 +569,6 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-
-    procedure InitializeBackend; virtual;
-    procedure FinalizeBackend; virtual;
 
     function QueryInterface(const IID: TGUID; out Obj): HResult; override;
 
@@ -733,12 +755,12 @@ type
 
     procedure SetBackend(const Backend: TBackend); override;
   protected
-    procedure HandleChanged; virtual;
-    procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
-    procedure AssignTo(Dst: TPersistent); override;    
-  public
     procedure InitializeBackend; override;
 
+    procedure HandleChanged; virtual;
+    procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
+    procedure AssignTo(Dst: TPersistent); override;
+  public
     procedure Assign(Source: TPersistent); override;
 
     procedure LoadFromResourceID(Instance: THandle; ResID: Integer);
@@ -830,6 +852,7 @@ type
     constructor Create; overload; override;
     constructor Create(Owner: TCustomBitmap32); reintroduce; overload; virtual;
 
+    procedure Clear; virtual;
     function Empty: Boolean; virtual; abstract;
 
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual; abstract;
@@ -1643,6 +1666,64 @@ begin
 end;
 
 
+{ TSimpleInterfacedPersistent }
+
+function TPlainInterfacedPersistent._AddRef: Integer;
+begin
+  if FRefCounted then
+    Result := InterlockedIncrement(FRefCount)
+  else
+    Result := -1;
+end;
+
+function TPlainInterfacedPersistent._Release: Integer;
+begin
+  if FRefCounted then
+  begin
+    Result := InterlockedDecrement(FRefCount);
+    if Result = 0 then
+      Destroy;
+  end
+  else
+    Result := -1;
+end;
+
+function TPlainInterfacedPersistent.QueryInterface(const IID: TGUID; out Obj): HResult;
+const
+  E_NOINTERFACE = HResult($80004002);
+begin
+  if GetInterface(IID, Obj) then
+    Result := 0
+  else
+    Result := E_NOINTERFACE;
+end;
+
+procedure TPlainInterfacedPersistent.AfterConstruction;
+begin
+  inherited;
+
+  // Release the constructor's implicit refcount
+  InterlockedDecrement(FRefCount);
+end;
+
+procedure TPlainInterfacedPersistent.BeforeDestruction;
+begin
+  if RefCounted and (RefCount <> 0) then
+    raise Exception.Create('Unmatched reference counting.');
+
+  inherited;
+end;
+
+class function TPlainInterfacedPersistent.NewInstance: TObject;
+begin
+  Result := inherited NewInstance;
+
+  // Set an implicit refcount so that refcounting
+  // during construction won't destroy the object.
+  TPlainInterfacedPersistent(Result).FRefCount := 1;
+end;
+
+
 { TNotifiablePersistent }
 
 procedure TNotifiablePersistent.BeginUpdate;
@@ -1805,9 +1886,97 @@ begin
 end;
 
 procedure TCustomBitmap32.FinalizeBackend;
+var
+  Width, Height: Integer;
 begin
-  FBackend.Free;
+  // Make sure we de-allocate the buffer...
+  FBackend.Clear;
+
+  // Drop ownership of backend now:
+  // It's a zombie now.
+  FBackend.FOwner := nil;
+  FBackend.OnChange := nil;
+  FBackend.OnChanging := nil;
+
+  (*
+  Release our reference to the backend
+
+  Note: The backend won't necessarily be freed immediately.
+
+  This is required to circumvent a problem with the magic procedure cleanup
+  of interfaces that have ref-counting forcefully disabled:
+
+  Quality Central report #9157 and #9500:
+  http://qc.codegear.com/wc/qcmain.aspx?d=9157
+  http://qc.codegear.com/wc/qcmain.aspx?d=9500
+
+  If any backend interface is used within the same procedure in which
+  the owner bitmap is also freed, the magic procedure cleanup will
+  clear that particular interface long after the bitmap and its backend
+  are gone. This will result in all sorts of madness - mostly heap corruption
+  and AVs.
+
+  Here is an example:
+
+  procedure Test;
+  var
+    MyBitmap: TBitmap32;
+  begin
+     MyBitmap := TBitmap32.Create;
+     MyBitmap.SetSize(100, 100);
+     (MyBitmap as ICanvasSupport).Canvas;
+     MyBitmap.Free;
+  end; // _IntfClear will try to clear (MyBitmap as ICanvasSupport)
+       // which points to the interface at the previous location of MyBitmap.Backend in memory.
+       // MyBitmap.Backend is gone and the _Release call is invalid, so raise hell .
+
+  Here is an example for a correct workaround:
+
+  procedure Test;
+  var
+    MyBitmap: TBitmap32;
+    CanvasIntf: ICanvasSupport;
+  begin
+    MyBitmap := TBitmap32.Create;
+    MyBitmap.SetSize(100, 100);
+    CanvasIntf := MyBitmap as ICanvasSupport;
+    CanvasIntf.Canvas;
+    CanvasIntf := nil; // this will call _IntfClear and IInterface._Release
+    MyBitmap.Free;
+  end; // _IntfClear will try to clear CanvasIntf,
+       // it's nil, no _Release is called, everything is fine.
+
+  Since the above code is pretty fiddly, we introduce ref-counting for the
+  backend. That way the backend will be released once all references are dropped.
+
+  So, release our reference to the backend now:
+  *)
+  FBackend._Release;
   FBackend := nil;
+end;
+
+procedure TCustomBitmap32.SetBackend(const Backend: TBackend);
+begin
+  if Assigned(Backend) and (Backend <> FBackend) then
+  begin
+    BeginUpdate;
+
+    if Assigned(FBackend) then
+    begin
+      Backend.Assign(FBackend);
+      FinalizeBackend;
+    end;
+
+    FBackend := Backend;
+    FBackend._AddRef; // see note above!
+    FBackend.OnChange := BackendChangedHandler;
+    FBackend.OnChanging := BackendChangingHandler;
+
+    EndUpdate;
+    
+    FBackend.Changed;
+    Changed;
+  end;
 end;
 
 function TCustomBitmap32.QueryInterface(const IID: TGUID; out Obj): HResult;
@@ -3917,12 +4086,13 @@ var
   j: Integer;
   P: PColor32Array;
 begin
-  if assigned(FBits) then
-  for j := Y1 to Y2 - 1 do
-  begin
-    P := Pointer(@Bits[j * FWidth]);
-    FillLongword(P[X1], X2 - X1, Value);
-  end;
+  if Assigned(FBits) then
+    for j := Y1 to Y2 - 1 do
+    begin
+      P := Pointer(@Bits[j * FWidth]);
+      FillLongword(P[X1], X2 - X1, Value);
+    end;
+    
   Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
@@ -4550,24 +4720,6 @@ begin
   Result.Top := 0;
   Result.Right := Width;
   Result.Bottom := Height;
-end;
-
-procedure TCustomBitmap32.SetBackend(const Backend: TBackend);
-begin
-  if Assigned(Backend) and (Backend <> FBackend) then
-  begin
-    if Assigned(FBackend) then
-    begin
-      Backend.Assign(FBackend);
-      FBackend.Free;
-    end;
-
-    FBackend := Backend;
-    FBackend.OnChange := BackendChangedHandler;
-    FBackend.OnChanging := BackendChangingHandler;
-    FBackend.Changed;
-    Changed;
-  end;
 end;
 
 procedure TCustomBitmap32.SetClipRect(const Value: TRect);
@@ -5540,7 +5692,18 @@ end;
 
 constructor TBackend.Create;
 begin
+  RefCounted := True;
   inherited;
+end;
+
+procedure TBackend.Clear;
+var
+  Width, Height: Integer;
+begin
+  if Assigned(FOwner) then
+    ChangeSize(FOwner.FWidth, FOwner.FHeight, 0, 0, False)
+  else
+    ChangeSize(Width, Height, 0, 0, False);
 end;
 
 constructor TBackend.Create(Owner: TCustomBitmap32);
@@ -5556,6 +5719,7 @@ begin
   if Assigned(FOnChanging) then
     FOnChanging(Self);
 end;
+
 
 { TCustomSampler }
 
