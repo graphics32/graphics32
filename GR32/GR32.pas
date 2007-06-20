@@ -538,6 +538,8 @@ type
     procedure FinalizeBackend; virtual;
     procedure SetBackend(const Backend: TBackend); virtual;
 
+    function QueryInterface(const IID: TGUID; out Obj): HResult; override;
+
     function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelW(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -569,8 +571,6 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-
-    function QueryInterface(const IID: TGUID; out Obj): HResult; override;
 
     procedure Assign(Source: TPersistent); override;
     function  BoundsRect: TRect;
@@ -752,11 +752,10 @@ type
     procedure TextScaleDown(const B, B2: TCustomBitmap32; const N: Integer;
       const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-
-    procedure SetBackend(const Backend: TBackend); override;
   protected
     procedure InitializeBackend; override;
-
+    procedure SetBackend(const Backend: TBackend); override;
+    
     procedure HandleChanged; virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
     procedure AssignTo(Dst: TPersistent); override;
@@ -1886,8 +1885,6 @@ begin
 end;
 
 procedure TCustomBitmap32.FinalizeBackend;
-var
-  Width, Height: Integer;
 begin
   // Make sure we de-allocate the buffer...
   FBackend.Clear;
