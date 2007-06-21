@@ -1,7 +1,5 @@
 unit RGBALoaderUnit;
 
-{$MODE Delphi}
-
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -29,11 +27,23 @@ unit RGBALoaderUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls,
-  GR32_Image, GR32_Filters, ExtCtrls, ExtDlgs, Buttons;
+  GR32_Image, GR32_Filters, GR32_RangeBars, ExtCtrls, ExtDlgs, Buttons;
 
 type
+
+  { TRGBALoaderForm }
+
   TRGBALoaderForm = class(TForm)
     Panel1: TPanel;
     Bevel1: TBevel;
@@ -55,6 +65,7 @@ type
     Button5: TButton;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
     procedure SpeedButton2Click(Sender: TObject);
     procedure SpeedButton3Click(Sender: TObject);
@@ -91,6 +102,43 @@ begin
     end;
 end;
 
+procedure TRGBALoaderForm.FormCreate(Sender: TObject);
+begin
+{$IFDEF FPC}
+  ImgRGB := TImgView32.Create(Self);
+  ImgRGB.Parent := Self;
+  ImgRGB.Left := 24;
+  ImgRGB.Top := 112;
+  ImgRGB.Width := 169;
+  ImgRGB.Height := 169;
+  ImgRGB.Bitmap.ResamplerClassName := 'TNearestResampler';
+  ImgRGB.Color := clAppWorkSpace;
+  ImgRGB.ParentColor := False;
+  ImgRGB.Scale := 1;
+  ImgRGB.ScrollBars.Color := clBtnShadow;
+  ImgRGB.ScrollBars.ShowHandleGrip := True;
+  ImgRGB.ScrollBars.Style := rbsMac;
+  ImgRGB.OverSize := 0;
+  ImgRGB.TabOrder := 1;
+
+  ImgAlpha := TImgView32.Create(Self);
+  ImgAlpha.Parent := Self;
+  ImgAlpha.Left := 216;
+  ImgAlpha.Top := 112;
+  ImgAlpha.Width := 169;
+  ImgAlpha.Height := 169;
+  ImgAlpha.Bitmap.ResamplerClassName := 'TNearestResampler';
+  ImgAlpha.Color := clAppWorkSpace;
+  ImgAlpha.ParentColor := False;
+  ImgAlpha.Scale := 1;
+  ImgAlpha.ScrollBars.Color := clBtnShadow;
+  ImgAlpha.ScrollBars.ShowHandleGrip := True;
+  ImgAlpha.ScrollBars.Style := rbsDefault;
+  ImgAlpha.OverSize := 0;
+  ImgAlpha.TabOrder := 3;
+{$ENDIF}
+end;
+
 procedure TRGBALoaderForm.SpeedButton1Click(Sender: TObject);
 begin
   ImgRGB.Scale := ImgRGB.Scale * 1.5;
@@ -119,7 +167,7 @@ end;
 
 {$IFDEF FPC}
 initialization
-  {$I MainUnit.lrs}
+  {$I RGBALoaderUnit.lrs}
 {$ENDIF}
 
 end.

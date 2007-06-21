@@ -1,7 +1,5 @@
 unit NewImageUnit;
 
-{$MODE Delphi}
-
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -29,7 +27,16 @@ unit NewImageUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls, Buttons;
 
@@ -76,7 +83,7 @@ end;
 
 {$IFDEF FPC}
 initialization
-  {$I MainUnit.lrs}
+  {$I NewImageUnit.lrs}
 {$ENDIF}
 
 end.

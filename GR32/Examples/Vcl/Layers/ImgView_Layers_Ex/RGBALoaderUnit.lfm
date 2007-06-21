@@ -12,6 +12,7 @@ object RGBALoaderForm: TRGBALoaderForm
   ClientWidth = 320
   Font.Height = -11
   Font.Name = 'Tahoma'
+  OnCreate = FormCreate
   Position = poScreenCenter
   object Bevel1: TBevel
     Height = 2
