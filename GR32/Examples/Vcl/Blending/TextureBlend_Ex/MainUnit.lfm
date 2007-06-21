@@ -132,10 +132,10 @@ object MainForm: TMainForm
     Transparent = False
   end
   object BlendBox: TComboBox
-    Left = 336
+    Left = 352
     Height = 21
     Top = 56
-    Width = 193
+    Width = 177
     AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
     Items.Strings = (
       'Normal'

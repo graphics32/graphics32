@@ -141,6 +141,22 @@ begin
   Image.Bitmap.ResamplerClassName := 'TNearestResampler';
   Image.Scale := 1;
   Image.TabOrder := 0;
+
+  sbScale := TGaugeBar.Create(Panel2);
+  sbScale.Parent := Panel2;
+  sbScale.Left := 8;
+  sbScale.Top := 260;
+  sbScale.Width := 152;
+  sbScale.Height := 16;
+  sbScale.Backgnd := bgPattern;
+  sbScale.BorderStyle := bsNone;
+  sbScale.Enabled := False;
+  sbScale.Max := 1000;
+  sbScale.Min := 25;
+  sbScale.ShowHandleGrip := True;
+  sbScale.Position := 100;
+  sbScale.OnChange := sbScaleChange;
+  sbScale.Style := rbsMac;
 {$ENDIF}
 
   // Different platforms store resource files on different locations

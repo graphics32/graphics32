@@ -37,8 +37,8 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'toSize'#8#7'Caption'#6#19' Weightmap Settings'#5'Color'#7#14'clAppWorkspace'
   +#10'Font.Color'#7#7'clWhite'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'
   +#10'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCenter'#11'ParentColor'#8#11
-  +'Transparent'#8#0#0#9'TComboBox'#8'BlendBox'#4'Left'#3'P'#1#6'Height'#2#21#3
-  +'Top'#2'8'#5'Width'#3#193#0#16'AutoCompleteText'#11#22'cbactEndOfLineComplet'
+  +'Transparent'#8#0#0#9'TComboBox'#8'BlendBox'#4'Left'#3'`'#1#6'Height'#2#21#3
+  +'Top'#2'8'#5'Width'#3#177#0#16'AutoCompleteText'#11#22'cbactEndOfLineComplet'
   +'e'#20'cbactSearchAscending'#0#13'Items.Strings'#1#6#6'Normal'#6#11'Soft Mas'
   +'ked'#6#9'Color Add'#6#9'Color Sub'#6#9'Color Div'#6#14'Color Modulate'#6#9
   +'Color Max'#6#9'Color Min'#6#16'Color Difference'#6#13'Color Average'#6#15'C'
