@@ -7,7 +7,7 @@
       <MainUnit Value="0"/>
       <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -83,8 +83,8 @@
       <Unit6>
         <Filename Value="../../../../GR32_Backends_LCL_Carbon.pas"/>
         <UnitName Value="GR32_Backends_LCL_Carbon"/>
-        <CursorPos X="18" Y="323"/>
-        <TopLine Value="1"/>
+        <CursorPos X="21" Y="463"/>
+        <TopLine Value="438"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>

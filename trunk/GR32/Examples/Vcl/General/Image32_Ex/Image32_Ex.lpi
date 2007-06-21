@@ -32,13 +32,13 @@
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="16">
+    <Units Count="18">
       <Unit0>
         <Filename Value="Image32_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
         <CursorPos X="7" Y="7"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -49,8 +49,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="10" Y="130"/>
-        <TopLine Value="118"/>
+        <CursorPos X="25" Y="149"/>
+        <TopLine Value="132"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
@@ -64,7 +64,7 @@
       <Unit3>
         <Filename Value="MainUnit.lfm"/>
         <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
+        <TopLine Value="98"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit3>
@@ -79,18 +79,14 @@
         <UnitName Value="GR32_Transforms"/>
         <CursorPos X="45" Y="1327"/>
         <TopLine Value="1062"/>
-        <EditorIndex Value="1"/>
         <UsageCount Value="11"/>
-        <Loaded Value="True"/>
       </Unit5>
       <Unit6>
         <Filename Value="../../../../GR32.pas"/>
         <UnitName Value="GR32"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="2"/>
         <UsageCount Value="11"/>
-        <Loaded Value="True"/>
       </Unit6>
       <Unit7>
         <Filename Value="/Lazarus/ide/buildlazdialog.pas"/>
@@ -155,17 +151,22 @@
         <TopLine Value="352"/>
         <UsageCount Value="10"/>
       </Unit15>
+      <Unit16>
+        <Filename Value="../../../../GR32_RangeBars.pas"/>
+        <UnitName Value="GR32_RangeBars"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="226"/>
+        <UsageCount Value="10"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="temp.lfm"/>
+        <CursorPos X="1" Y="113"/>
+        <TopLine Value="86"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit17>
     </Units>
-    <JumpHistory Count="2" HistoryIndex="1">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="147" Column="26" TopLine="134"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="105" Column="14" TopLine="99"/>
-      </Position2>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

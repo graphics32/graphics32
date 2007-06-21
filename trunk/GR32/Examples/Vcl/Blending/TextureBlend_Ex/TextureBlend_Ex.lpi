@@ -49,16 +49,16 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="49"/>
-        <TopLine Value="110"/>
+        <CursorPos X="27" Y="289"/>
+        <TopLine Value="276"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="1" Y="158"/>
-        <TopLine Value="64"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
@@ -137,7 +137,16 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit11>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="2" HistoryIndex="1">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="46" Column="3" TopLine="43"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="229" Column="40" TopLine="207"/>
+      </Position2>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

@@ -40,7 +40,7 @@ uses
   GR32_Image, GR32_RangeBars;
 
 type
-  TMainForm = class(TForm)
+TMainForm = class(TForm)
     MasterAlphaBar: TGaugeBar;
     CombImg: TImage32;
     WeightmapImg: TImage32;
@@ -131,10 +131,10 @@ begin
 {$IFDEF FPC}
   MasterAlphaBar := TGaugeBar.Create(Self);
   MasterAlphaBar.Parent := Self;
-  MasterAlphaBar.Left := 336;
+  MasterAlphaBar.Left := 352;
   MasterAlphaBar.Height := 16;
   MasterAlphaBar.Top := 32;
-  MasterAlphaBar.Width := 192;
+  MasterAlphaBar.Width := 177;
   MasterAlphaBar.Color := clScrollBar;
   MasterAlphaBar.Max := 255;
   MasterAlphaBar.ShowArrows := False;
@@ -285,6 +285,9 @@ begin
   EMMS;
   WeightmapImg.Invalidate;
   MasterAlphaBarChange(Self);
+  
+  // Needed under Mac OS X
+  CombImg.Invalidate;
 end;
 
 procedure TMainForm.MasterAlphaBarChange(Sender: TObject);
