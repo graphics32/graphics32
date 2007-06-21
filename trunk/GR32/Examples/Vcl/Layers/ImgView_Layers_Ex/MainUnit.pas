@@ -1,7 +1,5 @@
 unit MainUnit;
 
-{$MODE Delphi}
-
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -30,7 +28,16 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 uses
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   ExtCtrls, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
   GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers,
@@ -194,7 +201,7 @@ var
 begin
   // get coordinates of the center of viewport
   with ImgView.GetViewportRect do
-    P := ImgView.ControlToBitmap(Point((Right + Left) div 2, (Top + Bottom) div 2));
+    P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
 
   Result := TPositionedLayer.Create(ImgView.Layers);
   Result.Location := FloatRect(P.X - 32, P.Y - 32, P.X + 32, P.Y + 32);
@@ -211,98 +218,91 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
+{$IFDEF FPC}
   ImgView := TImgView32.Create(Self);
   ImgView.Parent := Self;
-    Left = 0
-    Top = 0
-    Width = 656
-    Height = 575
-    Align = alClient
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baCustom
-    RepaintMode = rmOptimizer
-    Scale = 1
-    ScaleMode = smScale
-    ScrollBars.ShowHandleGrip = True
-    ScrollBars.Style = rbsDefault
-    SizeGrip = sgNone
-    OverSize = 0
-    TabOrder = 0
-    TabStop = True
-    OnMouseDown = ImgViewMouseDown
-    OnMouseWheelDown = ImgViewMouseWheelDown
-    OnMouseWheelUp = ImgViewMouseWheelUp
-    OnPaintStage = ImgViewPaintStage
-  end
+  ImgView.Left := 0;
+  ImgView.Top := 0;
+  ImgView.Width := 656;
+  ImgView.Height := 575;
+  ImgView.Align := alClient;
+  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
+  ImgView.BitmapAlign := baCustom;
+  ImgView.RepaintMode := rmOptimizer;
+  ImgView.Scale := 1;
+  ImgView.ScaleMode := smScale;
+  ImgView.ScrollBars.ShowHandleGrip := True;
+  ImgView.ScrollBars.Style := rbsDefault;
+  ImgView.SizeGrip := sgNone;
+  ImgView.OverSize := 0;
+  ImgView.TabOrder := 0;
+  ImgView.TabStop := True;
+  ImgView.OnMouseDown := ImgViewMouseDown;
+  ImgView.OnMouseWheelDown := ImgViewMouseWheelDown;
+  ImgView.OnMouseWheelUp := ImgViewMouseWheelUp;
+  ImgView.OnPaintStage := ImgViewPaintStage;
 
-  object SidePanel: TPanel
+  LayerOpacity := TGaugeBar.Create(pnlBitmapLayer);
+  LayerOpacity.Parent := pnlBitmapLayer;
+  LayerOpacity.Left := 16;
+  LayerOpacity.Top := 40;
+  LayerOpacity.Width := 105;
+  LayerOpacity.Height := 12;
+  LayerOpacity.Backgnd := bgPattern;
+  LayerOpacity.HandleSize := 16;
+  LayerOpacity.Max := 255;
+  LayerOpacity.ShowArrows := False;
+  LayerOpacity.ShowHandleGrip := True;
+  LayerOpacity.Style := rbsMac;
+  LayerOpacity.Position := 255;
+  LayerOpacity.OnChange := LayerOpacityChange;
 
-    object pnlBitmapLayer: TPanel
+  MagnOpacity := TGaugeBar.Create(PnlMagn);
+  MagnOpacity.Parent := PnlMagn;
+  MagnOpacity.Left := 16;
+  MagnOpacity.Top := 40;
+  MagnOpacity.Width := 105;
+  MagnOpacity.Height := 12;
+  MagnOpacity.Backgnd := bgPattern;
+  MagnOpacity.HandleSize := 16;
+  MagnOpacity.Max := 255;
+  MagnOpacity.ShowArrows := False;
+  MagnOpacity.ShowHandleGrip := True;
+  MagnOpacity.Style := rbsMac;
+  MagnOpacity.Position := 255;
+  MagnOpacity.OnChange := MagnChange;
 
-      object LayerOpacity: TGaugeBar
-        Left = 16
-        Top = 40
-        Width = 105
-        Height = 12
-        Backgnd = bgPattern
-        HandleSize = 16
-        Max = 255
-        ShowArrows = False
-        ShowHandleGrip = True
-        Style = rbsMac
-        Position = 255
-        OnChange = LayerOpacityChange
-      end
+  MagnMagnification := TGaugeBar.Create(PnlMagn);
+  MagnMagnification.Parent := PnlMagn;
+  MagnMagnification.Left := 16;
+  MagnMagnification.Top := 80;
+  MagnMagnification.Width := 105;
+  MagnMagnification.Height := 12;
+  MagnMagnification.Backgnd := bgPattern;
+  MagnMagnification.HandleSize := 16;
+  MagnMagnification.Max := 50;
+  MagnMagnification.ShowArrows := False;
+  MagnMagnification.ShowHandleGrip := True;
+  MagnMagnification.Style := rbsMac;
+  MagnMagnification.Position := 10;
+  MagnMagnification.OnChange := MagnChange;
 
-    end
-
-    object PnlMagn: TPanel
-
-      object MagnOpacity: TGaugeBar
-        Left = 16
-        Top = 40
-        Width = 105
-        Height = 12
-        Backgnd = bgPattern
-        HandleSize = 16
-        Max = 255
-        ShowArrows = False
-        ShowHandleGrip = True
-        Style = rbsMac
-        Position = 255
-        OnChange = MagnChange
-      end
-      object MagnMagnification: TGaugeBar
-        Left = 16
-        Top = 80
-        Width = 105
-        Height = 12
-        Backgnd = bgPattern
-        HandleSize = 16
-        Max = 50
-        ShowArrows = False
-        ShowHandleGrip = True
-        Style = rbsMac
-        Position = 10
-        OnChange = MagnChange
-      end
-      object MagnRotation: TGaugeBar
-        Left = 16
-        Top = 120
-        Width = 105
-        Height = 12
-        Backgnd = bgPattern
-        HandleSize = 16
-        Max = 180
-        Min = -180
-        ShowArrows = False
-        ShowHandleGrip = True
-        Style = rbsMac
-        Position = 0
-        OnChange = MagnChange
-      end
-    end
-  end
+  MagnRotation := TGaugeBar.Create(PnlMagn);
+  MagnRotation.Parent := PnlMagn;
+  MagnRotation.Left := 16;
+  MagnRotation.Top := 120;
+  MagnRotation.Width := 105;
+  MagnRotation.Height := 12;
+  MagnRotation.Backgnd := bgPattern;
+  MagnRotation.HandleSize := 16;
+  MagnRotation.Max := 180;
+  MagnRotation.Min := -180;
+  MagnRotation.ShowArrows := False;
+  MagnRotation.ShowHandleGrip := True;
+  MagnRotation.Style := rbsMac;
+  MagnRotation.Position := 0;
+  MagnRotation.OnChange := MagnChange;
+{$ENDIF}
 
   // by default, PST_CLEAR_BACKGND is executed at this stage,
   // which, in turn, calls ExecClearBackgnd method of ImgView.
@@ -361,7 +361,7 @@ begin
         Bitmap.SetSize(Right - Left, Bottom - Top);
       T.Resampler := TNearestResampler.Create(T);
       T.DrawMode := dmOpaque;
-      T.DrawTo(Bitmap, Rect(0, 0, Bitmap.Width, Bitmap.Height));
+      T.DrawTo(Bitmap, Classes.Rect(0, 0, Bitmap.Width, Bitmap.Height));
       T.Free;
       LayerResetScaleClick(Self);
     end;
@@ -475,13 +475,13 @@ begin
         Bitmap.DrawMode := dmBlend;
 
         with ImgView.GetViewportRect do
-          P := ImgView.ControlToBitmap(Point((Right + Left) div 2, (Top + Bottom) div 2));
+          P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
 
         W := Bitmap.Width / 2;
         H := Bitmap.Height / 2;
 
         with ImgView.Bitmap do
-          Location := FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
+          Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
 
         Scaled := True;
         OnMouseDown := LayerMouseDown;
@@ -518,7 +518,7 @@ begin
         Tmp := TBitmap32.Create;
         try
           Tmp.SetSize(B.Bitmap.Width, B.Bitmap.Height);
-          ImgAlpha.Bitmap.DrawTo(Tmp, Rect(0, 0, Tmp.Width, Tmp.Height));
+          ImgAlpha.Bitmap.DrawTo(Tmp, Classes.Rect(0, 0, Tmp.Width, Tmp.Height));
 
           // combine Alpha into already loaded RGB colors
           IntensityToAlpha(B.Bitmap, Tmp);
@@ -528,7 +528,7 @@ begin
       end;
 
       with ImgView.GetViewportRect do
-        P := ImgView.ControlToBitmap(Point((Right + Left) div 2, (Top + Bottom) div 2));
+        P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
 
       with B do
       begin
@@ -536,7 +536,7 @@ begin
         H := Bitmap.Height / 2;
 
         with ImgView.Bitmap do
-          Location := FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
+          Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
 
         Scaled := True;
         OnMouseDown := LayerMouseDown;
@@ -860,7 +860,7 @@ begin
   B := TBitmap32.Create;
   try
     B.SetSize(W, H);
-    ImgView.PaintTo(B, Rect(0, 0, W, H));
+    ImgView.PaintTo(B, Classes.Rect(0, 0, W, H));
 
     { destroy all the layers of the original image... }
     ImgView.Layers.Clear;
@@ -925,12 +925,12 @@ begin
   Screen.Cursor := crHourGlass;
   try
     B.SetSize(W, H);
-    ImgView.PaintTo(B, Rect(0, 0, W, H));
+    ImgView.PaintTo(B, Classes.Rect(0, 0, W, H));
     Printer.BeginDoc;
     Printer.Title := 'Image View Layers Example';
     B.Resampler := TLinearResampler.Create(B);
-    R := GetCenteredRectToFit(Rect(0, 0, W, H), Rect(0, 0, Printer.PageWidth, Printer.PageHeight));
-    B.TileTo(Printer.Canvas.Handle, R, Rect(0, 0, W, H));
+    R := GetCenteredRectToFit(Classes.Rect(0, 0, W, H), Classes.Rect(0, 0, Printer.PageWidth, Printer.PageHeight));
+    B.TileTo(Printer.Canvas.Handle, R, Classes.Rect(0, 0, W, H));
     Printer.EndDoc;
   finally
     B.Free;
