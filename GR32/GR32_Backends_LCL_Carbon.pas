@@ -48,8 +48,8 @@ type
   { TLCLBackend }
 
   TLCLBackend = class(TCustomBackend,
-    IPaintSupport, ICopyFromBitmapSupport, ITextSupport, IFontSupport,
-    ICanvasSupport)
+    IPaintSupport, ICopyFromBitmapSupport, IDeviceContextSupport,
+    ITextSupport, IFontSupport, ICanvasSupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
@@ -64,14 +64,10 @@ type
     FContext, OldCanvasContext: CGContextRef;
     FCanvasHandle: TCarbonDeviceContext;
 
-    procedure FontChangedHandler(Sender: TObject);
-
     { Functions to easely generate carbon structures }
     function GetCarbonRect(Left, Top, Width, Height: Integer): FPCMacOSAll.Rect;
     function GetCGRect(Left, Top, Width, Height: Integer): FPCMacOSAll.CGRect;
   protected
-    FontHandle: HFont;
-
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
 
@@ -93,6 +89,15 @@ type
 
     { ICopyFromBitmapSupport }
     procedure CopyFromBitmap(SrcBmp: TBitmap);
+
+    { IDeviceContextSupport }
+    function GetHandle: HDC;
+
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
+
+    property Handle: HDC read GetHandle;
 
     { ITextSupport }
     procedure Textout(X, Y: Integer; const Text: string); overload;
@@ -137,11 +142,6 @@ var
 
 { TLCLBackend }
 
-procedure TLCLBackend.FontChangedHandler(Sender: TObject);
-begin
-  FontHandle := 0;
-end;
-
 function TLCLBackend.GetCarbonRect(Left, Top, Width, Height: Integer): FPCMacOSAll.Rect;
 begin
   Result.Left := Left;
@@ -173,8 +173,7 @@ begin
   { Creates a standard font }
 
   FFont := TFont.Create;
-  FFont.OnChange := FontChangedHandler;
-  
+
   { Creates a generic color profile }
 
   loc.locType := cmPathBasedProfile;
@@ -328,6 +327,44 @@ begin
   end;
 end;
 
+{ IDeviceContextSupport }
+
+function TLCLBackend.GetHandle: HDC;
+begin
+  {$IFDEF VerboseGR32Carbon}
+    WriteLn('[TLCLBackend.GetHandle]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
+end;
+
+procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
+begin
+  {$IFDEF VerboseGR32Carbon}
+    WriteLn('[TLCLBackend.Draw]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
+end;
+
+procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
+begin
+  {$IFDEF VerboseGR32Carbon}
+    WriteLn('[TLCLBackend.DrawTo]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
+end;
+
+procedure TLCLBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
+begin
+  {$IFDEF VerboseGR32Carbon}
+    WriteLn('[TLCLBackend.DrawTo with rects]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
+end;
+
 { ITextSupport }
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
@@ -413,7 +450,7 @@ begin
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
-  Result := FOnFontChange;
+  Result := FFont.OnChange;
 end;
 
 procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);
@@ -423,7 +460,7 @@ begin
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
-  FOnFontChange := Handler;
+  FFont.OnChange := Handler;
 end;
 
 function TLCLBackend.GetFont: TFont;
@@ -453,7 +490,9 @@ begin
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
-  FontHandle := Font.Handle;
+  FFont.OnChange := FOnFontChange;
+
+  if Assigned(FCanvas) then FCanvas.Font := FFont;
 end;
 
 { ICanvasSupport }
@@ -494,6 +533,8 @@ begin
 
     FCanvas.Handle := HDC(FCanvasHandle);
     FCanvas.OnChange := FOnCanvasChange;
+
+    FCanvas.Font := FFont;
   end;
   
   Result := FCanvas;
