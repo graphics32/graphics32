@@ -1,0 +1,41 @@
+{ Das ist eine automatisch erzeugte Lazarus-Ressourcendatei }
+
+LazarusResources.Add('TForm1','FORMDATA',[
+  'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#243#0#6'Height'#3#172#2#3'Top'#2'1'#5'Wid'
+  +'th'#3'T'#3#18'HorzScrollBar.Page'#3'S'#3#18'VertScrollBar.Page'#3#171#2#13
+  +'ActiveControl'#7#4'bAdd'#7'Caption'#6#15'Sprites Example'#12'ClientHeight'#3
+  +#172#2#11'ClientWidth'#3'T'#3#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'
+  +#8'OnCreate'#7#10'FormCreate'#9'OnDestroy'#7#11'FormDestroy'#0#6'TLabel'#6'L'
+  +'abel1'#4'Left'#2#12#6'Height'#2#14#3'Top'#3#141#2#5'Width'#2#29#7'Anchors'
+  +#11#6'akLeft'#8'akBottom'#0#7'Caption'#6#6'Total:'#11'ParentColor'#8#0#0#6'T'
+  +'Label'#5'lbFPS'#4'Left'#3#16#1#6'Height'#2#17#3'Top'#3#142#2#5'Width'#2'Q'#7
+  +'Anchors'#11#6'akLeft'#8'akBottom'#0#8'AutoSize'#8#11'ParentColor'#8#0#0#6'T'
+  +'Label'#11'lbDimension'#4'Left'#3'h'#1#6'Height'#2#17#3'Top'#3#142#2#5'Width'
+  +#2'q'#7'Anchors'#11#6'akLeft'#8'akBottom'#0#8'AutoSize'#8#11'ParentColor'#8#0
+  +#0#7'TButton'#4'bAdd'#4'Left'#3's'#2#6'Height'#2#21#3'Top'#3#140#2#5'Width'#2
+  +'E'#7'Anchors'#11#7'akRight'#8'akBottom'#0#25'BorderSpacing.InnerBorder'#2#4
+  +#7'Caption'#6#6'Add 10'#7'OnClick'#7#9'bAddClick'#8'TabOrder'#2#0#0#0#5'TEdi'
+  +'t'#12'edLayerCount'#4'Left'#2','#6'Height'#2#19#3'Top'#3#140#2#5'Width'#2'A'
+  +#7'Anchors'#11#6'akLeft'#8'akBottom'#0#8'ReadOnly'#9#8'TabOrder'#2#1#4'Text'
+  +#6#8'0 layers'#0#0#7'TButton'#9'bClearAll'#4'Left'#3#8#3#6'Height'#2#21#3'To'
+  +'p'#3#140#2#5'Width'#2'D'#7'Anchors'#11#7'akRight'#8'akBottom'#0#25'BorderSp'
+  +'acing.InnerBorder'#2#4#7'Caption'#6#9'Clear All'#7'OnClick'#7#14'bClearAllC'
+  +'lick'#8'TabOrder'#2#2#0#0#9'TCheckBox'#15'cbUseRepaintOpt'#4'Left'#2'x'#6'H'
+  +'eight'#2#13#3'Top'#3#149#2#5'Width'#2'}'#7'Anchors'#11#6'akLeft'#8'akBottom'
+  +#0#7'Caption'#6#21'Use Repaint Optimizer'#7'OnClick'#7#20'cbUseRepaintOptCli'
+  +'ck'#8'TabOrder'#2#3#0#0#7'TButton'#7'bRemove'#4'Left'#3#192#2#6'Height'#2#21
+  +#3'Top'#3#140#2#5'Width'#2'@'#7'Anchors'#11#7'akRight'#8'akBottom'#0#25'Bord'
+  +'erSpacing.InnerBorder'#2#4#7'Caption'#6#9'Remove 10'#7'OnClick'#7#12'bRemov'
+  +'eClick'#8'TabOrder'#2#4#0#0#5'TMemo'#5'Memo1'#4'Left'#2#8#6'Height'#2'#'#3
+  +'Top'#2#6#5'Width'#3'C'#3#7'Anchors'#11#5'akTop'#6'akLeft'#7'akRight'#0#5'Co'
+  +'lor'#7#8'clInfoBk'#13'Lines.Strings'#1#6#146'This demonstration animates th'
+  +'e sprites as fast as possible. It''s a simple throughput test that is mostl'
+  +'y limited by the bus and memory bandwidth.'#6'|Each sprite is an instance o'
+  +'f the TBitmapLayer class. Use the checkbox below to enable or disable the r'
+  +'epaint optimizations.'#0#8'ReadOnly'#9#8'TabOrder'#2#6#0#0#7'TButton'#10'bB'
+  +'enchmark'#4'Left'#3#8#2#6'Height'#2#21#3'Top'#3#140#2#5'Width'#2'`'#7'Ancho'
+  +'rs'#11#7'akRight'#8'akBottom'#0#25'BorderSpacing.InnerBorder'#2#4#7'Caption'
+  +#6#9'Benchmark'#7'OnClick'#7#15'bBenchmarkClick'#8'TabOrder'#2#5#0#0#6'TTime'
+  +'r'#8'TimerFPS'#8'Interval'#3#136#19#7'OnTimer'#7#13'TimerFPSTimer'#4'left'#3
+  +'%'#1#3'top'#3#213#0#0#0#0
+]);

@@ -1,0 +1,168 @@
+object MainForm: TMainForm
+  Left = 151
+  Height = 665
+  Top = 71
+  Width = 537
+  HorzScrollBar.Page = 536
+  VertScrollBar.Page = 664
+  ActiveControl = BlendBox
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Texture Blend Example'
+  ClientHeight = 665
+  ClientWidth = 537
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  object Label5: TLabel
+    Left = 272
+    Height = 14
+    Top = 32
+    Width = 61
+    Caption = 'MasterAlpha'
+    ParentColor = False
+  end
+  object Label4: TLabel
+    Left = 272
+    Height = 17
+    Top = 88
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Combined Texture'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    Transparent = False
+  end
+  object Label3: TLabel
+    Left = 8
+    Height = 17
+    Top = 88
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Weightmap'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    Transparent = False
+  end
+  object Label1: TLabel
+    Left = 8
+    Height = 17
+    Top = 376
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Texture A'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    Transparent = False
+  end
+  object Label2: TLabel
+    Left = 272
+    Height = 17
+    Top = 376
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Texture B'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    Transparent = False
+  end
+  object Label6: TLabel
+    Left = 272
+    Height = 17
+    Top = 8
+    Width = 258
+    AutoSize = False
+    Caption = ' Blend Settings'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    Transparent = False
+  end
+  object Label7: TLabel
+    Left = 272
+    Height = 14
+    Top = 56
+    Width = 53
+    Caption = 'Blendmode'
+    ParentColor = False
+  end
+  object Label8: TLabel
+    Left = 8
+    Height = 17
+    Top = 8
+    Width = 258
+    AutoSize = False
+    Caption = ' Weightmap Settings'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    Transparent = False
+  end
+  object BlendBox: TComboBox
+    Left = 352
+    Height = 21
+    Top = 56
+    Width = 177
+    AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+    ItemHeight = 13
+    Items.Strings = (
+      'Normal'
+      'Soft Masked'
+      'Color Add'
+      'Color Sub'
+      'Color Div'
+      'Color Modulate'
+      'Color Max'
+      'Color Min'
+      'Color Difference'
+      'Color Average'
+      'Color Exclusion'
+    )
+    MaxLength = 0
+    OnChange = MasterAlphaBarChange
+    Style = csDropDownList
+    TabOrder = 0
+  end
+  object GenerateButton: TButton
+    Left = 8
+    Height = 25
+    Top = 32
+    Width = 257
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Generate Random Weightmap'
+    TabOrder = 1
+  end
+end
