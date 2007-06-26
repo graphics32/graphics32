@@ -1,0 +1,360 @@
+object MainForm: TMainForm
+  Left = 255
+  Height = 240
+  Top = 121
+  Width = 320
+  HorzScrollBar.Page = 319
+  VertScrollBar.Page = 220
+  ActiveControl = ScaleCombo
+  Caption = 'Image View Layers Example'
+  ClientHeight = 221
+  ClientWidth = 320
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Menu = MainMenu
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  object SidePanel: TPanel
+    Left = 189
+    Height = 221
+    Width = 131
+    Align = alRight
+    BevelOuter = bvNone
+    ClientHeight = 221
+    ClientWidth = 131
+    TabOrder = 0
+    object pnlImage: TPanel
+      Height = 130
+      Width = 131
+      Align = alTop
+      ClientHeight = 130
+      ClientWidth = 131
+      TabOrder = 0
+      Visible = False
+      object Label1: TLabel
+        Left = 8
+        Height = 14
+        Top = 24
+        Width = 30
+        Caption = 'Scale:'
+        ParentColor = False
+      end
+      object ScaleCombo: TComboBox
+        Left = 16
+        Height = 21
+        Top = 40
+        Width = 105
+        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        DropDownCount = 9
+        ItemHeight = 13
+        Items.Strings = (
+          '    25%'
+          '    50%'
+          '    75%'
+          '  100%'
+          '  200%'
+          '  300%'
+          '  400%'
+          '  800%'
+          '1600%'
+        )
+        MaxLength = 0
+        OnChange = ScaleComboChange
+        TabOrder = 0
+        Text = '100%'
+      end
+      object Panel2: TPanel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 129
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Image Properties'
+        Color = clBtnShadow
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        ParentColor = False
+        TabOrder = 1
+      end
+      object ImageInterpolate: TCheckBox
+        Left = 16
+        Height = 13
+        Top = 72
+        Width = 76
+        Caption = 'Interpolated'
+        OnClick = ImageInterpolateClick
+        TabOrder = 2
+      end
+      object cbOptRedraw: TCheckBox
+        Left = 16
+        Height = 13
+        Top = 96
+        Width = 105
+        Caption = 'Optimize Repaints'
+        Checked = True
+        OnClick = cbOptRedrawClick
+        State = cbChecked
+        TabOrder = 3
+      end
+    end
+    object pnlBitmapLayer: TPanel
+      Height = 168
+      Top = 130
+      Width = 131
+      Align = alTop
+      ClientHeight = 168
+      ClientWidth = 131
+      TabOrder = 1
+      Visible = False
+      object Label2: TLabel
+        Left = 8
+        Height = 14
+        Top = 24
+        Width = 42
+        Caption = 'Opacity:'
+        ParentColor = False
+      end
+      object Panel3: TPanel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 129
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Bitmap Layer Properties'
+        Color = clBtnShadow
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        ParentColor = False
+        TabOrder = 0
+      end
+      object LayerInterpolate: TCheckBox
+        Left = 16
+        Height = 13
+        Top = 64
+        Width = 76
+        Caption = 'Interpolated'
+        OnClick = LayerInterpolateClick
+        TabOrder = 1
+      end
+      object LayerRescale: TButton
+        Left = 16
+        Height = 17
+        Top = 112
+        Width = 105
+        BorderSpacing.InnerBorder = 4
+        Caption = 'Rescale'
+        OnClick = LayerRescaleClick
+        TabOrder = 2
+      end
+      object LayerResetScale: TButton
+        Left = 16
+        Height = 17
+        Top = 136
+        Width = 105
+        BorderSpacing.InnerBorder = 4
+        Caption = 'Scale to 100%'
+        OnClick = LayerResetScaleClick
+        TabOrder = 4
+      end
+      object Cropped: TCheckBox
+        Left = 16
+        Height = 13
+        Top = 88
+        Width = 60
+        Caption = 'Cropped'
+        OnClick = CroppedClick
+        TabOrder = 3
+      end
+    end
+    object PnlMagn: TPanel
+      Height = 168
+      Top = 259
+      Width = 131
+      Align = alTop
+      ClientHeight = 168
+      ClientWidth = 131
+      TabOrder = 2
+      Visible = False
+      object Label3: TLabel
+        Left = 8
+        Height = 14
+        Top = 24
+        Width = 42
+        Caption = 'Opacity:'
+        ParentColor = False
+      end
+      object Label4: TLabel
+        Left = 8
+        Height = 14
+        Top = 64
+        Width = 68
+        Caption = 'Magnification:'
+        ParentColor = False
+      end
+      object Label5: TLabel
+        Left = 8
+        Height = 14
+        Top = 104
+        Width = 46
+        Caption = 'Rotation:'
+        ParentColor = False
+      end
+      object Panel4: TPanel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 129
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Magnifier (All) Properties'
+        Color = clBtnShadow
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        ParentColor = False
+        TabOrder = 0
+      end
+      object MagnInterpolate: TCheckBox
+        Left = 16
+        Height = 13
+        Top = 144
+        Width = 76
+        Caption = 'Interpolated'
+        OnClick = MagnChange
+        TabOrder = 1
+      end
+    end
+  end
+  object MainMenu: TMainMenu
+    left = 216
+    object mnFile: TMenuItem
+      Caption = 'File'
+      OnClick = mnFileClick
+      object mnFileNew: TMenuItem
+        Caption = 'New...'
+        OnClick = mnFileNewClick
+      end
+      object mnFileOpen: TMenuItem
+        Caption = 'Open...'
+        OnClick = mnFileOpenClick
+      end
+      object N6: TMenuItem
+        Caption = '-'
+      end
+      object mnPrint: TMenuItem
+        Caption = 'Print'
+        OnClick = mnPrintClick
+      end
+    end
+    object mnLayers: TMenuItem
+      Caption = 'Layers'
+      OnClick = mnLayersClick
+      object mnNewBitmapLayer: TMenuItem
+        Caption = 'New Bitmap Layer'
+        OnClick = mnNewBitmapLayerClick
+      end
+      object mnNewBitmapRGBA: TMenuItem
+        Caption = 'New Bitmap Layer with Alpha Channel'
+        OnClick = mnNewBitmapRGBAClick
+      end
+      object mnNewCustomLayer: TMenuItem
+        Caption = 'New Custom Layer'
+        object mnSimpleDrawing: TMenuItem
+          Caption = 'Simple Drawing Layer'
+          OnClick = mnSimpleDrawingClick
+        end
+        object mnMagnifier: TMenuItem
+          Caption = 'Magnifier'
+          OnClick = mnMagnifierClick
+        end
+      end
+      object N4: TMenuItem
+        Caption = '-'
+      end
+      object mnFlatten: TMenuItem
+        Caption = 'Flatten Layers'
+        OnClick = mnFlattenClick
+      end
+    end
+    object mnArrange: TMenuItem
+      Caption = 'Selection'
+      OnClick = mnArrangeClick
+      object mnBringFront: TMenuItem
+        Tag = 1
+        Caption = 'Bring to Front'
+        OnClick = mnReorder
+      end
+      object mnSendBack: TMenuItem
+        Tag = 2
+        Caption = 'Send to Back'
+        OnClick = mnReorder
+      end
+      object N1: TMenuItem
+        Caption = '-'
+        OnClick = mnReorder
+      end
+      object mnLevelUp: TMenuItem
+        Tag = 3
+        Caption = 'Up One Level'
+        OnClick = mnReorder
+      end
+      object mnLevelDown: TMenuItem
+        Tag = 4
+        Caption = 'Down one Level'
+        OnClick = mnReorder
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object mnScaled: TMenuItem
+        Caption = 'Scaled'
+        Checked = True
+        OnClick = mnScaledClick
+      end
+      object mnDelete: TMenuItem
+        Caption = 'Delete'
+        OnClick = mnDeleteClick
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object mnFlipHorz: TMenuItem
+        Caption = 'Flip Horizontally'
+        OnClick = mnFlipHorzClick
+      end
+      object mnFlipVert: TMenuItem
+        Caption = 'Flip Vertically'
+        OnClick = mnFlipVertClick
+      end
+      object N5: TMenuItem
+        Caption = '-'
+      end
+      object mnRotate90: TMenuItem
+        Caption = 'Rotate 90'
+        OnClick = mnRotate90Click
+      end
+      object mnRotate180: TMenuItem
+        Caption = 'Rotate 180'
+        OnClick = mnRotate180Click
+      end
+      object mnRotate270: TMenuItem
+        Caption = 'Rotate 270'
+        OnClick = mnRotate270Click
+      end
+    end
+  end
+  object OpenPictureDialog1: TOpenPictureDialog
+    Title = 'Open existing file'
+    FilterIndex = 0
+    left = 248
+  end
+  object SaveDialog1: TSaveDialog
+    Title = 'Save file as'
+    FilterIndex = 0
+    left = 280
+  end
+end
