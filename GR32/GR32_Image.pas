@@ -304,7 +304,7 @@ type
     procedure BeginUpdate; virtual;
     function  BitmapToControl(const APoint: TPoint): TPoint;
     procedure Changed; virtual;
-    procedure Update(const Rect: TRect); overload; virtual;
+    procedure Update(const Rect: TRect); reintroduce; overload; virtual;
     function  ControlToBitmap(const APoint: TPoint): TPoint;
     procedure EndUpdate; virtual;
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
