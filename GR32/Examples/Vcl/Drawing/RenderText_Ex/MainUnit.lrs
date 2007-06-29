@@ -1,37 +1,39 @@
-{ This is an automatically generated lazarus resource file }
-
 LazarusResources.Add('TForm1','FORMDATA',[
   'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#213#0#6'Height'#3#228#0#3'Top'#2'q'#5'Wid'
-  +'th'#3's'#1#18'HorzScrollBar.Page'#3'r'#1#18'VertScrollBar.Page'#3#227#0#13
-  +'ActiveControl'#7#5'Edit1'#7'Caption'#6#18'RenderText Example'#12'ClientHeig'
-  +'ht'#3#228#0#11'ClientWidth'#3's'#1#20'Constraints.MinWidth'#3#0#1#11'Font.H'
-  +'eight'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7#10'FormCreate'#0
-  +#6'TPanel'#6'Panel1'#6'Height'#2'='#5'Width'#3's'#1#5'Align'#7#5'alTop'#10'B'
-  +'evelOuter'#7#6'bvNone'#12'ClientHeight'#2'='#11'ClientWidth'#3's'#1#11'Font'
-  +'.Height'#2#245#9'Font.Name'#6#6'Tahoma'#8'TabOrder'#2#0#0#6'TLabel'#6'Label'
-  +'1'#4'Left'#2#4#6'Height'#2#13#3'Top'#2'$'#5'Width'#2'9'#7'Caption'#6#9'AA L'
-  +'evel:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label2'#4'Left'#2#4#6'Height'#2#13
-  +#3'Top'#2#6#5'Width'#2'U'#7'Caption'#6#16'Enter text here:'#11'ParentColor'#8
-  +#0#0#12'TSpeedButton'#12'SpeedButton1'#4'Left'#2'p'#6'Height'#2#22#3'Top'#2
-  +' '#5'Width'#2#22#7'Caption'#6#1'0'#5'Color'#7#9'clBtnFace'#4'Down'#9#10'Gro'
-  +'upIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'#2#0#7'OnClick'#7#17
-  +'SpeedButton1Click'#0#0#12'TSpeedButton'#12'SpeedButton2'#3'Tag'#2#1#4'Left'
-  +#3#136#0#6'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7'Caption'#6#1'1'#5'Color'
-  +#7#9'clBtnFace'#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'
-  +#2#0#7'OnClick'#7#17'SpeedButton1Click'#0#0#12'TSpeedButton'#12'SpeedButton3'
-  +#3'Tag'#2#2#4'Left'#3#160#0#6'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7'Capti'
-  +'on'#6#1'2'#5'Color'#7#9'clBtnFace'#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyp'
-  +'hBottom'#9'NumGlyphs'#2#0#7'OnClick'#7#17'SpeedButton1Click'#0#0#12'TSpeedB'
-  +'utton'#12'SpeedButton4'#3'Tag'#2#3#4'Left'#3#184#0#6'Height'#2#22#3'Top'#2
-  +' '#5'Width'#2#22#7'Caption'#6#1'3'#5'Color'#7#9'clBtnFace'#10'GroupIndex'#2
-  +#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'#2#0#7'OnClick'#7#17'SpeedButto'
-  +'n1Click'#0#0#12'TSpeedButton'#12'SpeedButton5'#3'Tag'#2#4#4'Left'#3#208#0#6
-  +'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7'Caption'#6#1'4'#5'Color'#7#9'clBtn'
-  +'Face'#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'#2#0#7'O'
-  +'nClick'#7#17'SpeedButton1Click'#0#0#5'TEdit'#5'Edit1'#4'Left'#2'p'#6'Height'
-  +#2#21#3'Top'#2#4#5'Width'#3#0#1#7'Anchors'#11#5'akTop'#6'akLeft'#7'akRight'#0
-  +#8'OnChange'#7#11'Edit1Change'#8'TabOrder'#2#0#4'Text'#6#5'Edit1'#0#0#7'TBut'
-  +'ton'#7'Button1'#4'Left'#3#26#1#6'Height'#2#21#3'Top'#2' '#5'Width'#2'V'#7'A'
-  +'nchors'#11#5'akTop'#7'akRight'#0#25'BorderSpacing.InnerBorder'#2#4#7'Captio'
-  +'n'#6#9'Click me!'#7'OnClick'#7#12'Button1Click'#8'TabOrder'#2#1#0#0#0#0
+  +'th'#3'Q'#1#18'HorzScrollBar.Page'#3'P'#1#18'VertScrollBar.Page'#3#227#0#13
+  +'ActiveControl'#7#8'EditText'#7'Caption'#6#18'RenderText Example'#12'ClientH'
+  +'eight'#3#228#0#11'ClientWidth'#3'Q'#1#20'Constraints.MinWidth'#3#0#1#11'Fon'
+  +'t.Height'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7#10'FormCreat'
+  +'e'#0#6'TPanel'#6'Panel1'#6'Height'#2'='#5'Width'#3'Q'#1#5'Align'#7#5'alTop'
+  +#10'BevelOuter'#7#6'bvNone'#12'ClientHeight'#2'='#11'ClientWidth'#3'Q'#1#11
+  +'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#8'TabOrder'#2#0#0#6'TLabel'#6'L'
+  +'abel1'#4'Left'#2#4#6'Height'#2#14#3'Top'#2'$'#5'Width'#2'/'#7'Caption'#6#9
+  +'AA Level:'#11'ParentColor'#8#0#0#6'TLabel'#11'LbEnterText'#4'Left'#2#4#6'He'
+  +'ight'#2#14#3'Top'#2#6#5'Width'#2'O'#7'Caption'#6#16'Enter text here:'#11'Pa'
+  +'rentColor'#8#0#0#12'TSpeedButton'#11'SBClearType'#3'Tag'#2#255#4'Left'#2'\'
+  +#6'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7'Caption'#6#2'-1'#5'Color'#7#9'cl'
+  +'BtnFace'#4'Down'#9#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'NumGl'
+  +'yphs'#2#0#7'OnClick'#7#14'SBTextOutClick'#0#0#12'TSpeedButton'#9'SBTextOut'
+  +#4'Left'#2't'#6'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7'Caption'#6#1'0'#5'C'
+  +'olor'#7#9'clBtnFace'#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'Num'
+  +'Glyphs'#2#0#7'OnClick'#7#14'SBTextOutClick'#0#0#12'TSpeedButton'#12'SBAntia'
+  +'lias1'#3'Tag'#2#1#4'Left'#3#140#0#6'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7
+  +'Caption'#6#1'1'#5'Color'#7#9'clBtnFace'#10'GroupIndex'#2#1#6'Layout'#7#13'b'
+  +'lGlyphBottom'#9'NumGlyphs'#2#0#7'OnClick'#7#14'SBTextOutClick'#0#0#12'TSpee'
+  +'dButton'#12'SBAntialias2'#3'Tag'#2#2#4'Left'#3#164#0#6'Height'#2#22#3'Top'#2
+  +' '#5'Width'#2#22#7'Caption'#6#1'2'#5'Color'#7#9'clBtnFace'#10'GroupIndex'#2
+  +#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'#2#0#7'OnClick'#7#14'SBTextOutC'
+  +'lick'#0#0#12'TSpeedButton'#12'SBAntialias3'#3'Tag'#2#3#4'Left'#3#188#0#6'He'
+  +'ight'#2#22#3'Top'#2' '#5'Width'#2#22#7'Caption'#6#1'3'#5'Color'#7#9'clBtnFa'
+  +'ce'#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'#2#0#7'OnC'
+  +'lick'#7#14'SBTextOutClick'#0#0#12'TSpeedButton'#12'SBAntialias4'#3'Tag'#2#4
+  +#4'Left'#3#212#0#6'Height'#2#22#3'Top'#2' '#5'Width'#2#22#7'Caption'#6#1'4'#5
+  +'Color'#7#9'clBtnFace'#10'GroupIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'Nu'
+  +'mGlyphs'#2#0#7'OnClick'#7#14'SBTextOutClick'#0#0#5'TEdit'#8'EditText'#4'Lef'
+  +'t'#2'\'#6'Height'#2#21#3'Top'#2#4#5'Width'#3#242#0#7'Anchors'#11#5'akTop'#6
+  +'akLeft'#7'akRight'#0#8'OnChange'#7#14'EditTextChange'#8'TabOrder'#2#0#4'Tex'
+  +'t'#6#4'Text'#0#0#7'TButton'#9'BtClickMe'#4'Left'#3#5#1#6'Height'#2#21#3'Top'
+  +#2' '#5'Width'#2'I'#7'Anchors'#11#5'akTop'#7'akRight'#0#25'BorderSpacing.Inn'
+  +'erBorder'#2#4#7'Caption'#6#9'Click me!'#7'OnClick'#7#14'BtClickMeClick'#8'T'
+  +'abOrder'#2#1#0#0#0#0
 ]);

@@ -22,21 +22,14 @@ unit MainUnit;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Christian-W. Budde
  *
  * ***** END LICENSE BLOCK ***** *)
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE Windows}
-{$ENDIF}
-
 uses
-  {$IFDEF FPC} LCLType, LResources, {$ENDIF}
+  {$IFDEF FPC} LCLType, LResources, {$ELSE} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   GR32, ComCtrls, GR32_Image, Buttons;
 
@@ -44,20 +37,21 @@ type
   TForm1 = class(TForm)
     Image: TImage32;
     Panel1: TPanel;
-    Edit1: TEdit;
-    Label1: TLabel;
-    Button1: TButton;
-    Label2: TLabel;
-    SpeedButton1: TSpeedButton;
-    SpeedButton2: TSpeedButton;
-    SpeedButton3: TSpeedButton;
-    SpeedButton4: TSpeedButton;
-    SpeedButton5: TSpeedButton;
-    procedure Edit1Change(Sender: TObject);
+    EditText: TEdit;
+    LbAALevel: TLabel;
+    BtClickMe: TButton;
+    LbEnterText: TLabel;
+    SBTextOut: TSpeedButton;
+    SBAntialias1: TSpeedButton;
+    SBAntialias2: TSpeedButton;
+    SBAntialias3: TSpeedButton;
+    SBAntialias4: TSpeedButton;
+    SBClearType: TSpeedButton;
+    procedure EditTextChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure ImageResize(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-    procedure SpeedButton1Click(Sender: TObject);
+    procedure BtClickMeClick(Sender: TObject);
+    procedure SBTextOutClick(Sender: TObject);
   public
     AALevel: Integer;
     procedure Draw;
@@ -72,32 +66,20 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
+
 procedure TForm1.Draw;
 begin
   Image.Bitmap.Clear;
-  Image.Bitmap.RenderText(10, 10, Edit1.Text, AALevel, $FFFFFFFF);
+  Image.Bitmap.RenderText(10, 10, EditText.Text, AALevel, $FFFFFFFF);
 end;
 
-procedure TForm1.Edit1Change(Sender: TObject);
+procedure TForm1.EditTextChange(Sender: TObject);
 begin
   Draw;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-{$IFDEF FPC}
-  Image := TImage32.Create(Self);
-  Image.Parent := Self;
-  Image.Height := 167;
-  Image.Top := 61;
-  Image.Width := 337;
-  Image.Align := alClient;
-  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Image.Scale := 1;
-  Image.TabOrder := 0;
-  Image.OnResize := ImageResize;
-{$ENDIF}
-
   Image.SetupBitmap;
   with Image.Bitmap.Font do
   begin
@@ -106,7 +88,7 @@ begin
     Style := [fsBold, fsItalic];
   end;
   Panel1.DoubleBuffered := True;
-  Edit1.DoubleBuffered := True;
+  EditText.DoubleBuffered := True;
 end;
 
 procedure TForm1.ImageResize(Sender: TObject);
@@ -115,11 +97,17 @@ begin
   Draw;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TForm1.BtClickMeClick(Sender: TObject);
 var
   I: Integer;
+  A,B,C : Int64;
+  str   : string;
 begin
   Screen.Cursor := crHourGlass;
+  {$IFNDEF FPC}
+  QueryPerformanceFrequency(C);
+  QueryPerformanceCounter(A);
+  {$ENDIF}
   with Image.Bitmap do
     for I := 0 to 100 do
       RenderText(
@@ -128,10 +116,24 @@ begin
         IntToStr(Random(100)),
         AALevel,
         Color32(Random(255), Random(255), Random(255), Random(255)));
+  {$IFNDEF FPC}
+  QueryPerformanceCounter(B);
+  with TBitmap32.Create do
+  begin
+    Font.Color := clWhite;
+    Font.Size := 8;
+    Font.Style := [];
+    SetSize(100,8);
+    str := FloatToStrF(1000*(B-A)/C,ffFixed, 4, 4) + ' ms';
+    SetSize(TextWidth(str),TextHeight(str));
+    Textout(0, 0, str);
+    DrawTo(Image.Bitmap, Image.Bitmap.Width-Width, Image.Bitmap.Height-Height);
+  end;
+  {$ENDIF}
   Screen.Cursor := crDefault;
 end;
 
-procedure TForm1.SpeedButton1Click(Sender: TObject);
+procedure TForm1.SBTextOutClick(Sender: TObject);
 begin
   AALevel := TControl(Sender).Tag;
   Draw;

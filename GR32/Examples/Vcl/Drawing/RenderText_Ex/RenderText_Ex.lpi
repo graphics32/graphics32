@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
+    <PathDelim Value="\"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
       <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="2"/>
+      <ActiveEditorIndexAtStart Value="0"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -21,19 +21,16 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="2">
+    <RequiredPackages Count="1">
       <Item1>
         <PackageName Value="LCL"/>
       </Item1>
-      <Item2>
-        <PackageName Value="GR32_L"/>
-      </Item2>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="5">
       <Unit0>
         <Filename Value="RenderText_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="7" Y="7"/>
+        <CursorPos X="1" Y="12"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -46,8 +43,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="45"/>
-        <TopLine Value="42"/>
+        <CursorPos X="52" Y="125"/>
+        <TopLine Value="113"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -60,43 +57,34 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="../../../../../GR32_Resamplers.pas"/>
+        <Filename Value="..\..\..\..\..\GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="1" Y="773"/>
         <TopLine Value="758"/>
         <UsageCount Value="10"/>
       </Unit3>
       <Unit4>
-        <Filename Value="../../../../../GR32_Blend.pas"/>
+        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
         <CursorPos X="1" Y="1065"/>
         <TopLine Value="1050"/>
         <UsageCount Value="10"/>
       </Unit4>
-      <Unit5>
-        <Filename Value="../../../../GR32.pas"/>
-        <UnitName Value="GR32"/>
-        <CursorPos X="3" Y="5366"/>
-        <TopLine Value="5350"/>
-        <UsageCount Value="10"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="../../../../GR32_Backends_LCL_Carbon.pas"/>
-        <UnitName Value="GR32_Backends_LCL_Carbon"/>
-        <CursorPos X="21" Y="463"/>
-        <TopLine Value="438"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit6>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="1" HistoryIndex="0">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="125" Column="52" TopLine="113"/>
+      </Position1>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
+    <PathDelim Value="\"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-      <ObjectPath Value="../../../"/>
+      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\components\JPEG\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;C:\Programme\Borland\Library\Bitmap\Graphics32\"/>
+      <ObjectPath Value="..\..\..\"/>
+      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -111,12 +99,7 @@
       <Generate Value="Faster"/>
     </CodeGeneration>
     <Linking>
-      <Debugging>
-        <GenerateDebugInfo Value="True"/>
-      </Debugging>
       <Options>
-        <PassLinkerOptions Value="True"/>
-        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
