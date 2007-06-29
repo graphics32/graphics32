@@ -2,59 +2,72 @@ object Form1: TForm1
   Left = 213
   Height = 228
   Top = 113
-  Width = 371
-  HorzScrollBar.Page = 370
+  Width = 337
+  HorzScrollBar.Page = 336
   VertScrollBar.Page = 227
-  ActiveControl = Edit1
+  ActiveControl = EditText
   Caption = 'RenderText Example'
   ClientHeight = 228
-  ClientWidth = 371
+  ClientWidth = 337
   Constraints.MinWidth = 256
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   object Panel1: TPanel
     Height = 61
-    Width = 371
+    Width = 337
     Align = alTop
     BevelOuter = bvNone
     ClientHeight = 61
-    ClientWidth = 371
+    ClientWidth = 337
     Font.Height = -11
     Font.Name = 'Tahoma'
     TabOrder = 0
     object Label1: TLabel
       Left = 4
-      Height = 13
+      Height = 14
       Top = 36
-      Width = 57
+      Width = 47
       Caption = 'AA Level:'
       ParentColor = False
     end
-    object Label2: TLabel
+    object LbEnterText: TLabel
       Left = 4
-      Height = 13
+      Height = 14
       Top = 6
-      Width = 85
+      Width = 79
       Caption = 'Enter text here:'
       ParentColor = False
     end
-    object SpeedButton1: TSpeedButton
-      Left = 112
+    object SBClearType: TSpeedButton
+      Tag = -1
+      Left = 92
       Height = 22
       Top = 32
       Width = 22
-      Caption = '0'
+      Caption = '-1'
       Color = clBtnFace
       Down = True
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
-      OnClick = SpeedButton1Click
+      OnClick = SBTextOutClick
     end
-    object SpeedButton2: TSpeedButton
+    object SBTextOut: TSpeedButton
+      Left = 116
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '0'
+      Color = clBtnFace
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object SBAntialias1: TSpeedButton
       Tag = 1
-      Left = 136
+      Left = 140
       Height = 22
       Top = 32
       Width = 22
@@ -63,11 +76,11 @@ object Form1: TForm1
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
-      OnClick = SpeedButton1Click
+      OnClick = SBTextOutClick
     end
-    object SpeedButton3: TSpeedButton
+    object SBAntialias2: TSpeedButton
       Tag = 2
-      Left = 160
+      Left = 164
       Height = 22
       Top = 32
       Width = 22
@@ -76,11 +89,11 @@ object Form1: TForm1
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
-      OnClick = SpeedButton1Click
+      OnClick = SBTextOutClick
     end
-    object SpeedButton4: TSpeedButton
+    object SBAntialias3: TSpeedButton
       Tag = 3
-      Left = 184
+      Left = 188
       Height = 22
       Top = 32
       Width = 22
@@ -89,11 +102,11 @@ object Form1: TForm1
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
-      OnClick = SpeedButton1Click
+      OnClick = SBTextOutClick
     end
-    object SpeedButton5: TSpeedButton
+    object SBAntialias4: TSpeedButton
       Tag = 4
-      Left = 208
+      Left = 212
       Height = 22
       Top = 32
       Width = 22
@@ -102,27 +115,27 @@ object Form1: TForm1
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
-      OnClick = SpeedButton1Click
+      OnClick = SBTextOutClick
     end
-    object Edit1: TEdit
-      Left = 112
+    object EditText: TEdit
+      Left = 92
       Height = 21
       Top = 4
-      Width = 256
+      Width = 242
       Anchors = [akTop, akLeft, akRight]
-      OnChange = Edit1Change
+      OnChange = EditTextChange
       TabOrder = 0
-      Text = 'Edit1'
+      Text = 'Text'
     end
-    object Button1: TButton
-      Left = 282
+    object BtClickMe: TButton
+      Left = 261
       Height = 21
       Top = 32
-      Width = 86
+      Width = 73
       Anchors = [akTop, akRight]
       BorderSpacing.InnerBorder = 4
       Caption = 'Click me!'
-      OnClick = Button1Click
+      OnClick = BtClickMeClick
       TabOrder = 1
     end
   end
