@@ -100,6 +100,7 @@ var
   bias_ptr: Pointer;
   alpha_ptr: Pointer;
 
+
 { Misc stuff }
 function Lighten(C: TColor32; Amount: Integer): TColor32;
 
@@ -1845,11 +1846,12 @@ end;
 procedure MakeMergeTables;
 var
   I, J: Integer;
+const OneByteth : Double = 1 / 255;
 begin
   for J := 0 to 255 do
     for I := 0 to 255 do
     begin
-      DivTable[I, J] := Round(I * J / 255);
+      DivTable[I, J] := Round(I * J * OneByteth);
       if I > 0 then
         RcTable[I, J] := Round(J * 255 / I)
       else
@@ -2098,3 +2100,6 @@ finalization
 {$ENDIF}
 
 end.
+
+
+
