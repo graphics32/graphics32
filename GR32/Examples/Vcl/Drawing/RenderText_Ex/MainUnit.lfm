@@ -13,6 +13,19 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
+  object Image: TImage32
+    Left = 0
+    Top = 61
+    Width = 329
+    Height = 140
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTopLeft
+    Scale = 1.000000000000000000
+    ScaleMode = smNormal
+    TabOrder = 0
+    OnResize = ImageResize
+  end
   object Panel1: TPanel
     Height = 61
     Width = 337
