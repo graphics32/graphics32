@@ -748,10 +748,6 @@ type
 
     function GetFont: TFont;
     procedure SetFont(Value: TFont);
-    
-    procedure TextScaleDown(const B, B2: TCustomBitmap32; const N: Integer;
-      const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
   protected
     procedure InitializeBackend; override;
     procedure SetBackend(const Backend: TBackend); override;
@@ -5398,59 +5394,6 @@ end;
 
 // -------------------------------------------------------------------
 
-procedure TBitmap32.TextScaleDown(const B, B2: TCustomBitmap32; const N: Integer;
-  const Color: TColor32); // use only the blue channel
-var
-  I, J, X, Y, P, Q, Sz, S: Integer;
-  Src: PColor32;
-  Dst: PColor32;
-begin
-  Sz := 1 shl N - 1;
-  Dst := B.PixelPtr[0, 0];
-  for J := 0 to B.Height - 1 do
-  begin
-    Y := J shl N;
-    for I := 0 to B.Width - 1 do
-    begin
-      X := I shl N;
-      S := 0;
-      for Q := Y to Y + Sz do
-      begin
-        Src := B2.PixelPtr[X, Q];
-        for P := X to X + Sz do
-        begin
-          S := S + Integer(Src^ and $000000FF);
-          Inc(Src);
-        end;
-      end;
-      S := S shr N shr N;
-      Dst^ := TColor32(S shl 24) + Color;
-      Inc(Dst);
-    end;
-  end;
-end;
-
-procedure TBitmap32.TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32);
-var
-  I: Integer;
-  P: PColor32;
-  C: TColor32;
-begin
-  // convert blue channel to alpha and fill the color
-  P := @B.Bits[0];
-  for I := 0 to B.Width * B.Height - 1 do
-  begin
-    C := P^;
-    if C <> 0 then
-    begin
-      C := P^ shl 24; // transfer blue channel to alpha
-      C := C + Color;
-      P^ := C;
-    end;
-    Inc(P);
-  end;
-end;
-
 {$IFDEF CLX}
 procedure TBitmap32.RenderText(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 begin
@@ -5510,12 +5453,80 @@ begin
   Font.Handle := CreateFontIndirect(LogFont);
 end;
 
+procedure TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32);
+(*
+asm
+ push edi
+ mov ecx, [B+$44].Integer
+ imul ecx, [B+$40].Integer
+ mov edi, [B+$54].Integer
+ @PixelLoop:
+ mov eax, [edi]
+ shl eax, 24
+ add eax, Color
+ mov [edi], eax
+ add edi, 4
+ loop @PixelLoop
+ pop edi
+end;
+*)
+var
+  I: Integer;
+  P: PColor32;
+  C: TColor32;
+begin
+  // convert blue channel to alpha and fill the color
+  P := @B.Bits[0];
+  for I := 0 to B.Width * B.Height - 1 do
+  begin
+    C := P^;
+    if C <> 0 then
+    begin
+      C := P^ shl 24; // transfer blue channel to alpha
+      C := C + Color;
+      P^ := C;
+    end;
+    Inc(P);
+  end;
+end;
+
+procedure TextScaleDown(const B, B2: TCustomBitmap32; const N: Integer;
+  const Color: TColor32); // use only the blue channel
+var
+  I, J, X, Y, P, Q, Sz, S: Integer;
+  Src: PColor32;
+  Dst: PColor32;
+begin
+  Sz := 1 shl N - 1;
+  Dst := B.PixelPtr[0, 0];
+  for J := 0 to B.Height - 1 do
+  begin
+    Y := J shl N;
+    for I := 0 to B.Width - 1 do
+    begin
+      X := I shl N;
+      S := 0;
+      for Q := Y to Y + Sz do
+      begin
+        Src := B2.PixelPtr[X, Q];
+        for P := X to X + Sz do
+        begin
+          S := S + Integer(Src^ and $000000FF);
+          Inc(Src);
+        end;
+      end;
+      S := S shr N shr N;
+      Dst^ := TColor32(S shl 24) + Color;
+      Inc(Dst);
+    end;
+  end;
+end;
+
 procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
   Sz: TSize;
   Alpha: TColor32;
-  StockCanvas: TCanvas;
   PaddedText: String;
 begin
   if Empty then Exit;
@@ -5532,52 +5543,48 @@ begin
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
+  with B do
   try
-    if AALevel = 0 then
+    if AALevel <= 0 then
     begin
-      TextBlueToAlpha(B, Color);
-      Sz := TextExtent(PaddedText);
-      B.SetSize(Sz.cX, Sz.cY);
-      B.Font := Font;
-      B.Clear(0);
-      B.Font.Color := clWhite;
-      B.Textout(0, 0, Text);
+      Sz := Self.TextExtent(PaddedText);
+      if Sz.cX>Self.Width then Sz.cX:=Self.Width;
+      if Sz.cY>Self.Height then Sz.cX:=Self.Height;
+      SetSize(Sz.cX, Sz.cY);
+      Font := Self.Font;
+      Clear(0);
+      Font.Color := clWhite;
+      Textout(0, 0, Text);
       TextBlueToAlpha(B, Color);
     end
     else
     begin
-      StockCanvas := StockBitmap.Canvas;
-      StockCanvas.Lock;
+      B2 := TBitmap32.Create;
+      with B2 do
       try
-        StockCanvas.Font := Font;
-        StockCanvas.Font.Size := Font.Size shl AALevel;
-        Sz := StockCanvas.TextExtent(PaddedText);
-        Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
-        Sz.Cy := (Sz.cy shr AALevel + 1) shl AALevel;
-        B2 := TBitmap32.Create;
-        try
-          B2.SetSize(Sz.Cx, Sz.Cy);
-          B2.Clear(0);
-          B2.Font := StockCanvas.Font;
-          B2.Font.Color := clWhite;
-          B2.Textout(0, 0, Text);
-          B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
-          TextScaleDown(B, B2, AALevel, Color);
-        finally
-          B2.Free;
-        end;
+        Font := Self.Font;
+        Font.Size := Self.Font.Size shl AALevel;
+        Font.Color := clWhite;
+        Sz := TextExtent(PaddedText);
+        Sz.Cx := Sz.cx + 1 shl AALevel;
+        Sz.Cy := Sz.cy + 1 shl AALevel;
+        SetSize(Sz.Cx, Sz.Cy);
+        Clear(0);
+        Textout(0, 0, Text);
+        B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
+        TextScaleDown(B, B2, AALevel, Color);
       finally
-        StockCanvas.Unlock;
+        Free;
       end;
     end;
 
-    B.DrawMode := dmBlend;
-    B.MasterAlpha := Alpha;
-    B.CombineMode := CombineMode;
+    DrawMode := dmBlend;
+    MasterAlpha := Alpha;
+    CombineMode := CombineMode;
 
-    B.DrawTo(Self, X, Y);
+    DrawTo(Self, X, Y);
   finally
-    B.Free;
+    Free;
   end;
 
   SetFontAntialiasing(Font, DEFAULT_QUALITY);
