@@ -236,11 +236,11 @@ type
     FBottomLength: TFloat;
     FBottomCurve: TArrayOfFloatPoint;
     FTopCurve: TArrayOfFloatPoint;
-    FTopHypot: TArrayOfFloat;
-    FBottomHypot: TArrayOfFloat;
+    FTopHypot, FBottomHypot: array of record Dist, RecDist: TFloat end;
     procedure SetBottomCurve(const Value: TArrayOfFloatPoint);
     procedure SetTopCurve(const Value: TArrayOfFloatPoint);
   protected
+    rdx, rdy: TFloat;
     procedure PrepareTransform; override;
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
   public
@@ -1206,7 +1206,7 @@ end;
 procedure TPathTransformation.PrepareTransform;
 var
   I: Integer;
-  L: TFloat;
+  L, DDist: TFloat;
 begin
   SetLength(FTopHypot, Length(FTopCurve));
   SetLength(FBottomHypot, Length(FBottomCurve));
@@ -1214,18 +1214,47 @@ begin
   L := 0;
   for I := 0 to High(FTopCurve) - 1 do
   begin
-    FTopHypot[I] := L;
-    L := L + Hypot(FTopCurve[I].X - FTopCurve[I + 1].X, FTopCurve[I].Y - FTopCurve[I + 1].Y);
+    FTopHypot[I].Dist := L;
+    with FTopCurve[I + 1] do
+      L := L + Hypot(FTopCurve[I].X - X, FTopCurve[I].Y - Y);
   end;
   FTopLength := L;
+
+  for I := 1 to High(FTopCurve) do
+    with FTopHypot[I] do
+    begin
+      DDist := Dist - FTopHypot[I - 1].Dist;
+      if DDist <> 0 then
+        RecDist := 1 / DDist
+      else if I > 1 then
+        RecDist := FTopHypot[I - 1].RecDist
+      else
+        RecDist := 0;
+    end;
 
   L := 0;
   for I := 0 to High(FBottomCurve) - 1 do
   begin
-    FBottomHypot[I] := L;
-    L := L + Hypot(FBottomCurve[I].X - FBottomCurve[I + 1].X, FBottomCurve[I].Y - FBottomCurve[I + 1].Y);
+    FBottomHypot[I].Dist := L;
+    with FBottomCurve[I + 1] do
+      L := L + Hypot(FBottomCurve[I].X - X, FBottomCurve[I].Y - Y);
   end;
   FBottomLength := L;
+
+  for I := 1 to High(FBottomCurve) do
+    with FBottomHypot[I] do
+    begin
+      DDist := Dist - FBottomHypot[I - 1].Dist;
+      if DDist <> 0 then
+        RecDist := 1 / DDist
+      else if I > 1 then
+        RecDist := FBottomHypot[I - 1].RecDist
+      else
+        RecDist := 0;
+    end;
+
+  rdx := 1 / (SrcRect.Right - SrcRect.Left);
+  rdy := 1 / (SrcRect.Bottom - SrcRect.Top);
 
   TransformValid := True;
 end;
@@ -1248,15 +1277,18 @@ var
   I, H: Integer;
   X, Y, fx, dx, dy, r, Tx, Ty, Bx, By: TFloat;
 begin
-  X := (SrcX - SrcRect.Left) / (SrcRect.Right - SrcRect.Left);
-  Y := (SrcY - SrcRect.Top) / (SrcRect.Bottom - SrcRect.Top);
+  X := (SrcX - SrcRect.Left) * rdx;
+  Y := (SrcY - SrcRect.Top) * rdy;
 
   fx := X * FTopLength;
   I := 1;
   H := High(FTopHypot);
-  while (FTopHypot[I] < fx) and (I < H) do Inc(I);
+  while (FTopHypot[I].Dist < fx) and (I < H) do Inc(I);
 
-  r := (FTopHypot[I] - fx) / (FTopHypot[I] - FTopHypot[I - 1]);
+
+  with FTopHypot[I] do
+    r := (Dist - fx) * RecDist;
+
   dx := (FTopCurve[I - 1].X - FTopCurve[I].X);
   dy := (FTopCurve[I - 1].Y - FTopCurve[I].Y);
   Tx := FTopCurve[I].X + r * dx;
@@ -1265,9 +1297,12 @@ begin
   fx := X * FBottomLength;
   I := 1;
   H := High(FBottomHypot);
-  while (FBottomHypot[I] < fx) and (I < H) do Inc(I);
+  while (FBottomHypot[I].Dist < fx) and (I < H) do Inc(I);
 
-  r := (FBottomHypot[I] - fx) / (FBottomHypot[I] - FBottomHypot[I - 1]);
+
+  with FBottomHypot[I] do
+    r := (Dist - fx) * RecDist;
+
   dx := (FBottomCurve[I - 1].X - FBottomCurve[I].X);
   dy := (FBottomCurve[I - 1].Y - FBottomCurve[I].Y);
   Bx := FBottomCurve[I].X + r * dx;
