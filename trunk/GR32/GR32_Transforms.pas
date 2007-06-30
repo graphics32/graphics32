@@ -244,6 +244,7 @@ type
     procedure PrepareTransform; override;
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
   public
+    destructor Destroy; override;
     property TopCurve: TArrayOfFloatPoint read FTopCurve write SetTopCurve;
     property BottomCurve: TArrayOfFloatPoint read FBottomCurve write SetBottomCurve;
   end;
@@ -1203,11 +1204,21 @@ end;
 
 { TPathTransformation }
 
+destructor TPathTransformation.Destroy;
+begin
+  FTopHypot := nil;
+  FBottomHypot := nil;
+  inherited;
+end;
+
 procedure TPathTransformation.PrepareTransform;
 var
   I: Integer;
   L, DDist: TFloat;
 begin
+  if not (Assigned(FTopCurve) and Assigned(FBottomCurve)) then
+    raise ETransformError.Create('Top or bottom curve is nil');
+
   SetLength(FTopHypot, Length(FTopCurve));
   SetLength(FBottomHypot, Length(FBottomCurve));
 
