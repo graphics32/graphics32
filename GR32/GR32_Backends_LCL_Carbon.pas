@@ -66,7 +66,8 @@ type
 
     { Functions to easely generate carbon structures }
     function GetCarbonRect(Left, Top, Width, Height: Integer): FPCMacOSAll.Rect;
-    function GetCGRect(Left, Top, Width, Height: Integer): FPCMacOSAll.CGRect;
+    function GetCGRect(Left, Top, Width, Height: Integer): FPCMacOSAll.CGRect; overload;
+    function GetCGRect(SrcRect: TRect): FPCMacOSAll.CGRect; overload;
   protected
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -158,6 +159,14 @@ begin
   Result.Size.Height := Height;
 end;
 
+function TLCLBackend.GetCGRect(SrcRect: TRect): FPCMacOSAll.CGRect;
+begin
+  Result.Origin.X := SrcRect.Left;
+  Result.Origin.Y := SrcRect.Top;
+  Result.Size.Width := SrcRect.Right - SrcRect.Left;
+  Result.Size.Height := SrcRect.Bottom - SrcRect.Top;
+end;
+
 constructor TLCLBackend.Create;
 var
   loc: CMProfileLocation;
@@ -197,7 +206,11 @@ begin
     ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
+  { Deallocates the standard font }
+
   FFont.Free;
+
+  { Closes the profile }
 
   CMCloseProfile(FProfile);
   
@@ -336,33 +349,117 @@ begin
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
+  if not Assigned(FCanvas) then GetCanvas;
+
+  Result := FCanvas.Handle;
 end;
 
 procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
+var
+  original, subsection: CGImageRef;
+  CGDstRect, CGSrcRect: CGRect;
+  ExternalContext: CGContextRef;
 begin
   {$IFDEF VerboseGR32Carbon}
     WriteLn('[TLCLBackend.Draw]',
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
+  // Gets the external context
+  if (hSrc = 0) then Exit;
+  ExternalContext := TCarbonDeviceContext(hSrc).CGContext;
+
+  // Converts the rectangles to CoreGraphics rectangles
+  CGDstRect := GetCGRect(DstRect);
+  CGSrcRect := GetCGRect(SrcRect);
+
+  // Gets an image handle that represents the subsection
+  original := CGBitmapContextCreateImage(ExternalContext);
+  subsection := CGImageCreateWithImageInRect(original, CGSrcRect);
+  CGImageRelease(original);
+
+  { We need to make adjustments to the CTM so the painting is done correctly }
+  CGContextSaveGState(FContext);
+  try
+    CGContextTranslateCTM(FContext, 0, FOwner.Height);
+    CGContextScaleCTM(FContext, 1, -1);
+    CGContextTranslateCTM(FContext, 0, -CGDstRect.origin.y);
+    CGDstRect.origin.y := 0;
+
+    { Draw the subsection }
+    CGContextDrawImage(FContext, CGDstRect, subsection);
+  finally
+    { reset the CTM to the old values }
+    CGContextRestoreGState(FContext);
+  end;
+
+  // Release the subsection
+  CGImageRelease(subsection);
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
+var
+  DstRect, SrcRect: TRect;
 begin
   {$IFDEF VerboseGR32Carbon}
     WriteLn('[TLCLBackend.DrawTo]',
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
+  
+  DstRect.Left   := DstX;
+  DstRect.Top    := DstY;
+  DstRect.Right  := FOwner.Width + DstX;
+  DstRect.Bottom := FOwner.Height + DstY;
 
+  SrcRect.Left   := 0;
+  SrcRect.Top    := 0;
+  SrcRect.Right  := FOwner.Width;
+  SrcRect.Bottom := FOwner.Height;
+
+  DrawTo(hDst, DstRect, SrcRect);
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
+var
+  original, subsection: CGImageRef;
+  CGDstRect, CGSrcRect: CGRect;
+  ExternalContext: CGContextRef;
 begin
   {$IFDEF VerboseGR32Carbon}
     WriteLn('[TLCLBackend.DrawTo with rects]',
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
+  // Gets the external context
+  if (hDst = 0) then Exit;
+  ExternalContext := TCarbonDeviceContext(hDst).CGContext;
+
+  // Converts the rectangles to CoreGraphics rectangles
+  CGDstRect := GetCGRect(DstRect);
+  CGSrcRect := GetCGRect(SrcRect);
+
+  // Gets an image handle that represents the subsection
+  original := CGBitmapContextCreateImage(FContext);
+  subsection := CGImageCreateWithImageInRect(original, CGSrcRect);
+  CGImageRelease(original);
+  
+  { We need to make adjustments to the CTM so the painting is done correctly }
+  CGContextSaveGState(ExternalContext);
+  try
+    CGContextTranslateCTM(ExternalContext, 0, FOwner.Height);
+    CGContextScaleCTM(ExternalContext, 1, -1);
+    CGContextTranslateCTM(ExternalContext, 0, -CGDstRect.origin.y);
+    CGDstRect.origin.y := 0;
+
+    { Draw the subsection }
+    CGContextDrawImage(ExternalContext, CGDstRect, subsection);
+  finally
+    { reset the CTM to the old values }
+    CGContextRestoreGState(ExternalContext);
+  end;
+  
+  // Release the subsection
+  CGImageRelease(subsection);
 end;
 
 { ITextSupport }
@@ -388,8 +485,6 @@ begin
   
   if not Assigned(FCanvas) then GetCanvas;
 
-//  FCanvas.TextOut(DstRect.Left, DstRect.Top, Text);  simple implementation that ignores DstRect and Flags
-
   LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
 end;
 
@@ -401,8 +496,6 @@ begin
   {$ENDIF}
   
   if not Assigned(FCanvas) then GetCanvas;
-
-//  FCanvas.TextOut(DstRect.Left, DstRect.Top, Text);  simple implementation that ignores DstRect and Flags
 
   LCLIntf.DrawText(FCanvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
 end;
