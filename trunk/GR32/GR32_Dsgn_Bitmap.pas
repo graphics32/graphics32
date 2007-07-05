@@ -39,10 +39,10 @@ uses
   ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, {$ENDIF}
   Consts,
   {$IFDEF COMPILER6} DesignIntf, DesignEditors, VCLEditors, {$ELSE} DsgnIntf,
-  {$ENDIF}{$ELSE} LCLIntf, LCLClasses, LCLType, RtlConsts, Forms, ComCtrls,
-  Menus, ToolWin, Registry, ImgList, Clipbrd, Graphics, Controls, ExtCtrls,
-  StdCtrls, Buttons, Dialogs, LazIDEIntf, PropEdits, ComponentEditors,
-  FormEditingIntf, {$ENDIF}
+  {$ENDIF}{$ELSE} LCLIntf, LCLClasses, LCLType, LResources, RtlConsts, Forms,
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, Graphics, Controls, 
+  ExtCtrls, StdCtrls, Buttons, LazIDEIntf, PropEdits, ComponentEditors,
+  Dialogs, FormEditingIntf, {$ENDIF}
   SysUtils, Classes, GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
@@ -580,5 +580,10 @@ begin
   end
   else Panel2.Caption := '';
 end;
+
+{$IFDEF LCL}
+initialization
+  {$I GR32_Dsgn_Bitmap.lrs}  {Include form's resource file}
+{$ENDIF}
 
 end.

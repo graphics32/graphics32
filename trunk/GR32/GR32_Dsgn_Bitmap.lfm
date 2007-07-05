@@ -9,6 +9,8 @@ object PictureEditorForm: TPictureEditorForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSizeToolWin
   Caption = 'Bitmap32 Editor'
+  ClientHeight = 440
+  ClientWidth = 346
   Constraints.MinHeight = 200
   Constraints.MinWidth = 310
   Font.Height = -11
@@ -103,6 +105,8 @@ object PictureEditorForm: TPictureEditorForm
     Width = 346
     Align = alBottom
     BevelOuter = bvNone
+    ClientHeight = 33
+    ClientWidth = 346
     TabOrder = 2
     object Label1: TLabel
       Left = 8
@@ -111,7 +115,6 @@ object PictureEditorForm: TPictureEditorForm
       Width = 31
       Anchors = [akLeft, akBottom]
       Caption = 'Magn:'
-      Color = clNone
       ParentColor = False
     end
     object OKButton: TButton
