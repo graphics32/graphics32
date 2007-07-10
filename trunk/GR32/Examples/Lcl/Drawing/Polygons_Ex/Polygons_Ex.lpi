@@ -1,17 +1,16 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value=".\"/>
+      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
       <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
-      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -19,7 +18,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
@@ -58,7 +57,7 @@
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="..\..\..\..\GR32.pas"/>
+        <Filename Value="../../../../GR32.pas"/>
         <UnitName Value="GR32"/>
         <CursorPos X="22" Y="216"/>
         <TopLine Value="126"/>
@@ -72,7 +71,7 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\General\Rotate_Ex\MainUnit.pas"/>
+        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -81,14 +80,14 @@
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\..\..\Clx\Transformation\ImgWarping_Ex\MainUnit.pas"/>
+        <Filename Value="../../../Clx/Transformation/ImgWarping_Ex/MainUnit.pas"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="3" Y="232"/>
         <TopLine Value="220"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="..\..\Transformation\ImgWarping_Ex\MainUnit.pas"/>
+        <Filename Value="../../Transformation/ImgWarping_Ex/MainUnit.pas"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="5" Y="33"/>
@@ -96,14 +95,14 @@
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
-        <Filename Value="..\..\Transformation\ImgWarping_Ex\MainUnit.lfm"/>
+        <Filename Value="../../Transformation/ImgWarping_Ex/MainUnit.lfm"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit7>
       <Unit8>
-        <Filename Value="..\..\Layers\Sprites_Ex\MainUnit.pas"/>
+        <Filename Value="../../Layers/Sprites_Ex/MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -112,30 +111,24 @@
         <UsageCount Value="10"/>
       </Unit8>
       <Unit9>
-        <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
+        <Filename Value="../../../../Packages/GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit9>
       <Unit10>
-        <Filename Value="..\..\..\..\..\fpc\packages\extra\univint\FPCMacOSAll.pas"/>
+        <Filename Value="../../../../../fpc/packages/extra/univint/FPCMacOSAll.pas"/>
         <UnitName Value="FPCMacOSAll"/>
         <CursorPos X="9" Y="782"/>
         <TopLine Value="768"/>
         <UsageCount Value="10"/>
       </Unit10>
     </Units>
-    <JumpHistory Count="1" HistoryIndex="0">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="217" Column="54" TopLine="150"/>
-      </Position1>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
       <LCLWidgetType Value="carbon"/>
     </SearchPaths>

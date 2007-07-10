@@ -17,9 +17,9 @@ object MainForm: TMainForm
   Position = poScreenCenter
   object Label5: TLabel
     Left = 272
-    Height = 14
+    Height = 13
     Top = 32
-    Width = 61
+    Width = 72
     Caption = 'MasterAlpha'
     ParentColor = False
   end
@@ -31,7 +31,7 @@ object MainForm: TMainForm
     Alignment = taCenter
     AutoSize = False
     Caption = 'Combined Texture'
-    Color = clAppWorkspace
+    Color = clGray
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -48,7 +48,7 @@ object MainForm: TMainForm
     Alignment = taCenter
     AutoSize = False
     Caption = 'Weightmap'
-    Color = clAppWorkspace
+    Color = clGray
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -65,7 +65,7 @@ object MainForm: TMainForm
     Alignment = taCenter
     AutoSize = False
     Caption = 'Texture A'
-    Color = clAppWorkspace
+    Color = clGray
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -82,7 +82,7 @@ object MainForm: TMainForm
     Alignment = taCenter
     AutoSize = False
     Caption = 'Texture B'
-    Color = clAppWorkspace
+    Color = clGray
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -98,7 +98,7 @@ object MainForm: TMainForm
     Width = 258
     AutoSize = False
     Caption = ' Blend Settings'
-    Color = clAppWorkspace
+    Color = clGray
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -109,9 +109,9 @@ object MainForm: TMainForm
   end
   object Label7: TLabel
     Left = 272
-    Height = 14
+    Height = 13
     Top = 56
-    Width = 53
+    Width = 63
     Caption = 'Blendmode'
     ParentColor = False
   end
@@ -122,7 +122,7 @@ object MainForm: TMainForm
     Width = 258
     AutoSize = False
     Caption = ' Weightmap Settings'
-    Color = clAppWorkspace
+    Color = clGray
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
@@ -137,7 +137,6 @@ object MainForm: TMainForm
     Top = 56
     Width = 177
     AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-    ItemHeight = 13
     Items.Strings = (
       'Normal'
       'Soft Masked'

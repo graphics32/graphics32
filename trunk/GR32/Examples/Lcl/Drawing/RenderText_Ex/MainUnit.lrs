@@ -9,9 +9,9 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +#6'TPanel'#6'Panel1'#6'Height'#2'='#5'Width'#3's'#1#5'Align'#7#5'alTop'#10'B'
   +'evelOuter'#7#6'bvNone'#12'ClientHeight'#2'='#11'ClientWidth'#3's'#1#11'Font'
   +'.Height'#2#245#9'Font.Name'#6#6'Tahoma'#8'TabOrder'#2#0#0#6'TLabel'#6'Label'
-  +'1'#4'Left'#2#4#6'Height'#2#14#3'Top'#2'$'#5'Width'#2'/'#7'Caption'#6#9'AA L'
-  +'evel:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label2'#4'Left'#2#4#6'Height'#2#14
-  +#3'Top'#2#6#5'Width'#2'O'#7'Caption'#6#16'Enter text here:'#11'ParentColor'#8
+  +'1'#4'Left'#2#4#6'Height'#2#13#3'Top'#2'$'#5'Width'#2'9'#7'Caption'#6#9'AA L'
+  +'evel:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label2'#4'Left'#2#4#6'Height'#2#13
+  +#3'Top'#2#6#5'Width'#2'U'#7'Caption'#6#16'Enter text here:'#11'ParentColor'#8
   +#0#0#12'TSpeedButton'#12'SpeedButton1'#4'Left'#2'p'#6'Height'#2#22#3'Top'#2
   +' '#5'Width'#2#22#7'Caption'#6#1'0'#5'Color'#7#9'clBtnFace'#4'Down'#9#10'Gro'
   +'upIndex'#2#1#6'Layout'#7#13'blGlyphBottom'#9'NumGlyphs'#2#0#7'OnClick'#7#17

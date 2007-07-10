@@ -14,10 +14,10 @@ object Form1: TForm1
   OnCreate = FormCreate
   Position = poScreenCenter
   object Label1: TLabel
-    Left = 518
-    Height = 14
+    Left = 516
+    Height = 13
     Top = 92
-    Width = 29
+    Width = 31
     Anchors = [akTop, akRight]
     Caption = 'Total:'
     ParentColor = False
@@ -71,7 +71,7 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 71
+    ClientHeight = 72
     ClientWidth = 105
     Ctl3D = True
     ItemIndex = 0
@@ -100,7 +100,7 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 63
+    ClientHeight = 64
     ClientWidth = 105
     Ctl3D = True
     ItemIndex = 0
@@ -126,10 +126,10 @@ object Form1: TForm1
     TabOrder = 6
   end
   object RepaintOpt: TCheckBox
-    Left = 514
-    Height = 13
+    Left = 476
+    Height = 15
     Top = 320
-    Width = 106
+    Width = 144
     Anchors = [akTop, akRight]
     Caption = 'Repaint Optimization'
     Font.Height = -9

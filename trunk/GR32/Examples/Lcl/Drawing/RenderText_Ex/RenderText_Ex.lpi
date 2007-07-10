@@ -1,17 +1,16 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value=".\"/>
+      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
-      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -19,7 +18,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="2">
@@ -47,8 +46,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="132"/>
-        <TopLine Value="99"/>
+        <CursorPos X="20" Y="68"/>
+        <TopLine Value="54"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -61,79 +60,64 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="..\..\..\..\..\GR32_Resamplers.pas"/>
+        <Filename Value="../../../../../GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="1" Y="773"/>
         <TopLine Value="758"/>
         <UsageCount Value="10"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\..\..\..\GR32_Blend.pas"/>
+        <Filename Value="../../../../../GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
         <CursorPos X="1" Y="1065"/>
         <TopLine Value="1050"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="..\..\..\..\GR32.pas"/>
+        <Filename Value="../../../../GR32.pas"/>
         <UnitName Value="GR32"/>
-        <CursorPos X="3" Y="5366"/>
-        <TopLine Value="5350"/>
+        <CursorPos X="12" Y="5633"/>
+        <TopLine Value="5642"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit5>
       <Unit6>
-        <Filename Value="..\..\..\..\GR32_Backends_LCL_Carbon.pas"/>
+        <Filename Value="../../../../GR32_Backends_LCL_Carbon.pas"/>
         <UnitName Value="GR32_Backends_LCL_Carbon"/>
         <CursorPos X="1" Y="18"/>
         <TopLine Value="18"/>
         <UsageCount Value="10"/>
       </Unit6>
     </Units>
-    <JumpHistory Count="9" HistoryIndex="8">
+    <JumpHistory Count="5" HistoryIndex="4">
       <Position1>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="45" Column="1" TopLine="42"/>
+        <Caret Line="132" Column="1" TopLine="99"/>
       </Position1>
       <Position2>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="81" Column="9" TopLine="54"/>
+        <Caret Line="85" Column="36" TopLine="84"/>
       </Position2>
       <Position3>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="82" Column="5" TopLine="65"/>
+        <Caret Line="68" Column="20" TopLine="52"/>
       </Position3>
       <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="83" Column="5" TopLine="66"/>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="5540" Column="13" TopLine="5532"/>
       </Position4>
       <Position5>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="84" Column="5" TopLine="67"/>
+        <Caret Line="68" Column="20" TopLine="54"/>
       </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="85" Column="5" TopLine="68"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="86" Column="5" TopLine="69"/>
-      </Position7>
-      <Position8>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="87" Column="5" TopLine="70"/>
-      </Position8>
-      <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="80" Column="5" TopLine="71"/>
-      </Position9>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
       <LCLWidgetType Value="carbon"/>
-      <ObjectPath Value="..\..\..\"/>
+      <ObjectPath Value="../../../"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
