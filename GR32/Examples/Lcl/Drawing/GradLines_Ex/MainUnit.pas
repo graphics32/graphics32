@@ -235,6 +235,8 @@ var
   I, J: Integer;
   P: PColor32;
 begin
+  Done := False;
+
   for J := 0 to DrawPasses - 1 do
     for I := 0 to High(Lines) do
     begin

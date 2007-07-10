@@ -143,25 +143,6 @@ begin
     OnChange := MasterAlphaBarChange;
   end;
 
-  CombImg := TImage32.Create(Self);
-  with CombImg do
-  begin
-    Parent := Self;
-    Left := 272;
-    Height := 256;
-    Top := 112;
-    Width := 256;
-    Bitmap.ResamplerClassName := 'TNearestResampler';
-    Bitmap.OnChange := nil;
-    Bitmap.OnResize := nil;
-    BitmapAlign := baCenter;
-    Color := clBlack;
-    ParentColor := False;
-    Scale := 1;
-    TabOrder := 1;
-    Bitmap.SetSizeFrom(TexBImg.Bitmap);
-  end;
-
   WeightmapImg := TImage32.Create(Self);
   with WeightmapImg do
   begin
@@ -217,6 +198,25 @@ begin
     Scale := 1;
     TabOrder := 4;
     Bitmap.LoadFromFile(pathMedia + 'texture_b.jpg');
+  end;
+
+  CombImg := TImage32.Create(Self);
+  with CombImg do
+  begin
+    Parent := Self;
+    Left := 272;
+    Height := 256;
+    Top := 112;
+    Width := 256;
+    Bitmap.ResamplerClassName := 'TNearestResampler';
+    Bitmap.OnChange := nil;
+    Bitmap.OnResize := nil;
+    BitmapAlign := baCenter;
+    Color := clBlack;
+    ParentColor := False;
+    Scale := 1;
+    TabOrder := 1;
+    Bitmap.SetSizeFrom(TexBImg.Bitmap);
   end;
 
   BlendBox.ItemIndex := 0;
@@ -283,9 +283,6 @@ begin
   EMMS;
   WeightmapImg.Invalidate;
   MasterAlphaBarChange(Self);
-  
-  // Needed under Mac OS X
-  CombImg.Invalidate;
 end;
 
 procedure TMainForm.MasterAlphaBarChange(Sender: TObject);
@@ -320,6 +317,9 @@ begin
 
   //This is needed because we may use MMX in the custom pixelcombiners
   EMMS;
+
+  // Needed under Mac OS X and maybe others too
+  CombImg.Invalidate;
 end;
 
 initialization
