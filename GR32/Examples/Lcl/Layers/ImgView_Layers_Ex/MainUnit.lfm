@@ -4,10 +4,10 @@ object MainForm: TMainForm
   Top = 121
   Width = 320
   HorzScrollBar.Page = 319
-  VertScrollBar.Page = 220
+  VertScrollBar.Page = 215
   ActiveControl = ScaleCombo
   Caption = 'Image View Layers Example'
-  ClientHeight = 221
+  ClientHeight = 216
   ClientWidth = 320
   Font.Height = -11
   Font.Name = 'Tahoma'
@@ -16,11 +16,11 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   object SidePanel: TPanel
     Left = 189
-    Height = 221
+    Height = 216
     Width = 131
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 221
+    ClientHeight = 216
     ClientWidth = 131
     TabOrder = 0
     object pnlImage: TPanel
@@ -33,9 +33,9 @@ object MainForm: TMainForm
       Visible = False
       object Label1: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 24
-        Width = 30
+        Width = 36
         Caption = 'Scale:'
         ParentColor = False
       end
@@ -46,7 +46,6 @@ object MainForm: TMainForm
         Width = 105
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
         DropDownCount = 9
-        ItemHeight = 13
         Items.Strings = (
           '    25%'
           '    50%'
@@ -80,18 +79,18 @@ object MainForm: TMainForm
       end
       object ImageInterpolate: TCheckBox
         Left = 16
-        Height = 13
+        Height = 20
         Top = 72
-        Width = 76
+        Width = 89
         Caption = 'Interpolated'
         OnClick = ImageInterpolateClick
         TabOrder = 2
       end
       object cbOptRedraw: TCheckBox
         Left = 16
-        Height = 13
+        Height = 20
         Top = 96
-        Width = 105
+        Width = 124
         Caption = 'Optimize Repaints'
         Checked = True
         OnClick = cbOptRedrawClick
@@ -110,9 +109,9 @@ object MainForm: TMainForm
       Visible = False
       object Label2: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 24
-        Width = 42
+        Width = 48
         Caption = 'Opacity:'
         ParentColor = False
       end
@@ -133,9 +132,9 @@ object MainForm: TMainForm
       end
       object LayerInterpolate: TCheckBox
         Left = 16
-        Height = 13
+        Height = 20
         Top = 64
-        Width = 76
+        Width = 89
         Caption = 'Interpolated'
         OnClick = LayerInterpolateClick
         TabOrder = 1
@@ -162,9 +161,9 @@ object MainForm: TMainForm
       end
       object Cropped: TCheckBox
         Left = 16
-        Height = 13
+        Height = 20
         Top = 88
-        Width = 60
+        Width = 72
         Caption = 'Cropped'
         OnClick = CroppedClick
         TabOrder = 3
@@ -172,7 +171,7 @@ object MainForm: TMainForm
     end
     object PnlMagn: TPanel
       Height = 168
-      Top = 259
+      Top = 257
       Width = 131
       Align = alTop
       ClientHeight = 168
@@ -181,25 +180,25 @@ object MainForm: TMainForm
       Visible = False
       object Label3: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 24
-        Width = 42
+        Width = 48
         Caption = 'Opacity:'
         ParentColor = False
       end
       object Label4: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 64
-        Width = 68
+        Width = 79
         Caption = 'Magnification:'
         ParentColor = False
       end
       object Label5: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 104
-        Width = 46
+        Width = 49
         Caption = 'Rotation:'
         ParentColor = False
       end
@@ -220,9 +219,9 @@ object MainForm: TMainForm
       end
       object MagnInterpolate: TCheckBox
         Left = 16
-        Height = 13
+        Height = 20
         Top = 144
-        Width = 76
+        Width = 89
         Caption = 'Interpolated'
         OnClick = MagnChange
         TabOrder = 1

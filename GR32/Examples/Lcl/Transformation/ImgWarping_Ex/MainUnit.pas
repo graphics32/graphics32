@@ -30,12 +30,19 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
 
 uses
+  {$IFDEF FPC} LResources, Variants,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, GR32,
   GR32_Image, GR32_Transforms, GR32_VectorMaps, GR32_Layers, StdCtrls,
-  ComCtrls, Math, GR32_Blend, GR32_RangeBars, ExtDlgs, jpeg, GR32_Rasterizers,
+  ComCtrls, Math, GR32_Blend, GR32_RangeBars, ExtDlgs, GR32_Rasterizers,
   GR32_Resamplers, GR32_Math, Menus, ToolWin, BrushAuxiliaries;
 
 const
@@ -179,10 +186,21 @@ var
 
 implementation
 
-uses
-  GR32_LowLevel;
+{$IFNDEF FPC}
+{$R *.DFM}
+{$ENDIF}
 
-{$R *.dfm}
+uses
+  GR32_LowLevel,
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+  Types,
+{$IFNDEF FPC}
+  JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
 
 procedure WarpDummy(var D, R: Single; Param: Single);
 begin
@@ -225,9 +243,200 @@ var
   I : TBrushToolMode;
   J: Integer;
   Item: TMenuItem;
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$IFDEF FPC}
+  ScaleBar := TGaugeBar.Create(GeneralPanel);
+  with ScaleBar do
+  begin
+    Parent := GeneralPanel;
+    Left := 8;
+    Height := 15;
+    Top := 40;
+    Width := 121;
+    Color := clScrollBar;
+    LargeChange := 10;
+    Max := 300;
+    Min := -300;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 100;
+    OnMouseUp := ScaleBarMouseUp;
+  end;
+
+  FeatherBar := TGaugeBar.Create(BrushPanel);
+  with FeatherBar do
+  begin
+    Parent := BrushPanel;
+    Left := 8;
+    Height := 15;
+    Top := 104;
+    Width := 121;
+    Color := clScrollBar;
+    LargeChange := 10;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 12;
+    OnChange := PressureBarChange;
+  end;
+  
+  PressureBar := TGaugeBar.Create(BrushPanel);
+  with PressureBar do
+  begin
+    Parent := BrushPanel;
+    Left := 8;
+    Height := 15;
+    Top := 72;
+    Width := 121;
+    Color := clScrollBar;
+    LargeChange := 10;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 50;
+    OnChange := PressureBarChange;
+  end;
+  
+  PinchBar := TGaugeBar.Create(BrushPanel);
+  with PinchBar do
+  begin
+    Parent := BrushPanel;
+    Left := 8;
+    Height := 15;
+    Top := 136;
+    Width := 121;
+    Color := clScrollBar;
+    LargeChange := 10;
+    Min := -100;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    OnChange := PressureBarChange;
+  end;
+  
+  SizeBar := TGaugeBar.Create(BrushPanel);
+  with SizeBar do
+  begin
+    Parent := BrushPanel;
+    Left := 8;
+    Height := 15;
+    Top := 40;
+    Width := 121;
+    Color := clScrollBar;
+    LargeChange := 10;
+    Max := 500;
+    Min := 5;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 100;
+    OnChange := SizeBarChange;
+    OnMouseUp := GaugeMouseUp;
+  end;
+  
+  BrushMeshPreview := TPaintBox32.Create(BrushPanel);
+  with BrushMeshPreview do
+  begin
+    Parent := BrushPanel;
+    Left := 8;
+    Height := 121;
+    Top := 176;
+    Width := 121;
+    TabOrder := 0;
+    OnResize := BrushMeshPreviewResize;
+  end;
+  
+  ParamBar := TGaugeBar.Create(ToolPanel);
+  with ParamBar do
+  begin
+    Parent := ToolPanel;
+    Left := 8;
+    Height := 15;
+    Top := 104;
+    Width := 121;
+    Color := clScrollBar;
+    Enabled := False;
+    LargeChange := 10;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 20;
+    OnChange := PressureBarChange;
+    OnMouseUp := GaugeMouseUp;
+  end;
+  
+  RateBar := TGaugeBar.Create(ToolPanel);
+  with RateBar do
+  begin
+    Parent := ToolPanel;
+    Left := 8;
+    Height := 15;
+    Top := 136;
+    Width := 121;
+    Color := clScrollBar;
+    Enabled := False;
+    LargeChange := 10;
+    Max := 399;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 350;
+    OnChange := RateBarChange;
+    OnMouseUp := GaugeMouseUp;
+  end;
+
+  DstImg := TImgView32.Create(Self);
+  with DstImg do
+  begin
+    Parent := Self;
+    Left := 0;
+    Top := 0;
+    Width := 482;
+    Height := 623;
+    Align := alClient;
+    Bitmap.DrawMode := dmBlend;
+    Bitmap.ResamplerClassName := 'TNearestResampler';
+    BitmapAlign := baCustom;
+    RepaintMode := rmOptimizer;
+    Scale := 1.000000000000000000;
+    ScaleMode := smScale;
+    ScrollBars.ShowHandleGrip := True;
+    ScrollBars.Style := rbsDefault;
+    ScrollBars.Visibility := svAuto;
+    OverSize := 0;
+    TabOrder := 2;
+    OnMouseDown := DstImgMouseDown;
+    OnMouseMove := DstImgMouseMove;
+    OnMouseUp := DstImgMouseUp;
+    OnPaintStage := DstImgPaintStage;
+  end;
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
   Src := TBitmap32.Create;
-  Src.LoadFromFile('..\..\..\Media\monalisa.jpg');
+  Src.LoadFromFile(pathMedia + 'monalisa.jpg');
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;
   Src.CombineMode := cmMerge;
@@ -236,7 +445,10 @@ begin
   with DstImg do
   begin
     Bitmap.Assign(Src);
-    Cursor := crNone;
+    { On Mac OS X, this was setting the cursor to the whole form to None }
+    {$ifndef Darwin}
+      Cursor := crNone;
+    {$endif}
     with PaintStages[0]^ do //Set up custom paintstage to draw checkerboard
     begin
       Stage := PST_CUSTOM;
@@ -271,7 +483,7 @@ begin
   GenericBrush := TGenericBrush.Create;
   RESAMPLERS[mBilinearWarp.Checked].Create(Src);
   BrushLayer := TBrushLayer.Create(DstImg.Layers);
-  SampleClipRect := Rect(MaxInt, MaxInt, -MaxInt, -MaxInt);
+  SampleClipRect := Classes.Rect(MaxInt, MaxInt, -MaxInt, -MaxInt);
   SamplingGridSize := 3;
   PressureBarChange(Self);
   UpdateBrush;
@@ -315,11 +527,11 @@ procedure TMainForm.DstImgMouseMove(Sender: TObject; Shift: TShiftState; X,
   end;
 
 begin
-  BrushLayer.Center := Point(X, Y);
-  with DstImg.ControlToBitmap(Point(X, Y)) do Caption := cAppName + ' [' + Color32ToStr(DstImg.Bitmap.PixelS[X,Y]) + ']';
+  BrushLayer.Center := Classes.Point(X, Y);
+  with DstImg.ControlToBitmap(Classes.Point(X, Y)) do Caption := cAppName + ' [' + Color32ToStr(DstImg.Bitmap.PixelS[X,Y]) + ']';
   if SetBrushMode(Shift) then
-    with DstImg.ControlToBitmap(Point(X, Y)) do
-      DrawMappedBrush(Point(X - CurrentBrush[BrushMode].Width div 2,
+    with DstImg.ControlToBitmap(Classes.Point(X, Y)) do
+      DrawMappedBrush(Classes.Point(X - CurrentBrush[BrushMode].Width div 2,
         Y - CurrentBrush[BrushMode].Height div 2));
 end;
 
@@ -354,14 +566,14 @@ var
 begin
   MouseDown := True;
   if SetBrushMode(Shift) then
-    with DstImg.ControlToBitmap(Point(X, Y)) do
+    with DstImg.ControlToBitmap(Classes.Point(X, Y)) do
     begin
       P := CurrentBrush[BrushMode].Width div 2;
       Q := CurrentBrush[BrushMode].Height div 2;
-      LastPos := Point(X - P, Y - Q);
-      LastDelta := FixedPoint(0,0);
+      LastPos := Classes.Point(X - P, Y - Q);
+      LastDelta := GR32.FixedPoint(0,0);
       with LastPos do
-        UnionRect(SampleClipRect, SampleClipRect, Rect(X, Y, X + P, Y + Q));
+        UnionRect(SampleClipRect, SampleClipRect, Classes.Rect(X, Y, X + P, Y + Q));
     end;
 end;
 
@@ -459,7 +671,7 @@ begin
               x := I * nrx - 1;
               y := J * nry - 1;
               w := GenericBrush.Weight(x, y);
-              FixedVector[I, J] := FixedPoint(w, w);
+              FixedVector[I, J] := GR32.FixedPoint(w, w);
             end;
           Exit;
         end;
@@ -481,7 +693,7 @@ begin
         x := (x + 1) * rx * 0.5 - I;
         y := (y + 1) * ry * 0.5 - J;
 
-        FixedVector[I, J] := FixedPoint(x * w, y * w);
+        FixedVector[I, J] := GR32.FixedPoint(x * w, y * w);
       end;
   end;
 end;
@@ -823,6 +1035,11 @@ procedure TMainForm.mExitClick(Sender: TObject);
 begin
   Close;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
 

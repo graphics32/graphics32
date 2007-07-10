@@ -54,8 +54,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="167"/>
-        <TopLine Value="151"/>
+        <CursorPos X="23" Y="517"/>
+        <TopLine Value="918"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -104,7 +104,64 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit7>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="14" HistoryIndex="13">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="11" Column="30" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="161" Column="12" TopLine="147"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="29" Column="31" TopLine="17"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="160" Column="14" TopLine="146"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="171" Column="37" TopLine="157"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="452" Column="29" TopLine="440"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="454" Column="21" TopLine="440"/>
+      </Position7>
+      <Position8>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="457" Column="14" TopLine="443"/>
+      </Position8>
+      <Position9>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="458" Column="14" TopLine="444"/>
+      </Position9>
+      <Position10>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="459" Column="14" TopLine="445"/>
+      </Position10>
+      <Position11>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="460" Column="14" TopLine="446"/>
+      </Position11>
+      <Position12>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="517" Column="23" TopLine="503"/>
+      </Position12>
+      <Position13>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="338" Column="19" TopLine="326"/>
+      </Position13>
+      <Position14>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="462" Column="13" TopLine="444"/>
+      </Position14>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

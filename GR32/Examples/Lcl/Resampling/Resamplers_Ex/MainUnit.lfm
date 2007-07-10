@@ -1,12 +1,14 @@
-object Form1: TForm1
+object fmResamplersExample: TfmResamplersExample
   Left = 270
-  Height = 422
+  Height = 240
   Top = 228
-  Width = 483
-  HorzScrollBar.Page = 482
-  VertScrollBar.Page = 421
+  Width = 320
+  HorzScrollBar.Page = 319
+  VertScrollBar.Page = 239
   ActiveControl = ResamplerClassNamesList
   Caption = 'Resamplers Example'
+  ClientHeight = 240
+  ClientWidth = 320
   Constraints.MinHeight = 200
   Constraints.MinWidth = 200
   Font.Height = -11
@@ -14,48 +16,49 @@ object Form1: TForm1
   OnClose = FormClose
   OnCreate = FormCreate
   object SidePanel: TPanel
-    Left = 337
-    Height = 402
+    Left = 174
+    Height = 221
     Width = 146
     Align = alRight
     BevelOuter = bvNone
+    ClientHeight = 221
+    ClientWidth = 146
     TabOrder = 1
     object pnlResampler: TPanel
       Height = 160
       Width = 146
       Align = alTop
+      ClientHeight = 160
+      ClientWidth = 146
       TabOrder = 0
-      object Label1: TLabel
+      object lbResamplersClass: TLabel
         Left = 12
         Height = 13
         Top = 24
-        Width = 82
+        Width = 97
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class:'
-        Color = clNone
         ParentColor = False
       end
-      object Label4: TLabel
+      object lbPixelAccessMode: TLabel
         Left = 12
         Height = 13
         Top = 67
-        Width = 91
+        Width = 113
         Anchors = [akTop, akRight]
         Caption = 'Pixel Access Mode:'
-        Color = clNone
         ParentColor = False
       end
-      object Label5: TLabel
+      object lbWrapMode: TLabel
         Left = 12
         Height = 13
         Top = 110
-        Width = 59
+        Width = 69
         Anchors = [akTop, akRight]
         Caption = 'Wrap Mode:'
-        Color = clNone
         ParentColor = False
       end
-      object Panel2: TPanel
+      object pnResamplerProperties: TPanel
         Left = 1
         Height = 16
         Top = 1
@@ -77,7 +80,6 @@ object Form1: TForm1
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
         MaxLength = 0
         OnChange = ResamplerClassNamesListChange
         Style = csDropDownList
@@ -90,7 +92,6 @@ object Form1: TForm1
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
         Items.Strings = (
           'Unsafe'
           'Safe'
@@ -108,7 +109,6 @@ object Form1: TForm1
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
         Items.Strings = (
           'Clamp'
           'Repeat'
@@ -121,42 +121,50 @@ object Form1: TForm1
       end
     end
     object pnlKernel: TPanel
-      Height = 160
+      Height = 201
       Top = 160
       Width = 146
       Align = alTop
+      ClientHeight = 201
+      ClientWidth = 146
       TabOrder = 1
       Visible = False
-      object Label2: TLabel
+      object lbKernelClass: TLabel
         Left = 12
         Height = 13
         Top = 24
-        Width = 62
+        Width = 75
         Anchors = [akTop, akRight]
         Caption = 'Kernel Class:'
-        Color = clNone
         ParentColor = False
       end
-      object Label3: TLabel
+      object lbKernelMode: TLabel
         Left = 12
         Height = 13
         Top = 67
-        Width = 63
+        Width = 76
         Anchors = [akTop, akRight]
         Caption = 'Kernel Mode:'
-        Color = clNone
         ParentColor = False
       end
-      object TableSizeLabel: TLabel
+      object lbTableSize: TLabel
         Left = 8
         Height = 13
         Top = 116
-        Width = 97
+        Width = 114
         Caption = 'Table Size (32/100):'
-        Color = clNone
         ParentColor = False
       end
-      object Panel1: TPanel
+      object lbParameter: TLabel
+        Left = 8
+        Height = 13
+        Top = 155
+        Width = 60
+        Caption = 'Parameter:'
+        ParentColor = False
+        Visible = False
+      end
+      object pnKernelProperties: TPanel
         Left = 1
         Height = 16
         Top = 1
@@ -178,7 +186,6 @@ object Form1: TForm1
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
         MaxLength = 0
         OnChange = KernelClassNamesListClick
         Style = csDropDownList
@@ -191,7 +198,6 @@ object Form1: TForm1
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        ItemHeight = 13
         Items.Strings = (
           'Default (precise, slow)'
           'Table Nearest (truncated, fastest)'
@@ -202,83 +208,34 @@ object Form1: TForm1
         Style = csDropDownList
         TabOrder = 2
       end
-      object gbTableSize: TGaugeBar
-        Left = 16
-        Height = 12
-        Top = 136
-        Width = 113
-        Color = clScrollBar
-        HandleSize = 16
-        Min = 1
-        ShowArrows = False
-        ShowHandleGrip = True
-        Style = rbsMac
-        Position = 32
-        OnChange = gbTableSizeChange
-        OnMouseUp = gbTableSizeMouseUp
-      end
     end
   end
-  object PageControl1: TPageControl
-    Height = 402
-    Width = 337
-    ActivePage = TabSheet1
+  object PageControl: TPageControl
+    Height = 221
+    Width = 174
+    ActivePage = tabDetails
     Align = alClient
     TabIndex = 0
     TabOrder = 0
     OnChange = ResamplerClassNamesListChange
     OnPageChanged = ResamplerClassNamesListChange
-    object TabSheet1: TTabSheet
+    object tabDetails: TTabSheet
       Caption = 'Details'
-      object DstImg: TImage32
-        Height = 376
-        Width = 329
-        Align = alClient
-        Bitmap.ResamplerClassName = 'TKernelResampler'
-        Bitmap.Resampler.KernelClassName = 'TBoxKernel'
-        Bitmap.Resampler.TableSize = 32
-        Bitmap.OnAreaChanged = nil
-        Bitmap.OnResize = nil
-        RepaintMode = rmOptimizer
-        Scale = 1
-        ScaleMode = smStretch
-        TabOrder = 0
-        OnResize = DstImgResize
-      end
     end
     object ResamplingTabSheet: TTabSheet
       Caption = 'Resampling'
       ImageIndex = 1
-      object ResamplingPaintBox: TPaintBox32
-        Height = 348
-        Width = 321
-        Align = alClient
-        RepaintMode = rmOptimizer
-        TabOrder = 0
-        OnResize = ResamplingPaintBoxResize
-      end
     end
     object tabKernel: TTabSheet
       Caption = 'Curve'
       ImageIndex = 2
       TabVisible = False
-      object CurveImage: TImage32
-        Height = 346
-        Width = 321
-        Align = alClient
-        Bitmap.ResamplerClassName = 'TNearestResampler'
-        Bitmap.OnChange = nil
-        Bitmap.OnResize = nil
-        Scale = 1
-        TabOrder = 0
-        OnPaintStage = CurveImagePaintStage
-      end
     end
   end
-  object StatusBar1: TStatusBar
-    Height = 20
-    Top = 402
-    Width = 483
+  object StatusBar: TStatusBar
+    Height = 19
+    Top = 221
+    Width = 320
     Panels = <    
       item
         Width = 50

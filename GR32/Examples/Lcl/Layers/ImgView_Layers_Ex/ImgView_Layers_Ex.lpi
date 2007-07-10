@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <Version Value="5"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value=".\"/>
+      <IconPath Value="./"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="2"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -16,7 +16,6 @@
     </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
-      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -24,7 +23,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
@@ -55,8 +54,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="1028"/>
-        <TopLine Value="995"/>
+        <CursorPos X="20" Y="38"/>
+        <TopLine Value="22"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -79,14 +78,14 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="RGBALoaderUnit.lrs"/>
         <UnitName Value="RGBALoaderUnit"/>
-        <CursorPos X="1" Y="1"/>
+        <CursorPos X="15" Y="19"/>
         <TopLine Value="1"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
+        <Filename Value="../../../../Packages/GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
         <CursorPos X="14" Y="13"/>
         <TopLine Value="1"/>
@@ -119,7 +118,7 @@
         <UsageCount Value="10"/>
       </Unit8>
       <Unit9>
-        <Filename Value="..\..\General\Rotate_Ex\MainUnit.pas"/>
+        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -128,138 +127,20 @@
         <UsageCount Value="10"/>
       </Unit9>
       <Unit10>
-        <Filename Value="..\..\..\..\GR32_RangeBars.pas"/>
+        <Filename Value="../../../../GR32_RangeBars.pas"/>
         <UnitName Value="GR32_RangeBars"/>
         <CursorPos X="33" Y="68"/>
         <TopLine Value="54"/>
         <UsageCount Value="10"/>
       </Unit10>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
-      <Position1>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="85" Column="1" TopLine="58"/>
-      </Position1>
-      <Position2>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="33" Column="23" TopLine="2"/>
-      </Position2>
-      <Position3>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="101" Column="10" TopLine="89"/>
-      </Position3>
-      <Position4>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="100" Column="5" TopLine="85"/>
-      </Position4>
-      <Position5>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="101" Column="5" TopLine="84"/>
-      </Position5>
-      <Position6>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="103" Column="5" TopLine="86"/>
-      </Position6>
-      <Position7>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="104" Column="5" TopLine="87"/>
-      </Position7>
-      <Position8>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="105" Column="5" TopLine="88"/>
-      </Position8>
-      <Position9>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="106" Column="5" TopLine="89"/>
-      </Position9>
-      <Position10>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="107" Column="5" TopLine="90"/>
-      </Position10>
-      <Position11>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="108" Column="5" TopLine="91"/>
-      </Position11>
-      <Position12>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="109" Column="5" TopLine="92"/>
-      </Position12>
-      <Position13>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="110" Column="5" TopLine="93"/>
-      </Position13>
-      <Position14>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="111" Column="5" TopLine="94"/>
-      </Position14>
-      <Position15>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="112" Column="5" TopLine="95"/>
-      </Position15>
-      <Position16>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="119" Column="3" TopLine="96"/>
-      </Position16>
-      <Position17>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="120" Column="5" TopLine="103"/>
-      </Position17>
-      <Position18>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="121" Column="5" TopLine="104"/>
-      </Position18>
-      <Position19>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="122" Column="5" TopLine="105"/>
-      </Position19>
-      <Position20>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="123" Column="5" TopLine="106"/>
-      </Position20>
-      <Position21>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="124" Column="5" TopLine="107"/>
-      </Position21>
-      <Position22>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="125" Column="5" TopLine="108"/>
-      </Position22>
-      <Position23>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="126" Column="5" TopLine="109"/>
-      </Position23>
-      <Position24>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="127" Column="5" TopLine="110"/>
-      </Position24>
-      <Position25>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="128" Column="5" TopLine="111"/>
-      </Position25>
-      <Position26>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="129" Column="5" TopLine="112"/>
-      </Position26>
-      <Position27>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="130" Column="5" TopLine="113"/>
-      </Position27>
-      <Position28>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="131" Column="5" TopLine="114"/>
-      </Position28>
-      <Position29>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <Caret Line="165" Column="1" TopLine="131"/>
-      </Position29>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <PathDelim Value="\"/>
     <SearchPaths>
       <LCLWidgetType Value="carbon"/>
-      <ObjectPath Value="..\..\..\"/>
+      <ObjectPath Value="../../../"/>
     </SearchPaths>
     <CodeGeneration>
       <Generate Value="Faster"/>

@@ -11,15 +11,15 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'oy'#7#11'FormDestroy'#8'Position'#7#14'poScreenCenter'#0#6'TPanel'#11'PnlSe'
   +'ttings'#4'Left'#3';'#1#6'Height'#3#29#1#5'Width'#3#165#0#5'Align'#7#7'alRig'
   +'ht'#12'ClientHeight'#3#29#1#11'ClientWidth'#3#165#0#8'TabOrder'#2#0#0#6'TLa'
-  +'bel'#6'Label3'#4'Left'#2#8#6'Height'#2#14#3'Top'#2' '#5'Width'#2'<'#7'Capti'
+  +'bel'#6'Label3'#4'Left'#2#8#6'Height'#2#13#3'Top'#2' '#5'Width'#2'E'#7'Capti'
   +'on'#6#12'Twirl Power:'#11'ParentColor'#8#0#0#6'TPanel'#6'Panel4'#4'Left'#2#1
   +#6'Height'#2#16#3'Top'#2#1#5'Width'#3#163#0#5'Align'#7#5'alTop'#10'BevelOute'
   +'r'#7#6'bvNone'#7'Caption'#6#16'Twirl Distortion'#5'Color'#7#11'clBtnShadow'
   +#10'Font.Color'#7#8'clWindow'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'
   +#11'ParentColor'#8#8'TabOrder'#2#0#0#0#12'TRadioButton'#12'rbGetPixelFS'#4'L'
-  +'eft'#2#8#6'Height'#2#13#3'Top'#2'`'#5'Width'#2'm'#7'Caption'#6#17'TBitmap32'
-  +'.PixelFS'#7'Checked'#9#7'OnClick'#7#13'gbTwistChange'#5'State'#7#9'cbChecke'
-  +'d'#8'TabOrder'#2#1#0#0#12'TRadioButton'#8'rbPixelS'#4'Left'#2#8#6'Height'#2
-  +#13#3'Top'#2'H'#5'Width'#2'g'#7'Caption'#6#16'TBitmap32.PixelS'#7'OnClick'#7
-  +#13'gbTwistChange'#8'TabOrder'#2#2#0#0#0#0
+  +'eft'#2#8#6'Height'#2#20#3'Top'#2'`'#5'Width'#3#128#0#7'Caption'#6#17'TBitma'
+  +'p32.PixelFS'#7'Checked'#9#7'OnClick'#7#13'gbTwistChange'#5'State'#7#9'cbChe'
+  +'cked'#8'TabOrder'#2#1#0#0#12'TRadioButton'#8'rbPixelS'#4'Left'#2#8#6'Height'
+  +#2#20#3'Top'#2'H'#5'Width'#2'x'#7'Caption'#6#16'TBitmap32.PixelS'#7'OnClick'
+  +#7#13'gbTwistChange'#8'TabOrder'#2#2#0#0#0#0
 ]);
