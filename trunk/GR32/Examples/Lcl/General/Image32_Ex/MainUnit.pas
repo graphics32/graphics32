@@ -147,6 +147,24 @@ begin
     KernelMode := kmTableNearest;
     TableSize := 16;
   end;
+
+  sbScale := TGaugeBar.Create(Panel2);
+  with sbScale do
+  begin
+    Parent := Panel2;
+    Left := 8;
+    Top := 260;
+    Width := 160;
+    Height := 16;
+    Backgnd := bgPattern;
+    BorderStyle := bsNone;
+    Enabled := False;
+    Max := 1000;
+    Min := 25;
+    ShowHandleGrip := True;
+    Position := 100;
+    OnChange := sbScaleChange;
+  end;
 end;
 
 initialization

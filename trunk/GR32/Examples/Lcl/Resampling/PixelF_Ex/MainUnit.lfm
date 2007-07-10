@@ -29,9 +29,9 @@ object MainForm: TMainForm
     TabOrder = 0
     object Label3: TLabel
       Left = 8
-      Height = 14
+      Height = 13
       Top = 32
-      Width = 60
+      Width = 69
       Caption = 'Twirl Power:'
       ParentColor = False
     end
@@ -52,9 +52,9 @@ object MainForm: TMainForm
     end
     object rbGetPixelFS: TRadioButton
       Left = 8
-      Height = 13
+      Height = 20
       Top = 96
-      Width = 109
+      Width = 128
       Caption = 'TBitmap32.PixelFS'
       Checked = True
       OnClick = gbTwistChange
@@ -63,9 +63,9 @@ object MainForm: TMainForm
     end
     object rbPixelS: TRadioButton
       Left = 8
-      Height = 13
+      Height = 20
       Top = 72
-      Width = 103
+      Width = 120
       Caption = 'TBitmap32.PixelS'
       OnClick = gbTwistChange
       TabOrder = 2

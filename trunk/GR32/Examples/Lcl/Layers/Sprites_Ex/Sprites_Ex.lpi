@@ -37,7 +37,7 @@
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="15">
+    <Units Count="16">
       <Unit0>
         <Filename Value="Sprites_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -54,8 +54,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="75"/>
-        <TopLine Value="174"/>
+        <CursorPos X="38" Y="360"/>
+        <TopLine Value="346"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="23"/>
         <Loaded Value="True"/>
@@ -160,8 +160,24 @@
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit14>
+      <Unit15>
+        <Filename Value="/usr/local/share/fpcsrc/packages/base/winunits/jwawinbase.pas"/>
+        <UnitName Value="JwaWinBase"/>
+        <CursorPos X="12" Y="531"/>
+        <TopLine Value="516"/>
+        <UsageCount Value="10"/>
+      </Unit15>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="2" HistoryIndex="1">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="75" Column="1" TopLine="174"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="360" Column="27" TopLine="348"/>
+      </Position2>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>

@@ -35,7 +35,7 @@ uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
   ExtCtrls, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
   GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers,
-  Buttons;
+  Buttons, Variants;
 
 type
   TMainForm = class(TForm)

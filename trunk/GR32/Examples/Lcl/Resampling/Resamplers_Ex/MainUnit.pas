@@ -32,11 +32,20 @@ unit MainUnit;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
+{$IFNDEF FPC}
+  {$DEFINE Windows}
+{$ENDIF}
+
 {_$DEFINE Ex}
 
 uses
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Jpeg, Math,
-  ExtCtrls, ComCtrls, GR32_Image, GR32_System, GR32_RangeBars, GR32_Controls,
+  {$IFDEF FPC} LResources, Variants,{$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Math,
+  ExtCtrls, ComCtrls, GR32_Image, GR32_System, GR32_RangeBars,
   GR32, GR32_Transforms, GR32_Resamplers {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
 
 type
@@ -73,7 +82,7 @@ type
     procedure ResamplerClassNamesListChange(Sender: TObject);
     procedure DstImgResize(Sender: TObject);
     procedure KernelModeListChange(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormClose(Sender: TObject; var AAction: TCloseAction);
     procedure EdgecheckBoxChange(Sender: TObject);
     procedure gbTableSizeChange(Sender: TObject);
     procedure CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
@@ -95,14 +104,146 @@ var
 
 implementation
 
-{$R *.dfm}
+{$IFNDEF FPC}
+{$R *.DFM}
+{$ENDIF}
 
-uses GR32_LowLevel;
+uses
+  GR32_LowLevel,
+{$IFDEF Darwin}
+  FPCMacOSAll,
+{$ENDIF}
+{$IFNDEF FPC}
+  JPEG;
+{$ELSE}
+  LazJPEG;
+{$ENDIF}
 
 procedure TfmResamplersExample.FormCreate(Sender: TObject);
 var
   I, J: Integer;
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // On Lazarus we don't use design-time packages because they consume time to be installed
+{$ifdef FPC}
+  gbTableSize := TGaugeBar.Create(pnlKernel);
+  with gbTableSize do
+  begin
+    Parent := pnlKernel;
+    Left := 16;
+    Top := 136;
+    Width := 113;
+    Height := 12;
+    Backgnd := bgPattern;
+    HandleSize := 16;
+    Min := 1;
+    ShowArrows := False;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Position := 32;
+    OnChange := gbTableSizeChange;
+  end;
+
+  gbParameter := TGaugeBar.Create(pnlKernel);
+  with gbParameter do
+  begin
+    Parent := pnlKernel;
+    Left := 16;
+    Top := 175;
+    Width := 113;
+    Height := 12;
+    Backgnd := bgPattern;
+    HandleSize := 16;
+    Min := 1;
+    ShowArrows := False;
+    ShowHandleGrip := True;
+    Style := rbsMac;
+    Visible := False;
+    Position := 50;
+    OnChange := gbParameterChange;
+    OnMouseUp := gbParameterMouseUp;
+  end;
+
+  DstImg := TImage32.Create(tabDetails);
+  with DstImg do
+  begin
+    Parent := tabDetails;
+    Left := 0;
+    Top := 0;
+    Width := 321;
+    Height := 348;
+    Align := alClient;
+    Bitmap.ResamplerClassName := 'TKernelResampler';
+//    Bitmap.Resampler.KernelClassName := 'TCosineKernel';
+//    Bitmap.Resampler.KernelMode := kmTableLinear;
+//    Bitmap.Resampler.TableSize := 32;
+    BitmapAlign := baTopLeft;
+    RepaintMode := rmOptimizer;
+    Scale := 1.000000000000000000;
+    ScaleMode := smStretch;
+    TabOrder := 0;
+    OnResize := DstImgResize;
+  end;
+
+  ResamplingPaintBox := TPaintBox32.Create(ResamplingTabSheet);
+  with ResamplingPaintBox do
+  begin
+    Parent := ResamplingTabSheet;
+    Left := 0;
+    Top := 0;
+    Width := 321;
+    Height := 348;
+    Align := alClient;
+    RepaintMode := rmOptimizer;
+    TabOrder := 0;
+    OnResize := ResamplingPaintBoxResize;
+  end;
+
+  CurveImage := TImage32.Create(tabKernel);
+  with CurveImage do
+  begin
+    Parent := tabKernel;
+    Left := 0;
+    Top := 0;
+    Width := 321;
+    Height := 348;
+    Align := alClient;
+    Bitmap.ResamplerClassName := 'TNearestResampler';
+    BitmapAlign := baTopLeft;
+    Scale := 1.000000000000000000;
+    ScaleMode := smNormal;
+    TabOrder := 0;
+    OnPaintStage := CurveImagePaintStage;
+  end;
+{$endif}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
   Src := TBitmap32.Create;
   Src.OuterColor := $FFFF7F7F;
   DstImg.Bitmap.OuterColor := Src.OuterColor;
@@ -110,7 +251,7 @@ begin
   Src.OnChange := SrcChanged;
 
   ResamplingSrc := TBitmap32.Create;
-  ResamplingSrc.LoadFromFile('..\..\..\Media\iceland.jpg');
+  ResamplingSrc.LoadFromFile(pathMedia + 'iceland.jpg');
 
   ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
   KernelList.GetClassNames(KernelClassNamesList.Items);
@@ -215,8 +356,11 @@ var
 begin
   with DstImg.Bitmap do
   begin
-    sw := Src.Width / DstImg.Bitmap.Width;
-    sh := Src.Height / DstImg.Bitmap.Height;
+    if (DstImg.Bitmap.Width <> 0) then sw := Src.Width / DstImg.Bitmap.Width
+    else sw := 0;
+
+    if (DstImg.Bitmap.Height <> 0) then sh := Src.Height / DstImg.Bitmap.Height
+    else sh := 0;
 
     GlobalPerfTimer.Start;
     if ResamplingTabSheet.Visible then
@@ -246,7 +390,7 @@ begin
     end;
 end;
 
-procedure TfmResamplersExample.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TfmResamplersExample.FormClose(Sender: TObject; var AAction: TCloseAction);
 begin
   Src.Free;
   ResamplingSrc.Free;
@@ -402,5 +546,10 @@ begin
   Tmp.Free;
   ResamplingPaintBox.Repaint;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

@@ -118,6 +118,7 @@ begin
 
   Image32 := TImage32.Create(Self);
   with Image32 do
+  begin
     Parent := Self;
     Left := 8;
     Height := 244;

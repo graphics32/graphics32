@@ -2,13 +2,13 @@ object Form1: TForm1
   Left = 224
   Height = 445
   Top = 159
-  Width = 550
-  HorzScrollBar.Page = 549
+  Width = 580
+  HorzScrollBar.Page = 579
   VertScrollBar.Page = 444
   ActiveControl = rgScaleMode.RadioButton0
   Caption = 'TImage32 Example'
   ClientHeight = 445
-  ClientWidth = 550
+  ClientWidth = 580
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
@@ -24,19 +24,19 @@ object Form1: TForm1
     TabOrder = 0
   end
   object Panel2: TPanel
-    Left = 408
+    Left = 400
     Height = 445
-    Width = 142
+    Width = 172
     Align = alRight
     BevelOuter = bvNone
     ClientHeight = 445
-    ClientWidth = 142
+    ClientWidth = 172
     TabOrder = 1
     object rgScaleMode: TRadioGroup
       Left = 8
-      Height = 129
+      Height = 136
       Top = 104
-      Width = 129
+      Width = 160
       AutoFill = True
       Caption = 'ScaleMode'
       ChildSizing.LeftRightSpacing = 6
@@ -47,8 +47,8 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 111
-      ClientWidth = 125
+      ClientHeight = 119
+      ClientWidth = 156
       ItemIndex = 0
       Items.Strings = (
         'smNormal'
@@ -63,9 +63,9 @@ object Form1: TForm1
     end
     object rgKernel: TRadioGroup
       Left = 8
-      Height = 121
+      Height = 136
       Top = 288
-      Width = 129
+      Width = 160
       AutoFill = True
       Caption = 'Kernels'
       ChildSizing.LeftRightSpacing = 6
@@ -76,8 +76,8 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 103
-      ClientWidth = 125
+      ClientHeight = 119
+      ClientWidth = 156
       ItemIndex = 0
       Items.Strings = (
         'TBoxKernel'
@@ -90,10 +90,10 @@ object Form1: TForm1
       TabOrder = 1
     end
     object rgBitmapAlign: TRadioGroup
-      Left = 8
+      Left = 9
       Height = 89
       Top = 8
-      Width = 129
+      Width = 159
       AutoFill = True
       Caption = 'BitmapAlign'
       ChildSizing.LeftRightSpacing = 6
@@ -104,8 +104,8 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 71
-      ClientWidth = 125
+      ClientHeight = 72
+      ClientWidth = 155
       ItemIndex = 0
       Items.Strings = (
         'baTopLeft'

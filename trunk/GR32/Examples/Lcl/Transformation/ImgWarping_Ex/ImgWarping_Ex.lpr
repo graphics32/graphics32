@@ -4,7 +4,7 @@ uses
   Interfaces,
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm},
-  BrushAuxiliaries in 'BrushAuxiliaries.pas', GR32_L;
+  BrushAuxiliaries in 'BrushAuxiliaries.pas', GR32_L, JPEGForLazarus;
 
 {$IFDEF Windows}
 {$R *.res}
