@@ -77,6 +77,7 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
   Image := TImage32.Create(Self);
   with Image do
+  begin
     Parent := Self;
     Height := 167;
     Top := 61;
