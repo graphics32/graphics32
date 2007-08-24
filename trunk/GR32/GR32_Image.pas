@@ -230,13 +230,13 @@ type
     FBitmap: TBitmap32;
     FBitmapAlign: TBitmapAlign;
     FLayers: TLayerCollection;
-    FOffsetHorz: Single;
-    FOffsetVert: Single;
+    FOffsetHorz: TFloat;
+    FOffsetVert: TFloat;
     FPaintStages: TPaintStages;
     FPaintStageHandlers: array of TPaintStageHandler;
     FPaintStageNum: array of Integer;
-    FScaleX: Single;
-    FScaleY: Single;
+    FScaleX: TFloat;
+    FScaleY: TFloat;
     FScaleMode: TScaleMode;
     FUpdateCount: Integer;
     FOnBitmapResize: TNotifyEvent;
@@ -253,21 +253,21 @@ type
     procedure BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure LayerCollectionChangeHandler(Sender: TObject);
     procedure LayerCollectionGDIUpdateHandler(Sender: TObject);
-    procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
-    procedure LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
+    procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: TFloat);
+    procedure LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: TFloat);
     function  GetOnPixelCombine: TPixelCombineEvent;
     procedure SetBitmap(Value: TBitmap32); {$IFDEF CLX}reintroduce;{$ENDIF}
     procedure SetBitmapAlign(Value: TBitmapAlign);
     procedure SetLayers(Value: TLayerCollection);
-    procedure SetOffsetHorz(Value: Single);
-    procedure SetOffsetVert(Value: Single);
-    procedure SetScale(Value: Single);
-    procedure SetScaleX(Value: Single);
-    procedure SetScaleY(Value: Single);
+    procedure SetOffsetHorz(Value: TFloat);
+    procedure SetOffsetVert(Value: TFloat);
+    procedure SetScale(Value: TFloat);
+    procedure SetScaleX(Value: TFloat);
+    procedure SetScaleY(Value: TFloat);
     procedure SetOnPixelCombine(Value: TPixelCombineEvent);
   protected
     CachedBitmapRect: TRect;
-    CachedXForm: TCoordXForm;
+    ShiftX, ShiftY, RecScaleX, RecScaleY: TFloat;
     CacheValid: Boolean;
     OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
@@ -325,12 +325,12 @@ type
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
     property Canvas;
     property Layers: TLayerCollection read FLayers write SetLayers;
-    property OffsetHorz: Single read FOffsetHorz write SetOffsetHorz;
-    property OffsetVert: Single read FOffsetVert write SetOffsetVert;
+    property OffsetHorz: TFloat read FOffsetHorz write SetOffsetHorz;
+    property OffsetVert: TFloat read FOffsetVert write SetOffsetVert;
     property PaintStages: TPaintStages read FPaintStages;
-    property Scale: Single read FScaleX write SetScale;
-    property ScaleX: Single read FScaleX write SetScaleX;
-    property ScaleY: Single read FScaleY write SetScaleY;
+    property Scale: TFloat read FScaleX write SetScale;
+    property ScaleX: TFloat read FScaleX write SetScaleX;
+    property ScaleY: TFloat read FScaleY write SetScaleY;
     property ScaleMode: TScaleMode read FScaleMode write SetScaleMode;
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
@@ -595,13 +595,6 @@ type
 
 const
   DefaultRepaintOptimizerClass: TCustomRepaintOptimizerClass = TMicroTilesRepaintOptimizer;
-  UnitXForm: TCoordXForm = (
-    ScaleX: $10000;
-    ScaleY: $10000;
-    ShiftX: 0;
-    ShiftY: 0;
-    RevScaleX: 65536;
-    RevScaleY: 65536);
 
 { TPaintStages }
 
@@ -1153,10 +1146,10 @@ function TCustomImage32.BitmapToControl(const APoint: TPoint): TPoint;
 begin
   // convert coordinates from bitmap's ref. frame to control's ref. frame
   UpdateCache;
-  with CachedXForm, APoint do
+  with APoint do
   begin
-    Result.X := X * ScaleX div $10000 + ShiftX;
-    Result.Y := Y * ScaleY div $10000 + ShiftY;
+    Result.X := Trunc(X * FScaleX + ShiftX);
+    Result.Y := Trunc(Y * FScaleY + ShiftY);
   end;
 end;
 
@@ -1297,18 +1290,18 @@ begin
   Paint;
 end;
 
-procedure TCustomImage32.LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: Single);
+procedure TCustomImage32.LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: TFloat);
 begin
   UpdateCache;
-  ScaleX := CachedXForm.ScaleX / FixedOne;
-  ScaleY := CachedXForm.ScaleY / FixedOne;
+  ScaleX := FScaleX;
+  ScaleY := FScaleY;
 end;
 
-procedure TCustomImage32.LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: Single);
+procedure TCustomImage32.LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: TFloat);
 begin
   UpdateCache;
-  ShiftX := CachedXForm.ShiftX;
-  ShiftY := CachedXForm.ShiftY;
+  ShiftX := Self.ShiftX;
+  ShiftY := Self.ShiftY;
 end;
 
 function TCustomImage32.ControlToBitmap(const APoint: TPoint): TPoint;
@@ -1316,10 +1309,10 @@ begin
   // convert point coords from control's ref. frame to bitmap's ref. frame
   // the coordinates are not clipped to bitmap image boundary
   UpdateCache;
-  with CachedXForm, APoint do
+  with APoint do
   begin
-    Result.X := (X - ShiftX) * RevScaleX div $10000;
-    Result.Y := (Y - ShiftY) * RevScaleY div $10000;
+    Result.X := Trunc((X - ShiftX) * RecScaleX);
+    Result.Y := Trunc((Y - ShiftY) * RecScaleY);
   end;
 end;
 
@@ -1334,9 +1327,6 @@ begin
   FLayers := TLayerCollection.Create(Self);
   with TLayerCollectionAccess(FLayers) do
   begin
-{$IFDEF DEPRECATEDMODE}
-    CoordXForm := @CachedXForm;
-{$ENDIF}
     OnChange := LayerCollectionChangeHandler;
     OnGDIUpdate := LayerCollectionGDIUpdateHandler;
     OnGetViewportScale := LayerCollectionGetViewportScaleHandler;
@@ -1347,8 +1337,12 @@ begin
   RepaintMode := rmFull;
 
   FPaintStages := TPaintStages.Create;
+  ShiftX := 0;
+  ShiftY := 0;
   FScaleX := 1.0;
   FScaleY := 1.0;
+  RecScaleX := 1 / FScaleX;
+  RecScaleY := 1 / FScaleY;
   InitDefaultStages;
 end;
 
@@ -1579,7 +1573,7 @@ function TCustomImage32.GetBitmapSize: TSize;
 var
   Mode: TScaleMode;
   ViewportWidth, ViewportHeight: Integer;
-  RScaleX, RScaleY: Single;
+  RScaleX, RScaleY: TFloat;
 begin
   with Result do
   begin
@@ -1816,18 +1810,17 @@ begin
 
   CachedBitmapRect := DestRect;
 
-  with CachedBitmapRect, CachedXForm do
+  with CachedBitmapRect do
   begin
     if (Right - Left <= 0) or (Bottom - Top <= 0) or Bitmap.Empty then
-      CachedXForm := UnitXForm
+    begin
+      ShiftX := 0;
+      ShiftY := 0;
+    end
     else
     begin
       ShiftX := Left;
       ShiftY := Top;
-      ScaleX := MulDiv(Right - Left, $10000, Bitmap.Width);
-      ScaleY := MulDiv(Bottom - Top, $10000, Bitmap.Height);
-      RevScaleX := MulDiv(Bitmap.Width, $10000, Right - Left);
-      RevScaleY := MulDiv(Bitmap.Height, $10000, Bottom - Top);
     end;
   end;
   CacheValid := True;
@@ -1878,7 +1871,7 @@ begin
   FLayers.Assign(Value);
 end;
 
-procedure TCustomImage32.SetOffsetHorz(Value: Single);
+procedure TCustomImage32.SetOffsetHorz(Value: TFloat);
 begin
   if Value <> FOffsetHorz then
   begin
@@ -1888,7 +1881,7 @@ begin
   end;
 end;
 
-procedure TCustomImage32.SetOffsetVert(Value: Single);
+procedure TCustomImage32.SetOffsetVert(Value: TFloat);
 begin
   if Value <> FOffsetVert then
   begin
@@ -1904,7 +1897,7 @@ begin
   Changed;
 end;
 
-procedure TCustomImage32.SetScale(Value: Single);
+procedure TCustomImage32.SetScale(Value: TFloat);
 begin
   if Value < 0.001 then Value := 0.001;
   if Value <> FScaleX then
@@ -1912,30 +1905,34 @@ begin
     InvalidateCache;
     FScaleX := Value;
     FScaleY := Value;
+    RecScaleX := 1 / Value;
+    RecScaleY := 1 / Value;
     DoScaleChange;
     Changed;
   end;
 end;
 
-procedure TCustomImage32.SetScaleX(Value: Single);
+procedure TCustomImage32.SetScaleX(Value: TFloat);
 begin
   if Value < 0.001 then Value := 0.001;
   if Value <> FScaleX then
   begin
     InvalidateCache;
     FScaleX := Value;
+    RecScaleX := 1 / Value;
     DoScaleChange;
     Changed;
   end;
 end;
 
-procedure TCustomImage32.SetScaleY(Value: Single);
+procedure TCustomImage32.SetScaleY(Value: TFloat);
 begin
   if Value < 0.001 then Value := 0.001;
   if Value <> FScaleY then
   begin
     InvalidateCache;
     FScaleY := Value;
+    RecScaleY := 1 / Value;
     DoScaleChange;
     Changed;
   end;
@@ -1966,17 +1963,17 @@ procedure TCustomImage32.UpdateCache;
 begin
   if CacheValid then Exit;
   CachedBitmapRect := GetBitmapRect;
-  with CachedBitmapRect, CachedXForm do
+  with CachedBitmapRect do
   begin
-    if Bitmap.Empty then CachedXForm := UnitXForm
+    if Bitmap.Empty then
+    begin
+      ShiftX := 0;
+      ShiftY := 0;
+    end
     else
     begin
       ShiftX := Left;
       ShiftY := Top;
-      ScaleX := MulDiv(Right - Left, $10000, Bitmap.Width);
-      ScaleY := MulDiv(Bottom - Top, $10000, Bitmap.Height);
-      RevScaleX := MulDiv(Bitmap.Width, $10000, Right - Left);
-      RevScaleY := MulDiv(Bitmap.Height, $10000, Bottom - Top);
     end;
   end;
   CacheValid := True;
