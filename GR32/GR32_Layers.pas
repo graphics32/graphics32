@@ -67,17 +67,6 @@ type
   TPositionedLayer = class;
   TLayerClass = class of TCustomLayer;
 
-  { TCoordXForm - transformations from bitmap image to buffer origin }
-  TCoordXForm = record
-    ScaleX: TFixed;       // bitmap image to buf
-    ScaleY: TFixed;
-    ShiftX: Integer;
-    ShiftY: Integer;
-    RevScaleX: TFixed;
-    RevScaleY: TFixed;
-  end;
-  PCoordXForm = ^TCoordXForm;
-
   TLayerCollection = class;
 
   TLayerUpdateEvent = procedure(Sender: TObject; Layer: TCustomLayer) of object;
@@ -85,14 +74,11 @@ type
   TLayerListNotification = (lnLayerAdded, lnLayerInserted, lnLayerDeleted, lnCleared);
   TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification;
     Layer: TCustomLayer; Index: Integer) of object;
-  TGetScaleEvent = procedure(Sender: TObject; var ScaleX, ScaleY: Single) of object;
-  TGetShiftEvent = procedure(Sender: TObject; var ShiftX, ShiftY: Single) of object;
+  TGetScaleEvent = procedure(Sender: TObject; var ScaleX, ScaleY: TFloat) of object;
+  TGetShiftEvent = procedure(Sender: TObject; var ShiftX, ShiftY: TFloat) of object;
 
   TLayerCollection = class(TPersistent)
   private
-{$IFDEF DEPRECATEDMODE}
-    FCoordXForm: PCoordXForm;
-{$ENDIF}
     FItems: TList;
     FMouseEvents: Boolean;
     FMouseListener: TCustomLayer;
@@ -145,12 +131,9 @@ type
     function  Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
     function  LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
     function  ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
-    procedure GetViewportScale(var ScaleX, ScaleY: Single); virtual;
-    procedure GetViewportShift(var ShiftX, ShiftY: Single); virtual;
+    procedure GetViewportScale(var ScaleX, ScaleY: TFloat); virtual;
+    procedure GetViewportShift(var ShiftX, ShiftY: TFloat); virtual;
     property Count: Integer read GetCount;
-{$IFDEF DEPRECATEDMODE}
-    property CoordXForm: PCoordXForm read FCoordXForm write FCoordXForm;
-{$ENDIF}
     property Owner: TPersistent read FOwner;
     property Items[Index: Integer]: TCustomLayer read GetItem write SetItem; default;
     property MouseListener: TCustomLayer read FMouseListener write SetMouseListener;
@@ -285,20 +268,20 @@ type
   private
     FChildLayer: TPositionedLayer;
     FFrameStipplePattern: TArrayOfColor32;
-    FFrameStippleStep: Single;
-    FFrameStippleCounter: Single;
+    FFrameStippleStep: TFloat;
+    FFrameStippleCounter: TFloat;
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
     FHandles: TRBHandles;
     FHandleSize: Integer;
-    FMinWidth: Single;
-    FMaxHeight: Single;
-    FMinHeight: Single;
-    FMaxWidth: Single;
+    FMinWidth: TFloat;
+    FMaxHeight: TFloat;
+    FMinHeight: TFloat;
+    FMaxWidth: TFloat;
     FOnUserChange: TNotifyEvent;
     FOnResizing: TRBResizingEvent;
-    procedure SetFrameStippleStep(const Value: Single);
-    procedure SetFrameStippleCounter(const Value: Single);
+    procedure SetFrameStippleStep(const Value: TFloat);
+    procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
     procedure SetHandleFill(Value: TColor32);
     procedure SetHandleFrame(Value: TColor32);
@@ -328,12 +311,12 @@ type
     property HandleSize: Integer read FHandleSize write SetHandleSize;
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
-    property FrameStippleStep: Single read FFrameStippleStep write SetFrameStippleStep;
-    property FrameStippleCounter: Single read FFrameStippleCounter write SetFrameStippleCounter;
-    property MaxHeight: Single read FMaxHeight write FMaxHeight;
-    property MaxWidth: Single read FMaxWidth write FMaxWidth;
-    property MinHeight: Single read FMinHeight write FMinHeight;
-    property MinWidth: Single read FMinWidth write FMinWidth;
+    property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
+    property FrameStippleCounter: TFloat read FFrameStippleCounter write SetFrameStippleCounter;
+    property MaxHeight: TFloat read FMaxHeight write FMaxHeight;
+    property MaxWidth: TFloat read FMaxWidth write FMaxWidth;
+    property MinHeight: TFloat read FMinHeight write FMinHeight;
+    property MinWidth: TFloat read FMinWidth write FMinWidth;
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
     property OnResizing: TRBResizingEvent read FOnResizing write FOnResizing;
   end;
@@ -498,7 +481,7 @@ end;
 
 function TLayerCollection.LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
 var
-  ScaleX, ScaleY, ShiftX, ShiftY: Single;
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
 begin
   if AScaled then
   begin
@@ -514,7 +497,7 @@ end;
 
 function TLayerCollection.ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
 var
-  ScaleX, ScaleY, ShiftX, ShiftY: Single;
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
 begin
   if AScaled then
   begin
@@ -627,7 +610,7 @@ begin
   Changed;
 end;
 
-procedure TLayerCollection.GetViewportScale(var ScaleX, ScaleY: Single);
+procedure TLayerCollection.GetViewportScale(var ScaleX, ScaleY: TFloat);
 begin
   if Assigned(FOnGetViewportScale) then
     FOnGetViewportScale(Self, ScaleX, ScaleY)
@@ -638,7 +621,7 @@ begin
   end;
 end;
 
-procedure TLayerCollection.GetViewportShift(var ShiftX, ShiftY: Single);
+procedure TLayerCollection.GetViewportShift(var ShiftX, ShiftY: TFloat);
 begin
   if Assigned(FOnGetViewportShift) then
     FOnGetViewportShift(Self, ShiftX, ShiftY)
@@ -973,7 +956,7 @@ end;
 
 function TPositionedLayer.GetAdjustedRect(const R: TFloatRect): TFloatRect;
 var
-  ScaleX, ScaleY, ShiftX, ShiftY: Single;
+  ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
 begin
   if Scaled and Assigned(FLayerCollection) then
   begin
@@ -1014,7 +997,7 @@ end;
 procedure TBitmapLayer.BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   T: TRect;
-  ScaleX, ScaleY: Single;
+  ScaleX, ScaleY: TFloat;
   Width: Integer;
 begin
   if Bitmap.Empty then Exit;  
@@ -1081,7 +1064,7 @@ procedure TBitmapLayer.Paint(Buffer: TBitmap32);
 var
   SrcRect, DstRect, ClipRect, TempRect: TRect;
   ImageRect: TRect;
-  LayerWidth, LayerHeight: Single;
+  LayerWidth, LayerHeight: TFloat;
 begin
   if Bitmap.Empty then Exit;
   DstRect := MakeRect(GetAdjustedRect(FLocation));
@@ -1218,18 +1201,18 @@ const
   CURSOR_ID: array [TDragState] of TCursor = (crDefault, crDefault, crSizeWE,
     crSizeNS, crSizeWE, crSizeNS, crSizeNWSE, crSizeNESW, crSizeNESW, crSizeNWSE);
 var
-  Mx, My: Single;
-  L, T, R, B, W, H: Single;
+  Mx, My: TFloat;
+  L, T, R, B, W, H: TFloat;
   ALoc, NewLocation: TFloatRect;
 
-  procedure IncLT(var LT, RB: Single; Delta, MinSize, MaxSize: Single);
+  procedure IncLT(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
   begin
     LT := LT + Delta;
     if RB - LT < MinSize then LT := RB - MinSize;
     if MaxSize >= MinSize then if RB - LT > MaxSize then LT := RB - MaxSize;
   end;
 
-  procedure IncRB(var LT, RB: Single; Delta, MinSize, MaxSize: Single);
+  procedure IncRB(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
   begin
     RB := RB + Delta;
     if RB - LT < MinSize then RB := LT + MinSize;
@@ -1404,7 +1387,7 @@ begin
   MoveLongword(Value[0], FFrameStipplePattern[0], L);
 end;
 
-procedure TRubberbandLayer.SetFrameStippleStep(const Value: Single);
+procedure TRubberbandLayer.SetFrameStippleStep(const Value: TFloat);
 begin
   if Value <> FFrameStippleStep then
   begin
@@ -1418,7 +1401,7 @@ begin
   if Assigned(FChildLayer) then FChildLayer.Location := Location;
 end;
 
-procedure TRubberbandLayer.SetFrameStippleCounter(const Value: Single);
+procedure TRubberbandLayer.SetFrameStippleCounter(const Value: TFloat);
 begin
   if Value <> FFrameStippleCounter then
   begin
