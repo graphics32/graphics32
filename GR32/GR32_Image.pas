@@ -155,6 +155,7 @@ type
     procedure Loaded; override;
     procedure Resize; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
+    procedure AssignTo(Dest: TPersistent); override;
     property Buffer: TBitmap32 read FBuffer;
     property BufferOversize: Integer read FBufferOversize write SetBufferOversize;
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
@@ -541,7 +542,7 @@ type
     FBitmap: TBitmap32;
     procedure SetBitmap(ABitmap: TBitmap32);
   protected
-    procedure AssignTo(Dest: TPersistent); override;  
+    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Collection: TCollection); override;
     destructor Destroy; override;
@@ -680,6 +681,7 @@ begin
     inherited;
 end;
 {$ELSE}
+
 procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
 begin
   if CustomRepaint and HandleAllocated then
@@ -692,6 +694,23 @@ begin
 end;
 {$ENDIF}
 
+procedure TCustomPaintBox32.AssignTo(Dest: TPersistent);
+begin
+  inherited AssignTo(Dest);
+  if Dest is TCustomPaintBox32 then
+  begin
+    FBuffer.Assign(TCustomPaintBox32(Dest).FBuffer);
+    TCustomPaintBox32(Dest).FBufferOversize := FBufferOversize;
+    TCustomPaintBox32(Dest).FBufferValid := FBufferValid;
+    TCustomPaintBox32(Dest).FRepaintMode := FRepaintMode;
+    TCustomPaintBox32(Dest).FInvalidRects := FInvalidRects;
+    TCustomPaintBox32(Dest).FForceFullRepaint := FForceFullRepaint;
+    TCustomPaintBox32(Dest).FOptions := FOptions;
+    TCustomPaintBox32(Dest).FOnGDIOverlay := FOnGDIOverlay;
+    TCustomPaintBox32(Dest).FOnMouseEnter := FOnMouseEnter;
+    TCustomPaintBox32(Dest).FOnMouseLeave := FOnMouseLeave;
+  end;
+end;
 
 procedure TCustomPaintBox32.CMMouseEnter(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
