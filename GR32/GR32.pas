@@ -5712,8 +5712,8 @@ end;
 
 constructor TBackend.Create(Owner: TCustomBitmap32);
 begin
-  Create;
   FOwner := Owner;
+  Create;
   if Assigned(Owner) then
     Owner.Backend := Self;
 end;
