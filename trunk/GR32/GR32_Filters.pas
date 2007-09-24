@@ -325,37 +325,38 @@ begin
   end;
 end;
 
-
 procedure AlphaToGrayscale(Dst, Src: TCustomBitmap32);
 var
   I: Integer;
-  D, S: PColor32;
+  D, S : PColor32EntryArray;
+  Alpha: Byte;
 begin
   CheckParams(Dst, Src);
-  D := @Dst.Bits[0];
-  S := @Src.Bits[0];
-  for I := 0 to Src.Width * Src.Height - 1 do
+  S := PColor32EntryArray(@Src.Bits[0]);
+  D := PColor32EntryArray(@Dst.Bits[0]);
+  for I := 0 to Src.Height * Src.Width -1 do
   begin
-    D^ := Gray32(AlphaComponent(S^));
-    Inc(S); Inc(D);
+    Alpha := S[I].A;
+    with D[I] do
+    begin  
+      R := Alpha;  
+      G := Alpha;  
+      B := Alpha;  
+    end;  
   end;
   Dst.Changed;
 end;
 
 procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 var
-  I: Integer;
-  D, S: PColor32;
+  I, J: Integer;
+  D, S : PColor32EntryArray;
 begin
   CheckParams(Dst, Src);
-  Dst.SetSize(Src.Width, Src.Height);
-  D := @Dst.Bits[0];
-  S := @Src.Bits[0];
+  S := PColor32EntryArray(@Src.Bits[0]);
+  D := PColor32EntryArray(@Dst.Bits[0]);
   for I := 0 to Src.Width * Src.Height - 1 do
-  begin
-    D^ := SetAlpha(D^, Intensity(S^));
-    Inc(S); Inc(D);
-  end;
+    D[I].A := (S[I].R * 61 + S[I].G * 174 + S[I].B * 21) shr 8;
   Dst.Changed;
 end;
 
