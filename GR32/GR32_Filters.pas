@@ -349,7 +349,7 @@ end;
 
 procedure IntensityToAlpha(Dst, Src: TCustomBitmap32);
 var
-  I, J: Integer;
+  I: Integer;
   D, S : PColor32EntryArray;
 begin
   CheckParams(Dst, Src);
