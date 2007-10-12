@@ -26,6 +26,7 @@ unit GR32_Image;
  * Andre Beckedorf <Andre@metaException.de>
  * Andrew P. Rybin <aprybin@users.sourceforge.net>
  * Dieter Köhler <dieter.koehler@philo.de>
+ * Michael Hansen <dyster_tid@hotmail.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -303,10 +304,12 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure BeginUpdate; virtual;
-    function  BitmapToControl(const APoint: TPoint): TPoint;
+    function  BitmapToControl(const APoint: TPoint): TPoint; overload;
+    function  BitmapToControl(const APoint: TFloatPoint): TFloatPoint; overload;
     procedure Changed; virtual;
     procedure Update(const Rect: TRect); reintroduce; overload; virtual;
-    function  ControlToBitmap(const APoint: TPoint): TPoint;
+    function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
+    function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
     procedure EndUpdate; virtual;
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
     procedure ExecClearBuffer(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_CLEAR_BUFFER
@@ -1172,6 +1175,17 @@ begin
   end;
 end;
 
+function TCustomImage32.BitmapToControl(const APoint: TFloatPoint): TFloatPoint;
+begin
+  // subpixel precision version
+  UpdateCache;
+  with APoint do
+  begin
+    Result.X := X * FScaleX + ShiftX;
+    Result.Y := Y * FScaleY + ShiftY;
+  end;
+end;
+
 {$IFNDEF CLX}
 function TCustomImage32.CanAutoSize(var NewWidth, NewHeight: Integer): Boolean;
 var
@@ -1334,6 +1348,18 @@ begin
     Result.Y := Trunc((Y - ShiftY) * RecScaleY);
   end;
 end;
+
+function TCustomImage32.ControlToBitmap(const APoint: TFloatPoint): TFloatPoint;
+begin
+  // subpixel precision version
+  UpdateCache;
+  with APoint do
+  begin
+    Result.X := (X - ShiftX) * RecScaleX;
+    Result.Y := (Y - ShiftY) * RecScaleY;
+  end;
+end;
+
 
 constructor TCustomImage32.Create(AOwner: TComponent);
 begin
