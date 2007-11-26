@@ -114,13 +114,14 @@ var
 const
   LOGICAL_MASK_LINE: array[TLogicalOperator] of ^TLogicalMaskLine = (
     (@@LogicalMaskLineXor),
-    (@@LogicalMaskLineOr),
-    (@@LogicalMaskLineAnd)
+    (@@LogicalMaskLineAnd),
+    (@@LogicalMaskLineOr)
   );
+  
   LOGICAL_MASK_LINE_EX: array[TLogicalOperator] of ^TLogicalMaskLineEx = (
     (@@LogicalMaskLineXorEx),
-    (@@LogicalMaskLineOrEx),
-    (@@LogicalMaskLineAndEx)
+    (@@LogicalMaskLineAndEx),
+    (@@LogicalMaskLineOrEx)
   );
 
 procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
