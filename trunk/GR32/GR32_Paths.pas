@@ -86,6 +86,7 @@ type
   TBezierCurve = class(TCustomCurve)
   private
     FVertices: TArrayOfArrayOfBezierVertex;
+    FClosed: Boolean;
 {   protected
     function GetPointPtr(Index: Integer): PFloatPoint; override;
     function GetNumPoints: Integer; override;
@@ -100,6 +101,7 @@ type
     procedure AppendToPolygon(Polygon: TPolygon32); override;
     //function ClosestPointOnCurve(const P: TFloatPoint): TFloatPoint; override;
     property Vertices: TArrayOfArrayOfBezierVertex read FVertices write FVertices;
+    property Closed: Boolean read FClosed write FClosed;
   end;
 
   { TSplineCurve }
@@ -259,6 +261,10 @@ function BezierCurveToPolygonX(const Vertices: TArrayOfBezierVertex;
 function BezierCurveToPolygonF(const Vertices: TArrayOfBezierVertex;
   Closed: Boolean = True): TArrayOfFloatPoint; overload;
 
+procedure OffsetVertex(var Vertex: TBezierVertex; const Dx, Dy: TFloat);
+function ZeroVertex(const Point: TFloatPoint): TBezierVertex;
+function BezierSegment(const Vertices: TArrayOfBezierVertex; Index: Integer): TBezierSegment;
+
 { Text routines }
 procedure DrawText(Dst: TBitmap32; X, Y: TFloat; const Text: WideString;
   OutlineColor, FillColor: TColor32; Transformation: TTransformation = nil); overload;
@@ -273,6 +279,8 @@ function TextToPolygon(Dst: TBitmap32; X, Y: TFloat; const Text: WideString): TP
 
 
 // function EllipseToPolygon
+function MakeCurve(const Points: TArrayOfFloatPoint; Kernel: TCustomKernel;
+  Closed: Boolean; StepSize: Integer): TArrayOfFixedPoint; overload;
 
 implementation
 
@@ -988,7 +996,7 @@ begin
   for I := 0 to High(FVertices) do
   begin
     Polygon.NewLine;
-    Polygon.Points[I + J] := BezierCurveToPolygonX(FVertices[I]);
+    Polygon.Points[I + J] := BezierCurveToPolygonX(FVertices[I], Closed);
     //BezierCurveToPolygon(Polygon, FVertices[I]);
   end;
 end;
@@ -1718,7 +1726,7 @@ end;
 
 procedure TSplineCurve.AppendToPolygon(Polygon: TPolygon32);
 var
-  P: TArrayOfFixedPoint;
+  //P: TArrayOfFixedPoint;
   I, H: Integer;
 begin
   H := High(Polygon.Points);
