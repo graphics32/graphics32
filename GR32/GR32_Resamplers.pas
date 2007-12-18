@@ -3267,15 +3267,18 @@ end;
 procedure TTransformer.SetTransformation(const Value: TTransformation);
 begin
   FTransformation := Value;
-  FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
-  FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
-  FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+  if Assigned(Value) then
+  begin
+    FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
+    FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
+    FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+  end;
 end;
 
 constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTransformation);
 begin
+  inherited Create(ASampler);
   Transformation := ATransformation;
-  Sampler := ASampler;
 end;
 
 procedure TTransformer.PrepareSampling;
