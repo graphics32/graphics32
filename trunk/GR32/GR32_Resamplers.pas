@@ -3568,9 +3568,12 @@ end;
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
 begin
   FSampler := Value;
-  FGetSampleInt := FSampler.GetSampleInt;
-  FGetSampleFixed := FSampler.GetSampleFixed;
-  FGetSampleFloat := FSampler.GetSampleFloat;
+  if Assigned(Value) then
+  begin
+    FGetSampleInt := FSampler.GetSampleInt;
+    FGetSampleFixed := FSampler.GetSampleFixed;
+    FGetSampleFloat := FSampler.GetSampleFloat;
+  end;
 end;
 
 
