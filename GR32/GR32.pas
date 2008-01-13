@@ -411,7 +411,11 @@ type
   private
     FLockCount: Integer;
   protected
+    {$IFDEF FPC}
+    FLock: TCriticalSection;
+    {$ELSE}
     FLock: TRTLCriticalSection;
+    {$ENDIF}
     property LockCount: Integer read FLockCount;
   public
     constructor Create; virtual;
@@ -1742,40 +1746,24 @@ end;
 
 constructor TThreadPersistent.Create;
 begin
-{$IFDEF FPC}
-  InitializeCriticalSection(TCriticalSection(FLock));
-{$ELSE}
   InitializeCriticalSection(FLock);
-{$ENDIF}
 end;
 
 destructor TThreadPersistent.Destroy;
 begin
-{$IFDEF FPC}
-  DeleteCriticalSection({$IFDEF FPC}TCriticalSection{$ENDIF}(FLock));
-{$ELSE}
   DeleteCriticalSection(FLock);
-{$ENDIF}
   inherited;
 end;
 
 procedure TThreadPersistent.Lock;
 begin
   InterlockedIncrement(FLockCount);
-{$IFDEF FPC}
-  EnterCriticalSection({$IFDEF FPC}TCriticalSection{$ENDIF}(FLock));
-{$ELSE}
   EnterCriticalSection(FLock);
-{$ENDIF}
 end;
 
 procedure TThreadPersistent.Unlock;
 begin
-{$IFDEF FPC}
-  LeaveCriticalSection({$IFDEF FPC}TCriticalSection{$ENDIF}(FLock));
-{$ELSE}
   LeaveCriticalSection(FLock);
-{$ENDIF}
   InterlockedDecrement(FLockCount);
 end;
 
