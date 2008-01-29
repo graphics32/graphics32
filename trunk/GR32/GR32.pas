@@ -622,6 +622,8 @@ type
     procedure HorzLineT(X1, Y, X2: Integer; Value: TColor32);
     procedure HorzLineTS(X1, Y, X2: Integer; Value: TColor32);
     procedure HorzLineTSP(X1, Y, X2: Integer);
+    procedure HorzLineX(X1, Y, X2: Integer; Value: TColor32);
+    procedure HorzLineXS(X1, Y, X2: Integer; Value: TColor32);
 
     procedure VertLine(X, Y1, Y2: Integer; Value: TColor32);
     procedure VertLineS(X, Y1, Y2: Integer; Value: TColor32);
@@ -629,7 +631,7 @@ type
     procedure VertLineTS(X, Y1, Y2: Integer; Value: TColor32);
     procedure VertLineTSP(X, Y1, Y2: Integer);
     procedure VertLineX(X, Y1, Y2: Integer; Value: TColor32);
-    procedure VertLineXS(X, Y1, Y2: Integer);
+    procedure VertLineXS(X, Y1, Y2: Integer; Value: TColor32);
 
     procedure Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
@@ -2759,6 +2761,97 @@ begin
   end;
 end;
 
+procedure TCustomBitmap32.HorzLineX(X1, Y, X2: Integer; Value: TColor32);
+var
+  n, i: Integer;
+  nx, hyp: Integer;
+  A: TColor32;
+  ChangedRect: TFixedRect;
+begin
+  ChangedRect := FixedRect(X1, Y, X2, Y + 1);
+  try
+    nx := X2 - X1;
+    Inc(X1, 127); Inc(Y, 127); Inc(X2, 127);
+    hyp := abs(nx);
+    if hyp < 256 then Exit;
+    n := hyp shr 16;
+    if n > 0 then
+    begin
+      nx := -65536;
+      for i := 0 to n - 1 do
+      begin
+        SET_T256(X1 shr 8, Y shr 8, Value);
+        Inc(X1, nx);
+      end;
+    end;
+    A := Value shr 24;
+    A := A * Cardinal(hyp - n shl 16) shl 8 and $FF000000;
+    SET_T256((X1 + X2 - nx) shr 9, (2 * Y) shr 9, Value and $00FFFFFF + A);
+  finally
+    EMMS;
+    Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
+  end;
+end;
+
+procedure TCustomBitmap32.HorzLineXS(X1, Y, X2: Integer; Value: TColor32);
+var
+  n, i: Integer;
+  ex, nx, hyp: Integer;
+  A: TColor32;
+  ChangedRect: TFixedRect;
+begin
+  ChangedRect := FixedRect(X1, Y, X2, Y + 1);
+
+  if not FMeasuringMode then
+  begin
+    ex := X2;
+
+    // Check for visibility and clip the coordinates
+    if not ClipLine(Integer(X1), Integer(Y), Integer(X2), Integer(Y),
+      FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+      FFixedClipRect.Right, FFixedClipRect.Bottom) then Exit;
+
+    { TODO : Handle L on clipping here... }
+
+    // Check if it lies entirely in the bitmap area. Even after clipping
+    // some pixels may lie outside the bitmap due to antialiasing
+    if (X1 > FFixedClipRect.Left) and (X1 < FFixedClipRect.Right  - $20000) and
+       (Y  > FFixedClipRect.Top)  and (Y  < FFixedClipRect.Bottom - $20000) and
+       (X2 > FFixedClipRect.Left) and (X2 < FFixedClipRect.Right  - $20000) and
+       (Y  > FFixedClipRect.Top)  and (Y  < FFixedClipRect.Bottom - $20000) then
+    begin
+      HorzLineX(X1, Y, X2, Value);
+      Exit;
+    end;
+
+    // If we are still here, it means that the line touches one or several bitmap
+    // boundaries. Use the safe version of antialiased pixel routine
+    try
+      nx := X2 - X1;
+      Inc(X1, 127); Inc(Y, 127); Inc(X2, 127);
+      hyp := abs(nx);
+      if hyp < 256 then Exit;
+      n := hyp shr 16;
+      if n > 0 then
+      begin
+        nx := -65536;
+        for i := 0 to n - 1 do
+        begin
+          SET_TS256(SAR_8(X1), SAR_8(Y), Value);
+          X1 := X1 + nx;
+        end;
+      end;
+      A := Value shr 24;
+      hyp := hyp - n shl 16;
+      A := A * Longword(hyp) shl 8 and $FF000000;
+      SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(2 * Y), Value and $00FFFFFF + A);
+    finally
+      EMMS;
+    end;
+  end;
+  Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
+end;
+
 procedure TCustomBitmap32.VertLine(X, Y1, Y2: Integer; Value: TColor32);
 var
   I, NH, NL: Integer;
@@ -2897,7 +2990,7 @@ begin
         Inc(Y1, ny);
       end;
     end;
-    SET_T256((2 * X) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + 
+    SET_T256((2 * X) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF +
              (Value shr 24) * Cardinal(hyp - n shl 16) shl 8 and $FF000000);
   finally
     EMMS;
