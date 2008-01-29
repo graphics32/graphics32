@@ -628,6 +628,8 @@ type
     procedure VertLineT(X, Y1, Y2: Integer; Value: TColor32);
     procedure VertLineTS(X, Y1, Y2: Integer; Value: TColor32);
     procedure VertLineTSP(X, Y1, Y2: Integer);
+    procedure VertLineX(X, Y1, Y2: Integer; Value: TColor32);
+    procedure VertLineXS(X, Y1, Y2: Integer);
 
     procedure Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
     procedure LineS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean = False);
@@ -2871,6 +2873,92 @@ begin
     else
       AdvanceStippleCounter(Abs(Y2 - Y1) + 1);
   end;
+end;
+
+procedure TCustomBitmap32.VertLineX(X, Y1, Y2: Integer; Value: TColor32);
+var
+  n, i: Integer;
+  ny, hyp: Integer;
+  ChangedRect: TFixedRect;
+begin
+  ChangedRect := FixedRect(X, Y1, X + 1, Y2);
+  try
+    ny := Y2 - Y1;
+    Inc(X, 127); Inc(Y1, 127); Inc(Y2, 127);
+    hyp := abs(ny);
+    if hyp < 256 then Exit;
+    n := hyp shr 16;
+    if n > 0 then
+    begin
+      ny := -65536;
+      for i := 0 to n - 1 do
+      begin
+        SET_T256(X shr 8, Y1 shr 8, Value);
+        Inc(Y1, ny);
+      end;
+    end;
+    SET_T256((2 * X) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + 
+             (Value shr 24) * Cardinal(hyp - n shl 16) shl 8 and $FF000000);
+  finally
+    EMMS;
+    Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
+  end;
+end;
+
+procedure TCustomBitmap32.VertLineXS(X, Y1, Y2: Integer; Value: TColor32);
+var
+  n, i: Integer;
+  ex, ey, ny, hyp: Integer;
+  ChangedRect: TFixedRect;
+begin
+  ChangedRect := FixedRect(X, Y1, X, Y2);
+
+  if not FMeasuringMode then
+  begin
+    ex := X; ey := Y2;
+
+    // Check for visibility and clip the coordinates
+    if not ClipLine(Integer(X), Integer(Y1), Integer(X), Integer(Y2),
+      FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+      FFixedClipRect.Right, FFixedClipRect.Bottom) then Exit;
+
+    { TODO : Handle L on clipping here... }
+
+    // Check if it lies entirely in the bitmap area. Even after clipping
+    // some pixels may lie outside the bitmap due to antialiasing
+    if (X  > FFixedClipRect.Left) and (X  < FFixedClipRect.Right  - $20000) and
+       (Y1 > FFixedClipRect.Top)  and (Y1 < FFixedClipRect.Bottom - $20000) and
+       (X  > FFixedClipRect.Left) and (X  < FFixedClipRect.Right  - $20000) and
+       (Y2 > FFixedClipRect.Top)  and (Y2 < FFixedClipRect.Bottom - $20000) then
+    begin
+      VertLineX(X, Y1, Y2, Value);
+      Exit;
+    end;
+
+    // If we are still here, it means that the line touches one or several bitmap
+    // boundaries. Use the safe version of antialiased pixel routine
+    try
+      ny := Y2 - Y1;
+      Inc(X, 127); Inc(Y1, 127); Inc(Y2, 127);
+      hyp := abs(ny);
+      if hyp < 256 then Exit;
+      n := hyp shr 16;
+      if n > 0 then
+      begin
+        ny := -65536;
+        for i := 0 to n - 1 do
+        begin
+          SET_TS256(SAR_8(X), SAR_8(Y1), Value);
+          Inc(Y1, ny);
+        end;
+      end;
+      SET_TS256(SAR_9(2 * X), SAR_9(Y1 + Y2 - ny), Value and $00FFFFFF + 
+                Value shr 24 * Longword(hyp - n shl 16) shl 8 and $FF000000);
+    finally
+      EMMS;
+    end;
+  end;
+  Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
 end;
 
 procedure TCustomBitmap32.Line(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
