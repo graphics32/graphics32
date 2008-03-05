@@ -1514,12 +1514,8 @@ var
      (FunctionVar: @@LogicalMaskLineAndEx; FunctionProcs : @AndLineExProcs; Count: Length(AndLineExProcs))
    );
 
-type
-  TUnitAccess = class
-  end;
-
 initialization
-  GR32_Filters_FunctionTemplates := RegisterTemplates(FunctionTemplates,
-    GetUnitName(TypeInfo(TUnitAccess)));
+  RegisterTemplates(GR32_Filters_FunctionTemplates, FunctionTemplates,
+    'GR32_Filters Default Templates');
 
 end.

@@ -234,15 +234,13 @@ type
   end;
 {$ENDIF}
 
-var
-  GR32_Micro_FunctionTemplates : TTemplatesHandle;
-
 implementation
 
 uses
   GR32_LowLevel, GR32_Math, Math;
 
 var
+  GR32_Micro_FunctionTemplates : TTemplatesHandle;
   MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 
 { MicroTile auxiliary routines }
@@ -1736,12 +1734,8 @@ var
       Count: Length(MicroTilesUProcs))
   );
 
-type
-  TUnitAccess = class
-  end;
-
 initialization
-  GR32_Micro_FunctionTemplates := RegisterTemplates(FunctionTemplates,
-    GetUnitName(TypeInfo(TUnitAccess)));
+  RegisterTemplates(GR32_Micro_FunctionTemplates, FunctionTemplates,
+    'GR32_MicroTiles Default Templates');
 
 end.
