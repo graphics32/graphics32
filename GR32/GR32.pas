@@ -916,7 +916,6 @@ type
 
 var
   StockBitmap: TBitmap;
-  GR32_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
@@ -942,6 +941,9 @@ uses
 {$ENDIF}
 {$ENDIF}
   GR32_DrawingEx;
+
+var
+  GR32_FunctionTemplates : TTemplatesHandle;
 
 type
   TGraphicAccess = class(TGraphic);
@@ -6021,13 +6023,9 @@ var
       Count: Length(InterpolatorProcs))
   );
 
-type
-  TUnitAccess = class
-  end;
-
 initialization
-  GR32_FunctionTemplates := RegisterTemplates(FunctionTemplates,
-    GetUnitName(TypeInfo(TUnitAccess)));
+  RegisterTemplates(GR32_FunctionTemplates, FunctionTemplates,
+    'GR32 Default Templates');
 
   SetGamma;
   StockBitmap := TBitmap.Create;
