@@ -22,7 +22,10 @@ unit GR32_System;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Andre Beckedorf
+ *  Andre Beckedorf
+ *  Michael Hansen <dyster_tid@hotmail.com>
+ *    - CPU type & feature-set aware function binding
+ *    - Runtime function template and extension binding system
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -79,7 +82,7 @@ type
   PCPUFeatures = ^TCPUFeatures;
   TCPUFeatures = set of TCPUInstructionSet;
 
-  TFunctionInfo = record
+  TFunctionInfo = packed record
     Address: Pointer;
     Requires: TCPUFeatures;
   end;
@@ -96,35 +99,51 @@ type
   PFunctionTemplateArray = ^TFunctionTemplateArray;
   TFunctionTemplateArray = array [0..0] of TFunctionTemplate;
 
-  TFunctionTemplates = record
-    Templates : PFunctionTemplateArray;
-    Count: Integer;
-    Name: String;
-  end;
-
+  PTemplatesHandle = ^TTemplatesHandle;
   TTemplatesHandle = type Integer;
 
+  TFunctionTemplateGroup = packed record
+    Count: Integer;
+    Templates : PFunctionTemplateArray;
+    Name: String;
+    HandlePtr: PTemplatesHandle;
+  end;
 
 { General function that returns whether a particular instrucion set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
-
+function CPUFeatures: TCPUFeatures;
 
 { General functions that sets up the correct function(s) depending on detected CPU
   features, present implementations and/or compiler directives }
 
-procedure BindFunction(var FunctionPtr: Pointer; const Procs : array of TFunctionInfo; Requirements: TCPUFeatures);
-procedure RebindTemplates(const Templates: array of TFunctionTemplate;Requirements: TCPUFeatures);
 procedure RebindSystem(Requirements: TCPUFeatures);
-function RegisterTemplates(const Templates: array of TFunctionTemplate; const TemplateName: String): TTemplatesHandle;
-function GetUnitName(const TypeInfoPtr: Pointer): String;
+procedure RebindTemplates(Handle: TTemplatesHandle; Requirements: TCPUFeatures);
+procedure RebindFunction(var FunctionPtr: Pointer; Requirements: TCPUFeatures);
+
+{ The template register routine; used internally in GR32 for setting up
+  default function template layer - should only be used if you intend to use
+  the setup and extension system for managing your own native units.
+  If you want to use extensions or alternative routines for GR32 native
+  routines, use extensions }
+
+procedure RegisterTemplates(var Handle: TTemplatesHandle;
+  var TemplateGroup: array of TFunctionTemplate; const TemplateName: String);
+
+{ The register and remove routines; use these if you want to replace GR32
+  native functions with your own versions }
+
+procedure RegisterExtension(var Handle: TTemplatesHandle;
+  var TemplateGroup: array of TFunctionTemplate; const TemplateName: String);
+procedure RemoveExtension(Handle: TTemplatesHandle);
+
 
 var
   GlobalPerfTimer: TPerfTimer;
-  CPUFeatures: TCPUFeatures;
-  Graphics32_FunctionTemplates : array of TFunctionTemplates;
 
-procedure InitCPUFeatures;
+  //Function template registers - DO NOT ALTER THESE DIRECTLY!!
+  DefaultTemplateGroups : array of TFunctionTemplateGroup;
+  ExtensionTemplateGroups : array of TFunctionTemplateGroup;
 
 implementation
 
@@ -135,11 +154,13 @@ uses
 
 var
   CPUFeaturesInitialized : Boolean = False;
+  CPUFeaturesData: TCPUFeatures;
 
 {$IFDEF UNIX}
 {$IFDEF FPC}
 function GetTickCount: Cardinal;
-var t : timeval;
+var
+  t : timeval;
 begin
   fpgettimeofday(@t,nil);
    // Build a 64 bit microsecond tick from the seconds and microsecond longints
@@ -147,7 +168,8 @@ begin
 end;
 
 function TPerfTimer.ReadNanoseconds: String;
-var t : timeval;
+var
+  t : timeval;
 begin
   fpgettimeofday(@t,nil);
    // Build a 64 bit microsecond tick from the seconds and microsecond longints
@@ -155,7 +177,8 @@ begin
 end;
 
 function TPerfTimer.ReadMilliseconds: String;
-var t : timeval;
+var
+  t : timeval;
 begin
   fpgettimeofday(@t,nil);
    // Build a 64 bit microsecond tick from the seconds and microsecond longints
@@ -172,7 +195,8 @@ begin
 end;
 
 procedure TPerfTimer.Start;
-var t : timeval;
+var
+  t : timeval;
 begin
   fpgettimeofday(@t,nil);
    // Build a 64 bit microsecond tick from the seconds and microsecond longints
@@ -246,6 +270,7 @@ function TPerfTimer.ReadValue: Int64;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
+
   Result := Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency);
 end;
 
@@ -383,108 +408,227 @@ begin
 end;
 
 {$ENDIF}
-
-procedure BindFunction(var FunctionPtr: Pointer;
-  const Procs : array of TFunctionInfo; Requirements: TCPUFeatures);
+procedure BindTemplate(var Template: TFunctionTemplate; Requirements: TCPUFeatures);
 var
   I: Integer;
   InputNotAssigned: Boolean;
 begin
-  InputNotAssigned := Assigned(FunctionPtr);
+  InputNotAssigned := Assigned(Template.FunctionVar);
 
   {$IFDEF NO_REQUIREMENTS}
   Requirements := [];
   {$ENDIF}
 
-  for I := High(Procs) downto Low(Procs) do
-     with Procs[I] do
-        if Requires <= Requirements then
-        begin
-          FunctionPtr := Address;
-          if Assigned(FunctionPtr) then
-            Exit;
-        end;
+  with Template do
+  for I := Count - 1 downto 0 do
+    with FunctionProcs^[I] do
+       if Requires <= Requirements then
+       begin
+         FunctionVar^ := Address;
+         if Assigned(FunctionVar) then
+           Exit;
+       end;
 
   if InputNotAssigned then
   begin
     { Only raise exceptions if FunctionPtr was nil initially
-      - we only reach this situation on first binding steps }
+      - we only reach this situation on initialization binding phases }
 
-    if Length(Procs) = 0 then
-      raise Exception.Create('Cannot initialize function based on empty array.');
+    if Template.Count = 0 then
+      raise Exception.Create('Cannot initialize function based on empty template!');
 
-    if not Assigned(FunctionPtr) then
+    if not Assigned(Template.FunctionVar) then
       raise Exception.Create('Invalid Function Info (address is nil)');
   end;
 
 end;
 
-
-procedure RebindTemplates(const Templates: array of TFunctionTemplate; Requirements: TCPUFeatures);
+procedure BindTemplatesArray(Templates: PFunctionTemplateArray; Count: Integer; Requirements: TCPUFeatures);
 var
   I: Integer;
 begin
-  for I := Low(Templates) to High(Templates) do
-    with Templates[I] do
-      BindFunction(FunctionVar^, Slice(FunctionProcs^, Count), Requirements);
+  for I := 0 to Count - 1 do
+    BindTemplate(Templates^[I], Requirements);
 end;
 
 procedure RebindSystem(Requirements: TCPUFeatures);
 var
   I: Integer;
 begin
-  for I := Low(Graphics32_FunctionTemplates) to High(Graphics32_FunctionTemplates) do
-    with Graphics32_FunctionTemplates[I] do
-      RebindTemplates(Slice(Templates^, Count), Requirements);
+  //Bind default
+  for I := Low(DefaultTemplateGroups) to High(DefaultTemplateGroups) do
+    with DefaultTemplateGroups[I] do
+      BindTemplatesArray(Templates, Count, Requirements);
+
+  //Bind eventual extension overlays
+  for I := Low(ExtensionTemplateGroups) to High(ExtensionTemplateGroups) do
+    with ExtensionTemplateGroups[I] do
+      BindTemplatesArray(Templates, Count, Requirements);
 end;
 
-function RegisterTemplates(const Templates: array of TFunctionTemplate; const TemplateName: String) : TTemplatesHandle;
+procedure RebindTemplates(Handle: TTemplatesHandle; Requirements: TCPUFeatures);
 var
-  GR32TmplPtr: ^TFunctionTemplates;
+  I, J, P: Integer;
+  ExtPtr: PPointer;
 begin
-  RebindTemplates(Templates, CPUFeatures);
+  if (Handle >= 0) and (Handle <= High(DefaultTemplateGroups)) then
+  begin
+    //Bind default
+    with DefaultTemplateGroups[Handle] do
+      BindTemplatesArray(Templates, Count, Requirements);
 
-  Result := Length(Graphics32_FunctionTemplates);
-  SetLength(Graphics32_FunctionTemplates, Result + 1);
-
-  GR32TmplPtr := @Graphics32_FunctionTemplates[Result];
-  GR32TmplPtr.Templates := @Templates;
-  GR32TmplPtr.Count := High(Templates) - Low(Templates) + 1;
-  GR32TmplPtr.Name := TemplateName;
+    //Simple search for possible extension overlays
+    for I := Low(ExtensionTemplateGroups) to High(ExtensionTemplateGroups) do
+    begin
+      with ExtensionTemplateGroups[I] do
+      for J := 0 to Count - 1 do
+      begin
+        ExtPtr := Templates^[J].FunctionVar;
+        for P := 0 to DefaultTemplateGroups[Handle].Count - 1 do
+        begin
+          if ExtPtr = DefaultTemplateGroups[Handle].Templates^[P].FunctionVar then
+            BindTemplate(Templates^[J], Requirements);
+        end;
+      end;
+    end;
+  end;
 end;
 
-procedure InitCPUFeatures;
+procedure RebindFunction(var FunctionPtr: Pointer; Requirements: TCPUFeatures);
+var
+  I, J: Integer;
+begin
+  //Bind Default
+  for I := Low(DefaultTemplateGroups) to High(DefaultTemplateGroups) do
+  with DefaultTemplateGroups[I] do
+  begin
+    for J := 0 to Count - 1 do
+    begin
+      if FunctionPtr = Templates^[J].FunctionVar^ then
+      begin
+        BindTemplate(Templates^[J], Requirements);
+        Exit;
+      end;
+    end;
+  end;
+
+  //Bind eventual extension
+  for I := Low(ExtensionTemplateGroups) to High(ExtensionTemplateGroups) do
+  with ExtensionTemplateGroups[I] do
+  begin
+    for J := 0 to Count - 1 do
+    begin
+      if FunctionPtr = Templates^[J].FunctionVar^ then
+      begin
+        BindTemplate(Templates^[J], Requirements);
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+procedure _RegisterTemplates(var Handle: TTemplatesHandle;
+  var TemplateGroup: array of TFunctionTemplate; const TemplateName: String;
+  AsExtension: Boolean);
+var
+  PDstTemplateGroup: ^TFunctionTemplateGroup;
+begin
+
+  if Length(TemplateGroup) > 0 then
+  begin
+    if AsExtension then
+    begin
+      Handle := Length(ExtensionTemplateGroups);
+      SetLength(ExtensionTemplateGroups, Handle + 1);
+      PDstTemplateGroup := @ExtensionTemplateGroups[Handle];
+    end
+    else
+    begin
+      Handle := Length(DefaultTemplateGroups);
+      SetLength(DefaultTemplateGroups, Handle + 1);
+      PDstTemplateGroup := @DefaultTemplateGroups[Handle];
+    end;
+
+    with PDstTemplateGroup^ do
+    begin
+      Templates := @TemplateGroup;
+      Count := High(TemplateGroup) - Low(TemplateGroup) + 1;
+      Name := TemplateName;
+      HandlePtr := @Handle;
+      BindTemplatesArray(Templates, Count, CPUFeatures);
+    end;
+  end
+  else
+    raise Exception.Create('Cannot register empty TemplateGroup!');
+end;
+
+procedure RegisterTemplates(var Handle: TTemplatesHandle;
+  var TemplateGroup: array of TFunctionTemplate; const TemplateName: String);
+begin
+  _RegisterTemplates(Handle, TemplateGroup, TemplateName, False);
+end;
+
+procedure RegisterExtension(var Handle: TTemplatesHandle;
+  var TemplateGroup: array of TFunctionTemplate; const TemplateName: String);
+begin
+  _RegisterTemplates(Handle, TemplateGroup, TemplateName, True);
+end;
+
+procedure RemoveExtension(Handle: TTemplatesHandle);
+var
+  I: Integer;
+begin
+  if (Handle >= 0) and (Handle <= High(ExtensionTemplateGroups)) then
+  begin
+    if ExtensionTemplateGroups[Handle].HandlePtr^ <> Handle then
+      raise Exception.Create('Internal Error - Extension handle mismatch!');
+
+    ExtensionTemplateGroups[Handle].HandlePtr^ := -1; //reset handle
+
+    if Handle = High(ExtensionTemplateGroups) then
+      SetLength(ExtensionTemplateGroups, Length(ExtensionTemplateGroups) - 1)
+    else
+    begin
+      for I := Handle to High(ExtensionTemplateGroups) - 1 do
+      begin
+        ExtensionTemplateGroups[I] := ExtensionTemplateGroups[I + 1];
+        ExtensionTemplateGroups[I].HandlePtr^ := I;
+      end;
+      SetLength(ExtensionTemplateGroups, Length(ExtensionTemplateGroups) - 1);
+    end;
+    RebindSystem(CPUFeatures);
+  end
+  else
+    raise Exception.Create('Invalid Extension Handle!');
+end;
+
+procedure InitCPUFeaturesData;
 var
   I: TCPUInstructionSet;
 begin
   if CPUFeaturesInitialized then Exit;
 
-  CPUFeatures := [];
+  CPUFeaturesData := [];
   for I := Low(TCPUInstructionSet) to High(TCPUInstructionSet) do
-    if HasInstructionSet(I) then CPUFeatures := CPUFeatures + [I];
+    if HasInstructionSet(I) then CPUFeaturesData := CPUFeaturesData + [I];
 
   CPUFeaturesInitialized := True;
 end;
 
-function GetUnitName(const TypeInfoPtr: Pointer): String;
-var
-  TD: PTypeData;
+function CPUFeatures: TCPUFeatures;
 begin
-  Result := 'Unknown';
-  if Assigned(TypeInfoPtr) then
-  begin
-    TD := GetTypeData(TypeInfoPtr);
-    if Assigned(TD) then
-      Result := TD^.UnitName;
-  end;
+  if not CPUFeaturesInitialized then
+    InitCPUFeaturesData;
+  Result := CPUFeaturesData;
 end;
 
 initialization
-  InitCPUFeatures;
+  InitCPUFeaturesData;
   GlobalPerfTimer := TPerfTimer.Create;
 
 finalization
   GlobalPerfTimer.Free;
-  Graphics32_FunctionTemplates := nil;
+  DefaultTemplateGroups := nil;
+  ExtensionTemplateGroups := nil;
 
 end.
