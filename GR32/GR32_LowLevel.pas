@@ -137,10 +137,10 @@ function SAR_16(Value: Integer): Integer;
 { ColorSwap exchanges ARGB <-> ABGR and fills A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
 
+implementation
+
 var
   GR32_Lowlevel_FunctionTemplates : TTemplatesHandle;
-
-implementation
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -840,13 +840,9 @@ var
       Count: Length(FillLongwordProcs))
   );
 
-type
-  TUnitAccess = class
-  end;
-
 initialization
-  GR32_Lowlevel_FunctionTemplates := RegisterTemplates(FunctionTemplates,
-    GetUnitName(TypeInfo(TUnitAccess)));
+  RegisterTemplates(GR32_Lowlevel_FunctionTemplates, FunctionTemplates,
+    'GR32_Lowlevel Default Templates');
 
 end.
 

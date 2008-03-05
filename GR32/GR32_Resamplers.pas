@@ -590,12 +590,14 @@ const
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
   LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
-  GR32_Resamplers_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
 uses
   GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
+
+var
+  GR32_Resamplers_FunctionTemplates : TTemplatesHandle;
 
 const
   SDstNil = 'Destination bitmap is nil';
@@ -3848,13 +3850,9 @@ var
       Count: Length(LinearInterpolatorProcs))
   );
 
-type
-  TUnitAccess = class
-  end;
-
 initialization
-  GR32_Resamplers_FunctionTemplates := RegisterTemplates(FunctionTemplates,
-    GetUnitName(TypeInfo(TUnitAccess)));
+  RegisterTemplates(GR32_Resamplers_FunctionTemplates, FunctionTemplates,
+    'GR32_Resamplers Templates');
 
   { Register resamplers }
   RegisterResampler(TNearestResampler);
