@@ -1,15 +1,15 @@
 object MainForm: TMainForm
   Left = 151
-  Height = 665
+  Height = 630
   Top = 71
   Width = 537
   HorzScrollBar.Page = 536
-  VertScrollBar.Page = 664
+  VertScrollBar.Page = 629
   ActiveControl = BlendBox
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Texture Blend Example'
-  ClientHeight = 665
+  ClientHeight = 630
   ClientWidth = 537
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
@@ -17,9 +17,9 @@ object MainForm: TMainForm
   Position = poScreenCenter
   object Label5: TLabel
     Left = 272
-    Height = 13
+    Height = 14
     Top = 32
-    Width = 72
+    Width = 61
     Caption = 'MasterAlpha'
     ParentColor = False
   end
@@ -109,9 +109,9 @@ object MainForm: TMainForm
   end
   object Label7: TLabel
     Left = 272
-    Height = 13
+    Height = 14
     Top = 56
-    Width = 63
+    Width = 53
     Caption = 'Blendmode'
     ParentColor = False
   end
@@ -137,6 +137,7 @@ object MainForm: TMainForm
     Top = 56
     Width = 177
     AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+    ItemHeight = 13
     Items.Strings = (
       'Normal'
       'Soft Masked'

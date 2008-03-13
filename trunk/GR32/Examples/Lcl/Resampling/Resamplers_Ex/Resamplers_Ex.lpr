@@ -5,10 +5,10 @@ program Resamplers_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, ImagesForLazarus;
 
 {$IFDEF Windows}
-{$R *.res}
+{.$R *.res}
 {$ENDIF}
 
 begin

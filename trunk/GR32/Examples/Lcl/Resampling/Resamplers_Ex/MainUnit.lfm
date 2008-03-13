@@ -17,11 +17,11 @@ object fmResamplersExample: TfmResamplersExample
   OnCreate = FormCreate
   object SidePanel: TPanel
     Left = 174
-    Height = 221
+    Height = 217
     Width = 146
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 221
+    ClientHeight = 217
     ClientWidth = 146
     TabOrder = 1
     object pnlResampler: TPanel
@@ -80,6 +80,7 @@ object fmResamplersExample: TfmResamplersExample
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
         MaxLength = 0
         OnChange = ResamplerClassNamesListChange
         Style = csDropDownList
@@ -92,6 +93,7 @@ object fmResamplersExample: TfmResamplersExample
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
         Items.Strings = (
           'Unsafe'
           'Safe'
@@ -109,6 +111,7 @@ object fmResamplersExample: TfmResamplersExample
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
         Items.Strings = (
           'Clamp'
           'Repeat'
@@ -186,6 +189,7 @@ object fmResamplersExample: TfmResamplersExample
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
         MaxLength = 0
         OnChange = KernelClassNamesListClick
         Style = csDropDownList
@@ -198,6 +202,7 @@ object fmResamplersExample: TfmResamplersExample
         Width = 119
         Anchors = [akTop, akRight]
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+        ItemHeight = 13
         Items.Strings = (
           'Default (precise, slow)'
           'Table Nearest (truncated, fastest)'
@@ -211,7 +216,7 @@ object fmResamplersExample: TfmResamplersExample
     end
   end
   object PageControl: TPageControl
-    Height = 221
+    Height = 217
     Width = 174
     ActivePage = tabDetails
     Align = alClient
@@ -233,8 +238,8 @@ object fmResamplersExample: TfmResamplersExample
     end
   end
   object StatusBar: TStatusBar
-    Height = 19
-    Top = 221
+    Height = 23
+    Top = 217
     Width = 320
     Panels = <    
       item

@@ -1,16 +1,17 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
+      <IconPath Value=".\"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="2"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -18,23 +19,23 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="GR32_L"/>
       </Item1>
       <Item2>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
     <Units Count="9">
       <Unit0>
         <Filename Value="Mandelbrot_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="12" Y="14"/>
-        <TopLine Value="1"/>
+        <CursorPos X="3" Y="14"/>
+        <TopLine Value="3"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
@@ -53,7 +54,7 @@
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
-        <Filename Value="../../../../GR32_ExtImage.pas"/>
+        <Filename Value="..\..\..\..\GR32_ExtImage.pas"/>
         <UnitName Value="GR32_ExtImage"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="19"/>
@@ -75,21 +76,21 @@
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="../../../../GR32_Resamplers.pas"/>
+        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="32" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="/Lazarus/components/jpeg/lazjpeg.pas"/>
+        <Filename Value="\Lazarus\components\jpeg\lazjpeg.pas"/>
         <UnitName Value="LazJPEG"/>
         <CursorPos X="43" Y="35"/>
         <TopLine Value="11"/>
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
-        <Filename Value="../Rotate_Ex/MainUnit.pas"/>
+        <Filename Value="..\Rotate_Ex\MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -98,7 +99,7 @@
         <UsageCount Value="10"/>
       </Unit7>
       <Unit8>
-        <Filename Value="../ByteMaps_Ex/ByteMaps_Ex.lpr"/>
+        <Filename Value="..\ByteMaps_Ex\ByteMaps_Ex.lpr"/>
         <UnitName Value="ByteMaps_Ex"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
@@ -109,9 +110,7 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-    </SearchPaths>
+    <PathDelim Value="\"/>
     <Parsing>
       <SyntaxOptions>
         <D2Extensions Value="False"/>

@@ -16,7 +16,7 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +'Height'#2#14#3'Top'#3#138#1#5'Width'#2'X'#7'Caption'#6#18'Outline Thickness'
   +':'#11'ParentColor'#8#0#0#6'TLabel'#6'Label4'#4'Left'#2'q'#6'Height'#2#14#3
   +'Top'#3#139#1#5'Width'#2#15#7'Caption'#6#3'(1)'#11'ParentColor'#8#0#0#9'TChe'
-  +'ckBox'#10'Antialiase'#4'Left'#2#16#6'Height'#2#13#3'Top'#2'('#5'Width'#2'G'
+  +'ckBox'#10'Antialiase'#4'Left'#2#16#6'Height'#2#19#3'Top'#2'('#5'Width'#2'M'
   +#7'Caption'#6#11'Antialiased'#7'OnClick'#7#13'ParamsChanged'#8'TabOrder'#2#0
   +#0#0#10'TScrollBar'#9'LineAlpha'#4'Left'#2#16#6'Height'#2#16#3'Top'#3#226#0#5
   +'Width'#2'y'#3'Max'#3#255#0#8'Position'#3#255#0#8'TabOrder'#2#1#8'OnChange'#7
@@ -34,8 +34,8 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +#7'OnClick'#7#13'ParamsChanged'#8'TabOrder'#2#3#0#0#10'TScrollBar'#13'LineTh'
   +'ickness'#4'Left'#2#16#6'Height'#2#16#3'Top'#3#178#1#5'Width'#2'y'#3'Max'#3
   +#200#0#3'Min'#2#1#8'Position'#2#10#8'TabOrder'#2#4#8'OnChange'#7#16'Thicknes'
-  +'sChanged'#0#0#9'TCheckBox'#12'ThickOutline'#4'Left'#2#16#6'Height'#2#13#3'T'
-  +'op'#3#154#1#5'Width'#2';'#7'Caption'#6#7'Enabled'#7'OnClick'#7#16'Thickness'
+  +'sChanged'#0#0#9'TCheckBox'#12'ThickOutline'#4'Left'#2#16#6'Height'#2#19#3'T'
+  +'op'#3#154#1#5'Width'#2'A'#7'Caption'#6#7'Enabled'#7'OnClick'#7#16'Thickness'
   +'Changed'#8'TabOrder'#2#5#0#0#11'TRadioGroup'#13'AntialiasMode'#4'Left'#2#16
   +#6'Height'#2'U'#3'Top'#2'<'#5'Width'#2'y'#8'AutoFill'#9#7'Caption'#6#14'Anti'
   +'alias Mode'#28'ChildSizing.LeftRightSpacing'#2#6#28'ChildSizing.TopBottomSp'
@@ -54,7 +54,7 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +'oBk'#11'Font.Height'#2#247#9'Font.Name'#6#6'Tahoma'#13'Lines.Strings'#1#6#24
   +'Check Outline Thickness '#6#17'below to control '#6#25'antialiasing mode of'
   +' the '#6#8'outline.'#0#8'ReadOnly'#9#8'TabOrder'#2#8#7'TabStop'#8#0#0#9'TCh'
-  +'eckBox'#7'Pattern'#4'Left'#2#16#6'Height'#2#13#3'Top'#3'h'#1#5'Width'#2'P'#7
+  +'eckBox'#7'Pattern'#4'Left'#2#16#6'Height'#2#19#3'Top'#3'h'#1#5'Width'#2'V'#7
   +'Caption'#6#15'Pattern filling'#7'OnClick'#7#13'ParamsChanged'#8'TabOrder'#2
   +#9#0#0#7'TButton'#7'Button1'#4'Left'#2#24#6'Height'#2#25#3'Top'#2#8#5'Width'
   +#2'i'#25'BorderSpacing.InnerBorder'#2#4#7'Caption'#6#8'New Line'#7'OnClick'#7

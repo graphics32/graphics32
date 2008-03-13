@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
+      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
       <ActiveEditorIndexAtStart Value="2"/>
     </General>
@@ -16,6 +16,7 @@
     </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -23,25 +24,25 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="GR32_L"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
     <Units Count="7">
       <Unit0>
         <Filename Value="Resamplers_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="48" Y="16"/>
+        <CursorPos X="13" Y="1"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="24"/>
@@ -54,8 +55,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="35" Y="362"/>
-        <TopLine Value="350"/>
+        <CursorPos X="8" Y="119"/>
+        <TopLine Value="106"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="24"/>
         <Loaded Value="True"/>
@@ -70,28 +71,28 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="../../../../Packages/GR32_L.pas"/>
+        <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit3>
       <Unit4>
-        <Filename Value="../../../../GR32_Image.pas"/>
+        <Filename Value="..\..\..\..\GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
         <CursorPos X="81" Y="40"/>
         <TopLine Value="24"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="../../../Vcl/Resampling/Resamplers_Ex/temp.lfm"/>
+        <Filename Value="..\..\..\Vcl\Resampling\Resamplers_Ex\temp.lfm"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit5>
       <Unit6>
-        <Filename Value="../../../Vcl/Resampling/PixelF_Ex/MainUnit.pas"/>
+        <Filename Value="..\..\..\Vcl\Resampling\PixelF_Ex\MainUnit.pas"/>
         <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -106,9 +107,7 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-    </SearchPaths>
+    <PathDelim Value="\"/>
     <CodeGeneration>
       <Generate Value="Faster"/>
     </CodeGeneration>

@@ -181,7 +181,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG;
+  LazJPG;
 
 function GetVal(Src: string; var Dst: Extended): Boolean;
 var

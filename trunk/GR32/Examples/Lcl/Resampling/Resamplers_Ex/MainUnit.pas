@@ -116,7 +116,7 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
 procedure TfmResamplersExample.FormCreate(Sender: TObject);

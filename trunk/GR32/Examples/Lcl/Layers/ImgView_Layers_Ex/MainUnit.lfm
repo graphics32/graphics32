@@ -4,10 +4,10 @@ object MainForm: TMainForm
   Top = 121
   Width = 320
   HorzScrollBar.Page = 319
-  VertScrollBar.Page = 215
+  VertScrollBar.Page = 219
   ActiveControl = ScaleCombo
   Caption = 'Image View Layers Example'
-  ClientHeight = 216
+  ClientHeight = 220
   ClientWidth = 320
   Font.Height = -11
   Font.Name = 'Tahoma'
@@ -16,11 +16,11 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   object SidePanel: TPanel
     Left = 189
-    Height = 216
+    Height = 220
     Width = 131
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 216
+    ClientHeight = 220
     ClientWidth = 131
     TabOrder = 0
     object pnlImage: TPanel
@@ -33,9 +33,9 @@ object MainForm: TMainForm
       Visible = False
       object Label1: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 24
-        Width = 36
+        Width = 30
         Caption = 'Scale:'
         ParentColor = False
       end
@@ -46,6 +46,7 @@ object MainForm: TMainForm
         Width = 105
         AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
         DropDownCount = 9
+        ItemHeight = 13
         Items.Strings = (
           '    25%'
           '    50%'
@@ -79,18 +80,18 @@ object MainForm: TMainForm
       end
       object ImageInterpolate: TCheckBox
         Left = 16
-        Height = 20
+        Height = 19
         Top = 72
-        Width = 89
+        Width = 82
         Caption = 'Interpolated'
         OnClick = ImageInterpolateClick
         TabOrder = 2
       end
       object cbOptRedraw: TCheckBox
         Left = 16
-        Height = 20
+        Height = 19
         Top = 96
-        Width = 124
+        Width = 111
         Caption = 'Optimize Repaints'
         Checked = True
         OnClick = cbOptRedrawClick
@@ -109,9 +110,9 @@ object MainForm: TMainForm
       Visible = False
       object Label2: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 24
-        Width = 48
+        Width = 42
         Caption = 'Opacity:'
         ParentColor = False
       end
@@ -132,9 +133,9 @@ object MainForm: TMainForm
       end
       object LayerInterpolate: TCheckBox
         Left = 16
-        Height = 20
+        Height = 19
         Top = 64
-        Width = 89
+        Width = 82
         Caption = 'Interpolated'
         OnClick = LayerInterpolateClick
         TabOrder = 1
@@ -161,9 +162,9 @@ object MainForm: TMainForm
       end
       object Cropped: TCheckBox
         Left = 16
-        Height = 20
+        Height = 19
         Top = 88
-        Width = 72
+        Width = 66
         Caption = 'Cropped'
         OnClick = CroppedClick
         TabOrder = 3
@@ -171,7 +172,7 @@ object MainForm: TMainForm
     end
     object PnlMagn: TPanel
       Height = 168
-      Top = 257
+      Top = 220
       Width = 131
       Align = alTop
       ClientHeight = 168
@@ -180,25 +181,25 @@ object MainForm: TMainForm
       Visible = False
       object Label3: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 24
-        Width = 48
+        Width = 42
         Caption = 'Opacity:'
         ParentColor = False
       end
       object Label4: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 64
-        Width = 79
+        Width = 68
         Caption = 'Magnification:'
         ParentColor = False
       end
       object Label5: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 104
-        Width = 49
+        Width = 46
         Caption = 'Rotation:'
         ParentColor = False
       end
@@ -219,9 +220,9 @@ object MainForm: TMainForm
       end
       object MagnInterpolate: TCheckBox
         Left = 16
-        Height = 20
+        Height = 19
         Top = 144
-        Width = 89
+        Width = 82
         Caption = 'Interpolated'
         OnClick = MagnChange
         TabOrder = 1
@@ -347,12 +348,10 @@ object MainForm: TMainForm
     end
   end
   object OpenPictureDialog1: TOpenPictureDialog
-    Title = 'Open existing file'
     FilterIndex = 0
     left = 248
   end
   object SaveDialog1: TSaveDialog
-    Title = 'Save file as'
     FilterIndex = 0
     left = 280
   end

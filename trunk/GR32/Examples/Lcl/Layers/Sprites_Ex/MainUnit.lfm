@@ -1,13 +1,13 @@
 object Form1: TForm1
   Left = 243
-  Height = 684
+  Height = 630
   Top = 49
   Width = 852
   HorzScrollBar.Page = 851
-  VertScrollBar.Page = 683
+  VertScrollBar.Page = 629
   ActiveControl = bAdd
   Caption = 'Sprites Example'
-  ClientHeight = 684
+  ClientHeight = 630
   ClientWidth = 852
   Font.Height = -11
   Font.Name = 'Tahoma'
@@ -16,7 +16,7 @@ object Form1: TForm1
   object Label1: TLabel
     Left = 12
     Height = 14
-    Top = 653
+    Top = 599
     Width = 29
     Anchors = [akLeft, akBottom]
     Caption = 'Total:'
@@ -25,7 +25,7 @@ object Form1: TForm1
   object lbFPS: TLabel
     Left = 272
     Height = 17
-    Top = 654
+    Top = 600
     Width = 81
     Anchors = [akLeft, akBottom]
     AutoSize = False
@@ -34,7 +34,7 @@ object Form1: TForm1
   object lbDimension: TLabel
     Left = 360
     Height = 17
-    Top = 654
+    Top = 600
     Width = 113
     Anchors = [akLeft, akBottom]
     AutoSize = False
@@ -43,7 +43,7 @@ object Form1: TForm1
   object bAdd: TButton
     Left = 627
     Height = 21
-    Top = 652
+    Top = 598
     Width = 69
     Anchors = [akRight, akBottom]
     BorderSpacing.InnerBorder = 4
@@ -54,7 +54,7 @@ object Form1: TForm1
   object edLayerCount: TEdit
     Left = 44
     Height = 19
-    Top = 652
+    Top = 598
     Width = 65
     Anchors = [akLeft, akBottom]
     ReadOnly = True
@@ -64,7 +64,7 @@ object Form1: TForm1
   object bClearAll: TButton
     Left = 776
     Height = 21
-    Top = 652
+    Top = 598
     Width = 68
     Anchors = [akRight, akBottom]
     BorderSpacing.InnerBorder = 4
@@ -74,9 +74,9 @@ object Form1: TForm1
   end
   object cbUseRepaintOpt: TCheckBox
     Left = 120
-    Height = 13
-    Top = 661
-    Width = 125
+    Height = 19
+    Top = 601
+    Width = 131
     Anchors = [akLeft, akBottom]
     Caption = 'Use Repaint Optimizer'
     OnClick = cbUseRepaintOptClick
@@ -85,7 +85,7 @@ object Form1: TForm1
   object bRemove: TButton
     Left = 704
     Height = 21
-    Top = 652
+    Top = 598
     Width = 64
     Anchors = [akRight, akBottom]
     BorderSpacing.InnerBorder = 4
@@ -110,7 +110,7 @@ object Form1: TForm1
   object bBenchmark: TButton
     Left = 520
     Height = 21
-    Top = 652
+    Top = 598
     Width = 96
     Anchors = [akRight, akBottom]
     BorderSpacing.InnerBorder = 4

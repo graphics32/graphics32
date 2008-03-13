@@ -8,7 +8,7 @@ uses
   MainUnit in 'MainUnit.pas' {MainForm},
   NewImageUnit in 'NewImageUnit.pas' {NewImageForm},
   RGBALoaderUnit in 'RGBALoaderUnit.pas' {RGBALoaderForm}, GR32_L,
-  JPEGForLazarus;
+  ImagesForLazarus;
 
 begin
   Application.Initialize;

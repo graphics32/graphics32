@@ -16,8 +16,8 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +'Caption'#6#20'RotLayer.Position.Y:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label'
   +'4'#4'Left'#2#12#6'Height'#2#14#3'Top'#3#184#1#5'Width'#2'V'#7'Anchors'#11#6
   +'akLeft'#8'akBottom'#0#7'Caption'#6#16'ImgView32.Scale:'#11'ParentColor'#8#0
-  +#0#9'TCheckBox'#9'CheckBox1'#4'Left'#2#8#6'Height'#2#13#3'Top'#3#156#1#5'Wid'
-  +'th'#2'f'#7'Anchors'#11#6'akLeft'#8'akBottom'#0#7'Caption'#6#16'RotLayer.Sca'
+  +#0#9'TCheckBox'#9'CheckBox1'#4'Left'#2#8#6'Height'#2#19#3'Top'#3#150#1#5'Wid'
+  +'th'#2'l'#7'Anchors'#11#6'akLeft'#8'akBottom'#0#7'Caption'#6#16'RotLayer.Sca'
   +'led:'#7'Checked'#9#7'OnClick'#7#14'CheckBox1Click'#5'State'#7#9'cbChecked'#8
   +'TabOrder'#2#0#0#0#0
 ]);

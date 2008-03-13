@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
+      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -16,6 +16,7 @@
     </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -23,26 +24,26 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="GR32_L"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
     <Units Count="11">
       <Unit0>
         <Filename Value="ImgView_Layers_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="13"/>
-        <TopLine Value="1"/>
+        <CursorPos X="2" Y="4"/>
+        <TopLine Value="3"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -54,8 +55,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="20" Y="38"/>
-        <TopLine Value="22"/>
+        <CursorPos X="8" Y="162"/>
+        <TopLine Value="148"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -78,14 +79,14 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="RGBALoaderUnit.lrs"/>
         <UnitName Value="RGBALoaderUnit"/>
-        <CursorPos X="15" Y="19"/>
-        <TopLine Value="1"/>
+        <CursorPos X="12" Y="33"/>
+        <TopLine Value="23"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="../../../../Packages/GR32_L.pas"/>
+        <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
         <CursorPos X="14" Y="13"/>
         <TopLine Value="1"/>
@@ -118,7 +119,7 @@
         <UsageCount Value="10"/>
       </Unit8>
       <Unit9>
-        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
+        <Filename Value="..\..\General\Rotate_Ex\MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -127,7 +128,7 @@
         <UsageCount Value="10"/>
       </Unit9>
       <Unit10>
-        <Filename Value="../../../../GR32_RangeBars.pas"/>
+        <Filename Value="..\..\..\..\GR32_RangeBars.pas"/>
         <UnitName Value="GR32_RangeBars"/>
         <CursorPos X="33" Y="68"/>
         <TopLine Value="54"/>
@@ -138,9 +139,9 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
+    <PathDelim Value="\"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-      <ObjectPath Value="../../../"/>
+      <ObjectPath Value="..\..\..\"/>
     </SearchPaths>
     <CodeGeneration>
       <Generate Value="Faster"/>
