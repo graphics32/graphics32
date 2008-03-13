@@ -1,16 +1,17 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
+      <IconPath Value=".\"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="0"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -18,25 +19,25 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="GR32_L"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="18">
+    <Units Count="19">
       <Unit0>
         <Filename Value="TextureBlend_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="9" Y="2"/>
+        <CursorPos X="3" Y="9"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="23"/>
@@ -49,8 +50,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="22" Y="240"/>
-        <TopLine Value="232"/>
+        <CursorPos X="8" Y="71"/>
+        <TopLine Value="63"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="23"/>
         <Loaded Value="True"/>
@@ -59,46 +60,46 @@
         <Filename Value="MainUnit.lfm"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="../../../../GR32_Resamplers.pas"/>
+        <Filename Value="..\..\..\..\GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="65" Y="39"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="4"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="Lazarus/components/jpeg/lazjpeg.pas"/>
+        <Filename Value="Lazarus\components\jpeg\lazjpeg.pas"/>
         <UnitName Value="LazJPEG"/>
         <CursorPos X="30" Y="32"/>
         <TopLine Value="10"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="Lazarus/fpc/2.1.1/source/packages/base/pasjpeg/jpeglib.pas"/>
+        <Filename Value="Lazarus\fpc\2.1.1\source\packages\base\pasjpeg\jpeglib.pas"/>
         <UnitName Value="JPEGLib"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
+        <Filename Value="..\..\General\Rotate_Ex\MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
-        <ResourceFilename Value="../../General/Rotate_Ex/MainUnit.lrs"/>
+        <ResourceFilename Value="..\..\General\Rotate_Ex\MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="1" Y="99"/>
         <TopLine Value="78"/>
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
-        <Filename Value="../../Transformation/Transform_Ex/MainUnit.pas"/>
+        <Filename Value="..\..\Transformation\Transform_Ex\MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -107,7 +108,7 @@
         <UsageCount Value="10"/>
       </Unit7>
       <Unit8>
-        <Filename Value="../../General/ByteMaps_Ex/MainUnit.pas"/>
+        <Filename Value="..\..\General\ByteMaps_Ex\MainUnit.pas"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="1" Y="1"/>
@@ -115,14 +116,14 @@
         <UsageCount Value="10"/>
       </Unit8>
       <Unit9>
-        <Filename Value="../../General/ByteMaps_Ex/MainUnit.lfm"/>
+        <Filename Value="..\..\General\ByteMaps_Ex\MainUnit.lfm"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit9>
       <Unit10>
-        <Filename Value="../../General/Mandelbrot_Ex/MandelUnit.pas"/>
+        <Filename Value="..\..\General\Mandelbrot_Ex\MandelUnit.pas"/>
         <HasResources Value="True"/>
         <UnitName Value="MandelUnit"/>
         <CursorPos X="16" Y="66"/>
@@ -130,65 +131,80 @@
         <UsageCount Value="10"/>
       </Unit10>
       <Unit11>
-        <Filename Value="../../General/Mandelbrot_Ex/MandelUnit.lfm"/>
+        <Filename Value="..\..\General\Mandelbrot_Ex\MandelUnit.lfm"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit11>
       <Unit12>
-        <Filename Value="../../../../../teste/testapp/testapp.lpi.bak"/>
+        <Filename Value="..\..\..\..\..\teste\testapp\testapp.lpi.bak"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="None"/>
       </Unit12>
       <Unit13>
-        <Filename Value="../../../../../lazarus/lcl/graphics.pp"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\graphics.pp"/>
         <UnitName Value="Graphics"/>
         <CursorPos X="62" Y="262"/>
         <TopLine Value="246"/>
         <UsageCount Value="10"/>
       </Unit13>
       <Unit14>
-        <Filename Value="../../../../../lazarus/lcl/lcltype.pp"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\lcltype.pp"/>
         <UnitName Value="LCLType"/>
         <CursorPos X="3" Y="1366"/>
         <TopLine Value="1348"/>
         <UsageCount Value="10"/>
       </Unit14>
       <Unit15>
-        <Filename Value="../../../../../lazarus/lcl/interfaces/carbon/carbonwinapi.inc"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\interfaces\carbon\carbonwinapi.inc"/>
         <CursorPos X="12" Y="1610"/>
         <TopLine Value="1604"/>
         <UsageCount Value="10"/>
       </Unit15>
       <Unit16>
-        <Filename Value="../../../../../lazarus/lcl/interfaces/qt/qtwinapi.inc"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\interfaces\qt\qtwinapi.inc"/>
         <CursorPos X="1" Y="1610"/>
         <TopLine Value="1607"/>
         <UsageCount Value="10"/>
       </Unit16>
       <Unit17>
-        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Filename Value="..\..\..\..\GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
         <CursorPos X="31" Y="47"/>
         <TopLine Value="47"/>
         <UsageCount Value="10"/>
       </Unit17>
+      <Unit18>
+        <Filename Value="..\..\..\..\GR32_Backends_LCL_Carbon.pas"/>
+        <UnitName Value="GR32_Backends_LCL_Carbon"/>
+        <CursorPos X="30" Y="41"/>
+        <TopLine Value="33"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit18>
     </Units>
-    <JumpHistory Count="1" HistoryIndex="0">
+    <JumpHistory Count="3" HistoryIndex="2">
       <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="319" Column="5" TopLine="300"/>
+        <Filename Value="..\..\..\..\GR32_Backends_LCL_Carbon.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="240" Column="22" TopLine="232"/>
+      </Position2>
+      <Position3>
+        <Filename Value="TextureBlend_Ex.lpr"/>
+        <Caret Line="6" Column="66" TopLine="1"/>
+      </Position3>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
-    <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-    </SearchPaths>
+    <PathDelim Value="\"/>
     <Parsing>
       <SyntaxOptions>
         <D2Extensions Value="False"/>

@@ -6,7 +6,7 @@ uses
   MainUnit in 'MainUnit.pas' {MainForm}, GR32_L;
 
 {$IFDEF Windows}
-{$R *.res}
+{.$R *.res}
 {$ENDIF}
 
 begin

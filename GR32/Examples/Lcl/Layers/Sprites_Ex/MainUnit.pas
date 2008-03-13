@@ -87,7 +87,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG, GR32_Filters, GR32_System;
+  LazJPG, GR32_Filters, GR32_System;
 
 procedure TForm1.FormCreate(Sender: TObject);
 

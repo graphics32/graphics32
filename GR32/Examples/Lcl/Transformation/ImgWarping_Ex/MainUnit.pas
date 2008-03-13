@@ -199,7 +199,7 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
 procedure WarpDummy(var D, R: Single; Param: Single);

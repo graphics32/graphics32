@@ -1,49 +1,49 @@
 { This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TMainForm','FORMDATA',[
-  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3'f'#1#6'Height'#3#157#2#3'Top'#2#22#5
-  +'Width'#3#139#2#18'HorzScrollBar.Page'#3#138#2#18'VertScrollBar.Page'#3#132#2
+  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3'f'#1#6'Height'#3'v'#2#3'Top'#2#22#5
+  +'Width'#3#139#2#18'HorzScrollBar.Page'#3#138#2#18'VertScrollBar.Page'#3'a'#2
   +#13'ActiveControl'#7#22'ToolGroup.RadioButton0'#7'Caption'#6#21'Image Warpin'
-  +'g Example'#12'ClientHeight'#3#133#2#11'ClientWidth'#3#139#2#11'Font.Height'
-  +#2#245#9'Font.Name'#6#6'Tahoma'#4'Menu'#7#8'MainMenu'#7'OnClose'#7#9'FormClo'
-  +'se'#8'OnCreate'#7#10'FormCreate'#8'Position'#7#14'poScreenCenter'#0#6'TPane'
-  +'l'#6'Panel1'#4'Left'#2#8#6'Height'#3#137#0#3'Top'#2#8#5'Width'#2'i'#10'Beve'
-  +'lInner'#7#8'bvRaised'#10'BevelOuter'#7#9'bvLowered'#8'TabOrder'#2#0#0#0#6'T'
-  +'Panel'#9'MainPanel'#4'Left'#3#234#1#6'Height'#3#133#2#5'Width'#3#157#0#5'Al'
-  +'ign'#7#7'alRight'#10'BevelOuter'#7#6'bvNone'#10'BevelWidth'#2#2#7'Caption'#6
-  +#9'MainPanel'#12'ClientHeight'#3#133#2#11'ClientWidth'#3#157#0#8'TabOrder'#2
-  +#1#0#6'TPanel'#12'GeneralPanel'#6'Height'#2'I'#5'Width'#3#157#0#5'Align'#7#5
-  +'alTop'#12'ClientHeight'#2'I'#11'ClientWidth'#3#157#0#8'TabOrder'#2#0#0#6'TL'
-  +'abel'#6'Label4'#4'Left'#2#1#6'Height'#2#16#3'Top'#2#1#5'Width'#3#155#0#5'Al'
-  +'ign'#7#5'alTop'#9'Alignment'#7#8'taCenter'#8'AutoSize'#8#7'Caption'#6#7'Gen'
-  +'eral'#5'Color'#7#6'clGray'#10'Font.Color'#7#7'clWhite'#11'Font.Height'#2#245
-  +#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCent'
-  +'er'#11'ParentColor'#8#11'Transparent'#8#0#0#6'TLabel'#6'Label5'#4'Left'#2#8
-  +#6'Height'#2#13#3'Top'#2#24#5'Width'#2'N'#7'Caption'#6#12'Remap Scale:'#11'P'
-  +'arentColor'#8#0#0#0#6'TPanel'#10'BrushPanel'#6'Height'#3'0'#1#3'Top'#3#233#0
-  +#5'Width'#3#157#0#5'Align'#7#5'alTop'#12'ClientHeight'#3'0'#1#11'ClientWidth'
-  +#3#157#0#8'TabOrder'#2#1#0#6'TLabel'#6'Label6'#4'Left'#2#1#6'Height'#2#16#3
-  +'Top'#2#1#5'Width'#3#155#0#5'Align'#7#5'alTop'#9'Alignment'#7#8'taCenter'#8
-  +'AutoSize'#8#7'Caption'#6#5'Brush'#5'Color'#7#6'clGray'#10'Font.Color'#7#7'c'
-  +'lWhite'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6
-  +'fsBold'#0#6'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Transparent'#8#0#0#6
-  +'TLabel'#12'FeatherLabel'#4'Left'#2#8#6'Height'#2#13#3'Top'#2'X'#5'Width'#2
-  +'/'#7'Caption'#6#8'Feather:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label2'#4'Lef'
-  +'t'#2#8#6'Height'#2#13#3'Top'#2'8'#5'Width'#2'5'#7'Caption'#6#9'Pressure:'#11
-  +'ParentColor'#8#0#0#6'TLabel'#6'Label3'#4'Left'#2#8#6'Height'#2#13#3'Top'#2
-  +'x'#5'Width'#2'$'#7'Caption'#6#6'Pinch:'#11'ParentColor'#8#0#0#6'TLabel'#6'L'
-  +'abel1'#4'Left'#2#8#6'Height'#2#13#3'Top'#2#24#5'Width'#2#28#7'Caption'#6#5
-  +'Size:'#11'ParentColor'#8#0#0#6'TBevel'#6'Bevel2'#4'Left'#2'D'#6'Height'#2#25
-  +#3'Top'#3#131#0#5'Width'#2#25#5'Shape'#7#10'bsLeftLine'#0#0#6'TLabel'#6'Labe'
-  +'l9'#4'Left'#2#8#6'Height'#2#13#3'Top'#3#160#0#5'Width'#2'G'#7'Caption'#6#11
-  +'Brush Mesh:'#11'ParentColor'#8#0#0#0#6'TPanel'#9'ToolPanel'#6'Height'#3#160
-  +#0#3'Top'#2'I'#5'Width'#3#157#0#5'Align'#7#5'alTop'#12'ClientHeight'#3#160#0
-  +#11'ClientWidth'#3#157#0#8'TabOrder'#2#2#0#6'TLabel'#6'Label7'#4'Left'#2#1#6
-  +'Height'#2#16#3'Top'#2#1#5'Width'#3#155#0#5'Align'#7#5'alTop'#9'Alignment'#7
-  +#8'taCenter'#8'AutoSize'#8#7'Caption'#6#9'Warp Tool'#5'Color'#7#6'clGray'#10
-  +'Font.Color'#7#7'clWhite'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10
-  +'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Tra'
-  +'nsparent'#8#0#0#6'TLabel'#10'ParamLabel'#4'Left'#2#8#6'Height'#2#13#3'Top'#2
+  +'g Example'#12'ClientHeight'#3'b'#2#11'ClientWidth'#3#139#2#11'Font.Height'#2
+  +#245#9'Font.Name'#6#6'Tahoma'#4'Menu'#7#8'MainMenu'#7'OnClose'#7#9'FormClose'
+  +#8'OnCreate'#7#10'FormCreate'#8'Position'#7#14'poScreenCenter'#0#6'TPanel'#6
+  +'Panel1'#4'Left'#2#8#6'Height'#3#137#0#3'Top'#2#8#5'Width'#2'i'#10'BevelInne'
+  +'r'#7#8'bvRaised'#10'BevelOuter'#7#9'bvLowered'#8'TabOrder'#2#0#0#0#6'TPanel'
+  +#9'MainPanel'#4'Left'#3#238#1#6'Height'#3'b'#2#5'Width'#3#157#0#5'Align'#7#7
+  +'alRight'#10'BevelOuter'#7#6'bvNone'#10'BevelWidth'#2#2#7'Caption'#6#9'MainP'
+  +'anel'#12'ClientHeight'#3'b'#2#11'ClientWidth'#3#157#0#8'TabOrder'#2#1#0#6'T'
+  +'Panel'#12'GeneralPanel'#6'Height'#2'I'#5'Width'#3#157#0#5'Align'#7#5'alTop'
+  +#12'ClientHeight'#2'I'#11'ClientWidth'#3#157#0#8'TabOrder'#2#0#0#6'TLabel'#6
+  +'Label4'#4'Left'#2#1#6'Height'#2#16#3'Top'#2#1#5'Width'#3#155#0#5'Align'#7#5
+  +'alTop'#9'Alignment'#7#8'taCenter'#8'AutoSize'#8#7'Caption'#6#7'General'#5'C'
+  +'olor'#7#6'clGray'#10'Font.Color'#7#7'clWhite'#11'Font.Height'#2#245#9'Font.'
+  +'Name'#6#6'Tahoma'#10'Font.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCenter'#11
+  +'ParentColor'#8#11'Transparent'#8#0#0#6'TLabel'#6'Label5'#4'Left'#2#8#6'Heig'
+  +'ht'#2#13#3'Top'#2#24#5'Width'#2'N'#7'Caption'#6#12'Remap Scale:'#11'ParentC'
+  +'olor'#8#0#0#0#6'TPanel'#10'BrushPanel'#6'Height'#3'0'#1#3'Top'#3#233#0#5'Wi'
+  +'dth'#3#157#0#5'Align'#7#5'alTop'#12'ClientHeight'#3'0'#1#11'ClientWidth'#3
+  +#157#0#8'TabOrder'#2#1#0#6'TLabel'#6'Label6'#4'Left'#2#1#6'Height'#2#16#3'To'
+  +'p'#2#1#5'Width'#3#155#0#5'Align'#7#5'alTop'#9'Alignment'#7#8'taCenter'#8'Au'
+  +'toSize'#8#7'Caption'#6#5'Brush'#5'Color'#7#6'clGray'#10'Font.Color'#7#7'clW'
+  +'hite'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10'Font.Style'#11#6'fs'
+  +'Bold'#0#6'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Transparent'#8#0#0#6'T'
+  +'Label'#12'FeatherLabel'#4'Left'#2#8#6'Height'#2#13#3'Top'#2'X'#5'Width'#2'/'
+  +#7'Caption'#6#8'Feather:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label2'#4'Left'#2
+  +#8#6'Height'#2#13#3'Top'#2'8'#5'Width'#2'5'#7'Caption'#6#9'Pressure:'#11'Par'
+  +'entColor'#8#0#0#6'TLabel'#6'Label3'#4'Left'#2#8#6'Height'#2#13#3'Top'#2'x'#5
+  +'Width'#2'$'#7'Caption'#6#6'Pinch:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label1'
+  +#4'Left'#2#8#6'Height'#2#13#3'Top'#2#24#5'Width'#2#28#7'Caption'#6#5'Size:'
+  +#11'ParentColor'#8#0#0#6'TBevel'#6'Bevel2'#4'Left'#2'D'#6'Height'#2#25#3'Top'
+  +#3#131#0#5'Width'#2#25#5'Shape'#7#10'bsLeftLine'#0#0#6'TLabel'#6'Label9'#4'L'
+  +'eft'#2#8#6'Height'#2#13#3'Top'#3#160#0#5'Width'#2'G'#7'Caption'#6#11'Brush '
+  +'Mesh:'#11'ParentColor'#8#0#0#0#6'TPanel'#9'ToolPanel'#6'Height'#3#160#0#3'T'
+  +'op'#2'I'#5'Width'#3#157#0#5'Align'#7#5'alTop'#12'ClientHeight'#3#160#0#11'C'
+  +'lientWidth'#3#157#0#8'TabOrder'#2#2#0#6'TLabel'#6'Label7'#4'Left'#2#1#6'Hei'
+  +'ght'#2#16#3'Top'#2#1#5'Width'#3#155#0#5'Align'#7#5'alTop'#9'Alignment'#7#8
+  +'taCenter'#8'AutoSize'#8#7'Caption'#6#9'Warp Tool'#5'Color'#7#6'clGray'#10'F'
+  +'ont.Color'#7#7'clWhite'#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#10'F'
+  +'ont.Style'#11#6'fsBold'#0#6'Layout'#7#8'tlCenter'#11'ParentColor'#8#11'Tran'
+  +'sparent'#8#0#0#6'TLabel'#10'ParamLabel'#4'Left'#2#8#6'Height'#2#13#3'Top'#2
   +'X'#5'Width'#2'$'#7'Caption'#6#5'Param'#7'Enabled'#8#11'ParentColor'#8#0#0#6
   +'TLabel'#9'RateLabel'#4'Left'#2#8#6'Height'#2#13#3'Top'#2'x'#5'Width'#2#29#7
   +'Caption'#6#5'Rate:'#7'Enabled'#8#11'ParentColor'#8#0#0#11'TRadioGroup'#9'To'
@@ -53,9 +53,9 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'zing.EnlargeVertical'#7#24'crsHomogenousChildResize'#28'ChildSizing.ShrinkH'
   +'orizontal'#7#14'crsScaleChilds'#26'ChildSizing.ShrinkVertical'#7#14'crsScal'
   +'eChilds'#18'ChildSizing.Layout'#7#29'cclLeftToRightThenTopToBottom'#27'Chil'
-  +'dSizing.ControlsPerLine'#2#2#12'ClientHeight'#2'('#11'ClientWidth'#3#141#0#7
-  +'Columns'#2#2#9'ItemIndex'#2#0#13'Items.Strings'#1#6#4'Warp'#6#4'Zoom'#6#5'T'
-  +'wirl'#6#6'Flower'#0#7'OnClick'#7#14'ToolGroupClick'#8'TabOrder'#2#0#0#0#0#0
+  +'dSizing.ControlsPerLine'#2#2#12'ClientHeight'#2''''#11'ClientWidth'#3#141#0
+  +#7'Columns'#2#2#9'ItemIndex'#2#0#13'Items.Strings'#1#6#4'Warp'#6#4'Zoom'#6#5
+  +'Twirl'#6#6'Flower'#0#7'OnClick'#7#14'ToolGroupClick'#8'TabOrder'#2#0#0#0#0#0
   +#18'TOpenPictureDialog'#17'OpenPictureDialog'#5'Title'#6#23'Vorhandene Datei'
   +' '#246'ffnen'#11'FilterIndex'#2#0#4'left'#3#136#0#3'top'#2#8#0#0#6'TTimer'
   +#11'UpdateTimer'#8'Interval'#2'2'#7'OnTimer'#7#16'UpdateTimerTimer'#4'left'#3

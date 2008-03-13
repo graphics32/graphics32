@@ -11,7 +11,7 @@ uses
   MandelUnit in 'MandelUnit.pas' {Form1}, GR32_L;
 
 {$IFDEF Windows}
-{$R *.res}
+{.$R *.res}
 {$ENDIF}
 
 begin

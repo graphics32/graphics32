@@ -43,7 +43,7 @@ type
     Panel3: TPanel;
     Panel4: TPanel;
     ImageList1: TImageList;
-    CoolBar: TCoolBar;
+    CoolBar: TToolBar;
     ToolBar1: TToolBar;
     bNew: TToolButton;
     bOpen: TToolButton;

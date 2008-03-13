@@ -1,13 +1,13 @@
 object MainForm: TMainForm
   Left = 358
-  Height = 669
+  Height = 630
   Top = 22
   Width = 651
   HorzScrollBar.Page = 650
-  VertScrollBar.Page = 644
+  VertScrollBar.Page = 609
   ActiveControl = ToolGroup.RadioButton0
   Caption = 'Image Warping Example'
-  ClientHeight = 645
+  ClientHeight = 610
   ClientWidth = 651
   Font.Height = -11
   Font.Name = 'Tahoma'
@@ -25,14 +25,14 @@ object MainForm: TMainForm
     TabOrder = 0
   end
   object MainPanel: TPanel
-    Left = 490
-    Height = 645
+    Left = 494
+    Height = 610
     Width = 157
     Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
     Caption = 'MainPanel'
-    ClientHeight = 645
+    ClientHeight = 610
     ClientWidth = 157
     TabOrder = 1
     object GeneralPanel: TPanel
@@ -201,7 +201,7 @@ object MainForm: TMainForm
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 2
-        ClientHeight = 40
+        ClientHeight = 39
         ClientWidth = 141
         Columns = 2
         ItemIndex = 0

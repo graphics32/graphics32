@@ -8,7 +8,7 @@ uses
   MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
 {$IFDEF Windows}
-{$R *.RES}
+{.$R *.RES}
 {$ENDIF}
 
 begin

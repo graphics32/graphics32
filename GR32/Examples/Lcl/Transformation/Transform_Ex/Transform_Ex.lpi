@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
+      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
       <ActiveEditorIndexAtStart Value="1"/>
     </General>
@@ -16,6 +16,7 @@
     </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -23,25 +24,25 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="GR32_L"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
     <Units Count="8">
       <Unit0>
         <Filename Value="Transform_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="1"/>
+        <CursorPos X="3" Y="11"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -54,8 +55,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="23" Y="517"/>
-        <TopLine Value="918"/>
+        <CursorPos X="8" Y="184"/>
+        <TopLine Value="169"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -68,7 +69,7 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="../../Layers/Sprites_Ex/MainUnit.pas"/>
+        <Filename Value="..\..\Layers\Sprites_Ex\MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
@@ -77,21 +78,21 @@
         <UsageCount Value="10"/>
       </Unit3>
       <Unit4>
-        <Filename Value="../../../../../fpc/packages/extra/univint/FPCMacOSAll.pas"/>
+        <Filename Value="..\..\..\..\..\fpc\packages\extra\univint\FPCMacOSAll.pas"/>
         <UnitName Value="FPCMacOSAll"/>
         <CursorPos X="9" Y="755"/>
         <TopLine Value="741"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="../../../../../lazarus/lcl/dbgrids.pas"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\dbgrids.pas"/>
         <UnitName Value="DBGrids"/>
         <CursorPos X="32" Y="667"/>
         <TopLine Value="651"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="../../../../../fpc/rtl/objpas/classes/classesh.inc"/>
+        <Filename Value="..\..\..\..\..\fpc\rtl\objpas\classes\classesh.inc"/>
         <CursorPos X="10" Y="1679"/>
         <TopLine Value="1665"/>
         <UsageCount Value="10"/>
@@ -104,70 +105,13 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit7>
     </Units>
-    <JumpHistory Count="14" HistoryIndex="13">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="11" Column="30" TopLine="1"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="161" Column="12" TopLine="147"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="29" Column="31" TopLine="17"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="160" Column="14" TopLine="146"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="171" Column="37" TopLine="157"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="452" Column="29" TopLine="440"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="454" Column="21" TopLine="440"/>
-      </Position7>
-      <Position8>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="457" Column="14" TopLine="443"/>
-      </Position8>
-      <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="458" Column="14" TopLine="444"/>
-      </Position9>
-      <Position10>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="459" Column="14" TopLine="445"/>
-      </Position10>
-      <Position11>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="460" Column="14" TopLine="446"/>
-      </Position11>
-      <Position12>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="517" Column="23" TopLine="503"/>
-      </Position12>
-      <Position13>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="338" Column="19" TopLine="326"/>
-      </Position13>
-      <Position14>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="462" Column="13" TopLine="444"/>
-      </Position14>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
+    <PathDelim Value="\"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-      <ObjectPath Value="../../../"/>
+      <ObjectPath Value="..\..\..\"/>
     </SearchPaths>
     <CodeGeneration>
       <Generate Value="Faster"/>

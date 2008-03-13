@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
+      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="0"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -16,6 +16,7 @@
     </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -23,25 +24,25 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="GR32_L"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
     <Units Count="14">
       <Unit0>
         <Filename Value="RotLayer_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="14" Y="6"/>
+        <CursorPos X="3" Y="11"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="22"/>
@@ -54,8 +55,8 @@
         <IsPartOfProject Value="True"/>
         <ResourceFilename Value="MainUnit.lrs"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="23" Y="172"/>
-        <TopLine Value="156"/>
+        <CursorPos X="8" Y="71"/>
+        <TopLine Value="62"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
@@ -68,7 +69,7 @@
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
-        <Filename Value="../../../../Packages/GR32_L.pas"/>
+        <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
@@ -82,54 +83,54 @@
         <UsageCount Value="11"/>
       </Unit4>
       <Unit5>
-        <Filename Value="../../../../../lazarus/lcl/lclproc.pas"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\lclproc.pas"/>
         <UnitName Value="LCLProc"/>
         <CursorPos X="9" Y="770"/>
         <TopLine Value="760"/>
         <UsageCount Value="10"/>
       </Unit5>
       <Unit6>
-        <Filename Value="../../../../GR32_Image.pas"/>
+        <Filename Value="..\..\..\..\GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
         <CursorPos X="1" Y="2316"/>
         <TopLine Value="2004"/>
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
-        <Filename Value="../../../../../lazarus/lcl/lclclasses.pp"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\lclclasses.pp"/>
         <UnitName Value="LCLClasses"/>
         <CursorPos X="11" Y="36"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit7>
       <Unit8>
-        <Filename Value="../../../../../lazarus/lcl/include/customcontrol.inc"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\include\customcontrol.inc"/>
         <CursorPos X="1" Y="48"/>
         <TopLine Value="34"/>
         <UsageCount Value="10"/>
       </Unit8>
       <Unit9>
-        <Filename Value="../../../../../lazarus/lcl/include/control.inc"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\include\control.inc"/>
         <CursorPos X="7" Y="412"/>
         <TopLine Value="405"/>
         <UsageCount Value="10"/>
       </Unit9>
       <Unit10>
-        <Filename Value="../Sprites_Ex/Sprites_Ex.dpr"/>
+        <Filename Value="..\Sprites_Ex\Sprites_Ex.dpr"/>
         <UnitName Value="Sprites_Ex"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit10>
       <Unit11>
-        <Filename Value="../Sprites_Ex/MainUnit.pas"/>
+        <Filename Value="..\Sprites_Ex\MainUnit.pas"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="88"/>
         <UsageCount Value="10"/>
       </Unit11>
       <Unit12>
-        <Filename Value="../../../../../lazarus/lcl/include/wincontrol.inc"/>
+        <Filename Value="..\..\..\..\..\lazarus\lcl\include\wincontrol.inc"/>
         <CursorPos X="1" Y="2161"/>
         <TopLine Value="2147"/>
         <UsageCount Value="10"/>
@@ -146,9 +147,9 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="5"/>
+    <PathDelim Value="\"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
-      <ObjectPath Value="../../../"/>
+      <ObjectPath Value="..\..\..\"/>
     </SearchPaths>
     <CodeGeneration>
       <Generate Value="Faster"/>
@@ -172,7 +173,7 @@
   <Debugging>
     <BreakPoints Count="1">
       <Item1>
-        <Source Value="../../../../../lazarus/lcl/include/control.inc"/>
+        <Source Value="..\..\..\..\..\lazarus\lcl\include\control.inc"/>
         <Line Value="344"/>
       </Item1>
     </BreakPoints>

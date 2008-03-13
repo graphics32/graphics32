@@ -80,7 +80,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG;
+  LazJPG;
 
 procedure TForm1.Draw;
 var

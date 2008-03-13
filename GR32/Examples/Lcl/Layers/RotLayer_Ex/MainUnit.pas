@@ -68,7 +68,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG,
+  LazJPG,
   Math;
 
 procedure TForm1.FormCreate(Sender: TObject);

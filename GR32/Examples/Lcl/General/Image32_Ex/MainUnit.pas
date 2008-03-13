@@ -63,7 +63,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG;
+  LazJPG;
 
 procedure TForm1.rgBitmapAlignClick(Sender: TObject);
 const

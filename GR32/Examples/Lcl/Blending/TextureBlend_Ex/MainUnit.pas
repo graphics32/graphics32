@@ -68,7 +68,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG, GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
+  LazJPG, GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
 
 var
   ColorAlgebraReg: TBlendReg;

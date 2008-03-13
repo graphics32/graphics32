@@ -159,7 +159,7 @@ uses
 {$IFDEF Darwin}
   FPCMacOSAll,
 {$ENDIF}
-  LazJPEG,
+  LazJPG,
   NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
 
 const
