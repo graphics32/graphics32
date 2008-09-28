@@ -52,6 +52,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 procedure SinCos(const Theta: Single; var Sin, Cos: Single); overload;
 procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
 function Hypot(const X, Y: TFloat): TFloat;
+function FastSqrt(const Value: TFloat): TFloat;
 
 
 { Misc. Routines }
@@ -310,6 +311,24 @@ asm
         FADDP
         FSQRT
         FWAIT
+{$ENDIF}
+end;
+
+function FastSqrt(const Value: TFloat): TFloat;
+//http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+{$IFNDEF TARGET_x86}
+var
+  I: Integer absolute Value;
+  J: Integer absolute Result;
+begin
+  J := (I - $3F800000) div 2 + $3F800000;
+{$ELSE}
+asm
+        MOV EAX, Value
+        SUB EAX, $3F800000
+        SAR EAX, 1
+        ADD EAX, $3F800000
+        MOV Result, EAX
 {$ENDIF}
 end;
 
