@@ -524,7 +524,12 @@ asm
   // Check W
         JCXZ    @1              // W = 0 ?  => write nothing
         CMP     ECX,$FF         // W = 255? => write F
+{$IFDEF FPC}
+        DB      $74,$76         //Prob with FPC 2.2.2 and below
+{$ELSE}
         JZ      @2
+{$ENDIF}
+
 
         PUSH    EBX
         PUSH    ESI
