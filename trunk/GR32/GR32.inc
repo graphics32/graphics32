@@ -267,4 +267,6 @@
   {$ENDIF}
 {$ENDIF}
 
-{$DEFINE XPTHEMES} // enable support for windows xp themes
+{$IFNDEF FPC}
+  {$DEFINE XPTHEMES} // enable support for windows xp themes
+{$ENDIF}
