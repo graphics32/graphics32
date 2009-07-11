@@ -285,6 +285,7 @@ type
     procedure InitDefaultStages; virtual;
     procedure InvalidateCache;
     function  InvalidRectsAvailable: Boolean; override;
+    procedure DblClick; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
@@ -943,6 +944,9 @@ end;
 
 procedure TCustomPaintBox32.Paint;
 begin
+  if not Assigned(Parent) then
+    Exit;
+
   if FRepaintOptimizer.Enabled then
   begin
 {$IFDEF CLX}
@@ -970,6 +974,7 @@ begin
 
   if FRepaintOptimizer.Enabled then
     FRepaintOptimizer.EndPaint;
+
   ResetInvalidRects;
   FForceFullRepaint := False;
 end;
@@ -1389,6 +1394,13 @@ begin
   RecScaleX := 1 / FScaleX;
   RecScaleY := 1 / FScaleY;
   InitDefaultStages;
+end;
+
+procedure TCustomImage32.DblClick;
+begin
+  Layers.MouseListener := nil;
+  MouseUp(mbLeft, [], 0, 0);
+  inherited;
 end;
 
 destructor TCustomImage32.Destroy;
@@ -2245,7 +2257,12 @@ var
   Sz: Integer;
 begin
   Sz := GetScrollBarSize;
-  Result := GetClientRect;
+
+  if not Assigned(Parent) then
+    Result := BoundsRect
+  else
+    Result := ClientRect;
+
   with Result do
   begin
     Left := Right - Sz;
@@ -2342,6 +2359,9 @@ end;
 
 procedure TCustomImgView32.Paint;
 begin
+  if not Assigned(Parent) then
+    Exit;
+
   if IsSizeGripVisible then
     DoDrawSizeGrip(GetSizeGripRect)
   else
