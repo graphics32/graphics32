@@ -1,7 +1,7 @@
 unit GR32_Dsgn_Misc;
 
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -13,13 +13,20 @@ unit GR32_Dsgn_Misc;
  * for the specific language governing rights and limitations under the
  * License.
  *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
  * The Original Code is Graphics32
  *
  * The Initial Developers of the Original Code are
  * Mattias Andersson <mattias@centaurix.com>
  * Andre Beckedorf <andre@metaexception.de>
  *
- * Portions created by the Initial Developer are Copyright (C) 2005-2007
+ * Portions created by the Initial Developer are Copyright (C) 2005-2009
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
