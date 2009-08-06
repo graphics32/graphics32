@@ -60,6 +60,9 @@ procedure SinCos(const Theta: Single; var Sin, Cos: Single); overload;
 procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
 function Hypot(const X, Y: TFloat): TFloat;
 function FastSqrt(const Value: TFloat): TFloat;
+function FastSqrtBab1(const Value: TFloat): TFloat;
+function FastSqrtBab2(const Value: TFloat): TFloat;
+function FastInvSqrt(const Value: Single): Single; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF} overload;
 
 
 { Misc. Routines }
@@ -322,7 +325,7 @@ asm
 end;
 
 function FastSqrt(const Value: TFloat): TFloat;
-//http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 {$IFNDEF TARGET_x86}
 var
   I: Integer absolute Value;
@@ -338,6 +341,73 @@ asm
         MOV Result, EAX
 {$ENDIF}
 end;
+
+function FastSqrtBab1(const Value: TFloat): TFloat;
+// see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// additionally one babylonian step added
+const
+  CHalf : TFloat = 0.5;
+{$IFNDEF XXXTARGET_x86}
+var
+  I: Integer absolute Value;
+  J: Integer absolute Result;
+begin
+  J := (I - $3F800000) div 2 + $3F800000;
+  Result := CHalf * (Result + Value / Result);
+{$ELSE}
+asm
+        optimization not tested yet 
+        MOV  EAX, Value
+        SUB  EAX, $3F800000
+        SAR  EAX, 1
+        ADD  EAX, $3F800000
+        MOV  Result, EAX
+        FLD  Value
+        FDIV Result
+        FADD Result
+        FMUL CHalf
+{$ENDIF}
+end;
+
+function FastSqrtBab2(const Value: TFloat): TFloat;
+// see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
+// additionally two babylonian step added
+const
+  CQuarter : TFloat = 0.25;
+{$IFNDEF XXXTARGET_x86}
+var
+  I: Integer absolute Value;
+  J: Integer absolute Result;
+begin
+  J := (I - $3F800000) div 2 + $3F800000;
+  Result := Result + Value / Result;
+  Result := CQuarter * (Result + Value / Result);
+{$ELSE}
+asm
+        optimization not tested yet
+        MOV  EAX, Value
+        SUB  EAX, $3F800000
+        SAR  EAX, 1
+        ADD  EAX, $3F800000
+        MOV  Result, EAX
+        FLD  Value
+        FDIV Result
+        FADD Result
+        FMUL CHalf
+{$ENDIF}
+end;
+
+function FastInvSqrt(const Value: Single): Single;
+const
+  CHalf : TFloat = 0.5;
+var
+  IntCst : Cardinal absolute result;
+begin
+ result := Value;
+ IntCst := ($BE6EB50C - IntCst) shr 1;
+ result := CHalf * result * (3 - Value * sqr(result));
+end;
+
 
 { Misc. }
 
@@ -420,7 +490,7 @@ function NextPowerOf2(Value: Integer): Integer;
 begin
   Result := 2;
   while Value shr 1 > 0 do 
-  	Result := Result shl 1;
+    Result := Result shl 1;
 {$ELSE}
 asm
         DEC     EAX
