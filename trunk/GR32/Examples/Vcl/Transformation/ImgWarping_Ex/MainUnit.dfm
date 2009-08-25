@@ -36,7 +36,6 @@ object MainForm: TMainForm
     BevelWidth = 2
     Caption = 'MainPanel'
     TabOrder = 1
-    ExplicitHeight = 620
     object GeneralPanel: TPanel
       Left = 0
       Top = 0
@@ -49,7 +48,6 @@ object MainForm: TMainForm
         Top = 1
         Width = 139
         Height = 16
-        Margins.Bottom = 0
         Align = alTop
         Alignment = taCenter
         AutoSize = False
@@ -69,7 +67,6 @@ object MainForm: TMainForm
         Top = 24
         Width = 65
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Remap Scale:'
       end
       object ScaleBar: TGaugeBar
@@ -99,7 +96,6 @@ object MainForm: TMainForm
         Top = 1
         Width = 139
         Height = 16
-        Margins.Bottom = 0
         Align = alTop
         Alignment = taCenter
         AutoSize = False
@@ -119,7 +115,6 @@ object MainForm: TMainForm
         Top = 88
         Width = 42
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Feather:'
       end
       object Label2: TLabel
@@ -127,7 +122,6 @@ object MainForm: TMainForm
         Top = 56
         Width = 46
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Pressure:'
       end
       object Label3: TLabel
@@ -135,7 +129,6 @@ object MainForm: TMainForm
         Top = 120
         Width = 29
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Pinch:'
       end
       object Label1: TLabel
@@ -143,7 +136,6 @@ object MainForm: TMainForm
         Top = 24
         Width = 23
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Size:'
         Transparent = True
       end
@@ -159,7 +151,6 @@ object MainForm: TMainForm
         Top = 160
         Width = 59
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Brush Mesh:'
         Transparent = True
       end
@@ -236,7 +227,6 @@ object MainForm: TMainForm
         Top = 1
         Width = 139
         Height = 16
-        Margins.Bottom = 0
         Align = alTop
         Alignment = taCenter
         AutoSize = False
@@ -256,7 +246,6 @@ object MainForm: TMainForm
         Top = 88
         Width = 30
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Param'
         Enabled = False
       end
@@ -265,7 +254,6 @@ object MainForm: TMainForm
         Top = 120
         Width = 27
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Rate:'
         Enabled = False
       end
@@ -336,7 +324,6 @@ object MainForm: TMainForm
     OnMouseMove = DstImgMouseMove
     OnMouseUp = DstImgMouseUp
     OnPaintStage = DstImgPaintStage
-    ExplicitHeight = 620
   end
   object OpenPictureDialog: TOpenPictureDialog
     Left = 136
