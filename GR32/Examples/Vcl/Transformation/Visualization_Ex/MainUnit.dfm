@@ -1,11 +1,11 @@
 object MainForm: TMainForm
   Left = 200
   Top = 153
-  Width = 408
-  Height = 327
   Cursor = crCross
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Visualization Example'
+  ClientHeight = 300
+  ClientWidth = 400
   Color = clBlack
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

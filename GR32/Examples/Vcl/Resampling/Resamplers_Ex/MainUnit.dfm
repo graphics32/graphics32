@@ -40,7 +40,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 24
         Width = 82
         Height = 13
-        Margins.Bottom = 0
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class:'
       end
@@ -49,7 +48,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 67
         Width = 91
         Height = 13
-        Margins.Bottom = 0
         Anchors = [akTop, akRight]
         Caption = 'Pixel Access Mode:'
       end
@@ -58,7 +56,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 110
         Width = 59
         Height = 13
-        Margins.Bottom = 0
         Anchors = [akTop, akRight]
         Caption = 'Wrap Mode:'
       end
@@ -137,7 +134,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 24
         Width = 62
         Height = 13
-        Margins.Bottom = 0
         Anchors = [akTop, akRight]
         Caption = 'Kernel Class:'
       end
@@ -146,7 +142,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 67
         Width = 63
         Height = 13
-        Margins.Bottom = 0
         Anchors = [akTop, akRight]
         Caption = 'Kernel Mode:'
       end
@@ -155,7 +150,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 116
         Width = 97
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Table Size (32/100):'
       end
       object lbParameter: TLabel
@@ -163,7 +157,6 @@ object fmResamplersExample: TfmResamplersExample
         Top = 155
         Width = 54
         Height = 13
-        Margins.Bottom = 0
         Caption = 'Parameter:'
         Visible = False
       end
@@ -274,10 +267,6 @@ object fmResamplersExample: TfmResamplersExample
     object ResamplingTabSheet: TTabSheet
       Caption = 'Resampling'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object ResamplingPaintBox: TPaintBox32
         Left = 0
         Top = 0
@@ -293,10 +282,6 @@ object fmResamplersExample: TfmResamplersExample
       Caption = 'Curve'
       ImageIndex = 2
       TabVisible = False
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object CurveImage: TImage32
         Left = 0
         Top = 0
