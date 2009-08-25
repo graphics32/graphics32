@@ -22,7 +22,6 @@ object Form1: TForm1
     Top = 313
     Width = 76
     Height = 13
-    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Angle:'
   end
@@ -31,7 +30,6 @@ object Form1: TForm1
     Top = 345
     Width = 96
     Height = 13
-    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.X:'
   end
@@ -40,7 +38,6 @@ object Form1: TForm1
     Top = 373
     Width = 96
     Height = 13
-    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.Y:'
   end
@@ -49,7 +46,6 @@ object Form1: TForm1
     Top = 441
     Width = 85
     Height = 13
-    Margins.Bottom = 0
     Anchors = [akLeft, akBottom]
     Caption = 'ImgView32.Scale:'
   end
