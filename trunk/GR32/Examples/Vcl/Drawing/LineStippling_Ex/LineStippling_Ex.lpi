@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -35,21 +35,19 @@
         <IsPartOfProject Value="True"/>
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
         <UsageCount Value="24"/>
-        <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="7" Y="43"/>
         <TopLine Value="36"/>
-        <EditorIndex Value="1"/>
         <UsageCount Value="12"/>
-        <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="MainUnit.lfm"/>
@@ -83,22 +81,22 @@
     <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
+      <IncludeFiles Value="../../../../"/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
+      <OtherUnitFiles Value="../../../../"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <D2Extensions Value="False"/>
+        <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
-        <AllowLabel Value="False"/>
         <CPPInline Value="False"/>
-        <DelphiCompat Value="True"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
       <SmartLinkUnit Value="True"/>
-      <Generate Value="Faster"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
@@ -107,7 +105,6 @@
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
-        <PassLinkerOptions Value="True"/>
         <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>

@@ -2,12 +2,12 @@ program GradLines_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {FormGradientLines};
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormGradientLines, FormGradientLines);
   Application.Run;
 end.

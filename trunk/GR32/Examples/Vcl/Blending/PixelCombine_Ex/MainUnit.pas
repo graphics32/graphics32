@@ -1,7 +1,7 @@
 unit MainUnit;
 
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -12,6 +12,13 @@ unit MainUnit;
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
  * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
  *
  * The Original Code is PixelCombine Example
  *
@@ -27,13 +34,7 @@ unit MainUnit;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE Windows}
-{$ENDIF}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
@@ -41,11 +42,14 @@ uses
   GR32, GR32_Image, GR32_Layers, GR32_Blend, GR32_RangeBars;
 
 type
-  TForm1 = class(TForm)
+
+  { TFormPixelCombine }
+
+  TFormPixelCombine = class(TForm)
     ImgView: TImgView32;
-    RadioGroup1: TRadioGroup;
+    RadioGroup: TRadioGroup;
     procedure FormCreate(Sender: TObject);
-    procedure RadioGroup1Click(Sender: TObject);
+    procedure RadioGroupClick(Sender: TObject);
   protected
     procedure PC_Add(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Sub(F: TColor32; var B: TColor32; M: TColor32);
@@ -61,7 +65,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormPixelCombine: TFormPixelCombine;
 
 implementation
 
@@ -76,10 +80,10 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormPixelCombine.FormCreate(Sender: TObject);
 var
   I, J: Integer;
 {$IFDEF Darwin}
@@ -144,50 +148,50 @@ begin
   L.Bitmap.OnPixelCombine := nil; // none by default
 end;
 
-procedure TForm1.PC_Add(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Add(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorAdd(F, B);
 end;
 
-procedure TForm1.PC_Max(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Max(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorMax(F, B);
 end;
 
-procedure TForm1.PC_Min(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Min(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorMin(F, B);
 end;
 
-procedure TForm1.PC_Modulate(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Modulate(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorModulate(F, B);
 end;
 
-procedure TForm1.PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
 begin
   PatCount := 1 - PatCount;
   if PatCount = 0 then B := F;
 end;
 
-procedure TForm1.PC_Sub(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Sub(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorSub(F, B);
 end;
 
-procedure TForm1.PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorDifference(F, B);
 end;
 
-procedure TForm1.PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorExclusion(F, B);
 end;
 
-procedure TForm1.RadioGroup1Click(Sender: TObject);
+procedure TFormPixelCombine.RadioGroupClick(Sender: TObject);
 begin
-  case RadioGroup1.ItemIndex of
+  case RadioGroup.ItemIndex of
     0: L.Bitmap.OnPixelCombine := nil;
     1: L.Bitmap.OnPixelCombine := PC_Add;
     2: L.Bitmap.OnPixelCombine := PC_Sub;

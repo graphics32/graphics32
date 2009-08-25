@@ -2,8 +2,8 @@ program Polygons_Ex;
 
 uses
   Interfaces,
-  Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
+  Forms, ImagesForLazarus,
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
 {$IFDEF Windows}
 {$R *.RES}

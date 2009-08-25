@@ -3,63 +3,84 @@ object Form1: TForm1
   Height = 533
   Top = 129
   Width = 665
-  HorzScrollBar.Page = 664
-  VertScrollBar.Page = 532
   Caption = 'Polygons Example'
+  ClientHeight = 533
+  ClientWidth = 665
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.27'
+  object Image: TImage32
+    Left = 0
+    Height = 533
+    Top = 0
+    Width = 520
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TKernelResampler'
+    Bitmap.Resampler.KernelClassName = 'TCubicKernel'
+    Bitmap.Resampler.Kernel.Coeff = -0.80000001192092
+    Bitmap.Resampler.KernelMode = kmDynamic
+    Bitmap.Resampler.TableSize = 32
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baTopLeft
+    Scale = 1
+    ScaleMode = smStretch
+    TabOrder = 1
+    OnMouseDown = ImageMouseDown
+    OnResize = ImageResize
+  end
   object Panel1: TPanel
-    Left = 512
-    Height = 525
+    Left = 520
+    Height = 533
+    Top = 0
     Width = 145
     Align = alRight
     BevelOuter = bvNone
+    ClientHeight = 533
+    ClientWidth = 145
     Font.Height = -11
     Font.Name = 'Tahoma'
+    ParentFont = False
     TabOrder = 0
     object Label1: TLabel
       Left = 16
-      Height = 13
+      Height = 14
       Top = 210
-      Width = 63
+      Width = 64
       Caption = 'Line Opacity:'
-      Color = clNone
       ParentColor = False
     end
     object Label2: TLabel
       Left = 16
-      Height = 13
+      Height = 14
       Top = 250
-      Width = 52
+      Width = 53
       Caption = 'Fill Opacity'
-      Color = clNone
       ParentColor = False
     end
     object Label3: TLabel
       Left = 16
-      Height = 13
+      Height = 14
       Top = 394
-      Width = 87
+      Width = 88
       Caption = 'Outline Thickness:'
-      Color = clNone
       ParentColor = False
     end
     object Label4: TLabel
       Left = 113
-      Height = 13
+      Height = 14
       Top = 395
-      Width = 14
+      Width = 15
       Caption = '(1)'
-      Color = clNone
       ParentColor = False
     end
     object Antialiase: TCheckBox
       Left = 16
       Height = 17
       Top = 40
-      Width = 105
+      Width = 72
       Caption = 'Antialiased'
       OnClick = ParamsChanged
       TabOrder = 0
@@ -70,6 +91,7 @@ object Form1: TForm1
       Top = 226
       Width = 121
       Max = 255
+      PageSize = 0
       Position = 255
       TabOrder = 1
       OnChange = ParamsChanged
@@ -80,6 +102,7 @@ object Form1: TForm1
       Top = 266
       Width = 121
       Max = 255
+      PageSize = 0
       Position = 127
       TabOrder = 2
       OnChange = ParamsChanged
@@ -99,6 +122,8 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
+      ClientHeight = 47
+      ClientWidth = 117
       ItemIndex = 0
       Items.Strings = (
         'pfAlternate'
@@ -114,6 +139,7 @@ object Form1: TForm1
       Width = 121
       Max = 200
       Min = 1
+      PageSize = 0
       Position = 10
       TabOrder = 4
       OnChange = ThicknessChanged
@@ -122,7 +148,7 @@ object Form1: TForm1
       Left = 16
       Height = 17
       Top = 410
-      Width = 65
+      Width = 58
       Caption = 'Enabled'
       OnClick = ThicknessChanged
       TabOrder = 5
@@ -142,6 +168,8 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
+      ClientHeight = 67
+      ClientWidth = 117
       Enabled = False
       ItemIndex = 0
       Items.Strings = (
@@ -166,6 +194,7 @@ object Form1: TForm1
         'LMB - Add vertex'
         'RMB - Clear'
       )
+      ParentFont = False
       ReadOnly = True
       TabOrder = 7
       TabStop = False
@@ -184,6 +213,7 @@ object Form1: TForm1
         'antialiasing mode of the '
         'outline.'
       )
+      ParentFont = False
       ReadOnly = True
       TabOrder = 8
       TabStop = False
@@ -192,7 +222,7 @@ object Form1: TForm1
       Left = 16
       Height = 17
       Top = 360
-      Width = 105
+      Width = 83
       Caption = 'Pattern filling'
       OnClick = ParamsChanged
       TabOrder = 9

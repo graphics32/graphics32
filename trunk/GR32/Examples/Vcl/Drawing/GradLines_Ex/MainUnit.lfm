@@ -1,26 +1,33 @@
-object Form1: TForm1
+object FormGradientLines: TFormGradientLines
   Left = 220
-  Height = 583
+  Height = 530
   Top = 105
   Width = 631
-  HorzScrollBar.Page = 630
-  VertScrollBar.Page = 582
   ActiveControl = Button1
   Caption = 'Gradient Lines Example'
-  ClientHeight = 583
+  ClientHeight = 530
   ClientWidth = 631
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
+  LCLVersion = '0.9.27'
   object Label1: TLabel
-    Left = 516
-    Height = 13
+    Left = 518
+    Height = 14
     Top = 92
-    Width = 31
+    Width = 29
     Anchors = [akTop, akRight]
     Caption = 'Total:'
     ParentColor = False
+  end
+  object PaintBox: TPaintBox32
+    Left = 6
+    Height = 515
+    Top = 8
+    Width = 495
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabOrder = 8
   end
   object Button1: TButton
     Left = 515
@@ -71,9 +78,8 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 72
+    ClientHeight = 71
     ClientWidth = 105
-    Ctl3D = True
     ItemIndex = 0
     Items.Strings = (
       'None'
@@ -81,7 +87,6 @@ object Form1: TForm1
       'Fast'
     )
     OnClick = RadioGroup1Click
-    ParentCtl3D = False
     TabOrder = 3
   end
   object RadioGroup2: TRadioGroup
@@ -100,9 +105,8 @@ object Form1: TForm1
     ChildSizing.ShrinkVertical = crsScaleChilds
     ChildSizing.Layout = cclLeftToRightThenTopToBottom
     ChildSizing.ControlsPerLine = 1
-    ClientHeight = 64
+    ClientHeight = 63
     ClientWidth = 105
-    Ctl3D = True
     ItemIndex = 0
     Items.Strings = (
       'Slow'
@@ -110,7 +114,6 @@ object Form1: TForm1
       'Fast'
     )
     OnClick = RadioGroup2Click
-    ParentCtl3D = False
     TabOrder = 4
   end
   object Panel1: TPanel
@@ -126,15 +129,16 @@ object Form1: TForm1
     TabOrder = 6
   end
   object RepaintOpt: TCheckBox
-    Left = 476
-    Height = 15
+    Left = 514
+    Height = 17
     Top = 320
-    Width = 144
+    Width = 106
     Anchors = [akTop, akRight]
     Caption = 'Repaint Optimization'
     Font.Height = -9
     Font.Name = 'Tahoma'
     OnClick = RepaintOptClick
+    ParentFont = False
     TabOrder = 5
   end
   object Memo2: TMemo
@@ -151,6 +155,7 @@ object Form1: TForm1
       'effect of repaint '
       'optimization.'
     )
+    ParentFont = False
     ReadOnly = True
     TabOrder = 7
     TabStop = False

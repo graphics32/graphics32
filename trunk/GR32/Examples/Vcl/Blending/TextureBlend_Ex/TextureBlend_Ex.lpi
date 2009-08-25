@@ -1,14 +1,19 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <PathDelim Value="\"/>
+    <Version Value="7"/>
     <General>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <Icon Value="0"/>
+      <UseXPManifest Value="True"/>
     </General>
+    <VersionInfo>
+      <ProjectVersion Value=""/>
+      <Language Value=""/>
+      <CharSet Value=""/>
+    </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
       <IgnoreBinaries Value="False"/>
@@ -21,154 +26,107 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="3">
+    <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="LCL"/>
       </Item2>
-      <Item3>
-        <PackageName Value="GR32_L"/>
-      </Item3>
     </RequiredPackages>
-    <Units Count="12">
+    <Units Count="8">
       <Unit0>
         <Filename Value="TextureBlend_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="9" Y="2"/>
+        <CursorPos X="62" Y="16"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
         <UsageCount Value="21"/>
-        <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
         <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
-        <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="27" Y="289"/>
-        <TopLine Value="276"/>
-        <EditorIndex Value="1"/>
+        <CursorPos X="4" Y="171"/>
+        <TopLine Value="171"/>
         <UsageCount Value="21"/>
-        <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
-        <Filename Value="MainUnit.lfm"/>
+        <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
+        <UnitName Value="GR32_DrawingEx"/>
         <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="2"/>
+        <TopLine Value="14"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="LFM"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
-        <Filename Value="../../../../GR32_Resamplers.pas"/>
-        <UnitName Value="GR32_Resamplers"/>
-        <CursorPos X="65" Y="39"/>
+        <Filename Value="..\..\..\..\Packages\GR32_DSGN_L.pas"/>
+        <UnitName Value="GR32_DSGN_L"/>
+        <CursorPos X="51" Y="10"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit3>
       <Unit4>
-        <Filename Value="/Lazarus/components/jpeg/lazjpeg.pas"/>
-        <UnitName Value="LazJPEG"/>
-        <CursorPos X="30" Y="32"/>
-        <TopLine Value="10"/>
+        <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
+        <UnitName Value="GR32_L"/>
+        <CursorPos X="49" Y="13"/>
+        <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
-        <Filename Value="/Lazarus/fpc/2.1.1/source/packages/base/pasjpeg/jpeglib.pas"/>
-        <UnitName Value="JPEGLib"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
+        <Filename Value="..\..\..\..\GR32_Image.pas"/>
+        <UnitName Value="GR32_Image"/>
+        <CursorPos X="103" Y="616"/>
+        <TopLine Value="619"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit5>
       <Unit6>
-        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
-        <ComponentName Value="Form1"/>
-        <HasResources Value="True"/>
-        <ResourceFilename Value="../../General/Rotate_Ex/MainUnit.lrs"/>
-        <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="99"/>
-        <TopLine Value="78"/>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\lmessages.pp"/>
+        <UnitName Value="LMessages"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
-        <Filename Value="../../Transformation/Transform_Ex/MainUnit.pas"/>
-        <ComponentName Value="Form1"/>
-        <HasResources Value="True"/>
-        <UnitName Value="MainUnit"/>
-        <CursorPos X="26" Y="382"/>
-        <TopLine Value="376"/>
+        <Filename Value="..\..\..\..\GR32_Backends_LCL_Win.pas"/>
+        <UnitName Value="GR32_Backends_LCL_Win"/>
+        <CursorPos X="6" Y="4"/>
+        <TopLine Value="1"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit7>
-      <Unit8>
-        <Filename Value="../../General/ByteMaps_Ex/MainUnit.pas"/>
-        <HasResources Value="True"/>
-        <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="46"/>
-        <UsageCount Value="10"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="../../General/ByteMaps_Ex/MainUnit.lfm"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit9>
-      <Unit10>
-        <Filename Value="../../General/Mandelbrot_Ex/MandelUnit.pas"/>
-        <HasResources Value="True"/>
-        <UnitName Value="MandelUnit"/>
-        <CursorPos X="16" Y="66"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="../../General/Mandelbrot_Ex/MandelUnit.lfm"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit11>
     </Units>
-    <JumpHistory Count="2" HistoryIndex="1">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="46" Column="3" TopLine="43"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="229" Column="40" TopLine="207"/>
-      </Position2>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
+    <PathDelim Value="\"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
+      <IncludeFiles Value="..\..\..\..\"/>
+      <OtherUnitFiles Value="..\..\..\..\"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <D2Extensions Value="False"/>
-        <CStyleOperator Value="False"/>
-        <AllowLabel Value="False"/>
-        <CPPInline Value="False"/>
-        <DelphiCompat Value="True"/>
+        <SyntaxMode Value="Delphi"/>
+        <CStyleMacros Value="True"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
-      <Generate Value="Faster"/>
+      <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <UseLineInfoUnit Value="False"/>
+        <StripSymbols Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
       <Options>
-        <PassLinkerOptions Value="True"/>
-        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
@@ -179,13 +137,16 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="2">
+    <Exceptions Count="3">
       <Item1>
-        <Name Value="ECodetoolError"/>
+        <Name Value="EAbort"/>
       </Item1>
       <Item2>
-        <Name Value="EFOpenError"/>
+        <Name Value="ECodetoolError"/>
       </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
     </Exceptions>
   </Debugging>
 </CONFIG>

@@ -3,8 +3,6 @@ object Form1: TForm1
   Height = 228
   Top = 113
   Width = 337
-  HorzScrollBar.Page = 336
-  VertScrollBar.Page = 227
   ActiveControl = EditText
   Caption = 'RenderText Example'
   ClientHeight = 228
@@ -13,21 +11,26 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
+  LCLVersion = '0.9.27'
   object Image: TImage32
     Left = 0
+    Height = 167
     Top = 61
-    Width = 329
-    Height = 140
+    Width = 337
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
     BitmapAlign = baTopLeft
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smNormal
-    TabOrder = 0
+    TabOrder = 1
     OnResize = ImageResize
   end
   object Panel1: TPanel
+    Left = 0
     Height = 61
+    Top = 0
     Width = 337
     Align = alTop
     BevelOuter = bvNone
@@ -35,6 +38,7 @@ object Form1: TForm1
     ClientWidth = 337
     Font.Height = -11
     Font.Name = 'Tahoma'
+    ParentFont = False
     TabOrder = 0
     object Label1: TLabel
       Left = 4
@@ -132,7 +136,7 @@ object Form1: TForm1
     end
     object EditText: TEdit
       Left = 92
-      Height = 21
+      Height = 23
       Top = 4
       Width = 242
       Anchors = [akTop, akLeft, akRight]

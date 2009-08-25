@@ -1,10 +1,8 @@
 object Form1: TForm1
-  Left = 216
+  Left = 262
   Height = 215
-  Top = 109
+  Top = 145
   Width = 249
-  HorzScrollBar.Page = 248
-  VertScrollBar.Page = 214
   ActiveControl = ScrollBar1
   Caption = 'Line Stippling Example'
   ClientHeight = 215
@@ -12,6 +10,20 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
+  LCLVersion = '0.9.27'
+  object Image: TImage32
+    Left = 8
+    Height = 200
+    Top = 8
+    Width = 200
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baTopLeft
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 1
+  end
   object ScrollBar1: TScrollBar
     Left = 224
     Height = 201
@@ -19,6 +31,7 @@ object Form1: TForm1
     Width = 16
     Kind = sbVertical
     Min = 1
+    PageSize = 0
     Position = 52
     TabOrder = 0
     OnChange = ScrollBarChange
