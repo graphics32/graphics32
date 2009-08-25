@@ -1,6 +1,6 @@
 object Form1: TForm1
-  Left = 213
-  Top = 113
+  Left = 381
+  Top = 128
   Caption = 'RenderText Example'
   ClientHeight = 201
   ClientWidth = 329
@@ -50,7 +50,6 @@ object Form1: TForm1
       Top = 36
       Width = 46
       Height = 13
-      Margins.Bottom = 0
       Caption = 'AA Level:'
     end
     object LbEnterText: TLabel
@@ -58,7 +57,6 @@ object Form1: TForm1
       Top = 6
       Width = 78
       Height = 13
-      Margins.Bottom = 0
       Caption = 'Enter text here:'
     end
     object SBTextOut: TSpeedButton

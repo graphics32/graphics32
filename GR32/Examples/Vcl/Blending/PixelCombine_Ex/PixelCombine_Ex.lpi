@@ -1,13 +1,14 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveEditorIndexAtStart Value="0"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -23,37 +24,37 @@
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="JPEGForLazarus"/>
+        <PackageName Value="LCL"/>
       </Item2>
       <Item3>
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="14">
+    <Units Count="18">
       <Unit0>
         <Filename Value="PixelCombine_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="23" Y="10"/>
+        <CursorPos X="63" Y="15"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="21"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
-        <ComponentName Value="Form1"/>
-        <HasResources Value="True"/>
         <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ComponentName Value="FormPixelCombine"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="59"/>
-        <TopLine Value="34"/>
-        <EditorIndex Value="1"/>
-        <UsageCount Value="20"/>
+        <CursorPos X="94" Y="23"/>
+        <TopLine Value="14"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="../../../../GR32_MicroTiles.pas"/>
@@ -61,6 +62,7 @@
         <CursorPos X="17" Y="2"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="MainUnit.lfm"/>
@@ -72,9 +74,10 @@
       <Unit4>
         <Filename Value="../../../../GR32_DrawingEx.pas"/>
         <UnitName Value="GR32_DrawingEx"/>
-        <CursorPos X="19" Y="36"/>
-        <TopLine Value="1"/>
+        <CursorPos X="13" Y="39"/>
+        <TopLine Value="27"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit4>
       <Unit5>
         <Filename Value="/Lazarus/lcl/lclproc.pas"/>
@@ -97,13 +100,15 @@
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit7>
       <Unit8>
         <Filename Value="../../../../GR32_LowLevel.pas"/>
         <UnitName Value="GR32_LowLevel"/>
-        <CursorPos X="3" Y="125"/>
-        <TopLine Value="103"/>
+        <CursorPos X="51" Y="830"/>
+        <TopLine Value="805"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit8>
       <Unit9>
         <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
@@ -124,16 +129,18 @@
       <Unit11>
         <Filename Value="../../../../GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-        <CursorPos X="14" Y="717"/>
-        <TopLine Value="708"/>
+        <CursorPos X="33" Y="2168"/>
+        <TopLine Value="2152"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit11>
       <Unit12>
         <Filename Value="../../../../GR32_RangeBars.pas"/>
         <UnitName Value="GR32_RangeBars"/>
-        <CursorPos X="25" Y="68"/>
-        <TopLine Value="54"/>
+        <CursorPos X="47" Y="1599"/>
+        <TopLine Value="1588"/>
         <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
       </Unit12>
       <Unit13>
         <Filename Value="temp.lfm"/>
@@ -142,30 +149,73 @@
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit13>
+      <Unit14>
+        <Filename Value="../../../../GR32_System.pas"/>
+        <UnitName Value="GR32_System"/>
+        <CursorPos X="12" Y="81"/>
+        <TopLine Value="60"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="../../../../GR32.inc"/>
+        <CursorPos X="24" Y="169"/>
+        <TopLine Value="130"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <UnitName Value="GR32_Blend"/>
+        <CursorPos X="27" Y="41"/>
+        <TopLine Value="21"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/radiogroup.inc"/>
+        <CursorPos X="19" Y="382"/>
+        <TopLine Value="373"/>
+        <UsageCount Value="10"/>
+      </Unit17>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="4" HistoryIndex="3">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="100" Column="18" TopLine="88"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="100" Column="20" TopLine="88"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="108" Column="15" TopLine="88"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="111" Column="48" TopLine="88"/>
+      </Position4>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
+      <IncludeFiles Value="../../../../"/>
+      <OtherUnitFiles Value="../../../../"/>
       <ObjectPath Value="../../../"/>
+      <LCLWidgetType Value="win32"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <D2Extensions Value="False"/>
+        <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
         <AllowLabel Value="False"/>
         <CPPInline Value="False"/>
-        <DelphiCompat Value="True"/>
       </SyntaxOptions>
     </Parsing>
-    <CodeGeneration>
-      <Generate Value="Faster"/>
-    </CodeGeneration>
     <Linking>
       <Options>
-        <PassLinkerOptions Value="True"/>
         <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>

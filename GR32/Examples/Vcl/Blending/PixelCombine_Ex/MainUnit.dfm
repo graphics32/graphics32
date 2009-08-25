@@ -1,9 +1,9 @@
-object Form1: TForm1
+object FormPixelCombine: TFormPixelCombine
   Left = 295
   Top = 110
-  Width = 524
-  Height = 373
   Caption = 'PixelCombine Example'
+  ClientHeight = 346
+  ClientWidth = 516
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,7 +14,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   DesignSize = (
     516
-    339)
+    346)
   PixelsPerInch = 96
   TextHeight = 13
   object ImgView: TImgView32
@@ -34,7 +34,7 @@ object Form1: TForm1
     OverSize = 0
     TabOrder = 0
   end
-  object RadioGroup1: TRadioGroup
+  object RadioGroup: TRadioGroup
     Left = 394
     Top = 20
     Width = 109
@@ -53,6 +53,6 @@ object Form1: TForm1
       'Exclusion'
       'Pattern')
     TabOrder = 1
-    OnClick = RadioGroup1Click
+    OnClick = RadioGroupClick
   end
 end

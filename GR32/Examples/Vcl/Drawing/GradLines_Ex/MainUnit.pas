@@ -1,7 +1,7 @@
 unit MainUnit;
 
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -12,6 +12,13 @@ unit MainUnit;
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
  * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
  *
  * The Original Code is Gradient Lines Example
  *
@@ -28,13 +35,7 @@ unit MainUnit;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE Windows}
-{$ENDIF}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
@@ -60,7 +61,7 @@ type
     procedure Paint;
   end;
 
-  TForm1 = class(TForm)
+  TFormGradientLines = class(TForm)
     PaintBox: TPaintBox32;
     Button1: TButton;
     Button2: TButton;
@@ -92,7 +93,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormGradientLines: TFormGradientLines;
 
 implementation
 
@@ -146,9 +147,9 @@ procedure TLine.Advance(DeltaT: Single);
       P.X := 0;
       V.X := -V.X;
     end;
-    if P.X >= Form1.PaintBox.Width then
+    if P.X >= FormGradientLines.PaintBox.Width then
     begin
-      P.X := Form1.PaintBox.Width - 1;
+      P.X := FormGradientLines.PaintBox.Width - 1;
       V.X := - V.X;
     end;
     if P.Y < 0 then
@@ -156,9 +157,9 @@ procedure TLine.Advance(DeltaT: Single);
       P.Y := 0;
       V.Y := -V.Y;
     end;
-    if P.Y >= Form1.PaintBox.Height then
+    if P.Y >= FormGradientLines.PaintBox.Height then
     begin
-      P.Y := Form1.PaintBox.Height - 1;
+      P.Y := FormGradientLines.PaintBox.Height - 1;
       V.Y := - V.Y
     end;
 
@@ -211,9 +212,9 @@ begin
   Bitmap.LineFSP(P1.X, P1.Y, P2.X, P2.Y);
 end;
 
-{ TForm1 }
+{ TFormGradientLines }
 
-procedure TForm1.AddLine;
+procedure TFormGradientLines.AddLine;
 var
   L: TLine;
 begin
@@ -230,14 +231,14 @@ begin
   Panel1.Caption := IntToStr(Length(Lines));
 end;
 
-procedure TForm1.AddLines(N: Integer);
+procedure TFormGradientLines.AddLines(N: Integer);
 var
   i: Integer;
 begin
   for i := 0 to N - 1 do AddLine;
 end;
 
-procedure TForm1.AppEventsIdle(Sender: TObject; var Done: Boolean);
+procedure TFormGradientLines.AppEventsIdle(Sender: TObject; var Done: Boolean);
 var
   I, J: Integer;
   P: PColor32;
@@ -272,33 +273,24 @@ begin
     PaintBox.Invalidate;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormGradientLines.FormCreate(Sender: TObject);
 begin
-{$IFDEF FPC}
-  PaintBox := TPaintBox32.Create(Self);
-  PaintBox.Parent := Self;
-  PaintBox.Height := 576;
-  PaintBox.Width := 504;
-  PaintBox.Anchors := [akTop, akLeft, akRight, akBottom];
-  PaintBox.TabOrder := 0;
-{$ENDIF}
-
   FadeCount := 0;
   DrawPasses := 2;
   Application.OnIdle := AppEventsIdle;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormGradientLines.Button1Click(Sender: TObject);
 begin
   AddLine;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TFormGradientLines.Button2Click(Sender: TObject);
 begin
   AddLines(10);
 end;
 
-procedure TForm1.Button3Click(Sender: TObject);
+procedure TFormGradientLines.Button3Click(Sender: TObject);
 var
   I: Integer;
 begin
@@ -308,19 +300,19 @@ begin
   Panel1.Caption := '0';
 end;
  
-procedure TForm1.RadioGroup1Click(Sender: TObject);
+procedure TFormGradientLines.RadioGroup1Click(Sender: TObject);
 const
   FC: array [0..2] of Integer = (0, 7, 1);
 begin
   FadeCount := FC[RadioGroup1.ItemIndex];
 end;
 
-procedure TForm1.RadioGroup2Click(Sender: TObject);
+procedure TFormGradientLines.RadioGroup2Click(Sender: TObject);
 begin
   DrawPasses := (RadioGroup2.ItemIndex + 1) * 3 - 2;
 end;
 
-procedure TForm1.RepaintOptClick(Sender: TObject);
+procedure TFormGradientLines.RepaintOptClick(Sender: TObject);
 begin
   if RepaintOpt.Checked then
     PaintBox.RepaintMode := rmOptimizer

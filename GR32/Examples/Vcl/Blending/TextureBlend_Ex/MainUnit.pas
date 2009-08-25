@@ -1,7 +1,7 @@
 unit MainUnit;
 
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -12,6 +12,13 @@ unit MainUnit;
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
  * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
  *
  * The Original Code is Texture Blend Example
  *
@@ -26,13 +33,7 @@ unit MainUnit;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE Windows}
-{$ENDIF}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, Buttons, {$ENDIF}
@@ -40,28 +41,28 @@ uses
   GR32_Image, GR32_RangeBars;
 
 type
-TMainForm = class(TForm)
+
+  { TMainForm }
+
+  TMainForm = class(TForm)
     MasterAlphaBar: TGaugeBar;
     CombImg: TImage32;
     WeightmapImg: TImage32;
     TexAImg: TImage32;
     TexBImg: TImage32;
-    Label5: TLabel;
+    LabelMasterAlpha: TLabel;
     BlendBox: TComboBox;
-    Label4: TLabel;
-    Label3: TLabel;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
+    LabelCombinedTexture: TLabel;
+    LabelWeightmap: TLabel;
+    LabelTextureA: TLabel;
+    LabelTextureB: TLabel;
+    LabelBlendSettings: TLabel;
+    LabelBlendmode: TLabel;
     GenerateButton: TButton;
-    Label8: TLabel;
+    LabelWeightmapSettings: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure MasterAlphaBarChange(Sender: TObject);
-  private
-    { Private declarations }
   public
-    { Public declarations }
     procedure GenerateWeightmap(Sender: TObject);
   end;
 
@@ -81,7 +82,7 @@ uses
 {$IFNDEF FPC}
   JPEG,
 {$ELSE}
-  LazJPEG,
+  LazJPG,
 {$ENDIF}
   GR32, GR32_Resamplers, GR32_LowLevel, GR32_Blend;
 
@@ -127,86 +128,12 @@ begin
   CFRelease(pathCFStr);
 {$ENDIF}
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  MasterAlphaBar := TGaugeBar.Create(Self);
-  MasterAlphaBar.Parent := Self;
-  MasterAlphaBar.Left := 352;
-  MasterAlphaBar.Height := 16;
-  MasterAlphaBar.Top := 32;
-  MasterAlphaBar.Width := 177;
-  MasterAlphaBar.Color := clScrollBar;
-  MasterAlphaBar.Max := 255;
-  MasterAlphaBar.ShowArrows := False;
-  MasterAlphaBar.ShowHandleGrip := True;
-  MasterAlphaBar.Style := rbsMac;
-  MasterAlphaBar.Position := 200;
-  MasterAlphaBar.OnChange := MasterAlphaBarChange;
-
-  CombImg := TImage32.Create(Self);
-  CombImg.Parent := Self;
-  CombImg.Left := 272;
-  CombImg.Height := 256;
-  CombImg.Top := 112;
-  CombImg.Width := 256;
-  CombImg.Bitmap.ResamplerClassName := 'TNearestResampler';
-  CombImg.Bitmap.OnChange := nil;
-  CombImg.Bitmap.OnResize := nil;
-  CombImg.BitmapAlign := baCenter;
-  CombImg.Color := clBlack;
-  CombImg.ParentColor := False;
-  CombImg.Scale := 1;
-  CombImg.TabOrder := 1;
-
-  WeightmapImg := TImage32.Create(Self);
-  WeightmapImg.Parent := Self;
-  WeightmapImg.Left := 8;
-  WeightmapImg.Height := 256;
-  WeightmapImg.Top := 112;
-  WeightmapImg.Width := 257;
-  WeightmapImg.Bitmap.ResamplerClassName := 'TNearestResampler';
-  WeightmapImg.Bitmap.OnChange := nil;
-  WeightmapImg.Bitmap.OnResize := nil;
-  WeightmapImg.BitmapAlign := baCenter;
-  WeightmapImg.Color := clBlack;
-  WeightmapImg.ParentColor := False;
-  WeightmapImg.Scale := 1;
-  WeightmapImg.TabOrder := 2;
-
-  TexAImg := TImage32.Create(Self);
-  TexAImg.Parent := Self;
-  TexAImg.Left := 8;
-  TexAImg.Height := 256;
-  TexAImg.Top := 400;
-  TexAImg.Width := 256;
-  TexAImg.Bitmap.ResamplerClassName := 'TNearestResampler';
-  TexAImg.Bitmap.OnChange := nil;
-  TexAImg.Bitmap.OnResize := nil;
-  TexAImg.BitmapAlign := baCenter;
-  TexAImg.Color := clBlack;
-  TexAImg.ParentColor := False;
-  TexAImg.Scale := 1;
-  TexAImg.TabOrder := 3;
-
-  TexBImg := TImage32.Create(Self);
-  TexBImg.Parent := Self;
-  TexBImg.Left := 272;
-  TexBImg.Height := 256;
-  TexBImg.Top := 400;
-  TexBImg.Width := 256;
-  TexBImg.Bitmap.ResamplerClassName := 'TNearestResampler';
-  TexBImg.Bitmap.OnChange := nil;
-  TexBImg.Bitmap.OnResize := nil;
-  TexBImg.BitmapAlign := baCenter;
-  TexBImg.Color := clBlack;
-  TexBImg.ParentColor := False;
-  TexBImg.Scale := 1;
-  TexBImg.TabOrder := 4;
-{$ENDIF}
-
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
   pathMedia := '..\..\..\Media\';
+  {$IFDEF FPC}
+  pathMedia := '..\' + pathMedia;
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}
@@ -285,9 +212,6 @@ begin
   EMMS;
   WeightmapImg.Invalidate;
   MasterAlphaBarChange(Self);
-  
-  // Needed under Mac OS X
-  CombImg.Invalidate;
 end;
 
 procedure TMainForm.MasterAlphaBarChange(Sender: TObject);
@@ -322,6 +246,9 @@ begin
 
   //This is needed because we may use MMX in the custom pixelcombiners
   EMMS;
+
+  // Needed under Mac OS X
+  CombImg.Invalidate;
 end;
 
 {$IFDEF FPC}

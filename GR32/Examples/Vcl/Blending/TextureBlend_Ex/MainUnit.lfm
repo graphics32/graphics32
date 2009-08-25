@@ -1,11 +1,8 @@
 object MainForm: TMainForm
-  Left = 151
+  Left = 296
   Height = 665
-  Top = 71
+  Top = 97
   Width = 537
-  HorzScrollBar.Page = 536
-  VertScrollBar.Page = 664
-  ActiveControl = BlendBox
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Texture Blend Example'
@@ -15,15 +12,16 @@ object MainForm: TMainForm
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   Position = poScreenCenter
-  object Label5: TLabel
+  LCLVersion = '0.9.27'
+  object LabelMasterAlpha: TLabel
     Left = 272
-    Height = 13
+    Height = 14
     Top = 32
-    Width = 72
+    Width = 60
     Caption = 'MasterAlpha'
     ParentColor = False
   end
-  object Label4: TLabel
+  object LabelCombinedTexture: TLabel
     Left = 272
     Height = 17
     Top = 88
@@ -38,9 +36,10 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
-  object Label3: TLabel
+  object LabelWeightmap: TLabel
     Left = 8
     Height = 17
     Top = 88
@@ -55,9 +54,10 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
-  object Label1: TLabel
+  object LabelTextureA: TLabel
     Left = 8
     Height = 17
     Top = 376
@@ -72,9 +72,10 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
-  object Label2: TLabel
+  object LabelTextureB: TLabel
     Left = 272
     Height = 17
     Top = 376
@@ -89,9 +90,10 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
-  object Label6: TLabel
+  object LabelBlendSettings: TLabel
     Left = 272
     Height = 17
     Top = 8
@@ -105,17 +107,18 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
-  object Label7: TLabel
+  object LabelBlendmode: TLabel
     Left = 272
-    Height = 13
+    Height = 14
     Top = 56
-    Width = 63
+    Width = 54
     Caption = 'Blendmode'
     ParentColor = False
   end
-  object Label8: TLabel
+  object LabelWeightmapSettings: TLabel
     Left = 8
     Height = 17
     Top = 8
@@ -129,14 +132,29 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
+  object MasterAlphaBar: TGaugeBar
+    Left = 336
+    Height = 16
+    Top = 32
+    Width = 193
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 255
+    ShowArrows = False
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 200
+    OnChange = MasterAlphaBarChange
+  end
   object BlendBox: TComboBox
-    Left = 352
+    Left = 336
     Height = 21
     Top = 56
-    Width = 177
-    AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+    Width = 193
+    ItemHeight = 13
     Items.Strings = (
       'Normal'
       'Soft Masked'
@@ -150,18 +168,76 @@ object MainForm: TMainForm
       'Color Average'
       'Color Exclusion'
     )
-    MaxLength = 0
     OnChange = MasterAlphaBarChange
     Style = csDropDownList
-    TabOrder = 0
+    TabOrder = 1
+  end
+  object CombImg: TImage32
+    Left = 272
+    Height = 258
+    Top = 112
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 2
+  end
+  object WeightmapImg: TImage32
+    Left = 8
+    Height = 258
+    Top = 112
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 3
+  end
+  object TexAImg: TImage32
+    Left = 8
+    Height = 258
+    Top = 400
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 4
+  end
+  object TexBImg: TImage32
+    Left = 272
+    Height = 258
+    Top = 400
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    Bitmap.OnChange = nil
+    Bitmap.OnResize = nil
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 5
   end
   object GenerateButton: TButton
     Left = 8
     Height = 25
     Top = 32
     Width = 257
-    BorderSpacing.InnerBorder = 4
     Caption = 'Generate Random Weightmap'
-    TabOrder = 1
+    TabOrder = 6
   end
 end

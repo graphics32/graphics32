@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 151
-  Top = 71
+  Left = 296
+  Top = 97
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Texture Blend Example'
@@ -17,14 +17,14 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Label5: TLabel
+  object LabelMasterAlpha: TLabel
     Left = 272
     Top = 32
     Width = 59
     Height = 13
     Caption = 'MasterAlpha'
   end
-  object Label4: TLabel
+  object LabelCombinedTexture: TLabel
     Left = 272
     Top = 88
     Width = 258
@@ -42,7 +42,7 @@ object MainForm: TMainForm
     ParentFont = False
     Layout = tlCenter
   end
-  object Label3: TLabel
+  object LabelWeightmap: TLabel
     Left = 8
     Top = 88
     Width = 258
@@ -60,7 +60,7 @@ object MainForm: TMainForm
     ParentFont = False
     Layout = tlCenter
   end
-  object Label1: TLabel
+  object LabelTextureA: TLabel
     Left = 8
     Top = 376
     Width = 258
@@ -78,7 +78,7 @@ object MainForm: TMainForm
     ParentFont = False
     Layout = tlCenter
   end
-  object Label2: TLabel
+  object LabelTextureB: TLabel
     Left = 272
     Top = 376
     Width = 258
@@ -96,7 +96,7 @@ object MainForm: TMainForm
     ParentFont = False
     Layout = tlCenter
   end
-  object Label6: TLabel
+  object LabelBlendSettings: TLabel
     Left = 272
     Top = 8
     Width = 258
@@ -113,14 +113,14 @@ object MainForm: TMainForm
     ParentFont = False
     Layout = tlCenter
   end
-  object Label7: TLabel
+  object LabelBlendmode: TLabel
     Left = 272
     Top = 56
     Width = 53
     Height = 13
     Caption = 'Blendmode'
   end
-  object Label8: TLabel
+  object LabelWeightmapSettings: TLabel
     Left = 8
     Top = 8
     Width = 258

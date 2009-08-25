@@ -1,13 +1,13 @@
 program TextureBlend_Ex;
 
+{$MODE Delphi}
+
 uses
   Interfaces,
-  Forms,
-  MainUnit in 'MainUnit.pas' {MainForm}, GR32_L, JPEGForLazarus;
+  Forms, ImagesForLazarus,
+  MainUnit in 'MainUnit.pas';
 
-{$IFDEF Windows}
 {$R *.res}
-{$ENDIF}
 
 begin
   Application.Initialize;

@@ -2,12 +2,12 @@ program PixelCombine_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {FormPixelCombine};
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormPixelCombine, FormPixelCombine);
   Application.Run;
 end.
