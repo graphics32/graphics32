@@ -1,7 +1,7 @@
 unit MainUnit;
 
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -12,6 +12,13 @@ unit MainUnit;
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
  * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
  *
  * The Original Code is Graphics32
  *
@@ -28,13 +35,7 @@ unit MainUnit;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE Windows}
-{$ENDIF}
+{$I GR32.INC}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
@@ -141,22 +142,6 @@ begin
   Image.Bitmap.ResamplerClassName := 'TNearestResampler';
   Image.Scale := 1;
   Image.TabOrder := 0;
-
-  sbScale := TGaugeBar.Create(Panel2);
-  sbScale.Parent := Panel2;
-  sbScale.Left := 8;
-  sbScale.Top := 260;
-  sbScale.Width := 152;
-  sbScale.Height := 16;
-  sbScale.Backgnd := bgPattern;
-  sbScale.BorderStyle := bsNone;
-  sbScale.Enabled := False;
-  sbScale.Max := 1000;
-  sbScale.Min := 25;
-  sbScale.ShowHandleGrip := True;
-  sbScale.Position := 100;
-  sbScale.OnChange := sbScaleChange;
-  sbScale.Style := rbsMac;
 {$ENDIF}
 
   // Different platforms store resource files on different locations

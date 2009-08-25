@@ -2,13 +2,13 @@ object Form1: TForm1
   Left = 224
   Height = 445
   Top = 159
-  Width = 580
-  HorzScrollBar.Page = 579
+  Width = 550
+  HorzScrollBar.Page = 549
   VertScrollBar.Page = 444
   ActiveControl = rgScaleMode.RadioButton0
   Caption = 'TImage32 Example'
   ClientHeight = 445
-  ClientWidth = 580
+  ClientWidth = 550
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
@@ -26,17 +26,17 @@ object Form1: TForm1
   object Panel2: TPanel
     Left = 408
     Height = 445
-    Width = 172
+    Width = 142
     Align = alRight
     BevelOuter = bvNone
     ClientHeight = 445
-    ClientWidth = 172
+    ClientWidth = 142
     TabOrder = 1
     object rgScaleMode: TRadioGroup
       Left = 8
       Height = 129
-      Top = 112
-      Width = 152
+      Top = 104
+      Width = 129
       AutoFill = True
       Caption = 'ScaleMode'
       ChildSizing.LeftRightSpacing = 6
@@ -48,7 +48,7 @@ object Form1: TForm1
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
       ClientHeight = 112
-      ClientWidth = 148
+      ClientWidth = 125
       ItemIndex = 0
       Items.Strings = (
         'smNormal'
@@ -63,9 +63,9 @@ object Form1: TForm1
     end
     object rgKernel: TRadioGroup
       Left = 8
-      Height = 145
+      Height = 121
       Top = 288
-      Width = 152
+      Width = 129
       AutoFill = True
       Caption = 'Kernels'
       ChildSizing.LeftRightSpacing = 6
@@ -76,8 +76,8 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 128
-      ClientWidth = 148
+      ClientHeight = 104
+      ClientWidth = 125
       ItemIndex = 0
       Items.Strings = (
         'TBoxKernel'
@@ -93,7 +93,7 @@ object Form1: TForm1
       Left = 8
       Height = 89
       Top = 8
-      Width = 152
+      Width = 129
       AutoFill = True
       Caption = 'BitmapAlign'
       ChildSizing.LeftRightSpacing = 6
@@ -105,7 +105,7 @@ object Form1: TForm1
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
       ClientHeight = 72
-      ClientWidth = 148
+      ClientWidth = 125
       ItemIndex = 0
       Items.Strings = (
         'baTopLeft'
