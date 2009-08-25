@@ -1,4 +1,5 @@
 unit BrushAuxiliaries;
+
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1
  *
@@ -11,6 +12,13 @@ unit BrushAuxiliaries;
  * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
  * for the specific language governing rights and limitations under the
  * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
  *
  * The Original Code is Image Warping Example
  *
