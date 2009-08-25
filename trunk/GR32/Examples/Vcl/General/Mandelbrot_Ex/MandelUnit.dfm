@@ -30,7 +30,6 @@ object Form1: TForm1
     Color = clBlack
     ClearBuffer = True
     RenderMode = rnmFull
-    ExplicitHeight = 385
   end
   object MainMenu1: TMainMenu
     Left = 24
