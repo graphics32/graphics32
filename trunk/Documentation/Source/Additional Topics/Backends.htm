@@ -1,0 +1,79 @@
+<html>
+<head>
+<title>Backends</title>
+<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+<style type="text/css">
+<!--
+.code {font-size: 100%}
+-->
+</style>
+</head>
+<body bgcolor="#FFFFFF"> 
+<h2>1 Introduction</h2> 
+<p class="Body">Traditionally bitmaps in Graphics32 have been using managed by the Windows GDI. While this is feasible for most usage scenarios in Windows there are some that require certain less ressource-restricted approaches like handle-less bitmaps or bitmaps that rely on memory-mapped files. Prior to Graphics32 1.9 several community-driven patches existed that added these features.<br>
+With the arrival of broader platform support in Graphics32 we are separating the memory management as well as OS or graphics subsystem specific methods from the generic methods in TBitmap32 and move these portions into so called backend classes.</p>
+<h2>2 Approach and compatibility</h2> 
+<p class="Body">In order to keep backwards compatibility the TBitmap32 class still exposes the same external interface. In order to get a clean cut from the platform specific methods and properties we implemented a new in-between class TCustomBitmap32 which is truely platform agnostic and relies solely on the associated backend class to handle its needs. As a matter of fact TCustomBitmap32 is missing all Text methods and Canvas and Handle methods. Backends may implement predefined interfaces to implement the functionality.</p>
+<p class="Body">The backend instance is switchable during the lifecycle of a TCustomBitmap32 instance. Conversion to the new backend instance is handled transparently, i.e. without loosing the bitmap's buffer contents. For instance this allows for temporarily switching a handle-less memory-only bitmap to a GDI bitmap with handle and vice versa.<br>
+  <br>
+</p>
+<div align="center">
+  <table border="0">
+    <tr>
+      <th width="761" scope="col">Code example (Switching backends) </th>
+    </tr>
+    <tr>
+      <td class="pascalcode"><p>begin<br>
+        &nbsp;&nbsp;MyBitmap := TBitmap32.Create;<br>
+        &nbsp;&nbsp;TMMFBackend.Create(MyBitmap); // Switch to a handle-less memory mapped file backend...<br>
+        &nbsp;&nbsp;MyBitmap.SetSize(5000,  5000);<br>
+        <br>
+        &nbsp;&nbsp;// Draw onto your new big bitmap...<br>
+        &nbsp;&nbsp;// Note: No text or canvas drawing is allowed because TMMFBackend does not implement those operations.<br>
+        &nbsp;&nbsp;// Use TGDIMMFBackend instead... <br>
+          <br>
+&nbsp;&nbsp;TGDIBackend.Create(MyBitmap); // Switch to a GDI backend and convert the current buffer...<br>
+&nbsp;&nbsp;MyBitmap.SaveToFile('test.bmp');<br>
+end;</p>
+      </td>
+    </tr>
+  </table>
+</div>
+<h2>3 Class and interface overview</h2>
+<p class="Body">Currently Graphics32 ships with the following backend classes which are subclasses of TBackend and implement several interfaces (see below):</p>
+<ul>
+  <li><strong>Generic backends</strong>
+    <ul>
+      <li>TMemoryBackend</li>
+      <li>TMMFBackend </li>
+    </ul>
+  </li>
+  <li><strong class="Body">Windows GDI/VCL backends </strong>
+    <ul>
+      <li>TGDIBackend</li>
+      <li>TGDIMMFBackend</li>
+    </ul>
+  </li>
+  <li><strong>Lazarus backends (currently Windows, OS X Carbon, GTK)</strong>
+    <ul>
+      <li>TLCLBackend</li>
+      <li>TLCLMMFBackend (Windows only) </li>
+</ul>
+  </li>
+</ul>
+<p class="Body">By default TBitmap32 now uses the backend class TGDIBackend on Delphi/VCL/Windows and TLCLBackend on FreePascal/LCL/[supported OS (see above)].</p>
+<p class="Body">Each of these backends may or may not implement certain pre-defined interfaces which can be queried for at runtime either directly via the backend or indirectly via the bitmap instance:</p>
+<ul>
+  <li>IPaintSupport</li>
+  <li>ICopyFromBitmapSupport</li>
+  <li>IBitmapContextSupport</li>
+  <li>IDeviceContextSupport</li>
+  <li>ITextSupport</li>
+  <li>IFontSupport</li>
+  <li>ICanvasSupport</li>
+</ul>
+<p class="Body"><strong>Please note:</strong> Most of the methods and properties left in TBitmap32 query the backend for these specific interfaces. Failing to implement the required in the backend class will cause  the method call or property read to fail with an exception. We recommend to change your custom routines to use TCustomBitmap32 instead of TBitmap32 wherever possible. </p>
+<p>&nbsp;</p>
+<p id="Hidden">[See Also] </p> 
+</body>
+</html>
