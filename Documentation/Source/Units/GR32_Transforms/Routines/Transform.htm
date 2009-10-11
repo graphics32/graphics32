@@ -14,14 +14,14 @@
 <p class="Body">The <b>Transformation</b> parameter is a reference to a descendant 
   of an abstract <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> 
   class. It specifies all necessary transformation parameters. </p>
-<p class="Body">When <b>Src</b>.<a href="../../GR32/Classes/TBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
+<p class="Body">When <b>Src</b>.<a href="../../GR32/Classes/TCustomBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
   is different from sfNearest, <b>Transform</b> uses bilinear interpolation for 
   magnification (along any axis) as for minification, it is not as accurate as 
-  <a href="../../GR32_Transforms/Routines/StretchTransfer.htm">StretchTransfer</a> function. If you need better 
+  <a href="../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a> function. If you need better 
   quality when minimizing the bitmaps, transform them into the temporary buffer 
-  so that there is no minification invlolved, then <a href="../../GR32_Transforms/Routines/StretchTransfer.htm">StretchTransfer</a> 
+  so that there is no minification invlolved, then <a href="../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a> 
   to a final bitmap. </p>
-<p class="Body">The function does not support spline interpolation, if <b>Src</b>.<a href="../../GR32/Classes/TBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
+<p class="Body">The function does not support spline interpolation, if <b>Src</b>.<a href="../../GR32/Classes/TCustomBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
   is sfSpline, <b>Transform</b> operates as if it were sfLinear. </p>
 <p class="Body">There is an issue with antialiasing and edges. How to make them 
   antialiased and still keep the performance? The solution implemented in Graphics32 
