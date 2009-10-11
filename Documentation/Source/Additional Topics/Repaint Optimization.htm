@@ -38,15 +38,17 @@
       <th scope="col">Code 2 </th>
     </tr>
     <tr>
-      <td class="pascalcode">begin<br>
-&nbsp;&nbsp;MyDrawingOperation(Buffer);<br>
-&nbsp;&nbsp;Buffer.Changed;<br>
-end;</td>
-      <td class="pascalcode">begin<br>
-&nbsp;&nbsp;if not Buffer.Measuringmode then<br>
-&nbsp;&nbsp;&nbsp;&nbsp;MyDrawingOperation(Buffer);<br>
-&nbsp;&nbsp;Buffer.Changed(RectOfAreaThatWasChanged);<br>
-end;</td>
+      <td><pre class="brush: delphi;">
+begin
+  MyDrawingOperation(Buffer);
+  Buffer.Changed;
+end;</pre></td>
+      <td><pre class="brush: delphi;">
+begin
+  if not Buffer.Measuringmode then
+    MyDrawingOperation(Buffer);
+  Buffer.Changed(RectOfAreaThatWasChanged);
+end;</pre></td>
     </tr>
   </table>
 </div>

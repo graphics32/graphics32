@@ -7,17 +7,19 @@
 
 <body bgcolor="#FFFFFF">
 <h2>Description</h2>
-<p class="Body">TPointerMapIterator is an auxiliary class for iterating through pointer maps - an operation not directly supported by TPointerMap.</p>
+<p class="Body"><strong>TPointerMapIterator</strong> is an auxiliary class for iterating through pointer maps - an operation not directly supported by TPointerMap.</p>
 <p class="Body">The iterator should be used in the following fashion:</p>
-<p class="Code"> <span class="EmptyRef">with</span> TPointerMapIterator.Create(MyPointerMap) <span class="EmptyRef">do</span></p>
-<p class="Code EmptyRef"> try</p>
-<p class="Code">&nbsp;&nbsp;<span class="EmptyRef">while</span> Next <span class="EmptyRef">do</span></p>
-<p class="Code">&nbsp;&nbsp;<span class="EmptyRef">begin</span></p>
-<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;// do something with Item and Data here...</p>
-<p class="Code">&nbsp;&nbsp;<span class="EmptyRef">end</span>;</p>
-<p class="Code EmptyRef">finally</p>
-<p class="Code">&nbsp;&nbsp;Free;</p>
-<p class="Code"><span class="EmptyRef">end</span>;</p>
+<div class="Code"><pre class="brush: delphi;">
+with TPointerMapIterator.Create(MyPointerMap) do
+try
+  while Next do
+  begin
+    // do something with Item and Data here...
+  end;
+finally
+  Free;
+end;
+</pre></div>
 <p id="hidden">[See Also] </p>
 </body>
 </html>
