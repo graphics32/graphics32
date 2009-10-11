@@ -25,12 +25,11 @@ type
     function  GetItems(Index: Integer): TAttribute;
     procedure SetItem(const AName, AValue: string);
     procedure SetItems(Index: Integer; Attribute: TAttribute);
-  protected
-    function  FindItem(const AName: string): TAttribute;
   public
     constructor Create;
     procedure Add(const AName, AValue: string);
     function  Has(const AName: string): Boolean;
+    function  FindItem(const AName: string): TAttribute;
     procedure Remove(const AName: string);
     property Item[const AName: string]: string read GetItem write SetItem; default;
     property Items[Index: Integer]: TAttribute read GetItems write SetItems;
@@ -58,8 +57,6 @@ type
     procedure SetIndex(Value: Integer);
     procedure SetParent(Value: TDomNode);
     function GetIndex: Integer;
-  protected
-    function AddNode(ANode: TDomNode): TDomNode;
   public
     constructor Create(AParent: TDomNode);
     destructor Destroy; override;
@@ -68,11 +65,13 @@ type
     function AddObjectParam(const AName, AValue: string): TDomNode;
     function AddParse(const Text: string): TDomNode;
     function AddText(const Text: string): TDomNode;
+    function AddNode(ANode: TDomNode): TDomNode;
     function Duplicate: TDomNode;
     function FindNode(const AName: string; Recursive: Boolean): TDomNode;
     function FindNodes(const AName: string; Recursive: Boolean): TDomNodeList;
     function FirstChild: TDomNode;
     function Insert(Index: Integer; const AName: string = ''): TDomNode;
+    function InsertNode(Index: Integer; ANode: TDomNode): TDomNode;
     function LastChild: TDomNode;
     function NextSibling: TDomNode;
     function PrevSibling: TDomNode;
@@ -315,9 +314,9 @@ end;
 
 function TDomNode.AddNode(ANode: TDomNode): TDomNode;
 begin
-  // for internal use only
   inherited Add(ANode);
   Result := ANode;
+  ANode.FParent := Self;
 end;
 
 function TDomNode.AddObject(const AType: string): TDomNode;
@@ -436,6 +435,13 @@ begin
   Result.Name := AName;
   Result.NodeType := ntTag;
   Result.Index := Index;
+end;
+
+function TDomNode.InsertNode(Index: Integer; ANode: TDomNode): TDomNode;
+begin
+  inherited Insert(Index, ANode);
+  Result := ANode;
+  ANode.FParent := Self;  
 end;
 
 function TDomNode.LastChild: TDomNode;
@@ -676,7 +682,11 @@ var
     end;
     {$IFDEF CODESITE}CodeSite.EnterMethod('Text ' + S);{$ENDIF}
     Pos := P;
-    Dst.AddText(ConvertWhiteSpace(S));
+
+    if GetTagInfo(Dst.Name).SimpleContent then
+      Dst.AddText(ConvertWhiteSpace(S))
+    else
+      Dst.AddText(S);
   end;
 
   procedure GetPI;
@@ -823,7 +833,7 @@ begin
     ntComment:
       begin
         NewLine;
-        Write('<--' + Src.Value + '-->');
+        Write('<!--' + Src.Value + '-->');
         NewLine;
       end;
 

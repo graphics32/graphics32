@@ -176,9 +176,13 @@ begin
 end;
 
 procedure TMainForm.StartTransforming;
+const
+  cUpdateInterval = 500;
 var
   I: Integer;
   S: string;
+  CompileTime: Cardinal;
+  NextUpdate: Cardinal;
 begin
   VersionString := Edit6.Text;
   if ProjectDir = '' then Exit;
@@ -191,11 +195,16 @@ begin
   CompiledDir := (ProjectDir + 'Docs\');
   StyleFile := ProjectDir + 'Styles\Default.css';
 
+  CompileTime := GetTickCount;
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
     Project.DisplayName := Edit1.Text;
     Project.DestinationFolder := ProjectDir + 'Docs';
     Project.ImageFolder := ProjectDir + 'Images';
+    Project.ScriptFolder := ProjectDir + 'Script';
+    Project.StylesFolder := ProjectDir + 'Styles';
+    Project.HeadSectionTemplate := ProjectDir + 'HeadSection.tmpl';
+    Project.BodySectionTemplate := ProjectDir + 'BodySection.tmpl';
     LogAdd('Transforming'#13#10);
 
     LogAdd('Reading files ...');
@@ -220,11 +229,17 @@ begin
     for I := 0 to Project.Files.Count - 1 do
     begin
       S := TElement(Project.Files.Objects[I]).DisplayName;
-      LogReplace(Format('Transforming File: (%d/%d) %s',
-        [I + 1, Project.Files.Count, S]));
+
+      if GetTickCount > NextUpdate then
+      begin
+        LogReplace(Format('Transforming File: (%d/%d) %s',
+          [I + 1, Project.Files.Count, S]));
+        Progress.Position := 4 + 83 * I div Project.Files.Count;
+        Application.ProcessMessages;
+        NextUpdate := GetTickCount + cUpdateInterval;
+      end;
+
       TElement(Project.Files.Objects[I]).Transform;
-      Progress.Position := 4 + 83 * I div Project.Files.Count;
-      Application.ProcessMessages;
     end;
 
     LogReplace('Transforming Files ...... done'#13#10);
@@ -242,6 +257,8 @@ begin
     LogAdd('... done'#13#10);
 
     LogAdd('Project transformed.'#13#10);
+    CompileTime := GetTickCount - CompileTime;
+    LogAdd(Format('Compile time: %d minutes, %d seconds'#13#10, [(CompileTime div 1000) div 60, (CompileTime div 1000) mod 60]));
     Progress.Position := 0;
     Log.Color := $E7FFE7;
   finally

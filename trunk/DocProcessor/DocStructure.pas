@@ -6,7 +6,6 @@ uses
   Classes, SysUtils, Contnrs, FileCtrl, SimpleDOM;
 
 const
-  Copyright: String = 'Copyright &copy;2000-2009 Alex Denisov and Contributors';
   cColumnCount = 5;
 
 type
@@ -34,7 +33,6 @@ type
   TElement = class
   protected
     class function IsTopic: Boolean; virtual;
-    procedure AddBuildDate(Body: TDomNode);
     procedure AddSeeAlso(Body: TDomNode; Links: TStringList);
     procedure InsertBanner(Body: TDomNode);
     procedure InsertHeading(Body: TDomNode);
@@ -156,6 +154,14 @@ type
     FileElements: array of TTopicElement;
     DestinationFolder: string;
     ImageFolder: string;
+    ScriptFolder: string;
+    StylesFolder: string;
+
+    HeadSectionTemplate: string;
+    HeadSectionTemplateDOM: TDomDocument;
+    BodySectionTemplate: string;
+    BodySectionTemplateDOM: TDomDocument;
+
     Index: TIndex;
     constructor Create(AParent: TElement; const APath: string); override;
     destructor Destroy; override;
@@ -177,6 +183,7 @@ type
   end;
 
 var
+  EnglishFormatSettings: TFormatSettings;
   VersionString: string;
 
 implementation
@@ -332,18 +339,6 @@ begin
 end;
 
 { TElement }
-
-procedure TElement.AddBuildDate(Body: TDomNode);
-begin
-  with Body.Add('p') do
-  begin
-    Attributes['class'] := 'Copyright';
-    Attributes['id'] := 'auto';
-    AddText('<br><br>' + Copyright + ' &nbsp; - &nbsp; Graphics32 ' +
-    VersionString + ' &nbsp; - &nbsp; Build on ' +
-      FormatDateTime('d-mmmm-yyyy', Now) + '<br><br>');
-  end;
-end;
 
 procedure TElement.AddSeeAlso(Body: TDomNode; Links: TStringList);
 var
@@ -552,7 +547,6 @@ begin
   InsertHeading(Body);
   InsertBanner(Body);
   AddSeeAlso(Body, Links);
-  AddBuildDate(Body);
   if Self <> Project then
   begin
     Project.Index.Add(DisplayName, FileName);
@@ -569,6 +563,60 @@ var
   LinkNodes: TDomNodeList;
   Anchors, Links: TStringList;
   I: Integer;
+
+  procedure InjectSectionTemplate(const NameBegin, NameEnd: string; SrcDoc: TDomDocument; DstNode: TDomNode; const RootFolder: string);
+  var
+    SrcNode: TDomNode;
+    SubNode: TDomNode;
+    I: Integer;
+    Att: TAttribute;
+
+    procedure RewriteLocationAttribute(const Name: string; Node: TDomNode);
+    begin
+      Att := Node.Attributes.FindItem(Name);
+      if Assigned(Att) then
+        Att.Value := PathTo(RootFolder + Att.Value);
+    end;
+
+    procedure RewriteWithMacros(Node: TDomNode);
+    var
+      I: Integer;
+      ChildNode: TDomNode;
+    begin
+      for I := 0 to Node.Count - 1 do
+      begin
+        ChildNode := Node.Items[I];
+        ChildNode.Value := StringReplace(ChildNode.Value, '##BuildDate##', FormatDateTime('d-mmmm-yyyy', Now, EnglishFormatSettings), [rfReplaceAll, rfIgnoreCase]);
+        ChildNode.Value := StringReplace(ChildNode.Value, '##VersionString##', VersionString, [rfReplaceAll, rfIgnoreCase]);
+        // Add new macros here...
+        RewriteWithMacros(ChildNode);
+      end;
+    end;
+
+  begin
+    SrcNode := SrcDoc.FindNode(NameBegin, True);
+    if Assigned(SrcNode) then
+      for I := SrcNode.Count - 1 downto 0 do
+      begin
+        SubNode := SrcNode.Items[I].Duplicate;
+        RewriteLocationAttribute('src', SubNode);
+        RewriteLocationAttribute('href', SubNode);
+        RewriteWithMacros(SubNode);
+        DstNode.InsertNode(0, SubNode);
+      end;
+
+    SrcNode := SrcDoc.FindNode(NameEnd, True);
+    if Assigned(SrcNode) then
+      for I := 0 to SrcNode.Count - 1 do
+      begin
+        SubNode := SrcNode.Items[I].Duplicate;
+        RewriteLocationAttribute('src', SubNode);
+        RewriteLocationAttribute('href', SubNode);
+        RewriteWithMacros(SubNode);
+        DstNode.AddNode(SubNode);
+      end;
+  end;
+
 begin
   Dom := TDomDocument.Create;
   try
@@ -619,6 +667,8 @@ begin
         Links.CustomSort(CompareLinks);
 
         Process(Head, Body, Anchors, Links);
+        InjectSectionTemplate('head_begin', 'head_end', Project.HeadSectionTemplateDOM, Head, ExtractFilePath(Project.HeadSectionTemplate));
+        InjectSectionTemplate('body_begin', 'body_end', Project.BodySectionTemplateDOM, Body, ExtractFilePath(Project.BodySectionTemplate));
       finally
         LinkNodes.Free;
       end;
@@ -1466,12 +1516,16 @@ begin
   Index := TIndex.Create;
   Units := TElements.Create(Self, TUnitElement, 'Units');
   Root := TNodeElement.CreateRoot(Self);
+  HeadSectionTemplateDOM := TDomDocument.Create;
+  BodySectionTemplateDOM := TDomDocument.Create;
   RegList(Units);
   if (FileName <> '') then Files.AddObject(FileName, Self);
 end;
 
 destructor TProject.Destroy;
 begin
+  BodySectionTemplateDOM.Free;
+  HeadSectionTemplateDOM.Free;
   Root.Free;
   Index.Free;
   Files.Free;
@@ -1670,8 +1724,6 @@ begin
   finally
     Elems.Free;
   end;
-
-  AddBuildDate(Body);
 end;
 
 procedure TProject.Read;
@@ -1681,6 +1733,13 @@ var
   NE: TNodeElement;
 begin
   inherited;
+
+  if FileExists(HeadSectionTemplate) then
+    HeadSectionTemplateDOM.LoadFromFile(HeadSectionTemplate);
+
+  if FileExists(BodySectionTemplateDOM) then
+    BodySectionTemplateDOM.LoadFromFile(BodySectionTemplate);
+
   Dirs := GetDirList(Folder, '*.*');
   Files := GetFileList(Folder, '*.htm*');
   try
@@ -1802,5 +1861,6 @@ end;
 
 initialization
   VersionString := 'v1.0';
-
+  GetLocaleFormatSettings(2057, EnglishFormatSettings);
+  
 end.

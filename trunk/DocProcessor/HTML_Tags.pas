@@ -84,6 +84,7 @@ initialization
   Add('table'           , etBlock  ,  ctAlways , False);
   Add('tr'              , etBlock  ,  ctAlways , False);
   Add('td'              , etBlock  ,  ctAlways , False);
+  Add('pre'             , etBlock  ,  ctAlways , False);
   Add('title'           , etBlock  ,  ctAlways , True);
   Add('script'          , etBlock  ,  ctAlways , False);
   Add('style'           , etBlock  ,  ctAlways , False);  
