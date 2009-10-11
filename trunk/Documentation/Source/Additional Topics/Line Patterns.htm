@@ -14,15 +14,15 @@
   color value from the current counter position at each point, then the counter 
   is automatically incremented to get ready to supply the next value to line rasterisation 
   routine.</p>
-<p class="Body">The counter, accessed through <a href="../Units/GR32/Classes/TBitmap32/Properties/StippleCounter.htm">StippleCounter</a> 
+<p class="Body">The counter, accessed through <a href="../Units/GR32/Classes/TCustomBitmap32/Properties/StippleCounter.htm">StippleCounter</a> 
   property, wraps itself automatically at the edges of color array. It can move 
   in both directions depending on stipple step, which in turn can be positive 
   or negative. Its malue may even be fractional in this case resulting color is 
-  interpolated. The step is accessed with <a href="../Units/GR32/Classes/TBitmap32/Properties/StippleStep.htm">StippleStep</a> 
+  interpolated. The step is accessed with <a href="../Units/GR32/Classes/TCustomBitmap32/Properties/StippleStep.htm">StippleStep</a> 
   property.</p>
-<p class="Body"> <a href="../Units/GR32/Classes/TBitmap32/Methods/GetStippleColor.htm">GetStippleColor</a> 
+<p class="Body"> <a href="../Units/GR32/Classes/TCustomBitmap32/Methods/GetStippleColor.htm">GetStippleColor</a> 
   returns color from the current counter position and automatically increments 
-  counter position by the counter step, so that next <a href="../Units/GR32/Classes/TBitmap32/Methods/GetStippleColor.htm">GetStippleColor</a> 
+  counter position by the counter step, so that next <a href="../Units/GR32/Classes/TCustomBitmap32/Methods/GetStippleColor.htm">GetStippleColor</a> 
   call will return color value from the next position.</p>
 <p class="Body">Drawing functions that support line patterns have 'P' in their 
   postfix (as in LineFSP).</p>
