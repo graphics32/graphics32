@@ -187,14 +187,14 @@ begin
   Progress.Position := 0;
   Enabled := False;
   Application.ProcessMessages;
-  if DirectoryExists(ProjectDir + 'Compiled') then RemoveDir(ProjectDir + 'Compiled');
-  CompiledDir := (ProjectDir + 'Compiled\');
+  if DirectoryExists(ProjectDir + 'Docs') then RemoveDir(ProjectDir + 'Docs');
+  CompiledDir := (ProjectDir + 'Docs\');
   StyleFile := ProjectDir + 'Styles\Default.css';
 
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
     Project.DisplayName := Edit1.Text;
-    Project.DestinationFolder := ProjectDir + 'Compiled';
+    Project.DestinationFolder := ProjectDir + 'Docs';
     Project.ImageFolder := ProjectDir + 'Images';
     LogAdd('Transforming'#13#10);
 
@@ -261,7 +261,7 @@ begin
     Lines.Add('Compiled file=' + Edit4.Text);
     Lines.Add('Contents file=' + Edit3.Text);
     Lines.Add('Default Window=Main Window');
-    Lines.Add('Default topic=Compiled\_Body.htm');
+    Lines.Add('Default topic=Docs\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
     Lines.Add('Index file=' + Edit2.Text);
@@ -269,7 +269,7 @@ begin
     Lines.Add('Title=' + Edit1.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
-    Lines.Add(Format('Main Window="%s","%s","%s","Compiled\_Body.htm","Compiled\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
+    Lines.Add(Format('Main Window="%s","%s","%s","Docs\_Body.htm","Docs\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
       [Edit1.Text, Edit3.Text, Edit2.Text]));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');

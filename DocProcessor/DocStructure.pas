@@ -6,7 +6,7 @@ uses
   Classes, SysUtils, Contnrs, FileCtrl, SimpleDOM;
 
 const
-  Copyright: String = 'Copyright &copy;2000-2006 Alex Denisov and Contributors';
+  Copyright: String = 'Copyright &copy;2000-2009 Alex Denisov and Contributors';
   cColumnCount = 5;
 
 type
@@ -139,9 +139,11 @@ type
     property Items[Index: Integer]: TIndexEntry read GetItem write SetItem; default;
   end;
 
+  TClassElementArray = array of TClassElement;
+
   TProject = class(TGroupElement)
   protected
-    procedure AddClasses(Body: TDomNode);
+    procedure AddClasses(const Classes: TClassElementArray; Body: TDomNode);
   public
     Units: TElements;
     Root: TNodeElement;
@@ -381,7 +383,7 @@ begin
       end
       else S := LinkTo(S);
       AddParse(S);
-      if I < Links.Count - 1 then AddText(', '); 
+      if I < Links.Count - 1 then AddText(', ');
     end;
   end;
 end;
@@ -1113,6 +1115,7 @@ var
   T: TDomNode;
 begin
   N := Classes.Count;
+  if Interfaces.Count > N then N := Interfaces.Count;
   if Routines.Count > N then N := Routines.Count;
   if Types.Count > N then N := Types.Count;
   if Variables.Count > N then N := Variables.Count;
@@ -1130,6 +1133,7 @@ begin
     try
       // get non-empty columns
       if Classes.Count > 0 then Columns.Add(Classes);
+      if Interfaces.Count > 0 then Columns.Add(Interfaces);
       if Routines.Count > 0 then Columns.Add(Routines);
       if Types.Count > 0 then Columns.Add(Types);
       if Variables.Count > 0 then Columns.Add(Variables);
@@ -1169,7 +1173,7 @@ begin
     TClassEntry(Item2).Element.DisplayName);
 end;
 
-procedure TProject.AddClasses(Body: TDomNode);
+procedure TProject.AddClasses(const Classes: TClassElementArray; Body: TDomNode);
 const
   IMG_E = '<img src="../Images/_BranchEmpty.gif" align="absmiddle">';
   IMG_E1 = '<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">';
@@ -1507,6 +1511,53 @@ var
   I, J: Integer;
   TD: TDomNode;
 
+  procedure AddClassTable(const Classes: TClassElementArray; const DisplayName: string);
+  var
+    I, J: Integer;
+  begin
+    with Body.Add('table') do
+    begin
+      Attributes['id'] := 'Auto';
+      Attributes['class'] := 'Home';
+      Attributes['cellpadding'] := '0';
+      Attributes['cellspacing'] := '0';
+      Attributes['border'] := '0';
+      with Add('tr') do
+      begin
+        TD := Add('td');
+        TD.Attributes['class'] := 'Home';
+        TD.Attributes['valign'] := 'Top';
+
+        for I := 0 to High(Classes) do Elems.Add(TClassElement(Classes[I]));
+        if Elems.Count > 0 then
+        begin
+          TD.Add('h2').AddText(DisplayName + ' (Alphabetical)');
+          Elems.Sort(CompareElements);
+          for J := 0 to Elems.Count - 1 do
+            with TD.Add('p') do
+            begin
+              Attributes['id'] := 'Auto';
+              Attributes['class'] := 'Tree';
+
+              AddText('<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">');
+              AddParse(LinkTo(Elems[J]));
+            end;
+          Elems.Clear;
+        end;
+
+        // classes
+        TD := Add('td');
+        with TD do
+        begin
+          Attributes['class'] := 'Home';
+          Attributes['valign'] := 'Top';
+          Add('h2').AddText(DisplayName + ' (Hierarchy)');
+          AddClasses(Classes, TD);
+        end;
+      end;
+    end;
+  end;
+
   procedure AddElems(NUM_COL: Integer);
   var
     I, J, N, R: Integer;
@@ -1544,47 +1595,8 @@ var
 begin
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
-    with Body.Add('table') do
-    begin
-      Attributes['id'] := 'Auto';
-      Attributes['class'] := 'Home';
-      Attributes['cellpadding'] := '0';
-      Attributes['cellspacing'] := '0';
-      Attributes['border'] := '0';
-      with Add('tr') do
-      begin
-        TD := Add('td');
-        TD.Attributes['class'] := 'Home';
-        TD.Attributes['valign'] := 'Top';
-
-        for I := 0 to High(Classes) do Elems.Add(TClassElement(Classes[I]));
-        if Elems.Count > 0 then
-        begin
-          TD.Add('h2').AddText('Classes (Alphabetical)');
-          Elems.Sort(CompareElements);
-          for J := 0 to Elems.Count - 1 do
-            with TD.Add('p') do
-            begin
-              Attributes['id'] := 'Auto';
-              Attributes['class'] := 'Tree';
-
-              AddText('<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">');
-              AddParse(LinkTo(Elems[J]));
-            end;
-          Elems.Clear;
-        end;
-
-        // classes
-        TD := Add('td');
-        with TD do
-        begin
-          Attributes['class'] := 'Home';
-          Attributes['valign'] := 'Top';
-          Add('h2').AddText('Classes (Hierarchy)');
-          AddClasses(TD);
-        end;
-      end;
-    end;
+    AddClassTable(TClassElementArray(Classes), 'Classes');
+    AddClassTable(TClassElementArray(Interfaces), 'Interfaces');    
 
     // routines
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
