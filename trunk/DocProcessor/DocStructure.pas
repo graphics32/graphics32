@@ -1737,7 +1737,7 @@ begin
   if FileExists(HeadSectionTemplate) then
     HeadSectionTemplateDOM.LoadFromFile(HeadSectionTemplate);
 
-  if FileExists(BodySectionTemplateDOM) then
+  if FileExists(BodySectionTemplate) then
     BodySectionTemplateDOM.LoadFromFile(BodySectionTemplate);
 
   Dirs := GetDirList(Folder, '*.*');
