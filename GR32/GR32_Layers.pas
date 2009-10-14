@@ -336,7 +336,8 @@ uses
 { mouse state mapping }
 const
   CStateMap: array [TMouseButton] of TLayerState =
-    (lsMouseLeft, lsMouseRight, lsMouseMiddle);
+    (lsMouseLeft, lsMouseRight, lsMouseMiddle {$IFDEF FPC}, lsMouseMiddle,
+     lsMouseMiddle{$ENDIF});
 
 type
   TImage32Access = class(TCustomImage32);
