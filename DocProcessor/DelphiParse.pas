@@ -55,6 +55,7 @@ type
     procedure GetNextToken(var tok: TToken);
     property Finished: boolean read fFinished;
     property CurrentPt: TPoint read fCurrent;
+    property ReservedList: TStringList read fReservedList;
   end;
 
 const

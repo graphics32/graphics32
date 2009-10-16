@@ -1,6 +1,6 @@
 unit MainUnit;
 
-{.$define debugging}
+{.$DEFINE DEBUGGING}
 
 {$WARN UNIT_PLATFORM OFF}
 {$WARN SYMBOL_PLATFORM OFF}
@@ -330,11 +330,11 @@ begin
   if SourceDir = '' then exit;
   srcPasFolder := GetDelphiSourceFolder;
   if srcPasFolder = '' then exit;
-  {$ifdef debugging}
+  {$IFDEF DEBUGGING}
   destUnitFolder := 'c:\temp\';
-  {$else}
+  {$ELSE}
   destUnitFolder := SourceDir + 'Units\';
-  {$endif}
+  {$ENDIF}
   Log.Clear;
   Log.Color := clWhite;
 
