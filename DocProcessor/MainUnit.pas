@@ -1,6 +1,6 @@
 unit MainUnit;
 
-{$define debugging}
+{.$define debugging}
 
 interface
 

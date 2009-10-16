@@ -12,10 +12,18 @@ uses
 implementation
 
 const
-  htmlStart = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" '+
-    'href="/styles/default.css" type="text/css">'#10'</head>'#10'<body bgcolor="#FFFFFF">'#10;
   htmlEnd = #10'</body>'#10'</html>';
   cr: AnsiChar = #10;
+
+function htmlStart(level: integer): string;
+const
+  htmlStart1 = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
+  htmlStart2 = 'styles/default.css" type="text/css">'#10'</head>'#10'<body bgcolor="#FFFFFF">'#10;
+begin
+  result := '';
+  for level := 1 to level do result := result + '../';
+  result := htmlStart1 + result + htmlStart2;
+end;
 
 //------------------------------------------------------------------------------
 // GetFolder functions ...
@@ -108,7 +116,9 @@ const
   CSIDL_PROGRAM_FILES = $26;
 begin
   result := GetSpecialFolder(CSIDL_PROGRAM_FILES);
-  GetFolder(application.MainForm,'Location of Delphi PAS Files ...', false, result);
+  if not GetFolder(application.MainForm,
+    'Location of Delphi PAS Files ...', false, result) then
+    result := '';
 end;
 //------------------------------------------------------------------------------
 
@@ -425,7 +435,7 @@ var
       classPath := destUnitFolder+ 'Classes\' + clsName + '\';
       MkDir(classPath);
       StringToFile(classPath+'_Body.htm',
-        htmlStart + '<b>'+clsName +'</b> = <b>class</b>'+ s + htmlEnd);
+        htmlStart(5) + '<b>'+clsName +'</b> = <b>class</b>'+ s + htmlEnd);
 
       repeat
         //skip private and protected class fields and methods...
@@ -470,7 +480,7 @@ var
                 MkDir(classPath +'Methods');
               fn := classPath +'Methods\'+FirstWordInStr(s2)+'.htm';
               AppendStringToFile(fn, '<b>'+s +'</b> ' +s2 +'<br>'#10);
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'function') then
@@ -480,8 +490,8 @@ var
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath  +'Methods\' +FirstWordInStr(s) +'.htm';
-              AppendStringToFile(fn, '<b>function</b> ' +s +'<br>'#10);
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+              AppendStringToFile(fn,  '<b>function</b> ' + s +'<br>'#10);
+              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'class') then
@@ -500,8 +510,8 @@ var
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath  +'Methods\' +FirstWordInStr(s2) +'.htm';
-              AppendStringToFile(fn, s +s2 +'<br>'#10);
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+              AppendStringToFile(fn, s +s2+ '<br>'#10);
+              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'property') then
@@ -509,7 +519,7 @@ var
               s := DoProperty;
               if s = '' then exit;
               s2 := FirstWordInStr(s);
-              s := htmlStart + '<b>property</b> ' + s + htmlEnd;
+              s := htmlStart(6) + '<b>property</b> ' + s + htmlEnd;
               if pos('On', s2) = 1 then
               begin
                 if not DirectoryExists(classPath +'Events') then
@@ -530,7 +540,7 @@ var
     end;
     if FileExists(classPath + 'Fields.htm') then
     begin
-      PrependStringToFile(classPath + 'Fields.htm', htmlStart);
+      PrependStringToFile(classPath + 'Fields.htm', htmlStart(5));
       AppendStringToFile(classPath + 'Fields.htm', htmlEnd);
     end;
   end;
@@ -555,7 +565,7 @@ var
         MkDir(destUnitFolder+ 'Interfaces');
       interfacePath := destUnitFolder+ 'Interfaces\' + interfaceName + '\';
       MkDir(interfacePath);
-      StringToFile(interfacePath+'_Body.htm',htmlStart + s + htmlEnd);
+      StringToFile(interfacePath+'_Body.htm',htmlStart(5) + s + htmlEnd);
 
       GetNextToken(tok);
       repeat
@@ -578,7 +588,7 @@ var
                 MkDir(interfacePath +'Methods');
               fn := interfacePath +'Methods\'+FirstWordInStr(s2)+'.htm';
               AppendStringToFile(fn, '<b>'+ s +'</b> ' +s2 +'<br>'#10);
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'function') then
@@ -589,7 +599,7 @@ var
                 MkDir(interfacePath +'Methods');
               fn := interfacePath  +'Methods\' +FirstWordInStr(s) +'.htm';
               AppendStringToFile(fn, '<b>function</b> ' +s +'<br>'#10);
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'property') then
@@ -597,7 +607,7 @@ var
               s := DoProperty;
               if s = '' then exit;
               s2 := FirstWordInStr(s);
-              s := htmlStart + '<b>property</b> ' + s + htmlEnd;
+              s := htmlStart(6) + '<b>property</b> ' + s + htmlEnd;
               if pos('On', s2) = 1 then
               begin
                 if not DirectoryExists(interfacePath +'Events') then
@@ -646,7 +656,7 @@ var
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + funcName + '.htm',
-        htmlStart + s + htmlEnd);
+        htmlStart(4) + s + htmlEnd);
     end;
   end;
 
@@ -678,7 +688,7 @@ var
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + procName + '.htm',
-        htmlStart + s + htmlEnd);
+        htmlStart(4) + s + htmlEnd);
     end;
   end;
 
@@ -712,7 +722,7 @@ var
         if not DirectoryExists(destUnitFolder+ 'Types') then
           MkDir(destUnitFolder+ 'Types');
         StringToFile(destUnitFolder+ 'Types\' + recordName + '.htm',
-          htmlStart + s + htmlEnd);
+          htmlStart(4) + s + htmlEnd);
       end;
     end;
   end;
@@ -735,7 +745,7 @@ var
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + typeName + '.htm',
-        htmlStart + s + htmlEnd);
+        htmlStart(4) + s + htmlEnd);
     end;
   end;
 
@@ -786,7 +796,7 @@ begin
   Result := -1;
   MkDir(destUnitFolder);
 
-  StringToFile(destUnitFolder+'_Body.htm',htmlStart + '<b>Unit</b> ' +
+  StringToFile(destUnitFolder+'_Body.htm', htmlStart(3) + '<b>Unit</b> ' +
     ChangeFileExt(ExtractFileName(pasFilename),'') + htmlEnd);
 
   pasLines := TStringlist.Create;
@@ -832,7 +842,7 @@ begin
                   MkDir(destUnitFolder+ 'Routines');
                 fn := destUnitFolder+'Routines\'+ FirstWordInStr(s) +'.htm';
                 AppendStringToFile(fn, '<b>function</b> ' +s +'<br>'#10);
-                if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+                if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end else if (tok.text = 'procedure') then
             begin
@@ -845,7 +855,7 @@ begin
                   MkDir(destUnitFolder+ 'Routines');
                 fn := destUnitFolder+'Routines\' +FirstWordInStr(s) +'.htm';
                 AppendStringToFile(fn, '<b>procedure</b> ' +s +'<br>'#10);
-                if RoutinesList.IndexOf(fn) < 0 then RoutinesList.Add(fn);
+                if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end;
           end;
@@ -857,7 +867,7 @@ begin
       if ConstList.Count > 0 then
       begin
         MkDir(destUnitFolder+ 'Constants');
-        ConstList.Insert(0, htmlStart);
+        ConstList.Insert(0, htmlStart(4));
         ConstList.Add(htmlEnd);
         ConstList.SaveToFile(destUnitFolder+ 'Constants\const.htm');
       end;
@@ -865,14 +875,16 @@ begin
       if VarList.Count > 0 then
       begin
         MkDir(destUnitFolder+ 'Vars');
-        VarList.Insert(0, htmlStart);
+        VarList.Insert(0, htmlStart(4));
         VarList.Add(htmlEnd);
         VarList.SaveToFile(destUnitFolder+ 'Vars\vars.htm');
       end;
 
      for i := 0 to RoutinesList.Count -1 do
      begin
-       PrependStringToFile(RoutinesList[i], htmlStart);
+       //nb: the RoutinesList object simply stores the 'level' of the file ...
+       PrependStringToFile(RoutinesList[i],
+         htmlStart(integer(RoutinesList.Objects[i])));
        AppendStringToFile(RoutinesList[i], htmlEnd);
      end;
 
