@@ -15,6 +15,9 @@ const
   htmlEnd = #10'</body>'#10'</html>';
   cr: AnsiChar = #10;
 
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 function htmlStart(level: integer): string;
 const
   htmlStart1 = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
@@ -24,9 +27,66 @@ begin
   for level := 1 to level do result := result + '../';
   result := htmlStart1 + result + htmlStart2;
 end;
-
 //------------------------------------------------------------------------------
-// GetFolder functions ...
+
+var
+  buffer: string;
+
+procedure AddToBuffer(const tok: TToken); overload;
+var
+  len: integer;
+  avoidSpace, forceSpace: boolean;
+begin
+  len := length(buffer);
+  avoidSpace := (len > 0) and (buffer[len] in ['^','@','(','[','.']);
+  case tok.kind of
+    tkReserved:
+      if (len > 0) and not avoidSpace then
+        buffer := buffer + ' <b>'+ tok.text +'</b>' else
+        buffer := buffer + '<b>'+ tok.text +'</b>';
+    tkText:
+      if len > 0 then
+        buffer := buffer + ' '''+ tok.text +'''' else
+        buffer := buffer + ''''+ tok.text +'''';
+    tkIdentifier, tkValue, tkAsm:
+      if (len > 0) and not avoidSpace then
+        buffer := buffer + ' '+ tok.text else
+        buffer := buffer + tok.text;
+    tkSymbol:
+      begin
+        forceSpace := (len > 0) and (buffer[len] in [':']);
+        if forceSpace then
+          buffer := buffer + ' '+ tok.text
+        else if (tok.text[1] in [':',';',',','(',')',']','^',SINGLEQUOTE,'"','.']) then
+          buffer := buffer + tok.text
+        else
+          buffer := buffer + ' '+ tok.text;
+      end;
+  end;
+end;
+//------------------------------------------------------------------------------
+
+procedure AddToBuffer(const str: string); overload;
+begin
+  buffer := buffer + str;
+end;
+//------------------------------------------------------------------------------
+
+procedure ClearBuffer;
+begin
+ buffer := '';
+end;
+//------------------------------------------------------------------------------
+
+function StripSlash(const path: string): string;
+var
+  len: integer;
+begin
+  result := path;
+  len := length(path);
+  if (len = 0) or (path[len] <> '\') then exit;
+  setlength(result,len-1);
+end;
 //------------------------------------------------------------------------------
 
 function BrowseProc(hwnd: HWnd; uMsg: integer; lParam, lpData: LPARAM): integer; stdcall;
@@ -51,17 +111,6 @@ end;
 
 procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll' name 'CoTaskMemFree';
 
-//------------------------------------------------------------------------------
-
-function StripSlash(const path: string): string;
-var
-  len: integer;
-begin
-  result := path;
-  len := length(path);
-  if (len = 0) or (path[len] <> '\') then exit;
-  setlength(result,len-1);
-end;
 //------------------------------------------------------------------------------
 
 function GetFolder(OwnerForm: TForm;
@@ -120,6 +169,7 @@ begin
     'Location of Delphi PAS Files ...', false, result) then
     result := '';
 end;
+
 //------------------------------------------------------------------------------
 
 procedure StringToFile(const filename, strVal: string);
@@ -205,7 +255,7 @@ var
 
   function DoConst: boolean;
   var
-    ident, value: string;
+    ident: string;
   begin
     result := false;
     with DelphiParser do
@@ -216,23 +266,21 @@ var
         if (tok.kind <> tkIdentifier) then exit;
         GetNextToken(tok); //gobble peek
         ident := tok.text;
-        value := '';
+        clearBuffer;
         repeat
           GetNextToken(tok);
-          if tok.kind = tkText then
-            value := value + SINGLEQUOTE + tok.text + SINGLEQUOTE else
-            value := value + tok.text + ' ';
+          AddToBuffer(tok);
         until finished or (tok.text = ';');
         result := tok.text = ';';
         if result then
-          ConstList.Add(format('%s %s<br>'#10,[ident, value]));
+          ConstList.Add(format('%s %s<br>'#10,[ident, buffer]));
       end;
     end;
   end;
 
   function DoVars: boolean;
   var
-    ident, value: string;
+    ident: string;
     hasBracket: boolean;
   begin
     result := false;
@@ -246,16 +294,14 @@ var
         ident := tok.text;
         GetNextToken(tok);
         if tok.text <> ':' then exit;
-        GetNextToken(tok);
-        value := '';
+        ClearBuffer;
+        AddToBuffer(ident + ':');
         hasBracket := false;
         repeat
           GetNextToken(tok);
           if (tok.text = '(') then hasBracket := true
           else if (tok.text = ')') then hasBracket := false;
-          if tok.kind = tkText then
-            value := value + SINGLEQUOTE + tok.text + SINGLEQUOTE else
-            value := value + tok.text +' ';
+          AddToBuffer(tok);
         until finished or (not hasBracket and (tok.text = ';'));
         result := tok.text = ';';
         PeekNextToken(tok);
@@ -263,17 +309,15 @@ var
         begin
           GetNextToken(tok);
           GetNextToken(tok);
-          s := s + ' <b>stdcall</b>;';
+          AddToBuffer(tok);
         end;
-        if result then
-          VarList.Add(format('%s : %s<br>'#10,[ident, value]));
+        if result then VarList.Add(buffer + '<br>'#10);
       end;
     end;
   end;
 
   function DoFunction: string;
   var
-    s: string;
     hasBracket: boolean;
   begin
     result := '';
@@ -281,22 +325,19 @@ var
     begin
       GetNextToken(tok);
       if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
-      s := tok.text;
+      ClearBuffer;
+      AddToBuffer(tok);
       hasBracket := false;
       repeat
         GetNextToken(tok);
         if tok.text = '(' then hasBracket := true
         else if tok.text = ')' then hasBracket := false;
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until finished or (not hasBracket and (tok.text = ':'));
       if tok.text <> ':' then exit;
       repeat
         GetNextToken(tok);
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until finished or (tok.text = ';');
       if (tok.text <> ';') then exit;
       while true do
@@ -308,20 +349,20 @@ var
           (tok.text = 'reintroduce') or (tok.text = 'inline') or
           (tok.text = 'stdcall')) then
         begin
-          s := s + '<b>'+ tok.text + '</b>; ';
+          AddToBuffer(tok);
         end
         else break;
         GetNextToken(tok); //ie gobbles peek
         GetNextToken(tok);
         if tok.text <> ';' then exit;
+        AddToBuffer(';');
       end;
-      result := s;
+      result := buffer;
     end;
   end;
 
   function DoProcedure: string;
   var
-    s: string;
     hasBracket: boolean;
   begin
     result := '';
@@ -329,15 +370,14 @@ var
     begin
       GetNextToken(tok);
       if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
-      s := tok.text;
+      ClearBuffer;
+      AddToBuffer(tok);
       hasBracket := false;
       repeat
         GetNextToken(tok);
         if tok.text = '(' then hasBracket := true
         else if tok.text = ')' then hasBracket := false;
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until finished or (not hasBracket and (tok.text = ';'));
       if tok.text <> ';' then exit;
       while true do
@@ -349,51 +389,57 @@ var
           (tok.text = 'reintroduce') or (tok.text = 'inline') or
           (tok.text = 'stdcall')) then
         begin
-          s := s + ' <b>' +tok.text +'</b>;';
+          AddToBuffer(tok);
         end
         else break;
         GetNextToken(tok); //ie gobbles peek
         GetNextToken(tok);
         if tok.text <> ';' then exit;
+        AddToBuffer(';');
       end;
-      result := s;
+      result := buffer;
     end;
   end;
 
   function DoProperty: string;
   var
-    s: string;
+    inSqrBracket: boolean;
   begin
     result := '';
+    clearBuffer;
     with DelphiParser do
     begin
       GetNextToken(tok);
       if tok.kind <> tkIdentifier then exit;
-      s := tok.text + ' ';
+      AddToBuffer(tok);
       PeekNextToken(tok);
       if tok.text = ';' then
       begin
         GetNextToken(tok); //gobble the peek
-        result := s +';';
-        exit;
+        AddToBuffer(';');
+        result := buffer;
+        exit;              //ie just elevated the property's visibility
       end;
+      inSqrBracket := false;
       repeat
         GetNextToken(tok);
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
-      until finished or (tok.text = ':');
+        AddToBuffer(tok);
+        if tok.text = '[' then inSqrBracket := true
+        else if tok.text = ']' then inSqrBracket := false;
+      until finished or (not inSqrBracket and (tok.text = ':'));
       GetNextToken(tok);
-      if tok.kind in [tkIdentifier, tkReserved] then
-        s := s + tok.text +';' else
-        exit;
+      if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
+      AddToBuffer(tok);
+      AddToBuffer(';');
+
       //now skip the rest of the property stuff (ie read, write etc) ...
       repeat
         GetNextToken(tok);
       until finished or (tok.text = ';');
       if tok.text = ';' then
-        result := s else
+        result := buffer else
         exit;
+
       while true do
       begin
         PeekNextToken(tok);
@@ -414,28 +460,26 @@ var
     begin
       GetNextToken(tok);
       result := tok.text = ';';
-      if result then exit; //ie ignore forward class declaration
+      if result then exit; //ie ignore forward class declarations
+      ClearBuffer;
       if (tok.text = '(') then
       begin
-        s := '( ';
+        AddToBuffer('(');
         repeat
           GetNextToken(tok);
-          if tok.kind = tkReserved then
-            s := s + '<b>' +tok.text +'</b> ' else
-            s := s + tok.text +' ';
+          AddToBuffer(tok);
         until finished or (tok.text = ')');
         if tok.text <> ')' then exit;
         GetNextToken(tok);
         result := tok.text = ';';
         if result then exit; //ie ignore forward class declaration
-      end
-      else s := '';
+      end;
       if not DirectoryExists(destUnitFolder+ 'Classes') then
         MkDir(destUnitFolder+ 'Classes');
       classPath := destUnitFolder+ 'Classes\' + clsName + '\';
       MkDir(classPath);
       StringToFile(classPath+'_Body.htm',
-        htmlStart(5) + '<b>'+clsName +'</b> = <b>class</b>'+ s + htmlEnd);
+        htmlStart(5) + '<b>'+clsName +'</b> = <b>class</b>'+ buffer + htmlEnd);
 
       repeat
         //skip private and protected class fields and methods...
@@ -457,16 +501,15 @@ var
         case tok.kind of
           tkIdentifier:
             begin
-              s := tok.text + ' ';
+              ClearBuffer;
+              AddToBuffer(tok);
               repeat
                 GetNextToken(tok);
-                if tok.kind = tkReserved then
-                  s := s + '<b>' +tok.text +'</b> ' else
-                  s := s + tok.text +' ';
+                AddToBuffer(tok);
               until finished or (tok.text = ';');
               if tok.text <> ';' then break;
               fn := classPath + 'Fields.htm';
-              AppendStringToFile(fn, s + '<br>'#10);
+              AppendStringToFile(fn, buffer + '<br>'#10);
               GetNextToken(tok);
             end;
           tkReserved:
@@ -557,12 +600,11 @@ var
         result := true;
         exit; //ie forward declaration only
       end;
-      s := interfaceName + ' = <b>interface</b><br>'#10;
+      ClearBuffer;
+      AddToBuffer(interfaceName + ' = <b>interface</b><br>'#10);
       repeat
         GetNextToken(tok);
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until finished or (tok.text = ']');
       result := tok.text = ']';
       if not result then exit;
@@ -571,7 +613,7 @@ var
         MkDir(destUnitFolder+ 'Interfaces');
       interfacePath := destUnitFolder+ 'Interfaces\' + interfaceName + '\';
       MkDir(interfacePath);
-      StringToFile(interfacePath+'_Body.htm',htmlStart(5) + s + htmlEnd);
+      StringToFile(interfacePath+'_Body.htm',htmlStart(5) + buffer + htmlEnd);
 
       GetNextToken(tok);
       repeat
@@ -636,20 +678,18 @@ var
 
   function DoTypeFunc(const funcName: string): boolean;
   var
-    s: string;
     hasBracket: boolean;
   begin
     with DelphiParser do
     begin
-      s := funcName + ' = <b>function</b> ';
+      ClearBuffer;
+      AddToBuffer(funcName + ' = <b>function</b>');
       hasBracket := false;
       repeat
         GetNextToken(tok);
         if tok.text = '(' then hasBracket := true
         else if tok.text = ')' then hasBracket := false;
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until finished or (not hasBracket and (tok.text = ';'));
       result := tok.text = ';';
       PeekNextToken(tok);
@@ -657,31 +697,29 @@ var
       begin
         GetNextToken(tok);
         GetNextToken(tok);
-        s := s + ' <b>stdcall</b>;';
+        AddToBuffer(' <b>stdcall</b>;');
       end;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + funcName + '.htm',
-        htmlStart(4) + s + htmlEnd);
+        htmlStart(4) + buffer + htmlEnd);
     end;
   end;
 
   function DoTypeProc(const procName: string): boolean;
   var
-    s: string;
     hasBracket: boolean;
   begin
     with DelphiParser do
     begin
-      s := procName + ' = <b>procedure</b> ';
+      ClearBuffer;
+      AddToBuffer(procName + ' = <b>procedure</b> ');
       hasBracket := false;
       repeat
         GetNextToken(tok);
         if tok.text = '(' then hasBracket := true
         else if tok.text = ')' then hasBracket := false;
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until finished or (not hasBracket and (tok.text = ';'));
       result := tok.text = ';';
       PeekNextToken(tok);
@@ -689,69 +727,79 @@ var
       begin
         GetNextToken(tok);
         GetNextToken(tok);
-        s := s + ' <b>stdcall</b>;';
+        AddToBuffer(' <b>stdcall</b>;');
       end;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + procName + '.htm',
-        htmlStart(4) + s + htmlEnd);
+        htmlStart(4) + buffer + htmlEnd);
     end;
   end;
 
   function DoRecord(const recordName, ident2: string): boolean;
   var
-    s: string;
+    inCase: boolean;
   begin
     result := false;
+    ClearBuffer;
     with DelphiParser do
     begin
       if ident2 = 'packed' then
       begin
         GetNextToken(tok);
         if tok.text <> 'record' then exit;
-        s := recordName + ' = <b>packed record</b><br>'#10;
+        AddToBuffer(recordName + ' = <b>packed record</b><br>'#10);
       end
-      else s := recordName + ' = <b>record</b><br>'#10;
+      else
+        AddToBuffer(recordName + ' = <b>record</b><br>'#10);
+
+      inCase := false;
       repeat
         repeat
           GetNextToken(tok);
-          if tok.kind = tkReserved then
-            s := s + '<b>' +tok.text +'</b> ' else
-            s := s + tok.text +' ';
+          if (tok.text = ';') then
+            AddToBuffer(';<br>') else
+            AddToBuffer(tok);
+          if tok.text = 'case' then
+            inCase := true
+          else if inCase and (tok.text = 'of') then
+          begin
+            inCase := false;
+            AddToBuffer('<br>');
+          end;
         until Finished or (tok.text = ';') or (tok.text = 'end');
       until Finished or (tok.text = 'end');
       GetNextToken(tok);
       result := not Finished and (tok.text = ';');
-      s := s + ';';
+      AddToBuffer(';');
       if result then
       begin
         if not DirectoryExists(destUnitFolder+ 'Types') then
           MkDir(destUnitFolder+ 'Types');
         StringToFile(destUnitFolder+ 'Types\' + recordName + '.htm',
-          htmlStart(4) + s + htmlEnd);
+          htmlStart(4) + buffer + htmlEnd);
       end;
     end;
   end;
 
   function DoGeneralType(const typeName, ident2: string): boolean;
-  var
-    s: string;
   begin
+    ClearBuffer;
     with DelphiParser do
     begin
-      s := typeName + ' = ' + ident2 +' ';
+      if ReservedList.IndexOf(ident2) >= 0 then
+        AddToBuffer(typeName + ' = <b>' + ident2 + '</b>') else
+        AddToBuffer(typeName + ' = ' + ident2);
       repeat
         GetNextToken(tok);
-        if tok.kind = tkReserved then
-          s := s + '<b>' +tok.text +'</b> ' else
-          s := s + tok.text +' ';
+        AddToBuffer(tok);
       until Finished or (tok.text = ';') ;
       result := not Finished;
       if not result then exit;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + typeName + '.htm',
-        htmlStart(4) + s + htmlEnd);
+        htmlStart(4) + buffer + htmlEnd);
     end;
   end;
 
