@@ -2,6 +2,9 @@ unit MainUnit;
 
 {.$define debugging}
 
+{$WARN UNIT_PLATFORM OFF}
+{$WARN SYMBOL_PLATFORM OFF}
+
 interface
 
 uses

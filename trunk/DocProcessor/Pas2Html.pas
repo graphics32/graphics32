@@ -551,6 +551,12 @@ var
   begin
     with DelphiParser do
     begin
+      PeekNextToken(tok);
+      if tok.text = ';' then
+      begin
+        result := true;
+        exit; //ie forward declaration only
+      end;
       s := interfaceName + ' = <b>interface</b><br>'#10;
       repeat
         GetNextToken(tok);
