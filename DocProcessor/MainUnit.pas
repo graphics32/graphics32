@@ -1,11 +1,13 @@
 unit MainUnit;
 
+{$define debugging}
+
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, Mask, FileCtrl, ComCtrls, Utils, SimpleDOM,
-  Contnrs, DocStructure, IniFiles, ExtCtrls, ShellApi;
+  Contnrs, DocStructure, IniFiles, ExtCtrls, ShellApi, Pas2Html;
 
 type
   TMainForm = class(TForm)
@@ -45,6 +47,7 @@ type
     bCompile: TButton;
     cbOpenAfterProcess: TCheckBox;
     bOpen: TButton;
+    bParseMissing: TButton;
     procedure DirectoryEdit1Change(Sender: TObject);
     procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -52,6 +55,7 @@ type
     procedure bTransformClick(Sender: TObject);
     procedure bCompileClick(Sender: TObject);
     procedure bOpenClick(Sender: TObject);
+    procedure bParseMissingClick(Sender: TObject);
   public
     ProjectDir: string;
     SourceDir: string;
@@ -118,7 +122,7 @@ procedure TMainForm.FormCreate(Sender: TObject);
 var
   Ini: TIniFile;
   I: Integer;
-  SValue, BValue: String;
+  SValue: String;
 begin
   DirectoryEdit1Change(Self);
 
@@ -226,6 +230,8 @@ begin
 
     Progress.Position := 4;
 
+    NextUpdate := 0;
+    
     for I := 0 to Project.Files.Count - 1 do
     begin
       S := TElement(Project.Files.Objects[I]).DisplayName;
@@ -310,6 +316,56 @@ end;
 procedure TMainForm.bOpenClick(Sender: TObject);
 begin
   ShellExecute(Self.Handle, 'open', PAnsiChar(IncludeTrailingBackslash(DirectoryEdit1.Text) + Edit4.Text), '', '', SW_SHOW);
+end;
+
+procedure TMainForm.bParseMissingClick(Sender: TObject);
+var
+  i,j,k: integer;
+  srcPasFolder, destUnitFolder, fn: string;
+  pasFiles: TStringList;
+begin
+  if SourceDir = '' then exit;
+  srcPasFolder := GetDelphiSourceFolder;
+  if srcPasFolder = '' then exit;
+  {$ifdef debugging}
+  destUnitFolder := 'c:\temp\';
+  {$else}
+  destUnitFolder := SourceDir + 'Units\';
+  {$endif}
+  Log.Clear;
+  Log.Color := clWhite;
+
+  if not DirectoryExists(destUnitFolder) then
+  begin
+    LogAdd('Error: destination folder does not exist. '#13#10);
+    Log.Color := $E7FFE7;
+    exit;
+  end;
+
+  LogAdd('Starting Pas2Html ...'#13#10);
+  Application.ProcessMessages;
+  j := 0;
+  pasFiles := GetFileList(srcPasFolder, '*.pas');
+  try
+    for i := 0 to pasFiles.Count -1 do
+    begin
+      fn := ChangeFileExt(ExtractFileName(pasFiles[i]),'');
+      if not DirectoryExists(destUnitFolder + fn) then
+      begin
+        inc(j);
+        k := BuildNewUnit(pasFiles[i], destUnitFolder + fn + '\');
+        LogAdd('  added: ' + pasFiles[i] + #13#10);
+        if k >= 0 then
+          LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);
+        Application.ProcessMessages;
+      end;
+    end;
+  finally
+    pasFiles.Free;
+  end;
+  LogAdd('... done'#13#10);
+  LogAdd(inttostr(j) +' units added.'#13#10);
+  Log.Color := $E7FFE7;
 end;
 
 end.
