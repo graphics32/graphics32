@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 309
-  Top = 218
+  Left = 132
+  Top = 123
   Width = 877
   Height = 551
   Caption = 'HTML Document Processor'
@@ -19,7 +19,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 573
-    Height = 524
+    Height = 517
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Panel1'
@@ -28,7 +28,7 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 573
-      Height = 500
+      Height = 493
       Align = alClient
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -43,7 +43,7 @@ object MainForm: TMainForm
     end
     object Panel2: TPanel
       Left = 0
-      Top = 500
+      Top = 493
       Width = 573
       Height = 24
       Align = alBottom
@@ -74,7 +74,7 @@ object MainForm: TMainForm
     Left = 573
     Top = 0
     Width = 296
-    Height = 524
+    Height = 517
     Align = alRight
     BevelOuter = bvNone
     BorderWidth = 2
@@ -140,7 +140,7 @@ object MainForm: TMainForm
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 0
+        TabOrder = 5
       end
       object DirectoryEdit1: TEdit
         Left = 16
@@ -148,7 +148,7 @@ object MainForm: TMainForm
         Width = 266
         Height = 21
         Anchors = [akLeft, akTop, akRight]
-        TabOrder = 1
+        TabOrder = 0
         Text = 'DirectoryEdit1'
         OnChange = DirectoryEdit1Change
       end
@@ -185,7 +185,7 @@ object MainForm: TMainForm
         Width = 199
         Height = 21
         Anchors = [akLeft, akTop, akRight]
-        TabOrder = 5
+        TabOrder = 1
         Text = 'My Help.hhp'
       end
     end
@@ -229,7 +229,7 @@ object MainForm: TMainForm
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 0
+        TabOrder = 2
       end
       object Edit6: TEdit
         Left = 16
@@ -245,7 +245,7 @@ object MainForm: TMainForm
         Width = 266
         Height = 21
         Anchors = [akLeft, akTop, akRight]
-        TabOrder = 2
+        TabOrder = 0
         Text = 'My Help Project'
       end
     end
@@ -273,7 +273,7 @@ object MainForm: TMainForm
         Width = 264
         Height = 21
         Anchors = [akLeft, akTop, akRight]
-        TabOrder = 0
+        TabOrder = 1
         Text = 'C:\Programs\HTML Help Workshop\hhc.exe'
       end
       object CheckBox1: TCheckBox
@@ -283,7 +283,7 @@ object MainForm: TMainForm
         Height = 17
         Anchors = [akTop, akRight]
         Caption = 'Compile on process'
-        TabOrder = 1
+        TabOrder = 0
       end
       object Panel9: TPanel
         Left = 0
@@ -316,12 +316,12 @@ object MainForm: TMainForm
         123)
       object bProcess: TButton
         Left = 144
-        Top = 28
+        Top = 60
         Width = 140
-        Height = 57
+        Height = 24
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Process'
-        TabOrder = 0
+        TabOrder = 3
         OnClick = bProcessClick
       end
       object Panel11: TPanel
@@ -339,7 +339,7 @@ object MainForm: TMainForm
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 1
+        TabOrder = 6
       end
       object bTransform: TButton
         Left = 8
@@ -348,7 +348,7 @@ object MainForm: TMainForm
         Height = 25
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Transform only'
-        TabOrder = 2
+        TabOrder = 0
         OnClick = bTransformClick
       end
       object bCompile: TButton
@@ -358,7 +358,7 @@ object MainForm: TMainForm
         Height = 25
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Compile only'
-        TabOrder = 3
+        TabOrder = 2
         OnClick = bCompileClick
       end
       object cbOpenAfterProcess: TCheckBox
@@ -377,6 +377,16 @@ object MainForm: TMainForm
         Caption = 'Open'
         TabOrder = 5
         OnClick = bOpenClick
+      end
+      object bParseMissing: TButton
+        Left = 144
+        Top = 28
+        Width = 140
+        Height = 25
+        Anchors = [akLeft, akTop, akRight]
+        Caption = 'Parse Missing Units ...'
+        TabOrder = 1
+        OnClick = bParseMissingClick
       end
     end
   end
