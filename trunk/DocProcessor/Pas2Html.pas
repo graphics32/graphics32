@@ -11,6 +11,8 @@ uses
 
 implementation
 
+uses StrUtils;
+
 const
   htmlEnd = #10'</body>'#10'</html>';
   cr: AnsiChar = #10;
@@ -261,8 +263,19 @@ var
       result := '<br>'#10'<p><b>Description:</b><br>'#10+comment+#10'</p>';
   end;
 
-  function MakeShortDescription(const comment: string): string;
+  function MakeShortDescription(comment: string): string;
+  var
+    i: integer;
   begin
+    i := 1;
+    while true do
+    begin
+      i := PosEx('<br>',comment,i);
+      if i = 0 then break;
+      inc(i,4);
+      if comment[i] = ' ' then delete(comment,i,1);
+      insert( '//',comment,i);
+    end;
     if comment = '' then
       result := '' else
       result := '<span class="Comment">//'+comment+'</span><br>'#10;
@@ -278,9 +291,10 @@ var
       while true do
       begin
         peekNextToken(tok);
-        if (tok.kind <> tkIdentifier) then exit;
+        if (tok.kind <> tkIdentifier) then break;
         GetNextToken(tok); //gobble peek
         ident := tok.text;
+        comment := LastSpecialComment;
         clearBuffer;
         repeat
           GetNextToken(tok);
@@ -288,9 +302,12 @@ var
         until finished or (tok.text = ';');
         result := tok.text = ';';
         if result then
-          ConstList.Add(format('%s %s<br>'#10,[ident, buffer]));
+          ConstList.Add(MakeShortDescription(comment) +
+            format('%s %s<br>'#10,[ident, buffer]));
       end;
     end;
+    //add a space between each CONST code block ...
+    ConstList.Add('<br>'#10);
   end;
 
   function DoVars: boolean;
@@ -310,6 +327,7 @@ var
         GetNextToken(tok);
         if tok.text <> ':' then exit;
         ClearBuffer;
+        comment := LastSpecialComment;
         AddToBuffer(ident + ':');
         hasBracket := false;
         repeat
@@ -326,9 +344,12 @@ var
           GetNextToken(tok);
           AddToBuffer(tok);
         end;
-        if result then VarList.Add(buffer + '<br>'#10);
+        if result then
+          VarList.Add(MakeShortDescription(comment) +buffer + '<br>'#10);
       end;
     end;
+    //add a space between each VAR code block ...
+    ConstList.Add('<br>'#10);
   end;
 
   function DoFunction: string;

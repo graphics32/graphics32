@@ -328,13 +328,15 @@ var
   pasFiles, menuData: TStringList;
 begin
   if SourceDir = '' then exit;
-  srcPasFolder := GetDelphiSourceFolder;
-  if srcPasFolder = '' then exit;
   {$IFDEF DEBUGGING}
+  srcPasFolder := 'c:\temp\';
   destUnitFolder := 'c:\temp\';
   {$ELSE}
+  srcPasFolder := GetDelphiSourceFolder;
+  if srcPasFolder = '' then exit;
   destUnitFolder := SourceDir + 'Units\';
   {$ENDIF}
+
   Log.Clear;
   Log.Color := clWhite;
 
