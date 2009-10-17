@@ -346,6 +346,7 @@ begin
   end;
 
   LogAdd('Starting Pas2Html ...'#13#10);
+  LogNL;
   Application.ProcessMessages;
   j := 0;
   pasFiles := GetFileList(srcPasFolder, '*.pas');
@@ -392,7 +393,8 @@ begin
           {$ELSE}
           menuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
           {$ENDIF}
-          LogAdd('Menu list of items updated' +#13#10);
+          LogNL;
+          LogAdd('  ''Additional Units'' menu updated.' +#13#10);
         end;
       finally
         menuData.Free;

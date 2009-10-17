@@ -18,14 +18,15 @@ const
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-function htmlStart(level: integer): string;
+function htmlStart(level: integer; const metaTag: string = ''): string;
 const
   htmlStart1 = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
-  htmlStart2 = 'styles/default.css" type="text/css">'#10'</head>'#10'<body bgcolor="#FFFFFF">'#10;
+  htmlStart2 = 'styles/default.css" type="text/css">'#10;
+  htmlStart3 = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
 begin
   result := '';
   for level := 1 to level do result := result + '../';
-  result := htmlStart1 + result + htmlStart2;
+  result := htmlStart1 + result + htmlStart2 + metaTag + htmlStart3;
 end;
 //------------------------------------------------------------------------------
 
@@ -464,20 +465,19 @@ var
 
   function DoClass(const clsName: string): boolean;
   var
-    s, s2, fn, classPath: string;
+    s, s2, fn, ancestor, classPath: string;
   begin
     with DelphiParser do
     begin
       GetNextToken(tok);
       result := tok.text = ';';
       if result then exit; //ie ignore forward class declarations
-      ClearBuffer;
       if (tok.text = '(') then
       begin
-        AddToBuffer('(');
+        ancestor := '';
         repeat
           GetNextToken(tok);
-          AddToBuffer(tok);
+          if tok.text <> ')' then ancestor := ancestor + tok.text;
         until finished or (tok.text = ')');
         if tok.text <> ')' then exit;
         GetNextToken(tok);
@@ -488,8 +488,9 @@ var
         MkDir(destUnitFolder+ 'Classes');
       classPath := destUnitFolder+ 'Classes\' + clsName + '\';
       MkDir(classPath);
+      ancestor := '<meta name="Ancestor" content="' +ancestor +'">'#10;
       StringToFile(classPath+'_Body.htm',
-        htmlStart(5) + '<b>'+clsName +'</b> = <b>class</b>'+ buffer + htmlEnd);
+        htmlStart(5, ancestor) + '<br>'#10'<p><b>Description:</b>'#10#10'</p>' + htmlEnd);
 
       repeat
         //skip private and protected class fields and methods...
