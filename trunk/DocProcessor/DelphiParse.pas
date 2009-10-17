@@ -37,6 +37,8 @@ type
     fLastX: integer;
     fCurrentLine: string; //line containing next token to be read
     fCurrentLineLen: integer;
+    fLastSpecialComment: string;
+    fLastSpecialCommentLine: integer;
     fPeeked: boolean;
     fPeekTok: TToken;
     function GetIdentToken: TTokenKind;
@@ -46,6 +48,7 @@ type
     procedure TestEndCurlyBraceComment;
     procedure TestEndMultilineComment;
     procedure GetNextTokenInternal(var tok: TToken);
+    function GetLastSpecialComment: string;
   public
     constructor Create(aStrings: TStrings);
     destructor Destroy; override;
@@ -56,6 +59,7 @@ type
     property Finished: boolean read fFinished;
     property CurrentPt: TPoint read fCurrent;
     property ReservedList: TStringList read fReservedList;
+    property LastSpecialComment: string read GetLastSpecialComment;
   end;
 
 const
@@ -145,6 +149,19 @@ begin
   begin
     repeat
       GetNextTokenInternal(tok);
+      case tok.kind of
+        tkComment:
+          begin
+            if (tok.text[3] = '*') and (fLastSpecialComment = '') then
+              fLastSpecialComment := tok.text
+            else if fLastSpecialComment <> '' then
+              fLastSpecialComment := fLastSpecialComment +' ' + trim(tok.text);
+            fLastSpecialCommentLine := fCurrent.Y;
+          end;
+        tkEndline:
+          if (fCurrent.Y > fLastSpecialCommentLine+1) then
+            fLastSpecialComment := '';
+      end;
     until Finished or not (tok.kind in [tkSpace, tkComment, tkPrecompiler, tkEndline]);
     fPeekTok := tok;
     fPeeked := true;
@@ -162,6 +179,19 @@ begin
   else
     repeat
       GetNextTokenInternal(tok);
+      case tok.kind of
+        tkComment:
+          begin
+            if (tok.text[3] = '*') and (fLastSpecialComment = '') then
+              fLastSpecialComment := tok.text
+            else if fLastSpecialComment <> '' then
+              fLastSpecialComment := fLastSpecialComment +' ' + trim(tok.text);
+            fLastSpecialCommentLine := fCurrent.Y;
+          end;
+        tkEndline:
+          if (fCurrent.Y > fLastSpecialCommentLine+1) then
+            fLastSpecialComment := '';
+      end;
     until Finished or not (tok.kind in [tkSpace, tkComment, tkPrecompiler, tkEndline]);
 end;
 //------------------------------------------------------------------------------
@@ -393,6 +423,13 @@ begin
       inc(fCurrent.x);
     end;
   end;
+end;
+//------------------------------------------------------------------------------
+
+function TDelphiParser.GetLastSpecialComment: string;
+begin
+  if fLastSpecialComment = '' then result := ''
+  else result := trim(copy(fLastSpecialComment,4,length(fLastSpecialComment)-5));
 end;
 //------------------------------------------------------------------------------
 

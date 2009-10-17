@@ -389,7 +389,7 @@ begin
               dec(m);
             end;
           {$IFDEF DEBUGGING}
-          menuData.SaveToFile('c:\temp\menu_data.txt');
+          //menuData.SaveToFile('c:\temp\menu_data.txt');
           {$ELSE}
           menuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
           {$ENDIF}

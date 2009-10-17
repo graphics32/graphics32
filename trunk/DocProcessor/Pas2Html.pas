@@ -252,7 +252,21 @@ var
   DelphiParser: TDelphiParser;
   ConstList, VarList, RoutinesList: TStringList;
   tok: TToken;
-  s, fn: string;
+  s, fn, comment: string;
+
+  function MakeDescription(const comment: string): string;
+  begin
+    if comment = '' then
+      result := '<br>'#10 else
+      result := '<br>'#10'<p><b>Description:</b><br>'#10+comment+#10'</p>';
+  end;
+
+  function MakeShortDescription(const comment: string): string;
+  begin
+    if comment = '' then
+      result := '' else
+      result := '<span class="Comment">//'+comment+'</span><br>'#10;
+  end;
 
   function DoConst: boolean;
   var
@@ -490,7 +504,7 @@ var
       MkDir(classPath);
       ancestor := '<meta name="Ancestor" content="' +ancestor +'">'#10;
       StringToFile(classPath+'_Body.htm',
-        htmlStart(5, ancestor) + '<br>'#10'<p><b>Description:</b>'#10#10'</p>' + htmlEnd);
+        htmlStart(5, ancestor) + MakeDescription(comment) + htmlEnd);
 
       repeat
         //skip private and protected class fields and methods...
@@ -528,28 +542,33 @@ var
               (tok.text = 'procedure') then
             begin
               s := tok.text;
+              comment := LastSpecialComment;
               s2 := DoProcedure;
               if s2 = '' then exit;
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath +'Methods\'+FirstWordInStr(s2)+'.htm';
-              AppendStringToFile(fn, '<b>'+s +'</b> ' +s2 +'<br>'#10);
+              AppendStringToFile(fn,
+                MakeShortDescription(comment)+ '<b>'+s +'</b> ' +s2 +'<br><br>'#10);
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'function') then
             begin
+              comment := LastSpecialComment;
               s := DoFunction;
               if s = '' then exit;
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath  +'Methods\' +FirstWordInStr(s) +'.htm';
-              AppendStringToFile(fn,  '<b>function</b> ' + s +'<br>'#10);
+              AppendStringToFile(fn,
+                MakeShortDescription(comment)+ '<b>function</b> ' + s +'<br><br>'#10);
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'class') then
             begin
+              comment := LastSpecialComment;
               GetNextToken(tok);
               if tok.text = 'procedure' then
               begin
@@ -564,16 +583,19 @@ var
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath  +'Methods\' +FirstWordInStr(s2) +'.htm';
-              AppendStringToFile(fn, s +s2+ '<br>'#10);
+              AppendStringToFile(fn,
+                MakeShortDescription(comment)+ s +s2+ '<br><br>'#10);
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
             else if (tok.text = 'property') then
             begin
+              comment := LastSpecialComment;
               s := DoProperty;
               if s = '' then exit;
               s2 := FirstWordInStr(s);
-              s := htmlStart(6) + '<b>property</b> ' + s + htmlEnd;
+              s := htmlStart(6) + '<b>property</b> ' +
+                s + MakeDescription(comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
                 if not DirectoryExists(classPath +'Events') then
@@ -624,7 +646,8 @@ var
         MkDir(destUnitFolder+ 'Interfaces');
       interfacePath := destUnitFolder+ 'Interfaces\' + interfaceName + '\';
       MkDir(interfacePath);
-      StringToFile(interfacePath+'_Body.htm',htmlStart(5) + buffer + htmlEnd);
+      StringToFile(interfacePath+'_Body.htm',
+        htmlStart(5) + buffer + MakeDescription(comment) + htmlEnd);
 
       GetNextToken(tok);
       repeat
@@ -636,6 +659,7 @@ var
           break;
         end;
 
+        comment := LastSpecialComment;
         case tok.kind of
           tkReserved:
             if (tok.text = 'procedure') then
@@ -646,7 +670,8 @@ var
               if not DirectoryExists(interfacePath +'Methods') then
                 MkDir(interfacePath +'Methods');
               fn := interfacePath +'Methods\'+FirstWordInStr(s2)+'.htm';
-              AppendStringToFile(fn, '<b>'+ s +'</b> ' +s2 +'<br>'#10);
+              AppendStringToFile(fn,
+                MakeShortDescription(comment)+ '<b>'+ s +'</b> ' +s2 + '<br><br>'#10);
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -657,7 +682,8 @@ var
               if not DirectoryExists(interfacePath +'Methods') then
                 MkDir(interfacePath +'Methods');
               fn := interfacePath  +'Methods\' +FirstWordInStr(s) +'.htm';
-              AppendStringToFile(fn, '<b>function</b> ' +s +'<br>'#10);
+              AppendStringToFile(fn,
+                MakeShortDescription(comment)+ '<b>function</b> ' +s +'<br><br>'#10);
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -666,7 +692,7 @@ var
               s := DoProperty;
               if s = '' then exit;
               s2 := FirstWordInStr(s);
-              s := htmlStart(6) + '<b>property</b> ' + s + htmlEnd;
+              s := htmlStart(6) + '<b>property</b> ' + s + MakeDescription(comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
                 if not DirectoryExists(interfacePath +'Events') then
@@ -713,7 +739,7 @@ var
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + funcName + '.htm',
-        htmlStart(4) + buffer + htmlEnd);
+        htmlStart(4) + buffer + MakeDescription(comment)+ htmlEnd);
     end;
   end;
 
@@ -743,7 +769,7 @@ var
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + procName + '.htm',
-        htmlStart(4) + buffer + htmlEnd);
+        htmlStart(4) + buffer + MakeDescription(comment) + htmlEnd);
     end;
   end;
 
@@ -788,7 +814,7 @@ var
         if not DirectoryExists(destUnitFolder+ 'Types') then
           MkDir(destUnitFolder+ 'Types');
         StringToFile(destUnitFolder+ 'Types\' + recordName + '.htm',
-          htmlStart(4) + buffer + htmlEnd);
+          htmlStart(4) + buffer + MakeDescription(comment) + htmlEnd);
       end;
     end;
   end;
@@ -810,7 +836,7 @@ var
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types\' + typeName + '.htm',
-        htmlStart(4) + buffer + htmlEnd);
+        htmlStart(4) + buffer + MakeDescription(comment) + htmlEnd);
     end;
   end;
 
@@ -829,6 +855,7 @@ var
         GetNextToken(tok);
         if tok.text <> '=' then exit;
         GetNextToken(tok);
+        comment := LastSpecialComment;
         if tok.kind = tkReserved then
         begin
           if tok.text = 'class' then
@@ -883,6 +910,7 @@ begin
       if not DelphiParser.finished then
         repeat
           DelphiParser.GetNextToken(tok);
+          comment := DelphiParser.LastSpecialComment;
 
           if (tok.kind = tkReserved) then
           begin
@@ -906,7 +934,8 @@ begin
                 if not DirectoryExists(destUnitFolder+ 'Routines') then
                   MkDir(destUnitFolder+ 'Routines');
                 fn := destUnitFolder+'Routines\'+ FirstWordInStr(s) +'.htm';
-                AppendStringToFile(fn, '<b>function</b> ' +s +'<br>'#10);
+                AppendStringToFile(fn,
+                  MakeShortDescription(comment)+ '<b>function</b> ' +s +'<br><br>'#10);
                 if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end else if (tok.text = 'procedure') then
@@ -919,7 +948,8 @@ begin
                 if not DirectoryExists(destUnitFolder+ 'Routines') then
                   MkDir(destUnitFolder+ 'Routines');
                 fn := destUnitFolder+'Routines\' +FirstWordInStr(s) +'.htm';
-                AppendStringToFile(fn, '<b>procedure</b> ' +s +'<br>'#10);
+                AppendStringToFile(fn,
+                  MakeShortDescription(comment)+ '<b>procedure</b> ' +s +'<br><br>'#10);
                 if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end;
