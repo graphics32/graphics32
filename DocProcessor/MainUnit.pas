@@ -323,9 +323,9 @@ end;
 
 procedure TMainForm.bParseMissingClick(Sender: TObject);
 var
-  i,j,k: integer;
+  i,j,k,m: integer;
   srcPasFolder, destUnitFolder, fn: string;
-  pasFiles: TStringList;
+  pasFiles, menuData: TStringList;
 begin
   if SourceDir = '' then exit;
   srcPasFolder := GetDelphiSourceFolder;
@@ -350,6 +350,7 @@ begin
   j := 0;
   pasFiles := GetFileList(srcPasFolder, '*.pas');
   try
+    pasFiles.Sort;
     for i := 0 to pasFiles.Count -1 do
     begin
       fn := ChangeFileExt(ExtractFileName(pasFiles[i]),'');
@@ -361,6 +362,40 @@ begin
         if k >= 0 then
           LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);
         Application.ProcessMessages;
+        //getting ready to update the menu list (ie to save redoing stuff) ...
+        pasFiles[i] := fn;
+        pasFiles.Objects[i] := pointer(1);
+      end;
+    end;
+    //now update the help file's dropdown menu list of units
+    if (j > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
+    begin
+      menuData := TStringList.Create;
+      try
+        menuData.LoadFromFile(ProjectDir + 'Scripts\menu_data.js');
+        i := menuData.IndexOf('td_6 = "Additional Units"');
+        if i > 0 then
+        begin
+          while menuData[i] <> '' do inc(i);
+          //now append to the list of additional units ...
+          pasFiles.Sort;
+          m := j;
+          for k := pasFiles.Count -1 downto 0 do
+            if assigned(pasFiles.Objects[k]) then
+            begin
+              menuData.Insert(i, format('url_6_%d = "Units/%s/_Body.htm"',[m, pasFiles[k]]));
+              menuData.Insert(i, format('td_6_%d = "%s.pas"',[m, pasFiles[k]]));
+              dec(m);
+            end;
+          {$IFDEF DEBUGGING}
+          menuData.SaveToFile('c:\temp\menu_data.txt');
+          {$ELSE}
+          menuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
+          {$ENDIF}
+          LogAdd('Menu list of items updated' +#13#10);
+        end;
+      finally
+        menuData.Free;
       end;
     end;
   finally
