@@ -403,7 +403,7 @@ var
 
   function DoProperty: string;
   var
-    inSqrBracket: boolean;
+    inSqrBracket, doRead, doWrite: boolean;
   begin
     result := '';
     clearBuffer;
@@ -421,6 +421,8 @@ var
         exit;              //ie just elevated the property's visibility
       end;
       inSqrBracket := false;
+      doRead := false;
+      doWrite := false;
       repeat
         GetNextToken(tok);
         AddToBuffer(tok);
@@ -431,14 +433,13 @@ var
       if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
       AddToBuffer(tok);
       AddToBuffer(';');
-
       //now skip the rest of the property stuff (ie read, write etc) ...
       repeat
         GetNextToken(tok);
+        if tok.text = 'read' then doRead := true
+        else if tok.text = 'write' then doWrite := true;
       until finished or (tok.text = ';');
-      if tok.text = ';' then
-        result := buffer else
-        exit;
+      if tok.text <> ';' then exit;
 
       while true do
       begin
@@ -449,6 +450,15 @@ var
         until finished or (tok.text = ';')
         else break;
       end;
+
+      if doRead and doWrite then
+        AddToBuffer(' <span class="Comment">//read and write</span>')
+      else if doRead then
+        AddToBuffer(' <span class="Comment">//read only</span>')
+      else if doWrite then
+        AddToBuffer(' <span class="Comment">//write only</span>');
+
+      result := buffer;
     end;
   end;
 
