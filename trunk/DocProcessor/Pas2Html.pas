@@ -255,6 +255,7 @@ var
   ConstList, VarList, RoutinesList: TStringList;
   tok: TToken;
   s, fn, comment: string;
+  overloaded: boolean;
 
   function MakeDescription(const comment: string): string;
   begin
@@ -357,6 +358,7 @@ var
     hasBracket: boolean;
   begin
     result := '';
+    overloaded := false;
     with DelphiParser do
     begin
       GetNextToken(tok);
@@ -386,6 +388,7 @@ var
           (tok.text = 'stdcall')) then
         begin
           AddToBuffer(tok);
+          if tok.text = 'overload' then overloaded := true;
         end
         else break;
         GetNextToken(tok); //ie gobbles peek
@@ -402,6 +405,7 @@ var
     hasBracket: boolean;
   begin
     result := '';
+    overloaded := false;
     with DelphiParser do
     begin
       GetNextToken(tok);
@@ -426,6 +430,7 @@ var
           (tok.text = 'stdcall')) then
         begin
           AddToBuffer(tok);
+          if tok.text = 'overload' then overloaded := true;
         end
         else break;
         GetNextToken(tok); //ie gobbles peek
@@ -569,8 +574,10 @@ var
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath +'Methods\'+FirstWordInStr(s2)+'.htm';
-              AppendStringToFile(fn,
-                MakeShortDescription(comment)+ '<b>'+s +'</b> ' +s2 +'<br><br>'#10);
+              if overloaded then
+                AppendStringToFile(fn, MakeShortDescription(comment)+
+                  '<b>'+s +'</b> ' +s2 +'<br><br>'#10) else
+                AppendStringToFile(fn,'<b>'+s +'</b> ' +s2 +MakeDescription(comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -582,8 +589,10 @@ var
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath  +'Methods\' +FirstWordInStr(s) +'.htm';
-              AppendStringToFile(fn,
-                MakeShortDescription(comment)+ '<b>function</b> ' + s +'<br><br>'#10);
+              if overloaded then
+                AppendStringToFile(fn, MakeShortDescription(comment)+
+                  '<b>function</b> ' + s +'<br><br>'#10) else
+                AppendStringToFile(fn, '<b>function</b> ' + s +MakeDescription(comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -604,8 +613,10 @@ var
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
               fn := classPath  +'Methods\' +FirstWordInStr(s2) +'.htm';
-              AppendStringToFile(fn,
-                MakeShortDescription(comment)+ s +s2+ '<br><br>'#10);
+              if overloaded then
+                AppendStringToFile(fn, MakeShortDescription(comment) +
+                  s +s2+ '<br><br>'#10) else
+                AppendStringToFile(fn,s +s2 +MakeDescription(comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -691,8 +702,10 @@ var
               if not DirectoryExists(interfacePath +'Methods') then
                 MkDir(interfacePath +'Methods');
               fn := interfacePath +'Methods\'+FirstWordInStr(s2)+'.htm';
-              AppendStringToFile(fn,
-                MakeShortDescription(comment)+ '<b>'+ s +'</b> ' +s2 + '<br><br>'#10);
+              if overloaded then
+                AppendStringToFile(fn, MakeShortDescription(comment) +
+                  '<b>'+ s +'</b> ' +s2 + '<br><br>'#10) else
+                AppendStringToFile(fn, '<b>'+ s +'</b> ' +s2 +MakeDescription(comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -703,8 +716,10 @@ var
               if not DirectoryExists(interfacePath +'Methods') then
                 MkDir(interfacePath +'Methods');
               fn := interfacePath  +'Methods\' +FirstWordInStr(s) +'.htm';
-              AppendStringToFile(fn,
-                MakeShortDescription(comment)+ '<b>function</b> ' +s +'<br><br>'#10);
+              if overloaded then
+                AppendStringToFile(fn, MakeShortDescription(comment)+
+                  '<b>function</b> ' +s +'<br><br>'#10) else
+                AppendStringToFile(fn, '<b>function</b> ' +s +MakeDescription(comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -955,8 +970,11 @@ begin
                 if not DirectoryExists(destUnitFolder+ 'Routines') then
                   MkDir(destUnitFolder+ 'Routines');
                 fn := destUnitFolder+'Routines\'+ FirstWordInStr(s) +'.htm';
-                AppendStringToFile(fn,
-                  MakeShortDescription(comment)+ '<b>function</b> ' +s +'<br><br>'#10);
+                if overloaded then
+                  AppendStringToFile(fn, MakeShortDescription(comment)+
+                    '<b>function</b> ' +s +'<br><br>'#10) else
+                  AppendStringToFile(fn, MakeShortDescription(comment)+
+                    '<b>function</b> ' +s +MakeDescription(comment));
                 if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end else if (tok.text = 'procedure') then
@@ -969,8 +987,10 @@ begin
                 if not DirectoryExists(destUnitFolder+ 'Routines') then
                   MkDir(destUnitFolder+ 'Routines');
                 fn := destUnitFolder+'Routines\' +FirstWordInStr(s) +'.htm';
-                AppendStringToFile(fn,
-                  MakeShortDescription(comment)+ '<b>procedure</b> ' +s +'<br><br>'#10);
+                if overloaded then
+                  AppendStringToFile(fn, MakeShortDescription(comment)+
+                    '<b>procedure</b> ' +s +'<br><br>'#10) else
+                  AppendStringToFile(fn,'<b>procedure</b> ' +s +MakeDescription(comment));
                 if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end;
