@@ -168,7 +168,7 @@ var
   BytesRead, AppRunning: DWord;
   Start: TStartUpInfo;
   ProcessInfo: TProcessInformation;
-  Buffer: PChar;
+  Buffer: PAnsiChar;
 begin
    with Security do
    begin
@@ -200,7 +200,7 @@ begin
         ReadFile(ReadPipe, Buffer[0], ReadBuffer, BytesRead, nil);
         Buffer[BytesRead] := #0;
         OemToAnsi(Buffer, Buffer);
-        AMemo.Text := AMemo.Text + String(Buffer);
+        AMemo.Text := AMemo.Text + AnsiString(Buffer);
       until BytesRead < ReadBuffer;
     end;
 
