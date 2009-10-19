@@ -6,7 +6,7 @@ uses
   Windows, Messages, SysUtils, Classes, Controls, DelphiParse,
   ShellApi, ShlObj, Forms;
 
-  function GetDelphiSourceFolder: ansiString;
+  function GetDelphiSourceFolder: string;
   function BuildNewUnit(const pasFilename, destUnitFolder: ansiString): integer;
 
 implementation
@@ -104,7 +104,7 @@ begin
       end;
     BFFM_SELCHANGED:
       begin
-        ShGetFileInfo(PAnsiChar(lParam), 0, sfi,sizeof(sfi),SHGFI_DISPLAYNAME or SHGFI_PIDL);
+        ShGetFileInfo(PChar(lParam), 0, sfi,sizeof(sfi),SHGFI_DISPLAYNAME or SHGFI_PIDL);
         SendMessage(hwnd, BFFM_SETSTATUSTEXT,0, integer(@sfi.szDisplayName));
       end;
   end;
@@ -117,7 +117,7 @@ procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll' name 'CoTask
 //------------------------------------------------------------------------------
 
 function GetFolder(OwnerForm: TForm;
-  const Caption: ansiString; AllowCreateNew: boolean; var Folder: ansiString): boolean;
+  const Caption: string; AllowCreateNew: boolean; var Folder: string): boolean;
 var
   displayname: array[0..MAX_PATH] of char;
   bi: TBrowseInfo;
@@ -127,8 +127,8 @@ begin
     bi.hWndOwner := 0 else
     bi.hWndOwner := OwnerForm.Handle;
   bi.pIDLRoot := nil;
-  bi.pszDisplayName := PAnsiChar(@displayname[0]);
-  bi.lpszTitle := PAnsiChar(Caption);
+  bi.pszDisplayName := PChar(@displayname[0]);
+  bi.lpszTitle := PChar(Caption);
   bi.ulFlags := BIF_RETURNONLYFSDIRS or BIF_STATUSTEXT;
   if AllowCreateNew then bi.ulFlags := bi.ulFlags or BIF_NEWDIALOGSTYLE;
   bi.lpfn := @BrowseProc;
@@ -139,7 +139,7 @@ begin
   result := pidl <> nil;
   if result then
   try
-    result := SHGetPathFromIDList(pidl,PAnsiChar(@displayname[0]));
+    result := SHGetPathFromIDList(pidl,PChar(@displayname[0]));
     Folder := displayname;
   finally
     CoTaskMemFree(pidl);
@@ -163,7 +163,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function GetDelphiSourceFolder: ansiString;
+function GetDelphiSourceFolder: string;
 const
   CSIDL_PROGRAM_FILES = $26;
 begin
