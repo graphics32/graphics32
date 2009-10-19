@@ -6,25 +6,25 @@ uses
   Windows, Messages, SysUtils, Classes, Controls, DelphiParse,
   ShellApi, ShlObj, Forms;
 
-  function GetDelphiSourceFolder: string;
-  function BuildNewUnit(const pasFilename, destUnitFolder: string): integer;
+  function GetDelphiSourceFolder: ansiString;
+  function BuildNewUnit(const pasFilename, destUnitFolder: ansiString): integer;
 
 implementation
 
 uses StrUtils;
 
 const
-  htmlEnd = #10'</body>'#10'</html>';
+  htmlEnd: AnsiString = #10'</body>'#10'</html>';
   cr: AnsiChar = #10;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-function htmlStart(level: integer; const metaTag: string = ''): string;
+function htmlStart(level: integer; const metaTag: ansiString = ''): ansiString;
 const
-  htmlStart1 = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
-  htmlStart2 = 'styles/default.css" type="text/css">'#10;
-  htmlStart3 = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
+  htmlStart1: AnsiString = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
+  htmlStart2: AnsiString = 'styles/default.css" type="text/css">'#10;
+  htmlStart3: AnsiString = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
 begin
   result := '';
   for level := 1 to level do result := result + '../';
@@ -33,7 +33,7 @@ end;
 //------------------------------------------------------------------------------
 
 var
-  buffer: string;
+  buffer: AnsiString;
 
 procedure AddToBuffer(const tok: TToken); overload;
 var
@@ -69,7 +69,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure AddToBuffer(const str: string); overload;
+procedure AddToBuffer(const str: ansiString); overload;
 begin
   buffer := buffer + str;
 end;
@@ -81,7 +81,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function StripSlash(const path: string): string;
+function StripSlash(const path: ansiString): ansiString;
 var
   len: integer;
 begin
@@ -117,7 +117,7 @@ procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll' name 'CoTask
 //------------------------------------------------------------------------------
 
 function GetFolder(OwnerForm: TForm;
-  const Caption: string; AllowCreateNew: boolean; var Folder: string): boolean;
+  const Caption: ansiString; AllowCreateNew: boolean; var Folder: ansiString): boolean;
 var
   displayname: array[0..MAX_PATH] of char;
   bi: TBrowseInfo;
@@ -147,7 +147,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function GetSpecialFolder(FolderID: integer): string;
+function GetSpecialFolder(FolderID: integer): ansiString;
 var
   p: PItemIDList;
   Path: array[0..MAX_PATH] of char;
@@ -163,7 +163,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function GetDelphiSourceFolder: string;
+function GetDelphiSourceFolder: ansiString;
 const
   CSIDL_PROGRAM_FILES = $26;
 begin
@@ -175,7 +175,7 @@ end;
 
 //------------------------------------------------------------------------------
 
-procedure StringToFile(const filename, strVal: string);
+procedure StringToFile(const filename, strVal: ansiString);
 begin
   with TMemoryStream.Create do
   try
@@ -189,7 +189,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure AppendStringToFile(const filename, strVal: string);
+procedure AppendStringToFile(const filename, strVal: ansiString);
 var
   i, len, oldSize: cardinal;
 begin
@@ -210,7 +210,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure PrependStringToFile(const filename, strVal: string);
+procedure PrependStringToFile(const filename, strVal: ansiString);
 var
   i, len, oldSize: cardinal;
 begin
@@ -232,7 +232,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function FirstWordInStr(const s: string): string;
+function FirstWordInStr(const s: ansiString): ansiString;
 var
   i, len: integer;
 begin
@@ -247,24 +247,24 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function BuildNewUnit(const pasFilename, destUnitFolder: string): integer;
+function BuildNewUnit(const pasFilename, destUnitFolder: ansiString): integer;
 var
   i: integer;
   pasLines: TStringlist;
   DelphiParser: TDelphiParser;
   ConstList, VarList, RoutinesList: TStringList;
   tok: TToken;
-  s, fn, comment: string;
+  s, fn, comment: ansiString;
   overloaded: boolean;
 
-  function MakeDescription(const comment: string): string;
+  function MakeDescription(const comment: ansiString): ansiString;
   begin
     if comment = '' then
       result := '<br>'#10 else
       result := '<br>'#10'<p><b>Description:</b><br>'#10+comment+#10'</p>';
   end;
 
-  function MakeShortDescription(comment: string): string;
+  function MakeShortDescription(comment: ansiString): ansiString;
   var
     i: integer;
   begin
@@ -284,7 +284,7 @@ var
 
   function DoConst: boolean;
   var
-    ident: string;
+    ident: ansiString;
   begin
     result := false;
     with DelphiParser do
@@ -313,7 +313,7 @@ var
 
   function DoVars: boolean;
   var
-    ident: string;
+    ident: ansiString;
     hasBracket: boolean;
   begin
     result := false;
@@ -353,7 +353,7 @@ var
     ConstList.Add('<br>'#10);
   end;
 
-  function DoFunction: string;
+  function DoFunction: ansiString;
   var
     hasBracket: boolean;
   begin
@@ -400,7 +400,7 @@ var
     end;
   end;
 
-  function DoProcedure: string;
+  function DoProcedure: ansiString;
   var
     hasBracket: boolean;
   begin
@@ -442,7 +442,7 @@ var
     end;
   end;
 
-  function DoProperty: string;
+  function DoProperty: ansiString;
   var
     inSqrBracket, doRead, doWrite: boolean;
   begin
@@ -503,9 +503,9 @@ var
     end;
   end;
 
-  function DoClass(const clsName: string): boolean;
+  function DoClass(const clsName: ansiString): boolean;
   var
-    s, s2, fn, ancestor, classPath: string;
+    s, s2, fn, ancestor, classPath: ansiString;
   begin
     with DelphiParser do
     begin
@@ -653,9 +653,9 @@ var
     end;
   end;
 
-  function DoInterface(const interfaceName: string): boolean;
+  function DoInterface(const interfaceName: ansiString): boolean;
   var
-    s, s2, fn, interfacePath: string;
+    s, s2, fn, interfacePath: ansiString;
   begin
     with DelphiParser do
     begin
@@ -749,7 +749,7 @@ var
     end;
   end;
 
-  function DoTypeFunc(const funcName: string): boolean;
+  function DoTypeFunc(const funcName: ansiString): boolean;
   var
     hasBracket: boolean;
   begin
@@ -779,7 +779,7 @@ var
     end;
   end;
 
-  function DoTypeProc(const procName: string): boolean;
+  function DoTypeProc(const procName: ansiString): boolean;
   var
     hasBracket: boolean;
   begin
@@ -809,7 +809,7 @@ var
     end;
   end;
 
-  function DoRecord(const recordName, ident2: string): boolean;
+  function DoRecord(const recordName, ident2: ansiString): boolean;
   var
     inCase: boolean;
   begin
@@ -855,7 +855,7 @@ var
     end;
   end;
 
-  function DoGeneralType(const typeName, ident2: string): boolean;
+  function DoGeneralType(const typeName, ident2: ansiString): boolean;
   begin
     ClearBuffer;
     with DelphiParser do
@@ -878,7 +878,7 @@ var
 
   function DoType: boolean;
   var
-    ident: string;
+    ident: ansiString;
   begin
     result := false;
     with DelphiParser do
