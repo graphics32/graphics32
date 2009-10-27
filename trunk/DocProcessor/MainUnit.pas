@@ -318,7 +318,7 @@ end;
 
 procedure TMainForm.bOpenClick(Sender: TObject);
 begin
-  ShellExecute(Self.Handle, 'open', PAnsiChar(IncludeTrailingBackslash(DirectoryEdit1.Text) + Edit4.Text), '', '', SW_SHOW);
+  ShellExecute(Self.Handle, 'open', PChar(IncludeTrailingBackslash(DirectoryEdit1.Text) + Edit4.Text), '', '', SW_SHOW);
 end;
 
 procedure TMainForm.bParseMissingClick(Sender: TObject);
@@ -360,7 +360,7 @@ begin
       if not DirectoryExists(destUnitFolder + fn) then
       begin
         inc(j);
-        k := BuildNewUnit(pasFiles[i], destUnitFolder + fn + '\');
+        k := BuildNewUnit(ansiString(pasFiles[i]), ansiString(destUnitFolder + fn + '\'));
         LogAdd('  added: ' + pasFiles[i] + #13#10);
         if k >= 0 then
           LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);

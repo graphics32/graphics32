@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 132
   Top = 123
-  Width = 877
-  Height = 551
   Caption = 'HTML Document Processor'
+  ClientHeight = 517
+  ClientWidth = 869
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
