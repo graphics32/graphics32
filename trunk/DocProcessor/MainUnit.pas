@@ -365,9 +365,9 @@ begin
         if k >= 0 then
           LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);
         Application.ProcessMessages;
-        //getting ready to update the menu list (ie to save redoing stuff) ...
+        //getting ready to update the menu list (ie saves redoing stuff) ...
         pasFiles[i] := fn;
-        pasFiles.Objects[i] := pointer(1);
+        pasFiles.Objects[i] := pointer(1); //flags a new unit
       end;
     end;
     //now update the help file's dropdown menu list of units
@@ -405,8 +405,9 @@ begin
   finally
     pasFiles.Free;
   end;
-  LogAdd('... done'#13#10);
   LogAdd(inttostr(j) +' units added.'#13#10);
+  LogNL;
+  LogAdd('... done'#13#10);
   Log.Color := $E7FFE7;
 end;
 
