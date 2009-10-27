@@ -2,6 +2,8 @@ unit SimpleDOM;
 
 interface
 
+{$WARN UNSAFE_CAST OFF}
+
 {-$DEFINE CODESITE}
 
 uses
@@ -123,7 +125,7 @@ var
   Size: Integer;
 begin
   Size := Integer(Current) - Integer(Start);
-  SetString(Result, nil, Size);
+  SetString(Result, nil, Size div sizeof(Char));
   Move(Start^, Pointer(Result)^, Size);
 end;
 
@@ -133,14 +135,14 @@ var
 begin
   L := Pointer(Src);
   R := L + Length(Src) - 1;
-  while L^ in CValidWhiteSpace do Inc(L);
-  while (R >= L) and (R^ in CValidWhiteSpace) do Dec(R);
+  while AnsiChar(L^) in CValidWhiteSpace do Inc(L);
+  while (R >= L) and (AnsiChar(R^) in CValidWhiteSpace) do Dec(R);
   SetString(Result, L, Integer(R) - Integer(L) + 1);
 end;
 
 procedure OmitWhiteSpace(var P: PChar);
 begin
-  while P^ in CValidWhiteSpace do Inc(P);
+  while AnsiChar(P^) in CValidWhiteSpace do Inc(P);
 end;
 
 function ConvertWhiteSpace(const Src: string): string;
@@ -154,13 +156,13 @@ begin
   SetLength(Result, 0);
   while L^ <> #0 do
   begin
-    if not (R^ in CTerminators) then Inc(R)
+    if not (AnsiChar(R^) in CTerminators) then Inc(R)
     else
     begin
       if R > L then Result := Result + SubString(L, R);
       if R^ = #0 then Exit;
       Result := Result + ' ';
-      while R^ in CValidWhiteSpace do Inc(R);
+      while AnsiChar(R^) in CValidWhiteSpace do Inc(R);
       L := R;
     end;
   end;
@@ -171,11 +173,11 @@ var
   Start: PChar;
 begin
   SetLength(Result, 0);
-  if P^ in CValidNameFirst then
+  if AnsiChar(P^) in CValidNameFirst then
   begin
     Start := P;
     Inc(P);
-    while P^ in CValidNameChar do Inc(P);
+    while AnsiChar(P^) in CValidNameChar do Inc(P);
     Result := SubString(Start, P);
   end
 end;
@@ -195,19 +197,19 @@ end;
 function GetAttValue(var P: PChar; out Error: Boolean): string;
 var
   Start: PChar;
-  Terminators: set of Char;
+  Terminators: set of AnsiChar;
   Qt: Char;
 begin
   SetLength(Result, 0);
   Error := True;
   OmitWhiteSpace(P);
-  if P^ in ['''', '"'] then
+  if AnsiChar(P^) in ['''', '"'] then
   begin
     Qt := P^;
     Terminators := ['^', '<', '&', #0] + [Qt];
     Inc(P);
     Start := P;
-    while not (P^ in Terminators) do Inc(P);
+    while not (AnsiChar(P^) in Terminators) do Inc(P);
     if P^ = Qt then
     begin
       Result := SubString(Start, P);
@@ -596,7 +598,7 @@ var
 
       OmitWhiteSpace(Pos);
       if Pos^ = '/' then Exit;
-      while not (Pos^ in ['>', '/']) do
+      while not (AnsiChar(Pos^) in ['>', '/']) do
       begin
         // get attributes
         AttrName := GetName(Pos);
@@ -640,7 +642,7 @@ var
       else // if Pos^ = '>';
       begin
         Inc(Pos);
-        
+
         // read child nodes
         while True do
         begin
@@ -667,7 +669,7 @@ var
   procedure GetText;
   begin
     P := Pos - 1;
-    if P^ in CValidWhiteSpace then S := ' ' else S := '';
+    if AnsiChar(P^) in CValidWhiteSpace then S := ' ' else S := '';
     Inc(P);
     while True do
     begin
@@ -777,11 +779,13 @@ end;
 procedure TDomParser.ReadStream(Dst: TDomNode; Stream: TStream);
 var
   Size: Integer;
+  s: ansiString;
 begin
   Size := Stream.Size - Stream.Position;
   if Size = 0 then Exit;
-  SetString(Buffer, nil, Size);
-  Stream.Read(Pointer(Buffer)^, Size);
+  SetString(s, nil, Size);
+  Stream.Read(Pointer(s)^, Size);
+  buffer := string(s);
   Dst.Clear;
   Dst.Attributes.Clear;
   Reset;
@@ -808,9 +812,9 @@ procedure TDomParser.WriteStream(Src: TDomNode; Stream: TStream; Level: Integer)
 var
   I: Integer;
   TagInfo: THtmlTagInfo;
-  NLS: string;
+  NLS: ansiString;
 
-  procedure Write(const S: string);
+  procedure Write(const S: ansiString);
   begin
     if (Length(NLS) > 0) and (Stream.Position > 0) then
       Stream.WriteBuffer(Pointer(NLS)^, Length(NLS));
@@ -820,27 +824,27 @@ var
 
   procedure NewLine;
   begin
-    if Level > 0 then NLS := #13#10 + StringOfChar(' ', Level * 2)
-    else NLS := #13#10;
+    if Level > 0 then NLS := ansiString(#13#10 + StringOfChar(' ', Level * 2))
+    else NLS := ansiString(#13#10);
   end;
 begin
   case Src.NodeType of
     ntText:
       begin
-        Write(Src.Value);
+        Write(ansiString(Src.Value));
       end;
 
     ntComment:
       begin
         NewLine;
-        Write('<!--' + Src.Value + '-->');
+        Write('<!--' + ansiString(Src.Value) + '-->');
         NewLine;
       end;
 
     ntPI:
       begin
         NewLine;
-        Write('<?' + Src.Name + ' ' + Src.Value + '?>');
+        Write(ansiString('<?' + Src.Name + ' ' + Src.Value + '?>'));
         NewLine;
       end;
 
@@ -852,10 +856,10 @@ begin
         if TagInfo.ElemType = etBlock then NewLine;
 
         // opening tag
-        Write('<' + Src.Name);
+        Write('<' + ansiString(Src.Name));
         with Src.Attributes do for I := 0 to Count - 1 do
-          Write(Format(' %s="%s"', [Items[I].Name, Items[I].Value]));
-          
+          Write(ansiString(Format(' %s="%s"', [Items[I].Name, Items[I].Value])));
+
         if Src.Count = 0 then
         begin
           if TagInfo.ElemType = etUnknown then
@@ -870,7 +874,7 @@ begin
             if TagInfo.ElemType = etBR then NewLine;
             if TagInfo.ClosingType = ctAlways then
             begin
-              Write('</' + Src.Name + '>');
+              Write('</' + ansiString(Src.Name) + '>');
               if TagInfo.ElemType = etBlock then NewLine;
               if TagInfo.ElemType = etBR then NewLine;
             end;
@@ -888,7 +892,7 @@ begin
           if not TagInfo.SimpleContent then NewLine;
 
           // closing tag
-          Write('</' + Src.Name + '>');
+          Write('</' + ansiString(Src.Name) + '>');
           if TagInfo.ElemType in [etBlock, etUnknown] then NewLine;
         end;
       end;

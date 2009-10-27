@@ -2,8 +2,10 @@ unit DocStructure;
 
 interface
 
+{$WARN UNIT_PLATFORM OFF}
+
 uses
-  Classes, SysUtils, Contnrs, FileCtrl, SimpleDOM;
+  Classes, SysUtils, Contnrs, Windows, FileCtrl, SimpleDOM;
 
 const
   cColumnCount = 5;

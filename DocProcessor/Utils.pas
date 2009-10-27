@@ -2,6 +2,9 @@ unit Utils;
 
 interface
 
+{$WARN UNIT_PLATFORM OFF}
+{$WARN SYMBOL_PLATFORM OFF}
+
 uses
   Windows, Classes, SysUtils, FileCtrl, Contnrs, SimpleDOM, DocStructure,
   Forms, StdCtrls;
