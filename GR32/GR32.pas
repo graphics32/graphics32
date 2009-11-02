@@ -593,6 +593,8 @@ type
     procedure BeginMeasuring(const Callback: TAreaChangedEvent);
     procedure EndMeasuring;
 
+    function ReleaseBackend: TBackend;
+
     procedure PropertyChanged;
     procedure Changed; overload; override;
     procedure Changed(const Area: TRect; const Info: Cardinal = AREAINFO_RECT); reintroduce; overload; virtual;
@@ -765,6 +767,7 @@ type
     procedure SetFont(Value: TFont);
   protected
     procedure InitializeBackend; override;
+    procedure FinalizeBackend; override;
     procedure SetBackend(const Backend: TBackend); override;
     
     procedure HandleChanged; virtual;
@@ -1883,9 +1886,6 @@ end;
 
 procedure TCustomBitmap32.FinalizeBackend;
 begin
-  // Make sure we de-allocate the buffer...
-  FBackend.Clear;
-
   // Drop ownership of backend now:
   // It's a zombie now.
   FBackend.FOwner := nil;
@@ -1955,6 +1955,8 @@ begin
   begin
     BeginUpdate;
 
+    Backend.FOwner := Self;
+
     if Assigned(FBackend) then
     begin
       Backend.Assign(FBackend);
@@ -1962,7 +1964,6 @@ begin
     end;
 
     FBackend := Backend;
-    FBackend._AddRef; // see note above!
     FBackend.OnChange := BackendChangedHandler;
     FBackend.OnChanging := BackendChangingHandler;
 
@@ -1971,6 +1972,12 @@ begin
     FBackend.Changed;
     Changed;
   end;
+end;
+
+function TCustomBitmap32.ReleaseBackend: TBackend;
+begin
+  FBackend._AddRef; // Increase ref-count for external use
+  Result := FBackend;
 end;
 
 function TCustomBitmap32.QueryInterface(const IID: TGUID; out Obj): HResult;
@@ -5050,6 +5057,17 @@ begin
 {$ENDIF}
 end;
 
+procedure TBitmap32.FinalizeBackend;
+begin
+  if Supports(Backend, IFontSupport) then
+    (Backend as IFontSupport).OnFontChange := nil;
+
+  if Supports(Backend, ICanvasSupport) then
+    (Backend as ICanvasSupport).OnCanvasChange := nil;
+
+  inherited;
+end;
+
 procedure TBitmap32.BackendChangingHandler(Sender: TObject);
 begin
   inherited;
@@ -5875,7 +5893,16 @@ end;
 constructor TBackend.Create;
 begin
   RefCounted := True;
+  _AddRef;
   inherited;
+end;
+
+constructor TBackend.Create(Owner: TCustomBitmap32);
+begin
+  FOwner := Owner;
+  Create;
+   if Assigned(Owner) then
+    Owner.Backend := Self;
 end;
 
 procedure TBackend.Clear;
@@ -5886,14 +5913,6 @@ begin
     ChangeSize(FOwner.FWidth, FOwner.FHeight, 0, 0, False)
   else
     ChangeSize(Width, Height, 0, 0, False);
-end;
-
-constructor TBackend.Create(Owner: TCustomBitmap32);
-begin
-  FOwner := Owner;
-  Create;
-  if Assigned(Owner) then
-    Owner.Backend := Self;
 end;
 
 procedure TBackend.Changing;
