@@ -144,6 +144,17 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
   end;
 
+  TRequireOperatorMode = (romAnd, romOr);
+
+// Helper functions to temporarily switch the back-end depending on the required interfaces
+
+procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
+  RequiredInterfaces: array of TGUID;
+  Mode: TRequireOperatorMode; UseOptimizedDestructiveSwitchMethod: Boolean;
+  out ReleasedBackend: TBackend);
+
+procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TBackend);
+
 implementation
 
 uses
@@ -151,6 +162,44 @@ uses
 
 type
   TBitmap32Access = class(TBitmap32);
+
+procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
+  RequiredInterfaces: array of TGUID;
+  Mode: TRequireOperatorMode; UseOptimizedDestructiveSwitchMethod: Boolean;
+  out ReleasedBackend: TBackend);
+var
+  I: Integer;
+  Supported: Boolean;
+begin
+  Supported := False;
+  for I := Low(RequiredInterfaces) to High(RequiredInterfaces) do
+  begin
+    Supported := Supports(TargetBitmap.Backend, RequiredInterfaces[I]);
+    if ((Mode = romAnd) and not Supported) or
+      ((Mode = romOr) and Supported) then
+      Break;
+  end;
+
+  if not Supported then
+  begin
+    if UseOptimizedDestructiveSwitchMethod then
+      TargetBitmap.SetSize(0, 0); // Reset size so we avoid the buffer copy during back-end switch
+
+    ReleasedBackend := TargetBitmap.ReleaseBackend;
+
+    // TODO: Try to find a back-end that supports the required interfaces
+    //       instead of resorting to the default platform back-end class...
+    TargetBitmap.Backend := GetPlatformBackendClass.Create;
+  end
+  else
+    ReleasedBackend := nil;
+end;
+
+procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TBackend);
+begin
+  if Assigned(SavedBackend) then
+    TargetBitmap.Backend := SavedBackend;
+end;
 
 { TCustomBackend }
 
