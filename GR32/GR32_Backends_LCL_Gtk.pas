@@ -50,8 +50,7 @@ type
   { TLCLBackend }
 
   TLCLBackend = class(TCustomBackend,
-    IPaintSupport, ICopyFromBitmapSupport, ITextSupport, IFontSupport,
-    ICanvasSupport)
+    IPaintSupport, ITextSupport, IFontSupport, ICanvasSupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
@@ -83,9 +82,6 @@ type
     procedure ImageNeeded;
     procedure CheckPixmap;
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-
-    { ICopyFromBitmapSupport }
-    procedure CopyFromBitmap(SrcBmp: TBitmap);
 
     { ITextSupport }
     procedure Textout(X, Y: Integer; const Text: string); overload;
@@ -234,13 +230,6 @@ begin
     GDK_RGB_DITHER_NORMAL, // dither
     0,                     // x_dither
     0);    }                // y_dither
-end;
-
-{ ICopyFromBitmapSupport }
-
-procedure TLCLBackend.CopyFromBitmap(SrcBmp: TBitmap);
-begin
-
 end;
 
 { ITextSupport }

@@ -61,8 +61,7 @@ type
   end;
 
   TCLXBackend = class(TCustomBackend, IPaintSupport,
-    ICopyFromBitmapSupport, ICanvasSupport, ITextSupport, IFontSupport,
-    IQtDeviceContextSupport)
+    ICanvasSupport, ITextSupport, IFontSupport, IQtDeviceContextSupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
@@ -105,9 +104,6 @@ type
     procedure CheckPixmap;
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
     
-    { ICopyFromBitmapSupport }
-    procedure CopyFromBitmap(SrcBmp: TBitmap);
-
     { IQtDeviceContextSupport }
     function GetPixmap: QPixmapH;
     function GetPixmapChanged: Boolean;
@@ -364,19 +360,6 @@ begin
 
     QPainter_end(ACanvas.Handle);
   end;
-end;
-
-{ ICopyFromBitmapSupport }
-
-procedure TCLXBackend.CopyFromBitmap(SrcBmp: TBitmap);
-begin
-  if not QPainter_isActive(Painter) then
-    if not QPainter_begin(Painter, Pixmap) then
-      raise EInvalidGraphicOperation.CreateRes(@SInvalidCanvasState);
-
-  QPainter_drawPixmap(Painter, 0, 0, SrcBmp.Handle, 0, 0, FOwner.Width, FOwner.Height);
-  QPainter_end(Painter);
-  PixmapChanged := True;
 end;
 
 { IQtDeviceContextSupport }

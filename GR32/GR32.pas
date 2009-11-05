@@ -536,6 +536,7 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
     procedure CopyMapTo(Dst: TCustomBitmap32); virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); virtual;
+    procedure AssignTo(Dst: TPersistent); override;
     function  Equal(B: TCustomBitmap32): Boolean;
     procedure SET_T256(X, Y: Integer; C: TColor32);
     procedure SET_TS256(X, Y: Integer; C: TColor32);
@@ -776,7 +777,6 @@ type
     
     procedure HandleChanged; virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
-    procedure AssignTo(Dst: TPersistent); override;
   public
 {$IFDEF CLX}
     procedure Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH); overload;
@@ -2045,42 +2045,60 @@ begin
   SetSize(0, 0);
 end;
 
-procedure TCustomBitmap32.Assign(Source: TPersistent);
+procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
 
-  procedure AssignFromBitmap(TargetBitmap: TCustomBitmap32; SrcBmp: TBitmap);
+  procedure AssignToBitmap(Bmp: TBitmap; SrcBitmap: TCustomBitmap32);
   var
     SavedBackend: TBackend;
-    TransparentColor: TColor32;
-    DstP, SrcP: PColor32;
-    I: integer;
-    DstColor: TColor32;
+    Canvas: TCanvas;
   begin
-    RequireBackendSupport(TargetBitmap, [ICopyFromBitmapSupport], romOr, True, SavedBackend);
+    RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
     try
-      TargetBitmap.SetSize(SrcBmp.Width, SrcBmp.Height);
-      if TargetBitmap.Empty then Exit;
-      (TargetBitmap as ICopyFromBitmapSupport).CopyFromBitmap(SrcBmp);
+{$IFNDEF CLX}
+      Bmp.HandleType := bmDIB;
+{$ENDIF}
+      Bmp.PixelFormat := pf32Bit;
+
+{$IFDEF COMPILER2009}
+      Bmp.SetSize(SrcBitmap.Width, SrcBitmap.Height);
+{$ELSE}
+      Bmp.Width := SrcBitmap.Width;
+      Bmp.Height := SrcBitmap.Height;
+{$ENDIF}
+
+      if Supports(SrcBitmap, IFontSupport) then // this is optional
+        Bmp.Canvas.Font.Assign((SrcBitmap as IFontSupport).Font);
+
+      if SrcBitmap.Empty then Exit;
+
+      (SrcBitmap as IDeviceContextSupport).DrawTo(Bmp.Canvas.Handle, BoundsRect, BoundsRect)
     finally
-      RestoreBackend(TargetBitmap, SavedBackend);
+      RestoreBackend(SrcBitmap, SavedBackend);
     end;
-
-    if SrcBmp.PixelFormat <> pf32bit then ResetAlpha;
-    if SrcBmp.Transparent then
-    begin
-      TransparentColor := Color32(SrcBmp.TransparentColor) and $00FFFFFF;
-      DstP := @TargetBitmap.Bits[0];
-      for I := 0 to TargetBitmap.Width * TargetBitmap.Height - 1 do
-      begin
-        DstColor := DstP^ and $00FFFFFF;
-        if DstColor = TransparentColor then
-          DstP^ := DstColor;
-        Inc(DstP);
-      end;
-    end;
-
-    if Supports(TargetBitmap, IFontSupport) then // this is optional
-      (TargetBitmap as IFontSupport).Font.Assign(SrcBmp.Canvas.Font);
   end;
+
+var
+  Bmp: TBitmap;
+begin
+  if Dst is TPicture then
+    AssignToBitmap(TPicture(Dst).Bitmap, Self)
+  else if Dst is TBitmap then
+    AssignToBitmap(TBitmap(Dst), Self)
+  else if Dst is TClipboard then
+  begin
+    Bmp := TBitmap.Create;
+    try
+      AssignToBitmap(Bmp, Self);
+      TClipboard(Dst).Assign(Bmp);
+    finally
+      Bmp.Free;
+    end;
+  end
+  else
+    inherited;
+end;
+
+procedure TCustomBitmap32.Assign(Source: TPersistent);
 
   procedure AssignFromGraphicPlain(TargetBitmap: TCustomBitmap32;
     SrcGraphic: TGraphic; FillColor: TColor32; ResetAlphaAfterDrawing: Boolean);
@@ -2100,13 +2118,15 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
         Canvas := TCanvas.Create;
         try
           Canvas.Handle := (TargetBitmap as IDeviceContextSupport).Handle;
-          TGraphicAccess(SrcGraphic).Draw(Canvas, MakeRect(0, 0, Width, Height));
+          TGraphicAccess(SrcGraphic).Draw(Canvas,
+            MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
         finally
           Canvas.Free;
         end;
       end
       else
-        TGraphicAccess(SrcGraphic).Draw((TargetBitmap as ICanvasSupport).Canvas, MakeRect(0, 0, Width, Height));
+        TGraphicAccess(SrcGraphic).Draw((TargetBitmap as ICanvasSupport).Canvas,
+          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
 
       if ResetAlphaAfterDrawing then
         ResetAlpha;
@@ -2157,40 +2177,68 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
     end;
   end;
 
-  procedure AssignFromGraphic(TargetBitmap: TCustomBitmap32; SrcGraphic: TGraphic);
+  procedure AssignFromBitmap(TargetBitmap: TCustomBitmap32; SrcBmp: TBitmap);
   var
-    SavedBackend: TBackend;
-    Canvas: TCanvas;
+    TransparentColor: TColor32;
+    DstP, SrcP: PColor32;
+    I: integer;
+    DstColor: TColor32;
+  begin
+    AssignFromGraphicPlain(TargetBitmap, SrcBmp, 0, SrcBmp.PixelFormat <> pf32bit);
+    if TargetBitmap.Empty then Exit;
+
+    if SrcBmp.Transparent then
+    begin
+      TransparentColor := Color32(SrcBmp.TransparentColor) and $00FFFFFF;
+      DstP := @TargetBitmap.Bits[0];
+      for I := 0 to TargetBitmap.Width * TargetBitmap.Height - 1 do
+      begin
+        DstColor := DstP^ and $00FFFFFF;
+        if DstColor = TransparentColor then
+          DstP^ := DstColor;
+        Inc(DstP);
+      end;
+    end;
+
+    if Supports(TargetBitmap, IFontSupport) then // this is optional
+      (TargetBitmap as IFontSupport).Font.Assign(SrcBmp.Canvas.Font);
+  end;
+
+  procedure AssignFromIcon(TargetBitmap: TCustomBitmap32; SrcIcon: TIcon);
+  var
     I: Integer;
     P: PColor32Entry;
     ReassignFromMasked: Boolean;
   begin
+    AssignFromGraphicPlain(TargetBitmap, SrcIcon, 0, False);
+    if TargetBitmap.Empty then Exit;
+
+    // Check if the icon was painted with a merged alpha channel.
+    // The happens transparently for new-style 32-bit icons.
+    // For all other bit depths GDI will reset our alpha channel to opaque.
+    ReassignFromMasked := True;
+    P := PColor32Entry(@TargetBitmap.Bits[0]);
+    for I := 0 to TargetBitmap.Height * TargetBitmap.Width - 1 do
+    begin
+      if P.A > 0 then
+      begin
+        ReassignFromMasked := False;
+        Break;
+      end;
+      Inc(P);
+    end;
+
+    // No alpha values found? Use masked approach...
+    if ReassignFromMasked then
+      AssignFromGraphicMasked(TargetBitmap, SrcIcon);
+  end;
+
+  procedure AssignFromGraphic(TargetBitmap: TCustomBitmap32; SrcGraphic: TGraphic);
+  begin
     if SrcGraphic is TBitmap then
       AssignFromBitmap(TargetBitmap, TBitmap(SrcGraphic))
     else if SrcGraphic is TIcon then
-    begin
-      AssignFromGraphicPlain(TargetBitmap, SrcGraphic, 0, False);
-      if TargetBitmap.Empty then Exit;
-
-      // Check if the icon was painted with a merged alpha channel.
-      // The happens transparently for new-style 32-bit icons.
-      // For all other bit depths GDI will reset our alpha channel to opaque.
-      ReassignFromMasked := True;
-      P := PColor32Entry(@TargetBitmap.Bits[0]);
-      for I := 0 to TargetBitmap.Height * TargetBitmap.Width - 1 do
-      begin
-        if P.A > 0 then
-        begin
-          ReassignFromMasked := False;
-          Break;
-        end;
-        Inc(P);
-      end;
-
-      // No alpha values found? Use masked approach...
-      if ReassignFromMasked then
-        AssignFromGraphicMasked(TargetBitmap, SrcGraphic);
-    end
+      AssignFromIcon(TargetBitmap, TIcon(SrcGraphic))
 {$IFNDEF PLATFORM_INDEPENDENT}
     else if SrcGraphic is TMetaFile then
       AssignFromGraphicMasked(TargetBitmap, SrcGraphic)
@@ -2207,13 +2255,10 @@ begin
     if not Assigned(Source) then
       SetSize(0, 0)
     else if Source is TCustomBitmap32 then
-    with Source as TCustomBitmap32 do
     begin
-      CopyMapTo(Self);
-      CopyPropertiesTo(Self);
+      TCustomBitmap32(Source).CopyMapTo(Self);
+      TCustomBitmap32(Source).CopyPropertiesTo(Self);
     end
-    else if Source is TBitmap then
-      AssignFromBitmap(Self, TBitmap(Source))
     else if Source is TGraphic then
       AssignFromGraphic(Self, TGraphic(Source))
     else if Source is TPicture then
@@ -5297,38 +5342,6 @@ begin
 
   if Dst is TBitmap32 then
     TBitmap32(Dst).Font.Assign(Self.Font);
-end;
-
-procedure TBitmap32.AssignTo(Dst: TPersistent);
-var
-  Bmp: TBitmap;
-
-  procedure CopyToBitmap(Bmp: TBitmap);
-  begin
-{$IFNDEF CLX}
-    Bmp.HandleType := bmDIB;
-{$ENDIF}
-    Bmp.PixelFormat := pf32Bit;
-    Bmp.Canvas.Font.Assign(Font);
-    Bmp.Width := Width;
-    Bmp.Height := Height;
-    DrawTo(Bmp.Canvas.Handle, 0, 0);
-  end;
-
-begin
-  if Dst is TPicture then CopyToBitmap(TPicture(Dst).Bitmap)
-  else if Dst is TBitmap then CopyToBitmap(TBitmap(Dst))
-  else if Dst is TClipboard then
-  begin
-    Bmp := TBitmap.Create;
-    try
-      CopyToBitmap(Bmp);
-      TClipboard(Dst).Assign(Bmp);
-    finally
-      Bmp.Free;
-    end;
-  end
-  else inherited;
 end;
 
 function TBitmap32.GetCanvas: TCanvas;

@@ -95,7 +95,7 @@ type
   ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
     function GetHandle: HDC;
 
-    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
     procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
 
@@ -109,11 +109,6 @@ type
 
     property BitmapInfo: TBitmapInfo read GetBitmapInfo;
     property BitmapHandle: THandle read GetBitmapHandle;
-  end;
-
-  ICopyFromBitmapSupport = interface
-  ['{1951D646-BCC4-4847-9EB4-0315BF914547}']
-    procedure CopyFromBitmap(SrcBmp: TBitmap);
   end;
 
   IPaintSupport = interface
