@@ -48,8 +48,8 @@ type
     graphics sub system features. The backing buffer is kept in memory. }
 
   TGDIBackend = class(TCustomBackend, IPaintSupport,
-    ICopyFromBitmapSupport, IBitmapContextSupport,
-    IDeviceContextSupport, ITextSupport, IFontSupport, ICanvasSupport)
+    IBitmapContextSupport, IDeviceContextSupport,
+    ITextSupport, IFontSupport, ICanvasSupport)
   private
     procedure FontChangedHandler(Sender: TObject);
     procedure CanvasChangedHandler(Sender: TObject);
@@ -83,9 +83,6 @@ type
     procedure ImageNeeded;
     procedure CheckPixmap;
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-
-    { ICopyFromBitmapSupport }
-    procedure CopyFromBitmap(SrcBmp: TBitmap);
 
     { IBitmapContextSupport }
     function GetBitmapInfo: TBitmapInfo;
@@ -196,6 +193,7 @@ begin
   begin
     biWidth := NewWidth;
     biHeight := -NewHeight;
+    biSizeImage := NewWidth * NewHeight * 4;
   end;
 
   PrepareFileMapping(NewWidth, NewHeight);
@@ -254,16 +252,6 @@ procedure TGDIBackend.Changed;
 begin
   if FCanvas <> nil then FCanvas.Handle := Self.Handle;
   inherited;
-end;
-
-procedure TGDIBackend.CopyFromBitmap(SrcBmp: TBitmap);
-begin
-  SrcBmp.Canvas.Lock; // lock to avoid GDI memory leaks, eg. when calling from threads
-  try
-    BitBlt(Handle, 0, 0, FOwner.Width, FOwner.Height, SrcBmp.Canvas.Handle, 0, 0, SRCCOPY);
-  finally
-    SrcBmp.Canvas.UnLock;
-  end;
 end;
 
 procedure TGDIBackend.CanvasChanged;

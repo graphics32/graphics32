@@ -94,9 +94,6 @@ type
     procedure CheckPixmap;
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 
-    { ICopyFromBitmapSupport }
-    procedure CopyFromBitmap(SrcBmp: TBitmap);
-
     { IDeviceContextSupport }
     function GetHandle: HDC;
 
@@ -325,25 +322,6 @@ begin
     WriteLn('[TLCLBackend.DoPaint]',
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
-end;
-
-{ ICopyFromBitmapSupport }
-
-procedure TLCLBackend.CopyFromBitmap(SrcBmp: TBitmap);
-begin
-  {$IFDEF VerboseGR32Carbon}
-    WriteLn('[TLCLBackend.CopyFromBitmap]',
-     ' Self: ', IntToHex(PtrUInt(Self), 8));
-  {$ENDIF}
-
-  SrcBmp.Canvas.Lock; // lock to avoid GDI memory leaks, eg. when calling from threads
-  try
-    if not Assigned(FCanvas) then GetCanvas;
-
-    LCLIntf.BitBlt(FCanvas.Handle, 0, 0, FOwner.Width, FOwner.Height, SrcBmp.Canvas.Handle, 0, 0, SRCCOPY);
-  finally
-    SrcBmp.Canvas.UnLock;
-  end;
 end;
 
 { IDeviceContextSupport }
