@@ -118,27 +118,6 @@ type
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
   end;
 
-  { TCustomBackend }
-  { This class functions as backend for the TBitmap32 class.
-    It manages and provides the backing buffer as well as OS or
-    graphics subsystem specific features.}
-
-  TCustomBackend = class(TBackend)
-  protected
-    procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); virtual; abstract;
-    procedure FinalizeSurface; virtual; abstract;
-
-{$IFDEF BITS_GETTER}
-    function GetBits: PColor32Array; override;
-{$ENDIF}
-  public
-    destructor Destroy; override;
-
-    procedure Assign(Source: TPersistent); override;
-    function Empty: Boolean; override;
-    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); override;
-  end;
-
   TRequireOperatorMode = (romAnd, romOr);
 
 // Helper functions to temporarily switch the back-end depending on the required interfaces
@@ -146,9 +125,9 @@ type
 procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
   RequiredInterfaces: array of TGUID;
   Mode: TRequireOperatorMode; UseOptimizedDestructiveSwitchMethod: Boolean;
-  out ReleasedBackend: TBackend);
+  out ReleasedBackend: TCustomBackend);
 
-procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TBackend);
+procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TCustomBackend);
 
 implementation
 
@@ -161,7 +140,7 @@ type
 procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
   RequiredInterfaces: array of TGUID;
   Mode: TRequireOperatorMode; UseOptimizedDestructiveSwitchMethod: Boolean;
-  out ReleasedBackend: TBackend);
+  out ReleasedBackend: TCustomBackend);
 var
   I: Integer;
   Supported: Boolean;
@@ -190,77 +169,10 @@ begin
     ReleasedBackend := nil;
 end;
 
-procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TBackend);
+procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TCustomBackend);
 begin
   if Assigned(SavedBackend) then
     TargetBitmap.Backend := SavedBackend;
-end;
-
-{ TCustomBackend }
-
-destructor TCustomBackend.Destroy;
-begin
-  Clear;
-  inherited;
-end;
-
-{$IFDEF BITS_GETTER}
-function TCustomBackend.GetBits: PColor32Array;
-begin
-  Result := FBits;
-end;
-{$ENDIF}
-
-procedure TCustomBackend.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
-begin
-  try
-    Changing;
-
-    FinalizeSurface;
-
-    Width := 0;
-    Height := 0;
-
-    if (NewWidth > 0) and (NewHeight > 0) then
-      InitializeSurface(NewWidth, NewHeight, ClearBuffer);
-
-    Width := NewWidth;
-    Height := NewHeight;
-  finally
-    Changed;
-  end;
-end;
-
-procedure TCustomBackend.Assign(Source: TPersistent);
-var
-  SrcBackend: TCustomBackend;
-begin
-  if Source is TCustomBackend then
-  begin
-    if Assigned(FOwner) then
-    begin
-      SrcBackend := TCustomBackend(Source);
-
-      ChangeSize(
-        TBitmap32Access(FOwner).FWidth, TBitmap32Access(FOwner).FHeight,
-        SrcBackend.FOwner.Width, SrcBackend.FOwner.Height,
-        False
-      );
-
-      if not SrcBackend.Empty then
-        MoveLongword(
-          SrcBackend.Bits[0], Bits[0],
-          SrcBackend.FOwner.Width * SrcBackend.FOwner.Height
-        );
-    end;
-  end
-  else
-    inherited;
-end;
-
-function TCustomBackend.Empty: Boolean;
-begin
-  Result := False;
 end;
 
 end.

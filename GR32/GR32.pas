@@ -477,12 +477,12 @@ type
 
   TCustomResampler = class;
 
-  TBackend = class;
-  TBackendClass = class of TBackend;
+  TCustomBackend = class;
+  TCustomBackendClass = class of TCustomBackend;
 
   TCustomBitmap32 = class(TCustomMap)
   private
-    FBackend: TBackend;
+    FBackend: TCustomBackend;
     FBits: PColor32Array;
     FClipRect: TRect;
     FFixedClipRect: TFixedRect;
@@ -548,7 +548,7 @@ type
 
     procedure InitializeBackend; virtual;
     procedure FinalizeBackend; virtual;
-    procedure SetBackend(const Backend: TBackend); virtual;
+    procedure SetBackend(const Backend: TCustomBackend); virtual;
 
     function QueryInterface(const IID: TGUID; out Obj): HResult; override;
 
@@ -594,7 +594,7 @@ type
     procedure BeginMeasuring(const Callback: TAreaChangedEvent);
     procedure EndMeasuring;
 
-    function ReleaseBackend: TBackend;
+    function ReleaseBackend: TCustomBackend;
 
     procedure PropertyChanged;
     procedure Changed; overload; override;
@@ -711,7 +711,7 @@ type
     property  PixelFR[X, Y: Single]: TColor32 read GetPixelFR;
     property  PixelXR[X, Y: TFixed]: TColor32 read GetPixelXR;
 
-    property Backend: TBackend read FBackend write SetBackend;
+    property Backend: TCustomBackend read FBackend write SetBackend;
 
 {$IFDEF BITS_GETTER}
     property Bits: PColor32Array read GetBits;
@@ -773,7 +773,7 @@ type
   protected
     procedure InitializeBackend; override;
     procedure FinalizeBackend; override;
-    procedure SetBackend(const Backend: TBackend); override;
+    procedure SetBackend(const Backend: TCustomBackend); override;
     
     procedure HandleChanged; virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
@@ -844,12 +844,12 @@ type
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
   end;
 
-  { TBackend }
-  { This class provides an abstract backend for the TBitmap32 class.
+  { TCustomBackend }
+  { This class functions as backend for the TBitmap32 class.
     It manages and provides the backing buffer as well as OS or
     graphics subsystem specific features.}
 
-  TBackend = class(TThreadPersistent)
+  TCustomBackend = class(TThreadPersistent)
   protected
     FBits: PColor32Array;
     FOwner: TCustomBitmap32;
@@ -858,16 +858,22 @@ type
     procedure Changing; virtual;
 
 {$IFDEF BITS_GETTER}
-    function GetBits: PColor32Array; virtual; abstract;
+    function GetBits: PColor32Array; virtual;
 {$ENDIF}
+
+    procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); virtual;
+    procedure FinalizeSurface; virtual;
   public
     constructor Create; overload; override;
     constructor Create(Owner: TCustomBitmap32); reintroduce; overload; virtual;
+    destructor Destroy; override;
+
+    procedure Assign(Source: TPersistent); override;
 
     procedure Clear; virtual;
-    function Empty: Boolean; virtual; abstract;
+    function Empty: Boolean; virtual;
 
-    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual; abstract;
+    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
 
 {$IFDEF BITS_GETTER}
     property Bits: PColor32Array read GetBits;
@@ -923,7 +929,7 @@ type
   end;
   TCustomResamplerClass = class of TCustomResampler;
 
-function GetPlatformBackendClass: TBackendClass;
+function GetPlatformBackendClass: TCustomBackendClass;
 
 var
   StockBitmap: TBitmap;
@@ -1681,7 +1687,7 @@ begin
     GAMMA_TABLE[i] := Round(255 * Power(i / 255, Gamma));
 end;
 
-function GetPlatformBackendClass: TBackendClass;
+function GetPlatformBackendClass: TCustomBackendClass;
 begin
 {$IFDEF FPC}
   Result := TLCLBackend;
@@ -1962,7 +1968,7 @@ begin
   FBackend := nil;
 end;
 
-procedure TCustomBitmap32.SetBackend(const Backend: TBackend);
+procedure TCustomBitmap32.SetBackend(const Backend: TCustomBackend);
 begin
   if Assigned(Backend) and (Backend <> FBackend) then
   begin
@@ -1987,7 +1993,7 @@ begin
   end;
 end;
 
-function TCustomBitmap32.ReleaseBackend: TBackend;
+function TCustomBitmap32.ReleaseBackend: TCustomBackend;
 begin
   FBackend._AddRef; // Increase ref-count for external use
   Result := FBackend;
@@ -2049,7 +2055,7 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
 
   procedure AssignToBitmap(Bmp: TBitmap; SrcBitmap: TCustomBitmap32);
   var
-    SavedBackend: TBackend;
+    SavedBackend: TCustomBackend;
     Canvas: TCanvas;
   begin
     RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
@@ -2103,7 +2109,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
   procedure AssignFromGraphicPlain(TargetBitmap: TCustomBitmap32;
     SrcGraphic: TGraphic; FillColor: TColor32; ResetAlphaAfterDrawing: Boolean);
   var
-    SavedBackend: TBackend;
+    SavedBackend: TCustomBackend;
     Canvas: TCanvas;
   begin
     RequireBackendSupport(TargetBitmap, [IDeviceContextSupport, ICanvasSupport], romOr, True, SavedBackend);
@@ -2137,7 +2143,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
 
   procedure AssignFromGraphicMasked(TargetBitmap: TCustomBitmap32; SrcGraphic: TGraphic);
   var
-    SavedBackend: TBackend;
+    SavedBackend: TCustomBackend;
     TempBitmap: TCustomBitmap32;
     I: integer;
     DstP, SrcP: PColor32;
@@ -5400,7 +5406,7 @@ begin
   Result := (FBackend as IFontSupport).Font;
 end;
 
-procedure TBitmap32.SetBackend(const Backend: TBackend);
+procedure TBitmap32.SetBackend(const Backend: TCustomBackend);
 begin
   if Assigned(Backend) and (Backend <> FBackend) then
   begin
@@ -5920,16 +5926,16 @@ begin
 end;
 
 
-{ TBackend }
+{ TCustomBackend }
 
-constructor TBackend.Create;
+constructor TCustomBackend.Create;
 begin
   RefCounted := True;
   _AddRef;
   inherited;
 end;
 
-constructor TBackend.Create(Owner: TCustomBitmap32);
+constructor TCustomBackend.Create(Owner: TCustomBitmap32);
 begin
   FOwner := Owner;
   Create;
@@ -5937,7 +5943,13 @@ begin
     Owner.Backend := Self;
 end;
 
-procedure TBackend.Clear;
+destructor TCustomBackend.Destroy;
+begin
+  Clear;
+  inherited;
+end;
+
+procedure TCustomBackend.Clear;
 var
   Width, Height: Integer;
 begin
@@ -5947,12 +5959,80 @@ begin
     ChangeSize(Width, Height, 0, 0, False);
 end;
 
-procedure TBackend.Changing;
+procedure TCustomBackend.Changing;
 begin
   if Assigned(FOnChanging) then
     FOnChanging(Self);
 end;
 
+{$IFDEF BITS_GETTER}
+function TCustomBackend.GetBits: PColor32Array;
+begin
+  Result := FBits;
+end;
+{$ENDIF}
+
+procedure TCustomBackend.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+begin
+  try
+    Changing;
+
+    FinalizeSurface;
+
+    Width := 0;
+    Height := 0;
+
+    if (NewWidth > 0) and (NewHeight > 0) then
+      InitializeSurface(NewWidth, NewHeight, ClearBuffer);
+
+    Width := NewWidth;
+    Height := NewHeight;
+  finally
+    Changed;
+  end;
+end;
+
+procedure TCustomBackend.Assign(Source: TPersistent);
+var
+  SrcBackend: TCustomBackend;
+begin
+  if Source is TCustomBackend then
+  begin
+    if Assigned(FOwner) then
+    begin
+      SrcBackend := TCustomBackend(Source);
+
+      ChangeSize(
+        FOwner.FWidth, FOwner.FHeight,
+        SrcBackend.FOwner.Width, SrcBackend.FOwner.Height,
+        False
+      );
+
+      if not SrcBackend.Empty then
+        MoveLongword(
+          SrcBackend.Bits[0], Bits[0],
+          SrcBackend.FOwner.Width * SrcBackend.FOwner.Height
+        );
+    end;
+  end
+  else
+    inherited;
+end;
+
+function TCustomBackend.Empty: Boolean;
+begin
+  Result := False;
+end;
+
+procedure TCustomBackend.FinalizeSurface;
+begin
+  // descendants override this method
+end;
+
+procedure TCustomBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+begin
+  // descendants override this method
+end;
 
 { TCustomSampler }
 
@@ -5973,10 +6053,12 @@ end;
 
 procedure TCustomSampler.PrepareSampling;
 begin
+  // descendants override this method
 end;
 
 procedure TCustomSampler.FinalizeSampling;
 begin
+  // descendants override this method
 end;
 
 function TCustomSampler.HasBounds: Boolean;
