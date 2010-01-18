@@ -303,7 +303,8 @@ function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload;
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload;
 function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload;
 function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean; overload;
-function EqualRect(const R1, R2: TRect): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRect(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function EqualRect(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1588,12 +1589,17 @@ begin
     if R2.Bottom > R1.Bottom then Rect.Bottom := R2.Bottom;
   end;
   Result := not IsRectEmpty(Rect);
-  if not Result then FillLongword(Rect, 4, 0);;
+  if not Result then FillLongword(Rect, 4, 0);
 end;
 
 function EqualRect(const R1, R2: TRect): Boolean;
 begin
   Result := CompareMem(@R1, @R2, SizeOf(TRect));
+end;
+
+function EqualRect(const R1, R2: TFloatRect): Boolean;
+begin
+  Result := CompareMem(@R1, @R2, SizeOf(TFloatRect));
 end;
 
 function EqualRectSize(const R1, R2: TRect): Boolean;
