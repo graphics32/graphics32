@@ -264,12 +264,14 @@ type
   TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
     rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
     rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner);
+  TRBOptions = set of (roProportional, roConstrained);
   TRBResizingEvent = procedure(
     Sender: TObject;
     const OldLocation: TFloatRect;
     var NewLocation: TFloatRect;
     DragState: TDragState;
     Shift: TShiftState) of object;
+  TRBConstrainEvent = TRBResizingEvent;
 
   TRubberbandLayer = class(TPositionedLayer)
   private
@@ -287,6 +289,8 @@ type
     FMaxWidth: TFloat;
     FOnUserChange: TNotifyEvent;
     FOnResizing: TRBResizingEvent;
+    FOnConstrain: TRBConstrainEvent;
+    FOptions: TRBOptions;
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
@@ -294,6 +298,7 @@ type
     procedure SetHandleFrame(Value: TColor32);
     procedure SetHandles(Value: TRBHandles);
     procedure SetHandleSize(Value: Integer);
+    procedure SetOptions(const Value: TRBOptions);
   protected
     IsDragging: Boolean;
     DragState: TDragState;
@@ -301,6 +306,7 @@ type
     MouseShift: TFloatPoint;
     function  DoHitTest(X, Y: Integer): Boolean; override;
     procedure DoResizing(var OldLocation, NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState); virtual;
+    procedure DoConstrain(var OldLocation, NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState); virtual;
     procedure DoSetLocation(const NewLocation: TFloatRect); override;
     function  GetDragState(X, Y: Integer): TDragState; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -308,12 +314,13 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Notification(ALayer: TCustomLayer); override;
     procedure Paint(Buffer: TBitmap32); override;
-    procedure SetLayerOptions(Value: Cardinal); override;    
+    procedure SetLayerOptions(Value: Cardinal); override;
     procedure UpdateChildLayer;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
     procedure SetFrameStipple(const Value: Array of TColor32);
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
+    property Options: TRBOptions read FOptions write SetOptions;
     property Handles: TRBHandles read FHandles write SetHandles;
     property HandleSize: Integer read FHandleSize write SetHandleSize;
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
@@ -325,6 +332,7 @@ type
     property MinHeight: TFloat read FMinHeight write FMinHeight;
     property MinWidth: TFloat read FMinWidth write FMinWidth;
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
+    property OnConstrain: TRBConstrainEvent read FOnConstrain write FOnConstrain;
     property OnResizing: TRBResizingEvent read FOnResizing write FOnResizing;
   end;
 
@@ -1140,6 +1148,13 @@ begin
     FOnResizing(Self, OldLocation, NewLocation, DragState, Shift);
 end;
 
+procedure TRubberbandLayer.DoConstrain(var OldLocation,
+  NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
+begin
+  if Assigned(FOnConstrain) then
+    FOnConstrain(Self, OldLocation, NewLocation, DragState, Shift);
+end;
+
 procedure TRubberbandLayer.DoSetLocation(const NewLocation: TFloatRect);
 begin
   inherited;
@@ -1238,7 +1253,8 @@ begin
   begin
     Mx := X - MouseShift.X;
     My := Y - MouseShift.Y;
-    if Scaled then with Location do
+    if Scaled then
+    with Location do
     begin
       ALoc := GetAdjustedRect(FLocation);
       if IsRectEmpty(ALoc) then Exit;
@@ -1248,26 +1264,55 @@ begin
 
     with OldLocation do
     begin
-      L := Left; T := Top; R := Right; B := Bottom; W := R - L; H := B - T;
+      L := Left;
+      T := Top;
+      R := Right;
+      B := Bottom;
+      W := R - L;
+      H := B - T;
     end;
 
     if DragState = dsMove then
     begin
-      L := Mx; T := My; R := L + W; B := T + H;
+      L := Mx;
+      T := My;
+      R := L + W;
+      B := T + H;
     end
     else
     begin
       if DragState in [dsSizeL, dsSizeTL, dsSizeBL] then
         IncLT(L, R, Mx - L, MinWidth, MaxWidth);
+
       if DragState in [dsSizeR, dsSizeTR, dsSizeBR] then
         IncRB(L, R, Mx - R, MinWidth, MaxWidth);
+
       if DragState in [dsSizeT, dsSizeTL, dsSizeTR] then
         IncLT(T, B, My - T, MinHeight, MaxHeight);
+
       if DragState in [dsSizeB, dsSizeBL, dsSizeBR] then
         IncRB(T, B, My - B, MinHeight, MaxHeight);
     end;
 
     NewLocation := FloatRect(L, T, R, B);
+
+    if roConstrained in FOptions then
+      DoConstrain(OldLocation, NewLocation, DragState, Shift);
+
+    if roProportional in FOptions then
+    begin
+      case DragState of
+        dsSizeB, dsSizeBR:
+          NewLocation.Right := OldLocation.Left + (OldLocation.Right - OldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (OldLocation.Bottom - OldLocation.Top);
+        dsSizeT, dsSizeTL:
+          NewLocation.Left := OldLocation.Right - (OldLocation.Right - OldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (OldLocation.Bottom - OldLocation.Top);
+        dsSizeR, dsSizeBL:
+          NewLocation.Bottom := OldLocation.Top + (OldLocation.Bottom - OldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (OldLocation.Right - OldLocation.Left);
+        dsSizeL, dsSizeTR:
+          NewLocation.Top := OldLocation.Bottom - (OldLocation.Bottom - OldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (OldLocation.Right - OldLocation.Left);
+      end;
+    end;
+
     DoResizing(OldLocation, NewLocation, DragState, Shift);
 
     if (NewLocation.Left <> Location.Left) or
@@ -1423,6 +1468,11 @@ begin
   Changing;
   FLayerOptions := Value and not LOB_NO_UPDATE; // workaround for changed behaviour
   Changed;
+end;
+
+procedure TRubberbandLayer.SetOptions(const Value: TRBOptions);
+begin
+  FOptions := Value;
 end;
 
 end.
