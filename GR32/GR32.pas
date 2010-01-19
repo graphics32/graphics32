@@ -597,15 +597,15 @@ type
 
     function ReleaseBackend: TCustomBackend;
 
-    procedure PropertyChanged;
+    procedure PropertyChanged; virtual;
     procedure Changed; overload; override;
     procedure Changed(const Area: TRect; const Info: Cardinal = AREAINFO_RECT); reintroduce; overload; virtual;
 
-    procedure LoadFromStream(Stream: TStream);
-    procedure SaveToStream(Stream: TStream);
+    procedure LoadFromStream(Stream: TStream); virtual;
+    procedure SaveToStream(Stream: TStream; SaveTopDown: Boolean = False); virtual;
 
-    procedure LoadFromFile(const FileName: string);
-    procedure SaveToFile(const FileName: string);
+    procedure LoadFromFile(const FileName: string); virtual;
+    procedure SaveToFile(const FileName: string; SaveTopDown: Boolean = False); virtual;
 
     procedure LoadFromResourceID(Instance: THandle; ResID: Integer);
     procedure LoadFromResourceName(Instance: THandle; const ResName: string);
@@ -964,6 +964,25 @@ var
   GR32_FunctionTemplates : TTemplatesHandle;
 
 type
+  { We can not use the Win32 defined record here since we are cross-platform. }
+  TBmpHeader = packed record
+    bfType: Word;
+    bfSize: LongInt;
+    bfReserved: LongInt;
+    bfOffBits: LongInt;
+    biSize: LongInt;
+    biWidth: LongInt;
+    biHeight: LongInt;
+    biPlanes: Word;
+    biBitCount: Word;
+    biCompression: LongInt;
+    biSizeImage: LongInt;
+    biXPelsPerMeter: LongInt;
+    biYPelsPerMeter: LongInt;
+    biClrUsed: LongInt;
+    biClrImportant: LongInt;
+  end;
+
   TGraphicAccess = class(TGraphic);
 
 const
@@ -4715,33 +4734,115 @@ end;
 
 procedure TCustomBitmap32.LoadFromStream(Stream: TStream);
 var
+  I, W: integer;
+  Header: TBmpHeader;
   B: TBitmap;
 begin
-  B := TBitmap.Create;
-  try
-    B.LoadFromStream(Stream);
-    Assign(B);
-  finally
-    B.Free;
-    Changed;
+  Stream.ReadBuffer(Header, SizeOf(TBmpHeader));
+
+  // Check for Windows bitmap magic bytes and general compatibility of the
+  // bitmap data that ought to be loaded...
+  if (Header.bfType = $4D42) and
+    (Header.biBitCount = 32) and (Header.biPlanes = 1) and
+    (Header.biCompression = 0) then
+  begin
+    SetSize(Header.biWidth, Abs(Header.biHeight));
+
+    // Check whether the bitmap is saved top-down
+    if Header.biHeight > 0 then
+    begin
+      W := Width shl 2;
+      for I := Height - 1 downto 0 do
+        Stream.ReadBuffer(Scanline[I]^, W);
+    end
+    else
+      Stream.ReadBuffer(Bits^, Width * Height);
+  end
+  else
+  begin
+    Stream.Seek(-SizeOf(TBmpHeader), soFromCurrent);
+    B := TBitmap.Create;
+    try
+      B.LoadFromStream(Stream);
+      Assign(B);
+    finally
+      B.Free;
+    end;
   end;
+
+  Changed;
 end;
 
-procedure TCustomBitmap32.SaveToStream(Stream: TStream);
+procedure TCustomBitmap32.SaveToStream(Stream: TStream; SaveTopDown: Boolean = False);
+var
+  Header: TBmpHeader;
+  BitmapSize: Integer;
+  I, W: Integer;
 begin
-  with TBitmap.Create do
-  try
-    Assign(Self);
-    SaveToStream(Stream);
-  finally
-    Free;
+  BitmapSize := Width * Height shl 2;
+
+  Header.bfType := $4D42; // Magic bytes for Windows Bitmap
+  Header.bfSize := BitmapSize + SizeOf(TBmpHeader);
+  Header.bfReserved := 0;
+  // Save offset relative. However, the spec says it has to be file absolute,
+  // which we can not do properly within a stream...
+  Header.bfOffBits := SizeOf(TBmpHeader);
+  Header.biSize := $28;
+  Header.biWidth := Width;
+
+  if SaveTopDown then
+    Header.biHeight := Height
+  else
+    Header.biHeight := -Height;
+
+  Header.biPlanes := 1;
+  Header.biBitCount := 32;
+  Header.biCompression := 0; // bi_rgb
+  Header.biSizeImage := BitmapSize;
+  Header.biXPelsPerMeter := 0;
+  Header.biYPelsPerMeter := 0;
+  Header.biClrUsed := 0;
+  Header.biClrImportant := 0;
+
+  Stream.WriteBuffer(Header, SizeOf(TBmpHeader));
+
+  if SaveTopDown then
+  begin
+    W := Width shl 2;
+    for I := Height - 1 downto 0 do
+      Stream.WriteBuffer(PixelPtr[0, I]^, W);
+  end
+  else
+  begin
+    // NOTE: We can save the whole buffer in one run because
+    // we do not support scanline strides (yet).
+    Stream.WriteBuffer(Bits^, BitmapSize);
   end;
 end;
 
 procedure TCustomBitmap32.LoadFromFile(const FileName: string);
 var
+  FileStream: TFileStream;
+  Header: TBmpHeader;
   P: TPicture;
 begin
+  FileStream := TFileStream.Create(Filename, fmOpenRead);
+  try
+    FileStream.ReadBuffer(Header, SizeOf(TBmpHeader));
+
+    // Check for Windows bitmap magic bytes...
+    if Header.bfType = $4D42 then
+    begin
+      // if it is, use our stream read method...
+      FileStream.Seek(-SizeOf(TBmpHeader), soFromCurrent);
+      LoadFromStream(FileStream);
+      Exit;
+    end
+  finally
+    FileStream.Free;
+  end;
+
+  // if we got here, use the fallback approach via TPicture...
   P := TPicture.Create;
   try
     P.LoadFromFile(FileName);
@@ -4751,14 +4852,15 @@ begin
   end;
 end;
 
-procedure TCustomBitmap32.SaveToFile(const FileName: string);
+procedure TCustomBitmap32.SaveToFile(const FileName: string; SaveTopDown: Boolean = False);
+var
+  FileStream: TFileStream;
 begin
-  with TBitmap.Create do
+  FileStream := TFileStream.Create(Filename, fmCreate);
   try
-    Assign(Self);
-    SaveToFile(FileName);
+    SaveToStream(FileStream, SaveTopDown);
   finally
-    Free;
+    FileStream.Free;
   end;
 end;
 
