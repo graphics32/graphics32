@@ -4756,7 +4756,7 @@ begin
         Stream.ReadBuffer(Scanline[I]^, W);
     end
     else
-      Stream.ReadBuffer(Bits^, Width * Height);
+      Stream.ReadBuffer(Bits^, Width * Height shl 2);
   end
   else
   begin
