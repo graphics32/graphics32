@@ -2,12 +2,12 @@ program Polygons_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {FormPolygons};
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormPolygons, FormPolygons);
   Application.Run;
 end.

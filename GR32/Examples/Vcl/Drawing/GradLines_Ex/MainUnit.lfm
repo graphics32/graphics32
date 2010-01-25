@@ -3,7 +3,7 @@ object FormGradientLines: TFormGradientLines
   Height = 530
   Top = 105
   Width = 631
-  ActiveControl = Button1
+  ActiveControl = btAddOne
   Caption = 'Gradient Lines Example'
   ClientHeight = 530
   ClientWidth = 631
@@ -11,7 +11,7 @@ object FormGradientLines: TFormGradientLines
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '0.9.27'
+  LCLVersion = '0.9.29'
   object Label1: TLabel
     Left = 518
     Height = 14
@@ -29,7 +29,7 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akLeft, akRight, akBottom]
     TabOrder = 8
   end
-  object Button1: TButton
+  object btAddOne: TButton
     Left = 515
     Height = 21
     Top = 8
@@ -37,10 +37,10 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     BorderSpacing.InnerBorder = 4
     Caption = 'Add One'
-    OnClick = Button1Click
+    OnClick = btAddOneClick
     TabOrder = 0
   end
-  object Button2: TButton
+  object btAddTen: TButton
     Left = 515
     Height = 21
     Top = 34
@@ -48,10 +48,10 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     BorderSpacing.InnerBorder = 4
     Caption = 'Add Ten'
-    OnClick = Button2Click
+    OnClick = btAddTenClick
     TabOrder = 1
   end
-  object Button3: TButton
+  object btClear: TButton
     Left = 515
     Height = 21
     Top = 60
@@ -59,10 +59,10 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     BorderSpacing.InnerBorder = 4
     Caption = 'Clear'
-    OnClick = Button3Click
+    OnClick = btClearClick
     TabOrder = 2
   end
-  object RadioGroup1: TRadioGroup
+  object rgFade: TRadioGroup
     Left = 510
     Height = 89
     Top = 224
@@ -86,10 +86,10 @@ object FormGradientLines: TFormGradientLines
       'Slow'
       'Fast'
     )
-    OnClick = RadioGroup1Click
+    OnClick = rgFadeClick
     TabOrder = 3
   end
-  object RadioGroup2: TRadioGroup
+  object rgDraw: TRadioGroup
     Left = 510
     Height = 81
     Top = 136
@@ -113,10 +113,10 @@ object FormGradientLines: TFormGradientLines
       'Normal'
       'Fast'
     )
-    OnClick = RadioGroup2Click
+    OnClick = rgDrawClick
     TabOrder = 4
   end
-  object Panel1: TPanel
+  object pnTotalLines: TPanel
     Left = 519
     Height = 17
     Top = 108

@@ -50,28 +50,28 @@ const
 
 type
   TForm1 = class(TForm)
-    Image32: TImage32;
-    BitmapList: TBitmap32List;
     bAdd: TButton;
-    edLayerCount: TEdit;
-    bClearAll: TButton;
-    Label1: TLabel;
-    cbUseRepaintOpt: TCheckBox;
-    bRemove: TButton;
-    Memo1: TMemo;
-    lbFPS: TLabel;
-    TimerFPS: TTimer;
-    lbDimension: TLabel;
     bBenchmark: TButton;
+    bClearAll: TButton;
+    BitmapList: TBitmap32List;
+    bRemove: TButton;
+    cbUseRepaintOpt: TCheckBox;
+    edLayerCount: TEdit;
+    Image32: TImage32;
+    Label1: TLabel;
+    lbDimension: TLabel;
+    lbFPS: TLabel;
+    Memo1: TMemo;
+    TimerFPS: TTimer;
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure bRemoveClick(Sender: TObject);
     procedure cbUseRepaintOptClick(Sender: TObject);
     procedure bClearAllClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure TimerFPSTimer(Sender: TObject);
     procedure Image32Resize(Sender: TObject);
     procedure bAddClick(Sender: TObject);
     procedure bBenchmarkClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
   public
     Velocities: TArrayOfFloatPoint;
     FramesDrawn: Integer;
@@ -144,20 +144,23 @@ begin
   // On Lazarus we don't use design-time packages because they consume time to be installed
 {$IFDEF FPC}
   Image32 := TImage32.Create(Self);
-  Image32.Parent := Self;
-  Image32.Left := 8;
-  Image32.Top := 48;
-  Image32.Width := 836;
-  Image32.Height := 592;
-  Image32.Anchors := [akLeft, akTop, akRight, akBottom];
-  Image32.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Image32.BitmapAlign := baTile;
-  Image32.Color := clWhite;
-  Image32.ParentColor := False;
-  Image32.Scale := 2;
-  Image32.ScaleMode := smScale;
-  Image32.TabOrder := 0;
-  Image32.OnResize := Image32Resize;
+  with Image32 do
+   begin
+    Parent := Self;
+    Left := 8;
+    Top := 48;
+    Width := 836;
+    Height := 592;
+    Anchors := [akLeft, akTop, akRight, akBottom];
+    Bitmap.ResamplerClassName := 'TNearestResampler';
+    BitmapAlign := baTile;
+    Color := clWhite;
+    ParentColor := False;
+    Scale := 2;
+    ScaleMode := smScale;
+    TabOrder := 0;
+    OnResize := Image32Resize;
+   end;
 
   BitmapList := TBitmap32List.Create(Self);
   Item := BitmapList.Bitmaps.Add;

@@ -52,7 +52,7 @@ uses
       Windows,
     {$ENDIF}
   {$ENDIF}
-  Classes, GR32, GR32_Containers;
+  Classes, GR32;
 
 type
   TFixedVector = TFixedPoint;
@@ -124,7 +124,7 @@ type
 implementation
 
 uses
-  GR32_Lowlevel, GR32_Blend, GR32_Transforms, GR32_Math, Math, SysUtils;
+  GR32_Lowlevel, GR32_Blend, GR32_Transforms, GR32_Math, SysUtils;
 
 type
   TTransformationAccess = class(TTransformation);

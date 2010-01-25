@@ -424,11 +424,11 @@ end;
 
 procedure DitherRect(Canvas: TCanvas; const R: TRect; C1, C2: TColor);
 var
-  B: TBitmap;
 {$IFDEF FPC}
   Brush: TBrush;
   OldBrush: TBrush;
 {$ELSE}
+  B: TBitmap;
   {$IFDEF CLX}
     Brush: TBrush;
     OldBrush: TBrush;

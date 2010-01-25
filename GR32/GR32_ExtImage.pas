@@ -120,7 +120,11 @@ var
 begin
   R := TRenderThread.Create(Rasterizer, Dst, DstRect, True);
   R.FreeOnTerminate := True;
+{$IFDEF COMPILER2010}
+  R.Start;
+{$ELSE}
   R.Resume;
+{$ENDIF}
 end;
 
 { TSyntheticImage32 }
@@ -302,7 +306,11 @@ begin
   FDest := Dst;
   FDstRect := DstRect;
   Priority := tpNormal;
+{$IFDEF COMPILER2010}
+  if not Suspended then Start;
+{$ELSE}
   if not Suspended then Resume;
+{$ENDIF}
 end;
 
 procedure TRenderThread.Execute;

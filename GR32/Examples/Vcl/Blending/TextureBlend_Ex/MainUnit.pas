@@ -25,7 +25,7 @@ unit MainUnit;
  * The Initial Developer(s) of the Original Code is:
  * Michael Hansen <dyster_tid@hotmail.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2005
+ * Portions created by the Initial Developer are Copyright (C) 2000-2010
  * the Initial Developer. All Rights Reserved.
  *
  *
@@ -45,21 +45,21 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    MasterAlphaBar: TGaugeBar;
-    CombImg: TImage32;
-    WeightmapImg: TImage32;
-    TexAImg: TImage32;
-    TexBImg: TImage32;
-    LabelMasterAlpha: TLabel;
     BlendBox: TComboBox;
+    CombImg: TImage32;
+    GenerateButton: TButton;
+    LabelBlendmode: TLabel;
+    LabelBlendSettings: TLabel;
     LabelCombinedTexture: TLabel;
-    LabelWeightmap: TLabel;
+    LabelMasterAlpha: TLabel;
     LabelTextureA: TLabel;
     LabelTextureB: TLabel;
-    LabelBlendSettings: TLabel;
-    LabelBlendmode: TLabel;
-    GenerateButton: TButton;
+    LabelWeightmap: TLabel;
     LabelWeightmapSettings: TLabel;
+    MasterAlphaBar: TGaugeBar;
+    TexAImg: TImage32;
+    TexBImg: TImage32;
+    WeightmapImg: TImage32;
     procedure FormCreate(Sender: TObject);
     procedure MasterAlphaBarChange(Sender: TObject);
   public
@@ -145,7 +145,7 @@ begin
 {$ENDIF}
 
   BlendBox.ItemIndex := 0;
-  
+
   // Load the textures (note size 256x256 is implicity expected!)
   TexAImg.Bitmap.LoadFromFile(pathMedia + 'texture_a.jpg');
   TexBImg.Bitmap.LoadFromFile(pathMedia + 'texture_b.jpg');
@@ -183,7 +183,7 @@ var
   I, J: Integer;
   W : TColor32;
   D, WImg: PColor32;
-  x,y: Single;
+  x, y: Single;
 begin
   // Setup some random factors:
   a := 0.01 + random;

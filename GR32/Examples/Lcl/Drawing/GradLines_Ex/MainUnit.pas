@@ -72,9 +72,9 @@ type
     Panel1: TPanel;
     RepaintOpt: TCheckBox;
     Memo2: TMemo;
+    procedure FormCreate(Sender: TObject);
     procedure RepaintOptClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure RadioGroup1Click(Sender: TObject);

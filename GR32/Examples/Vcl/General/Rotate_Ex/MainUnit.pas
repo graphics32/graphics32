@@ -68,7 +68,7 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -136,7 +136,7 @@ begin
 {$ENDIF}
 
   // Different platforms store resource files on different locations
-{$IFDEF Windows}
+{$IFDEF Win32}
   pathMedia := '..\..\..\Media\';
 {$ENDIF}
 
@@ -148,6 +148,8 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  // load example image
+  Assert(FileExists(pathMedia + 'delphi.jpg'));
   Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);

@@ -1,18 +1,14 @@
 program Image32_Ex;
 
-{$MODE Delphi}
-
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
-
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
+  GR32_L,
+  ImagesForLazarus,
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormImage32Example, FormImage32Example);
   Application.Run;
 end.

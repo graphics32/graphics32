@@ -132,6 +132,7 @@ type
     property Canvas: TCanvas read GetCanvas;
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
   end;
+
   { TLCLGDIMMFBackend }
   { Same as TGDIBackend but relies on memory mapped files or mapped swap space
     for the backing buffer. }
@@ -191,6 +192,7 @@ begin
   begin
     biWidth := NewWidth;
     biHeight := -NewHeight;
+    biSizeImage := NewWidth * NewHeight * 4;
   end;
 
   PrepareFileMapping(NewWidth, NewHeight);
@@ -293,8 +295,6 @@ var
   OldFont: HGDIOBJ;
 begin
   Result := TextExtent(Text);
-
-  {TODO: implement Widestring capable text method here...}
   (*
   UpdateFont;
   Result.cX := 0;

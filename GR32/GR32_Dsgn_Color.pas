@@ -134,12 +134,13 @@ procedure TColorManager.AddColor(const AName: string; AColor: TColor32);
 var
   NewEntry: PColorEntry;
 begin
+  // TODO DVT Added cast to fix String to ShortString data loss warning. Need to verify is OK
   New(NewEntry);
   if NewEntry = nil then
     raise Exception.Create('Could not allocate memory for color registration!');
   with NewEntry^ do
   begin
-    Name := AName;
+    Name := ShortString(AName);
     Color := AColor;
   end;
   Add(NewEntry);
@@ -149,17 +150,19 @@ procedure TColorManager.EnumColors(Proc: TGetStrProc);
 var
   I: Integer;
 begin
-  for I := 0 to Count - 1 do Proc(TColorEntry(Items[I]^).Name);
+  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
+  for I := 0 to Count - 1 do Proc(string(TColorEntry(Items[I]^).Name));
 end;
 
 function TColorManager.FindColor(const AName: string): TColor32;
 var
   I: Integer;
 begin
+  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   Result := clBlack32;
   for I := 0 to Count - 1 do
     with TColorEntry(Items[I]^) do
-      if Name = AName then
+      if string(Name) = AName then
       begin
         Result := Color;
         Break;
@@ -205,11 +208,12 @@ function TColorManager.GetColorName(AColor: TColor32): string;
 var
   I: Integer;
 begin
+  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   for I := 0 to Count - 1 do
     with TColorEntry(Items[I]^) do
       if Color = AColor then
       begin
-        Result := TColorEntry(Items[I]^).Name;
+        Result := string(TColorEntry(Items[I]^).Name);
         Exit;
       end;
   Result := '$' + IntToHex(AColor, 8);
@@ -247,8 +251,9 @@ procedure TColorManager.RemoveColor(const AName: string);
 var
   I: Integer;
 begin
+  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   for I := 0 to Count - 1 do
-    if CompareText(TColorEntry(Items[I]^).Name, AName) = 0 then
+    if CompareText(string(TColorEntry(Items[I]^).Name), AName) = 0 then
     begin
       Delete(I);
       Break;

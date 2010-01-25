@@ -56,9 +56,10 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 
 { Trigonometric routines }
 
-procedure SinCos(const Theta: Single; var Sin, Cos: Single); overload;
-procedure SinCos(const Theta, Radius: Single; var Sin, Cos: Single); overload;
-function Hypot(const X, Y: TFloat): TFloat;
+procedure SinCos(const Theta: Single; out Sin, Cos: Single); overload;
+procedure SinCos(const Theta, Radius: Single; out Sin, Cos: Single); overload;
+function Hypot(const X, Y: TFloat): TFloat; overload;
+function Hypot(const X, Y: Integer): Integer; overload;
 function FastSqrt(const Value: TFloat): TFloat;
 function FastSqrtBab1(const Value: TFloat): TFloat;
 function FastSqrtBab2(const Value: TFloat): TFloat;
@@ -84,13 +85,13 @@ function Sign(Value: Integer): Integer;
 
 implementation
 
-{$IFNDEF TARGET_x86}
-uses 
+uses
   Math;
-{$ENDIF}
 
+{$IFNDEF TARGET_x86}
 const
   FixedOneS: Single = 65536;
+{$ENDIF}
 
 { Fixed-point math }
 
@@ -272,7 +273,7 @@ end;
 
 { Trigonometry }
 
-procedure SinCos(const Theta: TFloat; var Sin, Cos: TFloat);
+procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
 {$IFNDEF TARGET_x86}
 var
   S, C: Extended;
@@ -289,7 +290,7 @@ asm
 {$ENDIF}
 end;
 
-procedure SinCos(const Theta, Radius : TFloat; var Sin, Cos: TFloat);
+procedure SinCos(const Theta, Radius : TFloat; out Sin, Cos: TFloat);
 {$IFNDEF TARGET_x86}
 var
   S, C: Extended;
@@ -309,20 +310,47 @@ asm
 end;
 
 function Hypot(const X, Y: TFloat): TFloat;
-{$IFNDEF TARGET_x86}
 begin
   Result := Math.Hypot(X, Y);
+(*
+// BUGGY if input arguments are not swapped!
+{$IFNDEF TARGET_x86}
 {$ELSE}
 asm
         FLD     X
         FMUL    ST,ST
         FLD     Y
         FMUL    ST,ST
-        FADDP
+        FADDP   ST,ST
+        FSQRT
+        FWAIT
+{$ENDIF}
+*)
+end;
+
+function SimpleHypot(const X, Y: TFloat): TFloat;
+{$IFNDEF TARGET_x86}
+begin
+  Result := Sqrt(Sqr(X) + Sqr(Y));
+{$ELSE}
+asm
+        FLD     X
+        FMUL    ST,ST
+        FLD     Y
+        FMUL    ST,ST
+        FADDP   ST,ST
         FSQRT
         FWAIT
 {$ENDIF}
 end;
+
+function Hypot(const X, Y: Integer): Integer;
+begin
+ if Abs(X) > Abs(Y)
+  then Result := Round(SimpleHypot(X, Y))
+  else Result := Round(SimpleHypot(Y, X));
+end;
+
 
 function FastSqrt(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation

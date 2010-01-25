@@ -3,7 +3,7 @@ program LineStippling_Ex;
 uses
   Interfaces,
   Forms, SysUtils,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
+  MainUnit in 'MainUnit.pas' {Form1};
 
 {$IFDEF Windows}
 {.$R *.RES}

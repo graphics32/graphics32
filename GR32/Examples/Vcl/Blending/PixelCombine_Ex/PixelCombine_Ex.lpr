@@ -1,15 +1,11 @@
 program PixelCombine_Ex;
 
-{$MODE Delphi}
-
 uses
   Interfaces,
-  Forms, ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
-
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
+  Forms,
+  ImagesForLazarus,
+  GR32_L,
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
   Application.Initialize;

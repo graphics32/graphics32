@@ -37,16 +37,15 @@ interface
 {$MODE Delphi}
 
 uses
-  LCLIntf, LResources,
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, GR32,
-  GR32_Image;
+  LCLIntf, LResources, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  StdCtrls, GR32, GR32_Image;
 
 type
   TForm1 = class(TForm)
     Image: TImage32;
     ScrollBar1: TScrollBar;
-    procedure ScrollBarChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure ScrollBarChange(Sender: TObject);
   private
     { Private declarations }
   public
@@ -91,7 +90,7 @@ var
 begin
   Theta := 0;
   Image.Bitmap.MoveToF(X, Y);
-  while Theta < 15 * 3.1415926535 do
+  while Theta < 15 * Pi do
   begin
     Image.Bitmap.LineToFSP(X + Cos(Theta) * Theta, Y + Sin(Theta) * Theta);
     Theta := Theta + 0.2;

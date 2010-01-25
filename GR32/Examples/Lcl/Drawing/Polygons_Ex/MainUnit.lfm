@@ -13,9 +13,11 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.29'
   object Panel1: TPanel
     Left = 520
     Height = 533
+    Top = 0
     Width = 145
     Align = alRight
     BevelOuter = bvNone
@@ -23,6 +25,7 @@ object Form1: TForm1
     ClientWidth = 145
     Font.Height = -11
     Font.Name = 'Tahoma'
+    ParentFont = False
     TabOrder = 0
     object Label1: TLabel
       Left = 16
@@ -58,9 +61,9 @@ object Form1: TForm1
     end
     object Antialiase: TCheckBox
       Left = 16
-      Height = 19
+      Height = 17
       Top = 40
-      Width = 77
+      Width = 72
       Caption = 'Antialiased'
       OnClick = ParamsChanged
       TabOrder = 0
@@ -71,6 +74,7 @@ object Form1: TForm1
       Top = 226
       Width = 121
       Max = 255
+      PageSize = 0
       Position = 255
       TabOrder = 1
       OnChange = ParamsChanged
@@ -81,6 +85,7 @@ object Form1: TForm1
       Top = 266
       Width = 121
       Max = 255
+      PageSize = 0
       Position = 127
       TabOrder = 2
       OnChange = ParamsChanged
@@ -117,15 +122,16 @@ object Form1: TForm1
       Width = 121
       Max = 200
       Min = 1
+      PageSize = 0
       Position = 10
       TabOrder = 4
       OnChange = ThicknessChanged
     end
     object ThickOutline: TCheckBox
       Left = 16
-      Height = 19
+      Height = 17
       Top = 410
-      Width = 65
+      Width = 58
       Caption = 'Enabled'
       OnClick = ThicknessChanged
       TabOrder = 5
@@ -171,6 +177,7 @@ object Form1: TForm1
         'LMB - Add vertex'
         'RMB - Clear'
       )
+      ParentFont = False
       ReadOnly = True
       TabOrder = 7
       TabStop = False
@@ -189,15 +196,16 @@ object Form1: TForm1
         'antialiasing mode of the '
         'outline.'
       )
+      ParentFont = False
       ReadOnly = True
       TabOrder = 8
       TabStop = False
     end
     object Pattern: TCheckBox
       Left = 16
-      Height = 19
+      Height = 17
       Top = 360
-      Width = 86
+      Width = 83
       Caption = 'Pattern filling'
       OnClick = ParamsChanged
       TabOrder = 9

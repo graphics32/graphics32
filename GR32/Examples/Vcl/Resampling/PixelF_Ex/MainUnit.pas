@@ -147,6 +147,7 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  // load example image
   Image32.Bitmap.LoadFromFile(pathMedia + 'stones.jpg');
 
   with Image32 do

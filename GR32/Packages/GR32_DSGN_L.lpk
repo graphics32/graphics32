@@ -1,36 +1,30 @@
 <?xml version="1.0"?>
 <CONFIG>
-  <Package Version="2">
+  <Package Version="3">
     <Name Value="GR32_DSGN_L"/>
     <CompilerOptions>
-      <Version Value="5"/>
+      <Version Value="8"/>
       <SearchPaths>
         <IncludeFiles Value="../"/>
-        <OtherUnitFiles Value="../"/>
+        <OtherUnitFiles Value="../;../Packages/"/>
         <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
-        <SrcPath Value="../"/>
       </SearchPaths>
       <Parsing>
         <SyntaxOptions>
-          <D2Extensions Value="False"/>
           <CStyleOperator Value="False"/>
-          <AllowLabel Value="False"/>
           <CPPInline Value="False"/>
-          <DelphiCompat Value="True"/>
         </SyntaxOptions>
       </Parsing>
-      <CodeGeneration>
-        <Generate Value="Faster"/>
-      </CodeGeneration>
       <Linking>
         <Debugging>
-          <UseLineInfoUnit Value="False"/>
+          <GenerateDebugInfo Value="True"/>
         </Debugging>
       </Linking>
       <Other>
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
+    <Version Major="1" Minor="9"/>
     <Files Count="6">
       <Item1>
         <Filename Value="../GR32_Reg.pas"/>
@@ -58,21 +52,18 @@
         <UnitName Value="GR32_Dsgn_Bitmap"/>
       </Item6>
     </Files>
-    <Type Value="DesignTime"/>
-    <RequiredPkgs Count="4">
+    <Type Value="RunAndDesignTime"/>
+    <RequiredPkgs Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
-        <MinVersion Major="1" Valid="True"/>
+        <PackageName Value="GR32_L"/>
       </Item1>
       <Item2>
-        <PackageName Value="imagesforlazarus"/>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
       </Item2>
       <Item3>
         <PackageName Value="IDEIntf"/>
       </Item3>
-      <Item4>
-        <PackageName Value="GR32_L"/>
-      </Item4>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)/"/>

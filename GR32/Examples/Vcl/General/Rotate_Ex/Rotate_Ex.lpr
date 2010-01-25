@@ -1,15 +1,10 @@
 program Rotate_Ex;
 
-{$MODE Delphi}
-
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
-
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
+  ImagesForLazarus,
+  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
 begin
   Application.Initialize;

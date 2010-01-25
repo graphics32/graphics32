@@ -42,7 +42,7 @@ interface
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, GR32,
   GR32_Image, GR32_Transforms, GR32_VectorMaps, GR32_Layers, StdCtrls,
-  ComCtrls, Math, GR32_Blend, GR32_RangeBars, ExtDlgs, jpeg, GR32_Rasterizers,
+  ComCtrls, Math, GR32_Blend, GR32_RangeBars, ExtDlgs, GR32_Rasterizers,
   GR32_Resamplers, GR32_Math, Menus, ToolWin, BrushAuxiliaries;
 
 const
@@ -55,63 +55,63 @@ type
 
   { TMainForm }
   TMainForm = class(TForm)
-    ParamBar: TGaugeBar;
-    RateBar: TGaugeBar;
-    FeatherBar: TGaugeBar;
-    PressureBar: TGaugeBar;
-    PinchBar: TGaugeBar;
-    SizeBar: TGaugeBar;
+    Bevel2: TBevel;
     BrushMeshPreview: TPaintBox32;
-    ScaleBar: TGaugeBar;
-    DstImg: TImgView32;
-    OpenPictureDialog: TOpenPictureDialog;
-    UpdateTimer: TTimer;
-    Panel1: TPanel;
-    OpenMeshDialog: TOpenDialog;
-    SaveMeshDialog: TSaveDialog;
-    MainPanel: TPanel;
-    GeneralPanel: TPanel;
-    Label4: TLabel;
     BrushPanel: TPanel;
-    Label6: TLabel;
-    ToolPanel: TPanel;
-    Label7: TLabel;
-    ToolGroup: TRadioGroup;
-    ParamLabel: TLabel;
-    RateLabel: TLabel;
+    DstImg: TImgView32;
+    FeatherBar: TGaugeBar;
     FeatherLabel: TLabel;
+    File1: TMenuItem;
+    GeneralPanel: TPanel;
+    Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
-    Label1: TLabel;
-    Bevel2: TBevel;
-    Label9: TLabel;
+    Label4: TLabel;
     Label5: TLabel;
-    SavePictureDialog: TSavePictureDialog;
+    Label6: TLabel;
+    Label7: TLabel;
+    Label9: TLabel;
+    m2x2: TMenuItem;
+    m3x3: TMenuItem;
+    m5x5: TMenuItem;
+    m7x7: TMenuItem;
     MainMenu: TMainMenu;
-    File1: TMenuItem;
-    Sampling1: TMenuItem;
-    mResetMesh: TMenuItem;
-    mSaveMesh: TMenuItem;
-    mOpenMesh: TMenuItem;
-    mSupersampleNow: TMenuItem;
-    N1: TMenuItem;
-    mSamplingKernel: TMenuItem;
+    MainPanel: TPanel;
+    mBilinearWarp: TMenuItem;
+    mExit: TMenuItem;
     mKernelMode: TMenuItem;
+    mKmDefault: TMenuItem;
     mKmTableLinear: TMenuItem;
     mKmTableNearest: TMenuItem;
-    mKmDefault: TMenuItem;
-    mSamplingGrid: TMenuItem;
-    m7x7: TMenuItem;
-    m5x5: TMenuItem;
-    m3x3: TMenuItem;
-    m2x2: TMenuItem;
-    N2: TMenuItem;
-    mBilinearWarp: TMenuItem;
-    mSaveImage: TMenuItem;
     mOpenImage: TMenuItem;
+    mOpenMesh: TMenuItem;
+    mResetMesh: TMenuItem;
+    mSamplingGrid: TMenuItem;
+    mSamplingKernel: TMenuItem;
+    mSaveImage: TMenuItem;
+    mSaveMesh: TMenuItem;
+    mSupersampleNow: TMenuItem;
+    N1: TMenuItem;
+    N2: TMenuItem;
     N3: TMenuItem;
     N4: TMenuItem;
-    mExit: TMenuItem;
+    OpenMeshDialog: TOpenDialog;
+    OpenPictureDialog: TOpenPictureDialog;
+    Panel1: TPanel;
+    ParamBar: TGaugeBar;
+    ParamLabel: TLabel;
+    PinchBar: TGaugeBar;
+    PressureBar: TGaugeBar;
+    RateBar: TGaugeBar;
+    RateLabel: TLabel;
+    Sampling1: TMenuItem;
+    SaveMeshDialog: TSaveDialog;
+    SavePictureDialog: TSavePictureDialog;
+    ScaleBar: TGaugeBar;
+    SizeBar: TGaugeBar;
+    ToolGroup: TRadioGroup;
+    ToolPanel: TPanel;
+    UpdateTimer: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure DstImgMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -177,16 +177,19 @@ const
   RESAMPLERS: array [Boolean] of TCustomResamplerClass =(TNearestResampler,
     TLinearResampler);
 
-
   // Pick some attractive kernels for the antialiasing methods
   KERNELS: array [0..6] of TCustomKernelClass = (TBoxKernel, TLinearKernel,
     TSplineKernel, TMitchellKernel, TSinshKernel, TGaussianKernel, TCubicKernel);
+
 var
   KernelIndex : 0..6 = 6; //TCubicKernel
 
 implementation
 
 uses
+  {$IFNDEF FPC}
+  JPEG,
+  {$ENDIF}
   GR32_LowLevel;
 
 {$R *.dfm}
@@ -234,6 +237,7 @@ var
   Item: TMenuItem;
 begin
   Src := TBitmap32.Create;
+  Assert(FileExists('..\..\..\Media\monalisa.jpg'));
   Src.LoadFromFile('..\..\..\Media\monalisa.jpg');
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;

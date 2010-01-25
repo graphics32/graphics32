@@ -1,8 +1,10 @@
 program ByteMaps_Ex;
 
 uses
+  Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, ImagesForLazarus;
+  ImagesForLazarus,
+  MainUnit in 'MainUnit.pas' {Form1};
 
 {$IFDEF Windows}
 {.$R *.RES}

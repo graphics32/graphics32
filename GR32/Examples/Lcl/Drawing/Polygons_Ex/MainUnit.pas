@@ -89,56 +89,6 @@ uses
 {$ENDIF}
   LazJPG;
 
-procedure TForm1.Draw;
-var
-  MyFiller: TBitmapPolygonFiller;
-begin
-  with Image do
-  begin
-    Bitmap.BeginUpdate;
-    Bitmap.Clear(clWhite32);
-    Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
-
-    Polygon.Antialiased := Antialiase.Checked;
-    Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
-
-    if UseOutlinePoly then
-    begin
-      Outline.Antialiased := Antialiase.Checked;
-      Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
-    end;
-
-    if FillMode.ItemIndex = 0 then
-      Polygon.FillMode := pfAlternate
-    else
-      Polygon.FillMode := pfWinding;
-
-    if Pattern.Checked then
-    begin
-      BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
-      BitmapList.Bitmap[1].DrawMode := dmBlend;
-      MyFiller := TBitmapPolygonFiller.Create;
-      try
-        MyFiller.Pattern := BitmapList.Bitmap[1];
-        Polygon.DrawFill(Bitmap, MyFiller);
-      finally
-        MyFiller.Free;
-      end;
-    end
-    else
-      Polygon.DrawFill(Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
-
-    if UseOutlinePoly then
-      Outline.DrawFill(Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
-    else
-      Polygon.DrawEdge(Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
-
-    Bitmap.EndUpdate;
-    Bitmap.Changed;
-    Refresh; // force repaint
-  end;
-end;
-
 procedure TForm1.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
@@ -197,6 +147,9 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  Assert(FileExists(pathMedia + 'delphi.jpg'));
+  Assert(FileExists(pathMedia + 'texture_b.jpg'));
+
   BitmapList.Bitmap[0].LoadFromFile(pathMedia + 'delphi.jpg');
   BitmapList.Bitmap[1].LoadFromFile(pathMedia + 'texture_b.jpg');
   Image.SetupBitmap;
@@ -207,6 +160,56 @@ procedure TForm1.FormDestroy(Sender: TObject);
 begin
   Outline.Free;
   Polygon.Free;
+end;
+
+procedure TForm1.Draw;
+var
+  MyFiller: TBitmapPolygonFiller;
+begin
+  with Image do
+  begin
+    Bitmap.BeginUpdate;
+    Bitmap.Clear(clWhite32);
+    Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
+
+    Polygon.Antialiased := Antialiase.Checked;
+    Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+
+    if UseOutlinePoly then
+    begin
+      Outline.Antialiased := Antialiase.Checked;
+      Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+    end;
+
+    if FillMode.ItemIndex = 0 then
+      Polygon.FillMode := pfAlternate
+    else
+      Polygon.FillMode := pfWinding;
+
+    if Pattern.Checked then
+    begin
+      BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
+      BitmapList.Bitmap[1].DrawMode := dmBlend;
+      MyFiller := TBitmapPolygonFiller.Create;
+      try
+        MyFiller.Pattern := BitmapList.Bitmap[1];
+        Polygon.DrawFill(Bitmap, MyFiller);
+      finally
+        MyFiller.Free;
+      end;
+    end
+    else
+      Polygon.DrawFill(Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
+
+    if UseOutlinePoly then
+      Outline.DrawFill(Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
+    else
+      Polygon.DrawEdge(Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
+
+    Bitmap.EndUpdate;
+    Bitmap.Changed;
+    Refresh; // force repaint
+  end;
 end;
 
 procedure TForm1.ImageMouseDown(Sender: TObject; Button: TMouseButton;

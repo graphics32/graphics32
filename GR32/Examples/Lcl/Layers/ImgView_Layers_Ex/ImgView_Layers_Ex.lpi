@@ -2,12 +2,13 @@
 <CONFIG>
   <ProjectOptions>
     <PathDelim Value="\"/>
-    <Version Value="6"/>
+    <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
-      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -38,35 +39,30 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="11">
+    <Units Count="12">
       <Unit0>
         <Filename Value="ImgView_Layers_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
         <CursorPos X="2" Y="4"/>
-        <TopLine Value="3"/>
-        <EditorIndex Value="0"/>
+        <TopLine Value="1"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
         <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
-        <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="8" Y="162"/>
         <TopLine Value="148"/>
-        <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="NewImageUnit.pas"/>
+        <IsPartOfProject Value="True"/>
         <ComponentName Value="NewImageForm"/>
         <HasResources Value="True"/>
-        <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="NewImageUnit.lrs"/>
         <UnitName Value="NewImageUnit"/>
         <CursorPos X="1" Y="59"/>
         <TopLine Value="26"/>
@@ -74,16 +70,14 @@
       </Unit2>
       <Unit3>
         <Filename Value="RGBALoaderUnit.pas"/>
+        <IsPartOfProject Value="True"/>
         <ComponentName Value="RGBALoaderForm"/>
         <HasResources Value="True"/>
-        <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="RGBALoaderUnit.lrs"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="RGBALoaderUnit"/>
-        <CursorPos X="12" Y="33"/>
-        <TopLine Value="23"/>
-        <EditorIndex Value="2"/>
+        <CursorPos X="55" Y="58"/>
+        <TopLine Value="40"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
@@ -134,18 +128,22 @@
         <TopLine Value="54"/>
         <UsageCount Value="10"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="..\..\..\..\GR32.pas"/>
+        <UnitName Value="GR32"/>
+        <CursorPos X="51" Y="2462"/>
+        <TopLine Value="2451"/>
+        <UsageCount Value="10"/>
+      </Unit11>
     </Units>
     <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <PathDelim Value="\"/>
     <SearchPaths>
       <ObjectPath Value="..\..\..\"/>
     </SearchPaths>
-    <CodeGeneration>
-      <Generate Value="Faster"/>
-    </CodeGeneration>
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="True"/>

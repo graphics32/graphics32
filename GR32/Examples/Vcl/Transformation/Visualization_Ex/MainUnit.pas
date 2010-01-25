@@ -50,15 +50,15 @@ type
     FPSTimer: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure MovementTimerTimer(Sender: TObject);
     procedure FormResize(Sender: TObject);
-    procedure RenderTimerTimer(Sender: TObject);
-    procedure ColorTimerTimer(Sender: TObject);
-    procedure FPSTimerTimer(Sender: TObject);
     procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure MovementTimerTimer(Sender: TObject);
+    procedure RenderTimerTimer(Sender: TObject);
+    procedure ColorTimerTimer(Sender: TObject);
+    procedure FPSTimerTimer(Sender: TObject);
   private
     { Private declarations }
   public
@@ -250,6 +250,8 @@ begin
       end;
 end;
 
+{ TMainForm }
+
 procedure TMainForm.FormCreate(Sender: TObject);
 var
   B: Boolean;
@@ -269,6 +271,100 @@ begin
   Hue := Random;
   Sat := Random;
   Lns := Random;
+end;
+
+procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
+var
+  B: Boolean;
+begin
+  ToggleTimers(False);
+  IsClosing := True;
+  for B := False to True do Buffers[B].Free;
+  VectorMap.Free;
+end;
+
+procedure TMainForm.FormResize(Sender: TObject);
+const
+  Line1 = 'Graphics32';
+  Line2 = '----visualization example----';
+
+var
+  w, h, I: Integer;
+  B: Boolean;
+begin
+  if IsClosing then Exit;
+
+  ToggleTimers(False);
+
+  w := ClientWidth;
+  h := ClientHeight;
+
+  NX := w - 1;
+  NY := h - 1;
+  CX := NX div 2;
+  CY := NY div 2;
+  FixedMouseX := 0;
+  FixedMouseY := 0;
+  
+  for B := False to True do with Buffers[B] do
+  begin
+    SetSize(w, h);
+    Font.Size := 30;
+    RenderText(CX - TextWidth(Line1) div 2, CY - 120, Line1, 4, $DEADBEEF);
+    Font.Size := 20;
+    RenderText(CX - TextWidth(Line2) div 2, CY + 60, Line2, 4, $DEADF00D);
+  end;
+  VectorMap.SetSize(w, h);
+
+  PathRadius := Min(Width, Height) / 2;
+  PathRadius := Max(1, PathRadius - PathRadius / 2);
+  for I := 0 to High(LastPoint) do
+  begin
+    LastPoint[I][0].X := CX;
+    LastPoint[I][0].Y := CY;
+    LastPoint[I][1].X := CX;
+    LastPoint[I][1].Y := CY;
+  end;
+
+  ToggleTimers(True);
+end;
+
+procedure TMainForm.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  FixedMouseX := Fixed((X - Width div 2) / 10);
+  FixedMouseY := Fixed((Y - Height div 2) / 10);
+  Buffers[CurrentBuffer].FrameRectS(X - 10, Y - 10, X + 10, Y + 10,
+    HSLtoRGB(Hue + X / Clientwidth, Y / ClientHeight, 0.5));
+end;
+
+procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+var
+  C: Char;
+  I: Integer;
+begin
+{$IFNDEF FPC}
+  C := Lowercase(Char(Key))[1];
+{$ELSE}
+  C := Lowercase(Char(Key));
+{$ENDIF}
+  if TryStrToInt(C, I) and InRange(I, 1, 9) then
+  begin
+    if ssShift in Shift then
+      Feedback := I / 10
+    else
+    begin
+      MovementIndex := I;
+      RenderMovement;
+    end;
+  end
+  else
+  case C of
+    'f': vShowFPS := not vShowFPS;
+    'h': vShowHelp := not vShowHelp;
+    'r': MovementTimer.Enabled := not MovementTimer.Enabled;
+  end;
 end;
 
 procedure TMainForm.RenderHelpScreen;
@@ -309,16 +405,6 @@ begin
     Inc(H, TextHeight(Line4));
     RenderText(L + W, T + H, Line5, 3, clBlack32);
   end;
-end;
-
-procedure TMainForm.FormClose(Sender: TObject; var Action: TCloseAction);
-var
-  B: Boolean;
-begin
-  ToggleTimers(False);
-  IsClosing := True;
-  for B := False to True do Buffers[B].Free;
-  VectorMap.Free;
 end;
 
 procedure TMainForm.BufferFeedBack(Feedback, BlendContrast: Byte;
@@ -481,52 +567,6 @@ begin
   vShowHelp := False;
 end;
 
-procedure TMainForm.FormResize(Sender: TObject);
-const
-  Line1 = 'Graphics32';
-  Line2 = '----visualization example----';
-
-var
-  w, h, I: Integer;
-  B: Boolean;
-begin
-  if IsClosing then Exit;
-
-  ToggleTimers(False);
-
-  w := ClientWidth;
-  h := ClientHeight;
-
-  NX := w - 1;
-  NY := h - 1;
-  CX := NX div 2;
-  CY := NY div 2;
-  FixedMouseX := 0;
-  FixedMouseY := 0;
-  
-  for B := False to True do with Buffers[B] do
-  begin
-    SetSize(w, h);
-    Font.Size := 30;
-    RenderText(CX - TextWidth(Line1) div 2, CY - 120, Line1, 4, $DEADBEEF);
-    Font.Size := 20;
-    RenderText(CX - TextWidth(Line2) div 2, CY + 60, Line2, 4, $DEADF00D);
-  end;
-  VectorMap.SetSize(w, h);
-
-  PathRadius := Min(Width, Height) / 2;
-  PathRadius := Max(1, PathRadius - PathRadius / 2);
-  for I := 0 to High(LastPoint) do
-  begin
-    LastPoint[I][0].X := CX;
-    LastPoint[I][0].Y := CY;
-    LastPoint[I][1].X := CX;
-    LastPoint[I][1].Y := CY;
-  end;
-
-  ToggleTimers(True);
-end;
-
 procedure TMainForm.RenderTimerTimer(Sender: TObject);
 const
   PI2 = 2 * PI;
@@ -653,44 +693,6 @@ procedure TMainForm.FPSTimerTimer(Sender: TObject);
 begin
   FPS := FPSMeasure;
   FPSMeasure := 0;
-end;
-
-procedure TMainForm.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
-  Y: Integer);
-begin
-  FixedMouseX := Fixed((X - Width div 2) / 10);
-  FixedMouseY := Fixed((Y - Height div 2) / 10);
-  Buffers[CurrentBuffer].FrameRectS(X - 10, Y - 10, X + 10, Y + 10,
-    HSLtoRGB(Hue + X / Clientwidth, Y / ClientHeight, 0.5));
-end;
-
-procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-var
-  C: Char;
-  I: Integer;
-begin
-{$IFNDEF FPC}
-  C := Lowercase(Char(Key))[1];
-{$ELSE}
-  C := Lowercase(Char(Key));
-{$ENDIF}
-  if TryStrToInt(C, I) and InRange(I, 1, 9) then
-  begin
-    if ssShift in Shift then
-      Feedback := I / 10
-    else
-    begin
-      MovementIndex := I;
-      RenderMovement;
-    end;
-  end
-  else
-  case C of
-    'f': vShowFPS := not vShowFPS;
-    'h': vShowHelp := not vShowHelp;
-    'r': MovementTimer.Enabled := not MovementTimer.Enabled;
-  end;
 end;
 
 procedure TMainForm.ToggleTimers(Enabled: Boolean);

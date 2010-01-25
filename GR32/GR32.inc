@@ -309,6 +309,14 @@
   {$ENDIF}
 {$ENDIF}
 
+// enable support for MMX/SSE/SSE2 assembler code in the inline assember
+{$IFDEF COMPILER6}
+  {$DEFINE ENHANCED_INLINE_ASSEMBLER}
+{$ENDIF}
+{$IFDEF COMPILER6}
+  {$DEFINE ENHANCED_INLINE_ASSEMBLER}
+{$ENDIF}
+
 {$IFNDEF FPC}
   {$DEFINE XPTHEMES} // enable support for windows xp themes
 {$ENDIF}

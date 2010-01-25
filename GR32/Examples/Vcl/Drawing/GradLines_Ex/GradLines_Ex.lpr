@@ -7,10 +7,6 @@ uses
   Forms,
   MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
-
 begin
   Application.Initialize;
   Application.CreateForm(TFormGradientLines, FormGradientLines);

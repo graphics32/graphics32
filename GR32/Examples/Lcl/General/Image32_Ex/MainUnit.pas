@@ -72,39 +72,6 @@ uses
 {$ENDIF}
   LazJPG;
 
-procedure TForm1.rgBitmapAlignClick(Sender: TObject);
-const
-  BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
-begin
-  Image.BitmapAlign := BA_CONSTS[rgBitmapAlign.ItemIndex];
-end;
-
-procedure TForm1.sbScaleChange(Sender: TObject);
-begin
-  sbScale.Update;
-  Image.Scale := sbScale.Position / 100;
-end;
-
-procedure TForm1.rgScaleModeClick(Sender: TObject);
-const
-  SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
-var
-  ScaleEnabled: Boolean;
-begin
-  Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
-  ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
-  sbScale.Enabled := ScaleEnabled;
-  StaticText1.Enabled := ScaleEnabled;
-end;
-
-procedure TForm1.rgKernelClick(Sender: TObject);
-const
-  K_CONSTS: array [0..4] of TCustomKernelClass =
-    (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
-begin
-  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
-end;
-
 procedure TForm1.FormCreate(Sender: TObject);
 {$IFDEF Darwin}
 var
@@ -172,6 +139,39 @@ begin
     Position := 100;
     OnChange := sbScaleChange;
   end;
+end;
+
+procedure TForm1.rgBitmapAlignClick(Sender: TObject);
+const
+  BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
+begin
+  Image.BitmapAlign := BA_CONSTS[rgBitmapAlign.ItemIndex];
+end;
+
+procedure TForm1.sbScaleChange(Sender: TObject);
+begin
+  sbScale.Update;
+  Image.Scale := sbScale.Position / 100;
+end;
+
+procedure TForm1.rgScaleModeClick(Sender: TObject);
+const
+  SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
+var
+  ScaleEnabled: Boolean;
+begin
+  Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
+  ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
+  sbScale.Enabled := ScaleEnabled;
+  StaticText1.Enabled := ScaleEnabled;
+end;
+
+procedure TForm1.rgKernelClick(Sender: TObject);
+const
+  K_CONSTS: array [0..4] of TCustomKernelClass =
+    (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
+begin
+  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
 end;
 
 initialization

@@ -34,13 +34,7 @@ unit MainUnit;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE Windows}
-{$ENDIF}
+{$I GR32.INC}
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
@@ -48,19 +42,18 @@ uses
   GR32_Image;
 
 type
-  TForm1 = class(TForm)
+  { TFormLineStippling }
+  TFormLineStippling = class(TForm)
     Image: TImage32;
-    ScrollBar1: TScrollBar;
-    procedure ScrollBarChange(Sender: TObject);
+    ScrollBar: TScrollBar;
     procedure FormCreate(Sender: TObject);
-  private
-    { Private declarations }
+    procedure ScrollBarChange(Sender: TObject);
   public
     procedure Spiral(X, Y: Integer);
   end;
 
 var
-  Form1: TForm1;
+  FormLineStippling: TFormLineStippling;
 
 implementation
 
@@ -68,11 +61,17 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-procedure TForm1.ScrollBarChange(Sender: TObject);
+procedure TFormLineStippling.FormCreate(Sender: TObject);
+begin
+  Image.SetupBitmap;
+  ScrollBarChange(Sender);
+end;
+
+procedure TFormLineStippling.ScrollBarChange(Sender: TObject);
 var
   Step: Single;
 begin
-  Step := ScrollBar1.Position * 0.01;
+  Step := ScrollBar.Position * 0.01;
 
   with Image.Bitmap do
   begin
@@ -95,7 +94,7 @@ begin
   Image.Repaint;
 end;
 
-procedure TForm1.Spiral(X, Y: Integer);
+procedure TFormLineStippling.Spiral(X, Y: Integer);
 var
   Theta: Single;
 begin
@@ -106,26 +105,6 @@ begin
     Image.Bitmap.LineToFSP(X + Cos(Theta) * Theta, Y + Sin(Theta) * Theta);
     Theta := Theta + 0.2;
   end;
-end;
-
-procedure TForm1.FormCreate(Sender: TObject);
-begin
-{$IFDEF FPC}
-  Image := TImage32.Create(Self);
-  Image.Parent := Self;
-  Image.Left := 8;
-  Image.Top := 8;
-  Image.Width := 200;
-  Image.Height := 200;
-  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Image.BitmapAlign := baTopLeft;
-  Image.Scale := 1;
-  Image.ScaleMode := smNormal;
-  Image.TabOrder := 0;
-{$ENDIF}
-
-  Image.SetupBitmap;
-  ScrollBarChange(Sender);
 end;
 
 {$IFDEF FPC}

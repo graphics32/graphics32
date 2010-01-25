@@ -1,30 +1,28 @@
-object Form1: TForm1
+object FormLineStippling: TFormLineStippling
   Left = 262
   Height = 215
   Top = 145
   Width = 249
-  ActiveControl = ScrollBar1
+  ActiveControl = ScrollBar
   Caption = 'Line Stippling Example'
   ClientHeight = 215
   ClientWidth = 249
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  LCLVersion = '0.9.27'
+  LCLVersion = '0.9.29'
   object Image: TImage32
     Left = 8
     Height = 200
     Top = 8
     Width = 200
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baTopLeft
     Scale = 1
     ScaleMode = smNormal
     TabOrder = 1
   end
-  object ScrollBar1: TScrollBar
+  object ScrollBar: TScrollBar
     Left = 224
     Height = 201
     Top = 8

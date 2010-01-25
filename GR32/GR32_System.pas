@@ -44,6 +44,9 @@ uses
   {$I GR32_Uses.inc}, SysUtils;
 
 type
+
+  { TPerfTimer }
+
   TPerfTimer = class
   private
 {$IFDEF UNIX}
@@ -156,7 +159,7 @@ implementation
 
 {$IFNDEF CLX}
 uses
-  Messages, Forms, Classes, TypInfo;
+  Forms, Classes, TypInfo;
 {$ENDIF}
 
 var
@@ -342,7 +345,11 @@ function CPU_Signature: Integer;
 asm
         PUSH    EBX
         MOV     EAX,1
+        {$IFDEF FPC}
+        CPUID
+        {$ELSE}
         DW      $A20F   // CPUID
+        {$ENDIF}
         POP     EBX
 end;
 
@@ -350,7 +357,11 @@ function CPU_Features: Integer;
 asm
         PUSH    EBX
         MOV     EAX,1
+        {$IFDEF FPC}
+        CPUID
+        {$ELSE}
         DW      $A20F   // CPUID
+        {$ENDIF}
         POP     EBX
         MOV     EAX,EDX
 end;
@@ -360,7 +371,11 @@ asm
         PUSH    EBX
         MOV     @Result, True
         MOV     EAX, $80000000
+        {$IFDEF FPC}
+        CPUID
+        {$ELSE}
         DW      $A20F   // CPUID
+        {$ENDIF}
         CMP     EAX, $80000000
         JBE     @NOEXTENSION
         JMP     @EXIT
@@ -374,7 +389,11 @@ function CPU_ExtFeatures: Integer;
 asm
         PUSH    EBX
         MOV     EAX, $80000001
+        {$IFDEF FPC}
+        CPUID
+        {$ELSE}
         DW      $A20F   // CPUID
+        {$ENDIF}
         POP     EBX
         MOV     EAX,EDX
 end;
@@ -382,14 +401,15 @@ end;
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 // Must be implemented for each target CPU on which specific functions rely
 begin
-
   Result := False;
   if not CPUID_Available then Exit;                   // no CPUID available
   if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
 
   case InstructionSet of
     ci3DNow, ci3DNowExt:
+      {$IFNDEF FPC}
       if not CPU_ExtensionsAvailable or (CPU_ExtFeatures and CPUISChecks[InstructionSet] = 0) then
+      {$ENDIF}
         Exit;
     ciEMMX:
       begin
@@ -402,7 +422,7 @@ begin
   else
     if CPU_Features and CPUISChecks[InstructionSet] = 0 then
       Exit; // return -> instruction set not supported
-  end;
+    end;
 
   Result := True;
 end;
@@ -411,7 +431,7 @@ end;
 
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 begin
-  Result := True;
+  Result := False;
 end;
 
 {$ENDIF}

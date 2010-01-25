@@ -5,11 +5,8 @@ program PixelF_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm}, GR32_L, JPEGForLazarus;
-
-{$IFDEF Windows}
-{$R *.res}
-{$ENDIF}
+  ImagesForLazarus,
+  MainUnit in 'MainUnit.pas' {MainForm};
 
 begin
   Application.Initialize;

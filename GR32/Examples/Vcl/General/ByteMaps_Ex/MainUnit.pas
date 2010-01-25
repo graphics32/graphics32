@@ -34,7 +34,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
@@ -208,7 +208,7 @@ begin
     begin
       // just some noise
       DataSet[i, j] := Clamp(0.5 +
-        0.5 * Sin(i + Random(10)) / 100 +
+        0.5 * Sin(i + Random(10)) * 0.01 +
         0.5 * Cos(j / 11) +
         0.2 * Sin((i + j) / 3));
     end;
@@ -247,7 +247,7 @@ procedure TForm1.ScaleChange(Sender: TObject);
 var
   NewScale: Single;
 begin
-  NewScale := Power(10, ScaleBar.Position / 100);
+  NewScale := Power(10, ScaleBar.Position * 0.01);
   ScaleBar.Repaint; // update the scale bar before the image is repainted
   Image.Scale := NewScale;
 end;

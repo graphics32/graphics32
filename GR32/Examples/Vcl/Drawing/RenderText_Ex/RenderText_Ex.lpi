@@ -9,6 +9,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -27,13 +28,15 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="15">
       <Unit0>
         <Filename Value="RenderText_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="19" Y="14"/>
+        <CursorPos X="27" Y="11"/>
         <TopLine Value="1"/>
-        <UsageCount Value="21"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
@@ -43,9 +46,11 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="137"/>
-        <TopLine Value="112"/>
-        <UsageCount Value="21"/>
+        <CursorPos X="36" Y="84"/>
+        <TopLine Value="73"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
@@ -69,8 +74,90 @@
         <TopLine Value="1050"/>
         <UsageCount Value="10"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="..\..\..\..\GR32_Layers.pas"/>
+        <UnitName Value="GR32_Layers"/>
+        <CursorPos X="12" Y="30"/>
+        <TopLine Value="21"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\controls.pp"/>
+        <UnitName Value="Controls"/>
+        <CursorPos X="3" Y="135"/>
+        <TopLine Value="115"/>
+        <UsageCount Value="10"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\..\..\..\..\..\Christian Budde\Projects\VSTPack\Source\ASIO\DAV_Asio.pas"/>
+        <UnitName Value="DAV_Asio"/>
+        <CursorPos X="44" Y="43"/>
+        <TopLine Value="16"/>
+        <UsageCount Value="10"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\..\..\..\..\..\Christian Budde\Projects\VSTPack\Source\DAV_Common.pas"/>
+        <UnitName Value="DAV_Common"/>
+        <CursorPos X="11" Y="39"/>
+        <TopLine Value="9"/>
+        <UsageCount Value="10"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\lclintf.pas"/>
+        <UnitName Value="LCLIntf"/>
+        <CursorPos X="38" Y="47"/>
+        <TopLine Value="18"/>
+        <UsageCount Value="10"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\lcltype.pp"/>
+        <UnitName Value="LCLType"/>
+        <CursorPos X="13" Y="37"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="..\..\..\..\..\..\..\Christian Budde\Projects\VSTPack\Source\DSP\DAV_DspFilter.pas"/>
+        <UnitName Value="DAV_DspFilter"/>
+        <CursorPos X="42" Y="38"/>
+        <TopLine Value="20"/>
+        <UsageCount Value="10"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="..\..\..\..\..\..\..\Christian Budde\Projects\VSTPack\Source\DAV_Classes.pas"/>
+        <UnitName Value="DAV_Classes"/>
+        <CursorPos X="5" Y="56"/>
+        <TopLine Value="23"/>
+        <UsageCount Value="10"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="..\..\..\..\GR32_Blend.pas"/>
+        <UnitName Value="GR32_Blend"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
+        <UnitName Value="GR32_DrawingEx"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit14>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="2" HistoryIndex="1">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="61" Column="1" TopLine="56"/>
+      </Position1>
+      <Position2>
+        <Filename Value="RenderText_Ex.lpr"/>
+        <Caret Line="14" Column="19" TopLine="1"/>
+      </Position2>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
@@ -78,16 +165,15 @@
     <SearchPaths>
       <IncludeFiles Value="..\..\..\..\"/>
       <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)\"/>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)\;$(LazarusDir)\components\codetools\units\$(TargetCPU)-$(TargetOS)\;$(LazarusDir)\components\custom\;$(LazarusDir)\packager\units\$(TargetCPU)-$(TargetOS)\;..\..\..\..\"/>
+      <OtherUnitFiles Value="..\..\..\..\"/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="..\..\..\"/>
-      <SrcPath Value="$(LazarusDir)\lcl\;$(LazarusDir)\lcl\interfaces\$(LCLWidgetType)\;$(LazarusDir)\components\synedit\;$(LazarusDir)\components\codetools\"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
-        <AllowLabel Value="False"/>
+        <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
@@ -95,6 +181,9 @@
       <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
       <LinkSmart Value="True"/>
       <Options>
         <Win32>
