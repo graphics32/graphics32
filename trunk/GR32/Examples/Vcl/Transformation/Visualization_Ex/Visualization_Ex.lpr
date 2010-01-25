@@ -3,11 +3,7 @@ program Visualization_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm}, GR32_L;
-
-{$IFDEF Windows}
-{$R *.res}
-{$ENDIF}
+  MainUnit in 'MainUnit.pas' {MainForm};
 
 begin
   Application.Initialize;

@@ -25,7 +25,7 @@ unit MainUnit;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2005
+ * Portions created by the Initial Developer are Copyright (C) 2000-2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -43,7 +43,7 @@ uses
   GR32, ComCtrls, GR32_Image, Buttons;
 
 type
-  TForm1 = class(TForm)
+  TFormRenderText = class(TForm)
     Image: TImage32;
     Panel1: TPanel;
     EditText: TEdit;
@@ -67,7 +67,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormRenderText: TFormRenderText;
 
 implementation
 
@@ -75,20 +75,7 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-
-procedure TForm1.Draw;
-begin
-  Image.Bitmap.Clear;
-  Image.Bitmap.RenderText(10, 10, EditText.Text, AALevel, $FFFFFFFF);
-  Image.Invalidate;
-end;
-
-procedure TForm1.EditTextChange(Sender: TObject);
-begin
-  Draw;
-end;
-
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormRenderText.FormCreate(Sender: TObject);
 begin
   Image.SetupBitmap;
   with Image.Bitmap.Font do
@@ -101,13 +88,27 @@ begin
   EditText.DoubleBuffered := True;
 end;
 
-procedure TForm1.ImageResize(Sender: TObject);
+procedure TFormRenderText.Draw;
+begin
+  with Image do begin
+    Bitmap.Clear;
+    Bitmap.RenderText(10, 10, EditText.Text, AALevel, $FFFFFFFF);
+    Invalidate;
+  end;
+end;
+
+procedure TFormRenderText.EditTextChange(Sender: TObject);
+begin
+  Draw;
+end;
+
+procedure TFormRenderText.ImageResize(Sender: TObject);
 begin
   Image.SetupBitmap;
   Draw;
 end;
 
-procedure TForm1.BtClickMeClick(Sender: TObject);
+procedure TFormRenderText.BtClickMeClick(Sender: TObject);
 var
   I: Integer;
   A,B,C : Int64;
@@ -144,7 +145,7 @@ begin
   Image.Invalidate;
 end;
 
-procedure TForm1.SBTextOutClick(Sender: TObject);
+procedure TFormRenderText.SBTextOutClick(Sender: TObject);
 begin
   AALevel := TControl(Sender).Tag;
   Draw;

@@ -24,7 +24,7 @@ unit MandelUnit;
  * The Initial Developer of the Original Code is
  * Mattias Andersson <mattias@centaurix.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2005
+ * Portions created by the Initial Developer are Copyright (C) 2000-2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -62,30 +62,30 @@ type
   end;
 
   TForm1 = class(TForm)
+    Adaptive: TMenuItem;
+    Contour1: TMenuItem;
+    Default1: TMenuItem;
+    Exit1: TMenuItem;
+    File1: TMenuItem;
     Img: TSyntheticImage32;
     MainMenu1: TMainMenu;
-    Rasterizer1: TMenuItem;
-    File1: TMenuItem;
-    Swizzling1: TMenuItem;
-    Regularsampling1: TMenuItem;
-    Tesseral1: TMenuItem;
-    Progressive1: TMenuItem;
-    Save1: TMenuItem;
-    N3: TMenuItem;
-    Exit1: TMenuItem;
-    Sampler1: TMenuItem;
-    Default1: TMenuItem;
-    N5: TMenuItem;
+    N2: TMenuItem;
     N2x2: TMenuItem;
+    N3: TMenuItem;
     N3x2: TMenuItem;
     N4x2: TMenuItem;
-    Adaptive: TMenuItem;
+    N5: TMenuItem;
     PatternSampler1: TMenuItem;
-    Contour1: TMenuItem;
-    SavePictureDialog1: TSavePictureDialog;
     PatternSampler2: TMenuItem;
-    N2: TMenuItem;
     PatternSampler3x1: TMenuItem;
+    Progressive1: TMenuItem;
+    Rasterizer1: TMenuItem;
+    Regularsampling1: TMenuItem;
+    Sampler1: TMenuItem;
+    Save1: TMenuItem;
+    SavePictureDialog1: TSavePictureDialog;
+    Swizzling1: TMenuItem;
+    Tesseral1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure RasterizerMenuClick(Sender: TObject);
     procedure Default1Click(Sender: TObject);

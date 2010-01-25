@@ -13,6 +13,7 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object Panel1: TPanel
     Left = 8
     Height = 402
@@ -26,6 +27,7 @@ object Form1: TForm1
   object Panel2: TPanel
     Left = 408
     Height = 445
+    Top = 0
     Width = 172
     Align = alRight
     BevelOuter = bvNone

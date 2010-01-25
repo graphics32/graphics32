@@ -169,18 +169,24 @@ type
 
 { Other dynamic arrays }
 type
+  {$IFNDEF FPC}
   PByteArray = ^TByteArray;
   TByteArray = array [0..0] of Byte;
+  {$ENDIF}
   PArrayOfByte = ^TArrayOfByte;
   TArrayOfByte = array of Byte;
 
+  {$IFNDEF FPC}
   PWordArray = ^TWordArray;
   TWordArray = array [0..0] of Word;
+  {$ENDIF}
   PArrayOfWord = ^TArrayOfWord;
   TArrayOfWord = array of Word;
 
+  {$IFNDEF FPC}
   PIntegerArray = ^TIntegerArray;
   TIntegerArray = array [0..0] of Integer;
+  {$ENDIF}
   PArrayOfInteger = ^TArrayOfInteger;
   TArrayOfInteger = array of Integer;
   PArrayOfArrayOfInteger = ^TArrayOfArrayOfInteger;
@@ -208,9 +214,9 @@ function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$END
 { Points }
 
 type
-  PPoint = ^TPoint;
 {$IFNDEF FPC}
 {$IFNDEF BCB}
+  PPoint = ^TPoint;
   TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
 {$ENDIF}
 {$ENDIF}
@@ -938,7 +944,7 @@ var
 implementation
 
 uses
-  GR32_Blend, GR32_Transforms, GR32_Filters, GR32_LowLevel, Math, GR32_Math,
+  GR32_Blend, GR32_Filters, GR32_LowLevel, Math, GR32_Math,
   GR32_Resamplers, GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
@@ -1151,7 +1157,7 @@ var
     Hue := Hue - Floor(Hue);
     if 6 * Hue < 1 then V := M1 + (M2 - M1) * Hue * 6
     else if 2 * Hue < 1 then V := M2
-    else if 3 * Hue < 2 then V := M1 + (M2 - M1) * (2 / 3 - Hue) * 6
+    else if 3 * Hue < 2 then V := M1 + (M2 - M1) * (2 * OneOverThree - Hue) * 6
     else V := M1;
     Result := Round(255 * V);
   end;
@@ -2081,7 +2087,6 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
   procedure AssignToBitmap(Bmp: TBitmap; SrcBitmap: TCustomBitmap32);
   var
     SavedBackend: TCustomBackend;
-    Canvas: TCanvas;
   begin
     RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
     try
@@ -2154,10 +2159,11 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
         finally
           Canvas.Free;
         end;
-      end
-      else
+      end else
+      if Supports(TargetBitmap, ICanvasSupport) then
         TGraphicAccess(SrcGraphic).Draw((TargetBitmap as ICanvasSupport).Canvas,
-          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
+          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height))
+      else raise Exception.Create('Inpropriate Backend');
 
       if ResetAlphaAfterDrawing then
         ResetAlpha;
@@ -2168,7 +2174,6 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
 
   procedure AssignFromGraphicMasked(TargetBitmap: TCustomBitmap32; SrcGraphic: TGraphic);
   var
-    SavedBackend: TCustomBackend;
     TempBitmap: TCustomBitmap32;
     I: integer;
     DstP, SrcP: PColor32;
@@ -2211,7 +2216,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
   procedure AssignFromBitmap(TargetBitmap: TCustomBitmap32; SrcBmp: TBitmap);
   var
     TransparentColor: TColor32;
-    DstP, SrcP: PColor32;
+    DstP: PColor32;
     I: integer;
     DstColor: TColor32;
   begin
@@ -2275,7 +2280,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
       AssignFromGraphicMasked(TargetBitmap, SrcGraphic)
 {$ENDIF}
     else
-      AssignFromGraphicPlain(TargetBitmap, SrcGraphic, clWhite32, False);
+      AssignFromGraphicPlain(TargetBitmap, SrcGraphic, clWhite32, True);
   end;
 
 var
@@ -3068,7 +3073,7 @@ end;
 procedure TCustomBitmap32.HorzLineXS(X1, Y, X2: Integer; Value: TColor32);
 var
   n, i: Integer;
-  ex, nx, hyp: Integer;
+  nx, hyp: Integer;
   A: TColor32;
   ChangedRect: TFixedRect;
 begin
@@ -3076,8 +3081,6 @@ begin
 
   if not FMeasuringMode then
   begin
-    ex := X2;
-
     // Check for visibility and clip the coordinates
     if not ClipLine(Integer(X1), Integer(Y), Integer(X2), Integer(Y),
       FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
@@ -3273,15 +3276,13 @@ end;
 procedure TCustomBitmap32.VertLineXS(X, Y1, Y2: Integer; Value: TColor32);
 var
   n, i: Integer;
-  ex, ey, ny, hyp: Integer;
+  ny, hyp: Integer;
   ChangedRect: TFixedRect;
 begin
   ChangedRect := FixedRect(X, Y1, X, Y2);
 
   if not FMeasuringMode then
   begin
-    ex := X; ey := Y2;
-
     // Check for visibility and clip the coordinates
     if not ClipLine(Integer(X), Integer(Y1), Integer(X), Integer(Y2),
       FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
@@ -3876,7 +3877,7 @@ begin
   try
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
-    hyp := Round(Hypot(nx, ny));
+    hyp := Hypot(nx, ny);
     if L then Inc(hyp, 65536);
     if hyp < 256 then Exit;
     n := hyp shr 16;
@@ -3945,7 +3946,7 @@ begin
     try
       nx := X2 - X1; ny := Y2 - Y1;
       Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
-      hyp := Round(Hypot(nx, ny));
+      hyp := Hypot(nx, ny);
       if L then Inc(Hyp, 65536);
       if hyp < 256 then Exit;
       n := hyp shr 16;
@@ -3987,7 +3988,7 @@ begin
   try
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
-    hyp := Round(Hypot(nx, ny));
+    hyp := Hypot(nx, ny);
     if L then Inc(hyp, 65536);
     if hyp < 256 then Exit;
     n := hyp shr 16;
@@ -4040,7 +4041,7 @@ begin
       FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
       FFixedClipRect.Right, FFixedClipRect.Bottom) then
     begin
-      AdvanceStippleCounter(Hypot((X2 - X1) / 65536, (Y2 - Y1) / 65536) - StippleInc[L]);
+      AdvanceStippleCounter(Hypot((X2 - X1) shr 16, (Y2 - Y1) shr 16) - StippleInc[L]);
       Exit;
     end;
 
@@ -4058,13 +4059,13 @@ begin
     end;
 
     if (sx <> X1) or (sy <> Y1) then
-      AdvanceStippleCounter(Hypot((X1 - sx) / 65536, (Y1 - sy) / 65536));
+      AdvanceStippleCounter(Hypot((X1 - sx) shr 16, (Y1 - sy) shr 16));
 
     // If we are still here, it means that the line touches one or several bitmap
     // boundaries. Use the safe version of antialiased pixel routine
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
-    hyp := Round(Hypot(nx, ny));
+    hyp := Hypot(nx, ny);
     if L then Inc(hyp, 65536);
     if hyp < 256 then Exit;
     n := hyp shr 16;
@@ -4088,7 +4089,7 @@ begin
     EMMS;
 
     if (ex <> X2) or (ey <> Y2) then
-      AdvanceStippleCounter(Hypot((X2 - ex) / 65536, (Y2 - ey) / 65536) - StippleInc[L]);
+      AdvanceStippleCounter(Hypot((X2 - ex) shr 16, (Y2 - ey) shr 16) - StippleInc[L]);
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 4);
@@ -5770,8 +5771,9 @@ begin
     lfStrikeOut := Byte(fsStrikeOut in Font.Style);
     lfCharSet := Byte(Font.Charset);
 
+    // TODO DVT Added cast to fix TFontDataName to String warning. Need to verify is OK
     if AnsiCompareText(Font.Name, 'Default') = 0 then  // do not localize
-      StrPCopy(lfFaceName, DefFontData.Name)
+      StrPCopy(lfFaceName, string(DefFontData.Name))
     else
       StrPCopy(lfFaceName, Font.Name);
 

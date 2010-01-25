@@ -1,7 +1,7 @@
 object Form1: TForm1
-  Left = 213
+  Left = 275
   Height = 228
-  Top = 113
+  Top = 150
   Width = 371
   HorzScrollBar.Page = 370
   VertScrollBar.Page = 227
@@ -13,8 +13,11 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
+  LCLVersion = '0.9.29'
   object Panel1: TPanel
+    Left = 0
     Height = 61
+    Top = 0
     Width = 371
     Align = alTop
     BevelOuter = bvNone
@@ -22,20 +25,21 @@ object Form1: TForm1
     ClientWidth = 371
     Font.Height = -11
     Font.Name = 'Tahoma'
+    ParentFont = False
     TabOrder = 0
     object Label1: TLabel
       Left = 4
-      Height = 13
+      Height = 14
       Top = 36
-      Width = 57
+      Width = 47
       Caption = 'AA Level:'
       ParentColor = False
     end
     object Label2: TLabel
       Left = 4
-      Height = 13
+      Height = 14
       Top = 6
-      Width = 85
+      Width = 79
       Caption = 'Enter text here:'
       ParentColor = False
     end

@@ -136,6 +136,7 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  // load example image
   ImgView.Bitmap.LoadFromFile(pathMedia + 'runner.jpg');
   
   L := TBitmapLayer.Create(ImgView.Layers);

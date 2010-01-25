@@ -10,10 +10,6 @@ uses
   Forms,
   MandelUnit in 'MandelUnit.pas' {Form1}, GR32_L;
 
-{$IFDEF Windows}
-{$R *.res}
-{$ENDIF}
-
 begin
   Application.Initialize;
   Application.CreateForm(TForm1, Form1);

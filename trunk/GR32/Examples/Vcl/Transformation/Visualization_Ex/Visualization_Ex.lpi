@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
-      <IconPath Value="./"/>
       <TargetFileExt Value=""/>
       <ActiveEditorIndexAtStart Value="1"/>
     </General>
@@ -38,7 +39,7 @@
       <Unit0>
         <Filename Value="Visualization_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="8" Y="6"/>
+        <CursorPos X="1" Y="8"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -46,13 +47,13 @@
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
         <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
-        <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="22" Y="687"/>
-        <TopLine Value="506"/>
+        <CursorPos X="39" Y="312"/>
+        <TopLine Value="415"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -76,7 +77,7 @@
       <Unit4>
         <Filename Value="../../../../Packages/GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
-        <CursorPos X="1" Y="1"/>
+        <CursorPos X="15" Y="2"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit4>
@@ -85,24 +86,61 @@
         <UnitName Value="Controls"/>
         <CursorPos X="19" Y="1224"/>
         <TopLine Value="1210"/>
-        <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit5>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="7" HistoryIndex="6">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="536" Column="76" TopLine="498"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position2>
+      <Position3>
+        <Filename Value="Visualization_Ex.lpr"/>
+        <Caret Line="5" Column="40" TopLine="1"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="260" Column="36" TopLine="253"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="257" Column="3" TopLine="253"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="285" Column="37" TopLine="281"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="301" Column="42" TopLine="285"/>
+      </Position7>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <SearchPaths>
-      <LCLWidgetType Value="carbon"/>
+      <IncludeFiles Value="../../../../"/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
+      <OtherUnitFiles Value="../../../../"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)/"/>
     </SearchPaths>
-    <CodeGeneration>
-      <Generate Value="Faster"/>
-    </CodeGeneration>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+        <IncludeAssertionCode Value="True"/>
+        <CPPInline Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
     <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
       <Options>
-        <PassLinkerOptions Value="True"/>
         <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>

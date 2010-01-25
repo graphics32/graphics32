@@ -185,7 +185,8 @@ begin
     ParentColor := False;
     Scale := 1;
     TabOrder := 3;
-    Bitmap.LoadFromFile(pathMedia + 'texture_a.jpg');
+    Bitmap.SetSize(256, 256);
+//    Bitmap.LoadFromFile(pathMedia + 'texture_a.jpg');
   end;
 
   TexBImg := TImage32.Create(Self);
@@ -204,7 +205,8 @@ begin
     ParentColor := False;
     Scale := 1;
     TabOrder := 4;
-    Bitmap.LoadFromFile(pathMedia + 'texture_b.jpg');
+    Bitmap.SetSize(256, 256);
+//    Bitmap.LoadFromFile(pathMedia + 'texture_b.jpg');
   end;
 
   CombImg := TImage32.Create(Self);
@@ -223,7 +225,8 @@ begin
     ParentColor := False;
     Scale := 1;
     TabOrder := 1;
-    Bitmap.SetSizeFrom(TexBImg.Bitmap);
+    Bitmap.SetSize(256, 256);
+//    Bitmap.SetSizeFrom(TexBImg.Bitmap);
   end;
 
   BlendBox.ItemIndex := 0;

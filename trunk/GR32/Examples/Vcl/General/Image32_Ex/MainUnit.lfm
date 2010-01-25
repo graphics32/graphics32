@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormImage32Example: TFormImage32Example
   Left = 224
   Height = 445
   Top = 159
@@ -13,6 +13,7 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object Panel1: TPanel
     Left = 8
     Height = 402
@@ -21,11 +22,26 @@ object Form1: TForm1
     Anchors = [akTop, akLeft, akRight, akBottom]
     BevelOuter = bvLowered
     BorderWidth = 1
+    ClientHeight = 402
+    ClientWidth = 385
     TabOrder = 0
+    object Image: TImage32
+      Left = 2
+      Height = 398
+      Top = 2
+      Width = 381
+      Align = alClient
+      Bitmap.ResamplerClassName = 'TNearestResampler'
+      BitmapAlign = baTopLeft
+      Scale = 1
+      ScaleMode = smNormal
+      TabOrder = 0
+    end
   end
   object Panel2: TPanel
     Left = 408
     Height = 445
+    Top = 0
     Width = 142
     Align = alRight
     BevelOuter = bvNone
@@ -47,7 +63,7 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 112
+      ClientHeight = 111
       ClientWidth = 125
       ItemIndex = 0
       Items.Strings = (
@@ -76,7 +92,7 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 104
+      ClientHeight = 103
       ClientWidth = 125
       ItemIndex = 0
       Items.Strings = (
@@ -104,7 +120,7 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 72
+      ClientHeight = 71
       ClientWidth = 125
       ItemIndex = 0
       Items.Strings = (
@@ -121,6 +137,7 @@ object Form1: TForm1
       Top = 242
       Width = 33
       Caption = 'Scale:'
+      TabOrder = 3
     end
   end
 end

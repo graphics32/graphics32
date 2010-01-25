@@ -11,7 +11,7 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  LCLVersion = '0.9.27'
+  LCLVersion = '0.9.29'
   object Image: TImage32
     Left = 0
     Height = 167
@@ -19,8 +19,6 @@ object Form1: TForm1
     Width = 337
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baTopLeft
     Scale = 1
     ScaleMode = smNormal
@@ -136,7 +134,7 @@ object Form1: TForm1
     end
     object EditText: TEdit
       Left = 92
-      Height = 23
+      Height = 21
       Top = 4
       Width = 242
       Anchors = [akTop, akLeft, akRight]

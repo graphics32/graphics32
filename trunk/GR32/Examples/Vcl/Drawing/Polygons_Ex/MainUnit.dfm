@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormPolygons: TFormPolygons
   Left = 277
   Top = 106
   Caption = 'Polygons Example'
@@ -47,28 +47,28 @@ object Form1: TForm1
     Font.Style = []
     ParentFont = False
     TabOrder = 1
-    object Label1: TLabel
+    object lbLineOpacity: TLabel
       Left = 16
       Top = 210
       Width = 63
       Height = 13
       Caption = 'Line Opacity:'
     end
-    object Label2: TLabel
+    object lbFillOpacity: TLabel
       Left = 16
       Top = 250
       Width = 52
       Height = 13
       Caption = 'Fill Opacity'
     end
-    object Label3: TLabel
+    object lbOutlineThickness: TLabel
       Left = 16
       Top = 394
       Width = 87
       Height = 13
       Caption = 'Outline Thickness:'
     end
-    object Label4: TLabel
+    object lbOutlineThicknesValue: TLabel
       Left = 113
       Top = 395
       Width = 14

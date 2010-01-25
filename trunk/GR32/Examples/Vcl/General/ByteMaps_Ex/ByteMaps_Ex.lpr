@@ -1,12 +1,10 @@
 program ByteMaps_Ex;
 
 uses
-  Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
-
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
+  Interfaces,
+  Forms, imagesforlazarus,
+  GR32_L,
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
   Application.Initialize;

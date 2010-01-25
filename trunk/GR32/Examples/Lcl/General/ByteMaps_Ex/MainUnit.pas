@@ -78,9 +78,9 @@ type
     ToolButton8: TToolButton;
     OpenPictureDialog: TOpenPictureDialog;
     SavePictureDialog: TSavePictureDialog;
-    procedure PaletteComboChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure PaletteComboChange(Sender: TObject);
     procedure NewClick(Sender: TObject);
     procedure ScaleChange(Sender: TObject);
     procedure CheckBox1Click(Sender: TObject);

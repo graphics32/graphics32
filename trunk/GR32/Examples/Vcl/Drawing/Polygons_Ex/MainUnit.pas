@@ -25,7 +25,7 @@ unit MainUnit;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2005
+ * Portions created by the Initial Developer are Copyright (C) 2000-2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -42,25 +42,25 @@ uses
   GR32_Layers, GR32_Polygons, StdCtrls, ExtCtrls;
 
 type
-  TForm1 = class(TForm)
-    Image: TImage32;
-    BitmapList: TBitmap32List;
-    Panel1: TPanel;
+  TFormPolygons = class(TForm)
     Antialiase: TCheckBox;
-    Label1: TLabel;
-    LineAlpha: TScrollBar;
-    Label2: TLabel;
+    AntialiasMode: TRadioGroup;
+    BitmapList: TBitmap32List;
+    Button1: TButton;
     FillAlpha: TScrollBar;
     FillMode: TRadioGroup;
-    Button1: TButton;
+    Image: TImage32;
+    lbLineOpacity: TLabel;
+    lbFillOpacity: TLabel;
+    lbOutlineThickness: TLabel;
+    lbOutlineThicknesValue: TLabel;
+    LineAlpha: TScrollBar;
     LineThickness: TScrollBar;
-    Label3: TLabel;
-    ThickOutline: TCheckBox;
-    Label4: TLabel;
-    AntialiasMode: TRadioGroup;
     Memo1: TMemo;
     Memo2: TMemo;
+    Panel1: TPanel;
     Pattern: TCheckBox;
+    ThickOutline: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton;
@@ -79,7 +79,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormPolygons: TFormPolygons;
 
 implementation
 
@@ -97,54 +97,7 @@ uses
   LazJPG;
 {$ENDIF}
 
-procedure TForm1.Draw;
-var
-  MyFiller: TBitmapPolygonFiller;
-begin
-  Image.Bitmap.BeginUpdate;
-  Image.Bitmap.Clear(clWhite32);
-  Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
-
-  Polygon.Antialiased := Antialiase.Checked;
-  Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
-
-  if UseOutlinePoly then
-  begin
-    Outline.Antialiased := Antialiase.Checked;
-    Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
-  end;
-
-  if FillMode.ItemIndex = 0 then
-    Polygon.FillMode := pfAlternate
-  else
-    Polygon.FillMode := pfWinding;
-
-  if Pattern.Checked then
-  begin
-    BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
-    BitmapList.Bitmap[1].DrawMode := dmBlend;
-    MyFiller := TBitmapPolygonFiller.Create;
-    try
-      MyFiller.Pattern := BitmapList.Bitmap[1];
-      Polygon.DrawFill(Image.Bitmap, MyFiller);
-    finally
-      MyFiller.Free;
-    end;
-  end
-  else
-    Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
-
-  if UseOutlinePoly then
-    Outline.DrawFill(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
-  else
-    Polygon.DrawEdge(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
-
-  Image.Bitmap.EndUpdate;
-  Image.Bitmap.Changed;
-  Image.Refresh; // force repaint
-end;
-
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormPolygons.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
   pathRef: CFURLRef;
@@ -210,13 +163,60 @@ begin
   Polygon := TPolygon32.Create;
 end;
 
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TFormPolygons.FormDestroy(Sender: TObject);
 begin
   Outline.Free;
   Polygon.Free;
 end;
 
-procedure TForm1.ImageMouseDown(Sender: TObject; Button: TMouseButton;
+procedure TFormPolygons.Draw;
+var
+  MyFiller: TBitmapPolygonFiller;
+begin
+  Image.Bitmap.BeginUpdate;
+  Image.Bitmap.Clear(clWhite32);
+  Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
+
+  Polygon.Antialiased := Antialiase.Checked;
+  Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+
+  if UseOutlinePoly then
+  begin
+    Outline.Antialiased := Antialiase.Checked;
+    Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+  end;
+
+  if FillMode.ItemIndex = 0 then
+    Polygon.FillMode := pfAlternate
+  else
+    Polygon.FillMode := pfWinding;
+
+  if Pattern.Checked then
+  begin
+    BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
+    BitmapList.Bitmap[1].DrawMode := dmBlend;
+    MyFiller := TBitmapPolygonFiller.Create;
+    try
+      MyFiller.Pattern := BitmapList.Bitmap[1];
+      Polygon.DrawFill(Image.Bitmap, MyFiller);
+    finally
+      MyFiller.Free;
+    end;
+  end
+  else
+    Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
+
+  if UseOutlinePoly then
+    Outline.DrawFill(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
+  else
+    Polygon.DrawEdge(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
+
+  Image.Bitmap.EndUpdate;
+  Image.Bitmap.Changed;
+  Image.Refresh; // force repaint
+end;
+
+procedure TFormPolygons.ImageMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   if Button = mbLeft then Polygon.Add(GR32.FixedPoint(X, Y))
@@ -225,25 +225,25 @@ begin
   Draw;
 end;
 
-procedure TForm1.ImageResize(Sender: TObject);
+procedure TFormPolygons.ImageResize(Sender: TObject);
 begin
   Image.SetupBitmap;
   Build;
   Draw;
 end;
 
-procedure TForm1.ParamsChanged(Sender: TObject);
+procedure TFormPolygons.ParamsChanged(Sender: TObject);
 begin
   AntialiasMode.Enabled := Antialiase.Checked;
   Draw;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormPolygons.Button1Click(Sender: TObject);
 begin
   Polygon.NewLine;
 end;
 
-procedure TForm1.Build;
+procedure TFormPolygons.Build;
 var
   TmpPoly: TPolygon32;
 begin
@@ -253,22 +253,22 @@ begin
   if UseOutlinePoly then
   begin
     TmpPoly := Polygon.Outline;
-    Outline := TmpPoly.Grow(Fixed(LineSize / 2), 0.5);
+    Outline := TmpPoly.Grow(Fixed(LineSize * 0.5), 0.5);
     Outline.FillMode := pfWinding;
     TmpPoly.Free;
   end;
 
   if UseOutlinePoly then
-    Label4.Caption := Format('(%.1f)', [LineSize])
+    lbOutlineThicknesValue.Caption := Format('(%.1f)', [LineSize])
   else
-    Label4.Caption := '(1)';
+    lbOutlineThicknesValue.Caption := '(1)';
 end;
 
-procedure TForm1.ThicknessChanged(Sender: TObject);
+procedure TFormPolygons.ThicknessChanged(Sender: TObject);
 begin
   AntialiasMode.Enabled := Antialiase.Checked;
   UseOutlinePoly := ThickOutline.Checked;
-  LineSize := LineThickness.Position / 10;
+  LineSize := LineThickness.Position * 0.1;
   Build;
   Draw;
 end;

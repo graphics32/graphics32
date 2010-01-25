@@ -1,16 +1,15 @@
 { This is an automatically generated lazarus resource file }
 
-LazarusResources.Add('TForm1','FORMDATA',[
-  'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#6#1#6'Height'#3#215#0#3'Top'#3#145#0#5'Wi'
-  +'dth'#3#249#0#13'ActiveControl'#7#10'ScrollBar1'#7'Caption'#6#22'Line Stippl'
-  +'ing Example'#12'ClientHeight'#3#215#0#11'ClientWidth'#3#249#0#11'Font.Heigh'
-  +'t'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7#10'FormCreate'#10'L'
-  +'CLVersion'#6#6'0.9.27'#0#8'TImage32'#5'Image'#4'Left'#2#8#6'Height'#3#200#0
-  +#3'Top'#2#8#5'Width'#3#200#0#25'Bitmap.ResamplerClassName'#6#17'TNearestResa'
-  +'mpler'#15'Bitmap.OnChange'#13#15'Bitmap.OnResize'#13#11'BitmapAlign'#7#9'ba'
-  +'TopLeft'#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'T'
-  +'abOrder'#2#1#0#0#10'TScrollBar'#10'ScrollBar1'#4'Left'#3#224#0#6'Height'#3
-  +#201#0#3'Top'#2#8#5'Width'#2#16#4'Kind'#7#10'sbVertical'#3'Min'#2#1#8'PageSi'
-  +'ze'#2#0#8'Position'#2'4'#8'TabOrder'#2#0#8'OnChange'#7#15'ScrollBarChange'#0
-  +#0#0
+LazarusResources.Add('TFormLineStippling','FORMDATA',[
+  'TPF0'#18'TFormLineStippling'#17'FormLineStippling'#4'Left'#3#6#1#6'Height'#3
+  +#215#0#3'Top'#3#145#0#5'Width'#3#249#0#13'ActiveControl'#7#9'ScrollBar'#7'Ca'
+  +'ption'#6#22'Line Stippling Example'#12'ClientHeight'#3#215#0#11'ClientWidth'
+  +#3#249#0#11'Font.Height'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7
+  +#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#0#8'TImage32'#5'Image'#4'Left'#2#8
+  +#6'Height'#3#200#0#3'Top'#2#8#5'Width'#3#200#0#25'Bitmap.ResamplerClassName'
+  +#6#17'TNearestResampler'#11'BitmapAlign'#7#9'baTopLeft'#5'Scale'#5#0#0#0#0#0
+  +#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabOrder'#2#1#0#0#10'TScrollBar'
+  +#9'ScrollBar'#4'Left'#3#224#0#6'Height'#3#201#0#3'Top'#2#8#5'Width'#2#16#4'K'
+  +'ind'#7#10'sbVertical'#3'Min'#2#1#8'PageSize'#2#0#8'Position'#2'4'#8'TabOrde'
+  +'r'#2#0#8'OnChange'#7#15'ScrollBarChange'#0#0#0
 ]);

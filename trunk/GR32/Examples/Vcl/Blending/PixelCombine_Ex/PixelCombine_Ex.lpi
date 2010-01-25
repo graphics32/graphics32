@@ -8,7 +8,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -33,13 +33,15 @@
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="18">
+    <Units Count="21">
       <Unit0>
         <Filename Value="PixelCombine_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="63" Y="15"/>
+        <CursorPos X="10" Y="7"/>
         <TopLine Value="1"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="21"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
@@ -174,12 +176,39 @@
       </Unit16>
       <Unit17>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/radiogroup.inc"/>
-        <CursorPos X="19" Y="382"/>
-        <TopLine Value="373"/>
+        <CursorPos X="47" Y="394"/>
+        <TopLine Value="376"/>
+        <EditorIndex Value="3"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit17>
+      <Unit18>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <UnitName Value="GR32_Backends_LCL_Win"/>
+        <CursorPos X="1" Y="179"/>
+        <TopLine Value="154"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="../../../../../../../../Lazarus/lcl/graphics.pp"/>
+        <UnitName Value="Graphics"/>
+        <CursorPos X="13" Y="1881"/>
+        <TopLine Value="1864"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="../../../../GR32.pas"/>
+        <UnitName Value="GR32"/>
+        <CursorPos X="5" Y="429"/>
+        <TopLine Value="412"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit20>
     </Units>
-    <JumpHistory Count="4" HistoryIndex="3">
+    <JumpHistory Count="10" HistoryIndex="9">
       <Position1>
         <Filename Value="MainUnit.pas"/>
         <Caret Line="100" Column="18" TopLine="88"/>
@@ -196,6 +225,30 @@
         <Filename Value="MainUnit.pas"/>
         <Caret Line="111" Column="48" TopLine="88"/>
       </Position4>
+      <Position5>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <Caret Line="179" Column="6" TopLine="162"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <Caret Line="62" Column="15" TopLine="44"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <Caret Line="179" Column="36" TopLine="154"/>
+      </Position8>
+      <Position9>
+        <Filename Value="PixelCombine_Ex.lpr"/>
+        <Caret Line="15" Column="63" TopLine="1"/>
+      </Position9>
+      <Position10>
+        <Filename Value="PixelCombine_Ex.lpr"/>
+        <Caret Line="3" Column="1" TopLine="1"/>
+      </Position10>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

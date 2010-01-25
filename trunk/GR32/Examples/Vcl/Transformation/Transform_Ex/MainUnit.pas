@@ -61,7 +61,7 @@ const
 type
   TTransformMode = (tmAffine, tmProjective, tmBilinear);
 
-  TForm1 = class(TForm)
+  TFormTranformExample = class(TForm)
     Src: TImage32;
     Dst: TImage32;
     OpacityBar: TGaugeBar;
@@ -80,66 +80,66 @@ type
     Page4: TPage;
     Page5: TPage;
 {$ENDIF}
-    TabSheet1: TTabSheet;
-    Panel2: TPanel;
-    Shape1: TShape;
-    Shape2: TShape;
-    StringGrid: TStringGrid;
-    ListBox: TListBox;
     Button1: TButton;
-    Label9: TLabel;
+    cbRepeat: TCheckBox;
     CodeString: TEdit;
-    Panel1: TPanel;
-    Label1: TLabel;
     ComboBox: TComboBox;
-    Notebook: TNotebook;
+    eAlpha: TEdit;
+    eCx: TEdit;
+    eCy: TEdit;
+    eDx: TEdit;
+    eDy: TEdit;
+    eFx: TEdit;
+    eFy: TEdit;
+    eSx: TEdit;
+    eSy: TEdit;
+    KernelClassNamesList: TComboBox;
+    KernelLabel: TLabel;
+    Label1: TLabel;
+    Label10: TLabel;
+    Label11: TLabel;
+    Label12: TLabel;
+    Label13: TLabel;
+    Label14: TLabel;
+    Label15: TLabel;
+    Label16: TLabel;
+    Label17: TLabel;
+    Label18: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
-    eDx: TEdit;
-    eDy: TEdit;
     Label6: TLabel;
     Label7: TLabel;
     Label8: TLabel;
-    eSy: TEdit;
-    eSx: TEdit;
-    Label11: TLabel;
-    Label13: TLabel;
-    Label16: TLabel;
-    Label15: TLabel;
-    eCx: TEdit;
-    eAlpha: TEdit;
-    eCy: TEdit;
-    Label12: TLabel;
-    Label14: TLabel;
-    Label17: TLabel;
-    eFx: TEdit;
-    eFy: TEdit;
-    Label10: TLabel;
+    Label9: TLabel;
+    ListBox: TListBox;
+    Notebook: TNotebook;
+    Panel1: TPanel;
+    Panel2: TPanel;
     Panel3: TPanel;
-    TabSheet2: TTabSheet;
-    Label18: TLabel;
-    ResamplerLabel: TLabel;
     ResamplerClassNamesList: TComboBox;
-    KernelLabel: TLabel;
-    KernelClassNamesList: TComboBox;
-    cbRepeat: TCheckBox;
+    ResamplerLabel: TLabel;
+    Shape1: TShape;
+    Shape2: TShape;
+    StringGrid: TStringGrid;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure ListBoxClick(Sender: TObject);
-    procedure ComboBoxChange(Sender: TObject);
-    procedure TranslationChanged(Sender: TObject);
-    procedure ScaleChanged(Sender: TObject);
-    procedure TranslationScrolled(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure ScaleScrolled(Sender: TObject);
-    procedure RotationChanged(Sender: TObject);
-    procedure RotationScrolled(Sender: TObject);
-    procedure SkewChanged(Sender: TObject);
-    procedure SkewScrolled(Sender: TObject);
+    procedure ComboBoxChange(Sender: TObject);
+    procedure ListBoxClick(Sender: TObject);
     procedure OpacityChange(Sender: TObject);
     procedure PageControl1Change(Sender: TObject);
+    procedure RotationChanged(Sender: TObject);
+    procedure RotationScrolled(Sender: TObject);
+    procedure ScaleChanged(Sender: TObject);
+    procedure ScaleScrolled(Sender: TObject);
+    procedure SkewChanged(Sender: TObject);
+    procedure SkewScrolled(Sender: TObject);
+    procedure TranslationChanged(Sender: TObject);
+    procedure TranslationScrolled(Sender: TObject);
 
     procedure SrcRBResizingEvent(Sender: TObject; const OldLocation: TFloatRect;
       var NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
@@ -182,7 +182,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormTranformExample: TFormTranformExample;
 
 implementation
 
@@ -208,7 +208,7 @@ begin
   Result := Code = 0;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormTranformExample.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
   pathRef: CFURLRef;
@@ -380,6 +380,7 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  Assert(FileExists(pathMedia + 'delphi.jpg'));
   Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   //Setup custom paintstages ("checkerboard" and border)
@@ -437,7 +438,7 @@ begin
   Application.OnIdle := AppEventsIdle;
 end;
 
-procedure TForm1.ClearTransformations;
+procedure TFormTranformExample.ClearTransformations;
 var
   I: Integer;
 begin
@@ -446,19 +447,19 @@ begin
   begin
     Operation[I].Sx := 1;
     Operation[I].Sy := 1;
-    Operation[I].Cx := Src.Bitmap.Width / 2;
-    Operation[I].Cy := Src.Bitmap.Height / 2;
+    Operation[I].Cx := Src.Bitmap.Width * 0.5;
+    Operation[I].Cy := Src.Bitmap.Height * 0.5;
   end;
 end;
 
-procedure TForm1.PrepareSource;
+procedure TFormTranformExample.PrepareSource;
 begin
   // make the border pixels transparent while keeping their RGB components
   if not cbRepeat.Checked then
     SetBorderTransparent(Src.Bitmap, Src.Bitmap.BoundsRect);
 end;
 
-procedure TForm1.DoTransform;
+procedure TFormTranformExample.DoTransform;
 var
   i, j: Integer;
 begin
@@ -481,7 +482,7 @@ begin
   end;
 end;
 
-procedure TForm1.GenTransform;
+procedure TFormTranformExample.GenTransform;
 var
   I: Integer;
   Rec: TOpRec;
@@ -524,25 +525,25 @@ begin
   TT.SrcRect := SrcRubberBandLayer.Location;
 end;
 
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TFormTranformExample.FormDestroy(Sender: TObject);
 begin
   AT.Free;
   PT.Free;
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
+procedure TFormTranformExample.Button1Click(Sender: TObject);
 begin
   ClearTransformations;
   ShowSettings(Listbox.ItemIndex);
   DoTransform;
 end;
 
-procedure TForm1.ListBoxClick(Sender: TObject);
+procedure TFormTranformExample.ListBoxClick(Sender: TObject);
 begin
   ShowSettings(ListBox.ItemIndex);
 end;
 
-procedure TForm1.ShowSettings(OperationNum: Integer);
+procedure TFormTranformExample.ShowSettings(OperationNum: Integer);
 begin
   LoadingValues := True;
   ListBox.ItemIndex := OperationNum;
@@ -568,14 +569,14 @@ begin
   LoadingValues := False;
 end;
 
-procedure TForm1.ComboBoxChange(Sender: TObject);
+procedure TFormTranformExample.ComboBoxChange(Sender: TObject);
 begin
   Current.OpType := OpTypes[ComboBox.ItemIndex];
   ShowSettings(ListBox.ItemIndex);
   DoTransform;
 end;
 
-procedure TForm1.TranslationChanged(Sender: TObject);
+procedure TFormTranformExample.TranslationChanged(Sender: TObject);
 var
   Tx, Ty: Extended;
 begin
@@ -592,11 +593,11 @@ begin
   end;
 end;
 
-procedure TForm1.TranslationScrolled(Sender: TObject);
+procedure TFormTranformExample.TranslationScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Dx := sbDx.Position / 10;
-  Current.Dy := sbDy.Position / 10;
+  Current.Dx := sbDx.Position * 0.1;
+  Current.Dy := sbDy.Position * 0.1;
   DoTransform;
   LoadingValues := True;
   eDx.Text := FloatToStr(Current.Dx);
@@ -604,7 +605,7 @@ begin
   LoadingValues := False;
 end;
 
-procedure TForm1.ScaleChanged(Sender: TObject);
+procedure TFormTranformExample.ScaleChanged(Sender: TObject);
 var
   Sx, Sy: Extended;
 begin
@@ -621,11 +622,11 @@ begin
   end;
 end;
 
-procedure TForm1.ScaleScrolled(Sender: TObject);
+procedure TFormTranformExample.ScaleScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Sx := sbSx.Position / 100;
-  Current.Sy := sbSy.Position / 100;
+  Current.Sx := sbSx.Position * 0.01;
+  Current.Sy := sbSy.Position * 0.01;
   DoTransform;
   LoadingValues := True;
   eSx.Text := FloatToStr(Current.Sx);
@@ -633,7 +634,7 @@ begin
   LoadingValues := False;
 end;
 
-procedure TForm1.RotationChanged(Sender: TObject);
+procedure TFormTranformExample.RotationChanged(Sender: TObject);
 var
   Cx, Cy, Alpha: Extended;
 begin
@@ -651,17 +652,17 @@ begin
   end;
 end;
 
-procedure TForm1.RotationScrolled(Sender: TObject);
+procedure TFormTranformExample.RotationScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Alpha := sbAlpha.Position / 2;
+  Current.Alpha := sbAlpha.Position * 0.5;
   DoTransform;
   LoadingValues := True;
-  eAlpha.Text := FloatToStr(Current.Alpha / 2);
+  eAlpha.Text := FloatToStr(Current.Alpha * 0.5);
   LoadingValues := False;
 end;
 
-procedure TForm1.SkewChanged(Sender: TObject);
+procedure TFormTranformExample.SkewChanged(Sender: TObject);
 var
   Fx, Fy: Extended;
 begin
@@ -678,11 +679,11 @@ begin
   end;
 end;
 
-procedure TForm1.SkewScrolled(Sender: TObject);
+procedure TFormTranformExample.SkewScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Fx := sbFx.Position / 10;
-  Current.Fy := sbFy.Position / 10;
+  Current.Fx := sbFx.Position * 0.1;
+  Current.Fy := sbFy.Position * 0.1;
   DoTransform;
   LoadingValues := True;
   eFx.Text := FloatToStr(Current.Fx);
@@ -690,14 +691,14 @@ begin
   LoadingValues := False;
 end;
 
-procedure TForm1.OpacityChange(Sender: TObject);
+procedure TFormTranformExample.OpacityChange(Sender: TObject);
 begin
   OpacityBar.Update;
   Src.Bitmap.MasterAlpha := OpacityBar.Position;
   DoTransform;
 end;
 
-procedure TForm1.InitVertices;
+procedure TFormTranformExample.InitVertices;
 begin
   Vertices[0].X := 0;
   Vertices[0].Y := 0;
@@ -709,7 +710,7 @@ begin
   Vertices[3].Y := Src.Bitmap.Height - 1;
 end;
 
-procedure TForm1.PageControl1Change(Sender: TObject);
+procedure TFormTranformExample.PageControl1Change(Sender: TObject);
 begin
   if PageControl1.ActivePage = TabSheet1 then
   begin
@@ -734,7 +735,7 @@ begin
   DoTransform;
 end;
 
-procedure TForm1.RubberLayerMouseDown(Sender: TObject;
+procedure TFormTranformExample.RubberLayerMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 var
   I: Integer;
@@ -758,7 +759,7 @@ begin
   LastMousePos := Classes.Point(X, Y);
 end;
 
-procedure TForm1.RubberLayerMouseMove(Sender: TObject; Shift: TShiftState;
+procedure TFormTranformExample.RubberLayerMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer; Layer: TCustomLayer);
 var
   Dx, Dy, I: Integer;
@@ -789,20 +790,20 @@ begin
   DoTransform;
 end;
 
-procedure TForm1.RubberLayerMouseUp(Sender: TObject; Button: TMouseButton;
+procedure TFormTranformExample.RubberLayerMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   DraggedVertex := -1;
 end;
 
-procedure TForm1.AppEventsIdle(Sender: TObject; var Done: Boolean);
+procedure TFormTranformExample.AppEventsIdle(Sender: TObject; var Done: Boolean);
 begin
   if DraggedVertex >= 0 then Exit;
   StippleStart := StippleStart - 0.05;
   Dst.Invalidate;
 end;
 
-procedure TForm1.PaintHandles(Sender: TObject; BackBuffer: TBitmap32);
+procedure TFormTranformExample.PaintHandles(Sender: TObject; BackBuffer: TBitmap32);
 var
   I, X0, Y0, X1, Y1: Integer;
 
@@ -832,7 +833,7 @@ begin
   for I := 0 to 3 do PaintVertex(Vertices[I].X, Vertices[I].Y);
 end;
 
-procedure TForm1.ResamplerClassNamesListClick(Sender: TObject);
+procedure TFormTranformExample.ResamplerClassNamesListClick(Sender: TObject);
 begin
   with ResamplerClassNamesList do
     if ItemIndex >= 0 then
@@ -840,7 +841,7 @@ begin
   DoTransform;
 end;
 
-procedure TForm1.SrcRBResizingEvent(Sender: TObject;
+procedure TFormTranformExample.SrcRBResizingEvent(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
   DragState: TDragState; Shift: TShiftState);
 begin
@@ -848,7 +849,7 @@ begin
   DoTransform;
 end;
 
-procedure TForm1.ResamplerClassNamesListChange(Sender: TObject);
+procedure TFormTranformExample.ResamplerClassNamesListChange(Sender: TObject);
 var
   R: TCustomResampler;
 begin
@@ -866,7 +867,7 @@ begin
     end;
 end;
 
-procedure TForm1.KernelClassNamesListChange(Sender: TObject);
+procedure TFormTranformExample.KernelClassNamesListChange(Sender: TObject);
 var
   Index: Integer;
 begin
@@ -878,7 +879,7 @@ begin
   DoTransform;
 end;
 
-procedure TForm1.DstPaintStage(Sender: TObject; Buffer: TBitmap32;
+procedure TFormTranformExample.DstPaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
 const            //0..1
   Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
@@ -921,7 +922,7 @@ begin
   end;
 end;
 
-procedure TForm1.cbRepeatClick(Sender: TObject);
+procedure TFormTranformExample.cbRepeatClick(Sender: TObject);
 const
   AccessMode: array [Boolean] of TPixelAccessMode = (pamSafe, pamWrap);
 begin

@@ -2,12 +2,14 @@
 <CONFIG>
   <ProjectOptions>
     <PathDelim Value="\"/>
-    <Version Value="6"/>
+    <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
-      <IconPath Value=".\"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -38,7 +40,7 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="14">
+    <Units Count="15">
       <Unit0>
         <Filename Value="RotLayer_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -50,14 +52,14 @@
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
-        <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
         <CursorPos X="8" Y="71"/>
         <TopLine Value="62"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit1>
@@ -142,24 +144,47 @@
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit13>
+      <Unit14>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\include\control.inc"/>
+        <CursorPos X="1" Y="344"/>
+        <TopLine Value="327"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit14>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="2" HistoryIndex="1">
+      <Position1>
+        <Filename Value="RotLayer_Ex.lpr"/>
+        <Caret Line="11" Column="3" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\include\control.inc"/>
+        <Caret Line="344" Column="30" TopLine="327"/>
+      </Position2>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <PathDelim Value="\"/>
     <SearchPaths>
+      <IncludeFiles Value="..\..\..\"/>
+      <OtherUnitFiles Value="..\..\..\"/>
       <ObjectPath Value="..\..\..\"/>
+      <SrcPath Value="..\..\..\"/>
     </SearchPaths>
-    <CodeGeneration>
-      <Generate Value="Faster"/>
-    </CodeGeneration>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+        <IncludeAssertionCode Value="True"/>
+        <CPPInline Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="True"/>
       </Debugging>
       <Options>
-        <PassLinkerOptions Value="True"/>
         <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>

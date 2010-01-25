@@ -2,12 +2,12 @@ program Image32_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {FormImage32Example};
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormImage32Example, FormImage32Example);
   Application.Run;
 end.

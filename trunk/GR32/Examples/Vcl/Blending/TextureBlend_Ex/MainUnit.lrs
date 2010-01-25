@@ -1,4 +1,4 @@
-{ Das ist eine automatisch erzeugte Lazarus-Ressourcendatei }
+{ This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TMainForm','FORMDATA',[
   'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3'('#1#6'Height'#3#153#2#3'Top'#2'a'#5
@@ -6,7 +6,7 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'rStyle'#7#8'bsSingle'#7'Caption'#6#21'Texture Blend Example'#12'ClientHeigh'
   +'t'#3#153#2#11'ClientWidth'#3#25#2#11'Font.Height'#2#245#9'Font.Name'#6#13'M'
   +'S Sans Serif'#8'OnCreate'#7#10'FormCreate'#8'Position'#7#14'poScreenCenter'
-  +#10'LCLVersion'#6#6'0.9.27'#0#6'TLabel'#16'LabelMasterAlpha'#4'Left'#3#16#1#6
+  +#10'LCLVersion'#6#6'0.9.29'#0#6'TLabel'#16'LabelMasterAlpha'#4'Left'#3#16#1#6
   +'Height'#2#14#3'Top'#2' '#5'Width'#2'<'#7'Caption'#6#11'MasterAlpha'#11'Pare'
   +'ntColor'#8#0#0#6'TLabel'#20'LabelCombinedTexture'#4'Left'#3#16#1#6'Height'#2
   +#17#3'Top'#2'X'#5'Width'#3#2#1#9'Alignment'#7#8'taCenter'#8'AutoSize'#8#7'Ca'
@@ -49,23 +49,21 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'r Difference'#6#13'Color Average'#6#15'Color Exclusion'#0#8'OnChange'#7#20
   +'MasterAlphaBarChange'#5'Style'#7#14'csDropDownList'#8'TabOrder'#2#1#0#0#8'T'
   +'Image32'#7'CombImg'#4'Left'#3#16#1#6'Height'#3#2#1#3'Top'#2'p'#5'Width'#3#2
-  +#1#25'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#15'Bitmap.OnChange'
-  +#13#15'Bitmap.OnResize'#13#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7'clBlac'
-  +'k'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'#7#8's'
-  +'mNormal'#8'TabOrder'#2#2#0#0#8'TImage32'#12'WeightmapImg'#4'Left'#2#8#6'Hei'
-  +'ght'#3#2#1#3'Top'#2'p'#5'Width'#3#2#1#25'Bitmap.ResamplerClassName'#6#17'TN'
-  +'earestResampler'#15'Bitmap.OnChange'#13#15'Bitmap.OnResize'#13#11'BitmapAli'
-  +'gn'#7#8'baCenter'#5'Color'#7#7'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0
-  +#0#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabOrder'#2#3#0#0#8'TImage32'
-  +#7'TexAImg'#4'Left'#2#8#6'Height'#3#2#1#3'Top'#3#144#1#5'Width'#3#2#1#25'Bit'
-  +'map.ResamplerClassName'#6#17'TNearestResampler'#15'Bitmap.OnChange'#13#15'B'
-  +'itmap.OnResize'#13#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7'clBlack'#11'P'
-  +'arentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'
-  +#8'TabOrder'#2#4#0#0#8'TImage32'#7'TexBImg'#4'Left'#3#16#1#6'Height'#3#2#1#3
-  +'Top'#3#144#1#5'Width'#3#2#1#25'Bitmap.ResamplerClassName'#6#17'TNearestResa'
-  +'mpler'#15'Bitmap.OnChange'#13#15'Bitmap.OnResize'#13#11'BitmapAlign'#7#8'ba'
-  +'Center'#5'Color'#7#7'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128
-  ,#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabOrder'#2#5#0#0#7'TButton'#14'Generat'
-  +'eButton'#4'Left'#2#8#6'Height'#2#25#3'Top'#2' '#5'Width'#3#1#1#7'Caption'#6
-  +#25'Generate Random Weightmap'#8'TabOrder'#2#6#0#0#0
+  +#1#25'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#11'BitmapAlign'#7#8
+  +'baCenter'#5'Color'#7#7'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0
+  +#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabOrder'#2#2#0#0#8'TImage32'#12'We'
+  +'ightmapImg'#4'Left'#2#8#6'Height'#3#2#1#3'Top'#2'p'#5'Width'#3#2#1#25'Bitma'
+  +'p.ResamplerClassName'#6#17'TNearestResampler'#11'BitmapAlign'#7#8'baCenter'
+  +#5'Color'#7#7'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'
+  +#9'ScaleMode'#7#8'smNormal'#8'TabOrder'#2#3#0#0#8'TImage32'#7'TexAImg'#4'Lef'
+  +'t'#2#8#6'Height'#3#2#1#3'Top'#3#144#1#5'Width'#3#2#1#25'Bitmap.ResamplerCla'
+  +'ssName'#6#17'TNearestResampler'#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7
+  +'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'
+  +#7#8'smNormal'#8'TabOrder'#2#4#0#0#8'TImage32'#7'TexBImg'#4'Left'#3#16#1#6'H'
+  +'eight'#3#2#1#3'Top'#3#144#1#5'Width'#3#2#1#25'Bitmap.ResamplerClassName'#6
+  +#17'TNearestResampler'#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7'clBlack'#11
+  +'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'#7#8'smNorma'
+  +'l'#8'TabOrder'#2#5#0#0#7'TButton'#14'GenerateButton'#4'Left'#2#8#6'Height'#2
+  +#25#3'Top'#2' '#5'Width'#3#1#1#7'Caption'#6#25'Generate Random Weightmap'#8
+  ,'TabOrder'#2#6#0#0#0
 ]);

@@ -32,7 +32,6 @@ unit MainUnit;
  *
  * ***** END LICENSE BLOCK ***** *)
 
-
 interface
 
 {$I GR32.inc}
@@ -61,24 +60,26 @@ type
     procedure Paint;
   end;
 
+  { TFormGradientLines }
+
   TFormGradientLines = class(TForm)
-    PaintBox: TPaintBox32;
-    Button1: TButton;
-    Button2: TButton;
-    Button3: TButton;
-    RadioGroup1: TRadioGroup;
-    RadioGroup2: TRadioGroup;
+    btAddOne: TButton;
+    btAddTen: TButton;
+    btClear: TButton;
     Label1: TLabel;
-    Panel1: TPanel;
-    RepaintOpt: TCheckBox;
     Memo2: TMemo;
-    procedure RepaintOptClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    PaintBox: TPaintBox32;
+    pnTotalLines: TPanel;
+    rgDraw: TRadioGroup;
+    rgFade: TRadioGroup;
+    RepaintOpt: TCheckBox;
     procedure FormCreate(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
-    procedure Button3Click(Sender: TObject);
-    procedure RadioGroup1Click(Sender: TObject);
-    procedure RadioGroup2Click(Sender: TObject);
+    procedure RepaintOptClick(Sender: TObject);
+    procedure btAddOneClick(Sender: TObject);
+    procedure btAddTenClick(Sender: TObject);
+    procedure btClearClick(Sender: TObject);
+    procedure rgFadeClick(Sender: TObject);
+    procedure rgDrawClick(Sender: TObject);
   protected
     Lines: array of TLine;
     P: TPoint; // mouse shift
@@ -135,6 +136,10 @@ end;
 
 procedure TLine.Advance(DeltaT: Single);
 
+const
+  COne400 : Single = 1 / 400;
+  COne300 : Single = 1 / 300;
+
   procedure AdvancePoint(var P, V: TVector2f; t: Single);
   begin
     { apply velocities }
@@ -177,15 +182,15 @@ begin
 
   C1 := HSLtoRGB(t1, Sin(t1 / 1.8) * 0.4 + 0.6, 0.5);
   C1 := SetAlpha(C1, Round(Sin(t1) * 25 + 50));
-  t1 := t1 + Random / 300;
+  t1 := t1 + Random * COne300;
 
   C2 := HSLtoRGB(t2, Sin(t2 / 1.8) * 0.4 + 0.6, 0.5);
   C2 := SetAlpha(C2, Round(Sin(t2) * 25 + 50));
-  t2 := t2 + Random / 400;
+  t2 := t2 + Random * COne400;
 
   C3 := HSLtoRGB(t3, Sin(t3 / 1.8) * 0.4 + 0.6, 0.5);
   C3 := SetAlpha(C3, Round(Sin(t3) * 25 + 50));
-  t3 := t3 + Random / 400;
+  t3 := t3 + Random * COne400;
 end;
 
 constructor TLine.Create(ABitmap: TBitmap32);
@@ -214,6 +219,13 @@ end;
 
 { TFormGradientLines }
 
+procedure TFormGradientLines.FormCreate(Sender: TObject);
+begin
+  FadeCount := 0;
+  DrawPasses := 2;
+  Application.OnIdle := AppEventsIdle;
+end;
+
 procedure TFormGradientLines.AddLine;
 var
   L: TLine;
@@ -228,7 +240,7 @@ begin
   L.P2.X := Random(PaintBox.Buffer.Width div 2 - 1);
   L.P1.Y := Random(PaintBox.Buffer.Height div 2 - 1);
   L.P2.Y := Random(PaintBox.Buffer.Height div 2 - 1);
-  Panel1.Caption := IntToStr(Length(Lines));
+  pnTotalLines.Caption := IntToStr(Length(Lines));
 end;
 
 procedure TFormGradientLines.AddLines(N: Integer);
@@ -273,43 +285,36 @@ begin
     PaintBox.Invalidate;
 end;
 
-procedure TFormGradientLines.FormCreate(Sender: TObject);
-begin
-  FadeCount := 0;
-  DrawPasses := 2;
-  Application.OnIdle := AppEventsIdle;
-end;
-
-procedure TFormGradientLines.Button1Click(Sender: TObject);
+procedure TFormGradientLines.btAddOneClick(Sender: TObject);
 begin
   AddLine;
 end;
 
-procedure TFormGradientLines.Button2Click(Sender: TObject);
+procedure TFormGradientLines.btAddTenClick(Sender: TObject);
 begin
   AddLines(10);
 end;
 
-procedure TFormGradientLines.Button3Click(Sender: TObject);
+procedure TFormGradientLines.btClearClick(Sender: TObject);
 var
   I: Integer;
 begin
   for I := High(Lines) downto 0 do Lines[I].Free;
   Lines := nil;
   PaintBox.Buffer.Clear;
-  Panel1.Caption := '0';
+  pnTotalLines.Caption := '0';
 end;
  
-procedure TFormGradientLines.RadioGroup1Click(Sender: TObject);
+procedure TFormGradientLines.rgFadeClick(Sender: TObject);
 const
   FC: array [0..2] of Integer = (0, 7, 1);
 begin
-  FadeCount := FC[RadioGroup1.ItemIndex];
+  FadeCount := FC[rgFade.ItemIndex];
 end;
 
-procedure TFormGradientLines.RadioGroup2Click(Sender: TObject);
+procedure TFormGradientLines.rgDrawClick(Sender: TObject);
 begin
-  DrawPasses := (RadioGroup2.ItemIndex + 1) * 3 - 2;
+  DrawPasses := (rgDraw.ItemIndex + 1) * 3 - 2;
 end;
 
 procedure TFormGradientLines.RepaintOptClick(Sender: TObject);

@@ -2,15 +2,13 @@ program LineStippling_Ex;
 
 uses
   Interfaces,
-  Forms, SysUtils,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
-
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
+  Forms,
+  SysUtils,
+  GR32_L,
+  MainUnit in 'MainUnit.pas' {FormLineStippling};
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormLineStippling, FormLineStippling);
   Application.Run;
 end.

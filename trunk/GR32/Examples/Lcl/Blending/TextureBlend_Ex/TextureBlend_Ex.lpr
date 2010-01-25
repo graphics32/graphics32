@@ -5,10 +5,6 @@ uses
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm}, GR32_L, ImagesForLazarus;
 
-{$IFDEF Windows}
-{.$R *.res}
-{$ENDIF}
-
 begin
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);

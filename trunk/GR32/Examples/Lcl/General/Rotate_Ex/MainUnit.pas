@@ -147,7 +147,7 @@ begin
     {$ENDIF}
   {$ENDIF}
 
-  Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
+//  Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);
 

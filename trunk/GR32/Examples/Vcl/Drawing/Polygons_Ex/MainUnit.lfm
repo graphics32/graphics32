@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormPolygons: TFormPolygons
   Left = 257
   Height = 533
   Top = 129
@@ -10,7 +10,7 @@ object Form1: TForm1
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '0.9.27'
+  LCLVersion = '0.9.29'
   object Image: TImage32
     Left = 0
     Height = 533
@@ -22,8 +22,6 @@ object Form1: TForm1
     Bitmap.Resampler.Kernel.Coeff = -0.80000001192092
     Bitmap.Resampler.KernelMode = kmDynamic
     Bitmap.Resampler.TableSize = 32
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baTopLeft
     Scale = 1
     ScaleMode = smStretch
@@ -47,7 +45,7 @@ object Form1: TForm1
     object Label1: TLabel
       Left = 16
       Height = 14
-      Top = 210
+      Top = 223
       Width = 64
       Caption = 'Line Opacity:'
       ParentColor = False
@@ -55,7 +53,7 @@ object Form1: TForm1
     object Label2: TLabel
       Left = 16
       Height = 14
-      Top = 250
+      Top = 263
       Width = 53
       Caption = 'Fill Opacity'
       ParentColor = False
@@ -63,7 +61,7 @@ object Form1: TForm1
     object Label3: TLabel
       Left = 16
       Height = 14
-      Top = 394
+      Top = 407
       Width = 88
       Caption = 'Outline Thickness:'
       ParentColor = False
@@ -88,7 +86,7 @@ object Form1: TForm1
     object LineAlpha: TScrollBar
       Left = 16
       Height = 16
-      Top = 226
+      Top = 239
       Width = 121
       Max = 255
       PageSize = 0
@@ -99,7 +97,7 @@ object Form1: TForm1
     object FillAlpha: TScrollBar
       Left = 16
       Height = 16
-      Top = 266
+      Top = 279
       Width = 121
       Max = 255
       PageSize = 0
@@ -110,7 +108,7 @@ object Form1: TForm1
     object FillMode: TRadioGroup
       Left = 16
       Height = 65
-      Top = 290
+      Top = 303
       Width = 121
       AutoFill = True
       Caption = 'Fill Mode'
@@ -135,7 +133,7 @@ object Form1: TForm1
     object LineThickness: TScrollBar
       Left = 16
       Height = 16
-      Top = 434
+      Top = 447
       Width = 121
       Max = 200
       Min = 1
@@ -147,7 +145,7 @@ object Form1: TForm1
     object ThickOutline: TCheckBox
       Left = 16
       Height = 17
-      Top = 410
+      Top = 423
       Width = 58
       Caption = 'Enabled'
       OnClick = ThicknessChanged
@@ -155,7 +153,7 @@ object Form1: TForm1
     end
     object AntialiasMode: TRadioGroup
       Left = 16
-      Height = 85
+      Height = 99
       Top = 60
       Width = 121
       AutoFill = True
@@ -168,7 +166,7 @@ object Form1: TForm1
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 67
+      ClientHeight = 81
       ClientWidth = 117
       Enabled = False
       ItemIndex = 0
@@ -185,7 +183,7 @@ object Form1: TForm1
     object Memo1: TMemo
       Left = 16
       Height = 47
-      Top = 466
+      Top = 479
       Width = 121
       Color = clInfoBk
       Font.Height = -9
@@ -202,7 +200,7 @@ object Form1: TForm1
     object Memo2: TMemo
       Left = 16
       Height = 57
-      Top = 150
+      Top = 163
       Width = 121
       Color = clInfoBk
       Font.Height = -9
@@ -221,7 +219,7 @@ object Form1: TForm1
     object Pattern: TCheckBox
       Left = 16
       Height = 17
-      Top = 360
+      Top = 373
       Width = 83
       Caption = 'Pattern filling'
       OnClick = ParamsChanged

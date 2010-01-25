@@ -34,7 +34,7 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
   end
-  object Button1: TButton
+  object btAddOne: TButton
     Left = 515
     Top = 8
     Width = 98
@@ -42,9 +42,9 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     Caption = 'Add One'
     TabOrder = 1
-    OnClick = Button1Click
+    OnClick = btAddOneClick
   end
-  object Button2: TButton
+  object btAddTen: TButton
     Left = 515
     Top = 34
     Width = 98
@@ -52,9 +52,9 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     Caption = 'Add Ten'
     TabOrder = 2
-    OnClick = Button2Click
+    OnClick = btAddTenClick
   end
-  object Button3: TButton
+  object btClear: TButton
     Left = 515
     Top = 60
     Width = 98
@@ -62,9 +62,9 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     Caption = 'Clear'
     TabOrder = 3
-    OnClick = Button3Click
+    OnClick = btClearClick
   end
-  object RadioGroup1: TRadioGroup
+  object rgFade: TRadioGroup
     Left = 510
     Top = 224
     Width = 109
@@ -79,9 +79,9 @@ object FormGradientLines: TFormGradientLines
       'Fast')
     ParentCtl3D = False
     TabOrder = 4
-    OnClick = RadioGroup1Click
+    OnClick = rgFadeClick
   end
-  object RadioGroup2: TRadioGroup
+  object rgDraw: TRadioGroup
     Left = 510
     Top = 136
     Width = 109
@@ -96,9 +96,9 @@ object FormGradientLines: TFormGradientLines
       'Fast')
     ParentCtl3D = False
     TabOrder = 5
-    OnClick = RadioGroup2Click
+    OnClick = rgDrawClick
   end
-  object Panel1: TPanel
+  object pnTotalLines: TPanel
     Left = 519
     Top = 108
     Width = 73

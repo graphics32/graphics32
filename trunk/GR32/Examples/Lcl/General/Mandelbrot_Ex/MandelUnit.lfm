@@ -11,6 +11,7 @@ object Form1: TForm1
   Menu = MainMenu1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.29'
   object MainMenu1: TMainMenu
     left = 24
     top = 16

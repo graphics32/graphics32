@@ -39,7 +39,6 @@ interface
 
 uses
   {$IFDEF FPC}
-    Types,
     {$IFDEF Windows}
       Windows,
     {$ENDIF}
@@ -263,14 +262,15 @@ begin
     begin
       if PropType^.Kind = tkClass then
       begin
-        SubDst := TPersistent(GetObjectProp(Dst, Name));
+        // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
+        SubDst := TPersistent(GetObjectProp(Dst, string(Name)));
         if not Assigned(SubDst) then Continue;
 
-        SubSrc := TPersistent(GetObjectProp(Src, Name));
+        SubSrc := TPersistent(GetObjectProp(Src, string(Name)));
         if Assigned(SubSrc) then SubDst.Assign(SubSrc);
       end
       else
-        SetPropValue(Dst, Name, GetPropValue(Src, Name, False));
+        SetPropValue(Dst, string(Name), GetPropValue(Src, string(Name), False));
     end;
   finally
     FreeMem(Props, Count * SizeOf(PPropInfo));
@@ -432,7 +432,7 @@ function TPointerMap.Exists(Item: PItem; out BucketIndex, ItemIndex: Integer): B
 var
   I: Integer;
 begin
-  BucketIndex := Integer(Item) shr 8 and BUCKET_MASK; // KISS pointer hash(TM)
+  BucketIndex := Cardinal(Item) shr 8 and BUCKET_MASK; // KISS pointer hash(TM)
   // due to their randomness, pointers most commonly differ at byte 1, we use
   // this characteristic for our hash and just apply the mask to it.
   // Worst case scenario happens when most changes are at byte 0, which causes
@@ -847,4 +847,3 @@ begin
 end;
 
 end.
-

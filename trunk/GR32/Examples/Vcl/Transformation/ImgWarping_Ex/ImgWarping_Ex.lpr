@@ -3,12 +3,9 @@ program ImgWarping_Ex;
 uses
   Interfaces,
   Forms,
+  ImagesForLazarus,
   MainUnit in 'MainUnit.pas' {MainForm},
-  BrushAuxiliaries in 'BrushAuxiliaries.pas', GR32_L;
-
-{$IFDEF Windows}
-{$R *.res}
-{$ENDIF}
+  BrushAuxiliaries in 'BrushAuxiliaries.pas';
 
 begin
   Application.Initialize;

@@ -177,7 +177,7 @@
 			<VersionInfoKeys Name="Comments"></VersionInfoKeys>
 		</VersionInfoKeys>
 	</Delphi.Personality>
-<!-- EurekaLog First Line
+	<!-- EurekaLog First Line
 [Exception Log]
 EurekaLog Version=512
 Activate=0

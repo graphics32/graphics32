@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <PersonalityInfo>
+    <Option>
+      <Option Name="Personality">Default.Personality</Option>
+      <Option Name="ProjectType"></Option>
+      <Option Name="Version">1.0</Option>
+      <Option Name="GUID">{57374BF6-22D2-4571-B419-140586B71F9B}</Option>
+    </Option>
+  </PersonalityInfo>
+  <Default.Personality>
+    
+    <Projects>
+      <Projects Name="PixelCombine_Ex.exe">Blending\PixelCombine_Ex\PixelCombine_Ex.bdsproj</Projects>
+      <Projects Name="TextureBlend_Ex.exe">Blending\TextureBlend_Ex\TextureBlend_Ex.bdsproj</Projects>
+      <Projects Name="GradLines_Ex.exe">Drawing\GradLines_Ex\GradLines_Ex.bdsproj</Projects>
+      <Projects Name="LineStippling_Ex.exe">Drawing\LineStippling_Ex\LineStippling_Ex.bdsproj</Projects>
+      <Projects Name="Polygons_Ex.exe">Drawing\Polygons_Ex\Polygons_Ex.bdsproj</Projects>
+      <Projects Name="RenderText_Ex.exe">Drawing\RenderText_Ex\RenderText_Ex.bdsproj</Projects>
+      <Projects Name="ByteMaps_Ex.exe">General\ByteMaps_Ex\ByteMaps_Ex.bdsproj</Projects>
+      <Projects Name="Image32_Ex.exe">General\Image32_Ex\Image32_Ex.bdsproj</Projects>
+      <Projects Name="Mandelbrot_Ex.exe">General\Mandelbrot_Ex\Mandelbrot_Ex.bdsproj</Projects>
+      <Projects Name="Rotate_Ex.exe">General\Rotate_Ex\Rotate_Ex.bdsproj</Projects>
+      <Projects Name="ImgView_Layers_Ex.exe">Layers\ImgView_Layers_Ex\ImgView_Layers_Ex.bdsproj</Projects>
+      <Projects Name="RotLayer_Ex.exe">Layers\RotLayer_Ex\RotLayer_Ex.bdsproj</Projects>
+      <Projects Name="Sprites_Ex.exe">Layers\Sprites_Ex\Sprites_Ex.bdsproj</Projects>
+      <Projects Name="NestedSampling_Ex.exe">Resampling\NestedSampling_Ex\NestedSampling_Ex.bdsproj</Projects>
+      <Projects Name="PixelF_Ex.exe">Resampling\PixelF_Ex\PixelF_Ex.bdsproj</Projects>
+      <Projects Name="Resamplers_Ex.exe">Resampling\Resamplers_Ex\Resamplers_Ex.bdsproj</Projects>
+      <Projects Name="ImgWarping_Ex.exe">Transformation\ImgWarping_Ex\ImgWarping_Ex.bdsproj</Projects>
+      <Projects Name="Transform_Ex.exe">Transformation\Transform_Ex\Transform_Ex.bdsproj</Projects>
+      <Projects Name="Visualization_Ex.exe">Transformation\Visualization_Ex\Visualization_Ex.bdsproj</Projects>
+      <Projects Name="Targets">PixelCombine_Ex.exe TextureBlend_Ex.exe GradLines_Ex.exe LineStippling_Ex.exe Polygons_Ex.exe RenderText_Ex.exe ByteMaps_Ex.exe Image32_Ex.exe Mandelbrot_Ex.exe Rotate_Ex.exe ImgView_Layers_Ex.exe RotLayer_Ex.exe Sprites_Ex.exe NestedSampling_Ex.exe PixelF_Ex.exe Resamplers_Ex.exe ImgWarping_Ex.exe Transform_Ex.exe Visualization_Ex.exe</Projects>
+    </Projects>
+    <Dependencies/>
+  </Default.Personality>
+</BorlandProject>

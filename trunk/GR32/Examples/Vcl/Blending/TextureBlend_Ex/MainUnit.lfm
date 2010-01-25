@@ -12,7 +12,7 @@ object MainForm: TMainForm
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '0.9.27'
+  LCLVersion = '0.9.29'
   object LabelMasterAlpha: TLabel
     Left = 272
     Height = 14
@@ -178,8 +178,6 @@ object MainForm: TMainForm
     Top = 112
     Width = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
@@ -193,8 +191,6 @@ object MainForm: TMainForm
     Top = 112
     Width = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
@@ -208,8 +204,6 @@ object MainForm: TMainForm
     Top = 400
     Width = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
@@ -223,8 +217,6 @@ object MainForm: TMainForm
     Top = 400
     Width = 258
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    Bitmap.OnChange = nil
-    Bitmap.OnResize = nil
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False

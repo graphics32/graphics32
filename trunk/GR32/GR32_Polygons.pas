@@ -41,7 +41,6 @@ interface
 
 uses
   {$IFDEF FPC}
-    Types,
   {$ELSE}
     {$IFDEF CLX}
       Qt,

@@ -1,12 +1,14 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <PathDelim Value="/"/>
-    <Version Value="5"/>
+    <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="2"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -25,19 +27,22 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="2">
+    <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="LCL"/>
+        <PackageName Value="GR32_L"/>
       </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="7">
       <Unit0>
         <Filename Value="ImgWarping_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="6" Y="6"/>
+        <CursorPos X="1" Y="7"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -45,27 +50,55 @@
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
-        <HasResources Value="True"/>
         <IsPartOfProject Value="True"/>
-        <ResourceFilename Value="MainUnit.lrs"/>
+        <ComponentName Value="MainForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="60"/>
-        <TopLine Value="42"/>
+        <CursorPos X="45" Y="203"/>
+        <TopLine Value="171"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="268"/>
+        <CursorPos X="17" Y="2"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="LFM"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../../../../GR32_DrawingEx.pas"/>
+        <UnitName Value="GR32_DrawingEx"/>
+        <CursorPos X="32" Y="65"/>
+        <TopLine Value="35"/>
+        <UsageCount Value="10"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../../../../Packages/GR32_L.pas"/>
+        <UnitName Value="GR32_L"/>
+        <CursorPos X="46" Y="9"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <UnitName Value="GR32_Backends_LCL_Win"/>
+        <CursorPos X="25" Y="417"/>
+        <TopLine Value="400"/>
         <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit2>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
+        <CursorPos X="1" Y="3167"/>
+        <TopLine Value="3150"/>
+        <UsageCount Value="10"/>
+      </Unit6>
     </Units>
-    <JumpHistory Count="2" HistoryIndex="1">
+    <JumpHistory Count="12" HistoryIndex="11">
       <Position1>
         <Filename Value="ImgWarping_Ex.lpr"/>
         <Caret Line="6" Column="6" TopLine="1"/>
@@ -74,14 +107,71 @@
         <Filename Value="MainUnit.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
       </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="177" Column="21" TopLine="167"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="193" Column="9" TopLine="164"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="372" Column="33" TopLine="355"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="382" Column="39" TopLine="355"/>
+      </Position7>
+      <Position8>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position8>
+      <Position9>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="192" Column="9" TopLine="175"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position10>
+      <Position11>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="372" Column="32" TopLine="355"/>
+      </Position11>
+      <Position12>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="203" Column="45" TopLine="171"/>
+      </Position12>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
+    <SearchPaths>
+      <IncludeFiles Value="../../../../"/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
+      <OtherUnitFiles Value="../../../../"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)/"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+        <IncludeAssertionCode Value="True"/>
+        <CPPInline Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
     <CodeGeneration>
-      <Generate Value="Faster"/>
+      <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
       <Options>
         <Win32>
           <GraphicApplication Value="True"/>

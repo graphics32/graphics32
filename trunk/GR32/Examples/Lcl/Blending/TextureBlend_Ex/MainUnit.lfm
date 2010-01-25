@@ -15,11 +15,12 @@ object MainForm: TMainForm
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object Label5: TLabel
     Left = 272
     Height = 14
     Top = 32
-    Width = 61
+    Width = 60
     Caption = 'MasterAlpha'
     ParentColor = False
   end
@@ -38,6 +39,7 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
   object Label3: TLabel
@@ -55,6 +57,7 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
   object Label1: TLabel
@@ -72,6 +75,7 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
   object Label2: TLabel
@@ -89,6 +93,7 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
   object Label6: TLabel
@@ -105,13 +110,14 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
   object Label7: TLabel
     Left = 272
     Height = 14
     Top = 56
-    Width = 53
+    Width = 54
     Caption = 'Blendmode'
     ParentColor = False
   end
@@ -129,6 +135,7 @@ object MainForm: TMainForm
     Font.Style = [fsBold]
     Layout = tlCenter
     ParentColor = False
+    ParentFont = False
     Transparent = False
   end
   object BlendBox: TComboBox
@@ -136,7 +143,6 @@ object MainForm: TMainForm
     Height = 21
     Top = 56
     Width = 177
-    AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
     ItemHeight = 13
     Items.Strings = (
       'Normal'
@@ -151,7 +157,6 @@ object MainForm: TMainForm
       'Color Average'
       'Color Exclusion'
     )
-    MaxLength = 0
     OnChange = MasterAlphaBarChange
     Style = csDropDownList
     TabOrder = 0

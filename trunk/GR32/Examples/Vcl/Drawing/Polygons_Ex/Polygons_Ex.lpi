@@ -8,6 +8,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -33,25 +34,29 @@
         <MinVersion Major="1" Valid="True"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="15">
+    <Units Count="16">
       <Unit0>
         <Filename Value="Polygons_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="26" Y="5"/>
+        <CursorPos X="5" Y="14"/>
         <TopLine Value="1"/>
+        <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="Form1"/>
+        <ComponentName Value="FormPolygons"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="78" Y="183"/>
-        <TopLine Value="173"/>
+        <CursorPos X="1" Y="144"/>
+        <TopLine Value="115"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
@@ -155,8 +160,27 @@
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit14>
+      <Unit15>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
+        <CursorPos X="8" Y="2756"/>
+        <TopLine Value="2755"/>
+        <UsageCount Value="10"/>
+      </Unit15>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="3" HistoryIndex="2">
+      <Position1>
+        <Filename Value="Polygons_Ex.lpr"/>
+        <Caret Line="8" Column="6" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="Polygons_Ex.lpr"/>
+        <Caret Line="14" Column="5" TopLine="1"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="136" Column="3" TopLine="115"/>
+      </Position3>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
@@ -170,7 +194,7 @@
       <SyntaxOptions>
         <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
-        <AllowLabel Value="False"/>
+        <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
@@ -178,6 +202,9 @@
       <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
       <LinkSmart Value="True"/>
       <Options>
         <LinkerOptions Value="-framework carbon"/>

@@ -100,9 +100,6 @@ type
   TGetSampleFloat = function(X, Y: TFloat): TColor32 of object;
   TGetSampleFixed = function(X, Y: TFixed): TColor32 of object;
 
-  TCDType = (cdFrequency, cdTime);
-  TBurgessOpt = (bo59, bo71);
-
   { TCustomKernel }
   TCustomKernel = class(TPersistent)
   protected
@@ -1372,7 +1369,6 @@ procedure StretchHorzStretchVertLinear(
 var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   MapHorz, MapVert: array of TPointRec;
-  MapPtr: PPointRec;
   t2, Scale: TFloat;
   SrcLine, DstLine: PColor32Array;
   SrcIndex: Integer;
@@ -1655,19 +1651,15 @@ procedure Resample(
   Kernel: TCustomKernel;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
-  SrcW, SrcH: TFloat;
-  DstW, DstH: Integer;
-  DstClipW, DstClipH: Integer;
-  t: TFloat;
+  DstClipW: Integer;
   MapX, MapY: TMappingTable;
-  I, J, X, Y, Index: Integer;
+  I, J, X, Y: Integer;
   MapXLoPos, MapXHiPos: Integer;
   HorzBuffer: array of TBufferEntry;
   ClusterX, ClusterY: TCluster;
-  ClusterXSize, ClusterYSize: Integer;
-  C, Wt, Cr, Cg, Cb, Ca: Integer;
-  ClustYP, ClustYW, ClustXP, ClustXW: Integer;
-  SrcP: PColor32;
+  Wt, Cr, Cg, Cb, Ca: Integer;
+  C: Cardinal;
+  ClustYW: Integer;
   DstLine: PColor32Array;
   RangeCheck: Boolean;
   BlendMemEx: TBlendMemEx;
@@ -1680,12 +1672,7 @@ begin
 
   BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^; // store in local variable
 
-  SrcW := SrcRect.Right - SrcRect.Left;
-  SrcH := SrcRect.Bottom - SrcRect.Top;
-  DstW := DstRect.Right - DstRect.Left;
-  DstH := DstRect.Bottom - DstRect.Top;
   DstClipW := DstClip.Right - DstClip.Left;
-  DstClipH := DstClip.Bottom - DstClip.Top;
 
   // mapping tables
   MapX := BuildMappingTable(DstRect.Left, DstRect.Right, DstClip.Left, DstClip.Right, SrcRect.Left, SrcRect.Right, Kernel);
@@ -1786,7 +1773,6 @@ end;
 
 function BlockAverage_Pas(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
 type
- PCardinal = ^Cardinal;
  PRGBA = ^TRGBA;
  TRGBA = record B,G,R,A: Byte end;
 var
@@ -1981,13 +1967,11 @@ var
   RowSrc, OffSrc,
   dy, dx,
   c1, c2, r1, r2,
-  xs, xsrc, M: Cardinal;
+  xs, xsrc: Cardinal;
   C: TColor32;
   DstLine: PColor32Array;
-  ScaleFactor,lx, fe: TFloat;
-  FSrcTop,I,J,ly,
-  sc, sr, cx, cy: integer;
-  Y_256: TFixed;
+  ScaleFactor: TFloat;
+  I,J, sc, sr, cx, cy: Integer;
   BlendMemEx: TBlendMemEx;
 begin
  { rangechecking and rect intersection done by caller }

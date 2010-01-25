@@ -1,40 +1,50 @@
 object MainForm: TMainForm
   Left = 254
-  Height = 669
+  Height = 563
   Top = 244
   Width = 631
   HorzScrollBar.Page = 630
   VertScrollBar.Page = 649
   ActiveControl = ToolGroup.RadioButton0
   Caption = 'Image Warping Example'
+  ClientHeight = 544
+  ClientWidth = 631
   Font.Height = -11
   Font.Name = 'Tahoma'
   Menu = MainMenu
   OnClose = FormClose
   OnCreate = FormCreate
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object Panel1: TPanel
     Left = 8
-    Height = 137
+    Height = 529
     Top = 8
-    Width = 105
+    Width = 481
     BevelInner = bvRaised
     BevelOuter = bvLowered
     TabOrder = 0
   end
   object MainPanel: TPanel
     Left = 490
-    Height = 650
+    Height = 544
+    Top = 0
     Width = 141
     Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
     Caption = 'MainPanel'
+    ClientHeight = 544
+    ClientWidth = 141
     TabOrder = 1
     object GeneralPanel: TPanel
+      Left = 0
       Height = 73
+      Top = 0
       Width = 141
       Align = alTop
+      ClientHeight = 73
+      ClientWidth = 141
       TabOrder = 0
       object Label4: TLabel
         Left = 1
@@ -52,6 +62,7 @@ object MainForm: TMainForm
         Font.Style = [fsBold]
         Layout = tlCenter
         ParentColor = False
+        ParentFont = False
         Transparent = False
       end
       object Label5: TLabel
@@ -60,7 +71,6 @@ object MainForm: TMainForm
         Top = 24
         Width = 66
         Caption = 'Remap Scale:'
-        Color = clNone
         ParentColor = False
       end
       object ScaleBar: TGaugeBar
@@ -69,6 +79,7 @@ object MainForm: TMainForm
         Top = 40
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         LargeChange = 10
         Max = 300
         Min = -300
@@ -79,10 +90,13 @@ object MainForm: TMainForm
       end
     end
     object BrushPanel: TPanel
+      Left = 0
       Height = 304
       Top = 233
       Width = 141
       Align = alTop
+      ClientHeight = 304
+      ClientWidth = 141
       TabOrder = 1
       object Label6: TLabel
         Left = 1
@@ -100,6 +114,7 @@ object MainForm: TMainForm
         Font.Style = [fsBold]
         Layout = tlCenter
         ParentColor = False
+        ParentFont = False
         Transparent = False
       end
       object FeatherLabel: TLabel
@@ -108,7 +123,6 @@ object MainForm: TMainForm
         Top = 88
         Width = 43
         Caption = 'Feather:'
-        Color = clNone
         ParentColor = False
       end
       object Label2: TLabel
@@ -117,7 +131,6 @@ object MainForm: TMainForm
         Top = 56
         Width = 47
         Caption = 'Pressure:'
-        Color = clNone
         ParentColor = False
       end
       object Label3: TLabel
@@ -126,7 +139,6 @@ object MainForm: TMainForm
         Top = 120
         Width = 30
         Caption = 'Pinch:'
-        Color = clNone
         ParentColor = False
       end
       object Label1: TLabel
@@ -135,7 +147,6 @@ object MainForm: TMainForm
         Top = 24
         Width = 24
         Caption = 'Size:'
-        Color = clNone
         ParentColor = False
       end
       object Bevel2: TBevel
@@ -151,7 +162,6 @@ object MainForm: TMainForm
         Top = 160
         Width = 60
         Caption = 'Brush Mesh:'
-        Color = clNone
         ParentColor = False
       end
       object FeatherBar: TGaugeBar
@@ -160,6 +170,7 @@ object MainForm: TMainForm
         Top = 104
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         LargeChange = 10
         ShowHandleGrip = True
         Style = rbsMac
@@ -172,6 +183,7 @@ object MainForm: TMainForm
         Top = 72
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         LargeChange = 10
         ShowHandleGrip = True
         Style = rbsMac
@@ -184,10 +196,12 @@ object MainForm: TMainForm
         Top = 136
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         LargeChange = 10
         Min = -100
         ShowHandleGrip = True
         Style = rbsMac
+        Position = 0
         OnChange = PressureBarChange
       end
       object SizeBar: TGaugeBar
@@ -196,6 +210,7 @@ object MainForm: TMainForm
         Top = 40
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         LargeChange = 10
         Max = 500
         Min = 5
@@ -215,10 +230,13 @@ object MainForm: TMainForm
       end
     end
     object ToolPanel: TPanel
+      Left = 0
       Height = 160
       Top = 73
       Width = 141
       Align = alTop
+      ClientHeight = 160
+      ClientWidth = 141
       TabOrder = 2
       object Label7: TLabel
         Left = 1
@@ -236,6 +254,7 @@ object MainForm: TMainForm
         Font.Style = [fsBold]
         Layout = tlCenter
         ParentColor = False
+        ParentFont = False
         Transparent = False
       end
       object ParamLabel: TLabel
@@ -244,7 +263,6 @@ object MainForm: TMainForm
         Top = 88
         Width = 31
         Caption = 'Param'
-        Color = clNone
         Enabled = False
         ParentColor = False
       end
@@ -254,7 +272,6 @@ object MainForm: TMainForm
         Top = 120
         Width = 28
         Caption = 'Rate:'
-        Color = clNone
         Enabled = False
         ParentColor = False
       end
@@ -272,6 +289,8 @@ object MainForm: TMainForm
         ChildSizing.ShrinkVertical = crsScaleChilds
         ChildSizing.Layout = cclLeftToRightThenTopToBottom
         ChildSizing.ControlsPerLine = 2
+        ClientHeight = 39
+        ClientWidth = 117
         Columns = 2
         ItemIndex = 0
         Items.Strings = (
@@ -289,6 +308,7 @@ object MainForm: TMainForm
         Top = 104
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         Enabled = False
         LargeChange = 10
         ShowHandleGrip = True
@@ -303,6 +323,7 @@ object MainForm: TMainForm
         Top = 136
         Width = 121
         Color = clScrollBar
+        Backgnd = bgPattern
         Enabled = False
         LargeChange = 10
         Max = 399
@@ -315,7 +336,6 @@ object MainForm: TMainForm
     end
   end
   object OpenPictureDialog: TOpenPictureDialog
-    Title = 'Vorhandene Datei öffnen'
     FilterIndex = 0
     left = 136
     top = 8
@@ -327,7 +347,6 @@ object MainForm: TMainForm
     top = 8
   end
   object OpenMeshDialog: TOpenDialog
-    Title = 'Vorhandene Datei öffnen'
     Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
     FilterIndex = 0
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
@@ -335,7 +354,6 @@ object MainForm: TMainForm
     top = 8
   end
   object SaveMeshDialog: TSaveDialog
-    Title = 'Datei sichern als'
     Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
     FilterIndex = 0
     Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]

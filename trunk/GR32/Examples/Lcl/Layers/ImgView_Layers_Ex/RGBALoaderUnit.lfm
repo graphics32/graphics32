@@ -14,8 +14,11 @@ object RGBALoaderForm: TRGBALoaderForm
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object Bevel1: TBevel
+    Left = 0
     Height = 2
+    Top = 0
     Width = 320
     Align = alTop
     Shape = bsTopLine
@@ -57,6 +60,7 @@ object RGBALoaderForm: TRGBALoaderForm
     Layout = blGlyphBottom
     NumGlyphs = 0
     OnClick = SpeedButton1Click
+    ParentFont = False
   end
   object SpeedButton2: TSpeedButton
     Left = 170
@@ -71,6 +75,7 @@ object RGBALoaderForm: TRGBALoaderForm
     Layout = blGlyphBottom
     NumGlyphs = 0
     OnClick = SpeedButton2Click
+    ParentFont = False
   end
   object SpeedButton3: TSpeedButton
     Left = 340
@@ -85,6 +90,7 @@ object RGBALoaderForm: TRGBALoaderForm
     Layout = blGlyphBottom
     NumGlyphs = 0
     OnClick = SpeedButton3Click
+    ParentFont = False
   end
   object SpeedButton4: TSpeedButton
     Left = 362
@@ -99,8 +105,10 @@ object RGBALoaderForm: TRGBALoaderForm
     Layout = blGlyphBottom
     NumGlyphs = 0
     OnClick = SpeedButton4Click
+    ParentFont = False
   end
   object Panel1: TPanel
+    Left = 0
     Height = 55
     Top = 2
     Width = 320
@@ -119,6 +127,7 @@ object RGBALoaderForm: TRGBALoaderForm
       Font.Height = -11
       Font.Name = 'Verdana'
       ParentColor = False
+      ParentFont = False
     end
   end
   object Button1: TButton

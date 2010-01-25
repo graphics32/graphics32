@@ -35,7 +35,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
@@ -43,10 +43,13 @@ uses
   GR32, GR32_Image, GR32_Resamplers, GR32_RangeBars;
 
 type
-  TForm1 = class(TForm)
+
+  { TFormImage32Example }
+
+  TFormImage32Example = class(TForm)
+    Image: TImage32;
     Panel1: TPanel;
     Panel2: TPanel;
-    Image: TImage32;
     rgScaleMode: TRadioGroup;
     rgKernel: TRadioGroup;
     rgBitmapAlign: TRadioGroup;
@@ -62,7 +65,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormImage32Example: TFormImage32Example;
 
 implementation
 
@@ -77,23 +80,23 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
-procedure TForm1.rgBitmapAlignClick(Sender: TObject);
+procedure TFormImage32Example.rgBitmapAlignClick(Sender: TObject);
 const
   BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
 begin
   Image.BitmapAlign := BA_CONSTS[rgBitmapAlign.ItemIndex];
 end;
 
-procedure TForm1.sbScaleChange(Sender: TObject);
+procedure TFormImage32Example.sbScaleChange(Sender: TObject);
 begin
   sbScale.Update;
   Image.Scale := sbScale.Position / 100;
 end;
 
-procedure TForm1.rgScaleModeClick(Sender: TObject);
+procedure TFormImage32Example.rgScaleModeClick(Sender: TObject);
 const
   SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
 var
@@ -105,7 +108,7 @@ begin
   StaticText1.Enabled := ScaleEnabled;
 end;
 
-procedure TForm1.rgKernelClick(Sender: TObject);
+procedure TFormImage32Example.rgKernelClick(Sender: TObject);
 const
   K_CONSTS: array [0..4] of TCustomKernelClass =
     (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
@@ -113,13 +116,14 @@ begin
   TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
-{$IFDEF Darwin}
+procedure TFormImage32Example.FormCreate(Sender: TObject);
 var
+{$IFDEF Darwin}
   pathRef: CFURLRef;
   pathCFStr: CFStringRef;
   pathStr: shortstring;
 {$ENDIF}
+  pathMedia: string;
 begin
   // Under Mac OS X we need to get the location of the bundle
 {$IFDEF Darwin}
@@ -130,8 +134,26 @@ begin
   CFRelease(pathCFStr);
 {$ENDIF}
 
+  // Different platforms store resource files on different locations
+{$IFDEF Windows}
+  {$IFDEF FPC}
+  pathMedia := '..\..\..\..\Media\';
+  {$ELSE}
+  pathMedia := '..\..\..\Media\';
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
   // On Lazarus we don't use design-time packages because they consume time to be installed
 {$IFDEF FPC}
+(*
   Image := TImage32.Create(Self);
   Image.Parent := Self;
   Image.Left := 2;
@@ -142,20 +164,12 @@ begin
   Image.Bitmap.ResamplerClassName := 'TNearestResampler';
   Image.Scale := 1;
   Image.TabOrder := 0;
+*)
 {$ENDIF}
 
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  Image.Bitmap.LoadFromFile('..\..\..\Media\delphi.jpg');
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    Image.Bitmap.LoadFromFile(pathStr + '/Contents/Resources/Media/delphi.jpg');
-  {$ELSE}
-    Image.Bitmap.LoadFromFile('../../../Media/delphi.jpg');
-  {$ENDIF}
-{$ENDIF}
+  // load example image
+  Assert(FileExists(pathMedia + 'delphi.jpg'));
+  Image.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   with TKernelResampler.Create(Image.Bitmap) do
   begin

@@ -39,7 +39,6 @@ interface
 
 uses
   {$IFDEF FPC}
-    Types,
     {$IFDEF Windows}
       Windows,
     {$ENDIF}
@@ -192,7 +191,7 @@ var
 implementation
 
 uses
-  GR32_Resamplers, GR32_Math, GR32_Containers, GR32_System, Math, SysUtils;
+  GR32_Resamplers, GR32_Containers, GR32_System, Math, SysUtils;
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
@@ -670,7 +669,6 @@ const
   LEFT: array[TDirection] of TDirection = (West, North, East, South);
   RIGHT: array[TDirection] of TDirection = (East, South, West, North);
   COORDS: array[TDirection] of TPoint = ((X: 0; Y: -1), (X: 1; Y: 0), (X: 0; Y: 1), (X: -1; Y: 0));
-  UpdateSteps = 100;
 label
   MainLoop;
 begin
@@ -792,7 +790,11 @@ var
     Result.GetSample := Sampler.GetSampleInt;
     Result.AssignColor := AssignColor;
     Result.Dst := Dst;
+  {$IFDEF COMPILER2010}
+    Result.Start;
+  {$ELSE}
     Result.Resume;
+  {$ENDIF}
   end;
 
 begin

@@ -64,9 +64,9 @@ type
     SpeedButton3: TSpeedButton;
     SpeedButton4: TSpeedButton;
     Button5: TButton;
+    procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
     procedure SpeedButton2Click(Sender: TObject);
     procedure SpeedButton3Click(Sender: TObject);

@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormLineStippling: TFormLineStippling
   Left = 216
   Top = 109
   Caption = 'Line Stippling Example'
@@ -25,7 +25,7 @@ object Form1: TForm1
     ScaleMode = smNormal
     TabOrder = 0
   end
-  object ScrollBar1: TScrollBar
+  object ScrollBar: TScrollBar
     Left = 224
     Top = 8
     Width = 16

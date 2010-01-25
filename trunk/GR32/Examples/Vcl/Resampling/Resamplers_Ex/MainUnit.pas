@@ -40,48 +40,48 @@ unit MainUnit;
 interface
 
 {$I GR32.INC}
-{_$DEFINE Ex}
+{.$DEFINE Ex}
 
 uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Jpeg, Math,
-  ExtCtrls, ComCtrls, GR32_Image, GR32_System, GR32_RangeBars, GR32_Controls,
+  ExtCtrls, ComCtrls, GR32_Image, GR32_System, GR32_RangeBars,
   GR32, GR32_Transforms, GR32_Resamplers {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
 
 type
   TfmResamplersExample = class(TForm)
-    PageControl: TPageControl;
-    tabDetails: TTabSheet;
-    ResamplingTabSheet: TTabSheet;
+    CurveImage: TImage32;
     DstImg: TImage32;
-    tabKernel: TTabSheet;
-    SidePanel: TPanel;
+    EdgecheckBox: TComboBox;
+    gbParameter: TGaugeBar;
+    gbTableSize: TGaugeBar;
+    KernelClassNamesList: TComboBox;
+    KernelModeList: TComboBox;
+    lbKernelClass: TLabel;
+    lbKernelMode: TLabel;
+    lbParameter: TLabel;
+    lbPixelAccessMode: TLabel;
+    lbResamplersClass: TLabel;
+    lbTableSize: TLabel;
+    lbWrapMode: TLabel;
+    PageControl: TPageControl;
+    pnKernelProperties: TPanel;
+    pnlKernel: TPanel;
     pnlResampler: TPanel;
     pnResamplerProperties: TPanel;
-    lbResamplersClass: TLabel;
     ResamplerClassNamesList: TComboBox;
-    lbPixelAccessMode: TLabel;
-    lbWrapMode: TLabel;
-    EdgecheckBox: TComboBox;
-    WrapBox: TComboBox;
-    pnlKernel: TPanel;
-    pnKernelProperties: TPanel;
-    lbKernelClass: TLabel;
-    KernelClassNamesList: TComboBox;
-    lbKernelMode: TLabel;
-    KernelModeList: TComboBox;
-    lbTableSize: TLabel;
-    gbTableSize: TGaugeBar;
-    CurveImage: TImage32;
-    StatusBar: TStatusBar;
     ResamplingPaintBox: TPaintBox32;
-    gbParameter: TGaugeBar;
-    lbParameter: TLabel;
+    ResamplingTabSheet: TTabSheet;
+    SidePanel: TPanel;
+    StatusBar: TStatusBar;
+    tabDetails: TTabSheet;
+    tabKernel: TTabSheet;
+    WrapBox: TComboBox;
     procedure FormCreate(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure KernelClassNamesListClick(Sender: TObject);
     procedure ResamplerClassNamesListChange(Sender: TObject);
     procedure DstImgResize(Sender: TObject);
     procedure KernelModeListChange(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure EdgecheckBoxChange(Sender: TObject);
     procedure gbTableSizeChange(Sender: TObject);
     procedure CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
@@ -110,7 +110,35 @@ uses GR32_LowLevel;
 procedure TfmResamplersExample.FormCreate(Sender: TObject);
 var
   I, J: Integer;
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+  // Different platforms store resource files on different locations
+{$IFDEF Win32}
+  pathMedia := '..\..\..\Media\';
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+    pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+    pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
   Src := TBitmap32.Create;
   Src.OuterColor := $FFFF7F7F;
   DstImg.Bitmap.OuterColor := Src.OuterColor;
@@ -118,7 +146,10 @@ begin
   Src.OnChange := SrcChanged;
 
   ResamplingSrc := TBitmap32.Create;
-  ResamplingSrc.LoadFromFile('..\..\..\Media\iceland.jpg');
+
+  // load example image
+  Assert(FileExists(pathMedia + 'iceland.jpg'));
+  ResamplingSrc.LoadFromFile(pathMedia + 'iceland.jpg');
 
   ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
   KernelList.GetClassNames(KernelClassNamesList.Items);
@@ -298,23 +329,23 @@ end;
 procedure TfmResamplersExample.SetKernelParameter(Kernel : TCustomKernel);
 begin
   if Kernel is TAlbrechtKernel then
-    TAlbrechtKernel(Kernel).Terms:=round(gbParameter.Position*0.1)+1
+    TAlbrechtKernel(Kernel).Terms := Round(gbParameter.Position * 0.1) + 1
   else if Kernel is TGaussianKernel then
-    TGaussianKernel(Kernel).Sigma:=gbParameter.Position*0.1+1
+    TGaussianKernel(Kernel).Sigma := gbParameter.Position * 0.1 + 1
 {$IFDEF Ex}
   else if Kernel is TKaiserBesselKernel then
-    TKaiserBesselKernel(Kernel).Alpha:=gbParameter.Position*0.1+1
+    TKaiserBesselKernel(Kernel).Alpha := gbParameter.Position * 0.1 + 1
   else if Kernel is TNutallKernel then
-    TNutallKernel(Kernel).ContinousDerivationType:=TCDType(gbParameter.Position>50)
+    TNutallKernel(Kernel).ContinousDerivationType := TCDType(gbParameter.Position > 50)
   else if Kernel is TBurgessKernel then
-    TBurgessKernel(Kernel).BurgessOpt:=TBurgessOpt(gbParameter.Position>50)
+    TBurgessKernel(Kernel).BurgessOpt := TBurgessOpt(gbParameter.Position > 50)
   else if Kernel is TBlackmanHarrisKernel then
-    TBlackmanHarrisKernel(Kernel).Terms:=round(gbParameter.Position*0.1)+1
+    TBlackmanHarrisKernel(Kernel).Terms := Round(gbParameter.Position * 0.1) + 1
   else if Kernel is TLawreyKernel then
-    TLawreyKernel(Kernel).Terms:=round(gbParameter.Position*0.1)+1
+    TLawreyKernel(Kernel).Terms := Round(gbParameter.Position * 0.1) + 1
 {$ENDIF}
   else if Kernel is TSinshKernel then
-    TSinshKernel(Kernel).Coeff:=20/gbParameter.Position;
+    TSinshKernel(Kernel).Coeff := 20 / gbParameter.Position;
 end;
 
 procedure TfmResamplersExample.CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
@@ -389,16 +420,16 @@ begin
 
   with ResamplingPaintBox.Buffer do
   begin
-    ScaleRatioX := 1 / (ResamplingSrc.Width / (Width * 0.33333333));
-    ScaleRatioY := 1 / (ResamplingSrc.Height / (Height * 0.25));
+    ScaleRatioX := Width / (3 * ResamplingSrc.Width);
+    ScaleRatioY := Height / (4 * ResamplingSrc.Height);
     Tmp.SetSize(Round(ResamplingSrc.Width * ScaleRatioX),
       Round(ResamplingSrc.Height * ScaleRatioY));
     Tmp.Draw(Tmp.BoundsRect, ResamplingSrc.BoundsRect, ResamplingSrc);
     C := Width div 2;
     ResamplingPaintBox.Buffer.Draw(C - Tmp.Width div 2, 10, Tmp);
 
-    ScaleRatioX := 1 / (ResamplingSrc.Width / (Width - 20));
-    ScaleRatioY := 1 / (ResamplingSrc.Height / (((Height - 20) * 0.25) * 3));
+    ScaleRatioX := (Width - 20) / ResamplingSrc.Width;
+    ScaleRatioY := (((Height - 20) * 0.25) * 3) / (ResamplingSrc.Height);
     W := Round(ResamplingSrc.Width * ScaleRatioX);
     H := Round(ResamplingSrc.Height * ScaleRatioY);
     R.Left := C - W div 2; R.Right := C + W div 2;

@@ -1273,8 +1273,7 @@ end;
 function GlyphOutlineToBezierCurve(Dst: TBitmap32; DstX, DstY: TFloat;
   const Glyph: Integer; out Metrics: TGlyphMetrics): TBezierCurve;
 var
-  I, J, K, S, Res: Integer;
-  Code: LongWord;
+  J, K, S, Res: Integer;
   PGlyphMem, PBuffer: PTTPolygonHeader;
   PPCurve: PTTPolyCurve;
 

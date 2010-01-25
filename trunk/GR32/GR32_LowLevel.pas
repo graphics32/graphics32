@@ -146,6 +146,11 @@ function ColorSwap(WinColor: TColor): TColor32;
 
 implementation
 
+{$IFDEF FPC}
+uses
+  SysUtils;
+{$ENDIF}
+
 var
   GR32_Lowlevel_FunctionTemplates : TTemplatesHandle;
 
@@ -221,15 +226,28 @@ asm
         DEC        EDX
         JZ         @ExitPOP
     @QLoopIni:
-        db $0F,$6E,$C9           /// MOVD       MM1, ECX
-        db $0F,$62,$C9           /// PUNPCKLDQ  MM1, MM1
+        {$IFDEF FPC}
+        MOVD       MM1, ECX
+        PUNPCKLDQ  MM1, MM1
+        {$ELSE}
+        db $0F,$6E,$C9
+        db $0F,$62,$C9
+        {$ENDIF}
         SHR        EDX, 1
     @QLoop:
+        {$IFDEF FPC}
+        MOVQ       [EAX], MM1
+        {$ELSE}
         db $0F,$7F,$08           /// MOVQ       [EAX], MM1
+        {$ENDIF}
         ADD        EAX, 8
         DEC        EDX
         JNZ        @QLoop
+        {$IFDEF FPC}
+        EMMS
+        {$ELSE}
         db $0F,$77               /// EMMS
+        {$ENDIF}
     @ExitPOP:
         POP        EBX
         POP        EDI
@@ -245,7 +263,7 @@ var
   P: PWordArray;
 begin
   P := PWordArray(@X);
-  for I := count-1 downto 0 do
+  for I := Count - 1 downto 0 do
     P[I] := Low(Value);
 {$ELSE}
 asm
@@ -852,4 +870,3 @@ initialization
     'GR32_Lowlevel Default Templates');
 
 end.
-

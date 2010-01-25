@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormRenderText: TFormRenderText
   Left = 381
   Top = 128
   Caption = 'RenderText Example'
