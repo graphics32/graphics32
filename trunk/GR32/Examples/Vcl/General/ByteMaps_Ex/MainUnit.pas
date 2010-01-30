@@ -43,38 +43,38 @@ uses
   GR32_Image, GR32_Layers, ToolWin, ImgList, Menus;
 
 type
-  TForm1 = class(TForm)
-    ScaleBar: TGaugeBar;
-    Image: TImgView32;
-    Panel1: TPanel;
-    Panel3: TPanel;
-    Panel4: TPanel;
-    ImageList1: TImageList;
-    CoolBar: TCoolBar;
-    ToolBar1: TToolBar;
+  TMainForm = class(TForm)
+    bCopy: TToolButton;
+    bLinear: TToolButton;
     bNew: TToolButton;
     bOpen: TToolButton;
     bSave: TToolButton;
-    bCopy: TToolButton;
-    ToolBar2: TToolBar;
-    Label2: TLabel;
-    Panel2: TPanel;
-    bLinear: TToolButton;
-    ToolButton7: TToolButton;
+    CoolBar: TCoolBar;
+    Image: TImgView32;
+    ImageList1: TImageList;
     Label1: TLabel;
-    PaletteCombo: TComboBox;
-    ToolBar3: TToolBar;
-    ToolButton4: TToolButton;
-    ToolButton5: TToolButton;
+    Label2: TLabel;
     MainMenu: TMainMenu;
+    mnCopy: TMenuItem;
+    mnEdit: TMenuItem;
+    mnExit: TMenuItem;
     mnFile: TMenuItem;
     mnNew: TMenuItem;
     mnOpen: TMenuItem;
     mnSave: TMenuItem;
     N1: TMenuItem;
-    mnExit: TMenuItem;
-    mnEdit: TMenuItem;
-    mnCopy: TMenuItem;
+    PaletteCombo: TComboBox;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Panel3: TPanel;
+    Panel4: TPanel;
+    ScaleBar: TGaugeBar;
+    ToolBar1: TToolBar;
+    ToolBar2: TToolBar;
+    ToolBar3: TToolBar;
+    ToolButton4: TToolButton;
+    ToolButton5: TToolButton;
+    ToolButton7: TToolButton;
     ToolButton8: TToolButton;
     OpenPictureDialog: TOpenPictureDialog;
     SavePictureDialog: TSavePictureDialog;
@@ -105,7 +105,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
@@ -125,7 +125,7 @@ uses
 
 { TForm1 }
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // On Lazarus we don't use design-time packages because they consume time to be installed
 {$IFDEF FPC}
@@ -170,12 +170,12 @@ begin
   DataSet := TByteMap.Create;
 end;
 
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   DataSet.Free;
 end;
 
-procedure TForm1.GenPalettes;
+procedure TMainForm.GenPalettes;
 var
   i: Integer;
   f: Single;
@@ -190,7 +190,7 @@ begin
   end;
 end;
 
-procedure TForm1.GenSampleData(W, H: Integer);
+procedure TMainForm.GenSampleData(W, H: Integer);
 var
   i, j: Integer;
 
@@ -214,7 +214,7 @@ begin
     end;
 end;
 
-procedure TForm1.PaintData;
+procedure TMainForm.PaintData;
 var
   P: PPalette32;
 begin
@@ -228,12 +228,12 @@ begin
   DataSet.WriteTo(Image.Bitmap, P^);
 end;
 
-procedure TForm1.PaletteComboChange(Sender: TObject);
+procedure TMainForm.PaletteComboChange(Sender: TObject);
 begin
   PaintData;
 end;
 
-procedure TForm1.NewClick(Sender: TObject);
+procedure TMainForm.NewClick(Sender: TObject);
 begin
   GenSampleData(300, 220);
   PaintData;
@@ -243,7 +243,7 @@ begin
   bCopy.Enabled := True;
 end;
 
-procedure TForm1.ScaleChange(Sender: TObject);
+procedure TMainForm.ScaleChange(Sender: TObject);
 var
   NewScale: Single;
 begin
@@ -252,26 +252,26 @@ begin
   Image.Scale := NewScale;
 end;
 
-procedure TForm1.CheckBox1Click(Sender: TObject);
+procedure TMainForm.CheckBox1Click(Sender: TObject);
 begin
   // Don't use aux. resampler setup, pass class names directly:
   if bLinear.Down then Image.Bitmap.ResamplerClassName := 'TLinearResampler'
   else Image.Bitmap.ResamplerClassName := 'TNearestResampler';
 end;
 
-procedure TForm1.CopyClick(Sender: TObject);
+procedure TMainForm.CopyClick(Sender: TObject);
 begin
   Clipboard.Assign(Image.Bitmap);
 end;
 
-procedure TForm1.SaveClick(Sender: TObject);
+procedure TMainForm.SaveClick(Sender: TObject);
 begin
   Application.ProcessMessages;
   with SavePictureDialog do
     if Execute then Image.Bitmap.SaveToFile(FileName);
 end;
 
-procedure TForm1.ImageMouseDown(Sender: TObject; Button: TMouseButton;
+procedure TMainForm.ImageMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   if Button = mbLeft then
@@ -285,7 +285,7 @@ begin
 {$ENDIF}  
 end;
 
-procedure TForm1.ImageMouseMove(Sender: TObject; Shift: TShiftState; X,
+procedure TMainForm.ImageMouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer; Layer: TCustomLayer);
 begin
   if MouseDragging then
@@ -296,7 +296,7 @@ begin
   end;
 end;
 
-procedure TForm1.ImageMouseUp(Sender: TObject; Button: TMouseButton;
+procedure TMainForm.ImageMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
   if Button = mbLeft then
@@ -306,12 +306,12 @@ begin
   end;
 end;
 
-procedure TForm1.mnExitClick(Sender: TObject);
+procedure TMainForm.mnExitClick(Sender: TObject);
 begin
   Close;
 end;
 
-procedure TForm1.OpenClick(Sender: TObject);
+procedure TMainForm.OpenClick(Sender: TObject);
 var
   B: TBitmap32;
 begin

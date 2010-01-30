@@ -9,7 +9,6 @@
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
       <Title Value="Image View Example"/>
-      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -39,15 +38,13 @@
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="13">
+    <Units Count="21">
       <Unit0>
         <Filename Value="ImgView_Layers_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
         <CursorPos X="1" Y="3"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -56,11 +53,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="21" Y="352"/>
-        <TopLine Value="351"/>
-        <EditorIndex Value="1"/>
+        <CursorPos X="46" Y="44"/>
+        <TopLine Value="18"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="NewImageUnit.pas"/>
@@ -69,11 +64,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="NewImageUnit"/>
-        <CursorPos X="47" Y="53"/>
-        <TopLine Value="42"/>
-        <EditorIndex Value="2"/>
+        <CursorPos X="39" Y="89"/>
+        <TopLine Value="54"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit2>
       <Unit3>
         <Filename Value="RGBALoaderUnit.pas"/>
@@ -82,11 +75,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="RGBALoaderUnit"/>
-        <CursorPos X="56" Y="120"/>
-        <TopLine Value="105"/>
-        <EditorIndex Value="3"/>
+        <CursorPos X="25" Y="53"/>
+        <TopLine Value="51"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="../../../../Packages/GR32_L.pas"/>
@@ -135,15 +126,13 @@
         <UnitName Value="GR32_RangeBars"/>
         <CursorPos X="33" Y="68"/>
         <TopLine Value="54"/>
-        <EditorIndex Value="4"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit10>
       <Unit11>
         <Filename Value="../../../../GR32_DrawingEx.pas"/>
         <UnitName Value="GR32_DrawingEx"/>
-        <CursorPos X="69" Y="78"/>
-        <TopLine Value="52"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit11>
       <Unit12>
@@ -152,129 +141,65 @@
         <TopLine Value="114"/>
         <UsageCount Value="10"/>
       </Unit12>
+      <Unit13>
+        <Filename Value="../../../../GR32_Resamplers.pas"/>
+        <UnitName Value="GR32_Resamplers"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="../../../../GR32_Image.pas"/>
+        <UnitName Value="GR32_Image"/>
+        <CursorPos X="3" Y="757"/>
+        <TopLine Value="755"/>
+        <UsageCount Value="10"/>
+        <Bookmarks Count="1">
+          <Item0 X="2" Y="2390" ID="1"/>
+        </Bookmarks>
+      </Unit14>
+      <Unit15>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/lclintfh.inc"/>
+        <CursorPos X="10" Y="83"/>
+        <TopLine Value="66"/>
+        <UsageCount Value="10"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="../../../../../../../../Lazarus/lcl/lclproc.pas"/>
+        <UnitName Value="LCLProc"/>
+        <CursorPos X="9" Y="184"/>
+        <TopLine Value="167"/>
+        <UsageCount Value="10"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="../../../../../../../../Lazarus/lcl/graphics.pp"/>
+        <UnitName Value="Graphics"/>
+        <CursorPos X="15" Y="1076"/>
+        <TopLine Value="1059"/>
+        <UsageCount Value="10"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/canvas.inc"/>
+        <CursorPos X="3" Y="915"/>
+        <TopLine Value="907"/>
+        <UsageCount Value="10"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <UnitName Value="GR32_Blend"/>
+        <CursorPos X="74" Y="24"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="../../../../GR32_Containers.pas"/>
+        <UnitName Value="GR32_Containers"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <UsageCount Value="10"/>
+      </Unit20>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1037" Column="3" TopLine="1012"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="421" Column="15" TopLine="396"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1000" Column="1" TopLine="973"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="150" Column="28" TopLine="119"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="125" Column="27" TopLine="108"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="56" Column="17" TopLine="39"/>
-      </Position7>
-      <Position8>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="125" Column="27" TopLine="108"/>
-      </Position8>
-      <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="261" Column="15" TopLine="244"/>
-      </Position9>
-      <Position10>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position10>
-      <Position11>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="56" Column="17" TopLine="39"/>
-      </Position11>
-      <Position12>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="126" Column="27" TopLine="108"/>
-      </Position12>
-      <Position13>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="261" Column="15" TopLine="244"/>
-      </Position13>
-      <Position14>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="262" Column="15" TopLine="244"/>
-      </Position14>
-      <Position15>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="263" Column="15" TopLine="244"/>
-      </Position15>
-      <Position16>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="264" Column="15" TopLine="244"/>
-      </Position16>
-      <Position17>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="265" Column="15" TopLine="244"/>
-      </Position17>
-      <Position18>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="266" Column="15" TopLine="244"/>
-      </Position18>
-      <Position19>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="267" Column="15" TopLine="244"/>
-      </Position19>
-      <Position20>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="268" Column="15" TopLine="244"/>
-      </Position20>
-      <Position21>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="269" Column="15" TopLine="244"/>
-      </Position21>
-      <Position22>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="270" Column="15" TopLine="244"/>
-      </Position22>
-      <Position23>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="271" Column="15" TopLine="244"/>
-      </Position23>
-      <Position24>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="272" Column="15" TopLine="244"/>
-      </Position24>
-      <Position25>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="273" Column="15" TopLine="244"/>
-      </Position25>
-      <Position26>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="274" Column="15" TopLine="244"/>
-      </Position26>
-      <Position27>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="276" Column="15" TopLine="244"/>
-      </Position27>
-      <Position28>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="355" Column="33" TopLine="334"/>
-      </Position28>
-      <Position29>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="613" Column="34" TopLine="595"/>
-      </Position29>
-      <Position30>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="448" Column="3" TopLine="431"/>
-      </Position30>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
@@ -282,7 +207,7 @@
       <IncludeFiles Value="../../../../"/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
       <OtherUnitFiles Value="../../../../"/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)/"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="../../../"/>
     </SearchPaths>
     <Parsing>

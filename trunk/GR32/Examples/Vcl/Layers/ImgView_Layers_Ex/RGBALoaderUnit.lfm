@@ -12,7 +12,6 @@ object RGBALoaderForm: TRGBALoaderForm
   ClientWidth = 402
   Font.Height = -11
   Font.Name = 'Tahoma'
-  OnCreate = FormCreate
   Position = poScreenCenter
   LCLVersion = '0.9.29'
   object Bevel1: TBevel
@@ -181,6 +180,40 @@ object RGBALoaderForm: TRGBALoaderForm
     Caption = 'Reset Scales'
     OnClick = Button5Click
     TabOrder = 4
+  end
+  object ImgRGB: TImgView32
+    Left = 24
+    Height = 167
+    Top = 112
+    Width = 167
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Color = clAppWorkspace
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clBtnShadow
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsMac
+    OverSize = 0
+    TabOrder = 6
+  end
+  object ImgAlpha: TImgView32
+    Left = 216
+    Height = 167
+    Top = 112
+    Width = 167
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Color = clAppWorkspace
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clBtnShadow
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsMac
+    OverSize = 0
+    TabOrder = 7
   end
   object OpenPictureDialog: TOpenPictureDialog
     Title = 'Open existing file'

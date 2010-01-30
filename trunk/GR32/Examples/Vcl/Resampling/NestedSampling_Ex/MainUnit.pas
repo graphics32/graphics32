@@ -36,7 +36,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
@@ -209,7 +209,13 @@ implementation
 {$R *.dfm}
 
 uses
-  GR32_OrdinalMaps, GR32_LowLevel, Math, Jpeg;
+  Math,
+{$IFNDEF FPC}
+  JPEG,
+{$ELSE}
+  LazJPEG,
+{$ENDIF}
+  GR32_OrdinalMaps, GR32_LowLevel;
 
 procedure SetupToolBar(ToolBar: TToolBar);
 var

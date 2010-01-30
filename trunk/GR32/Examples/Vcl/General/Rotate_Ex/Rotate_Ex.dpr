@@ -2,12 +2,12 @@ program Rotate_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {FormRotateExample};
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormRotateExample, FormRotateExample);
   Application.Run;
 end.

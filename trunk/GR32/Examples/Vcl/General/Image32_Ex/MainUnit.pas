@@ -55,7 +55,6 @@ type
     rgBitmapAlign: TRadioGroup;
     StaticText1: TStaticText;
     sbScale: TGaugeBar;
-    procedure Panel2Click(Sender: TObject);
     procedure rgBitmapAlignClick(Sender: TObject);
     procedure sbScaleChange(Sender: TObject);
     procedure rgScaleModeClick(Sender: TObject);
@@ -76,7 +75,7 @@ implementation
 
 uses
 {$IFDEF Darwin}
-  FPCMacOSAll,
+  MacOSAll,
 {$ENDIF}
 {$IFNDEF FPC}
   JPEG;
@@ -128,11 +127,6 @@ begin
     KernelMode := kmTableNearest;
     TableSize := 16;
   end;
-end;
-
-procedure TFormImage32Example.Panel2Click(Sender: TObject);
-begin
-
 end;
 
 procedure TFormImage32Example.rgBitmapAlignClick(Sender: TObject);

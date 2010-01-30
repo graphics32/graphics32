@@ -297,6 +297,28 @@ object MainForm: TMainForm
       end
     end
   end
+  object ImgView: TImgView32
+    Left = 0
+    Height = 469
+    Top = 0
+    Width = 501
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsDefault
+    SizeGrip = sgNone
+    OverSize = 0
+    TabOrder = 1
+    OnMouseDown = ImgViewMouseDown
+    OnMouseWheelDown = ImgViewMouseWheelDown
+    OnMouseWheelUp = ImgViewMouseWheelUp
+    OnPaintStage = ImgViewPaintStage
+  end
   object MainMenu: TMainMenu
     left = 168
     object mnFile: TMenuItem
