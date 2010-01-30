@@ -35,7 +35,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
@@ -56,8 +56,8 @@ type
     Image: TImage32;
     lbLineOpacity: TLabel;
     lbFillOpacity: TLabel;
-    lbOutlineThicknes: TLabel;
-    lbOutlineThicknesValue: TLabel;
+    lbOutlineThickness: TLabel;
+    lbOutlineThicknessValue: TLabel;
     LineAlpha: TScrollBar;
     LineThickness: TScrollBar;
     Memo1: TMemo;
@@ -93,7 +93,7 @@ implementation
 
 uses
 {$IFDEF Darwin}
-  FPCMacOSAll,
+  MacOSAll,
 {$ENDIF}
 {$IFNDEF FPC}
   JPEG;

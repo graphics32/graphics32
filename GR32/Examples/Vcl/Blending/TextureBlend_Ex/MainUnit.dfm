@@ -156,6 +156,7 @@ object MainForm: TMainForm
     Width = 193
     Height = 21
     Style = csDropDownList
+    ItemHeight = 13
     TabOrder = 1
     OnChange = MasterAlphaBarChange
     Items.Strings = (

@@ -68,9 +68,9 @@ object FormPolygons: TFormPolygons
       Height = 13
       Caption = 'Outline Thickness:'
     end
-    object lbOutlineThicknesValue: TLabel
+    object lbOutlineThicknessValue: TLabel
       Left = 113
-      Top = 395
+      Top = 394
       Width = 14
       Height = 13
       Caption = '(1)'

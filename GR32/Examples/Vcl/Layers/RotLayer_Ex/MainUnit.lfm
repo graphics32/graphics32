@@ -1,8 +1,8 @@
-object Form1: TForm1
+object FormRotLayer: TFormRotLayer
   Left = 208
   Height = 477
   Top = 110
-  Width = 365
+  Width = 314
   HorzScrollBar.Page = 346
   HorzScrollBar.Range = 127
   VertScrollBar.Page = 476
@@ -10,7 +10,7 @@ object Form1: TForm1
   ActiveControl = CheckBox1
   Caption = 'Rotation Layer Example'
   ClientHeight = 477
-  ClientWidth = 365
+  ClientWidth = 314
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
@@ -18,7 +18,7 @@ object Form1: TForm1
   object Label1: TLabel
     Left = 12
     Height = 14
-    Top = 312
+    Top = 314
     Width = 77
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Angle:'
@@ -27,7 +27,7 @@ object Form1: TForm1
   object Label2: TLabel
     Left = 12
     Height = 14
-    Top = 344
+    Top = 346
     Width = 97
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.X:'
@@ -36,7 +36,7 @@ object Form1: TForm1
   object Label3: TLabel
     Left = 12
     Height = 14
-    Top = 372
+    Top = 374
     Width = 97
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.Y:'
@@ -62,5 +62,81 @@ object Form1: TForm1
     OnClick = CheckBox1Click
     State = cbChecked
     TabOrder = 0
+  end
+  object GaugeBar1: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 313
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 180
+    Min = -180
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 0
+    OnChange = GaugeBar1Change
+  end
+  object GaugeBar2: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 345
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 200
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 100
+    OnChange = GaugeBar2Change
+  end
+  object GaugeBar3: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 373
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 200
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 100
+    OnChange = GaugeBar2Change
+  end
+  object GaugeBar4: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 439
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Min = -100
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 100
+    OnChange = GaugeBar4Change
+  end
+  object ImgView32_1: TImgView32
+    Left = 8
+    Height = 294
+    Top = 8
+    Width = 295
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Color = clAppWorkspace
+    ParentColor = False
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsMac
+    OverSize = 0
+    TabOrder = 5
   end
 end

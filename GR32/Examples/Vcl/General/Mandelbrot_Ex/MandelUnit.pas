@@ -35,7 +35,7 @@ unit MandelUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
@@ -120,7 +120,7 @@ implementation
 
 uses
 {$IFDEF Darwin}
-  FPCMacOSAll,
+  MacOSAll,
 {$ENDIF}
   GR32_Blend, GR32_LowLevel, Math;
 

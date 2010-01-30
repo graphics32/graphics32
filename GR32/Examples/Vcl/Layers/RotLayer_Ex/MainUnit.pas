@@ -36,7 +36,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, Variants, {$ENDIF}
@@ -44,7 +44,10 @@ uses
   GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars, GR32_Resamplers;
 
 type
-  TForm1 = class(TForm)
+
+  { TFormRotLayer }
+
+  TFormRotLayer = class(TForm)
     ImgView: TImgView32;
     GaugeBar1: TGaugeBar;
     GaugeBar2: TGaugeBar;
@@ -67,7 +70,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormRotLayer: TFormRotLayer;
 
 implementation
 
@@ -77,7 +80,7 @@ implementation
 
 uses
 {$IFDEF Darwin}
-  FPCMacOSAll,
+  MacOSAll,
 {$ENDIF}
 {$IFNDEF FPC}
   JPEG,
@@ -86,7 +89,7 @@ uses
 {$ENDIF}
   Math;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormRotLayer.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
   pathRef: CFURLRef;
@@ -99,88 +102,9 @@ begin
 {$IFDEF Darwin}
   pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
   pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding);
   CFRelease(pathRef);
   CFRelease(pathCFStr);
-{$ENDIF}
-
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  ImgView := TImgView32.Create(Self);
-  ImgView.Parent := Self;
-  ImgView.Left := 4;
-  ImgView.Top := 8;
-  ImgView.Width := 354;
-  ImgView.Height := 294;
-  ImgView.Anchors := [akLeft, akTop, akRight, akBottom];
-  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
-  ImgView.BitmapAlign := baCustom;
-  ImgView.Color := clAppWorkSpace;
-  ImgView.ParentColor := False;
-  ImgView.RepaintMode := rmOptimizer;
-  ImgView.Scale := 1.000000000000000000;
-  ImgView.ScaleMode := smScale;
-  ImgView.ScrollBars.ShowHandleGrip := True;
-  ImgView.ScrollBars.Style := rbsMac;
-  ImgView.OverSize := 0;
-  ImgView.TabOrder := 0;
-
-  GaugeBar1 := TGaugeBar.Create(Self);
-  GaugeBar1.Parent := Self;
-  GaugeBar1.Left := 150;
-  GaugeBar1.Top := 313;
-  GaugeBar1.Width := 153;
-  GaugeBar1.Height := 16;
-  GaugeBar1.Anchors := [akLeft, akBottom];
-  GaugeBar1.Backgnd := bgPattern;
-  GaugeBar1.Max := 180;
-  GaugeBar1.Min := -180;
-  GaugeBar1.ShowHandleGrip := True;
-  GaugeBar1.Style := rbsMac;
-  GaugeBar1.Position := 0;
-  GaugeBar1.OnChange := GaugeBar1Change;
-
-  GaugeBar2 := TGaugeBar.Create(Self);
-  GaugeBar2.Parent := Self;
-  GaugeBar2.Left := 150;
-  GaugeBar2.Top := 345;
-  GaugeBar2.Width := 153;
-  GaugeBar2.Height := 16;
-  GaugeBar2.Anchors := [akLeft, akBottom];
-  GaugeBar2.Backgnd := bgPattern;
-  GaugeBar2.Max := 200;
-  GaugeBar2.ShowHandleGrip := True;
-  GaugeBar2.Style := rbsMac;
-  GaugeBar2.Position := 100;
-  GaugeBar2.OnChange := GaugeBar2Change;
-
-  GaugeBar3 := TGaugeBar.Create(Self);
-  GaugeBar3.Parent := Self;
-  GaugeBar3.Left := 150;
-  GaugeBar3.Top := 373;
-  GaugeBar3.Width := 153;
-  GaugeBar3.Height := 16;
-  GaugeBar3.Anchors := [akLeft, akBottom];
-  GaugeBar3.Backgnd := bgPattern;
-  GaugeBar3.Max := 200;
-  GaugeBar3.ShowHandleGrip := True;
-  GaugeBar3.Style := rbsMac;
-  GaugeBar3.Position := 100;
-  GaugeBar3.OnChange := GaugeBar2Change;
-
-  GaugeBar4 := TGaugeBar.Create(Self);
-  GaugeBar4.Parent := Self;
-  GaugeBar4.Left := 150;
-  GaugeBar4.Top := 441;
-  GaugeBar4.Width := 153;
-  GaugeBar4.Height := 16;
-  GaugeBar4.Anchors := [akLeft, akBottom];
-  GaugeBar4.Backgnd := bgPattern;
-  GaugeBar4.Min := -100;
-  GaugeBar4.ShowHandleGrip := True;
-  GaugeBar4.Style := rbsMac;
-  GaugeBar4.Position := 0;
-  GaugeBar4.OnChange := GaugeBar4Change;
 {$ENDIF}
 
   ImgView.Bitmap.SetSize(200, 200);
@@ -229,12 +153,12 @@ begin
   L.Position := FloatPoint(100, 100);
 end;
 
-procedure TForm1.GaugeBar1Change(Sender: TObject);
+procedure TFormRotLayer.GaugeBar1Change(Sender: TObject);
 begin
   L.Angle := GaugeBar1.Position;
 end;
 
-procedure TForm1.GaugeBar2Change(Sender: TObject);
+procedure TFormRotLayer.GaugeBar2Change(Sender: TObject);
 var
   P: TFloatPoint;
 begin
@@ -244,12 +168,12 @@ begin
   L.Position := P;
 end;
 
-procedure TForm1.GaugeBar4Change(Sender: TObject);
+procedure TFormRotLayer.GaugeBar4Change(Sender: TObject);
 begin
   ImgView.Scale := Power(10, GaugeBar4.Position / 100);
 end;
 
-procedure TForm1.CheckBox1Click(Sender: TObject);
+procedure TFormRotLayer.CheckBox1Click(Sender: TObject);
 begin
   L.Scaled := not L.Scaled;
 end;

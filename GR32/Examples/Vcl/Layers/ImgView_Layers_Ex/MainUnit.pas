@@ -36,7 +36,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
@@ -109,6 +109,8 @@ type
     cbOptRedraw: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure cbOptRedrawClick(Sender: TObject);
+    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
     procedure mnFileNewClick(Sender: TObject);
     procedure mnFileOpenClick(Sender: TObject);
     procedure mnNewBitmapLayerClick(Sender: TObject);
@@ -135,8 +137,6 @@ type
       StageNum: Cardinal);
     procedure mnFlattenClick(Sender: TObject);
     procedure ImgViewMouseWheelUp(Sender: TObject; Shift: TShiftState;
-      MousePos: TPoint; var Handled: Boolean);
-    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
     procedure mnFlipHorzClick(Sender: TObject);
     procedure mnFlipVertClick(Sender: TObject);
@@ -172,7 +172,7 @@ implementation
 
 uses
 {$IFDEF Darwin}
-  FPCMacOSAll,
+  MacOSAll,
 {$ENDIF}
 {$IFNDEF FPC}
   JPEG,
@@ -188,32 +188,6 @@ const
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-
-{$IFDEF FPC}
-  ImgView := TImgView32.Create(Self);
-  ImgView.Parent := Self;
-  ImgView.Left := 0;
-  ImgView.Top := 0;
-  ImgView.Width := 656;
-  ImgView.Height := 575;
-  ImgView.Align := alClient;
-  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
-  ImgView.BitmapAlign := baCustom;
-  ImgView.RepaintMode := rmOptimizer;
-  ImgView.Scale := 1;
-  ImgView.ScaleMode := smScale;
-  ImgView.ScrollBars.ShowHandleGrip := True;
-  ImgView.ScrollBars.Style := rbsDefault;
-  ImgView.SizeGrip := sgNone;
-  ImgView.OverSize := 0;
-  ImgView.TabOrder := 0;
-  ImgView.TabStop := True;
-  ImgView.OnMouseDown := ImgViewMouseDown;
-  ImgView.OnMouseWheelDown := ImgViewMouseWheelDown;
-  ImgView.OnMouseWheelUp := ImgViewMouseWheelUp;
-  ImgView.OnPaintStage := ImgViewPaintStage;
-{$ENDIF}
-
   // by default, PST_CLEAR_BACKGND is executed at this stage,
   // which, in turn, calls ExecClearBackgnd method of ImgView.
   // Here I substitute PST_CLEAR_BACKGND with PST_CUSTOM, so force ImgView

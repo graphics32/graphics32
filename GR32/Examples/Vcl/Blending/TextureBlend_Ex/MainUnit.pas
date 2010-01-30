@@ -77,7 +77,7 @@ implementation
 
 uses
 {$IFDEF Darwin}
-  FPCMacOSAll,
+  MacOSAll,
 {$ENDIF}
 {$IFNDEF FPC}
   JPEG,

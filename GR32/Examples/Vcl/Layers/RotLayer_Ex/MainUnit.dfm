@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormRotLayer: TFormRotLayer
   Left = 208
   Top = 110
   Caption = 'Rotation Layer Example'

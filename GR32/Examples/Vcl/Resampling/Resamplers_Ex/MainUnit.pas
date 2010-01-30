@@ -39,7 +39,7 @@ unit MainUnit;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 {.$DEFINE Ex}
 
 uses
