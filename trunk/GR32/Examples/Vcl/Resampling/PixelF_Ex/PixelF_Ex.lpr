@@ -1,7 +1,5 @@
 program PixelF_Ex;
 
-{$MODE Delphi}
-
 uses
   Interfaces,
   Forms,

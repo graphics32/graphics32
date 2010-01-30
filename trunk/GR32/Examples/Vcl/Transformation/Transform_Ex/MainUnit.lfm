@@ -1,4 +1,4 @@
-object Form1: TForm1
+object FormTranformExample: TFormTranformExample
   Left = 646
   Height = 529
   Top = 114
@@ -14,7 +14,9 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.29'
   object PageControl1: TPageControl
+    Left = 0
     Height = 265
     Top = 264
     Width = 617
@@ -25,38 +27,38 @@ object Form1: TForm1
     OnPageChanged = PageControl1Change
     object TabSheet1: TTabSheet
       Caption = 'Affine'
-      ClientHeight = 235
-      ClientWidth = 613
+      ClientHeight = 239
+      ClientWidth = 609
       object Label9: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 212
-        Width = 68
+        Width = 60
         Caption = 'Code string:'
         ParentColor = False
       end
       object Label10: TLabel
         Left = 443
-        Height = 13
+        Height = 14
         Top = 96
-        Width = 121
+        Width = 111
         Caption = 'Transformation matrix:'
         ParentColor = False
       end
       object ResamplerLabel: TLabel
-        Left = 397
-        Height = 13
+        Left = 408
+        Height = 14
         Top = 8
-        Width = 94
+        Width = 79
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class'
         ParentColor = False
       end
       object KernelLabel: TLabel
-        Left = 394
-        Height = 13
+        Left = 408
+        Height = 14
         Top = 48
-        Width = 115
+        Width = 97
         Anchors = [akTop, akRight]
         Caption = 'Kernel Class (if any)'
         ParentColor = False
@@ -72,7 +74,9 @@ object Form1: TForm1
         ClientWidth = 105
         TabOrder = 0
         object Shape1: TShape
+          Left = 0
           Height = 73
+          Top = 0
           Width = 9
           Align = alLeft
           Brush.Style = bsClear
@@ -80,6 +84,7 @@ object Form1: TForm1
         object Shape2: TShape
           Left = 96
           Height = 73
+          Top = 0
           Width = 9
           Align = alRight
           Brush.Style = bsClear
@@ -95,14 +100,12 @@ object Form1: TForm1
           DefaultColWidth = 37
           DefaultRowHeight = 26
           Enabled = False
-          FixedColor = clBtnFace
           FixedCols = 0
           FixedRows = 0
-          Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goSmoothScroll]
           RowCount = 3
-          ScrollBars = ssAutoBoth
           TabOrder = 0
-          TabStop = True
+          TitleFont.Height = -11
+          TitleFont.Name = 'Tahoma'
         end
       end
       object ListBox: TListBox
@@ -155,9 +158,9 @@ object Form1: TForm1
         TabOrder = 4
         object Label1: TLabel
           Left = 8
-          Height = 13
+          Height = 14
           Top = 11
-          Width = 32
+          Width = 29
           Caption = 'Type:'
           ParentColor = False
         end
@@ -166,7 +169,7 @@ object Form1: TForm1
           Height = 21
           Top = 8
           Width = 265
-          AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
+          ItemHeight = 13
           Items.Strings = (
             'None'
             'Translate'
@@ -174,7 +177,6 @@ object Form1: TForm1
             'Rotate'
             'Skew'
           )
-          MaxLength = 0
           OnChange = ComboBoxChange
           Style = csDropDownList
           TabOrder = 0
@@ -188,8 +190,8 @@ object Form1: TForm1
           TabOrder = 1
           object Page1: TPage
             Caption = 'opNone'
-            ClientWidth = 305
-            ClientHeight = 145
+            ClientWidth = 297
+            ClientHeight = 119
             object Label2: TLabel
               Left = 16
               Height = 26
@@ -201,8 +203,8 @@ object Form1: TForm1
           end
           object Page2: TPage
             Caption = 'opTranslate'
-            ClientWidth = 305
-            ClientHeight = 145
+            ClientWidth = 297
+            ClientHeight = 119
             object Label3: TLabel
               Left = 8
               Height = 26
@@ -248,8 +250,8 @@ object Form1: TForm1
           end
           object Page3: TPage
             Caption = 'opScale'
-            ClientWidth = 305
-            ClientHeight = 145
+            ClientWidth = 297
+            ClientHeight = 119
             object Label6: TLabel
               Left = 16
               Height = 13
@@ -295,8 +297,8 @@ object Form1: TForm1
           end
           object Page4: TPage
             Caption = 'opRotate'
-            ClientWidth = 305
-            ClientHeight = 145
+            ClientWidth = 297
+            ClientHeight = 119
             object Label11: TLabel
               Left = 8
               Height = 26
@@ -359,29 +361,29 @@ object Form1: TForm1
           end
           object Page5: TPage
             Caption = 'opSkew'
-            ClientWidth = 301
-            ClientHeight = 115
+            ClientWidth = 297
+            ClientHeight = 119
             object Label12: TLabel
               Left = 8
-              Height = 28
+              Height = 27
               Top = 8
-              Width = 199
+              Width = 174
               Caption = 'method declaration:'#13#10'procedure Skew(Fx, Fy: Extended);'
               ParentColor = False
             end
             object Label14: TLabel
               Left = 16
-              Height = 13
+              Height = 14
               Top = 59
-              Width = 18
+              Width = 17
               Caption = 'Fx:'
               ParentColor = False
             end
             object Label17: TLabel
               Left = 16
-              Height = 13
+              Height = 14
               Top = 91
-              Width = 19
+              Width = 17
               Caption = 'Fy:'
               ParentColor = False
             end
@@ -407,25 +409,23 @@ object Form1: TForm1
         end
       end
       object ResamplerClassNamesList: TComboBox
-        Left = 413
+        Left = 409
         Height = 21
         Top = 24
         Width = 177
         Anchors = [akTop, akRight]
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 0
+        ItemHeight = 13
         OnChange = ResamplerClassNamesListChange
         Style = csDropDownList
         TabOrder = 5
       end
       object KernelClassNamesList: TComboBox
-        Left = 413
+        Left = 409
         Height = 21
         Top = 64
         Width = 177
         Anchors = [akTop, akRight]
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
-        MaxLength = 0
+        ItemHeight = 13
         OnChange = KernelClassNamesListChange
         Style = csDropDownList
         TabOrder = 6
@@ -434,8 +434,8 @@ object Form1: TForm1
     end
     object TabSheet2: TTabSheet
       Caption = 'Projective'
-      ClientHeight = 265
-      ClientWidth = 617
+      ClientHeight = 239
+      ClientWidth = 609
       ImageIndex = 1
       object Label18: TLabel
         Left = 48
@@ -459,9 +459,9 @@ object Form1: TForm1
   end
   object cbRepeat: TCheckBox
     Left = 544
-    Height = 20
+    Height = 17
     Top = 260
-    Width = 63
+    Width = 55
     Caption = 'Repeat'
     OnClick = cbRepeatClick
     TabOrder = 1

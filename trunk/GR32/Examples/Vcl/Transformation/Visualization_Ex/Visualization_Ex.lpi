@@ -52,8 +52,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="39" Y="312"/>
-        <TopLine Value="415"/>
+        <CursorPos X="1" Y="275"/>
+        <TopLine Value="255"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -89,7 +89,7 @@
         <UsageCount Value="10"/>
       </Unit5>
     </Units>
-    <JumpHistory Count="7" HistoryIndex="6">
+    <JumpHistory Count="9" HistoryIndex="8">
       <Position1>
         <Filename Value="MainUnit.pas"/>
         <Caret Line="536" Column="76" TopLine="498"/>
@@ -118,6 +118,14 @@
         <Filename Value="MainUnit.pas"/>
         <Caret Line="301" Column="42" TopLine="285"/>
       </Position7>
+      <Position8>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="435" Column="26" TopLine="415"/>
+      </Position8>
+      <Position9>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="42" Column="1" TopLine="18"/>
+      </Position9>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -126,7 +134,7 @@
       <IncludeFiles Value="../../../../"/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
       <OtherUnitFiles Value="../../../../"/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)/"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

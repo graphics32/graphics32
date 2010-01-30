@@ -1,30 +1,34 @@
 object MainForm: TMainForm
-  Left = 255
-  Height = 240
-  Top = 121
-  Width = 320
+  Left = 308
+  Height = 488
+  Top = 186
+  Width = 632
   HorzScrollBar.Page = 319
   VertScrollBar.Page = 215
   ActiveControl = ScaleCombo
   Caption = 'Image View Layers Example'
-  ClientHeight = 216
-  ClientWidth = 320
+  ClientHeight = 469
+  ClientWidth = 632
   Font.Height = -11
   Font.Name = 'Tahoma'
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.29'
   object SidePanel: TPanel
-    Left = 189
-    Height = 216
+    Left = 501
+    Height = 469
+    Top = 0
     Width = 131
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 216
+    ClientHeight = 469
     ClientWidth = 131
     TabOrder = 0
     object pnlImage: TPanel
+      Left = 0
       Height = 130
+      Top = 0
       Width = 131
       Align = alTop
       ClientHeight = 130
@@ -33,9 +37,9 @@ object MainForm: TMainForm
       Visible = False
       object Label1: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 24
-        Width = 36
+        Width = 30
         Caption = 'Scale:'
         ParentColor = False
       end
@@ -44,8 +48,8 @@ object MainForm: TMainForm
         Height = 21
         Top = 40
         Width = 105
-        AutoCompleteText = [cbactEndOfLineComplete, cbactSearchAscending]
         DropDownCount = 9
+        ItemHeight = 13
         Items.Strings = (
           '    25%'
           '    50%'
@@ -57,7 +61,6 @@ object MainForm: TMainForm
           '  800%'
           '1600%'
         )
-        MaxLength = 0
         OnChange = ScaleComboChange
         TabOrder = 0
         Text = '100%'
@@ -75,22 +78,23 @@ object MainForm: TMainForm
         Font.Height = -11
         Font.Name = 'Tahoma'
         ParentColor = False
+        ParentFont = False
         TabOrder = 1
       end
       object ImageInterpolate: TCheckBox
         Left = 16
-        Height = 20
+        Height = 17
         Top = 72
-        Width = 89
+        Width = 80
         Caption = 'Interpolated'
         OnClick = ImageInterpolateClick
         TabOrder = 2
       end
       object cbOptRedraw: TCheckBox
         Left = 16
-        Height = 20
+        Height = 17
         Top = 96
-        Width = 124
+        Width = 106
         Caption = 'Optimize Repaints'
         Checked = True
         OnClick = cbOptRedrawClick
@@ -99,6 +103,7 @@ object MainForm: TMainForm
       end
     end
     object pnlBitmapLayer: TPanel
+      Left = 0
       Height = 168
       Top = 130
       Width = 131
@@ -109,9 +114,9 @@ object MainForm: TMainForm
       Visible = False
       object Label2: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 24
-        Width = 48
+        Width = 42
         Caption = 'Opacity:'
         ParentColor = False
       end
@@ -128,13 +133,14 @@ object MainForm: TMainForm
         Font.Height = -11
         Font.Name = 'Tahoma'
         ParentColor = False
+        ParentFont = False
         TabOrder = 0
       end
       object LayerInterpolate: TCheckBox
         Left = 16
-        Height = 20
+        Height = 17
         Top = 64
-        Width = 89
+        Width = 80
         Caption = 'Interpolated'
         OnClick = LayerInterpolateClick
         TabOrder = 1
@@ -161,17 +167,33 @@ object MainForm: TMainForm
       end
       object Cropped: TCheckBox
         Left = 16
-        Height = 20
+        Height = 17
         Top = 88
-        Width = 72
+        Width = 61
         Caption = 'Cropped'
         OnClick = CroppedClick
         TabOrder = 3
       end
+      object LayerOpacity: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 40
+        Width = 105
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 255
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 255
+        OnChange = LayerOpacityChanged
+      end
     end
     object PnlMagn: TPanel
+      Left = 0
       Height = 168
-      Top = 257
+      Top = 298
       Width = 131
       Align = alTop
       ClientHeight = 168
@@ -180,25 +202,25 @@ object MainForm: TMainForm
       Visible = False
       object Label3: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 24
-        Width = 48
+        Width = 42
         Caption = 'Opacity:'
         ParentColor = False
       end
       object Label4: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 64
-        Width = 79
+        Width = 68
         Caption = 'Magnification:'
         ParentColor = False
       end
       object Label5: TLabel
         Left = 8
-        Height = 13
+        Height = 14
         Top = 104
-        Width = 49
+        Width = 46
         Caption = 'Rotation:'
         ParentColor = False
       end
@@ -215,21 +237,68 @@ object MainForm: TMainForm
         Font.Height = -11
         Font.Name = 'Tahoma'
         ParentColor = False
+        ParentFont = False
         TabOrder = 0
       end
       object MagnInterpolate: TCheckBox
         Left = 16
-        Height = 20
+        Height = 17
         Top = 144
-        Width = 89
+        Width = 80
         Caption = 'Interpolated'
         OnClick = MagnChange
         TabOrder = 1
       end
+      object MagnOpacity: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 40
+        Width = 105
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 255
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 255
+        OnChange = MagnChange
+      end
+      object MagnMagnification: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 80
+        Width = 105
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 50
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 10
+        OnChange = MagnChange
+      end
+      object MagnRotation: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 120
+        Width = 105
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 180
+        Min = -180
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 0
+        OnChange = MagnChange
+      end
     end
   end
   object MainMenu: TMainMenu
-    left = 216
+    left = 168
     object mnFile: TMenuItem
       Caption = 'File'
       OnClick = mnFileClick
@@ -354,6 +423,6 @@ object MainForm: TMainForm
   object SaveDialog1: TSaveDialog
     Title = 'Save file as'
     FilterIndex = 0
-    left = 280
+    left = 344
   end
 end

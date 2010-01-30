@@ -7,55 +7,55 @@ object Form1: TForm1
   HorzScrollBar.Range = 127
   VertScrollBar.Page = 476
   VertScrollBar.Range = 454
-  VertScrollBar.Visible = True
   ActiveControl = CheckBox1
   Caption = 'Rotation Layer Example'
   ClientHeight = 477
-  ClientWidth = 347
+  ClientWidth = 365
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
+  LCLVersion = '0.9.29'
   object Label1: TLabel
     Left = 12
-    Height = 13
-    Top = 313
-    Width = 90
+    Height = 14
+    Top = 312
+    Width = 77
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Angle:'
     ParentColor = False
   end
   object Label2: TLabel
     Left = 12
-    Height = 13
-    Top = 345
-    Width = 113
+    Height = 14
+    Top = 344
+    Width = 97
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.X:'
     ParentColor = False
   end
   object Label3: TLabel
     Left = 12
-    Height = 13
-    Top = 373
-    Width = 113
+    Height = 14
+    Top = 372
+    Width = 97
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.Y:'
     ParentColor = False
   end
   object Label4: TLabel
     Left = 12
-    Height = 13
-    Top = 441
-    Width = 100
+    Height = 14
+    Top = 440
+    Width = 86
     Anchors = [akLeft, akBottom]
     Caption = 'ImgView32.Scale:'
     ParentColor = False
   end
   object CheckBox1: TCheckBox
     Left = 8
-    Height = 20
-    Top = 405
-    Width = 119
+    Height = 17
+    Top = 408
+    Width = 102
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Scaled:'
     Checked = True

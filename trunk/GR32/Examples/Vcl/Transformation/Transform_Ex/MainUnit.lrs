@@ -1,119 +1,116 @@
 { This is an automatically generated lazarus resource file }
 
-LazarusResources.Add('TForm1','FORMDATA',[
-  'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#134#2#6'Height'#3#17#2#3'Top'#2'r'#5'Widt'
-  +'h'#3'k'#2#18'HorzScrollBar.Page'#3'j'#2#18'VertScrollBar.Page'#3#16#2#13'Ac'
-  +'tiveControl'#7#8'cbRepeat'#11'BorderStyle'#7#8'bsDialog'#7'Caption'#6#14'Tr'
-  +'ansform Demo'#12'ClientHeight'#3#17#2#11'ClientWidth'#3'k'#2#11'Font.Height'
-  +#2#245#9'Font.Name'#6#6'Tahoma'#8'OnCreate'#7#10'FormCreate'#9'OnDestroy'#7
-  +#11'FormDestroy'#0#12'TPageControl'#12'PageControl1'#6'Height'#3#9#1#3'Top'#3
-  +#8#1#5'Width'#3'i'#2#10'ActivePage'#7#9'TabSheet1'#8'TabIndex'#2#0#8'TabOrde'
-  +'r'#2#2#8'OnChange'#7#18'PageControl1Change'#13'OnPageChanged'#7#18'PageCont'
-  +'rol1Change'#0#9'TTabSheet'#9'TabSheet1'#7'Caption'#6#6'Affine'#12'ClientHei'
-  +'ght'#3#235#0#11'ClientWidth'#3'e'#2#0#6'TLabel'#6'Label9'#4'Left'#2#8#6'Hei'
-  +'ght'#2#13#3'Top'#3#212#0#5'Width'#2'D'#7'Caption'#6#12'Code string:'#11'Par'
-  +'entColor'#8#0#0#6'TLabel'#7'Label10'#4'Left'#3#187#1#6'Height'#2#13#3'Top'#2
-  +'`'#5'Width'#2'y'#7'Caption'#6#22'Transformation matrix:'#11'ParentColor'#8#0
-  +#0#6'TLabel'#14'ResamplerLabel'#4'Left'#3#141#1#6'Height'#2#13#3'Top'#2#8#5
-  +'Width'#2'^'#7'Anchors'#11#5'akTop'#7'akRight'#0#7'Caption'#6#15'Resampler C'
-  +'lass'#11'ParentColor'#8#0#0#6'TLabel'#11'KernelLabel'#4'Left'#3#138#1#6'Hei'
-  +'ght'#2#13#3'Top'#2'0'#5'Width'#2's'#7'Anchors'#11#5'akTop'#7'akRight'#0#7'C'
-  +'aption'#6#21'Kernel Class (if any)'#11'ParentColor'#8#7'Visible'#8#0#0#6'TP'
-  +'anel'#6'Panel2'#4'Left'#3#189#1#6'Height'#2'I'#3'Top'#2'p'#5'Width'#2'i'#10
-  +'BevelOuter'#7#6'bvNone'#12'ClientHeight'#2'I'#11'ClientWidth'#2'i'#8'TabOrd'
-  +'er'#2#0#0#6'TShape'#6'Shape1'#6'Height'#2'I'#5'Width'#2#9#5'Align'#7#6'alLe'
-  +'ft'#11'Brush.Style'#7#7'bsClear'#0#0#6'TShape'#6'Shape2'#4'Left'#2'`'#6'Hei'
-  +'ght'#2'I'#5'Width'#2#9#5'Align'#7#7'alRight'#11'Brush.Style'#7#7'bsClear'#0
-  +#0#11'TStringGrid'#10'StringGrid'#4'Left'#2#8#6'Height'#2'G'#3'Top'#2#1#5'Wi'
-  +'dth'#2']'#7'Anchors'#11#5'akTop'#6'akLeft'#7'akRight'#8'akBottom'#0#11'Bord'
-  +'erStyle'#7#6'bsNone'#8'ColCount'#2#4#15'DefaultColWidth'#2'%'#16'DefaultRow'
-  +'Height'#2#26#7'Enabled'#8#10'FixedColor'#7#9'clBtnFace'#9'FixedCols'#2#0#9
-  +'FixedRows'#2#0#7'Options'#11#15'goFixedVertLine'#15'goFixedHorzLine'#10'goV'
-  +'ertLine'#10'goHorzLine'#13'goRangeSelect'#14'goSmoothScroll'#0#8'RowCount'#2
-  +#3#10'ScrollBars'#7#10'ssAutoBoth'#8'TabOrder'#2#0#7'TabStop'#9#0#0#0#8'TLis'
-  +'tBox'#7'ListBox'#4'Left'#2#8#6'Height'#3#161#0#3'Top'#2#8#5'Width'#2'H'#11
-  +'BorderStyle'#7#6'bsNone'#13'Items.Strings'#1#6#11'Operation 1'#6#11'Operati'
-  +'on 2'#6#11'Operation 3'#6#11'Operation 4'#6#11'Operation 5'#6#11'Operation '
-  +'6'#6#11'Operation 7'#6#11'Operation 8'#0#10'ItemHeight'#2#20#7'OnClick'#7#12
-  +'ListBoxClick'#5'Style'#7#16'lbOwnerDrawFixed'#8'TabOrder'#2#1#0#0#7'TButton'
-  +#7'Button1'#4'Left'#2#8#6'Height'#2#23#3'Top'#3#178#0#5'Width'#2'A'#25'Borde'
-  +'rSpacing.InnerBorder'#2#4#7'Caption'#6#9'Clear All'#7'OnClick'#7#12'Button1'
-  +'Click'#8'TabOrder'#2#2#0#0#5'TEdit'#10'CodeString'#4'Left'#2'P'#6'Height'#2
-  +#21#3'Top'#3#208#0#5'Width'#3#9#2#8'ReadOnly'#9#8'TabOrder'#2#3#4'Text'#6#6
-  +'Clear;'#0#0#6'TPanel'#6'Panel1'#4'Left'#2'P'#6'Height'#3#193#0#3'Top'#2#8#5
-  +'Width'#3'A'#1#12'ClientHeight'#3#193#0#11'ClientWidth'#3'A'#1#8'TabOrder'#2
-  +#4#0#6'TLabel'#6'Label1'#4'Left'#2#8#6'Height'#2#13#3'Top'#2#11#5'Width'#2' '
-  +#7'Caption'#6#5'Type:'#11'ParentColor'#8#0#0#9'TComboBox'#8'ComboBox'#4'Left'
-  +#2'0'#6'Height'#2#21#3'Top'#2#8#5'Width'#3#9#1#16'AutoCompleteText'#11#22'cb'
-  +'actEndOfLineComplete'#20'cbactSearchAscending'#0#13'Items.Strings'#1#6#4'No'
-  +'ne'#6#9'Translate'#6#5'Scale'#6#6'Rotate'#6#4'Skew'#0#9'MaxLength'#2#0#8'On'
-  +'Change'#7#14'ComboBoxChange'#5'Style'#7#14'csDropDownList'#8'TabOrder'#2#0#0
-  +#0#9'TNotebook'#8'Notebook'#4'Left'#2#8#6'Height'#3#145#0#3'Top'#2'('#5'Widt'
-  +'h'#3'1'#1#9'PageIndex'#2#4#8'TabOrder'#2#1#0#5'TPage'#5'Page1'#7'Caption'#6
-  +#6'opNone'#11'ClientWidth'#3'1'#1#12'ClientHeight'#3#145#0#0#6'TLabel'#6'Lab'
-  +'el2'#4'Left'#2#16#6'Height'#2#26#3'Top'#2#16#5'Width'#3#235#0#7'Caption'#6
-  +'XNo type is specified for this operation.'#13#10'Select operation type from'
-  +' the combo box above'#11'ParentColor'#8#0#0#0#5'TPage'#5'Page2'#7'Caption'#6
-  +#11'opTranslate'#11'ClientWidth'#3'1'#1#12'ClientHeight'#3#145#0#0#6'TLabel'
-  +#6'Label3'#4'Left'#2#8#6'Height'#2#26#3'Top'#2#8#5'Width'#3#195#0#7'Caption'
-  +#6';method declaration:'#13#10'procedure Translate(Dx, Dy: Extended);'#11'Pa'
-  +'rentColor'#8#0#0#6'TLabel'#6'Label4'#4'Left'#2#16#6'Height'#2#13#3'Top'#2';'
-  +#5'Width'#2#17#7'Caption'#6#3'Dx:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label5'
-  +#4'Left'#2#16#6'Height'#2#13#3'Top'#2'['#5'Width'#2#17#7'Caption'#6#3'Dy:'#11
-  +'ParentColor'#8#0#0#5'TEdit'#3'eDx'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'8'#5
-  +'Width'#2'9'#8'OnChange'#7#18'TranslationChanged'#8'TabOrder'#2#0#4'Text'#6#1
-  +'0'#0#0#5'TEdit'#3'eDy'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'X'#5'Width'#2'9'
-  +#8'OnChange'#7#18'TranslationChanged'#8'TabOrder'#2#1#4'Text'#6#1'0'#0#0#0#5
-  +'TPage'#5'Page3'#7'Caption'#6#7'opScale'#11'ClientWidth'#3'1'#1#12'ClientHei'
-  ,'ght'#3#145#0#0#6'TLabel'#6'Label6'#4'Left'#2#16#6'Height'#2#13#3'Top'#2'['#5
-  +'Width'#2#16#7'Caption'#6#3'Sy:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label7'#4
-  +'Left'#2#16#6'Height'#2#13#3'Top'#2';'#5'Width'#2#16#7'Caption'#6#3'Sx:'#11
-  +'ParentColor'#8#0#0#6'TLabel'#6'Label8'#4'Left'#2#8#6'Height'#2#26#3'Top'#2#8
-  +#5'Width'#3#173#0#7'Caption'#6'7method declaration:'#13#10'procedure Scale(S'
-  +'x, Sy: Extended);'#11'ParentColor'#8#0#0#5'TEdit'#3'eSy'#4'Left'#2'0'#6'Hei'
-  +'ght'#2#21#3'Top'#2'X'#5'Width'#2'9'#8'OnChange'#7#12'ScaleChanged'#8'TabOrd'
-  +'er'#2#0#4'Text'#6#1'0'#0#0#5'TEdit'#3'eSx'#4'Left'#2'0'#6'Height'#2#21#3'To'
-  +'p'#2'8'#5'Width'#2'9'#8'OnChange'#7#12'ScaleChanged'#8'TabOrder'#2#1#4'Text'
-  +#6#1'0'#0#0#0#5'TPage'#5'Page4'#7'Caption'#6#8'opRotate'#11'ClientWidth'#3'1'
-  +#1#12'ClientHeight'#3#145#0#0#6'TLabel'#7'Label11'#4'Left'#2#8#6'Height'#2#26
-  +#3'Top'#2#8#5'Width'#3#214#0#7'Caption'#6'>method declaration:'#13#10'proced'
-  +'ureRotate(Cx, Cy, Alpha: Extended);'#11'ParentColor'#8#0#0#6'TLabel'#7'Labe'
-  +'l13'#4'Left'#2#16#6'Height'#2#13#3'Top'#2';'#5'Width'#2#17#7'Caption'#6#3'C'
-  +'x:'#11'ParentColor'#8#0#0#6'TLabel'#7'Label16'#4'Left'#2#16#6'Height'#2#13#3
-  +'Top'#2'['#5'Width'#2#31#7'Caption'#6#6'Alpha:'#11'ParentColor'#8#0#0#6'TLab'
-  +'el'#7'Label15'#4'Left'#3#152#0#6'Height'#2#13#3'Top'#2';'#5'Width'#2#17#7'C'
-  +'aption'#6#3'Cy:'#11'ParentColor'#8#0#0#5'TEdit'#3'eCx'#4'Left'#2'0'#6'Heigh'
-  +'t'#2#21#3'Top'#2'8'#5'Width'#2'9'#8'OnChange'#7#15'RotationChanged'#8'TabOr'
-  +'der'#2#0#4'Text'#6#1'0'#0#0#5'TEdit'#6'eAlpha'#4'Left'#2'0'#6'Height'#2#21#3
-  +'Top'#2'X'#5'Width'#2'9'#8'OnChange'#7#15'RotationChanged'#8'TabOrder'#2#1#4
-  +'Text'#6#1'0'#0#0#5'TEdit'#3'eCy'#4'Left'#3#184#0#6'Height'#2#21#3'Top'#2'8'
-  +#5'Width'#2'9'#8'OnChange'#7#15'RotationChanged'#8'TabOrder'#2#2#4'Text'#6#1
-  +'0'#0#0#0#5'TPage'#5'Page5'#7'Caption'#6#6'opSkew'#11'ClientWidth'#3'-'#1#12
-  +'ClientHeight'#2's'#0#6'TLabel'#7'Label12'#4'Left'#2#8#6'Height'#2#28#3'Top'
-  +#2#8#5'Width'#3#199#0#7'Caption'#6'6method declaration:'#13#10'procedure Ske'
-  +'w(Fx, Fy: Extended);'#11'ParentColor'#8#0#0#6'TLabel'#7'Label14'#4'Left'#2
-  +#16#6'Height'#2#13#3'Top'#2';'#5'Width'#2#18#7'Caption'#6#3'Fx:'#11'ParentCo'
-  +'lor'#8#0#0#6'TLabel'#7'Label17'#4'Left'#2#16#6'Height'#2#13#3'Top'#2'['#5'W'
-  +'idth'#2#19#7'Caption'#6#3'Fy:'#11'ParentColor'#8#0#0#5'TEdit'#3'eFx'#4'Left'
-  +#2'0'#6'Height'#2#21#3'Top'#2'8'#5'Width'#2'9'#8'OnChange'#7#11'SkewChanged'
-  +#8'TabOrder'#2#0#4'Text'#6#1'0'#0#0#5'TEdit'#3'eFy'#4'Left'#2'0'#6'Height'#2
-  +#21#3'Top'#2'X'#5'Width'#2'9'#8'OnChange'#7#11'SkewChanged'#8'TabOrder'#2#1#4
-  +'Text'#6#1'0'#0#0#0#0#0#9'TComboBox'#23'ResamplerClassNamesList'#4'Left'#3
-  +#157#1#6'Height'#2#21#3'Top'#2#24#5'Width'#3#177#0#7'Anchors'#11#5'akTop'#7
-  +'akRight'#0#16'AutoCompleteText'#11#22'cbactEndOfLineComplete'#20'cbactSearc'
-  +'hAscending'#0#9'MaxLength'#2#0#8'OnChange'#7#29'ResamplerClassNamesListChan'
-  +'ge'#5'Style'#7#14'csDropDownList'#8'TabOrder'#2#5#0#0#9'TComboBox'#20'Kerne'
-  +'lClassNamesList'#4'Left'#3#157#1#6'Height'#2#21#3'Top'#2'@'#5'Width'#3#177#0
-  +#7'Anchors'#11#5'akTop'#7'akRight'#0#16'AutoCompleteText'#11#22'cbactEndOfLi'
-  +'neComplete'#20'cbactSearchAscending'#0#9'MaxLength'#2#0#8'OnChange'#7#26'Ke'
-  +'rnelClassNamesListChange'#5'Style'#7#14'csDropDownList'#8'TabOrder'#2#6#7'V'
-  +'isible'#8#0#0#0#9'TTabSheet'#9'TabSheet2'#7'Caption'#6#10'Projective'#12'Cl'
-  +'ientHeight'#3#9#1#11'ClientWidth'#3'i'#2#10'ImageIndex'#2#1#0#6'TLabel'#7'L'
-  +'abel18'#4'Left'#2'0'#6'Height'#2#26#3'Top'#2#24#5'Width'#3#230#0#7'Caption'
-  +#6'4Note:'#13#10'Only convex polygons are transormed normally!'#11'ParentCol'
-  +'or'#8#0#0#0#0#6'TPanel'#6'Panel3'#4'Left'#3#8#1#6'Height'#2#20#3'Top'#3#4#1
-  +#5'Width'#3#25#1#9'Alignment'#7#13'taLeftJustify'#10'BevelOuter'#7#6'bvNone'
-  +#7'Caption'#6#10'  Opacity:'#8'TabOrder'#2#0#0#0#9'TCheckBox'#8'cbRepeat'#4
-  +'Left'#3' '#2#6'Height'#2#20#3'Top'#3#4#1#5'Width'#2'?'#7'Caption'#6#6'Repea'
-  +'t'#7'OnClick'#7#13'cbRepeatClick'#8'TabOrder'#2#1#0#0#0
+LazarusResources.Add('TFormTranformExample','FORMDATA',[
+  'TPF0'#20'TFormTranformExample'#19'FormTranformExample'#4'Left'#3#134#2#6'Hei'
+  +'ght'#3#17#2#3'Top'#2'r'#5'Width'#3'k'#2#18'HorzScrollBar.Page'#3'j'#2#18'Ve'
+  +'rtScrollBar.Page'#3#16#2#13'ActiveControl'#7#8'cbRepeat'#11'BorderStyle'#7#8
+  +'bsDialog'#7'Caption'#6#14'Transform Demo'#12'ClientHeight'#3#17#2#11'Client'
+  +'Width'#3'k'#2#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#8'OnCreate'#7
+  +#10'FormCreate'#9'OnDestroy'#7#11'FormDestroy'#10'LCLVersion'#6#6'0.9.29'#0
+  +#12'TPageControl'#12'PageControl1'#4'Left'#2#0#6'Height'#3#9#1#3'Top'#3#8#1#5
+  +'Width'#3'i'#2#10'ActivePage'#7#9'TabSheet1'#8'TabIndex'#2#0#8'TabOrder'#2#2
+  +#8'OnChange'#7#18'PageControl1Change'#13'OnPageChanged'#7#18'PageControl1Cha'
+  +'nge'#0#9'TTabSheet'#9'TabSheet1'#7'Caption'#6#6'Affine'#12'ClientHeight'#3
+  +#239#0#11'ClientWidth'#3'a'#2#0#6'TLabel'#6'Label9'#4'Left'#2#8#6'Height'#2
+  +#14#3'Top'#3#212#0#5'Width'#2'<'#7'Caption'#6#12'Code string:'#11'ParentColo'
+  +'r'#8#0#0#6'TLabel'#7'Label10'#4'Left'#3#187#1#6'Height'#2#14#3'Top'#2'`'#5
+  +'Width'#2'o'#7'Caption'#6#22'Transformation matrix:'#11'ParentColor'#8#0#0#6
+  +'TLabel'#14'ResamplerLabel'#4'Left'#3#152#1#6'Height'#2#14#3'Top'#2#8#5'Widt'
+  +'h'#2'O'#7'Anchors'#11#5'akTop'#7'akRight'#0#7'Caption'#6#15'Resampler Class'
+  +#11'ParentColor'#8#0#0#6'TLabel'#11'KernelLabel'#4'Left'#3#152#1#6'Height'#2
+  +#14#3'Top'#2'0'#5'Width'#2'a'#7'Anchors'#11#5'akTop'#7'akRight'#0#7'Caption'
+  +#6#21'Kernel Class (if any)'#11'ParentColor'#8#7'Visible'#8#0#0#6'TPanel'#6
+  +'Panel2'#4'Left'#3#189#1#6'Height'#2'I'#3'Top'#2'p'#5'Width'#2'i'#10'BevelOu'
+  +'ter'#7#6'bvNone'#12'ClientHeight'#2'I'#11'ClientWidth'#2'i'#8'TabOrder'#2#0
+  +#0#6'TShape'#6'Shape1'#4'Left'#2#0#6'Height'#2'I'#3'Top'#2#0#5'Width'#2#9#5
+  +'Align'#7#6'alLeft'#11'Brush.Style'#7#7'bsClear'#0#0#6'TShape'#6'Shape2'#4'L'
+  +'eft'#2'`'#6'Height'#2'I'#3'Top'#2#0#5'Width'#2#9#5'Align'#7#7'alRight'#11'B'
+  +'rush.Style'#7#7'bsClear'#0#0#11'TStringGrid'#10'StringGrid'#4'Left'#2#8#6'H'
+  +'eight'#2'G'#3'Top'#2#1#5'Width'#2']'#7'Anchors'#11#5'akTop'#6'akLeft'#7'akR'
+  +'ight'#8'akBottom'#0#11'BorderStyle'#7#6'bsNone'#8'ColCount'#2#4#15'DefaultC'
+  +'olWidth'#2'%'#16'DefaultRowHeight'#2#26#7'Enabled'#8#9'FixedCols'#2#0#9'Fix'
+  +'edRows'#2#0#8'RowCount'#2#3#8'TabOrder'#2#0#16'TitleFont.Height'#2#245#14'T'
+  +'itleFont.Name'#6#6'Tahoma'#0#0#0#8'TListBox'#7'ListBox'#4'Left'#2#8#6'Heigh'
+  +'t'#3#161#0#3'Top'#2#8#5'Width'#2'H'#11'BorderStyle'#7#6'bsNone'#13'Items.St'
+  +'rings'#1#6#11'Operation 1'#6#11'Operation 2'#6#11'Operation 3'#6#11'Operati'
+  +'on 4'#6#11'Operation 5'#6#11'Operation 6'#6#11'Operation 7'#6#11'Operation '
+  +'8'#0#10'ItemHeight'#2#20#7'OnClick'#7#12'ListBoxClick'#5'Style'#7#16'lbOwne'
+  +'rDrawFixed'#8'TabOrder'#2#1#0#0#7'TButton'#7'Button1'#4'Left'#2#8#6'Height'
+  +#2#23#3'Top'#3#178#0#5'Width'#2'A'#25'BorderSpacing.InnerBorder'#2#4#7'Capti'
+  +'on'#6#9'Clear All'#7'OnClick'#7#12'Button1Click'#8'TabOrder'#2#2#0#0#5'TEdi'
+  +'t'#10'CodeString'#4'Left'#2'P'#6'Height'#2#21#3'Top'#3#208#0#5'Width'#3#9#2
+  +#8'ReadOnly'#9#8'TabOrder'#2#3#4'Text'#6#6'Clear;'#0#0#6'TPanel'#6'Panel1'#4
+  +'Left'#2'P'#6'Height'#3#193#0#3'Top'#2#8#5'Width'#3'A'#1#12'ClientHeight'#3
+  +#193#0#11'ClientWidth'#3'A'#1#8'TabOrder'#2#4#0#6'TLabel'#6'Label1'#4'Left'#2
+  +#8#6'Height'#2#14#3'Top'#2#11#5'Width'#2#29#7'Caption'#6#5'Type:'#11'ParentC'
+  +'olor'#8#0#0#9'TComboBox'#8'ComboBox'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2#8
+  +#5'Width'#3#9#1#10'ItemHeight'#2#13#13'Items.Strings'#1#6#4'None'#6#9'Transl'
+  +'ate'#6#5'Scale'#6#6'Rotate'#6#4'Skew'#0#8'OnChange'#7#14'ComboBoxChange'#5
+  +'Style'#7#14'csDropDownList'#8'TabOrder'#2#0#0#0#9'TNotebook'#8'Notebook'#4
+  +'Left'#2#8#6'Height'#3#145#0#3'Top'#2'('#5'Width'#3'1'#1#9'PageIndex'#2#4#8
+  +'TabOrder'#2#1#0#5'TPage'#5'Page1'#7'Caption'#6#6'opNone'#11'ClientWidth'#3
+  +')'#1#12'ClientHeight'#2'w'#0#6'TLabel'#6'Label2'#4'Left'#2#16#6'Height'#2#26
+  +#3'Top'#2#16#5'Width'#3#235#0#7'Caption'#6'XNo type is specified for this op'
+  +'eration.'#13#10'Select operation type from the combo box above'#11'ParentCo'
+  +'lor'#8#0#0#0#5'TPage'#5'Page2'#7'Caption'#6#11'opTranslate'#11'ClientWidth'
+  +#3')'#1#12'ClientHeight'#2'w'#0#6'TLabel'#6'Label3'#4'Left'#2#8#6'Height'#2
+  +#26#3'Top'#2#8#5'Width'#3#195#0#7'Caption'#6';method declaration:'#13#10'pro'
+  +'cedure Translate(Dx, Dy: Extended);'#11'ParentColor'#8#0#0#6'TLabel'#6'Labe'
+  +'l4'#4'Left'#2#16#6'Height'#2#13#3'Top'#2';'#5'Width'#2#17#7'Caption'#6#3'Dx'
+  +':'#11'ParentColor'#8#0#0#6'TLabel'#6'Label5'#4'Left'#2#16#6'Height'#2#13#3
+  +'Top'#2'['#5'Width'#2#17#7'Caption'#6#3'Dy:'#11'ParentColor'#8#0#0#5'TEdit'#3
+  +'eDx'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'8'#5'Width'#2'9'#8'OnChange'#7#18
+  +'TranslationChanged'#8'TabOrder'#2#0#4'Text'#6#1'0'#0#0#5'TEdit'#3'eDy'#4'Le'
+  +'ft'#2'0'#6'Height'#2#21#3'Top'#2'X'#5'Width'#2'9'#8'OnChange'#7#18'Translat'
+  +'ionChanged'#8'TabOrder'#2#1#4'Text'#6#1'0'#0#0#0#5'TPage'#5'Page3'#7'Captio'
+  +'n'#6#7'opScale'#11'ClientWidth'#3')'#1#12'ClientHeight'#2'w'#0#6'TLabel'#6
+  +'Label6'#4'Left'#2#16#6'Height'#2#13#3'Top'#2'['#5'Width'#2#16#7'Caption'#6#3
+  ,'Sy:'#11'ParentColor'#8#0#0#6'TLabel'#6'Label7'#4'Left'#2#16#6'Height'#2#13#3
+  +'Top'#2';'#5'Width'#2#16#7'Caption'#6#3'Sx:'#11'ParentColor'#8#0#0#6'TLabel'
+  +#6'Label8'#4'Left'#2#8#6'Height'#2#26#3'Top'#2#8#5'Width'#3#173#0#7'Caption'
+  +#6'7method declaration:'#13#10'procedure Scale(Sx, Sy: Extended);'#11'Parent'
+  +'Color'#8#0#0#5'TEdit'#3'eSy'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'X'#5'Widt'
+  +'h'#2'9'#8'OnChange'#7#12'ScaleChanged'#8'TabOrder'#2#0#4'Text'#6#1'0'#0#0#5
+  +'TEdit'#3'eSx'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'8'#5'Width'#2'9'#8'OnCha'
+  +'nge'#7#12'ScaleChanged'#8'TabOrder'#2#1#4'Text'#6#1'0'#0#0#0#5'TPage'#5'Pag'
+  +'e4'#7'Caption'#6#8'opRotate'#11'ClientWidth'#3')'#1#12'ClientHeight'#2'w'#0
+  +#6'TLabel'#7'Label11'#4'Left'#2#8#6'Height'#2#26#3'Top'#2#8#5'Width'#3#214#0
+  +#7'Caption'#6'>method declaration:'#13#10'procedureRotate(Cx, Cy, Alpha: Ext'
+  +'ended);'#11'ParentColor'#8#0#0#6'TLabel'#7'Label13'#4'Left'#2#16#6'Height'#2
+  +#13#3'Top'#2';'#5'Width'#2#17#7'Caption'#6#3'Cx:'#11'ParentColor'#8#0#0#6'TL'
+  +'abel'#7'Label16'#4'Left'#2#16#6'Height'#2#13#3'Top'#2'['#5'Width'#2#31#7'Ca'
+  +'ption'#6#6'Alpha:'#11'ParentColor'#8#0#0#6'TLabel'#7'Label15'#4'Left'#3#152
+  +#0#6'Height'#2#13#3'Top'#2';'#5'Width'#2#17#7'Caption'#6#3'Cy:'#11'ParentCol'
+  +'or'#8#0#0#5'TEdit'#3'eCx'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'8'#5'Width'#2
+  +'9'#8'OnChange'#7#15'RotationChanged'#8'TabOrder'#2#0#4'Text'#6#1'0'#0#0#5'T'
+  +'Edit'#6'eAlpha'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'X'#5'Width'#2'9'#8'OnC'
+  +'hange'#7#15'RotationChanged'#8'TabOrder'#2#1#4'Text'#6#1'0'#0#0#5'TEdit'#3
+  +'eCy'#4'Left'#3#184#0#6'Height'#2#21#3'Top'#2'8'#5'Width'#2'9'#8'OnChange'#7
+  +#15'RotationChanged'#8'TabOrder'#2#2#4'Text'#6#1'0'#0#0#0#5'TPage'#5'Page5'#7
+  +'Caption'#6#6'opSkew'#11'ClientWidth'#3')'#1#12'ClientHeight'#2'w'#0#6'TLabe'
+  +'l'#7'Label12'#4'Left'#2#8#6'Height'#2#27#3'Top'#2#8#5'Width'#3#174#0#7'Capt'
+  +'ion'#6'6method declaration:'#13#10'procedure Skew(Fx, Fy: Extended);'#11'Pa'
+  +'rentColor'#8#0#0#6'TLabel'#7'Label14'#4'Left'#2#16#6'Height'#2#14#3'Top'#2
+  +';'#5'Width'#2#17#7'Caption'#6#3'Fx:'#11'ParentColor'#8#0#0#6'TLabel'#7'Labe'
+  +'l17'#4'Left'#2#16#6'Height'#2#14#3'Top'#2'['#5'Width'#2#17#7'Caption'#6#3'F'
+  +'y:'#11'ParentColor'#8#0#0#5'TEdit'#3'eFx'#4'Left'#2'0'#6'Height'#2#21#3'Top'
+  +#2'8'#5'Width'#2'9'#8'OnChange'#7#11'SkewChanged'#8'TabOrder'#2#0#4'Text'#6#1
+  +'0'#0#0#5'TEdit'#3'eFy'#4'Left'#2'0'#6'Height'#2#21#3'Top'#2'X'#5'Width'#2'9'
+  +#8'OnChange'#7#11'SkewChanged'#8'TabOrder'#2#1#4'Text'#6#1'0'#0#0#0#0#0#9'TC'
+  +'omboBox'#23'ResamplerClassNamesList'#4'Left'#3#153#1#6'Height'#2#21#3'Top'#2
+  +#24#5'Width'#3#177#0#7'Anchors'#11#5'akTop'#7'akRight'#0#10'ItemHeight'#2#13
+  +#8'OnChange'#7#29'ResamplerClassNamesListChange'#5'Style'#7#14'csDropDownLis'
+  +'t'#8'TabOrder'#2#5#0#0#9'TComboBox'#20'KernelClassNamesList'#4'Left'#3#153#1
+  +#6'Height'#2#21#3'Top'#2'@'#5'Width'#3#177#0#7'Anchors'#11#5'akTop'#7'akRigh'
+  +'t'#0#10'ItemHeight'#2#13#8'OnChange'#7#26'KernelClassNamesListChange'#5'Sty'
+  +'le'#7#14'csDropDownList'#8'TabOrder'#2#6#7'Visible'#8#0#0#0#9'TTabSheet'#9
+  +'TabSheet2'#7'Caption'#6#10'Projective'#12'ClientHeight'#3#239#0#11'ClientWi'
+  +'dth'#3'a'#2#10'ImageIndex'#2#1#0#6'TLabel'#7'Label18'#4'Left'#2'0'#6'Height'
+  +#2#26#3'Top'#2#24#5'Width'#3#230#0#7'Caption'#6'4Note:'#13#10'Only convex po'
+  +'lygons are transormed normally!'#11'ParentColor'#8#0#0#0#0#6'TPanel'#6'Pane'
+  +'l3'#4'Left'#3#8#1#6'Height'#2#20#3'Top'#3#4#1#5'Width'#3#25#1#9'Alignment'#7
+  +#13'taLeftJustify'#10'BevelOuter'#7#6'bvNone'#7'Caption'#6#10'  Opacity:'#8
+  +'TabOrder'#2#0#0#0#9'TCheckBox'#8'cbRepeat'#4'Left'#3' '#2#6'Height'#2#17#3
+  +'Top'#3#4#1#5'Width'#2'7'#7'Caption'#6#6'Repeat'#7'OnClick'#7#13'cbRepeatCli'
+  +'ck'#8'TabOrder'#2#1#0#0#0
 ]);

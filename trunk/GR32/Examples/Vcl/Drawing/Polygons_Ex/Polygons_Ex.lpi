@@ -8,6 +8,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
+      <Title Value="Polygons"/>
       <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <PublishOptions>
@@ -34,11 +35,11 @@
         <MinVersion Major="1" Valid="True"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="16">
+    <Units Count="17">
       <Unit0>
         <Filename Value="Polygons_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="5" Y="14"/>
+        <CursorPos X="1" Y="7"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
@@ -52,8 +53,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="144"/>
-        <TopLine Value="115"/>
+        <CursorPos X="7" Y="159"/>
+        <TopLine Value="142"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -117,7 +118,7 @@
       <Unit9>
         <Filename Value="../../../../Packages/GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
-        <CursorPos X="1" Y="1"/>
+        <CursorPos X="38" Y="8"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
       </Unit9>
@@ -162,24 +163,140 @@
       </Unit14>
       <Unit15>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
-        <CursorPos X="8" Y="2756"/>
+        <CursorPos X="12" Y="2756"/>
         <TopLine Value="2755"/>
         <UsageCount Value="10"/>
       </Unit15>
+      <Unit16>
+        <Filename Value="../../../../GR32_Image.pas"/>
+        <UnitName Value="GR32_Image"/>
+        <CursorPos X="32" Y="2614"/>
+        <TopLine Value="2597"/>
+        <UsageCount Value="10"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit16>
     </Units>
-    <JumpHistory Count="3" HistoryIndex="2">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="Polygons_Ex.lpr"/>
-        <Caret Line="8" Column="6" TopLine="1"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="114" Column="37" TopLine="92"/>
       </Position1>
       <Position2>
-        <Filename Value="Polygons_Ex.lpr"/>
-        <Caret Line="14" Column="5" TopLine="1"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="139" Column="1" TopLine="122"/>
       </Position2>
       <Position3>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="136" Column="3" TopLine="115"/>
+        <Caret Line="140" Column="1" TopLine="123"/>
       </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="141" Column="1" TopLine="124"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="1" TopLine="125"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="143" Column="1" TopLine="126"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="148" Column="1" TopLine="131"/>
+      </Position7>
+      <Position8>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="150" Column="1" TopLine="133"/>
+      </Position8>
+      <Position9>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="163" Column="1" TopLine="141"/>
+      </Position9>
+      <Position10>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="164" Column="1" TopLine="147"/>
+      </Position10>
+      <Position11>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="166" Column="1" TopLine="149"/>
+      </Position11>
+      <Position12>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="167" Column="1" TopLine="150"/>
+      </Position12>
+      <Position13>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="169" Column="1" TopLine="152"/>
+      </Position13>
+      <Position14>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="170" Column="1" TopLine="153"/>
+      </Position14>
+      <Position15>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="171" Column="1" TopLine="177"/>
+      </Position15>
+      <Position16>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="200" Column="90" TopLine="173"/>
+      </Position16>
+      <Position17>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="23" TopLine="125"/>
+      </Position17>
+      <Position18>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="52" Column="1" TopLine="35"/>
+      </Position18>
+      <Position19>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="150" Column="1" TopLine="232"/>
+      </Position19>
+      <Position20>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="217" Column="1" TopLine="200"/>
+      </Position20>
+      <Position21>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="218" Column="1" TopLine="201"/>
+      </Position21>
+      <Position22>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="237" Column="1" TopLine="220"/>
+      </Position22>
+      <Position23>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="238" Column="1" TopLine="221"/>
+      </Position23>
+      <Position24>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="240" Column="1" TopLine="223"/>
+      </Position24>
+      <Position25>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="248" Column="1" TopLine="231"/>
+      </Position25>
+      <Position26>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="251" Column="1" TopLine="234"/>
+      </Position26>
+      <Position27>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="249" Column="27" TopLine="234"/>
+      </Position27>
+      <Position28>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="69" Column="69" TopLine="43"/>
+      </Position28>
+      <Position29>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="213" Column="1" TopLine="196"/>
+      </Position29>
+      <Position30>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="233" Column="1" TopLine="216"/>
+      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

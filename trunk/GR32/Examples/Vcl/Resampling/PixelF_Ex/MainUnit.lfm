@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 272
+  Left = 789
   Height = 285
-  Top = 282
+  Top = 452
   Width = 480
   HorzScrollBar.Page = 479
   VertScrollBar.Page = 284
@@ -19,9 +19,11 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object PnlSettings: TPanel
     Left = 315
     Height = 285
+    Top = 0
     Width = 165
     Align = alRight
     ClientHeight = 285
@@ -29,9 +31,9 @@ object MainForm: TMainForm
     TabOrder = 0
     object Label3: TLabel
       Left = 8
-      Height = 13
+      Height = 14
       Top = 32
-      Width = 69
+      Width = 59
       Caption = 'Twirl Power:'
       ParentColor = False
     end
@@ -48,27 +50,60 @@ object MainForm: TMainForm
       Font.Height = -11
       Font.Name = 'Tahoma'
       ParentColor = False
+      ParentFont = False
       TabOrder = 0
     end
     object rbGetPixelFS: TRadioButton
       Left = 8
-      Height = 20
+      Height = 17
       Top = 96
-      Width = 128
+      Width = 109
       Caption = 'TBitmap32.PixelFS'
       OnClick = gbTwistChange
       TabOrder = 1
+      TabStop = False
     end
     object rbPixelS: TRadioButton
       Left = 8
-      Height = 20
+      Height = 17
       Top = 72
-      Width = 120
+      Width = 103
       Caption = 'TBitmap32.PixelS'
       Checked = True
       OnClick = gbTwistChange
       State = cbChecked
       TabOrder = 2
     end
+    object gbTwist: TGaugeBar
+      Left = 8
+      Height = 12
+      Top = 48
+      Width = 149
+      Color = clScrollBar
+      Backgnd = bgPattern
+      HandleSize = 16
+      Max = 50
+      Min = -50
+      ShowArrows = False
+      ShowHandleGrip = True
+      Style = rbsMac
+      Position = 0
+      OnChange = gbTwistChange
+    end
+  end
+  object Image32: TImage32
+    Left = 8
+    Height = 244
+    Top = 8
+    Width = 300
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    AutoSize = True
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 1
+    OnPaintStage = Image32PaintStage
   end
 end

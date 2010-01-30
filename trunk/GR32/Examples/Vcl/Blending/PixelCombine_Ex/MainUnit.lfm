@@ -3,15 +3,15 @@ object FormPixelCombine: TFormPixelCombine
   Height = 373
   Top = 110
   Width = 524
-  ActiveControl = RadioGroup1.RadioButton0
+  ActiveControl = RadioGroup.RadioButton0
   Caption = 'PixelCombine Example'
   ClientHeight = 373
   ClientWidth = 524
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  LCLVersion = '0.9.27'
-  object RadioGroup1: TRadioGroup
+  LCLVersion = '0.9.29'
+  object RadioGroup: TRadioGroup
     Left = 394
     Height = 185
     Top = 20

@@ -33,14 +33,14 @@
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="21">
+    <Units Count="26">
       <Unit0>
         <Filename Value="PixelCombine_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
         <CursorPos X="10" Y="7"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="21"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -51,10 +51,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="94" Y="23"/>
-        <TopLine Value="14"/>
-        <EditorIndex Value="0"/>
-        <UsageCount Value="21"/>
+        <CursorPos X="1" Y="185"/>
+        <TopLine Value="168"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
@@ -100,7 +100,7 @@
         <UnitName Value="GR32_Resamplers"/>
         <CursorPos X="23" Y="37"/>
         <TopLine Value="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit7>
@@ -131,9 +131,9 @@
       <Unit11>
         <Filename Value="../../../../GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-        <CursorPos X="33" Y="2168"/>
-        <TopLine Value="2152"/>
-        <UsageCount Value="10"/>
+        <CursorPos X="1" Y="742"/>
+        <TopLine Value="725"/>
+        <UsageCount Value="11"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit11>
       <Unit12>
@@ -169,27 +169,27 @@
       <Unit16>
         <Filename Value="../../../../GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
-        <CursorPos X="27" Y="41"/>
-        <TopLine Value="21"/>
+        <CursorPos X="1" Y="1941"/>
+        <TopLine Value="1935"/>
+        <EditorIndex Value="2"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit16>
       <Unit17>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/radiogroup.inc"/>
-        <CursorPos X="47" Y="394"/>
+        <CursorPos X="41" Y="394"/>
         <TopLine Value="376"/>
         <EditorIndex Value="3"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="11"/>
         <Loaded Value="True"/>
       </Unit17>
       <Unit18>
         <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
         <UnitName Value="GR32_Backends_LCL_Win"/>
-        <CursorPos X="1" Y="179"/>
-        <TopLine Value="154"/>
-        <EditorIndex Value="1"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
+        <CursorPos X="133" Y="496"/>
+        <TopLine Value="469"/>
+        <UsageCount Value="11"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit18>
       <Unit19>
@@ -202,72 +202,190 @@
       <Unit20>
         <Filename Value="../../../../GR32.pas"/>
         <UnitName Value="GR32"/>
-        <CursorPos X="5" Y="429"/>
-        <TopLine Value="412"/>
-        <UsageCount Value="10"/>
+        <CursorPos X="1" Y="2454"/>
+        <TopLine Value="2437"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
       </Unit20>
+      <Unit21>
+        <Filename Value="../../../../GR32_Backends.pas"/>
+        <UnitName Value="GR32_Backends"/>
+        <CursorPos X="24" Y="53"/>
+        <TopLine Value="21"/>
+        <UsageCount Value="11"/>
+        <SyntaxHighlighter Value="Delphi"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="../../../../../../../../Lazarus/fpc/2.4.0/source/rtl/objpas/sysutils/intfh.inc"/>
+        <CursorPos X="10" Y="30"/>
+        <TopLine Value="8"/>
+        <UsageCount Value="10"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="../../../../../../../../Lazarus/fpc/2.4.0/source/rtl/objpas/sysutils/sysuintf.inc"/>
+        <CursorPos X="3" Y="47"/>
+        <TopLine Value="45"/>
+        <UsageCount Value="10"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/rasterimage.inc"/>
+        <CursorPos X="1" Y="830"/>
+        <TopLine Value="813"/>
+        <UsageCount Value="10"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/custombitmap.inc"/>
+        <CursorPos X="1" Y="496"/>
+        <TopLine Value="470"/>
+        <UsageCount Value="10"/>
+      </Unit25>
     </Units>
-    <JumpHistory Count="10" HistoryIndex="9">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="100" Column="18" TopLine="88"/>
+        <Caret Line="145" Column="1" TopLine="128"/>
       </Position1>
       <Position2>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="100" Column="20" TopLine="88"/>
+        <Caret Line="145" Column="1" TopLine="128"/>
       </Position2>
       <Position3>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="108" Column="15" TopLine="88"/>
+        <Caret Line="200" Column="3" TopLine="186"/>
       </Position3>
       <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="111" Column="48" TopLine="88"/>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2169" Column="1" TopLine="2152"/>
       </Position4>
       <Position5>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2454" Column="1" TopLine="2437"/>
       </Position5>
       <Position6>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="179" Column="6" TopLine="162"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="200" Column="1" TopLine="183"/>
       </Position6>
       <Position7>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="62" Column="15" TopLine="44"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="214" Column="40" TopLine="183"/>
       </Position7>
       <Position8>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="179" Column="36" TopLine="154"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="51" Column="1" TopLine="19"/>
       </Position8>
       <Position9>
-        <Filename Value="PixelCombine_Ex.lpr"/>
-        <Caret Line="15" Column="63" TopLine="1"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="200" Column="42" TopLine="185"/>
       </Position9>
       <Position10>
-        <Filename Value="PixelCombine_Ex.lpr"/>
-        <Caret Line="3" Column="1" TopLine="1"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="1" TopLine="142"/>
       </Position10>
+      <Position11>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="185" Column="14" TopLine="161"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1963" Column="25" TopLine="1939"/>
+      </Position12>
+      <Position13>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="1" TopLine="142"/>
+      </Position13>
+      <Position14>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1953" Column="28" TopLine="1937"/>
+      </Position14>
+      <Position15>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="1" TopLine="142"/>
+      </Position15>
+      <Position16>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1961" Column="67" TopLine="1937"/>
+      </Position16>
+      <Position17>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="1" TopLine="142"/>
+      </Position17>
+      <Position18>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1945" Column="1" TopLine="1928"/>
+      </Position18>
+      <Position19>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1946" Column="1" TopLine="1929"/>
+      </Position19>
+      <Position20>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1947" Column="1" TopLine="1930"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1948" Column="1" TopLine="1931"/>
+      </Position21>
+      <Position22>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1955" Column="1" TopLine="1938"/>
+      </Position22>
+      <Position23>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="1" TopLine="142"/>
+      </Position23>
+      <Position24>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1945" Column="1" TopLine="1928"/>
+      </Position24>
+      <Position25>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1946" Column="1" TopLine="1929"/>
+      </Position25>
+      <Position26>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1947" Column="1" TopLine="1930"/>
+      </Position26>
+      <Position27>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1948" Column="1" TopLine="1931"/>
+      </Position27>
+      <Position28>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="1" TopLine="142"/>
+      </Position28>
+      <Position29>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="185" Column="1" TopLine="168"/>
+      </Position29>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
     <SearchPaths>
       <IncludeFiles Value="../../../../"/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
       <OtherUnitFiles Value="../../../../"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="../../../"/>
-      <LCLWidgetType Value="win32"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
-        <AllowLabel Value="False"/>
+        <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
+    <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
+    </CodeGeneration>
     <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
       <Options>
         <LinkerOptions Value="-framework carbon"/>
         <Win32>

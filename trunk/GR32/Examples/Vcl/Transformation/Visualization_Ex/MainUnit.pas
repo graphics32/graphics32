@@ -142,24 +142,25 @@ var
 procedure Movement1(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
   d := d * (0.96 + Cos(d * PI) * 0.05);
-  r := r + (ARandomNumber - 0.5)*0.05;
+  r := r + (ARandomNumber - 0.5) * 0.05;
 end;
 
 procedure Movement2(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * (0.94 + (cos((r-PI*0.5) * 32 * ARandomNumber) * 0.06));
+  d := d * (0.94 + (cos((r - PI * 0.5) * 32 * ARandomNumber) * 0.06));
   r := r + (ARandomNumber - 0.5) * 0.05;
 end;
 
 procedure Movement3(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * (1 - (sin((r-PI*0.5) * 7) * 0.03)) * (0.96 + Cos(d * PI) * 0.05);
+  d := d * (1 - (sin((r - PI * 0.5) * 7) * 0.03)) * (0.96 + Cos(d * PI) * 0.05);
   r := r + (cos(d * 12) * 0.03) + 0.04;
 end;
 
 procedure Movement4(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * Trunc(((1 - (sin((x-PI*0.5) * 7) * 0.03)) * (0.96 + Cos(y * PI) * 0.05))*11)/11;
+  d := d * Trunc(((1 - (sin((x-PI*0.5) * 7) * 0.03)) *
+    (0.96 + Cos(y * PI) * 0.05)) * 11) / 11;
   r :=  r + (cos(abs(y) * 10) * 0.03) + 0.04;
 end;
 
@@ -174,7 +175,8 @@ procedure Movement6(Sw, Sh: Single; var X, Y, D, R : Single);
 var
   p,w: Single;
 begin
-  p := d * Round(((1 - (Sin((r - PI * 0.5) * 7) * 0.01)) * (0.96 + Cos(Sqrt(x * x + y * y) * PI) * 0.05))*11)/11;
+  p := d * Round(((1 - (Sin((r - PI * 0.5) * 7) * 0.01)) *
+    (0.96 + Cos(Sqrt(x * x + y * y) * PI) * 0.05)) * 11) / 11;
   d := d * (0.96 + Cos(d * PI) * 0.05);
   w := 1 - abs(x * y);
   d := d + (p - d) * w;
@@ -189,7 +191,7 @@ procedure Movement7(Sw, Sh: Single; var X, Y, D, R : Single);
 var
   t: Single;
 begin
-  t := Cos(d * PI / 2) + x * y * 0.1;
+  t := Cos(d * PI * 0.5) + x * y * 0.1;
   r := r - 0.1 * t * t * t;
   x := x / (0.9 + ARandomNumber);
   y := y / (0.9 + ARandomNumber);

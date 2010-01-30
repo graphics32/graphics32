@@ -4,11 +4,12 @@ uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
+  Application.Title:='Rotate Example';
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormRotateExample, FormRotateExample);
   Application.Run;
 end.
 

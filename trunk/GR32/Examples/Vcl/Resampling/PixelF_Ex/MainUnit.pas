@@ -78,7 +78,7 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -99,44 +99,13 @@ begin
   CFRelease(pathCFStr);
 {$ENDIF}
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  Image32 := TImage32.Create(Self);
-  Image32.Parent := Self;
-  Image32.Left := 8;
-  Image32.Height := 244;
-  Image32.Top := 8;
-  Image32.Width := 300;
-  Image32.Anchors := [akTop, akLeft, akRight, akBottom];
-  Image32.AutoSize := True;
-  Image32.Bitmap.DrawMode := dmBlend;
-  Image32.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Image32.Bitmap.OnChange := nil;
-  Image32.Bitmap.OnResize := nil;
-  Image32.BitmapAlign := baCenter;
-  Image32.Scale := 1;
-  Image32.TabOrder := 0;
-  Image32.OnPaintStage := Image32PaintStage;
-
-  gbTwist := TGaugeBar.Create(PnlSettings);
-  gbTwist.Parent := PnlSettings;
-  gbTwist.Left := 8;
-  gbTwist.Height := 12;
-  gbTwist.Top := 48;
-  gbTwist.Width := 129;
-  gbTwist.Color := clScrollBar;
-  gbTwist.HandleSize := 16;
-  gbTwist.Max := 50;
-  gbTwist.Min := -50;
-  gbTwist.ShowArrows := False;
-  gbTwist.ShowHandleGrip := True;
-  gbTwist.Style := rbsMac;
-  gbTwist.OnChange := gbTwistChange;
-{$ENDIF}
-
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
+  {$IFDEF FPC}
+  pathMedia := '..\..\..\..\Media\';
+  {$ELSE}
   pathMedia := '..\..\..\Media\';
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}

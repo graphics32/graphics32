@@ -1,20 +1,20 @@
-{ Das ist eine automatisch erzeugte Lazarus-Ressourcendatei }
+{ This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TFormPixelCombine','FORMDATA',[
   'TPF0'#17'TFormPixelCombine'#16'FormPixelCombine'#4'Left'#3''''#1#6'Height'#3
-  +'u'#1#3'Top'#2'n'#5'Width'#3#12#2#13'ActiveControl'#7#24'RadioGroup1.RadioBu'
-  +'tton0'#7'Caption'#6#20'PixelCombine Example'#12'ClientHeight'#3'u'#1#11'Cli'
-  +'entWidth'#3#12#2#11'Font.Height'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'O'
-  +'nCreate'#7#10'FormCreate'#10'LCLVersion'#6#6'0.9.27'#0#11'TRadioGroup'#11'R'
-  +'adioGroup1'#4'Left'#3#138#1#6'Height'#3#185#0#3'Top'#2#20#5'Width'#2'm'#7'A'
-  +'nchors'#11#5'akTop'#7'akRight'#0#8'AutoFill'#9#7'Caption'#6#9'Operation'#28
-  +'ChildSizing.LeftRightSpacing'#2#6#28'ChildSizing.TopBottomSpacing'#2#6#29'C'
-  +'hildSizing.EnlargeHorizontal'#7#24'crsHomogenousChildResize'#27'ChildSizing'
-  +'.EnlargeVertical'#7#24'crsHomogenousChildResize'#28'ChildSizing.ShrinkHoriz'
-  +'ontal'#7#14'crsScaleChilds'#26'ChildSizing.ShrinkVertical'#7#14'crsScaleChi'
-  +'lds'#18'ChildSizing.Layout'#7#29'cclLeftToRightThenTopToBottom'#27'ChildSiz'
-  +'ing.ControlsPerLine'#2#1#12'ClientHeight'#3#167#0#11'ClientWidth'#2'i'#9'It'
-  +'emIndex'#2#0#13'Items.Strings'#1#6#6'Opaque'#6#3'Add'#6#3'Sub'#6#8'Modulate'
+  +'u'#1#3'Top'#2'n'#5'Width'#3#12#2#13'ActiveControl'#7#23'RadioGroup.RadioBut'
+  +'ton0'#7'Caption'#6#20'PixelCombine Example'#12'ClientHeight'#3'u'#1#11'Clie'
+  +'ntWidth'#3#12#2#11'Font.Height'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'On'
+  +'Create'#7#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#0#11'TRadioGroup'#10'Ra'
+  +'dioGroup'#4'Left'#3#138#1#6'Height'#3#185#0#3'Top'#2#20#5'Width'#2'm'#7'Anc'
+  +'hors'#11#5'akTop'#7'akRight'#0#8'AutoFill'#9#7'Caption'#6#9'Operation'#28'C'
+  +'hildSizing.LeftRightSpacing'#2#6#28'ChildSizing.TopBottomSpacing'#2#6#29'Ch'
+  +'ildSizing.EnlargeHorizontal'#7#24'crsHomogenousChildResize'#27'ChildSizing.'
+  +'EnlargeVertical'#7#24'crsHomogenousChildResize'#28'ChildSizing.ShrinkHorizo'
+  +'ntal'#7#14'crsScaleChilds'#26'ChildSizing.ShrinkVertical'#7#14'crsScaleChil'
+  +'ds'#18'ChildSizing.Layout'#7#29'cclLeftToRightThenTopToBottom'#27'ChildSizi'
+  +'ng.ControlsPerLine'#2#1#12'ClientHeight'#3#167#0#11'ClientWidth'#2'i'#9'Ite'
+  +'mIndex'#2#0#13'Items.Strings'#1#6#6'Opaque'#6#3'Add'#6#3'Sub'#6#8'Modulate'
   +#6#3'Min'#6#3'Max'#6#10'Difference'#6#9'Exclusion'#6#7'Pattern'#0#7'OnClick'
   +#7#15'RadioGroupClick'#8'TabOrder'#2#0#0#0#0
 ]);

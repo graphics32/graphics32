@@ -82,7 +82,7 @@ uses
 {$IFNDEF FPC}
   JPEG,
 {$ELSE}
-  LazJPEG,
+  LazJPG,
 {$ENDIF}
   Math;
 
@@ -187,7 +187,11 @@ begin
 
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
+  {$IFDEF FPC}
+  pathMedia := '..\..\..\..\Media\';
+  {$ELSE}
   pathMedia := '..\..\..\Media\';
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}

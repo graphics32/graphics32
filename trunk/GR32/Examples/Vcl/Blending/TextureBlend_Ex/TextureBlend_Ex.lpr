@@ -7,8 +7,6 @@ uses
   Forms, ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
-{$R *.res}
-
 begin
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);

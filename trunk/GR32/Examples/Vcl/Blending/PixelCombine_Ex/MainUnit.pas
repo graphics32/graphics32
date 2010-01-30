@@ -125,7 +125,11 @@ begin
 
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
+  {$IFDEF FPC}
+  pathMedia := '..\..\..\..\Media\';
+  {$ELSE}
   pathMedia := '..\..\..\Media\';
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}
@@ -137,6 +141,7 @@ begin
 {$ENDIF}
 
   // load example image
+  Assert(FileExists(pathMedia + 'runner.jpg'));
   ImgView.Bitmap.LoadFromFile(pathMedia + 'runner.jpg');
   
   L := TBitmapLayer.Create(ImgView.Layers);

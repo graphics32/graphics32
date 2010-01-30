@@ -8,9 +8,10 @@ uses
   {$ENDIF}
   Interfaces,
   Forms,
-  MandelUnit in 'MandelUnit.pas' {Form1}, GR32_L;
+  MandelUnit in 'MandelUnit.pas' {Form1};
 
 begin
+  Application.Title:='Mandelbrot Example';
   Application.Initialize;
   Application.CreateForm(TForm1, Form1);
   Application.Run;

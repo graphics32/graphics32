@@ -32,9 +32,9 @@
       <Unit0>
         <Filename Value="RenderText_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="27" Y="11"/>
+        <CursorPos X="1" Y="3"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="0"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
@@ -46,9 +46,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="36" Y="84"/>
-        <TopLine Value="73"/>
-        <EditorIndex Value="0"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="22"/>
         <Loaded Value="True"/>
         <SyntaxHighlighter Value="Delphi"/>
@@ -148,7 +148,7 @@
         <SyntaxHighlighter Value="Delphi"/>
       </Unit14>
     </Units>
-    <JumpHistory Count="2" HistoryIndex="1">
+    <JumpHistory Count="6" HistoryIndex="5">
       <Position1>
         <Filename Value="MainUnit.pas"/>
         <Caret Line="61" Column="1" TopLine="56"/>
@@ -157,6 +157,22 @@
         <Filename Value="RenderText_Ex.lpr"/>
         <Caret Line="14" Column="19" TopLine="1"/>
       </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="87" Column="31" TopLine="65"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="5" TopLine="126"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="133" Column="1" TopLine="126"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="159" Column="5" TopLine="126"/>
+      </Position6>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -186,6 +202,7 @@
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>

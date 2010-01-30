@@ -4,10 +4,10 @@ uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  GR32_L,
   MainUnit in 'MainUnit.pas' {Form1};
 
 begin
+  Application.Title:='Polygons';
   Application.Initialize;
   Application.CreateForm(TFormPolygons, FormPolygons);
   Application.Run;
