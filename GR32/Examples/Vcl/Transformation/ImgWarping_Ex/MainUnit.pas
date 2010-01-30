@@ -40,10 +40,11 @@ interface
 {$I GR32.INC}
 
 uses
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, GR32,
-  GR32_Image, GR32_Transforms, GR32_VectorMaps, GR32_Layers, StdCtrls,
-  ComCtrls, Math, GR32_Blend, GR32_RangeBars, ExtDlgs, GR32_Rasterizers,
-  GR32_Resamplers, GR32_Math, Menus, ToolWin, BrushAuxiliaries;
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, ComCtrls,
+  StdCtrls, ExtDlgs, Menus, ToolWin, Math, GR32, GR32_Image, GR32_Transforms,
+  GR32_VectorMaps, GR32_Layers, GR32_Blend, GR32_RangeBars, GR32_Rasterizers,
+  GR32_Resamplers, GR32_Math, BrushAuxiliaries;
 
 const
   cAppName = 'Image Warping Example';
@@ -189,10 +190,14 @@ implementation
 uses
   {$IFNDEF FPC}
   JPEG,
+  {$ELSE}
+  LazJPG,
   {$ENDIF}
   GR32_LowLevel;
 
+{$IFNDEF FPC}
 {$R *.dfm}
+{$ENDIF}
 
 procedure WarpDummy(var D, R: Single; Param: Single);
 begin
@@ -835,5 +840,8 @@ begin
   Close;
 end;
 
-end.
+{$IFDEF FPC}
+initialization
+{$ENDIF}
 
+end.

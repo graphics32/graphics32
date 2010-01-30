@@ -8,6 +8,7 @@ uses
   MainUnit in 'MainUnit.pas' {FormLineStippling};
 
 begin
+  Application.Title:='Line Stippling';
   Application.Initialize;
   Application.CreateForm(TFormLineStippling, FormLineStippling);
   Application.Run;

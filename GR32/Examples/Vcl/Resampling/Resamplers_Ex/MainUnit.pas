@@ -43,7 +43,8 @@ interface
 {.$DEFINE Ex}
 
 uses
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Jpeg, Math,
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Math,
   ExtCtrls, ComCtrls, GR32_Image, GR32_System, GR32_RangeBars,
   GR32, GR32_Transforms, GR32_Resamplers {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
 
@@ -103,9 +104,17 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.dfm}
+{$ENDIF}
 
-uses GR32_LowLevel;
+uses
+  {$IFDEF FPC}
+  LazJPG,
+  {$ELSE}
+  Jpeg,
+  {$ENDIF}
+  GR32_LowLevel;
 
 procedure TfmResamplersExample.FormCreate(Sender: TObject);
 var
@@ -441,5 +450,10 @@ begin
   Tmp.Free;
   ResamplingPaintBox.Repaint;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

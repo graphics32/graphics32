@@ -55,6 +55,7 @@ type
     rgBitmapAlign: TRadioGroup;
     StaticText1: TStaticText;
     sbScale: TGaugeBar;
+    procedure Panel2Click(Sender: TObject);
     procedure rgBitmapAlignClick(Sender: TObject);
     procedure sbScaleChange(Sender: TObject);
     procedure rgScaleModeClick(Sender: TObject);
@@ -82,39 +83,6 @@ uses
 {$ELSE}
   LazJPG;
 {$ENDIF}
-
-procedure TFormImage32Example.rgBitmapAlignClick(Sender: TObject);
-const
-  BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
-begin
-  Image.BitmapAlign := BA_CONSTS[rgBitmapAlign.ItemIndex];
-end;
-
-procedure TFormImage32Example.sbScaleChange(Sender: TObject);
-begin
-  sbScale.Update;
-  Image.Scale := sbScale.Position / 100;
-end;
-
-procedure TFormImage32Example.rgScaleModeClick(Sender: TObject);
-const
-  SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
-var
-  ScaleEnabled: Boolean;
-begin
-  Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
-  ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
-  sbScale.Enabled := ScaleEnabled;
-  StaticText1.Enabled := ScaleEnabled;
-end;
-
-procedure TFormImage32Example.rgKernelClick(Sender: TObject);
-const
-  K_CONSTS: array [0..4] of TCustomKernelClass =
-    (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
-begin
-  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
-end;
 
 procedure TFormImage32Example.FormCreate(Sender: TObject);
 var
@@ -151,22 +119,6 @@ begin
   {$ENDIF}
 {$ENDIF}
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-(*
-  Image := TImage32.Create(Self);
-  Image.Parent := Self;
-  Image.Left := 2;
-  Image.Height := 398;
-  Image.Top := 2;
-  Image.Width := 381;
-  Image.Align := alClient;
-  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Image.Scale := 1;
-  Image.TabOrder := 0;
-*)
-{$ENDIF}
-
   // load example image
   Assert(FileExists(pathMedia + 'delphi.jpg'));
   Image.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
@@ -176,6 +128,44 @@ begin
     KernelMode := kmTableNearest;
     TableSize := 16;
   end;
+end;
+
+procedure TFormImage32Example.Panel2Click(Sender: TObject);
+begin
+
+end;
+
+procedure TFormImage32Example.rgBitmapAlignClick(Sender: TObject);
+const
+  BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
+begin
+  Image.BitmapAlign := BA_CONSTS[rgBitmapAlign.ItemIndex];
+end;
+
+procedure TFormImage32Example.sbScaleChange(Sender: TObject);
+begin
+  sbScale.Update;
+  Image.Scale := sbScale.Position * 0.01;
+end;
+
+procedure TFormImage32Example.rgScaleModeClick(Sender: TObject);
+const
+  SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
+var
+  ScaleEnabled: Boolean;
+begin
+  Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
+  ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
+  sbScale.Enabled := ScaleEnabled;
+  StaticText1.Enabled := ScaleEnabled;
+end;
+
+procedure TFormImage32Example.rgKernelClick(Sender: TObject);
+const
+  K_CONSTS: array [0..4] of TCustomKernelClass =
+    (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
+begin
+  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
 end;
 
 {$IFDEF FPC}

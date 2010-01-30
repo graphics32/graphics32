@@ -29,6 +29,7 @@ unit MainUnit;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Christian-W. Budde
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -38,10 +39,13 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
-  GR32_Layers, GR32_Polygons, StdCtrls, ExtCtrls;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  GR32, GR32_Image, GR32_Layers, GR32_Polygons;
 
 type
+
+  { TFormPolygons }
+
   TFormPolygons = class(TForm)
     Antialiase: TCheckBox;
     AntialiasMode: TRadioGroup;
@@ -52,7 +56,7 @@ type
     Image: TImage32;
     lbLineOpacity: TLabel;
     lbFillOpacity: TLabel;
-    lbOutlineThickness: TLabel;
+    lbOutlineThicknes: TLabel;
     lbOutlineThicknesValue: TLabel;
     LineAlpha: TScrollBar;
     LineThickness: TScrollBar;
@@ -116,31 +120,6 @@ begin
   CFRelease(pathCFStr);
 {$ENDIF}
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  Image := TImage32.Create(Self);
-  Image.Parent := Self;
-  Image.Height := 528;
-  Image.Width := 504;
-  Image.Align := alClient;
-  Image.Bitmap.ResamplerClassName := 'TKernelResampler';
-//  Image.Bitmap.Resampler.KernelClassName := 'TCubicKernel';
-//  Image.Bitmap.Resampler.Kernel.Coeff := -0.5;
-//  Image.Bitmap.Resampler.KernelMode := kmTableLinear;
-//  Image.Bitmap.Resampler.TableSize := 32;
-  Image.Scale := 1;
-  Image.ScaleMode := smStretch;
-  Image.TabOrder := 1;
-  Image.OnMouseDown := ImageMouseDown;
-  Image.OnResize := ImageResize;
-
-  BitmapList := TBitmap32List.Create(Self);
-  Item := BitmapList.Bitmaps.Add;
-  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Item := BitmapList.Bitmaps.Add;
-  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
-{$ENDIF}
-
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
   pathMedia := '..\..\..\Media\';
@@ -157,8 +136,13 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  // load example images
+  Assert(FileExists(pathMedia + 'delphi.jpg'));
   BitmapList.Bitmap[0].LoadFromFile(pathMedia + 'delphi.jpg');
+
+  Assert(FileExists(pathMedia + 'texture_b.jpg'));
   BitmapList.Bitmap[1].LoadFromFile(pathMedia + 'texture_b.jpg');
+
   Image.SetupBitmap;
   Polygon := TPolygon32.Create;
 end;
@@ -174,44 +158,48 @@ var
   MyFiller: TBitmapPolygonFiller;
 begin
   Image.Bitmap.BeginUpdate;
-  Image.Bitmap.Clear(clWhite32);
-  Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
+  try
+    Image.Bitmap.Clear(clWhite32);
+    Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
 
-  Polygon.Antialiased := Antialiase.Checked;
-  Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+    Polygon.Antialiased := Antialiase.Checked;
+    Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
 
-  if UseOutlinePoly then
-  begin
-    Outline.Antialiased := Antialiase.Checked;
-    Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+    if UseOutlinePoly then
+    begin
+      Outline.Antialiased := Antialiase.Checked;
+      Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+    end;
+
+    if FillMode.ItemIndex = 0 then
+      Polygon.FillMode := pfAlternate
+    else
+      Polygon.FillMode := pfWinding;
+
+    if Pattern.Checked then
+    begin
+      BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
+      BitmapList.Bitmap[1].DrawMode := dmBlend;
+      MyFiller := TBitmapPolygonFiller.Create;
+      try
+        MyFiller.Pattern := BitmapList.Bitmap[1];
+        Polygon.DrawFill(Image.Bitmap, MyFiller);
+      finally
+        MyFiller.Free;
+      end;
+    end
+    else
+      Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
+
+    if UseOutlinePoly then
+      Outline.DrawFill(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
+    else
+      Polygon.DrawEdge(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
+
+  finally
+    Image.Bitmap.EndUpdate;
   end;
 
-  if FillMode.ItemIndex = 0 then
-    Polygon.FillMode := pfAlternate
-  else
-    Polygon.FillMode := pfWinding;
-
-  if Pattern.Checked then
-  begin
-    BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
-    BitmapList.Bitmap[1].DrawMode := dmBlend;
-    MyFiller := TBitmapPolygonFiller.Create;
-    try
-      MyFiller.Pattern := BitmapList.Bitmap[1];
-      Polygon.DrawFill(Image.Bitmap, MyFiller);
-    finally
-      MyFiller.Free;
-    end;
-  end
-  else
-    Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
-
-  if UseOutlinePoly then
-    Outline.DrawFill(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
-  else
-    Polygon.DrawEdge(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
-
-  Image.Bitmap.EndUpdate;
   Image.Bitmap.Changed;
   Image.Refresh; // force repaint
 end;

@@ -42,7 +42,7 @@ object FormPolygons: TFormPolygons
     Font.Name = 'Tahoma'
     ParentFont = False
     TabOrder = 0
-    object Label1: TLabel
+    object lbLineOpacity: TLabel
       Left = 16
       Height = 14
       Top = 223
@@ -50,7 +50,7 @@ object FormPolygons: TFormPolygons
       Caption = 'Line Opacity:'
       ParentColor = False
     end
-    object Label2: TLabel
+    object lbFillOpacity: TLabel
       Left = 16
       Height = 14
       Top = 263
@@ -58,7 +58,7 @@ object FormPolygons: TFormPolygons
       Caption = 'Fill Opacity'
       ParentColor = False
     end
-    object Label3: TLabel
+    object lbOutlineThicknes: TLabel
       Left = 16
       Height = 14
       Top = 407
@@ -66,10 +66,10 @@ object FormPolygons: TFormPolygons
       Caption = 'Outline Thickness:'
       ParentColor = False
     end
-    object Label4: TLabel
+    object lbOutlineThicknesValue: TLabel
       Left = 113
       Height = 14
-      Top = 395
+      Top = 407
       Width = 15
       Caption = '(1)'
       ParentColor = False
@@ -235,5 +235,16 @@ object FormPolygons: TFormPolygons
       OnClick = Button1Click
       TabOrder = 10
     end
+  end
+  object BitmapList: TBitmap32List
+    Bitmaps = <    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end>
+    left = 24
+    top = 24
   end
 end

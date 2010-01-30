@@ -1,57 +1,58 @@
 object NewImageForm: TNewImageForm
   Left = 282
-  Height = 240
+  Height = 199
   Top = 194
-  Width = 320
+  Width = 255
   HorzScrollBar.Page = 319
   VertScrollBar.Page = 239
   ActiveControl = ImageWidth
   BorderStyle = bsDialog
   Caption = 'New Image'
-  ClientHeight = 240
-  ClientWidth = 320
+  ClientHeight = 199
+  ClientWidth = 255
   Font.Height = -11
   Font.Name = 'Tahoma'
   Position = poScreenCenter
+  LCLVersion = '0.9.29'
   object Label1: TLabel
     Left = 24
-    Height = 13
+    Height = 14
     Top = 27
-    Width = 35
+    Width = 33
     Caption = 'Width:'
     FocusControl = ImageWidth
     ParentColor = False
   end
   object Label2: TLabel
     Left = 24
-    Height = 13
+    Height = 14
     Top = 67
-    Width = 40
+    Width = 36
     Caption = 'Height:'
     FocusControl = ImageHeight
     ParentColor = False
   end
   object Label3: TLabel
     Left = 200
-    Height = 13
+    Height = 14
     Top = 27
-    Width = 33
+    Width = 28
     Caption = 'pixels'
     ParentColor = False
   end
   object Label4: TLabel
     Left = 200
-    Height = 13
+    Height = 14
     Top = 67
-    Width = 33
+    Width = 28
     Caption = 'pixels'
     ParentColor = False
   end
   object Label5: TLabel
     Left = 24
-    Height = 13
+    Height = 14
     Top = 116
-    Width = 105
+    Width = 89
     Caption = 'Background Color:'
     ParentColor = False
   end
@@ -60,7 +61,6 @@ object NewImageForm: TNewImageForm
     Height = 21
     Top = 24
     Width = 97
-    OnKeyDown = nil
     TabOrder = 0
     Text = '640'
   end
@@ -74,13 +74,13 @@ object NewImageForm: TNewImageForm
     Max = 2000
     Position = 640
     TabOrder = 1
+    Wrap = False
   end
   object ImageHeight: TEdit
     Left = 72
     Height = 21
     Top = 64
     Width = 97
-    OnKeyDown = nil
     TabOrder = 2
     Text = '480'
   end
@@ -93,6 +93,8 @@ object NewImageForm: TNewImageForm
     Min = 1
     Max = 2000
     Position = 480
+    TabOrder = 7
+    Wrap = False
   end
   object Panel1: TPanel
     Left = 120
@@ -141,7 +143,29 @@ object NewImageForm: TNewImageForm
   object ColorDialog1: TColorDialog
     Title = 'Select color'
     Color = clWhite
-    left = 196
-    top = 132
+    CustomColors.Strings = (
+      'ColorA=000000'
+      'ColorB=000080'
+      'ColorC=008000'
+      'ColorD=008080'
+      'ColorE=800000'
+      'ColorF=800080'
+      'ColorG=808000'
+      'ColorH=808080'
+      'ColorI=C0C0C0'
+      'ColorJ=0000FF'
+      'ColorK=00FF00'
+      'ColorL=00FFFF'
+      'ColorM=FF0000'
+      'ColorN=FF00FF'
+      'ColorO=FFFF00'
+      'ColorP=FFFFFF'
+      'ColorQ=C0DCC0'
+      'ColorR=F0CAA6'
+      'ColorS=F0FBFF'
+      'ColorT=A4A0A0'
+    )
+    left = 24
+    top = 144
   end
 end

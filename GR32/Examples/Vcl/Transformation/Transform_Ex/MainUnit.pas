@@ -197,7 +197,7 @@ uses
 {$IFNDEF FPC}
   JPEG;
 {$ELSE}
-  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
 function GetVal(Src: string; var Dst: Extended): Boolean;
@@ -369,7 +369,11 @@ begin
 
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
+  {$IFDEF FPC}
+  pathMedia := '..\..\..\..\Media\';
+  {$ELSE}
   pathMedia := '..\..\..\Media\';
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}
@@ -380,6 +384,7 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  // load example image
   Assert(FileExists(pathMedia + 'delphi.jpg'));
   Src.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 

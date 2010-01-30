@@ -30,6 +30,7 @@ unit MainUnit;
  *
  * Contributor(s):
  * Andre Beckedorf <andre@metaexception.de>
+ * Christian-W. Budde <Christian@aixcoustic.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -45,6 +46,9 @@ uses
   Buttons;
 
 type
+
+  { TMainForm }
+
   TMainForm = class(TForm)
     ImgView: TImgView32;
     LayerOpacity: TGaugeBar;
@@ -103,6 +107,7 @@ type
     N6: TMenuItem;
     mnPrint: TMenuItem;
     cbOptRedraw: TCheckBox;
+    procedure FormCreate(Sender: TObject);
     procedure cbOptRedrawClick(Sender: TObject);
     procedure mnFileNewClick(Sender: TObject);
     procedure mnFileOpenClick(Sender: TObject);
@@ -118,9 +123,8 @@ type
     procedure ScaleComboChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageInterpolateClick(Sender: TObject);
-    procedure LayerOpacityChange(Sender: TObject);
+    procedure LayerOpacityChanged(Sender: TObject);
     procedure LayerInterpolateClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure LayerRescaleClick(Sender: TObject);
     procedure LayerResetScaleClick(Sender: TObject);
     procedure CroppedClick(Sender: TObject);
@@ -173,14 +177,60 @@ uses
 {$IFNDEF FPC}
   JPEG,
 {$ELSE}
-  LazJPEG,
+  LazJPG,
 {$ENDIF}
   NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
 
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
 
-{ TForm1 }
+{ TMainForm }
+
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+
+{$IFDEF FPC}
+  ImgView := TImgView32.Create(Self);
+  ImgView.Parent := Self;
+  ImgView.Left := 0;
+  ImgView.Top := 0;
+  ImgView.Width := 656;
+  ImgView.Height := 575;
+  ImgView.Align := alClient;
+  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
+  ImgView.BitmapAlign := baCustom;
+  ImgView.RepaintMode := rmOptimizer;
+  ImgView.Scale := 1;
+  ImgView.ScaleMode := smScale;
+  ImgView.ScrollBars.ShowHandleGrip := True;
+  ImgView.ScrollBars.Style := rbsDefault;
+  ImgView.SizeGrip := sgNone;
+  ImgView.OverSize := 0;
+  ImgView.TabOrder := 0;
+  ImgView.TabStop := True;
+  ImgView.OnMouseDown := ImgViewMouseDown;
+  ImgView.OnMouseWheelDown := ImgViewMouseWheelDown;
+  ImgView.OnMouseWheelUp := ImgViewMouseWheelUp;
+  ImgView.OnPaintStage := ImgViewPaintStage;
+{$ENDIF}
+
+  // by default, PST_CLEAR_BACKGND is executed at this stage,
+  // which, in turn, calls ExecClearBackgnd method of ImgView.
+  // Here I substitute PST_CLEAR_BACKGND with PST_CUSTOM, so force ImgView
+  // to call the OnPaintStage event instead of performing default action.
+  with ImgView.PaintStages[0]^ do
+  begin
+    if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
+  end;
+
+  ImgView.RepaintMode := rmOptimizer;
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  Selection := nil;
+  RBLayer := nil;
+end;
 
 procedure TMainForm.CreateNewImage(AWidth, AHeight: Integer; FillColor: TColor32);
 begin
@@ -217,112 +267,6 @@ begin
     TBitmapLayer(Selection).Cropped := Cropped.Checked;
 end;
 
-procedure TMainForm.FormCreate(Sender: TObject);
-begin
-{$IFDEF FPC}
-  ImgView := TImgView32.Create(Self);
-  ImgView.Parent := Self;
-  ImgView.Left := 0;
-  ImgView.Top := 0;
-  ImgView.Width := 656;
-  ImgView.Height := 575;
-  ImgView.Align := alClient;
-  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
-  ImgView.BitmapAlign := baCustom;
-  ImgView.RepaintMode := rmOptimizer;
-  ImgView.Scale := 1;
-  ImgView.ScaleMode := smScale;
-  ImgView.ScrollBars.ShowHandleGrip := True;
-  ImgView.ScrollBars.Style := rbsDefault;
-  ImgView.SizeGrip := sgNone;
-  ImgView.OverSize := 0;
-  ImgView.TabOrder := 0;
-  ImgView.TabStop := True;
-  ImgView.OnMouseDown := ImgViewMouseDown;
-  ImgView.OnMouseWheelDown := ImgViewMouseWheelDown;
-  ImgView.OnMouseWheelUp := ImgViewMouseWheelUp;
-  ImgView.OnPaintStage := ImgViewPaintStage;
-
-  LayerOpacity := TGaugeBar.Create(pnlBitmapLayer);
-  LayerOpacity.Parent := pnlBitmapLayer;
-  LayerOpacity.Left := 16;
-  LayerOpacity.Top := 40;
-  LayerOpacity.Width := 105;
-  LayerOpacity.Height := 12;
-  LayerOpacity.Backgnd := bgPattern;
-  LayerOpacity.HandleSize := 16;
-  LayerOpacity.Max := 255;
-  LayerOpacity.ShowArrows := False;
-  LayerOpacity.ShowHandleGrip := True;
-  LayerOpacity.Style := rbsMac;
-  LayerOpacity.Position := 255;
-  LayerOpacity.OnChange := LayerOpacityChange;
-
-  MagnOpacity := TGaugeBar.Create(PnlMagn);
-  MagnOpacity.Parent := PnlMagn;
-  MagnOpacity.Left := 16;
-  MagnOpacity.Top := 40;
-  MagnOpacity.Width := 105;
-  MagnOpacity.Height := 12;
-  MagnOpacity.Backgnd := bgPattern;
-  MagnOpacity.HandleSize := 16;
-  MagnOpacity.Max := 255;
-  MagnOpacity.ShowArrows := False;
-  MagnOpacity.ShowHandleGrip := True;
-  MagnOpacity.Style := rbsMac;
-  MagnOpacity.Position := 255;
-  MagnOpacity.OnChange := MagnChange;
-
-  MagnMagnification := TGaugeBar.Create(PnlMagn);
-  MagnMagnification.Parent := PnlMagn;
-  MagnMagnification.Left := 16;
-  MagnMagnification.Top := 80;
-  MagnMagnification.Width := 105;
-  MagnMagnification.Height := 12;
-  MagnMagnification.Backgnd := bgPattern;
-  MagnMagnification.HandleSize := 16;
-  MagnMagnification.Max := 50;
-  MagnMagnification.ShowArrows := False;
-  MagnMagnification.ShowHandleGrip := True;
-  MagnMagnification.Style := rbsMac;
-  MagnMagnification.Position := 10;
-  MagnMagnification.OnChange := MagnChange;
-
-  MagnRotation := TGaugeBar.Create(PnlMagn);
-  MagnRotation.Parent := PnlMagn;
-  MagnRotation.Left := 16;
-  MagnRotation.Top := 120;
-  MagnRotation.Width := 105;
-  MagnRotation.Height := 12;
-  MagnRotation.Backgnd := bgPattern;
-  MagnRotation.HandleSize := 16;
-  MagnRotation.Max := 180;
-  MagnRotation.Min := -180;
-  MagnRotation.ShowArrows := False;
-  MagnRotation.ShowHandleGrip := True;
-  MagnRotation.Style := rbsMac;
-  MagnRotation.Position := 0;
-  MagnRotation.OnChange := MagnChange;
-{$ENDIF}
-
-  // by default, PST_CLEAR_BACKGND is executed at this stage,
-  // which, in turn, calls ExecClearBackgnd method of ImgView.
-  // Here I substitute PST_CLEAR_BACKGND with PST_CUSTOM, so force ImgView
-  // to call the OnPaintStage event instead of performing default action.
-  with ImgView.PaintStages[0]^ do
-  begin
-    if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
-  end;
-
-  ImgView.RepaintMode := rmOptimizer;
-end;
-
-procedure TMainForm.FormDestroy(Sender: TObject);
-begin
-  Selection := nil;
-  RBLayer := nil;
-end;
-
 procedure TMainForm.ImageInterpolateClick(Sender: TObject);
 begin
   RESAMPLER[ImageInterpolate.Checked].Create(ImgView.Bitmap);
@@ -342,7 +286,7 @@ begin
   if Sender <> nil then Selection := TPositionedLayer(Sender);
 end;
 
-procedure TMainForm.LayerOpacityChange(Sender: TObject);
+procedure TMainForm.LayerOpacityChanged(Sender: TObject);
 begin
   if Selection is TBitmapLayer then
     TBitmapLayer(Selection).Bitmap.MasterAlpha := LayerOpacity.Position;

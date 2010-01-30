@@ -1,7 +1,5 @@
 program RenderText_Ex;
 
-{$MODE Delphi}
-
 uses
   Interfaces,
   Forms,

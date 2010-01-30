@@ -4,10 +4,12 @@
     <PathDelim Value="\"/>
     <Version Value="7"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
-      <UseXPManifest Value="True"/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -38,7 +40,7 @@
       <Unit0>
         <Filename Value="TextureBlend_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="11"/>
+        <CursorPos X="1" Y="10"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="21"/>
@@ -52,8 +54,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="55" Y="155"/>
-        <TopLine Value="132"/>
+        <CursorPos X="48" Y="130"/>
+        <TopLine Value="110"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
@@ -102,7 +104,7 @@
         <UsageCount Value="10"/>
       </Unit7>
     </Units>
-    <JumpHistory Count="2" HistoryIndex="1">
+    <JumpHistory Count="3" HistoryIndex="2">
       <Position1>
         <Filename Value="TextureBlend_Ex.lpr"/>
         <Caret Line="16" Column="62" TopLine="1"/>
@@ -111,6 +113,10 @@
         <Filename Value="TextureBlend_Ex.lpr"/>
         <Caret Line="12" Column="1" TopLine="1"/>
       </Position2>
+      <Position3>
+        <Filename Value="TextureBlend_Ex.lpr"/>
+        <Caret Line="18" Column="80" TopLine="1"/>
+      </Position3>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -118,6 +124,7 @@
     <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\"/>
+      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)\"/>
       <OtherUnitFiles Value="..\..\..\"/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
@@ -138,6 +145,7 @@
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
@@ -148,11 +156,15 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="1">
+    <BreakPoints Count="2">
       <Item1>
         <Source Value="MainUnit.pas"/>
-        <Line Value="150"/>
+        <Line Value="147"/>
       </Item1>
+      <Item2>
+        <Source Value="MainUnit.pas"/>
+        <Line Value="121"/>
+      </Item2>
     </BreakPoints>
     <Exceptions Count="3">
       <Item1>

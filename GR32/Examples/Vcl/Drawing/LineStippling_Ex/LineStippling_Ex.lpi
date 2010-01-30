@@ -8,6 +8,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
+      <Title Value="Line Stippling"/>
       <ActiveEditorIndexAtStart Value="3"/>
     </General>
     <PublishOptions>
@@ -95,7 +96,7 @@
       <Unit7>
         <Filename Value="../../../../GR32_System.pas"/>
         <UnitName Value="GR32_System"/>
-        <CursorPos X="41" Y="90"/>
+        <CursorPos X="81" Y="70"/>
         <TopLine Value="66"/>
         <EditorIndex Value="3"/>
         <UsageCount Value="10"/>

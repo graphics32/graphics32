@@ -38,27 +38,27 @@
         <PackageName Value="GR32_L"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="8">
+    <Units Count="11">
       <Unit0>
         <Filename Value="Transform_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="3" Y="8"/>
+        <CursorPos X="69" Y="13"/>
         <TopLine Value="1"/>
         <EditorIndex Value="0"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="Form1"/>
+        <ComponentName Value="FormTranformExample"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="167"/>
-        <TopLine Value="151"/>
+        <CursorPos X="52" Y="385"/>
+        <TopLine Value="372"/>
         <EditorIndex Value="1"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit1>
       <Unit2>
@@ -104,8 +104,59 @@
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit7>
+      <Unit8>
+        <Filename Value="../../../../GR32_DrawingEx.pas"/>
+        <UnitName Value="GR32_DrawingEx"/>
+        <CursorPos X="78" Y="86"/>
+        <TopLine Value="69"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="../../../../../../../../Lazarus/lcl/utrace.pp"/>
+        <UnitName Value="UTrace"/>
+        <CursorPos X="1" Y="64"/>
+        <TopLine Value="42"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="../../../../../../../../Lazarus/fpc/2.4.0/source/rtl/objpas/sysutils/sysstrh.inc"/>
+        <CursorPos X="10" Y="262"/>
+        <TopLine Value="231"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+      </Unit10>
     </Units>
-    <JumpHistory Count="0" HistoryIndex="-1"/>
+    <JumpHistory Count="6" HistoryIndex="5">
+      <Position1>
+        <Filename Value="../../../../GR32_DrawingEx.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position1>
+      <Position2>
+        <Filename Value="Transform_Ex.lpr"/>
+        <Caret Line="8" Column="3" TopLine="1"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="185" Column="22" TopLine="168"/>
+      </Position3>
+      <Position4>
+        <Filename Value="Transform_Ex.lpr"/>
+        <Caret Line="13" Column="69" TopLine="1"/>
+      </Position4>
+      <Position5>
+        <Filename Value="../../../../../../../../Lazarus/lcl/utrace.pp"/>
+        <Caret Line="58" Column="31" TopLine="42"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../../../../../../../../Lazarus/fpc/2.4.0/source/rtl/objpas/sysutils/sysstrh.inc"/>
+        <Caret Line="262" Column="10" TopLine="231"/>
+      </Position6>
+    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>

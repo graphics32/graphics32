@@ -42,10 +42,13 @@ uses
   GR32_Transforms, ComCtrls, Math, GR32_RangeBars;
 
 type
-  TForm1 = class(TForm)
+
+  { TFormRotateExample }
+
+  TFormRotateExample = class(TForm)
+    Angle: TGaugeBar;
     Src: TImage32;
     Dst: TImage32;
-    Angle: TGaugeBar;
     procedure FormCreate(Sender: TObject);
     procedure AngleChange(Sender: TObject);
   public
@@ -53,7 +56,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  FormRotateExample: TFormRotateExample;
 
 implementation
 
@@ -71,7 +74,7 @@ uses
   LazJPG;
 {$ENDIF}
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TFormRotateExample.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
   pathRef: CFURLRef;
@@ -89,55 +92,12 @@ begin
   CFRelease(pathCFStr);
 {$ENDIF}
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  Src := TImage32.Create(Self);
-  Src.Parent := Self;
-  Src.Left := 16;
-  Src.Top := 16;
-  Src.Width := 192;
-  Src.Height := 192;
-  Src.Bitmap.DrawMode := dmBlend;
-  Src.Bitmap.ResamplerClassName := 'TLinearResampler';
-  Src.BitmapAlign := baCenter;
-  Src.Color := clWindowText;
-  Src.ParentColor := False;
-  Src.Scale := 1;
-  Src.ScaleMode := smNormal;
-  Src.TabOrder := 0;
-
-  Dst := TImage32.Create(Self);
-  Dst.Parent := Self;
-  Dst.Left := 232;
-  Dst.Top := 16;
-  Dst.Width := 192;
-  Dst.Height := 192;
-  Dst.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Dst.BitmapAlign := baCenter;
-  Dst.Color := clWindowText;
-  Dst.ParentColor := False;
-  Dst.Scale := 1;
-  Dst.ScaleMode := smNormal;
-  Dst.TabOrder := 1;
-
-  Angle := TGaugeBar.Create(Self);
-  Angle.Parent := Self;
-  Angle.Left := 16;
-  Angle.Top := 220;
-  Angle.Width := 409;
-  Angle.Height := 19;
-  Angle.Backgnd := bgPattern;
-  Angle.Max := 180;
-  Angle.Min := -180;
-  Angle.ShowHandleGrip := True;
-  Angle.Style := rbsMac;
-  Angle.Position := 0;
-  Angle.OnChange := AngleChange;
-{$ENDIF}
-
   // Different platforms store resource files on different locations
 {$IFDEF Win32}
   pathMedia := '..\..\..\Media\';
+  {$IFDEF FPC}
+  pathMedia := '..\' + pathMedia;
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}
@@ -161,7 +121,7 @@ begin
   ScaleRot(0);
 end;
 
-procedure TForm1.ScaleRot(Alpha: Single);
+procedure TFormRotateExample.ScaleRot(Alpha: Single);
 var
   SrcR: Integer;
   SrcB: Integer;
@@ -177,7 +137,7 @@ begin
     T.Clear;
 
     // move the origin to a center for scaling and rotation
-    T.Translate(-SrcR / 2, -SrcB / 2);
+    T.Translate(-SrcR * 0.5, -SrcB * 0.5);
     T.Rotate(0, 0, Alpha);
     Alpha := Alpha * PI / 180;
 
@@ -193,7 +153,7 @@ begin
     T.Scale(Scale, Scale);
 
     // move the origin back
-    T.Translate(SrcR / 2, SrcB / 2);
+    T.Translate(SrcR * 0.5, SrcB * 0.5);
 
     // transform the bitmap
     Dst.BeginUpdate;
@@ -206,7 +166,7 @@ begin
   end;
 end;
 
-procedure TForm1.AngleChange(Sender: TObject);
+procedure TFormRotateExample.AngleChange(Sender: TObject);
 begin
   ScaleRot(-Angle.Position);
 end;

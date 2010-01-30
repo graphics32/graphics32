@@ -48,6 +48,7 @@ object FormImage32Example: TFormImage32Example
     ClientHeight = 445
     ClientWidth = 142
     TabOrder = 1
+    OnClick = Panel2Click
     object rgScaleMode: TRadioGroup
       Left = 8
       Height = 129
@@ -138,6 +139,20 @@ object FormImage32Example: TFormImage32Example
       Width = 33
       Caption = 'Scale:'
       TabOrder = 3
+    end
+    object sbScale: TGaugeBar
+      Left = 9
+      Height = 16
+      Top = 258
+      Width = 128
+      Color = clScrollBar
+      Backgnd = bgPattern
+      Enabled = False
+      Max = 1000
+      Min = 25
+      ShowHandleGrip = True
+      Position = 100
+      OnChange = sbScaleChange
     end
   end
 end
