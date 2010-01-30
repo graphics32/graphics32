@@ -42,7 +42,7 @@ uses
   { Graphics 32 }
   GR32, GR32_Backends, GR32_Containers, GR32_Image,
   { Carbon bindings }
-  FPCMacOSAll,
+  MacOSAll,
   { Carbon lcl interface }
   CarbonCanvas, CarbonPrivate;
 
@@ -54,7 +54,7 @@ type
   { TLCLBackend }
 
   TLCLBackend = class(TCustomBackend,
-    IPaintSupport, ICopyFromBitmapSupport, IDeviceContextSupport,
+    IPaintSupport, IDeviceContextSupport,
     ITextSupport, IFontSupport, ICanvasSupport)
   private
     FFont: TFont;
@@ -71,9 +71,9 @@ type
     FCanvasHandle: TCarbonDeviceContext;
 
     { Functions to easely generate carbon structures }
-    function GetCarbonRect(Left, Top, Width, Height: Integer): FPCMacOSAll.Rect;
-    function GetCGRect(Left, Top, Width, Height: Integer): FPCMacOSAll.CGRect; overload;
-    function GetCGRect(SrcRect: TRect): FPCMacOSAll.CGRect; overload;
+    function GetCarbonRect(Left, Top, Width, Height: Integer): MacOSAll.Rect;
+    function GetCGRect(Left, Top, Width, Height: Integer): MacOSAll.CGRect; overload;
+    function GetCGRect(SrcRect: TRect): MacOSAll.CGRect; overload;
   protected
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -146,7 +146,7 @@ var
 
 { TLCLBackend }
 
-function TLCLBackend.GetCarbonRect(Left, Top, Width, Height: Integer): FPCMacOSAll.Rect;
+function TLCLBackend.GetCarbonRect(Left, Top, Width, Height: Integer): MacOSAll.Rect;
 begin
   Result.Left := Left;
   Result.Top := Top;
@@ -154,7 +154,7 @@ begin
   Result.Bottom := Top + Height;
 end;
 
-function TLCLBackend.GetCGRect(Left, Top, Width, Height: Integer): FPCMacOSAll.CGRect;
+function TLCLBackend.GetCGRect(Left, Top, Width, Height: Integer): MacOSAll.CGRect;
 begin
   Result.Origin.X := Left;
   Result.Origin.Y := Top;
@@ -162,7 +162,7 @@ begin
   Result.Size.Height := Height;
 end;
 
-function TLCLBackend.GetCGRect(SrcRect: TRect): FPCMacOSAll.CGRect;
+function TLCLBackend.GetCGRect(SrcRect: TRect): MacOSAll.CGRect;
 begin
   Result.Origin.X := SrcRect.Left;
   Result.Origin.Y := SrcRect.Top;
@@ -656,4 +656,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.
