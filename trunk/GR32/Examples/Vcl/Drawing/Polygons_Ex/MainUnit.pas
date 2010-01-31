@@ -247,9 +247,9 @@ begin
   end;
 
   if UseOutlinePoly then
-    lbOutlineThicknesValue.Caption := Format('(%.1f)', [LineSize])
+    lbOutlineThicknessValue.Caption := Format('(%.1f)', [LineSize])
   else
-    lbOutlineThicknesValue.Caption := '(1)';
+    lbOutlineThicknessValue.Caption := '(1)';
 end;
 
 procedure TFormPolygons.ThicknessChanged(Sender: TObject);
