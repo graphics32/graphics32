@@ -8,7 +8,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <Title Value="Visualization Example"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -41,9 +41,7 @@
         <IsPartOfProject Value="True"/>
         <CursorPos X="1" Y="8"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -52,11 +50,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="275"/>
+        <CursorPos X="48" Y="278"/>
         <TopLine Value="255"/>
-        <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="../../Layers/Sprites_Ex/MainUnit.pas"/>
@@ -89,44 +85,7 @@
         <UsageCount Value="10"/>
       </Unit5>
     </Units>
-    <JumpHistory Count="9" HistoryIndex="8">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="536" Column="76" TopLine="498"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="Visualization_Ex.lpr"/>
-        <Caret Line="5" Column="40" TopLine="1"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="260" Column="36" TopLine="253"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="257" Column="3" TopLine="253"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="285" Column="37" TopLine="281"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="301" Column="42" TopLine="285"/>
-      </Position7>
-      <Position8>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="435" Column="26" TopLine="415"/>
-      </Position8>
-      <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="42" Column="1" TopLine="18"/>
-      </Position9>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
@@ -143,6 +102,9 @@
         <CPPInline Value="False"/>
       </SyntaxOptions>
     </Parsing>
+    <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
+    </CodeGeneration>
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="True"/>

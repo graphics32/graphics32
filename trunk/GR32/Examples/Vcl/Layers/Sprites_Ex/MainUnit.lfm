@@ -1,7 +1,7 @@
-object Form1: TForm1
-  Left = 243
+object MainForm: TMainForm
+  Left = 249
   Height = 684
-  Top = 49
+  Top = 120
   Width = 852
   HorzScrollBar.Page = 851
   VertScrollBar.Page = 683
@@ -13,11 +13,12 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.29'
   object Label1: TLabel
     Left = 12
-    Height = 13
-    Top = 654
-    Width = 31
+    Height = 14
+    Top = 653
+    Width = 29
     Anchors = [akLeft, akBottom]
     Caption = 'Total:'
     ParentColor = False
@@ -53,8 +54,8 @@ object Form1: TForm1
   end
   object edLayerCount: TEdit
     Left = 44
-    Height = 19
-    Top = 652
+    Height = 21
+    Top = 650
     Width = 65
     Anchors = [akLeft, akBottom]
     ReadOnly = True
@@ -74,9 +75,9 @@ object Form1: TForm1
   end
   object cbUseRepaintOpt: TCheckBox
     Left = 120
-    Height = 20
-    Top = 654
-    Width = 147
+    Height = 17
+    Top = 657
+    Width = 126
     Anchors = [akLeft, akBottom]
     Caption = 'Use Repaint Optimizer'
     OnClick = cbUseRepaintOptClick
@@ -118,10 +119,40 @@ object Form1: TForm1
     OnClick = bBenchmarkClick
     TabOrder = 5
   end
+  object Image32: TImage32
+    Left = 8
+    Height = 592
+    Top = 48
+    Width = 836
+    HelpType = htKeyword
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTile
+    Color = clWhite
+    ParentColor = False
+    Scale = 2
+    ScaleMode = smNormal
+    TabOrder = 7
+    OnResize = Image32Resize
+  end
   object TimerFPS: TTimer
     Interval = 5000
     OnTimer = TimerFPSTimer
     left = 293
+    top = 213
+  end
+  object BitmapList: TBitmap32List
+    Bitmaps = <    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end>
+    left = 360
     top = 213
   end
 end

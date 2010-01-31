@@ -1,15 +1,13 @@
-{ This is an automatically generated lazarus resource file }
-
-LazarusResources.Add('TForm1','FORMDATA',[
-  'TPF0'#6'TForm1'#5'Form1'#4'Left'#3#213#0#6'Height'#3#228#0#3'Top'#2'q'#5'Wid'
-  +'th'#3'Q'#1#13'ActiveControl'#7#8'EditText'#7'Caption'#6#18'RenderText Examp'
-  +'le'#12'ClientHeight'#3#228#0#11'ClientWidth'#3'Q'#1#20'Constraints.MinWidth'
-  +#3#0#1#11'Font.Height'#2#245#9'Font.Name'#6#13'MS Sans Serif'#8'OnCreate'#7
-  +#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#0#8'TImage32'#5'Image'#4'Left'#2#0
-  +#6'Height'#3#167#0#3'Top'#2'='#5'Width'#3'Q'#1#5'Align'#7#8'alClient'#25'Bit'
-  +'map.ResamplerClassName'#6#17'TNearestResampler'#11'BitmapAlign'#7#9'baTopLe'
-  +'ft'#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabOrd'
-  +'er'#2#1#8'OnResize'#7#11'ImageResize'#0#0#6'TPanel'#6'Panel1'#4'Left'#2#0#6
+LazarusResources.Add('TFormRenderText','FORMDATA',[
+  'TPF0'#15'TFormRenderText'#14'FormRenderText'#4'Left'#3#253#0#6'Height'#3#228
+  +#0#3'Top'#3#151#0#5'Width'#3'Q'#1#13'ActiveControl'#7#8'EditText'#7'Caption'
+  +#6#18'RenderText Example'#12'ClientHeight'#3#228#0#11'ClientWidth'#3'Q'#1#20
+  +'Constraints.MinWidth'#3#0#1#11'Font.Height'#2#245#9'Font.Name'#6#13'MS Sans'
+  +' Serif'#8'OnCreate'#7#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#0#8'TImage3'
+  +'2'#5'Image'#4'Left'#2#0#6'Height'#3#167#0#3'Top'#2'='#5'Width'#3'Q'#1#5'Ali'
+  +'gn'#7#8'alClient'#25'Bitmap.ResamplerClassName'#6#17'TNearestResampler'#11
+  +'BitmapAlign'#7#9'baTopLeft'#5'Scale'#2#1#9'ScaleMode'#7#8'smNormal'#8'TabOr'
+  +'der'#2#1#8'OnResize'#7#11'ImageResize'#0#0#6'TPanel'#6'Panel1'#4'Left'#2#0#6
   +'Height'#2'='#3'Top'#2#0#5'Width'#3'Q'#1#5'Align'#7#5'alTop'#10'BevelOuter'#7
   +#6'bvNone'#12'ClientHeight'#2'='#11'ClientWidth'#3'Q'#1#11'Font.Height'#2#245
   +#9'Font.Name'#6#6'Tahoma'#10'ParentFont'#8#8'TabOrder'#2#0#0#6'TLabel'#6'Lab'

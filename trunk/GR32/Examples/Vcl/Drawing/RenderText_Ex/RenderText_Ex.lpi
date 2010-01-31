@@ -9,7 +9,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <Title Value="Render Text Example"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -32,31 +32,25 @@
       <Unit0>
         <Filename Value="RenderText_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="3"/>
+        <CursorPos X="43" Y="10"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
         <UsageCount Value="22"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="Form1"/>
+        <ComponentName Value="FormRenderText"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="1"/>
+        <CursorPos X="65" Y="10"/>
         <TopLine Value="1"/>
-        <EditorIndex Value="1"/>
         <UsageCount Value="22"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="17" Y="43"/>
-        <TopLine Value="16"/>
+        <CursorPos X="39" Y="1"/>
+        <TopLine Value="1"/>
         <UsageCount Value="10"/>
         <SyntaxHighlighter Value="LFM"/>
       </Unit2>
@@ -80,7 +74,6 @@
         <CursorPos X="12" Y="30"/>
         <TopLine Value="21"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\controls.pp"/>
@@ -137,7 +130,6 @@
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit13>
       <Unit14>
         <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
@@ -145,35 +137,9 @@
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit14>
     </Units>
-    <JumpHistory Count="6" HistoryIndex="5">
-      <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="61" Column="1" TopLine="56"/>
-      </Position1>
-      <Position2>
-        <Filename Value="RenderText_Ex.lpr"/>
-        <Caret Line="14" Column="19" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="87" Column="31" TopLine="65"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="159" Column="5" TopLine="126"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="133" Column="1" TopLine="126"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="159" Column="5" TopLine="126"/>
-      </Position6>
-    </JumpHistory>
+    <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="8"/>
@@ -187,7 +153,6 @@
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
         <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>

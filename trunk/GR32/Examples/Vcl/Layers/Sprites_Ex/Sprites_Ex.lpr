@@ -1,18 +1,14 @@
 program Sprites_Ex;
 
-{$MODE Delphi}
-
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L, JPEGForLazarus;
-
-{$IFDEF Windows}
-{$R *.RES}
-{$ENDIF}
+  ImagesForLazarus,
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
+  Application.Title:='Sprites Example';
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

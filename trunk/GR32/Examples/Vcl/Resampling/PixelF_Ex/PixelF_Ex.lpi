@@ -9,6 +9,7 @@
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
+      <Title Value="PixelF Example"/>
     </General>
     <PublishOptions>
       <Version Value="2"/>
@@ -53,7 +54,7 @@
       <IncludeFiles Value="../../../../"/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
       <OtherUnitFiles Value="../../../../"/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)/"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

@@ -8,6 +8,7 @@ uses
   BrushAuxiliaries in 'BrushAuxiliaries.pas';
 
 begin
+  Application.Title:='Image Warping Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

@@ -126,6 +126,7 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  Assert(FileExists(pathMedia + 'delphi.jpg'));
   ImgView.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
 
   L := TRotLayer.Create(ImgView.Layers);
@@ -135,6 +136,7 @@ begin
     BeginUpdate;
 
     // Different platforms store resource files on different locations
+    Assert(FileExists(pathMedia + 'sprite_texture.bmp'));
     LoadFromFile(pathMedia + 'sprite_texture.bmp');
 
     TLinearResampler.Create(L.Bitmap);
