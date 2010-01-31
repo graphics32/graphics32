@@ -49,7 +49,10 @@ const
   MAX_RUNS = 3;
 
 type
-  TForm1 = class(TForm)
+
+  { TMainForm }
+
+  TMainForm = class(TForm)
     bAdd: TButton;
     bBenchmark: TButton;
     bClearAll: TButton;
@@ -88,7 +91,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
@@ -103,11 +106,11 @@ uses
 {$IFNDEF FPC}
   JPEG,
 {$ELSE}
-  LazJPEG,
+  LazJPG,
 {$ENDIF}
   GR32_Filters, GR32_System;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 
   procedure LoadImage(Dst: TBitmap32; const Filename, AlphaFilename: String);
   var
@@ -141,39 +144,12 @@ begin
   CFRelease(pathCFStr);
 {$ENDIF}
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  Image32 := TImage32.Create(Self);
-  with Image32 do
-   begin
-    Parent := Self;
-    Left := 8;
-    Top := 48;
-    Width := 836;
-    Height := 592;
-    Anchors := [akLeft, akTop, akRight, akBottom];
-    Bitmap.ResamplerClassName := 'TNearestResampler';
-    BitmapAlign := baTile;
-    Color := clWhite;
-    ParentColor := False;
-    Scale := 2;
-    ScaleMode := smScale;
-    TabOrder := 0;
-    OnResize := Image32Resize;
-   end;
-
-  BitmapList := TBitmap32List.Create(Self);
-  Item := BitmapList.Bitmaps.Add;
-  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Item := BitmapList.Bitmaps.Add;
-  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Item := BitmapList.Bitmaps.Add;
-  Item.Bitmap.ResamplerClassName := 'TNearestResampler';
-{$ENDIF}
-
   // Different platforms store resource files on different locations
 {$IFDEF Windows}
   pathMedia := '..\..\..\Media\';
+  {$IFDEF FPC}
+  pathMedia := '..\' + pathMedia;
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNIX}
@@ -184,10 +160,19 @@ begin
   {$ENDIF}
 {$ENDIF}
 
+  Assert(FileExists(pathMedia + 'sprite_texture.bmp'));
   Image32.Bitmap.LoadFromFile(pathMedia + 'sprite_texture.bmp');
 
+  Assert(FileExists(pathMedia + 'sprite1.bmp'));
+  Assert(FileExists(pathMedia + 'sprite1a.bmp'));
   LoadImage(BitmapList.Bitmap[0], pathMedia + 'sprite1.bmp', pathMedia + 'sprite1a.bmp');
+
+  Assert(FileExists(pathMedia + 'sprite2.bmp'));
+  Assert(FileExists(pathMedia + 'sprite2a.bmp'));
   LoadImage(BitmapList.Bitmap[1], pathMedia + 'sprite2.bmp', pathMedia + 'sprite2a.bmp');
+
+  Assert(FileExists(pathMedia + 'sprite3.bmp'));
+  Assert(FileExists(pathMedia + 'sprite3a.bmp'));
   LoadImage(BitmapList.Bitmap[2], pathMedia + 'sprite3.bmp', pathMedia + 'sprite3a.bmp');
 
   LastSeed := 0;
@@ -195,7 +180,7 @@ begin
   Application.OnIdle := IdleHandler;
 end;
 
-procedure TForm1.AddLayers(Count: Integer);
+procedure TMainForm.AddLayers(Count: Integer);
 var
   X: Integer;
   ALayer: TBitmapLayer;
@@ -241,7 +226,7 @@ begin
   TimerFPS.Enabled := True;
 end;
 
-procedure TForm1.IdleHandler(Sender: TObject; var Done: Boolean);
+procedure TMainForm.IdleHandler(Sender: TObject; var Done: Boolean);
 var
   I: Integer;
   R: TFloatRect;
@@ -275,14 +260,14 @@ begin
   Inc(FramesDrawn);
 end;
 
-procedure TForm1.bClearAllClick(Sender: TObject);
+procedure TMainForm.bClearAllClick(Sender: TObject);
 begin
   Image32.Layers.Clear;
   Velocities := nil;
   edLayerCount.Text := '0 layers';
 end;
 
-procedure TForm1.bRemoveClick(Sender: TObject);
+procedure TMainForm.bRemoveClick(Sender: TObject);
 var
   I: Integer;
 begin
@@ -291,7 +276,7 @@ begin
   edLayerCount.Text := IntToStr(Image32.Layers.Count) + ' layers';
 end;
 
-procedure TForm1.cbUseRepaintOptClick(Sender: TObject);
+procedure TMainForm.cbUseRepaintOptClick(Sender: TObject);
 begin
   if cbUseRepaintOpt.Checked then
     Image32.RepaintMode := rmOptimizer
@@ -299,7 +284,7 @@ begin
     Image32.RepaintMode := rmFull;
 end;
 
-procedure TForm1.TimerFPSTimer(Sender: TObject);
+procedure TMainForm.TimerFPSTimer(Sender: TObject);
 var
   TimeElapsed: Cardinal;
   Diff: Integer;
@@ -345,17 +330,17 @@ begin
   TimerFPS.Enabled := True;  
 end;
 
-procedure TForm1.Image32Resize(Sender: TObject);
+procedure TMainForm.Image32Resize(Sender: TObject);
 begin
   lbDimension.Caption := IntToStr(Image32.Width) + ' x ' + IntToStr(Image32.Height); 
 end;
 
-procedure TForm1.bAddClick(Sender: TObject);
+procedure TMainForm.bAddClick(Sender: TObject);
 begin
   AddLayers(10);
 end;
 
-procedure TForm1.bBenchmarkClick(Sender: TObject);
+procedure TMainForm.bBenchmarkClick(Sender: TObject);
 begin
   if BenchmarkMode then
   begin
@@ -409,7 +394,7 @@ begin
   end;
 end;
 
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   BenchmarkList.Free;
 end;

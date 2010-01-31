@@ -1,7 +1,7 @@
-object Form1: TForm1
-  Left = 213
+object FormRenderText: TFormRenderText
+  Left = 253
   Height = 228
-  Top = 113
+  Top = 151
   Width = 337
   ActiveControl = EditText
   Caption = 'RenderText Example'

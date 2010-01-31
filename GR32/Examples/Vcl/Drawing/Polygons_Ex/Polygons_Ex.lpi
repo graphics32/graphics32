@@ -44,7 +44,6 @@
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -58,7 +57,6 @@
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="../../../../GR32.pas"/>
@@ -66,7 +64,6 @@
         <CursorPos X="22" Y="216"/>
         <TopLine Value="126"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="MainUnit.lfm"/>
@@ -135,7 +132,6 @@
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit11>
       <Unit12>
         <Filename Value="../../../../GR32_LowLevel.pas"/>
@@ -143,7 +139,6 @@
         <CursorPos X="48" Y="830"/>
         <TopLine Value="810"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit12>
       <Unit13>
         <Filename Value="../../../../GR32_System.pas"/>
@@ -151,7 +146,6 @@
         <CursorPos X="1" Y="86"/>
         <TopLine Value="60"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit13>
       <Unit14>
         <Filename Value="../../../../GR32_Polygons.pas"/>
@@ -159,7 +153,6 @@
         <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit14>
       <Unit15>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
@@ -173,10 +166,9 @@
         <CursorPos X="32" Y="2614"/>
         <TopLine Value="2597"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit16>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="28" HistoryIndex="27">
       <Position1>
         <Filename Value="MainUnit.pas"/>
         <Caret Line="114" Column="37" TopLine="92"/>
@@ -235,68 +227,60 @@
       </Position14>
       <Position15>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="171" Column="1" TopLine="177"/>
+        <Caret Line="200" Column="90" TopLine="173"/>
       </Position15>
       <Position16>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="200" Column="90" TopLine="173"/>
+        <Caret Line="142" Column="23" TopLine="125"/>
       </Position16>
       <Position17>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="142" Column="23" TopLine="125"/>
+        <Caret Line="52" Column="1" TopLine="35"/>
       </Position17>
       <Position18>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="52" Column="1" TopLine="35"/>
+        <Caret Line="217" Column="1" TopLine="200"/>
       </Position18>
       <Position19>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="150" Column="1" TopLine="232"/>
+        <Caret Line="218" Column="1" TopLine="201"/>
       </Position19>
       <Position20>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="217" Column="1" TopLine="200"/>
+        <Caret Line="237" Column="1" TopLine="220"/>
       </Position20>
       <Position21>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="218" Column="1" TopLine="201"/>
+        <Caret Line="238" Column="1" TopLine="221"/>
       </Position21>
       <Position22>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="237" Column="1" TopLine="220"/>
+        <Caret Line="240" Column="1" TopLine="223"/>
       </Position22>
       <Position23>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="238" Column="1" TopLine="221"/>
+        <Caret Line="248" Column="1" TopLine="231"/>
       </Position23>
       <Position24>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="240" Column="1" TopLine="223"/>
+        <Caret Line="251" Column="1" TopLine="234"/>
       </Position24>
       <Position25>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="248" Column="1" TopLine="231"/>
+        <Caret Line="249" Column="27" TopLine="234"/>
       </Position25>
       <Position26>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="251" Column="1" TopLine="234"/>
+        <Caret Line="69" Column="69" TopLine="43"/>
       </Position26>
       <Position27>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="249" Column="27" TopLine="234"/>
+        <Caret Line="213" Column="1" TopLine="196"/>
       </Position27>
       <Position28>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="69" Column="69" TopLine="43"/>
-      </Position28>
-      <Position29>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="213" Column="1" TopLine="196"/>
-      </Position29>
-      <Position30>
-        <Filename Value="MainUnit.pas"/>
         <Caret Line="233" Column="1" TopLine="216"/>
-      </Position30>
+      </Position28>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -309,7 +293,6 @@
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
         <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>

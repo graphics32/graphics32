@@ -8,6 +8,7 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=""/>
+      <Title Value="Image Warping Example"/>
       <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
@@ -55,8 +56,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="64" Y="34"/>
-        <TopLine Value="18"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
         <EditorIndex Value="1"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -107,7 +108,7 @@
         <UsageCount Value="10"/>
       </Unit7>
     </Units>
-    <JumpHistory Count="23" HistoryIndex="22">
+    <JumpHistory Count="26" HistoryIndex="25">
       <Position1>
         <Filename Value="ImgWarping_Ex.lpr"/>
         <Caret Line="6" Column="6" TopLine="1"/>
@@ -200,6 +201,18 @@
         <Filename Value="MainUnit.pas"/>
         <Caret Line="154" Column="1" TopLine="154"/>
       </Position23>
+      <Position24>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="249" Column="3" TopLine="235"/>
+      </Position24>
+      <Position25>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="171" Column="1" TopLine="171"/>
+      </Position25>
+      <Position26>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="850" Column="5" TopLine="817"/>
+      </Position26>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -226,6 +239,7 @@
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
+        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>

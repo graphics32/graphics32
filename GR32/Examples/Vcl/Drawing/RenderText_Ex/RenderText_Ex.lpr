@@ -3,10 +3,11 @@ program RenderText_Ex;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {FormRenderText};
 
 begin
+  Application.Title:='Render Text Example';
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFormRenderText, FormRenderText);
   Application.Run;
 end.
