@@ -66,8 +66,8 @@ type
     btAddOne: TButton;
     btAddTen: TButton;
     btClear: TButton;
-    Label1: TLabel;
-    Memo2: TMemo;
+    lbTotal: TLabel;
+    Memo: TMemo;
     PaintBox: TPaintBox32;
     pnTotalLines: TPanel;
     rgDraw: TRadioGroup;

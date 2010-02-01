@@ -17,7 +17,7 @@ object FormRotLayer: TFormRotLayer
     477)
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
+  object lbAngle: TLabel
     Left = 12
     Top = 313
     Width = 76
@@ -25,7 +25,7 @@ object FormRotLayer: TFormRotLayer
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Angle:'
   end
-  object Label2: TLabel
+  object lbPositionX: TLabel
     Left = 12
     Top = 345
     Width = 96
@@ -33,7 +33,7 @@ object FormRotLayer: TFormRotLayer
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.X:'
   end
-  object Label3: TLabel
+  object lbPositionY: TLabel
     Left = 12
     Top = 373
     Width = 96
@@ -41,7 +41,7 @@ object FormRotLayer: TFormRotLayer
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Position.Y:'
   end
-  object Label4: TLabel
+  object lbScale: TLabel
     Left = 12
     Top = 441
     Width = 85
@@ -67,7 +67,7 @@ object FormRotLayer: TFormRotLayer
     OverSize = 0
     TabOrder = 0
   end
-  object GaugeBar1: TGaugeBar
+  object gbAngle: TGaugeBar
     Left = 120
     Top = 313
     Width = 153
@@ -79,9 +79,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 0
-    OnChange = GaugeBar1Change
+    OnChange = gbAngleChange
   end
-  object GaugeBar2: TGaugeBar
+  object gbPositionX: TGaugeBar
     Left = 120
     Top = 345
     Width = 153
@@ -92,9 +92,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 100
-    OnChange = GaugeBar2Change
+    OnChange = gbPositionChange
   end
-  object GaugeBar3: TGaugeBar
+  object gbPositionY: TGaugeBar
     Left = 120
     Top = 373
     Width = 153
@@ -105,9 +105,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 100
-    OnChange = GaugeBar2Change
+    OnChange = gbPositionChange
   end
-  object GaugeBar4: TGaugeBar
+  object gbScale: TGaugeBar
     Left = 120
     Top = 441
     Width = 153
@@ -118,9 +118,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 0
-    OnChange = GaugeBar4Change
+    OnChange = gbScaleChange
   end
-  object CheckBox1: TCheckBox
+  object cbScaled: TCheckBox
     Left = 8
     Top = 405
     Width = 125
@@ -131,6 +131,6 @@ object FormRotLayer: TFormRotLayer
     Checked = True
     State = cbChecked
     TabOrder = 5
-    OnClick = CheckBox1Click
+    OnClick = cbScaledClick
   end
 end

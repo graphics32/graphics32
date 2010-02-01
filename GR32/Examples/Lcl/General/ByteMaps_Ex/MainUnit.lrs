@@ -13,11 +13,11 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +'Align'#7#5'alTop'#10'BevelOuter'#7#6'bvNone'#8'TabOrder'#2#1#0#0#18'TSavePi'
   +'ctureDialog'#17'SavePictureDialog'#5'Title'#6#17'Datei sichern als'#10'Defa'
   +'ultExt'#6#4'.bmp'#6'Filter'#6#21'Bitmaps (*.bmp)|*.bmp'#11'FilterIndex'#2#0
-  +#4'left'#3'0'#1#3'top'#2'('#0#0#10'TImageList'#10'ImageList1'#7'BkColor'#7#12
-  +'clForeground'#4'left'#3'T'#1#3'top'#2'('#6'Bitmap'#10#14#20#0#0'Li'#5#0#0#0
-  +#16#0#0#0#16#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0
+  +#4'left'#3#216#0#3'top'#2'@'#0#0#10'TImageList'#10'ImageList1'#7'BkColor'#7
+  +#12'clForeground'#4'left'#3'T'#1#3'top'#2'('#6'Bitmap'#10#14#20#0#0'Li'#5#0#0
+  +#0#16#0#0#0#16#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0
   +#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0
-  +#0#0#0#0#0#0#0#0#0#128#128#128#255#128#128#128#255#128#128#128#255#128#128
+  +#0#0#0#0#0#0#0#0#0#0#128#128#128#255#128#128#128#255#128#128#128#255#128#128
   +#128#255#128#128#128#255#128#128#128#255#0#0#0#255#0#0#0#0#0#0#0#0#0#0#0#0#0
   +#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#128#128#128#255#255#255#255
   +#255#255#255#255#255#255#255#255#255#255#255#255#255#255#255#255#255#128#128
@@ -372,5 +372,5 @@ LazarusResources.Add('TForm1','FORMDATA',[
   +'OpenPictureDialog'#6'Filter'#6#206'All (*.gif;*.jpg;*.jpeg;*.bmp;*.ico)|*.g'
   +'if;*.jpg;*.jpeg;*.bmp;*.ico|CompuServe GIF Image (*.gif)|*.gif|JPEG Image F'
   +'ile (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|Bitmaps (*.bmp)|*.bmp|Ico'
-  +'ns (*.ico)|*.ico'#11'FilterIndex'#2#0#4'left'#3#14#1#3'top'#2'*'#0#0#0
+  +'ns (*.ico)|*.ico'#11'FilterIndex'#2#0#4'left'#2'`'#3'top'#2'@'#0#0#0
 ]);

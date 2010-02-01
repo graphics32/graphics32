@@ -1,4 +1,4 @@
-object Form1: TForm1
+object MainForm: TMainForm
   Left = 388
   Top = 137
   Caption = 'Mandelbrot Example'
@@ -10,7 +10,7 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  Menu = MainMenu1
+  Menu = MainMenu
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -31,32 +31,32 @@ object Form1: TForm1
     ClearBuffer = True
     RenderMode = rnmFull
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     Left = 24
     Top = 16
-    object File1: TMenuItem
+    object miFile: TMenuItem
       Caption = 'File'
-      object Save1: TMenuItem
+      object miSave: TMenuItem
         Caption = 'Save...'
-        OnClick = Save1Click
+        OnClick = miSaveClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
-      object Exit1: TMenuItem
+      object miExit: TMenuItem
         Caption = 'Exit'
-        OnClick = Exit1Click
+        OnClick = miExitClick
       end
     end
-    object Rasterizer1: TMenuItem
+    object miRasterizer: TMenuItem
       Caption = 'Rasterizer'
-      object Regularsampling1: TMenuItem
+      object miRegularSampling: TMenuItem
         AutoCheck = True
         Caption = 'Regular Sampling'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Progressive1: TMenuItem
+      object miProgressive: TMenuItem
         Tag = 1
         AutoCheck = True
         Caption = 'Progressive'
@@ -64,95 +64,95 @@ object Form1: TForm1
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Swizzling1: TMenuItem
+      object miSwizzling: TMenuItem
         Tag = 2
         AutoCheck = True
         Caption = 'Swizzling'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Tesseral1: TMenuItem
+      object miTesseral: TMenuItem
         Tag = 3
         AutoCheck = True
         Caption = 'Tesseral'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Contour1: TMenuItem
+      object miContour: TMenuItem
         Tag = 4
         AutoCheck = True
         Caption = 'Contour'
         OnClick = RasterizerMenuClick
       end
     end
-    object Sampler1: TMenuItem
+    object miSuperSampler: TMenuItem
       Caption = 'SuperSampler'
-      object Default1: TMenuItem
+      object miDefault: TMenuItem
         AutoCheck = True
         Caption = 'None'
         Checked = True
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object N5: TMenuItem
         AutoCheck = True
         Caption = '-'
       end
-      object N2x2: TMenuItem
+      object miSuperSampler2x: TMenuItem
         Tag = 1
         AutoCheck = True
         Caption = 'SuperSampler 2x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
-      object N3x2: TMenuItem
+      object miSuperSampler3x: TMenuItem
         Tag = 2
         AutoCheck = True
         Caption = 'SuperSampler 3x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
-      object N4x2: TMenuItem
+      object miSuperSampler4x: TMenuItem
         Tag = 3
         AutoCheck = True
         Caption = 'SuperSampler 4x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
-      object Adaptive: TMenuItem
+      object miAdaptive: TMenuItem
         AutoCheck = True
         Caption = 'Adaptive'
         Enabled = False
-        OnClick = AdaptiveClick
+        OnClick = miAdaptiveClick
       end
       object N2: TMenuItem
         AutoCheck = True
         Caption = '-'
       end
-      object PatternSampler2: TMenuItem
+      object miPatternSampler2x: TMenuItem
         Tag = 4
         AutoCheck = True
         Caption = 'PatternSampler 2x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
-      object PatternSampler3x1: TMenuItem
+      object miPatternSampler3x: TMenuItem
         Tag = 5
         AutoCheck = True
         Caption = 'PatternSampler 3x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
-      object PatternSampler1: TMenuItem
+      object miPatternSampler4x: TMenuItem
         Tag = 6
         AutoCheck = True
         Caption = 'PatternSampler 4x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
     end
   end
-  object SavePictureDialog1: TSavePictureDialog
+  object SavePictureDialog: TSavePictureDialog
     Left = 64
     Top = 16
   end

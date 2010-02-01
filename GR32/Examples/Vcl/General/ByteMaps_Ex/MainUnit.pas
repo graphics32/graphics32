@@ -43,17 +43,24 @@ uses
   GR32_Image, GR32_Layers, ToolWin, ImgList, Menus;
 
 type
+
+  { TMainForm }
+
   TMainForm = class(TForm)
     bCopy: TToolButton;
     bLinear: TToolButton;
     bNew: TToolButton;
     bOpen: TToolButton;
     bSave: TToolButton;
+    {$IFDEF FPC}
+    CoolBar: TToolBar;
+    {$ELSE}
     CoolBar: TCoolBar;
+    {$ENDIF}
     Image: TImgView32;
-    ImageList1: TImageList;
-    Label1: TLabel;
-    Label2: TLabel;
+    ImageList: TImageList;
+    lbPalette: TLabel;
+    lbZoom: TLabel;
     MainMenu: TMainMenu;
     mnCopy: TMenuItem;
     mnEdit: TMenuItem;
@@ -63,34 +70,34 @@ type
     mnOpen: TMenuItem;
     mnSave: TMenuItem;
     N1: TMenuItem;
+    OpenPictureDialog: TOpenPictureDialog;
     PaletteCombo: TComboBox;
     Panel1: TPanel;
     Panel2: TPanel;
-    Panel3: TPanel;
     Panel4: TPanel;
+    pnGR32: TPanel;
+    SavePictureDialog: TSavePictureDialog;
     ScaleBar: TGaugeBar;
+    tbEdit: TToolButton;
+    tbFile: TToolButton;
     ToolBar1: TToolBar;
     ToolBar2: TToolBar;
     ToolBar3: TToolBar;
-    ToolButton4: TToolButton;
-    ToolButton5: TToolButton;
     ToolButton7: TToolButton;
     ToolButton8: TToolButton;
-    OpenPictureDialog: TOpenPictureDialog;
-    SavePictureDialog: TSavePictureDialog;
-    procedure PaletteComboChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure NewClick(Sender: TObject);
-    procedure ScaleChange(Sender: TObject);
     procedure CheckBox1Click(Sender: TObject);
     procedure CopyClick(Sender: TObject);
-    procedure SaveClick(Sender: TObject);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImageMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure mnExitClick(Sender: TObject);
+    procedure NewClick(Sender: TObject);
     procedure OpenClick(Sender: TObject);
+    procedure PaletteComboChange(Sender: TObject);
+    procedure SaveClick(Sender: TObject);
+    procedure ScaleChange(Sender: TObject);
   public
     DataSet: TByteMap;
     palGrayscale: TPalette32;
@@ -113,58 +120,18 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-{$IFNDEF FPC}
 uses
-  Windows;
-{$ENDIF}
 {$IFNDEF FPC}
-//  JPEG;
+  Windows,
+  JPEG;
 {$ELSE}
-//  LazJPEG;
+  LazJPG;
 {$ENDIF}
 
-{ TForm1 }
+{ TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  Image := TImgView32.Create(Panel1);
-  Image.Parent := Panel1;
-  Image.Left := 0;
-  Image.Top := 0;
-  Image.Width := 490;
-  Image.Height := 297;
-  Image.Align := alClient;
-  Image.Bitmap.ResamplerClassName := 'TNearestResampler';
-  Image.RepaintMode := rmOptimizer;
-  Image.Scale := 1;
-  Image.ScrollBars.ShowHandleGrip := True;
-  Image.ScrollBars.Style := rbsDefault;
-  Image.OverSize := 0;
-  Image.TabOrder := 0;
-  Image.OnMouseDown := ImageMouseDown;
-  Image.OnMouseMove := ImageMouseMove;
-  Image.OnMouseUp := ImageMouseUp;
-
-  ScaleBar := TGaugeBar.Create(Panel2);
-  ScaleBar.Parent := Panel2;
-  ScaleBar.Left := 2;
-  ScaleBar.Top := 2;
-  ScaleBar.Width := 107;
-  ScaleBar.Height := 18;
-  ScaleBar.Hint := 'Zoom';
-  ScaleBar.Align := alClient;
-  ScaleBar.Backgnd := bgPattern;
-  ScaleBar.ButtonSize := 14;
-  ScaleBar.LargeChange := 20;
-  ScaleBar.Min := -100;
-  ScaleBar.ShowHandleGrip := True;
-  ScaleBar.Style := rbsMac;
-  ScaleBar.Position := 0;
-  ScaleBar.OnChange := ScaleChange;
-{$ENDIF}
-
   PaletteCombo.ItemIndex := 0;
   GenPalettes;
   DataSet := TByteMap.Create;
@@ -335,5 +302,10 @@ begin
       bCopy.Enabled := True;
     end;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

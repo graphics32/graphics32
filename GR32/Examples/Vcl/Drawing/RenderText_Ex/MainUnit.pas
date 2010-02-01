@@ -44,22 +44,22 @@ uses
 
 type
   TFormRenderText = class(TForm)
-    Image: TImage32;
-    Panel1: TPanel;
-    EditText: TEdit;
-    LbAALevel: TLabel;
     BtClickMe: TButton;
+    EditText: TEdit;
+    Image: TImage32;
+    LbAALevel: TLabel;
     LbEnterText: TLabel;
-    SBTextOut: TSpeedButton;
+    Panel1: TPanel;
     SBAntialias1: TSpeedButton;
     SBAntialias2: TSpeedButton;
     SBAntialias3: TSpeedButton;
     SBAntialias4: TSpeedButton;
     SBClearType: TSpeedButton;
-    procedure EditTextChange(Sender: TObject);
+    SBTextOut: TSpeedButton;
     procedure FormCreate(Sender: TObject);
-    procedure ImageResize(Sender: TObject);
     procedure BtClickMeClick(Sender: TObject);
+    procedure EditTextChange(Sender: TObject);
+    procedure ImageResize(Sender: TObject);
     procedure SBTextOutClick(Sender: TObject);
   public
     AALevel: Integer;

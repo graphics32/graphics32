@@ -45,7 +45,7 @@ object MainForm: TMainForm
     Height = 258
     Align = alRight
     TabOrder = 1
-    object Label3: TLabel
+    object lbTwirlPower: TLabel
       Left = 8
       Top = 32
       Width = 58

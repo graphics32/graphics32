@@ -18,7 +18,7 @@ object FormGradientLines: TFormGradientLines
     556)
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
+  object lbTotal: TLabel
     Left = 518
     Top = 92
     Width = 28
@@ -128,7 +128,7 @@ object FormGradientLines: TFormGradientLines
     TabOrder = 7
     OnClick = RepaintOptClick
   end
-  object Memo2: TMemo
+  object Memo: TMemo
     Left = 510
     Top = 343
     Width = 109

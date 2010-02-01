@@ -1,4 +1,4 @@
-object Form1: TForm1
+object MainForm: TMainForm
   Left = 388
   Height = 439
   Top = 137
@@ -8,58 +8,58 @@ object Form1: TForm1
   Caption = 'Mandelbrot Example'
   Font.Height = -11
   Font.Name = 'Tahoma'
-  Menu = MainMenu1
+  Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     left = 24
     top = 16
-    object File1: TMenuItem
+    object miFile: TMenuItem
       Caption = 'File'
-      object Save1: TMenuItem
+      object miSave: TMenuItem
         Caption = 'Save...'
         OnClick = Save1Click
       end
       object N3: TMenuItem
         Caption = '-'
       end
-      object Exit1: TMenuItem
+      object miExit: TMenuItem
         Caption = 'Exit'
       end
     end
-    object Rasterizer1: TMenuItem
+    object miRasterizer: TMenuItem
       Caption = 'Rasterizer'
-      object Regularsampling1: TMenuItem
+      object miRegularSampling: TMenuItem
         Caption = 'Regular Sampling'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Progressive1: TMenuItem
+      object miProgressive: TMenuItem
         Tag = 1
         Caption = 'Progressive'
         Checked = True
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Swizzling1: TMenuItem
+      object miSwizzling: TMenuItem
         Tag = 2
         Caption = 'Swizzling'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Tesseral1: TMenuItem
+      object miTesseral: TMenuItem
         Tag = 3
         Caption = 'Tesseral'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
-      object Contour1: TMenuItem
+      object miContour: TMenuItem
         Tag = 4
         Caption = 'Contour'
         OnClick = RasterizerMenuClick
       end
     end
-    object Sampler1: TMenuItem
+    object miSuperSampler: TMenuItem
       Caption = 'SuperSampler'
       object Default1: TMenuItem
         Caption = 'None'
@@ -70,25 +70,25 @@ object Form1: TForm1
       object N5: TMenuItem
         Caption = '-'
       end
-      object N2x2: TMenuItem
+      object miSuperSampler2x: TMenuItem
         Tag = 1
         Caption = 'SuperSampler 2x'
         RadioItem = True
         OnClick = Default1Click
       end
-      object N3x2: TMenuItem
+      object miSuperSampler3x: TMenuItem
         Tag = 2
         Caption = 'SuperSampler 3x'
         RadioItem = True
         OnClick = Default1Click
       end
-      object N4x2: TMenuItem
+      object miSuperSampler4x: TMenuItem
         Tag = 3
         Caption = 'SuperSampler 4x'
         RadioItem = True
         OnClick = Default1Click
       end
-      object Adaptive: TMenuItem
+      object miAdaptive: TMenuItem
         Caption = 'Adaptive'
         Enabled = False
         OnClick = AdaptiveClick
@@ -96,19 +96,19 @@ object Form1: TForm1
       object N2: TMenuItem
         Caption = '-'
       end
-      object PatternSampler2: TMenuItem
+      object miPatternSampler2x: TMenuItem
         Tag = 4
         Caption = 'PatternSampler 2x'
         RadioItem = True
         OnClick = Default1Click
       end
-      object PatternSampler3x1: TMenuItem
+      object miPatternSampler3x: TMenuItem
         Tag = 5
         Caption = 'PatternSampler 3x'
         RadioItem = True
         OnClick = Default1Click
       end
-      object PatternSampler1: TMenuItem
+      object miPatternSampler4x: TMenuItem
         Tag = 6
         Caption = 'PatternSampler 4x'
         RadioItem = True
@@ -116,7 +116,7 @@ object Form1: TForm1
       end
     end
   end
-  object SavePictureDialog1: TSavePictureDialog
+  object SavePictureDialog: TSavePictureDialog
     Title = 'Save file as'
     FilterIndex = 0
     left = 64

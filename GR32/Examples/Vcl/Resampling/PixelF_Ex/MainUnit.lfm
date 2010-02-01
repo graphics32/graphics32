@@ -29,7 +29,7 @@ object MainForm: TMainForm
     ClientHeight = 285
     ClientWidth = 165
     TabOrder = 0
-    object Label3: TLabel
+    object lbTwirlPower: TLabel
       Left = 8
       Height = 14
       Top = 32

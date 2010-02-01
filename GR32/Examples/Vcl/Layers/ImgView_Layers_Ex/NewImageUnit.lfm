@@ -14,7 +14,7 @@ object NewImageForm: TNewImageForm
   Font.Name = 'Tahoma'
   Position = poScreenCenter
   LCLVersion = '0.9.29'
-  object Label1: TLabel
+  object lbWidth: TLabel
     Left = 24
     Height = 14
     Top = 27
@@ -23,7 +23,7 @@ object NewImageForm: TNewImageForm
     FocusControl = ImageWidth
     ParentColor = False
   end
-  object Label2: TLabel
+  object lbHeight: TLabel
     Left = 24
     Height = 14
     Top = 67
@@ -32,7 +32,7 @@ object NewImageForm: TNewImageForm
     FocusControl = ImageHeight
     ParentColor = False
   end
-  object Label3: TLabel
+  object lbWidthUnit: TLabel
     Left = 200
     Height = 14
     Top = 27
@@ -40,7 +40,7 @@ object NewImageForm: TNewImageForm
     Caption = 'pixels'
     ParentColor = False
   end
-  object Label4: TLabel
+  object lbHeightUnit: TLabel
     Left = 200
     Height = 14
     Top = 67
@@ -48,7 +48,7 @@ object NewImageForm: TNewImageForm
     Caption = 'pixels'
     ParentColor = False
   end
-  object Label5: TLabel
+  object lbBackgroundColor: TLabel
     Left = 24
     Height = 14
     Top = 116
@@ -64,7 +64,7 @@ object NewImageForm: TNewImageForm
     TabOrder = 0
     Text = '640'
   end
-  object UpDown1: TUpDown
+  object btUpDownWidth: TUpDown
     Left = 169
     Height = 21
     Top = 24
@@ -84,7 +84,7 @@ object NewImageForm: TNewImageForm
     TabOrder = 2
     Text = '480'
   end
-  object UpDown2: TUpDown
+  object btUpDownHeight: TUpDown
     Left = 169
     Height = 21
     Top = 64
@@ -96,7 +96,7 @@ object NewImageForm: TNewImageForm
     TabOrder = 7
     Wrap = False
   end
-  object Panel1: TPanel
+  object pnColor: TPanel
     Left = 120
     Height = 21
     Top = 112
@@ -107,7 +107,7 @@ object NewImageForm: TNewImageForm
     ParentColor = False
     TabOrder = 4
   end
-  object Button1: TButton
+  object btSelect: TButton
     Left = 192
     Height = 20
     Top = 112
@@ -118,7 +118,7 @@ object NewImageForm: TNewImageForm
     TabOrder = 3
     TabStop = False
   end
-  object Button2: TButton
+  object btOK: TButton
     Left = 104
     Height = 22
     Top = 164
@@ -129,7 +129,7 @@ object NewImageForm: TNewImageForm
     ModalResult = 1
     TabOrder = 5
   end
-  object Button3: TButton
+  object btCancel: TButton
     Left = 176
     Height = 22
     Top = 164
@@ -140,7 +140,7 @@ object NewImageForm: TNewImageForm
     ModalResult = 2
     TabOrder = 6
   end
-  object ColorDialog1: TColorDialog
+  object ColorDialog: TColorDialog
     Title = 'Select color'
     Color = clWhite
     CustomColors.Strings = (

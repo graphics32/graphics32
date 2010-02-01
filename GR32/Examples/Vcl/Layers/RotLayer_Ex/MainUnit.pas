@@ -48,21 +48,21 @@ type
   { TFormRotLayer }
 
   TFormRotLayer = class(TForm)
+    cbScaled: TCheckBox;
+    gbAngle: TGaugeBar;
+    gbPositionX: TGaugeBar;
+    gbPositionY: TGaugeBar;
+    gbScale: TGaugeBar;
     ImgView: TImgView32;
-    GaugeBar1: TGaugeBar;
-    GaugeBar2: TGaugeBar;
-    GaugeBar3: TGaugeBar;
-    GaugeBar4: TGaugeBar;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
-    CheckBox1: TCheckBox;
+    lbAngle: TLabel;
+    lbPositionX: TLabel;
+    lbPositionY: TLabel;
+    lbScale: TLabel;
     procedure FormCreate(Sender: TObject);
-    procedure GaugeBar1Change(Sender: TObject);
-    procedure GaugeBar2Change(Sender: TObject);
-    procedure GaugeBar4Change(Sender: TObject);
-    procedure CheckBox1Click(Sender: TObject);
+    procedure gbAngleChange(Sender: TObject);
+    procedure gbPositionChange(Sender: TObject);
+    procedure gbScaleChange(Sender: TObject);
+    procedure cbScaledClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -155,27 +155,27 @@ begin
   L.Position := FloatPoint(100, 100);
 end;
 
-procedure TFormRotLayer.GaugeBar1Change(Sender: TObject);
+procedure TFormRotLayer.gbAngleChange(Sender: TObject);
 begin
-  L.Angle := GaugeBar1.Position;
+  L.Angle := gbAngle.Position;
 end;
 
-procedure TFormRotLayer.GaugeBar2Change(Sender: TObject);
+procedure TFormRotLayer.gbPositionChange(Sender: TObject);
 var
   P: TFloatPoint;
 begin
   P := L.Position;
-  P.X := GaugeBar2.Position;
-  P.Y := GaugeBar3.Position;
+  P.X := gbPositionX.Position;
+  P.Y := gbPositionY.Position;
   L.Position := P;
 end;
 
-procedure TFormRotLayer.GaugeBar4Change(Sender: TObject);
+procedure TFormRotLayer.gbScaleChange(Sender: TObject);
 begin
-  ImgView.Scale := Power(10, GaugeBar4.Position / 100);
+  ImgView.Scale := Power(10, gbScale.Position * 0.01);
 end;
 
-procedure TFormRotLayer.CheckBox1Click(Sender: TObject);
+procedure TFormRotLayer.cbScaledClick(Sender: TObject);
 begin
   L.Scaled := not L.Scaled;
 end;
