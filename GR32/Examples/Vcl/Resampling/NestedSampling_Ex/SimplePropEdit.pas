@@ -30,7 +30,7 @@ unit SimplePropEdit;
 interface
 
 uses
-  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF} {$IFDEF Win32} Windows, {$ENDIF} 
+  {$IFDEF FPC} LCLIntf, LResources, {$ELSE} Windows, {$ENDIF}
   Forms, Controls, StdCtrls, ExtCtrls, ComCtrls, Grids, Messages, Classes,
   Graphics, TypInfo, GR32_OrdinalMaps;
 

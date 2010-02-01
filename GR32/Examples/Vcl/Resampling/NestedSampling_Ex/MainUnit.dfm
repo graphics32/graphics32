@@ -1,4 +1,4 @@
-object Form1: TForm1
+object MainForm: TMainForm
   Left = 382
   Top = 279
   Anchors = [akLeft, akTop, akRight, akBottom]
@@ -11,7 +11,7 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  Menu = MainMenu1
+  Menu = MainMenu
   OldCreateOrder = False
   Position = poDesktopCenter
   OnCreate = FormCreate
@@ -52,10 +52,9 @@ object Form1: TForm1
       ShowHint = True
       TabOrder = 0
       Wrapable = False
-      object ToolButton1: TToolButton
+      object tbNew: TToolButton
         Left = 0
         Top = 0
-        Caption = 'ToolButton1'
         DropdownMenu = NewItemMenu
         ImageIndex = 0
         Style = tbsDropDown
@@ -68,10 +67,10 @@ object Form1: TForm1
         ImageIndex = 1
         Style = tbsSeparator
       end
-      object ToolButton3: TToolButton
+      object tbCut: TToolButton
         Left = 44
         Top = 0
-        Caption = 'ToolButton3'
+        Caption = 'tbCut'
         ImageIndex = 1
         OnClick = Cut1Click
       end
@@ -670,7 +669,7 @@ object Form1: TForm1
       C007EFEF803FC007C00FFFFF807FE00F00000000000000000000000000000000
       000000000000}
   end
-  object OpenPictureDialog1: TOpenPictureDialog
+  object OpenPictureDialog: TOpenPictureDialog
     Filter = 
       'All (*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.e' +
       'mf;*.wmf)|*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ic' +
@@ -682,7 +681,7 @@ object Form1: TForm1
     Left = 312
     Top = 16
   end
-  object SavePictureDialog1: TSavePictureDialog
+  object SavePictureDialog: TSavePictureDialog
     Filter = 
       'All (*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.e' +
       'mf;*.wmf)|*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ic' +
@@ -1577,7 +1576,7 @@ object Form1: TForm1
         OnClick = TransformationClick
       end
     end
-    object Antialiasing2: TMenuItem
+    object miAntialiasing: TMenuItem
       Caption = 'Antialiasing'
       object Supersampler2: TMenuItem
         Caption = 'Super Sampler'
@@ -1638,7 +1637,7 @@ object Form1: TForm1
       OnClick = RGBNoise1Click
     end
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     Left = 216
     Top = 48
     object File1: TMenuItem
