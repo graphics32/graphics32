@@ -30,7 +30,8 @@ unit SimplePropEdit;
 interface
 
 uses
-  Windows, Forms, Controls, StdCtrls, ExtCtrls, ComCtrls, Grids, Messages, Classes,
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF} {$IFDEF Win32} Windows, {$ENDIF} 
+  Forms, Controls, StdCtrls, ExtCtrls, ComCtrls, Grids, Messages, Classes,
   Graphics, TypInfo, GR32_OrdinalMaps;
 
 const
@@ -86,7 +87,7 @@ const
 implementation
 
 uses
-  GR32_Resamplers, GR32_LowLevel, SysUtils, Math;
+  SysUtils, Math, GR32_Resamplers, GR32_LowLevel;
 
 { TSimplePropertyEditor }
 
@@ -122,7 +123,9 @@ begin
   FPropertyRangeList := TList.Create;
   BorderWidth := 1;
   BorderStyle := bsNone;
+  {$IFNDEF FPC}
   Ctl3D := False;
+  {$ENDIF}
   Color := clWhite;
   BevelInner := bvNone;
   BevelOuter := bvNone;
@@ -268,7 +271,7 @@ begin
 
       for K := 0 to 4 do
         for L := 0 to 4 do
-          Cells[K, L] := FloatToStr(Map[K, L]/256);
+          Cells[K, L] := FloatToStr(Map[K, L] / 256);
 
       OnSetEditText := StringGridEditHandler;
     end;
@@ -328,10 +331,12 @@ begin
                 HiValue := HiValue * SCALE_FLOAT;
                 Min := Round(LoValue);
                 Max := Round(HiValue);
-                Frequency := Math.Max(1, Round((HiValue - LoValue)/20));
+                Frequency := Math.Max(1, Round((HiValue - LoValue) / 20));
                 Position := Round(GetFloatProp(FSelectedObject, P) * SCALE_FLOAT);
               end;
+              {$IFNDEF FPC}
               ThumbLength := 16;
+              {$ENDIF}
               OnChange := TrackBarHandler;
             end;
             Control.Width := 98;
@@ -372,12 +377,20 @@ begin
             Control.Top := T + 4;
 
             SelName := GetEnumProp(FSelectedObject, P);
+            {$IFDEF FPC}
+            TD := GetTypeData(P.PropType);
+            {$ELSE}
             TD := GetTypeData(P.PropType^);
+            {$ENDIF}
 
             L := 0;
             for K := TD.MinValue to TD.MaxValue do
             begin
+              {$IFDEF FPC}
+              S := GetEnumName(P.PropType, K);
+              {$ELSE}
               S := GetEnumName(P.PropType^, K);
+              {$ENDIF}
               if S = SelName then L := K;
               TComboBox(Control).AddItem(S, nil);
             end;
