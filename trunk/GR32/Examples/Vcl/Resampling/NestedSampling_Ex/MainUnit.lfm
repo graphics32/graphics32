@@ -1,4 +1,4 @@
-object Form1: TForm1
+object MainForm: TMainForm
   Left = 359
   Height = 578
   Top = 260
@@ -8,7 +8,7 @@ object Form1: TForm1
   ClientWidth = 803
   Font.Height = -11
   Font.Name = 'Tahoma'
-  Menu = MainMenu1
+  Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poDesktopCenter
@@ -50,10 +50,9 @@ object Form1: TForm1
       ShowHint = True
       TabOrder = 0
       Wrapable = False
-      object ToolButton1: TToolButton
+      object tbNew: TToolButton
         Left = 1
         Top = 0
-        Caption = 'ToolButton1'
         DropdownMenu = NewItemMenu
         ImageIndex = 0
         Style = tbsDropDown
@@ -492,12 +491,12 @@ object Form1: TForm1
       00FF000000FF000000FF000000FF
     }
   end
-  object OpenPictureDialog1: TOpenPictureDialog
+  object OpenPictureDialog: TOpenPictureDialog
     Filter = 'All (*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.emf;*.wmf)|*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.emf;*.wmf| (*.gif)|*.gif|ANI Image (*.ani)|*.ani|PCX Image (*.pcx)|*.pcx|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|Bitmaps (*.bmp)|*.bmp|Icons (*.ico)|*.ico|Enhanced Metafiles (*.emf)|*.emf|Metafiles (*.wmf)|*.wmf'
     left = 312
     top = 16
   end
-  object SavePictureDialog1: TSavePictureDialog
+  object SavePictureDialog: TSavePictureDialog
     Title = 'Datei sichern als'
     Filter = 'All (*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.emf;*.wmf)|*.gif;*.ani;*.pcx;*.jpg;*.jpeg;*.jpg;*.jpeg;*.bmp;*.ico;*.emf;*.wmf| (*.gif)|*.gif|ANI Image (*.ani)|*.ani|PCX Image (*.pcx)|*.pcx|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|Bitmaps (*.bmp)|*.bmp|Icons (*.ico)|*.ico|Enhanced Metafiles (*.emf)|*.emf|Metafiles (*.wmf)|*.wmf'
     left = 344
@@ -1036,7 +1035,7 @@ object Form1: TForm1
         OnClick = TransformationClick
       end
     end
-    object Antialiasing2: TMenuItem
+    object miAntialiasing: TMenuItem
       Caption = 'Antialiasing'
       object Supersampler2: TMenuItem
         Caption = 'Super Sampler'
@@ -1097,7 +1096,7 @@ object Form1: TForm1
       OnClick = RGBNoise1Click
     end
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     left = 216
     top = 48
     object File1: TMenuItem

@@ -2,13 +2,13 @@ program NestedSampling_Ex;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1},
+  MainUnit in 'MainUnit.pas' {MainForm},
   SimplePropEdit in 'SimplePropEdit.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

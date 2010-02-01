@@ -46,113 +46,114 @@ uses
   GR32_Transforms, GR32_Containers, GR32_ExtImage;
   
 type
-  TForm1 = class(TForm)
-    EnabledImages: TImageList;
-    LeftPanel: TPanel;
-    tbManager: TToolBar;
-    lvSamplers: TListView;
-    StaticText1: TStaticText;
-    Splitter1: TSplitter;
-    Panel1: TPanel;
-    StaticText2: TStaticText;
-    ImgView: TImgView32;
-    OpenPictureDialog1: TOpenPictureDialog;
-    SavePictureDialog1: TSavePictureDialog;
-    DisabledImages: TImageList;
-    HotImages: TImageList;
-    btnRasterize: TSpeedButton;
-    NewItemMenu: TPopupMenu;
-    ransformer2: TMenuItem;
-    ranslation2: TMenuItem;
-    Rotation2: TMenuItem;
-    Scale2: TMenuItem;
-    Skew2: TMenuItem;
-    N9: TMenuItem;
-    Projective2: TMenuItem;
-    N10: TMenuItem;
-    wirl2: TMenuItem;
-    Bloat2: TMenuItem;
-    Disturbance2: TMenuItem;
-    Fisheye2: TMenuItem;
-    Antialiasing2: TMenuItem;
-    Supersampler2: TMenuItem;
+
+  { TMainForm }
+
+  TMainForm = class(TForm)
     AdaptiveSuperSampler2: TMenuItem;
+    miAntialiasing: TMenuItem;
+    Bloat2: TMenuItem;
+    btnRasterize: TSpeedButton;
+    chkClear: TMenuItem;
+    chkReset: TMenuItem;
+    Contour1: TMenuItem;
+    Contracter2: TMenuItem;
+    Convolver2: TMenuItem;
+    Dilater2: TMenuItem;
+    DisabledImages: TImageList;
+    Disturbance2: TMenuItem;
+    Draft1: TMenuItem;
+    Edit1: TMenuItem;
+    EnabledImages: TImageList;
+    Eroder2: TMenuItem;
+    Exit1: TMenuItem;
+    Expander2: TMenuItem;
+    File1: TMenuItem;
+    Fisheye2: TMenuItem;
+    HotImages: TImageList;
+    ImgView: TImgView32;
     JitteredPattern2: TMenuItem;
     Kernel2: TMenuItem;
-    Convolver2: TMenuItem;
+    Lanczos1: TMenuItem;
+    LeftPanel: TPanel;
+    Linear1: TMenuItem;
+    lvSamplers: TListView;
+    MainMenu: TMainMenu;
+    N1: TMenuItem;
+    N10: TMenuItem;
     N11: TMenuItem;
-    Dilater2: TMenuItem;
-    Eroder2: TMenuItem;
     N12: TMenuItem;
-    Expander2: TMenuItem;
-    Contracter2: TMenuItem;
-    ToolButton1: TToolButton;
+    N2: TMenuItem;
+    N9: TMenuItem;
+    Nearest1: TMenuItem;
+    NewItemMenu: TPopupMenu;
+    Open1: TMenuItem;
+    OpenPictureDialog: TOpenPictureDialog;
+    Panel1: TPanel;
+    Progressive1: TMenuItem;
+    Projective2: TMenuItem;
+    ransformer2: TMenuItem;
+    ranslation2: TMenuItem;
+    Rasterize1: TMenuItem;
+    Rasterizer1: TMenuItem;
+    Regular1: TMenuItem;
+    Resampler1: TMenuItem;
+    RGBNoise1: TMenuItem;
+    Rotation2: TMenuItem;
+    SaveImage1: TMenuItem;
+    SavePictureDialog: TSavePictureDialog;
+    Scale2: TMenuItem;
+    SelectiveConvolver1: TMenuItem;
+    Sinsh1: TMenuItem;
+    Skew2: TMenuItem;
+    Spline1: TMenuItem;
+    Splitter1: TSplitter;
+    StaticText1: TStaticText;
+    StaticText2: TStaticText;
+    StaticText3: TStaticText;
+    Supersampler2: TMenuItem;
+    Swizzling1: TMenuItem;
+    tbCut: TToolButton;
+    tbDown: TToolButton;
+    tbManager: TToolBar;
+    tbNew: TToolButton;
+    tbUp: TToolButton;
+    Tesseral1: TMenuItem;
     ToolButton2: TToolButton;
-    ToolButton3: TToolButton;
     ToolButton4: TToolButton;
     ToolButton5: TToolButton;
     ToolButton6: TToolButton;
     ToolButton7: TToolButton;
-    tbUp: TToolButton;
-    tbDown: TToolButton;
-    SelectiveConvolver1: TMenuItem;
-    MainMenu1: TMainMenu;
-    File1: TMenuItem;
-    Open1: TMenuItem;
-    SaveImage1: TMenuItem;
-    N1: TMenuItem;
-    Exit1: TMenuItem;
-    Resampler1: TMenuItem;
-    Nearest1: TMenuItem;
-    Linear1: TMenuItem;
-    Draft1: TMenuItem;
-    Lanczos1: TMenuItem;
-    Spline1: TMenuItem;
-    Sinsh1: TMenuItem;
-    N2: TMenuItem;
-    Edit1: TMenuItem;
-    Rasterizer1: TMenuItem;
-    Regular1: TMenuItem;
-    Progressive1: TMenuItem;
-    Swizzling1: TMenuItem;
-    Tesseral1: TMenuItem;
-    Contour1: TMenuItem;
-    N3: TMenuItem;
-    Edit2: TMenuItem;
-    Rasterize1: TMenuItem;
-    chkClear: TMenuItem;
-    chkReset: TMenuItem;
-    StaticText3: TStaticText;
-    RGBNoise1: TMenuItem;
+    wirl2: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure lvSamplersSelectItem(Sender: TObject; Item: TListItem;
-      Selected: Boolean);
+    procedure AntialiasClick(Sender: TObject);
     procedure btnRasterizeClick(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
-    procedure tbDeleteClick(Sender: TObject);
-    procedure Open1Click(Sender: TObject);
-    procedure SaveImage1Click(Sender: TObject);
-    procedure Exit1Click(Sender: TObject);
-    procedure Nearest1Click(Sender: TObject);
-    procedure Linear1Click(Sender: TObject);
-    procedure Progressive1Click(Sender: TObject);
-    procedure Regular1Click(Sender: TObject);
-    procedure Swizzling1Click(Sender: TObject);
-    procedure Tesseral1Click(Sender: TObject);
-    procedure Edit1Click(Sender: TObject);
-    procedure Edit2Click(Sender: TObject);
-    procedure KernelClick(Sender: TObject);
-    procedure TransformationClick(Sender: TObject);
-    procedure AntialiasClick(Sender: TObject);
     procedure Contour1Click(Sender: TObject);
     procedure Copy2Click(Sender: TObject);
     procedure Cut1Click(Sender: TObject);
+    procedure Edit1Click(Sender: TObject);
+    procedure Edit2Click(Sender: TObject);
+    procedure Exit1Click(Sender: TObject);
+    procedure KernelClick(Sender: TObject);
+    procedure Linear1Click(Sender: TObject);
+    procedure lvSamplersSelectItem(Sender: TObject; Item: TListItem;
+      Selected: Boolean);
+    procedure Nearest1Click(Sender: TObject);
+    procedure Open1Click(Sender: TObject);
     procedure Paste1Click(Sender: TObject);
+    procedure Progressive1Click(Sender: TObject);
+    procedure Regular1Click(Sender: TObject);
     procedure RGBNoise1Click(Sender: TObject);
+    procedure SaveImage1Click(Sender: TObject);
     procedure SelectKernel(Sender: TObject);
+    procedure Swizzling1Click(Sender: TObject);
+    procedure tbDeleteClick(Sender: TObject);
     procedure tbUpDownClick(Sender: TObject);
+    procedure Tesseral1Click(Sender: TObject);
+    procedure TransformationClick(Sender: TObject);
   private
     { Private declarations }
     procedure SetSourceResampler(const Value: TCustomResampler);
@@ -202,7 +203,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
@@ -245,7 +246,7 @@ begin
   end;
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
   pathRef: CFURLRef;
@@ -326,7 +327,7 @@ begin
   btnRasterizeClick(nil);
 end;
 
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TMainForm.FormDestroy(Sender: TObject);
 var
   I: Integer;
 begin
@@ -336,18 +337,18 @@ begin
   Samplers.Free;
 end;
 
-procedure TForm1.lvSamplersSelectItem(Sender: TObject; Item: TListItem;
+procedure TMainForm.lvSamplersSelectItem(Sender: TObject; Item: TListItem;
   Selected: Boolean);
 begin
   if Selected and (Item.Index >= 0) and (Item.Index < Samplers.Count) then
     PropertyEditor.SelectObject(Item.Caption, Samplers[Item.Index]);
 end;
 
-procedure TForm1.SetResampler(ResamplerClass: TCustomResamplerClass);
+procedure TMainForm.SetResampler(ResamplerClass: TCustomResamplerClass);
 begin
 end;
 
-procedure TForm1.btnRasterizeClick(Sender: TObject);
+procedure TMainForm.btnRasterizeClick(Sender: TObject);
 begin
   if IsRasterizing then
   begin
@@ -380,55 +381,55 @@ begin
   end;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TMainForm.Button2Click(Sender: TObject);
 begin
   PropertyEditor.SelectObject('Resampler', Source.Resampler);
 end;
 
-procedure TForm1.Button3Click(Sender: TObject);
+procedure TMainForm.Button3Click(Sender: TObject);
 begin
   PropertyEditor.SelectObject('Rasterizer', Rasterizer);
 end;
 
-procedure TForm1.tbDeleteClick(Sender: TObject);
+procedure TMainForm.tbDeleteClick(Sender: TObject);
 begin
   if ValidSelection then
     DeleteSampler(SelectedIndex);
 end;
 
-procedure TForm1.Open1Click(Sender: TObject);
+procedure TMainForm.Open1Click(Sender: TObject);
 begin
-  if OpenPictureDialog1.Execute then
+  if OpenPictureDialog.Execute then
   begin
-    Source.LoadFromFile(OpenPictureDialog1.FileName);
+    Source.LoadFromFile(OpenPictureDialog.FileName);
     UpdateTransformations;
     ImgView.Bitmap.SetSizeFrom(Source);
     btnRasterizeClick(nil);
   end;
 end;
 
-procedure TForm1.SaveImage1Click(Sender: TObject);
+procedure TMainForm.SaveImage1Click(Sender: TObject);
 begin
-  if SavePictureDialog1.Execute then
-    Source.SaveToFile(OpenPictureDialog1.FileName);
+  if SavePictureDialog.Execute then
+    Source.SaveToFile(OpenPictureDialog.FileName);
 end;
 
-procedure TForm1.Exit1Click(Sender: TObject);
+procedure TMainForm.Exit1Click(Sender: TObject);
 begin
   Close;
 end;
 
-procedure TForm1.Nearest1Click(Sender: TObject);
+procedure TMainForm.Nearest1Click(Sender: TObject);
 begin
   SourceResampler := TNearestResampler.Create(Source);
 end;
 
-procedure TForm1.Linear1Click(Sender: TObject);
+procedure TMainForm.Linear1Click(Sender: TObject);
 begin
   SourceResampler := TLinearResampler.Create(Source);
 end;
 
-procedure TForm1.SelectKernel(Sender: TObject);
+procedure TMainForm.SelectKernel(Sender: TObject);
 var
   R: TKernelResampler;
 const
@@ -441,7 +442,7 @@ begin
   SourceResampler := R;
 end;
 
-procedure TForm1.StopThread;
+procedure TMainForm.StopThread;
 begin
   if Assigned(RenderThread) then
   begin
@@ -450,7 +451,7 @@ begin
   end;
 end;
 
-function TForm1.LastSampler: TCustomSampler;
+function TMainForm.LastSampler: TCustomSampler;
 begin
   if Samplers.Count > 0 then
     Result := TCustomSampler(Samplers.Last)
@@ -458,14 +459,14 @@ begin
     Result := Source.Resampler;
 end;
 
-procedure TForm1.Progressive1Click(Sender: TObject);
+procedure TMainForm.Progressive1Click(Sender: TObject);
 begin
   Rasterizer.Free;
   Rasterizer := TProgressiveRasterizer.Create;
   Rasterizer.Sampler := LastSampler;
 end;
 
-procedure TForm1.Regular1Click(Sender: TObject);
+procedure TMainForm.Regular1Click(Sender: TObject);
 begin
   Rasterizer.Free;
   Rasterizer := TRegularRasterizer.Create;
@@ -473,31 +474,31 @@ begin
   Rasterizer.Sampler := LastSampler;
 end;
 
-procedure TForm1.Swizzling1Click(Sender: TObject);
+procedure TMainForm.Swizzling1Click(Sender: TObject);
 begin
   Rasterizer.Free;
   Rasterizer := TSwizzlingRasterizer.Create;
   Rasterizer.Sampler := LastSampler;
 end;
 
-procedure TForm1.Tesseral1Click(Sender: TObject);
+procedure TMainForm.Tesseral1Click(Sender: TObject);
 begin
   Rasterizer.Free;
   Rasterizer := TTesseralRasterizer.Create;
   Rasterizer.Sampler := LastSampler;
 end;
 
-procedure TForm1.Edit1Click(Sender: TObject);
+procedure TMainForm.Edit1Click(Sender: TObject);
 begin
   PropertyEditor.SelectObject('Resampler', Source.Resampler);
 end;
 
-procedure TForm1.Edit2Click(Sender: TObject);
+procedure TMainForm.Edit2Click(Sender: TObject);
 begin
   PropertyEditor.SelectObject('Rasterizer', Rasterizer);
 end;
 
-procedure TForm1.ThreadTerminated(Sender: TObject);
+procedure TMainForm.ThreadTerminated(Sender: TObject);
 begin
   if Assigned(Source2) then FreeAndNil(Source2);
   tbManager.Enabled := True;
@@ -508,7 +509,7 @@ begin
   IsRasterizing := False;
 end;
 
-procedure TForm1.KernelClick(Sender: TObject);
+procedure TMainForm.KernelClick(Sender: TObject);
 type
   TKernelSamplerClass = class of TKernelSampler;
 const
@@ -546,7 +547,7 @@ begin
   AddSampler(S);
 end;
 
-procedure TForm1.TransformationClick(Sender: TObject);
+procedure TMainForm.TransformationClick(Sender: TObject);
 type
   TTransformationClass = class of TTransformation;
 const
@@ -564,7 +565,7 @@ begin
   AddSampler(S);
 end;
 
-procedure TForm1.AntialiasClick(Sender: TObject);
+procedure TMainForm.AntialiasClick(Sender: TObject);
 type
   TNestedSamplerClass = class of TNestedSampler;
 const
@@ -574,14 +575,14 @@ begin
   AddSampler(Classes[TComponent(Sender).Tag].Create(LastSampler));
 end;
 
-procedure TForm1.Contour1Click(Sender: TObject);
+procedure TMainForm.Contour1Click(Sender: TObject);
 begin
   Rasterizer.Free;
   Rasterizer := TContourRasterizer.Create;
   Rasterizer.Sampler := LastSampler;
 end;
 
-procedure TForm1.SetSourceResampler(const Value: TCustomResampler);
+procedure TMainForm.SetSourceResampler(const Value: TCustomResampler);
 begin
   if Samplers.Count > 0 then
     TNestedSampler(Samplers[0]).Sampler := Value
@@ -589,31 +590,31 @@ begin
     Rasterizer.Sampler := Value;
 end;
 
-function TForm1.GetSourceResampler: TCustomResampler;
+function TMainForm.GetSourceResampler: TCustomResampler;
 begin
   Result := Source.Resampler;
 end;
 
-function TForm1.SelectedSampler: TNestedSampler;
+function TMainForm.SelectedSampler: TNestedSampler;
 begin
   Result := nil;
   if Assigned(lvSamplers.Selected) then
     Result := TNestedSampler(lvSamplers.Selected.Data);
 end;
 
-function TForm1.SelectedIndex: Integer;
+function TMainForm.SelectedIndex: Integer;
 begin
   Result := -1;
   if Assigned(lvSamplers.Selected) then
     Result := lvSamplers.Selected.Index;
 end;
 
-function TForm1.ValidSelection: Boolean;
+function TMainForm.ValidSelection: Boolean;
 begin
   Result := Assigned(lvSamplers.Selected);
 end;
 
-procedure TForm1.Copy2Click(Sender: TObject);
+procedure TMainForm.Copy2Click(Sender: TObject);
 begin
   if ValidSelection then
   begin
@@ -622,7 +623,7 @@ begin
   end;
 end;
 
-procedure TForm1.Cut1Click(Sender: TObject);
+procedure TMainForm.Cut1Click(Sender: TObject);
 begin
   if ValidSelection then
   begin
@@ -632,7 +633,7 @@ begin
   end;
 end;
 
-procedure TForm1.Paste1Click(Sender: TObject);
+procedure TMainForm.Paste1Click(Sender: TObject);
 begin
   if Assigned(ClipBoardItem) then
     if ValidSelection then
@@ -641,7 +642,7 @@ begin
       InsertSampler(MaxInt, ObjectName, ClipBoardItem);
 end;
 
-procedure TForm1.tbUpDownClick(Sender: TObject);
+procedure TMainForm.tbUpDownClick(Sender: TObject);
 var
   Index: Integer;
   S: TNestedSampler;
@@ -657,7 +658,7 @@ begin
   end;
 end;
 
-procedure TForm1.AddSampler(Sampler: TNestedSampler);
+procedure TMainForm.AddSampler(Sampler: TNestedSampler);
 var
   NewItem: TListItem;
 begin
@@ -672,7 +673,7 @@ begin
   NewItem.Data := Sampler;
 end;
 
-procedure TForm1.InsertSampler(Index: Integer; ObjName: string; Sampler: TNestedSampler);
+procedure TMainForm.InsertSampler(Index: Integer; ObjName: string; Sampler: TNestedSampler);
 var
   NewItem: TListItem;
 begin
@@ -700,7 +701,7 @@ begin
   lvSamplers.Selected.Focused := True;
 end;
 
-procedure TForm1.DeleteSampler(Index: Integer; FreeItem: Boolean);
+procedure TMainForm.DeleteSampler(Index: Integer; FreeItem: Boolean);
 var
   S: TNestedSampler;
 begin
@@ -721,12 +722,12 @@ begin
   end;
 end;
 
-procedure TForm1.RGBNoise1Click(Sender: TObject);
+procedure TMainForm.RGBNoise1Click(Sender: TObject);
 begin
   AddSampler(TNoiseSampler.Create(LastSampler));
 end;
 
-procedure TForm1.UpdateTransformations;
+procedure TMainForm.UpdateTransformations;
 var
   I: Integer;
   SrcRect: TRect;
@@ -750,7 +751,7 @@ begin
   end;
 end;
 
-function TForm1.NewInstanceName(Sampler: TNestedSampler): string;
+function TMainForm.NewInstanceName(Sampler: TNestedSampler): string;
 var
   S: string;
   I: Integer;
@@ -765,7 +766,7 @@ begin
   end;
 end;
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
 initialization
   {$I MainUnit.lrs}
 {$ENDIF}
