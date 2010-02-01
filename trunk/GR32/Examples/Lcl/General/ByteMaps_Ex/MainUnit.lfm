@@ -39,8 +39,8 @@ object Form1: TForm1
     DefaultExt = '.bmp'
     Filter = 'Bitmaps (*.bmp)|*.bmp'
     FilterIndex = 0
-    left = 304
-    top = 40
+    left = 216
+    top = 64
   end
   object ImageList1: TImageList
     BkColor = clForeground
@@ -397,7 +397,7 @@ object Form1: TForm1
   object OpenPictureDialog: TOpenPictureDialog
     Filter = 'All (*.gif;*.jpg;*.jpeg;*.bmp;*.ico)|*.gif;*.jpg;*.jpeg;*.bmp;*.ico|CompuServe GIF Image (*.gif)|*.gif|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpeg|Bitmaps (*.bmp)|*.bmp|Icons (*.ico)|*.ico'
     FilterIndex = 0
-    left = 270
-    top = 42
+    left = 96
+    top = 64
   end
 end

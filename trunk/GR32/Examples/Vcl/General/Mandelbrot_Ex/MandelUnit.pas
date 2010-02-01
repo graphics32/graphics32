@@ -61,40 +61,40 @@ type
     procedure PrepareSampling; override;
   end;
 
-  TForm1 = class(TForm)
-    Adaptive: TMenuItem;
-    Contour1: TMenuItem;
-    Default1: TMenuItem;
-    Exit1: TMenuItem;
-    File1: TMenuItem;
+  TMainForm = class(TForm)
     Img: TSyntheticImage32;
-    MainMenu1: TMainMenu;
+    MainMenu: TMainMenu;
+    miAdaptive: TMenuItem;
+    miContour: TMenuItem;
+    miDefault: TMenuItem;
+    miExit: TMenuItem;
+    miFile: TMenuItem;
+    miPatternSampler2x: TMenuItem;
+    miPatternSampler3x: TMenuItem;
+    miPatternSampler4x: TMenuItem;
+    miProgressive: TMenuItem;
+    miRasterizer: TMenuItem;
+    miRegularSampling: TMenuItem;
+    miSave: TMenuItem;
+    miSuperSampler: TMenuItem;
+    miSuperSampler2x: TMenuItem;
+    miSuperSampler3x: TMenuItem;
+    miSuperSampler4x: TMenuItem;
+    miSwizzling: TMenuItem;
+    miTesseral: TMenuItem;
     N2: TMenuItem;
-    N2x2: TMenuItem;
     N3: TMenuItem;
-    N3x2: TMenuItem;
-    N4x2: TMenuItem;
     N5: TMenuItem;
-    PatternSampler1: TMenuItem;
-    PatternSampler2: TMenuItem;
-    PatternSampler3x1: TMenuItem;
-    Progressive1: TMenuItem;
-    Rasterizer1: TMenuItem;
-    Regularsampling1: TMenuItem;
-    Sampler1: TMenuItem;
-    Save1: TMenuItem;
-    SavePictureDialog1: TSavePictureDialog;
-    Swizzling1: TMenuItem;
-    Tesseral1: TMenuItem;
+    SavePictureDialog: TSavePictureDialog;
     procedure FormCreate(Sender: TObject);
-    procedure RasterizerMenuClick(Sender: TObject);
-    procedure Default1Click(Sender: TObject);
-    procedure AdaptiveClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure Save1Click(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
-    procedure Exit1Click(Sender: TObject);
+    procedure miAdaptiveClick(Sender: TObject);
+    procedure miDefaultClick(Sender: TObject);
+    procedure miExitClick(Sender: TObject);
+    procedure miSaveClick(Sender: TObject);
+    procedure RasterizerMenuClick(Sender: TObject);
   public
     { Public declarations }
     Rasterizer: TRasterizer;
@@ -110,7 +110,7 @@ type
   end;
 
 var
-  Form1: TForm1;
+  MainForm: TMainForm;
 
 implementation
 
@@ -177,7 +177,7 @@ begin
       0.5 * (1 + Sin(3 + 14 * I / DEF_ITER)));
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMainForm.FormCreate(Sender: TObject);
 var
 {$IFDEF Darwin}
   pathRef: CFURLRef;
@@ -219,7 +219,7 @@ begin
   SelectRasterizer(rkProgressive);
 end;
 
-procedure TForm1.SelectRasterizer(RasterizerKind: TRasterizerKind);
+procedure TMainForm.SelectRasterizer(RasterizerKind: TRasterizerKind);
 const
   RASTERIZERCLASS: array[TRasterizerKind] of TRasterizerClass =
     (TRegularRasterizer, TProgressiveRasterizer, TSwizzlingRasterizer,
@@ -232,31 +232,31 @@ begin
   Img.Rasterizer := Rasterizer;
 end;
 
-procedure TForm1.RasterizerMenuClick(Sender: TObject);
+procedure TMainForm.RasterizerMenuClick(Sender: TObject);
 begin
   if Sender is TMenuItem then
     SelectRasterizer(TRasterizerKind(TMenuItem(Sender).Tag));
 end;
 
-procedure TForm1.Default1Click(Sender: TObject);
+procedure TMainForm.miDefaultClick(Sender: TObject);
 begin
   if Sender is TMenuItem then
     SelectSampler(TSamplerKind(TMenuItem(Sender).Tag));
 end;
 
-procedure TForm1.SelectSampler(ASamplerKind: TSamplerKind);
+procedure TMainForm.SelectSampler(ASamplerKind: TSamplerKind);
 const
   SLEVEL: array [skSS2X..skSS4X] of Integer = (2, 3, 4);
   PSAMPLES: array [skPattern2..skPattern4] of Integer = (2, 3, 4);
 begin
   SamplerKind := ASamplerKind;
-  Adaptive.Enabled := False;
+  miAdaptive.Enabled := False;
   case SamplerKind of
     skDefault: Sampler := MandelSampler;
     skSS2X..skSS4X:
       begin
-        Adaptive.Enabled := True;
-        if Adaptive.Checked then
+        miAdaptive.Enabled := True;
+        if miAdaptive.Checked then
         begin
           Sampler := AdaptiveSampler;
           AdaptiveSampler.Level := SLEVEL[SamplerKind];
@@ -278,12 +278,12 @@ begin
   Img.Rasterize;
 end;
 
-procedure TForm1.AdaptiveClick(Sender: TObject);
+procedure TMainForm.miAdaptiveClick(Sender: TObject);
 begin
   SelectSampler(SamplerKind);
 end;
 
-procedure TForm1.ImgMouseDown(Sender: TObject; Button: TMouseButton;
+procedure TMainForm.ImgMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   cX, cY, L, T, W, H, Scale: Extended;
@@ -311,13 +311,13 @@ begin
   Img.Rasterize;
 end;
 
-procedure TForm1.Save1Click(Sender: TObject);
+procedure TMainForm.miSaveClick(Sender: TObject);
 begin
-  if SavePictureDialog1.Execute then
-    Img.Buffer.SaveToFile(SavePictureDialog1.FileName);
+  if SavePictureDialog.Execute then
+    Img.Buffer.SaveToFile(SavePictureDialog.FileName);
 end;
 
-procedure TForm1.FormDestroy(Sender: TObject);
+procedure TMainForm.FormDestroy(Sender: TObject);
 begin
 { Note: The synthetic image control must be freed before the samplers,
   since they are potentially used by the rendering thread. }
@@ -329,7 +329,7 @@ begin
   JitteredSampler.Free;
 end;
 
-procedure TForm1.Exit1Click(Sender: TObject);
+procedure TMainForm.miExitClick(Sender: TObject);
 begin
  Close;
 end;

@@ -75,7 +75,7 @@ object FormPolygons: TFormPolygons
       Height = 13
       Caption = '(1)'
     end
-    object Antialiase: TCheckBox
+    object cbAntialiased: TCheckBox
       Left = 16
       Top = 40
       Width = 105
@@ -106,7 +106,7 @@ object FormPolygons: TFormPolygons
       TabOrder = 2
       OnChange = ParamsChanged
     end
-    object FillMode: TRadioGroup
+    object rgFillMode: TRadioGroup
       Left = 16
       Top = 290
       Width = 121
@@ -119,14 +119,14 @@ object FormPolygons: TFormPolygons
       TabOrder = 3
       OnClick = ParamsChanged
     end
-    object Button1: TButton
+    object btNewLine: TButton
       Left = 24
       Top = 8
       Width = 105
       Height = 25
       Caption = 'New Line'
       TabOrder = 4
-      OnClick = Button1Click
+      OnClick = btNewLineClick
     end
     object LineThickness: TScrollBar
       Left = 16
@@ -149,7 +149,7 @@ object FormPolygons: TFormPolygons
       TabOrder = 6
       OnClick = ThicknessChanged
     end
-    object AntialiasMode: TRadioGroup
+    object rgAntialiasMode: TRadioGroup
       Left = 16
       Top = 60
       Width = 121

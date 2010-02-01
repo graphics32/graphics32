@@ -44,17 +44,17 @@ uses
 type
   { TMainForm }
   TMainForm = class(TForm)
-    Image32: TImage32;
     gbTwist: TGaugeBar;
-    PnlSettings: TPanel;
-    Label3: TLabel;
+    Image32: TImage32;
+    lbTwirlPower: TLabel;
     Panel4: TPanel;
+    PnlSettings: TPanel;
     rbGetPixelFS: TRadioButton;
     rbPixelS: TRadioButton;
+    procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
-    procedure FormCreate(Sender: TObject);
     procedure gbTwistChange(Sender: TObject);
   private
   public

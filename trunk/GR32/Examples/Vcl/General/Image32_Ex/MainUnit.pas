@@ -53,7 +53,7 @@ type
     rgScaleMode: TRadioGroup;
     rgKernel: TRadioGroup;
     rgBitmapAlign: TRadioGroup;
-    StaticText1: TStaticText;
+    stScale: TStaticText;
     sbScale: TGaugeBar;
     procedure rgBitmapAlignClick(Sender: TObject);
     procedure sbScaleChange(Sender: TObject);
@@ -151,7 +151,7 @@ begin
   Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
   ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
   sbScale.Enabled := ScaleEnabled;
-  StaticText1.Enabled := ScaleEnabled;
+  stScale.Enabled := ScaleEnabled;
 end;
 
 procedure TFormImage32Example.rgKernelClick(Sender: TObject);

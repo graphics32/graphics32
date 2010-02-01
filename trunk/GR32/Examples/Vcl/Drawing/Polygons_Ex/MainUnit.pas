@@ -47,15 +47,13 @@ type
   { TFormPolygons }
 
   TFormPolygons = class(TForm)
-    Antialiase: TCheckBox;
-    AntialiasMode: TRadioGroup;
     BitmapList: TBitmap32List;
-    Button1: TButton;
+    btNewLine: TButton;
+    cbAntialiased: TCheckBox;
     FillAlpha: TScrollBar;
-    FillMode: TRadioGroup;
     Image: TImage32;
-    lbLineOpacity: TLabel;
     lbFillOpacity: TLabel;
+    lbLineOpacity: TLabel;
     lbOutlineThickness: TLabel;
     lbOutlineThicknessValue: TLabel;
     LineAlpha: TScrollBar;
@@ -64,6 +62,8 @@ type
     Memo2: TMemo;
     Panel1: TPanel;
     Pattern: TCheckBox;
+    rgAntialiasMode: TRadioGroup;
+    rgFillMode: TRadioGroup;
     ThickOutline: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -71,7 +71,7 @@ type
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImageResize(Sender: TObject);
     procedure ParamsChanged(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure btNewLineClick(Sender: TObject);
     procedure ThicknessChanged(Sender: TObject);
   private
     Polygon: TPolygon32;
@@ -162,16 +162,16 @@ begin
     Image.Bitmap.Clear(clWhite32);
     Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
 
-    Polygon.Antialiased := Antialiase.Checked;
-    Polygon.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+    Polygon.Antialiased := cbAntialiased.Checked;
+    Polygon.AntialiasMode := TAntialiasMode(rgAntialiasMode.ItemIndex);
 
     if UseOutlinePoly then
     begin
-      Outline.Antialiased := Antialiase.Checked;
-      Outline.AntialiasMode := TAntialiasMode(AntialiasMode.ItemIndex);
+      Outline.Antialiased := cbAntialiased.Checked;
+      Outline.AntialiasMode := TAntialiasMode(rgAntialiasMode.ItemIndex);
     end;
 
-    if FillMode.ItemIndex = 0 then
+    if rgFillMode.ItemIndex = 0 then
       Polygon.FillMode := pfAlternate
     else
       Polygon.FillMode := pfWinding;
@@ -222,11 +222,11 @@ end;
 
 procedure TFormPolygons.ParamsChanged(Sender: TObject);
 begin
-  AntialiasMode.Enabled := Antialiase.Checked;
+  rgAntialiasMode.Enabled := cbAntialiased.Checked;
   Draw;
 end;
 
-procedure TFormPolygons.Button1Click(Sender: TObject);
+procedure TFormPolygons.btNewLineClick(Sender: TObject);
 begin
   Polygon.NewLine;
 end;
@@ -254,7 +254,7 @@ end;
 
 procedure TFormPolygons.ThicknessChanged(Sender: TObject);
 begin
-  AntialiasMode.Enabled := Antialiase.Checked;
+  rgAntialiasMode.Enabled := cbAntialiased.Checked;
   UseOutlinePoly := ThickOutline.Checked;
   LineSize := LineThickness.Position * 0.1;
   Build;

@@ -35,7 +35,7 @@ object MainForm: TMainForm
       ClientWidth = 131
       TabOrder = 0
       Visible = False
-      object Label1: TLabel
+      object lbScale: TLabel
         Left = 8
         Height = 14
         Top = 24
@@ -112,7 +112,7 @@ object MainForm: TMainForm
       ClientWidth = 131
       TabOrder = 1
       Visible = False
-      object Label2: TLabel
+      object lbOpacity: TLabel
         Left = 8
         Height = 14
         Top = 24
@@ -190,7 +190,7 @@ object MainForm: TMainForm
         OnChange = LayerOpacityChanged
       end
     end
-    object PnlMagn: TPanel
+    object pnlMagnification: TPanel
       Left = 0
       Height = 168
       Top = 298
@@ -200,7 +200,7 @@ object MainForm: TMainForm
       ClientWidth = 131
       TabOrder = 2
       Visible = False
-      object Label3: TLabel
+      object lbMagifierOpacity: TLabel
         Left = 8
         Height = 14
         Top = 24
@@ -208,7 +208,7 @@ object MainForm: TMainForm
         Caption = 'Opacity:'
         ParentColor = False
       end
-      object Label4: TLabel
+      object lbMagnification: TLabel
         Left = 8
         Height = 14
         Top = 64
@@ -216,7 +216,7 @@ object MainForm: TMainForm
         Caption = 'Magnification:'
         ParentColor = False
       end
-      object Label5: TLabel
+      object lbRotation: TLabel
         Left = 8
         Height = 14
         Top = 104
@@ -437,12 +437,12 @@ object MainForm: TMainForm
       end
     end
   end
-  object OpenPictureDialog1: TOpenPictureDialog
+  object OpenPictureDialog: TOpenPictureDialog
     Title = 'Open existing file'
     FilterIndex = 0
     left = 248
   end
-  object SaveDialog1: TSaveDialog
+  object SaveDialog: TSaveDialog
     Title = 'Save file as'
     FilterIndex = 0
     left = 344

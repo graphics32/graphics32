@@ -42,21 +42,21 @@ uses
 
 type
   TNewImageForm = class(TForm)
-    Label1: TLabel;
-    ImageWidth: TEdit;
-    UpDown1: TUpDown;
-    Label2: TLabel;
+    btCancel: TButton;
+    btOK: TButton;
+    btSelect: TButton;
+    btUpDownHeight: TUpDown;
+    btUpDownWidth: TUpDown;
+    ColorDialog: TColorDialog;
     ImageHeight: TEdit;
-    UpDown2: TUpDown;
-    Label3: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
-    Panel1: TPanel;
-    Button1: TButton;
-    Button2: TButton;
-    Button3: TButton;
-    ColorDialog1: TColorDialog;
-    procedure Button1Click(Sender: TObject);
+    ImageWidth: TEdit;
+    lbBackgroundColor: TLabel;
+    lbHeight: TLabel;
+    lbHeightUnit: TLabel;
+    lbWidth: TLabel;
+    lbWidthUnit: TLabel;
+    pnColor: TPanel;
+    procedure btSelectClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -72,12 +72,12 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-procedure TNewImageForm.Button1Click(Sender: TObject);
+procedure TNewImageForm.btSelectClick(Sender: TObject);
 begin
-  with ColorDialog1 do
+  with ColorDialog do
   begin
-    Color := Panel1.Color;
-    if Execute then Panel1.Color := Color;
+    Color := pnColor.Color;
+    if Execute then pnColor.Color := Color;
   end;
 end;
 

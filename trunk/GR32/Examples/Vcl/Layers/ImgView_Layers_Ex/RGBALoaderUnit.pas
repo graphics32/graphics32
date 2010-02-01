@@ -45,31 +45,31 @@ type
   { TRGBALoaderForm }
 
   TRGBALoaderForm = class(TForm)
-    Panel1: TPanel;
     Bevel1: TBevel;
-    Label1: TLabel;
-    Label2: TLabel;
-    ImgRGB: TImgView32;
-    Button1: TButton;
-    Label3: TLabel;
+    btCancel: TButton;
+    btLoadAlpha: TButton;
+    btLoadImage: TButton;
+    btOK: TButton;
+    btResetScales: TButton;
     ImgAlpha: TImgView32;
-    Button2: TButton;
-    Label4: TLabel;
-    Button3: TButton;
-    Button4: TButton;
+    ImgRGB: TImgView32;
+    lbAlphaImage: TLabel;
+    lbInfo: TLabel;
+    lbNote: TLabel;
+    lbRGBImage: TLabel;
     OpenPictureDialog: TOpenPictureDialog;
+    Panel1: TPanel;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
     SpeedButton3: TSpeedButton;
     SpeedButton4: TSpeedButton;
-    Button5: TButton;
-    procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    procedure btLoadImageClick(Sender: TObject);
+    procedure btLoadAlphaClick(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
     procedure SpeedButton2Click(Sender: TObject);
     procedure SpeedButton3Click(Sender: TObject);
     procedure SpeedButton4Click(Sender: TObject);
-    procedure Button5Click(Sender: TObject);
+    procedure btResetScalesClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -85,13 +85,13 @@ implementation
 {$R *.DFM}
 {$ENDIF}
 
-procedure TRGBALoaderForm.Button1Click(Sender: TObject);
+procedure TRGBALoaderForm.btLoadImageClick(Sender: TObject);
 begin
   with OpenPictureDialog do
     if Execute then ImgRGB.Bitmap.LoadFromFile(FileName);
 end;
 
-procedure TRGBALoaderForm.Button2Click(Sender: TObject);
+procedure TRGBALoaderForm.btLoadAlphaClick(Sender: TObject);
 begin
   with OpenPictureDialog, ImgAlpha do
     if Execute then
@@ -121,7 +121,7 @@ begin
   ImgAlpha.Scale := ImgAlpha.Scale / 1.5;
 end;
 
-procedure TRGBALoaderForm.Button5Click(Sender: TObject);
+procedure TRGBALoaderForm.btResetScalesClick(Sender: TObject);
 begin
   ImgRGB.Scale := 1;
   ImgAlpha.Scale := 1;

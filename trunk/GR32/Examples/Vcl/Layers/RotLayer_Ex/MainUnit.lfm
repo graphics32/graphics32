@@ -15,7 +15,7 @@ object FormRotLayer: TFormRotLayer
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   LCLVersion = '0.9.29'
-  object Label1: TLabel
+  object lbAngle: TLabel
     Left = 12
     Height = 14
     Top = 314
@@ -24,7 +24,7 @@ object FormRotLayer: TFormRotLayer
     Caption = 'RotLayer.Angle:'
     ParentColor = False
   end
-  object Label2: TLabel
+  object lbPositionX: TLabel
     Left = 12
     Height = 14
     Top = 346
@@ -33,7 +33,7 @@ object FormRotLayer: TFormRotLayer
     Caption = 'RotLayer.Position.X:'
     ParentColor = False
   end
-  object Label3: TLabel
+  object lbPositionY: TLabel
     Left = 12
     Height = 14
     Top = 374
@@ -42,7 +42,7 @@ object FormRotLayer: TFormRotLayer
     Caption = 'RotLayer.Position.Y:'
     ParentColor = False
   end
-  object Label4: TLabel
+  object lbScale: TLabel
     Left = 12
     Height = 14
     Top = 440
@@ -51,7 +51,7 @@ object FormRotLayer: TFormRotLayer
     Caption = 'ImgView32.Scale:'
     ParentColor = False
   end
-  object CheckBox1: TCheckBox
+  object cbScaled: TCheckBox
     Left = 8
     Height = 17
     Top = 408
@@ -59,11 +59,11 @@ object FormRotLayer: TFormRotLayer
     Anchors = [akLeft, akBottom]
     Caption = 'RotLayer.Scaled:'
     Checked = True
-    OnClick = CheckBox1Click
+    OnClick = cbScaledClick
     State = cbChecked
     TabOrder = 0
   end
-  object GaugeBar1: TGaugeBar
+  object gbAngle: TGaugeBar
     Left = 150
     Height = 16
     Top = 313
@@ -76,9 +76,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 0
-    OnChange = GaugeBar1Change
+    OnChange = gbAngleChange
   end
-  object GaugeBar2: TGaugeBar
+  object gbPositionX: TGaugeBar
     Left = 150
     Height = 16
     Top = 345
@@ -90,9 +90,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 100
-    OnChange = GaugeBar2Change
+    OnChange = gbPositionChange
   end
-  object GaugeBar3: TGaugeBar
+  object gbPositionY: TGaugeBar
     Left = 150
     Height = 16
     Top = 373
@@ -104,9 +104,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 100
-    OnChange = GaugeBar2Change
+    OnChange = gbPositionChange
   end
-  object GaugeBar4: TGaugeBar
+  object gbScale: TGaugeBar
     Left = 150
     Height = 16
     Top = 439
@@ -118,9 +118,9 @@ object FormRotLayer: TFormRotLayer
     ShowHandleGrip = True
     Style = rbsMac
     Position = 100
-    OnChange = GaugeBar4Change
+    OnChange = gbScaleChange
   end
-  object ImgView32_1: TImgView32
+  object ImgView: TImgView32
     Left = 8
     Height = 294
     Top = 8

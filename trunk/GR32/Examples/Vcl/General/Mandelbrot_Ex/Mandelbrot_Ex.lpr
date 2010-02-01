@@ -8,11 +8,11 @@ uses
   {$ENDIF}
   Interfaces,
   Forms,
-  MandelUnit in 'MandelUnit.pas' {Form1};
+  MandelUnit in 'MandelUnit.pas' {MainForm};
 
 begin
   Application.Title:='Mandelbrot Example';
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

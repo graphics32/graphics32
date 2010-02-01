@@ -34,8 +34,6 @@ unit MainUnit;
 
 interface
 
-{$MODE Delphi}
-
 uses
   LCLIntf, LResources,
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
@@ -43,6 +41,9 @@ uses
   GR32_Image, GR32_Layers, ToolWin, ImgList, Menus;
 
 type
+
+  { TForm1 }
+
   TForm1 = class(TForm)
     ScaleBar: TGaugeBar;
     Image: TImgView32;
@@ -51,19 +52,16 @@ type
     Panel4: TPanel;
     ImageList1: TImageList;
     CoolBar: TToolBar;
-    ToolBar1: TToolBar;
     bNew: TToolButton;
     bOpen: TToolButton;
     bSave: TToolButton;
     bCopy: TToolButton;
-    ToolBar2: TToolBar;
     Label2: TLabel;
     Panel2: TPanel;
     bLinear: TToolButton;
     ToolButton7: TToolButton;
     Label1: TLabel;
     PaletteCombo: TComboBox;
-    ToolBar3: TToolBar;
     ToolButton4: TToolButton;
     ToolButton5: TToolButton;
     MainMenu: TMainMenu;
@@ -323,5 +321,10 @@ begin
       bCopy.Enabled := True;
     end;
 end;
+
+{$IFDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.

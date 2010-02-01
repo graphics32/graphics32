@@ -22,7 +22,7 @@ object RGBALoaderForm: TRGBALoaderForm
     Align = alTop
     Shape = bsTopLine
   end
-  object Label2: TLabel
+  object lbRGBImage: TLabel
     Left = 24
     Height = 14
     Top = 83
@@ -30,7 +30,7 @@ object RGBALoaderForm: TRGBALoaderForm
     Caption = 'RGB Image:'
     ParentColor = False
   end
-  object Label3: TLabel
+  object lbAlphaImage: TLabel
     Left = 216
     Height = 14
     Top = 83
@@ -38,7 +38,7 @@ object RGBALoaderForm: TRGBALoaderForm
     Caption = 'Alpha Image:'
     ParentColor = False
   end
-  object Label4: TLabel
+  object lbNote: TLabel
     Left = 24
     Height = 14
     Top = 294
@@ -117,7 +117,7 @@ object RGBALoaderForm: TRGBALoaderForm
     ClientWidth = 402
     ParentColor = False
     TabOrder = 0
-    object Label1: TLabel
+    object lbInfo: TLabel
       Left = 16
       Height = 40
       Top = 6
@@ -129,7 +129,7 @@ object RGBALoaderForm: TRGBALoaderForm
       ParentFont = False
     end
   end
-  object Button1: TButton
+  object btLoadImage: TButton
     Left = 96
     Height = 21
     Top = 80
@@ -139,7 +139,7 @@ object RGBALoaderForm: TRGBALoaderForm
     OnClick = Button1Click
     TabOrder = 1
   end
-  object Button2: TButton
+  object btLoadAlpha: TButton
     Left = 288
     Height = 21
     Top = 80
@@ -149,7 +149,7 @@ object RGBALoaderForm: TRGBALoaderForm
     OnClick = Button2Click
     TabOrder = 3
   end
-  object Button3: TButton
+  object btOK: TButton
     Left = 232
     Height = 21
     Top = 328
@@ -160,7 +160,7 @@ object RGBALoaderForm: TRGBALoaderForm
     ModalResult = 1
     TabOrder = 5
   end
-  object Button4: TButton
+  object btCancel: TButton
     Left = 312
     Height = 21
     Top = 328
@@ -171,7 +171,7 @@ object RGBALoaderForm: TRGBALoaderForm
     ModalResult = 2
     TabOrder = 2
   end
-  object Button5: TButton
+  object btResetScales: TButton
     Left = 24
     Height = 21
     Top = 328

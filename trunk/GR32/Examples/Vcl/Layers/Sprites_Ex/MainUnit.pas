@@ -61,20 +61,20 @@ type
     cbUseRepaintOpt: TCheckBox;
     edLayerCount: TEdit;
     Image32: TImage32;
-    Label1: TLabel;
     lbDimension: TLabel;
     lbFPS: TLabel;
+    lbTotal: TLabel;
     Memo1: TMemo;
     TimerFPS: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure bRemoveClick(Sender: TObject);
-    procedure cbUseRepaintOptClick(Sender: TObject);
-    procedure bClearAllClick(Sender: TObject);
-    procedure TimerFPSTimer(Sender: TObject);
-    procedure Image32Resize(Sender: TObject);
     procedure bAddClick(Sender: TObject);
     procedure bBenchmarkClick(Sender: TObject);
+    procedure bClearAllClick(Sender: TObject);
+    procedure bRemoveClick(Sender: TObject);
+    procedure cbUseRepaintOptClick(Sender: TObject);
+    procedure Image32Resize(Sender: TObject);
+    procedure TimerFPSTimer(Sender: TObject);
   public
     Velocities: TArrayOfFloatPoint;
     FramesDrawn: Integer;

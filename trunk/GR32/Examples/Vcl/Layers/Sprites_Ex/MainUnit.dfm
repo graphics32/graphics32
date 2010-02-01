@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 171
-  Top = 73
+  Left = 223
+  Top = 109
   Caption = 'Sprites Example'
   ClientHeight = 684
   ClientWidth = 852
@@ -18,7 +18,7 @@ object MainForm: TMainForm
     684)
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
+  object lbTotal: TLabel
     Left = 12
     Top = 654
     Width = 28

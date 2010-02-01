@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   LCLVersion = '0.9.29'
-  object Label1: TLabel
+  object lbTotal: TLabel
     Left = 12
     Height = 14
     Top = 653

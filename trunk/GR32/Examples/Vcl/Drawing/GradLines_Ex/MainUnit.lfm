@@ -12,7 +12,7 @@ object FormGradientLines: TFormGradientLines
   OnCreate = FormCreate
   Position = poScreenCenter
   LCLVersion = '0.9.29'
-  object Label1: TLabel
+  object lbTotal: TLabel
     Left = 518
     Height = 14
     Top = 92
@@ -141,7 +141,7 @@ object FormGradientLines: TFormGradientLines
     ParentFont = False
     TabOrder = 5
   end
-  object Memo2: TMemo
+  object Memo: TMemo
     Left = 510
     Height = 57
     Top = 343

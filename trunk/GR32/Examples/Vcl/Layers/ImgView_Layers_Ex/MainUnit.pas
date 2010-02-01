@@ -50,101 +50,101 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    ImgView: TImgView32;
-    LayerOpacity: TGaugeBar;
-    MagnOpacity: TGaugeBar;
-    MagnMagnification: TGaugeBar;
-    MagnRotation: TGaugeBar;
-    SidePanel: TPanel;
-    MainMenu: TMainMenu;
-    mnFileNew: TMenuItem;
-    mnFile: TMenuItem;
-    mnFileOpen: TMenuItem;
-    mnLayers: TMenuItem;
-    mnNewBitmapLayer: TMenuItem;
-    mnDelete: TMenuItem;
-    OpenPictureDialog1: TOpenPictureDialog;
-    pnlImage: TPanel;
-    ScaleCombo: TComboBox;
-    Label1: TLabel;
-    Panel2: TPanel;
+    cbOptRedraw: TCheckBox;
+    Cropped: TCheckBox;
     ImageInterpolate: TCheckBox;
-    pnlBitmapLayer: TPanel;
-    Panel3: TPanel;
-    Label2: TLabel;
+    ImgView: TImgView32;
     LayerInterpolate: TCheckBox;
-    mnNewBitmapRGBA: TMenuItem;
+    LayerOpacity: TGaugeBar;
     LayerRescale: TButton;
     LayerResetScale: TButton;
-    Cropped: TCheckBox;
-    mnNewCustomLayer: TMenuItem;
-    mnMagnifier: TMenuItem;
-    PnlMagn: TPanel;
-    Label3: TLabel;
-    Panel4: TPanel;
-    SaveDialog1: TSaveDialog;
-    Label4: TLabel;
-    Label5: TLabel;
+    lbMagifierOpacity: TLabel;
+    lbMagnification: TLabel;
+    lbOpacity: TLabel;
+    lbRotation: TLabel;
+    lbScale: TLabel;
     MagnInterpolate: TCheckBox;
-    mnSimpleDrawing: TMenuItem;
+    MagnMagnification: TGaugeBar;
+    MagnOpacity: TGaugeBar;
+    MagnRotation: TGaugeBar;
+    MainMenu: TMainMenu;
     mnArrange: TMenuItem;
     mnBringFront: TMenuItem;
-    mnSendBack: TMenuItem;
-    N1: TMenuItem;
-    mnLevelUp: TMenuItem;
-    mnLevelDown: TMenuItem;
-    N2: TMenuItem;
-    mnScaled: TMenuItem;
-    N4: TMenuItem;
+    mnDelete: TMenuItem;
+    mnFile: TMenuItem;
+    mnFileNew: TMenuItem;
+    mnFileOpen: TMenuItem;
     mnFlatten: TMenuItem;
-    N3: TMenuItem;
     mnFlipHorz: TMenuItem;
     mnFlipVert: TMenuItem;
-    N5: TMenuItem;
-    mnRotate90: TMenuItem;
+    mnLayers: TMenuItem;
+    mnLevelDown: TMenuItem;
+    mnLevelUp: TMenuItem;
+    mnMagnifier: TMenuItem;
+    mnNewBitmapLayer: TMenuItem;
+    mnNewBitmapRGBA: TMenuItem;
+    mnNewCustomLayer: TMenuItem;
+    mnPrint: TMenuItem;
     mnRotate180: TMenuItem;
     mnRotate270: TMenuItem;
+    mnRotate90: TMenuItem;
+    mnScaled: TMenuItem;
+    mnSendBack: TMenuItem;
+    mnSimpleDrawing: TMenuItem;
+    N1: TMenuItem;
+    N2: TMenuItem;
+    N3: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
     N6: TMenuItem;
-    mnPrint: TMenuItem;
-    cbOptRedraw: TCheckBox;
+    OpenPictureDialog: TOpenPictureDialog;
+    Panel2: TPanel;
+    Panel3: TPanel;
+    Panel4: TPanel;
+    pnlBitmapLayer: TPanel;
+    pnlImage: TPanel;
+    pnlMagnification: TPanel;
+    SaveDialog: TSaveDialog;
+    ScaleCombo: TComboBox;
+    SidePanel: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure cbOptRedrawClick(Sender: TObject);
-    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState;
-      MousePos: TPoint; var Handled: Boolean);
-    procedure mnFileNewClick(Sender: TObject);
-    procedure mnFileOpenClick(Sender: TObject);
-    procedure mnNewBitmapLayerClick(Sender: TObject);
-    procedure mnDeleteClick(Sender: TObject);
-    procedure mnLayersClick(Sender: TObject);
-    procedure mnNewBitmapRGBAClick(Sender: TObject);
-    procedure mnMagnifierClick(Sender: TObject);
-    procedure mnSimpleDrawingClick(Sender: TObject);
-    procedure mnArrangeClick(Sender: TObject);
-    procedure mnScaledClick(Sender: TObject);
-    procedure mnReorder(Sender: TObject);
-    procedure ScaleComboChange(Sender: TObject);
+    procedure CroppedClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageInterpolateClick(Sender: TObject);
-    procedure LayerOpacityChanged(Sender: TObject);
-    procedure LayerInterpolateClick(Sender: TObject);
-    procedure LayerRescaleClick(Sender: TObject);
-    procedure LayerResetScaleClick(Sender: TObject);
-    procedure CroppedClick(Sender: TObject);
-    procedure MagnChange(Sender: TObject);
     procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
-      StageNum: Cardinal);
-    procedure mnFlattenClick(Sender: TObject);
+    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
     procedure ImgViewMouseWheelUp(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
+    procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
+      StageNum: Cardinal);
+    procedure LayerInterpolateClick(Sender: TObject);
+    procedure LayerOpacityChanged(Sender: TObject);
+    procedure LayerRescaleClick(Sender: TObject);
+    procedure LayerResetScaleClick(Sender: TObject);
+    procedure MagnChange(Sender: TObject);
+    procedure mnArrangeClick(Sender: TObject);
+    procedure mnDeleteClick(Sender: TObject);
+    procedure mnFileClick(Sender: TObject);
+    procedure mnFileNewClick(Sender: TObject);
+    procedure mnFileOpenClick(Sender: TObject);
+    procedure mnFlattenClick(Sender: TObject);
     procedure mnFlipHorzClick(Sender: TObject);
     procedure mnFlipVertClick(Sender: TObject);
-    procedure mnRotate90Click(Sender: TObject);
+    procedure mnLayersClick(Sender: TObject);
+    procedure mnMagnifierClick(Sender: TObject);
+    procedure mnNewBitmapLayerClick(Sender: TObject);
+    procedure mnNewBitmapRGBAClick(Sender: TObject);
+    procedure mnPrintClick(Sender: TObject);
+    procedure mnReorder(Sender: TObject);
     procedure mnRotate180Click(Sender: TObject);
     procedure mnRotate270Click(Sender: TObject);
-    procedure mnFileClick(Sender: TObject);
-    procedure mnPrintClick(Sender: TObject);
+    procedure mnRotate90Click(Sender: TObject);
+    procedure mnScaledClick(Sender: TObject);
+    procedure mnSimpleDrawingClick(Sender: TObject);
+    procedure ScaleComboChange(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -347,13 +347,13 @@ begin
   begin
     ShowModal;
     if ModalResult = mrOK then
-      CreateNewImage(UpDown1.Position, UpDown2.Position, Color32(Panel1.Color));
+      CreateNewImage(btUpDownWidth.Position, btUpDownHeight.Position, Color32(pnColor.Color));
   end;
 end;
 
 procedure TMainForm.mnFileOpenClick(Sender: TObject);
 begin
-  with OpenPictureDialog1 do
+  with OpenPictureDialog do
     if Execute then OpenImage(FileName);
 end;
 
@@ -384,7 +384,7 @@ var
   P: TPoint;
   W, H: Single;
 begin
-  with OpenPictureDialog1 do
+  with OpenPictureDialog do
     if Execute then
     begin
       B := TBitmapLayer.Create(ImgView.Layers);
@@ -631,7 +631,7 @@ begin
       RBLayer.ChildLayer := nil;
       RBLayer.LayerOptions := LOB_NO_UPDATE;
       pnlBitmapLayer.Visible := False;
-      pnlMagn.Visible := False;
+      pnlMagnification.Visible := False;
       ImgView.Invalidate;
     end;
 
@@ -660,7 +660,7 @@ begin
       else if Value.Tag = 2 then
       begin
         // tag = 2 for magnifiers
-        pnlMagn.Visible := True;
+        pnlMagnification.Visible := True;
       end;
     end;
   end;

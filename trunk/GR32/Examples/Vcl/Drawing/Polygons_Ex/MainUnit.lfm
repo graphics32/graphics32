@@ -74,7 +74,7 @@ object FormPolygons: TFormPolygons
       Caption = '(1)'
       ParentColor = False
     end
-    object Antialiase: TCheckBox
+    object cbAntialiased: TCheckBox
       Left = 16
       Height = 17
       Top = 40
@@ -105,7 +105,7 @@ object FormPolygons: TFormPolygons
       TabOrder = 2
       OnChange = ParamsChanged
     end
-    object FillMode: TRadioGroup
+    object rgFillMode: TRadioGroup
       Left = 16
       Height = 65
       Top = 303
@@ -151,7 +151,7 @@ object FormPolygons: TFormPolygons
       OnClick = ThicknessChanged
       TabOrder = 5
     end
-    object AntialiasMode: TRadioGroup
+    object rgAntialiasMode: TRadioGroup
       Left = 16
       Height = 99
       Top = 60
@@ -225,7 +225,7 @@ object FormPolygons: TFormPolygons
       OnClick = ParamsChanged
       TabOrder = 9
     end
-    object Button1: TButton
+    object btNewLine: TButton
       Left = 24
       Height = 25
       Top = 8
