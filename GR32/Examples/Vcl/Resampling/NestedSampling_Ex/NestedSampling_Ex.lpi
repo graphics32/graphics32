@@ -1,0 +1,263 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <PathDelim Value="\"/>
+    <Version Value="7"/>
+    <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
+      <MainUnit Value="0"/>
+      <TargetFileExt Value=".exe"/>
+      <Title Value="Nested Sampling"/>
+      <ActiveEditorIndexAtStart Value="1"/>
+    </General>
+    <VersionInfo>
+      <ProjectVersion Value=""/>
+      <Language Value=""/>
+      <CharSet Value=""/>
+    </VersionInfo>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="3">
+      <Item1>
+        <PackageName Value="ImagesForLazarus"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="GR32_L"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
+    </RequiredPackages>
+    <Units Count="5">
+      <Unit0>
+        <Filename Value="NestedSampling_Ex.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="1" Y="9"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="0"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Form1"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainUnit"/>
+        <CursorPos X="9" Y="742"/>
+        <TopLine Value="740"/>
+        <EditorIndex Value="1"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="SimplePropEdit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="SimplePropEdit"/>
+        <CursorPos X="42" Y="392"/>
+        <TopLine Value="374"/>
+        <EditorIndex Value="3"/>
+        <UsageCount Value="20"/>
+        <Loaded Value="True"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\objpas\typinfo.pp"/>
+        <UnitName Value="typinfo"/>
+        <CursorPos X="10" Y="205"/>
+        <TopLine Value="188"/>
+        <EditorIndex Value="4"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\..\..\..\GR32_ExtImage.pas"/>
+        <UnitName Value="GR32_ExtImage"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="1"/>
+        <EditorIndex Value="2"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit4>
+    </Units>
+    <JumpHistory Count="29" HistoryIndex="28">
+      <Position1>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="63" Column="13" TopLine="44"/>
+      </Position1>
+      <Position2>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="212" Column="1" TopLine="188"/>
+      </Position2>
+      <Position3>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="732" Column="7" TopLine="700"/>
+      </Position3>
+      <Position4>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="14" TopLine="1"/>
+      </Position4>
+      <Position5>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="732" Column="20" TopLine="702"/>
+      </Position5>
+      <Position6>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="43" Column="22" TopLine="18"/>
+      </Position6>
+      <Position7>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="736" Column="5" TopLine="703"/>
+      </Position7>
+      <Position8>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="263" Column="3" TopLine="246"/>
+      </Position8>
+      <Position9>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="216" Column="12" TopLine="195"/>
+      </Position9>
+      <Position10>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="753" Column="5" TopLine="720"/>
+      </Position10>
+      <Position11>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position11>
+      <Position12>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="129" Column="10" TopLine="110"/>
+      </Position12>
+      <Position13>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="239" Column="33" TopLine="217"/>
+      </Position13>
+      <Position14>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="126" Column="49" TopLine="108"/>
+      </Position14>
+      <Position15>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="447" Column="5" TopLine="414"/>
+      </Position15>
+      <Position16>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position16>
+      <Position17>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="341" Column="22" TopLine="311"/>
+      </Position17>
+      <Position18>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="242" Column="49" TopLine="224"/>
+      </Position18>
+      <Position19>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="382" Column="27" TopLine="365"/>
+      </Position19>
+      <Position20>
+        <Filename Value="SimplePropEdit.pas"/>
+        <Caret Line="383" Column="41" TopLine="365"/>
+      </Position20>
+      <Position21>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="42" Column="49" TopLine="18"/>
+      </Position21>
+      <Position22>
+        <Filename Value="..\..\..\..\GR32_ExtImage.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position22>
+      <Position23>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="215" Column="5" TopLine="198"/>
+      </Position23>
+      <Position24>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="221" Column="8" TopLine="194"/>
+      </Position24>
+      <Position25>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position25>
+      <Position26>
+        <Filename Value="NestedSampling_Ex.lpr"/>
+        <Caret Line="6" Column="3" TopLine="1"/>
+      </Position26>
+      <Position27>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="268" Column="13" TopLine="264"/>
+      </Position27>
+      <Position28>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="45" Column="16" TopLine="35"/>
+      </Position28>
+      <Position29>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position29>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="8"/>
+    <PathDelim Value="\"/>
+    <SearchPaths>
+      <IncludeFiles Value="..\..\..\..\"/>
+      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)\"/>
+      <OtherUnitFiles Value="..\..\..\..\"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+        <IncludeAssertionCode Value="True"/>
+        <CPPInline Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
+    </CodeGeneration>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
+      <Options>
+        <PassLinkerOptions Value="True"/>
+        <LinkerOptions Value="-framework carbon"/>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

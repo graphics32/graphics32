@@ -38,8 +38,8 @@ interface
 
 uses
   {$IFDEF FPC} LResources, Variants,{$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Lowlevel,
-  GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls, Math, GR32_Transforms;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  Math, GR32, GR32_Lowlevel, GR32_Image, GR32_RangeBars, GR32_Transforms;
 
 type
   { TMainForm }
@@ -117,6 +117,7 @@ begin
 {$ENDIF}
 
   // load example image
+  Assert(FileExists(pathMedia + 'stones.jpg'));
   Image32.Bitmap.LoadFromFile(pathMedia + 'stones.jpg');
 
   with Image32 do

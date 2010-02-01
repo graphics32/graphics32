@@ -39,11 +39,11 @@ interface
 {$I GR32.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, TypInfo, SimplePropEdit, GR32_Rasterizers,
-  GR32_Resamplers, GR32_Transforms, GR32_Blend, GR32_Image, GR32_Containers,
-  ComCtrls, Menus, ToolWin, ImgList, Buttons,
-  GR32_ExtImage, GR32, GR32_Math, ExtDlgs;
+  {$IFDEF FPC} LResources, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  TypInfo, SimplePropEdit, ComCtrls, Menus, ToolWin, ImgList, Buttons, ExtDlgs,
+  GR32, GR32_Blend, GR32_Image, GR32_Math, GR32_Rasterizers, GR32_Resamplers,
+  GR32_Transforms, GR32_Containers, GR32_ExtImage;
   
 type
   TForm1 = class(TForm)
@@ -206,14 +206,19 @@ var
 
 implementation
 
+{$IFNDEF FPC}
 {$R *.dfm}
+{$ENDIF}
 
 uses
   Math,
+{$IFDEF DARWIN}
+  MacOSAll,
+{$ENDIF}
 {$IFNDEF FPC}
   JPEG,
 {$ELSE}
-  LazJPEG,
+  LazJPG,
 {$ENDIF}
   GR32_OrdinalMaps, GR32_LowLevel;
 
@@ -241,9 +246,44 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+var
+{$IFDEF Darwin}
+  pathRef: CFURLRef;
+  pathCFStr: CFStringRef;
+  pathStr: shortstring;
+{$ENDIF}
+  pathMedia: string;
 begin
+  // Under Mac OS X we need to get the location of the bundle
+{$IFDEF Darwin}
+  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
+  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
+  CFRelease(pathRef);
+  CFRelease(pathCFStr);
+{$ENDIF}
+
+// Different platforms store resource files on different locations
+{$IFDEF Windows}
+  {$IFDEF FPC}
+  pathMedia := '..\..\..\..\Media\';
+  {$ELSE}
+  pathMedia := '..\..\..\Media\';
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF UNIX}
+  {$IFDEF Darwin}
+  pathMedia := pathStr + '/Contents/Resources/Media/';
+  {$ELSE}
+  pathMedia := '../../../Media/';
+  {$ENDIF}
+{$ENDIF}
+
+  Assert(FileExists(pathMedia + 'stoneweed.jpg'));
+
   Source := TBitmap32.Create;
-  Source.LoadFromFile('..\..\..\Media\stoneweed.jpg');
+  Source.LoadFromFile(pathMedia + 'stoneweed.jpg');
   ImgView.Bitmap.SetSizeFrom(Source);
   Rasterizer := TRegularRasterizer.Create;
   TRegularRasterizer(Rasterizer).UpdateRowCount := 16;
@@ -724,5 +764,10 @@ begin
       Exit;
   end;
 end;
+
+{$IFNDEF FPC}
+initialization
+  {$I MainUnit.lrs}
+{$ENDIF}
 
 end.
