@@ -53,7 +53,7 @@ uses
   Classes, SysUtils, GR32, GR32_Containers, GR32_Image;
   
 type
-  ITextSupport = interface
+  ITextSupport = interface(IUnknown)
   ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
@@ -66,7 +66,7 @@ type
     function  TextExtentW(const Text: Widestring): TSize;
   end;
 
-  IFontSupport = interface
+  IFontSupport = interface(IUnknown)
   ['{67C73044-1EFF-4FDE-AEA2-56BFADA50A48}']
     function GetOnFontChange: TNotifyEvent;
     procedure SetOnFontChange(Handler: TNotifyEvent);
@@ -78,7 +78,7 @@ type
     property OnFontChange: TNotifyEvent read GetOnFontChange write SetOnFontChange;
   end;
 
-  ICanvasSupport = interface
+  ICanvasSupport = interface(IUnknown)
   ['{5ACFEEC7-0123-4AD8-8AE6-145718438E01}']
     function GetCanvasChange: TNotifyEvent;
     procedure SetCanvasChange(Handler: TNotifyEvent);
@@ -91,7 +91,7 @@ type
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
   end;
 
-  IDeviceContextSupport = interface
+  IDeviceContextSupport = interface(IUnknown)
   ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
     function GetHandle: HDC;
 
@@ -102,7 +102,7 @@ type
     property Handle: HDC read GetHandle;
   end;
 
-  IBitmapContextSupport = interface
+  IBitmapContextSupport = interface(IUnknown)
   ['{DF0F9475-BA13-4C6B-81C3-D138624C4D08}']
     function GetBitmapInfo: TBitmapInfo;
     function GetBitmapHandle: THandle;
@@ -111,7 +111,7 @@ type
     property BitmapHandle: THandle read GetBitmapHandle;
   end;
 
-  IPaintSupport = interface
+  IPaintSupport = interface(IUnknown)
   ['{CE64DBEE-C4A9-4E8E-ABCA-1B1FD6F45924}']
     procedure ImageNeeded;
     procedure CheckPixmap;
