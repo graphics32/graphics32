@@ -169,24 +169,18 @@ type
 
 { Other dynamic arrays }
 type
-  {$IFNDEF FPC}
   PByteArray = ^TByteArray;
   TByteArray = array [0..0] of Byte;
-  {$ENDIF}
   PArrayOfByte = ^TArrayOfByte;
   TArrayOfByte = array of Byte;
 
-  {$IFNDEF FPC}
   PWordArray = ^TWordArray;
   TWordArray = array [0..0] of Word;
-  {$ENDIF}
   PArrayOfWord = ^TArrayOfWord;
   TArrayOfWord = array of Word;
 
-  {$IFNDEF FPC}
   PIntegerArray = ^TIntegerArray;
   TIntegerArray = array [0..0] of Integer;
-  {$ENDIF}
   PArrayOfInteger = ^TArrayOfInteger;
   TArrayOfInteger = array of Integer;
   PArrayOfArrayOfInteger = ^TArrayOfArrayOfInteger;
@@ -1968,9 +1962,9 @@ begin
   begin
      MyBitmap := TBitmap32.Create;
      MyBitmap.SetSize(100, 100);
-     (MyBitmap as ICanvasSupport).Canvas;
+     (MyBitmap.Backend as ICanvasSupport).Canvas;
      MyBitmap.Free;
-  end; // _IntfClear will try to clear (MyBitmap as ICanvasSupport)
+  end; // _IntfClear will try to clear (MyBitmap.Backend as ICanvasSupport)
        // which points to the interface at the previous location of MyBitmap.Backend in memory.
        // MyBitmap.Backend is gone and the _Release call is invalid, so raise hell .
 
@@ -1983,7 +1977,7 @@ begin
   begin
     MyBitmap := TBitmap32.Create;
     MyBitmap.SetSize(100, 100);
-    CanvasIntf := MyBitmap as ICanvasSupport;
+    CanvasIntf := MyBitmap.Backend as ICanvasSupport;
     CanvasIntf.Canvas;
     CanvasIntf := nil; // this will call _IntfClear and IInterface._Release
     MyBitmap.Free;
@@ -2102,12 +2096,12 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
       Bmp.Height := SrcBitmap.Height;
 {$ENDIF}
 
-      if Supports(SrcBitmap, IFontSupport) then // this is optional
-        Bmp.Canvas.Font.Assign((SrcBitmap as IFontSupport).Font);
+      if Supports(SrcBitmap.Backend, IFontSupport) then // this is optional
+        Bmp.Canvas.Font.Assign((SrcBitmap.Backend as IFontSupport).Font);
 
       if SrcBitmap.Empty then Exit;
 
-      (SrcBitmap as IDeviceContextSupport).DrawTo(Bmp.Canvas.Handle, BoundsRect, BoundsRect)
+      (SrcBitmap.Backend as IDeviceContextSupport).DrawTo(Bmp.Canvas.Handle, BoundsRect, BoundsRect)
     finally
       RestoreBackend(SrcBitmap, SavedBackend);
     end;
@@ -2149,19 +2143,19 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
 
       TargetBitmap.Clear(FillColor);
 
-      if Supports(TargetBitmap, IDeviceContextSupport) then
+      if Supports(TargetBitmap.Backend, IDeviceContextSupport) then
       begin
         Canvas := TCanvas.Create;
         try
-          Canvas.Handle := (TargetBitmap as IDeviceContextSupport).Handle;
+          Canvas.Handle := (TargetBitmap.Backend as IDeviceContextSupport).Handle;
           TGraphicAccess(SrcGraphic).Draw(Canvas,
             MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
         finally
           Canvas.Free;
         end;
       end else
-      if Supports(TargetBitmap, ICanvasSupport) then
-        TGraphicAccess(SrcGraphic).Draw((TargetBitmap as ICanvasSupport).Canvas,
+      if Supports(TargetBitmap.Backend, ICanvasSupport) then
+        TGraphicAccess(SrcGraphic).Draw((TargetBitmap.Backend as ICanvasSupport).Canvas,
           MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height))
       else raise Exception.Create('Inpropriate Backend');
 
@@ -2236,8 +2230,8 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
       end;
     end;
 
-    if Supports(TargetBitmap, IFontSupport) then // this is optional
-      (TargetBitmap as IFontSupport).Font.Assign(SrcBmp.Canvas.Font);
+    if Supports(TargetBitmap.Backend, IFontSupport) then // this is optional
+      (TargetBitmap.Backend as IFontSupport).Font.Assign(SrcBmp.Canvas.Font);
   end;
 
   procedure AssignFromIcon(TargetBitmap: TCustomBitmap32; SrcIcon: TIcon);
