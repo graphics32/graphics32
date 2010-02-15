@@ -38,7 +38,18 @@ interface
 {$I GR32.inc}
 
 uses
-  {$I GR32_Uses.inc}, SysUtils;
+{$IFDEF FPC}
+  LCLIntf, LCLType,
+  {$IFDEF Windows}
+    Windows,
+  {$ENDIF}
+  {$IFDEF UNIX}
+    Unix, BaseUnix,
+  {$ENDIF}
+{$ELSE}
+  Windows,
+{$ENDIF}
+  SysUtils;
 
 
 {$IFDEF Windows}

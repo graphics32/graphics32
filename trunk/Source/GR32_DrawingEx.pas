@@ -37,10 +37,11 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, {$ELSE}
-  {$IFDEF CLX}
-  Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
-  {$ELSE} Windows,{$ENDIF}{$ENDIF}
+{$IFDEF FPC}
+  LCLIntf,
+{$ELSE}
+  Windows,
+{$ENDIF}
   GR32, SysUtils;
 
 { ClipLine }

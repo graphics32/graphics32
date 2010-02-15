@@ -247,9 +247,7 @@ begin
     MouseDragging := True;
     Image.Cursor := crSizeAll;
   end
-{$IFNDEF CLX}
   else ReleaseCapture;
-{$ENDIF}  
 end;
 
 procedure TMainForm.ImageMouseMove(Sender: TObject; Shift: TShiftState; X,

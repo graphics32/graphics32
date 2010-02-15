@@ -41,7 +41,18 @@ interface
 {$I GR32.inc}
 
 uses
-  {$I GR32_Uses.inc}, SysUtils;
+{$IFDEF FPC}
+  LCLIntf, LCLType,
+  {$IFDEF Windows}
+    Windows,
+  {$ENDIF}
+  {$IFDEF UNIX}
+    Unix, BaseUnix,
+  {$ENDIF}
+{$ELSE}
+  Windows,
+{$ENDIF}
+  SysUtils;
 
 type
 
@@ -52,9 +63,6 @@ type
 {$IFDEF UNIX}
   {$IFDEF FPC}
     FStart: Int64;
-  {$ENDIF}
-  {$IFDEF CLX}
-    FStart: timespec;
   {$ENDIF}
 {$ENDIF}
 {$IFDEF Windows}
@@ -157,10 +165,8 @@ var
 
 implementation
 
-{$IFNDEF CLX}
 uses
   Forms, Classes, TypInfo;
-{$ENDIF}
 
 var
   CPUFeaturesInitialized : Boolean = False;
@@ -212,50 +218,9 @@ begin
    // Build a 64 bit microsecond tick from the seconds and microsecond longints
   FStart := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
 end;
-
-{$ENDIF}
-{$IFDEF CLX}
-function GetTickCount: Cardinal;
-var
-  val: timespec;
-begin
-  clock_gettime(CLOCK_REALTIME, val);
-  Result := val.tv_sec * 1000 + val.tv_nsec div 1000000;
-end;
-
-function TPerfTimer.ReadNanoseconds: String;
-var
-  val: timespec;
-begin
-  clock_gettime(CLOCK_REALTIME, val);
-  Result := IntToStr(((val.tv_sec * 1000000000) + val.tv_nsec) -
-                     ((FStart.tv_sec * 1000000000) + FStart.tv_nsec));
-end;
-
-function TPerfTimer.ReadMilliseconds: String;
-var
-  val: timespec;
-begin
-  clock_gettime(CLOCK_REALTIME, val);
-  Result := IntToStr(((val.tv_sec * 1000) + val.tv_nsec div 1000000) -
-                     ((FStart.tv_sec * 1000) + FStart.tv_nsec div 1000000));
-end;
-
-function TPerfTimer.ReadValue: Int64;
-var
-  val: timespec;
-begin
-  clock_gettime(CLOCK_REALTIME, val);
-  Result := ((val.tv_sec * 1000000000) + val.tv_nsec) -
-            ((FStart.tv_sec * 1000000000) + FStart.tv_nsec);
-end;
-
-procedure TPerfTimer.Start;
-begin
-  clock_gettime(CLOCK_REALTIME, FStart);
-end;
 {$ENDIF}
 {$ENDIF}
+
 {$IFDEF Windows}
 function GetTickCount: Cardinal;
 begin
@@ -295,12 +260,6 @@ end;
 function GetProcessorCount: Cardinal;
 begin
   Result := 1;
-end;
-{$ENDIF}
-{$IFDEF CLX}
-function GetProcessorCount: Cardinal;
-begin
-  Result := get_nprocs_conf;
 end;
 {$ENDIF}
 {$ENDIF}

@@ -42,17 +42,10 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt, Types,
-      {$IFDEF LINUX}
-        Libc,
-      {$ENDIF}
-    {$ELSE}
-      Windows,
-    {$ENDIF}
-  {$ENDIF}
+{$IFDEF FPC}
+{$ELSE}
+  Windows,
+{$ENDIF}
   SysUtils, Classes, GR32, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
 
 type

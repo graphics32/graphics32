@@ -37,19 +37,21 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFNDEF FPC}
-  {$IFDEF CLX} {$IFDEF MSWINDOWS}Windows,{$ENDIF} {$IFDEF LINUX}Libc,{$ENDIF}
-  QT, QGraphics, QControls, QForms, QDialogs, QExtCtrls, QStdCtrls, QComCtrls,
-  QMenus, QImgList, QTypes, QClipbrd,
-  {$ELSE}
-  Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, {$ENDIF}
-  Consts,
-  {$IFDEF COMPILER6} DesignIntf, DesignEditors, VCLEditors, {$ELSE} DsgnIntf,
-  {$ENDIF}{$ELSE} LCLIntf, LCLClasses, LCLType, LResources, RtlConsts, Forms,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, Graphics, Controls, 
+{$IFDEF FPC}
+  LCLIntf, LCLClasses, LCLType, LResources, RtlConsts, Forms,
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, Graphics, Controls,
   ExtCtrls, StdCtrls, Buttons, LazIDEIntf, PropEdits, ComponentEditors,
-  Dialogs, FormEditingIntf, {$ENDIF}
+  Dialogs, FormEditingIntf,
+{$ELSE}
+  Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
+  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
+  Consts,
+  {$IFDEF COMPILER6}
+  DesignIntf, DesignEditors, VCLEditors,
+  {$ELSE}
+  DsgnIntf,
+  {$ENDIF}
+{$ENDIF}
   SysUtils, Classes, GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
@@ -162,11 +164,9 @@ uses
   GR32_Resamplers;
 
 {$IFNDEF FPC}
-{$IFNDEF CLX}
 {$R *.dfm}
 {$ELSE}
 {$R *.xfm}
-{$ENDIF}
 {$ENDIF}
 
 { TPictureEditorForm }
@@ -218,11 +218,7 @@ begin
   Picture := TPicture.Create;
   try
     Picture.Bitmap.Assign(CurrentImage.Bitmap);
-{$IFDEF CLX}
-    Picture.Bitmap.PixelFormat := pf32Bit;
-{$ELSE}
     Picture.Bitmap.PixelFormat := pf24Bit;
-{$ENDIF}
 
     if Picture.Graphic <> nil then
     begin
@@ -250,14 +246,8 @@ end;
 
 procedure TPictureEditorForm.PasteClick(Sender: TObject);
 begin
-{$IFDEF CLX}
-  if Clipboard.Provides('image/delphi.bitmap') or
-     Clipboard.Provides('image/delphi.picture') then
-     CurrentImage.Bitmap.Assign(Clipboard);
-{$ELSE}
   if Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_PICTURE) then
     CurrentImage.Bitmap.Assign(Clipboard);
-{$ENDIF}
   if CurrentImage = AlphaChannel then
     ColorToGrayscale(CurrentImage.Bitmap, CurrentImage.Bitmap);
 end;
@@ -268,12 +258,7 @@ begin
   Clear.Enabled := Save.Enabled;
   Copy.Enabled := Save.Enabled;
 
-{$IFDEF CLX}
-  Paste.Enabled := Clipboard.Provides('image/delphi.bitmap') or
-    Clipboard.Provides('image/delphi.picture');
-{$ELSE}
   Paste.Enabled := Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_PICTURE);
-{$ENDIF}
 end;
 
 function TPictureEditorForm.CurrentImage: TImage32;
@@ -288,12 +273,7 @@ begin
   mnClear.Enabled := Save.Enabled;
   mnCopy.Enabled := Save.Enabled;
   mnInvert.Enabled := Save.Enabled;
-{$IFDEF CLX}
-  mnPaste.Enabled := Clipboard.Provides('image/delphi.bitmap') or
-    Clipboard.Provides('image/delphi.picture');
-{$ELSE}
   mnPaste.Enabled := Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_PICTURE);
-{$ENDIF}
 end;
 
 procedure TPictureEditorForm.mnInvertClick(Sender: TObject);
@@ -304,13 +284,8 @@ end;
 procedure TPictureEditorForm.FormCreate(Sender: TObject);
 begin
   MagnCombo.ItemIndex := 2;
-{$IFDEF CLX}
-  OpenDialog.Filter := GraphicFilter(TGraphic, True);
-  SaveDialog.Filter := GraphicFilter(TGraphic, True);
-{$ELSE}
   OpenDialog.Filter := GraphicFilter(TGraphic);
   SaveDialog.Filter := GraphicFilter(TGraphic);
-{$ENDIF}
 end;
 
 procedure TPictureEditorForm.MagnComboChange(Sender: TObject);

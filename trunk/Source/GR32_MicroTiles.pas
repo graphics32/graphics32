@@ -46,25 +46,20 @@ interface
   {-$DEFINE MICROTILES_NO_ADAPTION_FORCE_WHOLETILES}
 
 uses
-  {$IFDEF FPC}
-    Types,
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt,
-      {$IFDEF LINUX}
-        Libc,
-      {$ELSE}
-        Windows,
-      {$ENDIF}
-    {$ELSE}
-      Windows,
-    {$ENDIF}
+{$IFDEF FPC}
+  Types,
+  {$IFDEF Windows}
+    Windows,
   {$ENDIF}
-  {$IFDEF CODESITE}CSIntf, CSAux,{$ENDIF}
-  {$IFDEF COMPILER2005}Types, {$ENDIF}
+{$ELSE}
+  Windows,
+{$ENDIF}
+{$IFDEF CODESITE}
+  CSIntf, CSAux,
+{$ENDIF}
+{$IFDEF COMPILER2005}
+  Types,
+{$ENDIF}
   SysUtils, Classes,
   GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 

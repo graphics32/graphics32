@@ -40,19 +40,10 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt,
-      {$IFDEF LINUX}
-        Libc,
-      {$ELSE}
-        Windows,
-      {$ENDIF}
-    {$ELSE}
-      Windows,
-    {$ENDIF}
-  {$ENDIF}
+{$IFDEF FPC}
+{$ELSE}
+  Windows,
+{$ENDIF}
   Classes, SysUtils, GR32, GR32_LowLevel, GR32_Blend, GR32_Transforms,
   GR32_Resamplers, GR32_Math;
 

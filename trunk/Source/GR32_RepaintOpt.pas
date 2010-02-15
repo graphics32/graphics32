@@ -38,18 +38,11 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}
-    LCLIntf,
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt, Types,
-      {$IFDEF LINUX}
-        Libc,
-      {$ENDIF}
-    {$ELSE}
-      Windows,
-    {$ENDIF}
-  {$ENDIF}
+{$IFDEF FPC}
+  LCLIntf,
+{$ELSE}
+  Windows,
+{$ENDIF}
   Classes, SysUtils, GR32, GR32_LowLevel, GR32_Containers, GR32_Layers;
 
 type

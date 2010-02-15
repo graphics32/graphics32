@@ -39,32 +39,14 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}
-    LCLIntf, LMessages, LCLType, Graphics, Controls, Forms, Dialogs, ExtCtrls,
-    {$IFDEF Windows} Windows, {$ENDIF}
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt, Types,
-      {$IFDEF LINUX}Libc,{$ENDIF}
-      {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-      QGraphics, QControls, QForms, QDialogs, QExtCtrls,
-    {$ELSE}
-      Windows, Messages, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
-      Graphics, Controls, Forms, Dialogs, ExtCtrls,
-    {$ENDIF}
-  {$ENDIF}
-  SysUtils, Classes, GR32;
-
-{$IFDEF CLX}
-const
-  DFCS_INACTIVE = $100;
-  DFCS_PUSHED = $200;
-  DFCS_FLAT = $4000;
-  DFCS_SCROLLUP = 0;
-  DFCS_SCROLLDOWN = 1;
-  DFCS_SCROLLLEFT = 2;
-  DFCS_SCROLLRIGHT = 3;
+{$IFDEF FPC}
+  LCLIntf, LMessages, LCLType, Graphics, Controls, Forms, Dialogs, ExtCtrls,
+  {$IFDEF Windows} Windows, {$ENDIF}
+{$ELSE}
+  Windows, Messages, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
+  Graphics, Controls, Forms, Dialogs, ExtCtrls,
 {$ENDIF}
+  SysUtils, Classes, GR32;
 
 type
   TRBDirection = (drLeft, drUp, drRight, drDown);
@@ -111,13 +93,11 @@ type
     procedure WMNCPaint(var Message: TWMNCPaint); message LM_NCPAINT;
 {$ENDIF}
 {$ELSE}
-{$IFNDEF CLX}
     procedure CMEnabledChanged(var Message: TMessage); message CM_ENABLEDCHANGED;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
     procedure WMNCCalcSize(var Message: TWMNCCalcSize); message WM_NCCALCSIZE;
     procedure WMNCPaint(var Message: TWMNCPaint); message WM_NCPAINT;
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
-{$ENDIF}
 {$ENDIF}
   protected
     GenChange: Boolean;
@@ -138,11 +118,6 @@ type
     function  GetTrackBoundary: TRect;
     function  GetZone(X, Y: Integer): TRBZone;
     function  GetZoneRect(Zone: TRBZone): TRect;
-{$IFDEF CLX}
-    procedure MouseLeave(AControl: TControl); override;
-    procedure EnabledChanged; override;
-    function WidgetFlags: Integer; override;
-{$ENDIF}
     procedure MouseLeft; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
@@ -189,7 +164,7 @@ type
   protected
     procedure AdjustPosition;
     function  DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
-      {$IFDEF CLX}const{$ENDIF} MousePos: TPoint): Boolean; override;
+      MousePos: TPoint): Boolean; override;
     function  DrawEnabled: Boolean; override;
     function  GetHandleRect: TRect; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -262,7 +237,7 @@ type
   protected
     procedure AdjustPosition;
     function  DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
-      {$IFDEF CLX}const{$ENDIF} MousePos: TPoint): Boolean; override;
+      MousePos: TPoint): Boolean; override;
     function  GetHandleRect: TRect; override;
     function  GetHandleSize: Integer;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -429,25 +404,26 @@ var
   OldBrush: TBrush;
 {$ELSE}
   B: TBitmap;
-  {$IFDEF CLX}
-    Brush: TBrush;
-    OldBrush: TBrush;
-  {$ELSE}
-    Brush: HBRUSH;
-  {$ENDIF}
+  Brush: HBRUSH;
 {$ENDIF}
 begin
   if IsRectEmpty(R) then Exit;
-{$IFDEF CLX}
+{$IFDEF FPC}
   Brush := TBrush.Create;
-  if C1 = C2 then
+  Brush.Color := ColorToRGB(C1);
+  if C1 <> C2 then
   begin
+    Brush.Bitmap := Graphics.TBitmap.Create;
+    with Brush.Bitmap do
+    begin
+      Height := 2;
+      Width := 2;
+      Canvas.Pixels[0,0] := C1;
+      Canvas.Pixels[1,0] := C2;
+      Canvas.Pixels[0,1] := C2;
+      Canvas.Pixels[1,1] := C1;
+    end;
     Brush.Color := ColorToRGB(C1);
-  end
-  else
-  begin
-    B := AllocPatternBitmap(C1, C2);
-    Brush.Bitmap := B;
   end;
   OldBrush := TBrush.Create;
   OldBrush.Assign(Canvas.Brush);
@@ -457,42 +433,16 @@ begin
   Brush.Free;
   OldBrush.Free;
 {$ELSE}
-  {$IFDEF FPC}
-    Brush := TBrush.Create;
-    Brush.Color := ColorToRGB(C1);
-    if C1 <> C2 then
-    begin
-      Brush.Bitmap := Graphics.TBitmap.Create;
-      with Brush.Bitmap do
-      begin
-        Height := 2;
-        Width := 2;
-        Canvas.Pixels[0,0] := C1;
-        Canvas.Pixels[1,0] := C2;
-        Canvas.Pixels[0,1] := C2;
-        Canvas.Pixels[1,1] := C1;
-      end;
-      Brush.Color := ColorToRGB(C1);
-    end;
-    OldBrush := TBrush.Create;
-    OldBrush.Assign(Canvas.Brush);
-    Canvas.Brush.Assign(Brush);
-    Canvas.FillRect(R);
-    Canvas.Brush.Assign(OldBrush);
-    Brush.Free;
-    OldBrush.Free;
-  {$ELSE}
-    if C1 = C2 then
-      Brush := CreateSolidBrush(ColorToRGB(C1))
-    else
-    begin
-      B := AllocPatternBitmap(C1, C2);
-      B.HandleType := bmDDB;
-      Brush := CreatePatternBrush(B.Handle);
-    end;
-    FillRect(Canvas.Handle, R, Brush);
-    DeleteObject(Brush);
-  {$ENDIF}
+  if C1 = C2 then
+    Brush := CreateSolidBrush(ColorToRGB(C1))
+  else
+  begin
+    B := AllocPatternBitmap(C1, C2);
+    B.HandleType := bmDDB;
+    Brush := CreatePatternBrush(B.Handle);
+  end;
+  FillRect(Canvas.Handle, R, Brush);
+  DeleteObject(Brush);
 {$ENDIF}
 end;
 
@@ -519,14 +469,6 @@ begin
     end;
   end;
 end;
-
-{$IFDEF CLX}
-procedure FrameRect(Canvas: TCanvas; const R: TRect);
-begin
-  with Canvas, R do
-    Rectangle(Left, Top, Right, Bottom);
-end;
-{$ENDIF}
 
 procedure Frame3D(Canvas: TCanvas; var ARect: TRect; TopColor, BottomColor: TColor; AdjustRect: Boolean = True);
 var
@@ -565,13 +507,8 @@ begin
   CHi := ClrLighten(Color, 24);
   CLo := ClrLighten(Color, -24);
 
-{$IFDEF CLX}
-  Canvas.Pen.Color := ColorBorder;  // CLX FrameRect function is using Pen instead of Brush
-  FrameRect(Canvas, R);
-{$ELSE}
   Canvas.Brush.Color := ColorBorder;
   FrameRect(Canvas.Handle, R, Canvas.Brush.Handle);
-{$ENDIF}
 
   InflateRect(R, -1, -1);
   if Pushed then Frame3D(Canvas, R, CLo, Color)
@@ -668,28 +605,20 @@ const
 
 { TArrowBar }
 
-{$IFDEF CLX}
-procedure TArrowBar.EnabledChanged;
-{$ELSE}
 {$IFDEF FPC}
 procedure TArrowBar.CMEnabledChanged(var Message: TLMessage);
 {$ELSE}
 procedure TArrowBar.CMEnabledChanged(var Message: TMessage);
-{$ENDIF}
 {$ENDIF}
 begin
   inherited;
   Invalidate;
 end;
 
-{$IFDEF CLX}
-procedure TArrowBar.MouseLeave(AControl: TControl);
-{$ELSE}
 {$IFDEF FPC}
 procedure TArrowBar.CMMouseLeave(var Message: TLMessage);
 {$ELSE}
 procedure TArrowBar.CMMouseLeave(var Message: TMessage);
-{$ENDIF}
 {$ENDIF}
 begin
   MouseLeft;
@@ -762,27 +691,6 @@ begin
 {$ENDIF}
 {$ENDIF}
 
-{$IFDEF CLX}
-    Canvas.Brush.Color := clButton;
-    Canvas.FillRect(R);
-    DrawWinButton(Canvas, R, Pushed);
-    InflateRect(R, -2, -2);
-
-    If not DrawEnabled then
-    begin
-      InflateRect(R, -1, -1);
-      OffsetRect(R, 1, 1);
-      DrawArrow(Canvas, R, Direction, clWhite);
-      OffsetRect(R, -1, -1);
-      DrawArrow(Canvas, R, Direction, clDisabledButtonText);
-    end
-    else
-    begin
-      If Pushed then OffsetRect(R, 1, 1);
-      DrawArrow(Canvas, R, Direction, clButtonText);
-    end;
-{$ENDIF}
-
 {$IFDEF Windows}
     if USE_THEMES then
     begin
@@ -806,11 +714,7 @@ begin
     begin
       DrawRectEx(Canvas, R, Edges, fShadowColor);
       Canvas.Brush.Color := fButtonColor;
-{$IFDEF CLX}
-      Canvas.FillRect(R);
-{$ELSE}
       FillRect(Canvas.Handle, R, Canvas.Brush.Handle);
-{$ENDIF}
       InflateRect(R, -1, -1);
       OffsetRect(R, 1, 1);
       DrawArrow(Canvas, R, Direction, fHighLightColor);
@@ -823,11 +727,7 @@ begin
       if Pushed then
       begin
         Canvas.Brush.Color := fButtonColor;
-{$IFDEF CLX}
-        Canvas.FillRect(R);
-{$ELSE}
         FillRect(Canvas.Handle, R, Canvas.Brush.Handle);
-{$ENDIF}
         OffsetRect(R, 1, 1);
         InflateRect(R, -1, -1);
       end
@@ -835,11 +735,7 @@ begin
       begin
         Frame3D(Canvas, R, fHighLightColor, fShadowColor, True);
         Canvas.Brush.Color := fButtonColor;
-{$IFDEF CLX}
-        Canvas.FillRect(R);
-{$ELSE}
         FillRect(Canvas.Handle, R, Canvas.Brush.Handle);
-{$ENDIF}
       end;
       DrawArrow(Canvas, R, Direction, fBorderColor);
     end;
@@ -872,11 +768,6 @@ begin
       end
       else
         DrawEdge(Canvas.Handle, R, EDGE_RAISED, BF_RECT or BF_MIDDLE);
-{$ENDIF}
-{$IFDEF CLX}
-      Canvas.Brush.Color := clButton;
-      Canvas.FillRect(R);
-      DrawWinButton(Canvas, R, False);
 {$ENDIF}
     end;
 
@@ -1210,11 +1101,7 @@ begin
   begin
     FBorderStyle := Value;
 {$IFNDEF FPC}
-{$IFNDEF CLX}
     RecreateWnd;
-{$ELSE}
-    Invalidate;
-{$ENDIF}
 {$ELSE}
     Invalidate;
 {$ENDIF}
@@ -1313,14 +1200,11 @@ end;
 procedure TArrowBar.SetStyle(Value: TRBStyle);
 begin
   FStyle := Value;
-{$IFDEF CLX}
+{$IFDEF FPC}
   Invalidate;
 {$ELSE}
- {$IFDEF FPC}
-  Invalidate;
- {$ELSE}
   RecreateWnd;
-{$ENDIF}{$ENDIF}
+{$ENDIF}
 end;
 
 procedure TArrowBar.StartDragTracking;
@@ -1451,14 +1335,6 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF CLX}
-function TArrowBar.WidgetFlags: Integer;
-begin
-  Result := Inherited WidgetFlags or Integer(WidgetFlags_WRepaintNoErase) or
-    Integer(WidgetFlags_WResizeNoErase);
-end;
-{$ENDIF}
-
 { TCustomRangeBar }
 
 procedure TCustomRangeBar.AdjustPosition;
@@ -1474,7 +1350,7 @@ begin
 end;
 
 function TCustomRangeBar.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
-  {$IFDEF CLX}const{$ENDIF} MousePos: TPoint): Boolean;
+  MousePos: TPoint): Boolean;
 const OneHundredTwenteenth = 1 / 120;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
@@ -1737,7 +1613,7 @@ begin
 end;
 
 function TCustomGaugeBar.DoMouseWheel(Shift: TShiftState;
-  WheelDelta: Integer; {$IFDEF CLX}const{$ENDIF} MousePos: TPoint): Boolean;
+  WheelDelta: Integer; MousePos: TPoint): Boolean;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
   if not Result then Position := Position + FSmallChange * WheelDelta div 120;

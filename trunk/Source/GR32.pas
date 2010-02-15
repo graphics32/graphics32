@@ -44,11 +44,7 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LCLType, types, Controls, Graphics,{$ELSE}
-  {$IFDEF CLX} Qt, Types,
-  {$IFDEF LINUX}Libc,{$ENDIF}
-  {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-  QControls, QGraphics, QConsts,{$ELSE}
-  Windows, Messages, Controls, Graphics,{$ENDIF}{$ENDIF}
+  Windows, Messages, Controls, Graphics,{$ENDIF}
   Classes, SysUtils, GR32_System;
   
 { Version Control }
@@ -211,7 +207,7 @@ type
 {$IFNDEF FPC}
 {$IFNDEF BCB}
   PPoint = ^TPoint;
-  TPoint = {$IFDEF CLX}Types{$ELSE}Windows{$ENDIF}.TPoint;
+  TPoint = Windows.TPoint;
 {$ENDIF}
 {$ENDIF}
 
@@ -262,13 +258,8 @@ function FixedPoint(const FP: TFloatPoint): TFixedPoint; overload; {$IFDEF USEIN
 
 type
 {$IFNDEF FPC}
-{$IFDEF CLX}
-  PRect = Types.PRect;
-  TRect = Types.TRect;
-{$ELSE}
   PRect = Windows.PRect;
   TRect = Windows.TRect;
-{$ENDIF}
 {$ENDIF}
 
   PFloatRect = ^TFloatRect;
@@ -319,14 +310,6 @@ function EqualRectSize(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLIN
 function EqualRectSize(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
-{$IFNDEF FPC}
-{$IFDEF CLX}
-  HBITMAP = QImageH;
-  HDC = QPainterH;
-  HFont = QFontH;
-{$ENDIF}
-{$ENDIF}
-
 { TBitmap32 draw mode }
   TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);
   TCombineMode = (cmBlend, cmMerge);
@@ -348,31 +331,6 @@ var
   Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 procedure SetGamma(Gamma: Single = 0.7);
-
-{$IFDEF CLX}
-{ TextOut Flags for WinAPI compatibility }
-const
-  DT_LEFT = Integer(AlignmentFlags_AlignLeft);
-  DT_RIGHT = Integer(AlignmentFlags_AlignRight);
-  DT_TOP = Integer(AlignmentFlags_AlignTop);
-  DT_BOTTOM = Integer(AlignmentFlags_AlignBottom);
-  DT_CENTER = Integer(AlignmentFlags_AlignHCenter);
-  DT_VCENTER = Integer(AlignmentFlags_AlignVCenter);
-  DT_EXPANDTABS = Integer(AlignmentFlags_ExpandTabs);
-  DT_NOCLIP = Integer(AlignmentFlags_DontClip);
-  DT_WORDBREAK = Integer(AlignmentFlags_WordBreak);
-  DT_SINGLELINE = Integer(AlignmentFlags_SingleLine);
-{ missing since there is no QT equivalent:
-  DT_CALCRECT (makes no sense with TBitmap32.TextOut[2])
-  DT_EDITCONTOL
-  DT_END_ELLIPSIS and DT_PATH_ELLIPSIS
-  DT_EXTERNALLEADING
-  DT_MODIFYSTRING
-  DT_NOPREFIX
-  DT_RTLREADING
-  DT_TABSTOP
-}
-{$ENDIF}
 
 type
   { TPlainInterfacedPersistent }
@@ -757,17 +715,9 @@ type
     procedure CanvasChanged(Sender: TObject);
     function GetCanvas: TCanvas;         {$IFDEF USEINLINING} inline; {$ENDIF}
 
-{$IFDEF CLX}
-    function GetPixmap: QPixmapH;
-    function GetPixmapChanged: Boolean;
-    procedure SetPixmapChanged(Value: Boolean);
-    function GetImage: QImageH;
-    function GetPainter: QPainterH;
-{$ELSE}
     function GetBitmapInfo: TBitmapInfo; {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetHandle: HBITMAP;         {$IFDEF USEINLINING} inline; {$ENDIF}
     function GetHDC: HDC;                {$IFDEF USEINLINING} inline; {$ENDIF}
-{$ENDIF}
 
     function GetFont: TFont;
     procedure SetFont(Value: TFont);
@@ -779,16 +729,12 @@ type
     procedure HandleChanged; virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
   public
-{$IFDEF CLX}
-    procedure Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH); overload;
-{$ELSE}
   {$IFDEF BCB}
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: Cardinal); overload;
   {$ELSE}
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
   {$ENDIF}
-{$ENDIF}
-  
+
 {$IFDEF BCB}
     procedure DrawTo(hDst: Cardinal; DstX, DstY: Integer); overload;
     procedure DrawTo(hDst: Cardinal; const DstRect, SrcRect: TRect); overload;
@@ -800,15 +746,6 @@ type
 {$ENDIF}
 
     procedure UpdateFont;
-{$IFDEF CLX}
-    procedure Textout(X, Y: Integer; const Text: Widestring); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
-    function  TextExtent(const Text: Widestring): TSize;
-    function  TextHeight(const Text: Widestring): Integer;
-    function  TextWidth(const Text: Widestring): Integer;
-    procedure RenderText(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
-{$ELSE}
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
     procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
@@ -816,7 +753,6 @@ type
     function  TextHeight(const Text: String): Integer;
     function  TextWidth(const Text: String): Integer;
     procedure RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
-{$ENDIF}
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
     procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
@@ -831,16 +767,9 @@ type
 
     property Font: TFont read GetFont write SetFont;
 
-{$IFDEF CLX}
-    property Pixmap: QPixmapH read GetPixmap;
-    property PixmapChanged: Boolean read GetPixmapChanged write SetPixmapChanged;
-    property Image: QImageH read GetImage;
-    property Handle: QPainterH read GetPainter;
-{$ELSE}
     property BitmapHandle: HBITMAP read GetHandle;
     property BitmapInfo: TBitmapInfo read GetBitmapInfo;
     property Handle: HDC read GetHDC;
-{$ENDIF}
   published
     property OnHandleChanged: TNotifyEvent read FOnHandleChanged write FOnHandleChanged;
   end;
@@ -952,11 +881,7 @@ uses
     GR32_Backends_LCL_Carbon,
   {$ENDIF}
 {$ELSE}
-{$IFDEF CLX}
-  QClipbrd, GR32_Backends_CLX,
-{$ELSE}
   Clipbrd, GR32_Backends_VCL,
-{$ENDIF}
 {$ENDIF}
   GR32_DrawingEx;
 
@@ -997,12 +922,8 @@ var
   I: Longword;
 {$ENDIF}
 begin
-{$IFDEF CLX}
-  WinColor := ColorToRGB(WinColor);
-{$ELSE}
   if WinColor < 0 then WinColor := GetSysColor(WinColor and $000000FF);
-{$ENDIF}
-  
+
 {$IFDEF WIN_COLOR_FIX}
   Result := $FF000000;
   I := (WinColor and $00FF0000) shr 16;
@@ -1313,7 +1234,6 @@ end;
 
 { Palette conversion }
 
-{$IFNDEF CLX}
 function WinPalette(const P: TPalette32): HPALETTE;
 var
   L: TMaxLogPalette;
@@ -1336,7 +1256,6 @@ begin
   end;
   Result := CreatePalette(l0);
 end;
-{$ENDIF}
 
 
 { Fixed-point conversion routines }
@@ -1717,11 +1636,7 @@ begin
 {$IFDEF FPC}
   Result := TLCLBackend;
 {$ELSE}
-{$IFDEF CLX}
-  Result := TCLXBackend;
-{$ELSE}
   Result := TGDIBackend;
-{$ENDIF}
 {$ENDIF}
 end;
 
@@ -2043,10 +1958,7 @@ end;
 
 procedure TCustomBitmap32.BackendChangedHandler(Sender: TObject);
 begin
-{$IFNDEF CLX}
   FBits := FBackend.Bits;
-{$ENDIF}
-
   ResetClipRect;
 end;
 
@@ -2084,9 +1996,7 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
   begin
     RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
     try
-{$IFNDEF CLX}
       Bmp.HandleType := bmDIB;
-{$ENDIF}
       Bmp.PixelFormat := pf32Bit;
 
 {$IFDEF COMPILER2009}
@@ -5458,35 +5368,6 @@ begin
   Result := (FBackend as ICanvasSupport).Canvas;
 end;
 
-{$IFDEF CLX}
-
-function TBitmap32.GetPixmap: QPixmapH;
-begin
-  Result := (FBackend as IQtDeviceContextSupport).Pixmap;
-end;
-
-function TBitmap32.GetPixmapChanged: Boolean;
-begin
-  Result := (FBackend as IQtDeviceContextSupport).PixmapChanged;
-end;
-
-procedure TBitmap32.SetPixmapChanged(Value: Boolean);
-begin
-  (FBackend as IQtDeviceContextSupport).PixmapChanged := Value;
-end;
-
-function TBitmap32.GetImage: QImageH;
-begin
-  Result := (FBackend as IQtDeviceContextSupport).Image;
-end;
-
-function TBitmap32.GetPainter: QPainterH;
-begin
-  Result := (FBackend as IQtDeviceContextSupport).Painter;
-end;
-
-{$ELSE}
-
 function TBitmap32.GetBitmapInfo: TBitmapInfo;
 begin
   Result := (FBackend as IBitmapContextSupport).BitmapInfo;
@@ -5501,8 +5382,6 @@ function TBitmap32.GetHDC: HDC;
 begin
   Result := (FBackend as IDeviceContextSupport).Handle;
 end;
-
-{$ENDIF}
 
 function TBitmap32.GetFont: TFont;
 begin
@@ -5533,14 +5412,6 @@ begin
   if Assigned(FOnHandleChanged) then FOnHandleChanged(Self);
 end;
 
-{$IFDEF CLX}
-procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; SrcPixmap: QPixmapH);
-begin
-  (FBackend as IQtDeviceContextSupport).Draw(DstRect, SrcRect, SrcPixmap);
-end;
-
-{$ELSE}
-
 {$IFDEF BCB}
 procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: Cardinal);
 {$ELSE}
@@ -5549,7 +5420,6 @@ procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
   (FBackend as IDeviceContextSupport).Draw(DstRect, SrcRect, hSrc);
 end;
-{$ENDIF}
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
 begin
@@ -5617,17 +5487,10 @@ end;
 
 // Text and Fonts //
 
-{$IFDEF CLX}
-function TBitmap32.TextExtent(const Text: Widestring): TSize;
-begin
-  Result := (FBackend as ITextSupport).TextExtentW(Text); // QT uses Unicode.
-end;
-{$ELSE}
 function TBitmap32.TextExtent(const Text: String): TSize;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text);
 end;
-{$ENDIF}
 
 function TBitmap32.TextExtentW(const Text: Widestring): TSize;
 begin
@@ -5636,17 +5499,10 @@ end;
 
 // -------------------------------------------------------------------
 
-{$IFDEF CLX}
-procedure TBitmap32.Textout(X, Y: Integer; const Text: Widestring);
-begin
-  (FBackend as ITextSupport).TextoutW(X, Y, Text); // QT uses Unicode
-end;
-{$ELSE}
 procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
 begin
   (FBackend as ITextSupport).Textout(X, Y, Text);
 end;
-{$ENDIF}
 
 procedure TBitmap32.TextoutW(X, Y: Integer; const Text: Widestring);
 begin
@@ -5655,17 +5511,10 @@ end;
 
 // -------------------------------------------------------------------
 
-{$IFDEF CLX}
-procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
-begin
-  (FBackend as ITextSupport).TextoutW(X, Y, ClipRect, Text);
-end;
-{$ELSE}
 procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
 begin
   (FBackend as ITextSupport).Textout(X, Y, ClipRect, Text);
 end;
-{$ENDIF}
 
 procedure TBitmap32.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
 begin
@@ -5674,17 +5523,10 @@ end;
 
 // -------------------------------------------------------------------
 
-{$IFDEF CLX}
-procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
-begin
-  (FBackend as ITextSupport).TextoutW(DstRect, Flags, Text);
-end;
-{$ELSE}
 procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: String);
 begin
   (FBackend as ITextSupport).Textout(DstRect, Flags, Text);
 end;
-{$ENDIF}
 
 procedure TBitmap32.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
@@ -5693,17 +5535,10 @@ end;
 
 // -------------------------------------------------------------------
 
-{$IFDEF CLX}
-function TBitmap32.TextHeight(const Text: Widestring): Integer;
-begin
-  Result := (FBackend as ITextSupport).TextExtentW(Text).cY;
-end;
-{$ELSE}
 function TBitmap32.TextHeight(const Text: String): Integer;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text).cY;
 end;
-{$ENDIF}
 
 function TBitmap32.TextHeightW(const Text: Widestring): Integer;
 begin
@@ -5712,17 +5547,10 @@ end;
 
 // -------------------------------------------------------------------
 
-{$IFDEF CLX}
-function TBitmap32.TextWidth(const Text: Widestring): Integer;
-begin
-  Result := (FBackend as ITextSupport).TextExtentW(Text).cX;
-end;
-{$ELSE}
 function TBitmap32.TextWidth(const Text: String): Integer;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text).cX;
 end;
-{$ENDIF}
 
 function TBitmap32.TextWidthW(const Text: Widestring): Integer;
 begin
@@ -5730,13 +5558,6 @@ begin
 end;
 
 // -------------------------------------------------------------------
-
-{$IFDEF CLX}
-procedure TBitmap32.RenderText(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
-begin
-  RenderTextW(X, Y, Text, AALevel, Color); // QT does Unicode
-end;
-{$ELSE}
 
 procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal);
 var
@@ -5928,8 +5749,6 @@ begin
   SetFontAntialiasing(Font, DEFAULT_QUALITY);
 end;
 
-{$ENDIF}
-
 procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
@@ -5945,27 +5764,19 @@ begin
   AALevel := Constrain(AALevel, -1, 4);
   PaddedText := Text + ' ';
 
-{$IFNDEF CLX}
   if AALevel > -1 then
     SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
   else
     SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
-{$ENDIF}
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
     if AALevel = 0 then
     begin
-{$IFDEF CLX}
-      B.Font := Font;
-      Sz := B.TextExtentW(PaddedText);
-      B.SetSize(Sz.cX, Sz.cY);
-{$ELSE}
       Sz := TextExtentW(PaddedText);
       B.SetSize(Sz.cX, Sz.cY);
       B.Font := Font;
-{$ENDIF}
       B.Clear(0);
       B.Font.Color := clWhite;
       B.TextoutW(0, 0, Text);
@@ -6011,9 +5822,7 @@ begin
   finally
     B.Free;
   end;
-{$IFNDEF CLX}
   SetFontAntialiasing(Font, DEFAULT_QUALITY);
-{$ENDIF}
 end;
 
 // -------------------------------------------------------------------
