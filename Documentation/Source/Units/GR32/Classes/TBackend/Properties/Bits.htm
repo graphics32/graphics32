@@ -12,10 +12,10 @@
 <p class="Decl"><b>type</b> PColor32Array = ^TColor32Array;</p>
 <h2>Description</h2>
 <p class="Body">The bits property contains the address of the first (top-left) 
-  pixel in the backend's surface. If the bitmap is not allocated (width or height is zero), 
+  pixel in the back-end's surface. If the bitmap is not allocated (width or height is zero), 
   the returned address is <i>nil</i>.</p>
-<p class="Body">Subclassed backends need to set the protected member <strong>FBits</strong> to the of beginning of the surfaces memory. This needs to be done in the method <a href="../Methods/ChangeSize.htm">ChangeSize</a>. For <a href="../../../../GR32_Backends/Classes/TCustomBackend/_Body.htm">TCustomBackend</a> this has to happen in <a href="../../../../GR32_Backends/Classes/TCustomBackend/Methods/InitializeSurface.htm">InitializeSurface</a>.</p>
+<p class="Body">Subclassed back-ends need to set the protected member <strong>FBits</strong> to the of beginning of the surfaces memory. This is done  <a href="../Methods/InitializeSurface.htm">InitializeSurface</a>.</p>
 <p class="Body">&nbsp;</p>
-<p id="hidden">[See also]: <a href="../../../../GR32_Backends/Classes/TCustomBackend/Methods/InitializeSurface.htm">TCustomBackend.InitializeSurface</a>, <a href="../../TCustomBitmap32/Properties/Bits.htm">TCustomBitmap32.Bits</a></p>
+<p id="hidden">[See also]: <a href="../Methods/InitializeSurface.htm">InitializeSurface</a>, <a href="../../TCustomBitmap32/Properties/Bits.htm">TCustomBitmap32.Bits</a></p>
 </body>
 </html>
