@@ -1,4 +1,4 @@
-	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
 			<ProjectGuid>{B02A0BA9-E168-45C5-8A5E-225FDBDC5B60}</ProjectGuid>
 		</PropertyGroup>
@@ -55,6 +55,9 @@
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Transformation\Transform_Ex\Transform_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Transformation\Visualization_Ex\Visualization_Ex.dproj">
 				<Dependencies/>
 			</Projects>
 		</ItemGroup>
@@ -227,14 +230,23 @@
 		<Target Name="Transform_Ex:Make">
 			<MSBuild Targets="Make" Projects="Transformation\Transform_Ex\Transform_Ex.dproj"/>
 		</Target>
+		<Target Name="Visualization_Ex">
+			<MSBuild Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj"/>
+		</Target>
+		<Target Name="Visualization_Ex:Clean">
+			<MSBuild Targets="Clean" Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj"/>
+		</Target>
+		<Target Name="Visualization_Ex:Make">
+			<MSBuild Targets="Make" Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj"/>
+		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="PixelCombine_Ex;TextureBlend_Ex;GradLines_Ex;LineStippling_Ex;Polygons_Ex;RenderText_Ex;ByteMaps_Ex;Image32_Ex;Mandelbrot_Ex;Rotate_Ex;ImgView_Layers_Ex;RotLayer_Ex;Sprites_Ex;NestedSampling_Ex;PixelF_Ex;Resamplers_Ex;ImgWarping_Ex;Transform_Ex"/>
+			<CallTarget Targets="PixelCombine_Ex;TextureBlend_Ex;GradLines_Ex;LineStippling_Ex;Polygons_Ex;RenderText_Ex;ByteMaps_Ex;Image32_Ex;Mandelbrot_Ex;Rotate_Ex;ImgView_Layers_Ex;RotLayer_Ex;Sprites_Ex;NestedSampling_Ex;PixelF_Ex;Resamplers_Ex;ImgWarping_Ex;Transform_Ex;Visualization_Ex"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="PixelCombine_Ex:Clean;TextureBlend_Ex:Clean;GradLines_Ex:Clean;LineStippling_Ex:Clean;Polygons_Ex:Clean;RenderText_Ex:Clean;ByteMaps_Ex:Clean;Image32_Ex:Clean;Mandelbrot_Ex:Clean;Rotate_Ex:Clean;ImgView_Layers_Ex:Clean;RotLayer_Ex:Clean;Sprites_Ex:Clean;NestedSampling_Ex:Clean;PixelF_Ex:Clean;Resamplers_Ex:Clean;ImgWarping_Ex:Clean;Transform_Ex:Clean"/>
+			<CallTarget Targets="PixelCombine_Ex:Clean;TextureBlend_Ex:Clean;GradLines_Ex:Clean;LineStippling_Ex:Clean;Polygons_Ex:Clean;RenderText_Ex:Clean;ByteMaps_Ex:Clean;Image32_Ex:Clean;Mandelbrot_Ex:Clean;Rotate_Ex:Clean;ImgView_Layers_Ex:Clean;RotLayer_Ex:Clean;Sprites_Ex:Clean;NestedSampling_Ex:Clean;PixelF_Ex:Clean;Resamplers_Ex:Clean;ImgWarping_Ex:Clean;Transform_Ex:Clean;Visualization_Ex:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="PixelCombine_Ex:Make;TextureBlend_Ex:Make;GradLines_Ex:Make;LineStippling_Ex:Make;Polygons_Ex:Make;RenderText_Ex:Make;ByteMaps_Ex:Make;Image32_Ex:Make;Mandelbrot_Ex:Make;Rotate_Ex:Make;ImgView_Layers_Ex:Make;RotLayer_Ex:Make;Sprites_Ex:Make;NestedSampling_Ex:Make;PixelF_Ex:Make;Resamplers_Ex:Make;ImgWarping_Ex:Make;Transform_Ex:Make"/>
+			<CallTarget Targets="PixelCombine_Ex:Make;TextureBlend_Ex:Make;GradLines_Ex:Make;LineStippling_Ex:Make;Polygons_Ex:Make;RenderText_Ex:Make;ByteMaps_Ex:Make;Image32_Ex:Make;Mandelbrot_Ex:Make;Rotate_Ex:Make;ImgView_Layers_Ex:Make;RotLayer_Ex:Make;Sprites_Ex:Make;NestedSampling_Ex:Make;PixelF_Ex:Make;Resamplers_Ex:Make;ImgWarping_Ex:Make;Transform_Ex:Make;Visualization_Ex:Make"/>
 		</Target>
 		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 	</Project>
