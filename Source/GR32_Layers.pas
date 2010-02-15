@@ -40,21 +40,11 @@ interface
 {$INCLUDE GR32.inc}
 
 uses
-  {$IFDEF FPC}
-    Controls, Graphics, Forms,
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt, Types, QControls, QGraphics, QForms,
-      {$IFDEF LINUX}
-        Libc,
-      {$ENDIF}
-      {$IFDEF MSWINDOWS}
-        Windows,
-      {$ENDIF}
-    {$ELSE}
-      Windows, Controls, Graphics, Forms,
-    {$ENDIF}
-  {$ENDIF}
+{$IFDEF FPC}
+  Controls, Graphics, Forms,
+{$ELSE}
+  Windows, Controls, Graphics, Forms,
+{$ENDIF}
   Classes, SysUtils, Math, GR32;
 
 const

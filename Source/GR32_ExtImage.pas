@@ -37,12 +37,14 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LCLType, LMessages,
-  {$ELSE} Windows, Messages,{$ENDIF}
+{$IFDEF FPC}
+  LCLIntf, LCLType, LMessages,
+{$ELSE}
+  Windows, Messages,
+{$ENDIF}
   GR32, GR32_Image, GR32_Rasterizers, Classes, Controls;
 
 type
-  {$IFNDEF CLX}
   TRenderThread = class;
 
   TRenderMode = (rnmFull, rnmConstrained);
@@ -87,7 +89,6 @@ type
     property ClearBuffer: Boolean read FClearBuffer write FClearBuffer;
     property RenderMode: TRenderMode read FRenderMode write SetRenderMode;
   end;
-  {$ENDIF}
 
   { TRenderThread }
   TRenderThread = class(TThread)
@@ -129,7 +130,6 @@ end;
 
 { TSyntheticImage32 }
 
-{$IFNDEF CLX}
 constructor TSyntheticImage32.Create(AOwner: TComponent);
 begin
   inherited;
@@ -294,7 +294,6 @@ begin
     FreeAndNil(FRenderThread);
   end;
 end;
-{$ENDIF}
 
 { TRenderThread }
 

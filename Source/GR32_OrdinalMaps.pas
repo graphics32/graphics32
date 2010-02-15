@@ -39,19 +39,14 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}
-    Controls, Graphics,
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt, Types, {$IFDEF LINUX}Libc, {$ENDIF}
-      QControls, QGraphics,
-    {$ELSE}
-      Windows, Controls, Graphics,
-    {$ENDIF}
+{$IFDEF FPC}
+  Controls, Graphics,
+  {$IFDEF Windows}
+    Windows,
   {$ENDIF}
+{$ELSE}
+  Windows, Controls, Graphics,
+{$ENDIF}
   Classes, SysUtils, GR32;
 
 type

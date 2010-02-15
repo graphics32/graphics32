@@ -214,7 +214,6 @@
 
 {$IFDEF LINUX}
   {$IFNDEF FPC}
-    {$DEFINE CLX}
     {$DEFINE PLATFORM_INDEPENDENT}
     {$DEFINE BITS_GETTER}
   {$ENDIF}
@@ -231,13 +230,6 @@
     Forces GR32 into pure pascal mode. Should be used only for testing and
     debugging purposes. *)
     {-$DEFINE PUREPASCAL}
-
-(* Symbol CLX :
-    Defines whether CLX/QT rather than VCL/WinAPI should be used as toolkit on Windows.
-    NOTE:
-    For Kylix/Linux support this symbol is set automatically. *)
-
-  {-$DEFINE CLX}
 
 
 (* Symbol DEPRECATEDMODE :
@@ -304,9 +296,7 @@
 {$R-}{$Q-}  // switch off overflow and range checking
 
 {$IFDEF COMPILER5}
-  {$IFNDEF CLX}
-    {$DEFINE EXT_PROP_EDIT}
-  {$ENDIF}
+  {$DEFINE EXT_PROP_EDIT}
 {$ENDIF}
 
 // enable support for MMX/SSE/SSE2 assembler code in the inline assember

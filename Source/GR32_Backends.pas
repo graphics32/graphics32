@@ -41,17 +41,10 @@ uses
 {$IFDEF FPC}
   LCLIntf, LCLType, types, Controls, Graphics,
 {$ELSE}
-  {$IFDEF CLX}
-    Qt, Types,
-    {$IFDEF LINUX}Libc,{$ENDIF}
-    {$IFDEF MSWINDOWS}Windows,{$ENDIF}
-    QControls, QGraphics, QConsts,
-  {$ELSE}
-    Windows, Messages, Controls, Graphics,
-  {$ENDIF}
+  Windows, Messages, Controls, Graphics,
 {$ENDIF}
   Classes, SysUtils, GR32, GR32_Containers, GR32_Image;
-  
+
 type
   ITextSupport = interface(IUnknown)
   ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']

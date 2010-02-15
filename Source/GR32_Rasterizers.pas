@@ -38,22 +38,13 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}
-    {$IFDEF Windows}
-      Windows,
-    {$ENDIF}
-  {$ELSE}
-    {$IFDEF CLX}
-      Qt,
-      {$IFDEF LINUX}
-        Libc,
-      {$ELSE}
-        Windows,
-      {$ENDIF}
-    {$ELSE}
-      Windows,
-    {$ENDIF}
+{$IFDEF FPC}
+  {$IFDEF Windows}
+    Windows,
   {$ENDIF}
+{$ELSE}
+  Windows,
+{$ENDIF}
   Classes, GR32, GR32_Blend, GR32_OrdinalMaps;
 
 type

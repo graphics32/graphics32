@@ -42,12 +42,7 @@ interface
 {$IFNDEF TARGET_x86} {$DEFINE USEMOVE} {$ENDIF}
 
 uses
-  {$IFDEF CLX}
-  QGraphics,
-  {$ELSE}
-  Graphics,
-  {$ENDIF}
-  GR32, GR32_Math, GR32_System;
+  Graphics, GR32, GR32_Math, GR32_System;
 
 { Clamp function restricts Value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
