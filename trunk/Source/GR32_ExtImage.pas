@@ -300,14 +300,16 @@ end;
 constructor TRenderThread.Create(Rasterizer: TRasterizer; Dst: TBitmap32;
   DstRect: TRect; Suspended: Boolean);
 begin
+{$IFDEF COMPILER2010}
+  inherited Create(Suspended);
+{$ELSE}
   inherited Create(True);
+{$ENDIF}
   FRasterizer := Rasterizer;
   FDest := Dst;
   FDstRect := DstRect;
   Priority := tpNormal;
-{$IFDEF COMPILER2010}
-  if not Suspended then Start;
-{$ELSE}
+{$IFNDEF COMPILER2010}
   if not Suspended then Resume;
 {$ENDIF}
 end;
