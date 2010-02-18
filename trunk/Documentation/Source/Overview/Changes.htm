@@ -67,12 +67,30 @@ blockquote {
 		  <li>FPC/Lazarus support</li>
 		  <li>IDE support up to Delphi 2010</li>
 		  <li>Kylix support officially dropped as of this release.</li>
+      <li>Implemented Assign/AssignTo to TCustomPaintBox32</li>
+		  <li>Added TFloat FastSqrt routine</li>
+      <li>Added fast HorzLineX/VertLineX procedures for horizontal and vertical lines</li>
+      <li>Added floatpoint overloads of TCustomImage32.BitmapToControl and ControlToBitmap</li>
+      <li>License changed to a dual license with MPL and LGPL 2.1 (with linking exception)</li> 
 		</ul>
 	  </li>
 	  <li>
 		<h2>Optimizations:</h2>
 		<ul class="dots">
 		  <li>CPU feature dependent optimizations</li>
+		  <li>Optimizations in AlphaToGrayscale (proposed by Andrea Campi)</li>
+		  <li>Optimizations in IntensityToAlpha</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Bugfixes:</h2>
+		<ul class="dots">
+	    <li>Fixed bug related to TCustomImage32.ControlToBitmap and BitmapToControl conversions (now more precise)</li>
+	    <li>Minor bugfix in AlphaToGrayscale</li>
+	    <li>Fixed wrong enumeral type order in bitmask function template</li>
+	    <li>Fixed bug in TTransformer (inherited constructor was not called and SetTransformation only accepted non-nil values).</li>
+	    <li>Fixed SetSampler bug for TNestedSampler</li>
+	    <li>Fixed initialization issue in TRenderThread (thanks to Eray Hanoglu)</li>
 		</ul>
 	  </li>
 	</ul>
