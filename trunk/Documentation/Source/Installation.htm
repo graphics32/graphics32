@@ -4,13 +4,7 @@
 <link rel="stylesheet" href="../Styles/Default.css">
 </head>
 <body bgcolor="#FFFFFF">
-<p class="Body">Graphics32 supports Delphi versions 5, 6, 7, 2005 (Win32), 2006 (Delphi Win32 and C++), and C++ Builder 5 and 6.</p>
-<p class="Body">As of version 1.6 there is also CLX support in Graphics32. That means you can use it either with CLX on
-  Windows using Delphi or on x86 Linux using the Kylix Delphi environment.</p>
-<p class="Body">&nbsp;</p>
-<p class="Body"><strong>Note:</strong><em> If you want to use the Windows CLX version in Delphi, you'll have to uncomment
-    the <span class="Comment">{$DEFINE
-      CLX}</span>  line in <strong>GR32.inc</strong>.</em></p>
+<p class="Body">Graphics32 supports Delphi versions 5, 6, 7, 2005 (Win32), 2006 (Delphi Win32 and C++), 2007 (Delphi Win32), 2009 (Delphi Win32), and C++ Builder 5 and 6.</p>
 <p class="Body"><strong>Note:</strong><em> For Delphi 2005 and up function inlining is automatically used to improve performance
     in certain situations. If you want to avoid this, please comment out the <span class="Comment">{$DEFINE USEINLINING}</span> line
     in <strong>GR32.inc</strong>.</em></p>
@@ -19,6 +13,15 @@
   Graphics32 projects. Just ignore these messages and Delphi will fix DFM files 
 automatically.</em></p>
 <p class="Body">&nbsp;</p>
+<p class="Body">As of version 1.6 until version 1.8 there was also CLX support in Graphics32. That means you could use it either with CLX on
+  Windows using Delphi or on x86 Linux using the Kylix Delphi environment. The Kylix support was stopped due to abandoned development of this IDE.</p>
+<p class="Body"><strong>Note:</strong><em> If you want to use the Windows CLX version in Delphi, you'll have to uncomment
+    the <span class="Comment">{$DEFINE
+      CLX}</span>  line in <strong>GR32.inc</strong>.</em></p>
+<p class="Body">&nbsp;</p>
+<p class="Body">Since version 1.9 FPC/Lazarus is supported for platform independent development. So far it has been tested in Win32 and OSX 10.4. It is likely to run on other platforms as well, but especially 64 bit support is still to be tested.</p>
+<p class="Body">&nbsp;</p>
+<h2>Installation procedure for BDS / Delphi / Kylix:</h2>
 <ul>
   <li>Unzip the files;</li>
   <li>Add location of main installation directory to <span class="Menu"><u>T</u>ools</span> 
@@ -33,6 +36,23 @@ automatically.</em></p>
     then click <span class="Menu">Install</span>;</li>
   <li>If compiler asks whether you want to save changes, usually it is a good 
     idea to choose No.</li>
+</ul>
+<p class="Body">&nbsp;</p>
+<h2>Installation procedure for Lazarus:</h2>
+<ul>
+  <li>Unzip the files;</li>
+  <li>Select <span class="Menu"><u>P</u><span class="Menu">ackage</span></span> | 
+    <span class="Menu"><u>O</u>pen Package File...</span> on the menu bar. Set 
+    <span class="Menu">Files of <u>t</u>ype</span> to 
+    <font face="Courier New, Courier, mono">Lazarus package (*.lpk)</font>, 
+    locate and open <font face="Courier New, Courier, mono">GR32_DSGN_L.dpk<br>
+    </font></li>
+  <li>A package editor window will appear. Click <span class="Menu">Compile</span>, 
+    then click <span class="Menu">Install</span>;</li>
+  <li>Lazarus will ask to compile itself in order to make use of the library. 
+    Choose Yes to be able to use the library from the IDE. It will take several
+    minutes until the IDE is compiled completely.</li>
+  <li>After an automatic restart you are able to use GR32 in Lazarus</li>
 </ul>
 </body>
 </html>
