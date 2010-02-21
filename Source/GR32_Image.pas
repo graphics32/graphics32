@@ -194,9 +194,6 @@ type
     property OnCanResize;
 {$ENDIF}
     property OnClick;
-{$IFDEF DELPHI5}
-    property OnContextPopup;
-{$ENDIF}
     property OnDblClick;
     property OnDragDrop;
     property OnDragOver;
@@ -365,9 +362,6 @@ type
 {$ENDIF}
     property OnClick;
     property OnChange;
-{$IFDEF DELPHI5}
-    property OnContextPopup;
-{$ENDIF}
     property OnDblClick;
     property OnGDIOverlay;
     property OnDragDrop;
@@ -494,9 +488,6 @@ type
 {$ENDIF}
     property OnClick;
     property OnChange;
-{$IFDEF DELPHI5}
-    property OnContextPopup;
-{$ENDIF}
     property OnDblClick;
     property OnDragDrop;
     property OnDragOver;

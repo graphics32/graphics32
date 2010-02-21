@@ -136,7 +136,7 @@ end;
 procedure TMMFBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
   CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, FMapIsTemporary, NewWidth, NewHeight);
-  FBits := MapViewOfFile(FMapHandle, FILE_MAP_COPY, 0, 0, 0);
+  FBits := MapViewOfFile(FMapHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
   if not Assigned(FBits) then
     raise Exception.Create('Failed to map view of file.');

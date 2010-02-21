@@ -244,14 +244,14 @@ end;
 
 constructor TThemeNexus.Create;
 begin
-  FWindowHandle := {$IFDEF COMPILER6}Classes.{$ENDIF}AllocateHWnd(WndProc);
+  FWindowHandle := Classes.AllocateHWnd(WndProc);
   OpenVisualStyles;
 end;
 
 destructor TThemeNexus.Destroy;
 begin
   CloseVisualStyles;
-  {$IFDEF COMPILER6}Classes.{$ENDIF}DeallocateHWnd(FWindowHandle);
+  Classes.DeallocateHWnd(FWindowHandle);
   inherited;
 end;
 

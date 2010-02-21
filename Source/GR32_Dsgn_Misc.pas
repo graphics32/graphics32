@@ -39,7 +39,7 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LazIDEIntf, PropEdits,{$ELSE}
-  {$IFDEF COMPILER6}DesignIntf, DesignEditors,{$ELSE}DsgnIntf,{$ENDIF}{$ENDIF}
+  DesignIntf, DesignEditors,{$ENDIF}
   Classes, TypInfo, GR32_Containers;
 
 type
@@ -80,7 +80,7 @@ uses GR32, GR32_Resamplers;
 function TCustomClassProperty.GetAttributes: TPropertyAttributes;
 begin
   Result := inherited GetAttributes - [paReadOnly] +
-    [paValueList, paRevertable {$IFDEF COMPILER6}, paVolatileSubProperties{$ENDIF}];
+    [paValueList, paRevertable, paVolatileSubProperties];
   if not HasSubProperties then Exclude(Result, paSubProperties);
 end;
 

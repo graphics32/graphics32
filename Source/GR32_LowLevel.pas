@@ -221,28 +221,15 @@ asm
         DEC        EDX
         JZ         @ExitPOP
     @QLoopIni:
-        {$IFDEF FPC}
         MOVD       MM1, ECX
         PUNPCKLDQ  MM1, MM1
-        {$ELSE}
-        db $0F,$6E,$C9
-        db $0F,$62,$C9
-        {$ENDIF}
         SHR        EDX, 1
     @QLoop:
-        {$IFDEF FPC}
         MOVQ       [EAX], MM1
-        {$ELSE}
-        db $0F,$7F,$08           /// MOVQ       [EAX], MM1
-        {$ENDIF}
         ADD        EAX, 8
         DEC        EDX
         JNZ        @QLoop
-        {$IFDEF FPC}
         EMMS
-        {$ELSE}
-        db $0F,$77               /// EMMS
-        {$ENDIF}
     @ExitPOP:
         POP        EBX
         POP        EDI
@@ -400,9 +387,9 @@ begin
 {$ELSE}
 asm
         CMP       EDX,EAX
-        db $0F,$4F,$C2           /// CMOVG     EAX,EDX
+        CMOVG     EAX,EDX
         CMP       ECX,EAX
-        db $0F,$4C,$C1           /// CMOVL     EAX,ECX
+        CMOVL     EAX,ECX
 {$ENDIF}
 end;
 
@@ -458,9 +445,9 @@ begin
 {$ELSE}
 asm
         CMP       EDX,EAX
-        db $0F,$4F,$C2           /// CMOVG     EAX,EDX
+        CMOVG     EAX,EDX
         CMP       ECX,EAX
-        db $0F,$4C,$C1           /// CMOVL     EAX,ECX
+        CMOVL     EAX,ECX
 {$ENDIF}
 end;
 

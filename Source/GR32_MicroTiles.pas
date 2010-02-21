@@ -303,32 +303,27 @@ begin
       DstTile := SrcTile
     else
     asm
-      {$IFDEF COMPILER6}
       MOVD   MM1,[SrcTile]
-      {$ELSE}
-      MOV    EAX,[SrcTile]
-      db $0F,$6E,$C8           /// MOVD   MM1,EAX
-      {$ENDIF}
 
       MOV    EAX,[DstTile]
-      db $0F,$6E,$10           /// MOVD   MM2, [EAX]
+      MOVD   MM2, [EAX]
 
-      db $0F,$6F,$D9           /// MOVQ   MM3, MM1
+      MOVQ   MM3, MM1
 
       MOV    ECX,$FFFF0000   // Mask
-      db $0F,$6E,$C1           /// MOVD   MM0, ECX
-      db $0F,$DA,$CA           /// PMINUB MM1, MM2
-      db $0F,$DB,$C8           /// PAND   MM1, MM0
+      MOVD   MM0, ECX
+      PMINUB MM1, MM2
+      PAND   MM1, MM0
 
-      db $0F,$72,$D0,$10       /// PSRLD  MM0, 16         // shift mask right by 16 bits
-      db $0F,$DE,$D3           /// PMAXUB MM2, MM3
-      db $0F,$DB,$D0           /// PAND   MM2, MM0
+      PSRLD  MM0, 16         // shift mask right by 16 bits
+      PMAXUB MM2, MM3
+      PAND   MM2, MM0
 
-      db $0F,$EB,$CA           /// POR    MM1, MM2
+      POR    MM1, MM2
 
-      db $0F,$7E,$08           /// MOVD   [EAX], MM1
+      MOVD   [EAX], MM1
 
-      db $0F,$77               /// EMMS
+      EMMS
     end;
   end;
 end;
@@ -712,9 +707,9 @@ begin
 
   asm
     MOV    ECX, $FFFF  // Mask
-    db $0F,$6E,$C1           /// MOVD   MM0, ECX
-    db $0F,$6F,$E0           /// MOVQ   MM4, MM0
-    db $0F,$72,$F4,$10       /// PSLLD  MM4, 16     // shift mask left by 16 bits
+    MOVD   MM0, ECX
+    MOVQ   MM4, MM0
+    PSLLD  MM4, 16     // shift mask left by 16 bits
   end;
 
   for Y := SrcTiles.BoundsUsedTiles.Top to SrcTiles.BoundsUsedTiles.Bottom do
@@ -736,21 +731,21 @@ begin
         else
         asm
           MOV    EAX, [DstTilePtr2]
-          db $0F,$6E,$10           /// MOVD   MM2, [EAX]
+          MOVD   MM2, [EAX]
 
           MOV    ECX, [SrcTilePtr2]
-          db $0F,$6E,$09           /// MOVD   MM1, [ECX]
-          db $0F,$6F,$D9           /// MOVQ   MM3, MM1
+          MOVD   MM1, [ECX]
+          MOVQ   MM3, MM1
 
-          db $0F,$DA,$CA           /// PMINUB MM1, MM2
-          db $0F,$DB,$CC           /// PAND   MM1, MM4
+          PMINUB MM1, MM2
+          PAND   MM1, MM4
 
-          db $0F,$DE,$D3           /// PMAXUB MM2, MM3
-          db $0F,$DB,$D0           /// PAND   MM2, MM0
+          PMAXUB MM2, MM3
+          PAND   MM2, MM0
 
-          db $0F,$EB,$CA           /// POR    MM1, MM2
+          POR    MM1, MM2
 
-          db $0F,$7E,$08           /// MOVD   [EAX], MM1
+          MOVD   [EAX], MM1
         end;
       end;
 

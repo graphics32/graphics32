@@ -41,11 +41,7 @@ uses
 {$IFDEF FPC}
   LCLIntf, LResources, LazIDEIntf, PropEdits, ComponentEditors
 {$ELSE}
-{$IFDEF COMPILER6}
   DesignIntf
-{$ELSE}
-  DsgnIntf
-{$ENDIF}
 {$ENDIF};
 
 procedure Register;

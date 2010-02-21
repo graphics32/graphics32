@@ -45,11 +45,7 @@ uses
   {$ENDIF}
 {$ELSE}
   Consts,
-  {$IFDEF COMPILER6}
-    DesignIntf, DesignEditors, VCLEditors,
-  {$ELSE}
-    DsgnIntf,
-  {$ENDIF}
+  DesignIntf, DesignEditors, VCLEditors,
   Windows, Registry, Graphics, Dialogs, Forms,
 {$ENDIF}
   GR32, GR32_Image;
@@ -77,7 +73,7 @@ type
   { TColor32Property }
   TColor32Property = class(TIntegerProperty
 {$IFDEF EXT_PROP_EDIT}
-    {$IFDEF COMPILER6}, ICustomPropertyListDrawing, ICustomPropertyDrawing{$ENDIF}
+    ICustomPropertyListDrawing, ICustomPropertyDrawing
     {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
 {$ENDIF}
   )
@@ -88,11 +84,6 @@ type
     procedure SetValue(const Value: string); override;
 {$IFDEF EXT_PROP_EDIT}
     procedure Edit; override;
-  {$IFDEF DELPHI5}
-    procedure ListDrawValue(const Value: string; ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean); override;
-    procedure PropDrawValue(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean); override;
-  {$ENDIF}
-  {$IFDEF COMPILER6}
     { ICustomPropertyListDrawing }
     procedure ListMeasureWidth(const Value: string; ACanvas: TCanvas; var AWidth: Integer);
     procedure ListMeasureHeight(const Value: string; ACanvas: TCanvas; var AHeight: Integer);
@@ -100,12 +91,11 @@ type
     { ICustomPropertyDrawing }
     procedure PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
     procedure PropDrawValue(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
-  {$ENDIF}
   {$IFDEF COMPILER2005}
     { ICustomPropertyDrawing80 }
     function PropDrawNameRect(const ARect: TRect): TRect;
     function PropDrawValueRect(const ARect: TRect): TRect;
-  {$ENDIF}  
+  {$ENDIF}
 {$ENDIF}
   end;
 
@@ -359,7 +349,6 @@ end;
 
 {$IFDEF EXT_PROP_EDIT}
 
-{$IFDEF COMPILER6}
 procedure TColor32Property.ListMeasureWidth(const Value: string; ACanvas: TCanvas; var AWidth: Integer);
 begin
   // implementation dummie to satisfy interface. Don't change default value.
@@ -369,7 +358,6 @@ procedure TColor32Property.ListMeasureHeight(const Value: string; ACanvas: TCanv
 begin
   // implementation dummie to satisfy interface. Don't change default value.
 end;
-{$ENDIF}
 
 procedure TColor32Property.ListDrawValue(const Value: string; ACanvas: TCanvas;
   const ARect: TRect; ASelected: Boolean);
@@ -410,13 +398,8 @@ begin
     Bitmap32.DrawTo(ACanvas.Handle, ARect.Left + 1, ARect.Top + 1);
   finally
     Bitmap32.Free;
-    {$IFDEF DELPHI5}
-    inherited ListDrawValue(Value, ACanvas,
-      Rect(Right, ARect.Top, ARect.Right, ARect.Bottom), ASelected);
-    {$ELSE}
     DefaultPropertyListDrawValue(Value, ACanvas,
       Rect(Right, ARect.Top, ARect.Right, ARect.Bottom), ASelected);
-    {$ENDIF}
   end;
   except
     on E: Exception do ShowMessage(E.Message);
@@ -426,26 +409,17 @@ end;
 procedure TColor32Property.PropDrawValue(ACanvas: TCanvas; const ARect: TRect;
   ASelected: Boolean);
 begin
-{$IFDEF DELPHI5}
-  if GetVisualValue <> '' then
-    ListDrawValue(GetVisualValue, ACanvas, ARect, True)
-  else
-    inherited PropDrawValue(ACanvas, ARect, ASelected);
-{$ELSE}
   if GetVisualValue <> '' then
     ListDrawValue(GetVisualValue, ACanvas, ARect, True{ASelected})
   else
     DefaultPropertyDrawValue(Self, ACanvas, ARect);
-{$ENDIF}
 end;
 
-{$IFDEF COMPILER6}
 procedure TColor32Property.PropDrawName(ACanvas: TCanvas; const ARect: TRect;
   ASelected: Boolean);
 begin
   DefaultPropertyDrawName(Self, ACanvas, ARect);
 end;
-{$ENDIF}
 
 {$IFDEF COMPILER2005}
 function TColor32Property.PropDrawNameRect(const ARect: TRect): TRect;
