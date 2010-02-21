@@ -142,17 +142,17 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 5
       end
-      object DirectoryEdit1: TEdit
+      object edProjectDirectory: TEdit
         Left = 16
         Top = 42
         Width = 266
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
-        Text = 'DirectoryEdit1'
-        OnChange = DirectoryEdit1Change
+        Text = 'edProjectDirectory'
+        OnChange = edProjectDirectoryChange
       end
-      object Edit2: TEdit
+      object edIndexFile: TEdit
         Left = 83
         Top = 98
         Width = 199
@@ -161,7 +161,7 @@ object MainForm: TMainForm
         TabOrder = 2
         Text = 'Index.hhk'
       end
-      object Edit3: TEdit
+      object edTOCFile: TEdit
         Left = 83
         Top = 123
         Width = 199
@@ -170,7 +170,7 @@ object MainForm: TMainForm
         TabOrder = 3
         Text = 'TOC.hhc'
       end
-      object Edit4: TEdit
+      object edCompiledFile: TEdit
         Left = 83
         Top = 148
         Width = 199
@@ -179,7 +179,7 @@ object MainForm: TMainForm
         TabOrder = 4
         Text = 'My Help.chm'
       end
-      object Edit5: TEdit
+      object edProjectFile: TEdit
         Left = 83
         Top = 74
         Width = 199
@@ -231,7 +231,7 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 2
       end
-      object Edit6: TEdit
+      object edVersionString: TEdit
         Left = 16
         Top = 91
         Width = 269
@@ -239,7 +239,7 @@ object MainForm: TMainForm
         TabOrder = 1
         Text = 'v1.0'
       end
-      object Edit1: TEdit
+      object edProjectTitle: TEdit
         Left = 16
         Top = 41
         Width = 266
@@ -267,7 +267,7 @@ object MainForm: TMainForm
         Height = 13
         Caption = 'CHM Compiler:'
       end
-      object Edit7: TEdit
+      object edCHMCompiler: TEdit
         Left = 15
         Top = 48
         Width = 264
@@ -276,7 +276,7 @@ object MainForm: TMainForm
         TabOrder = 1
         Text = 'C:\Programs\HTML Help Workshop\hhc.exe'
       end
-      object CheckBox1: TCheckBox
+      object cbCompileOnProcess: TCheckBox
         Left = 155
         Top = 27
         Width = 121
