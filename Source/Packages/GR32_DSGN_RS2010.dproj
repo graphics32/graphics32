@@ -1,12 +1,12 @@
-﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
-			<ProjectGuid>{26C75626-763C-44C7-A731-39644A1AE3E9}</ProjectGuid>
-			<MainSource>GR32_BDS2010.dpk</MainSource>
-			<Config Condition="'$(Config)'==''">Release</Config>
+			<ProjectGuid>{CFABA91E-5665-4C7E-8510-FDF6CC9742A6}</ProjectGuid>
+			<MainSource>GR32_DSGN_RS2010.dpk</MainSource>
+			<Config Condition="'$(Config)'==''">Debug</Config>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<ProjectVersion>12.0</ProjectVersion>
 		</PropertyGroup>
-		<PropertyGroup Condition="'$(Config)'=='Basis' or '$(Base)'!=''">
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
@@ -20,21 +20,12 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DependencyCheckOutputName>..\..\..\Documents\RAD Studio\7.0\Bpl\GR32_BDS2010.bpl</DCC_DependencyCheckOutputName>
-			<DCC_ImageBase>00400000</DCC_ImageBase>
-			<DCC_WriteableConstants>true</DCC_WriteableConstants>
-			<RuntimeOnlyPackage>true</RuntimeOnlyPackage>
-			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;$(DCC_UnitAlias)</DCC_UnitAlias>
-			<DCC_Platform>x86</DCC_Platform>
-			<DCC_Description>Graphics32</DCC_Description>
-			<GenPackage>true</GenPackage>
-			<DCC_S>false</DCC_S>
-			<DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
+			<DCC_Description>Graphics32 Design Time Package</DCC_Description>
+			<DCC_DependencyCheckOutputName>C:\Users\Public\Documents\RAD Studio\7.0\Bpl\GR32_DSGN_RS2010.bpl</DCC_DependencyCheckOutputName>
 			<GenDll>true</GenDll>
-			<DCC_N>false</DCC_N>
-			<DCC_E>false</DCC_E>
-			<DCC_F>false</DCC_F>
-			<DCC_K>false</DCC_K>
+			<GenPackage>true</GenPackage>
+			<DCC_ImageBase>00400000</DCC_ImageBase>
+			<DCC_Platform>x86</DCC_Platform>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -46,34 +37,21 @@
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<ItemGroup>
-			<DelphiCompile Include="GR32_BDS2010.dpk">
+			<DelphiCompile Include="GR32_DSGN_RS2010.dpk">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="..\GR32_Reg.dcr"/>
+			<DCCReference Include="designide.dcp"/>
 			<DCCReference Include="vcl.dcp"/>
-			<DCCReference Include="..\GR32.pas"/>
-			<DCCReference Include="..\GR32_Math.pas"/>
-			<DCCReference Include="..\GR32_Backends.pas"/>
-			<DCCReference Include="..\GR32_Backends_Generic.pas"/>
-			<DCCReference Include="..\GR32_Backends_VCL.pas"/>
-			<DCCReference Include="..\GR32_LowLevel.pas"/>
-			<DCCReference Include="..\GR32_System.pas"/>
-			<DCCReference Include="..\GR32_Containers.pas"/>
-			<DCCReference Include="..\GR32_Blend.pas"/>
-			<DCCReference Include="..\GR32_Transforms.pas"/>
-			<DCCReference Include="..\GR32_OrdinalMaps.pas"/>
-			<DCCReference Include="..\GR32_VectorMaps.pas"/>
-			<DCCReference Include="..\GR32_DrawingEx.pas"/>
-			<DCCReference Include="..\GR32_Filters.pas"/>
-			<DCCReference Include="..\GR32_Layers.pas"/>
-			<DCCReference Include="..\GR32_Image.pas"/>
-			<DCCReference Include="..\GR32_ExtImage.pas"/>
-			<DCCReference Include="..\GR32_RangeBars.pas"/>
-			<DCCReference Include="..\GR32_Polygons.pas"/>
-			<DCCReference Include="..\GR32_RepaintOpt.pas"/>
-			<DCCReference Include="..\GR32_MicroTiles.pas"/>
-			<DCCReference Include="..\GR32_Rasterizers.pas"/>
-			<DCCReference Include="..\GR32_Resamplers.pas"/>
-			<BuildConfiguration Include="Basis">
+			<DCCReference Include="rtl.dcp"/>
+			<DCCReference Include="GR32_RS2010.dcp"/>
+			<DCCReference Include="..\GR32_Dsgn_Bitmap.pas">
+				<Form>PictureEditorForm</Form>
+			</DCCReference>
+			<DCCReference Include="..\GR32_Reg.pas"/>
+			<DCCReference Include="..\GR32_Dsgn_Color.pas"/>
+			<DCCReference Include="..\GR32_Dsgn_Misc.pas"/>
+			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
 			<BuildConfiguration Include="Debug">
@@ -92,7 +70,7 @@
 			<BorlandProject>
 				<Delphi.Personality>
 					<Source>
-						<Source Name="MainSource">GR32_BDS2010.dpk</Source>
+						<Source Name="MainSource">GR32_DSGN_RS2010.dpk</Source>
 					</Source>
 					<Parameters>
 						<Parameters Name="UseLauncher">False</Parameters>
@@ -100,7 +78,7 @@
 						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 					</Parameters>
 					<VersionInfo>
-						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 						<VersionInfo Name="MajorVer">1</VersionInfo>
 						<VersionInfo Name="MinorVer">0</VersionInfo>
@@ -111,7 +89,7 @@
 						<VersionInfo Name="Special">False</VersionInfo>
 						<VersionInfo Name="Private">False</VersionInfo>
 						<VersionInfo Name="DLL">False</VersionInfo>
-						<VersionInfo Name="Locale">1031</VersionInfo>
+						<VersionInfo Name="Locale">1033</VersionInfo>
 						<VersionInfo Name="CodePage">1252</VersionInfo>
 					</VersionInfo>
 					<VersionInfoKeys>

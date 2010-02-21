@@ -1,4 +1,4 @@
-package GR32_BDS2007;
+package GR32_RS2010;
 
 {$R *.res}
 {$ALIGN 8}
@@ -32,6 +32,9 @@ requires
 contains
   GR32 in '..\GR32.pas',
   GR32_Math in '..\GR32_Math.pas',
+  GR32_Backends in '..\GR32_Backends.pas',
+  GR32_Backends_Generic in '..\GR32_Backends_Generic.pas',
+  GR32_Backends_VCL in '..\GR32_Backends_VCL.pas',
   GR32_LowLevel in '..\GR32_LowLevel.pas',
   GR32_System in '..\GR32_System.pas',
   GR32_Containers in '..\GR32_Containers.pas',
@@ -52,4 +55,3 @@ contains
   GR32_Resamplers in '..\GR32_Resamplers.pas';
 
 end.
-
