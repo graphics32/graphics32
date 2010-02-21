@@ -64,11 +64,14 @@ blockquote {
 		<h2>Additions:</h2>
 		<ul class="dots">
 		  <li>Platform independent code</li>
-		  <li>FPC/Lazarus support</li>
-		  <li>IDE support up to Delphi 2010</li>
-		  <li>Kylix support officially dropped as of this release.</li>
-      <li>Implemented Assign/AssignTo to TCustomPaintBox32</li>
+		  <li><a href="../Additional Topics/Back-Ends.htm">Switchable back-ends</a> and platform-agnostic <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> class</li>
+		  <li>Support for memory-mapped surfaces via <a href="../Additional Topics/Back-Ends.htm">MMF back-ends</a></li>
+		  <li>Added IDE support up to Delphi 2010</li>
+		  <li>Preliminary Free Pascal/Lazarus support (Win32 and OS X Carbon)</li>
+		  <li>Kylix support officially removed as of this release.</li>
+		  <li>Implemented Assign/AssignTo to TCustomPaintBox32</li>
 		  <li>Added TFloat FastSqrt routine</li>
+		  <li>Added fast native support for loading and saving of 32-bit Windows bitmaps</li>
       <li>Added fast HorzLineX/VertLineX procedures for horizontal and vertical lines</li>
       <li>Added floatpoint overloads of TCustomImage32.BitmapToControl and ControlToBitmap</li>
       <li>License changed to a dual license with MPL and LGPL 2.1 (with linking exception)</li> 
@@ -78,6 +81,7 @@ blockquote {
 		<h2>Optimizations:</h2>
 		<ul class="dots">
 		  <li>CPU feature dependent optimizations</li>
+		  <li>Rewritten Assign/AssignTo methods of TCustomBitmap32/TBitmap32, now support assignment of alpha-transparent icons</li>
 		  <li>Optimizations in AlphaToGrayscale (proposed by Andrea Campi)</li>
 		  <li>Optimizations in IntensityToAlpha</li>
 		</ul>
