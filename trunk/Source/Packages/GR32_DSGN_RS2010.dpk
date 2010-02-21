@@ -1,4 +1,4 @@
-package GR32_DSGN_BDS2007;
+package GR32_DSGN_RS2010;
 
 {$R *.res}
 {$R '..\GR32_Reg.dcr'}
@@ -24,14 +24,13 @@ package GR32_DSGN_BDS2007;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'Graphics32 Design Time Package'}
-{$DESIGNONLY}
-{$IMPLICITBUILD OFF}
+{$IMPLICITBUILD ON}
 
 requires
   designide,
   vcl,
   rtl,
-  GR32_BDS2007;
+  GR32_RS2010;
 
 contains
   GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},

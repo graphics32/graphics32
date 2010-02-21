@@ -1,7 +1,7 @@
-﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
-			<ProjectGuid>{CFABA91E-5665-4C7E-8510-FDF6CC9742A6}</ProjectGuid>
-			<MainSource>GR32_DSGN_BDS2010.dpk</MainSource>
+			<ProjectGuid>{C06F9129-A20A-406F-8203-D91B4081E015}</ProjectGuid>
+			<MainSource>GR32_RS2009.dpk</MainSource>
 			<Config Condition="'$(Config)'==''">Debug</Config>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<ProjectVersion>12.0</ProjectVersion>
@@ -20,10 +20,12 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_Description>Graphics32 Design Time Package</DCC_Description>
-			<DCC_DependencyCheckOutputName>C:\Users\Public\Documents\RAD Studio\7.0\Bpl\GR32_DSGN_BDS2010.bpl</DCC_DependencyCheckOutputName>
-			<GenDll>true</GenDll>
+			<DCC_WriteableConstants>true</DCC_WriteableConstants>
+			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\6.0\Bpl\GR32_RS2009.bpl</DCC_DependencyCheckOutputName>
+			<DCC_Description>Graphics32</DCC_Description>
 			<GenPackage>true</GenPackage>
+			<GenDll>true</GenDll>
+			<DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_Platform>x86</DCC_Platform>
 		</PropertyGroup>
@@ -37,20 +39,30 @@
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<ItemGroup>
-			<DelphiCompile Include="GR32_DSGN_BDS2010.dpk">
+			<DelphiCompile Include="GR32_RS2009.dpk">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="..\GR32_Reg.dcr"/>
-			<DCCReference Include="designide.dcp"/>
 			<DCCReference Include="vcl.dcp"/>
-			<DCCReference Include="rtl.dcp"/>
-			<DCCReference Include="GR32_BDS2010.dcp"/>
-			<DCCReference Include="..\GR32_Dsgn_Bitmap.pas">
-				<Form>PictureEditorForm</Form>
-			</DCCReference>
-			<DCCReference Include="..\GR32_Reg.pas"/>
-			<DCCReference Include="..\GR32_Dsgn_Color.pas"/>
-			<DCCReference Include="..\GR32_Dsgn_Misc.pas"/>
+			<DCCReference Include="..\GR32.pas"/>
+			<DCCReference Include="..\GR32_Math.pas"/>
+			<DCCReference Include="..\GR32_LowLevel.pas"/>
+			<DCCReference Include="..\GR32_System.pas"/>
+			<DCCReference Include="..\GR32_Containers.pas"/>
+			<DCCReference Include="..\GR32_Blend.pas"/>
+			<DCCReference Include="..\GR32_Transforms.pas"/>
+			<DCCReference Include="..\GR32_OrdinalMaps.pas"/>
+			<DCCReference Include="..\GR32_VectorMaps.pas"/>
+			<DCCReference Include="..\GR32_DrawingEx.pas"/>
+			<DCCReference Include="..\GR32_Filters.pas"/>
+			<DCCReference Include="..\GR32_Layers.pas"/>
+			<DCCReference Include="..\GR32_Image.pas"/>
+			<DCCReference Include="..\GR32_ExtImage.pas"/>
+			<DCCReference Include="..\GR32_RangeBars.pas"/>
+			<DCCReference Include="..\GR32_Polygons.pas"/>
+			<DCCReference Include="..\GR32_RepaintOpt.pas"/>
+			<DCCReference Include="..\GR32_MicroTiles.pas"/>
+			<DCCReference Include="..\GR32_Rasterizers.pas"/>
+			<DCCReference Include="..\GR32_Resamplers.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -70,7 +82,7 @@
 			<BorlandProject>
 				<Delphi.Personality>
 					<Source>
-						<Source Name="MainSource">GR32_DSGN_BDS2010.dpk</Source>
+						<Source Name="MainSource">GR32_RS2009.dpk</Source>
 					</Source>
 					<Parameters>
 						<Parameters Name="UseLauncher">False</Parameters>

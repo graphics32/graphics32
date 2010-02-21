@@ -1,4 +1,4 @@
-package GR32_BDS2006;
+package GR32_RS2009;
 
 {$R *.res}
 {$ALIGN 8}
@@ -23,11 +23,11 @@ package GR32_BDS2006;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'Graphics32'}
-{$IMPLICITBUILD ON}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
 
 requires
-  vcl,
-  rtl;
+  vcl;
 
 contains
   GR32 in '..\GR32.pas',
@@ -49,11 +49,7 @@ contains
   GR32_RepaintOpt in '..\GR32_RepaintOpt.pas',
   GR32_MicroTiles in '..\GR32_MicroTiles.pas',
   GR32_Rasterizers in '..\GR32_Rasterizers.pas',
-  GR32_Resamplers in '..\GR32_Resamplers.pas',
-  GR32_Backends in '..\GR32_Backends.pas',
-  GR32_Backends_Generic in '..\GR32_Backends_Generic.pas',
-  GR32_Backends_VCL in '..\GR32_Backends_VCL.pas',
-  GR32_XPThemes in '..\GR32_XPThemes.pas',
-  GR32_Paths in '..\GR32_Paths.pas';
-  
+  GR32_Resamplers in '..\GR32_Resamplers.pas';
+
 end.
+

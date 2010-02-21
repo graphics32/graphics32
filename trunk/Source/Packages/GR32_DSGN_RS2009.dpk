@@ -1,4 +1,4 @@
-package GR32_DSGN_BDS2009;
+package GR32_DSGN_RS2009;
 
 {$R *.res}
 {$R '..\GR32_Reg.dcr'}
@@ -30,7 +30,7 @@ requires
   designide,
   vcl,
   rtl,
-  GR32_BDS2009;
+  GR32_RS2009;
 
 contains
   GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
