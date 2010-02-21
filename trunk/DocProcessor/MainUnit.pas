@@ -23,25 +23,25 @@ type
     Panel4: TPanel;
     Panel5: TPanel;
     Label1: TLabel;
-    DirectoryEdit1: TEdit;
+    edProjectDirectory: TEdit;
     Panel6: TPanel;
     Panel7: TPanel;
     Panel8: TPanel;
     Label9: TLabel;
-    Edit7: TEdit;
-    CheckBox1: TCheckBox;
+    edCHMCompiler: TEdit;
+    cbCompileOnProcess: TCheckBox;
     Panel9: TPanel;
-    Edit6: TEdit;
+    edVersionString: TEdit;
     Label8: TLabel;
-    Edit1: TEdit;
+    edProjectTitle: TEdit;
     Label2: TLabel;
     Label3: TLabel;
-    Edit2: TEdit;
-    Edit3: TEdit;
+    edIndexFile: TEdit;
+    edTOCFile: TEdit;
     Label4: TLabel;
     Label5: TLabel;
-    Edit4: TEdit;
-    Edit5: TEdit;
+    edCompiledFile: TEdit;
+    edProjectFile: TEdit;
     Label6: TLabel;
     Panel10: TPanel;
     bProcess: TButton;
@@ -51,7 +51,7 @@ type
     cbOpenAfterProcess: TCheckBox;
     bOpen: TButton;
     bParseMissing: TButton;
-    procedure DirectoryEdit1Change(Sender: TObject);
+    procedure edProjectDirectoryChange(Sender: TObject);
     procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -70,6 +70,8 @@ type
   end;
 
 var
+  PropertiesFilename: string;
+  NoGUI: Boolean;
   MainForm: TMainForm;
   Project: TProject;
 
@@ -79,33 +81,42 @@ implementation
 
 procedure LogAdd(const S: string);
 begin
-  with MainForm.Log do
-  begin
-    SelStart := Length(Text);
-    SelText := S;
-    SelStart := Length(Text);
-  end;
+  if NoGUI then
+    Writeln(S)
+  else
+    with MainForm.Log do
+    begin
+      SelStart := Length(Text);
+      SelText := S;
+      SelStart := Length(Text);
+    end;
 end;
 
 procedure LogNL;
 begin
-  with MainForm.Log do
-  begin
-    SelStart := Length(Text);
-    SelText := #13#10;
-    SelStart := Length(Text);
-  end;
+  if NoGUI then
+    Writeln('')
+  else
+    with MainForm.Log do
+    begin
+      SelStart := Length(Text);
+      SelText := #13#10;
+      SelStart := Length(Text);
+    end;
 end;
 
 procedure LogReplace(S: string);
 begin
-  with MainForm.Log do
-    Lines[Lines.Count - 1] := S;
+  if NoGUI then
+    Writeln(S)
+  else
+    with MainForm.Log do
+      Lines[Lines.Count - 1] := S;
 end;
 
-procedure TMainForm.DirectoryEdit1Change(Sender: TObject);
+procedure TMainForm.edProjectDirectoryChange(Sender: TObject);
 begin
-  ProjectDir := DirectoryEdit1.Text;
+  ProjectDir := edProjectDirectory.Text;
   if DirectoryExists(ProjectDir) then
   begin
     ProjectDir := IncludeTrailingBackslash(ProjectDir);
@@ -127,21 +138,46 @@ var
   I: Integer;
   SValue: String;
 begin
-  DirectoryEdit1Change(Self);
+  edProjectDirectoryChange(Self);
 
-  Ini := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'properties.ini');
+  if ParamCount > 1 then
+    PropertiesFilename := ParamStr(1)
+  else
+    PropertiesFilename := ExtractFilePath(ParamStr(0)) + 'properties.ini';
+
+  Ini := TIniFile.Create(PropertiesFilename);
   try
     for i := 0 to Self.ComponentCount - 1 do
     if Self.Components[i].InheritsFrom(TCustomEdit) and
        not Self.Components[i].InheritsFrom(TMemo) then
     begin
-      SValue := Ini.ReadString('Settings', Self.Components[i].Name, '');
+      SValue := Ini.ReadString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), '');
       if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
     end
     else if Self.Components[i].InheritsFrom(TCheckBox) then
-      TCheckBox(Self.Components[i]).Checked := Ini.ReadBool('Settings', Self.Components[i].Name, False);
+      TCheckBox(Self.Components[i]).Checked := Ini.ReadBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), False);
   finally
     Ini.Free;
+  end;
+
+  NoGUI := False;
+
+  if ParamCount > 2 then
+  begin
+    if FindCmdLineSwitch('nogui') then
+    begin
+      NoGUI := True;
+      Self.Hide;
+    end;
+
+    if FindCmdLineSwitch('transform') then
+      bTransform.Click
+    else if FindCmdLineSwitch('compile') then
+      bCompile.Click
+    else if FindCmdLineSwitch('process') then
+      bProcess.Click;
+
+    Application.Terminate;
   end;
 end;
 
@@ -150,14 +186,14 @@ var
   Ini: TIniFile;
   I: Integer;
 begin
-  Ini := TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'properties.ini');
+  Ini := TIniFile.Create(PropertiesFilename);
   try
     for i := 0 to Self.ComponentCount-1 do
     if Self.Components[i].InheritsFrom(TCustomEdit) and
        not Self.Components[i].InheritsFrom(TMemo) then
-      Ini.WriteString('Settings', Self.Components[i].Name, TEdit(Self.Components[i]).Text)
+      Ini.WriteString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TEdit(Self.Components[i]).Text)
     else if Self.Components[i].InheritsFrom(TCheckBox) then
-      Ini.WriteBool('Settings', Self.Components[i].Name, TCheckBox(Self.Components[i]).Checked)
+      Ini.WriteBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TCheckBox(Self.Components[i]).Checked)
   finally
     Ini.Free;
   end;
@@ -166,7 +202,7 @@ end;
 procedure TMainForm.bProcessClick(Sender: TObject);
 begin
   StartTransforming;
-  if CheckBox1.Checked then
+  if cbCompileOnProcess.Checked then
   begin
     LogAdd(#13#10);
     StartCompile;
@@ -176,7 +212,7 @@ end;
 procedure TMainForm.StartCompile;
 begin
   LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(Edit7.Text + ' "' + ProjectDir + Edit5.Text + '"', Log);
+  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectFile.Text + '"', Log);
   LogAdd('Done.'#13#10);
   if cbOpenAfterProcess.Checked then
     bOpenClick(nil);
@@ -191,7 +227,7 @@ var
   CompileTime: Cardinal;
   NextUpdate: Cardinal;
 begin
-  VersionString := Edit6.Text;
+  VersionString := edVersionString.Text;
   if ProjectDir = '' then Exit;
   Log.Clear;
   Log.Color := clWhite;
@@ -205,7 +241,7 @@ begin
   CompileTime := GetTickCount;
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
-    Project.DisplayName := Edit1.Text;
+    Project.DisplayName := edProjectTitle.Text;
     Project.DestinationFolder := ProjectDir + 'Docs';
     Project.ImageFolder := ProjectDir + 'Images';
     Project.ScriptFolder := ProjectDir + 'Script';
@@ -253,16 +289,16 @@ begin
 
     LogReplace('Transforming Files ...... done'#13#10);
     LogAdd('Building TOC ...');
-    Project.BuildToc(ProjectDir + Edit3.Text);
+    Project.BuildToc(ProjectDir + edTOCFile.Text);
     LogAdd('... done'#13#10);
     Progress.Position := 95;
     LogAdd('Building Index ...');
-    Project.BuildIndex(ProjectDir + Edit2.Text);
+    Project.BuildIndex(ProjectDir + edIndexFile.Text);
     LogAdd('... done'#13#10);
     Progress.Position := 100;
 
     LogAdd('Writing Project ...');
-    WriteProject(ProjectDir + Edit5.Text);
+    WriteProject(ProjectDir + edProjectFile.Text);
     LogAdd('... done'#13#10);
 
     LogAdd('Project transformed.'#13#10);
@@ -284,19 +320,19 @@ begin
   try
     Lines.Add('[OPTIONS]');
     Lines.Add('Compatibility=1.1 or later');
-    Lines.Add('Compiled file=' + Edit4.Text);
-    Lines.Add('Contents file=' + Edit3.Text);
+    Lines.Add('Compiled file=' + edCompiledFile.Text);
+    Lines.Add('Contents file=' + edTOCFile.Text);
     Lines.Add('Default Window=Main Window');
     Lines.Add('Default topic=Docs\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
-    Lines.Add('Index file=' + Edit2.Text);
+    Lines.Add('Index file=' + edIndexFile.Text);
     Lines.Add('Language=0x409 English (United States)');
-    Lines.Add('Title=' + Edit1.Text);
+    Lines.Add('Title=' + edProjectTitle.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
     Lines.Add(Format('Main Window="%s","%s","%s","Docs\_Body.htm","Docs\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
-      [Edit1.Text, Edit3.Text, Edit2.Text]));
+      [edProjectTitle.Text, edTOCFile.Text, edIndexFile.Text]));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
     Lines.SaveToFile(FileName);
@@ -318,7 +354,7 @@ end;
 
 procedure TMainForm.bOpenClick(Sender: TObject);
 begin
-  ShellExecute(Self.Handle, 'open', PChar(IncludeTrailingBackslash(DirectoryEdit1.Text) + Edit4.Text), '', '', SW_SHOW);
+  ShellExecute(Self.Handle, 'open', PChar(IncludeTrailingBackslash(edProjectDirectory.Text) + edCompiledFile.Text), '', '', SW_SHOW);
 end;
 
 procedure TMainForm.bParseMissingClick(Sender: TObject);
