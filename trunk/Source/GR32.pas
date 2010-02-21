@@ -5242,48 +5242,48 @@ end;
 {$IFDEF TARGET_x86}
 function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
-        db $0F,$6F,$09           /// MOVQ      MM1,[ECX]
+        MOVQ      MM1,[ECX]
         MOV       ECX,C21
-        db $0F,$6F,$19           /// MOVQ      MM3,[ECX]
-        db $0F,$6F,$D1           /// MOVQ      MM2,MM1
-        db $0F,$6F,$E3           /// MOVQ      MM4,MM3
-        db $0F,$73,$D1,$20       /// PSRLQ     MM1,32
-        db $0F,$73,$D3,$20       /// PSRLQ     MM3,32
+        MOVQ      MM3,[ECX]
+        MOVQ      MM2,MM1
+        MOVQ      MM4,MM3
+        PSRLQ     MM1,32
+        PSRLQ     MM3,32
 
-        db $0F,$6E,$E8           /// MOVD      MM5,EAX
-        db $0F,$61,$ED           /// PUNPCKLWD MM5,MM5
-        db $0F,$62,$ED           /// PUNPCKLDQ MM5,MM5
+        MOVD      MM5,EAX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
 
-        db $0F,$EF,$C0           /// PXOR MM0, MM0
+        PXOR MM0, MM0
 
-        db $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        db $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-        db $0F,$F9,$D1           /// PSUBW     MM2,MM1
-        db $0F,$D5,$D5           /// PMULLW    MM2,MM5
-        db $0F,$71,$F1,$08       /// PSLLW     MM1,8
-        db $0F,$FD,$D1           /// PADDW     MM2,MM1
-        db $0F,$71,$D2,$08       /// PSRLW     MM2,8
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        PSUBW     MM2,MM1
+        PMULLW    MM2,MM5
+        PSLLW     MM1,8
+        PADDW     MM2,MM1
+        PSRLW     MM2,8
 
-        db $0F,$60,$D8           /// PUNPCKLBW MM3,MM0
-        db $0F,$60,$E0           /// PUNPCKLBW MM4,MM0
-        db $0F,$F9,$E3           /// PSUBW     MM4,MM3
-        db $0F,$D5,$E5           /// PMULLW    MM4,MM5
-        db $0F,$71,$F3,$08       /// PSLLW     MM3,8
-        db $0F,$FD,$E3           /// PADDW     MM4,MM3
-        db $0F,$71,$D4,$08       /// PSRLW     MM4,8
+        PUNPCKLBW MM3,MM0
+        PUNPCKLBW MM4,MM0
+        PSUBW     MM4,MM3
+        PMULLW    MM4,MM5
+        PSLLW     MM3,8
+        PADDW     MM4,MM3
+        PSRLW     MM4,8
 
-        db $0F,$6E,$EA           /// MOVD      MM5,EDX
-        db $0F,$61,$ED           /// PUNPCKLWD MM5,MM5
-        db $0F,$62,$ED           /// PUNPCKLDQ MM5,MM5
+        MOVD      MM5,EDX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
 
-        db $0F,$F9,$D4           /// PSUBW     MM2,MM4
-        db $0F,$D5,$D5           /// PMULLW    MM2,MM5
-        db $0F,$71,$F4,$08       /// PSLLW     MM4,8
-        db $0F,$FD,$D4           /// PADDW     MM2,MM4
-        db $0F,$71,$D2,$08       /// PSRLW     MM2,8
+        PSUBW     MM2,MM4
+        PMULLW    MM2,MM5
+        PSLLW     MM4,8
+        PADDW     MM2,MM4
+        PSRLW     MM2,8
 
-        db $0F,$67,$D0           /// PACKUSWB  MM2,MM0
-        db $0F,$7E,$D0           /// MOVD      EAX,MM2
+        PACKUSWB  MM2,MM0
+        MOVD      EAX,MM2
 end;
 
 {$ENDIF}

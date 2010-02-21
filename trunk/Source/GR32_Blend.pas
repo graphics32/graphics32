@@ -1107,11 +1107,7 @@ end;
 
 procedure EMMS_MMX;
 asm
-  {$IFDEF ENHANCED_INLINE_ASSEMBLER}
   EMMS
-  {$ELSE}
-  DB $0F,$77               /// EMMS
-  {$ENDIF}
 end;
 
 procedure GenAlphaTable;
@@ -1152,47 +1148,27 @@ asm
   // ECX - Weight of X [0..255]
   // Result := W * (X - Y) + Y
 
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM1,EAX
         PXOR      MM0,MM0
-        {$ELSE}
-        DB $0F,$6E,$C8           /// MOVD      MM1,EAX
-        DB $0F,$EF,$C0           /// PXOR      MM0,MM0
-        {$ENDIF}
         SHL       ECX,3
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
+
         MOVD      MM2,EDX
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
-        {$ELSE}
-        DB $0F,$6E,$D2           /// MOVD      MM2,EDX
-        DB $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        DB $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-        {$ENDIF}
+
         ADD       ECX,alpha_ptr
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
+
         PSUBW     MM1,MM2
         PMULLW    MM1,[ECX]
         PSLLW     MM2,8
-        {$ELSE}
-        DB $0F,$F9,$CA           /// PSUBW     MM1,MM2
-        DB $0F,$D5,$09           /// PMULLW    MM1,[ECX]
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        {$ENDIF}
+
         MOV       ECX,bias_ptr
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
+
         PADDW     MM2,[ECX]
         PADDW     MM1,MM2
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
         MOVD      EAX,MM1
-        {$ELSE}
-        DB $0F,$FD,$11           /// PADDW     MM2,[ECX]
-        DB $0F,$FD,$CA           /// PADDW     MM1,MM2
-        DB $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DB $0F,$67,$C8           /// PACKUSWB  MM1,MM0
-        DB $0F,$7E,$C8           /// MOVD      EAX,MM1
-        {$ENDIF}
 end;
 
 procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: TColor32);
@@ -1206,47 +1182,29 @@ asm
         CMP       ECX,$FF
         JZ        @2
 
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM1,EAX
         PXOR      MM0,MM0
-        {$ELSE}
-        DB $0F,$6E,$C8           /// MOVD      MM1,EAX
-        DB $0F,$EF,$C0           /// PXOR      MM0,MM0
-        {$ENDIF}
+
         SHL       ECX,3
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
+
         MOVD      MM2,[EDX]
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
-        {$ELSE}
-        DB $0F,$6E,$12           /// MOVD      MM2,[EDX]
-        DB $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        DB $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-        {$ENDIF}
+
         ADD       ECX,alpha_ptr
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
+
         PSUBW     MM1,MM2
         PMULLW    MM1,[ECX]
         PSLLW     MM2,8
-        {$ELSE}
-        DB $0F,$F9,$CA           /// PSUBW     MM1,MM2
-        DB $0F,$D5,$09           /// PMULLW    MM1,[ECX]
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        {$ENDIF}
+
         MOV       ECX,bias_ptr
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
+
         PADDW     MM2,[ECX]
         PADDW     MM1,MM2
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
         MOVD      [EDX],MM1
-        {$ELSE}
-        DB $0F,$FD,$11           /// PADDW     MM2,[ECX]
-        DB $0F,$FD,$CA           /// PADDW     MM1,MM2
-        DB $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DB $0F,$67,$C8           /// PACKUSWB  MM1,MM0
-        DB $0F,$7E,$0A           /// MOVD      [EDX],MM1
-        {$ENDIF}
+
 @1:     RET
 
 @2:     MOV       [EDX],EAX
@@ -1259,7 +1217,6 @@ asm
   // EAX <- F
   // EDX <- B
   // Result := Fa * (Frgb - Brgb) + Brgb
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         PXOR      MM3,MM3
         MOVD      MM2,EDX
@@ -1277,25 +1234,6 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM3
         MOVD      EAX,MM2
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$EF,$DB           /// PXOR      MM3,MM3
-        DB $0F,$6E,$D2           /// MOVD      MM2,EDX
-        DB $0F,$60,$C3           /// PUNPCKLBW MM0,MM3
-        MOV     ECX,bias_ptr
-        DB $0F,$60,$D3           /// PUNPCKLBW MM2,MM3
-        DB $0F,$6F,$C8           /// MOVQ      MM1,MM0
-        DB $0F,$69,$C9           /// PUNPCKHWD MM1,MM1
-        DB $0F,$F9,$C2           /// PSUBW     MM0,MM2
-        DB $0F,$6A,$C9           /// PUNPCKHDQ MM1,MM1
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        DB $0F,$D5,$C1           /// PMULLW    MM0,MM1
-        DB $0F,$FD,$11           /// PADDW     MM2,[ECX]
-        DB $0F,$FD,$D0           /// PADDW     MM2,MM0
-        DB $0F,$71,$D2,$08       /// PSRLW     MM2,8
-        DB $0F,$67,$D3           /// PACKUSWB  MM2,MM3
-        DB $0F,$7E,$D0           /// MOVD      EAX,MM2
-        {$ENDIF}
 end;
 
 procedure BlendMem_MMX(F: TColor32; var B: TColor32);
@@ -1309,7 +1247,6 @@ asm
         CMP       EAX,$FF000000
         JNC       @2
 
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM3,MM3
         MOVD      MM0,EAX
         MOVD      MM2,[EDX]
@@ -1327,25 +1264,7 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM3
         MOVD      [EDX],MM2
-        {$ELSE}
-        DB $0F,$EF,$DB           /// PXOR      MM3,MM3
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$6E,$12           /// MOVD      MM2,[EDX]
-        DB $0F,$60,$C3           /// PUNPCKLBW MM0,MM3
-        MOV       ECX,bias_ptr
-        DB $0F,$60,$D3           /// PUNPCKLBW MM2,MM3
-        DB $0F,$6F,$C8           /// MOVQ      MM1,MM0
-        DB $0F,$69,$C9           /// PUNPCKHWD MM1,MM1
-        DB $0F,$F9,$C2           /// PSUBW     MM0,MM2
-        DB $0F,$6A,$C9           /// PUNPCKHDQ MM1,MM1
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        DB $0F,$D5,$C1           /// PMULLW    MM0,MM1
-        DB $0F,$FD,$11           /// PADDW     MM2,[ECX]
-        DB $0F,$FD,$D0           /// PADDW     MM2,MM0
-        DB $0F,$71,$D2,$08       /// PSRLW     MM2,8
-        DB $0F,$67,$D3           /// PACKUSWB  MM2,MM3
-        DB $0F,$7E,$12           /// MOVD      [EDX],MM2
-        {$ENDIF}
+
 @1:     RET
 
 @2:     MOV       [EDX],EAX
@@ -1367,7 +1286,6 @@ asm
         SHR       ECX,8
         JZ        @1
 
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM0,MM0
         MOVD      MM1,EAX
         SHL       ECX,3
@@ -1384,24 +1302,6 @@ asm
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
         MOVD      EAX,MM1
-        {$ELSE}
-        DB $0F,$EF,$C0           /// PXOR      MM0,MM0
-        DB $0F,$6E,$C8           /// MOVD      MM1,EAX
-        SHL       ECX,3
-        DB $0F,$6E,$D2           /// MOVD      MM2,EDX
-        DB $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        DB $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-        ADD       ECX,alpha_ptr
-        DB $0F,$F9,$CA           /// PSUBW     MM1,MM2
-        DB $0F,$D5,$09           /// PMULLW    MM1,[ECX]
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        MOV       ECX,bias_ptr
-        DB $0F,$FD,$11           /// PADDW     MM2,[ECX]
-        DB $0F,$FD,$CA           /// PADDW     MM1,MM2
-        DB $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DB $0F,$67,$C8           /// PACKUSWB  MM1,MM0
-        DB $0F,$7E,$C8           /// MOVD      EAX,MM1
-        {$ENDIF}
 
         POP       EBX
         RET
@@ -1429,7 +1329,6 @@ asm
         SHR       ECX,8
         JZ        @1
 
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM0,MM0
         MOVD      MM1,EAX
         SHL       ECX,3
@@ -1446,25 +1345,9 @@ asm
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
         MOVD      [EDX],MM1
-        {$ELSE}
-        DB $0F,$EF,$C0           /// PXOR      MM0,MM0
-        DB $0F,$6E,$C8           /// MOVD      MM1,EAX
-        SHL       ECX,3
-        DB $0F,$6E,$12           /// MOVD      MM2,[EDX]
-        DB $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        DB $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-        ADD       ECX,alpha_ptr
-        DB $0F,$F9,$CA           /// PSUBW     MM1,MM2
-        DB $0F,$D5,$09           /// PMULLW    MM1,[ECX]
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        MOV       ECX,bias_ptr
-        DB $0F,$FD,$11           /// PADDW     MM2,[ECX]
-        DB $0F,$FD,$CA           /// PADDW     MM1,MM2
-        DB $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DB $0F,$67,$C8           /// PACKUSWB  MM1,MM0
-        DB $0F,$7E,$0A           /// MOVD      [EDX],MM1
-        {$ENDIF}
+
 @1:     POP       EBX
+
 @2:
 end;
 
@@ -1492,7 +1375,6 @@ asm
         JNC       @2              // opaque pixel, copy without blending
 
   // blend
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         PXOR      MM3,MM3
         MOVD      MM2,[EDI]
@@ -1510,25 +1392,6 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM3
         MOVD      EAX,MM2
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$EF,$DB           /// PXOR      MM3,MM3
-        DB $0F,$6E,$17           /// MOVD      MM2,[EDI]
-        DB $0F,$60,$C3           /// PUNPCKLBW MM0,MM3
-        MOV       EAX,bias_ptr
-        DB $0F,$60,$D3           /// PUNPCKLBW MM2,MM3
-        DB $0F,$6F,$C8           /// MOVQ      MM1,MM0
-        DB $0F,$69,$C9           /// PUNPCKHWD MM1,MM1
-        DB $0F,$F9,$C2           /// PSUBW     MM0,MM2
-        DB $0F,$6A,$C9           /// PUNPCKHDQ MM1,MM1
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        DB $0F,$D5,$C1           /// PMULLW    MM0,MM1
-        DB $0F,$FD,$10           /// PADDW     MM2,[EAX]
-        DB $0F,$FD,$D0           /// PADDW     MM2,MM0
-        DB $0F,$71,$D2,$08       /// PSRLW     MM2,8
-        DB $0F,$67,$D3           /// PACKUSWB  MM2,MM3
-        DB $0F,$7E,$D0           /// MOVD      EAX,MM2
-        {$ENDIF}
 
 @2:     MOV       [EDI],EAX
 
@@ -1575,7 +1438,6 @@ asm
         JZ        @3              // complete transparency, proceed to next point
 
   // blend
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM0,MM0
         MOVD      MM1,EAX
         SHL       EBX,3
@@ -1592,24 +1454,6 @@ asm
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
         MOVD      EAX,MM1
-        {$ELSE}
-        DB $0F,$EF,$C0           /// PXOR      MM0,MM0
-        DB $0F,$6E,$C8           /// MOVD      MM1,EAX
-        SHL       EBX,3
-        DB $0F,$6E,$17           /// MOVD      MM2,[EDI]
-        DB $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        DB $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-        ADD       EBX,alpha_ptr
-        DB $0F,$F9,$CA           /// PSUBW     MM1,MM2
-        DB $0F,$D5,$0B           /// PMULLW    MM1,[EBX]
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-        MOV       EBX,bias_ptr
-        DB $0F,$FD,$13           /// PADDW     MM2,[EBX]
-        DB $0F,$FD,$CA           /// PADDW     MM1,MM2
-        DB $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DB $0F,$67,$C8           /// PACKUSWB  MM1,MM0
-        DB $0F,$7E,$C8           /// MOVD      EAX,MM1
-        {$ENDIF}
 
 @2:     MOV       [EDI],EAX
 
@@ -1648,12 +1492,11 @@ asm
 
         SHL       EBX,3
         ADD       EBX,alpha_ptr
-        DB $0F,$6F,$1B           /// MOVQ      MM3,[EBX]
+        MOVQ      MM3,[EBX]
         MOV       EBX,bias_ptr
-        DB $0F,$6F,$23           /// MOVQ      MM4,[EBX]
+        MOVQ      MM4,[EBX]
 
    // loop start
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
 @1:     MOVD      MM1,[EAX]
         PXOR      MM0,MM0
         MOVD      MM2,[EDX]
@@ -1669,23 +1512,6 @@ asm
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
         MOVD      [EDX],MM1
-        {$ELSE}
-@1:     DB $0F,$6E,$08           /// MOVD      MM1,[EAX]
-        DB $0F,$EF,$C0           /// PXOR      MM0,MM0
-        DB $0F,$6E,$12           /// MOVD      MM2,[EDX]
-        DB $0F,$60,$C8           /// PUNPCKLBW MM1,MM0
-        DB $0F,$60,$D0           /// PUNPCKLBW MM2,MM0
-
-        DB $0F,$F9,$CA           /// PSUBW     MM1,MM2
-        DB $0F,$D5,$CB           /// PMULLW    MM1,MM3
-        DB $0F,$71,$F2,$08       /// PSLLW     MM2,8
-
-        DB $0F,$FD,$D4           /// PADDW     MM2,MM4
-        DB $0F,$FD,$CA           /// PADDW     MM1,MM2
-        DB $0F,$71,$D1,$08       /// PSRLW     MM1,8
-        DB $0F,$67,$C8           /// PACKUSWB  MM1,MM0
-        DB $0F,$7E,$0A           /// MOVD      [EDX],MM1
-        {$ENDIF}
 
         ADD       EAX,4
         ADD       EDX,4
@@ -1940,37 +1766,22 @@ end;
 {$IFDEF TARGET_x86}
 function ColorAdd_MMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PADDUSB   MM0,MM1
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$DC,$C1           /// PADDUSB   MM0,MM1
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorSub_MMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PSUBUSB   MM0,MM1
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$D8,$C1           /// PSUBUSB   MM0,MM1
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorModulate_MMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM2,MM2
         MOVD      MM0,EAX
         PUNPCKLBW MM0,MM2
@@ -1980,52 +1791,26 @@ asm
         PSRLW     MM0,8
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$EF,$D2           /// PXOR      MM2,MM2
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$60,$C2           /// PUNPCKLBW MM0,MM2
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$60,$CA           /// PUNPCKLBW MM1,MM2
-        DB $0F,$D5,$C1           /// PMULLW    MM0,MM1
-        DB $0F,$71,$D0,$08       /// PSRLW     MM0,8
-        DB $0F,$67,$C2           /// PACKUSWB  MM0,MM2
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorMax_EMMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PMAXUB    MM0,MM1
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$DE,$C1           /// PMAXUB    MM0,MM1
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorMin_EMMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PMINUB    MM0,MM1
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$DA,$C1           /// PMINUB    MM0,MM1
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorDifference_MMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         MOVQ      MM2,MM0
@@ -2033,20 +1818,10 @@ asm
         PSUBUSB   MM1,MM2
         POR       MM0,MM1
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$6F,$D0           /// MOVQ      MM2,MM0
-        DB $0F,$D8,$C1           /// PSUBUSB   MM0,MM1
-        DB $0F,$D8,$CA           /// PSUBUSB   MM1,MM2
-        DB $0F,$EB,$C1           /// POR       MM0,MM1
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorExclusion_MMX(C1, C2: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM2,MM2
         MOVD      MM0,EAX
         PUNPCKLBW MM0,MM2
@@ -2059,25 +1834,10 @@ asm
         PSUBUSW   MM0,MM1
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$EF,$D2           /// PXOR      MM2,MM2
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$60,$C2           /// PUNPCKLBW MM0,MM2
-        DB $0F,$6E,$CA           /// MOVD      MM1,EDX
-        DB $0F,$60,$CA           /// PUNPCKLBW MM1,MM2
-        DB $0F,$6F,$D8           /// MOVQ      MM3,MM0
-        DB $0F,$FD,$C1           /// PADDW     MM0,MM1
-        DB $0F,$D5,$CB           /// PMULLW    MM1,MM3
-        DB $0F,$71,$D1,$07       /// PSRLW     MM1,7
-        DB $0F,$D9,$C1           /// PSUBUSW   MM0,MM1
-        DB $0F,$67,$C2           /// PACKUSWB  MM0,MM2
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 
 function ColorScale_MMX(C, W: TColor32): TColor32;
 asm
-        {$IFDEF ENHANCED_INLINE_ASSEMBLER}
         PXOR      MM2,MM2
         SHL       EDX,3
         MOVD      MM0,EAX
@@ -2087,17 +1847,6 @@ asm
         PSRLW     MM0,8
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
-        {$ELSE}
-        DB $0F,$EF,$D2           /// PXOR      MM2,MM2
-        SHL       EDX,3
-        DB $0F,$6E,$C0           /// MOVD      MM0,EAX
-        DB $0F,$60,$C2           /// PUNPCKLBW MM0,MM2
-        ADD       EDX,alpha_ptr
-        DB $0F,$D5,$02           /// PMULLW    MM0,[EDX]
-        DB $0F,$71,$D0,$08       /// PSRLW     MM0,8
-        DB $0F,$67,$C2           /// PACKUSWB  MM0,MM2
-        DB $0F,$7E,$C0           /// MOVD      EAX,MM0
-        {$ENDIF}
 end;
 {$ENDIF}
 

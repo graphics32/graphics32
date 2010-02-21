@@ -46,11 +46,7 @@ uses
   Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
   ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
   Consts,
-  {$IFDEF COMPILER6}
   DesignIntf, DesignEditors, VCLEditors,
-  {$ELSE}
-  DsgnIntf,
-  {$ENDIF}
 {$ENDIF}
   SysUtils, Classes, GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
@@ -125,7 +121,7 @@ type
 
   TBitmap32Property = class(TClassProperty
 {$IFDEF EXT_PROP_EDIT}
-    {$IFDEF COMPILER6}, ICustomPropertyDrawing{$ENDIF}
+    ICustomPropertyDrawing
     {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
 {$ENDIF}
   )
@@ -135,14 +131,9 @@ type
     function GetValue: string; override;
     procedure SetValue(const Value: string); override;
 {$IFDEF EXT_PROP_EDIT}
-  {$IFDEF DELPHI5}
-    procedure PropDrawValue(Canvas: TCanvas; const ARect: TRect; ASelected: Boolean); override;
-  {$ENDIF}
-  {$IFDEF COMPILER6}
     { ICustomPropertyDrawing }
     procedure PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
     procedure PropDrawValue(Canvas: TCanvas; const ARect: TRect; ASelected: Boolean);
-  {$ENDIF}
   {$IFDEF COMPILER2005}
     { ICustomPropertyDrawing80 }
     function PropDrawNameRect(const ARect: TRect): TRect;
@@ -430,11 +421,7 @@ var
 begin
   Bitmap32 := TBitmap32(GetOrdValue);
   if Bitmap32.Empty then
-{$IFDEF DELPHI5}
-    inherited
-{$ELSE}
     DefaultPropertyDrawValue(Self, Canvas, ARect)
-{$ENDIF}
   else
   begin
     R := ARect;
@@ -450,20 +437,14 @@ begin
 
     R.Left := R.Right;
     R.Right := ARect.Right;
-{$IFDEF DELPHI5}
-    inherited PropDrawValue(Canvas, R, ASelected);
-{$ELSE}
     DefaultPropertyDrawValue(Self, Canvas, R);
-{$ENDIF}
   end;
 end;
 
-{$IFDEF COMPILER6}
 procedure TBitmap32Property.PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
 begin
   DefaultPropertyDrawName(Self, ACanvas, ARect);
 end;
-{$ENDIF}
 
 {$IFDEF COMPILER2005}
 function TBitmap32Property.PropDrawNameRect(const ARect: TRect): TRect;
