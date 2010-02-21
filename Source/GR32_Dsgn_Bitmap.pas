@@ -88,7 +88,6 @@ type
     procedure TimerTimer(Sender: TObject);
     procedure PopupMenuPopup(Sender: TObject);
     procedure mnInvertClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
     procedure MagnComboChange(Sender: TObject);
   protected
 {$IFDEF PLATFORM_INDEPENDENT}
@@ -156,8 +155,6 @@ uses
 
 {$IFNDEF FPC}
 {$R *.dfm}
-{$ELSE}
-{$R *.xfm}
 {$ENDIF}
 
 { TPictureEditorForm }
@@ -272,13 +269,6 @@ begin
   InvertRGB(CurrentImage.Bitmap, CurrentImage.Bitmap);
 end;
 
-procedure TPictureEditorForm.FormCreate(Sender: TObject);
-begin
-  MagnCombo.ItemIndex := 2;
-  OpenDialog.Filter := GraphicFilter(TGraphic);
-  SaveDialog.Filter := GraphicFilter(TGraphic);
-end;
-
 procedure TPictureEditorForm.MagnComboChange(Sender: TObject);
 const
   MAGN: array[0..6] of Integer = (25, 50, 100, 200, 400, 800, -1);
@@ -318,6 +308,9 @@ begin
   OpenDialog := TOpenPictureDialog.Create(Self);
   SaveDialog := TSavePictureDialog.Create(Self);
 {$ENDIF}
+  MagnCombo.ItemIndex := 2;
+  OpenDialog.Filter := GraphicFilter(TGraphic);
+  SaveDialog.Filter := GraphicFilter(TGraphic);
 end;
 
 

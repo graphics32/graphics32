@@ -1993,18 +1993,19 @@ procedure TCustomImgView32.AlignAll;
 var
   ScrollbarVisible: Boolean;
 begin
+  if (Width > 0) and (Height > 0) then
   with GetViewportRect do
   begin
     ScrollbarVisible := GetScrollBarsVisible;
 
-    If Assigned(HScroll) then
+    if Assigned(HScroll) then
     begin
       HScroll.BoundsRect := Rect(Left, Bottom, Right, Height);
       HScroll.Visible := ScrollbarVisible;
       HScroll.Repaint;
     end;
 
-    If Assigned(VScroll) then
+    if Assigned(VScroll) then
     begin
       VScroll.BoundsRect := Rect(Right, Top, Width, Bottom);
       VScroll.Visible := ScrollbarVisible;
@@ -2017,7 +2018,8 @@ procedure TCustomImgView32.BitmapResized;
 begin
   inherited;
   UpdateScrollBars;
-  if Centered then ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
+  if Centered then
+    ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
   else
   begin
     HScroll.Position := 0;
@@ -2250,13 +2252,18 @@ end;
 procedure TCustomImgView32.Resize;
 begin
   AlignAll;
-  if IsSizeGripVisible then
-    DoDrawSizeGrip(GetSizeGripRect)
-  else
+
+  if Assigned(Parent) then
   begin
-    Canvas.Brush.Color := clBtnFace;
-    Canvas.FillRect(GetSizeGripRect);
+    if IsSizeGripVisible then
+      DoDrawSizeGrip(GetSizeGripRect)
+    else
+    begin
+      Canvas.Brush.Color := clBtnFace;
+      Canvas.FillRect(GetSizeGripRect);
+    end;
   end;
+
   InvalidateCache;
   UpdateScrollBars;
   UpdateImage;
@@ -2385,7 +2392,7 @@ var
   Sz: TSize;
   ScaledDOversize: Integer;
 begin
-  If Assigned(HScroll) and Assigned(VScroll) then
+  if Assigned(HScroll) and Assigned(VScroll) then
   begin
     Sz := GetBitmapSize;
     ScaledDOversize := Round(2 * FOversize * Scale);
