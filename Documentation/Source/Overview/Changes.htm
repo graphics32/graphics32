@@ -69,6 +69,8 @@ blockquote {
 		  <li>Added IDE support up to Delphi 2010</li>
 		  <li>Preliminary Free Pascal/Lazarus support (Win32 and OS X Carbon)</li>
 		  <li>Kylix support officially removed as of this release.</li>
+		  <li>Added TFunctionRegistry &#8212; a class for managing run-time bindings of functions that depend on platform-dependent parameters and CPU features.</li>
+		  <li>Updated several units that previously performed conditional binding to use TFunctionRegistry for automatic binding.</li>
 		  <li>Implemented Assign/AssignTo to TCustomPaintBox32</li>
 		  <li>Added TFloat FastSqrt routine</li>
 		  <li>Added fast native support for loading and saving of 32-bit Windows bitmaps</li>
@@ -84,6 +86,8 @@ blockquote {
 		  <li>Rewritten Assign/AssignTo methods of TCustomBitmap32/TBitmap32, now support assignment of alpha-transparent icons</li>
 		  <li>Optimizations in AlphaToGrayscale (proposed by Andrea Campi)</li>
 		  <li>Optimizations in IntensityToAlpha</li>
+		  <li>Moved Iterator procedure from GR32 to GR32_Resamplers and merged it with LinearIterator.</li>
+		  <li>Minor tweaks and optimizations. </li>
 		</ul>
 	  </li>
 	  <li>
