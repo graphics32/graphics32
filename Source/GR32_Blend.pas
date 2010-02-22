@@ -2013,9 +2013,20 @@ begin
 end;
 
 initialization
-  GenAlphaTable;
-  MakeMergeTables;
   RegisterBindings;
+  MakeMergeTables;
+
+{$IFDEF TARGET_x86}
+  if (ciMMX in CPUFeatures) then
+  begin
+    GenAlphaTable;
+    MMX_ACTIVE := (ciMMX in CPUFeatures);
+  end
+  else
+    MMX_ACTIVE := False;
+{$ELSE}
+  MMX_ACTIVE := False;
+{$ENDIF}
 
 finalization
 {$IFDEF TARGET_x86}
