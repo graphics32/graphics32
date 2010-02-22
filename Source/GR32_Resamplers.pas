@@ -45,7 +45,7 @@ uses
   Windows, Types,
 {$ENDIF}
   Classes, SysUtils, GR32, GR32_Transforms, GR32_Containers,
-  GR32_OrdinalMaps, GR32_Blend, GR32_System;
+  GR32_OrdinalMaps, GR32_Blend, GR32_System, GR32_Bindings;
 
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -595,9 +595,6 @@ implementation
 
 uses
   GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
-
-var
-  GR32_Resamplers_FunctionTemplates : TTemplatesHandle;
 
 const
   SDstNil = 'Destination bitmap is nil';
@@ -3798,7 +3795,9 @@ end;
 {CPU target and feature Function templates}
 
 const
-
+  FID_BLOCKAVERAGE = 0;
+  FID_LINEARINTERPOLATOR = 1;
+(*
 {$IFDEF TARGET_x86}
 
   BlockAverageProcs : array [0..2] of TFunctionInfo = (
@@ -3836,10 +3835,29 @@ var
       FunctionProcs : @LinearInterpolatorProcs;
       Count: Length(LinearInterpolatorProcs))
   );
+*)
+var
+  Registry: TFunctionRegistry;
+
+procedure RegisterBindings;
+begin
+  Registry := NewRegistry('GR32_Resamplers bindings');
+  Registry.RegisterBinding(FID_BLOCKAVERAGE, @@BlockAverage);
+  Registry.RegisterBinding(FID_LINEARINTERPOLATOR, @@LinearInterpolator);
+
+  Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_Pas);
+  Registry.Add(FID_LINEARINTERPOLATOR, @LinearInterpolator_Pas);
+{$IFDEF TARGET_x86}
+  Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
+  Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
+  Registry.Add(FID_LINEARINTERPOLATOR, @LinearInterpolator_MMX, [ciMMX]);
+{$ENDIF}
+end;
 
 initialization
-  RegisterTemplates(GR32_Resamplers_FunctionTemplates, FunctionTemplates,
-    'GR32_Resamplers Templates');
+//  RegisterTemplates(GR32_Resamplers_FunctionTemplates, FunctionTemplates,
+//    'GR32_Resamplers Templates');
+  RegisterBindings;
 
   { Register resamplers }
   RegisterResampler(TNearestResampler);

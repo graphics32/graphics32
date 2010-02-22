@@ -45,7 +45,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, SysUtils, GR32, GR32_Blend, GR32_System;
+  Classes, SysUtils, GR32, GR32_Blend, GR32_System, GR32_Bindings;
 
 { Basic processing }
 type
@@ -74,9 +74,6 @@ procedure ApplyBitmask(ABitmap: TCustomBitmap32; ARect: TRect; Bitmask: TColor32
   LogicalOperator: TLogicalOperator); overload;
 
 procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
-
-var
-  GR32_Filters_FunctionTemplates : TTemplatesHandle;
 
 implementation
 
@@ -1428,90 +1425,52 @@ end;
 {CPU target and feature Function templates}
 
 const
-
-{$IFDEF TARGET_x86}
-
-  XorLineProcs : array [0..1] of TFunctionInfo = (
-    (Address : @XorLine_Pas; Requires: []),
-    (Address : @XorLine_ASM; Requires: [])
-  );
-
-  OrLineProcs : array [0..1] of TFunctionInfo = (
-    (Address : @OrLine_Pas; Requires: []),
-    (Address : @OrLine_ASM; Requires: [])
-  );
-
-  AndLineProcs : array [0..1] of TFunctionInfo = (
-    (Address : @AndLine_Pas; Requires: []),
-    (Address : @AndLine_ASM; Requires: [])
-  );
-
-
-  XorLineExProcs : array [0..3] of TFunctionInfo = (
-    (Address : @XorLineEx_Pas; Requires: []),
-    (Address : @XorLineEx_ASM; Requires: []),
-    (Address : @XorLineEx_MMX; Requires: [ciMMX]),
-    (Address : @XorLineEx_EMMX; Requires: [ciEMMX])
-  );
-
-  OrLineExProcs : array [0..3] of TFunctionInfo = (
-    (Address : @OrLineEx_Pas; Requires: []),
-    (Address : @OrLineEx_ASM; Requires: []),
-    (Address : @OrLineEx_MMX; Requires: [ciMMX]),
-    (Address : @OrLineEx_EMMX; Requires: [ciEMMX])
-  );
-
-  AndLineExProcs : array [0..3] of TFunctionInfo = (
-    (Address : @AndLineEx_Pas; Requires: []),
-    (Address : @AndLineEx_ASM; Requires: []),
-    (Address : @AndLineEx_MMX; Requires: [ciMMX]),
-    (Address : @AndLineEx_EMMX; Requires: [ciEMMX])
-  );
-
-{$ELSE}
-
-  XorLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @XorLine_Pas; Requires: [])
-  );
-
-  OrLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @OrLine_Pas; Requires: [])
-  );
-
-  AndLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @AndLine_Pas; Requires: [])
-  );
-
-
-  XorLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @XorLineEx_Pas; Requires: [])
-  );
-
-  OrLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @OrLineEx_Pas; Requires: [])
-  );
-
-  AndLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @AndLineEx_Pas; Requires: [])
-  );
-
-{$ENDIF}
-
-{Complete collection of unit templates}
+  FID_ANDLINE = 0;
+  FID_ORLINE = 1;
+  FID_XORLINE = 2;
+  FID_ANDLINEEX = 3;
+  FID_ORLINEEX = 4;
+  FID_XORLINEEX = 5;
 
 var
-  FunctionTemplates : array [0..5] of TFunctionTemplate = (
-     (FunctionVar: @@LogicalMaskLineXor; FunctionProcs : @XorLineProcs; Count: Length(XorLineProcs)),
-     (FunctionVar: @@LogicalMaskLineOr; FunctionProcs : @OrLineProcs; Count: Length(OrLineProcs)),
-     (FunctionVar: @@LogicalMaskLineAnd; FunctionProcs : @AndLineProcs; Count: Length(AndLineProcs)),
+  Registry: TFunctionRegistry;
 
-     (FunctionVar: @@LogicalMaskLineXorEx; FunctionProcs : @XorLineExProcs; Count: Length(XorLineExProcs)),
-     (FunctionVar: @@LogicalMaskLineOrEx; FunctionProcs : @OrLineExProcs; Count: Length(OrLineExProcs)),
-     (FunctionVar: @@LogicalMaskLineAndEx; FunctionProcs : @AndLineExProcs; Count: Length(AndLineExProcs))
-   );
+procedure RegisterBindings;
+begin
+  Registry := NewRegistry('GR32_Filters bindings');
+  Registry.RegisterBinding(FID_ANDLINE, @@LogicalMaskLineAnd);
+  Registry.RegisterBinding(FID_ORLINE, @@LogicalMaskLineOr);
+  Registry.RegisterBinding(FID_XORLINE, @@LogicalMaskLineXor);
+  Registry.RegisterBinding(FID_ANDLINEEX, @@LogicalMaskLineAndEx);
+  Registry.RegisterBinding(FID_ORLINEEX, @@LogicalMaskLineOrEx);
+  Registry.RegisterBinding(FID_XORLINEEX, @@LogicalMaskLineXorEx);
+
+  Registry.Add(FID_ANDLINE, @AndLine_Pas);
+  Registry.Add(FID_ORLINE, @OrLine_Pas);
+  Registry.Add(FID_XORLINE, @XorLine_Pas);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_Pas);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_Pas);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_Pas);
+
+{$IFDEF TARGET_x86}
+  Registry.Add(FID_ANDLINE, @AndLine_ASM);
+  Registry.Add(FID_ORLINE, @OrLine_ASM);
+  Registry.Add(FID_XORLINE, @XorLine_ASM);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_ASM);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_ASM);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_ASM);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_MMX, [ciMMX]);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_MMX, [ciMMX]);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_MMX, [ciMMX]);
+  Registry.Add(FID_ANDLINEEX, @AndLineEx_EMMX, [ciEMMX]);
+  Registry.Add(FID_ORLINEEX, @OrLineEx_EMMX, [ciEMMX]);
+  Registry.Add(FID_XORLINEEX, @XorLineEx_EMMX, [ciEMMX]);
+{$ENDIF}
+
+  Registry.RebindAll;
+end;
 
 initialization
-  RegisterTemplates(GR32_Filters_FunctionTemplates, FunctionTemplates,
-    'GR32_Filters Default Templates');
+  RegisterBindings;
 
 end.

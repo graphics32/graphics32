@@ -61,7 +61,7 @@ uses
   Types,
 {$ENDIF}
   SysUtils, Classes,
-  GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
+  GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt, GR32_Bindings;
 
 const
   MICROTILE_SHIFT = 5;
@@ -242,7 +242,6 @@ uses
   GR32_LowLevel, GR32_Math, Math;
 
 var
-  GR32_Micro_FunctionTemplates : TTemplatesHandle;
   MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);
 
 { MicroTile auxiliary routines }
@@ -1690,49 +1689,29 @@ end;
 
 {$ENDIF}
 
-{CPU target and feature Function templates}
-
 const
-
-{$IFDEF TARGET_x86}
-
-  MicroTileUnionProcs : array [0..1] of TFunctionInfo = (
-    (Address : @MicroTileUnion_Pas; Requires: []),
-    (Address : @MicroTileUnion_EMMX; Requires: [ciEMMX])
-  );
-
-  MicroTilesUProcs : array [0..1] of TFunctionInfo = (
-    (Address : @MicroTilesUnion_Pas; Requires: []),
-    (Address : @MicroTilesUnion_EMMX; Requires: [ciEMMX])
-  );
-
-{$ELSE}
-
-  MicroTileUnionProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MicroTileUnion_Pas; Requires: [])
-  );
-
-  MicroTilesUProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MicroTilesUnion_Pas; Requires: [])
-  );
-
-{$ENDIF}
-
-{Complete collection of unit templates}
+  FID_MICROTILEUNION = 0;
+  FID_MICROTILESUNION = 1;
 
 var
-  FunctionTemplates : array [0..1] of TFunctionTemplate = (
-     (FunctionVar: @@MicroTileUnion;
-      FunctionProcs : @MicroTileUnionProcs;
-      Count: Length(MicroTileUnionProcs)),
+  Registry: TFunctionRegistry;
 
-     (FunctionVar: @@MicroTilesU;
-      FunctionProcs : @MicroTilesUProcs;
-      Count: Length(MicroTilesUProcs))
-  );
+procedure RegisterBindings;
+begin
+  Registry := NewRegistry('GR32_MicroTiles bindings');
+  Registry.RegisterBinding(FID_MICROTILEUNION, @@MicroTileUnion);
+  Registry.RegisterBinding(FID_MICROTILESUNION, @@MicroTilesU);
+  Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_Pas);
+  Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_Pas);
+
+{$IFDEF TARGET_x86}
+  Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_EMMX, [ciEMMX]);
+  Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_EMMX, [ciEMMX]);
+{$ENDIF}
+  Registry.RebindAll;
+end;
 
 initialization
-  RegisterTemplates(GR32_Micro_FunctionTemplates, FunctionTemplates,
-    'GR32_MicroTiles Default Templates');
+  RegisterBindings;
 
 end.
