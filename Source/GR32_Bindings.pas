@@ -93,6 +93,9 @@ function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 var
   DefaultPriority: TFunctionPriority = DefaultPriorityProc;
 
+const
+  INVALID_PRIORITY: Integer = MaxInt;
+
 implementation
 
 uses
@@ -112,7 +115,7 @@ end;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
-  Result := IfThen(Info.CPUFeatures <= GR32_System.CPUFeatures, 0, -1);
+  Result := IfThen(Info.CPUFeatures <= GR32_System.CPUFeatures, 0, INVALID_PRIORITY);
 end;
 
 { TFunctionRegistry }
@@ -159,22 +162,22 @@ end;
 function TFunctionRegistry.FindFunction(FunctionID: Integer;
   PriorityCallback: TFunctionPriority): Pointer;
 var
-  I, MaxPriority, P: Integer;
+  I, MinPriority, P: Integer;
   Info: PFunctionInfo;
 begin
   if not Assigned(PriorityCallback) then PriorityCallback := DefaultPriority;
   Result := nil;
-  MaxPriority := 0; // negative values => not supported
-  for I := 0 to FItems.Count - 1 do
+  MinPriority := INVALID_PRIORITY;
+  for I := FItems.Count - 1 downto 0 do
   begin
     Info := FItems[I];
     if (Info.FunctionID = FunctionID) then
     begin
       P := PriorityCallback(Info);
-      if P >= MaxPriority then
+      if P < MinPriority then
       begin
         Result := Info.Proc;
-        MaxPriority := P;
+        MinPriority := P;
       end;
     end;
   end;
