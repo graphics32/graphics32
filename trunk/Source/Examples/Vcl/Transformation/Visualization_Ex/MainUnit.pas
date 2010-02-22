@@ -451,6 +451,7 @@ begin
     Inc(FPSMeasure);
   end;
 
+  EMMS;
   if Random > Feedback then
       BufferFeedBack(BlendLevel, BlendContrast, BlendBrightness, TimeDarkening);
 

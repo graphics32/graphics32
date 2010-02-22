@@ -42,7 +42,7 @@ interface
 {$IFNDEF TARGET_x86} {$DEFINE USEMOVE} {$ENDIF}
 
 uses
-  Graphics, GR32, GR32_Math, GR32_System;
+  Graphics, GR32, GR32_Math, GR32_System, GR32_Bindings;
 
 { Clamp function restricts Value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -145,9 +145,6 @@ implementation
 uses
   SysUtils;
 {$ENDIF}
-
-var
-  GR32_Lowlevel_FunctionTemplates : TTemplatesHandle;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
@@ -821,34 +818,28 @@ end;
 {CPU target and feature Function templates}
 
 const
-
-{$IFDEF TARGET_x86}
-
-  FillLongwordProcs : array [0..2] of TFunctionInfo = (
-    (Address : @FillLongword_Pas; Requires: []),
-    (Address : @FillLongword_ASM; Requires: []),
-    (Address : @FillLongword_MMX; Requires: [ciMMX])
-  );
-
-{$ELSE}
-
-  FillLongwordProcs : array [0..0] of TFunctionInfo = (
-    (Address : @FillLongword_Pas; Requires: [])
-  );
-
-{$ENDIF}
+  FID_FILLLONGWORD = 0;
 
 {Complete collection of unit templates}
 
 var
-  FunctionTemplates : array [0..0] of TFunctionTemplate = (
-     (FunctionVar: @@FillLongword;
-      FunctionProcs : @FillLongwordProcs;
-      Count: Length(FillLongwordProcs))
-  );
+  Registry: TFunctionRegistry;
+
+procedure RegisterBindings;
+begin
+  Registry := NewRegistry('GR32_LowLevel bindings');
+  Registry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
+
+  Registry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, []);
+{$IFDEF TARGET_x86}
+  Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM, []);
+  Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [ciMMX]);
+{$ENDIF}
+
+  Registry.RebindAll;
+end;
 
 initialization
-  RegisterTemplates(GR32_Lowlevel_FunctionTemplates, FunctionTemplates,
-    'GR32_Lowlevel Default Templates');
+  RegisterBindings;
 
 end.

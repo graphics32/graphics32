@@ -1,6 +1,7 @@
-package GR32_D6;
-
-{$R *.res}{$ALIGN 8}
+package GR32_D6;
+
+{$R *.res}
+{$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
 {$DEBUGINFO ON}
@@ -24,9 +25,12 @@ package GR32_D6;
 {$DESCRIPTION 'Graphics32'}
 {$IMPLICITBUILD ON}
 
-requires  vcl;
+requires
+  vcl;
 
-contains  GR32 in '..\GR32.pas',
+contains
+  GR32 in '..\GR32.pas',
+  GR32_Bindings in '..\GR32_Bindings.pas',
   GR32_Math in '..\GR32_Math.pas',
   GR32_LowLevel in '..\GR32_LowLevel.pas',
   GR32_System in '..\GR32_System.pas',
@@ -51,4 +55,4 @@ contains  GR32 in '..\GR32.pas',
   GR32_Backends_VCL in '..\GR32_Backends_VCL.pas',
   GR32_XPThemes in '..\GR32_XPThemes.pas';
 
-end.
+end.

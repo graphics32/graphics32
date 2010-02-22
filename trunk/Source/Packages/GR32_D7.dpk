@@ -1,4 +1,5 @@
-package GR32_D7;  
+package GR32_D7;
+  
 {$R *.res}
 {$ALIGN 8}
 {$ASSERTIONS ON}
@@ -30,6 +31,7 @@ requires
 
 contains
   GR32 in '..\GR32.pas',
+  GR32_Bindings in '..\GR32_Bindings.pas',
   GR32_Math in '..\GR32_Math.pas',
   GR32_LowLevel in '..\GR32_LowLevel.pas',
   GR32_System in '..\GR32_System.pas',
@@ -54,4 +56,4 @@ contains
   GR32_Backends_VCL in '..\GR32_Backends_VCL.pas',
   GR32_XPThemes in '..\GR32_XPThemes.pas';
 
-end.
+end.

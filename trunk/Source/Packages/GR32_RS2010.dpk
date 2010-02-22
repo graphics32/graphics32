@@ -52,6 +52,7 @@ contains
   GR32_RepaintOpt in '..\GR32_RepaintOpt.pas',
   GR32_MicroTiles in '..\GR32_MicroTiles.pas',
   GR32_Rasterizers in '..\GR32_Rasterizers.pas',
-  GR32_Resamplers in '..\GR32_Resamplers.pas';
+  GR32_Resamplers in '..\GR32_Resamplers.pas',
+  GR32_Bindings in '..\GR32_Bindings.pas';
 
 end.

@@ -328,7 +328,6 @@ type
 
 var
   GAMMA_TABLE: array [Byte] of Byte;
-  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 procedure SetGamma(Gamma: Single = 0.7);
 
@@ -884,9 +883,6 @@ uses
   Clipbrd, GR32_Backends_VCL,
 {$ENDIF}
   GR32_DrawingEx;
-
-var
-  GR32_FunctionTemplates : TTemplatesHandle;
 
 type
   { We can not use the Win32 defined record here since we are cross-platform. }
@@ -5225,69 +5221,6 @@ begin
     inherited Changed;
 end;
 
-{ Interpolators }
-
-function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
-var
-  C1, C3: TColor32;
-begin
-  if WX_256 > $FF then WX_256:= $FF;
-  if WY_256 > $FF then WY_256:= $FF;
-  C1 := C11^; Inc(C11);
-  C3 := C21^; Inc(C21);
-  Result := CombineReg(CombineReg(C1, C11^, WX_256),
-                       CombineReg(C3, C21^, WX_256), WY_256);
-end;
-
-{$IFDEF TARGET_x86}
-function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
-asm
-        MOVQ      MM1,[ECX]
-        MOV       ECX,C21
-        MOVQ      MM3,[ECX]
-        MOVQ      MM2,MM1
-        MOVQ      MM4,MM3
-        PSRLQ     MM1,32
-        PSRLQ     MM3,32
-
-        MOVD      MM5,EAX
-        PUNPCKLWD MM5,MM5
-        PUNPCKLDQ MM5,MM5
-
-        PXOR MM0, MM0
-
-        PUNPCKLBW MM1,MM0
-        PUNPCKLBW MM2,MM0
-        PSUBW     MM2,MM1
-        PMULLW    MM2,MM5
-        PSLLW     MM1,8
-        PADDW     MM2,MM1
-        PSRLW     MM2,8
-
-        PUNPCKLBW MM3,MM0
-        PUNPCKLBW MM4,MM0
-        PSUBW     MM4,MM3
-        PMULLW    MM4,MM5
-        PSLLW     MM3,8
-        PADDW     MM4,MM3
-        PSRLW     MM4,8
-
-        MOVD      MM5,EDX
-        PUNPCKLWD MM5,MM5
-        PUNPCKLDQ MM5,MM5
-
-        PSUBW     MM2,MM4
-        PMULLW    MM2,MM5
-        PSLLW     MM4,8
-        PADDW     MM2,MM4
-        PSRLW     MM2,8
-
-        PACKUSWB  MM2,MM0
-        MOVD      EAX,MM2
-end;
-
-{$ENDIF}
-
 procedure TCustomBitmap32.SetResampler(Resampler: TCustomResampler);
 begin
   if Assigned(Resampler) and (FResampler <> Resampler) then
@@ -6047,39 +5980,7 @@ begin
   end;
 end;
 
-
-{CPU target and feature Function templates}
-
-const
-
-{$IFDEF TARGET_x86}
-
-  InterpolatorProcs : array [0..1] of TFunctionInfo = (
-    (Address : @Interpolator_Pas; Requires: []),
-    (Address : @Interpolator_MMX; Requires: [ciMMX])
-  );
-
-{$ELSE}
-
-  InterpolatorProcs : array [0..0] of TFunctionInfo = (
-    (Address : @Interpolator_Pas; Requires: [])
-  );
-
-{$ENDIF}
-
-{Complete collection of unit templates}
-
-var
-  FunctionTemplates : array [0..0] of TFunctionTemplate = (
-     (FunctionVar: @@Interpolator;
-      FunctionProcs : @InterpolatorProcs;
-      Count: Length(InterpolatorProcs))
-  );
-
 initialization
-  RegisterTemplates(GR32_FunctionTemplates, FunctionTemplates,
-    'GR32 Default Templates');
-
   SetGamma;
   StockBitmap := TBitmap.Create;
   StockBitmap.Width := 8;

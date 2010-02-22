@@ -47,7 +47,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, GR32_System, SysUtils;
+  GR32, GR32_System, GR32_Bindings, SysUtils;
 
 var
   MMX_ACTIVE: Boolean;
@@ -90,6 +90,9 @@ var
   MergeLine: TBlendLine;
   MergeLineEx: TBlendLineEx;
 
+{ 4-pixel interpolator }
+  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+
 { Color algebra functions }
   ColorAdd: TBlendReg;
   ColorSub: TBlendReg;
@@ -121,6 +124,9 @@ const
   BLEND_LINE: array[TCombineMode] of ^TBlendLine = ((@@BlendLine),(@@MergeLine));
   BLEND_LINE_EX: array[TCombineMode] of ^TBlendLineEx = ((@@BlendLineEx),(@@MergeLineEx));
 
+var
+  BlendRegistry: TFunctionRegistry;
+
 implementation
 
 {$IFDEF TARGET_x86}
@@ -128,7 +134,6 @@ uses GR32_LowLevel;
 {$ENDIF}
 
 var
-  GR32_Blend_FunctionTemplates : TTemplatesHandle;
   RcTable: array [Byte, Byte] of Byte;
   DivTable: array [Byte, Byte] of Byte;
 
@@ -1888,236 +1893,201 @@ begin
     end;
 end;
 
-{CPU target and feature Function templates}
+{ Interpolators }
+
+function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+var
+  C1, C3: TColor32;
+begin
+  if WX_256 > $FF then WX_256:= $FF;
+  if WY_256 > $FF then WY_256:= $FF;
+  C1 := C11^; Inc(C11);
+  C3 := C21^; Inc(C21);
+  Result := CombineReg(CombineReg(C1, C11^, WX_256),
+                       CombineReg(C3, C21^, WX_256), WY_256);
+end;
+
+{$IFDEF TARGET_x86}
+function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+asm
+        MOVQ      MM1,[ECX]
+        MOV       ECX,C21
+        MOVQ      MM3,[ECX]
+        MOVQ      MM2,MM1
+        MOVQ      MM4,MM3
+        PSRLQ     MM1,32
+        PSRLQ     MM3,32
+
+        MOVD      MM5,EAX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
+
+        PXOR MM0, MM0
+
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        PSUBW     MM2,MM1
+        PMULLW    MM2,MM5
+        PSLLW     MM1,8
+        PADDW     MM2,MM1
+        PSRLW     MM2,8
+
+        PUNPCKLBW MM3,MM0
+        PUNPCKLBW MM4,MM0
+        PSUBW     MM4,MM3
+        PMULLW    MM4,MM5
+        PSLLW     MM3,8
+        PADDW     MM4,MM3
+        PSRLW     MM4,8
+
+        MOVD      MM5,EDX
+        PUNPCKLWD MM5,MM5
+        PUNPCKLDQ MM5,MM5
+
+        PSUBW     MM2,MM4
+        PMULLW    MM2,MM5
+        PSLLW     MM4,8
+        PADDW     MM2,MM4
+        PSRLW     MM2,8
+
+        PACKUSWB  MM2,MM0
+        MOVD      EAX,MM2
+end;
+
+{$ENDIF}
 
 const
+  FID_EMMS = 0;
+  FID_MERGEREG = 1;
+  FID_MERGEMEM = 2;
+  FID_MERGELINE = 3;
+  FID_MERGEREGEX = 4;
+  FID_MERGEMEMEX = 5;
+  FID_MERGELINEEX = 6;
+  FID_COMBINEREG = 7;
+  FID_COMBINEMEM = 8;
+  FID_COMBINELINE = 9;
 
-  MergeMemProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MergeMem_Pas; Requires: []));
+  FID_BLENDREG = 10;
+  FID_BLENDMEM = 11;
+  FID_BLENDLINE = 12;
+  FID_BLENDREGEX = 13;
+  FID_BLENDMEMEX = 14;
+  FID_BLENDLINEEX = 15;
 
+  FID_COLORMAX = 16;
+  FID_COLORMIN = 17;
+  FID_COLORAVERAGE = 18;
+  FID_COLORADD = 19;
+  FID_COLORSUB = 20;
+  FID_COLORDIV = 21;
+  FID_COLORMODULATE = 22;
+  FID_COLORDIFFERENCE = 23;
+  FID_COLOREXCLUSION = 24;
+  FID_COLORSCALE = 25;
 
-  MergeMemExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MergeMemEx_Pas; Requires: []));
+  FID_INTERPOLATOR = 26;
 
-  MergeRegExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MergeRegEx_Pas; Requires: []));
+procedure RegisterBindings;
+begin
+  BlendRegistry := NewRegistry('GR32_Blend bindings');
+  BlendRegistry.RegisterBinding(FID_EMMS, @@EMMS);
+  BlendRegistry.RegisterBinding(FID_MERGEREG, @@MergeReg);
+  BlendRegistry.RegisterBinding(FID_MERGEMEM, @@MergeMem);
+  BlendRegistry.RegisterBinding(FID_MERGELINE, @@MergeLine);
+  BlendRegistry.RegisterBinding(FID_MERGEREGEX, @@MergeRegEx);
+  BlendRegistry.RegisterBinding(FID_MERGEMEMEX, @@MergeMemEx);
+  BlendRegistry.RegisterBinding(FID_MERGELINEEX, @@MergeLineEx);
+  BlendRegistry.RegisterBinding(FID_COMBINEREG, @@CombineReg);
+  BlendRegistry.RegisterBinding(FID_COMBINEMEM, @@CombineMem);
+  BlendRegistry.RegisterBinding(FID_COMBINELINE, @@CombineLine);
 
-  MergeLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MergeLine_Pas; Requires: []));
+  BlendRegistry.RegisterBinding(FID_BLENDREG, @@BlendReg);
+  BlendRegistry.RegisterBinding(FID_BLENDMEM, @@BlendMem);
+  BlendRegistry.RegisterBinding(FID_BLENDLINE, @@BlendLine);
+  BlendRegistry.RegisterBinding(FID_BLENDREGEX, @@BlendRegEx);
+  BlendRegistry.RegisterBinding(FID_BLENDMEMEX, @@BlendMemEx);
+  BlendRegistry.RegisterBinding(FID_BLENDLINEEX, @@BlendLineEx);
 
-  MergeLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MergeLineEx_Pas; Requires: []));
+  BlendRegistry.RegisterBinding(FID_COLORMAX, @@ColorMax);
+  BlendRegistry.RegisterBinding(FID_COLORMIN, @@ColorMin);
+  BlendRegistry.RegisterBinding(FID_COLORAVERAGE, @@ColorAverage);
+  BlendRegistry.RegisterBinding(FID_COLORADD, @@ColorAdd);
+  BlendRegistry.RegisterBinding(FID_COLORSUB, @@ColorSub);
+  BlendRegistry.RegisterBinding(FID_COLORDIV, @@ColorDiv);
+  BlendRegistry.RegisterBinding(FID_COLORMODULATE, @@ColorModulate);
+  BlendRegistry.RegisterBinding(FID_COLORDIFFERENCE, @@ColorDifference);
+  BlendRegistry.RegisterBinding(FID_COLOREXCLUSION, @@ColorExclusion);
+  BlendRegistry.RegisterBinding(FID_COLORSCALE, @@ColorScale);
 
-  ColorDivProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorDiv_Pas; Requires: []));
+  BlendRegistry.RegisterBinding(FID_INTERPOLATOR, @@Interpolator);
 
-  ColorAverageProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorAverage_Pas; Requires: []));
+  // pure pascal
+  BlendRegistry.Add(FID_EMMS, @EMMS_Pas);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_Pas);
+  BlendRegistry.Add(FID_MERGEMEM, @MergeMem_Pas);
+  BlendRegistry.Add(FID_MERGEMEMEX, @MergeMemEx_Pas);
+  BlendRegistry.Add(FID_MERGEREGEX, @MergeRegEx_Pas);
+  BlendRegistry.Add(FID_MERGELINE, @MergeLine_Pas);
+  BlendRegistry.Add(FID_MERGELINEEX, @MergeLineEx_Pas);
+  BlendRegistry.Add(FID_COLORDIV, @ColorDiv_Pas);
+  BlendRegistry.Add(FID_COLORAVERAGE, @ColorAverage_Pas);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_Pas);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_Pas);
+  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_Pas);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_Pas);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_Pas);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_Pas);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_Pas);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_Pas);
+  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_Pas);
+  BlendRegistry.Add(FID_COLORMAX, @ColorMax_Pas);
+  BlendRegistry.Add(FID_COLORMIN, @ColorMin_Pas);
+  BlendRegistry.Add(FID_COLORADD, @ColorAdd_Pas);
+  BlendRegistry.Add(FID_COLORSUB, @ColorSub_Pas);
+  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_Pas);
+  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_Pas);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_Pas);
+  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
+  BlendRegistry.Add(FID_INTERPOLATOR, @Interpolator_Pas);
 
 {$IFDEF TARGET_x86}
-
-  MergeRegProcs : array [0..1] of TFunctionInfo = (
-    (Address : @MergeReg_Pas; Requires: []),
-    (Address : @MergeReg_ASM; Requires: []));
-
-  EMMSProcs : array [0..1] of TFunctionInfo = (
-    (Address : @EMMS_Pas; Requires: []),
-    (Address : @EMMS_MMX; Requires: [ciMMX]));
-
-  CombineRegProcs : array [0..2] of TFunctionInfo = (
-    (Address : @CombineReg_Pas; Requires: []),
-    (Address : @CombineReg_ASM; Requires: []),
-    (Address : @CombineReg_MMX; Requires: [ciMMX]));
-
-  CombineMemProcs : array [0..2] of TFunctionInfo = (
-    (Address : @CombineMem_Pas; Requires: []),
-    (Address : @CombineMem_ASM; Requires: []),
-    (Address : @CombineMem_MMX; Requires: [ciMMX]));
-
-  CombineLineProcs : array [0..1] of TFunctionInfo = (
-    (Address : @CombineLine_Pas; Requires: []),
-    (Address : @CombineLine_MMX; Requires: [ciMMX]));
-
-  BlendRegProcs : array [0..2] of TFunctionInfo = (
-    (Address : @BlendReg_Pas; Requires: []),
-    (Address : @BlendReg_ASM; Requires: []),
-    (Address : @BlendReg_MMX; Requires: [ciMMX]));
-
-  BlendMemProcs : array [0..2] of TFunctionInfo = (
-    (Address : @BlendMem_Pas; Requires: []),
-    (Address : @BlendMem_ASM; Requires: []),
-    (Address : @BlendMem_MMX; Requires: [ciMMX]));
-
-  BlendRegExProcs : array [0..2] of TFunctionInfo = (
-    (Address : @BlendRegEx_Pas; Requires: []),
-    (Address : @BlendRegEx_ASM; Requires: []),
-    (Address : @BlendRegEx_MMX; Requires: [ciMMX]));
-
-  BlendMemExProcs : array [0..2] of TFunctionInfo = (
-    (Address : @BlendMemEx_Pas; Requires: []),
-    (Address : @BlendMemEx_ASM; Requires: []),
-    (Address : @BlendMemEx_MMX; Requires: [ciMMX]));
-
-  BlendLineProcs : array [0..2] of TFunctionInfo = (
-    (Address : @BlendLine_Pas; Requires: []),
-    (Address : @BlendLine_ASM; Requires: []),
-    (Address : @BlendLine_MMX; Requires: [ciMMX]));
-
-  BlendLineExProcs : array [0..1] of TFunctionInfo = (
-    (Address : @BlendLineEx_Pas; Requires: []),
-    (Address : @BlendLineEx_MMX; Requires: [ciMMX]));
-
-
-
-  ColorMaxProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorMax_Pas; Requires: []),
-    (Address : @ColorMax_EMMX; Requires: [ciEMMX]));
-
-  ColorMinProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorMin_Pas; Requires: []),
-    (Address : @ColorMin_EMMX; Requires: [ciEMMX]));
-
-  ColorAddProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorAdd_Pas; Requires: []),
-    (Address : @ColorAdd_MMX; Requires: [ciMMX]));
-
-  ColorSubProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorSub_Pas; Requires: []),
-    (Address : @ColorSub_MMX; Requires: [ciMMX]));
-
-  ColorModulateProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorModulate_Pas; Requires: []),
-    (Address : @ColorModulate_MMX; Requires: [ciMMX]));
-
-  ColorDifferenceProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorDifference_Pas; Requires: []),
-    (Address : @ColorDifference_MMX; Requires: [ciMMX]));
-
-  ColorExclusionProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorExclusion_Pas; Requires: []),
-    (Address : @ColorExclusion_MMX; Requires: [ciMMX]));
-
-  ColorScaleProcs : array [0..1] of TFunctionInfo = (
-    (Address : @ColorScale_Pas; Requires: []),
-    (Address : @ColorScale_MMX; Requires: [ciMMX]));
-
-{$ELSE}
-
-  MergeRegProcs : array [0..0] of TFunctionInfo = (
-    (Address : @MergeReg_Pas; Requires: []));
-
-  EMMSProcs : array [0..0] of TFunctionInfo = (
-    (Address : @EMMS_Pas; Requires: []));
-
-  CombineRegProcs : array [0..0] of TFunctionInfo = (
-    (Address : @CombineReg_Pas; Requires: []));
-
-  CombineMemProcs : array [0..0] of TFunctionInfo = (
-    (Address : @CombineMem_Pas; Requires: []));
-
-  CombineLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @CombineLine_Pas; Requires: []));
-
-
-  BlendRegProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlendReg_Pas; Requires: []));
-
-  BlendMemProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlendMem_Pas; Requires: []));
-
-  BlendLineProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlendLine_Pas; Requires: []));
-
-
-  BlendRegExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlendRegEx_Pas; Requires: []));
-
-  BlendMemExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlendMemEx_Pas; Requires: []));
-
-  BlendLineExProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlendLineEx_Pas; Requires: []));
-
-
-
-  ColorMaxProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorMax_Pas; Requires: []));
-
-  ColorMinProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorMin_Pas; Requires: []));
-
-  ColorAddProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorAdd_Pas; Requires: []));
-
-  ColorSubProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorSub_Pas; Requires: []));
-
-  ColorModulateProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorModulate_Pas; Requires: []));
-
-  ColorDifferenceProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorDifference_Pas; Requires: []));
-
-  ColorExclusionProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorExclusion_Pas; Requires: []));
-
-  ColorScaleProcs : array [0..0] of TFunctionInfo = (
-    (Address : @ColorScale_Pas; Requires: []));
-
+  BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLORMAX, @ColorMax_EMMX, [ciEMMX]);
+  BlendRegistry.Add(FID_COLORMIN, @ColorMin_EMMX, [ciEMMX]);
+  BlendRegistry.Add(FID_COLORADD, @ColorAdd_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLORSUB, @ColorSub_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_INTERPOLATOR, @Interpolator_MMX, [ciMMX]);
 {$ENDIF}
 
-{Complete collection of unit templates}
-
-var
-  FunctionTemplates : array [0..25] of TFunctionTemplate = (
-     (FunctionVar: @@EMMS; FunctionProcs : @EMMSProcs; Count: Length(EMMSProcs)),
-
-     (FunctionVar: @@MergeReg; FunctionProcs : @MergeRegProcs; Count: Length(MergeRegProcs)),
-     (FunctionVar: @@MergeMem; FunctionProcs : @MergeMemProcs; Count: Length(MergeMemProcs)),
-     (FunctionVar: @@MergeLine; FunctionProcs : @MergeLineProcs; Count: Length(MergeLineProcs)),
-     (FunctionVar: @@MergeRegEx; FunctionProcs : @MergeRegExProcs; Count: Length(MergeRegExProcs)),
-     (FunctionVar: @@MergeMemEx; FunctionProcs : @MergeMemExProcs; Count: Length(MergeMemExProcs)),
-     (FunctionVar: @@MergeLineEx; FunctionProcs : @MergeLineExProcs; Count: Length(MergeLineExProcs)),
-
-     (FunctionVar: @@CombineReg; FunctionProcs : @CombineRegProcs; Count: Length(CombineRegProcs)),
-     (FunctionVar: @@CombineMem; FunctionProcs : @CombineMemProcs; Count: Length(CombineMemProcs)),
-     (FunctionVar: @@CombineLine; FunctionProcs : @CombineLineProcs; Count: Length(CombineLineProcs)),
-
-     (FunctionVar: @@BlendReg; FunctionProcs : @BlendRegProcs; Count: Length(BlendRegProcs)),
-     (FunctionVar: @@BlendMem; FunctionProcs : @BlendMemProcs; Count: Length(BlendMemProcs)),
-     (FunctionVar: @@BlendLine; FunctionProcs : @BlendLineProcs; Count: Length(BlendLineProcs)),
-     (FunctionVar: @@BlendRegEx; FunctionProcs : @BlendRegExProcs; Count: Length(BlendRegExProcs)),
-     (FunctionVar: @@BlendMemEx; FunctionProcs : @BlendMemExProcs; Count: Length(BlendMemExProcs)),
-     (FunctionVar: @@BlendLineEx; FunctionProcs : @BlendLineExProcs; Count: Length(BlendLineExProcs)),
-
-     (FunctionVar: @@ColorMax; FunctionProcs : @ColorMaxProcs; Count: Length(ColorMaxProcs)),
-     (FunctionVar: @@ColorMin; FunctionProcs : @ColorMinProcs; Count: Length(ColorMinProcs)),
-     (FunctionVar: @@ColorAverage; FunctionProcs : @ColorAverageProcs; Count: Length(ColorAverageProcs)),
-     (FunctionVar: @@ColorAdd; FunctionProcs : @ColorAddProcs; Count: Length(ColorAddProcs)),
-     (FunctionVar: @@ColorSub; FunctionProcs : @ColorSubProcs; Count: Length(ColorSubProcs)),
-     (FunctionVar: @@ColorDiv; FunctionProcs : @ColorDivProcs; Count: Length(ColorDivProcs)),
-     (FunctionVar: @@ColorModulate; FunctionProcs : @ColorModulateProcs; Count: Length(ColorModulateProcs)),
-     (FunctionVar: @@ColorDifference; FunctionProcs : @ColorDifferenceProcs; Count: Length(ColorDifferenceProcs)),
-     (FunctionVar: @@ColorExclusion; FunctionProcs : @ColorExclusionProcs; Count: Length(ColorExclusionProcs)),
-     (FunctionVar: @@ColorScale; FunctionProcs : @ColorScaleProcs; Count: Length(ColorScaleProcs))
-   );
+  BlendRegistry.RebindAll;
+end;
 
 initialization
+  GenAlphaTable;
   MakeMergeTables;
-  RegisterTemplates(GR32_Blend_FunctionTemplates, FunctionTemplates,
-    'GR32_Blend Default Templates');
-
-{$IFDEF TARGET_x86}
-  if (ciMMX in CPUFeatures) then
-  begin
-    GenAlphaTable;
-    MMX_ACTIVE := (ciMMX in CPUFeatures);
-  end
-  else
-    MMX_ACTIVE := False;
-{$ELSE}
-  MMX_ACTIVE := False;
-{$ENDIF}
+  RegisterBindings;
 
 finalization
 {$IFDEF TARGET_x86}
