@@ -1920,8 +1920,6 @@ const
   FID_COLOREXCLUSION = 24;
   FID_COLORSCALE = 25;
 
-  FID_INTERPOLATOR = 26;
-
 procedure RegisterBindings;
 begin
   BlendRegistry := NewRegistry('GR32_Blend bindings');
