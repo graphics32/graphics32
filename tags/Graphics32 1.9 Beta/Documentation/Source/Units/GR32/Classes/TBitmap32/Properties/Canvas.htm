@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>BIts</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Canvas: TCanvas; <span class="Comment">// 
+  read-only;</span></p>
+<h2>Description</h2>
+<p class="Body">Returns current <i>Canvas instance</i>. You can use that to draw onto the bitmap. However the methods provided
+  by <span class="API">TCanvas</span> are mostly slower than using their native Bitmap32 counterparts. So <em>try to avoid the usage of Canvas where possible.</em></p>
+<p class="Body"><strong>Special note for CLX users:</strong> Due to the way QT is handling image and bitmap data, please
+  try to avoid using only single Canvas operations. Every time you access the Canvas, the internal <span class="API">QImage</span> is unavoidably
+  copied to a <span class="API">QPixmap</span> representative and copied back once the Bits property or any other internal method is accessed. So,
+  if you access the Bits and Canvas properties in short interval after each other, that poses a heavy performance hit due
+  to copying the <span class="API">QImage </span>to<span class="API"> QPixmap</span> back and forth<span class="API">.</span></p>
+</body>
+</html>

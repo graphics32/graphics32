@@ -1,0 +1,47 @@
+<html>
+<head>
+<title>BlockTransfer</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> BlockTransfer( <br>
+  &nbsp;&nbsp;Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;DstX: Integer; <br>
+  &nbsp;&nbsp;DstY: Integer;<br>
+  &nbsp;&nbsp;DstClip: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;SrcRect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;CombineOp: <a href="../../GR32/Types/TDrawMode.htm">TDrawMode</a>;<br>
+  &nbsp;&nbsp;CombineCallBack: <a href="../../GR32/Types/TPixelCombineEvent.htm">TPixelCombineEvent</a> 
+  = nil);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">BlockTransfer</span> is similar to the 
+  <span class="API">BitBlt</span> function from Windows GDI. It performs copying 
+  of a bitmap fragment specified by <b>SrcRect</b> into location (<b>DstX</b>, 
+  <b>DstY</b>) with optional alpha blending or using user-specified combining 
+  function. This operation is constrained to the <strong>DstClip</strong> rectangle 
+  specified in the destination bitmap coordinates.</p>
+<p class="Body">If <b>CombineOp</b>=dmOpaque, the fragment simply replaces destination 
+  pixels. In dmBlend mode it is blended to destination using its alpha channel 
+  and <a href="../../GR32/Classes/TCustomBitmap32/Properties/MasterAlpha.htm">MasterAlpha</a> 
+  property. In dmCusom mode, the function calls <b>CombineCallBack</b> function 
+  for pixel combining.</p>
+<p class="Body">It is not required for <b>DstRect</b> and <b>SrcRect</b> to lie 
+  entirely inside the corresponding bitmap, since the function provides necessary 
+  clipping.</p>
+<p class="Body">The result is not specified when transferring data inside the 
+  same bitmap (<b>Src</b>=<b>Dst</b>) and if in the same time <b>SrcRect</b> intersects 
+  with <b>DstRect</b>. In this case it is recommended to use a temporary bitmap 
+  buffer.</p>
+<p class="Body">Neither <b>Src</b> nor <b>Dst</b> bitmaps may be equal to <i>nil</i>. 
+  In this case, function will generate an exception. They may be empty however, 
+  in this case no transformation will be performed.</p>
+<p class="Body">This routine used in <a href="../../GR32/Classes/TCustomBitmap32/Methods/Draw.htm">TCustomBitmap32.Draw</a> 
+  and <a href="../../GR32/Classes/TCustomBitmap32/Methods/DrawTo.htm">TCustomBitmap32.DrawTo</a> 
+  methods.</p>
+<p id="hidden">[See Also] <a href="StretchTransfer.htm">StretchTransfer</a></p>
+</body>
+</html>

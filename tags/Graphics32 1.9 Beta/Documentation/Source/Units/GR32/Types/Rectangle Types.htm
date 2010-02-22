@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Rectangle Types</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Body">Several data types are designated to handle rectangles:</p>
+<h2><a name="TRect"></a>TRect </h2>
+<p class="Decl"><b>type</b> TRect = Windows.TRect;</p>
+<p class="Body"><span class="EmptyRef">TRect</span> is redeclared from Windows.h 
+  and is compatible with Delphi/Windows API calls.</p>
+<h2><a name="TFloatRect"></a>TFloatRect </h2>
+<p class="Decl"><b>type</b> TFloatRect = <b>record</b><br><b>&nbsp;&nbsp;case</b> Integer <b>of</b><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;0: (Left, Top, Right, Bottom: Single);<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;1: (TopLeft, BottomRight: <a href="../../GR32/Types/Point%20Types.htm#TFloatPoint">TFloatPoint</a>);<br>
+  <b>end</b>;</p>
+<p class="Body">A rectangle with floating-point coordinates. </p>
+<h2><a name="TFixedRect"></a>TFixedRect </h2>
+<p class="Decl"><b>type</b> TFixedRect = <b>record</b><br>
+  <b>&nbsp;&nbsp;case</b> Integer <b>of</b><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;0: (Left, Top, Right, Bottom: <a href="../../GR32/Types/TFixed.htm">TFixed</a>);<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;1: (TopLeft, BottomRight: <a href="../../GR32/Types/Point%20Types.htm#TFixedPoint">TFixedPoint</a>);<br>
+  <b>end</b>;</p>
+<p class="Body">A rectangle with fixed-point coordinates.</p>
+<p id="Hidden">[See Also] <a href="../../GR32/Routines/Creating%20Rectangles.htm">Creating 
+  Rectangles</a></p>
+<p class="Body">&nbsp;</p>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>Transform</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Transform(Dst, Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a>);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">Transform</span> is responsible for arbitrary 
+  geometrical transformations of bitmaps or their fragments. The current version 
+  supports only affine and projective transformations.</p>
+<p class="Body">The <b>Transformation</b> parameter is a reference to a descendant 
+  of an abstract <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> 
+  class. It specifies all necessary transformation parameters. </p>
+<p class="Body">When <b>Src</b>.<a href="../../GR32/Classes/TCustomBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
+  is different from sfNearest, <b>Transform</b> uses bilinear interpolation for 
+  magnification (along any axis) as for minification, it is not as accurate as 
+  <a href="../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a> function. If you need better 
+  quality when minimizing the bitmaps, transform them into the temporary buffer 
+  so that there is no minification invlolved, then <a href="../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a> 
+  to a final bitmap. </p>
+<p class="Body">The function does not support spline interpolation, if <b>Src</b>.<a href="../../GR32/Classes/TCustomBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
+  is sfSpline, <b>Transform</b> operates as if it were sfLinear. </p>
+<p class="Body">There is an issue with antialiasing and edges. How to make them 
+  antialiased and still keep the performance? The solution implemented in Graphics32 
+  is similar to the one used in OpenGL. You just have to provide the source bitmap 
+  (or its region) with transparent edges. In the original image, you’ll have to 
+  force the alpha channel on its edges to zeroes, for example, using the <a href="../../GR32_Transforms/Routines/SetBorderTransparent.htm">SetBorderTransparent</a> 
+  method. </p>
+<p class="Body">Remember, that color is interpolated as well, it means that for 
+  nice fadeout the color on the border should match the color of pixels lying 
+  next to the border. </p>
+<p class="Body">In case the bitmap is transformed in dmOpaque mode, it might be 
+  better to keep the color on the edge close to the color of the background.</p>
+<p id="hidden">[See Also] <a href="../../GR32_Transforms/Classes/TAffineTransformation/_Body.htm">TAffineTransformation</a>, 
+  <a href="../../GR32_Transforms/Classes/TProjectiveTransformation/_Body.htm">TProjectiveTransformation</a>, 
+  <a href="../../../Examples.htm#Transform%20Example">Transform Example</a></p>
+</body>
+</html>

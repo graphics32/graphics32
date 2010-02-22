@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="3">
+    <Name Value="GR32_DSGN_L"/>
+    <CompilerOptions>
+      <Version Value="8"/>
+      <SearchPaths>
+        <IncludeFiles Value="../"/>
+        <OtherUnitFiles Value="../;../Packages/"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <CStyleOperator Value="False"/>
+          <CPPInline Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <Linking>
+        <Debugging>
+          <GenerateDebugInfo Value="True"/>
+        </Debugging>
+      </Linking>
+      <Other>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Version Major="1" Minor="9"/>
+    <Files Count="6">
+      <Item1>
+        <Filename Value="../GR32_Reg.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="GR32_Reg"/>
+      </Item1>
+      <Item2>
+        <Filename Value="../GR32_Dsgn_Misc.pas"/>
+        <UnitName Value="GR32_Dsgn_Misc"/>
+      </Item2>
+      <Item3>
+        <Filename Value="../GR32_Dsgn_Color.pas"/>
+        <UnitName Value="GR32_Dsgn_Color"/>
+      </Item3>
+      <Item4>
+        <Filename Value="../GR32_Dsgn_Bitmap.lfm"/>
+        <Type Value="LFM"/>
+      </Item4>
+      <Item5>
+        <Filename Value="../GR32_Dsgn_Bitmap.lrs"/>
+        <Type Value="LRS"/>
+      </Item5>
+      <Item6>
+        <Filename Value="../GR32_Dsgn_Bitmap.pas"/>
+        <UnitName Value="GR32_Dsgn_Bitmap"/>
+      </Item6>
+    </Files>
+    <Type Value="RunAndDesignTime"/>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="GR32_L"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="IDEIntf"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)/"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

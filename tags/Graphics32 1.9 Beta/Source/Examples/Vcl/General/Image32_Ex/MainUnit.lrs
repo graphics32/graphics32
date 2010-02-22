@@ -1,0 +1,55 @@
+{ This is an automatically generated lazarus resource file }
+
+LazarusResources.Add('TFormImage32Example','FORMDATA',[
+  'TPF0'#19'TFormImage32Example'#18'FormImage32Example'#4'Left'#3#224#0#6'Heigh'
+  +'t'#3#189#1#3'Top'#3#159#0#5'Width'#3'&'#2#18'HorzScrollBar.Page'#3'%'#2#18
+  +'VertScrollBar.Page'#3#188#1#13'ActiveControl'#7#24'rgScaleMode.RadioButton0'
+  +#7'Caption'#6#16'TImage32 Example'#12'ClientHeight'#3#189#1#11'ClientWidth'#3
+  +'&'#2#11'Font.Height'#2#245#9'Font.Name'#6#6'Tahoma'#8'OnCreate'#7#10'FormCr'
+  +'eate'#8'Position'#7#14'poScreenCenter'#10'LCLVersion'#6#6'0.9.29'#0#6'TPane'
+  +'l'#6'Panel1'#4'Left'#2#8#6'Height'#3#146#1#3'Top'#2#8#5'Width'#3#129#1#7'An'
+  +'chors'#11#5'akTop'#6'akLeft'#7'akRight'#8'akBottom'#0#10'BevelOuter'#7#9'bv'
+  +'Lowered'#11'BorderWidth'#2#1#12'ClientHeight'#3#146#1#11'ClientWidth'#3#129
+  +#1#8'TabOrder'#2#0#0#8'TImage32'#5'Image'#4'Left'#2#2#6'Height'#3#142#1#3'To'
+  +'p'#2#2#5'Width'#3'}'#1#5'Align'#7#8'alClient'#25'Bitmap.ResamplerClassName'
+  +#6#17'TNearestResampler'#11'BitmapAlign'#7#9'baTopLeft'#5'Scale'#5#0#0#0#0#0
+  +#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabOrder'#2#0#0#0#0#6'TPanel'#6
+  +'Panel2'#4'Left'#3#152#1#6'Height'#3#189#1#3'Top'#2#0#5'Width'#3#142#0#5'Ali'
+  +'gn'#7#7'alRight'#10'BevelOuter'#7#6'bvNone'#12'ClientHeight'#3#189#1#11'Cli'
+  +'entWidth'#3#142#0#8'TabOrder'#2#1#7'OnClick'#7#11'Panel2Click'#0#11'TRadioG'
+  +'roup'#11'rgScaleMode'#4'Left'#2#8#6'Height'#3#129#0#3'Top'#2'h'#5'Width'#3
+  +#129#0#8'AutoFill'#9#7'Caption'#6#9'ScaleMode'#28'ChildSizing.LeftRightSpaci'
+  +'ng'#2#6#28'ChildSizing.TopBottomSpacing'#2#6#29'ChildSizing.EnlargeHorizont'
+  +'al'#7#24'crsHomogenousChildResize'#27'ChildSizing.EnlargeVertical'#7#24'crs'
+  +'HomogenousChildResize'#28'ChildSizing.ShrinkHorizontal'#7#14'crsScaleChilds'
+  +#26'ChildSizing.ShrinkVertical'#7#14'crsScaleChilds'#18'ChildSizing.Layout'#7
+  +#29'cclLeftToRightThenTopToBottom'#27'ChildSizing.ControlsPerLine'#2#1#12'Cl'
+  +'ientHeight'#2'o'#11'ClientWidth'#2'}'#9'ItemIndex'#2#0#13'Items.Strings'#1#6
+  +#8'smNormal'#6#9'smStretch'#6#7'smScale'#6#8'smResize'#6#9'smOptimal'#6#15's'
+  +'mOptimalScaled'#0#7'OnClick'#7#16'rgScaleModeClick'#8'TabOrder'#2#0#0#0#11
+  +'TRadioGroup'#8'rgKernel'#4'Left'#2#8#6'Height'#2'y'#3'Top'#3' '#1#5'Width'#3
+  +#129#0#8'AutoFill'#9#7'Caption'#6#7'Kernels'#28'ChildSizing.LeftRightSpacing'
+  +#2#6#28'ChildSizing.TopBottomSpacing'#2#6#29'ChildSizing.EnlargeHorizontal'#7
+  +#24'crsHomogenousChildResize'#27'ChildSizing.EnlargeVertical'#7#24'crsHomoge'
+  +'nousChildResize'#28'ChildSizing.ShrinkHorizontal'#7#14'crsScaleChilds'#26'C'
+  +'hildSizing.ShrinkVertical'#7#14'crsScaleChilds'#18'ChildSizing.Layout'#7#29
+  +'cclLeftToRightThenTopToBottom'#27'ChildSizing.ControlsPerLine'#2#1#12'Clien'
+  +'tHeight'#2'g'#11'ClientWidth'#2'}'#9'ItemIndex'#2#0#13'Items.Strings'#1#6#10
+  +'TBoxKernel'#6#13'TLinearKernel'#6#13'TSplineKernel'#6#14'TLanczosKernel'#6
+  +#15'TMitchellKernel'#0#7'OnClick'#7#13'rgKernelClick'#8'TabOrder'#2#1#0#0#11
+  +'TRadioGroup'#13'rgBitmapAlign'#4'Left'#2#8#6'Height'#2'Y'#3'Top'#2#8#5'Widt'
+  +'h'#3#129#0#8'AutoFill'#9#7'Caption'#6#11'BitmapAlign'#28'ChildSizing.LeftRi'
+  +'ghtSpacing'#2#6#28'ChildSizing.TopBottomSpacing'#2#6#29'ChildSizing.Enlarge'
+  +'Horizontal'#7#24'crsHomogenousChildResize'#27'ChildSizing.EnlargeVertical'#7
+  +#24'crsHomogenousChildResize'#28'ChildSizing.ShrinkHorizontal'#7#14'crsScale'
+  +'Childs'#26'ChildSizing.ShrinkVertical'#7#14'crsScaleChilds'#18'ChildSizing.'
+  +'Layout'#7#29'cclLeftToRightThenTopToBottom'#27'ChildSizing.ControlsPerLine'
+  +#2#1#12'ClientHeight'#2'G'#11'ClientWidth'#2'}'#9'ItemIndex'#2#0#13'Items.St'
+  +'rings'#1#6#9'baTopLeft'#6#8'baCenter'#6#6'baTile'#0#7'OnClick'#7#18'rgBitma'
+  +'pAlignClick'#8'TabOrder'#2#2#0#0#11'TStaticText'#11'StaticText1'#4'Left'#2#8
+  +#6'Height'#2#17#3'Top'#3#242#0#5'Width'#2'!'#7'Caption'#6#6'Scale:'#8'TabOrd'
+  +'er'#2#3#0#0#9'TGaugeBar'#7'sbScale'#4'Left'#2#9#6'Height'#2#16#3'Top'#3#2#1
+  +#5'Width'#3#128#0#5'Color'#7#11'clScrollBar'#7'Backgnd'#7#9'bgPattern'#7'Ena'
+  +'bled'#8#3'Max'#3#232#3#3'Min'#2#25#14'ShowHandleGrip'#9#8'Position'#2'd'#8
+  +'OnChange'#7#13'sbScaleChange'#0#0#0#0
+]);

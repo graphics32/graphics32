@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>Untitled Document</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> MasterAlpha: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>;</p>
+<h2>Description</h2>
+<p class="Body">When blending a bitmap to the screen or to another bitmap, <span class="EmptyRef">MasterAlpha</span> 
+  normally controls the blending factor. The per-pixel opacity, stored in the 
+  blended bitmap, is premultiplied with <span class="EmptyRef">MasterAlpha</span>. 
+  If the <span class="EmptyRef">MasterAlpha</span> property is $00, the bitmap 
+  will be fully transparent, if it is equal to $FF, only per-pixel opacity, stored 
+  in bitmap’s alpha channel is used. This property is used only for bitmap blending, 
+  it does not affect pixel/line drawing and other similar routines. </p>
+<p class="Body">When blending bitmaps in dmCustom draw mode, this property may 
+  be used for other purposes. Custom combining routine may use all 32 bits of 
+  <span class="EmptyRef">MasterAlpha</span>. </p>
+<p class="Body">If the bitmap is in dmBlend draw mode and <span class="EmptyRef">MasterAlpha</span> 
+  is not in the [0&#133;255] range, the blending result is not specified, it is 
+  your responsibility to keep <span class="EmptyRef">MasterAlpha</span> consistent 
+  with current draw mode.</p>
+<p id="hidden">[See also]: <a href="DrawMode.htm">DrawMode</a></p>
+</body>
+</html>

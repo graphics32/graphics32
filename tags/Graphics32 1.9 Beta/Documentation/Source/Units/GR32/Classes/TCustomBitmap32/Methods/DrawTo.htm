@@ -1,0 +1,27 @@
+<html>
+<head>
+<title>DrawTo</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> DrawTo(Dst: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> DrawTo(Dst: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  DstX, DstY: Integer); <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> DrawTo(Dst: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; DstX,
+DstY: Integer; <strong>const</strong> SrcRect: TRect); <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> DrawTo(Dst: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> DstRect: <a href="../../../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> DrawTo(Dst: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> DstRect, SrcRect: <a href="../../../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>); 
+  <b>overload</b>; </p>
+<h2>Description</h2>
+<p class="Body">The <span class="EmptyRef">DrawTo</span> method renders the bitmap 
+  (or part of it specified by <span class="EmptyRef">SrcRect</span> parameter) 
+  onto another bitmap specified by <span class="EmptyRef">Dst</span> parameter. It works similar to <a href="../../../../GR32/Classes/TCustomBitmap32/Methods/Draw.htm">Draw</a> method but instead 
+  of copying data from some other source, the bitmap renders itself to destination 
+  object. See the <a href="../../../../GR32/Classes/TCustomBitmap32/Methods/Draw.htm">Draw</a> description for details.</p>
+</body>
+</html>

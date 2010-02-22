@@ -1,0 +1,22 @@
+<html>
+<head>
+<title>TFillLineEvent</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TFillLineEvent = <strong>procedure</strong>(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32)
+of <strong>object</strong>;</p>
+<h2>Description</h2>
+<p class="Body">Use this definition to create custom fill line callbacks.</p>
+<p class="Body"><strong>Dst</strong> specifies the first position in the destination
+    buffer that needs to be drawn to. You can use the coordinates <strong>DstX</strong> and <strong>DstY</strong> for calculations.</p>
+<p class="Body"><strong>Length</strong> determines the length of the line to draw.</p>
+<p class="Body"><strong>AlphaValues</strong> is a pointer to the first alpha value of the edge  for each pixel on that
+  line. This is used by the PolygonXS and PolyPolygonXS procedures only. For PolygonTS and PolyPolygonTS this parameter is <strong>nil</strong>,
+  so please do appropriate checks.</p>
+<p class="Body">Callbacks based on this specification cann be used with the <a href="../Classes/TPolygon32/Methods/DrawFill.htm">DrawFill</a> and <a href="../Classes/TPolygon32/Methods/Draw.htm">Draw</a> methods
+of <a href="../Classes/TPolygon32/_Body.htm">TPolygon32</a> or with the <a href="../Routines/Polygon.htm">Polygon</a> and <a href="../Routines/PolyPolygon.htm">PolyPolygon</a> routines.</p>
+<p id="hidden">[See Also] <a href="../Routines/Polygon.htm">Polygon</a>, <a href="../Routines/PolyPolygon.htm">PolyPolygon</a></p>
+</body>
+</html>

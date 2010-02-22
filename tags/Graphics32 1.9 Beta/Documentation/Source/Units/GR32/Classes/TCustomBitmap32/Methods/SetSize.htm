@@ -1,0 +1,29 @@
+<html>
+<head>
+<title>SetSize</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> SetSize(NewWidth, NewHeight: Integer): Boolean; 
+  <b>override</b>;</p>
+<p class="Decl"><b>procedure</b> SetSize(Source: TPersistent); <span class="Comment">// 
+  implemented in <a href="../../TCustomMap/_Body.htm">TCustomMap</a></span></p>
+<h2>Description</h2>
+<p class="Body">Call <span class="EmptyRef">SetSize</span> to set a new width 
+  and height of the bitmap. If one of the arguments is zero, the bitmap is considered 
+  empty and in case of <a href="../../TBitmap32/_Body.htm">TBitmap32</a> its <a href="../../TBitmap32/Properties/Handle.htm">Handle</a> property is set 
+  to zero. </p>
+<p class="Body">Calling <span class="EmptyRef">SetSize</span> works faster than 
+  consecutive changing of <a href="../../TCustomMap/Properties/Width.htm">Width</a> 
+  and <a href="../../TCustomMap/Properties/Height.htm">Height</a> properties. 
+  If you use another bitmap or control as an argument, the bitmap will be sized 
+  to source dimensions. </p>
+<p class="Body">If you have an external <span class="API">TCanvas</span> attached, 
+  refresh it <span class="API">Handle</span> property after resizing: </p>
+<p class="Code">Bitmap32.SetSize(100, 200);</p>
+<p class="Code">Canvas.Handle := Bitmap32.Handle;</p>
+<p class="Body">After the <span class="EmptyRef">SetSize</span> call the image 
+  the bitmap should be completely redrawn.</p>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>BlockTransfer</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> BlockTransferX( <br>
+  &nbsp;&nbsp;Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;DstX: TFixed; <br>
+  &nbsp;&nbsp;DstY: TFixed;<br>
+  &nbsp;&nbsp;Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;SrcRect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;CombineOp: <a href="../../GR32/Types/TDrawMode.htm">TDrawMode</a>;<br>
+  &nbsp;&nbsp;CombineCallBack: <a href="../../GR32/Types/TPixelCombineEvent.htm">TPixelCombineEvent</a> 
+  = nil);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">BlockTransferX</span> is an extended version 
+  of <a href="BlockTransfer.htm">BlockTransfer</a> that allows a destination coordinate 
+  (<b>DstX</b>, <b>DstY</b>) in fixed-point coordinates. This means that the source 
+  bitmap is not copied directly but rather transposed a fractional distance before 
+  it is copied. In order to still retain reasonable performance, linear interpolation 
+  is used for the fractional displacement.</p>
+<p class="Body">See <a href="BlockTransfer.htm">BlockTransfer</a> for a detailed 
+  description.</p>
+<p id="hidden">[See Also] <a href="StretchTransfer.htm">StretchTransfer</a></p>
+</body>
+</html>

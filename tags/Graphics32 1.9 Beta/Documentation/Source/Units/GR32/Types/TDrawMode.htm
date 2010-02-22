@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>TDrawMode</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TDrawMode = (dmOpaque, dmBlend, dmCustom, dmTransparent);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TDrawMode</span> defines how the bitmap 
+  is combined with the background. This is the type for <a href="../Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a> 
+  property of <a href="../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> class, and 
+  it is also passed as parameter in <a href="../../GR32_Resamplers/Routines/BlockTransfer.htm">BlockTransfer</a> 
+  and <a href="../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a> 
+  functions.</p>
+<ul>
+  <li><strong>dmOpaque</strong> – a color information from the foreground image 
+    completely replaces the background data;</li>
+  <li><strong>dmBlend</strong> – foreground and background colors are blended 
+    together using per-pixel opacity of the foreground bitmap (stored in its alpha 
+    channel), multiplied by its <a href="../Classes/TCustomBitmap32/Properties/MasterAlpha.htm">MasterAlpha</a>;</li>
+  <li><strong>dmCustom</strong> – colors are mixed using <a href="../Classes/TCustomBitmap32/Events/OnPixelCombine.htm">OnPixelCombine</a> 
+    event, that is essentially a call-back function allowing for any custom blending 
+    routine.</li>
+  <li><strong>dmTransparent</strong> – color key transparency: any pixel that 
+    matches <a href="../Classes/TCustomBitmap32/Properties/OuterColor.htm">TBitmap32.OuterColor</a> 
+    is treated as transparent.</li>
+</ul>
+</body>
+</html>

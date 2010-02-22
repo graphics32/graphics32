@@ -1,0 +1,108 @@
+<html>
+
+	<head>
+<title>Color Types</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+	<body bgcolor="#FFFFFF">
+		<h2><a name="TColor32"></a>TColor32</h2>
+		<p class="Decl"><b>type</b> TColor32 = <b>type</b> Longword;</p>
+		<p class="Decl"><b>type</b> PColor32 = ^TColor32;</p>
+		<p class="Body">A simple ARGB color quad, compatible with 32-bit DIBs.</p>
+		<p class="Body"><span class="EmptyRef">TColor32</span> holds color information in ARGB format:</p>
+		<table width="75%" border="1" bordercolor="#FFFFFF" cellspacing="0">
+			<tr>
+				<th>Bits 32...24</th>
+				<th>Bits 23...16</th>
+				<th>Bits 15...8</th>
+				<th>Bits 7...0</th>
+			</tr>
+			<tr>
+				<td>
+					<div align="center">
+						Alpha</div>
+				</td>
+				<td>
+					<div align="center">
+						Red</div>
+				</td>
+				<td>
+					<div align="center">
+						Green</div>
+				</td>
+				<td>
+					<div align="center">
+						Blue</div>
+				</td>
+			</tr>
+		</table>
+		<p class="Body">This order is different from ABGR pixel format used by most Windows API functions and implemented in Delphi as <span class="EmptyRef">TColor</span> type. A couple of functions are provided to convert colors between different standards: <a href="../../GR32/Routines/Color32.htm">Color32</a>, <a href="../../GR32/Routines/WinColor.htm">WinColor</a>.</p>
+		<p class="Body">The alpha component is responsible for pixel&rsquo;s opacity: zero value corresponds to complete transparency, and the value of 255 corresponds to completely opaque pixels.</p>
+		<p class="Body">Graphics32 specifies several pre-defined <a href="../../GR32/Constants/Color%20Constants.htm">Color Constants</a>, which are similar to standard ones except that they have properly filled alpha value and swapped red and blue components.</p>
+		<h2><a name="TColor32Entry"></a>TColor32Entry</h2>
+		<p class="Decl">TColor32Entry = <strong>packed</strong> <strong>record</strong><br>
+			<strong>case</strong> Integer <strong>of<br>
+				&nbsp;&nbsp;</strong>0:&nbsp;(A: Byte;<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;B: Byte;<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;G: Byte;<br>
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R: Byte);<br>
+			&nbsp;&nbsp;1: (ARGB: <a href="#TColor32">TColor32</a>;);<br>
+			&nbsp;&nbsp;2: (Planes: <b>array</b> [0..3] <b>of</b> Byte);<br>
+			&nbsp;&nbsp;3: (Components: <b>array</b> [<a href="#TColor32Component">TColor32Component</a>] <b>of</b> Byte);<br>
+			<strong>end</strong>;</p>
+		<p class="Decl"><b>type</b> PColor32Entry = ^TColor32Entry;</p>
+		<p class="Body">A useful type for gaining fast direct read/write access to the components of <span class="EmptyRef">TColor32</span> by typecasting. The following code segment shows how this typecasting can be used in different manners -  we recommend using these approaches instead of auxiliary functions like <a href="../Routines/RedComponent.htm">RedComponent</a> etc.:<br>
+			<br>
+		</p>
+		<blockquote>
+			<p><b>var</b></p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;AColor32: TColor32;</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;I: Integer;</p>
+			<p><b>begin</b></p>
+			<p class="Comment">&nbsp;&nbsp;&nbsp;&nbsp;// Sets values to individual components</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;TColor32Entry(AColor32).A := 255;</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;TColor32Entry(AColor32).R := 127;</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;TColor32Entry(AColor32).G := 63;</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;TColor32Entry(AColor32).B := 31;</p>
+			<p></p>
+			<p class="Comment">&nbsp;&nbsp;&nbsp;&nbsp;//Sets all planes or components (&quot;channels&quot;) to a different random value</p>
+			<p><b>&nbsp;&nbsp;&nbsp;&nbsp;with</b> TColor32Entry(AColor32) <b>do</b></p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>for</b> I := Low(Planes)<b> to</b> High(Planes) <b>do</b></p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Planes[I] := Random(255);</p>
+			<p></p>
+			<p class="Comment">&nbsp;&nbsp;&nbsp;&nbsp;//Write value of Alpha component to Red, Green and Blue components</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>with</strong> TColor32Entry(AColor32) <strong>do</strong><br></p>
+			
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>begin</strong></p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Components[ccRed] := Components[ccAlpha];</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Components[ccGreen] := Components[ccAlpha];</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Components[ccBlue] := Components[ccAlpha];</p>
+			<p>&nbsp;&nbsp;&nbsp;&nbsp;<strong>end;</strong></p>
+			<p></p>
+			<p><b>end</b>;</p>
+		</blockquote>
+		<h2><a name="TColor32Component"></a>TColor32Component</h2>
+		<p class="Decl"><b>type</b> TColor32Component = (ccBlue, ccGreen, ccRed, ccAlpha);</p>
+		<p class="Body">An enumerated type that specifies a given <a href="#TColor32">TColor32</a> component or plane.</p>
+		<h2><a name="TColor32Components"></a>TColor32Components</h2>
+		<p class="Decl"><b>type</b> TColor32Components = <strong>set of</strong> <a href="#TColor32Component">TColor32Component</a>;</p>
+		<p class="Body">A set of <a href="#TColor32Component">TColor32Component</a> which can be used to specify zero or more components. The order of defined components has no importance. To construct a set of components from booleans indicating component presence, use function <a href="../Routines/Color32Components.htm">Color32Components</a>. If an empty set is passed to a routine that uses this type, this will (and should) in most cases lead to no processing.</p>
+		<h2><a name="TColor32Array"></a>TColor32Array</h2>
+		<p class="Decl"><b>type</b> TColor32Array = <b>array</b> [0..0] <b>of</b> <a href="#TColor32Entry">TColor32</a>;</p>
+		<p class="Decl"><b>type</b> PColor32Array = ^TColor32Array;</p>
+		<p class="Body">A reference to array of <a href="#TColor32Entry">TColor32</a>-typed values.</p>
+		<p class="Body">Most likely you will never use the <span class="EmptyRef">TColor32Array</span> type itself, however <span class="EmptyRef">PColor32Array</span> is the one of some importance. It provides indexed access to color values stored in memory. For example, in <a href="../../GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a>, it is used to access pixel data.</p>
+		<h2><a name="TArrayOfColor32"></a>TArrayOfColor32</h2>
+		<p class="Decl"><b>type</b> TArrayOfColor32 = <b>array of</b> <a href="#TColor32Entry">TColor32</a>;</p>
+		<p class="Body">A dynamic array of <a href="#TColor32Entry">TColor32</a>-typed values.</p>
+		<p class="Body">You may use the standard <span class="API">SetLength</span> function for array allocation and dynamic size changes.</p>
+		<p class="Body">Do not confuse <a href="#TColor32Array">PColor32Array</a> and <span class="EmptyRef">TArrayOfColor32</span> types. While the first one holds the pointer to a memory location, the second one is a fully functional dynamic array.</p>
+		<h2><a name="TPalette32"></a>TPalette32</h2>
+		<p class="Decl"><b>type</b> TPalette32 = <b>array</b> [Byte] <b>of</b> <a href="#TColor32Entry">TColor32</a>;</p>
+		<p class="Decl"><b>type</b> PPalette32 = ^TPalette32;</p>
+		<p class="Body">A fixed-size array of 256 <a href="#TColor32Entry">TColor32</a>-typed values.</p>
+		<p class="Body"><span class="EmptyRef">TPalette32</span> type is mostly used to simulate palette-based operations.</p>
+	</body>
+
+</html>

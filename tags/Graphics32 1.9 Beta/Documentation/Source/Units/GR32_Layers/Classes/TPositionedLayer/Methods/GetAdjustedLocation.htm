@@ -1,0 +1,35 @@
+<html>
+<head>
+<title></title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> GetAdjustedLocation: <a href="../../../../GR32/Types/Rectangle%20Types.htm#TFloatRect">TFloatRect</a>;</p>
+<h2>Description</h2>
+<p class="Body">When the <a href="../../../../GR32_Layers/Classes/TPositionedLayer/Properties/Scaled.htm">Scaled</a> property 
+  is <i>True</i>, <span class="EmptyRef">GetAdjustedLocation</span> returns scaled 
+  <a href="../../../../GR32_Layers/Classes/TPositionedLayer/Properties/Location.htm">Location</a>, otherwise it returns <a href="../../../../GR32_Layers/Classes/TPositionedLayer/Properties/Location.htm">Location</a> 
+  as it is, without scaling.</p>
+<p class="Body">It is up to you do decide if you want to use the result as a floating-point 
+  rectangle, to round the coordinates before painting:</p>
+<p class="Code"><b>procedure</b> TForm1.OnLayerPaintHandler(Sender: TObject; Buffer: 
+  TBitmap32); </p>
+<p class="Code"><b>var</b> </p>
+<p class="Code">&nbsp;&nbsp;R: TRect; </p>
+<p class="Code"><b>begin</b> </p>
+<p class="Code">&nbsp;&nbsp;<b>if</b> Sender <b>is</b> TPositionedLayer <b>then</b> 
+</p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;<b>with</b> TPositionedLayer(Sender) <b>do</b> 
+</p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;<b>begin</b> </p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R := MakeRect(GetAdjustedLocation);</p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Buffer.FrameRectS(R.Left, 
+  R.Top, R.Right, R.Bottom, clRed32);</p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;<b>end</b>; </p>
+<p class="Code">&nbsp;&nbsp;<b>end</b>; </p>
+<p class="Code"><b>end</b>; </p>
+<p id="hidden">[See also]: <a href="../../../../../Additional%20Topics/Using%20TImage32/Using%20Layers.htm">Using 
+  Layers</a>, <a href="GetAdjustedRect.htm">GetAdjustedRect</a> </p>
+</body>
+</html>

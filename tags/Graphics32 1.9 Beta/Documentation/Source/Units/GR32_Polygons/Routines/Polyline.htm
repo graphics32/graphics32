@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>PolyLine</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> PolyLineTS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>; 
+  Color: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Closed: 
+  Boolean=True; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);</p>
+<p class="Decl"><b>procedure</b> PolyLineAS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>; 
+  Color: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Closed: 
+  Boolean=True; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);</p>
+<p class="Decl"><b>procedure</b> PolyLineXS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>; 
+  Color: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Closed: 
+  Boolean=True; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);</p>
+<p class="Decl"><b>procedure</b> PolyLineXSP(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>;
+Closed: Boolean=True; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);</p>
+<h2>Description</h2>
+<p class="Body">Draws a series of lines, connecting points passed in. The points are transformed by <strong>Transformation</strong>. If <b>Closed</b> 
+  is <i>True</i>, the polygon is closed automatically by drawing a line from the 
+  last vertex to the first.</p>
+<p class="Body"><span class="EmptyRef">PolyLineTS</span> draws a non-antialiased 
+  line with optional transparency. When drawing, fixed-point coordinates of vertixes 
+  are rounded.</p>
+<p class="Body"><span class="EmptyRef">PolyLineAS</span> draws an antialiased 
+  line, fixed-point coordinates of vertexes are rounded.</p>
+<p class="Body"><span class="EmptyRef">PolyLineXS</span> provides full antialiasing 
+  and does not perform rounding of vertexes' coordinates. <span class="EmptyRef">PolyLineXSP</span> uses the stipple pattern
+  defined in the <strong>Bitmap</strong> instead of a color. </p>
+<p class="Body">All functions perform clipping.</p>
+<p id="hidden">[See Also] <a href="../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>IntensityToAlpha</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> IntensityToAlpha(Dst, Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>);</p>
+<h2>Description</h2>
+<p class="Body">This function transforms the color intensity, stored in RGB channels 
+  of <b>Src</b> bitmap into the alpha channel in <b>Dst</b>. If necessary, the 
+  <b>Dst</b> bitmap is resized to fit <b>Src</b> dimesions.</p>
+<p class="Body">The intensity is calculated using the <a href="../../GR32/Routines/Intensity.htm">Intensity</a> 
+  function.</p>
+<p class="Body">The function writes only the alpha component into <b>Dst</b>. 
+  Other channels remain intact (provided dimensions of <b>Dst</b> and <b>Src</b> 
+  match before <span class="EmptyRef">IntensityToAlpha</span> call).</p>
+<p class="Body"><span class="EmptyRef">IntensityToAlpha</span> is useful when 
+  it is necessary to load an alpha channel stored in as an image.</p>
+<p class="Body">The in-place operation is fully supported, that is <b>Dst</b> 
+  may be the same as <b>Src</b>. </p>
+<p id="Hidden">[See also] <a href="AlphaToGrayscale.htm">AlphaToGrayscale</a></p>
+</body>
+</html>

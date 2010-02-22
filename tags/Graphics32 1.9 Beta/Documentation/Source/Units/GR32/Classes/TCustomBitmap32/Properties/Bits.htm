@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>Bits</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Bits: <a href="../../../Types/Color%20Types.htm#TColor32Array">PColor32Array</a>; 
+  <span class="Comment">// Read-only</span></p>
+<p class="Decl"><b>type</b> TColor32Array = <b>array</b> [0..0] <b>of</b> <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+</p>
+<p class="Decl"><b>type</b> PColor32Array = ^TColor32Array;</p>
+<h2>Description</h2>
+<p class="Body">The bits property contains the address of the first (top-left) 
+  pixel in a bitmap. If the bitmap is not allocated (width or height is zero), 
+  the returned address is <i>nil</i>.</p>
+<p class="Body">Note, that numbering of rows in Graphics32 starts from the top-most 
+  one. </p>
+<p class="Body">Data is continuously allocated in memory, row by row. You may 
+  safely access <a href="../../TCustomMap/Properties/Width.htm">Width</a> * <a href="../../TCustomMap/Properties/Height.htm">Height</a> 
+  elements, each of them is a 4-byte <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a> 
+  value. For example:</p>
+<div class="Code"><pre class="brush: delphi;">
+var 
+  P: PColor32Array; 
+begin 
+  P := Bitmap32.Bits; 
+  for I := 0 to Bitmap32.Width * Bitmap32.Height - 1 do 
+    P[I] := Gray32(Random(255)); // fill with a random grayscale noise 
+end;</pre></div>
+<p class="Body">Note, that in this code no size verification is required, if width 
+  or height is zero, their product is zero and the loop will never be executed.</p>
+<p id="hidden">[See also]: <a href="PixelPtr.htm">PixelPtr</a>, <a href="ScanLine.htm">ScanLine</a></p>
+</body>
+</html>
