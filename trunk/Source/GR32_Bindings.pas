@@ -246,9 +246,12 @@ procedure FreeRegisters;
 var
   I: Integer;
 begin
-  for I := Registers.Count - 1 downto 0 do
-    TFunctionRegistry(Registers[I]).Free;
-  Registers.Free;
+  if Assigned(Registers) then
+  begin
+    for I := Registers.Count - 1 downto 0 do
+      TFunctionRegistry(Registers[I]).Free;
+    Registers.Free;
+  end;
 end;
 
 initialization
