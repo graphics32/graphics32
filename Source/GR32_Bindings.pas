@@ -20,7 +20,7 @@ unit GR32_Bindings;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is MicroTiles Repaint Optimizer Extension for Graphics32
+ * The Original Code is Run-time Function Bindings for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Mattias Andersson
@@ -34,6 +34,8 @@ unit GR32_Bindings;
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+
+{$I GR32.INC}
 
 uses
   Classes, GR32_System;
@@ -59,6 +61,11 @@ type
   end;
 
   { TFunctionRegistry }
+  { This class fascilitates a registry that allows multiple function to be
+    registered together with information about their CPU requirements and
+    an additional 'flags' parameter. Functions that share the same FunctionID
+    can be assigned to a function variable through the rebind methods.
+    A priority callback function is used to assess the most optimal function. }
   TFunctionRegistry = class(TPersistent)
   private
     FItems: TList;
@@ -86,7 +93,6 @@ type
   end;
 
 function NewRegistry(const Name: string = ''): TFunctionRegistry;
-// function FindRegistry(const Name: string): TFunctionRegistry;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 

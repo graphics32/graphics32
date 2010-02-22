@@ -90,9 +90,6 @@ var
   MergeLine: TBlendLine;
   MergeLineEx: TBlendLineEx;
 
-{ 4-pixel interpolator }
-  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
-
 { Color algebra functions }
   ColorAdd: TBlendReg;
   ColorSub: TBlendReg;
@@ -1893,69 +1890,6 @@ begin
     end;
 end;
 
-{ Interpolators }
-
-function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
-var
-  C1, C3: TColor32;
-begin
-  if WX_256 > $FF then WX_256:= $FF;
-  if WY_256 > $FF then WY_256:= $FF;
-  C1 := C11^; Inc(C11);
-  C3 := C21^; Inc(C21);
-  Result := CombineReg(CombineReg(C1, C11^, WX_256),
-                       CombineReg(C3, C21^, WX_256), WY_256);
-end;
-
-{$IFDEF TARGET_x86}
-function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
-asm
-        MOVQ      MM1,[ECX]
-        MOV       ECX,C21
-        MOVQ      MM3,[ECX]
-        MOVQ      MM2,MM1
-        MOVQ      MM4,MM3
-        PSRLQ     MM1,32
-        PSRLQ     MM3,32
-
-        MOVD      MM5,EAX
-        PUNPCKLWD MM5,MM5
-        PUNPCKLDQ MM5,MM5
-
-        PXOR MM0, MM0
-
-        PUNPCKLBW MM1,MM0
-        PUNPCKLBW MM2,MM0
-        PSUBW     MM2,MM1
-        PMULLW    MM2,MM5
-        PSLLW     MM1,8
-        PADDW     MM2,MM1
-        PSRLW     MM2,8
-
-        PUNPCKLBW MM3,MM0
-        PUNPCKLBW MM4,MM0
-        PSUBW     MM4,MM3
-        PMULLW    MM4,MM5
-        PSLLW     MM3,8
-        PADDW     MM4,MM3
-        PSRLW     MM4,8
-
-        MOVD      MM5,EDX
-        PUNPCKLWD MM5,MM5
-        PUNPCKLDQ MM5,MM5
-
-        PSUBW     MM2,MM4
-        PMULLW    MM2,MM5
-        PSLLW     MM4,8
-        PADDW     MM2,MM4
-        PSRLW     MM2,8
-
-        PACKUSWB  MM2,MM0
-        MOVD      EAX,MM2
-end;
-
-{$ENDIF}
-
 const
   FID_EMMS = 0;
   FID_MERGEREG = 1;
@@ -2020,8 +1954,6 @@ begin
   BlendRegistry.RegisterBinding(FID_COLOREXCLUSION, @@ColorExclusion);
   BlendRegistry.RegisterBinding(FID_COLORSCALE, @@ColorScale);
 
-  BlendRegistry.RegisterBinding(FID_INTERPOLATOR, @@Interpolator);
-
   // pure pascal
   BlendRegistry.Add(FID_EMMS, @EMMS_Pas);
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_Pas);
@@ -2049,7 +1981,6 @@ begin
   BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_Pas);
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_Pas);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
-  BlendRegistry.Add(FID_INTERPOLATOR, @Interpolator_Pas);
 
 {$IFDEF TARGET_x86}
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
@@ -2078,7 +2009,6 @@ begin
   BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_INTERPOLATOR, @Interpolator_MMX, [ciMMX]);
 {$ENDIF}
 
   BlendRegistry.RebindAll;

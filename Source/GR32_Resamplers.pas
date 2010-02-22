@@ -589,7 +589,7 @@ const
 
 var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
-  LinearInterpolator: function(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+  Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 implementation
 
@@ -1390,7 +1390,7 @@ begin
     MapHorz[I].Pos := Floor(t2);
     MapHorz[I].Weight := 256 - Round(Frac(t2) * 256);
     //Pre-pack weights to reduce MMX Reg. setups per pixel:
-    MapHorz[I].Weight:= MapHorz[I].Weight shl 16 + MapHorz[I].Weight;
+    //MapHorz[I].Weight:= MapHorz[I].Weight shl 16 + MapHorz[I].Weight;
   end;
   I := DstClipW - 1;
   while MapHorz[I].Pos = SrcRect.Right - 1 do
@@ -1412,7 +1412,7 @@ begin
     MapVert[I].Pos := Floor(t2);
     MapVert[I].Weight := 256 - Round(Frac(t2) * 256);
     //Pre-pack weights to reduce MMX Reg. setups per pixel:
-    MapVert[I].Weight := MapVert[I].Weight shl 16 + MapVert[I].Weight;
+    //MapVert[I].Weight := MapVert[I].Weight shl 16 + MapVert[I].Weight;
   end;
   I := DstClipH - 1;
   while MapVert[I].Pos = SrcRect.Bottom - 1 do
@@ -1443,7 +1443,7 @@ begin
             SrcPtr1 := @SrcLine[SrcIndex];
             SrcPtr2 := @SrcLine[SrcIndex + SrcW];
           end;
-          DstLine[I] := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+          DstLine[I] := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
         end;
         Inc(DstLine, DstW);
       end;
@@ -1465,7 +1465,7 @@ begin
               SrcPtr1 := @SrcLine[SrcIndex];
               SrcPtr2 := @SrcLine[SrcIndex + SrcW];
             end;
-            C := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+            C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
             BlendMemEx(C, DstLine[I], Src.MasterAlpha)
           end;
           Inc(DstLine, Dst.Width);
@@ -1488,7 +1488,7 @@ begin
               SrcPtr1 := @SrcLine[SrcIndex];
               SrcPtr2 := @SrcLine[SrcIndex + SrcW];
             end;
-            C := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+            C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
             if C <> Src.OuterColor then DstLine[I] := C;
           end;
           Inc(DstLine, Dst.Width);
@@ -1510,7 +1510,7 @@ begin
           SrcPtr1 := @SrcLine[SrcIndex];    
           SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
         end;    
-        C := LinearInterpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
+        C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
       end;
       Inc(DstLine, Dst.Width);
@@ -2065,20 +2065,20 @@ end;
 
 { Special interpolators (for sfLinear and sfDraft) }
 
-function LinearInterpolator_Pas(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_Pas(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 var
   C1, C3: TColor32;
 begin
-  PWX_256:= PWX_256 shr 16; if PWX_256 > $FF then PWX_256:= $FF;
-  PWY_256:= PWY_256 shr 16; if PWY_256 > $FF then PWY_256:= $FF;
+  if WX_256 > $FF then WX_256:= $FF;
+  if WY_256 > $FF then WY_256:= $FF;
   C1 := C11^; Inc(C11);
   C3 := C21^; Inc(C21);
-  Result := CombineReg(CombineReg(C1, C11^, PWX_256),
-                       CombineReg(C3, C21^, PWX_256), PWY_256);
+  Result := CombineReg(CombineReg(C1, C11^, WX_256),
+                       CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
 {$IFDEF TARGET_x86}
-function LinearInterpolator_MMX(PWX_256, PWY_256: Cardinal; C11, C21: PColor32): TColor32;
+function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
         MOVQ      MM1,[ECX]
         MOVQ      MM2,MM1
@@ -2088,8 +2088,8 @@ asm
         MOVQ      MM4,MM3
         PSRLQ     MM3,32
         MOVD      MM5,EAX
-        PUNPCKLDQ MM5,MM5
-        PXOR MM0, MM0
+        PSHUFW    MM5,MM5,0
+        PXOR      MM0,MM0
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
         PSUBW     MM2,MM1
@@ -2105,7 +2105,7 @@ asm
         PADDW     MM4,MM3
         PSRLW     MM4,8
         MOVD      MM5,EDX
-        PUNPCKLDQ MM5,MM5
+        PSHUFW    MM5,MM5,0
         PSUBW     MM2,MM4
         PMULLW    MM2,MM5
         PSLLW     MM4,8
@@ -2114,7 +2114,6 @@ asm
         PACKUSWB  MM2,MM0
         MOVD      EAX,MM2
 end;
-
 {$ENDIF}
 
 { Stretch Transfer }
@@ -3796,46 +3795,8 @@ end;
 
 const
   FID_BLOCKAVERAGE = 0;
-  FID_LINEARINTERPOLATOR = 1;
-(*
-{$IFDEF TARGET_x86}
+  FID_INTERPOLATOR = 1;
 
-  BlockAverageProcs : array [0..2] of TFunctionInfo = (
-    (Address : @BlockAverage_Pas; Requires: []),
-    (Address : @BlockAverage_MMX; Requires: [ciMMX]),
-    (Address : @BlockAverage_3DNow; Requires: [ci3DNow])
-  );
-
-  LinearInterpolatorProcs : array [0..1] of TFunctionInfo = (
-    (Address : @LinearInterpolator_Pas; Requires: []),
-    (Address : @LinearInterpolator_MMX; Requires: [ciMMX])
-  );
-
-{$ELSE}
-
-  BlockAverageProcs : array [0..0] of TFunctionInfo = (
-    (Address : @BlockAverage_Pas; Requires: [])
-  );
-
-  LinearInterpolatorProcs : array [0..0] of TFunctionInfo = (
-    (Address : @LinearInterpolator_Pas; Requires: [])
-  );
-
-{$ENDIF}
-
-{Complete collection of unit templates}
-
-var
-  FunctionTemplates : array [0..1] of TFunctionTemplate = (
-     (FunctionVar: @@BlockAverage;
-      FunctionProcs : @BlockAverageProcs;
-      Count: Length(BlockAverageProcs)),
-
-     (FunctionVar: @@LinearInterpolator;
-      FunctionProcs : @LinearInterpolatorProcs;
-      Count: Length(LinearInterpolatorProcs))
-  );
-*)
 var
   Registry: TFunctionRegistry;
 
@@ -3843,20 +3804,19 @@ procedure RegisterBindings;
 begin
   Registry := NewRegistry('GR32_Resamplers bindings');
   Registry.RegisterBinding(FID_BLOCKAVERAGE, @@BlockAverage);
-  Registry.RegisterBinding(FID_LINEARINTERPOLATOR, @@LinearInterpolator);
+  Registry.RegisterBinding(FID_INTERPOLATOR, @@Interpolator);
 
   Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_Pas);
-  Registry.Add(FID_LINEARINTERPOLATOR, @LinearInterpolator_Pas);
+  Registry.Add(FID_INTERPOLATOR, @Interpolator_Pas);
 {$IFDEF TARGET_x86}
   Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
   Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
-  Registry.Add(FID_LINEARINTERPOLATOR, @LinearInterpolator_MMX, [ciMMX]);
+  Registry.Add(FID_INTERPOLATOR, @Interpolator_MMX, [ciSSE]);
 {$ENDIF}
+  Registry.RebindAll;
 end;
 
 initialization
-//  RegisterTemplates(GR32_Resamplers_FunctionTemplates, FunctionTemplates,
-//    'GR32_Resamplers Templates');
   RegisterBindings;
 
   { Register resamplers }
