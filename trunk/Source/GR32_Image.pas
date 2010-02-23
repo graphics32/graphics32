@@ -285,6 +285,7 @@ type
     procedure MouseLeave; override;
     procedure SetRepaintMode(const Value: TRepaintMode); override;
     procedure SetScaleMode(Value: TScaleMode); virtual;
+    procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     procedure UpdateCache; virtual;
     property  UpdateCount: Integer read FUpdateCount;
   public
@@ -1754,15 +1755,9 @@ begin
   with CachedBitmapRect do
   begin
     if (Right - Left <= 0) or (Bottom - Top <= 0) or Bitmap.Empty then
-    begin
-      ShiftX := 0;
-      ShiftY := 0;
-    end
+      SetXForm(0, 0, 1, 1)
     else
-    begin
-      ShiftX := Left;
-      ShiftY := Top;
-    end;
+      SetXForm(Left, Top, (Right - Left) / Bitmap.Width, (Bottom - Top) / Bitmap.Height);
   end;
   CacheValid := True;
 
@@ -1900,23 +1895,30 @@ begin
   Changed;
 end;
 
+procedure TCustomImage32.SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
+begin
+  Self.ShiftX := ShiftX;
+  Self.ShiftY := ShiftY;
+  FScaleX := ScaleX;
+  FScaleY := ScaleY;
+  RecScaleX := 1 / ScaleX;
+  RecScaleY := 1 / ScaleY;
+end;
+
 procedure TCustomImage32.UpdateCache;
 begin
   if CacheValid then Exit;
   CachedBitmapRect := GetBitmapRect;
-  with CachedBitmapRect do
-  begin
-    if Bitmap.Empty then
-    begin
-      ShiftX := 0;
-      ShiftY := 0;
-    end
-    else
-    begin
-      ShiftX := Left;
-      ShiftY := Top;
-    end;
-  end;
+
+  if Bitmap.Empty then
+    SetXForm(0, 0, 1, 1)
+  else
+    SetXForm(
+      CachedBitmapRect.Left, CachedBitmapRect.Top,
+      (CachedBitmapRect.Right - CachedBitmapRect.Left) / Bitmap.Width,
+      (CachedBitmapRect.Bottom - CachedBitmapRect.Top) / Bitmap.Height
+    );
+
   CacheValid := True;
 end;
 
