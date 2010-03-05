@@ -56,7 +56,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 
 { Trigonometric routines }
 
-procedure SinCos(const Theta: Single; out Sin, Cos: Single); overload;
+procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat); overload;
 procedure SinCos(const Theta, Radius: Single; out Sin, Cos: Single); overload;
 function Hypot(const X, Y: TFloat): TFloat; overload;
 function Hypot(const X, Y: Integer): Integer; overload;
