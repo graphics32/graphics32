@@ -2943,7 +2943,7 @@ procedure TCustomBitmap32.HorzLineX(X1, Y, X2: TFixed; Value: TColor32);
 var
   I: Integer;
   ChangedRect: TFixedRect;
-  X1F, X2F, YF: Integer;
+  X1F, X2F, YF, Count: Integer;
   Wx1, Wx2, Wy, Wt: TColor32;
   PDst: PColor32;
 begin
@@ -2961,12 +2961,13 @@ begin
     Wx1 := X1 and $ffff xor $ffff;
     Wx2 := X2 and $ffff;
 
+    Count := X2F - X1F - 1;
     if Wy > 0 then
     begin
       CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) shr 24]);
       Wt := GAMMA_TABLE[Wy div 255];
       Inc(PDst);
-      for I := 1 to X2F - X1F do
+      for I := 0 to Count - 1 do
       begin
         CombineMem(Value, PDst^, Wt);
         Inc(PDst);
@@ -2982,7 +2983,7 @@ begin
       CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) shr 24]);
       Inc(PDst);
       Wt := GAMMA_TABLE[Wy div 255];
-      for I := 1 to X2F - X1F do
+      for I := 0 to Count - 1 do
       begin
         CombineMem(Value, PDst^, Wt);
         Inc(PDst);
@@ -3005,10 +3006,15 @@ begin
   ChangedRect := FixedRect(X1, Y, X2, Y + 1);
   if not FMeasuringMode then
   begin
-    X1 := Constrain(X1, FFixedClipRect.Left, FFixedClipRect.Right - FIXEDONE);
-    X2 := Constrain(X2, FFixedClipRect.Left, FFixedClipRect.Right - FIXEDONE);
-    Y := Constrain(Y, FFixedClipRect.Top, FFixedClipRect.Bottom - FIXEDONE);
-    HorzLineX(X1, Y, X2, Value);
+    X1 := Constrain(X1, FFixedClipRect.Left, FFixedClipRect.Right);
+    X2 := Constrain(X2, FFixedClipRect.Left, FFixedClipRect.Right);
+    if (Abs(X2 - X1) > FIXEDONE) and InRange(Y, FFixedClipRect.Top, FFixedClipRect.Bottom - FIXEDONE) then
+      HorzLineX(X1, Y, X2, Value)
+    else
+    begin
+      TColor32Entry(Value).A := TColor32Entry(Value).A * Abs(X2 - X1) shr 16;
+      SetPixelXS(X1, Y, Value);
+    end;
   end;
   Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
 end;
