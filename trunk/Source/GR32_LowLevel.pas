@@ -68,7 +68,8 @@ function StackAlloc(Size: Integer): Pointer; register;
 procedure StackFree(P: Pointer); register;
 
 { Exchange two 32-bit values }
-procedure Swap(var A, B: Integer); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure Swap(var A, B: Integer); overload;{$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure Swap(var A, B: TFixed); overload;{$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
 { Exchange A <-> B only if B < A }
 procedure TestSwap(var A, B: Integer); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
@@ -311,6 +312,24 @@ asm
 end;
 
 procedure Swap(var A, B: Integer);
+{$IFNDEF TARGET_x86}
+var 
+  T: Integer;
+begin
+  T := A;
+  A := B;
+  B := T;
+{$ELSE}
+asm
+// EAX = [A]
+// EDX = [B]
+        MOV     ECX,[EAX]     // ECX := [A]
+        XCHG    ECX,[EDX]     // ECX <> [B];
+        MOV     [EAX],ECX     // [A] := ECX
+{$ENDIF}
+end;
+
+procedure Swap(var A, B: TFixed);
 {$IFNDEF TARGET_x86}
 var 
   T: Integer;
