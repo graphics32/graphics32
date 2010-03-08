@@ -261,7 +261,9 @@ type
     procedure SetOnPixelCombine(Value: TPixelCombineEvent);
   protected
     CachedBitmapRect: TRect;
-    ShiftX, ShiftY, RecScaleX, RecScaleY: TFloat;
+    CachedShiftX, CachedShiftY,
+    CachedScaleX, CachedScaleY,
+    CachedRecScaleX, CachedRecScaleY: TFloat;
     CacheValid: Boolean;
     OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
@@ -1082,8 +1084,8 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := Trunc(X * FScaleX + ShiftX);
-    Result.Y := Trunc(Y * FScaleY + ShiftY);
+    Result.X := Trunc(X * CachedScaleX + CachedShiftX);
+    Result.Y := Trunc(Y * CachedScaleY + CachedShiftY);
   end;
 end;
 
@@ -1093,8 +1095,8 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := X * FScaleX + ShiftX;
-    Result.Y := Y * FScaleY + ShiftY;
+    Result.X := X * CachedScaleX + CachedShiftX;
+    Result.Y := Y * CachedScaleY + CachedShiftY;
   end;
 end;
 
@@ -1231,15 +1233,15 @@ end;
 procedure TCustomImage32.LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: TFloat);
 begin
   UpdateCache;
-  ScaleX := FScaleX;
-  ScaleY := FScaleY;
+  ScaleX := CachedScaleX;
+  ScaleY := CachedScaleY;
 end;
 
 procedure TCustomImage32.LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: TFloat);
 begin
   UpdateCache;
-  ShiftX := Self.ShiftX;
-  ShiftY := Self.ShiftY;
+  ShiftX := CachedShiftX;
+  ShiftY := CachedShiftY;
 end;
 
 function TCustomImage32.ControlToBitmap(const APoint: TPoint): TPoint;
@@ -1249,8 +1251,8 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := Trunc((X - ShiftX) * RecScaleX);
-    Result.Y := Trunc((Y - ShiftY) * RecScaleY);
+    Result.X := Trunc((X - CachedShiftX) * CachedRecScaleX);
+    Result.Y := Trunc((Y - CachedShiftY) * CachedRecScaleY);
   end;
 end;
 
@@ -1260,8 +1262,8 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := (X - ShiftX) * RecScaleX;
-    Result.Y := (Y - ShiftY) * RecScaleY;
+    Result.X := (X - CachedShiftX) * CachedRecScaleX;
+    Result.Y := (Y - CachedShiftY) * CachedRecScaleY;
   end;
 end;
 
@@ -1287,12 +1289,10 @@ begin
   RepaintMode := rmFull;
 
   FPaintStages := TPaintStages.Create;
-  ShiftX := 0;
-  ShiftY := 0;
-  FScaleX := 1.0;
-  FScaleY := 1.0;
-  RecScaleX := 1 / FScaleX;
-  RecScaleY := 1 / FScaleY;
+  FScaleX := 1;
+  FScaleY := 1;
+  SetXForm(0, 0, 1, 1);
+
   InitDefaultStages;
 end;
 
@@ -1841,8 +1841,10 @@ begin
     InvalidateCache;
     FScaleX := Value;
     FScaleY := Value;
-    RecScaleX := 1 / Value;
-    RecScaleY := 1 / Value;
+    CachedScaleX := FScaleX;
+    CachedScaleY := FScaleY;
+    CachedRecScaleX := 1 / Value;
+    CachedRecScaleY := 1 / Value;
     DoScaleChange;
     Changed;
   end;
@@ -1855,7 +1857,8 @@ begin
   begin
     InvalidateCache;
     FScaleX := Value;
-    RecScaleX := 1 / Value;
+    CachedScaleX := Value;
+    CachedRecScaleX := 1 / Value;
     DoScaleChange;
     Changed;
   end;
@@ -1868,7 +1871,8 @@ begin
   begin
     InvalidateCache;
     FScaleY := Value;
-    RecScaleY := 1 / Value;
+    CachedScaleY := Value;
+    CachedRecScaleY := 1 / Value;
     DoScaleChange;
     Changed;
   end;
@@ -1897,12 +1901,12 @@ end;
 
 procedure TCustomImage32.SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
 begin
-  Self.ShiftX := ShiftX;
-  Self.ShiftY := ShiftY;
-  FScaleX := ScaleX;
-  FScaleY := ScaleY;
-  RecScaleX := 1 / ScaleX;
-  RecScaleY := 1 / ScaleY;
+  CachedShiftX := ShiftX;
+  CachedShiftY := ShiftY;
+  CachedScaleX := ScaleX;
+  CachedScaleY := ScaleY;
+  CachedRecScaleX := 1 / ScaleX;
+  CachedRecScaleY := 1 / ScaleY;
 end;
 
 procedure TCustomImage32.UpdateCache;
