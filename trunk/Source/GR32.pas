@@ -594,8 +594,8 @@ type
     procedure HorzLineT(X1, Y, X2: Integer; Value: TColor32);
     procedure HorzLineTS(X1, Y, X2: Integer; Value: TColor32);
     procedure HorzLineTSP(X1, Y, X2: Integer);
-    procedure HorzLineX(X1, Y, X2: Integer; Value: TColor32);
-    procedure HorzLineXS(X1, Y, X2: Integer; Value: TColor32);
+    procedure HorzLineX(X1, Y, X2: TFixed; Value: TColor32);
+    procedure HorzLineXS(X1, Y, X2: TFixed; Value: TColor32);
 
     procedure VertLine(X, Y1, Y2: Integer; Value: TColor32);
     procedure VertLineS(X, Y1, Y2: Integer; Value: TColor32);
@@ -2938,39 +2938,69 @@ begin
   end;
 end;
 
-procedure TCustomBitmap32.HorzLineX(X1, Y, X2: Integer; Value: TColor32);
+procedure TCustomBitmap32.HorzLineX(X1, Y, X2: TFixed; Value: TColor32);
+//Author: Michael Hansen
 var
-  n, i: Integer;
-  nx, hyp: Integer;
-  A: TColor32;
+  I: Integer;
   ChangedRect: TFixedRect;
+  X1F, X1C, X2F, X2C, YF, YC : Integer;
+  Wx1, Wx2, Wy : TColor32;
+  PDst: PColor32;
 begin
   ChangedRect := FixedRect(X1, Y, X2, Y + 1);
   try
-    nx := X2 - X1;
-    Inc(X1, 127); Inc(Y, 127); Inc(X2, 127);
-    hyp := abs(nx);
-    if hyp < 256 then Exit;
-    n := hyp shr 16;
-    if n > 0 then
+    if X1 > X2 then Swap(X1, X2);
+
+    X1F := FixedFloor(X1);
+    X1C := FixedCeil(X1);
+    X2F := FixedFloor(X2);
+    X2C := FixedCeil(X2);
+    YF := FixedFloor(Y);
+    YC := FixedCeil(Y);
+
+    PDst := PixelPtr[X1F, YF];
+
+    Wy := 255 - (Y shr 8) and $FF;
+    if Wy > 0 then
     begin
-      nx := -65536;
-      for i := 0 to n - 1 do
+      Wx1 := 255 - ((X1 - X1F) shr 8) and $FF;
+      if Wx1 > 0 then
+        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) div 255]);
+      Inc(PDst);
+      for I := 1 to X2F - X1F do
       begin
-        SET_T256(X1 shr 8, Y shr 8, Value);
-        Inc(X1, nx);
+        CombineMem(Value, PDst^, GAMMA_TABLE[Wy]);
+        Inc(PDst);
       end;
+      Wx2 := 255 - ((X2 - X2F) shr 8) and $FF;
+      if Wx2 > 0 then
+        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx2) div 255]);
     end;
-    A := Value shr 24;
-    A := A * Cardinal(hyp - n shl 16) shl 8 and $FF000000;
-    SET_T256((X1 + X2 - nx) shr 9, (2 * Y) shr 9, Value and $00FFFFFF + A);
+
+    PDst := PixelPtr[X1F, YF + 1];
+
+    Wy := 255 - Wy;
+    if Wy > 0 then
+    begin
+      if Wx1 > 0 then
+        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) div 255]);
+      Inc(PDst);
+      for I := 1 to X2F - X1F do
+      begin
+        CombineMem(Value, PDst^, GAMMA_TABLE[Wy]);
+        Inc(PDst);
+      end;
+      if Wx2 > 0 then
+        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx2) div 255]);
+    end;
+
   finally
     EMMS;
     Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
   end;
 end;
 
-procedure TCustomBitmap32.HorzLineXS(X1, Y, X2: Integer; Value: TColor32);
+procedure TCustomBitmap32.HorzLineXS(X1, Y, X2: TFixed; Value: TColor32);
 var
   n, i: Integer;
   nx, hyp: Integer;
