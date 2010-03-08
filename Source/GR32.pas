@@ -2943,7 +2943,7 @@ procedure TCustomBitmap32.HorzLineX(X1, Y, X2: TFixed; Value: TColor32);
 var
   I: Integer;
   ChangedRect: TFixedRect;
-  X1F, X1C, X2F, X2C, YF, YC : Integer;
+  X1F, X2F, YF: Integer;
   Wx1, Wx2, Wy, Wt: TColor32;
   PDst: PColor32;
 begin
@@ -2951,49 +2951,43 @@ begin
 
   ChangedRect := FixedRect(X1, Y, X2, Y + 1);
   try
-    X1F := FixedFloor(X1);
-    X1C := FixedCeil(X1);
-    X2F := FixedFloor(X2);
-    X2C := FixedCeil(X2);
-    YF := FixedFloor(Y);
-    YC := FixedCeil(Y);
+    X1F := X1 shr 16;
+    X2F := X2 shr 16;
+    YF := Y shr 16;
 
     PDst := PixelPtr[X1F, YF];
 
-    Wy := 255 - (Y shr 8) and $FF;
+    Wy := Y and $ffff xor $ffff;
+    Wx1 := X1 and $ffff xor $ffff;
+    Wx2 := X2 and $ffff;
+
     if Wy > 0 then
     begin
-      Wx1 := 255 - ((X1 - X1F) shr 8) and $FF;
-      if Wx1 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) div 255]);
-      Wt := GAMMA_TABLE[Wy];
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) shr 24]);
+      Wt := GAMMA_TABLE[Wy div 255];
       Inc(PDst);
       for I := 1 to X2F - X1F do
       begin
         CombineMem(Value, PDst^, Wt);
         Inc(PDst);
       end;
-      Wx2 := 255 - ((X2 - X2F) shr 8) and $FF;
-      if Wx2 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx2) div 255]);
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx2) shr 24]);
     end;
 
     PDst := PixelPtr[X1F, YF + 1];
 
-    Wy := 255 - Wy;
+    Wy := Wy xor $ffff;
     if Wy > 0 then
     begin
-      if Wx1 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) div 255]);
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) shr 24]);
       Inc(PDst);
-      Wt := GAMMA_TABLE[Wy];
+      Wt := GAMMA_TABLE[Wy div 255];
       for I := 1 to X2F - X1F do
       begin
         CombineMem(Value, PDst^, Wt);
         Inc(PDst);
       end;
-      if Wx2 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx2) div 255]);
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx2) shr 24]);
     end;
 
   finally
