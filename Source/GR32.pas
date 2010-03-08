@@ -2965,7 +2965,7 @@ begin
     if Wy > 0 then
     begin
       CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) shr 24]);
-      Wt := GAMMA_TABLE[Wy div 255];
+      Wt := GAMMA_TABLE[Wy shr 8];
       Inc(PDst);
       for I := 0 to Count - 1 do
       begin
@@ -2982,7 +2982,7 @@ begin
     begin
       CombineMem(Value, PDst^, GAMMA_TABLE[(Wy * Wx1) shr 24]);
       Inc(PDst);
-      Wt := GAMMA_TABLE[Wy div 255];
+      Wt := GAMMA_TABLE[Wy shr 8];
       for I := 0 to Count - 1 do
       begin
         CombineMem(Value, PDst^, Wt);
