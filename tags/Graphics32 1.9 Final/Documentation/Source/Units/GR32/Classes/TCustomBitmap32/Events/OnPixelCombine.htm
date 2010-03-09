@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>OnPixelCombine</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> OnPixelCombine: <a href="../../../../GR32/Types/TPixelCombineEvent.htm">TPixelCombineEvent</a>;</p>
+<p class="Decl"><b>type</b> TPixelCombineEvent = <b>procedure</b>(F: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>var</b> B: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  M: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>) <b>of</b> 
+  <b>object</b>; </p>
+<h2>Description</h2>
+<p class="Body">This event is called when the bitmap is drawn in dmCustom <a href="../Properties/DrawMode.htm">draw 
+  mode</a>. Use this event to customize handling of colors. Note, however, that this 
+  event is called for every pixel, so keeping the event handler small and fast 
+  is in your own interest.</p>
+<p id="hidden">[See also]: <a href="../Properties/DrawMode.htm">DrawMode</a>, 
+  <a href="../../../../../Examples.htm#PixelCombine%20Example">PixelCombine Example</a></p>
+</body>
+</html>

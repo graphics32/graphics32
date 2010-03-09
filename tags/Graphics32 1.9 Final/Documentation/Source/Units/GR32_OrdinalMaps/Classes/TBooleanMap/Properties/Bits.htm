@@ -1,0 +1,13 @@
+<html>
+<head>
+<title>Bytes</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+		<p class="Decl"><b>property</b> Bits: <a href="../../../../GR32/Types/Arrays.htm#TByteArray">PByteArray</a>;</p>
+		<h2>Description</h2>
+		<p class="Body">Returns the pointer to the internal array of <i>byte packed</i> bits. Data is stored in row-major order, top-left &quot;pixel&quot; comes first. Note that since the boolean map stores its values packed in bytes (8 bits or booleans per byte), the last element of the array may contain invalid values. It is recommened only to process width *  height - 1 elements, and use the value property to change the last packed byte element of the array. </p>
+		<p id="hidden">[See Also] <a href="Value.htm">Value</a></p>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<html>
+<head>
+<title>Installation</title>
+<link rel="stylesheet" href="../Styles/Default.css">
+<style>
+blockquote {
+	margin: 0px 0px 0px 20px;
+}
+</style>
+</head>
+<body bgcolor="#FFFFFF">
+<blockquote>
+  <p>(in alphabetical order):<br>
+  </p>
+  <p><b>v1.8.x</b></p>
+  <blockquote>
+    <p><b> <br>
+      Mattias Andersson </b>&lt;mattias@centaurix.com&gt;:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - Added fast integer versions of HSLtoRGB and RGBtoHSL<br>
+      - Added TCustomSampler and TCustomResampler<br>
+      - Added dmTransparent draw mode<br>
+      - Added TBitmap32.WrapMode property<br>
+      - Added TBitmap32.PixelW property</p>
+    <p><span class="API">GR32_LowLevel.pas:</span><br>
+      - Added clamp, wrap and mirror routines</p>
+    <p><span class="API">GR32_OrdinalMaps.pas:</span><br>
+      - Initial developer<br>
+      - Added TBooleanMap, TWordMap and TIntegerMap</p>
+    <p><span class="API">GR32_Resamplers.pas:</span><br>
+      - Initial developer<br>
+      - Added TCustomKernel and descendant classes<br>
+      - Added TBitmap32Resampler and descendant classes<br>
+      - Added TNestedSampler<br>
+      - Added TTransformer<br>
+      - Added TSuperSampler, TAdaptiveSuperSampler and TPatternSampler<br>
+      - Added TKernelSampler and descendant classes<br>
+      - Added auxiliary routines for convolution and morphological operations<br>
+      - Optimized TKernelResampler.GetSample (with Michael)<br>
+      - Added BlendTransfer routine<br>
+      - Added CreateJitteredPattern routine</p>
+    <p><span class="API">GR32_Rasterizers.pas:</span><br>
+      - Initial developer<br>
+      - Added TRasterizer and descendant classes</p>
+    <p><span class="API">GR32_Transforms.pas:</span><br>
+      - Updated Transform procedure</p>
+    <p><span class="API">GR32_ExtImage.pas:</span><br>
+      - Initial developer<br>
+      - Added TSyntheticImage and TRenderThread<br>
+      - Added Rasterize auxiliary routine</p>
+    <p><span class="API">GR32_Containers.pas:</span><br>
+      - Added TClassList</p>
+    <p><span class="API">Examples:<br>
+      </span>- Mandelbrot Example<br>
+      - Nested Sampling Example<br>
+      - Resampler Example</p>
+    <p>&nbsp;</p>
+    <p><strong>Andre Beckedorf</strong> &lt;andre@metaexception.de&gt;:</p>
+    <p><span class="API">GR32.pas:<br>
+      </span>- Added MeasuringMode and changed area notification required for repaint optimizer (BeginMeasuringMode, EndMeasuringMode, OnAreaChanged)<br>
+    - Added switchable <a href="Additional Topics/Back-Ends.htm">back-end</a> framework</p>
+    <p><span class="API">GR32_Containers.pas:<br>
+      </span>- Added TPointerMap and TPointerMapIterator<br>
+      - Added TRectList</p>
+    <p><span class="API"></span><span class="API">GR32_Image.pas:<br>
+      </span>- Added support for repaint optimization to display components (TCustomPaintBox32, TCustomImage32, TCustomImgView32)<br>
+      - Added property to control scrollbar visibility (TCustomImgView32.Scrollbars.Visibility)<br>
+      - Added independent X and Y scale properties in TCustomImage32 along with new OnScaleChange event<br>
+      - Added additional scale modes smOptimal and smOptimalScaled<br>
+      - Added RepaintMode property to control whether to use repaint optimizer, direct or full scene repaint</p>
+    <p><span class="API">GR32_Layers.pas:</span><br>
+      - Replaced CoordXForm property with more flexible GetViewportShift and GetViewportScale methods in TLayerCollection (e.g. for nested layers)<br>
+      - Added support for repaint optimization to TCustomLayer descendants<br>
+      - Added new Update methods to TCustomLayer<br>
+    - Added Options property, proportional resize and OnConstrain event </p>
+    <p><span class="API">GR32_LowLevel.pas:</span><br>
+      - Initial support for FastCode routines</p>
+    <p><span class="API"></span><span class="API">GR32_MicroTiles.pas:<br>
+      </span> - MicroTiles and Tiles auxiliary routines<br>
+      - MicroTiles Repaint optimizer<br>
+      - Adaptive balancing<br>
+      - MMX optimization for MicroTileUnion</p>
+    <p><span class="API">GR32_Polygon.pas:</span><br>
+      - Added additional 2x and 32x supersampling mode<br>
+      - Performance optimization</p>
+    <p><span class="API">GR32_RepaintOpt.pas:<br>
+      </span>- Abstract <a href="Additional%20Topics/Repaint%20Optimization.htm">Repaint optimizer</a> class </p>
+    <p><span class="API">GR32_System.pas:</span><br>
+      - Added support for EMMX detection (used in repaint optimizer)<br>
+      - Added TPerfTimer class along with global performance timer<br>
+      - Added GetTickCount derivative for Linux<br>
+      - Fixed AV when using Graphics32 in DLLs on WinXP</p>
+    <p> <span class="API">Examples:<br>
+      </span>- Modified Sprites_Ex, ImgView32_Ex, GradLines_Ex, Polygons_Ex and Image32_Ex Example</p>
+    <p>&nbsp;</p>
+    <p><strong>Michael Hansen </strong>&lt;dyster_tid@hotmail.com&gt;:</p>
+	<p><span class="API">GR32.pas:</span><br>
+	  - Fixed Math related additions<br>
+	  - Auxiliary rectangle routines<br>
+	  - Misc. array types<br>
+	  - Added TColor32Component, TColor32Components and related routines (TColorEntry updated)<br>
+	  - Optimized TBitmap32.ResetAlpha</p>
+	<p><span class="API">GR32_Layers.pas:</span><br>
+	  - Enhancements to TRubberbandLayer</p>
+	<p><span class="API">GR32_Lowlevel.pas:</span><br>
+	  - MMX optimized FillLongword</p>
+	<p><span class="API">GR32_Filters.pas:</span><br>
+	  - ASM/MMX/EMMX optimized Invert<br>
+	  - Added fast CopyComponents routine for copying selected ARGB components btwn. bitmaps<br>
+	  - Added ASM/MMX/EMMX ApplyBitmask routine for bitwise Xor/Or/And operations using a bitmask<br>
+	</p>
+	<p><span class="API">GR32_OrdinalMaps.pas (new unit):</span><br>
+	  - Minor tweaks for TByteMap</p>
+	<p><span class="API">GR32_Resamplers.pas (new unit):<br>
+	  </span>- Added kmTableLinear and kmTableNearest kernel modes<br>
+	  - Optimized TLinearResampler<br>
+	  - Fixed TDraftResampler<br>
+	  - GetSampleFloat optimizations<br>
+	  - New overloaded BlendTransfer routine, supporting TBlendRegEx and MasterAlpha<br>
+	  - New PixelAccessMode pamTransparentEdge as a dynamic and fast alternative to SetBorderTransparent<br>
+	  - Minor tweaks in TPatternSampler<br>
+	  - Minor optimizations in pamTransparentEdge related routines</p>
+	<p><span class="API">GR32_Transforms.pas:</span><br>
+	  - Added following transformation types:</p>
+	<blockquote>
+	  <p>- TTwirlTransformation<br>
+        - TBloatTransformation<br>
+        - TDisturbanceTransformation<br>
+        - TFishEyeTransformation<br>
+        - TRemapTransformation</p>
+    </blockquote>
+    <p>- Additional performance tuning </p>
+    <p><span class="API">GR32_VectorMaps.pas (new unit):</span><br>
+      - Initial developer<br>
+      - Added TVectorMap, supporting loading and saving in Photoshop .msh format </p>
+    <p><span class="API">Examples:<br>
+      </span>- Image Warping Example<br>
+      - Visualization Example<span class="API"><br>
+      </span>- Resample Example<br>
+      - Texture blend Example<br>
+      - Additional updates to various examples (see sources)<br>
+      <br>
+    </p>
+  </blockquote>
+  <p><b>v1.7 and v1.6</b></p>
+  <blockquote>
+    <p><b> <br>
+      </b><strong>Mattias Andersson</strong> &lt;mattias@centaurix.com&gt;:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - Tweaks<br>
+      - PixelF/X property<br>
+      - Some minor CLX/Kylix tweaks<br>
+      - Added CombineMode</p>
+    <p><span class="API">GR32_Image.pas:</span><br>
+      - Ported to CLX/Kylix</p>
+    <p><span class="API">GR32_Polygons.pas:</span><br>
+      - Added TPolygon32.ContainsPoint method</p>
+    <p><span class="API">GR32_Transforms.pas:</span><br>
+      - Added sfCosine resampling filter</p>
+    <p><span class="API">GR32_Blend.pas<br>
+      </span>- Pascal and MMX version of Merge algorithm<br>
+      - Added MMX versions of almost all PixelCombine functions<br>
+    </p>
+    <p><strong>Andre Beckedorf</strong> &lt;andre@metaexception.de&gt;:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - Added Unicode text methods<br>
+      - Ported to CLX/Kylix<br>
+      - Added CombineMode<br>
+      - Added clipping rect support<br>
+      - pixel-perfect line drawing methods (LineS, LineTS, LineAS)</p>
+    <p><span class="API">GR32_Image.pas:</span><br>
+      - Some part of the CLX/Kylix related changes in this unit<br>
+      - Added new overrideable Mouse* methods with Layer information<br>
+      - Added OverSize property in TCustomImgView32</p>
+    <p><span class="API">GR32_Layers.pas:</span><br>
+      - enhancements to TRubberbandLayer</p>
+    <p><span class="API">GR32_Polygon.pas:</span><br>
+      - Added option for dynamic antialias level adjustment at runtime along with 4x supersampling mode<br>
+      - Added support for custom polygon fillings (TCustomPolygonFiller, TBitmapPolygonFiller) and transformations<br>
+      - Added support for clipping to rect<br>
+      - Added PolylineXSP and PolyPolylineXSP<br>
+      - Additional performance tuning</p>
+    <p><span class="API">GR32_RangeBars.pas:</span><br>
+      - Ported to CLX/Kylix</p>
+    <p><span class="API">GR32_System.pas:</span><br>
+      - Added support for SSE, SSE2, 3DNow and 3DNow Ext detection</p>
+    <p><span class="API">GR32_Transforms.pas:</span><br>
+      - Update to transformation classes to make them suited for general usage<br>
+    </p>
+    <p><strong>Michael Hansen </strong>&lt;dyster_tid@hotmail.com&gt;:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - PixelF/X property<br>
+      - MMX optimized GetPixelF/X FS/XS functions</p>
+    <p><span class="API">GR32_Blend.pas:</span><br>
+      - Added Difference and Exclusion PixelCombine functions (Pascal)<br>
+      - Added PixelCombine function setup, to support non MMX cpus<br>
+      - Worked out bugfix for &quot;not fully opaque&quot; problem in some blendroutines</p>
+    <p><span class="API">GR32_Transforms.pas:</span><br>
+      - Added sfDraft resampling routines<br>
+      - MMX optimized sfLinear and sfDraft<br>
+      - Updated Transform to use PixelX and PixelXS<br>
+      <br>
+      <br>
+    </p>
+  </blockquote>
+  <p><strong>Contributors:</strong><br>
+  </p>
+  <blockquote>
+    <p><strong>Arioch /BDV/</strong>:</p>
+    <p><span class="API">GR32.pas</span><br>
+      - Added WinPalette function. (merged by Mattias with some modifications)</p>
+    <p><strong>Thomas Bauer</strong>:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - Some bugfixes (merged by Andre)</p>
+    <p><span class="API">GR32_Transforms.pas:</span><br>
+      - FullEdge related bugfixes (merged by Andre)</p>
+    <p><strong>Soumitra Bhattacharjee</strong>:</p>
+    <p><span class="API">GR32_Polygons.pas:</span><br>
+      - Added PtInPolygon function. (merged by Mattias with some modifications)</p>
+    <p><strong>Greg Chapman</strong>:</p>
+    <p><span class="API">GR32_Filters.pas:</span><br>
+      - Report and bugfix for the CheckParams problem in ApplyLUT. (merged by Andre)</p>
+    <p><strong>Cleber</strong>:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - Added Color32ToRGB(A). (merged by Andre)<br>
+      <br>
+      <strong>Dieter K&ouml;hler:</strong></p>
+    <p><span class="API">GR32_Layers.pas:</span><br>
+      - TLayerCollection.LocalToViewport<br>
+      - TLayerCollection.ViewportToLocal<br>
+      - TPositionedLayer.GetAdjustedRect (all merged by Andre) </p>
+    <p><strong>Marc Lafon</strong>:</p>
+    <p><span class="API">GR32_Image.pas:</span><br>
+      - Custom color properties for the bars (merged by Andre)</p>
+    <p><strong>Peter Larson</strong>:</p>
+    <p><span class="API">GR32_Polygons.pas:</span><br>
+      - Initial work on polygon transformation and bitmap pattern filling.<br>
+      - Some optimizations in polygon setup.</p>
+    <p><span class="API">GR32_Transforms.pas:<br>
+      </span>- TransformPoints routine.</p>
+    <p><strong>Gerd Platl </strong>:</p>
+    <p><span class="API">Documentation:</span><br>
+      - Illustration for TPolyFillMode</p>
+    <p><span class="API"></span><strong>Andrew P. Rybin</strong>:</p>
+    <p><span class="API">GR32_Image.pas:</span><br>
+      - MouseEnter/MouseLeave (merged by Andre with some changes to match structure)</p>
+    <p><strong>J. Tulach</strong>:</p>
+    <p><span class="API">GR32.pas:</span><br>
+      - Additional handling of chroma transperancy in TBitmap32.Assign (merged by Andre with some modifications and comments).</p>
+    <p><span class="API">GR32_Transforms.pas:</span><br>
+      - C++ Builder workaround (merged by Andre)</p>
+    <p><strong>Bob Voigt</strong>:</p>
+    <p><span class="API">GR32_Blend.pas:</span><br>
+      - ColorMul and ColorDiv (merged by Andre)</p>
+    <p><strong>Jens Weiermann</strong>:</p>
+    <p><span class="API">GR32_Filters.pas:</span><br>
+      - enhancements to ApplyLUT and ColorToGrayscale that preserve alpha channel (merged by Andre)</p>
+    <p><strong>Norbert Witternigg</strong>:</p>
+    <p>- updated the example project files to Borland C++ Builder 6.</p>
+  </blockquote>
+</blockquote>
+</body>
+</html>

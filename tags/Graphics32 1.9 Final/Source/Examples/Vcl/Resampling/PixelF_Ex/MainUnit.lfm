@@ -1,0 +1,109 @@
+object MainForm: TMainForm
+  Left = 789
+  Height = 285
+  Top = 452
+  Width = 480
+  HorzScrollBar.Page = 479
+  VertScrollBar.Page = 284
+  ActiveControl = rbGetPixelFS
+  BorderStyle = bsToolWindow
+  Caption = 'PixelF Example'
+  ClientHeight = 285
+  ClientWidth = 480
+  Constraints.MaxHeight = 287
+  Constraints.MaxWidth = 480
+  Constraints.MinHeight = 285
+  Constraints.MinWidth = 480
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  Position = poScreenCenter
+  LCLVersion = '0.9.29'
+  object PnlSettings: TPanel
+    Left = 315
+    Height = 285
+    Top = 0
+    Width = 165
+    Align = alRight
+    ClientHeight = 285
+    ClientWidth = 165
+    TabOrder = 0
+    object lbTwirlPower: TLabel
+      Left = 8
+      Height = 14
+      Top = 32
+      Width = 59
+      Caption = 'Twirl Power:'
+      ParentColor = False
+    end
+    object Panel4: TPanel
+      Left = 1
+      Height = 16
+      Top = 1
+      Width = 163
+      Align = alTop
+      BevelOuter = bvNone
+      Caption = 'Twirl Distortion'
+      Color = clBtnShadow
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentColor = False
+      ParentFont = False
+      TabOrder = 0
+    end
+    object rbGetPixelFS: TRadioButton
+      Left = 8
+      Height = 17
+      Top = 96
+      Width = 109
+      Caption = 'TBitmap32.PixelFS'
+      OnClick = gbTwistChange
+      TabOrder = 1
+      TabStop = False
+    end
+    object rbPixelS: TRadioButton
+      Left = 8
+      Height = 17
+      Top = 72
+      Width = 103
+      Caption = 'TBitmap32.PixelS'
+      Checked = True
+      OnClick = gbTwistChange
+      State = cbChecked
+      TabOrder = 2
+    end
+    object gbTwist: TGaugeBar
+      Left = 8
+      Height = 12
+      Top = 48
+      Width = 149
+      Color = clScrollBar
+      Backgnd = bgPattern
+      HandleSize = 16
+      Max = 50
+      Min = -50
+      ShowArrows = False
+      ShowHandleGrip = True
+      Style = rbsMac
+      Position = 0
+      OnChange = gbTwistChange
+    end
+  end
+  object Image32: TImage32
+    Left = 8
+    Height = 244
+    Top = 8
+    Width = 300
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    AutoSize = True
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 1
+    OnPaintStage = Image32PaintStage
+  end
+end

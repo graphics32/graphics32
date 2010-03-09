@@ -1,0 +1,106 @@
+<html>
+<head>
+  
+<title>License</title>
+  
+<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">Graphics32 introduces several routines (as well as some class 
+  properties and methods) which have similar action but may have different arguments 
+  or other realization details.</p>
+<p class="Body">They follow a simple naming convention:</p>
+<table border="1" bordercolor="#FFFFFF" cellspacing="0">
+  <tr> 
+    <th>Postfix</th>
+    <th>Details</th>
+    <th>Example</th>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">none</div>
+    </td>
+    <td>Property or method does not perform any range checking of its arguments. 
+      All the coordinates should be valid.</td>
+    <td> 
+      <div align="center">Line</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">S</div>
+    </td>
+    <td>'Safe' version. Validates coordinates. If necessary, clipping is performed.</td>
+    <td> 
+      <div align="center">LineS</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">T</div>
+    </td>
+    <td>'Transparent' version of the method. Uses the alpha channel of the provided 
+      color to blend the drawn primitive with the background pixels.</td>
+    <td> 
+      <div align="center">LineT</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">A</div>
+    </td>
+    <td>Methods with 'A' postfix provide antialiasing of the drawn primitive.</td>
+    <td> 
+      <div align="center">LineA</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">X</div>
+    </td>
+    <td>These functions operate with coordinates in TFixed format. They automatically 
+      provide antialiasing.</td>
+    <td> 
+      <div align="center">LineX</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">F</div>
+    </td>
+    <td>Methods with 'F' postfix take coordinates as floating point arguments 
+      and perform antialiasing of the drawn primitive.</td>
+    <td> 
+      <div align="center">LineF</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">TS, AS, XS, FS</div>
+    </td>
+    <td>Valid combinations of postfixes described above.</td>
+    <td> 
+      <div align="center">LineFS</div>
+    </td>
+  </tr>
+  <tr> 
+    <td> 
+      <div align="center">P</div>
+    </td>
+    <td>'Pattern' version. Usually combined with TS or FS postfixes, it allows 
+      for implementation of various effects, like gradient or dashed lines (<a href="../Additional%20Topics/Line%20Patterns.htm">See 
+      Line Patterns</a>).</td>
+    <td> 
+      <div align="center">LineFSP</div>
+    </td>
+  </tr>
+			<tr>
+				<td align="center">W</td>
+				<td>Wrapmode version. Checks if coordinates are outside boundaries or provided ranges, and performs  wrapping according to a <a href="../Units/GR32/Types/TWrapMode.htm">wrapmode</a></td>
+				<td></td>
+			</tr>
+		</table>
+<p id="hidden">[See also]: <a href="Features.htm">Features</a>, <a href="Contacts.htm">Contacts</a>, 
+  <a href="Donate.htm">Donate</a>, <a href="License.htm">License</a>, <a href="Changes.htm">Changes</a></p>
+</body>
+</html>

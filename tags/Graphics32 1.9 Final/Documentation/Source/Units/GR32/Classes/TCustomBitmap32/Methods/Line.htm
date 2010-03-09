@@ -1,0 +1,55 @@
+<html>
+<head>
+<title></title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Line(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineT(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineTS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineA(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineAS(X1, Y1, X2, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineX(X1, Y1, X2, Y2: TFixed; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineXS(X1, Y1, X2, Y2: TFixed; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineF(X1, Y1, X2, Y2: Single; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineFS(X1, Y1, X2, Y2: Single; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineXP(X1, Y1, X2, Y2: Single; L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineXSP(X1, Y1, X2, Y2: Single; L: Boolean = 
+  False);</p>
+<p class="Decl"><b>procedure</b> LineFP(X1, Y1, X2, Y2: Single; L: Boolean = False);</p>
+<p class="Decl"><b>procedure</b> LineFSP(X1, Y1, X2, Y2: Single; L: Boolean = 
+  False);</p>
+<h2>Description</h2>
+<p class="Body">Draws a line from (<b>X1</b>,<b>Y1</b>) to (<b>X2</b>,<b>Y2</b>). 
+  Methods with 'S' postfix perform necessary pixel-perfect clipping to a bitmap boundary or clipping rectangle.</p>
+<p class="Body"><span class="EmptyRef">LineA</span> and <span class="EmptyRef">LineAS</span> use modified versions of Bresenham’s
+  algorithm (also known as Wu’s
+ antialiasing), modified to support line transparency and pixel shape/gamma correction.</p>
+<p class="Body"><span class="EmptyRef">LineX/F/XS/FS</span> functions use my own 
+  algorithm for antialiasing. Line ends have fixed- or floating-point coordinates. 
+  These methods work approximately 2–2.5 times slower than <span class="EmptyRef">LineA</span> 
+  and <span class="EmptyRef">LineAS</span>.</p>
+<p class="Body">The last optional parameter (<span class="EmptyRef">L</span>) 
+  determines if the last point (<span class="EmptyRef">X2</span>,<span class="EmptyRef">Y2</span>) 
+  has to be drawn. It is useful in some cases to leave that point empty, especially 
+  when drawing sequences of transparent and/or antialiased lines. By default, 
+  Line methods don’t render the last point.</p>
+<p class="Body"><span class="EmptyRef">LineXP/FP/XSP/FXP</span> draw antialiased 
+  lines with support for color patterns.</p>
+<p id="hidden">[See also]: <a href="HorzLine.htm">HorzLine</a>, <a href="VertLine.htm">VertLine</a>, 
+  <a href="MoveTo.htm">MoveTo</a>, <a href="LineTo.htm">LineTo</a>, <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

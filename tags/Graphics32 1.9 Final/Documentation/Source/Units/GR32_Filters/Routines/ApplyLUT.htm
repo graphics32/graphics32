@@ -1,0 +1,23 @@
+<html>
+<head>
+<title>ApplyLUT</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> ApplyLUT(Dst, Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> LUT: <a href="../Types/TLUT8.htm">TLUT8</a>; PreserveAlpha: Boolean = False);</p>
+<h2>Description</h2>
+<p class="Body">Converts color from <b>Src</b> to <b>Dst</b> using a look-up table 
+  (<b>LUT</b> parameter) to map the color components. The alpha channel of the 
+  result is set to $FF by default. However, you can override this behaviour by setting <strong>PreserveAlpha</strong> to <em>True</em>.</p>
+<p class="Code">R<span class="sub">DST</span> = LUT[R<span class="sub">SRC</span>];</p>
+<p class="Code"> G<span class="sub">DST</span> = LUT[G<span class="sub">SRC</span>];</p>
+<p class="Code"> B<span class="sub">DST</span> = LUT[B<span class="sub">SRC</span>];</p>
+<p class="Code">If PreserveAlpha then A<span class="sub">DST</span> = A<span class="sub">SRC</span> else A<span class="sub">DST</span> =
+$FF; </p>
+<p class="Body">This function supports in-place operation, that is <b>Dst</b> 
+  may be the same as <b>Src</b>.</p>
+<p id="Hidden">[See also] </p>
+</body>
+</html>

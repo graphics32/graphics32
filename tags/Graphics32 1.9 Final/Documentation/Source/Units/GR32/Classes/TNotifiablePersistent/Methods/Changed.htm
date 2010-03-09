@@ -1,0 +1,22 @@
+<html>
+ 
+<head>
+<title>Changed</title>
+<link rel="STYLESHEET" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Changed; </p>
+<h2>Description</h2>
+<p class="Body">Calls the <a href="../Events/OnChange.htm">OnChange</a> event, 
+  provided the change notification is not masked with <a href="../Events/OnChange.htm">BeginUpdate</a>.</p>
+<p class="Body">Descendants of <a
+href="../_Body.htm">TNotifiablePersistent</a> call <span class="EmptyRef">Changed</span> 
+  after making changes to their data or properties.</p>
+<p class="Body">You will need to call <span class="EmptyRef">Changed</span> explicitly 
+  in your application after leaving the <a href="../Events/OnChange.htm">BeginUpdate</a>... 
+  <a href="EndUpdate.htm">EndUpdate</a> block since <a href="EndUpdate.htm">EndUpdate</a> 
+  itself does not internally call <span class="EmptyRef">Changed</span>.</p>
+</body>
+</html>
+

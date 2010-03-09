@@ -1,0 +1,63 @@
+<html>
+<head>
+<title>TextOut</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> TextOut(X, Y: <strong>Integer</strong>; <b>const</b> Text: <b>String</b>); 
+  <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> TextOutW(X, Y: <strong>Integer</strong>; <b>const</b> Text: <b>Widestring</b>); <b>overload</b>;</p>
+<p class="Decl">&nbsp;</p>
+<p class="Decl"><b>procedure</b> TextOut(X, Y: <strong>Integer</strong>; <b>const</b> ClipRect: 
+  <a href="../../../Types/Rectangle%20Types.htm#TRect"><strong>TRect</strong></a>; <b>const</b> 
+  Text: <b>String</b>); <b>overload</b>;</p>
+<p class="Decl"><b>procedure</b> TextOutW(X, Y: <strong>Integer</strong>; <b>const</b> ClipRect: <a href="../../../Types/Rectangle%20Types.htm#TRect"><strong>TRect</strong></a>; <b>const</b> Text: <b>Widestring</b>); <b>overload</b>;</p>
+<p class="Decl">&nbsp;</p>
+<p class="Decl"><b>procedure</b> TextOut(DstRect: <a href="../../../Types/Rectangle%20Types.htm#TRect"><strong>TRect</strong></a>; 
+<b>const</b> Flags: Cardinal; <b>const</b> Text: <b>String</b>); <b>overload</b>; </p>
+<p class="Decl"><b>procedure</b> TextOutW(DstRect: <a href="../../../Types/Rectangle%20Types.htm#TRect"><strong>TRect</strong></a>; <b>const</b> Flags:
+Cardinal; <b>const</b> Text: <b>Widestring</b>); <b>overload</b>;  </p>
+<h2>Description</h2>
+<p class="Body">Use <span class="EmptyRef">TextOut</span> or <span class="EmptyRef">TextOutW</span> (the Unicode version)
+  to write a string onto  the bitmap. The string will be written using current <a href="../Properties/Font.htm">Font</a>. 
+</p>
+<p class="Body">Use the TextExtent method to determine the space occupied by the 
+  text in the image. <span class="EmptyRef">TextOut</span> does not support transparent 
+  text colors.</p>
+<p class="Body">The second version performs clipping of a text to the <span class="EmptyRef">ClipRect</span> rectangle.</p>
+<p class="Body"> The
+    last version provides the most flexible text formatting. See description of <span class="API">DrawText</span> function
+    in 'Win32 Developer Reference' help file for information on <span class="EmptyRef">Flags</span> and their function.</p>
+<p class="Body"><strong>Special Note for CLX users:</strong></p>
+<p class="Body">  Since CLX is based on the QT library rather than the native Win API  the flags
+  used in the last two functions are somewhat different from the Win32 flags. You can get more information on the QT specific
+  flags <a href="http://doc.qt-developer.org/class.php?class=qt#AlignmentFlags-enum" target="_blank">here</a> and <a href="http://doc.qt-developer.org/class.php?class=qt#TextFlags-enum" target="_blank">here</a>.
+   However, to make it easier for you, we have provided some basic mappings that
+  will work in QT just as their Win API counterparts:</p>
+<p class="Decl">DT_LEFT,
+      DT_RIGHT, DT_TOP, DT_BOTTOM,
+      DT_CENTER, DT_VCENTER, DT_EXPANDTABS,
+      DT_NOCLIP,
+      DT_WORDBREAK,
+      DT_SINGLELINE</p>
+<blockquote>
+  <p>However, the following flags are missing  because there is no  equivalent value in QT at this time:</p>
+</blockquote>
+<p class="Decl"> DT_CALCRECT, 
+    DT_EDITCONTOL, 
+    DT_END_ELLIPSIS and DT_PATH_ELLIPSIS, 
+    DT_EXTERNALLEADING, 
+    DT_MODIFYSTRING, 
+    DT_NOPREFIX, 
+    DT_RTLREADING, 
+    DT_TABSTOP</p>
+<blockquote>
+  <p align="left" class="Comment"><br>
+    Please note that the CLX versions of the non-Unicode methods do also default to Widestring
+    because that is the native QT string format.</p>
+</blockquote>
+<p id="hidden">[See also]: <a href="RenderText.htm">RenderText</a>, <a href="TextWidth.htm">TextWidth</a>, 
+  <a href="TextHeight.htm">TextHeight</a>, <a href="TextExtent.htm">TextExtent</a></p>
+</body>
+</html>

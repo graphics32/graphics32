@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>TWindowedSincKernel</title>
+<link rel="STYLESHEET" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TCustomKernel">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body">Returns the value of the <i>Sinc</i> function constrained by a 
+  window function. Descendant classes override the <strong>Window</strong> 
+  method in order to implement a custom window function. </p>
+<p class="Code">h(x) = <i>Sinc</i>(x) * <i>Window</i>(x);</p>
+<p class="Body">
+Windowed <i>Sinc</i> filters are known for producing high quality resampled images. 
+Ideal resampling corresponds to filtering an image with the ideal low-pass filter (i.e. 
+a <i>Sinc</i> filter). This is computionally expensive, since the <i>Sinc</i> function
+has infinite extent. Hence a window function is used to constrain the filter.
+</p>
+<p class="Body">See topic about <a href="../../../../Additional%20Topics/Sampling%20and%20Rasterization.htm">Sampling and Rasterization</a> for further information. </p>
+<p id="hidden">[See Also] <a href="../../../../Examples.htm#Resampler Example">Resampler 
+  Example</a>, <a href="../../../../Examples.htm#Kernel%20Example">Kernel Example</a></p>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<html>
+<head>
+<title>OnPixelCombine</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> OnVectorCombine: <a href="../../../Types/TVectorCombineEvent.htm">TVectorCombineEvent</a>;</p>
+<p class="Decl"><b>type</b> TVectorCombineEvent = <strong>procedure</strong> (F, P: <a href="../../../Types/Vector%20Types.htm">TFixedVector</a>; <strong>var</strong> B: <a href="../../../Types/Vector%20Types.htm">TFixedVector</a>) <strong>of</strong> <strong>object</strong>;</p>
+<h2>Description</h2>
+<p class="Body">This event is called when vector map <a href="../Methods/Merge.htm">Merge</a> is called in vcmCustom <a href="../Properties/VectorCombineMode.htm">vector combine mode</a>. Use this event to customize handling of vector combining. Note, however, that this event is called for every Vector in the map, so keeping the event handler small and fast is in your own interest.</p>
+<p id="hidden">[See also]:</p>
+</body>
+</html>

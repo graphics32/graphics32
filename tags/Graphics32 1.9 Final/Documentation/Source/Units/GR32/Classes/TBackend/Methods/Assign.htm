@@ -1,0 +1,16 @@
+<html>
+<head>
+<title>FinalizeSurface</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><strong>procedure</strong> Assign(Source: TPersistent);<strong> override;</strong></p>
+<h2>Description</h2>
+<p class="Body">Handles copying the source surface defined by the <strong>Source</strong> parameter to the current instance.<br>
+  Internally it calls <strong>ChangeSize</strong> on the current back-end instance to set the new size. Then it copies the content of the source surface to the allocated surface via <strong>MoveLongword</strong>.<br>
+This method is used during switching of the back-end classes in TCustomBitmap32.</p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]:</p>
+</body>
+</html>

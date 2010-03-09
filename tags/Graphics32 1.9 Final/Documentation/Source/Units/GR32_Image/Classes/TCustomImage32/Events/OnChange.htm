@@ -1,0 +1,23 @@
+<html>
+<head>
+<title>OnChange</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> OnChange: TNotifyEvent;</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">OnChange</span> is an abstract change notification 
+  event, which is called by some of the descendants of <a href="../../../../GR32_Image/Classes/TCustomPaintBox32/_Body.htm">TCustomPaintBox32</a> 
+  immediately after changes have been made to their contents.</p>
+<p class="Body">In <a href="../../../../GR32_Image/Classes/TCustomImage32/_Body.htm">TCustomImage32</a>, for example, this 
+  includes redirection of change notification events from the contained bitmap 
+  and from layers.</p>
+<p class="Body">This event, however, is not called by <a href="../../../../GR32_Image/Classes/TCustomPaintBox32/_Body.htm">TCustomPaintBox32</a> 
+  control itself, unless you call the <a href="../../../../GR32_Image/Classes/TCustomImage32/Methods/Changed.htm">Changed</a> 
+  method explicitly.</p>
+<p class="Body">Change notification may be disabled with <a href="../../../../GR32_Image/Classes/TCustomImage32/Methods/BeginUpdate.htm">BeginUpdate</a> 
+  call and re-enabled with <a href="../../../../GR32_Image/Classes/TCustomImage32/Methods/EndUpdate.htm">EndUpdate</a> call.</p>
+<p id="hidden">[See also]: <a href="../../../../GR32_Image/Classes/TCustomImage32/Methods/Changed.htm">Changed</a></p>
+</body>
+</html>

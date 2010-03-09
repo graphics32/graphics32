@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>SetSize</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> SetSize(NewWidth, NewHeight: Integer); <b>virtual</b>;</p>
+<p class="Decl"><b>procedure</b> SetSizeFrom(Source: TPersistent);</p>
+<h2>Description</h2>
+<p class="Body">Simultaneously changes both <a href="../Properties/Width.htm">Width</a> 
+  and <a href="../Properties/Height.htm">Height</a> of contained data.</p>
+<p class="Body">The SetSizeFrom method 'knows' how to get the size from the following 
+  objects or their descendants: <a href="../_Body.htm">TCustomMap</a>, <span class="API">TGraphic</span>, 
+  <span class="API">TControl</span> and <i>nil</i>. When other parameter is specified, 
+  <a href="../_Body.htm">TCusomMap</a> will generate an exception.</p>
+<p class="Body">The SetSize method is overriden in descendants (<a href="../../TBitmap32/_Body.htm">TBitmap32</a>, 
+  <a href="../../../../GR32_OrdinalMaps/Classes/TByteMap/_Body.htm">TByteMap</a>) 
+  so that bitmap bits are reallocated and byte map data array is resized.</p>
+</body>
+</html>

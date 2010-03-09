@@ -1,0 +1,235 @@
+object MainForm: TMainForm
+  Left = 296
+  Height = 665
+  Top = 97
+  Width = 537
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Texture Blend Example'
+  ClientHeight = 665
+  ClientWidth = 537
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '0.9.29'
+  object LabelMasterAlpha: TLabel
+    Left = 272
+    Height = 14
+    Top = 32
+    Width = 60
+    Caption = 'MasterAlpha'
+    ParentColor = False
+  end
+  object LabelCombinedTexture: TLabel
+    Left = 272
+    Height = 17
+    Top = 88
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Combined Texture'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object LabelWeightmap: TLabel
+    Left = 8
+    Height = 17
+    Top = 88
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Weightmap'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object LabelTextureA: TLabel
+    Left = 8
+    Height = 17
+    Top = 376
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Texture A'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object LabelTextureB: TLabel
+    Left = 272
+    Height = 17
+    Top = 376
+    Width = 258
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'Texture B'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object LabelBlendSettings: TLabel
+    Left = 272
+    Height = 17
+    Top = 8
+    Width = 258
+    AutoSize = False
+    Caption = ' Blend Settings'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object LabelBlendmode: TLabel
+    Left = 272
+    Height = 14
+    Top = 56
+    Width = 54
+    Caption = 'Blendmode'
+    ParentColor = False
+  end
+  object LabelWeightmapSettings: TLabel
+    Left = 8
+    Height = 17
+    Top = 8
+    Width = 258
+    AutoSize = False
+    Caption = ' Weightmap Settings'
+    Color = clAppWorkspace
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    Layout = tlCenter
+    ParentColor = False
+    ParentFont = False
+    Transparent = False
+  end
+  object MasterAlphaBar: TGaugeBar
+    Left = 336
+    Height = 16
+    Top = 32
+    Width = 193
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 255
+    ShowArrows = False
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 200
+    OnChange = MasterAlphaBarChange
+  end
+  object BlendBox: TComboBox
+    Left = 336
+    Height = 21
+    Top = 56
+    Width = 193
+    ItemHeight = 13
+    Items.Strings = (
+      'Normal'
+      'Soft Masked'
+      'Color Add'
+      'Color Sub'
+      'Color Div'
+      'Color Modulate'
+      'Color Max'
+      'Color Min'
+      'Color Difference'
+      'Color Average'
+      'Color Exclusion'
+    )
+    OnChange = MasterAlphaBarChange
+    Style = csDropDownList
+    TabOrder = 1
+  end
+  object CombImg: TImage32
+    Left = 272
+    Height = 258
+    Top = 112
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 2
+  end
+  object WeightmapImg: TImage32
+    Left = 8
+    Height = 258
+    Top = 112
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 3
+  end
+  object TexAImg: TImage32
+    Left = 8
+    Height = 258
+    Top = 400
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 4
+  end
+  object TexBImg: TImage32
+    Left = 272
+    Height = 258
+    Top = 400
+    Width = 258
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 5
+  end
+  object GenerateButton: TButton
+    Left = 8
+    Height = 25
+    Top = 32
+    Width = 257
+    Caption = 'Generate Random Weightmap'
+    TabOrder = 6
+  end
+end

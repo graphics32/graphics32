@@ -1,0 +1,15 @@
+<html>
+<head>
+<title>TPixelCombineEvent</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"> <span class="EmptyRef">type</span> TAreaChangedEvent = <span class="EmptyRef">procedure</span>(Sender: TObject; const Area: <a href="Rectangle%20Types.htm#TRect">TRect</a>;
+const <a href="../Constants/Area%20Information%20Flags.htm">Info</a>: Cardinal) <span class="EmptyRef">of object</span>;</p>
+<h2>Desctiption</h2>
+<p class="Body"><span class="Decl EmptyRef">TAreaChangedEvent</span> is the type of the <a href="../Classes/TCustomBitmap32/Events/OnAreaChanged.htm">OnAreaChanged</a> event in TBitmap32. It indicates which area has changed (<span class="EmptyRef">Area</span>). A simple information (<span class="EmptyRef">Info</span>) about the area can be set.</p>
+<p class="Body"><span class="EmptyRef">Info</span> is normally AREAINFO_RECT, but other flags can be set to indicate what shape the area actually has. This is especially useful for the repaint optimizer. Lines for example are specially treated with the AREAINFO_LINE + LineWidth encoded into the <span class="EmptyRef">Info</span> parameter. </p>
+<p id="hidden">[See also]: <a href="../Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a></p>
+</body>
+</html>

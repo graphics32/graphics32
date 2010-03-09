@@ -1,0 +1,34 @@
+<html>
+<head>
+<title>OnResizing</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> OnResizing: TRBResizingEvent;</p>
+<p class="Decl"><b>type</b> TRBResizingEvent = <b>procedure</b>(<br>
+  &nbsp;&nbsp;Sender: TObject; <b><br>
+  &nbsp;&nbsp;const</b> OldLocation: TFloatRect;<br>
+  &nbsp;&nbsp;<b>var</b> NewLocation: TFloatRect; <br>
+  &nbsp;&nbsp;DragState: TDragState;<br>
+&nbsp;&nbsp;Shift: TShiftState) <b>of</b> <b>object</b>;</p>
+<p class="Decl"><b>type</b> TDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, 
+  dsSizeB, dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">OnResizing</span> allows for runtime customization 
+  of the rubber band which is being moved or resized using the mouse. This event 
+  is called only when the user clicks and drags the layer with the mouse, it is 
+  not generated when you set the <a href="../../TPositionedLayer/Properties/Location.htm">Location</a> 
+  property explicitly.</p>
+<p class="Body"><span class="EmptyRef">OldLocation</span> specifies location of 
+  the layer before the user started dragging it.</p>
+<p class="Body"><span class="EmptyRef">NewLocation</span> determines the new location 
+  of the rubber band. You may change the coordinates in order to provide required 
+  response to dragging or resizing operation. </p>
+<p class="Body">The <span class="EmptyRef">DragState</span> parameter indicates 
+  how the layer is being dragged/resized.</p>
+<p class="Body"><span class="EmptyRef">Shift</span> indicates the state of the 
+  Alt, Ctrl, and Shift keys.</p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<html>
+ 
+<head>
+<title>TMMFBackend</title>
+<link rel="stylesheet" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TMemoryBackend">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+		<p class="Body">This back-end is similar to  <a href="../TMemoryBackend/_Body.htm">TMemoryBackend</a> in that it does not use any GDI handles and is lightweight. However, the memory backing the surface is not allocated in RAM but in so called memory-mapped files. A memory-mapped file is a segment of virtual memory which has been assigned a direct byte-for-byte correlation with some portion of a (temporary) file or swap file for that matter.</p>
+		<p class="Body">This approach may allow allocating large bitmaps that would otherwise not be allocateable by the default memory manager. The drawback is reduced performance due to swapping to and from disk that may occur.</p>
+		<p class="Body">&nbsp;</p>
+		<p id="Hidden">[See also]</p>
+</body>
+
+</html>
+
