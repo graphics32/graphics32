@@ -3011,10 +3011,7 @@ begin
     if (Abs(X2 - X1) > FIXEDONE) and InRange(Y, FFixedClipRect.Top, FFixedClipRect.Bottom - FIXEDONE) then
       HorzLineX(X1, Y, X2, Value)
     else
-    begin
-      TColor32Entry(Value).A := TColor32Entry(Value).A * Abs(X2 - X1) shr 16;
-      SetPixelXS(X1, Y, Value);
-    end;
+      LineXS(X1, Y, X2, Y, Value);
   end;
   Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
 end;
@@ -3140,57 +3137,52 @@ procedure TCustomBitmap32.VertLineX(X, Y1, Y2: TFixed; Value: TColor32);
 var
   I: Integer;
   ChangedRect: TFixedRect;
-  XF, XC, Y1F, Y1C, Y2F, Y2C: Integer;
-  Wx, Wy1, Wy2, Wt: TColor32;
+  Y1F, Y2F, XF, Count: Integer;
+  Wy1, Wy2, Wx, Wt: TColor32;
   PDst: PColor32;
 begin
   if Y1 > Y2 then Swap(Y1, Y2);
 
   ChangedRect := FixedRect(X, Y1, X + 1, Y2);
   try
-    Y1F := FixedFloor(Y1);
-    Y1C := FixedCeil(Y1);
-    Y2F := FixedFloor(Y2);
-    Y2C := FixedCeil(Y2);
-    XF := FixedFloor(X);
-    XC := FixedCeil(X);
+    Y1F := Y1 shr 16;
+    Y2F := Y2 shr 16;
+    XF := X shr 16;
 
     PDst := PixelPtr[XF, Y1F];
 
-    WX := 255 - (X shr 8) and $FF;
-    if WX > 0 then
+    Wx := X and $ffff xor $ffff;
+    Wy1 := Y1 and $ffff xor $ffff;
+    Wy2 := Y2 and $ffff;
+
+    Count := Y2F - Y1F - 1;
+    if Wx > 0 then
     begin
-      WY1 := 255 - ((Y1 - Y1F) shr 8) and $FF;
-      if WY1 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(WX * WY1) div 255]);
-      Wt := GAMMA_TABLE[WX];
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wx * Wy1) shr 24]);
+      Wt := GAMMA_TABLE[Wx shr 8];
       Inc(PDst, FWidth);
-      for I := 1 to Y2F - Y1F do
+      for I := 0 to Count - 1 do
       begin
         CombineMem(Value, PDst^, Wt);
         Inc(PDst, FWidth);
       end;
-      WY2 := 255 - ((Y2 - Y2F) shr 8) and $FF;
-      if WY2 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(WX * WY2) div 255]);
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wx * Wy2) shr 24]);
     end;
 
     PDst := PixelPtr[XF + 1, Y1F];
 
-    WX := 255 - WX;
-    if WX > 0 then
+    Wx := Wx xor $ffff;
+    if Wx > 0 then
     begin
-      if WY1 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(WX * WY1) div 255]);
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wx * Wy1) shr 24]);
       Inc(PDst, FWidth);
-      Wt := GAMMA_TABLE[WX];
-      for I := 1 to Y2F - Y1F do
+      Wt := GAMMA_TABLE[Wx shr 8];
+      for I := 0 to Count - 1 do
       begin
         CombineMem(Value, PDst^, Wt);
         Inc(PDst, FWidth);
       end;
-      if WY2 > 0 then
-        CombineMem(Value, PDst^, GAMMA_TABLE[(WX * WY2) div 255]);
+      CombineMem(Value, PDst^, GAMMA_TABLE[(Wx * Wy2) shr 24]);
     end;
 
   finally
@@ -3208,10 +3200,12 @@ begin
   ChangedRect := FixedRect(X, Y1, X + 1, Y2);
   if not FMeasuringMode then
   begin
-    X := Constrain(X, FFixedClipRect.Left, FFixedClipRect.Right - FIXEDONE);
     Y1 := Constrain(Y1, FFixedClipRect.Top, FFixedClipRect.Bottom - FIXEDONE);
     Y2 := Constrain(Y2, FFixedClipRect.Top, FFixedClipRect.Bottom - FIXEDONE);
-    VertLineX(X, Y1, Y2, Value);
+    if (Abs(Y2 - Y1) > FIXEDONE) and InRange(X, FFixedClipRect.Left, FFixedClipRect.Right - FIXEDONE) then
+      VertLineX(X, Y1, Y2, Value)
+    else
+      LineXS(X, Y1, X, Y2, Value);
   end;
   Changed(MakeRect(ChangedRect), AREAINFO_LINE + 2);
 end;
