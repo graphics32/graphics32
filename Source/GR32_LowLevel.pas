@@ -68,11 +68,13 @@ function StackAlloc(Size: Integer): Pointer; register;
 procedure StackFree(P: Pointer); register;
 
 { Exchange two 32-bit values }
-procedure Swap(var A, B: Integer); overload;{$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-procedure Swap(var A, B: TFixed); overload;{$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure Swap(var A, B: Integer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+procedure Swap(var A, B: TFixed); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+procedure Swap(var A, B: TColor32); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A }
-procedure TestSwap(var A, B: Integer); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure TestSwap(var A, B: Integer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+procedure TestSwap(var A, B: TFixed); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
@@ -312,63 +314,45 @@ asm
 end;
 
 procedure Swap(var A, B: Integer);
-{$IFNDEF TARGET_x86}
-var 
-  T: Integer;
+// http://en.wikipedia.org/wiki/XOR_swap_algorithm
 begin
-  T := A;
-  A := B;
-  B := T;
-{$ELSE}
-asm
-// EAX = [A]
-// EDX = [B]
-        MOV     ECX,[EAX]     // ECX := [A]
-        XCHG    ECX,[EDX]     // ECX <> [B];
-        MOV     [EAX],ECX     // [A] := ECX
-{$ENDIF}
+  A := A xor B;
+  B := A xor B;
+  A := A xor B;
 end;
 
 procedure Swap(var A, B: TFixed);
-{$IFNDEF TARGET_x86}
-var 
-  T: Integer;
 begin
-  T := A;
-  A := B;
-  B := T;
-{$ELSE}
-asm
-// EAX = [A]
-// EDX = [B]
-        MOV     ECX,[EAX]     // ECX := [A]
-        XCHG    ECX,[EDX]     // ECX <> [B];
-        MOV     [EAX],ECX     // [A] := ECX
-{$ENDIF}
+  A := A xor B;
+  B := A xor B;
+  A := A xor B;
+end;
+
+procedure Swap(var A, B: TColor32);
+begin
+  A := A xor B;
+  B := A xor B;
+  A := A xor B;
 end;
 
 procedure TestSwap(var A, B: Integer);
-{$IFNDEF TARGET_x86}
-var 
-  T: Integer;
 begin
   if B < A then
   begin
-    T := A;
-    A := B;
-    B := T;
+    A := A xor B;
+    B := A xor B;
+    A := A xor B;
   end;
-{$ELSE}
-asm
-// EAX = [A]
-// EDX = [B]
-        MOV     ECX,[EAX]     // ECX := [A]
-        CMP     ECX,[EDX]
-        JLE     @exit        // ECX <= [B]? Exit
-        XCHG    ECX,[EDX]     // ECX <-> [B];
-        MOV     [EAX],ECX     // [A] := ECX
-@exit:
-{$ENDIF}
+end;
+
+procedure TestSwap(var A, B: TFixed);
+begin
+  if B < A then
+  begin
+    A := A xor B;
+    B := A xor B;
+    A := A xor B;
+  end;
 end;
 
 function TestClip(var A, B: Integer; const Size: Integer): Boolean;
