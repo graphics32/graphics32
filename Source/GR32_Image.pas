@@ -2037,6 +2037,7 @@ end;
 constructor TCustomImgView32.Create(AOwner: TComponent);
 begin
   inherited;
+  FScrollBarSize := GetSystemMetrics(SM_CYHSCROLL);
 
   HScroll := TCustomRangeBar.Create(Self);
   VScroll := TCustomRangeBar.Create(Self);
