@@ -138,7 +138,7 @@ begin
   with Result do
     if (Position > Min) and (Max > Min) then
     begin
-      X := Left + (Position - Min) * (Right - Left) div (Max - Min);
+      X := Round(Left + (Position - Min) * (Right - Left) / (Max - Min));
       if X < Right then Right := X;
     end
     else
