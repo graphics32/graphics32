@@ -1633,8 +1633,7 @@ begin
   if Horz then Sz := Result.Right - Result.Left
   else Sz := Result.Bottom - Result.Top;
 
-
-  Pos := Round((Position - Min) * (Sz - GetHandleSize) / (Max - Min));
+  Pos := Round((Position - Min) / (Max - Min) * (Sz - GetHandleSize));
 
   if Horz then
   begin
