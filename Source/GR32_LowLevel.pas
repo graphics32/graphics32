@@ -314,44 +314,53 @@ asm
 end;
 
 procedure Swap(var A, B: Integer);
-// http://en.wikipedia.org/wiki/XOR_swap_algorithm
+var
+  T: Integer;
 begin
-  A := A xor B;
-  B := A xor B;
-  A := A xor B;
+  T := A;
+  A := B;
+  B := T;
 end;
 
 procedure Swap(var A, B: TFixed);
+var
+  T: TFixed;
 begin
-  A := A xor B;
-  B := A xor B;
-  A := A xor B;
+  T := A;
+  A := B;
+  B := T;
 end;
 
 procedure Swap(var A, B: TColor32);
+var
+  T: TColor32;
 begin
-  A := A xor B;
-  B := A xor B;
-  A := A xor B;
+  T := A;
+  A := B;
+  B := T;
 end;
 
 procedure TestSwap(var A, B: Integer);
+var
+  T: Integer;
 begin
   if B < A then
   begin
-    A := A xor B;
-    B := A xor B;
-    A := A xor B;
+    T := A;
+    A := B;
+    B := T;
   end;
 end;
 
 procedure TestSwap(var A, B: TFixed);
+var
+  T: TFixed;
 begin
   if B < A then
   begin
-    A := A xor B;
-    B := A xor B;
-    A := A xor B;
+    T := A;
+    A := B;
+    B := T;
   end;
 end;
 
