@@ -152,6 +152,12 @@ uses
 {$R-}{$Q-}  // switch off overflow and range checking
 
 function Clamp(const Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  if Value > 255 then Result := 255
+  else if Value < 0 then Result := 0
+  else Result := Value;
+{$ELSE}
 {$IFDEF USEINLINING}
 begin
   if Value > 255 then Result := 255
@@ -166,6 +172,7 @@ asm
         MOV     EAX,$FF
         RET
 @2:     XOR     EAX,EAX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -266,13 +273,15 @@ asm
 {$ENDIF}
 end;
 
-{$IFDEF USEMOVE}
 procedure MoveLongword(const Source; var Dest; Count: Integer);
+{$IFDEF PUREPASCAL}
 begin
   Move(Source, Dest, Count shl 2);
-end;
 {$ELSE}
-procedure MoveLongword(const Source; var Dest; Count: Integer);
+{$IFDEF USEMOVE}
+begin
+  Move(Source, Dest, Count shl 2);
+{$ELSE}
 asm
 // EAX = Source
 // EDX = Dest
@@ -290,10 +299,19 @@ asm
 @exit:
         POP     EDI
         POP     ESI
-end;
 {$ENDIF}
+{$ENDIF}
+end;
 
 procedure MoveWord(const Source; var Dest; Count: Integer);
+{$IFDEF PUREPASCAL}
+begin
+  Move(Source, Dest, Count shl 1);
+{$ELSE}
+{$IFDEF USEMOVE}
+begin
+  Move(Source, Dest, Count shl 1);
+{$ELSE}
 asm
 // EAX = Source
 // EDX = Dest
@@ -311,6 +329,8 @@ asm
 @exit:
         POP     EDI
         POP     ESI
+{$ENDIF}
+{$ENDIF}
 end;
 
 procedure Swap(var A, B: Integer);
@@ -385,6 +405,15 @@ begin
 end;
 
 function Constrain(const Value, Lo, Hi: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  if Value < Lo then
+  	Result := Lo
+  else if Value > Hi then
+  	Result := Hi
+  else
+  	Result := Value;
+{$ELSE}
 {$IFDEF USEINLINING}
 begin
   if Value < Lo then
@@ -399,6 +428,7 @@ asm
         CMOVG     EAX,EDX
         CMP       ECX,EAX
         CMOVL     EAX,ECX
+{$ENDIF}
 {$ENDIF}
 end;
 
