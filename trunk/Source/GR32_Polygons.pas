@@ -201,7 +201,7 @@ type
   protected
     function GetFillLine: TFillLineEvent; override;
     procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-  published
+
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
     
