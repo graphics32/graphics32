@@ -240,10 +240,7 @@ begin
   FBits := System.GetMem(NewHeight * Stride);
 
   if FBits = nil then
-  begin
-    WriteLn('[TLCLBackend.InitializeSurface] ERROR FBits = nil');
-    Exit;
-  end;
+    raise Exception.Create('[TLCLBackend.InitializeSurface] ERROR FBits = nil');
 
   { Creates a device context for our raw image area }
 
@@ -251,10 +248,7 @@ begin
    NewWidth, NewHeight, 8, Stride, FColorSpace, kCGImageAlphaNoneSkipFirst or kCGBitmapByteOrder32Little);
 
   if FContext = nil then
-  begin
-    WriteLn('[TLCLBackend.InitializeSurface] ERROR FContext = nil');
-    Exit;
-  end;
+    raise Exception.Create('[TLCLBackend.InitializeSurface] ERROR FContext = nil');
 
   { flip and offset CTM to upper left corner }
   CGContextTranslateCTM(FContext, 0, NewHeight);

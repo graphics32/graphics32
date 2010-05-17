@@ -68,6 +68,7 @@ function StackAlloc(Size: Integer): Pointer; register;
 procedure StackFree(P: Pointer); register;
 
 { Exchange two 32-bit values }
+procedure Swap(var A, B: Pointer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 procedure Swap(var A, B: Integer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 procedure Swap(var A, B: TFixed); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 procedure Swap(var A, B: TColor32); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
@@ -154,17 +155,18 @@ uses
 function Clamp(const Value: Integer): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  if Value > 255 then Result := 255
+ if Value > 255 then Result := 255
   else if Value < 0 then Result := 0
   else Result := Value;
 {$ELSE}
 {$IFDEF USEINLINING}
 begin
-  if Value > 255 then Result := 255
+ if Value > 255 then Result := 255
   else if Value < 0 then Result := 0
   else Result := Value;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
         TEST    EAX,$FFFFFF00
         JNZ     @1
         RET
@@ -172,6 +174,15 @@ asm
         MOV     EAX,$FF
         RET
 @2:     XOR     EAX,EAX
+{$ELSE}
+        TEST    EAX,$FFFFFF00
+        JNZ     @1
+        RET
+@1:     JS      @2
+        MOV     EAX,$FF
+        RET
+@2:     XOR     EAX,EAX
+{$ENDIF}
 {$ENDIF}
 {$ENDIF}
 end;
@@ -331,6 +342,15 @@ asm
         POP     ESI
 {$ENDIF}
 {$ENDIF}
+end;
+
+procedure Swap(var A, B: Pointer);
+var
+  T: Pointer;
+begin
+  T := A;
+  A := B;
+  B := T;
 end;
 
 procedure Swap(var A, B: Integer);
@@ -811,6 +831,7 @@ end;
   but the runtime size flexibility of heap allocated memory.  }
 function StackAlloc(Size: Integer): Pointer; register;
 asm
+{$IFDEF TARGET_x64}
   POP   ECX          { return address }
   MOV   EDX, ESP
   ADD   EAX, 3
@@ -831,6 +852,28 @@ asm
   SUB   EDX, 4
   PUSH  EDX          { save current SP, for sanity check  (sp = [sp]) }
   PUSH  ECX          { return to caller }
+{$ELSE}
+  POP   ECX          { return address }
+  MOV   EDX, ESP
+  ADD   EAX, 3
+  AND   EAX, not 3   // round up to keep ESP dword aligned
+  CMP   EAX, 4092
+  JLE   @@2
+@@1:
+  SUB   ESP, 4092
+  PUSH  EAX          { make sure we touch guard page, to grow stack }
+  SUB   EAX, 4096
+  JNS   @@1
+  ADD   EAX, 4096
+@@2:
+  SUB   ESP, EAX
+  MOV   EAX, ESP     { function result = low memory address of block }
+  PUSH  EDX          { save original SP, for cleanup }
+  MOV   EDX, ESP
+  SUB   EDX, 4
+  PUSH  EDX          { save current SP, for sanity check  (sp = [sp]) }
+  PUSH  ECX          { return to caller }
+{$ENDIF}
 end;
 
 { StackFree pops the memory allocated by StackAlloc off the stack.
@@ -845,6 +888,21 @@ end;
   the calling routine exits. }
 procedure StackFree(P: Pointer); register;
 asm
+{$IFDEF TARGET_x64}
+ // not implemented yet!
+(*
+POP   ECX                     { return address }
+  MOV   EDX, DWORD PTR [ESP]
+  SUB   EAX, 8
+  CMP   EDX, ESP                { sanity check #1 (SP = [SP]) }
+  JNE   @@1
+  CMP   EDX, EAX                { sanity check #2 (P = this stack block) }
+  JNE   @@1
+  MOV   ESP, DWORD PTR [ESP+4]  { restore previous SP  }
+@@1:
+  PUSH  ECX                     { return to caller }
+*)
+{$ELSE}
   POP   ECX                     { return address }
   MOV   EDX, DWORD PTR [ESP]
   SUB   EAX, 8
@@ -855,6 +913,7 @@ asm
   MOV   ESP, DWORD PTR [ESP+4]  { restore previous SP  }
 @@1:
   PUSH  ECX                     { return to caller }
+{$ENDIF}
 end;
 
 {CPU target and feature Function templates}

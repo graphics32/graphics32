@@ -1877,7 +1877,8 @@ end;
 procedure MakeMergeTables;
 var
   I, J: Integer;
-const OneByteth : Double = 1 / 255;
+const
+  OneByteth : Double = 1 / 255;
 begin
   for J := 0 to 255 do
     for I := 0 to 255 do

@@ -752,8 +752,8 @@ begin
     if Assigned(Node2.Next) then Node2.Next.Prev := Node1;
     if Head = Node1 then Head := Node2 else if Head = Node2 then Head := Node1;
     if Tail = Node1 then Tail := Node2 else if Tail = Node2 then Tail := Node1;
-    Swap(Integer(Node1.Next), Integer(Node2.Next));
-    Swap(Integer(Node1.Prev), Integer(Node2.Prev));
+    Swap(Pointer(Node1.Next), Pointer(Node2.Next));
+    Swap(Pointer(Node1.Prev), Pointer(Node2.Prev));
   end;
 end;
 

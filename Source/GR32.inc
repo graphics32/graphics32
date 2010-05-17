@@ -29,6 +29,7 @@
  * Contributor(s):
  *   Andre Beckedorf <Andre@metaException.de>
  *   Michael Hansen <dyster_tid@hotmail.com>
+ *   Christian Budde <Christian@aixcoustic.com>
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -121,30 +122,26 @@
   {$ENDIF}
 {$ENDIF}
 
-
-(* Symbol PUREPASCAL :
-    Forces GR32 into pure pascal mode. Should be used only for testing and
-    debugging purposes.
-
-    Note: don't change this to compile for other targets than x86 - configure
-    FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
-
-{$IFDEF FPC}
-  {$IFNDEF LCLWin32}
-    {$DEFINE PUREPASCAL}
-  {$ENDIF}
-{$ENDIF}
+(* Symbol TARGET_* :
+    Defines the processor platform (x86, x64 or PowerPC)
+*)
 
 {$IFDEF FPC}
   {$DEFINE PLATFORM_INDEPENDENT}
   {$MODE Delphi}
 
-  {$IFNDEF PUREPASCAL}
-    // Set up internal CPU target directives according to FPC directives
+  // Set up internal CPU target directives according to FPC directives
+  {$IFDEF CPU386}
     {$IFDEF CPUI386}
       // target is an Intel 80386 or later.
       {$DEFINE TARGET_x86}
     {$ENDIF}
+
+    {$IFDEF CPUX86_64}
+      // target is a 64-bit processor (AMD or INTEL).
+      {$DEFINE TARGET_x64}
+    {$ENDIF}
+
     {$IFDEF CPUPOWERPC}
       // target is a 32-bit PowerPC or compatible.
       // currently only indirect support, added here as example on how to add
@@ -153,25 +150,40 @@
     {$ENDIF}
   {$ENDIF}
 
+  {$IFDEF CPUX86_64}
+    // target is a 64-bit processor (AMD or INTEL).
+    {$DEFINE TARGET_x64}
+    {$ASMMODE INTEL}
+  {$ENDIF}
+
   // Widgetsets other then Windows will want to implement BITS_GETTER
   {$IFNDEF LCLWin32}
     {$DEFINE BITS_GETTER}
   {$ENDIF}
-
 {$ELSE}
-  {$IFNDEF PUREPASCAL}
-    // define default (delphi etc) target (32 bit Intel 80386 or later)
-    {$DEFINE TARGET_x86}
-  {$ENDIF}
+  // define default (delphi etc) target (32 bit Intel 80386 or later)
+  {$DEFINE TARGET_x86}
 {$ENDIF}
 
 
+(* Symbol PUREPASCAL :
+    Forces GR32 into pure pascal mode. Should be used only for testing and
+    debugging purposes.
+
+    Note: don't change this to compile for other targets than x86 - configure
+    FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
+{$IFNDEF TARGET_x86}
+{-$IFNDEF TARGET_x64}
+  {$DEFINE PUREPASCAL}
+{-$ENDIF}
+{$ENDIF}
+
 {$IFNDEF COMPILER6}
 {$IFNDEF FPC}
-//////////////////////////////////////////////////////////////////////
-'  Graphics32 may only be installed with Delphi/BCB 6 (or higher)    '
-'   or Free Pascal / Lazarus                                         '
-//////////////////////////////////////////////////////////////////////
++--------------------------------------------------------------------+
+|  Graphics32 may only be installed with Delphi/BCB 6 (or higher)    |
+|   or Free Pascal / Lazarus                                         |
++--------------------------------------------------------------------+
 {$ENDIF}
 {$ENDIF}
 

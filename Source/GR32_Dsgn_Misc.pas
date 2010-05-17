@@ -123,8 +123,8 @@ begin
   L := GetClassList;
   if Assigned(L) and Assigned(L.Find(Value)) then
     SetClassName(Value)
-	else SetStrValue('');
-	Modified;
+  else SetStrValue('');
+  Modified;
 end;
 
 {$IFDEF BCB}

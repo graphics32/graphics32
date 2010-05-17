@@ -121,7 +121,7 @@ end;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
-  Result := IfThen(Info.CPUFeatures <= GR32_System.CPUFeatures, 0, INVALID_PRIORITY);
+  Result := IfThen(Info^.CPUFeatures <= GR32_System.CPUFeatures, 0, INVALID_PRIORITY);
 end;
 
 { TFunctionRegistry }
@@ -132,10 +132,10 @@ var
   Info: PFunctionInfo;
 begin
   New(Info);
-  Info.FunctionID := FunctionID;
-  Info.Proc := Proc;
-  Info.CPUFeatures := CPUFeatures;
-  Info.Flags := Flags;
+  Info^.FunctionID := FunctionID;
+  Info^.Proc := Proc;
+  Info^.CPUFeatures := CPUFeatures;
+  Info^.Flags := Flags;
   FItems.Add(Info);
 end;
 
@@ -177,12 +177,12 @@ begin
   for I := FItems.Count - 1 downto 0 do
   begin
     Info := FItems[I];
-    if (Info.FunctionID = FunctionID) then
+    if (Info^.FunctionID = FunctionID) then
     begin
       P := PriorityCallback(Info);
       if P < MinPriority then
       begin
-        Result := Info.Proc;
+        Result := Info^.Proc;
         MinPriority := P;
       end;
     end;
@@ -203,8 +203,8 @@ begin
   for I := 0 to FBindings.Count - 1 do
   begin
     P := PFunctionBinding(FBindings[I]);
-    if P.FunctionID = FunctionID then
-      P.BindVariable^ := FindFunction(FunctionID, PriorityCallback);
+    if P^.FunctionID = FunctionID then
+      P^.BindVariable^ := FindFunction(FunctionID, PriorityCallback);
   end;
 end;
 
@@ -216,7 +216,7 @@ begin
   for I := 0 to FBindings.Count - 1 do
   begin
     P := PFunctionBinding(FBindings[I]);
-    P.BindVariable^ := FindFunction(P.FunctionID, PriorityCallback);
+    P^.BindVariable^ := FindFunction(P^.FunctionID, PriorityCallback);
   end;
 end;
 
@@ -226,8 +226,8 @@ var
   Binding: PFunctionBinding;
 begin
   New(Binding);
-  Binding.FunctionID := FunctionID;
-  Binding.BindVariable := BindVariable;
+  Binding^.FunctionID := FunctionID;
+  Binding^.BindVariable := BindVariable;
   FBindings.Add(Binding);
 end;
 
