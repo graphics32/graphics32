@@ -178,6 +178,13 @@
 {-$ENDIF}
 {$ENDIF}
 
+// The DARWIN target of Free Pascal generates PIC code by default
+// Which isn't compatible with the current Assembler
+// So force PUREPASCAL
+{$IFDEF DARWIN}
+  {$DEFINE PUREPASCAL}
+{$ENDIF}
+
 {$IFNDEF COMPILER6}
 {$IFNDEF FPC}
 +--------------------------------------------------------------------+
@@ -276,4 +283,4 @@
 
 {$IFNDEF FPC}
   {$DEFINE XPTHEMES} // enable support for windows xp themes
-{$ENDIF}
+{$ENDIF}

@@ -182,6 +182,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
 
 function MergeReg_ASM(F, B: TColor32): TColor32;
 asm
@@ -360,6 +361,7 @@ asm
 @exit:
 end;
 
+{$ENDIF}
 {$ENDIF}
 
 function MergeRegEx_Pas(F, B, M: TColor32): TColor32;
@@ -1106,6 +1108,7 @@ begin
 end;
 
 {$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
 
 procedure EMMS_MMX;
 asm
@@ -1528,6 +1531,7 @@ asm
         POP       EBX
 end;
 {$ENDIF}
+{$ENDIF}
 
 { Non-MMX Color algebra versions }
 
@@ -1766,6 +1770,7 @@ end;
 { MMX Color algebra versions }
 
 {$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
 function ColorAdd_MMX(C1, C2: TColor32): TColor32;
 asm
         MOVD      MM0,EAX
@@ -1850,6 +1855,7 @@ asm
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
 end;
+{$ENDIF}
 {$ENDIF}
 
 { Misc stuff }
@@ -1982,6 +1988,7 @@ begin
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
 
 {$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
@@ -2009,6 +2016,7 @@ begin
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
 {$ENDIF}
+{$ENDIF}
 
   BlendRegistry.RebindAll;
 end;
@@ -2017,6 +2025,7 @@ initialization
   RegisterBindings;
   MakeMergeTables;
 
+{$IFNDEF PUREPASCAL}
 {$IFDEF TARGET_x86}
   if (ciMMX in CPUFeatures) then
   begin
@@ -2028,10 +2037,15 @@ initialization
 {$ELSE}
   MMX_ACTIVE := False;
 {$ENDIF}
+{$ELSE}
+  MMX_ACTIVE := False;
+{$ENDIF}
 
 finalization
 {$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
   if (ciMMX in CPUFeatures) then FreeAlphaTable;
 {$ENDIF}
+{$ENDIF}
 
-end.
+end.
