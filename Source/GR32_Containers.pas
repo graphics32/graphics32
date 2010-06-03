@@ -39,6 +39,7 @@ interface
 
 uses
 {$IFDEF FPC}
+  Types,
   {$IFDEF Windows}
   Windows,
   {$ENDIF}
@@ -834,4 +835,4 @@ begin
   end;
 end;
 
-end.
+end.

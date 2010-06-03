@@ -2690,13 +2690,14 @@ begin
 end;
 
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
   Result := GET_TS256(X, Y);
   EMMS;
 {$ELSE}
+{$IFNDEF TARGET_x86}
 asm
   ADD X, $7F
   ADD Y, $7F
@@ -2708,6 +2709,7 @@ asm
   jz @Exit
   db $0F, $77               /// EMMS
 @Exit:
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -5972,4 +5974,4 @@ initialization
 finalization
   StockBitmap.Free;
 
-end.
+end.

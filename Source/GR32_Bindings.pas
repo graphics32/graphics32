@@ -35,7 +35,7 @@ unit GR32_Bindings;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   Classes, GR32_System;
@@ -259,4 +259,4 @@ initialization
 finalization
   FreeRegisters;
 
-end.
+end.
