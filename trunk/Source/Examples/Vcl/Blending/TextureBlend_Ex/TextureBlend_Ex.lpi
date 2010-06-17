@@ -9,12 +9,12 @@
       </Flags>
       <MainUnit Value="0"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ActiveWindowIndexAtStart Value="0"/>
     </General>
     <VersionInfo>
-      <ProjectVersion Value=""/>
       <Language Value=""/>
       <CharSet Value=""/>
+      <StringTable Comments="" CompanyName="" FileDescription="" FileVersion="0.0.0.0" InternalName="" LegalCopyright="" LegalTrademarks="" OriginalFilename="" ProductName="" ProductVersion=""/>
     </VersionInfo>
     <PublishOptions>
       <Version Value="2"/>
@@ -40,12 +40,13 @@
       <Unit0>
         <Filename Value="TextureBlend_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="10"/>
-        <TopLine Value="1"/>
         <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="10"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -54,54 +55,59 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="48" Y="130"/>
-        <TopLine Value="110"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="110"/>
+        <CursorPos X="48" Y="130"/>
         <UsageCount Value="21"/>
         <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="..\..\..\..\GR32_DrawingEx.pas"/>
         <UnitName Value="GR32_DrawingEx"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="14"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
         <Filename Value="..\..\..\..\Packages\GR32_DSGN_L.pas"/>
         <UnitName Value="GR32_DSGN_L"/>
-        <CursorPos X="51" Y="10"/>
         <TopLine Value="1"/>
+        <CursorPos X="51" Y="10"/>
         <UsageCount Value="10"/>
       </Unit3>
       <Unit4>
         <Filename Value="..\..\..\..\Packages\GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
-        <CursorPos X="49" Y="13"/>
         <TopLine Value="1"/>
+        <CursorPos X="49" Y="13"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
         <Filename Value="..\..\..\..\GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-        <CursorPos X="103" Y="616"/>
         <TopLine Value="619"/>
+        <CursorPos X="103" Y="616"/>
         <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\..\..\..\..\..\..\..\Lazarus\lcl\lmessages.pp"/>
         <UnitName Value="LMessages"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
       </Unit6>
       <Unit7>
         <Filename Value="..\..\..\..\GR32_Backends_LCL_Win.pas"/>
         <UnitName Value="GR32_Backends_LCL_Win"/>
-        <CursorPos X="6" Y="4"/>
         <TopLine Value="1"/>
+        <CursorPos X="6" Y="4"/>
         <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit7>
     </Units>
     <JumpHistory Count="3" HistoryIndex="2">
@@ -123,9 +129,9 @@
     <Version Value="8"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\"/>
+      <IncludeFiles Value="..\..\..\..\"/>
       <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)\"/>
-      <OtherUnitFiles Value="..\..\..\"/>
+      <OtherUnitFiles Value="..\..\..\..\"/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -152,6 +158,9 @@
       </Options>
     </Linking>
     <Other>
+      <CompilerMessages>
+        <UseMsgFile Value="True"/>
+      </CompilerMessages>
       <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>
