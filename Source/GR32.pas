@@ -2697,7 +2697,7 @@ begin
   Result := GET_TS256(X, Y);
   EMMS;
 {$ELSE}
-{$IFNDEF TARGET_x86}
+{$IFDEF TARGET_x86}
 asm
   ADD X, $7F
   ADD Y, $7F
@@ -5974,4 +5974,4 @@ initialization
 finalization
   StockBitmap.Free;
 
-end.
+end.
