@@ -167,12 +167,11 @@
 
 
 (* Symbol PUREPASCAL :
-    Forces GR32 into pure pascal mode. Should be used only for testing and
-    debugging purposes.
-
-    Note: don't change this to compile for other targets than x86 - configure
-    FPC/Lazarus correctly instead (GR32 will adapt to those changes). *)
-{$IFNDEF TARGET_x86}
+    Forces GR32 into pure pascal mode. *)
+// FPC generates very efficient code, there is no need for assembler,
+// which just causes trouble
+{$IFDEF FPC}
+//{$IFDEF TARGET_x86}
 {-$IFNDEF TARGET_x64}
   {$DEFINE PUREPASCAL}
 {-$ENDIF}
@@ -283,4 +282,4 @@
 
 {$IFNDEF FPC}
   {$DEFINE XPTHEMES} // enable support for windows xp themes
-{$ENDIF}
+{$ENDIF}
