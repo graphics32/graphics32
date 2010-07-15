@@ -726,8 +726,11 @@ type
     procedure SetTimeChunk(const Value: TChunkPngTime);
     procedure SetWidth(const Value: Integer);
 
-    function CalculateCRC(Stream: TStream): Cardinal;
+    function CalculateCRC(Buffer: PByte; Count: Cardinal): Cardinal; overload;
+    function CalculateCRC(Stream: TStream): Cardinal; overload;
+    {$IFDEF CheckCRC}
     function CheckCRC(Stream: TStream; CRC: Cardinal): Boolean;
+    {$ENDIF}
     procedure ReadImageDataChunk(Stream: TStream);
     procedure ReadUnknownChunk(Stream: TStream);
 
@@ -3698,31 +3701,59 @@ function TPortableNetworkGraphic.CalculateCRC(Stream: TStream): Cardinal;
 var
   CrcValue : Cardinal;
   Value    : Byte;
+  Buffer   : PByte;
 begin
- with Stream do
-  begin
-   Seek(4, soFromBeginning);
-
-   // initialize CRC
-   CrcValue := $FFFFFFFF;
-
-   while Position < Size do
+ if Stream is TMemoryStream
+  then Result := CalculateCRC(TMemoryStream(Stream).Memory, Stream.Size)
+  else
+   with Stream do
     begin
-     Read(Value, 1);
+     Seek(4, soFromBeginning);
 
-     CrcValue := GCrcTable^[(CrcValue xor Value) and $FF] xor (CrcValue shr 8);
+     // initialize CRC
+     CrcValue := $FFFFFFFF;
+
+     while Position < Size do
+      begin
+       Read(Value, 1);
+
+       CrcValue := GCrcTable^[(CrcValue xor Value) and $FF] xor (CrcValue shr 8);
+      end;
+
+     Result := (CrcValue xor $FFFFFFFF);
+
+     Seek(0, soFromBeginning);
     end;
-
-   Result := (CrcValue xor $FFFFFFFF);
-
-   Seek(0, soFromBeginning);
-  end;
 end;
 
+function TPortableNetworkGraphic.CalculateCRC(Buffer: PByte; Count: Cardinal): Cardinal;
+var
+  CrcValue : Cardinal;
+  Pos      : Cardinal;
+begin
+ // ignore size (offset by 4 bytes)
+ Pos := 4;
+ Inc(Buffer, 4);
+
+ // initialize CRC
+ CrcValue := $FFFFFFFF;
+
+ while Pos < Count do
+  begin
+   CrcValue := GCrcTable^[(CrcValue xor Buffer^) and $FF] xor (CrcValue shr 8);
+   Inc(Buffer);
+   Inc(Pos);
+  end;
+
+ Result := (CrcValue xor $FFFFFFFF);
+end;
+
+{$IFDEF CheckCRC}
 function TPortableNetworkGraphic.CheckCRC(Stream: TStream; CRC: Cardinal): Boolean;
 begin
  Result := CalculateCRC(Stream) = CRC;
 end;
+{$ENDIF}
 
 procedure TPortableNetworkGraphic.FilterSub(CurrentRow, PreviousRow: PByteArray;
   BytesPerRow, PixelByteSize: Integer);

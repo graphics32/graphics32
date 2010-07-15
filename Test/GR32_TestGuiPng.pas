@@ -53,6 +53,7 @@ type
   published
     procedure TestScanning;
     procedure TestBasicWriting;
+    procedure TestPerformanceTest;
     procedure TestInvalidFiles;
   end;
 
@@ -413,6 +414,13 @@ begin
   Fail('Wrong header is ignored!');
  except
  end;
+end;
+
+procedure TTestPngGR32File.TestPerformanceTest;
+begin
+ if FileExists(CTestPngDir + 'PerformanceTest.png')
+  then FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'PerformanceTest.png')
+  else Fail('File ' + CTestPngDir + 'PerformanceTest.png does not exist!');
 end;
 
 procedure TTestPngGR32File.InternalTestInvalidFile(FileName: TFileName);
