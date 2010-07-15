@@ -1,0 +1,48 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{480E5BF1-90E2-47DC-A8B6-9F9B970A7941}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="Demo\PNG_GR32_Demo.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Test\GuiPngTest.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="PNG_GR32_Demo">
+			<MSBuild Projects="Demo\PNG_GR32_Demo.dproj"/>
+		</Target>
+		<Target Name="PNG_GR32_Demo:Clean">
+			<MSBuild Targets="Clean" Projects="Demo\PNG_GR32_Demo.dproj"/>
+		</Target>
+		<Target Name="PNG_GR32_Demo:Make">
+			<MSBuild Targets="Make" Projects="Demo\PNG_GR32_Demo.dproj"/>
+		</Target>
+		<Target Name="GuiPngTest">
+			<MSBuild Projects="Test\GuiPngTest.dproj"/>
+		</Target>
+		<Target Name="GuiPngTest:Clean">
+			<MSBuild Targets="Clean" Projects="Test\GuiPngTest.dproj"/>
+		</Target>
+		<Target Name="GuiPngTest:Make">
+			<MSBuild Targets="Make" Projects="Test\GuiPngTest.dproj"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="PNG_GR32_Demo;GuiPngTest"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="PNG_GR32_Demo:Clean;GuiPngTest:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="PNG_GR32_Demo:Make;GuiPngTest:Make"/>
+		</Target>
+		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+	</Project>
