@@ -77,14 +77,6 @@ type
   end;
   PRGB24Word = ^TRGB24Word;
 
-  TRGB24Array = packed array[0..MaxInt div SizeOf(TRGB24) - 1] of TRGB24;
-  PRGB24Array = ^TRGB24Array;
-  TArrayOfRGB24 = array of TRGB24;
-
-  TRGB24WordArray = packed array[0..MaxInt div SizeOf(TRGB24Word) - 1] of TRGB24Word;
-  PRGB24WordArray = ^TRGB24WordArray;
-  TArrayOfRGB24Word = array of TRGB24Word;
-
   TRGB32 = packed record
     R, G, B, A: Byte;
   end;
@@ -94,14 +86,6 @@ type
     R, G, B, A: Word;
   end;
   PRGB32Word = ^TRGB32Word;
-
-  TRGB32Array = packed array[0..MaxInt div SizeOf(TRGB32) - 1] of TRGB32;
-  PRGB32Array = ^TRGB32Array;
-  TArrayOfRGB32 = array of TRGB32;
-
-  TRGB32WordArray = packed array[0..MaxInt div SizeOf(TRGB32Word) - 1] of TRGB32Word;
-  PRGB32WordArray = ^TRGB32WordArray;
-  TArrayOfRGB32Word = array of TRGB32Word;
 
   PByteArray = SysUtils.PByteArray;
   TByteArray = SysUtils.TByteArray;
@@ -3035,7 +3019,6 @@ end;
 
 procedure TPortableNetworkGraphic.StoreImageData(Stream: TStream);
 var
-  DataIndex : Integer;
   DataChunk : TChunkPngImageData;
   ChunkSize : Integer;
 begin
@@ -3164,7 +3147,6 @@ var
   ChunkClass   : TCustomDefinedChunkWithHeaderClass;
   Chunk        : TCustomDefinedChunkWithHeader;
   MemoryStream : TMemoryStream;
-  IENDCRC      : Cardinal;
 begin
  with Stream do
   begin
@@ -3235,10 +3217,20 @@ begin
         Break;
        end;
 
+      {$IFNDEF LinearStream}
       // reset position to the chunk start and copy stream to memory
       Seek(-8, soCurrent);
+      {$ENDIF}
       MemoryStream.Clear;
+      {$IFDEF LinearStream}
+      WriteSwappedCardinal(MemoryStream, ChunkSize);
+      MemoryStream.Write(ChunkName, 4);
+      MemoryStream.CopyFrom(Stream, ChunkSize);
+      {$ELSE}
       MemoryStream.CopyFrom(Stream, ChunkSize + 8);
+      {$ENDIF}
+
+      // reset memory stream to beginning of the chunk
       MemoryStream.Seek(0, soFromBeginning);
 
       if ChunkName = 'IHDR'

@@ -337,7 +337,6 @@ var
   CurrentRow    : Integer;
   RowByteSize   : Integer;
   BytesPerRow   : Integer;
-  PixelByteSize : Integer;
 begin
  if Source is TCustomBitmap32 then
   with TCustomBitmap32(Source) do
@@ -375,7 +374,6 @@ begin
      CurrentRow := 0;
      BytesPerRow := ImageHeader.BytesPerRow;
      RowByteSize := BytesPerRow + 1;
-     PixelByteSize := ImageHeader.PixelByteSize;
 
      try
       GetMem(RowBuffer[0], RowByteSize);
@@ -386,8 +384,6 @@ begin
        begin
         // set filter method to none
         RowBuffer[CurrentRow]^[0] := 0;
-
-//        FilterRow(TAdaptiveFilterMethod(RowBuffer[CurrentRow]^[0]), RowBuffer[CurrentRow], RowBuffer[1 - CurrentRow], BytesPerRow, PixelByteSize);
 
         // transfer data from image to current row
         TransferProc(PColor32(ScanLine[Index]), @RowBuffer[CurrentRow][1]);

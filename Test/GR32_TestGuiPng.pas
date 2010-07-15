@@ -280,6 +280,10 @@ resourcestring
   RCStrSignificantBitsChunkMissing = 'Significant bits chunk is missing!';
   RCStrWrongSignificantBitsFormat = 'Wrong significant bits format!';
 
+const
+  CPngSuiteDir = '..\Resources\PNG Suite Images\';
+  CTestPngDir = '..\Resources\Test\';
+
 var
   TestPngSuite : TTestSuite;
 
@@ -394,18 +398,18 @@ end;
 procedure TTestPngGR32File.TestInvalidFiles;
 begin
  // empty 0x0 grayscale file
- InternalTestInvalidFile('x00n0g01.png');
+ InternalTestInvalidFile(CPngSuiteDir + 'x00n0g01.png');
 
  // added cr bytes
  try
-  InternalTestInvalidFile('xcrn0g04.png');
+  InternalTestInvalidFile(CPngSuiteDir + 'xcrn0g04.png');
   Fail('Wrong header is ignored!');
  except
  end;
 
  // converted cr bytes to lf and removed all NULs
  try
-  InternalTestInvalidFile('xlfn0g04.png');
+  InternalTestInvalidFile(CPngSuiteDir + 'xlfn0g04.png');
   Fail('Wrong header is ignored!');
  except
  end;
@@ -428,7 +432,7 @@ begin
   try
    with FPortableNetworkGraphic do
     begin
-     FPortableNetworkGraphic.LoadFromFile('TestTrueColor32bit.png');
+     FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
      FPortableNetworkGraphic.SaveToStream(TempStream);
      TempStream.Seek(0, soFromBeginning);
      FPortableNetworkGraphic.LoadFromStream(TempStream);
@@ -442,8 +446,6 @@ end;
 { TCustomTestPngGR32Drawing }
 
 procedure TCustomTestPngGR32Drawing.InternalTestDrawing(FileName: TFileName);
-var
-  PNGImage : TPngImage;
 begin
  if not FileExists(FileName)
   then Fail(Format(RCStrTestFileNotFound, [FileName]));
@@ -475,102 +477,102 @@ end;
 
 procedure TTestPngGR32Drawing.TestDrawingGrayscale1bit;
 begin
- InternalTestDrawing('TestGrayscale1bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestGrayscale1bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingGrayscale2bit;
 begin
- InternalTestDrawing('TestGrayscale2bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestGrayscale2bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingGrayscale4bit;
 begin
- InternalTestDrawing('TestGrayscale4bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestGrayscale4bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingGrayscale8bit;
 begin
- InternalTestDrawing('TestGrayscale8bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestGrayscale8bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingIndex1bit;
 begin
- InternalTestDrawing('TestIndex1bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestIndex1bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingIndex2bit;
 begin
- InternalTestDrawing('TestIndex2bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestIndex2bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingIndex4bit;
 begin
- InternalTestDrawing('TestIndex4bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestIndex4bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingIndex8bit;
 begin
- InternalTestDrawing('TestIndex8bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestIndex8bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingTrueColor24;
 begin
- InternalTestDrawing('TestTrueColor24bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestTrueColor24bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingTrueColor32;
 begin
- InternalTestDrawing('TestTrueColor32bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestTrueColor32bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale1bit;
 begin
- InternalTestDrawing('TestAdam7Grayscale1bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale1bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale2bit;
 begin
- InternalTestDrawing('TestAdam7Grayscale2bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale2bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale4bit;
 begin
- InternalTestDrawing('TestAdam7Grayscale4bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale4bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale8bit;
 begin
- InternalTestDrawing('TestAdam7Grayscale8bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale8bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Index1bit;
 begin
- InternalTestDrawing('TestAdam7Index1bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Index1bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Index2bit;
 begin
- InternalTestDrawing('TestAdam7Index2bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Index2bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Index4bit;
 begin
- InternalTestDrawing('TestAdam7Index4bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Index4bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7Index8bit;
 begin
- InternalTestDrawing('TestAdam7Index8bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7Index8bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7TrueColor24;
 begin
- InternalTestDrawing('TestAdam7TrueColor24bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7TrueColor24bit.png');
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingAdam7TrueColor32;
 begin
- InternalTestDrawing('TestAdam7TrueColor32bit.png');
+ InternalTestDrawing(CTestPngDir + 'TestAdam7TrueColor32bit.png');
 end;
 
 { TTestPngGR32DrawingSuiteBasicNonInterlaced }
@@ -579,7 +581,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingBlackAndWhite;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn0g01.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn0g01.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -604,7 +606,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale2bit;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn0g02.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn0g02.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -629,7 +631,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale4bit;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn0g04.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn0g04.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -654,7 +656,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale8bit;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn0g08.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -677,7 +679,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale16bit;
 begin
- InternalTestDrawing('basn0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed1bit;
@@ -710,7 +712,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed2bit;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn3p02.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -736,7 +738,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed4bit;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn3p04.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -762,7 +764,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed8bit;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn3p08.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -788,7 +790,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGB8bits;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn2c08.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -814,7 +816,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGB16bits;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn2c16.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -840,7 +842,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscaleAlpha8b
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn4a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn4a08.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -866,7 +868,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscaleAlpha16
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn4a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn4a16.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -892,7 +894,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGBA8bits;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn6a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn6a08.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -918,7 +920,7 @@ procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGBA16bits;
 var
   Bitmap32 : TBitmap32;
 begin
- InternalTestDrawing('basn6a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basn6a16.png');
 
  // check if format for saving can be determined correctly
  Bitmap32 := TBitmap32.Create;
@@ -945,77 +947,77 @@ end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingBlackAndWhite;
 begin
- InternalTestDrawing('basi0g01.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi0g01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale2bit;
 begin
- InternalTestDrawing('basi0g02.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi0g02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale4bit;
 begin
- InternalTestDrawing('basi0g04.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi0g04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale8bit;
 begin
- InternalTestDrawing('basi0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale16bit;
 begin
- InternalTestDrawing('basi0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGB8bits;
 begin
- InternalTestDrawing('basi2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGB16bits;
 begin
- InternalTestDrawing('basi2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi2c16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed1bit;
 begin
- InternalTestDrawing('basi3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed2bit;
 begin
- InternalTestDrawing('basi3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed4bit;
 begin
- InternalTestDrawing('basi3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed8bit;
 begin
- InternalTestDrawing('basi3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi3p08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscaleAlpha8bit;
 begin
- InternalTestDrawing('basi4a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi4a08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscaleAlpha16bit;
 begin
- InternalTestDrawing('basi4a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi4a16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGBA8bits;
 begin
- InternalTestDrawing('basi6a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi6a08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGBA16bits;
 begin
- InternalTestDrawing('basi6a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'basi6a16.png');
 end;
 
 
@@ -1023,182 +1025,182 @@ end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette1x1;
 begin
- InternalTestDrawing('s01n3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's01n3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette2x2;
 begin
- InternalTestDrawing('s02n3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's02n3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette3x3;
 begin
- InternalTestDrawing('s03n3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's03n3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette4x4;
 begin
- InternalTestDrawing('s04n3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's04n3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette5x5;
 begin
- InternalTestDrawing('s05n3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's05n3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette6x6;
 begin
- InternalTestDrawing('s06n3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's06n3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette7x7;
 begin
- InternalTestDrawing('s07n3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's07n3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette8x8;
 begin
- InternalTestDrawing('s08n3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's08n3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette9x9;
 begin
- InternalTestDrawing('s09n3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's09n3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette32x32;
 begin
- InternalTestDrawing('s32n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's32n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette33x33;
 begin
- InternalTestDrawing('s33n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's33n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette34x34;
 begin
- InternalTestDrawing('s34n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's34n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette35x35;
 begin
- InternalTestDrawing('s35n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's35n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette36x36;
 begin
- InternalTestDrawing('s36n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's36n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette37x37;
 begin
- InternalTestDrawing('s37n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's37n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette38x38;
 begin
- InternalTestDrawing('s38n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's38n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette39x39;
 begin
- InternalTestDrawing('s39n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's39n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette40x40;
 begin
- InternalTestDrawing('s40n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's40n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette1x1Adam7;
 begin
- InternalTestDrawing('s01i3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's01i3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette2x2Adam7;
 begin
- InternalTestDrawing('s02i3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's02i3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette3x3Adam7;
 begin
- InternalTestDrawing('s03i3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's03i3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette4x4Adam7;
 begin
- InternalTestDrawing('s04i3p01.png');
+ InternalTestDrawing(CPngSuiteDir + 's04i3p01.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette5x5Adam7;
 begin
- InternalTestDrawing('s05i3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's05i3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette6x6Adam7;
 begin
- InternalTestDrawing('s06i3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's06i3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette7x7Adam7;
 begin
- InternalTestDrawing('s07i3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's07i3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette8x8Adam7;
 begin
- InternalTestDrawing('s08i3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's08i3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette9x9Adam7;
 begin
- InternalTestDrawing('s09i3p02.png');
+ InternalTestDrawing(CPngSuiteDir + 's09i3p02.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette32x32Adam7;
 begin
- InternalTestDrawing('s32i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's32i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette33x33Adam7;
 begin
- InternalTestDrawing('s33i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's33i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette34x34Adam7;
 begin
- InternalTestDrawing('s34i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's34i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette35x35Adam7;
 begin
- InternalTestDrawing('s35i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's35i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette36x36Adam7;
 begin
- InternalTestDrawing('s36i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's36i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette37x37Adam7;
 begin
- InternalTestDrawing('s37i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's37i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette38x38Adam7;
 begin
- InternalTestDrawing('s38i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's38i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette39x39Adam7;
 begin
- InternalTestDrawing('s39i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's39i3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette40x40Adam7;
 begin
- InternalTestDrawing('s40i3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 's40i3p04.png');
 end;
 
 
@@ -1206,42 +1208,42 @@ end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha8bitBlack;
 begin
- InternalTestDrawing('bgbn4a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgbn4a08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha16bitGray;
 begin
-  InternalTestDrawing('bggn4a16.png');
+  InternalTestDrawing(CPngSuiteDir + 'bggn4a16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha16bitNoBackground;
 begin
- InternalTestDrawing('bgai4a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgai4a16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha8bitNoBackground;
 begin
- InternalTestDrawing('bgai4a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgai4a08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA16bitNoBackground;
 begin
- InternalTestDrawing('bgan6a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgan6a16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA16bitYellow;
 begin
- InternalTestDrawing('bgyn6a16.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgyn6a16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA8bitNoBackground;
 begin
- InternalTestDrawing('bgan6a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgan6a08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA8bitWhite;
 begin
- InternalTestDrawing('bgwn6a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'bgwn6a08.png');
 end;
 
 
@@ -1249,92 +1251,92 @@ end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleA;
 begin
- InternalTestDrawing('g03n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'g03n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleB;
 begin
- InternalTestDrawing('g04n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'g04n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleC;
 begin
- InternalTestDrawing('g05n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'g05n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleD;
 begin
- InternalTestDrawing('g07n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'g07n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleE;
 begin
- InternalTestDrawing('g10n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'g10n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleF;
 begin
- InternalTestDrawing('g25n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'g25n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorA;
 begin
- InternalTestDrawing('g03n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'g03n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorB;
 begin
- InternalTestDrawing('g04n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'g04n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorC;
 begin
- InternalTestDrawing('g05n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'g05n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorD;
 begin
- InternalTestDrawing('g07n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'g07n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorE;
 begin
- InternalTestDrawing('g10n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'g10n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorF;
 begin
- InternalTestDrawing('g25n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'g25n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedA;
 begin
- InternalTestDrawing('g03n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'g03n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedB;
 begin
- InternalTestDrawing('g04n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'g04n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedC;
 begin
- InternalTestDrawing('g05n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'g05n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedD;
 begin
- InternalTestDrawing('g07n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'g07n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedE;
 begin
- InternalTestDrawing('g10n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'g10n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedF;
 begin
- InternalTestDrawing('g25n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'g25n3p04.png');
 end;
 
 
@@ -1342,52 +1344,52 @@ end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType0;
 begin
- InternalTestDrawing('f00n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f00n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType1;
 begin
- InternalTestDrawing('f01n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f01n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType2;
 begin
- InternalTestDrawing('f02n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f02n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType3;
 begin
- InternalTestDrawing('f03n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f03n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType4;
 begin
- InternalTestDrawing('f04n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f04n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType0;
 begin
- InternalTestDrawing('f00n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f00n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType1;
 begin
- InternalTestDrawing('f01n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f01n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType2;
 begin
- InternalTestDrawing('f02n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f02n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType3;
 begin
- InternalTestDrawing('f03n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f03n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType4;
 begin
- InternalTestDrawing('f04n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'f04n2c08.png');
 end;
 
 
@@ -1395,32 +1397,32 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingTrueColor;
 begin
- InternalTestDrawing('pp0n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'pp0n2c16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingTrueColorAlpha;
 begin
- InternalTestDrawing('pp0n6a08.png');
+ InternalTestDrawing(CPngSuiteDir + 'pp0n6a08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette1bitGrayScale;
 begin
- InternalTestDrawing('ps1n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'ps1n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette1bitTrueColor;
 begin
- InternalTestDrawing('ps1n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'ps1n2c16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette2bitGrayScale;
 begin
- InternalTestDrawing('ps2n0g08.png');
+ InternalTestDrawing(CPngSuiteDir + 'ps2n0g08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette2bitTrueColor;
 begin
- InternalTestDrawing('ps2n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'ps2n2c16.png');
 end;
 
 
@@ -1428,7 +1430,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingTrueColor5bits;
 begin
- InternalTestDrawing('cs5n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cs5n2c08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
@@ -1450,12 +1452,12 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingTrueColor8bits;
 begin
- InternalTestDrawing('cs8n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cs8n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingTrueColor13bits;
 begin
- InternalTestDrawing('cs3n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'cs3n2c16.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
@@ -1477,7 +1479,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingPalette3bits;
 begin
- InternalTestDrawing('cs3n3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cs3n3p08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
@@ -1499,7 +1501,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingPalette5bits;
 begin
- InternalTestDrawing('cs5n3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cs5n3p08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
@@ -1521,12 +1523,12 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingPalette8bits;
 begin
- InternalTestDrawing('cs8n3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cs8n3p08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions8x32FlatPixels;
 begin
- InternalTestDrawing('cdfn2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cdfn2c08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
@@ -1543,7 +1545,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions32x8HighPixels;
 begin
- InternalTestDrawing('cdhn2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cdhn2c08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
@@ -1560,7 +1562,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions8x8SquarePixels;
 begin
- InternalTestDrawing('cdsn2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cdsn2c08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
@@ -1577,7 +1579,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions1000PixelsPerMeter;
 begin
- InternalTestDrawing('cdun2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'cdun2c08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
@@ -1594,7 +1596,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestChromaChunkPalette;
 begin
- InternalTestDrawing('ccwn3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'ccwn3p08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.PrimaryChromaticitiesChunk)
@@ -1616,7 +1618,7 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestChromaChunkTrueColor;
 begin
- InternalTestDrawing('ccwn2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'ccwn2c08.png');
 
  // test if chunk is present
  if not Assigned(FPortableNetworkGraphic.PrimaryChromaticitiesChunk)
@@ -1638,19 +1640,19 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestHistogramChunk15colors;
 begin
- InternalTestDrawing('ch1n3p04.png');
+ InternalTestDrawing(CPngSuiteDir + 'ch1n3p04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestHistogramChunk256colors;
 begin
- InternalTestDrawing('ch2n3p08.png');
+ InternalTestDrawing(CPngSuiteDir + 'ch2n3p08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestModificationTime;
 begin
  with FPortableNetworkGraphic do
   begin
-   LoadFromFile('cm7n0g04.png');
+   LoadFromFile(CPngSuiteDir + 'cm7n0g04.png');
    if not Assigned(TimeChunk)
     then Fail('Modification Time Chunk is missing!');
 
@@ -1661,7 +1663,7 @@ begin
    Check(TimeChunk.Minute = 0);
    Check(TimeChunk.Second = 0);
 
-   LoadFromFile('cm9n0g04.png');
+   LoadFromFile(CPngSuiteDir + 'cm9n0g04.png');
    if not Assigned(TimeChunk)
     then Fail('Modification Time Chunk is missing!');
 
@@ -1672,7 +1674,7 @@ begin
    Check(TimeChunk.Minute = 59);
    Check(TimeChunk.Second = 59);
 
-   LoadFromFile('cm0n0g04.png');
+   LoadFromFile(CPngSuiteDir + 'cm0n0g04.png');
    if not Assigned(TimeChunk)
     then Fail('Modification Time Chunk is missing!');
 
@@ -1687,17 +1689,17 @@ end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestNoTextualData;
 begin
- FPortableNetworkGraphic.LoadFromFile('ct0n0g04.png');
+ FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ct0n0g04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestWithCompressedTextualData;
 begin
- FPortableNetworkGraphic.LoadFromFile('ctzn0g04.png');
+ FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ctzn0g04.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestWithTextualData;
 begin
- FPortableNetworkGraphic.LoadFromFile('ct1n0g04.png');
+ FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ct1n0g04.png');
 end;
 
 
@@ -1705,42 +1707,42 @@ end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscale1IDAT;
 begin
- InternalTestDrawing('oi1n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi1n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscale2IDAT;
 begin
- InternalTestDrawing('oi2n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi2n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscale4IDAT;
 begin
- InternalTestDrawing('oi4n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi4n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscaleAllIDATs;
 begin
- InternalTestDrawing('oi9n0g16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi9n0g16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColor1IDAT;
 begin
- InternalTestDrawing('oi1n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi1n2c16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColor2IDAT;
 begin
- InternalTestDrawing('oi2n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi2n2c16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColor4IDAT;
 begin
- InternalTestDrawing('oi4n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi4n2c16.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColorAllIDATs;
 begin
- InternalTestDrawing('oi9n2c16.png');
+ InternalTestDrawing(CPngSuiteDir + 'oi9n2c16.png');
 end;
 
 
@@ -1748,22 +1750,22 @@ end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel0;
 begin
- InternalTestDrawing('z00n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'z00n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel3;
 begin
- InternalTestDrawing('z03n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'z03n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel6;
 begin
- InternalTestDrawing('z06n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'z06n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel9;
 begin
- InternalTestDrawing('z09n2c08.png');
+ InternalTestDrawing(CPngSuiteDir + 'z09n2c08.png');
 end;
 
 initialization
