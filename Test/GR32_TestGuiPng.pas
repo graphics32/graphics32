@@ -456,11 +456,11 @@ begin
 
    FPortableNetworkGraphic.LoadFromFile(FileName);
 
-   Image32.Bitmap.Width := FPortableNetworkGraphic.ImageHeader.Width;
-   Image32.Bitmap.Height := FPortableNetworkGraphic.ImageHeader.Height;
+   Image32.Bitmap.Width := FPortableNetworkGraphic.Width;
+   Image32.Bitmap.Height := FPortableNetworkGraphic.Height;
 
-   ClientWidth := FPortableNetworkGraphic.ImageHeader.Width + 16;
-   ClientHeight := FPortableNetworkGraphic.ImageHeader.Height + LbRenderer.Height + BtYes.Height + 24;
+   ClientWidth := FPortableNetworkGraphic.Width + 16;
+   ClientHeight := FPortableNetworkGraphic.Height + LbRenderer.Height + BtYes.Height + 24;
 
    Internal.Assign(FPortableNetworkGraphic);
 
@@ -590,8 +590,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor); // ctGrayscale
-    Check(ImageHeader.BitDepth = 1);
+    Check(ColorType = ctIndexedColor); // ctGrayscale
+    Check(BitDepth = 1);
     SaveToFile('basn0g01.x.png');
     InternalTestDrawing('basn0g01.x.png');
    finally
@@ -615,8 +615,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor); // ctGrayscale
-    Check(ImageHeader.BitDepth = 2);
+    Check(ColorType = ctIndexedColor); // ctGrayscale
+    Check(BitDepth = 2);
     SaveToFile('basn0g02.x.png');
     InternalTestDrawing('basn0g02.x.png');
    finally
@@ -640,8 +640,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor); // ctGrayscale
-    Check(ImageHeader.BitDepth = 4);
+    Check(ColorType = ctIndexedColor); // ctGrayscale
+    Check(BitDepth = 4);
     SaveToFile('basn0g04.x.png');
     InternalTestDrawing('basn0g04.x.png');
    finally
@@ -665,8 +665,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor); // ctGrayscale
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctIndexedColor); // ctGrayscale
+    Check(BitDepth = 8);
     SaveToFile('basn0g08.x.png');
     InternalTestDrawing('basn0g08.x.png');
    finally
@@ -695,8 +695,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor);
-    Check(ImageHeader.BitDepth = 1);
+    Check(ColorType = ctIndexedColor);
+    Check(BitDepth = 1);
 
     SaveToFile('basn3p01.x.png');
     InternalTestDrawing('basn3p01.x.png');
@@ -721,8 +721,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor);
-    Check(ImageHeader.BitDepth = 2);
+    Check(ColorType = ctIndexedColor);
+    Check(BitDepth = 2);
 
     SaveToFile('basn3p02.x.png');
     InternalTestDrawing('basn3p02.x.png');
@@ -747,8 +747,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor);
-    Check(ImageHeader.BitDepth = 4);
+    Check(ColorType = ctIndexedColor);
+    Check(BitDepth = 4);
 
     SaveToFile('basn3p04.x.png');
     InternalTestDrawing('basn3p04.x.png');
@@ -773,8 +773,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctIndexedColor);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctIndexedColor);
+    Check(BitDepth = 8);
 
     SaveToFile('basn3p08.x.png');
     InternalTestDrawing('basn3p08.x.png');
@@ -799,8 +799,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctTrueColor);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctTrueColor);
+    Check(BitDepth = 8);
 
     SaveToFile('basn2c08.x.png');
     InternalTestDrawing('basn2c08.x.png');
@@ -825,8 +825,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctTrueColor);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctTrueColor);
+    Check(BitDepth = 8);
 
     SaveToFile('basn2c16.x.png');
     InternalTestDrawing('basn2c16.x.png');
@@ -851,8 +851,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctGrayscaleAlpha);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctGrayscaleAlpha);
+    Check(BitDepth = 8);
 
     SaveToFile('basn4a08.x.png');
     InternalTestDrawing('basn4a08.x.png');
@@ -877,8 +877,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctGrayscaleAlpha);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctGrayscaleAlpha);
+    Check(BitDepth = 8);
 
     SaveToFile('basn4a16.x.png');
     InternalTestDrawing('basn4a16.x.png');
@@ -903,8 +903,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctTrueColorAlpha);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctTrueColorAlpha);
+    Check(BitDepth = 8);
 
     SaveToFile('basn6a08.x.png');
     InternalTestDrawing('basn6a08.x.png');
@@ -929,8 +929,8 @@ begin
   with TPortableNetworkGraphic32.Create do
    try
     Assign(Bitmap32);
-    Check(ImageHeader.ColorType = ctTrueColorAlpha);
-    Check(ImageHeader.BitDepth = 8);
+    Check(ColorType = ctTrueColorAlpha);
+    Check(BitDepth = 8);
 
     SaveToFile('basn6a16.x.png');
     InternalTestDrawing('basn6a16.x.png');
@@ -1530,12 +1530,8 @@ procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions8x32
 begin
  InternalTestDrawing(CPngSuiteDir + 'cdfn2c08.png');
 
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
-  then Fail(RCStrPhysicalPixelDimensionChunkMissing);
-
  // check information stored in the chunk
- with FPortableNetworkGraphic.PhysicalPixelDimensionsChunk do
+ with FPortableNetworkGraphic do
   begin
    Check(PixelsPerUnitX = 1);
    Check(PixelsPerUnitY = 4);
@@ -1547,12 +1543,8 @@ procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions32x8
 begin
  InternalTestDrawing(CPngSuiteDir + 'cdhn2c08.png');
 
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
-  then Fail(RCStrPhysicalPixelDimensionChunkMissing);
-
  // check information stored in the chunk
- with FPortableNetworkGraphic.PhysicalPixelDimensionsChunk do
+ with FPortableNetworkGraphic do
   begin
    Check(PixelsPerUnitX = 4);
    Check(PixelsPerUnitY = 1);
@@ -1564,12 +1556,8 @@ procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions8x8S
 begin
  InternalTestDrawing(CPngSuiteDir + 'cdsn2c08.png');
 
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
-  then Fail(RCStrPhysicalPixelDimensionChunkMissing);
-
  // check information stored in the chunk
- with FPortableNetworkGraphic.PhysicalPixelDimensionsChunk do
+ with FPortableNetworkGraphic do
   begin
    Check(PixelsPerUnitX = 1);
    Check(PixelsPerUnitY = 1);
@@ -1581,12 +1569,8 @@ procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions1000
 begin
  InternalTestDrawing(CPngSuiteDir + 'cdun2c08.png');
 
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.PhysicalPixelDimensionsChunk)
-  then Fail(RCStrPhysicalPixelDimensionChunkMissing);
-
  // check information stored in the chunk
- with FPortableNetworkGraphic.PhysicalPixelDimensionsChunk do
+ with FPortableNetworkGraphic do
   begin
    Check(PixelsPerUnitX = 1000);
    Check(PixelsPerUnitY = 1000);
@@ -1653,37 +1637,13 @@ begin
  with FPortableNetworkGraphic do
   begin
    LoadFromFile(CPngSuiteDir + 'cm7n0g04.png');
-   if not Assigned(TimeChunk)
-    then Fail('Modification Time Chunk is missing!');
-
-   Check(TimeChunk.Year = 1970);
-   Check(TimeChunk.Month = 1);
-   Check(TimeChunk.Day = 1);
-   Check(TimeChunk.Hour = 0);
-   Check(TimeChunk.Minute = 0);
-   Check(TimeChunk.Second = 0);
+   CheckEquals(EncodeDate(1970, 1, 1) + EncodeTime(0, 0, 0, 0), ModifiedTime);
 
    LoadFromFile(CPngSuiteDir + 'cm9n0g04.png');
-   if not Assigned(TimeChunk)
-    then Fail('Modification Time Chunk is missing!');
-
-   Check(TimeChunk.Year = 1999);
-   Check(TimeChunk.Month = 12);
-   Check(TimeChunk.Day = 31);
-   Check(TimeChunk.Hour = 23);
-   Check(TimeChunk.Minute = 59);
-   Check(TimeChunk.Second = 59);
+   CheckEquals(EncodeDate(1999, 12, 31) + EncodeTime(23, 59, 59, 0), ModifiedTime);
 
    LoadFromFile(CPngSuiteDir + 'cm0n0g04.png');
-   if not Assigned(TimeChunk)
-    then Fail('Modification Time Chunk is missing!');
-
-   Check(TimeChunk.Year = 2000);
-   Check(TimeChunk.Month = 1);
-   Check(TimeChunk.Day = 1);
-   Check(TimeChunk.Hour = 12);
-   Check(TimeChunk.Minute = 34);
-   Check(TimeChunk.Second = 56);
+   CheckEquals(EncodeDate(2000, 1, 1) + EncodeTime(12, 34, 56, 0), ModifiedTime);
   end;
 end;
 

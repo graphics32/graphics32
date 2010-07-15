@@ -285,6 +285,8 @@ type
     FHour   : Byte;
     FMinute : Byte;
     FSecond : Byte;
+    function GetModifiedDateTime: TDateTime;
+    procedure SetModifiedDateTime(const Value: TDateTime);
   public
     class function GetClassChunkName: TChunkName; override;
     procedure LoadFromStream(Stream: TStream); override;
@@ -296,6 +298,7 @@ type
     property Hour: Byte read FHour write FHour;
     property Minute: Byte read FMinute write FMinute;
     property Second: Byte read FSecond write FSecond;
+    property ModifiedDateTime: TDateTime read GetModifiedDateTime write SetModifiedDateTime;
   end;
 
   TChunkPngEmbeddedIccProfile = class(TCustomDefinedChunkWithHeader)
@@ -689,13 +692,39 @@ type
 
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
   private
+    function GetBitDepth: Byte;
+    function GetColorType: TColorType;
+    function GetCompressionMethod: Byte;
+    function GetFilterMethod: TFilterMethod;
+    function GetHeight: Integer;
+    function GetInterlaceMethod: TInterlaceMethod;
+    function GetPaletteEntry(index: Integer): TRGB24;
+    function GetPaletteEntryCount: Integer;
+    function GetWidth: Integer;
+    function GetGamma: Single;
+    function GetModifiedTime: TDateTime;
+    function GetPixelsPerUnitX: Cardinal;
+    function GetPixelsPerUnitY: Cardinal;
+    function GetPixelUnit: Byte;
+    procedure SetPixelsPerUnitX(const Value: Cardinal);
+    procedure SetPixelsPerUnitY(const Value: Cardinal);
+    procedure SetPixelUnit(const Value: Byte);
+    procedure SetBitDepth(const Value: Byte);
+    procedure SetChromaChunk(const Value: TChunkPngPrimaryChromaticities);
+    procedure SetColorType(const Value: TColorType);
+    procedure SetCompressionMethod(const Value: Byte);
+    procedure SetFilterMethod(const Value: TFilterMethod);
+    procedure SetGamma(const Value: Single);
+    procedure SetModifiedTime(const Value: TDateTime);
+    procedure SetHeight(const Value: Integer);
     procedure SetImageHeader(const Value: TChunkPngImageHeader);
+    procedure SetInterlaceMethod(const Value: TInterlaceMethod);
     procedure SetGammaChunk(const Value: TChunkPngGamma);
     procedure SetPaletteChunk(const Value: TChunkPngPalette);
-    procedure SetTimeChunk(const Value: TChunkPngTime);
     procedure SetPhysicalDimensions(const Value: TChunkPngPhysicalPixelDimensions);
     procedure SetSignificantBits(const Value: TChunkPngSignificantBits);
-    procedure SetChromaChunk(const Value: TChunkPngPrimaryChromaticities);
+    procedure SetTimeChunk(const Value: TChunkPngTime);
+    procedure SetWidth(const Value: Integer);
 
     function CalculateCRC(Stream: TStream): Cardinal;
     function CheckCRC(Stream: TStream; CRC: Cardinal): Boolean;
@@ -719,6 +748,18 @@ type
 
     procedure Clear; virtual;
     procedure AssignTo(Dest: TPersistent); override;
+    procedure FilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+
+    procedure CopyImageData(Stream: TStream);
+    procedure StoreImageData(Stream: TStream);
+    procedure DecompressImageDataToStream(Stream: TStream);
+    procedure CompressImageDataFromStream(Stream: TStream);
+
+    property ImageHeader: TChunkPngImageHeader read FImageHeader write SetImageHeader;
+    property PaletteChunk: TChunkPngPalette read FPaletteChunk write SetPaletteChunk;
+    property GammaChunk: TChunkPngGamma read FGammaChunk write SetGammaChunk;
+    property TimeChunk: TChunkPngTime read FTimeChunk write SetTimeChunk;
+    property PhysicalPixelDimensionsChunk: TChunkPngPhysicalPixelDimensions read FPhysicalDimensions write SetPhysicalDimensions;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -732,18 +773,26 @@ type
     class function CanLoad(const FileName: TFileName): Boolean; overload;
     class function CanLoad(Stream: TStream): Boolean; overload;
 
-    procedure CopyImageData(Stream: TStream);
-    procedure StoreImageData(Stream: TStream);
-    procedure DecompressImageDataToStream(Stream: TStream);
-    procedure CompressImageDataFromStream(Stream: TStream);
-    procedure FilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+    procedure RemovePhysicalPixelDimensionsInformation;
+    procedure RemoveGammaInformation;
+    procedure RemoveModifiedTimeInformation;
 
-    property ImageHeader: TChunkPngImageHeader read FImageHeader write SetImageHeader;
-    property GammaChunk: TChunkPngGamma read FGammaChunk write SetGammaChunk;
-    property TimeChunk: TChunkPngTime read FTimeChunk write SetTimeChunk;
+    property Width: Integer read GetWidth write SetWidth;
+    property Height: Integer read GetHeight write SetHeight;
+    property BitDepth: Byte read GetBitDepth write SetBitDepth;
+    property ColorType: TColorType read GetColorType write SetColorType;
+    property CompressionMethod: Byte read GetCompressionMethod write SetCompressionMethod;
+    property FilterMethod: TFilterMethod read GetFilterMethod write SetFilterMethod;
+    property InterlaceMethod: TInterlaceMethod read GetInterlaceMethod write SetInterlaceMethod;
+    property PaletteEntry[index: Integer]: TRGB24 read GetPaletteEntry;
+    property PaletteEntryCount: Integer read GetPaletteEntryCount;
+    property Gamma: Single read GetGamma write SetGamma;
+    property ModifiedTime: TDateTime read GetModifiedTime write SetModifiedTime;
+    property PixelsPerUnitX: Cardinal read GetPixelsPerUnitX write SetPixelsPerUnitX;
+    property PixelsPerUnitY: Cardinal read GetPixelsPerUnitY write SetPixelsPerUnitY;
+    property PixelUnit: Byte read GetPixelUnit write SetPixelUnit;
+
     property SignificantBitsChunk: TChunkPngSignificantBits read FSignificantBits write SetSignificantBits;
-    property PaletteChunk: TChunkPngPalette read FPaletteChunk write SetPaletteChunk;
-    property PhysicalPixelDimensionsChunk: TChunkPngPhysicalPixelDimensions read FPhysicalDimensions write SetPhysicalDimensions;
     property PrimaryChromaticitiesChunk: TChunkPngPrimaryChromaticities read FChromaChunk write SetChromaChunk;
   end;
 
@@ -760,18 +809,23 @@ resourcestring
   RCStrAncillaryUnknownChunk = 'Unknown chunk is marked as ancillary';
   RCStrChunkSizeTooSmall = 'Chunk size too small!';
   RCStrEmptyChunkList = 'Chunk list is empty';
+  RCStrHeaderInvalid = 'The provided header is not valid!';
   RCStrIncompletePalette = 'Palette is incomplete';
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
+  RCStrNewHeaderError = 'New header may not be nil!';
   RCStrNotAValidPNGFile = 'Not a valid PNG file';
   RCStrNotYetImplemented = 'Not yet implemented';
+  RCStrNoModifiedTime = 'Modified time not available!';
+  RCStrPaletteLimited = 'Palette is limited to 256 entries';
   RCStrPaletteMissing = 'Required palette is missing';
-  RCStrSeveralGammaChunks = 'Gamma chunk defined twice!';
   RCStrSeveralChromaChunks = 'Primary chromaticities chunk defined twice!';
+  RCStrSeveralGammaChunks = 'Gamma chunk defined twice!';
   RCStrSeveralPaletteChunks = 'Palette chunk defined twice!';
   RCStrSeveralPhysicalPixelDimensionChunks = 'Several physical pixel dimenson chunks found';
   RCStrSeveralSignificantBitsChunksFound = 'Several significant bits chunks found';
   RCStrSeveralTimeChunks = 'Time chunk appears twice!';
   RCStrUnknownColorType = 'Unknown color type!';
+  RCStrUnspecifiedPixelUnit = 'Unspecified unit';
   RCStrUnsupportedCompressionMethod = 'Compression method not supported!';
   RCStrUnsupportedCompressMethod = 'Unsupported compression method';
   RCStrUnsupportedFilter = 'Unsupported Filter';
@@ -779,9 +833,8 @@ resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
   RCStrUnsupportedInterlaceMethod = 'Unsupported interlace method';
   RCStrWrongBitdepth = 'Wrong Bitdepth';
+  RCStrWrongPixelPerUnit = 'Pixel per unit may not be zero!';
   RCStrWrongTransparencyFormat = 'Wrong transparency format';
-  RCStrPaletteLimited = 'Palette is limited to 256 entries';
-  RCStrNewHeaderError = 'New header may not be nil!';
   {$IFDEF CheckCRC}
   RCStrCRCError = 'CRC Error';
   {$ENDIF}
@@ -1340,6 +1393,9 @@ end;
 
 constructor TCustomDefinedChunkWithHeader.Create(Header: TChunkPngImageHeader);
 begin
+ if not (Header is TChunkPngImageHeader)
+  then raise EPngError.Create(RCStrHeaderInvalid);
+
  FHeader := Header;
  inherited Create;
 end;
@@ -2052,6 +2108,11 @@ begin
  Result := 'tIME';
 end;
 
+function TChunkPngTime.GetModifiedDateTime: TDateTime;
+begin
+ Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Second, 0);
+end;
+
 procedure TChunkPngTime.LoadFromStream(Stream: TStream);
 begin
  inherited;
@@ -2107,6 +2168,24 @@ begin
    // write second
    Write(FSecond, SizeOf(Byte));
   end;
+end;
+
+procedure TChunkPngTime.SetModifiedDateTime(const Value: TDateTime);
+var
+  mnth : Word;
+  day  : Word;
+  hour : Word;
+  min  : Word;
+  sec  : Word;
+  msec : Word;
+begin
+ DecodeDate(Value, FYear, mnth, day);
+ FMonth := mnth;
+ FDay := day;
+ DecodeTime(Value, hour, min, sec, msec);
+ FHour := hour;
+ FMinute := min;
+ FSecond := sec;
 end;
 
 
@@ -2961,6 +3040,39 @@ begin
     end;
 end;
 
+procedure TPortableNetworkGraphic.SetPixelsPerUnitX(const Value: Cardinal);
+begin
+ if Value = 0
+  then raise EPngError.Create(RCStrWrongPixelPerUnit);
+
+ if not Assigned(FPhysicalDimensions)
+  then FPhysicalDimensions := TChunkPngPhysicalPixelDimensions.Create(FImageHeader);
+
+ FPhysicalDimensions.PixelsPerUnitX := Value;
+end;
+
+procedure TPortableNetworkGraphic.SetPixelsPerUnitY(const Value: Cardinal);
+begin
+ if Value = 0
+  then raise EPngError.Create(RCStrWrongPixelPerUnit);
+
+ if not Assigned(FPhysicalDimensions)
+  then FPhysicalDimensions := TChunkPngPhysicalPixelDimensions.Create(FImageHeader);
+
+ FPhysicalDimensions.PixelsPerUnitY := Value;
+end;
+
+procedure TPortableNetworkGraphic.SetPixelUnit(const Value: Byte);
+begin
+ if Value > 1
+  then raise EPngError.Create(RCStrUnspecifiedPixelUnit);
+
+ if not Assigned(FPhysicalDimensions)
+  then FPhysicalDimensions := TChunkPngPhysicalPixelDimensions.Create(FImageHeader);
+
+ FPhysicalDimensions.PixelUnit := Value;
+end;
+
 procedure TPortableNetworkGraphic.SetChromaChunk(
   const Value: TChunkPngPrimaryChromaticities);
 begin
@@ -2996,6 +3108,53 @@ begin
  if not Assigned(Value)
   then raise EPngError.Create(RCStrNewHeaderError)
   else FImageHeader.Assign(Value);
+end;
+
+procedure TPortableNetworkGraphic.SetBitDepth(const Value: Byte);
+begin
+ raise EPngError.Create('Bit depth may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetColorType(const Value: TColorType);
+begin
+ raise EPngError.Create('Color Type may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetCompressionMethod(const Value: Byte);
+begin
+ raise EPngError.Create('Compression Method may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetFilterMethod(const Value: TFilterMethod);
+begin
+ raise EPngError.Create('Filter Method may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetWidth(const Value: Integer);
+begin
+ raise EPngError.Create('Width may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetInterlaceMethod(
+  const Value: TInterlaceMethod);
+begin
+ raise EPngError.Create('Interlace Method may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetModifiedTime(const Value: TDateTime);
+begin
+ if Assigned(FTimeChunk)
+  then FTimeChunk.ModifiedDateTime := Value;
+end;
+
+procedure TPortableNetworkGraphic.SetGamma(const Value: Single);
+begin
+ raise EPngError.Create('Gamma may not be specified directly yet!');
+end;
+
+procedure TPortableNetworkGraphic.SetHeight(const Value: Integer);
+begin
+ raise EPngError.Create('Height may not be specified directly yet!');
 end;
 
 procedure TPortableNetworkGraphic.CopyImageData(Stream: TStream);
@@ -3500,6 +3659,23 @@ begin
  FAdditionalChunkList.Add(UnknownChunk);
 end;
 
+procedure TPortableNetworkGraphic.RemoveGammaInformation;
+begin
+ if Assigned(FGammaChunk)
+  then FreeAndNil(FGammaChunk);
+end;
+
+procedure TPortableNetworkGraphic.RemoveModifiedTimeInformation;
+begin
+
+end;
+
+procedure TPortableNetworkGraphic.RemovePhysicalPixelDimensionsInformation;
+begin
+ if Assigned(FPhysicalDimensions)
+  then FreeAndNil(FPhysicalDimensions);
+end;
+
 procedure TPortableNetworkGraphic.ReadImageDataChunk(Stream: TStream);
 var
   ImageDataChunk : TChunkPngImageData;
@@ -3564,6 +3740,91 @@ var
 begin
  for Index := 1 to BytesPerRow
   do CurrentRow[Index] := (CurrentRow[Index] + PreviousRow[Index]) and $FF;
+end;
+
+function TPortableNetworkGraphic.GetBitDepth: Byte;
+begin
+ Result := FImageHeader.BitDepth;
+end;
+
+function TPortableNetworkGraphic.GetColorType: TColorType;
+begin
+ Result := FImageHeader.ColorType;
+end;
+
+function TPortableNetworkGraphic.GetCompressionMethod: Byte;
+begin
+ Result := FImageHeader.CompressionMethod;
+end;
+
+function TPortableNetworkGraphic.GetFilterMethod: TFilterMethod;
+begin
+ Result := FImageHeader.FilterMethod;
+end;
+
+function TPortableNetworkGraphic.GetGamma: Single;
+begin
+ if Assigned(FGammaChunk)
+  then Result := FGammaChunk.GetGammaAsSingle
+  else Result := 1;
+end;
+
+function TPortableNetworkGraphic.GetHeight: Integer;
+begin
+ Result := FImageHeader.Height;
+end;
+
+function TPortableNetworkGraphic.GetInterlaceMethod: TInterlaceMethod;
+begin
+ Result := FImageHeader.InterlaceMethod;
+end;
+
+function TPortableNetworkGraphic.GetModifiedTime: TDateTime;
+begin
+ if Assigned(FTimeChunk) then
+  with FTimeChunk
+   do Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Minute, Second, 0)
+  else Result := 0;
+end;
+
+function TPortableNetworkGraphic.GetPaletteEntry(Index: Integer): TRGB24;
+begin
+ if Assigned(FPaletteChunk)
+  then Result := FPaletteChunk.PaletteEntry[Index]
+  else raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TPortableNetworkGraphic.GetPaletteEntryCount: Integer;
+begin
+ if Assigned(FPaletteChunk)
+  then Result := FPaletteChunk.Count
+  else Result := 0;
+end;
+
+function TPortableNetworkGraphic.GetPixelsPerUnitX: Cardinal;
+begin
+ if Assigned(FPhysicalDimensions)
+  then Result := FPhysicalDimensions.PixelsPerUnitX
+  else Result := 1;
+end;
+
+function TPortableNetworkGraphic.GetPixelsPerUnitY: Cardinal;
+begin
+ if Assigned(FPhysicalDimensions)
+  then Result := FPhysicalDimensions.PixelsPerUnitY
+  else Result := 1;
+end;
+
+function TPortableNetworkGraphic.GetPixelUnit: Byte;
+begin
+ if Assigned(FPhysicalDimensions)
+  then Result := FPhysicalDimensions.FUnit
+  else Result := 0;
+end;
+
+function TPortableNetworkGraphic.GetWidth: Integer;
+begin
+ Result := FImageHeader.Width;
 end;
 
 procedure TPortableNetworkGraphic.FilterAverage(CurrentRow, PreviousRow: PByteArray;
