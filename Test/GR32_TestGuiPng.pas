@@ -84,6 +84,7 @@ type
     procedure TestDrawingAdam7Index8bit;
     procedure TestDrawingAdam7TrueColor24;
     procedure TestDrawingAdam7TrueColor32;
+    procedure TestDrawingLarge;
   end;
 
   // Test methods for class TPortableNetworkGraphic
@@ -521,6 +522,11 @@ end;
 procedure TTestPngGR32Drawing.TestDrawingIndex8bit;
 begin
  InternalTestDrawing(CTestPngDir + 'TestIndex8bit.png');
+end;
+
+procedure TTestPngGR32Drawing.TestDrawingLarge;
+begin
+ InternalTestDrawing(CTestPngDir + 'PerformanceTest.png')
 end;
 
 procedure TTestPngGR32Drawing.TestDrawingTrueColor24;

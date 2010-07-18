@@ -91,15 +91,15 @@ type
     procedure BuildGammaTable;
     procedure BuildPaletteTable;
 
-    procedure DecodeNonInterlaced(Bitmap32: TCustomBitmap32);
-    procedure DecodeInterlacedAdam7(Bitmap32: TCustomBitmap32);
+    procedure DecodeNonInterlaced(Bitmap32: TCustomBitmap32); virtual;
+    procedure DecodeInterlacedAdam7(Bitmap32: TCustomBitmap32); virtual;
     function ColorInPalette(Color: TColor32): Integer;
     procedure AssignPropertiesFromBitmap32(Bitmap32: TCustomBitmap32);
   public
     procedure AssignTo(Dest: TPersistent); override;
     procedure Assign(Source: TPersistent); override;
 
-    procedure DrawToBitmap32(Bitmap32: TCustomBitmap32);
+    procedure DrawToBitmap32(Bitmap32: TCustomBitmap32); virtual;
 
     procedure LoadFromStream(Stream: TStream); override;
     procedure SaveToStream(Stream: TStream); override;
@@ -1511,6 +1511,5 @@ begin
    Inc(Source);
   end;
 end;
-
 
 end.

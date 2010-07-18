@@ -36,6 +36,7 @@ interface
 
 {$DEFINE CheckCRC}
 {-$DEFINE ValidateEveryReadOperation}
+{-$DEFINE PUREPASCAL}
 
 uses
   Classes, Graphics, SysUtils, zlib;
@@ -776,6 +777,9 @@ type
     class function CanLoad(const FileName: TFileName): Boolean; overload;
     class function CanLoad(Stream: TStream): Boolean; overload;
 
+    function HasPhysicalPixelDimensionsInformation: Boolean;
+    function HasGammaInformation: Boolean;
+    function HasModifiedTimeInformation: Boolean;
     procedure RemovePhysicalPixelDimensionsInformation;
     procedure RemoveGammaInformation;
     procedure RemoveModifiedTimeInformation;
@@ -838,6 +842,13 @@ resourcestring
   RCStrWrongBitdepth = 'Wrong Bitdepth';
   RCStrWrongPixelPerUnit = 'Pixel per unit may not be zero!';
   RCStrWrongTransparencyFormat = 'Wrong transparency format';
+
+  RCStrDirectGammaSetError = 'Gamma may not be specified directly yet!';
+  RCStrDirectHeightSetError = 'Height may not be specified directly yet!';
+  RCStrDirectInterlaceMethodSetError = 'Interlace Method may not be specified directly yet!';
+  RCStrDirectWidthSetError = 'Width may not be specified directly yet!';
+  RCStrDirectFilterMethodSetError = 'Filter Method may not be specified directly yet!';
+  RCStrDirectCompressionMethodSetError = 'Compression Method may not be specified directly yet!';
   {$IFDEF CheckCRC}
   RCStrCRCError = 'CRC Error';
   {$ENDIF}
@@ -3125,23 +3136,23 @@ end;
 
 procedure TPortableNetworkGraphic.SetCompressionMethod(const Value: Byte);
 begin
- raise EPngError.Create('Compression Method may not be specified directly yet!');
+ raise EPngError.Create(RCStrDirectCompressionMethodSetError);
 end;
 
 procedure TPortableNetworkGraphic.SetFilterMethod(const Value: TFilterMethod);
 begin
- raise EPngError.Create('Filter Method may not be specified directly yet!');
+ raise EPngError.Create(RCStrDirectFilterMethodSetError);
 end;
 
 procedure TPortableNetworkGraphic.SetWidth(const Value: Integer);
 begin
- raise EPngError.Create('Width may not be specified directly yet!');
+ raise EPngError.Create(RCStrDirectWidthSetError);
 end;
 
 procedure TPortableNetworkGraphic.SetInterlaceMethod(
   const Value: TInterlaceMethod);
 begin
- raise EPngError.Create('Interlace Method may not be specified directly yet!');
+ raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
 end;
 
 procedure TPortableNetworkGraphic.SetModifiedTime(const Value: TDateTime);
@@ -3152,12 +3163,12 @@ end;
 
 procedure TPortableNetworkGraphic.SetGamma(const Value: Single);
 begin
- raise EPngError.Create('Gamma may not be specified directly yet!');
+ raise EPngError.Create(RCStrDirectGammaSetError);
 end;
 
 procedure TPortableNetworkGraphic.SetHeight(const Value: Integer);
 begin
- raise EPngError.Create('Height may not be specified directly yet!');
+ raise EPngError.Create(RCStrDirectHeightSetError);
 end;
 
 procedure TPortableNetworkGraphic.CopyImageData(Stream: TStream);
@@ -3471,8 +3482,6 @@ begin
     FreeAndNil(MemoryStream);
    end;
   end;
-
-// InterpreteChunks;
 end;
 
 procedure TPortableNetworkGraphic.SaveToFile(Filename: TFilename);
@@ -3727,6 +3736,7 @@ begin
 end;
 
 function TPortableNetworkGraphic.CalculateCRC(Buffer: PByte; Count: Cardinal): Cardinal;
+{$IFDEF PUREPASCAL}
 var
   CrcValue : Cardinal;
   Pos      : Cardinal;
@@ -3746,6 +3756,38 @@ begin
   end;
 
  Result := (CrcValue xor $FFFFFFFF);
+{$ELSE}
+asm
+ PUSH    EBX
+ PUSH    EDI
+ ADD     EDX, 4
+ SUB     ECX, 4
+ JS      @Done
+ NEG     ECX
+ MOV     EBX, $FFFFFFFF
+
+ MOV     EDI, [GCrcTable]
+
+@Start:
+ MOVZX   EAX, [EDX]
+ XOR     EAX, EBX
+ AND     EAX, $FF
+ MOV     EAX, [EDI + 4 * EAX]
+ SHR     EBX, 8
+ XOR     EAX, EBX
+ MOV     EBX, EAX
+
+ INC     EDX
+ INC     ECX
+ JS      @Start
+
+ XOR     EBX, $FFFFFFFF
+ MOV     Result, EBX
+
+@Done:
+ POP     EDI
+ POP     EBX
+{$ENDIF}
 end;
 
 {$IFDEF CheckCRC}
@@ -3856,6 +3898,21 @@ end;
 function TPortableNetworkGraphic.GetWidth: Integer;
 begin
  Result := FImageHeader.Width;
+end;
+
+function TPortableNetworkGraphic.HasGammaInformation: Boolean;
+begin
+ Result := Assigned(FGammaChunk);
+end;
+
+function TPortableNetworkGraphic.HasModifiedTimeInformation: Boolean;
+begin
+ Result := Assigned(FTimeChunk);
+end;
+
+function TPortableNetworkGraphic.HasPhysicalPixelDimensionsInformation: Boolean;
+begin
+ Result := Assigned(FPhysicalDimensions);
 end;
 
 procedure TPortableNetworkGraphic.FilterAverage(CurrentRow, PreviousRow: PByteArray;
