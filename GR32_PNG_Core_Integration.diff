@@ -1,0 +1,43 @@
+Index: GR32.pas
+===================================================================
+--- GR32.pas	(revision 1351)
++++ GR32.pas	(working copy)
+@@ -42,6 +42,8 @@
+ 
+ {$I GR32.inc}
+ 
++{$DEFINE UseGR32PNG}
++
+ uses
+   {$IFDEF FPC} LCLIntf, LCLType, types, Controls, Graphics,{$ELSE}
+   Windows, Messages, Controls, Graphics,{$ENDIF}
+@@ -882,6 +884,9 @@
+ {$ELSE}
+   Clipbrd, GR32_Backends_VCL,
+ {$ENDIF}
++{$IFDEF UseGR32PNG}
++  GR32_PNG, GR32_PortableNetworkGraphic,
++{$ENDIF}
+   GR32_DrawingEx;
+ 
+ type
+@@ -4624,6 +4629,19 @@
+   Header: TBmpHeader;
+   B: TBitmap;
+ begin
++  {$IFDEF UseGR32PNG}
++  if TPortableNetworkGraphic32.CanLoad(Stream) then
++  begin
++    with TPortableNetworkGraphic32.Create do
++    begin
++      LoadFromStream(Stream);
++      AssignTo(Self);
++    end;
++    Changed;
++    Exit;
++  end;
++  {$ENDIF}
++
+   Stream.ReadBuffer(Header, SizeOf(TBmpHeader));
+ 
+   // Check for Windows bitmap magic bytes and general compatibility of the
