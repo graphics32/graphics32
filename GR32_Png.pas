@@ -40,42 +40,177 @@ uses
   Classes, Graphics, SysUtils, zlib, GR32, GR32_PortableNetworkGraphic;
 
 type
+  TCustomPngNonInterlacedDecoder = class(TCustomPngDecoder)
+  protected
+    FBytesPerRow : Integer;
+    FRowByteSize : Integer;
+    procedure TransferData(Source: Pointer; Destination: PColor32); virtual; abstract;
+  public
+    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+    destructor Destroy; override;
+    procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
+  end;
+
+  TPngNonInterlacedGrayscale1bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedGrayscale2bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedGrayscale4bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedGrayscale8bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedGrayscale16bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedTrueColor8bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedTrueColor16bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedPaletteDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedPalette8bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedGrayscaleAlpha8bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedGrayscaleAlpha16bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedTrueColorAlpha8bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngNonInterlacedTrueColorAlpha16bitDecoder = class(TCustomPngNonInterlacedDecoder)
+  protected
+    procedure TransferData(Source: Pointer; Destination: PColor32); override;
+  end;
+
+
+  TCustomPngAdam7Decoder = class(TCustomPngDecoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); virtual; abstract;
+  public
+    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+    destructor Destroy; override;
+    procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
+  end;
+
+  TPngAdam7Grayscale1bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Grayscale2bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Grayscale4bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Grayscale8bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Grayscale16bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7TrueColor8bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7TrueColor16bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Palette1bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Palette2bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Palette4bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7Palette8bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7GrayscaleAlpha8bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7GrayscaleAlpha16bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7TrueColorAlpha8bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+  TPngAdam7TrueColorAlpha16bitDecoder = class(TCustomPngAdam7Decoder)
+  protected
+    procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); override;
+  end;
+
+
   TPortableNetworkGraphic32 = class(TPortableNetworkGraphic)
   private
     FGammaTable        : array [Byte] of Byte;
     FInverseGammaTable : array [Byte] of Byte;
     FPaletteTable      : array [Byte] of TRGB24;
 
-    procedure TransferFromNonInterlacedGrayscale1(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedGrayscale2(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedGrayscale4(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedGrayscale8(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedGrayscale16(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedTrueColor8(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedTrueColor16(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedPalette(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedPalette8(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedGrayscaleAlpha8(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedGrayscaleAlpha16(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedTrueColorAlpha8(Source: Pointer; Destination: PColor32);
-    procedure TransferFromNonInterlacedTrueColorAlpha16(Source: Pointer; Destination: PColor32);
-
-    procedure TransferFromAdam7Grayscale1(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Grayscale2(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Grayscale4(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Grayscale8(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Grayscale16(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7TrueColor8(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7TrueColor16(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Palette1(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Palette2(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Palette4(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7Palette8(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7GrayscaleAlpha8(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7GrayscaleAlpha16(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7TrueColorAlpha8(const Pass: Byte; Source: Pointer; Destination: PColor32);
-    procedure TransferFromAdam7TrueColorAlpha16(const Pass: Byte; Source: Pointer; Destination: PColor32);
-
+    function GR32Scanline(Bitmap: TObject; Y: Integer): Pointer;
     procedure TransferToNonInterlacedGrayscale1(Source: PColor32; Destination: Pointer);
     procedure TransferToNonInterlacedGrayscale2(Source: PColor32; Destination: Pointer);
     procedure TransferToNonInterlacedGrayscale4(Source: PColor32; Destination: Pointer);
@@ -91,8 +226,6 @@ type
     procedure BuildGammaTable;
     procedure BuildPaletteTable;
 
-    procedure DecodeNonInterlaced(Bitmap32: TCustomBitmap32); virtual;
-    procedure DecodeInterlacedAdam7(Bitmap32: TCustomBitmap32); virtual;
     function ColorInPalette(Color: TColor32): Integer;
     procedure AssignPropertiesFromBitmap32(Bitmap32: TCustomBitmap32);
   public
@@ -112,6 +245,7 @@ uses
 
 resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
+  RCStrUnsupportedFilter = 'Unsupported Filter';
   RCStrDataIncomplete = 'Data not complete';
 
 type
@@ -131,14 +265,939 @@ const
     $66, $77, $88, $99, $AA, $BB, $CC, $DD, $EE, $FF);
 
 
+{ TCustomPngNonInterlacedDecoder }
+
+constructor TCustomPngNonInterlacedDecoder.Create(Stream: TStream;
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
+  Palette: TChunkPngPalette = nil);
+begin
+ inherited;
+ FBytesPerRow := FHeader.BytesPerRow;
+ FRowByteSize := FBytesPerRow + 1;
+ GetMem(FRowBuffer[0], FRowByteSize);
+ GetMem(FRowBuffer[1], FRowByteSize);
+end;
+
+destructor TCustomPngNonInterlacedDecoder.Destroy;
+begin
+ Dispose(FRowBuffer[0]);
+ Dispose(FRowBuffer[1]);
+ inherited;
+end;
+
+procedure TCustomPngNonInterlacedDecoder.DecodeToScanline(
+  Bitmap: TObject; ScanLineCallback: TScanLineCallback);
+var
+  Index         : Integer;
+  CurrentRow    : Integer;
+  PixelByteSize : Integer;
+begin
+ // initialize variables
+ CurrentRow := 0;
+ PixelByteSize := FHeader.PixelByteSize;
+
+ FillChar(FRowBuffer[1 - CurrentRow]^[0], FRowByteSize, 0);
+
+ for Index := 0 to FHeader.Height - 1 do
+  begin
+   // read data from stream
+   if FStream.Read(FRowBuffer[CurrentRow][0], FRowByteSize) <> FRowByteSize
+    then raise EPngError.Create(RCStrDataIncomplete);
+
+   // filter current row
+   FilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], FBytesPerRow, PixelByteSize);
+
+   // transfer data from row to image
+   TransferData(@FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, Index));
+
+   // flip current row
+   CurrentRow := 1 - CurrentRow;
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscale1bitDecoder }
+
+procedure TPngNonInterlacedGrayscale1bitDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index    : Integer;
+  Src      : PByte absolute Source;
+  BitIndex : Byte;
+begin
+ BitIndex := 8;
+
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   Dec(BitIndex);
+   PColor32Entry(Destination)^.R := FMappingTable[CGrayScaleTable1Bit[(Src^ shr BitIndex) and $1]];
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscale2bitDecoder }
+
+procedure TPngNonInterlacedGrayscale2bitDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index    : Integer;
+  Src      : PByte absolute Source;
+  BitIndex : Byte;
+begin
+ BitIndex := 8;
+
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   Dec(BitIndex, 2);
+   PColor32Entry(Destination)^.R := FMappingTable[CGrayScaleTable2Bit[(Src^ shr BitIndex) and $3]];
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscale4bitDecoder }
+
+procedure TPngNonInterlacedGrayscale4bitDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index      : Integer;
+  Src        : PByte absolute Source;
+  BitIndex   : Byte;
+begin
+ BitIndex := 8;
+
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   Dec(BitIndex, 4);
+   PColor32Entry(Destination)^.R := FMappingTable[CGrayScaleTable4Bit[(Src^ shr BitIndex) and $F]];
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscale8bitDecoder }
+
+procedure TPngNonInterlacedGrayscale8bitDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PByte absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^]; Inc(Src);
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscale16bitDecoder }
+
+procedure TPngNonInterlacedGrayscale16bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PWord absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^ and $FF]; Inc(Src);
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedTrueColor8bitDecoder }
+
+procedure TPngNonInterlacedTrueColor8bitDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PRGB24 absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^.R];
+   PColor32Entry(Destination)^.G := FMappingTable[Src^.G];
+   PColor32Entry(Destination)^.B := FMappingTable[Src^.B];
+   PColor32Entry(Destination)^.A := 255;
+   Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedTrueColor16bitDecoder }
+
+procedure TPngNonInterlacedTrueColor16bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PRGB24Word absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^.R and $FF];
+   PColor32Entry(Destination)^.G := FMappingTable[Src^.G and $FF];
+   PColor32Entry(Destination)^.B := FMappingTable[Src^.B and $FF];
+   PColor32Entry(Destination)^.A := 255;
+   Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedPaletteDecoder }
+
+procedure TPngNonInterlacedPaletteDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index    : Integer;
+  Src      : PByte absolute Source;
+  Palette  : PRGB24Array;
+  Color    : TRGB24;
+  BitIndex : Byte;
+  BitMask  : Byte;
+  BitDepth : Byte;
+begin
+ BitIndex := 8;
+ BitDepth := FHeader.BitDepth;
+ BitMask  := (1 shl BitDepth) - 1;
+ Palette  := PRGB24Array(FMappingTable);
+
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   Dec(BitIndex, BitDepth);
+   Color := Palette[(Src^ shr BitIndex) and BitMask];
+   PColor32Entry(Destination)^.R := Color.R;
+   PColor32Entry(Destination)^.G := Color.G;
+   PColor32Entry(Destination)^.B := Color.B;
+   PColor32Entry(Destination)^.A := 255;
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedPalette8bitDecoder }
+
+procedure TPngNonInterlacedPalette8bitDecoder.TransferData(Source: Pointer;
+  Destination: PColor32);
+var
+  Index   : Integer;
+  Src     : PByte absolute Source;
+  Palette : PRGB24Array;
+begin
+ Palette  := PRGB24Array(FMappingTable);
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := Palette[Src^].R;
+   PColor32Entry(Destination)^.G := Palette[Src^].G;
+   PColor32Entry(Destination)^.B := Palette[Src^].B;
+   PColor32Entry(Destination)^.A := 255;
+   Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscaleAlpha8bitDecoder }
+
+procedure TPngNonInterlacedGrayscaleAlpha8bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PByte absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^]; Inc(Src);
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := Src^; Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedGrayscaleAlpha16bitDecoder }
+
+procedure TPngNonInterlacedGrayscaleAlpha16bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PWord absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^ and $FF]; Inc(Src);
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := Src^ and $FF; Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedTrueColorAlpha8bitDecoder }
+
+procedure TPngNonInterlacedTrueColorAlpha8bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PRGB32 absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^.R];
+   PColor32Entry(Destination)^.G := FMappingTable[Src^.G];
+   PColor32Entry(Destination)^.B := FMappingTable[Src^.B];
+   PColor32Entry(Destination)^.A := Src^.A;
+   Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TPngNonInterlacedTrueColorAlpha16bitDecoder }
+
+procedure TPngNonInterlacedTrueColorAlpha16bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PRGB32Word absolute Source;
+begin
+ for Index := 0 to FHeader.Width - 1 do
+  begin
+   PColor32Entry(Destination)^.R := FMappingTable[Src^.R and $FF];
+   PColor32Entry(Destination)^.G := FMappingTable[Src^.G and $FF];
+   PColor32Entry(Destination)^.B := FMappingTable[Src^.B and $FF];
+   PColor32Entry(Destination)^.A := Src^.A and $FF;
+   Inc(Src);
+   Inc(Destination);
+  end;
+end;
+
+
+{ TCustomPngAdam7Decoder }
+
+constructor TCustomPngAdam7Decoder.Create(Stream: TStream;
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
+  Palette: TChunkPngPalette = nil);
+begin
+ inherited;
+
+ // allocate row buffer memory
+ GetMem(FRowBuffer[0], FHeader.BytesPerRow + 1);
+ GetMem(FRowBuffer[1], FHeader.BytesPerRow + 1);
+end;
+
+destructor TCustomPngAdam7Decoder.Destroy;
+begin
+ Dispose(FRowBuffer[0]);
+ Dispose(FRowBuffer[1]);
+ inherited;
+end;
+
+procedure TCustomPngAdam7Decoder.DecodeToScanline(
+  Bitmap: TObject; ScanLineCallback: TScanLineCallback);
+var
+  CurrentRow    : Integer;
+  RowByteSize   : Integer;
+  PixelPerRow   : Integer;
+  PixelByteSize : Integer;
+  CurrentPass   : Integer;
+  PassRow       : Integer;
+begin
+ // initialize variables
+ CurrentRow := 0;
+ PixelByteSize := FHeader.PixelByteSize;
+
+ // The Adam7 interlacer uses 7 passes to create the complete image
+ for CurrentPass := 0 to 6 do
+  begin
+   // calculate some intermediate variables
+   PixelPerRow := (FHeader.Width - CColumnStart[CurrentPass] + CColumnIncrement[CurrentPass] - 1) div CColumnIncrement[CurrentPass];
+
+   with FHeader do
+    case ColorType of
+     ctGrayscale, ctIndexedColor: RowByteSize := (PixelPerRow * BitDepth + 7) div 8;
+     ctTrueColor: RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
+     ctGrayscaleAlpha: RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
+     ctTrueColorAlpha: RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
+     else RowByteSize := 0;
+    end;
+
+   PassRow := CRowStart[CurrentPass];
+
+   // clear previous row
+   FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
+
+   // check whether there are any bytes to process in this pass.
+   if RowByteSize > 0 then
+    while PassRow < FHeader.Height do
+     begin
+      // get interlaced row data
+      if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
+       then raise EPngError.Create(RCStrDataIncomplete);
+
+      FilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
+
+      // transfer and deinterlace image data
+      TransferData(CurrentPass, @FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, PassRow));
+
+      // prepare for the next pass
+      Inc(PassRow, CRowIncrement[CurrentPass]);
+      CurrentRow := 1 - CurrentRow;
+     end;
+  end;
+end;
+
+
+{ TPngAdam7Grayscale1bitDecoder }
+
+procedure TPngAdam7Grayscale1bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  BitIndex : Integer;
+  Src      : PByte absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ BitIndex := 8;
+ repeat
+   Dec(BitIndex);
+   PColor32Entry(Destination)^.R := FMappingTable[CGrayScaleTable1Bit[(Src^ shr BitIndex) and $1]];
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Grayscale2bitDecoder }
+
+procedure TPngAdam7Grayscale2bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  BitIndex : Integer;
+  Src      : PByte absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ BitIndex := 8;
+ repeat
+   Dec(BitIndex, 2);
+   PColor32Entry(Destination)^.R := FMappingTable[CGrayScaleTable2Bit[((Src^ shr BitIndex) and $3)]];
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Grayscale4bitDecoder }
+
+procedure TPngAdam7Grayscale4bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  BitIndex : Integer;
+  Src      : PByte absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ BitIndex := 8;
+ repeat
+   Dec(BitIndex, 4);
+   PColor32Entry(Destination)^.R := FMappingTable[CGrayScaleTable4Bit[((Src^ shr BitIndex) and $F)]];
+   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+   PColor32Entry(Destination)^.A := 255;
+
+   if BitIndex = 0 then
+    begin
+     BitIndex := 8;
+     Inc(Src);
+    end;
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+{ TPngAdam7Grayscale8bitDecoder }
+
+procedure TPngAdam7Grayscale8bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PByte absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[Src^]; Inc(Src);
+  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.A := 255;
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Grayscale16bitDecoder }
+
+procedure TPngAdam7Grayscale16bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  Src      : PWord absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[Src^ and $FF]; Inc(Src);
+  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.A := 255;
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7TrueColor8bitDecoder }
+
+procedure TPngAdam7TrueColor8bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PRGB24 absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[Src^.R];
+  PColor32Entry(Destination)^.G := FMappingTable[Src^.G];
+  PColor32Entry(Destination)^.B := FMappingTable[Src^.B];
+  PColor32Entry(Destination)^.A := 255;
+
+  Inc(Src);
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7TrueColor16bitDecoder }
+
+procedure TPngAdam7TrueColor16bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PRGB24Word absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[Src^.R and $FF];
+  PColor32Entry(Destination)^.G := FMappingTable[Src^.G and $FF];
+  PColor32Entry(Destination)^.B := FMappingTable[Src^.B and $FF];
+  PColor32Entry(Destination)^.A := 255;
+
+  Inc(Src);
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Palette1bitDecoder }
+
+procedure TPngAdam7Palette1bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  BitIndex : Integer;
+  Src      : PByte absolute Source;
+  Palette  : PRGB24Array;
+  Color    : TRGB24;
+begin
+ BitIndex := 8;
+ Palette  := PRGB24Array(FMappingTable);
+ Index    := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  Dec(BitIndex);
+  Color := Palette[(Src^ shr BitIndex) and $1];
+  PColor32Entry(Destination)^.R := Color.R;
+  PColor32Entry(Destination)^.G := Color.G;
+  PColor32Entry(Destination)^.B := Color.B;
+  PColor32Entry(Destination)^.A := 255;
+
+  if BitIndex = 0 then
+   begin
+    BitIndex := 8;
+    Inc(Src);
+   end;
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Palette2bitDecoder }
+
+procedure TPngAdam7Palette2bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  BitIndex : Integer;
+  Src      : PByte absolute Source;
+  Palette  : PRGB24Array;
+  Color    : TRGB24;
+begin
+ BitIndex := 8;
+ Palette  := PRGB24Array(FMappingTable);
+ Index    := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  Dec(BitIndex, 2);
+  Color := Palette[(Src^ shr BitIndex) and $3];
+  PColor32Entry(Destination)^.R := Color.R;
+  PColor32Entry(Destination)^.G := Color.G;
+  PColor32Entry(Destination)^.B := Color.B;
+  PColor32Entry(Destination)^.A := 255;
+
+  if BitIndex = 0 then
+   begin
+    BitIndex := 8;
+    Inc(Src);
+   end;
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Palette4bitDecoder }
+
+procedure TPngAdam7Palette4bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  BitIndex : Integer;
+  Src      : PByte absolute Source;
+  Palette  : PRGB24Array;
+  Color    : TRGB24;
+begin
+ BitIndex := 8;
+ Palette  := PRGB24Array(FMappingTable);
+ Index    := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  Dec(BitIndex, 4);
+  Color := Palette[(Src^ shr BitIndex) and $F];
+  PColor32Entry(Destination)^.R := Color.R;
+  PColor32Entry(Destination)^.G := Color.G;
+  PColor32Entry(Destination)^.B := Color.B;
+  PColor32Entry(Destination)^.A := 255;
+
+  if BitIndex = 0 then
+   begin
+    BitIndex := 8;
+    Inc(Src);
+   end;
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7Palette8bitDecoder }
+
+procedure TPngAdam7Palette8bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index   : Integer;
+  Src     : PByte absolute Source;
+  Palette : PRGB24Array;
+begin
+ Palette := PRGB24Array(FMappingTable);
+ Index   := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := Palette[Src^].R;
+  PColor32Entry(Destination)^.G := Palette[Src^].G;
+  PColor32Entry(Destination)^.B := Palette[Src^].B;
+  PColor32Entry(Destination)^.A := 255;
+
+  Inc(Src);
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7GrayscaleAlpha8bitDecoder }
+
+procedure TPngAdam7GrayscaleAlpha8bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PByte absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[Src^]; Inc(Src);
+  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.A := Src^; Inc(Src);
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7GrayscaleAlpha16bitDecoder }
+
+procedure TPngAdam7GrayscaleAlpha16bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index : Integer;
+  Src   : PWord absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[Src^ and $FF]; Inc(Src);
+  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
+  PColor32Entry(Destination)^.A := Src^ and $FF; Inc(Src);
+
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7TrueColorAlpha8bitDecoder }
+
+procedure TPngAdam7TrueColorAlpha8bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  SrcPtr   : PRGB32 absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[SrcPtr^.R];
+  PColor32Entry(Destination)^.G := FMappingTable[SrcPtr^.G];
+  PColor32Entry(Destination)^.B := FMappingTable[SrcPtr^.B];
+  PColor32Entry(Destination)^.A := SrcPtr^.A;
+
+  Inc(SrcPtr);
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
+{ TPngAdam7TrueColorAlpha16bitDecoder }
+
+procedure TPngAdam7TrueColorAlpha16bitDecoder.TransferData(const Pass: Byte;
+  Source: Pointer; Destination: PColor32);
+var
+  Index    : Integer;
+  SrcPtr   : PRGB32Word absolute Source;
+begin
+ Index := CColumnStart[Pass];
+ Inc(Destination, Index);
+ repeat
+  PColor32Entry(Destination)^.R := FMappingTable[SrcPtr^.R and $FF];
+  PColor32Entry(Destination)^.G := FMappingTable[SrcPtr^.G and $FF];
+  PColor32Entry(Destination)^.B := FMappingTable[SrcPtr^.B and $FF];
+  PColor32Entry(Destination)^.A := SrcPtr^.A and $FF;
+
+  Inc(SrcPtr);
+  Inc(Destination, CColumnIncrement[Pass]);
+  Inc(Index, CColumnIncrement[Pass]);
+ until Index >= FHeader.Width;
+end;
+
+
 { TPortableNetworkGraphic32 }
 
-procedure TPortableNetworkGraphic32.DrawToBitmap32(Bitmap32: TCustomBitmap32);
+function TPortableNetworkGraphic32.GR32Scanline(Bitmap: TObject; Y: Integer): Pointer;
 begin
- // decode image data
- case ImageHeader.InterlaceMethod of
-  imNone  : DecodeNonInterlaced(Bitmap32);
-  imAdam7 : DecodeInterlacedAdam7(Bitmap32);
+ if Bitmap is TBitmap32
+  then Result := TBitmap32(Bitmap).ScanLine[Y]
+  else Result := nil;
+end;
+
+procedure TPortableNetworkGraphic32.DrawToBitmap32(Bitmap32: TCustomBitmap32);
+var
+  DecoderClass : TCustomPngDecoderClass;
+  DataStream   : TMemoryStream;
+begin
+ DataStream := TMemoryStream.Create;
+ try
+  // decompress image data to data stream
+  DecompressImageDataToStream(DataStream);
+
+  // reset data stream position
+  DataStream.Seek(0, soFromBeginning);
+
+  case ImageHeader.InterlaceMethod of
+   imNone  :
+    case ImageHeader.ColorType of
+     ctGrayscale  :
+      case ImageHeader.BitDepth of
+       1  : DecoderClass := TPngNonInterlacedGrayscale1bitDecoder;
+       2  : DecoderClass := TPngNonInterlacedGrayscale2bitDecoder;
+       4  : DecoderClass := TPngNonInterlacedGrayscale4bitDecoder;
+       8  : DecoderClass := TPngNonInterlacedGrayscale8bitDecoder;
+       16 : DecoderClass := TPngNonInterlacedGrayscale16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctTrueColor :
+      case ImageHeader.BitDepth of
+        8 : DecoderClass := TPngNonInterlacedTrueColor8bitDecoder;
+       16 : DecoderClass := TPngNonInterlacedTrueColor16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctIndexedColor :
+      case ImageHeader.BitDepth of
+       1, 2, 4 : DecoderClass := TPngNonInterlacedPaletteDecoder;
+       8       : DecoderClass := TPngNonInterlacedPalette8bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctGrayscaleAlpha :
+      case ImageHeader.BitDepth of
+        8  : DecoderClass := TPngNonInterlacedGrayscaleAlpha8bitDecoder;
+       16  : DecoderClass := TPngNonInterlacedGrayscaleAlpha16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctTrueColorAlpha :
+      case ImageHeader.BitDepth of
+        8  : DecoderClass := TPngNonInterlacedTrueColorAlpha8bitDecoder;
+       16  : DecoderClass := TPngNonInterlacedTrueColorAlpha16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     else raise EPngError.Create(RCStrUnsupportedFormat);
+    end;
+   imAdam7 :
+    case ImageHeader.ColorType of
+     ctGrayscale  :
+      case ImageHeader.BitDepth of
+       1  : DecoderClass := TPngAdam7Grayscale1bitDecoder;
+       2  : DecoderClass := TPngAdam7Grayscale2bitDecoder;
+       4  : DecoderClass := TPngAdam7Grayscale4bitDecoder;
+       8  : DecoderClass := TPngAdam7Grayscale8bitDecoder;
+       16 : DecoderClass := TPngAdam7Grayscale16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctTrueColor :
+      case ImageHeader.BitDepth of
+        8 : DecoderClass := TPngAdam7TrueColor8bitDecoder;
+       16 : DecoderClass := TPngAdam7TrueColor16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctIndexedColor :
+      case ImageHeader.BitDepth of
+       1 : DecoderClass := TPngAdam7Palette1bitDecoder;
+       2 : DecoderClass := TPngAdam7Palette2bitDecoder;
+       4 : DecoderClass := TPngAdam7Palette4bitDecoder;
+       8 : DecoderClass := TPngAdam7Palette8bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctGrayscaleAlpha :
+      case ImageHeader.BitDepth of
+        8  : DecoderClass := TPngAdam7GrayscaleAlpha8bitDecoder;
+       16  : DecoderClass := TPngAdam7GrayscaleAlpha16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     ctTrueColorAlpha :
+      case ImageHeader.BitDepth of
+        8  : DecoderClass := TPngAdam7TrueColorAlpha8bitDecoder;
+       16  : DecoderClass := TPngAdam7TrueColorAlpha16bitDecoder;
+       else raise EPngError.Create(RCStrUnsupportedFormat);
+      end;
+     else raise EPngError.Create(RCStrUnsupportedFormat);
+    end;
+   else raise EPngError.Create(RCStrUnsupportedFormat);
+  end;
+
+  with DecoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+   try
+    DecodeToScanline(Bitmap32, GR32Scanline);
+   finally
+    Free;
+   end;
+ finally
+  FreeAndNil(DataStream);
  end;
 end;
 
@@ -487,811 +1546,6 @@ begin
  inherited;
  // nothing to do here yet
 end;
-
-procedure TPortableNetworkGraphic32.DecodeNonInterlaced(Bitmap32: TCustomBitmap32);
-var
-  Index         : Integer;
-  RowBuffer     : array [0..1] of PByteArray;
-  CurrentRow    : Integer;
-  RowByteSize   : Integer;
-  BytesPerRow   : Integer;
-  PixelByteSize : Integer;
-  TransferProc  : TTransferFromNonInterlaced;
-  DataStream    : TMemoryStream;
-
-begin
- DataStream := TMemoryStream.Create;
- try
-  // decompress image data to data stream
-  DecompressImageDataToStream(DataStream);
-
-  // reset data stream position
-  DataStream.Seek(0, soFromBeginning);
-
-  // assign transfer procedure
-  case ImageHeader.ColorType of
-   ctGrayscale  :
-    case ImageHeader.BitDepth of
-     1  : TransferProc := TransferFromNonInterlacedGrayscale1;
-     2  : TransferProc := TransferFromNonInterlacedGrayscale2;
-     4  : TransferProc := TransferFromNonInterlacedGrayscale4;
-     8  : TransferProc := TransferFromNonInterlacedGrayscale8;
-     16 : TransferProc := TransferFromNonInterlacedGrayscale16;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctTrueColor :
-    case ImageHeader.BitDepth of
-      8 : TransferProc := TransferFromNonInterlacedTrueColor8;
-     16 : TransferProc := TransferFromNonInterlacedTrueColor16;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctIndexedColor :
-    case ImageHeader.BitDepth of
-     1, 2, 4 : TransferProc := TransferFromNonInterlacedPalette;
-     8       : TransferProc := TransferFromNonInterlacedPalette8;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctGrayscaleAlpha :
-    case ImageHeader.BitDepth of
-      8  : TransferProc := TransferFromNonInterlacedGrayscaleAlpha8;
-     16  : TransferProc := TransferFromNonInterlacedGrayscaleAlpha16;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctTrueColorAlpha :
-    case ImageHeader.BitDepth of
-      8  : TransferProc := TransferFromNonInterlacedTrueColorAlpha8;
-     16  : TransferProc := TransferFromNonInterlacedTrueColorAlpha16;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   else raise EPngError.Create(RCStrUnsupportedFormat);
-  end;
-
-  // initialize variables
-  CurrentRow := 0;
-  BytesPerRow := ImageHeader.BytesPerRow;
-  RowByteSize := BytesPerRow + 1;
-  PixelByteSize := ImageHeader.PixelByteSize;
-
-  try
-   GetMem(RowBuffer[0], RowByteSize);
-   GetMem(RowBuffer[1], RowByteSize);
-   FillChar(RowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
-
-   for Index := 0 to ImageHeader.Height - 1 do
-    begin
-     // read data from stream
-     if DataStream.Read(RowBuffer[CurrentRow][0], RowByteSize) <> RowByteSize
-      then raise EPngError.Create(RCStrDataIncomplete);
-
-     // filter current row
-     FilterRow(TAdaptiveFilterMethod(RowBuffer[CurrentRow]^[0]), RowBuffer[CurrentRow], RowBuffer[1 - CurrentRow], BytesPerRow, PixelByteSize);
-
-     // transfer data from row to image
-     TransferProc(@RowBuffer[CurrentRow][1], PColor32(Bitmap32.ScanLine[Index]));
-
-     // flip current row
-     CurrentRow := 1 - CurrentRow;
-    end;
-  finally
-   if Assigned(RowBuffer[0]) then Dispose(RowBuffer[0]);
-   if Assigned(RowBuffer[1]) then Dispose(RowBuffer[1]);
-  end;
-
- finally
-  FreeAndNil(DataStream);
- end;
-end;
-
-procedure TPortableNetworkGraphic32.DecodeInterlacedAdam7(Bitmap32: TCustomBitmap32);
-var
-  DataStream    : TMemoryStream;
-  RowBuffer     : array [0..1] of PByteArray;
-  CurrentRow    : Integer;
-  RowByteSize   : Integer;
-  PixelPerRow   : Integer;
-  PixelByteSize : Integer;
-  CurrentPass   : Integer;
-  PassRow       : Integer;
-  TransferProc  : TTransferFromAdam7;
-begin
- DataStream := TMemoryStream.Create;
- try
-  // decompressed image data to data stream
-  DecompressImageDataToStream(DataStream);
-
-  // reset data stream position
-  DataStream.Seek(0, soFromBeginning);
-
-  // assign transfer procedure
-  case ImageHeader.ColorType of
-   ctGrayscale  :
-    case ImageHeader.BitDepth of
-     1  : TransferProc := TransferFromAdam7Grayscale1;
-     2  : TransferProc := TransferFromAdam7Grayscale2;
-     4  : TransferProc := TransferFromAdam7Grayscale4;
-     8  : TransferProc := TransferFromAdam7Grayscale8;
-     16 : TransferProc := TransferFromAdam7Grayscale16;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctTrueColor :
-    case ImageHeader.BitDepth of
-      8 : TransferProc := TransferFromAdam7TrueColor8;
-     16 : TransferProc := TransferFromAdam7TrueColor16;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctIndexedColor :
-    case ImageHeader.BitDepth of
-     1 : TransferProc := TransferFromAdam7Palette1;
-     2 : TransferProc := TransferFromAdam7Palette2;
-     4 : TransferProc := TransferFromAdam7Palette4;
-     8 : TransferProc := TransferFromAdam7Palette8;
-     else raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-   ctGrayscaleAlpha :
-     case ImageHeader.BitDepth of
-       8  : TransferProc := TransferFromAdam7GrayscaleAlpha8;
-      16  : TransferProc := TransferFromAdam7GrayscaleAlpha16;
-      else raise EPngError.Create(RCStrUnsupportedFormat);
-     end;
-   ctTrueColorAlpha :
-     case ImageHeader.BitDepth of
-       8  : TransferProc := TransferFromAdam7TrueColorAlpha8;
-      16  : TransferProc := TransferFromAdam7TrueColorAlpha16;
-      else raise EPngError.Create(RCStrUnsupportedFormat);
-     end;
-   else raise EPngError.Create(RCStrUnsupportedFormat);
-  end;
-
-  // initialize variables
-  CurrentRow := 0;
-  PixelByteSize := ImageHeader.PixelByteSize;
-
-  try
-   // allocate row buffer memory
-   GetMem(RowBuffer[0], ImageHeader.BytesPerRow + 1);
-   GetMem(RowBuffer[1], ImageHeader.BytesPerRow + 1);
-
-   // The Adam7 interlacer uses 7 passes to create the complete image
-   for CurrentPass := 0 to 6 do
-    begin
-     // calculate some intermediate variables
-     PixelPerRow := (ImageHeader.Width - CColumnStart[CurrentPass] + CColumnIncrement[CurrentPass] - 1) div CColumnIncrement[CurrentPass];
-
-     with ImageHeader do
-      case ColorType of
-       ctGrayscale, ctIndexedColor: RowByteSize := (PixelPerRow * BitDepth + 7) div 8;
-       ctTrueColor: RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
-       ctGrayscaleAlpha: RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
-       ctTrueColorAlpha: RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
-       else RowByteSize := 0;
-      end;
-
-     PassRow := CRowStart[CurrentPass];
-
-     // clear previous row
-     FillChar(RowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
-
-     // check whether there are any bytes to process in this pass.
-     if RowByteSize > 0 then
-      while PassRow < ImageHeader.Height do
-       begin
-        // get interlaced row data
-        if DataStream.Read(RowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
-         then raise EPngError.Create(RCStrDataIncomplete);
-
-        FilterRow(TAdaptiveFilterMethod(RowBuffer[CurrentRow]^[0]), RowBuffer[CurrentRow], RowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
-
-        // transfer and deinterlace image data
-        TransferProc(CurrentPass, @RowBuffer[CurrentRow][1], PColor32(Bitmap32.ScanLine[PassRow]));
-
-        // prepare for the next pass
-        Inc(PassRow, CRowIncrement[CurrentPass]);
-        CurrentRow := 1 - CurrentRow;
-       end;
-    end;
-  finally
-   if Assigned(RowBuffer[0]) then Dispose(RowBuffer[0]);
-   if Assigned(RowBuffer[1]) then Dispose(RowBuffer[1]);
-  end;
- finally
-  FreeAndNil(DataStream);
- end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscale1(Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  Src      : PByte absolute Source;
-  BitIndex : Byte;
-begin
- BitIndex := 8;
-
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   Dec(BitIndex);
-   PColor32Entry(Destination)^.R := FGammaTable[CGrayScaleTable1Bit[(Src^ shr BitIndex) and $1]];
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscale2(Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  Src      : PByte absolute Source;
-  BitIndex : Byte;
-begin
- BitIndex := 8;
-
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   Dec(BitIndex, 2);
-   PColor32Entry(Destination)^.R := FGammaTable[CGrayScaleTable2Bit[(Src^ shr BitIndex) and $3]];
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscale4(Source: Pointer;
-  Destination: PColor32);
-var
-  Index      : Integer;
-  Src        : PByte absolute Source;
-  BitIndex   : Byte;
-begin
- BitIndex := 8;
-
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   Dec(BitIndex, 4);
-   PColor32Entry(Destination)^.R := FGammaTable[CGrayScaleTable4Bit[(Src^ shr BitIndex) and $F]];
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscale8(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PByte absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^]; Inc(Src);
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscale16(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PWord absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^ and $FF]; Inc(Src);
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedPalette(Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  Src      : PByte absolute Source;
-  Color    : TRGB24;
-  BitIndex : Byte;
-  BitMask  : Byte;
-  BitDepth : Byte;
-begin
- BitIndex := 8;
- BitDepth := ImageHeader.BitDepth;
- BitMask  := (1 shl BitDepth) - 1;
-
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   Dec(BitIndex, BitDepth);
-   Color := FPaletteTable[(Src^ shr BitIndex) and BitMask];
-   PColor32Entry(Destination)^.R := FGammaTable[Color.R];
-   PColor32Entry(Destination)^.G := FGammaTable[Color.G];
-   PColor32Entry(Destination)^.B := FGammaTable[Color.B];
-   PColor32Entry(Destination)^.A := 255;
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedPalette8(Source: Pointer;
-  Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PByte absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[FPaletteTable[Src^].R];
-   PColor32Entry(Destination)^.G := FGammaTable[FPaletteTable[Src^].G];
-   PColor32Entry(Destination)^.B := FGammaTable[FPaletteTable[Src^].B];
-   PColor32Entry(Destination)^.A := 255;
-   Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedTrueColor8(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PRGB24 absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^.R];
-   PColor32Entry(Destination)^.G := FGammaTable[Src^.G];
-   PColor32Entry(Destination)^.B := FGammaTable[Src^.B];
-   PColor32Entry(Destination)^.A := 255;
-   Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedTrueColor16(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PRGB24Word absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^.R and $FF];
-   PColor32Entry(Destination)^.G := FGammaTable[Src^.G and $FF];
-   PColor32Entry(Destination)^.B := FGammaTable[Src^.B and $FF];
-   PColor32Entry(Destination)^.A := 255;
-   Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscaleAlpha8(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PByte absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^]; Inc(Src);
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := Src^; Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedGrayscaleAlpha16(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PWord absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^ and $FF]; Inc(Src);
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := Src^ and $FF; Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedTrueColorAlpha8(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PRGB32 absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^.R];
-   PColor32Entry(Destination)^.G := FGammaTable[Src^.G];
-   PColor32Entry(Destination)^.B := FGammaTable[Src^.B];
-   PColor32Entry(Destination)^.A := Src^.A;
-   Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromNonInterlacedTrueColorAlpha16(Source: Pointer; Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PRGB32Word absolute Source;
-begin
- for Index := 0 to ImageHeader.Width - 1 do
-  begin
-   PColor32Entry(Destination)^.R := FGammaTable[Src^.R and $FF];
-   PColor32Entry(Destination)^.G := FGammaTable[Src^.G and $FF];
-   PColor32Entry(Destination)^.B := FGammaTable[Src^.B and $FF];
-   PColor32Entry(Destination)^.A := Src^.A and $FF;
-   Inc(Src);
-   Inc(Destination);
-  end;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Grayscale1(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  BitIndex : Integer;
-  Src      : PByte absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- BitIndex := 8;
- repeat
-   Dec(BitIndex);
-   PColor32Entry(Destination)^.R := FGammaTable[CGrayScaleTable1Bit[(Src^ shr BitIndex) and $1]];
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Grayscale2(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  BitIndex : Integer;
-  Src      : PByte absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- BitIndex := 8;
- repeat
-   Dec(BitIndex, 2);
-   PColor32Entry(Destination)^.R := FGammaTable[CGrayScaleTable2Bit[((Src^ shr BitIndex) and $3)]];
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Grayscale4(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  BitIndex : Integer;
-  Src      : PByte absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- BitIndex := 8;
- repeat
-   Dec(BitIndex, 4);
-   PColor32Entry(Destination)^.R := FGammaTable[CGrayScaleTable4Bit[((Src^ shr BitIndex) and $F)]];
-   PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-   PColor32Entry(Destination)^.A := 255;
-
-   if BitIndex = 0 then
-    begin
-     BitIndex := 8;
-     Inc(Src);
-    end;
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Grayscale8(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PByte absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[Src^]; Inc(Src);
-  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.A := 255;
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Grayscale16(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  Src      : PWord absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[Src^ and $FF]; Inc(Src);
-  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.A := 255;
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7TrueColor8(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PRGB24 absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[Src^.R];
-  PColor32Entry(Destination)^.G := FGammaTable[Src^.G];
-  PColor32Entry(Destination)^.B := FGammaTable[Src^.B];
-  PColor32Entry(Destination)^.A := 255;
-
-  Inc(Src);
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7TrueColor16(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PRGB24Word absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[Src^.R and $FF];
-  PColor32Entry(Destination)^.G := FGammaTable[Src^.G and $FF];
-  PColor32Entry(Destination)^.B := FGammaTable[Src^.B and $FF];
-  PColor32Entry(Destination)^.A := 255;
-
-  Inc(Src);
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Palette1(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  BitIndex : Integer;
-  Src      : PByte absolute Source;
-  Color    : TRGB24;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- BitIndex := 8;
- repeat
-  Dec(BitIndex);
-  Color := FPaletteTable[(Src^ shr BitIndex) and $1];
-  PColor32Entry(Destination)^.R := FGammaTable[Color.R];
-  PColor32Entry(Destination)^.G := FGammaTable[Color.G];
-  PColor32Entry(Destination)^.B := FGammaTable[Color.B];
-  PColor32Entry(Destination)^.A := 255;
-
-  if BitIndex = 0 then
-   begin
-    BitIndex := 8;
-    Inc(Src);
-   end;
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Palette2(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  BitIndex : Integer;
-  Src      : PByte absolute Source;
-  Color    : TRGB24;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- BitIndex := 8;
- repeat
-  Dec(BitIndex, 2);
-  Color := FPaletteTable[(Src^ shr BitIndex) and $3];
-  PColor32Entry(Destination)^.R := FGammaTable[Color.R];
-  PColor32Entry(Destination)^.G := FGammaTable[Color.G];
-  PColor32Entry(Destination)^.B := FGammaTable[Color.B];
-  PColor32Entry(Destination)^.A := 255;
-
-  if BitIndex = 0 then
-   begin
-    BitIndex := 8;
-    Inc(Src);
-   end;
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Palette4(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  BitIndex : Integer;
-  Src      : PByte absolute Source;
-  Color    : TRGB24;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- BitIndex := 8;
- repeat
-  Dec(BitIndex, 4);
-  Color := FPaletteTable[(Src^ shr BitIndex) and $F];
-  PColor32Entry(Destination)^.R := FGammaTable[Color.R];
-  PColor32Entry(Destination)^.G := FGammaTable[Color.G];
-  PColor32Entry(Destination)^.B := FGammaTable[Color.B];
-  PColor32Entry(Destination)^.A := 255;
-
-  if BitIndex = 0 then
-   begin
-    BitIndex := 8;
-    Inc(Src);
-   end;
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7Palette8(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  Src      : PByte absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[FPaletteTable[Src^].R];
-  PColor32Entry(Destination)^.G := FGammaTable[FPaletteTable[Src^].G];
-  PColor32Entry(Destination)^.B := FGammaTable[FPaletteTable[Src^].B];
-  PColor32Entry(Destination)^.A := 255;
-
-  Inc(Src);
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7GrayscaleAlpha8(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PByte absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[Src^]; Inc(Src);
-  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.A := Src^; Inc(Src);
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7GrayscaleAlpha16(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index : Integer;
-  Src   : PWord absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[Src^ and $FF]; Inc(Src);
-  PColor32Entry(Destination)^.G := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.B := PColor32Entry(Destination)^.R;
-  PColor32Entry(Destination)^.A := Src^ and $FF; Inc(Src);
-
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7TrueColorAlpha8(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  SrcPtr   : PRGB32 absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[SrcPtr^.R];
-  PColor32Entry(Destination)^.G := FGammaTable[SrcPtr^.G];
-  PColor32Entry(Destination)^.B := FGammaTable[SrcPtr^.B];
-  PColor32Entry(Destination)^.A := SrcPtr^.A;
-
-  Inc(SrcPtr);
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
-procedure TPortableNetworkGraphic32.TransferFromAdam7TrueColorAlpha16(const Pass: Byte; Source: Pointer;
-  Destination: PColor32);
-var
-  Index    : Integer;
-  SrcPtr   : PRGB32Word absolute Source;
-begin
- Index := CColumnStart[Pass];
- Inc(Destination, Index);
- repeat
-  PColor32Entry(Destination)^.R := FGammaTable[SrcPtr^.R and $FF];
-  PColor32Entry(Destination)^.G := FGammaTable[SrcPtr^.G and $FF];
-  PColor32Entry(Destination)^.B := FGammaTable[SrcPtr^.B and $FF];
-  PColor32Entry(Destination)^.A := SrcPtr^.A and $FF;
-
-  Inc(SrcPtr);
-  Inc(Destination, CColumnIncrement[Pass]);
-  Inc(Index, CColumnIncrement[Pass]);
- until Index >= ImageHeader.Width;
-end;
-
 
 procedure TPortableNetworkGraphic32.TransferToNonInterlacedGrayscale1(
   Source: PColor32; Destination: Pointer);

@@ -72,6 +72,8 @@ type
     R, G, B: Byte;
   end;
   PRGB24 = ^TRGB24;
+  TRGB24Array = array [0..0] of TRGB24;
+  PRGB24Array = ^TRGB24Array;
 
   TRGB24Word = packed record
     R, G, B : Word;
@@ -691,6 +693,36 @@ type
     property Chunks[Index: Integer]: TCustomChunk read GetChunk; default;
   end;
 
+  TCustomPngCoder = class
+  private
+    procedure FilterSub(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+    procedure FilterUp(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+    procedure FilterAverage(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+    procedure FilterPaeth(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+  protected
+    FStream       : TStream;
+    FHeader       : TChunkPngImageHeader;
+    FGamma        : TChunkPngGamma;
+    FPalette      : TChunkPngPalette;
+
+    FRowBuffer    : array [0..1] of PByteArray;
+    FMappingTable : PByteArray;
+    procedure FilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+    procedure BuildMappingTable; virtual;
+  public
+    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); virtual;
+    destructor Destroy; override;
+  end;
+
+  TScanLineCallback = function(Bitmap: TObject; Y: Integer): Pointer of object;
+
+  TCustomPngDecoder = class(TCustomPngCoder)
+  public
+    procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); virtual; abstract;
+  end;
+  TCustomPngDecoderClass = class of TCustomPngDecoder;
+
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
   private
     function GetBitDepth: Byte;
@@ -734,11 +766,6 @@ type
     {$ENDIF}
     procedure ReadImageDataChunk(Stream: TStream);
     procedure ReadUnknownChunk(Stream: TStream);
-
-    procedure FilterSub(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
-    procedure FilterUp(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
-    procedure FilterAverage(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
-    procedure FilterPaeth(CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
   protected
     FImageHeader         : TChunkPngImageHeader;
     FPaletteChunk        : TChunkPngPalette;
@@ -752,7 +779,6 @@ type
 
     procedure Clear; virtual;
     procedure AssignTo(Dest: TPersistent); override;
-    procedure FilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
 
     procedure CopyImageData(Stream: TStream);
     procedure StoreImageData(Stream: TStream);
@@ -815,14 +841,20 @@ uses
 resourcestring
   RCStrAncillaryUnknownChunk = 'Unknown chunk is marked as ancillary';
   RCStrChunkSizeTooSmall = 'Chunk size too small!';
+  RCStrDirectCompressionMethodSetError = 'Compression Method may not be specified directly yet!';
+  RCStrDirectFilterMethodSetError = 'Filter Method may not be specified directly yet!';
+  RCStrDirectGammaSetError = 'Gamma may not be specified directly yet!';
+  RCStrDirectHeightSetError = 'Height may not be specified directly yet!';
+  RCStrDirectInterlaceMethodSetError = 'Interlace Method may not be specified directly yet!';
+  RCStrDirectWidthSetError = 'Width may not be specified directly yet!';
   RCStrEmptyChunkList = 'Chunk list is empty';
   RCStrHeaderInvalid = 'The provided header is not valid!';
   RCStrIncompletePalette = 'Palette is incomplete';
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
   RCStrNewHeaderError = 'New header may not be nil!';
+  RCStrNoModifiedTime = 'Modified time not available!';
   RCStrNotAValidPNGFile = 'Not a valid PNG file';
   RCStrNotYetImplemented = 'Not yet implemented';
-  RCStrNoModifiedTime = 'Modified time not available!';
   RCStrPaletteLimited = 'Palette is limited to 256 entries';
   RCStrPaletteMissing = 'Required palette is missing';
   RCStrSeveralChromaChunks = 'Primary chromaticities chunk defined twice!';
@@ -842,13 +874,6 @@ resourcestring
   RCStrWrongBitdepth = 'Wrong Bitdepth';
   RCStrWrongPixelPerUnit = 'Pixel per unit may not be zero!';
   RCStrWrongTransparencyFormat = 'Wrong transparency format';
-
-  RCStrDirectGammaSetError = 'Gamma may not be specified directly yet!';
-  RCStrDirectHeightSetError = 'Height may not be specified directly yet!';
-  RCStrDirectInterlaceMethodSetError = 'Interlace Method may not be specified directly yet!';
-  RCStrDirectWidthSetError = 'Width may not be specified directly yet!';
-  RCStrDirectFilterMethodSetError = 'Filter Method may not be specified directly yet!';
-  RCStrDirectCompressionMethodSetError = 'Compression Method may not be specified directly yet!';
   {$IFDEF CheckCRC}
   RCStrCRCError = 'CRC Error';
   {$ENDIF}
@@ -2951,6 +2976,177 @@ begin
 end;
 
 
+{ TCustomPngCoder }
+
+constructor TCustomPngCoder.Create(Stream: TStream;
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
+  Palette: TChunkPngPalette = nil);
+begin
+ FStream       := Stream;
+ FHeader       := Header;
+ FGamma        := Gamma;
+ FPalette      := Palette;
+ FMappingTable := nil;
+ BuildMappingTable;
+ inherited Create;
+end;
+
+destructor TCustomPngCoder.Destroy;
+begin
+ Dispose(FMappingTable);
+ inherited;
+end;
+
+procedure TCustomPngCoder.BuildMappingTable;
+var
+  Index        : Integer;
+  Palette      : PRGB24Array;
+  FracVal      : Single;
+  Color        : TRGB24;
+  MaxByte      : Byte;
+  PreCalcGamma : Extended;
+const
+  COne255th : Extended = 1 / 255;
+begin
+ if FHeader.HasPalette then
+  begin
+   if Assigned(FPalette) then
+    begin
+     GetMem(FMappingTable, FPalette.Count * SizeOf(TRGB24));
+     Palette := PRGB24Array(FMappingTable);
+
+     if Assigned(FGamma) then
+      begin
+       PreCalcGamma := 1 / (FGamma.Gamma * 2.2E-5);
+       for Index := 0 to FPalette.Count - 1 do
+        begin
+         Color := FPalette.PaletteEntry[Index];
+         Palette[Index].R := Round(Power((Color.R * COne255th), PreCalcGamma) * 255);
+         Palette[Index].G := Round(Power((Color.G * COne255th), PreCalcGamma) * 255);
+         Palette[Index].B := Round(Power((Color.B * COne255th), PreCalcGamma) * 255);
+        end;
+      end
+     else
+      for Index := 0 to FPalette.Count - 1
+       do Palette[Index] := FPalette.PaletteEntry[Index];
+    end
+   else
+    begin
+     // create gray scale palette
+     GetMem(FMappingTable, 256 * SizeOf(TRGB24));
+     Palette := PRGB24Array(FMappingTable);
+     MaxByte := ((1 shl FHeader.BitDepth) - 1) and $FF;
+     FracVal := 1 / MaxByte;
+
+     if Assigned(FGamma) then
+      begin
+       PreCalcGamma := 1 / (FGamma.Gamma * 2.2E-5);
+       for Index := 0 to FPalette.Count - 1 do
+        begin
+         Palette[Index].R := Round(Power(Index * FracVal, PreCalcGamma) * 255);
+         Palette[Index].G := Palette[Index].R;
+         Palette[Index].B := Palette[Index].B;
+        end;
+      end
+     else
+      begin
+       for Index := 0 to MaxByte do
+        begin
+         Palette[Index].R := Round(255 * (Index * FracVal));
+         Palette[Index].G := Palette[Index].R;
+         Palette[Index].B := Palette[Index].R;
+        end;
+      end;
+    end;
+  end
+ else
+  begin
+   GetMem(FMappingTable, 256);
+   if Assigned(FGamma) and (FGamma.Gamma <> 0) then
+    begin
+     PreCalcGamma := 1 / (FGamma.Gamma * 2.2E-5);
+     for Index := 0 to $FF
+      do FMappingTable[Index] := Round(Power((Index * COne255th), PreCalcGamma) * 255);
+    end
+   else
+    for Index := 0 to $FF
+     do FMappingTable[Index] := Index;
+  end;
+end;
+
+procedure TCustomPngCoder.FilterSub(CurrentRow, PreviousRow: PByteArray;
+  BytesPerRow, PixelByteSize: Integer);
+var
+  Index : Integer;
+begin
+ for Index := PixelByteSize + 1 to BytesPerRow
+  do CurrentRow[Index] := (CurrentRow[Index] + CurrentRow[Index - PixelByteSize]) and $FF;
+end;
+
+procedure TCustomPngCoder.FilterUp(CurrentRow, PreviousRow: PByteArray;
+  BytesPerRow, PixelByteSize: Integer);
+var
+  Index : Integer;
+begin
+ for Index := 1 to BytesPerRow
+  do CurrentRow[Index] := (CurrentRow[Index] + PreviousRow[Index]) and $FF;
+end;
+
+procedure TCustomPngCoder.FilterAverage(CurrentRow, PreviousRow: PByteArray;
+  BytesPerRow, PixelByteSize: Integer);
+var
+  Index : Integer;
+begin
+ for Index := 1 to PixelByteSize
+  do CurrentRow[Index] := (CurrentRow[Index] + PreviousRow[Index] shr 1) and $FF;
+
+ for Index := PixelByteSize + 1 to BytesPerRow
+  do CurrentRow[Index] := (CurrentRow[Index] + (CurrentRow[Index - PixelByteSize] + PreviousRow[Index]) shr 1) and $FF;
+end;
+
+function PaethPredictor(a, b, c: Byte): Byte;
+var
+  DistA, DistB, DistC: Integer;
+begin
+ DistA := Abs(b - c);
+ DistB := Abs(a - c);
+ DistC := Abs(a + b - c * 2);
+
+ if (DistA <= DistB) and (DistA <= DistC) then Result := a else
+ if DistB <= DistC
+  then Result := b
+  else Result := c;
+end;
+
+procedure TCustomPngCoder.FilterPaeth(CurrentRow, PreviousRow: PByteArray;
+  BytesPerRow, PixelByteSize: Integer);
+var
+  Index : Integer;
+begin
+ for Index := 1 to PixelByteSize
+  do CurrentRow[Index] := (CurrentRow[Index] +
+       PaethPredictor(0, PreviousRow[Index], 0)) and $FF;
+
+ for Index := PixelByteSize + 1 to BytesPerRow
+  do CurrentRow[Index] := (CurrentRow[Index] +
+       PaethPredictor(CurrentRow[Index - PixelByteSize], PreviousRow[Index],
+         PreviousRow[Index - PixelByteSize])) and $FF;
+end;
+
+procedure TCustomPngCoder.FilterRow(FilterMethod: TAdaptiveFilterMethod;
+  CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
+begin
+ case FilterMethod of
+  afmNone    : ;
+  afmSub     : FilterSub(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
+  afmUp      : FilterUp(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
+  afmAverage : FilterAverage(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
+  afmPaeth   : FilterPaeth(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
+  else raise EPngError.Create(RCStrUnsupportedFilter);
+ end;
+end;
+
+
 { TPortableNetworkGraphic }
 
 constructor TPortableNetworkGraphic.Create;
@@ -3710,7 +3906,6 @@ function TPortableNetworkGraphic.CalculateCRC(Stream: TStream): Cardinal;
 var
   CrcValue : Cardinal;
   Value    : Byte;
-  Buffer   : PByte;
 begin
  if Stream is TMemoryStream
   then Result := CalculateCRC(TMemoryStream(Stream).Memory, Stream.Size)
@@ -3797,24 +3992,6 @@ begin
 end;
 {$ENDIF}
 
-procedure TPortableNetworkGraphic.FilterSub(CurrentRow, PreviousRow: PByteArray;
-  BytesPerRow, PixelByteSize: Integer);
-var
-  Index : Integer;
-begin
- for Index := PixelByteSize + 1 to BytesPerRow
-  do CurrentRow[Index] := (CurrentRow[Index] + CurrentRow[Index - PixelByteSize]) and $FF;
-end;
-
-procedure TPortableNetworkGraphic.FilterUp(CurrentRow, PreviousRow: PByteArray;
-  BytesPerRow, PixelByteSize: Integer);
-var
-  Index : Integer;
-begin
- for Index := 1 to BytesPerRow
-  do CurrentRow[Index] := (CurrentRow[Index] + PreviousRow[Index]) and $FF;
-end;
-
 function TPortableNetworkGraphic.GetBitDepth: Byte;
 begin
  Result := FImageHeader.BitDepth;
@@ -3838,7 +4015,7 @@ end;
 function TPortableNetworkGraphic.GetGamma: Single;
 begin
  if Assigned(FGammaChunk)
-  then Result := FGammaChunk.GetGammaAsSingle
+  then Result := FGammaChunk.GammaAsSingle
   else Result := 1;
 end;
 
@@ -3891,7 +4068,7 @@ end;
 function TPortableNetworkGraphic.GetPixelUnit: Byte;
 begin
  if Assigned(FPhysicalDimensions)
-  then Result := FPhysicalDimensions.FUnit
+  then Result := FPhysicalDimensions.PixelUnit
   else Result := 0;
 end;
 
@@ -3913,60 +4090,6 @@ end;
 function TPortableNetworkGraphic.HasPhysicalPixelDimensionsInformation: Boolean;
 begin
  Result := Assigned(FPhysicalDimensions);
-end;
-
-procedure TPortableNetworkGraphic.FilterAverage(CurrentRow, PreviousRow: PByteArray;
-  BytesPerRow, PixelByteSize: Integer);
-var
-  Index : Integer;
-begin
- for Index := 1 to PixelByteSize
-  do CurrentRow[Index] := (CurrentRow[Index] + PreviousRow[Index] shr 1) and $FF;
-
- for Index := PixelByteSize + 1 to BytesPerRow
-  do CurrentRow[Index] := (CurrentRow[Index] + (CurrentRow[Index - PixelByteSize] + PreviousRow[Index]) shr 1) and $FF;
-end;
-
-function PaethPredictor(a, b, c: Byte): Byte;
-var
-  DistA, DistB, DistC: Integer;
-begin
- DistA := Abs(b - c);
- DistB := Abs(a - c);
- DistC := Abs(a + b - c * 2);
-
- if (DistA <= DistB) and (DistA <= DistC) then Result := a else
- if DistB <= DistC
-  then Result := b
-  else Result := c;
-end;
-
-procedure TPortableNetworkGraphic.FilterPaeth(CurrentRow, PreviousRow: PByteArray;
-  BytesPerRow, PixelByteSize: Integer);
-var
-  Index : Integer;
-begin
- for Index := 1 to PixelByteSize
-  do CurrentRow[Index] := (CurrentRow[Index] +
-       PaethPredictor(0, PreviousRow[Index], 0)) and $FF;
-
- for Index := PixelByteSize + 1 to BytesPerRow
-  do CurrentRow[Index] := (CurrentRow[Index] +
-       PaethPredictor(CurrentRow[Index - PixelByteSize], PreviousRow[Index],
-         PreviousRow[Index - PixelByteSize])) and $FF;
-end;
-
-procedure TPortableNetworkGraphic.FilterRow(FilterMethod: TAdaptiveFilterMethod;
-  CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
-begin
- case FilterMethod of
-  afmNone    : ;
-  afmSub     : FilterSub(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
-  afmUp      : FilterUp(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
-  afmAverage : FilterAverage(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
-  afmPaeth   : FilterPaeth(CurrentRow, PreviousRow, BytesPerRow, PixelByteSize);
-  else raise EPngError.Create(RCStrUnsupportedFilter);
- end;
 end;
 
 procedure TPortableNetworkGraphic.Clear;
