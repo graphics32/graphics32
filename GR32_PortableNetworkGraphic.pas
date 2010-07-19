@@ -723,6 +723,12 @@ type
   end;
   TCustomPngDecoderClass = class of TCustomPngDecoder;
 
+  TCustomPngEncoder = class(TCustomPngCoder)
+  public
+    procedure EncodeFromScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); virtual; abstract;
+  end;
+  TCustomPngEncoderClass = class of TCustomPngEncoder;
+
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
   private
     function GetBitDepth: Byte;
