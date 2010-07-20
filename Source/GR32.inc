@@ -243,6 +243,13 @@
 {$ENDIF}
 
 
+(* Symbol USE_GUIDS_IN_MMF :
+    Defines whether to use GUIDs for temporary MMFs filename instead of
+    using the GetTempFilename in WinAPI. *)
+
+  {-$DEFINE USE_GUIDS_IN_MMF}
+
+
 (* Symbol USEMOVE :
     Defines whether to use Move instead of MoveLongword. *)
 

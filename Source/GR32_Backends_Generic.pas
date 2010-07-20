@@ -45,6 +45,9 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
+{$IFDEF USE_GUIDS_IN_MMF}
+  ActiveX,
+{$ENDIF}
   SysUtils, Classes, GR32, GR32_Backends;
 
 type
@@ -180,6 +183,20 @@ var
     StrDispose(PC);
   end;
 
+{$IFDEF USE_GUIDS_IN_MMF}
+
+  function GetTempFileName(const Prefix: string): string;
+  var
+    GUID: TGUID;
+  begin
+    repeat
+      CoCreateGuid(GUID);
+      Result := IncludeTrailingPathDelimiter(GetTempPath) + Prefix + GUIDToString(GUID);
+    until not FileExists(Result);
+  end;
+
+{$ELSE}
+
   function GetTempFileName(const Prefix: string): string;
   var
     PC: PChar;
@@ -189,6 +206,8 @@ var
     Result := string(PC);
     StrDispose(PC);
   end;
+
+{$ENDIF}
 
 begin
   // close previous handles
@@ -224,9 +243,22 @@ begin
       0, nil, CREATE_ALWAYS, Flags, 0);
 
     if MapFileHandle = INVALID_HANDLE_VALUE then
-      raise Exception.Create('Failed to create map file (' + MapFileName + ')');
+    begin
+      if not IsTemporary then
+        raise Exception.Create('Failed to create map file (' + MapFileName + ')')
+      else
+      begin
+        // Reset and fall back to allocating in the system's paging file...
+
+        // delete file if exists
+        if FileExists(MapFileName) then
+          DeleteFile(MapFileName);
+          
+        MapFileName := '';
+      end;
+    end;
   end
-  else // use swap space
+  else // use the system's paging file
     MapFileHandle := INVALID_HANDLE_VALUE;
 
   // create map
