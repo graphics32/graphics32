@@ -322,7 +322,7 @@ function TPortableNetworkGraphic32.GR32ScanlineProgress(Bitmap: TObject;
 begin
  Result := GR32Scanline(Bitmap, Y);
  if FImageHeader.Height > 0
-  then FProgressEvent(Self, Y / FImageHeader.Height)
+  then FProgressEvent(Self, 100 * Y / FImageHeader.Height)
   else FProgressEvent(Self, 100);
 end;
 
@@ -439,9 +439,9 @@ begin
  for Result := 0 to FPaletteChunk.Count - 1 do
   begin
    Color24 := PaletteChunk.PaletteEntry[Result];
-   if (RedComponent(Color) = Color24.R) and
-      (GreenComponent(Color) = Color24.G) and
-      (BlueComponent(Color) = Color24.B)
+   if (TColor32Entry(Color).R = Color24.R) and
+      (TColor32Entry(Color).G = Color24.G) and
+      (TColor32Entry(Color).B = Color24.B)
     then Exit;
   end;
  Result := -1;
@@ -450,9 +450,9 @@ end;
 function ColorIndexInPalette(Color: TColor32; Palette: TPalette24): Integer;
 begin
  for Result := 0 to Length(Palette) - 1 do
-  if (RedComponent(Color) = Palette[Result].R) and
-     (GreenComponent(Color) = Palette[Result].G) and
-     (BlueComponent(Color) = Palette[Result].B)
+  if (TColor32Entry(Color).R = Palette[Result].R) and
+     (TColor32Entry(Color).G = Palette[Result].G) and
+     (TColor32Entry(Color).B = Palette[Result].B)
    then Exit;
  Result := -1;
 end;
@@ -493,28 +493,28 @@ begin
      // check whether the palette is empty
      if Length(TempPalette) = 0 then
       begin
-       IsAlpha := AlphaComponent(Color) < 255 ;
+       IsAlpha := TColor32Entry(Color).A < 255 ;
 
        // eventually store first alpha component
        if IsAlpha
-        then TempAlpha := AlphaComponent(Color);
+        then TempAlpha := TColor32Entry(Color).A;
 
        SetLength(TempPalette, 1);
-       TempPalette[0].R := RedComponent(Color);
-       TempPalette[0].G := GreenComponent(Color);
-       TempPalette[0].B := BlueComponent(Color);
-       IsGrayScale := (RedComponent(Color) = GreenComponent(Color)) and
-         (BlueComponent(Color) = GreenComponent(Color));
+       TempPalette[0].R := TColor32Entry(Color).R;
+       TempPalette[0].G := TColor32Entry(Color).G;
+       TempPalette[0].B := TColor32Entry(Color).B;
+       IsGrayScale := (TColor32Entry(Color).R = TColor32Entry(Color).G) and
+         (TColor32Entry(Color).B = TColor32Entry(Color).G);
       end
      else
       begin
        // check alpha channel
-       if (AlphaComponent(Color) < 255) then
+       if (TColor32Entry(Color).A < 255) then
         begin
          if IsAlpha then
-          if IsPalette and (TempAlpha <> AlphaComponent(Color))
+          if IsPalette and (TempAlpha <> TColor32Entry(Color).A)
            then IsPalette := False else
-          else TempAlpha := AlphaComponent(Color);
+          else TempAlpha := TColor32Entry(Color).A;
 
          IsAlpha := True;
         end;
@@ -524,17 +524,17 @@ begin
           if (Length(TempPalette) < 256) then
            begin
             SetLength(TempPalette, Length(TempPalette) + 1);
-            TempPalette[Length(TempPalette) - 1].R := RedComponent(Color);
-            TempPalette[Length(TempPalette) - 1].G := GreenComponent(Color);
-            TempPalette[Length(TempPalette) - 1].B := BlueComponent(Color);
-            if IsGrayScale and not ((RedComponent(Color) = GreenComponent(Color)) and
-              (BlueComponent(Color) = GreenComponent(Color)))
+            TempPalette[Length(TempPalette) - 1].R := TColor32Entry(Color).R;
+            TempPalette[Length(TempPalette) - 1].G := TColor32Entry(Color).G;
+            TempPalette[Length(TempPalette) - 1].B := TColor32Entry(Color).B;
+            if IsGrayScale and not ((TColor32Entry(Color).R = TColor32Entry(Color).G) and
+              (TColor32Entry(Color).B = TColor32Entry(Color).G))
              then IsGrayScale := False;
            end
           else IsPalette := False
          else
-          if not ((RedComponent(Color) = GreenComponent(Color)) and
-            (BlueComponent(Color) = GreenComponent(Color)))
+          if not ((TColor32Entry(Color).R = TColor32Entry(Color).G) and
+            (TColor32Entry(Color).B = TColor32Entry(Color).G))
            then IsGrayScale := False;
         end;
       end;
@@ -1555,9 +1555,9 @@ begin
  for Result := 0 to FPalette.Count - 1 do
   begin
    Color24 := FPalette.PaletteEntry[Result];
-   if (RedComponent(Color) = Color24.R) and
-      (GreenComponent(Color) = Color24.G) and
-      (BlueComponent(Color) = Color24.B)
+   if (TColor32Entry(Color).R = Color24.R) and
+      (TColor32Entry(Color).G = Color24.G) and
+      (TColor32Entry(Color).B = Color24.B)
     then Exit;
   end;
  Result := -1;
