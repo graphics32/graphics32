@@ -40,13 +40,10 @@ uses
   Classes, Graphics, SysUtils, zlib, GR32, GR32_PortableNetworkGraphic;
 
 type
-  TProgressEvent = procedure(Sender: TObject; Percent: Single);
+  TProgressEvent = procedure(Sender: TObject; Percent: Single) of object;
 
   TPortableNetworkGraphic32 = class(TPortableNetworkGraphic)
   private
-    FGammaTable        : array [Byte] of Byte;
-    FInverseGammaTable : array [Byte] of Byte;
-    FPaletteTable      : array [Byte] of TRGB24;
     FProgressEvent     : TProgressEvent;
 
     function ColorInPalette(Color: TColor32): Integer;
@@ -589,7 +586,6 @@ begin
    if ImageHeader.HasPalette then
     begin
      Assert(Length(TempPalette) <= 256);
-     Move(TempPalette[0], FPaletteTable[0], Length(TempPalette) * SizeOf(TRGB24));
 
      if not Assigned(FPaletteChunk)
       then FPaletteChunk := TChunkPngPalette.Create(ImageHeader);
@@ -597,12 +593,6 @@ begin
      FPaletteChunk.Count := Length(TempPalette);
      for Index := 0 to Length(TempPalette) - 1
       do FPaletteChunk.PaletteEntry[Index] := TempPalette[Index];
-    end;
-
-   for Index := 0 to 255 do
-    begin
-     FGammaTable[Index] := Index;
-     FInverseGammaTable[Index] := Index;
     end;
 
    {$IFDEF StoreGamma}
