@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, Graphics, GR32, GR32_Backends, GR32_Containers,
-  GR32_Image;
+  GR32_Image, GR32_Backends_Generic;
 
 type
   { TGDIBackend }
@@ -149,10 +149,25 @@ type
     destructor Destroy; override;
   end;
 
-implementation
+  { TMemoryGDIBackend }
+  { A backend that keeps the backing buffer entirely in memory and offers
+    IPaintSupport without allocating a GDI handle }
 
-uses
-  GR32_Backends_Generic;
+  TMemoryGDIBackend = class(TMemoryBackend, IPaintSupport)
+  private
+    procedure DoPaintRect(ABuffer: TBitmap32; ARect: TRect; ACanvas: TCanvas);
+  protected
+    FBitmapInfo: TBitmapInfo;
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure InitializeSurface(NewWidth: Integer; NewHeight: Integer;
+      ClearBuffer: Boolean); override;
+  public
+    constructor Create; override;
+  end;
+
+implementation
 
 var
   StockFont: HFONT;
@@ -554,6 +569,7 @@ begin
       BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
 end;
 
+
 { TGDIMMFBackend }
 
 constructor TGDIMMFBackend.Create(Owner: TBitmap32; IsTemporary: Boolean = True; const MapFileName: string = '');
@@ -574,6 +590,96 @@ procedure TGDIMMFBackend.PrepareFileMapping(NewWidth, NewHeight: Integer);
 begin
   TMMFBackend.CreateFileMapping(FMapHandle, FMapFileHandle, FMapFileName, FMapIsTemporary, NewWidth, NewHeight);
 end;
+
+
+{ TMemoryGDIBackend }
+
+constructor TMemoryGDIBackend.Create;
+begin
+  inherited;
+  FillChar(FBitmapInfo, SizeOf(TBitmapInfo), 0);
+  with FBitmapInfo.bmiHeader do begin
+    biSize := SizeOf(TBitmapInfoHeader);
+    biPlanes := 1;
+    biBitCount := 32;
+    biCompression := BI_RGB;
+    biXPelsPerMeter := 96;
+    biYPelsPerMeter := 96;
+    biClrUsed := 0;
+  end;
+end;
+
+procedure TMemoryGDIBackend.InitializeSurface(NewWidth, NewHeight: Integer;
+  ClearBuffer: Boolean);
+begin
+  inherited;
+  with FBitmapInfo.bmiHeader do begin
+    biWidth := NewWidth;
+    biHeight := -NewHeight;
+  end;
+end;
+
+procedure TMemoryGDIBackend.ImageNeeded;
+begin
+
+end;
+
+procedure TMemoryGDIBackend.CheckPixmap;
+begin
+
+end;
+
+procedure TMemoryGDIBackend.DoPaintRect(ABuffer: TBitmap32;
+  ARect: TRect; ACanvas: TCanvas);
+var
+  Bitmap        : HBITMAP;
+  DeviceContext : HDC;
+  Buffer        : Pointer;
+  OldObject     : HGDIOBJ;
+begin
+  if SetDIBitsToDevice(ACanvas.Handle, ARect.Left, ARect.Top, ARect.Right -
+    ARect.Left, ARect.Bottom - ARect.Top, ARect.Left, ARect.Top, 0,
+    ARect.Bottom - ARect.Top, ABuffer.PixelPtr[0, 0], FBitmapInfo, DIB_RGB_COLORS) = 0 then
+  begin
+    // create compatible device context
+    DeviceContext := CreateCompatibleDC(ACanvas.Handle);
+    if DeviceContext <> 0 then
+    try
+      Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo,
+        DIB_RGB_COLORS, Buffer, 0, 0);
+
+      if Bitmap <> 0 then begin
+        OldObject := SelectObject(DeviceContext, Bitmap);
+        try
+          Move(ABuffer.PixelPtr[0, 0]^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
+            FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
+          BitBlt(ACanvas.Handle, ARect.Left, ARect.Top, ARect.Right -
+            ARect.Left, ARect.Bottom - ARect.Top, DeviceContext, 0, 0, SRCCOPY);
+        finally
+          if OldObject <> 0 then
+            SelectObject(DeviceContext, OldObject);
+          DeleteObject(Bitmap);
+        end;
+      end else
+        raise Exception.Create('Can''t create compatible DC''');
+    finally
+      DeleteDC(DeviceContext);
+    end;
+  end;
+end;
+
+procedure TMemoryGDIBackend.DoPaint(ABuffer: TBitmap32;
+  AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  i : Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      DoPaintRect(ABuffer, AInvalidRects[i]^, ACanvas)
+  else
+    DoPaintRect(ABuffer, APaintBox.GetViewportRect, ACanvas);
+end;
+
 
 initialization
   StockFont := GetStockObject(SYSTEM_FONT);
