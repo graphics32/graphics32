@@ -641,20 +641,20 @@ var
 begin
   if SetDIBitsToDevice(ACanvas.Handle, ARect.Left, ARect.Top, ARect.Right -
     ARect.Left, ARect.Bottom - ARect.Top, ARect.Left, ARect.Top, 0,
-    ARect.Bottom - ARect.Top, ABuffer.PixelPtr[0, 0], FBitmapInfo, DIB_RGB_COLORS) = 0 then
+    ARect.Bottom - ARect.Top, ABuffer.Bits, FBitmapInfo, DIB_RGB_COLORS) = 0 then
   begin
     // create compatible device context
     DeviceContext := CreateCompatibleDC(ACanvas.Handle);
     if DeviceContext <> 0 then
     try
-      Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo,
-        DIB_RGB_COLORS, Buffer, 0, 0);
+      Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo, DIB_RGB_COLORS,
+        Buffer, 0, 0);
 
       if Bitmap <> 0 then 
       begin
         OldObject := SelectObject(DeviceContext, Bitmap);
         try
-          Move(ABuffer.PixelPtr[0, 0]^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
+          Move(ABuffer.Bits^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
             FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
           BitBlt(ACanvas.Handle, ARect.Left, ARect.Top, ARect.Right -
             ARect.Left, ARect.Bottom - ARect.Top, DeviceContext, 0, 0, SRCCOPY);
