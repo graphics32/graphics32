@@ -598,7 +598,8 @@ constructor TMemoryGDIBackend.Create;
 begin
   inherited;
   FillChar(FBitmapInfo, SizeOf(TBitmapInfo), 0);
-  with FBitmapInfo.bmiHeader do begin
+  with FBitmapInfo.bmiHeader do 
+  begin
     biSize := SizeOf(TBitmapInfoHeader);
     biPlanes := 1;
     biBitCount := 32;
@@ -613,7 +614,8 @@ procedure TMemoryGDIBackend.InitializeSurface(NewWidth, NewHeight: Integer;
   ClearBuffer: Boolean);
 begin
   inherited;
-  with FBitmapInfo.bmiHeader do begin
+  with FBitmapInfo.bmiHeader do 
+  begin
     biWidth := NewWidth;
     biHeight := -NewHeight;
   end;
@@ -648,7 +650,8 @@ begin
       Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo,
         DIB_RGB_COLORS, Buffer, 0, 0);
 
-      if Bitmap <> 0 then begin
+      if Bitmap <> 0 then 
+      begin
         OldObject := SelectObject(DeviceContext, Bitmap);
         try
           Move(ABuffer.PixelPtr[0, 0]^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
