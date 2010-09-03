@@ -1364,8 +1364,8 @@ begin
         begin
           Result.Left := Ceil(Left);
           Result.Top := Ceil(Top);
-          Result.Right := Ceil(Right);
-          Result.Bottom := Ceil(Bottom);
+          Result.Right := Floor(Right);
+          Result.Bottom := Floor(Bottom);
           if Result.Right < Result.Left then Result.Right := Result.Left;
           if Result.Bottom < Result.Top then Result.Bottom := Result.Top;
         end;
