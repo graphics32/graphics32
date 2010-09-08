@@ -1,0 +1,59 @@
+package GR32_RSXE1;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'Graphics32'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl;
+
+contains
+  GR32 in '..\GR32.pas',
+  GR32_Math in '..\GR32_Math.pas',
+  GR32_Backends in '..\GR32_Backends.pas',
+  GR32_Backends_Generic in '..\GR32_Backends_Generic.pas',
+  GR32_Backends_VCL in '..\GR32_Backends_VCL.pas',
+  GR32_LowLevel in '..\GR32_LowLevel.pas',
+  GR32_System in '..\GR32_System.pas',
+  GR32_Containers in '..\GR32_Containers.pas',
+  GR32_Blend in '..\GR32_Blend.pas',
+  GR32_Transforms in '..\GR32_Transforms.pas',
+  GR32_OrdinalMaps in '..\GR32_OrdinalMaps.pas',
+  GR32_VectorMaps in '..\GR32_VectorMaps.pas',
+  GR32_DrawingEx in '..\GR32_DrawingEx.pas',
+  GR32_Filters in '..\GR32_Filters.pas',
+  GR32_Layers in '..\GR32_Layers.pas',
+  GR32_Image in '..\GR32_Image.pas',
+  GR32_ExtImage in '..\GR32_ExtImage.pas',
+  GR32_RangeBars in '..\GR32_RangeBars.pas',
+  GR32_Polygons in '..\GR32_Polygons.pas',
+  GR32_RepaintOpt in '..\GR32_RepaintOpt.pas',
+  GR32_MicroTiles in '..\GR32_MicroTiles.pas',
+  GR32_Rasterizers in '..\GR32_Rasterizers.pas',
+  GR32_Resamplers in '..\GR32_Resamplers.pas',
+  GR32_Bindings in '..\GR32_Bindings.pas',
+  GR32_XPThemes in '..\GR32_XPThemes.pas';
+
+end.
