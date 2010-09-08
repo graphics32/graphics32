@@ -1706,7 +1706,7 @@ begin
       end;
       if (dx <> 0) or (dy <> 0) then
       begin
-        f := 1 / Hypot(dx, dy);
+        f := 1 / GR32_Math.Hypot(dx, dy);
         dx := dx * f;
         dy := dy * f;
       end;

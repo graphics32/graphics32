@@ -1029,9 +1029,9 @@ begin
   xf := DstX - Frx;
   yf := DstY - Fry;
 
-  r := Hypot(xf, yf);
+  r := GR32_Math.Hypot(xf, yf);
   t := ArcTan2(yf, xf) + r * FTwirl;
-  SinCos(t, yf, xf);
+  GR32_Math.SinCos(t, yf, xf);
 
   SrcX := Frx + r * xf;
   SrcY := Fry + r * yf;
@@ -1063,8 +1063,8 @@ procedure TBloatTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
 var
   SinY, CosY, SinX, CosX, t: Single;
 begin
-  SinCos(FPiH * DstY, SinY, CosY);
-  SinCos(FPiW * DstX, SinX, CosX);
+  GR32_Math.SinCos(FPiH * DstY, SinY, CosY);
+  GR32_Math.SinCos(FPiW * DstX, SinX, CosX);
   t := FBP * SinY * SinX;
   SrcX := DstX + t * CosX;
   SrcY := DstY + t * CosY;
@@ -1111,7 +1111,7 @@ var
 begin
   Yry := (DstY - Fry) * sy;
   Xrx := (DstX - Frx) * sx;
-  d := Hypot(Xrx, Yry);
+  d := GR32_Math.Hypot(Xrx, Yry);
   if (d < FMinR) and (d > 0) then
   begin
     d := ArcSin(d * Fsr) * Faw / d;
@@ -1168,7 +1168,7 @@ var
 begin
   Theta := (SrcX - SrcRect.Left) * Rt2 + Phase;
   R := (SrcY - SrcRect.Bottom) * Rr;
-  SinCos(Theta, S, C);
+  GR32_Math.SinCos(Theta, S, C);
 
   DstX := Dx * R * C + Cx;
   DstY := Dy * R * S + Cy;
@@ -1188,7 +1188,7 @@ begin
   if Theta < 0 then Theta := Theta + PI2;
 
   SrcX := SrcRect.Left + Theta * Rt;
-  SrcY := SrcRect.Bottom - Hypot(Dcx, Dcy) * Sy;
+  SrcY := SrcRect.Bottom - GR32_Math.Hypot(Dcx, Dcy) * Sy;
 end;
 
 
