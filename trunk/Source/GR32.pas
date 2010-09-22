@@ -2204,7 +2204,7 @@ begin
       Picture := TPicture.Create;
       try
         Picture.Assign(TClipboard(Source));
-        AssignFromGraphic(Self, TPicture(Source).Graphic);
+        AssignFromGraphic(Self, Picture.Graphic);
       finally
         Picture.Free;
       end;
