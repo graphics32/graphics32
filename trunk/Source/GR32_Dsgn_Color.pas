@@ -73,7 +73,7 @@ type
   { TColor32Property }
   TColor32Property = class(TIntegerProperty
 {$IFDEF EXT_PROP_EDIT}
-    ICustomPropertyListDrawing, ICustomPropertyDrawing
+    , ICustomPropertyListDrawing, ICustomPropertyDrawing
     {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
 {$ENDIF}
   )
@@ -208,29 +208,29 @@ end;
 procedure TColorManager.RegisterDefaultColors;
 begin
   Capacity := 50;
-  AddColor('clBlack32',              clBlack32);
-  AddColor('clDimGray32',            clDimGray32);
-  AddColor('clGray32',               clGray32);
-  AddColor('clLightGray32',          clLightGray32);
-  AddColor('clWhite32',              clWhite32);
-  AddColor('clMaroon32',             clMaroon32);
-  AddColor('clGreen32',              clGreen32);
-  AddColor('clOlive32',              clOlive32);
-  AddColor('clNavy32',               clNavy32);
-  AddColor('clPurple32',             clPurple32);
-  AddColor('clTeal32',               clTeal32);
-  AddColor('clRed32',                clRed32);
-  AddColor('clLime32',               clLime32);
-  AddColor('clYellow32',             clYellow32);
-  AddColor('clBlue32',               clBlue32);
-  AddColor('clFuchsia32',            clFuchsia32);
-  AddColor('clAqua32',               clAqua32);
+  AddColor('clBlack32',     clBlack32);
+  AddColor('clDimGray32',   clDimGray32);
+  AddColor('clGray32',      clGray32);
+  AddColor('clLightGray32', clLightGray32);
+  AddColor('clWhite32',     clWhite32);
+  AddColor('clMaroon32',    clMaroon32);
+  AddColor('clGreen32',     clGreen32);
+  AddColor('clOlive32',     clOlive32);
+  AddColor('clNavy32',      clNavy32);
+  AddColor('clPurple32',    clPurple32);
+  AddColor('clTeal32',      clTeal32);
+  AddColor('clRed32',       clRed32);
+  AddColor('clLime32',      clLime32);
+  AddColor('clYellow32',    clYellow32);
+  AddColor('clBlue32',      clBlue32);
+  AddColor('clFuchsia32',   clFuchsia32);
+  AddColor('clAqua32',      clAqua32);
 
-  AddColor('clTrWhite32',            clTrWhite32);
-  AddColor('clTrBlack32',            clTrBlack32);
-  AddColor('clTrRed32',              clTrRed32);
-  AddColor('clTrGreen32',            clTrGreen32);
-  AddColor('clTrBlue32',             clTrBlue32);
+  AddColor('clTrWhite32',   clTrWhite32);
+  AddColor('clTrBlack32',   clTrBlack32);
+  AddColor('clTrRed32',     clTrRed32);
+  AddColor('clTrGreen32',   clTrGreen32);
+  AddColor('clTrBlue32',    clTrBlue32);
 end;
 
 procedure TColorManager.RemoveColor(const AName: string);
