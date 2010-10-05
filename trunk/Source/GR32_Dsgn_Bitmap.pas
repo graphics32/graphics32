@@ -326,6 +326,7 @@ end;
 destructor TBitmap32Editor.Destroy;
 begin
   FBitmap32.Free;
+  FPicDlg.Free;
   inherited;
 end;
 
