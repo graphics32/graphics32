@@ -4848,9 +4848,9 @@ procedure TCustomBitmap32.SetCombineMode(const Value: TCombineMode);
 begin
   if FCombineMode <> Value then
   begin
-  	FCombineMode := Value;
+    FCombineMode := Value;
     BlendProc := @BLEND_MEM[FCombineMode]^;
-  	Changed;
+    Changed;
   end;
 end;
 
