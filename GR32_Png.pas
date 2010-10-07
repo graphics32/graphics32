@@ -806,9 +806,9 @@ end;
 procedure TPngNonInterlacedGrayscale4bitDecoder.TransferData(Source: Pointer;
   Destination: PColor32);
 var
-  Index      : Integer;
-  Src        : PByte absolute Source;
-  BitIndex   : Byte;
+  Index    : Integer;
+  Src      : PByte absolute Source;
+  BitIndex : Byte;
 begin
  BitIndex := 8;
 
