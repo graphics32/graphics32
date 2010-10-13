@@ -52,6 +52,7 @@ type
     procedure InternalTestInvalidFile(FileName: TFileName);
   published
     procedure TestScanning;
+    procedure TestBasicAssign;
     procedure TestBasicWriting;
     procedure TestPerformanceTest;
     procedure TestInvalidFiles;
@@ -432,19 +433,59 @@ begin
  FPortableNetworkGraphic.LoadFromFile(FileName);
 end;
 
+procedure TTestPngGR32File.TestBasicAssign;
+var
+  TempStream : array [0..1] of TMemoryStream;
+  TempPng    : TPortableNetworkGraphic32;
+begin
+ try
+  TempStream[0] := TMemoryStream.Create;
+  TempStream[1] := TMemoryStream.Create;
+  with FPortableNetworkGraphic do
+   begin
+    FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+    FPortableNetworkGraphic.SaveToStream(TempStream[0]);
+    TempPng := TPortableNetworkGraphic32.Create;
+    TempPng.Assign(FPortableNetworkGraphic);
+    TempStream[0].Seek(0, soFromBeginning);
+    TempPng.SaveToStream(TempStream[1]);
+    CheckEquals(TempStream[0].Size, TempStream[1].Size);
+    CompareMem(TempStream[0].Memory, TempStream[1].Memory, TempStream[0].Size);
+   end;
+ finally
+  if Assigned(TempStream[0]) then FreeAndNil(TempStream[0]);
+  if Assigned(TempStream[1]) then FreeAndNil(TempStream[1]);
+  if Assigned(TempPng) then FreeAndNil(TempPng);
+ end;
+end;
+
 procedure TTestPngGR32File.TestBasicWriting;
 var
-  TempStream : TMemoryStream;
+  OriginalStream : TMemoryStream;
+  TempStream     : TMemoryStream;
 begin
  TempStream := TMemoryStream.Create;
  with TempStream do
   try
+   OriginalStream := TMemoryStream.Create;
    with FPortableNetworkGraphic do
-    begin
-     FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+    try
+     OriginalStream.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+     OriginalStream.Seek(0, soFromBeginning);
+     FPortableNetworkGraphic.LoadFromStream(OriginalStream);
      FPortableNetworkGraphic.SaveToStream(TempStream);
      TempStream.Seek(0, soFromBeginning);
      FPortableNetworkGraphic.LoadFromStream(TempStream);
+
+     if TempStream.Size < (OriginalStream.Size div 10) then
+       Fail('Size of written stream is likely to be too small! (' +
+         IntToStr(TempStream.Size) + ')');
+
+(*
+     CheckEquals(OriginalStream.Size, TempStream.Size);
+     CompareMem(OriginalStream.Memory, TempStream.Memory, TempStream.Size);
+*)    finally
+     FreeAndNil(OriginalStream);
     end;
   finally
    Free;

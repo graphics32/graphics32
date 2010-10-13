@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, Graphics, SysUtils, zlib, GR32, GR32_PortableNetworkGraphic;
+  Classes, Graphics, SysUtils, GR32, GR32_PortableNetworkGraphic;
 
 type
   TProgressEvent = procedure(Sender: TObject; Percent: Single) of object;

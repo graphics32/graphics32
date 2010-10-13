@@ -37,7 +37,7 @@ interface
 {$I GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes, Graphics, SysUtils, {$IFDEF ZLibEx} ZLibEx; {$ELSE} zlib; {$ENDIF}
+  Classes, Graphics, SysUtils, zlib;
 
 type
   {$A1}
@@ -1118,6 +1118,107 @@ begin
 end;
 
 
+{ zlib functions }
+
+procedure ZCompress(Data: Pointer; Size: Integer; const Output: TStream); overload;
+const
+  CBufferSize = $8000;
+var
+  ZStreamRecord : TZStreamRec;
+  ZResult       : Integer;
+  TempBuffer    : Pointer;
+begin
+ FillChar(ZStreamRecord, SizeOf(TZStreamRec), 0);
+
+ ZStreamRecord.next_in := Data;
+ ZStreamRecord.avail_in := Size;
+
+ if DeflateInit_(ZStreamRecord, Z_BEST_COMPRESSION ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+  then raise Exception.Create('Error during compression');
+
+ GetMem(TempBuffer, CBufferSize);
+ try
+  while ZStreamRecord.avail_in > 0 do
+   begin
+    ZStreamRecord.next_out := TempBuffer;
+    ZStreamRecord.avail_out := CBufferSize;
+
+    ZResult := deflate(ZStreamRecord, Z_NO_FLUSH);
+
+    Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
+   end;
+
+  repeat
+   ZStreamRecord.next_out := TempBuffer;
+   ZStreamRecord.avail_out := CBufferSize;
+
+   ZResult := deflate(ZStreamRecord, Z_FINISH);
+
+   Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
+  until (ZResult = Z_STREAM_END) and (ZStreamRecord.avail_out > 0);
+ finally
+  Dispose(TempBuffer);
+ end;
+
+ if deflateEnd(ZStreamRecord) > 0
+  then raise Exception.Create('Error on stream validation');
+end;
+
+procedure ZCompress(const Input: TMemoryStream; const Output: TStream); overload;
+begin
+ ZCompress(Input.Memory, Input.Size, Output);
+end;
+
+procedure ZDecompress(Data: Pointer; Size: Integer; const Output: TStream); overload;
+const
+  CBufferSize = $8000;
+var
+  ZStreamRecord : TZStreamRec;
+  ZResult       : Integer;
+  TempBuffer    : Pointer;
+begin
+ FillChar(ZStreamRecord, SizeOf(TZStreamRec), 0);
+
+ ZStreamRecord.next_in := Data;
+ ZStreamRecord.avail_in := Size;
+
+ if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+  then raise Exception.Create('Error during decompression');
+
+ GetMem(TempBuffer, CBufferSize);
+ try
+  while ZStreamRecord.avail_in > 0 do
+   begin
+    ZStreamRecord.next_out := TempBuffer;
+    ZStreamRecord.avail_out := CBufferSize;
+
+    ZResult := inflate(ZStreamRecord, Z_NO_FLUSH);
+
+    Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
+   end;
+
+  repeat
+   ZStreamRecord.next_out := TempBuffer;
+   ZStreamRecord.avail_out := CBufferSize;
+
+   ZResult := inflate(ZStreamRecord, Z_FINISH);
+
+   Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
+  until (ZResult = Z_STREAM_END) and (ZStreamRecord.avail_out > 0);
+ finally
+  Dispose(TempBuffer);
+ end;
+
+ if inflateEnd(ZStreamRecord) > 0
+  then raise Exception.Create('Error on stream validation');
+end;
+
+procedure ZDecompress(const Input: TMemoryStream; const Output: TStream); overload;
+begin
+ ZDecompress(Input.Memory, Input.Size, Output);
+end;
+
+
 { TCustomChunk }
 
 constructor TCustomChunk.Create;
@@ -2153,10 +2254,9 @@ end;
 procedure TChunkPngCompressedTextChunk.LoadFromStream(Stream: TStream);
 var
   DataIn      : Pointer;
-  DataOut     : Pointer;
-  Index       : Integer;
   DataInSize  : Integer;
-  DataOutSize : Integer;
+  Output      : TMemoryStream;
+  Index       : Integer;
 begin
  inherited;
 
@@ -2186,12 +2286,14 @@ begin
      GetMem(DataIn, DataInSize);
      try
       Read(DataIn^, DataInSize);
-      ZDecompress(DataIn, DataInSize, DataOut, DataOutSize);
+
+      Output := TMemoryStream.Create;
       try
-       SetLength(FText, DataOutSize);
-       Move(DataOut^, FText[1], DataOutSize);
+       ZDecompress(DataIn, DataInSize, Output);
+       SetLength(FText, Output.Size);
+       Move(Output.Memory^, FText[1], Output.Size);
       finally
-       Dispose(DataOut);
+       FreeAndNil(Output);
       end;
      finally
       Dispose(DataIn);
@@ -2202,16 +2304,16 @@ end;
 
 procedure TChunkPngCompressedTextChunk.SaveToStream(Stream: TStream);
 var
-  DataOut  : Pointer;
-  DataSize : Integer;
-  Temp     : Byte;
+  OutputStream : TMemoryStream;
+  Temp         : Byte;
 begin
- // compress text
- ZCompress(@FText[1], Length(FText), DataOut, DataSize);
-
+ OutputStream := TMemoryStream.Create;
  try
+  // compress text
+  ZCompress(@FText[1], Length(FText), OutputStream);
+
   // calculate chunk size
-  FChunkSize := Length(FKeyword) + DataSize + 1;
+  FChunkSize := Length(FKeyword) + OutputStream.Size + 1;
 
   inherited;
 
@@ -2231,10 +2333,10 @@ begin
     Write(FCompressionMethod, SizeOf(Byte));
 
     // write text
-    Write(DataOut^, DataSize);
+    Write(OutputStream.Memory^, OutputStream.Size);
    end;
  finally
-  Dispose(DataOut);
+  FreeAndNil(OutputStream);
  end;
 end;
 
@@ -3817,7 +3919,6 @@ end;
 procedure TPortableNetworkGraphic.DecompressImageDataToStream(Stream: TStream);
 var
   DataStream  : TMemoryStream;
-  ZStream     : TZDecompressionStream;
 begin
  DataStream := TMemoryStream.Create;
  try
@@ -3831,14 +3932,8 @@ begin
   // reset data stream position to zero
   DataStream.Seek(0, soFromBeginning);
 
-  // create z decompression stream on data stream
-  ZStream := TZDecompressionStream.Create(DataStream);
-  try
-   // decode z-stream data to decoded data stream
-   Stream.CopyFrom(ZStream, ZStream.Size);
-  finally
-   FreeAndNil(ZStream);
-  end;
+  // decompress z-stream
+  ZDecompress(DataStream, Stream);
  finally
   FreeAndNil(DataStream);
  end;
@@ -3847,21 +3942,16 @@ end;
 procedure TPortableNetworkGraphic.CompressImageDataFromStream(Stream: TStream);
 var
   DataStream  : TMemoryStream;
-  ZStream     : TZCompressionStream;
 begin
  DataStream := TMemoryStream.Create;
  try
   // set compression method
   FImageHeader.CompressionMethod := 0;
 
-  // create z compression stream on stream
-  ZStream := TZCompressionStream.Create(DataStream);
-  try
-   // encode z-stream data to encoded data stream
-   ZStream.CopyFrom(Stream, Stream.Size);
-  finally
-   FreeAndNil(ZStream);
-  end;
+  // compress Stream to DataStream
+  if Stream is TMemoryStream
+   then ZCompress(TMemoryStream(Stream), DataStream)
+   else raise Exception.Create('not supported yet');
 
   // reset data stream position to zero
   DataStream.Seek(0, soFromBeginning);
