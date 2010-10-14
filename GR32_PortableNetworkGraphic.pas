@@ -1148,9 +1148,11 @@ begin
   begin
    next_in := Data;
    avail_in := Size;
+   {$IFNDEF ZLibEx}
    zalloc := zlibAllocMem;
    zfree := zlibFreeMem;
-  end; 
+   {$ENDIF}
+  end;
 
  if DeflateInit_(ZStreamRecord, Level ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise Exception.Create('Error during compression');
@@ -1203,9 +1205,11 @@ begin
   begin
    next_in := Data;
    avail_in := Size;
+   {$IFNDEF ZLibEx}
    zalloc := zlibAllocMem;
    zfree := zlibFreeMem;
-  end; 
+   {$ENDIF}
+  end;
 
  if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise Exception.Create('Error during decompression');
