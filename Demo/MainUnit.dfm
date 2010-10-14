@@ -1,9 +1,9 @@
 object FmPngDemo: TFmPngDemo
   Left = 299
   Top = 55
+  Width = 483
+  Height = 306
   Caption = 'PNG Demonstration'
-  ClientHeight = 279
-  ClientWidth = 475
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

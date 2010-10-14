@@ -10,7 +10,6 @@ uses
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFmPngDemo, FmPngDemo);
   Application.Run;
 end.

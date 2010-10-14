@@ -1144,8 +1144,13 @@ var
 begin
  FillChar(ZStreamRecord, SizeOf(TZStreamRec), 0);
 
- ZStreamRecord.next_in := Data;
- ZStreamRecord.avail_in := Size;
+ with ZStreamRecord do
+  begin
+   next_in := Data;
+   avail_in := Size;
+   zalloc := zlibAllocMem;
+   zfree := zlibFreeMem;
+  end; 
 
  if DeflateInit_(ZStreamRecord, Level ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise Exception.Create('Error during compression');
@@ -1194,8 +1199,13 @@ var
 begin
  FillChar(ZStreamRecord, SizeOf(TZStreamRec), 0);
 
- ZStreamRecord.next_in := Data;
- ZStreamRecord.avail_in := Size;
+ with ZStreamRecord do
+  begin
+   next_in := Data;
+   avail_in := Size;
+   zalloc := zlibAllocMem;
+   zfree := zlibFreeMem;
+  end; 
 
  if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise Exception.Create('Error during decompression');

@@ -25,13 +25,14 @@ uses
 
 procedure TFmPngDemo.FormCreate(Sender: TObject);
 begin
- with TPortableNetworkGraphic32.Create do
-  try
-   LoadFromFile('PNG.png');
-   AssignTo(ImageDisplay.Bitmap);
-  finally
-   Free;
-  end;
+ if FileExists('PNG.png') then
+  with TPortableNetworkGraphic32.Create do
+   try
+    LoadFromFile('PNG.png');
+    AssignTo(ImageDisplay.Bitmap);
+   finally
+    Free;
+   end;
 
  ClientWidth := ImageDisplay.Bitmap.Width + 16;
  ClientHeight := ImageDisplay.Bitmap.Height + 16;
