@@ -37,7 +37,8 @@ interface
 {$I GR32_PngCompilerSwitches.inc}
 
 uses
-  Classes, Graphics, SysUtils, zlib;
+  Classes, Graphics, SysUtils,
+  {$IFDEF ZLibEx}ZLibEx, ZLibExApi {$ELSE}zlib {$ENDIF};
 
 type
   {$A1}
@@ -3581,20 +3582,72 @@ end;
 
 procedure TCustomPngCoder.FilterSub(CurrentRow, PreviousRow: PByteArray;
   BytesPerRow, PixelByteSize: Integer);
+{$IFDEF PUREPASCAL}
 var
   Index : Integer;
 begin
  for Index := PixelByteSize + 1 to BytesPerRow
   do CurrentRow[Index] := (CurrentRow[Index] + CurrentRow[Index - PixelByteSize]) and $FF;
+{$ELSE}
+asm
+ ADD     EDX, 1
+ MOV     EAX, EDX
+ MOV     ECX, BytesPerRow
+ ADD     EAX, PixelByteSize
+ SUB     ECX, PixelByteSize
+ LEA     EAX, EAX + ECX
+ LEA     EDX, EDX + ECX
+ NEG     ECX
+ JNL     @Done
+
+ PUSH    EBX
+
+@Start:
+ MOV     BL, [EAX + ECX].Byte
+ ADD     BL, [EDX + ECX].Byte
+ MOV     [EAX + ECX].Byte, BL
+
+ ADD     ECX, 1
+ JS      @Start
+
+ POP     EBX
+
+@Done:
+{$ENDIF}
 end;
 
 procedure TCustomPngCoder.FilterUp(CurrentRow, PreviousRow: PByteArray;
   BytesPerRow, PixelByteSize: Integer);
+{$IFDEF PUREPASCAL}
 var
   Index : Integer;
 begin
  for Index := 1 to BytesPerRow
   do CurrentRow[Index] := (CurrentRow[Index] + PreviousRow[Index]) and $FF;
+{$ELSE}
+asm
+ MOV     EAX, EDX
+ MOV     EDX, ECX
+ MOV     ECX, BytesPerRow
+ LEA     EAX, EAX + ECX + 1
+ LEA     EDX, EDX + ECX + 1
+ NEG     ECX
+ JNL     @Done
+
+ PUSH    EBX
+
+@Start:
+ MOV     BL, [EAX + ECX].Byte
+ ADD     BL, [EDX + ECX].Byte
+ MOV     [EAX + ECX].Byte, BL
+
+ ADD     ECX, 1
+ JS      @Start
+
+ POP     EBX
+
+@Done:
+{$ENDIF}
 end;
 
 procedure TCustomPngCoder.FilterAverage(CurrentRow, PreviousRow: PByteArray;

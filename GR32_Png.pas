@@ -44,11 +44,10 @@ type
 
   TPortableNetworkGraphic32 = class(TPortableNetworkGraphic)
   private
-    FProgressEvent     : TProgressEvent;
+    FProgressEvent : TProgressEvent;
 
     function ColorInPalette(Color: TColor32): Integer;
     procedure AssignPropertiesFromBitmap32(Bitmap32: TCustomBitmap32);
-    procedure SetProgressEvent(const Value: TProgressEvent);
   protected
     function GR32Scanline(Bitmap: TObject; Y: Integer): Pointer; virtual;
     function GR32ScanlineProgress(Bitmap: TObject; Y: Integer): Pointer; virtual;
@@ -58,7 +57,7 @@ type
 
     procedure DrawToBitmap32(Bitmap32: TCustomBitmap32); virtual;
 
-    property Progress: TProgressEvent read FProgressEvent write SetProgressEvent;
+    property Progress: TProgressEvent read FProgressEvent write FProgressEvent;
   end;
 
 implementation
@@ -675,12 +674,6 @@ begin
    DrawToBitmap32(TCustomBitmap32(Dest));
   end
  else inherited;
-end;
-
-procedure TPortableNetworkGraphic32.SetProgressEvent(
-  const Value: TProgressEvent);
-begin
-  FProgressEvent := Value;
 end;
 
 
