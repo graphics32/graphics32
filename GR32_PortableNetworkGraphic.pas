@@ -3714,7 +3714,8 @@ begin
   do CurrentRow[Index] := (CurrentRow[Index] + (CurrentRow[Index - PixelByteSize] + PreviousRow[Index]) shr 1) and $FF;
 end;
 
-function PaethPredictor(a, b, c: Byte): Byte;
+function PaethPredictor(a, b, c: Byte): Integer; pascal;
+{$IFDEF PUREPASCAL}
 var
   DistA, DistB, DistC: Integer;
 begin
@@ -3726,6 +3727,62 @@ begin
  if DistB <= DistC
   then Result := b
   else Result := c;
+{$ELSE}
+asm
+  MOVZX   EDX, c
+  PUSH    EBX
+  MOVZX   EAX, b
+  SUB     EAX, EDX
+  JAE     @PositiveDistA
+  NOT     EAX
+  INC     EAX
+
+@PositiveDistA:
+  MOVZX   EBX, a
+  SUB     EBX, EDX
+  JAE     @PositiveDistB
+  NOT     EBX
+  INC     EBX
+
+@PositiveDistB:
+  MOVZX   ECX, a
+  SUB     ECX, EDX
+  MOVZX   EDX, b
+  ADD     ECX, EDX
+  MOVZX   EDX, c
+  SUB     ECX, EDX
+  JAE     @PositiveDistC
+  NOT     ECX
+  INC     ECX
+
+@PositiveDistC:
+  MOV     EDX, EAX
+  SUB     EDX, EBX
+  JA      @NextCheck
+  MOV     EDX, EAX
+  SUB     EDX, ECX
+  JA      @NextCheck
+
+  MOVZX   EDX, a
+  MOV     Result, EDX
+  JMP     @Done
+
+@NextCheck:
+  MOV     EDX, EBX
+  SUB     EDX, ECX
+  JA      @ResultC
+
+  MOVZX   EDX, b
+  MOV     Result, EDX
+  JMP     @Done
+
+@ResultC:
+  MOVZX   EDX, c
+  MOV     Result, EDX
+
+@Done:
+  POP     EBX
+{$ENDIF}
 end;
 
 procedure TCustomPngCoder.FilterPaeth(CurrentRow, PreviousRow: PByteArray;
@@ -3733,9 +3790,7 @@ procedure TCustomPngCoder.FilterPaeth(CurrentRow, PreviousRow: PByteArray;
 var
   Index : Integer;
 begin
- for Index := 1 to PixelByteSize
-  do CurrentRow[Index] := (CurrentRow[Index] +
-       PaethPredictor(0, PreviousRow[Index], 0)) and $FF;
+ FilterUp(CurrentRow, PreviousRow, PixelByteSize, PixelByteSize);
 
  for Index := PixelByteSize + 1 to BytesPerRow
   do CurrentRow[Index] := (CurrentRow[Index] +
