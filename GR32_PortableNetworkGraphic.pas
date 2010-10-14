@@ -142,6 +142,8 @@ type
     function GetHasPalette: Boolean;
     function GetBytesPerRow: Integer;
     function GetPixelByteSize: Integer;
+    procedure SetCompressionMethod(const Value: Byte);
+    procedure SetFilterMethod(const Value: TFilterMethod);
   protected
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -156,8 +158,8 @@ type
     property Height: Integer read FHeight write FHeight;
     property BitDepth: Byte read FBitDepth write FBitDepth;
     property ColorType: TColorType read FColorType write FColorType;
-    property CompressionMethod: Byte read FCompressionMethod write FCompressionMethod;
-    property FilterMethod: TFilterMethod read FFilterMethod write FFilterMethod;
+    property CompressionMethod: Byte read FCompressionMethod write SetCompressionMethod;
+    property FilterMethod: TFilterMethod read FFilterMethod write SetFilterMethod;
     property InterlaceMethod: TInterlaceMethod read FInterlaceMethod write FInterlaceMethod;
     property HasPalette: Boolean read GetHasPalette;
 
@@ -778,6 +780,7 @@ type
 
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
   private
+    FCompressionLevel: Byte;
     function GetBitDepth: Byte;
     function GetColorType: TColorType;
     function GetCompressionMethod: Byte;
@@ -799,6 +802,7 @@ type
     procedure SetChromaChunk(const Value: TChunkPngPrimaryChromaticities);
     procedure SetColorType(const Value: TColorType);
     procedure SetCompressionMethod(const Value: Byte);
+    procedure SetCompressionLevel(const Value: Byte);
     procedure SetFilterMethod(const Value: TFilterMethod);
     procedure SetGamma(const Value: Single);
     procedure SetModifiedTime(const Value: TDateTime);
@@ -838,6 +842,8 @@ type
     procedure DecompressImageDataToStream(Stream: TStream);
     procedure CompressImageDataFromStream(Stream: TStream);
 
+    procedure CompressionLevelChanged; virtual;
+
     property ImageHeader: TChunkPngImageHeader read FImageHeader write SetImageHeader;
     property PaletteChunk: TChunkPngPalette read FPaletteChunk write SetPaletteChunk;
     property GammaChunk: TChunkPngGamma read FGammaChunk write SetGammaChunk;
@@ -870,6 +876,7 @@ type
     property BitDepth: Byte read GetBitDepth write SetBitDepth;
     property ColorType: TColorType read GetColorType write SetColorType;
     property CompressionMethod: Byte read GetCompressionMethod write SetCompressionMethod;
+    property CompressionLevel: Byte read FCompressionLevel write SetCompressionLevel;
     property FilterMethod: TFilterMethod read GetFilterMethod write SetFilterMethod;
     property InterlaceMethod: TInterlaceMethod read GetInterlaceMethod write SetInterlaceMethod;
     property PaletteEntry[index: Integer]: TRGB24 read GetPaletteEntry;
@@ -931,6 +938,11 @@ resourcestring
   RCStrWrongTransparencyFormat = 'Wrong transparency format';
   {$IFDEF CheckCRC}
   RCStrCRCError = 'CRC Error';
+  RCStrBitDepthTranscodingError = 'Bit depth may not be specified directly y' +
+  'et!';
+  RCStrColorTypeTranscodingError = 'Color Type may not be specified directly' +
+  ' yet!';
+  RCStrInvalidCompressionLevel = 'Invalid compression level';
   {$ENDIF}
 
 type
@@ -1121,7 +1133,8 @@ end;
 
 { zlib functions }
 
-procedure ZCompress(Data: Pointer; Size: Integer; const Output: TStream); overload;
+procedure ZCompress(Data: Pointer; Size: Integer; const Output: TStream;
+  Level: Byte = Z_BEST_COMPRESSION); overload;
 const
   CBufferSize = $8000;
 var
@@ -1134,7 +1147,7 @@ begin
  ZStreamRecord.next_in := Data;
  ZStreamRecord.avail_in := Size;
 
- if DeflateInit_(ZStreamRecord, Z_BEST_COMPRESSION ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+ if DeflateInit_(ZStreamRecord, Level ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise Exception.Create('Error during compression');
 
  GetMem(TempBuffer, CBufferSize);
@@ -1165,9 +1178,10 @@ begin
   then raise Exception.Create('Error on stream validation');
 end;
 
-procedure ZCompress(const Input: TMemoryStream; const Output: TStream); overload;
+procedure ZCompress(const Input: TMemoryStream; const Output: TStream;
+  Level: Byte = Z_BEST_COMPRESSION); overload;
 begin
- ZCompress(Input.Memory, Input.Size, Output);
+ ZCompress(Input.Memory, Input.Size, Output, Level);
 end;
 
 procedure ZDecompress(Data: Pointer; Size: Integer; const Output: TStream); overload;
@@ -1596,6 +1610,30 @@ begin
 
    // write interlace method
    Write(FInterlaceMethod, 1);
+  end;
+end;
+
+procedure TChunkPngImageHeader.SetCompressionMethod(const Value: Byte);
+begin
+ if FCompressionMethod <> Value then
+  begin
+   FCompressionMethod := Value;
+
+   // check for compression method
+   if FCompressionMethod <> 0
+    then raise EPngError.Create(RCStrUnsupportedCompressMethod);
+  end;
+end;
+
+procedure TChunkPngImageHeader.SetFilterMethod(const Value: TFilterMethod);
+begin
+ if FFilterMethod <> Value then
+  begin
+   FFilterMethod := Value;
+
+   // check for filter method
+   if FFilterMethod <> fmAdaptiveFilter
+    then raise EPngError.Create(RCStrUnsupportedFilterMethod);
   end;
 end;
 
@@ -3712,6 +3750,9 @@ begin
  FImageHeader         := TChunkPngImageHeader.Create;
  FDataChunkList       := TChunkList.Create;
  FAdditionalChunkList := TChunkList.Create;
+
+ FCompressionLevel    := Z_BEST_COMPRESSION;
+
  inherited;
 end;
 
@@ -3881,12 +3922,24 @@ end;
 
 procedure TPortableNetworkGraphic.SetBitDepth(const Value: Byte);
 begin
- raise EPngError.Create('Bit depth may not be specified directly yet!');
+ raise EPngError.Create(RCStrBitDepthTranscodingError);
 end;
 
 procedure TPortableNetworkGraphic.SetColorType(const Value: TColorType);
 begin
- raise EPngError.Create('Color Type may not be specified directly yet!');
+ raise EPngError.Create(RCStrColorTypeTranscodingError);
+end;
+
+procedure TPortableNetworkGraphic.SetCompressionLevel(const Value: Byte);
+begin
+ if not (Value in [1..9])
+  then raise EPngError.Create(RCStrInvalidCompressionLevel);
+
+ if FCompressionLevel <> Value then
+  begin
+   FCompressionLevel := Value;
+   CompressionLevelChanged;
+  end;
 end;
 
 procedure TPortableNetworkGraphic.SetCompressionMethod(const Value: Byte);
@@ -4014,6 +4067,11 @@ begin
  finally
   FreeAndNil(DataStream);
  end;
+end;
+
+procedure TPortableNetworkGraphic.CompressionLevelChanged;
+begin
+ // nothing in here yet
 end;
 
 class function TPortableNetworkGraphic.CanLoad(const FileName: TFileName): Boolean;
