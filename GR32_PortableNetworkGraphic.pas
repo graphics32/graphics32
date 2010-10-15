@@ -62,6 +62,9 @@ type
     afmPaeth = 4
   );
 
+  TAvailableAdaptiveFilterMethod = (aafmSub, aafmUp, aafmAverage, aafmPaeth);
+  TAvailableAdaptiveFilterMethods = set of TAvailableAdaptiveFilterMethod;
+
   TInterlaceMethod = (
     imNone = 0,
     imAdam7 = 1
@@ -778,9 +781,20 @@ type
   end;
   TCustomPngEncoderClass = class of TCustomPngEncoder;
 
+  TCustomPngTranscoder = class(TCustomPngCoder)
+  protected
+    procedure Transcode; virtual; abstract;
+  public
+    constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+    destructor Destroy; override;
+  end;
+  TCustomPngTranscoderClass = class of TCustomPngTranscoder;
+
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
   private
-    FCompressionLevel: Byte;
+    FCompressionLevel      : Byte;
+    FAdaptiveFilterMethods : TAvailableAdaptiveFilterMethods;
     function GetBitDepth: Byte;
     function GetColorType: TColorType;
     function GetCompressionMethod: Byte;
@@ -803,6 +817,7 @@ type
     procedure SetColorType(const Value: TColorType);
     procedure SetCompressionMethod(const Value: Byte);
     procedure SetCompressionLevel(const Value: Byte);
+    procedure SetAdaptiveFilterMethods(const Value: TAvailableAdaptiveFilterMethods);
     procedure SetFilterMethod(const Value: TFilterMethod);
     procedure SetGamma(const Value: Single);
     procedure SetModifiedTime(const Value: TDateTime);
@@ -843,6 +858,8 @@ type
     procedure CompressImageDataFromStream(Stream: TStream);
 
     procedure CompressionLevelChanged; virtual;
+    procedure AdaptiveFilterMethodsChanged; virtual;
+    procedure InterlaceMethodChanged; virtual;
 
     property ImageHeader: TChunkPngImageHeader read FImageHeader write SetImageHeader;
     property PaletteChunk: TChunkPngPalette read FPaletteChunk write SetPaletteChunk;
@@ -877,6 +894,7 @@ type
     property ColorType: TColorType read GetColorType write SetColorType;
     property CompressionMethod: Byte read GetCompressionMethod write SetCompressionMethod;
     property CompressionLevel: Byte read FCompressionLevel write SetCompressionLevel;
+    property CompressionFilterMethods: TAvailableAdaptiveFilterMethods read FAdaptiveFilterMethods write SetAdaptiveFilterMethods;
     property FilterMethod: TFilterMethod read GetFilterMethod write SetFilterMethod;
     property InterlaceMethod: TInterlaceMethod read GetInterlaceMethod write SetInterlaceMethod;
     property PaletteEntry[index: Integer]: TRGB24 read GetPaletteEntry;
@@ -903,6 +921,7 @@ uses
 resourcestring
   RCStrAncillaryUnknownChunk = 'Unknown chunk is marked as ancillary';
   RCStrChunkSizeTooSmall = 'Chunk size too small!';
+  RCStrDataIncomplete = 'Data not complete';
   RCStrDirectCompressionMethodSetError = 'Compression Method may not be specified directly yet!';
   RCStrDirectFilterMethodSetError = 'Filter Method may not be specified directly yet!';
   RCStrDirectGammaSetError = 'Gamma may not be specified directly yet!';
@@ -962,6 +981,16 @@ const
   CRowIncrement    : array[0..6] of Integer = (8, 8, 8, 4, 4, 2, 2);
   CColumnIncrement : array[0..6] of Integer = (8, 8, 4, 4, 2, 2, 1);
 
+type
+  TPngNonInterlacedToAdam7Transcoder = class(TCustomPngTranscoder)
+  protected
+    procedure Transcode; override;
+  end;
+
+  TPngAdam7ToNonInterlacedTranscoder = class(TCustomPngTranscoder)
+  protected
+    procedure Transcode; override;
+  end;
 
 function IsPngChunkRegistered(ChunkClass: TCustomDefinedChunkWithHeaderClass): Boolean;
 var
@@ -1629,26 +1658,16 @@ end;
 
 procedure TChunkPngImageHeader.SetCompressionMethod(const Value: Byte);
 begin
- if FCompressionMethod <> Value then
-  begin
-   FCompressionMethod := Value;
-
-   // check for compression method
-   if FCompressionMethod <> 0
-    then raise EPngError.Create(RCStrUnsupportedCompressMethod);
-  end;
+ // check for compression method
+ if Value <> 0
+  then raise EPngError.Create(RCStrUnsupportedCompressMethod);
 end;
 
 procedure TChunkPngImageHeader.SetFilterMethod(const Value: TFilterMethod);
 begin
- if FFilterMethod <> Value then
-  begin
-   FFilterMethod := Value;
-
-   // check for filter method
-   if FFilterMethod <> fmAdaptiveFilter
-    then raise EPngError.Create(RCStrUnsupportedFilterMethod);
-  end;
+ // check for filter method
+ if Value <> fmAdaptiveFilter
+  then raise EPngError.Create(RCStrUnsupportedFilterMethod);
 end;
 
 
@@ -3812,15 +3831,35 @@ begin
 end;
 
 
+{ TCustomPngTranscoder }
+
+constructor TCustomPngTranscoder.Create(Stream: TStream;
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
+  Palette: TChunkPngPalette);
+begin
+ inherited;
+ GetMem(FRowBuffer[0], FHeader.BytesPerRow);
+ GetMem(FRowBuffer[1], FHeader.BytesPerRow);
+end;
+
+destructor TCustomPngTranscoder.Destroy;
+begin
+ Dispose(FRowBuffer[0]);
+ Dispose(FRowBuffer[1]);
+ inherited;
+end;
+
+
 { TPortableNetworkGraphic }
 
 constructor TPortableNetworkGraphic.Create;
 begin
- FImageHeader         := TChunkPngImageHeader.Create;
- FDataChunkList       := TChunkList.Create;
- FAdditionalChunkList := TChunkList.Create;
+ FImageHeader           := TChunkPngImageHeader.Create;
+ FDataChunkList         := TChunkList.Create;
+ FAdditionalChunkList   := TChunkList.Create;
 
- FCompressionLevel    := Z_BEST_COMPRESSION;
+ FCompressionLevel      := Z_BEST_COMPRESSION;
+ FAdaptiveFilterMethods := [];
 
  inherited;
 end;
@@ -3999,6 +4038,19 @@ begin
  raise EPngError.Create(RCStrColorTypeTranscodingError);
 end;
 
+procedure TPortableNetworkGraphic.SetAdaptiveFilterMethods(
+  const Value: TAvailableAdaptiveFilterMethods);
+begin
+ if Value <> []
+  then raise Exception.Create('not supported yet');
+
+ if FAdaptiveFilterMethods <> Value then
+  begin
+   FAdaptiveFilterMethods := Value;
+   AdaptiveFilterMethodsChanged;
+  end;
+end;
+
 procedure TPortableNetworkGraphic.SetCompressionLevel(const Value: Byte);
 begin
  if not (Value in [1..9])
@@ -4030,6 +4082,12 @@ procedure TPortableNetworkGraphic.SetInterlaceMethod(
   const Value: TInterlaceMethod);
 begin
  raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
+
+ if Value <> FImageHeader.InterlaceMethod then
+  begin
+   FImageHeader.InterlaceMethod := Value;
+   InterlaceMethodChanged;
+  end;
 end;
 
 procedure TPortableNetworkGraphic.SetModifiedTime(const Value: TDateTime);
@@ -4125,7 +4183,7 @@ begin
 
   // compress Stream to DataStream
   if Stream is TMemoryStream
-   then ZCompress(TMemoryStream(Stream), DataStream)
+   then ZCompress(TMemoryStream(Stream), DataStream, FCompressionLevel)
    else raise Exception.Create('not supported yet');
 
   // reset data stream position to zero
@@ -4136,11 +4194,6 @@ begin
  finally
   FreeAndNil(DataStream);
  end;
-end;
-
-procedure TPortableNetworkGraphic.CompressionLevelChanged;
-begin
- // nothing in here yet
 end;
 
 class function TPortableNetworkGraphic.CanLoad(const FileName: TFileName): Boolean;
@@ -4549,13 +4602,56 @@ end;
 
 procedure TPortableNetworkGraphic.RemoveModifiedTimeInformation;
 begin
-
+ if Assigned(FTimeChunk)
+  then FreeAndNil(FTimeChunk);
 end;
 
 procedure TPortableNetworkGraphic.RemovePhysicalPixelDimensionsInformation;
 begin
  if Assigned(FPhysicalDimensions)
   then FreeAndNil(FPhysicalDimensions);
+end;
+
+procedure TPortableNetworkGraphic.CompressionLevelChanged;
+var
+  TempStream : TMemoryStream;
+begin
+ TempStream := TMemoryStream.Create;
+ try
+  DecompressImageDataToStream(TempStream);
+  TempStream.Seek(0, soFromBeginning);
+  CompressImageDataFromStream(TempStream);
+ finally
+  FreeAndNil(TempStream);
+ end;
+end;
+
+procedure TPortableNetworkGraphic.AdaptiveFilterMethodsChanged;
+begin
+ // nothing here yet
+end;
+
+procedure TPortableNetworkGraphic.InterlaceMethodChanged;
+var
+  TempStream : TMemoryStream;
+begin
+ TempStream := TMemoryStream.Create;
+ try
+  DecompressImageDataToStream(TempStream);
+  TempStream.Seek(0, soFromBeginning);
+
+  with TPngAdam7ToNonInterlacedTranscoder.Create(TempStream, FImageHeader) do
+   try
+    Transcode;
+   finally
+    Free;
+   end;
+
+  TempStream.Seek(0, soFromBeginning);
+  CompressImageDataFromStream(TempStream);
+ finally
+  FreeAndNil(TempStream);
+ end;
 end;
 
 procedure TPortableNetworkGraphic.ReadImageDataChunk(Stream: TStream);
@@ -4886,6 +4982,122 @@ begin
  // free physical pixel dimensions chunk
  if Assigned(FPhysicalDimensions)
   then FreeAndNil(FPhysicalDimensions);
+end;
+
+
+{ TPngNonInterlacedToAdam7Transcoder }
+
+procedure TPngNonInterlacedToAdam7Transcoder.Transcode;
+begin
+ inherited;
+
+end;
+
+
+{ TPngAdam7ToNonInterlacedTranscoder }
+
+procedure TPngAdam7ToNonInterlacedTranscoder.Transcode;
+var
+  CurrentRow    : Integer;
+  RowByteSize   : Integer;
+  PixelPerRow   : Integer;
+  PixelByteSize : Integer;
+  CurrentPass   : Integer;
+  Index         : Integer;
+  PassRow       : Integer;
+  Source        : PByte;
+  Destination   : PByte;
+  TempData      : PByteArray;
+begin
+ // initialize variables
+ CurrentRow := 0;
+ PixelByteSize := FHeader.PixelByteSize;
+
+ GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
+ try
+  // The Adam7 interlacer uses 7 passes to create the complete image
+  for CurrentPass := 0 to 6 do
+   begin
+    // calculate some intermediate variables
+    PixelPerRow := (FHeader.Width - CColumnStart[CurrentPass] +
+      CColumnIncrement[CurrentPass] - 1) div CColumnIncrement[CurrentPass];
+
+    with FHeader do
+     case ColorType of
+      ctGrayscale      : RowByteSize := (PixelPerRow * BitDepth + 7) div 8;
+      ctIndexedColor   : RowByteSize := (PixelPerRow * BitDepth + 7) div 8;
+      ctTrueColor      : RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
+      ctGrayscaleAlpha : RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
+      ctTrueColorAlpha : RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
+      else RowByteSize := 0;
+     end;
+
+    PassRow := CRowStart[CurrentPass];
+
+    // clear previous row
+    FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
+
+    // check whether there are any bytes to process in this pass.
+    if RowByteSize > 0 then
+     while PassRow < FHeader.Height do
+      begin
+       // get interlaced row data
+       if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
+        then raise EPngError.Create(RCStrDataIncomplete);
+
+       FilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
+
+       Index := CColumnStart[CurrentPass];
+       Source := @FRowBuffer[CurrentRow][1];
+       Destination := @TempData[PassRow * FHeader.BytesPerRow + Index * PixelByteSize];
+       repeat
+        // copy bytes per pixels
+        Move(Source^, Destination^, PixelByteSize);
+
+        Inc(Source, PixelByteSize);
+        Inc(Destination, CColumnIncrement[CurrentPass] * PixelByteSize);
+        Inc(Index, CColumnIncrement[CurrentPass]);
+       until Index >= FHeader.Width;
+
+       // prepare for the next pass
+       Inc(PassRow, CRowIncrement[CurrentPass]);
+       CurrentRow := 1 - CurrentRow;
+      end;
+   end;
+
+  // reset position to zero
+  FStream.Seek(0, soFromBeginning);
+
+  // clear previous row buffer
+  FillChar(FRowBuffer[1 - CurrentRow]^[0], FHeader.BytesPerRow, 0);
+  Source := PByte(TempData);
+
+  for Index := 0 to FHeader.Height - 1 do
+   begin
+    // set filter method to none
+    FRowBuffer[CurrentRow]^[0] := 0;
+
+    Destination := @FRowBuffer[CurrentRow][1];
+
+    for PassRow := 0 to FHeader.Width - 1 do
+     begin
+      // copy bytes per pixels
+      Move(Source^, Destination^, PixelByteSize);
+
+      Inc(Source);
+      Inc(Destination);
+     end;
+
+    // write data to data stream
+    FStream.Write(FRowBuffer[CurrentRow][0], FHeader.BytesPerRow + 1);
+
+    // flip current row used
+    CurrentRow := 1 - CurrentRow;
+   end;
+
+ finally
+  Dispose(TempData);
+ end;
 end;
 
 

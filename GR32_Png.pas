@@ -81,6 +81,7 @@ type
     constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
       Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
     destructor Destroy; override;
+
     procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
   end;
 
@@ -687,6 +688,7 @@ const
   CGrayScaleTable2Bit : array [0..3] of Byte = (0, $55, $AA, $FF);
   CGrayScaleTable4Bit : array [0..15] of Byte = (0, $11, $22, $33, $44, $55,
     $66, $77, $88, $99, $AA, $BB, $CC, $DD, $EE, $FF);
+
 
 { TCustomPngNonInterlacedDecoder }
 
@@ -1824,6 +1826,5 @@ begin
    Inc(Source);
   end;
 end;
-
 
 end.

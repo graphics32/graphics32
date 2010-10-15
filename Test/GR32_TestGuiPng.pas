@@ -54,6 +54,8 @@ type
     procedure TestScanning;
     procedure TestBasicAssign;
     procedure TestBasicWriting;
+    procedure TestCompressionTranscoding;
+    procedure TestInterlaceTranscoding;
     procedure TestPerformanceTest;
     procedure TestInvalidFiles;
   end;
@@ -489,6 +491,58 @@ begin
     end;
   finally
    Free;
+  end;
+end;
+
+procedure TTestPngGR32File.TestCompressionTranscoding;
+var
+  Index      : Integer;
+  RecentSize : Integer;
+  TempStream : TMemoryStream;
+begin
+ TempStream := TMemoryStream.Create;
+ with FPortableNetworkGraphic do
+  begin
+   LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+   CompressionLevel := 1;
+   SaveToStream(TempStream);
+   RecentSize := TempStream.Size;
+
+   for Index := 2 to 9 do
+    begin
+     TempStream.Clear;
+     CompressionLevel := Index;
+     SaveToStream(TempStream);
+
+     CheckTrue(TempStream.Size <= RecentSize);
+     RecentSize := TempStream.Size;
+    end;
+  end;
+end;
+
+procedure TTestPngGR32File.TestInterlaceTranscoding;
+begin
+ with FPortableNetworkGraphic do
+  begin
+   LoadFromFile(CPngSuiteDir + 'basi6a08.png');
+
+   with TFmDisplay.Create(nil) do
+    try
+     Image32.Bitmap.Width := FPortableNetworkGraphic.Width;
+     Image32.Bitmap.Height := FPortableNetworkGraphic.Height;
+
+     ClientWidth := FPortableNetworkGraphic.Width + 16;
+     ClientHeight := FPortableNetworkGraphic.Height + LbRenderer.Height + BtYes.Height + 24;
+
+     Reference.Assign(FPortableNetworkGraphic);
+     InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
+     Internal.Assign(FPortableNetworkGraphic);
+
+     if ShowModal <> mrYes
+      then Fail(RCStrWrongDisplay);
+    finally
+     Free;
+    end;
   end;
 end;
 
