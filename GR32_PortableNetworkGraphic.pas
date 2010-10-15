@@ -1184,7 +1184,7 @@ begin
   end;
 
  if DeflateInit_(ZStreamRecord, Level ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
-  then raise Exception.Create('Error during compression');
+  then raise EPngError.Create('Error during compression');
 
  GetMem(TempBuffer, CBufferSize);
  try
@@ -1211,7 +1211,7 @@ begin
  end;
 
  if deflateEnd(ZStreamRecord) > 0
-  then raise Exception.Create('Error on stream validation');
+  then raise EPngError.Create('Error on stream validation');
 end;
 
 procedure ZCompress(const Input: TMemoryStream; const Output: TStream;
@@ -1241,7 +1241,7 @@ begin
   end;
 
  if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
-  then raise Exception.Create('Error during decompression');
+  then raise EPngError.Create('Error during decompression');
 
  GetMem(TempBuffer, CBufferSize);
  try
@@ -1268,7 +1268,7 @@ begin
  end;
 
  if inflateEnd(ZStreamRecord) > 0
-  then raise Exception.Create('Error on stream validation');
+  then raise EPngError.Create('Error on stream validation');
 end;
 
 procedure ZDecompress(const Input: TMemoryStream; const Output: TStream); overload;
@@ -1401,7 +1401,7 @@ procedure TCustomDefinedChunk.SetChunkName(const Value: AnsiString);
 begin
  inherited;
  if Value <> FChunkName
-  then raise Exception.Create('Chunk name must always be ''' +
+  then raise EPngError.Create('Chunk name must always be ''' +
     string(AnsiString(FChunkName)) + '''');
 end;
 
@@ -1454,7 +1454,7 @@ begin
      Position := index;
      Read(Result, 1);
     end
-  else raise Exception.CreateFmt('Index out of bounds (%d)', [index]);
+  else raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [index]);
 end;
 
 procedure TUnknownChunk.LoadFromStream(Stream: TStream);
@@ -1492,7 +1492,7 @@ begin
      Position := Index;
      Write(Value, 1);
     end
-  else raise Exception.CreateFmt('Index out of bounds (%d)', [Index]);
+  else raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
 
@@ -3448,7 +3448,7 @@ begin
  inherited;
 
 
- raise Exception.Create(RCStrNotYetImplemented);
+ raise EPngError.Create(RCStrNotYetImplemented);
  // yet todo
 end;
 
@@ -4042,7 +4042,7 @@ procedure TPortableNetworkGraphic.SetAdaptiveFilterMethods(
   const Value: TAvailableAdaptiveFilterMethods);
 begin
  if Value <> []
-  then raise Exception.Create('not supported yet');
+  then raise EPngError.Create(RCStrNotYetImplemented);
 
  if FAdaptiveFilterMethods <> Value then
   begin
@@ -4081,12 +4081,10 @@ end;
 procedure TPortableNetworkGraphic.SetInterlaceMethod(
   const Value: TInterlaceMethod);
 begin
- raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
-
  if Value <> FImageHeader.InterlaceMethod then
   begin
-   FImageHeader.InterlaceMethod := Value;
    InterlaceMethodChanged;
+   FImageHeader.InterlaceMethod := Value;
   end;
 end;
 
@@ -4184,7 +4182,7 @@ begin
   // compress Stream to DataStream
   if Stream is TMemoryStream
    then ZCompress(TMemoryStream(Stream), DataStream, FCompressionLevel)
-   else raise Exception.Create('not supported yet');
+   else raise EPngError.Create(RCStrNotYetImplemented);
 
   // reset data stream position to zero
   DataStream.Seek(0, soFromBeginning);
@@ -4633,14 +4631,23 @@ end;
 
 procedure TPortableNetworkGraphic.InterlaceMethodChanged;
 var
-  TempStream : TMemoryStream;
+  TempStream      : TMemoryStream;
+  TranscoderClass : TCustomPngTranscoderClass;
 begin
  TempStream := TMemoryStream.Create;
  try
   DecompressImageDataToStream(TempStream);
   TempStream.Seek(0, soFromBeginning);
 
-  with TPngAdam7ToNonInterlacedTranscoder.Create(TempStream, FImageHeader) do
+  case FImageHeader.InterlaceMethod of
+   imNone  : begin
+              TranscoderClass := TPngNonInterlacedToAdam7Transcoder;
+              raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
+             end;
+   imAdam7 : TranscoderClass := TPngAdam7ToNonInterlacedTranscoder;
+  end;
+
+  with TranscoderClass.Create(TempStream, FImageHeader) do
    try
     Transcode;
    finally
@@ -5084,8 +5091,8 @@ begin
       // copy bytes per pixels
       Move(Source^, Destination^, PixelByteSize);
 
-      Inc(Source);
-      Inc(Destination);
+      Inc(Source, PixelByteSize);
+      Inc(Destination, PixelByteSize);
      end;
 
     // write data to data stream
