@@ -11,6 +11,7 @@ type
     ImageDisplay: TImage32;
     procedure FormCreate(Sender: TObject);
     procedure ImageDisplayClick(Sender: TObject);
+    procedure ImageDisplayDblClick(Sender: TObject);
   end;
 
 var
@@ -56,6 +57,17 @@ begin
        Free;
       end;
     end;
+  finally
+   Free;
+  end;
+end;
+
+procedure TFmPngDemo.ImageDisplayDblClick(Sender: TObject);
+begin
+ with TPortableNetworkGraphic32.Create do
+  try
+   Assign(ImageDisplay.Bitmap);
+   SaveToFile('Test.png');
   finally
    Free;
   end;

@@ -3902,6 +3902,15 @@ end;
 
 { TCustomPngEncoder }
 
+function CalculateRowSum(CurrentRow: PByteArray; BytesPerRow: Integer): Cardinal;
+var
+  Index : Integer;
+begin
+ Result := 0;
+ for Index := 1 to BytesPerRow
+  do Result := Result + Abs(SmallInt(CurrentRow[Index]));
+end;
+
 procedure TCustomPngEncoder.EncodeFilterRow(CurrentRow, PreviousRow,
   OutputRow, TempBuffer: PByteArray; BytesPerRow, PixelByteSize: Integer);
 var
@@ -3918,52 +3927,47 @@ begin
 
  // calculate sub filter
  EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+ CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
  // check if sub filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   CurrentSum := BestSum;
+   BestSum := CurrentSum;
    Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
    OutputRow^[0] := 1;
   end;
 
  // calculate up filter
  EncodeFilterUp(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+ CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
  // check if up filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   CurrentSum := BestSum;
+   BestSum := CurrentSum;
    Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
    OutputRow^[0] := 2;
   end;
 
  // calculate average filter
  EncodeFilterAverage(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+ CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
  // check if average filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   CurrentSum := BestSum;
+   BestSum := CurrentSum;
    Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
    OutputRow^[0] := 3;
   end;
 
  // calculate paeth filter
  EncodeFilterPaeth(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+ CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
  // check if paeth filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   CurrentSum := BestSum;
    Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
    OutputRow^[0] := 4;
   end;
