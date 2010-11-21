@@ -730,7 +730,7 @@ begin
     then raise EPngError.Create(RCStrDataIncomplete);
 
    // filter current row
-   FilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], FBytesPerRow, PixelByteSize);
+   DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], FBytesPerRow, PixelByteSize);
 
    // transfer data from row to image
    TransferData(@FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, Index));
@@ -1101,7 +1101,7 @@ begin
       if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
        then raise EPngError.Create(RCStrDataIncomplete);
 
-      FilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
+      DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
 
       // transfer and deinterlace image data
       TransferData(CurrentPass, @FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, PassRow));
@@ -1554,25 +1554,55 @@ procedure TCustomPngNonInterlacedEncoder.EncodeFromScanline(Bitmap: TObject;
 var
   Index      : Integer;
   CurrentRow : Integer;
+  OutputRow  : PByteArray;
+  TempBuffer : PByteArray;
 begin
  // initialize variables
  CurrentRow := 0;
  FillChar(FRowBuffer[1 - CurrentRow]^[0], FRowByteSize, 0);
 
- for Index := 0 to FHeader.Height - 1 do
+ // check if pre filter is used and eventually calculate pre filter
+ if FHeader.ColorType <> ctIndexedColor then
   begin
-   // set filter method to none
-   FRowBuffer[CurrentRow]^[0] := 0;
+   Assert(FRowByteSize = FBytesPerRow + 1);
+   GetMem(OutputRow, FRowByteSize);
+   GetMem(TempBuffer, FRowByteSize);
+   try
+    for Index := 0 to FHeader.Height - 1 do
+     begin
+      // transfer data from image to current row
+      TransferData(ScanLineCallback(Bitmap, Index), @FRowBuffer[CurrentRow][1]);
 
-   // transfer data from image to current row
-   TransferData(ScanLineCallback(Bitmap, Index), @FRowBuffer[CurrentRow][1]);
+      // filter current row
+      EncodeFilterRow(FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow],
+        OutputRow, TempBuffer, FBytesPerRow, FHeader.PixelByteSize);
 
-   // write data to data stream
-   FStream.Write(FRowBuffer[CurrentRow][0], FRowByteSize);
+      // write data to data stream
+      FStream.Write(OutputRow[0], FRowByteSize);
 
-   // flip current row used
-   CurrentRow := 1 - CurrentRow;
-  end;
+      // flip current row used
+      CurrentRow := 1 - CurrentRow;
+     end;
+   finally
+    Dispose(OutputRow);
+    Dispose(TempBuffer);
+   end;
+  end
+ else
+  for Index := 0 to FHeader.Height - 1 do
+   begin
+    // transfer data from image to current row
+    TransferData(ScanLineCallback(Bitmap, Index), @FRowBuffer[CurrentRow][1]);
+
+    // set filter method to none
+    FRowBuffer[CurrentRow][0] := 0;
+
+    // write data to data stream
+    FStream.Write(FRowBuffer[CurrentRow][0], FRowByteSize);
+
+    // flip current row used
+    CurrentRow := 1 - CurrentRow;
+   end;
 end;
 
 
