@@ -14,6 +14,7 @@ object MainForm: TMainForm
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object Img: TSyntheticImage32
@@ -52,7 +53,7 @@ object MainForm: TMainForm
       Caption = 'Rasterizer'
       object miRegularSampling: TMenuItem
         AutoCheck = True
-        Caption = 'Regular Sampling'
+        Caption = 'Regular'
         RadioItem = True
         OnClick = RasterizerMenuClick
       end
@@ -82,6 +83,14 @@ object MainForm: TMainForm
         Tag = 4
         AutoCheck = True
         Caption = 'Contour'
+        RadioItem = True
+        OnClick = RasterizerMenuClick
+      end
+      object miMultithreadedRegularRasterizer: TMenuItem
+        Tag = 5
+        AutoCheck = True
+        Caption = 'Multithreaded Regular'
+        RadioItem = True
         OnClick = RasterizerMenuClick
       end
     end
