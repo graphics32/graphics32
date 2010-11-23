@@ -495,8 +495,6 @@ var
   Step: Integer;
   GetSample: TGetSampleInt;
 begin
-  Dst.BeginUpdate;
-  try
     GetSample := FSampler.GetSampleInt;
     OnChanged := Dst.OnAreaChanged;
     DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
@@ -551,9 +549,6 @@ begin
       end;
       if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
     end;
-  finally
-    Dst.EndUpdate;
-  end;
 end;
 
 procedure TProgressiveRasterizer.SetSteps(const Value: Integer);
