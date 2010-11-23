@@ -133,7 +133,6 @@ var
   pathStr: shortstring;
 {$ENDIF}
   pathMedia: string;
-  Item: TBitmap32Item;
 begin
   // Under Mac OS X we need to get the location of the bundle
 {$IFDEF Darwin}
