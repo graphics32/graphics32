@@ -48,7 +48,8 @@ const
   DEF_ITER = 16;
 
 type
-  TRasterizerKind = (rkRegular, rkProgressive, rkSwizzling, rkTesseral, rkContour);
+  TRasterizerKind = (rkRegular, rkProgressive, rkSwizzling, rkTesseral,
+   rkContour, rkMultithreadedRegularRasterizer);
   TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skPattern2, skPattern3, skPattern4);
 
   TMandelbrotSampler = class(TCustomSampler)
@@ -86,6 +87,7 @@ type
     N3: TMenuItem;
     N5: TMenuItem;
     SavePictureDialog: TSavePictureDialog;
+    miMultithreadedRegularRasterizer: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
@@ -95,6 +97,7 @@ type
     procedure miExitClick(Sender: TObject);
     procedure miSaveClick(Sender: TObject);
     procedure RasterizerMenuClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   public
     { Public declarations }
     Rasterizer: TRasterizer;
@@ -103,7 +106,6 @@ type
     SuperSampler: TSuperSampler;
     AdaptiveSampler: TAdaptiveSuperSampler;
     JitteredSampler: TPatternSampler;
-    AutoUpdate: Boolean;
     SamplerKind: TSamplerKind;
     procedure SelectRasterizer(RasterizerKind: TRasterizerKind);
     procedure SelectSampler(ASamplerKind: TSamplerKind);
@@ -178,13 +180,12 @@ begin
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
 {$IFDEF Darwin}
+var
   pathRef: CFURLRef;
   pathCFStr: CFStringRef;
   pathStr: shortstring;
 {$ENDIF}
-  pathMedia: string;
 begin
   // Under Mac OS X we need to get the location of the bundle
 {$IFDEF Darwin}
@@ -210,20 +211,18 @@ begin
   Img.ClearBuffer := True;
 {$ENDIF}
 
-  AutoUpdate := True;
   MandelSampler := TMandelbrotSampler.Create(Img);
   AdaptiveSampler := TAdaptiveSuperSampler.Create(MandelSampler);
   SuperSampler := TSuperSampler.Create(MandelSampler);
   JitteredSampler := TPatternSampler.Create(MandelSampler);
   Sampler := MandelSampler;
-  SelectRasterizer(rkProgressive);
 end;
 
 procedure TMainForm.SelectRasterizer(RasterizerKind: TRasterizerKind);
 const
   RASTERIZERCLASS: array[TRasterizerKind] of TRasterizerClass =
     (TRegularRasterizer, TProgressiveRasterizer, TSwizzlingRasterizer,
-     TTesseralRasterizer, TContourRasterizer);
+     TTesseralRasterizer, TContourRasterizer, TMultithreadedRegularRasterizer);
 begin
   Rasterizer := RASTERIZERCLASS[RasterizerKind].Create;
   if Rasterizer is TRegularRasterizer then
@@ -233,9 +232,12 @@ begin
 end;
 
 procedure TMainForm.RasterizerMenuClick(Sender: TObject);
+var mi: TMenuItem;
 begin
-  if Sender is TMenuItem then
-    SelectRasterizer(TRasterizerKind(TMenuItem(Sender).Tag));
+  if Not(Sender is TMenuItem) then Exit;
+  mi := TMenuItem(Sender);
+  mi.Checked := True;
+  SelectRasterizer(TRasterizerKind(mi.Tag));
 end;
 
 procedure TMainForm.miDefaultClick(Sender: TObject);
@@ -327,6 +329,11 @@ begin
   SuperSampler.Free;
   AdaptiveSampler.Free;
   JitteredSampler.Free;
+end;
+
+procedure TMainForm.FormShow(Sender: TObject);
+begin
+  SelectRasterizer(rkProgressive);
 end;
 
 procedure TMainForm.miExitClick(Sender: TObject);
