@@ -222,7 +222,7 @@ begin
   StopRenderThread;
   FOldAreaChanged := Buffer.OnAreaChanged;
   if FRenderMode = rnmFull then
-    R := Rect(0, 0, Width, Height)
+    R := Rect(0, 0, Buffer.Width, Buffer.Height)
   else
     R := FDstRect;
 
