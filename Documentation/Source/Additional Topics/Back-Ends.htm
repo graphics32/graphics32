@@ -3,12 +3,12 @@
 <title>Back-Ends</title>
 <link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
 </head>
-<body bgcolor="#FFFFFF"> 
-<h2>1 Introduction</h2> 
+<body bgcolor="#FFFFFF">
+<h2>1 Introduction</h2>
 <p class="Body">Traditionally bitmaps in Graphics32 have been using resources managed by the Windows GDI. While this is feasible for most usage scenarios in Windows there are some that require certain less resource-restricted approaches like handle-less bitmaps or bitmaps that rely on memory-mapped files. Prior to Graphics32 1.9 several community-driven patches existed that added these features.<br>
 With the arrival of broader platform support in Graphics32 we are separating the memory management as well as OS or graphics subsystem specific methods from the generic methods in <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> and move these portions into so called back-end classes.</p>
-<h2>2 Approach and compatibility</h2> 
-<p class="Body">In order to keep backwards compatibility the <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> class still exposes the same external interface. In order to get a clean cut from the platform specific methods and properties we implemented a new in-between class <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> which is truely platform agnostic and relies solely on the associated back-end class to handle its needs. As a matter of fact <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> is missing all Text methods and Canvas and Handle methods. Back-ends may implement predefined interfaces to implement the functionality.</p>
+<h2>2 Approach and compatibility</h2>
+<p class="Body">In order to keep backwards compatibility the <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> class still exposes the same external interface. In order to get a clean cut from the platform specific methods and properties we implemented a new in-between class <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> which is truly platform agnostic and relies solely on the associated back-end class to handle its needs. As a matter of fact <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> is missing all Text, Canvas and Handle methods. Back-ends may implement predefined interfaces to implement the functionality.</p>
 <p class="Body">The back-end instance is switchable during the lifecycle of a <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> instance. Conversion to the new back-end instance is handled transparently, i.e. without loosing the bitmap's surface contents. For instance this allows for temporarily switching a handle-less memory-only bitmap to a GDI bitmap with handle and vice versa. <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> exposes the current back-end via its <a href="../Units/GR32/Classes/TCustomBitmap32/Properties/Backend.htm">Backend</a> property. <br>
   <br>
 </p>
@@ -26,7 +26,7 @@ begin
 
   // Draw onto your new big bitmap...
   // Note: No text or canvas drawing is allowed because TMMFBackend does not implement those operations.
-  // Use TGDIMMFBackend instead... 
+  // Use TGDIMMFBackend instead...
 
   TGDIBackend.Create(MyBitmap); // Switch to a GDI back-end and convert the current buffer...
   MyBitmap.SaveToFile('test.bmp');
@@ -70,6 +70,6 @@ end;</pre></td>
 </ul>
 <p class="Body"><strong>Please note:</strong> Most of the methods and properties left in <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> query the back-end for these specific interfaces. Failing to implement the required interfaces in the back-end class will cause  the method call or property read to fail with an exception. We recommend to change your custom routines or methods to use <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> instead of <a href="../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> wherever possible.</p>
 <p>&nbsp;</p>
-<p id="Hidden">[See Also] </p> 
+<p id="Hidden">[See Also] </p>
 </body>
 </html>
