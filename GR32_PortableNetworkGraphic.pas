@@ -4073,7 +4073,6 @@ begin
  // check if paeth filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   CurrentSum := BestSum;
    Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
    OutputRow^[0] := 4;
   end;
@@ -4872,7 +4871,7 @@ begin
   case FImageHeader.InterlaceMethod of
    imNone  : begin
               TranscoderClass := TPngNonInterlacedToAdam7Transcoder;
-              raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
+//              raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
              end;
    imAdam7 : TranscoderClass := TPngAdam7ToNonInterlacedTranscoder;
   end;
@@ -5236,6 +5235,8 @@ var
   Source        : PByte;
   Destination   : PByte;
   TempData      : PByteArray;
+  OutputRow     : PByteArray;
+  TempBuffer    : PByteArray;
 begin
  // initialize variables
  CurrentRow := 0;
@@ -5244,6 +5245,11 @@ begin
  GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
  Destination := PByte(TempData);
  try
+
+  /////////////////////////////////////
+  // decode image (Adam7-interlaced) //
+  /////////////////////////////////////
+
   for Index := 0 to FHeader.Height - 1 do
    begin
     // read data from stream
@@ -5255,11 +5261,8 @@ begin
       FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], FHeader.BytesPerRow,
       PixelByteSize);
 
-    // transfer data from row to image
-//    TransferData(@FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, Index));
-
+    // transfer data from row to temp data
     Source := @FRowBuffer[CurrentRow][1];
-
     for PassRow := 0 to FHeader.Width - 1 do
      begin
       // copy bytes per pixels
@@ -5273,7 +5276,9 @@ begin
     CurrentRow := 1 - CurrentRow;
    end;
 
-(*
+  // reset position to zero
+  FStream.Seek(0, soFromBeginning);
+
   // The Adam7 interlacer uses 7 passes to create the complete image
   for CurrentPass := 0 to 6 do
    begin
@@ -5288,7 +5293,7 @@ begin
       ctTrueColor      : RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
       ctGrayscaleAlpha : RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
       ctTrueColorAlpha : RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
-      else RowByteSize := 0;
+      else Continue;
      end;
 
     PassRow := CRowStart[CurrentPass];
@@ -5296,65 +5301,70 @@ begin
     // clear previous row
     FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
 
-    // check whether there are any bytes to process in this pass.
-    if RowByteSize > 0 then
+    // check if pre filter is used and eventually calculate pre filter
+    if FHeader.ColorType <> ctIndexedColor then
+     begin
+      GetMem(OutputRow, FHeader.BytesPerRow + 1);
+      GetMem(TempBuffer, FHeader.BytesPerRow + 1);
+      try
+       while PassRow < FHeader.Height do
+        begin
+         Index := CColumnStart[CurrentPass];
+         Source := @TempData[PassRow * FHeader.BytesPerRow + Index * PixelByteSize];
+         Destination := @FRowBuffer[CurrentRow][1];
+
+         repeat
+          // copy bytes per pixels
+          Move(Source^, Destination^, PixelByteSize);
+
+          Inc(Source, CColumnIncrement[CurrentPass] * PixelByteSize);
+          Inc(Destination, PixelByteSize);
+          Inc(Index, CColumnIncrement[CurrentPass]);
+         until Index >= FHeader.Width;
+
+         // filter current row
+         EncodeFilterRow(FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow],
+           OutputRow, TempBuffer, FHeader.BytesPerRow, FHeader.PixelByteSize);
+
+         // write data to data stream
+         FStream.Write(OutputRow[0], RowByteSize + 1);
+
+         // prepare for the next pass
+         Inc(PassRow, CRowIncrement[CurrentPass]);
+         CurrentRow := 1 - CurrentRow;
+        end;
+      finally
+       Dispose(OutputRow);
+       Dispose(TempBuffer);
+      end;
+     end
+    else
      while PassRow < FHeader.Height do
       begin
-       // get interlaced row data
-       if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
-        then raise EPngError.Create(RCStrDataIncomplete);
-
-       FilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
-
        Index := CColumnStart[CurrentPass];
-       Source := @FRowBuffer[CurrentRow][1];
-       Destination := @TempData[PassRow * FHeader.BytesPerRow + Index * PixelByteSize];
+       Source := @TempData[PassRow * FHeader.BytesPerRow + Index * PixelByteSize];
+       Destination := @FRowBuffer[CurrentRow][1];
+
        repeat
         // copy bytes per pixels
         Move(Source^, Destination^, PixelByteSize);
 
-        Inc(Source, PixelByteSize);
-        Inc(Destination, CColumnIncrement[CurrentPass] * PixelByteSize);
+        Inc(Source, CColumnIncrement[CurrentPass] * PixelByteSize);
+        Inc(Destination, PixelByteSize);
         Inc(Index, CColumnIncrement[CurrentPass]);
        until Index >= FHeader.Width;
+
+       // set filter method 0
+       FRowBuffer[CurrentRow][0] := 0;
+
+       // write data to data stream
+       FStream.Write(FRowBuffer[CurrentRow][0], RowByteSize + 1);
 
        // prepare for the next pass
        Inc(PassRow, CRowIncrement[CurrentPass]);
        CurrentRow := 1 - CurrentRow;
       end;
    end;
-*)
-
-  // reset position to zero
-  FStream.Seek(0, soFromBeginning);
-
-  // clear previous row buffer
-  FillChar(FRowBuffer[1 - CurrentRow]^[0], FHeader.BytesPerRow, 0);
-  Source := PByte(TempData);
-
-  for Index := 0 to FHeader.Height - 1 do
-   begin
-    // set filter method to none
-    FRowBuffer[CurrentRow]^[0] := 0;
-
-    Destination := @FRowBuffer[CurrentRow][1];
-
-    for PassRow := 0 to FHeader.Width - 1 do
-     begin
-      // copy bytes per pixels
-      Move(Source^, Destination^, PixelByteSize);
-
-      Inc(Source, PixelByteSize);
-      Inc(Destination, PixelByteSize);
-     end;
-
-    // write data to data stream
-    FStream.Write(FRowBuffer[CurrentRow][0], FHeader.BytesPerRow + 1);
-
-    // flip current row used
-    CurrentRow := 1 - CurrentRow;
-   end;
-
  finally
   Dispose(TempData);
  end;
@@ -5375,6 +5385,8 @@ var
   Source        : PByte;
   Destination   : PByte;
   TempData      : PByteArray;
+  OutputRow     : PByteArray;
+  TempBuffer    : PByteArray;
 begin
  // initialize variables
  CurrentRow := 0;
@@ -5382,7 +5394,12 @@ begin
 
  GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
  try
-  // The Adam7 interlacer uses 7 passes to create the complete image
+
+  /////////////////////////////////////
+  // decode image (Adam7-interlaced) //
+  /////////////////////////////////////
+
+  // The Adam7 deinterlacer uses 7 passes to create the complete image
   for CurrentPass := 0 to 6 do
    begin
     // calculate some intermediate variables
@@ -5396,7 +5413,7 @@ begin
       ctTrueColor      : RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
       ctGrayscaleAlpha : RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
       ctTrueColorAlpha : RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
-      else RowByteSize := 0;
+      else Continue;
      end;
 
     PassRow := CRowStart[CurrentPass];
@@ -5404,63 +5421,90 @@ begin
     // clear previous row
     FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
 
-    // check whether there are any bytes to process in this pass.
-    if RowByteSize > 0 then
-     while PassRow < FHeader.Height do
-      begin
-       // get interlaced row data
-       if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
-        then raise EPngError.Create(RCStrDataIncomplete);
+    // process pixels
+    while PassRow < FHeader.Height do
+     begin
+      // get interlaced row data
+      if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
+       then raise EPngError.Create(RCStrDataIncomplete);
 
-       DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
+      DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]),
+        FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
 
-       Index := CColumnStart[CurrentPass];
-       Source := @FRowBuffer[CurrentRow][1];
-       Destination := @TempData[PassRow * FHeader.BytesPerRow + Index * PixelByteSize];
-       repeat
-        // copy bytes per pixels
-        Move(Source^, Destination^, PixelByteSize);
+      Index := CColumnStart[CurrentPass];
+      Source := @FRowBuffer[CurrentRow][1];
+      Destination := @TempData[PassRow * FHeader.BytesPerRow + Index * PixelByteSize];
+      repeat
+       // copy bytes per pixels
+       Move(Source^, Destination^, PixelByteSize);
 
-        Inc(Source, PixelByteSize);
-        Inc(Destination, CColumnIncrement[CurrentPass] * PixelByteSize);
-        Inc(Index, CColumnIncrement[CurrentPass]);
-       until Index >= FHeader.Width;
+       Inc(Source, PixelByteSize);
+       Inc(Destination, CColumnIncrement[CurrentPass] * PixelByteSize);
+       Inc(Index, CColumnIncrement[CurrentPass]);
+      until Index >= FHeader.Width;
 
-       // prepare for the next pass
-       Inc(PassRow, CRowIncrement[CurrentPass]);
-       CurrentRow := 1 - CurrentRow;
-      end;
+      // prepare for the next pass
+      Inc(PassRow, CRowIncrement[CurrentPass]);
+      CurrentRow := 1 - CurrentRow;
+     end;
    end;
+
 
   // reset position to zero
   FStream.Seek(0, soFromBeginning);
+
+
+  /////////////////////////////////
+  // encode image non-interlaced //
+  /////////////////////////////////
 
   // clear previous row buffer
   FillChar(FRowBuffer[1 - CurrentRow]^[0], FHeader.BytesPerRow, 0);
   Source := PByte(TempData);
 
-  for Index := 0 to FHeader.Height - 1 do
+  // check if pre filter is used and eventually calculate pre filter
+  if FHeader.ColorType <> ctIndexedColor then
    begin
-    // set filter method to none
-    FRowBuffer[CurrentRow]^[0] := 0;
+    GetMem(OutputRow, FHeader.BytesPerRow + 1);
+    GetMem(TempBuffer, FHeader.BytesPerRow + 1);
+    try
+     for Index := 0 to FHeader.Height - 1 do
+      begin
+       // copy bytes per pixels
+       Move(Source^, FRowBuffer[CurrentRow][1], FHeader.Width * PixelByteSize);
+       Inc(Source, FHeader.Width * PixelByteSize);
 
-    Destination := @FRowBuffer[CurrentRow][1];
+       // filter current row
+       EncodeFilterRow(FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow],
+         OutputRow, TempBuffer, FHeader.BytesPerRow, FHeader.PixelByteSize);
 
-    for PassRow := 0 to FHeader.Width - 1 do
-     begin
-      // copy bytes per pixels
-      Move(Source^, Destination^, PixelByteSize);
+       // write data to data stream
+       FStream.Write(OutputRow[0], FHeader.BytesPerRow + 1);
 
-      Inc(Source, PixelByteSize);
-      Inc(Destination, PixelByteSize);
-     end;
+       // flip current row used
+       CurrentRow := 1 - CurrentRow;
+      end;
+    finally
+     Dispose(OutputRow);
+     Dispose(TempBuffer);
+    end;
+   end
+  else
+   for Index := 0 to FHeader.Height - 1 do
+    begin
+     // copy bytes per pixels
+     Move(Source^, FRowBuffer[CurrentRow][1], FHeader.Width * PixelByteSize);
+     Inc(Source, FHeader.Width * PixelByteSize);
 
-    // write data to data stream
-    FStream.Write(FRowBuffer[CurrentRow][0], FHeader.BytesPerRow + 1);
+     // set filter method to none
+     FRowBuffer[CurrentRow][0] := 0;
 
-    // flip current row used
-    CurrentRow := 1 - CurrentRow;
-   end;
+     // write data to data stream
+     FStream.Write(FRowBuffer[CurrentRow][0], FHeader.BytesPerRow + 1);
+
+     // flip current row used
+     CurrentRow := 1 - CurrentRow;
+    end;
 
  finally
   Dispose(TempData);

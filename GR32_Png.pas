@@ -1085,7 +1085,7 @@ begin
      ctTrueColor: RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
      ctGrayscaleAlpha: RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
      ctTrueColorAlpha: RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
-     else RowByteSize := 0;
+     else Continue;
     end;
 
    PassRow := CRowStart[CurrentPass];
@@ -1093,23 +1093,22 @@ begin
    // clear previous row
    FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
 
-   // check whether there are any bytes to process in this pass.
-   if RowByteSize > 0 then
-    while PassRow < FHeader.Height do
-     begin
-      // get interlaced row data
-      if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
-       then raise EPngError.Create(RCStrDataIncomplete);
+   // process pixel
+   while PassRow < FHeader.Height do
+    begin
+     // get interlaced row data
+     if FStream.Read(FRowBuffer[CurrentRow][0], RowByteSize + 1) <> (RowByteSize + 1)
+      then raise EPngError.Create(RCStrDataIncomplete);
 
-      DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
+     DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
 
-      // transfer and deinterlace image data
-      TransferData(CurrentPass, @FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, PassRow));
+     // transfer and deinterlace image data
+     TransferData(CurrentPass, @FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, PassRow));
 
-      // prepare for the next pass
-      Inc(PassRow, CRowIncrement[CurrentPass]);
-      CurrentRow := 1 - CurrentRow;
-     end;
+     // prepare for the next pass
+     Inc(PassRow, CRowIncrement[CurrentPass]);
+     CurrentRow := 1 - CurrentRow;
+    end;
   end;
 end;
 

@@ -501,29 +501,61 @@ var
   TempStream : TMemoryStream;
 begin
  TempStream := TMemoryStream.Create;
- with FPortableNetworkGraphic do
-  begin
-   LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
-   CompressionLevel := 1;
-   SaveToStream(TempStream);
-   RecentSize := TempStream.Size;
+ try
+  with FPortableNetworkGraphic do
+   begin
+    LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+    CompressionLevel := 1;
+    SaveToStream(TempStream);
+    RecentSize := TempStream.Size;
 
-   for Index := 2 to 9 do
-    begin
-     TempStream.Clear;
-     CompressionLevel := Index;
-     SaveToStream(TempStream);
+    for Index := 2 to 9 do
+     begin
+      TempStream.Clear;
+      CompressionLevel := Index;
+      SaveToStream(TempStream);
 
-     CheckTrue(TempStream.Size <= RecentSize);
-     RecentSize := TempStream.Size;
-    end;
-  end;
+      CheckTrue(TempStream.Size <= RecentSize);
+      RecentSize := TempStream.Size;
+     end;
+   end;
+ finally
+  FreeAndNil(TempStream);
+ end;
 end;
 
 procedure TTestPngGR32File.TestInterlaceTranscoding;
 begin
  with FPortableNetworkGraphic do
   begin
+   LoadFromFile(CPngSuiteDir + 'basn6a08.png');
+
+   with TFmDisplay.Create(nil) do
+    try
+     Image32.Bitmap.Width := FPortableNetworkGraphic.Width;
+     Image32.Bitmap.Height := FPortableNetworkGraphic.Height;
+
+     ClientWidth := FPortableNetworkGraphic.Width + 16;
+     ClientHeight := FPortableNetworkGraphic.Height + LbRenderer.Height + BtYes.Height + 24;
+
+     Reference.Assign(FPortableNetworkGraphic);
+     Assert(InterlaceMethod = GR32_PortableNetworkGraphic.imNone);
+     InterlaceMethod := GR32_PortableNetworkGraphic.imAdam7;
+     Internal.Assign(FPortableNetworkGraphic);
+
+     if ShowModal <> mrYes
+      then Fail(RCStrWrongDisplay);
+
+     InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
+     Internal.Assign(FPortableNetworkGraphic);
+
+     if ShowModal <> mrYes
+      then Fail(RCStrWrongDisplay);
+    finally
+     Free;
+    end;
+
+
    LoadFromFile(CPngSuiteDir + 'basi6a08.png');
 
    with TFmDisplay.Create(nil) do
@@ -536,6 +568,12 @@ begin
 
      Reference.Assign(FPortableNetworkGraphic);
      InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
+     Internal.Assign(FPortableNetworkGraphic);
+
+     if ShowModal <> mrYes
+      then Fail(RCStrWrongDisplay);
+
+     InterlaceMethod := GR32_PortableNetworkGraphic.imAdam7;
      Internal.Assign(FPortableNetworkGraphic);
 
      if ShowModal <> mrYes
