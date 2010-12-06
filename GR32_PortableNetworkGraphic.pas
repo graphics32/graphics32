@@ -4869,10 +4869,7 @@ begin
   TempStream.Seek(0, soFromBeginning);
 
   case FImageHeader.InterlaceMethod of
-   imNone  : begin
-              TranscoderClass := TPngNonInterlacedToAdam7Transcoder;
-//              raise EPngError.Create(RCStrDirectInterlaceMethodSetError);
-             end;
+   imNone  : TranscoderClass := TPngNonInterlacedToAdam7Transcoder;
    imAdam7 : TranscoderClass := TPngAdam7ToNonInterlacedTranscoder;
   end;
 

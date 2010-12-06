@@ -20,7 +20,7 @@ var
 implementation
 
 uses
-  GR32_PNG;
+  GR32_PNG, GR32_PortableNetworkGraphic;
 
 {$R *.dfm}
 
@@ -52,6 +52,7 @@ begin
      with TPortableNetworkGraphic32.Create do
       try
        Assign(ImageDisplay.Bitmap);
+       InterlaceMethod := imAdam7;
        SaveToFile(FileName);
       finally
        Free;

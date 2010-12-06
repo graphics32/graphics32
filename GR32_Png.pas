@@ -1575,6 +1575,7 @@ begin
       // filter current row
       EncodeFilterRow(FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow],
         OutputRow, TempBuffer, FBytesPerRow, FHeader.PixelByteSize);
+      Assert(OutputRow[0] in [0..4]);
 
       // write data to data stream
       FStream.Write(OutputRow[0], FRowByteSize);
