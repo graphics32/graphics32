@@ -46,8 +46,6 @@ type
   TPortableNetworkGraphic32 = class(TPortableNetworkGraphic)
   private
     FProgressEvent : TProgressEvent;
-
-    function ColorInPalette(Color: TColor32): Integer;
     procedure AssignPropertiesFromBitmap32(Bitmap32: TCustomBitmap32);
   protected
     function GR32Scanline(Bitmap: TObject; Y: Integer): Pointer; virtual;
@@ -428,21 +426,6 @@ begin
  finally
   FreeAndNil(DataStream);
  end;
-end;
-
-function TPortableNetworkGraphic32.ColorInPalette(Color: TColor32): Integer;
-var
-  Color24 : TRGB24;
-begin
- for Result := 0 to FPaletteChunk.Count - 1 do
-  begin
-   Color24 := PaletteChunk.PaletteEntry[Result];
-   if (TColor32Entry(Color).R = Color24.R) and
-      (TColor32Entry(Color).G = Color24.G) and
-      (TColor32Entry(Color).B = Color24.B)
-    then Exit;
-  end;
- Result := -1;
 end;
 
 function ColorIndexInPalette(Color: TColor32; Palette: TPalette24): Integer;

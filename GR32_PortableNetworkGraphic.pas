@@ -969,6 +969,7 @@ resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
   RCStrUnsupportedInterlaceMethod = 'Unsupported interlace method';
   RCStrWrongBitdepth = 'Wrong Bitdepth';
+  RCStrWrongInterlaceMethod = 'Wrong interlace method';
   RCStrWrongPixelPerUnit = 'Pixel per unit may not be zero!';
   RCStrWrongTransparencyFormat = 'Wrong transparency format';
   RCStrInvalidCompressionLevel = 'Invalid compression level';
@@ -1207,7 +1208,7 @@ begin
     ZStreamRecord.next_out := TempBuffer;
     ZStreamRecord.avail_out := CBufferSize;
 
-    ZResult := deflate(ZStreamRecord, Z_NO_FLUSH);
+    deflate(ZStreamRecord, Z_NO_FLUSH);
 
     Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
    end;
@@ -1264,7 +1265,7 @@ begin
     ZStreamRecord.next_out := TempBuffer;
     ZStreamRecord.avail_out := CBufferSize;
 
-    ZResult := inflate(ZStreamRecord, Z_NO_FLUSH);
+    inflate(ZStreamRecord, Z_NO_FLUSH);
 
     Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
    end;
@@ -3908,7 +3909,7 @@ var
 begin
  Result := 0;
  for Index := 1 to BytesPerRow
-  do Result := Result + Abs(SmallInt(CurrentRow[Index]));
+  do Result := Result + Cardinal(Abs(SmallInt(CurrentRow[Index])));
 end;
 
 procedure TCustomPngEncoder.EncodeFilterRow(CurrentRow, PreviousRow,
@@ -3919,11 +3920,10 @@ var
   BestSum    : Cardinal;
 begin
  BestSum := 0;
- CurrentSum := 0;
  OutputRow^[0] := 0;
  for PixelIndex := 1 to BytesPerRow
   do BestSum := BestSum + CurrentRow[PixelIndex];
- Move(CurrentRow^[0], OutputRow^[0], BytesPerRow + 1);
+ Move(CurrentRow^[1], OutputRow^[1], BytesPerRow);
 
  // calculate sub filter
  EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
@@ -4871,6 +4871,7 @@ begin
   case FImageHeader.InterlaceMethod of
    imNone  : TranscoderClass := TPngNonInterlacedToAdam7Transcoder;
    imAdam7 : TranscoderClass := TPngAdam7ToNonInterlacedTranscoder;
+   else raise EPngError.Create(RCStrWrongInterlaceMethod);
   end;
 
   with TranscoderClass.Create(TempStream, FImageHeader) do

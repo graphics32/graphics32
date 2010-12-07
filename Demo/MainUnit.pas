@@ -40,8 +40,6 @@ begin
 end;
 
 procedure TFmPngDemo.ImageDisplayClick(Sender: TObject);
-var
-  PNG : TPortableNetworkGraphic32;
 begin
  with TSaveDialog.Create(Self) do
   try
