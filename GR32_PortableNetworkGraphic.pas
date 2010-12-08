@@ -3933,7 +3933,7 @@ begin
  if CurrentSum < BestSum then
   begin
    BestSum := CurrentSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 1;
   end;
 
@@ -3945,7 +3945,7 @@ begin
  if CurrentSum < BestSum then
   begin
    BestSum := CurrentSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 2;
   end;
 
@@ -3957,7 +3957,7 @@ begin
  if CurrentSum < BestSum then
   begin
    BestSum := CurrentSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 3;
   end;
 
@@ -3968,7 +3968,7 @@ begin
  // check if paeth filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 4;
   end;
 end;
@@ -4035,7 +4035,7 @@ begin
  if CurrentSum < BestSum then
   begin
    CurrentSum := BestSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 1;
   end;
 
@@ -4048,7 +4048,7 @@ begin
  if CurrentSum < BestSum then
   begin
    CurrentSum := BestSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 2;
   end;
 
@@ -4061,7 +4061,7 @@ begin
  if CurrentSum < BestSum then
   begin
    CurrentSum := BestSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 3;
   end;
 
@@ -4073,7 +4073,7 @@ begin
  // check if paeth filter is the current best filter
  if CurrentSum < BestSum then
   begin
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow + 1);
+   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
    OutputRow^[0] := 4;
   end;
 end;
@@ -5302,8 +5302,8 @@ begin
     // check if pre filter is used and eventually calculate pre filter
     if FHeader.ColorType <> ctIndexedColor then
      begin
-      GetMem(OutputRow, FHeader.BytesPerRow + 1);
-      GetMem(TempBuffer, FHeader.BytesPerRow + 1);
+      GetMem(OutputRow, RowByteSize + 1);
+      GetMem(TempBuffer, RowByteSize + 1);
       try
        while PassRow < FHeader.Height do
         begin
@@ -5322,7 +5322,7 @@ begin
 
          // filter current row
          EncodeFilterRow(FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow],
-           OutputRow, TempBuffer, FHeader.BytesPerRow, FHeader.PixelByteSize);
+           OutputRow, TempBuffer, RowByteSize, FHeader.PixelByteSize);
 
          // write data to data stream
          FStream.Write(OutputRow[0], RowByteSize + 1);
