@@ -22,7 +22,11 @@ implementation
 uses
   GR32_PNG, GR32_PortableNetworkGraphic;
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
+{$ENDIF}
 
 procedure TFmPngDemo.FormCreate(Sender: TObject);
 begin

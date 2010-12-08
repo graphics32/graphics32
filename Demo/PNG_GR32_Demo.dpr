@@ -1,7 +1,6 @@
 program PNG_GR32_Demo;
 
 uses
-  FastMM4,
   Forms,
   MainUnit in 'MainUnit.pas' {FmPngDemo},
   GR32_Png in '..\GR32_Png.pas',

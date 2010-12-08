@@ -36,9 +36,14 @@ interface
 
 {$I GR32_PngCompilerSwitches.inc}
 
+{$IFDEF FPC}
+{$DEFINE PUREPASCAL}
+{$ENDIF}
+
 uses
   Classes, Graphics, SysUtils,
-  {$IFDEF ZLibEx}ZLibEx, ZLibExApi {$ELSE}zlib {$ENDIF};
+  {$IFDEF FPC} ZBase, ZDeflate, ZInflate; {$ELSE}
+  {$IFDEF ZLibEx}ZLibEx, ZLibExApi; {$ELSE}zlib; {$ENDIF} {$ENDIF}
 
 type
   {$A1}
@@ -98,6 +103,10 @@ type
   TChunkName = array [0..3] of AnsiChar;
 
   EPngError = class(Exception);
+
+  {$IFDEF FPC}
+  TZStreamRec = z_stream;
+  {$ENDIF}
 
   {$A4}
   TCustomChunk = class(TInterfacedPersistent, IStreamPersist)
@@ -1195,14 +1204,21 @@ begin
   begin
    next_in := Data;
    avail_in := Size;
+   {$IFNDEF FPC}
    {$IFNDEF ZLibEx}
    zalloc := zlibAllocMem;
    zfree := zlibFreeMem;
    {$ENDIF}
+   {$ENDIF}
   end;
 
- if DeflateInit_(ZStreamRecord, Level ,ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+ {$IFDEF FPC}
+ if DeflateInit_(@ZStreamRecord, Level, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise EPngError.Create('Error during compression');
+ {$ELSE}
+ if DeflateInit_(ZStreamRecord, Level, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+  then raise EPngError.Create('Error during compression');
+ {$ENDIF}
 
  GetMem(TempBuffer, CBufferSize);
  try
@@ -1252,14 +1268,21 @@ begin
   begin
    next_in := Data;
    avail_in := Size;
+   {$IFNDEF FPC}
    {$IFNDEF ZLibEx}
    zalloc := zlibAllocMem;
    zfree := zlibFreeMem;
    {$ENDIF}
+   {$ENDIF}
   end;
 
- if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+ {$IFDEF FPC}
+ if inflateInit_(@ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise EPngError.Create('Error during decompression');
+ {$ELSE}
+ if inflateInit_(ZStreamRecord, Level, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+  then raise EPngError.Create('Error during decompression');
+ {$ENDIF}
 
  GetMem(TempBuffer, CBufferSize);
  try
@@ -4889,10 +4912,11 @@ end;
 
 procedure TPortableNetworkGraphic.AdaptiveFilterMethodsChanged;
 begin
-(*
- if FDataChunkList.Count > 0
-  then raise EPngError.Create(RCStrNotYetImplemented);
-*)
+ if FDataChunkList.Count > 0 then
+  begin
+   // transcoding!
+   raise EPngError.Create(RCStrNotYetImplemented);
+  end;
 end;
 
 procedure TPortableNetworkGraphic.InterlaceMethodChanged;
