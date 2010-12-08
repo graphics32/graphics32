@@ -4047,19 +4047,17 @@ var
   BestSum    : Cardinal;
 begin
  BestSum := 0;
- CurrentSum := 0;
  OutputRow^[0] := 0;
  for PixelIndex := 1 to BytesPerRow
   do BestSum := BestSum + CurrentRow[PixelIndex];
- Move(CurrentRow^[0], OutputRow^[0], BytesPerRow + 1);
+ Move(CurrentRow^[1], OutputRow^[1], BytesPerRow);
 
  // check whether sub pre filter shall be used
  if aafmSub in FHeader.CompressionFilterMethods then
   begin
    // calculate sub filter
    EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
-   for PixelIndex := 1 to BytesPerRow
-    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
    // check if sub filter is the current best filter
    if CurrentSum < BestSum then
@@ -4075,8 +4073,7 @@ begin
   begin
    // calculate up filter
    EncodeFilterUp(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
-   for PixelIndex := 1 to BytesPerRow
-    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
    // check if up filter is the current best filter
    if CurrentSum < BestSum then
@@ -4092,8 +4089,7 @@ begin
   begin
    // calculate average filter
    EncodeFilterAverage(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
-   for PixelIndex := 1 to BytesPerRow
-    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
    // check if average filter is the current best filter
    if CurrentSum < BestSum then
@@ -4109,8 +4105,7 @@ begin
   begin
    // calculate paeth filter
    EncodeFilterPaeth(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
-   for PixelIndex := 1 to BytesPerRow
-    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
 
    // check if paeth filter is the current best filter
    if CurrentSum < BestSum then
@@ -4894,8 +4889,10 @@ end;
 
 procedure TPortableNetworkGraphic.AdaptiveFilterMethodsChanged;
 begin
+(*
  if FDataChunkList.Count > 0
   then raise EPngError.Create(RCStrNotYetImplemented);
+*)
 end;
 
 procedure TPortableNetworkGraphic.InterlaceMethodChanged;
@@ -5289,9 +5286,12 @@ begin
  Destination := PByte(TempData);
  try
 
-  /////////////////////////////////////
-  // decode image (Adam7-interlaced) //
-  /////////////////////////////////////
+  ///////////////////////////////////
+  // decode image (non-interlaced) //
+  ///////////////////////////////////
+
+  // clear previous row
+  FillChar(FRowBuffer[1 - CurrentRow]^[0], FHeader.BytesPerRow + 1, 0);
 
   for Index := 0 to FHeader.Height - 1 do
    begin
@@ -5305,15 +5305,8 @@ begin
       PixelByteSize);
 
     // transfer data from row to temp data
-    Source := @FRowBuffer[CurrentRow][1];
-    for PassRow := 0 to FHeader.Width - 1 do
-     begin
-      // copy bytes per pixels
-      Move(Source^, Destination^, PixelByteSize);
-
-      Inc(Source, PixelByteSize);
-      Inc(Destination, PixelByteSize);
-     end;
+    Move(FRowBuffer[CurrentRow][1], Destination^, PixelByteSize * FHeader.Width);
+    Inc(Destination, FHeader.Width * PixelByteSize);
 
     // flip current row
     CurrentRow := 1 - CurrentRow;
@@ -5342,7 +5335,7 @@ begin
     PassRow := CRowStart[CurrentPass];
 
     // clear previous row
-    FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
+    FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize + 1, 0);
 
     // check if pre filter is used and eventually calculate pre filter
     if (FHeader.ColorType <> ctIndexedColor) and
@@ -5369,6 +5362,7 @@ begin
          // filter current row
          EncodeFilterRow(FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow],
            OutputRow, TempBuffer, RowByteSize, FHeader.PixelByteSize);
+         Assert(OutputRow[0] in [0..4]);
 
          // write data to data stream
          FStream.Write(OutputRow[0], RowByteSize + 1);
