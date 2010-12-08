@@ -40,7 +40,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="7">
+    <Units Count="8">
       <Unit0>
         <Filename Value="PNG_GR32_Demo.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -65,7 +65,7 @@
       </Unit1>
       <Unit2>
         <Filename Value="..\GR32_PngCompilerSwitches.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
@@ -76,7 +76,7 @@
       <Unit3>
         <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPng.pas"/>
         <UnitName Value="DAV_GuiPng"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <WindowIndex Value="0"/>
         <TopLine Value="4"/>
         <CursorPos X="1" Y="1"/>
@@ -86,7 +86,7 @@
       <Unit4>
         <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPngClasses.pas"/>
         <UnitName Value="DAV_GuiPngClasses"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <WindowIndex Value="0"/>
         <TopLine Value="119"/>
         <CursorPos X="38" Y="146"/>
@@ -99,8 +99,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="19"/>
-        <CursorPos X="3" Y="37"/>
+        <TopLine Value="47"/>
+        <CursorPos X="1" Y="64"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -111,117 +111,143 @@
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
-        <CursorPos X="7" Y="27"/>
+        <CursorPos X="30" Y="7"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit6>
+      <Unit7>
+        <Filename Value="C:\Lazarus\lcl\graphics.pp"/>
+        <UnitName Value="Graphics"/>
+        <EditorIndex Value="4"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="191"/>
+        <CursorPos X="39" Y="194"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit7>
     </Units>
-    <JumpHistory Count="26" HistoryIndex="25">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="PNG_GR32_Demo.lpr"/>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
       </Position1>
       <Position2>
-        <Filename Value="PNG_GR32_Demo.lpr"/>
-        <Caret Line="17" Column="27" TopLine="1"/>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <Caret Line="194" Column="24" TopLine="176"/>
       </Position2>
       <Position3>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="187" Column="54" TopLine="167"/>
       </Position3>
       <Position4>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="194" Column="24" TopLine="176"/>
+        <Caret Line="1199" Column="26" TopLine="1181"/>
       </Position4>
       <Position5>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="187" Column="54" TopLine="167"/>
+        <Caret Line="37" Column="20" TopLine="20"/>
       </Position5>
       <Position6>
-        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1199" Column="26" TopLine="1181"/>
-      </Position6>
-      <Position7>
-        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="37" Column="20" TopLine="20"/>
-      </Position7>
-      <Position8>
         <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPng.pas"/>
         <Caret Line="17" Column="98" TopLine="1"/>
-      </Position8>
-      <Position9>
+      </Position6>
+      <Position7>
         <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPng.pas"/>
         <Caret Line="523" Column="11" TopLine="494"/>
+      </Position7>
+      <Position8>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <Caret Line="1199" Column="26" TopLine="1181"/>
+      </Position8>
+      <Position9>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <Caret Line="41" Column="1" TopLine="13"/>
       </Position9>
       <Position10>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1199" Column="26" TopLine="1181"/>
+        <Caret Line="1189" Column="23" TopLine="1171"/>
       </Position10>
       <Position11>
-        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="41" Column="1" TopLine="13"/>
+        <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPngClasses.pas"/>
+        <Caret Line="124" Column="30" TopLine="100"/>
       </Position11>
       <Position12>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1189" Column="23" TopLine="1171"/>
+        <Caret Line="1189" Column="30" TopLine="1171"/>
       </Position12>
       <Position13>
-        <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPngClasses.pas"/>
-        <Caret Line="124" Column="30" TopLine="100"/>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <Caret Line="105" Column="3" TopLine="72"/>
       </Position13>
       <Position14>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1189" Column="30" TopLine="1171"/>
+        <Caret Line="1209" Column="1" TopLine="1186"/>
       </Position14>
       <Position15>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="105" Column="3" TopLine="72"/>
+        <Caret Line="1213" Column="1" TopLine="1193"/>
       </Position15>
       <Position16>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1209" Column="1" TopLine="1186"/>
+        <Caret Line="1273" Column="1" TopLine="1250"/>
       </Position16>
       <Position17>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1213" Column="1" TopLine="1193"/>
+        <Caret Line="1275" Column="2" TopLine="1254"/>
       </Position17>
       <Position18>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1273" Column="1" TopLine="1250"/>
+        <Caret Line="1215" Column="38" TopLine="1204"/>
       </Position18>
       <Position19>
         <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1275" Column="2" TopLine="1254"/>
+        <Caret Line="3702" Column="1" TopLine="3691"/>
       </Position19>
       <Position20>
-        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="1215" Column="38" TopLine="1204"/>
-      </Position20>
-      <Position21>
-        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
-        <Caret Line="3702" Column="1" TopLine="3691"/>
-      </Position21>
-      <Position22>
         <Filename Value="..\GR32_Png.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
-      </Position22>
-      <Position23>
+      </Position20>
+      <Position21>
         <Filename Value="..\GR32_Png.pas"/>
         <Caret Line="37" Column="2" TopLine="19"/>
-      </Position23>
-      <Position24>
+      </Position21>
+      <Position22>
         <Filename Value="PNG_GR32_Demo.lpr"/>
         <Caret Line="10" Column="8" TopLine="1"/>
-      </Position24>
-      <Position25>
+      </Position22>
+      <Position23>
         <Filename Value="PNG_GR32_Demo.lpr"/>
         <Caret Line="11" Column="7" TopLine="1"/>
+      </Position23>
+      <Position24>
+        <Filename Value="..\GR32_Png.pas"/>
+        <Caret Line="32" Column="96" TopLine="34"/>
+      </Position24>
+      <Position25>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="27" Column="7" TopLine="1"/>
       </Position25>
       <Position26>
         <Filename Value="..\GR32_Png.pas"/>
-        <Caret Line="32" Column="96" TopLine="34"/>
+        <Caret Line="37" Column="3" TopLine="19"/>
       </Position26>
+      <Position27>
+        <Filename Value="..\GR32_Png.pas"/>
+        <Caret Line="44" Column="8" TopLine="26"/>
+      </Position27>
+      <Position28>
+        <Filename Value="..\GR32_Png.pas"/>
+        <Caret Line="69" Column="25" TopLine="51"/>
+      </Position28>
+      <Position29>
+        <Filename Value="..\GR32_Png.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position29>
+      <Position30>
+        <Filename Value="..\GR32_Png.pas"/>
+        <Caret Line="69" Column="1" TopLine="40"/>
+      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

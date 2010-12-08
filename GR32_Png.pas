@@ -61,12 +61,8 @@ type
 
 implementation
 
-uses
-  Math;
-
 resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
-  RCStrUnsupportedFilter = 'Unsupported Filter';
   RCStrDataIncomplete = 'Data not complete';
 
 type

@@ -3,8 +3,8 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, GR32_Image;
+  {$IFDEF FPC} LCLIntf, {$ELSE}Windows, Messages, {$ENDIF} SysUtils, Classes,
+  Graphics, Controls, Forms, Dialogs, GR32_Image;
 
 type
   TFmPngDemo = class(TForm)
