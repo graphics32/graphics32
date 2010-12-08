@@ -699,9 +699,11 @@ var
   Index         : Integer;
   CurrentRow    : Integer;
   PixelByteSize : Integer;
+  UsedFilters   : TAvailableAdaptiveFilterMethods;
 begin
  // initialize variables
  CurrentRow := 0;
+ UsedFilters := [];
  PixelByteSize := FHeader.PixelByteSize;
 
  FillChar(FRowBuffer[1 - CurrentRow]^[0], FRowByteSize, 0);
@@ -715,12 +717,21 @@ begin
    // filter current row
    DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], FBytesPerRow, PixelByteSize);
 
+   // log used row pre filters
+   case TAdaptiveFilterMethod(FRowBuffer[CurrentRow]) of
+    afmSub     : UsedFilters := UsedFilters + [aafmSub];
+    afmUp      : UsedFilters := UsedFilters + [aafmUp];
+    afmAverage : UsedFilters := UsedFilters + [aafmAverage];
+    afmPaeth   : UsedFilters := UsedFilters + [aafmPaeth];
+   end;
+
    // transfer data from row to image
    TransferData(@FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, Index));
 
    // flip current row
    CurrentRow := 1 - CurrentRow;
   end;
+ FHeader.CompressionFilterMethods := UsedFilters;
 end;
 
 
@@ -1051,9 +1062,11 @@ var
   PixelByteSize : Integer;
   CurrentPass   : Integer;
   PassRow       : Integer;
+  UsedFilters   : TAvailableAdaptiveFilterMethods;
 begin
  // initialize variables
  CurrentRow := 0;
+ UsedFilters := [];
  PixelByteSize := FHeader.PixelByteSize;
 
  // The Adam7 interlacer uses 7 passes to create the complete image
@@ -1085,6 +1098,14 @@ begin
 
      DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], RowByteSize, PixelByteSize);
 
+     // log used row pre filters
+     case TAdaptiveFilterMethod(FRowBuffer[CurrentRow]) of
+      afmSub     : UsedFilters := UsedFilters + [aafmSub];
+      afmUp      : UsedFilters := UsedFilters + [aafmUp];
+      afmAverage : UsedFilters := UsedFilters + [aafmAverage];
+      afmPaeth   : UsedFilters := UsedFilters + [aafmPaeth];
+     end;
+
      // transfer and deinterlace image data
      TransferData(CurrentPass, @FRowBuffer[CurrentRow][1], ScanLineCallback(Bitmap, PassRow));
 
@@ -1093,6 +1114,7 @@ begin
      CurrentRow := 1 - CurrentRow;
     end;
   end;
+ FHeader.CompressionFilterMethods := UsedFilters;
 end;
 
 

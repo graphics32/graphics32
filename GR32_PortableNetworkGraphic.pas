@@ -135,18 +135,20 @@ type
 
   TChunkPngImageHeader = class(TCustomDefinedChunk)
   private
-    FWidth             : Integer;
-    FHeight            : Integer;
-    FBitDepth          : Byte;
-    FColorType         : TColorType;
-    FCompressionMethod : Byte;
-    FFilterMethod      : TFilterMethod;
-    FInterlaceMethod   : TInterlaceMethod;
+    FWidth                 : Integer;
+    FHeight                : Integer;
+    FBitDepth              : Byte;
+    FColorType             : TColorType;
+    FCompressionMethod     : Byte;
+    FFilterMethod          : TFilterMethod;
+    FInterlaceMethod       : TInterlaceMethod;
+    FAdaptiveFilterMethods : TAvailableAdaptiveFilterMethods;
     function GetHasPalette: Boolean;
     function GetBytesPerRow: Integer;
     function GetPixelByteSize: Integer;
     procedure SetCompressionMethod(const Value: Byte);
     procedure SetFilterMethod(const Value: TFilterMethod);
+    procedure SetAdaptiveFilterMethods(const Value: TAvailableAdaptiveFilterMethods);
   protected
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -162,6 +164,7 @@ type
     property BitDepth: Byte read FBitDepth write FBitDepth;
     property ColorType: TColorType read FColorType write FColorType;
     property CompressionMethod: Byte read FCompressionMethod write SetCompressionMethod;
+    property CompressionFilterMethods: TAvailableAdaptiveFilterMethods read FAdaptiveFilterMethods write SetAdaptiveFilterMethods;
     property FilterMethod: TFilterMethod read FFilterMethod write SetFilterMethod;
     property InterlaceMethod: TInterlaceMethod read FInterlaceMethod write FInterlaceMethod;
     property HasPalette: Boolean read GetHasPalette;
@@ -809,8 +812,7 @@ type
 
   TPortableNetworkGraphic = class(TInterfacedPersistent, IStreamPersist)
   private
-    FCompressionLevel      : Byte;
-    FAdaptiveFilterMethods : TAvailableAdaptiveFilterMethods;
+    FCompressionLevel : Byte;
     function GetBitDepth: Byte;
     function GetColorType: TColorType;
     function GetCompressionMethod: Byte;
@@ -833,7 +835,7 @@ type
     procedure SetColorType(const Value: TColorType);
     procedure SetCompressionMethod(const Value: Byte);
     procedure SetCompressionLevel(const Value: Byte);
-    procedure SetAdaptiveFilterMethods(const Value: TAvailableAdaptiveFilterMethods);
+    procedure SetFilterMethods(const Value: TAvailableAdaptiveFilterMethods);
     procedure SetFilterMethod(const Value: TFilterMethod);
     procedure SetGamma(const Value: Single);
     procedure SetModifiedTime(const Value: TDateTime);
@@ -854,6 +856,7 @@ type
     {$ENDIF}
     procedure ReadImageDataChunk(Stream: TStream);
     procedure ReadUnknownChunk(Stream: TStream);
+    function GetFilterMethods: TAvailableAdaptiveFilterMethods;
   protected
     FImageHeader         : TChunkPngImageHeader;
     FPaletteChunk        : TChunkPngPalette;
@@ -910,7 +913,7 @@ type
     property ColorType: TColorType read GetColorType write SetColorType;
     property CompressionMethod: Byte read GetCompressionMethod write SetCompressionMethod;
     property CompressionLevel: Byte read FCompressionLevel write SetCompressionLevel;
-    property CompressionFilterMethods: TAvailableAdaptiveFilterMethods read FAdaptiveFilterMethods write SetAdaptiveFilterMethods;
+    property CompressionFilterMethods: TAvailableAdaptiveFilterMethods read GetFilterMethods write SetFilterMethods;
     property FilterMethod: TFilterMethod read GetFilterMethod write SetFilterMethod;
     property InterlaceMethod: TInterlaceMethod read GetInterlaceMethod write SetInterlaceMethod;
     property PaletteEntry[index: Integer]: TRGB24 read GetPaletteEntry;
@@ -1516,6 +1519,7 @@ end;
 constructor TChunkPngImageHeader.Create;
 begin
  inherited;
+ FAdaptiveFilterMethods := [aafmSub, aafmUp, aafmAverage, aafmPaeth];
 
  ResetToDefault;
 end;
@@ -1525,13 +1529,14 @@ begin
  if Dest is TChunkPngImageHeader then
   with TChunkPngImageHeader(Dest) do
    begin
-    FWidth             := Self.FWidth;
-    FHeight            := Self.FHeight;
-    FBitDepth          := Self.FBitDepth;
-    FColorType         := Self.FColorType;
-    FCompressionMethod := Self.FCompressionMethod;
-    FFilterMethod      := Self.FFilterMethod;
-    FInterlaceMethod   := Self.FInterlaceMethod;
+    FWidth                 := Self.FWidth;
+    FHeight                := Self.FHeight;
+    FBitDepth              := Self.FBitDepth;
+    FColorType             := Self.FColorType;
+    FCompressionMethod     := Self.FCompressionMethod;
+    FFilterMethod          := Self.FFilterMethod;
+    FInterlaceMethod       := Self.FInterlaceMethod;
+    FAdaptiveFilterMethods := Self.FAdaptiveFilterMethods;
    end
  else inherited;
 end;
@@ -1669,6 +1674,12 @@ begin
    // write interlace method
    Write(FInterlaceMethod, 1);
   end;
+end;
+
+procedure TChunkPngImageHeader.SetAdaptiveFilterMethods(
+  const Value: TAvailableAdaptiveFilterMethods);
+begin
+ FAdaptiveFilterMethods := Value;
 end;
 
 procedure TChunkPngImageHeader.SetCompressionMethod(const Value: Byte);
@@ -3925,51 +3936,67 @@ begin
   do BestSum := BestSum + CurrentRow[PixelIndex];
  Move(CurrentRow^[1], OutputRow^[1], BytesPerRow);
 
- // calculate sub filter
- EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
-
- // check if sub filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether sub pre filter shall be used
+ if aafmSub in FHeader.CompressionFilterMethods then
   begin
-   BestSum := CurrentSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 1;
+   // calculate sub filter
+   EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
+
+   // check if sub filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     BestSum := CurrentSum;
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 1;
+    end;
   end;
 
- // calculate up filter
- EncodeFilterUp(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
-
- // check if up filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether up pre filter shall be used
+ if aafmUp in FHeader.CompressionFilterMethods then
   begin
-   BestSum := CurrentSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 2;
+   // calculate up filter
+   EncodeFilterUp(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
+
+   // check if up filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     BestSum := CurrentSum;
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 2;
+    end;
   end;
 
- // calculate average filter
- EncodeFilterAverage(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
-
- // check if average filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether average pre filter shall be used
+ if aafmAverage in FHeader.CompressionFilterMethods then
   begin
-   BestSum := CurrentSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 3;
+   // calculate average filter
+   EncodeFilterAverage(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
+
+   // check if average filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     BestSum := CurrentSum;
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 3;
+    end;
   end;
 
- // calculate paeth filter
- EncodeFilterPaeth(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
-
- // check if paeth filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether paeth pre filter shall be used
+ if aafmPaeth in FHeader.CompressionFilterMethods then
   begin
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 4;
+   // calculate paeth filter
+   EncodeFilterPaeth(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   CurrentSum := CalculateRowSum(TempBuffer, BytesPerRow);
+
+   // check if paeth filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 4;
+    end;
   end;
 end;
 
@@ -3987,8 +4014,8 @@ constructor TCustomPngTranscoder.Create(Stream: TStream;
   Palette: TChunkPngPalette);
 begin
  inherited;
- GetMem(FRowBuffer[0], FHeader.BytesPerRow);
- GetMem(FRowBuffer[1], FHeader.BytesPerRow);
+ GetMem(FRowBuffer[0], FHeader.BytesPerRow + 1);
+ GetMem(FRowBuffer[1], FHeader.BytesPerRow + 1);
 end;
 
 destructor TCustomPngTranscoder.Destroy;
@@ -4026,55 +4053,71 @@ begin
   do BestSum := BestSum + CurrentRow[PixelIndex];
  Move(CurrentRow^[0], OutputRow^[0], BytesPerRow + 1);
 
- // calculate sub filter
- EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
-
- // check if sub filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether sub pre filter shall be used
+ if aafmSub in FHeader.CompressionFilterMethods then
   begin
-   CurrentSum := BestSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 1;
+   // calculate sub filter
+   EncodeFilterSub(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   for PixelIndex := 1 to BytesPerRow
+    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+
+   // check if sub filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     CurrentSum := BestSum;
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 1;
+    end;
   end;
 
- // calculate up filter
- EncodeFilterUp(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
-
- // check if up filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether up pre filter shall be used
+ if aafmUp in FHeader.CompressionFilterMethods then
   begin
-   CurrentSum := BestSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 2;
+   // calculate up filter
+   EncodeFilterUp(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   for PixelIndex := 1 to BytesPerRow
+    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+
+   // check if up filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     CurrentSum := BestSum;
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 2;
+    end;
   end;
 
- // calculate average filter
- EncodeFilterAverage(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
-
- // check if average filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether average pre filter shall be used
+ if aafmAverage in FHeader.CompressionFilterMethods then
   begin
-   CurrentSum := BestSum;
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 3;
+   // calculate average filter
+   EncodeFilterAverage(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   for PixelIndex := 1 to BytesPerRow
+    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+
+   // check if average filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     CurrentSum := BestSum;
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 3;
+    end;
   end;
 
- // calculate paeth filter
- EncodeFilterPaeth(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
- for PixelIndex := 1 to BytesPerRow
-  do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
-
- // check if paeth filter is the current best filter
- if CurrentSum < BestSum then
+ // check whether paeth pre filter shall be used
+ if aafmPaeth in FHeader.CompressionFilterMethods then
   begin
-   Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
-   OutputRow^[0] := 4;
+   // calculate paeth filter
+   EncodeFilterPaeth(CurrentRow, PreviousRow, TempBuffer, BytesPerRow, PixelByteSize);
+   for PixelIndex := 1 to BytesPerRow
+    do CurrentSum := CurrentSum + TempBuffer[PixelIndex];
+
+   // check if paeth filter is the current best filter
+   if CurrentSum < BestSum then
+    begin
+     Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
+     OutputRow^[0] := 4;
+    end;
   end;
 end;
 
@@ -4083,13 +4126,11 @@ end;
 
 constructor TPortableNetworkGraphic.Create;
 begin
- FImageHeader           := TChunkPngImageHeader.Create;
- FDataChunkList         := TChunkList.Create;
- FAdditionalChunkList   := TChunkList.Create;
+ FImageHeader         := TChunkPngImageHeader.Create;
+ FDataChunkList       := TChunkList.Create;
+ FAdditionalChunkList := TChunkList.Create;
 
- FCompressionLevel      := Z_BEST_COMPRESSION;
- FAdaptiveFilterMethods := [];
-
+ FCompressionLevel    := Z_BEST_COMPRESSION;
  inherited;
 end;
 
@@ -4267,17 +4308,15 @@ begin
  raise EPngError.Create(RCStrColorTypeTranscodingError);
 end;
 
-procedure TPortableNetworkGraphic.SetAdaptiveFilterMethods(
+procedure TPortableNetworkGraphic.SetFilterMethods(
   const Value: TAvailableAdaptiveFilterMethods);
 begin
- if Value <> []
-  then raise EPngError.Create(RCStrNotYetImplemented);
-
- if FAdaptiveFilterMethods <> Value then
-  begin
-   FAdaptiveFilterMethods := Value;
-   AdaptiveFilterMethodsChanged;
-  end;
+ if Assigned(FImageHeader) then
+  if FImageHeader.FAdaptiveFilterMethods <> Value then
+   begin
+    FImageHeader.FAdaptiveFilterMethods := Value;
+    AdaptiveFilterMethodsChanged;
+   end;
 end;
 
 procedure TPortableNetworkGraphic.SetCompressionLevel(const Value: Byte);
@@ -4855,7 +4894,8 @@ end;
 
 procedure TPortableNetworkGraphic.AdaptiveFilterMethodsChanged;
 begin
- // nothing here yet
+ if FDataChunkList.Count > 0
+  then raise EPngError.Create(RCStrNotYetImplemented);
 end;
 
 procedure TPortableNetworkGraphic.InterlaceMethodChanged;
@@ -5104,6 +5144,11 @@ begin
  Result := FImageHeader.FilterMethod;
 end;
 
+function TPortableNetworkGraphic.GetFilterMethods: TAvailableAdaptiveFilterMethods;
+begin
+ Result := FImageHeader.FAdaptiveFilterMethods;
+end;
+
 function TPortableNetworkGraphic.GetGamma: Single;
 begin
  if Assigned(FGammaChunk)
@@ -5300,7 +5345,8 @@ begin
     FillChar(FRowBuffer[1 - CurrentRow]^[0], RowByteSize, 0);
 
     // check if pre filter is used and eventually calculate pre filter
-    if FHeader.ColorType <> ctIndexedColor then
+    if (FHeader.ColorType <> ctIndexedColor) and
+      not (FHeader.CompressionFilterMethods = []) then
      begin
       GetMem(OutputRow, RowByteSize + 1);
       GetMem(TempBuffer, RowByteSize + 1);
@@ -5461,7 +5507,8 @@ begin
   Source := PByte(TempData);
 
   // check if pre filter is used and eventually calculate pre filter
-  if FHeader.ColorType <> ctIndexedColor then
+  if (FHeader.ColorType <> ctIndexedColor) and
+    not (FHeader.CompressionFilterMethods = []) then
    begin
     GetMem(OutputRow, FHeader.BytesPerRow + 1);
     GetMem(TempBuffer, FHeader.BytesPerRow + 1);
