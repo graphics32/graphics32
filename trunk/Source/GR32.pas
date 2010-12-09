@@ -343,7 +343,7 @@ type
     { IInterface }
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
-    function QueryInterface(const IID: TGUID; out Obj): HResult; virtual; stdcall;
+    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF}IID: TGUID; out Obj): HResult; virtual; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
 
     property RefCounted: Boolean read FRefCounted write FRefCounted;
   public
@@ -508,7 +508,7 @@ type
     procedure FinalizeBackend; virtual;
     procedure SetBackend(const Backend: TCustomBackend); virtual;
 
-    function QueryInterface(const IID: TGUID; out Obj): HResult; override;
+    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} IID: TGUID; out Obj): HResult; override;
 
     function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1658,7 +1658,8 @@ begin
     Result := -1;
 end;
 
-function TPlainInterfacedPersistent.QueryInterface(const IID: TGUID; out Obj): HResult;
+function TPlainInterfacedPersistent.QueryInterface(
+  {$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF}IID: TGUID; out Obj): HResult;
 const
   E_NOINTERFACE = HResult($80004002);
 begin
@@ -1935,7 +1936,7 @@ begin
   Result := FBackend;
 end;
 
-function TCustomBitmap32.QueryInterface(const IID: TGUID; out Obj): HResult;
+function TCustomBitmap32.QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} IID: TGUID; out Obj): HResult;
 begin
   Result := FBackend.QueryInterface(IID, Obj);
   if Result <> S_OK then
@@ -5625,8 +5626,8 @@ begin
     if AALevel <= 0 then
     begin
       Sz := Self.TextExtent(PaddedText);
-      if Sz.cX>Self.Width then Sz.cX:=Self.Width;
-      if Sz.cY>Self.Height then Sz.cX:=Self.Height;
+      if Sz.cX > Self.Width then Sz.cX := Self.Width;
+      if Sz.cY > Self.Height then Sz.cX := Self.Height;
       SetSize(Sz.cX, Sz.cY);
       Font := Self.Font;
       Clear(0);
