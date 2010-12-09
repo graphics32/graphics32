@@ -1280,7 +1280,7 @@ begin
  if inflateInit_(@ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise EPngError.Create('Error during decompression');
  {$ELSE}
- if inflateInit_(ZStreamRecord, Level, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
+ if inflateInit_(ZStreamRecord, ZLIB_VERSION, SizeOf(TZStreamRec)) < 0
   then raise EPngError.Create('Error during decompression');
  {$ENDIF}
 

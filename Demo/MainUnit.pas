@@ -30,14 +30,15 @@ uses
 
 procedure TFmPngDemo.FormCreate(Sender: TObject);
 begin
- if FileExists('PNG.png') then
+ if FileExists('Demo.png') then
   with TPortableNetworkGraphic32.Create do
    try
-    LoadFromFile('PNG.png');
+    LoadFromFile('Demo.png');
     AssignTo(ImageDisplay.Bitmap);
    finally
     Free;
-   end;
+   end
+ else raise Exception.Create('File not found: Demo.png');
 
  ClientWidth := ImageDisplay.Bitmap.Width + 16;
  ClientHeight := ImageDisplay.Bitmap.Height + 16;
