@@ -822,7 +822,7 @@ function BlendRegEx_ASM(F, B, M: TColor32): TColor32;
 asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
-  // no checking for M = $FF, if this is the case when Graphics32 uses BlendReg
+  // no checking for M = $FF, in this case Graphics32 uses BlendReg
   // Result Z = Fa * M * Frgb + (1 - Fa * M) * Brgb
   // EAX <- F
   // EDX <- B
@@ -1380,22 +1380,22 @@ asm
         JNC       @2              // opaque pixel, copy without blending
 
   // blend
-        MOVD      MM0,EAX
-        PXOR      MM3,MM3
-        MOVD      MM2,[EDI]
-        PUNPCKLBW MM0,MM3
+        MOVD      MM0,EAX         // MM0  <-  00 00 00 00 Fa Fr Fg Fb
+        PXOR      MM3,MM3         // MM3  <-  00 00 00 00 00 00 00 00
+        MOVD      MM2,[EDI]       // MM2  <-  00 00 00 00 Ba Br Bg Bb
+        PUNPCKLBW MM0,MM3         // MM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
         MOV       EAX,bias_ptr
-        PUNPCKLBW MM2,MM3
-        MOVQ      MM1,MM0
-        PUNPCKHWD MM1,MM1
-        PSUBW     MM0,MM2
-        PUNPCKHDQ MM1,MM1
-        PSLLW     MM2,8
-        PMULLW    MM0,MM1
-        PADDW     MM2,[EAX]
-        PADDW     MM2,MM0
-        PSRLW     MM2,8
-        PACKUSWB  MM2,MM3
+        PUNPCKLBW MM2,MM3         // MM2  <-  00 Ba 00 Br 00 Bg 00 Bb
+        MOVQ      MM1,MM0         // MM1  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        PUNPCKHWD MM1,MM1         // MM1  <-  00 Fa 00 Fa 00 ** 00 **
+        PSUBW     MM0,MM2         // MM0  <-  00 Da 00 Dr 00 Dg 00 Db
+        PUNPCKHDQ MM1,MM1         // MM1  <-  00 Fa 00 Fa 00 Fa 00 Fa
+        PSLLW     MM2,8           // MM2  <-  Ba 00 Br 00 Bg 00 Bb 00
+        PMULLW    MM0,MM1         // MM2  <-  Pa ** Pr ** Pg ** Pb **
+        PADDW     MM2,[EAX]       // add bias
+        PADDW     MM2,MM0         // MM2  <-  Qa ** Qr ** Qg ** Qb **
+        PSRLW     MM2,8           // MM2  <-  00 Qa 00 Qr 00 Qg 00 Qb
+        PACKUSWB  MM2,MM3         // MM2  <-  00 00 00 00 Qa Qr Qg Qb
         MOVD      EAX,MM2
 
 @2:     MOV       [EDI],EAX
@@ -1492,7 +1492,7 @@ asm
         TEST      EBX,EBX
         JZ        @2              // weight is zero
 
-        CMP       EDX,$FF
+        CMP       EBX,$FF
         JZ        @4              // weight = 255  =>  copy src to dst
 
         SHL       EBX,3
@@ -2048,4 +2048,4 @@ finalization
 {$ENDIF}
 {$ENDIF}
 
-end.
+end.
