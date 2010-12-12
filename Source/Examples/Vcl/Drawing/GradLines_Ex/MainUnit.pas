@@ -98,7 +98,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -324,10 +326,5 @@ begin
   else
     PaintBox.RepaintMode := rmFull;
 end;
-
-{$IFDEF FPC}
-initialization
- {$i MainUnit.lrs}
-{$ENDIF}
 
 end.

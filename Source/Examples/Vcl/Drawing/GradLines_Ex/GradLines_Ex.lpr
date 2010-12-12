@@ -8,7 +8,7 @@ uses
   MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
 
 begin
-  Application.Title:='Gradient Lines';
+  Application.Title:='GR32 Gradient Lines Example';
   Application.Initialize;
   Application.CreateForm(TFormGradientLines, FormGradientLines);
   Application.Run;

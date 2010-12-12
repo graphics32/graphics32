@@ -6,7 +6,7 @@ uses
   MainUnit in 'MainUnit.pas' {FormRenderText};
 
 begin
-  Application.Title:='Render Text Example';
+  Application.Title:='GR32 Render Text Example';
   Application.Initialize;
   Application.CreateForm(TFormRenderText, FormRenderText);
   Application.Run;

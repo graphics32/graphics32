@@ -1,16 +1,59 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="7"/>
+    <Version Value="9"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <TargetFileExt Value=".exe"/>
-      <Title Value="Line Stippling"/>
-      <ActiveEditorIndexAtStart Value="3"/>
+      <Title Value="GR32 Line Stippling Example"/>
+      <ResourceType Value="res"/>
     </General>
+    <BuildModes Count="2">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="9"/>
+          <SearchPaths>
+            <IncludeFiles Value="../../../.."/>
+            <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="../../../.."/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <SyntaxMode Value="Delphi"/>
+              <CStyleOperator Value="False"/>
+              <CPPInline Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <UseLineInfoUnit Value="False"/>
+              <StripSymbols Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CompilerMessages>
+              <UseMsgFile Value="True"/>
+            </CompilerMessages>
+            <CompilerPath Value="$(CompPath)"/>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
       <IgnoreBinaries Value="False"/>
@@ -31,115 +74,28 @@
         <PackageName Value="GR32_L"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="8">
+    <Units Count="1">
       <Unit0>
         <Filename Value="LineStippling_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="9" Y="8"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
-        <UsageCount Value="24"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
-      <Unit1>
-        <Filename Value="MainUnit.pas"/>
-        <ComponentName Value="FormLineStippling"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="MainUnit"/>
-        <CursorPos X="60" Y="32"/>
-        <TopLine Value="21"/>
-        <EditorIndex Value="1"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="41" Y="7"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="/Lazarus/lcl/interfaces/win32/interfaces.pp"/>
-        <UnitName Value="Interfaces"/>
-        <CursorPos X="24" Y="30"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="MainUnit.dfm"/>
-        <CursorPos X="17" Y="7"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="tmp.lfm"/>
-        <CursorPos X="1" Y="28"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <UnitName Value="GR32_LowLevel"/>
-        <CursorPos X="47" Y="848"/>
-        <TopLine Value="831"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="../../../../GR32_System.pas"/>
-        <UnitName Value="GR32_System"/>
-        <CursorPos X="81" Y="70"/>
-        <TopLine Value="66"/>
-        <EditorIndex Value="3"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
-      </Unit7>
     </Units>
-    <JumpHistory Count="5" HistoryIndex="4">
-      <Position1>
-        <Filename Value="LineStippling_Ex.lpr"/>
-        <Caret Line="8" Column="9" TopLine="1"/>
-      </Position1>
-      <Position2>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="848" Column="51" TopLine="831"/>
-      </Position3>
-      <Position4>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="851" Column="28" TopLine="831"/>
-      </Position4>
-      <Position5>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="848" Column="47" TopLine="831"/>
-      </Position5>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="8"/>
+    <Version Value="9"/>
     <SearchPaths>
-      <IncludeFiles Value="../../../../"/>
-      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
-      <OtherUnitFiles Value="../../../../"/>
+      <IncludeFiles Value="../../../.."/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../../.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
+        <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
+        <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
@@ -148,17 +104,18 @@
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="True"/>
-        <StripSymbols Value="True"/>
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
-        <LinkerOptions Value="-framework carbon"/>
         <Win32>
           <GraphicApplication Value="True"/>
         </Win32>
       </Options>
     </Linking>
     <Other>
+      <CompilerMessages>
+        <UseMsgFile Value="True"/>
+      </CompilerMessages>
       <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>

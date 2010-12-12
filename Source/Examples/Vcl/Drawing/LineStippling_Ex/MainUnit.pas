@@ -57,7 +57,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -106,10 +108,5 @@ begin
     Theta := Theta + 0.2;
   end;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.

@@ -19,7 +19,7 @@ object FormPolygons: TFormPolygons
     Align = alClient
     Bitmap.ResamplerClassName = 'TKernelResampler'
     Bitmap.Resampler.KernelClassName = 'TCubicKernel'
-    Bitmap.Resampler.Kernel.Coeff = -0.80000001192092
+    Bitmap.Resampler.Kernel.Coeff = -0.80000001192093
     Bitmap.Resampler.KernelMode = kmDynamic
     Bitmap.Resampler.TableSize = 32
     BitmapAlign = baTopLeft
@@ -232,7 +232,7 @@ object FormPolygons: TFormPolygons
       Width = 105
       BorderSpacing.InnerBorder = 4
       Caption = 'New Line'
-      OnClick = Button1Click
+      OnClick = btNewLineClick
       TabOrder = 10
     end
   end
