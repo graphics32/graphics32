@@ -71,7 +71,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -186,9 +188,9 @@ var
   x, y: Single;
 begin
   // Setup some random factors:
-  a := 0.01 + random;
-  b := random * random * (PI * (20 * a)) - PI * (10 * a);
-  c := random - random;
+  a := 0.01 + Random;
+  b := Random * Random * (PI * (20 * a)) - PI * (10 * a);
+  c := Random - Random;
 
   //We use the weightmap as TexB alpha, so we write that on the loop too
   D := @TexBImg.Bitmap.Bits[0];
@@ -250,10 +252,5 @@ begin
   // Needed under Mac OS X
   CombImg.Invalidate;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.
