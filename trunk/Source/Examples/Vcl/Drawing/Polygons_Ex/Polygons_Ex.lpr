@@ -7,7 +7,7 @@ uses
   MainUnit in 'MainUnit.pas' {Form1};
 
 begin
-  Application.Title:='Polygons';
+  Application.Title:='GR32 Polygons Example';
   Application.Initialize;
   Application.CreateForm(TFormPolygons, FormPolygons);
   Application.Run;

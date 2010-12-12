@@ -71,7 +71,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -150,10 +152,5 @@ begin
   AALevel := TControl(Sender).Tag;
   Draw;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.
