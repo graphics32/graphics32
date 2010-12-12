@@ -42,9 +42,6 @@ uses
   GR32, GR32_Image, GR32_Layers, GR32_Blend, GR32_RangeBars;
 
 type
-
-  { TFormPixelCombine }
-
   TFormPixelCombine = class(TForm)
     ImgView: TImgView32;
     RadioGroup: TRadioGroup;
@@ -69,7 +66,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -82,6 +81,8 @@ uses
 {$ELSE}
   LazJPG;
 {$ENDIF}
+
+{ TFormPixelCombine }
 
 procedure TFormPixelCombine.FormCreate(Sender: TObject);
 var
@@ -210,10 +211,5 @@ begin
   end;
   L.Bitmap.Changed;
 end;
-
-{$IFDEF FPC}
-initialization
-{$i MainUnit.lrs}
-{$ENDIF}
 
 end.
