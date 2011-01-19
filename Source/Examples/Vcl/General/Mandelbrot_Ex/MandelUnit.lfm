@@ -11,6 +11,7 @@ object MainForm: TMainForm
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  LCLVersion = '0.9.28.2'
   object MainMenu: TMainMenu
     left = 24
     top = 16
@@ -18,13 +19,14 @@ object MainForm: TMainForm
       Caption = 'File'
       object miSave: TMenuItem
         Caption = 'Save...'
-        OnClick = Save1Click
+        OnClick = miSaveClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
       object miExit: TMenuItem
         Caption = 'Exit'
+        OnClick = miExitClick
       end
     end
     object miRasterizer: TMenuItem
@@ -65,7 +67,7 @@ object MainForm: TMainForm
         Caption = 'None'
         Checked = True
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object N5: TMenuItem
         Caption = '-'
@@ -74,24 +76,24 @@ object MainForm: TMainForm
         Tag = 1
         Caption = 'SuperSampler 2x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object miSuperSampler3x: TMenuItem
         Tag = 2
         Caption = 'SuperSampler 3x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object miSuperSampler4x: TMenuItem
         Tag = 3
         Caption = 'SuperSampler 4x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object miAdaptive: TMenuItem
         Caption = 'Adaptive'
         Enabled = False
-        OnClick = AdaptiveClick
+        OnClick = miAdaptiveClick
       end
       object N2: TMenuItem
         Caption = '-'
@@ -100,19 +102,19 @@ object MainForm: TMainForm
         Tag = 4
         Caption = 'PatternSampler 2x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object miPatternSampler3x: TMenuItem
         Tag = 5
         Caption = 'PatternSampler 3x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
       object miPatternSampler4x: TMenuItem
         Tag = 6
         Caption = 'PatternSampler 4x'
         RadioItem = True
-        OnClick = Default1Click
+        OnClick = miDefaultClick
       end
     end
   end
