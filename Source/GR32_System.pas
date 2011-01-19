@@ -100,7 +100,7 @@ type
   PCPUFeatures = ^TCPUFeatures;
   TCPUFeatures = set of TCPUInstructionSet;
 
-{ General function that returns whether a particular instrucion set is
+{ General function that returns whether a particular instruction set is
   supported for the current CPU or not }
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 function CPUFeatures: TCPUFeatures;
