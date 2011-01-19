@@ -399,7 +399,7 @@ end;
 
 function FastSqrtBab2(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
-// additionally two babylonian step added
+// additionally two babylonian steps added
 const
   CQuarter : TFloat = 0.25;
 {$IFNDEF XXXTARGET_x86}
