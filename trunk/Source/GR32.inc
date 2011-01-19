@@ -285,10 +285,7 @@
    GR32_FASTCODEMOVE     - Uses the patched Move routine rather than MoveLongword.
 
    For more information on the FastCode project take a look at this URL:
-     http://dennishomepage.gugs-cats.dk/FastCodeProject.htm
-
-   Libraries can be downloaded here:
-     http://dennishomepage.gugs-cats.dk/Libraries.htm
+     http://fastcode.sourceforge.net/
 
    For FastMove make sure to download the CPU id based function, ie. runtime
    RTL patching.
