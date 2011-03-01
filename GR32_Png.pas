@@ -1062,6 +1062,7 @@ var
 begin
  // initialize variables
  CurrentRow := 0;
+ RowByteSize := 0;
  UsedFilters := [];
  PixelByteSize := FHeader.PixelByteSize;
 

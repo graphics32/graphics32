@@ -4085,7 +4085,7 @@ begin
    // check if sub filter is the current best filter
    if CurrentSum < BestSum then
     begin
-     CurrentSum := BestSum;
+     BestSum := CurrentSum;
      Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
      OutputRow^[0] := 1;
     end;
@@ -4101,7 +4101,7 @@ begin
    // check if up filter is the current best filter
    if CurrentSum < BestSum then
     begin
-     CurrentSum := BestSum;
+     BestSum := CurrentSum;
      Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
      OutputRow^[0] := 2;
     end;
@@ -4117,7 +4117,7 @@ begin
    // check if average filter is the current best filter
    if CurrentSum < BestSum then
     begin
-     CurrentSum := BestSum;
+     BestSum := CurrentSum;
      Move(TempBuffer^[1], OutputRow^[1], BytesPerRow);
      OutputRow^[0] := 3;
     end;
@@ -5304,6 +5304,7 @@ var
 begin
  // initialize variables
  CurrentRow := 0;
+ RowByteSize := 0;
  PixelByteSize := FHeader.PixelByteSize;
 
  GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
@@ -5452,6 +5453,7 @@ var
 begin
  // initialize variables
  CurrentRow := 0;
+ RowByteSize := 0;
  PixelByteSize := FHeader.PixelByteSize;
 
  GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
