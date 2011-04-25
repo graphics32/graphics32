@@ -44,7 +44,7 @@ interface
 uses
   Graphics, GR32, GR32_Math, GR32_System, GR32_Bindings;
 
-{ Clamp function restricts Value to [0..255] range }
+{ Clamp function restricts value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { An analogue of FillChar for 32 bit values }
@@ -82,28 +82,31 @@ procedure TestSwap(var A, B: TFixed); overload;{$IFDEF INLININGSUPPORTED} inline
 function TestClip(var A, B: Integer; const Size: Integer): Boolean; overload;
 function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean; overload;
 
-{ Returns Value constrained to [Lo..Hi] range}
+{ Returns value constrained to [Lo..Hi] range}
 function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
-{ Returns Value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
+{ Returns value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 
-{ Clamp integer Value to [0..Max] range }
+{ Clamp integer value to [0..Max] range }
 function Clamp(Value, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 { Same but [Min..Max] range }
 function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 
-{ Wrap integer Value to [0..Max] range }
+{ Wrap integer value to [0..Max] range }
 function Wrap(Value, Max: Integer): Integer; overload;
 { Same but [Min..Max] range }
 function Wrap(Value, Min, Max: Integer): Integer; overload;
+
+{ Wrap single value to [0..Max] range }
+function Wrap(Value, Max: Single): Single; overload; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
 { Fast Wrap alternatives for cases where range + 1 is a power of two }
 function WrapPow2(Value, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 function WrapPow2(Value, Min, Max: Integer): Integer; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
 
-{ Mirror integer Value in [0..Max] range }
+{ Mirror integer value in [0..Max] range }
 function Mirror(Value, Max: Integer): Integer; overload;
 { Same but [Min..Max] range }
 function Mirror(Value, Min, Max: Integer): Integer; overload;
@@ -248,6 +251,43 @@ asm
         DEC        EDX
         JNZ        @QLoop
         EMMS
+    @ExitPOP:
+        POP        EBX
+        POP        EDI
+    @Exit:
+end;
+
+procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
+asm
+// EAX = X
+// EDX = Count
+// ECX = Value
+        CMP        EDX, 0
+        JBE        @Exit
+
+        PUSH       EDI
+        PUSH       EBX
+        MOV        EBX, EDX
+        MOV        EDI, EDX
+
+        SHR        EDI, 1
+        SHL        EDI, 1
+        SUB        EBX, EDI
+        JE         @QLoopIni
+
+        MOV        [EAX], ECX
+        ADD        EAX, 4
+        DEC        EDX
+        JZ         @ExitPOP
+    @QLoopIni:
+        MOVD       XMM1, ECX
+        PUNPCKLDQ  XMM1, XMM1
+        SHR        EDX, 1
+    @QLoop:
+        MOVQ       [EAX], XMM1
+        ADD        EAX, 8
+        DEC        EDX
+        JNZ        @QLoop
     @ExitPOP:
         POP        EBX
         POP        EDI
@@ -408,9 +448,9 @@ function TestClip(var A, B: Integer; const Size: Integer): Boolean;
 begin
   TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
   if A < 0 then
-  	A := 0;
+    A := 0;
   if B >= Size then 
-  	B := Size - 1;
+    B := Size - 1;
   Result := B >= A;
 end;
 
@@ -418,9 +458,9 @@ function TestClip(var A, B: Integer; const Start, Stop: Integer): Boolean;
 begin
   TestSwap(A, B); // now A = min(A,B) and B = max(A, B)
   if A < Start then 
-  	A := Start;
+    A := Start;
   if B >= Stop then 
-  	B := Stop - 1;
+    B := Stop - 1;
   Result := B >= A;
 end;
 
@@ -428,20 +468,20 @@ function Constrain(const Value, Lo, Hi: Integer): Integer;
 {$IFDEF PUREPASCAL}
 begin
   if Value < Lo then
-  	Result := Lo
+    Result := Lo
   else if Value > Hi then
-  	Result := Hi
+    Result := Hi
   else
-  	Result := Value;
+    Result := Value;
 {$ELSE}
 {$IFDEF USEINLINING}
 begin
   if Value < Lo then
-  	Result := Lo
+    Result := Lo
   else if Value > Hi then 
-  	Result := Hi
+    Result := Hi
   else 
-  	Result := Value;
+    Result := Value;
 {$ELSE}
 asm
         CMP       EDX,EAX
@@ -471,11 +511,11 @@ function Clamp(Value, Max: Integer): Integer;
 {$IFNDEF TARGET_x86}
 begin
   if Value > Max then 
-  	Result := Max
+    Result := Max
   else if Value < 0 then 
-  	Result := 0
+    Result := 0
   else
-  	Result := Value;
+    Result := Value;
 {$ELSE}
 asm
         CMP     EAX,EDX
@@ -496,11 +536,11 @@ function Clamp(Value, Min, Max: Integer): Integer;
 {$IFNDEF TARGET_x86}
 begin
   if Value > Max then 
-  	Result := Max
+    Result := Max
   else if Value < Min then
-  	Result := Min
+    Result := Min
   else 
-  	Result := Value;
+    Result := Value;
 {$ELSE}
 asm
         CMP       EDX,EAX
@@ -538,6 +578,17 @@ begin
     Result := Min + (Value - Min) mod (Max - Min + 1);
 end;
 
+function Wrap(Value, Max: Single): Single;
+begin
+{$IFDEF UseFloatMod}
+  Result := FloatMod(Value, Max);
+{$ELSE}
+  Result := Value;
+  while Result >= Max do Result := Result - Max;
+  while Result < 0 do Result := Result + Max;
+{$ENDIF}
+end;
+
 function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
 {$IFNDEF TARGET_x86}
 begin
@@ -565,10 +616,10 @@ begin
     Inc(Result, Max);
   end
   else
-  	DivResult := DivMod(Value, Max + 1, Result);
-  	
+    DivResult := DivMod(Value, Max + 1, Result);
+
   if Odd(DivResult) then
-  	Result := Max-Result;
+    Result := Max - Result;
 {$ELSE}
 asm
         TEST    EAX,EAX
@@ -935,6 +986,7 @@ begin
 {$IFDEF TARGET_x86}
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM, []);
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [ciMMX]);
+  Registry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [ciSSE2]);
 {$ENDIF}
 
   Registry.RebindAll;
