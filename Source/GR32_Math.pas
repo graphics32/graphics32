@@ -83,6 +83,8 @@ function Average(A, B: Integer): Integer;
 // fast sign function
 function Sign(Value: Integer): Integer;
 
+function FloatMod(x, y: Double): Double; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+
 implementation
 
 uses
@@ -559,6 +561,13 @@ asm
         ADC     EDX,EDX
         MOV     EAX,EDX
 {$ENDIF}
+end;
+
+function FloatMod(x, y: Double): Double; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+begin
+ if (y = 0)
+  then Result := X
+  else Result := x - y * Floor(x / y);
 end;
 
 end.
