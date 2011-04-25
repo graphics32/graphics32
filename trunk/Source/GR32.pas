@@ -43,7 +43,7 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LCLType, types, Controls, Graphics,{$ELSE}
+  {$IFDEF FPC} LCLIntf, LCLType, Types, Controls, Graphics,{$ELSE}
   Windows, Messages, Controls, Graphics,{$ENDIF}
   Classes, SysUtils, GR32_System;
   
@@ -866,7 +866,7 @@ var
 implementation
 
 uses
-  GR32_Blend, GR32_Filters, GR32_LowLevel, Math, GR32_Math,
+  Math, GR32_Blend, GR32_Filters, GR32_LowLevel, GR32_Math,
   GR32_Resamplers, GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
@@ -2823,8 +2823,7 @@ begin
     Result := clBlack32;
     Exit;
   end;
-  while FStippleCounter >= L do FStippleCounter := FStippleCounter - L;
-  while FStippleCounter < 0 do FStippleCounter := FStippleCounter + L;
+  FStippleCounter := Wrap(FStippleCounter, L);
   PrevIndex := Round(FStippleCounter - 0.5);
   PrevWeight := 255 - Round(255 * (FStippleCounter - PrevIndex));
   if PrevIndex < 0 then FStippleCounter := L - 1;
