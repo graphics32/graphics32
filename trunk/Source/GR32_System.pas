@@ -176,6 +176,8 @@ function TPerfTimer.ReadNanoseconds: String;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
+  Assert(FFrequency > 0);
+
   Result := IntToStr(Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency));
 end;
 
@@ -183,6 +185,8 @@ function TPerfTimer.ReadMilliseconds: String;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
+  Assert(FFrequency > 0);
+
   Result := FloatToStrF(1000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
 end;
 
@@ -190,6 +194,7 @@ function TPerfTimer.ReadValue: Int64;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
+  Assert(FFrequency > 0);
 
   Result := Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency);
 end;

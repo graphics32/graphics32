@@ -39,7 +39,7 @@ interface
 
 uses
 {$IFDEF FPC}
-  LCLIntf, LCLType, types, Controls, Graphics,
+  LCLIntf, LCLType, Types, Controls, Graphics,
 {$ELSE}
   Windows, Messages, Controls, Graphics,
 {$ENDIF}

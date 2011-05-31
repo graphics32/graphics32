@@ -2008,7 +2008,13 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
 
       if SrcBitmap.Empty then Exit;
 
-      (SrcBitmap.Backend as IDeviceContextSupport).DrawTo(Bmp.Canvas.Handle, BoundsRect, BoundsRect)
+      Bmp.Canvas.Lock;
+      try
+        (SrcBitmap.Backend as IDeviceContextSupport).DrawTo(Bmp.Canvas.Handle,
+          BoundsRect, BoundsRect)
+      finally
+        Bmp.Canvas.UnLock;
+      end;
     finally
       RestoreBackend(SrcBitmap, SavedBackend);
     end;
@@ -2054,9 +2060,14 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
       begin
         Canvas := TCanvas.Create;
         try
-          Canvas.Handle := (TargetBitmap.Backend as IDeviceContextSupport).Handle;
-          TGraphicAccess(SrcGraphic).Draw(Canvas,
-            MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
+          Canvas.Lock;
+          try
+            Canvas.Handle := (TargetBitmap.Backend as IDeviceContextSupport).Handle;
+            TGraphicAccess(SrcGraphic).Draw(Canvas,
+              MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
+          finally
+            Canvas.Unlock;
+          end;
         finally
           Canvas.Free;
         end;
