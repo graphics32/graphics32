@@ -1654,13 +1654,23 @@ end;
 procedure TPolygon32.AssignTo(Dst: TPersistent);
 var
   DstPolygon: TPolygon32;
+  Index: Integer;
 begin
   if Dst is TPolygon32 then
   begin
     DstPolygon := TPolygon32(Dst);
     CopyPropertiesTo(DstPolygon);
-    DstPolygon.Normals := Copy(Normals);
-    DstPolygon.Points := Copy(Points);
+    SetLength(DstPolygon.FNormals, Length(Normals));
+    for Index := 0 to Length(Normals) - 1 do
+    begin
+      DstPolygon.Normals[Index] := Copy(Normals[Index]);
+    end;
+
+    SetLength(DstPolygon.FPoints, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      DstPolygon.Points[Index] := Copy(Points[Index]);
+    end;
   end
   else
     inherited;
