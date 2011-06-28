@@ -3,12 +3,13 @@
   <Package Version="3">
     <PathDelim Value="\"/>
     <Name Value="GR32_L"/>
+    <Author Value="Team Graphics32"/>
     <CompilerOptions>
-      <Version Value="8"/>
+      <Version Value="10"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\"/>
-        <OtherUnitFiles Value="..\"/>
+        <IncludeFiles Value=".."/>
+        <OtherUnitFiles Value=".."/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Parsing>
@@ -16,6 +17,7 @@
           <SyntaxMode Value="Delphi"/>
           <CStyleOperator Value="False"/>
           <CPPInline Value="False"/>
+          <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>
       <Linking>
@@ -24,9 +26,35 @@
         </Debugging>
       </Linking>
       <Other>
+        <CompilerMessages>
+          <UseMsgFile Value="True"/>
+        </CompilerMessages>
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
+    <Description Value="Graphics32 is a library designed for fast 32-bit graphics handling on Delphi and Kylix. Optimized for 32-bit pixel formats, it provides fast operations with pixels and graphic primitives, and in most cases Graphics32 outperforms the standard TCanvas classes. It is almost a hundred times faster in per-pixel access and about 2–5 times faster in drawing lines. 
+
+Features Some of Graphics32 features include: 
+    * Fast per-pixel access up to 100 times faster compared to standard TBitmap;
+    * High-performance Bitmap alpha blending (including per-pixel alpha blending);
+    * Pixel, line and polygon antialiasing with sub-pixel accuracy (combined with alpha blending);
+    * Arbitrary polygon transformations and custom fillings;
+    * Bitmap resampling with high quality reconstruction filters (e.g. Lanczos, Cubic, Mitchell);
+    * A unique state-of-the-art rasterization system;
+    * Affine transformations of bitmaps: rotations, scaling, etc with sub-pixel accuracy;
+    * Arbitrary projective transformations of bitmaps;
+    * Arbitrary remapping transformations of bitmaps (e.g. for Warping, Morphing);
+    * Flexible supersampling implementation for maximum sampling quality;
+    * Flicker-free image displaying components with optimized double buffering via advanced MicroTiles? based repaint optimizer;
+    * Multiple customizible easy-to-use overlay layers;
+    * Locking of bitmaps for safe multithreading;
+    * A property editor for RGB and alpha channel loading;
+    * Design-time loading of image formats supported by standard TPicture;
+    * Works on Borland Delphi, C++ Builder and Kylix (The last version that supported Kylix was 1.8.3). 
+
+As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Public License."/>
+    <License Value="GNU Library or Lesser General Public License (LGPL)
+Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="1" Minor="9"/>
     <Files Count="20">
       <Item1>
@@ -124,7 +152,7 @@
       </Item3>
     </RequiredPkgs>
     <UsageOptions>
-      <UnitPath Value="$(PkgOutDir)\"/>
+      <UnitPath Value="$(PkgOutDir)"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
