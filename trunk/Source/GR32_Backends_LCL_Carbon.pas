@@ -650,4 +650,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.

@@ -3937,7 +3937,8 @@ begin
       FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
       FFixedClipRect.Right, FFixedClipRect.Bottom) then
     begin
-      AdvanceStippleCounter(Hypot((X2 - X1) shr 16, (Y2 - Y1) shr 16) - StippleInc[L]);
+      AdvanceStippleCounter(Hypot(Integer((X2 - X1) shr 16),
+        Integer((Y2 - Y1) shr 16) - StippleInc[L]));
       Exit;
     end;
 
@@ -3955,7 +3956,8 @@ begin
     end;
 
     if (sx <> X1) or (sy <> Y1) then
-      AdvanceStippleCounter(Hypot((X1 - sx) shr 16, (Y1 - sy) shr 16));
+      AdvanceStippleCounter(Hypot(Integer((X1 - sx) shr 16),
+        Integer((Y1 - sy) shr 16)));
 
     // If we are still here, it means that the line touches one or several bitmap
     // boundaries. Use the safe version of antialiased pixel routine
@@ -3985,7 +3987,8 @@ begin
     EMMS;
 
     if (ex <> X2) or (ey <> Y2) then
-      AdvanceStippleCounter(Hypot((X2 - ex) shr 16, (Y2 - ey) shr 16) - StippleInc[L]);
+      AdvanceStippleCounter(Hypot(Integer((X2 - ex) shr 16),
+        Integer((Y2 - ey) shr 16) - StippleInc[L]));
   end;
 
   Changed(ChangedRect, AREAINFO_LINE + 4);

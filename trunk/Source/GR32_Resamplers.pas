@@ -591,47 +591,48 @@ var
   BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
   Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
+resourcestring
+  SDstNil = 'Destination bitmap is nil';
+  SSrcNil = 'Source bitmap is nil';
+  SSrcInvalid = 'Source rectangle is invalid';
+  SSamplerNil = 'Nested sampler is nil';
+
 implementation
 
 uses
   GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
 
 const
-  SDstNil = 'Destination bitmap is nil';
-  SSrcNil = 'Source bitmap is nil';
-  SSrcInvalid = 'Source rectangle is invalid';
-  SSamplerNil = 'Nested sampler is nil';
-
-  cAlbrecht2    : array [0..1] of Double = (5.383553946707251e-1, 4.616446053292749e-1);
-  cAlbrecht3    : array [0..2] of Double = (3.46100822018625e-1,  4.97340635096738e-1,
+  CAlbrecht2    : array [0..1] of Double = (5.383553946707251e-1, 4.616446053292749e-1);
+  CAlbrecht3    : array [0..2] of Double = (3.46100822018625e-1,  4.97340635096738e-1,
                                             1.56558542884637e-1);
-  cAlbrecht4    : array [0..3] of Double = (2.26982412792069e-1,  4.57254070828427e-1,
+  CAlbrecht4    : array [0..3] of Double = (2.26982412792069e-1,  4.57254070828427e-1,
                                             2.73199027957384e-1,  4.25644884221201e-2);
-  cAlbrecht5    : array [0..4] of Double = (1.48942606015830e-1,  3.86001173639176e-1,
+  CAlbrecht5    : array [0..4] of Double = (1.48942606015830e-1,  3.86001173639176e-1,
                                             3.40977403214053e-1,  1.139879604246e-1,
                                             1.00908567063414e-2);
-  cAlbrecht6    : array [0..5] of Double = (9.71676200107429e-2,  3.08845222524055e-1,
+  CAlbrecht6    : array [0..5] of Double = (9.71676200107429e-2,  3.08845222524055e-1,
                                             3.62623371437917e-1,  1.88953325525116e-1,
                                             4.02095714148751e-2,  2.20088908729420e-3);
-  cAlbrecht7    : array [0..6] of Double = (6.39644241143904e-2,  2.39938645993528e-1,
+  CAlbrecht7    : array [0..6] of Double = (6.39644241143904e-2,  2.39938645993528e-1,
                                             3.50159563238205e-1,  2.47741118970808e-1,
                                             8.54382560558580e-2,  1.23202033692932e-2,
                                             4.37788257917735e-4);
-  cAlbrecht8    : array [0..7] of Double = (4.21072107042137e-2,  1.82076226633776e-1,
+  CAlbrecht8    : array [0..7] of Double = (4.21072107042137e-2,  1.82076226633776e-1,
                                             3.17713781059942e-1,  2.84438001373442e-1,
                                             1.36762237777383e-1,  3.34038053504025e-2,
                                             3.41677216705768e-3,  8.19649337831348e-5);
-  cAlbrecht9    : array [0..8] of Double = (2.76143731612611e-2,  1.35382228758844e-1,
+  CAlbrecht9    : array [0..8] of Double = (2.76143731612611e-2,  1.35382228758844e-1,
                                             2.75287234472237e-1,  2.98843335317801e-1,
                                             1.85319330279284e-1,  6.48884482549063e-2,
                                             1.17641910285655e-2,  8.85987580106899e-4,
                                             1.48711469943406e-5);
-  cAlbrecht10   : array [0..9] of Double = (1.79908225352538e-2,  9.87959586065210e-2,
+  CAlbrecht10   : array [0..9] of Double = (1.79908225352538e-2,  9.87959586065210e-2,
                                             2.29883817001211e-1,  2.94113019095183e-1,
                                             2.24338977814325e-1,  1.03248806248099e-1,
                                             2.75674109448523e-2,  3.83958622947123e-3,
                                             2.18971708430106e-4,  2.62981665347889e-6);
-  cAlbrecht11  : array [0..10] of Double = (1.18717127796602e-2,  7.19533651951142e-2,
+  CAlbrecht11  : array [0..10] of Double = (1.18717127796602e-2,  7.19533651951142e-2,
                                             1.87887160922585e-1,  2.75808174097291e-1,
                                             2.48904243244464e-1,  1.41729867200712e-1,
                                             5.02002976228256e-2,  1.04589649084984e-2,
@@ -1778,13 +1779,13 @@ begin
     C:= PRGBA(RowSrc);
     for ix := 1 to Dlx do
     begin
-      inc(iB, C.B);
-      inc(iG, C.G);
-      inc(iR, C.R);
-      inc(iA, C.A);
-      inc(C);
+      Inc(iB, C.B);
+      Inc(iG, C.G);
+      Inc(iR, C.R);
+      Inc(iA, C.A);
+      Inc(C);
     end;
-    inc(RowSrc, OffSrc);
+    Inc(RowSrc, OffSrc);
   end;
 
   Area := Dlx * Dly;
@@ -1798,155 +1799,228 @@ end;
 {$IFDEF TARGET_x86}
 function BlockAverage_MMX(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
 asm
-   push       ebx
-   push       esi
-   push       edi
+   PUSH       EBX
+   PUSH       ESI
+   PUSH       EDI
 
-   mov        ebx,OffSrc
-   mov        esi,eax
-   mov        edi,edx
+   MOV        EBX,OffSrc
+   MOV        ESI,EAX
+   MOV        EDI,EDX
 
-   shl        esi,$02
-   sub        ebx,esi
+   SHL        ESI,$02
+   SUB        EBX,ESI
 
-   pxor       mm1, mm1
-   pxor       mm2, mm2
-   pxor       mm7, mm7
+   PXOR       MM1, MM1
+   PXOR       MM2, MM2
+   PXOR       MM7, MM7
 
  @@LoopY:
-   mov        esi,eax
-   pxor       mm0, mm0
-   lea        ecx,[ecx+esi*4]
-   neg        esi
+   MOV        ESI,EAX
+   PXOR       MM0, MM0
+   LEA        ECX,[ECX+ESI*4]
+   NEG        ESI
  @@LoopX:
-   movd       mm6,[ecx+esi*4]
-   punpcklbw  mm6, mm7
-   paddw      mm0, mm6
-   inc        esi
-   jnz        @@LoopX
+   MOVD       MM6,[ECX+ESI*4]
+   PUNPCKLBW  MM6, MM7
+   PADDW      MM0, MM6
+   INC        ESI
+   JNZ        @@LoopX
 
-   movq       mm6, mm0
-   punpcklwd  mm6, mm7
-   paddd      mm1, mm6
-   movq       mm6, mm0
-   punpckhwd  mm6, mm7
-   paddd      mm2, mm6
-   add        ecx,ebx
-   dec        edx
-   jnz        @@LoopY
+   MOVQ       MM6, MM0
+   PUNPCKLWD  MM6, MM7
+   PADDD      MM1, MM6
+   MOVQ       MM6, MM0
+   PUNPCKHWD  MM6, MM7
+   PADDD      MM2, MM6
+   ADD        ECX,EBX
+   DEC        EDX
+   JNZ        @@LoopY
 
-   mul        edi
-   mov        ecx,eax
-   mov        eax,$01000000
-   div        ecx
-   mov        ecx,eax
+   MUL        EDI
+   MOV        ECX,EAX
+   MOV        EAX,$01000000
+   DIV        ECX
+   MOV        ECX,EAX
 
-   movd       eax, mm1
-   mul        ecx
-   shr        eax,$18
-   mov        edi,eax
+   MOVD       EAX, MM1
+   MUL        ECX
+   SHR        EAX,$18
+   MOV        EDI,EAX
 
-   psrlq      mm1, $20
-   movd       eax, mm1
-   mul        ecx
-   shr        eax,$10
-   and        eax,$0000FF00
-   add        edi,eax
+   PSRLQ      MM1, $20
+   MOVD       EAX, MM1
+   MUL        ECX
+   SHR        EAX,$10
+   AND        EAX,$0000FF00
+   ADD        EDI,EAX
 
-   movd       eax, mm2
-   mul        ecx
-   shr        eax,$08
-   and        eax,$00FF0000
-   add        edi,eax
+   MOVD       EAX, MM2
+   MUL        ECX
+   SHR        EAX,$08
+   AND        EAX,$00FF0000
+   ADD        EDI,EAX
 
-   psrlq      mm2, $20
-   movd       eax, mm2
-   mul        ecx
-   and        eax,$FF000000
-   add        eax,edi
+   PSRLQ      MM2, $20
+   MOVD       EAX, MM2
+   MUL        ECX
+   AND        EAX,$FF000000
+   ADD        EAX,EDI
 
-   pop        edi
-   pop        esi
-   pop        ebx
+   POP        EDI
+   POP        ESI
+   POP        EBX
 end;
 
-function BlockAverage_3dNow(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+function BlockAverage_3DNow(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
 asm
-   push       ebx
-   push       esi
-   push       edi
+   PUSH       EBX
+   PUSH       ESI
+   PUSH       EDI
 
-   mov        ebx,OffSrc
-   mov        esi,eax
-   mov        edi,edx
+   MOV        EBX,OffSrc
+   MOV        ESI,EAX
+   MOV        EDI,EDX
 
-   shl        esi,$02
-   sub        ebx,esi
+   SHL        ESI,$02
+   SUB        EBX,ESI
 
-   pxor       mm1, mm1
-   pxor       mm2, mm2
-   pxor       mm7, mm7
+   PXOR       MM1, MM1
+   PXOR       MM2, MM2
+   PXOR       MM7, MM7
 
  @@LoopY:
-   mov        esi,eax
-   pxor       mm0, mm0
-   lea        ecx,[ecx+esi*4]
-   neg        esi
-   db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ecx + esi * 4 + 512]
+   MOV        ESI,EAX
+   PXOR       MM0, MM0
+   LEA        ECX,[ECX+ESI*4]
+   NEG        ESI
+   db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ECX + ESI * 4 + 512]
  @@LoopX:
-   movd       mm6, [ecx + esi * 4]
-   punpcklbw  mm6, mm7
-   paddw      mm0, mm6
-   inc        esi
+   MOVD       MM6, [ECX + ESI * 4]
+   PUNPCKLBW  MM6, MM7
+   PADDW      MM0, MM6
+   INC        ESI
 
-   jnz        @@LoopX
+   JNZ        @@LoopX
 
-   movq       mm6, mm0
-   punpcklwd  mm6, mm7
-   paddd      mm1, mm6
-   movq       mm6, mm0
-   punpckhwd  mm6, mm7
-   paddd      mm2, mm6
-   add        ecx,ebx
-   dec        edx
+   MOVQ       MM6, MM0
+   PUNPCKLWD  MM6, MM7
+   PADDD      MM1, MM6
+   MOVQ       MM6, MM0
+   PUNPCKHWD  MM6, MM7
+   PADDD      MM2, MM6
+   ADD        ECX,EBX
+   DEC        EDX
 
-   jnz        @@LoopY
+   JNZ        @@LoopY
 
-   mul        edi
-   mov        ecx,eax
-   mov        eax,$01000000
-   div        ecx
-   mov        ecx,eax
+   MUL        EDI
+   MOV        ECX,EAX
+   MOV        EAX,$01000000
+   div        ECX
+   MOV        ECX,EAX
 
-   movd       eax, mm1
-   mul        ecx
-   shr        eax,$18
-   mov        edi,eax
+   MOVD       EAX, MM1
+   MUL        ECX
+   SHR        EAX,$18
+   MOV        EDI,EAX
 
-   psrlq      mm1, $20
-   movd       eax, mm1
-   mul        ecx
-   shr        eax,$10
-   and        eax,$0000FF00
-   add        edi,eax
+   PSRLQ      MM1, $20
+   MOVD       EAX, MM1
+   MUL        ECX
+   SHR        EAX,$10
+   AND        EAX,$0000FF00
+   ADD        EDI,EAX
 
-   movd       eax, mm2
-   mul        ecx
-   shr        eax,$08
-   and        eax,$00FF0000
-   add        edi,eax
+   MOVD       EAX, MM2
+   MUL        ECX
+   SHR        EAX,$08
+   AND        EAX,$00FF0000
+   ADD        EDI,EAX
 
-   psrlq      mm2, $20
-   movd       eax, mm2
-   mul        ecx
-   and        eax,$FF000000
-   add        eax,edi
+   PSRLQ      MM2, $20
+   MOVD       EAX, MM2
+   MUL        ECX
+   AND        EAX,$FF000000
+   ADD        EAX,EDI
 
-   pop        edi
-   pop        esi
-   pop        ebx
+   POP        EDI
+   POP        ESI
+   POP        EBX
 end;
 
+function BlockAverage_SSE2(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+asm
+   PUSH       EBX
+   PUSH       ESI
+   PUSH       EDI
+
+   MOV        EBX,OffSrc
+   MOV        ESI,EAX
+   MOV        EDI,EDX
+
+   SHL        ESI,$02
+   SUB        EBX,ESI
+
+   PXOR       XMM1, XMM1
+   PXOR       XMM2, XMM2
+   PXOR       XMM7, XMM7
+
+ @@LoopY:
+   MOV        ESI,EAX
+   PXOR       XMM0, XMM0
+   LEA        ECX,[ECX+ESI*4]
+   NEG        ESI
+ @@LoopX:
+   MOVD       XMM6,[ECX+ESI*4]
+   PUNPCKLBW  XMM6, XMM7
+   PADDW      XMM0, XMM6
+   INC        ESI
+   JNZ        @@LoopX
+
+   MOVQ       XMM6, XMM0
+   PUNPCKLWD  XMM6, XMM7
+   PADDD      XMM1, XMM6
+   MOVQ       XMM6, XMM0
+   PUNPCKHWD  XMM6, XMM7
+   PADDD      XMM2, XMM6
+   ADD        ECX,EBX
+   DEC        EDX
+   JNZ        @@LoopY
+
+   MUL        EDI
+   MOV        ECX,EAX
+   MOV        EAX,$01000000
+   DIV        ECX
+   MOV        ECX,EAX
+
+   MOVD       EAX, XMM1
+   MUL        ECX
+   SHR        EAX,$18
+   MOV        EDI,EAX
+
+   PSRLQ      XMM1, $20
+   MOVD       EAX, XMM1
+   MUL        ECX
+   SHR        EAX,$10
+   AND        EAX,$0000FF00
+   ADD        EDI,EAX
+
+   MOVD       EAX, XMM2
+   MUL        ECX
+   SHR        EAX,$08
+   AND        EAX,$00FF0000
+   ADD        EDI,EAX
+
+   PSRLQ      XMM2, $20
+   MOVD       EAX, XMM2
+   MUL        ECX
+   AND        EAX,$FF000000
+   ADD        EAX,EDI
+
+   POP        EDI
+   POP        ESI
+   POP        EBX
+end;
 {$ENDIF}
 
 
@@ -2113,6 +2187,43 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM0
         MOVD      EAX,MM2
+end;
+
+function Interpolator_SSE2(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
+asm
+        MOVQ      XMM1,[ECX]
+        MOVQ      XMM2,XMM1
+        MOV       ECX,C21
+        MOVQ      XMM3,[ECX]
+        PSRLQ     XMM1,32
+        MOVQ      XMM4,XMM3
+        PSRLQ     XMM3,32
+        MOVD      XMM5,EAX
+        PSHUFLW   XMM5,XMM5,0
+        PXOR      XMM0,XMM0
+        PUNPCKLBW XMM1,XMM0
+        PUNPCKLBW XMM2,XMM0
+        PSUBW     XMM2,XMM1
+        PMULLW    XMM2,XMM5
+        PSLLW     XMM1,8
+        PADDW     XMM2,XMM1
+        PSRLW     XMM2,8
+        PUNPCKLBW XMM3,XMM0
+        PUNPCKLBW XMM4,XMM0
+        PSUBW     XMM4,XMM3
+        PSLLW     XMM3,8
+        PMULLW    XMM4,XMM5
+        PADDW     XMM4,XMM3
+        PSRLW     XMM4,8
+        MOVD      XMM5,EDX
+        PSHUFLW   XMM5,XMM5,0
+        PSUBW     XMM2,XMM4
+        PMULLW    XMM2,XMM5
+        PSLLW     XMM4,8
+        PADDW     XMM2,XMM4
+        PSRLW     XMM2,8
+        PACKUSWB  XMM2,XMM0
+        MOVD      EAX,XMM2
 end;
 {$ENDIF}
 
@@ -2302,7 +2413,7 @@ end;
 
 { TWindowedSincKernel }
 
-function Sinc(Value: TFloat): TFloat;
+function SInc(Value: TFloat): TFloat;
 begin
   if Value <> 0 then
   begin
@@ -2322,7 +2433,7 @@ function TWindowedSincKernel.Filter(Value: TFloat): TFloat;
 begin
   Value := Abs(Value);
   if Value < FWidth then
-    Result := Sinc(Value) * Window(Value)
+    Result := SInc(Value) * Window(Value)
   else
     Result := 0;
 end;
@@ -2353,7 +2464,7 @@ end;
 constructor TAlbrechtKernel.Create;
 begin
   inherited;
-  Terms := 11;
+  Terms := 7;
 end;
 
 procedure TAlbrechtKernel.SetTerms(Value: Integer);
@@ -2364,16 +2475,16 @@ begin
   begin
     FTerms := Value;
     case Value of
-      2 : Move(cAlbrecht2 [0], fCoefPointer[0], Value * SizeOf(Double));
-      3 : Move(cAlbrecht3 [0], fCoefPointer[0], Value * SizeOf(Double));
-      4 : Move(cAlbrecht4 [0], fCoefPointer[0], Value * SizeOf(Double));
-      5 : Move(cAlbrecht5 [0], fCoefPointer[0], Value * SizeOf(Double));
-      6 : Move(cAlbrecht6 [0], fCoefPointer[0], Value * SizeOf(Double));
-      7 : Move(cAlbrecht7 [0], fCoefPointer[0], Value * SizeOf(Double));
-      8 : Move(cAlbrecht8 [0], fCoefPointer[0], Value * SizeOf(Double));
-      9 : Move(cAlbrecht9 [0], fCoefPointer[0], Value * SizeOf(Double));
-     10 : Move(cAlbrecht10[0], fCoefPointer[0], Value * SizeOf(Double));
-     11 : Move(cAlbrecht11[0], fCoefPointer[0], Value * SizeOf(Double));
+      2 : Move(CAlbrecht2 [0], FCoefPointer[0], Value * SizeOf(Double));
+      3 : Move(CAlbrecht3 [0], FCoefPointer[0], Value * SizeOf(Double));
+      4 : Move(CAlbrecht4 [0], FCoefPointer[0], Value * SizeOf(Double));
+      5 : Move(CAlbrecht5 [0], FCoefPointer[0], Value * SizeOf(Double));
+      6 : Move(CAlbrecht6 [0], FCoefPointer[0], Value * SizeOf(Double));
+      7 : Move(CAlbrecht7 [0], FCoefPointer[0], Value * SizeOf(Double));
+      8 : Move(CAlbrecht8 [0], FCoefPointer[0], Value * SizeOf(Double));
+      9 : Move(CAlbrecht9 [0], FCoefPointer[0], Value * SizeOf(Double));
+     10 : Move(CAlbrecht10[0], FCoefPointer[0], Value * SizeOf(Double));
+     11 : Move(CAlbrecht11[0], FCoefPointer[0], Value * SizeOf(Double));
     end;
   end;
 end;
@@ -2383,13 +2494,13 @@ var
   cs : Double;
   i  : Integer;
 begin
-  cs := cos(Pi * Value * FWidthReciprocal);
-  i := fTerms - 1;
-  result := fCoefPointer[i];
-  while i>0 do
+  cs := Cos(Pi * Value * FWidthReciprocal);
+  i := FTerms - 1;
+  Result := FCoefPointer[i];
+  while i > 0 do
   begin
-    dec(i);
-    result := result * cs + fCoefPointer[i];
+    Dec(i);
+    Result := Result * cs + FCoefPointer[i];
   end;
 end;
 
@@ -2397,7 +2508,7 @@ end;
 
 function TLanczosKernel.Window(Value: TFloat): TFloat;
 begin
-  Result := Sinc(Value * FWidthReciprocal); // Get rid of division
+  Result := SInc(Value * FWidthReciprocal); // Get rid of division
 end;
 
 { TMitchellKernel }
@@ -3491,13 +3602,13 @@ end;
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 begin
   if not Assigned(ResamplerList) then ResamplerList := TClassList.Create;
-  ResamplerList.Add(ResamplerClass);
+  ResamplerList.ADD(ResamplerClass);
 end;
 
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 begin
   if not Assigned(KernelList) then KernelList := TClassList.Create;
-  KernelList.Add(KernelClass);
+  KernelList.ADD(KernelClass);
 end;
 
 { TNestedSampler }
@@ -3806,12 +3917,14 @@ begin
   Registry.RegisterBinding(FID_BLOCKAVERAGE, @@BlockAverage);
   Registry.RegisterBinding(FID_INTERPOLATOR, @@Interpolator);
 
-  Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_Pas);
-  Registry.Add(FID_INTERPOLATOR, @Interpolator_Pas);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_Pas);
+  Registry.ADD(FID_INTERPOLATOR, @Interpolator_Pas);
 {$IFDEF TARGET_x86}
-  Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
-  Registry.Add(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
-  Registry.Add(FID_INTERPOLATOR, @Interpolator_MMX, [ciSSE]);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
+  Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_SSE2, [ciSSE2]);
+  Registry.ADD(FID_INTERPOLATOR, @Interpolator_MMX, [ciMMX, ciSSE]);
+  Registry.ADD(FID_INTERPOLATOR, @Interpolator_SSE2, [ciSSE2]);
 {$ENDIF}
   Registry.RebindAll;
 end;

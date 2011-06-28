@@ -39,7 +39,7 @@ interface
 {$I GR32.inc}
 
 uses
-  LCLIntf, LCLType, types, Controls, SysUtils, Classes,
+  LCLIntf, LCLType, Types, Controls, SysUtils, Classes,
   Graphics, GR32, GR32_Backends, GR32_Containers, GR32_Image;
 
 type
@@ -436,9 +436,13 @@ end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
-  StretchDIBits(
+  BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX, DstY,
+    SRCCOPY);
+(*
+StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,
     0, 0, FOwner.Width, FOwner.Height, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+*)
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);

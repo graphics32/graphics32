@@ -1512,7 +1512,7 @@ begin
           MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
           for J := Left to Right - 1 do
           begin
-            P := FixedPoint(J - Left, I - Top);
+            P := FixedPoint(Integer(J - Left), Integer(I - Top));
             Q := Transformation.ReverseTransform(P);
             Inc(MapPtr[J].X, Q.X - P.X);
             Inc(MapPtr[J].Y, Q.Y - P.Y);
@@ -1527,7 +1527,7 @@ begin
           MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
           for J := Left to Right - 1 do
           begin
-            P := FixedPoint(J - Left, I - Top);
+            P := FixedPoint(Integer(J - Left), Integer(I - Top));
             Q := Transformation.ReverseTransform(P);
             MapPtr[J].X := Q.X - P.X;
             MapPtr[J].Y := Q.Y - P.Y;
@@ -1544,7 +1544,7 @@ begin
       MapPtr := @VectorMap.Vectors[I * VectorMap.Width];
       for J := Left to Right - 1 do
       begin
-        P := FixedPoint(J - Left, I - Top);
+        P := FixedPoint(Integer(J - Left), Integer(I - Top));
         Q := Transformation.ReverseTransform(P);
         Q.X := Q.X - P.X;
         Q.Y := Q.Y - P.Y;
