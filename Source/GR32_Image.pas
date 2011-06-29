@@ -1709,8 +1709,8 @@ begin
   else
     Layer := nil;
 
-  // unlock the capture only if mbLeft was raised and there is no active mouse listeners
-  if (Button = mbLeft) and (TLayerCollectionAccess(Layers).MouseListener = nil) then
+  // unlock the capture using same criteria as was used to acquire it
+  if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
     MouseCapture := False;
 
   MouseUp(Button, Shift, X, Y, Layer);
