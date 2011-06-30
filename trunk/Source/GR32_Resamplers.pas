@@ -3392,24 +3392,24 @@ function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
   U, V: TFixed;
 begin
-  FTransformationReverseTransformFixed(X * FixedOne, Y * FixedOne, U, V);
-  Result := FGetSampleFixed(U, V);
+  FTransformationReverseTransformFixed(X * FixedOne + FixedHalf, Y * FixedOne + FixedHalf, U, V);
+  Result := FGetSampleFixed(U - FixedHalf, V - FixedHalf);
 end;
 
 function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
 begin
-  FTransformationReverseTransformFixed(X, Y, U, V);
-  Result := FGetSampleFixed(U, V);
+  FTransformationReverseTransformFixed(X + FixedHalf, Y + FixedHalf, U, V);
+  Result := FGetSampleFixed(U - FixedHalf, V - FixedHalf);
 end;
 
 function TTransformer.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   U, V: TFloat;
 begin
-  FTransformationReverseTransformFloat(X, Y, U, V);
-  Result := FGetSampleFloat(U, V);
+  FTransformationReverseTransformFloat(X + 0.5, Y + 0.5, U, V);
+  Result := FGetSampleFloat(U - 0.5, V - 0.5);
 end;
 
 procedure TTransformer.SetTransformation(const Value: TTransformation);
