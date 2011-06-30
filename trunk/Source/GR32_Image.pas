@@ -2379,18 +2379,10 @@ begin
   end
   else
   begin
-    if W = Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetHorz := -HScroll.Position + ScaledOversize
-    else
-
     if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
       OffsetHorz := (W - Sz.Cx) / 2
     else
       OffsetHorz := -HScroll.Position + ScaledOversize;
-
-    if H = Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetVert := -VScroll.Position + ScaledOversize
-    else
 
     if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
       OffsetVert := (H - Sz.Cy) / 2
