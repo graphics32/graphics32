@@ -565,7 +565,7 @@ type
 implementation
 
 uses
-  TypInfo, GR32_MicroTiles, GR32_Backends, GR32_XPThemes;
+  Math, TypInfo, GR32_MicroTiles, GR32_Backends, GR32_XPThemes;
 
 type
   TBitmap32Access = class(TBitmap32);
@@ -1251,8 +1251,8 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := Trunc((X - CachedShiftX) * CachedRecScaleX);
-    Result.Y := Trunc((Y - CachedShiftY) * CachedRecScaleY);
+    Result.X := Floor((X - CachedShiftX) * CachedRecScaleX);
+    Result.Y := Floor((Y - CachedShiftY) * CachedRecScaleY);
   end;
 end;
 
@@ -2379,10 +2379,18 @@ begin
   end
   else
   begin
+    if W = Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
+      OffsetHorz := -HScroll.Position + ScaledOversize
+    else
+
     if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
       OffsetHorz := (W - Sz.Cx) / 2
     else
       OffsetHorz := -HScroll.Position + ScaledOversize;
+
+    if H = Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
+      OffsetVert := -VScroll.Position + ScaledOversize
+    else
 
     if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
       OffsetVert := (H - Sz.Cy) / 2
