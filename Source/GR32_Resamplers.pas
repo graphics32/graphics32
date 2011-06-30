@@ -864,14 +864,13 @@ begin
     OffsetRect(SrcRect, SrcX - DstX, SrcY - DstY);
 
     if not IsRectEmpty(SrcRect) then
-    try
-      BlendBlock(Dst, DstClip, Src, SrcRect.Left, SrcRect.Top, CombineOp, CombineCallBack);
-    finally
-      EMMS;
-    end;
+      try
+        BlendBlock(Dst, DstClip, Src, SrcRect.Left, SrcRect.Top, CombineOp, CombineCallBack);
+      finally
+        EMMS;
+      end;
   end;
-
-  Dst.Changed(MakeRect(DstX, DstY, DstX + SrcWidth, DstY + SrcHeight));
+  Dst.Changed(DstClip);
 end;
 
 {$WARNINGS OFF}
