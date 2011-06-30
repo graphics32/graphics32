@@ -847,29 +847,32 @@ begin
   SrcWidth := SrcRect.Right - SrcRect.Left;
   SrcHeight := SrcRect.Bottom - SrcRect.Top;
 
+  SrcX := SrcRect.Left;
+  SrcY := SrcRect.Top;
+
+  IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+  IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+
+  OffsetRect(SrcRect, DstX - SrcX, DstY - SrcY);
+  IntersectRect(SrcRect, DstClip, SrcRect);
+  if IsRectEmpty(SrcRect) then
+    exit;
+
+  DstClip := SrcRect;
+  OffsetRect(SrcRect, SrcX - DstX, SrcY - DstY);
+
   if not Dst.MeasuringMode then
   begin
-    if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
-      CombineOp := dmOpaque;
+    try
+      if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
+        CombineOp := dmOpaque;
 
-    SrcX := SrcRect.Left;
-    SrcY := SrcRect.Top;
-
-    IntersectRect(DstClip, DstClip, Dst.BoundsRect);
-    IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
-
-    OffsetRect(SrcRect, DstX - SrcX, DstY - SrcY);
-    IntersectRect(SrcRect, DstClip, SrcRect);
-    DstClip := SrcRect;
-    OffsetRect(SrcRect, SrcX - DstX, SrcY - DstY);
-
-    if not IsRectEmpty(SrcRect) then
-      try
-        BlendBlock(Dst, DstClip, Src, SrcRect.Left, SrcRect.Top, CombineOp, CombineCallBack);
-      finally
-        EMMS;
-      end;
+      BlendBlock(Dst, DstClip, Src, SrcRect.Left, SrcRect.Top, CombineOp, CombineCallBack);
+    finally
+      EMMS;
+    end;
   end;
+
   Dst.Changed(DstClip);
 end;
 
@@ -900,46 +903,46 @@ begin
   SrcRectW := SrcRect.Right - SrcRect.Left - 1;
   SrcRectH := SrcRect.Bottom - SrcRect.Top - 1;
 
+  FracX := (DstX and $FFFF) shr 8;
+  FracY := (DstY and $FFFF) shr 8;
+
+  DstX := DstX div $10000;
+  DstY := DstY div $10000;
+
+  DstW := Dst.Width;
+  DstH := Dst.Height;
+
+  MA := Src.MasterAlpha;
+
+  if (DstX >= DstW) or (DstY >= DstH) or (MA = 0) then Exit;
+
+  if (DstX + SrcRectW <= 0) or (Dsty + SrcRectH <= 0) then Exit;
+
+  if DstX < 0 then LW := $FF else LW := FracX xor $FF;
+  if DstY < 0 then TW := $FF else TW := FracY xor $FF;
+  if DstX + SrcRectW >= DstW then RW := $FF else RW := FracX;
+  if DstY + SrcRectH >= DstH then BW := $FF else BW := FracY;
+
+  DstBounds := Dst.BoundsRect;
+  Dec(DstBounds.Right);
+  Dec(DstBounds.Bottom);
+  OffsetRect(DstBounds, SrcRect.Left - DstX, SrcRect.Top - DstY);
+  IntersectRect(SrcRect, SrcRect, DstBounds);
+
+  if IsRectEmpty(SrcRect) then Exit;
+
+  SrcW := Src.Width;
+
+  SrcRectW := SrcRect.Right - SrcRect.Left;
+  SrcRectH := SrcRect.Bottom - SrcRect.Top;
+
+  if DstX < 0 then DstX := 0;
+  if DstY < 0 then DstY := 0;
+
   if not Dst.MeasuringMode then
   begin
-    FracX := (DstX and $FFFF) shr 8;
-    FracY := (DstY and $FFFF) shr 8;
-
-    DstX := DstX div $10000;
-    DstY := DstY div $10000;
-
-    DstW := Dst.Width;
-    DstH := Dst.Height;
-
-    MA := Src.MasterAlpha;
-
-    if (DstX >= DstW) or (DstY >= DstH) or (MA = 0) then Exit;
-
-    if (DstX + SrcRectW <= 0) or (Dsty + SrcRectH <= 0) then Exit;
-
-    if DstX < 0 then LW := $FF else LW := FracX xor $FF;
-    if DstY < 0 then TW := $FF else TW := FracY xor $FF;
-    if DstX + SrcRectW >= DstW then RW := $FF else RW := FracX;
-    if DstY + SrcRectH >= DstH then BW := $FF else BW := FracY;
-
-    DstBounds := Dst.BoundsRect;
-    Dec(DstBounds.Right);
-    Dec(DstBounds.Bottom);
-    OffsetRect(DstBounds, SrcRect.Left - DstX, SrcRect.Top - DstY);
-    IntersectRect(SrcRect, SrcRect, DstBounds);
-
-    if IsRectEmpty(SrcRect) then Exit;
-
-    SrcW := Src.Width;
-
-    SrcRectW := SrcRect.Right - SrcRect.Left;
-    SrcRectH := SrcRect.Bottom - SrcRect.Top;
-
     SetLength(Buffer[0], SrcRectW + 1);
     SetLength(Buffer[1], SrcRectW + 1);
-
-    if DstX < 0 then DstX := 0;
-    if DstY < 0 then DstY := 0;
 
     BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
     BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
