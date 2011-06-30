@@ -195,6 +195,7 @@ type
 const
   // Fixed point math constants
   FixedOne = $10000;
+  FixedHalf = $7FFF;
   FixedPI  = Round(PI * FixedOne);
   FixedToFloat = 1/FixedOne;
 

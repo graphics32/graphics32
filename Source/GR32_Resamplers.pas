@@ -2788,6 +2788,11 @@ begin
 end;
 
 {$WARNINGS OFF}
+function Div255(n: Cardinal): Cardinal; inline; // Returns n/255
+begin
+  Result := (n * $8081) shr 23;
+end;
+
 function TKernelResampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   clX, clY: Integer;
@@ -2810,6 +2815,9 @@ var
   HorzEntry, VertEntry: TBufferEntry;
   MappingX: TKernelEntry;
   Edge: Boolean;
+
+  Alpha: integer;
+  OuterPremultColorR, OuterPremultColorG, OuterPremultColorB: Byte;
 begin
   Width := Ceil(FKernel.GetWidth);
 
@@ -2966,11 +2974,25 @@ begin
             HorzEntry := EMPTY_ENTRY;
             for J := LoX to HiX do
             begin
-              W := PHorzKernel[J];
-              Inc(HorzEntry.A, SrcP.A * W);
-              Inc(HorzEntry.R, SrcP.R * W);
-              Inc(HorzEntry.G, SrcP.G * W);
-              Inc(HorzEntry.B, SrcP.B * W);
+              // Alpha=0 should not contribute to sample.
+              Alpha := SrcP.A;
+              if (Alpha <> 0) then
+              begin
+                W := PHorzKernel[J];
+                Inc(HorzEntry.A, Alpha * W);
+                // Sample premultiplied values
+                if (Alpha = 255) then
+                begin
+                  Inc(HorzEntry.R, SrcP.R * W);
+                  Inc(HorzEntry.G, SrcP.G * W);
+                  Inc(HorzEntry.B, SrcP.B * W);
+                end else
+                begin
+                  Inc(HorzEntry.R, Div255(Alpha * SrcP.R) * W);
+                  Inc(HorzEntry.G, Div255(Alpha * SrcP.G) * W);
+                  Inc(HorzEntry.B, Div255(Alpha * SrcP.B) * W);
+                end;
+              end;
               Inc(SrcP);
             end;
             Inc(VertEntry.A, HorzEntry.A * Wv);
@@ -2981,53 +3003,40 @@ begin
           Inc(SrcP, Incr);
         end;
 
-        if (PixelAccessMode <> pamUnsafe) and Edge then
+        if (PixelAccessMode = pamSafe) and Edge then
         begin
-          if PixelAccessMode = pamSafe then
-           for I := -Width to Width do
-           begin
-             Wv := PVertKernel[I];
-             if Wv <> 0 then
-             begin
-               HorzEntry := EMPTY_ENTRY;
-               for J := -Width to Width do
-               if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
-               begin
-                 W := PHorzKernel[J];
-                 Inc(HorzEntry.A, TColor32Entry(FOuterColor).A * W);
-                 Inc(HorzEntry.R, TColor32Entry(FOuterColor).R * W);
-                 Inc(HorzEntry.G, TColor32Entry(FOuterColor).G * W);
-                 Inc(HorzEntry.B, TColor32Entry(FOuterColor).B * W);
-               end;
-               Inc(VertEntry.A, HorzEntry.A * Wv);
-               Inc(VertEntry.R, HorzEntry.R * Wv);
-               Inc(VertEntry.G, HorzEntry.G * Wv);
-               Inc(VertEntry.B, HorzEntry.B * Wv);
-             end;
-           end
-          else
-           for I := -Width to Width do
-           begin
-             Wv := PVertKernel[I];
-             if Wv <> 0 then
-             begin
-               HorzEntry := EMPTY_ENTRY;
-               P := Clamp(clY + I, Bitmap.Height - 1);
-               for J := -Width to Width do
-               if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
-               with TColor32Entry(Bitmap.Pixel[Clamp(clX + J, Bitmap.Width - 1), P]) do
-               begin
-                 W := PHorzKernel[J];
-                 //exclude alpha, implicit transparent edge
-                 Inc(HorzEntry.R, R * W);
-                 Inc(HorzEntry.G, G * W);
-                 Inc(HorzEntry.B, B * W);
-               end;
-               Inc(VertEntry.R, HorzEntry.R * Wv);
-               Inc(VertEntry.G, HorzEntry.G * Wv);
-               Inc(VertEntry.B, HorzEntry.B * Wv);
-             end;
-           end;
+          Alpha := TColor32Entry(FOuterColor).A;
+
+          // Alpha=0 should not contribute to sample.
+          if (Alpha <> 0) then
+          begin
+            // Sample premultiplied values
+            OuterPremultColorR := Div255(Alpha * TColor32Entry(FOuterColor).R);
+            OuterPremultColorG := Div255(Alpha * TColor32Entry(FOuterColor).G);
+            OuterPremultColorB := Div255(Alpha * TColor32Entry(FOuterColor).B);
+
+            for I := -Width to Width do
+            begin
+              Wv := PVertKernel[I];
+              if Wv <> 0 then
+              begin
+                HorzEntry := EMPTY_ENTRY;
+                for J := -Width to Width do
+                  if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
+                  begin
+                    W := PHorzKernel[J];
+                    Inc(HorzEntry.A, Alpha * W);
+                    Inc(HorzEntry.R, OuterPremultColorR * W);
+                    Inc(HorzEntry.G, OuterPremultColorG * W);
+                    Inc(HorzEntry.B, OuterPremultColorB * W);
+                  end;
+                Inc(VertEntry.A, HorzEntry.A * Wv);
+                Inc(VertEntry.R, HorzEntry.R * Wv);
+                Inc(VertEntry.G, HorzEntry.G * Wv);
+                Inc(VertEntry.B, HorzEntry.B * Wv);
+              end;
+            end
+          end;
         end;
       end;
 
@@ -3049,12 +3058,26 @@ begin
             HorzEntry := EMPTY_ENTRY;
             for J := -Width to Width do
             begin
-              W := PHorzKernel[J];
               C := Colors[MappingX[J]];
-              Inc(HorzEntry.A, C.A * W);
-              Inc(HorzEntry.R, C.R * W);
-              Inc(HorzEntry.G, C.G * W);
-              Inc(HorzEntry.B, C.B * W);
+              Alpha := C.A;
+              // Alpha=0 should not contribute to sample.
+              if (Alpha <> 0) then
+              begin
+                W := PHorzKernel[J];
+                Inc(HorzEntry.A, Alpha * W);
+                // Sample premultiplied values
+                if (Alpha = 255) then
+                begin
+                  Inc(HorzEntry.R, C.R * W);
+                  Inc(HorzEntry.G, C.G * W);
+                  Inc(HorzEntry.B, C.B * W);
+                end else
+                begin
+                  Inc(HorzEntry.R, Div255(Alpha * C.R) * W);
+                  Inc(HorzEntry.G, Div255(Alpha * C.G) * W);
+                  Inc(HorzEntry.B, Div255(Alpha * C.B) * W);
+                end;
+              end;
             end;
             Inc(VertEntry.A, HorzEntry.A * Wv);
             Inc(VertEntry.R, HorzEntry.R * Wv);
@@ -3065,21 +3088,50 @@ begin
       end;
   end;
 
+  // Round and unpremultiply result
   with TColor32Entry(Result) do
   begin
-  if FKernel.RangeCheck then
-  begin
-      A := Clamp(TFixedRec(VertEntry.A).Int);
-      R := Clamp(TFixedRec(VertEntry.R).Int);
-      G := Clamp(TFixedRec(VertEntry.G).Int);
-      B := Clamp(TFixedRec(VertEntry.B).Int);
+    if FKernel.RangeCheck then
+    begin
+      A := Clamp(TFixedRec(VertEntry.A + FixedHalf).Int);
+      if (A = 255) then
+      begin
+        R := Clamp(TFixedRec(VertEntry.R + FixedHalf).Int);
+        G := Clamp(TFixedRec(VertEntry.G + FixedHalf).Int);
+        B := Clamp(TFixedRec(VertEntry.B + FixedHalf).Int);
+      end else
+      if (A <> 0) then
+      begin
+        R := Clamp(TFixedRec(VertEntry.R + FixedHalf).Int * 255 div A);
+        G := Clamp(TFixedRec(VertEntry.G + FixedHalf).Int * 255 div A);
+        B := Clamp(TFixedRec(VertEntry.B + FixedHalf).Int * 255 div A);
+      end else
+      begin
+        R := 0;
+        G := 0;
+        B := 0;
+      end;
     end
     else
-  begin
-      A := TFixedRec(VertEntry.A).Int;
-      R := TFixedRec(VertEntry.R).Int;
-      G := TFixedRec(VertEntry.G).Int;
-      B := TFixedRec(VertEntry.B).Int;
+    begin
+      A := TFixedRec(VertEntry.A + FixedHalf).Int;
+      if (A = 255) then
+      begin
+        R := TFixedRec(VertEntry.R + FixedHalf).Int;
+        G := TFixedRec(VertEntry.G + FixedHalf).Int;
+        B := TFixedRec(VertEntry.B + FixedHalf).Int;
+      end else
+      if (A <> 0) then
+      begin
+        R := TFixedRec(VertEntry.R + FixedHalf).Int * 255 div A;
+        G := TFixedRec(VertEntry.G + FixedHalf).Int * 255 div A;
+        B := TFixedRec(VertEntry.B + FixedHalf).Int * 255 div A;
+      end else
+      begin
+        R := 0;
+        G := 0;
+        B := 0;
+      end;
     end;
   end;
 end;
