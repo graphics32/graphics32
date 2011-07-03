@@ -2170,7 +2170,7 @@ begin
   if Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
-      BlendMemEx(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
+      BlendMemEx(Src^, Dst^, Div255(AlphaValues^ * FPattern.MasterAlpha));
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       if PatternX >= FPattern.Width then
       begin
@@ -2208,7 +2208,7 @@ begin
   if Assigned(AlphaValues) then
     for X := DstX to DstX + Length - 1 do
     begin
-      FPattern.OnPixelCombine(Src^, Dst^, (AlphaValues^ * FPattern.MasterAlpha) div 255);
+      FPattern.OnPixelCombine(Src^, Dst^, Div255(AlphaValues^ * FPattern.MasterAlpha));
       Inc(Dst);  Inc(Src);  Inc(PatternX);
       if PatternX >= FPattern.Width then
       begin
