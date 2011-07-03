@@ -132,6 +132,9 @@ const
   WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
   WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
 
+{ Returns Value / 255 }
+function Div255(Value: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
 function SAR_8(Value: Integer): Integer;
@@ -762,6 +765,11 @@ begin
     else //wmClamp:
       Result := Clamp;
   end;
+end;
+
+function Div255(Value: Cardinal): Cardinal;
+begin
+  Result := (Value * $8081) shr 23;
 end;
 
 { shift right with sign conservation }
