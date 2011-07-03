@@ -89,6 +89,10 @@ function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} in
 { Returns value constrained to [min(Constrain1, Constrain2)..max(Constrain1, Constrain2] range}
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 
+{ Returns min./max. value of A, B and C }
+function Min(const A, B, C: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function Max(const A, B, C: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+
 { Clamp integer value to [0..Max] range }
 function Clamp(Value, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
 { Same but [Min..Max] range }
@@ -132,7 +136,7 @@ const
   WRAP_PROCS: array[TWrapMode] of TWrapProc = (Clamp, Wrap, Mirror);
   WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
 
-{ Returns Value / 255 }
+{ Fast Value div 255, correct result with Value in [0..66298] range }
 function Div255(Value: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 
 { shift right with sign conservation }
@@ -508,6 +512,44 @@ begin
   if Value < Constrain1 then Result := Constrain1
   else if Value > Constrain2 then Result := Constrain2
   else Result := Value;
+end;
+
+function Max(const A, B, C: Integer): Integer;
+{$IFNDEF TARGET_x86}
+begin
+  if A > B then
+  	Result := A
+  else
+  	Result := B;
+
+  if C > Result then
+  	Result := C;
+{$ELSE}
+asm
+      CMP       EDX,EAX
+      db $0F,$4F,$C2           /// CMOVG     EAX,EDX
+      CMP       ECX,EAX
+      db $0F,$4F,$C1           /// CMOVG     EAX,ECX
+{$ENDIF}
+end;
+
+function Min(const A, B, C: Integer): Integer;
+{$IFNDEF TARGET_x86}
+begin
+  if A < B then
+  	Result := A
+  else
+  	Result := B;
+  
+  if C < Result then
+  	Result := C;
+{$ELSE}
+asm
+      CMP       EDX,EAX
+      db $0F,$4C,$C2           /// CMOVL     EAX,EDX
+      CMP       ECX,EAX
+      db $0F,$4C,$C1           /// CMOVL     EAX,ECX
+{$ENDIF}
 end;
 
 function Clamp(Value, Max: Integer): Integer;
