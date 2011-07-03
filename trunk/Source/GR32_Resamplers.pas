@@ -839,13 +839,10 @@ procedure BlockTransfer(
   Src: TCustomBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 var
-  SrcX, SrcY, SrcWidth, SrcHeight: Integer;
+  SrcX, SrcY: Integer;
 begin
   CheckBitmaps(Dst, Src);
   if Dst.Empty or Src.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) then Exit;
-
-  SrcWidth := SrcRect.Right - SrcRect.Left;
-  SrcHeight := SrcRect.Bottom - SrcRect.Top;
 
   SrcX := SrcRect.Left;
   SrcY := SrcRect.Top;
@@ -2790,10 +2787,6 @@ begin
 end;
 
 {$WARNINGS OFF}
-function Div255(n: Cardinal): Cardinal; inline; // Returns n/255
-begin
-  Result := (n * $8081) shr 23;
-end;
 
 function TKernelResampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
