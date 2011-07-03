@@ -1090,19 +1090,24 @@ begin
     G := HueToColor(H);
     B := HueToColor(H - OneOverThree)
   end;
-  Result := Color32(R, G, B, 255);
+  Result := Color32(R, G, B);
 end;
 
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
+const
+  // reciprocal mul. opt.
+  R255 = 1 / 255;
+  R6 = 1 / 6;
+
 var
   R, G, B, D, Cmax, Cmin: Single;
 begin
-  R := RedComponent(RGB) / 255;
-  G := GreenComponent(RGB) / 255;
-  B := BlueComponent(RGB) / 255;
+  R := RedComponent(RGB) * R255;
+  G := GreenComponent(RGB) * R255;
+  B := BlueComponent(RGB) * R255;
   Cmax := Max(R, Max(G, B));
   Cmin := Min(R, Min(G, B));
-  L := (Cmax + Cmin) / 2;
+  L := (Cmax + Cmin) * 0.5;
 
   if Cmax = Cmin then
   begin
@@ -1112,13 +1117,20 @@ begin
   else
   begin
     D := Cmax - Cmin;
-    if L < 0.5 then S := D / (Cmax + Cmin)
-    else S := D / (2 - Cmax - Cmin);
-    if R = Cmax then H := (G - B) / D
+    if L < 0.5 then
+      S := D / (Cmax + Cmin)
     else
-      if G = Cmax then H  := 2 + (B - R) / D
-      else H := 4 + (R - G) / D;
-    H := H / 6;
+      S := D / (2 - Cmax - Cmin);
+
+    if R = Cmax then
+      H := (G - B) / D
+    else
+      if G = Cmax then
+        H := 2 + (B - R) / D
+      else
+        H := 4 + (R - G) / D;
+
+    H := H * R6;
     if H < 0 then H := H + 1
   end;
 end;
@@ -1130,9 +1142,9 @@ begin
   if L <= $7F then
     V := L * (256 + S) shr 8
   else
-    V := L + S - L * S div 255;
+    V := L + S - Integer(Div255(L * S));
   if V <= 0 then
-    Result := Color32(0, 0, 0, 0)
+    Result := $FF000000
   else
   begin
     M := L * 2 - V;
@@ -1141,54 +1153,16 @@ begin
     M1 := M + VSF;
     M2 := V - VSF;
     case H shr 8 of
-      0: Result := Color32(V, M1, M, 0);
-      1: Result := Color32(M2, V, M, 0);
-      2: Result := Color32(M, V, M1, 0);
-      3: Result := Color32(M, M2, V, 0);
-      4: Result := Color32(M1, M, V, 0);
-      5: Result := Color32(V, M, M2, 0);
+      0: Result := Color32(V, M1, M);
+      1: Result := Color32(M2, V, M);
+      2: Result := Color32(M, V, M1);
+      3: Result := Color32(M, M2, V);
+      4: Result := Color32(M1, M, V);
+      5: Result := Color32(V, M, M2);
     else
       Result := 0;
     end;
   end;
-end;
-
-function Max(const A, B, C: Integer): Integer; overload;
-{$IFNDEF TARGET_x86}
-begin
-  if A > B then 
-  	Result := A
-  else 
-  	Result := B;
-  	
-  if C > Result then 
-  	Result := C;   
-{$ELSE}
-asm
-      CMP       EDX,EAX
-      db $0F,$4F,$C2           /// CMOVG     EAX,EDX
-      CMP       ECX,EAX
-      db $0F,$4F,$C1           /// CMOVG     EAX,ECX
-{$ENDIF}
-end;
-
-function Min(const A, B, C: Integer): Integer; overload;
-{$IFNDEF TARGET_x86}
-begin
-  if A < B then 
-  	Result := A
-  else 
-  	Result := B;
-  
-  if C < Result then 
-  	Result := C;
-{$ELSE}
-asm
-      CMP       EDX,EAX
-      db $0F,$4C,$C2           /// CMOVL     EAX,EDX
-      CMP       ECX,EAX
-      db $0F,$4C,$C1           /// CMOVL     EAX,ECX
-{$ENDIF}
 end;
 
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte);
@@ -1201,7 +1175,7 @@ begin
 
   Cmax := Max(R, G, B);
   Cmin := Min(R, G, B);
-  L := (Cmax + Cmin) div 2;
+  L := (Cmax + Cmin) shr 1;
 
   if Cmax = Cmin then
   begin
