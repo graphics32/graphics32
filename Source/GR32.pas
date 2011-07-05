@@ -2024,6 +2024,8 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
     SavedBackend: TCustomBackend;
     Canvas: TCanvas;
   begin
+    if not Assigned(SrcGraphic) then
+      Exit;
     RequireBackendSupport(TargetBitmap, [IDeviceContextSupport, ICanvasSupport], romOr, True, SavedBackend);
     try
       TargetBitmap.SetSize(SrcGraphic.Width, SrcGraphic.Height);
@@ -5266,7 +5268,8 @@ procedure TBitmap32.CopyPropertiesTo(Dst: TCustomBitmap32);
 begin
   inherited;
 
-  if Dst is TBitmap32 then
+  if (Dst is TBitmap32) and
+    Supports(Dst.Backend, IFontSupport) and Supports(Self.Backend, IFontSupport) then
     TBitmap32(Dst).Font.Assign(Self.Font);
 end;
 
@@ -5296,14 +5299,17 @@ begin
 end;
 
 procedure TBitmap32.SetBackend(const Backend: TCustomBackend);
+var
+  FontSupport: IFontSupport;
+  CanvasSupport: ICanvasSupport;
 begin
   if Assigned(Backend) and (Backend <> FBackend) then
   begin
-    if Supports(Backend, IFontSupport) then
-      (Backend as IFontSupport).OnFontChange := FontChanged;
+    if Supports(Backend, IFontSupport, FontSupport) then
+      FontSupport.OnFontChange := FontChanged;
 
-    if Supports(Backend, ICanvasSupport) then
-      (Backend as ICanvasSupport).OnCanvasChange := CanvasChanged;
+    if Supports(Backend, ICanvasSupport, CanvasSupport) then
+      CanvasSupport.OnCanvasChange := CanvasChanged;
 
     inherited;
   end;
