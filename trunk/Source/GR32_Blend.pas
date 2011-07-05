@@ -353,47 +353,30 @@ end;
 
 function MergeReg_Pas(F, B: TColor32): TColor32;
 var
-  PF, PB, PR: PByteArray;
-  FX: TColor32Entry absolute F;
-  BX: TColor32Entry absolute B;
-  RX: TColor32Entry absolute Result;
-  X: Integer;
+ Fa, Ba, Wa: TColor32;
+ Fw, Bw: PByteArray;
+ Fx: TColor32Entry absolute F;
+ Bx: TColor32Entry absolute B;
+ Rx: TColor32Entry absolute Result;
 begin
-  if FX.A = $FF then
-    Result := F
-  else if FX.A = $0 then
-    Result := B
-  else if BX.A = $0 then
-    Result := F
-  else if BX.A = $FF then
-    Result := BlendReg(F,B)
-  else
-  begin
-    PF := @DivTable[FX.A];
-    PB := @DivTable[BX.A];
-    RX.A := BX.A + FX.A - PB^[FX.A];
-    PR := @RcTable[RX.A];
-
-    // Red component
-    RX.R := PB[BX.R];
-    X := FX.R - RX.R;
-    if X >= 0 then
-      RX.R := PR[PF[X] + RX.R]
-    else
-      RX.R := PR[RX.R - PF[-X]];
-
-    // Green component
-    RX.G := PB[BX.G];
-    X := FX.G - RX.G;
-    if X >= 0 then RX.G := PR[PF[X] + RX.G]
-    else RX.G := PR[RX.G - PF[-X]];
-
-    // Blue component
-    RX.B := PB[BX.B];
-    X := FX.B - RX.B;
-    if X >= 0 then RX.B := PR[PF[X] + RX.B]
-    else RX.B := PR[RX.B - PF[-X]];
-  end;
+ Fa := F shr 24;
+ Ba := B shr 24;
+ if Fa = $FF then
+   Result := F
+ else if Fa = $0 then
+   Result := B
+ else if Ba = $0 then
+   Result := F
+ else
+ begin
+   Rx.A := DivTable[Fa xor 255, Ba xor 255] xor 255;
+   Wa := RcTable[Rx.A, Fa];
+   Fw := @DivTable[Wa];
+   Bw := @DivTable[Wa xor $ff];
+   Rx.R := Fw[Fx.R] + Bw[Bx.R];
+   Rx.G := Fw[Fx.G] + Bw[Bx.G];
+   Rx.B := Fw[Fx.B] + Bw[Bx.B];
+ end;
 end;
 
 function MergeRegEx_Pas(F, B, M: TColor32): TColor32;
@@ -2272,6 +2255,75 @@ asm
         POP       EBX
 end;
 
+function MergeReg_SSE2(F, B: TColor32): TColor32;
+asm
+  { This is an implementation of the merge formula, as described
+    in a paper by Bruce Wallace in 1981. Merging is associative,
+    that is, A over (B over C) = (A over B) over C. The formula is,
+
+      Ra = Fa + Ba - Fa * Ba
+      Rc = (Fa (Fc - Bc * Ba) + Bc * Ba) / Ra
+
+    where
+
+      Rc is the resultant color,
+      Ra is the resultant alpha,
+      Fc is the foreground color,
+      Fa is the foreground alpha,
+      Bc is the background color,
+      Ba is the background alpha.
+
+    Implementation:
+
+      Ra := 1 - (1 - Fa) * (1 - Ba);
+      Wa := Fa / Ra;
+      Rc := Bc + Wa * (Fc - Bc);
+      // Rc := Bc + Wa * (Fc - Bc)
+
+      (1 - Fa) * (1 - Ba) = 1 - Fa - Ba + Fa * Ba = (1 - Ra)
+  }
+
+        TEST      EAX,$FF000000  // foreground completely transparent =>
+        JZ        @1             // result = background
+        CMP       EAX,$FF000000  // foreground completely opaque =>
+        JNC       @2             // result = foreground
+        TEST      EDX,$FF000000  // background completely transparent =>
+        JZ        @2             // result = foreground
+
+        PXOR      XMM7,XMM7       // XMM7  <-  00
+        MOVD      XMM0,EAX        // XMM0  <-  Fa Fr Fg Fb
+        SHR       EAX,24          //  EAX  <-  Fa
+        ROR       EDX,24
+        MOVZX     ECX,DL          //  ECX  <-  Ba
+        PUNPCKLBW XMM0,XMM7       // XMM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        SUB       EAX,$ff         //  EAX  <-  (Fa - 1)
+        XOR       ECX,$ff         //  ECX  <-  (1 - Ba)
+        IMUL      ECX,EAX         //  ECX  <-  (Fa - 1) * (1 - Ba)  =  Ra - 1
+        IMUL      ECX,$8081       //  ECX  <-  Xa 00 00 00
+        ADD       ECX,$8081*$ff*$ff
+        SHR       ECX,15          //  ECX  <-  Ra
+        MOV       DL,CH           //  EDX  <-  Br Bg Bb Ra
+        ROR       EDX,8           //  EDX  <-  Ra Br Bg Bb
+        MOVD      XMM1,EDX        // XMM1  <-  Ra Br Bg Bb
+        PUNPCKLBW XMM1,XMM7       // XMM1  <-  00 Ra 00 Br 00 Bg 00 Bb
+        SHL       EAX,20          //  EAX  <-  Fa 00 00
+        PSUBW     XMM0,XMM1       // XMM0  <-  ** Da ** Dr ** Dg ** Db
+        ADD       EAX,$0ff01000
+        PSLLW     XMM0,4
+        XOR       EDX,EDX         //  EDX  <-  00
+        DIV       EAX,ECX         //  EAX  <-  Fa / Ra  =  Wa
+        MOVD      XMM4,EAX        // XMM3  <-  Wa
+        PSHUFLW   XMM4,XMM4,$C0   // XMM3  <-  00 00 ** Wa ** Wa ** Wa
+        PMULHW    XMM0,XMM4       // XMM0  <-  00 00 ** Pr ** Pg ** Pb
+        PADDW     XMM0,XMM1       // XMM0  <-  00 Ra 00 Rr 00 Rg 00 Rb
+        PACKUSWB  XMM0,XMM7       // XMM0  <-  Ra Rr Rg Rb
+        MOVD      EAX,XMM0
+
+        RET
+@1:     MOV       EAX,EDX
+@2:
+end;
+
 procedure EMMS_SSE2;
 asm
 end;
@@ -2505,6 +2557,7 @@ begin
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
