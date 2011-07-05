@@ -91,6 +91,20 @@ implementation
 uses
   GR32_LowLevel;
 
+var
+  TempPath: TFileName;
+
+function GetTempPath: TFileName;
+var
+  PC: PChar;
+begin
+  PC := StrAlloc(MAX_PATH + 1);
+  Windows.GetTempPath(MAX_PATH, PC);
+  Result := TFileName(PC);
+  StrDispose(PC);
+end;
+
+
 { TMemoryBackend }
 
 procedure TMemoryBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
@@ -173,15 +187,6 @@ class procedure TMMFBackend.CreateFileMapping(var MapHandle, MapFileHandle: THan
 var
   Flags: Cardinal;
 
-  function GetTempPath: string;
-  var
-    PC: PChar;
-  begin
-    PC := StrAlloc(MAX_PATH + 1);
-    Windows.GetTempPath(MAX_PATH, PC);
-    Result := string(PC);
-    StrDispose(PC);
-  end;
 
 {$IFDEF USE_GUIDS_IN_MMF}
 
@@ -191,7 +196,7 @@ var
   begin
     repeat
       CoCreateGuid(GUID);
-      Result := IncludeTrailingPathDelimiter(GetTempPath) + Prefix + GUIDToString(GUID);
+      Result := TempPath + Prefix + GUIDToString(GUID);
     until not FileExists(Result);
   end;
 
@@ -269,5 +274,8 @@ begin
 end;
 
 {$ENDIF}
+
+initialization
+  TempPath := IncludeTrailingPathDelimiter(GetTempPath);
 
 end.
