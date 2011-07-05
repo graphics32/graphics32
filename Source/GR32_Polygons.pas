@@ -2026,7 +2026,7 @@ end;
 
 function TPolygon32.Outline: TPolygon32;
 var
-  J, I: Integer;
+  J, I, L, H: Integer;
 begin
   BuildNormals;
 
@@ -2048,9 +2048,17 @@ begin
     end
     else // not closed
     begin
-      Result.NewLine;
-      for I := 0 to High(Points[J]) do Result.Add(Points[J][I]);
-      for I := High(Points[J]) downto 0 do Result.Add(Points[J][I]);
+      // unrolled...
+      SetLength(Result.FPoints, Length(Result.FPoints) + 1);
+      Result.FNormals:= nil;
+
+      L:= Length(Points[J]);
+      H:= High(Result.FPoints);
+      SetLength(Result.FPoints[H], L * 2);
+      for I := 0 to High(Points[J]) do
+        Result.FPoints[H][I]:= (Points[J][I]);
+      for I := High(Points[J]) downto 0 do
+        Result.FPoints[H][I + L]:= (Points[J][I]);
     end;
   end;
 end;
