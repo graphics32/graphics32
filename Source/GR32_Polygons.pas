@@ -1131,7 +1131,8 @@ begin
       end;
 
       // draw it to the screen
-      BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]), BufferSize, A);
+      BlendLineEx(@ColorBuffer[0], Pointer(Bitmap.PixelPtr[MinX, Y]),
+        Min(BufferSize, Bitmap.Width - MinX), A);
       EMMS;
     end;
 
