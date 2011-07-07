@@ -2058,7 +2058,7 @@ begin
       for I := 0 to High(Points[J]) do
         Result.FPoints[H][I]:= (Points[J][I]);
       for I := High(Points[J]) downto 0 do
-        Result.FPoints[H][I + L]:= (Points[J][I]);
+        Result.FPoints[H][2 * L - (I + 1)]:= (Points[J][I]);
     end;
   end;
 end;
