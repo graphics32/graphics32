@@ -128,12 +128,16 @@ var
   Render_PathSpots : Single = 0;
   Render_RandomSpots : Single = 0;
   Render_Noise : Single = 0;
-
   Feedback : Single = 0.7;
   BlendLevel : Byte = 0;
   BlendContrast : Byte = 0;
   BlendBrightness : Integer = 0;
   TimeDarkening : Integer = -1;
+  // Rough FPS controlled movement speed..
+  // MovementSpeed controls desired movement FPS
+  MovementSpeed : Single = 75;
+  FPS_Adaption : Single = 1;
+
   FixedMouseX, FixedMouseY: TFixed;
 
 
@@ -437,6 +441,9 @@ end;
 
 procedure TMainForm.TransformFrame(Sender: TObject; var Done: Boolean);
 begin
+  if FPS <> 0 then
+    FPS_Adaption := MovementSpeed / FPS;
+  
   if vShowHelp then
     RenderHelpScreen
   else
@@ -534,7 +541,7 @@ begin
       y := (y + 1) * ry * 0.5 - J;
 
       // Write values to transformationmap
-      FixedVector[I, J] := FixedPoint(x + (random - 0.5) * Jit, y
+      FixedVector[I, J] := FixedPoint(x * FPS_Adaption + (random - 0.5) * Jit, y * FPS_Adaption
         + (random - 0.5) * Jit);
     end;
   end;
