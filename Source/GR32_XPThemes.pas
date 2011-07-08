@@ -224,24 +224,6 @@ var
 
 { TThemeNexus }
 
-procedure TThemeNexus.CloseVisualStyles;
-begin
-  if not IsLibrary and UseXPThemes then
-  begin
-    if SCROLLBAR_THEME <> 0 then
-    begin
-      CloseThemeData(SCROLLBAR_THEME);
-      SCROLLBAR_THEME := 0;
-    end;
-    if GLOBALS_THEME <> 0 then
-    begin
-      CloseThemeData(GLOBALS_THEME);
-      GLOBALS_THEME := 0;
-    end;
-  end;
-  FreeXPThemes;
-end;
-
 constructor TThemeNexus.Create;
 begin
   FWindowHandle := Classes.AllocateHWnd(WndProc);
@@ -267,6 +249,24 @@ begin
       GLOBALS_THEME := OpenThemeData(FWindowHandle, 'GLOBALS');
     end;
   end;
+end;
+
+procedure TThemeNexus.CloseVisualStyles;
+begin
+  if not IsLibrary and UseXPThemes then
+  begin
+    if SCROLLBAR_THEME <> 0 then
+    begin
+      CloseThemeData(SCROLLBAR_THEME);
+      SCROLLBAR_THEME := 0;
+    end;
+    if GLOBALS_THEME <> 0 then
+    begin
+      CloseThemeData(GLOBALS_THEME);
+      GLOBALS_THEME := 0;
+    end;
+  end;
+  FreeXPThemes;
 end;
 
 procedure TThemeNexus.WndProc(var Message: TMessage);
