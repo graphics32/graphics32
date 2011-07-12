@@ -3088,18 +3088,18 @@ begin
   begin
     if FKernel.RangeCheck then
     begin
-      A := Clamp(TFixedRec(VertEntry.A + FixedHalf).Int);
+      A := Clamp(TFixedRec(Integer(VertEntry.A + FixedHalf)).Int);
       if (A = 255) then
       begin
-        R := Clamp(TFixedRec(VertEntry.R + FixedHalf).Int);
-        G := Clamp(TFixedRec(VertEntry.G + FixedHalf).Int);
-        B := Clamp(TFixedRec(VertEntry.B + FixedHalf).Int);
+        R := Clamp(TFixedRec(Integer(VertEntry.R + FixedHalf)).Int);
+        G := Clamp(TFixedRec(Integer(VertEntry.G + FixedHalf)).Int);
+        B := Clamp(TFixedRec(Integer(VertEntry.B + FixedHalf)).Int);
       end else
       if (A <> 0) then
       begin
-        R := Clamp(TFixedRec(VertEntry.R + FixedHalf).Int * 255 div A);
-        G := Clamp(TFixedRec(VertEntry.G + FixedHalf).Int * 255 div A);
-        B := Clamp(TFixedRec(VertEntry.B + FixedHalf).Int * 255 div A);
+        R := Clamp(TFixedRec(Integer(VertEntry.R + FixedHalf)).Int * 255 div A);
+        G := Clamp(TFixedRec(Integer(VertEntry.G + FixedHalf)).Int * 255 div A);
+        B := Clamp(TFixedRec(Integer(VertEntry.B + FixedHalf)).Int * 255 div A);
       end else
       begin
         R := 0;
@@ -3109,18 +3109,18 @@ begin
     end
     else
     begin
-      A := TFixedRec(VertEntry.A + FixedHalf).Int;
+      A := TFixedRec(Integer(VertEntry.A + FixedHalf)).Int;
       if (A = 255) then
       begin
-        R := TFixedRec(VertEntry.R + FixedHalf).Int;
-        G := TFixedRec(VertEntry.G + FixedHalf).Int;
-        B := TFixedRec(VertEntry.B + FixedHalf).Int;
+        R := TFixedRec(Integer(VertEntry.R + FixedHalf)).Int;
+        G := TFixedRec(Integer(VertEntry.G + FixedHalf)).Int;
+        B := TFixedRec(Integer(VertEntry.B + FixedHalf)).Int;
       end else
       if (A <> 0) then
       begin
-        R := TFixedRec(VertEntry.R + FixedHalf).Int * 255 div A;
-        G := TFixedRec(VertEntry.G + FixedHalf).Int * 255 div A;
-        B := TFixedRec(VertEntry.B + FixedHalf).Int * 255 div A;
+        R := TFixedRec(Integer(VertEntry.R + FixedHalf)).Int * 255 div A;
+        G := TFixedRec(Integer(VertEntry.G + FixedHalf)).Int * 255 div A;
+        B := TFixedRec(Integer(VertEntry.B + FixedHalf)).Int * 255 div A;
       end else
       begin
         R := 0;
