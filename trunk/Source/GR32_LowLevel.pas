@@ -933,26 +933,26 @@ end;
 function StackAlloc(Size: Integer): Pointer; register;
 asm
 {$IFDEF TARGET_x64}
-  POP   ECX          { return address }
-  MOV   EDX, ESP
-  ADD   EAX, 3
-  AND   EAX, not 3   // round up to keep ESP dword aligned
-  CMP   EAX, 4092
+  POP   RCX          { return address }
+  MOV   RDX, RSP
+  ADD   RAX, 3
+  AND   RAX, not 3   // round up to keep ESP dword aligned
+  CMP   RAX, 4092
   JLE   @@2
 @@1:
-  SUB   ESP, 4092
-  PUSH  EAX          { make sure we touch guard page, to grow stack }
-  SUB   EAX, 4096
+  SUB   RSP, 4092
+  PUSH  RAX          { make sure we touch guard page, to grow stack }
+  SUB   RAX, 4096
   JNS   @@1
-  ADD   EAX, 4096
+  ADD   RAX, 4096
 @@2:
-  SUB   ESP, EAX
-  MOV   EAX, ESP     { function result = low memory address of block }
-  PUSH  EDX          { save original SP, for cleanup }
-  MOV   EDX, ESP
-  SUB   EDX, 4
-  PUSH  EDX          { save current SP, for sanity check  (sp = [sp]) }
-  PUSH  ECX          { return to caller }
+  SUB   RSP, RAX
+  MOV   RAX, RSP     { function result = low memory address of block }
+  PUSH  RDX          { save original SP, for cleanup }
+  MOV   RDX, RSP
+  SUB   RDX, 4
+  PUSH  RDX          { save current SP, for sanity check  (sp = [sp]) }
+  PUSH  RCX          { return to caller }
 {$ELSE}
   POP   ECX          { return address }
   MOV   EDX, ESP
