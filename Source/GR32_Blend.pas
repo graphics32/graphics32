@@ -2296,11 +2296,11 @@ asm
         ROR       EDX,24
         MOVZX     ECX,DL          //  ECX  <-  Ba
         PUNPCKLBW XMM0,XMM7       // XMM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
-        SUB       EAX,$ff         //  EAX  <-  (Fa - 1)
-        XOR       ECX,$ff         //  ECX  <-  (1 - Ba)
+        SUB       EAX,$FF         //  EAX  <-  (Fa - 1)
+        XOR       ECX,$FF         //  ECX  <-  (1 - Ba)
         IMUL      ECX,EAX         //  ECX  <-  (Fa - 1) * (1 - Ba)  =  Ra - 1
         IMUL      ECX,$8081       //  ECX  <-  Xa 00 00 00
-        ADD       ECX,$8081*$ff*$ff
+        ADD       ECX,$8081*$FF*$FF
         SHR       ECX,15          //  ECX  <-  Ra
         MOV       DL,CH           //  EDX  <-  Br Bg Bb Ra
         ROR       EDX,8           //  EDX  <-  Ra Br Bg Bb
@@ -2308,7 +2308,7 @@ asm
         PUNPCKLBW XMM1,XMM7       // XMM1  <-  00 Ra 00 Br 00 Bg 00 Bb
         SHL       EAX,20          //  EAX  <-  Fa 00 00
         PSUBW     XMM0,XMM1       // XMM0  <-  ** Da ** Dr ** Dg ** Db
-        ADD       EAX,$0ff01000
+        ADD       EAX,$0FF01000
         PSLLW     XMM0,4
         XOR       EDX,EDX         //  EDX  <-  00
         DIV       EAX,ECX         //  EAX  <-  Fa / Ra  =  Wa
