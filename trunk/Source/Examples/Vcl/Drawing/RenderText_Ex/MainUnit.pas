@@ -132,15 +132,17 @@ begin
   {$IFNDEF FPC}
   QueryPerformanceCounter(B);
   with TBitmap32.Create do
-  begin
+  try
     Font.Color := clWhite;
     Font.Size := 8;
     Font.Style := [];
     SetSize(100,8);
-    str := FloatToStrF(1000 * (B - A) / C,ffFixed, 4, 4) + ' ms';
+    str := FloatToStrF(1000 * (B - A) / C, ffFixed, 4, 4) + ' ms';
     SetSize(TextWidth(str),TextHeight(str));
     Textout(0, 0, str);
     DrawTo(Image.Bitmap, Image.Bitmap.Width - Width, Image.Bitmap.Height-Height);
+  finally
+    Free;
   end;
   {$ENDIF}
   Screen.Cursor := crDefault;
