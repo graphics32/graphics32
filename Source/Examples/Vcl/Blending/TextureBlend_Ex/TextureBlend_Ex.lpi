@@ -21,7 +21,7 @@
       <Item1 Name="Release" Default="True"/>
       <Item2 Name="Debug">
         <CompilerOptions>
-          <Version Value="9"/>
+          <Version Value="10"/>
           <PathDelim Value="\"/>
           <SearchPaths>
             <IncludeFiles Value="..\..\..\.."/>
@@ -73,13 +73,16 @@
         <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="2">
+    <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="ImagesForLazarus"/>
+        <PackageName Value="GR32_L"/>
       </Item1>
       <Item2>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
@@ -97,7 +100,7 @@
     </Units>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="9"/>
+    <Version Value="10"/>
     <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\.."/>
