@@ -39,8 +39,8 @@ interface
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
-  ComCtrls, Math, Clipbrd, ExtDlgs, GR32, GR32_OrdinalMaps, GR32_RangeBars,
-  GR32_Image, GR32_Layers, ToolWin, ImgList, Menus;
+  ComCtrls, Math, Clipbrd, ExtDlgs, ToolWin, ImgList, Menus, GR32,
+  GR32_OrdinalMaps, GR32_RangeBars, GR32_Image, GR32_Layers;
 
 type
 
