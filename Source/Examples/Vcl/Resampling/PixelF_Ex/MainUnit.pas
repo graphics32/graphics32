@@ -39,7 +39,8 @@ interface
 uses
   {$IFDEF FPC} LResources, Variants,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  Math, GR32, GR32_Lowlevel, GR32_Image, GR32_RangeBars, GR32_Transforms;
+  Math, GR32, GR32_Lowlevel, GR32_Image, GR32_RangeBars, GR32_Transforms,
+  GR32_Blend;
 
 type
   { TMainForm }
@@ -145,10 +146,11 @@ procedure TMainForm.TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
 var
   X, Y, DstR, DstB: Integer;
   r, rx, ry, t, tt, v: Single;
+  ttCos, ttSin: Extended;
 begin
-  rx := Srcb.Width / 2;
-  ry := Srcb.Height / 2;
-  v := -Value / 5 / Srcb.Height;
+  rx := Srcb.Width * 0.5;
+  ry := Srcb.Height * 0.5;
+  v := -Value * 0.2 / Srcb.Height;
   DstR := Dst.Width - 1;
   DstB := Dst.Height - 1;
 
@@ -158,8 +160,9 @@ begin
       r := Hypot(X - rx, Y - ry);
       t := ArcTan2(Y - ry, X - rx);
       tt := t + r * v;
-      Dst.Pixel[X, Y] := Srcb.PixelFS[ rx + r * Cos(tt),
-                                      ry + r * Sin(tt) ];
+      SinCos(tt, ttSin, ttCos);
+      Dst.Pixel[X, Y] := Srcb.PixelFS[ rx + r * ttCos,
+                                      ry + r * ttSin ];
     end
   else if rbPixelS.Checked then
    for Y := 0 to DstB do
@@ -167,8 +170,9 @@ begin
       r := Hypot(X - rx, Y - ry);
       t := ArcTan2(Y - ry, X - rx);
       tt := t + r * v;
-      Dst.Pixel[X, Y] := Srcb.PixelS[ Round(rx + r * Cos(tt)),
-                                      Round(ry + r * Sin(tt)) ];
+      SinCos(tt, ttSin, ttCos);
+      Dst.Pixel[X, Y] := Srcb.PixelS[ Round(rx + r * ttCos),
+                                      Round(ry + r * ttSin) ];
     end;
 end;
 
