@@ -168,7 +168,7 @@ procedure TMainForm.GenerateWeightmap(Sender: TObject);
 var
   a, b, c: Single;
 
-  function GenerateSomething(x,y : Single): Single;
+  function GenerateSomething(x, y : Single): Single;
   begin
     if a < 0.6 then
       Result := Max(Cos(x * PI * a * 2 + b), Sqr(0.1 + c + x*y - y)) *
