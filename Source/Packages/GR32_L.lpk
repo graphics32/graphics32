@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <CONFIG>
-  <Package Version="3">
+  <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="GR32_L"/>
+    <AddToProjectUsesSection Value="True"/>
     <Author Value="Team Graphics32"/>
     <CompilerOptions>
       <Version Value="10"/>
@@ -10,7 +11,7 @@
       <SearchPaths>
         <IncludeFiles Value=".."/>
         <OtherUnitFiles Value=".."/>
-        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
       </SearchPaths>
       <Parsing>
         <SyntaxOptions>

@@ -38,48 +38,45 @@ interface
 
 uses
 {$IFDEF FPC}
-  LCLIntf, LCLClasses, LCLType, LResources, RtlConsts, Forms,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd, Graphics, Controls,
-  ExtCtrls, StdCtrls, Buttons, LazIDEIntf, PropEdits, ComponentEditors,
-  Dialogs, FormEditingIntf,
+  LCLIntf, LCLType, RtlConsts, Buttons, LazIDEIntf, PropEdits,
+  ComponentEditors,
 {$ELSE}
-  Windows, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, ExtDlgs,
-  ComCtrls, Menus, ToolWin, Registry, ImgList, Clipbrd,
-  Consts,
-  DesignIntf, DesignEditors, VCLEditors,
+  Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
+DesignEditors, VCLEditors,
 {$ENDIF}
-  SysUtils, Classes, GR32, GR32_Image, GR32_Layers, GR32_Filters;
+  Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
+  SysUtils, Classes, Clipbrd, GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
   TPictureEditorForm = class(TForm)
-    ToolBar1: TToolBar;
-    Load: TToolButton;
-    Save: TToolButton;
-    ImageList: TImageList;
-    Clear: TToolButton;
-    ToolButton2: TToolButton;
-    Copy: TToolButton;
-    Paste: TToolButton;
-    Timer: TTimer;
-    PageControl: TPageControl;
-    ImageSheet: TTabSheet;
     AlphaSheet: TTabSheet;
-    PopupMenu: TPopupMenu;
+    Bevel1: TBevel;
+    Cancel: TButton;
+    Clear: TToolButton;
+    Copy: TToolButton;
+    ImageList: TImageList;
+    ImageSheet: TTabSheet;
+    Label1: TLabel;
+    Load: TToolButton;
+    MagnCombo: TComboBox;
+    mnClear: TMenuItem;
+    mnCopy: TMenuItem;
+    mnInvert: TMenuItem;
+    mnLoad: TMenuItem;
+    mnPaste: TMenuItem;
     mnSave: TMenuItem;
     mnSeparator: TMenuItem;
-    mnCopy: TMenuItem;
-    mnPaste: TMenuItem;
-    mnClear: TMenuItem;
-    Load1: TMenuItem;
     mnSeparator2: TMenuItem;
-    mnInvert: TMenuItem;
-    Panel1: TPanel;
     OKButton: TButton;
-    Cancel: TButton;
-    Label1: TLabel;
-    MagnCombo: TComboBox;
+    PageControl: TPageControl;
+    Panel1: TPanel;
     Panel2: TPanel;
-    Bevel1: TBevel;
+    Paste: TToolButton;
+    PopupMenu: TPopupMenu;
+    Save: TToolButton;
+    Timer: TTimer;
+    ToolBar: TToolBar;
+    ToolButton2: TToolButton;
     procedure LoadClick(Sender: TObject);
     procedure SaveClick(Sender: TObject);
     procedure ClearClick(Sender: TObject);
@@ -153,7 +150,9 @@ implementation
 uses
   GR32_Resamplers;
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
 {$ENDIF}
 
@@ -537,10 +536,5 @@ begin
   end
   else Panel2.Caption := '';
 end;
-
-{$IFDEF LCL}
-initialization
-  {$I GR32_Dsgn_Bitmap.lrs}  {Include form's resource file}
-{$ENDIF}
 
 end.
