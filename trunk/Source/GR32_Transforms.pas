@@ -43,6 +43,7 @@ interface
 
 uses
 {$IFDEF FPC}
+  LCLIntf,
 {$ELSE}
   Windows,
 {$ENDIF}
@@ -308,7 +309,7 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Resamplers, Math, GR32_Math;
+  Math, GR32_LowLevel, GR32_Math, GR32_System, GR32_Resamplers;
 
 type
   {provides access to proctected members of TCustomBitmap32 by typecasting}
