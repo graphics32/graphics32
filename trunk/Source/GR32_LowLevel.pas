@@ -39,6 +39,13 @@ interface
 
 {$I GR32.inc}
 
+{$IFDEF PUREPASCAL}
+{$DEFINE USENATIVECODE}
+{$ENDIF}
+{$IFDEF USEINLINING}
+{$DEFINE USENATIVECODE}
+{$ENDIF}
+
 {$IFNDEF TARGET_x86} {$DEFINE USEMOVE} {$ENDIF}
 
 uses
@@ -68,14 +75,14 @@ function StackAlloc(Size: Integer): Pointer; register;
 procedure StackFree(P: Pointer); register;
 
 { Exchange two 32-bit values }
-procedure Swap(var A, B: Pointer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-procedure Swap(var A, B: Integer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-procedure Swap(var A, B: TFixed); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-procedure Swap(var A, B: TColor32); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+procedure Swap(var A, B: Pointer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: TFixed); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap(var A, B: TColor32); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A }
-procedure TestSwap(var A, B: Integer); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-procedure TestSwap(var A, B: TFixed); overload;{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+procedure TestSwap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure TestSwap(var A, B: TFixed); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A then restrict both to [0..Size-1] range }
 { returns true if resulting range has common points with [0..Size-1] range }
@@ -90,13 +97,13 @@ function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} in
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 
 { Returns min./max. value of A, B and C }
-function Min(const A, B, C: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-function Max(const A, B, C: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function Min(const A, B, C: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Max(const A, B, C: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Clamp integer value to [0..Max] range }
-function Clamp(Value, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function Clamp(Value, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 { Same but [Min..Max] range }
-function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+function Clamp(Value, Min, Max: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Wrap integer value to [0..Max] range }
 function Wrap(Value, Max: Integer): Integer; overload;
@@ -137,7 +144,7 @@ const
   WRAP_PROCS_EX: array[TWrapMode] of TWrapProcEx = (Clamp, Wrap, Mirror);
 
 { Fast Value div 255, correct result with Value in [0..66298] range }
-function Div255(Value: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+function Div255(Value: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
@@ -163,13 +170,7 @@ uses
 {$R-}{$Q-}  // switch off overflow and range checking
 
 function Clamp(const Value: Integer): Integer;
-{$IFDEF PUREPASCAL}
-begin
- if Value > 255 then Result := 255
-  else if Value < 0 then Result := 0
-  else Result := Value;
-{$ELSE}
-{$IFDEF USEINLINING}
+{$IFDEF USENATIVECODE}
 begin
  if Value > 255 then Result := 255
   else if Value < 0 then Result := 0
@@ -177,6 +178,9 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
+        // in x64 calling convention parameters are passed in ECX, EDX, R8 & R9
+        MOV     EAX,ECX
+{$ENDIF}
         TEST    EAX,$FFFFFF00
         JNZ     @1
         RET
@@ -184,16 +188,6 @@ asm
         MOV     EAX,$FF
         RET
 @2:     XOR     EAX,EAX
-{$ELSE}
-        TEST    EAX,$FFFFFF00
-        JNZ     @1
-        RET
-@1:     JS      @2
-        MOV     EAX,$FF
-        RET
-@2:     XOR     EAX,EAX
-{$ENDIF}
-{$ENDIF}
 {$ENDIF}
 end;
 
@@ -203,16 +197,28 @@ var
   P: PIntegerArray;
 begin
   P := PIntegerArray(@X);
-  for I := count-1 downto 0 do
+  for I := Count - 1 downto 0 do
     P[I] := Integer(Value);
 end;
 
-{$IFDEF TARGET_x86}
 procedure FillLongword_ASM(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
 // EDX = Count
 // ECX = Value
+{$IFDEF TARGET_x64}
+        PUSH    RDI
+
+        MOV     EDI,ECX  // Point EDI to destination
+        MOV     RAX,R8   // copy value from R8 to RAX (EAX)
+        MOV     ECX,EDX  // copy count to ECX
+        TEST    ECX,ECX
+        JS      @exit
+
+        REP     STOSD    // Fill count dwords
+@exit:
+        POP     RDI
+{$ELSE}
         PUSH    EDI
 
         MOV     EDI,EAX  // Point EDI to destination
@@ -224,8 +230,10 @@ asm
         REP     STOSD    // Fill count dwords
 @exit:
         POP     EDI
+{$ENDIF}
 end;
 
+{$IFDEF TARGET_x86}
 procedure FillLongword_MMX(var X; Count: Integer; Value: Longword);
 asm
 // EAX = X
@@ -304,7 +312,7 @@ end;
 {$ENDIF}
 
 procedure FillWord(var X; Count: Integer; Value: LongWord);
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 var
   I: Integer;
   P: PWordArray;
@@ -314,9 +322,21 @@ begin
     P[I] := Low(Value);
 {$ELSE}
 asm
-// EAX = X
-// EDX = Count
-// ECX = Value
+{$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8 = Value
+        PUSH    RDI
+
+        MOV     EDI,ECX  // Point EDI to destination
+        MOV     EAX,R8
+        MOV     ECX,EDX
+        TEST    ECX,ECX
+        JS      @exit
+
+        REP     STOSW    // Fill count words
+@exit:
+        POP     RDI
+{$ELSE}
+        // EAX = X;   EDX = Count;   ECX = Value
         PUSH    EDI
 
         MOV     EDI,EAX  // Point EDI to destination
@@ -329,21 +349,32 @@ asm
 @exit:
         POP     EDI
 {$ENDIF}
+{$ENDIF}
 end;
 
 procedure MoveLongword(const Source; var Dest; Count: Integer);
-{$IFDEF PUREPASCAL}
-begin
-  Move(Source, Dest, Count shl 2);
-{$ELSE}
-{$IFDEF USEMOVE}
+{$IFDEF USENATIVECODE}
 begin
   Move(Source, Dest, Count shl 2);
 {$ELSE}
 asm
-// EAX = Source
-// EDX = Dest
-// ECX = Count
+{$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8 = Value
+        PUSH    RSI
+        PUSH    RDI
+
+        MOV     ESI,ECX
+        MOV     EDI,EDX
+        MOV     RAX,R8
+        CMP     EDI,ESI
+        JE      @exit
+
+        REP     MOVSD
+@exit:
+        POP     RDI
+        POP     RSI
+{$ELSE}
+        // EAX = X;   EDX = Count;   ECX = Value
         PUSH    ESI
         PUSH    EDI
 
@@ -362,18 +393,28 @@ asm
 end;
 
 procedure MoveWord(const Source; var Dest; Count: Integer);
-{$IFDEF PUREPASCAL}
-begin
-  Move(Source, Dest, Count shl 1);
-{$ELSE}
-{$IFDEF USEMOVE}
+{$IFDEF USENATIVECODE}
 begin
   Move(Source, Dest, Count shl 1);
 {$ELSE}
 asm
-// EAX = Source
-// EDX = Dest
-// ECX = Count
+{$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8 = Value
+        PUSH    RSI
+        PUSH    RDI
+
+        MOV     ESI,ECX
+        MOV     EDI,EDX
+        MOV     RAX,R8
+        CMP     EDI,ESI
+        JE      @exit
+
+        REP     MOVSW
+@exit:
+        POP     RDI
+        POP     RSI
+{$ELSE}
+        // EAX = X;   EDX = Count;   ECX = Value
         PUSH    ESI
         PUSH    EDI
 
@@ -472,7 +513,7 @@ begin
 end;
 
 function Constrain(const Value, Lo, Hi: Integer): Integer;
-{$IFDEF PUREPASCAL}
+{$IFDEF USENATIVECODE}
 begin
   if Value < Lo then
     Result := Lo
@@ -481,25 +522,19 @@ begin
   else
     Result := Value;
 {$ELSE}
-{$IFDEF USEINLINING}
-begin
-  if Value < Lo then
-    Result := Lo
-  else if Value > Hi then 
-    Result := Hi
-  else 
-    Result := Value;
-{$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
         CMP       EDX,EAX
         CMOVG     EAX,EDX
         CMP       ECX,EAX
         CMOVL     EAX,ECX
 {$ENDIF}
-{$ENDIF}
 end;
 
-function Constrain(const Value, Lo, Hi: Single): Single; {$IFDEF USEINLINING} inline; {$ENDIF} overload;
+function Constrain(const Value, Lo, Hi: Single): Single; overload;
 begin
   if Value < Lo then Result := Lo
   else if Value > Hi then Result := Hi
@@ -515,7 +550,7 @@ begin
 end;
 
 function Max(const A, B, C: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   if A > B then
   	Result := A
@@ -526,15 +561,19 @@ begin
   	Result := C;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
       CMP       EDX,EAX
-      db $0F,$4F,$C2           /// CMOVG     EAX,EDX
+      CMOVG     EAX,EDX
       CMP       ECX,EAX
-      db $0F,$4F,$C1           /// CMOVG     EAX,ECX
+      CMOVG     EAX,ECX
 {$ENDIF}
 end;
 
 function Min(const A, B, C: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   if A < B then
   	Result := A
@@ -545,15 +584,19 @@ begin
   	Result := C;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
       CMP       EDX,EAX
-      db $0F,$4C,$C2           /// CMOVL     EAX,EDX
+      CMOVL     EAX,EDX
       CMP       ECX,EAX
-      db $0F,$4C,$C1           /// CMOVL     EAX,ECX
+      CMOVL     EAX,ECX
 {$ENDIF}
 end;
 
 function Clamp(Value, Max: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   if Value > Max then 
     Result := Max
@@ -563,6 +606,10 @@ begin
     Result := Value;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
         CMP     EAX,EDX
         JG      @@above
         TEST    EAX,EAX
@@ -578,7 +625,7 @@ asm
 end;
 
 function Clamp(Value, Min, Max: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   if Value > Max then 
     Result := Max
@@ -588,6 +635,10 @@ begin
     Result := Value;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
         CMP       EDX,EAX
         CMOVG     EAX,EDX
         CMP       ECX,EAX
@@ -596,7 +647,7 @@ asm
 end;
 
 function Wrap(Value, Max: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   if Value < 0 then
     Result := Max + (Value - Max) mod (Max + 1)
@@ -604,13 +655,17 @@ begin
     Result := (Value) mod (Max + 1);
 {$ELSE}
 asm
-        LEA     ECX,[EDX+1]
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
+        LEA       ECX,[EDX+1]
         CDQ
-        IDIV    ECX
-        MOV     EAX,EDX
-        TEST    EAX,EAX
-        JNL     @@exit
-        ADD     EAX,ECX
+        IDIV      ECX
+        MOV       EAX,EDX
+        TEST      EAX,EAX
+        JNL       @@exit
+        ADD       EAX,ECX
 @@exit:
 {$ENDIF}
 end;
@@ -625,7 +680,7 @@ end;
 
 function Wrap(Value, Max: Single): Single;
 begin
-{$IFDEF UseFloatMod}
+{$IFDEF USEFLOATMOD}
   Result := FloatMod(Value, Max);
 {$ELSE}
   Result := Value;
@@ -635,23 +690,34 @@ begin
 end;
 
 function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Remainder := Dividend mod Divisor;
   Result := Dividend div Divisor;
 {$ELSE}
 asm
-        PUSH EBX
-        MOV EBX,EDX
+{$IFDEF TARGET_x64}
+        PUSH      RBX
+        MOV       EAX,ECX
+        MOV       RCX,R8
+        MOV       EBX,EDX
         CDQ
-        IDIV EBX
-        MOV [ECX],EDX
-        POP EBX
+        IDIV      EBX
+        MOV       [ECX],EDX
+        POP       RBX
+{$ELSE}
+        PUSH      EBX
+        MOV       EBX,EDX
+        CDQ
+        IDIV      EBX
+        MOV       [ECX],EDX
+        POP       EBX
+{$ENDIF}
 {$ENDIF}
 end;
 
 function Mirror(Value, Max: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 var
   DivResult: Integer;
 begin
@@ -667,18 +733,22 @@ begin
     Result := Max - Result;
 {$ELSE}
 asm
-        TEST    EAX,EAX
-        JNL     @@1
-        NEG     EAX
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+        MOV       RCX,R8
+{$ENDIF}
+        TEST      EAX,EAX
+        JNL       @@1
+        NEG       EAX
 @@1:
-        MOV     ECX,EDX
+        MOV       ECX,EDX
         CDQ
-        IDIV    ECX
-        TEST    EAX,1
-        MOV     EAX,EDX
-        JZ      @@exit
-        NEG     EAX
-        ADD     EAX,ECX
+        IDIV      ECX
+        TEST      EAX,1
+        MOV       EAX,EDX
+        JZ        @@exit
+        NEG       EAX
+        ADD       EAX,ECX
 @@exit:
 {$ENDIF}
 end;
@@ -816,98 +886,125 @@ end;
 
 { shift right with sign conservation }
 function SAR_4(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 16;
 {$ELSE}
 asm
-        SAR EAX,4
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,4
 {$ENDIF}
 end;
 
 function SAR_8(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 256;
 {$ELSE}
 asm
-        SAR EAX,8
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,8
 {$ENDIF}
 end;
 
 function SAR_9(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 512;
 {$ELSE}
 asm
-        SAR EAX,9
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,9
 {$ENDIF}
 end;
 
 function SAR_11(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 2048;
 {$ELSE}
 asm
-        SAR EAX,11
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,11
 {$ENDIF}
 end;
 
 function SAR_12(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 4096;
 {$ELSE}
 asm
-        SAR EAX,12
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,12
 {$ENDIF}
 end;
 
 function SAR_13(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 8192;
 {$ELSE}
 asm
-        SAR EAX,13
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,13
 {$ENDIF}
 end;
 
 function SAR_14(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 16384;
 {$ELSE}
 asm
-        SAR EAX,14
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,14
 {$ENDIF}
 end;
 
 function SAR_15(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 32768;
 {$ELSE}
 asm
-        SAR EAX,15
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,15
 {$ENDIF}
 end;
 
 function SAR_16(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
   Result := Value div 65536;
 {$ELSE}
 asm
-        SAR EAX,16
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,16
 {$ENDIF}
 end;
 
 { Colorswap exchanges ARGB <-> ABGR and fill A with $FF }
 function ColorSwap(WinColor: TColor): TColor32;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 var
   WCEn: TColor32Entry absolute WinColor;
   REn : TColor32Entry absolute Result;
@@ -921,9 +1018,12 @@ asm
 // EAX = WinColor
 // this function swaps R and B bytes in ABGR
 // and writes $FF into A component
-        BSWAP   EAX
-        MOV     AL, $FF
-        ROR     EAX,8
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        BSWAP     EAX
+        MOV       AL, $FF
+        ROR       EAX,8
 {$ENDIF}
 end;
 
@@ -933,47 +1033,48 @@ end;
 function StackAlloc(Size: Integer): Pointer; register;
 asm
 {$IFDEF TARGET_x64}
-  POP   RCX          { return address }
-  MOV   RDX, RSP
-  ADD   RAX, 3
-  AND   RAX, not 3   // round up to keep ESP dword aligned
-  CMP   RAX, 4092
-  JLE   @@2
+        MOV       RAX, RCX
+        POP       RCX          { return address }
+        MOV       RDX, RSP
+        ADD       RAX, 3
+        AND       RAX, NOT 3   // round up to keep ESP dword aligned
+        CMP       RAX, 4092
+        JLE       @@2
 @@1:
-  SUB   RSP, 4092
-  PUSH  RAX          { make sure we touch guard page, to grow stack }
-  SUB   RAX, 4096
-  JNS   @@1
-  ADD   RAX, 4096
+        SUB       RSP, 4092
+        PUSH      RAX          { make sure we touch guard page, to grow stack }
+        SUB       RAX, 4096
+        JNS       @@1
+        ADD       RAX, 4096
 @@2:
-  SUB   RSP, RAX
-  MOV   RAX, RSP     { function result = low memory address of block }
-  PUSH  RDX          { save original SP, for cleanup }
-  MOV   RDX, RSP
-  SUB   RDX, 4
-  PUSH  RDX          { save current SP, for sanity check  (sp = [sp]) }
-  PUSH  RCX          { return to caller }
+        SUB       RSP, RAX
+        MOV       RAX, RSP     { function result = low memory address of block }
+        PUSH      RDX          { save original SP, for cleanup }
+        MOV       RDX, RSP
+        SUB       RDX, 8
+        PUSH      RDX          { save current SP, for sanity check  (sp = [sp]) }
+        PUSH      RCX          { return to caller }
 {$ELSE}
-  POP   ECX          { return address }
-  MOV   EDX, ESP
-  ADD   EAX, 3
-  AND   EAX, not 3   // round up to keep ESP dword aligned
-  CMP   EAX, 4092
-  JLE   @@2
+        POP       ECX          { return address }
+        MOV       EDX, ESP
+        ADD       EAX, 3
+        AND       EAX, not 3   // round up to keep ESP dword aligned
+        CMP       EAX, 4092
+        JLE       @@2
 @@1:
-  SUB   ESP, 4092
-  PUSH  EAX          { make sure we touch guard page, to grow stack }
-  SUB   EAX, 4096
-  JNS   @@1
-  ADD   EAX, 4096
+        SUB       ESP, 4092
+        PUSH      EAX          { make sure we touch guard page, to grow stack }
+        SUB       EAX, 4096
+        JNS       @@1
+        ADD       EAX, 4096
 @@2:
-  SUB   ESP, EAX
-  MOV   EAX, ESP     { function result = low memory address of block }
-  PUSH  EDX          { save original SP, for cleanup }
-  MOV   EDX, ESP
-  SUB   EDX, 4
-  PUSH  EDX          { save current SP, for sanity check  (sp = [sp]) }
-  PUSH  ECX          { return to caller }
+        SUB       ESP, EAX
+        MOV       EAX, ESP     { function result = low memory address of block }
+        PUSH      EDX          { save original SP, for cleanup }
+        MOV       EDX, ESP
+        SUB       EDX, 4
+        PUSH      EDX          { save current SP, for sanity check  (sp = [sp]) }
+        PUSH      ECX          { return to caller }
 {$ENDIF}
 end;
 
@@ -990,30 +1091,28 @@ end;
 procedure StackFree(P: Pointer); register;
 asm
 {$IFDEF TARGET_x64}
- // not implemented yet!
-(*
-POP   ECX                     { return address }
-  MOV   EDX, DWORD PTR [ESP]
-  SUB   EAX, 8
-  CMP   EDX, ESP                { sanity check #1 (SP = [SP]) }
-  JNE   @@1
-  CMP   EDX, EAX                { sanity check #2 (P = this stack block) }
-  JNE   @@1
-  MOV   ESP, DWORD PTR [ESP+4]  { restore previous SP  }
+        MOV       RAX, RCX
+        POP       RCX                     { return address }
+        MOV       RDX, DWORD PTR [RSP]
+        SUB       RAX, 8
+        CMP       RDX, RSP                { sanity check #1 (SP = [SP]) }
+        JNE       @@1
+        CMP       RDX, RAX                { sanity check #2 (P = this stack block) }
+        JNE       @@1
+        MOV       RSP, DWORD PTR [RSP+8]  { restore previous SP  }
 @@1:
-  PUSH  ECX                     { return to caller }
-*)
+        PUSH      RCX                     { return to caller }
 {$ELSE}
-  POP   ECX                     { return address }
-  MOV   EDX, DWORD PTR [ESP]
-  SUB   EAX, 8
-  CMP   EDX, ESP                { sanity check #1 (SP = [SP]) }
-  JNE   @@1
-  CMP   EDX, EAX                { sanity check #2 (P = this stack block) }
-  JNE   @@1
-  MOV   ESP, DWORD PTR [ESP+4]  { restore previous SP  }
+        POP       ECX                     { return address }
+        MOV       EDX, DWORD PTR [ESP]
+        SUB       EAX, 8
+        CMP       EDX, ESP                { sanity check #1 (SP = [SP]) }
+        JNE       @@1
+        CMP       EDX, EAX                { sanity check #2 (P = this stack block) }
+        JNE       @@1
+        MOV       ESP, DWORD PTR [ESP+4]  { restore previous SP  }
 @@1:
-  PUSH  ECX                     { return to caller }
+        PUSH      ECX                     { return to caller }
 {$ENDIF}
 end;
 
@@ -1033,8 +1132,8 @@ begin
   Registry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
 
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, []);
-{$IFDEF TARGET_x86}
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM, []);
+{$IFDEF TARGET_x86}
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [ciMMX]);
   Registry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [ciSSE2]);
 {$ENDIF}
