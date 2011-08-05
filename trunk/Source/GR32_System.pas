@@ -265,94 +265,94 @@ end;
 function CPU_Signature: Integer;
 asm
 {$IFDEF TARGET_x64}
-        PUSH    RBX
-        MOV     EAX,1
+        PUSH      RBX
+        MOV       EAX,1
         CPUID
-        POP     RBX
+        POP       RBX
 {$ELSE}
-        PUSH    EBX
-        MOV     EAX,1
+        PUSH      EBX
+        MOV       EAX,1
         {$IFDEF FPC}
         CPUID
         {$ELSE}
-        DW      $A20F   // CPUID
+        DW        $A20F   // CPUID
         {$ENDIF}
-        POP     EBX
+        POP       EBX
 {$ENDIF}
 end;
 
 function CPU_Features: Integer;
 asm
 {$IFDEF TARGET_x64}
-        PUSH    RBX
-        MOV     EAX,1
+        PUSH      RBX
+        MOV       EAX,1
         CPUID
-        POP     RBX
-        MOV     EAX,EDX
+        POP       RBX
+        MOV       EAX,EDX
 {$ELSE}
-        PUSH    EBX
-        MOV     EAX,1
+        PUSH      EBX
+        MOV       EAX,1
         {$IFDEF FPC}
         CPUID
         {$ELSE}
-        DW      $A20F   // CPUID
+        DW        $A20F   // CPUID
         {$ENDIF}
-        POP     EBX
-        MOV     EAX,EDX
+        POP       EBX
+        MOV       EAX,EDX
 {$ENDIF}
 end;
 
 function CPU_ExtensionsAvailable: Boolean;
 asm
 {$IFDEF TARGET_x64}
-        PUSH    RBX
-        MOV     @Result, True
-        MOV     EAX, $80000000
+        PUSH      RBX
+        MOV       @Result, True
+        MOV       EAX, $80000000
         CPUID
-        CMP     EAX, $80000000
-        JBE     @NOEXTENSION
-        JMP     @EXIT
+        CMP       EAX, $80000000
+        JBE       @NOEXTENSION
+        JMP       @EXIT
         @NOEXTENSION:
-        MOV     @Result, False
+        MOV       @Result, False
         @EXIT:
-        POP     RBX
+        POP       RBX
 {$ELSE}
-        PUSH    EBX
-        MOV     @Result, True
-        MOV     EAX, $80000000
+        PUSH      EBX
+        MOV       @Result, True
+        MOV       EAX, $80000000
         {$IFDEF FPC}
         CPUID
         {$ELSE}
-        DW      $A20F   // CPUID
+        DW        $A20F   // CPUID
         {$ENDIF}
-        CMP     EAX, $80000000
-        JBE     @NOEXTENSION
-        JMP     @EXIT
+        CMP       EAX, $80000000
+        JBE       @NOEXTENSION
+        JMP       @EXIT
       @NOEXTENSION:
-        MOV     @Result, False
+        MOV       @Result, False
       @EXIT:
-        POP     EBX
+        POP       EBX
 {$ENDIF}
 end;
 
 function CPU_ExtFeatures: Integer;
 asm
 {$IFDEF TARGET_x64}
-        PUSH    RBX
-        MOV     EAX, $80000001
+        PUSH      RBX
+        MOV       EAX, $80000001
         CPUID
-        POP     RBX
-        MOV     EAX,EDX
+        POP       RBX
+        MOV       EAX,EDX
 {$ELSE}
-        PUSH    EBX
-        MOV     EAX, $80000001
+        PUSH      EBX
+        MOV       EAX, $80000001
         {$IFDEF FPC}
         CPUID
         {$ELSE}
-        DW      $A20F   // CPUID
+        DW        $A20F   // CPUID
         {$ENDIF}
-        POP     EBX
-        MOV     EAX,EDX
+        POP       EBX
+        MOV       EAX,EDX
 {$ENDIF}
 end;
 
@@ -360,7 +360,6 @@ function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 // Must be implemented for each target CPU on which specific functions rely
 begin
   Result := False;
-  {$IFNDEF TARGET_x64}
   if not CPUID_Available then Exit;                   // no CPUID available
   if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
 
@@ -384,7 +383,6 @@ begin
     end;
 
   Result := True;
-  {$ENDIF}
 end;
 
 {$ELSE}
