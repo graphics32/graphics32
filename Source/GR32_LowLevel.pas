@@ -658,8 +658,10 @@ asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
         MOV       RCX,R8
-{$ENDIF}
+        LEA       ECX,[RDX+1]
+{$ELSE}
         LEA       ECX,[EDX+1]
+{$ENDIF}
         CDQ
         IDIV      ECX
         MOV       EAX,EDX
@@ -703,7 +705,7 @@ asm
         MOV       EBX,EDX
         CDQ
         IDIV      EBX
-        MOV       [ECX],EDX
+        MOV       [RCX],EDX
         POP       RBX
 {$ELSE}
         PUSH      EBX
