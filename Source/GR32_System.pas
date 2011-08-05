@@ -70,8 +70,8 @@ type
 {$ENDIF}
   public
     procedure Start;
-    function ReadNanoseconds: String;
-    function ReadMilliseconds: String;
+    function ReadNanoseconds: string;
+    function ReadMilliseconds: string;
     function ReadValue: Int64;
   end;
 
@@ -85,16 +85,12 @@ function GetTickCount: Cardinal;
 function GetProcessorCount: Cardinal;
 
 type
-
-   { TCPUInstructionSet, defines specific CPU technologies }
-  {$IFDEF TARGET_x86}
-    TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
+  {$IFNDEF PUREPASCAL}
+  { TCPUInstructionSet, defines specific CPU technologies }
+  TCPUInstructionSet = (ciMMX, ciEMMX, ciSSE, ciSSE2, ci3DNow, ci3DNowExt);
   {$ELSE}
-    { target specific set not defined, force pascal only, ciDummy is simply
-      there because enum types can't be empty - in this mode TCPUFeatures = []
-      and TCPUFeatures = [ciDummy] are treated the same way. }
-    TCPUInstructionSet = (ciDummy);
-    {$DEFINE NO_REQUIREMENTS}
+  TCPUInstructionSet = (ciDummy);
+  {$DEFINE NO_REQUIREMENTS}
   {$ENDIF}
 
   PCPUFeatures = ^TCPUFeatures;
@@ -128,7 +124,7 @@ begin
   Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
 end;
 
-function TPerfTimer.ReadNanoseconds: String;
+function TPerfTimer.ReadNanoseconds: string;
 var
   t : timeval;
 begin
@@ -137,7 +133,7 @@ begin
   Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) div 1000 );
 end;
 
-function TPerfTimer.ReadMilliseconds: String;
+function TPerfTimer.ReadMilliseconds: string;
 var
   t : timeval;
 begin
@@ -172,7 +168,7 @@ begin
   Result := Windows.GetTickCount;
 end;
 
-function TPerfTimer.ReadNanoseconds: String;
+function TPerfTimer.ReadNanoseconds: string;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
@@ -181,7 +177,7 @@ begin
   Result := IntToStr(Round(1000000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency));
 end;
 
-function TPerfTimer.ReadMilliseconds: String;
+function TPerfTimer.ReadMilliseconds: string;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
@@ -223,9 +219,7 @@ begin
 end;
 {$ENDIF}
 
-
-{$IFDEF TARGET_x86}
-
+{$IFNDEF PUREPASCAL}
 const
   CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
     ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
@@ -233,6 +227,23 @@ const
 
 function CPUID_Available: Boolean;
 asm
+{$IFDEF TARGET_x64}
+        MOV       EDX,False
+        PUSHFQ
+        POP       RAX
+        MOV       ECX,EAX
+        XOR       EAX,$00200000
+        PUSH      RAX
+        POPFQ
+        PUSHFQ
+        POP       RAX
+        XOR       ECX,EAX
+        JZ        @1
+        MOV       EDX,True
+@1:     PUSH      RAX
+        POPFQ
+        MOV       EAX,EDX
+{$ELSE}
         MOV       EDX,False
         PUSHFD
         POP       EAX
@@ -248,10 +259,17 @@ asm
 @1:     PUSH      EAX
         POPFD
         MOV       EAX,EDX
+{$ENDIF}
 end;
 
 function CPU_Signature: Integer;
 asm
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        MOV     EAX,1
+        CPUID
+        POP     RBX
+{$ELSE}
         PUSH    EBX
         MOV     EAX,1
         {$IFDEF FPC}
@@ -260,10 +278,18 @@ asm
         DW      $A20F   // CPUID
         {$ENDIF}
         POP     EBX
+{$ENDIF}
 end;
 
 function CPU_Features: Integer;
 asm
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        MOV     EAX,1
+        CPUID
+        POP     RBX
+        MOV     EAX,EDX
+{$ELSE}
         PUSH    EBX
         MOV     EAX,1
         {$IFDEF FPC}
@@ -273,10 +299,24 @@ asm
         {$ENDIF}
         POP     EBX
         MOV     EAX,EDX
+{$ENDIF}
 end;
 
 function CPU_ExtensionsAvailable: Boolean;
 asm
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        MOV     @Result, True
+        MOV     EAX, $80000000
+        CPUID
+        CMP     EAX, $80000000
+        JBE     @NOEXTENSION
+        JMP     @EXIT
+        @NOEXTENSION:
+        MOV     @Result, False
+        @EXIT:
+        POP     RBX
+{$ELSE}
         PUSH    EBX
         MOV     @Result, True
         MOV     EAX, $80000000
@@ -292,10 +332,18 @@ asm
         MOV     @Result, False
       @EXIT:
         POP     EBX
+{$ENDIF}
 end;
 
 function CPU_ExtFeatures: Integer;
 asm
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        MOV     EAX, $80000001
+        CPUID
+        POP     RBX
+        MOV     EAX,EDX
+{$ELSE}
         PUSH    EBX
         MOV     EAX, $80000001
         {$IFDEF FPC}
@@ -305,12 +353,14 @@ asm
         {$ENDIF}
         POP     EBX
         MOV     EAX,EDX
+{$ENDIF}
 end;
 
 function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 // Must be implemented for each target CPU on which specific functions rely
 begin
   Result := False;
+  {$IFNDEF TARGET_x64}
   if not CPUID_Available then Exit;                   // no CPUID available
   if CPU_Signature shr 8 and $0F < 5 then Exit;       // not a Pentium class
 
@@ -334,6 +384,7 @@ begin
     end;
 
   Result := True;
+  {$ENDIF}
 end;
 
 {$ELSE}
@@ -342,7 +393,6 @@ function HasInstructionSet(const InstructionSet: TCPUInstructionSet): Boolean;
 begin
   Result := False;
 end;
-
 {$ENDIF}
 
 procedure InitCPUFeaturesData;
