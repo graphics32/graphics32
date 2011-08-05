@@ -695,8 +695,8 @@ begin
   DstPoint.X := (SrcPoint.X + $7F) div 256;
   DstPoint.Y := (SrcPoint.Y + $7FFF) div 65536;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
+{$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $0000007F
     SAR ECX, 8 // sub-sampled
@@ -721,8 +721,8 @@ begin
   DstPoint.X := (SrcPoint.X + $3FFF) div 32768;
   DstPoint.Y := (SrcPoint.Y + $3FFF) div 32768;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
+{$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00003FFF
     SAR ECX, 15
@@ -747,8 +747,8 @@ begin
   DstPoint.X := (SrcPoint.X + $1FFF) div 16384;
   DstPoint.Y := (SrcPoint.Y + $1FFF) div 16384;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
+{$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00001FFF
     SAR ECX, 14
@@ -773,8 +773,8 @@ begin
   DstPoint.X := (SrcPoint.X + $FFF) div 8192;
   DstPoint.Y := (SrcPoint.Y + $FFF) div 8192;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
+{$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00000FFF
     SAR ECX, 13
@@ -799,8 +799,8 @@ begin
   DstPoint.X := (SrcPoint.X + $7FF) div 4096;
   DstPoint.Y := (SrcPoint.Y + $7FF) div 4096;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
+{$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $000007FF
     SAR ECX, 12
@@ -825,8 +825,8 @@ begin
   DstPoint.X := (SrcPoint.X + $3FF) div 2048;
   DstPoint.Y := (SrcPoint.Y + $3FF) div 2048;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
+{$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $000003FF
     SAR ECX, 11
