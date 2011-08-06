@@ -55,9 +55,6 @@ uses
   SysUtils;
 
 type
-
-  { TPerfTimer }
-
   TPerfTimer = class
   private
 {$IFDEF UNIX}
@@ -124,6 +121,9 @@ begin
   Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
 end;
 
+
+{ TPerfTimer }
+
 function TPerfTimer.ReadNanoseconds: string;
 var
   t : timeval;
@@ -167,6 +167,9 @@ function GetTickCount: Cardinal;
 begin
   Result := Windows.GetTickCount;
 end;
+
+
+{ TPerfTimer }
 
 function TPerfTimer.ReadNanoseconds: string;
 begin

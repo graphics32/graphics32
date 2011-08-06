@@ -228,7 +228,7 @@ begin
                            (Kernel is TLawreyKernel) or
 {$ENDIF}
                            (Kernel is TSinshKernel);
-      gbParameter.Visible:=LbParameter.Visible;
+      gbParameter.Visible := LbParameter.Visible;
       SetKernelParameter(Kernel);
       CurveImage.Repaint;
     end;
@@ -366,6 +366,8 @@ var
   I, BufWidth, BufHeight: Integer;
   W, X, Y, Scale: Single;
   R: TRect;
+const
+  YScale : Single = 1 / 2.2;
 begin
   if Src.Resampler is TKernelResampler then
   begin
@@ -380,7 +382,7 @@ begin
     Buffer.MoveToF(0, BufHeight * 0.5);
 
     Scale := 2 * W / BufWidth;
-    for I := Round(-W)*2 to Round(W)*2 do
+    for I := Round(-W) * 2 to Round(W) * 2 do
     begin
       X := 0.5 * (I / Scale + BufWidth);
       Buffer.LineFS(X, 0, X, BufHeight - 1, clGray32);
@@ -388,15 +390,14 @@ begin
 
     for I := -2 to 2 do
     begin
-      Y := I * BufHeight / 4.4 + BufHeight * 0.5;
+      Y := 0.5 * BufHeight * (I * YScale + 1);
       Buffer.LineFS(0, Y, BufWidth - 1, Y, clGray32);
     end;
 
     for I := 0 to BufWidth - 1 do
     begin
-//      Y := (1.1 - (Kernel.Filter(-W + I * Scale))/sinc(-W + I * Scale)  ) * BufHeight / 2.2 ;
-        Y := (1.1 - Kernel.Filter(-W + I * Scale)  ) * BufHeight / 2.2 ;
-        Buffer.LineToFS(I, Y);
+      Y := (1.1 - Kernel.Filter(I * Scale - W)) * BufHeight * YScale;
+      Buffer.LineToFS(I, Y);
     end;
   end;
 end;

@@ -8,7 +8,7 @@ uses
   MainUnit in 'MainUnit.pas' {Form1};
 
 begin
-    Application.Title:='GR32 Pixel Combine Example';
+  Application.Title:='GR32 Pixel Combine Example';
   Application.Initialize;
   Application.CreateForm(TFormPixelCombine, FormPixelCombine);
   Application.Run;
