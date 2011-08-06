@@ -35,8 +35,10 @@ unit GR32_TestGuiPng;
 interface
 
 uses
-  TestFramework, Classes, Contnrs, SysUtils, GR32, GR32_Png,
-  GR32_PortableNetworkGraphic, GR32_TestGuiPngDisplay, pngimage;
+  {$IFDEF FPC}fpcunit, testregistry, {$ELSE} TestFramework, {$ENDIF}
+  Classes, SysUtils, {$IFDEF FPC} LazPNG, {$ELSE} pngimage, {$ENDIF}
+  GR32, GR32_Png, GR32_PortableNetworkGraphic,
+  GR32_TestGuiPngDisplay;
 
 type
   TCustomTestPngGR32 = class(TTestCase)
@@ -272,6 +274,7 @@ type
 
 procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; SrcStream: TStream); overload;
 procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; Filename: string); overload;
+procedure InitializeGR32PngTests;
 
 implementation
 
@@ -294,21 +297,32 @@ var
 
 procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; SrcStream: TStream);
 var
+  {$IFDEF FPC}
+  PNGObject: TPNGImage;
+  {$ELSE}
   PNGObject: TPNGObject;
+  {$ENDIF}
   TransparentColor: TColor32;
   PixelPtr: PColor32;
   AlphaPtr: PByte;
   X, Y: Integer;
 begin
- PNGObject := nil;
+  PNGObject := nil;
   try
-   PNGObject := TPngObject.Create;
-   PNGObject.LoadFromStream(SrcStream);
+    {$IFDEF FPC}
+    PNGObject := TPngImage.Create;
+    {$ELSE}
+    PNGObject := TPngObject.Create;
+    {$ENDIF}
+    PNGObject.LoadFromStream(SrcStream);
 
-   DstBitmap.Assign(PNGObject);
-   DstBitmap.ResetAlpha;
+    DstBitmap.Assign(PNGObject);
+    DstBitmap.ResetAlpha;
 
-   case PNGObject.TransparencyMode of
+    {$IFDEF FPC}
+    // yet todo
+    {$ELSE}
+    case PNGObject.TransparencyMode of
     ptmPartial:
       begin
        if (PNGObject.Header.ColorType = COLOR_GRAYSCALEALPHA) or
@@ -338,9 +352,11 @@ begin
          Inc(PixelPtr);
         end;
       end;
-   end;
+    end;
+    {$ENDIF}
   finally
-   if Assigned(PNGObject) then PNGObject.Free;
+    if Assigned(PNGObject) then 
+      PNGObject.Free;
   end;
 end;
 
@@ -348,12 +364,12 @@ procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; Filename: string);
 var
   FileStream: TFileStream;
 begin
- FileStream := TFileStream.Create(Filename, fmOpenRead);
- try
-  LoadPNGintoBitmap32(DstBitmap, FileStream);
- finally
-  FileStream.Free;
- end;
+  FileStream := TFileStream.Create(Filename, fmOpenRead);
+  try
+    LoadPNGintoBitmap32(DstBitmap, FileStream);
+  finally
+    FileStream.Free;
+  end;
 end;
 
 
@@ -361,12 +377,12 @@ end;
 
 procedure TCustomTestPngGR32.SetUp;
 begin
- FPortableNetworkGraphic := TPortableNetworkGraphic32.Create;
+  FPortableNetworkGraphic := TPortableNetworkGraphic32.Create;
 end;
 
 procedure TCustomTestPngGR32.TearDown;
 begin
- FreeAndNil(FPortableNetworkGraphic);
+  FreeAndNil(FPortableNetworkGraphic);
 end;
 
 
@@ -377,60 +393,62 @@ var
   SR      : TSearchRec;
   Succeed : Boolean;
 begin
- if FindFirst('*.png*', faAnyFile, SR) = 0 then
+  if FindFirst('*.png*', faAnyFile, SR) = 0 then
   try
-   repeat
-    Succeed := True;
-    try
-     // ignore corrupted files
-     if (SR.Name = 'x00n0g01.png') or
-        (SR.Name = 'xcrn0g04.png') or
-        (SR.Name = 'xlfn0g04.png') then Continue;
-
-     FPortableNetworkGraphic.LoadFromFile(SR.Name)
-    except
-     on e: EPngError do MessageDlg(SR.Name + ': ' + e.Message, mtError, [mbOK], 0);
-     else Succeed := False;
-    end;
-    Check(Succeed, 'Error loading file: ' + SR.Name);
-   until FindNext(SR) <> 0;
+    repeat
+      Succeed := True;
+      try
+        // ignore corrupted files
+        if (SR.Name = 'x00n0g01.png') or
+          (SR.Name = 'xcrn0g04.png') or
+          (SR.Name = 'xlfn0g04.png') then 
+          Continue;
+      
+        FPortableNetworkGraphic.LoadFromFile(SR.Name)
+      except
+        on e: EPngError do MessageDlg(SR.Name + ': ' + e.Message, mtError, [mbOK], 0);
+        else Succeed := False;
+      end;
+      Check(Succeed, 'Error loading file: ' + SR.Name);
+    until FindNext(SR) <> 0;
   finally
-   // Must free up resources used by these successful finds
-   FindClose(SR);
+    // Must free up resources used by these successful finds
+    FindClose(SR);
   end;
 end;
 
 procedure TTestPngGR32File.TestInvalidFiles;
 begin
- // empty 0x0 grayscale file
- InternalTestInvalidFile(CPngSuiteDir + 'x00n0g01.png');
+  // empty 0x0 grayscale file
+  InternalTestInvalidFile(CPngSuiteDir + 'x00n0g01.png');
 
- // added cr bytes
- try
-  InternalTestInvalidFile(CPngSuiteDir + 'xcrn0g04.png');
-  Fail('Wrong header is ignored!');
- except
- end;
+  // added cr bytes
+  try
+    InternalTestInvalidFile(CPngSuiteDir + 'xcrn0g04.png');
+    Fail('Wrong header is ignored!');
+  except
+  end;
 
- // converted cr bytes to lf and removed all NULs
- try
-  InternalTestInvalidFile(CPngSuiteDir + 'xlfn0g04.png');
-  Fail('Wrong header is ignored!');
- except
- end;
+  // converted cr bytes to lf and removed all NULs
+  try
+    InternalTestInvalidFile(CPngSuiteDir + 'xlfn0g04.png');
+    Fail('Wrong header is ignored!');
+  except
+  end;
 end;
 
 procedure TTestPngGR32File.TestPerformanceTest;
 begin
- if FileExists(CTestPngDir + 'PerformanceTest.png')
-  then FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'PerformanceTest.png')
-  else Fail('File ' + CTestPngDir + 'PerformanceTest.png does not exist!');
+  if FileExists(CTestPngDir + 'PerformanceTest.png') then 
+    FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'PerformanceTest.png')
+  else 
+    Fail('File ' + CTestPngDir + 'PerformanceTest.png does not exist!');
 end;
 
 procedure TTestPngGR32File.InternalTestInvalidFile(FileName: TFileName);
 begin
- if not FileExists(FileName)
-  then Fail(Format(RCStrTestFileNotFound, [FileName]));
+ if not FileExists(FileName) then 
+   Fail(Format(RCStrTestFileNotFound, [FileName]));
 
  FPortableNetworkGraphic.LoadFromFile(FileName);
 end;
@@ -440,25 +458,25 @@ var
   TempStream : array [0..1] of TMemoryStream;
   TempPng    : TPortableNetworkGraphic32;
 begin
- try
-  TempStream[0] := TMemoryStream.Create;
-  TempStream[1] := TMemoryStream.Create;
-  with FPortableNetworkGraphic do
-   begin
-    FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
-    FPortableNetworkGraphic.SaveToStream(TempStream[0]);
-    TempPng := TPortableNetworkGraphic32.Create;
-    TempPng.Assign(FPortableNetworkGraphic);
-    TempStream[0].Seek(0, soFromBeginning);
-    TempPng.SaveToStream(TempStream[1]);
-    CheckEquals(TempStream[0].Size, TempStream[1].Size);
-    CompareMem(TempStream[0].Memory, TempStream[1].Memory, TempStream[0].Size);
-   end;
- finally
-  if Assigned(TempStream[0]) then FreeAndNil(TempStream[0]);
-  if Assigned(TempStream[1]) then FreeAndNil(TempStream[1]);
-  if Assigned(TempPng) then FreeAndNil(TempPng);
- end;
+  try
+    TempStream[0] := TMemoryStream.Create;
+    TempStream[1] := TMemoryStream.Create;
+    with FPortableNetworkGraphic do
+    begin
+      FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+      FPortableNetworkGraphic.SaveToStream(TempStream[0]);
+      TempPng := TPortableNetworkGraphic32.Create;
+      TempPng.Assign(FPortableNetworkGraphic);
+      TempStream[0].Seek(0, soFromBeginning);
+      TempPng.SaveToStream(TempStream[1]);
+      CheckEquals(TempStream[0].Size, TempStream[1].Size);
+      CompareMem(TempStream[0].Memory, TempStream[1].Memory, TempStream[0].Size);
+    end;
+  finally
+    if Assigned(TempStream[0]) then FreeAndNil(TempStream[0]);
+    if Assigned(TempStream[1]) then FreeAndNil(TempStream[1]);
+    if Assigned(TempPng) then FreeAndNil(TempPng);
+  end;
 end;
 
 procedure TTestPngGR32File.TestBasicWriting;
@@ -515,7 +533,7 @@ begin
       CompressionLevel := Index;
       SaveToStream(TempStream);
 
-      CheckTrue(TempStream.Size <= RecentSize);
+      CheckTrue(TempStream.Size <= RecentSize, 'TempStream.Size is greater than RecentSize');
       RecentSize := TempStream.Size;
      end;
    end;
@@ -1862,26 +1880,47 @@ end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel3;
 begin
- InternalTestDrawing(CPngSuiteDir + 'z03n2c08.png');
+  InternalTestDrawing(CPngSuiteDir + 'z03n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel6;
 begin
- InternalTestDrawing(CPngSuiteDir + 'z06n2c08.png');
+  InternalTestDrawing(CPngSuiteDir + 'z06n2c08.png');
 end;
 
 procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel9;
 begin
- InternalTestDrawing(CPngSuiteDir + 'z09n2c08.png');
+  InternalTestDrawing(CPngSuiteDir + 'z09n2c08.png');
 end;
 
-initialization
+procedure InitializeGR32PngTests;
+begin
+  {$IFDEF FPC}
+  RegisterTest(TTestPngGR32File);
+  RegisterTest(TTestPngGR32Drawing);
+
+  TestPngSuite := TTestSuite.Create('PNG Suite Tests');
+  with TestPngSuite do
+  begin
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteBasicNonInterlaced);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteBasicAdam7);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteSizeTest);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteBackgroundTest);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteGammaTest);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteFilteringTest);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteAdditionalPaletteTest);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteAncillaryChunksTest);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteChunkOrdering);
+    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteCompressionLevel);
+  end;
+  RegisterTest('TestPngSuite', TestPngSuite);
+  {$ELSE}
   RegisterTest(TTestPngGR32File.Suite);
   RegisterTest(TTestPngGR32Drawing.Suite);
 
   TestPngSuite := TTestSuite.Create('PNG Suite Tests');
   with TestPngSuite do
-   begin
+  begin
     AddTest(TTestPngGR32DrawingSuiteBasicNonInterlaced.Suite);
     AddTest(TTestPngGR32DrawingSuiteBasicAdam7.Suite);
     AddTest(TTestPngGR32DrawingSuiteSizeTest.Suite);
@@ -1892,7 +1931,14 @@ initialization
     AddTest(TTestPngGR32DrawingSuiteAncillaryChunksTest.Suite);
     AddTest(TTestPngGR32DrawingSuiteChunkOrdering.Suite);
     AddTest(TTestPngGR32DrawingSuiteCompressionLevel.Suite);
-   end;
+  end;
   RegisterTest(TestPngSuite);
+  {$ENDIF}
+end;
+
+{$IFNDEF FPC}
+initialization
+  InitializeGR32PngTests;
+{$ENDIF}
 
 end.

@@ -35,8 +35,9 @@ unit GR32_TestGuiPngDisplay;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, PngImage, GR32_Png, GR32, GR32_Image;
+  {$IFDEF FPC} LCLIntf, {$ELSE} Windows, Messages, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  GR32, GR32_Image;
 
 type
   TFmDisplay = class(TForm)
@@ -66,7 +67,11 @@ var
 
 implementation
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
+{$ENDIF}
 
 constructor TFmDisplay.Create(AOwner: TComponent);
 begin
