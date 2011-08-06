@@ -83,7 +83,6 @@ object fmResamplersExample: TfmResamplersExample
         Height = 21
         Style = csDropDownList
         Anchors = [akTop, akRight]
-        ItemHeight = 13
         TabOrder = 1
         OnChange = ResamplerClassNamesListChange
       end
@@ -94,7 +93,6 @@ object fmResamplersExample: TfmResamplersExample
         Height = 21
         Style = csDropDownList
         Anchors = [akTop, akRight]
-        ItemHeight = 13
         TabOrder = 2
         OnChange = EdgecheckBoxChange
         Items.Strings = (
@@ -109,7 +107,6 @@ object fmResamplersExample: TfmResamplersExample
         Height = 21
         Style = csDropDownList
         Anchors = [akTop, akRight]
-        ItemHeight = 13
         TabOrder = 3
         OnChange = EdgecheckBoxChange
         Items.Strings = (
@@ -184,7 +181,6 @@ object fmResamplersExample: TfmResamplersExample
         Height = 21
         Style = csDropDownList
         Anchors = [akTop, akRight]
-        ItemHeight = 13
         TabOrder = 1
         OnChange = KernelClassNamesListClick
       end
@@ -195,7 +191,6 @@ object fmResamplersExample: TfmResamplersExample
         Height = 21
         Style = csDropDownList
         Anchors = [akTop, akRight]
-        ItemHeight = 13
         TabOrder = 2
         OnChange = KernelModeListChange
         Items.Strings = (
@@ -240,7 +235,7 @@ object fmResamplersExample: TfmResamplersExample
     Top = 0
     Width = 329
     Height = 376
-    ActivePage = tabDetails
+    ActivePage = ResamplingTabSheet
     Align = alClient
     TabOrder = 0
     OnChange = ResamplerClassNamesListChange

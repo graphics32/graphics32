@@ -1,21 +1,67 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="7"/>
+    <Version Value="9"/>
     <General>
-      <Flags>
-        <LRSInOutputDirectory Value="False"/>
-      </Flags>
       <MainUnit Value="0"/>
-      <TargetFileExt Value=""/>
       <Title Value="Resamplers Example"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ResourceType Value="res"/>
+      <ActiveWindowIndexAtStart Value="0"/>
     </General>
     <VersionInfo>
-      <ProjectVersion Value=""/>
       <Language Value=""/>
       <CharSet Value=""/>
+      <StringTable ProductVersion=""/>
     </VersionInfo>
+    <BuildModes Count="2" Active="Debug">
+      <Item1 Name="Release" Default="True"/>
+      <Item2 Name="Debug">
+        <CompilerOptions>
+          <Version Value="10"/>
+          <Target>
+            <Filename Value="Resampler_Ex.exe"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="../../../..;$(ProjOutDir)"/>
+            <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="../../../.."/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <CStyleOperator Value="False"/>
+              <IncludeAssertionCode Value="True"/>
+              <CPPInline Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="0"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <LinkerOptions Value="-framework carbon"/>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CompilerMessages>
+              <UseMsgFile Value="True"/>
+            </CompilerMessages>
+            <CompilerPath Value="$(CompPath)"/>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
       <IgnoreBinaries Value="False"/>
@@ -39,161 +85,211 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="6">
+    <Units Count="7">
       <Unit0>
         <Filename Value="Resamplers_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="9"/>
-        <TopLine Value="1"/>
         <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="9"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="Form1"/>
+        <ComponentName Value="fmResamplersExample"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="97"/>
-        <TopLine Value="86"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="135"/>
+        <CursorPos X="1" Y="162"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="1" Y="66"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="66"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
         <Filename Value="../../../../Packages/GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
         <Filename Value="../../../../GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-        <CursorPos X="81" Y="47"/>
         <TopLine Value="33"/>
+        <CursorPos X="81" Y="47"/>
         <UsageCount Value="10"/>
       </Unit4>
       <Unit5>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
-        <CursorPos X="1" Y="3167"/>
         <TopLine Value="3150"/>
+        <CursorPos X="1" Y="3167"/>
         <UsageCount Value="10"/>
       </Unit5>
+      <Unit6>
+        <Filename Value="../../../../../../../../../Lazarus/lcl/include/customform.inc"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="863"/>
+        <CursorPos X="1" Y="879"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit6>
     </Units>
-    <JumpHistory Count="22" HistoryIndex="21">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="Resamplers_Ex.lpr"/>
-        <Caret Line="8" Column="8" TopLine="1"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="51" Column="65" TopLine="27"/>
       </Position1>
       <Position2>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="459" Column="5" TopLine="426"/>
       </Position2>
       <Position3>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="204" Column="20" TopLine="164"/>
+        <Caret Line="113" Column="14" TopLine="107"/>
       </Position3>
       <Position4>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="45" Column="67" TopLine="31"/>
+        <Caret Line="49" Column="9" TopLine="33"/>
       </Position4>
       <Position5>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="46" Column="2" TopLine="32"/>
+        <Caret Line="47" Column="67" TopLine="31"/>
       </Position5>
       <Position6>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="59" Column="19" TopLine="32"/>
+        <Caret Line="108" Column="8" TopLine="91"/>
       </Position6>
       <Position7>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="46" Column="63" TopLine="32"/>
+        <Caret Line="454" Column="72" TopLine="429"/>
       </Position7>
       <Position8>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="183" Column="1" TopLine="174"/>
+        <Caret Line="52" Column="23" TopLine="33"/>
       </Position8>
       <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="187" Column="3" TopLine="173"/>
+        <Filename Value="../../../../../../../../../Lazarus/lcl/include/customform.inc"/>
+        <Caret Line="879" Column="1" TopLine="863"/>
       </Position9>
       <Position10>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="186" Column="40" TopLine="173"/>
+        <Caret Line="146" Column="6" TopLine="131"/>
       </Position10>
       <Position11>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="188" Column="24" TopLine="175"/>
+        <Caret Line="150" Column="11" TopLine="131"/>
       </Position11>
       <Position12>
-        <Filename Value="Resamplers_Ex.lpr"/>
-        <Caret Line="8" Column="8" TopLine="1"/>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="12" TopLine="131"/>
       </Position12>
       <Position13>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="349" Column="72" TopLine="330"/>
+        <Caret Line="143" Column="18" TopLine="126"/>
       </Position13>
       <Position14>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="142" Column="1" TopLine="126"/>
       </Position14>
       <Position15>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="197" Column="24" TopLine="181"/>
+        <Caret Line="153" Column="1" TopLine="126"/>
       </Position15>
       <Position16>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="109" Column="3" TopLine="86"/>
+        <Caret Line="162" Column="1" TopLine="146"/>
       </Position16>
       <Position17>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="110" Column="9" TopLine="82"/>
+        <Caret Line="142" Column="12" TopLine="126"/>
       </Position17>
       <Position18>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="108" Column="8" TopLine="82"/>
+        <Caret Line="154" Column="1" TopLine="127"/>
       </Position18>
       <Position19>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="443" Column="23" TopLine="420"/>
+        <Caret Line="155" Column="1" TopLine="128"/>
       </Position19>
       <Position20>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="458" Column="5" TopLine="425"/>
+        <Caret Line="156" Column="1" TopLine="129"/>
       </Position20>
       <Position21>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="51" Column="65" TopLine="27"/>
+        <Caret Line="157" Column="1" TopLine="130"/>
       </Position21>
       <Position22>
         <Filename Value="MainUnit.pas"/>
-        <Caret Line="459" Column="5" TopLine="426"/>
+        <Caret Line="159" Column="1" TopLine="132"/>
       </Position22>
+      <Position23>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="162" Column="1" TopLine="135"/>
+      </Position23>
+      <Position24>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="1" TopLine="135"/>
+      </Position24>
+      <Position25>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="157" Column="58" TopLine="135"/>
+      </Position25>
+      <Position26>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="1" TopLine="135"/>
+      </Position26>
+      <Position27>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="153" Column="1" TopLine="135"/>
+      </Position27>
+      <Position28>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="161" Column="66" TopLine="135"/>
+      </Position28>
+      <Position29>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="142" Column="1" TopLine="135"/>
+      </Position29>
+      <Position30>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="153" Column="1" TopLine="135"/>
+      </Position30>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="8"/>
+    <Version Value="10"/>
+    <Target>
+      <Filename Value="."/>
+    </Target>
     <SearchPaths>
-      <IncludeFiles Value="../../../../"/>
-      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
-      <OtherUnitFiles Value="../../../../"/>
+      <IncludeFiles Value="../../../.."/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../../.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <CStyleOperator Value="False"/>
-        <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
+        <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
@@ -201,7 +297,8 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
-        <GenerateDebugInfo Value="True"/>
+        <UseLineInfoUnit Value="False"/>
+        <StripSymbols Value="True"/>
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>
@@ -212,6 +309,12 @@
       </Options>
     </Linking>
     <Other>
+      <Verbosity>
+        <ShowHints Value="False"/>
+      </Verbosity>
+      <CompilerMessages>
+        <UseMsgFile Value="True"/>
+      </CompilerMessages>
       <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>
