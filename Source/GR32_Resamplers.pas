@@ -588,7 +588,7 @@ const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
 
 var
-  BlockAverage: function (Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+  BlockAverage: function(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
   Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 resourcestring
@@ -603,41 +603,41 @@ uses
   GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
 
 const
-  CAlbrecht2    : array [0..1] of Double = (5.383553946707251e-1, 4.616446053292749e-1);
-  CAlbrecht3    : array [0..2] of Double = (3.46100822018625e-1,  4.97340635096738e-1,
-                                            1.56558542884637e-1);
-  CAlbrecht4    : array [0..3] of Double = (2.26982412792069e-1,  4.57254070828427e-1,
-                                            2.73199027957384e-1,  4.25644884221201e-2);
-  CAlbrecht5    : array [0..4] of Double = (1.48942606015830e-1,  3.86001173639176e-1,
-                                            3.40977403214053e-1,  1.139879604246e-1,
-                                            1.00908567063414e-2);
-  CAlbrecht6    : array [0..5] of Double = (9.71676200107429e-2,  3.08845222524055e-1,
-                                            3.62623371437917e-1,  1.88953325525116e-1,
-                                            4.02095714148751e-2,  2.20088908729420e-3);
-  CAlbrecht7    : array [0..6] of Double = (6.39644241143904e-2,  2.39938645993528e-1,
-                                            3.50159563238205e-1,  2.47741118970808e-1,
-                                            8.54382560558580e-2,  1.23202033692932e-2,
-                                            4.37788257917735e-4);
-  CAlbrecht8    : array [0..7] of Double = (4.21072107042137e-2,  1.82076226633776e-1,
-                                            3.17713781059942e-1,  2.84438001373442e-1,
-                                            1.36762237777383e-1,  3.34038053504025e-2,
-                                            3.41677216705768e-3,  8.19649337831348e-5);
-  CAlbrecht9    : array [0..8] of Double = (2.76143731612611e-2,  1.35382228758844e-1,
-                                            2.75287234472237e-1,  2.98843335317801e-1,
-                                            1.85319330279284e-1,  6.48884482549063e-2,
-                                            1.17641910285655e-2,  8.85987580106899e-4,
-                                            1.48711469943406e-5);
-  CAlbrecht10   : array [0..9] of Double = (1.79908225352538e-2,  9.87959586065210e-2,
-                                            2.29883817001211e-1,  2.94113019095183e-1,
-                                            2.24338977814325e-1,  1.03248806248099e-1,
-                                            2.75674109448523e-2,  3.83958622947123e-3,
-                                            2.18971708430106e-4,  2.62981665347889e-6);
-  CAlbrecht11  : array [0..10] of Double = (1.18717127796602e-2,  7.19533651951142e-2,
-                                            1.87887160922585e-1,  2.75808174097291e-1,
-                                            2.48904243244464e-1,  1.41729867200712e-1,
-                                            5.02002976228256e-2,  1.04589649084984e-2,
-                                            1.13615112741660e-3,  4.96285981703436e-5,
-                                            4.34303262685720e-7);
+  CAlbrecht2    : array [0..1] of Double = (5.383553946707251E-1, 4.616446053292749E-1);
+  CAlbrecht3    : array [0..2] of Double = (3.46100822018625E-1,  4.97340635096738E-1,
+                                            1.56558542884637E-1);
+  CAlbrecht4    : array [0..3] of Double = (2.26982412792069E-1,  4.57254070828427E-1,
+                                            2.73199027957384E-1,  4.25644884221201E-2);
+  CAlbrecht5    : array [0..4] of Double = (1.48942606015830E-1,  3.86001173639176E-1,
+                                            3.40977403214053E-1,  1.139879604246E-1,
+                                            1.00908567063414E-2);
+  CAlbrecht6    : array [0..5] of Double = (9.71676200107429E-2,  3.08845222524055E-1,
+                                            3.62623371437917E-1,  1.88953325525116E-1,
+                                            4.02095714148751E-2,  2.20088908729420E-3);
+  CAlbrecht7    : array [0..6] of Double = (6.39644241143904E-2,  2.39938645993528E-1,
+                                            3.50159563238205E-1,  2.47741118970808E-1,
+                                            8.54382560558580E-2,  1.23202033692932E-2,
+                                            4.37788257917735E-4);
+  CAlbrecht8    : array [0..7] of Double = (4.21072107042137E-2,  1.82076226633776E-1,
+                                            3.17713781059942E-1,  2.84438001373442E-1,
+                                            1.36762237777383E-1,  3.34038053504025E-2,
+                                            3.41677216705768E-3,  8.19649337831348E-5);
+  CAlbrecht9    : array [0..8] of Double = (2.76143731612611E-2,  1.35382228758844E-1,
+                                            2.75287234472237E-1,  2.98843335317801E-1,
+                                            1.85319330279284E-1,  6.48884482549063E-2,
+                                            1.17641910285655E-2,  8.85987580106899E-4,
+                                            1.48711469943406E-5);
+  CAlbrecht10   : array [0..9] of Double = (1.79908225352538E-2,  9.87959586065210E-2,
+                                            2.29883817001211E-1,  2.94113019095183E-1,
+                                            2.24338977814325E-1,  1.03248806248099E-1,
+                                            2.75674109448523E-2,  3.83958622947123E-3,
+                                            2.18971708430106E-4,  2.62981665347889E-6);
+  CAlbrecht11  : array [0..10] of Double = (1.18717127796602E-2,  7.19533651951142E-2,
+                                            1.87887160922585E-1,  2.75808174097291E-1,
+                                            2.48904243244464E-1,  1.41729867200712E-1,
+                                            5.02002976228256E-2,  1.04589649084984E-2,
+                                            1.13615112741660E-3,  4.96285981703436E-5,
+                                            4.34303262685720E-7);
 type
   TTransformationAccess = class(TTransformation);
   TCustomBitmap32Access = class(TCustomBitmap32);
@@ -957,7 +957,11 @@ begin
         CombineLine(@Buf1[1], @Buf1[0], SrcRectW, FracX);
 
         if SrcRect.Left > 0 then
+          {$IFDEF FPC}
+          C2 := CombineReg(PColor32(PtrUInt(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+          {$ELSE}
           C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+          {$ENDIF}
         else
           C2 := SrcP[0];
 
@@ -972,7 +976,11 @@ begin
       CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracX xor $FF);
 
       if SrcRect.Left > 0 then
+        {$IFDEF FPC}
+        C1 := CombineReg(PColor32(PtrUInt(SrcP) - 4)^, SrcP[0], FracX)
+        {$ELSE}
         C1 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX)
+        {$ENDIF}
       else
         C1 := SrcP[0];
 
@@ -1017,7 +1025,11 @@ begin
         CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracX xor $FF);
 
         if SrcRect.Left > 0 then
+          {$IFDEF FPC}
+          C2 := CombineReg(PColor32(PtrUInt(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+          {$ELSE}
           C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+          {$ENDIF}
         else
           C2 := SrcP[0];
 
@@ -1056,7 +1068,11 @@ begin
         CombineLine(@Buf2[1], @Buf2[0], SrcRectW, FracY xor $FF);
         CombineLine(@Buf2[0], @Buf1[0], SrcRectW, FracY xor $FF);
         if SrcRect.Left > 0 then
+          {$IFDEF FPC}
+          C2 := CombineReg(PColor32(PtrUInt(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+          {$ELSE}
           C2 := CombineReg(PColor32(Integer(SrcP) - 4)^, SrcP[0], FracX xor $FF)
+          {$ENDIF}
         else
           C2 := SrcP[0];
         BlendMemEx(CombineReg(C1, C2, FracY), DstP^, LW * BW * MA shr 16)
@@ -1764,7 +1780,7 @@ end;
 
 { Draft Resample Routines }
 
-function BlockAverage_Pas(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+function BlockAverage_Pas(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 type
  PRGBA = ^TRGBA;
  TRGBA = record B,G,R,A: Byte end;
@@ -1775,7 +1791,7 @@ begin
   iR := 0;  iB := iR;  iG := iR;  iA := iR;
   for iy := 1 to Dly do
   begin
-    C:= PRGBA(RowSrc);
+    C := PRGBA(RowSrc);
     for ix := 1 to Dlx do
     begin
       Inc(iB, C.B);
@@ -1784,7 +1800,11 @@ begin
       Inc(iA, C.A);
       Inc(C);
     end;
+    {$IFDEF FPC}
     Inc(RowSrc, OffSrc);
+    {$ELSE}
+    Inc(Cardinal(RowSrc), OffSrc);
+    {$ENDIF}
   end;
 
   Area := Dlx * Dly;
@@ -1795,230 +1815,382 @@ begin
             iB * Area shr 24 and $FF;
 end;
 
-{$IFDEF TARGET_x86}
-function BlockAverage_MMX(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+{$IFNDEF PUREPASCAL}
+function BlockAverage_MMX(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 asm
-   PUSH       EBX
-   PUSH       ESI
-   PUSH       EDI
+{$IFDEF TARGET_X64}
+        PUSH       RBX
+        PUSH       RSI
+        PUSH       RDI
 
-   MOV        EBX,OffSrc
-   MOV        ESI,EAX
-   MOV        EDI,EDX
+        MOV        RAX,RCX
+        MOV        RCX,R8
 
-   SHL        ESI,$02
-   SUB        EBX,ESI
 
-   PXOR       MM1, MM1
-   PXOR       MM2, MM2
-   PXOR       MM7, MM7
+        MOV        RBX,R9
+        MOV        RSI,RAX
+        MOV        RDI,RDX
 
- @@LoopY:
-   MOV        ESI,EAX
-   PXOR       MM0, MM0
-   LEA        ECX,[ECX+ESI*4]
-   NEG        ESI
- @@LoopX:
-   MOVD       MM6,[ECX+ESI*4]
-   PUNPCKLBW  MM6, MM7
-   PADDW      MM0, MM6
-   INC        ESI
-   JNZ        @@LoopX
+        SHL        RSI,$02
+        SUB        RBX,RSI
 
-   MOVQ       MM6, MM0
-   PUNPCKLWD  MM6, MM7
-   PADDD      MM1, MM6
-   MOVQ       MM6, MM0
-   PUNPCKHWD  MM6, MM7
-   PADDD      MM2, MM6
-   ADD        ECX,EBX
-   DEC        EDX
-   JNZ        @@LoopY
+        PXOR       MM1, MM1
+        PXOR       MM2, MM2
+        PXOR       MM7, MM7
 
-   MUL        EDI
-   MOV        ECX,EAX
-   MOV        EAX,$01000000
-   DIV        ECX
-   MOV        ECX,EAX
+@@LoopY:
+        MOV        RSI,RAX
+        PXOR       MM0, MM0
+        LEA        RCX,[RCX + RSI * 4]
+        NEG        ESI
+@@LoopX:
+        MOVD       MM6, [RCX + RSI*4]
+        PUNPCKLBW  MM6, MM7
+        PADDW      MM0, MM6
+        INC        RSI
+        JNZ        @@LoopX
 
-   MOVD       EAX, MM1
-   MUL        ECX
-   SHR        EAX,$18
-   MOV        EDI,EAX
+        MOVQ       MM6, MM0
+        PUNPCKLWD  MM6, MM7
+        PADDD      MM1, MM6
+        MOVQ       MM6, MM0
+        PUNPCKHWD  MM6, MM7
+        PADDD      MM2, MM6
+        ADD        RCX,RBX
+        DEC        RDX
+        JNZ        @@LoopY
 
-   PSRLQ      MM1, $20
-   MOVD       EAX, MM1
-   MUL        ECX
-   SHR        EAX,$10
-   AND        EAX,$0000FF00
-   ADD        EDI,EAX
+        MUL        RDI
+        MOV        RCX,RAX
+        MOV        RAX,$01000000
+        DIV        RCX
+        MOV        RCX,RAX
 
-   MOVD       EAX, MM2
-   MUL        ECX
-   SHR        EAX,$08
-   AND        EAX,$00FF0000
-   ADD        EDI,EAX
+        MOVD       EAX, MM1
+        MUL        RCX
+        SHR        RAX,$18
+        MOV        RDI,RAX
 
-   PSRLQ      MM2, $20
-   MOVD       EAX, MM2
-   MUL        ECX
-   AND        EAX,$FF000000
-   ADD        EAX,EDI
+        PSRLQ      MM1, $20
+        MOVD       EAX, MM1
+        MUL        RCX
+        SHR        RAX,$10
+        AND        RAX,$0000FF00
+        ADD        RDI,RAX
 
-   POP        EDI
-   POP        ESI
-   POP        EBX
+        MOVD       EAX, MM2
+        MUL        RCX
+        SHR        RAX,$08
+        AND        RAX,$00FF0000
+        ADD        RDI,RAX
+
+        PSRLQ      MM2, $20
+        MOVD       EAX, MM2
+        MUL        RCX
+        AND        EAX,$FF000000
+        ADD        RAX,RDI
+
+        POP        RDI
+        POP        RSI
+        POP        RBX
+{$ELSE}
+        PUSH       EBX
+        PUSH       ESI
+        PUSH       EDI
+
+        MOV        EBX,OffSrc
+        MOV        ESI,EAX
+        MOV        EDI,EDX
+
+        SHL        ESI,$02
+        SUB        EBX,ESI
+
+        PXOR       MM1, MM1
+        PXOR       MM2, MM2
+        PXOR       MM7, MM7
+
+@@LoopY:
+        MOV        ESI,EAX
+        PXOR       MM0, MM0
+        LEA        ECX,[ECX+ESI*4]
+        NEG        ESI
+@@LoopX:
+        MOVD       MM6,[ECX+ESI*4]
+        PUNPCKLBW  MM6, MM7
+        PADDW      MM0, MM6
+        INC        ESI
+        JNZ        @@LoopX
+
+        MOVQ       MM6, MM0
+        PUNPCKLWD  MM6, MM7
+        PADDD      MM1, MM6
+        MOVQ       MM6, MM0
+        PUNPCKHWD  MM6, MM7
+        PADDD      MM2, MM6
+        ADD        ECX,EBX
+        DEC        EDX
+        JNZ        @@LoopY
+
+        MUL        EDI
+        MOV        ECX,EAX
+        MOV        EAX,$01000000
+        DIV        ECX
+        MOV        ECX,EAX
+
+        MOVD       EAX, MM1
+        MUL        ECX
+        SHR        EAX,$18
+        MOV        EDI,EAX
+
+        PSRLQ      MM1, $20
+        MOVD       EAX, MM1
+        MUL        ECX
+        SHR        EAX,$10
+        AND        EAX,$0000FF00
+        ADD        EDI,EAX
+
+        MOVD       EAX, MM2
+        MUL        ECX
+        SHR        EAX,$08
+        AND        EAX,$00FF0000
+        ADD        EDI,EAX
+
+        PSRLQ      MM2, $20
+        MOVD       EAX, MM2
+        MUL        ECX
+        AND        EAX,$FF000000
+        ADD        EAX,EDI
+
+        POP        EDI
+        POP        ESI
+        POP        EBX
+{$ENDIF}
 end;
 
-function BlockAverage_3DNow(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+{$IFNDEF FPC}
+function BlockAverage_3DNow(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 asm
-   PUSH       EBX
-   PUSH       ESI
-   PUSH       EDI
+        PUSH       EBX
+        PUSH       ESI
+        PUSH       EDI
 
-   MOV        EBX,OffSrc
-   MOV        ESI,EAX
-   MOV        EDI,EDX
+        MOV        EBX,OffSrc
+        MOV        ESI,EAX
+        MOV        EDI,EDX
 
-   SHL        ESI,$02
-   SUB        EBX,ESI
+        SHL        ESI,$02
+        SUB        EBX,ESI
 
-   PXOR       MM1, MM1
-   PXOR       MM2, MM2
-   PXOR       MM7, MM7
+        PXOR       MM1, MM1
+        PXOR       MM2, MM2
+        PXOR       MM7, MM7
 
- @@LoopY:
-   MOV        ESI,EAX
-   PXOR       MM0, MM0
-   LEA        ECX,[ECX+ESI*4]
-   NEG        ESI
-   db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ECX + ESI * 4 + 512]
- @@LoopX:
-   MOVD       MM6, [ECX + ESI * 4]
-   PUNPCKLBW  MM6, MM7
-   PADDW      MM0, MM6
-   INC        ESI
+@@LoopY:
+        MOV        ESI,EAX
+        PXOR       MM0, MM0
+        LEA        ECX,[ECX+ESI*4]
+        NEG        ESI
+        db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ECX + ESI * 4 + 512]
+@@LoopX:
+        MOVD       MM6, [ECX + ESI * 4]
+        PUNPCKLBW  MM6, MM7
+        PADDW      MM0, MM6
+        INC        ESI
 
-   JNZ        @@LoopX
+        JNZ        @@LoopX
 
-   MOVQ       MM6, MM0
-   PUNPCKLWD  MM6, MM7
-   PADDD      MM1, MM6
-   MOVQ       MM6, MM0
-   PUNPCKHWD  MM6, MM7
-   PADDD      MM2, MM6
-   ADD        ECX,EBX
-   DEC        EDX
+        MOVQ       MM6, MM0
+        PUNPCKLWD  MM6, MM7
+        PADDD      MM1, MM6
+        MOVQ       MM6, MM0
+        PUNPCKHWD  MM6, MM7
+        PADDD      MM2, MM6
+        ADD        ECX,EBX
+        DEC        EDX
 
-   JNZ        @@LoopY
+        JNZ        @@LoopY
 
-   MUL        EDI
-   MOV        ECX,EAX
-   MOV        EAX,$01000000
-   div        ECX
-   MOV        ECX,EAX
+        MUL        EDI
+        MOV        ECX,EAX
+        MOV        EAX,$01000000
+        div        ECX
+        MOV        ECX,EAX
 
-   MOVD       EAX, MM1
-   MUL        ECX
-   SHR        EAX,$18
-   MOV        EDI,EAX
+        MOVD       EAX, MM1
+        MUL        ECX
+        SHR        EAX,$18
+        MOV        EDI,EAX
 
-   PSRLQ      MM1, $20
-   MOVD       EAX, MM1
-   MUL        ECX
-   SHR        EAX,$10
-   AND        EAX,$0000FF00
-   ADD        EDI,EAX
+        PSRLQ      MM1, $20
+        MOVD       EAX, MM1
+        MUL        ECX
+        SHR        EAX,$10
+        AND        EAX,$0000FF00
+        ADD        EDI,EAX
 
-   MOVD       EAX, MM2
-   MUL        ECX
-   SHR        EAX,$08
-   AND        EAX,$00FF0000
-   ADD        EDI,EAX
+        MOVD       EAX, MM2
+        MUL        ECX
+        SHR        EAX,$08
+        AND        EAX,$00FF0000
+        ADD        EDI,EAX
 
-   PSRLQ      MM2, $20
-   MOVD       EAX, MM2
-   MUL        ECX
-   AND        EAX,$FF000000
-   ADD        EAX,EDI
+        PSRLQ      MM2, $20
+        MOVD       EAX, MM2
+        MUL        ECX
+        AND        EAX,$FF000000
+        ADD        EAX,EDI
 
-   POP        EDI
-   POP        ESI
-   POP        EBX
+        POP        EDI
+        POP        ESI
+        POP        EBX
 end;
+{$ENDIF}
 
-function BlockAverage_SSE2(Dlx, Dly, RowSrc, OffSrc: Cardinal): TColor32;
+function BlockAverage_SSE2(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 asm
-   PUSH       EBX
-   PUSH       ESI
-   PUSH       EDI
+{$IFDEF TARGET_X64}
+        PUSH       RBX
+        PUSH       RSI
+        PUSH       RDI
 
-   MOV        EBX,OffSrc
-   MOV        ESI,EAX
-   MOV        EDI,EDX
+        MOV        EBX,OffSrc
+        MOV        ESI,EAX
+        MOV        EDI,EDX
 
-   SHL        ESI,$02
-   SUB        EBX,ESI
+        SHL        ESI,$02
+        SUB        EBX,ESI
 
-   PXOR       XMM1, XMM1
-   PXOR       XMM2, XMM2
-   PXOR       XMM7, XMM7
+        PXOR       XMM1, XMM1
+        PXOR       XMM2, XMM2
+        PXOR       XMM7, XMM7
 
- @@LoopY:
-   MOV        ESI,EAX
-   PXOR       XMM0, XMM0
-   LEA        ECX,[ECX+ESI*4]
-   NEG        ESI
- @@LoopX:
-   MOVD       XMM6,[ECX+ESI*4]
-   PUNPCKLBW  XMM6, XMM7
-   PADDW      XMM0, XMM6
-   INC        ESI
-   JNZ        @@LoopX
+@@LoopY:
+        MOV        ESI,EAX
+        PXOR       XMM0, XMM0
+        LEA        ECX,[RCX+RSI*4]
+        NEG        ESI
+@@LoopX:
+        MOVD       XMM6,[RCX+RSI*4]
+        PUNPCKLBW  XMM6, XMM7
+        PADDW      XMM0, XMM6
+        INC        ESI
+        JNZ        @@LoopX
 
-   MOVQ       XMM6, XMM0
-   PUNPCKLWD  XMM6, XMM7
-   PADDD      XMM1, XMM6
-   MOVQ       XMM6, XMM0
-   PUNPCKHWD  XMM6, XMM7
-   PADDD      XMM2, XMM6
-   ADD        ECX,EBX
-   DEC        EDX
-   JNZ        @@LoopY
+        MOVQ       XMM6, XMM0
+        PUNPCKLWD  XMM6, XMM7
+        PADDD      XMM1, XMM6
+        MOVQ       XMM6, XMM0
+        PUNPCKHWD  XMM6, XMM7
+        PADDD      XMM2, XMM6
+        ADD        ECX,EBX
+        DEC        EDX
+        JNZ        @@LoopY
 
-   MUL        EDI
-   MOV        ECX,EAX
-   MOV        EAX,$01000000
-   DIV        ECX
-   MOV        ECX,EAX
+        MUL        EDI
+        MOV        ECX,EAX
+        MOV        EAX,$01000000
+        DIV        ECX
+        MOV        ECX,EAX
 
-   MOVD       EAX, XMM1
-   MUL        ECX
-   SHR        EAX,$18
-   MOV        EDI,EAX
+        MOVD       EAX, XMM1
+        MUL        ECX
+        SHR        EAX,$18
+        MOV        EDI,EAX
 
-   PSRLQ      XMM1, $20
-   MOVD       EAX, XMM1
-   MUL        ECX
-   SHR        EAX,$10
-   AND        EAX,$0000FF00
-   ADD        EDI,EAX
+        PSRLQ      XMM1, $20
+        MOVD       EAX, XMM1
+        MUL        ECX
+        SHR        EAX,$10
+        AND        EAX,$0000FF00
+        ADD        EDI,EAX
 
-   MOVD       EAX, XMM2
-   MUL        ECX
-   SHR        EAX,$08
-   AND        EAX,$00FF0000
-   ADD        EDI,EAX
+        MOVD       EAX, XMM2
+        MUL        ECX
+        SHR        EAX,$08
+        AND        EAX,$00FF0000
+        ADD        EDI,EAX
 
-   PSRLQ      XMM2, $20
-   MOVD       EAX, XMM2
-   MUL        ECX
-   AND        EAX,$FF000000
-   ADD        EAX,EDI
+        PSRLQ      XMM2, $20
+        MOVD       EAX, XMM2
+        MUL        ECX
+        AND        EAX,$FF000000
+        ADD        EAX,EDI
 
-   POP        EDI
-   POP        ESI
-   POP        EBX
+        POP        RDI
+        POP        RSI
+        POP        RBX
+{$ELSE}
+        PUSH       EBX
+        PUSH       ESI
+        PUSH       EDI
+
+        MOV        EBX,OffSrc
+        MOV        ESI,EAX
+        MOV        EDI,EDX
+
+        SHL        ESI,$02
+        SUB        EBX,ESI
+
+        PXOR       XMM1, XMM1
+        PXOR       XMM2, XMM2
+        PXOR       XMM7, XMM7
+
+@@LoopY:
+        MOV        ESI,EAX
+        PXOR       XMM0, XMM0
+        LEA        ECX,[ECX+ESI*4]
+        NEG        ESI
+@@LoopX:
+        MOVD       XMM6,[ECX+ESI*4]
+        PUNPCKLBW  XMM6, XMM7
+        PADDW      XMM0, XMM6
+        INC        ESI
+        JNZ        @@LoopX
+
+        MOVQ       XMM6, XMM0
+        PUNPCKLWD  XMM6, XMM7
+        PADDD      XMM1, XMM6
+        MOVQ       XMM6, XMM0
+        PUNPCKHWD  XMM6, XMM7
+        PADDD      XMM2, XMM6
+        ADD        ECX,EBX
+        DEC        EDX
+        JNZ        @@LoopY
+
+        MUL        EDI
+        MOV        ECX,EAX
+        MOV        EAX,$01000000
+        DIV        ECX
+        MOV        ECX,EAX
+
+        MOVD       EAX, XMM1
+        MUL        ECX
+        SHR        EAX,$18
+        MOV        EDI,EAX
+
+        PSRLQ      XMM1, $20
+        MOVD       EAX, XMM1
+        MUL        ECX
+        SHR        EAX,$10
+        AND        EAX,$0000FF00
+        ADD        EDI,EAX
+
+        MOVD       EAX, XMM2
+        MUL        ECX
+        SHR        EAX,$08
+        AND        EAX,$00FF0000
+        ADD        EDI,EAX
+
+        PSRLQ      XMM2, $20
+        MOVD       EAX, XMM2
+        MUL        ECX
+        AND        EAX,$FF000000
+        ADD        EAX,EDI
+
+        POP        EDI
+        POP        ESI
+        POP        EBX
+{$ENDIF}
 end;
 {$ENDIF}
 
@@ -2030,10 +2202,16 @@ var
   SrcW, SrcH,
   DstW, DstH,
   DstClipW, DstClipH: Cardinal;
-  RowSrc, OffSrc,
+  RowSrc: Pointer;
+  {$IFDEF FPC}
+  xsrc: Pointer;
+  {$ELSE}
+  xsrc: Cardinal;
+  {$ENDIF}
+  OffSrc,
   dy, dx,
   c1, c2, r1, r2,
-  xs, xsrc: Cardinal;
+  xs: Cardinal;
   C: TColor32;
   DstLine: PColor32Array;
   ScaleFactor: TFloat;
@@ -2076,7 +2254,7 @@ begin
       sc := Trunc( $10000 * ScaleFactor );
 
       DstLine := PColor32Array(Dst.PixelPtr[0, DstClip.Top]);
-      RowSrc := Cardinal(Src.PixelPtr[ SrcRect.Left +  cx, SrcRect.Top + cy ]);
+      RowSrc := Src.PixelPtr[SrcRect.Left +  cx, SrcRect.Top + cy ];
 
       xs := r2;
       c1 := 0;
@@ -2091,7 +2269,11 @@ begin
         c2 := FixedMul(J, sc);
         r1 := 0;
         r2 := xs;
+        {$IFDEF FPC}
         xsrc := RowSrc;
+        {$ELSE}
+        xsrc := Cardinal(RowSrc);
+        {$ENDIF}
 
         case CombineOp of
           dmOpaque:
@@ -2099,7 +2281,7 @@ begin
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
+              DstLine[DstClip.Left + I] := BlockAverage(dx, dy, Pointer(xsrc), OffSrc);
               xsrc := xsrc + dx shl 2;
             end;
           dmBlend:
@@ -2107,7 +2289,7 @@ begin
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+              BlendMemEx(BlockAverage(dx, dy, Pointer(xsrc), OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
               xsrc := xsrc + dx shl 2;
             end;
           dmTransparent:
@@ -2115,7 +2297,7 @@ begin
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              C := BlockAverage(dx, dy, xsrc, OffSrc);
+              C := BlockAverage(dx, dy, Pointer(xsrc), OffSrc);
               if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
               xsrc := xsrc + dx shl 2;
             end;
@@ -2124,13 +2306,17 @@ begin
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
+              CombineCallBack(BlockAverage(dx, dy, Pointer(xsrc), OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
               xsrc := xsrc + dx shl 2;
             end;
         end;
 
         Inc(DstLine, Dst.Width);
+        {$IFDEF FPC}
         Inc(RowSrc, OffSrc * dy);
+        {$ELSE}
+        Inc(Cardinal(RowSrc), OffSrc * dy);
+        {$ENDIF}
       end;
     end;
   EMMS;
@@ -2150,13 +2336,20 @@ begin
                        CombineReg(C3, C21^, WX_256), WY_256);
 end;
 
-{$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
 function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOV       RAX, RCX
+        MOVQ      MM1,[R8]
+        MOVQ      MM2,MM1
+        MOVQ      MM3,[R9]
+{$ELSE}
         MOVQ      MM1,[ECX]
         MOVQ      MM2,MM1
         MOV       ECX,C21
         MOVQ      MM3,[ECX]
+{$ENDIF}
         PSRLQ     MM1,32
         MOVQ      MM4,MM3
         PSRLQ     MM3,32
@@ -2190,10 +2383,17 @@ end;
 
 function Interpolator_SSE2(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOV       RAX, RCX
+        MOVQ      XMM1,[R8]
+        MOVQ      XMM2,XMM1
+        MOVQ      XMM3,[R9]
+{$ELSE}
         MOVQ      XMM1,[ECX]
         MOVQ      XMM2,XMM1
         MOV       ECX,C21
         MOVQ      XMM3,[ECX]
+{$ENDIF}
         PSRLQ     XMM1,32
         MOVQ      XMM4,XMM3
         PSRLQ     XMM3,32
@@ -2799,7 +2999,7 @@ var
   WrapProcVert: TWrapProcEx absolute Filter;
   WrapProcHorz: TWrapProcEx;
   Colors: PColor32EntryArray;
-  Width, W, Wv, I, J, P, Incr, Dev: Integer;
+  Width, W, Wv, I, J, Incr, Dev: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -3966,9 +4166,11 @@ begin
 
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_Pas);
   Registry.ADD(FID_INTERPOLATOR, @Interpolator_Pas);
-{$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
+{$IFNDEF FPC}
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
+{$ENDIF}
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_SSE2, [ciSSE2]);
   Registry.ADD(FID_INTERPOLATOR, @Interpolator_MMX, [ciMMX, ciSSE]);
   Registry.ADD(FID_INTERPOLATOR, @Interpolator_SSE2, [ciSSE2]);

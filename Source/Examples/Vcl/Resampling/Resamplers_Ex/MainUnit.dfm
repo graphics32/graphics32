@@ -235,7 +235,7 @@ object fmResamplersExample: TfmResamplersExample
     Top = 0
     Width = 329
     Height = 376
-    ActivePage = ResamplingTabSheet
+    ActivePage = tabDetails
     Align = alClient
     TabOrder = 0
     OnChange = ResamplerClassNamesListChange

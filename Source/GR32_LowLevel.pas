@@ -41,12 +41,13 @@ interface
 
 {$IFDEF PUREPASCAL}
 {$DEFINE USENATIVECODE}
+{$DEFINE USEMOVE}
 {$ENDIF}
 {$IFDEF USEINLINING}
 {$DEFINE USENATIVECODE}
 {$ENDIF}
 
-{$IFNDEF TARGET_x86} {$DEFINE USEMOVE} {$ENDIF}
+
 
 uses
   Graphics, GR32, GR32_Math, GR32_System, GR32_Bindings;
@@ -201,12 +202,11 @@ begin
     P[I] := Integer(Value);
 end;
 
+{$IFNDEF PUREPASCAL}
 procedure FillLongword_ASM(var X; Count: Integer; Value: Longword);
 asm
-// EAX = X
-// EDX = Count
-// ECX = Value
 {$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8 = Value
         PUSH    RDI
 
         MOV     EDI,ECX  // Point EDI to destination
@@ -219,6 +219,7 @@ asm
 @exit:
         POP     RDI
 {$ELSE}
+        // EAX = X;   EDX = Count;   ECX = Value
         PUSH    EDI
 
         MOV     EDI,EAX  // Point EDI to destination
@@ -233,12 +234,45 @@ asm
 {$ENDIF}
 end;
 
-{$IFDEF TARGET_x86}
 procedure FillLongword_MMX(var X; Count: Integer; Value: Longword);
 asm
-// EAX = X
-// EDX = Count
-// ECX = Value
+{$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8 = Value
+        CMP        EDX, 0
+        JBE        @Exit
+        MOV        RAX, RCX
+        MOV        RCX, R8
+
+        PUSH       RDI
+        PUSH       RBX
+        MOV        EBX, EDX
+        MOV        EDI, EDX
+
+        SHR        EDI, 1
+        SHL        EDI, 1
+        SUB        EBX, EDI
+        JE         @QLoopIni
+
+        MOV        [RAX], ECX
+        ADD        RAX, 4
+        DEC        EDX
+        JZ         @ExitPOP
+@QLoopIni:
+        MOVD       MM1, ECX
+        PUNPCKLDQ  MM1, MM1
+        SHR        EDX, 1
+@QLoop:
+        MOVQ       [RAX], MM1
+        ADD        RAX, 8
+        DEC        EDX
+        JNZ        @QLoop
+        EMMS
+@ExitPOP:
+        POP        RBX
+        POP        RDI
+@Exit:
+{$ELSE}
+        // EAX = X;   EDX = Count;   ECX = Value
         CMP        EDX, 0
         JBE        @Exit
 
@@ -270,13 +304,47 @@ asm
         POP        EBX
         POP        EDI
     @Exit:
+{$ENDIF}
 end;
 
 procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
 asm
-// EAX = X
-// EDX = Count
-// ECX = Value
+{$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8 = Value
+        CMP        EDX, 0
+        JBE        @Exit
+        MOV        RAX, RCX
+        MOV        RCX, R8
+
+        PUSH       RDI
+        PUSH       RBX
+        MOV        EBX, EDX
+        MOV        EDI, EDX
+
+        SHR        EDI, 1
+        SHL        EDI, 1
+        SUB        EBX, EDI
+        JE         @QLoopIni
+
+        MOV        [RAX], ECX
+        ADD        EAX, 4
+        DEC        EDX
+        JZ         @ExitPOP
+@QLoopIni:
+        MOVD       XMM1, ECX
+        PUNPCKLDQ  XMM1, XMM1
+        SHR        EDX, 1
+@QLoop:
+        MOVQ       [RAX], XMM1
+        ADD        RAX, 8
+        DEC        EDX
+        JNZ        @QLoop
+@ExitPOP:
+        POP        RBX
+        POP        RDI
+@Exit:
+{$ELSE}
+        // EAX = X;   EDX = Count;   ECX = Value
         CMP        EDX, 0
         JBE        @Exit
 
@@ -294,21 +362,21 @@ asm
         ADD        EAX, 4
         DEC        EDX
         JZ         @ExitPOP
-    @QLoopIni:
+@QLoopIni:
         MOVD       XMM1, ECX
         PUNPCKLDQ  XMM1, XMM1
         SHR        EDX, 1
-    @QLoop:
+@QLoop:
         MOVQ       [EAX], XMM1
         ADD        EAX, 8
         DEC        EDX
         JNZ        @QLoop
-    @ExitPOP:
+@ExitPOP:
         POP        EBX
         POP        EDI
-    @Exit:
+@Exit:
+{$ENDIF}
 end;
-
 {$ENDIF}
 
 procedure FillWord(var X; Count: Integer; Value: LongWord);
@@ -353,7 +421,7 @@ asm
 end;
 
 procedure MoveLongword(const Source; var Dest; Count: Integer);
-{$IFDEF USENATIVECODE}
+{$IFDEF USEMOVE}
 begin
   Move(Source, Dest, Count shl 2);
 {$ELSE}
@@ -363,10 +431,10 @@ asm
         PUSH    RSI
         PUSH    RDI
 
-        MOV     ESI,ECX
-        MOV     EDI,EDX
+        MOV     RSI,RCX
+        MOV     RDI,RDX
         MOV     RAX,R8
-        CMP     EDI,ESI
+        CMP     RDI,RSI
         JE      @exit
 
         REP     MOVSD
@@ -393,7 +461,7 @@ asm
 end;
 
 procedure MoveWord(const Source; var Dest; Count: Integer);
-{$IFDEF USENATIVECODE}
+{$IFDEF USEMOVE}
 begin
   Move(Source, Dest, Count shl 1);
 {$ELSE}
@@ -403,10 +471,10 @@ asm
         PUSH    RSI
         PUSH    RDI
 
-        MOV     ESI,ECX
-        MOV     EDI,EDX
+        MOV     RSI,RCX
+        MOV     RDI,RDX
         MOV     RAX,R8
-        CMP     EDI,ESI
+        CMP     RDI,RSI
         JE      @exit
 
         REP     MOVSW
@@ -1095,13 +1163,13 @@ asm
 {$IFDEF TARGET_x64}
         MOV       RAX, RCX
         POP       RCX                     { return address }
-        MOV       RDX, DWORD PTR [RSP]
+        MOV       RDX, QWORD PTR [RSP]
         SUB       RAX, 8
         CMP       RDX, RSP                { sanity check #1 (SP = [SP]) }
         JNE       @@1
         CMP       RDX, RAX                { sanity check #2 (P = this stack block) }
         JNE       @@1
-        MOV       RSP, DWORD PTR [RSP+8]  { restore previous SP  }
+        MOV       RSP, QWORD PTR [RSP+8]  { restore previous SP  }
 @@1:
         PUSH      RCX                     { return to caller }
 {$ELSE}
@@ -1134,11 +1202,11 @@ begin
   Registry.RegisterBinding(FID_FILLLONGWORD, @@FillLongWord);
 
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_Pas, []);
+  {$IFNDEF PUREPASCAL}
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_ASM, []);
-{$IFDEF TARGET_x86}
   Registry.Add(FID_FILLLONGWORD, @FillLongWord_MMX, [ciMMX]);
   Registry.Add(FID_FILLLONGWORD, @FillLongword_SSE2, [ciSSE2]);
-{$ENDIF}
+  {$ENDIF}
 
   Registry.RebindAll;
 end;

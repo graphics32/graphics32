@@ -679,7 +679,6 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-{$IFDEF TARGET_x86}
 
 { Assembler versions }
 
@@ -692,8 +691,12 @@ asm
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
   // Result Z = Fa * Frgb + (1 - Fa) * Brgb
+
   // EAX <- F
   // EDX <- B
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
+{$ENDIF}
 
   // Test Fa = 255 ?
         CMP     EAX,$FF000000   // Fa = 255 ? => Result = EAX
@@ -707,7 +710,11 @@ asm
         MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+{$ELSE}
         PUSH    EBX
+{$ENDIF}
 
   // P = W * F
         MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
@@ -741,7 +748,11 @@ asm
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
 
+{$IFDEF TARGET_x64}
+        POP     RBX
+{$ELSE}
         POP     EBX
+{$ENDIF}
         RET
 
 @1:     MOV     EAX,EDX
@@ -751,24 +762,22 @@ end;
 
 procedure BlendMem_ASM(F: TColor32; var B: TColor32);
 asm
-  // EAX <- F
-  // [EDX] <- B
-
-
-  // Test Fa = 0 ?
-        TEST    EAX,$FF000000   // Fa = 0 ?   => do not write
+{$IFDEF TARGET_x64}
+        // Test Fa = 0 ?
+        TEST    ECX,$FF000000   // Fa = 0 ?   => do not write
         JZ      @2
 
-  // Get weight W = Fa * M
-        MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
+        MOV     EAX, ECX        // EAX  <-  Fa Fr Fg Fb
+
+        // Get weight W = Fa * M
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
-  // Test Fa = 255 ?
+        // Test Fa = 255 ?
         CMP     ECX,$FF
         JZ      @1
 
-        PUSH EBX
-        PUSH ESI
+        PUSH    RBX
+        PUSH    RSI
 
   // P = W * F
         MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
@@ -784,8 +793,9 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
+        MOV     ESI,[RDX]
+
   // W = 1 - W; Q = W * B
-        MOV     ESI,[EDX]
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
         MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
@@ -802,15 +812,80 @@ asm
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
-        MOV     [EDX],EAX
 
+        MOV     [RDX],EAX
+        POP     RSI
+        POP     RBX
+        RET
+
+@1:     MOV     [RDX],EAX
+@2:     RET
+{$ENDIF}
+
+{$IFDEF TARGET_x86}
+  // EAX <- F
+  // [EDX] <- B
+
+  // Test Fa = 0 ?
+        TEST    EAX,$FF000000   // Fa = 0 ?   => do not write
+        JZ      @2
+
+  // Get weight W = Fa * M
+        MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
+        SHR     ECX,24          // ECX  <-  00 00 00 Fa
+
+  // Test Fa = 255 ?
+        CMP     ECX,$FF
+        JZ      @1
+
+        PUSH    EBX
+        PUSH    ESI
+
+  // P = W * F
+        MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
+        AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
+        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
+        IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
+        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
+        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
+        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        ADD     EBX,bias
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
+        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
+
+        MOV     ESI,[EDX]
+
+// W = 1 - W; Q = W * B
+        XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+        MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
+        AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
+        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
+        IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
+        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
+        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
+        ADD     ESI,bias
+        AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
+        SHR     ESI,8           // ESI  <-  00 Qr ** Qb
+        ADD     EBX,bias
+        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
+        OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
+
+  // Z = P + Q (assuming no overflow at each byte)
+        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+
+        MOV     [EDX],EAX
         POP     ESI
         POP     EBX
         RET
 
 @1:     MOV     [EDX],EAX
 @2:     RET
+{$ENDIF}
 end;
+
+{$IFDEF TARGET_x86}
 
 function BlendRegEx_ASM(F, B, M: TColor32): TColor32;
 asm
@@ -2551,8 +2626,8 @@ begin
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas);
 
-{$IFDEF TARGET_x86}
 {$IFNDEF PUREPASCAL}
+{$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
@@ -2566,10 +2641,14 @@ begin
   BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
+{$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_MMX, [ciMMX]);
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
+{$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_MMX, [ciMMX]);
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);

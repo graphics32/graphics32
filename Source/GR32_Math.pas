@@ -90,7 +90,7 @@ implementation
 uses
   Math;
 
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 const
   FixedOneS: Single = 65536;
 {$ENDIF}
@@ -98,54 +98,69 @@ const
 { Fixed-point math }
 
 function FixedFloor(A: TFixed): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := A div FIXEDONE;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+{$ENDIF}
         SAR     EAX, 16;
 {$ENDIF}
 end;
 
 function FixedCeil(A: TFixed): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := (A + $FFFF) div FIXEDONE;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+{$ENDIF}
         ADD     EAX, $0000FFFF
         SAR     EAX, 16;
 {$ENDIF}
 end;
 
 function FixedRound(A: TFixed): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := (A + $7FFF) div FIXEDONE;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+{$ENDIF}
         ADD     EAX, $00007FFF
         SAR     EAX, 16
 {$ENDIF}
 end;
 
 function FixedMul(A, B: TFixed): TFixed;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(A * FixedToFloat * B);
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+{$ENDIF}
         IMUL    EDX
         SHRD    EAX, EDX, 16
 {$ENDIF}
 end;
 
 function FixedDiv(A, B: TFixed): TFixed;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(A / B * FixedOne);
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+{$ENDIF}
         MOV     ECX, B
         CDQ
         SHLD    EDX, EAX, 16
@@ -155,104 +170,188 @@ asm
 end;
 
 function OneOver(Value: TFixed): TFixed;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 const
   Dividend: Single = 4294967296; // FixedOne * FixedOne
 begin
   Result := Round(Dividend / Value);
 {$ELSE}
 asm
-        MOV     ECX,EAX
-        XOR     EAX,EAX
-        MOV     EDX,1
+{$IFDEF TARGET_x86}
+        MOV     ECX, Value
+{$ENDIF}
+        XOR     EAX, EAX
+        MOV     EDX, 1
         IDIV    ECX
 {$ENDIF}
 end;
 
 function FixedSqr(Value: TFixed): TFixed;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(Value * FixedToFloat * Value);
 {$ELSE}
 asm
-          IMUL    EAX
-          SHRD    EAX, EDX, 16
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+{$ENDIF}
+        IMUL    EAX
+        SHRD    EAX, EDX, 16
 {$ENDIF}
 end;
 
 
 function FixedSqrtLP(Value: TFixed): TFixed;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
 asm
-          push    ebx
-          mov     ecx, eax
-          xor     eax, eax
-          mov     ebx, $40000000
-@sqrtLP1: mov     edx, ecx
-          sub     edx, ebx
-          jl      @sqrtLP2
-          sub     edx, eax
-          jl      @sqrtLP2
-          mov     ecx,edx
-          shr     eax, 1
-          or      eax, ebx
-          shr     ebx, 2
-          jnz     @sqrtLP1
-          shl     eax, 8
-          jmp     @sqrtLP3
-@sqrtLP2: shr     eax, 1
-          shr     ebx, 2
-          jnz     @sqrtLP1
-          shl     eax, 8
-@sqrtLP3: pop     ebx
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        XOR     EAX, EAX
+        MOV     EBX, $40000000
+@SqrtLP1:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        JL      @SqrtLP2
+        SUB     EDX, EAX
+        JL      @SqrtLP2
+        MOV     ECX,EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+        JMP     @SqrtLP3
+@SqrtLP2:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+@SqrtLP3:
+        POP     RBX
+{$ELSE}
+        PUSH    EBX
+        MOV     ECX, EAX
+        XOR     EAX, EAX
+        MOV     EBX, $40000000
+@SqrtLP1:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        JL      @SqrtLP2
+        SUB     EDX, EAX
+        JL      @SqrtLP2
+        MOV     ECX,EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+        JMP     @SqrtLP3
+@SqrtLP2:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+@SqrtLP3:
+        POP     EBX
+{$ENDIF}
 {$ENDIF}
 end;
 
 function FixedSqrtHP(Value: TFixed): TFixed;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
 asm
-          push ebx
-          mov ecx, eax
-          xor eax, eax
-          mov ebx, $40000000
-@sqrtHP1: mov edx, ecx
-          sub edx, ebx
-          jb  @sqrtHP2
-          sub edx, eax
-          jb  @sqrtHP2
-          mov ecx,edx
-          shr eax, 1
-          or  eax, ebx
-          shr ebx, 2
-          jnz @sqrtHP1
-          jz  @sqrtHP5
-@sqrtHP2: shr eax, 1
-          shr ebx, 2
-          jnz @sqrtHP1
-@sqrtHP5: mov ebx, $00004000
-          shl eax, 16
-          shl ecx, 16
-@sqrtHP3: mov edx, ecx
-          sub edx, ebx
-          jb  @sqrtHP4
-          sub edx, eax
-          jb  @sqrtHP4
-          mov ecx, edx
-          shr eax, 1
-          or  eax, ebx
-          shr ebx, 2
-          jnz @sqrtHP3
-          jmp @sqrtHP6
-@sqrtHP4: shr eax, 1
-          shr ebx, 2
-          jnz @sqrtHP3
-@sqrtHP6: pop ebx
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        XOR     EAX, EAX
+        MOV     EBX, $40000000
+@SqrtHP1:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        jb      @SqrtHP2
+        SUB     EDX, EAX
+        jb      @SqrtHP2
+        MOV     ECX,EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtHP1
+        JZ      @SqrtHP5
+@SqrtHP2:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtHP1
+@SqrtHP5:
+        MOV     EBX, $00004000
+        SHL     EAX, 16
+        SHL     ECX, 16
+@SqrtHP3:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        jb      @SqrtHP4
+        SUB     EDX, EAX
+        jb      @SqrtHP4
+        MOV     ECX, EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtHP3
+        JMP     @SqrtHP6
+@SqrtHP4:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtHP3
+@SqrtHP6:
+        POP     RBX
+{$ELSE}
+        PUSH    EBX
+        MOV     ECX, EAX
+        XOR     EAX, EAX
+        MOV     EBX, $40000000
+@SqrtHP1:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        jb      @SqrtHP2
+        SUB     EDX, EAX
+        jb      @SqrtHP2
+        MOV     ECX,EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtHP1
+        JZ      @SqrtHP5
+@SqrtHP2:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtHP1
+@SqrtHP5:
+        MOV     EBX, $00004000
+        SHL     EAX, 16
+        SHL     ECX, 16
+@SqrtHP3:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        jb      @SqrtHP4
+        SUB     EDX, EAX
+        jb      @SqrtHP4
+        MOV     ECX, EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtHP3
+        JMP     @SqrtHP6
+@SqrtHP4:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtHP3
+@SqrtHP6:
+        POP     EBX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -261,22 +360,33 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // combine fixed value X and fixed value Y with the weight of X given in W
 // Result Z = W * X + (1 - W) * Y = Y + (X - Y) * W
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(Y + (X - Y) * FixedToFloat * W );
 {$ELSE}
 asm
-      SUB  EDX,ECX
-      IMUL EDX
-      SHRD EAX,EDX,16
-      ADD  EAX,ECX
+{$IFDEF TARGET_x64}
+        MOV     EAX, W
+        MOV     ECX, Y
+{$ENDIF}
+        SUB     EDX, ECX
+        IMUL    EDX
+        SHRD    EAX, EDX,16
+        ADD     EAX, ECX
 {$ENDIF}
 end;
 
 { Trigonometry }
 
+{$IFDEF PUREPASCAL}
+{$DEFINE NATIVESINCOS}
+{$ENDIF}
+{$IFDEF TARGET_x64}
+{$DEFINE NATIVESINCOS}
+{$ENDIF}
+
 procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
-{$IFNDEF TARGET_x86}
+{$IFDEF NATIVESINCOS}
 var
   S, C: Extended;
 begin
@@ -285,15 +395,15 @@ begin
   Cos := C;
 {$ELSE}
 asm
-   FLD  Theta
-   FSINCOS
-   FSTP DWORD PTR [EDX]    // cosine
-   FSTP DWORD PTR [EAX]    // sine
+        FLD     Theta
+        FSINCOS
+        FSTP    DWORD PTR [EDX] // cosine
+        FSTP    DWORD PTR [EAX] // sine
 {$ENDIF}
 end;
 
 procedure SinCos(const Theta, Radius : TFloat; out Sin, Cos: TFloat);
-{$IFNDEF TARGET_x86}
+{$IFDEF NATIVESINCOS}
 var
   S, C: Extended;
 begin
@@ -302,12 +412,12 @@ begin
   Cos := C * Radius;
 {$ELSE}
 asm
-   FLD  theta
-   FSINCOS
-   FMUL radius
-   FSTP DWORD PTR [EDX]    // cosine
-   FMUL radius
-   FSTP DWORD PTR [EAX]    // sine
+        FLD     Theta
+        FSINCOS
+        FMUL    Radius
+        FSTP    DWORD PTR [EDX] // cosine
+        FMUL    Radius
+        FSTP    DWORD PTR [EAX] // sine
 {$ENDIF}
 end;
 
@@ -331,11 +441,17 @@ asm
 end;
 
 function SimpleHypot(const X, Y: TFloat): TFloat;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Sqrt(Sqr(X) + Sqr(Y));
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MULSS   XMM0, XMM0
+        MULSS   XMM1, XMM1
+        ADDSS   XMM0, XMM1
+        SQRTSS  XMM0, XMM0
+{$ELSE}
         FLD     X
         FMUL    ST,ST
         FLD     Y
@@ -344,19 +460,21 @@ asm
         FSQRT
         FWAIT
 {$ENDIF}
+{$ENDIF}
 end;
 
 function Hypot(const X, Y: Integer): Integer;
 begin
- if Abs(X) > Abs(Y)
-  then Result := Round(SimpleHypot(X, Y))
-  else Result := Round(SimpleHypot(Y, X));
+  if Abs(X) > Abs(Y) then
+    Result := Round(SimpleHypot(X, Y))
+  else
+    Result := Round(SimpleHypot(Y, X));
 end;
 
 
 function FastSqrt(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 var
   I: Integer absolute Value;
   J: Integer absolute Result;
@@ -364,11 +482,13 @@ begin
   J := (I - $3F800000) div 2 + $3F800000;
 {$ELSE}
 asm
-        MOV EAX, Value
-        SUB EAX, $3F800000
-        SAR EAX, 1
-        ADD EAX, $3F800000
-        MOV Result, EAX
+{$IFDEF TARGET_x64}
+        SQRTSS  XMM0, XMM0
+{$ELSE}
+        SUB     EAX, $3F800000
+        SAR     EAX, 1
+        ADD     EAX, $3F800000
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -377,7 +497,7 @@ function FastSqrtBab1(const Value: TFloat): TFloat;
 // additionally one babylonian step added
 const
   CHalf : TFloat = 0.5;
-{$IFNDEF XXXTARGET_x86}
+{$IFNDEF XPUREPASCAL}
 var
   I: Integer absolute Value;
   J: Integer absolute Result;
@@ -387,15 +507,15 @@ begin
 {$ELSE}
 asm
         optimization not tested yet 
-        MOV  EAX, Value
-        SUB  EAX, $3F800000
-        SAR  EAX, 1
-        ADD  EAX, $3F800000
-        MOV  Result, EAX
-        FLD  Value
-        FDIV Result
-        FADD Result
-        FMUL CHalf
+        MOV     EAX, Value
+        SUB     EAX, $3F800000
+        SAR     EAX, 1
+        ADD     EAX, $3F800000
+        MOV     Result, EAX
+        FLD     Value
+        FDIV    Result
+        FADD    Result
+        FMUL    CHalf
 {$ENDIF}
 end;
 
@@ -404,7 +524,7 @@ function FastSqrtBab2(const Value: TFloat): TFloat;
 // additionally two babylonian steps added
 const
   CQuarter : TFloat = 0.25;
-{$IFNDEF XXXTARGET_x86}
+{$IFNDEF XPUREPASCAL}
 var
   I: Integer absolute Value;
   J: Integer absolute Result;
@@ -415,15 +535,15 @@ begin
 {$ELSE}
 asm
         optimization not tested yet
-        MOV  EAX, Value
-        SUB  EAX, $3F800000
-        SAR  EAX, 1
-        ADD  EAX, $3F800000
-        MOV  Result, EAX
-        FLD  Value
-        FDIV Result
-        FADD Result
-        FMUL CHalf
+        MOV     EAX, Value
+        SUB     EAX, $3F800000
+        SAR     EAX, 1
+        ADD     EAX, $3F800000
+        MOV     Result, EAX
+        FLD     Value
+        FDIV    Result
+        FADD    Result
+        FMUL    CHalf
 {$ENDIF}
 end;
 
@@ -433,28 +553,32 @@ const
 var
   IntCst : Cardinal absolute result;
 begin
- result := Value;
- IntCst := ($BE6EB50C - IntCst) shr 1;
- result := CHalf * result * (3 - Value * sqr(result));
+  Result := Value;
+  IntCst := ($BE6EB50C - IntCst) shr 1;
+  Result := CHalf * Result * (3 - Value * Sqr(Result));
 end;
 
 
 { Misc. }
 
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := Round(Multiplicand * Multiplier / Divisor);
 {$ELSE}
 asm
-        PUSH    EBX             // Imperative save
-        PUSH    ESI             // of EBX and ESI
+{$IFDEF TARGET_x64}
+        PUSH    RBX             // Imperative save
+        PUSH    RSI             // of EBX and ESI
+        MOV     EAX, ECX
+        MOV     EAX, ECX
+        MOV     RCX, R8
 
-        MOV     EBX,EAX         // Result will be negative or positive so set rounding direction
-        XOR     EBX,EDX         //  Negative: substract 1 in case of rounding
-        XOR     EBX,ECX         //  Positive: add 1
+        MOV     EBX, EAX        // Result will be negative or positive so set rounding direction
+        XOR     EBX, EDX        //  Negative: substract 1 in case of rounding
+        XOR     EBX, ECX        //  Positive: add 1
 
-        OR      EAX,EAX         // Make all operands positive, ready for unsigned operations
+        OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
         JNS     @m1Ok           // minimizing branching
         NEG     EAX
 @m1Ok:
@@ -468,28 +592,73 @@ asm
 @DivOK:
         MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
 
-        MOV     ESI,EDX         // Check for overflow, by comparing
-        SHL     ESI,1           // 2 times the high-order 32 bits of the product (edx)
-        CMP     ESI,ECX         // with the Divisor.
+        MOV     ESI, EDX        // Check for overflow, by comparing
+        SHL     ESI, 1          // 2 times the high-order 32 bits of the product (EDX)
+        CMP     ESI, ECX        // with the Divisor.
         JAE     @Overfl         // If equal or greater than overflow with division anticipated
 
         DIV     ECX             // Unsigned divide of product by Divisor
 
-        SUB     ECX,EDX         // Check if the result must be adjusted by adding or substracting
-        CMP     ECX,EDX         // 1 (*.5 -> nearest integer), by comparing the difference of
+        SUB     ECX, EDX        // Check if the result must be adjusted by adding or substracting
+        CMP     ECX, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
         INC     EAX             // no rounding needed; add 1 to result otherwise
 @NoAdd:
-        OR      EBX,EDX         // From unsigned operations back the to original sign of the result
+        OR      EBX, EDX        // From unsigned operations back the to original sign of the result
         JNS     @exit           // must be positive
         NEG     EAX             // must be negative
         JMP     @exit
 @Overfl:
-        OR      EAX,-1          //  3 bytes alternative for mov eax,-1. Windows.MulDiv "overflow"
+        OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
+                                //  and "zero-divide" return value
+@exit:
+        POP     RSI             // Restore
+        POP     RBX             // esi and EBX
+{$ELSE}
+        PUSH    EBX             // Imperative save
+        PUSH    ESI             // of EBX and ESI
+
+        MOV     EBX, EAX        // Result will be negative or positive so set rounding direction
+        XOR     EBX, EDX        //  Negative: substract 1 in case of rounding
+        XOR     EBX, ECX        //  Positive: add 1
+
+        OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
+        JNS     @m1Ok           // minimizing branching
+        NEG     EAX
+@m1Ok:
+        OR      EDX, EDX
+        JNS     @m2Ok
+        NEG     EDX
+@m2Ok:
+        OR      ECX, ECX
+        JNS     @DivOk
+        NEG     ECX
+@DivOK:
+        MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
+
+        MOV     ESI, EDX        // Check for overflow, by comparing
+        SHL     ESI, 1          // 2 times the high-order 32 bits of the product (EDX)
+        CMP     ESI, ECX        // with the Divisor.
+        JAE     @Overfl         // If equal or greater than overflow with division anticipated
+
+        DIV     ECX             // Unsigned divide of product by Divisor
+
+        SUB     ECX, EDX        // Check if the result must be adjusted by adding or substracting
+        CMP     ECX, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
+        JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
+        INC     EAX             // no rounding needed; add 1 to result otherwise
+@NoAdd:
+        OR      EBX, EDX        // From unsigned operations back the to original sign of the result
+        JNS     @exit           // must be positive
+        NEG     EAX             // must be negative
+        JMP     @exit
+@Overfl:
+        OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
                                 //  and "zero-divide" return value
 @exit:
         POP     ESI             // Restore
-        POP     EBX             // esi and ebx
+        POP     EBX             // esi and EBX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -501,73 +670,86 @@ end;
 
 function PrevPowerOf2(Value: Integer): Integer;
 //returns X rounded down to the power of two
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := 1;
   while Value shr 1 > 0 do
     Result := Result shl 1;
 {$ELSE}
 asm
-        BSR     ECX,EAX
-        SHR     EAX,CL
-        SHL     EAX,CL
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+{$ENDIF}
+        BSR     ECX, EAX
+        SHR     EAX, CL
+        SHL     EAX, CL
 {$ENDIF}
 end;
 
 function NextPowerOf2(Value: Integer): Integer;
 //returns X rounded up to the power of two, i.e. 5 -> 8, 7 -> 8, 15 -> 16
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := 2;
   while Value shr 1 > 0 do 
     Result := Result shl 1;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+{$ENDIF}
         DEC     EAX
         JLE     @1
-        BSR     ECX,EAX
-        MOV     EAX,2
-        SHL     EAX,CL
+        BSR     ECX, EAX
+        MOV     EAX, 2
+        SHL     EAX, CL
         RET
-@1:     MOV     EAX,1
+@1:     MOV     EAX, 1
 {$ENDIF}
 end;
 
 function Average(A, B: Integer): Integer;
 //fast average without overflow, useful e.g. for fixed point math
 //(A + B)/2 = (A and B) + (A xor B)/2
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := (A and B) + (A xor B) div 2;
 {$ELSE}
 asm
-        MOV     ECX,EDX
-        XOR     EDX,EAX
-        SAR     EDX,1
-        AND     EAX,ECX
-        ADD     EAX,EDX
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+{$ENDIF}
+        MOV     ECX, EDX
+        XOR     EDX, EAX
+        SAR     EDX, 1
+        AND     EAX, ECX
+        ADD     EAX, EDX
 {$ENDIF}
 end;
 
 function Sign(Value: Integer): Integer;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   //Assumes 32 bit integer
   Result := (- Value) shr 31 - (Value shr 31);
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+{$ENDIF}
         CDQ
         NEG     EAX
-        ADC     EDX,EDX
-        MOV     EAX,EDX
+        ADC     EDX, EDX
+        MOV     EAX, EDX
 {$ENDIF}
 end;
 
-function FloatMod(x, y: Double): Double; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+function FloatMod(x, y: Double): Double;
 begin
- if (y = 0)
-  then Result := X
-  else Result := x - y * Floor(x / y);
+  if (y = 0) then
+    Result := X
+  else
+    Result := x - y * Floor(x / y);
 end;
 
 end.

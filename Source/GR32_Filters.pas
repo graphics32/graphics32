@@ -40,6 +40,10 @@ interface
 
 {$I GR32.inc}
 
+{$IFDEF TARGET_X64}
+{$DEFINE PUREPASCAL}
+{$ENDIF}
+
 uses
 {$IFDEF FPC}
 {$ELSE}
@@ -594,7 +598,7 @@ begin
   until Count = 0;
 end;
 
-{$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
 
 procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
@@ -826,7 +830,7 @@ begin
   until Count = 0;
 end;
 
-{$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
 
 procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
@@ -1452,7 +1456,7 @@ begin
   Registry.Add(FID_ORLINEEX, @OrLineEx_Pas);
   Registry.Add(FID_XORLINEEX, @XorLineEx_Pas);
 
-{$IFDEF TARGET_x86}
+{$IFNDEF PUREPASCAL}
   Registry.Add(FID_ANDLINE, @AndLine_ASM);
   Registry.Add(FID_ORLINE, @OrLine_ASM);
   Registry.Add(FID_XORLINE, @XorLine_ASM);
