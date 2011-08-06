@@ -1,29 +1,28 @@
-object Form1: TForm1
+object fmResamplersExample: TfmResamplersExample
   Left = 270
-  Height = 422
+  Height = 395
   Top = 228
-  Width = 483
-  HorzScrollBar.Page = 482
-  VertScrollBar.Page = 421
-  ActiveControl = ResamplerClassNamesList
+  Width = 475
   Caption = 'Resamplers Example'
-  ClientHeight = 422
-  ClientWidth = 483
+  ClientHeight = 395
+  ClientWidth = 475
+  Color = clBtnFace
   Constraints.MinHeight = 200
   Constraints.MinWidth = 200
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnClose = FormClose
   OnCreate = FormCreate
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object SidePanel: TPanel
-    Left = 337
-    Height = 402
+    Left = 329
+    Height = 375
     Top = 0
     Width = 146
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 402
+    ClientHeight = 375
     ClientWidth = 146
     TabOrder = 1
     object pnlResampler: TPanel
@@ -35,7 +34,7 @@ object Form1: TForm1
       ClientHeight = 160
       ClientWidth = 146
       TabOrder = 0
-      object Label1: TLabel
+      object lbResamplersClass: TLabel
         Left = 11
         Height = 14
         Top = 24
@@ -44,7 +43,7 @@ object Form1: TForm1
         Caption = 'Resampler Class:'
         ParentColor = False
       end
-      object Label4: TLabel
+      object lbPixelAccessMode: TLabel
         Left = 11
         Height = 14
         Top = 67
@@ -53,7 +52,7 @@ object Form1: TForm1
         Caption = 'Pixel Access Mode:'
         ParentColor = False
       end
-      object Label5: TLabel
+      object lbWrapMode: TLabel
         Left = 11
         Height = 14
         Top = 110
@@ -62,7 +61,7 @@ object Form1: TForm1
         Caption = 'Wrap Mode:'
         ParentColor = False
       end
-      object Panel2: TPanel
+      object pnResamplerProperties: TPanel
         Left = 1
         Height = 16
         Top = 1
@@ -124,15 +123,15 @@ object Form1: TForm1
     end
     object pnlKernel: TPanel
       Left = 0
-      Height = 160
+      Height = 201
       Top = 160
       Width = 146
       Align = alTop
-      ClientHeight = 160
+      ClientHeight = 201
       ClientWidth = 146
       TabOrder = 1
       Visible = False
-      object Label2: TLabel
+      object lbKernelClass: TLabel
         Left = 11
         Height = 14
         Top = 24
@@ -141,7 +140,7 @@ object Form1: TForm1
         Caption = 'Kernel Class:'
         ParentColor = False
       end
-      object Label3: TLabel
+      object lbKernelMode: TLabel
         Left = 11
         Height = 14
         Top = 67
@@ -150,7 +149,7 @@ object Form1: TForm1
         Caption = 'Kernel Mode:'
         ParentColor = False
       end
-      object TableSizeLabel: TLabel
+      object lbTableSize: TLabel
         Left = 8
         Height = 14
         Top = 116
@@ -158,7 +157,16 @@ object Form1: TForm1
         Caption = 'Table Size (32/100):'
         ParentColor = False
       end
-      object Panel1: TPanel
+      object lbParameter: TLabel
+        Left = 8
+        Height = 14
+        Top = 155
+        Width = 55
+        Caption = 'Parameter:'
+        ParentColor = False
+        Visible = False
+      end
+      object pnKernelProperties: TPanel
         Left = 1
         Height = 16
         Top = 1
@@ -215,34 +223,50 @@ object Form1: TForm1
         Style = rbsMac
         Position = 32
         OnChange = gbTableSizeChange
-        OnMouseUp = gbTableSizeMouseUp
+      end
+      object gbParameter: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 175
+        Width = 113
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Min = 1
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Visible = False
+        Position = 50
+        OnChange = gbParameterChange
+        OnMouseUp = gbParameterMouseUp
       end
     end
   end
-  object PageControl1: TPageControl
+  object PageControl: TPageControl
     Left = 0
-    Height = 402
+    Height = 375
     Top = 0
-    Width = 337
-    ActivePage = TabSheet1
+    Width = 329
+    ActivePage = tabDetails
     Align = alClient
     TabIndex = 0
     TabOrder = 0
     OnChange = ResamplerClassNamesListChange
     OnPageChanged = ResamplerClassNamesListChange
-    object TabSheet1: TTabSheet
+    object tabDetails: TTabSheet
       Caption = 'Details'
-      ClientHeight = 376
-      ClientWidth = 329
+      ClientHeight = 349
+      ClientWidth = 321
       object DstImg: TImage32
         Left = 0
-        Height = 376
+        Height = 349
         Top = 0
-        Width = 329
+        Width = 321
         Align = alClient
         Bitmap.ResamplerClassName = 'TKernelResampler'
-        Bitmap.Resampler.KernelClassName = 'TBoxKernel'
-        Bitmap.Resampler.KernelMode = kmDynamic
+        Bitmap.Resampler.KernelClassName = 'TCosineKernel'
+        Bitmap.Resampler.KernelMode = kmTableLinear
         Bitmap.Resampler.TableSize = 32
         BitmapAlign = baTopLeft
         RepaintMode = rmOptimizer
@@ -254,14 +278,14 @@ object Form1: TForm1
     end
     object ResamplingTabSheet: TTabSheet
       Caption = 'Resampling'
-      ClientHeight = 376
-      ClientWidth = 329
+      ClientHeight = 0
+      ClientWidth = 0
       ImageIndex = 1
       object ResamplingPaintBox: TPaintBox32
         Left = 0
-        Height = 376
+        Height = 348
         Top = 0
-        Width = 329
+        Width = 321
         Align = alClient
         RepaintMode = rmOptimizer
         TabOrder = 0
@@ -270,15 +294,15 @@ object Form1: TForm1
     end
     object tabKernel: TTabSheet
       Caption = 'Curve'
-      ClientHeight = 376
-      ClientWidth = 329
+      ClientHeight = 0
+      ClientWidth = 0
       ImageIndex = 2
       TabVisible = False
       object CurveImage: TImage32
         Left = 0
-        Height = 376
+        Height = 348
         Top = 0
-        Width = 329
+        Width = 321
         Align = alClient
         Bitmap.ResamplerClassName = 'TNearestResampler'
         BitmapAlign = baTopLeft
@@ -289,11 +313,11 @@ object Form1: TForm1
       end
     end
   end
-  object StatusBar1: TStatusBar
+  object StatusBar: TStatusBar
     Left = 0
     Height = 20
-    Top = 402
-    Width = 483
+    Top = 375
+    Width = 475
     Panels = <    
       item
         Width = 50

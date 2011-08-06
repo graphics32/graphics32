@@ -44,9 +44,9 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, Math,
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls,
   ExtCtrls, ComCtrls, GR32_Image, GR32_System, GR32_RangeBars,
-  GR32, GR32_Transforms, GR32_Resamplers {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
+  GR32, GR32_Resamplers {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
 
 type
   TfmResamplersExample = class(TForm)
@@ -104,7 +104,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
 {$ENDIF}
 
@@ -136,8 +138,8 @@ begin
 {$ENDIF}
 
   // Different platforms store resource files on different locations
-{$IFDEF Win32}
-  pathMedia := '..\..\..\Media\';
+{$IFDEF MSWINDOWS}
+  pathMedia := ExtractFilePath(ParamStr(0)) + '..\..\..\Media\';
 {$ENDIF}
 
 {$IFDEF UNIX}
@@ -450,10 +452,5 @@ begin
   Tmp.Free;
   ResamplingPaintBox.Repaint;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.
