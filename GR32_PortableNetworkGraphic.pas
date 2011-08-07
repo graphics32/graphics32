@@ -34,6 +34,7 @@ unit GR32_PortableNetworkGraphic;
 
 interface
 
+{$I GR32.inc}
 {$I GR32_PngCompilerSwitches.inc}
 
 {$IFDEF FPC}
@@ -954,18 +955,15 @@ resourcestring
   RCStrDirectFilterMethodSetError = 'Filter Method may not be specified directly yet!';
   RCStrDirectGammaSetError = 'Gamma may not be specified directly yet!';
   RCStrDirectHeightSetError = 'Height may not be specified directly yet!';
-  RCStrDirectInterlaceMethodSetError = 'Interlace Method may not be specified directly yet!';
   RCStrDirectWidthSetError = 'Width may not be specified directly yet!';
   RCStrEmptyChunkList = 'Chunk list is empty';
   RCStrHeaderInvalid = 'The provided header is not valid!';
   RCStrIncompletePalette = 'Palette is incomplete';
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
   RCStrNewHeaderError = 'New header may not be nil!';
-  RCStrNoModifiedTime = 'Modified time not available!';
   RCStrNotAValidPNGFile = 'Not a valid PNG file';
   RCStrNotYetImplemented = 'Not yet implemented';
   RCStrPaletteLimited = 'Palette is limited to 256 entries';
-  RCStrPaletteMissing = 'Required palette is missing';
   RCStrSeveralChromaChunks = 'Primary chromaticities chunk defined twice!';
   RCStrSeveralGammaChunks = 'Gamma chunk defined twice!';
   RCStrSeveralPaletteChunks = 'Palette chunk defined twice!';
@@ -978,7 +976,6 @@ resourcestring
   RCStrUnsupportedCompressMethod = 'Unsupported compression method';
   RCStrUnsupportedFilter = 'Unsupported Filter';
   RCStrUnsupportedFilterMethod = 'Unsupported filter method';
-  RCStrUnsupportedFormat = 'Unsupported Format';
   RCStrUnsupportedInterlaceMethod = 'Unsupported interlace method';
   RCStrWrongBitdepth = 'Wrong Bitdepth';
   RCStrWrongInterlaceMethod = 'Wrong interlace method';
@@ -1137,6 +1134,9 @@ end;
 
 function ReadSwappedWord(Stream: TStream): Word;
 begin
+ {$IFDEF FPC}
+ Result := 0;
+ {$ENDIF}
  {$IFDEF ValidateEveryReadOperation}
  if Stream.Read(Result, SizeOf(Word)) <> SizeOf(Word)
   then raise EPascalTypeStremReadError.Create(RCStrStreamReadError);
@@ -1148,6 +1148,9 @@ end;
 
 function ReadSwappedSmallInt(Stream: TStream): SmallInt;
 begin
+ {$IFDEF FPC}
+ Result := 0;
+ {$ENDIF}
  {$IFDEF ValidateEveryReadOperation}
  if Stream.Read(Result, SizeOf(SmallInt)) <> SizeOf(SmallInt)
   then raise EPascalTypeStremReadError.Create(RCStrStreamReadError);
@@ -1159,6 +1162,9 @@ end;
 
 function ReadSwappedCardinal(Stream: TStream): Cardinal;
 begin
+ {$IFDEF FPC}
+ Result := 0;
+ {$ENDIF}
  {$IFDEF ValidateEveryReadOperation}
  if Stream.Read(Result, SizeOf(Cardinal)) <> SizeOf(Cardinal)
   then raise EPascalTypeStremReadError.Create(RCStrStreamReadError);
@@ -1241,7 +1247,7 @@ begin
    Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
   until (ZResult = Z_STREAM_END) and (ZStreamRecord.avail_out > 0);
  finally
-  Dispose(TempBuffer);
+  FreeMem(TempBuffer);
  end;
 
  if deflateEnd(ZStreamRecord) > 0
@@ -1305,7 +1311,7 @@ begin
    Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
   until (ZResult = Z_STREAM_END) and (ZStreamRecord.avail_out > 0);
  finally
-  Dispose(TempBuffer);
+  FreeMem(TempBuffer);
  end;
 
  if inflateEnd(ZStreamRecord) > 0
@@ -1486,13 +1492,13 @@ begin
   end;
 end;
 
-function TUnknownChunk.GetData(index: Integer): Byte;
+function TUnknownChunk.GetData(Index: Integer): Byte;
 begin
- if (index >= 0) and (index < FDataStream.Size)
+ if (Index >= 0) and (Index < FDataStream.Size)
   then
    with FDataStream do
     begin
-     Position := index;
+     Position := Index;
      Read(Result, 1);
     end
   else raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [index]);
@@ -2417,7 +2423,7 @@ begin
        FreeAndNil(Output);
       end;
      finally
-      Dispose(DataIn);
+      FreeMem(DataIn);
      end;
     end;
   end;
@@ -3496,7 +3502,6 @@ procedure TChunkPngImageHistogram.SaveToStream(Stream: TStream);
 begin
  inherited;
 
-
  raise EPngError.Create(RCStrNotYetImplemented);
  // yet todo
 end;
@@ -3506,7 +3511,7 @@ end;
 
 class function TChunkPngSuggestedPalette.GetClassChunkName: TChunkName;
 begin
-
+  Result := 'sPLT';
 end;
 
 procedure TChunkPngSuggestedPalette.LoadFromStream(Stream: TStream);
@@ -3519,6 +3524,8 @@ procedure TChunkPngSuggestedPalette.SaveToStream(Stream: TStream);
 begin
   inherited;
 
+  raise EPngError.Create(RCStrNotYetImplemented);
+  // yet todo
 end;
 
 
@@ -3782,7 +3789,9 @@ begin
   do CurrentRow[Index] := (CurrentRow[Index] + (CurrentRow[Index - PixelByteSize] + PreviousRow[Index]) shr 1) and $FF;
 end;
 
-function PaethPredictor(a, b, c: Byte): Integer; pascal;
+{-$UNDEF PUREPASCAL}
+
+function PaethPredictor(a, b, c: Byte): Integer; {$IFNDEF TARGET_x64} pascal; {$ENDIF}
 {$IFDEF PUREPASCAL}
 var
   DistA, DistB, DistC: Integer;
@@ -3797,59 +3806,117 @@ begin
   else Result := c;
 {$ELSE}
 asm
-  MOVZX   EDX, c
-  PUSH    EBX
-  MOVZX   EAX, b
-  SUB     EAX, EDX
-  JAE     @PositiveDistA
-  NOT     EAX
-  INC     EAX
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+
+        // calculate DistA
+        MOVZX   RAX, b
+        SUB     RAX, R8
+        MOV     R10, RAX
+        JAE     @PositiveDistA
+        NOT     RAX
+        INC     RAX
+
+        @PositiveDistA:
+
+        // calculate DistB
+        MOVZX   RBX, a
+        SUB     RBX, R8
+        MOV     R11, RBX
+        JAE     @PositiveDistB
+        NOT     RBX
+        INC     RBX
+
+        @PositiveDistB:
+
+        // calculate DistC
+        ADD     R10, R11
+        JAE     @PositiveDistC
+        NOT     R10
+        INC     R10
+
+        @PositiveDistC:
+        MOV     R11, RCX
+        MOV     RCX, R10
+
+        MOV     R12, RAX
+        SUB     R12, RBX
+        JA      @NextCheck
+        MOV     R12, RAX
+        SUB     R12, RCX
+        JA      @NextCheck
+
+        MOV     RAX, R11
+        JMP     @Done
+
+        @NextCheck:
+        MOV     R12, RBX
+        SUB     R12, RCX
+        JA      @ResultC
+
+        MOV     RAX, RDX
+        JMP     @Done
+
+        @ResultC:
+        MOV     RAX, R8
+
+        @Done:
+        POP     RBX
+{$ELSE}
+        MOVZX   EDX, c
+        PUSH    EBX
+        MOVZX   EAX, b
+        SUB     EAX, EDX
+        JAE     @PositiveDistA
+        NOT     EAX
+        INC     EAX
 
 @PositiveDistA:
-  MOVZX   EBX, a
-  SUB     EBX, EDX
-  JAE     @PositiveDistB
-  NOT     EBX
-  INC     EBX
+        MOVZX   EBX, a
+        SUB     EBX, EDX
+        JAE     @PositiveDistB
+        NOT     EBX
+        INC     EBX
 
 @PositiveDistB:
-  MOVZX   ECX, a
-  SUB     ECX, EDX
-  MOVZX   EDX, b
-  ADD     ECX, EDX
-  MOVZX   EDX, c
-  SUB     ECX, EDX
-  JAE     @PositiveDistC
-  NOT     ECX
-  INC     ECX
+        MOVZX   ECX, a
+        SUB     ECX, EDX
+        MOVZX   EDX, b
+        ADD     ECX, EDX
+        MOVZX   EDX, c
+        SUB     ECX, EDX
+        JAE     @PositiveDistC
+        NOT     ECX
+        INC     ECX
 
 @PositiveDistC:
-  MOV     EDX, EAX
-  SUB     EDX, EBX
-  JA      @NextCheck
-  MOV     EDX, EAX
-  SUB     EDX, ECX
-  JA      @NextCheck
+        MOV     EDX, EAX
+        SUB     EDX, EBX
+        JA      @NextCheck
+        MOV     EDX, EAX
+        SUB     EDX, ECX
+        JA      @NextCheck
 
-  MOVZX   EDX, a
-  MOV     Result, EDX
-  JMP     @Done
+        MOVZX   EDX, a
+        MOV     Result, EDX
+        JMP     @Done
 
 @NextCheck:
-  MOV     EDX, EBX
-  SUB     EDX, ECX
-  JA      @ResultC
+        MOV     EDX, EBX
+        SUB     EDX, ECX
+        JA      @ResultC
 
-  MOVZX   EDX, b
-  MOV     Result, EDX
-  JMP     @Done
+        MOVZX   EDX, b
+        MOV     Result, EDX
+        JMP     @Done
 
 @ResultC:
-  MOVZX   EDX, c
-  MOV     Result, EDX
+        MOVZX   EDX, c
+        MOV     Result, EDX
 
 @Done:
-  POP     EBX
+        POP     EBX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -4318,12 +4385,12 @@ end;
 
 procedure TPortableNetworkGraphic.SetBitDepth(const Value: Byte);
 begin
- raise EPngError.Create(RCStrBitDepthTranscodingError);
+ raise EPngError.CreateFmt(RCStrBitDepthTranscodingError, [Value]);
 end;
 
 procedure TPortableNetworkGraphic.SetColorType(const Value: TColorType);
 begin
- raise EPngError.Create(RCStrColorTypeTranscodingError);
+ raise EPngError.CreateFmt(RCStrColorTypeTranscodingError, [Integer(Value)]);
 end;
 
 procedure TPortableNetworkGraphic.SetFilterMethods(
@@ -4351,17 +4418,17 @@ end;
 
 procedure TPortableNetworkGraphic.SetCompressionMethod(const Value: Byte);
 begin
- raise EPngError.Create(RCStrDirectCompressionMethodSetError);
+ raise EPngError.CreateFmt(RCStrDirectCompressionMethodSetError, [Value]);
 end;
 
 procedure TPortableNetworkGraphic.SetFilterMethod(const Value: TFilterMethod);
 begin
- raise EPngError.Create(RCStrDirectFilterMethodSetError);
+ raise EPngError.CreateFmt(RCStrDirectFilterMethodSetError, [Integer(Value)]);
 end;
 
 procedure TPortableNetworkGraphic.SetWidth(const Value: Integer);
 begin
- raise EPngError.Create(RCStrDirectWidthSetError);
+ raise EPngError.CreateFmt(RCStrDirectWidthSetError, [Value]);
 end;
 
 procedure TPortableNetworkGraphic.SetInterlaceMethod(
@@ -4382,12 +4449,12 @@ end;
 
 procedure TPortableNetworkGraphic.SetGamma(const Value: Single);
 begin
- raise EPngError.Create(RCStrDirectGammaSetError);
+ raise EPngError.CreateFmt(RCStrDirectGammaSetError, [Value]);
 end;
 
 procedure TPortableNetworkGraphic.SetHeight(const Value: Integer);
 begin
- raise EPngError.Create(RCStrDirectHeightSetError);
+ raise EPngError.CreateFmt(RCStrDirectHeightSetError, [Value]);
 end;
 
 procedure TPortableNetworkGraphic.CopyImageData(Stream: TStream);
@@ -4567,6 +4634,7 @@ begin
     FImageHeader.LoadFromStream(MemoryStream);
 
     // read image header chunk size
+    ChunkCRC := 0;
     Read(ChunkCRC, 4);
     {$IFDEF CheckCRC}
     if not CheckCRC(MemoryStream, Swap32(ChunkCRC))
@@ -5069,6 +5137,9 @@ begin
 
      // initialize CRC
      CrcValue := $FFFFFFFF;
+     {$IFDEF FPC}
+     Value := 0;
+     {$ENDIF}
 
      while Position < Size do
       begin
@@ -5106,35 +5177,68 @@ begin
  Result := (CrcValue xor $FFFFFFFF);
 {$ELSE}
 asm
- PUSH    EBX
- PUSH    EDI
- ADD     EDX, 4
- SUB     ECX, 4
- JS      @Done
- NEG     ECX
- MOV     EBX, $FFFFFFFF
+{$IFDEF Target_x64}
+        PUSH    RBX
+        PUSH    RDI
+        MOV     RCX, R8
+        ADD     RDX, 4
+        SUB     RCX, 4
+        JS      @Done
+        NEG     RCX
+        MOV     RBX, $FFFFFFFF
 
- MOV     EDI, [GCrcTable]
+        MOV     RDI, [GCrcTable]
 
 @Start:
- MOVZX   EAX, [EDX]
- XOR     EAX, EBX
- AND     EAX, $FF
- MOV     EAX, [EDI + 4 * EAX]
- SHR     EBX, 8
- XOR     EAX, EBX
- MOV     EBX, EAX
+        MOV     EAX, [RDX]
+        XOR     EAX, EBX
+        AND     EAX, $FF
+        MOV     EAX, [RDI + 4 * RAX]
+        SHR     EBX, 8
+        XOR     EAX, EBX
+        MOV     EBX, EAX
 
- INC     EDX
- INC     ECX
- JS      @Start
+        INC     RDX
+        INC     RCX
+        JS      @Start
 
- XOR     EBX, $FFFFFFFF
- MOV     Result, EBX
+        XOR     EBX, $FFFFFFFF
+        MOV     RAX, RBX
 
 @Done:
- POP     EDI
- POP     EBX
+        POP     RDI
+        POP     RBX
+{$ELSE}
+        PUSH    EBX
+        PUSH    EDI
+        ADD     EDX, 4
+        SUB     ECX, 4
+        JS      @Done
+        NEG     ECX
+        MOV     EBX, $FFFFFFFF
+
+        MOV     EDI, [GCrcTable]
+
+@Start:
+        MOVZX   EAX, [EDX]
+        XOR     EAX, EBX
+        AND     EAX, $FF
+        MOV     EAX, [EDI + 4 * EAX]
+        SHR     EBX, 8
+        XOR     EAX, EBX
+        MOV     EBX, EAX
+
+        INC     EDX
+        INC     ECX
+        JS      @Start
+
+        XOR     EBX, $FFFFFFFF
+        MOV     Result, EBX
+
+@Done:
+        POP     EDI
+        POP     EBX
+{$ENDIF}
 {$ENDIF}
 end;
 
