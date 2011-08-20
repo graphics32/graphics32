@@ -33,7 +33,26 @@
  *
  * ***** END LICENSE BLOCK ***** *)
 
- {$IFDEF VER220}
+{$IFDEF VER230}
+  {$DEFINE INLININGSUPPORTED}
+  {$DEFINE COMPILERXE2}
+  {$DEFINE COMPILERXE1}
+  {$DEFINE COMPILER2010}
+  {$DEFINE COMPILER2009}
+  {$DEFINE COMPILER2007}
+  {$DEFINE COMPILER2006}
+  {$DEFINE COMPILER2005}
+  {$DEFINE COMPILER7}
+  {$DEFINE COMPILER6}
+  {$IFNDEF BCB}
+    {$DEFINE DELPHIXE1}
+    {$DEFINE DELPHIXE2}
+  {$ELSE}
+    {$DEFINE BCB7}
+  {$ENDIF}
+{$ENDIF}
+
+{$IFDEF VER220}
   {$DEFINE INLININGSUPPORTED}
   {$DEFINE COMPILERXE1}
   {$DEFINE COMPILER2010}
@@ -178,9 +197,15 @@
     {$DEFINE BITS_GETTER}
   {$ENDIF}
 {$ELSE}
-  // define default (delphi etc) target (32 bit Intel 80386 or later)
-  {$DEFINE TARGET_x86}
+  // check for XE2 64-Bit compiler define
+  {$IFDEF CPUX64}
+    {$DEFINE TARGET_x64}
+  {$ELSE}
+    // define default (delphi etc) target (32 bit Intel 80386 or later)
+    {$DEFINE TARGET_x86}
+  {$ENDIF}
 {$ENDIF}
+
 
 
 (* Symbol PUREPASCAL :
@@ -188,10 +213,8 @@
 // FPC generates very efficient code, there is no need for assembler,
 // which just causes trouble
 {$IFDEF FPC}
-//{$IFDEF TARGET_x86}
-{-$IFNDEF TARGET_x64}
   {$DEFINE PUREPASCAL}
-{-$ENDIF}
+  {-$DEFINE USEMOVE}
 {$ENDIF}
 
 // The DARWIN target of Free Pascal generates PIC code by default
