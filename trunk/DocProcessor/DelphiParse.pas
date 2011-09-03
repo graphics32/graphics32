@@ -2,8 +2,8 @@ unit DelphiParse;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Author        : Angus Johnson                                              //
-// Copyright     : 2003-2009                                                  //
-// Last revision : 9 Jan 2004.                                                //
+// Copyright     : 2003-2010                                                  //
+// Last revision : 4 July 2010.                                               //
 ////////////////////////////////////////////////////////////////////////////////
 
 interface
@@ -410,9 +410,12 @@ end;
 //------------------------------------------------------------------------------
 
 function TDelphiParser.GetLastSpecialComment: string;
+var
+  len: integer;
 begin
   result := fLastSpecialComment;
-  if (result <> '') and (result[length(result)] = ')') then
+  len := length(result);
+  if (len > 1) and (result[len] = ')') and (result[len-1] = '*') then
     delete(result, length(result)-1, 2);
 end;
 //------------------------------------------------------------------------------
@@ -421,18 +424,19 @@ function TDelphiParser.CheckSpecialComment(const tok: TToken): string;
 var
   len: integer;
 begin
+  //modified 4 Jul 2010 - now accepts standard delphi comments (ie no longer
+  //uses //* format to indicate DocProcessor comments).
   len := length(tok.text);
   if len < 3 then //do nothing
-  else if not fMultilineComment and (tok.text[3] = '*') then
+  else if not fMultilineComment then
   begin
     if (fLastSpecialComment = '') then
-      fLastSpecialComment := copy(tok.text,4,len-3)
+      fLastSpecialComment := copy(tok.text,3,len)
     else if fLastSpecialComment <> '' then
-      fLastSpecialComment := fLastSpecialComment + ' ' +copy(tok.text,4,len-3);
+      fLastSpecialComment := fLastSpecialComment + ' ' +copy(tok.text,3,len);
   end
-  else if fMultilineComment and
-    (tok.text[3] = '*') and (fLastSpecialComment = '') then
-      fLastSpecialComment := copy(tok.text,4,len-3)
+  else if fMultilineComment and (fLastSpecialComment = '') then
+      fLastSpecialComment := copy(tok.text,3,len-2)
   else if fLastSpecialComment <> '' then
     fLastSpecialComment := fLastSpecialComment +' ' + trim(tok.text);
   fLatestCommentLine := fCurrent.Y;
