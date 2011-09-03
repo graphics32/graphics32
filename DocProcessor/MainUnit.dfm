@@ -1,9 +1,9 @@
 object MainForm: TMainForm
-  Left = 132
+  Left = 122
   Top = 123
+  Width = 885
+  Height = 555
   Caption = 'HTML Document Processor'
-  ClientHeight = 517
-  ClientWidth = 869
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,8 +18,8 @@ object MainForm: TMainForm
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 573
-    Height = 517
+    Width = 581
+    Height = 528
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Panel1'
@@ -27,8 +27,8 @@ object MainForm: TMainForm
     object Log: TMemo
       Left = 0
       Top = 0
-      Width = 573
-      Height = 493
+      Width = 581
+      Height = 504
       Align = alClient
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -43,14 +43,14 @@ object MainForm: TMainForm
     end
     object Panel2: TPanel
       Left = 0
-      Top = 493
-      Width = 573
+      Top = 504
+      Width = 581
       Height = 24
       Align = alBottom
       BevelOuter = bvNone
       TabOrder = 1
       DesignSize = (
-        573
+        581
         24)
       object Label7: TLabel
         Left = 5
@@ -71,10 +71,10 @@ object MainForm: TMainForm
     end
   end
   object Panel3: TPanel
-    Left = 573
+    Left = 581
     Top = 0
     Width = 296
-    Height = 517
+    Height = 528
     Align = alRight
     BevelOuter = bvNone
     BorderWidth = 2

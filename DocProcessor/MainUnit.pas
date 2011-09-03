@@ -1,7 +1,5 @@
 unit MainUnit;
 
-{.$DEFINE DEBUGGING}
-
 {$WARN UNIT_PLATFORM OFF}
 {$WARN SYMBOL_PLATFORM OFF}
 
@@ -71,6 +69,7 @@ type
 
 var
   PropertiesFilename: string;
+  DelphiSourceFolder: string;
   NoGUI: Boolean;
   MainForm: TMainForm;
   Project: TProject;
@@ -148,14 +147,16 @@ begin
   Ini := TIniFile.Create(PropertiesFilename);
   try
     for i := 0 to Self.ComponentCount - 1 do
-    if Self.Components[i].InheritsFrom(TCustomEdit) and
-       not Self.Components[i].InheritsFrom(TMemo) then
-    begin
-      SValue := Ini.ReadString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), '');
-      if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
-    end
-    else if Self.Components[i].InheritsFrom(TCheckBox) then
-      TCheckBox(Self.Components[i]).Checked := Ini.ReadBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), False);
+      if Self.Components[i].InheritsFrom(TCustomEdit) and
+         not Self.Components[i].InheritsFrom(TMemo) then
+      begin
+        SValue := Ini.ReadString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), '');
+        if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
+      end
+      else if Self.Components[i].InheritsFrom(TCheckBox) then
+        TCheckBox(Self.Components[i]).Checked := Ini.ReadBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), False);
+
+    DelphiSourceFolder := Ini.ReadString('Settings', 'DelphiSourceFolder', '');
   finally
     Ini.Free;
   end;
@@ -189,11 +190,13 @@ begin
   Ini := TIniFile.Create(PropertiesFilename);
   try
     for i := 0 to Self.ComponentCount-1 do
-    if Self.Components[i].InheritsFrom(TCustomEdit) and
-       not Self.Components[i].InheritsFrom(TMemo) then
-      Ini.WriteString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TEdit(Self.Components[i]).Text)
-    else if Self.Components[i].InheritsFrom(TCheckBox) then
-      Ini.WriteBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TCheckBox(Self.Components[i]).Checked)
+      if Self.Components[i].InheritsFrom(TCustomEdit) and
+         not Self.Components[i].InheritsFrom(TMemo) then
+        Ini.WriteString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TEdit(Self.Components[i]).Text)
+      else if Self.Components[i].InheritsFrom(TCheckBox) then
+        Ini.WriteBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TCheckBox(Self.Components[i]).Checked);
+
+    Ini.WriteString('Settings', 'DelphiSourceFolder', DelphiSourceFolder);
   finally
     Ini.Free;
   end;
@@ -323,7 +326,7 @@ begin
     Lines.Add('Compiled file=' + edCompiledFile.Text);
     Lines.Add('Contents file=' + edTOCFile.Text);
     Lines.Add('Default Window=Main Window');
-    Lines.Add('Default topic=Docs\_Body.htm');
+    Lines.Add('Default topic=Docs\Overview\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
     Lines.Add('Index file=' + edIndexFile.Text);
@@ -331,7 +334,7 @@ begin
     Lines.Add('Title=' + edProjectTitle.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
-    Lines.Add(Format('Main Window="%s","%s","%s","Docs\_Body.htm","Docs\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
+    Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm","Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
       [edProjectTitle.Text, edTOCFile.Text, edIndexFile.Text]));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
@@ -360,18 +363,13 @@ end;
 procedure TMainForm.bParseMissingClick(Sender: TObject);
 var
   i,j,k,m: integer;
-  srcPasFolder, destUnitFolder, fn: string;
+  destUnitFolder, fn, s: string;
   pasFiles, menuData: TStringList;
 begin
   if SourceDir = '' then exit;
-  {$IFDEF DEBUGGING}
-  srcPasFolder := 'c:\temp\';
-  destUnitFolder := 'c:\temp\';
-  {$ELSE}
-  srcPasFolder := GetDelphiSourceFolder;
-  if srcPasFolder = '' then exit;
+  DelphiSourceFolder := GetDelphiSourceFolder(DelphiSourceFolder);
+  if DelphiSourceFolder = '' then exit;
   destUnitFolder := SourceDir + 'Units\';
-  {$ENDIF}
 
   Log.Clear;
   Log.Color := clWhite;
@@ -382,29 +380,34 @@ begin
     Log.Color := $E7FFE7;
     exit;
   end;
-
   LogAdd('Starting Pas2Html ...'#13#10);
   LogNL;
   Application.ProcessMessages;
   j := 0;
-  pasFiles := GetFileList(srcPasFolder, '*.pas');
+  pasFiles := GetFileList(DelphiSourceFolder, '*.pas');
   try
     pasFiles.Sort;
     for i := 0 to pasFiles.Count -1 do
     begin
       fn := ChangeFileExt(ExtractFileName(pasFiles[i]),'');
-      if not DirectoryExists(destUnitFolder + fn) then
+      if DirectoryExists(destUnitFolder + fn) then
       begin
-        inc(j);
-        k := BuildNewUnit(ansiString(pasFiles[i]), ansiString(destUnitFolder + fn + '\'));
-        LogAdd('  added: ' + pasFiles[i] + #13#10);
-        if k >= 0 then
-          LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);
-        Application.ProcessMessages;
-        //getting ready to update the menu list (ie saves redoing stuff) ...
-        pasFiles[i] := fn;
-        pasFiles.Objects[i] := pointer(1); //flags a new unit
+        s := 'The file '+ fn + ' has already been imported into the help source.'+#10+
+          'Do you want to replace the existing contents with this new file?';
+        if MessageBox(self.handle, pchar(s),
+          pchar(caption), MB_YESNO or MB_DEFBUTTON2) <> IDYES then continue;
+        DeleteFolder(destUnitFolder + fn);
       end;
+      inc(j);
+      k := BuildNewUnit(ansiString(pasFiles[i]),
+        ansiString(destUnitFolder + fn + '\'), ProjectDir);
+      LogAdd('  added: ' + pasFiles[i] + #13#10);
+      if k >= 0 then
+        LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);
+      Application.ProcessMessages;
+      //getting ready to update the menu list (ie saves redoing stuff) ...
+      pasFiles[i] := fn;
+      pasFiles.Objects[i] := pointer(1); //flags a new unit
     end;
     //now update the help file's dropdown menu list of units
     if (j > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then

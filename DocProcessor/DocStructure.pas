@@ -110,6 +110,7 @@ type
   TUnitElement = class(TGroupElement)
     Interfaces: TElements;
     Classes: TElements;
+    Records: TElements;
     Routines: TElements;
     Types: TElements;
     Variables: TElements;
@@ -233,10 +234,10 @@ begin
   DisplayName := Src.DisplayName;
   for I := 0 to Src.Fields.Count - 1 do
     Fields.Add(Src.Fields[I].FileName);
-  for I := 0 to Src.Properties.Count - 1 do
-    Properties.Add(Src.Properties[I].FileName);
   for I := 0 to Src.Methods.Count - 1 do
     Methods.Add(Src.Methods[I].FileName);
+  for I := 0 to Src.Properties.Count - 1 do
+    Properties.Add(Src.Properties[I].FileName);
   for I := 0 to Src.Events.Count - 1 do
     Events.Add(Src.Events[I].FileName);
 end;
@@ -260,8 +261,8 @@ procedure TClassLinks.RemoveDuplicatesFrom(Links: TClassLinks);
 
 begin
   CleanList(Fields, Links.Fields);
-  CleanList(Properties, Links.Properties);
   CleanList(Methods, Links.Methods);
+  CleanList(Properties, Links.Properties);
   CleanList(Events, Links.Events);
 end;
 
@@ -892,8 +893,8 @@ begin
   Methods := TElements.Create(Self, TTopicElement, 'Methods');
   Events := TElements.Create(Self, TTopicElement, 'Events');
   RegList(Fields);
-  RegList(Properties);
   RegList(Methods);
+  RegList(Properties);
   RegList(Events);
 end;
 
@@ -931,13 +932,13 @@ var
           if I < ClassLinks.Fields.Count then
             AddParse(CheckLink(ClassLinks.Fields[I]));
 
-        if ctProperties in Columns then with Add('td') do
-          if I < ClassLinks.Properties.Count then
-            AddParse(CheckLink(ClassLinks.Properties[I]));
-
         if ctMethods in Columns then with Add('td') do
           if I < ClassLinks.Methods.Count then
             AddParse(CheckLink(ClassLinks.Methods[I]));
+
+        if ctProperties in Columns then with Add('td') do
+          if I < ClassLinks.Properties.Count then
+            AddParse(CheckLink(ClassLinks.Properties[I]));
 
         if ctEvents in Columns then with Add('td') do
           if I < ClassLinks.Events.Count then
@@ -1024,6 +1025,7 @@ begin
     begin
       // get non-empty member columns
       ColCount := 0;
+
       I := ClassLinks.Fields.Count;
       for J := 0 to Ancestors.Count - 1 do
         Inc(I, TClassLinks(Ancestors.Items[J]).Fields.Count);
@@ -1032,14 +1034,7 @@ begin
         Include(Columns, ctFields);
         Inc(ColCount);
       end;
-      I := ClassLinks.Properties.Count;
-      for J := 0 to Ancestors.Count - 1 do
-        Inc(I, TClassLinks(Ancestors.Items[J]).Properties.Count);
-      if I > 0 then
-      begin
-        Include(Columns, ctProperties);
-        Inc(ColCount);
-      end;
+
       I := ClassLinks.Methods.Count;
       for J := 0 to Ancestors.Count - 1 do
         Inc(I, TClassLinks(Ancestors.Items[J]).Methods.Count);
@@ -1048,6 +1043,16 @@ begin
         Include(Columns, ctMethods);
         Inc(ColCount);
       end;
+
+      I := ClassLinks.Properties.Count;
+      for J := 0 to Ancestors.Count - 1 do
+        Inc(I, TClassLinks(Ancestors.Items[J]).Properties.Count);
+      if I > 0 then
+      begin
+        Include(Columns, ctProperties);
+        Inc(ColCount);
+      end;
+
       I := ClassLinks.Events.Count;
       for J := 0 to Ancestors.Count - 1 do
         Inc(I, TClassLinks(Ancestors.Items[J]).Events.Count);
@@ -1072,8 +1077,8 @@ begin
         with Add('tr') do
         begin
           if ctFields in Columns then Add('th').AddText('Fields');
-          if ctProperties in Columns then Add('th').AddText('Properties');
           if ctMethods in Columns then Add('th').AddText('Methods');
+          if ctProperties in Columns then Add('th').AddText('Properties');
           if ctEvents in Columns then Add('th').AddText('Events');
         end;
 
@@ -1111,8 +1116,8 @@ begin
 
   // index
   AddToIndex(Fields);
-  AddToIndex(Properties);
   AddToIndex(Methods);
+  AddToIndex(Properties);
   AddToIndex(Events);
 end;
 
@@ -1148,16 +1153,18 @@ begin
   inherited;
   Interfaces := TElements.Create(Self, TInterfaceElement, 'Interfaces');
   Classes := TElements.Create(Self, TClassElement, 'Classes');
-  Routines := TElements.Create(Self, TTopicElement, 'Routines');
+  Records := TElements.Create(Self, TTopicElement, 'Records');
+  Routines := TElements.Create(Self, TTopicElement, 'Functions');
   Types := TElements.Create(Self, TTopicElement, 'Types');
   Variables := TElements.Create(Self, TTopicElement, 'Variables');
   Constants := TElements.Create(Self, TTopicElement, 'Constants');
-  RegList(Interfaces);
-  RegList(Classes);
-  RegList(Routines);
   RegList(Types);
+  RegList(Records);
+  RegList(Routines);
   RegList(Variables);
   RegList(Constants);
+  RegList(Interfaces);
+  RegList(Classes);
 end;
 
 procedure TUnitElement.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
@@ -1166,10 +1173,11 @@ var
   Columns: TList;
   T: TDomNode;
 begin
-  N := Classes.Count;
+  N := Types.Count;
+  if Records.Count > N then N := Records.Count;
   if Interfaces.Count > N then N := Interfaces.Count;
+  if Classes.Count > N then N := Classes.Count;
   if Routines.Count > N then N := Routines.Count;
-  if Types.Count > N then N := Types.Count;
   if Variables.Count > N then N := Variables.Count;
   if Constants.Count > N then N := Constants.Count;
 
@@ -1184,10 +1192,11 @@ begin
     Columns := TList.Create;
     try
       // get non-empty columns
-      if Classes.Count > 0 then Columns.Add(Classes);
-      if Interfaces.Count > 0 then Columns.Add(Interfaces);
-      if Routines.Count > 0 then Columns.Add(Routines);
       if Types.Count > 0 then Columns.Add(Types);
+      if Records.Count > 0 then Columns.Add(Records);
+      if Interfaces.Count > 0 then Columns.Add(Interfaces);
+      if Classes.Count > 0 then Columns.Add(Classes);
+      if Routines.Count > 0 then Columns.Add(Routines);
       if Variables.Count > 0 then Columns.Add(Variables);
       if Constants.Count > 0 then Columns.Add(Constants);
 
@@ -1651,22 +1660,10 @@ var
 begin
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
-    AddClassTable(TClassElementArray(Classes), 'Classes');
-    AddClassTable(TClassElementArray(Interfaces), 'Interfaces');    
-
-    // routines
-    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-        for J := 0 to Routines.Count - 1 do Elems.Add(Routines[J]);
-    if Elems.Count > 0 then
-    begin
-      with Body.Add('h2') do
-      begin
-        Attributes['id'] := 'Auto';
-        AddText('Routines');
-      end;
-      AddElems(cColumnCount);
-      Elems.Clear;
-    end;
+    if length(Classes) > 0 then
+      AddClassTable(TClassElementArray(Classes), 'Classes');
+    if length(Interfaces) > 0 then
+      AddClassTable(TClassElementArray(Interfaces), 'Interfaces');
 
     // types
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
@@ -1677,6 +1674,34 @@ begin
       begin
         Attributes['id'] := 'Auto';
         AddText('Types');
+      end;
+      AddElems(cColumnCount);
+      Elems.Clear;
+    end;
+
+    // Records
+    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
+        for J := 0 to Records.Count - 1 do Elems.Add(Records[J]);
+    if Elems.Count > 0 then
+    begin
+      with Body.Add('h2') do
+      begin
+        Attributes['id'] := 'Auto';
+        AddText('Records');
+      end;
+      AddElems(cColumnCount);
+      Elems.Clear;
+    end;
+
+    // Functions
+    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
+        for J := 0 to Routines.Count - 1 do Elems.Add(Routines[J]);
+    if Elems.Count > 0 then
+    begin
+      with Body.Add('h2') do
+      begin
+        Attributes['id'] := 'Auto';
+        AddText('Functions');
       end;
       AddElems(cColumnCount);
       Elems.Clear;

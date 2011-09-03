@@ -1,13 +1,24 @@
 unit Pas2Html;
 
+//Regarding building new units from existing PAS files ...
+//1. Comments directly preceeding declarations in the header section of PAS
+//   files will be imported as declaration descriptions into the help file.
+//2. Images can also be flagged for import by using <img src="filename">
+//   format. Images must be located in the PAS file's folder and the filename
+//   must not contain a path. Images will be copied to the Images folder.
+//3. Extended comments (sample code etc) can be flagged for import by using
+//   the custom <include src="filename"> format. Again the file for importing
+//   must be in the PAS file's folder and the filename must not contain a path.
+
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Controls, DelphiParse,
   ShellApi, ShlObj, Forms;
 
-  function GetDelphiSourceFolder: string;
-  function BuildNewUnit(const pasFilename, destUnitFolder: ansiString): integer;
+  function GetDelphiSourceFolder(const startFolder: string): string;
+  function BuildNewUnit(const pasFilename, destUnitFolder, projectFolder: ansiString): integer;
+  function DeleteFolder(const Foldername: ansiString): boolean;
 
 implementation
 
@@ -20,15 +31,21 @@ const
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-function htmlStart(level: integer; const metaTag: ansiString = ''): ansiString;
-const
-  htmlStart1: AnsiString = '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
-  htmlStart2: AnsiString = 'styles/default.css" type="text/css">'#10;
-  htmlStart3: AnsiString = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
+function LevelToEllipsis(level: integer): string;
 begin
   result := '';
   for level := 1 to level do result := result + '../';
-  result := htmlStart1 + result + htmlStart2 + metaTag + htmlStart3;
+end;
+//------------------------------------------------------------------------------
+
+function htmlStart(level: integer; const metaTag: ansiString = ''): ansiString;
+const
+  htmlStart1: AnsiString =
+    '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
+  htmlStart2: AnsiString = 'styles/default.css" type="text/css">'#10;
+  htmlStart3: AnsiString = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
+begin
+  result := htmlStart1 + LevelToEllipsis(level) + htmlStart2 + metaTag + htmlStart3;
 end;
 //------------------------------------------------------------------------------
 
@@ -163,16 +180,72 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function GetDelphiSourceFolder: string;
+function GetDelphiSourceFolder(const startFolder: string): string;
 const
   CSIDL_PROGRAM_FILES = $26;
 begin
-  result := GetSpecialFolder(CSIDL_PROGRAM_FILES);
+  if (startFolder = '') or not DirectoryExists(startFolder) then
+    result := GetSpecialFolder(CSIDL_PROGRAM_FILES) else
+    result := startFolder;
   if not GetFolder(application.MainForm,
     'Location of Delphi PAS Files ...', false, result) then
     result := '';
 end;
+//------------------------------------------------------------------------------
 
+function trimSlash(const path: string): string;
+var
+  i: integer;
+begin
+  result := path;
+  i := length(path);
+  if (i > 0) and (path[i] = '\') then delete(result, i, 1);
+end;
+//------------------------------------------------------------------------------
+
+function GetParentFolder(const path: string): string;
+var
+  i: integer;
+begin
+  i := length(path) -1;
+  while (i > 0) and (path[i] <> '\') do dec(i);
+  result := copy(path,1,i);
+end;
+//------------------------------------------------------------------------------
+
+function ShellFileOperation(fromFile: string; toFile: string; Flag: Integer): boolean;
+var
+  shellinfo: TSHFileOpStruct;
+begin
+  FillChar(shellinfo, sizeof(shellinfo), 0);
+  with shellinfo do
+  begin
+    wnd   := Application.Handle;
+    wFunc := Flag; //FO_MOVE, FO_COPY, FO_DELETE or FO_RENAME
+    pFrom := PChar(fromFile);
+    pTo   := PChar(toFile);
+  end;
+  result := SHFileOperation(shellinfo) = 0;
+end;
+//------------------------------------------------------------------------------
+
+function DeleteFolder(const Foldername: ansiString): boolean;
+begin
+  result := DirectoryExists(Foldername) and
+    ShellFileOperation(trimSlash(Foldername), '', FO_DELETE);
+end;
+//------------------------------------------------------------------------------
+
+function StringFromFile(const filename: string): string;
+begin
+  with TMemoryStream.Create do
+  try
+    LoadFromFile(filename);
+    SetString(result, PAnsiChar(memory), size);
+  finally
+    free;
+  end;
+end;
 //------------------------------------------------------------------------------
 
 procedure StringToFile(const filename, strVal: ansiString);
@@ -247,7 +320,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function BuildNewUnit(const pasFilename, destUnitFolder: ansiString): integer;
+function BuildNewUnit(const pasFilename, destUnitFolder, projectFolder: ansiString): integer;
 var
   i: integer;
   pasLines: TStringlist;
@@ -256,10 +329,52 @@ var
   tok: TToken;
   s, fn, comment: ansiString;
 
-  function MakeDescription(comment: ansiString): ansiString;
+  function MakeDescription(level: integer; comment: string): ansiString;
   var
-    i: integer;
+    i,j: integer;
+    imgFile, incFile, incStr: string;
+    quoteChar: char;
   begin
+    //add any 'includes' into the comment ...
+    //format <include src="filename">
+    i := 1;
+    while true do
+    begin
+      i := PosEx('<include src=',comment,i);
+      if i = 0 then break;
+      quoteChar := comment[i+13];
+      if not (quoteChar in ['"','''']) then break;
+      j := PosEx(quoteChar,comment,i+14);
+      if j = 0 then break;
+      incFile := copy(comment, i+14, j - (i+14));
+      j := PosEx('>',comment,j);
+      if j = 0 then break;
+      delete(comment,i,j-i+1);
+      incStr := StringFromFile(ExtractFilePath(pasFilename) +incFile);
+      incStr := trim(incStr);
+      //replace tabs with double-spaces ...
+      incStr := StringReplace(incStr,#9, '  ', [rfReplaceAll]);
+      insert(incStr,comment,i);
+      break; //ie assumes a maximum of one 'include' statement
+    end;
+
+    //move any images into the image folder and fixup the path in comment ...
+    i := 1;
+    while true do
+    begin
+      i := PosEx('<img src=',comment,i);
+      if i = 0 then break;
+      quoteChar := comment[i+9];
+      if not (quoteChar in ['"','''']) then break;
+      j := PosEx(quoteChar,comment,i+10);
+      if j = 0 then break;
+      imgFile := copy(comment, i+10, j - (i+10));
+      insert(LevelToEllipsis(level) +'Images/', comment, i+10);
+      CopyFile( PChar(ExtractFilePath(pasFilename) +imgFile),
+        PChar(projectFolder +'Images/' +imgFile), false );
+      i := j+1;
+    end;
+
     //delete spaces that trail the <br> token ...
     i := 1;
     while true do
@@ -268,9 +383,16 @@ var
       if i = 0 then break;
       delete(comment,i+4,1);
     end;
+    while true do
+    begin
+      i := PosEx('<br/> ',comment,i);
+      if i = 0 then break;
+      delete(comment,i+5,1);
+    end;
+
     if comment = '' then
       result := '<br>' else
-      result := '<p class="Body">'#10 +comment+'</p><br>'#10;
+      result := '<p class="Body">'#10 +comment+'</p>'#10;
   end;
 
   function DoConst: boolean;
@@ -294,8 +416,9 @@ var
         until finished or (tok.text = ';');
         result := tok.text = ';';
         if result then
-          ConstList.Add(MakeDescription(comment)+
-            format('<p class="Decl">%s %s</p>'#10,[ident, buffer]));
+          ConstList.Add(
+            format('<p class="Decl">%s %s</p>'#10,[ident, buffer])+
+            MakeDescription(4, comment)+'<br><br>'#10);
       end;
     end;
     //add a space between each CONST code block ...
@@ -337,7 +460,7 @@ var
           AddToBuffer(tok);
         end;
         if result then
-          VarList.Add(MakeDescription(comment) +
+          VarList.Add(MakeDescription(4, comment) +
             format('<p class="Decl">%s</p>'#10,[buffer]));
       end;
     end;
@@ -511,11 +634,12 @@ var
       end;
       if not DirectoryExists(destUnitFolder+ 'Classes') then
         MkDir(destUnitFolder+ 'Classes');
-      classPath := destUnitFolder+ 'Classes\' + clsName + '\';
-      MkDir(classPath);
+      classPath := destUnitFolder+ 'Classes/' + clsName + '/';
+      if not DirectoryExists(classPath) then
+        MkDir(classPath);
       ancestor := '<meta name="Ancestor" content="' +ancestor +'">'#10;
       StringToFile(classPath+'_Body.htm',
-        htmlStart(5, ancestor) + MakeDescription(comment) + htmlEnd);
+        htmlStart(5, ancestor) + MakeDescription(5, comment) + htmlEnd);
 
       repeat
         //skip private and protected class fields and methods...
@@ -558,9 +682,9 @@ var
               if s2 = '' then exit;
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
-              fn := classPath +'Methods\'+FirstWordInStr(s2)+'.htm';
+              fn := classPath +'Methods/'+FirstWordInStr(s2)+'.htm';
               AppendStringToFile(fn,format('<p class="Decl"><b>%s</b> %s</p>'#10,[s,s2]) +
-                MakeDescription(comment));
+                MakeDescription(6, comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -571,9 +695,9 @@ var
               if s = '' then exit;
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
-              fn := classPath  +'Methods\' +FirstWordInStr(s) +'.htm';
+              fn := classPath  +'Methods/' +FirstWordInStr(s) +'.htm';
               AppendStringToFile(fn, '<p class="Decl"><b>function</b> ' +
-                  s +'</p>' +MakeDescription(comment));
+                  s +'</p>' +MakeDescription(6, comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -593,10 +717,10 @@ var
               if s2 = '' then exit;
               if not DirectoryExists(classPath +'Methods') then
                 MkDir(classPath +'Methods');
-              fn := classPath  +'Methods\' +FirstWordInStr(s2) +'.htm';
+              fn := classPath  +'Methods/' +FirstWordInStr(s2) +'.htm';
               AppendStringToFile(fn,
                 format('<p class="Decl"><b>class %s</b> %s</p>'#10,[s,s2])
-                +MakeDescription(comment));
+                +MakeDescription(6, comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -607,17 +731,17 @@ var
               if s = '' then exit;
               s2 := FirstWordInStr(s);
               s := htmlStart(6) + '<p class="Decl"><b>property</b> ' +
-                s +'</p>'#10 + MakeDescription(comment)+ htmlEnd;
+                s +'</p>'#10 + MakeDescription(6, comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
                 if not DirectoryExists(classPath +'Events') then
                   MkDir(classPath +'Events');
-                StringToFile(classPath +'Events\' +s2 +'.htm', s)
+                StringToFile(classPath +'Events/' +s2 +'.htm', s)
               end else
               begin
                 if not DirectoryExists(classPath +'Properties') then
                   MkDir(classPath +'Properties');
-                StringToFile(classPath +'Properties\' + s2 +'.htm', s);
+                StringToFile(classPath +'Properties/' + s2 +'.htm', s);
               end;
               GetNextToken(tok);
             end
@@ -656,10 +780,11 @@ var
 
       if not DirectoryExists(destUnitFolder+ 'Interfaces') then
         MkDir(destUnitFolder+ 'Interfaces');
-      interfacePath := destUnitFolder+ 'Interfaces\' + interfaceName + '\';
-      MkDir(interfacePath);
+      interfacePath := destUnitFolder+ 'Interfaces/' + interfaceName + '/';
+      if not DirectoryExists(interfacePath) then
+        MkDir(interfacePath);
       StringToFile(interfacePath+'_Body.htm',
-        htmlStart(5) + buffer + MakeDescription(comment) + htmlEnd);
+        htmlStart(5) + buffer + MakeDescription(5, comment) + htmlEnd);
 
       GetNextToken(tok);
       repeat
@@ -681,10 +806,10 @@ var
               if s2 = '' then exit;
               if not DirectoryExists(interfacePath +'Methods') then
                 MkDir(interfacePath +'Methods');
-              fn := interfacePath +'Methods\'+FirstWordInStr(s2)+'.htm';
+              fn := interfacePath +'Methods/'+FirstWordInStr(s2)+'.htm';
               AppendStringToFile(fn,
                 format('<p class="Decl"><b>%s</b> %s</p>'#10,[s,s2]) +
-                MakeDescription(comment));
+                MakeDescription(6, comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
             end
@@ -694,10 +819,10 @@ var
               if s = '' then exit;
               if not DirectoryExists(interfacePath +'Methods') then
                 MkDir(interfacePath +'Methods');
-              fn := interfacePath  +'Methods\' +FirstWordInStr(s) +'.htm';
+              fn := interfacePath  +'Methods/' +FirstWordInStr(s) +'.htm';
               AppendStringToFile(fn,
                 format('<p class="Decl"><b>function</b> %s</p>'#10,[s]) +
-                MakeDescription(comment));
+                MakeDescription(6, comment));
 
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
               GetNextToken(tok);
@@ -708,17 +833,17 @@ var
               if s = '' then exit;
               s2 := FirstWordInStr(s);
               s := htmlStart(6) + '<p class="Decl"><b>property</b> ' + s +
-                '</p>'#10+ MakeDescription(comment)+ htmlEnd;
+                '</p>'#10+ MakeDescription(6, comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
                 if not DirectoryExists(interfacePath +'Events') then
                   MkDir(interfacePath +'Events');
-                StringToFile(interfacePath +'Events\' +s2 +'.htm', s)
+                StringToFile(interfacePath +'Events/' +s2 +'.htm', s)
               end else
               begin
                 if not DirectoryExists(interfacePath +'Properties') then
                   MkDir(interfacePath +'Properties');
-                StringToFile(interfacePath +'Properties\' + s2 +'.htm', s);
+                StringToFile(interfacePath +'Properties/' + s2 +'.htm', s);
               end;
               GetNextToken(tok);
             end
@@ -754,8 +879,8 @@ var
       end;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
-      StringToFile(destUnitFolder+ 'Types\' + funcName + '.htm',
-        htmlStart(4) + '<p class="Decl">' +buffer +'</p>'#10 + MakeDescription(comment)+ htmlEnd);
+      StringToFile(destUnitFolder+ 'Types/' + funcName + '.htm',
+        htmlStart(4) + '<p class="Decl">' +buffer +'</p>'#10 + MakeDescription(4, comment)+ htmlEnd);
     end;
   end;
 
@@ -784,9 +909,9 @@ var
       end;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
-      StringToFile(destUnitFolder+ 'Types\' + procName + '.htm',
+      StringToFile(destUnitFolder+ 'Types/' + procName + '.htm',
         htmlStart(4) + '<p class="Decl">' + buffer + '</p>'#10 +
-        MakeDescription(comment) + htmlEnd);
+        MakeDescription(4, comment) + htmlEnd);
     end;
   end;
 
@@ -830,9 +955,9 @@ var
       begin
         if not DirectoryExists(destUnitFolder+ 'Types') then
           MkDir(destUnitFolder+ 'Types');
-        StringToFile(destUnitFolder+ 'Types\' + recordName + '.htm',
+        StringToFile(destUnitFolder+ 'Types/' + recordName + '.htm',
           htmlStart(4) +'<p class="Decl">' + buffer + '</p>'#10 +
-          MakeDescription(comment) + htmlEnd);
+          MakeDescription(4, comment) + htmlEnd);
       end;
     end;
   end;
@@ -853,9 +978,9 @@ var
       if not result then exit;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
-      StringToFile(destUnitFolder+ 'Types\' + typeName + '.htm',
+      StringToFile(destUnitFolder+ 'Types/' + typeName + '.htm',
         htmlStart(4) + '<p class="Decl">' + buffer + '</p>'#10 +
-        MakeDescription(comment) + htmlEnd);
+        MakeDescription(4, comment) + htmlEnd);
     end;
   end;
 
@@ -905,7 +1030,8 @@ var
 
 begin
   Result := -1;
-  MkDir(destUnitFolder);
+  if not DirectoryExists(destUnitFolder) then
+    MkDir(destUnitFolder);
 
   StringToFile(destUnitFolder+'_Body.htm', htmlStart(3) + '<b>Unit</b> ' +
     ChangeFileExt(ExtractFileName(pasFilename),'') + htmlEnd);
@@ -950,12 +1076,12 @@ begin
                 break
               else
               begin
-                if not DirectoryExists(destUnitFolder+ 'Routines') then
-                  MkDir(destUnitFolder+ 'Routines');
-                fn := destUnitFolder+'Routines\'+ FirstWordInStr(s) +'.htm';
+                if not DirectoryExists(destUnitFolder+ 'Functions') then
+                  MkDir(destUnitFolder+ 'Functions');
+                fn := destUnitFolder+'Functions/'+ FirstWordInStr(s) +'.htm';
                 AppendStringToFile(fn,
                   format('<p class="Decl"><b>function</b> %s</p>'#10,[s]) +
-                  MakeDescription(comment));
+                  MakeDescription(4, comment));
                 if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end else if (tok.text = 'procedure') then
@@ -965,12 +1091,12 @@ begin
                 break
               else
               begin
-                if not DirectoryExists(destUnitFolder+ 'Routines') then
-                  MkDir(destUnitFolder+ 'Routines');
-                fn := destUnitFolder+'Routines\' +FirstWordInStr(s) +'.htm';
+                if not DirectoryExists(destUnitFolder+ 'Functions') then
+                  MkDir(destUnitFolder+ 'Functions');
+                fn := destUnitFolder+'Functions/' +FirstWordInStr(s) +'.htm';
                   AppendStringToFile(fn,
                     format('<p class="Decl"><b>procedure</b> %s</p>'#10,[s]) +
-                    MakeDescription(comment));
+                    MakeDescription(4, comment));
                 if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
               end;
             end;
@@ -982,18 +1108,20 @@ begin
 
       if ConstList.Count > 0 then
       begin
-        MkDir(destUnitFolder+ 'Constants');
+        if not DirectoryExists(destUnitFolder+ 'Constants') then
+          MkDir(destUnitFolder+ 'Constants');
         ConstList.Insert(0, htmlStart(4));
         ConstList.Add(htmlEnd);
-        ConstList.SaveToFile(destUnitFolder+ 'Constants\const.htm');
+        ConstList.SaveToFile(destUnitFolder+ 'Constants/constants.htm');
       end;
 
       if VarList.Count > 0 then
       begin
-        MkDir(destUnitFolder+ 'Vars');
+        if not DirectoryExists(destUnitFolder+ 'Vars') then
+          MkDir(destUnitFolder+ 'Vars');
         VarList.Insert(0, htmlStart(4));
         VarList.Add(htmlEnd);
-        VarList.SaveToFile(destUnitFolder+ 'Vars\vars.htm');
+        VarList.SaveToFile(destUnitFolder+ 'Vars/vars.htm');
       end;
 
      for i := 0 to RoutinesList.Count -1 do
