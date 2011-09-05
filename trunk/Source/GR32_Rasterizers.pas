@@ -39,6 +39,7 @@ interface
 
 uses
 {$IFDEF FPC}
+  LCLIntf,
   {$IFDEF Windows}
     Windows,
   {$ENDIF}
@@ -779,7 +780,11 @@ var
   {$IFDEF COMPILER2010}
     Result.Start;
   {$ELSE}
+  {$IFDEF FPC}
+    Result.Start;
+  {$ELSE}
     Result.Resume;
+  {$ENDIF}
   {$ENDIF}
   end;
 

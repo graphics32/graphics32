@@ -38,6 +38,10 @@ interface
 
 {$I GR32.inc}
 
+{$IFNDEF FPC}
+{-$IFDEF USE_3DNOW}
+{$ENDIF}
+
 uses
 {$IFDEF FPC}
   LCLIntf,
@@ -847,16 +851,16 @@ begin
   SrcX := SrcRect.Left;
   SrcY := SrcRect.Top;
 
-  IntersectRect(DstClip, DstClip, Dst.BoundsRect);
-  IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+  GR32.IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+  GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
 
-  OffsetRect(SrcRect, DstX - SrcX, DstY - SrcY);
-  IntersectRect(SrcRect, DstClip, SrcRect);
-  if IsRectEmpty(SrcRect) then
+  GR32.OffsetRect(SrcRect, DstX - SrcX, DstY - SrcY);
+  GR32.IntersectRect(SrcRect, DstClip, SrcRect);
+  if GR32.IsRectEmpty(SrcRect) then
     exit;
 
   DstClip := SrcRect;
-  OffsetRect(SrcRect, SrcX - DstX, SrcY - DstY);
+  GR32.OffsetRect(SrcRect, SrcX - DstX, SrcY - DstY);
 
   if not Dst.MeasuringMode then
   begin
@@ -923,10 +927,10 @@ begin
   DstBounds := Dst.BoundsRect;
   Dec(DstBounds.Right);
   Dec(DstBounds.Bottom);
-  OffsetRect(DstBounds, SrcRect.Left - DstX, SrcRect.Top - DstY);
-  IntersectRect(SrcRect, SrcRect, DstBounds);
+  GR32.OffsetRect(DstBounds, SrcRect.Left - DstX, SrcRect.Top - DstY);
+  GR32.IntersectRect(SrcRect, SrcRect, DstBounds);
 
-  if IsRectEmpty(SrcRect) then Exit;
+  if GR32.IsRectEmpty(SrcRect) then Exit;
 
   SrcW := Src.Width;
 
@@ -1128,17 +1132,17 @@ begin
     SrcBX := SrcRectB.Left - DstX;
     SrcBY := SrcRectB.Top - DstY;
 
-    IntersectRect(DstClip, DstClip, Dst.BoundsRect);
-    IntersectRect(SrcRectF, SrcRectF, SrcF.BoundsRect);
-    IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
+    GR32.IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+    GR32.IntersectRect(SrcRectF, SrcRectF, SrcF.BoundsRect);
+    GR32.IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
 
-    OffsetRect(SrcRectF, -SrcFX, -SrcFY);
-    OffsetRect(SrcRectB, -SrcBX, -SrcFY);
+    GR32.OffsetRect(SrcRectF, -SrcFX, -SrcFY);
+    GR32.OffsetRect(SrcRectB, -SrcBX, -SrcFY);
 
-    IntersectRect(DstClip, DstClip, SrcRectF);
-    IntersectRect(DstClip, DstClip, SrcRectB);
+    GR32.IntersectRect(DstClip, DstClip, SrcRectF);
+    GR32.IntersectRect(DstClip, DstClip, SrcRectB);
 
-    if not IsRectEmpty(DstClip) then
+    if not GR32.IsRectEmpty(DstClip) then
     try
       for I := DstClip.Top to DstClip.Bottom - 1 do
       begin
@@ -1177,17 +1181,17 @@ begin
     SrcBX := SrcRectB.Left - DstX;
     SrcBY := SrcRectB.Top - DstY;
 
-    IntersectRect(DstClip, DstClip, Dst.BoundsRect);
-    IntersectRect(SrcRectF, SrcRectF, SrcF.BoundsRect);
-    IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
+    GR32.IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+    GR32.IntersectRect(SrcRectF, SrcRectF, SrcF.BoundsRect);
+    GR32.IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
 
-    OffsetRect(SrcRectF, -SrcFX, -SrcFY);
-    OffsetRect(SrcRectB, -SrcBX, -SrcFY);
+    GR32.OffsetRect(SrcRectF, -SrcFX, -SrcFY);
+    GR32.OffsetRect(SrcRectB, -SrcBX, -SrcFY);
 
-    IntersectRect(DstClip, DstClip, SrcRectF);
-    IntersectRect(DstClip, DstClip, SrcRectB);
+    GR32.IntersectRect(DstClip, DstClip, SrcRectF);
+    GR32.IntersectRect(DstClip, DstClip, SrcRectB);
 
-    if not IsRectEmpty(DstClip) then
+    if not GR32.IsRectEmpty(DstClip) then
     try
       for I := DstClip.Top to DstClip.Bottom - 1 do
       begin
@@ -1221,13 +1225,14 @@ var
   BlendLineEx: TBlendLineEx;
   DstLinePtr, MapPtr: PColor32;
 begin
-  IntersectRect(DstClip, DstClip, MakeRect(0, 0, Dst.Width, Dst.Height));
-  IntersectRect(DstClip, DstClip, DstRect);
-  if IsRectEmpty(DstClip) then Exit;
-  IntersectRect(R, DstClip, DstRect);
-  if IsRectEmpty(R) then Exit;
+  GR32.IntersectRect(DstClip, DstClip, MakeRect(0, 0, Dst.Width, Dst.Height));
+  GR32.IntersectRect(DstClip, DstClip, DstRect);
+  if GR32.IsRectEmpty(DstClip) then Exit;
+  GR32.IntersectRect(R, DstClip, DstRect);
+  if GR32.IsRectEmpty(R) then Exit;
   if (SrcRect.Left < 0) or (SrcRect.Top < 0) or (SrcRect.Right > Src.Width) or
-    (SrcRect.Bottom > Src.Height) then raise Exception.Create('Invalid SrcRect');
+    (SrcRect.Bottom > Src.Height) then
+    raise Exception.Create('Invalid SrcRect');
 
   SrcW := SrcRect.Right - SrcRect.Left;
   SrcH := SrcRect.Bottom - SrcRect.Top;
@@ -1803,7 +1808,7 @@ begin
     {$IFDEF FPC}
     Inc(RowSrc, OffSrc);
     {$ELSE}
-    Inc(Cardinal(RowSrc), OffSrc);
+    Inc(NativeInt(RowSrc), OffSrc);
     {$ENDIF}
   end;
 
@@ -1967,7 +1972,7 @@ asm
 {$ENDIF}
 end;
 
-{$IFNDEF FPC}
+{$IFDEF USE_3DNOW}
 function BlockAverage_3DNow(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 asm
         PUSH       EBX
@@ -2315,7 +2320,7 @@ begin
         {$IFDEF FPC}
         Inc(RowSrc, OffSrc * dy);
         {$ELSE}
-        Inc(Cardinal(RowSrc), OffSrc * dy);
+        Inc(NativeInt(RowSrc), OffSrc * dy);
         {$ENDIF}
       end;
     end;
@@ -2475,17 +2480,20 @@ begin
   end;
 
   if Src.Empty or Dst.Empty or
-    ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) or IsRectEmpty(SrcRect) then Exit;
+    ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) or
+    GR32.IsRectEmpty(SrcRect) then
+      Exit;
 
   if not Dst.MeasuringMode then
   begin
-    IntersectRect(DstClip, DstClip, Dst.BoundsRect);
-    IntersectRect(DstClip, DstClip, DstRect);
-    if IsRectEmpty(DstClip) then Exit;
-    IntersectRect(R, DstClip, DstRect);
-    if IsRectEmpty(R) then Exit;
+    GR32.IntersectRect(DstClip, DstClip, Dst.BoundsRect);
+    GR32.IntersectRect(DstClip, DstClip, DstRect);
+    if GR32.IsRectEmpty(DstClip) then Exit;
+    GR32.IntersectRect(R, DstClip, DstRect);
+    if GR32.IsRectEmpty(R) then Exit;
 
-    if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then CombineOp := dmOpaque;
+    if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
+      CombineOp := dmOpaque;
 
     SrcW := SrcRect.Right - SrcRect.Left;
     SrcH := SrcRect.Bottom - SrcRect.Top;
@@ -4168,7 +4176,7 @@ begin
   Registry.ADD(FID_INTERPOLATOR, @Interpolator_Pas);
 {$IFNDEF PUREPASCAL}
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_MMX, [ciMMX]);
-{$IFNDEF FPC}
+{$IFDEF USE_3DNOW}
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_3DNow, [ci3DNow]);
 {$ENDIF}
   Registry.ADD(FID_BLOCKAVERAGE, @BlockAverage_SSE2, [ciSSE2]);
