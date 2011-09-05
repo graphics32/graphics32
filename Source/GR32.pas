@@ -913,6 +913,13 @@ const
 
 { Color construction and conversion functions }
 
+{$IFDEF PUREPASCAL}
+{$DEFINE USENATIVECODE}
+{$ENDIF}
+{$IFDEF TARGET_X64}
+{$DEFINE USENATIVECODE}
+{$ENDIF}
+
 function Color32(WinColor: TColor): TColor32; overload;
 {$IFDEF WIN_COLOR_FIX}
 var
@@ -930,6 +937,10 @@ begin
   I := WinColor and $000000FF;
   if I <> 0 then Result := Result or TColor32(Integer(I) - 1) shl 16;
 {$ELSE}
+{$IFDEF USENATIVECODE}
+  Result := $FF shl 24 + (WinColor and $FF0000) shr 16 + (WinColor and $FF00) +
+    (WinColor and $FF) shl 16;
+{$ELSE}
   asm
         MOV    EAX,WinColor
         BSWAP  EAX
@@ -938,20 +949,19 @@ begin
         MOV    Result,EAX
   end;
 {$ENDIF}
+{$ENDIF}
 end;
 
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
-{$IFNDEF TARGET_x86}
+{$IFDEF USENATIVECODE}
 begin
-  Result := (A shl 24) or
-            (R shl 16) or
-            (G shl  8) or B;
+  Result := (A shl 24) or (R shl 16) or (G shl  8) or B;
 {$ELSE}
 asm
-        MOV  AH,A
-        SHL  EAX,16
-        MOV  AH,DL
-        MOV  AL,CL
+        MOV     AH, A
+        SHL     EAX, 16
+        MOV     AH, DL
+        MOV     AL, CL
 {$ENDIF}
 end;
 
@@ -967,17 +977,20 @@ begin
 end;
 
 function WinColor(Color32: TColor32): TColor;
-{$IFNDEF TARGET_x86}
+{$IFDEF PUREPASCAL}
 begin
   Result := ((Color32 and $00FF0000) shl 16) or
              (Color32 and $0000FF00) or
             ((Color32 and $000000FF) shr 16);
 {$ELSE}
 asm
-  // the alpha channel byte is set to zero!
-        ROL    EAX,8  // ABGR  ->  BGRA
-        XOR    AL,AL  // BGRA  ->  BGR0
-        BSWAP  EAX    // BGR0  ->  0RGB
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
+{$ENDIF}
+        // the alpha channel byte is set to zero!
+        ROL     EAX, 8  // ABGR  ->  BGRA
+        XOR     AL, AL  // BGRA  ->  BGR0
+        BSWAP   EAX     // BGR0  ->  0RGB
 {$ENDIF}
 end;
 
@@ -2434,7 +2447,7 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFNDEF TARGET_x86}
+  {$IFDEF USENATIVECODE}
   X := X div 256;
   Y := Y div 256;
   {$ELSE}
@@ -2487,7 +2500,7 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFNDEF TARGET_x86}
+  {$IFDEF USENATIVECODE}
   X := X div 256;
   Y := Y div 256;
   {$ELSE}
@@ -2597,7 +2610,7 @@ begin
   if not FMeasuringMode then
   begin
 {$ENDIF}
-    {$IFNDEF TARGET_x86}
+    {$IFDEF USENATIVECODE}
     X := (X + $7F) div 256;
     Y := (Y + $7F) div 256;
     {$ELSE}
@@ -2686,19 +2699,20 @@ begin
   Result := GET_TS256(X, Y);
   EMMS;
 {$ELSE}
-{$IFDEF TARGET_x86}
 asm
-  ADD X, $7F
-  ADD Y, $7F
-  SAR X, 8
-  SAR Y, 8
-  CALL TCustomBitmap32.GET_TS256
-  MOV Result, EAX
-  cmp MMX_ACTIVE.Integer, $00
-  jz @Exit
-  db $0F, $77               /// EMMS
+          ADD     X, $7F
+          ADD     Y, $7F
+          SAR     X, 8
+          SAR     Y, 8
+          CALL    TCustomBitmap32.GET_TS256
+          MOV     Result, EAX
+{$IFDEF TARGET_x86}
+          CMP     MMX_ACTIVE.Integer, $00
+          JZ      @Exit
+          DB      $0F, $77               /// EMMS
 @Exit:
 {$ENDIF}
+
 {$ENDIF}
 end;
 
@@ -2752,7 +2766,7 @@ end;
 
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 begin
-  {$IFNDEF TARGET_x86}
+  {$IFDEF USENATIVECODE}
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
   {$ELSE}

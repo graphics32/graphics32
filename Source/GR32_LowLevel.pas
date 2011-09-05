@@ -592,7 +592,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
 {$ENDIF}
         CMP       EDX,EAX
@@ -621,22 +621,22 @@ function Max(const A, B, C: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if A > B then
-  	Result := A
+    Result := A
   else
-  	Result := B;
+    Result := B;
 
   if C > Result then
-  	Result := C;
+    Result := C;
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
 {$ENDIF}
-      CMP       EDX,EAX
-      CMOVG     EAX,EDX
-      CMP       ECX,EAX
-      CMOVG     EAX,ECX
+        CMP       EDX,EAX
+        CMOVG     EAX,EDX
+        CMP       ECX,EAX
+        CMOVG     EAX,ECX
 {$ENDIF}
 end;
 
@@ -644,22 +644,22 @@ function Min(const A, B, C: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if A < B then
-  	Result := A
+    Result := A
   else
-  	Result := B;
-  
+    Result := B;
+
   if C < Result then
-  	Result := C;
+    Result := C;
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
 {$ENDIF}
-      CMP       EDX,EAX
-      CMOVL     EAX,EDX
-      CMP       ECX,EAX
-      CMOVL     EAX,ECX
+        CMP       EDX,EAX
+        CMOVL     EAX,EDX
+        CMP       ECX,EAX
+        CMOVL     EAX,ECX
 {$ENDIF}
 end;
 
@@ -675,8 +675,8 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
-        MOV       RCX,R8
+        MOV     RAX,RCX
+        MOV     RCX,R8
 {$ENDIF}
         CMP     EAX,EDX
         JG      @@above
@@ -704,7 +704,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
 {$ENDIF}
         CMP       EDX,EAX
@@ -724,7 +724,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
         LEA       ECX,[RDX+1]
 {$ELSE}
@@ -768,9 +768,9 @@ begin
 asm
 {$IFDEF TARGET_x64}
         PUSH      RBX
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
-        MOV       EBX,EDX
+        MOV       RBX,RDX
         CDQ
         IDIV      EBX
         MOV       [RCX],EDX
@@ -804,7 +804,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
         MOV       RCX,R8
 {$ENDIF}
         TEST      EAX,EAX
@@ -962,7 +962,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,4
 {$ENDIF}
@@ -975,7 +975,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,8
 {$ENDIF}
@@ -988,7 +988,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,9
 {$ENDIF}
@@ -1001,7 +1001,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,11
 {$ENDIF}
@@ -1014,7 +1014,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,12
 {$ENDIF}
@@ -1027,7 +1027,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,13
 {$ENDIF}
@@ -1040,7 +1040,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,14
 {$ENDIF}
@@ -1053,7 +1053,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,15
 {$ENDIF}
@@ -1066,7 +1066,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         SAR       EAX,16
 {$ENDIF}
@@ -1089,7 +1089,7 @@ asm
 // this function swaps R and B bytes in ABGR
 // and writes $FF into A component
 {$IFDEF TARGET_x64}
-        MOV       EAX,ECX
+        MOV       RAX,RCX
 {$ENDIF}
         BSWAP     EAX
         MOV       AL, $FF

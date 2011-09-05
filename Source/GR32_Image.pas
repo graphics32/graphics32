@@ -817,14 +817,11 @@ end;
 function TCustomPaintBox32.GetViewportRect: TRect;
 begin
   // returns position of the buffered area within the control bounds
-  with Result do
-  begin
-    // by default, the whole control is buffered
-    Left := 0;
-    Top := 0;
-    Right := Width;
-    Bottom := Height;
-  end;
+  // by default, the whole control is buffered
+  Result.Left := 0;
+  Result.Top := 0;
+  Result.Right := Width;
+  Result.Bottom := Height;
 end;
 
 procedure TCustomPaintBox32.Invalidate;
@@ -1251,8 +1248,15 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := Floor((X - CachedShiftX) * CachedRecScaleX);
-    Result.Y := Floor((Y - CachedShiftY) * CachedRecScaleY);
+    if (CachedRecScaleX = 0) then
+      Result.X := High(Result.X)
+    else
+      Result.X := Floor((X - CachedShiftX) * CachedRecScaleX);
+
+    if (CachedRecScaleY = 0) then
+      Result.Y := High(Result.Y)
+    else
+      Result.Y := Floor((Y - CachedShiftY) * CachedRecScaleY);
   end;
 end;
 
@@ -1262,8 +1266,15 @@ begin
   UpdateCache;
   with APoint do
   begin
-    Result.X := (X - CachedShiftX) * CachedRecScaleX;
-    Result.Y := (Y - CachedShiftY) * CachedRecScaleY;
+    if (CachedRecScaleX = 0) then
+      Result.X := MaxInt
+    else
+      Result.X := (X - CachedShiftX) * CachedRecScaleX;
+
+    if (CachedRecScaleY = 0) then
+      Result.Y := MaxInt
+    else
+      Result.Y := (Y - CachedShiftY) * CachedRecScaleY;
   end;
 end;
 
@@ -1905,8 +1916,15 @@ begin
   CachedShiftY := ShiftY;
   CachedScaleX := ScaleX;
   CachedScaleY := ScaleY;
-  CachedRecScaleX := 1 / ScaleX;
-  CachedRecScaleY := 1 / ScaleY;
+  if (ScaleX <> 0) then
+    CachedRecScaleX := 1 / ScaleX
+  else
+    CachedRecScaleX := 0;
+
+  if (ScaleY <> 0) then
+    CachedRecScaleY := 1 / ScaleY
+  else
+    CachedRecScaleY := 0;
 end;
 
 procedure TCustomImage32.UpdateCache;

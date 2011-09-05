@@ -142,7 +142,7 @@ end;
 procedure CopyComponents(Dst: TCustomBitmap32; DstX, DstY: Integer; Src: TCustomBitmap32;
   SrcRect: TRect; Components: TColor32Components);
 var
-  I, J, Count, ComponentCount, Offset: Integer;
+  I, J, Count, ComponentCount, XOffset: Integer;
   Mask: TColor32;
   SrcRow, DstRow: PColor32Array;
   PBDst, PBSrc: PByteArray;
@@ -152,25 +152,25 @@ begin
   CheckParams(Dst, Src, False);
 
   ComponentCount := 0;
-  Offset := 0;
+  XOffset := 0;
   Mask := 0;
   if ccAlpha in Components then
   begin
     Inc(ComponentCount);
     Inc(Mask, $FF000000);
-    Offset := 3;
+    XOffset := 3;
   end;
   if ccRed in Components then
   begin
     Inc(ComponentCount);
     Inc(Mask, $00FF0000);
-    Offset := 2;
+    XOffset := 2;
   end;
   if ccGreen in Components then
   begin
     Inc(ComponentCount);
     Inc(Mask, $0000FF00);
-    Offset := 1;
+    XOffset := 1;
   end;
   if ccBlue in Components then
   begin
@@ -209,9 +209,9 @@ begin
             1://Byte ptr approach
               begin
                 PBSrc := Pointer(SrcRow);
-                Inc(PBSrc, Offset); // shift the pointer to the given component of the first pixel
+                Inc(PBSrc, XOffset); // shift the pointer to the given component of the first pixel
                 PBDst := Pointer(DstRow);
-                Inc(PBDst, Offset);
+                Inc(PBDst, XOffset);
 
                 Count := Count * 4 - 64;
                 Inc(PBSrc, Count);

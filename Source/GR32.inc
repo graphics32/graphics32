@@ -217,6 +217,11 @@
   {-$DEFINE USEMOVE}
 {$ENDIF}
 
+{$IFDEF TARGET_x64}
+  {$DEFINE PUREPASCAL}
+  {$DEFINE USEMOVE}
+{$ENDIF}
+
 // The DARWIN target of Free Pascal generates PIC code by default
 // Which isn't compatible with the current Assembler
 // So force PUREPASCAL
