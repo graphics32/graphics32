@@ -1437,22 +1437,22 @@ begin
   end
   else
   begin
-  if ((Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque)) and assigned(Dest) then
-    Dest.Clear(C)
-  else
+    if ((Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque)) and assigned(Dest) then
+      Dest.Clear(C)
+    else
     with CachedBitmapRect do
     begin
-      if (Left > 0) or (Right < Width) or (Top > 0) or (Bottom < Height) and
+      if (Left > 0) or (Right < Self.Width) or (Top > 0) or (Bottom < Self.Height) and
         not (BitmapAlign = baTile) then
       begin
         // clean only the part of the buffer lying around image edges
-        Dest.FillRectS(0, 0, Width, Top, C);          // top
-        Dest.FillRectS(0, Bottom, Width, Height, C);  // bottom
+        Dest.FillRectS(0, 0, Self.Width, Top, C);          // top
+        Dest.FillRectS(0, Bottom, Self.Width, Self.Height, C);  // bottom
         Dest.FillRectS(0, Top, Left, Bottom, C);      // left
-        Dest.FillRectS(Right, Top, Width, Bottom, C); // right
-        end;
+        Dest.FillRectS(Right, Top, Self.Width, Bottom, C); // right
       end;
     end;
+  end;
 end;
 
 procedure TCustomImage32.ExecClearBuffer(Dest: TBitmap32; StageNum: Integer);
@@ -1539,12 +1539,12 @@ var
   ViewportWidth, ViewportHeight: Integer;
   RScaleX, RScaleY: TFloat;
 begin
-  with Result do
+//  with Result do
   begin
     if Bitmap.Empty or (Width = 0) or (Height = 0) then
     begin
-      Cx := 0;
-      Cy := 0;
+      Result.Cx := 0;
+      Result.Cy := 0;
       Exit;
     end;
 
@@ -1574,39 +1574,39 @@ begin
     case Mode of
       smNormal:
         begin
-          Cx := Bitmap.Width;
-          Cy := Bitmap.Height;
+          Result.Cx := Bitmap.Width;
+          Result.Cy := Bitmap.Height;
         end;
       smStretch:
         begin
-          Cx := ViewportWidth;
-          Cy := ViewportHeight;
+          Result.Cx := ViewportWidth;
+          Result.Cy := ViewportHeight;
         end;
       smResize:
         begin
-          Cx := Bitmap.Width;
-          Cy := Bitmap.Height;
-          RScaleX := ViewportWidth / Cx;
-          RScaleY := ViewportHeight / Cy;
+          Result.Cx := Bitmap.Width;
+          Result.Cy := Bitmap.Height;
+          RScaleX := ViewportWidth / Result.Cx;
+          RScaleY := ViewportHeight / Result.Cy;
           if RScaleX >= RScaleY then
           begin
-            Cx := Round(Cx * RScaleY);
-            Cy := ViewportHeight;
+            Result.Cx := Round(Result.Cx * RScaleY);
+            Result.Cy := ViewportHeight;
           end
           else
           begin
-            Cx := ViewportWidth;
-            Cy := Round(Cy * RScaleX);
+            Result.Cx := ViewportWidth;
+            Result.Cy := Round(Result.Cy * RScaleX);
           end;
         end;
     else // smScale
       begin
-        Cx := Round(Bitmap.Width * ScaleX);
-        Cy := Round(Bitmap.Height * ScaleY);
+        Result.Cx := Round(Bitmap.Width * ScaleX);
+        Result.Cy := Round(Bitmap.Height * ScaleY);
       end;
     end;
-    if Cx <= 0 then Cx := 0;
-    if Cy <= 0 then Cy := 0;
+    if Result.Cx <= 0 then Result.Cx := 0;
+    if Result.Cy <= 0 then Result.Cy := 0;
   end;
 end;
 
@@ -2024,14 +2024,14 @@ begin
 
     if Assigned(HScroll) then
     begin
-      HScroll.BoundsRect := Rect(Left, Bottom, Right, Height);
+      HScroll.BoundsRect := Rect(Left, Bottom, Right, Self.Height);
       HScroll.Visible := ScrollbarVisible;
       HScroll.Repaint;
     end;
 
     if Assigned(VScroll) then
     begin
-      VScroll.BoundsRect := Rect(Right, Top, Width, Bottom);
+      VScroll.BoundsRect := Rect(Right, Top, Self.Width, Bottom);
       VScroll.Visible := ScrollbarVisible;
       VScroll.Repaint;
     end;
