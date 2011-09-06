@@ -237,38 +237,35 @@ end;
 procedure FillLongword_MMX(var X; Count: Integer; Value: Longword);
 asm
 {$IFDEF TARGET_x64}
-        // ECX = X;   EDX = Count;   R8 = Value
-        CMP        EDX, 0
-        JBE        @Exit
-        MOV        RAX, RCX
-        MOV        RCX, R8
+        // RCX = X;   RDX = Count;   R8 = Value
+        CMP        RDX, 0     // if Count = 0 then
+        JBE        @Exit      //   Exit
+        MOV        RAX, RCX   // RAX = X
 
-        PUSH       RDI
-        PUSH       RBX
-        MOV        EBX, EDX
-        MOV        EDI, EDX
+        PUSH       RDI        // store RDI on stack
+        MOV        R9, RDX    // R9 = Count
+        MOV        RDI, RDX   // RDI = Count
 
-        SHR        EDI, 1
-        SHL        EDI, 1
-        SUB        EBX, EDI
+        SHR        RDI, 1     // RDI = RDI SHR 1
+        SHL        RDI, 1     // RDI = RDI SHL 1
+        SUB        R9, RDI    // check if extra fill is necessary
         JE         @QLoopIni
 
-        MOV        [RAX], ECX
-        ADD        RAX, 4
-        DEC        EDX
-        JZ         @ExitPOP
+        MOV        [RAX], R8D // eventually perform extra fill
+        ADD        RAX, 4     // Inc(X, 4)
+        DEC        RDX        // Dec(Count)
+        JZ         @ExitPOP   // if (Count = 0) then Exit
 @QLoopIni:
-        MOVD       MM1, ECX
-        PUNPCKLDQ  MM1, MM1
-        SHR        EDX, 1
+        MOVD       MM0, R8D   // MM0 = R8D
+        PUNPCKLDQ  MM0, MM0   // unpack MM0 register
+        SHR        RDX, 1     // RDX = RDX div 2
 @QLoop:
-        MOVQ       [RAX], MM1
-        ADD        RAX, 8
-        DEC        EDX
+        MOVQ       QWORD PTR [RAX], MM0 // perform fill
+        ADD        RAX, 8     // Inc(X, 8)
+        DEC        RDX        // Dec(X);
         JNZ        @QLoop
         EMMS
 @ExitPOP:
-        POP        RBX
         POP        RDI
 @Exit:
 {$ELSE}
@@ -310,37 +307,35 @@ end;
 procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
 asm
 {$IFDEF TARGET_x64}
-        // ECX = X;   EDX = Count;   R8 = Value
-        CMP        EDX, 0
-        JBE        @Exit
-        MOV        RAX, RCX
-        MOV        RCX, R8
+        // RCX = X;   RDX = Count;   R8 = Value
+        CMP        RDX, 0     // if Count = 0 then
+        JBE        @Exit      //   Exit
+        MOV        RAX, RCX   // RAX = X
 
-        PUSH       RDI
-        PUSH       RBX
-        MOV        EBX, EDX
-        MOV        EDI, EDX
+        PUSH       RDI        // store RDI on stack
+        MOV        R9, RDX    // R9 = Count
+        MOV        RDI, RDX   // RDI = Count
 
-        SHR        EDI, 1
-        SHL        EDI, 1
-        SUB        EBX, EDI
+        SHR        RDI, 1     // RDI = RDI SHR 1
+        SHL        RDI, 1     // RDI = RDI SHL 1
+        SUB        R9, RDI    // check if extra fill is necessary
         JE         @QLoopIni
 
-        MOV        [RAX], ECX
-        ADD        EAX, 4
-        DEC        EDX
-        JZ         @ExitPOP
+        MOV        [RAX], R8D // eventually perform extra fill
+        ADD        RAX, 4     // Inc(X, 4)
+        DEC        RDX        // Dec(Count)
+        JZ         @ExitPOP   // if (Count = 0) then Exit
 @QLoopIni:
-        MOVD       XMM1, ECX
-        PUNPCKLDQ  XMM1, XMM1
-        SHR        EDX, 1
+        MOVD       XMM0, R8D  // XMM0 = R8D
+        PUNPCKLDQ  XMM0, XMM0 // unpack XMM0 register
+        SHR        RDX, 1     // RDX = RDX div 2
 @QLoop:
-        MOVQ       [RAX], XMM1
-        ADD        RAX, 8
-        DEC        EDX
+        MOVQ       QWORD PTR [RAX], XMM0 // perform fill
+        ADD        RAX, 8     // Inc(X, 8)
+        DEC        RDX        // Dec(X);
         JNZ        @QLoop
+        EMMS
 @ExitPOP:
-        POP        RBX
         POP        RDI
 @Exit:
 {$ELSE}
@@ -1124,7 +1119,8 @@ asm
         SUB       RDX, 8
         PUSH      RDX          { save current SP, for sanity check  (sp = [sp]) }
         PUSH      RCX          { return to caller }
-{$ELSE}
+{$ENDIF}
+{$IFDEF TARGET_x86}
         POP       ECX          { return address }
         MOV       EDX, ESP
         ADD       EAX, 3
