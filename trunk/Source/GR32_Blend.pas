@@ -779,46 +779,41 @@ asm
         CMP     ECX,$FF
         JZ      @1
 
-        PUSH    RBX
-        PUSH    RSI
-
   // P = W * F
-        MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
+        MOV     R8D,EAX         // R8D  <-  Fa Fr Fg Fb
         AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
+        AND     R8D,$FF00FF00   // R8D  <-  Fa 00 Fg 00
         IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
-        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
-        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
+        SHR     R8D,8           // R8D  <-  00 Fa 00 Fg
+        IMUL    R8D,ECX         // R8D  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr ** Pb
-        ADD     EBX,bias
-        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
-        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
+        ADD     R8D,bias
+        AND     R8D,$FF00FF00   // R8D  <-  Pa 00 Pg 00
+        OR      EAX,R8D         // EAX  <-  Pa Pr Pg Pb
 
-        MOV     ESI,[RDX]
+        MOV     R9D,[RDX]
 
   // W = 1 - W; Q = W * B
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
-        MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
-        AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
-        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
-        IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
-        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
-        ADD     ESI,bias
-        AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
-        SHR     ESI,8           // ESI  <-  00 Qr ** Qb
-        ADD     EBX,bias
-        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
-        OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
+        MOV     R8D,R9D         // R8D  <-  Ba Br Bg Bb
+        AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
+        AND     R8D,$FF00FF00   // R8D  <-  Ba 00 Bg 00
+        IMUL    R9D,ECX         // R9D  <-  Qr ** Qb **
+        SHR     R8D,8           // R8D  <-  00 Ba 00 Bg
+        IMUL    R8D,ECX         // R8D  <-  Qa ** Qg **
+        ADD     R9D,bias
+        AND     R9D,$FF00FF00   // R9D  <-  Qr 00 Qb 00
+        SHR     R9D,8           // R9D  <-  00 Qr ** Qb
+        ADD     R8D,bias
+        AND     R8D,$FF00FF00   // R8D  <-  Qa 00 Qg 00
+        OR      R8D,R9D         // R8D  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        ADD     EAX,R8D         // EAX  <-  Za Zr Zg Zb
 
         MOV     [RDX],EAX
-        POP     RSI
-        POP     RBX
         RET
 
 @1:     MOV     [RDX],EAX
@@ -1106,14 +1101,12 @@ asm
         TEST    R8,R8
         JS      @4
 
-        PUSH    RBX
         PUSH    RSI
         PUSH    RDI
 
-        MOV     RCX, R8
-
-        MOV     RSI,RCX         // ESI <- Src
-        MOV     RDI,RDX         // EDI <- Dst
+        MOV     RSI,RCX         // RSI <- Src
+        MOV     RDI,RDX         // RDI <- Dst
+        MOV     RCX,R8          // RCX <- Count
 
   // loop start
 @1:
@@ -1121,52 +1114,49 @@ asm
         TEST    EAX,$FF000000
         JZ      @3              // complete transparency, proceed to next point
 
-        PUSH    RCX             // store counter
-
   // Get weight W = Fa * M
-        MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
-        SHR     ECX,24          // ECX  <-  00 00 00 Fa
+        MOV     R9D,EAX        // R9D  <-  Fa Fr Fg Fb
+        SHR     R9D,24         // R9D  <-  00 00 00 Fa
 
   // Test Fa = 255 ?
-        CMP     ECX,$FF
+        CMP     R9D,$FF
         JZ      @2
 
   // P = W * F
-        MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
+        MOV     R8D,EAX         // R8D  <-  Fa Fr Fg Fb
         AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
-        IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
-        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
-        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
+        AND     R8D,$FF00FF00   // R8D  <-  Fa 00 Fg 00
+        IMUL    EAX,R9D         // EAX  <-  Pr ** Pb **
+        SHR     R8D,8           // R8D  <-  00 Fa 00 Fg
+        IMUL    R8D,R9D         // R8D  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr ** Pb
-        ADD     EBX,bias
-        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
-        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
+        ADD     R8D,bias
+        AND     R8D,$FF00FF00   // R8D  <-  Pa 00 Pg 00
+        OR      EAX,R8D         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W; Q = W * B
         MOV     EDX,[RDI]
-        XOR     ECX,$000000FF   // ECX  <-  1 - ECX
-        MOV     EBX,EDX         // EBX  <-  Ba Br Bg Bb
+        XOR     R9D,$000000FF   // R9D  <-  1 - R9D
+        MOV     R8D,EDX         // R8D  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // ESI  <-  00 Br 00 Bb
-        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
-        IMUL    EDX,ECX         // ESI  <-  Qr ** Qb **
-        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
+        AND     R8D,$FF00FF00   // R8D  <-  Ba 00 Bg 00
+        IMUL    EDX,R9D         // ESI  <-  Qr ** Qb **
+        SHR     R8D,8           // R8D  <-  00 Ba 00 Bg
+        IMUL    R8D,R9D         // R8D  <-  Qa ** Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // ESI  <-  Qr 00 Qb 00
         SHR     EDX,8           // ESI  <-  00 Qr ** Qb
-        ADD     EBX,bias
-        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
-        OR      EBX,EDX         // EBX  <-  Qa Qr Qg Qb
+        ADD     R8D,bias
+        AND     R8D,$FF00FF00   // R8D  <-  Qa 00 Qg 00
+        OR      R8D,EDX         // R8D  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        ADD     EAX,R8D         // EAX  <-  Za Zr Zg Zb
 @2:
         MOV     [RDI],EAX
 
-        POP     RCX             // restore counter
 @3:
         ADD     RSI,4
         ADD     RDI,4
@@ -1177,7 +1167,6 @@ asm
 
         POP     RDI
         POP     RSI
-        POP     RBX
 
 @4:
         RET
