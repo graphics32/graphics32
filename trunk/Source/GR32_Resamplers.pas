@@ -3007,7 +3007,7 @@ var
   WrapProcVert: TWrapProcEx absolute Filter;
   WrapProcHorz: TWrapProcEx;
   Colors: PColor32EntryArray;
-  Width, W, Wv, I, J, Incr, Dev: Integer;
+  KWidth, W, Wv, I, J, Incr, Dev: Integer;
   SrcP: PColor32Entry;
   C: TColor32Entry absolute SrcP;
   LoX, HiX, LoY, HiY, MappingY: Integer;
@@ -3022,7 +3022,7 @@ var
   Alpha: integer;
   OuterPremultColorR, OuterPremultColorG, OuterPremultColorB: Byte;
 begin
-  Width := Ceil(FKernel.GetWidth);
+  KWidth := Ceil(FKernel.GetWidth);
 
   clX := Ceil(X);
   clY := Ceil(Y);
@@ -3030,8 +3030,8 @@ begin
   case PixelAccessMode of
     pamUnsafe, pamWrap:
       begin
-        LoX := -Width; HiX := Width;
-        LoY := -Width; HiY := Width;
+        LoX := -KWidth; HiX := KWidth;
+        LoY := -KWidth; HiY := KWidth;
       end;
 
     pamSafe, pamTransparentEdge:
@@ -3042,37 +3042,37 @@ begin
           begin
             Edge := False;
 
-            if clX - Width < Left then
+            if clX - KWidth < Left then
             begin
               LoX := Left - clX;
               Edge := True;
             end
             else
-              LoX := -Width;
+              LoX := -KWidth;
 
-            if clX + Width >= Right then
+            if clX + KWidth >= Right then
             begin
               HiX := Right - clX - 1;
               Edge := True;
             end
             else
-              HiX := Width;
+              HiX := KWidth;
 
-            if clY - Width < Top then
+            if clY - KWidth < Top then
             begin
               LoY := Top - clY;
               Edge := True;
             end
             else
-              LoY := -Width;
+              LoY := -KWidth;
 
-            if clY + Width >= Bottom then
+            if clY + KWidth >= Bottom then
             begin
               HiY := Bottom - clY - 1;
               Edge := True;
             end
             else
-              HiY := Width;
+              HiY := KWidth;
 
           end
           else
@@ -3099,7 +3099,7 @@ begin
         PVertKernel := @VertKernel;
 
         Dev := -256;
-        for I := -Width to Width do
+        for I := -KWidth to KWidth do
         begin
           W := Round(Filter(I + fracXS) * 256);
           HorzKernel[I] := W;
@@ -3108,7 +3108,7 @@ begin
         Dec(HorzKernel[0], Dev);
 
         Dev := -256;
-        for I := -Width to Width do
+        for I := -KWidth to KWidth do
         begin
           W := Round(Filter(I + fracYS) * 256);
           VertKernel[I] := W;
@@ -3120,8 +3120,8 @@ begin
     kmTableNearest:
       begin
         W := FWeightTable.Height - 2;
-        PHorzKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Round((clX - X) * W)]^;
-        PVertKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Round((clY - Y) * W)]^;
+        PHorzKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Round((clX - X) * W)]^;
+        PVertKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Round((clY - Y) * W)]^;
       end;
     kmTableLinear:
       begin
@@ -3132,10 +3132,10 @@ begin
         begin
           Fixed := Round((clX - X) * W);
           PHorzKernel := @HorzKernel;
-          FloorKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Int]^;
+          FloorKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           Dev := -256;
-          for I := -Width to Width do
+          for I := -KWidth to KWidth do
           begin
             Wv :=  FloorKernel[I] + ((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF) div FixedOne;
             HorzKernel[I] := Wv;
@@ -3148,10 +3148,10 @@ begin
         begin
           Fixed := Round((clY - Y) * W);
           PVertKernel := @VertKernel;
-          FloorKernel := @FWeightTable.ValPtr[Width - MAX_KERNEL_WIDTH, Int]^;
+          FloorKernel := @FWeightTable.ValPtr[KWidth - MAX_KERNEL_WIDTH, Int]^;
           CeilKernel := PKernelEntry(Integer(FloorKernel) + J);
           Dev := -256;
-          for I := -Width to Width do
+          for I := -KWidth to KWidth do
           begin
             Wv := FloorKernel[I] + ((CeilKernel[I] - FloorKernel[I]) * Frac + $7FFF) div FixedOne;
             VertKernel[I] := Wv;
@@ -3218,13 +3218,13 @@ begin
             OuterPremultColorG := Div255(Alpha * TColor32Entry(FOuterColor).G);
             OuterPremultColorB := Div255(Alpha * TColor32Entry(FOuterColor).B);
 
-            for I := -Width to Width do
+            for I := -KWidth to KWidth do
             begin
               Wv := PVertKernel[I];
               if Wv <> 0 then
               begin
                 HorzEntry := EMPTY_ENTRY;
-                for J := -Width to Width do
+                for J := -KWidth to KWidth do
                   if (J < LoX) or (J > HiX) or (I < LoY) or (I > HiY) then
                   begin
                     W := PHorzKernel[J];
@@ -3248,10 +3248,10 @@ begin
         WrapProcHorz := GetWrapProcEx(Bitmap.WrapMode, ClipRect.Left, ClipRect.Right - 1);
         WrapProcVert := GetWrapProcEx(Bitmap.WrapMode, ClipRect.Top, ClipRect.Bottom - 1);
 
-        for I := -Width to Width do
+        for I := -KWidth to KWidth do
           MappingX[I] := WrapProcHorz(clX + I, ClipRect.Left, ClipRect.Right - 1);
 
-        for I := -Width to Width do
+        for I := -KWidth to KWidth do
         begin
           Wv := PVertKernel[I];
           if Wv <> 0 then
@@ -3259,7 +3259,7 @@ begin
             MappingY := WrapProcVert(clY + I, ClipRect.Top, ClipRect.Bottom - 1);
             Colors := PColor32EntryArray(Bitmap.ScanLine[MappingY]);
             HorzEntry := EMPTY_ENTRY;
-            for J := -Width to Width do
+            for J := -KWidth to KWidth do
             begin
               C := Colors[MappingX[J]];
               Alpha := C.A;
