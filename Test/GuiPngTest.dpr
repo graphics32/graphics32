@@ -1,12 +1,16 @@
 program GuiPngTest;
 
+{$I GR32.inc}
+
 {$IFDEF CONSOLE_TESTRUNNER}
 {$APPTYPE CONSOLE}
 {$ENDIF}
 
 uses
+{$IFNDEF COMPILERXE2}
   FastMM4,
   FastMove,
+{$ENDIF}
   Forms,
   TestFramework,
   GUITestRunner,
