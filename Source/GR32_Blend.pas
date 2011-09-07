@@ -971,62 +971,58 @@ asm
   // [RDX] <- B
   // R8 <- M
 
+  // ECX <- F
+  // [EDX] <- B
+  // R8 <- M
+
   // Check Fa > 0 ?
         TEST    ECX,$FF000000   // Fa = 0? => write nothing
-        JZ      @2
-
-        MOV     RAX, RCX
-        MOV     RCX, R8
-        PUSH    RBX
+        JZ      @1
 
   // Get weight W = Fa * M
-        MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
-        INC     ECX             // 255:256 range bias
-        SHR     EBX,24          // EBX  <-  00 00 00 Fa
-        IMUL    ECX,EBX         // ECX  <-  00 00  W **
-        SHR     ECX,8           // ECX  <-  00 00 00  W
+        MOV     EAX,ECX         // EAX  <-  Fa Fr Fg Fb
+        INC     R8              // 255:256 range bias
+        SHR     EAX,24          // EAX  <-  00 00 00 Fa
+        IMUL    R8D,EAX         // R8  <-  00 00  W **
+        SHR     R8,8            // R8  <-  00 00 00  W
         JZ      @1              // W = 0 ?  => write nothing
 
-        PUSH    RSI
-
   // P = W * F
-        MOV     EBX,EAX         // EBX  <-  ** Fr Fg Fb
-        AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Fg 00
-        IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
-        SHR     EBX,8           // EBX  <-  00 00 00 Fg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
+        MOV     EAX,ECX         // EAX  <-  ** Fr Fg Fb
+        AND     ECX,$00FF00FF   // ECX  <-  00 Fr 00 Fb
+        AND     EAX,$0000FF00   // EAX  <-  00 00 Fg 00
+        IMUL    ECX,R8D         // ECX  <-  Pr ** Pb **
+        SHR     EAX,8           // EAX  <-  00 00 00 Fg
+        IMUL    EAX,R8D         // EAX  <-  00 00 Pg **
+        ADD     ECX,bias
+        AND     ECX,$FF00FF00   // ECX  <-  Pr 00 Pb 00
+        SHR     ECX,8           // ECX  <-  00 Pr ** Pb
         ADD     EAX,bias
-        AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
-        ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
-        OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
+        AND     EAX,$0000FF00   // EAX  <-  00 00 Pg 00
+        OR      ECX,EAX         // ECX  <-  00 Pr Pg Pb
 
   // W = 1 - W; Q = W * B
-        MOV     ESI,[RDX]
-        XOR     ECX,$000000FF   // ECX  <-  1 - ECX
-        MOV     EBX,ESI         // EBX  <-  00 Br Bg Bb
-        AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Bg 00
-        IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
-        SHR     EBX,8           // EBX  <-  00 00 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Qg **
-        ADD     ESI,bias
-        AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
-        SHR     ESI,8           // ESI  <-  00 Qr ** Qb
-        ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Qg 00
-        OR      EBX,ESI         // EBX  <-  00 Qr Qg Qb
+        MOV     R9D,[RDX]
+        XOR     R8D,$000000FF   // R8D  <-  1 - R8
+        MOV     EAX,R9D         // EAX  <-  00 Br Bg Bb
+        AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
+        AND     EAX,$0000FF00   // EAX  <-  00 00 Bg 00
+        IMUL    R9D,R8D         // R9D  <-  Qr ** Qb **
+        SHR     EAX,8           // EAX  <-  00 00 00 Bg
+        IMUL    EAX,R8D         // EAX  <-  00 00 Qg **
+        ADD     R9D,bias
+        AND     R9D,$FF00FF00   // R9D  <-  Qr 00 Qb 00
+        SHR     R9D,8           // R9D  <-  00 Qr ** Qb
+        ADD     EAX,bias
+        AND     EAX,$0000FF00   // EAX  <-  00 00 Qg 00
+        OR      EAX,R9D         // EAX  <-  00 Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,EBX         // EAX  <-  00 Zr Zg Zb
+        ADD     ECX,EAX         // ECX  <-  00 Zr Zg Zb
 
-        MOV     [RDX],EAX
-        POP     RSI
+        MOV     [RDX],ECX
 
-@1:     POP     RBX
-@2:     RET
+@1:     RET
 {$ENDIF}
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -1845,8 +1841,48 @@ asm
         POP       EBX
 end;
 
+{$ENDIF}
+
 procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32);
 asm
+{$IFDEF TARGET_x64}
+  // blend foregrownd color (F) to a background color (B),
+  // using alpha channel value of F
+  // ECX <- F
+  // [EDX] <- B
+  // R8 <- M
+  // Result := M * Fa * (Frgb - Brgb) + Brgb
+        TEST      ECX,$FF000000
+        JZ        @1
+
+        MOV       EAX,ECX
+        SHR       EAX,24
+        INC       R8              // 255:256 range bias
+        IMUL      R8,EAX
+        SHR       R8,8
+        JZ        @1
+
+        PXOR      MM0,MM0
+        MOVD      MM1,ECX
+        SHL       R8,4
+        MOVD      MM2,[EDX]
+        PUNPCKLBW MM1,MM0
+        PUNPCKLBW MM2,MM0
+        ADD       R8,alpha_ptr
+        PSUBW     MM1,MM2
+        PMULLW    MM1,[R8D]
+        PSLLW     MM2,8
+        MOV       RAX,bias_ptr
+        PADDW     MM2,[RAX]
+        PADDW     MM1,MM2
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM0
+        MOVD      [EDX],MM1
+
+@1:
+{$ENDIF}
+
+{$IFDEF TARGET_x86}
   // blend foregrownd color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
@@ -1884,8 +1920,10 @@ asm
 @1:     POP       EBX
 
 @2:
+{$ENDIF}
 end;
 
+{$IFDEF TARGET_x86}
 procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer);
 asm
   // EAX <- Src
@@ -3156,9 +3194,7 @@ begin
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_SSE2, [ciSSE2]);
 {$ENDIF}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
-{$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_MMX, [ciMMX]);
-{$ENDIF}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
 {$IFNDEF TARGET_x64}

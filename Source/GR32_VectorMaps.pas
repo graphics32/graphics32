@@ -228,7 +228,8 @@ const
   Next = SizeOf(TFixedVector);
 var
   WX,WY: TFixed;
-  P, W, H: Integer;
+  W, H: Integer;
+  P: NativeInt;
 begin
   WX := TFixedRec(X).Int;
   WY := TFixedRec(Y).Int;
@@ -236,7 +237,7 @@ begin
   H := Height;
   if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
   begin
-    P := Integer(@FVectors[WX + WY * W]);
+    P := NativeInt(@FVectors[WX + WY * W]);
     if (WY = H - 1) then W := 0 else W := W * Next;
     if (WX = W - 1) then H := 0 else H := Next;
     WX := TFixedRec(X).Frac;
