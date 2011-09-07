@@ -104,9 +104,12 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, A
+        MOV     RAX, RCX
+        SAR     RAX, 16
 {$ENDIF}
-        SAR     EAX, 16;
+{$IFDEF TARGET_x86}
+        SAR     EAX, 16
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -117,10 +120,14 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, A
+        MOV     RAX, RCX
+        ADD     RAX, $0000FFFF
+        SAR     RAX, 16
 {$ENDIF}
+{$IFDEF TARGET_x86}
         ADD     EAX, $0000FFFF
-        SAR     EAX, 16;
+        SAR     EAX, 16
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -131,10 +138,14 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, A
+        MOV     RAX, RCX
+        ADD     RAX, $00007FFF
+        SAR     RAX, 16
 {$ENDIF}
+{$IFDEF TARGET_x86}
         ADD     EAX, $00007FFF
         SAR     EAX, 16
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -145,10 +156,14 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, A
+        MOV     RAX, RCX
+        IMUL    RDX
+        SHRD    RAX, RDX, 16
 {$ENDIF}
+{$IFDEF TARGET_x86}
         IMUL    EDX
         SHRD    EAX, EDX, 16
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -159,13 +174,20 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, A
+        MOV     RAX, RCX
+        MOV     RCX, RDX
+        CDQ
+        SHLD    RDX, RAX, 16
+        SHL     RAX, 16
+        IDIV    RCX
 {$ENDIF}
+{$IFDEF TARGET_x86}
         MOV     ECX, B
         CDQ
         SHLD    EDX, EAX, 16
         SHL     EAX, 16
         IDIV    ECX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -362,17 +384,22 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 // Fixed Point Version: Result Z = Y + (X - Y) * W / 65536
 {$IFDEF PUREPASCAL}
 begin
-  Result := Round(Y + (X - Y) * FixedToFloat * W );
+  Result := Round(Y + (X - Y) * FixedToFloat * W);
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     EAX, W
-        MOV     ECX, Y
+        SUB     RDX, R8
+        IMUL    RDX
+        SHRD    RCX, RDX,16
+        ADD     RCX, R8
+        MOV     RAX, RCX
 {$ENDIF}
+{$IFDEF TARGET_x86}
         SUB     EDX, ECX
         IMUL    EDX
         SHRD    EAX, EDX,16
         ADD     EAX, ECX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -568,52 +595,44 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        PUSH    RBX             // Imperative save
-        PUSH    RSI             // of EBX and ESI
-        MOV     EAX, ECX
-        MOV     EAX, ECX
-        MOV     RCX, R8
+        MOV     RAX, RCX        // Result will be negative or positive so set rounding direction
+        XOR     RCX, RDX        //  Negative: substract 1 in case of rounding
+        XOR     RCX, R8         //  Positive: add 1
 
-        MOV     EBX, EAX        // Result will be negative or positive so set rounding direction
-        XOR     EBX, EDX        //  Negative: substract 1 in case of rounding
-        XOR     EBX, ECX        //  Positive: add 1
-
-        OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
+        OR      RAX, RAX        // Make all operands positive, ready for unsigned operations
         JNS     @m1Ok           // minimizing branching
-        NEG     EAX
+        NEG     RAX
 @m1Ok:
-        OR      EDX,EDX
+        OR      RDX, RDX
         JNS     @m2Ok
-        NEG     EDX
+        NEG     RDX
 @m2Ok:
-        OR      ECX,ECX
+        OR      R8, R8
         JNS     @DivOk
-        NEG     ECX
+        NEG     R8
 @DivOK:
-        MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
+        MUL     RDX             // Unsigned multiply (Multiplicand*Multiplier)
 
-        MOV     ESI, EDX        // Check for overflow, by comparing
-        SHL     ESI, 1          // 2 times the high-order 32 bits of the product (EDX)
-        CMP     ESI, ECX        // with the Divisor.
+        MOV     R9, RDX         // Check for overflow, by comparing
+        SHL     R9, 1           // 2 times the high-order 32 bits of the product (RDX)
+        CMP     R9, R8          // with the Divisor.
         JAE     @Overfl         // If equal or greater than overflow with division anticipated
 
-        DIV     ECX             // Unsigned divide of product by Divisor
+        DIV     R8              // Unsigned divide of product by Divisor
 
-        SUB     ECX, EDX        // Check if the result must be adjusted by adding or substracting
-        CMP     ECX, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
+        SUB     R8, RDX         // Check if the result must be adjusted by adding or substracting
+        CMP     R8, RDX         // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
-        INC     EAX             // no rounding needed; add 1 to result otherwise
+        INC     RAX             // no rounding needed; add 1 to result otherwise
 @NoAdd:
-        OR      EBX, EDX        // From unsigned operations back the to original sign of the result
+        OR      RCX, RDX        // From unsigned operations back the to original sign of the result
         JNS     @exit           // must be positive
-        NEG     EAX             // must be negative
+        NEG     RAX             // must be negative
         JMP     @exit
 @Overfl:
-        OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
+        OR      RAX, -1         //  3 bytes alternative for MOV RAX,-1. Windows.MulDiv "overflow"
                                 //  and "zero-divide" return value
 @exit:
-        POP     RSI             // Restore
-        POP     RBX             // esi and EBX
 {$ELSE}
         PUSH    EBX             // Imperative save
         PUSH    ESI             // of EBX and ESI
