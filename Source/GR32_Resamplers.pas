@@ -2346,9 +2346,9 @@ function Interpolator_MMX(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor3
 asm
 {$IFDEF TARGET_X64}
         MOV       RAX, RCX
-        MOVQ      MM1,[R8]
+        MOVQ      MM1,QWORD PTR [R8]
         MOVQ      MM2,MM1
-        MOVQ      MM3,[R9]
+        MOVQ      MM3,QWORD PTR [R9]
 {$ELSE}
         MOVQ      MM1,[ECX]
         MOVQ      MM2,MM1
@@ -2390,9 +2390,9 @@ function Interpolator_SSE2(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor
 asm
 {$IFDEF TARGET_X64}
         MOV       RAX, RCX
-        MOVQ      XMM1,[R8]
+        MOVQ      XMM1,QWORD PTR [R8]
         MOVQ      XMM2,XMM1
-        MOVQ      XMM3,[R9]
+        MOVQ      XMM3,QWORD PTR [R9]
 {$ELSE}
         MOVQ      XMM1,[ECX]
         MOVQ      XMM2,XMM1
