@@ -1217,7 +1217,7 @@ var
   SrcW, SrcH, DstW, DstH, DstClipW, DstClipH: Integer;
   SrcY, OldSrcY: Integer;
   I, J: Integer;
-  MapHorz: array of Integer;
+  MapHorz: PIntegerArray;
   SrcLine, DstLine: PColor32Array;
   Buffer: TArrayOfColor32;
   Scale: TFloat;
@@ -1249,125 +1249,128 @@ begin
     end
     else
     begin
-      SetLength(MapHorz, DstClipW);
-
-      if DstW > 1 then
-      begin
-        if FullEdge then
+      GetMem(MapHorz, DstClipW * SizeOf(Integer));
+      try
+        if DstW > 1 then
         begin
-          Scale := SrcW / DstW;
-          for I := 0 to DstClipW - 1 do
-            MapHorz[I] := Trunc(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
-        end
-        else
-        begin
-          Scale := (SrcW - 1) / (DstW - 1);
-          for I := 0 to DstClipW - 1 do
-            MapHorz[I] := Round(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
-        end;
-        
-        Assert(MapHorz[0] >= SrcRect.Left);
-        Assert(MapHorz[DstClipW - 1] < SrcRect.Right);
-      end
-      else
-        MapHorz[0] := (SrcRect.Left + SrcRect.Right - 1) div 2;
-
-      if DstH <= 1 then Scale := 0
-      else if FullEdge then Scale := SrcH / DstH
-      else Scale := (SrcH - 1) / (DstH - 1);
-
-      if CombineOp = dmOpaque then
-      begin
-        DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-        OldSrcY := -1;
-        
-        for J := 0 to DstClipH - 1 do
-        begin
-          if DstH <= 1 then
-            SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2
-          else if FullEdge then
-            SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
-          else
-            SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
-            
-          if SrcY <> OldSrcY then
+          if FullEdge then
           begin
-            SrcLine := Src.ScanLine[SrcY];
-            DstLinePtr := @DstLine[0];
-            MapPtr := @MapHorz[0];
+            Scale := SrcW / DstW;
             for I := 0 to DstClipW - 1 do
-            begin
-              DstLinePtr^ := SrcLine[MapPtr^];
-              Inc(DstLinePtr);
-              Inc(MapPtr);
-            end;
-            OldSrcY := SrcY;
+              MapHorz^[I] := Trunc(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
           end
           else
-            MoveLongWord(DstLine[-Dst.Width], DstLine[0], DstClipW);
-          Inc(DstLine, Dst.Width);
-        end;
-      end
-      else
-      begin
-        SetLength(Buffer, DstClipW);
-        DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
-        OldSrcY := -1;
-
-        if Src.MasterAlpha >= 255 then
-        begin
-          BlendLine := BLEND_LINE[Src.CombineMode]^;
-          BlendLineEx := nil; // stop compiler warnings...
+          begin
+            Scale := (SrcW - 1) / (DstW - 1);
+            for I := 0 to DstClipW - 1 do
+              MapHorz^[I] := Round(SrcRect.Left + (I + DstClip.Left - DstRect.Left) * Scale);
+          end;
+        
+          Assert(MapHorz^[0] >= SrcRect.Left);
+          Assert(MapHorz^[DstClipW - 1] < SrcRect.Right);
         end
         else
-        begin
-          BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
-          BlendLine := nil; // stop compiler warnings...
-        end;
+          MapHorz^[0] := (SrcRect.Left + SrcRect.Right - 1) div 2;
 
-        for J := 0 to DstClipH - 1 do
+        if DstH <= 1 then Scale := 0
+        else if FullEdge then Scale := SrcH / DstH
+        else Scale := (SrcH - 1) / (DstH - 1);
+
+        if CombineOp = dmOpaque then
         begin
-          if DstH > 1 then
+          DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
+          OldSrcY := -1;
+        
+          for J := 0 to DstClipH - 1 do
           begin
-            EMMS;
-            if FullEdge then
+            if DstH <= 1 then
+              SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2
+            else if FullEdge then
               SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
             else
               SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
+            
+            if SrcY <> OldSrcY then
+            begin
+              SrcLine := Src.ScanLine[SrcY];
+              DstLinePtr := @DstLine[0];
+              MapPtr := @MapHorz^[0];
+              for I := 0 to DstClipW - 1 do
+              begin
+                DstLinePtr^ := SrcLine[MapPtr^];
+                Inc(DstLinePtr);
+                Inc(MapPtr);
+              end;
+              OldSrcY := SrcY;
+            end
+            else
+              MoveLongWord(DstLine[-Dst.Width], DstLine[0], DstClipW);
+            Inc(DstLine, Dst.Width);
+          end;
+        end
+        else
+        begin
+          SetLength(Buffer, DstClipW);
+          DstLine := PColor32Array(Dst.PixelPtr[DstClip.Left, DstClip.Top]);
+          OldSrcY := -1;
+
+          if Src.MasterAlpha >= 255 then
+          begin
+            BlendLine := BLEND_LINE[Src.CombineMode]^;
+            BlendLineEx := nil; // stop compiler warnings...
           end
           else
-            SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2;
-            
-          if SrcY <> OldSrcY then
           begin
-            SrcLine := Src.ScanLine[SrcY];
-            DstLinePtr := @Buffer[0];
-            MapPtr := @MapHorz[0];
-            for I := 0 to DstClipW - 1 do
+            BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
+            BlendLine := nil; // stop compiler warnings...
+          end;
+
+          for J := 0 to DstClipH - 1 do
+          begin
+            if DstH > 1 then
             begin
-              DstLinePtr^ := SrcLine[MapPtr^];
-              Inc(DstLinePtr);
-              Inc(MapPtr);
-            end;
-            OldSrcY := SrcY;
-          end;
-
-          case CombineOp of
-            dmBlend:
-              if Src.MasterAlpha >= 255 then
-                BlendLine(@Buffer[0], @DstLine[0], DstClipW)
+              EMMS;
+              if FullEdge then
+                SrcY := Trunc(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale)
               else
-                BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
-            dmTransparent:
+                SrcY := Round(SrcRect.Top + (J + DstClip.Top - DstRect.Top) * Scale);
+            end
+            else
+              SrcY := (SrcRect.Top + SrcRect.Bottom - 1) div 2;
+            
+            if SrcY <> OldSrcY then
+            begin
+              SrcLine := Src.ScanLine[SrcY];
+              DstLinePtr := @Buffer[0];
+              MapPtr := @MapHorz^[0];
               for I := 0 to DstClipW - 1 do
-                if Buffer[I] <> Src.OuterColor then DstLine[I] := Buffer[I];
-            dmCustom:
-              for I := 0 to DstClipW - 1 do
-                CombineCallBack(Buffer[I], DstLine[I], Src.MasterAlpha);
-          end;
+              begin
+                DstLinePtr^ := SrcLine[MapPtr^];
+                Inc(DstLinePtr);
+                Inc(MapPtr);
+              end;
+              OldSrcY := SrcY;
+            end;
 
-          Inc(DstLine, Dst.Width);
+            case CombineOp of
+              dmBlend:
+                if Src.MasterAlpha >= 255 then
+                  BlendLine(@Buffer[0], @DstLine[0], DstClipW)
+                else
+                  BlendLineEx(@Buffer[0], @DstLine[0], DstClipW, Src.MasterAlpha);
+              dmTransparent:
+                for I := 0 to DstClipW - 1 do
+                  if Buffer[I] <> Src.OuterColor then DstLine[I] := Buffer[I];
+              dmCustom:
+                for I := 0 to DstClipW - 1 do
+                  CombineCallBack(Buffer[I], DstLine[I], Src.MasterAlpha);
+            end;
+
+            Inc(DstLine, Dst.Width);
+          end;
         end;
+      finally
+        FreeMem(MapHorz);
       end;
     end;
   finally
