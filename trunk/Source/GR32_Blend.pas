@@ -894,18 +894,62 @@ asm
   // ECX <- M
 
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
+        MOV     EAX,ECX         // EAX  <-  Fa Fr Fg Fb
+        TEST    EAX,$FF000000   // Fa = 0? => Result := EDX
+        JZ      @1
+
+  // Get weight W = Fa * M
+        INC     R8D             // 255:256 range bias
+        SHR     ECX,24          // ECX  <-  00 00 00 Fa
+        IMUL    R8D,ECX         // R8D  <-  00 00  W **
+        SHR     R8D,8           // R8D  <-  00 00 00  W
+        JZ      @1              // W = 0 ?  => Result := EDX
+
+  // P = W * F
+        MOV     ECX,EAX         // ECX  <-  ** Fr Fg Fb
+        AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
+        AND     ECX,$0000FF00   // ECX  <-  00 00 Fg 00
+        IMUL    EAX,R8D         // EAX  <-  Pr ** Pb **
+        SHR     ECX,8           // ECX  <-  00 00 00 Fg
+        IMUL    ECX,R8D         // ECX  <-  00 00 Pg **
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
+        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        ADD     ECX,bias
+        AND     ECX,$0000FF00   // ECX  <-  00 00 Pg 00
+        OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
+
+  // W = 1 - W; Q = W * B
+        XOR     R8D,$000000FF   // R8D  <-  1 - R8D
+        MOV     ECX,EDX         // ECX  <-  00 Br Bg Bb
+        AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
+        AND     ECX,$0000FF00   // ECX  <-  00 00 Bg 00
+        IMUL    EDX,R8D         // EDX  <-  Qr ** Qb **
+        SHR     ECX,8           // ECX  <-  00 00 00 Bg
+        IMUL    ECX,R8D         // ECX  <-  00 00 Qg **
+        ADD     EDX,bias
+        AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
+        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
+        ADD     ECX,bias
+        AND     ECX,$0000FF00   // ECX  <-  00 00 Qg 00
+        OR      ECX,EDX         // ECX  <-  00 Qr Qg Qb
+
+  // Z = P + Q (assuming no overflow at each byte)
+        ADD     EAX,ECX         // EAX  <-  00 Zr Zg Zb
+
+        RET
+
+@1:     MOV     EAX,EDX
+        RET
 {$ENDIF}
+
+{$IFDEF TARGET_x86}
 
 // Check Fa > 0 ?
         TEST    EAX,$FF000000   // Fa = 0? => Result := EDX
         JZ      @2
 
-{$IFDEF TARGET_x64}
-        PUSH    RBX
-{$ELSE}
         PUSH    EBX
-{$ENDIF}
 
   // Get weight W = Fa * M
         MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
@@ -947,21 +991,15 @@ asm
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,EBX         // EAX  <-  00 Zr Zg Zb
 
-{$IFDEF TARGET_x64}
-        POP     RBX
-        RET
-
-@1:
-        POP     RBX
-{$ELSE}
         POP     EBX
         RET
 
 @1:
         POP     EBX
-{$ENDIF}
+
 @2:     MOV     EAX,EDX
         RET
+{$ENDIF}
 end;
 
 procedure BlendMemEx_ASM(F: TColor32; var B: TColor32; M: TColor32);
@@ -1651,8 +1689,6 @@ procedure EMMS_ASM;
 asm
 end;
 
-{$IFDEF TARGET_x86}
-
 function LightenReg_ASM(C: TColor32; Amount: Integer): TColor32;
 var
   r, g, b, a: Integer;
@@ -1672,8 +1708,6 @@ begin
 
   Result := a shl 24 + r shl 16 + g shl 8 + b;
 end;
-
-{$ENDIF}
 
 { MMX versions }
 
@@ -2249,10 +2283,20 @@ asm
   EMMS
 end;
 
-{$IFDEF TARGET_x86}
-
 function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD    MM1, EDX
+        MOVD    MM0, ECX
+        MOVQ    MM2, MM1
+        PSLLW   MM2, 8
+        POR     MM2, MM1
+        PSLLW   MM2, 8
+        POR     MM2, MM1
+        PADDUSB MM0, MM1
+        MOVD    EAX, MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD    MM1, EDX
         MOVD    MM0, EAX
         MOVQ    MM2, MM1
@@ -2262,28 +2306,57 @@ asm
         POR     MM2, MM1
         PADDUSB MM0, MM1
         MOVD    EAX, MM0
+{$ENDIF}
 end;
 
 { MMX Color algebra versions }
 
 function ColorAdd_MMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      MM0,ECX
+        MOVD      MM1,EDX
+        PADDUSB   MM0,MM1
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PADDUSB   MM0,MM1
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorSub_MMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      MM0,ECX
+        MOVD      MM1,EDX
+        PSUBUSB   MM0,MM1
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PSUBUSB   MM0,MM1
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorModulate_MMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        PXOR      MM2,MM2
+        MOVD      MM0,ECX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,EDX
+        PUNPCKLBW MM1,MM2
+        PMULLW    MM0,MM1
+        PSRLW     MM0,8
+        PACKUSWB  MM0,MM2
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         PXOR      MM2,MM2
         MOVD      MM0,EAX
         PUNPCKLBW MM0,MM2
@@ -2293,26 +2366,53 @@ asm
         PSRLW     MM0,8
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorMax_EMMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      MM0,ECX
+        MOVD      MM1,EDX
+        PMAXUB    MM0,MM1
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PMAXUB    MM0,MM1
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorMin_EMMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      MM0,ECX
+        MOVD      MM1,EDX
+        PMINUB    MM0,MM1
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         PMINUB    MM0,MM1
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorDifference_MMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      MM0,ECX
+        MOVD      MM1,EDX
+        MOVQ      MM2,MM0
+        PSUBUSB   MM0,MM1
+        PSUBUSB   MM1,MM2
+        POR       MM0,MM1
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      MM0,EAX
         MOVD      MM1,EDX
         MOVQ      MM2,MM0
@@ -2320,10 +2420,26 @@ asm
         PSUBUSB   MM1,MM2
         POR       MM0,MM1
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorExclusion_MMX(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        PXOR      MM2,MM2
+        MOVD      MM0,ECX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,EDX
+        PUNPCKLBW MM1,MM2
+        MOVQ      MM3,MM0
+        PADDW     MM0,MM1
+        PMULLW    MM1,MM3
+        PSRLW     MM1,7
+        PSUBUSW   MM0,MM1
+        PACKUSWB  MM0,MM2
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         PXOR      MM2,MM2
         MOVD      MM0,EAX
         PUNPCKLBW MM0,MM2
@@ -2336,10 +2452,23 @@ asm
         PSUBUSW   MM0,MM1
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
+{$ENDIF}
 end;
 
 function ColorScale_MMX(C, W: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        PXOR      MM2,MM2
+        SHL       RDX,4
+        MOVD      MM0,ECX
+        PUNPCKLBW MM0,MM2
+        ADD       RDX,alpha_ptr
+        PMULLW    MM0,[RDX]
+        PSRLW     MM0,8
+        PACKUSWB  MM0,MM2
+        MOVD      EAX,MM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         PXOR      MM2,MM2
         SHL       EDX,4
         MOVD      MM0,EAX
@@ -2349,7 +2478,10 @@ asm
         PSRLW     MM0,8
         PACKUSWB  MM0,MM2
         MOVD      EAX,MM0
+{$ENDIF}
 end;
+
+{$IFDEF TARGET_x86}
 
 { SSE2 versions }
 
@@ -2361,6 +2493,31 @@ asm
   // EDX <- B
   // Result := Fa * (Frgb - Brgb) + Brgb
 
+{$IFDEF TARGET_x64}
+  // blend foregrownd color (F) to a background color (B),
+  // using alpha channel value of F
+  // ECX <- F
+  // EDX <- B
+  // Result := Fa * (Frgb - Brgb) + Brgb
+        MOVD      XMM0,ECX
+        PXOR      XMM3,XMM3
+        MOVD      XMM2,EDX
+        PUNPCKLBW XMM0,XMM3
+        MOV       RAX,bias_ptr
+        PUNPCKLBW XMM2,XMM3
+        MOVQ      XMM1,XMM0
+        PUNPCKHWD XMM1,XMM1
+        PSUBW     XMM0,XMM2
+        PUNPCKHDQ XMM1,XMM1
+        PSLLW     XMM2,8
+        PMULLW    XMM0,XMM1
+        PADDW     XMM2,[RAX]
+        PADDW     XMM2,XMM0
+        PSRLW     XMM2,8
+        PACKUSWB  XMM2,XMM3
+        MOVD      EAX,XMM2
+{$ENDIF}
+{$IFDEF TARGET_x86}
         MOVD      XMM0,EAX
         PXOR      XMM3,XMM3
         MOVD      XMM2,EDX
@@ -2379,6 +2536,7 @@ asm
         PSRLW     XMM2,8
         PACKUSWB  XMM2,XMM3
         MOVD      EAX,XMM2
+{$ENDIF}
 end;
 
 procedure BlendMem_SSE2(F: TColor32; var B: TColor32);
@@ -2934,29 +3092,82 @@ procedure EMMS_SSE2;
 asm
 end;
 
-{$IFDEF TARGET_x86}
+
+function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32;
+asm
+{$IFDEF TARGET_X64}
+        MOVD    XMM1, EDX
+        MOVD    XMM0, ECX
+        MOVQ    XMM2, XMM1
+        PSLLW   XMM2, 8
+        POR     XMM2, XMM1
+        PSLLW   XMM2, 8
+        POR     XMM2, XMM1
+        PADDUSB XMM0, XMM1
+        MOVD    EAX, XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
+        MOVD    XMM1, EDX
+        MOVD    XMM0, EAX
+        MOVQ    XMM2, XMM1
+        PSLLW   XMM2, 8
+        POR     XMM2, XMM1
+        PSLLW   XMM2, 8
+        POR     XMM2, XMM1
+        PADDUSB XMM0, XMM1
+        MOVD    EAX, XMM0
+{$ENDIF}
+end;
 
 
 { SSE2 Color algebra}
 
 function ColorAdd_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      XMM0,ECX
+        MOVD      XMM1,EDX
+        PADDUSB   XMM0,XMM1
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
         MOVD      XMM1,EDX
         PADDUSB   XMM0,XMM1
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorSub_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      XMM0,ECX
+        MOVD      XMM1,EDX
+        PSUBUSB   XMM0,XMM1
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
         MOVD      XMM1,EDX
         PSUBUSB   XMM0,XMM1
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorModulate_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        PXOR      XMM2,XMM2
+        MOVD      XMM0,ECX
+        PUNPCKLBW XMM0,XMM2
+        MOVD      XMM1,EDX
+        PUNPCKLBW XMM1,XMM2
+        PMULLW    XMM0,XMM1
+        PSRLW     XMM0,8
+        PACKUSWB  XMM0,XMM2
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         PXOR      XMM2,XMM2
         MOVD      XMM0,EAX
         PUNPCKLBW XMM0,XMM2
@@ -2966,26 +3177,53 @@ asm
         PSRLW     XMM0,8
         PACKUSWB  XMM0,XMM2
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorMax_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      XMM0,ECX
+        MOVD      XMM1,EDX
+        PMAXUB    XMM0,XMM1
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
         MOVD      XMM1,EDX
         PMAXUB    XMM0,XMM1
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorMin_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      XMM0,ECX
+        MOVD      XMM1,EDX
+        PMINUB    XMM0,XMM1
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
         MOVD      XMM1,EDX
         PMINUB    XMM0,XMM1
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorDifference_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        MOVD      XMM0,ECX
+        MOVD      XMM1,EDX
+        MOVQ      XMM2,XMM0
+        PSUBUSB   XMM0,XMM1
+        PSUBUSB   XMM1,XMM2
+        POR       XMM0,XMM1
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
         MOVD      XMM1,EDX
         MOVQ      XMM2,XMM0
@@ -2993,10 +3231,26 @@ asm
         PSUBUSB   XMM1,XMM2
         POR       XMM0,XMM1
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorExclusion_SSE2(C1, C2: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        PXOR      XMM2,XMM2
+        MOVD      XMM0,ECX
+        PUNPCKLBW XMM0,XMM2
+        MOVD      XMM1,EDX
+        PUNPCKLBW XMM1,XMM2
+        MOVQ      XMM3,XMM0
+        PADDW     XMM0,XMM1
+        PMULLW    XMM1,XMM3
+        PSRLW     XMM1,7
+        PSUBUSW   XMM0,XMM1
+        PACKUSWB  XMM0,XMM2
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         PXOR      XMM2,XMM2
         MOVD      XMM0,EAX
         PUNPCKLBW XMM0,XMM2
@@ -3009,10 +3263,23 @@ asm
         PSUBUSW   XMM0,XMM1
         PACKUSWB  XMM0,XMM2
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
 function ColorScale_SSE2(C, W: TColor32): TColor32;
 asm
+{$IFDEF TARGET_X64}
+        PXOR      XMM2,XMM2
+        SHL       RDX,4
+        MOVD      XMM0,ECX
+        PUNPCKLBW XMM0,XMM2
+        ADD       RDX,alpha_ptr
+        PMULLW    XMM0,[RDX]
+        PSRLW     XMM0,8
+        PACKUSWB  XMM0,XMM2
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X86}
         PXOR      XMM2,XMM2
         SHL       EDX,4
         MOVD      XMM0,EAX
@@ -3022,9 +3289,9 @@ asm
         PSRLW     XMM0,8
         PACKUSWB  XMM0,XMM2
         MOVD      EAX,XMM0
+{$ENDIF}
 end;
 
-{$ENDIF}
 {$ENDIF}
 
 { Misc stuff }
@@ -3202,6 +3469,7 @@ begin
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_MMX, [ciMMX]);
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
+{$ENDIF}
   BlendRegistry.Add(FID_COLORMAX, @ColorMax_EMMX, [ciEMMX]);
   BlendRegistry.Add(FID_COLORMAX, @ColorMax_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORMIN, @ColorMin_EMMX, [ciEMMX]);
@@ -3220,7 +3488,7 @@ begin
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_ASM, []);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
-{$ENDIF}
+  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
 {$ENDIF}
 
   BlendRegistry.RebindAll;
