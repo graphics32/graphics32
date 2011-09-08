@@ -43,9 +43,6 @@ uses
   GR32, GR32_Image, GR32_Resamplers, GR32_RangeBars;
 
 type
-
-  { TFormImage32Example }
-
   TFormImage32Example = class(TForm)
     Image: TImage32;
     Panel1: TPanel;
@@ -53,13 +50,17 @@ type
     rgScaleMode: TRadioGroup;
     rgKernel: TRadioGroup;
     rgBitmapAlign: TRadioGroup;
+    {$IFDEF FPC}
+    stScale: TLabel;
+    {$ELSE}
     stScale: TStaticText;
+    {$ENDIF}
     sbScale: TGaugeBar;
+    procedure FormCreate(Sender: TObject);
     procedure rgBitmapAlignClick(Sender: TObject);
     procedure sbScaleChange(Sender: TObject);
     procedure rgScaleModeClick(Sender: TObject);
     procedure rgKernelClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
   public
     Time: Single;
   end;
@@ -69,7 +70,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -161,10 +164,5 @@ const
 begin
   TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.
