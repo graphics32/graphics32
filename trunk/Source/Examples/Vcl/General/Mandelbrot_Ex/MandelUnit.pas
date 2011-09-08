@@ -38,10 +38,9 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, StdCtrls, ExtCtrls, Menus,
-  ExtDlgs, Dialogs, GR32_Image, GR32_ExtImage, GR32, GR32_Resamplers,
-  GR32_Rasterizers;
+  {$IFDEF FPC}LCLIntf, {$ENDIF} SysUtils, Classes, Graphics, Controls, Forms,
+  ExtCtrls, Menus, ExtDlgs, Dialogs, GR32, GR32_Image, GR32_ExtImage,
+  GR32_Resamplers, GR32_Rasterizers;
 
 const
   MAX_ITER = 320;
@@ -116,7 +115,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -124,7 +125,7 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-  GR32_Blend, GR32_LowLevel, Math;
+  GR32_Blend, GR32_LowLevel;
 
 { TMandelbrotSampler }
 
@@ -340,10 +341,5 @@ procedure TMainForm.miExitClick(Sender: TObject);
 begin
  Close;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MandelUnit.lrs}
-{$ENDIF}
 
 end.
