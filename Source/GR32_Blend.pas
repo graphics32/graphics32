@@ -1579,43 +1579,43 @@ asm
   // [RDX] <- B
   // R8 <- W
 
-        TEST    R8,R8                  // Set flags for R8
-        JZ      @2                     // W = 0 ?  => Result := EDX
-        CMP     R8,$FF                 // W = 255? => write F
+        TEST    R8,R8          // Set flags for R8
+        JZ      @2             // W = 0 ?  => Result := EDX
+        CMP     R8B,$FF        // W = 255? => write F
         JZ      @2
 
   // P = W * F
-        MOV     R9,RCX                 // R9   <-  ** Fr Fg Fb
-        AND     RCX,$0000000000FF00FF  // RCX  <-  00 Fr 00 Fb
-        AND     R9,$00000000FF00FF00   // R9   <-  Fa 00 Fg 00
-        IMUL    RCX,R8                 // RCX  <-  Pr ** Pb **
-        SHR     R9,8                   // R9   <-  00 Fa 00 Fg
-        IMUL    R9,R8                  // R9   <-  00 00 Pg **
-        ADD     RCX,bias
-        AND     RCX,$00000000FF00FF00  // RCX  <-  Pr 00 Pb 00
-        SHR     RCX,8                  // RCX  <-  00 Pr 00 Pb
-        ADD     R9,bias
-        AND     R9,$00000000FF00FF00   // R9   <-  Pa 00 Pg 00
-        OR      RCX,R9                 // RCX  <-  00 Pr Pg Pb
+        MOV     R9D,ECX        // R9D  <-  ** Fr Fg Fb
+        AND     ECX,$00FF00FF  // ECX  <-  00 Fr 00 Fb
+        AND     R9D,$FF00FF00  // R9D  <-  Fa 00 Fg 00
+        IMUL    ECX,R8D        // ECX  <-  Pr ** Pb **
+        SHR     R9D,8          // R9D  <-  00 Fa 00 Fg
+        IMUL    R9D,R8D        // R9D  <-  00 00 Pg **
+        ADD     ECX,bias
+        AND     ECX,$FF00FF00  // ECX  <-  Pr 00 Pb 00
+        SHR     ECX,8          // ECX  <-  00 Pr 00 Pb
+        ADD     R9D,bias
+        AND     R9D,$FF00FF00  // R9D  <-  Pa 00 Pg 00
+        OR      ECX,R9D        // ECX  <-  00 Pr Pg Pb
 
   // W = 1 - W; Q = W * B
         MOV     EAX,[RDX]
-        XOR     R8,$00000000000000FF   // R8  <-  1 - R8
-        MOV     R9,RAX                 // R9D  <-  Ba Br Bg Bb
-        AND     RAX,$0000000000FF00FF  // RAX  <-  00 Br 00 Bb
-        AND     R9,$00000000FF00FF00   // R9D  <-  Ba 00 Bg 00
-        IMUL    RAX,R8                 // RAX  <-  Qr ** Qb **
-        SHR     R9,8                   // R9D  <-  00 Ba 00 Bg
-        IMUL    R9,R8                  // R9D  <-  Qa 00 Qg **
-        ADD     RAX,bias
-        AND     RAX,$00000000FF00FF00  // RAX  <-  Qr 00 Qb 00
-        SHR     RAX,8                  // RAX  <-  00 Qr ** Qb
-        ADD     R9,bias
-        AND     R9,$00000000FF00FF00   // R9D  <-  Qa 00 Qg 00
-        OR      R9,RAX                 // R9D  <-  00 Qr Qg Qb
+        XOR     R8D,$000000FF  // R8D  <-  1 - R8
+        MOV     R9D,EAX        // R9D  <-  Ba Br Bg Bb
+        AND     EAX,$00FF00FF  // EAX  <-  00 Br 00 Bb
+        AND     R9D,$FF00FF00  // R9D  <-  Ba 00 Bg 00
+        IMUL    EAX,R8D        // EAX  <-  Qr ** Qb **
+        SHR     R9D,8          // R9D  <-  00 Ba 00 Bg
+        IMUL    R9D,R8D        // R9D  <-  Qa 00 Qg **
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00  // EAX  <-  Qr 00 Qb 00
+        SHR     EAX,8          // EAX  <-  00 Qr ** Qb
+        ADD     R9D,bias
+        AND     R9D,$FF00FF00  // R9D  <-  Qa 00 Qg 00
+        OR      R9D,EAX        // R9D  <-  00 Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     RCX,R9          // ECX  <-  00 Zr Zg Zb
+        ADD     ECX,R9D        // ECX  <-  00 Zr Zg Zb
 
         MOV     [RDX],ECX
 @1:     RET
@@ -1899,19 +1899,19 @@ asm
         PXOR      MM0,MM0
         MOVD      MM1,ECX
         SHL       R8,4
-        MOVD      MM2,[EDX]
+        MOVD      MM2,[RDX]
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
         ADD       R8,alpha_ptr
         PSUBW     MM1,MM2
-        PMULLW    MM1,[R8D]
+        PMULLW    MM1,[R8]
         PSLLW     MM2,8
         MOV       RAX,bias_ptr
         PADDW     MM2,[RAX]
         PADDW     MM1,MM2
         PSRLW     MM1,8
         PACKUSWB  MM1,MM0
-        MOVD      [EDX],MM1
+        MOVD      [RDX],MM1
 
 @1:
 {$ENDIF}
@@ -2626,7 +2626,7 @@ asm
   // R8 <- M
   // Result := M * Fa * (Frgb - Brgb) + Brgb
 
-        TEST      RCX, $FF000000
+        TEST      ECX, $FF000000
         JZ        @1
 
         MOV       R9,RCX

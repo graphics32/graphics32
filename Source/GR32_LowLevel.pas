@@ -47,8 +47,6 @@ interface
 {$DEFINE USENATIVECODE}
 {$ENDIF}
 
-
-
 uses
   Graphics, GR32, GR32_Math, GR32_System, GR32_Bindings;
 
@@ -386,11 +384,11 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        // ECX = X;   EDX = Count;   R8 = Value
+        // ECX = X;   EDX = Count;   R8D = Value
         PUSH    RDI
 
         MOV     EDI,ECX  // Point EDI to destination
-        MOV     EAX,R8
+        MOV     EAX,R8D
         MOV     ECX,EDX
         TEST    ECX,ECX
         JS      @exit

@@ -63,7 +63,7 @@ function Hypot(const X, Y: Integer): Integer; overload;
 function FastSqrt(const Value: TFloat): TFloat;
 function FastSqrtBab1(const Value: TFloat): TFloat;
 function FastSqrtBab2(const Value: TFloat): TFloat;
-function FastInvSqrt(const Value: Single): Single; {$IFDEF SUPPORTS_INLINE} inline; {$ENDIF} overload;
+function FastInvSqrt(const Value: Single): Single; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF} overload;
 
 
 { Misc. Routines }
@@ -104,8 +104,8 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        SAR     RAX, 16
+        MOV     EAX, ECX
+        SAR     EAX, 16
 {$ENDIF}
 {$IFDEF TARGET_x86}
         SAR     EAX, 16
@@ -221,7 +221,6 @@ asm
         SHRD    EAX, EDX, 16
 {$ENDIF}
 end;
-
 
 function FixedSqrtLP(Value: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
@@ -575,16 +574,13 @@ asm
 end;
 
 function FastInvSqrt(const Value: Single): Single;
-const
-  CHalf : TFloat = 0.5;
 var
   IntCst : Cardinal absolute result;
 begin
   Result := Value;
   IntCst := ($BE6EB50C - IntCst) shr 1;
-  Result := CHalf * Result * (3 - Value * Sqr(Result));
+  Result := 0.5 * Result * (3 - Value * Sqr(Result));
 end;
-
 
 { Misc. }
 
@@ -595,42 +591,42 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX        // Result will be negative or positive so set rounding direction
-        XOR     RCX, RDX        //  Negative: substract 1 in case of rounding
-        XOR     RCX, R8         //  Positive: add 1
+        MOV     EAX, ECX        // Result will be negative or positive so set rounding direction
+        XOR     ECX, EDX        //  Negative: substract 1 in case of rounding
+        XOR     ECX, R8D        //  Positive: add 1
 
-        OR      RAX, RAX        // Make all operands positive, ready for unsigned operations
+        OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
         JNS     @m1Ok           // minimizing branching
-        NEG     RAX
+        NEG     EAX
 @m1Ok:
-        OR      RDX, RDX
+        OR      EDX, EDX
         JNS     @m2Ok
-        NEG     RDX
+        NEG     EDX
 @m2Ok:
-        OR      R8, R8
+        OR      R8D, R8D
         JNS     @DivOk
-        NEG     R8
+        NEG     R8D
 @DivOK:
-        MUL     RDX             // Unsigned multiply (Multiplicand*Multiplier)
+        MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
 
-        MOV     R9, RDX         // Check for overflow, by comparing
-        SHL     R9, 1           // 2 times the high-order 32 bits of the product (RDX)
-        CMP     R9, R8          // with the Divisor.
+        MOV     R9D, EDX        // Check for overflow, by comparing
+        SHL     R9D, 1          // 2 times the high-order 32 bits of the product (EDX)
+        CMP     R9D, R8D        // with the Divisor.
         JAE     @Overfl         // If equal or greater than overflow with division anticipated
 
-        DIV     R8              // Unsigned divide of product by Divisor
+        DIV     R8D             // Unsigned divide of product by Divisor
 
-        SUB     R8, RDX         // Check if the result must be adjusted by adding or substracting
-        CMP     R8, RDX         // 1 (*.5 -> nearest integer), by comparing the difference of
+        SUB     R8D, EDX        // Check if the result must be adjusted by adding or substracting
+        CMP     R8D, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
         JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
-        INC     RAX             // no rounding needed; add 1 to result otherwise
+        INC     EAX             // no rounding needed; add 1 to result otherwise
 @NoAdd:
-        OR      RCX, RDX        // From unsigned operations back the to original sign of the result
+        OR      ECX, EDX        // From unsigned operations back the to original sign of the result
         JNS     @exit           // must be positive
-        NEG     RAX             // must be negative
+        NEG     EAX             // must be negative
         JMP     @exit
 @Overfl:
-        OR      RAX, -1         //  3 bytes alternative for MOV RAX,-1. Windows.MulDiv "overflow"
+        OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
                                 //  and "zero-divide" return value
 @exit:
 {$ELSE}

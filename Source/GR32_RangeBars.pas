@@ -1925,11 +1925,4 @@ begin
   if FSlave <> nil then FSlave.Style := Value;
 end;
 
-{$IFDEF FPC}
-initialization
-//  PatternManager := TPatternManager.Create;
-finalization
-//  PatternManager.Free;
-{$ENDIF}
-
 end.

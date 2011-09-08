@@ -39,6 +39,13 @@ interface
 
 {$I GR32.inc}
 
+{$IFDEF PUREPASCAL}
+{$DEFINE USENATIVECODE}
+{$ENDIF}
+{$IFDEF USEINLINING}
+{$DEFINE USENATIVECODE}
+{$ENDIF}
+
 uses
 {$IFDEF FPC}
 {$ELSE}
@@ -672,12 +679,12 @@ begin
 end;
 
 
-procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
+procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); forward; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 type
   TTransformProc = procedure(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
@@ -689,13 +696,23 @@ begin
   RoundShift1(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-{$IFDEF PUREPASCAL}
+procedure RoundShift1(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+{$IFDEF USENATIVECODE}
 begin
   DstPoint.X := (SrcPoint.X + $7F) div 256;
   DstPoint.Y := (SrcPoint.Y + $7FFF) div 65536;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+    MOV EAX, [SrcPoint]
+    ADD EAX, $0000007F
+    SAR EAX, 8 // sub-sampled
+    MOV [DstPoint], EAX
+    MOV EDX, [SrcPoint + $4]
+    ADD EDX, $00007FFF
+    SAR EDX, 16
+    MOV [DstPoint + $4], EDX
+{$ENDIF}
 {$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $0000007F
@@ -715,13 +732,23 @@ begin
   RoundShift2(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-{$IFDEF PUREPASCAL}
+procedure RoundShift2(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+{$IFDEF USENATIVECODE}
 begin
   DstPoint.X := (SrcPoint.X + $3FFF) div 32768;
   DstPoint.Y := (SrcPoint.Y + $3FFF) div 32768;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+    MOV EAX, [SrcPoint]
+    ADD EAX, $00003FFF
+    SAR EAX, 15
+    MOV [DstPoint], EAX
+    MOV EDX, [SrcPoint + $4]
+    ADD EDX, $00003FFF
+    SAR EDX, 15
+    MOV [DstPoint + $4], EDX
+{$ENDIF}
 {$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00003FFF
@@ -741,13 +768,23 @@ begin
   RoundShift4(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-{$IFDEF PUREPASCAL}
+procedure RoundShift4(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+{$IFDEF USENATIVECODE}
 begin
   DstPoint.X := (SrcPoint.X + $1FFF) div 16384;
   DstPoint.Y := (SrcPoint.Y + $1FFF) div 16384;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+    MOV EAX, [SrcPoint]
+    ADD EAX, $00001FFF
+    SAR EAX, 14
+    MOV [DstPoint], EAX
+    MOV EDX, [SrcPoint + $4]
+    ADD EDX, $00001FFF
+    SAR EDX, 14
+    MOV [DstPoint + $4], EDX
+{$ENDIF}
 {$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00001FFF
@@ -767,13 +804,23 @@ begin
   RoundShift8(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-{$IFDEF PUREPASCAL}
+procedure RoundShift8(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+{$IFDEF USENATIVECODE}
 begin
   DstPoint.X := (SrcPoint.X + $FFF) div 8192;
   DstPoint.Y := (SrcPoint.Y + $FFF) div 8192;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+    MOV EAX, [SrcPoint]
+    ADD EAX, $00000FFF
+    SAR EAX, 13
+    MOV [DstPoint], EAX
+    MOV EDX, [SrcPoint + $4]
+    ADD EDX, $00000FFF
+    SAR EDX, 13
+    MOV [DstPoint + $4], EDX
+{$ENDIF}
 {$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $00000FFF
@@ -793,13 +840,23 @@ begin
   RoundShift16(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-{$IFDEF PUREPASCAL}
+procedure RoundShift16(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+{$IFDEF USENATIVECODE}
 begin
   DstPoint.X := (SrcPoint.X + $7FF) div 4096;
   DstPoint.Y := (SrcPoint.Y + $7FF) div 4096;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+    MOV EAX, [SrcPoint]
+    ADD EAX, $000007FF
+    SAR EAX, 12
+    MOV [DstPoint], EAX
+    MOV EDX, [SrcPoint + $4]
+    ADD EDX, $000007FF
+    SAR EDX, 12
+    MOV [DstPoint + $4], EDX
+{$ENDIF}
 {$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $000007FF
@@ -819,13 +876,23 @@ begin
   RoundShift32(DstPoint, DstPoint, nil);
 end;
 
-procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation); {$IFNDEF TARGET_x86}{$IFDEF INLININGSUPPORTED} inline; {$ENDIF}{$ENDIF}
-{$IFDEF PUREPASCAL}
+procedure RoundShift32(var DstPoint: TFixedPoint; const SrcPoint: TFixedPoint; const T: TTransformation);
+{$IFDEF USENATIVECODE}
 begin
   DstPoint.X := (SrcPoint.X + $3FF) div 2048;
   DstPoint.Y := (SrcPoint.Y + $3FF) div 2048;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+    MOV EAX, [SrcPoint]
+    ADD EAX, $000003FF
+    SAR EAX, 11
+    MOV [DstPoint], EAX
+    MOV EDX, [SrcPoint + $4]
+    ADD EDX, $000003FF
+    SAR EDX, 11
+    MOV [DstPoint + $4], EDX
+{$ENDIF}
 {$IFDEF TARGET_x86}
     MOV ECX, [SrcPoint.X]
     ADD ECX, $000003FF
