@@ -1,19 +1,20 @@
 object FormImage32Example: TFormImage32Example
   Left = 224
-  Height = 445
+  Height = 418
   Top = 159
-  Width = 550
-  HorzScrollBar.Page = 549
-  VertScrollBar.Page = 444
-  ActiveControl = rgScaleMode.RadioButton0
+  Width = 542
+  HorzScrollBar.Visible = False
+  VertScrollBar.Visible = False
   Caption = 'TImage32 Example'
-  ClientHeight = 445
-  ClientWidth = 550
+  ClientHeight = 418
+  ClientWidth = 542
+  Color = clBtnFace
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object Panel1: TPanel
     Left = 8
     Height = 402
@@ -39,16 +40,15 @@ object FormImage32Example: TFormImage32Example
     end
   end
   object Panel2: TPanel
-    Left = 408
-    Height = 445
+    Left = 400
+    Height = 418
     Top = 0
     Width = 142
     Align = alRight
     BevelOuter = bvNone
-    ClientHeight = 445
+    ClientHeight = 418
     ClientWidth = 142
     TabOrder = 1
-    OnClick = Panel2Click
     object rgScaleMode: TRadioGroup
       Left = 8
       Height = 129
@@ -132,21 +132,22 @@ object FormImage32Example: TFormImage32Example
       OnClick = rgBitmapAlignClick
       TabOrder = 2
     end
-    object stScale: TStaticText
+    object stScale: TLabel
       Left = 8
-      Height = 17
+      Height = 14
       Top = 242
-      Width = 33
+      Width = 30
       Caption = 'Scale:'
-      TabOrder = 3
+      ParentColor = False
     end
     object sbScale: TGaugeBar
-      Left = 9
+      Left = 8
       Height = 16
-      Top = 258
-      Width = 128
+      Top = 260
+      Width = 129
       Color = clScrollBar
       Backgnd = bgPattern
+      BorderStyle = bsNone
       Enabled = False
       Max = 1000
       Min = 25
