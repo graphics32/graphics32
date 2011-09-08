@@ -10,6 +10,8 @@ uses
   Forms,
   MandelUnit in 'MandelUnit.pas' {MainForm};
 
+{$R *.res}
+
 begin
   Application.Title:='Mandelbrot Example';
   Application.Initialize;
