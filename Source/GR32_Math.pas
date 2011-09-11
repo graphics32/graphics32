@@ -448,25 +448,6 @@ asm
 end;
 
 function Hypot(const X, Y: TFloat): TFloat;
-begin
-  Result := Math.Hypot(X, Y);
-(*
-// BUGGY if input arguments are not swapped!
-{$IFNDEF TARGET_x86}
-{$ELSE}
-asm
-        FLD     X
-        FMUL    ST,ST
-        FLD     Y
-        FMUL    ST,ST
-        FADDP   ST,ST
-        FSQRT
-        FWAIT
-{$ENDIF}
-*)
-end;
-
-function SimpleHypot(const X, Y: TFloat): TFloat;
 {$IFDEF PUREPASCAL}
 begin
   Result := Sqrt(Sqr(X) + Sqr(Y));
@@ -482,21 +463,12 @@ asm
         FMUL    ST,ST
         FLD     Y
         FMUL    ST,ST
-        FADDP   ST,ST
+        FADDP   ST(1),ST
         FSQRT
         FWAIT
 {$ENDIF}
 {$ENDIF}
 end;
-
-function Hypot(const X, Y: Integer): Integer;
-begin
-  if Abs(X) > Abs(Y) then
-    Result := Round(SimpleHypot(X, Y))
-  else
-    Result := Round(SimpleHypot(Y, X));
-end;
-
 
 function FastSqrt(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
