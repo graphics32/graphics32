@@ -80,7 +80,7 @@ procedure BlendTransfer(
   BlendCallback: TBlendRegEx; MasterAlpha: Integer); overload;
 
 const
-  MAX_KERNEL_WIDTH = 16
+  MAX_KERNEL_WIDTH = 16;
 
 type
   PKernelEntry = ^TKernelEntry;

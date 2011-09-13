@@ -470,6 +470,30 @@ asm
 {$ENDIF}
 end;
 
+function Hypot(const X, Y: Integer): Integer;
+//{$IFDEF PUREPASCAL}
+begin
+  Result := Round(Math.Hypot(X, Y));
+(*
+{$ELSE}
+asm
+{$IFDEF TARGET_x64}
+        IMUL    RAX, RCX, RDX
+{$ELSE}
+        FLD     X
+        FMUL    ST,ST
+        FLD     Y
+        FMUL    ST,ST
+        FADDP   ST(1),ST
+        FSQRT
+        FISTP   [ESP - 4]
+        MOV     EAX, [ESP - 4]
+        FWAIT
+{$ENDIF}
+{$ENDIF}
+*)
+end;
+
 function FastSqrt(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 {$IFDEF PUREPASCAL}
