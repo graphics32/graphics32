@@ -1704,9 +1704,11 @@ begin
   Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_Pas);
   Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_Pas);
 
+{$IFNDEF PUREPASCAL}
 {$IFDEF TARGET_x86}
   Registry.Add(FID_MICROTILEUNION, @MicroTileUnion_EMMX, [ciEMMX]);
   Registry.Add(FID_MICROTILESUNION, @MicroTilesUnion_EMMX, [ciEMMX]);
+{$ENDIF}
 {$ENDIF}
   Registry.RebindAll;
 end;
