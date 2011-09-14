@@ -412,7 +412,7 @@ begin
   PM := @DivTable[M];
   while Count > 0 do
   begin
-    Dst^ := MergeReg(PM[Src^ shr 24] shl 24 or Src^ and $00FFFFFF, Dst^);
+    Dst^ := MergeReg((PM[Src^ shr 24] shl 24) or (Src^ and $00FFFFFF), Dst^);
     Inc(Src);
     Inc(Dst);
     Dec(Count);
@@ -1479,44 +1479,44 @@ asm
   // ECX <- W
 
 {$IFDEF TARGET_x64}
+
   // W = 0 or $FF?
         TEST    R8,R8
         JZ      @1              // W = 0 ?  => Result := EDX
-        CMP     R8,$FF          // W = $FF ?  => Result := EDX
+        MOV     EAX,ECX         // EAX  <-  Xa Xr Xg Xb
+        CMP     R8B,$FF          // W = $FF ?  => Result := EDX
         JE      @2
 
   // P = W * X
-        MOV     R9D,ECX         // R9D  <-  Xa Xr Xg Xb
-        MOV     RCX,R8          // ECX  <-  Weight
         AND     EAX,$00FF00FF   // EAX  <-  00 Xr 00 Xb
-        AND     R9D,$FF00FF00   // R9D  <-  Xa 00 Xg 00
-        IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
-        SHR     R9D,8           // R9D  <-  00 Xa 00 Xg
-        IMUL    R9D,ECX         // R9D  <-  Pa ** Pg **
+        AND     ECX,$FF00FF00   // ECX  <-  Xa 00 Xg 00
+        IMUL    EAX,R8D         // EAX  <-  Pr ** Pb **
+        SHR     ECX,8           // ECX  <-  00 Xa 00 Xg
+        IMUL    ECX,R8D         // ECX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pa 00 Pg 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
-        ADD     R9D,bias
-        AND     R9D,$FF00FF00   // R9D  <-  Pa 00 Pg 00
-        OR      EAX,R9D         // EAX  <-  Pa Pr Pg Pb
+        ADD     ECX,bias
+        AND     ECX,$FF00FF00   // ECX  <-  Pa 00 Pg 00
+        OR      EAX,ECX         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W; Q = W * Y
-        XOR     ECX,$000000FF   // ECX  <-  1 - ECX
-        MOV     R9D,EDX         // R9D  <-  Ya Yr Yg Yb
+        XOR     R8D,$000000FF   // R8D  <-  1 - R8D
+        MOV     ECX,EDX         // ECX  <-  Ya Yr Yg Yb
         AND     EDX,$00FF00FF   // EDX  <-  00 Yr 00 Yb
-        AND     R9D,$FF00FF00   // R9D  <-  Ya 00 Yg 00
-        IMUL    EDX,ECX         // EDX  <-  Qr ** Qb **
-        SHR     R9D,8           // R9D  <-  00 Ya 00 Yg
-        IMUL    R9D,ECX         // R9D  <-  Qa ** Qg **
+        AND     ECX,$FF00FF00   // ECX  <-  Ya 00 Yg 00
+        IMUL    EDX,R8D         // EDX  <-  Qr ** Qb **
+        SHR     ECX,8           // ECX  <-  00 Ya 00 Yg
+        IMUL    ECX,R8D         // ECX  <-  Qa ** Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
         SHR     EDX,8           // EDX  <-  00 Qr ** Qb
-        ADD     R9D,bias
-        AND     R9D,$FF00FF00   // R9D  <-  Qa 00 Qg 00
-        OR      R9D,EDX         // R9D  <-  Qa Qr Qg Qb
+        ADD     ECX,bias
+        AND     ECX,$FF00FF00   // ECX  <-  Qa 00 Qg 00
+        OR      ECX,EDX         // ECX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,R9D         // EAX  <-  Za Zr Zg Zb
+        ADD     EAX,ECX         // EAX  <-  Za Zr Zg Zb
 
         RET
 
@@ -1579,49 +1579,50 @@ asm
   // [RDX] <- B
   // R8 <- W
 
-        TEST    R8,R8          // Set flags for R8
-        JZ      @2             // W = 0 ?  => Result := EDX
-        CMP     R8B,$FF        // W = 255? => write F
-        JZ      @2
+  // Check W
+        TEST    R8,R8           // Set flags for R8
+        JZ      @2              // W = 0 ?  => Result := EDX
+        MOV     EAX,ECX         // EAX  <-  ** Fr Fg Fb
+        CMP     R8B,$FF         // W = 255? => write F
+        JZ      @1
 
   // P = W * F
-        MOV     R9D,ECX        // R9D  <-  ** Fr Fg Fb
-        AND     ECX,$00FF00FF  // ECX  <-  00 Fr 00 Fb
-        AND     R9D,$FF00FF00  // R9D  <-  Fa 00 Fg 00
-        IMUL    ECX,R8D        // ECX  <-  Pr ** Pb **
-        SHR     R9D,8          // R9D  <-  00 Fa 00 Fg
-        IMUL    R9D,R8D        // R9D  <-  00 00 Pg **
+        AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
+        AND     ECX,$FF00FF00   // ECX  <-  Fa 00 Fg 00
+        IMUL    EAX,R8D         // EAX  <-  Pr ** Pb **
+        SHR     ECX,8           // ECX  <-  00 Fa 00 Fg
+        IMUL    ECX,R8D         // ECX  <-  00 00 Pg **
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     ECX,bias
-        AND     ECX,$FF00FF00  // ECX  <-  Pr 00 Pb 00
-        SHR     ECX,8          // ECX  <-  00 Pr 00 Pb
-        ADD     R9D,bias
-        AND     R9D,$FF00FF00  // R9D  <-  Pa 00 Pg 00
-        OR      ECX,R9D        // ECX  <-  00 Pr Pg Pb
+        AND     ECX,$FF00FF00   // ECX  <-  Pa 00 Pg 00
+        OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
 
   // W = 1 - W; Q = W * B
-        MOV     EAX,[RDX]
-        XOR     R8D,$000000FF  // R8D  <-  1 - R8
-        MOV     R9D,EAX        // R9D  <-  Ba Br Bg Bb
-        AND     EAX,$00FF00FF  // EAX  <-  00 Br 00 Bb
-        AND     R9D,$FF00FF00  // R9D  <-  Ba 00 Bg 00
-        IMUL    EAX,R8D        // EAX  <-  Qr ** Qb **
-        SHR     R9D,8          // R9D  <-  00 Ba 00 Bg
-        IMUL    R9D,R8D        // R9D  <-  Qa 00 Qg **
-        ADD     EAX,bias
-        AND     EAX,$FF00FF00  // EAX  <-  Qr 00 Qb 00
-        SHR     EAX,8          // EAX  <-  00 Qr ** Qb
+        MOV     R9D,[EDX]
+        XOR     R8D,$000000FF   // R8D  <-  1 - R8D
+        MOV     ECX,R9D         // ECX  <-  Ba Br Bg Bb
+        AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
+        AND     ECX,$FF00FF00   // ECX  <-  Ba 00 Bg 00
+        IMUL    R9D,R8D         // R9D  <-  Qr ** Qb **
+        SHR     ECX,8           // ECX  <-  00 Ba 00 Bg
+        IMUL    ECX,R8D         // ECX  <-  Qa 00 Qg **
         ADD     R9D,bias
-        AND     R9D,$FF00FF00  // R9D  <-  Qa 00 Qg 00
-        OR      R9D,EAX        // R9D  <-  00 Qr Qg Qb
+        AND     R9D,$FF00FF00   // R9D  <-  Qr 00 Qb 00
+        SHR     R9D,8           // R9D  <-  00 Qr ** Qb
+        ADD     ECX,bias
+        AND     ECX,$FF00FF00   // ECX  <-  Qa 00 Qg 00
+        OR      ECX,R9D         // ECX  <-  00 Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     ECX,R9D        // ECX  <-  00 Zr Zg Zb
+        ADD     EAX,ECX         // EAX  <-  00 Zr Zg Zb
 
-        MOV     [RDX],ECX
-@1:     RET
+        MOV     [EDX],EAX
 
-@2:     MOV     [RDX],ECX
-        RET
+@1:     MOV     [EDX],EAX
+@2:     RET
+
 {$ENDIF}
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -3017,6 +3018,8 @@ asm
         POP       EBX
 end;
 
+{$ENDIF}
+
 function MergeReg_SSE2(F, B: TColor32): TColor32;
 asm
   { This is an implementation of the merge formula, as described
@@ -3045,6 +3048,49 @@ asm
       (1 - Fa) * (1 - Ba) = 1 - Fa - Ba + Fa * Ba = (1 - Ra)
   }
 
+{$IFDEF TARGET_X64}
+        TEST      ECX,$FF000000   // foreground completely transparent =>
+        JZ        @1              // result = background
+        MOV       EAX,ECX         //  EAX  <-  Fa
+        CMP       EAX,$FF000000   // foreground completely opaque =>
+        JNC       @2              // result = foreground
+        TEST      EDX,$FF000000   // background completely transparent =>
+        JZ        @2              // result = foreground
+
+        PXOR      XMM7,XMM7       // XMM7  <-  00
+        MOVD      XMM0,EAX        // XMM0  <-  Fa Fr Fg Fb
+        SHR       EAX,24          //  EAX  <-  Fa
+        ROR       EDX,24
+        MOVZX     ECX,DL          //  ECX  <-  Ba
+        PUNPCKLBW XMM0,XMM7       // XMM0  <-  00 Fa 00 Fr 00 Fg 00 Fb
+        SUB       EAX,$FF         //  EAX  <-  (Fa - 1)
+        XOR       ECX,$FF         //  ECX  <-  (1 - Ba)
+        IMUL      ECX,EAX         //  ECX  <-  (Fa - 1) * (1 - Ba)  =  Ra - 1
+        IMUL      ECX,$8081       //  ECX  <-  Xa 00 00 00
+        ADD       ECX,$8081*$FF*$FF
+        SHR       ECX,15          //  ECX  <-  Ra
+        MOV       DL,CH           //  EDX  <-  Br Bg Bb Ra
+        ROR       EDX,8           //  EDX  <-  Ra Br Bg Bb
+        MOVD      XMM1,EDX        // XMM1  <-  Ra Br Bg Bb
+        PUNPCKLBW XMM1,XMM7       // XMM1  <-  00 Ra 00 Br 00 Bg 00 Bb
+        SHL       EAX,20          //  EAX  <-  Fa 00 00
+        PSUBW     XMM0,XMM1       // XMM0  <-  ** Da ** Dr ** Dg ** Db
+        ADD       EAX,$0FF01000
+        PSLLW     XMM0,4
+        XOR       EDX,EDX         //  EDX  <-  00
+        DIV       EAX,ECX         //  EAX  <-  Fa / Ra  =  Wa
+        MOVD      XMM4,EAX        // XMM3  <-  Wa
+        PSHUFLW   XMM4,XMM4,$C0   // XMM3  <-  00 00 ** Wa ** Wa ** Wa
+        PMULHW    XMM0,XMM4       // XMM0  <-  00 00 ** Pr ** Pg ** Pb
+        PADDW     XMM0,XMM1       // XMM0  <-  00 Ra 00 Rr 00 Rg 00 Rb
+        PACKUSWB  XMM0,XMM7       // XMM0  <-  Ra Rr Rg Rb
+        MOVD      EAX,XMM0
+
+        RET
+@1:     MOV       EAX,EDX
+@2:
+{$ENDIF}
+{$IFDEF TARGET_X86}
         TEST      EAX,$FF000000  // foreground completely transparent =>
         JZ        @1             // result = background
         CMP       EAX,$FF000000  // foreground completely opaque =>
@@ -3084,9 +3130,8 @@ asm
         RET
 @1:     MOV       EAX,EDX
 @2:
-end;
-
 {$ENDIF}
+end;
 
 procedure EMMS_SSE2;
 asm
@@ -3433,8 +3478,8 @@ begin
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
 {$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
 {$ENDIF}
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
