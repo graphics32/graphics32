@@ -1,15 +1,6 @@
 program BlendTest;
 
-{
-
-  Delphi DUnit-Testprojekt
-  -------------------------
-  Dieses Projekt enthlt das DUnit-Test-Framework und die GUI/Konsolen-Test-Runner.
-  Zum Verwenden des Konsolen-Test-Runners fgen Sie den konditinalen Definitionen
-  in den Projektoptionen "CONSOLE_TESTRUNNER" hinzu. Ansonsten wird standardmig
-  der GUI-Test-Runner verwendet.
-
-}
+{$I GR32.inc}
 
 {$IFDEF CONSOLE_TESTRUNNER}
 {$APPTYPE CONSOLE}
@@ -18,6 +9,12 @@ program BlendTest;
 uses
   Interfaces,
   Forms,
+  fpcunittestrunner,
+  {$IFDEF CONSOLE_TESTRUNNER}
+  fpcunitconsolerunner,
+  {$ELSE}
+  GUITestRunner,
+  {$ENDIF}
   TestGuiBlend in 'TestGuiBlend.pas',
   GR32_Blend in '..\..\Source\GR32_Blend.pas',
   GR32_BlendReference in 'GR32_BlendReference.pas';
@@ -25,10 +22,10 @@ uses
 { *.RES}
 
 begin
+  Application.Title := 'PNG Test';
   Application.Initialize;
-  if IsConsole then
-    with TextTestRunner.RunRegisteredTests do
-      Free
-  else
-    GUITestRunner.RunRegisteredTests;
+  {$IFNDEF CONSOLE_TESTRUNNER}
+  Application.CreateForm(TGuiTestRunner, TestRunner);
+  {$ENDIF}
+  Application.Run;
 end.

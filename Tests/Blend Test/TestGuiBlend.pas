@@ -35,7 +35,7 @@ interface
 {$I ..\..\Source\GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LCLType, LMessages, {$ELSE} TestFramework, Windows,
+  {$IFDEF FPC} fpcunit, testregistry, {$ELSE} TestFramework, Windows,
   {$ENDIF} Controls, Types, Classes, SysUtils, Messages, Graphics,
   GR32, GR32_Blend, GR32_Bindings;
 
@@ -61,7 +61,9 @@ type
     procedure TestMergeMemEx; virtual;
     procedure TestMergeLine; virtual;
     procedure TestMergeLineEx; virtual;
+    {$IFNDEF FPC}
     procedure PerformanceTest; virtual;
+    {$ENDIF}
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -84,7 +86,9 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
+    {$IFNDEF FPC}
     procedure PerformanceTest; override;
+    {$ENDIF}
   end;
 
   TTestBlendModesMMX = class(TCustomTestBlendModes)
@@ -104,7 +108,9 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
+    {$IFNDEF FPC}
     procedure PerformanceTest; override;
+    {$ENDIF}
   end;
 
   TTestBlendModesSSE2 = class(TCustomTestBlendModes)
@@ -124,7 +130,9 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
+    {$IFNDEF FPC}
     procedure PerformanceTest; override;
+    {$ENDIF}
   end;
 
 implementation
@@ -789,6 +797,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 procedure TCustomTestBlendModes.PerformanceTest;
 var
   Start, Stop, Freq : Int64;
@@ -814,6 +823,7 @@ begin
 
   Fail('Performance: ' + FloatToStr(1000 * (Stop - Start) / Freq));
 end;
+{$ENDIF}
 
 
 { TTestBlendModesNative }
@@ -947,11 +957,13 @@ begin
   inherited;
 end;
 
+{$IFNDEF FPC}
 procedure TTestBlendModesNative.PerformanceTest;
 begin
   BlendRegistry.RebindAll(NativePriorityProc);
   inherited;
 end;
+{$ENDIF}
 
 
 { TTestBlendModesMMX }
@@ -1079,11 +1091,13 @@ begin
   inherited;
 end;
 
+{$IFNDEF FPC}
 procedure TTestBlendModesMMX.PerformanceTest;
 begin
   BlendRegistry.RebindAll(MMXPriorityProc);
   inherited;
 end;
+{$ENDIF}
 
 
 { TTestBlendModesSSE2 }
@@ -1202,12 +1216,14 @@ begin
   inherited;
 end;
 
+{$IFNDEF FPC}
 procedure TTestBlendModesSSE2.PerformanceTest;
 begin
   BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
   BlendRegistry.RebindAll(SSE2PriorityProc);
   inherited;
 end;
+{$ENDIF}
 
 
 initialization

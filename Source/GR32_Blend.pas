@@ -688,7 +688,7 @@ const
 
 function BlendReg_ASM(F, B: TColor32): TColor32;
 asm
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // Result Z = Fa * Frgb + (1 - Fa) * Brgb
 
@@ -885,7 +885,7 @@ end;
 
 function BlendRegEx_ASM(F, B, M: TColor32): TColor32;
 asm
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
   // no checking for M = $FF, in this case Graphics32 uses BlendReg
   // Result Z = Fa * M * Frgb + (1 - Fa * M) * Brgb
@@ -1751,7 +1751,7 @@ end;
 function BlendReg_MMX(F, B: TColor32): TColor32;
 asm
 {$IFDEF TARGET_x64}
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // ECX <- F
   // EDX <- B
@@ -1775,7 +1775,7 @@ asm
         MOVD      EAX,MM2
 {$ENDIF}
 {$IFDEF TARGET_x86}
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
   // EDX <- B
@@ -1838,7 +1838,7 @@ end;
 
 function BlendRegEx_MMX(F, B, M: TColor32): TColor32;
 asm
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
   // EDX <- B
@@ -1881,7 +1881,7 @@ end;
 procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32);
 asm
 {$IFDEF TARGET_x64}
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // ECX <- F
   // [EDX] <- B
@@ -1918,7 +1918,7 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_x86}
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
   // [EDX] <- B
@@ -2488,18 +2488,13 @@ end;
 
 function BlendReg_SSE2(F, B: TColor32): TColor32;
 asm
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
   // EDX <- B
   // Result := Fa * (Frgb - Brgb) + Brgb
 
 {$IFDEF TARGET_x64}
-  // blend foregrownd color (F) to a background color (B),
-  // using alpha channel value of F
-  // ECX <- F
-  // EDX <- B
-  // Result := Fa * (Frgb - Brgb) + Brgb
         MOVD      XMM0,ECX
         PXOR      XMM3,XMM3
         MOVD      XMM2,EDX
@@ -2577,7 +2572,7 @@ end;
 
 function BlendRegEx_SSE2(F, B, M: TColor32): TColor32;
 asm
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
   // EDX <- B
@@ -2620,7 +2615,7 @@ end;
 procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: TColor32);
 asm
 {$IFDEF TARGET_x64}
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // RCX <- F
   // [RDX] <- B
@@ -2657,7 +2652,7 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_x86}
-  // blend foregrownd color (F) to a background color (B),
+  // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
   // EAX <- F
   // [EDX] <- B

@@ -32,19 +32,25 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="fpcunitconsolerunner"/>
       </Item1>
+      <Item2>
+        <PackageName Value="FPCUnitTestRunner"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
     </RequiredPackages>
-    <Units Count="4">
+    <Units Count="5">
       <Unit0>
         <Filename Value="BlendTest.lpr"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
+        <CursorPos X="17" Y="16"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -55,8 +61,8 @@
         <UnitName Value="TestGuiBlend"/>
         <EditorIndex Value="3"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
+        <TopLine Value="31"/>
+        <CursorPos X="20" Y="35"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -68,8 +74,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="1548"/>
-        <CursorPos X="24" Y="1561"/>
+        <TopLine Value="3061"/>
+        <CursorPos X="23" Y="3076"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -80,14 +86,24 @@
         <UnitName Value="GR32_BlendReference"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="16"/>
-        <CursorPos X="35" Y="35"/>
+        <TopLine Value="455"/>
+        <CursorPos X="5" Y="485"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="..\..\Source\GR32.inc"/>
+        <EditorIndex Value="4"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="202"/>
+        <CursorPos X="5" Y="216"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit4>
     </Units>
-    <JumpHistory Count="5" HistoryIndex="4">
+    <JumpHistory Count="22" HistoryIndex="21">
       <Position1>
         <Filename Value="BlendTest.lpr"/>
         <Caret Line="31" Column="13" TopLine="10"/>
@@ -108,6 +124,74 @@
         <Filename Value="..\..\Source\GR32_Blend.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
       </Position5>
+      <Position6>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position6>
+      <Position7>
+        <Filename Value="GR32_BlendReference.pas"/>
+        <Caret Line="35" Column="35" TopLine="16"/>
+      </Position7>
+      <Position8>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="43" Column="38" TopLine="28"/>
+      </Position8>
+      <Position9>
+        <Filename Value="BlendTest.lpr"/>
+        <Caret Line="29" Column="10" TopLine="1"/>
+      </Position9>
+      <Position10>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="1220" Column="5" TopLine="1190"/>
+      </Position10>
+      <Position11>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="38" Column="38" TopLine="28"/>
+      </Position11>
+      <Position12>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="793" Column="1" TopLine="789"/>
+      </Position12>
+      <Position13>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position13>
+      <Position14>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="66" Column="12" TopLine="39"/>
+      </Position14>
+      <Position15>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="136" Column="1" TopLine="106"/>
+      </Position15>
+      <Position16>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="967" Column="12" TopLine="945"/>
+      </Position16>
+      <Position17>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="1101" Column="11" TopLine="1074"/>
+      </Position17>
+      <Position18>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="1222" Column="14" TopLine="1209"/>
+      </Position18>
+      <Position19>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="974" Column="39" TopLine="958"/>
+      </Position19>
+      <Position20>
+        <Filename Value="TestGuiBlend.pas"/>
+        <Caret Line="35" Column="20" TopLine="31"/>
+      </Position20>
+      <Position21>
+        <Filename Value="..\..\Source\GR32.inc"/>
+        <Caret Line="1" Column="1" TopLine="40"/>
+      </Position21>
+      <Position22>
+        <Filename Value="..\..\Source\GR32_Blend.pas"/>
+        <Caret Line="1561" Column="24" TopLine="1548"/>
+      </Position22>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
@@ -147,7 +231,6 @@
       <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>
-  <SkipCheckLCLInterfaces Value="True"/>
   <Debugging>
     <Exceptions Count="3">
       <Item1>
