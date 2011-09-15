@@ -380,7 +380,7 @@ var
 begin
   P := PWordArray(@X);
   for I := Count - 1 downto 0 do
-    P[I] := Low(Value);
+    P[I] := Value;
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}

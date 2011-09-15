@@ -506,10 +506,14 @@ begin
 asm
 {$IFDEF TARGET_x64}
         SQRTSS  XMM0, XMM0
-{$ELSE}
+{$ENDIF}
+{$IFDEF TARGET_x86}
+        MOV     EAX, DWORD PTR Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
         ADD     EAX, $3F800000
+        MOV     DWORD PTR [ESP - 4], EAX
+        FLD     DWORD PTR [ESP - 4]
 {$ENDIF}
 {$ENDIF}
 end;
@@ -519,7 +523,7 @@ function FastSqrtBab1(const Value: TFloat): TFloat;
 // additionally one babylonian step added
 const
   CHalf : TFloat = 0.5;
-{$IFNDEF XPUREPASCAL}
+{$IFDEF PUREPASCAL}
 var
   I: Integer absolute Value;
   J: Integer absolute Result;
@@ -528,16 +532,20 @@ begin
   Result := CHalf * (Result + Value / Result);
 {$ELSE}
 asm
-        optimization not tested yet 
+{$IFDEF TARGET_x64}
+        SQRTSS  XMM0, XMM0
+{$ENDIF}
+{$IFDEF TARGET_x86}
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
         ADD     EAX, $3F800000
-        MOV     Result, EAX
+        MOV     DWORD PTR [ESP - 4], EAX
         FLD     Value
-        FDIV    Result
-        FADD    Result
+        FDIV    DWORD PTR [ESP - 4]
+        FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -548,23 +556,22 @@ const
   CQuarter : TFloat = 0.25;
 {$IFNDEF XPUREPASCAL}
 var
-  I: Integer absolute Value;
   J: Integer absolute Result;
 begin
-  J := (I - $3F800000) div 2 + $3F800000;
-  Result := Result + Value / Result;
-  Result := CQuarter * (Result + Value / Result);
+ Result := Value;
+ J := ((J - (1 shl 23)) shr 1) + (1 shl 29);
+ Result := Result + Value / Result;
+ Result := CQuarter * Result + Value / Result;
 {$ELSE}
 asm
-        optimization not tested yet
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
         ADD     EAX, $3F800000
-        MOV     Result, EAX
+        MOV     DWORD PTR [ESP - 4], EAX
         FLD     Value
-        FDIV    Result
-        FADD    Result
+        FDIV    DWORD PTR [ESP - 4]
+        FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
 {$ENDIF}
 end;

@@ -1,4 +1,4 @@
-program BlendTest;
+program LowLevelTest;
 
 {$I GR32.inc}
 
@@ -15,9 +15,8 @@ uses
   {$ELSE}
   GUITestRunner,
   {$ENDIF}
-  TestGR32Blend in 'TestGR32Blend.pas',
-  GR32_Blend in '..\..\Source\GR32_Blend.pas',
-  GR32_BlendReference in 'GR32_BlendReference.pas';
+  TestGR32LowLevel in 'TestGR32LowLevel.pas',
+  GR32_LowLevel in '..\..\Source\GR32_LowLevel.pas;
 
 { *.RES}
 

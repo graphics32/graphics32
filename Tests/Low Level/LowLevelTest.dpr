@@ -1,4 +1,4 @@
-program BlendTest;
+program LowLevelTest;
 
 {
 
@@ -18,9 +18,9 @@ program BlendTest;
 uses
   TestFramework, GUITestRunner, TextTestRunner,
   Forms,
-  TestGR32Blend in 'TestGR32Blend.pas',
-  GR32_Blend in '..\..\Source\GR32_Blend.pas',
-  GR32_BlendReference in 'GR32_BlendReference.pas';
+  TestLowLevel in 'TestLowLevel.pas',
+  GR32_LowLevel in '..\..\Source\GR32_LowLevel.pas',
+  GR32_Math in '..\..\Source\GR32_Math.pas';
 
 { *.RES}
 
