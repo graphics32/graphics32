@@ -84,6 +84,27 @@ implementation
 
 {$R *.DFM}
 
+function DeleteDirectoryTree(dir: string): boolean;
+var
+  len: integer;
+  shfo : TSHFileOpStruct;
+begin
+  result := false;
+  len := length(dir);
+  if len = 0 then exit;
+  if dir[len] = '\' then setlength(dir, len -1);
+  if not DirectoryExists(dir) then exit;
+  try
+    fillChar(shfo, sizeof(shfo), 0);
+    shfo.Wnd := 0;
+    shfo.wFunc := FO_DELETE;
+    shfo.pFrom := PChar(dir);
+    shfo.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
+    result := SHFileOperation(shfo) = 0;
+  except
+  end;
+end;
+
 procedure LogAdd(const S: string);
 begin
   if NoGUI then
@@ -256,6 +277,9 @@ begin
   StyleFile := ProjectDir + 'Styles\Default.css';
 
   CompileTime := GetTickCount;
+
+  //delete existing docs ...
+  DeleteDirectoryTree(CompiledDir);
 
   DocStructure.IncludeAlphabetClasses := cbIncludeAlphabetClasses.Checked;
   Project := TProject.Create(nil, ProjectDir + 'Source');
