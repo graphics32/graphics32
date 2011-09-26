@@ -77,9 +77,12 @@ type
     procedure DisplayChromaticitiesChunk(ChromaChunk: TChunkPngPrimaryChromaticities);
     procedure DisplayGammaChunk(GammaChunk: TChunkPngGamma);
     procedure DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
-    procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
-    procedure DisplayTextChunk(TextChunk: TChunkPngText);
+    procedure DisplayTextChunk(TextChunk: TCustomChunkPngText);
     procedure DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
+    procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
+    procedure DisplayStandardColorSpaceRGBChunk(StandardColorSpaceRGB: TChunkPngStandardColorSpaceRGB);
+    procedure DisplayBackgroundColorChunk(BackgroundColor: TChunkPngBackgroundColor);
+    procedure DisplayTransparencyChunk(TransparencyChunk: TChunkPngTransparency);
     procedure DisplayHistogramChunk(HistogramChunk: TChunkPngImageHistogram);
     procedure DisplayTimeChunk(TimeChunk: TChunkPngTime);
   public
@@ -261,7 +264,70 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplayTextChunk(TextChunk: TChunkPngText);
+procedure TFmPngExplorer.DisplaySignificantBitsChunk(
+  SignificantBitsChunk: TChunkPngSignificantBits);
+begin
+  with SignificantBitsChunk do
+  begin
+    InitializeDefaultListView;
+
+    if SignificantBits is TPngSignificantBitsFormat0 then
+      ListViewData(['Greyscale Bits',
+        IntToStr(TPngSignificantBitsFormat0(SignificantBits).GrayBits)])
+    else if SignificantBits is TPngSignificantBitsFormat23 then
+    begin
+      ListViewData(['Red Bits',
+        IntToStr(TPngSignificantBitsFormat23(SignificantBits).RedBits)]);
+      ListViewData(['Green Bits',
+        IntToStr(TPngSignificantBitsFormat23(SignificantBits).GreenBits)]);
+      ListViewData(['Blue Bits',
+        IntToStr(TPngSignificantBitsFormat23(SignificantBits).BlueBits)]);
+    end
+    else if SignificantBits is TPngSignificantBitsFormat4 then
+    begin
+      ListViewData(['Greyscale Bits',
+        IntToStr(TPngSignificantBitsFormat4(SignificantBits).GrayBits)]);
+      ListViewData(['Alpha Bits',
+        IntToStr(TPngSignificantBitsFormat4(SignificantBits).AlphaBits)]);
+    end
+    else if SignificantBits is TPngSignificantBitsFormat6 then
+    begin
+      ListViewData(['Red Bits',
+        IntToStr(TPngSignificantBitsFormat6(SignificantBits).RedBits)]);
+      ListViewData(['Green Bits',
+        IntToStr(TPngSignificantBitsFormat6(SignificantBits).GreenBits)]);
+      ListViewData(['Blue Bits',
+        IntToStr(TPngSignificantBitsFormat6(SignificantBits).BlueBits)]);
+      ListViewData(['Alpha Bits',
+        IntToStr(TPngSignificantBitsFormat6(SignificantBits).AlphaBits)]);
+    end;
+
+    ListView.BringToFront;
+  end;
+end;
+
+
+procedure TFmPngExplorer.DisplayStandardColorSpaceRGBChunk(
+  StandardColorSpaceRGB: TChunkPngStandardColorSpaceRGB);
+begin
+  with StandardColorSpaceRGB do
+  begin
+    InitializeDefaultListView;
+
+    case RenderingIntent of
+      0 : ListViewData(['Rendering Indent', 'Perceptual']);
+      1 : ListViewData(['Rendering Indent', 'Relative Colorimetric']);
+      2 : ListViewData(['Rendering Indent', 'Saturation']);
+      3 : ListViewData(['Rendering Indent', 'Absolute Colorimetric']);
+      else
+        ListViewData(['Rendering Indent', IntToStr(RenderingIntent)]);
+    end;
+
+    ListView.BringToFront;
+  end;
+end;
+
+procedure TFmPngExplorer.DisplayTextChunk(TextChunk: TCustomChunkPngText);
 begin
   with TextChunk do
   begin
@@ -285,13 +351,31 @@ begin
   end;
 end;
 
-procedure TFmPngExplorer.DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
+procedure TFmPngExplorer.DisplayTransparencyChunk(
+  TransparencyChunk: TChunkPngTransparency);
+var
+  Index : Integer;
 begin
-  with SignificantBitsChunk do
+  with TransparencyChunk do
   begin
     InitializeDefaultListView;
 
-    ListViewData(['Width', IntToStr(Width)]);
+    if Transparency is TPngTransparencyFormat0 then
+      ListViewData(['Grey Sample Value',
+        IntToStr(TPngTransparencyFormat0(Transparency).GraySampleValue)])
+    else if Transparency is TPngTransparencyFormat2 then
+    begin
+      ListViewData(['Red Sample Value',
+        IntToStr(TPngTransparencyFormat2(Transparency).RedSampleValue)]);
+      ListViewData(['Blue Sample Value',
+        IntToStr(TPngTransparencyFormat2(Transparency).BlueSampleValue)]);
+      ListViewData(['Green Sample Value',
+        IntToStr(TPngTransparencyFormat2(Transparency).GreenSampleValue)]);
+    end
+    else if Transparency is TPngTransparencyFormat3 then
+      for Index := 0 to TPngTransparencyFormat3(Transparency).Count - 1 do
+        ListViewData(['Index ' + IntToStr(Index),
+          IntToStr(TPngTransparencyFormat3(Transparency).Transparency[Index])]);
 
     ListView.BringToFront;
   end;
@@ -303,7 +387,35 @@ begin
   begin
     InitializeDefaultListView;
 
-    ListViewData(['Width', IntToStr(Width)]);
+    ListViewData(['Pixels per unit X', IntToStr(PixelsPerUnitX)]);
+    ListViewData(['Pixels per unit Y', IntToStr(PixelsPerUnitY)]);
+
+    ListView.BringToFront;
+  end;
+end;
+
+procedure TFmPngExplorer.DisplayBackgroundColorChunk(
+  BackgroundColor: TChunkPngBackgroundColor);
+begin
+  with BackgroundColor do
+  begin
+    InitializeDefaultListView;
+
+    if Background is TPngBackgroundColorFormat04 then
+      ListViewData(['Grey',
+        IntToStr(TPngBackgroundColorFormat04(Background).GraySampleValue)])
+    else if Background is TPngBackgroundColorFormat26 then
+    begin
+      ListViewData(['Red',
+        IntToStr(TPngBackgroundColorFormat26(Background).RedSampleValue)]);
+      ListViewData(['Blue',
+        IntToStr(TPngBackgroundColorFormat26(Background).BlueSampleValue)]);
+      ListViewData(['Green',
+        IntToStr(TPngBackgroundColorFormat26(Background).GreenSampleValue)]);
+    end
+    else if Background is TPngBackgroundColorFormat3 then
+      ListViewData(['Palette Index',
+        IntToStr(TPngBackgroundColorFormat3(Background).PaletteIndex)]);
 
     ListView.BringToFront;
   end;
@@ -376,10 +488,14 @@ begin
       DisplayGammaChunk(TChunkPngGamma(Node.Data))
     else if TObject(Node.Data) is TChunkPngTime then
       DisplayTimeChunk(TChunkPngTime(Node.Data))
-    else if TObject(Node.Data) is TChunkPngText then
-      DisplayTextChunk(TChunkPngText(Node.Data))
+    else if TObject(Node.Data) is TCustomChunkPngText then
+      DisplayTextChunk(TCustomChunkPngText(Node.Data))
+    else if TObject(Node.Data) is TChunkPngStandardColorSpaceRGB then
+      DisplayStandardColorSpaceRGBChunk(TChunkPngStandardColorSpaceRGB(Node.Data))
     else if TObject(Node.Data) is TChunkPngImageHistogram then
       DisplayHistogramChunk(TChunkPngImageHistogram(Node.Data))
+    else if TObject(Node.Data) is TChunkPngBackgroundColor then
+      DisplayBackgroundColorChunk(TChunkPngBackgroundColor(Node.Data))
     else if TObject(Node.Data) is TChunkPngSuggestedPalette then
       DisplaySuggestedPaletteChunk(TChunkPngSuggestedPalette(Node.Data))
     else if TObject(Node.Data) is TChunkPngPrimaryChromaticities then
@@ -435,6 +551,10 @@ begin
     // eventually add PNG TimeChunk chunk
     if Assigned(FTimeChunk) then
       Items.AddChildObject(Items[0], 'tIME', FTimeChunk);
+
+    // eventually add PNG Significant Bits chunk
+    if Assigned(FSignificantBits) then
+      Items.AddChildObject(Items[0], 'sBIT', FSignificantBits);
 
     // eventually add PNG chroma chunk
     if Assigned(FChromaChunk) then

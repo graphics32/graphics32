@@ -363,8 +363,8 @@ type
   protected
     class function GetChunkSize: Cardinal; virtual; abstract;
   public
-    procedure LoadFromStream(Stream: TStream); virtual; abstract;
-    procedure SaveToStream(Stream: TStream); virtual; abstract;
+    procedure ReadFromStream(Stream: TStream); virtual; abstract;
+    procedure WriteToStream(Stream: TStream); virtual; abstract;
 
     property ChunkSize: Cardinal read GetChunkSize;
   end;
@@ -376,8 +376,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property GrayBits: Byte read FGrayBits write FGrayBits;
   end;
@@ -391,8 +391,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property RedBits: Byte read FRedBits write FRedBits;
     property BlueBits: Byte read FBlueBits write FBlueBits;
@@ -407,8 +407,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property GrayBits: Byte read FGrayBits write FGrayBits;
     property AlphaBits: Byte read FAlphaBits write FAlphaBits;
@@ -424,8 +424,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property RedBits: Byte read FRedBits write FRedBits;
     property BlueBits: Byte read FBlueBits write FBlueBits;
@@ -587,8 +587,8 @@ type
   protected
     function GetChunkSize: Cardinal; virtual; abstract;
   public
-    procedure LoadFromStream(Stream: TStream); virtual; abstract;
-    procedure SaveToStream(Stream: TStream); virtual; abstract;
+    procedure ReadFromStream(Stream: TStream); virtual; abstract;
+    procedure WriteToStream(Stream: TStream); virtual; abstract;
 
     property ChunkSize: Cardinal read GetChunkSize;
   end;
@@ -600,8 +600,8 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     function GetChunkSize: Cardinal; override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property GraySampleValue: Word read FGraySampleValue write FGraySampleValue;
   end;
@@ -615,8 +615,8 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     function GetChunkSize: Cardinal; override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property RedSampleValue: Word read FRedSampleValue write FRedSampleValue;
     property BlueSampleValue: Word read FBlueSampleValue write FBlueSampleValue;
@@ -632,8 +632,8 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     function GetChunkSize: Cardinal; override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property Count: Cardinal read GetCount;
     property Transparency[Index: Integer]: Byte read GetTransparency;
@@ -737,13 +737,18 @@ type
   end;
 
   TCustomChunkPngText = class(TCustomDefinedChunkWithHeader)
+  private
+    procedure SetKeyword(const Value: AnsiString);
+    procedure SetText(const Value: AnsiString);
   protected
     FKeyword : AnsiString;
     FText    : AnsiString;
     procedure AssignTo(Dest: TPersistent); override;
+    procedure KeywordChanged; virtual;
+    procedure TextChanged; virtual;
   public
-    property Keyword: AnsiString read FKeyword write FKeyword;
-    property Text: AnsiString read FText write FText;
+    property Keyword: AnsiString read FKeyword write SetKeyword;
+    property Text: AnsiString read FText write SetText;
   end;
 
   TChunkPngText = class(TCustomChunkPngText)
@@ -1945,7 +1950,7 @@ procedure TChunkPngTransparency.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
   if Assigned(FTransparency) then
-    FTransparency.LoadFromStream(Stream);
+    FTransparency.ReadFromStream(Stream);
 end;
 
 procedure TChunkPngTransparency.WriteToStream(Stream: TStream);
@@ -1964,7 +1969,7 @@ begin
   end;
 
   if Assigned(FTransparency) then
-    FTransparency.SaveToStream(Stream);
+    FTransparency.WriteToStream(Stream);
 end;
 
 
@@ -1986,14 +1991,14 @@ begin
   Result := 2;
 end;
 
-procedure TPngTransparencyFormat0.LoadFromStream(Stream: TStream);
+procedure TPngTransparencyFormat0.ReadFromStream(Stream: TStream);
 begin
   inherited;
 
   FGraySampleValue := ReadSwappedWord(Stream);
 end;
 
-procedure TPngTransparencyFormat0.SaveToStream(Stream: TStream);
+procedure TPngTransparencyFormat0.WriteToStream(Stream: TStream);
 begin
   inherited;
 
@@ -2021,7 +2026,7 @@ begin
   Result := 6;
 end;
 
-procedure TPngTransparencyFormat2.LoadFromStream(Stream: TStream);
+procedure TPngTransparencyFormat2.ReadFromStream(Stream: TStream);
 begin
   inherited;
 
@@ -2030,7 +2035,7 @@ begin
   FGreenSampleValue  := ReadSwappedWord(Stream);
 end;
 
-procedure TPngTransparencyFormat2.SaveToStream(Stream: TStream);
+procedure TPngTransparencyFormat2.WriteToStream(Stream: TStream);
 begin
   inherited;
 
@@ -2072,7 +2077,7 @@ begin
     raise EPngError.Create(RCStrIndexOutOfBounds);
 end;
 
-procedure TPngTransparencyFormat3.LoadFromStream(Stream: TStream);
+procedure TPngTransparencyFormat3.ReadFromStream(Stream: TStream);
 begin
   inherited;
 
@@ -2083,7 +2088,7 @@ begin
   end;
 end;
 
-procedure TPngTransparencyFormat3.SaveToStream(Stream: TStream);
+procedure TPngTransparencyFormat3.WriteToStream(Stream: TStream);
 begin
   inherited;
 
@@ -2350,6 +2355,35 @@ begin
    end
  else inherited;
 end;
+
+procedure TCustomChunkPngText.SetKeyword(const Value: AnsiString);
+begin
+  if FKeyword <> Value then
+  begin
+    FKeyword := Value;
+    KeywordChanged;
+  end;
+end;
+
+procedure TCustomChunkPngText.SetText(const Value: AnsiString);
+begin
+  if FText <> Value then
+  begin
+    FText := Value;
+    TextChanged;
+  end;
+end;
+
+procedure TCustomChunkPngText.KeywordChanged;
+begin
+  // yet empty
+end;
+
+procedure TCustomChunkPngText.TextChanged;
+begin
+  // yet empty
+end;
+
 
 { TChunkPngText }
 
@@ -3134,12 +3168,12 @@ begin
   Result := 1;
 end;
 
-procedure TPngSignificantBitsFormat0.LoadFromStream(Stream: TStream);
+procedure TPngSignificantBitsFormat0.ReadFromStream(Stream: TStream);
 begin
   Stream.Read(FGrayBits, 1);
 end;
 
-procedure TPngSignificantBitsFormat0.SaveToStream(Stream: TStream);
+procedure TPngSignificantBitsFormat0.WriteToStream(Stream: TStream);
 begin
   Stream.Write(FGrayBits, 1);
 end;
@@ -3165,14 +3199,14 @@ begin
   Result := 3;
 end;
 
-procedure TPngSignificantBitsFormat23.LoadFromStream(Stream: TStream);
+procedure TPngSignificantBitsFormat23.ReadFromStream(Stream: TStream);
 begin
   Stream.Read(FRedBits, 1);
   Stream.Read(FGreenBits, 1);
   Stream.Read(FBlueBits, 1);
 end;
 
-procedure TPngSignificantBitsFormat23.SaveToStream(Stream: TStream);
+procedure TPngSignificantBitsFormat23.WriteToStream(Stream: TStream);
 begin
   Stream.Write(FRedBits, 1);
   Stream.Write(FGreenBits, 1);
@@ -3199,13 +3233,13 @@ begin
   Result := 2;
 end;
 
-procedure TPngSignificantBitsFormat4.LoadFromStream(Stream: TStream);
+procedure TPngSignificantBitsFormat4.ReadFromStream(Stream: TStream);
 begin
   Stream.Read(FGrayBits, 1);
   Stream.Read(FAlphaBits, 1);
 end;
 
-procedure TPngSignificantBitsFormat4.SaveToStream(Stream: TStream);
+procedure TPngSignificantBitsFormat4.WriteToStream(Stream: TStream);
 begin
   Stream.Write(FGrayBits, 1);
   Stream.Write(FAlphaBits, 1);
@@ -3233,7 +3267,7 @@ begin
   Result := 4;
 end;
 
-procedure TPngSignificantBitsFormat6.LoadFromStream(Stream: TStream);
+procedure TPngSignificantBitsFormat6.ReadFromStream(Stream: TStream);
 begin
   Stream.Read(FRedBits, 1);
   Stream.Read(FGreenBits, 1);
@@ -3241,7 +3275,7 @@ begin
   Stream.Read(FAlphaBits, 1);
 end;
 
-procedure TPngSignificantBitsFormat6.SaveToStream(Stream: TStream);
+procedure TPngSignificantBitsFormat6.WriteToStream(Stream: TStream);
 begin
   Stream.Write(FRedBits, 1);
   Stream.Write(FGreenBits, 1);
@@ -3366,14 +3400,14 @@ begin
     if Stream.Size < FSignificantBits.ChunkSize then
       raise EPngError.Create(RCStrChunkSizeTooSmall);
 
-    FSignificantBits.LoadFromStream(Stream);
+    FSignificantBits.ReadFromStream(Stream);
   end;
 end;
 
 procedure TChunkPngSignificantBits.WriteToStream(Stream: TStream);
 begin
   if Assigned(FSignificantBits) then
-    FSignificantBits.SaveToStream(Stream);
+    FSignificantBits.WriteToStream(Stream);
 end;
 
 
@@ -5916,7 +5950,7 @@ initialization
   RegisterPngChunks([TChunkPngImageData, TChunkPngPalette, TChunkPngGamma,
     TChunkPngStandardColorSpaceRGB, TChunkPngPrimaryChromaticities,
     TChunkPngTime, TChunkPngTransparency, TChunkPngEmbeddedIccProfile,
-    TChunkPngPhysicalPixelDimensions, TChunkPngText, // TChunkPngSuggestedPalette,
+    TChunkPngPhysicalPixelDimensions, TChunkPngText, //TChunkPngSuggestedPalette,
     TChunkPngCompressedText, TChunkPngInternationalText,
     TChunkPngImageHistogram, TChunkPngBackgroundColor,
     TChunkPngSignificantBits, TChunkPngImageOffset, TChunkPngPixelCalibrator]);
