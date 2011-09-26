@@ -1,4 +1,4 @@
-object FmTTF: TFmTTF
+object FmPngExplorer: TFmPngExplorer
   Left = 309
   Top = 95
   Caption = 'PNG Explorer'
@@ -238,8 +238,9 @@ object FmTTF: TFmTTF
     object AcFileOpen: TFileOpen
       Category = 'File'
       Caption = '&Open...'
-      Dialog.Filter = 'TrueType PNG (*.ttf)|*.ttf'
-      Dialog.Title = 'Select a TrueType PNG File'
+      Dialog.DefaultExt = '.png'
+      Dialog.Filter = 'PNG (*.png)|*.png'
+      Dialog.Title = 'Select a PNG File'
       Hint = 'Open|Open an existing document'
       ImageIndex = 1
       ShortCut = 16463
@@ -276,7 +277,9 @@ object FmTTF: TFmTTF
     object AcFileSaveAs: TFileSaveAs
       Category = 'File'
       Caption = 'Save &as...'
-      Hint = 'Save as|Saves the opened PNG under a new name'
+      Dialog.DefaultExt = '.png'
+      Dialog.Filter = 'PNG (*.png)|*.png'
+      Hint = 'Save as|Saves the PNG file under a new name'
       ImageIndex = 15
     end
     object AcFileExit: TFileExit
@@ -290,7 +293,7 @@ object FmTTF: TFmTTF
     Left = 144
     Top = 32
     Bitmap = {
-      494C010111001400140010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010111001800180010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000005000000001002000000000000050
       0000000000000000000000000000000000008484840084848400848484008484
       8400848484008484840084848400848484008484840084848400FFFFFF00C6C6

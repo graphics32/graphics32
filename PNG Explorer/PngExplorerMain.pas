@@ -10,7 +10,7 @@ uses
 type
   TMyPortableNetworkGraphic = class(TPortableNetworkGraphic32);
 
-  TFmTTF = class(TForm)
+  TFmPngExplorer = class(TForm)
     AcEditCopy: TEditCopy;
     AcEditCut: TEditCut;
     AcEditPaste: TEditPaste;
@@ -79,6 +79,8 @@ type
     procedure DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
     procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
     procedure DisplayTextChunk(TextChunk: TChunkPngText);
+    procedure DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
+    procedure DisplayHistogramChunk(HistogramChunk: TChunkPngImageHistogram);
     procedure DisplayTimeChunk(TimeChunk: TChunkPngTime);
   public
     procedure LoadFromFile(Filename: TFileName);
@@ -86,7 +88,7 @@ type
   end;
 
 var
-  FmTTF: TFmTTF;
+  FmPngExplorer: TFmPngExplorer;
 
 implementation
 
@@ -95,31 +97,31 @@ implementation
 uses
   Inifiles, Math, Types;
 
-procedure TFmTTF.FormCreate(Sender: TObject);
+procedure TFmPngExplorer.FormCreate(Sender: TObject);
 begin
   Application.OnHint := ShowHint;
   FPngFile := TMyPortableNetworkGraphic.Create;
 end;
 
-procedure TFmTTF.FormDestroy(Sender: TObject);
+procedure TFmPngExplorer.FormDestroy(Sender: TObject);
 begin
   // free png file
   FreeAndNil(FPngFile);
 end;
 
-procedure TFmTTF.FormShow(Sender: TObject);
+procedure TFmPngExplorer.FormShow(Sender: TObject);
 begin
   if FileExists(ParamStr(1)) then
     LoadFromFile(ParamStr(1));
 end;
 
-procedure TFmTTF.InitializeDefaultListView;
+procedure TFmPngExplorer.InitializeDefaultListView;
 begin
   // add columns
   ListViewColumns(['Name', 'Value']);
 end;
 
-procedure TFmTTF.ListViewColumns(Columns: array of string);
+procedure TFmPngExplorer.ListViewColumns(Columns: array of string);
 var
   ColumnIndex : Integer;
 begin
@@ -140,7 +142,7 @@ begin
     end;
 end;
 
-procedure TFmTTF.ListViewData(Strings: array of string);
+procedure TFmPngExplorer.ListViewData(Strings: array of string);
 var
   ValueIndex : Integer;
 begin
@@ -153,7 +155,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.ShowHint(Sender: TObject);
+procedure TFmPngExplorer.ShowHint(Sender: TObject);
 begin
   if Length(Application.Hint) > 0 then
   begin
@@ -164,24 +166,24 @@ begin
     StatusBar.SimplePanel := False;
 end;
 
-procedure TFmTTF.AcFileOpenAccept(Sender: TObject);
+procedure TFmPngExplorer.AcFileOpenAccept(Sender: TObject);
 begin
   LoadFromFile(AcFileOpen.Dialog.Filename);
 end;
 
-procedure TFmTTF.MIStatusBarClick(Sender: TObject);
+procedure TFmPngExplorer.MIStatusBarClick(Sender: TObject);
 begin
   MIStatusBar.Checked := not MIStatusBar.Checked;
   StatusBar.Visible := MIStatusBar.Checked;
 end;
 
-procedure TFmTTF.MIToolbarClick(Sender: TObject);
+procedure TFmPngExplorer.MIToolbarClick(Sender: TObject);
 begin
   MIToolbar.Checked := not MIToolbar.Checked;
   CoolBar.Visible := MIToolbar.Checked;
 end;
 
-procedure TFmTTF.DisplayHeaderChunk(HeaderChunk: TChunkPngImageHeader);
+procedure TFmPngExplorer.DisplayHeaderChunk(HeaderChunk: TChunkPngImageHeader);
 begin
   with HeaderChunk do
   begin
@@ -199,19 +201,26 @@ begin
   end;
 end;
 
-procedure TFmTTF.DisplayPaletteChunk(PaletteChunk: TChunkPngPalette);
+procedure TFmPngExplorer.DisplayPaletteChunk(PaletteChunk: TChunkPngPalette);
+var
+  Index : Integer;
 begin
   with PaletteChunk do
   begin
     InitializeDefaultListView;
 
-    ListViewData(['Palette Entries', IntToStr(Count)]);
+    ListViewColumns(['Index', 'Color']);
+
+    for Index := 0 to Count - 1 do
+      with PaletteEntry[Index] do
+        ListViewData([IntToStr(Index), '#' + IntToHex(
+          Integer(R shl 16 + G shl 8 + B), 6)]);
 
     ListView.BringToFront;
   end;
 end;
 
-procedure TFmTTF.DisplayGammaChunk(GammaChunk: TChunkPngGamma);
+procedure TFmPngExplorer.DisplayGammaChunk(GammaChunk: TChunkPngGamma);
 begin
   with GammaChunk do
   begin
@@ -223,7 +232,36 @@ begin
   end;
 end;
 
-procedure TFmTTF.DisplayTextChunk(TextChunk: TChunkPngText);
+procedure TFmPngExplorer.DisplayHistogramChunk(HistogramChunk: TChunkPngImageHistogram);
+var
+  Index : Integer;
+begin
+  with HistogramChunk do
+  begin
+    ListViewColumns(['Index', 'Frequency']);
+
+    for Index := 0 to Count - 1 do
+      ListViewData([IntToStr(Index), IntToStr(Frequency[Index])]);
+
+    ListView.BringToFront;
+  end;
+end;
+
+procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
+var
+  Index : Integer;
+begin
+  with SuggestedPaletteChunk do
+  begin
+    InitializeDefaultListView;
+
+//    ListViewData(['Palette Entries', IntToStr(Count)]);
+
+    ListView.BringToFront;
+  end;
+end;
+
+procedure TFmPngExplorer.DisplayTextChunk(TextChunk: TChunkPngText);
 begin
   with TextChunk do
   begin
@@ -235,7 +273,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.DisplayTimeChunk(TimeChunk: TChunkPngTime);
+procedure TFmPngExplorer.DisplayTimeChunk(TimeChunk: TChunkPngTime);
 begin
   with TimeChunk do
   begin
@@ -247,7 +285,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
+procedure TFmPngExplorer.DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
 begin
   with SignificantBitsChunk do
   begin
@@ -259,7 +297,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
+procedure TFmPngExplorer.DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
 begin
   with PhysicalDimensionsChunk do
   begin
@@ -271,7 +309,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.DisplayChromaticitiesChunk(ChromaChunk: TChunkPngPrimaryChromaticities);
+procedure TFmPngExplorer.DisplayChromaticitiesChunk(ChromaChunk: TChunkPngPrimaryChromaticities);
 begin
   with ChromaChunk do
   begin
@@ -290,7 +328,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.TreeViewMouseMove(Sender: TObject; Shift: TShiftState; X,
+procedure TFmPngExplorer.TreeViewMouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
 var
   MouseOverNode : TTreeNode;
@@ -318,7 +356,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.TreeViewChange(Sender: TObject; Node: TTreeNode);
+procedure TFmPngExplorer.TreeViewChange(Sender: TObject; Node: TTreeNode);
 begin
   Node.Expanded := True;
 
@@ -340,6 +378,10 @@ begin
       DisplayTimeChunk(TChunkPngTime(Node.Data))
     else if TObject(Node.Data) is TChunkPngText then
       DisplayTextChunk(TChunkPngText(Node.Data))
+    else if TObject(Node.Data) is TChunkPngImageHistogram then
+      DisplayHistogramChunk(TChunkPngImageHistogram(Node.Data))
+    else if TObject(Node.Data) is TChunkPngSuggestedPalette then
+      DisplaySuggestedPaletteChunk(TChunkPngSuggestedPalette(Node.Data))
     else if TObject(Node.Data) is TChunkPngPrimaryChromaticities then
       DisplayChromaticitiesChunk(TChunkPngPrimaryChromaticities(Node.Data))
     else if TObject(Node.Data) is TChunkPngPhysicalPixelDimensions then
@@ -370,7 +412,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.PNGChanged;
+procedure TFmPngExplorer.PNGChanged;
 var
   Index : Integer;
 begin
@@ -418,7 +460,7 @@ begin
   end;
 end;
 
-procedure TFmTTF.LoadFromFile(Filename: TFileName);
+procedure TFmPngExplorer.LoadFromFile(Filename: TFileName);
 var
   Start, Stop, Freq : Int64;
   MemoryFileStream  : TMemoryStream;
@@ -489,7 +531,7 @@ begin
  else raise Exception.Create('File does not exists');
 end;
 
-procedure TFmTTF.LoadFromStream(Stream: TStream);
+procedure TFmPngExplorer.LoadFromStream(Stream: TStream);
 var
   Start, Stop, Freq : Int64;
 begin

@@ -211,8 +211,8 @@ type
   private
     FPaletteEntries : array of TRGB24;
     function GetPaletteEntry(Index: Integer): TRGB24;
-    function GetCount: Integer;
-    procedure SetCount(const Value: Integer);
+    function GetCount: Cardinal;
+    procedure SetCount(const Value: Cardinal);
     procedure SetPaletteEntry(Index: Integer; const Value: TRGB24);
   protected
     procedure AssignTo(Dest: TPersistent); override;
@@ -224,7 +224,7 @@ type
     procedure WriteToStream(Stream: TStream); override;
 
     property PaletteEntry[Index: Integer]: TRGB24 read GetPaletteEntry write SetPaletteEntry; default;
-    property Count: Integer read GetCount write SetCount;
+    property Count: Cardinal read GetCount write SetCount;
   end;
 
   TChunkPngGamma = class(TCustomDefinedChunkWithHeader)
@@ -457,8 +457,8 @@ type
   protected
     class function GetChunkSize: Cardinal; virtual; abstract;
   public
-    procedure LoadFromStream(Stream: TStream); virtual; abstract;
-    procedure SaveToStream(Stream: TStream); virtual; abstract;
+    procedure ReadFromStream(Stream: TStream); virtual; abstract;
+    procedure WriteToStream(Stream: TStream); virtual; abstract;
 
     property ChunkSize: Cardinal read GetChunkSize;
   end;
@@ -470,8 +470,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property GraySampleValue: Word read FGraySampleValue write FGraySampleValue;
   end;
@@ -485,8 +485,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property RedSampleValue: Word read FRedSampleValue write FRedSampleValue;
     property BlueSampleValue: Word read FBlueSampleValue write FBlueSampleValue;
@@ -500,8 +500,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    procedure LoadFromStream(Stream: TStream); override;
-    procedure SaveToStream(Stream: TStream); override;
+    procedure ReadFromStream(Stream: TStream); override;
+    procedure WriteToStream(Stream: TStream); override;
 
     property PaletteIndex: Byte read FIndex write FIndex;
   end;
@@ -527,21 +527,60 @@ type
   end;
 
   TChunkPngImageHistogram = class(TCustomDefinedChunkWithHeader)
+  private
+    FHistogram : array of Word;
+    function GetCount: Cardinal;
+    function GetFrequency(Index: Integer): Word;
   protected
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
+
+    property Count: Cardinal read GetCount;
+    property Frequency[Index: Integer]: Word read GetFrequency;
   end;
 
+  TSuggestedPalette8ByteEntry = record
+    Red       : Byte;
+    Green     : Byte;
+    Blue      : Byte;
+    Alpha     : Byte;
+    Frequency : Word;
+  end;
+  PSuggestedPalette8ByteEntry = ^TSuggestedPalette8ByteEntry;
+  TSuggestedPalette8ByteArray = array [0..0] of TSuggestedPalette8ByteEntry;
+  PSuggestedPalette8ByteArray = ^TSuggestedPalette8ByteArray;
+
+  TSuggestedPalette16ByteEntry = record
+    Red       : Word;
+    Green     : Word;
+    Blue      : Word;
+    Alpha     : Word;
+    Frequency : Word;
+  end;
+  PSuggestedPalette16ByteEntry = ^TSuggestedPalette16ByteEntry;
+  TSuggestedPalette16ByteArray = array [0..0] of TSuggestedPalette16ByteEntry;
+  PSuggestedPalette16ByteArray = ^TSuggestedPalette16ByteArray;
+
   TChunkPngSuggestedPalette = class(TCustomDefinedChunkWithHeader)
+  private
+    FPaletteName : AnsiString;
+    FData        : Pointer;
+    FCount       : Integer;
+    FSampleDepth : Byte;
+    function GetCount: Cardinal;
   protected
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
   public
+    constructor Create(Header: TChunkPngImageHeader); override;
+
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
+
+    property Count: Cardinal read GetCount;
   end;
 
   TCustomPngTransparency = class(TPersistent)
@@ -586,7 +625,7 @@ type
 
   TPngTransparencyFormat3 = class(TCustomPngTransparency)
   private
-    function GetCount: Integer;
+    function GetCount: Cardinal;
     function GetTransparency(Index: Integer): Byte;
   protected
     FTransparency : array of Byte;
@@ -596,7 +635,7 @@ type
     procedure LoadFromStream(Stream: TStream); override;
     procedure SaveToStream(Stream: TStream); override;
 
-    property Count: Integer read GetCount;
+    property Count: Cardinal read GetCount;
     property Transparency[Index: Integer]: Byte read GetTransparency;
   end;
 
@@ -778,7 +817,7 @@ type
   TChunkList = class(TPersistent)
   private
     FChunks : array of TCustomChunk;
-    function GetCount: Integer;
+    function GetCount: Cardinal;
   protected
     function GetChunk(Index: Integer): TCustomChunk;
     procedure AssignTo(Dest: TPersistent); override;
@@ -791,7 +830,7 @@ type
     function IndexOf(Item: TCustomChunk): Integer;
     procedure Remove(Item: TCustomChunk);
 
-    property Count: Integer read GetCount;
+    property Count: Cardinal read GetCount;
     property Chunks[Index: Integer]: TCustomChunk read GetChunk; default;
   end;
 
@@ -1763,7 +1802,7 @@ begin
     raise EPngError.Create(RCStrIndexOutOfBounds);
 end;
 
-function TChunkPngPalette.GetCount: Integer;
+function TChunkPngPalette.GetCount: Cardinal;
 begin
   Result := Length(FPaletteEntries);
 end;
@@ -1796,7 +1835,7 @@ begin
   // nothing todo here yet
 end;
 
-procedure TChunkPngPalette.SetCount(const Value: Integer);
+procedure TChunkPngPalette.SetCount(const Value: Cardinal);
 begin
   if Value > 256 then
     raise EPngError.Create(RCStrPaletteLimited);
@@ -2020,7 +2059,7 @@ begin
   Result := Count;
 end;
 
-function TPngTransparencyFormat3.GetCount: Integer;
+function TPngTransparencyFormat3.GetCount: Cardinal;
 begin
   Result := Length(FTransparency);
 end;
@@ -3356,12 +3395,12 @@ begin
   Result := 2;
 end;
 
-procedure TPngBackgroundColorFormat04.LoadFromStream(Stream: TStream);
+procedure TPngBackgroundColorFormat04.ReadFromStream(Stream: TStream);
 begin
   FGraySampleValue := ReadSwappedWord(Stream);
 end;
 
-procedure TPngBackgroundColorFormat04.SaveToStream(Stream: TStream);
+procedure TPngBackgroundColorFormat04.WriteToStream(Stream: TStream);
 begin
   WriteSwappedWord(Stream, FGraySampleValue);
 end;
@@ -3387,14 +3426,14 @@ begin
   Result := 6;
 end;
 
-procedure TPngBackgroundColorFormat26.LoadFromStream(Stream: TStream);
+procedure TPngBackgroundColorFormat26.ReadFromStream(Stream: TStream);
 begin
   FRedSampleValue := ReadSwappedWord(Stream);
   FGreenSampleValue := ReadSwappedWord(Stream);
   FBlueSampleValue := ReadSwappedWord(Stream);
 end;
 
-procedure TPngBackgroundColorFormat26.SaveToStream(Stream: TStream);
+procedure TPngBackgroundColorFormat26.WriteToStream(Stream: TStream);
 begin
   WriteSwappedWord(Stream, FRedSampleValue);
   WriteSwappedWord(Stream, FGreenSampleValue);
@@ -3420,12 +3459,12 @@ begin
   Result := 1;
 end;
 
-procedure TPngBackgroundColorFormat3.LoadFromStream(Stream: TStream);
+procedure TPngBackgroundColorFormat3.ReadFromStream(Stream: TStream);
 begin
   Stream.Read(FIndex, 1);
 end;
 
-procedure TPngBackgroundColorFormat3.SaveToStream(Stream: TStream);
+procedure TPngBackgroundColorFormat3.WriteToStream(Stream: TStream);
 begin
   Stream.Write(FIndex, 1);
 end;
@@ -3532,13 +3571,15 @@ begin
   begin
     if Stream.Size < FBackground.ChunkSize then
       raise EPngError.Create(RCStrChunkSizeTooSmall);
+
+    FBackground.ReadFromStream(Stream);
   end;
 end;
 
 procedure TChunkPngBackgroundColor.WriteToStream(Stream: TStream);
 begin
   if Assigned(FBackground) then
-    FBackground.SaveToStream(Stream);
+    FBackground.WriteToStream(Stream);
 end;
 
 
@@ -3549,45 +3590,129 @@ begin
   Result := 'hIST';
 end;
 
+function TChunkPngImageHistogram.GetCount: Cardinal;
+begin
+  Result := Length(FHistogram);
+end;
+
+function TChunkPngImageHistogram.GetFrequency(Index: Integer): Word;
+begin
+  if (Index >= 0) and (Index < Count) then
+    Result := FHistogram[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
 function TChunkPngImageHistogram.GetChunkSize: Cardinal;
 begin
-  Result := 0;
+  Result := Count * SizeOf(Word);
 end;
 
 procedure TChunkPngImageHistogram.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
+var
+  Index : Integer;
 begin
-  Stream.Seek(soFromCurrent, ChunkSize);
+  // check size
+  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+    raise EPngError.Create(RCStrChunkSizeTooSmall);
 
-  // yet todo
+  // adjust histogram array size
+  SetLength(FHistogram, ChunkSize div 2);
+
+  // read histogram data
+  for Index := 0 to Length(FHistogram) - 1 do
+    FHistogram[Index] := ReadSwappedWord(Stream);
 end;
 
 procedure TChunkPngImageHistogram.WriteToStream(Stream: TStream);
+var
+  Index : Integer;
 begin
-  inherited;
-
-  raise EPngError.Create(RCStrNotYetImplemented);
-  // yet todo
+  // write histogram data
+  for Index := 0 to Length(FHistogram) - 1 do
+    WriteSwappedWord(Stream, FHistogram[Index]);
 end;
 
 
 { TChunkPngSuggestedPalette }
+
+constructor TChunkPngSuggestedPalette.Create(Header: TChunkPngImageHeader);
+begin
+  inherited;
+  FData := nil;
+  FCount := 0;
+end;
 
 class function TChunkPngSuggestedPalette.GetClassChunkName: TChunkName;
 begin
   Result := 'sPLT';
 end;
 
+function TChunkPngSuggestedPalette.GetCount: Cardinal;
+begin
+  Result := FCount;
+end;
+
 function TChunkPngSuggestedPalette.GetChunkSize: Cardinal;
 begin
-  Result := 0;
+  Result := Length(FPaletteName) + 2 + (4 * (FSampleDepth shr 3) + 2) * Count;
 end;
 
 procedure TChunkPngSuggestedPalette.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
+var
+  Index      : Integer;
+  DataSize   : Integer;
 begin
-  Stream.Seek(soFromCurrent, ChunkSize);
+  with Stream do
+  begin
+    if (ChunkSize > Size) or (GetChunkSize > ChunkSize) then
+      raise EPngError.Create(RCStrChunkSizeTooSmall);
 
-  // yet todo
+    // read palette name
+    Index := 1;
+    SetLength(FPaletteName, 80);
+    while (Position < ChunkSize) do
+    begin
+      Read(FPaletteName[Index], SizeOf(Byte));
+      if FPaletteName[Index] = #0 then
+      begin
+        SetLength(FPaletteName, Index - 1);
+        Break;
+      end;
+      Inc(Index);
+    end;
+
+    // read sample depth
+    Read(FSampleDepth, 1);
+
+    DataSize := (ChunkSize - Length(FPaletteName) - 2);
+    Assert(DataSize mod 2 = 0);
+    Assert(DataSize mod (4 * (FSampleDepth shr 3) + 2) = 0);
+    FCount := DataSize div (4 * (FSampleDepth shr 3) + 2);
+    ReallocMem(FData, ChunkSize - Length(FPaletteName) - 2);
+
+    if FSampleDepth = 8 then
+      for Index := 0 to FCount - 1 do
+        with PSuggestedPalette8ByteArray(FData)^[Index] do
+        begin
+          Read(Red, 1);
+          Read(Green, 1);
+          Read(Blue, 1);
+          Read(Alpha, 1);
+          Frequency := ReadSwappedWord(Stream);
+        end
+    else if FSampleDepth = 16 then
+      for Index := 0 to FCount - 1 do
+        with PSuggestedPalette16ByteArray(FData)^[Index] do
+        begin
+          Red := ReadSwappedWord(Stream);
+          Green := ReadSwappedWord(Stream);
+          Blue := ReadSwappedWord(Stream);
+          Alpha := ReadSwappedWord(Stream);
+          Frequency := ReadSwappedWord(Stream);
+        end;
+  end;
 end;
 
 procedure TChunkPngSuggestedPalette.WriteToStream(Stream: TStream);
@@ -3663,7 +3788,7 @@ begin
     Result := FChunks[Index];
 end;
 
-function TChunkList.GetCount: Integer;
+function TChunkList.GetCount: Cardinal;
 begin
   Result := Length(FChunks);
 end;
@@ -4797,22 +4922,6 @@ begin
           Break;
         end;
 
-  (*
-        {$IFNDEF LinearStream}
-        // reset position to the chunk start and copy stream to memory
-        Seek(-8, soCurrent);
-        {$ENDIF}
-        MemoryStream.Clear;
-
-        {$IFDEF LinearStream}
-        WriteSwappedCardinal(MemoryStream, ChunkSize);
-        MemoryStream.Write(ChunkName, 4);
-        MemoryStream.CopyFrom(Stream, ChunkSize);
-        {$ELSE}
-        MemoryStream.CopyFrom(Stream, ChunkSize + 8);
-        {$ENDIF}
-  *)
-
         // reset position to the chunk start and copy stream to memory
         Seek(-4, soCurrent);
         MemoryStream.Clear;
@@ -5807,7 +5916,7 @@ initialization
   RegisterPngChunks([TChunkPngImageData, TChunkPngPalette, TChunkPngGamma,
     TChunkPngStandardColorSpaceRGB, TChunkPngPrimaryChromaticities,
     TChunkPngTime, TChunkPngTransparency, TChunkPngEmbeddedIccProfile,
-    TChunkPngPhysicalPixelDimensions, TChunkPngText,
+    TChunkPngPhysicalPixelDimensions, TChunkPngText, // TChunkPngSuggestedPalette,
     TChunkPngCompressedText, TChunkPngInternationalText,
     TChunkPngImageHistogram, TChunkPngBackgroundColor,
     TChunkPngSignificantBits, TChunkPngImageOffset, TChunkPngPixelCalibrator]);
