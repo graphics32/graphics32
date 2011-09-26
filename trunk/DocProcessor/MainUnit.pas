@@ -27,7 +27,6 @@ type
     Panel8: TPanel;
     Label9: TLabel;
     edCHMCompiler: TEdit;
-    cbCompileOnProcess: TCheckBox;
     Panel9: TPanel;
     edVersionString: TEdit;
     Label8: TLabel;
@@ -47,8 +46,12 @@ type
     bTransform: TButton;
     bCompile: TButton;
     cbOpenAfterProcess: TCheckBox;
-    bOpen: TButton;
+    cbIncludeAlphabetClasses: TCheckBox;
+    Panel12: TPanel;
+    Panel13: TPanel;
     bParseMissing: TButton;
+    bOpen: TButton;
+    bClose: TButton;
     procedure edProjectDirectoryChange(Sender: TObject);
     procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -57,6 +60,9 @@ type
     procedure bCompileClick(Sender: TObject);
     procedure bOpenClick(Sender: TObject);
     procedure bParseMissingClick(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure LogKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   public
     ProjectDir: string;
     SourceDir: string;
@@ -202,14 +208,22 @@ begin
   end;
 end;
 
+procedure TMainForm.bCloseClick(Sender: TObject);
+begin
+  close;
+end;
+
+procedure TMainForm.LogKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if (key = 27) then close; //close on escape
+end;
+
 procedure TMainForm.bProcessClick(Sender: TObject);
 begin
   StartTransforming;
-  if cbCompileOnProcess.Checked then
-  begin
-    LogAdd(#13#10);
-    StartCompile;
-  end;
+  LogAdd(#13#10);
+  StartCompile;
 end;
 
 procedure TMainForm.StartCompile;
@@ -242,6 +256,8 @@ begin
   StyleFile := ProjectDir + 'Styles\Default.css';
 
   CompileTime := GetTickCount;
+
+  DocStructure.IncludeAlphabetClasses := cbIncludeAlphabetClasses.Checked;
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
     Project.DisplayName := edProjectTitle.Text;
