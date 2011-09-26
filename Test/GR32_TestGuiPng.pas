@@ -493,6 +493,7 @@ begin
      OriginalStream.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
      OriginalStream.Seek(0, soFromBeginning);
      FPortableNetworkGraphic.LoadFromStream(OriginalStream);
+     FPortableNetworkGraphic.SaveToFile('Test.png');
      FPortableNetworkGraphic.SaveToStream(TempStream);
      TempStream.Seek(0, soFromBeginning);
      FPortableNetworkGraphic.LoadFromStream(TempStream);

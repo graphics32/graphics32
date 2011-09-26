@@ -110,11 +110,13 @@ type
   TCustomChunk = class(TPersistent)
   protected
     function GetChunkNameAsString: AnsiString; virtual; abstract;
+    function GetChunkName: TChunkName; virtual; abstract;
     function GetChunkSize: Cardinal; virtual; abstract;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); virtual; abstract;
     procedure WriteToStream(Stream: TStream); virtual; abstract;
 
+    property ChunkName: TChunkName read GetChunkName;
     property ChunkNameAsString: AnsiString read GetChunkNameAsString;
     property ChunkSize: Cardinal read GetChunkSize;
   end;
@@ -122,9 +124,10 @@ type
   TCustomDefinedChunk = class(TCustomChunk)
   protected
     function GetChunkNameAsString: AnsiString; override;
-    class function GetChunkName: TChunkName; virtual; abstract;
+    function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; virtual; abstract;
   public
-    property ChunkName: TChunkName read GetChunkName;
+    property ChunkName: TChunkName read GetClassChunkName;
   end;
 
   TCustomDefinedChunkClass = class of TCustomDefinedChunk;
@@ -146,7 +149,7 @@ type
     procedure SetFilterMethod(const Value: TFilterMethod);
     procedure SetAdaptiveFilterMethods(const Value: TAvailableAdaptiveFilterMethods);
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -190,7 +193,7 @@ type
   private
     FData : TMemoryStream;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -213,7 +216,7 @@ type
     procedure SetPaletteEntry(Index: Integer; const Value: TRGB24);
   protected
     procedure AssignTo(Dest: TPersistent); override;
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
     procedure PaletteEntriesChanged; virtual;
   public
@@ -230,7 +233,7 @@ type
     function GetGammaAsSingle: Single;
     procedure SetGammaAsSingle(const Value: Single);
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -246,7 +249,7 @@ type
   private
     FRenderingIntent : Byte;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -284,7 +287,7 @@ type
     procedure SetWhiteX(const Value: Single);
     procedure SetWhiteY(const Value: Single);
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -322,7 +325,7 @@ type
     function GetModifiedDateTime: TDateTime;
     procedure SetModifiedDateTime(const Value: TDateTime);
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -344,7 +347,7 @@ type
     FProfileName       : AnsiString;
     FCompressionMethod : Byte;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -434,7 +437,7 @@ type
   private
     FSignificantBits : TCustomPngSignificantBits;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -507,7 +510,7 @@ type
   private
     FBackground : TCustomPngBackgroundColor;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -525,7 +528,7 @@ type
 
   TChunkPngImageHistogram = class(TCustomDefinedChunkWithHeader)
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
@@ -534,7 +537,7 @@ type
 
   TChunkPngSuggestedPalette = class(TCustomDefinedChunkWithHeader)
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
@@ -600,7 +603,7 @@ type
   TChunkPngTransparency = class(TCustomDefinedChunkWithHeader)
   protected
     FTransparency : TCustomPngTransparency;
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -621,7 +624,7 @@ type
     FPixelsPerUnitY : Cardinal;
     FUnit           : Byte;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -640,7 +643,7 @@ type
     FUnitsPerPixelX : Single;
     FUnitsPerPixelY : Single;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -659,7 +662,7 @@ type
     FImagePositionY : Integer;
     FUnitSpecifier  : Byte;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -679,7 +682,7 @@ type
     FNumberOfParams : Byte;
     FUnitName       : AnsiString;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -706,7 +709,7 @@ type
 
   TChunkPngText = class(TCustomChunkPngText)
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
@@ -717,7 +720,7 @@ type
   private
     FCompressionMethod : Byte;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -735,7 +738,7 @@ type
     FLanguageString    : AnsiString;
     FTranslatedKeyword : string;
   protected
-    class function GetChunkName: TChunkName; override;
+    class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
 
     procedure AssignTo(Dest: TPersistent); override;
@@ -756,6 +759,7 @@ type
   protected
     FChunkName  : TChunkName;
     FDataStream : TMemoryStream;
+    function GetChunkName: TChunkName; override;
     function GetChunkNameAsString: AnsiString; override;
     function GetChunkSize: Cardinal; override;
     function CalculateChecksum: Integer;
@@ -1093,7 +1097,7 @@ var
 begin
   Result := nil;
   for ChunkClassIndex := 0 to Length(GPngChunkClasses) - 1 do
-    if GPngChunkClasses[ChunkClassIndex].GetChunkName = ChunkName then
+    if GPngChunkClasses[ChunkClassIndex].GetClassChunkName = ChunkName then
     begin
       Result := GPngChunkClasses[ChunkClassIndex];
       Exit;
@@ -1388,9 +1392,14 @@ end;
 
 { TCustomDefinedChunk }
 
+function TCustomDefinedChunk.GetChunkName: TChunkName;
+begin
+  Result := GetClassChunkName;
+end;
+
 function TCustomDefinedChunk.GetChunkNameAsString: AnsiString;
 begin
-  Result := AnsiString(GetChunkName);
+  Result := AnsiString(GetClassChunkName);
 end;
 
 
@@ -1453,6 +1462,11 @@ begin
 end;
 
 function TChunkPngUnknown.GetChunkNameAsString: AnsiString;
+begin
+  Result := FChunkName;
+end;
+
+function TChunkPngUnknown.GetChunkName: TChunkName;
 begin
   Result := FChunkName;
 end;
@@ -1537,7 +1551,7 @@ begin
   end;
 end;
 
-class function TChunkPngImageHeader.GetChunkName: TChunkName;
+class function TChunkPngImageHeader.GetClassChunkName: TChunkName;
 begin
   Result := 'IHDR';
 end;
@@ -1728,7 +1742,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngPalette.GetChunkName: TChunkName;
+class function TChunkPngPalette.GetClassChunkName: TChunkName;
 begin
   Result := 'PLTE';
 end;
@@ -1828,7 +1842,7 @@ begin
   inherited;
 end;
 
-class function TChunkPngTransparency.GetChunkName: TChunkName;
+class function TChunkPngTransparency.GetClassChunkName: TChunkName;
 begin
   Result := 'tRNS';
 end;
@@ -2053,7 +2067,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngPhysicalPixelDimensions.GetChunkName: TChunkName;
+class function TChunkPngPhysicalPixelDimensions.GetClassChunkName: TChunkName;
 begin
   Result := 'pHYs';
 end;
@@ -2113,7 +2127,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngPhysicalScale.GetChunkName: TChunkName;
+class function TChunkPngPhysicalScale.GetClassChunkName: TChunkName;
 begin
   Result := 'sCAL';
 end;
@@ -2160,7 +2174,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngImageOffset.GetChunkName: TChunkName;
+class function TChunkPngImageOffset.GetClassChunkName: TChunkName;
 begin
   Result := 'oFFs';
 end;
@@ -2215,7 +2229,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngPixelCalibrator.GetChunkName: TChunkName;
+class function TChunkPngPixelCalibrator.GetClassChunkName: TChunkName;
 begin
   Result := 'pCAL';
 end;
@@ -2300,7 +2314,7 @@ end;
 
 { TChunkPngText }
 
-class function TChunkPngText.GetChunkName: TChunkName;
+class function TChunkPngText.GetClassChunkName: TChunkName;
 begin
   Result := 'tEXt';
 end;
@@ -2374,7 +2388,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngCompressedText.GetChunkName: TChunkName;
+class function TChunkPngCompressedText.GetClassChunkName: TChunkName;
 begin
   Result := 'zTXt';
 end;
@@ -2497,7 +2511,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngInternationalText.GetChunkName: TChunkName;
+class function TChunkPngInternationalText.GetClassChunkName: TChunkName;
 begin
   Result := 'iTXt';
 end;
@@ -2589,7 +2603,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngImageData.GetChunkName: TChunkName;
+class function TChunkPngImageData.GetClassChunkName: TChunkName;
 begin
   Result := 'IDAT';
 end;
@@ -2631,7 +2645,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngTime.GetChunkName: TChunkName;
+class function TChunkPngTime.GetClassChunkName: TChunkName;
 begin
   Result := 'tIME';
 end;
@@ -2730,7 +2744,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngEmbeddedIccProfile.GetChunkName: TChunkName;
+class function TChunkPngEmbeddedIccProfile.GetClassChunkName: TChunkName;
 begin
   Result := 'iCCP';
 end;
@@ -2800,7 +2814,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngGamma.GetChunkName: TChunkName;
+class function TChunkPngGamma.GetClassChunkName: TChunkName;
 begin
   Result := 'gAMA';
 end;
@@ -2855,7 +2869,7 @@ begin
     inherited;
 end;
 
-class function TChunkPngStandardColorSpaceRGB.GetChunkName: TChunkName;
+class function TChunkPngStandardColorSpaceRGB.GetClassChunkName: TChunkName;
 begin
   Result := 'sRGB';
 end;
@@ -2887,7 +2901,7 @@ end;
 
 { TChunkPngPrimaryChromaticities }
 
-class function TChunkPngPrimaryChromaticities.GetChunkName: TChunkName;
+class function TChunkPngPrimaryChromaticities.GetClassChunkName: TChunkName;
 begin
   Result := 'cHRM';
 end;
@@ -3235,7 +3249,7 @@ begin
   inherited;
 end;
 
-class function TChunkPngSignificantBits.GetChunkName: TChunkName;
+class function TChunkPngSignificantBits.GetClassChunkName: TChunkName;
 begin
   Result := 'sBIT';
 end;
@@ -3451,7 +3465,7 @@ begin
   inherited;
 end;
 
-class function TChunkPngBackgroundColor.GetChunkName: TChunkName;
+class function TChunkPngBackgroundColor.GetClassChunkName: TChunkName;
 begin
   Result := 'bKGD';
 end;
@@ -3530,7 +3544,7 @@ end;
 
 { TChunkPngImageHistogram }
 
-class function TChunkPngImageHistogram.GetChunkName: TChunkName;
+class function TChunkPngImageHistogram.GetClassChunkName: TChunkName;
 begin
   Result := 'hIST';
 end;
@@ -3558,7 +3572,7 @@ end;
 
 { TChunkPngSuggestedPalette }
 
-class function TChunkPngSuggestedPalette.GetChunkName: TChunkName;
+class function TChunkPngSuggestedPalette.GetClassChunkName: TChunkName;
 begin
   Result := 'sPLT';
 end;
@@ -4711,7 +4725,7 @@ var
   ChunkCRC     : Cardinal;
   ChunkClass   : TCustomDefinedChunkWithHeaderClass;
   Chunk        : TCustomDefinedChunkWithHeader;
-  MemoryStream: TMemoryStream;
+  MemoryStream : TMemoryStream;
 begin
   with Stream do
   begin
@@ -4900,13 +4914,24 @@ end;
 procedure TPortableNetworkGraphic.SaveToStream(Stream: TStream);
 var
   ChunkName    : TChunkName;
+  ChunkSize    : Cardinal;
   CRC          : Cardinal;
-  MemoryStream: TMemoryStream;
+  MemoryStream : TMemoryStream;
   Index        : Integer;
 
   procedure SaveChunkToStream(Chunk: TCustomChunk);
   begin
     MemoryStream.Clear;
+
+    // store chunk size to stream
+    ChunkSize := Chunk.ChunkSize;
+    WriteSwappedCardinal(Stream, ChunkSize);
+
+    // store chunk name to memory stream
+    ChunkName := Chunk.ChunkName;
+    MemoryStream.Write(ChunkName, 4);
+
+    // save chunk to memory stream
     Chunk.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
@@ -4915,7 +4940,7 @@ var
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
-    Write(CRC, SizeOf(Cardinal));
+    Stream.Write(CRC, SizeOf(Cardinal));
   end;
 
 begin
@@ -4931,6 +4956,14 @@ begin
 
     MemoryStream := TMemoryStream.Create;
     try
+      // store chunk size to stream
+      ChunkSize := FImageHeader.ChunkSize;
+      WriteSwappedCardinal(Stream, ChunkSize);
+
+      // store chunk name to memory stream
+      ChunkName := FImageHeader.ChunkName;
+      MemoryStream.Write(ChunkName, 4);
+
       // save image header to memory stream
       FImageHeader.WriteToStream(MemoryStream);
 
@@ -4944,108 +4977,31 @@ begin
 
       // eventually save physical pixel dimensions chunk
       if Assigned(FPhysicalDimensions) then
-      begin
-        MemoryStream.Clear;
-        FPhysicalDimensions.WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(FPhysicalDimensions);
 
       // eventually save significant bits chunk
       if Assigned(FSignificantBits) then
-      begin
-        MemoryStream.Clear;
-        FSignificantBits.WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(FSignificantBits);
 
       // eventually save gamma chunk
       if Assigned(FGammaChunk) then
-      begin
-        MemoryStream.Clear;
-        FGammaChunk.WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(FGammaChunk);
 
       // eventually save chroma chunk
       if Assigned(FChromaChunk) then
-      begin
-        MemoryStream.Clear;
-        FChromaChunk.WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(FChromaChunk);
 
       // eventually save palette chunk
       if Assigned(FPaletteChunk) then
-      begin
-        MemoryStream.Clear;
-        FPaletteChunk.WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(FPaletteChunk);
 
       // store additional chunks
       for Index := 0 to FAdditionalChunkList.Count - 1 do
-      begin
-        MemoryStream.Clear;
-        TCustomChunk(FAdditionalChunkList[Index]).WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(TCustomChunk(FAdditionalChunkList[Index]));
 
       // save data streams
       for Index := 0 to FDataChunkList.Count - 1 do
-      begin
-        MemoryStream.Clear;
-        TCustomChunk(FDataChunkList[Index]).WriteToStream(MemoryStream);
-
-        // copy memory stream to stream
-        MemoryStream.Seek(0, soFromBeginning);
-        Stream.CopyFrom(MemoryStream, MemoryStream.Size);
-
-        // calculate and write CRC
-        CRC := Swap32(CalculateCRC(MemoryStream));
-        Write(CRC, SizeOf(Cardinal));
-      end;
+        SaveChunkToStream(TCustomChunk(FDataChunkList[Index]));
     finally
       FreeAndNil(MemoryStream);
     end;
