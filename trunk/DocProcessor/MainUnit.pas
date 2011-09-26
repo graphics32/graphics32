@@ -91,18 +91,14 @@ var
 begin
   result := false;
   len := length(dir);
-  if len = 0 then exit;
-  if dir[len] = '\' then setlength(dir, len -1);
+  if (len > 0) and (dir[len] = '\') then dir[len] := #0;
   if not DirectoryExists(dir) then exit;
-  try
-    fillChar(shfo, sizeof(shfo), 0);
-    shfo.Wnd := 0;
-    shfo.wFunc := FO_DELETE;
-    shfo.pFrom := PChar(dir);
-    shfo.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
-    result := SHFileOperation(shfo) = 0;
-  except
-  end;
+  fillChar(shfo, sizeof(shfo), 0);
+  shfo.Wnd := 0;
+  shfo.wFunc := FO_DELETE;
+  shfo.pFrom := PChar(dir);
+  shfo.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
+  result := SHFileOperation(shfo) = 0;
 end;
 
 procedure LogAdd(const S: string);
@@ -277,10 +273,6 @@ begin
   StyleFile := ProjectDir + 'Styles\Default.css';
 
   CompileTime := GetTickCount;
-
-  //delete existing docs ...
-  DeleteDirectoryTree(CompiledDir);
-
   DocStructure.IncludeAlphabetClasses := cbIncludeAlphabetClasses.Checked;
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
@@ -308,12 +300,21 @@ begin
     LogAdd('Restoring Class Hierarchy ...');
     Project.BuildHierarchy;
     LogAdd('... done'#13#10);
+
+    if DirectoryExists(CompiledDir) then
+    begin
+      LogNL;
+      LogAdd('Deleting Doc folder ...');
+      DeleteDirectoryTree(CompiledDir);
+      LogAdd('... done'#13#10);
+    end;
+    
     LogAdd('Transforming Files:');
 
     Progress.Position := 4;
 
     NextUpdate := 0;
-    
+
     for I := 0 to Project.Files.Count - 1 do
     begin
       S := TElement(Project.Files.Objects[I]).DisplayName;
