@@ -727,7 +727,7 @@ begin
    // flip current row
    CurrentRow := 1 - CurrentRow;
   end;
- FHeader.CompressionFilterMethods := UsedFilters;
+ FHeader.AdaptiveFilterMethods := UsedFilters;
 end;
 
 
@@ -1111,7 +1111,7 @@ begin
      CurrentRow := 1 - CurrentRow;
     end;
   end;
- FHeader.CompressionFilterMethods := UsedFilters;
+ FHeader.AdaptiveFilterMethods := UsedFilters;
 end;
 
 
