@@ -11,6 +11,7 @@ const
   cColumnCount = 5;
 var
   IncludeAlphabetClasses: boolean = true;
+  CheckForBrokenLinks: boolean = true;
 
 type
   TElement = class;
@@ -368,7 +369,7 @@ begin
     begin
       S := Links[I];
 
-      if not fileExists(S) then
+      if CheckForBrokenLinks and not fileExists(S) then
       begin
         Project.BrokenLinks.Add('  ' + S + #13#10);
         Project.BrokenLinks.Add('    in ' + self.FileName + #13#10);
