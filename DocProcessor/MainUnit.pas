@@ -308,7 +308,7 @@ begin
       DeleteDirectoryTree(CompiledDir);
       LogAdd('... done'#13#10);
     end;
-    
+
     LogAdd('Transforming Files:');
 
     Progress.Position := 4;
@@ -346,6 +346,16 @@ begin
     LogAdd('... done'#13#10);
 
     LogAdd('Project transformed.'#13#10);
+
+    if Project.BrokenLinks.Count > 0 then
+    begin
+      LogNL;
+      LogAdd('Broken links found:'#13#10);
+      for I := 0 to Project.BrokenLinks.Count -1 do
+        LogAdd(Project.BrokenLinks[i]);
+      LogNL;
+    end;
+
     CompileTime := GetTickCount - CompileTime;
     LogAdd(Format('Compile time: %d minutes, %d seconds'#13#10, [(CompileTime div 1000) div 60, (CompileTime div 1000) mod 60]));
     Progress.Position := 0;
