@@ -166,6 +166,8 @@ type
     BodySectionTemplate: string;
     BodySectionTemplateDOM: TDomDocument;
 
+    BrokenLinks: TStringList;
+
     Index: TIndex;
     constructor Create(AParent: TElement; const APath: string); override;
     destructor Destroy; override;
@@ -365,6 +367,12 @@ begin
     for I := 0 to Links.Count - 1 do
     begin
       S := Links[I];
+
+      if not fileExists(S) then
+      begin
+        Project.BrokenLinks.Add('  ' + S + #13#10);
+        Project.BrokenLinks.Add('    in ' + self.FileName + #13#10);
+      end;
 
       E := nil;
       if Project <> nil then
@@ -1528,10 +1536,12 @@ begin
   BodySectionTemplateDOM := TDomDocument.Create;
   RegList(Units);
   if (FileName <> '') then Files.AddObject(FileName, Self);
+  BrokenLinks := TStringList.create;
 end;
 
 destructor TProject.Destroy;
 begin
+  BrokenLinks.Free;
   BodySectionTemplateDOM.Free;
   HeadSectionTemplateDOM.Free;
   Root.Free;
