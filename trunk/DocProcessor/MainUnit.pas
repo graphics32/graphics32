@@ -18,10 +18,6 @@ type
     Label7: TLabel;
     Progress: TProgressBar;
     Panel3: TPanel;
-    Panel4: TPanel;
-    Panel5: TPanel;
-    Label1: TLabel;
-    edProjectDirectory: TEdit;
     Panel6: TPanel;
     Panel7: TPanel;
     Panel8: TPanel;
@@ -32,14 +28,6 @@ type
     Label8: TLabel;
     edProjectTitle: TEdit;
     Label2: TLabel;
-    Label3: TLabel;
-    edIndexFile: TEdit;
-    edTOCFile: TEdit;
-    Label4: TLabel;
-    Label5: TLabel;
-    edCompiledFile: TEdit;
-    edProjectFile: TEdit;
-    Label6: TLabel;
     Panel10: TPanel;
     bProcess: TButton;
     Panel11: TPanel;
@@ -52,6 +40,11 @@ type
     bParseMissing: TButton;
     bOpen: TButton;
     bClose: TButton;
+    cbBrokenLinks: TCheckBox;
+    Label1: TLabel;
+    Label6: TLabel;
+    edProjectDirectory: TEdit;
+    edProjectName: TEdit;
     procedure edProjectDirectoryChange(Sender: TObject);
     procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -61,7 +54,7 @@ type
     procedure bOpenClick(Sender: TObject);
     procedure bParseMissingClick(Sender: TObject);
     procedure bCloseClick(Sender: TObject);
-    procedure LogKeyDown(Sender: TObject; var Key: Word;
+    procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
   public
     ProjectDir: string;
@@ -230,10 +223,15 @@ begin
   close;
 end;
 
-procedure TMainForm.LogKeyDown(Sender: TObject; var Key: Word;
+procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
-  if (key = 27) then close; //close on escape
+  case Key of
+    VK_ESCAPE: close;
+    VK_F7: bTransformClick(nil);
+    VK_F8: bCompileClick(nil);
+    VK_F9: bProcessClick(nil);
+  end;
 end;
 
 procedure TMainForm.bProcessClick(Sender: TObject);
@@ -246,7 +244,7 @@ end;
 procedure TMainForm.StartCompile;
 begin
   LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectFile.Text + '"', Log);
+  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectName.Text + '.hhp"', Log);
   LogAdd('Done.'#13#10);
   if cbOpenAfterProcess.Checked then
     bOpenClick(nil);
@@ -273,7 +271,10 @@ begin
   StyleFile := ProjectDir + 'Styles\Default.css';
 
   CompileTime := GetTickCount;
+
   DocStructure.IncludeAlphabetClasses := cbIncludeAlphabetClasses.Checked;
+  DocStructure.CheckForBrokenLinks := cbBrokenLinks.Checked;
+
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
     Project.DisplayName := edProjectTitle.Text;
@@ -333,16 +334,16 @@ begin
 
     LogReplace('Transforming Files ...... done'#13#10);
     LogAdd('Building TOC ...');
-    Project.BuildToc(ProjectDir + edTOCFile.Text);
+    Project.BuildToc(ProjectDir + edProjectName.Text + '.hhc');
     LogAdd('... done'#13#10);
     Progress.Position := 95;
     LogAdd('Building Index ...');
-    Project.BuildIndex(ProjectDir + edIndexFile.Text);
+    Project.BuildIndex(ProjectDir + edProjectName.Text + '.hhk');
     LogAdd('... done'#13#10);
     Progress.Position := 100;
 
     LogAdd('Writing Project ...');
-    WriteProject(ProjectDir + edProjectFile.Text);
+    WriteProject(ProjectDir + edProjectName.Text + '.hhp');
     LogAdd('... done'#13#10);
 
     LogAdd('Project transformed.'#13#10);
@@ -374,19 +375,19 @@ begin
   try
     Lines.Add('[OPTIONS]');
     Lines.Add('Compatibility=1.1 or later');
-    Lines.Add('Compiled file=' + edCompiledFile.Text);
-    Lines.Add('Contents file=' + edTOCFile.Text);
+    Lines.Add('Compiled file=' + edProjectName.Text + '.hhp');
+    Lines.Add('Contents file=' + edProjectName.Text + '.hhc');
     Lines.Add('Default Window=Main Window');
     Lines.Add('Default topic=Docs\Overview\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
-    Lines.Add('Index file=' + edIndexFile.Text);
+    Lines.Add('Index file=' + edProjectName.Text + '.hhk');
     Lines.Add('Language=0x409 English (United States)');
     Lines.Add('Title=' + edProjectTitle.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
     Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm","Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
-      [edProjectTitle.Text, edTOCFile.Text, edIndexFile.Text]));
+      [edProjectTitle.Text, edProjectName.Text + '.hhc', edProjectName.Text + '.hhk']));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
     Lines.SaveToFile(FileName);
@@ -408,7 +409,7 @@ end;
 
 procedure TMainForm.bOpenClick(Sender: TObject);
 begin
-  ShellExecute(Self.Handle, 'open', PChar(IncludeTrailingBackslash(edProjectDirectory.Text) + edCompiledFile.Text), '', '', SW_SHOW);
+  ShellExecute(Self.Handle, 'open', PChar(IncludeTrailingBackslash(edProjectDirectory.Text) + edProjectName.Text + '.chm'), '', '', SW_SHOW);
 end;
 
 procedure TMainForm.bParseMissingClick(Sender: TObject);
