@@ -244,7 +244,7 @@ end;
 procedure TMainForm.StartCompile;
 begin
   LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectName.Text + '.chm"', Log);
+  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectName.Text + '.hhp"', Log);
   LogAdd('Done.'#13#10);
   if cbOpenAfterProcess.Checked then
     bOpenClick(nil);
@@ -375,7 +375,7 @@ begin
   try
     Lines.Add('[OPTIONS]');
     Lines.Add('Compatibility=1.1 or later');
-    Lines.Add('Compiled file=' + edProjectName.Text + '.hhp');
+    Lines.Add('Compiled file=' + edProjectName.Text + '.chm');
     Lines.Add('Contents file=' + edProjectName.Text + '.hhc');
     Lines.Add('Default Window=Main Window');
     Lines.Add('Default topic=Docs\Overview\_Body.htm');
