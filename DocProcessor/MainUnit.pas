@@ -244,7 +244,7 @@ end;
 procedure TMainForm.StartCompile;
 begin
   LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectName.Text + '.hhp"', Log);
+  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectName.Text + '.chm"', Log);
   LogAdd('Done.'#13#10);
   if cbOpenAfterProcess.Checked then
     bOpenClick(nil);

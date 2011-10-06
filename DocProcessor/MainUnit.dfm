@@ -1,8 +1,8 @@
 object MainForm: TMainForm
-  Left = 231
-  Top = 137
+  Left = 159
+  Top = 150
   Width = 850
-  Height = 494
+  Height = 490
   Caption = 'HTML Document Processor'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -22,7 +22,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 479
-    Height = 467
+    Height = 463
     Align = alClient
     BevelOuter = bvNone
     Caption = 'Panel1'
@@ -31,7 +31,7 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 479
-      Height = 443
+      Height = 439
       Align = alClient
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -46,7 +46,7 @@ object MainForm: TMainForm
     end
     object Panel2: TPanel
       Left = 0
-      Top = 443
+      Top = 439
       Width = 479
       Height = 24
       Align = alBottom
@@ -77,7 +77,7 @@ object MainForm: TMainForm
     Left = 479
     Top = 0
     Width = 363
-    Height = 467
+    Height = 463
     Align = alRight
     BevelOuter = bvNone
     BorderWidth = 2
