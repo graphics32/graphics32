@@ -251,8 +251,6 @@ begin
 end;
 
 procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
-var
-  Index : Integer;
 begin
   with SuggestedPaletteChunk do
   begin

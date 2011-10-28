@@ -54,7 +54,7 @@ begin
     begin
      with TPortableNetworkGraphic32.Create do
       try
-       CompressionFilterMethods := [aafmSub, aafmUp, aafmAverage];
+       AdaptiveFilterMethods := [aafmSub, aafmUp, aafmAverage];
        Assign(ImageDisplay.Bitmap);
        InterlaceMethod := imAdam7;
        SaveToFile(FileName);
