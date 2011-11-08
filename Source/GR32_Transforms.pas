@@ -1225,7 +1225,7 @@ begin
   begin
     FTopHypot[I].Dist := L;
     with FTopCurve[I + 1] do
-      L := L + Hypot(FTopCurve[I].X - X, FTopCurve[I].Y - Y);
+      L := L + GR32_Math.Hypot(FTopCurve[I].X - X, FTopCurve[I].Y - Y);
   end;
   FTopLength := L;
 
@@ -1246,7 +1246,7 @@ begin
   begin
     FBottomHypot[I].Dist := L;
     with FBottomCurve[I + 1] do
-      L := L + Hypot(FBottomCurve[I].X - X, FBottomCurve[I].Y - Y);
+      L := L + GR32_Math.Hypot(FBottomCurve[I].X - X, FBottomCurve[I].Y - Y);
   end;
   FBottomLength := L;
 
