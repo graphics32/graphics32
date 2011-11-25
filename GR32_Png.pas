@@ -47,6 +47,7 @@ type
   private
     FProgressEvent : TProgressEvent;
     procedure AssignPropertiesFromBitmap32(Bitmap32: TCustomBitmap32);
+    function GetBackgroundColor: TColor32;
   protected
     function GR32Scanline(Bitmap: TObject; Y: Integer): Pointer; virtual;
     function GR32ScanlineProgress(Bitmap: TObject; Y: Integer): Pointer; virtual;
@@ -56,6 +57,7 @@ type
 
     procedure DrawToBitmap32(Bitmap32: TCustomBitmap32); virtual;
 
+    property Background: TColor32 read GetBackgroundColor;
     property Progress: TProgressEvent read FProgressEvent write FProgressEvent;
   end;
 
@@ -73,7 +75,8 @@ type
     procedure TransferData(Source: Pointer; Destination: PColor32); virtual; abstract;
   public
     constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+      Transparency : TCustomPngTransparency = nil); override;
     destructor Destroy; override;
 
     procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
@@ -149,7 +152,8 @@ type
     procedure TransferData(const Pass: Byte; Source: Pointer; Destination: PColor32); virtual; abstract;
   public
     constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+      Transparency : TCustomPngTransparency = nil); override;
     destructor Destroy; override;
     procedure DecodeToScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
   end;
@@ -237,7 +241,8 @@ type
     procedure TransferData(Source: PColor32; Destination: Pointer); virtual; abstract;
   public
     constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+      Transparency : TCustomPngTransparency = nil); override;
     destructor Destroy; override;
     procedure EncodeFromScanline(Bitmap: TObject; ScanLineCallback: TScanLineCallback); override;
   end;
@@ -301,6 +306,41 @@ type
 
 
 { TPortableNetworkGraphic32 }
+
+function TPortableNetworkGraphic32.GetBackgroundColor: TColor32;
+var
+  ResultColor32: TColor32Entry absolute Result;
+begin
+ if Assigned(FBackgroundChunk) then
+  begin
+   if FBackgroundChunk.Background is TPngBackgroundColorFormat04 then
+    with TPngBackgroundColorFormat04(FBackgroundChunk.Background) do
+     begin
+      ResultColor32.R := GraySampleValue;
+      ResultColor32.G := GraySampleValue;
+      ResultColor32.B := GraySampleValue;
+      ResultColor32.A := $FF;
+     end
+   else
+   if FBackgroundChunk.Background is TPngBackgroundColorFormat26 then
+    with TPngBackgroundColorFormat26(FBackgroundChunk.Background) do
+     begin
+      ResultColor32.R := RedSampleValue;
+      ResultColor32.G := GreenSampleValue;
+      ResultColor32.B := BlueSampleValue;
+      ResultColor32.A := $FF;
+     end;
+   if FBackgroundChunk.Background is TPngBackgroundColorFormat3 then
+    with TPngBackgroundColorFormat3(FBackgroundChunk.Background) do
+     begin
+      ResultColor32.R := PaletteEntry[PaletteIndex].R;
+      ResultColor32.G := PaletteEntry[PaletteIndex].R;
+      ResultColor32.B := PaletteEntry[PaletteIndex].R;
+      ResultColor32.A := $FF;
+     end;
+ end
+ else Result := $0;
+end;
 
 function TPortableNetworkGraphic32.GR32Scanline(Bitmap: TObject; Y: Integer): Pointer;
 begin
@@ -520,6 +560,10 @@ begin
       then Break;
     end;
 
+   // temporary fix for the case that a palette and an alpha channel has been detected
+   if IsPalette and IsAlpha
+    then IsPalette := False;
+
    // set image header
    with ImageHeader do
     if IsGrayScale then
@@ -672,8 +716,8 @@ const
 { TCustomPngNonInterlacedDecoder }
 
 constructor TCustomPngNonInterlacedDecoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
-  Palette: TChunkPngPalette = nil);
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
+  Palette: TChunkPngPalette; Transparency : TCustomPngTransparency);
 begin
  inherited;
  FBytesPerRow := FHeader.BytesPerRow;
@@ -918,7 +962,7 @@ begin
    PColor32Entry(Destination)^.R := Color.R;
    PColor32Entry(Destination)^.G := Color.G;
    PColor32Entry(Destination)^.B := Color.B;
-   PColor32Entry(Destination)^.A := 255;
+   PColor32Entry(Destination)^.A := FAlphaTable[(Src^ shr BitIndex) and BitMask];
    if BitIndex = 0 then
     begin
      BitIndex := 8;
@@ -944,7 +988,7 @@ begin
    PColor32Entry(Destination)^.R := Palette[Src^].R;
    PColor32Entry(Destination)^.G := Palette[Src^].G;
    PColor32Entry(Destination)^.B := Palette[Src^].B;
-   PColor32Entry(Destination)^.A := 255;
+   PColor32Entry(Destination)^.A := FAlphaTable[Src^];
    Inc(Src);
    Inc(Destination);
   end;
@@ -1032,8 +1076,8 @@ end;
 { TCustomPngAdam7Decoder }
 
 constructor TCustomPngAdam7Decoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
-  Palette: TChunkPngPalette = nil);
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
+  Palette: TChunkPngPalette; Transparency : TCustomPngTransparency);
 begin
  inherited;
 
@@ -1080,6 +1124,8 @@ begin
      ctTrueColorAlpha: RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
      else Continue;
     end;
+   if RowByteSize = 0
+    then Continue;
 
    PassRow := CRowStart[CurrentPass];
 
@@ -1318,7 +1364,7 @@ begin
   PColor32Entry(Destination)^.R := Color.R;
   PColor32Entry(Destination)^.G := Color.G;
   PColor32Entry(Destination)^.B := Color.B;
-  PColor32Entry(Destination)^.A := 255;
+  PColor32Entry(Destination)^.A := FAlphaTable[(Src^ shr BitIndex) and $1];
 
   if BitIndex = 0 then
    begin
@@ -1352,7 +1398,7 @@ begin
   PColor32Entry(Destination)^.R := Color.R;
   PColor32Entry(Destination)^.G := Color.G;
   PColor32Entry(Destination)^.B := Color.B;
-  PColor32Entry(Destination)^.A := 255;
+  PColor32Entry(Destination)^.A := FAlphaTable[(Src^ shr BitIndex) and $3];
 
   if BitIndex = 0 then
    begin
@@ -1386,7 +1432,7 @@ begin
   PColor32Entry(Destination)^.R := Color.R;
   PColor32Entry(Destination)^.G := Color.G;
   PColor32Entry(Destination)^.B := Color.B;
-  PColor32Entry(Destination)^.A := 255;
+  PColor32Entry(Destination)^.A := FAlphaTable[(Src^ shr BitIndex) and $F];
 
   if BitIndex = 0 then
    begin
@@ -1415,7 +1461,7 @@ begin
   PColor32Entry(Destination)^.R := Palette[Src^].R;
   PColor32Entry(Destination)^.G := Palette[Src^].G;
   PColor32Entry(Destination)^.B := Palette[Src^].B;
-  PColor32Entry(Destination)^.A := 255;
+  PColor32Entry(Destination)^.A := FAlphaTable[Src^];
 
   Inc(Src);
   Inc(Destination, CColumnIncrement[Pass]);
@@ -1518,7 +1564,7 @@ end;
 
 constructor TCustomPngNonInterlacedEncoder.Create(Stream: TStream;
   Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette);
+  Palette: TChunkPngPalette; Transparency : TCustomPngTransparency);
 begin
  inherited;
  FBytesPerRow := FHeader.BytesPerRow;

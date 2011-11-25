@@ -845,10 +845,12 @@ type
     FHeader       : TChunkPngImageHeader;
     FGamma        : TChunkPngGamma;
     FPalette      : TChunkPngPalette;
+    FTransparency : TCustomPngTransparency;
 
     FRowBuffer    : array [0..1] of PByteArray;
+    FAlphaTable   : PByteArray;
     FMappingTable : PByteArray;
-    procedure BuildMappingTable; virtual;
+    procedure BuildMappingTables; virtual;
 
     procedure EncodeFilterSub(CurrentRow, PreviousRow, OutputRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
     procedure EncodeFilterUp(CurrentRow, PreviousRow, OutputRow: PByteArray; BytesPerRow, PixelByteSize: Integer);
@@ -864,7 +866,8 @@ type
     procedure DecodeFilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer); virtual; abstract;
   public
     constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); virtual;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+      Transparency : TCustomPngTransparency = nil); virtual;
     destructor Destroy; override;
   end;
 
@@ -896,7 +899,8 @@ type
     procedure Transcode; virtual; abstract;
   public
     constructor Create(Stream: TStream; Header: TChunkPngImageHeader;
-      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil); override;
+      Gamma: TChunkPngGamma = nil; Palette: TChunkPngPalette = nil;
+      Transparency: TCustomPngTransparency = nil); override;
     destructor Destroy; override;
   end;
   TCustomPngTranscoderClass = class of TCustomPngTranscoder;
@@ -910,7 +914,7 @@ type
     function GetFilterMethod: TFilterMethod;
     function GetHeight: Integer;
     function GetInterlaceMethod: TInterlaceMethod;
-    function GetPaletteEntry(index: Integer): TRGB24;
+    function GetPaletteEntry(Index: Integer): TRGB24;
     function GetPaletteEntryCount: Integer;
     function GetWidth: Integer;
     function GetGamma: Single;
@@ -935,6 +939,7 @@ type
     procedure SetInterlaceMethod(const Value: TInterlaceMethod);
     procedure SetGammaChunk(const Value: TChunkPngGamma);
     procedure SetPaletteChunk(const Value: TChunkPngPalette);
+    procedure SetTransparencyChunk(const Value: TChunkPngTransparency);
     procedure SetPhysicalDimensions(const Value: TChunkPngPhysicalPixelDimensions);
     procedure SetSignificantBits(const Value: TChunkPngSignificantBits);
     procedure SetTimeChunk(const Value: TChunkPngTime);
@@ -948,6 +953,7 @@ type
     procedure ReadImageDataChunk(Stream: TStream; Size: Integer);
     procedure ReadUnknownChunk(Stream: TStream; ChunkName: TChunkName; ChunkSize: Integer);
     function GetFilterMethods: TAvailableAdaptiveFilterMethods;
+    procedure SetBackgroundChunk(const Value: TChunkPngBackgroundColor);
   protected
     FImageHeader         : TChunkPngImageHeader;
     FPaletteChunk        : TChunkPngPalette;
@@ -956,6 +962,8 @@ type
     FSignificantBits     : TChunkPngSignificantBits;
     FPhysicalDimensions  : TChunkPngPhysicalPixelDimensions;
     FChromaChunk         : TChunkPngPrimaryChromaticities;
+    FTransparencyChunk   : TChunkPngTransparency;
+    FBackgroundChunk     : TChunkPngBackgroundColor;
     FDataChunkList       : TChunkList;
     FAdditionalChunkList : TChunkList;
 
@@ -973,6 +981,8 @@ type
 
     property ImageHeader: TChunkPngImageHeader read FImageHeader write SetImageHeader;
     property PaletteChunk: TChunkPngPalette read FPaletteChunk write SetPaletteChunk;
+    property TransparencyChunk: TChunkPngTransparency read FTransparencyChunk write SetTransparencyChunk;
+    property BackgroundChunk: TChunkPngBackgroundColor read FBackgroundChunk write SetBackgroundChunk;
     property GammaChunk: TChunkPngGamma read FGammaChunk write SetGammaChunk;
     property TimeChunk: TChunkPngTime read FTimeChunk write SetTimeChunk;
     property PhysicalPixelDimensionsChunk: TChunkPngPhysicalPixelDimensions read FPhysicalDimensions write SetPhysicalDimensions;
@@ -1007,7 +1017,7 @@ type
     property AdaptiveFilterMethods: TAvailableAdaptiveFilterMethods read GetFilterMethods write SetFilterMethods;
     property FilterMethod: TFilterMethod read GetFilterMethod write SetFilterMethod;
     property InterlaceMethod: TInterlaceMethod read GetInterlaceMethod write SetInterlaceMethod;
-    property PaletteEntry[index: Integer]: TRGB24 read GetPaletteEntry;
+    property PaletteEntry[Index: Integer]: TRGB24 read GetPaletteEntry;
     property PaletteEntryCount: Integer read GetPaletteEntryCount;
     property Gamma: Single read GetGamma write SetGamma;
     property ModifiedTime: TDateTime read GetModifiedTime write SetModifiedTime;
@@ -1051,6 +1061,8 @@ resourcestring
   RCStrSeveralChromaChunks = 'Primary chromaticities chunk defined twice!';
   RCStrSeveralGammaChunks = 'Gamma chunk defined twice!';
   RCStrSeveralPaletteChunks = 'Palette chunk defined twice!';
+  RCStrSeveralTransparencyChunks = 'Transparency chunk defined twice!';
+  RCStrSeveralBackgroundChunks = 'Background chunk defined twice!';
   RCStrSeveralPhysicalPixelDimensionChunks = 'Several physical pixel dimenson chunks found';
   RCStrSeveralSignificantBitsChunksFound = 'Several significant bits chunks found';
   RCStrSeveralTimeChunks = 'Time chunk appears twice!';
@@ -3845,24 +3857,27 @@ end;
 
 constructor TCustomPngCoder.Create(Stream: TStream;
   Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
-  Palette: TChunkPngPalette = nil);
+  Palette: TChunkPngPalette = nil; Transparency : TCustomPngTransparency = nil);
 begin
   FStream       := Stream;
   FHeader       := Header;
   FGamma        := Gamma;
   FPalette      := Palette;
+  FTransparency := Transparency;
   FMappingTable := nil;
-  BuildMappingTable;
+  FAlphaTable   := nil;
+  BuildMappingTables;
   inherited Create;
 end;
 
 destructor TCustomPngCoder.Destroy;
 begin
   Dispose(FMappingTable);
+  Dispose(FAlphaTable);
   inherited;
 end;
 
-procedure TCustomPngCoder.BuildMappingTable;
+procedure TCustomPngCoder.BuildMappingTables;
 var
   Index        : Integer;
   Palette      : PRGB24Array;
@@ -3923,6 +3938,16 @@ begin
         end;
       end;
     end;
+
+   // build alpha table
+   GetMem(FAlphaTable, 256);
+   FillChar(FAlphaTable^, 256, $FF);
+
+   // eventually fill alpha table
+   if FTransparency is TPngTransparencyFormat3 then
+    with TPngTransparencyFormat3(FTransparency) do
+     for Index := 0 to Count - 1
+      do FAlphaTable[Index] := Transparency[Index];
   end
   else
   begin
@@ -4383,8 +4408,8 @@ end;
 { TCustomPngTranscoder }
 
 constructor TCustomPngTranscoder.Create(Stream: TStream;
-  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma;
-  Palette: TChunkPngPalette);
+  Header: TChunkPngImageHeader; Gamma: TChunkPngGamma = nil;
+  Palette: TChunkPngPalette = nil; Transparency: TCustomPngTransparency = nil);
 begin
   inherited;
   GetMem(FRowBuffer[0], FHeader.BytesPerRow + 1);
@@ -4535,6 +4560,14 @@ begin
   if Assigned(FChromaChunk) then
     FreeAndNil(FChromaChunk);
 
+  // free transparency chunk
+  if Assigned(FTransparencyChunk) then
+    FreeAndNil(FTransparencyChunk);
+
+  // free transparency chunk
+  if Assigned(FBackgroundChunk) then
+    FreeAndNil(FBackgroundChunk);
+
   inherited;
 end;
 
@@ -4601,6 +4634,22 @@ begin
     end;
 end;
 
+procedure TPortableNetworkGraphic.SetTransparencyChunk(
+  const Value: TChunkPngTransparency);
+begin
+  if Assigned(FTransparencyChunk) then
+    if Assigned(Value) then
+      FTransparencyChunk.Assign(Value)
+    else
+      FreeAndNil(FTransparencyChunk)
+  else
+    if Assigned(Value) then
+    begin
+      FTransparencyChunk := TChunkPngTransparency.Create(FImageHeader);
+      FTransparencyChunk.Assign(Value);
+    end;
+end;
+
 procedure TPortableNetworkGraphic.SetPixelsPerUnitX(const Value: Cardinal);
 begin
   if Value = 0 then
@@ -4662,6 +4711,22 @@ begin
     begin
       FGammaChunk := TChunkPngGamma.Create(FImageHeader);
       FGammaChunk.Assign(Value);
+    end;
+end;
+
+procedure TPortableNetworkGraphic.SetBackgroundChunk(
+  const Value: TChunkPngBackgroundColor);
+begin
+  if Assigned(FGammaChunk) then
+    if Assigned(Value) then
+      FBackgroundChunk.Assign(Value)
+    else
+      FreeAndNil(FBackgroundChunk)
+  else
+    if Assigned(Value) then
+    begin
+      FBackgroundChunk := TChunkPngBackgroundColor.Create(FImageHeader);
+      FBackgroundChunk.Assign(Value);
     end;
 end;
 
@@ -5010,6 +5075,20 @@ begin
           FPaletteChunk := TChunkPngPalette.Create(FImageHeader);
           FPaletteChunk.ReadFromStream(MemoryStream, ChunkSize);
         end
+        else if ChunkName = 'tRNS' then
+        begin
+          if Assigned(FTransparencyChunk) then
+            raise EPngError.Create(RCStrSeveralTransparencyChunks);
+          FTransparencyChunk := TChunkPngTransparency.Create(FImageHeader);
+          FTransparencyChunk.ReadFromStream(MemoryStream, ChunkSize);
+        end
+        else if ChunkName = 'bKGD' then
+        begin
+          if Assigned(FBackgroundChunk) then
+            raise EPngError.Create(RCStrSeveralBackgroundChunks);
+          FBackgroundChunk := TChunkPngBackgroundColor.Create(FImageHeader);
+          FBackgroundChunk.ReadFromStream(MemoryStream, ChunkSize);
+        end
         else
         begin
           ChunkClass := FindPngChunkByChunkName(ChunkName);
@@ -5137,6 +5216,14 @@ begin
       // eventually save palette chunk
       if Assigned(FPaletteChunk) then
         SaveChunkToStream(FPaletteChunk);
+
+      // eventually save transparency chunk
+      if Assigned(FTransparencyChunk) then
+        SaveChunkToStream(FTransparencyChunk);
+
+      // eventually save background chunk
+      if Assigned(FBackgroundChunk) then
+        SaveChunkToStream(FBackgroundChunk);
 
       // store additional chunks
       for Index := 0 to FAdditionalChunkList.Count - 1 do
@@ -5333,6 +5420,30 @@ begin
         Self.FChromaChunk.Assign(FChromaChunk);
       end;
 
+      // assign transparency
+      if Assigned(Self.FTransparencyChunk) then
+        if Assigned(FTransparencyChunk) then
+          Self.FTransparencyChunk.Assign(FTransparencyChunk)
+        else
+          FreeAndNil(Self.FTransparencyChunk)
+      else if Assigned(FTransparencyChunk) then
+      begin
+        Self.FTransparencyChunk := TChunkPngTransparency.Create(FImageHeader);
+        Self.FTransparencyChunk.Assign(FTransparencyChunk);
+      end;
+
+      // assign background
+      if Assigned(Self.FBackgroundChunk) then
+        if Assigned(FBackgroundChunk) then
+          Self.FBackgroundChunk.Assign(FBackgroundChunk)
+        else
+          FreeAndNil(Self.FBackgroundChunk)
+      else if Assigned(FBackgroundChunk) then
+      begin
+        Self.FBackgroundChunk := TChunkPngBackgroundColor.Create(FImageHeader);
+        Self.FBackgroundChunk.Assign(FBackgroundChunk);
+      end;
+
       if Assigned(Self.FDataChunkList) then
         Self.FDataChunkList.Assign(FDataChunkList);
       if Assigned(Self.FAdditionalChunkList) then
@@ -5354,6 +5465,8 @@ begin
       FSignificantBits.Assign(Self.FSignificantBits);
       FPhysicalDimensions.Assign(Self.FPhysicalDimensions);
       FChromaChunk.Assign(Self.FChromaChunk);
+      FTransparencyChunk.Assign(Self.FTransparencyChunk);
+      FBackgroundChunk.Assign(Self.FBackgroundChunk);
       FDataChunkList.Assign(Self.FDataChunkList);
       FAdditionalChunkList.Assign(Self.FAdditionalChunkList);
     end
@@ -5614,6 +5727,14 @@ begin
   // free gamma chunk
   if Assigned(FChromaChunk) then
     FreeAndNil(FChromaChunk);
+
+  // free transparency chunk
+  if Assigned(FTransparencyChunk) then
+    FreeAndNil(FTransparencyChunk);
+
+  // free background chunk
+  if Assigned(FBackgroundChunk) then
+    FreeAndNil(FBackgroundChunk);
 
   // free time chunk
   if Assigned(FTimeChunk) then

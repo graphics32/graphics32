@@ -34,6 +34,8 @@ unit GR32_TestGuiPng;
 
 interface
 
+{$DEFINE VisualVerification}
+
 uses
   {$IFDEF FPC}fpcunit, testregistry, {$ELSE} TestFramework, {$ENDIF}
   Classes, SysUtils, {$IFDEF FPC} LazPNG, {$ELSE} pngimage, {$ENDIF}
@@ -56,6 +58,7 @@ type
     procedure TestScanning;
     procedure TestBasicAssign;
     procedure TestBasicWriting;
+    procedure TestAdvancedWriting;
     procedure TestCompressionTranscoding;
     procedure TestInterlaceTranscoding;
     procedure TestPerformanceTest;
@@ -513,6 +516,43 @@ begin
   end;
 end;
 
+procedure TTestPngGR32File.TestAdvancedWriting;
+var
+  OriginalStream : TMemoryStream;
+  Bitmap32       : TBitmap32;
+  TempStream     : TMemoryStream;
+begin
+ TempStream := TMemoryStream.Create;
+ with TempStream do
+  try
+   OriginalStream := TMemoryStream.Create;
+   with FPortableNetworkGraphic do
+    try
+     OriginalStream.LoadFromFile(CPngSuiteDir + 'basi6a08.png');
+     OriginalStream.Seek(0, soFromBeginning);
+     FPortableNetworkGraphic.LoadFromStream(OriginalStream);
+     Bitmap32 := TBitmap32.Create;
+     try
+       Bitmap32.Assign(FPortableNetworkGraphic);
+       Bitmap32.Clear;
+       FPortableNetworkGraphic.Assign(Bitmap32);
+     finally
+       FreeAndNil(Bitmap32);
+     end;
+     FPortableNetworkGraphic.SaveToStream(TempStream);
+     TempStream.Seek(0, soFromBeginning);
+     FPortableNetworkGraphic.LoadFromStream(TempStream);
+     if TempStream.Size < (OriginalStream.Size div 10) then
+       Fail('Size of written stream is likely to be too small! (' +
+         IntToStr(TempStream.Size) + ')');
+    finally
+     FreeAndNil(OriginalStream);
+    end;
+  finally
+   Free;
+  end;
+end;
+
 procedure TTestPngGR32File.TestCompressionTranscoding;
 var
   Index      : Integer;
@@ -562,14 +602,18 @@ begin
      InterlaceMethod := GR32_PortableNetworkGraphic.imAdam7;
      Internal.Assign(FPortableNetworkGraphic);
 
+     {$IFDEF VisualVerification}
      if ShowModal <> mrYes
       then Fail(RCStrWrongDisplay);
+     {$ENDIF}
 
      InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
      Internal.Assign(FPortableNetworkGraphic);
 
+     {$IFDEF VisualVerification}
      if ShowModal <> mrYes
       then Fail(RCStrWrongDisplay);
+     {$ENDIF}
     finally
      Free;
     end;
@@ -589,14 +633,18 @@ begin
      InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
      Internal.Assign(FPortableNetworkGraphic);
 
+     {$IFDEF VisualVerification}
      if ShowModal <> mrYes
       then Fail(RCStrWrongDisplay);
+     {$ENDIF}
 
      InterlaceMethod := GR32_PortableNetworkGraphic.imAdam7;
      Internal.Assign(FPortableNetworkGraphic);
 
+     {$IFDEF VisualVerification}
      if ShowModal <> mrYes
       then Fail(RCStrWrongDisplay);
+     {$ENDIF}
     finally
      Free;
     end;
@@ -625,8 +673,10 @@ begin
 
    Internal.Assign(FPortableNetworkGraphic);
 
+   {$IFDEF VisualVerification}
    if ShowModal <> mrYes
     then Fail(RCStrWrongDisplay);
+   {$ENDIF}
 
   finally
    Free;
