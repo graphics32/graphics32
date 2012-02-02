@@ -55,9 +55,9 @@ function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} in
 
 { An analogue of FillChar for 32 bit values }
 var
-  FillLongword: procedure(var X; Count: Integer; Value: Longword);
+  FillLongword: procedure(var X; Count: Cardinal; Value: Longword);
 
-procedure FillWord(var X; Count: Integer; Value: Longword);
+procedure FillWord(var X; Count: Cardinal; Value: Longword);
 
 { An analogue of Move for 32 bit values }
 {$IFDEF USEMOVE}
@@ -190,7 +190,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FillLongword_Pas(var X; Count: Integer; Value: Longword);
+procedure FillLongword_Pas(var X; Count: Cardinal; Value: Longword);
 var
   I: Integer;
   P: PIntegerArray;
@@ -201,7 +201,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-procedure FillLongword_ASM(var X; Count: Integer; Value: Longword);
+procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword);
 asm
 {$IFDEF TARGET_x64}
         // ECX = X;   EDX = Count;   R8 = Value
@@ -211,10 +211,10 @@ asm
         MOV     RAX,R8   // copy value from R8 to RAX (EAX)
         MOV     ECX,EDX  // copy count to ECX
         TEST    ECX,ECX
-        JS      @exit
+        JS      @Exit
 
         REP     STOSD    // Fill count dwords
-@exit:
+@Exit:
         POP     RDI
 {$ELSE}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -223,21 +223,19 @@ asm
         MOV     EDI,EAX  // Point EDI to destination
         MOV     EAX,ECX
         MOV     ECX,EDX
-        TEST    ECX,ECX
-        JS      @exit
 
         REP     STOSD    // Fill count dwords
-@exit:
+@Exit:
         POP     EDI
 {$ENDIF}
 end;
 
-procedure FillLongword_MMX(var X; Count: Integer; Value: Longword);
+procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword);
 asm
 {$IFDEF TARGET_x64}
         // RCX = X;   RDX = Count;   R8 = Value
-        CMP        RDX, 0     // if Count = 0 then
-        JBE        @Exit      //   Exit
+        TEST       RDX, RDX   // if Count = 0 then
+        JZ         @Exit      //   Exit
         MOV        RAX, RCX   // RAX = X
 
         PUSH       RDI        // store RDI on stack
@@ -268,21 +266,20 @@ asm
 @Exit:
 {$ELSE}
         // EAX = X;   EDX = Count;   ECX = Value
-        CMP        EDX, 0
-        JBE        @Exit
+        TEST       EDX, EDX   // if Count = 0 then
+        JZ         @Exit      //   Exit
 
         PUSH       EDI
-        PUSH       EBX
-        MOV        EBX, EDX
-        MOV        EDI, EDX
+        MOV        EDI, EAX
+        MOV        EAX, EDX
 
-        SHR        EDI, 1
-        SHL        EDI, 1
-        SUB        EBX, EDI
+        SHR        EAX, 1
+        SHL        EAX, 1
+        SUB        EAX, EDX
         JE         @QLoopIni
 
-        MOV        [EAX], ECX
-        ADD        EAX, 4
+        MOV        [EDI], ECX
+        ADD        EDI, 4
         DEC        EDX
         JZ         @ExitPOP
     @QLoopIni:
@@ -290,13 +287,12 @@ asm
         PUNPCKLDQ  MM1, MM1
         SHR        EDX, 1
     @QLoop:
-        MOVQ       [EAX], MM1
-        ADD        EAX, 8
+        MOVQ       [EDI], MM1
+        ADD        EDI, 8
         DEC        EDX
         JNZ        @QLoop
         EMMS
     @ExitPOP:
-        POP        EBX
         POP        EDI
     @Exit:
 {$ENDIF}
@@ -306,8 +302,8 @@ procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
 asm
 {$IFDEF TARGET_x64}
         // RCX = X;   RDX = Count;   R8 = Value
-        CMP        RDX, 0     // if Count = 0 then
-        JBE        @Exit      //   Exit
+        TEST       EDX,EDX    // if Count = 0 then
+        JZ         @Exit      //   Exit
         MOV        RAX, RCX   // RAX = X
 
         PUSH       RDI        // store RDI on stack
@@ -338,41 +334,65 @@ asm
 @Exit:
 {$ELSE}
         // EAX = X;   EDX = Count;   ECX = Value
-        CMP        EDX, 0
-        JBE        @Exit
 
-        PUSH       EDI
-        PUSH       EBX
-        MOV        EBX, EDX
-        MOV        EDI, EDX
+        TEST       EDX, EDX        // if Count = 0 then
+        JZ         @Exit           //   Exit
 
-        SHR        EDI, 1
-        SHL        EDI, 1
-        SUB        EBX, EDI
-        JE         @QLoopIni
+        PUSH       EDI             // push EDI on stack
+        MOV        EDI, EAX        // Point EDI to destination
 
-        MOV        [EAX], ECX
-        ADD        EAX, 4
-        DEC        EDX
-        JZ         @ExitPOP
-@QLoopIni:
-        MOVD       XMM1, ECX
-        PUNPCKLDQ  XMM1, XMM1
-        SHR        EDX, 1
+        CMP        EDX, 32
+        JL         @SmallLoop
+
+        AND        EAX, 3          // get aligned count
+        TEST       EAX, EAX        // check if X is not dividable by 4
+        JNZ        @SmallLoop      // otherwise perform slow small loop
+
+        MOV        EAX, EDI
+        SHR        EAX, 2          // bytes to count
+        AND        EAX, 3          // get aligned count
+        ADD        EAX,-4
+        NEG        EAX             // get count to advance
+        JZ         @SetupMain
+        SUB        EDX, EAX        // subtract aligning start from total count
+
+@AligningLoop:
+        MOV        [EDI], ECX
+        ADD        EDI, 4
+        DEC        EAX
+        JNZ        @AligningLoop
+
+@SetupMain:
+        MOV        EAX, EDX        // EAX = remaining count
+        SHR        EAX, 2
+        SHL        EAX, 2
+        SUB        EDX, EAX        // EDX = remaining count
+        SHR        EAX, 2
+
+        MOVD       XMM0, ECX
+        PUNPCKLDQ  XMM0, XMM0
+        PUNPCKLDQ  XMM0, XMM0
 @QLoop:
-        MOVQ       [EAX], XMM1
-        ADD        EAX, 8
-        DEC        EDX
+        MOVDQA     [EDI], XMM0
+        ADD        EDI, 16
+        DEC        EAX
         JNZ        @QLoop
+
+@SmallLoop:
+        MOV        EAX,ECX
+        MOV        ECX,EDX
+
+        REP        STOSD    // Fill count dwords
+
 @ExitPOP:
-        POP        EBX
         POP        EDI
+
 @Exit:
 {$ENDIF}
 end;
 {$ENDIF}
 
-procedure FillWord(var X; Count: Integer; Value: LongWord);
+procedure FillWord(var X; Count: Cardinal; Value: LongWord);
 {$IFDEF USENATIVECODE}
 var
   I: Integer;
@@ -391,7 +411,7 @@ asm
         MOV     EAX,R8D
         MOV     ECX,EDX
         TEST    ECX,ECX
-        JS      @exit
+        JZ      @exit
 
         REP     STOSW    // Fill count words
 @exit:
@@ -404,7 +424,7 @@ asm
         MOV     EAX,ECX
         MOV     ECX,EDX
         TEST    ECX,ECX
-        JS      @exit
+        JZ      @exit
 
         REP     STOSW    // Fill count words
 @exit:
