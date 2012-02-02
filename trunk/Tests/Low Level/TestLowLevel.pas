@@ -46,6 +46,7 @@ type
   published
     procedure TestClamp;
     procedure TestFillWord;
+    procedure TestFillLongWord;
     procedure TestMoveLongword;
     procedure TestMoveWord;
     procedure TestStackMemory;
@@ -130,6 +131,58 @@ begin
   end;
 end;
 
+procedure TTestLowLevel.TestFillLongWord;
+var
+  Data  : PColor32Array;
+  Index : Integer;
+const
+  CColor32Count: Integer = 1024;  // must be larger than 32!
+  CFillValue: array [0..1] of Cardinal = ($12345678, $1337DEAD);
+begin
+  GetMem(Data, CColor32Count * SizeOf(TColor32));
+  try
+    // check zero count
+    Data^[0] := CFillValue[0];
+    FillLongWord(Data^, 0, CFillValue[1]);
+    CheckEquals(CFillValue[0], Data^[0]);
+
+    // check large count
+    FillLongWord(Data^, CColor32Count, not CFillValue[1]);
+    for Index := 0 to CColor32Count - 1 do
+      CheckEquals(not CFillValue[1], Data^[Index], 'Error at index ' +
+        IntToStr(Index));
+
+    // check odd small count
+    FillLongWord(Data^, 31, CFillValue[0]);
+    for Index := 0 to 30 do
+      CheckEquals(CFillValue[0], Data^[Index], 'Error at index ' +
+        IntToStr(Index));
+    for Index := 31 to 64 do
+      CheckEquals(not CFillValue[1], Data^[Index], 'Error at index ' +
+        IntToStr(Index));
+
+    // check odd large count
+    FillLongWord(Data^, CColor32Count - 1, CFillValue[1]);
+    for Index := 0 to CColor32Count - 2 do
+      CheckEquals(CFillValue[1], Data^[Index], 'Error at index ' +
+        IntToStr(Index));
+    CheckEquals(not CFillValue[1], Data^[CColor32Count - 1],
+      'Error at index ' + IntToStr(Index));
+
+    // test odd start address
+    Inc(Data);
+    try
+      FillLongWord(Data^, CColor32Count div 2, not CFillValue[0]);
+      for Index := 0 to (CColor32Count div 2) - 1 do
+        CheckEquals(not CFillValue[0], Data^[Index]);
+    finally
+      Dec(Data);
+    end;
+  finally
+    FreeMem(Data);
+  end;
+end;
+
 procedure TTestLowLevel.TestFillWord;
 var
   Data  : PWordArray;
@@ -140,6 +193,11 @@ const
 begin
   GetMem(Data, CWordCount * SizeOf(Word));
   try
+    // check zero count
+    Data^[0] := $1234;
+    FillWord(Data^, 0, CFillValue);
+    CheckEquals($1234, Data^[0]);
+
     FillWord(Data^, CWordCount, CFillValue);
     for Index := 0 to CWordCount - 1 do
       CheckEquals(CFillValue, Data^[Index]);
