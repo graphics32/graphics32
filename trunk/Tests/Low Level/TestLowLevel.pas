@@ -167,7 +167,7 @@ begin
       CheckEquals(CFillValue[1], Data^[Index], 'Error at index ' +
         IntToStr(Index));
     CheckEquals(not CFillValue[1], Data^[CColor32Count - 1],
-      'Error at index ' + IntToStr(Index));
+      'Error at index ' + IntToStr(CColor32Count - 1));
 
     // test odd start address
     Inc(Data);
