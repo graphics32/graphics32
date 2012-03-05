@@ -92,8 +92,8 @@
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
-        <CursorPos X="1" Y="9"/>
-        <UsageCount Value="25"/>
+        <CursorPos X="1" Y="14"/>
+        <UsageCount Value="44"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit0>
@@ -108,7 +108,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="374"/>
         <CursorPos X="1" Y="388"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="44"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -116,7 +116,7 @@
         <Filename Value="MainUnit.lfm"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="66"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
         <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit2>
       <Unit3>
@@ -124,7 +124,7 @@
         <UnitName Value="GR32_L"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit3>
       <Unit4>
@@ -132,29 +132,29 @@
         <UnitName Value="GR32_Image"/>
         <TopLine Value="33"/>
         <CursorPos X="81" Y="47"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit4>
       <Unit5>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
         <TopLine Value="3150"/>
         <CursorPos X="1" Y="3167"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit5>
       <Unit6>
         <Filename Value="../../../../../../../../../Lazarus/lcl/include/customform.inc"/>
         <WindowIndex Value="0"/>
         <TopLine Value="863"/>
         <CursorPos X="1" Y="879"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit6>
       <Unit7>
         <Filename Value="../../../../GR32.pas"/>
         <UnitName Value="GR32"/>
         <EditorIndex Value="2"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="33"/>
-        <CursorPos X="7" Y="43"/>
-        <UsageCount Value="12"/>
+        <TopLine Value="3815"/>
+        <CursorPos X="19" Y="3831"/>
+        <UsageCount Value="23"/>
         <Bookmarks Count="1">
           <Item0 X="19" Y="3831" ID="3"/>
         </Bookmarks>
@@ -167,7 +167,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="105"/>
         <CursorPos X="1" Y="120"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit8>
       <Unit9>
@@ -176,7 +176,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="55"/>
         <CursorPos X="1" Y="108"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit9>
       <Unit10>
         <Filename Value="../../../../../../../../../Lazarus/fpc/2.5.1/source/rtl/objpas/math.pp"/>
@@ -184,7 +184,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="2418"/>
         <CursorPos X="17" Y="2440"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit10>
       <Unit11>
         <Filename Value="../../../../GR32_System.pas"/>
@@ -192,48 +192,46 @@
         <WindowIndex Value="0"/>
         <TopLine Value="43"/>
         <CursorPos X="1" Y="42"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="10"/>
       </Unit11>
       <Unit12>
         <Filename Value="../../../../GR32_Filters.pas"/>
         <UnitName Value="GR32_Filters"/>
-        <EditorIndex Value="7"/>
         <WindowIndex Value="0"/>
         <TopLine Value="33"/>
         <CursorPos X="8" Y="45"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="21"/>
       </Unit12>
       <Unit13>
         <Filename Value="../../../../GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="5"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="133"/>
-        <CursorPos X="22" Y="242"/>
-        <UsageCount Value="12"/>
+        <TopLine Value="2884"/>
+        <CursorPos X="32" Y="2901"/>
+        <UsageCount Value="22"/>
+        <Bookmarks Count="2">
+          <Item0 X="1" Y="2004" ID="2"/>
+          <Item1 X="27" Y="2548" ID="4"/>
+        </Bookmarks>
         <Loaded Value="True"/>
       </Unit13>
       <Unit14>
         <Filename Value="../../../../GR32_LowLevel.pas"/>
         <UnitName Value="GR32_LowLevel"/>
-        <EditorIndex Value="8"/>
         <WindowIndex Value="0"/>
         <TopLine Value="421"/>
         <CursorPos X="1" Y="440"/>
-        <UsageCount Value="11"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="20"/>
       </Unit14>
       <Unit15>
         <Filename Value="../../../../GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="6"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="2044"/>
-        <CursorPos X="64" Y="2065"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
+        <TopLine Value="4114"/>
+        <CursorPos X="5" Y="4146"/>
+        <UsageCount Value="21"/>
       </Unit15>
       <Unit16>
         <Filename Value="../../../../GR32_Containers.pas"/>
@@ -241,7 +239,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="22"/>
         <CursorPos X="9" Y="51"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit16>
       <Unit17>
         <Filename Value="../../../../GR32_Backends.pas"/>
@@ -249,7 +247,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="8"/>
       </Unit17>
       <Unit18>
         <Filename Value="../../../../GR32.inc"/>
@@ -257,130 +255,130 @@
         <WindowIndex Value="0"/>
         <TopLine Value="174"/>
         <CursorPos X="1" Y="192"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="22"/>
         <Loaded Value="True"/>
       </Unit18>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="306" Column="5" TopLine="280"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1563" Column="1" TopLine="1547"/>
       </Position1>
       <Position2>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1215" Column="31" TopLine="1199"/>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2465" Column="1" TopLine="2439"/>
       </Position2>
       <Position3>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="329" Column="21" TopLine="329"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1563" Column="1" TopLine="1547"/>
       </Position3>
       <Position4>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1170" Column="25" TopLine="1148"/>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2464" Column="1" TopLine="2439"/>
       </Position4>
       <Position5>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1074" Column="40" TopLine="1058"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1563" Column="1" TopLine="1547"/>
       </Position5>
       <Position6>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1206" Column="52" TopLine="1183"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2921" Column="32" TopLine="2903"/>
       </Position6>
       <Position7>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
         <Caret Line="1" Column="1" TopLine="1"/>
       </Position7>
       <Position8>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="310" Column="28" TopLine="282"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2003" Column="2" TopLine="1972"/>
       </Position8>
       <Position9>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1206" Column="1" TopLine="1179"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2198" Column="1" TopLine="2175"/>
       </Position9>
       <Position10>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2696" Column="1" TopLine="2682"/>
       </Position10>
       <Position11>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="310" Column="28" TopLine="231"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2932" Column="48" TopLine="2909"/>
       </Position11>
       <Position12>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="2554" Column="19" TopLine="2547"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position12>
       <Position13>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="1456" Column="1" TopLine="1449"/>
       </Position13>
       <Position14>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="134" Column="19" TopLine="104"/>
+        <Caret Line="2942" Column="52" TopLine="2916"/>
       </Position14>
       <Position15>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="475" Column="18" TopLine="456"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position15>
       <Position16>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1204" Column="51" TopLine="1188"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2029" Column="20" TopLine="2009"/>
       </Position16>
       <Position17>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2172" Column="18" TopLine="2144"/>
       </Position17>
       <Position18>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="380" Column="8" TopLine="370"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2739" Column="19" TopLine="2711"/>
       </Position18>
       <Position19>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <Caret Line="440" Column="1" TopLine="421"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="2975" Column="52" TopLine="2954"/>
       </Position19>
       <Position20>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="689" Column="1" TopLine="679"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position20>
       <Position21>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="828" Column="18" TopLine="800"/>
+        <Caret Line="2003" Column="24" TopLine="1992"/>
       </Position21>
       <Position22>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="808" Column="23" TopLine="803"/>
+        <Caret Line="2976" Column="38" TopLine="2948"/>
       </Position22>
       <Position23>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="829" Column="19" TopLine="812"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position23>
       <Position24>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="786" Column="41" TopLine="784"/>
+        <Caret Line="2538" Column="10" TopLine="2535"/>
       </Position24>
       <Position25>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="808" Column="1" TopLine="784"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position25>
       <Position26>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="689" Column="22" TopLine="684"/>
+        <Caret Line="2538" Column="25" TopLine="2533"/>
       </Position26>
       <Position27>
-        <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="2645" Column="36" TopLine="2628"/>
+        <Filename Value="Resamplers_Ex.lpr"/>
+        <Caret Line="9" Column="1" TopLine="1"/>
       </Position27>
       <Position28>
-        <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="Resamplers_Ex.lpr"/>
+        <Caret Line="11" Column="41" TopLine="1"/>
       </Position28>
       <Position29>
         <Filename Value="../../../../GR32_Blend.pas"/>
-        <Caret Line="242" Column="22" TopLine="133"/>
+        <Caret Line="3007" Column="1" TopLine="2986"/>
       </Position29>
       <Position30>
-        <Filename Value="../../../../GR32_Resamplers.pas"/>
-        <Caret Line="2073" Column="56" TopLine="2044"/>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="49" Column="20" TopLine="33"/>
       </Position30>
     </JumpHistory>
   </ProjectOptions>
@@ -429,27 +427,22 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="4">
+    <BreakPoints Count="3">
       <Item1>
         <Kind Value="bpkSource"/>
         <Source Value="../../../../GR32_Blend.pas"/>
-        <Line Value="767"/>
+        <Line Value="773"/>
       </Item1>
       <Item2>
         <Kind Value="bpkSource"/>
         <Source Value="../../../../GR32_Blend.pas"/>
-        <Line Value="698"/>
+        <Line Value="701"/>
       </Item2>
       <Item3>
         <Kind Value="bpkSource"/>
         <Source Value="../../../../GR32_Blend.pas"/>
-        <Line Value="180"/>
+        <Line Value="209"/>
       </Item3>
-      <Item4>
-        <Kind Value="bpkSource"/>
-        <Source Value="../../../../GR32_Blend.pas"/>
-        <Line Value="148"/>
-      </Item4>
     </BreakPoints>
     <Exceptions Count="2">
       <Item1>

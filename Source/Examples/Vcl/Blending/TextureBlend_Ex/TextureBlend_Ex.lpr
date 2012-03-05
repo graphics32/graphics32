@@ -7,6 +7,8 @@ uses
   Forms, ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
+{$R *.res}
+
 begin
     Application.Title:='GR32 Texture Blend Example';
   Application.Initialize;

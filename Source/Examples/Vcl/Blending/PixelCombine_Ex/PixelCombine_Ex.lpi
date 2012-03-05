@@ -10,6 +10,7 @@
       <MainUnit Value="0"/>
       <Title Value="GR32 Pixel Combine Example"/>
       <ResourceType Value="res"/>
+      <Icon Value="0"/>
     </General>
     <BuildModes Count="2">
       <Item1 Name="Release" Default="True"/>

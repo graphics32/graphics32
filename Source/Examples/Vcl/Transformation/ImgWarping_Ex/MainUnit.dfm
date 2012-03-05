@@ -317,6 +317,7 @@ object MainForm: TMainForm
     ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
+    ScrollBars.Size = 16
     ScrollBars.Visibility = svAuto
     OverSize = 0
     TabOrder = 2

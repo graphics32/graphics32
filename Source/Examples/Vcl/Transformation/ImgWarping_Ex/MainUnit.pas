@@ -492,7 +492,7 @@ begin
         y := J * nry - 1;
         w := GenericBrush.Weight(x, y);
 
-        d := Hypot(x, y);
+        d := GR32_Math.Hypot(x, y);
         r := ArcTan2(y, x);
         Proc(d, r, Param);
 
@@ -593,7 +593,7 @@ begin
       begin
         x := I * Sx - 1;
         y := J * Sy - 1;
-        d := Hypot(x, y);
+        d := GR32_Math.Hypot(x, y);
         r := ArcTan2(y, x);
         Proc(d, r, Param);
         w := GenericBrush.Weight(x,y);
@@ -617,7 +617,7 @@ begin
       begin
         x := I * Sx - 1;
         y := J * Sy - 1;
-        d := Hypot(x, y);
+        d := GR32_Math.Hypot(x, y);
         r := ArcTan2(y, x);
         Proc(d, r, Param);
         w := GenericBrush.Weight(x,y);

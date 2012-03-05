@@ -37,10 +37,10 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
-  ComCtrls, Math, Clipbrd, ExtDlgs, ToolWin, ImgList, Menus, GR32,
-  GR32_OrdinalMaps, GR32_RangeBars, GR32_Image, GR32_Layers;
+  {$IFDEF FPC}LCLIntf, {$ENDIF} SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, StdCtrls, ComCtrls, Math, Clipbrd, ExtDlgs, ToolWin,
+  ImgList, Menus, GR32, GR32_OrdinalMaps, GR32_RangeBars, GR32_Image,
+  GR32_Layers;
 
 type
 
@@ -116,7 +116,9 @@ var
 
 implementation
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.LFM}
+{$ELSE}
 {$R *.DFM}
 {$ENDIF}
 
@@ -300,10 +302,5 @@ begin
       bCopy.Enabled := True;
     end;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.
