@@ -326,7 +326,7 @@
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
-{$IFDEF COMPILER5}
+{$IFDEF COMPILER6}
   {$DEFINE EXT_PROP_EDIT}
 {$ENDIF}
 
