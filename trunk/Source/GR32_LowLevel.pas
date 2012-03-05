@@ -372,17 +372,17 @@ asm
         MOVD       XMM0, ECX
         PUNPCKLDQ  XMM0, XMM0
         PUNPCKLDQ  XMM0, XMM0
-@QLoop:
+@SSE2Loop:
         MOVDQA     [EDI], XMM0
         ADD        EDI, 16
         DEC        EAX
-        JNZ        @QLoop
+        JNZ        @SSE2Loop
 
 @SmallLoop:
         MOV        EAX,ECX
         MOV        ECX,EDX
 
-        REP        STOSD    // Fill count dwords
+        REP        STOSD           // Fill count dwords
 
 @ExitPOP:
         POP        EDI
