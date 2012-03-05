@@ -3928,7 +3928,7 @@ begin
       FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
       FFixedClipRect.Right, FFixedClipRect.Bottom) then
     begin
-      AdvanceStippleCounter(Hypot(Integer((X2 - X1) shr 16),
+      AdvanceStippleCounter(GR32_Math.Hypot(Integer((X2 - X1) shr 16),
         Integer((Y2 - Y1) shr 16) - StippleInc[L]));
       Exit;
     end;
@@ -3947,14 +3947,14 @@ begin
     end;
 
     if (sx <> X1) or (sy <> Y1) then
-      AdvanceStippleCounter(Hypot(Integer((X1 - sx) shr 16),
+      AdvanceStippleCounter(GR32_Math.Hypot(Integer((X1 - sx) shr 16),
         Integer((Y1 - sy) shr 16)));
 
     // If we are still here, it means that the line touches one or several bitmap
     // boundaries. Use the safe version of antialiased pixel routine
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
-    hyp := Hypot(nx, ny);
+    hyp := GR32_Math.Hypot(nx, ny);
     if L then Inc(hyp, 65536);
     if hyp < 256 then Exit;
     n := hyp shr 16;
@@ -3978,7 +3978,7 @@ begin
     EMMS;
 
     if (ex <> X2) or (ey <> Y2) then
-      AdvanceStippleCounter(Hypot(Integer((X2 - ex) shr 16),
+      AdvanceStippleCounter(GR32_Math.Hypot(Integer((X2 - ex) shr 16),
         Integer((Y2 - ey) shr 16) - StippleInc[L]));
   end;
 
@@ -4307,6 +4307,7 @@ begin
           Inc(term);
       end;
 
+      Assert(term >= 0);
       while xd <> term do
       begin
         CI := EC shr 8;
