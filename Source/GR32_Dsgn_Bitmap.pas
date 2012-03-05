@@ -117,7 +117,7 @@ type
 
   TBitmap32Property = class(TClassProperty
 {$IFDEF EXT_PROP_EDIT}
-    ICustomPropertyDrawing
+    , ICustomPropertyDrawing
     {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
 {$ENDIF}
   )

@@ -120,7 +120,6 @@ procedure TColorManager.AddColor(const AName: string; AColor: TColor32);
 var
   NewEntry: PColorEntry;
 begin
-  // TODO DVT Added cast to fix String to ShortString data loss warning. Need to verify is OK
   New(NewEntry);
   if NewEntry = nil then
     raise Exception.Create('Could not allocate memory for color registration!');
@@ -136,7 +135,6 @@ procedure TColorManager.EnumColors(Proc: TGetStrProc);
 var
   I: Integer;
 begin
-  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   for I := 0 to Count - 1 do Proc(string(TColorEntry(Items[I]^).Name));
 end;
 
@@ -144,7 +142,6 @@ function TColorManager.FindColor(const AName: string): TColor32;
 var
   I: Integer;
 begin
-  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   Result := clBlack32;
   for I := 0 to Count - 1 do
     with TColorEntry(Items[I]^) do
@@ -194,7 +191,6 @@ function TColorManager.GetColorName(AColor: TColor32): string;
 var
   I: Integer;
 begin
-  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   for I := 0 to Count - 1 do
     with TColorEntry(Items[I]^) do
       if Color = AColor then
@@ -208,36 +204,169 @@ end;
 procedure TColorManager.RegisterDefaultColors;
 begin
   Capacity := 50;
-  AddColor('clBlack32',     clBlack32);
-  AddColor('clDimGray32',   clDimGray32);
-  AddColor('clGray32',      clGray32);
-  AddColor('clLightGray32', clLightGray32);
-  AddColor('clWhite32',     clWhite32);
-  AddColor('clMaroon32',    clMaroon32);
-  AddColor('clGreen32',     clGreen32);
-  AddColor('clOlive32',     clOlive32);
-  AddColor('clNavy32',      clNavy32);
-  AddColor('clPurple32',    clPurple32);
-  AddColor('clTeal32',      clTeal32);
-  AddColor('clRed32',       clRed32);
-  AddColor('clLime32',      clLime32);
-  AddColor('clYellow32',    clYellow32);
-  AddColor('clBlue32',      clBlue32);
-  AddColor('clFuchsia32',   clFuchsia32);
-  AddColor('clAqua32',      clAqua32);
+  AddColor('clBlack32',                clBlack32);
+  AddColor('clDimGray32',              clDimGray32);
+  AddColor('clGray32',                 clGray32);
+  AddColor('clLightGray32',            clLightGray32);
+  AddColor('clWhite32',                clWhite32);
+  AddColor('clMaroon32',               clMaroon32);
+  AddColor('clGreen32',                clGreen32);
+  AddColor('clOlive32',                clOlive32);
+  AddColor('clNavy32',                 clNavy32);
+  AddColor('clPurple32',               clPurple32);
+  AddColor('clTeal32',                 clTeal32);
+  AddColor('clRed32',                  clRed32);
+  AddColor('clLime32',                 clLime32);
+  AddColor('clYellow32',               clYellow32);
+  AddColor('clBlue32',                 clBlue32);
+  AddColor('clFuchsia32',              clFuchsia32);
+  AddColor('clAqua32',                 clAqua32);
 
-  AddColor('clTrWhite32',   clTrWhite32);
-  AddColor('clTrBlack32',   clTrBlack32);
-  AddColor('clTrRed32',     clTrRed32);
-  AddColor('clTrGreen32',   clTrGreen32);
-  AddColor('clTrBlue32',    clTrBlue32);
+  AddColor('clTrWhite32',              clTrWhite32);
+  AddColor('clTrBlack32',              clTrBlack32);
+  AddColor('clTrRed32',                clTrRed32);
+  AddColor('clTrGreen32',              clTrGreen32);
+  AddColor('clTrBlue32',               clTrBlue32);
+
+  AddColor('clAliceBlue32',            clAliceBlue32);
+  AddColor('clAntiqueWhite32',         clAntiqueWhite32);
+  AddColor('clAquamarine32',           clAquamarine32);
+  AddColor('clAzure32',                clAzure32);
+  AddColor('clBeige32',                clBeige32);
+  AddColor('clBisque32',               clBisque32);
+  AddColor('clBlancheDalmond32',       clBlancheDalmond32);
+  AddColor('clBlueViolet32',           clBlueViolet32);
+  AddColor('clBrown32',                clBrown32);
+  AddColor('clBurlyWood32',            clBurlyWood32);
+  AddColor('clCadetblue32',            clCadetblue32);
+  AddColor('clChartReuse32',           clChartReuse32);
+  AddColor('clChocolate32',            clChocolate32);
+  AddColor('clCoral32',                clCoral32);
+  AddColor('clCornFlowerBlue32',       clCornFlowerBlue32);
+  AddColor('clCornSilk32',             clCornSilk32);
+  AddColor('clCrimson32',              clCrimson32);
+  AddColor('clDarkBlue32',             clDarkBlue32);
+  AddColor('clDarkCyan32',             clDarkCyan32);
+  AddColor('clDarkGoldenRod32',        clDarkGoldenRod32);
+  AddColor('clDarkGray32',             clDarkGray32);
+  AddColor('clDarkGreen32',            clDarkGreen32);
+  AddColor('clDarkGrey32',             clDarkGrey32);
+  AddColor('clDarkKhaki32',            clDarkKhaki32);
+  AddColor('clDarkMagenta32',          clDarkMagenta32);
+  AddColor('clDarkOliveGreen32',       clDarkOliveGreen32);
+  AddColor('clDarkOrange32',           clDarkOrange32);
+  AddColor('clDarkOrchid32',           clDarkOrchid32);
+  AddColor('clDarkRed32',              clDarkRed32);
+  AddColor('clDarkSalmon32',           clDarkSalmon32);
+  AddColor('clDarkSeaGreen32',         clDarkSeaGreen32);
+  AddColor('clDarkSlateBlue32',        clDarkSlateBlue32);
+  AddColor('clDarkSlateGray32',        clDarkSlateGray32);
+  AddColor('clDarkSlateGrey32',        clDarkSlateGrey32);
+  AddColor('clDarkTurquoise32',        clDarkTurquoise32);
+  AddColor('clDarkViolet32',           clDarkViolet32);
+  AddColor('clDeepPink32',             clDeepPink32);
+  AddColor('clDeepSkyBlue32',          clDeepSkyBlue32);
+  AddColor('clDodgerBlue32',           clDodgerBlue32);
+  AddColor('clFireBrick32',            clFireBrick32);
+  AddColor('clFloralWhite32',          clFloralWhite32);
+  AddColor('clGainsBoro32',            clGainsBoro32);
+  AddColor('clGhostWhite32',           clGhostWhite32);
+  AddColor('clGold32',                 clGold32);
+  AddColor('clGoldenRod32',            clGoldenRod32);
+  AddColor('clGreenYellow32',          clGreenYellow32);
+  AddColor('clGrey32',                 clGrey32);
+  AddColor('clHoneyDew32',             clHoneyDew32);
+  AddColor('clHotPink32',              clHotPink32);
+  AddColor('clIndianRed32',            clIndianRed32);
+  AddColor('clIndigo32',               clIndigo32);
+  AddColor('clIvory32',                clIvory32);
+  AddColor('clKhaki32',                clKhaki32);
+  AddColor('clLavender32',             clLavender32);
+  AddColor('clLavenderBlush32',        clLavenderBlush32);
+  AddColor('clLawnGreen32',            clLawnGreen32);
+  AddColor('clLemonChiffon32',         clLemonChiffon32);
+  AddColor('clLightBlue32',            clLightBlue32);
+  AddColor('clLightCoral32',           clLightCoral32);
+  AddColor('clLightCyan32',            clLightCyan32);
+  AddColor('clLightGoldenRodYellow32', clLightGoldenRodYellow32);
+  AddColor('clLightGray32',            clLightGray32);
+  AddColor('clLightGreen32',           clLightGreen32);
+  AddColor('clLightGrey32',            clLightGrey32);
+  AddColor('clLightPink32',            clLightPink32);
+  AddColor('clLightSalmon32',          clLightSalmon32);
+  AddColor('clLightSeagreen32',        clLightSeagreen32);
+  AddColor('clLightSkyblue32',         clLightSkyblue32);
+  AddColor('clLightSlategray32',       clLightSlategray32);
+  AddColor('clLightSlategrey32',       clLightSlategrey32);
+  AddColor('clLightSteelblue32',       clLightSteelblue32);
+  AddColor('clLightYellow32',          clLightYellow32);
+  AddColor('clLtGray32',               clLtGray32);
+  AddColor('clMedGray32',              clMedGray32);
+  AddColor('clDkGray32',               clDkGray32);
+  AddColor('clMoneyGreen32',           clMoneyGreen32);
+  AddColor('clLegacySkyBlue32',        clLegacySkyBlue32);
+  AddColor('clCream32',                clCream32);
+  AddColor('clLimeGreen32',            clLimeGreen32);
+  AddColor('clLinen32',                clLinen32);
+  AddColor('clMediumAquamarine32',     clMediumAquamarine32);
+  AddColor('clMediumBlue32',           clMediumBlue32);
+  AddColor('clMediumOrchid32',         clMediumOrchid32);
+  AddColor('clMediumPurple32',         clMediumPurple32);
+  AddColor('clMediumSeaGreen32',       clMediumSeaGreen32);
+  AddColor('clMediumSlateBlue32',      clMediumSlateBlue32);
+  AddColor('clMediumSpringGreen32',    clMediumSpringGreen32);
+  AddColor('clMediumTurquoise32',      clMediumTurquoise32);
+  AddColor('clMediumVioletRed32',      clMediumVioletRed32);
+  AddColor('clMidnightBlue32',         clMidnightBlue32);
+  AddColor('clMintCream32',            clMintCream32);
+  AddColor('clMistyRose32',            clMistyRose32);
+  AddColor('clMoccasin32',             clMoccasin32);
+  AddColor('clNavajoWhite32',          clNavajoWhite32);
+  AddColor('clOldLace32',              clOldLace32);
+  AddColor('clOliveDrab32',            clOliveDrab32);
+  AddColor('clOrange32',               clOrange32);
+  AddColor('clOrangeRed32',            clOrangeRed32);
+  AddColor('clOrchid32',               clOrchid32);
+  AddColor('clPaleGoldenRod32',        clPaleGoldenRod32);
+  AddColor('clPaleGreen32',            clPaleGreen32);
+  AddColor('clPaleTurquoise32',        clPaleTurquoise32);
+  AddColor('clPaleVioletred32',        clPaleVioletred32);
+  AddColor('clPapayaWhip32',           clPapayaWhip32);
+  AddColor('clPeachPuff32',            clPeachPuff32);
+  AddColor('clPeru32',                 clPeru32);
+  AddColor('clPlum32',                 clPlum32);
+  AddColor('clPowderBlue32',           clPowderBlue32);
+  AddColor('clPurple32',               clPurple32);
+  AddColor('clRosyBrown32',            clRosyBrown32);
+  AddColor('clRoyalBlue32',            clRoyalBlue32);
+  AddColor('clSaddleBrown32',          clSaddleBrown32);
+  AddColor('clSalmon32',               clSalmon32);
+  AddColor('clSandyBrown32',           clSandyBrown32);
+  AddColor('clSeaGreen32',             clSeaGreen32);
+  AddColor('clSeaShell32',             clSeaShell32);
+  AddColor('clSienna32',               clSienna32);
+  AddColor('clSilver32',               clSilver32);
+  AddColor('clSkyblue32',              clSkyblue32);
+  AddColor('clSlateBlue32',            clSlateBlue32);
+  AddColor('clSlateGray32',            clSlateGray32);
+  AddColor('clSlateGrey32',            clSlateGrey32);
+  AddColor('clSnow32',                 clSnow32);
+  AddColor('clSpringgreen32',          clSpringgreen32);
+  AddColor('clSteelblue32',            clSteelblue32);
+  AddColor('clTan32',                  clTan32);
+  AddColor('clThistle32',              clThistle32);
+  AddColor('clTomato32',               clTomato32);
+  AddColor('clTurquoise32',            clTurquoise32);
+  AddColor('clViolet32',               clViolet32);
+  AddColor('clWheat32',                clWheat32);
+  AddColor('clWhitesmoke32',           clWhitesmoke32);
+  AddColor('clYellowgreen32',          clYellowgreen32);
 end;
 
 procedure TColorManager.RemoveColor(const AName: string);
 var
   I: Integer;
 begin
-  // TODO DVT Added cast to fix ShortString to String warnings. Need to verify is OK
   for I := 0 to Count - 1 do
     if CompareText(string(TColorEntry(Items[I]^).Name), AName) = 0 then
     begin
@@ -369,38 +498,37 @@ var
   Bitmap32: TBitmap32;
 begin
   try
-  Right := (ARect.Bottom - ARect.Top) + ARect.Left;
-  ACanvas.FillRect(Rect(ARect.Left, ARect.Top, Right, ARect.Bottom));
-  Bitmap32 := TBitmap32.Create;
-  try
-    Bitmap32.SetSize(Right - ARect.Left - 2, ARect.Bottom - ARect.Top - 2);
-    if Assigned(ColorManager) then C := ColorManager.GetColor(Value)
-    else C := clWhite32;
-    W := Bitmap32.Width;
-    H := Bitmap32.Height;
-    if (W > 8) and (H > 8) then
-    begin
-      if C and $FF000000 = $FF000000 then
-        Bitmap32.FillRect(0, 0, W, H, C)
-      else // transparent
+    Right := (ARect.Bottom - ARect.Top) + ARect.Left;
+    Bitmap32 := TBitmap32.Create;
+    try
+      W := Right - ARect.Left - 2;
+      H := ARect.Bottom - ARect.Top - 2;
+      Bitmap32.SetSize(W, H);
+      if Assigned(ColorManager) then
+        C := ColorManager.GetColor(Value)
+      else
+        C := clWhite32;
+      if (W > 8) and (H > 8) then
       begin
-        for j := 0 to H - 1 do
-          for i := 0 to W - 1 do
-            if Odd(i div 3) = Odd(j div 3) then
-              Bitmap32[i, j] := clBlack32
-            else
-              Bitmap32[i, j] := clWhite32;
+        if not (C and $FF000000 = $FF000000) then
+        begin
+          for j := 0 to H - 1 do
+            for i := 0 to W - 1 do
+              if Odd(i div 3) = Odd(j div 3) then
+                Bitmap32[i, j] := clBlack32
+              else
+                Bitmap32[i, j] := clWhite32;
+        end;
+        Bitmap32.FillRectT(0, 0, W, H, C);
       end;
-      Bitmap32.FillRectT(0, 0, W, H, C);
+      Bitmap32.FrameRectTS(0, 0, W, H, $DF000000);
+      Bitmap32.RaiseRectTS(1, 1, W - 1, H - 1, 20);
+      Bitmap32.DrawTo(ACanvas.Handle, ARect.Left + 1, ARect.Top + 1);
+    finally
+      Bitmap32.Free;
+      DefaultPropertyListDrawValue(Value, ACanvas,
+        Rect(Right, ARect.Top, ARect.Right, ARect.Bottom), ASelected);
     end;
-    Bitmap32.FrameRectTS(0, 0, W, H, $DF000000);
-    Bitmap32.RaiseRectTS(1, 1, W - 1, H - 1, 20);
-    Bitmap32.DrawTo(ACanvas.Handle, ARect.Left + 1, ARect.Top + 1);
-  finally
-    Bitmap32.Free;
-    DefaultPropertyListDrawValue(Value, ACanvas,
-      Rect(Right, ARect.Top, ARect.Right, ARect.Bottom), ASelected);
-  end;
   except
     on E: Exception do ShowMessage(E.Message);
   end;
