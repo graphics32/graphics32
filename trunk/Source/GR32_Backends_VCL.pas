@@ -149,22 +149,32 @@ type
     destructor Destroy; override;
   end;
 
-  { TMemoryGDIBackend }
+  { TGDIMemoryBackend }
   { A backend that keeps the backing buffer entirely in memory and offers
     IPaintSupport without allocating a GDI handle }
 
-  TMemoryGDIBackend = class(TMemoryBackend, IPaintSupport)
+  TGDIMemoryBackend = class(TMemoryBackend, IPaintSupport, IDeviceContextSupport)
   private
     procedure DoPaintRect(ABuffer: TBitmap32; ARect: TRect; ACanvas: TCanvas);
+
+    function GetHandle: HDC; // Dummy
   protected
     FBitmapInfo: TBitmapInfo;
-    procedure ImageNeeded;
-    procedure CheckPixmap;
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
     procedure InitializeSurface(NewWidth: Integer; NewHeight: Integer;
       ClearBuffer: Boolean); override;
   public
     constructor Create; override;
+
+    { IPaintSupport }
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
+    { IDeviceContextSupport }
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
   end;
 
 implementation
@@ -592,9 +602,9 @@ begin
 end;
 
 
-{ TMemoryGDIBackend }
+{ TGDIMemoryBackend }
 
-constructor TMemoryGDIBackend.Create;
+constructor TGDIMemoryBackend.Create;
 begin
   inherited;
   FillChar(FBitmapInfo, SizeOf(TBitmapInfo), 0);
@@ -610,7 +620,7 @@ begin
   end;
 end;
 
-procedure TMemoryGDIBackend.InitializeSurface(NewWidth, NewHeight: Integer;
+procedure TGDIMemoryBackend.InitializeSurface(NewWidth, NewHeight: Integer;
   ClearBuffer: Boolean);
 begin
   inherited;
@@ -621,17 +631,17 @@ begin
   end;
 end;
 
-procedure TMemoryGDIBackend.ImageNeeded;
+procedure TGDIMemoryBackend.ImageNeeded;
 begin
 
 end;
 
-procedure TMemoryGDIBackend.CheckPixmap;
+procedure TGDIMemoryBackend.CheckPixmap;
 begin
 
 end;
 
-procedure TMemoryGDIBackend.DoPaintRect(ABuffer: TBitmap32;
+procedure TGDIMemoryBackend.DoPaintRect(ABuffer: TBitmap32;
   ARect: TRect; ACanvas: TCanvas);
 var
   Bitmap        : HBITMAP;
@@ -671,7 +681,101 @@ begin
   end;
 end;
 
-procedure TMemoryGDIBackend.DoPaint(ABuffer: TBitmap32;
+procedure TGDIMemoryBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
+begin
+  if FOwner.Empty then Exit;
+
+  if not FOwner.MeasuringMode then
+    raise Exception.Create('Not supported!');
+
+  FOwner.Changed(DstRect);
+end;
+
+procedure TGDIMemoryBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
+var
+  Bitmap        : HBITMAP;
+  DeviceContext : HDC;
+  Buffer        : Pointer;
+  OldObject     : HGDIOBJ;
+begin
+  if SetDIBitsToDevice(hDst, DstX, DstY,
+    FOwner.Width, FOwner.Height, 0, 0, 0, FOwner.Height, FBits, FBitmapInfo,
+    DIB_RGB_COLORS) = 0 then
+  begin
+    // create compatible device context
+    DeviceContext := CreateCompatibleDC(hDst);
+    if DeviceContext <> 0 then
+    try
+      Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo, DIB_RGB_COLORS,
+        Buffer, 0, 0);
+
+      if Bitmap <> 0 then
+      begin
+        OldObject := SelectObject(DeviceContext, Bitmap);
+        try
+          Move(FBits^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
+            FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
+          BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, DeviceContext,
+            0, 0, SRCCOPY);
+        finally
+          if OldObject <> 0 then
+            SelectObject(DeviceContext, OldObject);
+          DeleteObject(Bitmap);
+        end;
+      end else
+        raise Exception.Create('Can''t create compatible DC''');
+    finally
+      DeleteDC(DeviceContext);
+    end;
+  end;
+end;
+
+procedure TGDIMemoryBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
+var
+  Bitmap        : HBITMAP;
+  DeviceContext : HDC;
+  Buffer        : Pointer;
+  OldObject     : HGDIOBJ;
+begin
+  if SetDIBitsToDevice(hDst, DstRect.Left, DstRect.Top,
+    DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, SrcRect.Left,
+    SrcRect.Top, 0, SrcRect.Bottom - SrcRect.Top, FBits, FBitmapInfo,
+    DIB_RGB_COLORS) = 0 then
+  begin
+    // create compatible device context
+    DeviceContext := CreateCompatibleDC(hDst);
+    if DeviceContext <> 0 then
+    try
+      Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo, DIB_RGB_COLORS,
+        Buffer, 0, 0);
+
+      if Bitmap <> 0 then
+      begin
+        OldObject := SelectObject(DeviceContext, Bitmap);
+        try
+          Move(FBits^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
+            FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
+          BitBlt(hDst, DstRect.Left, DstRect.Top, DstRect.Right -
+            DstRect.Left, DstRect.Bottom - DstRect.Top, DeviceContext, 0, 0, SRCCOPY);
+        finally
+          if OldObject <> 0 then
+            SelectObject(DeviceContext, OldObject);
+          DeleteObject(Bitmap);
+        end;
+      end else
+        raise Exception.Create('Can''t create compatible DC''');
+    finally
+      DeleteDC(DeviceContext);
+    end;
+  end;
+end;
+
+function TGDIMemoryBackend.GetHandle: HDC;
+begin
+  Result := 0;
+end;
+
+procedure TGDIMemoryBackend.DoPaint(ABuffer: TBitmap32;
   AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 var
   i : Integer;
