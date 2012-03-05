@@ -135,10 +135,10 @@ type
     property BorderStyle: TBorderStyle read FBorderStyle write SetBorderStyle default bsSingle;
     property ButtonSize: Integer read FButtonSize write SetButtonSize default 0;
     property HandleColor: TColor read FHandleColor write SetHandleColor default clBtnShadow;
-    property ButtonColor:TColor read FButtonColor write SetButtonColor default clBtnFace;
-    property HighLightColor:TColor read FHighLightColor write SetHighLightColor default clBtnHighlight;
-    property ShadowColor:TColor read FShadowColor write SetShadowColor default clBtnShadow;
-    property BorderColor:TColor read FBorderColor write SetBorderColor default clWindowFrame;
+    property ButtonColor: TColor read FButtonColor write SetButtonColor default clBtnFace;
+    property HighLightColor: TColor read FHighLightColor write SetHighLightColor default clBtnHighlight;
+    property ShadowColor: TColor read FShadowColor write SetShadowColor default clBtnShadow;
+    property BorderColor: TColor read FBorderColor write SetBorderColor default clWindowFrame;
     property Kind: TScrollBarKind read FKind write SetKind default sbHorizontal;
     property ShowArrows: Boolean read FShowArrows write SetShowArrows default True;
     property ShowHandleGrip: Boolean read FShowHandleGrip write SetShowHandleGrip;
