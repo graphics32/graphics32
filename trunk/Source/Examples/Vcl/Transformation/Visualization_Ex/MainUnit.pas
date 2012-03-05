@@ -525,14 +525,14 @@ begin
       sy := y;
 
       // Switch to radial space
-      d := Hypot(x, y);
+      d := GR32_Math.Hypot(x, y);
       r := ArcTan2(y, x);
 
       // Callback to the current movement, this is what actually creates the displacement
       Movements[MovementIndex](rx, ry, x, y, d, r);
 
       // Switch to rectangular space, and add potential x,y difference
-      SinCos(r, SinV, CosV);
+      GR32_Math.SinCos(r, SinV, CosV);
       x := d * CosV + (x - sx);
       y := d * SinV + (y - sy);
 
@@ -611,7 +611,7 @@ begin
       Additive := Boolean(Random(2));
       for I:= 0 to Count do
       begin
-        SinCos(Random * PI * 2, SinV, CosV);
+        GR32_Math.SinCos(Random * PI * 2, SinV, CosV);
         x := CX + Size * 5 * SinV;
         y := CY + Size * 5 * CosV;
         RenderSpot(Buffers[CurrentBuffer], 1 + Size + Random(5), Round(x),
@@ -624,13 +624,13 @@ begin
     begin
       C := HSLtoRGB(PathAngle/PI2, 1 - Sat, 1 - Lns);
 
-      SinCos(PathAngle, SinV, CosV);
+      GR32_Math.SinCos(PathAngle, SinV, CosV);
       PathCX := CX + PathRadius * SinV;
       PathCY := CY + PathRadius * CosV;
       RenderSpot(Buffers[CurrentBuffer], Round(1 + PathRadius/5),
         Round(PathCX), Round(PathCY), C, True);
 
-      SinCos(PathAngle - PI, SinV, CosV);
+      GR32_Math.SinCos(PathAngle - PI, SinV, CosV);
       PathCX := CX + PathRadius * SinV;
       PathCY := CY + PathRadius * CosV;
       RenderSpot(Buffers[CurrentBuffer], Round(1 + PathRadius/5),

@@ -7,6 +7,8 @@ uses
   GR32_L,
   MainUnit in 'MainUnit.pas' {Form1};
 
+{$R *.res}
+
 begin
   Application.Title:='GR32 Pixel Combine Example';
   Application.Initialize;

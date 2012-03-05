@@ -64,6 +64,7 @@ object FormRotLayer: TFormRotLayer
     ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsMac
+    ScrollBars.Size = 16
     OverSize = 0
     TabOrder = 0
   end
