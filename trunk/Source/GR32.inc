@@ -220,6 +220,7 @@
 {$IFDEF TARGET_x64}
   {$DEFINE PUREPASCAL}
   {$DEFINE USEMOVE}
+  {$EXCESSPRECISION OFF}
 {$ENDIF}
 
 // The DARWIN target of Free Pascal generates PIC code by default
