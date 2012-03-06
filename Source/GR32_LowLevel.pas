@@ -207,7 +207,7 @@ asm
         // ECX = X;   EDX = Count;   R8 = Value
         PUSH    RDI
 
-        MOV     EDI,ECX  // Point EDI to destination
+        MOV     RDI,RCX  // Point EDI to destination
         MOV     RAX,R8   // copy value from R8 to RAX (EAX)
         MOV     ECX,EDX  // copy count to ECX
         TEST    ECX,ECX
