@@ -1789,17 +1789,14 @@ end;
 { Draft Resample Routines }
 
 function BlockAverage_Pas(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
-type
- PRGBA = ^TRGBA;
- TRGBA = record B,G,R,A: Byte end;
 var
- C: PRGBA;
+ C: PColor32Entry;
  ix, iy, iA, iR, iG, iB, Area: Cardinal;
 begin
   iR := 0;  iB := iR;  iG := iR;  iA := iR;
   for iy := 1 to Dly do
   begin
-    C := PRGBA(RowSrc);
+    C := PColor32Entry(RowSrc);
     for ix := 1 to Dlx do
     begin
       Inc(iB, C.B);
@@ -1842,28 +1839,28 @@ asm
         SHL        RSI,$02
         SUB        RBX,RSI
 
-        PXOR       MM1, MM1
-        PXOR       MM2, MM2
-        PXOR       MM7, MM7
+        PXOR       MM1,MM1
+        PXOR       MM2,MM2
+        PXOR       MM7,MM7
 
 @@LoopY:
         MOV        RSI,RAX
-        PXOR       MM0, MM0
+        PXOR       MM0,MM0
         LEA        RCX,[RCX + RSI * 4]
         NEG        ESI
 @@LoopX:
-        MOVD       MM6, [RCX + RSI*4]
-        PUNPCKLBW  MM6, MM7
-        PADDW      MM0, MM6
+        MOVD       MM6,[RCX + RSI*4]
+        PUNPCKLBW  MM6,MM7
+        PADDW      MM0,MM6
         INC        RSI
         JNZ        @@LoopX
 
-        MOVQ       MM6, MM0
-        PUNPCKLWD  MM6, MM7
-        PADDD      MM1, MM6
-        MOVQ       MM6, MM0
-        PUNPCKHWD  MM6, MM7
-        PADDD      MM2, MM6
+        MOVQ       MM6,MM0
+        PUNPCKLWD  MM6,MM7
+        PADDD      MM1,MM6
+        MOVQ       MM6,MM0
+        PUNPCKHWD  MM6,MM7
+        PADDD      MM2,MM6
         ADD        RCX,RBX
         DEC        RDX
         JNZ        @@LoopY
@@ -1874,26 +1871,26 @@ asm
         DIV        RCX
         MOV        RCX,RAX
 
-        MOVD       EAX, MM1
+        MOVD       EAX,MM1
         MUL        RCX
         SHR        RAX,$18
         MOV        RDI,RAX
 
-        PSRLQ      MM1, $20
-        MOVD       EAX, MM1
+        PSRLQ      MM1,$20
+        MOVD       EAX,MM1
         MUL        RCX
         SHR        RAX,$10
         AND        RAX,$0000FF00
         ADD        RDI,RAX
 
-        MOVD       EAX, MM2
+        MOVD       EAX,MM2
         MUL        RCX
         SHR        RAX,$08
         AND        RAX,$00FF0000
         ADD        RDI,RAX
 
-        PSRLQ      MM2, $20
-        MOVD       EAX, MM2
+        PSRLQ      MM2,$20
+        MOVD       EAX,MM2
         MUL        RCX
         AND        EAX,$FF000000
         ADD        RAX,RDI
@@ -1913,28 +1910,28 @@ asm
         SHL        ESI,$02
         SUB        EBX,ESI
 
-        PXOR       MM1, MM1
-        PXOR       MM2, MM2
-        PXOR       MM7, MM7
+        PXOR       MM1,MM1
+        PXOR       MM2,MM2
+        PXOR       MM7,MM7
 
 @@LoopY:
         MOV        ESI,EAX
-        PXOR       MM0, MM0
+        PXOR       MM0,MM0
         LEA        ECX,[ECX+ESI*4]
         NEG        ESI
 @@LoopX:
         MOVD       MM6,[ECX+ESI*4]
-        PUNPCKLBW  MM6, MM7
-        PADDW      MM0, MM6
+        PUNPCKLBW  MM6,MM7
+        PADDW      MM0,MM6
         INC        ESI
         JNZ        @@LoopX
 
-        MOVQ       MM6, MM0
-        PUNPCKLWD  MM6, MM7
-        PADDD      MM1, MM6
-        MOVQ       MM6, MM0
-        PUNPCKHWD  MM6, MM7
-        PADDD      MM2, MM6
+        MOVQ       MM6,MM0
+        PUNPCKLWD  MM6,MM7
+        PADDD      MM1,MM6
+        MOVQ       MM6,MM0
+        PUNPCKHWD  MM6,MM7
+        PADDD      MM2,MM6
         ADD        ECX,EBX
         DEC        EDX
         JNZ        @@LoopY
@@ -1945,26 +1942,26 @@ asm
         DIV        ECX
         MOV        ECX,EAX
 
-        MOVD       EAX, MM1
+        MOVD       EAX,MM1
         MUL        ECX
         SHR        EAX,$18
         MOV        EDI,EAX
 
-        PSRLQ      MM1, $20
-        MOVD       EAX, MM1
+        PSRLQ      MM1,$20
+        MOVD       EAX,MM1
         MUL        ECX
         SHR        EAX,$10
         AND        EAX,$0000FF00
         ADD        EDI,EAX
 
-        MOVD       EAX, MM2
+        MOVD       EAX,MM2
         MUL        ECX
         SHR        EAX,$08
         AND        EAX,$00FF0000
         ADD        EDI,EAX
 
-        PSRLQ      MM2, $20
-        MOVD       EAX, MM2
+        PSRLQ      MM2,$20
+        MOVD       EAX,MM2
         MUL        ECX
         AND        EAX,$FF000000
         ADD        EAX,EDI
@@ -1989,30 +1986,30 @@ asm
         SHL        ESI,$02
         SUB        EBX,ESI
 
-        PXOR       MM1, MM1
-        PXOR       MM2, MM2
-        PXOR       MM7, MM7
+        PXOR       MM1,MM1
+        PXOR       MM2,MM2
+        PXOR       MM7,MM7
 
 @@LoopY:
         MOV        ESI,EAX
-        PXOR       MM0, MM0
+        PXOR       MM0,MM0
         LEA        ECX,[ECX+ESI*4]
         NEG        ESI
         db $0F,$0D,$84,$B1,$00,$02,$00,$00 // PREFETCH [ECX + ESI * 4 + 512]
 @@LoopX:
-        MOVD       MM6, [ECX + ESI * 4]
-        PUNPCKLBW  MM6, MM7
-        PADDW      MM0, MM6
+        MOVD       MM6,[ECX + ESI * 4]
+        PUNPCKLBW  MM6,MM7
+        PADDW      MM0,MM6
         INC        ESI
 
         JNZ        @@LoopX
 
-        MOVQ       MM6, MM0
-        PUNPCKLWD  MM6, MM7
-        PADDD      MM1, MM6
-        MOVQ       MM6, MM0
-        PUNPCKHWD  MM6, MM7
-        PADDD      MM2, MM6
+        MOVQ       MM6,MM0
+        PUNPCKLWD  MM6,MM7
+        PADDD      MM1,MM6
+        MOVQ       MM6,MM0
+        PUNPCKHWD  MM6,MM7
+        PADDD      MM2,MM6
         ADD        ECX,EBX
         DEC        EDX
 
@@ -2024,26 +2021,26 @@ asm
         div        ECX
         MOV        ECX,EAX
 
-        MOVD       EAX, MM1
+        MOVD       EAX,MM1
         MUL        ECX
         SHR        EAX,$18
         MOV        EDI,EAX
 
-        PSRLQ      MM1, $20
-        MOVD       EAX, MM1
+        PSRLQ      MM1,$20
+        MOVD       EAX,MM1
         MUL        ECX
         SHR        EAX,$10
         AND        EAX,$0000FF00
         ADD        EDI,EAX
 
-        MOVD       EAX, MM2
+        MOVD       EAX,MM2
         MUL        ECX
         SHR        EAX,$08
         AND        EAX,$00FF0000
         ADD        EDI,EAX
 
-        PSRLQ      MM2, $20
-        MOVD       EAX, MM2
+        PSRLQ      MM2,$20
+        MOVD       EAX,MM2
         MUL        ECX
         AND        EAX,$FF000000
         ADD        EAX,EDI
@@ -2068,28 +2065,28 @@ asm
         SHL        ESI,$02
         SUB        EBX,ESI
 
-        PXOR       XMM1, XMM1
-        PXOR       XMM2, XMM2
-        PXOR       XMM7, XMM7
+        PXOR       XMM1,XMM1
+        PXOR       XMM2,XMM2
+        PXOR       XMM7,XMM7
 
 @@LoopY:
         MOV        ESI,EAX
-        PXOR       XMM0, XMM0
+        PXOR       XMM0,XMM0
         LEA        ECX,[RCX+RSI*4]
         NEG        ESI
 @@LoopX:
         MOVD       XMM6,[RCX+RSI*4]
-        PUNPCKLBW  XMM6, XMM7
-        PADDW      XMM0, XMM6
+        PUNPCKLBW  XMM6,XMM7
+        PADDW      XMM0,XMM6
         INC        ESI
         JNZ        @@LoopX
 
-        MOVQ       XMM6, XMM0
-        PUNPCKLWD  XMM6, XMM7
-        PADDD      XMM1, XMM6
-        MOVQ       XMM6, XMM0
-        PUNPCKHWD  XMM6, XMM7
-        PADDD      XMM2, XMM6
+        MOVQ       XMM6,XMM0
+        PUNPCKLWD  XMM6,XMM7
+        PADDD      XMM1,XMM6
+        MOVQ       XMM6,XMM0
+        PUNPCKHWD  XMM6,XMM7
+        PADDD      XMM2,XMM6
         ADD        ECX,EBX
         DEC        EDX
         JNZ        @@LoopY
@@ -2100,26 +2097,26 @@ asm
         DIV        ECX
         MOV        ECX,EAX
 
-        MOVD       EAX, XMM1
+        MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$18
         MOV        EDI,EAX
 
-        PSRLQ      XMM1, $20
-        MOVD       EAX, XMM1
+        PSRLQ      XMM1,$20
+        MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$10
         AND        EAX,$0000FF00
         ADD        EDI,EAX
 
-        MOVD       EAX, XMM2
+        MOVD       EAX,XMM2
         MUL        ECX
         SHR        EAX,$08
         AND        EAX,$00FF0000
         ADD        EDI,EAX
 
-        PSRLQ      XMM2, $20
-        MOVD       EAX, XMM2
+        PSRLQ      XMM2,$20
+        MOVD       EAX,XMM2
         MUL        ECX
         AND        EAX,$FF000000
         ADD        EAX,EDI
@@ -2139,28 +2136,25 @@ asm
         SHL        ESI,$02
         SUB        EBX,ESI
 
-        PXOR       XMM1, XMM1
-        PXOR       XMM2, XMM2
-        PXOR       XMM7, XMM7
+        PXOR       XMM1,XMM1
+        PXOR       XMM2,XMM2
+        PXOR       XMM7,XMM7
 
 @@LoopY:
         MOV        ESI,EAX
-        PXOR       XMM0, XMM0
+        PXOR       XMM0,XMM0
         LEA        ECX,[ECX+ESI*4]
         NEG        ESI
 @@LoopX:
         MOVD       XMM6,[ECX+ESI*4]
-        PUNPCKLBW  XMM6, XMM7
-        PADDW      XMM0, XMM6
+        PUNPCKLBW  XMM6,XMM7
+        PADDW      XMM0,XMM6
         INC        ESI
         JNZ        @@LoopX
 
-        MOVQ       XMM6, XMM0
-        PUNPCKLWD  XMM6, XMM7
-        PADDD      XMM1, XMM6
-        MOVQ       XMM6, XMM0
-        PUNPCKHWD  XMM6, XMM7
-        PADDD      XMM2, XMM6
+        MOVQ       XMM6,XMM0
+        PUNPCKLWD  XMM6,XMM7
+        PADDD      XMM1,XMM6
         ADD        ECX,EBX
         DEC        EDX
         JNZ        @@LoopY
@@ -2171,26 +2165,27 @@ asm
         DIV        ECX
         MOV        ECX,EAX
 
-        MOVD       EAX, XMM1
+        MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$18
         MOV        EDI,EAX
 
-        PSRLQ      XMM1, $20
-        MOVD       EAX, XMM1
+        SHUFPS     XMM1,XMM1,$39
+        MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$10
         AND        EAX,$0000FF00
         ADD        EDI,EAX
 
-        MOVD       EAX, XMM2
+        PSHUFD     XMM1,XMM1,$39
+        MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$08
         AND        EAX,$00FF0000
         ADD        EDI,EAX
 
-        PSRLQ      XMM2, $20
-        MOVD       EAX, XMM2
+        PSHUFD     XMM1,XMM1,$39
+        MOVD       EAX,XMM1
         MUL        ECX
         AND        EAX,$FF000000
         ADD        EAX,EDI
