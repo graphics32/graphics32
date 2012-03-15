@@ -73,6 +73,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_Math,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -145,34 +146,35 @@ procedure TMainForm.TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
 {twirl algoritm inspired by Patrick Quinn´s remap demo}
 var
   X, Y, DstR, DstB: Integer;
-  r, rx, ry, t, tt, v: Single;
-  ttCos, ttSin: Extended;
+  Center: TFloatPoint;
+  Radius, Angle, TwirlAngle, ScaledValue: TFloat;
+  CosVal, SinVal: Single;
 begin
-  rx := Srcb.Width * 0.5;
-  ry := Srcb.Height * 0.5;
-  v := -Value * 0.2 / Srcb.Height;
+  Center.X := Srcb.Width * 0.5;
+  Center.Y := Srcb.Height * 0.5;
+  ScaledValue := -Value * 0.2 / Srcb.Height;
   DstR := Dst.Width - 1;
   DstB := Dst.Height - 1;
 
   if rbGetPixelFS.Checked then
    for Y := 0 to DstB do
     for X := 0 to DstR do begin
-      r := Hypot(X - rx, Y - ry);
-      t := ArcTan2(Y - ry, X - rx);
-      tt := t + r * v;
-      SinCos(tt, ttSin, ttCos);
-      Dst.Pixel[X, Y] := Srcb.PixelFS[ rx + r * ttCos,
-                                      ry + r * ttSin ];
+      Radius := Hypot(X - Center.X, Y - Center.Y);
+      Angle := ArcTan2(Y - Center.Y, X - Center.X);
+      TwirlAngle := Angle + Radius * ScaledValue;
+      GR32_Math.SinCos(TwirlAngle, SinVal, CosVal);
+      Dst.Pixel[X, Y] := Srcb.PixelFS[Center.X + Radius * CosVal,
+        Center.Y + Radius * SinVal];
     end
   else if rbPixelS.Checked then
    for Y := 0 to DstB do
     for X := 0 to DstR do begin
-      r := Hypot(X - rx, Y - ry);
-      t := ArcTan2(Y - ry, X - rx);
-      tt := t + r * v;
-      SinCos(tt, ttSin, ttCos);
-      Dst.Pixel[X, Y] := Srcb.PixelS[ Round(rx + r * ttCos),
-                                      Round(ry + r * ttSin) ];
+      Radius := Hypot(X - Center.X, Y - Center.Y);
+      Angle := ArcTan2(Y - Center.Y, X - Center.X);
+      TwirlAngle := Angle + Radius * ScaledValue;
+      GR32_Math.SinCos(TwirlAngle, SinVal, CosVal);
+      Dst.Pixel[X, Y] := Srcb.PixelS[Round(Center.X + Radius * CosVal),
+        Round(Center.Y + Radius * SinVal)];
     end;
 end;
 
@@ -199,8 +201,11 @@ begin
       for J := 0 to Height - 1 do
       begin
         Parity := J shr 3 and $1;
-        if Boolean(Parity) then MoveLongword(Line1[0], ScanLine[J]^, W)
-        else MoveLongword(Line2[0], ScanLine[J]^, W);
+
+        if Boolean(Parity) then
+          MoveLongword(Line1[0], ScanLine[J]^, W)
+        else
+          MoveLongword(Line2[0], ScanLine[J]^, W);
       end;
     end
     else
