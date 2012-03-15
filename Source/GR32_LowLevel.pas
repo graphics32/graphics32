@@ -40,11 +40,11 @@ interface
 {$I GR32.inc}
 
 {$IFDEF PUREPASCAL}
-{$DEFINE USENATIVECODE}
-{$DEFINE USEMOVE}
+  {$DEFINE USENATIVECODE}
+  {$DEFINE USEMOVE}
 {$ENDIF}
 {$IFDEF USEINLINING}
-{$DEFINE USENATIVECODE}
+  {$DEFINE USENATIVECODE}
 {$ENDIF}
 
 uses
@@ -461,7 +461,6 @@ asm
 
         MOV     ESI,EAX
         MOV     EDI,EDX
-        MOV     EAX,ECX
         CMP     EDI,ESI
         JE      @exit
 
