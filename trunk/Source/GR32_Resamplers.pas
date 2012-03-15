@@ -1824,35 +1824,26 @@ end;
 function BlockAverage_MMX(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 asm
 {$IFDEF TARGET_X64}
-        PUSH       RBX
-        PUSH       RSI
-        PUSH       RDI
+        MOV        R10D,ECX
+        MOV        R11D,EDX
 
-        MOV        RAX,RCX
-        MOV        RCX,R8
-
-
-        MOV        RBX,R9
-        MOV        RSI,RAX
-        MOV        RDI,RDX
-
-        SHL        RSI,$02
-        SUB        RBX,RSI
+        SHL        R10,$02
+        SUB        R9,R10
 
         PXOR       MM1,MM1
         PXOR       MM2,MM2
         PXOR       MM7,MM7
 
 @@LoopY:
-        MOV        RSI,RAX
+        MOV        R10,RCX
         PXOR       MM0,MM0
-        LEA        RCX,[RCX + RSI * 4]
-        NEG        ESI
+        LEA        R8,[R8+R10*4]
+        NEG        R10
 @@LoopX:
-        MOVD       MM6,[RCX + RSI*4]
+        MOVD       MM6,[R8+R10*4]
         PUNPCKLBW  MM6,MM7
         PADDW      MM0,MM6
-        INC        RSI
+        INC        R10
         JNZ        @@LoopX
 
         MOVQ       MM6,MM0
@@ -1861,43 +1852,40 @@ asm
         MOVQ       MM6,MM0
         PUNPCKHWD  MM6,MM7
         PADDD      MM2,MM6
-        ADD        RCX,RBX
-        DEC        RDX
+        ADD        R8,R9
+        DEC        EDX
         JNZ        @@LoopY
 
-        MUL        RDI
-        MOV        RCX,RAX
-        MOV        RAX,$01000000
-        DIV        RCX
-        MOV        RCX,RAX
+        MOV        EAX, ECX
+        MUL        R11D
+        MOV        ECX,EAX
+        MOV        EAX,$01000000
+        DIV        ECX
+        MOV        ECX,EAX
 
         MOVD       EAX,MM1
-        MUL        RCX
-        SHR        RAX,$18
-        MOV        RDI,RAX
+        MUL        ECX
+        SHR        EAX,$18
+        MOV        R11D,EAX
 
         PSRLQ      MM1,$20
         MOVD       EAX,MM1
-        MUL        RCX
-        SHR        RAX,$10
-        AND        RAX,$0000FF00
-        ADD        RDI,RAX
+        MUL        ECX
+        SHR        EAX,$10
+        AND        EAX,$0000FF00
+        ADD        R11D,EAX
 
         MOVD       EAX,MM2
-        MUL        RCX
-        SHR        RAX,$08
-        AND        RAX,$00FF0000
-        ADD        RDI,RAX
+        MUL        ECX
+        SHR        EAX,$08
+        AND        EAX,$00FF0000
+        ADD        R11D,EAX
 
         PSRLQ      MM2,$20
         MOVD       EAX,MM2
-        MUL        RCX
+        MUL        ECX
         AND        EAX,$FF000000
-        ADD        RAX,RDI
-
-        POP        RDI
-        POP        RSI
-        POP        RBX
+        ADD        EAX,R11D
 {$ELSE}
         PUSH       EBX
         PUSH       ESI
@@ -2054,44 +2042,37 @@ end;
 function BlockAverage_SSE2(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
 asm
 {$IFDEF TARGET_X64}
-        PUSH       RBX
-        PUSH       RSI
-        PUSH       RDI
+        MOV        EAX,ECX
+        MOV        R10D,EDX
 
-        MOV        EBX,OffSrc
-        MOV        ESI,EAX
-        MOV        EDI,EDX
-
-        SHL        ESI,$02
-        SUB        EBX,ESI
+        SHL        EAX,$02
+        SUB        R9D,EAX
 
         PXOR       XMM1,XMM1
         PXOR       XMM2,XMM2
         PXOR       XMM7,XMM7
 
 @@LoopY:
-        MOV        ESI,EAX
+        MOV        EAX,ECX
         PXOR       XMM0,XMM0
-        LEA        ECX,[RCX+RSI*4]
-        NEG        ESI
+        LEA        R8,[R8+RAX*4]
+        NEG        RAX
 @@LoopX:
-        MOVD       XMM6,[RCX+RSI*4]
+        MOVD       XMM6,[R8+RAX*4]
         PUNPCKLBW  XMM6,XMM7
         PADDW      XMM0,XMM6
-        INC        ESI
+        INC        RAX
         JNZ        @@LoopX
 
         MOVQ       XMM6,XMM0
         PUNPCKLWD  XMM6,XMM7
         PADDD      XMM1,XMM6
-        MOVQ       XMM6,XMM0
-        PUNPCKHWD  XMM6,XMM7
-        PADDD      XMM2,XMM6
-        ADD        ECX,EBX
+        ADD        R8,R9
         DEC        EDX
         JNZ        @@LoopY
 
-        MUL        EDI
+        MOV        EAX, ECX
+        MUL        R10D
         MOV        ECX,EAX
         MOV        EAX,$01000000
         DIV        ECX
@@ -2100,30 +2081,27 @@ asm
         MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$18
-        MOV        EDI,EAX
+        MOV        R10D,EAX
 
-        PSRLQ      XMM1,$20
+        SHUFPS     XMM1,XMM1,$39
         MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$10
         AND        EAX,$0000FF00
-        ADD        EDI,EAX
+        ADD        R10D,EAX
 
-        MOVD       EAX,XMM2
+        PSHUFD     XMM1,XMM1,$39
+        MOVD       EAX,XMM1
         MUL        ECX
         SHR        EAX,$08
         AND        EAX,$00FF0000
-        ADD        EDI,EAX
+        ADD        R10D,EAX
 
-        PSRLQ      XMM2,$20
-        MOVD       EAX,XMM2
+        PSHUFD     XMM1,XMM1,$39
+        MOVD       EAX,XMM1
         MUL        ECX
         AND        EAX,$FF000000
-        ADD        EAX,EDI
-
-        POP        RDI
-        POP        RSI
-        POP        RBX
+        ADD        EAX,R10D
 {$ELSE}
         PUSH       EBX
         PUSH       ESI
