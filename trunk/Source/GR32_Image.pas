@@ -1522,14 +1522,11 @@ begin
   else
   begin
     Size := GetBitmapSize;
-    with Size do
-    begin
-      Result := Rect(0, 0, Cx, Cy);
-      if BitmapAlign = baCenter then
-        OffsetRect(Result, (Width - Cx) div 2, (Height - Cy) div 2)
-      else if BitmapAlign = baCustom then
-        OffsetRect(Result, Round(OffsetHorz), Round(OffsetVert));
-    end;
+    Result := Rect(0, 0, Size.Cx, Size.Cy);
+    if BitmapAlign = baCenter then
+      OffsetRect(Result, (Width - Size.Cx) div 2, (Height - Size.Cy) div 2)
+    else if BitmapAlign = baCustom then
+      OffsetRect(Result, Round(OffsetHorz), Round(OffsetVert));
   end;
 end;
 
