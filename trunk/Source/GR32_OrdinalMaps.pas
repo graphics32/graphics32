@@ -50,7 +50,8 @@ uses
   Classes, SysUtils, GR32;
 
 type
-  TConversionType = (ctRed, ctGreen, ctBlue, ctAlpha, ctUniformRGB, ctWeightedRGB);
+  TConversionType = (ctRed, ctGreen, ctBlue, ctAlpha, ctUniformRGB,
+    ctWeightedRGB);
 
   TBooleanMap = class(TCustomMap)
   private
@@ -72,9 +73,9 @@ type
   TByteMap = class(TCustomMap)
   private
     FBits: TArrayOfByte;
-    function GetValue(X, Y: Integer): Byte;
-    function GetValPtr(X, Y: Integer): PByte;
-    procedure SetValue(X, Y: Integer; Value: Byte);
+    function GetValue(X, Y: Integer): Byte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValPtr(X, Y: Integer): PByte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; Value: Byte); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PByteArray;
   protected
     procedure AssignTo(Dst: TPersistent); override;
@@ -95,9 +96,9 @@ type
   TWordMap = class(TCustomMap)
   private
     FBits: TArrayOfWord;
-    function GetValPtr(X, Y: Integer): PWord;
-    function GetValue(X, Y: Integer): Word;
-    procedure SetValue(X, Y: Integer; const Value: Word);
+    function GetValPtr(X, Y: Integer): PWord; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): Word; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: Word); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PWordArray;
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
@@ -113,9 +114,9 @@ type
   TIntegerMap = class(TCustomMap)
   private
     FBits: TArrayOfInteger;
-    function GetValPtr(X, Y: Integer): PInteger;
-    function GetValue(X, Y: Integer): Integer;
-    procedure SetValue(X, Y: Integer; const Value: Integer);
+    function GetValPtr(X, Y: Integer): PInteger; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: Integer); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PIntegerArray;
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
@@ -238,7 +239,7 @@ end;
 
 function TByteMap.Empty: Boolean;
 begin
-  Result := false;
+  Result := False;
   if (Width = 0) or (Height = 0) or (FBits = nil) then Result := True;
 end;
 
