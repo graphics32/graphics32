@@ -1111,9 +1111,9 @@ end;
 function WinColor(Color32: TColor32): TColor;
 {$IFDEF PUREPASCAL}
 begin
-  Result := ((Color32 and $00FF0000) shl 16) or
+  Result := ((Color32 and $00FF0000) shr 16) or
              (Color32 and $0000FF00) or
-            ((Color32 and $000000FF) shr 16);
+            ((Color32 and $000000FF) shl 16);
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
