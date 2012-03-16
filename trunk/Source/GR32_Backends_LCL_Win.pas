@@ -462,8 +462,8 @@ end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
-  BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX, DstY,
-    SRCCOPY);
+  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
+    DstY, SRCCOPY);
 (*
 StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,
@@ -473,8 +473,7 @@ end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
 begin
-  StretchBlt(
-    hDst,
+  Windows.StretchBlt(hDst,
     DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Handle,
     SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
 end;
@@ -541,7 +540,7 @@ begin
   if FOwner.Empty then Exit;
 
   if not FOwner.MeasuringMode then
-    StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
+    Windows.StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
       DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
       SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
 
@@ -594,10 +593,10 @@ begin
   if AInvalidRects.Count > 0 then
     for i := 0 to AInvalidRects.Count - 1 do
       with AInvalidRects[i]^ do
-        BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
+        Windows.BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
   else
     with APaintBox.GetViewportRect do
-      BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+      Windows.BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
 end;
 
 
@@ -688,7 +687,7 @@ begin
         try
           Move(ABuffer.Bits^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
             FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
-          BitBlt(ACanvas.Handle, ARect.Left, ARect.Top, ARect.Right -
+          Windows.BitBlt(ACanvas.Handle, ARect.Left, ARect.Top, ARect.Right -
             ARect.Left, ARect.Bottom - ARect.Top, DeviceContext, 0, 0, SRCCOPY);
         finally
           if OldObject <> 0 then
@@ -741,7 +740,7 @@ begin
         try
           Move(FBits^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
             FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
-          BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, DeviceContext,
+          Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, DeviceContext,
             0, 0, SRCCOPY);
         finally
           if OldObject <> 0 then
@@ -785,7 +784,7 @@ begin
         try
           Move(FBits^, Buffer^, FBitmapInfo.bmiHeader.biWidth *
             FBitmapInfo.bmiHeader.biHeight * SizeOf(Cardinal));
-          BitBlt(hDst, DstRect.Left, DstRect.Top, DstRect.Right -
+          Windows.BitBlt(hDst, DstRect.Left, DstRect.Top, DstRect.Right -
             DstRect.Left, DstRect.Bottom - DstRect.Top, DeviceContext, 0, 0, SRCCOPY);
         finally
           if OldObject <> 0 then

@@ -71,8 +71,8 @@ type
   TLayerListNotification = (lnLayerAdded, lnLayerInserted, lnLayerDeleted, lnCleared);
   TLayerListNotifyEvent = procedure(Sender: TLayerCollection; Action: TLayerListNotification;
     Layer: TCustomLayer; Index: Integer) of object;
-  TGetScaleEvent = procedure(Sender: TObject; var ScaleX, ScaleY: TFloat) of object;
-  TGetShiftEvent = procedure(Sender: TObject; var ShiftX, ShiftY: TFloat) of object;
+  TGetScaleEvent = procedure(Sender: TObject; out ScaleX, ScaleY: TFloat) of object;
+  TGetShiftEvent = procedure(Sender: TObject; out ShiftX, ShiftY: TFloat) of object;
 
   TLayerCollection = class(TPersistent)
   private
@@ -128,8 +128,8 @@ type
     function  Insert(Index: Integer; ItemClass: TLayerClass): TCustomLayer;
     function  LocalToViewport(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
     function  ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
-    procedure GetViewportScale(var ScaleX, ScaleY: TFloat); virtual;
-    procedure GetViewportShift(var ShiftX, ShiftY: TFloat); virtual;
+    procedure GetViewportScale(out ScaleX, ScaleY: TFloat); virtual;
+    procedure GetViewportShift(out ShiftX, ShiftY: TFloat); virtual;
     property Count: Integer read GetCount;
     property Owner: TPersistent read FOwner;
     property Items[Index: Integer]: TCustomLayer read GetItem write SetItem; default;
@@ -616,7 +616,7 @@ begin
   Changed;
 end;
 
-procedure TLayerCollection.GetViewportScale(var ScaleX, ScaleY: TFloat);
+procedure TLayerCollection.GetViewportScale(out ScaleX, ScaleY: TFloat);
 begin
   if Assigned(FOnGetViewportScale) then
     FOnGetViewportScale(Self, ScaleX, ScaleY)
@@ -627,7 +627,7 @@ begin
   end;
 end;
 
-procedure TLayerCollection.GetViewportShift(var ShiftX, ShiftY: TFloat);
+procedure TLayerCollection.GetViewportShift(out ShiftX, ShiftY: TFloat);
 begin
   if Assigned(FOnGetViewportShift) then
     FOnGetViewportShift(Self, ShiftX, ShiftY)
