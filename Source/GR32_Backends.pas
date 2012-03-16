@@ -127,9 +127,6 @@ implementation
 uses
   GR32_LowLevel;
 
-type
-  TBitmap32Access = class(TBitmap32);
-
 procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
   RequiredInterfaces: array of TGUID;
   Mode: TRequireOperatorMode; UseOptimizedDestructiveSwitchMethod: Boolean;
