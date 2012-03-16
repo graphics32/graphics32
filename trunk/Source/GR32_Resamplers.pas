@@ -1805,10 +1805,10 @@ begin
       Inc(iA, C.A);
       Inc(C);
     end;
-    {$IFDEF FPC}
-    Inc(RowSrc, OffSrc);
-    {$ELSE}
+    {$IFDEF COMPILERXE1_UP}
     Inc(NativeInt(RowSrc), OffSrc);
+    {$ELSE}
+    Inc(RowSrc, OffSrc);
     {$ENDIF}
   end;
 
