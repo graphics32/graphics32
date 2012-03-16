@@ -43,11 +43,11 @@ type
   private
     FAlphaHit: Boolean;
     FTransformation: TAffineTransformation;
-    FBitmapCenter: TFloatPoint;
     FBitmap: TBitmap32;
     procedure BitmapChanged(Sender: TObject);
     procedure SetBitmap(Value: TBitmap32);
   protected
+    FBitmapCenter: TFloatPoint;
     procedure AdjustTransformation; virtual;
     function DoHitTest(X, Y: Integer): Boolean; override;
     procedure Paint(Buffer: TBitmap32); override;
