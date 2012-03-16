@@ -2477,6 +2477,14 @@ var
 begin
   if not FMeasuringMode then
   begin
+    {$IFDEF FPC}
+    P := Pointer(Bits);
+    for I := 0 to Width * Height - 1 do
+    begin
+      P^[3] := AlphaValue;
+      Inc(P, 4);
+    end
+    {$ELSE}
     P := Pointer(Bits);
     Inc(P, 3); //shift the pointer to 'alpha' component of the first pixel
 
@@ -2490,22 +2498,22 @@ begin
       //16x enrolled loop
       I := - I;
       repeat
-        P[I] := AlphaValue;
-        P[I +  4] := AlphaValue;
-        P[I +  8] := AlphaValue;
-        P[I + 12] := AlphaValue;
-        P[I + 16] := AlphaValue;
-        P[I + 20] := AlphaValue;
-        P[I + 24] := AlphaValue;
-        P[I + 28] := AlphaValue;
-        P[I + 32] := AlphaValue;
-        P[I + 36] := AlphaValue;
-        P[I + 40] := AlphaValue;
-        P[I + 44] := AlphaValue;
-        P[I + 48] := AlphaValue;
-        P[I + 52] := AlphaValue;
-        P[I + 56] := AlphaValue;
-        P[I + 60] := AlphaValue;
+        P^[I] := AlphaValue;
+        P^[I +  4] := AlphaValue;
+        P^[I +  8] := AlphaValue;
+        P^[I + 12] := AlphaValue;
+        P^[I + 16] := AlphaValue;
+        P^[I + 20] := AlphaValue;
+        P^[I + 24] := AlphaValue;
+        P^[I + 28] := AlphaValue;
+        P^[I + 32] := AlphaValue;
+        P^[I + 36] := AlphaValue;
+        P^[I + 40] := AlphaValue;
+        P^[I + 44] := AlphaValue;
+        P^[I + 48] := AlphaValue;
+        P^[I + 52] := AlphaValue;
+        P^[I + 56] := AlphaValue;
+        P^[I + 60] := AlphaValue;
         Inc(I, 64)
       until I > 0;
 
@@ -2513,7 +2521,7 @@ begin
       Dec(I, 64);
       while I < 0 do
       begin
-        P[I + 64] := AlphaValue;
+        P^[I + 64] := AlphaValue;
         Inc(I, 4);
       end;
     end
@@ -2523,10 +2531,11 @@ begin
       I := I * 4;
       while I >= 0 do
       begin
-        P[I] := AlphaValue;
+        P^[I] := AlphaValue;
         Dec(I, 4);
       end;
     end;
+    {$ENDIF}
   end;
   Changed;
 end;
