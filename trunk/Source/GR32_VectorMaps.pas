@@ -119,9 +119,6 @@ implementation
 uses
   GR32_Lowlevel, GR32_Blend, GR32_Transforms, GR32_Math, SysUtils;
 
-type
-  TTransformationAccess = class(TTransformation);
-
 { TVectorMap }
 
 function CombineVectorsReg(const A, B: TFixedVector; Weight: TFixed): TFixedVector;

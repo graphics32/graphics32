@@ -136,8 +136,8 @@ type
     procedure DoPaintGDIOverlay; virtual;
     procedure DoBufferResized(const OldWidth, OldHeight: Integer); virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
-    procedure MouseEnter; virtual;
-    procedure MouseLeave; virtual;
+    procedure MouseEnter; {$IFDEF FPC} override; {$ELSE} virtual; {$ENDIF}
+    procedure MouseLeave; {$IFDEF FPC} override; {$ELSE} virtual; {$ENDIF}
     procedure Paint; override;
     procedure ResetInvalidRects;
     procedure ResizeBuffer;
