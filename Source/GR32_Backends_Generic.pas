@@ -99,9 +99,12 @@ var
   PC: PChar;
 begin
   PC := StrAlloc(MAX_PATH + 1);
-  Windows.GetTempPath(MAX_PATH, PC);
-  Result := TFileName(PC);
-  StrDispose(PC);
+  try
+    Windows.GetTempPath(MAX_PATH, PC);
+    Result := TFileName(PC);
+  finally
+    StrDispose(PC);
+  end;
 end;
 
 
