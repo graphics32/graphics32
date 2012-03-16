@@ -16,7 +16,7 @@
       <Item1 Name="Release" Default="True"/>
       <Item2 Name="Debug">
         <CompilerOptions>
-          <Version Value="10"/>
+          <Version Value="11"/>
           <SearchPaths>
             <IncludeFiles Value="../../../.."/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
@@ -38,8 +38,7 @@
           </CodeGeneration>
           <Linking>
             <Debugging>
-              <GenerateDebugInfo Value="True"/>
-              <GenerateDwarf Value="True"/>
+              <DebugInfoType Value="dsDwarf2Set"/>
             </Debugging>
             <Options>
               <LinkerOptions Value="-framework carbon"/>
@@ -93,7 +92,7 @@
     </Units>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <SearchPaths>
       <IncludeFiles Value="../../../.."/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
@@ -115,6 +114,7 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
+        <GenerateDebugInfo Value="False"/>
         <UseLineInfoUnit Value="False"/>
         <StripSymbols Value="True"/>
       </Debugging>
