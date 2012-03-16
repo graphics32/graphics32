@@ -121,10 +121,10 @@ var
 begin
   R := TRenderThread.Create(Rasterizer, Dst, DstRect, True);
   R.FreeOnTerminate := True;
-{$IFDEF COMPILER2010}
-  R.Start;
-{$ELSE}
+{$IFDEF USETHREADRESUME}
   R.Resume;
+{$ELSE}
+  R.Start;
 {$ENDIF}
 end;
 
@@ -300,16 +300,16 @@ end;
 constructor TRenderThread.Create(Rasterizer: TRasterizer; Dst: TBitmap32;
   DstRect: TRect; Suspended: Boolean);
 begin
-{$IFDEF COMPILER2010}
-  inherited Create(Suspended);
-{$ELSE}
+{$IFDEF USETHREADRESUME}
   inherited Create(True);
+{$ELSE}
+  inherited Create(Suspended);
 {$ENDIF}
   FRasterizer := Rasterizer;
   FDest := Dst;
   FDstRect := DstRect;
   Priority := tpNormal;
-{$IFNDEF COMPILER2010}
+{$IFDEF USETHREADRESUME}
   if not Suspended then Resume;
 {$ENDIF}
 end;

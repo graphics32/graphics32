@@ -2116,7 +2116,7 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
       Bmp.HandleType := bmDIB;
       Bmp.PixelFormat := pf32Bit;
 
-{$IFDEF COMPILER2009}
+{$IFDEF COMPILER2009_UP}
       Bmp.SetSize(SrcBitmap.Width, SrcBitmap.Height);
 {$ELSE}
       Bmp.Width := SrcBitmap.Width;
@@ -5628,7 +5628,7 @@ begin
     lfHeight := Font.Height;
     lfWidth := 0; { have font mapper choose }
 
-    {$IFDEF COMPILER2005}
+    {$IFDEF COMPILER2005_UP}
     lfEscapement := Font.Orientation;
     lfOrientation := Font.Orientation;
     {$ELSE}

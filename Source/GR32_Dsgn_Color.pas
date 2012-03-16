@@ -74,7 +74,7 @@ type
   TColor32Property = class(TIntegerProperty
 {$IFDEF EXT_PROP_EDIT}
     , ICustomPropertyListDrawing, ICustomPropertyDrawing
-    {$IFDEF COMPILER2005}, ICustomPropertyDrawing80{$ENDIF}
+    {$IFDEF COMPILER2005_UP}, ICustomPropertyDrawing80{$ENDIF}
 {$ENDIF}
   )
   public
@@ -91,7 +91,7 @@ type
     { ICustomPropertyDrawing }
     procedure PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
     procedure PropDrawValue(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
-  {$IFDEF COMPILER2005}
+  {$IFDEF COMPILER2005_UP}
     { ICustomPropertyDrawing80 }
     function PropDrawNameRect(const ARect: TRect): TRect;
     function PropDrawValueRect(const ARect: TRect): TRect;
@@ -549,7 +549,7 @@ begin
   DefaultPropertyDrawName(Self, ACanvas, ARect);
 end;
 
-{$IFDEF COMPILER2005}
+{$IFDEF COMPILER2005_UP}
 function TColor32Property.PropDrawNameRect(const ARect: TRect): TRect;
 begin
   Result := ARect;
