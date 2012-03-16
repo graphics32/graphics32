@@ -57,7 +57,7 @@ uses
 {$IFDEF CODESITE}
   CSIntf, CSAux,
 {$ENDIF}
-{$IFDEF COMPILER2005}
+{$IFDEF COMPILER2005_UP}
   Types,
 {$ENDIF}
   SysUtils, Classes,

@@ -33,285 +33,91 @@
  *
  * ***** END LICENSE BLOCK ***** *)
 
-{$IFDEF VER230}
-  {$DEFINE INLININGSUPPORTED}
-  {$DEFINE COMPILERXE2}
-  {$DEFINE COMPILERXE1}
-  {$DEFINE COMPILER2010}
-  {$DEFINE COMPILER2009}
-  {$DEFINE COMPILER2007}
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE1}
-    {$DEFINE DELPHIXE2}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER220}
-  {$DEFINE INLININGSUPPORTED}
-  {$DEFINE COMPILERXE1}
-  {$DEFINE COMPILER2010}
-  {$DEFINE COMPILER2009}
-  {$DEFINE COMPILER2007}
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHIXE1}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER210}
-  {$DEFINE INLININGSUPPORTED}
-  {$DEFINE COMPILER2010}
-  {$DEFINE COMPILER2009}
-  {$DEFINE COMPILER2007}
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2010}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER200}
-  {$DEFINE INLININGSUPPORTED}
-  {$DEFINE COMPILER2009}
-  {$DEFINE COMPILER2007}
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2009}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER185}
-  {$DEFINE INLININGSUPPORTED}
-  {$DEFINE COMPILER2007}
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2007}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER180}
-  {-$DEFINE INLININGSUPPORTED} // disabled due to a compiler bug (http://qc.embarcadero.com/wc/qcmain.aspx?d=41166)
-  {$DEFINE COMPILER2006}
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2006}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER170}
-  {-$DEFINE INLININGSUPPORTED} // disabled due to a compiler bug (http://qc.embarcadero.com/wc/qcmain.aspx?d=41166)
-  {$DEFINE COMPILER2005}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI2005}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER150}
-  {$DEFINE COMPILER7}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI7}
-  {$ELSE}
-    {$DEFINE BCB7}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF VER140}
-  {$DEFINE COMPILER6}
-  {$IFNDEF BCB}
-    {$DEFINE DELPHI6}
-  {$ELSE}
-    {$DEFINE BCB6}
-  {$ENDIF}
-{$ENDIF}
-
-(* Symbol TARGET_* :
-    Defines the processor platform (x86, x64 or PowerPC)
-*)
-
-{$IFDEF FPC}
-  {$DEFINE PLATFORM_INDEPENDENT}
-  {$MODE Delphi}
-
-  // Set up internal CPU target directives according to FPC directives
-  {$IFDEF CPU386}
-    {$IFDEF CPUI386}
-      // target is an Intel 80386 or later.
-      {$DEFINE TARGET_x86}
-    {$ENDIF}
-
-    {$IFDEF CPUX86_64}
-      // target is a 64-bit processor (AMD or INTEL).
-      {$DEFINE TARGET_x64}
-    {$ENDIF}
-
-    {$IFDEF CPUPOWERPC}
-      // target is a 32-bit PowerPC or compatible.
-      // currently only indirect support, added here as example on how to add
-      // future specific targets
-      {$DEFINE TARGET_POWERPC}
-    {$ENDIF}
-  {$ENDIF}
-
-  {$IFDEF CPUX86_64}
-    // target is a 64-bit processor (AMD or INTEL).
-    {$DEFINE TARGET_x64}
-    {$ASMMODE INTEL}
-  {$ENDIF}
-
-  // Widgetsets other then Windows will want to implement BITS_GETTER
-  {$IFNDEF LCLWin32}
-    {$DEFINE BITS_GETTER}
-  {$ENDIF}
-{$ELSE}
-  // check for XE2 64-Bit compiler define
-  {$IFDEF CPUX64}
-    {$DEFINE TARGET_x64}
-  {$ELSE}
-    // define default (delphi etc) target (32 bit Intel 80386 or later)
-    {$DEFINE TARGET_x86}
-  {$ENDIF}
-{$ENDIF}
-
+ {$I GR32_Compiler.inc}
 
 
 (* Symbol PUREPASCAL :
-    Forces GR32 into pure pascal mode. *)
-// FPC generates very efficient code, there is no need for assembler,
-// which just causes trouble
-{$IFDEF FPC}
-  {$DEFINE PUREPASCAL}
-  {-$DEFINE USEMOVE}
-{$ENDIF}
+   -------------------
 
-{$IFDEF TARGET_x64}
-  {$DEFINE PUREPASCAL}
-  {$DEFINE USEMOVE}
-  {$EXCESSPRECISION OFF}
-{$ENDIF}
+      Forces GR32 into pure pascal mode. Should be used only for testing and
+      debugging purposes. *)
 
-// The DARWIN target of Free Pascal generates PIC code by default
-// Which isn't compatible with the current Assembler
-// So force PUREPASCAL
-{$IFDEF DARWIN}
-  {$DEFINE PUREPASCAL}
-{$ENDIF}
+  {-$DEFINE PUREPASCAL}
 
-{$IFNDEF COMPILER6}
-{$IFNDEF FPC}
-+--------------------------------------------------------------------+
-|  Graphics32 may only be installed with Delphi/BCB 6 (or higher)    |
-|   or Free Pascal / Lazarus                                         |
-+--------------------------------------------------------------------+
-{$ENDIF}
-{$ENDIF}
-
-{$IFDEF LINUX}
-  {$IFNDEF FPC}
-    {$DEFINE PLATFORM_INDEPENDENT}
-    {$DEFINE BITS_GETTER}
-  {$ENDIF}
-  {$DEFINE UNIX}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$IFNDEF LINUX}
-    {$DEFINE Windows}
-  {$ENDIF}
-{$ENDIF}
-
-(* Symbol PUREPASCAL :
-    Forces GR32 into pure pascal mode. Should be used only for testing and
-    debugging purposes. *)
-    {-$DEFINE PUREPASCAL}
 
 
 (* Symbol DEPRECATEDMODE :
-    Defines if GR32 should behave like version 1.7.x and down.
-    NOTE:
-    Support for this will be dropped at some time and is only provided for
-    transition *)
+   -----------------------
+
+      Defines if GR32 should behave like version 1.7.x and down.
+
+   NOTE: Support for this will be dropped at some time and is only provided
+   for transition *)
 
   {-$DEFINE DEPRECATEDMODE}
 
 
+
 (* Symbol CHANGED_IN_PIXELS :
-    Defines if the OnChange / OnAreaChange event should be fired with
-    safe pixel setters (PixelS, PixelTS, PixelFS etc.)
-    NOTE:
-    While enabling this feature is generally better for the repaint and layer
-    optimization, in "lazy code" it is also much slower. *)
+   --------------------------
+
+      Defines if the OnChange / OnAreaChange event should be fired with
+      safe pixel setters (PixelS, PixelTS, PixelFS etc.)
+
+   NOTE: While enabling this feature is generally better for the repaint and
+   layer optimization, in "lazy code" it is also much slower. *)
 
   {-$DEFINE CHANGED_IN_PIXELS}
 
 
-{$IFDEF INLININGSUPPORTED}
-(* Symbol USEINLINING :
-    Defines whether to use function inlining.
-    NOTE:
-    Enabling this symbol increases executable size but will result in better
-    performance in most cases. *)
 
+(* Symbol USEINLINING :
+   --------------------
+
+      Defines whether to use function inlining.
+
+   NOTE: Enabling this symbol increases executable size but will probably
+   result in better performance in most cases. *)
+
+{$IFDEF INLININGSUPPORTED}
   {$DEFINE USEINLINING}
 {$ENDIF}
 
 
+
 (* Symbol USE_GUIDS_IN_MMF :
+   -------------------------
+
     Defines whether to use GUIDs for temporary MMFs filename instead of
     using the GetTempFilename in WinAPI. *)
 
-  {-$DEFINE USE_GUIDS_IN_MMF}
+{-$DEFINE USE_GUIDS_IN_MMF}
+
 
 
 (* Symbol USEMOVE :
+   ----------------
+
     Defines whether to use Move instead of MoveLongword. *)
 
-  {-$DEFINE USEMOVE}
+{-$DEFINE USEMOVE}
+
 
 
 (* Symbol USEMULTITHREADING :
+   --------------------------
+
     Use multithreading by default if possible. *)
 
   {-$DEFINE USEMULTITHREADING}
+
+
 
 (* FastCode specific symbols:
     Adding these symbols to your project's define list will force use of the
     particular routine over the standard GR32 routine.
 
-   GR32_FASTCODEMOVE     - Uses the patched Move routine rather than MoveLongword.
+   GR32_FASTCODEMOVE - Uses the patched Move routine rather than MoveLongword.
 
    For more information on the FastCode project take a look at this URL:
      http://fastcode.sourceforge.net/
@@ -322,14 +128,4 @@
 
 {$IFDEF GR32_FASTCODEMOVE}
   {$DEFINE USEMOVE}
-{$ENDIF}
-
-{$R-}{$Q-}  // switch off overflow and range checking
-
-{$IFDEF COMPILER6}
-  {$DEFINE EXT_PROP_EDIT}
-{$ENDIF}
-
-{$IFNDEF FPC}
-  {$DEFINE XPTHEMES} // enable support for windows xp themes
 {$ENDIF}

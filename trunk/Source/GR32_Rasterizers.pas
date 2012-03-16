@@ -777,14 +777,10 @@ var
     Result.GetSample := Sampler.GetSampleInt;
     Result.AssignColor := AssignColor;
     Result.Dst := Dst;
-  {$IFDEF COMPILER2010}
-    Result.Start;
-  {$ELSE}
-  {$IFDEF FPC}
-    Result.Start;
-  {$ELSE}
+  {$IFDEF USETHREADRESUME}
     Result.Resume;
-  {$ENDIF}
+  {$ELSE}
+    Result.Start;
   {$ENDIF}
   end;
 
