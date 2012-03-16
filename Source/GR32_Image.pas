@@ -247,8 +247,8 @@ type
     procedure BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure LayerCollectionChangeHandler(Sender: TObject);
     procedure LayerCollectionGDIUpdateHandler(Sender: TObject);
-    procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: TFloat);
-    procedure LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: TFloat);
+    procedure LayerCollectionGetViewportScaleHandler(Sender: TObject; out ScaleX, ScaleY: TFloat);
+    procedure LayerCollectionGetViewportShiftHandler(Sender: TObject; out ShiftX, ShiftY: TFloat);
     function  GetOnPixelCombine: TPixelCombineEvent;
     procedure SetBitmap(Value: TBitmap32);
     procedure SetBitmapAlign(Value: TBitmapAlign);
@@ -568,7 +568,6 @@ uses
   Math, TypInfo, GR32_MicroTiles, GR32_Backends, GR32_XPThemes;
 
 type
-  TBitmap32Access = class(TBitmap32);
   TLayerAccess = class(TCustomLayer);
   TLayerCollectionAccess = class(TLayerCollection);
   TRangeBarAccess = class(TRangeBar);
@@ -992,7 +991,9 @@ begin
     if InvalidRectsAvailable then
       // BeginPaint deeper might set invalid clipping, so we call Paint here
       // to force repaint of our invalid rects...
+    {$IFNDEF FPC}
       Paint
+    {$ENDIF}
     else
       // no invalid rects available? Invalidate the whole client area
       InvalidateRect(Handle, nil, False);
@@ -1227,14 +1228,16 @@ begin
   Paint;
 end;
 
-procedure TCustomImage32.LayerCollectionGetViewportScaleHandler(Sender: TObject; var ScaleX, ScaleY: TFloat);
+procedure TCustomImage32.LayerCollectionGetViewportScaleHandler(Sender: TObject;
+  out ScaleX, ScaleY: TFloat);
 begin
   UpdateCache;
   ScaleX := CachedScaleX;
   ScaleY := CachedScaleY;
 end;
 
-procedure TCustomImage32.LayerCollectionGetViewportShiftHandler(Sender: TObject; var ShiftX, ShiftY: TFloat);
+procedure TCustomImage32.LayerCollectionGetViewportShiftHandler(Sender: TObject;
+  out ShiftX, ShiftY: TFloat);
 begin
   UpdateCache;
   ShiftX := CachedShiftX;
