@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 159
   Top = 150
-  Width = 850
-  Height = 490
   Caption = 'HTML Document Processor'
+  ClientHeight = 463
+  ClientWidth = 842
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,14 +18,13 @@ object MainForm: TMainForm
   OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object pnlLog: TPanel
     Left = 0
     Top = 0
     Width = 479
     Height = 463
     Align = alClient
     BevelOuter = bvNone
-    Caption = 'Panel1'
     TabOrder = 0
     object Log: TMemo
       Left = 0
@@ -44,7 +43,7 @@ object MainForm: TMainForm
       TabOrder = 0
       WordWrap = False
     end
-    object Panel2: TPanel
+    object pnlProgress: TPanel
       Left = 0
       Top = 439
       Width = 479
@@ -55,7 +54,7 @@ object MainForm: TMainForm
       DesignSize = (
         479
         24)
-      object Label7: TLabel
+      object lblProgress: TLabel
         Left = 5
         Top = 5
         Width = 46
@@ -73,7 +72,7 @@ object MainForm: TMainForm
       end
     end
   end
-  object Panel3: TPanel
+  object pnlControl: TPanel
     Left = 479
     Top = 0
     Width = 363
@@ -82,7 +81,7 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     BorderWidth = 2
     TabOrder = 1
-    object Panel6: TPanel
+    object pnlProjectInfo: TPanel
       Left = 2
       Top = 2
       Width = 359
@@ -93,7 +92,7 @@ object MainForm: TMainForm
       DesignSize = (
         359
         157)
-      object Label8: TLabel
+      object lblVersionString: TLabel
         Left = 244
         Top = 103
         Width = 70
@@ -101,7 +100,7 @@ object MainForm: TMainForm
         Caption = '&Version String:'
         FocusControl = edVersionString
       end
-      object Label2: TLabel
+      object lblProjectTitle: TLabel
         Left = 8
         Top = 79
         Width = 61
@@ -109,7 +108,7 @@ object MainForm: TMainForm
         Caption = 'Project &Title:'
         FocusControl = edProjectTitle
       end
-      object Label1: TLabel
+      object lblProjectDirectory: TLabel
         Left = 8
         Top = 24
         Width = 85
@@ -117,7 +116,7 @@ object MainForm: TMainForm
         Caption = '&Project Directory:'
         FocusControl = edProjectDirectory
       end
-      object Label6: TLabel
+      object lblProjectFileName: TLabel
         Left = 8
         Top = 105
         Width = 83
@@ -125,7 +124,7 @@ object MainForm: TMainForm
         Caption = 'Project &Filename:'
         FocusControl = edProjectName
       end
-      object Panel7: TPanel
+      object pnlProjectInfoHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -179,7 +178,7 @@ object MainForm: TMainForm
         Text = 'MyProject'
       end
     end
-    object Panel8: TPanel
+    object pnlCompiler: TPanel
       Left = 2
       Top = 159
       Width = 359
@@ -190,7 +189,7 @@ object MainForm: TMainForm
       DesignSize = (
         359
         77)
-      object Label9: TLabel
+      object lblCompiler: TLabel
         Left = 8
         Top = 24
         Width = 70
@@ -207,7 +206,7 @@ object MainForm: TMainForm
         TabOrder = 0
         Text = 'C:\Programs\HTML Help Workshop\hhc.exe'
       end
-      object Panel9: TPanel
+      object pnlCompilerHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -225,7 +224,7 @@ object MainForm: TMainForm
         TabOrder = 1
       end
     end
-    object Panel10: TPanel
+    object pnlTransComp: TPanel
       Left = 2
       Top = 236
       Width = 359
@@ -242,7 +241,7 @@ object MainForm: TMainForm
         TabOrder = 2
         OnClick = bProcessClick
       end
-      object Panel11: TPanel
+      object pnlTransCompHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -304,7 +303,7 @@ object MainForm: TMainForm
         TabOrder = 6
       end
     end
-    object Panel12: TPanel
+    object pnlMisc: TPanel
       Left = 2
       Top = 365
       Width = 359
@@ -312,7 +311,7 @@ object MainForm: TMainForm
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 3
-      object Panel13: TPanel
+      object pnlMiscHead: TPanel
         Left = 0
         Top = 0
         Width = 359
