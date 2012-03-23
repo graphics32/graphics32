@@ -404,13 +404,6 @@ end;
 
 { Trigonometry }
 
-{$IFDEF PUREPASCAL}
-{$DEFINE NATIVESINCOS}
-{$ENDIF}
-{$IFDEF TARGET_x64}
-{$DEFINE NATIVESINCOS}
-{$ENDIF}
-
 procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
 {$IFDEF NATIVESINCOS}
 var

@@ -592,7 +592,7 @@ const
   EMPTY_ENTRY: TBufferEntry = (B: 0; G: 0; R: 0; A: 0);
 
 var
-  BlockAverage: function(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
+  BlockAverage: function(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
   Interpolator: function(WX_256, WY_256: Cardinal; C11, C21: PColor32): TColor32;
 
 resourcestring
@@ -1788,7 +1788,7 @@ end;
 
 { Draft Resample Routines }
 
-function BlockAverage_Pas(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
+function BlockAverage_Pas(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 var
  C: PColor32Entry;
  ix, iy, iA, iR, iG, iB, Area: Cardinal;
@@ -1805,10 +1805,10 @@ begin
       Inc(iA, C.A);
       Inc(C);
     end;
-    {$IFDEF COMPILERXE1_UP}
+    {$IFDEF HASNATIVEINT}
     Inc(NativeInt(RowSrc), OffSrc);
     {$ELSE}
-    Inc(RowSrc, OffSrc);
+    Inc(Cardinal(RowSrc), OffSrc);
     {$ENDIF}
   end;
 
@@ -1821,7 +1821,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-function BlockAverage_MMX(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
+function BlockAverage_MMX(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
 {$IFDEF TARGET_X64}
         MOV        R10D,ECX
@@ -1961,7 +1961,7 @@ asm
 end;
 
 {$IFDEF USE_3DNOW}
-function BlockAverage_3DNow(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
+function BlockAverage_3DNow(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
         PUSH       EBX
         PUSH       ESI
@@ -2039,7 +2039,7 @@ asm
 end;
 {$ENDIF}
 
-function BlockAverage_SSE2(Dlx, Dly: Cardinal; RowSrc: Pointer; OffSrc: Cardinal): TColor32;
+function BlockAverage_SSE2(Dlx, Dly: Cardinal; RowSrc: PColor32; OffSrc: Cardinal): TColor32;
 asm
 {$IFDEF TARGET_X64}
         MOV        EAX,ECX
@@ -2183,12 +2183,8 @@ var
   SrcW, SrcH,
   DstW, DstH,
   DstClipW, DstClipH: Cardinal;
-  RowSrc: Pointer;
-  {$IFDEF FPC}
-  xsrc: Pointer;
-  {$ELSE}
-  xsrc: Cardinal;
-  {$ENDIF}
+  RowSrc: PColor32;
+  xsrc: PColor32;
   OffSrc,
   dy, dx,
   c1, c2, r1, r2,
@@ -2250,11 +2246,7 @@ begin
         c2 := FixedMul(J, sc);
         r1 := 0;
         r2 := xs;
-        {$IFDEF FPC}
         xsrc := RowSrc;
-        {$ELSE}
-        xsrc := Cardinal(RowSrc);
-        {$ENDIF}
 
         case CombineOp of
           dmOpaque:
@@ -2262,41 +2254,43 @@ begin
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              DstLine[DstClip.Left + I] := BlockAverage(dx, dy, Pointer(xsrc), OffSrc);
-              xsrc := xsrc + dx shl 2;
+              DstLine[DstClip.Left + I] := BlockAverage(dx, dy, xsrc, OffSrc);
+              Inc(xsrc, dx);
             end;
           dmBlend:
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              BlendMemEx(BlockAverage(dx, dy, Pointer(xsrc), OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
-              xsrc := xsrc + dx shl 2;
+              BlendMemEx(BlockAverage(dx, dy, xsrc, OffSrc),
+                DstLine[DstClip.Left + I], Src.MasterAlpha);
+              Inc(xsrc, dx);
             end;
           dmTransparent:
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              C := BlockAverage(dx, dy, Pointer(xsrc), OffSrc);
+              C := BlockAverage(dx, dy, xsrc, OffSrc);
               if C <> Src.OuterColor then DstLine[DstClip.Left + I] := C;
-              xsrc := xsrc + dx shl 2;
+              Inc(xsrc, dx);
             end;
           dmCustom:
             for I := 2  to DstClipW do
             begin
               dx := r2 - r1;  r1 := r2;
               r2 := FixedMul(I, sr);
-              CombineCallBack(BlockAverage(dx, dy, Pointer(xsrc), OffSrc), DstLine[DstClip.Left + I], Src.MasterAlpha);
-              xsrc := xsrc + dx shl 2;
+              CombineCallBack(BlockAverage(dx, dy, xsrc, OffSrc),
+                DstLine[DstClip.Left + I], Src.MasterAlpha);
+              Inc(xsrc, dx);
             end;
         end;
 
         Inc(DstLine, Dst.Width);
-        {$IFDEF FPC}
-        Inc(RowSrc, OffSrc * dy);
-        {$ELSE}
+        {$IFDEF HASNATIVEINT}
         Inc(NativeInt(RowSrc), OffSrc * dy);
+        {$ELSE}
+        Inc(Cardinal(RowSrc), OffSrc * dy);
         {$ENDIF}
       end;
     end;

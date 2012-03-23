@@ -226,7 +226,7 @@ const
 var
   WX,WY: TFixed;
   W, H: Integer;
-  P: NativeInt;
+  P: Pointer;
 begin
   WX := TFixedRec(X).Int;
   WY := TFixedRec(Y).Int;
@@ -234,13 +234,22 @@ begin
   H := Height;
   if (WX >= 0) and (WX <= W - 1) and (WY >= 0) and (WY <= H - 1) then
   begin
-    P := NativeInt(@FVectors[WX + WY * W]);
+    P := @FVectors[WX + WY * W];
     if (WY = H - 1) then W := 0 else W := W * Next;
     if (WX = W - 1) then H := 0 else H := Next;
     WX := TFixedRec(X).Frac;
     WY := TFixedRec(Y).Frac;
-    Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^, PFixedPoint(P + H)^, WX),
-                                CombineVectorsReg(PFixedPoint(P + W)^, PFixedPoint(P + W + H)^, WX), WY);
+    {$IFDEF HASNATIVEINT}
+    Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
+      PFixedPoint(NativeInt(P) + H)^, WX), CombineVectorsReg(
+      PFixedPoint(NativeInt(P) + W)^, PFixedPoint(NativeInt(P) + W + H)^, WX),
+      WY);
+    {$ELSE}
+    Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
+      PFixedPoint(Cardinal(P) + H)^, WX), CombineVectorsReg(
+      PFixedPoint(Cardinal(P) + W)^, PFixedPoint(Cardinal(P) + W + H)^, WX),
+      WY);
+    {$ENDIF}
   end else
   begin
     Result.X := 0;
