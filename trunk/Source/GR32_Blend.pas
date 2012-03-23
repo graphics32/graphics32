@@ -1719,13 +1719,15 @@ var
   P: PLongWord;
 begin
   GetMem(AlphaTable, 257 * 8 * SizeOf(Cardinal));
+  {$IFDEF HASNATIVEINT}
   alpha_ptr := Pointer(NativeInt(AlphaTable) and $FFFFFFF8);
-  if Cardinal(alpha_ptr) < Cardinal(AlphaTable) then
-    {$IFDEF FPC}
-    Inc(alpha_ptr, 8);
-    {$ELSE}
+  if NativeInt(alpha_ptr) < NativeInt(AlphaTable) then
     alpha_ptr := Pointer(NativeInt(alpha_ptr) + 8);
-    {$ENDIF}
+  {$ELSE}
+  alpha_ptr := Pointer(Cardinal(AlphaTable) and $FFFFFFF8);
+  if Cardinal(alpha_ptr) < Cardinal(AlphaTable) then
+    Inc(Cardinal(alpha_ptr), 8);
+  {$ENDIF}
   P := alpha_ptr;
   for I := 0 to 255 do
   begin
