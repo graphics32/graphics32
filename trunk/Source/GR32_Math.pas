@@ -156,9 +156,9 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        IMUL    RDX
-        SHRD    RAX, RDX, 16
+        MOV     EAX, ECX
+        IMUL    EDX
+        SHRD    EAX, EDX, 16
 {$ENDIF}
 {$IFDEF TARGET_x86}
         IMUL    EDX
@@ -166,6 +166,9 @@ asm
 {$ENDIF}
 {$ENDIF}
 end;
+
+{$DEFINE PUREPASCAL}
+{$UNDEF PUREPASCAL}
 
 function FixedDiv(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}

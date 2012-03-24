@@ -2859,7 +2859,7 @@ asm
           SAR     Y, 8
           CALL    TCustomBitmap32.GET_TS256
           MOV     Result, EAX
-{$IFDEF TARGET_x86}
+{$IFNDEF OMIT_MMX}
           CMP     MMX_ACTIVE.Integer, $00
           JZ      @Exit
           DB      $0F, $77               /// EMMS
