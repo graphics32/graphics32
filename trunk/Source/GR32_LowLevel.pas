@@ -440,13 +440,13 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        // ECX = X;   EDX = Count;   R8 = Value
+        // RCX = Source;   RDX = Dest;   R8 = Count
         PUSH    RSI
         PUSH    RDI
 
         MOV     RSI,RCX
         MOV     RDI,RDX
-        MOV     RAX,R8
+        MOV     RCX,R8
         CMP     RDI,RSI
         JE      @exit
 
@@ -455,7 +455,7 @@ asm
         POP     RDI
         POP     RSI
 {$ELSE}
-        // EAX = X;   EDX = Count;   ECX = Value
+        // EAX = Source;   EDX = Dest;   ECX = Count
         PUSH    ESI
         PUSH    EDI
 
