@@ -45,6 +45,7 @@ type
     pnlTransComp: TPanel;
     pnlTransCompHead: TPanel;
     Progress: TProgressBar;
+    Shape1: TShape;
     procedure edProjectDirectoryChange(Sender: TObject);
     procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -61,7 +62,7 @@ type
     SourceDir: string;
     CompiledDir: string;
     StyleFile: string;
-    procedure StartTransforming;
+    function StartTransforming: boolean;
     procedure StartCompile;
     procedure WriteProject(const FileName: string);
   end;
@@ -236,7 +237,7 @@ end;
 
 procedure TMainForm.bProcessClick(Sender: TObject);
 begin
-  StartTransforming;
+  if not StartTransforming then exit;
   LogAdd(#13#10);
   StartCompile;
 end;
@@ -250,7 +251,7 @@ begin
     bOpenClick(nil);
 end;
 
-procedure TMainForm.StartTransforming;
+function TMainForm.StartTransforming: boolean;
 const
   cUpdateInterval = 500;
 var
@@ -259,6 +260,7 @@ var
   CompileTime: Cardinal;
   NextUpdate: Cardinal;
 begin
+  result := false;
   VersionString := edVersionString.Text;
   if ProjectDir = '' then Exit;
   Log.Clear;
@@ -329,7 +331,16 @@ begin
         NextUpdate := GetTickCount + cUpdateInterval;
       end;
 
-      TElement(Project.Files.Objects[I]).Transform;
+      try
+        TElement(Project.Files.Objects[I]).Transform;
+      except
+        on e: Exception do
+        begin
+          LogAdd(#13#10#13#10 + e.Message);
+          LogAdd(#13#10 + 'Transforming halted.');
+          exit;
+        end;
+      end;
     end;
 
     LogReplace('Transforming Files ...... done'#13#10);
@@ -361,6 +372,8 @@ begin
     LogAdd(Format('Compile time: %d minutes, %d seconds'#13#10, [(CompileTime div 1000) div 60, (CompileTime div 1000) mod 60]));
     Progress.Position := 0;
     Log.Color := $E7FFE7;
+
+    result := true;
   finally
     Enabled := True;
     Project.Free;
