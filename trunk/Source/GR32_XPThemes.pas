@@ -217,9 +217,11 @@ type
     destructor Destroy; override;
   end;
 
+{$IFDEF SUPPORT_XPTHEMES}
 {$IFDEF XPTHEMES}
 var
   ThemeNexus: TThemeNexus;
+{$ENDIF}
 {$ENDIF}
 
 { TThemeNexus }
@@ -281,12 +283,16 @@ begin
   with Message do Result := DefWindowProc(FWindowHandle, Msg, wParam, lParam);
 end;
 
+{$IFDEF SUPPORT_XPTHEMES}
 {$IFDEF XPTHEMES}
 initialization
-  ThemeNexus := TThemeNexus.Create;
+  if not IsLibrary
+    ThemeNexus := TThemeNexus.Create;
 
 finalization
-  ThemeNexus.Free;
+  if not IsLibrary
+    ThemeNexus.Free;
+{$ENDIF}
 {$ENDIF}
 
 {$ENDIF}

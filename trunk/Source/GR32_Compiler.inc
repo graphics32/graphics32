@@ -445,7 +445,7 @@
 {$ENDIF}
 
 {$IFNDEF COMPILERFPC}
-  {$DEFINE XPTHEMES} // enable support for windows xp themes
+  {$DEFINE SUPPORT_XPTHEMES} // enable support for windows xp themes
 {$ENDIF}
 
 

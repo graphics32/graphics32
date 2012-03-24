@@ -104,6 +104,16 @@
 
 
 
+(* Symbol XPTHEMES :
+   -----------------
+
+    Enable support for windows xp themes. Eventually undefine if GR32 should
+    be used within a DLL *)
+
+  {$DEFINE XPTHEMES}
+
+
+
 (* Symbol USEMULTITHREADING :
    --------------------------
 

@@ -772,15 +772,16 @@ end;
 
 procedure TCustomPaintBox32.Flush;
 begin
-  if (Canvas.Handle <> 0) and (FBuffer.Handle <> 0) then
+  if (FBuffer.Handle <> 0) then
   begin
     Canvas.Lock;
     try
       FBuffer.Lock;
       try
-        with GetViewportRect do
-          BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
-            FBuffer.Handle, 0, 0, SRCCOPY);
+        if (Canvas.Handle <> 0) then
+          with GetViewportRect do
+            BitBlt(Canvas.Handle, Left, Top, Right - Left, Bottom - Top,
+              FBuffer.Handle, 0, 0, SRCCOPY);
       finally
         FBuffer.Unlock;
       end;
@@ -794,16 +795,17 @@ procedure TCustomPaintBox32.Flush(const SrcRect: TRect);
 var
   R: TRect;
 begin
-  if (Canvas.Handle <> 0) and (FBuffer.Handle <> 0) then
+  if (FBuffer.Handle <> 0) then
   begin
     Canvas.Lock;
     try
       FBuffer.Lock;
       try
         R := GetViewPortRect;
-        with SrcRect do
-          BitBlt(Canvas.Handle, Left + R.Left, Top + R.Top, Right - Left, Bottom - Top,
-            FBuffer.Handle, Left, Top, SRCCOPY);
+        if (Canvas.Handle <> 0) then
+          with SrcRect do
+            BitBlt(Canvas.Handle, Left + R.Left, Top + R.Top, Right - Left,
+              Bottom - Top, FBuffer.Handle, Left, Top, SRCCOPY);
       finally
         FBuffer.Unlock;
       end;
