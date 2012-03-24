@@ -73,6 +73,8 @@ const
   MICROTILE_FULL = MICROTILE_SIZE shl 8 or MICROTILE_SIZE;
   // MICROTILE_FULL -> Left: 0, Top: 0, Right: MICROTILE_SIZE, Bottom: MICROTILE_SIZE
 
+  MicroTileSize = MaxInt div 16;
+
 {$IFDEF MICROTILES_DEBUGDRAW}
   clDebugDrawFill = TColor32($30FF0000);
   clDebugDrawFrame = TColor32($90FF0000);
@@ -83,7 +85,7 @@ type
   TMicroTile = type Integer;
 
   PMicroTileArray = ^TMicroTileArray;
-  TMicroTileArray = array[0..MaxListSize - 1] of TMicroTile;
+  TMicroTileArray = array[0..MicroTileSize - 1] of TMicroTile;
 
   PPMicroTiles = ^PMicroTiles;
   PMicroTiles = ^TMicroTiles;
