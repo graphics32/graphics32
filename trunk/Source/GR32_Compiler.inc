@@ -351,6 +351,65 @@
 
 
 (*
+  Symbol NATIVE_SINCOS:
+  ---------------------
+
+     Use native FPU function to retrieve SIN/COS values for a given argument
+
+   NOTE: On older systems a native call is typically much faster than calling
+   Sin() and Cos() from a higher level library (such as the math/system unit)
+   separately. However, on 64-bit systems a call can be slower, due to
+   additional conversion between XMM registers and the FPU
+*)
+
+{$IFDEF PUREPASCAL}
+  {$DEFINE NATIVE_SINCOS}
+{$ENDIF}
+{$IFDEF TARGET_x64}
+  {$DEFINE NATIVE_SINCOS}
+{$ENDIF}
+
+
+(*
+  Symbol HAS_NATIVEINT:
+  ---------------------
+
+     With the latest compilers (Delphi XE1+ and FPC 2.6.0+) the type NativeInt
+     is available which has the native size of the OS (32-Bit or 64-Bit). Thus,
+     it can be used to perform pointer arithmetrics.
+
+   NOTE: Please do not use simple Cardinal() or Integer() casts on pointers only
+*)
+
+{$IFDEF COMPILERXE1_UP}
+  {$DEFINE HAS_NATIVEINT}
+{$ENDIF}
+{$IFDEF FPC}
+  {$DEFINE HAS_NATIVEINT}
+{$ENDIF}
+
+
+(*
+  Symbol OMIT_MMX:
+  ----------------
+
+     If defined MMX optimizations are not used (omitted)
+
+   For faster pixel/color processing, MMX can be used which results in a huge
+   performance boost over PUREPASCAL code or native assembler code.
+   However, there's a penalty (a call to EMMS) when switching between FPU and
+   MMX registers. This call is not necessary when SSE2 is available. Though,
+   for backward compatibility it is necessary to call EMMS even if SSE2 is used.
+
+   NOTE: On every x64 system SSE2 is available and thus MMX support is not
+   necessary. In fact it is problematic in case the Delphi XE2 compiler is used.
+*)
+
+{$IFDEF TARGET_x64}
+  {$DEFINE OMIT_MMX}
+{$ENDIF}
+
+(*
   Miscellaneous Defines:
   ---------------------- *)
 
@@ -377,20 +436,6 @@
   {$IFNDEF LINUX}
     {$DEFINE Windows}
   {$ENDIF}
-{$ENDIF}
-
-{$IFDEF COMPILERXE1_UP}
-  {$DEFINE HASNATIVEINT}
-{$ENDIF}
-{$IFDEF FPC}
-  {$DEFINE HASNATIVEINT}
-{$ENDIF}
-
-{$IFDEF PUREPASCAL}
-  {$DEFINE NATIVESINCOS}
-{$ENDIF}
-{$IFDEF TARGET_x64}
-  {$DEFINE NATIVESINCOS}
 {$ENDIF}
 
 {$R-}{$Q-}  // switch off overflow and range checking

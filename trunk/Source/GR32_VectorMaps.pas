@@ -239,7 +239,7 @@ begin
     if (WX = W - 1) then H := 0 else H := Next;
     WX := TFixedRec(X).Frac;
     WY := TFixedRec(Y).Frac;
-    {$IFDEF HASNATIVEINT}
+    {$IFDEF HAS_NATIVEINT}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
       PFixedPoint(NativeInt(P) + H)^, WX), CombineVectorsReg(
       PFixedPoint(NativeInt(P) + W)^, PFixedPoint(NativeInt(P) + W + H)^, WX),

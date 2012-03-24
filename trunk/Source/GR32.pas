@@ -2786,24 +2786,24 @@ function TCustomBitmap32.GET_TS256(X, Y: Integer): TColor32;
 var
   Width256, Height256: Integer;
 begin
-	if (X >= F256ClipRect.Left) and (Y >= F256ClipRect.Top) then
+  if (X >= F256ClipRect.Left) and (Y >= F256ClipRect.Top) then
   begin
     Width256 := (FClipRect.Right - 1) shl 8;
     Height256 := (FClipRect.Bottom - 1) shl 8;
 
-		if (X < Width256) and (Y < Height256) then
-			Result := GET_T256(X,Y)
-		else if (X = Width256) and (Y <= Height256) then
-			// We're exactly on the right border: no need to interpolate.
-			Result := Pixel[FClipRect.Right - 1, Y shr 8]
-		else if (X <= Width256) and (Y = Height256) then
-			// We're exactly on the bottom border: no need to interpolate.
-			Result := Pixel[X shr 8, FClipRect.Bottom - 1]
-		else
-			Result := FOuterColor;
-	end
+    if (X < Width256) and (Y < Height256) then
+      Result := GET_T256(X,Y)
+    else if (X = Width256) and (Y <= Height256) then
+      // We're exactly on the right border: no need to interpolate.
+      Result := Pixel[FClipRect.Right - 1, Y shr 8]
+    else if (X <= Width256) and (Y = Height256) then
+      // We're exactly on the bottom border: no need to interpolate.
+      Result := Pixel[X shr 8, FClipRect.Bottom - 1]
+    else
+      Result := FOuterColor;
+  end
   else
-		Result := FOuterColor;
+    Result := FOuterColor;
 end;
 
 function TCustomBitmap32.GetPixelF(X, Y: Single): TColor32;

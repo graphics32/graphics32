@@ -66,7 +66,10 @@ type
   TLightenReg  = function(C: TColor32; Amount: Integer): TColor32;
 
 var
+{$IFNDEF OMIT_MMX}
   EMMS: procedure;
+{$ENDIF}
+
 { Function Variables }
   BlendReg: TBlendReg;
   BlendMem: TBlendMem;
@@ -126,6 +129,10 @@ const
 var
   BlendRegistry: TFunctionRegistry;
 
+{$IFDEF OMIT_MMX}
+procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
+{$ENDIF}
+
 implementation
 
 {$IFDEF TARGET_x86}
@@ -135,6 +142,12 @@ uses GR32_LowLevel;
 var
   RcTable: array [Byte, Byte] of Byte;
   DivTable: array [Byte, Byte] of Byte;
+
+{$IFDEF OMIT_MMX}
+procedure EMMS;
+begin
+end;
+{$ENDIF}
 
 { Pure Pascal }
 
@@ -1710,6 +1723,8 @@ begin
   Result := a shl 24 + r shl 16 + g shl 8 + b;
 end;
 
+{$IFNDEF OMIT_MMX}
+
 { MMX versions }
 
 procedure GenAlphaTable;
@@ -1719,7 +1734,7 @@ var
   P: PLongWord;
 begin
   GetMem(AlphaTable, 257 * 8 * SizeOf(Cardinal));
-  {$IFDEF HASNATIVEINT}
+  {$IFDEF HAS_NATIVEINT}
   alpha_ptr := Pointer(NativeInt(AlphaTable) and $FFFFFFF8);
   if NativeInt(alpha_ptr) < NativeInt(AlphaTable) then
     alpha_ptr := Pointer(NativeInt(alpha_ptr) + 8);
@@ -2483,6 +2498,7 @@ asm
         MOVD      EAX,MM0
 {$ENDIF}
 end;
+{$ENDIF}
 
 {$IFDEF TARGET_x86}
 
@@ -3409,7 +3425,9 @@ const
 procedure RegisterBindings;
 begin
   BlendRegistry := NewRegistry('GR32_Blend bindings');
+{$IFNDEF OMIT_MMX}
   BlendRegistry.RegisterBinding(FID_EMMS, @@EMMS);
+{$ENDIF}
   BlendRegistry.RegisterBinding(FID_MERGEREG, @@MergeReg);
   BlendRegistry.RegisterBinding(FID_MERGEMEM, @@MergeMem);
   BlendRegistry.RegisterBinding(FID_MERGELINE, @@MergeLine);
@@ -3471,65 +3489,87 @@ begin
 
 {$IFNDEF PUREPASCAL}
   BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
 {$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
 {$ENDIF}
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_SSE2, [ciSSE2]);
 {$IFNDEF TARGET_x64}
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
 {$ENDIF}
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_MMX, [ciMMX]);
+{$ENDIF}
 {$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
 {$ENDIF}
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
 {$IFNDEF TARGET_x64}
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
 {$ENDIF}
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
 {$IFNDEF TARGET_x64}
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_SSE2, [ciSSE2]);
 {$ENDIF}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
 {$IFNDEF TARGET_x64}
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_MMX, [ciMMX]);
+{$ENDIF}
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
 {$ENDIF}
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COLORMAX, @ColorMax_EMMX, [ciEMMX]);
-  BlendRegistry.Add(FID_COLORMAX, @ColorMax_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORMIN, @ColorMin_EMMX, [ciEMMX]);
-  BlendRegistry.Add(FID_COLORMIN, @ColorMin_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORADD, @ColorAdd_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORADD, @ColorAdd_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORSUB, @ColorSub_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORSUB, @ColorSub_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciSSE2]);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciSSE2]);
+  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
+{$ENDIF}
+  BlendRegistry.Add(FID_COLORMAX, @ColorMax_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORMIN, @ColorMin_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORADD, @ColorAdd_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORSUB, @ColorSub_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_ASM, []);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
 {$ENDIF}
 
@@ -3541,12 +3581,14 @@ initialization
   MakeMergeTables;
 
 {$IFNDEF PUREPASCAL}
+{$IFNDEF OMIT_MMX}
   if (ciMMX in CPUFeatures) then
   begin
     GenAlphaTable;
     MMX_ACTIVE := (ciMMX in CPUFeatures);
   end
   else
+{$ENDIF}
     MMX_ACTIVE := False;
 {$ELSE}
   MMX_ACTIVE := False;
@@ -3554,7 +3596,9 @@ initialization
 
 finalization
 {$IFNDEF PUREPASCAL}
+{$IFNDEF OMIT_MMX}
   if (ciMMX in CPUFeatures) then FreeAlphaTable;
+{$ENDIF}
 {$ENDIF}
 
 end.
