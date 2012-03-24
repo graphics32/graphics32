@@ -520,7 +520,9 @@ begin
       except
         on E: Exception do
         begin
-          E.Message := ExtractFileName(FileName) + ' caused error: ' + E.Message;
+          E.Message :=
+            'The error - ' + E.Message +
+            '- was encountered in'#13#10 + FileName;
           raise;
         end;
       end;

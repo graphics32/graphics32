@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 159
   Top = 150
+  Width = 850
+  Height = 490
   Caption = 'HTML Document Processor'
-  ClientHeight = 463
-  ClientWidth = 842
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -157,7 +157,7 @@ object MainForm: TMainForm
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 1
-        Text = 'Project Help'
+        Text = 'MyProject Help'
       end
       object edProjectDirectory: TEdit
         Left = 8
@@ -166,7 +166,7 @@ object MainForm: TMainForm
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
-        Text = 'edProjectDirectory'
+        Text = 'MyProjectDirectory'
         OnChange = edProjectDirectoryChange
       end
       object edProjectName: TEdit
@@ -204,7 +204,7 @@ object MainForm: TMainForm
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
-        Text = 'C:\Programs\HTML Help Workshop\hhc.exe'
+        Text = 'C:\Program Files\HTML Help Workshop\hhc.exe'
       end
       object pnlCompilerHead: TPanel
         Left = 0
@@ -232,6 +232,15 @@ object MainForm: TMainForm
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 2
+      object Shape1: TShape
+        Left = 7
+        Top = 91
+        Width = 164
+        Height = 28
+        Brush.Color = clYellow
+        Pen.Color = clActiveCaption
+        Pen.Width = 2
+      end
       object bProcess: TButton
         Left = 9
         Top = 93
