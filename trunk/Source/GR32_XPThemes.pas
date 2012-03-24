@@ -286,12 +286,10 @@ end;
 {$IFDEF SUPPORT_XPTHEMES}
 {$IFDEF XPTHEMES}
 initialization
-  if not IsLibrary
-    ThemeNexus := TThemeNexus.Create;
+  ThemeNexus := TThemeNexus.Create;
 
 finalization
-  if not IsLibrary
-    ThemeNexus.Free;
+  ThemeNexus.Free;
 {$ENDIF}
 {$ENDIF}
 
