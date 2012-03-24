@@ -7,7 +7,7 @@ program GuiPngTest;
 {$ENDIF}
 
 uses
-{$IFNDEF COMPILERXE2}
+{$IFNDEF COMPILERXE2_UP}
   FastMM4,
   FastMove,
 {$ENDIF}

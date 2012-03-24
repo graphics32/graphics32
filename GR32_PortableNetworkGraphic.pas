@@ -210,10 +210,10 @@ type
   TChunkPngPalette = class(TCustomDefinedChunkWithHeader)
   private
     FPaletteEntries : array of TRGB24;
-    function GetPaletteEntry(Index: Integer): TRGB24;
+    function GetPaletteEntry(Index: Cardinal): TRGB24;
     function GetCount: Cardinal;
     procedure SetCount(const Value: Cardinal);
-    procedure SetPaletteEntry(Index: Integer; const Value: TRGB24);
+    procedure SetPaletteEntry(Index: Cardinal; const Value: TRGB24);
   protected
     procedure AssignTo(Dest: TPersistent); override;
     class function GetClassChunkName: TChunkName; override;
@@ -223,7 +223,7 @@ type
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
-    property PaletteEntry[Index: Integer]: TRGB24 read GetPaletteEntry write SetPaletteEntry; default;
+    property PaletteEntry[Index: Cardinal]: TRGB24 read GetPaletteEntry write SetPaletteEntry; default;
     property Count: Cardinal read GetCount write SetCount;
   end;
 
@@ -530,7 +530,7 @@ type
   private
     FHistogram : array of Word;
     function GetCount: Cardinal;
-    function GetFrequency(Index: Integer): Word;
+    function GetFrequency(Index: Cardinal): Word;
   protected
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
@@ -539,7 +539,7 @@ type
     procedure WriteToStream(Stream: TStream); override;
 
     property Count: Cardinal read GetCount;
-    property Frequency[Index: Integer]: Word read GetFrequency;
+    property Frequency[Index: Cardinal]: Word read GetFrequency;
   end;
 
   TSuggestedPalette8ByteEntry = record
@@ -626,7 +626,7 @@ type
   TPngTransparencyFormat3 = class(TCustomPngTransparency)
   private
     function GetCount: Cardinal;
-    function GetTransparency(Index: Integer): Byte;
+    function GetTransparency(Index: Cardinal): Byte;
   protected
     FTransparency : array of Byte;
     procedure AssignTo(Dest: TPersistent); override;
@@ -636,7 +636,7 @@ type
     procedure WriteToStream(Stream: TStream); override;
 
     property Count: Cardinal read GetCount;
-    property Transparency[Index: Integer]: Byte read GetTransparency;
+    property Transparency[Index: Cardinal]: Byte read GetTransparency;
   end;
 
   TChunkPngTransparency = class(TCustomDefinedChunkWithHeader)
@@ -831,7 +831,7 @@ type
 
     procedure Add(Item: TCustomChunk);
     procedure Clear; virtual;
-    procedure Delete(Index: Integer);
+    procedure Delete(Index: Cardinal);
     function IndexOf(Item: TCustomChunk): Integer;
     procedure Remove(Item: TCustomChunk);
 
@@ -1803,17 +1803,17 @@ begin
   Result := 'PLTE';
 end;
 
-function TChunkPngPalette.GetPaletteEntry(Index: Integer): TRGB24;
+function TChunkPngPalette.GetPaletteEntry(Index: Cardinal): TRGB24;
 begin
-  if (Index >= 0) and (Index < Count) then
+  if (Index < Count) then
     Result := FPaletteEntries[Index]
   else
     raise EPngError.Create(RCStrIndexOutOfBounds);
 end;
 
-procedure TChunkPngPalette.SetPaletteEntry(Index: Integer; const Value: TRGB24);
+procedure TChunkPngPalette.SetPaletteEntry(Index: Cardinal; const Value: TRGB24);
 begin
-  if (Index >= 0) and (Index < Count) then
+  if (Index < Count) then
     FPaletteEntries[Index] := Value
   else
     raise EPngError.Create(RCStrIndexOutOfBounds);
@@ -1857,7 +1857,7 @@ begin
   if Value > 256 then
     raise EPngError.Create(RCStrPaletteLimited);
 
-  if Value <> Length(FPaletteEntries) then
+  if Value <> Cardinal(Length(FPaletteEntries)) then
   begin
     SetLength(FPaletteEntries, Value);
     PaletteEntriesChanged;
@@ -2081,9 +2081,9 @@ begin
   Result := Length(FTransparency);
 end;
 
-function TPngTransparencyFormat3.GetTransparency(Index: Integer): Byte;
+function TPngTransparencyFormat3.GetTransparency(Index: Cardinal): Byte;
 begin
-  if (Index >= 0) and (Index < Count) then
+  if Index < Count then
     Result := FTransparency[Index]
   else
     raise EPngError.Create(RCStrIndexOutOfBounds);
@@ -3641,9 +3641,9 @@ begin
   Result := Length(FHistogram);
 end;
 
-function TChunkPngImageHistogram.GetFrequency(Index: Integer): Word;
+function TChunkPngImageHistogram.GetFrequency(Index: Cardinal): Word;
 begin
-  if (Index >= 0) and (Index < Count) then
+  if Index < Count then
     Result := FHistogram[Index]
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
@@ -3816,9 +3816,9 @@ begin
   SetLength(FChunks, 0)
 end;
 
-procedure TChunkList.Delete(Index: Integer);
+procedure TChunkList.Delete(Index: Cardinal);
 begin
-  if (Index < 0) or (Index >= Count) then
+  if Index >= Count then
     raise EPngError.Create(RCStrEmptyChunkList);
   FreeAndNil(FChunks[Index]);
   if Index < Count then
@@ -5145,7 +5145,7 @@ var
   begin
     MemoryStream.Clear;
 
-    // store chunk size to stream
+    // store chunk size directly to stream
     ChunkSize := Chunk.ChunkSize;
     WriteSwappedCardinal(Stream, ChunkSize);
 
@@ -5178,7 +5178,7 @@ begin
 
     MemoryStream := TMemoryStream.Create;
     try
-      // store chunk size to stream
+      // store chunk size directly to stream
       ChunkSize := FImageHeader.ChunkSize;
       WriteSwappedCardinal(Stream, ChunkSize);
 

@@ -21,19 +21,19 @@
 			<MSBuild Projects="Demo\PNG_GR32_Demo.dproj"/>
 		</Target>
 		<Target Name="PNG_GR32_Demo:Clean">
-			<MSBuild Targets="Clean" Projects="Demo\PNG_GR32_Demo.dproj"/>
+			<MSBuild Projects="Demo\PNG_GR32_Demo.dproj" Targets="Clean"/>
 		</Target>
 		<Target Name="PNG_GR32_Demo:Make">
-			<MSBuild Targets="Make" Projects="Demo\PNG_GR32_Demo.dproj"/>
+			<MSBuild Projects="Demo\PNG_GR32_Demo.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="GuiPngTest">
 			<MSBuild Projects="Test\GuiPngTest.dproj"/>
 		</Target>
 		<Target Name="GuiPngTest:Clean">
-			<MSBuild Targets="Clean" Projects="Test\GuiPngTest.dproj"/>
+			<MSBuild Projects="Test\GuiPngTest.dproj" Targets="Clean"/>
 		</Target>
 		<Target Name="GuiPngTest:Make">
-			<MSBuild Targets="Make" Projects="Test\GuiPngTest.dproj"/>
+			<MSBuild Projects="Test\GuiPngTest.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="Build">
 			<CallTarget Targets="PNG_GR32_Demo;GuiPngTest"/>
@@ -44,5 +44,5 @@
 		<Target Name="Make">
 			<CallTarget Targets="PNG_GR32_Demo:Make;GuiPngTest:Make"/>
 		</Target>
-		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" Project="$(BDS)\Bin\CodeGear.Group.Targets"/>
 	</Project>
