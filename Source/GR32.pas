@@ -2706,7 +2706,9 @@ end;
 procedure TCustomBitmap32.SetPixelF(X, Y: Single; Value: TColor32);
 begin
   SET_T256(Round(X * 256), Round(Y * 256), Value);
+{$IFNDEF OMIT_MMX}
   EMMS;
+{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelX(X, Y: TFixed; Value: TColor32);
@@ -2714,7 +2716,9 @@ begin
   X := (X + $7F) shr 8;
   Y := (Y + $7F) shr 8;
   SET_T256(X, Y, Value);
+{$IFNDEF OMIT_MMX}
   EMMS;
+{$ENDIF}
 end;
 
 procedure TCustomBitmap32.SetPixelFS(X, Y: Single; Value: TColor32);
@@ -2809,19 +2813,25 @@ end;
 function TCustomBitmap32.GetPixelF(X, Y: Single): TColor32;
 begin
   Result := GET_T256(Round(X * 256), Round(Y * 256));
+{$IFNDEF OMIT_MMX}
   EMMS;
+{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelFS(X, Y: Single): TColor32;
 begin
   Result := GET_TS256(Round(X * 256), Round(Y * 256));
+{$IFNDEF OMIT_MMX}
   EMMS;
+{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelFW(X, Y: Single): TColor32;
 begin
   Result := GetPixelXW(Round(X * FixedOne), Round(Y * FixedOne));
+{$IFNDEF OMIT_MMX}
   EMMS;
+{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelX(X, Y: TFixed): TColor32;
@@ -2829,7 +2839,9 @@ begin
   X := (X + $7F) shr 8;
   Y := (Y + $7F) shr 8;
   Result := GET_T256(X, Y);
+{$IFNDEF OMIT_MMX}
   EMMS;
+{$ENDIF}
 end;
 
 function TCustomBitmap32.GetPixelXS(X, Y: TFixed): TColor32;

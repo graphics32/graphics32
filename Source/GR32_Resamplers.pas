@@ -1805,7 +1805,7 @@ begin
       Inc(iA, C.A);
       Inc(C);
     end;
-    {$IFDEF HASNATIVEINT}
+    {$IFDEF HAS_NATIVEINT}
     Inc(NativeInt(RowSrc), OffSrc);
     {$ELSE}
     Inc(Cardinal(RowSrc), OffSrc);
@@ -2287,7 +2287,7 @@ begin
         end;
 
         Inc(DstLine, Dst.Width);
-        {$IFDEF HASNATIVEINT}
+        {$IFDEF HAS_NATIVEINT}
         Inc(NativeInt(RowSrc), OffSrc * dy);
         {$ELSE}
         Inc(Cardinal(RowSrc), OffSrc * dy);
