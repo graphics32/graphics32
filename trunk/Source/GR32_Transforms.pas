@@ -120,9 +120,11 @@ type
     constructor Create; virtual;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
     procedure Clear;
-    procedure Rotate(Cx, Cy, Alpha: TFloat); // degrees
+    procedure Rotate(Alpha: TFloat); overload; // degrees
+    procedure Rotate(Cx, Cy, Alpha: TFloat); overload; // degrees
     procedure Skew(Fx, Fy: TFloat);
-    procedure Scale(Sx, Sy: TFloat);
+    procedure Scale(Sx, Sy: TFloat); overload;
+    procedure Scale(Value: TFloat); overload;
     procedure Translate(Dx, Dy: TFloat);
   end;
 
@@ -309,22 +311,69 @@ var
 implementation
 
 uses
-  Math, GR32_LowLevel, GR32_Math, GR32_System, GR32_Resamplers;
+  Math, GR32_LowLevel, GR32_Math, GR32_System, GR32_Bindings, GR32_Resamplers;
 
 type
   {provides access to proctected members of TCustomBitmap32 by typecasting}
   TTransformationAccess = class(TTransformation);
-  TCustomBitmap32Access = class(TCustomBitmap32);
+
+var
+  DET32: function(a1, a2, b1, b2: Single): Single;
+  DET64: function(a1, a2, b1, b2: Double): Double;
 
 
 { A bit of linear algebra }
 
-function _DET(a1, a2, b1, b2: TFloat): TFloat; overload;
+function DET32_Pas(a1, a2, b1, b2: Single): Single; overload;
 begin
   Result := a1 * b2 - a2 * b1;
 end;
 
-function _DET(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload;
+function DET64_Pas(a1, a2, b1, b2: Double): Double; overload;
+begin
+  Result := a1 * b2 - a2 * b1;
+end;
+
+{$IFNDEF PUREPASCAL}
+function DET32_ASM(a1, a2, b1, b2: Single): Single; overload;
+asm
+{$IFDEF CPU64}
+        MULSS   XMM0, XMM3
+        MULSS   XMM1, XMM2
+        ADDSS   XMM0, XMM1
+{$ELSE}
+        FLD     A1.Single
+        FMUL    B2.Single
+        FLD     A2.Single
+        FMUL    B1.Single
+        FSUBP
+{$ENDIF}
+end;
+
+function DET64_ASM(a1, a2, b1, b2: Double): Double; overload;
+asm
+{$IFDEF CPU64}
+        MULSD   XMM0, XMM3
+        MULSD   XMM1, XMM2
+        ADDSD   XMM0, XMM1
+{$ELSE}
+        FLD     A1.Double
+        FMUL    B2.Double
+        FLD     A2.Double
+        FMUL    B1.Double
+        FSUBP
+{$ENDIF}
+end;
+{$ENDIF}
+
+{ implementation of detereminant for TFloat precision }
+
+function _DET(a1, a2, b1, b2: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
+begin
+  Result := a1 * b2 - a2 * b1;
+end;
+
+function _DET(a1, a2, a3, b1, b2, b3, c1, c2, c3: TFloat): TFloat; overload; {$IFDEF UseInlining} inline; {$ENDIF}
 begin
   Result :=
     a1 * (b2 * c3 - b3 * c2) -
@@ -334,25 +383,21 @@ end;
 
 procedure Adjoint(var M: TFloatMatrix);
 var
-  a1, a2, a3: TFloat;
-  b1, b2, b3: TFloat;
-  c1, c2, c3: TFloat;
+  Tmp: TFloatMatrix;
 begin
-  a1 := M[0,0]; a2:= M[0,1]; a3 := M[0,2];
-  b1 := M[1,0]; b2:= M[1,1]; b3 := M[1,2];
-  c1 := M[2,0]; c2:= M[2,1]; c3 := M[2,2];
+  Tmp := M;
 
-  M[0,0]:= _DET(b2, b3, c2, c3);
-  M[0,1]:=-_DET(a2, a3, c2, c3);
-  M[0,2]:= _DET(a2, a3, b2, b3);
+  M[0,0] :=  _DET(Tmp[1,1], Tmp[1,2], Tmp[2,1], Tmp[2,2]);
+  M[0,1] := -_DET(Tmp[0,1], Tmp[0,2], Tmp[2,1], Tmp[2,2]);
+  M[0,2] :=  _DET(Tmp[0,1], Tmp[0,2], Tmp[1,1], Tmp[1,2]);
 
-  M[1,0]:=-_DET(b1, b3, c1, c3);
-  M[1,1]:= _DET(a1, a3, c1, c3);
-  M[1,2]:=-_DET(a1, a3, b1, b3);
+  M[1,0] := -_DET(Tmp[1,0], Tmp[1,2], Tmp[2,0], Tmp[2,2]);
+  M[1,1] :=  _DET(Tmp[0,0], Tmp[0,2], Tmp[2,0], Tmp[2,2]);
+  M[1,2] := -_DET(Tmp[0,0], Tmp[0,2], Tmp[1,0], Tmp[1,2]);
 
-  M[2,0]:= _DET(b1, b2, c1, c2);
-  M[2,1]:=-_DET(a1, a2, c1, c2);
-  M[2,2]:= _DET(a1, a2, b1, b2);
+  M[2,0] :=  _DET(Tmp[1,0], Tmp[1,1], Tmp[2,0], Tmp[2,1]);
+  M[2,1] := -_DET(Tmp[0,0], Tmp[0,1], Tmp[2,0], Tmp[2,1]);
+  M[2,2] :=  _DET(Tmp[0,0], Tmp[0,1], Tmp[1,0], Tmp[1,1]);
 end;
 
 function Determinant(const M: TFloatMatrix): TFloat;
@@ -671,6 +716,20 @@ begin
   TransformValid := True;
 end;
 
+procedure TAffineTransformation.Rotate(Alpha: TFloat);
+var
+  S, C: TFloat;
+  M: TFloatMatrix;
+begin
+  Alpha := DegToRad(Alpha);
+  GR32_Math.SinCos(Alpha, S, C);
+  M := IdentityMatrix;
+  M[0, 0] := C;   M[1, 0] := S;
+  M[0, 1] := -S;  M[1, 1] := C;
+  Matrix := Mult(M, Matrix);
+  Changed;
+end;
+
 procedure TAffineTransformation.Rotate(Cx, Cy, Alpha: TFloat);
 var
   S, C: TFloat;
@@ -678,10 +737,10 @@ var
 begin
   if (Cx <> 0) or (Cy <> 0) then Translate(-Cx, -Cy);
   Alpha := DegToRad(Alpha);
-  S := Sin(Alpha); C := Cos(Alpha);
+  GR32_Math.SinCos(Alpha, S, C);
   M := IdentityMatrix;
-  M[0,0] := C;   M[1,0] := S;
-  M[0,1] := -S;  M[1,1] := C;
+  M[0, 0] := C;   M[1, 0] := S;
+  M[0, 1] := -S;  M[1, 1] := C;
   Matrix := Mult(M, Matrix);
   if (Cx <> 0) or (Cy <> 0) then Translate(Cx, Cy);
   Changed;
@@ -692,10 +751,21 @@ var
   M: TFloatMatrix;
 begin
   M := IdentityMatrix;
-  M[0,0] := Sx;
-  M[1,1] := Sy;
+  M[0, 0] := Sx;
+  M[1, 1] := Sy;
   Matrix := Mult(M, Matrix);
-  Changed;  
+  Changed;
+end;
+
+procedure TAffineTransformation.Scale(Value: TFloat);
+var
+  M: TFloatMatrix;
+begin
+  M := IdentityMatrix;
+  M[0, 0] := Value;
+  M[1, 1] := Value;
+  Matrix := Mult(M, Matrix);
+  Changed;
 end;
 
 procedure TAffineTransformation.Skew(Fx, Fy: TFloat);
@@ -797,8 +867,9 @@ begin
     k := dx1 * dy2 - dx2 * dy1;
     if k <> 0 then
     begin
-      g := (px * dy2 - py * dx2) / k;
-      h := (dx1 * py - dy1 * px) / k;
+      k := 1 / k;
+      g := (px * dy2 - py * dx2) * k;
+      h := (dx1 * py - dy1 * px) * k;
 
       FMatrix[0,0] := Wx1 - Wx0 + g * Wx1;
       FMatrix[1,0] := Wx3 - Wx0 + h * Wx3;
@@ -1002,22 +1073,24 @@ end;
 function TTwirlTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
 var
   Cx, Cy, R: TFloat;
+const
+  CPiHalf: TFloat = 0.5 * Pi;
 begin
-  Cx := (ASrcRect.Left + ASrcRect.Right) / 2;
-  Cy := (ASrcRect.Top + ASrcRect.Bottom) / 2;
+  Cx := (ASrcRect.Left + ASrcRect.Right) * 0.5;
+  Cy := (ASrcRect.Top + ASrcRect.Bottom) * 0.5;
   R := Max(Cx - ASrcRect.Left, Cy - ASrcRect.Top);
-  Result.Left := Cx - R * Pi/2;
-  Result.Right := Cx + R * Pi/2;
-  Result.Top := Cy - R * Pi/2;
-  Result.Bottom := Cy + R * Pi/2;
+  Result.Left := Cx - R * CPiHalf;
+  Result.Right := Cx + R * CPiHalf;
+  Result.Top := Cy - R * CPiHalf;
+  Result.Bottom := Cy + R * CPiHalf;
 end;
 
 procedure TTwirlTransformation.PrepareTransform;
 begin
   with FSrcRect do
   begin
-    Frx := (Right - Left) / 2;
-    Fry := (Bottom - Top) / 2;
+    Frx := (Right - Left) * 0.5;
+    Fry := (Bottom - Top) * 0.5;
   end;
   TransformValid := True;
 end;
@@ -1083,18 +1156,18 @@ procedure TFishEyeTransformation.PrepareTransform;
 begin
   with FSrcRect do
   begin
-    Frx := (Right - Left) / 2;
-    Fry := (Bottom - Top) / 2;
+    Frx := (Right - Left) * 0.5;
+    Fry := (Bottom - Top) * 0.5;
     if Frx <= Fry then
     begin
       FMinR := Frx;
       Sx := 1;
-      Sy:= 1 / (Fry / Frx);
+      Sy:= Frx / Fry;
     end
     else
     begin
       FMinR := Fry;
-      Sx:= 1 / (Frx / Fry);
+      Sx:= Fry / Frx;
       Sy := 1;
     end;
     Fsr := 1 / FMinR;
@@ -1133,8 +1206,8 @@ procedure TPolarTransformation.PrepareTransform;
 begin
   Sx := SrcRect.Right - SrcRect.Left;
   Sy := SrcRect.Bottom - SrcRect.Top;
-  Cx := (DstRect.Left + DstRect.Right) / 2;
-  Cy := (DstRect.Top + DstRect.Bottom) / 2;
+  Cx := (DstRect.Left + DstRect.Right) * 0.5;
+  Cy := (DstRect.Top + DstRect.Bottom) * 0.5;
   Dx := DstRect.Right - Cx;
   Dy := DstRect.Bottom - Cy;
 
@@ -1385,8 +1458,8 @@ begin
   begin
     FSrcTranslationFloat.X := Left;
     FSrcTranslationFloat.Y := Top;
-    FSrcScaleFloat.X := 1 / ((FVectorMap.Width - 1) / (Right - Left));
-    FSrcScaleFloat.Y := 1 / ((FVectorMap.Height - 1) / (Bottom - Top));
+    FSrcScaleFloat.X := (Right - Left) / (FVectorMap.Width - 1);
+    FSrcScaleFloat.Y := (Bottom - Top) / (FVectorMap.Height - 1);
     FSrcTranslationFixed := FixedPoint(FSrcTranslationFloat);
     FSrcScaleFixed := FixedPoint(FSrcScaleFloat);
   end;
@@ -1585,5 +1658,41 @@ begin
   Result[2,1] := FixedMatrix[2,1] * FixedToFloat;
   Result[2,2] := FixedMatrix[2,2] * FixedToFloat;
 end;
+
+{CPU target and feature Function templates}
+
+const
+  FID_DETERMINANT32 = 0;
+  FID_DETERMINANT64 = 1;
+
+{Complete collection of unit templates}
+
+var
+  Registry: TFunctionRegistry;
+
+procedure RegisterBindings;
+begin
+  Registry := NewRegistry('GR32_Transforms bindings');
+  Registry.RegisterBinding(FID_DETERMINANT32, @@DET32);
+
+  Registry.Add(FID_DETERMINANT32, @DET32_Pas, []);
+  {$IFNDEF PUREPASCAL}
+  Registry.Add(FID_DETERMINANT32, @DET32_ASM, []);
+//  Registry.Add(FID_DETERMINANT32, @DET32_SSE2, [ciSSE2]);
+  {$ENDIF}
+
+  Registry.RegisterBinding(FID_DETERMINANT64, @@DET64);
+
+  Registry.Add(FID_DETERMINANT64, @DET64_Pas, []);
+  {$IFNDEF PUREPASCAL}
+  Registry.Add(FID_DETERMINANT64, @DET64_ASM, []);
+//  Registry.Add(FID_DETERMINANT64, @DET64_SSE2, [ciSSE2]);
+  {$ENDIF}
+
+  Registry.RebindAll;
+end;
+
+initialization
+  RegisterBindings;
 
 end.
