@@ -120,9 +120,9 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        ADD     RAX, $0000FFFF
-        SAR     RAX, 16
+        MOV     EAX, ECX
+        ADD     EAX, $0000FFFF
+        SAR     EAX, 16
 {$ENDIF}
 {$IFDEF TARGET_x86}
         ADD     EAX, $0000FFFF
@@ -138,9 +138,9 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        ADD     RAX, $00007FFF
-        SAR     RAX, 16
+        MOV     EAX, ECX
+        ADD     EAX, $00007FFF
+        SAR     EAX, 16
 {$ENDIF}
 {$IFDEF TARGET_x86}
         ADD     EAX, $00007FFF
@@ -177,12 +177,12 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        MOV     RCX, RDX
+        MOV     EAX, ECX
+        MOV     ECX, EDX
         CDQ
-        SHLD    RDX, RAX, 16
-        SHL     RAX, 16
-        IDIV    RCX
+        SHLD    EDX, EAX, 16
+        SHL     EAX, 16
+        IDIV    ECX
 {$ENDIF}
 {$IFDEF TARGET_x86}
         MOV     ECX, B
@@ -390,20 +390,23 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        SUB     RDX, R8
-        IMUL    RDX
-        SHRD    RCX, RDX,16
-        ADD     RCX, R8
-        MOV     RAX, RCX
+        MOV     EAX, ECX
+        SUB     EDX, R8D
+        IMUL    EDX
+        SHRD    EAX, EDX, 16
+        ADD     EAX, R8D
 {$ENDIF}
 {$IFDEF TARGET_x86}
         SUB     EDX, ECX
         IMUL    EDX
-        SHRD    EAX, EDX,16
+        SHRD    EAX, EDX, 16
         ADD     EAX, ECX
 {$ENDIF}
 {$ENDIF}
 end;
+
+{$DEFINE PUREPASCAL}
+{$UNDEF PUREPASCAL}
 
 { Trigonometry }
 
