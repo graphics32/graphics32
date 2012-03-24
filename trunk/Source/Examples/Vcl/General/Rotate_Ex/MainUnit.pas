@@ -42,9 +42,6 @@ uses
   GR32, GR32_Image, GR32_Transforms, GR32_RangeBars;
 
 type
-
-  { TFormRotateExample }
-
   TFormRotateExample = class(TForm)
     Angle: TGaugeBar;
     Src: TImage32;
@@ -74,6 +71,9 @@ uses
 {$ELSE}
   LazJPG;
 {$ENDIF}
+
+
+{ TFormRotateExample }
 
 procedure TFormRotateExample.FormCreate(Sender: TObject);
 var
@@ -127,7 +127,7 @@ var
   SrcR: Integer;
   SrcB: Integer;
   T: TAffineTransformation;
-  Sn,Cn: TFloat;
+  Sn, Cn: TFloat;
   Sx, Sy, Scale: Single;
 begin
   SrcR := Src.Bitmap.Width - 1;
@@ -153,7 +153,7 @@ begin
     Sy := Src.Bitmap.Height / Sy;
     Scale := Min(Sx, Sy);
 
-    T.Scale(Scale, Scale);
+    T.Scale(Scale);
 
     // move the origin back
     T.Translate(SrcR * 0.5, SrcB * 0.5);
