@@ -1723,10 +1723,6 @@ begin
   Result := a shl 24 + r shl 16 + g shl 8 + b;
 end;
 
-{$IFNDEF OMIT_MMX}
-
-{ MMX versions }
-
 procedure GenAlphaTable;
 var
   I: Integer;
@@ -1764,6 +1760,10 @@ procedure FreeAlphaTable;
 begin
   FreeMem(AlphaTable);
 end;
+
+{$IFNDEF OMIT_MMX}
+
+{ MMX versions }
 
 function BlendReg_MMX(F, B: TColor32): TColor32;
 asm
@@ -3581,15 +3581,9 @@ initialization
   MakeMergeTables;
 
 {$IFNDEF PUREPASCAL}
-{$IFNDEF OMIT_MMX}
-  if (ciMMX in CPUFeatures) then
-  begin
+  MMX_ACTIVE := (ciMMX in CPUFeatures);
+  if [ciMMX, ciSSE2] * CPUFeatures <> [] then
     GenAlphaTable;
-    MMX_ACTIVE := (ciMMX in CPUFeatures);
-  end
-  else
-{$ENDIF}
-    MMX_ACTIVE := False;
 {$ELSE}
   MMX_ACTIVE := False;
 {$ENDIF}
