@@ -38,8 +38,8 @@ interface
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
-  GR32_Transforms, ComCtrls, Math, GR32_RangeBars;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ComCtrls, Math,
+  GR32, GR32_Image, GR32_Transforms, GR32_RangeBars;
 
 type
 
@@ -65,6 +65,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_Math,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -93,7 +94,7 @@ begin
 {$ENDIF}
 
   // Different platforms store resource files on different locations
-{$IFDEF Win32}
+{$IFDEF Windows}
   pathMedia := '..\..\..\Media\';
   {$IFDEF FPC}
   pathMedia := '..\' + pathMedia;
@@ -126,6 +127,7 @@ var
   SrcR: Integer;
   SrcB: Integer;
   T: TAffineTransformation;
+  Sn,Cn: TFloat;
   Sx, Sy, Scale: Single;
 begin
   SrcR := Src.Bitmap.Width - 1;
@@ -142,13 +144,14 @@ begin
     Alpha := Alpha * PI / 180;
 
     // get the width and height of rotated image (without scaling)
-    Sx := Abs(SrcR * Cos(Alpha)) + Abs(SrcB * Sin(Alpha));
-    Sy := Abs(SrcR * Sin(Alpha)) + Abs(SrcB * Cos(Alpha));
+    GR32_Math.SinCos(Alpha, Sn, Cn);
+    Sx := Abs(SrcR * Cn) + Abs(SrcB * Sn);
+    Sy := Abs(SrcR * Sn) + Abs(SrcB * Cn);
 
     // calculate a new scale so that the image fits in original boundaries
     Sx := Src.Bitmap.Width / Sx;
     Sy := Src.Bitmap.Height / Sy;
-    scale := Min(Sx, Sy);
+    Scale := Min(Sx, Sy);
 
     T.Scale(Scale, Scale);
 
