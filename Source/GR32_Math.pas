@@ -405,7 +405,7 @@ end;
 { Trigonometry }
 
 procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
-{$IFDEF NATIVESINCOS}
+{$IFDEF NATIVE_SINCOS}
 var
   S, C: Extended;
 begin
@@ -422,7 +422,7 @@ asm
 end;
 
 procedure SinCos(const Theta, Radius : TFloat; out Sin, Cos: TFloat);
-{$IFDEF NATIVESINCOS}
+{$IFDEF NATIVE_SINCOS}
 var
   S, C: Extended;
 begin
