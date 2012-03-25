@@ -2500,8 +2500,6 @@ asm
 end;
 {$ENDIF}
 
-{$IFDEF TARGET_x86}
-
 { SSE2 versions }
 
 function BlendReg_SSE2(F, B: TColor32): TColor32;
@@ -2520,9 +2518,8 @@ asm
         MOV       RAX,bias_ptr
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
-        PUNPCKHWD XMM1,XMM1
+        PSHUFLW   XMM1,XMM1, $FF
         PSUBW     XMM0,XMM2
-        PUNPCKHDQ XMM1,XMM1
         PSLLW     XMM2,8
         PMULLW    XMM0,XMM1
         PADDW     XMM2,[RAX]
@@ -2539,10 +2536,8 @@ asm
         MOV       ECX,bias_ptr
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
-        PUNPCKLBW XMM1,XMM3
-        PUNPCKHWD XMM1,XMM1
+        PSHUFLW   XMM1,XMM1, $FF
         PSUBW     XMM0,XMM2
-        PUNPCKHDQ XMM1,XMM1
         PSLLW     XMM2,8
         PMULLW    XMM0,XMM1
         PADDW     XMM2,[ECX]
@@ -2555,6 +2550,39 @@ end;
 
 procedure BlendMem_SSE2(F: TColor32; var B: TColor32);
 asm
+{$IFDEF TARGET_x64}
+  // ECX - Color X
+  // [EDX] - Color Y
+  // Result := W * (X - Y) + Y
+
+        TEST      ECX,$FF000000
+        JZ        @1
+        CMP       ECX,$FF000000
+        JNC       @2
+
+        PXOR      XMM3,XMM3
+        MOVD      XMM0,ECX
+        MOVD      XMM2,[RDX]
+        PUNPCKLBW XMM0,XMM3
+        MOV       RAX,bias_ptr
+        PUNPCKLBW XMM2,XMM3
+        MOVQ      XMM1,XMM0
+        PSHUFLW   XMM1,XMM1, $FF
+        PSUBW     XMM0,XMM2
+        PSLLW     XMM2,8
+        PMULLW    XMM0,XMM1
+        PADDW     XMM2,[RAX]
+        PADDW     XMM2,XMM0
+        PSRLW     XMM2,8
+        PACKUSWB  XMM2,XMM3
+        MOVD      [RDX],XMM2
+
+@1:     RET
+
+@2:     MOV       [RDX], ECX
+{$ENDIF}
+
+{$IFDEF TARGET_x86}
   // EAX - Color X
   // [EDX] - Color Y
   // Result := W * (X - Y) + Y
@@ -2571,10 +2599,8 @@ asm
         MOV       ECX,bias_ptr
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
-        PUNPCKLBW XMM1,XMM3
-        PUNPCKHWD XMM1,XMM1
+        PSHUFLW   XMM1,XMM1, $FF
         PSUBW     XMM0,XMM2
-        PUNPCKHDQ XMM1,XMM1
         PSLLW     XMM2,8
         PMULLW    XMM0,XMM1
         PADDW     XMM2,[ECX]
@@ -2586,16 +2612,52 @@ asm
 @1:     RET
 
 @2:     MOV       [EDX], EAX
+{$ENDIF}
 end;
 
 function BlendRegEx_SSE2(F, B, M: TColor32): TColor32;
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
+  // Result := M * Fa * (Frgb - Brgb) + Brgb
+
+{$IFDEF TARGET_x64}
+  // ECX <- F
+  // EDX <- B
+  // R8D <- M
+
+        MOV       EAX,ECX
+        SHR       EAX,24
+        INC       R8D             // 255:256 range bias
+        IMUL      R8D,EAX
+        SHR       R8D,8
+        JZ        @1
+
+        PXOR      XMM0,XMM0
+        MOVD      XMM1,ECX
+        SHL       R8D,4
+        MOVD      XMM2,EDX
+        PUNPCKLBW XMM1,XMM0
+        PUNPCKLBW XMM2,XMM0
+        ADD       R8,alpha_ptr
+        PSUBW     XMM1,XMM2
+        PMULLW    XMM1,[R8]
+        PSLLW     XMM2,8
+        MOV       R8,bias_ptr
+        PADDW     XMM2,[R8]
+        PADDW     XMM1,XMM2
+        PSRLW     XMM1,8
+        PACKUSWB  XMM1,XMM0
+        MOVD      EAX,XMM1
+        RET
+
+@1:     MOV       EAX,EDX
+{$ENDIF}
+
+{$IFDEF TARGET_x86}
   // EAX <- F
   // EDX <- B
   // ECX <- M
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
         PUSH      EBX
         MOV       EBX,EAX
         SHR       EBX,24
@@ -2626,9 +2688,8 @@ asm
 
 @1:     MOV       EAX,EDX
         POP       EBX
-end;
-
 {$ENDIF}
+end;
 
 procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: TColor32);
 asm
@@ -2711,10 +2772,56 @@ asm
 {$ENDIF}
 end;
 
-{$IFDEF TARGET_X86}
-
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer);
 asm
+{$IFDEF TARGET_X64}
+  // ECX <- Src
+  // EDX <- Dst
+  // R8D <- Count
+
+        TEST      R8D,R8D
+        JZ        @4
+
+        MOV       R10,RCX
+        MOV       R11,RDX
+
+@1:     MOV       EAX,[R10]
+        TEST      EAX,$FF000000
+        JZ        @3
+        CMP       EAX,$FF000000
+        JNC       @2
+
+        MOVD      XMM0,EAX
+        PXOR      XMM3,XMM3
+        MOVD      XMM2,[R11]
+        PUNPCKLBW XMM0,XMM3
+        MOV       RAX,bias_ptr
+        PUNPCKLBW XMM2,XMM3
+        MOVQ      XMM1,XMM0
+        PUNPCKLBW XMM1,XMM3
+        PUNPCKHWD XMM1,XMM1
+        PSUBW     XMM0,XMM2
+        PUNPCKHDQ XMM1,XMM1
+        PSLLW     XMM2,8
+        PMULLW    XMM0,XMM1
+        PADDW     XMM2,[RAX]
+        PADDW     XMM2,XMM0
+        PSRLW     XMM2,8
+        PACKUSWB  XMM2,XMM3
+        MOVD      EAX, XMM2
+
+@2:     MOV       [R11],EAX
+
+@3:     ADD       R10,4
+        ADD       R11,4
+
+        DEC       R8D
+        JNZ       @1
+
+@4:     RET
+{$ENDIF}
+
+{$IFDEF TARGET_X86}
   // EAX <- Src
   // EDX <- Dst
   // ECX <- Count
@@ -2765,7 +2872,10 @@ asm
         POP       ESI
 
 @4:     RET
+{$ENDIF}
 end;
+
+{$IFDEF TARGET_X86}
 
 procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32);
 asm
@@ -3489,68 +3599,24 @@ begin
 
 {$IFNDEF PUREPASCAL}
   BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
 {$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
-{$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
-{$ENDIF}
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_SSE2, [ciSSE2]);
-{$IFNDEF TARGET_x64}
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_MMX, [ciMMX]);
-{$ENDIF}
-{$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
-{$IFNDEF TARGET_x64}
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
-{$IFNDEF TARGET_x64}
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_SSE2, [ciSSE2]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
-{$IFNDEF TARGET_x64}
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_MMX, [ciMMX]);
-{$ENDIF}
-  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
-{$ENDIF}
-{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_COLORMAX, @ColorMax_EMMX, [ciEMMX]);
   BlendRegistry.Add(FID_COLORMIN, @ColorMin_EMMX, [ciEMMX]);
   BlendRegistry.Add(FID_COLORADD, @ColorAdd_MMX, [ciMMX]);
@@ -3560,6 +3626,20 @@ begin
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciSSE2]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciSSE2]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
+{$ENDIF}
+  BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_SSE2, [ciSSE2]);
+{$IFNDEF TARGET_x64}
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
+  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
 {$ENDIF}
   BlendRegistry.Add(FID_COLORMAX, @ColorMax_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORMIN, @ColorMin_SSE2, [ciSSE2]);
