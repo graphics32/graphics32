@@ -8,8 +8,8 @@ object MainForm: TMainForm
   Color = clBtnFace
   Constraints.MaxHeight = 287
   Constraints.MaxWidth = 467
-  Constraints.MinHeight = 285
-  Constraints.MinWidth = 467
+  Constraints.MinHeight = 280
+  Constraints.MinWidth = 465
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -38,7 +38,7 @@ object MainForm: TMainForm
     TabOrder = 0
     OnPaintStage = Image32PaintStage
   end
-  object PnlSettings: TPanel
+  object pnlSettings: TPanel
     Left = 316
     Top = 0
     Width = 143
@@ -52,7 +52,7 @@ object MainForm: TMainForm
       Height = 13
       Caption = 'Twirl Power:'
     end
-    object Panel4: TPanel
+    object pnlTwirlDistortion: TPanel
       Left = 1
       Top = 1
       Width = 141

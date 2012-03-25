@@ -48,8 +48,8 @@ type
     gbTwist: TGaugeBar;
     Image32: TImage32;
     lbTwirlPower: TLabel;
-    Panel4: TPanel;
-    PnlSettings: TPanel;
+    pnlSettings: TPanel;
+    pnlTwirlDistortion: TPanel;
     rbGetPixelFS: TRadioButton;
     rbPixelS: TRadioButton;
     procedure FormCreate(Sender: TObject);
