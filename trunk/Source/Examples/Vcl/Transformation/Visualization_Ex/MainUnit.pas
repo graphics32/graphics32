@@ -180,7 +180,7 @@ var
   p,w: Single;
 begin
   p := d * Round(((1 - (Sin((r - PI * 0.5) * 7) * 0.01)) *
-    (0.96 + Cos(Sqrt(x * x + y * y) * PI) * 0.05)) * 11) / 11;
+    (0.96 + Cos(Hypot(x, y) * PI) * 0.05)) * 11) / 11;
   d := d * (0.96 + Cos(d * PI) * 0.05);
   w := 1 - abs(x * y);
   d := d + (p - d) * w;
@@ -460,7 +460,7 @@ begin
 
   EMMS;
   if Random > Feedback then
-      BufferFeedBack(BlendLevel, BlendContrast, BlendBrightness, TimeDarkening);
+    BufferFeedBack(BlendLevel, BlendContrast, BlendBrightness, TimeDarkening);
 
   Done := False;
 end;
