@@ -203,6 +203,18 @@ end;
 {$IFNDEF PUREPASCAL}
 procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword);
 asm
+{$IFDEF TARGET_x86}
+        // EAX = X;   EDX = Count;   ECX = Value
+        PUSH    EDI
+
+        MOV     EDI,EAX  // Point EDI to destination
+        MOV     EAX,ECX
+        MOV     ECX,EDX
+
+        REP     STOSD    // Fill count dwords
+@Exit:
+        POP     EDI
+{$ENDIF}
 {$IFDEF TARGET_x64}
         // ECX = X;   EDX = Count;   R8 = Value
         PUSH    RDI
@@ -216,22 +228,43 @@ asm
         REP     STOSD    // Fill count dwords
 @Exit:
         POP     RDI
-{$ELSE}
-        // EAX = X;   EDX = Count;   ECX = Value
-        PUSH    EDI
-
-        MOV     EDI,EAX  // Point EDI to destination
-        MOV     EAX,ECX
-        MOV     ECX,EDX
-
-        REP     STOSD    // Fill count dwords
-@Exit:
-        POP     EDI
 {$ENDIF}
 end;
 
 procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword);
 asm
+{$IFDEF TARGET_x86}
+        // EAX = X;   EDX = Count;   ECX = Value
+        TEST       EDX, EDX   // if Count = 0 then
+        JZ         @Exit      //   Exit
+
+        PUSH       EDI
+        MOV        EDI, EAX
+        MOV        EAX, EDX
+
+        SHR        EAX, 1
+        SHL        EAX, 1
+        SUB        EAX, EDX
+        JE         @QLoopIni
+
+        MOV        [EDI], ECX
+        ADD        EDI, 4
+        DEC        EDX
+        JZ         @ExitPOP
+    @QLoopIni:
+        MOVD       MM1, ECX
+        PUNPCKLDQ  MM1, MM1
+        SHR        EDX, 1
+    @QLoop:
+        MOVQ       [EDI], MM1
+        ADD        EDI, 8
+        DEC        EDX
+        JNZ        @QLoop
+        EMMS
+    @ExitPOP:
+        POP        EDI
+    @Exit:
+{$ENDIF}
 {$IFDEF TARGET_x64}
         // RCX = X;   RDX = Count;   R8 = Value
         TEST       RDX, RDX   // if Count = 0 then
@@ -264,75 +297,12 @@ asm
 @ExitPOP:
         POP        RDI
 @Exit:
-{$ELSE}
-        // EAX = X;   EDX = Count;   ECX = Value
-        TEST       EDX, EDX   // if Count = 0 then
-        JZ         @Exit      //   Exit
-
-        PUSH       EDI
-        MOV        EDI, EAX
-        MOV        EAX, EDX
-
-        SHR        EAX, 1
-        SHL        EAX, 1
-        SUB        EAX, EDX
-        JE         @QLoopIni
-
-        MOV        [EDI], ECX
-        ADD        EDI, 4
-        DEC        EDX
-        JZ         @ExitPOP
-    @QLoopIni:
-        MOVD       MM1, ECX
-        PUNPCKLDQ  MM1, MM1
-        SHR        EDX, 1
-    @QLoop:
-        MOVQ       [EDI], MM1
-        ADD        EDI, 8
-        DEC        EDX
-        JNZ        @QLoop
-        EMMS
-    @ExitPOP:
-        POP        EDI
-    @Exit:
 {$ENDIF}
 end;
 
 procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
 asm
-{$IFDEF TARGET_x64}
-        // RCX = X;   RDX = Count;   R8 = Value
-        TEST       EDX,EDX    // if Count = 0 then
-        JZ         @Exit      //   Exit
-        MOV        RAX, RCX   // RAX = X
-
-        PUSH       RDI        // store RDI on stack
-        MOV        R9, RDX    // R9 = Count
-        MOV        RDI, RDX   // RDI = Count
-
-        SHR        RDI, 1     // RDI = RDI SHR 1
-        SHL        RDI, 1     // RDI = RDI SHL 1
-        SUB        R9, RDI    // check if extra fill is necessary
-        JE         @QLoopIni
-
-        MOV        [RAX], R8D // eventually perform extra fill
-        ADD        RAX, 4     // Inc(X, 4)
-        DEC        RDX        // Dec(Count)
-        JZ         @ExitPOP   // if (Count = 0) then Exit
-@QLoopIni:
-        MOVD       XMM0, R8D  // XMM0 = R8D
-        PUNPCKLDQ  XMM0, XMM0 // unpack XMM0 register
-        SHR        RDX, 1     // RDX = RDX div 2
-@QLoop:
-        MOVQ       QWORD PTR [RAX], XMM0 // perform fill
-        ADD        RAX, 8     // Inc(X, 8)
-        DEC        RDX        // Dec(X);
-        JNZ        @QLoop
-        EMMS
-@ExitPOP:
-        POP        RDI
-@Exit:
-{$ELSE}
+{$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
 
         TEST       EDX, EDX        // if Count = 0 then
@@ -389,6 +359,40 @@ asm
 
 @Exit:
 {$ENDIF}
+
+{$IFDEF TARGET_x64}
+        // RCX = X;   RDX = Count;   R8 = Value
+        TEST       EDX,EDX    // if Count = 0 then
+        JZ         @Exit      //   Exit
+        MOV        RAX, RCX   // RAX = X
+
+        PUSH       RDI        // store RDI on stack
+        MOV        R9, RDX    // R9 = Count
+        MOV        RDI, RDX   // RDI = Count
+
+        SHR        RDI, 1     // RDI = RDI SHR 1
+        SHL        RDI, 1     // RDI = RDI SHL 1
+        SUB        R9, RDI    // check if extra fill is necessary
+        JE         @QLoopIni
+
+        MOV        [RAX], R8D // eventually perform extra fill
+        ADD        RAX, 4     // Inc(X, 4)
+        DEC        RDX        // Dec(Count)
+        JZ         @ExitPOP   // if (Count = 0) then Exit
+@QLoopIni:
+        MOVD       XMM0, R8D  // XMM0 = R8D
+        PUNPCKLDQ  XMM0, XMM0 // unpack XMM0 register
+        SHR        RDX, 1     // RDX = RDX div 2
+@QLoop:
+        MOVQ       QWORD PTR [RAX], XMM0 // perform fill
+        ADD        RAX, 8     // Inc(X, 8)
+        DEC        RDX        // Dec(X);
+        JNZ        @QLoop
+        EMMS
+@ExitPOP:
+        POP        RDI
+@Exit:
+{$ENDIF}
 end;
 {$ENDIF}
 
@@ -403,20 +407,7 @@ begin
     P[I] := Value;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        // ECX = X;   EDX = Count;   R8D = Value
-        PUSH    RDI
-
-        MOV     EDI,ECX  // Point EDI to destination
-        MOV     EAX,R8D
-        MOV     ECX,EDX
-        TEST    ECX,ECX
-        JZ      @exit
-
-        REP     STOSW    // Fill count words
-@exit:
-        POP     RDI
-{$ELSE}
+{$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
         PUSH    EDI
 
@@ -430,6 +421,21 @@ asm
 @exit:
         POP     EDI
 {$ENDIF}
+
+{$IFDEF TARGET_x64}
+        // ECX = X;   EDX = Count;   R8D = Value
+        PUSH    RDI
+
+        MOV     EDI,ECX  // Point EDI to destination
+        MOV     EAX,R8D
+        MOV     ECX,EDX
+        TEST    ECX,ECX
+        JZ      @exit
+
+        REP     STOSW    // Fill count words
+@exit:
+        POP     RDI
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -439,6 +445,22 @@ begin
   Move(Source, Dest, Count shl 2);
 {$ELSE}
 asm
+{$IFDEF TARGET_x86}
+        // EAX = Source;   EDX = Dest;   ECX = Count
+        PUSH    ESI
+        PUSH    EDI
+
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+        CMP     EDI,ESI
+        JE      @exit
+
+        REP     MOVSD
+@exit:
+        POP     EDI
+        POP     ESI
+{$ENDIF}
+
 {$IFDEF TARGET_x64}
         // RCX = Source;   RDX = Dest;   R8 = Count
         PUSH    RSI
@@ -454,20 +476,6 @@ asm
 @exit:
         POP     RDI
         POP     RSI
-{$ELSE}
-        // EAX = Source;   EDX = Dest;   ECX = Count
-        PUSH    ESI
-        PUSH    EDI
-
-        MOV     ESI,EAX
-        MOV     EDI,EDX
-        CMP     EDI,ESI
-        JE      @exit
-
-        REP     MOVSD
-@exit:
-        POP     EDI
-        POP     ESI
 {$ENDIF}
 {$ENDIF}
 end;
@@ -478,6 +486,23 @@ begin
   Move(Source, Dest, Count shl 1);
 {$ELSE}
 asm
+{$IFDEF TARGET_x86}
+        // EAX = X;   EDX = Count;   ECX = Value
+        PUSH    ESI
+        PUSH    EDI
+
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+        MOV     EAX,ECX
+        CMP     EDI,ESI
+        JE      @exit
+
+        REP     MOVSW
+@exit:
+        POP     EDI
+        POP     ESI
+{$ENDIF}
+
 {$IFDEF TARGET_x64}
         // ECX = X;   EDX = Count;   R8 = Value
         PUSH    RSI
@@ -493,21 +518,6 @@ asm
 @exit:
         POP     RDI
         POP     RSI
-{$ELSE}
-        // EAX = X;   EDX = Count;   ECX = Value
-        PUSH    ESI
-        PUSH    EDI
-
-        MOV     ESI,EAX
-        MOV     EDI,EDX
-        MOV     EAX,ECX
-        CMP     EDI,ESI
-        JE      @exit
-
-        REP     MOVSW
-@exit:
-        POP     EDI
-        POP     ESI
 {$ENDIF}
 {$ENDIF}
 end;
