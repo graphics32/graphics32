@@ -325,8 +325,7 @@
      Forces GR32 into pure pascal mode.
 
 
-   NOTE: FPC generates very efficient code, there is no need for assembler,
-   which just causes trouble
+   NOTE: Further work needed to make assembly routines FPC compatible.
 
    NOTE: The DARWIN target of Free Pascal generates PIC code by default
    Which isn't compatible with the current assembler, so force PUREPASCAL
@@ -347,6 +346,19 @@
 
 {$IFDEF DARWIN}
   {$DEFINE PUREPASCAL}
+{$ENDIF}
+
+(*
+  Symbol BITS_GETTER:
+  -------------------
+
+*)
+
+{$IFDEF COMPILERFPC}
+  // Widgetsets other then Windows will want to implement BITS_GETTER
+  {$IFNDEF LCLWin32}
+    {$DEFINE BITS_GETTER}
+  {$ENDIF}
 {$ENDIF}
 
 
@@ -388,26 +400,6 @@
   {$DEFINE HAS_NATIVEINT}
 {$ENDIF}
 
-
-(*
-  Symbol OMIT_MMX:
-  ----------------
-
-     If defined MMX optimizations are not used (omitted)
-
-   For faster pixel/color processing, MMX can be used which results in a huge
-   performance boost over PUREPASCAL code or native assembler code.
-   However, there's a penalty (a call to EMMS) when switching between FPU and
-   MMX registers. This call is not necessary when SSE2 is available. Though,
-   for backward compatibility it is necessary to call EMMS even if SSE2 is used.
-
-   NOTE: On every x64 system SSE2 is available and thus MMX support is not
-   necessary. In fact it is problematic in case the Delphi XE2 compiler is used.
-*)
-
-{$IFDEF TARGET_x64}
-  {$DEFINE OMIT_MMX}
-{$ENDIF}
 
 (*
   Miscellaneous Defines:

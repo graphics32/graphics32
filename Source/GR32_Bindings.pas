@@ -251,6 +251,7 @@ begin
     for I := Registers.Count - 1 downto 0 do
       TFunctionRegistry(Registers[I]).Free;
     Registers.Free;
+    Registers := nil;
   end;
 end;
 

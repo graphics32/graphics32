@@ -69,6 +69,7 @@ type
     procedure Start;
     function ReadNanoseconds: string;
     function ReadMilliseconds: string;
+    function ReadSeconds: String;
     function ReadValue: Int64;
   end;
 
@@ -187,6 +188,13 @@ begin
   Assert(FFrequency > 0);
 
   Result := FloatToStrF(1000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
+end;
+
+function TPerfTimer.ReadSeconds: String;
+begin
+  QueryPerformanceCounter(FPerformanceCountStop);
+  QueryPerformanceFrequency(FFrequency);
+  Result := FloatToStrF((FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
 end;
 
 function TPerfTimer.ReadValue: Int64;
