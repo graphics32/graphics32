@@ -36,14 +36,18 @@
  {$I GR32_Compiler.inc}
 
 
-(* Symbol PUREPASCAL :
-   -------------------
+(* Symbol PUREPASCAL:
+   ------------------
 
-      Forces GR32 into pure pascal mode. Should be used only for testing and
-      debugging purposes. *)
+      Forces GR32 into pure pascal mode. Should be used only for testing and 
+	  debugging purposes.
+
+      (Defined by default for FPC and DARWIN targets in GR32_Compilers.INC.)
+	
+*)
 
   {-$DEFINE PUREPASCAL}
-
+  
 
 
 (* Symbol DEPRECATEDMODE :
@@ -79,9 +83,9 @@
    NOTE: Enabling this symbol increases executable size but will probably
    result in better performance in most cases. *)
 
-{$IFDEF INLININGSUPPORTED}
-  {$DEFINE USEINLINING}
-{$ENDIF}
+  {$IFDEF INLININGSUPPORTED}
+    {$DEFINE USEINLINING}
+  {$ENDIF}
 
 
 
@@ -136,6 +140,30 @@
    RTL patching.
 *)
 
-{$IFDEF GR32_FASTCODEMOVE}
-  {$DEFINE USEMOVE}
-{$ENDIF}
+  {-$DEFINE GR32_FASTCODEMOVE}
+  {$IFDEF GR32_FASTCODEMOVE}
+    {$DEFINE USEMOVE}
+  {$ENDIF}
+
+
+
+(*
+  Symbol OMIT_MMX:
+  ----------------
+
+     If defined MMX optimizations are not used (omitted)
+
+   For faster pixel/color processing, MMX can be used which results in a huge
+   performance boost over PUREPASCAL code or native assembler code.
+   However, there's a penalty (a call to EMMS) when switching between FPU and
+   MMX registers. This call is not necessary when SSE2 is available. Though,
+   for backward compatibility it is necessary to call EMMS even if SSE2 is used.
+
+   NOTE: On every x64 system SSE2 is available and thus MMX support is not
+   necessary. In fact it is problematic in case the Delphi XE2 compiler is used.
+*)
+
+  {-$DEFINE OMIT_MMX}
+  {$IFDEF TARGET_x64}
+    {$DEFINE OMIT_MMX}
+  {$ENDIF}
