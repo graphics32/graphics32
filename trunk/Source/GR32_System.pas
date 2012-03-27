@@ -143,6 +143,15 @@ begin
   Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) * 1000 );
 end;
 
+function TPerfTimer.ReadSeconds: string;
+var
+  t : timeval;
+begin
+  fpgettimeofday(@t,nil);
+   // Build a 64 bit microsecond tick from the seconds and microsecond longints
+  Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) );
+end;
+
 function TPerfTimer.ReadValue: Int64;
 var t : timeval;
 begin
