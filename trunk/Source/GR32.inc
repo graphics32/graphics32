@@ -39,15 +39,15 @@
 (* Symbol PUREPASCAL:
    ------------------
 
-      Forces GR32 into pure pascal mode. Should be used only for testing and 
-	  debugging purposes.
+      Forces GR32 into pure pascal mode. Should be used only for testing and
+      debugging purposes.
 
       (Defined by default for FPC and DARWIN targets in GR32_Compilers.INC.)
-	
+
 *)
 
   {-$DEFINE PUREPASCAL}
-  
+
 
 
 (* Symbol DEPRECATEDMODE :
@@ -166,4 +166,23 @@
   {-$DEFINE OMIT_MMX}
   {$IFDEF TARGET_x64}
     {$DEFINE OMIT_MMX}
+  {$ENDIF}
+
+
+(*
+  Symbol OMIT_SSE2:
+  ----------------
+
+     If defined SSE2 optimizations are not used (omitted)
+
+   For faster pixel/color processing, SSE2 can be used which results in a huge
+   performance boost over PUREPASCAL code or native assembler code.
+
+   In older Delphi versions SSE2 can cause issues with the debugger and thus
+   it is omited by default here.
+*)
+
+  {-$DEFINE OMIT_SSE2}
+  {$IFNDEF COMPILER7_UP}
+    {$DEFINE OMIT_SSE2}
   {$ENDIF}

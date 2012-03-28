@@ -2516,7 +2516,10 @@ asm
 end;
 {$ENDIF}
 
+
 { SSE2 versions }
+
+{$IFNDEF OMIT_SSE2}
 
 function BlendReg_SSE2(F, B: TColor32): TColor32;
 asm
@@ -3592,6 +3595,7 @@ asm
 end;
 
 {$ENDIF}
+{$ENDIF}
 
 { Misc stuff }
 
@@ -3755,10 +3759,11 @@ begin
   BlendRegistry.Add(FID_COLORSUB, @ColorSub_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciSSE2]);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
 {$ENDIF}
+{$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
@@ -3779,6 +3784,7 @@ begin
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
+{$ENDIF}
 {$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
 {$ENDIF}
