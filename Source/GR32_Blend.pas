@@ -3763,7 +3763,7 @@ begin
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
 {$ENDIF}
-{$IFNDEF OMIT_MMX}
+{$IFNDEF OMIT_SSE2}
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);

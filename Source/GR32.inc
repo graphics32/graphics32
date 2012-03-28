@@ -178,11 +178,11 @@
    For faster pixel/color processing, SSE2 can be used which results in a huge
    performance boost over PUREPASCAL code or native assembler code.
 
-   In older Delphi versions SSE2 can cause issues with the debugger and thus
-   it is omited by default here.
+   In older Delphi versions SSE2 can cause issues and thus it is omited by 
+   default here.
 *)
 
   {-$DEFINE OMIT_SSE2}
-  {$IFNDEF COMPILER7_UP}
+  {$IFNDEF COMPILER2005_UP}
     {$DEFINE OMIT_SSE2}
   {$ENDIF}
