@@ -11,7 +11,7 @@ object FormRenderText: TFormRenderText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object Image: TImage32
     Left = 0
     Height = 167
@@ -61,7 +61,6 @@ object FormRenderText: TFormRenderText
       Top = 32
       Width = 22
       Caption = '-1'
-      Color = clBtnFace
       Down = True
       GroupIndex = 1
       Layout = blGlyphBottom
@@ -74,7 +73,6 @@ object FormRenderText: TFormRenderText
       Top = 32
       Width = 22
       Caption = '0'
-      Color = clBtnFace
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
@@ -87,7 +85,6 @@ object FormRenderText: TFormRenderText
       Top = 32
       Width = 22
       Caption = '1'
-      Color = clBtnFace
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
@@ -100,7 +97,6 @@ object FormRenderText: TFormRenderText
       Top = 32
       Width = 22
       Caption = '2'
-      Color = clBtnFace
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
@@ -113,7 +109,6 @@ object FormRenderText: TFormRenderText
       Top = 32
       Width = 22
       Caption = '3'
-      Color = clBtnFace
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0
@@ -126,7 +121,6 @@ object FormRenderText: TFormRenderText
       Top = 32
       Width = 22
       Caption = '4'
-      Color = clBtnFace
       GroupIndex = 1
       Layout = blGlyphBottom
       NumGlyphs = 0

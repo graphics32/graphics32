@@ -445,23 +445,29 @@ end;
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
   {$IFDEF VerboseGR32Carbon}
-    WriteLn('[TLCLBackend.Textout]',
-     ' Self: ', IntToHex(PtrUInt(Self), 8));
+    WriteLn('[TLCLBackend.Textout]', ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
   if not Assigned(FCanvas) then GetCanvas;
 
-  FCanvas.TextOut(X, Y, Text);
+  UpdateFont;
+
+  if not FOwner.MeasuringMode then
+    FCanvas.TextOut(X, Y, Text);
+
+  FOwner.Changed(DstRect);
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
   {$IFDEF VerboseGR32Carbon}
-    WriteLn('[TLCLBackend.Textout with ClipRect]',
-     ' Self: ', IntToHex(PtrUInt(Self), 8));
+    WriteLn('[TLCLBackend.Textout with ClipRect]', ' Self: ',
+      IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
   
   if not Assigned(FCanvas) then GetCanvas;
+
+  UpdateFont;
 
   LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
 end;
@@ -475,6 +481,8 @@ begin
   
   if not Assigned(FCanvas) then GetCanvas;
 
+  UpdateFont;
+
   LCLIntf.DrawText(FCanvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
 end;
 
@@ -486,6 +494,8 @@ begin
   {$ENDIF}
 
   if not Assigned(FCanvas) then GetCanvas;
+
+  UpdateFont;
 
   Result := FCanvas.TextExtent(Text);
 end;

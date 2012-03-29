@@ -320,8 +320,6 @@ var
   DC: HDC;
   OldFont: HGDIOBJ;
 begin
-  Result := TextExtent(Text);
-  (*
   UpdateFont;
   Result.cX := 0;
   Result.cY := 0;
@@ -340,7 +338,6 @@ begin
       StockBitmap.Canvas.Unlock;
     end;
   end;
-  *)
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: String);
@@ -365,11 +362,6 @@ procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
 var
   Extent: TSize;
 begin
-  Textout(X, Y, Text);
-
-  {TODO: implement Widestring capable text method here...}
-
-  (*
   UpdateFont;
 
   if not FOwner.MeasuringMode then
@@ -382,18 +374,12 @@ begin
 
   Extent := TextExtentW(Text);
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
-  *)
 end;
 
 procedure TLCLBackend.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
 var
   Extent: TSize;
 begin
-  Textout(X, Y, ClipRect, Text);
-
-  {TODO: implement Widestring capable text method here...}
-
-  (*
   UpdateFont;
 
   if not FOwner.MeasuringMode then
@@ -401,7 +387,6 @@ begin
 
   Extent := TextExtentW(Text);
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
-  *)
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
@@ -419,18 +404,12 @@ end;
 
 procedure TLCLBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
-  Textout(DstRect, Flags, Text);
-
-  {TODO: implement Widestring capable text method here...}
-
-  (*
   UpdateFont;
 
   if not FOwner.MeasuringMode then
     DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
 
   FOwner.Changed(DstRect);
-  *)
 end;
 
 procedure TLCLBackend.UpdateFont;
