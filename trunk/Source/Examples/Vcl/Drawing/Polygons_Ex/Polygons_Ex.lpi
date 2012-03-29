@@ -6,17 +6,17 @@
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="GR32 Polygons Example"/>
       <ResourceType Value="res"/>
       <Icon Value="0"/>
-      <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <BuildModes Count="2" Active="Debug">
+    <BuildModes Count="2">
       <Item1 Name="Debug" Default="True"/>
       <Item2 Name="Release">
         <CompilerOptions>
-          <Version Value="10"/>
+          <Version Value="11"/>
           <SearchPaths>
             <IncludeFiles Value="../../../.."/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
@@ -35,6 +35,7 @@
           </CodeGeneration>
           <Linking>
             <Debugging>
+              <GenerateDebugInfo Value="False"/>
               <UseLineInfoUnit Value="False"/>
               <StripSymbols Value="True"/>
             </Debugging>
@@ -78,17 +79,10 @@
         <MinVersion Major="1" Valid="True"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="21">
+    <Units Count="2">
       <Unit0>
         <Filename Value="Polygons_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="0"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="12"/>
-        <UsageCount Value="21"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -97,231 +91,11 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="1"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="67"/>
-        <CursorPos X="1" Y="61"/>
-        <UsageCount Value="21"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
       </Unit1>
-      <Unit2>
-        <Filename Value="../../../../GR32.pas"/>
-        <UnitName Value="GR32"/>
-        <TopLine Value="126"/>
-        <CursorPos X="22" Y="216"/>
-        <UsageCount Value="10"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="MainUnit.lfm"/>
-        <TopLine Value="183"/>
-        <CursorPos X="1" Y="211"/>
-        <UsageCount Value="10"/>
-        <DefaultSyntaxHighlighter Value="LFM"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="../../General/Rotate_Ex/MainUnit.pas"/>
-        <ComponentName Value="Form1"/>
-        <HasResources Value="True"/>
-        <UnitName Value="MainUnit"/>
-        <TopLine Value="18"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="../../../Clx/Transformation/ImgWarping_Ex/MainUnit.pas"/>
-        <UnitName Value="MainUnit"/>
-        <TopLine Value="220"/>
-        <CursorPos X="3" Y="232"/>
-        <UsageCount Value="10"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="../../Transformation/ImgWarping_Ex/MainUnit.pas"/>
-        <HasResources Value="True"/>
-        <UnitName Value="MainUnit"/>
-        <TopLine Value="19"/>
-        <CursorPos X="5" Y="33"/>
-        <UsageCount Value="10"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="../../Transformation/ImgWarping_Ex/MainUnit.lfm"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
-        <DefaultSyntaxHighlighter Value="LFM"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="../../Layers/Sprites_Ex/MainUnit.pas"/>
-        <ComponentName Value="Form1"/>
-        <HasResources Value="True"/>
-        <UnitName Value="MainUnit"/>
-        <TopLine Value="20"/>
-        <CursorPos X="1" Y="41"/>
-        <UsageCount Value="10"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="../../../../Packages/GR32_L.pas"/>
-        <UnitName Value="GR32_L"/>
-        <TopLine Value="1"/>
-        <CursorPos X="38" Y="8"/>
-        <UsageCount Value="10"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit9>
-      <Unit10>
-        <Filename Value="../../../../../fpc/packages/extra/univint/FPCMacOSAll.pas"/>
-        <UnitName Value="FPCMacOSAll"/>
-        <TopLine Value="768"/>
-        <CursorPos X="9" Y="782"/>
-        <UsageCount Value="10"/>
-      </Unit10>
-      <Unit11>
-        <Filename Value="../../../../GR32_Backends_LCL_Carbon.pas"/>
-        <UnitName Value="GR32_Backends_LCL_Carbon"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
-      </Unit11>
-      <Unit12>
-        <Filename Value="../../../../GR32_LowLevel.pas"/>
-        <UnitName Value="GR32_LowLevel"/>
-        <TopLine Value="810"/>
-        <CursorPos X="48" Y="830"/>
-        <UsageCount Value="10"/>
-      </Unit12>
-      <Unit13>
-        <Filename Value="../../../../GR32_System.pas"/>
-        <UnitName Value="GR32_System"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="341"/>
-        <CursorPos X="1" Y="357"/>
-        <UsageCount Value="11"/>
-      </Unit13>
-      <Unit14>
-        <Filename Value="../../../../GR32_Polygons.pas"/>
-        <UnitName Value="GR32_Polygons"/>
-        <TopLine Value="1"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
-      </Unit14>
-      <Unit15>
-        <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
-        <TopLine Value="2755"/>
-        <CursorPos X="12" Y="2756"/>
-        <UsageCount Value="10"/>
-      </Unit15>
-      <Unit16>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <UnitName Value="GR32_Image"/>
-        <EditorIndex Value="2"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="896"/>
-        <CursorPos X="1" Y="911"/>
-        <UsageCount Value="11"/>
-        <Loaded Value="True"/>
-      </Unit16>
-      <Unit17>
-        <Filename Value="../../../../../../../../../Lazarus/lcl/include/application.inc"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="2064"/>
-        <CursorPos X="1" Y="2089"/>
-        <UsageCount Value="10"/>
-      </Unit17>
-      <Unit18>
-        <Filename Value="../../../../../../../../../Lazarus/lcl/include/control.inc"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="2770"/>
-        <CursorPos X="49" Y="2784"/>
-        <UsageCount Value="10"/>
-      </Unit18>
-      <Unit19>
-        <Filename Value="../../../../GR32.inc"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="64"/>
-        <CursorPos X="1" Y="1"/>
-        <UsageCount Value="10"/>
-      </Unit19>
-      <Unit20>
-        <Filename Value="../../../../../../../../../Lazarus/lcl/include/wincontrol.inc"/>
-        <WindowIndex Value="0"/>
-        <TopLine Value="7394"/>
-        <CursorPos X="1" Y="7410"/>
-        <UsageCount Value="10"/>
-      </Unit20>
     </Units>
-    <JumpHistory Count="17" HistoryIndex="16">
-      <Position1>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="952" Column="1" TopLine="926"/>
-      </Position1>
-      <Position2>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="953" Column="1" TopLine="926"/>
-      </Position2>
-      <Position3>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="955" Column="1" TopLine="928"/>
-      </Position3>
-      <Position4>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="956" Column="1" TopLine="929"/>
-      </Position4>
-      <Position5>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="958" Column="1" TopLine="931"/>
-      </Position5>
-      <Position6>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="911" Column="1" TopLine="895"/>
-      </Position6>
-      <Position7>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="912" Column="1" TopLine="895"/>
-      </Position7>
-      <Position8>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="913" Column="1" TopLine="895"/>
-      </Position8>
-      <Position9>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="1790" Column="1" TopLine="1774"/>
-      </Position9>
-      <Position10>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="910" Column="1" TopLine="894"/>
-      </Position10>
-      <Position11>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="921" Column="1" TopLine="894"/>
-      </Position11>
-      <Position12>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="923" Column="1" TopLine="896"/>
-      </Position12>
-      <Position13>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="911" Column="1" TopLine="896"/>
-      </Position13>
-      <Position14>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="912" Column="1" TopLine="896"/>
-      </Position14>
-      <Position15>
-        <Filename Value="../../../../GR32_Image.pas"/>
-        <Caret Line="911" Column="1" TopLine="896"/>
-      </Position15>
-      <Position16>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="143" Column="1" TopLine="127"/>
-      </Position16>
-      <Position17>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="265" Column="5" TopLine="235"/>
-      </Position17>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <SearchPaths>
       <IncludeFiles Value="../../../.."/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
@@ -340,9 +114,6 @@
       <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
-      <Debugging>
-        <GenerateDebugInfo Value="True"/>
-      </Debugging>
       <LinkSmart Value="True"/>
       <Options>
         <Win32>
@@ -358,18 +129,6 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="2">
-      <Item1>
-        <Kind Value="bpkSource"/>
-        <Source Value="../../../../GR32_System.pas"/>
-        <Line Value="303"/>
-      </Item1>
-      <Item2>
-        <Kind Value="bpkSource"/>
-        <Source Value="../../../../GR32_System.pas"/>
-        <Line Value="336"/>
-      </Item2>
-    </BreakPoints>
     <Exceptions Count="2">
       <Item1>
         <Name Value="ECodetoolError"/>

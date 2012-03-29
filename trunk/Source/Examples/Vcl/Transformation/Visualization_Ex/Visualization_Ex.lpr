@@ -5,6 +5,8 @@ uses
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm};
 
+{$R *.res}
+
 begin
   Application.Title:='Visualization Example';
   Application.Initialize;

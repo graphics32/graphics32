@@ -42,7 +42,6 @@ uses
   GR32_Image;
 
 type
-  { TFormLineStippling }
   TFormLineStippling = class(TForm)
     Image: TImage32;
     ScrollBar: TScrollBar;
@@ -58,10 +57,12 @@ var
 implementation
 
 {$IFDEF FPC}
-{$R *.LFM}
+{$R *.lfm}
 {$ELSE}
-{$R *.DFM}
+{$R *.dfm}
 {$ENDIF}
+
+{ TFormLineStippling }
 
 procedure TFormLineStippling.FormCreate(Sender: TObject);
 begin

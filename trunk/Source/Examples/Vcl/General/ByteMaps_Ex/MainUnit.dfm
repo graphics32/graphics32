@@ -63,7 +63,7 @@ object MainForm: TMainForm
         ImageIndex = -1
         MinHeight = 21
         MinWidth = 56
-        Width = 69
+        Width = 124
       end
       item
         Break = False
@@ -71,7 +71,7 @@ object MainForm: TMainForm
         ImageIndex = -1
         MinHeight = 22
         MinWidth = 100
-        Width = 379
+        Width = 265
       end
       item
         Break = False
@@ -82,7 +82,7 @@ object MainForm: TMainForm
         MinHeight = 21
         MinWidth = 38
         ParentColor = False
-        Width = 38
+        Width = 97
       end
       item
         Control = ToolBar2
@@ -225,7 +225,7 @@ object MainForm: TMainForm
         Left = 220
         Top = 0
         Width = 73
-        Height = 21
+        Height = 22
         Anchors = [akTop, akRight]
         TabOrder = 1
         TabStop = False
@@ -303,7 +303,7 @@ object MainForm: TMainForm
     Left = 340
     Top = 40
     Bitmap = {
-      494C010105000C000C0010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105001000100010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

@@ -68,8 +68,10 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -221,10 +223,5 @@ begin
    Repaint;
   end;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.

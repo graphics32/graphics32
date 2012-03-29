@@ -17,7 +17,7 @@
       <Item1 Name="Release" Default="True"/>
       <Item2 Name="Debug">
         <CompilerOptions>
-          <Version Value="10"/>
+          <Version Value="11"/>
           <PathDelim Value="\"/>
           <SearchPaths>
             <IncludeFiles Value="..\..\..\.."/>
@@ -40,10 +40,6 @@
             </Optimizations>
           </CodeGeneration>
           <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="True"/>
-              <GenerateDwarf Value="True"/>
-            </Debugging>
             <LinkSmart Value="True"/>
             <Options>
               <Win32>
@@ -96,7 +92,7 @@
     </Units>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\.."/>
@@ -120,6 +116,7 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
+        <GenerateDebugInfo Value="False"/>
         <UseLineInfoUnit Value="False"/>
         <StripSymbols Value="True"/>
       </Debugging>

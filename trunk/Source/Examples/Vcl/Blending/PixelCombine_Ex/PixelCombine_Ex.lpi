@@ -16,7 +16,7 @@
       <Item1 Name="Release" Default="True"/>
       <Item2 Name="Debug">
         <CompilerOptions>
-          <Version Value="10"/>
+          <Version Value="11"/>
           <SearchPaths>
             <IncludeFiles Value="../../../.."/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
@@ -37,9 +37,6 @@
             <SmartLinkUnit Value="True"/>
           </CodeGeneration>
           <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="True"/>
-            </Debugging>
             <LinkSmart Value="True"/>
             <Options>
               <Win32>
@@ -95,7 +92,7 @@
     </Units>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <SearchPaths>
       <IncludeFiles Value="../../../.."/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
@@ -116,6 +113,7 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
+        <GenerateDebugInfo Value="False"/>
         <UseLineInfoUnit Value="False"/>
         <StripSymbols Value="True"/>
       </Debugging>

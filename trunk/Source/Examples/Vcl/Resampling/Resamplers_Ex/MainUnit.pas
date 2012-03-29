@@ -118,6 +118,8 @@ uses
   {$ENDIF}
   GR32_LowLevel;
 
+{ TfmResamplersExample }
+
 procedure TfmResamplersExample.FormCreate(Sender: TObject);
 var
   I, J: Integer;

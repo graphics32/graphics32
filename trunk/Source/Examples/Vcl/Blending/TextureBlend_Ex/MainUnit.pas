@@ -41,9 +41,6 @@ uses
   GR32_Image, GR32_RangeBars;
 
 type
-
-  { TMainForm }
-
   TMainForm = class(TForm)
     BlendBox: TComboBox;
     CombImg: TImage32;
@@ -72,9 +69,9 @@ var
 implementation
 
 {$IFDEF FPC}
-{$R *.LFM}
+{$R *.lfm}
 {$ELSE}
-{$R *.DFM}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -111,6 +108,8 @@ begin
   else
     Result := B;
 end;
+
+{ TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var

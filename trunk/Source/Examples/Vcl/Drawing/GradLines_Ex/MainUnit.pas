@@ -99,9 +99,9 @@ var
 implementation
 
 {$IFDEF FPC}
-{$R *.LFM}
+{$R *.lfm}
 {$ELSE}
-{$R *.DFM}
+{$R *.dfm}
 {$ENDIF}
 
 uses Math;
@@ -171,8 +171,8 @@ const
     end;
 
     { change velocity a little bit }
-    V.X := V.X + t * (Random - 0.5) / 4;
-    V.Y := V.Y + t * (Random - 0.5) / 4;
+    V.X := V.X + t * (Random - 0.5) * 0.25;
+    V.Y := V.Y + t * (Random - 0.5) * 0.25;
 
     { limit velocity }
     if vLen(V1) > MaxVelocity then V1 := vScale(V1, 1 / vLen(V1));

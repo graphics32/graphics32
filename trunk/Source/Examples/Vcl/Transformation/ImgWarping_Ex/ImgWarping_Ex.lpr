@@ -7,6 +7,8 @@ uses
   MainUnit in 'MainUnit.pas' {MainForm},
   BrushAuxiliaries in 'BrushAuxiliaries.pas';
 
+{$R *.res}
+
 begin
   Application.Title:='Image Warping Example';
   Application.Initialize;
