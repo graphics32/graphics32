@@ -8,6 +8,8 @@ uses
   NewImageUnit in 'NewImageUnit.pas' {NewImageForm},
   RGBALoaderUnit in 'RGBALoaderUnit.pas' {RGBALoaderForm};
 
+{$R *.res}
+
 begin
   Application.Title:='Image View Example';
   Application.Initialize;

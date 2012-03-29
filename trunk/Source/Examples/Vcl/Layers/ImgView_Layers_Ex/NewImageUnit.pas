@@ -57,10 +57,6 @@ type
     lbWidthUnit: TLabel;
     pnColor: TPanel;
     procedure btSelectClick(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var
@@ -68,9 +64,13 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
+
+{ TNewImageForm }
 
 procedure TNewImageForm.btSelectClick(Sender: TObject);
 begin
@@ -80,10 +80,5 @@ begin
     if Execute then pnColor.Color := Color;
   end;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I NewImageUnit.lrs}
-{$ENDIF}
 
 end.
