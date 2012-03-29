@@ -1,23 +1,68 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="7"/>
+    <Version Value="9"/>
+    <PathDelim Value="\"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <TargetFileExt Value=""/>
       <Title Value="Image Warping Example"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ResourceType Value="res"/>
+      <Icon Value="0"/>
     </General>
     <VersionInfo>
-      <ProjectVersion Value=""/>
       <Language Value=""/>
       <CharSet Value=""/>
+      <StringTable ProductVersion=""/>
     </VersionInfo>
+    <BuildModes Count="2">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <SearchPaths>
+            <IncludeFiles Value="../../../.."/>
+            <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="../../../.."/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <CStyleOperator Value="False"/>
+              <CPPInline Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <LinkerOptions Value="-framework carbon"/>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CompilerPath Value="$(CompPath)"/>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -25,7 +70,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
@@ -39,15 +84,10 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="8">
+    <Units Count="2">
       <Unit0>
         <Filename Value="ImgWarping_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="7"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -56,171 +96,15 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="1"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="1"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
       </Unit1>
-      <Unit2>
-        <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="17" Y="2"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="../../../../GR32_DrawingEx.pas"/>
-        <UnitName Value="GR32_DrawingEx"/>
-        <CursorPos X="32" Y="65"/>
-        <TopLine Value="35"/>
-        <UsageCount Value="10"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="../../../../Packages/GR32_L.pas"/>
-        <UnitName Value="GR32_L"/>
-        <CursorPos X="46" Y="9"/>
-        <TopLine Value="1"/>
-        <UsageCount Value="10"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <UnitName Value="GR32_Backends_LCL_Win"/>
-        <CursorPos X="1" Y="149"/>
-        <TopLine Value="137"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
-        <CursorPos X="1" Y="3167"/>
-        <TopLine Value="3150"/>
-        <EditorIndex Value="3"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="../../../../GR32_Math.pas"/>
-        <UnitName Value="GR32_Math"/>
-        <CursorPos X="11" Y="60"/>
-        <TopLine Value="43"/>
-        <UsageCount Value="10"/>
-      </Unit7>
     </Units>
-    <JumpHistory Count="26" HistoryIndex="25">
-      <Position1>
-        <Filename Value="ImgWarping_Ex.lpr"/>
-        <Caret Line="6" Column="6" TopLine="1"/>
-      </Position1>
-      <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position2>
-      <Position3>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="177" Column="21" TopLine="167"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="193" Column="9" TopLine="164"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="372" Column="33" TopLine="355"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="382" Column="39" TopLine="355"/>
-      </Position7>
-      <Position8>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position8>
-      <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="192" Column="9" TopLine="175"/>
-      </Position9>
-      <Position10>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position10>
-      <Position11>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="372" Column="32" TopLine="355"/>
-      </Position11>
-      <Position12>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="203" Column="45" TopLine="171"/>
-      </Position12>
-      <Position13>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="422" Column="54" TopLine="400"/>
-      </Position13>
-      <Position14>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="196" Column="1" TopLine="171"/>
-      </Position14>
-      <Position15>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="842" Column="8" TopLine="810"/>
-      </Position15>
-      <Position16>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="194" Column="9" TopLine="171"/>
-      </Position16>
-      <Position17>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="496" Column="13" TopLine="479"/>
-      </Position17>
-      <Position18>
-        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
-        <Caret Line="420" Column="61" TopLine="400"/>
-      </Position18>
-      <Position19>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="496" Column="13" TopLine="479"/>
-      </Position19>
-      <Position20>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="52" Column="1" TopLine="52"/>
-      </Position20>
-      <Position21>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="190" Column="1" TopLine="173"/>
-      </Position21>
-      <Position22>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="233" Column="15" TopLine="216"/>
-      </Position22>
-      <Position23>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="154" Column="1" TopLine="154"/>
-      </Position23>
-      <Position24>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="249" Column="3" TopLine="235"/>
-      </Position24>
-      <Position25>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="171" Column="1" TopLine="171"/>
-      </Position25>
-      <Position26>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="850" Column="5" TopLine="817"/>
-      </Position26>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="8"/>
+    <Version Value="11"/>
     <SearchPaths>
-      <IncludeFiles Value="../../../../"/>
-      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
-      <OtherUnitFiles Value="../../../../"/>
+      <IncludeFiles Value="../../../.."/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../../.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -228,6 +112,7 @@
         <CStyleOperator Value="False"/>
         <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
+        <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
@@ -235,7 +120,7 @@
     </CodeGeneration>
     <Linking>
       <Debugging>
-        <GenerateDebugInfo Value="True"/>
+        <DebugInfoType Value="dsStabs"/>
       </Debugging>
       <LinkSmart Value="True"/>
       <Options>

@@ -57,8 +57,10 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -173,10 +175,5 @@ procedure TFormRotateExample.AngleChange(Sender: TObject);
 begin
   ScaleRot(-Angle.Position);
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.

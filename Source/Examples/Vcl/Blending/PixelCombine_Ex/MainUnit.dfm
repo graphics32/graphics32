@@ -31,6 +31,7 @@ object FormPixelCombine: TFormPixelCombine
     ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
+    ScrollBars.Size = 16
     OverSize = 0
     TabOrder = 0
   end

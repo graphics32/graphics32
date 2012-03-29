@@ -1,20 +1,19 @@
 object FormTranformExample: TFormTranformExample
-  Left = 646
+  Left = 582
   Height = 529
-  Top = 114
-  Width = 622
-  HorzScrollBar.Page = 618
-  VertScrollBar.Page = 528
-  ActiveControl = cbRepeat
+  Top = 275
+  Width = 619
   BorderStyle = bsDialog
   Caption = 'Transform Demo'
   ClientHeight = 529
-  ClientWidth = 622
+  ClientWidth = 619
+  Color = clBtnFace
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object PageControl1: TPageControl
     Left = 0
     Height = 265
@@ -24,7 +23,6 @@ object FormTranformExample: TFormTranformExample
     TabIndex = 0
     TabOrder = 2
     OnChange = PageControl1Change
-    OnPageChanged = PageControl1Change
     object TabSheet1: TTabSheet
       Caption = 'Affine'
       ClientHeight = 239
@@ -46,7 +44,7 @@ object FormTranformExample: TFormTranformExample
         ParentColor = False
       end
       object ResamplerLabel: TLabel
-        Left = 408
+        Left = 404
         Height = 14
         Top = 8
         Width = 79
@@ -55,7 +53,7 @@ object FormTranformExample: TFormTranformExample
         ParentColor = False
       end
       object KernelLabel: TLabel
-        Left = 408
+        Left = 404
         Height = 14
         Top = 48
         Width = 97
@@ -102,8 +100,12 @@ object FormTranformExample: TFormTranformExample
           Enabled = False
           FixedCols = 0
           FixedRows = 0
+          Options = []
+          ParentColor = True
           RowCount = 3
+          ScrollBars = ssNone
           TabOrder = 0
+          TitleFont.Color = clWindowText
           TitleFont.Height = -11
           TitleFont.Name = 'Tahoma'
         end
@@ -126,6 +128,7 @@ object FormTranformExample: TFormTranformExample
         )
         ItemHeight = 20
         OnClick = ListBoxClick
+        ParentColor = True
         Style = lbOwnerDrawFixed
         TabOrder = 1
       end
@@ -134,7 +137,6 @@ object FormTranformExample: TFormTranformExample
         Height = 23
         Top = 178
         Width = 65
-        BorderSpacing.InnerBorder = 4
         Caption = 'Clear All'
         OnClick = Button1Click
         TabOrder = 2
@@ -186,12 +188,10 @@ object FormTranformExample: TFormTranformExample
           Height = 145
           Top = 40
           Width = 305
-          PageIndex = 1
+          PageIndex = 0
           TabOrder = 1
-          object Page1: TPage
-            Caption = 'opNone'
-            ClientWidth = 297
-            ClientHeight = 119
+          TabStop = True
+          object TPage
             object Label2: TLabel
               Left = 16
               Height = 27
@@ -201,31 +201,28 @@ object FormTranformExample: TFormTranformExample
               ParentColor = False
             end
           end
-          object Page2: TPage
-            Caption = 'opTranslate'
-            ClientWidth = 297
-            ClientHeight = 119
+          object TPage
             object Label3: TLabel
               Left = 8
-              Height = 27
+              Height = 26
               Top = 8
-              Width = 196
+              Width = 195
               Caption = 'method declaration:'#13#10'procedure Translate(Dx, Dy: Extended);'
               ParentColor = False
             end
             object Label4: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 59
-              Width = 18
+              Width = 17
               Caption = 'Dx:'
               ParentColor = False
             end
             object Label5: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 91
-              Width = 18
+              Width = 17
               Caption = 'Dy:'
               ParentColor = False
             end
@@ -274,31 +271,28 @@ object FormTranformExample: TFormTranformExample
               OnUserChange = TranslationScrolled
             end
           end
-          object Page3: TPage
-            Caption = 'opScale'
-            ClientWidth = 297
-            ClientHeight = 119
+          object TPage
             object Label6: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 91
-              Width = 17
+              Width = 16
               Caption = 'Sy:'
               ParentColor = False
             end
             object Label7: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 59
-              Width = 17
+              Width = 16
               Caption = 'Sx:'
               ParentColor = False
             end
             object Label8: TLabel
               Left = 8
-              Height = 27
+              Height = 26
               Top = 8
-              Width = 174
+              Width = 173
               Caption = 'method declaration:'#13#10'procedure Scale(Sx, Sy: Extended);'
               ParentColor = False
             end
@@ -320,11 +314,11 @@ object FormTranformExample: TFormTranformExample
               TabOrder = 1
               Text = '0'
             end
-            object sbSy: TGaugeBar
-              Left = 120
+            object sbSx: TGaugeBar
+              Left = 116
               Height = 16
-              Top = 90
-              Width = 173
+              Top = 58
+              Width = 177
               Color = clScrollBar
               Backgnd = bgPattern
               Max = 1000
@@ -333,11 +327,11 @@ object FormTranformExample: TFormTranformExample
               Position = 0
               OnUserChange = ScaleScrolled
             end
-            object sbSx: TGaugeBar
-              Left = 120
+            object sbSy: TGaugeBar
+              Left = 116
               Height = 16
-              Top = 58
-              Width = 173
+              Top = 90
+              Width = 177
               Color = clScrollBar
               Backgnd = bgPattern
               Max = 1000
@@ -347,39 +341,36 @@ object FormTranformExample: TFormTranformExample
               OnUserChange = ScaleScrolled
             end
           end
-          object Page4: TPage
-            Caption = 'opRotate'
-            ClientWidth = 297
-            ClientHeight = 119
+          object TPage
             object Label11: TLabel
               Left = 8
-              Height = 27
+              Height = 26
               Top = 8
-              Width = 215
+              Width = 214
               Caption = 'method declaration:'#13#10'procedureRotate(Cx, Cy, Alpha: Extended);'
               ParentColor = False
             end
             object Label13: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 59
-              Width = 18
+              Width = 17
               Caption = 'Cx:'
               ParentColor = False
             end
             object Label16: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 91
-              Width = 32
+              Width = 31
               Caption = 'Alpha:'
               ParentColor = False
             end
             object Label15: TLabel
               Left = 152
-              Height = 14
+              Height = 13
               Top = 59
-              Width = 18
+              Width = 17
               Caption = 'Cy:'
               ParentColor = False
             end
@@ -411,10 +402,10 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
             end
             object sbAlpha: TGaugeBar
-              Left = 120
+              Left = 112
               Height = 16
               Top = 90
-              Width = 173
+              Width = 181
               Color = clScrollBar
               Backgnd = bgPattern
               Max = 1000
@@ -424,31 +415,28 @@ object FormTranformExample: TFormTranformExample
               OnUserChange = RotationScrolled
             end
           end
-          object Page5: TPage
-            Caption = 'opSkew'
-            ClientWidth = 297
-            ClientHeight = 119
+          object TPage
             object Label12: TLabel
               Left = 8
-              Height = 27
+              Height = 26
               Top = 8
-              Width = 174
+              Width = 173
               Caption = 'method declaration:'#13#10'procedure Skew(Fx, Fy: Extended);'
               ParentColor = False
             end
             object Label14: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 59
-              Width = 17
+              Width = 16
               Caption = 'Fx:'
               ParentColor = False
             end
             object Label17: TLabel
               Left = 16
-              Height = 14
+              Height = 13
               Top = 91
-              Width = 17
+              Width = 16
               Caption = 'Fy:'
               ParentColor = False
             end
@@ -470,11 +458,11 @@ object FormTranformExample: TFormTranformExample
               TabOrder = 1
               Text = '0'
             end
-            object sbFy: TGaugeBar
-              Left = 120
+            object sbFx: TGaugeBar
+              Left = 116
               Height = 16
-              Top = 90
-              Width = 173
+              Top = 58
+              Width = 177
               Color = clScrollBar
               Backgnd = bgPattern
               Min = -100
@@ -482,11 +470,11 @@ object FormTranformExample: TFormTranformExample
               Position = 0
               OnUserChange = SkewScrolled
             end
-            object sbFx: TGaugeBar
-              Left = 120
+            object sbFy: TGaugeBar
+              Left = 116
               Height = 16
-              Top = 58
-              Width = 173
+              Top = 90
+              Width = 177
               Color = clScrollBar
               Backgnd = bgPattern
               Min = -100
@@ -498,7 +486,7 @@ object FormTranformExample: TFormTranformExample
         end
       end
       object ResamplerClassNamesList: TComboBox
-        Left = 409
+        Left = 405
         Height = 21
         Top = 24
         Width = 177
@@ -509,7 +497,7 @@ object FormTranformExample: TFormTranformExample
         TabOrder = 5
       end
       object KernelClassNamesList: TComboBox
-        Left = 409
+        Left = 405
         Height = 21
         Top = 64
         Width = 177
@@ -523,18 +511,53 @@ object FormTranformExample: TFormTranformExample
     end
     object TabSheet2: TTabSheet
       Caption = 'Projective'
-      ClientHeight = 239
-      ClientWidth = 609
+      ClientHeight = 0
+      ClientWidth = 0
       ImageIndex = 1
       object Label18: TLabel
         Left = 48
-        Height = 27
+        Height = 26
         Top = 24
-        Width = 231
+        Width = 230
         Caption = 'Note:'#13#10'Only convex polygons are transormed normally!'
         ParentColor = False
       end
     end
+  end
+  object Src: TImage32
+    Left = 2
+    Height = 256
+    Top = 2
+    Width = 256
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTopLeft
+    Color = clAppWorkspace
+    ParentColor = False
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 0
+    OnPaintStage = DstPaintStage
+  end
+  object Dst: TImage32
+    Left = 264
+    Height = 256
+    Top = 2
+    Width = 351
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTopLeft
+    Color = clAppWorkspace
+    ParentColor = False
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 1
+    OnMouseDown = RubberLayerMouseDown
+    OnMouseMove = RubberLayerMouseMove
+    OnMouseUp = RubberLayerMouseUp
+    OnPaintStage = DstPaintStage
   end
   object Panel3: TPanel
     Left = 264
@@ -546,7 +569,7 @@ object FormTranformExample: TFormTranformExample
     Caption = '  Opacity:'
     ClientHeight = 20
     ClientWidth = 281
-    TabOrder = 0
+    TabOrder = 3
     object OpacityBar: TGaugeBar
       Left = 56
       Height = 16
@@ -567,41 +590,6 @@ object FormTranformExample: TFormTranformExample
     Width = 55
     Caption = 'Repeat'
     OnClick = cbRepeatClick
-    TabOrder = 1
-  end
-  object Src: TImage32
-    Left = 2
-    Height = 256
-    Top = 2
-    Width = 256
-    Bitmap.DrawMode = dmBlend
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baTopLeft
-    Color = clAppWorkspace
-    ParentColor = False
-    RepaintMode = rmOptimizer
-    Scale = 1
-    ScaleMode = smNormal
-    TabOrder = 3
-    OnPaintStage = DstPaintStage
-  end
-  object Dst: TImage32
-    Left = 264
-    Height = 256
-    Top = 2
-    Width = 351
-    Bitmap.DrawMode = dmBlend
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baTopLeft
-    Color = clAppWorkspace
-    ParentColor = False
-    RepaintMode = rmOptimizer
-    Scale = 1
-    ScaleMode = smNormal
     TabOrder = 4
-    OnMouseDown = RubberLayerMouseDown
-    OnMouseMove = RubberLayerMouseMove
-    OnMouseUp = RubberLayerMouseUp
-    OnPaintStage = DstPaintStage
   end
 end

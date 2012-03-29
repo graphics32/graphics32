@@ -43,9 +43,6 @@ uses
   GR32, GR32_Image, GR32_Layers, GR32_Polygons;
 
 type
-
-  { TFormPolygons }
-
   TFormPolygons = class(TForm)
     BitmapList: TBitmap32List;
     btNewLine: TButton;
@@ -88,9 +85,9 @@ var
 implementation
 
 {$IFDEF FPC}
-{$R *.LFM}
+{$R *.lfm}
 {$ELSE}
-{$R *.DFM}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -102,6 +99,8 @@ uses
 {$ELSE}
   LazJPG;
 {$ENDIF}
+
+{ TFormPolygons }
 
 procedure TFormPolygons.FormCreate(Sender: TObject);
 var
@@ -247,10 +246,11 @@ begin
     TmpPoly.Free;
   end;
 
-  if UseOutlinePoly then
-    lbOutlineThicknessValue.Caption := Format('(%.1f)', [LineSize])
-  else
-    lbOutlineThicknessValue.Caption := '(1)';
+  if Assigned(lbOutlineThicknessValue) then
+    if UseOutlinePoly then
+      lbOutlineThicknessValue.Caption := Format('(%.1f)', [LineSize])
+    else
+      lbOutlineThicknessValue.Caption := '(1)';
 end;
 
 procedure TFormPolygons.ThicknessChanged(Sender: TObject);

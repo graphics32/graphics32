@@ -25,7 +25,7 @@ unit MainUnit;
  * The Initial Developer of the Original Code is
  * Alex A. Denisov
  *
- * Portions created by the Initial Developer are Copyright (C) 2000-2010
+ * Portions created by the Initial Developer are Copyright (C) 2000-2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -72,9 +72,9 @@ var
 implementation
 
 {$IFDEF FPC}
-{$R *.LFM}
+{$R *.lfm}
 {$ELSE}
-{$R *.DFM}
+{$R *.dfm}
 {$ENDIF}
 
 procedure TFormRenderText.FormCreate(Sender: TObject);

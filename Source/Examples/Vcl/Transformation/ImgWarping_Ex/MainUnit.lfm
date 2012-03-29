@@ -15,7 +15,7 @@ object MainForm: TMainForm
   OnClose = FormClose
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object Panel1: TPanel
     Left = 8
     Height = 529
@@ -361,7 +361,6 @@ object MainForm: TMainForm
     top = 64
   end
   object SavePictureDialog: TSavePictureDialog
-    Title = 'Datei sichern als'
     DefaultExt = '.*.bmp'
     Filter = 'Bitmaps (*.bmp)|*.bmp'
     FilterIndex = 0

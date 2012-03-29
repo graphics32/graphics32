@@ -10,7 +10,7 @@ object FormPolygons: TFormPolygons
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object Image: TImage32
     Left = 0
     Height = 533
@@ -19,7 +19,7 @@ object FormPolygons: TFormPolygons
     Align = alClient
     Bitmap.ResamplerClassName = 'TKernelResampler'
     Bitmap.Resampler.KernelClassName = 'TCubicKernel'
-    Bitmap.Resampler.Kernel.Coeff = -0.80000001192093
+    Bitmap.Resampler.Kernel.Coeff = -0.800000011920929
     Bitmap.Resampler.KernelMode = kmDynamic
     Bitmap.Resampler.TableSize = 32
     BitmapAlign = baTopLeft

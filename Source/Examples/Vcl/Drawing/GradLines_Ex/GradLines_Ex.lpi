@@ -10,6 +10,7 @@
       <MainUnit Value="0"/>
       <Title Value="GR32 Gradient Lines Example"/>
       <ResourceType Value="res"/>
+      <Icon Value="0"/>
     </General>
     <BuildModes Count="2">
       <Item1 Name="Release" Default="True"/>
@@ -35,9 +36,6 @@
             <SmartLinkUnit Value="True"/>
           </CodeGeneration>
           <Linking>
-            <Debugging>
-              <DebugInfoType Value="dsStabs"/>
-            </Debugging>
             <LinkSmart Value="True"/>
             <Options>
               <Win32>

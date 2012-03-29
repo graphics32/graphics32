@@ -1,22 +1,68 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
+    <Version Value="9"/>
     <PathDelim Value="\"/>
-    <Version Value="7"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <TargetFileExt Value=".exe"/>
       <Title Value="Nested Sampling"/>
-      <ActiveEditorIndexAtStart Value="1"/>
+      <ResourceType Value="res"/>
     </General>
     <VersionInfo>
-      <ProjectVersion Value=""/>
       <Language Value=""/>
       <CharSet Value=""/>
+      <StringTable ProductVersion=""/>
     </VersionInfo>
+    <BuildModes Count="2">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <PathDelim Value="\"/>
+          <SearchPaths>
+            <IncludeFiles Value="..\..\..\.."/>
+            <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="..\..\..\.."/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <SyntaxMode Value="Delphi"/>
+              <CStyleOperator Value="False"/>
+              <CPPInline Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <DebugInfoType Value="dsStabs"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <PassLinkerOptions Value="True"/>
+              <LinkerOptions Value="-framework carbon"/>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CompilerPath Value="$(CompPath)"/>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
       <IgnoreBinaries Value="False"/>
@@ -40,16 +86,10 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="10">
+    <Units Count="3">
       <Unit0>
         <Filename Value="NestedSampling_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="9"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="0"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
@@ -58,186 +98,21 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="16" Y="286"/>
-        <TopLine Value="263"/>
-        <EditorIndex Value="1"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit1>
       <Unit2>
         <Filename Value="SimplePropEdit.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="SimplePropEdit"/>
-        <CursorPos X="33" Y="10"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="7"/>
-        <UsageCount Value="20"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
       </Unit2>
-      <Unit3>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\objpas\typinfo.pp"/>
-        <UnitName Value="typinfo"/>
-        <CursorPos X="7" Y="174"/>
-        <TopLine Value="160"/>
-        <EditorIndex Value="8"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="..\..\..\..\GR32_ExtImage.pas"/>
-        <UnitName Value="GR32_ExtImage"/>
-        <CursorPos X="123" Y="19"/>
-        <TopLine Value="1"/>
-        <EditorIndex Value="6"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <UnitName Value="GR32"/>
-        <CursorPos X="14" Y="2152"/>
-        <TopLine Value="2135"/>
-        <EditorIndex Value="2"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <SyntaxHighlighter Value="Delphi"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\objpas\sysutils\intfh.inc"/>
-        <CursorPos X="11" Y="33"/>
-        <TopLine Value="8"/>
-        <EditorIndex Value="3"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\objpas\sysutils\sysuintf.inc"/>
-        <CursorPos X="47" Y="62"/>
-        <TopLine Value="50"/>
-        <EditorIndex Value="4"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\inc\objpash.inc"/>
-        <CursorPos X="32" Y="249"/>
-        <TopLine Value="232"/>
-        <EditorIndex Value="5"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\inc\objpas.inc"/>
-        <CursorPos X="45" Y="807"/>
-        <TopLine Value="789"/>
-        <UsageCount Value="10"/>
-      </Unit9>
     </Units>
-    <JumpHistory Count="23" HistoryIndex="22">
-      <Position1>
-        <Filename Value="SimplePropEdit.pas"/>
-        <Caret Line="115" Column="1" TopLine="93"/>
-      </Position1>
-      <Position2>
-        <Filename Value="SimplePropEdit.pas"/>
-        <Caret Line="455" Column="5" TopLine="422"/>
-      </Position2>
-      <Position3>
-        <Filename Value="SimplePropEdit.pas"/>
-        <Caret Line="10" Column="33" TopLine="1"/>
-      </Position3>
-      <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="738" Column="50" TopLine="718"/>
-      </Position4>
-      <Position5>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="736" Column="33" TopLine="714"/>
-      </Position5>
-      <Position6>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="240" Column="7" TopLine="222"/>
-      </Position6>
-      <Position7>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position7>
-      <Position8>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="77" Column="2" TopLine="69"/>
-      </Position8>
-      <Position9>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="286" Column="16" TopLine="263"/>
-      </Position9>
-      <Position10>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="755" Column="3" TopLine="738"/>
-      </Position10>
-      <Position11>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
-      </Position11>
-      <Position12>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="547" Column="21" TopLine="529"/>
-      </Position12>
-      <Position13>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="595" Column="21" TopLine="577"/>
-      </Position13>
-      <Position14>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="879" Column="21" TopLine="861"/>
-      </Position14>
-      <Position15>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="924" Column="21" TopLine="906"/>
-      </Position15>
-      <Position16>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="1802" Column="35" TopLine="1784"/>
-      </Position16>
-      <Position17>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="1858" Column="12" TopLine="1840"/>
-      </Position17>
-      <Position18>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="2005" Column="12" TopLine="1987"/>
-      </Position18>
-      <Position19>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="2024" Column="14" TopLine="1991"/>
-      </Position19>
-      <Position20>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="2103" Column="26" TopLine="2075"/>
-      </Position20>
-      <Position21>
-        <Filename Value="..\..\..\..\GR32.pas"/>
-        <Caret Line="2152" Column="14" TopLine="2135"/>
-      </Position21>
-      <Position22>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\objpas\sysutils\sysuintf.inc"/>
-        <Caret Line="62" Column="47" TopLine="50"/>
-      </Position22>
-      <Position23>
-        <Filename Value="..\..\..\..\..\..\..\..\Lazarus\fpc\2.4.0\source\rtl\inc\objpash.inc"/>
-        <Caret Line="222" Column="19" TopLine="204"/>
-      </Position23>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="8"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\..\"/>
-      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)\"/>
-      <OtherUnitFiles Value="..\..\..\..\"/>
+      <IncludeFiles Value="..\..\..\.."/>
+      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="..\..\..\.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
@@ -246,15 +121,16 @@
         <CStyleOperator Value="False"/>
         <IncludeAssertionCode Value="True"/>
         <CPPInline Value="False"/>
+        <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
       <SmartLinkUnit Value="True"/>
+      <Optimizations>
+        <OptimizationLevel Value="0"/>
+      </Optimizations>
     </CodeGeneration>
     <Linking>
-      <Debugging>
-        <GenerateDebugInfo Value="True"/>
-      </Debugging>
       <LinkSmart Value="True"/>
       <Options>
         <PassLinkerOptions Value="True"/>
@@ -269,16 +145,6 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <BreakPoints Count="2">
-      <Item1>
-        <Source Value="MainUnit.pas"/>
-        <Line Value="738"/>
-      </Item1>
-      <Item2>
-        <Source Value="MainUnit.pas"/>
-        <Line Value="287"/>
-      </Item2>
-    </BreakPoints>
     <Exceptions Count="3">
       <Item1>
         <Name Value="EAbort"/>

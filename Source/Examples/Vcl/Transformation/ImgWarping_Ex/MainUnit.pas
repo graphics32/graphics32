@@ -407,8 +407,8 @@ begin
 
   if ToolGroup.ItemIndex = 0 then
   begin
-    DeltaX := Round((Fixed(LastPos.X - X) + LastDelta.X) / 2);
-    DeltaY := Round((Fixed(LastPos.Y - Y) + LastDelta.Y) / 2);
+    DeltaX := Round((Fixed(LastPos.X - X) + LastDelta.X) * 0.5);
+    DeltaY := Round((Fixed(LastPos.Y - Y) + LastDelta.Y) * 0.5);
     LastDelta.X := DeltaX;
     LastDelta.Y := DeltaY;
   end

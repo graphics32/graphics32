@@ -90,8 +90,10 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -180,7 +182,7 @@ var
   p,w: Single;
 begin
   p := d * Round(((1 - (Sin((r - PI * 0.5) * 7) * 0.01)) *
-    (0.96 + Cos(Hypot(x, y) * PI) * 0.05)) * 11) / 11;
+    (0.96 + Cos(GR32_Math.Hypot(x, y) * PI) * 0.05)) * 11) / 11;
   d := d * (0.96 + Cos(d * PI) * 0.05);
   w := 1 - abs(x * y);
   d := d + (p - d) * w;
@@ -713,10 +715,5 @@ begin
     if Components[I] is TTimer then
       TTimer(Components[I]).Enabled := Enabled;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.

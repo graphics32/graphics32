@@ -67,9 +67,9 @@ var
 implementation
 
 {$IFDEF FPC}
-{$R *.LFM}
+{$R *.lfm}
 {$ELSE}
-{$R *.DFM}
+{$R *.dfm}
 {$ENDIF}
 
 uses
