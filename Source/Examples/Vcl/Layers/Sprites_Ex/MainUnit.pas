@@ -49,9 +49,6 @@ const
   MAX_RUNS = 3;
 
 type
-
-  { TMainForm }
-
   TMainForm = class(TForm)
     bAdd: TButton;
     bBenchmark: TButton;
@@ -87,7 +84,7 @@ type
     BenchmarkList: TStringList;
 
     procedure IdleHandler(Sender: TObject; var Done: Boolean);
-    procedure AddLayers(Count: Integer);    
+    procedure AddLayers(Count: Integer);
   end;
 
 var
@@ -95,8 +92,10 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -109,6 +108,8 @@ uses
   LazJPG,
 {$ENDIF}
   GR32_Filters, GR32_System;
+
+{ TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
 
@@ -396,9 +397,5 @@ end;
 
 initialization
   DecimalSeparator := '.';
-
-{$IFDEF FPC}
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.
