@@ -167,9 +167,6 @@ asm
 {$ENDIF}
 end;
 
-{$DEFINE PUREPASCAL}
-{$UNDEF PUREPASCAL}
-
 function FixedDiv(A, B: TFixed): TFixed;
 {$IFDEF PUREPASCAL}
 begin
@@ -405,9 +402,6 @@ asm
 {$ENDIF}
 end;
 
-{$DEFINE PUREPASCAL}
-{$UNDEF PUREPASCAL}
-
 { Trigonometry }
 
 procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat);
@@ -553,7 +547,7 @@ function FastSqrtBab2(const Value: TFloat): TFloat;
 // additionally two babylonian steps added
 const
   CQuarter : TFloat = 0.25;
-{$IFNDEF XPUREPASCAL}
+{$IFDEF PUREPASCAL}
 var
   J: Integer absolute Result;
 begin

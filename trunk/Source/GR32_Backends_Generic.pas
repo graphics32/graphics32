@@ -91,6 +91,8 @@ implementation
 uses
   GR32_LowLevel;
 
+{$IFDEF Windows}
+
 var
   TempPath: TFileName;
 
@@ -107,6 +109,7 @@ begin
   end;
 end;
 
+{$ENDIF}
 
 { TMemoryBackend }
 
@@ -278,7 +281,9 @@ end;
 
 {$ENDIF}
 
+{$IFDEF Windows}
 initialization
   TempPath := IncludeTrailingPathDelimiter(GetTempPath);
+{$ENDIF}
 
 end.
