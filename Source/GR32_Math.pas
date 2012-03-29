@@ -545,9 +545,9 @@ end;
 function FastSqrtBab2(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 // additionally two babylonian steps added
+{$IFDEF PUREPASCAL}
 const
   CQuarter : TFloat = 0.25;
-{$IFDEF PUREPASCAL}
 var
   J: Integer absolute Result;
 begin
@@ -556,6 +556,8 @@ begin
  Result := Result + Value / Result;
  Result := CQuarter * Result + Value / Result;
 {$ELSE}
+const
+  CHalf : TFloat = 0.5;
 asm
         MOV     EAX, Value
         SUB     EAX, $3F800000
