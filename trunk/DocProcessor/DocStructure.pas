@@ -368,8 +368,10 @@ begin
     for I := 0 to Links.Count - 1 do
     begin
       S := Links[I];
+      J := pos('#', S);
+      if J > 0 then setLength(S, J -1);
 
-      if CheckForBrokenLinks and not fileExists(S) then
+      if CheckForBrokenLinks and not fileExists(S) and (Pos('mailto:', S) = 0) then
       begin
         Project.BrokenLinks.Add('  ' + S + #13#10);
         Project.BrokenLinks.Add('    in ' + self.FileName + #13#10);
@@ -635,14 +637,18 @@ begin
   try
     Dom.LoadFromFile(FileName);
     Head := Dom.FindNode('head', True);
+    if not Assigned(Head) then
+      raise Exception.CreateFmt('File ''%s'' is invalid (missing HEAD element)', [FileName]);
     Link := Head.FindNode('link', False);
+    if not Assigned(Link) then
+      raise Exception.CreateFmt('File ''%s'' is invalid (missing LINK element)', [FileName]);
     Link.Attributes['href'] := StringReplace(Link.Attributes['href'], '\', '/', [rfReplaceAll]);
     Title := Head.FindNode('title', False);
     Title.Clear;
     Title.AddText(DisplayName);
     Body := Dom.FindNode('body', True);
-    if not Assigned(Head) or not Assigned(Body) then
-      raise Exception.CreateFmt('File ''%s'' is invalid', [FileName]);
+    if not Assigned(Body) then
+      raise Exception.CreateFmt('File ''%s'' is invalid (missing BODY element)', [FileName]);
 
     Anchors := TStringList.Create;
     Links := TStringList.Create;
