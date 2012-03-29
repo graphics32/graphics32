@@ -587,7 +587,7 @@ var
           Exit;
         end;
       end;
-      DomError('Unexpected end tag');
+      DomError('Unexpected end tag - ' + S);
     end;
     OmitWhiteSpace(Pos);
     N := Dst.Add(GetName(Pos));
@@ -614,8 +614,7 @@ var
         if Pos^ = #0 then DomError('Unexpected document end');
       end;
 
-      if (TagInfo.ClosingType in [ctNever]) or
-        ((TagInfo.ClosingType = ctAnchor) and (Attributes['name'] <> '')) then
+      if (TagInfo.ClosingType in [ctNever]) then
       begin
         if Pos^ <> '>' then DomError(Name + ' tag should not contain any data');
         Inc(Pos);
@@ -657,7 +656,8 @@ var
             Inc(Pos, 2);
             S := GetName(Pos);
             if DoHTML then S := LowerCase(S);
-            if S <> Name then DomError('Unexpected end tag');
+            if S <> Name then
+              DomError('Unexpected end tag : ' + S + ' ');
             if Pos^ <> '>' then DomError('End tag contains unexpected symbols');
             Inc(Pos);
             Exit;
@@ -677,7 +677,7 @@ var
     begin
       case P^ of
         '&': S := S + P^;
-        #0 :  DomError('Unexpected end tag');
+        #0 :  DomError('Unexpected null char (#0) in quoted text');
         '<': Break;
       else
         S := S + P^;

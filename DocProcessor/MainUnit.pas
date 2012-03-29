@@ -342,7 +342,6 @@ begin
         end;
       end;
     end;
-
     LogReplace('Transforming Files ...... done'#13#10);
     LogAdd('Building TOC ...');
     Project.BuildToc(ProjectDir + edProjectName.Text + '.hhc');
