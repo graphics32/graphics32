@@ -44,9 +44,6 @@ uses
   GR32_Image, GR32_RotLayer, GR32_Transforms, GR32_RangeBars, GR32_Resamplers;
 
 type
-
-  { TFormRotLayer }
-
   TFormRotLayer = class(TForm)
     cbScaled: TCheckBox;
     gbAngle: TGaugeBar;
@@ -63,8 +60,6 @@ type
     procedure gbPositionChange(Sender: TObject);
     procedure gbScaleChange(Sender: TObject);
     procedure cbScaledClick(Sender: TObject);
-  private
-    { Private declarations }
   public
     L: TRotLayer;
   end;
@@ -74,8 +69,10 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -88,6 +85,8 @@ uses
   LazJPG,
 {$ENDIF}
   Math;
+
+{ TFormRotLayer }
 
 procedure TFormRotLayer.FormCreate(Sender: TObject);
 var
@@ -144,7 +143,7 @@ begin
     //ensure good looking edge, dynamic alternative to SetBorderTransparent
     TCustomResampler(L.Bitmap.Resampler).PixelAccessMode := pamTransparentEdge;
 
-    L.BitmapCenter := FloatPoint(Width / 2, Height / 2);
+    L.BitmapCenter := FloatPoint(Width * 0.5, Height * 0.5);
     MasterAlpha := 200;
     FrameRectS(BoundsRect, $FFFFFFFF);
     DrawMode := dmBlend;
@@ -179,10 +178,5 @@ procedure TFormRotLayer.cbScaledClick(Sender: TObject);
 begin
   L.Scaled := not L.Scaled;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.

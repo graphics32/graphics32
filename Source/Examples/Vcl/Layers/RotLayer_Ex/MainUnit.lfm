@@ -7,14 +7,13 @@ object FormRotLayer: TFormRotLayer
   HorzScrollBar.Range = 127
   VertScrollBar.Page = 476
   VertScrollBar.Range = 454
-  ActiveControl = CheckBox1
   Caption = 'Rotation Layer Example'
   ClientHeight = 477
   ClientWidth = 314
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   OnCreate = FormCreate
-  LCLVersion = '0.9.29'
+  LCLVersion = '0.9.31'
   object lbAngle: TLabel
     Left = 12
     Height = 14
@@ -136,6 +135,7 @@ object FormRotLayer: TFormRotLayer
     ScrollBars.Color = clScrollBar
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsMac
+    ScrollBars.Size = 16
     OverSize = 0
     TabOrder = 5
   end
