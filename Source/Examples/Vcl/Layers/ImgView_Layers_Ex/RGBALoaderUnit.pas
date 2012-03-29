@@ -41,9 +41,6 @@ uses
   GR32_Image, GR32_Filters, GR32_RangeBars, ExtCtrls, ExtDlgs, Buttons;
 
 type
-
-  { TRGBALoaderForm }
-
   TRGBALoaderForm = class(TForm)
     Bevel1: TBevel;
     btCancel: TButton;
@@ -81,9 +78,13 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
+
+{ TRGBALoaderForm }
 
 procedure TRGBALoaderForm.btLoadImageClick(Sender: TObject);
 begin
@@ -126,10 +127,5 @@ begin
   ImgRGB.Scale := 1;
   ImgAlpha.Scale := 1;
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I RGBALoaderUnit.lrs}
-{$ENDIF}
 
 end.

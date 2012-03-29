@@ -46,9 +46,6 @@ uses
   Buttons;
 
 type
-
-  { TMainForm }
-
   TMainForm = class(TForm)
     cbOptRedraw: TCheckBox;
     Cropped: TCheckBox;
@@ -166,8 +163,10 @@ var
 
 implementation
 
-{$IFNDEF FPC}
-{$R *.DFM}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
+{$R *.dfm}
 {$ENDIF}
 
 uses
@@ -396,8 +395,8 @@ begin
         with ImgView.GetViewportRect do
           P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
 
-        W := Bitmap.Width / 2;
-        H := Bitmap.Height / 2;
+        W := Bitmap.Width * 0.5;
+        H := Bitmap.Height * 0.5;
 
         with ImgView.Bitmap do
           Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
@@ -451,8 +450,8 @@ begin
 
       with B do
       begin
-        W := Bitmap.Width / 2;
-        H := Bitmap.Height / 2;
+        W := Bitmap.Width * 0.5;
+        H := Bitmap.Height * 0.5;
 
         with ImgView.Bitmap do
           Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
@@ -528,8 +527,8 @@ begin
           with R do
           begin
             B.SetSize(Right - Left, Bottom - Top);
-            W2 := (Right - Left) / 2;
-            H2 := (Bottom - Top) / 2;
+            W2 := (Right - Left) * 0.5;
+            H2 := (Bottom - Top) * 0.5;
           end;
 
           SrcRect := DstRect;
@@ -593,8 +592,8 @@ begin
   if Sender is TPositionedLayer then
     with TPositionedLayer(Sender).GetAdjustedLocation do
     begin
-      W2 := (Right - Left) / 2;
-      H2 := (Bottom - Top) / 2;
+      W2 := (Right - Left) * 0.5;
+      H2 := (Bottom - Top) * 0.5;
       Cx := Left + W2;
       Cy := Top + H2;
       Buffer.PenColor := clRed32;
@@ -617,7 +616,7 @@ begin
   if S = '' then Exit;
   I := StrToIntDef(S, -1);
   if (I < 1) or (I > 2000) then I := Round(ImgView.Scale * 100)
-  else ImgView.Scale := I / 100;
+  else ImgView.Scale := I * 0.01;
   ScaleCombo.Text := IntToStr(I) + '%';
   ScaleCombo.SelStart := Length(ScaleCombo.Text) - 1;
 end;
@@ -900,10 +899,10 @@ begin
   begin
     R := Selection.Location;
     TBitmapLayer(Selection).Bitmap.Rotate90;
-    Cx := (R.Left + R.Right) / 2;
-    Cy := (R.Top + R.Bottom) / 2;
-    W2 := (R.Right - R.Left) / 2;
-    H2 := (R.Bottom - R.Top) / 2;
+    Cx := (R.Left + R.Right) * 0.5;
+    Cy := (R.Top + R.Bottom) * 0.5;
+    W2 := (R.Right - R.Left) * 0.5;
+    H2 := (R.Bottom - R.Top) * 0.5;
     RBLayer.Location := FloatRect(Cx - H2, Cy - W2, Cx + H2, Cy + W2);
   end;
 end;
@@ -923,10 +922,10 @@ begin
   begin
     R := Selection.Location;
     TBitmapLayer(Selection).Bitmap.Rotate270;
-    Cx := (R.Left + R.Right) / 2;
-    Cy := (R.Top + R.Bottom) / 2;
-    W2 := (R.Right - R.Left) / 2;
-    H2 := (R.Bottom - R.Top) / 2;
+    Cx := (R.Left + R.Right) * 0.5;
+    Cy := (R.Top + R.Bottom) * 0.5;
+    W2 := (R.Right - R.Left) * 0.5;
+    H2 := (R.Bottom - R.Top) * 0.5;
     RBLayer.Location := FloatRect(Cx - H2, Cy - W2, Cx + H2, Cy + W2);
   end;
 end;
@@ -942,10 +941,5 @@ const
 begin
   ImgView.RepaintMode := RepaintMode[cbOptRedraw.Checked];
 end;
-
-{$IFDEF FPC}
-initialization
-  {$I MainUnit.lrs}
-{$ENDIF}
 
 end.

@@ -1,20 +1,67 @@
 <?xml version="1.0"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="7"/>
+    <Version Value="9"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
       <MainUnit Value="0"/>
-      <TargetFileExt Value=""/>
       <Title Value="Image View Example"/>
+      <ResourceType Value="res"/>
+      <Icon Value="0"/>
+      <ActiveWindowIndexAtStart Value="0"/>
     </General>
     <VersionInfo>
-      <ProjectVersion Value=""/>
       <Language Value=""/>
       <CharSet Value=""/>
+      <StringTable ProductVersion=""/>
     </VersionInfo>
+    <BuildModes Count="2" Active="Debug">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <SearchPaths>
+            <IncludeFiles Value="../../../.."/>
+            <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="../../../.."/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+            <ObjectPath Value="../../.."/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <CStyleOperator Value="False"/>
+              <IncludeAssertionCode Value="True"/>
+              <CPPInline Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <DebugInfoType Value="dsStabs"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <LinkerOptions Value="-framework carbon"/>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <CompilerPath Value="$(CompPath)"/>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
       <IgnoreBinaries Value="False"/>
@@ -42,8 +89,8 @@
       <Unit0>
         <Filename Value="ImgView_Layers_Ex.lpr"/>
         <IsPartOfProject Value="True"/>
-        <CursorPos X="1" Y="3"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="3"/>
         <UsageCount Value="20"/>
       </Unit0>
       <Unit1>
@@ -53,9 +100,13 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="46" Y="44"/>
-        <TopLine Value="18"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="30"/>
+        <CursorPos X="97" Y="65"/>
         <UsageCount Value="20"/>
+        <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="NewImageUnit.pas"/>
@@ -64,8 +115,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="NewImageUnit"/>
-        <CursorPos X="39" Y="89"/>
         <TopLine Value="54"/>
+        <CursorPos X="39" Y="89"/>
         <UsageCount Value="20"/>
       </Unit2>
       <Unit3>
@@ -75,41 +126,42 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="RGBALoaderUnit"/>
-        <CursorPos X="25" Y="53"/>
         <TopLine Value="51"/>
+        <CursorPos X="25" Y="53"/>
         <UsageCount Value="20"/>
       </Unit3>
       <Unit4>
         <Filename Value="../../../../Packages/GR32_L.pas"/>
         <UnitName Value="GR32_L"/>
-        <CursorPos X="14" Y="13"/>
         <TopLine Value="1"/>
+        <CursorPos X="14" Y="13"/>
         <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit4>
       <Unit5>
         <Filename Value="MainUnit.lfm"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit5>
       <Unit6>
         <Filename Value="temp.lfm"/>
-        <CursorPos X="1" Y="215"/>
         <TopLine Value="187"/>
+        <CursorPos X="1" Y="215"/>
         <UsageCount Value="10"/>
-        <SyntaxHighlighter Value="LFM"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
       </Unit6>
       <Unit7>
         <Filename Value="MainUnit.lrs"/>
-        <CursorPos X="17" Y="3"/>
         <TopLine Value="1"/>
+        <CursorPos X="17" Y="3"/>
         <UsageCount Value="10"/>
       </Unit7>
       <Unit8>
         <Filename Value="NewImageUnit.lrs"/>
-        <CursorPos X="17" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="17" Y="1"/>
         <UsageCount Value="10"/>
       </Unit8>
       <Unit9>
@@ -117,42 +169,42 @@
         <ComponentName Value="Form1"/>
         <HasResources Value="True"/>
         <UnitName Value="MainUnit"/>
-        <CursorPos X="1" Y="40"/>
         <TopLine Value="12"/>
+        <CursorPos X="1" Y="40"/>
         <UsageCount Value="10"/>
       </Unit9>
       <Unit10>
         <Filename Value="../../../../GR32_RangeBars.pas"/>
         <UnitName Value="GR32_RangeBars"/>
-        <CursorPos X="33" Y="68"/>
         <TopLine Value="54"/>
+        <CursorPos X="33" Y="68"/>
         <UsageCount Value="10"/>
       </Unit10>
       <Unit11>
         <Filename Value="../../../../GR32_DrawingEx.pas"/>
         <UnitName Value="GR32_DrawingEx"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
       </Unit11>
       <Unit12>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/fpimagebitmap.inc"/>
-        <CursorPos X="47" Y="132"/>
         <TopLine Value="114"/>
+        <CursorPos X="47" Y="132"/>
         <UsageCount Value="10"/>
       </Unit12>
       <Unit13>
         <Filename Value="../../../../GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
       </Unit13>
       <Unit14>
         <Filename Value="../../../../GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-        <CursorPos X="3" Y="757"/>
         <TopLine Value="755"/>
+        <CursorPos X="3" Y="757"/>
         <UsageCount Value="10"/>
         <Bookmarks Count="1">
           <Item0 X="2" Y="2390" ID="1"/>
@@ -160,55 +212,55 @@
       </Unit14>
       <Unit15>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/lclintfh.inc"/>
-        <CursorPos X="10" Y="83"/>
         <TopLine Value="66"/>
+        <CursorPos X="10" Y="83"/>
         <UsageCount Value="10"/>
       </Unit15>
       <Unit16>
         <Filename Value="../../../../../../../../Lazarus/lcl/lclproc.pas"/>
         <UnitName Value="LCLProc"/>
-        <CursorPos X="9" Y="184"/>
         <TopLine Value="167"/>
+        <CursorPos X="9" Y="184"/>
         <UsageCount Value="10"/>
       </Unit16>
       <Unit17>
         <Filename Value="../../../../../../../../Lazarus/lcl/graphics.pp"/>
         <UnitName Value="Graphics"/>
-        <CursorPos X="15" Y="1076"/>
         <TopLine Value="1059"/>
+        <CursorPos X="15" Y="1076"/>
         <UsageCount Value="10"/>
       </Unit17>
       <Unit18>
         <Filename Value="../../../../../../../../Lazarus/lcl/include/canvas.inc"/>
-        <CursorPos X="3" Y="915"/>
         <TopLine Value="907"/>
+        <CursorPos X="3" Y="915"/>
         <UsageCount Value="10"/>
       </Unit18>
       <Unit19>
         <Filename Value="../../../../GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
-        <CursorPos X="74" Y="24"/>
         <TopLine Value="1"/>
+        <CursorPos X="74" Y="24"/>
         <UsageCount Value="10"/>
       </Unit19>
       <Unit20>
         <Filename Value="../../../../GR32_Containers.pas"/>
         <UnitName Value="GR32_Containers"/>
-        <CursorPos X="1" Y="1"/>
         <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="10"/>
       </Unit20>
     </Units>
     <JumpHistory Count="0" HistoryIndex="-1"/>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="8"/>
+    <Version Value="11"/>
     <SearchPaths>
-      <IncludeFiles Value="../../../../"/>
-      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)/"/>
-      <OtherUnitFiles Value="../../../../"/>
+      <IncludeFiles Value="../../../.."/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../../.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
-      <ObjectPath Value="../../../"/>
+      <ObjectPath Value="../../.."/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -221,9 +273,6 @@
       <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
-      <Debugging>
-        <GenerateDebugInfo Value="True"/>
-      </Debugging>
       <LinkSmart Value="True"/>
       <Options>
         <LinkerOptions Value="-framework carbon"/>
