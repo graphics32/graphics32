@@ -5640,6 +5640,7 @@ end;
 
 // -------------------------------------------------------------------
 
+{$IFNDEF FPC}
 procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal);
 var
   LogFont: TLogFont;
@@ -5692,6 +5693,7 @@ begin
   end;
   Font.Handle := CreateFontIndirect(LogFont);
 end;
+{$ENDIF}
 
 procedure TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32);
 (*
@@ -5776,10 +5778,17 @@ begin
   AALevel := Constrain(AALevel, -1, 4);
   PaddedText := Text + ' ';
 
+  {$IFDEF FPC}
+  if AALevel > -1 then
+    Font.Quality := fqNonAntialiased
+  else
+    Font.Quality := fqAntialiased;
+  {$ELSE}
   if AALevel > -1 then
     SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
   else
     SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
+  {$ENDIF}
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
@@ -5827,7 +5836,11 @@ begin
     Free;
   end;
 
+  {$IFDEF FPC}
+  Font.Quality := fqDefault;
+  {$ELSE}
   SetFontAntialiasing(Font, DEFAULT_QUALITY);
+  {$ENDIF}
 end;
 
 procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
@@ -5845,10 +5858,17 @@ begin
   AALevel := Constrain(AALevel, -1, 4);
   PaddedText := Text + ' ';
 
+  {$IFDEF FPC}
+  if AALevel > -1 then
+    Font.Quality := fqNonAntialiased
+  else
+    Font.Quality := fqAntialiased;
+  {$ELSE}
   if AALevel > -1 then
     SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
   else
     SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
+  {$ENDIF}
 
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
@@ -5903,7 +5923,12 @@ begin
   finally
     B.Free;
   end;
+
+  {$IFDEF FPC}
+  Font.Quality := fqDefault;
+  {$ELSE}
   SetFontAntialiasing(Font, DEFAULT_QUALITY);
+  {$ENDIF}
 end;
 
 // -------------------------------------------------------------------
