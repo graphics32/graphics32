@@ -559,6 +559,7 @@ begin
 const
   CHalf : TFloat = 0.5;
 asm
+{$IFDEF TARGET_x86}
         MOV     EAX, Value
         SUB     EAX, $3F800000
         SAR     EAX, 1
@@ -568,6 +569,18 @@ asm
         FDIV    DWORD PTR [ESP - 4]
         FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOVD    EAX, Value
+        SUB     EAX, $3F800000
+        SAR     EAX, 1
+        ADD     EAX, $3F800000
+        MOVD    XMM1, EAX
+        DIVSS   XMM0, XMM1
+        ADDSS   XMM0, XMM1
+        MOVD    XMM1, CHalf
+        MULSS   XMM0, XMM1
+{$ENDIF}
 {$ENDIF}
 end;
 

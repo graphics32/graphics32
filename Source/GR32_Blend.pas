@@ -769,8 +769,7 @@ asm
         RET
 
 @1:     MOV     EAX,EDX
-@2:     RET
-
+@2:
 end;
 
 procedure BlendMem_ASM(F: TColor32; var B: TColor32);
@@ -834,7 +833,7 @@ asm
         RET
 
 @1:     MOV     [EDX],EAX
-@2:     RET
+@2:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -892,7 +891,7 @@ asm
         RET
 
 @1:     MOV     [RDX],EAX
-@2:     RET
+@2:
 {$ENDIF}
 end;
 
@@ -961,7 +960,6 @@ asm
         POP     EBX
 
 @2:     MOV     EAX,EDX
-        RET
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1011,7 +1009,6 @@ asm
         RET
 
 @1:     MOV     EAX,EDX
-        RET
 {$ENDIF}
 end;
 
@@ -1075,7 +1072,7 @@ asm
         POP     ESI
 
 @1:     POP     EBX
-@2:     RET
+@2:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1093,7 +1090,7 @@ asm
 
   // Get weight W = Fa * M
         MOV     EAX,ECX         // EAX  <-  Fa Fr Fg Fb
-        INC     R8              // 255:256 range bias
+        INC     R8D             // 255:256 range bias
         SHR     EAX,24          // EAX  <-  00 00 00 Fa
         IMUL    R8D,EAX         // R8  <-  00 00  W **
         SHR     R8,8            // R8  <-  00 00 00  W
@@ -1134,7 +1131,7 @@ asm
 
         MOV     [RDX],ECX
 
-@1:     RET
+@1:
 {$ENDIF}
 end;
 
@@ -1221,7 +1218,6 @@ asm
         POP     EBX
 
 @4:
-        RET
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1230,19 +1226,16 @@ asm
   // R8 <- Count
 
   // test the counter for zero or negativity
-        TEST    R8,R8
+        TEST    R8D,R8D
         JS      @4
 
-        PUSH    RSI
-        PUSH    RDI
-
-        MOV     RSI,RCX         // RSI <- Src
-        MOV     RDI,RDX         // RDI <- Dst
-        MOV     RCX,R8          // RCX <- Count
+        MOV     R10,RCX         // R10 <- Src
+        MOV     R11,RDX         // R11 <- Dst
+        MOV     ECX,R8D         // RCX <- Count
 
   // loop start
 @1:
-        MOV     EAX,[RSI]
+        MOV     EAX,[R10]
         TEST    EAX,$FF000000
         JZ      @3              // complete transparency, proceed to next point
 
@@ -1269,7 +1262,7 @@ asm
         OR      EAX,R8D         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W; Q = W * B
-        MOV     EDX,[RDI]
+        MOV     EDX,[R11]
         XOR     R9D,$000000FF   // R9D  <-  1 - R9D
         MOV     R8D,EDX         // R8D  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // ESI  <-  00 Br 00 Bb
@@ -1287,21 +1280,17 @@ asm
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,R8D         // EAX  <-  Za Zr Zg Zb
 @2:
-        MOV     [RDI],EAX
+        MOV     [R11],EAX
 
 @3:
-        ADD     RSI,4
-        ADD     RDI,4
+        ADD     R10,4
+        ADD     R11,4
 
   // loop end
-        DEC     RCX
+        DEC     ECX
         JNZ     @1
 
-        POP     RDI
-        POP     RSI
-
 @4:
-        RET
 {$ENDIF}
 end;
 
@@ -1537,7 +1526,7 @@ asm
         RET
 
 @1:     MOV     EAX,EDX
-@2:     RET
+@2:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1586,7 +1575,7 @@ asm
         RET
 
 @1:     MOV     EAX,EDX
-@2:     RET
+@2:
 {$ENDIF}
 end;
 
@@ -1650,7 +1639,6 @@ asm
 @1:     RET
 
 @2:     MOV     [EDX],EAX
-        RET
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1679,7 +1667,7 @@ asm
         OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
 
   // W = 1 - W; Q = W * B
-        MOV     R9D,[EDX]
+        MOV     R9D,[RDX]
         XOR     R8D,$000000FF   // R8D  <-  1 - R8D
         MOV     ECX,R9D         // ECX  <-  Ba Br Bg Bb
         AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
@@ -1697,10 +1685,10 @@ asm
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,ECX         // EAX  <-  00 Zr Zg Zb
 
-        MOV     [EDX],EAX
+        MOV     [RDX],EAX
 
-@1:     MOV     [EDX],EAX
-@2:     RET
+@1:     MOV     [RDX],EAX
+@2:
 
 {$ENDIF}
 end;
@@ -1737,9 +1725,9 @@ var
 begin
   GetMem(AlphaTable, 257 * 8 * SizeOf(Cardinal));
   {$IFDEF HAS_NATIVEINT}
-  alpha_ptr := Pointer(NativeInt(AlphaTable) and $FFFFFFF8);
-  if NativeInt(alpha_ptr) < NativeInt(AlphaTable) then
-    alpha_ptr := Pointer(NativeInt(alpha_ptr) + 8);
+  alpha_ptr := Pointer(NativeUInt(AlphaTable) and $FFFFFFF8);
+  if NativeUInt(alpha_ptr) < NativeUInt(AlphaTable) then
+    alpha_ptr := Pointer(NativeUInt(alpha_ptr) + 8);
   {$ELSE}
   alpha_ptr := Pointer(Cardinal(AlphaTable) and $FFFFFFF8);
   if Cardinal(alpha_ptr) < Cardinal(AlphaTable) then
@@ -1954,14 +1942,14 @@ asm
 
         MOV       EAX,ECX
         SHR       EAX,24
-        INC       R8              // 255:256 range bias
-        IMUL      R8,EAX
-        SHR       R8,8
+        INC       R8D             // 255:256 range bias
+        IMUL      R8D,EAX
+        SHR       R8D,8
         JZ        @1
 
         PXOR      MM0,MM0
         MOVD      MM1,ECX
-        SHL       R8,4
+        SHL       R8D,4
         MOVD      MM2,[RDX]
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
@@ -2035,7 +2023,7 @@ asm
         POP       EDI
         POP       ESI
 
-@4:     RET
+@4:
 end;
 
 procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: TColor32);
@@ -2209,15 +2197,15 @@ asm
   // R8 - Weight of X [0..255]
   // Result := W * (X - Y) + Y
 
-        TEST      R8,R8              // Set flags for R8
+        TEST      R8D,R8D            // Set flags for R8
         JZ        @1                 // W = 0 ?  => Result := EDX
-        CMP       R8,$FF
+        CMP       R8D,$FF
         JZ        @2
 
         MOVD      MM1,ECX
         PXOR      MM0,MM0
 
-        SHL       R8,4
+        SHL       R8D,4
 
         MOVD      MM2,[RDX]
         PUNPCKLBW MM1,MM0
@@ -2765,16 +2753,16 @@ asm
         TEST      ECX, $FF000000
         JZ        @1
 
-        MOV       R9,RCX
-        SHR       R9,24
-        INC       R8             // 255:256 range bias
-        IMUL      R8,R9
-        SHR       R8,8
+        MOV       R9D,ECX
+        SHR       R9D,24
+        INC       R8D            // 255:256 range bias
+        IMUL      R8D,R9D
+        SHR       R8D,8
         JZ        @1
 
         PXOR      XMM0,XMM0
         MOVD      XMM1,ECX
-        SHL       R8,4
+        SHL       R8D,4
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
@@ -2802,13 +2790,11 @@ asm
         TEST      ECX,ECX
         JZ        @4
 
-        PUSH      ESI
-        PUSH      EDI
+        PUSH      EBX
 
-        MOV       ESI,EAX
-        MOV       EDI,EDX
+        MOV       EBX,EAX
 
-@1:     MOV       EAX,[ESI]
+@1:     MOV       EAX,[EBX]
         TEST      EAX,$FF000000
         JZ        @3
         CMP       EAX,$FF000000
@@ -2816,7 +2802,7 @@ asm
 
         MOVD      XMM0,EAX
         PXOR      XMM3,XMM3
-        MOVD      XMM2,[EDI]
+        MOVD      XMM2,[EDX]
         PUNPCKLBW XMM0,XMM3
         MOV       EAX,bias_ptr
         PUNPCKLBW XMM2,XMM3
@@ -2833,18 +2819,17 @@ asm
         PACKUSWB  XMM2,XMM3
         MOVD      EAX, XMM2
 
-@2:     MOV       [EDI],EAX
+@2:     MOV       [EDX],EAX
 
-@3:     ADD       ESI,4
-        ADD       EDI,4
+@3:     ADD       EBX,4
+        ADD       EDX,4
 
         DEC       ECX
         JNZ       @1
 
-        POP       EDI
-        POP       ESI
+        POP       EBX
 
-@4:     RET
+@4:
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
@@ -2855,10 +2840,7 @@ asm
         TEST      R8D,R8D
         JZ        @4
 
-        MOV       R10,RCX
-        MOV       R11,RDX
-
-@1:     MOV       EAX,[R10]
+@1:     MOV       EAX,[RCX]
         TEST      EAX,$FF000000
         JZ        @3
         CMP       EAX,$FF000000
@@ -2866,7 +2848,7 @@ asm
 
         MOVD      XMM0,EAX
         PXOR      XMM3,XMM3
-        MOVD      XMM2,[R11]
+        MOVD      XMM2,[RDX]
         PUNPCKLBW XMM0,XMM3
         MOV       RAX,bias_ptr
         PUNPCKLBW XMM2,XMM3
@@ -2883,15 +2865,15 @@ asm
         PACKUSWB  XMM2,XMM3
         MOVD      EAX, XMM2
 
-@2:     MOV       [R11],EAX
+@2:     MOV       [RDX],EAX
 
-@3:     ADD       R10,4
-        ADD       R11,4
+@3:     ADD       RCX,4
+        ADD       RDX,4
 
         DEC       R8D
         JNZ       @1
 
-@4:     RET
+@4:
 {$ENDIF}
 end;
 
@@ -3122,15 +3104,15 @@ asm
   // R8 - Weight of X [0..255]
   // Result := W * (X - Y) + Y
 
-        TEST      R8,R8              // Set flags for R8
+        TEST      R8D,R8D            // Set flags for R8
         JZ        @1                 // W = 0 ?  => Result := EDX
-        CMP       R8,$FF
+        CMP       R8D,$FF
         JZ        @2
 
         MOVD      XMM1,ECX
         PXOR      XMM0,XMM0
 
-        SHL       R8,4
+        SHL       R8D,4
 
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM1,XMM0
@@ -3324,7 +3306,7 @@ asm
         ADD       EAX,$0FF01000
         PSLLW     XMM0,4
         XOR       EDX,EDX         //  EDX  <-  00
-        DIV       EAX,ECX         //  EAX  <-  Fa / Ra  =  Wa
+        DIV       ECX             //  EAX  <-  Fa / Ra  =  Wa
         MOVD      XMM4,EAX        // XMM3  <-  Wa
         PSHUFLW   XMM4,XMM4,$C0   // XMM3  <-  00 00 ** Wa ** Wa ** Wa
         PMULHW    XMM0,XMM4       // XMM0  <-  00 00 ** Pr ** Pg ** Pb
@@ -3367,7 +3349,7 @@ asm
         ADD       EAX,$0FF01000
         PSLLW     XMM0,4
         XOR       EDX,EDX         //  EDX  <-  00
-        DIV       EAX,ECX         //  EAX  <-  Fa / Ra  =  Wa
+        DIV       ECX             //  EAX  <-  Fa / Ra  =  Wa
         MOVD      XMM4,EAX        // XMM3  <-  Wa
         PSHUFLW   XMM4,XMM4,$C0   // XMM3  <-  00 00 ** Wa ** Wa ** Wa
         PMULHW    XMM0,XMM4       // XMM0  <-  00 00 ** Pr ** Pg ** Pb

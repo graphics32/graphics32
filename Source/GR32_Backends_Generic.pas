@@ -238,7 +238,11 @@ begin
   if (MapFileName <> '') or IsTemporary then
   begin
     if MapFileName = '' then
-      MapFileName := GetTempFileName(IntToStr(Integer(Self)));
+    {$IFDEF HAS_NATIVEINT}
+      MapFileName := GetTempFileName(IntToStr(NativeUInt(Self)));
+    {$ELSE}
+      MapFileName := GetTempFileName(IntToStr(Cardinal(Self)));
+    {$ENDIF}
 
     // delete file if exists
     if FileExists(MapFileName) then
