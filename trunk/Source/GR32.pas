@@ -50,7 +50,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.9.0';
+  Graphics32Version = '1.9.1';
 
 { 32-bit Color }
 
