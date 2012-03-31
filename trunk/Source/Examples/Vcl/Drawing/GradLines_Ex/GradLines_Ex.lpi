@@ -13,8 +13,8 @@
       <Icon Value="0"/>
     </General>
     <BuildModes Count="2">
-      <Item1 Name="Release" Default="True"/>
-      <Item2 Name="Debug">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
         <CompilerOptions>
           <Version Value="11"/>
           <SearchPaths>
@@ -27,7 +27,6 @@
             <SyntaxOptions>
               <SyntaxMode Value="Delphi"/>
               <CStyleOperator Value="False"/>
-              <IncludeAssertionCode Value="True"/>
               <CPPInline Value="False"/>
               <UseAnsiStrings Value="False"/>
             </SyntaxOptions>
@@ -36,6 +35,11 @@
             <SmartLinkUnit Value="True"/>
           </CodeGeneration>
           <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <UseLineInfoUnit Value="False"/>
+              <StripSymbols Value="True"/>
+            </Debugging>
             <LinkSmart Value="True"/>
             <Options>
               <Win32>
@@ -107,11 +111,6 @@
       <SmartLinkUnit Value="True"/>
     </CodeGeneration>
     <Linking>
-      <Debugging>
-        <GenerateDebugInfo Value="False"/>
-        <UseLineInfoUnit Value="False"/>
-        <StripSymbols Value="True"/>
-      </Debugging>
       <LinkSmart Value="True"/>
       <Options>
         <Win32>
