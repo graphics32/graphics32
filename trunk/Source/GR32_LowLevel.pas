@@ -1119,6 +1119,17 @@ asm
 {$ENDIF}
 end;
 
+{$IFDEF PUREPASCAL}
+function StackAlloc(Size: Integer): Pointer;
+begin
+  GetMem(Result, Size);
+end;
+
+procedure StackFree(P: Pointer);
+begin
+  FreeMem(P);
+end;
+{$ELSE}
 { StackAlloc allocates a 'small' block of memory from the stack by
   decrementing SP.  This provides the allocation speed of a local variable,
   but the runtime size flexibility of heap allocated memory.  }
@@ -1208,6 +1219,7 @@ asm
         PUSH      ECX                     { return to caller }
 {$ENDIF}
 end;
+{$ENDIF}
 
 {CPU target and feature Function templates}
 
@@ -1237,4 +1249,4 @@ end;
 initialization
   RegisterBindings;
 
-end.
+end.
