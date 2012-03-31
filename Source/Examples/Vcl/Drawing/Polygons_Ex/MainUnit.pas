@@ -91,6 +91,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -104,37 +105,9 @@ uses
 
 procedure TFormPolygons.FormCreate(Sender: TObject);
 var
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+  pathMedia: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
-
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  pathMedia := '..\..\..\Media\';
-  {$IFDEF FPC}
-  pathMedia := '..\' + pathMedia;
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
+  pathMedia := GetMediaPath;
 
   // load example images
   Assert(FileExists(pathMedia + 'delphi.jpg'));

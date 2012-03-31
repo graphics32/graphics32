@@ -73,6 +73,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -92,16 +93,9 @@ var
   pathCFStr: CFStringRef;
   pathStr: shortstring;
 {$ENDIF}
-  pathMedia: string;
+  pathMedia: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
+  pathMedia := ExpandFileName(GetMediaPath);
 
   // On Lazarus we don't use design-time packages because they consume time to be installed
 {$IFDEF FPC}
@@ -124,23 +118,6 @@ begin
   ImgView.TabOrder := 0;
 {$ENDIF}
 
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  {$IFDEF FPC}
-  pathMedia := '..\..\..\..\Media\';
-  {$ELSE}
-  pathMedia := '..\..\..\Media\';
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
-
   // load example image
   Assert(FileExists(pathMedia + 'runner.jpg'));
   ImgView.Bitmap.LoadFromFile(pathMedia + 'runner.jpg');
@@ -151,7 +128,7 @@ begin
   L.Location := FloatRect(20, 20, 220, 220);
   for J := 0 to 199 do
     for I := 0 to 199 do
-      L.Bitmap[I, J] := Gray32(Round(((Sin(I / 10) + Sin(J / 10)) * 0.25 + 0.5) * 255));
+      L.Bitmap[I, J] := Gray32(Round(((Sin(I * 0.1) + Sin(J * 0.1)) * 0.25 + 0.5) * 255));
   L.Bitmap.OnPixelCombine := nil; // none by default
 end;
 
