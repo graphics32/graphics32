@@ -5698,18 +5698,18 @@ end;
 procedure TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32);
 (*
 asm
- push edi
- mov ecx, [B+$44].Integer
- imul ecx, [B+$40].Integer
- mov edi, [B+$54].Integer
- @PixelLoop:
- mov eax, [edi]
- shl eax, 24
- add eax, Color
- mov [edi], eax
- add edi, 4
- loop @PixelLoop
- pop edi
+    PUSH    EDI
+    MOV     ECX, [B+$44].Integer
+    IMUL    ECX, [B+$40].Integer
+    MOV     EDI, [B+$54].Integer
+    @PixelLoop:
+    MOV     EAX, [EDI]
+    SHL     EAX, 24
+    ADD     EAX, Color
+    MOV     [EDI], EAX
+    ADD     EDI, 4
+    LOOP    @PixelLoop
+    POP     EDI
 end;
 *)
 var

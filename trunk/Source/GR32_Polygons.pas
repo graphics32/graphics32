@@ -240,8 +240,6 @@ const
   AA_LINES: Array[TAntialiasMode] of Integer = (32, 16, 8, 4, 2, 1);
   AA_SHIFT: Array[TAntialiasMode] of Integer = (5, 4, 3, 2, 1, 0);
   AA_MULTI: Array[TAntialiasMode] of Integer = (65, 273, 1167, 5460, 32662, 0);
-  AA_SAR:   Array[TAntialiasMode] of TShiftFunc = (SAR_11, SAR_12, SAR_13, SAR_14, SAR_15, nil);
-  AA_BitShift: Array[TAntialiasMode] of Integer = (11, 12, 13, 14, 15, 16);
 
 { POLYLINES }
 
@@ -494,6 +492,7 @@ const
 procedure InsertionSort(LPtr, RPtr: PInteger);
 var
   IPtr, JPtr: PInteger;
+  Temp: PInteger;
   P, C, T: Integer;
 begin
   IPtr := LPtr;
@@ -503,45 +502,76 @@ begin
     P := C and $7FFFFFFF;
     JPtr := IPtr;
 
-    if Integer(JPtr) > Integer(LPtr) then
+{$IFDEF HAS_NATIVEINT}
+    if NativeUInt(JPtr) > NativeUInt(LPtr) then
+{$ELSE}
+    if Cardinal(JPtr) > Cardinal(LPtr) then
+{$ENDIF}
     repeat
-      T := PInteger(Integer(JPtr) - SizeOf(Integer))^;
+      Temp := JPtr;
+      Dec(Temp);
+      T := Temp^;
       if T and $7FFFFFFF > P then
       begin
         JPtr^ := T;
-        Dec(JPtr);
+        JPtr := Temp;
       end
       else
         Break;
-    until Integer(JPtr) <= Integer(LPtr);
+{$IFDEF HAS_NATIVEINT}
+    until NativeUInt(JPtr) <= NativeUInt(LPtr);
+{$ELSE}
+    until Cardinal(JPtr) <= Cardinal(LPtr);
+{$ENDIF}
 
     JPtr^ := C;
     Inc(IPtr);
-  until Integer(IPtr) > Integer(RPtr);
+{$IFDEF HAS_NATIVEINT}
+  until NativeUInt(IPtr) > NativeUInt(RPtr);
+{$ELSE}
+  until Cardinal(IPtr) > Cardinal(RPtr);
+{$ENDIF}
 end;
 
 procedure QuickSort(LPtr, RPtr: PInteger);
 var
-  P: Integer;
+{$IFDEF HAS_NATIVEINT}
+  P: NativeUInt;
+{$ELSE}
+  P: Cardinal;
+{$ENDIF}
+  TempVal: Integer;
   IPtr, JPtr: PInteger;
   Temp: Integer;
 const
   OddMask = SizeOf(Integer) and not(SizeOf(Integer) - 1);
 begin
-  if Integer(RPtr) - Integer(LPtr) > SortThreshold shl 2 then
+  {$IFDEF HAS_NATIVEINT}
+  if NativeUInt(RPtr) - NativeUInt(LPtr) > SortThreshold shl 2 then
+  {$ELSE}
+  if Cardinal(RPtr) - Cardinal(LPtr) > SortThreshold shl 2 then
+  {$ENDIF}
   repeat
-//    P := PInteger(Integer(LPtr) + (((Integer(RPtr) - Integer(LPtr)) shr 2) shr 1) shl 2)^ and $7FFFFFFF;
-
-    P := Integer(RPtr) - Integer(LPtr);
+    {$IFDEF HAS_NATIVEINT}
+    P := NativeUInt(RPtr) - NativeUInt(LPtr);
     if (P and OddMask > 0) then Dec(P, SizeOf(Integer));
-    P := PInteger(Integer(LPtr) + P shr 1)^ and $7FFFFFFF;
+    TempVal := PInteger(NativeUInt(LPtr) + P shr 1)^ and $7FFFFFFF;
+    {$ELSE}
+    P := Cardinal(RPtr) - Cardinal(LPtr);
+    if (P and OddMask > 0) then Dec(P, SizeOf(Integer));
+    TempVal := PInteger(Cardinal(LPtr) + P shr 1)^ and $7FFFFFFF;
+    {$ENDIF}
 
     IPtr := LPtr;
     JPtr := RPtr;
     repeat
-      while (IPtr^ and $7FFFFFFF) < P do Inc(IPtr);
-      while (JPtr^ and $7FFFFFFF) > P do Dec(JPtr);
-      if Integer(IPtr) <= Integer(JPtr) then
+      while (IPtr^ and $7FFFFFFF) < TempVal do Inc(IPtr);
+      while (JPtr^ and $7FFFFFFF) > TempVal do Dec(JPtr);
+      {$IFDEF HAS_NATIVEINT}
+      if NativeUInt(IPtr) <= NativeUInt(JPtr) then
+      {$ELSE}
+      if Cardinal(IPtr) <= Cardinal(JPtr) then
+      {$ENDIF}
       begin
         Temp := IPtr^;
         IPtr^ := JPtr^;
@@ -550,10 +580,20 @@ begin
         Inc(IPtr);
         Dec(JPtr);
       end;
+    {$IFDEF HAS_NATIVEINT}
+    until NativeUInt(IPtr) > NativeUInt(JPtr);
+    if NativeUInt(LPtr) < NativeUInt(JPtr) then
+    {$ELSE}
     until Integer(IPtr) > Integer(JPtr);
-    if Integer(LPtr) < Integer(JPtr) then QuickSort(LPtr, JPtr);
+    if Cardinal(LPtr) < Cardinal(JPtr) then
+    {$ENDIF}
+      QuickSort(LPtr, JPtr);
     LPtr := IPtr;
-  until Integer(IPtr) >= Integer(RPtr)
+  {$IFDEF HAS_NATIVEINT}
+  until NativeUInt(IPtr) >= NativeUInt(RPtr)
+  {$ELSE}
+  until Cardinal(IPtr) >= Cardinal(RPtr)
+  {$ENDIF}
   else
     InsertionSort(LPtr, RPtr);
 end;
