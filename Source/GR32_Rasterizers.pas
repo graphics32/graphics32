@@ -183,7 +183,7 @@ var
 implementation
 
 uses
-  GR32_Resamplers, GR32_Containers, GR32_System, Math, SysUtils;
+  GR32_Resamplers, GR32_Containers, GR32_System, Math, GR32_Math, SysUtils;
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
@@ -427,7 +427,7 @@ begin
   W := DstRect.Right - DstRect.Left;
   H := DstRect.Bottom - DstRect.Top;
   L := DstRect.Left; T := DstRect.Top;
-  Size := NextPowerOf2(Max(W, H)));
+  Size := NextPowerOf2(Max(W, H));
 
   SetLength(ForwardBuffer, Size);
 
