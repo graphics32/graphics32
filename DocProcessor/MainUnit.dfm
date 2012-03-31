@@ -1,8 +1,8 @@
 object MainForm: TMainForm
   Left = 141
-  Top = 150
+  Top = 171
   Width = 850
-  Height = 490
+  Height = 486
   Caption = 'HTML Document Processor'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,16 +13,16 @@ object MainForm: TMainForm
   KeyPreview = True
   OldCreateOrder = False
   Position = poDesktopCenter
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
-  OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object pnlLog: TPanel
-    Left = 0
+    Left = 363
     Top = 0
     Width = 479
-    Height = 463
+    Height = 459
     Align = alClient
     BevelOuter = bvNone
     TabOrder = 0
@@ -30,8 +30,9 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 479
-      Height = 439
+      Height = 435
       Align = alClient
+      Color = 15204327
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
       Font.Height = -11
@@ -45,7 +46,7 @@ object MainForm: TMainForm
     end
     object pnlProgress: TPanel
       Left = 0
-      Top = 439
+      Top = 435
       Width = 479
       Height = 24
       Align = alBottom
@@ -73,11 +74,11 @@ object MainForm: TMainForm
     end
   end
   object pnlControl: TPanel
-    Left = 479
+    Left = 0
     Top = 0
     Width = 363
-    Height = 463
-    Align = alRight
+    Height = 459
+    Align = alLeft
     BevelOuter = bvNone
     BorderWidth = 2
     TabOrder = 1
@@ -122,7 +123,6 @@ object MainForm: TMainForm
         Width = 83
         Height = 13
         Caption = 'Project &Filename:'
-        FocusControl = edProjectName
       end
       object pnlProjectInfoHead: TPanel
         Left = 0
@@ -149,6 +149,7 @@ object MainForm: TMainForm
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 3
         Text = 'v1.0'
+        OnChange = edProjectTitleChange
       end
       object edProjectTitle: TEdit
         Left = 80
@@ -158,6 +159,7 @@ object MainForm: TMainForm
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 1
         Text = 'MyProject Help'
+        OnChange = edProjectTitleChange
       end
       object edProjectDirectory: TEdit
         Left = 8
@@ -169,13 +171,16 @@ object MainForm: TMainForm
         Text = 'MyProjectDirectory'
         OnChange = edProjectDirectoryChange
       end
-      object edProjectName: TEdit
+      object cbProjectName: TComboBox
         Left = 8
         Top = 121
         Width = 226
         Height = 21
+        ItemHeight = 13
         TabOrder = 2
-        Text = 'MyProject'
+        Text = 'MyProjectName'
+        OnChange = cbProjectNameChange
+        OnClick = cbProjectNameClick
       end
     end
     object pnlCompiler: TPanel
@@ -205,6 +210,7 @@ object MainForm: TMainForm
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
         Text = 'C:\Program Files\HTML Help Workshop\hhc.exe'
+        OnChange = edProjectTitleChange
       end
       object pnlCompilerHead: TPanel
         Left = 0
@@ -232,15 +238,6 @@ object MainForm: TMainForm
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 2
-      object Shape1: TShape
-        Left = 7
-        Top = 91
-        Width = 164
-        Height = 28
-        Brush.Color = clYellow
-        Pen.Color = clActiveCaption
-        Pen.Width = 2
-      end
       object bProcess: TButton
         Left = 9
         Top = 93
@@ -292,6 +289,7 @@ object MainForm: TMainForm
         Height = 17
         Caption = 'Op&en CHM File after Compiling'
         TabOrder = 4
+        OnClick = edProjectTitleChange
       end
       object cbIncludeAlphabetClasses: TCheckBox
         Left = 186
@@ -302,14 +300,16 @@ object MainForm: TMainForm
         Checked = True
         State = cbChecked
         TabOrder = 3
+        OnClick = edProjectTitleChange
       end
       object cbBrokenLinks: TCheckBox
         Left = 186
         Top = 49
         Width = 139
         Height = 17
-        Caption = 'Check for &Broken Links'
+        Caption = 'Report &Broken Links'
         TabOrder = 6
+        OnClick = edProjectTitleChange
       end
     end
     object pnlMisc: TPanel
@@ -362,8 +362,19 @@ object MainForm: TMainForm
         Height = 24
         Cancel = True
         Caption = 'E&xit'
-        TabOrder = 3
+        TabOrder = 4
         OnClick = bCloseClick
+      end
+      object bSaveProjectInfo: TButton
+        Left = 10
+        Top = 61
+        Width = 160
+        Height = 24
+        Cancel = True
+        Caption = '&Save Project Information'
+        Enabled = False
+        TabOrder = 3
+        OnClick = bSaveProjectInfoClick
       end
     end
   end

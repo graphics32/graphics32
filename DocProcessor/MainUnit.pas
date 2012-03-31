@@ -12,44 +12,43 @@ uses
 
 type
   TMainForm = class(TForm)
-    bClose: TButton;
-    bCompile: TButton;
-    bOpen: TButton;
-    bParseMissing: TButton;
-    bProcess: TButton;
-    bTransform: TButton;
-    cbBrokenLinks: TCheckBox;
-    cbIncludeAlphabetClasses: TCheckBox;
-    cbOpenAfterProcess: TCheckBox;
-    edCHMCompiler: TEdit;
-    edProjectDirectory: TEdit;
-    edProjectName: TEdit;
-    edProjectTitle: TEdit;
-    edVersionString: TEdit;
-    lblCompiler: TLabel;
     lblProgress: TLabel;
+    Log: TMemo;
+    pnlLog: TPanel;
+    pnlProgress: TPanel;
+    Progress: TProgressBar;
+    pnlControl: TPanel;
+    pnlProjectInfo: TPanel;
+    lblVersionString: TLabel;
+    lblProjectTitle: TLabel;
     lblProjectDirectory: TLabel;
     lblProjectFileName: TLabel;
-    lblProjectTitle: TLabel;
-    lblVersionString: TLabel;
-    Log: TMemo;
+    pnlProjectInfoHead: TPanel;
+    edVersionString: TEdit;
+    edProjectTitle: TEdit;
+    edProjectDirectory: TEdit;
+    cbProjectName: TComboBox;
     pnlCompiler: TPanel;
+    lblCompiler: TLabel;
+    edCHMCompiler: TEdit;
     pnlCompilerHead: TPanel;
-    pnlControl: TPanel;
-    pnlLog: TPanel;
+    pnlTransComp: TPanel;
+    bProcess: TButton;
+    pnlTransCompHead: TPanel;
+    bTransform: TButton;
+    bCompile: TButton;
+    cbOpenAfterProcess: TCheckBox;
+    cbIncludeAlphabetClasses: TCheckBox;
+    cbBrokenLinks: TCheckBox;
     pnlMisc: TPanel;
     pnlMiscHead: TPanel;
-    pnlProgress: TPanel;
-    pnlProjectInfo: TPanel;
-    pnlProjectInfoHead: TPanel;
-    pnlTransComp: TPanel;
-    pnlTransCompHead: TPanel;
-    Progress: TProgressBar;
-    Shape1: TShape;
+    bParseMissing: TButton;
+    bOpen: TButton;
+    bClose: TButton;
+    bSaveProjectInfo: TButton;
     procedure edProjectDirectoryChange(Sender: TObject);
     procedure bProcessClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure bTransformClick(Sender: TObject);
     procedure bCompileClick(Sender: TObject);
     procedure bOpenClick(Sender: TObject);
@@ -57,18 +56,25 @@ type
     procedure bCloseClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure cbProjectNameChange(Sender: TObject);
+    procedure bSaveProjectInfoClick(Sender: TObject);
+    procedure cbProjectNameClick(Sender: TObject);
+    procedure edProjectTitleChange(Sender: TObject);
   public
     ProjectDir: string;
     SourceDir: string;
     CompiledDir: string;
     StyleFile: string;
+    procedure LoadProject(const projName: string);
+    procedure SaveProject;
     function StartTransforming: boolean;
     procedure StartCompile;
     procedure WriteProject(const FileName: string);
   end;
 
 var
-  PropertiesFilename: string;
+  ExePath: string;
   DelphiSourceFolder: string;
   NoGUI: Boolean;
   MainForm: TMainForm;
@@ -140,6 +146,7 @@ begin
     begin
       SourceDir := ProjectDir + 'Source\';
       bProcess.Enabled := True;
+      bSaveProjectInfo.Enabled := true;
       Exit;
     end;
   end;
@@ -150,35 +157,45 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  Ini: TIniFile;
-  I: Integer;
-  SValue: String;
+  i, activeItem: integer;
+  sValue: string;
 begin
   edProjectDirectoryChange(Self);
 
-  if ParamCount > 1 then
-    PropertiesFilename := ParamStr(1)
-  else
-    PropertiesFilename := ExtractFilePath(ParamStr(0)) + 'properties.ini';
+  ExePath := IncludeTrailingBackslash(ExtractFilePath(ParamStr(0)));
 
-  Ini := TIniFile.Create(PropertiesFilename);
+  with TIniFile.Create(ExePath + 'properties.ini') do
   try
-    for i := 0 to Self.ComponentCount - 1 do
-      if Self.Components[i].InheritsFrom(TCustomEdit) and
-         not Self.Components[i].InheritsFrom(TMemo) then
-      begin
-        SValue := Ini.ReadString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), '');
-        if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
-      end
-      else if Self.Components[i].InheritsFrom(TCheckBox) then
-        TCheckBox(Self.Components[i]).Checked := Ini.ReadBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), False);
-
-    DelphiSourceFolder := Ini.ReadString('Settings', 'DelphiSourceFolder', '');
+    i := 1;
+    while ValueExists('Projects', 'ProjectName' + inttostr(i)) do
+    begin
+      sValue := ReadString('Projects', 'ProjectName' + inttostr(i), '');
+      if sValue <> '' then cbProjectName.Items.Add(sValue);
+      inc(i);
+    end;
+    DelphiSourceFolder := ReadString('Settings', 'DelphiSourceFolder', '');
+    activeItem := ReadInteger('Settings', 'ActiveProject', 0);
   finally
-    Ini.Free;
+    Free;
   end;
 
   NoGUI := False;
+
+  if (ParamCount > 0) and fileExists(ExePath + paramstr(2)) then
+    LoadProject(paramstr(2))
+  else if (ParamCount > 0) and fileExists(ExePath + paramstr(2) + '.ini') then
+    LoadProject(paramstr(2)+ '.ini')
+  else if (cbProjectName.Items.Count > 0) then
+  begin
+    if (activeItem < cbProjectName.Items.Count) and
+      fileExists(ExePath + cbProjectName.Items[activeItem] + '.ini') then
+        LoadProject(cbProjectName.Items[activeItem] + '.ini')
+    else if fileExists(ExePath + cbProjectName.Items[0] + '.ini') then
+        LoadProject(cbProjectName.Items[0] + '.ini')
+    else LoadProject('properties.ini');
+  end else
+    LoadProject('properties.ini');
+  ActiveControl := bProcess;
 
   if ParamCount > 2 then
   begin
@@ -199,24 +216,95 @@ begin
   end;
 end;
 
-procedure TMainForm.FormDestroy(Sender: TObject);
+procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
-  Ini: TIniFile;
-  I: Integer;
+  i: integer;
 begin
-  Ini := TIniFile.Create(PropertiesFilename);
+  CanClose := true;
+  if not NoGUI and bSaveProjectInfo.Enabled and
+    (MessageBox(self.handle, 'Save Project Information', pchar(caption),
+      MB_YESNO or MB_DEFBUTTON1) = IDYES) then SaveProject;
+  with TIniFile.Create(ExePath + 'properties.ini') do
   try
+    WriteInteger('Settings', 'ActiveProject', cbProjectName.ItemIndex);
+    if sectionExists('Projects') then EraseSection('Projects');
+    for i := 0 to cbProjectName.Items.Count -1 do
+      WriteString('Projects', 'ProjectName' + inttostr(i+1), cbProjectName.Items[i]);
+  finally
+    Free;
+  end;
+end;
+
+procedure TMainForm.SaveProject;
+var
+  I: Integer;
+  Ini: TIniFile;
+begin
+  if cbProjectName.Items.IndexOf(cbProjectName.Text) < 0 then
+    cbProjectName.Items.Add(cbProjectName.Text);
+
+  Ini := TIniFile.Create(ExePath + cbProjectName.Text + '.ini');
+  try
+    Ini.WriteString('Settings', 'ProjectName', cbProjectName.Text);
+    Ini.WriteString('Settings', 'DelphiSourceFolder', DelphiSourceFolder);
     for i := 0 to Self.ComponentCount-1 do
       if Self.Components[i].InheritsFrom(TCustomEdit) and
          not Self.Components[i].InheritsFrom(TMemo) then
         Ini.WriteString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TEdit(Self.Components[i]).Text)
       else if Self.Components[i].InheritsFrom(TCheckBox) then
         Ini.WriteBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TCheckBox(Self.Components[i]).Checked);
-
-    Ini.WriteString('Settings', 'DelphiSourceFolder', DelphiSourceFolder);
   finally
     Ini.Free;
   end;
+end;
+
+procedure TMainForm.LoadProject(const projName: string);
+var
+  Ini: TIniFile;
+  i: Integer;
+  SValue: string;
+begin
+  Ini := TIniFile.Create(ExePath + projName);
+  try
+    if projName = 'properties.ini' then
+      SValue := Ini.ReadString('Settings', 'ProjectName', 'MyProjectName') else
+      SValue := ChangeFileExt(projName, '');
+    i := cbProjectName.Items.IndexOf(SValue);
+    if i >= 0 then cbProjectName.ItemIndex := i
+    else cbProjectName.Text := SValue;
+
+    for i := 0 to Self.ComponentCount - 1 do
+      if Self.Components[i].InheritsFrom(TCustomEdit) and
+         not Self.Components[i].InheritsFrom(TMemo) then
+      begin
+        SValue := Ini.ReadString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), '');
+        if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
+      end
+      else if Self.Components[i].InheritsFrom(TCheckBox) then
+        TCheckBox(Self.Components[i]).Checked :=
+          Ini.ReadBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), False);
+  finally
+    Ini.Free;
+  end;
+  log.Lines.Clear;
+  bSaveProjectInfo.Enabled := false;
+end;
+
+procedure TMainForm.bSaveProjectInfoClick(Sender: TObject);
+begin
+  SaveProject;
+  bSaveProjectInfo.Enabled := false;
+end;
+
+procedure TMainForm.cbProjectNameChange(Sender: TObject);
+begin
+  bSaveProjectInfo.Enabled :=
+    cbProjectName.Items.IndexOf(cbProjectName.Text) < 0;
+end;
+
+procedure TMainForm.cbProjectNameClick(Sender: TObject);
+begin
+  LoadProject(cbProjectName.Text + '.ini');
 end;
 
 procedure TMainForm.bCloseClick(Sender: TObject);
@@ -245,8 +333,9 @@ end;
 procedure TMainForm.StartCompile;
 begin
   LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + edProjectName.Text + '.hhp"', Log);
+  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + cbProjectName.Text + '.hhp"', Log);
   LogAdd('Done.'#13#10);
+  LogNL;
   if cbOpenAfterProcess.Checked then
     bOpenClick(nil);
 end;
@@ -272,6 +361,8 @@ begin
   CompiledDir := (ProjectDir + 'Docs\');
   StyleFile := ProjectDir + 'Styles\Default.css';
 
+  Log.Color := $E7FFE7;
+  Application.ProcessMessages;
   CompileTime := GetTickCount;
 
   DocStructure.IncludeAlphabetClasses := cbIncludeAlphabetClasses.Checked;
@@ -286,13 +377,13 @@ begin
     Project.StylesFolder := ProjectDir + 'Styles';
     Project.HeadSectionTemplate := ProjectDir + 'HeadSection.tmpl';
     Project.BodySectionTemplate := ProjectDir + 'BodySection.tmpl';
-    LogAdd('Transforming'#13#10);
+    LogAdd(#13#10+ 'Transforming - ' + cbProjectName.Text+ #13#10);
+    LogNL;
 
     LogAdd('Reading files ...');
     Project.Read;
     Progress.Position := 2;
     LogAdd('... done'#13#10);
-    LogNL;
     LogAdd('Project Contains:'#13#10);
     LogAdd(#9'Units       '#9 + IntToStr(Project.Units.Count)        + #13#10);
     LogAdd(#9'Classes     '#9 + IntToStr(Length(Project.Classes))    + #13#10);
@@ -300,13 +391,12 @@ begin
     LogAdd(#9'Topics      '#9 + IntToStr(Length(Project.Topics))     + #13#10);
     LogAdd(#9'HTML Files  '#9 + IntToStr(Project.Files.Count)        + #13#10);
     LogNL;
-    LogAdd('Restoring Class Hierarchy ...');
+    LogAdd('Building Class Hierarchy ...');
     Project.BuildHierarchy;
     LogAdd('... done'#13#10);
 
     if DirectoryExists(CompiledDir) then
     begin
-      LogNL;
       LogAdd('Deleting Doc folder ...');
       DeleteDirectoryTree(CompiledDir);
       LogAdd('... done'#13#10);
@@ -338,25 +428,33 @@ begin
         begin
           LogAdd(#13#10#13#10 + e.Message);
           LogAdd(#13#10 + 'Transforming halted.');
+          Progress.Position := 0;
+          LogNL;
+          Log.Color := $E7E7FF;
           exit;
         end;
       end;
     end;
     LogReplace('Transforming Files ...... done'#13#10);
     LogAdd('Building TOC ...');
-    Project.BuildToc(ProjectDir + edProjectName.Text + '.hhc');
+    Project.BuildToc(ProjectDir + cbProjectName.Text + '.hhc');
     LogAdd('... done'#13#10);
     Progress.Position := 95;
     LogAdd('Building Index ...');
-    Project.BuildIndex(ProjectDir + edProjectName.Text + '.hhk');
+    Project.BuildIndex(ProjectDir + cbProjectName.Text + '.hhk');
     LogAdd('... done'#13#10);
     Progress.Position := 100;
 
     LogAdd('Writing Project ...');
-    WriteProject(ProjectDir + edProjectName.Text + '.hhp');
+    WriteProject(ProjectDir + cbProjectName.Text + '.hhp');
     LogAdd('... done'#13#10);
+    LogNL;
+    LogAdd('Project transformed in ');
 
-    LogAdd('Project transformed.'#13#10);
+    CompileTime := GetTickCount - CompileTime;
+    LogAdd(Format('%d minutes, %d seconds'#13#10,
+      [(CompileTime div 1000) div 60, (CompileTime div 1000) mod 60]));
+    Progress.Position := 0;
 
     if Project.BrokenLinks.Count > 0 then
     begin
@@ -365,12 +463,8 @@ begin
       for I := 0 to Project.BrokenLinks.Count -1 do
         LogAdd(Project.BrokenLinks[i]);
       LogNL;
+      Log.Color := $E7FFFF;
     end;
-
-    CompileTime := GetTickCount - CompileTime;
-    LogAdd(Format('Compile time: %d minutes, %d seconds'#13#10, [(CompileTime div 1000) div 60, (CompileTime div 1000) mod 60]));
-    Progress.Position := 0;
-    Log.Color := $E7FFE7;
 
     result := true;
   finally
@@ -387,19 +481,19 @@ begin
   try
     Lines.Add('[OPTIONS]');
     Lines.Add('Compatibility=1.1 or later');
-    Lines.Add('Compiled file=' + edProjectName.Text + '.chm');
-    Lines.Add('Contents file=' + edProjectName.Text + '.hhc');
+    Lines.Add('Compiled file=' + cbProjectName.Text + '.chm');
+    Lines.Add('Contents file=' + cbProjectName.Text + '.hhc');
     Lines.Add('Default Window=Main Window');
     Lines.Add('Default topic=Docs\Overview\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
-    Lines.Add('Index file=' + edProjectName.Text + '.hhk');
+    Lines.Add('Index file=' + cbProjectName.Text + '.hhk');
     Lines.Add('Language=0x409 English (United States)');
     Lines.Add('Title=' + edProjectTitle.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
     Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm","Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
-      [edProjectTitle.Text, edProjectName.Text + '.hhc', edProjectName.Text + '.hhk']));
+      [edProjectTitle.Text, cbProjectName.Text + '.hhc', cbProjectName.Text + '.hhk']));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
     Lines.SaveToFile(FileName);
@@ -421,7 +515,8 @@ end;
 
 procedure TMainForm.bOpenClick(Sender: TObject);
 begin
-  ShellExecute(Self.Handle, 'open', PChar(IncludeTrailingBackslash(edProjectDirectory.Text) + edProjectName.Text + '.chm'), '', '', SW_SHOW);
+  ShellExecute(Self.Handle, 'open',
+    PChar(IncludeTrailingBackslash(edProjectDirectory.Text) + cbProjectName.Text + '.chm'), '', '', SW_SHOW);
 end;
 
 procedure TMainForm.bParseMissingClick(Sender: TObject);
@@ -512,6 +607,11 @@ begin
   LogNL;
   LogAdd('... done'#13#10);
   Log.Color := $E7FFE7;
+end;
+
+procedure TMainForm.edProjectTitleChange(Sender: TObject);
+begin
+  bSaveProjectInfo.Enabled := true;
 end;
 
 end.
