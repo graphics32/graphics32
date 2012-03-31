@@ -2780,9 +2780,9 @@ asm
 
         POP       EBX
 {$IFDEF FPC}
-@1:     JMP @2
+        JMP @2
 {$ELSE}
-@1:     RET
+        RET
 {$ENDIF}
 
 @1:     MOV       EAX,EDX
