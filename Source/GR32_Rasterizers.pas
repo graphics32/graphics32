@@ -392,11 +392,6 @@ var
   GetSample: TGetSampleInt;
   ForwardBuffer: array of Integer;
 
-  function ScanReverse(Value: Integer): Integer;
-  asm
-    BSR EAX,EAX
-  end;
-
   function GetDstCoord(P: TPoint): TPoint;
   var
     XI, YI: Integer;
@@ -432,7 +427,7 @@ begin
   W := DstRect.Right - DstRect.Left;
   H := DstRect.Bottom - DstRect.Top;
   L := DstRect.Left; T := DstRect.Top;
-  Size := 1 shl (ScanReverse(Max(W, H)) + 1) + 1;
+  Size := NextPowerOf2(Max(W, H)));
 
   SetLength(ForwardBuffer, Size);
 
@@ -836,4 +831,4 @@ initialization
 {$ENDIF}
 
 
-end.
+end.
