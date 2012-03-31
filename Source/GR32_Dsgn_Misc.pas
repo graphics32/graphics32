@@ -39,7 +39,7 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LazIDEIntf, PropEdits,{$ELSE}
-  DesignIntf, DesignEditors,{$ENDIF}
+  Windows, DesignIntf, DesignEditors, ToolsAPI,{$ENDIF}
   Classes, TypInfo, GR32_Containers;
 
 type
@@ -75,6 +75,11 @@ implementation
 
 uses GR32, GR32_Resamplers;
                         
+Var
+  {$IFDEF COMPILER2005_UP}
+  GSplashScreen     : HBITMAP;
+  {$ENDIF}
+
 { TCustomClassProperty }
 
 function TCustomClassProperty.GetAttributes: TPropertyAttributes;
@@ -178,5 +183,12 @@ begin
   TBitmap32(GetComponent(0)).ResamplerClassName := CustomClass;
 end;
 
-end.
+initialization
+  {$IFDEF COMPILER2005_UP}
+  // Add Splash Screen
+  GSplashScreen := LoadBitmap(hInstance, 'GR32');
+  (SplashScreenServices as IOTasplashScreenServices).AddPluginBitmap(
+      'GR32' + ' ' + Graphics32Version, GSplashScreen);
+  {$ENDIF}
 
+end.
