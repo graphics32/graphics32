@@ -99,6 +99,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -128,52 +129,24 @@ procedure TMainForm.FormCreate(Sender: TObject);
   end;
 
 var
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+  MediaPath: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
+  MediaPath := ExpandFileName(GetMediaPath);
 
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  pathMedia := '..\..\..\Media\';
-  {$IFDEF FPC}
-  pathMedia := '..\' + pathMedia;
-  {$ENDIF}
-{$ENDIF}
+  Assert(FileExists(MediaPath + 'sprite_texture.bmp'));
+  Image32.Bitmap.LoadFromFile(MediaPath + 'sprite_texture.bmp');
 
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
+  Assert(FileExists(MediaPath + 'sprite1.bmp'));
+  Assert(FileExists(MediaPath + 'sprite1a.bmp'));
+  LoadImage(BitmapList.Bitmap[0], MediaPath + 'sprite1.bmp', MediaPath + 'sprite1a.bmp');
 
-  Assert(FileExists(pathMedia + 'sprite_texture.bmp'));
-  Image32.Bitmap.LoadFromFile(pathMedia + 'sprite_texture.bmp');
+  Assert(FileExists(MediaPath + 'sprite2.bmp'));
+  Assert(FileExists(MediaPath + 'sprite2a.bmp'));
+  LoadImage(BitmapList.Bitmap[1], MediaPath + 'sprite2.bmp', MediaPath + 'sprite2a.bmp');
 
-  Assert(FileExists(pathMedia + 'sprite1.bmp'));
-  Assert(FileExists(pathMedia + 'sprite1a.bmp'));
-  LoadImage(BitmapList.Bitmap[0], pathMedia + 'sprite1.bmp', pathMedia + 'sprite1a.bmp');
-
-  Assert(FileExists(pathMedia + 'sprite2.bmp'));
-  Assert(FileExists(pathMedia + 'sprite2a.bmp'));
-  LoadImage(BitmapList.Bitmap[1], pathMedia + 'sprite2.bmp', pathMedia + 'sprite2a.bmp');
-
-  Assert(FileExists(pathMedia + 'sprite3.bmp'));
-  Assert(FileExists(pathMedia + 'sprite3a.bmp'));
-  LoadImage(BitmapList.Bitmap[2], pathMedia + 'sprite3.bmp', pathMedia + 'sprite3a.bmp');
+  Assert(FileExists(MediaPath + 'sprite3.bmp'));
+  Assert(FileExists(MediaPath + 'sprite3a.bmp'));
+  LoadImage(BitmapList.Bitmap[2], MediaPath + 'sprite3.bmp', MediaPath + 'sprite3a.bmp');
 
   LastSeed := 0;
   BenchmarkList := TStringList.Create;

@@ -144,10 +144,7 @@ type
       StageNum: Cardinal);
     procedure mkmDefaultClick(Sender: TObject);
     procedure mExitClick(Sender: TObject);
-  private
-    { Private declarations }
   public
-    { Public declarations }
     Src: TBitmap32;
     Remapper: TRemapTransformation;
     GenericBrush: TGenericBrush;
@@ -193,7 +190,7 @@ uses
   {$ELSE}
   LazJPG,
   {$ENDIF}
-  GR32_LowLevel;
+  GR32_LowLevel, GR32_MediaPathLocator;
 
 {$IFNDEF FPC}
 {$R *.dfm}
@@ -240,12 +237,15 @@ var
   I : TBrushToolMode;
   J: Integer;
   Item: TMenuItem;
+var
+  MediaPath: TFileName;
 begin
   Src := TBitmap32.Create;
 
   // load example file
-  Assert(FileExists('..\..\..\Media\monalisa.jpg'));
-  Src.LoadFromFile('..\..\..\Media\monalisa.jpg');
+  MediaPath := ExpandFileName(GetMediaPath);
+  Assert(FileExists(MediaPath + 'monalisa.jpg'));
+  Src.LoadFromFile(MediaPath + 'monalisa.jpg');
 
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;

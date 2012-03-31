@@ -76,6 +76,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -90,43 +91,12 @@ uses
 
 procedure TFormRotLayer.FormCreate(Sender: TObject);
 var
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+  MediaPath: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding);
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
+  MediaPath := ExpandFileName(GetMediaPath);
 
-  ImgView.Bitmap.SetSize(200, 200);
-
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  {$IFDEF FPC}
-  pathMedia := '..\..\..\..\Media\';
-  {$ELSE}
-  pathMedia := '..\..\..\Media\';
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
-
-  Assert(FileExists(pathMedia + 'delphi.jpg'));
-  ImgView.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
+  Assert(FileExists(MediaPath + 'delphi.jpg'));
+  ImgView.Bitmap.LoadFromFile(MediaPath + 'delphi.jpg');
 
   L := TRotLayer.Create(ImgView.Layers);
   L.Bitmap := TBitmap32.Create;
@@ -135,8 +105,8 @@ begin
     BeginUpdate;
 
     // Different platforms store resource files on different locations
-    Assert(FileExists(pathMedia + 'sprite_texture.bmp'));
-    LoadFromFile(pathMedia + 'sprite_texture.bmp');
+    Assert(FileExists(MediaPath + 'sprite_texture.bmp'));
+    LoadFromFile(MediaPath + 'sprite_texture.bmp');
 
     TLinearResampler.Create(L.Bitmap);
 

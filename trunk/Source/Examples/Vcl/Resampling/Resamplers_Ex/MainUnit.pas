@@ -116,41 +116,17 @@ uses
   {$ELSE}
   Jpeg,
   {$ENDIF}
-  GR32_LowLevel;
+  GR32_MediaPathLocator, GR32_LowLevel;
 
 { TfmResamplersExample }
 
 procedure TfmResamplersExample.FormCreate(Sender: TObject);
 var
   I, J: Integer;
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+var
+  MediaPath: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
-
-  // Different platforms store resource files on different locations
-{$IFDEF MSWINDOWS}
-  pathMedia := ExtractFilePath(ParamStr(0)) + '..\..\..\Media\';
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
+  MediaPath := ExpandFileName(GetMediaPath);
 
   Src := TBitmap32.Create;
   Src.OuterColor := $FFFF7F7F;
@@ -161,8 +137,8 @@ begin
   ResamplingSrc := TBitmap32.Create;
 
   // load example image
-  Assert(FileExists(pathMedia + 'iceland.jpg'));
-  ResamplingSrc.LoadFromFile(pathMedia + 'iceland.jpg');
+  Assert(FileExists(MediaPath + 'iceland.jpg'));
+  ResamplingSrc.LoadFromFile(MediaPath + 'iceland.jpg');
 
   ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
   KernelList.GetClassNames(KernelClassNamesList.Items);

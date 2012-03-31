@@ -217,7 +217,7 @@ uses
 {$ELSE}
   LazJPG,
 {$ENDIF}
-  GR32_OrdinalMaps, GR32_LowLevel;
+  GR32_OrdinalMaps, GR32_MediaPathLocator, GR32_LowLevel;
 
 procedure SetupToolBar(ToolBar: TToolBar);
 var
@@ -246,43 +246,13 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+  MediaPath: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
-
-// Different platforms store resource files on different locations
-{$IFDEF Windows}
-  {$IFDEF FPC}
-  pathMedia := '..\..\..\..\Media\';
-  {$ELSE}
-  pathMedia := '..\..\..\Media\';
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-  pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-  pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
-
-  Assert(FileExists(pathMedia + 'stoneweed.jpg'));
+  MediaPath := ExpandFileName(GetMediaPath);
+  Assert(FileExists(MediaPath + 'stoneweed.jpg'));
 
   Source := TBitmap32.Create;
-  Source.LoadFromFile(pathMedia + 'stoneweed.jpg');
+  Source.LoadFromFile(MediaPath + 'stoneweed.jpg');
   ImgView.Bitmap.SetSizeFrom(Source);
   Rasterizer := TRegularRasterizer.Create;
   TRegularRasterizer(Rasterizer).UpdateRowCount := 16;

@@ -57,7 +57,6 @@ type
     procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure gbTwistChange(Sender: TObject);
-  private
   public
     Src: TBitmap32;
     procedure TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
@@ -75,7 +74,7 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Math,
+  GR32_Math, GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -87,42 +86,13 @@ uses
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+  MediaPath: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
-
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  {$IFDEF FPC}
-  pathMedia := '..\..\..\..\Media\';
-  {$ELSE}
-  pathMedia := '..\..\..\Media\';
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../Media/';
-  {$ENDIF}
-{$ENDIF}
+  MediaPath := ExpandFileName(GetMediaPath);
 
   // load example image
-  Assert(FileExists(pathMedia + 'stones.jpg'));
-  Image32.Bitmap.LoadFromFile(pathMedia + 'stones.jpg');
+  Assert(FileExists(MediaPath + 'stones.jpg'));
+  Image32.Bitmap.LoadFromFile(MediaPath + 'stones.jpg');
 
   with Image32 do
   begin

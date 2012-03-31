@@ -77,6 +77,7 @@ implementation
 {$ENDIF}
 
 uses
+  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -88,42 +89,13 @@ uses
 
 procedure TFormImage32Example.FormCreate(Sender: TObject);
 var
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: string;
+  MediaPath: TFileName;
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
-
-  // Different platforms store resource files on different locations
-{$IFDEF Windows}
-  {$IFDEF FPC}
-  pathMedia := '..\..\..\..\Media\';
-  {$ELSE}
-  pathMedia := '..\..\..\Media\';
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF UNIX}
-  {$IFDEF Darwin}
-    pathMedia := pathStr + '/Contents/Resources/Media/';
-  {$ELSE}
-    pathMedia := '../../../../Media/';
-  {$ENDIF}
-{$ENDIF}
+  MediaPath := ExpandFileName(GetMediaPath);
 
   // load example image
-  Assert(FileExists(pathMedia + 'delphi.jpg'));
-  Image.Bitmap.LoadFromFile(pathMedia + 'delphi.jpg');
+  Assert(FileExists(MediaPath + 'delphi.jpg'));
+  Image.Bitmap.LoadFromFile(MediaPath + 'delphi.jpg');
 
   with TKernelResampler.Create(Image.Bitmap) do
   begin

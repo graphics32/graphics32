@@ -62,6 +62,9 @@ implementation
 {$R *.dfm}
 {$ENDIF}
 
+uses
+  GR32_Math;
+
 { TFormLineStippling }
 
 procedure TFormLineStippling.FormCreate(Sender: TObject);
@@ -99,13 +102,15 @@ end;
 
 procedure TFormLineStippling.Spiral(X, Y: Integer);
 var
-  Theta: Single;
+  Theta: TFloat;
+  Sn, Cn: TFloat;
 begin
   Theta := 0;
   Image.Bitmap.MoveToF(X, Y);
-  while Theta < 15 * 3.1415926535 do
+  while Theta < 15 * Pi do
   begin
-    Image.Bitmap.LineToFSP(X + Cos(Theta) * Theta, Y + Sin(Theta) * Theta);
+    SinCos(Theta, Sn, Cn);
+    Image.Bitmap.LineToFSP(X + Cn * Theta, Y + Sn * Theta);
     Theta := Theta + 0.2;
   end;
 end;
