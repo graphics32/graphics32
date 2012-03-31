@@ -75,10 +75,10 @@ implementation
 
 uses GR32, GR32_Resamplers;
                         
-Var
-  {$IFDEF COMPILER2005_UP}
+{$IFDEF COMPILER2005_UP}
+var
   GSplashScreen     : HBITMAP;
-  {$ENDIF}
+{$ENDIF}
 
 { TCustomClassProperty }
 
