@@ -5,6 +5,7 @@ program TextureBlend_Ex;
 uses
   Interfaces,
   Forms, ImagesForLazarus,
+  GR32_MediaPathLocator in '..\..\GR32_MediaPathLocator.pas',
   MainUnit in 'MainUnit.pas';
 
 {$R *.res}
