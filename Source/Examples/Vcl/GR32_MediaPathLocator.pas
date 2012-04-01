@@ -31,6 +31,8 @@ unit GR32_MediaPathLocator;
  * ***** END LICENSE BLOCK ***** *)
 interface
 
+{$I GR32.inc}
+
 uses
   SysUtils;
 
