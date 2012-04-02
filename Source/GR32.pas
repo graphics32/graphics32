@@ -474,8 +474,8 @@ type
     FRefCount: Integer;
   protected
     { IInterface }
-    function _AddRef: Integer; stdcall;
-    function _Release: Integer; stdcall;
+    function _AddRef: Integer; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
+    function _Release: Integer; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
     function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF}IID: TGUID; out Obj): HResult; virtual; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
 
     property RefCounted: Boolean read FRefCounted write FRefCounted;
@@ -1011,6 +1011,9 @@ uses
   {$IFEND}
   {$IFDEF LCLCarbon}
     GR32_Backends_LCL_Carbon,
+  {$ENDIF}
+  {$IFDEF LCLCustomDrawn}
+    GR32_Backends_LCL_CustomDrawn,
   {$ENDIF}
 {$ELSE}
   Clipbrd, GR32_Backends_VCL,
