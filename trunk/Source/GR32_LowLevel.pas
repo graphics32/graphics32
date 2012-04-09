@@ -426,7 +426,7 @@ asm
         // ECX = X;   EDX = Count;   R8D = Value
         PUSH    RDI
 
-        MOV     EDI,ECX  // Point EDI to destination
+        MOV     RDI,RCX  // Point EDI to destination
         MOV     EAX,R8D
         MOV     ECX,EDX
         TEST    ECX,ECX
@@ -614,8 +614,8 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
-        MOV       RCX,R8
+        MOV       EAX,ECX
+        MOV       ECX,R8D
 {$ENDIF}
         CMP       EDX,EAX
         CMOVG     EAX,EDX
@@ -697,18 +697,18 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV     RAX,RCX
-        MOV     RCX,R8
+        MOV     EAX,ECX
+        MOV     ECX,R8D
 {$ENDIF}
         CMP     EAX,EDX
-        JG      @@above
+        JG      @Above
         TEST    EAX,EAX
-        JL      @@below
+        JL      @Below
         RET
-@@above:
+@Above:
         MOV     EAX,EDX
         RET
-@@below:
+@Below:
         MOV     EAX,0
         RET
 {$ENDIF}
@@ -726,13 +726,13 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
-        MOV       RCX,R8
+        MOV     EAX,ECX
+        MOV     ECX,R8D
 {$ENDIF}
-        CMP       EDX,EAX
-        CMOVG     EAX,EDX
-        CMP       ECX,EAX
-        CMOVL     EAX,ECX
+        CMP     EDX,EAX
+        CMOVG   EAX,EDX
+        CMP     ECX,EAX
+        CMOVL   EAX,ECX
 {$ENDIF}
 end;
 
@@ -746,19 +746,19 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
-        MOV       RCX,R8
-        LEA       ECX,[RDX+1]
+        MOV     EAX,ECX
+        MOV     ECX,R8D
+        LEA     ECX,[RDX+1]
 {$ELSE}
-        LEA       ECX,[EDX+1]
+        LEA     ECX,[EDX+1]
 {$ENDIF}
         CDQ
-        IDIV      ECX
-        MOV       EAX,EDX
-        TEST      EAX,EAX
-        JNL       @@exit
-        ADD       EAX,ECX
-@@exit:
+        IDIV    ECX
+        MOV     EAX,EDX
+        TEST    EAX,EAX
+        JNL     @Exit
+        ADD     EAX,ECX
+@Exit:
 {$ENDIF}
 end;
 
@@ -788,22 +788,23 @@ begin
   Result := Dividend div Divisor;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        PUSH      RBX
-        MOV       RAX,RCX
-        MOV       RCX,R8
-        MOV       RBX,RDX
-        CDQ
-        IDIV      EBX
-        MOV       [RCX],EDX
-        POP       RBX
-{$ELSE}
+{$IFDEF TARGET_x86}
         PUSH      EBX
         MOV       EBX,EDX
         CDQ
         IDIV      EBX
         MOV       [ECX],EDX
         POP       EBX
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        PUSH      RBX
+        MOV       EAX,ECX
+        MOV       ECX,R8D
+        MOV       EBX,EDX
+        CDQ
+        IDIV      EBX
+        MOV       [RCX],EDX
+        POP       RBX
 {$ENDIF}
 {$ENDIF}
 end;
@@ -826,8 +827,8 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
-        MOV       RCX,R8
+        MOV       EAX,ECX
+        MOV       ECX,R8D
 {$ENDIF}
         TEST      EAX,EAX
         JNL       @@1
@@ -838,10 +839,10 @@ asm
         IDIV      ECX
         TEST      EAX,1
         MOV       EAX,EDX
-        JZ        @@exit
+        JZ        @Exit
         NEG       EAX
         ADD       EAX,ECX
-@@exit:
+@Exit:
 {$ENDIF}
 end;
 
@@ -984,7 +985,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,4
 {$ENDIF}
@@ -997,7 +998,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,8
 {$ENDIF}
@@ -1010,7 +1011,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,9
 {$ENDIF}
@@ -1023,7 +1024,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,11
 {$ENDIF}
@@ -1036,7 +1037,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,12
 {$ENDIF}
@@ -1049,7 +1050,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,13
 {$ENDIF}
@@ -1062,7 +1063,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,14
 {$ENDIF}
@@ -1075,7 +1076,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,15
 {$ENDIF}
@@ -1088,7 +1089,7 @@ begin
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,16
 {$ENDIF}
@@ -1111,7 +1112,7 @@ asm
 // this function swaps R and B bytes in ABGR
 // and writes $FF into A component
 {$IFDEF TARGET_x64}
-        MOV       RAX,RCX
+        MOV       EAX,ECX
 {$ENDIF}
         BSWAP     EAX
         MOV       AL, $FF
@@ -1132,34 +1133,14 @@ end;
 {$ELSE}
 { StackAlloc allocates a 'small' block of memory from the stack by
   decrementing SP.  This provides the allocation speed of a local variable,
-  but the runtime size flexibility of heap allocated memory.  }
+  but the runtime size flexibility of heap allocated memory.
+
+  x64 implementation by Jameel Halabi
+  }
 function StackAlloc(Size: Integer): Pointer; register;
 asm
-{$IFDEF TARGET_x64}
-        MOV       RAX, RCX
-        POP       RCX          { return address }
-        MOV       RDX, RSP
-        ADD       RAX, 3
-        AND       RAX, NOT 3   // round up to keep ESP dword aligned
-        CMP       RAX, 4092
-        JLE       @@2
-@@1:
-        SUB       RSP, 4092
-        PUSH      RAX          { make sure we touch guard page, to grow stack }
-        SUB       RAX, 4096
-        JNS       @@1
-        ADD       RAX, 4096
-@@2:
-        SUB       RSP, RAX
-        MOV       RAX, RSP     { function result = low memory address of block }
-        PUSH      RDX          { save original SP, for cleanup }
-        MOV       RDX, RSP
-        SUB       RDX, 8
-        PUSH      RDX          { save current SP, for sanity check  (sp = [sp]) }
-        PUSH      RCX          { return to caller }
-{$ENDIF}
 {$IFDEF TARGET_x86}
-        POP       ECX          { return address }
+        POP       ECX          // return address
         MOV       EDX, ESP
         ADD       EAX, 3
         AND       EAX, not 3   // round up to keep ESP dword aligned
@@ -1167,18 +1148,40 @@ asm
         JLE       @@2
 @@1:
         SUB       ESP, 4092
-        PUSH      EAX          { make sure we touch guard page, to grow stack }
+        PUSH      EAX          // make sure we touch guard page, to grow stack
         SUB       EAX, 4096
         JNS       @@1
         ADD       EAX, 4096
 @@2:
         SUB       ESP, EAX
-        MOV       EAX, ESP     { function result = low memory address of block }
-        PUSH      EDX          { save original SP, for cleanup }
+        MOV       EAX, ESP     // function result = low memory address of block
+        PUSH      EDX          // save original SP, for cleanup
         MOV       EDX, ESP
         SUB       EDX, 4
-        PUSH      EDX          { save current SP, for sanity check  (sp = [sp]) }
-        PUSH      ECX          { return to caller }
+        PUSH      EDX          // save current SP, for sanity check  (sp = [sp])
+        PUSH      ECX          // return to caller
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV       RAX, RCX
+        POP       R8           // return address
+        MOV       RDX, RSP     // original SP
+        ADD       ECX, 15
+        AND       ECX, NOT 15  // round up to keep SP dqword aligned
+        CMP       ECX, 4092
+        JLE       @@2
+@@1:
+        SUB       RSP, 4092
+        PUSH      RCX          // make sure we touch guard page, to grow stack
+        SUB       ECX, 4096
+        JNS       @@1
+        ADD       ECX, 4096
+@@2:
+        SUB       RSP, RCX
+        MOV       RAX, RSP     // function result = low memory address of block
+        PUSH      RDX          // save original SP, for cleanup
+        MOV       RDX, RSP
+        SUB       RDX, 8
+        PUSH      RDX          // save current SP, for sanity check  (sp = [sp])
 {$ENDIF}
 end;
 
@@ -1194,29 +1197,29 @@ end;
   the calling routine exits. }
 procedure StackFree(P: Pointer); register;
 asm
-{$IFDEF TARGET_x64}
-        MOV       RAX, RCX
-        POP       RCX                     { return address }
-        MOV       RDX, QWORD PTR [RSP]
-        SUB       RAX, 8
-        CMP       RDX, RSP                { sanity check #1 (SP = [SP]) }
-        JNE       @@1
-        CMP       RDX, RAX                { sanity check #2 (P = this stack block) }
-        JNE       @@1
-        MOV       RSP, QWORD PTR [RSP+8]  { restore previous SP  }
-@@1:
-        PUSH      RCX                     { return to caller }
-{$ELSE}
+{$IFDEF TARGET_x86}
         POP       ECX                     { return address }
         MOV       EDX, DWORD PTR [ESP]
         SUB       EAX, 8
         CMP       EDX, ESP                { sanity check #1 (SP = [SP]) }
-        JNE       @@1
+        JNE       @Exit
         CMP       EDX, EAX                { sanity check #2 (P = this stack block) }
         JNE       @@1
         MOV       ESP, DWORD PTR [ESP+4]  { restore previous SP  }
-@@1:
+@Exit:
         PUSH      ECX                     { return to caller }
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        POP       R8                       { return address }
+        MOV       RDX, QWORD PTR [RSP]
+        SUB       RCX, 16
+        CMP       RDX, RSP                 { sanity check #1 (SP = [SP]) }
+        JNE       @Exit
+        CMP       RDX, RCX                 { sanity check #2 (P = this stack block) }
+        JNE       @@1
+        MOV       RSP, QWORD PTR [RSP + 8] { restore previous SP  }
+ @Exit:
+        PUSH      R8                       { return to caller }
 {$ENDIF}
 end;
 {$ENDIF}
@@ -1249,4 +1252,4 @@ end;
 initialization
   RegisterBindings;
 
-end.
+end.
