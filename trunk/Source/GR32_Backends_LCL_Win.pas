@@ -83,7 +83,8 @@ type
     { IPaintSupport }
     procedure ImageNeeded;
     procedure CheckPixmap;
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
+      ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 
     { IBitmapContextSupport }
     function GetBitmapInfo: TBitmapInfo;

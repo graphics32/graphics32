@@ -106,35 +106,41 @@ implementation
 
 uses Math;
 
-function vAdd(const A, B: TVector2f): TVector2f;
+function VectorAdd(const A, B: TVector2f): TVector2f;
 begin
   Result.X := A.X + B.X;
   Result.Y := A.Y + B.Y;
 end;
 
-function vSub(const A, B: TVector2f): TVector2f;
+function VectorSub(const A, B: TVector2f): TVector2f;
 begin
   Result.X := A.X - B.X;
   Result.Y := A.Y - B.Y;
 end;
 
-function vLen(const A: TVector2f): Single;
+function VectorLen(const A: TVector2f): Single;
 begin
   Result := SqRt(SqR(A.X) + SqR(A.Y));
 end;
 
-function vDot(const A, B: TVector2f): Single;
+function VectorDot(const A, B: TVector2f): Single;
 begin
   Result := A.X * B.X + A.Y * B.Y;
 end;
 
-function vScale(const A: TVector2f; Factor: Single): TVector2f;
+function VectorScale(const A: TVector2f; Factor: Single): TVector2f;
 begin
   Result.X := A.X * Factor;
   Result.Y := A.Y * Factor;
 end;
 
 { TLine }
+
+constructor TLine.Create(ABitmap: TBitmap32);
+begin
+  Bitmap := ABitmap;
+  MaxVelocity := 1;
+end;
 
 procedure TLine.Advance(DeltaT: Single);
 
@@ -145,8 +151,7 @@ const
   procedure AdvancePoint(var P, V: TVector2f; t: Single);
   begin
     { apply velocities }
-    P.X := P.X + V.X * t;
-    P.Y := P.Y + V.Y * t;
+    P := VectorAdd(VectorScale(V, t))
 
     { reflect from walls }
     if P.X < 0 then
@@ -175,8 +180,8 @@ const
     V.Y := V.Y + t * (Random - 0.5) * 0.25;
 
     { limit velocity }
-    if vLen(V1) > MaxVelocity then V1 := vScale(V1, 1 / vLen(V1));
-    if vLen(V2) > MaxVelocity then V2 := vScale(V2, 1 / vLen(V2));
+    if VectorLen(V) > MaxVelocity then
+      V := VectorScale(V, 1 / VectorLen(V));
   end;
 begin
   AdvancePoint(P1, V1, DeltaT);
@@ -195,15 +200,9 @@ begin
   t3 := t3 + Random * COne400;
 end;
 
-constructor TLine.Create(ABitmap: TBitmap32);
-begin
-  Bitmap := ABitmap;
-  MaxVelocity := 1;
-end;
-
 function TLine.GetLength: Single;
 begin
-  Result := vLen(vSub(P1, P2));
+  Result := VectorLen(VectorSub(P1, P2));
 end;
 
 procedure TLine.Paint;

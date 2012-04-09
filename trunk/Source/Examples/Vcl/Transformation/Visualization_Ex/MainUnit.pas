@@ -82,7 +82,7 @@ type
   // See 'Movement' under 'Trans' in Winamps Vis. Studio
   // Sw, Sh: Display width and height (read only)
   // X,Y: Cartesian/Rectangular coordinate in range [-1..1]
-  // D, R: Polar coordinate, D in range 0..1, R in range 0..2PI
+  // D, R: Polar coordinate, D in range 0..1, R in range 0..2Pi
   TMovementProc = procedure(Sw, Sh: Single; var X, Y, D, R : Single);
 
 var
@@ -153,21 +153,21 @@ end;
 
 procedure Movement2(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * (0.94 + (cos((r - PI * 0.5) * 32 * ARandomNumber) * 0.06));
+  d := d * (0.94 + (Cos((r - Pi * 0.5) * 32 * ARandomNumber) * 0.06));
   r := r + (ARandomNumber - 0.5) * 0.05;
 end;
 
 procedure Movement3(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * (1 - (sin((r - PI * 0.5) * 7) * 0.03)) * (0.96 + Cos(d * PI) * 0.05);
-  r := r + (cos(d * 12) * 0.03) + 0.04;
+  d := d * (1 - (Sin((r - Pi * 0.5) * 7) * 0.03)) * (0.96 + Cos(d * Pi) * 0.05);
+  r := r + (Cos(d * 12) * 0.03) + 0.04;
 end;
 
 procedure Movement4(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * Trunc(((1 - (sin((x-PI*0.5) * 7) * 0.03)) *
-    (0.96 + Cos(y * PI) * 0.05)) * 11) / 11;
-  r :=  r + (cos(abs(y) * 10) * 0.03) + 0.04;
+  d := d * Trunc(((1 - (sin((x - Pi * 0.5) * 7) * 0.03)) *
+    (0.96 + Cos(y * Pi) * 0.05)) * 11) / 11;
+  r :=  r + (Cos(Abs(y) * 10) * 0.03) + 0.04;
 end;
 
 procedure Movement5(Sw, Sh: Single; var X, Y, D, R : Single);
@@ -181,9 +181,9 @@ procedure Movement6(Sw, Sh: Single; var X, Y, D, R : Single);
 var
   p,w: Single;
 begin
-  p := d * Round(((1 - (Sin((r - PI * 0.5) * 7) * 0.01)) *
-    (0.96 + Cos(GR32_Math.Hypot(x, y) * PI) * 0.05)) * 11) / 11;
-  d := d * (0.96 + Cos(d * PI) * 0.05);
+  p := d * Round(((1 - (Sin((r - Pi * 0.5) * 7) * 0.01)) *
+    (0.96 + Cos(GR32_Math.Hypot(x, y) * Pi) * 0.05)) * 11) / 11;
+  d := d * (0.96 + Cos(d * Pi) * 0.05);
   w := 1 - abs(x * y);
   d := d + (p - d) * w;
   p := x + (Cos(y * 18) * x * 0.01);
@@ -197,7 +197,7 @@ procedure Movement7(Sw, Sh: Single; var X, Y, D, R : Single);
 var
   t: Single;
 begin
-  t := Cos(d * PI * 0.5) + x * y * 0.1;
+  t := Cos(d * Pi * 0.5) + x * y * 0.1;
   r := r - 0.1 * t * t * t;
   x := x / (0.9 + ARandomNumber);
   y := y / (0.9 + ARandomNumber);
@@ -211,7 +211,7 @@ end;
 
 procedure Movement9(Sw, Sh: Single; var X, Y, D, R : Single);
 begin
-  d := d * (0.9974 - (Cos(Min(d * PI, Pi)) + ARandomNumber) * 0.03);
+  d := d * (0.9974 - (Cos(Min(d * Pi, Pi)) + ARandomNumber) * 0.03);
 end;
 
 

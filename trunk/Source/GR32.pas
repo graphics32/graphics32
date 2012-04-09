@@ -1077,11 +1077,11 @@ begin
     (WinColor and $FF) shl 16;
 {$ELSE}
   asm
-        MOV    EAX,WinColor
-        BSWAP  EAX
-        MOV    AL,$FF
-        ROR    EAX,8
-        MOV    Result,EAX
+        MOV     EAX,WinColor
+        BSWAP   EAX
+        MOV     AL,$FF
+        ROR     EAX,8
+        MOV     Result,EAX
   end;
 {$ENDIF}
 {$ENDIF}
@@ -2861,7 +2861,6 @@ asm
           SAR     X, 8
           SAR     Y, 8
           CALL    TCustomBitmap32.GET_TS256
-          MOV     Result, EAX
 {$IFNDEF OMIT_MMX}
           CMP     MMX_ACTIVE.Integer, $00
           JZ      @Exit

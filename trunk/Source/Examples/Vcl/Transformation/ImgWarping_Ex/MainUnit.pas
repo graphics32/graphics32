@@ -407,8 +407,8 @@ begin
 
   if ToolGroup.ItemIndex = 0 then
   begin
-    DeltaX := Round((Fixed(LastPos.X - X) + LastDelta.X) * 0.5);
-    DeltaY := Round((Fixed(LastPos.Y - Y) + LastDelta.Y) * 0.5);
+    DeltaX := Round((Fixed(Integer(LastPos.X - X)) + LastDelta.X) * 0.5);
+    DeltaY := Round((Fixed(Integer(LastPos.Y - Y)) + LastDelta.Y) * 0.5);
     LastDelta.X := DeltaX;
     LastDelta.Y := DeltaY;
   end
@@ -421,8 +421,8 @@ begin
   for J := ClipTop to ClipBottom do
     for I := ClipLeft to ClipRight do
     begin
-      Zx := Fixed(X + I);
-      Zy := Fixed(Y + J);
+      Zx := Fixed(Integer(X + I));
+      Zy := Fixed(Integer(Y + J));
 
       P := CurrentBrush[BrushMode].FixedVector[I, J];
       P.X := FixedMul(DeltaX, P.X);
