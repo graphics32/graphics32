@@ -336,7 +336,7 @@ begin
   begin
     Alpha := S[I].A;
     with D[I] do
-    begin  
+    begin
       R := Alpha;  
       G := Alpha;  
       B := Alpha;  
@@ -603,184 +603,355 @@ end;
 procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
-   TEST  ECX, ECX
-   JZ    @Exit
+{$IFDEF TARGET_x86}
+        TEST    ECX, ECX
+        JZ      @Exit
 
-   PUSH  EBX
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
-   LEA   EAX, [EAX + ECX * 4]
-   SHL   ECX, 2
-   NEG   ECX
+        PUSH    EBX
+        MOV     EBX, ECX
+        SHR     ECX, 4
+        SHL     ECX, 4
+        JZ      @PrepSingleLoop
+        LEA     EAX, [EAX + ECX * 4]
+        SHL     ECX, 2
+        NEG     ECX
 
-  @ChunkLoop:
-   //16x unrolled loop
-   XOR   [EAX + ECX], EDX
-   XOR   [EAX + ECX + 4], EDX
-   XOR   [EAX + ECX + 8], EDX
-   XOR   [EAX + ECX + 12], EDX
+@ChunkLoop:
+        //16x unrolled loop
+        XOR     [EAX + ECX], EDX
+        XOR     [EAX + ECX + 4], EDX
+        XOR     [EAX + ECX + 8], EDX
+        XOR     [EAX + ECX + 12], EDX
 
-   XOR   [EAX + ECX + 16], EDX
-   XOR   [EAX + ECX + 20], EDX
-   XOR   [EAX + ECX + 24], EDX
-   XOR   [EAX + ECX + 28], EDX
+        XOR     [EAX + ECX + 16], EDX
+        XOR     [EAX + ECX + 20], EDX
+        XOR     [EAX + ECX + 24], EDX
+        XOR     [EAX + ECX + 28], EDX
 
-   XOR   [EAX + ECX + 32], EDX
-   XOR   [EAX + ECX + 36], EDX
-   XOR   [EAX + ECX + 40], EDX
-   XOR   [EAX + ECX + 44], EDX
+        XOR     [EAX + ECX + 32], EDX
+        XOR     [EAX + ECX + 36], EDX
+        XOR     [EAX + ECX + 40], EDX
+        XOR     [EAX + ECX + 44], EDX
 
-   XOR   [EAX + ECX + 48], EDX
-   XOR   [EAX + ECX + 52], EDX
-   XOR   [EAX + ECX + 56], EDX
-   XOR   [EAX + ECX + 60], EDX
+        XOR     [EAX + ECX + 48], EDX
+        XOR     [EAX + ECX + 52], EDX
+        XOR     [EAX + ECX + 56], EDX
+        XOR     [EAX + ECX + 60], EDX
 
-   ADD   ECX, 16 * 4
-   JNZ   @ChunkLoop
+        ADD     ECX, 16 * 4
+        JNZ     @ChunkLoop
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @PopExit
+@PrepSingleLoop:
+        MOV     ECX, EBX
+        SHR     EBX, 4
+        SHL     EBX, 4
+        SUB     ECX, EBX
+        JZ      @PopExit
 
-   LEA   EAX, [EAX + ECX * 4]
-   NEG   ECX
+        LEA     EAX, [EAX + ECX * 4]
+        NEG     ECX
 
-  @SingleLoop:
-   XOR   [EAX + ECX * 4], EDX
-   INC   ECX
-   JNZ   @SingleLoop
+@SingleLoop:
+        XOR     [EAX + ECX * 4], EDX
+        INC     ECX
+        JNZ     @SingleLoop
 
-  @PopExit:
-   POP   EBX
+@PopExit:
+        POP     EBX
 
-  @Exit:
+@Exit:
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        TEST    R8D, R8D
+        JZ      @Exit
+
+        MOV     EAX, R8D
+        SHR     R8D, 4
+        SHL     R8D, 4
+        JZ      @PrepSingleLoop
+        LEA     RCX, [RCX + R8D * 4]
+        SHL     R8D, 2
+        NEG     R8D
+
+@ChunkLoop:
+        //16x unrolled loop
+        XOR     [RCX + R8D], EDX
+        XOR     [RCX + R8D + 4], EDX
+        XOR     [RCX + R8D + 8], EDX
+        XOR     [RCX + R8D + 12], EDX
+
+        XOR     [RCX + R8D + 16], EDX
+        XOR     [RCX + R8D + 20], EDX
+        XOR     [RCX + R8D + 24], EDX
+        XOR     [RCX + R8D + 28], EDX
+
+        XOR     [RCX + R8D + 32], EDX
+        XOR     [RCX + R8D + 36], EDX
+        XOR     [RCX + R8D + 40], EDX
+        XOR     [RCX + R8D + 44], EDX
+
+        XOR     [RCX + R8D + 48], EDX
+        XOR     [RCX + R8D + 52], EDX
+        XOR     [RCX + R8D + 56], EDX
+        XOR     [RCX + R8D + 60], EDX
+
+        ADD     R8D, 16 * 4
+        JNZ     @ChunkLoop
+
+@PrepSingleLoop:
+        MOV     R8D, EAX
+        SHR     EAX, 4
+        SHL     EAX, 4
+        SUB     R8D, EAX
+        JZ      @Exit
+
+        LEA     RCX, [RCX + R8D * 4]
+        NEG     R8D
+
+@SingleLoop:
+        XOR     [RCX + R8D * 4], EDX
+        INC     R8D
+        JNZ     @SingleLoop
+
+@Exit:
+{$ENDIF}
 end;
 
 procedure OrLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
-   TEST  ECX, ECX
-   JZ    @Exit
+{$IFDEF TARGET_x86}
+        TEST    ECX, ECX
+        JZ      @Exit
 
-   PUSH  EBX
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
-   LEA   EAX, [EAX + ECX * 4]
-   SHL   ECX, 2
-   NEG   ECX
+        PUSH    EBX
+        MOV     EBX, ECX
+        SHR     ECX, 4
+        SHL     ECX, 4
+        JZ      @PrepSingleLoop
+        LEA     EAX, [EAX + ECX * 4]
+        SHL     ECX, 2
+        NEG     ECX
 
-  @ChunkLoop:
-   //16x unrolled loop
-   OR   [EAX + ECX], EDX
-   OR   [EAX + ECX + 4], EDX
-   OR   [EAX + ECX + 8], EDX
-   OR   [EAX + ECX + 12], EDX
+@ChunkLoop:
+        //16x unrolled loop
+        OR      [EAX + ECX], EDX
+        OR      [EAX + ECX + 4], EDX
+        OR      [EAX + ECX + 8], EDX
+        OR      [EAX + ECX + 12], EDX
 
-   OR   [EAX + ECX + 16], EDX
-   OR   [EAX + ECX + 20], EDX
-   OR   [EAX + ECX + 24], EDX
-   OR   [EAX + ECX + 28], EDX
+        OR      [EAX + ECX + 16], EDX
+        OR      [EAX + ECX + 20], EDX
+        OR      [EAX + ECX + 24], EDX
+        OR      [EAX + ECX + 28], EDX
 
-   OR   [EAX + ECX + 32], EDX
-   OR   [EAX + ECX + 36], EDX
-   OR   [EAX + ECX + 40], EDX
-   OR   [EAX + ECX + 44], EDX
+        OR      [EAX + ECX + 32], EDX
+        OR      [EAX + ECX + 36], EDX
+        OR      [EAX + ECX + 40], EDX
+        OR      [EAX + ECX + 44], EDX
 
-   OR   [EAX + ECX + 48], EDX
-   OR   [EAX + ECX + 52], EDX
-   OR   [EAX + ECX + 56], EDX
-   OR   [EAX + ECX + 60], EDX
+        OR      [EAX + ECX + 48], EDX
+        OR      [EAX + ECX + 52], EDX
+        OR      [EAX + ECX + 56], EDX
+        OR      [EAX + ECX + 60], EDX
 
-   ADD   ECX, 16 * 4
-   JNZ   @ChunkLoop
+        ADD     ECX, 16 * 4
+        JNZ     @ChunkLoop
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @PopExit
+@PrepSingleLoop:
+        MOV     ECX, EBX
+        SHR     EBX, 4
+        SHL     EBX, 4
+        SUB     ECX, EBX
+        JZ      @PopExit
 
-   LEA   EAX, [EAX + ECX * 4]
-   NEG   ECX
+        LEA     EAX, [EAX + ECX * 4]
+        NEG     ECX
 
-  @SingleLoop:
-   OR   [EAX + ECX * 4], EDX
-   INC   ECX
-   JNZ   @SingleLoop
+@SingleLoop:
+        OR      [EAX + ECX * 4], EDX
+        INC     ECX
+        JNZ     @SingleLoop
 
-  @PopExit:
-   POP   EBX
+@PopExit:
+        POP     EBX
 
-  @Exit:
+@Exit:
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        TEST    R8D, R8D
+        JZ      @Exit
+
+        MOV     EAX, R8D
+        SHR     R8D, 4
+        SHL     R8D, 4
+        JZ      @PrepSingleLoop
+        LEA     RCX, [RCX + R8D * 4]
+        SHL     R8D, 2
+        NEG     R8D
+
+@ChunkLoop:
+        //16x unrolled loop
+        OR      [RCX + R8D], EDX
+        OR      [RCX + R8D + 4], EDX
+        OR      [RCX + R8D + 8], EDX
+        OR      [RCX + R8D + 12], EDX
+
+        OR      [RCX + R8D + 16], EDX
+        OR      [RCX + R8D + 20], EDX
+        OR      [RCX + R8D + 24], EDX
+        OR      [RCX + R8D + 28], EDX
+
+        OR      [RCX + R8D + 32], EDX
+        OR      [RCX + R8D + 36], EDX
+        OR      [RCX + R8D + 40], EDX
+        OR      [RCX + R8D + 44], EDX
+
+        OR      [RCX + R8D + 48], EDX
+        OR      [RCX + R8D + 52], EDX
+        OR      [RCX + R8D + 56], EDX
+        OR      [RCX + R8D + 60], EDX
+
+        ADD     R8D, 16 * 4
+        JNZ     @ChunkLoop
+
+@PrepSingleLoop:
+        MOV     R8D, EAX
+        SHR     EAX, 4
+        SHL     EAX, 4
+        SUB     R8D, EAX
+        JZ      @Exit
+
+        LEA     RCX, [RCX + R8D * 4]
+        NEG     R8D
+
+@SingleLoop:
+        OR      [RCX + R8D * 4], EDX
+        INC     R8D
+        JNZ     @SingleLoop
+
+@Exit:
+{$ENDIF}
 end;
 
 procedure AndLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
 // No speedup achieveable using MMX
 asm
-   TEST  ECX, ECX
-   JZ    @Exit
+{$IFDEF TARGET_x86}
+        TEST    ECX, ECX
+        JZ      @Exit
 
-   PUSH  EBX
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
-   LEA   EAX, [EAX + ECX * 4]
-   SHL   ECX, 2
-   NEG   ECX
+        PUSH    EBX
+        MOV     EBX, ECX
+        SHR     ECX, 4
+        SHL     ECX, 4
+        JZ      @PrepSingleLoop
+        LEA     EAX, [EAX + ECX * 4]
+        SHL     ECX, 2
+        NEG     ECX
 
-  @ChunkLoop:
-   //16x unrolled loop
-   AND   [EAX + ECX], EDX
-   AND   [EAX + ECX + 4], EDX
-   AND   [EAX + ECX + 8], EDX
-   AND   [EAX + ECX + 12], EDX
+@ChunkLoop:
+        //16x unrolled loop
+        AND     [EAX + ECX], EDX
+        AND     [EAX + ECX + 4], EDX
+        AND     [EAX + ECX + 8], EDX
+        AND     [EAX + ECX + 12], EDX
 
-   AND   [EAX + ECX + 16], EDX
-   AND   [EAX + ECX + 20], EDX
-   AND   [EAX + ECX + 24], EDX
-   AND   [EAX + ECX + 28], EDX
+        AND     [EAX + ECX + 16], EDX
+        AND     [EAX + ECX + 20], EDX
+        AND     [EAX + ECX + 24], EDX
+        AND     [EAX + ECX + 28], EDX
 
-   AND   [EAX + ECX + 32], EDX
-   AND   [EAX + ECX + 36], EDX
-   AND   [EAX + ECX + 40], EDX
-   AND   [EAX + ECX + 44], EDX
+        AND     [EAX + ECX + 32], EDX
+        AND     [EAX + ECX + 36], EDX
+        AND     [EAX + ECX + 40], EDX
+        AND     [EAX + ECX + 44], EDX
 
-   AND   [EAX + ECX + 48], EDX
-   AND   [EAX + ECX + 52], EDX
-   AND   [EAX + ECX + 56], EDX
-   AND   [EAX + ECX + 60], EDX
+        AND     [EAX + ECX + 48], EDX
+        AND     [EAX + ECX + 52], EDX
+        AND     [EAX + ECX + 56], EDX
+        AND     [EAX + ECX + 60], EDX
 
-   ADD   ECX, 16 * 4
-   JNZ   @ChunkLoop
+        ADD     ECX, 16 * 4
+        JNZ     @ChunkLoop
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @PopExit
+@PrepSingleLoop:
+        MOV     ECX, EBX
+        SHR     EBX, 4
+        SHL     EBX, 4
+        SUB     ECX, EBX
+        JZ      @PopExit
 
-   LEA   EAX, [EAX + ECX * 4]
-   NEG   ECX
+        LEA     EAX, [EAX + ECX * 4]
+        NEG     ECX
 
-  @SingleLoop:
-   AND   [EAX + ECX * 4], EDX
-   INC   ECX
-   JNZ   @SingleLoop
+@SingleLoop:
+        AND     [EAX + ECX * 4], EDX
+        INC     ECX
+        JNZ     @SingleLoop
 
-  @PopExit:
-   POP   EBX
+@PopExit:
+        POP     EBX
 
-  @Exit:
+@Exit:
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        TEST    R8D, R8D
+        JZ      @Exit
+
+        MOV     EAX, R8D
+        SHR     R8D, 4
+        SHL     R8D, 4
+        JZ      @PrepSingleLoop
+        LEA     RCX, [RCX + R8D * 4]
+        SHL     R8D, 2
+        NEG     R8D
+
+@ChunkLoop:
+        //16x unrolled loop
+        AND     [RCX + R8D], EDX
+        AND     [RCX + R8D + 4], EDX
+        AND     [RCX + R8D + 8], EDX
+        AND     [RCX + R8D + 12], EDX
+
+        AND     [RCX + R8D + 16], EDX
+        AND     [RCX + R8D + 20], EDX
+        AND     [RCX + R8D + 24], EDX
+        AND     [RCX + R8D + 28], EDX
+
+        AND     [RCX + R8D + 32], EDX
+        AND     [RCX + R8D + 36], EDX
+        AND     [RCX + R8D + 40], EDX
+        AND     [RCX + R8D + 44], EDX
+
+        AND     [RCX + R8D + 48], EDX
+        AND     [RCX + R8D + 52], EDX
+        AND     [RCX + R8D + 56], EDX
+        AND     [RCX + R8D + 60], EDX
+
+        ADD     R8D, 16 * 4
+        JNZ     @ChunkLoop
+
+@PrepSingleLoop:
+        MOV     R8D, EAX
+        SHR     EAX, 4
+        SHL     EAX, 4
+        SUB     R8D, EAX
+        JZ      @Exit
+
+        LEA     RCX, [RCX + R8D * 4]
+        NEG     R8D
+
+@SingleLoop:
+        AND     [RCX + R8D * 4], EDX
+        INC     R8D
+        JNZ     @SingleLoop
+
+@Exit:
+{$ENDIF}
 end;
 
 {$ENDIF}
@@ -834,74 +1005,130 @@ end;
 
 procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
-   PUSH  EBX
-   PUSH  EDI
+{$IFDEF TARGET_x86}
+        PUSH    EBX
+        PUSH    EDI
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        LEA     EAX, [EAX + ECX * 4]
+        LEA     EDX, [EDX + ECX * 4]
+        NEG     ECX
+        JZ      @Exit
 
-   MOV   EDI, Mask
+        MOV     EDI, Mask
 
-   @Loop:
-   MOV   EBX, [EAX + ECX * 4]
-   XOR   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @Loop
+@Loop:
+        MOV     EBX, [EAX + ECX * 4]
+        XOR     EBX, EDI
+        MOV     [EDX + ECX * 4], EBX
+        INC     ECX
+        JNZ     @Loop
 
-   @Exit:
+@Exit:
+        POP     EDI
+        POP     EBX
+{$ENDIF}
 
-   POP   EDI
-   POP   EBX
+{$IFDEF TARGET_x64}
+        LEA     RCX, [RCX + R8D * 4]
+        LEA     RDX, [RDX + R8D * 4]
+        NEG     R8D
+        JZ      @Exit
+
+@Loop:
+        MOV     EAX, [RCX + R8D * 4]
+        XOR     EAX, R9D
+        MOV     [RDX + R8D * 4], EAX
+        INC     R8D
+        JNZ     @Loop
+
+@Exit:
+{$ENDIF}
 end;
 
 procedure OrLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
-   PUSH  EBX
-   PUSH  EDI
+{$IFDEF TARGET_x86}
+        PUSH    EBX
+        PUSH    EDI
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        LEA     EAX, [EAX + ECX * 4]
+        LEA     EDX, [EDX + ECX * 4]
+        NEG     ECX
+        JZ      @Exit
 
-   MOV   EDI, Mask
+        MOV     EDI, Mask
 
-   @Loop:
-   MOV   EBX, [EAX + ECX * 4]
-   OR    EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @Loop
+@Loop:
+        MOV     EBX, [EAX + ECX * 4]
+        OR      EBX, EDI
+        MOV     [EDX + ECX * 4], EBX
+        INC     ECX
+        JNZ     @Loop
 
-   @Exit:
+@Exit:
 
-   POP   EDI
-   POP   EBX
+        POP     EDI
+        POP     EBX
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        LEA     RCX, [RCX + R8D * 4]
+        LEA     RDX, [RDX + R8D * 4]
+        NEG     R8D
+        JZ      @Exit
+
+@Loop:
+        MOV     EBX, [RCX + R8D * 4]
+        OR      EBX, R9D
+        MOV     [RDX + R8D * 4], EBX
+        INC     R8D
+        JNZ     @Loop
+
+@Exit:
+{$ENDIF}
 end;
 
 procedure AndLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 asm
-   PUSH  EBX
-   PUSH  EDI
+{$IFDEF TARGET_x86}
+        PUSH    EBX
+        PUSH    EDI
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        LEA     EAX, [EAX + ECX * 4]
+        LEA     EDX, [EDX + ECX * 4]
+        NEG     ECX
+        JZ      @Exit
 
-   MOV   EDI, Mask
+        MOV     EDI, Mask
 
-   @Loop:
-   MOV   EBX, [EAX + ECX * 4]
-   AND   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @Loop
+@Loop:
+        MOV     EBX, [EAX + ECX * 4]
+        AND     EBX, EDI
+        MOV     [EDX + ECX * 4], EBX
+        INC     ECX
+        JNZ     @Loop
 
-   @Exit:
+@Exit:
 
-   POP   EDI
-   POP   EBX
+        POP     EDI
+        POP     EBX
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        LEA     RCX, [RCX + R8D * 4]
+        LEA     RDX, [RDX + R8D * 4]
+        NEG     R8D
+        JZ      @Exit
+
+@Loop:
+        MOV     EAX, [RCX + R8D * 4]
+        AND     EAX, R9D
+        MOV     [RDX + R8D * 4], EAX
+        INC     R8D
+        JNZ     @Loop
+
+@Exit:
+{$ENDIF}
 end;
 
 { MMX versions}
@@ -912,84 +1139,83 @@ var
   QMask: Int64;
 
 asm
-   PUSH  EBX
-   PUSH  EDI
+        PUSH      EBX
+        PUSH      EDI
 
-   TEST  ECX, ECX
-   JZ    @Exit
+        TEST      ECX, ECX
+        JZ        @Exit
 
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
+        MOV       EBX, ECX
+        SHR       ECX, 4
+        SHL       ECX, 4
+        JZ        @PrepSingleLoop
 
-   SAR    ECX, 1
-   LEA    EAX, [EAX + ECX * 8]
-   LEA    EDX, [EDX + ECX * 8]
-   NEG    ECX
+        SAR       ECX, 1
+        LEA       EAX, [EAX + ECX * 8]
+        LEA       EDX, [EDX + ECX * 8]
+        NEG       ECX
 
-   MOVD       MM7, MASK
-   PUNPCKLDQ  MM7, MM7
-   MOVQ       QMask, MM7
-   EMMS
+        MOVD      MM7, MASK
+        PUNPCKLDQ MM7, MM7
+        MOVQ      QMask, MM7
+        EMMS
 
-  @Loop:
+@Loop:
+        MOVQ      MM0, [EAX + ECX * 8]
+        MOVQ      MM1, [EAX + ECX * 8 + 8]
+        MOVQ      MM2, [EAX + ECX * 8 + 16]
+        MOVQ      MM3, [EAX + ECX * 8 + 24]
+        MOVQ      MM4, [EAX + ECX * 8 + 32]
+        MOVQ      MM5, [EAX + ECX * 8 + 40]
+        MOVQ      MM6, [EAX + ECX * 8 + 48]
+        MOVQ      MM7, [EAX + ECX * 8 + 56]
 
-   MOVQ   MM0, [EAX + ECX * 8]
-   MOVQ   MM1, [EAX + ECX * 8 + 8]
-   MOVQ   MM2, [EAX + ECX * 8 + 16]
-   MOVQ   MM3, [EAX + ECX * 8 + 24]
-   MOVQ   MM4, [EAX + ECX * 8 + 32]
-   MOVQ   MM5, [EAX + ECX * 8 + 40]
-   MOVQ   MM6, [EAX + ECX * 8 + 48]
-   MOVQ   MM7, [EAX + ECX * 8 + 56]
+        PXOR      MM0, QMask
+        PXOR      MM1, QMask
+        PXOR      MM2, QMask
+        PXOR      MM3, QMask
+        PXOR      MM4, QMask
+        PXOR      MM5, QMask
+        PXOR      MM6, QMask
+        PXOR      MM7, QMask
 
-   PXOR   MM0, QMask
-   PXOR   MM1, QMask
-   PXOR   MM2, QMask
-   PXOR   MM3, QMask
-   PXOR   MM4, QMask
-   PXOR   MM5, QMask
-   PXOR   MM6, QMask
-   PXOR   MM7, QMask
+        MOVQ      [EDX + ECX * 8], MM0
+        MOVQ      [EDX + ECX * 8 + 8], MM1
+        MOVQ      [EDX + ECX * 8 + 16], MM2
+        MOVQ      [EDX + ECX * 8 + 24], MM3
+        MOVQ      [EDX + ECX * 8 + 32], MM4
+        MOVQ      [EDX + ECX * 8 + 40], MM5
+        MOVQ      [EDX + ECX * 8 + 48], MM6
+        MOVQ      [EDX + ECX * 8 + 56], MM7
 
-   MOVQ   [EDX + ECX * 8], MM0
-   MOVQ   [EDX + ECX * 8 + 8], MM1
-   MOVQ   [EDX + ECX * 8 + 16], MM2
-   MOVQ   [EDX + ECX * 8 + 24], MM3
-   MOVQ   [EDX + ECX * 8 + 32], MM4
-   MOVQ   [EDX + ECX * 8 + 40], MM5
-   MOVQ   [EDX + ECX * 8 + 48], MM6
-   MOVQ   [EDX + ECX * 8 + 56], MM7
+        ADD       ECX, 8
+        JS        @Loop
 
-   ADD    ECX, 8
-   JS    @Loop
+        EMMS
 
-   EMMS
+@PrepSingleLoop:
+        MOV       ECX, EBX
+        SHR       EBX, 4
+        SHL       EBX, 4
+        SUB       ECX, EBX
+        JZ        @Exit
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @Exit
+        LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
+        NEG       ECX
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        MOV       EDI, Mask
 
-   MOV   EDI, Mask
+@SingleLoop:
+        MOV       EBX, [EAX + ECX * 4]
+        XOR       EBX, EDI
+        MOV       [EDX + ECX * 4], EBX
+        INC       ECX
+        JNZ       @SingleLoop
 
-  @SingleLoop:
-   MOV   EBX, [EAX + ECX * 4]
-   XOR   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @SingleLoop
-
-  @Exit:
-   POP   EDI
-   POP   EBX
+@Exit:
+        POP       EDI
+        POP       EBX
 end;
 
 procedure OrLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
@@ -998,170 +1224,167 @@ var
   QMask: Int64;
 
 asm
-   PUSH  EBX
-   PUSH  EDI
+        PUSH      EBX
+        PUSH      EDI
 
-   TEST  ECX, ECX
-   JZ    @Exit
+        TEST      ECX, ECX
+        JZ        @Exit
 
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
+        MOV       EBX, ECX
+        SHR       ECX, 4
+        SHL       ECX, 4
+        JZ        @PrepSingleLoop
 
-   SAR    ECX, 1
-   LEA    EAX, [EAX + ECX * 8]
-   LEA    EDX, [EDX + ECX * 8]
-   NEG    ECX
+        SAR       ECX, 1
+        LEA       EAX, [EAX + ECX * 8]
+        LEA       EDX, [EDX + ECX * 8]
+        NEG       ECX
 
-   MOVD       MM7, MASK
-   PUNPCKLDQ  MM7, MM7
-   MOVQ       QMask, MM7
-   EMMS
+        MOVD      MM7, MASK
+        PUNPCKLDQ MM7, MM7
+        MOVQ      QMask, MM7
+        EMMS
 
-  @Loop:
+@Loop:
+        MOVQ      MM0, [EAX + ECX * 8]
+        MOVQ      MM1, [EAX + ECX * 8 + 8]
+        MOVQ      MM2, [EAX + ECX * 8 + 16]
+        MOVQ      MM3, [EAX + ECX * 8 + 24]
+        MOVQ      MM4, [EAX + ECX * 8 + 32]
+        MOVQ      MM5, [EAX + ECX * 8 + 40]
+        MOVQ      MM6, [EAX + ECX * 8 + 48]
+        MOVQ      MM7, [EAX + ECX * 8 + 56]
 
-   MOVQ   MM0, [EAX + ECX * 8]
-   MOVQ   MM1, [EAX + ECX * 8 + 8]
-   MOVQ   MM2, [EAX + ECX * 8 + 16]
-   MOVQ   MM3, [EAX + ECX * 8 + 24]
-   MOVQ   MM4, [EAX + ECX * 8 + 32]
-   MOVQ   MM5, [EAX + ECX * 8 + 40]
-   MOVQ   MM6, [EAX + ECX * 8 + 48]
-   MOVQ   MM7, [EAX + ECX * 8 + 56]
+        POR       MM0, QMask
+        POR       MM1, QMask
+        POR       MM2, QMask
+        POR       MM3, QMask
+        POR       MM4, QMask
+        POR       MM5, QMask
+        POR       MM6, QMask
+        POR       MM7, QMask
 
-   POR   MM0, QMask
-   POR   MM1, QMask
-   POR   MM2, QMask
-   POR   MM3, QMask
-   POR   MM4, QMask
-   POR   MM5, QMask
-   POR   MM6, QMask
-   POR   MM7, QMask
+        MOVQ      [EDX + ECX * 8], MM0
+        MOVQ      [EDX + ECX * 8 + 8], MM1
+        MOVQ      [EDX + ECX * 8 + 16], MM2
+        MOVQ      [EDX + ECX * 8 + 24], MM3
+        MOVQ      [EDX + ECX * 8 + 32], MM4
+        MOVQ      [EDX + ECX * 8 + 40], MM5
+        MOVQ      [EDX + ECX * 8 + 48], MM6
+        MOVQ      [EDX + ECX * 8 + 56], MM7
 
-   MOVQ   [EDX + ECX * 8], MM0
-   MOVQ   [EDX + ECX * 8 + 8], MM1
-   MOVQ   [EDX + ECX * 8 + 16], MM2
-   MOVQ   [EDX + ECX * 8 + 24], MM3
-   MOVQ   [EDX + ECX * 8 + 32], MM4
-   MOVQ   [EDX + ECX * 8 + 40], MM5
-   MOVQ   [EDX + ECX * 8 + 48], MM6
-   MOVQ   [EDX + ECX * 8 + 56], MM7
+        ADD       ECX, 8
+        JS        @Loop
 
-   ADD    ECX, 8
-   JS    @Loop
+        EMMS
 
-   EMMS
+@PrepSingleLoop:
+        MOV       ECX, EBX
+        SHR       EBX, 4
+        SHL       EBX, 4
+        SUB       ECX, EBX
+        JZ        @Exit
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @Exit
+        LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
+        NEG       ECX
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        MOV       EDI, Mask
 
-   MOV   EDI, Mask
+@SingleLoop:
+        MOV       EBX, [EAX + ECX * 4]
+        OR        EBX, EDI
+        MOV       [EDX + ECX * 4], EBX
+        INC       ECX
+        JNZ       @SingleLoop
 
-  @SingleLoop:
-   MOV   EBX, [EAX + ECX * 4]
-   OR   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @SingleLoop
-
-  @Exit:
-   POP   EDI
-   POP   EBX
+@Exit:
+        POP       EDI
+        POP       EBX
 end;
 
 procedure AndLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
   QMask: Int64;
-
 asm
-   PUSH  EBX
-   PUSH  EDI
+        PUSH      EBX
+        PUSH      EDI
 
-   TEST  ECX, ECX
-   JZ    @Exit
+        TEST      ECX, ECX
+        JZ        @Exit
 
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
+        MOV       EBX, ECX
+        SHR       ECX, 4
+        SHL       ECX, 4
+        JZ        @PrepSingleLoop
 
-   SAR    ECX, 1
-   LEA    EAX, [EAX + ECX * 8]
-   LEA    EDX, [EDX + ECX * 8]
-   NEG    ECX
+        SAR       ECX, 1
+        LEA       EAX, [EAX + ECX * 8]
+        LEA       EDX, [EDX + ECX * 8]
+        NEG       ECX
 
-   MOVD       MM7, MASK
-   PUNPCKLDQ  MM7, MM7
-   MOVQ       QMask, MM7
-   EMMS
+        MOVD      MM7, MASK
+        PUNPCKLDQ MM7, MM7
+        MOVQ      QMask, MM7
+        EMMS
 
-  @Loop:
+@Loop:
+        MOVQ      MM0, [EAX + ECX * 8]
+        MOVQ      MM1, [EAX + ECX * 8 + 8]
+        MOVQ      MM2, [EAX + ECX * 8 + 16]
+        MOVQ      MM3, [EAX + ECX * 8 + 24]
+        MOVQ      MM4, [EAX + ECX * 8 + 32]
+        MOVQ      MM5, [EAX + ECX * 8 + 40]
+        MOVQ      MM6, [EAX + ECX * 8 + 48]
+        MOVQ      MM7, [EAX + ECX * 8 + 56]
 
-   MOVQ   MM0, [EAX + ECX * 8]
-   MOVQ   MM1, [EAX + ECX * 8 + 8]
-   MOVQ   MM2, [EAX + ECX * 8 + 16]
-   MOVQ   MM3, [EAX + ECX * 8 + 24]
-   MOVQ   MM4, [EAX + ECX * 8 + 32]
-   MOVQ   MM5, [EAX + ECX * 8 + 40]
-   MOVQ   MM6, [EAX + ECX * 8 + 48]
-   MOVQ   MM7, [EAX + ECX * 8 + 56]
+        PAND      MM0, QMask
+        PAND      MM1, QMask
+        PAND      MM2, QMask
+        PAND      MM3, QMask
+        PAND      MM4, QMask
+        PAND      MM5, QMask
+        PAND      MM6, QMask
+        PAND      MM7, QMask
 
-   PAND   MM0, QMask
-   PAND   MM1, QMask
-   PAND   MM2, QMask
-   PAND   MM3, QMask
-   PAND   MM4, QMask
-   PAND   MM5, QMask
-   PAND   MM6, QMask
-   PAND   MM7, QMask
+        MOVQ      [EDX + ECX * 8], MM0
+        MOVQ      [EDX + ECX * 8 + 8], MM1
+        MOVQ      [EDX + ECX * 8 + 16], MM2
+        MOVQ      [EDX + ECX * 8 + 24], MM3
+        MOVQ      [EDX + ECX * 8 + 32], MM4
+        MOVQ      [EDX + ECX * 8 + 40], MM5
+        MOVQ      [EDX + ECX * 8 + 48], MM6
+        MOVQ      [EDX + ECX * 8 + 56], MM7
 
-   MOVQ   [EDX + ECX * 8], MM0
-   MOVQ   [EDX + ECX * 8 + 8], MM1
-   MOVQ   [EDX + ECX * 8 + 16], MM2
-   MOVQ   [EDX + ECX * 8 + 24], MM3
-   MOVQ   [EDX + ECX * 8 + 32], MM4
-   MOVQ   [EDX + ECX * 8 + 40], MM5
-   MOVQ   [EDX + ECX * 8 + 48], MM6
-   MOVQ   [EDX + ECX * 8 + 56], MM7
+        ADD       ECX, 8
+        JS        @Loop
 
-   ADD    ECX, 8
-   JS    @Loop
+        EMMS
 
-   EMMS
+@PrepSingleLoop:
+        MOV       ECX, EBX
+        SHR       EBX, 4
+        SHL       EBX, 4
+        SUB       ECX, EBX
+        JZ        @Exit
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @Exit
+        LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
+        NEG       ECX
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        MOV       EDI, Mask
 
-   MOV   EDI, Mask
+@SingleLoop:
+        MOV       EBX, [EAX + ECX * 4]
+        AND       EBX, EDI
+        MOV       [EDX + ECX * 4], EBX
+        INC       ECX
+        JNZ       @SingleLoop
 
-  @SingleLoop:
-   MOV   EBX, [EAX + ECX * 4]
-   AND   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @SingleLoop
-
-  @Exit:
-   POP   EDI
-   POP   EBX
+@Exit:
+        POP       EDI
+        POP       EBX
 end;
 
 { Extended MMX versions}
@@ -1172,84 +1395,83 @@ var
   QMask: Int64;
 
 asm
-   PUSH  EBX
-   PUSH  EDI
+        PUSH      EBX
+        PUSH      EDI
 
-   TEST  ECX, ECX
-   JZ    @Exit
+        TEST      ECX, ECX
+        JZ        @Exit
 
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
+        MOV       EBX, ECX
+        SHR       ECX, 4
+        SHL       ECX, 4
+        JZ        @PrepSingleLoop
 
-   SAR    ECX, 1
-   LEA    EAX, [EAX + ECX * 8]
-   LEA    EDX, [EDX + ECX * 8]
-   NEG    ECX
+        SAR       ECX, 1
+        LEA       EAX, [EAX + ECX * 8]
+        LEA       EDX, [EDX + ECX * 8]
+        NEG       ECX
 
-   MOVD       MM7, MASK
-   PUNPCKLDQ  MM7, MM7
-   MOVQ       QMask, MM7
-   EMMS
+        MOVD      MM7, MASK
+        PUNPCKLDQ MM7, MM7
+        MOVQ      QMask, MM7
+        EMMS
 
-  @Loop:
+@Loop:
+        MOVQ      MM0, [EAX + ECX * 8]
+        MOVQ      MM1, [EAX + ECX * 8 + 8]
+        MOVQ      MM2, [EAX + ECX * 8 + 16]
+        MOVQ      MM3, [EAX + ECX * 8 + 24]
+        MOVQ      MM4, [EAX + ECX * 8 + 32]
+        MOVQ      MM5, [EAX + ECX * 8 + 40]
+        MOVQ      MM6, [EAX + ECX * 8 + 48]
+        MOVQ      MM7, [EAX + ECX * 8 + 56]
 
-   MOVQ   MM0, [EAX + ECX * 8]
-   MOVQ   MM1, [EAX + ECX * 8 + 8]
-   MOVQ   MM2, [EAX + ECX * 8 + 16]
-   MOVQ   MM3, [EAX + ECX * 8 + 24]
-   MOVQ   MM4, [EAX + ECX * 8 + 32]
-   MOVQ   MM5, [EAX + ECX * 8 + 40]
-   MOVQ   MM6, [EAX + ECX * 8 + 48]
-   MOVQ   MM7, [EAX + ECX * 8 + 56]
+        PXOR      MM0, QMask
+        PXOR      MM1, QMask
+        PXOR      MM2, QMask
+        PXOR      MM3, QMask
+        PXOR      MM4, QMask
+        PXOR      MM5, QMask
+        PXOR      MM6, QMask
+        PXOR      MM7, QMask
 
-   PXOR   MM0, QMask
-   PXOR   MM1, QMask
-   PXOR   MM2, QMask
-   PXOR   MM3, QMask
-   PXOR   MM4, QMask
-   PXOR   MM5, QMask
-   PXOR   MM6, QMask
-   PXOR   MM7, QMask
+        MOVNTQ    [EDX + ECX * 8], MM0
+        MOVNTQ    [EDX + ECX * 8 + 8], MM1
+        MOVNTQ    [EDX + ECX * 8 + 16], MM2
+        MOVNTQ    [EDX + ECX * 8 + 24], MM3
+        MOVNTQ    [EDX + ECX * 8 + 32], MM4
+        MOVNTQ    [EDX + ECX * 8 + 40], MM5
+        MOVNTQ    [EDX + ECX * 8 + 48], MM6
+        MOVNTQ    [EDX + ECX * 8 + 56], MM7
 
-   MOVNTQ   [EDX + ECX * 8], MM0
-   MOVNTQ   [EDX + ECX * 8 + 8], MM1
-   MOVNTQ   [EDX + ECX * 8 + 16], MM2
-   MOVNTQ   [EDX + ECX * 8 + 24], MM3
-   MOVNTQ   [EDX + ECX * 8 + 32], MM4
-   MOVNTQ   [EDX + ECX * 8 + 40], MM5
-   MOVNTQ   [EDX + ECX * 8 + 48], MM6
-   MOVNTQ   [EDX + ECX * 8 + 56], MM7
+        ADD       ECX, 8
+        JS        @Loop
 
-   ADD    ECX, 8
-   JS    @Loop
+        EMMS
 
-   EMMS
+@PrepSingleLoop:
+        MOV       ECX, EBX
+        SHR       EBX, 4
+        SHL       EBX, 4
+        SUB       ECX, EBX
+        JZ        @Exit
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @Exit
+        LEA   EAX, [EAX + ECX * 4]
+        LEA   EDX, [EDX + ECX * 4]
+        NEG   ECX
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        MOV   EDI, Mask
 
-   MOV   EDI, Mask
+@SingleLoop:
+        MOV   EBX, [EAX + ECX * 4]
+        XOR   EBX, EDI
+        MOV   [EDX + ECX * 4], EBX
+        INC   ECX
+        JNZ   @SingleLoop
 
-  @SingleLoop:
-   MOV   EBX, [EAX + ECX * 4]
-   XOR   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @SingleLoop
-
-  @Exit:
-   POP   EDI
-   POP   EBX
+@Exit:
+        POP   EDI
+        POP   EBX
 end;
 
 procedure OrLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
@@ -1258,84 +1480,83 @@ var
   QMask: Int64;
 
 asm
-   PUSH  EBX
-   PUSH  EDI
+        PUSH      EBX
+        PUSH      EDI
 
-   TEST  ECX, ECX
-   JZ    @Exit
+        TEST      ECX, ECX
+        JZ        @Exit
 
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
+        MOV       EBX, ECX
+        SHR       ECX, 4
+        SHL       ECX, 4
+        JZ        @PrepSingleLoop
 
-   SAR    ECX, 1
-   LEA    EAX, [EAX + ECX * 8]
-   LEA    EDX, [EDX + ECX * 8]
-   NEG    ECX
+        SAR       ECX, 1
+        LEA       EAX, [EAX + ECX * 8]
+        LEA       EDX, [EDX + ECX * 8]
+        NEG       ECX
 
-   MOVD       MM7, MASK
-   PUNPCKLDQ  MM7, MM7
-   MOVQ       QMask, MM7
-   EMMS
+        MOVD      MM7, MASK
+        PUNPCKLDQ MM7, MM7
+        MOVQ      QMask, MM7
+        EMMS
 
-  @Loop:
+@Loop:
+        MOVQ      MM0, [EAX + ECX * 8]
+        MOVQ      MM1, [EAX + ECX * 8 + 8]
+        MOVQ      MM2, [EAX + ECX * 8 + 16]
+        MOVQ      MM3, [EAX + ECX * 8 + 24]
+        MOVQ      MM4, [EAX + ECX * 8 + 32]
+        MOVQ      MM5, [EAX + ECX * 8 + 40]
+        MOVQ      MM6, [EAX + ECX * 8 + 48]
+        MOVQ      MM7, [EAX + ECX * 8 + 56]
 
-   MOVQ   MM0, [EAX + ECX * 8]
-   MOVQ   MM1, [EAX + ECX * 8 + 8]
-   MOVQ   MM2, [EAX + ECX * 8 + 16]
-   MOVQ   MM3, [EAX + ECX * 8 + 24]
-   MOVQ   MM4, [EAX + ECX * 8 + 32]
-   MOVQ   MM5, [EAX + ECX * 8 + 40]
-   MOVQ   MM6, [EAX + ECX * 8 + 48]
-   MOVQ   MM7, [EAX + ECX * 8 + 56]
+        POR       MM0, QMask
+        POR       MM1, QMask
+        POR       MM2, QMask
+        POR       MM3, QMask
+        POR       MM4, QMask
+        POR       MM5, QMask
+        POR       MM6, QMask
+        POR       MM7, QMask
 
-   POR   MM0, QMask
-   POR   MM1, QMask
-   POR   MM2, QMask
-   POR   MM3, QMask
-   POR   MM4, QMask
-   POR   MM5, QMask
-   POR   MM6, QMask
-   POR   MM7, QMask
+        MOVNTQ    [EDX + ECX * 8], MM0
+        MOVNTQ    [EDX + ECX * 8 + 8], MM1
+        MOVNTQ    [EDX + ECX * 8 + 16], MM2
+        MOVNTQ    [EDX + ECX * 8 + 24], MM3
+        MOVNTQ    [EDX + ECX * 8 + 32], MM4
+        MOVNTQ    [EDX + ECX * 8 + 40], MM5
+        MOVNTQ    [EDX + ECX * 8 + 48], MM6
+        MOVNTQ    [EDX + ECX * 8 + 56], MM7
 
-   MOVNTQ   [EDX + ECX * 8], MM0
-   MOVNTQ   [EDX + ECX * 8 + 8], MM1
-   MOVNTQ   [EDX + ECX * 8 + 16], MM2
-   MOVNTQ   [EDX + ECX * 8 + 24], MM3
-   MOVNTQ   [EDX + ECX * 8 + 32], MM4
-   MOVNTQ   [EDX + ECX * 8 + 40], MM5
-   MOVNTQ   [EDX + ECX * 8 + 48], MM6
-   MOVNTQ   [EDX + ECX * 8 + 56], MM7
+        ADD       ECX, 8
+        JS        @Loop
 
-   ADD    ECX, 8
-   JS    @Loop
+        EMMS
 
-   EMMS
+@PrepSingleLoop:
+        MOV       ECX, EBX
+        SHR       EBX, 4
+        SHL       EBX, 4
+        SUB       ECX, EBX
+        JZ        @Exit
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @Exit
+        LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
+        NEG       ECX
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        MOV       EDI, Mask
 
-   MOV   EDI, Mask
+@SingleLoop:
+        MOV       EBX, [EAX + ECX * 4]
+        OR        EBX, EDI
+        MOV       [EDX + ECX * 4], EBX
+        INC       ECX
+        JNZ       @SingleLoop
 
-  @SingleLoop:
-   MOV   EBX, [EAX + ECX * 4]
-   OR   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @SingleLoop
-
-  @Exit:
-   POP   EDI
-   POP   EBX
+@Exit:
+        POP       EDI
+        POP       EBX
 end;
 
 procedure AndLineEx_EMMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
@@ -1344,84 +1565,83 @@ var
   QMask: Int64;
 
 asm
-   PUSH  EBX
-   PUSH  EDI
+        PUSH      EBX
+        PUSH      EDI
 
-   TEST  ECX, ECX
-   JZ    @Exit
+        TEST      ECX, ECX
+        JZ        @Exit
 
-   MOV   EBX, ECX
-   SHR   ECX, 4
-   SHL   ECX, 4
-   JZ    @PrepSingleLoop
+        MOV       EBX, ECX
+        SHR       ECX, 4
+        SHL       ECX, 4
+        JZ        @PrepSingleLoop
 
-   SAR    ECX, 1
-   LEA    EAX, [EAX + ECX * 8]
-   LEA    EDX, [EDX + ECX * 8]
-   NEG    ECX
+        SAR       ECX, 1
+        LEA       EAX, [EAX + ECX * 8]
+        LEA       EDX, [EDX + ECX * 8]
+        NEG       ECX
 
-   MOVD       MM7, MASK
-   PUNPCKLDQ  MM7, MM7
-   MOVQ       QMask, MM7
-   EMMS
+        MOVD      MM7, MASK
+        PUNPCKLDQ MM7, MM7
+        MOVQ      QMask, MM7
+        EMMS
 
-  @Loop:
+@Loop:
+        MOVQ      MM0, [EAX + ECX * 8]
+        MOVQ      MM1, [EAX + ECX * 8 + 8]
+        MOVQ      MM2, [EAX + ECX * 8 + 16]
+        MOVQ      MM3, [EAX + ECX * 8 + 24]
+        MOVQ      MM4, [EAX + ECX * 8 + 32]
+        MOVQ      MM5, [EAX + ECX * 8 + 40]
+        MOVQ      MM6, [EAX + ECX * 8 + 48]
+        MOVQ      MM7, [EAX + ECX * 8 + 56]
 
-   MOVQ   MM0, [EAX + ECX * 8]
-   MOVQ   MM1, [EAX + ECX * 8 + 8]
-   MOVQ   MM2, [EAX + ECX * 8 + 16]
-   MOVQ   MM3, [EAX + ECX * 8 + 24]
-   MOVQ   MM4, [EAX + ECX * 8 + 32]
-   MOVQ   MM5, [EAX + ECX * 8 + 40]
-   MOVQ   MM6, [EAX + ECX * 8 + 48]
-   MOVQ   MM7, [EAX + ECX * 8 + 56]
+        PAND      MM0, QMask
+        PAND      MM1, QMask
+        PAND      MM2, QMask
+        PAND      MM3, QMask
+        PAND      MM4, QMask
+        PAND      MM5, QMask
+        PAND      MM6, QMask
+        PAND      MM7, QMask
 
-   PAND   MM0, QMask
-   PAND   MM1, QMask
-   PAND   MM2, QMask
-   PAND   MM3, QMask
-   PAND   MM4, QMask
-   PAND   MM5, QMask
-   PAND   MM6, QMask
-   PAND   MM7, QMask
+        MOVNTQ    [EDX + ECX * 8], MM0
+        MOVNTQ    [EDX + ECX * 8 + 8], MM1
+        MOVNTQ    [EDX + ECX * 8 + 16], MM2
+        MOVNTQ    [EDX + ECX * 8 + 24], MM3
+        MOVNTQ    [EDX + ECX * 8 + 32], MM4
+        MOVNTQ    [EDX + ECX * 8 + 40], MM5
+        MOVNTQ    [EDX + ECX * 8 + 48], MM6
+        MOVNTQ    [EDX + ECX * 8 + 56], MM7
 
-   MOVNTQ   [EDX + ECX * 8], MM0
-   MOVNTQ   [EDX + ECX * 8 + 8], MM1
-   MOVNTQ   [EDX + ECX * 8 + 16], MM2
-   MOVNTQ   [EDX + ECX * 8 + 24], MM3
-   MOVNTQ   [EDX + ECX * 8 + 32], MM4
-   MOVNTQ   [EDX + ECX * 8 + 40], MM5
-   MOVNTQ   [EDX + ECX * 8 + 48], MM6
-   MOVNTQ   [EDX + ECX * 8 + 56], MM7
+        ADD       ECX, 8
+        JS        @Loop
 
-   ADD    ECX, 8
-   JS    @Loop
+        EMMS
 
-   EMMS
+@PrepSingleLoop:
+        MOV       ECX, EBX
+        SHR       EBX, 4
+        SHL       EBX, 4
+        SUB       ECX, EBX
+        JZ        @Exit
 
-  @PrepSingleLoop:
-   MOV   ECX, EBX
-   SHR   EBX, 4
-   SHL   EBX, 4
-   SUB   ECX, EBX
-   JZ    @Exit
+        LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
+        NEG       ECX
 
-   LEA   EAX, [EAX + ECX * 4]
-   LEA   EDX, [EDX + ECX * 4]
-   NEG   ECX
+        MOV       EDI, Mask
 
-   MOV   EDI, Mask
+@SingleLoop:
+        MOV       EBX, [EAX + ECX * 4]
+        AND       EBX, EDI
+        MOV       [EDX + ECX * 4], EBX
+        INC       ECX
+        JNZ       @SingleLoop
 
-  @SingleLoop:
-   MOV   EBX, [EAX + ECX * 4]
-   AND   EBX, EDI
-   MOV   [EDX + ECX * 4], EBX
-   INC   ECX
-   JNZ   @SingleLoop
-
-  @Exit:
-   POP   EDI
-   POP   EBX
+@Exit:
+        POP       EDI
+        POP       EBX
 end;
 
 {$ENDIF}
@@ -1463,12 +1683,14 @@ begin
   Registry.Add(FID_ANDLINEEX, @AndLineEx_ASM);
   Registry.Add(FID_ORLINEEX, @OrLineEx_ASM);
   Registry.Add(FID_XORLINEEX, @XorLineEx_ASM);
+{$IFNDEF OMIT_MMX}
   Registry.Add(FID_ANDLINEEX, @AndLineEx_MMX, [ciMMX]);
   Registry.Add(FID_ORLINEEX, @OrLineEx_MMX, [ciMMX]);
   Registry.Add(FID_XORLINEEX, @XorLineEx_MMX, [ciMMX]);
   Registry.Add(FID_ANDLINEEX, @AndLineEx_EMMX, [ciEMMX]);
   Registry.Add(FID_ORLINEEX, @OrLineEx_EMMX, [ciEMMX]);
   Registry.Add(FID_XORLINEEX, @XorLineEx_EMMX, [ciEMMX]);
+{$ENDIF}
 {$ENDIF}
 
   Registry.RebindAll;
