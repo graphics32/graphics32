@@ -320,7 +320,8 @@ begin
       TCarbonDeviceContext(ACanvas.Handle).CGContext,
       GetCGRect(0, 0, FWidth, FHeight), imageRef);
   finally
-    CGImageRelease(ImageRef);
+    if Assigned(ImageRef) then
+      CGImageRelease(ImageRef);
   end;
 end;
 
