@@ -103,11 +103,11 @@ begin
   Result := A div FIXEDONE;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, ECX
+{$IFDEF TARGET_x86}
         SAR     EAX, 16
 {$ENDIF}
-{$IFDEF TARGET_x86}
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
         SAR     EAX, 16
 {$ENDIF}
 {$ENDIF}
@@ -119,12 +119,12 @@ begin
   Result := (A + $FFFF) div FIXEDONE;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, ECX
+{$IFDEF TARGET_x86}
         ADD     EAX, $0000FFFF
         SAR     EAX, 16
 {$ENDIF}
-{$IFDEF TARGET_x86}
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
         ADD     EAX, $0000FFFF
         SAR     EAX, 16
 {$ENDIF}
@@ -137,12 +137,12 @@ begin
   Result := (A + $7FFF) div FIXEDONE;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, ECX
+{$IFDEF TARGET_x86}
         ADD     EAX, $00007FFF
         SAR     EAX, 16
 {$ENDIF}
-{$IFDEF TARGET_x86}
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
         ADD     EAX, $00007FFF
         SAR     EAX, 16
 {$ENDIF}
@@ -155,12 +155,12 @@ begin
   Result := Round(A * FixedToFloat * B);
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, ECX
+{$IFDEF TARGET_x86}
         IMUL    EDX
         SHRD    EAX, EDX, 16
 {$ENDIF}
-{$IFDEF TARGET_x86}
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
         IMUL    EDX
         SHRD    EAX, EDX, 16
 {$ENDIF}
@@ -173,16 +173,16 @@ begin
   Result := Round(A / B * FixedOne);
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, ECX
-        MOV     ECX, EDX
+{$IFDEF TARGET_x86}
+        MOV     ECX, B
         CDQ
         SHLD    EDX, EAX, 16
         SHL     EAX, 16
         IDIV    ECX
 {$ENDIF}
-{$IFDEF TARGET_x86}
-        MOV     ECX, B
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
+        MOV     ECX, EDX
         CDQ
         SHLD    EDX, EAX, 16
         SHL     EAX, 16
@@ -201,10 +201,15 @@ begin
 asm
 {$IFDEF TARGET_x86}
         MOV     ECX, Value
-{$ENDIF}
         XOR     EAX, EAX
         MOV     EDX, 1
         IDIV    ECX
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        XOR     EAX, EAX
+        MOV     EDX, 1
+        IDIV    ECX
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -214,11 +219,15 @@ begin
   Result := Round(Value * FixedToFloat * Value);
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, Value
-{$ENDIF}
+{$IFDEF TARGET_x86}
         IMUL    EAX
         SHRD    EAX, EDX, 16
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+        IMUL    EAX
+        SHRD    EAX, EDX, 16
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -228,31 +237,7 @@ begin
   Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        PUSH    RBX
-        XOR     EAX, EAX
-        MOV     EBX, $40000000
-@SqrtLP1:
-        MOV     EDX, ECX
-        SUB     EDX, EBX
-        JL      @SqrtLP2
-        SUB     EDX, EAX
-        JL      @SqrtLP2
-        MOV     ECX,EDX
-        SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
-        JNZ     @SqrtLP1
-        SHL     EAX, 8
-        JMP     @SqrtLP3
-@SqrtLP2:
-        SHR     EAX, 1
-        SHR     EBX, 2
-        JNZ     @SqrtLP1
-        SHL     EAX, 8
-@SqrtLP3:
-        POP     RBX
-{$ELSE}
+{$IFDEF TARGET_x86}
         PUSH    EBX
         MOV     ECX, EAX
         XOR     EAX, EAX
@@ -277,6 +262,31 @@ asm
         SHL     EAX, 8
 @SqrtLP3:
         POP     EBX
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        XOR     EAX, EAX
+        MOV     EBX, $40000000
+@SqrtLP1:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        JL      @SqrtLP2
+        SUB     EDX, EAX
+        JL      @SqrtLP2
+        MOV     ECX,EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+        JMP     @SqrtLP3
+@SqrtLP2:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtLP1
+        SHL     EAX, 8
+@SqrtLP3:
+        POP     RBX
 {$ENDIF}
 {$ENDIF}
 end;
@@ -287,49 +297,7 @@ begin
   Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        PUSH    RBX
-        XOR     EAX, EAX
-        MOV     EBX, $40000000
-@SqrtHP1:
-        MOV     EDX, ECX
-        SUB     EDX, EBX
-        jb      @SqrtHP2
-        SUB     EDX, EAX
-        jb      @SqrtHP2
-        MOV     ECX,EDX
-        SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
-        JNZ     @SqrtHP1
-        JZ      @SqrtHP5
-@SqrtHP2:
-        SHR     EAX, 1
-        SHR     EBX, 2
-        JNZ     @SqrtHP1
-@SqrtHP5:
-        MOV     EBX, $00004000
-        SHL     EAX, 16
-        SHL     ECX, 16
-@SqrtHP3:
-        MOV     EDX, ECX
-        SUB     EDX, EBX
-        jb      @SqrtHP4
-        SUB     EDX, EAX
-        jb      @SqrtHP4
-        MOV     ECX, EDX
-        SHR     EAX, 1
-        OR      EAX, EBX
-        SHR     EBX, 2
-        JNZ     @SqrtHP3
-        JMP     @SqrtHP6
-@SqrtHP4:
-        SHR     EAX, 1
-        SHR     EBX, 2
-        JNZ     @SqrtHP3
-@SqrtHP6:
-        POP     RBX
-{$ELSE}
+{$IFDEF TARGET_x86}
         PUSH    EBX
         MOV     ECX, EAX
         XOR     EAX, EAX
@@ -372,6 +340,49 @@ asm
         JNZ     @SqrtHP3
 @SqrtHP6:
         POP     EBX
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        PUSH    RBX
+        XOR     EAX, EAX
+        MOV     EBX, $40000000
+@SqrtHP1:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        jb      @SqrtHP2
+        SUB     EDX, EAX
+        jb      @SqrtHP2
+        MOV     ECX,EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtHP1
+        JZ      @SqrtHP5
+@SqrtHP2:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtHP1
+@SqrtHP5:
+        MOV     EBX, $00004000
+        SHL     EAX, 16
+        SHL     ECX, 16
+@SqrtHP3:
+        MOV     EDX, ECX
+        SUB     EDX, EBX
+        jb      @SqrtHP4
+        SUB     EDX, EAX
+        jb      @SqrtHP4
+        MOV     ECX, EDX
+        SHR     EAX, 1
+        OR      EAX, EBX
+        SHR     EBX, 2
+        JNZ     @SqrtHP3
+        JMP     @SqrtHP6
+@SqrtHP4:
+        SHR     EAX, 1
+        SHR     EBX, 2
+        JNZ     @SqrtHP3
+@SqrtHP6:
+        POP     RBX
 {$ENDIF}
 {$ENDIF}
 end;
@@ -386,18 +397,18 @@ begin
   Result := Round(Y + (X - Y) * FixedToFloat * W);
 {$ELSE}
 asm
+{$IFDEF TARGET_x86}
+        SUB     EDX, ECX
+        IMUL    EDX
+        SHRD    EAX, EDX, 16
+        ADD     EAX, ECX
+{$ENDIF}
 {$IFDEF TARGET_x64}
         MOV     EAX, ECX
         SUB     EDX, R8D
         IMUL    EDX
         SHRD    EAX, EDX, 16
         ADD     EAX, R8D
-{$ENDIF}
-{$IFDEF TARGET_x86}
-        SUB     EDX, ECX
-        IMUL    EDX
-        SHRD    EAX, EDX, 16
-        ADD     EAX, ECX
 {$ENDIF}
 {$ENDIF}
 end;
@@ -413,15 +424,28 @@ begin
   Sin := S;
   Cos := C;
 {$ELSE}
+{$IFDEF TARGET_x64}
+var
+  Temp: DWord = 0;
+{$ENDIF}
 asm
+{$IFDEF TARGET_x86}
         FLD     Theta
         FSINCOS
         FSTP    DWORD PTR [EDX] // cosine
         FSTP    DWORD PTR [EAX] // sine
 {$ENDIF}
+{$IFDEF TARGET_x64}
+        MOVD    Temp, Theta
+        FLD     Temp
+        FSINCOS
+        FSTP    [Sin] // cosine
+        FSTP    [Cos] // sine
+{$ENDIF}
+{$ENDIF}
 end;
 
-procedure SinCos(const Theta, Radius : TFloat; out Sin, Cos: TFloat);
+procedure SinCos(const Theta, Radius: TFloat; out Sin, Cos: TFloat);
 {$IFDEF NATIVE_SINCOS}
 var
   S, C: Extended;
@@ -431,12 +455,24 @@ begin
   Cos := C * Radius;
 {$ELSE}
 asm
+{$IFDEF TARGET_x86}
         FLD     Theta
         FSINCOS
         FMUL    Radius
         FSTP    DWORD PTR [EDX] // cosine
         FMUL    Radius
         FSTP    DWORD PTR [EAX] // sine
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOVD    Temp, Theta
+        FLD     Temp
+        MOVD    Temp, Radius
+        FSINCOS
+        FMUL    Temp
+        FSTP    [Cos]
+        FMUL    Temp
+        FSTP    [Sin]
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -446,12 +482,7 @@ begin
   Result := Sqrt(Sqr(X) + Sqr(Y));
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MULSS   XMM0, XMM0
-        MULSS   XMM1, XMM1
-        ADDSS   XMM0, XMM1
-        SQRTSS  XMM0, XMM0
-{$ELSE}
+{$IFDEF TARGET_x86}
         FLD     X
         FMUL    ST,ST
         FLD     Y
@@ -459,6 +490,12 @@ asm
         FADDP   ST(1),ST
         FSQRT
         FWAIT
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MULSS   XMM0, XMM0
+        MULSS   XMM1, XMM1
+        ADDSS   XMM0, XMM1
+        SQRTSS  XMM0, XMM0
 {$ENDIF}
 {$ENDIF}
 end;
@@ -497,9 +534,6 @@ begin
   J := (I - $3F800000) div 2 + $3F800000;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        SQRTSS  XMM0, XMM0
-{$ENDIF}
 {$IFDEF TARGET_x86}
         MOV     EAX, DWORD PTR Value
         SUB     EAX, $3F800000
@@ -507,6 +541,9 @@ asm
         ADD     EAX, $3F800000
         MOV     DWORD PTR [ESP - 4], EAX
         FLD     DWORD PTR [ESP - 4]
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        SQRTSS  XMM0, XMM0
 {$ENDIF}
 {$ENDIF}
 end;
@@ -525,9 +562,6 @@ begin
   Result := CHalf * (Result + Value / Result);
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        SQRTSS  XMM0, XMM0
-{$ENDIF}
 {$IFDEF TARGET_x86}
         MOV     EAX, Value
         SUB     EAX, $3F800000
@@ -538,6 +572,9 @@ asm
         FDIV    DWORD PTR [ESP - 4]
         FADD    DWORD PTR [ESP - 4]
         FMUL    CHalf
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        SQRTSS  XMM0, XMM0
 {$ENDIF}
 {$ENDIF}
 end;
@@ -601,46 +638,7 @@ begin
   Result := Round(Multiplicand * Multiplier / Divisor);
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, ECX        // Result will be negative or positive so set rounding direction
-        XOR     ECX, EDX        //  Negative: substract 1 in case of rounding
-        XOR     ECX, R8D        //  Positive: add 1
-
-        OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
-        JNS     @m1Ok           // minimizing branching
-        NEG     EAX
-@m1Ok:
-        OR      EDX, EDX
-        JNS     @m2Ok
-        NEG     EDX
-@m2Ok:
-        OR      R8D, R8D
-        JNS     @DivOk
-        NEG     R8D
-@DivOK:
-        MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
-
-        MOV     R9D, EDX        // Check for overflow, by comparing
-        SHL     R9D, 1          // 2 times the high-order 32 bits of the product (EDX)
-        CMP     R9D, R8D        // with the Divisor.
-        JAE     @Overfl         // If equal or greater than overflow with division anticipated
-
-        DIV     R8D             // Unsigned divide of product by Divisor
-
-        SUB     R8D, EDX        // Check if the result must be adjusted by adding or substracting
-        CMP     R8D, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
-        JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
-        INC     EAX             // no rounding needed; add 1 to result otherwise
-@NoAdd:
-        OR      ECX, EDX        // From unsigned operations back the to original sign of the result
-        JNS     @exit           // must be positive
-        NEG     EAX             // must be negative
-        JMP     @exit
-@Overfl:
-        OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
-                                //  and "zero-divide" return value
-@exit:
-{$ELSE}
+{$IFDEF TARGET_x86}
         PUSH    EBX             // Imperative save
         PUSH    ESI             // of EBX and ESI
 
@@ -675,15 +673,55 @@ asm
         INC     EAX             // no rounding needed; add 1 to result otherwise
 @NoAdd:
         OR      EBX, EDX        // From unsigned operations back the to original sign of the result
-        JNS     @exit           // must be positive
+        JNS     @Exit           // must be positive
         NEG     EAX             // must be negative
-        JMP     @exit
+        JMP     @Exit
 @Overfl:
         OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
                                 //  and "zero-divide" return value
-@exit:
+@Exit:
         POP     ESI             // Restore
         POP     EBX             // esi and EBX
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX        // Result will be negative or positive so set rounding direction
+        XOR     ECX, EDX        //  Negative: substract 1 in case of rounding
+        XOR     ECX, R8D        //  Positive: add 1
+
+        OR      EAX, EAX        // Make all operands positive, ready for unsigned operations
+        JNS     @m1Ok           // minimizing branching
+        NEG     EAX
+@m1Ok:
+        OR      EDX, EDX
+        JNS     @m2Ok
+        NEG     EDX
+@m2Ok:
+        OR      R8D, R8D
+        JNS     @DivOk
+        NEG     R8D
+@DivOK:
+        MUL     EDX             // Unsigned multiply (Multiplicand*Multiplier)
+
+        MOV     R9D, EDX        // Check for overflow, by comparing
+        SHL     R9D, 1          // 2 times the high-order 32 bits of the product (EDX)
+        CMP     R9D, R8D        // with the Divisor.
+        JAE     @Overfl         // If equal or greater than overflow with division anticipated
+
+        DIV     R8D             // Unsigned divide of product by Divisor
+
+        SUB     R8D, EDX        // Check if the result must be adjusted by adding or substracting
+        CMP     R8D, EDX        // 1 (*.5 -> nearest integer), by comparing the difference of
+        JA      @NoAdd          // Divisor and remainder with the remainder. If it is greater then
+        INC     EAX             // no rounding needed; add 1 to result otherwise
+@NoAdd:
+        OR      ECX, EDX        // From unsigned operations back the to original sign of the result
+        JNS     @Exit           // must be positive
+        NEG     EAX             // must be negative
+        JMP     @Exit
+@Overfl:
+        OR      EAX, -1         //  3 bytes alternative for MOV EAX,-1. Windows.MulDiv "overflow"
+                                //  and "zero-divide" return value
+@Exit:
 {$ENDIF}
 {$ENDIF}
 end;
@@ -703,12 +741,17 @@ begin
     Result := Result shl 1;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, Value
-{$ENDIF}
+{$IFDEF TARGET_x86}
         BSR     ECX, EAX
         SHR     EAX, CL
         SHL     EAX, CL
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+        BSR     ECX, EAX
+        SHR     EAX, CL
+        SHL     EAX, CL
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -721,16 +764,27 @@ begin
     Result := Result shl 1;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, Value
-{$ENDIF}
+{$IFDEF TARGET_x86}
         DEC     EAX
         JLE     @1
         BSR     ECX, EAX
         MOV     EAX, 2
         SHL     EAX, CL
         RET
-@1:     MOV     EAX, 1
+@1:
+        MOV     EAX, 1
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV     EAX, Value
+        DEC     EAX
+        JLE     @1
+        BSR     ECX, EAX
+        MOV     EAX, 2
+        SHL     EAX, CL
+        RET
+@1:
+        MOV     EAX, 1
+{$ENDIF}
 {$ENDIF}
 end;
 
@@ -742,14 +796,21 @@ begin
   Result := (A and B) + (A xor B) div 2;
 {$ELSE}
 asm
-{$IFDEF TARGET_x64}
-        MOV     EAX, A
-{$ENDIF}
+{$IFDEF TARGET_x86}
         MOV     ECX, EDX
         XOR     EDX, EAX
         SAR     EDX, 1
         AND     EAX, ECX
         ADD     EAX, EDX
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV     EAX, A
+        MOV     ECX, EDX
+        XOR     EDX, EAX
+        SAR     EDX, 1
+        AND     EAX, ECX
+        ADD     EAX, EDX
+{$ENDIF}
 {$ENDIF}
 end;
 
