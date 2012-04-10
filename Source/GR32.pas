@@ -5551,10 +5551,9 @@ begin
         Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
         StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
 
-        (Buffer.Backend as IDeviceContextSupport).DrawTo(
-          hDst,
-          MakeRect(X + DstRect.Left, Y + DstRect.Top, ClipRect.Right, ClipRect.Bottom),
-          MakeRect(0, 0, Buffer.Width, Buffer.Height)
+        (Buffer.Backend as IDeviceContextSupport).DrawTo(hDst,
+          MakeRect(X + DstRect.Left, Y + DstRect.Top, X + ClipRect.Right,
+          Y + ClipRect.Bottom), MakeRect(0, 0, Buffer.Width, Buffer.Height)
         );
       end;
     end;
