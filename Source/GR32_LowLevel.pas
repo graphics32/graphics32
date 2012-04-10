@@ -1204,7 +1204,7 @@ asm
         CMP       EDX, ESP                { sanity check #1 (SP = [SP]) }
         JNE       @Exit
         CMP       EDX, EAX                { sanity check #2 (P = this stack block) }
-        JNE       @@1
+        JNE       @Exit
         MOV       ESP, DWORD PTR [ESP+4]  { restore previous SP  }
 @Exit:
         PUSH      ECX                     { return to caller }
