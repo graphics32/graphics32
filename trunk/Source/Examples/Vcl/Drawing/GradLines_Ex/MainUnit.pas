@@ -151,7 +151,7 @@ const
   procedure AdvancePoint(var P, V: TVector2f; t: Single);
   begin
     { apply velocities }
-    P := VectorAdd(VectorScale(V, t))
+    P := VectorAdd(P, VectorScale(V, t));
 
     { reflect from walls }
     if P.X < 0 then
