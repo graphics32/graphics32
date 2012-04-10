@@ -67,7 +67,7 @@ type
     FWidth, FHeight: Cardinal;
     FProfile: CMProfileRef;
     FColorSpace: CGColorSpaceRef;
-    FContext, OldCanvasContext: CGContextRef;
+    FContext: CGContextRef;
     FCanvasHandle: TCarbonDeviceContext;
 
     { Functions to easely generate carbon structures }
@@ -245,7 +245,8 @@ begin
   { Creates a device context for our raw image area }
 
   FContext := CGBitmapContextCreate(FBits,
-   NewWidth, NewHeight, 8, Stride, FColorSpace, kCGImageAlphaNoneSkipFirst or kCGBitmapByteOrder32Little);
+   NewWidth, NewHeight, 8, Stride, FColorSpace,
+   kCGImageAlphaNoneSkipFirst or kCGBitmapByteOrder32Little);
 
   if FContext = nil then
     raise Exception.Create('[TLCLBackend.InitializeSurface] ERROR FContext = nil');
@@ -304,18 +305,23 @@ end;
 
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  ImageRef: CGImageRef;
 begin
-  {  CGContextDrawImage is also possible, but it doesn't flip the image }
-   
-  HIViewDrawCGImage(
-    TCarbonDeviceContext(ACanvas.Handle).CGContext,
-    GetCGRect(0, 0, FWidth, FHeight),
-    CGBitmapContextCreateImage(FContext));
-
   {$IFDEF VerboseGR32Carbon}
     WriteLn('[TLCLBackend.DoPaint]',
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
+
+  {  CGContextDrawImage is also possible, but it doesn't flip the image }
+  ImageRef := CGBitmapContextCreateImage(FContext);
+  try
+    HIViewDrawCGImage(
+      TCarbonDeviceContext(ACanvas.Handle).CGContext,
+      GetCGRect(0, 0, FWidth, FHeight), imageRef);
+  finally
+    CGImageRelease(ImageRef);
+  end;
 end;
 
 { IDeviceContextSupport }
@@ -455,7 +461,7 @@ begin
   if not FOwner.MeasuringMode then
     FCanvas.TextOut(X, Y, Text);
 
-  FOwner.Changed(DstRect);
+  FOwner.Changed;
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
@@ -469,7 +475,8 @@ begin
 
   UpdateFont;
 
-  LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text),
+    Length(Text), nil);
 end;
 
 procedure TLCLBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: string);

@@ -410,28 +410,37 @@ begin
   if GR32.IsRectEmpty(R) then Exit;
 {$IFDEF FPC}
   Brush := TBrush.Create;
-  Brush.Color := ColorToRGB(C1);
-  if C1 <> C2 then
-  begin
-    Brush.Bitmap := Graphics.TBitmap.Create;
-    with Brush.Bitmap do
-    begin
-      Height := 2;
-      Width := 2;
-      Canvas.Pixels[0,0] := C1;
-      Canvas.Pixels[1,0] := C2;
-      Canvas.Pixels[0,1] := C2;
-      Canvas.Pixels[1,1] := C1;
-    end;
+  try
     Brush.Color := ColorToRGB(C1);
+    if C1 <> C2 then
+    begin
+      Brush.Bitmap := Graphics.TBitmap.Create;
+      with Brush.Bitmap do
+      begin
+        Height := 2;
+        Width := 2;
+        Canvas.Pixels[0,0] := C1;
+        Canvas.Pixels[1,0] := C2;
+        Canvas.Pixels[0,1] := C2;
+        Canvas.Pixels[1,1] := C1;
+      end;
+      Brush.Color := ColorToRGB(C1);
+    end;
+    OldBrush := TBrush.Create;
+    try
+      OldBrush.Assign(Canvas.Brush);
+      Canvas.Brush.Assign(Brush);
+      Canvas.FillRect(R);
+      Canvas.Brush.Assign(OldBrush);
+    finally
+      OldBrush.Free;
+    end;
+  finally
+    if Assigned(Brush.Bitmap) then
+      Brush.Bitmap.Free;
+
+    Brush.Free;
   end;
-  OldBrush := TBrush.Create;
-  OldBrush.Assign(Canvas.Brush);
-  Canvas.Brush.Assign(Brush);
-  Canvas.FillRect(R);
-  Canvas.Brush.Assign(OldBrush);
-  Brush.Free;
-  OldBrush.Free;
 {$ELSE}
   if C1 = C2 then
     Brush := CreateSolidBrush(ColorToRGB(C1))
