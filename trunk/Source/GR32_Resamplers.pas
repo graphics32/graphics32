@@ -1573,7 +1573,7 @@ begin
     for I := 0 to ClipW - 1 do
     begin
       SetLength(Result[I], 1);
-      Result[I][0].Pos := 0;
+      Result[I][0].Pos := SrcLo;
       Result[I][0].Weight := 256;
     end;
     Exit;
