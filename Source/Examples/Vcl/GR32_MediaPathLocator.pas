@@ -34,6 +34,9 @@ interface
 {$I GR32.inc}
 
 uses
+  {$IFDEF Darwin}
+    MacOSAll,
+  {$ENDIF}
   SysUtils;
 
 function GetMediaPath: TFileName;
