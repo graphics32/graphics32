@@ -2327,8 +2327,8 @@ begin
   ScaledDOversize := Round(FOversize * Scale);
   with GetViewportRect do
   begin
-    HScroll.Position := X * Scale - (Right - Left) / 2 + ScaledDOversize;
-    VScroll.Position := Y * Scale - (Bottom - Top) / 2 + ScaledDOversize;
+    HScroll.Position := X * Scale - (Right - Left) * 0.5 + ScaledDOversize;
+    VScroll.Position := Y * Scale - (Bottom - Top) * 0.5 + ScaledDOversize;
   end;
   DisableScrollUpdate := False;
   UpdateImage;
