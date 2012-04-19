@@ -182,7 +182,6 @@ begin
 
   FWidth := NewWidth;
   FHeight := NewHeight;
-
 end;
 
 procedure TLCLBackend.FinalizeSurface;
