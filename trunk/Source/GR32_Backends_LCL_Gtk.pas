@@ -39,7 +39,7 @@ interface
 uses
   LCLIntf, LCLType, types, Controls, SysUtils, Classes,
 {$IFDEF LCLGtk2}
-  gdk2, gtk2, gdk2pixbuf, glib2,
+  gdk2, gtk2, gdk2pixbuf, glib2, gtk2Def,
 {$ELSE}
   gdk, gtk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
@@ -217,10 +217,10 @@ procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
 begin
   WriteLn('[TLCLBackend.DoPaint]');
 
-{  gdk_pixbuf_render_to_drawable(
+  gdk_pixbuf_render_to_drawable(
     FPixbuf,
-    TDeviceContext(ACanvas.Handle).Drawable,
-    TDeviceContext(ACanvas.Handle).GetGC,
+    TGtkDeviceContext(ACanvas.Handle).Drawable,
+    TGtkDeviceContext(ACanvas.Handle).GC,
     0,                     // src_x
     0,                     // src_y
     0,                     // dest_x
@@ -229,7 +229,7 @@ begin
     ABuffer.Height,        // height
     GDK_RGB_DITHER_NORMAL, // dither
     0,                     // x_dither
-    0);    }                // y_dither
+    0);                    // y_dither
 end;
 
 { ITextSupport }
@@ -336,4 +336,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.
