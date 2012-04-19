@@ -62,7 +62,12 @@ type
 
     procedure FontChangedHandler(Sender: TObject);
   protected
-    FontHandle: HFont;
+    FFontHandle: HFont;
+    FBitmapInfo: TBitmapInfo;
+    FBitmapHandle: HBITMAP;
+
+    FOnFontChange: TNotifyEvent;
+    FOnCanvasChange: TNotifyEvent;
 
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -93,6 +98,15 @@ type
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
     procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtentW(const Text: Widestring): TSize;
+
+    { IDeviceContextSupport }
+    function GetHandle: HDC;
+
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
+
+    property Handle: HDC read GetHandle;
 
     { IFontSupport }
     function GetOnFontChange: TNotifyEvent;
@@ -136,6 +150,7 @@ end;
 
 destructor TLCLBackend.Destroy;
 begin
+  DeleteCanvas;
   FFont.Free;
 
   inherited;
@@ -143,7 +158,7 @@ end;
 
 procedure TLCLBackend.FontChangedHandler(Sender: TObject);
 begin
-  FontHandle := 0;
+  FFontHandle := 0;
 end;
 
 function TLCLBackend.GetBits: PColor32Array;
@@ -192,7 +207,20 @@ end;
 
 procedure TLCLBackend.Changed;
 begin
+  if FCanvas <> nil then FCanvas.Handle := Self.Handle;
   inherited;
+end;
+
+procedure TLCLBackend.CanvasChanged;
+begin
+  if Assigned(FOnCanvasChange) then
+    FOnCanvasChange(Self);
+end;
+
+procedure TLCLBackend.FontChanged;
+begin
+  if Assigned(FOnFontChange) then
+    FOnFontChange(Self);
 end;
 
 function TLCLBackend.Empty: Boolean;
@@ -314,34 +342,52 @@ end;
 
 procedure TLCLBackend.UpdateFont;
 begin
-  FontHandle := Font.Handle;
+  FFontHandle := Font.Handle;
 end;
 
 { ICanvasSupport }
 
 function TLCLBackend.GetCanvasChange: TNotifyEvent;
 begin
-  Exit;
+  Result := FOnCanvasChange;
 end;
 
 procedure TLCLBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
-  Exit;
+  FOnCanvasChange := Handler;
 end;
 
 function TLCLBackend.GetCanvas: TCanvas;
 begin
-  Exit;
+  if not Assigned(FCanvas) then
+  begin
+    FCanvas := TCanvas.Create;
+    FCanvas.Handle := Handle;
+    FCanvas.OnChange := CanvasChangedHandler;
+  end;
+  Result := FCanvas;
 end;
 
-procedure TLCLBackend.DeleteCanvas;
+function TLCLBackend.GetCanvasChange: TNotifyEvent;
 begin
-  Exit;
+  Result := FOnCanvasChange;
 end;
 
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
-  Exit;
+  Result := Assigned(FCanvas);
+end;
+
+{ IBitmapContextSupport }
+
+function TLCLBackend.GetBitmapHandle: THandle;
+begin
+  Result := FBitmapHandle;
+end;
+
+function TLCLBackend.GetBitmapInfo: TBitmapInfo;
+begin
+  Result := FBitmapInfo;
 end;
 
 initialization
@@ -350,4 +396,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.
