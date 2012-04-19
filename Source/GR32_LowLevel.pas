@@ -1216,7 +1216,7 @@ asm
         CMP       RDX, RSP                 { sanity check #1 (SP = [SP]) }
         JNE       @Exit
         CMP       RDX, RCX                 { sanity check #2 (P = this stack block) }
-        JNE       @@1
+        JNE       @Exit
         MOV       RSP, QWORD PTR [RSP + 8] { restore previous SP  }
  @Exit:
         PUSH      R8                       { return to caller }
