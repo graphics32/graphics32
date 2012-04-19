@@ -473,7 +473,7 @@ begin
 
 (*
 if not FOwner.MeasuringMode then
-    Windows.StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
+    LclIntf.StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
       DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
       SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
 *)
@@ -489,9 +489,9 @@ begin
   {$ENDIF}
 
 (*
-  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
+  LclIntf.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
     DstY, SRCCOPY);
-StretchDIBits(
+  LclIntf.StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,
     0, 0, FOwner.Width, FOwner.Height, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 *)
@@ -505,7 +505,7 @@ begin
   {$ENDIF}
 
 (*
-Windows.StretchBlt(hDst,
+  LclIntf.StretchBlt(hDst,
     DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Handle,
     SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
 *)

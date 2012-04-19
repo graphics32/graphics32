@@ -26,7 +26,7 @@ unit GR32_Backends_LCL_Win;
  * Andre Beckedorf - metaException
  * Andre@metaException.de
  *
- * Portions created by the Initial Developer are Copyright (C) 2007-2009
+ * Portions created by the Initial Developer are Copyright (C) 2007-2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):

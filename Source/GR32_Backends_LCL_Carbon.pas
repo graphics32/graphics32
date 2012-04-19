@@ -74,7 +74,6 @@ type
     function GetCarbonRect(Left, Top, Width, Height: Integer): MacOSAll.Rect;
     function GetCGRect(Left, Top, Width, Height: Integer): MacOSAll.CGRect; overload;
     function GetCGRect(SrcRect: TRect): MacOSAll.CGRect; overload;
-    procedure UpdateFont;
   protected
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -120,6 +119,7 @@ type
     procedure SetOnFontChange(Handler: TNotifyEvent);
     function GetFont: TFont;
     procedure SetFont(const Font: TFont);
+    procedure UpdateFont;
 
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
@@ -645,7 +645,7 @@ begin
     FCanvas.Handle := 0;
 
     FCanvas.Free;
-    
+
     FCanvas := nil;
   end;
 end;
