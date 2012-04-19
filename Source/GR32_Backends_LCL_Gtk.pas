@@ -215,9 +215,22 @@ end;
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 begin
-  WriteLn('[TLCLBackend.DoPaint]');
+//  WriteLn('[TLCLBackend.DoPaint]');
 
-  gdk_pixbuf_render_to_drawable(
+  gdk_draw_rgb_32_image(
+    TGtkDeviceContext(ACanvas.Handle).Drawable,
+    TGtkDeviceContext(ACanvas.Handle).GC,
+    0,
+    0,
+    ABuffer.Width,
+    ABuffer.Height,
+    GDK_RGB_DITHER_NORMAL,
+    Pguchar(FBits),
+    ABuffer.Width * 4
+  );
+
+(*
+gdk_pixbuf_render_to_drawable(
     FPixbuf,
     TGtkDeviceContext(ACanvas.Handle).Drawable,
     TGtkDeviceContext(ACanvas.Handle).GC,
@@ -227,9 +240,10 @@ begin
     0,                     // dest_y
     ABuffer.Width,         // width
     ABuffer.Height,        // height
-    GDK_RGB_DITHER_NORMAL, // dither
+    GDK_RGB_DITHER_NONE,  // dither
     0,                     // x_dither
     0);                    // y_dither
+*)
 end;
 
 { ITextSupport }
