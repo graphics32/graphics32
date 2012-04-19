@@ -60,14 +60,14 @@ type
     { Gtk specific variables }
     FPixbuf: PGdkPixBuf;
 
+    procedure CanvasChangedHandler(Sender: TObject);
     procedure FontChangedHandler(Sender: TObject);
+    procedure CanvasChanged;
+    procedure FontChanged;
   protected
     FFontHandle: HFont;
     FBitmapInfo: TBitmapInfo;
-    FBitmapHandle: HBITMAP;
-
-    FOnFontChange: TNotifyEvent;
-    FOnCanvasChange: TNotifyEvent;
+    FHDC: HDC;
 
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -156,11 +156,6 @@ begin
   inherited;
 end;
 
-procedure TLCLBackend.FontChangedHandler(Sender: TObject);
-begin
-  FFontHandle := 0;
-end;
-
 function TLCLBackend.GetBits: PColor32Array;
 begin
   Result := FBits;
@@ -174,6 +169,13 @@ begin
     not guaranteed which Stride Gdk will use. }
   Stride := NewWidth * 4;
   FBits := GetMem(NewHeight * Stride);
+
+  FHDC := CreateCompatibleDC(0);
+  if FHDC = 0 then
+  begin
+    FBits := nil;
+    raise Exception.Create('Can''t create compatible DC');
+  end;
 
   if FBits = nil then
     raise Exception.Create('Can''t allocate memory for the DIB');
@@ -201,8 +203,21 @@ begin
   FPixbuf := nil;
 {$ENDIF}
 
+  if FHDC <> 0 then DeleteDC(FHDC);
+  FHDC := 0;
+
   if Assigned(FBits) then FreeMem(FBits);
   FBits := nil;
+end;
+
+procedure TLCLBackend.DeleteCanvas;
+begin
+  if Assigned(FCanvas) then
+  begin
+    FCanvas.Handle := 0;
+    FCanvas.Free;
+    FCanvas := nil;
+  end;
 end;
 
 procedure TLCLBackend.Changed;
@@ -226,6 +241,22 @@ end;
 function TLCLBackend.Empty: Boolean;
 begin
   Result := (FPixBuf = nil) or (FBits = nil);
+end;
+
+procedure TLCLBackend.FontChangedHandler(Sender: TObject);
+begin
+  if FFontHandle <> 0 then
+  begin
+//    if Handle <> 0 then SelectObject(Handle, StockFont);
+    FFontHandle := 0;
+  end;
+
+  FontChanged;
+end;
+
+procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
+begin
+  CanvasChanged;
 end;
 
 { IPaintSupport }
@@ -335,6 +366,11 @@ begin
   Result := FFont;
 end;
 
+function TLCLBackend.GetHandle: HDC;
+begin
+  Result := FHDC;
+end;
+
 procedure TLCLBackend.SetFont(const Font: TFont);
 begin
   FFont.Assign(Font);
@@ -344,6 +380,43 @@ procedure TLCLBackend.UpdateFont;
 begin
   FFontHandle := Font.Handle;
 end;
+
+{ IDeviceContextSupport }
+
+procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
+begin
+  if FOwner.Empty then Exit;
+
+(*
+if not FOwner.MeasuringMode then
+    Windows.StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
+      DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
+      SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
+*)
+
+  FOwner.Changed(DstRect);
+end;
+
+procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
+begin
+  (*
+  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
+    DstY, SRCCOPY);
+StretchDIBits(
+    hDst, DstX, DstY, FOwner.Width, FOwner.Height,
+    0, 0, FOwner.Width, FOwner.Height, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+*)
+end;
+
+procedure TLCLBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
+begin
+(*
+Windows.StretchBlt(hDst,
+    DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Handle,
+    SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
+*)
+end;
+
 
 { ICanvasSupport }
 
@@ -368,26 +441,9 @@ begin
   Result := FCanvas;
 end;
 
-function TLCLBackend.GetCanvasChange: TNotifyEvent;
-begin
-  Result := FOnCanvasChange;
-end;
-
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
   Result := Assigned(FCanvas);
-end;
-
-{ IBitmapContextSupport }
-
-function TLCLBackend.GetBitmapHandle: THandle;
-begin
-  Result := FBitmapHandle;
-end;
-
-function TLCLBackend.GetBitmapInfo: TBitmapInfo;
-begin
-  Result := FBitmapInfo;
 end;
 
 initialization
@@ -396,4 +452,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.
