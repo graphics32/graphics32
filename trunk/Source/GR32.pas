@@ -1003,7 +1003,7 @@ uses
   GR32_Resamplers, GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
-  {$IFDEF Windows}
+  {$IFDEF LCLWin32}
     GR32_Backends_LCL_Win,
   {$ENDIF}
   {$IF defined(LCLGtk) or defined(LCLGtk2)}
