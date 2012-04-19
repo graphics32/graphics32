@@ -25,7 +25,7 @@ unit GR32_Backends_LCL_Gtk;
  * The Initial Developer of the Original Code is
  * Felipe Monteiro de Carvalho <felipemonteiro.carvalho@gmail.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2007-2009
+ * Portions created by the Initial Developer are Copyright (C) 2007-2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -35,6 +35,8 @@ unit GR32_Backends_LCL_Gtk;
 interface
 
 {$I GR32.inc}
+
+{$DEFINE VerboseGR32GTK}
 
 uses
   LCLIntf, LCLType, types, Controls, SysUtils, Classes,
@@ -74,7 +76,6 @@ type
 
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
-
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -113,8 +114,8 @@ type
     procedure SetOnFontChange(Handler: TNotifyEvent);
     function GetFont: TFont;
     procedure SetFont(const Font: TFont);
-
     procedure UpdateFont;
+
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
@@ -142,6 +143,10 @@ var
 
 constructor TLCLBackend.Create;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.Create]', ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   inherited;
 
   FFont := TFont.Create;
@@ -150,6 +155,11 @@ end;
 
 destructor TLCLBackend.Destroy;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.Destroy]',
+    ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   DeleteCanvas;
   FFont.Free;
 
@@ -165,6 +175,14 @@ procedure TLCLBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffe
 var
   Stride: Integer;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.InitializeSurface] BEGIN',
+     ' Self: ', IntToHex(PtrUInt(Self), 8),
+     ' NewWidth: ', NewWidth,
+     ' NewHeight: ', NewHeight
+     );
+  {$ENDIF}
+
   { We allocate our own memory for the image, because otherwise it's
     not guaranteed which Stride Gdk will use. }
   Stride := NewWidth * 4;
@@ -191,10 +209,19 @@ begin
   { clear the image }
   if ClearBuffer then
     FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
+
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.InitializeSurface] END');
+  {$ENDIF}
 end;
 
 procedure TLCLBackend.FinalizeSurface;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.FinalizeSurface]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
 {$IFDEF LCLGtk2}
   if Assigned(FPixbuf) then g_object_unref(FPixbuf);
   FPixbuf := nil;
@@ -208,16 +235,6 @@ begin
 
   if Assigned(FBits) then FreeMem(FBits);
   FBits := nil;
-end;
-
-procedure TLCLBackend.DeleteCanvas;
-begin
-  if Assigned(FCanvas) then
-  begin
-    FCanvas.Handle := 0;
-    FCanvas.Free;
-    FCanvas := nil;
-  end;
 end;
 
 procedure TLCLBackend.Changed;
@@ -274,7 +291,10 @@ end;
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 begin
-//  WriteLn('[TLCLBackend.DoPaint]');
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.DoPaint]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
 
   gdk_draw_rgb_32_image(
     TGtkDeviceContext(ACanvas.Handle).Drawable,
@@ -309,22 +329,61 @@ end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.Textout]', ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
 
+  if not Assigned(FCanvas) then GetCanvas;
+
+  UpdateFont;
+
+  if not FOwner.MeasuringMode then
+    FCanvas.TextOut(X, Y, Text);
+
+  FOwner.Changed;
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.Textout with ClipRect]', ' Self: ',
+      IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
 
+  if not Assigned(FCanvas) then GetCanvas;
+
+  UpdateFont;
+
+  LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text),
+    Length(Text), nil);
 end;
 
 procedure TLCLBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.Textout with Flags]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
 
+  if not Assigned(FCanvas) then GetCanvas;
+
+  UpdateFont;
+
+  LCLIntf.DrawText(FCanvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.TextExtent]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
 
+  if not Assigned(FCanvas) then GetCanvas;
+
+//  UpdateFont;
+
+  Result := FCanvas.TextExtent(Text);
 end;
 
 { Gtk uses UTF-8, so all W functions are converted to UTF-8 ones }
@@ -368,23 +427,48 @@ end;
 
 function TLCLBackend.GetHandle: HDC;
 begin
-  Result := FHDC;
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.GetHandle]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
+  if not Assigned(FCanvas) then GetCanvas;
+
+  Result := FCanvas.Handle;
 end;
 
 procedure TLCLBackend.SetFont(const Font: TFont);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.SetFont]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   FFont.Assign(Font);
 end;
 
 procedure TLCLBackend.UpdateFont;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.UpdateFont]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   FFontHandle := Font.Handle;
+  FFont.OnChange := FOnFontChange;
+
+  if Assigned(FCanvas) then FCanvas.Font := FFont;
 end;
 
 { IDeviceContextSupport }
 
 procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.Draw]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   if FOwner.Empty then Exit;
 
 (*
@@ -399,7 +483,12 @@ end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
-  (*
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.DrawTo]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
+(*
   Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
     DstY, SRCCOPY);
 StretchDIBits(
@@ -410,6 +499,11 @@ end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.DrawTo with rects]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
 (*
 Windows.StretchBlt(hDst,
     DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Handle,
@@ -422,16 +516,31 @@ end;
 
 function TLCLBackend.GetCanvasChange: TNotifyEvent;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.GetCanvasChange]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   Result := FOnCanvasChange;
 end;
 
 procedure TLCLBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.SetCanvasChange]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   FOnCanvasChange := Handler;
 end;
 
 function TLCLBackend.GetCanvas: TCanvas;
 begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.GetCanvas] BEGIN',
+     ' Self: ', IntToHex(PtrUInt(Self), 8));
+  {$ENDIF}
+
   if not Assigned(FCanvas) then
   begin
     FCanvas := TCanvas.Create;
@@ -441,9 +550,31 @@ begin
   Result := FCanvas;
 end;
 
+procedure TLCLBackend.DeleteCanvas;
+begin
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.DeleteCanvas]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8),
+     ' FCanvas: ', PtrUInt(FCanvas));
+  {$ENDIF}
+
+  if Assigned(FCanvas) then
+  begin
+    FCanvas.Handle := 0;
+    FCanvas.Free;
+    FCanvas := nil;
+  end;
+end;
+
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
   Result := Assigned(FCanvas);
+
+  {$IFDEF VerboseGR32GTK}
+    WriteLn('[TLCLBackend.CanvasAllocated]',
+     ' Self: ', IntToHex(PtrUInt(Self), 8),
+     ' FCanvas: ', PtrUInt(FCanvas));
+  {$ENDIF}
 end;
 
 initialization
@@ -452,4 +583,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.

@@ -25,7 +25,7 @@ unit GR32_Backends_LCL_Carbon;
  * The Initial Developer of the Original Code is
  * Felipe Monteiro de Carvalho <felipemonteiro.carvalho@gmail.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2007-2009
+ * Portions created by the Initial Developer are Copyright (C) 2007-2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -74,6 +74,7 @@ type
     function GetCarbonRect(Left, Top, Width, Height: Integer): MacOSAll.Rect;
     function GetCGRect(Left, Top, Width, Height: Integer): MacOSAll.CGRect; overload;
     function GetCGRect(SrcRect: TRect): MacOSAll.CGRect; overload;
+    procedure UpdateFont;
   protected
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
@@ -120,7 +121,6 @@ type
     function GetFont: TFont;
     procedure SetFont(const Font: TFont);
 
-    procedure UpdateFont;
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
@@ -176,8 +176,7 @@ var
   status: OSStatus;
 begin
   {$IFDEF VerboseGR32Carbon}
-    WriteLn('[TLCLBackend.Create]',
-     ' Self: ', IntToHex(PtrUInt(Self), 8));
+    WriteLn('[TLCLBackend.Create]', ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
   inherited;
