@@ -56,6 +56,7 @@ type
   private
     FFont: TFont;
     FCanvas: TCanvas;
+    FCanvasHandle: TGtkDeviceContext;
     FOnFontChange: TNotifyEvent;
     FOnCanvasChange: TNotifyEvent;
 
@@ -471,12 +472,10 @@ begin
 
   if FOwner.Empty then Exit;
 
-(*
-if not FOwner.MeasuringMode then
+  if not FOwner.MeasuringMode then
     LclIntf.StretchBlt(Handle, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left,
       DstRect.Bottom - DstRect.Top, hSrc, SrcRect.Left, SrcRect.Top,
       SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
-*)
 
   FOwner.Changed(DstRect);
 end;
@@ -488,9 +487,9 @@ begin
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
-(*
   LclIntf.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
     DstY, SRCCOPY);
+  (*
   LclIntf.StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,
     0, 0, FOwner.Width, FOwner.Height, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
@@ -504,10 +503,10 @@ begin
      ' Self: ', IntToHex(PtrUInt(Self), 8));
   {$ENDIF}
 
-(*
   LclIntf.StretchBlt(hDst,
     DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Handle,
     SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
+  (*
 *)
 end;
 
@@ -544,7 +543,10 @@ begin
   if not Assigned(FCanvas) then
   begin
     FCanvas := TCanvas.Create;
-    FCanvas.Handle := Handle;
+
+    FCanvasHandle := TGtkDeviceContext.Create;
+
+    FCanvas.Handle := HDC(FCanvasHandle);
     FCanvas.OnChange := CanvasChangedHandler;
   end;
   Result := FCanvas;
@@ -583,4 +585,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.
