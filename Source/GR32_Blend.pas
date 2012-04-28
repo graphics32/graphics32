@@ -114,7 +114,7 @@ var
 { Misc stuff }
   LightenReg: TLightenReg;
 
-function Lighten(C: TColor32; Amount: Integer): TColor32;
+function Lighten(C: TColor32; Amount: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Access to alpha composite functions corresponding to a combine mode }
 
@@ -440,11 +440,13 @@ end;
 function LightenReg_Pas(C: TColor32; Amount: Integer): TColor32;
 var
   r, g, b, a: Integer;
+  CX: TColor32Entry absolute C;
+  RX: TColor32Entry absolute Result;
 begin
-  a := C shr 24;
-  r := (C and $00FF0000) shr 16;
-  g := (C and $0000FF00) shr 8;
-  b := C and $000000FF;
+  a := CX.A;
+  r := CX.R;
+  g := CX.G;
+  b := CX.B;
 
   Inc(r, Amount);
   Inc(g, Amount);
@@ -454,7 +456,10 @@ begin
   if g > 255 then g := 255 else if g < 0 then g := 0;
   if b > 255 then b := 255 else if b < 0 then b := 0;
 
-  Result := a shl 24 + r shl 16 + g shl 8 + b;
+  RX.A := a;
+  RX.R := r;
+  RX.G := g;
+  RX.B := b;
 end;
 
 { Color algebra }
@@ -1787,26 +1792,6 @@ procedure EMMS_ASM;
 asm
 end;
 
-function LightenReg_ASM(C: TColor32; Amount: Integer): TColor32;
-var
-  r, g, b, a: Integer;
-begin
-  a := C shr 24;
-  r := (C and $00FF0000) shr 16;
-  g := (C and $0000FF00) shr 8;
-  b := C and $000000FF;
-
-  Inc(r, Amount);
-  Inc(g, Amount);
-  Inc(b, Amount);
-
-  if r > 255 then r := 255 else if r < 0 then r := 0;
-  if g > 255 then g := 255 else if g < 0 then g := 0;
-  if b > 255 then b := 255 else if b < 0 then b := 0;
-
-  Result := a shl 24 + r shl 16 + g shl 8 + b;
-end;
-
 procedure GenAlphaTable;
 var
   I: Integer;
@@ -2409,27 +2394,35 @@ end;
 function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32;
 asm
 {$IFDEF TARGET_X86}
-        MOVD    MM1, EDX
-        MOVD    MM0, EAX
-        MOVQ    MM2, MM1
-        PSLLW   MM2, 8
-        POR     MM2, MM1
-        PSLLW   MM2, 8
-        POR     MM2, MM1
-        PADDUSB MM0, MM1
-        MOVD    EAX, MM0
+        MOVD    MM0,EAX
+        TEST    EDX,EDX
+        JL      @1
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PADDUSB MM0,MM1
+        MOVD    EAX,MM0
+        RET
+@1:     NEG     EDX
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PSUBUSB MM0,MM1
+        MOVD    EAX,MM0
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
-        MOVD    MM1, EDX
-        MOVD    MM0, ECX
-        MOVQ    MM2, MM1
-        PSLLW   MM2, 8
-        POR     MM2, MM1
-        PSLLW   MM2, 8
-        POR     MM2, MM1
-        PADDUSB MM0, MM1
-        MOVD    EAX, MM0
+        MOVD    MM0,ECX
+        TEST    EDX,EDX
+        JL      @1
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PADDUSB MM0,MM1
+        MOVD    EAX,MM0
+        RET
+@1:     NEG     EDX
+        IMUL    EDX,$010101
+        MOVD    MM1,EDX
+        PSUBUSB MM0,MM1
+        MOVD    EAX,MM0
 {$ENDIF}
 end;
 
@@ -3524,27 +3517,35 @@ end;
 function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32;
 asm
 {$IFDEF TARGET_X86}
-        MOVD    XMM1, EDX
-        MOVD    XMM0, EAX
-        MOVQ    XMM2, XMM1
-        PSLLW   XMM2, 8
-        POR     XMM2, XMM1
-        PSLLW   XMM2, 8
-        POR     XMM2, XMM1
-        PADDUSB XMM0, XMM1
-        MOVD    EAX, XMM0
+        MOVD    XMM0,EAX
+        TEST    EDX,EDX
+        JL      @1
+        IMUL    EDX,$010101
+        MOVD    XMM1,EDX
+        PADDUSB XMM0,XMM1
+        MOVD    EAX,XMM0
+        RET
+@1:     NEG     EDX
+        IMUL    EDX,$010101
+        MOVD    XMM1,EDX
+        PSUBUSB XMM0,XMM1
+        MOVD    EAX,XMM0
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
-        MOVD    XMM1, EDX
-        MOVD    XMM0, ECX
-        MOVQ    XMM2, XMM1
-        PSLLW   XMM2, 8
-        POR     XMM2, XMM1
-        PSLLW   XMM2, 8
-        POR     XMM2, XMM1
-        PADDUSB XMM0, XMM1
-        MOVD    EAX, XMM0
+        MOVD    XMM0,ECX
+        TEST    EDX,EDX
+        JL      @1
+        IMUL    EDX,$010101
+        MOVD    XMM1,EDX
+        PADDUSB XMM0,XMM1
+        MOVD    EAX,XMM0
+        RET
+@1:     NEG     EDX
+        IMUL    EDX,$010101
+        MOVD    XMM1,EDX
+        PSUBUSB XMM0,XMM1
+        MOVD    EAX,XMM0
 {$ENDIF}
 end;
 
@@ -3735,23 +3736,8 @@ end;
 { Misc stuff }
 
 function Lighten(C: TColor32; Amount: Integer): TColor32;
-var
-  r, g, b, a: Integer;
 begin
-  a := C shr 24;
-  r := (C and $00FF0000) shr 16;
-  g := (C and $0000FF00) shr 8;
-  b := C and $000000FF;
-
-  Inc(r, Amount);
-  Inc(g, Amount);
-  Inc(b, Amount);
-
-  if r > 255 then r := 255 else if r < 0 then r := 0;
-  if g > 255 then g := 255 else if g < 0 then g := 0;
-  if b > 255 then b := 255 else if b < 0 then b := 0;
-
-  Result := a shl 24 + r shl 16 + g shl 8 + b;
+  Result := LightenReg(C, Amount);
 end;
 
 procedure MakeMergeTables;
@@ -3876,7 +3862,7 @@ begin
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_ASM, []);
+  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas, []);   // no ASM version available
 {$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
