@@ -129,6 +129,25 @@ type
     property Bits: PIntegerArray read GetBits;
   end;
 
+  TFloatMap = class(TCustomMap)
+  private
+    FBits: TArrayOfFloat;
+    function GetValPtr(X, Y: Integer): PFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValue(X, Y: Integer): TFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    procedure SetValue(X, Y: Integer; const Value: TFloat); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetBits: PFloatArray;
+  protected
+    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
+  public
+    destructor Destroy; override;
+    function Empty: Boolean; override;
+    procedure Clear; overload;
+    procedure Clear(FillValue: TFloat); overload;
+    property ValPtr[X, Y: Integer]: PFloat read GetValPtr;
+    property Value[X, Y: Integer]: TFloat read GetValue write SetValue; default;
+    property Bits: PFloatArray read GetBits;
+  end;
+
 implementation
 
 uses
@@ -556,6 +575,62 @@ begin
 end;
 
 procedure TIntegerMap.SetValue(X, Y: Integer; const Value: Integer);
+begin
+  FBits[X + Y * Width] := Value;
+end;
+
+{ TFloatMap }
+
+procedure TFloatMap.ChangeSize(var Width, Height: Integer; NewWidth,
+  NewHeight: Integer);
+begin
+  SetLength(FBits, NewWidth * NewHeight);
+  Width := NewWidth;
+  Height := NewHeight;
+end;
+
+procedure TFloatMap.Clear;
+begin
+  FillChar(FBits[0], Width * Height, 0);
+  Changed;
+end;
+
+procedure TFloatMap.Clear(FillValue: TFloat);
+var
+  Index: Integer;
+begin
+  for Index := 0 to Width * Height - 1 do
+    FBits[Index] := FillValue;
+  Changed;
+end;
+
+destructor TFloatMap.Destroy;
+begin
+  FBits := nil;
+  inherited;
+end;
+
+function TFloatMap.Empty: Boolean;
+begin
+  Result := not Assigned(FBits);
+end;
+
+function TFloatMap.GetBits: PFloatArray;
+begin
+  Result := @FBits[0];
+end;
+
+function TFloatMap.GetValPtr(X, Y: Integer): PFloat;
+begin
+  Result := @FBits[X + Y * Width];
+end;
+
+function TFloatMap.GetValue(X, Y: Integer): TFloat;
+begin
+  Result := FBits[X + Y * Width];
+end;
+
+procedure TFloatMap.SetValue(X, Y: Integer; const Value: TFloat);
 begin
   FBits[X + Y * Width] := Value;
 end;
