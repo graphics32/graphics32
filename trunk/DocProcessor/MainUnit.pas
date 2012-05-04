@@ -12,65 +12,66 @@ uses
 
 type
   TMainForm = class(TForm)
+    bClose: TButton;
+    bCompile: TButton;
+    bOpen: TButton;
+    bParseMissing: TButton;
+    bProcess: TButton;
+    bSaveProjectInfo: TButton;
+    bTransform: TButton;
+    cbBrokenLinks: TCheckBox;
+    cbIncludeAlphabetClasses: TCheckBox;
+    cbOpenAfterProcess: TCheckBox;
+    cbProjectName: TComboBox;
+    edCHMCompiler: TEdit;
+    edProjectDirectory: TEdit;
+    edProjectTitle: TEdit;
+    edVersionString: TEdit;
+    lblCompiler: TLabel;
     lblProgress: TLabel;
-    Log: TMemo;
-    pnlLog: TPanel;
-    pnlProgress: TPanel;
-    Progress: TProgressBar;
-    pnlControl: TPanel;
-    pnlProjectInfo: TPanel;
-    lblVersionString: TLabel;
-    lblProjectTitle: TLabel;
     lblProjectDirectory: TLabel;
     lblProjectFileName: TLabel;
-    pnlProjectInfoHead: TPanel;
-    edVersionString: TEdit;
-    edProjectTitle: TEdit;
-    edProjectDirectory: TEdit;
-    cbProjectName: TComboBox;
+    lblProjectTitle: TLabel;
+    lblVersionString: TLabel;
+    Log: TMemo;
     pnlCompiler: TPanel;
-    lblCompiler: TLabel;
-    edCHMCompiler: TEdit;
     pnlCompilerHead: TPanel;
-    pnlTransComp: TPanel;
-    bProcess: TButton;
-    pnlTransCompHead: TPanel;
-    bTransform: TButton;
-    bCompile: TButton;
-    cbOpenAfterProcess: TCheckBox;
-    cbIncludeAlphabetClasses: TCheckBox;
-    cbBrokenLinks: TCheckBox;
+    pnlControl: TPanel;
+    pnlLog: TPanel;
     pnlMisc: TPanel;
     pnlMiscHead: TPanel;
-    bParseMissing: TButton;
-    bOpen: TButton;
-    bClose: TButton;
-    bSaveProjectInfo: TButton;
-    procedure edProjectDirectoryChange(Sender: TObject);
-    procedure bProcessClick(Sender: TObject);
+    pnlProgress: TPanel;
+    pnlProjectInfo: TPanel;
+    pnlProjectInfoHead: TPanel;
+    pnlTransComp: TPanel;
+    pnlTransCompHead: TPanel;
+    Progress: TProgressBar;
     procedure FormCreate(Sender: TObject);
-    procedure bTransformClick(Sender: TObject);
-    procedure bCompileClick(Sender: TObject);
-    procedure bOpenClick(Sender: TObject);
-    procedure bParseMissingClick(Sender: TObject);
-    procedure bCloseClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure cbProjectNameChange(Sender: TObject);
+    procedure bCloseClick(Sender: TObject);
+    procedure bCompileClick(Sender: TObject);
+    procedure bOpenClick(Sender: TObject);
+    procedure bParseMissingClick(Sender: TObject);
+    procedure bProcessClick(Sender: TObject);
     procedure bSaveProjectInfoClick(Sender: TObject);
+    procedure bTransformClick(Sender: TObject);
+    procedure cbProjectNameChange(Sender: TObject);
     procedure cbProjectNameClick(Sender: TObject);
+    procedure edProjectDirectoryChange(Sender: TObject);
     procedure edProjectTitleChange(Sender: TObject);
+    procedure edCHMCompilerChange(Sender: TObject);
   public
-    ProjectDir: string;
-    SourceDir: string;
-    CompiledDir: string;
-    StyleFile: string;
-    procedure LoadProject(const projName: string);
+    ProjectDir: TFileName;
+    SourceDir: TFileName;
+    CompiledDir: TFileName;
+    StyleFile: TFileName;
+    procedure LoadProject(const ProjName: TFileName);
     procedure SaveProject;
-    function StartTransforming: boolean;
+    function StartTransforming: Boolean;
     procedure StartCompile;
-    procedure WriteProject(const FileName: string);
+    procedure WriteProject(const FileName: TFileName);
   end;
 
 var
@@ -84,21 +85,21 @@ implementation
 
 {$R *.DFM}
 
-function DeleteDirectoryTree(dir: string): boolean;
+function DeleteDirectoryTree(Dir: string): Boolean;
 var
-  len: integer;
+  len: Integer;
   shfo : TSHFileOpStruct;
 begin
-  result := false;
-  len := length(dir);
-  if (len > 0) and (dir[len] = '\') then dir[len] := #0;
-  if not DirectoryExists(dir) then exit;
+  Result := False;
+  len := Length(Dir);
+  if (len > 0) and (Dir[len] = '\') then Dir[len] := #0;
+  if not DirectoryExists(Dir) then Exit;
   fillChar(shfo, sizeof(shfo), 0);
   shfo.Wnd := 0;
   shfo.wFunc := FO_DELETE;
-  shfo.pFrom := PChar(dir);
+  shfo.pFrom := PChar(Dir);
   shfo.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
-  result := SHFileOperation(shfo) = 0;
+  Result := SHFileOperation(shfo) = 0;
 end;
 
 procedure LogAdd(const S: string);
@@ -136,6 +137,12 @@ begin
       Lines[Lines.Count - 1] := S;
 end;
 
+procedure TMainForm.edCHMCompilerChange(Sender: TObject);
+begin
+  bCompile.Enabled := FileExists(edCHMCompiler.Text);
+  edProjectTitleChange(Sender);
+end;
+
 procedure TMainForm.edProjectDirectoryChange(Sender: TObject);
 begin
   ProjectDir := edProjectDirectory.Text;
@@ -157,7 +164,7 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  i, activeItem: integer;
+  i, ActiveItem: Integer;
   sValue: string;
 begin
   edProjectDirectoryChange(Self);
@@ -167,14 +174,14 @@ begin
   with TIniFile.Create(ExePath + 'properties.ini') do
   try
     i := 1;
-    while ValueExists('Projects', 'ProjectName' + inttostr(i)) do
+    while ValueExists('Projects', 'ProjectName' + IntToStr(i)) do
     begin
-      sValue := ReadString('Projects', 'ProjectName' + inttostr(i), '');
+      sValue := ReadString('Projects', 'ProjectName' + IntToStr(i), '');
       if sValue <> '' then cbProjectName.Items.Add(sValue);
-      inc(i);
+      Inc(i);
     end;
     DelphiSourceFolder := ReadString('Settings', 'DelphiSourceFolder', '');
-    activeItem := ReadInteger('Settings', 'ActiveProject', 0);
+    ActiveItem := ReadInteger('Settings', 'ActiveProject', 0);
   finally
     Free;
   end;
@@ -187,15 +194,17 @@ begin
     LoadProject(paramstr(2)+ '.ini')
   else if (cbProjectName.Items.Count > 0) then
   begin
-    if (activeItem < cbProjectName.Items.Count) and
-      fileExists(ExePath + cbProjectName.Items[activeItem] + '.ini') then
-        LoadProject(cbProjectName.Items[activeItem] + '.ini')
+    if (ActiveItem < cbProjectName.Items.Count) and
+      fileExists(ExePath + cbProjectName.Items[ActiveItem] + '.ini') then
+        LoadProject(cbProjectName.Items[ActiveItem] + '.ini')
     else if fileExists(ExePath + cbProjectName.Items[0] + '.ini') then
         LoadProject(cbProjectName.Items[0] + '.ini')
     else LoadProject('properties.ini');
   end else
     LoadProject('properties.ini');
   ActiveControl := bProcess;
+
+  bCompile.Enabled := FileExists(edCHMCompiler.Text);
 
   if ParamCount > 2 then
   begin
@@ -218,7 +227,7 @@ end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
-  i: integer;
+  i: Integer;
 begin
   CanClose := true;
   if not NoGUI and bSaveProjectInfo.Enabled and
@@ -228,8 +237,8 @@ begin
   try
     WriteInteger('Settings', 'ActiveProject', cbProjectName.ItemIndex);
     if sectionExists('Projects') then EraseSection('Projects');
-    for i := 0 to cbProjectName.Items.Count -1 do
-      WriteString('Projects', 'ProjectName' + inttostr(i+1), cbProjectName.Items[i]);
+    for i := 0 to cbProjectName.Items.Count - 1 do
+      WriteString('Projects', 'ProjectName' + IntToStr(i + 1), cbProjectName.Items[i]);
   finally
     Free;
   end;
@@ -258,17 +267,17 @@ begin
   end;
 end;
 
-procedure TMainForm.LoadProject(const projName: string);
+procedure TMainForm.LoadProject(const ProjName: TFileName);
 var
   Ini: TIniFile;
   i: Integer;
   SValue: string;
 begin
-  Ini := TIniFile.Create(ExePath + projName);
+  Ini := TIniFile.Create(ExePath + ProjName);
   try
-    if projName = 'properties.ini' then
+    if ProjName = 'properties.ini' then
       SValue := Ini.ReadString('Settings', 'ProjectName', 'MyProjectName') else
-      SValue := ChangeFileExt(projName, '');
+      SValue := ChangeFileExt(ProjName, '');
     i := cbProjectName.Items.IndexOf(SValue);
     if i >= 0 then cbProjectName.ItemIndex := i
     else cbProjectName.Text := SValue;
@@ -287,13 +296,13 @@ begin
     Ini.Free;
   end;
   log.Lines.Clear;
-  bSaveProjectInfo.Enabled := false;
+  bSaveProjectInfo.Enabled := False;
 end;
 
 procedure TMainForm.bSaveProjectInfoClick(Sender: TObject);
 begin
   SaveProject;
-  bSaveProjectInfo.Enabled := false;
+  bSaveProjectInfo.Enabled := False;
 end;
 
 procedure TMainForm.cbProjectNameChange(Sender: TObject);
@@ -309,14 +318,14 @@ end;
 
 procedure TMainForm.bCloseClick(Sender: TObject);
 begin
-  close;
+  Close;
 end;
 
 procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   case Key of
-    VK_ESCAPE: close;
+    VK_ESCAPE: Close;
     VK_F7: bTransformClick(nil);
     VK_F8: bCompileClick(nil);
     VK_F9: bProcessClick(nil);
@@ -325,22 +334,29 @@ end;
 
 procedure TMainForm.bProcessClick(Sender: TObject);
 begin
-  if not StartTransforming then exit;
+  if not StartTransforming then Exit;
   LogAdd(#13#10);
   StartCompile;
 end;
 
 procedure TMainForm.StartCompile;
 begin
-  LogAdd('Starting HTML Help compiler...'#13#10);
-  RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + cbProjectName.Text + '.hhp"', Log);
-  LogAdd('Done.'#13#10);
+  if FileExists(edCHMCompiler.Text) then
+  begin
+    LogAdd('Starting HTML Help compiler...'#13#10);
+    RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + cbProjectName.Text + '.hhp"', Log);
+    LogAdd('Done.'#13#10);
+    LogNL;
+    if cbOpenAfterProcess.Checked then
+      bOpenClick(nil);
+    Exit;
+  end
+  else
+    LogAdd('HTML Help compiler not found! (' + edCHMCompiler.Text + ')'#13#10);
   LogNL;
-  if cbOpenAfterProcess.Checked then
-    bOpenClick(nil);
 end;
 
-function TMainForm.StartTransforming: boolean;
+function TMainForm.StartTransforming: Boolean;
 const
   cUpdateInterval = 500;
 var
@@ -349,7 +365,7 @@ var
   CompileTime: Cardinal;
   NextUpdate: Cardinal;
 begin
-  result := false;
+  Result := False;
   VersionString := edVersionString.Text;
   if ProjectDir = '' then Exit;
   Log.Clear;
@@ -431,7 +447,7 @@ begin
           Progress.Position := 0;
           LogNL;
           Log.Color := $E7E7FF;
-          exit;
+          Exit;
         end;
       end;
     end;
@@ -466,14 +482,14 @@ begin
       Log.Color := $E7FFFF;
     end;
 
-    result := true;
+    Result := true;
   finally
     Enabled := True;
     Project.Free;
   end;
 end;
 
-procedure TMainForm.WriteProject(const FileName: string);
+procedure TMainForm.WriteProject(const FileName: TFileName);
 var
   Lines: TStringList;
 begin
@@ -521,89 +537,90 @@ end;
 
 procedure TMainForm.bParseMissingClick(Sender: TObject);
 var
-  i,j,k,m: integer;
-  destUnitFolder, fn, s: string;
-  pasFiles, menuData: TStringList;
+  i, j, k, m: Integer;
+  DestUnitFolder, fn: TFileName;
+  s: string;
+  PasFiles, MenuData: TStringList;
 begin
-  if SourceDir = '' then exit;
+  if SourceDir = '' then Exit;
   DelphiSourceFolder := GetDelphiSourceFolder(DelphiSourceFolder);
-  if DelphiSourceFolder = '' then exit;
-  destUnitFolder := SourceDir + 'Units\';
+  if DelphiSourceFolder = '' then Exit;
+  DestUnitFolder := SourceDir + 'Units\';
 
   Log.Clear;
   Log.Color := clWhite;
 
-  if not DirectoryExists(destUnitFolder) then
+  if not DirectoryExists(DestUnitFolder) then
   begin
     LogAdd('Error: destination folder does not exist. '#13#10);
     Log.Color := $E7FFE7;
-    exit;
+    Exit;
   end;
   LogAdd('Starting Pas2Html ...'#13#10);
   LogNL;
   Application.ProcessMessages;
   j := 0;
-  pasFiles := GetFileList(DelphiSourceFolder, '*.pas');
+  PasFiles := GetFileList(DelphiSourceFolder, '*.pas');
   try
-    pasFiles.Sort;
-    for i := 0 to pasFiles.Count -1 do
+    PasFiles.Sort;
+    for i := 0 to PasFiles.Count -1 do
     begin
-      fn := ChangeFileExt(ExtractFileName(pasFiles[i]),'');
-      if DirectoryExists(destUnitFolder + fn) then
+      fn := ChangeFileExt(ExtractFileName(PasFiles[i]),'');
+      if DirectoryExists(DestUnitFolder + fn) then
       begin
         s := 'The file '+ fn + ' has already been imported into the help source.'+#10+
           'Do you want to replace the existing contents with this new file?';
         if MessageBox(self.handle, pchar(s),
           pchar(caption), MB_YESNO or MB_DEFBUTTON2) <> IDYES then continue;
-        DeleteFolder(destUnitFolder + fn);
+        DeleteFolder(DestUnitFolder + fn);
       end;
-      inc(j);
-      k := BuildNewUnit(ansiString(pasFiles[i]),
-        ansiString(destUnitFolder + fn + '\'), ProjectDir);
-      LogAdd('  added: ' + pasFiles[i] + #13#10);
+      Inc(j);
+      k := BuildNewUnit(AnsiString(PasFiles[i]),
+        AnsiString(DestUnitFolder + fn + '\'), ProjectDir);
+      LogAdd('  added: ' + PasFiles[i] + #13#10);
       if k >= 0 then
-        LogAdd('  (parse error at line ' + inttostr(k+1) +')'#13#10);
+        LogAdd('  (parse error at line ' + IntToStr(k+1) +')'#13#10);
       Application.ProcessMessages;
       //getting ready to update the menu list (ie saves redoing stuff) ...
-      pasFiles[i] := fn;
-      pasFiles.Objects[i] := pointer(1); //flags a new unit
+      PasFiles[i] := fn;
+      PasFiles.Objects[i] := pointer(1); //flags a new unit
     end;
     //now update the help file's dropdown menu list of units
     if (j > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
     begin
-      menuData := TStringList.Create;
+      MenuData := TStringList.Create;
       try
-        menuData.LoadFromFile(ProjectDir + 'Scripts\menu_data.js');
-        i := menuData.IndexOf('td_6 = "Additional Units"');
+        MenuData.LoadFromFile(ProjectDir + 'Scripts\menu_data.js');
+        i := MenuData.IndexOf('td_6 = "Additional Units"');
         if i > 0 then
         begin
-          while menuData[i] <> '' do inc(i);
+          while MenuData[i] <> '' do Inc(i);
           //now append to the list of additional units ...
-          pasFiles.Sort;
+          PasFiles.Sort;
           m := j;
-          for k := pasFiles.Count -1 downto 0 do
-            if assigned(pasFiles.Objects[k]) then
+          for k := PasFiles.Count -1 downto 0 do
+            if Assigned(PasFiles.Objects[k]) then
             begin
-              menuData.Insert(i, format('url_6_%d = "Units/%s/_Body.htm"',[m, pasFiles[k]]));
-              menuData.Insert(i, format('td_6_%d = "%s.pas"',[m, pasFiles[k]]));
+              MenuData.Insert(i, Format('url_6_%d = "Units/%s/_Body.htm"',[m, PasFiles[k]]));
+              MenuData.Insert(i, Format('td_6_%d = "%s.pas"',[m, PasFiles[k]]));
               dec(m);
             end;
           {$IFDEF DEBUGGING}
-          //menuData.SaveToFile('c:\temp\menu_data.txt');
+          //MenuData.SaveToFile('c:\temp\menu_data.txt');
           {$ELSE}
-          menuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
+          MenuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
           {$ENDIF}
           LogNL;
           LogAdd('  ''Additional Units'' menu updated.' +#13#10);
         end;
       finally
-        menuData.Free;
+        MenuData.Free;
       end;
     end;
   finally
-    pasFiles.Free;
+    PasFiles.Free;
   end;
-  LogAdd(inttostr(j) +' units added.'#13#10);
+  LogAdd(IntToStr(j) +' units added.'#13#10);
   LogNL;
   LogAdd('... done'#13#10);
   Log.Color := $E7FFE7;
@@ -611,7 +628,7 @@ end;
 
 procedure TMainForm.edProjectTitleChange(Sender: TObject);
 begin
-  bSaveProjectInfo.Enabled := true;
+  bSaveProjectInfo.Enabled := True;
 end;
 
 end.
