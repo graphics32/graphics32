@@ -161,10 +161,10 @@ var
 begin
   // Setup some random factors:
   a := 0.01 + Random;
-  b := Random * Random * (PI * (20 * a)) - PI * (10 * a);
+  b := PI * 10 * a * (Random * Random * 2 - 1);
   c := Random - Random;
 
-  //We use the weightmap as TexB alpha, so we write that on the loop too
+  // We use the weightmap as TexB alpha, so we write that on the loop too
   D := @TexBImg.Bitmap.Bits[0];
   WImg := @WeightmapImg.Bitmap.Bits[0];
   for J := 0 to 255 do
