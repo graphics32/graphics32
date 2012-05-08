@@ -635,7 +635,7 @@ end;
 function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 {$IFDEF PUREPASCAL}
 begin
-  Result := Round(Multiplicand * Multiplier / Divisor);
+  Result := Int64(Multiplicand) * Int64(Multiplier) div Divisor;
 {$ELSE}
 asm
 {$IFDEF TARGET_x86}
