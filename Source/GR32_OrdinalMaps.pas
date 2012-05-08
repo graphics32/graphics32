@@ -591,7 +591,7 @@ end;
 
 procedure TFloatMap.Clear;
 begin
-  FillChar(FBits[0], Width * Height, 0);
+  FillChar(FBits[0], Width * Height * SizeOf(TFloat), 0);
   Changed;
 end;
 
