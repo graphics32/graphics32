@@ -39,9 +39,9 @@ interface
 
 uses
   {$IFDEF FPC} LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Image,
-  GR32_Transforms, GR32_Resamplers, GR32_Layers, ExtCtrls, StdCtrls, Buttons,
-  ComCtrls, Grids, GR32_RangeBars;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ComCtrls, Grids,
+  ExtCtrls, StdCtrls, Buttons, GR32, GR32_Image, GR32_Transforms,
+  GR32_Resamplers, GR32_Layers, GR32_RangeBars;
 
 type
   TOpType = (opNone, opTranslate, opScale, opRotate, opSkew);
@@ -170,9 +170,9 @@ type
     SrcRubberBandLayer: TRubberBandLayer;
     Operation: TOpRecs;
     Current: ^TOpRec;
-    AT: TAffineTransformation;
-    PT: TProjectiveTransformation;
-    TT: TTransformation;
+    AffineTransformation: TAffineTransformation;
+    ProjectiveTransformation: TProjectiveTransformation;
+    Transformation: TTransformation;
     Vertices: array[0..3] of TPoint;
     Mode: TTransformMode;
     procedure ClearTransformations;
@@ -204,6 +204,9 @@ uses
   LazJPG,
 {$ENDIF}
   GR32_MediaPathLocator;
+
+const
+  CAccessMode: array [Boolean] of TPixelAccessMode = (pamSafe, pamWrap);
 
 function GetVal(Src: string; var Dst: Extended): Boolean;
 var
@@ -270,9 +273,9 @@ begin
   PrepareSource;
   ClearTransformations;
   ShowSettings(0);
-  AT := TAffineTransformation.Create;
-  PT := TProjectiveTransformation.Create;
-  TT := AT;
+  AffineTransformation := TAffineTransformation.Create;
+  ProjectiveTransformation := TProjectiveTransformation.Create;
+  Transformation := AffineTransformation;
   DoTransform;
 
   Application.OnIdle := AppEventsIdle;
@@ -307,7 +310,7 @@ begin
   Dst.BeginUpdate;
 
   Dst.Bitmap.Clear($00000000);
-  Transform(Dst.Bitmap, Src.Bitmap, TT);
+  Transform(Dst.Bitmap, Src.Bitmap, Transformation);
 
   Dst.EndUpdate;
   Dst.Invalidate;
@@ -317,7 +320,7 @@ begin
     // fill the string grid
     for j := 0 to 2 do
       for i := 0 to 2 do
-        StringGrid.Cells[i, j] := Format('%.3g', [AT.Matrix[i, j]]);
+        StringGrid.Cells[i, j] := Format('%.3g', [AffineTransformation.Matrix[i, j]]);
     StringGrid.Col := 3; // hide grid cursor
   end;
 end;
@@ -330,27 +333,27 @@ var
 begin
   if Mode = tmProjective then
   begin
-    PT.X0 := Vertices[0].X;
-    PT.Y0 := Vertices[0].Y;
-    PT.X1 := Vertices[1].X;
-    PT.Y1 := Vertices[1].Y;
-    PT.X2 := Vertices[2].X;
-    PT.Y2 := Vertices[2].Y;
-    PT.X3 := Vertices[3].X;
-    PT.Y3 := Vertices[3].Y;
+    ProjectiveTransformation.X0 := Vertices[0].X;
+    ProjectiveTransformation.Y0 := Vertices[0].Y;
+    ProjectiveTransformation.X1 := Vertices[1].X;
+    ProjectiveTransformation.Y1 := Vertices[1].Y;
+    ProjectiveTransformation.X2 := Vertices[2].X;
+    ProjectiveTransformation.Y2 := Vertices[2].Y;
+    ProjectiveTransformation.X3 := Vertices[3].X;
+    ProjectiveTransformation.Y3 := Vertices[3].Y;
   end
   else
   begin
     // affine mode
-    AT.Clear;
+    AffineTransformation.Clear;
     for I := 0 to 7 do
     begin
       Rec := Operation[I];
       case Rec.OpType of
-        opTranslate:  AT.Translate(Rec.Dx, Rec.Dy);
-        opScale:      AT.Scale(Rec.Sx, Rec.Sy);
-        opRotate:     AT.Rotate(Rec.Cx, Rec.Cy, Rec.Alpha);
-        opSkew:       AT.Skew(Rec.Fx, Rec.Fy);
+        opTranslate:  AffineTransformation.Translate(Rec.Dx, Rec.Dy);
+        opScale:      AffineTransformation.Scale(Rec.Sx, Rec.Sy);
+        opRotate:     AffineTransformation.Rotate(Rec.Cx, Rec.Cy, Rec.Alpha);
+        opSkew:       AffineTransformation.Skew(Rec.Fx, Rec.Fy);
       end;
       case Rec.OpType of
         opTranslate:  s := s + Format('Translate(%.3g, %.3g); ', [Rec.Dx, Rec.Dy]);
@@ -362,13 +365,13 @@ begin
     if Length(s) = 0 then s := 'Clear;';
     CodeString.Text := s;
   end;
-  TT.SrcRect := SrcRubberBandLayer.Location;
+  Transformation.SrcRect := SrcRubberBandLayer.Location;
 end;
 
 procedure TFormTranformExample.FormDestroy(Sender: TObject);
 begin
-  AT.Free;
-  PT.Free;
+  AffineTransformation.Free;
+  ProjectiveTransformation.Free;
 end;
 
 procedure TFormTranformExample.Button1Click(Sender: TObject);
@@ -555,7 +558,7 @@ begin
   if PageControl1.ActivePage = TabSheet1 then
   begin
     Mode := tmAffine;
-    TT := AT;
+    Transformation := AffineTransformation;
     ResamplerClassNamesList.Parent := TabSheet1;
     ResamplerLabel.Parent := TabSheet1;
     KernelClassNamesList.Parent := TabSheet1;
@@ -565,7 +568,7 @@ begin
   begin
     // set current transformation as projective
     Mode := tmProjective;
-    TT := PT;
+    Transformation := ProjectiveTransformation;
     InitVertices;
     ResamplerClassNamesList.Parent := TabSheet2;
     ResamplerLabel.Parent := TabSheet2;
@@ -698,6 +701,13 @@ begin
     begin
       Src.Bitmap.BeginUpdate;
       R := TCustomResamplerClass(ResamplerList[ItemIndex]).Create(Src.Bitmap);
+
+      if cbRepeat.Checked then
+      begin
+        Src.Bitmap.WrapMode := wmRepeat;
+        Src.Bitmap.Resampler.PixelAccessMode := CAccessMode[cbRepeat.Checked];
+      end;
+
       KernelClassNamesListChange(nil);
       Src.Bitmap.EndUpdate;
       Src.Bitmap.Changed;
@@ -763,11 +773,9 @@ begin
 end;
 
 procedure TFormTranformExample.cbRepeatClick(Sender: TObject);
-const
-  AccessMode: array [Boolean] of TPixelAccessMode = (pamSafe, pamWrap);
 begin
   Src.Bitmap.WrapMode := wmRepeat;
-  Src.Bitmap.Resampler.PixelAccessMode := AccessMode[cbRepeat.Checked];
+  Src.Bitmap.Resampler.PixelAccessMode := CAccessMode[cbRepeat.Checked];
   DoTransform;
 end;
 
