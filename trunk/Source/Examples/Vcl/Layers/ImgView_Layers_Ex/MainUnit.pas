@@ -40,10 +40,9 @@ interface
 
 uses
   {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus,
-  ExtCtrls, ExtDlgs, StdCtrls, GR32, GR32_Image, GR32_Layers,
-  GR32_RangeBars, GR32_Filters, GR32_Transforms, GR32_Resamplers,
-  Buttons;
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
+  ExtDlgs, StdCtrls, Buttons, GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
+  GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
 type
   TMainForm = class(TForm)
