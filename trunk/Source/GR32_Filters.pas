@@ -1133,6 +1133,7 @@ end;
 
 { MMX versions}
 
+{$IFNDEF OMIT_MMX}
 procedure XorLineEx_MMX(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
 //MMX version
 var
@@ -1644,6 +1645,7 @@ asm
         POP       EBX
 end;
 
+{$ENDIF}
 {$ENDIF}
 
 {CPU target and feature Function templates}
