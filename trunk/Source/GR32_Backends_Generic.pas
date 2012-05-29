@@ -288,6 +288,9 @@ end;
 {$IFDEF Windows}
 initialization
   TempPath := IncludeTrailingPathDelimiter(GetTempPath);
+
+finalization
+  TempPath := '';
 {$ENDIF}
 
 end.
