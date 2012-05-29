@@ -1802,11 +1802,11 @@ begin
   {$IFDEF HAS_NATIVEINT}
   alpha_ptr := Pointer(NativeUInt(AlphaTable) and (not $7));
   if NativeUInt(alpha_ptr) < NativeUInt(AlphaTable) then
-    alpha_ptr := Pointer(NativeUInt(alpha_ptr) + 8);
+    alpha_ptr := Pointer(NativeUInt(alpha_ptr) + 16);
   {$ELSE}
   alpha_ptr := Pointer(Cardinal(AlphaTable) and (not $7));
   if Cardinal(alpha_ptr) < Cardinal(AlphaTable) then
-    Inc(Cardinal(alpha_ptr), 8);
+    Inc(Cardinal(alpha_ptr), 16);
   {$ENDIF}
   P := alpha_ptr;
   for I := 0 to 255 do
