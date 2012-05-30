@@ -606,6 +606,9 @@ implementation
 uses
   GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
 
+resourcestring
+  RCStrInvalidSrcRect = 'Invalid SrcRect';
+
 const
   CAlbrecht2    : array [0..1] of Double = (5.383553946707251E-1, 4.616446053292749E-1);
   CAlbrecht3    : array [0..2] of Double = (3.46100822018625E-1,  4.97340635096738E-1,
@@ -1232,7 +1235,7 @@ begin
   if GR32.IsRectEmpty(R) then Exit;
   if (SrcRect.Left < 0) or (SrcRect.Top < 0) or (SrcRect.Right > Src.Width) or
     (SrcRect.Bottom > Src.Height) then
-    raise Exception.Create('Invalid SrcRect');
+    raise Exception.Create(RCStrInvalidSrcRect);
 
   SrcW := SrcRect.Right - SrcRect.Left;
   SrcH := SrcRect.Bottom - SrcRect.Top;

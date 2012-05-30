@@ -119,6 +119,13 @@ implementation
 uses
   GR32_Lowlevel, GR32_Blend, GR32_Transforms, GR32_Math, SysUtils;
 
+resourcestring
+  RCStrCantAllocateVectorMap = 'Can''t allocate VectorMap!';
+  RCStrBadFormat = 'Bad format - Photoshop .msh expected!';
+  RCStrFileNotFound = 'File not found!';
+  RCStrSrcIsEmpty = 'Src is empty!';
+  RCStrBaseIsEmpty = 'Base is empty!';
+
 { TVectorMap }
 
 function CombineVectorsReg(const A, B: TFixedVector; Weight: TFixed): TFixedVector;
@@ -148,7 +155,7 @@ begin
   SetLength(FVectors, NewWidth * NewHeight);
   if (NewWidth > 0) and (NewHeight > 0) then
   begin
-    if FVectors = nil then raise Exception.Create('Can''t allocate VectorMap!');
+    if FVectors = nil then raise Exception.Create(RCStrCantAllocateVectorMap);
     FillLongword(FVectors[0], NewWidth * NewHeight * 2, 0);
   end;
   Width := NewWidth;
@@ -315,7 +322,7 @@ begin
     Reset(MeshFile, 1);
     BlockRead(MeshFile, Header, SizeOf(TPSLiquifyMeshHeader));
     if Lowercase(String(Header.Ident)) <> Lowercase(MeshIdent) then
-      Exception.Create('Bad format - Photoshop .msh expected!');
+      Exception.Create(RCStrBadFormat);
     with Header do
     begin
       SetSize(Width, Height);
@@ -325,7 +332,7 @@ begin
   finally
     CloseFile(MeshFile);
   end
-    else Exception.Create('File not found!');
+    else Exception.Create(RCStrFileNotFound);
 end;
 
 procedure TVectorMap.Merge(DstLeft, DstTop: Integer; Src: TVectorMap; SrcRect: TRect);
@@ -338,8 +345,8 @@ var
   DstPtr : PFixedPointArray;
   SrcPtr : PFixedPoint;
 begin
-  if Src.Empty then Exception.Create('Src is empty!');
-  if Empty then Exception.Create('Base is empty!');
+  if Src.Empty then Exception.Create(RCStrSrcIsEmpty);
+  if Empty then Exception.Create(RCStrBaseIsEmpty);
   IntersectRect( SrcRect, Src.BoundsRect, SrcRect);
 
   DstRect.Left := DstLeft;

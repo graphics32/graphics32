@@ -226,7 +226,7 @@ begin
   FBitmapHandle := CreateDIBSection(0, FBitmapInfo, DIB_RGB_COLORS, Pointer(FBits), FMapHandle, 0);
 
   if FBits = nil then
-    raise Exception.Create('Can''t allocate the DIB handle');
+    raise Exception.Create(RCStrCannotAllocateDIBHandle);
 
   FHDC := CreateCompatibleDC(0);
   if FHDC = 0 then
@@ -234,7 +234,7 @@ begin
     DeleteObject(FBitmapHandle);
     FBitmapHandle := 0;
     FBits := nil;
-    raise Exception.Create('Can''t create compatible DC');
+    raise Exception.Create(RCStrCannotCreateCompatibleDC);
   end;
 
   if SelectObject(FHDC, FBitmapHandle) = 0 then
@@ -244,7 +244,7 @@ begin
     FHDC := 0;
     FBitmapHandle := 0;
     FBits := nil;
-    raise Exception.Create('Can''t select an object into DC');
+    raise Exception.Create(RCStrCannotSelectAnObjectIntoDC);
   end;
 end;
 

@@ -307,11 +307,19 @@ procedure SetBorderTransparent(ABitmap: TCustomBitmap32; ARect: TRect);
 var
   FullEdge: Boolean = True;
 
+resourcestring
+  RCStrReverseTransformationNotImplemented = 'Reverse transformation is not implemented in %s.';
+  RCStrForwardTransformationNotImplemented = 'Forward transformation is not implemented in %s.';
+  RCStrTopBottomCurveNil = 'Top or bottom curve is nil';
 
 implementation
 
 uses
   Math, GR32_LowLevel, GR32_Math, GR32_System, GR32_Bindings, GR32_Resamplers;
+
+resourcestring
+  RCStrSrcRectIsEmpty = 'SrcRect is empty!';
+  RCStrMappingRectIsEmpty = 'MappingRect is empty!';
 
 type
   {provides access to proctected members of TCustomBitmap32 by typecasting}
@@ -611,7 +619,7 @@ procedure TTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
   out SrcX, SrcY: TFloat);
 begin
   // ReverseTransformFloat is the top precisionlevel, all decendants must override at least this level!
-  raise ETransformNotImplemented.Create(Format('Reverse transformation is not implemented in %s.', [Self.Classname]));
+  raise ETransformNotImplemented.CreateFmt(RCStrReverseTransformationNotImplemented, [Self.Classname]);
 end;
 
 procedure TTransformation.ReverseTransformInt(DstX, DstY: Integer;
@@ -661,7 +669,7 @@ end;
 procedure TTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat);
 begin
   // TransformFloat is the top precisionlevel, all decendants must override at least this level!
-  raise ETransformNotImplemented.Create(Format('Forward transformation is not implemented in %s.', [Self.Classname]));
+  raise ETransformNotImplemented.CreateFmt(RCStrForwardTransformationNotImplemented, [Self.Classname]);
 end;
 
 procedure TTransformation.TransformInt(SrcX, SrcY: Integer; out DstX, DstY: Integer);
@@ -1288,7 +1296,7 @@ var
   L, DDist: TFloat;
 begin
   if not (Assigned(FTopCurve) and Assigned(FBottomCurve)) then
-    raise ETransformError.Create('Top or bottom curve is nil');
+    raise ETransformError.Create(RCStrTopBottomCurveNil);
 
   SetLength(FTopHypot, Length(FTopCurve));
   SetLength(FBottomHypot, Length(FBottomCurve));
@@ -1452,8 +1460,8 @@ end;
 
 procedure TRemapTransformation.PrepareTransform;
 begin
-  if IsRectEmpty(SrcRect) then raise Exception.Create('SrcRect is empty!');
-  if IsRectEmpty(FMappingRect) then raise Exception.Create('MappingRect is empty!');
+  if IsRectEmpty(SrcRect) then raise Exception.Create(RCStrSrcRectIsEmpty);
+  if IsRectEmpty(FMappingRect) then raise Exception.Create(RCStrMappingRectIsEmpty);
   with SrcRect do
   begin
     FSrcTranslationFloat.X := Left;

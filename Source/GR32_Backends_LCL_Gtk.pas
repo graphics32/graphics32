@@ -137,6 +137,10 @@ implementation
 uses
   GR32_LowLevel;
 
+resourcestring
+  RCStrCannotAllocateMemory = 'Can''t allocate memory for the DIB';
+  RCStrCannotAllocateThePixBuf = 'Can''t allocate the Pixbuf';
+
 var
   StockFont: TFont;
 
@@ -193,11 +197,11 @@ begin
   if FHDC = 0 then
   begin
     FBits := nil;
-    raise Exception.Create('Can''t create compatible DC');
+    raise Exception.Create(RCStrCannotCreateCompatibleDC);
   end;
 
   if FBits = nil then
-    raise Exception.Create('Can''t allocate memory for the DIB');
+    raise Exception.Create(RCStrCannotAllocateMemory);
 
   { We didn't pass a memory freeing function, so we will have to take
     care of that ourselves }
@@ -205,7 +209,7 @@ begin
    GDK_COLORSPACE_RGB, True, 8, NewWidth, NewHeight, Stride, nil, nil);
 
   if FPixbuf = nil then
-    raise Exception.Create('Can''t allocate the Pixbuf');
+    raise Exception.Create(RCStrCannotAllocateThePixBuf);
 
   { clear the image }
   if ClearBuffer then
@@ -585,4 +589,4 @@ initialization
 finalization
   StockFont.Free;
 
-end.
+end.
