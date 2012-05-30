@@ -1045,6 +1045,10 @@ type
 const
   ZERO_RECT: TRect = (Left: 0; Top: 0; Right: 0; Bottom: 0);
 
+resourcestring
+  RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
+  RCStrCannotSetSize = 'Can''t set size from ''%s''';
+  RCStrInpropriateBackend = 'Inpropriate Backend';
 
 { Color construction and conversion functions }
 
@@ -1803,7 +1807,7 @@ end;
 procedure TPlainInterfacedPersistent.BeforeDestruction;
 begin
   if RefCounted and (RefCount <> 0) then
-    raise Exception.Create('Unmatched reference counting.');
+    raise Exception.Create(RCStrUnmatchedReferenceCounting);
 
   inherited;
 end;
@@ -1915,7 +1919,7 @@ begin
   else if Source = nil then
     Result := SetSize(0, 0)
   else
-    raise Exception.Create('Can''t set size from ''' + Source.ClassName + '''');
+    raise Exception.CreateFmt(RCStrCannotSetSize, [Source.ClassName]);
 end;
 
 procedure TCustomMap.SetWidth(NewWidth: Integer);
@@ -2200,7 +2204,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
       if Supports(TargetBitmap.Backend, ICanvasSupport) then
         TGraphicAccess(SrcGraphic).Draw((TargetBitmap.Backend as ICanvasSupport).Canvas,
           MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height))
-      else raise Exception.Create('Inpropriate Backend');
+      else raise Exception.Create(RCStrInpropriateBackend);
 
       if ResetAlphaAfterDrawing then
         ResetAlpha;

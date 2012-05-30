@@ -96,6 +96,11 @@ uses
 var
   TempPath: TFileName;
 
+resourcestring
+  RCStrFailedToMapFile = 'Failed to map file';
+  RCStrFailedToCreateMapFile = 'Failed to create map file (%s)';
+  RCStrFailedToMapViewOfFile = 'Failed to map view of file.';
+
 function GetTempPath: TFileName;
 var
   PC: PChar;
@@ -162,7 +167,7 @@ begin
   FBits := MapViewOfFile(FMapHandle, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 
   if not Assigned(FBits) then
-    raise Exception.Create('Failed to map view of file.');
+    raise Exception.Create(RCStrFailedToMapViewOfFile);
 
   if ClearBuffer then
     FillLongword(FBits[0], NewWidth * NewHeight, clBlack32);
@@ -260,7 +265,7 @@ begin
     if MapFileHandle = INVALID_HANDLE_VALUE then
     begin
       if not IsTemporary then
-        raise Exception.Create('Failed to create map file (' + MapFileName + ')')
+        raise Exception.CreateFmt(RCStrFailedToCreateMapFile, [MapFileName])
       else
       begin
         // Reset and fall back to allocating in the system's paging file...
@@ -280,7 +285,7 @@ begin
   MapHandle := Windows.CreateFileMapping(MapFileHandle, nil, PAGE_READWRITE, 0, NewWidth * NewHeight * 4, nil);
 
   if MapHandle = 0 then
-    raise Exception.Create('Failed to map file');
+    raise Exception.Create(RCStrFailedToMapFile);
 end;
 
 {$ENDIF}

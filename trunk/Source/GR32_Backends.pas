@@ -122,6 +122,11 @@ procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
 
 procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TCustomBackend);
 
+resourcestring
+  RCStrCannotAllocateDIBHandle = 'Can''t allocate the DIB handle';
+  RCStrCannotCreateCompatibleDC = 'Can''t create compatible DC';
+  RCStrCannotSelectAnObjectIntoDC = 'Can''t select an object into DC';
+
 implementation
 
 uses

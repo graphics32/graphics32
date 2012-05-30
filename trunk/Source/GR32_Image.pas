@@ -575,6 +575,9 @@ type
 const
   DefaultRepaintOptimizerClass: TCustomRepaintOptimizerClass = TMicroTilesRepaintOptimizer;
 
+resourcestring
+  RCStrInvalidStageIndex = 'Invalid stage index';
+
 { TPaintStages }
 
 function TPaintStages.Add: PPaintStage;
@@ -608,7 +611,7 @@ var
   Count: Integer;
 begin
   if (Index < 0) or (Index > High(FItems)) then
-    raise EListError.Create('Invalid stage index');
+    raise EListError.Create(RCStrInvalidStageIndex);
   Count := Length(FItems) - Index - 1;
   if Count > 0 then
     Move(FItems[Index + 1], FItems[Index], Count * SizeOf(TPaintStage));
