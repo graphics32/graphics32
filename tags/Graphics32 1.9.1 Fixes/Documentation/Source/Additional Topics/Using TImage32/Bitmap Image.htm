@@ -1,0 +1,36 @@
+<html>
+<head>
+  
+<title>BitmapImage</title>
+  
+<link rel="stylesheet" href="../../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">A bitmap image is represented with a <a href="../../Units/GR32/Classes/TBitmap32/_Body.htm">TBitmap32</a> 
+  object and is stored in the <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/Bitmap.htm">Bitmap</a> 
+  property. Its scale and location within the control is determined by the following 
+  properties:</p>
+<p class="Body"><a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/BitmapAlign.htm">BitmapAlign</a> 
+  &#151; specifies if the bitmap image is positioned at the top-left corner of 
+  the control (baTopLeft), centered (baCenter), tiled (baTile) or it its exact 
+  location is determined by <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/OffsetHorz.htm">OffsetHorz</a> 
+  and <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/OffsetVert.htm">OffsetVert</a> 
+  properties;</p>
+<p class="Body"><a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/ScaleMode.htm">ScaleMode</a> 
+  &#151; indicates if the bitmap image is displayed with its original size (smNormal), 
+  stretched to fit the control's boundaries (smStretch), proportionally resized 
+  to fit the control's boundaries(smResize) or proportionally scaled using its 
+  <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/Scale.htm">Scale</a> 
+  property (smScale).</p>
+<p class="Code"><img src="../../../Images/img_015.gif" width="397" height="301" vspace="8"></p>
+<p class="Body">The bitmap image is combined with the back-buffer according to 
+  its <a href="../../Units/GR32/Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a> 
+  property. And the quality of its resampling is determined by the <a href="../../Units/GR32/Classes/TCustomBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
+  property. If its <a href="../../Units/GR32/Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a> 
+  is dmCustom, the bitmap will fire a series of <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnPixelCombine.htm">OnPixelCombine</a> 
+  events.</p>
+<p id="Hidden">[See Also] <a href="../../Units/GR32/Types/TDrawMode.htm">TDrawMode</a>, 
+  <a href="../../Units/GR32/Types/TStretchFilter.htm">TStretchFilter</a>, <a href="../../Examples.htm#Image32%20Example">Image32 
+  Example</a> </p>
+</body>
+</html>

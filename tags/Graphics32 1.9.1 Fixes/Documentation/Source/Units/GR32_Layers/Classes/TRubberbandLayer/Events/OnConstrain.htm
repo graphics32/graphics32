@@ -1,0 +1,32 @@
+<html>
+<head>
+<title>OnConstrain</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> OnConstrain: TRBConstrainEvent;</p>
+<p class="Decl"><b>type</b> TRBConstrainEvent = <b>procedure</b>(<br>
+&nbsp;&nbsp;Sender: TObject; <b><br>
+&nbsp;&nbsp;const</b> OldLocation: TFloatRect;<br>
+&nbsp;&nbsp;<b>var</b> NewLocation: TFloatRect; <br>
+&nbsp;&nbsp;DragState: TDragState;<br>
+&nbsp;&nbsp;Shift: TShiftState) <b>of</b> <b>object</b>;</p>
+<p class="Decl"><b>type</b> TDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, 
+  dsSizeB, dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);</p>
+<h2>Description</h2>
+<p class="Body">When <a href="../Properties/Options.htm">Options</a> contains <em>roConstrained</em> the <span class="EmptyRef">OnConstrain</span> event allows for constraining the size and position of the rubber band while it is being moved or resized using the mouse. This event 
+  is called only when the user clicks and drags the layer with the mouse, it is 
+  not generated when you set the <a href="../../TPositionedLayer/Properties/Location.htm">Location</a> 
+  property explicitly. It is called before <a href="OnResizing.htm">OnResizing</a> and proportional resizing (<em>roProportional</em> in <a href="../Properties/Options.htm">Options</a>).</p>
+<p class="Body"><span class="EmptyRef">OldLocation</span> specifies location of 
+  the layer before the user started dragging it.</p>
+<p class="Body"><span class="EmptyRef">NewLocation</span> determines the new location 
+  of the rubber band. You may change the coordinates to constrain to a certain given maximum or minimum. </p>
+<p class="Body">The <span class="EmptyRef">DragState</span> parameter indicates 
+  how the layer is being dragged/resized.</p>
+<p class="Body"><span class="EmptyRef">Shift</span> indicates the state of the 
+  Alt, Ctrl, and Shift keys.</p>
+<p id="hidden">[See also]: </p>
+</body>
+</html>

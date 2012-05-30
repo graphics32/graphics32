@@ -1,0 +1,23 @@
+<html>
+<head>
+<title>SetSize</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> SetSize(NewWidth, NewHeight: Integer): Boolean; 
+  <b>override</b>;</p>
+<p class="Decl"><b>procedure</b> SetSize(Source: TPersistent); <span class="Comment">// 
+  implemented in <a href="../../../../GR32/Classes/TCustomMap/_Body.htm">TCustomMap</a></span></p>
+<h2>Description</h2>
+<p class="Body">Call <span class="EmptyRef">SetSize</span> to set new dimensions 
+  of the bytemap. If one of the arguments is zero, the bytemap is considered empty 
+  and its <a href="../Properties/Bits.htm">Bits</a> property is set to <i>nil</i>.</p>
+<p class="Body">Calling <span class="EmptyRef">SetSize</span> works faster than 
+  changing both <a href="../../../../GR32/Classes/TCustomMap/Properties/Width.htm">Width</a> 
+  and <a href="../../../../GR32/Classes/TCustomMap/Properties/Height.htm">Height</a> 
+  properties. </p>
+<p class="Body">If you use another bitmap, byte map or control as an argument, 
+  the byte map will be sized to corresponding dimensions.</p>
+</body>
+</html>

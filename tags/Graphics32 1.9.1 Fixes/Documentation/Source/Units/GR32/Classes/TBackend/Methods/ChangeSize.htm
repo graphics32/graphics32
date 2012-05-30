@@ -1,0 +1,18 @@
+<html>
+<head>
+<title>ChangeSize</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><strong>procedure </strong>ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True);<strong> virtual; abstract;</strong></p>
+<h2>Description</h2>
+<p class="Body"><strong>ChangeSize</strong> shall initialize the surface with the dimensions of <strong>NewWidth</strong> x <strong>NewHeight</strong> both measured in pixels. Each pixel has to be 4 byte (ARGB) in size. The allocated memory has to be contiguous with the stride being the length of <strong>NewWidth</strong>. GR32 currently does not support stride lengths different from the width of the new surface. The pointer to the allocated memory has to be written to the protected member <strong>FBits</strong>. <br>
+The <strong>ClearBuffer</strong> parameter determines whether clearing the buffer is required or not.  </p>
+<p class="Body">Before tearing down the old surface <strong>ChangeSize</strong> needs to call the <a href="Changing.htm">Changing</a> method to indicate the destructive change. Finally it has to call <a href="../../TNotifiablePersistent/Methods/Changed.htm">Changed</a>.</p>
+<p class="Body"><strong>Width</strong> and <strong>Height</strong> shall contain the dimension of the new surface that was actually allocated. If the surface could not be allocated both parameter have to be zero.</p>
+<p class="Body"><strong>New back-end classes need to implement this method to do their internal allocation of memory for the surface.</strong></p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]: <a href="InitializeSurface.htm">InitializeSurface</a>, <a href="FinalizeSurface.htm">FinalizeSurface</a></p>
+</body>
+</html>

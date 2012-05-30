@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>StretchTransfer</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> BlendTransfer(<br>
+			Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <br>
+			DstX: Integer; <br>
+			DstY: Integer; <br>
+			DstClip: <a href="../../GR32/Types/Rectangle%20Types.htm">TRect</a>; <br>
+			SrcF: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <br>
+			SrcRectF: <a href="../../GR32/Types/Rectangle%20Types.htm">TRect</a>; <br>
+			SrcB: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <br>
+			SrcRectB: <a href="../../GR32/Types/Rectangle%20Types.htm">TRect</a>; <br>
+			BlendCallback: <a href="../../GR32_Blend/Types/TBlendReg.htm">TBlendReg</a>); <b>overload;<br>
+			</b></p>
+		<p class="Decl"><b>procedure</b> BlendTransfer(<br>
+			Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <br>
+			DstX: Integer; <br>
+			DstY: Integer; <br>
+			DstClip: <a href="../../GR32/Types/Rectangle%20Types.htm">TRect</a>; <br>
+			SrcF: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <br>
+			SrcRectF: TRect; <br>
+			SrcB: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <br>
+			SrcRectB: <a href="../../GR32/Types/Rectangle%20Types.htm">TRect</a>; <br>
+			BlendCallback: <a href="../../GR32_Blend/Types/TBlendRegEx.htm">TBlendRegEx</a>; <br>
+			MasterAlpha: Integer); <b>overload;</b></p>
+		<h2>Description</h2>
+		<p class="Body"><b>BlendTransfer</b> is a three parameter version of <a href="BlockTransfer.htm">BlockTransfer</a>. <b>SrcF</b> is blended with <b>SrcB</b> via the provided <b>BlendCallback </b>callback<b> </b>routine, and the resulting color is written to the destination. There are two versions, one supporting blend callbacks of type <a href="../../GR32_Blend/Types/TBlendReg.htm">TBlendReg</a>, and one supporting the extended <a href="../../GR32_Blend/Types/TBlendRegEx.htm">TBlendRegEx</a>. For the latter, the parameter <b>MasterAlpha</b> is passed when calling the extended blendcallback. Note that all blend and combine settings in the provided bitmap parameters are ignored.</p>
+		<p class="Body"></p>
+		<p id="hidden">[See Also] <a href="../../../Examples.htm#Texture%20Blend%20Example">Texture Blend Example</a>, <a href="StretchTransfer.htm">StretchTransfer</a></p>
+	</body>
+</html>

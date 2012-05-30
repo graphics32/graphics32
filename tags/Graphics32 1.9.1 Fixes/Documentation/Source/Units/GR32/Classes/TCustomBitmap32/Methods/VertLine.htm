@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>VertLine</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> VertLine(X, Y1, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+<p class="Decl"><b>procedure</b> VertLineS(X, Y1, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+<p class="Decl"><b>procedure</b> VertLineT(X, Y1, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+<p class="Decl"><b>procedure</b> VertLineTS(X, Y1, Y2: Integer; Value: <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+<p class="Decl"><b>procedure</b> VertLineTSP(X, Y1, Y2: Integer); </p>
+<h2>Description</h2>
+<p class="Body">Draws a vertical line from (<b>X</b>,<b>Y1</b>) to (<b>X</b>, 
+  <b>Y2</b>). The last point is included. </p>
+<p class="Body">These functions works faster compared to <a href="Line.htm">Line</a>. 
+  In versions with 'S' postfix necessary clipping to a bitmap coordinate range 
+  is provided. In versions without 'S', the <b>Y2 </b>value should be greater 
+  or equal to <b>Y1</b>. </p>
+<p class="Body"><span class="EmptyRef">VertLineTSP</span> supports line patterns.</p>
+<p id="hidden">[See also]: <a href="HorzLine.htm">HorzLine</a>, <a href="Line.htm">Line</a>, 
+  <a href="../../../../../Additional%20Topics/Line%20Patterns.htm">Line Patterns</a>, 
+  <a href="../../../../../Overview/Naming%20Conventions.htm">Naming Conventions</a></p>
+</body>
+</html>

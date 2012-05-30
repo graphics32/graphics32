@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>Create</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>constructor </b>Create(Owner: TCustomBitmap32; IsTemporary: Boolean = True; const MapFileName: string = '');<b> virtual;</b></p>
+<h2>Description</h2>
+<p class="Body">Creates and initializes an instance of <a href="../_Body.htm">TMMFBackend</a>.</p>
+<p class="Body">If <strong>Owner</strong> is specified the new back-end instance is automatically assigned to the <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> instance. The existing back-end of the bitmap instance will be replaced and surface data is transfered to the new back-end instance via the <a href="../../../../GR32/Classes/TBackend/Methods/Assign.htm">Assign</a> method.</p>
+<p class="Body"><strong>IsTemporary</strong> defines whether the allocated file should only be used for the life-cycle of the surface. </p>
+<p class="Body"><strong>MapFileName</strong> defines the filename of the file that should created or re-used as <a href="../../../../GR32_Backends_VCL/Classes/TGDIMMFBackend/_Body.htm">memory-mapped file</a>. Passing an empty string as <strong>MapFileName</strong> will result in using a part of the swap file for the surface. </p>
+<p class="Body">Setting <strong>IsTemporary</strong> to <strong>false</strong> while defining a <strong>MapFileName</strong> will result in a permanent file being created that can be re-used. </p>
+<p class="Body">For an usage example of the constructor please refer to the additional topic  <a href="../../../../../Additional Topics/Back-Ends.htm">Back-ends</a> in this documentation. </p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]: <a href="../../../../../Additional Topics/Back-Ends.htm">Back-ends</a> </p>
+</body>
+</html>

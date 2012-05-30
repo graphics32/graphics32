@@ -1,0 +1,19 @@
+<html>
+<head>
+<title>Color32ToRGB</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Color32ToRGB(Color32: TColor32; <strong>var</strong> R, G, B: Byte);</p>
+<p class="Decl"><b>procedure</b> Color32ToRGBA(Color32: TColor32; <strong>var</strong> R, G, B, A: Byte);</p>
+<p class="Body">Both procedures split the <strong>Color32</strong> parameter up into their respective components.</p>
+<p class="Body">These procedures are provided for convenience only. Use direct conversion in performance-critical parts of
+your code:</p>
+<p class="Code"> Alpha := Color32 <strong>shr</strong> 24;</p>
+<p class="Code">Red := (Color32 <strong>and</strong> $00FF0000) <strong>shr</strong> 16;</p>
+<p class="Code">Green := (Color32 <strong>and</strong> $0000FF00) <strong>shr</strong> 8;</p>
+<p class="Code">Blue := Color32 <strong>and</strong> $000000FF;<br>
+</p>
+</body>
+</html>

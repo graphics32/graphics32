@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>StretchTransfer</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> StretchTransfer(<br>
+  &nbsp;&nbsp;Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>;<br>
+  &nbsp;&nbsp;DstRect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>; 
+  <br>
+  &nbsp;&nbsp;DstClip: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;SrcRect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>; 
+  <br>
+  &nbsp;&nbsp;StretchFilter: <a href="../../GR32/Types/TStretchFilter.htm">TStretchFilter</a>;<br>
+  &nbsp;&nbsp;CombineOp: <a href="../../GR32/Types/TDrawMode.htm">TDrawMode</a>; 
+  <br>
+  &nbsp;&nbsp;CombineCallBack: <a href="../../GR32/Types/TPixelCombineEvent.htm">TPixelCombineEvent</a> 
+  = nil);</p>
+<h2>Description</h2>
+<p class="Body"><b>StretchTransfer</b> is similar to <span class="API">StretchBlt</span> 
+  or <span class="API">StretchDIBits</span> functions from WindowsGDI. This procedure 
+  performs copying and, if necessary, stretching of the bitmap fragment specified 
+  by <b>SrcRect</b> into location in <b>Dst</b> specified by <b>DstRect</b>. This 
+  operation is constrained to the <strong>DstClip</strong> rectangle specified 
+  in the destination bitmap coordinates.</p>
+<p class="Body">For more information on the stretch filters take a look <a href="../../GR32/Types/TStretchFilter.htm">here</a>.</p>
+<p class="Body">Unlike in <a href="BlockTransfer.htm">BlockTransfer</a> 
+  function, <b>SrcRect</b> must lie inside the <b>Src</b> bitmap boundaries, otherwise 
+  function will generate an exception. The result is not specified when transferring 
+  data inside the same bitmap (<b>Src</b>=<b>Dst</b>) and if in the same time 
+  <b>SrcRect</b> intersects with <b>DstRect</b>. In this case it is recommended 
+to use a temporary bitmap buffer.</p>
+<p class="Body">This routine used in <a href="../../GR32/Classes/TCustomBitmap32/Methods/Draw.htm">TCustomBitmap32.Draw</a> 
+  and <a href="../../GR32/Classes/TCustomBitmap32/Methods/DrawTo.htm">TCustomBitmap32.DrawTo</a> 
+  methods.</p>
+<p id="hidden">[See Also] </p>
+</body>
+</html>

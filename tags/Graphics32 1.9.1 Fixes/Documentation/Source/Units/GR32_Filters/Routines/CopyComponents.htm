@@ -1,0 +1,27 @@
+<html>
+<head>
+<title>CopyComponents</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> CopyComponents( <br>
+  &nbsp;&nbsp;Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;Components: <a href="../../GR32/Types/Color%20Types.htm#TColor32Components">TColor32Components</a>); <b>overload;</b></p>
+<p class="Decl"><b>procedure</b> CopyComponents( <br>
+  &nbsp;&nbsp;Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;DstX: Integer; <br>
+  &nbsp;&nbsp;DstY: Integer;<br>
+  &nbsp;&nbsp;Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <br>
+  &nbsp;&nbsp;SrcRect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;Components: <a href="../../GR32/Types/Color%20Types.htm#TColor32Components">TColor32Components</a>);<b>overload;</b></p>
+		<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">CopyComponents</span> copies the provided <a href="../../GR32/Types/Color%20Types.htm#TColor32Components">TColor32Components</a> from Source to Destination (read: no blending etc. is involved). The first version doesn't take specific source and destination settings and will therefore resize (and implicitly clear) destination so it is same size as the source. The second version will not modify size of the destination and therefore leaves the components not overwritten by the operation untouched.</p>
+		<p id="hidden">[See Also] <a href="ApplyBitmask.htm">ApplyBitmask</a></p>
+	</body>
+</html>

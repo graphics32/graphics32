@@ -1,0 +1,17 @@
+<html>
+<head>
+<title>TKernelMode</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type </b>TKernelMode = (kmDynamic, kmTableNearest, kmTableLinear);</p>
+<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">TKernelMode</span> defines how a <a href="../Classes/TCustomKernel/_Body.HTM">kernel</a> will be used in <a href="../Classes/TKernelResampler/_Body.HTM">TKernelResampler</a>, when <a href="../Classes/TKernelResampler/Methods/GetSample.htm">GetSample</a> methods are called. </p>
+		<ul>
+  			<li><strong>kmDynamic</strong> - Uses direct calls to the kernels filter method. Being precise, this mode is also quite expensive. The curve display in the <a href="../../../Examples.htm">resamplers example</a> shows how the different weight curves are configured.</li>
+ 			<li><strong>kmTableNearest</strong> - Uses precalculated weight tables. Being the fastest, this mode can produce fair results. An option is to increase the <a href="../Classes/TKernelResampler/Properties/TableSize.htm">tablesize</a>.</li>
+			<li><strong>kmTableLinear</strong> - Uses precalculated weight tables, but in contrast to kmTableNearest this mode will perform linear interpolation between precalculated weights. Being somewhat slower than kmTableNearest, but faster than kmDynamic, this mode produces results good results.</li>
+		</ul>
+	</body>
+</html>

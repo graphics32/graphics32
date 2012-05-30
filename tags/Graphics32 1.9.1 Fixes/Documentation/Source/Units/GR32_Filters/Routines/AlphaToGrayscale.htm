@@ -1,0 +1,20 @@
+<html>
+<head>
+<title></title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> AlphaToGrayscale(Dst, Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>);</p>
+<h2>Description</h2>
+<p class="Body">This function transforms an alpha channel from <b>Src</b> bitmap 
+  into grayscale (R=A, G=A, B=A) color in <b>Dst</b> bitmap. If necessary, <b>Dst</b> 
+  bitmap is resized to fit <b>Src</b> dimesions. </p>
+<p class="Body">It writes only RGB components into <b>Dst</b>. The alpha channel 
+  (A) remains intact, provided that dimensions of <b>Dst</b> and <b>Src</b> match 
+  before <span class="EmptyRef">AlphaToGrayScale</span> call.</p>
+<p class="Body">This function is useful when it is necessary to visualize the 
+  alpha channel, or when you want to store it as standard bitmap into a file.</p>
+<p id="Hidden">[See also] <a href="IntensityToAlpha.htm">IntensityToAlpha</a></p>
+</body>
+</html>

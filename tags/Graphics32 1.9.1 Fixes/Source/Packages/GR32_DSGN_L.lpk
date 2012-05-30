@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="4">
+    <Name Value="GR32_DSGN_L"/>
+    <Author Value="Team Graphics32"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <SearchPaths>
+        <IncludeFiles Value=".."/>
+        <OtherUnitFiles Value="..;../Packages"/>
+        <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
+          <CStyleOperator Value="False"/>
+          <CPPInline Value="False"/>
+          <UseAnsiStrings Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <CodeGeneration>
+        <SmartLinkUnit Value="True"/>
+        <Optimizations>
+          <OptimizationLevel Value="2"/>
+        </Optimizations>
+      </CodeGeneration>
+      <Other>
+        <CompilerMessages>
+          <UseMsgFile Value="True"/>
+        </CompilerMessages>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="Graphics32 is a library designed for fast 32-bit graphics handling on Delphi and Kylix. Optimized for 32-bit pixel formats, it provides fast operations with pixels and graphic primitives, and in most cases Graphics32 outperforms the standard TCanvas classes. It is almost a hundred times faster in per-pixel access and about 2–5 times faster in drawing lines. 
+
+Features Some of Graphics32 features include: 
+    * Fast per-pixel access up to 100 times faster compared to standard TBitmap;
+    * High-performance Bitmap alpha blending (including per-pixel alpha blending);
+    * Pixel, line and polygon antialiasing with sub-pixel accuracy (combined with alpha blending);
+    * Arbitrary polygon transformations and custom fillings;
+    * Bitmap resampling with high quality reconstruction filters (e.g. Lanczos, Cubic, Mitchell);
+    * A unique state-of-the-art rasterization system;
+    * Affine transformations of bitmaps: rotations, scaling, etc with sub-pixel accuracy;
+    * Arbitrary projective transformations of bitmaps;
+    * Arbitrary remapping transformations of bitmaps (e.g. for Warping, Morphing);
+    * Flexible supersampling implementation for maximum sampling quality;
+    * Flicker-free image displaying components with optimized double buffering via advanced MicroTiles? based repaint optimizer;
+    * Multiple customizible easy-to-use overlay layers;
+    * Locking of bitmaps for safe multithreading;
+    * A property editor for RGB and alpha channel loading;
+    * Design-time loading of image formats supported by standard TPicture;
+    * Works on Borland Delphi, C++ Builder and Kylix (The last version that supported Kylix was 1.8.3). 
+
+As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Public License."/>
+    <License Value="GNU Library or Lesser General Public License (LGPL)
+Mozilla Public License 1.1 (MPL 1.1)"/>
+    <Version Major="1" Minor="9"/>
+    <Files Count="5">
+      <Item1>
+        <Filename Value="../GR32_Reg.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="GR32_Reg"/>
+      </Item1>
+      <Item2>
+        <Filename Value="../GR32_Dsgn_Misc.pas"/>
+        <UnitName Value="GR32_Dsgn_Misc"/>
+      </Item2>
+      <Item3>
+        <Filename Value="../GR32_Dsgn_Color.pas"/>
+        <UnitName Value="GR32_Dsgn_Color"/>
+      </Item3>
+      <Item4>
+        <Filename Value="../GR32_Dsgn_Bitmap.lfm"/>
+        <Type Value="LFM"/>
+      </Item4>
+      <Item5>
+        <Filename Value="../GR32_Dsgn_Bitmap.pas"/>
+        <UnitName Value="GR32_Dsgn_Bitmap"/>
+      </Item5>
+    </Files>
+    <Type Value="DesignTime"/>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="GR32_L"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="IDEIntf"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+    </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
+  </Package>
+</CONFIG>

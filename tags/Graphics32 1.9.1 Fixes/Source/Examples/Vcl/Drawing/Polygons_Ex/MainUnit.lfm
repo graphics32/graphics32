@@ -1,0 +1,250 @@
+object FormPolygons: TFormPolygons
+  Left = 257
+  Height = 533
+  Top = 129
+  Width = 665
+  Caption = 'Polygons Example'
+  ClientHeight = 533
+  ClientWidth = 665
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '0.9.31'
+  object Image: TImage32
+    Left = 0
+    Height = 533
+    Top = 0
+    Width = 520
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TKernelResampler'
+    Bitmap.Resampler.KernelClassName = 'TCubicKernel'
+    Bitmap.Resampler.Kernel.Coeff = -0.800000011920929
+    Bitmap.Resampler.KernelMode = kmDynamic
+    Bitmap.Resampler.TableSize = 32
+    BitmapAlign = baTopLeft
+    Scale = 1
+    ScaleMode = smStretch
+    TabOrder = 1
+    OnMouseDown = ImageMouseDown
+    OnResize = ImageResize
+  end
+  object Panel1: TPanel
+    Left = 520
+    Height = 533
+    Top = 0
+    Width = 145
+    Align = alRight
+    BevelOuter = bvNone
+    ClientHeight = 533
+    ClientWidth = 145
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    ParentFont = False
+    TabOrder = 0
+    object lbLineOpacity: TLabel
+      Left = 16
+      Height = 14
+      Top = 223
+      Width = 64
+      Caption = 'Line Opacity:'
+      ParentColor = False
+    end
+    object lbFillOpacity: TLabel
+      Left = 16
+      Height = 14
+      Top = 263
+      Width = 53
+      Caption = 'Fill Opacity'
+      ParentColor = False
+    end
+    object lbOutlineThicknes: TLabel
+      Left = 16
+      Height = 14
+      Top = 407
+      Width = 88
+      Caption = 'Outline Thickness:'
+      ParentColor = False
+    end
+    object lbOutlineThicknesValue: TLabel
+      Left = 113
+      Height = 14
+      Top = 407
+      Width = 15
+      Caption = '(1)'
+      ParentColor = False
+    end
+    object cbAntialiased: TCheckBox
+      Left = 16
+      Height = 17
+      Top = 40
+      Width = 72
+      Caption = 'Antialiased'
+      OnClick = ParamsChanged
+      TabOrder = 0
+    end
+    object LineAlpha: TScrollBar
+      Left = 16
+      Height = 16
+      Top = 239
+      Width = 121
+      Max = 255
+      PageSize = 0
+      Position = 255
+      TabOrder = 1
+      OnChange = ParamsChanged
+    end
+    object FillAlpha: TScrollBar
+      Left = 16
+      Height = 16
+      Top = 279
+      Width = 121
+      Max = 255
+      PageSize = 0
+      Position = 127
+      TabOrder = 2
+      OnChange = ParamsChanged
+    end
+    object rgFillMode: TRadioGroup
+      Left = 16
+      Height = 65
+      Top = 303
+      Width = 121
+      AutoFill = True
+      Caption = 'Fill Mode'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 47
+      ClientWidth = 117
+      ItemIndex = 0
+      Items.Strings = (
+        'pfAlternate'
+        'pfWinding'
+      )
+      OnClick = ParamsChanged
+      TabOrder = 3
+    end
+    object LineThickness: TScrollBar
+      Left = 16
+      Height = 16
+      Top = 447
+      Width = 121
+      Max = 200
+      Min = 1
+      PageSize = 0
+      Position = 10
+      TabOrder = 4
+      OnChange = ThicknessChanged
+    end
+    object ThickOutline: TCheckBox
+      Left = 16
+      Height = 17
+      Top = 423
+      Width = 58
+      Caption = 'Enabled'
+      OnClick = ThicknessChanged
+      TabOrder = 5
+    end
+    object rgAntialiasMode: TRadioGroup
+      Left = 16
+      Height = 99
+      Top = 60
+      Width = 121
+      AutoFill = True
+      Caption = 'Antialias Mode'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 81
+      ClientWidth = 117
+      Enabled = False
+      ItemIndex = 0
+      Items.Strings = (
+        'am32times'
+        'am16times'
+        'am8times'
+        'am4times'
+        'am2times'
+      )
+      OnClick = ParamsChanged
+      TabOrder = 6
+    end
+    object Memo1: TMemo
+      Left = 16
+      Height = 47
+      Top = 479
+      Width = 121
+      Color = clInfoBk
+      Font.Height = -9
+      Font.Name = 'Tahoma'
+      Lines.Strings = (
+        'LMB - Add vertex'
+        'RMB - Clear'
+      )
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 7
+      TabStop = False
+    end
+    object Memo2: TMemo
+      Left = 16
+      Height = 57
+      Top = 163
+      Width = 121
+      Color = clInfoBk
+      Font.Height = -9
+      Font.Name = 'Tahoma'
+      Lines.Strings = (
+        'Check Outline Thickness '
+        'below to control '
+        'antialiasing mode of the '
+        'outline.'
+      )
+      ParentFont = False
+      ReadOnly = True
+      TabOrder = 8
+      TabStop = False
+    end
+    object Pattern: TCheckBox
+      Left = 16
+      Height = 17
+      Top = 373
+      Width = 83
+      Caption = 'Pattern filling'
+      OnClick = ParamsChanged
+      TabOrder = 9
+    end
+    object btNewLine: TButton
+      Left = 24
+      Height = 25
+      Top = 8
+      Width = 105
+      BorderSpacing.InnerBorder = 4
+      Caption = 'New Line'
+      OnClick = btNewLineClick
+      TabOrder = 10
+    end
+  end
+  object BitmapList: TBitmap32List
+    Bitmaps = <    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end>
+    left = 24
+    top = 24
+  end
+end

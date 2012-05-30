@@ -1,0 +1,16 @@
+<html>
+<head>
+<title>StretchTransfer</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><span class="EmptyRef">procedure</span> Dilate(Src, Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; Kernel: <a href="../../GR32_OrdinalMaps/Classes/TIntegerMap/_Body.htm">TIntegerMap</a>; CenterX, CenterY: Integer);</p>
+<h2>Description</h2>
+<p class="Body"><b>Dilate</b> performs rasterization using the <a href="../Classes/TDilater/_Body.HTM">TDilater</a> sampler. The <span class="EmptyRef">Kernel</span> parameter specifies a weight matrix which is centered at the coordinated (<span class="EmptyRef">X</span> + <span class="EmptyRef">CenterX</span>, <span class="EmptyRef">Y</span> + <span class="EmptyRef">CenterY</span>) for each pixel coordinate (<span class="EmptyRef">X</span>, <span class="EmptyRef">Y</span>).</p>
+<p class="Body">Output pixels are computed from the formula</p>
+<p align="center" class="Body"> <img src="../../../../Images/eq_dilate.gif" width="256" height="20"></p>
+<p align="left" class="Body">where <em>f</em> corresponds to the source bitmap and <em>b</em> corresponds to the kernel (formally described as a <em>structuring element</em>). </p>
+<p id="hidden">[See Also] </p>
+</body>
+</html>

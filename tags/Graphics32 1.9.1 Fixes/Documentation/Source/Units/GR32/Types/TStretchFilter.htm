@@ -1,0 +1,35 @@
+<html>
+<head>
+<title>TStretchFilter</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TStretchFilter = (sfNearest, sfDraft, sfLinear, sfCosine, sfSpline, sfLanczos, 
+  sfMitchell);</p>
+<h2>Description</h2>
+<p class="Body">When the bitmap is scaled, these filters control how the colors 
+  are interpolated:</p>
+<ul>
+  <li>sfNearest is the fastest filter, although the quality of the stretched image is fair.</li>
+  <li>sfDraft is a complex resampler, meaning that it uses several different methods. For downsampling it uses row-column
+    zoneshifting to preserve more details than sfNearest, however the quality is not as good as sfLinear. For upsampling
+    it uses a linear interpolation method that may compromise details - this happens if both downsampling and upsampling
+    is needed. sfDraft is ideal for preview fields and thumbnails. Please note, that the algorithm is not pixel-perfect,
+    that why using a custom cliprect might result in a so called jitter-effect. </li>
+  <li>sfLinear is several times slower, but it produces more decent results in most cases.</li>
+  <li>sfCosine is almost equally fast as sfLinear, but it uses cosine interpolation, which produces a sharper image.</li>
+  <li>sfSpline is an approximation of spline interpolation, for some applications its result may be too smooth and blurry,
+    but when using with large magnification factors, it usually yields better image compared to sfLinear.</li>
+  <li>sfLanczos generally produces the sharpest image (especially when downsampling), however sometimes can produce excessive &quot;ringing&quot; effect
+    - this is the slowest filter.</li>
+  <li>sfMitchell is often considered as one of the best filters for enlarging images; generally not as sharp as Lanczos.</li>
+</ul>
+<p class="Body">In some functions filters above <strong>sfLinear</strong> may 
+  not be applicable (for example in Transform), in this case the filter value will be substituted with <b>sfLinear</b>.</p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See Also] <a href="../Classes/TCustomBitmap32/Properties/StretchFilter.htm">TBitmap32.StretchFilter</a>, 
+  <a href="../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a> 
+</p>
+</body>
+</html>

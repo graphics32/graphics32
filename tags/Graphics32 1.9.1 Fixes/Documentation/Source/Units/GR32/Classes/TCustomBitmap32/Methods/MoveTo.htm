@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>MoveTo</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> MoveTo(X, Y: Integer); </p>
+<p class="Decl"><b>procedure</b> MoveToX(X, Y: <a href="../../../Types/TFixed.htm">TFixed</a>); 
+</p>
+<p class="Decl"><b>procedure</b> MoveToF(X, Y: Single); </p>
+<h2>Description</h2>
+<p class="Body">Shifts current raster to specified position, analogous to <span class="API">MoveTo</span> 
+  method of standard <span class="API">TCanvas</span>. </p>
+<p class="Body">Each bitmap maintains separate raster positions for integer and 
+  fixed point coordinates. <span class="EmptyRef">MoveTo</span> affects the integer 
+  raster position, while <span class="EmptyRef">MoveToX</span> and <span class="EmptyRef">MoveToF</span> 
+  affect the fixed-point raster position.</p>
+<p class="Body">Raster position is applicable only to <span class="EmptyRef">MoveTo</span>, 
+  <a href="LineTo.htm">LineTo</a> methods and some polygon drawing routines, which 
+  use it internally, it is not changed neither by <a href="Line.htm">Line</a> 
+  methods nor by any other method.</p>
+<p id="hidden">[See also]: <a href="../../../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

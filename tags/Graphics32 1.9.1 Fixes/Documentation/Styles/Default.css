@@ -1,0 +1,210 @@
+p.Body {  
+  margin-left: 1cm;
+  margin-right: 0.5cm;
+}
+
+p.Hierarchy {
+	margin-top: 0;
+	margin-left : 1cm;
+	margin-bottom : 0;
+	font-size : 90%;
+}
+
+.EmptyRef {
+  font-weight: bold;
+}
+
+.API {
+  color: #700070;
+  font-style: italic;
+}
+
+.Code {
+  font-family: Arial, Helvetica, sans-serif;
+  margin-left: 1cm; 
+  margin-right: 1cm;   
+  margin-top: 0px;
+  margin-bottom: 0px;
+}
+
+p.Decl {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #E0E0E0;
+  padding-top: 3pt;
+  padding-right: 4pt;
+  padding-left: 0.75cm;
+  padding-bottom: 3pt;
+  margin-left: 1cm; 
+  margin-top: 0px; 
+  margin-right: 0.5cm; 
+  margin-bottom: 0px;
+  text-indent: -0.5cm;
+}
+
+body {
+  font-family: Verdana, Tahoma, serif;
+  font-size: 70%;
+  margin-left : 2px;
+  margin-top: 2px;
+  margin-right : 2px;
+  margin-top : 2px;
+}
+
+p {
+  margin-top: 5pt;
+  margin-bottom: 5pt;
+}
+
+h1 {
+  font-size: 150%;
+  margin-top: 5pt;
+  margin-bottom: 16pt;
+  margin-left : 0.25cm;
+}
+
+h2 {
+  font-size: 100%;
+  margin-bottom: 4pt;
+  margin-top: 16px; 
+  margin-left: 0.25cm; 
+  padding-left: 0px;
+}
+
+table {  
+  border: none;
+  margin-left: 1cm; 
+  border-color: #FFFFFF; 
+  margin-right: 0.5cm;
+}
+
+th {  
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 70%; 
+  background-color: #D0D0D0; 
+  padding-right: 6pt; 
+  padding-left: 6pt;
+}
+
+td {  
+  font-family: Verdana, Arial, Helvetica, sans-serif; 
+  font-size: 70%;
+  background-color: #F0F0F0; 
+  padding-right: 4pt; 
+  padding-left: 4pt;
+}
+
+td.White {  
+  font-family: Verdana, Arial, Helvetica, sans-serif; 
+  font-size: 65%;
+  background-color: #FFFFFF; 
+  padding-right: 4pt; 
+  padding-left: 4pt;
+}
+
+table.Banner  { color: white; font-size: 90%; background-color: #9595bd; margin-top: 0; margin-right: 0; margin-left: 0; padding: 3pt 4pt; width: 100%; cellpadding: 0; cellspacing: 0 }
+
+td.Banner {
+  background-color: #6060A0;
+  font-size: 7pt;
+  padding-top: 0pt;
+  padding-bottom: 0pt;
+}
+a:link { color: blue; text-decoration: underline }
+a:visited { color: blue; text-decoration: underline }
+a:hover { color: black; text-decoration: none; background-color: #d0d0ff }
+table.Home {  
+  border: #FFFFFF none;
+  margin-left: 0cm;
+  padding-left: 0cm; 
+  border-color: #FFFFFF; 
+  margin-right: 0cm;
+  width: 100%;
+; padding-right: 0px
+}
+table.menu    { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin-top: 0; margin-right: 0; margin-left: 0; padding: 3px 4px; position: static; border-style: solid; border-width: 1px; border-color: #272758 #656596 #272758 #272758 }
+table.menudrop  { color: white; background-color: #6060a0; visibility: hidden; cursor: pointer; margin: 0; padding: 0; position: absolute; border-left: 1px solid #444475 }
+table.menu td   { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; border-right: 1px solid #3d3d7d; border-left: 1px solid #636393 }
+table.menudrop td { font-size: 7pt; background-color: #6060a0; white-space: nowrap; margin: 0; padding: 3px 4px; border-right: 1px solid #3d3d7d; border-bottom: 1px solid #2f2f60; border-left: 1px solid #636393 }
+td.Home {
+  background-color: #FFFFFF;
+  padding-top: 0pt;
+  padding-bottom: 0pt;
+  padding-left: 0pt;
+  margin-left: 0pt;
+}
+a:link.Banner { 
+  text-decoration: none;
+  color: white;
+}
+
+a:visited.Banner { 
+  text-decoration: none;
+  color : white;
+}
+
+a:hover.Banner {
+  background-color: #6060A0;
+  text-decoration: underline;
+  color: white;
+}
+
+a.Bold {
+  font-weight: bold;
+}
+
+li {  
+  list-style-position: outside; 
+  list-style-type: square;
+  margin-top: 3pt; margin-bottom: 3pt;
+  margin-left: 12pt;
+}
+
+ul {
+  margin-top: 8pt;
+  margin-bottom : 8pt;
+}
+
+.Comment {  
+  font-style: italic; 
+  color: #206020;
+}
+
+img {
+  margin-top: 0px; 
+  margin-right: 0px; 
+  margin-bottom: 0px; 
+  margin-left: 0px; 
+  border-top-width: 0px; 
+  border-right-width: 0px; 
+  border-bottom-width: 0px; 
+  border-left-width: 0px;
+  padding-top: 0px; 
+  padding-right: 0px; 
+  padding-bottom: 0px; 
+  padding-left: 0px;
+}
+
+span.sub {  
+  font-size: 80%; 
+  vertical-align: sub;
+}
+
+.Tree {  
+  margin-top: 0px; 
+  margin-bottom: 0px; 
+  margin-left: 1cm;
+  padding-top: 0px; 
+  padding-bottom: 0px; 
+}
+
+span.Menu {
+  font-weight: bold; 
+  color: #402000
+}
+
+p.Copyright {font-size: 7pt; color: #808090; text-align: center; font-family: Tahoma, Arial, sans-serif}
+
+.pascalcode {
+  font-family: "Courier New", Courier, mono;
+}
+#mainmenu  { position: static }

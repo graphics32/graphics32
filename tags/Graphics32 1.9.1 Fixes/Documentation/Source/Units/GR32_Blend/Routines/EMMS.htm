@@ -1,0 +1,39 @@
+<html>
+<head>
+<title>EMMS</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> EMMS;</p>
+<h2>Description</h2>
+<p class="Body">Calls to blending functions <i>must be followed by </i>
+  <span class="EmptyRef"><i>EMMS</i></span> procedure. This restores the state 
+  of FPU flags, altered by MMX instructions. When CPU does not support MMX or 
+  SSE2 is available, the <span class="EmptyRef">EMMS</span> function does 
+  nothing.</p>
+<p class="Body">This function <i>must</i> be called after <a href="Blend.htm">Blend</a>, 
+  <a href="BlendEx.htm">BlendEx</a> or <a href="Combine.htm">Combine</a> calls, 
+  otherwise CPU will not be able to execute floating point instructions. </p>
+<p class="Body">If you are using color algebra (such as 
+  <a href="ColorAdd.htm">ColorAdd</a>, <a href="ColorMax.htm">ColorMax</a> etc.)
+  that use MMX internally you also have to make sure that <strong>EMMS</strong> 
+  is called.</p>
+<p class="Body">In case SSE2 is available this function becomes a stub with the
+  smallest possible impact on performance. However, for backward compatibility
+  it is mandatory to always keep a call to this procedure in the code.</p>
+<p class="Body">A typical example of using blending functions: </p>
+<p class="Body"><b>try</b> <br>
+  &nbsp;&nbsp;<b>for</b> i := X1 <b>to</b> X2 <b>do</b> <br>
+  &nbsp;&nbsp;<b>begin</b> <br>
+  &nbsp;&nbsp;&nbsp;&nbsp;BlendMem(Clr32, P^); <span class="Comment">// This function 
+  uses MMX</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;Inc(P); <br>
+  &nbsp;&nbsp;<b>end</b>; <br>
+  <b>finally</b> <br>
+  &nbsp;&nbsp; EMMS; <span class="Comment">// EMMS is called only once, since 
+  there is no FPU code inside the loop </span><br>
+  <b>end</b>;</p>
+<p id="hidden">[See Also] </p>
+</body>
+</html>

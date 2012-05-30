@@ -1,0 +1,224 @@
+object RGBALoaderForm: TRGBALoaderForm
+  Left = 200
+  Height = 357
+  Top = 138
+  Width = 402
+  HorzScrollBar.Page = 319
+  VertScrollBar.Page = 239
+  ActiveControl = Button1
+  BorderStyle = bsDialog
+  Caption = 'New Bitmap Layer with Alpha Channel'
+  ClientHeight = 357
+  ClientWidth = 402
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Position = poScreenCenter
+  LCLVersion = '0.9.29'
+  object Bevel1: TBevel
+    Left = 0
+    Height = 2
+    Top = 0
+    Width = 402
+    Align = alTop
+    Shape = bsTopLine
+  end
+  object lbRGBImage: TLabel
+    Left = 24
+    Height = 14
+    Top = 83
+    Width = 58
+    Caption = 'RGB Image:'
+    ParentColor = False
+  end
+  object lbAlphaImage: TLabel
+    Left = 216
+    Height = 14
+    Top = 83
+    Width = 65
+    Caption = 'Alpha Image:'
+    ParentColor = False
+  end
+  object lbNote: TLabel
+    Left = 24
+    Height = 14
+    Top = 294
+    Width = 324
+    Caption = 'If the images have different sizes, the alpha image will be rescaled.'
+    ParentColor = False
+  end
+  object SpeedButton1: TSpeedButton
+    Left = 148
+    Height = 21
+    Top = 80
+    Width = 21
+    Caption = '+'
+    Color = clBtnFace
+    Flat = True
+    Font.Height = -21
+    Font.Name = 'MS Sans Serif'
+    Layout = blGlyphBottom
+    NumGlyphs = 0
+    OnClick = SpeedButton1Click
+    ParentFont = False
+  end
+  object SpeedButton2: TSpeedButton
+    Left = 170
+    Height = 21
+    Top = 80
+    Width = 21
+    Caption = '-'
+    Color = clBtnFace
+    Flat = True
+    Font.Height = -27
+    Font.Name = 'MS Sans Serif'
+    Layout = blGlyphBottom
+    NumGlyphs = 0
+    OnClick = SpeedButton2Click
+    ParentFont = False
+  end
+  object SpeedButton3: TSpeedButton
+    Left = 340
+    Height = 21
+    Top = 80
+    Width = 21
+    Caption = '+'
+    Color = clBtnFace
+    Flat = True
+    Font.Height = -21
+    Font.Name = 'MS Sans Serif'
+    Layout = blGlyphBottom
+    NumGlyphs = 0
+    OnClick = SpeedButton3Click
+    ParentFont = False
+  end
+  object SpeedButton4: TSpeedButton
+    Left = 362
+    Height = 21
+    Top = 80
+    Width = 21
+    Caption = '-'
+    Color = clBtnFace
+    Flat = True
+    Font.Height = -27
+    Font.Name = 'MS Sans Serif'
+    Layout = blGlyphBottom
+    NumGlyphs = 0
+    OnClick = SpeedButton4Click
+    ParentFont = False
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 55
+    Top = 2
+    Width = 402
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 55
+    ClientWidth = 402
+    ParentColor = False
+    TabOrder = 0
+    object lbInfo: TLabel
+      Left = 16
+      Height = 40
+      Top = 6
+      Width = 383
+      Caption = 'Load two images, one of them will be used to fill RGB components '#13#10'of the layer, another will be converted to a grayscale image and '#13#10'used as alpha channel'
+      Font.Height = -11
+      Font.Name = 'Verdana'
+      ParentColor = False
+      ParentFont = False
+    end
+  end
+  object btLoadImage: TButton
+    Left = 96
+    Height = 21
+    Top = 80
+    Width = 49
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Load...'
+    OnClick = Button1Click
+    TabOrder = 1
+  end
+  object btLoadAlpha: TButton
+    Left = 288
+    Height = 21
+    Top = 80
+    Width = 49
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Load...'
+    OnClick = Button2Click
+    TabOrder = 3
+  end
+  object btOK: TButton
+    Left = 232
+    Height = 21
+    Top = 328
+    Width = 75
+    BorderSpacing.InnerBorder = 4
+    Caption = 'OK'
+    Default = True
+    ModalResult = 1
+    TabOrder = 5
+  end
+  object btCancel: TButton
+    Left = 312
+    Height = 21
+    Top = 328
+    Width = 75
+    BorderSpacing.InnerBorder = 4
+    Cancel = True
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 2
+  end
+  object btResetScales: TButton
+    Left = 24
+    Height = 21
+    Top = 328
+    Width = 75
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Reset Scales'
+    OnClick = Button5Click
+    TabOrder = 4
+  end
+  object ImgRGB: TImgView32
+    Left = 24
+    Height = 167
+    Top = 112
+    Width = 167
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Color = clAppWorkspace
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clBtnShadow
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsMac
+    OverSize = 0
+    TabOrder = 6
+  end
+  object ImgAlpha: TImgView32
+    Left = 216
+    Height = 167
+    Top = 112
+    Width = 167
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Color = clAppWorkspace
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clBtnShadow
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsMac
+    OverSize = 0
+    TabOrder = 7
+  end
+  object OpenPictureDialog: TOpenPictureDialog
+    Title = 'Open existing file'
+    FilterIndex = 0
+    left = 40
+    top = 120
+  end
+end

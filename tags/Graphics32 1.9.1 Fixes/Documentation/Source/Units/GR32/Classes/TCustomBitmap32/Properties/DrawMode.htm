@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>DrawMode</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> DrawMode: <a href="../../../../GR32/Types/TDrawMode.htm">TDrawMode</a>; 
+</p>
+<p class="Decl"><b>type</b> TDrawMode = (dmOpaque, dmBlend, dmCustom); </p>
+<h2>Description</h2>
+<p class="Body">Specifies how the bitmap should be combined with a background 
+  during pixel transfer and similar operations. </p>
+<p class="Body">In <span class="EmptyRef">dmOpaque</span> mode, new pixels simply 
+  replace the background pixels.
+  In <span class="EmptyRef">dmBlend</span> mode, 
+    they are combined using the alpha blending operation defined by <a href="CombineMode.htm">CombineMode</a>. This property
+    is used while copying one bitmap into another, scaling, performing linear transformations
+    etc.
+  The <span class="EmptyRef">dmCustom</span> mode allows implementation of 
+    custom blending functions using the <a href="../Events/OnPixelCombine.htm">OnPixelCombine</a> call-back
+  event. <br>
+</p>
+<p id="hidden">[See also]: <a href="../Methods/Draw.htm">Draw</a>, <a href="../Methods/DrawTo.htm">DrawTo</a></p>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<html>
+<head>
+  
+<title>SSE2 Optimizations</title>
+  
+<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">With the release 1.9.1 SSE2 optimizations have been introduced. 
+  The optimizations are entirely based on the MMX optimizations and are meant
+  to replace the MMX code for modern systems. The MMX code is only kept for
+  backward compatibility.</p>
+<p class="Body">The reason to favor SSE2 optimizations over MMX optimizations 
+  is mainly due to the dual use of floating point registers. As long as all 
+  processing is done solely in fixed point or integer registers, there is no 
+  problem, but if floating point needs to be processed an expensive switch 
+  between MMX and FPU registers must be performed. This switch is performed 
+  within the function EMMS (an intrinsic to the assembler mnemonic with the 
+  same name).</p>
+<p class="Body">Hence the fact that a call to EMMS uses only a handfull of 
+  cycles, frequent calls can slow down simple processing like blending a lot.
+  So typically processing of small bitmaps or small areas in bitmaps will 
+  benefit mostly from optimizations in which a call to EMMS costs less or is
+  even entirely omitted.</p> 
+<p class="Body">Unfortunately for sake of backward compatibility it was not 
+  possible to switch entirely to SSE2, as there are still many old machines 
+  without SSE2, that still benefit from the MMX optimizations. Thus, the 
+  existing infrastructure was used, but the EMMS call replaced by a stub, in 
+  case SSE2 is available. This stub is only a simple call and return, which has
+  the least possible impact.</p> 
+<p class="Body">With this stub however - doing nothing - it is not possible to 
+  mix SSE2 optimizations with MMX optimizations (while vice versa is possible).
+  This means that all optimizations (especially for 3rd party products using 
+  GR32 code) must be available in both MMX and SSE2 flavour. Since both 
+  technologies are very similar an update should be fairly possible.</p> 
+<p class="Body">To get rid of unused MMX optimizations entirely the symbol 
+  OMIT_MMX needs to be defined. With this define the EMMS procedure is still 
+  present, but due to its inline definition it does not have the slightest 
+  impact on performance.</p> 
+<p class="Body">NOTE: As all x86 64-bit systems feature SSE2, OMIT_MMX is 
+  defined by default here. This does not only result in a better performance,
+  but also in smaller executables</p> 
+<p class="Body">NOTE: Due to issues with the disassembler in Delphi 7, SSE2 is
+  disabled by default. If enabled manually the application should work fine, 
+  but debugging the application may result in a crash of the debugger.</p> 
+<p id="Hidden">[See Also] <a href="../Units/GR32_Blend/_Body.htm">GR32_Blend</a></p>
+</body>
+</html>

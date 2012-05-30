@@ -1,0 +1,15 @@
+<html>
+<head>
+<title>TCombineMode</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TWrapMode = (wmClamp, wmRepeat, wmMirror);</p>
+<h2>Description</h2>
+<p class="Body"><span class="Decl EmptyRef">TWrapMode</span> is the type for the <a href="../Classes/TCustomBitmap32/Properties/WrapMode.htm">WrapMode</a> property in <a href="../Classes/TBitmap32/_Body.htm">TBitmap32</a>, which specifies how to wrapping pixel getters and setters should behave. </p>
+<p class="Body"><span class="EmptyRef">wmClamp</span> will repeat the edge pixel if a pixel is read or written outside the bitmap's boundary.</p>
+<p class="Body"><span class="EmptyRef">wmRepeat</span> will repeat the relative bitmap colors if it's outside of the bitmap's boundary (also referred to as 'seamless' and 'texture' mode). </p>
+<p class="Body"><span class="EmptyRef">wmMirror</span> will mirror the pixel relative to the bitmap if it's outside the bitmap's boundary. This mode is useful for better perceptual results with spatial processing (like blurring).</p>
+</body>
+</html>

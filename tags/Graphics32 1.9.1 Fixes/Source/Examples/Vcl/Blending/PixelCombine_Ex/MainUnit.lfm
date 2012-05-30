@@ -1,0 +1,47 @@
+object FormPixelCombine: TFormPixelCombine
+  Left = 295
+  Height = 373
+  Top = 110
+  Width = 524
+  ActiveControl = RadioGroup.RadioButton0
+  Caption = 'PixelCombine Example'
+  ClientHeight = 373
+  ClientWidth = 524
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  LCLVersion = '0.9.29'
+  object RadioGroup: TRadioGroup
+    Left = 394
+    Height = 185
+    Top = 20
+    Width = 109
+    Anchors = [akTop, akRight]
+    AutoFill = True
+    Caption = 'Operation'
+    ChildSizing.LeftRightSpacing = 6
+    ChildSizing.TopBottomSpacing = 6
+    ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+    ChildSizing.EnlargeVertical = crsHomogenousChildResize
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 1
+    ClientHeight = 167
+    ClientWidth = 105
+    ItemIndex = 0
+    Items.Strings = (
+      'Opaque'
+      'Add'
+      'Sub'
+      'Modulate'
+      'Min'
+      'Max'
+      'Difference'
+      'Exclusion'
+      'Pattern'
+    )
+    OnClick = RadioGroupClick
+    TabOrder = 0
+  end
+end

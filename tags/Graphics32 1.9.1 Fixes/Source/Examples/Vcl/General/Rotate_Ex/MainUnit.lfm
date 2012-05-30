@@ -1,0 +1,59 @@
+object FormRotateExample: TFormRotateExample
+  Left = 192
+  Height = 252
+  Top = 107
+  Width = 443
+  HorzScrollBar.Page = 448
+  VertScrollBar.Page = 278
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Rotate Example'
+  ClientHeight = 252
+  ClientWidth = 443
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  LCLVersion = '0.9.29'
+  object Src: TImage32
+    Left = 16
+    Height = 192
+    Top = 16
+    Width = 192
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TLinearResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 0
+  end
+  object Dst: TImage32
+    Left = 232
+    Height = 192
+    Top = 16
+    Width = 192
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 1
+  end
+  object Angle: TGaugeBar
+    Left = 16
+    Height = 18
+    Top = 220
+    Width = 408
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 180
+    Min = -180
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 0
+    OnChange = AngleChange
+  end
+end

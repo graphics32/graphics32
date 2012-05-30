@@ -1,0 +1,142 @@
+object FormRotLayer: TFormRotLayer
+  Left = 208
+  Height = 477
+  Top = 110
+  Width = 314
+  HorzScrollBar.Page = 346
+  HorzScrollBar.Range = 127
+  VertScrollBar.Page = 476
+  VertScrollBar.Range = 454
+  Caption = 'Rotation Layer Example'
+  ClientHeight = 477
+  ClientWidth = 314
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  LCLVersion = '0.9.31'
+  object lbAngle: TLabel
+    Left = 12
+    Height = 14
+    Top = 314
+    Width = 77
+    Anchors = [akLeft, akBottom]
+    Caption = 'RotLayer.Angle:'
+    ParentColor = False
+  end
+  object lbPositionX: TLabel
+    Left = 12
+    Height = 14
+    Top = 346
+    Width = 97
+    Anchors = [akLeft, akBottom]
+    Caption = 'RotLayer.Position.X:'
+    ParentColor = False
+  end
+  object lbPositionY: TLabel
+    Left = 12
+    Height = 14
+    Top = 374
+    Width = 97
+    Anchors = [akLeft, akBottom]
+    Caption = 'RotLayer.Position.Y:'
+    ParentColor = False
+  end
+  object lbScale: TLabel
+    Left = 12
+    Height = 14
+    Top = 440
+    Width = 86
+    Anchors = [akLeft, akBottom]
+    Caption = 'ImgView32.Scale:'
+    ParentColor = False
+  end
+  object cbScaled: TCheckBox
+    Left = 8
+    Height = 17
+    Top = 408
+    Width = 102
+    Anchors = [akLeft, akBottom]
+    Caption = 'RotLayer.Scaled:'
+    Checked = True
+    OnClick = cbScaledClick
+    State = cbChecked
+    TabOrder = 0
+  end
+  object gbAngle: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 313
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 180
+    Min = -180
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 0
+    OnChange = gbAngleChange
+  end
+  object gbPositionX: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 345
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 200
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 100
+    OnChange = gbPositionChange
+  end
+  object gbPositionY: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 373
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Max = 200
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 100
+    OnChange = gbPositionChange
+  end
+  object gbScale: TGaugeBar
+    Left = 150
+    Height = 16
+    Top = 439
+    Width = 153
+    Anchors = [akLeft, akBottom]
+    Color = clScrollBar
+    Backgnd = bgPattern
+    Min = -100
+    ShowHandleGrip = True
+    Style = rbsMac
+    Position = 100
+    OnChange = gbScaleChange
+  end
+  object ImgView: TImgView32
+    Left = 8
+    Height = 294
+    Top = 8
+    Width = 295
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Color = clAppWorkspace
+    ParentColor = False
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsMac
+    ScrollBars.Size = 16
+    OverSize = 0
+    TabOrder = 5
+  end
+end

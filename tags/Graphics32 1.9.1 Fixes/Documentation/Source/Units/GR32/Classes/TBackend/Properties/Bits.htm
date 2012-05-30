@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>Bits</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> Bits: <a href="../../../Types/Color%20Types.htm#TColor32Array">PColor32Array</a>; 
+  <span class="Comment">// Read-only</span></p>
+<p class="Decl"><b>type</b> TColor32Array = <b>array</b> [0..0] <b>of</b> <a href="../../../Types/Color%20Types.htm#TColor32">TColor32</a>; 
+</p>
+<p class="Decl"><b>type</b> PColor32Array = ^TColor32Array;</p>
+<h2>Description</h2>
+<p class="Body">The bits property contains the address of the first (top-left) 
+  pixel in the back-end's surface. If the bitmap is not allocated (width or height is zero), 
+  the returned address is <i>nil</i>.</p>
+<p class="Body">Subclassed back-ends need to set the protected member <strong>FBits</strong> to the of beginning of the surfaces memory. This is done  <a href="../Methods/InitializeSurface.htm">InitializeSurface</a>.</p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]: <a href="../Methods/InitializeSurface.htm">InitializeSurface</a>, <a href="../../TCustomBitmap32/Properties/Bits.htm">TCustomBitmap32.Bits</a></p>
+</body>
+</html>
