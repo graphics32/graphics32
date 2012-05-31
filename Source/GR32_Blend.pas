@@ -3928,9 +3928,8 @@ initialization
 
 finalization
 {$IFNDEF PUREPASCAL}
-{$IFNDEF OMIT_MMX}
-  if (ciMMX in CPUFeatures) then FreeAlphaTable;
-{$ENDIF}
+  if [ciMMX, ciSSE2] * CPUFeatures <> [] then
+    FreeAlphaTable;
 {$ENDIF}
 
 end.
