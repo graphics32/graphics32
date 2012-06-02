@@ -22,17 +22,13 @@ type
     cbBrokenLinks: TCheckBox;
     cbIncludeAlphabetClasses: TCheckBox;
     cbOpenAfterProcess: TCheckBox;
-    cbProjectName: TComboBox;
     edCHMCompiler: TEdit;
     edProjectDirectory: TEdit;
     edProjectTitle: TEdit;
-    edVersionString: TEdit;
     lblCompiler: TLabel;
     lblProgress: TLabel;
     lblProjectDirectory: TLabel;
-    lblProjectFileName: TLabel;
     lblProjectTitle: TLabel;
-    lblVersionString: TLabel;
     Log: TMemo;
     pnlCompiler: TPanel;
     pnlCompilerHead: TPanel;
@@ -46,6 +42,10 @@ type
     pnlTransComp: TPanel;
     pnlTransCompHead: TPanel;
     Progress: TProgressBar;
+    lblVersionString: TLabel;
+    lblProjectFileName: TLabel;
+    cbProjectName: TComboBox;
+    edVersionString: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);

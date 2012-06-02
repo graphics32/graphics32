@@ -5,7 +5,7 @@ interface
 {$WARN UNIT_PLATFORM OFF}
 
 uses
-  Classes, SysUtils, Contnrs, Windows, FileCtrl, SimpleDOM;
+  Classes, SysUtils, Contnrs, Windows, FileCtrl, StrUtils, SimpleDOM;
 
 const
   cColumnCount = 5;
@@ -121,6 +121,22 @@ type
     procedure Process(Head, Body: TDomNode; const Anchors, Links: TStringList); override;
   end;
 
+  TCaptionUrlList = class
+  private
+    CaptionList: TStringList;
+    UrlList: TStringList;
+    function GetCaption(index: integer): string;
+    function GetUrl(index: integer): string;
+  public
+    procedure Add(const aCaption, aUrl: string);
+    procedure Clear;
+    function Count: integer;
+    constructor Create;
+    destructor Destroy; override;
+    property Caption[index: integer]: string read GetCaption;
+    property Url[index: integer]: string read GetUrl;
+  end;
+
   TIndex = class;
 
   TIndexEntry = class
@@ -173,6 +189,7 @@ type
     constructor Create(AParent: TElement; const APath: string); override;
     destructor Destroy; override;
     procedure BuildHierarchy;
+    procedure ParseMenuData(cuList: TCaptionUrlList);
     procedure BuildIndex(const IndexFile: string);
     procedure BuildTOC(const TocFile: string);
     function FindClass(const AName: string): TClassElement;
@@ -197,6 +214,50 @@ implementation
 
 uses
   Utils;
+
+procedure TCaptionUrlList.Add(const aCaption, aUrl: string);
+begin
+  CaptionList.Add(aCaption);
+  UrlList.Add(aUrl);
+end;
+
+procedure TCaptionUrlList.Clear;
+begin
+  CaptionList.Clear;
+  UrlList.Clear;
+end;
+
+function TCaptionUrlList.Count;
+begin
+  result := CaptionList.Count;
+end;
+
+function TCaptionUrlList.GetCaption(index: integer): string;
+begin
+  if (index < 0) or (index >= CaptionList.Count) then
+    raise Exception.Create('TCaptionUrlList: range error');
+  result := CaptionList[index];
+end;
+
+function TCaptionUrlList.GetUrl(index: integer): string;
+begin
+  if (index < 0) or (index >= UrlList.Count) then
+    raise Exception.Create('TCaptionUrlList: range error');
+  result := UrlList[index];
+end;
+
+constructor TCaptionUrlList.Create;
+begin
+  CaptionList := TStringList.Create;
+  UrlList := TStringList.Create;
+end;
+
+destructor TCaptionUrlList.Destroy;
+begin
+  CaptionList.Free;
+  UrlList.Free;
+end;
+
 
 type
   TClassLinks = class
@@ -1584,11 +1645,68 @@ begin
   Result := nil;
 end;
 
+function GetParentDirectory(const path: string): string;
+begin
+ result := ExpandFileName(path + '\..') + '\';
+end;
+
+procedure TProject.ParseMenuData(cuList: TCaptionUrlList);
+var
+  i: integer;
+  projDir, cap, url: string;
+  sl: TStringList;
+
+  function GetTextBetweenQuotes(const str: string): string;
+  var
+    i,j: integer;
+  begin
+    i := pos('"', str);
+    j := posEx('"', str, i+1);
+    if (i = 0) or (j <= i) then result := ''
+    else SetString(result, PChar(@str[i+1]), j-i-1);
+  end;
+
+begin
+  cuList.Clear;
+  ProjDir := GetParentDirectory(Folder);
+  if not DirectoryExists(ProjDir + 'Scripts') or
+    not FileExists(ProjDir + 'Scripts\menu_data.js') then exit;
+  sl := TStringList.Create;
+  try
+    sl.LoadFromFile(ProjDir + 'Scripts\menu_data.js');
+    for i := 0 to sl.count -2 do
+    begin
+      if (pos('td_1', sl[i]) <> 1) or (posEx('_', sl[i], 5) <> 5) then continue;
+      cap := GetTextBetweenQuotes(sl[i]);
+      if pos('url_', sl[i+1]) <> 1 then continue;
+      url := '.\' + GetTextBetweenQuotes(sl[i+1]);
+      cuList.add(cap,url);
+    end;
+  finally
+    sl.Free;
+  end;
+end;
+
 procedure TProject.Process(Head, Body: TDomNode; const Anchors, Links: TStringList);
 var
   Elems: TElements;
   I, J: Integer;
   TD: TDomNode;
+  cuList: TCaptionUrlList;
+
+  procedure AddOverviewTable(cuList: TCaptionUrlList);
+  var
+    i: Integer;
+  begin
+    with Body.Add('table') do
+    begin
+      Attributes['id'] := 'Auto';
+      with Add('tr') do
+        for i := 0 to cuList.Count -1 do
+          with Add('td') do
+            AddText(Format('<a href="%s">%s</a>', [cuList.Url[i], cuList.Caption[i]]));
+    end;
+  end;
 
   procedure AddClassTable(const Classes: TClassElementArray; const DisplayName: string);
   var
@@ -1677,6 +1795,17 @@ var
 begin
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
+
+    //overview items ...
+    cuList := TCaptionUrlList.Create;
+    try
+      ParseMenuData(cuList);
+      if cuList.Count > 0 then
+        AddOverviewTable(cuList);
+    finally
+      cuList.Free;
+    end;
+
     if length(Classes) > 0 then
       AddClassTable(TClassElementArray(Classes), 'Classes');
     if length(Interfaces) > 0 then
