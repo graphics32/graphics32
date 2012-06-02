@@ -125,7 +125,7 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-  GR32_Blend, GR32_LowLevel;
+  GR32_Math, GR32_Blend, GR32_LowLevel;
 
 { TMandelbrotSampler }
 
@@ -142,7 +142,8 @@ var
   W: Integer;
   C1, C2: TColor32;
 const
-  BAILOUT_VALUE = 4;
+  CBailoutValue = 4;
+  CQuarter = 0.25;
 begin
   with Bounds do
   begin
@@ -150,16 +151,35 @@ begin
     CY := Top + Y * (Bottom - Top) / Image.Height;
   end;
 
-{ Mandelbrot iteration: Z(n+1) = Z(n+1)^2 + C }
-  ZX := 0; ZY := 0;
-  ZXSqr := 0; ZYSqr := 0;
+  { Check whether point lies in the period-2 bulb }
+  ZY := Sqr(CY);
+  if Sqr(CX - 1) + ZY < 0.0625 then
+  begin
+    Result := Palette[321];
+    Exit;
+  end;
+
+  { Check whether point lies in the cardioid }
+  ZX := Sqr(CX + CQuarter) + ZY;
+  if ZX * (ZX - Cx - CQuarter) < CQuarter * ZY then
+  begin
+    Result := Palette[321];
+    Exit;
+  end;
+
+  { Mandelbrot iteration: Z(n+1) = Z(n+1)^2 + C }
+  ZX := 0;
+  ZY := 0;
+  ZXSqr := 0;
+  ZYSqr := 0;
   I := 0;
+
   repeat
     ZY := 2 * ZY * ZX + CY;
     ZX := ZXSqr - ZYSqr - CX;
     ZXSqr := Sqr(ZX);
     ZYSqr := Sqr(ZY);
-    if ZXSqr + ZYSqr > BAILOUT_VALUE then Break;
+    if ZXSqr + ZYSqr > CBailoutValue then Break;
     Inc(I);
   until I = MAX_ITER;
   W := Round(16 * (ZX * ZX + ZY * ZY - 4));
@@ -174,49 +194,41 @@ end;
 procedure TMandelbrotSampler.PrepareSampling;
 var
   I: Integer;
+  S: TFloat;
 begin
+  S := 1 / DEF_ITER;
   for I := 0 to MAX_ITER + 255 do
-    Palette[I] := HSLtoRGB(I/DEF_ITER + 0.5, 1 - I/DEF_ITER,
-      0.5 * (1 + Sin(3 + 14 * I / DEF_ITER)));
+    Palette[I] := HSLtoRGB(I * S + 0.5, 1 - I * S,
+      0.5 * (1 + Sin(3 + 14 * I * S)));
 end;
 
+
+{ TMainForm }
+
 procedure TMainForm.FormCreate(Sender: TObject);
-{$IFDEF Darwin}
-var
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
 begin
-  // Under Mac OS X we need to get the location of the bundle
-{$IFDEF Darwin}
-  pathRef := CFBundleCopyBundleURL(CFBundleGetMainBundle());
-  pathCFStr := CFURLCopyFileSystemPath(pathRef, kCFURLPOSIXPathStyle);
-  CFStringGetPascalString(pathCFStr, @pathStr, 255, CFStringGetSystemEncoding());
-  CFRelease(pathRef);
-  CFRelease(pathCFStr);
-{$ENDIF}
-
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  Img := TSyntheticImage32.Create(Self);
-  Img.Parent := Self;
-  Img.Height := 420;
-  Img.Width := 468;
-  Img.Align := alClient;
-  Img.RepaintMode := rmDirect;
-  Img.TabOrder := 0;
-  Img.OnMouseDown := ImgMouseDown;
-  Img.AutoRasterize := True;
-  Img.Color := clBlack;
-  Img.ClearBuffer := True;
-{$ENDIF}
-
   MandelSampler := TMandelbrotSampler.Create(Img);
   AdaptiveSampler := TAdaptiveSuperSampler.Create(MandelSampler);
   SuperSampler := TSuperSampler.Create(MandelSampler);
   JitteredSampler := TPatternSampler.Create(MandelSampler);
   Sampler := MandelSampler;
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+{ Note: The synthetic image control must be freed before the samplers,
+  since they are potentially used by the rendering thread. }
+  Img.Free;
+
+  MandelSampler.Free;
+  SuperSampler.Free;
+  AdaptiveSampler.Free;
+  JitteredSampler.Free;
+end;
+
+procedure TMainForm.FormShow(Sender: TObject);
+begin
+  SelectRasterizer(rkProgressive);
 end;
 
 procedure TMainForm.SelectRasterizer(RasterizerKind: TRasterizerKind);
@@ -295,7 +307,10 @@ begin
     mbLeft: Scale := 0.5;
     mbRight: Scale := 2;
   else
-    Scale := 1;
+    // reset
+    MandelSampler.Bounds := FloatRect(-2, -2, 2, 2);
+    Img.Rasterize;
+    Exit;
   end;
 
   cX := X / Img.Width;
@@ -318,23 +333,6 @@ procedure TMainForm.miSaveClick(Sender: TObject);
 begin
   if SavePictureDialog.Execute then
     Img.Buffer.SaveToFile(SavePictureDialog.FileName);
-end;
-
-procedure TMainForm.FormDestroy(Sender: TObject);
-begin
-{ Note: The synthetic image control must be freed before the samplers,
-  since they are potentially used by the rendering thread. }
-  Img.Free;
-
-  MandelSampler.Free;
-  SuperSampler.Free;
-  AdaptiveSampler.Free;
-  JitteredSampler.Free;
-end;
-
-procedure TMainForm.FormShow(Sender: TObject);
-begin
-  SelectRasterizer(rkProgressive);
 end;
 
 procedure TMainForm.miExitClick(Sender: TObject);
