@@ -183,7 +183,8 @@ var
 implementation
 
 uses
-  GR32_Resamplers, GR32_Containers, GR32_System, Math, GR32_Math, SysUtils;
+  Math, SysUtils, GR32_Math, GR32_System, GR32_LowLevel, GR32_Resamplers,
+  GR32_Containers;
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
@@ -429,10 +430,10 @@ begin
   L := DstRect.Left; T := DstRect.Top;
   Size := NextPowerOf2(Max(W, H));
 
-  SetLength(ForwardBuffer, Size);
+  SetLength(ForwardBuffer, Size + 1);
 
   I := 2;
-  while I < Size do
+  while I <= Size do
   begin
     ForwardBuffer[I] := ForwardBuffer[I shr 1] + 1;
     Inc(I, 2);
@@ -451,6 +452,7 @@ begin
     P1 := GetDstCoord(P1);
     P2.X := L + P1.X;
     P2.Y := T + P1.Y;
+
     AssignColor(Dst.Bits[P2.X + P2.Y * RowSize], GetSample(P2.X, P2.Y));
 
     // Invalidate the current block
@@ -482,6 +484,8 @@ begin
   FUpdateRows := True;
 end;
 
+{$DEFINE UseInternalFill}
+
 procedure TProgressiveRasterizer.DoRasterize(Dst: TCustomBitmap32;
   DstRect: TRect);
 var
@@ -490,61 +494,101 @@ var
   OnChanged: TAreaChangedEvent;
   Step: Integer;
   GetSample: TGetSampleInt;
-begin
-    GetSample := FSampler.GetSampleInt;
-    OnChanged := Dst.OnAreaChanged;
-    DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
-    W := DstRect.Right - DstRect.Left;
-    H := DstRect.Bottom - DstRect.Top;
-    J := DstRect.Top;
-    Step := 1 shl FSteps;
-    while J < DstRect.Bottom do
-    begin
-      I := DstRect.Left;
-      B := Min(J + Step, DstRect.Bottom);
-      while I < DstRect.Right - Step do
-      begin
-        Dst.FillRect(I, J, I + Step, B, GetSample(I, J));
-        Inc(I, Step);
-      end;
-      Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
-      if DoUpdate and FUpdateRows then
-        OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, B), AREAINFO_RECT);
-      Inc(J, Step);
-    end;
-    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
 
-    Shift := FSteps;
-    while Step > 1 do
+{$IFDEF UseInternalFill}
+  Bits: PColor32Array;
+
+procedure IntFillRect(X1, Y1, X2, Y2: Integer; C: TColor32);
+var
+  Y: Integer;
+  P: PColor32Array;
+begin
+  for Y := Y1 to Y2 - 1 do
+  begin
+    P := Pointer(@Bits[Y * W]);
+    FillLongword(P[X1], X2 - X1, C);
+  end;
+end;
+{$ENDIF}
+
+begin
+  GetSample := FSampler.GetSampleInt;
+  OnChanged := Dst.OnAreaChanged;
+{$IFDEF UseInternalFill}
+  Bits := Dst.Bits;
+{$ENDIF}
+  DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
+  W := DstRect.Right - DstRect.Left;
+  H := DstRect.Bottom - DstRect.Top;
+  J := DstRect.Top;
+  Step := 1 shl FSteps;
+  while J < DstRect.Bottom do
+  begin
+    I := DstRect.Left;
+    B := Min(J + Step, DstRect.Bottom);
+    while I < DstRect.Right - Step do
     begin
-      Dec(Shift);
-      Step := Step div 2;
-      Wk := W div Step - 1;
-      Hk := H div Step;
-      for J := 0 to Hk do
-      begin
-        Y := DstRect.Top + J shl Shift;
-        B := Min(Y + Step, DstRect.Bottom);
-        if Odd(J) then
-          for I := 0 to Wk do
+      {$IFDEF UseInternalFill}
+      IntFillRect(I, J, I + Step, B, GetSample(I, J));
+      {$ELSE}
+      Dst.FillRect(I, J, I + Step, B, GetSample(I, J));
+      {$ENDIF}
+      Inc(I, Step);
+    end;
+    {$IFDEF UseInternalFill}
+    IntFillRect(I, J, DstRect.Right, B, GetSample(I, J));
+    if DoUpdate and FUpdateRows then
+      OnChanged(Dst, Rect(DstRect.Left, J, DstRect.Right, B), AREAINFO_RECT);
+    {$ELSE}
+    Dst.FillRect(I, J, DstRect.Right, B, GetSample(I, J));
+    {$ENDIF}
+    Inc(J, Step);
+  end;
+  if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
+
+  Shift := FSteps;
+  while Step > 1 do
+  begin
+    Dec(Shift);
+    Step := Step div 2;
+    Wk := W div Step - 1;
+    Hk := H div Step;
+    for J := 0 to Hk do
+    begin
+      Y := DstRect.Top + J shl Shift;
+      B := Min(Y + Step, DstRect.Bottom);
+      if Odd(J) then
+        for I := 0 to Wk do
+        begin
+          X := DstRect.Left + I shl Shift;
+          {$IFDEF UseInternalFill}
+          IntFillRect(X, Y, X + Step, B, GetSample(X, Y));
+          {$ELSE}
+          Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
+          {$ENDIF}
+        end
+      else
+        for I := 0 to Wk do
+          if Odd(I) then
           begin
             X := DstRect.Left + I shl Shift;
+            {$IFDEF UseInternalFill}
+            IntFillRect(X, Y, X + Step, B, GetSample(X, Y));
+            {$ELSE}
             Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
-          end
-        else
-          for I := 0 to Wk do
-            if Odd(I) then
-            begin
-              X := DstRect.Left + I shl Shift;
-              Dst.FillRect(X, Y, X + Step, B, GetSample(X, Y));
-            end;
-        X := DstRect.Left + Wk shl Shift;
-        Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
-        if FUpdateRows and DoUpdate then
-          OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, B), AREAINFO_RECT);
-      end;
-      if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
+            {$ENDIF}
+          end;
+      X := DstRect.Left + Wk shl Shift;
+      {$IFDEF UseInternalFill}
+      IntFillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
+      if FUpdateRows and DoUpdate then
+        OnChanged(Dst, Rect(DstRect.Left, Y, DstRect.Right, B), AREAINFO_RECT);
+      {$ELSE}
+      Dst.FillRect(X, Y, DstRect.Right, B, GetSample(X, Y));
+      {$ENDIF}
     end;
+    if DoUpdate and (not FUpdateRows) then OnChanged(Dst, DstRect, AREAINFO_RECT);
+  end;
 end;
 
 procedure TProgressiveRasterizer.SetSteps(const Value: Integer);
