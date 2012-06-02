@@ -181,3 +181,22 @@
 *)
 
   {-$DEFINE OMIT_SSE2}
+
+
+(*  Symbol: USEGR32GAMMA  --------------------    If defined the polygon rasterizer will use GR32 gamma correction*){$DEFINE USEGR32GAMMA}(*  Symbol: CHANGENOTIFICATIONS    If defined the polygon rasterizer will trigger change notifications.  Undefining this will avoid bounding box computations, which may  improve performance slightly.*){$DEFINE CHANGENOTIFICATIONS}
+
+
+(*
+  Symbol: USESTACKALLOC
+
+    If defined stack allocation routines will be used in some functions.
+
+  Allocating memory on the stack is usually more efficient than using the
+  memory manager. If a routine uses StackAllock/StackFree then it should
+  always be wrapped inside a {$W+}...{$W-} block in order to generate
+  a stack frame.
+
+  NOTE: Undefine this symbol if you get stack overflow errors.
+*)
+
+{$DEFINE USESTACKALLOC}

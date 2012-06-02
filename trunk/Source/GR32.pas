@@ -62,13 +62,23 @@ type
   TColor32Array = array [0..0] of TColor32;
   TArrayOfColor32 = array of TColor32;
 
+{.$DEFINE BGRA_FORMAT}
+
+{$IFNDEF BGRA_FORMAT}
   TColor32Component = (ccBlue, ccGreen, ccRed, ccAlpha);
+{$ELSE}
+  TColor32Component = (ccAlpha, ccRed, ccGreen, ccBlue);
+{$ENDIF}
   TColor32Components = set of TColor32Component;
 
   PColor32Entry = ^TColor32Entry;
   TColor32Entry = packed record
     case Integer of
+{$IFNDEF BGRA_FORMAT}
       0: (B, G, R, A: Byte);
+{$ELSE}
+      0: (A, R, G, B: Byte);
+{$ENDIF}
       1: (ARGB: TColor32);
       2: (Planes: array[0..3] of Byte);
       3: (Components: array[TColor32Component] of Byte);
@@ -6167,4 +6177,4 @@ initialization
 finalization
   StockBitmap.Free;
 
-end.
+end.
