@@ -14,6 +14,7 @@ object MainForm: TMainForm
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnMouseWheel = ImgMouseWheel
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -26,6 +27,7 @@ object MainForm: TMainForm
     RepaintMode = rmDirect
     TabOrder = 0
     OnMouseDown = ImgMouseDown
+    OnMouseWheel = ImgMouseWheel
     AutoRasterize = True
     Rasterizer.UpdateRowCount = 0
     Color = clBlack
@@ -36,69 +38,69 @@ object MainForm: TMainForm
     Left = 24
     Top = 16
     object miFile: TMenuItem
-      Caption = 'File'
+      Caption = '&File'
       object miSave: TMenuItem
-        Caption = 'Save...'
+        Caption = '&Save...'
         OnClick = miSaveClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
       object miExit: TMenuItem
-        Caption = 'Exit'
+        Caption = 'E&xit'
         OnClick = miExitClick
       end
     end
     object miRasterizer: TMenuItem
-      Caption = 'Rasterizer'
+      Caption = '&Rasterizer'
       object miRegularSampling: TMenuItem
         AutoCheck = True
-        Caption = 'Regular'
+        Caption = '&Regular'
         RadioItem = True
-        OnClick = RasterizerMenuClick
+        OnClick = miRasterizerClick
       end
       object miProgressive: TMenuItem
         Tag = 1
         AutoCheck = True
-        Caption = 'Progressive'
+        Caption = '&Progressive'
         Checked = True
         RadioItem = True
-        OnClick = RasterizerMenuClick
+        OnClick = miRasterizerClick
       end
       object miSwizzling: TMenuItem
         Tag = 2
         AutoCheck = True
-        Caption = 'Swizzling'
+        Caption = '&Swizzling'
         RadioItem = True
-        OnClick = RasterizerMenuClick
+        OnClick = miRasterizerClick
       end
       object miTesseral: TMenuItem
         Tag = 3
         AutoCheck = True
-        Caption = 'Tesseral'
+        Caption = '&Tesseral'
         RadioItem = True
-        OnClick = RasterizerMenuClick
+        OnClick = miRasterizerClick
       end
       object miContour: TMenuItem
         Tag = 4
         AutoCheck = True
-        Caption = 'Contour'
+        Caption = '&Contour'
         RadioItem = True
-        OnClick = RasterizerMenuClick
+        OnClick = miRasterizerClick
       end
       object miMultithreadedRegularRasterizer: TMenuItem
         Tag = 5
         AutoCheck = True
-        Caption = 'Multithreaded Regular'
+        Caption = '&Multithreaded Regular'
         RadioItem = True
-        OnClick = RasterizerMenuClick
+        OnClick = miRasterizerClick
       end
     end
     object miSuperSampler: TMenuItem
-      Caption = 'SuperSampler'
+      Caption = '&SuperSampler'
       object miDefault: TMenuItem
         AutoCheck = True
-        Caption = 'None'
+        Caption = '&None'
         Checked = True
         RadioItem = True
         OnClick = miDefaultClick
@@ -110,21 +112,21 @@ object MainForm: TMainForm
       object miSuperSampler2x: TMenuItem
         Tag = 1
         AutoCheck = True
-        Caption = 'SuperSampler 2x'
+        Caption = 'SuperSampler &2x'
         RadioItem = True
         OnClick = miDefaultClick
       end
       object miSuperSampler3x: TMenuItem
         Tag = 2
         AutoCheck = True
-        Caption = 'SuperSampler 3x'
+        Caption = 'SuperSampler &3x'
         RadioItem = True
         OnClick = miDefaultClick
       end
       object miSuperSampler4x: TMenuItem
         Tag = 3
         AutoCheck = True
-        Caption = 'SuperSampler 4x'
+        Caption = 'SuperSampler &4x'
         RadioItem = True
         OnClick = miDefaultClick
       end
@@ -160,9 +162,70 @@ object MainForm: TMainForm
         OnClick = miDefaultClick
       end
     end
+    object miMaxIterations: TMenuItem
+      Caption = 'Max. &Iterations'
+      object miMaxIterations50: TMenuItem
+        Tag = 50
+        Caption = '5&0'
+        RadioItem = True
+        OnClick = miMaxIterationsClick
+      end
+      object miMaxIterations160: TMenuItem
+        Tag = 160
+        Caption = '&160'
+        RadioItem = True
+        OnClick = miMaxIterationsClick
+      end
+      object miMaxIterations256: TMenuItem
+        Tag = 256
+        Caption = '&256'
+        RadioItem = True
+        OnClick = miMaxIterationsClick
+      end
+      object miMaxIterations320: TMenuItem
+        Tag = 320
+        Caption = '&320'
+        Checked = True
+        RadioItem = True
+        OnClick = miMaxIterationsClick
+      end
+      object miMaxIterations512: TMenuItem
+        Tag = 512
+        Caption = '&512'
+        RadioItem = True
+        OnClick = miMaxIterationsClick
+      end
+    end
+    object miPalette: TMenuItem
+      Caption = '&Palette'
+      object miPaletteDefault: TMenuItem
+        Caption = '&Default'
+        Checked = True
+        RadioItem = True
+        OnClick = miPaletteClick
+      end
+      object miPaletteRainbow: TMenuItem
+        Tag = 1
+        Caption = '&Rainbow'
+        RadioItem = True
+        OnClick = miPaletteClick
+      end
+      object miPaletteMonochrome: TMenuItem
+        Tag = 2
+        Caption = '&Monochrome'
+        RadioItem = True
+        OnClick = miPaletteClick
+      end
+      object miPaletteSimple: TMenuItem
+        Tag = 3
+        Caption = '&Simple'
+        RadioItem = True
+        OnClick = miPaletteClick
+      end
+    end
   end
   object SavePictureDialog: TSavePictureDialog
-    Left = 64
+    Left = 112
     Top = 16
   end
 end

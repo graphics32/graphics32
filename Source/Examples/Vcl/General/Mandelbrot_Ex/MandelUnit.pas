@@ -42,20 +42,23 @@ uses
   ExtCtrls, Menus, ExtDlgs, Dialogs, GR32, GR32_Image, GR32_ExtImage,
   GR32_Resamplers, GR32_Rasterizers;
 
-const
-  MAX_ITER = 320;
-  DEF_ITER = 16;
-
 type
   TRasterizerKind = (rkRegular, rkProgressive, rkSwizzling, rkTesseral,
    rkContour, rkMultithreadedRegularRasterizer);
-  TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skPattern2, skPattern3, skPattern4);
+  TSamplerKind = (skDefault, skSS2X, skSS3X, skSS4X, skPattern2, skPattern3,
+    skPattern4);
+  TMandelbrotPalette = (mpGR32, mpRainbow, mpMonochrome, mpSimple);
 
   TMandelbrotSampler = class(TCustomSampler)
+  private
+    FPalette: array of TColor32;
+  protected
+    procedure CalculatePalette;
   public
+    MaxIterations: Integer;
     Bounds: TFloatRect;
     Image: TCustomPaintBox32;
-    Palette: array [0..MAX_ITER + 255] of TColor32;
+    Palette: TMandelbrotPalette;
     constructor Create(AImage: TCustomPaintBox32);
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure PrepareSampling; override;
@@ -87,16 +90,35 @@ type
     N5: TMenuItem;
     SavePictureDialog: TSavePictureDialog;
     miMultithreadedRegularRasterizer: TMenuItem;
+    miMaxIterations: TMenuItem;
+    miMaxIterations320: TMenuItem;
+    miMaxIterations512: TMenuItem;
+    miMaxIterations256: TMenuItem;
+    miMaxIterations160: TMenuItem;
+    miMaxIterations50: TMenuItem;
+    miPalette: TMenuItem;
+    miPaletteRainbow: TMenuItem;
+    miPaletteDefault: TMenuItem;
+    miPaletteMonochrome: TMenuItem;
+    miPaletteSimple: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
+    procedure FormShow(Sender: TObject);
     procedure miAdaptiveClick(Sender: TObject);
     procedure miDefaultClick(Sender: TObject);
     procedure miExitClick(Sender: TObject);
     procedure miSaveClick(Sender: TObject);
-    procedure RasterizerMenuClick(Sender: TObject);
-    procedure FormShow(Sender: TObject);
+    procedure miRasterizerClick(Sender: TObject);
+    procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure ImgMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure miMaxIterationsClick(Sender: TObject);
+    procedure miPaletteClick(Sender: TObject);
+  private
+    procedure TranslateX(Amount: TFloat);
+    procedure TranslateY(Amount: TFloat);
+    procedure Zoom(Center: TPoint; Factor: TFloat);
   public
     { Public declarations }
     Rasterizer: TRasterizer;
@@ -125,12 +147,14 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-  GR32_Math, GR32_Blend, GR32_LowLevel;
+  GR32_Blend, GR32_LowLevel;
 
 { TMandelbrotSampler }
 
 constructor TMandelbrotSampler.Create(AImage: TCustomPaintBox32);
 begin
+  MaxIterations := 320;
+  Palette := mpGR32;
   Bounds := FloatRect(-2, -2, 2, 2);
   Image := AImage;
 end;
@@ -138,8 +162,7 @@ end;
 function TMandelbrotSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   CX, CY, ZX, ZY, ZXSqr, ZYSqr: Extended;
-  I: Integer;
-  W: Integer;
+  I, W, M: Integer;
   C1, C2: TColor32;
 const
   CBailoutValue = 4;
@@ -151,11 +174,13 @@ begin
     CY := Top + Y * (Bottom - Top) / Image.Height;
   end;
 
+  M := Length(FPalette) - 1;
+
   { Check whether point lies in the period-2 bulb }
   ZY := Sqr(CY);
   if Sqr(CX - 1) + ZY < 0.0625 then
   begin
-    Result := Palette[321];
+    Result := FPalette[M + 1];
     Exit;
   end;
 
@@ -163,7 +188,7 @@ begin
   ZX := Sqr(CX + CQuarter) + ZY;
   if ZX * (ZX - Cx - CQuarter) < CQuarter * ZY then
   begin
-    Result := Palette[321];
+    Result := FPalette[M + 1];
     Exit;
   end;
 
@@ -181,25 +206,53 @@ begin
     ZYSqr := Sqr(ZY);
     if ZXSqr + ZYSqr > CBailoutValue then Break;
     Inc(I);
-  until I = MAX_ITER;
+  until I = M;
   W := Round(16 * (ZX * ZX + ZY * ZY - 4));
   W := Clamp(W);
 
-  C1 := Palette[I];
-  C2 := Palette[I + 1];
+  C1 := FPalette[I];
+  C2 := FPalette[I + 1];
   Result := CombineReg(C1, C2, W);
   EMMS;
 end;
 
-procedure TMandelbrotSampler.PrepareSampling;
+procedure TMandelbrotSampler.CalculatePalette;
 var
   I: Integer;
-  S: TFloat;
+  S, T: TFloat;
 begin
-  S := 1 / DEF_ITER;
-  for I := 0 to MAX_ITER + 255 do
-    Palette[I] := HSLtoRGB(I * S + 0.5, 1 - I * S,
-      0.5 * (1 + Sin(3 + 14 * I * S)));
+  S := (321 / (MaxIterations + 1)) / 16;
+  case Palette of
+    mpGR32:
+      for I := 0 to MaxIterations + 1 do
+        FPalette[I] := HSLtoRGB(I * S + 0.5, 1 - I * S,
+          0.5 * (1 + Sin(3 + 14 * I * S)));
+    mpRainbow:
+      begin
+        T := 1 / (MaxIterations + 1);
+        for I := 0 to MaxIterations + 1 do
+          FPalette[I] := HSLtoRGB(0.5 * (1 - Sqr(1 - I * T)), 1 - I * S,
+            0.1 + 0.5 * I * S);
+      end;
+    mpMonochrome:
+      begin
+        T := 1 / (MaxIterations + 1);
+        for I := 0 to MaxIterations + 1 do
+          FPalette[I] := Gray32(Round(255 * (1 - Sqr(Sqr(Sqr(1 - I * T))))));
+      end;
+    mpSimple:
+      begin
+        T := (1 shl 24) / (MaxIterations + 1);
+        for I := 0 to MaxIterations + 1 do
+          FPalette[I] := Round(I * T);
+      end;
+  end;
+end;
+
+procedure TMandelbrotSampler.PrepareSampling;
+begin
+  SetLength(FPalette, MaxIterations + 1);
+  CalculatePalette;
 end;
 
 
@@ -244,21 +297,6 @@ begin
   Img.Rasterizer := Rasterizer;
 end;
 
-procedure TMainForm.RasterizerMenuClick(Sender: TObject);
-var mi: TMenuItem;
-begin
-  if Not(Sender is TMenuItem) then Exit;
-  mi := TMenuItem(Sender);
-  mi.Checked := True;
-  SelectRasterizer(TRasterizerKind(mi.Tag));
-end;
-
-procedure TMainForm.miDefaultClick(Sender: TObject);
-begin
-  if Sender is TMenuItem then
-    SelectSampler(TSamplerKind(TMenuItem(Sender).Tag));
-end;
-
 procedure TMainForm.SelectSampler(ASamplerKind: TSamplerKind);
 const
   SLEVEL: array [skSS2X..skSS4X] of Integer = (2, 3, 4);
@@ -293,40 +331,67 @@ begin
   Img.Rasterize;
 end;
 
-procedure TMainForm.miAdaptiveClick(Sender: TObject);
+procedure TMainForm.TranslateX(Amount: TFloat);
 begin
-  SelectSampler(SamplerKind);
+  with MandelSampler do
+  begin
+    Bounds.Left := Bounds.Left + Amount;
+    Bounds.Right := Bounds.Right + Amount;
+  end;
+  Img.Rasterize;
 end;
 
-procedure TMainForm.ImgMouseDown(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
-var
-  cX, cY, L, T, W, H, Scale: Extended;
+procedure TMainForm.TranslateY(Amount: TFloat);
 begin
-  case Button of
-    mbLeft: Scale := 0.5;
-    mbRight: Scale := 2;
-  else
-    // reset
-    MandelSampler.Bounds := FloatRect(-2, -2, 2, 2);
-    Img.Rasterize;
-    Exit;
+  with MandelSampler do
+  begin
+    Bounds.Top := Bounds.Top + Amount;
+    Bounds.Bottom := Bounds.Bottom + Amount;
   end;
+  Img.Rasterize;
+end;
 
-  cX := X / Img.Width;
-  cY := Y / Img.Height;
+procedure TMainForm.Zoom(Center: TPoint; Factor: TFloat);
+var
+  cX, cY, L, T, W, H: Extended;
+begin
+  cX := Center.X / Img.Width;
+  cY := Center.Y / Img.Height;
   with MandelSampler do
   begin
     L := Bounds.Left;
     T := Bounds.Top;
     W := Bounds.Right - Bounds.Left;
     H := Bounds.Bottom - Bounds.Top;
-    Bounds.Left := L + cX * W - W * Scale * 0.5;
-    Bounds.Top := T + cY * H - H * Scale * 0.5;
-    Bounds.Right := Bounds.Left + W * Scale;
-    Bounds.Bottom := Bounds.Top + H * Scale;
+    if W = 0 then W := H;
+    if H = 0 then H := W;
+    Bounds.Left := cX * W - W * Factor * 0.5 + L;
+    Bounds.Top := cY * H - H * Factor * 0.5 + T;
+    Bounds.Right := W * Factor + Bounds.Left;
+    Bounds.Bottom := H * Factor + Bounds.Top;
   end;
   Img.Rasterize;
+end;
+
+procedure TMainForm.miRasterizerClick(Sender: TObject);
+var
+  mi: TMenuItem;
+begin
+  if not(Sender is TMenuItem) then Exit;
+  mi := TMenuItem(Sender);
+  mi.Checked := True;
+  SelectRasterizer(TRasterizerKind(mi.Tag));
+end;
+
+procedure TMainForm.miDefaultClick(Sender: TObject);
+begin
+  if Sender is TMenuItem then
+    SelectSampler(TSamplerKind(TMenuItem(Sender).Tag));
+end;
+
+procedure TMainForm.miAdaptiveClick(Sender: TObject);
+begin
+  SelectSampler(SamplerKind);
 end;
 
 procedure TMainForm.miSaveClick(Sender: TObject);
@@ -337,7 +402,43 @@ end;
 
 procedure TMainForm.miExitClick(Sender: TObject);
 begin
- Close;
+  Close;
+end;
+
+procedure TMainForm.miMaxIterationsClick(Sender: TObject);
+begin
+  TMenuItem(Sender).Checked := True;
+  MandelSampler.MaxIterations := TMenuItem(Sender).Tag;
+  Img.Rasterize;
+end;
+
+procedure TMainForm.miPaletteClick(Sender: TObject);
+begin
+  TMenuItem(Sender).Checked := True;
+  MandelSampler.Palette := TMandelbrotPalette(TMenuItem(Sender).Tag);
+  Img.Rasterize;
+end;
+
+procedure TMainForm.ImgMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  case Button of
+    mbLeft: Zoom(Point(X, Y), 0.5);
+    mbRight: Zoom(Point(X, Y), 2);
+  else
+    // reset
+    MandelSampler.Bounds := FloatRect(-2, -2, 2, 2);
+    Img.Rasterize;
+  end;
+end;
+
+procedure TMainForm.ImgMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  if ssShift in Shift then
+    TranslateX(-0.001 * WheelDelta)
+  else
+    TranslateY(-0.001 * WheelDelta);
 end;
 
 end.
