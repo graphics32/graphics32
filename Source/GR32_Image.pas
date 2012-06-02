@@ -2532,4 +2532,4 @@ begin
   FBitmap32Collection := Value;
 end;
 
-end.
+end.

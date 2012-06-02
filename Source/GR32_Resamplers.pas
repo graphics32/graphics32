@@ -1811,7 +1811,7 @@ begin
     {$IFDEF HAS_NATIVEINT}
     Inc(NativeUInt(RowSrc), OffSrc);
     {$ELSE}
-    Inc(Cardinal(RowSrc), OffSrc);
+    Inc(PByte(RowSrc), OffSrc);
     {$ENDIF}
   end;
 
@@ -2293,7 +2293,7 @@ begin
         {$IFDEF HAS_NATIVEINT}
         Inc(NativeUInt(RowSrc), OffSrc * dy);
         {$ELSE}
-        Inc(Cardinal(RowSrc), OffSrc * dy);
+        Inc(PByte(RowSrc), OffSrc * dy);
         {$ENDIF}
       end;
     end;
@@ -4196,4 +4196,4 @@ finalization
   ResamplerList.Free;
   KernelList.Free;
 
-end.
+end.

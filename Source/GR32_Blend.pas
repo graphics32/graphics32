@@ -58,6 +58,8 @@ type
   TBlendMem    = procedure(F: TColor32; var B: TColor32);
   TBlendRegEx  = function(F, B, M: TColor32): TColor32;
   TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
+  TBlendRegRGB = function(F, B, W: TColor32): TColor32;
+  TBlendMemRGB = procedure(F: TColor32; var B: TColor32; W: TColor32);
   TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
   TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
   TCombineReg  = function(X, Y, W: TColor32): TColor32;
@@ -76,6 +78,9 @@ var
 
   BlendRegEx: TBlendRegEx;
   BlendMemEx: TBlendMemEx;
+
+  BlendRegRGB: TBlendRegRGB;
+  BlendMemRGB: TBlendMemRGB;
 
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
@@ -272,6 +277,29 @@ begin
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
   end;
+end;
+
+function BlendRegRGB_Pas(F, B, W: TColor32): TColor32;
+var
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+  WX: TColor32Entry absolute W;
+  RX: TColor32Entry absolute Result;
+begin
+  RX.R := (FX.R - BX.R) * WX.B div 255 + BX.R;
+  RX.G := (FX.G - BX.G) * WX.G div 255 + BX.G;
+  RX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
+end;
+
+procedure BlendMemRGB_Pas(F: TColor32; var B: TColor32; W: TColor32);
+var
+  FX: TColor32Entry absolute F;
+  BX: TColor32Entry absolute B;
+  WX: TColor32Entry absolute W;
+begin
+  BX.R := (FX.R - BX.R) * WX.B div 255 + BX.R;
+  BX.G := (FX.G - BX.G) * WX.G div 255 + BX.G;
+  BX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
 end;
 
 procedure BlendLine_Pas(Src, Dst: PColor32; Count: Integer);
@@ -2053,6 +2081,62 @@ asm
 {$ENDIF}
 end;
 
+
+function BlendRegRGB_MMX(F, B, W: TColor32): TColor32;
+asm
+{$IFDEF TARGET_x86}
+        PXOR      MM2,MM2
+        MOVD      MM0,EAX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,EDX
+        PUNPCKLBW MM1,MM2
+        BSWAP     ECX
+        PSUBW     MM0,MM1
+        MOVD      MM3,ECX
+        PUNPCKLBW MM3,MM2
+        PMULLW    MM0,MM3
+        MOV       EAX,bias_ptr
+        PSLLW     MM1,8
+        PADDW     MM1,[EAX]
+        PADDW     MM1,MM0
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM2
+        MOVD      EAX,MM1
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+// TBA
+{$ENDIF}
+end;
+
+procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: TColor32);
+asm
+{$IFDEF TARGET_x86}
+        PXOR      MM2,MM2
+        MOVD      MM0,EAX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,[EDX]
+        PUNPCKLBW MM1,MM2
+        BSWAP     ECX
+        PSUBW     MM0,MM1
+        MOVD      MM3,ECX
+        PUNPCKLBW MM3,MM2
+        PMULLW    MM0,MM3
+        MOV       EAX,bias_ptr
+        PSLLW     MM1,8
+        PADDW     MM1,[EAX]
+        PADDW     MM1,MM0
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM2
+        MOVD      [EDX],MM1
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+// TBA
+{$ENDIF}
+end;
+
+
 {$IFDEF TARGET_x86}
 procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer);
 asm
@@ -3786,7 +3870,10 @@ const
   FID_COLORDIFFERENCE = 23;
   FID_COLOREXCLUSION = 24;
   FID_COLORSCALE = 25;
-  FID_Lighten = 26;
+  FID_LIGHTEN = 26;
+
+  FID_BLENDREGRGB = 27;
+  FID_BLENDMEMRGB = 28;
 
 procedure RegisterBindings;
 begin
@@ -3823,6 +3910,8 @@ begin
   BlendRegistry.RegisterBinding(FID_COLORSCALE, @@ColorScale);
 
   BlendRegistry.RegisterBinding(FID_LIGHTEN, @@LightenReg);
+  BlendRegistry.RegisterBinding(FID_BLENDREGRGB, @@BlendRegRGB);
+  BlendRegistry.RegisterBinding(FID_BLENDMEMRGB, @@BlendMemRGB);
 
   // pure pascal
   BlendRegistry.Add(FID_EMMS, @EMMS_Pas);
@@ -3852,6 +3941,8 @@ begin
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_Pas);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas);
+  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_Pas);
+  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_Pas);
 
 {$IFNDEF PUREPASCAL}
   BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
@@ -3883,6 +3974,8 @@ begin
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_MMX, [ciMMX]);
+  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_MMX, [ciMMX]);
 {$ENDIF}
 {$IFNDEF OMIT_SSE2}
   BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
