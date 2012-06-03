@@ -104,11 +104,12 @@ type
     FOnBeginPath: TNotifyEvent;
     FOnEndPath: TNotifyEvent;
     FOnClosePath: TNotifyEvent;
+    function GetPoints: TArrayOfFloatPoint;
   protected
     procedure AddPoint(const Point: TFloatPoint); override;
-    property Points: TArrayOfFloatPoint read FPoints;
-    property Path: TArrayOfArrayOfFloatPoint read FPath;
   public
+    property Points: TArrayOfFloatPoint read GetPoints;
+    property Path: TArrayOfArrayOfFloatPoint read FPath;
     constructor Create; override;
     destructor Destroy; override;
     procedure DrawPath; virtual;
@@ -512,6 +513,11 @@ begin
   if Assigned(FOnEndPath) then FOnEndPath(Self);
 end;
 
+function TFlattenedPath.GetPoints: TArrayOfFloatPoint;
+begin
+  Result := Copy(FPoints, 0, FPointIndex);
+end;
+
 constructor TFlattenedPath.Create;
 begin
   inherited;
@@ -591,6 +597,7 @@ var
   FC, SC: TColor32Entry;
   ClipRect: TFloatRect;
   APoints: TArrayOfArrayOfFloatPoint;
+  P: TArrayOfFloatPoint;
 begin
   ClipRect := FloatRect(Bitmap.ClipRect);
   with Path do
@@ -612,11 +619,11 @@ begin
       Renderer.PolyPolygonFS(APoints, ClipRect, Transformation);
 
       // stroke open path
-      if Length(Points) > 0 then
+      P := Points;
+      if Length(P) > 0 then
       begin
-        SetLength(APoints, 1);
-        APoints[0] := BuildPolyline(Points, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-        Renderer.PolyPolygonFS(APoints, ClipRect, Transformation);
+        P := BuildPolyline(P, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+        Renderer.PolygonFS(P, ClipRect, Transformation);
       end;
     end;
   end;
