@@ -472,7 +472,7 @@ type
 var
   GAMMA_TABLE: array [Byte] of Byte;
 
-procedure SetGamma(Gamma: Single = 0.7);
+procedure SetGamma(Gamma: Single = 1.6);
 
 type
   { TPlainInterfacedPersistent }
