@@ -609,6 +609,7 @@ begin
 
     // fill path
     Renderer.Color := FC.ARGB;
+    Renderer.FillMode := FillMode;
     Renderer.PolyPolygonFS(Path, ClipRect, Transformation);
 
     if (StrokeWidth > 0) and (SC.A <> 0) then
