@@ -171,7 +171,7 @@ implementation
 uses
   GR32_Math, GR32_VectorUtils;
 
-function CBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; inline;
+function CBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result :=
     Abs(P1.X + P3.X - 2*P2.X) +
@@ -180,7 +180,7 @@ begin
     Abs(P2.Y + P4.Y - 2*P3.Y);
 end;
 
-function QBezierFlatness(const P1, P2, P3: TFloatPoint): TFloat; inline;
+function QBezierFlatness(const P1, P2, P3: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result :=
     Abs(P1.x + P3.x - 2*P2.x) +
