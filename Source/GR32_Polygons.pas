@@ -212,7 +212,7 @@ type
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 begin
   if not Assigned(PolygonRendererList) then PolygonRendererList := TClassList.Create;
-  PolygonRendererList.ADD(PolygonRendererClass);
+  PolygonRendererList.Add(PolygonRendererClass);
 end;
 
 // routines for color filling:
@@ -1137,6 +1137,6 @@ initialization
   RegisterPolygonRenderer(TPolygonRenderer32LCD2);
 
 finalization
-  ResamplerList.Free;
+  PolygonRendererList.Free;
 
 end.
