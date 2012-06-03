@@ -2081,7 +2081,6 @@ asm
 {$ENDIF}
 end;
 
-
 function BlendRegRGB_MMX(F, B, W: TColor32): TColor32;
 asm
 {$IFDEF TARGET_x86}
@@ -2105,7 +2104,23 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
-// TBA
+        PXOR      MM2,MM2
+        MOVD      MM0,ECX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,EDX
+        PUNPCKLBW MM1,MM2
+        BSWAP     R8D
+        PSUBW     MM0,MM1
+        MOVD      MM3,R8D
+        PUNPCKLBW MM3,MM2
+        PMULLW    MM0,MM3
+        MOV       RAX,bias_ptr
+        PSLLW     MM1,8
+        PADDW     MM1,[RAX]
+        PADDW     MM1,MM0
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM2
+        MOVD      EAX,MM1
 {$ENDIF}
 end;
 
@@ -2132,7 +2147,23 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
-// TBA
+        PXOR      MM2,MM2
+        MOVD      MM0,ECX
+        PUNPCKLBW MM0,MM2
+        MOVD      MM1,[EDX]
+        PUNPCKLBW MM1,MM2
+        BSWAP     R8D
+        PSUBW     MM0,MM1
+        MOVD      MM3,R8D
+        PUNPCKLBW MM3,MM2
+        PMULLW    MM0,MM3
+        MOV       RAX,bias_ptr
+        PSLLW     MM1,8
+        PADDW     MM1,[RAX]
+        PADDW     MM1,MM0
+        PSRLW     MM1,8
+        PACKUSWB  MM1,MM2
+        MOVD      [EDX],MM1
 {$ENDIF}
 end;
 
@@ -2984,6 +3015,91 @@ asm
         PACKUSWB  XMM1,XMM0
         MOVD      DWORD PTR [RDX],XMM1
 @1:
+{$ENDIF}
+end;
+
+function BlendRegRGB_SSE2(F, B, W: TColor32): TColor32;
+asm
+{$IFDEF TARGET_x86}
+        PXOR      XMM2,XMM2
+        MOVD      XMM0,EAX
+        PUNPCKLBW XMM0,XMM2
+        MOVD      XMM1,EDX
+        PUNPCKLBW XMM1,XMM2
+        BSWAP     ECX
+        PSUBW     XMM0,XMM1
+        MOVD      XMM3,ECX
+        PUNPCKLBW XMM3,XMM2
+        PMULLW    XMM0,XMM3
+        MOV       EAX,bias_ptr
+        PSLLW     XMM1,8
+        PADDW     XMM1,[EAX]
+        PADDW     XMM1,XMM0
+        PSRLW     XMM1,8
+        PACKUSWB  XMM1,XMM2
+        MOVD      EAX,XMM1
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        PXOR      XMM2,XMM2
+        MOVD      XMM0,ECX
+        PUNPCKLBW XMM0,XMM2
+        MOVD      XMM1,EDX
+        PUNPCKLBW XMM1,XMM2
+        BSWAP     R8D
+        PSUBW     XMM0,XMM1
+        MOVD      XMM3,R8D
+        PUNPCKLBW XMM3,XMM2
+        PMULLW    XMM0,XMM3
+        MOV       RAX,bias_ptr
+        PSLLW     XMM1,8
+        PADDW     XMM1,[RAX]
+        PADDW     XMM1,XMM0
+        PSRLW     XMM1,8
+        PACKUSWB  XMM1,XMM2
+        MOVD      EAX,XMM1
+{$ENDIF}
+end;
+
+procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: TColor32);
+asm
+{$IFDEF TARGET_x86}
+        PXOR      XMM2,XMM2
+        MOVD      XMM0,EAX
+        PUNPCKLBW XMM0,XMM2
+        MOVD      XMM1,[EDX]
+        PUNPCKLBW XMM1,XMM2
+        BSWAP     ECX
+        PSUBW     XMM0,XMM1
+        MOVD      XMM3,ECX
+        PUNPCKLBW XMM3,XMM2
+        PMULLW    XMM0,XMM3
+        MOV       EAX, bias_ptr
+        PSLLW     XMM1,8
+        PADDW     XMM1,[EAX]
+        PADDW     XMM1,XMM0
+        PSRLW     XMM1,8
+        PACKUSWB  XMM1,XMM2
+        MOVD      [EDX],XMM1
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        PXOR      XMM2,XMM2
+        MOVD      XMM0,ECX
+        PUNPCKLBW XMM0,XMM2
+        MOVD      XMM1,[RDX]
+        PUNPCKLBW XMM1,XMM2
+        BSWAP     R8D
+        PSUBW     XMM0,XMM1
+        MOVD      XMM3,R8D
+        PUNPCKLBW XMM3,XMM2
+        PMULLW    XMM0,XMM3
+        MOV       RAX, bias_ptr
+        PSLLW     XMM1,8
+        PADDW     XMM1,[RAX]
+        PADDW     XMM1,XMM0
+        PSRLW     XMM1,8
+        PACKUSWB  XMM1,XMM2
+        MOVD      [RDX],XMM1
 {$ENDIF}
 end;
 
@@ -3998,6 +4114,8 @@ begin
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
+  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_SSE2, [ciSSE2]);
 {$ENDIF}
 {$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
