@@ -36,8 +36,10 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, GR32, GR32_Image, GR32_Polygons, GR32_Clipper, clipper, ExtCtrls,
-  StdCtrls;
+  Dialogs, GR32, GR32_Image, GR32_Polygons, GR32_Clipper, ExtCtrls, StdCtrls,
+  //The following clipper unit is open source freeware and is available from
+  //SourceForge here: http://sourceforge.net/projects/polyclipping/
+  clipper;
 
 type
   TForm1 = class(TForm)
