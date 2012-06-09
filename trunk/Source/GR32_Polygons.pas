@@ -1002,7 +1002,8 @@ begin
 {$IFDEF CHANGENOTIFICATIONS}
   if TBitmap32Access(Bitmap).UpdateCount = 0 then
     for I := 0 to High(Points) do
-      Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
+      if length(Points[I]) > 0 then
+        Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
 {$ENDIF}
 end;
 
@@ -1052,7 +1053,8 @@ begin
 {$IFDEF CHANGENOTIFICATIONS}
   if TBitmap32Access(Bitmap).UpdateCount = 0 then
     for I := 0 to High(Points) do
-      Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
+      if length(Points[I]) > 0 then
+        Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
 {$ENDIF}
 end;
 
