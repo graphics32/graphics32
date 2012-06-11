@@ -324,6 +324,13 @@ type
   PArrayOfArrayOfInteger = ^TArrayOfArrayOfInteger;
   TArrayOfArrayOfInteger = array of TArrayOfInteger;
 
+  PCardinalArray = ^TCardinalArray;
+  TCardinalArray = array [0..0] of Cardinal;
+  PArrayOfCardinal = ^TArrayOfCardinal;
+  TArrayOfCardinal = array of Cardinal;
+  PArrayOfArrayOfCardinal = ^TArrayOfArrayOfCardinal;
+  TArrayOfArrayOfCardinal = array of TArrayOfCardinal;
+
   PSingleArray = ^TSingleArray;
   TSingleArray = array [0..0] of Single;
   PArrayOfSingle = ^TArrayOfSingle;
@@ -6177,4 +6184,4 @@ initialization
 finalization
   StockBitmap.Free;
 
-end.
+end.
