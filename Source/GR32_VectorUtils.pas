@@ -73,8 +73,9 @@ function BuildPolyline(const Points: TArrayOfFloatPoint; StrokeWidth: TFloat;
 function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint;
   Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter;
   EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint;
-function BuildDashedLine(const Points: TArrayOfFloatPoint; const DashArray: array of TFloat;
-  DashOffset: TFloat = 0): TArrayOfArrayOfFloatPoint;
+function BuildDashedLine(const Points: TArrayOfFloatPoint;
+  const DashArray: array of TFloat; DashOffset: TFloat = 0;
+  Closed: boolean = false): TArrayOfArrayOfFloatPoint;
 
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint;
 function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
@@ -452,7 +453,8 @@ var
   begin
     CX := X1 + X2;
     CY := Y1 + Y2;
-    R := X1 * CX + Y1 * CY;
+
+    R := X1 * CX + Y1 * CY; //(1 - cos(ß))  (range: 0 <= R <= 2)
     if R < RMin then
     begin
       AddPoint(D * X1, D * Y1);
@@ -469,8 +471,8 @@ var
   var
     R: TFloat;
   begin
-    R := X1 * Y2 - X2 * Y1;
-    if R * D <= 0 then
+    R := X1 * Y2 - X2 * Y1; //cross product
+    if R * D <= 0 then      //ie angle is concave
     begin
       AddMitered(X1, Y1, X2, Y2);
     end
@@ -531,6 +533,10 @@ begin
   if Length(Points) <= 1 then Exit;
 
   D := Delta;
+
+  //MiterLimit = Sqrt(2/(1 - cos(ß)))
+  //Sqr(MiterLimit) = 2/(1 - cos(ß))
+  //1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
   RMin := 2/Sqr(MiterLimit);
 
   H := High(Points) - Ord(not Closed);
@@ -561,7 +567,7 @@ begin
   end;
   if not Closed then
     with Points[High(Points)] do AddJoin(X, Y, A.X, A.Y, A.X, A.Y);
-    
+
   SetLength(Result, resSize);
 end;
 
@@ -850,10 +856,11 @@ ExitProc:
 {$ENDIF}
 end;
 
-function BuildDashedLine(const Points: TArrayOfFloatPoint; const DashArray: array of TFloat;
-  DashOffset: TFloat): TArrayOfArrayOfFloatPoint;
+function BuildDashedLine(const Points: TArrayOfFloatPoint;
+  const DashArray: array of TFloat; DashOffset: TFloat = 0;
+  Closed: boolean = false): TArrayOfArrayOfFloatPoint;
 var
-  I, J, DashIndex: Integer;
+  I, J, DashIndex, len1, len2: Integer;
   Offset, dx, dy, d, v: TFloat;
 
   procedure AddPoint(X, Y: TFloat);
@@ -864,6 +871,38 @@ var
     SetLength(Result[J], K + 1);
     Result[J][K].X := X;
     Result[J][K].Y := Y;
+  end;
+
+  procedure AddDash(i: integer);
+  begin
+    if i = 0 then
+    begin
+      dx := Points[0].X - Points[high(Points)].X;
+      dy := Points[0].Y - Points[high(Points)].Y;
+    end else
+    begin
+      dx := Points[I].X - Points[I - 1].X;
+      dy := Points[I].Y - Points[I - 1].Y;
+    end;
+    d := GR32_Math.Hypot(dx, dy);
+    if d = 0 then exit;
+    dx := dx / d;
+    dy := dy / d;
+    Offset := Offset + d;
+    while Offset > DashOffset do
+    begin
+      v := Offset - DashOffset;
+      AddPoint(Points[I].X - v * dx, Points[I].Y - v * dy);
+      DashIndex := (DashIndex + 1) mod Length(DashArray);
+      DashOffset := DashOffset + DashArray[DashIndex];
+      if Odd(DashIndex) then
+      begin
+        Inc(J);
+        SetLength(Result, J + 1);
+      end;
+    end;
+    if not Odd(DashIndex) then
+      AddPoint(Points[I].X, Points[I].Y);
   end;
 
 begin
@@ -888,30 +927,24 @@ begin
   if not Odd(DashIndex) then
     AddPoint(Points[0].X, Points[0].Y);
   for I := 1 to High(Points) do
+    AddDash(I);
+
+  if Closed then
   begin
-    dx := Points[I].X - Points[I - 1].X;
-    dy := Points[I].Y - Points[I - 1].Y;
-    d := GR32_Math.Hypot(dx, dy);
-    if d = 0 then  Continue;
-    dx := dx / d;
-    dy := dy / d;
-    Offset := Offset + d;
-    while Offset > DashOffset do
+    AddDash(0);
+    len1 := length(Result[0]);
+    len2 := length(Result[J]);
+    if (len1 > 0) and (len2 > 0) then
     begin
-      v := Offset - DashOffset;
-      AddPoint(Points[I].X - v * dx, Points[I].Y - v * dy);
-      DashIndex := (DashIndex + 1) mod Length(DashArray);
-      DashOffset := DashOffset + DashArray[DashIndex];
-      if Odd(DashIndex) then
-      begin
-        Inc(J);
-        SetLength(Result, J + 1);
-      end;
+      setlength(Result[0], len1 + len2 -1);
+      move(Result[0][0], Result[0][len2-1], sizeof(TFloatPoint) * len1);
+      move(Result[J][0], Result[0][0], sizeof(TFloatPoint) * len2);
+      SetLength(Result, J);
+      dec(J);
     end;
-    if not Odd(DashIndex) then
-      AddPoint(Points[I].X, Points[I].Y);
   end;
-  if Length(Result[J]) = 0 then SetLength(Result, Length(Result) - 1);
+
+  if Length(Result[J]) = 0 then SetLength(Result, J);
 end;
 
 function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
