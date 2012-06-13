@@ -154,14 +154,17 @@ type
   public
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     destructor Destroy; override;
+    procedure RenderText(X, Y: TFloat; const Text: WideString); overload;
+    procedure RenderText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
     property Bitmap: TBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
     property RendererClassName: string read GetRendererClassName write SetRendererClassName;
   end;
 
 var
-  CubicBezierTolerance: TFloat = 0.25;
-  QuadraticBezierTolerance: TFloat = 0.25;
+  CubicBezierTolerance: TFloat = 0.025;
+  QuadraticBezierTolerance: TFloat = 0.025;
 
 type
   TAddPointEvent = procedure(const Point: TFloatPoint) of object;
@@ -169,7 +172,7 @@ type
 implementation
 
 uses
-  GR32_Math, GR32_VectorUtils;
+  GR32_Math, GR32_VectorUtils, GR32_Backends;
 
 function CBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
@@ -639,6 +642,38 @@ end;
 function TCanvas32.GetRendererClassName: string;
 begin
   Result := FRenderer.ClassName;
+end;
+
+function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: WideString;
+  Flags: Cardinal): TFloatRect;
+var
+  Intf: ITextToPathSupport;
+begin
+  if Supports(Bitmap.Backend, ITextToPathSupport, Intf) then
+    Result := Intf.MeasureText(DstRect, Text, Flags)
+  else
+    raise Exception.Create(RCStrInpropriateBackend);
+end;
+
+procedure TCanvas32.RenderText(const DstRect: TFloatRect;
+  const Text: WideString; Flags: Cardinal);
+var
+  Intf: ITextToPathSupport;
+begin
+  if Supports(Bitmap.Backend, ITextToPathSupport, Intf) then
+    Intf.TextToPath(Path, DstRect, Text, Flags)
+  else
+    raise Exception.Create(RCStrInpropriateBackend);
+end;
+
+procedure TCanvas32.RenderText(X, Y: TFloat; const Text: WideString);
+var
+  Intf: ITextToPathSupport;
+begin
+  if Supports(Bitmap.Backend, ITextToPathSupport, Intf) then
+    Intf.TextToPath(Path, X, Y, Text)
+  else
+    raise Exception.Create(RCStrInpropriateBackend);
 end;
 
 procedure TCanvas32.SetRenderer(ARenderer: TPolygonRenderer32);
