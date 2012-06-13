@@ -1013,6 +1013,11 @@ function GetPlatformBackendClass: TCustomBackendClass;
 var
   StockBitmap: TBitmap;
 
+resourcestring
+  RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
+  RCStrCannotSetSize = 'Can''t set size from ''%s''';
+  RCStrInpropriateBackend = 'Inpropriate Backend';
+
 implementation
 
 uses
@@ -1061,11 +1066,6 @@ type
 
 const
   ZERO_RECT: TRect = (Left: 0; Top: 0; Right: 0; Bottom: 0);
-
-resourcestring
-  RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
-  RCStrCannotSetSize = 'Can''t set size from ''%s''';
-  RCStrInpropriateBackend = 'Inpropriate Backend';
 
 { Color construction and conversion functions }
 

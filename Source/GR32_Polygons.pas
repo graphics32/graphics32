@@ -52,6 +52,7 @@ type
   { TCustomPolygonRenderer }
   TCustomPolygonRenderer = class(TNotifiablePersistent)
   public
+    constructor Create; virtual;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
@@ -900,6 +901,11 @@ procedure TCustomPolygonRenderer.PolygonFS(
   Transformation: TTransformation);
 begin
   PolyPolygonFS(PolyPolygon(Points), ClipRect, Transformation);
+end;
+
+constructor TCustomPolygonRenderer.Create;
+begin
+
 end;
 
 procedure TCustomPolygonRenderer.PolygonFS(

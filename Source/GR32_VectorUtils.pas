@@ -676,7 +676,7 @@ end;
 
 function InterpolateX(X: TFloat; const P1, P2: TFloatPoint): TFloatPoint;
 var
-  W: TFloat;
+  W: Double;
 begin
   W := (X - P1.X) / (P2.X - P1.X);
   Result.X := X;
@@ -685,7 +685,7 @@ end;
 
 function InterpolateY(Y: TFloat; const P1, P2: TFloatPoint): TFloatPoint;
 var
-  W: TFloat;
+  W: Double;
 begin
   W := (Y - P1.Y) / (P2.Y - P1.Y);
   Result.Y := Y;

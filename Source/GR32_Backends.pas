@@ -43,7 +43,7 @@ uses
 {$ELSE}
   Windows, Messages, Controls, Graphics,
 {$ENDIF}
-  Classes, SysUtils, GR32, GR32_Containers, GR32_Image;
+  Classes, SysUtils, GR32, GR32_Containers, GR32_Image, GR32_Paths;
 
 type
   ITextSupport = interface(IUnknown)
@@ -69,6 +69,13 @@ type
     procedure UpdateFont;
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read GetOnFontChange write SetOnFontChange;
+  end;
+
+  ITextToPathSupport = interface(IUnknown)
+  ['{6C4037E4-FF4D-4EE2-9C20-B9DB9C64B42D}']
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: WideString); overload;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
   end;
 
   ICanvasSupport = interface(IUnknown)
