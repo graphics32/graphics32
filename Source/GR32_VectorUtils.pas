@@ -630,14 +630,15 @@ var
 begin
   V := StrokeWidth * 0.5;
   Normals := BuildNormals(Points);
-  P1 := Grow(Points, Normals, V, JoinStyle, False, MiterLimit);
-  P2 := ReversePolygon(Grow(Points, Normals, -V, JoinStyle, False, MiterLimit));
 
   H := High(Points) - 1;
   while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do Dec(H);
   if H < 0 then Exit;
   L := 0;
   while (Normals[L].X = 0) and (Normals[L].Y = 0) do Inc(L);
+
+  P1 := Grow(Points, Normals, V, JoinStyle, False, MiterLimit);
+  P2 := ReversePolygon(Grow(Points, Normals, -V, JoinStyle, False, MiterLimit));
 
   E1 := BuildLineEnd(Points[0], Normals[L], -V, EndStyle);
   E2 := BuildLineEnd(Points[High(Points)], Normals[H], V, EndStyle);
