@@ -37,14 +37,14 @@ interface
 {$I GR32.INC}
 
 uses
-  Winapi.Windows, System.Types, GR32, GR32_Paths;
+  Windows, Types, GR32, GR32_Paths;
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath;
   const ARect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
-function MeasureText(DC: HDC; const ARect: TFloatRect; const Text: WideString;
+function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
   Flags: Cardinal): TFloatRect; overload;
 function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal): TFloatRect; overload;
+  Flags: Cardinal): TFloatRect;
 
 var
   UseHinting: Boolean = {$IFDEF NOHINTING}False{$ELSE}True{$ENDIF};
@@ -141,11 +141,14 @@ begin
     Exit;
   end;
 
-  K := 0;
   while Res > 0 do
   begin
     S := PBuffer.cb - SizeOf(TTTPolygonHeader);
+    {$IFDEF HAS_NATIVEINT}
     NativeInt(PPCurve) := NativeInt(PBuffer) + SizeOf(TTTPolygonHeader);
+    {$ELSE}
+    Integer(PPCurve) := Integer(PBuffer) + SizeOf(TTTPolygonHeader);
+    {$ENDIF}
     P1 := PointFXtoPointF(PBuffer.pfxStart);
     Path.MoveTo(P1.X + DstX, P1.Y + DstY);
     while S > 0 do
@@ -188,13 +191,22 @@ begin
       end;
       K := (PPCurve.cpfx - 1) * SizeOf(TPointFX) + SizeOf(TTPolyCurve);
       Dec(S, K);
+
+      {$IFDEF HAS_NATIVEINT}
       Inc(NativeInt(PPCurve), K);
+      {$ELSE}
+      Inc(integer(PPCurve), K);
+      {$ENDIF}
     end;
 
     Path.ClosePath;
 
     Dec(Res, PBuffer.cb);
+    {$IFDEF HAS_NATIVEINT}
     Inc(NativeInt(PBuffer), PBuffer.cb);
+    {$ELSE}
+    Inc(integer(PBuffer), PBuffer.cb);
+    {$ENDIF}
   end;
 
   StackFree(PGlyphMem);
@@ -296,18 +308,18 @@ begin
   if Assigned(Path) then Path.EndPath;
 end;
 
-function MeasureText(DC: HDC; const ARect: TFloatRect; const Text: WideString;
+function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
   Flags: Cardinal): TFloatRect;
 begin
   Result := ARect;
   InternalTextToPath(DC, nil, Result, Text, Flags);
 end;
 
-function MeasureText(DC: HDC;
+function MeasureTextDC(DC: HDC;
   const ARect: TFloatRect; const Text: WideString;
   WordWrap: Boolean; Flags: Cardinal): TFloatRect; overload;
 begin
-  Result := MeasureText(DC, ARect, Text, Flags);
+  Result := MeasureTextDC(DC, ARect, Text, Flags);
 
   if Flags and DT_CENTER <> 0 then
     OffsetRect(Result, (((ARect.Left + ARect.Right) - (Result.Left + Result.Right)) * 0.5), 0);
@@ -325,15 +337,17 @@ begin
   Result.Bottom := Round(Result.Bottom);
 end;
 
-function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal): TFloatRect; overload;
+function MeasureText(Font: HFONT; const ARect: TFloatRect;
+  const Text: WideString; Flags: Cardinal): TFloatRect;
 var
   DC: HDC;
+  savedFont: HFONT;
 begin
   DC := GetDC(0);
   try
-    SelectObject(DC, Font);
-    Result := MeasureText(DC, ARect, Text, Flags);
+    savedFont := SelectObject(DC, Font);
+    Result := MeasureTextDC(DC, ARect, Text, Flags);
+    SelectObject(DC, savedFont);
   finally
     ReleaseDC(0, DC);
   end;
@@ -343,13 +357,15 @@ procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
   const Text: WideString; Flags: Cardinal); overload;
 var
   DC: HDC;
+  savedFont: HFONT;
   R: TFloatRect;
 begin
   DC := GetDC(0);
   try
-    SelectObject(DC, Font);
-    R := MeasureText(DC, ARect, Text, Flags);
+    savedFont := SelectObject(DC, Font);
+    R := MeasureTextDC(DC, ARect, Text, Flags);
     InternalTextToPath(DC, Path, R, Text, Flags);
+    SelectObject(DC, savedFont);
   finally
     ReleaseDC(0, DC);
   end;
