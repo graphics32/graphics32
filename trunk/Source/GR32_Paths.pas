@@ -1,7 +1,7 @@
 unit GR32_Paths;
 
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -13,12 +13,19 @@ unit GR32_Paths;
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Graphics32
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
+ * The Original Code is Vectorial Polygon Rasterizer for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Mattias Andersson <mattias@centaurix.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2008-2009
+ * Portions created by the Initial Developer are Copyright (C) 2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -26,6 +33,8 @@ unit GR32_Paths;
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+
+{$I GR32.INC}
 
 uses
   Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms;

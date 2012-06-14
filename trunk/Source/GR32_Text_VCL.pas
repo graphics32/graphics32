@@ -1,9 +1,7 @@
 unit GR32_Text_VCL;
 
-interface
-
 (* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
  * The contents of this file are subject to the Mozilla Public License Version
  * 1.1 (the "License"); you may not use this file except in compliance with
@@ -15,21 +13,28 @@ interface
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Vectorial Polygon Rasterizer for FMX.
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
+ * The Original Code is Vectorial Polygon Rasterizer for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Mattias Andersson <mattias@centaurix.com>
  *
- * Portions created by the Initial Developer are Copyright (C) 2011
+ * Portions created by the Initial Developer are Copyright (C) 2012
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
  *
  * ***** END LICENSE BLOCK ***** *)
 
-{$I GR32.INC}
+interface
 
-{$DEFINE NOHINTING}
+{$I GR32.INC}
 
 uses
   Winapi.Windows, System.Types, GR32, GR32_Paths;
@@ -44,14 +49,14 @@ function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideStrin
 var
   UseHinting: Boolean = {$IFDEF NOHINTING}False{$ELSE}True{$ENDIF};
 
-// stretching factor when calling GetGlyphOutline()
-const
-  HORZSTRETCH = 16;
-
 implementation
 
 uses
   GR32_LowLevel;
+
+// stretching factor when calling GetGlyphOutline()
+const
+  HORZSTRETCH = 16;
 
 type
   PBezierVertex = ^TBezierVertex;
