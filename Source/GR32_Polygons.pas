@@ -1050,7 +1050,7 @@ var
   I: Integer;
 {$ENDIF}
 begin
-  APoints := ScalePolyPolygon(APoints, 3, 1);
+  APoints := ScalePolyPolygon(Points, 3, 1);
   R.Top := ClipRect.Top;
   R.Bottom := ClipRect.Bottom;
   R.Left := ClipRect.Left * 3;
