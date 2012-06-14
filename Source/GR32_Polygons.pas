@@ -189,11 +189,20 @@ procedure PolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
 procedure PolyPolylineFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
   JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
-  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+procedure PolyPolylineFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+
 procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
   JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
-  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
 
 { Registration routines }
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
@@ -533,6 +542,17 @@ begin
   PolyPolygonFS(Bitmap, Dst, Color, pfWinding, Transformation);
 end;
 
+procedure PolyPolylineFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  PolyPolygonFS(Bitmap, Dst, Filler, pfWinding, Transformation);
+end;
+
 procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle;
@@ -545,6 +565,17 @@ begin
   PolyPolylineFS(Bitmap, P, Color, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit, Transformation);
 end;
 
+procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+var
+  P: TArrayOfArrayOfFloatPoint;
+begin
+  SetLength(P, 1);
+  P[0] := Points;
+  PolyPolylineFS(Bitmap, P, Filler, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit, Transformation);
+end;
 
 
 { LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
