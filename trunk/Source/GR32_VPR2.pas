@@ -260,7 +260,7 @@ begin
   FYSpan := STARTSPAN;
   SavedRoundMode := SetRoundMode(rmDown);
   try
-    FOpacityMap.SetSize(Bitmap.Width + 2, Bitmap.Height);
+    FOpacityMap.SetSize(Bitmap.Width + 1, Bitmap.Height);
 
     SetLength(FXSpan, Bitmap.Height);
     for I := 0 to High(FXSpan) do
