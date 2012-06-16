@@ -35,7 +35,7 @@ unit GR32_ArrowHeads;
 interface
 
 uses
-  GR32, GR32_Polygons, GR32_VectorUtils, GR32_Geometry;
+  SysUtils, GR32, GR32_Polygons, GR32_VectorUtils, GR32_Geometry;
 
 type
   TArrowHeadAbstract = class
@@ -73,8 +73,10 @@ type
   end;
 
 
-implementation
+resourcestring
+  InsufficientPointsInArray = 'Insufficient points in array';
 
+implementation
 
 constructor TArrowHeadAbstract.Create(size: TFloat);
 begin
@@ -86,29 +88,29 @@ function TArrowHeadAbstract.GetPoints(const line: TArrayOfFloatPoint;
   AtEnd: boolean): TArrayOfFloatPoint;
 var
   highI: integer;
-  angle: double;
+  unitVec: TFloatPoint;
 begin
   highI := high(line);
-  //nb: the line must contain at least 2 points to reposition ...
-  if highI < 1 then exit;
+  if highI < 1 then
+    raise exception.create(InsufficientPointsInArray);
 
   if AtEnd then
   begin
     fBasePoint := line[highI];
-    angle := GetAngleOfPt2FromPt1(line[highI -1], line[highI]);
+    unitVec := GetUnitVector(line[highI -1], line[highI]);
   end else
   begin
     fBasePoint := line[0];
-    angle := GetAngleOfPt2FromPt1(line[1], line[0]);
+    unitVec := GetUnitVector(line[1], line[0]);
   end;
-  fTipPoint := GetPointAtAngleFromPoint(fBasePoint, fSize, angle);
+  fTipPoint := OffsetPoint(fBasePoint, unitVec.X * fSize, unitVec.Y * fSize);
   result := GetPointsInternal;
 end;
 //------------------------------------------------------------------------------
 
 function TArrowHeadSimple.GetPointsInternal: TArrayOfFloatPoint;
 var
-  midPt, unitNorm: TFloatPoint;
+  unitNorm: TFloatPoint;
   sz: single;
 begin
   setlength(result, 3);
