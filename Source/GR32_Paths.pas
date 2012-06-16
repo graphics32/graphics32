@@ -39,6 +39,10 @@ interface
 uses
   Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms;
 
+const
+  DefaultCircleSteps = 100;
+  DefaultBezierTolerance = 0.25;
+
 type
   { TCustomPath }
   TCustomPath = class(TThreadPersistent)
@@ -98,9 +102,9 @@ type
     procedure EndPath; virtual;
     procedure ClosePath; virtual;
     procedure Rectangle(const Rect: TFloatRect); virtual;
-    procedure Ellipse(Rx, Ry: TFloat); overload; virtual;
-    procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat); overload; virtual;
-    procedure Circle(const Cx, Cy, R: TFloat); virtual;
+    procedure Ellipse(Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
+    procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
+    procedure Circle(const Cx, Cy, R: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
   end;
 
@@ -172,8 +176,8 @@ type
   end;
 
 var
-  CubicBezierTolerance: TFloat = 0.025;
-  QuadraticBezierTolerance: TFloat = 0.025;
+  CBezierTolerance: TFloat = 0.25;
+  QBezierTolerance: TFloat = 0.25;
 
 type
   TAddPointEvent = procedure(const Point: TFloatPoint) of object;
@@ -196,18 +200,16 @@ function QBezierFlatness(const P1, P2, P3: TFloatPoint): TFloat; {$IFDEF USEINLI
 begin
   Result :=
     Abs(P1.x + P3.x - 2*P2.x) +
-    abs(P1.y + P3.y - 2*P2.y);
+    Abs(P1.y + P3.y - 2*P2.y);
 end;
 
-procedure BezierCurve(const P1, P2, P3, P4: TFloatPoint;
+procedure CBezierCurve(const P1, P2, P3, P4: TFloatPoint;
   const AddPoint: TAddPointEvent; const Tolerance: TFloat);
 var
   P12, P23, P34, P123, P234, P1234: TFloatPoint;
 begin
   if CBezierFlatness(P1, P2, P3, P4) < Tolerance then
-  begin
-    AddPoint(P1);
-  end
+    AddPoint(P1)
   else
   begin
     P12.X   := (P1.X + P2.X) * 0.5;
@@ -223,32 +225,29 @@ begin
     P1234.X := (P123.X + P234.X) * 0.5;
     P1234.Y := (P123.Y + P234.Y) * 0.5;
 
-    BezierCurve(P1, P12, P123, P1234, AddPoint, Tolerance);
-    BezierCurve(P1234, P234, P34, P4, AddPoint, Tolerance);
+    CBezierCurve(P1, P12, P123, P1234, AddPoint, Tolerance);
+    CBezierCurve(P1234, P234, P34, P4, AddPoint, Tolerance);
   end;
 end;
 
-procedure QSpline(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent;
+procedure QBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent;
   const Tolerance: TFloat);
 var
-  p12, p23, p123: TFloatPoint;
+  P12, P23, P123: TFloatPoint;
 begin
-  //assess flatness of curve ...
   if QBezierFlatness(P1, P2, P3) < Tolerance then
-  begin
-    AddPoint(P1);
-  end
+    AddPoint(P1)
   else
   begin
-    p12.X := (p1.X + p2.X) * 0.5;
-    p12.Y := (p1.Y + p2.Y) * 0.5;
-    p23.X := (p2.X + p3.X) * 0.5;
-    p23.Y := (p2.Y + p3.Y) * 0.5;
-    p123.X := (p12.X + p23.X) * 0.5;
-    p123.Y := (p12.Y + p23.Y) * 0.5;
+    P12.X := (P1.X + P2.X) * 0.5;
+    P12.Y := (P1.Y + P2.Y) * 0.5;
+    P23.X := (P2.X + P3.X) * 0.5;
+    P23.Y := (P2.Y + P3.Y) * 0.5;
+    P123.X := (P12.X + P23.X) * 0.5;
+    P123.Y := (P12.Y + P23.Y) * 0.5;
 
-    QSpline(p1, p12, p123, AddPoint, Tolerance);
-    QSpline(p123, p23, p3, AddPoint, Tolerance);
+    QBezierCurve(P1, P12, P123, AddPoint, Tolerance);
+    QBezierCurve(P123, P23, P3, AddPoint, Tolerance);
   end;
 end;
 
@@ -343,9 +342,9 @@ begin
 
 end;
 
-procedure TCustomPath.Circle(const Cx, Cy, R: TFloat);
+procedure TCustomPath.Circle(const Cx, Cy, R: TFloat; Steps: Integer);
 begin
-  Ellipse(Cx, Cy, R, R);
+  Ellipse(Cx, Cy, R, R, Steps);
 end;
 
 procedure TCustomPath.ClosePath;
@@ -354,28 +353,19 @@ end;
 
 procedure TCustomPath.ConicTo(const P1, P: TFloatPoint);
 begin
-  QSpline(FCurrentPoint, P1, P, LineTo, QuadraticBezierTolerance);
+  QBezierCurve(FCurrentPoint, P1, P, LineTo, QBezierTolerance);
   LineTo(P);
   FCurrentPoint := P;
 end;
 
-procedure TCustomPath.Ellipse(const Cx, Cy, Rx, Ry: TFloat);
-const
-  Steps = 360;
-var
-  I: Integer;
-  A, CosA, SinA: TFloat;
+procedure TCustomPath.Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
 begin
-  BeginPath;
-  MoveTo(Cx + Rx, Cy);
-  for I := 1 to Steps - 1 do
-  begin
-    A := I / Steps * 2 * Pi;
-    GR32_Math.SinCos(A, SinA, CosA);
-    LineTo(Cx + Rx * CosA, Cy + Ry * SinA);
-  end;
-  ClosePath;
-  EndPath;
+  Polygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
+end;
+
+procedure TCustomPath.Ellipse(Rx, Ry: TFloat; Steps: Integer);
+begin
+  with FCurrentPoint do Ellipse(X, Y, Rx, Ry);
 end;
 
 procedure TCustomPath.EndPath;
@@ -398,11 +388,6 @@ begin
   LineTo(Rect.Left, Rect.Bottom);
   ClosePath;
   EndPath;
-end;
-
-procedure TCustomPath.Ellipse(Rx, Ry: TFloat);
-begin
-  with FCurrentPoint do Ellipse(X, Y, Rx, Ry);
 end;
 
 procedure TCustomPath.ConicTo(const X, Y: TFloat);
@@ -446,7 +431,7 @@ end;
 
 procedure TCustomPath.CurveTo(const C1, C2, P: TFloatPoint);
 begin
-  BezierCurve(FCurrentPoint, C1, C2, P, LineTo, CubicBezierTolerance);
+  CBezierCurve(FCurrentPoint, C1, C2, P, LineTo, CBezierTolerance);
   LineTo(P);
   FCurrentPoint := P;
 end;
