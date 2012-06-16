@@ -204,6 +204,21 @@ procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
   MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
 
+//Filled only dashes ...
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Color: TColor32;
+  Closed: boolean = false; Width: TFloat = 1.0); overload;
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
+  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+//Filled and stroked dashes ...
+procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
+  Closed: boolean = false; Width: TFloat = 1.0); overload;
+procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+
 { Registration routines }
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 
@@ -577,6 +592,49 @@ begin
   PolyPolylineFS(Bitmap, P, Filler, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit, Transformation);
 end;
 
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Color: TColor32;
+  Closed: boolean = false; Width: TFloat = 1.0); overload;
+var
+  multiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, dashes, 0, closed);
+  PolyPolylineFS(bitmap, multiPoly, color, false, width);
+end;
+
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
+  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+var
+  multiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, dashes, 0, closed);
+  PolyPolylineFS(bitmap, multiPoly, fillColor, false, width);
+  multiPoly := BuildPolyPolyLine(multiPoly, false, width);
+  PolyPolylineFS(bitmap, multiPoly, strokeColor, true, strokeWidth);
+end;
+
+procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
+  Closed: boolean = false; Width: TFloat = 1.0);
+var
+  multiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, multiPoly, Filler, false, Width);
+end;
+
+procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+var
+  multiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, multiPoly, Filler, false, Width);
+  multiPoly := BuildPolyPolyLine(multiPoly, false, Width);
+  PolyPolylineFS(Bitmap, multiPoly, StrokeColor, true, StrokeWidth);
+end;
 
 { LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
 
