@@ -50,7 +50,7 @@ type
   TPolyFillMode = (pfAlternate, pfWinding);
 
   { TCustomPolygonRenderer }
-  TCustomPolygonRenderer = class(TNotifiablePersistent)
+  TCustomPolygonRenderer = class(TThreadPersistent)
   public
     constructor Create; virtual;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
