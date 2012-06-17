@@ -37,7 +37,7 @@ interface
 {$I GR32.INC}
 
 uses
-  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms;
+  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes;
 
 const
   DefaultCircleSteps = 100;
@@ -49,43 +49,10 @@ type
   private
     FCurrentPoint: TFloatPoint;
     FLastControlPoint: TFloatPoint;
-    FStrokeWidth: TFloat;
-    FStrokeColor: TColor32;
-    FFillColor: TColor32;
-    FFillOpacity: TFloat;
-    FStrokeOpacity: TFloat;
-    FStrokeDashOffset: TFloat;
-    FStrokeDashArray: TArrayOfFloat;
-    FJoinStyle: TJoinStyle;
-    FEndStyle: TEndStyle;
-    FFillMode: TPolyFillMode;
-    FMiterLimit: TFloat;
   protected
-    procedure SetFillMode(Value: TPolyFillMode); virtual;
-    procedure SetStrokeDashArray(const DashArray: array of TFloat); virtual;
-    procedure SetStrokeDashOffset(const Offset: TFloat); virtual;
-    procedure SetStrokeColor(const Color: TColor32); overload; virtual;
-    procedure SetFillColor(const Color: TColor32); overload; virtual;
-    procedure SetFillOpacity(const Value: TFloat); virtual;
-    procedure SetStrokeOpacity(const Value: TFloat); virtual;
-    procedure SetStrokeWidth(const Value: TFloat); virtual;
-    procedure SetJoinStyle(const Value: TJoinStyle); virtual;
-    procedure SetEndStyle(const Value: TEndStyle); virtual;
-    procedure SetMiterLimit(const Value: TFloat); virtual;
     procedure AddPoint(const Point: TFloatPoint); virtual;
   public
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
-    property StrokeWidth: TFloat read FStrokeWidth write SetStrokeWidth;
-    property StrokeColor: TColor32 read FStrokeColor write SetStrokeColor;
-    property StrokeOpacity: TFloat read FStrokeOpacity write SetStrokeOpacity;
-    property FillColor: TColor32 read FFillColor write SetFillColor;
-    property FillOpacity: TFloat read FFillOpacity write SetFillOpacity;
-    property JoinStyle: TJoinStyle read FJoinStyle write SetJoinStyle;
-    property EndStyle: TEndStyle read FEndStyle write SetEndStyle;
-    property MiterLimit: TFloat read FMiterLimit write SetMiterLimit;
-    property FillMode: TPolyFillMode read FFillMode write SetFillMode;
-
-    constructor Create; override;
     procedure MoveTo(const X, Y: TFloat); overload;
     procedure MoveTo(const P: TFloatPoint); overload; virtual;
     procedure LineTo(const X, Y: TFloat); overload;
@@ -158,12 +125,14 @@ type
   private
     FBitmap: TBitmap32;
     FRenderer: TPolygonRenderer32;
+    FBrushes: TBrushCollection;
     function GetRendererClassName: string;
     procedure SetRendererClassName(const Value: string);
     procedure SetRenderer(ARenderer: TPolygonRenderer32);
   protected
     procedure DrawPath; override;
     class function GetPolygonRendererClass: TPolygonRenderer32Class; virtual;
+    procedure BrushCollectionChangeHandler(Sender: TObject); virtual;
   public
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     destructor Destroy; override;
@@ -173,6 +142,7 @@ type
     property Bitmap: TBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
     property RendererClassName: string read GetRendererClassName write SetRendererClassName;
+    property Brushes: TBrushCollection read FBrushes;
   end;
 
 var
@@ -253,68 +223,6 @@ end;
 
 
 //============================================================================//
-
-{ TCustomPath }
-
-procedure TCustomPath.SetFillColor(const Color: TColor32);
-begin
-  FFillColor := Color;
-end;
-
-procedure TCustomPath.SetFillOpacity(const Value: TFloat);
-begin
-  FFillOpacity := Value;
-end;
-
-procedure TCustomPath.SetStrokeColor(const Color: TColor32);
-begin
-  FStrokeColor := Color;
-end;
-
-procedure TCustomPath.SetStrokeOpacity(const Value: TFloat);
-begin
-  FStrokeOpacity := Value;
-end;
-
-procedure TCustomPath.SetStrokeWidth(const Value: TFloat);
-begin
-  FStrokeWidth := Value;
-end;
-
-procedure TCustomPath.SetEndStyle(const Value: TEndStyle);
-begin
-  FEndStyle := Value;
-end;
-
-procedure TCustomPath.SetJoinStyle(const Value: TJoinStyle);
-begin
-  FJoinStyle := Value;
-end;
-
-procedure TCustomPath.SetMiterLimit(const Value: TFloat);
-begin
-  FMiterLimit := Value;
-end;
-
-procedure TCustomPath.SetStrokeDashArray(
-  const DashArray: array of TFloat);
-var
-  L: Integer;
-begin
-  L := Length(DashArray);
-  SetLength(FStrokeDashArray, L);
-  Move(DashArray[0], FStrokeDashArray[0], L * SizeOf(TFloat));
-end;
-
-procedure TCustomPath.SetStrokeDashOffset(const Offset: TFloat);
-begin
-  FStrokeDashOffset := Offset;
-end;
-
-procedure TCustomPath.SetFillMode(Value: TPolyFillMode);
-begin
-  FFillMode := Value;
-end;
 
 { TCustomPath }
 
@@ -402,17 +310,6 @@ begin
   P1.X := FCurrentPoint.X - (FLastControlPoint.X - FCurrentPoint.X);
   P1.Y := FCurrentPoint.Y - (FLastControlPoint.Y - FCurrentPoint.Y);
   ConicTo(P1, P);
-end;
-
-constructor TCustomPath.Create;
-begin
-  inherited;
-  FFillOpacity := 1;
-  FStrokeOpacity := 0;
-  FStrokeWidth := 1.0;
-  FFillColor := clWhite32;
-  FStrokeColor := clBlack32;
-  FMiterLimit := DEFAULT_MITER_LIMIT;
 end;
 
 procedure TCustomPath.CurveTo(const X2, Y2, X, Y: TFloat);
@@ -575,55 +472,46 @@ end;
 
 { TCanvas32 }
 
+procedure TCanvas32.BrushCollectionChangeHandler(Sender: TObject);
+begin
+  Changed;
+end;
+
 constructor TCanvas32.Create(ABitmap: TBitmap32);
 begin
   inherited Create;
   FBitmap := ABitmap;
   FRenderer := GetPolygonRendererClass.Create;
   FRenderer.Bitmap := ABitmap;
+  FBrushes := TBrushCollection.Create(Self);
+  FBrushes.OnChange := BrushCollectionChangeHandler;
 end;
 
 destructor TCanvas32.Destroy;
 begin
-  Renderer.Free;
+  FBrushes.Free;
+  FRenderer.Free;
   inherited;
 end;
 
 procedure TCanvas32.DrawPath;
 var
-  FC, SC: TColor32Entry;
   ClipRect: TFloatRect;
-  APoints: TArrayOfArrayOfFloatPoint;
+  I: Integer;
   P: TArrayOfFloatPoint;
 begin
   ClipRect := FloatRect(Bitmap.ClipRect);
-  with Path do
+  Renderer.Bitmap := Bitmap;
+  P := Path.Points;
+  for I := 0 to FBrushes.Count - 1 do
   begin
-    FC.ARGB := FillColor;
-    SC.ARGB := StrokeColor;
-    FC.A := Round(FillOpacity * 255);
-    SC.A := Round(StrokeOpacity * 255);
-
-    // fill path
-    Renderer.Color := FC.ARGB;
-    Renderer.FillMode := FillMode;
-    Renderer.PolyPolygonFS(Path, ClipRect, Transformation);
-
-    if (StrokeWidth > 0) and (SC.A <> 0) then
-    begin
-      // stroke the contours of closed paths
-      Renderer.Color := SC.ARGB;
-      APoints := BuildPolyPolyline(Path, True, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-      Renderer.PolyPolygonFS(APoints, ClipRect, Transformation);
-
-      // stroke open path
-      P := Points;
-      if Length(P) > 0 then
+    with FBrushes[I] do
+      if Visible then
       begin
-        P := BuildPolyline(P, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
-        Renderer.PolygonFS(P, ClipRect, Transformation);
+        PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, True);
+        if Length(P) > 0 then
+          PolygonFS(Renderer, P, ClipRect, Transformation, False);
       end;
-    end;
   end;
 end;
 

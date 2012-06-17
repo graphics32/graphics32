@@ -391,6 +391,8 @@ begin
 end;
 
 function BuildNormals(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
+const
+  EPSILON = 1E-4;
 var
   I, Count, NextI: Integer;
   dx, dy, f: Double;
@@ -407,6 +409,8 @@ begin
 
     dx := Points[NextI].X - Points[I].X;
     dy := Points[NextI].Y - Points[I].Y;
+    if Abs(dx) <= EPSILON then dx := 0;
+    if Abs(dy) <= EPSILON then dy := 0;
     if (dx <> 0) or (dy <> 0) then
     begin
       f := 1 / GR32_Math.Hypot(dx, dy);
@@ -426,6 +430,7 @@ function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoin
   const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint; overload;
 const
   BUFFSIZEINCREMENT = 128;
+  EPSILON = 0.001;
 var
   I, L, H: Integer;
   ResSize, BuffSize: integer;
