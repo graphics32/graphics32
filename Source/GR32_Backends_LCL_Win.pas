@@ -442,8 +442,8 @@ end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
-  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, DstX,
-    DstY, SRCCOPY);
+  Windows.BitBlt(hDst, DstX, DstY, FOwner.Width, FOwner.Height, Handle, 0, 0,
+    SRCCOPY);
 (*
 StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,
