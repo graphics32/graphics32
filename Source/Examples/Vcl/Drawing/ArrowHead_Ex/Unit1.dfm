@@ -1,9 +1,9 @@
-object Form1: TForm1
+object FmArrowHeadDemo: TFmArrowHeadDemo
   Left = 253
   Top = 146
-  Width = 575
-  Height = 497
   Caption = 'ArrowHead Demo'
+  ClientHeight = 470
+  ClientWidth = 567
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -15,7 +15,7 @@ object Form1: TForm1
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 15
-  object ImgView321: TImgView32
+  object ImgView32: TImgView32
     Left = 177
     Top = 0
     Width = 390
@@ -31,14 +31,14 @@ object Form1: TForm1
     OverSize = 0
     TabOrder = 0
   end
-  object Panel1: TPanel
+  object pnlControl: TPanel
     Left = 0
     Top = 0
     Width = 177
     Height = 470
     Align = alLeft
     TabOrder = 1
-    object Label1: TLabel
+    object lblArrowSize: TLabel
       Left = 15
       Top = 24
       Width = 57
@@ -46,7 +46,7 @@ object Form1: TForm1
       Caption = '&Arrow Size'
       FocusControl = Edit1
     end
-    object Button1: TButton
+    object btnClose: TButton
       Left = 15
       Top = 411
       Width = 140
@@ -54,7 +54,7 @@ object Form1: TForm1
       Cancel = True
       Caption = 'Close'
       TabOrder = 2
-      OnClick = Button1Click
+      OnClick = btnCloseClick
     end
     object rgArrowStyle: TRadioGroup
       Left = 15
@@ -70,7 +70,7 @@ object Form1: TForm1
         'Diamond'
         'Ellipse')
       TabOrder = 1
-      OnClick = Edit1Change
+      OnClick = rgArrowStyleClick
     end
     object Edit1: TEdit
       Left = 15
@@ -92,7 +92,7 @@ object Form1: TForm1
         'Arrow at end'
         'Arrow at both ends')
       TabOrder = 3
-      OnClick = Edit1Change
+      OnClick = rgArrowStyleClick
     end
   end
 end
