@@ -123,10 +123,28 @@ type
   public
     destructor Destroy; override;
     function Empty: Boolean; override;
-    procedure Clear(FillValue: Integer);
+    procedure Clear(FillValue: Integer = 0);
     property ValPtr[X, Y: Integer]: PInteger read GetValPtr;
     property Value[X, Y: Integer]: Integer read GetValue write SetValue; default;
     property Bits: PIntegerArray read GetBits;
+  end;
+
+  TCardinalMap = class(TCustomMap)
+  private
+    FBits: TArrayOfCardinal;
+    function GetValPtr(X, Y: Cardinal): PCardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValue(X, Y: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    procedure SetValue(X, Y: Cardinal; const Value: Cardinal); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetBits: PCardinalArray;
+  protected
+    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
+  public
+    destructor Destroy; override;
+    function Empty: Boolean; override;
+    procedure Clear(FillValue: Cardinal = 0);
+    property ValPtr[X, Y: Cardinal]: PCardinal read GetValPtr;
+    property Value[X, Y: Cardinal]: Cardinal read GetValue write SetValue; default;
+    property Bits: PCardinalArray read GetBits;
   end;
 
   TFloatMap = class(TCustomMap)
@@ -575,6 +593,53 @@ begin
 end;
 
 procedure TIntegerMap.SetValue(X, Y: Integer; const Value: Integer);
+begin
+  FBits[X + Y * Width] := Value;
+end;
+
+{ TCardinalMap }
+
+procedure TCardinalMap.ChangeSize(var Width, Height: Integer; NewWidth,
+  NewHeight: Integer);
+begin
+  SetLength(FBits, NewWidth * NewHeight);
+  Width := NewWidth;
+  Height := NewHeight;
+end;
+
+procedure TCardinalMap.Clear(FillValue: Cardinal);
+begin
+  FillLongword(FBits[0], Width * Height, FillValue);
+  Changed;
+end;
+
+destructor TCardinalMap.Destroy;
+begin
+  FBits := nil;
+  inherited;
+end;
+
+function TCardinalMap.Empty: Boolean;
+begin
+  Result := not Assigned(FBits);
+end;
+
+function TCardinalMap.GetBits: PCardinalArray;
+begin
+  Result := @FBits[0];
+end;
+
+function TCardinalMap.GetValPtr(X, Y: Cardinal): PCardinal;
+begin
+  Result := @FBits[X + Y * Width];
+end;
+
+function TCardinalMap.GetValue(X, Y: Cardinal): Cardinal;
+begin
+  Result := FBits[X + Y * Width];
+end;
+
+procedure TCardinalMap.SetValue(X, Y: Cardinal; const Value: Cardinal);
 begin
   FBits[X + Y * Width] := Value;
 end;
