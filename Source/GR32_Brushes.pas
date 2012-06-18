@@ -579,7 +579,6 @@ procedure TGrowBrush.PolyPolygonFS(Renderer: TCustomPolygonRenderer;
 var
   I: Integer;
   APoints: TArrayOfArrayOfFloatPoint;
-  P: TArrayOfFloatPoint;
 begin
   SetLength(APoints, Length(Points));
   for I := 0 to High(Points) do
