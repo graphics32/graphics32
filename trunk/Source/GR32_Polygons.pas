@@ -52,7 +52,7 @@ type
   { TCustomPolygonRenderer }
   TCustomPolygonRenderer = class(TThreadPersistent)
   public
-    constructor Create; virtual;
+    constructor Create; override;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
       const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
@@ -1236,4 +1236,4 @@ initialization
 finalization
   PolygonRendererList.Free;
 
-end.
+end.
