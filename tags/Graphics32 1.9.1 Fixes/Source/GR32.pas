@@ -5834,7 +5834,7 @@ begin
 
     DrawMode := dmBlend;
     MasterAlpha := Alpha;
-    CombineMode := CombineMode;
+    CombineMode := Self.CombineMode;
 
     DrawTo(Self, X, Y);
   finally
