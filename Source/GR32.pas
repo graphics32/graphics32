@@ -3488,12 +3488,12 @@ begin
 
     if Dx > 0 then
     begin
-      If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
+      if (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
       Sx := 1;
     end
     else
     begin
-      If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
+      if (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
       Sx := -1;
       X1 := -X1;   X2 := -X2;   Dx := -Dx;
       Cx1 := -Cx1; Cx2 := -Cx2;
@@ -3502,12 +3502,12 @@ begin
 
     if Dy > 0 then
     begin
-      If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
+      if (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
       Sy := 1;
     end
     else
     begin
-      If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
+      if (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
       Sy := -1;
       Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
       Cy1 := -Cy1; Cy2 := -Cy2;
@@ -3757,12 +3757,12 @@ begin
 
     if Dx > 0 then
     begin
-      If (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
+      if (X1 > Cx2) or (X2 < Cx1) then Exit; // segment not visible
       Sx := 1;
     end
     else
     begin
-      If (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
+      if (X2 > Cx2) or (X1 < Cx1) then Exit; // segment not visible
       Sx := -1;
       X1 := -X1;   X2 := -X2;   Dx := -Dx;
       Cx1 := -Cx1; Cx2 := -Cx2;
@@ -3771,12 +3771,12 @@ begin
 
     if Dy > 0 then
     begin
-      If (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
+      if (Y1 > Cy2) or (Y2 < Cy1) then Exit; // segment not visible
       Sy := 1;
     end
     else
     begin
-      If (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
+      if (Y2 > Cy2) or (Y1 < Cy1) then Exit; // segment not visible
       Sy := -1;
       Y1 := -Y1;   Y2 := -Y2;   Dy := -Dy;
       Cy1 := -Cy1; Cy2 := -Cy2;
@@ -4242,7 +4242,7 @@ begin
 
   if not FMeasuringMode then
   begin
-    If (FClipRect.Right - FClipRect.Left = 0) or
+    if (FClipRect.Right - FClipRect.Left = 0) or
        (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
 
     Dx := X2 - X1; Dy := Y2 - Y1;
@@ -4343,7 +4343,7 @@ begin
       // check whether the line is partly visible
       if xd > Cx2 then
         // do we need to draw an antialiased part on the corner of the clip rect?
-        If xd <= Cx2 + tmp then
+        if xd <= Cx2 + tmp then
           CornerAA := True
         else
           Exit;
@@ -4356,7 +4356,7 @@ begin
         ED := EC - EA;
         term := SwapConstrain(xd - tmp, Cx1, Cx2);
 
-        If CornerAA then
+        if CornerAA then
         begin
           Dec(ED, (xd - Cx2 - 1) * EA);
           xd := Cx2 + 1;
@@ -4382,7 +4382,7 @@ begin
           EMMS;
         end;
 
-        If CornerAA then
+        if CornerAA then
         begin
           // we only needed to draw the visible antialiased part of the line,
           // everything else is outside of our cliprect, so exit now since
@@ -4487,7 +4487,7 @@ begin
     end;
 
     // draw special case horizontal line exit (draw only first half of exiting segment)
-    If CheckVert then
+    if CheckVert then
     try
       while xd <> rem do
       begin
