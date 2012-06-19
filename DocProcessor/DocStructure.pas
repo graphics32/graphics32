@@ -117,6 +117,8 @@ type
     Routines: TElements;
     Types: TElements;
     Globals: TElements;
+    Variables: TElements;
+    Constants: TElements;
     constructor Create(AParent: TElement; const APath: string); override;
     procedure Process(Head, Body: TDomNode; const Anchors, Links: TStringList); override;
   end;
@@ -1234,10 +1236,14 @@ begin
   Routines := TElements.Create(Self, TTopicElement, 'Functions');
   Types := TElements.Create(Self, TTopicElement, 'Types');
   Globals := TElements.Create(Self, TTopicElement, 'Globals');
+  Variables := TElements.Create(Self, TTopicElement, 'Variables');
+  Constants := TElements.Create(Self, TTopicElement, 'Constants');
   RegList(Types);
   RegList(Records);
   RegList(Routines);
   RegList(Globals);
+  RegList(Constants);
+  RegList(Variables);
   RegList(Interfaces);
   RegList(Classes);
 end;
@@ -1254,6 +1260,8 @@ begin
   if Classes.Count > N then N := Classes.Count;
   if Routines.Count > N then N := Routines.Count;
   if Globals.Count > N then N := Globals.Count;
+  if Variables.Count > N then N := Variables.Count;
+  if Constants.Count > N then N := Constants.Count;
 
   if N > 0 then
   begin
@@ -1272,6 +1280,8 @@ begin
       if Classes.Count > 0 then Columns.Add(Classes);
       if Routines.Count > 0 then Columns.Add(Routines);
       if Globals.Count > 0 then Columns.Add(Globals);
+      if Variables.Count > 0 then Columns.Add(Variables);
+      if Constants.Count > 0 then Columns.Add(Constants);
 
       // add table
       T := Body.Add('table');
@@ -1813,7 +1823,7 @@ begin
 
     // types
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-        for J := 0 to Types.Count - 1 do Elems.Add(Types[J]);
+      for J := 0 to Types.Count - 1 do Elems.Add(Types[J]);
     if Elems.Count > 0 then
       begin
       with Body.Add('h2') do
@@ -1827,7 +1837,7 @@ begin
 
     // Records
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-        for J := 0 to Records.Count - 1 do Elems.Add(Records[J]);
+      for J := 0 to Records.Count - 1 do Elems.Add(Records[J]);
     if Elems.Count > 0 then
     begin
       with Body.Add('h2') do
@@ -1841,7 +1851,7 @@ begin
 
     // Functions
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-        for J := 0 to Routines.Count - 1 do Elems.Add(Routines[J]);
+      for J := 0 to Routines.Count - 1 do Elems.Add(Routines[J]);
     if Elems.Count > 0 then
     begin
       with Body.Add('h2') do
@@ -1855,13 +1865,41 @@ begin
 
     // globals
     for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
-        for J := 0 to Globals.Count - 1 do Elems.Add(Globals[J]);
+      for J := 0 to Globals.Count - 1 do Elems.Add(Globals[J]);
     if Elems.Count > 0 then
       begin
       with Body.Add('h2') do
       begin
         Attributes['id'] := 'Auto';
         AddText('Globals');
+      end;
+      AddElems(cColumnCount);
+      Elems.Clear;
+    end;
+
+    // variables
+    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
+      for J := 0 to Variables.Count - 1 do Elems.Add(Variables[J]);
+    if Elems.Count > 0 then
+      begin
+      with Body.Add('h2') do
+      begin
+        Attributes['id'] := 'Auto';
+        AddText('Variables');
+      end;
+      AddElems(cColumnCount);
+      Elems.Clear;
+    end;
+
+    // constants
+    for I := 0 to Units.Count - 1 do with TUnitElement(Units[I]) do
+      for J := 0 to Constants.Count - 1 do Elems.Add(Constants[J]);
+    if Elems.Count > 0 then
+      begin
+      with Body.Add('h2') do
+      begin
+        Attributes['id'] := 'Auto';
+        AddText('Constants');
       end;
       AddElems(cColumnCount);
       Elems.Clear;
@@ -1906,13 +1944,16 @@ begin
     for I := 0 to ChildLists.Count - 1 do
     begin
       J := Dirs.IndexOf(Folder + '\' + TElements(ChildLists[I]).SubDirName);
-      if J >= 0 then Dirs.Delete(J);
+      if J >= 0 then
+        Dirs.Delete(J);
     end;
     for I := Dirs.Count - 1 downto 0 do
-      if SameText(Dirs[I], 'cvs') then Dirs.Delete(I);
+      if SameText(Dirs[I], 'cvs') then
+        Dirs.Delete(I);
 
     J := Files.IndexOf(Folder + '\' + '_Body.htm');
-    if J >= 0 then Files.Delete(J);
+    if J >= 0 then
+      Files.Delete(J);
 
     for I := 0 to Dirs.Count - 1 do
     begin
