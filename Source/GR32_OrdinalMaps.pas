@@ -93,6 +93,8 @@ type
     property Value[X, Y: Integer]: Byte read GetValue write SetValue; default;
   end;
 
+  { TWordMap }
+
   TWordMap = class(TCustomMap)
   private
     FBits: TArrayOfWord;
@@ -104,12 +106,15 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear(FillValue: Word);
     property ValPtr[X, Y: Integer]: PWord read GetValPtr;
     property Value[X, Y: Integer]: Word read GetValue write SetValue; default;
     property Bits: PWordArray read GetBits;
   end;
+
+  { TIntegerMap }
 
   TIntegerMap = class(TCustomMap)
   private
@@ -122,6 +127,7 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear(FillValue: Integer = 0);
     property ValPtr[X, Y: Integer]: PInteger read GetValPtr;
@@ -140,6 +146,7 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear(FillValue: Cardinal = 0);
     property ValPtr[X, Y: Cardinal]: PCardinal read GetValPtr;
@@ -158,6 +165,7 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
+    procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear; overload;
     procedure Clear(FillValue: TFloat); overload;
@@ -525,6 +533,25 @@ begin
   inherited;
 end;
 
+procedure TWordMap.Assign(Source: TPersistent);
+begin
+  BeginUpdate;
+    try
+      if Source is TWordMap then
+      begin
+        inherited SetSize(TWordMap(Source).Width, TWordMap(Source).Height);
+        Move(TWordMap(Source).Bits[0], Bits[0], Width * Height * SizeOf(Word));
+      end
+      //else if Source is TBitmap32 then
+      //  ReadFrom(TBitmap32(Source), ctWeightedRGB)
+      else
+        inherited;
+    finally
+      EndUpdate;
+      Changed;
+    end;
+end;
+
 function TWordMap.Empty: Boolean;
 begin
   Result := not Assigned(FBits);
@@ -572,6 +599,25 @@ begin
   inherited;
 end;
 
+procedure TIntegerMap.Assign(Source: TPersistent);
+begin
+  BeginUpdate;
+  try
+    if Source is TIntegerMap then
+    begin
+      inherited SetSize(TIntegerMap(Source).Width, TIntegerMap(Source).Height);
+      Move(TIntegerMap(Source).Bits[0], Bits[0], Width * Height * SizeOf(Integer));
+    end
+    //else if Source is TBitmap32 then
+    //  ReadFrom(TBitmap32(Source), ctWeightedRGB)
+    else
+      inherited;
+  finally
+    EndUpdate;
+    Changed;
+  end;
+end;
+
 function TIntegerMap.Empty: Boolean;
 begin
   Result := not Assigned(FBits);
@@ -598,6 +644,25 @@ begin
 end;
 
 { TCardinalMap }
+
+procedure TCardinalMap.Assign(Source: TPersistent);
+begin
+  BeginUpdate;
+  try
+    if Source is TCardinalMap then
+    begin
+      inherited SetSize(TCardinalMap(Source).Width, TCardinalMap(Source).Height);
+      Move(TCardinalMap(Source).Bits[0], Bits[0], Width * Height * SizeOf(Cardinal));
+    end
+    //else if Source is TBitmap32 then
+    //  ReadFrom(TBitmap32(Source), ctWeightedRGB)
+    else
+      inherited;
+  finally
+    EndUpdate;
+    Changed;
+  end;
+end;
 
 procedure TCardinalMap.ChangeSize(var Width, Height: Integer; NewWidth,
   NewHeight: Integer);
@@ -645,6 +710,25 @@ begin
 end;
 
 { TFloatMap }
+
+procedure TFloatMap.Assign(Source: TPersistent);
+begin
+  BeginUpdate;
+  try
+    if Source is TFloatMap then
+    begin
+      inherited SetSize(TFloatMap(Source).Width, TFloatMap(Source).Height);
+      Move(TFloatMap(Source).Bits[0], Bits[0], Width * Height * SizeOf(TFloat));
+    end
+    //else if Source is TBitmap32 then
+    //  ReadFrom(TBitmap32(Source), ctWeightedRGB)
+    else
+      inherited;
+  finally
+    EndUpdate;
+    Changed;
+  end;
+end;
 
 procedure TFloatMap.ChangeSize(var Width, Height: Integer; NewWidth,
   NewHeight: Integer);
@@ -700,4 +784,4 @@ begin
   FBits[X + Y * Width] := Value;
 end;
 
-end.
+end.
