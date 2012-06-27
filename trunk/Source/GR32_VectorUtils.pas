@@ -75,7 +75,7 @@ function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint;
   EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint;
 function BuildDashedLine(const Points: TArrayOfFloatPoint;
   const DashArray: array of TFloat; DashOffset: TFloat = 0;
-  Closed: boolean = false): TArrayOfArrayOfFloatPoint;
+  Closed: Boolean = False): TArrayOfArrayOfFloatPoint;
 
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint;
 function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
@@ -83,6 +83,8 @@ function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFlo
 function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat): TArrayOfFloatPoint; overload;
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
+function Rectangle(const R: TFloatRect): TArrayOfFloatPoint;
+function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint;
 
 function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect;
 
@@ -97,7 +99,7 @@ function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoin
 implementation
 
 uses
-  Math, GR32_Math, GR32_LowLevel, SysUtils;
+  Math, GR32_Paths, GR32_Math, GR32_LowLevel, SysUtils;
 
 type
   TTransformationAccess = class(TTransformation);
@@ -388,6 +390,24 @@ begin
     Result[I].X := Rx * D.X + X;
     Result[I].Y := Ry * D.Y + Y;
   end;
+end;
+
+function Rectangle(const R: TFloatRect): TArrayOfFloatPoint;
+begin
+  SetLength(Result, 4);
+  Result[0] := R.TopLeft;
+  Result[1] := FloatPoint(R.Right, R.Top);
+  Result[2] := R.BottomRight;
+  Result[3] := FloatPoint(R.Left, R.Bottom);
+end;
+
+function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint;
+var
+  R2: TFloatRect;
+begin
+  R2 := R;
+  InflateRect(R2, -Radius, -Radius);
+  Result := Grow(Rectangle(R2), Radius, jsRound, True);
 end;
 
 function BuildNormals(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
@@ -879,7 +899,7 @@ var
     Result[J][K].Y := Y;
   end;
 
-  procedure AddDash(i: integer);
+  procedure AddDash(I: integer);
   begin
     if i = 0 then
     begin
@@ -891,7 +911,7 @@ var
       dy := Points[I].Y - Points[I - 1].Y;
     end;
     d := GR32_Math.Hypot(dx, dy);
-    if d = 0 then exit;
+    if d = 0 then Exit;
     dx := dx / d;
     dy := dy / d;
     Offset := Offset + d;
@@ -912,24 +932,25 @@ var
   end;
 
 begin
-  DashIndex := 0;
+  if Length(Points) <= 0 then Exit;
+  DashIndex := -1;
   Offset := 0;
-  DashOffset := DashArray[0] - DashOffset;
 
-  v := 0;
-  for I := 0 to High(DashArray) do v := v + DashArray[I];
-  while DashOffset < 0 do DashOffset := DashOffset + v;
-  while DashOffset >= v do DashOffset := DashOffset - v;
+  V := 0;
+  for I := 0 to High(DashArray) do V := V + DashArray[I];
+  DashOffset := Wrap(DashOffset, V);
 
-  while DashOffset - DashArray[DashIndex] > 0 do
+  DashOffset := DashOffset - V;
+  while DashOffset < 0 do
   begin
-    DashOffset := DashOffset - DashArray[DashIndex];
     Inc(DashIndex);
+    DashOffset := DashOffset + DashArray[DashIndex];
   end;
 
   J := 0;
   // note to self: second dimension might not be zero by default!
   SetLength(Result, 1, 0);
+
   if not Odd(DashIndex) then
     AddPoint(Points[0].X, Points[0].Y);
   for I := 1 to High(Points) do
