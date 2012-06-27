@@ -34,7 +34,7 @@ unit GR32_Paths;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes;
@@ -69,6 +69,8 @@ type
     procedure EndPath; virtual;
     procedure ClosePath; virtual;
     procedure Rectangle(const Rect: TFloatRect); virtual;
+    procedure RoundRect(const Rect: TFloatRect; const Radius: TFloat); virtual;
+    procedure Arc(const P: TFloatPoint; a1, a2, r: TFloat); virtual;
     procedure Ellipse(Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Cx, Cy, R: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
@@ -245,6 +247,11 @@ procedure TCustomPath.AddPoint(const Point: TFloatPoint);
 begin
 end;
 
+procedure TCustomPath.Arc(const P: TFloatPoint; a1, a2, r: TFloat);
+begin
+  Polygon(BuildArc(P, a1, a2, r));
+end;
+
 procedure TCustomPath.BeginPath;
 begin
 
@@ -289,13 +296,12 @@ end;
 
 procedure TCustomPath.Rectangle(const Rect: TFloatRect);
 begin
-  BeginPath;
-  MoveTo(Rect.Left, Rect.Top);
-  LineTo(Rect.Right, Rect.Top);
-  LineTo(Rect.Right, Rect.Bottom);
-  LineTo(Rect.Left, Rect.Bottom);
-  ClosePath;
-  EndPath;
+  Polygon(GR32_VectorUtils.Rectangle(Rect));
+end;
+
+procedure TCustomPath.RoundRect(const Rect: TFloatRect; const Radius: TFloat);
+begin
+  Polygon(GR32_VectorUtils.RoundRect(Rect, Radius));
 end;
 
 procedure TCustomPath.ConicTo(const X, Y: TFloat);
@@ -353,7 +359,6 @@ end;
 procedure TCustomPath.MoveTo(const P: TFloatPoint);
 begin
   FCurrentPoint := P;
-  AddPoint(P);
 end;
 
 { TFlattenedPath }
@@ -580,4 +585,4 @@ begin
   end;
 end;
 
-end.
+end.
