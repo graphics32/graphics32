@@ -77,6 +77,7 @@ type
     function GetValPtr(X, Y: Integer): PByte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; Value: Byte); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PByteArray;
+    function GetScanline(Y: Integer): PByteArray;
   protected
     procedure AssignTo(Dst: TPersistent); override;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
@@ -89,6 +90,7 @@ type
     procedure WriteTo(Dest: TCustomBitmap32; Conversion: TConversionType); overload;
     procedure WriteTo(Dest: TCustomBitmap32; const Palette: TPalette32); overload;
     property Bits: PByteArray read GetBits;
+    property Scanline[Y: Integer]: PByteArray read GetScanline;
     property ValPtr[X, Y: Integer]: PByte read GetValPtr;
     property Value[X, Y: Integer]: Byte read GetValue write SetValue; default;
   end;
@@ -102,6 +104,7 @@ type
     function GetValue(X, Y: Integer): Word; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: Word); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PWordArray;
+    function GetScanline(Y: Integer): PWordArray;
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
@@ -112,6 +115,7 @@ type
     property ValPtr[X, Y: Integer]: PWord read GetValPtr;
     property Value[X, Y: Integer]: Word read GetValue write SetValue; default;
     property Bits: PWordArray read GetBits;
+    property Scanline[Y: Integer]: PWordArray read GetScanline;
   end;
 
   { TIntegerMap }
@@ -123,6 +127,7 @@ type
     function GetValue(X, Y: Integer): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: Integer); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PIntegerArray;
+    function GetScanline(Y: Integer): PIntegerArray;
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
@@ -133,6 +138,7 @@ type
     property ValPtr[X, Y: Integer]: PInteger read GetValPtr;
     property Value[X, Y: Integer]: Integer read GetValue write SetValue; default;
     property Bits: PIntegerArray read GetBits;
+    property Scanline[Y: Integer]: PIntegerArray read GetScanline;
   end;
 
   TCardinalMap = class(TCustomMap)
@@ -142,6 +148,7 @@ type
     function GetValue(X, Y: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Cardinal; const Value: Cardinal); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PCardinalArray;
+    function GetScanline(Y: Integer): PCardinalArray;
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
@@ -152,6 +159,7 @@ type
     property ValPtr[X, Y: Cardinal]: PCardinal read GetValPtr;
     property Value[X, Y: Cardinal]: Cardinal read GetValue write SetValue; default;
     property Bits: PCardinalArray read GetBits;
+    property Scanline[Y: Integer]: PCardinalArray read GetScanline;
   end;
 
   TFloatMap = class(TCustomMap)
@@ -161,6 +169,7 @@ type
     function GetValue(X, Y: Integer): TFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: TFloat); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PFloatArray;
+    function GetScanline(Y: Integer): PFloatArray;
   protected
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
@@ -172,6 +181,7 @@ type
     property ValPtr[X, Y: Integer]: PFloat read GetValPtr;
     property Value[X, Y: Integer]: TFloat read GetValue write SetValue; default;
     property Bits: PFloatArray read GetBits;
+    property Scanline[Y: Integer]: PFloatArray read GetScanline;
   end;
 
 implementation
@@ -291,6 +301,11 @@ end;
 function TByteMap.GetBits: PByteArray;
 begin
   Result := @FBits[0];
+end;
+
+function TByteMap.GetScanline(Y: Integer): PByteArray;
+begin
+  Result := @FBits[Y * Width];
 end;
 
 function TByteMap.GetValPtr(X, Y: Integer): PByte;
@@ -562,6 +577,11 @@ begin
   Result := @FBits[0];
 end;
 
+function TWordMap.GetScanline(Y: Integer): PWordArray;
+begin
+  Result := @FBits[Y * Width];
+end;
+
 function TWordMap.GetValPtr(X, Y: Integer): PWord;
 begin
   Result := @FBits[X + Y * Width];
@@ -628,6 +648,11 @@ begin
   Result := @FBits[0];
 end;
 
+function TIntegerMap.GetScanline(Y: Integer): PIntegerArray;
+begin
+  Result := @FBits[Y * Width];
+end;
+
 function TIntegerMap.GetValPtr(X, Y: Integer): PInteger;
 begin
   Result := @FBits[X + Y * Width];
@@ -692,6 +717,11 @@ end;
 function TCardinalMap.GetBits: PCardinalArray;
 begin
   Result := @FBits[0];
+end;
+
+function TCardinalMap.GetScanline(Y: Integer): PCardinalArray;
+begin
+  Result := @FBits[Y * Width];
 end;
 
 function TCardinalMap.GetValPtr(X, Y: Cardinal): PCardinal;
@@ -767,6 +797,11 @@ end;
 function TFloatMap.GetBits: PFloatArray;
 begin
   Result := @FBits[0];
+end;
+
+function TFloatMap.GetScanline(Y: Integer): PFloatArray;
+begin
+  Result := @FBits[Y * Width];
 end;
 
 function TFloatMap.GetValPtr(X, Y: Integer): PFloat;
