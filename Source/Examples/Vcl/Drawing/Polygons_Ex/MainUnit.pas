@@ -40,42 +40,49 @@ interface
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  GR32, GR32_Image, GR32_Layers, GR32_Polygons;
+  GR32, GR32_Image, GR32_Layers, GR32_Polygons, GR32_Paths, GR32_Brushes;
 
 type
   TFormPolygons = class(TForm)
     BitmapList: TBitmap32List;
-    btNewLine: TButton;
-    cbAntialiased: TCheckBox;
+    BtnNewLine: TButton;
     FillAlpha: TScrollBar;
     Image: TImage32;
-    lbFillOpacity: TLabel;
-    lbLineOpacity: TLabel;
-    lbOutlineThickness: TLabel;
-    lbOutlineThicknessValue: TLabel;
+    LblFillOpacity: TLabel;
+    LblLineOpacity: TLabel;
+    LblOutlineThickness: TLabel;
+    LblOutlineThicknessValue: TLabel;
     LineAlpha: TScrollBar;
     LineThickness: TScrollBar;
-    Memo1: TMemo;
-    Memo2: TMemo;
-    Panel1: TPanel;
-    Pattern: TCheckBox;
-    rgAntialiasMode: TRadioGroup;
-    rgFillMode: TRadioGroup;
-    ThickOutline: TCheckBox;
+    MemoHint: TMemo;
+    PanelControl: TPanel;
+    CbxPattern: TCheckBox;
+    RgpFillMode: TRadioGroup;
+    CbxThickOutline: TCheckBox;
+    RgpJointMode: TRadioGroup;
+    LblMiterLimit: TLabel;
+    MiterLimit: TScrollBar;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImageResize(Sender: TObject);
     procedure ParamsChanged(Sender: TObject);
-    procedure btNewLineClick(Sender: TObject);
+    procedure BtnNewLineClick(Sender: TObject);
     procedure ThicknessChanged(Sender: TObject);
+    procedure FillModeChange(Sender: TObject);
+    procedure PatternFillingChange(Sender: TObject);
+    procedure FillAlphaChange(Sender: TObject);
+    procedure LineAlphaChange(Sender: TObject);
+    procedure JointModeChange(Sender: TObject);
+    procedure ThickOutlineChange(Sender: TObject);
+    procedure MiterLimitChange(Sender: TObject);
   private
-    Polygon: TPolygon32;
-    Outline: TPolygon32;
-    UseOutlinePoly: Boolean;
-    LineSize: Single;
-    procedure Build;
+    FCanvas: TCanvas32;
+    FFiller: TBitmapPolygonFiller;
+    FPoints: array of array of TPoint;
+    FSolid: TSolidBrush;
+    FStroke: TStrokeBrush;
     procedure Draw;
   end;
 
@@ -105,70 +112,65 @@ uses
 
 procedure TFormPolygons.FormCreate(Sender: TObject);
 var
-  pathMedia: TFileName;
+  PathMedia: TFileName;
 begin
-  pathMedia := GetMediaPath;
+  PathMedia := GetMediaPath;
 
   // load example images
-  Assert(FileExists(pathMedia + 'delphi.jpg'));
-  BitmapList.Bitmap[0].LoadFromFile(pathMedia + 'delphi.jpg');
+  Assert(FileExists(PathMedia + 'delphi.jpg'));
+  BitmapList.Bitmap[0].LoadFromFile(PathMedia + 'delphi.jpg');
 
-  Assert(FileExists(pathMedia + 'texture_b.jpg'));
-  BitmapList.Bitmap[1].LoadFromFile(pathMedia + 'texture_b.jpg');
+  Assert(FileExists(PathMedia + 'texture_b.jpg'));
+  BitmapList.Bitmap[1].LoadFromFile(PathMedia + 'texture_b.jpg');
 
   Image.SetupBitmap;
-  Polygon := TPolygon32.Create;
+
+  SetLength(FPoints, 1);
+  SetLength(FPoints[0], 0);
+
+  FCanvas := TCanvas32.Create(Image.Bitmap);
+  FCanvas.Brushes.Add(TSolidBrush);
+  FSolid := TSolidBrush(FCanvas.Brushes[0]);
+  FSolid.FillColor := SetAlpha(clGreen32, FillAlpha.Position);
+
+  FCanvas.Brushes.Add(TStrokeBrush);
+  FStroke := TStrokeBrush(FCanvas.Brushes[1]);
+  FStroke.FillColor := SetAlpha(clBlack32, LineAlpha.Position);
+  FStroke.StrokeWidth := 1;
+  FStroke.Visible := False;
+
+  ThickOutlineChange(Self);
 end;
 
 procedure TFormPolygons.FormDestroy(Sender: TObject);
 begin
-  Outline.Free;
-  Polygon.Free;
+  FCanvas.Free;
+  if Assigned(FFiller) then
+    FFiller.Free;
 end;
 
 procedure TFormPolygons.Draw;
 var
   MyFiller: TBitmapPolygonFiller;
+  Index, PointIndex: Integer;
 begin
   Image.Bitmap.BeginUpdate;
   try
     Image.Bitmap.Clear(clWhite32);
     Image.Bitmap.Draw(50, 50, BitmapList.Bitmap[0]);
 
-    Polygon.Antialiased := cbAntialiased.Checked;
-    Polygon.AntialiasMode := TAntialiasMode(rgAntialiasMode.ItemIndex);
-
-    if UseOutlinePoly then
+    for Index := 0 to Length(FPoints) - 1 do
     begin
-      Outline.Antialiased := cbAntialiased.Checked;
-      Outline.AntialiasMode := TAntialiasMode(rgAntialiasMode.ItemIndex);
+      if Length(FPoints[Index]) = 0 then
+        Continue;
+
+      FCanvas.Path.BeginPath;
+      FCanvas.Path.MoveTo(FPoints[Index, 0].X, FPoints[Index, 0].Y);
+      for PointIndex := 1 to Length(FPoints[Index]) - 1 do
+        FCanvas.Path.LineTo(FPoints[Index, PointIndex].X, FPoints[Index, PointIndex].Y);
+      FCanvas.Path.ClosePath;
+      FCanvas.Path.EndPath;
     end;
-
-    if rgFillMode.ItemIndex = 0 then
-      Polygon.FillMode := pfAlternate
-    else
-      Polygon.FillMode := pfWinding;
-
-    if Pattern.Checked then
-    begin
-      BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
-      BitmapList.Bitmap[1].DrawMode := dmBlend;
-      MyFiller := TBitmapPolygonFiller.Create;
-      try
-        MyFiller.Pattern := BitmapList.Bitmap[1];
-        Polygon.DrawFill(Image.Bitmap, MyFiller);
-      finally
-        MyFiller.Free;
-      end;
-    end
-    else
-      Polygon.DrawFill(Image.Bitmap, SetAlpha(clGreen32, FillAlpha.Position));
-
-    if UseOutlinePoly then
-      Outline.DrawFill(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position))
-    else
-      Polygon.DrawEdge(Image.Bitmap, SetAlpha(clBlack32, LineAlpha.Position));
-
   finally
     Image.Bitmap.EndUpdate;
   end;
@@ -179,59 +181,110 @@ end;
 
 procedure TFormPolygons.ImageMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  Index: Integer;
+  PointIndex: Integer;
 begin
-  if Button = mbLeft then Polygon.Add(GR32.FixedPoint(X, Y))
-  else Polygon.Clear;
-  Build;
+  if Button = mbLeft then
+  begin
+    Index := Length(FPoints) - 1;
+    PointIndex := Length(FPoints[Index]);
+    SetLength(FPoints[Index], PointIndex + 1);
+    FPoints[Index, PointIndex].X := X;
+    FPoints[Index, PointIndex].Y := Y;
+  end
+  else
+  begin
+    SetLength(FPoints, 1);
+    SetLength(FPoints[0], 0);
+  end;
+
   Draw;
 end;
 
 procedure TFormPolygons.ImageResize(Sender: TObject);
 begin
   Image.SetupBitmap;
-  Build;
+  Draw;
+end;
+
+procedure TFormPolygons.LineAlphaChange(Sender: TObject);
+begin
+  FStroke.FillColor := SetAlpha(clBlack32, LineAlpha.Position);
+  Draw;
+end;
+
+procedure TFormPolygons.MiterLimitChange(Sender: TObject);
+begin
+  FStroke.MiterLimit := 0.1 * MiterLimit.Position;
   Draw;
 end;
 
 procedure TFormPolygons.ParamsChanged(Sender: TObject);
 begin
-  rgAntialiasMode.Enabled := cbAntialiased.Checked;
   Draw;
 end;
 
-procedure TFormPolygons.btNewLineClick(Sender: TObject);
+procedure TFormPolygons.FillAlphaChange(Sender: TObject);
 begin
-  Polygon.NewLine;
+  FSolid.FillColor := SetAlpha(clGreen32, FillAlpha.Position);
+  Draw;
 end;
 
-procedure TFormPolygons.Build;
-var
-  TmpPoly: TPolygon32;
+procedure TFormPolygons.FillModeChange(Sender: TObject);
 begin
-  Outline.Free;
-  Outline := nil;
+  FStroke.FillMode := TPolyFillMode(RgpFillMode.ItemIndex);
+  FSolid.FillMode := TPolyFillMode(RgpFillMode.ItemIndex);
+  Draw;
+end;
 
-  if UseOutlinePoly then
+procedure TFormPolygons.PatternFillingChange(Sender: TObject);
+begin
+  if CbxPattern.Checked then
   begin
-    TmpPoly := Polygon.Outline;
-    Outline := TmpPoly.Grow(Fixed(LineSize * 0.5), 0.5);
-    Outline.FillMode := pfWinding;
-    TmpPoly.Free;
+    BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
+    BitmapList.Bitmap[1].DrawMode := dmBlend;
+    FFiller := TBitmapPolygonFiller.Create;
+    FFiller.Pattern := BitmapList.Bitmap[1];
+    FCanvas.Renderer.Filler := FFiller;
+    FSolid.Filler := FFiller;
+  end
+  else
+  begin
+    FCanvas.Renderer.Filler := nil;
+    FSolid.Filler := nil;
+    FreeAndNil(FFiller);
   end;
+  Draw;
+end;
 
-  if Assigned(lbOutlineThicknessValue) then
-    if UseOutlinePoly then
-      lbOutlineThicknessValue.Caption := Format('(%.1f)', [LineSize])
-    else
-      lbOutlineThicknessValue.Caption := '(1)';
+procedure TFormPolygons.JointModeChange(Sender: TObject);
+begin
+  FStroke.JoinStyle := TJoinStyle(RgpJointMode.ItemIndex);
+  MiterLimit.Enabled := CbxThickOutline.Checked and
+    (FStroke.JoinStyle = jsMiter);
+  Draw;
+end;
+
+procedure TFormPolygons.BtnNewLineClick(Sender: TObject);
+begin
+  SetLength(FPoints, Length(FPoints) + 1);
 end;
 
 procedure TFormPolygons.ThicknessChanged(Sender: TObject);
 begin
-  rgAntialiasMode.Enabled := cbAntialiased.Checked;
-  UseOutlinePoly := ThickOutline.Checked;
-  LineSize := LineThickness.Position * 0.1;
-  Build;
+  FStroke.StrokeWidth := LineThickness.Position * 0.1;
+  LblOutlineThicknessValue.Caption := Format('(%2.1f)', [FStroke.StrokeWidth]);
+  Draw;
+end;
+
+procedure TFormPolygons.ThickOutlineChange(Sender: TObject);
+begin
+  FStroke.Visible := CbxThickOutline.Checked;
+  LineThickness.Enabled := CbxThickOutline.Checked;
+  RgpJointMode.Enabled := CbxThickOutline.Checked;
+  MiterLimit.Enabled := CbxThickOutline.Checked and
+    (FStroke.JoinStyle = jsMiter);
   Draw;
 end;
 
