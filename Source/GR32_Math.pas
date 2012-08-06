@@ -58,6 +58,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 
 procedure SinCos(const Theta: TFloat; out Sin, Cos: TFloat); overload;
 procedure SinCos(const Theta, Radius: Single; out Sin, Cos: Single); overload;
+procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); overload;
 function Hypot(const X, Y: TFloat): TFloat; overload;
 function Hypot(const X, Y: Integer): Integer; overload;
 function FastSqrt(const Value: TFloat): TFloat;
@@ -434,7 +435,7 @@ begin
 {$ELSE}
 {$IFDEF TARGET_x64}
 var
-  Temp: DWord = 0;
+  Temp: TFloat;
 {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
@@ -462,6 +463,10 @@ begin
   Sin := S * Radius;
   Cos := C * Radius;
 {$ELSE}
+{$IFDEF TARGET_x64}
+var
+  Temp: TFloat;
+{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         FLD     Theta
@@ -478,6 +483,42 @@ asm
         FSINCOS
         FMUL    Temp
         FSTP    [Cos]
+        FMUL    Temp
+        FSTP    [Sin]
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure SinCos(const Theta, ScaleX, ScaleY: TFloat; out Sin, Cos: Single); overload;
+{$IFDEF NATIVE_SINCOS}
+var
+  S, C: Extended;
+begin
+  Math.SinCos(Theta, S, C);
+  Sin := S * ScaleX;
+  Cos := C * ScaleY;
+{$ELSE}
+{$IFDEF TARGET_x64}
+var
+  Temp: TFloat;
+{$ENDIF}
+asm
+{$IFDEF TARGET_x86}
+        FLD     Theta
+        FSINCOS
+        FMUL    ScaleX
+        FSTP    DWORD PTR [EDX] // cosine
+        FMUL    ScaleY
+        FSTP    DWORD PTR [EAX] // sine
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOVD    Temp, Theta
+        FLD     Temp
+        FSINCOS
+        MOVD    Temp, ScaleX
+        FMUL    Temp
+        FSTP    [Cos]
+        MOVD    Temp, ScaleY
         FMUL    Temp
         FSTP    [Sin]
 {$ENDIF}
