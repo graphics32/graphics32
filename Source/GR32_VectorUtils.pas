@@ -562,7 +562,7 @@ begin
   //MiterLimit = Sqrt(2/(1 - cos(ß)))
   //Sqr(MiterLimit) = 2/(1 - cos(ß))
   //1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
-  RMin := 2/Sqr(MiterLimit);
+  RMin := 2 / Sqr(MiterLimit);
 
   H := High(Points) - Ord(not Closed);
   while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do Dec(H);
@@ -687,7 +687,7 @@ var
 begin
   if Closed then
   begin
-    SetLength(Dst, Length(Points)*2);
+    SetLength(Dst, Length(Points) * 2);
     for I := 0 to High(Points) do
     begin
       Normals := BuildNormals(Points[I]);
@@ -1051,4 +1051,4 @@ begin
   Result[0] := Points;
 end;
 
-end.
+end.

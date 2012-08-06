@@ -309,7 +309,8 @@ begin
       Last := Coverage[I];
       V := Abs(Round(Coverage[I] * $10000));
       V := V and $01ffff;
-      if V >= $10000 then V := V xor $1ffff;
+      if V >= $10000 then
+        V := V xor $1ffff;
       V := V * M shr 24;
 {$IFDEF USEGR32GAMMA}
       V := GAMMA_TABLE[V];
@@ -985,16 +986,16 @@ end;
 
 { TCustomPolygonRenderer }
 
+constructor TCustomPolygonRenderer.Create;
+begin
+
+end;
+
 procedure TCustomPolygonRenderer.PolygonFS(
   const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect;
   Transformation: TTransformation);
 begin
   PolyPolygonFS(PolyPolygon(Points), ClipRect, Transformation);
-end;
-
-constructor TCustomPolygonRenderer.Create;
-begin
-
 end;
 
 procedure TCustomPolygonRenderer.PolygonFS(

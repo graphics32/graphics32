@@ -52,7 +52,6 @@ type
   protected
     procedure AddPoint(const Point: TFloatPoint); virtual;
   public
-    property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
     procedure MoveTo(const X, Y: TFloat); overload;
     procedure MoveTo(const P: TFloatPoint); overload; virtual;
     procedure LineTo(const X, Y: TFloat); overload;
@@ -75,6 +74,8 @@ type
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Cx, Cy, R: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
+
+    property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
 
   { TFlattenedPath }
@@ -90,15 +91,18 @@ type
   protected
     procedure AddPoint(const Point: TFloatPoint); override;
   public
-    property Points: TArrayOfFloatPoint read GetPoints;
-    property Path: TArrayOfArrayOfFloatPoint read FPath;
     constructor Create; override;
     destructor Destroy; override;
+
     procedure DrawPath; virtual;
     procedure MoveTo(const P: TFloatPoint); override;
     procedure ClosePath; override;
     procedure BeginPath; override;
     procedure EndPath; override;
+
+    property Points: TArrayOfFloatPoint read GetPoints;
+    property Path: TArrayOfArrayOfFloatPoint read FPath;
+
     property OnBeginPath: TNotifyEvent read FOnBeginPath write FOnBeginPath;
     property OnEndPath: TNotifyEvent read FOnEndPath write FOnEndPath;
     property OnClosePath: TNotifyEvent read FOnClosePath write FOnClosePath;
@@ -118,6 +122,7 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
+
     property Transformation: TTransformation read FTransformation write SetTransformation;
     property Path: TFlattenedPath read FPath;
   end;
@@ -138,9 +143,11 @@ type
   public
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     destructor Destroy; override;
+
     procedure RenderText(X, Y: TFloat; const Text: WideString); overload;
     procedure RenderText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+
     property Bitmap: TBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
     property RendererClassName: string read GetRendererClassName write SetRendererClassName;
@@ -363,6 +370,31 @@ end;
 
 { TFlattenedPath }
 
+constructor TFlattenedPath.Create;
+begin
+  inherited;
+//  FPolygonRenderer := GetPolygonRendererClass.Create;
+end;
+
+destructor TFlattenedPath.Destroy;
+begin
+//  FPolygonRenderer.Free;
+  inherited;
+end;
+
+procedure TFlattenedPath.BeginPath;
+begin
+  FPath := nil;
+  FPoints := nil;
+  FPointIndex := 0;
+  if Assigned(FOnBeginPath) then FOnBeginPath(Self);
+end;
+
+procedure TFlattenedPath.EndPath;
+begin
+  if Assigned(FOnEndPath) then FOnEndPath(Self);
+end;
+
 procedure TFlattenedPath.ClosePath;
 var
   N: Integer;
@@ -386,14 +418,6 @@ begin
   AddPoint(P);
 end;
 
-procedure TFlattenedPath.BeginPath;
-begin
-  FPath := nil;
-  FPoints := nil;
-  FPointIndex := 0;
-  if Assigned(FOnBeginPath) then FOnBeginPath(Self);
-end;
-
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
 const
   BUFFSIZEINCREMENT = 128;
@@ -407,26 +431,9 @@ begin
   Inc(FPointIndex);
 end;
 
-procedure TFlattenedPath.EndPath;
-begin
-  if Assigned(FOnEndPath) then FOnEndPath(Self);
-end;
-
 function TFlattenedPath.GetPoints: TArrayOfFloatPoint;
 begin
   Result := Copy(FPoints, 0, FPointIndex);
-end;
-
-constructor TFlattenedPath.Create;
-begin
-  inherited;
-//  FPolygonRenderer := GetPolygonRendererClass.Create;
-end;
-
-destructor TFlattenedPath.Destroy;
-begin
-//  FPolygonRenderer.Free;
-  inherited;
 end;
 
 procedure TFlattenedPath.DrawPath;
@@ -585,4 +592,4 @@ begin
   end;
 end;
 
-end.
+end.
