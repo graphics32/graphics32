@@ -133,7 +133,7 @@ type
   end;
 
   { TStrokeBrush }
-  TStrokeBrush = class(TNestedBrush)
+  TStrokeBrush = class(TSolidBrush)
   private
     FStrokeWidth: TFloat;
     FJoinStyle: TJoinStyle;
@@ -486,7 +486,8 @@ procedure TStrokeBrush.PolyPolygonFS(Renderer: TCustomPolygonRenderer;
 var
   APoints: TArrayOfArrayOfFloatPoint;
 begin
-  APoints := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  APoints := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle,
+    EndStyle, MiterLimit);
   inherited PolyPolygonFS(Renderer, APoints, ClipRect, Transformation, Closed);
 end;
 
