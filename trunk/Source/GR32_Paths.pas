@@ -387,12 +387,14 @@ begin
   FPath := nil;
   FPoints := nil;
   FPointIndex := 0;
-  if Assigned(FOnBeginPath) then FOnBeginPath(Self);
+  if Assigned(FOnBeginPath) then
+    FOnBeginPath(Self);
 end;
 
 procedure TFlattenedPath.EndPath;
 begin
-  if Assigned(FOnEndPath) then FOnEndPath(Self);
+  if Assigned(FOnEndPath) then
+    FOnEndPath(Self);
 end;
 
 procedure TFlattenedPath.ClosePath;

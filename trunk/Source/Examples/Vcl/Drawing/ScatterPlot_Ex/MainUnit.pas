@@ -49,7 +49,7 @@ procedure TFmScatterPlot.FormCreate(Sender: TObject);
 var
   NumPoints: Integer;
 begin
-  Image32.Bitmap.SetSize(400, 400);
+  Image32.Bitmap.SetSize(Image32.Width, Image32.Height);
   FCanvas := TCanvas32.Create(Image32.Bitmap);
   FCanvas.Brushes.Add(TSolidBrush);
   FBrush := TSolidBrush(FCanvas.Brushes[0]);

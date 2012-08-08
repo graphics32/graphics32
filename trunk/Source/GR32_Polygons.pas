@@ -207,17 +207,17 @@ procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
 //Filled only dashes ...
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Color: TColor32;
-  Closed: boolean = false; Width: TFloat = 1.0); overload;
+  Closed: Boolean = false; Width: TFloat = 1.0); overload;
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
-  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
 //Filled and stroked dashes ...
-procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
-  Closed: boolean = false; Width: TFloat = 1.0); overload;
-procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Closed: Boolean = false; Width: TFloat = 1.0); overload;
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
-  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
 
 { Registration routines }
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
@@ -595,7 +595,7 @@ end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Color: TColor32;
-  Closed: boolean = false; Width: TFloat = 1.0); overload;
+  Closed: Boolean = false; Width: TFloat = 1.0); overload;
 var
   multiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -605,7 +605,7 @@ end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
-  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
 var
   multiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -615,9 +615,9 @@ begin
   PolyPolylineFS(bitmap, multiPoly, strokeColor, true, strokeWidth);
 end;
 
-procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
-  Closed: boolean = false; Width: TFloat = 1.0);
+  Closed: Boolean = false; Width: TFloat = 1.0);
 var
   multiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -625,9 +625,9 @@ begin
   PolyPolylineFS(Bitmap, multiPoly, Filler, false, Width);
 end;
 
-procedure dashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
-  Closed: boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
 var
   multiPoly: TArrayOfArrayOfFloatPoint;
 begin
@@ -1098,7 +1098,7 @@ begin
 {$IFDEF CHANGENOTIFICATIONS}
   if TBitmap32Access(Bitmap).UpdateCount = 0 then
     for I := 0 to High(Points) do
-      if length(Points[I]) > 0 then
+      if Length(Points[I]) > 0 then
         Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
 {$ENDIF}
 end;
