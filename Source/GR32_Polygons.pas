@@ -204,20 +204,78 @@ procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
   MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
 
-//Filled only dashes ...
+//Filled only Dashes ...
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Color: TColor32;
-  Closed: Boolean = false; Width: TFloat = 1.0); overload;
+  Closed: Boolean = False; Width: TFloat = 1.0); overload;
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
   Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
-//Filled and stroked dashes ...
+//Filled and stroked Dashes ...
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
-  Closed: Boolean = false; Width: TFloat = 1.0); overload;
+  Closed: Boolean = False; Width: TFloat = 1.0); overload;
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
   Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+
+procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonXS_LCD(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonXS_LCD(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil);
+procedure PolyPolygonXS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonXS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil);
+
+procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; Closed: Boolean = False; StrokeWidth: TFixed = $10000;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFixed = $40000; Transformation: TTransformation = nil); overload;
+procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFixed = $10000;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFixed = $40000; Transformation: TTransformation = nil); overload;
+
+procedure PolylineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; Closed: Boolean = False; StrokeWidth: TFixed = $10000;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFixed = $40000; Transformation: TTransformation = nil); overload;
+procedure PolylineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFixed = $10000;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFixed = $40000; Transformation: TTransformation = nil); overload;
+
+//Filled only Dashes ...
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; Color: TColor32;
+  Closed: Boolean = False; Width: TFixed = $10000); overload;
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; FillColor, StrokeColor: TColor32;
+  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000); overload;
+//Filled and stroked Dashes ...
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller;
+  Closed: Boolean = False; Width: TFixed = $10000); overload;
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000); overload;
 
 { Registration routines }
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
@@ -500,7 +558,7 @@ begin
 end;
 
 procedure PolyPolygonFS_LCD(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation); overload;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
 var
   Renderer: TPolygonRenderer32LCD;
 begin
@@ -532,7 +590,7 @@ begin
 end;
 
 procedure PolyPolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
-  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation); overload;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
 var
   Renderer: TPolygonRenderer32LCD2;
 begin
@@ -573,69 +631,316 @@ procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
   JoinStyle: TJoinStyle; EndStyle: TEndStyle;
   MiterLimit: TFloat; Transformation: TTransformation);
-var
-  P: TArrayOfArrayOfFloatPoint;
 begin
-  SetLength(P, 1);
-  P[0] := Points;
-  PolyPolylineFS(Bitmap, P, Color, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit, Transformation);
+  PolyPolylineFS(Bitmap, PolyPolygon(Points), Color, Closed, StrokeWidth,
+    JoinStyle, EndStyle, MiterLimit, Transformation);
 end;
 
 procedure PolylineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
   JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
   MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
-var
-  P: TArrayOfArrayOfFloatPoint;
 begin
-  SetLength(P, 1);
-  P[0] := Points;
-  PolyPolylineFS(Bitmap, P, Filler, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit, Transformation);
+  PolyPolylineFS(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
+    JoinStyle, EndStyle, MiterLimit, Transformation);
 end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Color: TColor32;
-  Closed: Boolean = false; Width: TFloat = 1.0); overload;
+  Closed: Boolean = False; Width: TFloat = 1.0);
 var
-  multiPoly: TArrayOfArrayOfFloatPoint;
+  MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
-  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, dashes, 0, closed);
-  PolyPolylineFS(bitmap, multiPoly, color, false, width);
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, color, False, Width);
 end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
   Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
 var
-  multiPoly: TArrayOfArrayOfFloatPoint;
+  MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
-  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, dashes, 0, closed);
-  PolyPolylineFS(bitmap, multiPoly, fillColor, false, width);
-  multiPoly := BuildPolyPolyLine(multiPoly, false, width);
-  PolyPolylineFS(bitmap, multiPoly, strokeColor, true, strokeWidth);
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, FillColor, False, Width);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, true, strokeWidth);
 end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
-  Closed: Boolean = false; Width: TFloat = 1.0);
+  Closed: Boolean = False; Width: TFloat = 1.0);
 var
-  multiPoly: TArrayOfArrayOfFloatPoint;
+  MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
-  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, multiPoly, Filler, false, Width);
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
 end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
   Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
 var
-  multiPoly: TArrayOfArrayOfFloatPoint;
+  MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
-  multiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, multiPoly, Filler, false, Width);
-  multiPoly := BuildPolyPolyLine(multiPoly, false, Width);
-  PolyPolylineFS(Bitmap, multiPoly, StrokeColor, true, StrokeWidth);
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, true, StrokeWidth);
 end;
+
+
+procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+begin
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    Renderer.PolyPolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+begin
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    Renderer.PolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+begin
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    Renderer.PolyPolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+begin
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    Renderer.PolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonXS_LCD(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD;
+begin
+  Renderer := TPolygonRenderer32LCD.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    Renderer.PolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonXS_LCD(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD;
+begin
+  Renderer := TPolygonRenderer32LCD.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    Renderer.PolyPolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonXS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD2;
+begin
+  Renderer := TPolygonRenderer32LCD2.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    Renderer.PolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonXS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD2;
+begin
+  Renderer := TPolygonRenderer32LCD2.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    Renderer.PolyPolygonFS(FixedPointToFloatPoint(Points),
+      FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFixed;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
+  MiterLimit: TFixed; Transformation: TTransformation);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(FixedPointToFloatPoint(Points), Closed,
+    StrokeWidth * FixedToFloat, JoinStyle, EndStyle, MiterLimit);
+  PolyPolygonFS(Bitmap, Dst, Color, pfWinding, Transformation);
+end;
+
+procedure PolyPolylineXS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False;
+  StrokeWidth: TFixed = $10000; JoinStyle: TJoinStyle = jsMiter;
+  EndStyle: TEndStyle = esButt; MiterLimit: TFixed = $40000;
+  Transformation: TTransformation = nil);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(FixedPointToFloatPoint(Points), Closed,
+    StrokeWidth * FixedToFloat, JoinStyle, EndStyle, MiterLimit * FixedToFloat);
+  PolyPolygonFS(Bitmap, Dst, Filler, pfWinding, Transformation);
+end;
+
+procedure PolylineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFixed;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
+  MiterLimit: TFixed; Transformation: TTransformation);
+begin
+  PolyPolylineFS(Bitmap, PolyPolygon(FixedPointToFloatPoint(Points)), Color,
+    Closed, StrokeWidth * FixedToFloat, JoinStyle, EndStyle,
+    MiterLimit * FixedToFloat, Transformation);
+end;
+
+procedure PolylineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False;
+  StrokeWidth: TFixed = $10000; JoinStyle: TJoinStyle = jsMiter;
+  EndStyle: TEndStyle = esButt; MiterLimit: TFixed = $40000;
+  Transformation: TTransformation = nil);
+begin
+  PolyPolylineFS(Bitmap, PolyPolygon(FixedPointToFloatPoint(Points)),
+    Filler, Closed, StrokeWidth * FixedToFloat, JoinStyle, EndStyle,
+    MiterLimit * FixedToFloat, Transformation);
+end;
+
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; Color: TColor32;
+  Closed: Boolean = False; Width: TFixed = $10000);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+  FloatDashes: TArrayOfFloat;
+  Index: Integer;
+begin
+  SetLength(FloatDashes, Length(Dashes));
+  for Index := 0 to Length(Dashes) - 1 do
+    FloatDashes[Index] := Dashes[Index] * FixedToFloat;
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(FixedPointToFloatPoint(Points),
+    FloatDashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Color, False, Width * FixedToFloat);
+end;
+
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; FillColor, StrokeColor: TColor32;
+  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+  FloatDashes: TArrayOfFloat;
+  Index: Integer;
+begin
+  SetLength(FloatDashes, Length(Dashes));
+  for Index := 0 to Length(Dashes) - 1 do
+    FloatDashes[Index] := Dashes[Index] * FixedToFloat;
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(FixedPointToFloatPoint(Points),
+    FloatDashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, FillColor, False, Width);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, strokeWidth);
+end;
+
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller;
+  Closed: Boolean = False; Width: TFixed = $10000);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+  FloatDashes: TArrayOfFloat;
+  Index: Integer;
+begin
+  SetLength(FloatDashes, Length(Dashes));
+  for Index := 0 to Length(Dashes) - 1 do
+    FloatDashes[Index] := Dashes[Index] * FixedToFloat;
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(FixedPointToFloatPoint(Points),
+    FloatDashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
+end;
+
+procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
+  const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+  FloatDashes: TArrayOfFloat;
+  Index: Integer;
+begin
+  SetLength(FloatDashes, Length(Dashes));
+  for Index := 0 to Length(Dashes) - 1 do
+    FloatDashes[Index] := Dashes[Index] * FixedToFloat;
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(FixedPointToFloatPoint(Points),
+    FloatDashes, 0, Closed);
+  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
+end;
+
+
 
 { LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
 
