@@ -100,6 +100,8 @@ type
     procedure BeginPath; override;
     procedure EndPath; override;
 
+    procedure Polygon(const APoints: TArrayOfFloatPoint); override;
+
     property Points: TArrayOfFloatPoint read GetPoints;
     property Path: TArrayOfArrayOfFloatPoint read FPath;
 
@@ -266,7 +268,7 @@ end;
 
 procedure TCustomPath.Circle(const Cx, Cy, R: TFloat; Steps: Integer);
 begin
-  Ellipse(Cx, Cy, R, R, Steps);
+  Polygon(GR32_VectorUtils.Circle(Cx, Cy, R, Steps));
 end;
 
 procedure TCustomPath.ClosePath;
@@ -418,6 +420,21 @@ begin
   if Length(FPoints) <> 0 then
     ClosePath;
   AddPoint(P);
+end;
+
+procedure TFlattenedPath.Polygon(const APoints: TArrayOfFloatPoint);
+var
+  I: Integer;
+begin
+  if Length(APoints) = 0 then
+    Exit;
+
+  BeginPath;
+  for I := 0 to High(APoints) do
+    AddPoint(APoints[I]);
+  FCurrentPoint := APoints[High(APoints)];
+  ClosePath;
+  EndPath;
 end;
 
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
