@@ -525,12 +525,8 @@ end;
 
 procedure RenderPolygon(const Points: TArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
-var
-  H: TArrayOfArrayOfFloatPoint;
 begin
-  SetLength(H, 1);
-  H[0] := Points;
-  RenderPolyPolygon(H, ClipRect, RenderProc, Data);
+  RenderPolyPolygon(PolyPolygon(Points), ClipRect, RenderProc, Data);
 end;
 
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
