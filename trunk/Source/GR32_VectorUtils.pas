@@ -74,14 +74,16 @@ function BuildPolyPolyLine(const Points: TArrayOfArrayOfFloatPoint;
   Closed: Boolean; StrokeWidth: TFloat; JoinStyle: TJoinStyle = jsMiter;
   EndStyle: TEndStyle = esButt; MiterLimit: TFloat = DEFAULT_MITER_LIMIT): TArrayOfArrayOfFloatPoint;
 function BuildDashedLine(const Points: TArrayOfFloatPoint;
-  const DashArray: array of TFloat; DashOffset: TFloat = 0;
+  const DashArray: TArrayOfFloat; DashOffset: TFloat = 0;
   Closed: Boolean = False): TArrayOfArrayOfFloatPoint;
 
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint;
 function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 
+function CalculateCircleSteps(Radius: TFloat): Cardinal;
 function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat): TArrayOfFloatPoint; overload;
+function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
 function Rectangle(const R: TFloatRect): TArrayOfFloatPoint;
 function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint;
@@ -95,6 +97,8 @@ function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTra
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; {$IFDEF USEINLINING}inline;{$ENDIF}
+function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
+function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 
 implementation
 
@@ -361,12 +365,57 @@ begin
   Result := BuildArc(P, a1, a2, r, Steps);
 end;
 
+function CalculateCircleSteps(Radius: TFloat): Cardinal;
+var
+  AbsRadius: Double;
+begin
+  AbsRadius := Abs(Radius);
+  Result := Trunc(Pi / (ArcCos(AbsRadius / (AbsRadius + 0.125))));
+end;
+
+function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
+var
+  I: Integer;
+  M: TFloat;
+  C, D: TFloatPoint;
+begin
+  if Steps <= 0 then
+    Steps := CalculateCircleSteps(Radius);
+
+  SetLength(Result, Steps);
+  M := 2 * System.Pi / Steps;
+
+  // first item
+  Result[0].X := Radius + X;
+  Result[0].Y := Y;
+
+  // calculate complex offset
+  GR32_Math.SinCos(M, C.Y, C.X);
+  D := C;
+
+  // second item
+  Result[1].X := Radius * D.X + X;
+  Result[1].Y := Radius * D.Y + Y;
+
+  // other items
+  for I := 2 to Steps - 1 do
+  begin
+    D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
+
+    Result[I].X := Radius * D.X + X;
+    Result[I].Y := Radius * D.Y + Y;
+  end;
+end;
+
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint;
 var
   I: Integer;
   M: TFloat;
   C, D: TFloatPoint;
 begin
+  if Steps <= 0 then
+    Steps := CalculateCircleSteps(Min(Rx, Ry));
+
   SetLength(Result, Steps);
   M := 2 * System.Pi / Steps;
 
@@ -530,7 +579,7 @@ var
         a2 := a2 + TWOPI;
       Arc := BuildArc(FloatPoint(PX, PY), a1, a2, D);
 
-      arcLen := length(Arc);
+      arcLen := Length(Arc);
       if resSize + arcLen >= BuffSize then
       begin
         inc(BuffSize, arcLen);
@@ -883,8 +932,8 @@ ExitProc:
 end;
 
 function BuildDashedLine(const Points: TArrayOfFloatPoint;
-  const DashArray: array of TFloat; DashOffset: TFloat = 0;
-  Closed: boolean = false): TArrayOfArrayOfFloatPoint;
+  const DashArray: TArrayOfFloat; DashOffset: TFloat = 0;
+  Closed: Boolean = False): TArrayOfArrayOfFloatPoint;
 var
   I, J, DashIndex, len1, len2: Integer;
   Offset, dx, dy, d, v: TFloat;
@@ -903,8 +952,8 @@ var
   begin
     if i = 0 then
     begin
-      dx := Points[0].X - Points[high(Points)].X;
-      dy := Points[0].Y - Points[high(Points)].Y;
+      dx := Points[0].X - Points[High(Points)].X;
+      dy := Points[0].Y - Points[High(Points)].Y;
     end else
     begin
       dx := Points[I].X - Points[I - 1].X;
@@ -937,7 +986,8 @@ begin
   Offset := 0;
 
   V := 0;
-  for I := 0 to High(DashArray) do V := V + DashArray[I];
+  for I := 0 to High(DashArray) do
+    V := V + DashArray[I];
   DashOffset := Wrap(DashOffset, V);
 
   DashOffset := DashOffset - V;
@@ -959,15 +1009,15 @@ begin
   if Closed then
   begin
     AddDash(0);
-    len1 := length(Result[0]);
-    len2 := length(Result[J]);
+    len1 := Length(Result[0]);
+    len2 := Length(Result[J]);
     if (len1 > 0) and (len2 > 0) then
     begin
-      setlength(Result[0], len1 + len2 -1);
-      move(Result[0][0], Result[0][len2-1], sizeof(TFloatPoint) * len1);
-      move(Result[J][0], Result[0][0], sizeof(TFloatPoint) * len2);
+      SetLength(Result[0], len1 + len2 -1);
+      Move(Result[0][0], Result[0][len2-1], SizeOf(TFloatPoint) * len1);
+      Move(Result[J][0], Result[0][0], SizeOf(TFloatPoint) * len2);
       SetLength(Result, J);
-      dec(J);
+      Dec(J);
     end;
   end;
 
@@ -1015,7 +1065,8 @@ begin
   end;
 end;
 
-function ScalePolyPolygon(const Src: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint;
+function ScalePolyPolygon(const Src: TArrayOfArrayOfFloatPoint;
+  ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint;
 var
   I, L: Integer;
 begin
@@ -1025,16 +1076,19 @@ begin
     Result[I] := ScalePolygon(Src[I], ScaleX, ScaleY);
 end;
 
-function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTransformation): TArrayOfFloatPoint;
+function TransformPolygon(const Points: TArrayOfFloatPoint;
+  Transformation: TTransformation): TArrayOfFloatPoint;
 var
   I: Integer;
 begin
   SetLength(Result, Length(Points));
   for I := 0 to High(Result) do
-    TTransformationAccess(Transformation).TransformFloat(Points[I].X, Points[I].Y, Result[I].X, Result[I].Y);
+    TTransformationAccess(Transformation).TransformFloat(Points[I].X,
+      Points[I].Y, Result[I].X, Result[I].Y);
 end;
 
-function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
+function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
+  Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 var
   I: Integer;
 begin
@@ -1045,10 +1099,36 @@ begin
     Result[I] := TransformPolygon(Points[I], Transformation);
 end;
 
-function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
+function PolyPolygon(const Points: TArrayOfFloatPoint)
+  : TArrayOfArrayOfFloatPoint;
 begin
   SetLength(Result, 1);
   Result[0] := Points;
+end;
+
+function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint)
+  : TArrayOfFloatPoint;
+var
+  Index: Integer;
+begin
+  SetLength(Result, Length(Points));
+  for Index := 0 to Length(Points) - 1 do
+  begin
+    Result[Index].X := Points[Index].X * FixedToFloat;
+    Result[Index].Y := Points[Index].Y * FixedToFloat;
+  end;
+end;
+
+function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint)
+  : TArrayOfArrayOfFloatPoint;
+var
+  Index: Integer;
+begin
+  SetLength(Result, Length(Points));
+  for Index := 0 to Length(Points) - 1 do
+  begin
+    Result := FixedPointToFloatPoint(Points);
+  end;
 end;
 
 end.
