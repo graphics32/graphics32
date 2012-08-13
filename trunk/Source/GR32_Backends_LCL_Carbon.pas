@@ -106,12 +106,12 @@ type
     { ITextSupport }
     procedure Textout(X, Y: Integer; const Text: string); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: string); overload;
-    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
     function  TextExtent(const Text: string): TSize;
 
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtentW(const Text: Widestring): TSize;
 
     { IFontSupport }
@@ -479,7 +479,7 @@ begin
     Length(Text), nil);
 end;
 
-procedure TLCLBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: string);
+procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   {$IFDEF VerboseGR32Carbon}
     WriteLn('[TLCLBackend.Textout with Flags]',
@@ -519,7 +519,7 @@ begin
   TextOut(X, Y, ClipRect, Utf8Encode(Text));
 end;
 
-procedure TLCLBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
+procedure TLCLBackend.TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
   TextOut(DstRect, Flags, Utf8Encode(Text));
 end;

@@ -50,7 +50,7 @@ uses
 { Version Control }
 
 const
-  Graphics32Version = '1.9.1';
+  Graphics32Version = '2.0.0 alpha';
 
 { 32-bit Color }
 
@@ -897,14 +897,14 @@ type
     procedure UpdateFont;
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
-    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
     function  TextExtent(const Text: String): TSize;
     function  TextHeight(const Text: String): Integer;
     function  TextWidth(const Text: String): Integer;
     procedure RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtentW(const Text: Widestring): TSize;
     function  TextHeightW(const Text: Widestring): Integer;
     function  TextWidthW(const Text: Widestring): Integer;
@@ -5626,12 +5626,12 @@ end;
 
 // -------------------------------------------------------------------
 
-procedure TBitmap32.Textout(DstRect: TRect; const Flags: Cardinal; const Text: String);
+procedure TBitmap32.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String);
 begin
   (FBackend as ITextSupport).Textout(DstRect, Flags, Text);
 end;
 
-procedure TBitmap32.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
+procedure TBitmap32.TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
   (FBackend as ITextSupport).TextoutW(DstRect, Flags, Text);
 end;
