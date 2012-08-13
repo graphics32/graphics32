@@ -4001,9 +4001,9 @@ asm
 {$IFDEF Target_x86}
         ADD     EDX, 1
         MOV     EAX, EDX
-        MOV     ECX, BytesPerRow
-        ADD     EAX, PixelByteSize
-        SUB     ECX, PixelByteSize
+        MOV     ECX, BytesPerRow.DWORD
+        ADD     EAX, PixelByteSize.DWORD
+        SUB     ECX, PixelByteSize.DWORD
         LEA     EAX, EAX + ECX
         LEA     EDX, EDX + ECX
         NEG     ECX
@@ -4062,7 +4062,7 @@ asm
 {$IFDEF Target_x86}
         MOV     EAX, EDX
         MOV     EDX, ECX
-        MOV     ECX, BytesPerRow
+        MOV     ECX, BytesPerRow.DWORD
         LEA     EAX, EAX + ECX + 1
         LEA     EDX, EDX + ECX + 1
         NEG     ECX
