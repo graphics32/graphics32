@@ -105,12 +105,12 @@ type
     { ITextSupport }
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
-    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
     function  TextExtent(const Text: String): TSize;
 
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtentW(const Text: Widestring): TSize;
 
     { IFontSupport }
@@ -359,7 +359,7 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
+procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: WideString);
 var
   Extent: TSize;
 begin
@@ -377,20 +377,23 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TLCLBackend.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
+procedure TLCLBackend.TextoutW(X, Y: Integer; const ClipRect: TRect;
+  const Text: Widestring);
 var
   Extent: TSize;
 begin
   UpdateFont;
 
   if not FOwner.MeasuringMode then
-    ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
+    ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text),
+      Length(Text), nil);
 
   Extent := TextExtentW(Text);
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
+procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect;
+  const Text: String);
 var
   Extent: TSize;
 begin
@@ -403,7 +406,8 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TLCLBackend.TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
+procedure TLCLBackend.TextoutW(var DstRect: TRect; const Flags: Cardinal;
+  const Text: Widestring);
 begin
   UpdateFont;
 
@@ -430,7 +434,8 @@ begin
   end;
 end;
 
-procedure TLCLBackend.Textout(DstRect: TRect; const Flags: Cardinal; const Text: String);
+procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal;
+  const Text: String);
 begin
   UpdateFont;
 
