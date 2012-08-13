@@ -131,6 +131,16 @@ type
     property FillLine: TFillLineEvent read GetFillLine;
   end;
 
+  { TCallbackPolygonFiller }
+  TCallbackPolygonFiller = class(TCustomPolygonFiller)
+  private
+    FFillLineEvent: TFillLineEvent;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+  public
+    property FillLineEvent: TFillLineEvent read FFillLineEvent write FFillLineEvent;
+  end;
+
   { TBitmapPolygonFiller }
   TBitmapPolygonFiller = class(TCustomPolygonFiller)
   private
@@ -1063,6 +1073,14 @@ begin
   for I := 0 to Count - 1 do
     BlendMemRGB(Color, Dst[I], PColor32(@Weights[I])^);
   EMMS;
+end;
+
+
+{ TCallbackPolygonFiller }
+
+function TCallbackPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FFillLineEvent;
 end;
 
 
