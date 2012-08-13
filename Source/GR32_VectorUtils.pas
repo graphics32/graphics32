@@ -1111,23 +1111,34 @@ function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint)
 var
   Index: Integer;
 begin
-  SetLength(Result, Length(Points));
-  for Index := 0 to Length(Points) - 1 do
+  if Length(Points) > 0 then
   begin
-    Result[Index].X := Points[Index].X * FixedToFloat;
-    Result[Index].Y := Points[Index].Y * FixedToFloat;
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      Result[Index].X := Points[Index].X * FixedToFloat;
+      Result[Index].Y := Points[Index].Y * FixedToFloat;
+    end;
   end;
 end;
 
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint)
   : TArrayOfArrayOfFloatPoint;
 var
-  Index: Integer;
+  Index, PointIndex: Integer;
 begin
-  SetLength(Result, Length(Points));
-  for Index := 0 to Length(Points) - 1 do
+  if Length(Points) > 0 then
   begin
-    Result := FixedPointToFloatPoint(Points);
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      SetLength(Result[Index], Length(Points[Index]));
+      for PointIndex := 0 to Length(Points[Index]) - 1 do
+      begin
+        Result[Index, PointIndex].X := Points[Index, PointIndex].X * FixedToFloat;
+        Result[Index, PointIndex].Y := Points[Index, PointIndex].Y * FixedToFloat;
+      end;
+    end;
   end;
 end;
 
