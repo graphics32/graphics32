@@ -50,12 +50,12 @@ type
   ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
-    procedure Textout(DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
     function  TextExtent(const Text: String): TSize;
 
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
+    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
     function  TextExtentW(const Text: Widestring): TSize;
   end;
 
