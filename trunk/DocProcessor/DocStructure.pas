@@ -1233,7 +1233,7 @@ begin
   Interfaces := TElements.Create(Self, TInterfaceElement, 'Interfaces');
   Classes := TElements.Create(Self, TClassElement, 'Classes');
   Records := TElements.Create(Self, TTopicElement, 'Records');
-  Routines := TElements.Create(Self, TTopicElement, 'Functions');
+  Routines := TElements.Create(Self, TTopicElement, 'Routines');
   Types := TElements.Create(Self, TTopicElement, 'Types');
   Globals := TElements.Create(Self, TTopicElement, 'Globals');
   Variables := TElements.Create(Self, TTopicElement, 'Variables');
@@ -1857,7 +1857,7 @@ begin
       with Body.Add('h2') do
       begin
         Attributes['id'] := 'Auto';
-        AddText('Functions');
+        AddText('Routines');
       end;
       AddElems(cColumnCount);
       Elems.Clear;
