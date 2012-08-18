@@ -31,193 +31,193 @@ unit GR32_Clipper;
 interface
 
 uses
-  Classes, Gr32, Clipper;
+  Classes, GR32, Clipper;
 
 type
   TClipper32 = class(TClipper)
     function AddArrayOfFixedPoint(
-      const afp: TArrayOfFixedPoint;
-      polyType: TPolyType): boolean;
+      const Afp: TArrayOfFixedPoint;
+      PolyType: TPolyType): Boolean;
     function AddArrayOfArrayOfFixedPoint(
-      const aafp: TArrayOfArrayOfFixedPoint;
-      polyType: TPolyType): boolean;
+      const Aafp: TArrayOfArrayOfFixedPoint;
+      PolyType: TPolyType): Boolean;
 
     function AddArrayOfFloatPoint(
-      const afp: TArrayOfFloatPoint;
-      polyType: TPolyType): boolean;
+      const Afp: TArrayOfFloatPoint;
+      PolyType: TPolyType): Boolean;
     function AddArrayOfArrayOfFloatPoint(
-      const aafp: TArrayOfArrayOfFloatPoint;
-      polyType: TPolyType): boolean;
+      const Aafp: TArrayOfArrayOfFloatPoint;
+      PolyType: TPolyType): Boolean;
 
     function Execute(
-      clipType: TClipType;
-      out solution: TArrayOfArrayOfFixedPoint;
-      subjFillType: TPolyFillType = pftEvenOdd;
-      clipFillType: TPolyFillType = pftEvenOdd): boolean; overload;
+      ClipType: TClipType;
+      out Solution: TArrayOfArrayOfFixedPoint;
+      SubjFillType: TPolyFillType = pftEvenOdd;
+      ClipFillType: TPolyFillType = pftEvenOdd): Boolean; overload;
     function Execute(
-      clipType: TClipType;
-      out solution: TArrayOfArrayOfFloatPoint;
-      subjFillType: TPolyFillType = pftEvenOdd;
-      clipFillType: TPolyFillType = pftEvenOdd): boolean; overload;
+      ClipType: TClipType;
+      out Solution: TArrayOfArrayOfFloatPoint;
+      SubjFillType: TPolyFillType = pftEvenOdd;
+      ClipFillType: TPolyFillType = pftEvenOdd): Boolean; overload;
   end;
 
-  function OffsetPolygons32(const aafp: TArrayOfArrayOfFixedPoint;
-    const delta: double; JoinType: TJoinType = jtSquare;
-    MiterLimit: double = 2): TArrayOfArrayOfFixedPoint; overload;
+  function OffsetPolygons32(const Aafp: TArrayOfArrayOfFixedPoint;
+    const Delta: Double; JoinType: TJoinType = jtSquare;
+    MiterLimit: Double = 2): TArrayOfArrayOfFixedPoint; overload;
 
-  function OffsetPolygons32(const aafp: TArrayOfArrayOfFloatPoint;
-    const delta: double; JoinType: TJoinType = jtSquare;
-    MiterLimit: double = 2): TArrayOfArrayOfFloatPoint; overload;
+  function OffsetPolygons32(const Aafp: TArrayOfArrayOfFloatPoint;
+    const Delta: Double; JoinType: TJoinType = jtSquare;
+    MiterLimit: Double = 2): TArrayOfArrayOfFloatPoint; overload;
 
   function ArrayOfFixedPointToPolygon(
     const ArrFxPt: TArrayOfFixedPoint): TPolygon;
   function ArrayOfArrayOfFixedPointToPolygons(
     const ArrArrFxPt: TArrayOfArrayOfFixedPoint): TPolygons;
   function PolygonToArrayOfFixedPoint(
-    const poly: TPolygon): TArrayOfFixedPoint;
+    const Poly: TPolygon): TArrayOfFixedPoint;
   function PolygonsToArrayOfArrayOfFixedPoint(
-    const polys: TPolygons): TArrayOfArrayOfFixedPoint;
+    const Polys: TPolygons): TArrayOfArrayOfFixedPoint;
 
   function ArrayOfFloatPointToPolygon(
     const ArrFltPt: TArrayOfFloatPoint): TPolygon;
   function ArrayOfArrayOfFloatPointToPolygons(
     const ArrArrFltPt: TArrayOfArrayOfFloatPoint): TPolygons;
   function PolygonToArrayOfFloatPoint(
-    const poly: TPolygon): TArrayOfFloatPoint;
+    const Poly: TPolygon): TArrayOfFloatPoint;
   function PolygonsToArrayOfArrayOfFloatPoint(
-    const polys: TPolygons): TArrayOfArrayOfFloatPoint;
+    const Polys: TPolygons): TArrayOfArrayOfFloatPoint;
 
 implementation
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-function TClipper32.AddArrayOfFixedPoint(const afp: TArrayOfFixedPoint;
-  polyType: TPolyType): boolean;
+function TClipper32.AddArrayOfFixedPoint(const Afp: TArrayOfFixedPoint;
+  PolyType: TPolyType): Boolean;
 var
-  poly: TPolygon;
+  Poly: TPolygon;
 begin
-  poly := ArrayOfFixedPointToPolygon(afp);
-  result := AddPolygon(poly, polyType);
+  Poly := ArrayOfFixedPointToPolygon(Afp);
+  Result := AddPolygon(Poly, PolyType);
 end;
 //------------------------------------------------------------------------------
 
 function TClipper32.AddArrayOfArrayOfFixedPoint(
-  const aafp: TArrayOfArrayOfFixedPoint; polyType: TPolyType): boolean;
+  const Aafp: TArrayOfArrayOfFixedPoint; PolyType: TPolyType): Boolean;
 var
-  i: integer;
-  poly: TPolygon;
+  I: Integer;
+  Poly: TPolygon;
 begin
-  result := false;
-  for i := 0 to high(aafp) do
+  Result := False;
+  for I := 0 to High(Aafp) do
   begin
-    poly := ArrayOfFixedPointToPolygon(aafp[i]);
-    if AddPolygon(poly, polyType) then result := true;
+    Poly := ArrayOfFixedPointToPolygon(Aafp[I]);
+    if AddPolygon(Poly, PolyType) then Result := true;
   end;
 end;
 //------------------------------------------------------------------------------
 
 function TClipper32.AddArrayOfFloatPoint(
-  const afp: TArrayOfFloatPoint;
-  polyType: TPolyType): boolean;
+  const Afp: TArrayOfFloatPoint;
+  PolyType: TPolyType): Boolean;
 var
-  poly: TPolygon;
+  Poly: TPolygon;
 begin
-  poly := ArrayOfFloatPointToPolygon(afp);
-  result := AddPolygon(poly, polyType);
+  Poly := ArrayOfFloatPointToPolygon(Afp);
+  Result := AddPolygon(Poly, PolyType);
 end;
 //------------------------------------------------------------------------------
 
 
 function TClipper32.AddArrayOfArrayOfFloatPoint(
-  const aafp: TArrayOfArrayOfFloatPoint;
-  polyType: TPolyType): boolean;
+  const Aafp: TArrayOfArrayOfFloatPoint;
+  PolyType: TPolyType): Boolean;
 var
-  i: integer;
-  poly: TPolygon;
+  I: Integer;
+  Poly: TPolygon;
 begin
-  result := false;
-  for i := 0 to high(aafp) do
+  Result := False;
+  for I := 0 to High(Aafp) do
   begin
-    poly := ArrayOfFloatPointToPolygon(aafp[i]);
-    if AddPolygon(poly, polyType) then result := true;
+    Poly := ArrayOfFloatPointToPolygon(Aafp[I]);
+    if AddPolygon(Poly, PolyType) then Result := true;
   end;
 end;
 //------------------------------------------------------------------------------
 
-function TClipper32.Execute(clipType: TClipType;
-  out solution: TArrayOfArrayOfFixedPoint;
-  subjFillType: TPolyFillType = pftEvenOdd;
-  clipFillType: TPolyFillType = pftEvenOdd): boolean;
+function TClipper32.Execute(ClipType: TClipType;
+  out Solution: TArrayOfArrayOfFixedPoint;
+  SubjFillType: TPolyFillType = pftEvenOdd;
+  ClipFillType: TPolyFillType = pftEvenOdd): Boolean;
 var
-  polys: TPolygons;
+  Polys: TPolygons;
 begin
-  result := Execute(clipType, polys, subjFillType, clipFillType);
-  solution := PolygonsToArrayOfArrayOfFixedPoint(polys);
+  Result := Execute(ClipType, Polys, SubjFillType, ClipFillType);
+  Solution := PolygonsToArrayOfArrayOfFixedPoint(Polys);
 end;
 //------------------------------------------------------------------------------
 
 function TClipper32.Execute(
-  clipType: TClipType;
-  out solution: TArrayOfArrayOfFloatPoint;
-  subjFillType: TPolyFillType = pftEvenOdd;
-  clipFillType: TPolyFillType = pftEvenOdd): boolean;
+  ClipType: TClipType;
+  out Solution: TArrayOfArrayOfFloatPoint;
+  SubjFillType: TPolyFillType = pftEvenOdd;
+  ClipFillType: TPolyFillType = pftEvenOdd): Boolean;
 var
-  polys: TPolygons;
+  Polys: TPolygons;
 begin
-  result := Execute(clipType, polys, subjFillType, clipFillType);
-  solution := PolygonsToArrayOfArrayOfFloatPoint(polys);
+  Result := Execute(ClipType, Polys, SubjFillType, ClipFillType);
+  Solution := PolygonsToArrayOfArrayOfFloatPoint(Polys);
 end;
 //------------------------------------------------------------------------------
 
-function OffsetPolygons32(const aafp: TArrayOfArrayOfFixedPoint;
-  const delta: double; JoinType: TJoinType = jtSquare;
-  MiterLimit: double = 2): TArrayOfArrayOfFixedPoint;
+function OffsetPolygons32(const Aafp: TArrayOfArrayOfFixedPoint;
+  const Delta: Double; JoinType: TJoinType = jtSquare;
+  MiterLimit: Double = 2): TArrayOfArrayOfFixedPoint;
 var
-  polys: TPolygons;
+  Polys: TPolygons;
 begin
-  polys := ArrayOfArrayOfFixedPointToPolygons(aafp);
-  polys := OffsetPolygons(polys, delta * 65536, JoinType, MiterLimit);
-  result := PolygonsToArrayOfArrayOfFixedPoint(polys);
+  Polys := ArrayOfArrayOfFixedPointToPolygons(Aafp);
+  Polys := OffsetPolygons(Polys, Delta * 65536, JoinType, MiterLimit);
+  Result := PolygonsToArrayOfArrayOfFixedPoint(Polys);
 end;
 //------------------------------------------------------------------------------
 
-function OffsetPolygons32(const aafp: TArrayOfArrayOfFloatPoint;
-  const delta: double; JoinType: TJoinType = jtSquare;
-  MiterLimit: double = 2): TArrayOfArrayOfFloatPoint; overload;
+function OffsetPolygons32(const Aafp: TArrayOfArrayOfFloatPoint;
+  const Delta: Double; JoinType: TJoinType = jtSquare;
+  MiterLimit: Double = 2): TArrayOfArrayOfFloatPoint; overload;
 var
-  polys: TPolygons;
+  Polys: TPolygons;
 begin
-  polys := ArrayOfArrayOfFloatPointToPolygons(aafp);
-  polys := OffsetPolygons(polys, delta * 65536, JoinType, MiterLimit);
-  result := PolygonsToArrayOfArrayOfFloatPoint(polys);
+  Polys := ArrayOfArrayOfFloatPointToPolygons(Aafp);
+  Polys := OffsetPolygons(Polys, Delta * 65536, JoinType, MiterLimit);
+  Result := PolygonsToArrayOfArrayOfFloatPoint(Polys);
 end;
 //------------------------------------------------------------------------------
 
 function ArrayOfFixedPointToPolygon(const ArrFxPt: TArrayOfFixedPoint): TPolygon;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(ArrFxPt);
-  setlength(Result, len);
-  for i := 0 to len -1 do
+  len := Length(ArrFxPt);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
   begin
-    Result[i].X := ArrFxPt[i].X;
-    Result[i].Y := ArrFxPt[i].Y;
+    Result[I].X := ArrFxPt[I].X;
+    Result[I].Y := ArrFxPt[I].Y;
   end;
 end;
 //------------------------------------------------------------------------------
 
-function PolygonToArrayOfFixedPoint(const poly: TPolygon): TArrayOfFixedPoint;
+function PolygonToArrayOfFixedPoint(const Poly: TPolygon): TArrayOfFixedPoint;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(poly);
-  setlength(Result, len);
-  for i := 0 to len -1 do
+  len := Length(Poly);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
   begin
-    Result[i].X := poly[i].X;
-    Result[i].Y := poly[i].Y;
+    Result[I].X := Poly[I].X;
+    Result[I].Y := Poly[I].Y;
   end;
 end;
 //------------------------------------------------------------------------------
@@ -225,38 +225,38 @@ end;
 function ArrayOfArrayOfFixedPointToPolygons(const ArrArrFxPt:
   TArrayOfArrayOfFixedPoint): TPolygons;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(ArrArrFxPt);
-  setlength(Result, len);
-  for i := 0 to len -1 do
-    Result[i] := ArrayOfFixedPointToPolygon(ArrArrFxPt[i]);
+  len := Length(ArrArrFxPt);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
+    Result[I] := ArrayOfFixedPointToPolygon(ArrArrFxPt[I]);
 end;
 //------------------------------------------------------------------------------
 
 function PolygonsToArrayOfArrayOfFixedPoint(
-  const polys: TPolygons): TArrayOfArrayOfFixedPoint;
+  const Polys: TPolygons): TArrayOfArrayOfFixedPoint;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(polys);
-  setlength(Result, len);
-  for i := 0 to len -1 do
-    Result[i] := PolygonToArrayOfFixedPoint(polys[i]);
+  len := Length(Polys);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
+    Result[I] := PolygonToArrayOfFixedPoint(Polys[I]);
 end;
 //------------------------------------------------------------------------------
 
 function ArrayOfFloatPointToPolygon(
   const ArrFltPt: TArrayOfFloatPoint): TPolygon;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(ArrFltPt);
-  setlength(Result, len);
-  for i := 0 to len -1 do
+  len := Length(ArrFltPt);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
   begin
-    Result[i].X := round(ArrFltPt[i].X * 65536);
-    Result[i].Y := round(ArrFltPt[i].Y * 65536);
+    Result[I].X := round(ArrFltPt[I].X * 65536);
+    Result[I].Y := round(ArrFltPt[I].Y * 65536);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -264,39 +264,39 @@ end;
 function ArrayOfArrayOfFloatPointToPolygons(
   const ArrArrFltPt: TArrayOfArrayOfFloatPoint): TPolygons;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(ArrArrFltPt);
-  setlength(Result, len);
-  for i := 0 to len -1 do
-    Result[i] := ArrayOfFloatPointToPolygon(ArrArrFltPt[i]);
+  len := Length(ArrArrFltPt);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
+    Result[I] := ArrayOfFloatPointToPolygon(ArrArrFltPt[I]);
 end;
 //------------------------------------------------------------------------------
 
 function PolygonToArrayOfFloatPoint(
-  const poly: TPolygon): TArrayOfFloatPoint;
+  const Poly: TPolygon): TArrayOfFloatPoint;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(poly);
-  setlength(Result, len);
-  for i := 0 to len -1 do
+  len := Length(Poly);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
   begin
-    Result[i].X := poly[i].X / 65536;
-    Result[i].Y := poly[i].Y / 65536;
+    Result[I].X := Poly[I].X / 65536;
+    Result[I].Y := Poly[I].Y / 65536;
   end;
 end;
 //------------------------------------------------------------------------------
 
 function PolygonsToArrayOfArrayOfFloatPoint(
-  const polys: TPolygons): TArrayOfArrayOfFloatPoint;
+  const Polys: TPolygons): TArrayOfArrayOfFloatPoint;
 var
-  i,len: integer;
+  I,len: Integer;
 begin
-  len := length(polys);
-  setlength(Result, len);
-  for i := 0 to len -1 do
-    Result[i] := PolygonToArrayOfFloatPoint(polys[i]);
+  len := Length(Polys);
+  SetLength(Result, len);
+  for I := 0 to len -1 do
+    Result[I] := PolygonToArrayOfFloatPoint(Polys[I]);
 end;
 //------------------------------------------------------------------------------
 
