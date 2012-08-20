@@ -1,9 +1,10 @@
-unit Unit1;
+unit MainUnit;
 
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, StdCtrls,
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
+  Messages, SysUtils, Classes, Graphics, Controls, Forms, StdCtrls,
   ComCtrls, ExtCtrls, GR32, GR32_Image, GR32_Layers, GR32_Paths,
   GR32_Polygons, GR32_VectorUtils, GR32_ArrowHeads, GR32_Geometry;
 
