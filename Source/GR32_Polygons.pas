@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32_Containers, Types, GR32, GR32_VPR, GR32_Transforms, GR32_Resamplers;
+  Types, GR32, GR32_Containers, GR32_VPR, GR32_Transforms, GR32_Resamplers;
 
 type
   { Polygon join style }
@@ -168,6 +168,8 @@ type
   protected
     function GetFillLine: TFillLineEvent; override;
     procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  public
+    constructor Create(Sampler: TCustomSampler = nil); reintroduce; virtual;
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
 
@@ -1278,6 +1280,12 @@ begin
 end;
 
 { TSamplerFiller }
+
+constructor TSamplerFiller.Create(Sampler: TCustomSampler = nil);
+begin
+  inherited Create;
+  FSampler := Sampler;
+end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
   Length: Integer; AlphaValues: PColor32);
