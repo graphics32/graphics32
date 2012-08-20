@@ -1,6 +1,7 @@
 program CubicSpline;
 
 uses
+  Interfaces,
   Forms,
   MainUnit in 'MainUnit.pas' {FormBezier};
 
