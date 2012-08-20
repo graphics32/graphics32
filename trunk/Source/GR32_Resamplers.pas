@@ -3381,6 +3381,7 @@ begin
   end;
 end;
 
+
 { TCustomBitmap32NearestResampler }
 
 function TNearestResampler.GetSampleInt(X, Y: Integer): TColor32;
@@ -4138,7 +4139,7 @@ begin
   end;
 end;
 
-{CPU target and feature Function templates}
+{CPU target and feature function templates}
 
 const
   FID_BLOCKAVERAGE = 0;
@@ -4196,4 +4197,4 @@ finalization
   ResamplerList.Free;
   KernelList.Free;
 
-end.
+end.

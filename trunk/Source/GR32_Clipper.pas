@@ -105,13 +105,13 @@ end;
 function TClipper32.AddArrayOfArrayOfFixedPoint(
   const Aafp: TArrayOfArrayOfFixedPoint; PolyType: TPolyType): Boolean;
 var
-  I: Integer;
+  Index: Integer;
   Poly: TPolygon;
 begin
   Result := False;
-  for I := 0 to High(Aafp) do
+  for Index := 0 to High(Aafp) do
   begin
-    Poly := ArrayOfFixedPointToPolygon(Aafp[I]);
+    Poly := ArrayOfFixedPointToPolygon(Aafp[Index]);
     if AddPolygon(Poly, PolyType) then Result := true;
   end;
 end;
@@ -133,13 +133,13 @@ function TClipper32.AddArrayOfArrayOfFloatPoint(
   const Aafp: TArrayOfArrayOfFloatPoint;
   PolyType: TPolyType): Boolean;
 var
-  I: Integer;
+  Index: Integer;
   Poly: TPolygon;
 begin
   Result := False;
-  for I := 0 to High(Aafp) do
+  for Index := 0 to High(Aafp) do
   begin
-    Poly := ArrayOfFloatPointToPolygon(Aafp[I]);
+    Poly := ArrayOfFloatPointToPolygon(Aafp[Index]);
     if AddPolygon(Poly, PolyType) then Result := true;
   end;
 end;
@@ -196,28 +196,28 @@ end;
 
 function ArrayOfFixedPointToPolygon(const ArrFxPt: TArrayOfFixedPoint): TPolygon;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(ArrFxPt);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
+  VertexCount := Length(ArrFxPt);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
   begin
-    Result[I].X := ArrFxPt[I].X;
-    Result[I].Y := ArrFxPt[I].Y;
+    Result[Index].X := ArrFxPt[Index].X;
+    Result[Index].Y := ArrFxPt[Index].Y;
   end;
 end;
 //------------------------------------------------------------------------------
 
 function PolygonToArrayOfFixedPoint(const Poly: TPolygon): TArrayOfFixedPoint;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(Poly);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
+  VertexCount := Length(Poly);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
   begin
-    Result[I].X := Poly[I].X;
-    Result[I].Y := Poly[I].Y;
+    Result[Index].X := Poly[Index].X;
+    Result[Index].Y := Poly[Index].Y;
   end;
 end;
 //------------------------------------------------------------------------------
@@ -225,38 +225,38 @@ end;
 function ArrayOfArrayOfFixedPointToPolygons(const ArrArrFxPt:
   TArrayOfArrayOfFixedPoint): TPolygons;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(ArrArrFxPt);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
-    Result[I] := ArrayOfFixedPointToPolygon(ArrArrFxPt[I]);
+  VertexCount := Length(ArrArrFxPt);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
+    Result[Index] := ArrayOfFixedPointToPolygon(ArrArrFxPt[Index]);
 end;
 //------------------------------------------------------------------------------
 
 function PolygonsToArrayOfArrayOfFixedPoint(
   const Polys: TPolygons): TArrayOfArrayOfFixedPoint;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(Polys);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
-    Result[I] := PolygonToArrayOfFixedPoint(Polys[I]);
+  VertexCount := Length(Polys);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
+    Result[Index] := PolygonToArrayOfFixedPoint(Polys[Index]);
 end;
 //------------------------------------------------------------------------------
 
 function ArrayOfFloatPointToPolygon(
   const ArrFltPt: TArrayOfFloatPoint): TPolygon;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(ArrFltPt);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
+  VertexCount := Length(ArrFltPt);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
   begin
-    Result[I].X := round(ArrFltPt[I].X * 65536);
-    Result[I].Y := round(ArrFltPt[I].Y * 65536);
+    Result[Index].X := Round(ArrFltPt[Index].X * 65536);
+    Result[Index].Y := Round(ArrFltPt[Index].Y * 65536);
   end;
 end;
 //------------------------------------------------------------------------------
@@ -264,26 +264,26 @@ end;
 function ArrayOfArrayOfFloatPointToPolygons(
   const ArrArrFltPt: TArrayOfArrayOfFloatPoint): TPolygons;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(ArrArrFltPt);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
-    Result[I] := ArrayOfFloatPointToPolygon(ArrArrFltPt[I]);
+  VertexCount := Length(ArrArrFltPt);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
+    Result[Index] := ArrayOfFloatPointToPolygon(ArrArrFltPt[Index]);
 end;
 //------------------------------------------------------------------------------
 
 function PolygonToArrayOfFloatPoint(
   const Poly: TPolygon): TArrayOfFloatPoint;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(Poly);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
+  VertexCount := Length(Poly);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
   begin
-    Result[I].X := Poly[I].X / 65536;
-    Result[I].Y := Poly[I].Y / 65536;
+    Result[Index].X := Poly[Index].X / 65536;
+    Result[Index].Y := Poly[Index].Y / 65536;
   end;
 end;
 //------------------------------------------------------------------------------
@@ -291,12 +291,12 @@ end;
 function PolygonsToArrayOfArrayOfFloatPoint(
   const Polys: TPolygons): TArrayOfArrayOfFloatPoint;
 var
-  I,len: Integer;
+  Index, VertexCount: Integer;
 begin
-  len := Length(Polys);
-  SetLength(Result, len);
-  for I := 0 to len -1 do
-    Result[I] := PolygonToArrayOfFloatPoint(Polys[I]);
+  VertexCount := Length(Polys);
+  SetLength(Result, VertexCount);
+  for Index := 0 to VertexCount - 1 do
+    Result[Index] := PolygonToArrayOfFloatPoint(Polys[Index]);
 end;
 //------------------------------------------------------------------------------
 

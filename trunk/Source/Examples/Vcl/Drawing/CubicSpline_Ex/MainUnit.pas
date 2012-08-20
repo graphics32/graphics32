@@ -25,8 +25,6 @@ type
     FFill: TSolidBrush;
     FCurrentIndex: Integer;
     FPoints: array [0..5] of TFloatPoint;
-  public
-    { Public-Deklarationen }
   end;
 
 var

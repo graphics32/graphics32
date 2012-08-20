@@ -45,9 +45,9 @@ const
   DEFAULT_MITER_LIMIT = 4.0;
   TWOPI = 2 * Pi;
 
-function InSignedRange(const X, X1, X2: TFloat): Boolean;
-function OverlapExclusive(const X1, X2, Y1, Y2: TFloat): Boolean;
-function OverlapInclusive(const X1, X2, Y1, Y2: TFloat): Boolean;
+function InSignedRange(const X, X1, X2: TFloat): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function OverlapExclusive(const X1, X2, Y1, Y2: TFloat): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function OverlapInclusive(const X1, X2, Y1, Y2: TFloat): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Intersect(const A1, A2, B1, B2: TFloatPoint; out P: TFloatPoint): Boolean;
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
@@ -80,7 +80,7 @@ function BuildDashedLine(const Points: TArrayOfFloatPoint;
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint;
 function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 
-function CalculateCircleSteps(Radius: TFloat): Cardinal;
+function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat): TArrayOfFloatPoint; overload;
 function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
