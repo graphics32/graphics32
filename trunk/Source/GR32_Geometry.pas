@@ -46,8 +46,8 @@ function Average(const V1, V2: TFloatPoint): TFloatPoint; overload;{$IFDEF USEIN
 function Dot(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function GetPointAtAngleFromPoint(const pt: TFloatPoint; const dist, radians: single): TFloatPoint; overload;
-function GetAngleOfPt2FromPt1(const pt1, pt2: TFloatPoint): single; overload;
+function GetPointAtAngleFromPoint(const pt: TFloatPoint; const Dist, Radians: Single): TFloatPoint; overload;
+function GetAngleOfPt2FromPt1(const pt1, pt2: TFloatPoint): Single; overload;
 function GetUnitNormal(const pt1, pt2: TFloatPoint): TFloatPoint; overload;
 function GetUnitVector(const pt1, pt2: TFloatPoint): TFloatPoint; overload;
 function OffsetPoint(const pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;
@@ -62,8 +62,8 @@ function Average(const V1, V2: TFixedPoint): TFixedPoint; overload;{$IFDEF USEIN
 function Dot(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function GetPointAtAngleFromPoint(const pt: TFixedPoint; const dist, radians: single): TFixedPoint; overload;
-function GetAngleOfPt2FromPt1(pt1, pt2: TFixedPoint): single; overload;
+function GetPointAtAngleFromPoint(const pt: TFixedPoint; const Dist, Radians: Single): TFixedPoint; overload;
+function GetAngleOfPt2FromPt1(pt1, pt2: TFixedPoint): Single; overload;
 function GetUnitVector(const pt1, pt2: TFixedPoint): TFloatPoint; overload;
 function GetUnitNormal(const pt1, pt2: TFixedPoint): TFloatPoint; overload;
 function OffsetPoint(const pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;
@@ -109,27 +109,27 @@ begin
 end;
 
 function GetPointAtAngleFromPoint(const pt: TFloatPoint;
-  const dist, radians: TFloat): TFloatPoint; overload;
+  const Dist, Radians: TFloat): TFloatPoint; overload;
 var
-  sinAng, cosAng: TFloat;
+  SinAng, CosAng: TFloat;
 begin
-  GR32_Math.SinCos(radians, sinAng, cosAng);
-  result.X := dist * cosAng + pt.X;
-  result.Y := -dist * sinAng + pt.Y; //Y axis is positive down
+  GR32_Math.SinCos(Radians, SinAng, CosAng);
+  Result.X := Dist * CosAng + pt.X;
+  Result.Y := -dist * SinAng + pt.Y; //Y axis is positive down
 end;
 
-function GetAngleOfPt2FromPt1(const pt1, pt2: TFloatPoint): single;
+function GetAngleOfPt2FromPt1(const pt1, pt2: TFloatPoint): Single;
 var
-  x, y: single;
+  x, y: Single;
 begin
   x := pt2.X - pt1.X; y := pt2.Y - pt1.Y;
   if x = 0 then
   begin
-    if y > 0 then result := rad270 else result := rad90;
+    if y > 0 then Result := rad270 else Result := rad90;
   end else
   begin
-    result := arctan2(-y, x);
-    if result < 0 then result := result + rad360;
+    Result := ArcTan2(-y, x);
+    if Result < 0 then Result := Result + rad360;
   end;
 end;
 
@@ -141,7 +141,7 @@ begin
   dy := (pt2.Y - pt1.Y);
   if (dx = 0) and (dy = 0) then
   begin
-    result := FloatPoint(0,0);
+    Result := FloatPoint(0,0);
   end else
   begin
     f := 1 / GR32_Math.Hypot(dx, dy);
@@ -152,14 +152,14 @@ end;
 
 function GetUnitNormal(const pt1, pt2: TFloatPoint): TFloatPoint;
 var
-  dx, dy, f: single;
+  dx, dy, f: Single;
 begin
   dx := (pt2.X - pt1.X);
   dy := (pt2.Y - pt1.Y);
 
   if (dx = 0) and (dy = 0) then
   begin
-    result := FloatPoint(0,0);
+    Result := FloatPoint(0,0);
   end else
   begin
     f := 1 / GR32_Math.Hypot(dx, dy);
@@ -172,44 +172,44 @@ end;
 
 function OffsetPoint(const pt: TFloatPoint; dx, dy: TFloat): TFloatPoint;
 begin
-  result.X := pt.X + dx;
-  result.Y := pt.Y + dy;
+  Result.X := pt.X + dx;
+  Result.Y := pt.Y + dy;
 end;
 
 function Shorten(const pts: TArrayOfFloatPoint;
   delta: TFloat; linePos: TLinePos): TArrayOfFloatPoint;
 var
   i, highI: integer;
-  dist, deltaSqr: TFloat;
-  unitVec: TFloatPoint;
+  Dist, deltaSqr: TFloat;
+  UnitVec: TFloatPoint;
 
   procedure FixStart;
   begin
     i := 1;
     while (i < highI) and (SqrDistance(pts[i],pts[0]) < deltaSqr) do inc(i);
-    unitVec := GetUnitVector(pts[i], pts[0]);
-    dist := Distance(pts[i],pts[0]) - delta;
+    UnitVec := GetUnitVector(pts[i], pts[0]);
+    Dist := Distance(pts[i],pts[0]) - delta;
     if i > 1 then
     begin
-      move(result[i], result[1], sizeof(TFloatPoint) * (highI -i +1));
-      setlength(result, highI - i +2);
+      Move(Result[i], Result[1], sizeof(TFloatPoint) * (highI -i +1));
+      SetLength(Result, highI - i +2);
     end;
-    result[0] := OffsetPoint(result[1], unitVec.X * dist, unitVec.Y * dist);
+    Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
   procedure FixEnd;
   begin
     i := highI -1;
     while (i > 0) and (SqrDistance(pts[i],pts[highI]) < deltaSqr) do dec(i);
-    unitVec := GetUnitVector(pts[i],pts[highI]);
-    dist := Distance(pts[i],pts[highI]) - delta;
-    if i +1 < highI then setlength(result, i+2);
-    result[i+1] := OffsetPoint(result[i], unitVec.X * dist, unitVec.Y * dist);
+    UnitVec := GetUnitVector(pts[i],pts[highI]);
+    Dist := Distance(pts[i],pts[highI]) - delta;
+    if i +1 < highI then SetLength(Result, i+2);
+    Result[i+1] := OffsetPoint(Result[i], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
 begin
-  result := pts;
-  highI := high(pts);
+  Result := pts;
+  highI := High(pts);
   deltaSqr := delta * delta;
   if highI < 1 then exit;
 
@@ -240,10 +240,10 @@ end;
 function SegmentIntersect(const p1, p2, p3, p4: TFloatPoint;
   out IntersectPoint: TFloatPoint): boolean;
 var
-  m1,b1,m2,b2: TFloat;
+  m1, b1, m2, b2: TFloat;
 begin
   //see http://astronomy.swin.edu.au/~pbourke/geometry/lineline2d/
-  result := false;
+  Result := false;
   if (p2.X = p1.X) then
   begin
     if (p4.X = p3.X) then exit; //parallel lines
@@ -251,7 +251,7 @@ begin
     b2 := p3.Y - m2 * p3.X;
     IntersectPoint.X := p1.X;
     IntersectPoint.Y := m2*p1.X + b2;
-    result := (IntersectPoint.Y < p2.Y) = (IntersectPoint.Y > p1.Y);
+    Result := (IntersectPoint.Y < p2.Y) = (IntersectPoint.Y > p1.Y);
   end
   else if (p4.X = p3.X) then
   begin
@@ -259,7 +259,7 @@ begin
     b1 := p1.Y - m1 * p1.X;
     IntersectPoint.X := p3.X;
     IntersectPoint.Y := m1*p3.X + b1;
-    result := (IntersectPoint.Y < p3.Y) = (IntersectPoint.Y > p4.Y);
+    Result := (IntersectPoint.Y < p3.Y) = (IntersectPoint.Y > p4.Y);
   end else
   begin
     m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
@@ -269,7 +269,7 @@ begin
     if m1 = m2 then exit; //parallel lines
     IntersectPoint.X := (b2 - b1)/(m1 - m2);
     IntersectPoint.Y := m1 * IntersectPoint.X + b1;
-    result := ((IntersectPoint.X < p2.X) = (IntersectPoint.X > p1.X));
+    Result := ((IntersectPoint.X < p2.X) = (IntersectPoint.X > p1.X));
   end;
 end;
 
@@ -298,40 +298,40 @@ begin
 end;
 
 function GetPointAtAngleFromPoint(const pt: TFixedPoint;
-  const dist, radians: TFloat): TFixedPoint;
+  const Dist, Radians: TFloat): TFixedPoint;
 var
-  sinAng, cosAng: TFloat;
+  SinAng, CosAng: TFloat;
 begin
-  GR32_Math.SinCos(radians, sinAng, cosAng);
-  result.X := round(dist * cosAng *FixedOne) + pt.X;
-  result.Y := -round(dist * sinAng *FixedOne) + pt.Y; //Y axis is positive down
+  GR32_Math.SinCos(Radians, SinAng, CosAng);
+  Result.X := Round(Dist * CosAng *FixedOne) + pt.X;
+  Result.Y := -Round(Dist * SinAng *FixedOne) + pt.Y; //Y axis is positive down
 end;
 
-function GetAngleOfPt2FromPt1(pt1, pt2: TFixedPoint): single;
+function GetAngleOfPt2FromPt1(pt1, pt2: TFixedPoint): Single;
 begin
   with pt2 do
   begin
     X := X - pt1.X; Y := Y - pt1.Y;
     if X = 0 then
     begin
-     if Y > 0 then result := rad270 else result := rad90;
+     if Y > 0 then Result := rad270 else Result := rad90;
     end else
     begin
-      result := arctan2(-Y,X);
-      if result < 0 then result := result + rad360;
+      Result := ArcTan2(-Y,X);
+      if Result < 0 then Result := Result + rad360;
     end;
   end;
 end;
 
 function GetUnitVector(const pt1, pt2: TFixedPoint): TFloatPoint;
 var
-  dx, dy, f: single;
+  dx, dy, f: Single;
 begin
   dx := (pt2.X - pt1.X)*FixedToFloat;
   dy := (pt2.Y - pt1.Y)*FixedToFloat;
   if (dx = 0) and (dy = 0) then
   begin
-    result := FloatPoint(0,0);
+    Result := FloatPoint(0,0);
   end else
   begin
     f := 1 / GR32_Math.Hypot(dx, dy);
@@ -342,14 +342,14 @@ end;
 
 function GetUnitNormal(const pt1, pt2: TFixedPoint): TFloatPoint;
 var
-  dx, dy, f: single;
+  dx, dy, f: Single;
 begin
   dx := (pt2.X - pt1.X)*FixedToFloat;
   dy := (pt2.Y - pt1.Y)*FixedToFloat;
 
   if (dx = 0) and (dy = 0) then
   begin
-    result := FloatPoint(0,0);
+    Result := FloatPoint(0,0);
   end else
   begin
     f := 1 / GR32_Math.Hypot(dx, dy);
@@ -362,44 +362,44 @@ end;
 
 function OffsetPoint(const pt: TFixedPoint; dx, dy: TFloat): TFixedPoint;
 begin
-  result.X := pt.X + Fixed(dx);
-  result.Y := pt.Y + Fixed(dy);
+  Result.X := pt.X + Fixed(dx);
+  Result.Y := pt.Y + Fixed(dy);
 end;
 
 function Shorten(const pts: TArrayOfFixedPoint;
   delta: TFloat; linePos: TLinePos): TArrayOfFixedPoint;
 var
   i, highI: integer;
-  dist, deltaSqr: TFloat;
-  unitVec: TFloatPoint;
+  Dist, deltaSqr: TFloat;
+  UnitVec: TFloatPoint;
 
   procedure FixStart;
   begin
     i := 1;
     while (i < highI) and (SqrDistance(pts[i],pts[0]) < deltaSqr) do inc(i);
-    unitVec := GetUnitVector(pts[i], pts[0]);
-    dist := Distance(pts[i],pts[0]) - delta;
+    UnitVec := GetUnitVector(pts[i], pts[0]);
+    Dist := Distance(pts[i],pts[0]) - delta;
     if i > 1 then
     begin
-      move(result[i], result[1], sizeof(TFloatPoint) * (highI -i +1));
-      setlength(result, highI - i +2);
+      Move(Result[i], Result[1], sizeof(TFloatPoint) * (highI -i +1));
+      SetLength(Result, highI - i +2);
     end;
-    result[0] := OffsetPoint(result[1], unitVec.X * dist, unitVec.Y * dist);
+    Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
   procedure FixEnd;
   begin
     i := highI -1;
     while (i > 0) and (SqrDistance(pts[i],pts[highI]) < deltaSqr) do dec(i);
-    unitVec := GetUnitVector(pts[i],pts[highI]);
-    dist := Distance(pts[i],pts[highI]) - delta;
-    if i +1 < highI then setlength(result, i+2);
-    result[i+1] := OffsetPoint(result[i], unitVec.X * dist, unitVec.Y * dist);
+    UnitVec := GetUnitVector(pts[i],pts[highI]);
+    Dist := Distance(pts[i],pts[highI]) - delta;
+    if i +1 < highI then SetLength(Result, i+2);
+    Result[i+1] := OffsetPoint(Result[i], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
 begin
-  result := pts;
-  highI := high(pts);
+  Result := pts;
+  highI := High(pts);
   deltaSqr := delta * delta;
   if highI < 1 then exit;
 
@@ -432,23 +432,23 @@ function SegmentIntersect(const p1, p2, p3, p4: TFixedPoint;
 var
   m1,b1,m2,b2: TFloat;
 begin
-  result := false;
+  Result := false;
   if (p2.X = p1.X) then
   begin
     if (p4.X = p3.X) then exit; //parallel lines
     m2 := (p4.Y - p3.Y)/(p4.X - p3.X);
     b2 := p3.Y - m2 * p3.X;
     IntersectPoint.X := p1.X;
-    IntersectPoint.Y := round(m2*p1.X + b2);
-    result := (IntersectPoint.Y < p2.Y) = (IntersectPoint.Y > p1.Y);
+    IntersectPoint.Y := Round(m2*p1.X + b2);
+    Result := (IntersectPoint.Y < p2.Y) = (IntersectPoint.Y > p1.Y);
   end
   else if (p4.X = p3.X) then
   begin
     m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
     b1 := p1.Y - m1 * p1.X;
     IntersectPoint.X := p3.X;
-    IntersectPoint.Y := round(m1*p3.X + b1);
-    result := (IntersectPoint.Y < p3.Y) = (IntersectPoint.Y > p4.Y);
+    IntersectPoint.Y := Round(m1*p3.X + b1);
+    Result := (IntersectPoint.Y < p3.Y) = (IntersectPoint.Y > p4.Y);
   end else
   begin
     m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
@@ -456,9 +456,9 @@ begin
     m2 := (p4.Y - p3.Y)/(p4.X - p3.X);
     b2 := p3.Y - m2 * p3.X;
     if m1 = m2 then exit; //parallel lines
-    IntersectPoint.X := round((b2 - b1)/(m1 - m2));
-    IntersectPoint.Y := round(m1 * IntersectPoint.X + b1);
-    result := ((IntersectPoint.X < p2.X) = (IntersectPoint.X > p1.X));
+    IntersectPoint.X := Round((b2 - b1)/(m1 - m2));
+    IntersectPoint.Y := Round(m1 * IntersectPoint.X + b1);
+    Result := ((IntersectPoint.X < p2.X) = (IntersectPoint.X > p1.X));
   end;
 end;
 

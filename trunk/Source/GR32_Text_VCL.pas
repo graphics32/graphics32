@@ -341,13 +341,13 @@ function MeasureText(Font: HFONT; const ARect: TFloatRect;
   const Text: WideString; Flags: Cardinal): TFloatRect;
 var
   DC: HDC;
-  savedFont: HFONT;
+  SavedFont: HFONT;
 begin
   DC := GetDC(0);
   try
-    savedFont := SelectObject(DC, Font);
+    SavedFont := SelectObject(DC, Font);
     Result := MeasureTextDC(DC, ARect, Text, Flags);
-    SelectObject(DC, savedFont);
+    SelectObject(DC, SavedFont);
   finally
     ReleaseDC(0, DC);
   end;
@@ -357,15 +357,15 @@ procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
   const Text: WideString; Flags: Cardinal); overload;
 var
   DC: HDC;
-  savedFont: HFONT;
+  SavedFont: HFONT;
   R: TFloatRect;
 begin
   DC := GetDC(0);
   try
-    savedFont := SelectObject(DC, Font);
+    SavedFont := SelectObject(DC, Font);
     R := MeasureTextDC(DC, ARect, Text, Flags);
     InternalTextToPath(DC, Path, R, Text, Flags);
-    SelectObject(DC, savedFont);
+    SelectObject(DC, SavedFont);
   finally
     ReleaseDC(0, DC);
   end;
