@@ -2,7 +2,7 @@ program ArrowHeadDemo;
 
 uses
   Forms,
-  Unit1 in 'Unit1.pas' {FmArrowHeadDemo};
+  MainUnit in 'MainUnit.pas' {FmArrowHeadDemo};
 
 {$R *.res}
 
