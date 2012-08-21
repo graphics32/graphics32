@@ -84,6 +84,7 @@ type
     FSolid: TSolidBrush;
     FStroke: TStrokeBrush;
     procedure Draw;
+    procedure GenerateTexture;
   end;
 
 var
@@ -98,7 +99,7 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_MediaPathLocator,
+  Math, GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -117,11 +118,15 @@ begin
   PathMedia := GetMediaPath;
 
   // load example images
-  Assert(FileExists(PathMedia + 'delphi.jpg'));
-  BitmapList.Bitmap[0].LoadFromFile(PathMedia + 'delphi.jpg');
+  if FileExists(PathMedia + 'delphi.jpg') then
+    BitmapList.Bitmap[0].LoadFromFile(PathMedia + 'delphi.jpg');
 
-  Assert(FileExists(PathMedia + 'texture_b.jpg'));
-  BitmapList.Bitmap[1].LoadFromFile(PathMedia + 'texture_b.jpg');
+(*
+  if FileExists(PathMedia + 'texture_b.jpg') then
+    BitmapList.Bitmap[1].LoadFromFile(PathMedia + 'texture_b.jpg')
+  else
+*)
+    GenerateTexture;
 
   Image.SetupBitmap;
 
@@ -147,6 +152,30 @@ begin
   FCanvas.Free;
   if Assigned(FFiller) then
     FFiller.Free;
+end;
+
+procedure TFormPolygons.GenerateTexture;
+var
+  X, Y: Integer;
+  G: TFloat;
+  Row: PColor32Array;
+begin
+  with BitmapList.Bitmap[1] do
+  begin
+    SetSize(400, 400);
+
+    G := 0.5;
+    for Y := 0 to Height - 1 do
+    begin
+      Row := ScanLine[Y];
+      for X := 0 to Width - 1 do
+      begin
+        G := EnsureRange(G * (0.99 + 0.02 * Random), 0.2, 0.8);
+
+        Row^[X] := Color32(0, Round($FF * G), 0)
+      end;
+    end;
+  end;
 end;
 
 procedure TFormPolygons.Draw;
@@ -228,6 +257,7 @@ end;
 procedure TFormPolygons.FillAlphaChange(Sender: TObject);
 begin
   FSolid.FillColor := SetAlpha(clGreen32, FillAlpha.Position);
+  BitmapList.Bitmap[1].MasterAlpha := FillAlpha.Position;
   Draw;
 end;
 
