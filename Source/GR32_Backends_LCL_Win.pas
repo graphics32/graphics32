@@ -41,7 +41,7 @@ interface
 uses
   {$IFDEF LCLWin32} Windows, {$ENDIF} LCLIntf, LCLType, Types, Controls,
   SysUtils, Classes, Graphics, GR32, GR32_Backends, GR32_Backends_Generic,
-  GR32_Containers, GR32_Image;
+  GR32_Containers, GR32_Image, GR32_Paths;
 
 type
   { TLCLBackend }
@@ -50,7 +50,7 @@ type
 
   TLCLBackend = class(TCustomBackend, IPaintSupport,
     IBitmapContextSupport, IDeviceContextSupport,
-    ITextSupport, IFontSupport, ICanvasSupport)
+    ITextSupport, IFontSupport, ITextToPathSupport, ICanvasSupport)
   private
     procedure FontChangedHandler(Sender: TObject);
     procedure CanvasChangedHandler(Sender: TObject);
@@ -123,6 +123,11 @@ type
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
+    { ITextToPathSupport }
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: WideString); overload;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
     procedure SetCanvasChange(Handler: TNotifyEvent);
@@ -180,6 +185,9 @@ type
   end;
 
 implementation
+
+uses
+  GR32_Text_LCL_Win;
 
 var
   StockFont: HFONT;
@@ -428,6 +436,27 @@ begin
     SetTextColor(Handle, ColorToRGB(Font.Color));
     SetBkMode(Handle, TRANSPARENT);
   end;
+end;
+
+procedure TLCLBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat;
+  const Text: WideString);
+var
+  R: TFloatRect;
+begin
+  R := FloatRect(X, Y, X, Y);
+  GR32_Text_LCL_Win.TextToPath(Font.Handle, Path, R, Text, 0);
+end;
+
+procedure TLCLBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
+  const Text: WideString; Flags: Cardinal);
+begin
+  GR32_Text_LCL_Win.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
+end;
+
+function TLCLBackend.MeasureText(const DstRect: TFloatRect;
+  const Text: WideString; Flags: Cardinal): TFloatRect;
+begin
+  Result := GR32_Text_LCL_Win.MeasureText(Font.Handle, DstRect, Text, Flags);
 end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String);

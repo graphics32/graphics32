@@ -84,7 +84,23 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Backends, GR32_Polygons, GR32_Text_VCL;
+  GR32_Backends, GR32_Polygons,
+  {$IFDEF FPC}
+  {$IFDEF LCLWin32}
+    GR32_Text_LCL_Win;
+  {$ENDIF}
+  {$IF defined(LCLGtk) or defined(LCLGtk2)}
+    GR32_Text_LCL_GTK;
+  {$IFEND}
+  {$IFDEF LCLCarbon}
+    GR32_Text_LCL_Carbon;
+  {$ENDIF}
+  {$IFDEF LCLCustomDrawn}
+    GR32_Text_LCL_CustomDrawn;
+  {$ENDIF}
+  {$ELSE}
+  GR32_Text_VCL;
+  {$ENDIF}
 
 const
   CLoremIpsum =
