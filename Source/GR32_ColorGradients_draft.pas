@@ -153,7 +153,10 @@ begin
       Fraction := i / highLUT;
       while (j < len) and (Fraction > Cga[j].offset) do inc(j);
       if j = 0 then
-        ColorLUT[i] := ColorLUT[0]
+      begin
+        ColorLUT[i] := ColorLUT[0];
+        continue;
+      end
       else if j = len then
       begin
         for j := i to highLUT -1 do ColorLUT[j] := ColorLUT[highLUT];
