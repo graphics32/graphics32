@@ -124,20 +124,16 @@ type
 
   TLinearGradientPolygonFiller = class(TCustomGradientPolygonFiller)
   private
-    FStartPoint: TPoint;
-    FEndPoint: TPoint;
-    FDelta: TFloatPoint;
-    FDistance: TFloat;
-    FDistanceSqrd: TFloat;
-    FLinearGradType: TLinearGradientType;
-    function ClosestPointOnLine(const Pt: TPoint): TPoint;
+    FUsingHorzAxis: boolean;
+    FStart: TFloat;
+    FEnd: TFloat;
+    FTanAngle: TFloat;
+    FLength: TFloat;
   protected
     function GetFillLine: TFillLineEvent; override;
     procedure FillLineVertical(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineHorizontal(Dst: PColor32;
-      DstX, DstY, Length: Integer; AlphaValues: PColor32);
-    procedure FillLineAngle(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
   public
     procedure InitGradient(const StartPoint, EndPoint: TFloatPoint);
@@ -291,6 +287,27 @@ end;
 
 //------------------------------------------------------------------------------
 // Miscellaneous functions
+//------------------------------------------------------------------------------
+
+function GetAngleOfParam2FromParam1(const Point1, Point2: TFloatPoint): single;
+var
+  x,y: TFloat;
+const
+  rad90 = pi / 2;
+  rad270 = rad90 * 3;
+  rad360 = pi * 2;
+begin
+  x := Point2.X - Point1.X;
+  y := Point2.Y - Point1.Y;
+  if x = 0 then
+  begin
+    if y > 0 then result := rad270 else result := rad90;
+  end else
+  begin
+    result := arctan2(-y,x);
+    if result < 0 then result := result + rad360;
+  end;
+end;
 //------------------------------------------------------------------------------
 
 procedure InitColorLUT(var ColorLUT: array of TColor32; Cga: array of TColor32Gradient);
@@ -480,51 +497,32 @@ end;
 // TLinearGradientPolygonFiller
 //------------------------------------------------------------------------------
 
-function TLinearGradientPolygonFiller.ClosestPointOnLine(const Pt: TPoint): TPoint;
-var
-  Q: TFloat;
-begin
-  if (FDistanceSqrd > 0) then
-  begin
-    Q := ((Pt.X - FStartPoint.X) * FDelta.X + (Pt.Y - FStartPoint.Y) * FDelta.Y) / FDistanceSqrd;
-    if Q < 0 then Q := 0 else if Q > 1 then Q := 1;
-    Result.X := Round((1 - Q) * FStartPoint.X + Q * FEndPoint.X);
-    Result.Y := Round((1 - Q) * FStartPoint.Y + Q * FEndPoint.Y);
-  end else
-    Result := FStartPoint;
-end;
-//------------------------------------------------------------------------------
-
 function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-  case FLinearGradType of
-    lgVertical:
-      Result := FillLineVertical;
-    lgHorizontal:
-      Result := FillLineHorizontal;
-    else
-      Result := FillLineAngle;
-  end; //case
+  if FUsingHorzAxis then
+    Result := FillLineHorizontal else
+    Result := FillLineVertical;
 end;
 //------------------------------------------------------------------------------
 
-procedure TLinearGradientPolygonFiller.FillLineAngle(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+procedure TLinearGradientPolygonFiller.FillLineHorizontal(Dst: PColor32; DstX,
+  DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
-  Pt: TPoint;
-  Dist: TFloat;
+  AxisPt: TFloat;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   for X := DstX to DstX + Length - 1 do
   begin
-    Pt := ClosestPointOnLine(GR32.Point(X,DstY));
-    Dist := Hypot(Pt.X - FStartPoint.X, Pt.Y - FStartPoint.Y);
-    if Dist > FDistance then
-      Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FGradientLUT[Trunc(Dist * LUTSizeMin1 / FDistance)];
+    AxisPt := X + FTanAngle * DstY;
+    if (AxisPt > FStart) = (AxisPt < FEnd) then
+      Color32 := FGradientLUT[Round((AxisPt - FStart) * LUTSizeMin1 / FLength)]
+    else if (FLength > 0) <> (AxisPt > FEnd) then
+      Color32 := FGradientLUT[0]
+    else
+      Color32 := FGradientLUT[LUTSizeMin1];
     BlendMemEx(Color32, Dst^, AlphaValues^);
     EMMS;
     Inc(Dst);
@@ -533,75 +531,53 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure TLinearGradientPolygonFiller.FillLineHorizontal(Dst: PColor32; DstX,
-  DstY, Length: Integer; AlphaValues: PColor32);
-var
-  X: Integer;
-  Distance: Integer;
-  Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
-begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Distance := Round(FDistance);
-  for X := DstX to DstX + Length - 1 do
-  begin
-    if (X > FStartPoint.X) = (X < FEndPoint.X) then
-      Color32 := FGradientLUT[Abs(X - FStartPoint.X) * LUTSizeMin1 div Distance]
-    else if (X > FStartPoint.X) <> (FEndPoint.X > FStartPoint.X) then
-      Color32 := FGradientLUT[0]
-    else
-      Color32 := FGradientLUT[LUTSizeMin1];
-    BlendMemEx(Color32, Dst^, AlphaValues^);
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-  EMMS;
-end;
-//------------------------------------------------------------------------------
-
 procedure TLinearGradientPolygonFiller.FillLineVertical(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
-  Distance: Integer;
+  AxisPt: TFloat;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Distance := Round(FDistance);
-  if (DstY > FStartPoint.Y) = (DstY < FEndPoint.Y) then
-    Color32 := FGradientLUT[Abs(DstY - FStartPoint.Y) * LUTSizeMin1 div Distance]
-  else if (DstY > FStartPoint.Y) <> (FEndPoint.Y > FStartPoint.Y) then
-    Color32 := FGradientLUT[0]
-  else
-    Color32 := FGradientLUT[LUTSizeMin1];
   for X := DstX to DstX + Length - 1 do
   begin
+    AxisPt := DstY + FTanAngle * X;
+    if (AxisPt > FStart) = (AxisPt < FEnd) then
+      Color32 := FGradientLUT[Round((AxisPt - FStart) * LUTSizeMin1 / FLength)]
+    else if (FLength > 0) <> (AxisPt > FEnd) then
+      Color32 := FGradientLUT[0]
+    else
+      Color32 := FGradientLUT[LUTSizeMin1];
     BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
     Inc(Dst);
     Inc(AlphaValues);
   end;
-  EMMS;
 end;
 //------------------------------------------------------------------------------
 
 procedure TLinearGradientPolygonFiller.InitGradient(
   const StartPoint, EndPoint: TFloatPoint);
+var
+  a: TFloat;
 begin
-  FStartPoint := Point(StartPoint);
-  FEndPoint := Point(EndPoint);
-  FDelta.X := EndPoint.X - StartPoint.X;
-  FDelta.Y := EndPoint.Y - StartPoint.Y;
-  FDistanceSqrd := FDelta.X * FDelta.X + FDelta.Y * FDelta.Y;
-  FDistance := Sqrt(FDistanceSqrd);
-
-  if Abs(FStartPoint.Y - FEndPoint.Y) < 1 then
-    FLinearGradType := lgHorizontal
-  else
-  if Abs(FStartPoint.X - FEndPoint.X) < 1 then
-    FLinearGradType := lgVertical
-  else
-    FLinearGradType := lgAngled;
+  FUsingHorzAxis :=
+    Abs(StartPoint.X - EndPoint.X) > Abs(StartPoint.Y - EndPoint.Y);
+  if FUsingHorzAxis then
+  begin
+    a := pi*2 - GetAngleOfParam2FromParam1(StartPoint, EndPoint);
+    FTanAngle := Tan(a);
+    FStart := StartPoint.X + FTanAngle * StartPoint.Y;
+    FEnd := EndPoint.X + FTanAngle * EndPoint.Y;
+  end else
+  begin
+    a := pi*3/2 + GetAngleOfParam2FromParam1(StartPoint, EndPoint);
+    FTanAngle := Tan(a);
+    FStart := StartPoint.Y + FTanAngle * StartPoint.X;
+    FEnd := EndPoint.Y + FTanAngle * EndPoint.X;
+  end;
+  FLength := FEnd - FStart;
 end;
 
 //------------------------------------------------------------------------------
