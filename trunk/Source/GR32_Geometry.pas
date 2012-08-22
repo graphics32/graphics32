@@ -46,44 +46,44 @@ function Average(const V1, V2: TFloatPoint): TFloatPoint; overload;{$IFDEF USEIN
 function Dot(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function GetPointAtAngleFromPoint(const pt: TFloatPoint; const Dist, Radians: Single): TFloatPoint; overload;
-function GetAngleOfPt2FromPt1(const pt1, pt2: TFloatPoint): Single; overload;
-function GetUnitNormal(const pt1, pt2: TFloatPoint): TFloatPoint; overload;
-function GetUnitVector(const pt1, pt2: TFloatPoint): TFloatPoint; overload;
-function OffsetPoint(const pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;
-function Shorten(const pts: TArrayOfFloatPoint;
-  delta: TFloat; linePos: TLinePos): TArrayOfFloatPoint; overload;
-function PointInPolygon(const pt: TFloatPoint; const Pts: TArrayOfFloatPoint): boolean; overload;
-function SegmentIntersect(const p1, p2, p3, p4: TFloatPoint;
-  out IntersectPoint: TFloatPoint): boolean; overload;
+function GetPointAtAngleFromPoint(const Pt: TFloatPoint; const Dist, Radians: Single): TFloatPoint; overload;
+function GetAngleOfPt2FromPt1(const Pt1, Pt2: TFloatPoint): Single; overload;
+function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
+function GetUnitVector(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
+function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;
+function Shorten(const Pts: TArrayOfFloatPoint;
+  Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint; overload;
+function PointInPolygon(const Pt: TFloatPoint; const Pts: TArrayOfFloatPoint): Boolean; overload;
+function SegmentIntersect(const P1, P2, P3, P4: TFloatPoint;
+  out IntersectPoint: TFloatPoint): Boolean; overload;
 
 // Fixed Overloads
 function Average(const V1, V2: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Dot(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function GetPointAtAngleFromPoint(const pt: TFixedPoint; const Dist, Radians: Single): TFixedPoint; overload;
-function GetAngleOfPt2FromPt1(pt1, pt2: TFixedPoint): Single; overload;
-function GetUnitVector(const pt1, pt2: TFixedPoint): TFloatPoint; overload;
-function GetUnitNormal(const pt1, pt2: TFixedPoint): TFloatPoint; overload;
-function OffsetPoint(const pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;
-function Shorten(const pts: TArrayOfFixedPoint;
-  delta: TFloat; linePos: TLinePos): TArrayOfFixedPoint; overload;
+function GetPointAtAngleFromPoint(const Pt: TFixedPoint; const Dist, Radians: Single): TFixedPoint; overload;
+function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single; overload;
+function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
+function GetUnitNormal(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
+function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;
+function Shorten(const Pts: TArrayOfFixedPoint;
+  Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint; overload;
 function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;
-function SegmentIntersect(const p1, p2, p3, p4: TFixedPoint;
-  out IntersectPoint: TFixedPoint): boolean; overload;
+function SegmentIntersect(const P1, P2, P3, P4: TFixedPoint;
+  out IntersectPoint: TFixedPoint): Boolean; overload;
 
 const
-  rad01 = pi / 180;
-  rad30 = pi / 6;
-  rad45 = pi / 4;
-  rad60 = pi / 3;
-  rad90 = pi / 2;
-  rad180 = pi;
-  rad270 = rad90 * 3;
-  rad360 = rad180 * 2;
-  DegToRad = pi/180;
-  RadToDeg = 180/pi;
+  CRad01 = Pi / 180;
+  CRad30 = Pi / 6;
+  CRad45 = Pi / 4;
+  CRad60 = Pi / 3;
+  CRad90 = Pi / 2;
+  CRad180 = Pi;
+  CRad270 = CRad90 * 3;
+  CRad360 = CRad180 * 2;
+  CDegToRad = Pi / 180;
+  CRadToDeg = 180 / Pi;
 
 implementation
 
@@ -108,127 +108,129 @@ begin
   Result := Sqr(V2.X - V1.X) + Sqr(V2.Y - V1.Y);
 end;
 
-function GetPointAtAngleFromPoint(const pt: TFloatPoint;
+function GetPointAtAngleFromPoint(const Pt: TFloatPoint;
   const Dist, Radians: TFloat): TFloatPoint; overload;
 var
   SinAng, CosAng: TFloat;
 begin
   GR32_Math.SinCos(Radians, SinAng, CosAng);
-  Result.X := Dist * CosAng + pt.X;
-  Result.Y := -dist * SinAng + pt.Y; //Y axis is positive down
+  Result.X :=  Dist * CosAng + Pt.X;
+  Result.Y := -Dist * SinAng + Pt.Y; // Y axis is positive down
 end;
 
-function GetAngleOfPt2FromPt1(const pt1, pt2: TFloatPoint): Single;
+function GetAngleOfPt2FromPt1(const Pt1, Pt2: TFloatPoint): Single;
 var
-  x, y: Single;
+  x, y: TFloat;
 begin
-  x := pt2.X - pt1.X; y := pt2.Y - pt1.Y;
+  x := Pt2.X - Pt1.X; y := Pt2.Y - Pt1.Y;
   if x = 0 then
   begin
-    if y > 0 then Result := rad270 else Result := rad90;
+    if y > 0 then Result := CRad270 else Result := CRad90;
   end else
   begin
     Result := ArcTan2(-y, x);
-    if Result < 0 then Result := Result + rad360;
+    if Result < 0 then Result := Result + CRad360;
   end;
 end;
 
-function GetUnitVector(const pt1, pt2: TFloatPoint): TFloatPoint;
+function GetUnitVector(const Pt1, Pt2: TFloatPoint): TFloatPoint;
 var
-  dx, dy, f: TFloat;
+  Delta: TFloatPoint;
+  Temp: TFloat;
 begin
-  dx := (pt2.X - pt1.X);
-  dy := (pt2.Y - pt1.Y);
-  if (dx = 0) and (dy = 0) then
+  Delta.X := (Pt2.X - Pt1.X);
+  Delta.Y := (Pt2.Y - Pt1.Y);
+  if (Delta.X = 0) and (Delta.Y = 0) then
+    Result := FloatPoint(0, 0)
+  else
   begin
-    Result := FloatPoint(0,0);
-  end else
-  begin
-    f := 1 / GR32_Math.Hypot(dx, dy);
-    Result.X := dx * f;
-    Result.Y := dy * f;
+    Temp := 1 / GR32_Math.Hypot(Delta.X, Delta.Y);
+    Result.X := Delta.X * Temp;
+    Result.Y := Delta.Y * Temp;
   end;
 end;
 
-function GetUnitNormal(const pt1, pt2: TFloatPoint): TFloatPoint;
+function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TFloatPoint;
 var
-  dx, dy, f: Single;
+  Delta: TFloatPoint;
+  Temp: TFloat;
 begin
-  dx := (pt2.X - pt1.X);
-  dy := (pt2.Y - pt1.Y);
+  Delta.X := (Pt2.X - Pt1.X);
+  Delta.Y := (Pt2.Y - Pt1.Y);
 
-  if (dx = 0) and (dy = 0) then
+  if (Delta.X = 0) and (Delta.Y = 0) then
+    Result := FloatPoint(0, 0)
+  else
   begin
-    Result := FloatPoint(0,0);
-  end else
-  begin
-    f := 1 / GR32_Math.Hypot(dx, dy);
-    dx := dx * f;
-    dy := dy * f;
+    Temp := 1 / GR32_Math.Hypot(Delta.X, Delta.Y);
+    Delta.X := Delta.X * Temp;
+    Delta.Y := Delta.Y * Temp;
   end;
-  Result.X := dy;  //ie perpendicular to
-  Result.Y := -dx; //the unit vector
+  Result.X :=  Delta.Y; // ie perpendicular to
+  Result.Y := -Delta.X; // the unit vector
 end;
 
-function OffsetPoint(const pt: TFloatPoint; dx, dy: TFloat): TFloatPoint;
+function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint;
 begin
-  Result.X := pt.X + dx;
-  Result.Y := pt.Y + dy;
+  Result.X := Pt.X + dx;
+  Result.Y := Pt.Y + dy;
 end;
 
-function Shorten(const pts: TArrayOfFloatPoint;
-  delta: TFloat; linePos: TLinePos): TArrayOfFloatPoint;
+function Shorten(const Pts: TArrayOfFloatPoint;
+  Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint;
 var
-  i, highI: integer;
-  Dist, deltaSqr: TFloat;
+  Index, HighI: integer;
+  Dist, DeltaSqr: TFloat;
   UnitVec: TFloatPoint;
 
   procedure FixStart;
   begin
-    i := 1;
-    while (i < highI) and (SqrDistance(pts[i],pts[0]) < deltaSqr) do inc(i);
-    UnitVec := GetUnitVector(pts[i], pts[0]);
-    Dist := Distance(pts[i],pts[0]) - delta;
-    if i > 1 then
+    Index := 1;
+    while (Index < HighI) and (SqrDistance(Pts[Index],Pts[0]) < DeltaSqr) do
+      Inc(Index);
+    UnitVec := GetUnitVector(Pts[Index], Pts[0]);
+    Dist := Distance(Pts[Index],Pts[0]) - Delta;
+    if Index > 1 then
     begin
-      Move(Result[i], Result[1], sizeof(TFloatPoint) * (highI -i +1));
-      SetLength(Result, highI - i +2);
+      Move(Result[Index], Result[1], sizeof(TFloatPoint) * (HighI -Index + 1));
+      SetLength(Result, HighI - Index + 2);
     end;
     Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
   procedure FixEnd;
   begin
-    i := highI -1;
-    while (i > 0) and (SqrDistance(pts[i],pts[highI]) < deltaSqr) do dec(i);
-    UnitVec := GetUnitVector(pts[i],pts[highI]);
-    Dist := Distance(pts[i],pts[highI]) - delta;
-    if i +1 < highI then SetLength(Result, i+2);
-    Result[i+1] := OffsetPoint(Result[i], UnitVec.X * Dist, UnitVec.Y * Dist);
+    Index := HighI -1;
+    while (Index > 0) and (SqrDistance(Pts[Index],Pts[HighI]) < DeltaSqr) do
+      Dec(Index);
+    UnitVec := GetUnitVector(Pts[Index],Pts[HighI]);
+    Dist := Distance(Pts[Index],Pts[HighI]) - Delta;
+    if Index + 1 < HighI then SetLength(Result, Index + 2);
+    Result[Index + 1] := OffsetPoint(Result[Index], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
 begin
-  Result := pts;
-  highI := High(pts);
-  deltaSqr := delta * delta;
-  if highI < 1 then exit;
+  Result := Pts;
+  HighI := High(Pts);
+  DeltaSqr := Delta * Delta;
+  if HighI < 1 then Exit;
 
-  case linePos of
+  case LinePos of
     lpStart: FixStart;
     lpEnd  : FixEnd;
     lpBoth : begin FixStart; FixEnd; end;
   end;
 end;
 
-function PointInPolygon(const pt: TFloatPoint; const Pts: TArrayOfFloatPoint): boolean;
+function PointInPolygon(const Pt: TFloatPoint; const Pts: TArrayOfFloatPoint): Boolean;
 var
-  I: Integer;
+  Index: Integer;
   iPt, jPt: PFloatPoint;
 begin
   Result := False;
   iPt := @Pts[0];
   jPt := @Pts[High(Pts)];
-  for I := 0 to High(Pts) do
+  for Index := 0 to High(Pts) do
   begin
     Result := Result xor (((Pt.Y >= iPt.Y) xor (Pt.Y >= jPt.Y)) and
       ((Pt.X - iPt.X) < ((jPt.X - iPt.X) * (Pt.Y -iPt.Y) / (jPt.Y - iPt.Y))));
@@ -237,39 +239,39 @@ begin
   end;
 end;
 
-function SegmentIntersect(const p1, p2, p3, p4: TFloatPoint;
-  out IntersectPoint: TFloatPoint): boolean;
+function SegmentIntersect(const P1, P2, P3, P4: TFloatPoint;
+  out IntersectPoint: TFloatPoint): Boolean;
 var
   m1, b1, m2, b2: TFloat;
 begin
-  //see http://astronomy.swin.edu.au/~pbourke/geometry/lineline2d/
-  Result := false;
-  if (p2.X = p1.X) then
+  // see http://astronomy.swin.edu.au/~pbourke/geometry/lineline2d/
+  Result := False;
+  if (P2.X = P1.X) then
   begin
-    if (p4.X = p3.X) then exit; //parallel lines
-    m2 := (p4.Y - p3.Y)/(p4.X - p3.X);
-    b2 := p3.Y - m2 * p3.X;
-    IntersectPoint.X := p1.X;
-    IntersectPoint.Y := m2*p1.X + b2;
-    Result := (IntersectPoint.Y < p2.Y) = (IntersectPoint.Y > p1.Y);
+    if (P4.X = P3.X) then Exit; // parallel lines
+    m2 := (P4.Y - P3.Y) / (P4.X - P3.X);
+    b2 := P3.Y - m2 * P3.X;
+    IntersectPoint.X := P1.X;
+    IntersectPoint.Y := m2 * P1.X + b2;
+    Result := (IntersectPoint.Y < P2.Y) = (IntersectPoint.Y > P1.Y);
   end
-  else if (p4.X = p3.X) then
+  else if (P4.X = P3.X) then
   begin
-    m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
-    b1 := p1.Y - m1 * p1.X;
-    IntersectPoint.X := p3.X;
-    IntersectPoint.Y := m1*p3.X + b1;
-    Result := (IntersectPoint.Y < p3.Y) = (IntersectPoint.Y > p4.Y);
+    m1 := (P2.Y - P1.Y) / (P2.X - P1.X);
+    b1 := P1.Y - m1 * P1.X;
+    IntersectPoint.X := P3.X;
+    IntersectPoint.Y := m1 * P3.X + b1;
+    Result := (IntersectPoint.Y < P3.Y) = (IntersectPoint.Y > P4.Y);
   end else
   begin
-    m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
-    b1 := p1.Y - m1 * p1.X;
-    m2 := (p4.Y - p3.Y)/(p4.X - p3.X);
-    b2 := p3.Y - m2 * p3.X;
-    if m1 = m2 then exit; //parallel lines
-    IntersectPoint.X := (b2 - b1)/(m1 - m2);
+    m1 := (P2.Y - P1.Y) / (P2.X - P1.X);
+    b1 := P1.Y - m1 * P1.X;
+    m2 := (P4.Y - P3.Y) / (P4.X - P3.X);
+    b2 := P3.Y - m2 * P3.X;
+    if m1 = m2 then Exit; // parallel lines
+    IntersectPoint.X := (b2 - b1) / (m1 - m2);
     IntersectPoint.Y := m1 * IntersectPoint.X + b1;
-    Result := ((IntersectPoint.X < p2.X) = (IntersectPoint.X > p1.X));
+    Result := ((IntersectPoint.X < P2.X) = (IntersectPoint.X > P1.X));
   end;
 end;
 
@@ -297,113 +299,115 @@ begin
   Result := FixedSqr(V2.X - V1.X) + FixedSqr(V2.Y - V1.Y);
 end;
 
-function GetPointAtAngleFromPoint(const pt: TFixedPoint;
+function GetPointAtAngleFromPoint(const Pt: TFixedPoint;
   const Dist, Radians: TFloat): TFixedPoint;
 var
   SinAng, CosAng: TFloat;
 begin
   GR32_Math.SinCos(Radians, SinAng, CosAng);
-  Result.X := Round(Dist * CosAng *FixedOne) + pt.X;
-  Result.Y := -Round(Dist * SinAng *FixedOne) + pt.Y; //Y axis is positive down
+  Result.X := Round(Dist * CosAng * FixedOne) + Pt.X;
+  Result.Y := -Round(Dist * SinAng * FixedOne) + Pt.Y; // Y axis is positive down
 end;
 
-function GetAngleOfPt2FromPt1(pt1, pt2: TFixedPoint): Single;
+function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single;
 begin
-  with pt2 do
+  with Pt2 do
   begin
-    X := X - pt1.X; Y := Y - pt1.Y;
+    X := X - Pt1.X; Y := Y - Pt1.Y;
     if X = 0 then
     begin
-     if Y > 0 then Result := rad270 else Result := rad90;
+     if Y > 0 then Result := CRad270 else Result := CRad90;
     end else
     begin
       Result := ArcTan2(-Y,X);
-      if Result < 0 then Result := Result + rad360;
+      if Result < 0 then Result := Result + CRad360;
     end;
   end;
 end;
 
-function GetUnitVector(const pt1, pt2: TFixedPoint): TFloatPoint;
+function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint;
 var
-  dx, dy, f: Single;
+  Delta: TFloatPoint;
+  Temp: Single;
 begin
-  dx := (pt2.X - pt1.X)*FixedToFloat;
-  dy := (pt2.Y - pt1.Y)*FixedToFloat;
-  if (dx = 0) and (dy = 0) then
+  Delta.X := (Pt2.X - Pt1.X) * FixedToFloat;
+  Delta.Y := (Pt2.Y - Pt1.Y) * FixedToFloat;
+  if (Delta.X = 0) and (Delta.Y = 0) then
   begin
     Result := FloatPoint(0,0);
   end else
   begin
-    f := 1 / GR32_Math.Hypot(dx, dy);
-    Result.X := dx * f;
-    Result.Y := dy * f;
+    Temp := 1 / GR32_Math.Hypot(Delta.X, Delta.Y);
+    Result.X := Delta.X * Temp;
+    Result.Y := Delta.Y * Temp;
   end;
 end;
 
-function GetUnitNormal(const pt1, pt2: TFixedPoint): TFloatPoint;
+function GetUnitNormal(const Pt1, Pt2: TFixedPoint): TFloatPoint;
 var
-  dx, dy, f: Single;
+  Delta: TFloatPoint;
+  Temp: Single;
 begin
-  dx := (pt2.X - pt1.X)*FixedToFloat;
-  dy := (pt2.Y - pt1.Y)*FixedToFloat;
+  Delta.X := (Pt2.X - Pt1.X) * FixedToFloat;
+  Delta.Y := (Pt2.Y - Pt1.Y) * FixedToFloat;
 
-  if (dx = 0) and (dy = 0) then
+  if (Delta.X = 0) and (Delta.Y = 0) then
   begin
     Result := FloatPoint(0,0);
   end else
   begin
-    f := 1 / GR32_Math.Hypot(dx, dy);
-    dx := dx * f;
-    dy := dy * f;
+    Temp := 1 / GR32_Math.Hypot(Delta.X, Delta.Y);
+    Delta.X := Delta.X * Temp;
+    Delta.Y := Delta.Y * Temp;
   end;
-  Result.X := dy;  //ie perpendicular to
-  Result.Y := -dx; //the unit vector
+  Result.X :=  Delta.Y; // ie perpendicular to
+  Result.Y := -Delta.X; // the unit vector
 end;
 
-function OffsetPoint(const pt: TFixedPoint; dx, dy: TFloat): TFixedPoint;
+function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint;
 begin
-  Result.X := pt.X + Fixed(dx);
-  Result.Y := pt.Y + Fixed(dy);
+  Result.X := Pt.X + Fixed(dx);
+  Result.Y := Pt.Y + Fixed(dy);
 end;
 
-function Shorten(const pts: TArrayOfFixedPoint;
-  delta: TFloat; linePos: TLinePos): TArrayOfFixedPoint;
+function Shorten(const Pts: TArrayOfFixedPoint;
+  Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint;
 var
-  i, highI: integer;
-  Dist, deltaSqr: TFloat;
+  Index, HighI: integer;
+  Dist, DeltaSqr: TFloat;
   UnitVec: TFloatPoint;
 
   procedure FixStart;
   begin
-    i := 1;
-    while (i < highI) and (SqrDistance(pts[i],pts[0]) < deltaSqr) do inc(i);
-    UnitVec := GetUnitVector(pts[i], pts[0]);
-    Dist := Distance(pts[i],pts[0]) - delta;
-    if i > 1 then
+    Index := 1;
+    while (Index < HighI) and (SqrDistance(Pts[Index],Pts[0]) < DeltaSqr) do inc(Index);
+    UnitVec := GetUnitVector(Pts[Index], Pts[0]);
+    Dist := Distance(Pts[Index],Pts[0]) - Delta;
+    if Index > 1 then
     begin
-      Move(Result[i], Result[1], sizeof(TFloatPoint) * (highI -i +1));
-      SetLength(Result, highI - i +2);
+      Move(Result[Index], Result[1], SizeOf(TFloatPoint) * (HighI - Index + 1));
+      SetLength(Result, HighI - Index + 2);
     end;
     Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
   procedure FixEnd;
   begin
-    i := highI -1;
-    while (i > 0) and (SqrDistance(pts[i],pts[highI]) < deltaSqr) do dec(i);
-    UnitVec := GetUnitVector(pts[i],pts[highI]);
-    Dist := Distance(pts[i],pts[highI]) - delta;
-    if i +1 < highI then SetLength(Result, i+2);
-    Result[i+1] := OffsetPoint(Result[i], UnitVec.X * Dist, UnitVec.Y * Dist);
+    Index := HighI -1;
+    while (Index > 0) and (SqrDistance(Pts[Index],Pts[HighI]) < DeltaSqr) do dec(Index);
+    UnitVec := GetUnitVector(Pts[Index],Pts[HighI]);
+    Dist := Distance(Pts[Index],Pts[HighI]) - Delta;
+    if Index + 1 < HighI then SetLength(Result, Index + 2);
+    Result[Index + 1] := OffsetPoint(Result[Index], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
 
 begin
-  Result := pts;
-  highI := High(pts);
-  deltaSqr := delta * delta;
-  if highI < 1 then exit;
+  Result := Pts;
+  HighI := High(Pts);
+  DeltaSqr := Delta * Delta;
+  if HighI < 1 then Exit;
 
-  case linePos of
+  case LinePos of
     lpStart: FixStart;
     lpEnd  : FixEnd;
     lpBoth : begin FixStart; FixEnd; end;
@@ -427,38 +431,38 @@ begin
   end;
 end;
 
-function SegmentIntersect(const p1, p2, p3, p4: TFixedPoint;
-  out IntersectPoint: TFixedPoint): boolean;
+function SegmentIntersect(const P1, P2, P3, P4: TFixedPoint;
+  out IntersectPoint: TFixedPoint): Boolean;
 var
   m1,b1,m2,b2: TFloat;
 begin
-  Result := false;
-  if (p2.X = p1.X) then
+  Result := False;
+  if (P2.X = P1.X) then
   begin
-    if (p4.X = p3.X) then exit; //parallel lines
-    m2 := (p4.Y - p3.Y)/(p4.X - p3.X);
-    b2 := p3.Y - m2 * p3.X;
-    IntersectPoint.X := p1.X;
-    IntersectPoint.Y := Round(m2*p1.X + b2);
-    Result := (IntersectPoint.Y < p2.Y) = (IntersectPoint.Y > p1.Y);
+    if (P4.X = P3.X) then Exit; // parallel lines
+    m2 := (P4.Y - P3.Y) / (P4.X - P3.X);
+    b2 := P3.Y - m2 * P3.X;
+    IntersectPoint.X := P1.X;
+    IntersectPoint.Y := Round(m2 * P1.X + b2);
+    Result := (IntersectPoint.Y < P2.Y) = (IntersectPoint.Y > P1.Y);
   end
-  else if (p4.X = p3.X) then
+  else if (P4.X = P3.X) then
   begin
-    m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
-    b1 := p1.Y - m1 * p1.X;
-    IntersectPoint.X := p3.X;
-    IntersectPoint.Y := Round(m1*p3.X + b1);
-    Result := (IntersectPoint.Y < p3.Y) = (IntersectPoint.Y > p4.Y);
+    m1 := (P2.Y - P1.Y) / (P2.X - P1.X);
+    b1 := P1.Y - m1 * P1.X;
+    IntersectPoint.X := P3.X;
+    IntersectPoint.Y := Round(m1 * P3.X + b1);
+    Result := (IntersectPoint.Y < P3.Y) = (IntersectPoint.Y > P4.Y);
   end else
   begin
-    m1 := (p2.Y - p1.Y)/(p2.X - p1.X);
-    b1 := p1.Y - m1 * p1.X;
-    m2 := (p4.Y - p3.Y)/(p4.X - p3.X);
-    b2 := p3.Y - m2 * p3.X;
-    if m1 = m2 then exit; //parallel lines
-    IntersectPoint.X := Round((b2 - b1)/(m1 - m2));
+    m1 := (P2.Y - P1.Y) / (P2.X - P1.X);
+    b1 := P1.Y - m1 * P1.X;
+    m2 := (P4.Y - P3.Y) / (P4.X - P3.X);
+    b2 := P3.Y - m2 * P3.X;
+    if m1 = m2 then Exit; // parallel lines
+    IntersectPoint.X := Round((b2 - b1) / (m1 - m2));
     IntersectPoint.Y := Round(m1 * IntersectPoint.X + b1);
-    Result := ((IntersectPoint.X < p2.X) = (IntersectPoint.X > p1.X));
+    Result := ((IntersectPoint.X < P2.X) = (IntersectPoint.X > P1.X));
   end;
 end;
 
