@@ -135,7 +135,7 @@ procedure InitColorLUT(var ColorLUT: array of TColor32; Cga: array of TColor32Gr
 var
   i, j, Len, HighLUT: Integer;
   Fraction: TFloat;
-  ColorLUT, c1, c2: PColor32Entry;
+  ClrLUT, c1, c2: PColor32Entry;
 begin
   Len := length(Cga);
   HighLUT := high(ColorLUT);
@@ -169,11 +169,11 @@ begin
       begin
         c1 := @Cga[j-1].Color32;
         c2 := @Cga[j].Color32;
-        ColorLUT := @ColorLUT[i];
-        ColorLUT.B := Trunc(c2.B * Fraction + c1.B * (1-Fraction));
-        ColorLUT.G := Trunc(c2.G * Fraction + c1.G * (1-Fraction));
-        ColorLUT.R := Trunc(c2.R * Fraction + c1.R * (1-Fraction));
-        ColorLUT.A := Trunc(c2.A * Fraction + c1.A * (1-Fraction));
+        ClrLUT := @ColorLUT[i];
+        ClrLUT.B := Trunc(c2.B * Fraction + c1.B * (1-Fraction));
+        ClrLUT.G := Trunc(c2.G * Fraction + c1.G * (1-Fraction));
+        ClrLUT.R := Trunc(c2.R * Fraction + c1.R * (1-Fraction));
+        ClrLUT.A := Trunc(c2.A * Fraction + c1.A * (1-Fraction));
       end;
     end;
   end;
@@ -233,7 +233,7 @@ begin
   case FLinearGradType of
     lgVertical:
       begin
-        Distance := round(FDistance);
+        Distance := Round(FDistance);
         if (DstY > FStartPoint.Y) = (DstY < FEndPoint.Y) then
           Color32 := FGradientLUT[Abs(DstY - FStartPoint.Y) * LUTSizeMin1 div Distance]
         else if (DstY > FStartPoint.Y) <> (FEndPoint.Y > FStartPoint.Y) then
@@ -250,7 +250,7 @@ begin
       end;
     lgHorizontal:
       begin
-        Distance := round(FDistance);
+        Distance := Round(FDistance);
         for X := DstX to DstX + Length - 1 do
         begin
           if (X > FStartPoint.X) = (X < FEndPoint.X) then
@@ -269,7 +269,7 @@ begin
       begin
         for X := DstX to DstX + Length - 1 do
         begin
-          Pt := ClosestPointOnLine(Point(X,DstY));
+          Pt := ClosestPointOnLine(GR32.Point(X,DstY));
           Dist := Hypot(Pt.X - FStartPoint.X, Pt.Y - FStartPoint.Y);
           if Dist > FDistance then
             Color32 := FGradientLUT[LUTSizeMin1] else
@@ -343,7 +343,7 @@ begin
   SetLength(FColorBuffer, rX * rY);
 
   FCenterI := Point(Center);
-  FRadiusI := Point(round(RadiusX), round(RadiusY));
+  FRadiusI := GR32.Point(Round(RadiusX), Round(RadiusY));
 
   //fill the color buffer using GradientLUT ...
   if Abs(rX - rY) = 0 then
@@ -367,7 +367,7 @@ begin
         else if J = 0 then rad2 := RadiusX
         else
         begin
-          SinCos(ArcTan(RadiusXDivRadiusY * j/i), y, x);
+          GR32_Math.SinCos(ArcTan(RadiusXDivRadiusY * j / i), y, x);
           rad2 := Hypot(x * RadiusX, y * RadiusY);
         end;
         if Rad >= rad2 then
