@@ -217,6 +217,7 @@ begin
       begin
         ColorLUT[i] := CombineReg(Cga[j].Color32, Cga[j - 1].Color32,
           Round($FF * Fraction));
+        EMMS;
       end;
     end;
   end;
