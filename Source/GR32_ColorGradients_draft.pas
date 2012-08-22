@@ -36,7 +36,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, SysUtils, Math, GR32, GR32_Polygons;
+  Types, Classes, SysUtils, Math, GR32, GR32_Polygons;
 
 const
   LUTSize = 512;
@@ -51,18 +51,39 @@ type
 
   TLinearGradientType = (lgVertical, lgHorizontal, lgAngled);
 
-  TCustomGradientSampler = class(TCustomSampler)
+  TGradient32 = class
   private
-    FCenterColor: TColor32;
-    procedure SetCenterColor(const Value: TColor32);
+    FStartColor: TColor32;
+    FOnGradientColorsChanged: TNotifyEvent;
+    function GetGradientEntry(Index: Integer): TColor32Gradient;
+    procedure SetStartColor(const Value: TColor32);
+    function GetGradientCount: Integer;
   protected
     FGradientColors: array of TColor32Gradient;
-    procedure GradientColorsChanged; virtual; abstract;
+    procedure GradientColorsChanged;
+    procedure StartColorChanged;
   public
+    constructor Create(StartColor: TColor32 = clBlack32);
     procedure AddColorStop(Offset: TFloat; Color: TColor32); virtual;
     procedure ClearColors;
+    procedure SetColors(GradientColors: array of TColor32Gradient);
 
-    property CenterColor: TColor32 read FCenterColor write SetCenterColor;
+    property StartColor: TColor32 read FStartColor write SetStartColor;
+    property GradientEntry[Index: Integer]: TColor32Gradient read GetGradientEntry;
+    property GradientCount: Integer read GetGradientCount;
+    property OnGradientColorsChanged: TNotifyEvent read FOnGradientColorsChanged write FOnGradientColorsChanged;
+  end;
+
+  TCustomGradientSampler = class(TCustomSampler)
+  private
+    FGradient: TGradient32;
+    procedure SetGradient(const Value: TGradient32);
+  protected
+    procedure GradientChangedHandler(Sender: TObject);
+    procedure GradientChanged;
+    procedure GradientColorsChanged; virtual; abstract;
+  public
+    property Gradient: TGradient32 read FGradient write SetGradient;
   end;
 
   TRadialGradientSampler = class(TCustomGradientSampler)
@@ -87,23 +108,25 @@ type
   end;
 
   TCustomGradientPolygonFiller = class(TCustomPolygonFiller)
+  private
+    procedure SetGradient(const Value: TGradient32);
   protected
     FGradientLUT: array [0..LUTSizeMin1] of TColor32;
+    FGradient: TGradient32;
     FGradientColors: TArrayOfColor32Gradient;
-(*
-    procedure FillLine(Dst: PColor32;
-      DstX, DstY, Length: Integer; AlphaValues: PColor32); virtual; abstract;
-*)
-    procedure InitGradientLUT(const GradColors: array of TColor32Gradient);
+
+    procedure GradientChangedHandler(Sender: TObject);
+    procedure GradientChanged;
+    procedure GradientColorsChanged; virtual;
   public
+    property Gradient: TGradient32 read FGradient write SetGradient;
   end;
 
   TLinearGradientPolygonFiller = class(TCustomGradientPolygonFiller)
   private
     FStartPoint: TPoint;
     FEndPoint: TPoint;
-    FDx: TFloat;
-    FDy: TFloat;
+    FDelta: TFloatPoint;
     FDistance: TFloat;
     FDistanceSqrd: TFloat;
     FLinearGradType: TLinearGradientType;
@@ -117,70 +140,163 @@ type
     procedure FillLineAngle(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
   public
-    procedure InitGradient(const StartPoint, EndPoint: TFloatPoint;
-      const GradColors: array of TColor32Gradient);
+    procedure InitGradient(const StartPoint, EndPoint: TFloatPoint);
   end;
 
   TRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
   private
-    FCenterI: TPoint;
-    FRadiusI: TPoint;
     FColorBuffer: TArrayOfColor32;
+    FCenterX: Integer;
+    FCenterY: Integer;
+    FRadiusX: Integer;
+    FRadiusY: Integer;
+    procedure SetCenterX(const Value: Integer);
+    procedure SetCenterY(const Value: Integer);
+    procedure SetRadiusX(const Value: Integer);
+    procedure SetRadiusY(const Value: Integer);
+    procedure UpdateColorBuffer;
   protected
     function GetFillLine: TFillLineEvent; override;
+    procedure CenterXChanged;
+    procedure CenterYChanged;
+    procedure RadiusXChanged;
+    procedure RadiusYChanged;
+    procedure FillLineCircle(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
     procedure FillLineEllipse(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
-    procedure InitGradient(const Center: TFloatPoint; RadiusX, RadiusY: TFloat;
-      const GradColors: array of TColor32Gradient);
+    property CenterX: Integer read FCenterX write SetCenterX;
+    property CenterY: Integer read FCenterY write SetCenterY;
+    property RadiusX: Integer read FRadiusX write SetRadiusX;
+    property RadiusY: Integer read FRadiusY write SetRadiusY;
   end;
-
-procedure AddGradientColor(Offset: TFloat; Color: TColor32;
-  var Cga: TArrayOfColor32Gradient);
 
 implementation
 
 uses
   GR32_Math, GR32_Blend;
 
-//------------------------------------------------------------------------------
-// Miscellaneous functions
-//------------------------------------------------------------------------------
 
-procedure AddGradientColor(Offset: TFloat; Color: TColor32;
-  var Cga: TArrayOfColor32Gradient);
-var
-  i, Len: Integer;
+{ TGradient32 }
+
+constructor TGradient32.Create(StartColor: TColor32 = clBlack32);
 begin
-  if Offset <= 0 then Offset := 0
-  else if Offset >= 1 then Offset := 1;
+  inherited Create;
+  FStartColor := StartColor;
+end;
 
-  Len := Length(Cga);
-  i := 0;
-  while (i < Len) and (Offset > Cga[i].Offset) do inc(i);
-  if (i = Len) then
+procedure TGradient32.ClearColors;
+begin
+  SetLength(FGradientColors, 0);
+  GradientColorsChanged;
+end;
+
+procedure TGradient32.SetColors(GradientColors: array of TColor32Gradient);
+var
+  Index: Integer;
+begin
+  if Length(GradientColors) = 0 then
   begin
-    SetLength(Cga, Len +1);
-    Cga[Len].Offset := Offset;
-    Cga[Len].Color32 := Color;
-  end else
+    // no further colors specified -> clear colors
+    ClearColors;
+    Exit;
+  end;
+
+  if GradientColors[0].Offset = 0 then
   begin
-    if (Offset <> Cga[i].Offset) then
-    begin
-      SetLength(Cga, Len +1);
-      Move(Cga[i].Color32, Cga[i + 1].Color32, sizeof(TColor32Gradient) * (Len - i));
-    end;
-    Cga[i].Offset := Offset;
-    Cga[i].Color32 := Color;
+    // copy start color
+    FStartColor := GradientColors[0].Color32;
+
+    SetLength(FGradientColors, Length(GradientColors) - 1);
+    for Index := 1 to Length(GradientColors) - 1 do
+      FGradientColors[Index - 1] := GradientColors[Index];
+  end
+  else
+  begin
+    // keep start color (only copy color stops)
+    SetLength(FGradientColors, Length(GradientColors));
+    for Index := 0 to Length(GradientColors) - 1 do
+      FGradientColors[Index] := GradientColors[Index];
   end;
 end;
+
+procedure TGradient32.SetStartColor(const Value: TColor32);
+begin
+  if FStartColor <> Value then
+  begin
+    FStartColor := Value;
+    StartColorChanged;
+  end;
+end;
+
+procedure TGradient32.StartColorChanged;
+begin
+  GradientColorsChanged;
+end;
+
+function TGradient32.GetGradientCount: Integer;
+begin
+  Result := Length(FGradientColors) + 1;
+end;
+
+function TGradient32.GetGradientEntry(Index: Integer): TColor32Gradient;
+begin
+  if Index > Length(FGradientColors) then
+    raise Exception.CreateFmt('Index out of bounds (%d)', [Index])
+  else
+  if Index = 0 then
+  begin
+    Result.Offset := 0;
+    Result.Color32 := FStartColor;
+  end
+  else
+    Result := FGradientColors[Index - 1];
+end;
+
+procedure TGradient32.GradientColorsChanged;
+begin
+  if Assigned(FOnGradientColorsChanged) then
+    FOnGradientColorsChanged(Self);
+end;
+
+procedure TGradient32.AddColorStop(Offset: TFloat; Color: TColor32);
+var
+  Index, OldCount: Integer;
+begin
+  if Offset <= 0 then
+    FStartColor := Color
+  else
+  begin
+    OldCount := Length(FGradientColors);
+    SetLength(FGradientColors, OldCount + 1);
+    Index := 0;
+    while Index < OldCount do
+    begin
+      if Offset < FGradientColors[Index].Offset then
+        Break;
+      Inc(Index);
+    end;
+
+    if (OldCount - Index) > 0 then
+      Move(FGradientColors[Index], FGradientColors[Index + 1],
+        (OldCount - Index) * SizeOf(TColor32Gradient));
+
+    FGradientColors[Index].Offset := Offset;
+    FGradientColors[Index].Color32 := Color;
+  end;
+  GradientColorsChanged;
+end;
+
+
+//------------------------------------------------------------------------------
+// Miscellaneous functions
 //------------------------------------------------------------------------------
 
 procedure InitColorLUT(var ColorLUT: array of TColor32; Cga: array of TColor32Gradient);
 var
   i, j, Len, HighLUT: Integer;
   Fraction: TFloat;
-  ClrLUT, c1, c2: PColor32Entry;
 begin
   Len := Length(Cga);
   HighLUT := High(ColorLUT);
@@ -226,47 +342,24 @@ end;
 
 { TCustomGradientSampler }
 
-procedure TCustomGradientSampler.AddColorStop(Offset: TFloat; Color: TColor32);
-var
-  Index, OldCount: Integer;
+procedure TCustomGradientSampler.SetGradient(const Value: TGradient32);
 begin
-  if Offset <= 0 then
-    FCenterColor := Color
-  else
+  if FGradient <> Value then
   begin
-    OldCount := Length(FGradientColors);
-    SetLength(FGradientColors, OldCount + 1);
-    Index := 0;
-    while Index < OldCount do
-    begin
-      if Offset < FGradientColors[Index].Offset then
-        Break;
-      Inc(Index);
-    end;
-
-    if (OldCount - Index) > 0 then
-      Move(FGradientColors[Index], FGradientColors[Index + 1],
-        (OldCount - Index) * SizeOf(TColor32Gradient));
-
-    FGradientColors[Index].Offset := Offset;
-    FGradientColors[Index].Color32 := Color;
+    FGradient := Value;
+    GradientChanged;
   end;
-  GradientColorsChanged;
 end;
 
-procedure TCustomGradientSampler.ClearColors;
+procedure TCustomGradientSampler.GradientChangedHandler(Sender: TObject);
 begin
-  SetLength(FGradientColors, 0);
-  GradientColorsChanged;
+  GradientChanged;
 end;
 
-procedure TCustomGradientSampler.SetCenterColor(const Value: TColor32);
+procedure TCustomGradientSampler.GradientChanged;
 begin
-  if FCenterColor <> Value then
-  begin
-    FCenterColor := Value;
-    GradientColorsChanged;
-  end;
+  FGradient.OnGradientColorsChanged := GradientChangedHandler;
+  GradientColorsChanged;
 end;
 
 
@@ -311,27 +404,27 @@ var
   Current, OldOffset, RangeInv: TFloat;
   Index, GradIndex: Integer;
 begin
-  Color := FCenterColor;
-  if Length(FGradientColors) = 0 then
+  Color := FGradient.StartColor;
+  if Length(FGradient.FGradientColors) = 0 then
     for Index := 0 to 255 do
       FGradientLUT[Index] := Color
   else
   begin
     OldOffset := 0;
     GradIndex := 0;
-    RangeInv := 1 / (FGradientColors[0].Offset - OldOffset);
+    RangeInv := 1 / (FGradient.FGradientColors[0].Offset - OldOffset);
     for Index := 0 to 255 do
     begin
       Current := Index * DIV255;
-      FGradientLUT[Index] := CombineReg(FGradientColors[GradIndex].Color32, Color,
+      FGradientLUT[Index] := CombineReg(FGradient.FGradientColors[GradIndex].Color32, Color,
         EnsureRange(Round($FF * (Current - OldOffset) * RangeInv), 0, $FF));
-      if Current > FGradientColors[GradIndex].Offset then
+      if Current > FGradient.FGradientColors[GradIndex].Offset then
       begin
-        Color := FGradientColors[GradIndex].Color32;
-        OldOffset := FGradientColors[GradIndex].Offset;
+        Color := FGradient.FGradientColors[GradIndex].Color32;
+        OldOffset := FGradient.FGradientColors[GradIndex].Offset;
         Inc(GradIndex);
-        if GradIndex < Length(FGradientColors) then
-          RangeInv := 1 / (FGradientColors[GradIndex].Offset - OldOffset);
+        if GradIndex < Length(FGradient.FGradientColors) then
+          RangeInv := 1 / (FGradient.FGradientColors[GradIndex].Offset - OldOffset);
       end;
     end;
   end;
@@ -351,17 +444,38 @@ end;
 // TCustomGradientPolygonFiller
 //------------------------------------------------------------------------------
 
-procedure TCustomGradientPolygonFiller.InitGradientLUT(
-  const GradColors: array of TColor32Gradient);
+procedure TCustomGradientPolygonFiller.GradientChanged;
+begin
+  FGradient.OnGradientColorsChanged := GradientChangedHandler;
+  GradientColorsChanged;
+end;
+
+procedure TCustomGradientPolygonFiller.GradientChangedHandler(Sender: TObject);
+begin
+  GradientChanged;
+end;
+
+procedure TCustomGradientPolygonFiller.GradientColorsChanged;
 var
   I, ColorCount: Integer;
 begin
-  ColorCount := Length(GradColors);
+  ColorCount := FGradient.GradientCount;
   SetLength(FGradientColors, ColorCount);
   for I := 0 to ColorCount - 1 do
-    FGradientColors[I] := GradColors[I];
+    FGradientColors[I] := FGradient.GradientEntry[I];
   InitColorLUT(FGradientLUT, FGradientColors);
 end;
+
+procedure TCustomGradientPolygonFiller.SetGradient(const Value: TGradient32);
+begin
+  if FGradient <> Value then
+  begin
+    FGradient := Value;
+    GradientChanged;
+  end;
+end;
+
+
 //------------------------------------------------------------------------------
 // TLinearGradientPolygonFiller
 //------------------------------------------------------------------------------
@@ -372,7 +486,7 @@ var
 begin
   if (FDistanceSqrd > 0) then
   begin
-    Q := ((Pt.X - FStartPoint.X) * fDx + (Pt.Y - FStartPoint.Y) * fDy) / FDistanceSqrd;
+    Q := ((Pt.X - FStartPoint.X) * FDelta.X + (Pt.Y - FStartPoint.Y) * FDelta.Y) / FDistanceSqrd;
     if Q < 0 then Q := 0 else if Q > 1 then Q := 1;
     Result.X := Round((1 - Q) * FStartPoint.X + Q * FEndPoint.X);
     Result.Y := Round((1 - Q) * FStartPoint.Y + Q * FEndPoint.Y);
@@ -400,7 +514,6 @@ var
   X: Integer;
   Pt: TPoint;
   Dist: TFloat;
-  Distance: Integer;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
@@ -424,8 +537,6 @@ procedure TLinearGradientPolygonFiller.FillLineHorizontal(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
-  Pt: TPoint;
-  Dist: TFloat;
   Distance: Integer;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
@@ -452,8 +563,6 @@ procedure TLinearGradientPolygonFiller.FillLineVertical(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
-  Pt: TPoint;
-  Dist: TFloat;
   Distance: Integer;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
@@ -477,14 +586,13 @@ end;
 //------------------------------------------------------------------------------
 
 procedure TLinearGradientPolygonFiller.InitGradient(
-  const StartPoint, EndPoint: TFloatPoint; const GradColors: array of TColor32Gradient);
+  const StartPoint, EndPoint: TFloatPoint);
 begin
-  InitGradientLUT(GradColors);
   FStartPoint := Point(StartPoint);
   FEndPoint := Point(EndPoint);
-  FDx := EndPoint.X - StartPoint.X;
-  FDy := EndPoint.Y - StartPoint.Y;
-  FDistanceSqrd := FDx * FDx + FDy * FDy;
+  FDelta.X := EndPoint.X - StartPoint.X;
+  FDelta.Y := EndPoint.Y - StartPoint.Y;
+  FDistanceSqrd := FDelta.X * FDelta.X + FDelta.Y * FDelta.Y;
   FDistance := Sqrt(FDistanceSqrd);
 
   if Abs(FStartPoint.Y - FEndPoint.Y) < 1 then
@@ -500,6 +608,33 @@ end;
 // TRadialGradientPolygonFiller
 //------------------------------------------------------------------------------
 
+procedure TRadialGradientPolygonFiller.FillLineCircle(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  RelativeRadius: TFloat;
+  SqrInvRadius: TFloat;
+  YDist: TFloat;
+  Index: Integer;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+begin
+  SqrInvRadius := Sqr(1 / FRadiusX);
+  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  YDist := Sqr(DstY - FCenterY);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    RelativeRadius := Sqrt((Sqr(X - FCenterX) + YDist) * SqrInvRadius);
+    Index := EnsureRange(Round($1FF * RelativeRadius), 0, $1FF);
+    Color32 := FGradientLUT[Index];
+    BlendMemEx(Color32 and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+//------------------------------------------------------------------------------
+
 procedure TRadialGradientPolygonFiller.FillLineEllipse(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
@@ -508,13 +643,13 @@ var
   BlendMemEx: TBlendMemEx;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  dy := Abs(DstY - FCenterI.Y);
+  dy := Abs(DstY - FCenterY);
   for X := DstX to DstX + Length - 1 do
   begin
-    dx := Abs(X - FCenterI.X);
-    if (dx >= FRadiusI.X) or (dy >= FRadiusI.Y) then
+    dx := Abs(X - FCenterX);
+    if (dx >= FRadiusX) or (dy >= FRadiusY) then
       Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FColorBuffer[dy*FRadiusI.X +dx];
+      Color32 := FColorBuffer[dy * FRadiusX + dx];
     BlendMemEx(Color32, Dst^, AlphaValues^);
     Inc(Dst);
     Inc(AlphaValues);
@@ -525,23 +660,24 @@ end;
 
 function TRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-  Result := FillLineEllipse;
+  if FRadiusX = FRadiusY then
+    Result := FillLineCircle
+  else
+    Result := FillLineEllipse;
 end;
 //------------------------------------------------------------------------------
 
-procedure TRadialGradientPolygonFiller.InitGradient(const Center: TFloatPoint;
-  RadiusX, RadiusY: TFloat; const GradColors: array of TColor32Gradient);
+procedure TRadialGradientPolygonFiller.UpdateColorBuffer;
 var
   I,J, rX, rY: Integer;
-  RadiusXDivRadiusY, Rad, rad2, x, y: TFloat;
+  RadiusXDivRadiusY, Rad, Rad2, x, y: TFloat;
 begin
-  InitGradientLUT(GradColors);
+  if (RadiusX = 0) or (RadiusY = 0) then
+    Exit;
+
   rX := Ceil(RadiusX);
   rY := Ceil(RadiusY);
   SetLength(FColorBuffer, rX * rY);
-
-  FCenterI := Point(Center);
-  FRadiusI := GR32.Point(Round(RadiusX), Round(RadiusY));
 
   //fill the color buffer using GradientLUT ...
   if Abs(rX - rY) = 0 then
@@ -557,8 +693,8 @@ begin
   end else
   begin
     RadiusXDivRadiusY := RadiusX / RadiusY;
-    for I := 0 to rX -1 do
-      for J := 0 to rY -1 do
+    for I := 0 to rX - 1 do
+      for J := 0 to rY - 1 do
       begin
         Rad := Hypot(I, J);
         if I = 0 then rad2 := RadiusY
@@ -572,6 +708,70 @@ begin
           FColorBuffer[(j * rX) + i] := FGradientLUT[LUTSizeMin1] else
           FColorBuffer[(j * rX) + i] := FGradientLUT[Trunc(Rad * LUTSizeMin1 / rad2)];
       end;
+  end;
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.RadiusXChanged;
+begin
+  UpdateColorBuffer;
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.RadiusYChanged;
+begin
+  UpdateColorBuffer;
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.CenterXChanged;
+begin
+  // do nothing yet
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.CenterYChanged;
+begin
+  // do nothing yet
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.SetCenterX(const Value: Integer);
+begin
+  if FCenterX <> Value then
+  begin
+    FCenterX := Value;
+    CenterXChanged;
+  end;
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.SetCenterY(const Value: Integer);
+begin
+  if FCenterY <> Value then
+  begin
+    FCenterY := Value;
+    CenterYChanged;
+  end;
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.SetRadiusX(const Value: Integer);
+begin
+  if FRadiusX <> Value then
+  begin
+    FRadiusX := Value;
+    RadiusXChanged;
+  end;
+end;
+//------------------------------------------------------------------------------
+
+procedure TRadialGradientPolygonFiller.SetRadiusY(const Value: Integer);
+begin
+  if FRadiusY <> Value then
+  begin
+    FRadiusY := Value;
+    RadiusYChanged;
   end;
 end;
 //------------------------------------------------------------------------------
