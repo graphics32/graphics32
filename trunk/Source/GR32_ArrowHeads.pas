@@ -40,16 +40,16 @@ uses
 type
   TArrowHeadAbstract = class
   private
-    fSize: TFloat;
-    fTipPoint: TFloatPoint;
-    fBasePoint: TFloatPoint;
+    FSize: TFloat;
+    FTipPoint: TFloatPoint;
+    FBasePoint: TFloatPoint;
   protected
     function GetPointsInternal: TArrayOfFloatPoint; virtual; abstract;
   public
     constructor Create(size: TFloat); virtual;
-    function GetPoints(const line: TArrayOfFloatPoint; AtEnd: boolean): TArrayOfFloatPoint;
+    function GetPoints(const Line: TArrayOfFloatPoint; AtEnd: Boolean): TArrayOfFloatPoint;
     //Size: distance between arrow tip and arrow base
-    property Size: TFloat read fSize write fSize;
+    property Size: TFloat read FSize write FSize;
   end;
 
   TArrowHeadSimple = class(TArrowHeadAbstract)
@@ -78,85 +78,85 @@ resourcestring
 
 implementation
 
-constructor TArrowHeadAbstract.Create(size: TFloat);
+constructor TArrowHeadAbstract.Create(Size: TFloat);
 begin
-  fSize := size;
+  FSize := Size;
 end;
 //------------------------------------------------------------------------------
 
-function TArrowHeadAbstract.GetPoints(const line: TArrayOfFloatPoint;
-  AtEnd: boolean): TArrayOfFloatPoint;
+function TArrowHeadAbstract.GetPoints(const Line: TArrayOfFloatPoint;
+  AtEnd: Boolean): TArrayOfFloatPoint;
 var
-  highI: integer;
-  unitVec: TFloatPoint;
+  HighI: Integer;
+  UnitVec: TFloatPoint;
 begin
-  highI := high(line);
-  if highI < 1 then
+  HighI := high(Line);
+  if HighI < 1 then
     raise exception.create(InsufficientPointsInArray);
 
   if AtEnd then
   begin
-    fBasePoint := line[highI];
-    unitVec := GetUnitVector(line[highI -1], line[highI]);
+    FBasePoint := Line[HighI];
+    UnitVec := GetUnitVector(Line[HighI -1], Line[HighI]);
   end else
   begin
-    fBasePoint := line[0];
-    unitVec := GetUnitVector(line[1], line[0]);
+    FBasePoint := Line[0];
+    UnitVec := GetUnitVector(Line[1], Line[0]);
   end;
-  fTipPoint := OffsetPoint(fBasePoint, unitVec.X * fSize, unitVec.Y * fSize);
-  result := GetPointsInternal;
+  FTipPoint := OffsetPoint(FBasePoint, UnitVec.X * FSize, UnitVec.Y * FSize);
+  Result := GetPointsInternal;
 end;
 //------------------------------------------------------------------------------
 
 function TArrowHeadSimple.GetPointsInternal: TArrayOfFloatPoint;
 var
-  unitNorm: TFloatPoint;
-  sz: single;
+  UnitNorm: TFloatPoint;
+  Sz: Single;
 begin
-  setlength(result, 3);
-  unitNorm := GetUnitNormal(fTipPoint, fBasePoint);
-  sz := fSize / 2;
-  result[0] := fTipPoint;
-  result[1] := OffsetPoint(fBasePoint, unitNorm.X *sz, unitNorm.Y *sz);
-  result[2] := OffsetPoint(fBasePoint, -unitNorm.X *sz, -unitNorm.Y *sz);
+  SetLength(Result, 3);
+  UnitNorm := GetUnitNormal(FTipPoint, FBasePoint);
+  Sz := FSize * 0.5;
+  Result[0] := FTipPoint;
+  Result[1] := OffsetPoint(FBasePoint, UnitNorm.X *Sz, UnitNorm.Y *Sz);
+  Result[2] := OffsetPoint(FBasePoint, -UnitNorm.X *Sz, -UnitNorm.Y *Sz);
 end;
 //------------------------------------------------------------------------------
 
 function TArrowHeadFourPt.GetPointsInternal: TArrayOfFloatPoint;
 var
-  angle: double;
+  Angle: Double;
 begin
-  setlength(result, 4);
-  result[0] := fTipPoint;
-  angle := GetAngleOfPt2FromPt1(fTipPoint, fBasePoint);
-  result[1] := GetPointAtAngleFromPoint(fBasePoint, fSize /2, angle + rad60);
-  result[2] := fBasePoint;
-  result[3] := GetPointAtAngleFromPoint(fBasePoint, fSize /2, angle - rad60);
+  SetLength(Result, 4);
+  Result[0] := FTipPoint;
+  Angle := GetAngleOfPt2FromPt1(FTipPoint, FBasePoint);
+  Result[1] := GetPointAtAngleFromPoint(FBasePoint, FSize * 0.5, Angle + rad60);
+  Result[2] := FBasePoint;
+  Result[3] := GetPointAtAngleFromPoint(FBasePoint, FSize * 0.5, Angle - rad60);
 end;
 //------------------------------------------------------------------------------
 
 function TArrowHeadCircle.GetPointsInternal: TArrayOfFloatPoint;
 var
-  midPt: TFloatPoint;
+  MidPt: TFloatPoint;
 begin
-  midPt := Average(fTipPoint, fBasePoint);
-  result := Ellipse(midPt.X, midPt.Y, fSize /2, fSize /2, round(fSize));
+  MidPt := Average(FTipPoint, FBasePoint);
+  Result := Ellipse(MidPt.X, MidPt.Y, FSize * 0.5, FSize * 0.5, round(FSize));
 end;
 //------------------------------------------------------------------------------
 
 function TArrowHeadDiamond.GetPointsInternal: TArrayOfFloatPoint;
 var
-  midPt, unitNorm: TFloatPoint;
-  sz: single;
+  MidPt, UnitNorm: TFloatPoint;
+  Sz: Single;
 begin
-  midPt := Average(fTipPoint, fBasePoint);
-  unitNorm := GetUnitNormal(fTipPoint, fBasePoint);
-  sz := fSize /3;
-  setlength(result, 4);
-  result[0] := fTipPoint;
-  result[1] := OffsetPoint(midPt, unitNorm.X *sz, unitNorm.Y *sz);
-  result[2] := fBasePoint;
-  result[3] := OffsetPoint(midPt, -unitNorm.X *sz, -unitNorm.Y *sz);
+  MidPt := Average(FTipPoint, FBasePoint);
+  UnitNorm := GetUnitNormal(FTipPoint, FBasePoint);
+  Sz := FSize / 3;
+  SetLength(Result, 4);
+  Result[0] := FTipPoint;
+  Result[1] := OffsetPoint(MidPt, UnitNorm.X * Sz, UnitNorm.Y * Sz);
+  Result[2] := FBasePoint;
+  Result[3] := OffsetPoint(MidPt, -UnitNorm.X * Sz, -UnitNorm.Y * Sz);
 end;
 //------------------------------------------------------------------------------
 
