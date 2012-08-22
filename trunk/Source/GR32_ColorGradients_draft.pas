@@ -193,7 +193,7 @@ begin
     ColorLUT[0] := Cga[0].Color32;
     ColorLUT[HighLUT] := Cga[Len - 1].Color32;
     j := 0;
-    for i := 1 to HighLUT -1 do
+    for i := 1 to HighLUT - 1 do
     begin
       Fraction := i / HighLUT;
       while (j < Len) and (Fraction > Cga[j].Offset) do
