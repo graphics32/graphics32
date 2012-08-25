@@ -52,6 +52,7 @@ function Intersect(const A1, A2, B1, B2: TFloatPoint; out P: TFloatPoint): Boole
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
 
+function ClipLine(var X1, Y1, X2, Y2: Integer; MinX, MinY, MaxX, MaxY: Integer): Boolean; overload;
 function ClipLine(var X1, Y1, X2, Y2: TFloat; MinX, MinY, MaxX, MaxY: TFloat): Boolean; overload;
 function ClipLine(var P1, P2: TFloatPoint; const ClipRect: TFloatRect): Boolean; overload;
 
@@ -171,8 +172,58 @@ begin
     Exit;
 
   SetLength(Result, L+1);
-  Move(Result[0], Points[0], L*SizeOf(TFloatPoint));
+  Move(Result[0], Points[0], L * SizeOf(TFloatPoint));
   Result[L] := P1;
+end;
+
+function ClipLine(var X1, Y1, X2, Y2: Integer; MinX, MinY, MaxX, MaxY: Integer): Boolean;
+var
+  C1, C2: Integer;
+  V: Integer;
+begin
+  { Get edge codes }
+  C1 := Ord(X1 < MinX) + Ord(X1 > MaxX) shl 1 + Ord(Y1 < MinY) shl 2 + Ord(Y1 > MaxY) shl 3;
+  C2 := Ord(X2 < MinX) + Ord(X2 > MaxX) shl 1 + Ord(Y2 < MinY) shl 2 + Ord(Y2 > MaxY) shl 3;
+
+  if ((C1 and C2) = 0) and ((C1 or C2) <> 0) then
+  begin
+    if (C1 and 12) <> 0 then
+    begin
+      if C1 < 8 then V := MinY else V := MaxY;
+      Inc(X1, MulDiv(V - Y1, X2 - X1, Y2 - Y1));
+      Y1 := V;
+      C1 := Ord(X1 < MinX) + Ord(X1 > MaxX) shl 1;
+    end;
+
+    if (C2 and 12) <> 0 then
+    begin
+      if C2 < 8 then V := MinY else V := MaxY;
+      Inc(X2, MulDiv(V - Y2, X2 - X1, Y2 - Y1));
+      Y2 := V;
+      C2 := Ord(X2 < MinX) + Ord(X2 > MaxX) shl 1;
+    end;
+
+    if ((C1 and C2) = 0) and ((C1 or C2) <> 0) then
+    begin
+      if C1 <> 0 then
+      begin
+        if C1 = 1 then V := MinX else V := MaxX;
+        Inc(Y1, MulDiv(V - X1, Y2 - Y1, X2 - X1));
+        X1 := V;
+        C1 := 0;
+      end;
+
+      if C2 <> 0 then
+      begin
+        if C2 = 1 then V := MinX else V := MaxX;
+        Inc(Y2, MulDiv(V - X2, Y2 - Y1, X2 - X1));
+        X2 := V;
+        C2 := 0;
+      end;
+    end;
+  end;
+
+  Result := (C1 or C2) = 0;
 end;
 
 function ClipLine(var X1, Y1, X2, Y2: TFloat; MinX, MinY, MaxX, MaxY: TFloat): Boolean;
@@ -936,7 +987,8 @@ function BuildDashedLine(const Points: TArrayOfFloatPoint;
   Closed: Boolean = False): TArrayOfArrayOfFloatPoint;
 var
   I, J, DashIndex, len1, len2: Integer;
-  Offset, dx, dy, d, v: TFloat;
+  Offset, Dist, v: TFloat;
+  Delta: TFloatPoint;
 
   procedure AddPoint(X, Y: TFloat);
   var
@@ -948,26 +1000,27 @@ var
     Result[J][K].Y := Y;
   end;
 
-  procedure AddDash(I: integer);
+  procedure AddDash(I: Integer);
   begin
     if i = 0 then
     begin
-      dx := Points[0].X - Points[High(Points)].X;
-      dy := Points[0].Y - Points[High(Points)].Y;
+      Delta.X := Points[0].X - Points[High(Points)].X;
+      Delta.Y := Points[0].Y - Points[High(Points)].Y;
     end else
     begin
-      dx := Points[I].X - Points[I - 1].X;
-      dy := Points[I].Y - Points[I - 1].Y;
+      Delta.X := Points[I].X - Points[I - 1].X;
+      Delta.Y := Points[I].Y - Points[I - 1].Y;
     end;
-    d := GR32_Math.Hypot(dx, dy);
-    if d = 0 then Exit;
-    dx := dx / d;
-    dy := dy / d;
-    Offset := Offset + d;
+    Dist := GR32_Math.Hypot(Delta.X, Delta.Y);
+    if Dist = 0 then Exit;
+    Offset := Offset + Dist;
+    Dist := 1 / Dist;
+    Delta.X := Delta.X * Dist;
+    Delta.Y := Delta.Y * Dist;
     while Offset > DashOffset do
     begin
       v := Offset - DashOffset;
-      AddPoint(Points[I].X - v * dx, Points[I].Y - v * dy);
+      AddPoint(Points[I].X - v * Delta.X, Points[I].Y - v * Delta.Y);
       DashIndex := (DashIndex + 1) mod Length(DashArray);
       DashOffset := DashOffset + DashArray[DashIndex];
       if Odd(DashIndex) then
@@ -1014,7 +1067,7 @@ begin
     if (len1 > 0) and (len2 > 0) then
     begin
       SetLength(Result[0], len1 + len2 -1);
-      Move(Result[0][0], Result[0][len2-1], SizeOf(TFloatPoint) * len1);
+      Move(Result[0][0], Result[0][len2 - 1], SizeOf(TFloatPoint) * len1);
       Move(Result[J][0], Result[0][0], SizeOf(TFloatPoint) * len2);
       SetLength(Result, J);
       Dec(J);
@@ -1052,6 +1105,7 @@ begin
   end;
 end;
 
+// Scales to a polygon (TArrayOfFloatPoint)
 function ScalePolygon(const Src: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint;
 var
   I, L: Integer;
@@ -1065,6 +1119,7 @@ begin
   end;
 end;
 
+// Scales all sub polygons in a complex polygon (TArrayOfArrayOfFloatPoint)
 function ScalePolyPolygon(const Src: TArrayOfArrayOfFloatPoint;
   ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint;
 var
@@ -1076,6 +1131,7 @@ begin
     Result[I] := ScalePolygon(Src[I], ScaleX, ScaleY);
 end;
 
+// Applies transformation to a polygon (TArrayOfFloatPoint)
 function TransformPolygon(const Points: TArrayOfFloatPoint;
   Transformation: TTransformation): TArrayOfFloatPoint;
 var
@@ -1087,6 +1143,7 @@ begin
       Points[I].Y, Result[I].X, Result[I].Y);
 end;
 
+// Applies transformation to all sub polygons in a complex polygon
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 var
@@ -1106,6 +1163,7 @@ begin
   Result[0] := Points;
 end;
 
+// Converts an array of points in TFixed format to an array of points in TFloat format
 function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint)
   : TArrayOfFloatPoint;
 var
@@ -1122,6 +1180,7 @@ begin
   end;
 end;
 
+// Converts an array of array of points in TFixed format to an array of array of points in TFloat format
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint)
   : TArrayOfArrayOfFloatPoint;
 var
