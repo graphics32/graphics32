@@ -433,9 +433,11 @@ function MakeRect(const L, T, R, B: Integer): TRect; overload; {$IFDEF USEINLINI
 function MakeRect(const FR: TFloatRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function MakeRect(const FXR: TFixedRect; Rounding: TRectRounding = rrClosest): TRect; overload;
 function FixedRect(const L, T, R, B: TFixed): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FixedRect(const TopLeft, BottomRight: TFixedPoint): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedRect(const ARect: TRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FixedRect(const FR: TFloatRect): TFixedRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const L, T, R, B: TFloat): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function FloatRect(const TopLeft, BottomRight: TFloatPoint): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -1021,8 +1023,8 @@ resourcestring
 implementation
 
 uses
-  Math, GR32_Blend, GR32_Filters, GR32_LowLevel, GR32_Math,
-  GR32_Resamplers, GR32_Containers, GR32_Backends, GR32_Backends_Generic,
+  Math, GR32_Blend, GR32_Filters, GR32_LowLevel, GR32_Math, GR32_Resamplers,
+  GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
   {$IFDEF LCLWin32}
@@ -1040,7 +1042,7 @@ uses
 {$ELSE}
   Clipbrd, GR32_Backends_VCL,
 {$ENDIF}
-  GR32_DrawingEx;
+  GR32_VectorUtils;
 
 type
   { We can not use the Win32 defined record here since we are cross-platform. }
@@ -1567,6 +1569,12 @@ begin
   end;
 end;
 
+function FixedRect(const TopLeft, BottomRight: TFixedPoint): TFixedRect;
+begin
+  Result.TopLeft := TopLeft;
+  Result.BottomRight := BottomRight;
+end;
+
 function FixedRect(const ARect: TRect): TFixedRect;
 begin
   with Result do
@@ -1598,6 +1606,12 @@ begin
     Right := R;
     Bottom := B;
   end;
+end;
+
+function FloatRect(const TopLeft, BottomRight: TFloatPoint): TFloatRect;
+begin
+  Result.TopLeft := TopLeft;
+  Result.BottomRight := BottomRight;
 end;
 
 function FloatRect(const ARect: TRect): TFloatRect;
@@ -3986,7 +4000,8 @@ begin
 
     // Check for visibility and clip the coordinates
     if not ClipLine(Integer(X1), Integer(Y1), Integer(X2), Integer(Y2),
-      FFixedClipRect.Left - $10000, FFixedClipRect.Top - $10000,
+      FFixedClipRect.Left - $10000,
+      FFixedClipRect.Top - $10000,
       FFixedClipRect.Right, FFixedClipRect.Bottom) then Exit;
 
     { TODO : Handle L on clipping here... }
