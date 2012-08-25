@@ -640,19 +640,19 @@ end;
 
 function TTransformation.Transform(const P: TFloatPoint): TFloatPoint;
 begin
-  If not TransformValid then PrepareTransform;
+  if not TransformValid then PrepareTransform;
   TransformFloat(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.Transform(const P: TFixedPoint): TFixedPoint;
 begin
-  If not TransformValid then PrepareTransform;
+  if not TransformValid then PrepareTransform;
   TransformFixed(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.Transform(const P: TPoint): TPoint;
 begin
-  If not TransformValid then PrepareTransform;
+  if not TransformValid then PrepareTransform;
   TransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
