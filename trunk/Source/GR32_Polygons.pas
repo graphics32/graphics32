@@ -1285,6 +1285,8 @@ constructor TSamplerFiller.Create(Sampler: TCustomSampler = nil);
 begin
   inherited Create;
   FSampler := Sampler;
+  if assigned(FSampler) then
+    FGetSample := FSampler.GetSampleInt;
 end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
