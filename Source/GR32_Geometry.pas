@@ -42,6 +42,7 @@ uses
 type
   TLinePos = (lpStart, lpEnd, lpBoth, lpNeither);
 
+// TFloat Overloads
 function Average(const V1, V2: TFloatPoint): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Dot(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -50,14 +51,14 @@ function GetPointAtAngleFromPoint(const Pt: TFloatPoint; const Dist, Radians: Si
 function GetAngleOfPt2FromPt1(const Pt1, Pt2: TFloatPoint): Single; overload;
 function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
 function GetUnitVector(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
-function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;
+function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFloatPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint; overload;
 function PointInPolygon(const Pt: TFloatPoint; const Pts: TArrayOfFloatPoint): Boolean; overload;
 function SegmentIntersect(const P1, P2, P3, P4: TFloatPoint;
   out IntersectPoint: TFloatPoint): Boolean; overload;
 
-// Fixed Overloads
+// TFixed Overloads
 function Average(const V1, V2: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Dot(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -66,12 +67,19 @@ function GetPointAtAngleFromPoint(const Pt: TFixedPoint; const Dist, Radians: Si
 function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single; overload;
 function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
 function GetUnitNormal(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
-function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;
+function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFixedPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint; overload;
 function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;
 function SegmentIntersect(const P1, P2, P3, P4: TFixedPoint;
   out IntersectPoint: TFixedPoint): Boolean; overload;
+
+// Integer Overloads
+function Average(const V1, V2: TPoint): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Dot(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function Distance(const V1, V2: TPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function SqrDistance(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TPoint; dx, dy: Integer): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 const
   CRad01 = Pi / 180;
@@ -464,6 +472,34 @@ begin
     IntersectPoint.Y := Round(m1 * IntersectPoint.X + b1);
     Result := ((IntersectPoint.X < P2.X) = (IntersectPoint.X > P1.X));
   end;
+end;
+
+
+function Average(const V1, V2: TPoint): TPoint;
+begin
+  Result.X := (V1.X + V2.X) div 2;
+  Result.Y := (V1.Y + V2.Y) div 2;
+end;
+
+function Dot(const V1, V2: TPoint): Integer;
+begin
+  Result := V1.X * V2.X + V1.Y * V2.Y;
+end;
+
+function Distance(const V1, V2: TPoint): TFloat;
+begin
+  Result := Hypot(V2.X - V1.X, V2.Y - V1.Y);
+end;
+
+function SqrDistance(const V1, V2: TPoint): Integer;
+begin
+  Result := Sqr(V2.X - V1.X) + Sqr(V2.Y - V1.Y);
+end;
+
+function OffsetPoint(const Pt: TPoint; dx, dy: Integer): TPoint;
+begin
+  Result.X := Pt.X + dx;
+  Result.Y := Pt.Y + dy;
 end;
 
 end.
