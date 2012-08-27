@@ -726,17 +726,17 @@ end;
 
 function TCardinalMap.GetValPtr(X, Y: Cardinal): PCardinal;
 begin
-  Result := @FBits[X + Y * Width];
+  Result := @FBits[X + Y * Cardinal(Width)];
 end;
 
 function TCardinalMap.GetValue(X, Y: Cardinal): Cardinal;
 begin
-  Result := FBits[X + Y * Width];
+  Result := FBits[X + Y * Cardinal(Width)];
 end;
 
 procedure TCardinalMap.SetValue(X, Y: Cardinal; const Value: Cardinal);
 begin
-  FBits[X + Y * Width] := Value;
+  FBits[X + Y * Cardinal(Width)] := Value;
 end;
 
 { TFloatMap }
@@ -819,4 +819,4 @@ begin
   FBits[X + Y * Width] := Value;
 end;
 
-end.
+end.
