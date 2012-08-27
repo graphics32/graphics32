@@ -346,7 +346,9 @@ const
   FixedOne = $10000;
   FixedHalf = $7FFF;
   FixedPI  = Round(PI * FixedOne);
-  FixedToFloat = 1/FixedOne;
+  FixedToFloat = 1 / FixedOne;
+
+  COne255th = 1 / $FF;
 
 function Fixed(S: Single): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Fixed(I: Integer): TFixed; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1220,7 +1222,7 @@ end;
 function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
 begin
   if NewAlpha < 0 then NewAlpha := 0
-  else if NewAlpha > 255 then NewAlpha := 255;
+  else if NewAlpha > $FF then NewAlpha := $FF;
   Result := (Color32 and $00FFFFFF) or (TColor32(NewAlpha) shl 24);
 end;
 
@@ -1242,13 +1244,13 @@ var
     else if 2 * Hue < 1 then V := M2
     else if 3 * Hue < 2 then V := M1 + (M2 - M1) * (2 * OneOverThree - Hue) * 6
     else V := M1;
-    Result := Round(255 * V);
+    Result := Round($FF * V);
   end;
 
 begin
   if S = 0 then
   begin
-    R := Round(255 * L);
+    R := Round($FF * L);
     G := R;
     B := R;
   end
@@ -1267,15 +1269,14 @@ end;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
 const
   // reciprocal mul. opt.
-  R255 = 1 / 255;
   R6 = 1 / 6;
 
 var
   R, G, B, D, Cmax, Cmin: Single;
 begin
-  R := RedComponent(RGB) * R255;
-  G := GreenComponent(RGB) * R255;
-  B := BlueComponent(RGB) * R255;
+  R := RedComponent(RGB) * COne255th;
+  G := GreenComponent(RGB) * COne255th;
+  B := BlueComponent(RGB) * COne255th;
   Cmax := Max(R, Max(G, B));
   Cmin := Min(R, Min(G, B));
   L := (Cmax + Cmin) * 0.5;
@@ -1355,21 +1356,21 @@ begin
   end
   else
   begin
-    D := (Cmax - Cmin) * 255;
+    D := (Cmax - Cmin) * $FF;
     if L <= $7F then
       S := D div (Cmax + Cmin)
     else
-      S := D div (255 * 2 - Cmax - Cmin);
+      S := D div ($FF * 2 - Cmax - Cmin);
 
     D := D * 6;
     if R = Cmax then
-      HL := (G - B) * 255 * 255 div D
+      HL := (G - B) * $FF * $FF div D
     else if G = Cmax then
-      HL := 255 * 2 div 6 + (B - R) * 255 * 255 div D
+      HL := $FF * 2 div 6 + (B - R) * $FF * $FF div D
     else
-      HL := 255 * 4 div 6 + (R - G) * 255 * 255 div D;
+      HL := $FF * 4 div 6 + (R - G) * $FF * $FF div D;
 
-    if HL < 0 then HL := HL + 255 * 2;
+    if HL < 0 then HL := HL + $FF * 2;
     H := HL;
   end;
 end;
@@ -1385,7 +1386,7 @@ var
 begin
   L.palVersion := $300;
   L.palNumEntries := 256;
-  for I := 0 to 255 do
+  for I := 0 to $FF do
   begin
     Cl := P[I];
     with L.palPalEntry[I] do
@@ -1781,8 +1782,8 @@ procedure SetGamma(Gamma: Single);
 var
   i: Integer;
 begin
-  for i := 0 to 255 do
-    GAMMA_TABLE[i] := Round(255 * Power(i / 255, Gamma));
+  for i := 0 to $FF do
+    GAMMA_TABLE[i] := Round($FF * Power(i * COne255th, Gamma));
 end;
 
 function GetPlatformBackendClass: TCustomBackendClass;
@@ -2640,8 +2641,8 @@ begin
   if FCombineMode = cmBlend then
   begin
     A := C shr 24;  // opacity
-    celx := A * GAMMA_TABLE[flrx xor 255];
-    cely := GAMMA_TABLE[flry xor 255];
+    celx := A * GAMMA_TABLE[flrx xor $FF];
+    cely := GAMMA_TABLE[flry xor $FF];
     flrx := A * GAMMA_TABLE[flrx];
     flry := GAMMA_TABLE[flry];
 
@@ -2652,8 +2653,8 @@ begin
   end
   else
   begin
-    celx := GAMMA_TABLE[flrx xor 255];
-    cely := GAMMA_TABLE[flry xor 255];
+    celx := GAMMA_TABLE[flrx xor $FF];
+    cely := GAMMA_TABLE[flry xor $FF];
     flrx := GAMMA_TABLE[flrx];
     flry := GAMMA_TABLE[flry];
     
@@ -2693,8 +2694,8 @@ begin
   if FCombineMode = cmBlend then
   begin
     A := C shr 24;  // opacity
-    celx := A * GAMMA_TABLE[flrx xor 255];
-    cely := GAMMA_TABLE[flry xor 255];
+    celx := A * GAMMA_TABLE[flrx xor $FF];
+    cely := GAMMA_TABLE[flry xor $FF];
     flrx := A * GAMMA_TABLE[flrx];
     flry := GAMMA_TABLE[flry];
 
@@ -2717,8 +2718,8 @@ begin
   end
   else
   begin
-    celx := GAMMA_TABLE[flrx xor 255];
-    cely := GAMMA_TABLE[flry xor 255];
+    celx := GAMMA_TABLE[flrx xor $FF];
+    cely := GAMMA_TABLE[flry xor $FF];
     flrx := GAMMA_TABLE[flrx];
     flry := GAMMA_TABLE[flry];
 
@@ -2819,8 +2820,8 @@ var
   Pos: Integer;
 begin
   Pos := (X shr 8) + (Y shr 8) * FWidth;
-  Result := Interpolator(GAMMA_TABLE[X and $FF xor 255],
-                         GAMMA_TABLE[Y and $FF xor 255],
+  Result := Interpolator(GAMMA_TABLE[X and $FF xor $FF],
+                         GAMMA_TABLE[Y and $FF xor $FF],
                          @Bits[Pos], @Bits[Pos + FWidth]);
 end;
 
@@ -3017,11 +3018,11 @@ begin
   end;
   FStippleCounter := Wrap(FStippleCounter, L);
   PrevIndex := Round(FStippleCounter - 0.5);
-  PrevWeight := 255 - Round(255 * (FStippleCounter - PrevIndex));
+  PrevWeight := $FF - Round($FF * (FStippleCounter - PrevIndex));
   if PrevIndex < 0 then FStippleCounter := L - 1;
   NextIndex := PrevIndex + 1;
   if NextIndex >= L then NextIndex := 0;
-  if PrevWeight = 255 then Result := FStipplePattern[PrevIndex]
+  if PrevWeight = $FF then Result := FStipplePattern[PrevIndex]
   else
   begin
     Result := CombineReg(
@@ -4230,7 +4231,7 @@ begin
         Inc(Y1, Sy);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor $FF]);
         Inc(P, Sx);
         BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
       end;
@@ -4248,7 +4249,7 @@ begin
         Inc(X1, Sx);
         CI := EC shr 8;
         P := @Bits[X1 + Y1 * Width];
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor $FF]);
         if Sy = 1 then Inc(P, Width) else Dec(P, Width);
         BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
       end;
@@ -4503,7 +4504,7 @@ begin
       begin
         CI := EC shr 8;
         P := @Bits[D1^ + D2^ * Width];
-        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor 255]);
+        BlendMemEx(Value, P^, GAMMA_TABLE[CI xor $FF]);
         Inc(P, PI);
         BlendMemEx(Value, P^, GAMMA_TABLE[CI]);
         // check for overflow and jump to next line...
@@ -4523,7 +4524,7 @@ begin
     try
       while xd <> rem do
       begin
-        BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor 255]);
+        BlendMemEx(Value, Bits[D1^ + D2^ * Width], GAMMA_TABLE[EC shr 8 xor $FF]);
         Inc(EC, EA);
         Inc(xd, Sx);
       end;
@@ -4789,12 +4790,12 @@ begin
     if (Contrast > 0) then
     begin
       C1 := SetAlpha(clWhite32, Clamp(Contrast * 512 div 100));
-      C2 := SetAlpha(clBlack32, Clamp(Contrast * 255 div 100));
+      C2 := SetAlpha(clBlack32, Clamp(Contrast * $FF div 100));
     end
     else if Contrast < 0 then
     begin
       Contrast := -Contrast;
-      C1 := SetAlpha(clBlack32, Clamp(Contrast * 255 div 100));
+      C1 := SetAlpha(clBlack32, Clamp(Contrast * $FF div 100));
       C2 := SetAlpha(clWhite32, Clamp(Contrast * 512 div 100));
     end
     else Exit;
