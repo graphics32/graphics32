@@ -25,8 +25,17 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure CbAnimateClick(Sender: TObject);
     procedure AnimationTimer(Sender: TObject);
+    procedure ImgView32Resize(Sender: TObject);
+    procedure ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImgView32MouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer; Layer: TCustomLayer);
+    procedure ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
   private
     FArrowSize: Integer;
+    FBoxIndex: Integer;
+    FLastPos: TPoint;
     FDashes: TArrayOfFloat;
     FBoxCenter: array [0..1] of TFloatPoint;
     FVelocity: array [0..1] of TFloatPoint;
@@ -68,20 +77,6 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function MakeArrayOfFloatPoint(const a: array of TFloat): TArrayOfFloatPoint;
-var
-  i, len: integer;
-begin
-  len := length(a) div 2;
-  setlength(result, len);
-  for i := 0 to len -1 do
-  begin
-    result[i].X := a[i*2] +0.5;
-    result[i].Y := a[i*2 +1] +0.5;
-  end;
-end;
-//------------------------------------------------------------------------------
-
 function MakeBezierCurve(const CtrlPts: TArrayOfFloatPoint): TArrayOfFloatPoint;
 var
   Index: Integer;
@@ -115,9 +110,10 @@ end;
 procedure TFmArrowHeadDemo.FormCreate(Sender: TObject);
 begin
   Randomize;
-  ImgView32.SetupBitmap(True, clWhite32);
   ImgView32.Bitmap.DrawMode := dmOpaque;
+  ImgView32.SetupBitmap(True, clWhite32);
 
+  FBoxIndex := -1;
   FArrowSize := 20;
   FDashes := MakeArrayOfFloat([14, 3, 3, 3, 3, 3]);
   FBoxCenter[0] := FloatPoint(80, 100);
@@ -144,12 +140,68 @@ begin
 end;
 //------------------------------------------------------------------------------
 
+procedure TFmArrowHeadDemo.ImgView32MouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  Index: Integer;
+begin
+  FBoxIndex := -1;
+  for Index := 0 to High(FBoxCenter) do
+    if PtInRect(FloatRect(FBoxCenter[Index].X - 35, FBoxCenter[Index].Y - 35,
+      FBoxCenter[Index].X + 35, FBoxCenter[Index].Y + 35), Point(X, Y)) then
+    begin
+      FLastPos := Point(X, Y);
+      FBoxIndex := Index;
+      Exit;
+    end;
+end;
+
+procedure TFmArrowHeadDemo.ImgView32MouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  Index: Integer;
+begin
+  if FBoxIndex >= 0 then
+  begin
+    FBoxCenter[FBoxIndex].X := EnsureRange(FBoxCenter[FBoxIndex].X + X -
+      FLastPos.X, 35, ImgView32.Width - 35);
+    FBoxCenter[FBoxIndex].Y := EnsureRange(FBoxCenter[FBoxIndex].Y + Y -
+      FLastPos.Y, 35, ImgView32.Height - 35);
+    ReDraw;
+    FLastPos := Point(X, Y);
+  end
+  else
+  begin
+    for Index := 0 to High(FBoxCenter) do
+      if PtInRect(FloatRect(FBoxCenter[Index].X - 35, FBoxCenter[Index].Y - 35,
+        FBoxCenter[Index].X + 35, FBoxCenter[Index].Y + 35), Point(X, Y)) then
+      begin
+        ImgView32.Cursor := crHandPoint;
+        Exit;
+      end;
+    ImgView32.Cursor := crArrow;
+  end;
+end;
+
+procedure TFmArrowHeadDemo.ImgView32MouseUp(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+begin
+  FBoxIndex := -1;
+end;
+
+procedure TFmArrowHeadDemo.ImgView32Resize(Sender: TObject);
+begin
+  ImgView32.Bitmap.SetSize(ImgView32.Width, ImgView32.Height);
+end;
+//------------------------------------------------------------------------------
+
 procedure TFmArrowHeadDemo.ReDraw;
 var
   Poly, ArrowPts: TArrayOfFloatPoint;
+  Dist: TFloat;
   Arrow: TArrowHeadAbstract;
 begin
-  ImgView32.SetupBitmap(True, clWhite32);
+  ImgView32.Bitmap.Clear(clWhite32);
 
   case rgArrowStyle.ItemIndex of
     1: Arrow := TArrowHeadSimple.Create(ArrowSize);
@@ -169,9 +221,12 @@ begin
   DashLineFS(ImgView32.Bitmap, Poly, FDashes, FBitmapFiller, $FF000066, True,
     10, 1.5);
 
-  Poly := MakeArrayOfFloatPoint([FBoxCenter[0].X + 35, FBoxCenter[0].Y,
-    FBoxCenter[0].X + 125, FBoxCenter[0].Y,
-    FBoxCenter[1].X - 125, FBoxCenter[1].Y,
+  Dist := Hypot(FBoxCenter[0].X - FBoxCenter[1].X + 190,
+    FBoxCenter[0].Y - FBoxCenter[1].Y);
+
+  Poly := BuildPolygon([FBoxCenter[0].X + 35, FBoxCenter[0].Y,
+    FBoxCenter[0].X + Dist, FBoxCenter[0].Y,
+    FBoxCenter[1].X - Dist, FBoxCenter[1].Y,
     FBoxCenter[1].X - 35, FBoxCenter[1].Y]);
   Poly := MakeBezierCurve(Poly);
 
@@ -224,23 +279,27 @@ end;
 
 procedure TFmArrowHeadDemo.CbAnimateClick(Sender: TObject);
 begin
+  FVelocity[0] := FloatPoint(2 * Random - 1, 2 * Random - 1);
+  FVelocity[1] := FloatPoint(2 * Random - 1, 2 * Random - 1);
   Animation.Enabled := CbAnimate.Checked;
 end;
 //------------------------------------------------------------------------------
 
 procedure TFmArrowHeadDemo.AnimationTimer(Sender: TObject);
+const
+  CSize: Integer = 35;
+var
+  Index: Integer;
 begin
-  FBoxCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
-  FBoxCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
-
-  if (FBoxCenter[0].X + 60 > ImgView32.Width) or (FBoxCenter[0].X - 60 < 0) then
-    FVelocity[0].X := - FVelocity[0].X;
-  if (FBoxCenter[0].Y + 60 > ImgView32.Height) or (FBoxCenter[0].Y - 60 < 0) then
-    FVelocity[0].Y := - FVelocity[0].Y;
-  if (FBoxCenter[1].X + 60 > ImgView32.Width) or (FBoxCenter[1].X - 60 < 0) then
-    FVelocity[1].X := - FVelocity[1].X;
-  if (FBoxCenter[1].Y + 60 > ImgView32.Height) or (FBoxCenter[1].Y - 60 < 0) then
-    FVelocity[1].Y := - FVelocity[1].Y;
+  for Index := 0 to High(FBoxCenter) do
+  begin
+    if FBoxIndex <> Index then
+      FBoxCenter[Index] := OffsetPoint(FBoxCenter[Index], FVelocity[Index].X, FVelocity[Index].Y);
+    if (FBoxCenter[Index].X + CSize > ImgView32.Width) or (FBoxCenter[Index].X < CSize) then
+      FVelocity[Index].X := - FVelocity[Index].X;
+    if (FBoxCenter[Index].Y + CSize > ImgView32.Height) or (FBoxCenter[Index].Y < CSize) then
+      FVelocity[Index].Y := - FVelocity[Index].Y;
+  end;
 
   ReDraw;
 end;
