@@ -194,13 +194,13 @@ var
   procedure FixStart;
   begin
     Index := 1;
-    while (Index < HighI) and (SqrDistance(Pts[Index],Pts[0]) < DeltaSqr) do
+    while (Index < HighI) and (SqrDistance(Pts[Index], Pts[0]) < DeltaSqr) do
       Inc(Index);
     UnitVec := GetUnitVector(Pts[Index], Pts[0]);
-    Dist := Distance(Pts[Index],Pts[0]) - Delta;
+    Dist := Distance(Pts[Index], Pts[0]) - Delta;
     if Index > 1 then
     begin
-      Move(Result[Index], Result[1], sizeof(TFloatPoint) * (HighI -Index + 1));
+      Move(Result[Index], Result[1], SizeOf(TFloatPoint) * (HighI - Index + 1));
       SetLength(Result, HighI - Index + 2);
     end;
     Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
@@ -208,7 +208,7 @@ var
 
   procedure FixEnd;
   begin
-    Index := HighI -1;
+    Index := HighI - 1;
     while (Index > 0) and (SqrDistance(Pts[Index],Pts[HighI]) < DeltaSqr) do
       Dec(Index);
     UnitVec := GetUnitVector(Pts[Index],Pts[HighI]);

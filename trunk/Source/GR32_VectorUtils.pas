@@ -97,6 +97,7 @@ function ScalePolyPolygon(const Src: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: 
 function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTransformation): TArrayOfFloatPoint;
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 
+function BuildPolygon(const Data: array of TFloat): TArrayOfFloatPoint;
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -1156,6 +1157,21 @@ begin
     Result[I] := TransformPolygon(Points[I], Transformation);
 end;
 
+function BuildPolygon(const Data: array of TFloat): TArrayOfFloatPoint;
+var
+  Index, Count: Integer;
+begin
+  Count := Length(Data) div 2;
+  SetLength(Result, Count);
+  if Count = 0 then Exit;
+  for Index := 0 to Count - 1 do
+  begin
+    Result[Index].X := Data[Index * 2];
+    Result[Index].Y := Data[Index * 2 + 1];
+  end;
+end;
+
+// Copy data from Polygon to simple PolyPolygon (using 1 sub polygon only)
 function PolyPolygon(const Points: TArrayOfFloatPoint)
   : TArrayOfArrayOfFloatPoint;
 begin

@@ -74,7 +74,7 @@ type
 
 
 resourcestring
-  InsufficientPointsInArray = 'Insufficient points in array';
+  RCStrInsufficientPointsInArray = 'Insufficient points in array';
 
 implementation
 
@@ -92,7 +92,7 @@ var
 begin
   HighI := high(Line);
   if HighI < 1 then
-    raise exception.create(InsufficientPointsInArray);
+    raise exception.create(RCStrInsufficientPointsInArray);
 
   if AtEnd then
   begin
@@ -129,9 +129,9 @@ begin
   SetLength(Result, 4);
   Result[0] := FTipPoint;
   Angle := GetAngleOfPt2FromPt1(FTipPoint, FBasePoint);
-  Result[1] := GetPointAtAngleFromPoint(FBasePoint, FSize * 0.5, Angle + rad60);
+  Result[1] := GetPointAtAngleFromPoint(FBasePoint, FSize * 0.5, Angle + CRad60);
   Result[2] := FBasePoint;
-  Result[3] := GetPointAtAngleFromPoint(FBasePoint, FSize * 0.5, Angle - rad60);
+  Result[3] := GetPointAtAngleFromPoint(FBasePoint, FSize * 0.5, Angle - CRad60);
 end;
 //------------------------------------------------------------------------------
 
@@ -140,7 +140,7 @@ var
   MidPt: TFloatPoint;
 begin
   MidPt := Average(FTipPoint, FBasePoint);
-  Result := Ellipse(MidPt.X, MidPt.Y, FSize * 0.5, FSize * 0.5, round(FSize));
+  Result := Circle(MidPt.X, MidPt.Y, FSize * 0.5, Round(FSize));
 end;
 //------------------------------------------------------------------------------
 
