@@ -220,6 +220,14 @@ uses
 resourcestring
   RCStrInvalidNodeElement = 'Invalid node element';
   RCStrInvalidElementPath = 'Invalid element path';
+  RCStrTCaptionUrlListRan = 'TCaptionUrlList: range error';
+  RCStrCantGetDestinationFileName = 'Can''t get destination filename';
+  RCStrCantGetDestinationFolder = 'Can''t get destination folder';
+  RCStrInvalidTarget = 'Invalid target';
+  RCStrFileSIsInvalidHead = 'File ''%s'' is invalid (missing HEAD element)';
+  RCStrFileSIsInvalidLink = 'File ''%s'' is invalid (missing LINK element)';
+  RCStrFileSIsInvalidBody = 'File ''%s'' is invalid (missing BODY element)';
+  RCStrLoopedHierarchyRef = 'Looped hierarchy Ref';
 
 procedure TCaptionUrlList.Add(const aCaption, aUrl: string);
 begin
@@ -241,14 +249,14 @@ end;
 function TCaptionUrlList.GetCaption(index: Integer): string;
 begin
   if (index < 0) or (index >= CaptionList.Count) then
-    raise Exception.Create('TCaptionUrlList: range error');
+    raise Exception.Create(RCStrTCaptionUrlListRan);
   Result := CaptionList[index];
 end;
 
 function TCaptionUrlList.GetUrl(index: Integer): string;
 begin
   if (index < 0) or (index >= UrlList.Count) then
-    raise Exception.Create('TCaptionUrlList: range error');
+    raise Exception.Create(RCStrTCaptionUrlListRan);
   Result := UrlList[index];
 end;
 
@@ -517,7 +525,7 @@ end;
 function TElement.GetDstFile: string;
 begin
   if FileName = '' then
-    raise Exception.Create('Can''t get destination filename');
+    raise Exception.Create(RCStrCantGetDestinationFileName);
   Result := Copy(FileName, Length(Project.Folder) + 2, 1000);
   Result := Project.DestinationFolder + '\' + Result;
 end;
@@ -525,7 +533,7 @@ end;
 function TElement.GetDstFolder: string;
 begin
   if Folder = '' then
-    raise Exception.Create('Can''t get destination folder');
+    raise Exception.Create(RCStrCantGetDestinationFolder);
   Result := Copy(Folder, Length(Project.Folder) + 1, 1000);
   Result := Project.Folder + '\' + Result;
 end;
@@ -623,7 +631,7 @@ function TElement.PathTo(const Target: string): string;
 var
   S: string;
 begin
-  if Target = '' then raise Exception.Create('Invalid target');
+  if Target = '' then raise Exception.Create(RCStrInvalidTarget);
   S := StringReplace(Target, '/', '\', [rfReplaceAll]);
   S := ExtractRelativePath(FileName, S);
   Result := StringReplace(S, '\', '/', [rfReplaceAll]);
@@ -653,7 +661,8 @@ var
   Anchors, Links: TStringList;
   I: Integer;
 
-  procedure InjectSectionTemplate(const NameBegin, NameEnd: string; SrcDoc: TDomDocument; DstNode: TDomNode; const RootFolder: string);
+  procedure InjectSectionTemplate(const NameBegin, NameEnd: string;
+    SrcDoc: TDomDocument; DstNode: TDomNode; const RootFolder: string);
   var
     SrcNode: TDomNode;
     SubNode: TDomNode;
@@ -712,17 +721,17 @@ begin
     Dom.LoadFromFile(FileName);
     Head := Dom.FindNode('head', True);
     if not Assigned(Head) then
-      raise Exception.CreateFmt('File ''%s'' is invalid (missing HEAD element)', [FileName]);
+      raise Exception.CreateFmt(RCStrFileSIsInvalidHead, [FileName]);
     Link := Head.FindNode('link', False);
     if not Assigned(Link) then
-      raise Exception.CreateFmt('File ''%s'' is invalid (missing LINK element)', [FileName]);
+      raise Exception.CreateFmt(RCStrFileSIsInvalidLink, [FileName]);
     Link.Attributes['href'] := StringReplace(Link.Attributes['href'], '\', '/', [rfReplaceAll]);
     Title := Head.FindNode('title', False);
     Title.Clear;
     Title.AddText(DisplayName);
     Body := Dom.FindNode('body', True);
     if not Assigned(Body) then
-      raise Exception.CreateFmt('File ''%s'' is invalid (missing BODY element)', [FileName]);
+      raise Exception.CreateFmt(RCStrFileSIsInvalidBody, [FileName]);
 
     Anchors := TStringList.Create;
     Links := TStringList.Create;
@@ -1080,7 +1089,7 @@ begin
       begin
         with Body.Insert(0, 'p') do
         begin
-          Attributes['id'] := 'Auto-Hierachy';
+          // Attributes['id'] := 'Auto'; // must be unique!
           Attributes['class'] := 'Hierarchy';
           if (AE <> nil) and (AE.FileName <> '') then AddParse(LinkTo(AE))
           else AddText(S);
@@ -1416,7 +1425,7 @@ begin
         begin
           Classes[I].Ancestor := Classes[J];
           if Classes[J] = Classes[I] then
-            raise Exception.Create('Looped hierarchy Ref');
+            raise Exception.Create(RCStrLoopedHierarchyRef);
           Break;
         end;
   end;
