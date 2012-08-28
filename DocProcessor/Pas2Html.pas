@@ -4,10 +4,10 @@ unit Pas2Html;
 //1. Comments directly preceeding declarations in the header section of PAS
 //   files will be imported as declaration descriptions into the help file.
 //2. Images can also be flagged for import by using <img src="filename">
-//   format. Images must be located in the PAS file's folder and the filename
-//   must not contain a path. Images will be copied to the Images folder.
+//   Format. Images must be located in the PAS file's folder and the filename
+//   must not contain a Path. Images will be copied to the Images folder.
 //3. Extended comments (sample code etc) can be flagged for import by using
-//   the custom <include src="filename"> format. Again the file for importing
+//   the custom <include src="filename"> Format. Again the file for importing
 //   must be in the PAS file's folder and the filename must not contain a path.
 
 interface
@@ -17,8 +17,8 @@ uses
   ShellApi, ShlObj, Forms;
 
   function GetDelphiSourceFolder(const startFolder: string): string;
-  function BuildNewUnit(const pasFilename, destUnitFolder, projectFolder: ansiString): integer;
-  function DeleteFolder(const Foldername: ansiString): boolean;
+  function BuildNewUnit(const PasFilename, destUnitFolder, projectFolder: AnsiString): Integer;
+  function DeleteFolder(const Foldername: AnsiString): Boolean;
 
 implementation
 
@@ -31,85 +31,87 @@ const
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-function LevelToEllipsis(level: integer): string;
+function LevelToEllipsis(Level: Integer): string;
 begin
-  result := '';
-  for level := 1 to level do result := result + '../';
+  Result := '';
+  for Level := 1 to Level do
+    Result := Result + '../';
 end;
 //------------------------------------------------------------------------------
 
-function htmlStart(level: integer; const metaTag: ansiString = ''): ansiString;
+function HtmlStart(Level: Integer; const metaTag: AnsiString = ''): AnsiString;
 const
-  htmlStart1: AnsiString =
+  HtmlStart1: AnsiString =
     '<html>'#10'<head>'#10'<title>Untitled</title>'#10'<link rel="stylesheet" href="';
-  htmlStart2: AnsiString = 'styles/default.css" type="text/css">'#10;
-  htmlStart3: AnsiString = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
+  HtmlStart2: AnsiString = 'styles/default.css" type="text/css">'#10;
+  HtmlStart3: AnsiString = '</head>'#10'<body bgcolor="#FFFFFF">'#10;
 begin
-  result := htmlStart1 + LevelToEllipsis(level) + htmlStart2 + metaTag + htmlStart3;
+  Result := HtmlStart1 + LevelToEllipsis(Level) + HtmlStart2 + metaTag + HtmlStart3;
 end;
 //------------------------------------------------------------------------------
 
 var
-  buffer: AnsiString;
+  GBuffer: AnsiString;
 
-procedure AddToBuffer(const tok: TToken); overload;
+procedure AddToBuffer(const Tok: TToken); overload;
 var
-  len: integer;
-  avoidSpace, forceSpace: boolean;
+  Len: Integer;
+  AvoidSpace, ForceSpace: Boolean;
 begin
-  len := length(buffer);
-  avoidSpace := (len > 0) and (buffer[len] in ['^','@','(','[','.']);
-  case tok.kind of
+  Len := Length(GBuffer);
+  AvoidSpace := (Len > 0) and (GBuffer[Len] in ['^','@','(','[','.']);
+  case Tok.kind of
     tkReserved:
-      if (len > 0) and not avoidSpace then
-        buffer := buffer + ' <b>'+ tok.text +'</b>' else
-        buffer := buffer + '<b>'+ tok.text +'</b>';
+      if (Len > 0) and not AvoidSpace then
+        GBuffer := GBuffer + ' <b>'+ Tok.text + '</b>' else
+        GBuffer := GBuffer + '<b>'+ Tok.text + '</b>';
     tkText:
-      if len > 0 then
-        buffer := buffer + ' '''+ tok.text +'''' else
-        buffer := buffer + ''''+ tok.text +'''';
+      if Len > 0 then
+        GBuffer := GBuffer + ' '''+ Tok.text + '''' else
+        GBuffer := GBuffer + ''''+ Tok.text + '''';
     tkIdentifier, tkValue, tkAsm:
-      if (len > 0) and not avoidSpace then
-        buffer := buffer + ' '+ tok.text else
-        buffer := buffer + tok.text;
+      if (Len > 0) and not AvoidSpace then
+        GBuffer := GBuffer + ' '+ Tok.text else
+        GBuffer := GBuffer + Tok.text;
     tkSymbol:
       begin
-        forceSpace := (len > 0) and (buffer[len] in [':']);
-        if forceSpace then
-          buffer := buffer + ' '+ tok.text
-        else if (tok.text[1] in [':',';',',','(',')',']','^',SINGLEQUOTE,'"','.']) then
-          buffer := buffer + tok.text
+        ForceSpace := (Len > 0) and (GBuffer[Len] in [':']);
+        if ForceSpace then
+          GBuffer := GBuffer + ' '+ Tok.text
+        else if (Tok.text[1] in [':',';',',','(',')',']','^',SINGLEQUOTE,'"','.']) then
+          GBuffer := GBuffer + Tok.text
         else
-          buffer := buffer + ' '+ tok.text;
+          GBuffer := GBuffer + ' '+ Tok.text;
       end;
   end;
 end;
 //------------------------------------------------------------------------------
 
-procedure AddToBuffer(const str: ansiString); overload;
+procedure AddToBuffer(const str: AnsiString); overload;
 begin
-  buffer := buffer + str;
+  GBuffer := GBuffer + str;
 end;
 //------------------------------------------------------------------------------
 
 procedure ClearBuffer;
 begin
- buffer := '';
+ GBuffer := '';
 end;
 //------------------------------------------------------------------------------
 
-function StripSlash(const path: ansiString): ansiString;
+function StripSlash(const Path: AnsiString): AnsiString;
 var
-  len: integer;
+  Len: Integer;
 begin
-  result := path;
-  len := length(path);
-  if (len = 0) or (path[len] <> '\') then exit;
-  setlength(result,len-1);
+  Result := Path;
+  Len := Length(Path);
+  if (Len = 0) or (Path[Len] <> '\') then
+    Exit;
+  SetLength(Result, Len - 1);
 end;
 //------------------------------------------------------------------------------
 
-function BrowseProc(hwnd: HWnd; uMsg: integer; lParam, lpData: LPARAM): integer; stdcall;
+function BrowseProc(hwnd: HWnd; uMsg: Integer; lParam, lpData: LPARAM): Integer; stdcall;
 var
   sfi: TSHFileInfo;
 begin
@@ -121,11 +123,11 @@ begin
       end;
     BFFM_SELCHANGED:
       begin
-        ShGetFileInfo(PChar(lParam), 0, sfi,sizeof(sfi),SHGFI_DISPLAYNAME or SHGFI_PIDL);
-        SendMessage(hwnd, BFFM_SETSTATUSTEXT,0, integer(@sfi.szDisplayName));
+        ShGetFileInfo(PChar(lParam), 0, sfi,SizeOf(sfi),SHGFI_DISPLAYNAME or SHGFI_PIDL);
+        SendMessage(hwnd, BFFM_SETSTATUSTEXT,0, Integer(@sfi.szDisplayName));
       end;
   end;
-  result := 0;
+  Result := 0;
 end;
 //------------------------------------------------------------------------------
 
@@ -134,7 +136,7 @@ procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll' name 'CoTask
 //------------------------------------------------------------------------------
 
 function GetFolder(OwnerForm: TForm;
-  const Caption: string; AllowCreateNew: boolean; var Folder: string): boolean;
+  const Caption: string; AllowCreateNew: Boolean; var Folder: string): Boolean;
 var
   displayname: array[0..MAX_PATH] of char;
   bi: TBrowseInfo;
@@ -150,13 +152,13 @@ begin
   if AllowCreateNew then bi.ulFlags := bi.ulFlags or BIF_NEWDIALOGSTYLE;
   bi.lpfn := @BrowseProc;
   if Folder <> '' then Folder := StripSlash(Folder);
-  bi.lParam := integer(PAnsiChar(Folder));
+  bi.lParam := Integer(PAnsiChar(Folder));
   bi.iImage := 0;
   pidl := SHBrowseForFolder(bi);
-  result := pidl <> nil;
-  if result then
+  Result := pidl <> nil;
+  if Result then
   try
-    result := SHGetPathFromIDList(pidl,PChar(@displayname[0]));
+    Result := SHGetPathFromIDList(pidl,PChar(@displayname[0]));
     Folder := displayname;
   finally
     CoTaskMemFree(pidl);
@@ -164,16 +166,16 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function GetSpecialFolder(FolderID: integer): ansiString;
+function GetSpecialFolder(FolderID: Integer): AnsiString;
 var
   p: PItemIDList;
   Path: array[0..MAX_PATH] of char;
 begin
-  result := '';
+  Result := '';
   //nb: SHGetSpecialFolderPath requires IE 4.0 or higher
   if Succeeded(SHGetSpecialFolderLocation(0, FolderID, p)) then
   try
-    if SHGetPathFromIDList(p, Path) then result := path;
+    if SHGetPathFromIDList(p, Path) then Result := Path;
   finally
     CoTaskMemFree(p);
   end;
@@ -185,419 +187,425 @@ const
   CSIDL_PROGRAM_FILES = $26;
 begin
   if (startFolder = '') or not DirectoryExists(startFolder) then
-    result := GetSpecialFolder(CSIDL_PROGRAM_FILES) else
-    result := startFolder;
+    Result := GetSpecialFolder(CSIDL_PROGRAM_FILES) else
+    Result := startFolder;
   if not GetFolder(application.MainForm,
-    'Location of Delphi PAS Files ...', false, result) then
-    result := '';
+    'Location of Delphi PAS Files ...', False, Result) then
+    Result := '';
 end;
 //------------------------------------------------------------------------------
 
-function trimSlash(const path: string): string;
+function trimSlash(const Path: string): string;
 var
-  i: integer;
+  i: Integer;
 begin
-  result := path;
-  i := length(path);
-  if (i > 0) and (path[i] = '\') then delete(result, i, 1);
+  Result := Path;
+  i := Length(Path);
+  if (i > 0) and (Path[i] = '\') then Delete(Result, i, 1);
 end;
 //------------------------------------------------------------------------------
 
-function GetParentFolder(const path: string): string;
+function GetParentFolder(const Path: string): string;
 var
-  i: integer;
+  i: Integer;
 begin
-  i := length(path) -1;
-  while (i > 0) and (path[i] <> '\') do dec(i);
-  result := copy(path,1,i);
+  i := Length(Path) - 1;
+  while (i > 0) and (Path[i] <> '\') do Dec(i);
+  Result := Copy(Path, 1, i);
 end;
 //------------------------------------------------------------------------------
 
-function ShellFileOperation(fromFile: string; toFile: string; Flag: Integer): boolean;
+function ShellFileOperation(fromFile: string; toFile: string; Flag: Integer): Boolean;
 var
-  shellinfo: TSHFileOpStruct;
+  ShelliIfo: TSHFileOpStruct;
 begin
-  FillChar(shellinfo, sizeof(shellinfo), 0);
-  with shellinfo do
+  FillChar(ShelliIfo, SizeOf(ShelliIfo), 0);
+  with ShelliIfo do
   begin
     wnd   := Application.Handle;
     wFunc := Flag; //FO_MOVE, FO_COPY, FO_DELETE or FO_RENAME
     pFrom := PChar(fromFile);
     pTo   := PChar(toFile);
   end;
-  result := SHFileOperation(shellinfo) = 0;
+  Result := SHFileOperation(ShelliIfo) = 0;
 end;
 //------------------------------------------------------------------------------
 
-function DeleteFolder(const Foldername: ansiString): boolean;
+function DeleteFolder(const Foldername: AnsiString): Boolean;
 begin
-  result := DirectoryExists(Foldername) and
+  Result := DirectoryExists(Foldername) and
     ShellFileOperation(trimSlash(Foldername), '', FO_DELETE);
 end;
 //------------------------------------------------------------------------------
 
-function StringFromFile(const filename: string): string;
+function StringFromFile(const Filename: string): string;
 begin
   with TMemoryStream.Create do
   try
-    LoadFromFile(filename);
-    SetString(result, PAnsiChar(memory), size);
+    LoadFromFile(Filename);
+    SetString(Result, PAnsiChar(Memory), size);
   finally
     free;
   end;
 end;
 //------------------------------------------------------------------------------
 
-procedure StringToFile(const filename, strVal: ansiString);
+procedure StringToFile(const Filename, StrVal: AnsiString);
 begin
   with TMemoryStream.Create do
   try
-    Size := length(strVal);
+    Size := Length(StrVal);
     if size > 0 then
-      move(strVal[1], PAnsiChar(memory)^, size);
-    SaveToFile(filename);
+      Move(StrVal[1], PAnsiChar(Memory)^, size);
+    SaveToFile(Filename);
   finally
     free;
   end;
 end;
 //------------------------------------------------------------------------------
 
-procedure AppendStringToFile(const filename, strVal: ansiString);
+procedure AppendStringToFile(const Filename, StrVal: AnsiString);
 var
-  i, len, oldSize: cardinal;
+  i, Len, OldSize: cardinal;
 begin
-  len := length(strVal);
-  if len = 0 then exit;
+  Len := Length(StrVal);
+  if Len = 0 then Exit;
   with TMemoryStream.Create do
   try
-    if FileExists(filename) then LoadFromFile(filename);
-    oldSize := Size;
-    if oldSize > 0 then i := sizeof(cr) else i := 0;
-    Size := oldSize + len + i;
-    if oldSize > 0 then move(cr, (PAnsiChar(memory)+ oldSize)^, sizeof(cr));
-    move(strVal[1], (PAnsiChar(memory)+ oldSize +i)^, len);
-    SaveToFile(filename);
+    if FileExists(Filename) then LoadFromFile(Filename);
+    OldSize := Size;
+    if OldSize > 0 then i := SizeOf(cr) else i := 0;
+    Size := OldSize + Len + i;
+    if OldSize > 0 then Move(cr, (PAnsiChar(Memory)+ OldSize)^, SizeOf(cr));
+    Move(StrVal[1], (PAnsiChar(Memory)+ OldSize +i)^, Len);
+    SaveToFile(Filename);
   finally
     free;
   end;
 end;
 //------------------------------------------------------------------------------
 
-procedure PrependStringToFile(const filename, strVal: ansiString);
+procedure PrependStringToFile(const Filename, StrVal: AnsiString);
 var
-  i, len, oldSize: cardinal;
+  i, Len, OldSize: cardinal;
 begin
-  len := length(strVal);
-  if len = 0 then exit;
+  Len := Length(StrVal);
+  if Len = 0 then Exit;
   with TMemoryStream.Create do
   try
-    if FileExists(filename) then LoadFromFile(filename);
-    oldSize := Size;
-    if oldSize > 0 then i := sizeof(cr) else i := 0;
-    Size := oldSize + len + i;
-    if oldSize > 0 then move(PAnsiChar(memory)^, (PAnsiChar(memory)+ len + i)^, oldSize);
-    move(strVal[1], PAnsiChar(memory)^, len);
-    if oldSize > 0 then move(cr, (PAnsiChar(memory)+len)^, sizeof(cr));
-    SaveToFile(filename);
+    if FileExists(Filename) then LoadFromFile(Filename);
+    OldSize := Size;
+    if OldSize > 0 then i := SizeOf(cr) else i := 0;
+    Size := OldSize + Len + i;
+    if OldSize > 0 then Move(PAnsiChar(Memory)^, (PAnsiChar(Memory)+ Len + i)^, OldSize);
+    Move(StrVal[1], PAnsiChar(Memory)^, Len);
+    if OldSize > 0 then Move(cr, (PAnsiChar(Memory)+Len)^, SizeOf(cr));
+    SaveToFile(Filename);
   finally
     free;
   end;
 end;
 //------------------------------------------------------------------------------
 
-function FirstWordInStr(const s: ansiString): ansiString;
+function FirstWordInStr(const s: AnsiString): AnsiString;
 var
-  i, len: integer;
+  i, Len: Integer;
 begin
-  len := length(s);
-  if len = 0 then result := ''
+  Len := Length(s);
+  if Len = 0 then Result := ''
   else
   begin
     i := 1;
-    while (i <= len) and (s[i] in ['a'..'z','A'..'Z','0'..'9']) do inc(i);
-    result := copy(s, 1, i -1);
+    while (i <= Len) and (s[i] in ['a'..'z','A'..'Z','0'..'9']) do Inc(i);
+    Result := Copy(s, 1, i - 1);
   end;
 end;
 //------------------------------------------------------------------------------
 
-function BuildNewUnit(const pasFilename, destUnitFolder, projectFolder: ansiString): integer;
+function BuildNewUnit(const PasFilename, destUnitFolder, projectFolder: AnsiString): Integer;
 var
-  i: integer;
-  pasLines: TStringlist;
+  i: Integer;
+  PasLines: TStringlist;
   DelphiParser: TDelphiParser;
   ConstList, VarList, RoutinesList: TStringList;
-  tok: TToken;
-  s, fn, comment: ansiString;
+  Tok: TToken;
+  s, fn, Comment: AnsiString;
 
-  function MakeDescription(level: integer; comment: string): ansiString;
+  function MakeDescription(Level: Integer; Comment: string): AnsiString;
   var
-    i,j: integer;
-    imgFile, incFile, incStr: string;
-    quoteChar: char;
+    i,j: Integer;
+    ImgFile, IncFile, IncStr: string;
+    QuoteChar: char;
   begin
     //add any 'includes' into the comment ...
-    //format <include src="filename">
+    //Format <include src="filename">
     i := 1;
-    while true do
+    while True do
     begin
-      i := PosEx('<include src=',comment,i);
-      if i = 0 then break;
-      quoteChar := comment[i+13];
-      if not (quoteChar in ['"','''']) then break;
-      j := PosEx(quoteChar,comment,i+14);
-      if j = 0 then break;
-      incFile := copy(comment, i+14, j - (i+14));
-      j := PosEx('>',comment,j);
-      if j = 0 then break;
-      delete(comment,i,j-i+1);
-      incStr := StringFromFile(ExtractFilePath(pasFilename) +incFile);
-      incStr := trim(incStr);
+      i := PosEx('<include src=', Comment, i);
+      if i = 0 then
+        Break;
+      QuoteChar := Comment[i + 13];
+      if not (QuoteChar in ['"', '''']) then
+        Break;
+      j := PosEx(QuoteChar, Comment, i + 14);
+      if j = 0 then
+        Break;
+      IncFile := Copy(Comment, i + 14, j - (i + 14));
+      j := PosEx('>', Comment, j);
+      if j = 0 then
+        Break;
+      Delete(Comment, i, j - i + 1);
+      IncStr := StringFromFile(ExtractFilePath(PasFilename) + IncFile);
+      IncStr := Trim(IncStr);
       //replace tabs with double-spaces ...
-      incStr := StringReplace(incStr,#9, '  ', [rfReplaceAll]);
-      insert(incStr,comment,i);
-      break; //ie assumes a maximum of one 'include' statement
+      IncStr := StringReplace(IncStr, #9, '  ', [rfReplaceAll]);
+      Insert(IncStr, Comment, i);
+      Break; //ie assumes a maximum of one 'include' statement
     end;
 
-    //move any images into the image folder and fixup the path in comment ...
+    //Move any images into the image folder and fixup the Path in Comment ...
     i := 1;
-    while true do
+    while True do
     begin
-      i := PosEx('<img src=',comment,i);
-      if i = 0 then break;
-      quoteChar := comment[i+9];
-      if not (quoteChar in ['"','''']) then break;
-      j := PosEx(quoteChar,comment,i+10);
-      if j = 0 then break;
-      imgFile := copy(comment, i+10, j - (i+10));
-      insert(LevelToEllipsis(level) +'Images/', comment, i+10);
-      CopyFile( PChar(ExtractFilePath(pasFilename) +imgFile),
-        PChar(projectFolder +'Images/' +imgFile), false );
+      i := PosEx('<img src=',Comment,i);
+      if i = 0 then
+        Break;
+      QuoteChar := Comment[i + 9];
+      if not (QuoteChar in ['"', '''']) then
+        Break;
+      j := PosEx(QuoteChar, Comment, i + 10);
+      if j = 0 then Break;
+      ImgFile := Copy(Comment, i + 10, j - (i + 10));
+      Insert(LevelToEllipsis(Level) + 'Images/', Comment, i+10);
+      CopyFile( PChar(ExtractFilePath(PasFilename) +ImgFile),
+        PChar(projectFolder + 'Images/' +ImgFile), False );
       i := j+1;
     end;
 
-    //delete spaces that trail the <br> token ...
+    //Delete spaces that trail the <br> token ...
     i := 1;
-    while true do
+    while True do
     begin
-      i := PosEx('<br> ',comment,i);
-      if i = 0 then break;
-      delete(comment,i+4,1);
+      i := PosEx('<br> ',Comment,i);
+      if i = 0 then Break;
+      Delete(Comment,i+4,1);
     end;
-    while true do
+    while True do
     begin
-      i := PosEx('<br/> ',comment,i);
-      if i = 0 then break;
-      delete(comment,i+5,1);
+      i := PosEx('<br/> ',Comment,i);
+      if i = 0 then Break;
+      Delete(Comment,i+5,1);
     end;
 
-    if comment = '' then
-      result := '<br>' else
-      result := '<p class="Body">'#10 +comment+'</p>'#10;
+    if Comment = '' then
+      Result := '<br>' else
+      Result := '<p class="Body">'#10 +Comment+ '</p>'#10;
   end;
 
-  function DoConst: boolean;
+  function DoConst: Boolean;
   var
-    ident: ansiString;
+    Ident: AnsiString;
   begin
-    result := false;
+    Result := False;
     with DelphiParser do
     begin
-      while true do
+      while True do
       begin
-        peekNextToken(tok);
-        if (tok.kind <> tkIdentifier) then break;
-        GetNextToken(tok); //gobble peek
-        ident := tok.text;
-        comment := LastSpecialComment;
-        clearBuffer;
+        peekNextToken(Tok);
+        if (Tok.kind <> tkIdentifier) then Break;
+        GetNextToken(Tok); //gobble peek
+        Ident := Tok.text;
+        Comment := LastSpecialComment;
+        ClearBuffer;
         repeat
-          GetNextToken(tok);
-          AddToBuffer(tok);
-        until finished or (tok.text = ';');
-        result := tok.text = ';';
-        if result then
+          GetNextToken(Tok);
+          AddToBuffer(Tok);
+        until Finished or (Tok.text = ';');
+        Result := Tok.text = ';';
+        if Result then
           ConstList.Add(
-            format('<p class="Decl">%s %s</p>'#10,[ident, buffer])+
-            MakeDescription(4, comment)+'<br><br>'#10);
+            Format('<p class="Decl">%s %s</p>'#10,[Ident, GBuffer])+
+            MakeDescription(4, Comment)+ '<br><br>'#10);
       end;
     end;
     //add a space between each CONST code block ...
     ConstList.Add('<br>'#10);
   end;
 
-  function DoVars: boolean;
+  function DoVars: Boolean;
   var
-    ident: ansiString;
-    hasBracket: boolean;
+    Ident: AnsiString;
+    HasBracket: Boolean;
   begin
-    result := false;
+    Result := False;
     with DelphiParser do
     begin
-      while true do
+      while True do
       begin
-        peekNextToken(tok);
-        if (tok.kind <> tkIdentifier) then exit;
-        GetNextToken(tok); //gobble peek
-        ident := tok.text;
-        GetNextToken(tok);
-        if tok.text <> ':' then exit;
+        peekNextToken(Tok);
+        if (Tok.kind <> tkIdentifier) then Exit;
+        GetNextToken(Tok); //gobble peek
+        Ident := Tok.text;
+        GetNextToken(Tok);
+        if Tok.text <> ':' then Exit;
         ClearBuffer;
-        comment := LastSpecialComment;
-        AddToBuffer(ident + ':');
-        hasBracket := false;
+        Comment := LastSpecialComment;
+        AddToBuffer(Ident + ':');
+        HasBracket := False;
         repeat
-          GetNextToken(tok);
-          if (tok.text = '(') then hasBracket := true
-          else if (tok.text = ')') then hasBracket := false;
-          AddToBuffer(tok);
-        until finished or (not hasBracket and (tok.text = ';'));
-        result := tok.text = ';';
-        PeekNextToken(tok);
-        if tok.text = 'stdcall' then
+          GetNextToken(Tok);
+          if (Tok.text = '(') then HasBracket := True
+          else if (Tok.text = ')') then HasBracket := False;
+          AddToBuffer(Tok);
+        until Finished or (not HasBracket and (Tok.text = ';'));
+        Result := Tok.text = ';';
+        PeekNextToken(Tok);
+        if Tok.text = 'stdcall' then
         begin
-          GetNextToken(tok);
-          GetNextToken(tok);
-          AddToBuffer(tok);
+          GetNextToken(Tok);
+          GetNextToken(Tok);
+          AddToBuffer(Tok);
         end;
-        if result then
-          VarList.Add(MakeDescription(4, comment) +
-            format('<p class="Decl">%s</p>'#10,[buffer]));
+        if Result then
+          VarList.Add(MakeDescription(4, Comment) +
+            Format('<p class="Decl">%s</p>'#10,[GBuffer]));
       end;
     end;
     //add a space between each VAR code block ...
     VarList.Add('<br>'#10);
   end;
 
-  function DoFunction: ansiString;
+  function DoFunction: AnsiString;
   var
-    hasBracket: boolean;
+    HasBracket: Boolean;
   begin
-    result := '';
+    Result := '';
     with DelphiParser do
     begin
-      GetNextToken(tok);
-      if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
+      GetNextToken(Tok);
+      if not (Tok.kind in [tkIdentifier, tkReserved]) then Exit;
       ClearBuffer;
-      AddToBuffer(tok);
-      hasBracket := false;
+      AddToBuffer(Tok);
+      HasBracket := False;
       repeat
-        GetNextToken(tok);
-        if tok.text = '(' then hasBracket := true
-        else if tok.text = ')' then hasBracket := false;
-        AddToBuffer(tok);
-      until finished or (not hasBracket and (tok.text = ':'));
-      if tok.text <> ':' then exit;
+        GetNextToken(Tok);
+        if Tok.text = '(' then HasBracket := True
+        else if Tok.text = ')' then HasBracket := False;
+        AddToBuffer(Tok);
+      until Finished or (not HasBracket and (Tok.text = ':'));
+      if Tok.text <> ':' then Exit;
       repeat
-        GetNextToken(tok);
-        AddToBuffer(tok);
-      until finished or (tok.text = ';');
-      if (tok.text <> ';') then exit;
-      while true do
+        GetNextToken(Tok);
+        AddToBuffer(Tok);
+      until Finished or (Tok.text = ';');
+      if (Tok.text <> ';') then Exit;
+      while True do
       begin
-        PeekNextToken(tok);
-        if (tok.kind = tkReserved) and ((tok.text = 'overload') or
-          (tok.text = 'override') or (tok.text = 'virtual') or
-          (tok.text = 'abstract') or (tok.text = 'dynamic') or
-          (tok.text = 'reintroduce') or (tok.text = 'inline') or
-          (tok.text = 'stdcall')) then
-            AddToBuffer(tok) else
-            break;
+        PeekNextToken(Tok);
+        if (Tok.kind = tkReserved) and ((Tok.text = 'overload') or
+          (Tok.text = 'override') or (Tok.text = 'virtual') or
+          (Tok.text = 'abstract') or (Tok.text = 'dynamic') or
+          (Tok.text = 'reintroduce') or (Tok.text = 'inline') or
+          (Tok.text = 'stdcall')) then
+            AddToBuffer(Tok) else
+            Break;
 
-        GetNextToken(tok); //ie gobbles peek
-        GetNextToken(tok);
-        if tok.text <> ';' then exit;
+        GetNextToken(Tok); //ie gobbles peek
+        GetNextToken(Tok);
+        if Tok.text <> ';' then Exit;
         AddToBuffer(';');
       end;
-      result := buffer;
+      Result := GBuffer;
     end;
   end;
 
-  function DoProcedure: ansiString;
+  function DoProcedure: AnsiString;
   var
-    hasBracket: boolean;
+    HasBracket: Boolean;
   begin
-    result := '';
+    Result := '';
     with DelphiParser do
     begin
-      GetNextToken(tok);
-      if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
+      GetNextToken(Tok);
+      if not (Tok.kind in [tkIdentifier, tkReserved]) then Exit;
       ClearBuffer;
-      AddToBuffer(tok);
-      hasBracket := false;
+      AddToBuffer(Tok);
+      HasBracket := False;
       repeat
-        GetNextToken(tok);
-        if tok.text = '(' then hasBracket := true
-        else if tok.text = ')' then hasBracket := false;
-        AddToBuffer(tok);
-      until finished or (not hasBracket and (tok.text = ';'));
-      if tok.text <> ';' then exit;
-      while true do
+        GetNextToken(Tok);
+        if Tok.text = '(' then HasBracket := True
+        else if Tok.text = ')' then HasBracket := False;
+        AddToBuffer(Tok);
+      until Finished or (not HasBracket and (Tok.text = ';'));
+      if Tok.text <> ';' then Exit;
+      while True do
       begin
-        PeekNextToken(tok);
-        if (tok.kind = tkReserved) and ((tok.text = 'overload') or
-          (tok.text = 'override') or (tok.text = 'virtual') or
-          (tok.text = 'abstract') or (tok.text = 'dynamic')or
-          (tok.text = 'reintroduce') or (tok.text = 'inline') or
-          (tok.text = 'stdcall')) then
-            AddToBuffer(tok) else
-            break;
-        GetNextToken(tok); //ie gobbles peek
-        GetNextToken(tok);
-        if tok.text <> ';' then exit;
+        PeekNextToken(Tok);
+        if (Tok.kind = tkReserved) and ((Tok.text = 'overload') or
+          (Tok.text = 'override') or (Tok.text = 'virtual') or
+          (Tok.text = 'abstract') or (Tok.text = 'dynamic')or
+          (Tok.text = 'reintroduce') or (Tok.text = 'inline') or
+          (Tok.text = 'stdcall')) then
+            AddToBuffer(Tok) else
+            Break;
+        GetNextToken(Tok); //ie gobbles peek
+        GetNextToken(Tok);
+        if Tok.text <> ';' then Exit;
         AddToBuffer(';');
       end;
-      result := buffer;
+      Result := GBuffer;
     end;
   end;
 
-  function DoProperty: ansiString;
+  function DoProperty: AnsiString;
   var
-    inSqrBracket, doRead, doWrite: boolean;
+    inSqrBracket, doRead, doWrite: Boolean;
   begin
-    result := '';
-    clearBuffer;
+    Result := '';
+    ClearBuffer;
     with DelphiParser do
     begin
-      GetNextToken(tok);
-      if tok.kind <> tkIdentifier then exit;
-      AddToBuffer(tok);
-      PeekNextToken(tok);
-      if tok.text = ';' then
+      GetNextToken(Tok);
+      if Tok.kind <> tkIdentifier then Exit;
+      AddToBuffer(Tok);
+      PeekNextToken(Tok);
+      if Tok.text = ';' then
       begin
-        GetNextToken(tok); //gobble the peek
+        GetNextToken(Tok); //gobble the peek
         AddToBuffer(';');
-        result := buffer;
-        exit;              //ie just elevated the property's visibility
+        Result := GBuffer;
+        Exit;              //ie just elevated the property's visibility
       end;
-      inSqrBracket := false;
-      doRead := false;
-      doWrite := false;
+      inSqrBracket := False;
+      doRead := False;
+      doWrite := False;
       repeat
-        GetNextToken(tok);
-        AddToBuffer(tok);
-        if tok.text = '[' then inSqrBracket := true
-        else if tok.text = ']' then inSqrBracket := false;
-      until finished or (not inSqrBracket and (tok.text = ':'));
-      GetNextToken(tok);
-      if not (tok.kind in [tkIdentifier, tkReserved]) then exit;
-      AddToBuffer(tok);
+        GetNextToken(Tok);
+        AddToBuffer(Tok);
+        if Tok.text = '[' then inSqrBracket := True
+        else if Tok.text = ']' then inSqrBracket := False;
+      until Finished or (not inSqrBracket and (Tok.text = ':'));
+      GetNextToken(Tok);
+      if not (Tok.kind in [tkIdentifier, tkReserved]) then Exit;
+      AddToBuffer(Tok);
       AddToBuffer(';');
       //now skip the rest of the property stuff (ie read, write etc) ...
       repeat
-        GetNextToken(tok);
-        if tok.text = 'read' then doRead := true
-        else if tok.text = 'write' then doWrite := true;
-      until finished or (tok.text = ';');
-      if tok.text <> ';' then exit;
+        GetNextToken(Tok);
+        if Tok.text = 'read' then doRead := True
+        else if Tok.text = 'write' then doWrite := True;
+      until Finished or (Tok.text = ';');
+      if Tok.text <> ';' then Exit;
 
-      while true do
+      while True do
       begin
-        PeekNextToken(tok);
-        if (tok.text = 'default') or (tok.text = 'stored') then
+        PeekNextToken(Tok);
+        if (Tok.text = 'default') or (Tok.text = 'stored') then
         repeat
-          GetNextToken(tok);
-        until finished or (tok.text = ';')
-        else break;
+          GetNextToken(Tok);
+        until Finished or (Tok.text = ';')
+        else Break;
       end;
 
       if doRead and doWrite then
@@ -607,362 +615,365 @@ var
       else if doWrite then
         AddToBuffer(' <span class="Comment">//write only</span>');
 
-      result := buffer;
+      Result := GBuffer;
     end;
   end;
 
-  function DoClass(const clsName: ansiString): boolean;
+  function DoClass(const ClsName: AnsiString): Boolean;
   var
-    s, s2, fn, ancestor, classPath: ansiString;
+    s, s2, fn, Ancestor, ClassPath: AnsiString;
   begin
     with DelphiParser do
     begin
-      GetNextToken(tok);
-      result := tok.text = ';';
-      if result then exit; //ie ignore forward class declarations
-      if (tok.text = '(') then
+      GetNextToken(Tok);
+      Result := Tok.text = ';';
+      if Result then Exit; //ie ignore forward class declarations
+      if (Tok.text = '(') then
       begin
-        ancestor := '';
+        Ancestor := '';
         repeat
-          GetNextToken(tok);
-          if tok.text <> ')' then ancestor := ancestor + tok.text;
-        until finished or (tok.text = ')');
-        if tok.text <> ')' then exit;
-        GetNextToken(tok);
-        result := tok.text = ';';
-        if result then exit; //ie ignore forward class declaration
+          GetNextToken(Tok);
+          if Tok.text <> ')' then Ancestor := Ancestor + Tok.text;
+        until Finished or (Tok.text = ')');
+        if Tok.text <> ')' then Exit;
+        GetNextToken(Tok);
+        Result := Tok.text = ';';
+        if Result then Exit; //ie ignore forward class declaration
       end;
       if not DirectoryExists(destUnitFolder+ 'Classes') then
         MkDir(destUnitFolder+ 'Classes');
-      classPath := destUnitFolder+ 'Classes/' + clsName + '/';
-      if not DirectoryExists(classPath) then
-        MkDir(classPath);
-      ancestor := '<meta name="Ancestor" content="' +ancestor +'">'#10;
-      StringToFile(classPath+'_Body.htm',
-        htmlStart(5, ancestor) + MakeDescription(5, comment) + htmlEnd);
+      ClassPath := destUnitFolder+ 'Classes/' + ClsName + '/';
+      if not DirectoryExists(ClassPath) then
+        MkDir(ClassPath);
+      Ancestor := '<meta name="Ancestor" content="' +Ancestor + '">'#10;
+      StringToFile(ClassPath+ '_Body.htm',
+        HtmlStart(5, Ancestor) + MakeDescription(5, Comment) + htmlEnd);
 
       repeat
         //skip private and protected class fields and methods...
-        if (tok.text = 'private') or (tok.text = 'protected') then
+        if (Tok.text = 'private') or (Tok.text = 'protected') then
         repeat
-          GetNextToken(tok);
-        until finished or (tok.text = 'public') or
-          (tok.text = 'published') or (tok.text = 'end');
+          GetNextToken(Tok);
+        until Finished or (Tok.text = 'public') or
+          (Tok.text = 'published') or (Tok.text = 'end');
 
-        if (tok.text = 'end') then
+        if (Tok.text = 'end') then
         begin
-          GetNextToken(tok);
-          result := tok.text = ';';
-          break;
+          GetNextToken(Tok);
+          Result := Tok.text = ';';
+          Break;
         end
-        else if (tok.text = 'public') or (tok.text = 'published') then
-          GetNextToken(tok);
+        else if (Tok.text = 'public') or (Tok.text = 'published') then
+          GetNextToken(Tok);
 
-        case tok.kind of
+        case Tok.kind of
           tkIdentifier:
             begin
               ClearBuffer;
-              AddToBuffer(tok);
+              AddToBuffer(Tok);
               repeat
-                GetNextToken(tok);
-                AddToBuffer(tok);
-              until finished or (tok.text = ';');
-              if tok.text <> ';' then break;
-              fn := classPath + 'Fields.htm';
-              AppendStringToFile(fn, format('<p class="Decl">%s</p>'#10,[buffer]));
-              GetNextToken(tok);
+                GetNextToken(Tok);
+                AddToBuffer(Tok);
+              until Finished or (Tok.text = ';');
+              if Tok.text <> ';' then Break;
+              fn := ClassPath + 'Fields.htm';
+              AppendStringToFile(fn, Format('<p class="Decl">%s</p>'#10,[GBuffer]));
+              GetNextToken(Tok);
             end;
           tkReserved:
-            if (tok.text = 'constructor') or (tok.text = 'destructor') or
-              (tok.text = 'procedure') then
+            if (Tok.text = 'constructor') or (Tok.text = 'destructor') or
+              (Tok.text = 'procedure') then
             begin
-              s := tok.text;
-              comment := LastSpecialComment;
+              s := Tok.text;
+              Comment := LastSpecialComment;
               s2 := DoProcedure;
-              if s2 = '' then exit;
-              if not DirectoryExists(classPath +'Methods') then
-                MkDir(classPath +'Methods');
-              fn := classPath +'Methods/'+FirstWordInStr(s2)+'.htm';
-              AppendStringToFile(fn,format('<p class="Decl"><b>%s</b> %s</p>'#10,[s,s2]) +
-                MakeDescription(6, comment));
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
-              GetNextToken(tok);
+              if s2 = '' then Exit;
+              if not DirectoryExists(ClassPath + 'Methods') then
+                MkDir(ClassPath + 'Methods');
+              fn := ClassPath + 'Methods/'+FirstWordInStr(s2)+ '.htm';
+              AppendStringToFile(fn,Format('<p class="Decl"><b>%s</b> %s</p>'#10,[s,s2]) +
+                MakeDescription(6, Comment));
+              if RoutinesList.IndexOf(fn) < 0 then
+                RoutinesList.AddObject(fn, Pointer(6));
+              GetNextToken(Tok);
             end
-            else if (tok.text = 'function') then
+            else if (Tok.text = 'function') then
             begin
-              comment := LastSpecialComment;
+              Comment := LastSpecialComment;
               s := DoFunction;
-              if s = '' then exit;
-              if not DirectoryExists(classPath +'Methods') then
-                MkDir(classPath +'Methods');
-              fn := classPath  +'Methods/' +FirstWordInStr(s) +'.htm';
+              if s = '' then Exit;
+              if not DirectoryExists(ClassPath + 'Methods') then
+                MkDir(ClassPath + 'Methods');
+              fn := ClassPath  + 'Methods/' +FirstWordInStr(s) + '.htm';
               AppendStringToFile(fn, '<p class="Decl"><b>function</b> ' +
-                  s +'</p>' +MakeDescription(6, comment));
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
-              GetNextToken(tok);
+                  s + '</p>' +MakeDescription(6, Comment));
+              if RoutinesList.IndexOf(fn) < 0 then
+                RoutinesList.AddObject(fn, Pointer(6));
+              GetNextToken(Tok);
             end
-            else if (tok.text = 'class') then
+            else if (Tok.text = 'class') then
             begin
-              comment := LastSpecialComment;
-              GetNextToken(tok);
-              if tok.text = 'procedure' then
+              Comment := LastSpecialComment;
+              GetNextToken(Tok);
+              if Tok.text = 'procedure' then
               begin
                 s := 'procedure';
                 s2 := DoProcedure;
-              end else if tok.text = 'function' then
+              end else if Tok.text = 'function' then
               begin
                 s := 'function';
                 s2 := DoFunction;
-              end else exit;
-              if s2 = '' then exit;
-              if not DirectoryExists(classPath +'Methods') then
-                MkDir(classPath +'Methods');
-              fn := classPath  +'Methods/' +FirstWordInStr(s2) +'.htm';
+              end else Exit;
+              if s2 = '' then Exit;
+              if not DirectoryExists(ClassPath + 'Methods') then
+                MkDir(ClassPath + 'Methods');
+              fn := ClassPath  + 'Methods/' + FirstWordInStr(s2) + '.htm';
               AppendStringToFile(fn,
-                format('<p class="Decl"><b>class %s</b> %s</p>'#10,[s,s2])
-                +MakeDescription(6, comment));
-              if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
-              GetNextToken(tok);
+                Format('<p class="Decl"><b>class %s</b> %s</p>'#10, [s, s2])
+                + MakeDescription(6, Comment));
+              if RoutinesList.IndexOf(fn) < 0 then
+                RoutinesList.AddObject(fn, Pointer(6));
+              GetNextToken(Tok);
             end
-            else if (tok.text = 'property') then
+            else if (Tok.text = 'property') then
             begin
-              comment := LastSpecialComment;
+              Comment := LastSpecialComment;
               s := DoProperty;
-              if s = '' then exit;
+              if s = '' then Exit;
               s2 := FirstWordInStr(s);
-              s := htmlStart(6) + '<p class="Decl"><b>property</b> ' +
-                s +'</p>'#10 + MakeDescription(6, comment)+ htmlEnd;
+              s := HtmlStart(6) + '<p class="Decl"><b>property</b> ' +
+                s + '</p>'#10 + MakeDescription(6, Comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
-                if not DirectoryExists(classPath +'Events') then
-                  MkDir(classPath +'Events');
-                StringToFile(classPath +'Events/' +s2 +'.htm', s)
+                if not DirectoryExists(ClassPath + 'Events') then
+                  MkDir(ClassPath + 'Events');
+                StringToFile(ClassPath + 'Events/' +s2 + '.htm', s)
               end else
               begin
-                if not DirectoryExists(classPath +'Properties') then
-                  MkDir(classPath +'Properties');
-                StringToFile(classPath +'Properties/' + s2 +'.htm', s);
+                if not DirectoryExists(ClassPath + 'Properties') then
+                  MkDir(ClassPath + 'Properties');
+                StringToFile(ClassPath + 'Properties/' + s2 + '.htm', s);
               end;
-              GetNextToken(tok);
+              GetNextToken(Tok);
             end
-            else exit;
-          else exit;
+            else Exit;
+          else Exit;
         end;
-      until finished;
+      until Finished;
     end;
-    if FileExists(classPath + 'Fields.htm') then
+    if FileExists(ClassPath + 'Fields.htm') then
     begin
-      PrependStringToFile(classPath + 'Fields.htm', htmlStart(5));
-      AppendStringToFile(classPath + 'Fields.htm', htmlEnd);
+      PrependStringToFile(ClassPath + 'Fields.htm', HtmlStart(5));
+      AppendStringToFile(ClassPath + 'Fields.htm', htmlEnd);
     end;
   end;
 
-  function DoInterface(const interfaceName: ansiString): boolean;
+  function DoInterface(const interfaceName: AnsiString): Boolean;
   var
-    s, s2, fn, interfacePath: ansiString;
+    s, s2, fn, InterfacePath: AnsiString;
   begin
     with DelphiParser do
     begin
-      PeekNextToken(tok);
-      if tok.text = ';' then
+      PeekNextToken(Tok);
+      if Tok.text = ';' then
       begin
-        result := true;
-        exit; //ie forward declaration only
+        Result := True;
+        Exit; //ie forward declaration only
       end;
       ClearBuffer;
       AddToBuffer(interfaceName + ' = <b>interface</b><br>'#10);
       repeat
-        GetNextToken(tok);
-        AddToBuffer(tok);
-      until finished or (tok.text = ']');
-      result := tok.text = ']';
-      if not result then exit;
+        GetNextToken(Tok);
+        AddToBuffer(Tok);
+      until Finished or (Tok.text = ']');
+      Result := Tok.text = ']';
+      if not Result then Exit;
 
       if not DirectoryExists(destUnitFolder+ 'Interfaces') then
         MkDir(destUnitFolder+ 'Interfaces');
-      interfacePath := destUnitFolder+ 'Interfaces/' + interfaceName + '/';
-      if not DirectoryExists(interfacePath) then
-        MkDir(interfacePath);
-      StringToFile(interfacePath+'_Body.htm',
-        htmlStart(5) + buffer + MakeDescription(5, comment) + htmlEnd);
+      InterfacePath := destUnitFolder+ 'Interfaces/' + interfaceName + '/';
+      if not DirectoryExists(InterfacePath) then
+        MkDir(InterfacePath);
+      StringToFile(InterfacePath+ '_Body.htm',
+        HtmlStart(5) + GBuffer + MakeDescription(5, Comment) + htmlEnd);
 
-      GetNextToken(tok);
+      GetNextToken(Tok);
       repeat
 
-        if (tok.text = 'end') then
+        if (Tok.text = 'end') then
         begin
-          GetNextToken(tok);
-          result := tok.text = ';';
-          break;
+          GetNextToken(Tok);
+          Result := Tok.text = ';';
+          Break;
         end;
 
-        comment := LastSpecialComment;
-        case tok.kind of
+        Comment := LastSpecialComment;
+        case Tok.kind of
           tkReserved:
-            if (tok.text = 'procedure') then
+            if (Tok.text = 'procedure') then
             begin
-              s := tok.text;
+              s := Tok.text;
               s2 := DoProcedure;
-              if s2 = '' then exit;
-              if not DirectoryExists(interfacePath +'Methods') then
-                MkDir(interfacePath +'Methods');
-              fn := interfacePath +'Methods/'+FirstWordInStr(s2)+'.htm';
+              if s2 = '' then Exit;
+              if not DirectoryExists(InterfacePath + 'Methods') then
+                MkDir(InterfacePath + 'Methods');
+              fn := InterfacePath + 'Methods/'+FirstWordInStr(s2)+ '.htm';
               AppendStringToFile(fn,
-                format('<p class="Decl"><b>%s</b> %s</p>'#10,[s,s2]) +
-                MakeDescription(6, comment));
+                Format('<p class="Decl"><b>%s</b> %s</p>'#10,[s,s2]) +
+                MakeDescription(6, Comment));
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
-              GetNextToken(tok);
+              GetNextToken(Tok);
             end
-            else if (tok.text = 'function') then
+            else if (Tok.text = 'function') then
             begin
               s := DoFunction;
-              if s = '' then exit;
-              if not DirectoryExists(interfacePath +'Methods') then
-                MkDir(interfacePath +'Methods');
-              fn := interfacePath  +'Methods/' +FirstWordInStr(s) +'.htm';
+              if s = '' then Exit;
+              if not DirectoryExists(InterfacePath + 'Methods') then
+                MkDir(InterfacePath + 'Methods');
+              fn := InterfacePath  + 'Methods/' +FirstWordInStr(s) + '.htm';
               AppendStringToFile(fn,
-                format('<p class="Decl"><b>function</b> %s</p>'#10,[s]) +
-                MakeDescription(6, comment));
+                Format('<p class="Decl"><b>function</b> %s</p>'#10,[s]) +
+                MakeDescription(6, Comment));
 
               if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(6));
-              GetNextToken(tok);
+              GetNextToken(Tok);
             end
-            else if (tok.text = 'property') then
+            else if (Tok.text = 'property') then
             begin
               s := DoProperty;
-              if s = '' then exit;
+              if s = '' then Exit;
               s2 := FirstWordInStr(s);
-              s := htmlStart(6) + '<p class="Decl"><b>property</b> ' + s +
-                '</p>'#10+ MakeDescription(6, comment)+ htmlEnd;
+              s := HtmlStart(6) + '<p class="Decl"><b>property</b> ' + s +
+                '</p>'#10+ MakeDescription(6, Comment)+ htmlEnd;
               if pos('On', s2) = 1 then
               begin
-                if not DirectoryExists(interfacePath +'Events') then
-                  MkDir(interfacePath +'Events');
-                StringToFile(interfacePath +'Events/' +s2 +'.htm', s)
+                if not DirectoryExists(InterfacePath + 'Events') then
+                  MkDir(InterfacePath + 'Events');
+                StringToFile(InterfacePath + 'Events/' +s2 + '.htm', s)
               end else
               begin
-                if not DirectoryExists(interfacePath +'Properties') then
-                  MkDir(interfacePath +'Properties');
-                StringToFile(interfacePath +'Properties/' + s2 +'.htm', s);
+                if not DirectoryExists(InterfacePath + 'Properties') then
+                  MkDir(InterfacePath + 'Properties');
+                StringToFile(InterfacePath + 'Properties/' + s2 + '.htm', s);
               end;
-              GetNextToken(tok);
+              GetNextToken(Tok);
             end
-            else exit;
-          else exit;
+            else Exit;
+          else Exit;
         end;
-      until finished;
+      until Finished;
     end;
   end;
 
-  function DoTypeFunc(const funcName: ansiString): boolean;
+  function DoTypeFunc(const FuncName: AnsiString): Boolean;
   var
-    hasBracket: boolean;
+    HasBracket: Boolean;
   begin
     with DelphiParser do
     begin
       ClearBuffer;
-      AddToBuffer(funcName + ' = <b>function</b>');
-      hasBracket := false;
+      AddToBuffer(FuncName + ' = <b>function</b>');
+      HasBracket := False;
       repeat
-        GetNextToken(tok);
-        if tok.text = '(' then hasBracket := true
-        else if tok.text = ')' then hasBracket := false;
-        AddToBuffer(tok);
-      until finished or (not hasBracket and (tok.text = ';'));
-      result := tok.text = ';';
-      PeekNextToken(tok);
-      if tok.text = 'stdcall' then
+        GetNextToken(Tok);
+        if Tok.text = '(' then HasBracket := True
+        else if Tok.text = ')' then HasBracket := False;
+        AddToBuffer(Tok);
+      until Finished or (not HasBracket and (Tok.text = ';'));
+      Result := Tok.text = ';';
+      PeekNextToken(Tok);
+      if Tok.text = 'stdcall' then
       begin
-        GetNextToken(tok);
-        GetNextToken(tok);
+        GetNextToken(Tok);
+        GetNextToken(Tok);
         AddToBuffer(' <b>stdcall</b>;');
       end;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
-      StringToFile(destUnitFolder+ 'Types/' + funcName + '.htm',
-        htmlStart(4) + '<p class="Decl">' +buffer +'</p>'#10 + MakeDescription(4, comment)+ htmlEnd);
+      StringToFile(destUnitFolder+ 'Types/' + FuncName + '.htm',
+        HtmlStart(4) + '<p class="Decl">' +GBuffer + '</p>'#10 + MakeDescription(4, Comment)+ htmlEnd);
     end;
   end;
 
-  function DoTypeProc(const procName: ansiString): boolean;
+  function DoTypeProc(const ProcName: AnsiString): Boolean;
   var
-    hasBracket: boolean;
+    HasBracket: Boolean;
   begin
     with DelphiParser do
     begin
       ClearBuffer;
-      AddToBuffer(procName + ' = <b>procedure</b> ');
-      hasBracket := false;
+      AddToBuffer(ProcName + ' = <b>procedure</b> ');
+      HasBracket := False;
       repeat
-        GetNextToken(tok);
-        if tok.text = '(' then hasBracket := true
-        else if tok.text = ')' then hasBracket := false;
-        AddToBuffer(tok);
-      until finished or (not hasBracket and (tok.text = ';'));
-      result := tok.text = ';';
-      PeekNextToken(tok);
-      if tok.text = 'stdcall' then
+        GetNextToken(Tok);
+        if Tok.text = '(' then HasBracket := True
+        else if Tok.text = ')' then HasBracket := False;
+        AddToBuffer(Tok);
+      until Finished or (not HasBracket and (Tok.text = ';'));
+      Result := Tok.text = ';';
+      PeekNextToken(Tok);
+      if Tok.text = 'stdcall' then
       begin
-        GetNextToken(tok);
-        GetNextToken(tok);
+        GetNextToken(Tok);
+        GetNextToken(Tok);
         AddToBuffer(' <b>stdcall</b>;');
       end;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
-      StringToFile(destUnitFolder+ 'Types/' + procName + '.htm',
-        htmlStart(4) + '<p class="Decl">' + buffer + '</p>'#10 +
-        MakeDescription(4, comment) + htmlEnd);
+      StringToFile(destUnitFolder+ 'Types/' + ProcName + '.htm',
+        HtmlStart(4) + '<p class="Decl">' + GBuffer + '</p>'#10 +
+        MakeDescription(4, Comment) + htmlEnd);
     end;
   end;
 
-  function DoRecord(const recordName, ident2: ansiString): boolean;
+  function DoRecord(const recordName, ident2: AnsiString): Boolean;
   var
-    inCase: boolean;
+    inCase: Boolean;
   begin
-    result := false;
+    Result := False;
     ClearBuffer;
     with DelphiParser do
     begin
       if ident2 = 'packed' then
       begin
-        GetNextToken(tok);
-        if tok.text <> 'record' then exit;
+        GetNextToken(Tok);
+        if Tok.text <> 'record' then Exit;
         AddToBuffer(recordName + ' = <b>packed record</b><br>'#10);
       end
       else
         AddToBuffer(recordName + ' = <b>record</b><br>'#10);
 
-      inCase := false;
+      inCase := False;
       repeat
         repeat
-          GetNextToken(tok);
-          if (tok.text = ';') then
+          GetNextToken(Tok);
+          if (Tok.text = ';') then
             AddToBuffer(';<br>') else
-            AddToBuffer(tok);
-          if tok.text = 'case' then
-            inCase := true
-          else if inCase and (tok.text = 'of') then
+            AddToBuffer(Tok);
+          if Tok.text = 'case' then
+            inCase := True
+          else if inCase and (Tok.text = 'of') then
           begin
-            inCase := false;
+            inCase := False;
             AddToBuffer('<br>');
           end;
-        until Finished or (tok.text = ';') or (tok.text = 'end');
-      until Finished or (tok.text = 'end');
-      GetNextToken(tok);
-      result := not Finished and (tok.text = ';');
+        until Finished or (Tok.text = ';') or (Tok.text = 'end');
+      until Finished or (Tok.text = 'end');
+      GetNextToken(Tok);
+      Result := not Finished and (Tok.text = ';');
       AddToBuffer(';');
-      if result then
+      if Result then
       begin
         if not DirectoryExists(destUnitFolder+ 'Types') then
           MkDir(destUnitFolder+ 'Types');
         StringToFile(destUnitFolder+ 'Types/' + recordName + '.htm',
-          htmlStart(4) +'<p class="Decl">' + buffer + '</p>'#10 +
-          MakeDescription(4, comment) + htmlEnd);
+          HtmlStart(4) + '<p class="Decl">' + GBuffer + '</p>'#10 +
+          MakeDescription(4, Comment) + htmlEnd);
       end;
     end;
   end;
 
-  function DoGeneralType(const typeName, ident2: ansiString): boolean;
+  function DoGeneralType(const typeName, ident2: AnsiString): Boolean;
   begin
     ClearBuffer;
     with DelphiParser do
@@ -971,59 +982,59 @@ var
         AddToBuffer(typeName + ' = <b>' + ident2 + '</b>') else
         AddToBuffer(typeName + ' = ' + ident2);
       repeat
-        GetNextToken(tok);
-        AddToBuffer(tok);
-      until Finished or (tok.text = ';') ;
-      result := not Finished;
-      if not result then exit;
+        GetNextToken(Tok);
+        AddToBuffer(Tok);
+      until Finished or (Tok.text = ';') ;
+      Result := not Finished;
+      if not Result then Exit;
       if not DirectoryExists(destUnitFolder+ 'Types') then
         MkDir(destUnitFolder+ 'Types');
       StringToFile(destUnitFolder+ 'Types/' + typeName + '.htm',
-        htmlStart(4) + '<p class="Decl">' + buffer + '</p>'#10 +
-        MakeDescription(4, comment) + htmlEnd);
+        HtmlStart(4) + '<p class="Decl">' + GBuffer + '</p>'#10 +
+        MakeDescription(4, Comment) + htmlEnd);
     end;
   end;
 
-  function DoType: boolean;
+  function DoType: Boolean;
   var
-    ident: ansiString;
+    Ident: AnsiString;
   begin
-    result := false;
+    Result := False;
     with DelphiParser do
     begin
-      GetNextToken(tok);
+      GetNextToken(Tok);
 
-      while not finished and (tok.kind = tkIdentifier) do
+      while not Finished and (Tok.kind = tkIdentifier) do
       begin
-        ident := tok.text;
-        GetNextToken(tok);
-        if tok.text <> '=' then exit;
-        GetNextToken(tok);
-        comment := LastSpecialComment;
-        if tok.kind = tkReserved then
+        Ident := Tok.text;
+        GetNextToken(Tok);
+        if Tok.text <> '=' then Exit;
+        GetNextToken(Tok);
+        Comment := LastSpecialComment;
+        if Tok.kind = tkReserved then
         begin
-          if tok.text = 'class' then
+          if Tok.text = 'class' then
           begin
-            PeekNextToken(tok);
-            if tok.text = 'of' then
-              result := DoGeneralType(ident, 'class') else
-              result := DoClass(ident)
-          end else if tok.text = 'function' then
-            result := DoTypeFunc(ident)
-          else if tok.text = 'procedure' then
-            result := DoTypeProc(ident)
-          else if (tok.text = 'packed') or (tok.text = 'record') then
-            result := DoRecord(ident, tok.text)
-          else if tok.text = 'interface' then
-            result := DoInterface(ident)
+            PeekNextToken(Tok);
+            if Tok.text = 'of' then
+              Result := DoGeneralType(Ident, 'class') else
+              Result := DoClass(Ident)
+          end else if Tok.text = 'function' then
+            Result := DoTypeFunc(Ident)
+          else if Tok.text = 'procedure' then
+            Result := DoTypeProc(Ident)
+          else if (Tok.text = 'packed') or (Tok.text = 'record') then
+            Result := DoRecord(Ident, Tok.text)
+          else if Tok.text = 'interface' then
+            Result := DoInterface(Ident)
           else
-            result := DoGeneralType(ident, tok.text);
+            Result := DoGeneralType(Ident, Tok.text);
         end
         else
-          result := DoGeneralType(ident, tok.text);
-        PeekNextToken(tok);
-        if not result or (tok.kind <> tkIdentifier) then break;
-        GetNextToken(tok);
+          Result := DoGeneralType(Ident, Tok.text);
+        PeekNextToken(Tok);
+        if not Result or (Tok.kind <> tkIdentifier) then Break;
+        GetNextToken(Tok);
       end;
     end;
   end;
@@ -1033,84 +1044,86 @@ begin
   if not DirectoryExists(destUnitFolder) then
     MkDir(destUnitFolder);
 
-  StringToFile(destUnitFolder+'_Body.htm', htmlStart(3) + '<b>Unit</b> ' +
-    ChangeFileExt(ExtractFileName(pasFilename),'') + htmlEnd);
+  StringToFile(destUnitFolder+ '_Body.htm', HtmlStart(3) + '<b>Unit</b> ' +
+    ChangeFileExt(ExtractFileName(PasFilename),'') + htmlEnd);
 
-  pasLines := TStringlist.Create;
+  PasLines := TStringlist.Create;
   try
-    pasLines.LoadFromFile(pasFilename);
+    PasLines.LoadFromFile(PasFilename);
 
     ConstList := TStringlist.Create;
     VarList := TStringlist.Create;
     RoutinesList := TStringlist.Create;
 
-    DelphiParser := TDelphiParser.Create(pasLines);
+    DelphiParser := TDelphiParser.Create(PasLines);
     try
       //find 'interface' identifier ...
       repeat
-        DelphiParser.GetNextToken(tok);
-        if (tok.kind = tkReserved) and (tok.text = 'interface') then break;
-      until DelphiParser.finished;
+        DelphiParser.GetNextToken(Tok);
+        if (Tok.kind = tkReserved) and (Tok.text = 'interface') then Break;
+      until DelphiParser.Finished;
       //parse the interface section ...
-      if not DelphiParser.finished then
+      if not DelphiParser.Finished then
         repeat
-          DelphiParser.GetNextToken(tok);
-          comment := DelphiParser.LastSpecialComment;
+          DelphiParser.GetNextToken(Tok);
+          Comment := DelphiParser.LastSpecialComment;
 
-          if (tok.kind = tkReserved) then
+          if (Tok.kind = tkReserved) then
           begin
-            if (tok.text = 'implementation') then break
-            else if (tok.text = 'const') then
+            if (Tok.text = 'implementation') then Break
+            else if (Tok.text = 'const') then
             begin
-              if not DoConst then break
-            end else if (tok.text = 'var') then
+              if not DoConst then Break
+            end else if (Tok.text = 'var') then
             begin
-              if not DoVars then break
-            end else if (tok.text = 'type') then
+              if not DoVars then Break
+            end else if (Tok.text = 'type') then
             begin
-              if not DoType  then break
-            end else if (tok.text = 'function') then
+              if not DoType  then Break
+            end else if (Tok.text = 'function') then
             begin
               s := DoFunction;
               if s = '' then
-                break
+                Break
               else
               begin
                 if not DirectoryExists(destUnitFolder+ 'Functions') then
                   MkDir(destUnitFolder+ 'Functions');
-                fn := destUnitFolder+'Functions/'+ FirstWordInStr(s) +'.htm';
+                fn := destUnitFolder+ 'Functions/'+ FirstWordInStr(s) + '.htm';
                 AppendStringToFile(fn,
-                  format('<p class="Decl"><b>function</b> %s</p>'#10,[s]) +
-                  MakeDescription(4, comment));
-                if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
+                  Format('<p class="Decl"><b>function</b> %s</p>'#10,[s]) +
+                  MakeDescription(4, Comment));
+                if RoutinesList.IndexOf(fn) < 0 then
+                  RoutinesList.AddObject(fn, Pointer(4));
               end;
-            end else if (tok.text = 'procedure') then
+            end else if (Tok.text = 'procedure') then
             begin
               s := DoProcedure;
               if s = '' then
-                break
+                Break
               else
               begin
                 if not DirectoryExists(destUnitFolder+ 'Functions') then
                   MkDir(destUnitFolder+ 'Functions');
-                fn := destUnitFolder+'Functions/' +FirstWordInStr(s) +'.htm';
+                fn := destUnitFolder+ 'Functions/' +FirstWordInStr(s) + '.htm';
                   AppendStringToFile(fn,
-                    format('<p class="Decl"><b>procedure</b> %s</p>'#10,[s]) +
-                    MakeDescription(4, comment));
-                if RoutinesList.IndexOf(fn) < 0 then RoutinesList.AddObject(fn, Pointer(4));
+                    Format('<p class="Decl"><b>procedure</b> %s</p>'#10,[s]) +
+                    MakeDescription(4, Comment));
+                if RoutinesList.IndexOf(fn) < 0 then
+                  RoutinesList.AddObject(fn, Pointer(4));
               end;
             end;
           end;
-        until DelphiParser.finished;
+        until DelphiParser.Finished;
 
-      if (tok.text <> 'implementation') then
-        result := DelphiParser.CurrentPt.Y;
+      if (Tok.text <> 'implementation') then
+        Result := DelphiParser.CurrentPt.Y;
 
       if ConstList.Count > 0 then
       begin
         if not DirectoryExists(destUnitFolder+ 'Constants') then
           MkDir(destUnitFolder+ 'Constants');
-        ConstList.Insert(0, htmlStart(4));
+        ConstList.Insert(0, HtmlStart(4));
         ConstList.Add(htmlEnd);
         ConstList.SaveToFile(destUnitFolder+ 'Constants/constants.htm');
       end;
@@ -1119,7 +1132,7 @@ begin
       begin
         if not DirectoryExists(destUnitFolder+ 'Vars') then
           MkDir(destUnitFolder+ 'Vars');
-        VarList.Insert(0, htmlStart(4));
+        VarList.Insert(0, HtmlStart(4));
         VarList.Add(htmlEnd);
         VarList.SaveToFile(destUnitFolder+ 'Vars/vars.htm');
       end;
@@ -1128,7 +1141,7 @@ begin
      begin
        //nb: the RoutinesList object simply stores the 'level' of the file ...
        PrependStringToFile(RoutinesList[i],
-         htmlStart(integer(RoutinesList.Objects[i])));
+         HtmlStart(Integer(RoutinesList.Objects[i])));
        AppendStringToFile(RoutinesList[i], htmlEnd);
      end;
 
@@ -1139,7 +1152,7 @@ begin
       VarList.Free;
     end;
   finally
-    pasLines.Free;
+    PasLines.Free;
   end;
 end;
 
