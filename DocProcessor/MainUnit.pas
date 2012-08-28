@@ -7,61 +7,61 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Mask, FileCtrl, ComCtrls, Utils, SimpleDOM,
-  Contnrs, DocStructure, IniFiles, ExtCtrls, ShellApi, Pas2Html;
+  StdCtrls, Mask, FileCtrl, ComCtrls, Contnrs, IniFiles, ExtCtrls, ShellApi,
+  Utils, SimpleDOM, DocStructure, Pas2Html;
 
 type
   TMainForm = class(TForm)
-    bClose: TButton;
-    bCompile: TButton;
-    bOpen: TButton;
-    bParseMissing: TButton;
-    bProcess: TButton;
-    bSaveProjectInfo: TButton;
-    bTransform: TButton;
-    cbBrokenLinks: TCheckBox;
-    cbIncludeAlphabetClasses: TCheckBox;
-    cbOpenAfterProcess: TCheckBox;
-    edCHMCompiler: TEdit;
-    edProjectDirectory: TEdit;
-    edProjectTitle: TEdit;
-    lblCompiler: TLabel;
-    lblProgress: TLabel;
-    lblProjectDirectory: TLabel;
-    lblProjectTitle: TLabel;
+    BtnClose: TButton;
+    BtnCompile: TButton;
+    BtnOpen: TButton;
+    BtnParseMissing: TButton;
+    BtnProcess: TButton;
+    BtnSaveProjectInfo: TButton;
+    BtnTransform: TButton;
+    CbxBrokenLinks: TCheckBox;
+    CbxIncludeAlphabetClasses: TCheckBox;
+    CbxOpenAfterProcess: TCheckBox;
+    EdtCHMCompiler: TEdit;
+    EdtProjectDirectory: TEdit;
+    EdtProjectTitle: TEdit;
+    LblCompiler: TLabel;
+    LblProgress: TLabel;
+    LblProjectDirectory: TLabel;
+    LblProjectTitle: TLabel;
     Log: TMemo;
-    pnlCompiler: TPanel;
-    pnlCompilerHead: TPanel;
-    pnlControl: TPanel;
-    pnlLog: TPanel;
-    pnlMisc: TPanel;
-    pnlMiscHead: TPanel;
-    pnlProgress: TPanel;
-    pnlProjectInfo: TPanel;
-    pnlProjectInfoHead: TPanel;
-    pnlTransComp: TPanel;
-    pnlTransCompHead: TPanel;
+    PnlCompiler: TPanel;
+    PnlCompilerHead: TPanel;
+    PnlControl: TPanel;
+    PnlLog: TPanel;
+    PnlMisc: TPanel;
+    PnlMiscHead: TPanel;
+    PnlProgress: TPanel;
+    PnlProjectInfo: TPanel;
+    PnlProjectInfoHead: TPanel;
+    PnlTransComp: TPanel;
+    PnlTransCompHead: TPanel;
     Progress: TProgressBar;
-    lblVersionString: TLabel;
-    lblProjectFileName: TLabel;
-    cbProjectName: TComboBox;
-    edVersionString: TEdit;
+    LblVersionString: TLabel;
+    LblProjectFileName: TLabel;
+    CmbProjectName: TComboBox;
+    EdtVersionString: TEdit;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-    procedure bCloseClick(Sender: TObject);
-    procedure bCompileClick(Sender: TObject);
-    procedure bOpenClick(Sender: TObject);
-    procedure bParseMissingClick(Sender: TObject);
-    procedure bProcessClick(Sender: TObject);
-    procedure bSaveProjectInfoClick(Sender: TObject);
-    procedure bTransformClick(Sender: TObject);
-    procedure cbProjectNameChange(Sender: TObject);
-    procedure cbProjectNameClick(Sender: TObject);
-    procedure edProjectDirectoryChange(Sender: TObject);
-    procedure edProjectTitleChange(Sender: TObject);
-    procedure edCHMCompilerChange(Sender: TObject);
+    procedure BtnCloseClick(Sender: TObject);
+    procedure BtnCompileClick(Sender: TObject);
+    procedure BtnOpenClick(Sender: TObject);
+    procedure BtnParseMissingClick(Sender: TObject);
+    procedure BtnProcessClick(Sender: TObject);
+    procedure BtnSaveProjectInfoClick(Sender: TObject);
+    procedure BtnTransformClick(Sender: TObject);
+    procedure CmbProjectNameChange(Sender: TObject);
+    procedure CmbProjectNameClick(Sender: TObject);
+    procedure EdtProjectDirectoryChange(Sender: TObject);
+    procedure EdtProjectTitleChange(Sender: TObject);
+    procedure EdtCHMCompilerChange(Sender: TObject);
   public
     ProjectDir: TFileName;
     SourceDir: TFileName;
@@ -87,19 +87,19 @@ implementation
 
 function DeleteDirectoryTree(Dir: string): Boolean;
 var
-  len: Integer;
-  shfo : TSHFileOpStruct;
+  CharCount: Integer;
+  FileOpt : TSHFileOpStruct;
 begin
   Result := False;
-  len := Length(Dir);
-  if (len > 0) and (Dir[len] = '\') then Dir[len] := #0;
+  CharCount := Length(Dir);
+  if (CharCount > 0) and (Dir[CharCount] = '\') then Dir[CharCount] := #0;
   if not DirectoryExists(Dir) then Exit;
-  fillChar(shfo, sizeof(shfo), 0);
-  shfo.Wnd := 0;
-  shfo.wFunc := FO_DELETE;
-  shfo.pFrom := PChar(Dir);
-  shfo.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
-  Result := SHFileOperation(shfo) = 0;
+  fillChar(FileOpt, SizeOf(FileOpt), 0);
+  FileOpt.Wnd := 0;
+  FileOpt.wFunc := FO_DELETE;
+  FileOpt.pFrom := PChar(Dir);
+  FileOpt.fFlags := FOF_ALLOWUNDO or FOF_NOCONFIRMATION or FOF_SILENT;
+  Result := SHFileOperation(FileOpt) = 0;
 end;
 
 procedure LogAdd(const S: string);
@@ -137,27 +137,27 @@ begin
       Lines[Lines.Count - 1] := S;
 end;
 
-procedure TMainForm.edCHMCompilerChange(Sender: TObject);
+procedure TMainForm.EdtCHMCompilerChange(Sender: TObject);
 begin
-  bCompile.Enabled := FileExists(edCHMCompiler.Text);
-  edProjectTitleChange(Sender);
+  BtnCompile.Enabled := FileExists(EdtCHMCompiler.Text);
+  EdtProjectTitleChange(Sender);
 end;
 
-procedure TMainForm.edProjectDirectoryChange(Sender: TObject);
+procedure TMainForm.EdtProjectDirectoryChange(Sender: TObject);
 begin
-  ProjectDir := edProjectDirectory.Text;
+  ProjectDir := EdtProjectDirectory.Text;
   if DirectoryExists(ProjectDir) then
   begin
     ProjectDir := IncludeTrailingBackslash(ProjectDir);
     if DirectoryExists(ProjectDir + 'Source') then
     begin
       SourceDir := ProjectDir + 'Source\';
-      bProcess.Enabled := True;
-      bSaveProjectInfo.Enabled := true;
+      BtnProcess.Enabled := True;
+      BtnSaveProjectInfo.Enabled := True;
       Exit;
     end;
   end;
-  bProcess.Enabled := False;
+  BtnProcess.Enabled := False;
   ProjectDir := '';
   SourceDir := '';
 end;
@@ -167,7 +167,7 @@ var
   i, ActiveItem: Integer;
   sValue: string;
 begin
-  edProjectDirectoryChange(Self);
+  EdtProjectDirectoryChange(Self);
 
   ExePath := IncludeTrailingBackslash(ExtractFilePath(ParamStr(0)));
 
@@ -177,7 +177,7 @@ begin
     while ValueExists('Projects', 'ProjectName' + IntToStr(i)) do
     begin
       sValue := ReadString('Projects', 'ProjectName' + IntToStr(i), '');
-      if sValue <> '' then cbProjectName.Items.Add(sValue);
+      if sValue <> '' then CmbProjectName.Items.Add(sValue);
       Inc(i);
     end;
     DelphiSourceFolder := ReadString('Settings', 'DelphiSourceFolder', '');
@@ -188,23 +188,23 @@ begin
 
   NoGUI := False;
 
-  if (ParamCount > 0) and fileExists(ExePath + paramstr(2)) then
+  if (ParamCount > 0) and FileExists(ExePath + paramstr(2)) then
     LoadProject(paramstr(2))
-  else if (ParamCount > 0) and fileExists(ExePath + paramstr(2) + '.ini') then
+  else if (ParamCount > 0) and FileExists(ExePath + paramstr(2) + '.ini') then
     LoadProject(paramstr(2)+ '.ini')
-  else if (cbProjectName.Items.Count > 0) then
+  else if (CmbProjectName.Items.Count > 0) then
   begin
-    if (ActiveItem < cbProjectName.Items.Count) and
-      fileExists(ExePath + cbProjectName.Items[ActiveItem] + '.ini') then
-        LoadProject(cbProjectName.Items[ActiveItem] + '.ini')
-    else if fileExists(ExePath + cbProjectName.Items[0] + '.ini') then
-        LoadProject(cbProjectName.Items[0] + '.ini')
+    if (ActiveItem < CmbProjectName.Items.Count) and
+      FileExists(ExePath + CmbProjectName.Items[ActiveItem] + '.ini') then
+        LoadProject(CmbProjectName.Items[ActiveItem] + '.ini')
+    else if FileExists(ExePath + CmbProjectName.Items[0] + '.ini') then
+        LoadProject(CmbProjectName.Items[0] + '.ini')
     else LoadProject('properties.ini');
   end else
     LoadProject('properties.ini');
-  ActiveControl := bProcess;
+  ActiveControl := BtnProcess;
 
-  bCompile.Enabled := FileExists(edCHMCompiler.Text);
+  BtnCompile.Enabled := FileExists(EdtCHMCompiler.Text);
 
   if ParamCount > 2 then
   begin
@@ -215,11 +215,11 @@ begin
     end;
 
     if FindCmdLineSwitch('transform') then
-      bTransform.Click
+      BtnTransform.Click
     else if FindCmdLineSwitch('compile') then
-      bCompile.Click
+      BtnCompile.Click
     else if FindCmdLineSwitch('process') then
-      bProcess.Click;
+      BtnProcess.Click;
 
     Application.Terminate;
   end;
@@ -227,18 +227,18 @@ end;
 
 procedure TMainForm.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
-  i: Integer;
+  Index: Integer;
 begin
-  CanClose := true;
-  if not NoGUI and bSaveProjectInfo.Enabled and
-    (MessageBox(self.handle, 'Save Project Information', pchar(caption),
+  CanClose := True;
+  if not NoGUI and BtnSaveProjectInfo.Enabled and
+    (MessageBox(self.handle, 'Save Project Information', PChar(caption),
       MB_YESNO or MB_DEFBUTTON1) = IDYES) then SaveProject;
   with TIniFile.Create(ExePath + 'properties.ini') do
   try
-    WriteInteger('Settings', 'ActiveProject', cbProjectName.ItemIndex);
+    WriteInteger('Settings', 'ActiveProject', CmbProjectName.ItemIndex);
     if sectionExists('Projects') then EraseSection('Projects');
-    for i := 0 to cbProjectName.Items.Count - 1 do
-      WriteString('Projects', 'ProjectName' + IntToStr(i + 1), cbProjectName.Items[i]);
+    for Index := 0 to CmbProjectName.Items.Count - 1 do
+      WriteString('Projects', 'ProjectName' + IntToStr(Index + 1), CmbProjectName.Items[Index]);
   finally
     Free;
   end;
@@ -246,22 +246,22 @@ end;
 
 procedure TMainForm.SaveProject;
 var
-  I: Integer;
+  Index: Integer;
   Ini: TIniFile;
 begin
-  if cbProjectName.Items.IndexOf(cbProjectName.Text) < 0 then
-    cbProjectName.Items.Add(cbProjectName.Text);
+  if CmbProjectName.Items.IndexOf(CmbProjectName.Text) < 0 then
+    CmbProjectName.Items.Add(CmbProjectName.Text);
 
-  Ini := TIniFile.Create(ExePath + cbProjectName.Text + '.ini');
+  Ini := TIniFile.Create(ExePath + CmbProjectName.Text + '.ini');
   try
-    Ini.WriteString('Settings', 'ProjectName', cbProjectName.Text);
+    Ini.WriteString('Settings', 'ProjectName', CmbProjectName.Text);
     Ini.WriteString('Settings', 'DelphiSourceFolder', DelphiSourceFolder);
-    for i := 0 to Self.ComponentCount-1 do
-      if Self.Components[i].InheritsFrom(TCustomEdit) and
-         not Self.Components[i].InheritsFrom(TMemo) then
-        Ini.WriteString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TEdit(Self.Components[i]).Text)
-      else if Self.Components[i].InheritsFrom(TCheckBox) then
-        Ini.WriteBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), TCheckBox(Self.Components[i]).Checked);
+    for Index := 0 to Self.ComponentCount - 1 do
+      if Self.Components[Index].InheritsFrom(TCustomEdit) and
+         not Self.Components[Index].InheritsFrom(TMemo) then
+        Ini.WriteString('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), TEdit(Self.Components[Index]).Text)
+      else if Self.Components[Index].InheritsFrom(TCheckBox) then
+        Ini.WriteBool('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), TCheckBox(Self.Components[Index]).Checked);
   finally
     Ini.Free;
   end;
@@ -270,7 +270,7 @@ end;
 procedure TMainForm.LoadProject(const ProjName: TFileName);
 var
   Ini: TIniFile;
-  i: Integer;
+  Index: Integer;
   SValue: string;
 begin
   Ini := TIniFile.Create(ExePath + ProjName);
@@ -278,45 +278,45 @@ begin
     if ProjName = 'properties.ini' then
       SValue := Ini.ReadString('Settings', 'ProjectName', 'MyProjectName') else
       SValue := ChangeFileExt(ProjName, '');
-    i := cbProjectName.Items.IndexOf(SValue);
-    if i >= 0 then cbProjectName.ItemIndex := i
-    else cbProjectName.Text := SValue;
+    Index := CmbProjectName.Items.IndexOf(SValue);
+    if Index >= 0 then CmbProjectName.ItemIndex := Index
+    else CmbProjectName.Text := SValue;
 
-    for i := 0 to Self.ComponentCount - 1 do
-      if Self.Components[i].InheritsFrom(TCustomEdit) and
-         not Self.Components[i].InheritsFrom(TMemo) then
+    for Index := 0 to Self.ComponentCount - 1 do
+      if Self.Components[Index].InheritsFrom(TCustomEdit) and
+         not Self.Components[Index].InheritsFrom(TMemo) then
       begin
-        SValue := Ini.ReadString('Settings', Copy(Self.Components[i].Name, 3, MAXINT), '');
-        if SValue <> '' then TEdit(Self.Components[i]).Text := SValue;
+        SValue := Ini.ReadString('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), '');
+        if SValue <> '' then TEdit(Self.Components[Index]).Text := SValue;
       end
-      else if Self.Components[i].InheritsFrom(TCheckBox) then
-        TCheckBox(Self.Components[i]).Checked :=
-          Ini.ReadBool('Settings', Copy(Self.Components[i].Name, 3, MAXINT), False);
+      else if Self.Components[Index].InheritsFrom(TCheckBox) then
+        TCheckBox(Self.Components[Index]).Checked :=
+          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), False);
   finally
     Ini.Free;
   end;
-  log.Lines.Clear;
-  bSaveProjectInfo.Enabled := False;
+  Log.Lines.Clear;
+  BtnSaveProjectInfo.Enabled := False;
 end;
 
-procedure TMainForm.bSaveProjectInfoClick(Sender: TObject);
+procedure TMainForm.BtnSaveProjectInfoClick(Sender: TObject);
 begin
   SaveProject;
-  bSaveProjectInfo.Enabled := False;
+  BtnSaveProjectInfo.Enabled := False;
 end;
 
-procedure TMainForm.cbProjectNameChange(Sender: TObject);
+procedure TMainForm.CmbProjectNameChange(Sender: TObject);
 begin
-  bSaveProjectInfo.Enabled :=
-    cbProjectName.Items.IndexOf(cbProjectName.Text) < 0;
+  BtnSaveProjectInfo.Enabled :=
+    CmbProjectName.Items.IndexOf(CmbProjectName.Text) < 0;
 end;
 
-procedure TMainForm.cbProjectNameClick(Sender: TObject);
+procedure TMainForm.CmbProjectNameClick(Sender: TObject);
 begin
-  LoadProject(cbProjectName.Text + '.ini');
+  LoadProject(CmbProjectName.Text + '.ini');
 end;
 
-procedure TMainForm.bCloseClick(Sender: TObject);
+procedure TMainForm.BtnCloseClick(Sender: TObject);
 begin
   Close;
 end;
@@ -326,13 +326,13 @@ procedure TMainForm.FormKeyDown(Sender: TObject; var Key: Word;
 begin
   case Key of
     VK_ESCAPE: Close;
-    VK_F7: bTransformClick(nil);
-    VK_F8: bCompileClick(nil);
-    VK_F9: bProcessClick(nil);
+    VK_F7: BtnTransformClick(nil);
+    VK_F8: BtnCompileClick(nil);
+    VK_F9: BtnProcessClick(nil);
   end;
 end;
 
-procedure TMainForm.bProcessClick(Sender: TObject);
+procedure TMainForm.BtnProcessClick(Sender: TObject);
 begin
   if not StartTransforming then Exit;
   LogAdd(#13#10);
@@ -341,18 +341,18 @@ end;
 
 procedure TMainForm.StartCompile;
 begin
-  if FileExists(edCHMCompiler.Text) then
+  if FileExists(EdtCHMCompiler.Text) then
   begin
     LogAdd('Starting HTML Help compiler...'#13#10);
-    RunCommandInMemo(edCHMCompiler.Text + ' "' + ProjectDir + cbProjectName.Text + '.hhp"', Log);
+    RunCommandInMemo(EdtCHMCompiler.Text + ' "' + ProjectDir + CmbProjectName.Text + '.hhp"', Log);
     LogAdd('Done.'#13#10);
     LogNL;
-    if cbOpenAfterProcess.Checked then
-      bOpenClick(nil);
+    if CbxOpenAfterProcess.Checked then
+      BtnOpenClick(nil);
     Exit;
   end
   else
-    LogAdd('HTML Help compiler not found! (' + edCHMCompiler.Text + ')'#13#10);
+    LogAdd('HTML Help compiler not found! (' + EdtCHMCompiler.Text + ')'#13#10);
   LogNL;
 end;
 
@@ -366,7 +366,7 @@ var
   NextUpdate: Cardinal;
 begin
   Result := False;
-  VersionString := edVersionString.Text;
+  VersionString := EdtVersionString.Text;
   if ProjectDir = '' then Exit;
   Log.Clear;
   Log.Color := clWhite;
@@ -381,19 +381,19 @@ begin
   Application.ProcessMessages;
   CompileTime := GetTickCount;
 
-  DocStructure.IncludeAlphabetClasses := cbIncludeAlphabetClasses.Checked;
-  DocStructure.CheckForBrokenLinks := cbBrokenLinks.Checked;
+  DocStructure.IncludeAlphabetClasses := CbxIncludeAlphabetClasses.Checked;
+  DocStructure.CheckForBrokenLinks := CbxBrokenLinks.Checked;
 
   Project := TProject.Create(nil, ProjectDir + 'Source');
   try
-    Project.DisplayName := edProjectTitle.Text;
+    Project.DisplayName := EdtProjectTitle.Text;
     Project.DestinationFolder := ProjectDir + 'Docs';
     Project.ImageFolder := ProjectDir + 'Images';
     Project.ScriptFolder := ProjectDir + 'Script';
     Project.StylesFolder := ProjectDir + 'Styles';
     Project.HeadSectionTemplate := ProjectDir + 'HeadSection.tmpl';
     Project.BodySectionTemplate := ProjectDir + 'BodySection.tmpl';
-    LogAdd(#13#10+ 'Transforming - ' + cbProjectName.Text+ #13#10);
+    LogAdd(#13#10+ 'Transforming - ' + CmbProjectName.Text+ #13#10);
     LogNL;
 
     LogAdd('Reading files ...');
@@ -453,16 +453,16 @@ begin
     end;
     LogReplace('Transforming Files ...... done'#13#10);
     LogAdd('Building TOC ...');
-    Project.BuildToc(ProjectDir + cbProjectName.Text + '.hhc');
+    Project.BuildToc(ProjectDir + CmbProjectName.Text + '.hhc');
     LogAdd('... done'#13#10);
     Progress.Position := 95;
     LogAdd('Building Index ...');
-    Project.BuildIndex(ProjectDir + cbProjectName.Text + '.hhk');
+    Project.BuildIndex(ProjectDir + CmbProjectName.Text + '.hhk');
     LogAdd('... done'#13#10);
     Progress.Position := 100;
 
     LogAdd('Writing Project ...');
-    WriteProject(ProjectDir + cbProjectName.Text + '.hhp');
+    WriteProject(ProjectDir + CmbProjectName.Text + '.hhp');
     LogAdd('... done'#13#10);
     LogNL;
     LogAdd('Project transformed in ');
@@ -482,7 +482,7 @@ begin
       Log.Color := $E7FFFF;
     end;
 
-    Result := true;
+    Result := True;
   finally
     Enabled := True;
     Project.Free;
@@ -497,19 +497,19 @@ begin
   try
     Lines.Add('[OPTIONS]');
     Lines.Add('Compatibility=1.1 or later');
-    Lines.Add('Compiled file=' + cbProjectName.Text + '.chm');
-    Lines.Add('Contents file=' + cbProjectName.Text + '.hhc');
+    Lines.Add('Compiled file=' + CmbProjectName.Text + '.chm');
+    Lines.Add('Contents file=' + CmbProjectName.Text + '.hhc');
     Lines.Add('Default Window=Main Window');
     Lines.Add('Default topic=Docs\Overview\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
-    Lines.Add('Index file=' + cbProjectName.Text + '.hhk');
+    Lines.Add('Index file=' + CmbProjectName.Text + '.hhk');
     Lines.Add('Language=0x409 English (United States)');
-    Lines.Add('Title=' + edProjectTitle.Text);
+    Lines.Add('Title=' + EdtProjectTitle.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
     Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm","Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
-      [edProjectTitle.Text, cbProjectName.Text + '.hhc', cbProjectName.Text + '.hhk']));
+      [EdtProjectTitle.Text, CmbProjectName.Text + '.hhc', CmbProjectName.Text + '.hhk']));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
     Lines.SaveToFile(FileName);
@@ -518,24 +518,24 @@ begin
   end;
 end;
 
-procedure TMainForm.bTransformClick(Sender: TObject);
+procedure TMainForm.BtnTransformClick(Sender: TObject);
 begin
   StartTransforming;
 end;
 
-procedure TMainForm.bCompileClick(Sender: TObject);
+procedure TMainForm.BtnCompileClick(Sender: TObject);
 begin
   Log.Clear;
   StartCompile;
 end;
 
-procedure TMainForm.bOpenClick(Sender: TObject);
+procedure TMainForm.BtnOpenClick(Sender: TObject);
 begin
   ShellExecute(Self.Handle, 'open',
-    PChar(IncludeTrailingBackslash(edProjectDirectory.Text) + cbProjectName.Text + '.chm'), '', '', SW_SHOW);
+    PChar(IncludeTrailingBackslash(EdtProjectDirectory.Text) + CmbProjectName.Text + '.chm'), '', '', SW_SHOW);
 end;
 
-procedure TMainForm.bParseMissingClick(Sender: TObject);
+procedure TMainForm.BtnParseMissingClick(Sender: TObject);
 var
   i, j, k, m: Integer;
   DestUnitFolder, fn: TFileName;
@@ -570,8 +570,8 @@ begin
       begin
         s := 'The file '+ fn + ' has already been imported into the help source.'+#10+
           'Do you want to replace the existing contents with this new file?';
-        if MessageBox(self.handle, pchar(s),
-          pchar(caption), MB_YESNO or MB_DEFBUTTON2) <> IDYES then continue;
+        if MessageBox(self.handle, PChar(s),
+          PChar(caption), MB_YESNO or MB_DEFBUTTON2) <> IDYES then continue;
         DeleteFolder(DestUnitFolder + fn);
       end;
       Inc(j);
@@ -626,9 +626,9 @@ begin
   Log.Color := $E7FFE7;
 end;
 
-procedure TMainForm.edProjectTitleChange(Sender: TObject);
+procedure TMainForm.EdtProjectTitleChange(Sender: TObject);
 begin
-  bSaveProjectInfo.Enabled := True;
+  BtnSaveProjectInfo.Enabled := True;
 end;
 
 end.
