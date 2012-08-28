@@ -256,12 +256,14 @@ begin
 end;
 
 procedure TBrushCollection.InsertItem(Item: TCustomBrush);
+(*
 var
   Index: Integer;
+*)
 begin
   BeginUpdate;
   try
-    Index := FItems.Add(Item);
+    //Index := FItems.Add(Item);
     Item.FBrushCollection := Self;
     //Notify(lnLayerAdded, Item, Index);
   finally
@@ -538,12 +540,8 @@ var
 begin
   for I := 0 to High(Points) do
     inherited PolyPolygonFS(
-      Renderer,
-      BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed),
-      ClipRect,
-      Transformation,
-      False
-    );
+      Renderer, BuildDashedLine(Points[I], FDashArray, FDashOffset, Closed),
+      ClipRect, Transformation, False);
 end;
 
 procedure TDashedBrush.SetDashArray(const ADashArray: array of TFloat);
@@ -583,9 +581,7 @@ var
 begin
   SetLength(APoints, Length(Points));
   for I := 0 to High(Points) do
-  begin
     APoints[I] := Grow(Points[I], GrowAmount, JoinStyle, Closed, MiterLimit);
-  end;
   inherited PolyPolygonFS(Renderer, APoints, ClipRect, Transformation, True);
 end;
 

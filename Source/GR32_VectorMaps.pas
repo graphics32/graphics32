@@ -248,14 +248,14 @@ begin
     WY := TFixedRec(Y).Frac;
     {$IFDEF HAS_NATIVEINT}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
-      PFixedPoint(NativeUInt(P) + H)^, WX), CombineVectorsReg(
-      PFixedPoint(NativeUInt(P) + W)^, PFixedPoint(NativeUInt(P) + W + H)^, WX),
-      WY);
+      PFixedPoint(NativeUInt(P) + Cardinal(H))^, WX), CombineVectorsReg(
+      PFixedPoint(NativeUInt(P) + Cardinal(W))^,
+      PFixedPoint(NativeUInt(P) + Cardinal(W + H))^, WX), WY);
     {$ELSE}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
-      PFixedPoint(Cardinal(P) + H)^, WX), CombineVectorsReg(
-      PFixedPoint(Cardinal(P) + W)^, PFixedPoint(Cardinal(P) + W + H)^, WX),
-      WY);
+      PFixedPoint(Cardinal(P) + Cardinal(H))^, WX), CombineVectorsReg(
+      PFixedPoint(Cardinal(P) + Cardinal(W))^,
+      PFixedPoint(Cardinal(P) + W + H)^, WX), WY);
     {$ENDIF}
   end else
   begin

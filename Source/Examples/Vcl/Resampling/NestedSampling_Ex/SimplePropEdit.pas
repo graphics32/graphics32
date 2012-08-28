@@ -87,7 +87,7 @@ const
 implementation
 
 uses
-  SysUtils, Math, GR32_Resamplers, GR32_LowLevel;
+  SysUtils, Math, GR32, GR32_Resamplers, GR32_LowLevel;
 
 { TSimplePropertyEditor }
 
@@ -97,7 +97,7 @@ var
   Obj: TPersistent;
 begin
   PropInfo := FProps^[TComponent(Sender).Tag];
-  Obj := TPersistent(GetObjectProp(FSelectedObject, PropInfo.Name));
+  Obj := TPersistent(GetObjectProp(FSelectedObject, string(PropInfo.Name)));
   PostMessage(Handle, WM_SELECTOBJECT, 0, Integer(Obj));
 end;
 
@@ -309,7 +309,7 @@ begin
 
         tkInteger, tkFloat:
           begin
-            GetPropertyRange(AObject, P.Name, LoValue, HiValue);
+            GetPropertyRange(AObject, string(P.Name), LoValue, HiValue);
 
             Control := TTrackBar.Create(nil);
             Control.Parent := Self;
@@ -404,7 +404,7 @@ begin
       end;
 
       ALabel := TLabel.Create(nil);
-      ALabel.Caption := P.Name + ':';
+      ALabel.Caption := string(P.Name + ':');
       ALabel.Left := 0;
       ALabel.Top := T1 + 8;
       ALabel.Width := 84;

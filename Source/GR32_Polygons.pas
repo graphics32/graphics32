@@ -304,7 +304,8 @@ var
 implementation
 
 uses
-  Math, SysUtils, GR32_Math, GR32_LowLevel, GR32_Blend, GR32_VectorUtils;
+  Math, SysUtils, GR32_Math, GR32_Geometry, GR32_LowLevel, GR32_Blend,
+  GR32_VectorUtils;
 
 type
   TBitmap32Access = class(TBitmap32);

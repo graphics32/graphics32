@@ -208,7 +208,7 @@ implementation
 {$ENDIF}
 
 uses
-  Math,
+  Types, Math,
 {$IFDEF DARWIN}
   MacOSAll,
 {$ENDIF}

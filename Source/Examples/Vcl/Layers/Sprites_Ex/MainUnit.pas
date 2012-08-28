@@ -369,6 +369,10 @@ begin
 end;
 
 initialization
+{$IFDEF COMPILERXE2_UP}
+  FormatSettings.DecimalSeparator := '.';
+{$ELSE}
   DecimalSeparator := '.';
+{$ENDIF}
 
 end.
