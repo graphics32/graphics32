@@ -127,16 +127,16 @@ type
   private
     CaptionList: TStringList;
     UrlList: TStringList;
-    function GetCaption(index: integer): string;
-    function GetUrl(index: integer): string;
+    function GetCaption(index: Integer): string;
+    function GetUrl(index: Integer): string;
   public
     procedure Add(const aCaption, aUrl: string);
     procedure Clear;
-    function Count: integer;
+    function Count: Integer;
     constructor Create;
     destructor Destroy; override;
-    property Caption[index: integer]: string read GetCaption;
-    property Url[index: integer]: string read GetUrl;
+    property Caption[index: Integer]: string read GetCaption;
+    property Url[index: Integer]: string read GetUrl;
   end;
 
   TIndex = class;
@@ -191,7 +191,7 @@ type
     constructor Create(AParent: TElement; const APath: string); override;
     destructor Destroy; override;
     procedure BuildHierarchy;
-    procedure ParseMenuData(cuList: TCaptionUrlList);
+    procedure ParseMenuData(CuList: TCaptionUrlList);
     procedure BuildIndex(const IndexFile: string);
     procedure BuildTOC(const TocFile: string);
     function FindClass(const AName: string): TClassElement;
@@ -217,6 +217,10 @@ implementation
 uses
   Utils;
 
+resourcestring
+  RCStrInvalidNodeElement = 'Invalid node element';
+  RCStrInvalidElementPath = 'Invalid element path';
+
 procedure TCaptionUrlList.Add(const aCaption, aUrl: string);
 begin
   CaptionList.Add(aCaption);
@@ -231,21 +235,21 @@ end;
 
 function TCaptionUrlList.Count;
 begin
-  result := CaptionList.Count;
+  Result := CaptionList.Count;
 end;
 
-function TCaptionUrlList.GetCaption(index: integer): string;
+function TCaptionUrlList.GetCaption(index: Integer): string;
 begin
   if (index < 0) or (index >= CaptionList.Count) then
     raise Exception.Create('TCaptionUrlList: range error');
-  result := CaptionList[index];
+  Result := CaptionList[index];
 end;
 
-function TCaptionUrlList.GetUrl(index: integer): string;
+function TCaptionUrlList.GetUrl(index: Integer): string;
 begin
   if (index < 0) or (index >= UrlList.Count) then
     raise Exception.Create('TCaptionUrlList: range error');
-  result := UrlList[index];
+  Result := UrlList[index];
 end;
 
 constructor TCaptionUrlList.Create;
@@ -420,24 +424,25 @@ begin
 
   with Body.Add('h2') do
   begin
-    Attributes['id'] := 'auto';
+    Attributes['id'] := 'Auto-SeeAlso';
     AddText('See Also');
   end;
   with Body.Add('p') do
   begin
-    Attributes['id'] := 'auto';
+    // Attributes['id'] := 'Auto'; must be unique!
     Attributes['class'] := 'Body';
     Links.CustomSort(CompareLinks);
     for I := 0 to Links.Count - 1 do
     begin
       S := Links[I];
-      J := pos('#', S);
-      if J > 0 then setLength(S, J -1);
+      J := Pos('#', S);
+      if J > 0 then
+        SetLength(S, J -1);
 
-      if CheckForBrokenLinks and not fileExists(S) and (Pos('mailto:', S) = 0) then
+      if CheckForBrokenLinks and not FileExists(S) and (Pos('mailto:', S) = 0) then
       begin
         Project.BrokenLinks.Add('  ' + S + #13#10);
-        Project.BrokenLinks.Add('    in ' + self.FileName + #13#10);
+        Project.BrokenLinks.Add('    in ' + Self.FileName + #13#10);
       end;
 
       E := nil;
@@ -454,7 +459,8 @@ begin
         S := Format('<a href="%s">%s</a>',
           [PathTo(S), E.Parent.DisplayName + '.' + GetLinkName(S)]);
       end
-      else S := LinkTo(S);
+      else
+        S := LinkTo(S);
       AddParse(S);
       if I < Links.Count - 1 then AddText(', ');
     end;
@@ -476,16 +482,18 @@ begin
     end
     else if DirectoryExists(APath) then
     begin
-      if FileExists(APath + '\_Body.htm') then FileName := APath + '\_Body.htm';
+      if FileExists(APath + '\_Body.htm') then
+        FileName := APath + '\_Body.htm';
       Folder := APath;
       DisplayName := DirName(APath);
     end
-    else raise Exception.Create('Invalid node element');
+    else raise Exception.Create(RCStrInvalidNodeElement);
   end
   else if IsTopic then
   begin
     // APath must point to *.htm* file
-    if not FileExists(APath) then raise Exception.Create('Invalid element path');
+    if not FileExists(APath) then
+      raise Exception.Create(RCStrInvalidElementPath);
     FileName := APath;
     Folder := ExtractFilePath(APath);
     DisplayName := FileNameNoExt(APath);
@@ -493,14 +501,17 @@ begin
   else
   begin
     // A path must point to a directory with optional '_Body.htm' in it
-    if not DirectoryExists(APath) then Exception.Create('Invalid element path');
-    if FileExists(APath + '\_Body.htm') then FileName := APath + '\_Body.htm';
+    if not DirectoryExists(APath) then
+      Exception.Create(RCStrInvalidElementPath);
+    if FileExists(APath + '\_Body.htm') then
+      FileName := APath + '\_Body.htm';
     Folder := APath;
     DisplayName := DirName(APath);
     if DisplayName = '_Home' then DisplayName := 'Home';
   end;
 
-  if (FileName <> '') and (Project <> nil) then Project.Files.AddObject(FileName, Self);
+  if (FileName <> '') and (Project <> nil) then
+    Project.Files.AddObject(FileName, Self);
 end;
 
 function TElement.GetDstFile: string;
@@ -1069,7 +1080,7 @@ begin
       begin
         with Body.Insert(0, 'p') do
         begin
-          Attributes['id'] := 'Auto';
+          Attributes['id'] := 'Auto-Hierachy';
           Attributes['class'] := 'Hierarchy';
           if (AE <> nil) and (AE.FileName <> '') then AddParse(LinkTo(AE))
           else AddText(S);
@@ -1079,14 +1090,14 @@ begin
         AE := AE.Ancestor;
         with Body.Insert(0, 'p') do
         begin
-          Attributes['id'] := 'Auto';
+          // Attributes['id'] := 'Auto'; // must be unique!
           Attributes['class'] := 'Hierarchy';
           AddText('&nbsp;&nbsp;&nbsp;|');
         end;
       end;
       with Body.Insert(0, 'h2') do
       begin
-        Attributes['id'] := 'Auto';
+        // Attributes['id'] := 'Auto'; // must be unique!
         AddText('Hierarchy');
       end;
     end;
@@ -1143,14 +1154,14 @@ begin
 
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Reference';
         AddText('Reference');
       end;
 
       T := Body.Add('table');
       with T do
       begin
-        Attributes['id'] := 'Auto';
+        // Attributes['id'] := 'Auto'; // must be unique!
 
         // heading row
         with Add('tr') do
@@ -1267,7 +1278,7 @@ begin
   begin
     with Body.Add('h2') do
     begin
-      Attributes['id'] := 'Auto';
+      Attributes['id'] := 'Auto-Contents';
       AddText('Contents');
     end;
 
@@ -1287,7 +1298,7 @@ begin
       T := Body.Add('table');
       with T do
       begin
-        Attributes['id'] := 'Auto';
+        // Attributes['id'] := 'Auto'; // must be unique!
         with Add('tr') do
           for I := 0 to Columns.Count - 1 do
             Add('th').AddText(TElements(Columns[I]).SubDirName);
@@ -1348,7 +1359,7 @@ var
   begin
     with Body.Add('p') do
     begin
-      Attributes['id'] := 'Auto';
+      // Attributes['id'] := 'Auto'; // must be unique!
       Attributes['Class'] := 'Tree';
 
       E := Entry;
@@ -1657,43 +1668,43 @@ end;
 
 function GetParentDirectory(const path: string): string;
 begin
- result := ExpandFileName(path + '\..') + '\';
+ Result := ExpandFileName(path + '\..') + '\';
 end;
 
-procedure TProject.ParseMenuData(cuList: TCaptionUrlList);
+procedure TProject.ParseMenuData(CuList: TCaptionUrlList);
 var
-  i: integer;
-  projDir, cap, url: string;
-  sl: TStringList;
+  Index: Integer;
+  projDir, Cap, url: string;
+  StrLst: TStringList;
 
   function GetTextBetweenQuotes(const str: string): string;
   var
-    i,j: integer;
+    i, j: Integer;
   begin
-    i := pos('"', str);
-    j := posEx('"', str, i+1);
-    if (i = 0) or (j <= i) then result := ''
-    else SetString(result, PChar(@str[i+1]), j-i-1);
+    i := Pos('"', str);
+    j := PosEx('"', str, i+1);
+    if (i = 0) or (j <= i) then Result := ''
+    else SetString(Result, PChar(@str[i+1]), j-i-1);
   end;
 
 begin
-  cuList.Clear;
+  CuList.Clear;
   ProjDir := GetParentDirectory(Folder);
   if not DirectoryExists(ProjDir + 'Scripts') or
     not FileExists(ProjDir + 'Scripts\menu_data.js') then exit;
-  sl := TStringList.Create;
+  StrLst := TStringList.Create;
   try
-    sl.LoadFromFile(ProjDir + 'Scripts\menu_data.js');
-    for i := 0 to sl.count -2 do
+    StrLst.LoadFromFile(ProjDir + 'Scripts\menu_data.js');
+    for Index := 0 to StrLst.Count - 2 do
     begin
-      if (pos('td_1', sl[i]) <> 1) or (posEx('_', sl[i], 5) <> 5) then continue;
-      cap := GetTextBetweenQuotes(sl[i]);
-      if pos('url_', sl[i+1]) <> 1 then continue;
-      url := '.\' + GetTextBetweenQuotes(sl[i+1]);
-      cuList.add(cap,url);
+      if (Pos('td_1', StrLst[Index]) <> 1) or (PosEx('_', StrLst[Index], 5) <> 5) then Continue;
+      Cap := GetTextBetweenQuotes(StrLst[Index]);
+      if Pos('url_', StrLst[Index+1]) <> 1 then Continue;
+      Url := {'.\' +} GetTextBetweenQuotes(StrLst[Index + 1]);
+      CuList.add(Cap, url);
     end;
   finally
-    sl.Free;
+    StrLst.Free;
   end;
 end;
 
@@ -1702,19 +1713,19 @@ var
   Elems: TElements;
   I, J: Integer;
   TD: TDomNode;
-  cuList: TCaptionUrlList;
+  CuList: TCaptionUrlList;
 
-  procedure AddOverviewTable(cuList: TCaptionUrlList);
+  procedure AddOverviewTable(CuList: TCaptionUrlList);
   var
     i: Integer;
   begin
     with Body.Add('table') do
     begin
-      Attributes['id'] := 'Auto';
+      // Attributes['id'] := 'Auto'; // must be unique!
       with Add('tr') do
-        for i := 0 to cuList.Count -1 do
+        for i := 0 to CuList.Count -1 do
           with Add('td') do
-            AddText(Format('<a href="%s">%s</a>', [cuList.Url[i], cuList.Caption[i]]));
+            AddText(Format('<a href="%s">%s</a>', [CuList.Url[i], CuList.Caption[i]]));
     end;
   end;
 
@@ -1724,7 +1735,7 @@ var
   begin
     with Body.Add('table') do
     begin
-      Attributes['id'] := 'Auto';
+      // Attributes['id'] := 'Auto'; // must be unique!
       Attributes['class'] := 'Home';
       Attributes['cellpadding'] := '0';
       Attributes['cellspacing'] := '0';
@@ -1745,7 +1756,7 @@ var
             for J := 0 to Elems.Count - 1 do
               with TD.Add('p') do
               begin
-                Attributes['id'] := 'Auto';
+                // Attributes['id'] := 'Auto'; // must be unique!
                 Attributes['class'] := 'Tree';
 
                 AddText('<img src="../Images/_BranchEmpty.gif" align="absmiddle" width="1" height="18">');
@@ -1776,7 +1787,7 @@ var
     Elems.Sort(CompareElements);
     with Body.Add('table') do
     begin
-      Attributes['id'] := 'Auto';
+      // Attributes['id'] := 'Auto'; // must be unique!
       SetLength(Links, NUM_COL);
       R := (Elems.Count + NUM_COL - 1) div NUM_COL;
       N := 0;
@@ -1807,13 +1818,13 @@ begin
   try
 
     //overview items ...
-    cuList := TCaptionUrlList.Create;
+    CuList := TCaptionUrlList.Create;
     try
-      ParseMenuData(cuList);
-      if cuList.Count > 0 then
-        AddOverviewTable(cuList);
+      ParseMenuData(CuList);
+      if CuList.Count > 0 then
+        AddOverviewTable(CuList);
     finally
-      cuList.Free;
+      CuList.Free;
     end;
 
     if length(Classes) > 0 then
@@ -1828,7 +1839,7 @@ begin
       begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Types'; // must be unique!
         AddText('Types');
       end;
       AddElems(cColumnCount);
@@ -1842,7 +1853,7 @@ begin
     begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Records'; // must be unique!
         AddText('Records');
       end;
       AddElems(cColumnCount);
@@ -1856,7 +1867,7 @@ begin
     begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Functions'; // must be unique!
         AddText('Routines');
       end;
       AddElems(cColumnCount);
@@ -1870,7 +1881,7 @@ begin
       begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Globals'; // must be unique!
         AddText('Globals');
       end;
       AddElems(cColumnCount);
@@ -1884,7 +1895,7 @@ begin
       begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Variables'; // must be unique!
         AddText('Variables');
       end;
       AddElems(cColumnCount);
@@ -1898,7 +1909,7 @@ begin
       begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Constants'; // must be unique!
         AddText('Constants');
       end;
       AddElems(cColumnCount);
@@ -1911,7 +1922,7 @@ begin
     begin
       with Body.Add('h2') do
       begin
-        Attributes['id'] := 'Auto';
+        Attributes['id'] := 'Auto-Units'; // must be unique!
         AddText('Units');
       end;
       Elems.Sort(CompareElements);
