@@ -1,9 +1,9 @@
 object FmArrowHeadDemo: TFmArrowHeadDemo
-  Left = 253
-  Top = 146
+  Left = 375
+  Top = 138
+  Width = 575
+  Height = 497
   Caption = 'ArrowHead Demo'
-  ClientHeight = 470
-  ClientWidth = 567
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -53,8 +53,8 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       Width = 140
       Height = 25
       Cancel = True
-      Caption = 'Close'
-      TabOrder = 2
+      Caption = '&Close'
+      TabOrder = 4
       OnClick = btnCloseClick
     end
     object rgArrowStyle: TRadioGroup
@@ -87,12 +87,13 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       Top = 228
       Width = 140
       Height = 97
+      Caption = 'Arrow &Locations'
       ItemIndex = 2
       Items.Strings = (
         'Arrow at start'
         'Arrow at end'
         'Arrow at both ends')
-      TabOrder = 3
+      TabOrder = 2
       OnClick = rgArrowStyleClick
     end
     object CbAnimate: TCheckBox
@@ -100,8 +101,8 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       Top = 359
       Width = 65
       Height = 17
-      Caption = 'Animate'
-      TabOrder = 4
+      Caption = 'Ani&mate'
+      TabOrder = 3
       OnClick = CbAnimateClick
     end
   end
