@@ -122,11 +122,15 @@ type
   end;
 
   { TCustomPolygonFiller }
+
   TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
 
   TCustomPolygonFiller = class
+  private
   protected
     function GetFillLine: TFillLineEvent; virtual; abstract;
+    procedure OnBeginRendering; virtual;
+    procedure OnEndRendering; virtual;
   public
     property FillLine: TFillLineEvent read GetFillLine;
   end;
@@ -166,6 +170,7 @@ type
     FGetSample: TGetSampleInt;
     procedure SetSampler(const Value: TCustomSampler);
   protected
+    procedure OnBeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
     procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
   public
@@ -526,12 +531,15 @@ procedure PolyPolygonFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoi
 var
   Renderer: TPolygonRenderer32VPR;
 begin
+  if not Assigned(Filler) then exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
+    Filler.OnBeginRendering;
     Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -542,12 +550,15 @@ procedure PolygonFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
 var
   Renderer: TPolygonRenderer32VPR;
 begin
+  if not Assigned(Filler) then exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
+    Filler.OnBeginRendering;
     Renderer.PolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -1077,6 +1088,17 @@ begin
   EMMS;
 end;
 
+{ TCustomPolygonFiller }
+
+procedure TCustomPolygonFiller.OnBeginRendering;
+begin
+  // implemented by descendants
+end;
+
+procedure TCustomPolygonFiller.OnEndRendering;
+begin
+  // implemented by descendants
+end;
 
 { TCallbackPolygonFiller }
 
@@ -1285,7 +1307,7 @@ constructor TSamplerFiller.Create(Sampler: TCustomSampler = nil);
 begin
   inherited Create;
   FSampler := Sampler;
-  if assigned(FSampler) then
+  if Assigned(FSampler) then
     FGetSample := FSampler.GetSampleInt;
 end;
 
@@ -1303,6 +1325,12 @@ begin
     Inc(Dst);
     Inc(AlphaValues);
   end;
+end;
+
+procedure TSamplerFiller.OnBeginRendering;
+begin
+  if Assigned(FSampler) then
+    FSampler.PrepareSampling;
 end;
 
 function TSamplerFiller.GetFillLine: TFillLineEvent;
