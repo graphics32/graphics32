@@ -1,9 +1,9 @@
 object FmArrowHeadDemo: TFmArrowHeadDemo
   Left = 375
   Top = 138
-  Width = 575
-  Height = 497
   Caption = 'ArrowHead Demo'
+  ClientHeight = 470
+  ClientWidth = 567
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -29,8 +29,13 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Size = 16
+    ScrollBars.Visibility = svHidden
     OverSize = 0
     TabOrder = 0
+    OnMouseDown = ImgView32MouseDown
+    OnMouseMove = ImgView32MouseMove
+    OnMouseUp = ImgView32MouseUp
+    OnResize = ImgView32Resize
   end
   object pnlControl: TPanel
     Left = 0
