@@ -1,4 +1,4 @@
-﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
 			<ProjectGuid>{20C180FF-6F9D-4193-A625-00097B293694}</ProjectGuid>
 		</PropertyGroup>
@@ -7,6 +7,18 @@
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Blending\TextureBlend_Ex\TextureBlend_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\ArrowHead_Ex\ArrowHeadDemo.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\Clipper_Ex\GR32_Clipper_Demo.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\CubicSpline_Ex\CubicSpline.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\Curves_Ex\Curves.dproj">
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Drawing\GradLines_Ex\GradLines_Ex.dproj">
@@ -19,6 +31,12 @@
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Drawing\RenderText_Ex\RenderText_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\ScatterPlot_Ex\ScatterPlot.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\TextDemoVPR_Ex\TextDemo.dproj">
 				<Dependencies/>
 			</Projects>
 			<Projects Include="General\ByteMaps_Ex\ByteMaps_Ex.dproj">
@@ -86,6 +104,42 @@
 		<Target Name="TextureBlend_Ex:Make">
 			<MSBuild Projects="Blending\TextureBlend_Ex\TextureBlend_Ex.dproj" Targets="Make"/>
 		</Target>
+		<Target Name="ArrowHeadDemo">
+			<MSBuild Projects="Drawing\ArrowHead_Ex\ArrowHeadDemo.dproj"/>
+		</Target>
+		<Target Name="ArrowHeadDemo:Clean">
+			<MSBuild Projects="Drawing\ArrowHead_Ex\ArrowHeadDemo.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="ArrowHeadDemo:Make">
+			<MSBuild Projects="Drawing\ArrowHead_Ex\ArrowHeadDemo.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="GR32_Clipper_Demo">
+			<MSBuild Projects="Drawing\Clipper_Ex\GR32_Clipper_Demo.dproj"/>
+		</Target>
+		<Target Name="GR32_Clipper_Demo:Clean">
+			<MSBuild Projects="Drawing\Clipper_Ex\GR32_Clipper_Demo.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="GR32_Clipper_Demo:Make">
+			<MSBuild Projects="Drawing\Clipper_Ex\GR32_Clipper_Demo.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="CubicSpline">
+			<MSBuild Projects="Drawing\CubicSpline_Ex\CubicSpline.dproj"/>
+		</Target>
+		<Target Name="CubicSpline:Clean">
+			<MSBuild Projects="Drawing\CubicSpline_Ex\CubicSpline.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="CubicSpline:Make">
+			<MSBuild Projects="Drawing\CubicSpline_Ex\CubicSpline.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Curves">
+			<MSBuild Projects="Drawing\Curves_Ex\Curves.dproj"/>
+		</Target>
+		<Target Name="Curves:Clean">
+			<MSBuild Projects="Drawing\Curves_Ex\Curves.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Curves:Make">
+			<MSBuild Projects="Drawing\Curves_Ex\Curves.dproj" Targets="Make"/>
+		</Target>
 		<Target Name="GradLines_Ex">
 			<MSBuild Projects="Drawing\GradLines_Ex\GradLines_Ex.dproj"/>
 		</Target>
@@ -121,6 +175,24 @@
 		</Target>
 		<Target Name="RenderText_Ex:Make">
 			<MSBuild Projects="Drawing\RenderText_Ex\RenderText_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="ScatterPlot">
+			<MSBuild Projects="Drawing\ScatterPlot_Ex\ScatterPlot.dproj"/>
+		</Target>
+		<Target Name="ScatterPlot:Clean">
+			<MSBuild Projects="Drawing\ScatterPlot_Ex\ScatterPlot.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="ScatterPlot:Make">
+			<MSBuild Projects="Drawing\ScatterPlot_Ex\ScatterPlot.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="TextDemo">
+			<MSBuild Projects="Drawing\TextDemoVPR_Ex\TextDemo.dproj"/>
+		</Target>
+		<Target Name="TextDemo:Clean">
+			<MSBuild Projects="Drawing\TextDemoVPR_Ex\TextDemo.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="TextDemo:Make">
+			<MSBuild Projects="Drawing\TextDemoVPR_Ex\TextDemo.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="ByteMaps_Ex">
 			<MSBuild Projects="General\ByteMaps_Ex\ByteMaps_Ex.dproj"/>
@@ -240,13 +312,13 @@
 			<MSBuild Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="PixelCombine_Ex;TextureBlend_Ex;GradLines_Ex;LineStippling_Ex;Polygons_Ex;RenderText_Ex;ByteMaps_Ex;Image32_Ex;Mandelbrot_Ex;Rotate_Ex;ImgView_Layers_Ex;RotLayer_Ex;Sprites_Ex;NestedSampling_Ex;PixelF_Ex;Resamplers_Ex;ImgWarping_Ex;Transform_Ex;Visualization_Ex"/>
+			<CallTarget Targets="PixelCombine_Ex;TextureBlend_Ex;GradLines_Ex;LineStippling_Ex;ArrowHeadDemo;GR32_Clipper_Demo;CubicSpline;Curves;Polygons_Ex;RenderText_Ex;ScatterPlot;TextDemo;ByteMaps_Ex;Image32_Ex;Mandelbrot_Ex;Rotate_Ex;ImgView_Layers_Ex;RotLayer_Ex;Sprites_Ex;NestedSampling_Ex;PixelF_Ex;Resamplers_Ex;ImgWarping_Ex;Transform_Ex;Visualization_Ex"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="PixelCombine_Ex:Clean;TextureBlend_Ex:Clean;GradLines_Ex:Clean;LineStippling_Ex:Clean;Polygons_Ex:Clean;RenderText_Ex:Clean;ByteMaps_Ex:Clean;Image32_Ex:Clean;Mandelbrot_Ex:Clean;Rotate_Ex:Clean;ImgView_Layers_Ex:Clean;RotLayer_Ex:Clean;Sprites_Ex:Clean;NestedSampling_Ex:Clean;PixelF_Ex:Clean;Resamplers_Ex:Clean;ImgWarping_Ex:Clean;Transform_Ex:Clean;Visualization_Ex:Clean"/>
+			<CallTarget Targets="PixelCombine_Ex:Clean;TextureBlend_Ex:Clean;GradLines_Ex:Clean;LineStippling_Ex:Clean;ArrowHeadDemo:Clean;GR32_Clipper_Demo:Clean;CubicSpline:Clean;Curves:Clean;Polygons_Ex:Clean;RenderText_Ex:Clean;ScatterPlot:Clean;TextDemo:Clean;ByteMaps_Ex:Clean;Image32_Ex:Clean;Mandelbrot_Ex:Clean;Rotate_Ex:Clean;ImgView_Layers_Ex:Clean;RotLayer_Ex:Clean;Sprites_Ex:Clean;NestedSampling_Ex:Clean;PixelF_Ex:Clean;Resamplers_Ex:Clean;ImgWarping_Ex:Clean;Transform_Ex:Clean;Visualization_Ex:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="PixelCombine_Ex:Make;TextureBlend_Ex:Make;GradLines_Ex:Make;LineStippling_Ex:Make;Polygons_Ex:Make;RenderText_Ex:Make;ByteMaps_Ex:Make;Image32_Ex:Make;Mandelbrot_Ex:Make;Rotate_Ex:Make;ImgView_Layers_Ex:Make;RotLayer_Ex:Make;Sprites_Ex:Make;NestedSampling_Ex:Make;PixelF_Ex:Make;Resamplers_Ex:Make;ImgWarping_Ex:Make;Transform_Ex:Make;Visualization_Ex:Make"/>
+			<CallTarget Targets="PixelCombine_Ex:Make;TextureBlend_Ex:Make;GradLines_Ex:Make;LineStippling_Ex:Make;ArrowHeadDemo:Make;GR32_Clipper_Demo:Make;CubicSpline:Make;Curves:Make;Polygons_Ex:Make;RenderText_Ex:Make;ScatterPlot:Make;TextDemo:Make;ByteMaps_Ex:Make;Image32_Ex:Make;Mandelbrot_Ex:Make;Rotate_Ex:Make;ImgView_Layers_Ex:Make;RotLayer_Ex:Make;Sprites_Ex:Make;NestedSampling_Ex:Make;PixelF_Ex:Make;Resamplers_Ex:Make;ImgWarping_Ex:Make;Transform_Ex:Make;Visualization_Ex:Make"/>
 		</Target>
-		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" Project="$(BDS)\Bin\CodeGear.Group.Targets"/>
 	</Project>

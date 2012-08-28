@@ -82,12 +82,13 @@ function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRec
 function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 
 function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
-function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
-function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat): TArrayOfFloatPoint; overload;
-function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
+function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
+function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint; overload;
+function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload;
+function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
-function Rectangle(const R: TFloatRect): TArrayOfFloatPoint;
-function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint;
+function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
+function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect;
 
@@ -105,7 +106,7 @@ function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArray
 implementation
 
 uses
-  Math, GR32_Paths, GR32_Math, GR32_LowLevel, SysUtils;
+  Math, SysUtils, GR32_Math, GR32_Paths, GR32_Geometry, GR32_LowLevel;
 
 type
   TTransformationAccess = class(TTransformation);
@@ -279,7 +280,8 @@ end;
 
 function ClipLine(var P1, P2: TFloatPoint; const ClipRect: TFloatRect): Boolean;
 begin
-  Result := ClipLine(P1.X, P1.Y, P2.X, P2.Y, ClipRect.Left, ClipRect.Top, ClipRect.Right, ClipRect.Bottom);
+  Result := ClipLine(P1.X, P1.Y, P2.X, P2.Y, ClipRect.Left, ClipRect.Top,
+    ClipRect.Right, ClipRect.Bottom);
 end;
 
 procedure Extract(Src: TArrayOfFloat; Indexes: TArrayOfInteger; out Dst: TArrayOfFloat);
@@ -389,43 +391,46 @@ begin
   Recurse(0, High(Values));
 end;
 
-function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat; Steps: Integer): TArrayOfFloatPoint;
+function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat;
+  Steps: Integer): TArrayOfFloatPoint;
 var
   I, N: Integer;
-  a, da, dx, dy: TFloat;
+  Angle, DeltaAngle: TFloat;
+  Delta: TFloatPoint;
 begin
   SetLength(Result, Steps);
   N := Steps - 1;
-  da := (a2 - a1) / N;
-  a := a1;
+  DeltaAngle := (EndAngle - StartAngle) / N;
+  Angle := StartAngle;
   for I := 0 to N do
   begin
-    SinCos(a, r, dy, dx);
-    Result[I].X := P.X + dx;
-    Result[I].Y := P.Y + dy;
-    a := a + da;
+    SinCos(Angle, Radius, Delta.Y, Delta.X);
+    Result[I].X := P.X + Delta.X;
+    Result[I].Y := P.Y + Delta.Y;
+    Angle := Angle + DeltaAngle;
   end;
 end;
 
-function BuildArc(const P: TFloatPoint; a1, a2, r: TFloat): TArrayOfFloatPoint;
+function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint;
 const
   MINSTEPS = 6;
 var
   Steps: Integer;
 begin
-  Steps := Max(MINSTEPS, System.Round(Sqrt(Abs(r)) * Abs(a2 - a1)));
-  Result := BuildArc(P, a1, a2, r, Steps);
+  Steps := Max(MINSTEPS, System.Round(Sqrt(Abs(Radius)) * Abs(EndAngle - StartAngle)));
+  Result := BuildArc(P, StartAngle, EndAngle, Radius, Steps);
 end;
 
 function CalculateCircleSteps(Radius: TFloat): Cardinal;
 var
-  AbsRadius: Double;
+  AbsRadius: TFloat;
 begin
   AbsRadius := Abs(Radius);
   Result := Trunc(Pi / (ArcCos(AbsRadius / (AbsRadius + 0.125))));
 end;
 
-function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
+function Circle(const P: TFloatPoint; const Radius: TFloat;
+  Steps: Integer = 100): TArrayOfFloatPoint;
 var
   I: Integer;
   M: TFloat;
@@ -438,25 +443,30 @@ begin
   M := 2 * System.Pi / Steps;
 
   // first item
-  Result[0].X := Radius + X;
-  Result[0].Y := Y;
+  Result[0].X := Radius + P.X;
+  Result[0].Y := P.Y;
 
   // calculate complex offset
   GR32_Math.SinCos(M, C.Y, C.X);
   D := C;
 
   // second item
-  Result[1].X := Radius * D.X + X;
-  Result[1].Y := Radius * D.Y + Y;
+  Result[1].X := Radius * D.X + P.X;
+  Result[1].Y := Radius * D.Y + P.Y;
 
   // other items
   for I := 2 to Steps - 1 do
   begin
     D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
 
-    Result[I].X := Radius * D.X + X;
-    Result[I].Y := Radius * D.Y + Y;
+    Result[I].X := Radius * D.X + P.X;
+    Result[I].Y := Radius * D.Y + P.Y;
   end;
+end;
+
+function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
+begin
+  Result := Circle(FloatPoint(X, Y), Radius, Steps);
 end;
 
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint;

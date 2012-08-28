@@ -697,7 +697,7 @@ begin
           Rad2 := FRadiusX
         else
         begin
-          SinCos(ArcTan(RadiusXDivRadiusY * j / i), Y, X);
+          GR32_Math.SinCos(ArcTan(RadiusXDivRadiusY * j / i), Y, X);
           Rad2 := Hypot(X * FRadiusX, Y * FRadiusY);
         end;
         if Rad >= Rad2 then
@@ -784,7 +784,8 @@ begin
       y := -1 else
       y := 1;
   end else
-    SinCos(ArcTan(FRadius.X/FRadius.Y * FFocalPt.Y/FFocalPt.X), y, x);
+    GR32_Math.SinCos(ArcTan(FRadius.X / FRadius.Y * FFocalPt.Y / FFocalPt.X),
+      y, x);
   if FFocalPt.X < 0 then
   begin
     x := -x;

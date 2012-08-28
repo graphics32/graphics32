@@ -37,7 +37,8 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes;
+  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes,
+  GR32_Geometry;
 
 const
   DefaultCircleSteps = 100;
@@ -52,27 +53,39 @@ type
   protected
     procedure AddPoint(const Point: TFloatPoint); virtual;
   public
-    procedure MoveTo(const X, Y: TFloat); overload;
+    procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure MoveTo(const P: TFloatPoint); overload; virtual;
-    procedure LineTo(const X, Y: TFloat); overload;
+    procedure MoveToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure MoveToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure LineTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure LineTo(const P: TFloatPoint); overload; virtual;
-    procedure CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat); overload;
-    procedure CurveTo(const X2, Y2, X, Y: TFloat); overload;
+    procedure LineToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure LineToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure CurveTo(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const C1, C2, P: TFloatPoint); overload; virtual;
     procedure CurveTo(const C2, P: TFloatPoint); overload; virtual;
-    procedure ConicTo(const X1, Y1, X, Y: TFloat); overload;
+    procedure CurveToRelative(const X1, Y1, X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure CurveToRelative(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure CurveToRelative(const C1, C2, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure CurveToRelative(const C2, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure ConicTo(const X1, Y1, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicTo(const P1, P: TFloatPoint); overload; virtual;
-    procedure ConicTo(const X, Y: TFloat); overload;
+    procedure ConicTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicTo(const P: TFloatPoint); overload; virtual;
+    procedure ConicToRelative(const X1, Y1, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure ConicToRelative(const P1, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure ConicToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure ConicToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure BeginPath; virtual;
     procedure EndPath; virtual;
     procedure ClosePath; virtual;
     procedure Rectangle(const Rect: TFloatRect); virtual;
     procedure RoundRect(const Rect: TFloatRect; const Radius: TFloat); virtual;
-    procedure Arc(const P: TFloatPoint; a1, a2, r: TFloat); virtual;
+    procedure Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat); virtual;
     procedure Ellipse(Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
-    procedure Circle(const Cx, Cy, R: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
+    procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
 
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
@@ -166,7 +179,7 @@ type
 implementation
 
 uses
-  GR32_Math, GR32_VectorUtils, GR32_Backends;
+  Math, GR32_Math, GR32_VectorUtils, GR32_Backends;
 
 function CubicBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
@@ -237,38 +250,22 @@ end;
 
 { TCustomPath }
 
-procedure TCustomPath.CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat);
-begin
-  CurveTo(FloatPoint(X1, Y1), FloatPoint(X2, Y2), FloatPoint(X, Y));
-end;
-
-procedure TCustomPath.LineTo(const X, Y: TFloat);
-begin
-  LineTo(FloatPoint(X, Y));
-end;
-
-procedure TCustomPath.MoveTo(const X, Y: TFloat);
-begin
-  MoveTo(FloatPoint(X, Y));
-end;
-
 procedure TCustomPath.AddPoint(const Point: TFloatPoint);
 begin
 end;
 
-procedure TCustomPath.Arc(const P: TFloatPoint; a1, a2, r: TFloat);
+procedure TCustomPath.Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
 begin
-  Polygon(BuildArc(P, a1, a2, r));
+  Polygon(BuildArc(P, StartAngle, EndAngle, Radius));
 end;
 
 procedure TCustomPath.BeginPath;
 begin
-
 end;
 
-procedure TCustomPath.Circle(const Cx, Cy, R: TFloat; Steps: Integer);
+procedure TCustomPath.Circle(const Cx, Cy, Radius: TFloat; Steps: Integer);
 begin
-  Polygon(GR32_VectorUtils.Circle(Cx, Cy, R, Steps));
+  Polygon(GR32_VectorUtils.Circle(Cx, Cy, Radius, Steps));
 end;
 
 procedure TCustomPath.ClosePath;
@@ -282,35 +279,9 @@ begin
   FCurrentPoint := P;
 end;
 
-procedure TCustomPath.Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
+procedure TCustomPath.ConicTo(const X1, Y1, X, Y: TFloat);
 begin
-  Polygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
-end;
-
-procedure TCustomPath.Ellipse(Rx, Ry: TFloat; Steps: Integer);
-begin
-  with FCurrentPoint do Ellipse(X, Y, Rx, Ry);
-end;
-
-procedure TCustomPath.EndPath;
-begin
-
-end;
-
-procedure TCustomPath.LineTo(const P: TFloatPoint);
-begin
-  AddPoint(P);
-  FCurrentPoint := P;
-end;
-
-procedure TCustomPath.Rectangle(const Rect: TFloatRect);
-begin
-  Polygon(GR32_VectorUtils.Rectangle(Rect));
-end;
-
-procedure TCustomPath.RoundRect(const Rect: TFloatRect; const Radius: TFloat);
-begin
-  Polygon(GR32_VectorUtils.RoundRect(Rect, Radius));
+  ConicTo(FloatPoint(X1, Y1), FloatPoint(X, Y));
 end;
 
 procedure TCustomPath.ConicTo(const X, Y: TFloat);
@@ -327,6 +298,38 @@ begin
   ConicTo(P1, P);
 end;
 
+procedure TCustomPath.ConicToRelative(const X, Y: TFloat);
+begin
+
+end;
+
+procedure TCustomPath.ConicToRelative(const P: TFloatPoint);
+begin
+
+end;
+
+procedure TCustomPath.ConicToRelative(const X1, Y1, X, Y: TFloat);
+begin
+
+end;
+
+procedure TCustomPath.ConicToRelative(const P1, P: TFloatPoint);
+begin
+
+end;
+
+procedure TCustomPath.CurveTo(const C1, C2, P: TFloatPoint);
+begin
+  CubicBezierCurve(FCurrentPoint, C1, C2, P, LineTo, CBezierTolerance);
+  LineTo(P);
+  FCurrentPoint := P;
+end;
+
+procedure TCustomPath.CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat);
+begin
+  CurveTo(FloatPoint(X1, Y1), FloatPoint(X2, Y2), FloatPoint(X, Y));
+end;
+
 procedure TCustomPath.CurveTo(const X2, Y2, X, Y: TFloat);
 begin
   CurveTo(FloatPoint(X2, Y2), FloatPoint(X, Y));
@@ -341,11 +344,90 @@ begin
   CurveTo(C1, C2, P);
 end;
 
-procedure TCustomPath.CurveTo(const C1, C2, P: TFloatPoint);
+procedure TCustomPath.CurveToRelative(const X1, Y1, X2, Y2, X, Y: TFloat);
 begin
-  CubicBezierCurve(FCurrentPoint, C1, C2, P, LineTo, CBezierTolerance);
-  LineTo(P);
+  CurveTo(FloatPoint(FCurrentPoint.X + X1, FCurrentPoint.X + Y1),
+    FloatPoint(FCurrentPoint.X + X2, FCurrentPoint.X + Y2),
+    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.X + Y));
+end;
+
+procedure TCustomPath.CurveToRelative(const X2, Y2, X, Y: TFloat);
+begin
+  CurveTo(FloatPoint(FCurrentPoint.X + X2, FCurrentPoint.X + Y2),
+    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.X + Y));
+end;
+
+procedure TCustomPath.CurveToRelative(const C1, C2, P: TFloatPoint);
+begin
+  CurveTo(OffsetPoint(C1, FCurrentPoint), OffsetPoint(C2, FCurrentPoint),
+    OffsetPoint(P, FCurrentPoint));
+end;
+
+procedure TCustomPath.CurveToRelative(const C2, P: TFloatPoint);
+begin
+  CurveTo(FloatPoint(3 * FCurrentPoint.X - FLastControlPoint.X,
+    3 * FCurrentPoint.Y - FLastControlPoint.Y), OffsetPoint(C2, FCurrentPoint),
+    OffsetPoint(P, FCurrentPoint));
+end;
+
+procedure TCustomPath.Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
+begin
+  Polygon(GR32_VectorUtils.Ellipse(Cx, Cy, Rx, Ry, Steps));
+end;
+
+procedure TCustomPath.Ellipse(Rx, Ry: TFloat; Steps: Integer);
+begin
+  with FCurrentPoint do Ellipse(X, Y, Rx, Ry);
+end;
+
+procedure TCustomPath.EndPath;
+begin
+end;
+
+procedure TCustomPath.LineTo(const X, Y: TFloat);
+begin
+  LineTo(FloatPoint(X, Y));
+end;
+
+procedure TCustomPath.LineTo(const P: TFloatPoint);
+begin
+  AddPoint(P);
   FCurrentPoint := P;
+end;
+
+procedure TCustomPath.LineToRelative(const X, Y: TFloat);
+begin
+  LineTo(FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y + Y));
+end;
+
+procedure TCustomPath.LineToRelative(const P: TFloatPoint);
+begin
+  LineTo(FloatPoint(FCurrentPoint.X + P.X, FCurrentPoint.Y + P.Y));
+end;
+
+procedure TCustomPath.MoveTo(const X, Y: TFloat);
+begin
+  MoveTo(FloatPoint(X, Y));
+end;
+
+procedure TCustomPath.MoveToRelative(const X, Y: TFloat);
+begin
+  MoveTo(FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y + Y));
+end;
+
+procedure TCustomPath.MoveToRelative(const P: TFloatPoint);
+begin
+  MoveTo(FloatPoint(FCurrentPoint.X + P.X, FCurrentPoint.Y + P.Y));
+end;
+
+procedure TCustomPath.Rectangle(const Rect: TFloatRect);
+begin
+  Polygon(GR32_VectorUtils.Rectangle(Rect));
+end;
+
+procedure TCustomPath.RoundRect(const Rect: TFloatRect; const Radius: TFloat);
+begin
+  Polygon(GR32_VectorUtils.RoundRect(Rect, Radius));
 end;
 
 procedure TCustomPath.Polygon(const APoints: TArrayOfFloatPoint);
@@ -358,11 +440,6 @@ begin
     LineTo(APoints[I]);
   ClosePath;
   EndPath;
-end;
-
-procedure TCustomPath.ConicTo(const X1, Y1, X, Y: TFloat);
-begin
-  ConicTo(FloatPoint(X1, Y1), FloatPoint(X, Y));
 end;
 
 procedure TCustomPath.MoveTo(const P: TFloatPoint);

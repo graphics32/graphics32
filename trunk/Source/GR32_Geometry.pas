@@ -52,6 +52,7 @@ function GetAngleOfPt2FromPt1(const Pt1, Pt2: TFloatPoint): Single; overload;
 function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
 function GetUnitVector(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
 function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt, Delta: TFloatPoint): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFloatPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint; overload;
 function PointInPolygon(const Pt: TFloatPoint; const Pts: TArrayOfFloatPoint): Boolean; overload;
@@ -67,7 +68,10 @@ function GetPointAtAngleFromPoint(const Pt: TFixedPoint; const Dist, Radians: Si
 function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single; overload;
 function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
 function GetUnitNormal(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
+function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFixed): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFixedPoint; Delta: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFixedPoint; Delta: TFloatPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFixedPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint; overload;
 function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;
@@ -80,6 +84,7 @@ function Dot(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inlin
 function Distance(const V1, V2: TPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TPoint; dx, dy: Integer): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt, Delta: TPoint): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 const
   CRad01 = Pi / 180;
@@ -128,15 +133,16 @@ end;
 
 function GetAngleOfPt2FromPt1(const Pt1, Pt2: TFloatPoint): Single;
 var
-  x, y: TFloat;
+  X, Y: TFloat;
 begin
-  x := Pt2.X - Pt1.X; y := Pt2.Y - Pt1.Y;
-  if x = 0 then
+  X := Pt2.X - Pt1.X;
+  Y := Pt2.Y - Pt1.Y;
+  if X = 0 then
   begin
-    if y > 0 then Result := CRad270 else Result := CRad90;
+    if Y > 0 then Result := CRad270 else Result := CRad90;
   end else
   begin
-    Result := ArcTan2(-y, x);
+    Result := ArcTan2(-Y, X);
     if Result < 0 then Result := Result + CRad360;
   end;
 end;
@@ -182,6 +188,12 @@ function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint;
 begin
   Result.X := Pt.X + dx;
   Result.Y := Pt.Y + dy;
+end;
+
+function OffsetPoint(const Pt, Delta: TFloatPoint): TFloatPoint;
+begin
+  Result.X := Pt.X + Delta.X;
+  Result.Y := Pt.Y + Delta.Y;
 end;
 
 function Shorten(const Pts: TArrayOfFloatPoint;
@@ -372,10 +384,28 @@ begin
   Result.Y := -Delta.X; // the unit vector
 end;
 
+function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFixed): TFixedPoint;
+begin
+  Result.X := Pt.X + dx;
+  Result.Y := Pt.Y + dy;
+end;
+
 function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint;
 begin
   Result.X := Pt.X + Fixed(dx);
   Result.Y := Pt.Y + Fixed(dy);
+end;
+
+function OffsetPoint(const Pt: TFixedPoint; Delta: TFixedPoint): TFixedPoint;
+begin
+  Result.X := Pt.X + Delta.X;
+  Result.Y := Pt.Y + Delta.Y;
+end;
+
+function OffsetPoint(const Pt: TFixedPoint; Delta: TFloatPoint): TFixedPoint;
+begin
+  Result.X := Pt.X + Fixed(Delta.X);
+  Result.Y := Pt.Y + Fixed(Delta.Y);
 end;
 
 function Shorten(const Pts: TArrayOfFixedPoint;
@@ -388,7 +418,7 @@ var
   procedure FixStart;
   begin
     Index := 1;
-    while (Index < HighI) and (SqrDistance(Pts[Index],Pts[0]) < DeltaSqr) do inc(Index);
+    while (Index < HighI) and (SqrDistance(Pts[Index],Pts[0]) < DeltaSqr) do Inc(Index);
     UnitVec := GetUnitVector(Pts[Index], Pts[0]);
     Dist := Distance(Pts[Index],Pts[0]) - Delta;
     if Index > 1 then
@@ -402,7 +432,7 @@ var
   procedure FixEnd;
   begin
     Index := HighI -1;
-    while (Index > 0) and (SqrDistance(Pts[Index],Pts[HighI]) < DeltaSqr) do dec(Index);
+    while (Index > 0) and (SqrDistance(Pts[Index],Pts[HighI]) < DeltaSqr) do Dec(Index);
     UnitVec := GetUnitVector(Pts[Index],Pts[HighI]);
     Dist := Distance(Pts[Index],Pts[HighI]) - Delta;
     if Index + 1 < HighI then SetLength(Result, Index + 2);
@@ -500,6 +530,12 @@ function OffsetPoint(const Pt: TPoint; dx, dy: Integer): TPoint;
 begin
   Result.X := Pt.X + dx;
   Result.Y := Pt.Y + dy;
+end;
+
+function OffsetPoint(const Pt, Delta: TPoint): TPoint;
+begin
+  Result.X := Pt.X + Delta.X;
+  Result.Y := Pt.Y + Delta.Y;
 end;
 
 end.

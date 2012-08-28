@@ -84,6 +84,9 @@ type
 
 implementation
 
+uses
+  Types;
+
 { TCustomAffineLayer }
 
 type TATAccess = class(TAffineTransformation);
@@ -116,21 +119,17 @@ end;
 
 function TCustomAffineLayer.DoHitTest(X, Y: Integer): Boolean;
 var
-  BX, BY: Integer;
   Pt: TPoint;
 begin
   Result := False;
 
   with TATAccess(Transformation) do
-    Pt := ReverseTransform(Point(X, Y)); // BX,BY - in 'FBitmap' coordinates
+    Pt := ReverseTransform(GR32.Point(X, Y));
 
-  BX := Pt.X;
-  BY := Pt.Y;
-
-  if PtInRect(Rect(0, 0, Bitmap.Width, Bitmap.Height), Pt) then
+  if GR32.PtInRect(Rect(0, 0, Bitmap.Width, Bitmap.Height), Pt) then
     Result := True;
 
-  if Result and AlphaHit and (Bitmap.PixelS[BX, BY] and $FF000000 = 0) then
+  if Result and AlphaHit and (Bitmap.PixelS[Pt.X, Pt.Y] and $FF000000 = 0) then
     Result := False;
 end;
 
