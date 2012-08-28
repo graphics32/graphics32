@@ -168,28 +168,28 @@ implementation
 uses
   GR32_Math, GR32_VectorUtils, GR32_Backends;
 
-function CBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+function CubicBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result :=
-    Abs(P1.X + P3.X - 2*P2.X) +
-    Abs(P1.Y + P3.Y - 2*P2.Y) +
-    Abs(P2.X + P4.X - 2*P3.X) +
-    Abs(P2.Y + P4.Y - 2*P3.Y);
+    Abs(P1.X + P3.X - 2 * P2.X) +
+    Abs(P1.Y + P3.Y - 2 * P2.Y) +
+    Abs(P2.X + P4.X - 2 * P3.X) +
+    Abs(P2.Y + P4.Y - 2 * P3.Y);
 end;
 
-function QBezierFlatness(const P1, P2, P3: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+function QuadraticBezierFlatness(const P1, P2, P3: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result :=
-    Abs(P1.x + P3.x - 2*P2.x) +
-    Abs(P1.y + P3.y - 2*P2.y);
+    Abs(P1.x + P3.x - 2 * P2.x) +
+    Abs(P1.y + P3.y - 2 * P2.y);
 end;
 
-procedure CBezierCurve(const P1, P2, P3, P4: TFloatPoint;
+procedure CubicBezierCurve(const P1, P2, P3, P4: TFloatPoint;
   const AddPoint: TAddPointEvent; const Tolerance: TFloat);
 var
   P12, P23, P34, P123, P234, P1234: TFloatPoint;
 begin
-  if CBezierFlatness(P1, P2, P3, P4) < Tolerance then
+  if CubicBezierFlatness(P1, P2, P3, P4) < Tolerance then
     AddPoint(P1)
   else
   begin
@@ -206,17 +206,17 @@ begin
     P1234.X := (P123.X + P234.X) * 0.5;
     P1234.Y := (P123.Y + P234.Y) * 0.5;
 
-    CBezierCurve(P1, P12, P123, P1234, AddPoint, Tolerance);
-    CBezierCurve(P1234, P234, P34, P4, AddPoint, Tolerance);
+    CubicBezierCurve(P1, P12, P123, P1234, AddPoint, Tolerance);
+    CubicBezierCurve(P1234, P234, P34, P4, AddPoint, Tolerance);
   end;
 end;
 
-procedure QBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent;
+procedure QuadraticBezierCurve(const P1, P2, P3: TFloatPoint; const AddPoint: TAddPointEvent;
   const Tolerance: TFloat);
 var
   P12, P23, P123: TFloatPoint;
 begin
-  if QBezierFlatness(P1, P2, P3) < Tolerance then
+  if QuadraticBezierFlatness(P1, P2, P3) < Tolerance then
     AddPoint(P1)
   else
   begin
@@ -227,8 +227,8 @@ begin
     P123.X := (P12.X + P23.X) * 0.5;
     P123.Y := (P12.Y + P23.Y) * 0.5;
 
-    QBezierCurve(P1, P12, P123, AddPoint, Tolerance);
-    QBezierCurve(P123, P23, P3, AddPoint, Tolerance);
+    QuadraticBezierCurve(P1, P12, P123, AddPoint, Tolerance);
+    QuadraticBezierCurve(P123, P23, P3, AddPoint, Tolerance);
   end;
 end;
 
@@ -277,7 +277,7 @@ end;
 
 procedure TCustomPath.ConicTo(const P1, P: TFloatPoint);
 begin
-  QBezierCurve(FCurrentPoint, P1, P, LineTo, QBezierTolerance);
+  QuadraticBezierCurve(FCurrentPoint, P1, P, LineTo, QBezierTolerance);
   LineTo(P);
   FCurrentPoint := P;
 end;
@@ -343,7 +343,7 @@ end;
 
 procedure TCustomPath.CurveTo(const C1, C2, P: TFloatPoint);
 begin
-  CBezierCurve(FCurrentPoint, C1, C2, P, LineTo, CBezierTolerance);
+  CubicBezierCurve(FCurrentPoint, C1, C2, P, LineTo, CBezierTolerance);
   LineTo(P);
   FCurrentPoint := P;
 end;

@@ -3,10 +3,9 @@ unit MainUnit;
 interface
 
 uses
-  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, StdCtrls,
-  ComCtrls, ExtCtrls, GR32, GR32_Image, GR32_Layers, GR32_Paths,
-  GR32_Polygons, GR32_VectorUtils, GR32_ArrowHeads, GR32_Geometry;
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF} Messages, SysUtils, Classes,
+  Graphics, Controls, Forms, StdCtrls, ComCtrls, ExtCtrls,
+  GR32, GR32_Image, GR32_Layers, GR32_Paths, GR32_Polygons, GR32_ArrowHeads;
 
 type
   TFmArrowHeadDemo = class(TForm)
@@ -17,17 +16,28 @@ type
     Edit1: TEdit;
     lblArrowSize: TLabel;
     rgPosition: TRadioGroup;
+    CbAnimate: TCheckBox;
+    Animation: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure Edit1Change(Sender: TObject);
     procedure rgArrowStyleClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure CbAnimateClick(Sender: TObject);
+    procedure AnimationTimer(Sender: TObject);
   private
     FArrowSize: Integer;
-    procedure ReDraw;
+    FDashes: TArrayOfFloat;
+    FBoxCenter: array [0..1] of TFloatPoint;
+    FVelocity: array [0..1] of TFloatPoint;
+    FPattern: array [0..1] of TBitmap32;
+    FBitmapFiller: TBitmapPolygonFiller;
     procedure SetArrowSize(const Value: Integer);
   protected
     procedure ArrowSizeChanged; virtual;
   public
+    procedure ReDraw;
+
     property ArrowSize: Integer read FArrowSize write SetArrowSize;
   end;
 
@@ -45,42 +55,16 @@ implementation
 {$R pattern.res}
 
 uses
-  Math;
+  Math, GR32_Geometry, GR32_VectorUtils;
 
-function MakeArrayOfFloat(const a: array of TFloat): TArrayOfFloat;
+function MakeArrayOfFloat(const Data: array of TFloat): TArrayOfFloat;
 var
   Index, Len: Integer;
 begin
-  Len := Length(a);
+  Len := Length(Data);
   SetLength(Result, Len);
-  for Index := 0 to Len -1
-    do Result[Index] := a[Index];
-end;
-//------------------------------------------------------------------------------
-
-function MakeArrayOfFloatPoints(const a: array of single): TArrayOfFloatPoint; overload;
-var
-  Index, Len: Integer;
-begin
-  Len := Length(a) div 2;
-  SetLength(Result, Len);
-  if Len = 0 then exit;
-  for Index := 0 to Len - 1 do
-  begin
-    Result[Index].X := a[Index * 2];
-    Result[Index].Y := a[Index * 2 + 1];
-  end;
-end;
-//------------------------------------------------------------------------------
-
-function MakeArrayOfFloatPoints(const a: TArrayOfFixedPoint): TArrayOfFloatPoint; overload;
-var
-  Index, Len: Integer;
-begin
-  Len := Length(a);
-  SetLength(Result, Len);
-  for Index := 0 to Len -1
-    do Result[Index] := FloatPoint(a[Index]);
+  for Index := 0 to Len - 1
+    do Result[Index] := Data[Index];
 end;
 //------------------------------------------------------------------------------
 
@@ -91,7 +75,7 @@ begin
   with TFlattenedPath.Create do
   try
     MoveTo(CtrlPts[0]);
-    for Index := 0 to (High(CtrlPts) -3) div 3 do
+    for Index := 0 to (High(CtrlPts) - 3) div 3 do
       CurveTo(CtrlPts[Index * 3 + 1], CtrlPts[Index * 3 + 2],
         CtrlPts[Index * 3 + 3]);
     Result := Points;
@@ -101,14 +85,14 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function MakeBox(CentrePt: TFloatPoint; Size: TFloat): TArrayOfFloatPoint;
+function MakeBox(CenterPt: TFloatPoint; Size: TFloat): TArrayOfFloatPoint;
 begin
   Size := Size * 0.5;
   SetLength(Result, 4);
-  Result[0] := OffsetPoint(CentrePt, -Size, -Size);
-  Result[1] := OffsetPoint(CentrePt,  Size, -Size);
-  Result[2] := OffsetPoint(CentrePt,  Size,  Size);
-  Result[3] := OffsetPoint(CentrePt, -Size,  Size);
+  Result[0] := OffsetPoint(CenterPt, -Size, -Size);
+  Result[1] := OffsetPoint(CenterPt,  Size, -Size);
+  Result[2] := OffsetPoint(CenterPt,  Size,  Size);
+  Result[3] := OffsetPoint(CenterPt, -Size,  Size);
 end;
 
 //------------------------------------------------------------------------------
@@ -117,24 +101,40 @@ end;
 procedure TFmArrowHeadDemo.FormCreate(Sender: TObject);
 begin
   ImgView32.SetupBitmap(True, clWhite32);
-  ImgView32.Bitmap.DrawMode := dmBlend;
-  ArrowSize := 20;
+  ImgView32.Bitmap.DrawMode := dmOpaque;
+
+  FArrowSize := 20;
+  FDashes := MakeArrayOfFloat([14, 3, 3, 3, 3, 3]);
+  FBoxCenter[0] := FloatPoint(80, 100);
+  FBoxCenter[1] := FloatPoint(280, 300);
+  FVelocity[0] := FloatPoint(2 * Random - 1, 2 * Random - 1);
+  FVelocity[1] := FloatPoint(2 * Random - 1, 2 * Random - 1);
+
+  FPattern[0] := TBitmap32.Create;
+  FPattern[0].LoadFromResourceName(HInstance, 'PATTERN');
+  FPattern[1] := TBitmap32.Create;
+  FPattern[1].LoadFromResourceName(HInstance, 'PATTERN2');
+
+  FBitmapFiller := TBitmapPolygonFiller.Create;
+
+  Redraw;
+end;
+//------------------------------------------------------------------------------
+
+procedure TFmArrowHeadDemo.FormDestroy(Sender: TObject);
+begin
+  FPattern[0].Free;
+  FPattern[1].Free;
+  FBitmapFiller.Free;
 end;
 //------------------------------------------------------------------------------
 
 procedure TFmArrowHeadDemo.ReDraw;
 var
   Poly, ArrowPts: TArrayOfFloatPoint;
-  Pts: array [0..1] of TFloatPoint;
-  Dashes: TArrayOfFloat;
   Arrow: TArrowHeadAbstract;
-  Bmp: TBitmap32;
-  BmpFiller: TBitmapPolygonFiller;
 begin
   ImgView32.SetupBitmap(True, clWhite32);
-
-  Bmp := TBitmap32.Create;
-  BmpFiller := TBitmapPolygonFiller.Create;
 
   case rgArrowStyle.ItemIndex of
     1: Arrow := TArrowHeadSimple.Create(ArrowSize);
@@ -144,25 +144,20 @@ begin
     else Arrow := nil;
   end;
 
-  Dashes := MakeArrayOfFloat([14, 3, 3, 3, 3, 3]);
-  Pts[0] := FloatPoint(80, 100);
-  Pts[1] := FloatPoint(280, 300);
+  FBitmapFiller.Pattern := FPattern[0];
+  Poly := MakeBox(FBoxCenter[0], 60);
+  DashLineFS(ImgView32.Bitmap, Poly, FDashes, FBitmapFiller, $FF006600, True,
+    10, 1.5);
 
-  Bmp.LoadFromResourceName(HInstance, 'PATTERN');
-  BmpFiller.Pattern := Bmp;
-  Poly := MakeBox(Pts[0], 60);
-  DashLineFS(ImgView32.Bitmap, Poly, Dashes, BmpFiller, $FF006600, True, 10,
-    1.5);
+  FBitmapFiller.Pattern := FPattern[1];
+  Poly := MakeBox(FBoxCenter[1], 60);
+  DashLineFS(ImgView32.Bitmap, Poly, FDashes, FBitmapFiller, $FF000066, True,
+    10, 1.5);
 
-  Bmp.LoadFromResourceName(HInstance, 'PATTERN2');
-  Poly := MakeBox(Pts[1], 60);
-  DashLineFS(ImgView32.Bitmap, Poly, Dashes, BmpFiller, $FF000066, True, 10,
-    1.5);
-
-  Poly := MakeArrayOfFloatPoints([Pts[0].X + 35, Pts[0].Y,
-    Pts[0].X + 95, Pts[0].Y,
-    Pts[1].X - 95, Pts[1].Y,
-    Pts[1].X - 35, Pts[1].Y]);
+  Poly := BuildPolygon([FBoxCenter[0].X + 35, FBoxCenter[0].Y,
+    FBoxCenter[0].X + 95, FBoxCenter[0].Y,
+    FBoxCenter[1].X - 95, FBoxCenter[1].Y,
+    FBoxCenter[1].X - 35, FBoxCenter[1].Y]);
   Poly := MakeBezierCurve(Poly);
 
   if Assigned(Arrow) then
@@ -190,9 +185,6 @@ begin
     end;
   end else
     PolylineFS(ImgView32.Bitmap, Poly, clBlack32, False, 2);
-
-  Bmp.Free;
-  BmpFiller.Free;
 end;
 
 procedure TFmArrowHeadDemo.rgArrowStyleClick(Sender: TObject);
@@ -214,6 +206,30 @@ begin
 end;
 //------------------------------------------------------------------------------
 
+procedure TFmArrowHeadDemo.CbAnimateClick(Sender: TObject);
+begin
+  Animation.Enabled := CbAnimate.Checked;
+end;
+//------------------------------------------------------------------------------
+
+procedure TFmArrowHeadDemo.AnimationTimer(Sender: TObject);
+begin
+  FBoxCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
+  FBoxCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
+
+  if (FBoxCenter[0].X + 60 > ImgView32.Width) or (FBoxCenter[0].X - 60 < 0) then
+    FVelocity[0].X := - FVelocity[0].X;
+  if (FBoxCenter[0].Y + 60 > ImgView32.Height) or (FBoxCenter[0].Y - 60 < 0) then
+    FVelocity[0].Y := - FVelocity[0].Y;
+  if (FBoxCenter[1].X + 60 > ImgView32.Width) or (FBoxCenter[1].X - 60 < 0) then
+    FVelocity[1].X := - FVelocity[1].X;
+  if (FBoxCenter[1].Y + 60 > ImgView32.Height) or (FBoxCenter[1].Y - 60 < 0) then
+    FVelocity[1].Y := - FVelocity[1].Y;
+
+  ReDraw;
+end;
+//------------------------------------------------------------------------------
+
 procedure TFmArrowHeadDemo.SetArrowSize(const Value: Integer);
 begin
   if FArrowSize <> Value then
@@ -229,5 +245,7 @@ begin
   Redraw;
 end;
 //------------------------------------------------------------------------------
+
+initialization
 
 end.

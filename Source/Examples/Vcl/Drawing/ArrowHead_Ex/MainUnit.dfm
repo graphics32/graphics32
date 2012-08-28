@@ -13,6 +13,7 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
   KeyPreview = True
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 15
   object ImgView32: TImgView32
@@ -94,5 +95,21 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       TabOrder = 3
       OnClick = rgArrowStyleClick
     end
+    object CbAnimate: TCheckBox
+      Left = 49
+      Top = 359
+      Width = 65
+      Height = 17
+      Caption = 'Animate'
+      TabOrder = 4
+      OnClick = CbAnimateClick
+    end
+  end
+  object Animation: TTimer
+    Enabled = False
+    Interval = 30
+    OnTimer = AnimationTimer
+    Left = 272
+    Top = 232
   end
 end
