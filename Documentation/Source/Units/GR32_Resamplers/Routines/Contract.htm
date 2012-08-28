@@ -7,7 +7,7 @@
 <body bgcolor="#FFFFFF">
 <p class="Decl"><span class="EmptyRef">procedure</span> Contract(Src, Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; Kernel: <a href="../../GR32_OrdinalMaps/Classes/TIntegerMap/_Body.htm">TIntegerMap</a>; CenterX, CenterY: Integer);</p>
 <h2>Description</h2>
-<p class="Body"><b>Contract </b> performs rasterization using the <a href="../Classes/TContracter/_Body.HTM">TContracter</a> sampler. The <span class="EmptyRef">Kernel</span> parameter specifies a weight matrix which is centered at the coordinated (<span class="EmptyRef">X</span> + <span class="EmptyRef">CenterX</span>, <span class="EmptyRef">Y</span> + <span class="EmptyRef">CenterY</span>) for each pixel coordinate (<span class="EmptyRef">X</span>, <span class="EmptyRef">Y</span>).</p>
+<p class="Body"><b>Contract </b> performs rasterization using the <a href="../Classes/TContracter/_Body.htm">TContracter</a> sampler. The <span class="EmptyRef">Kernel</span> parameter specifies a weight matrix which is centered at the coordinated (<span class="EmptyRef">X</span> + <span class="EmptyRef">CenterX</span>, <span class="EmptyRef">Y</span> + <span class="EmptyRef">CenterY</span>) for each pixel coordinate (<span class="EmptyRef">X</span>, <span class="EmptyRef">Y</span>).</p>
 <p class="Body">Output pixels are computed from the formula</p>
 <p align="center" class="Body"> <img src="../../../../Images/eq_contract.gif" width="232" height="20"></p>
 <p align="left" class="Body">where <em>f</em> corresponds to the source bitmap and <em>b</em> corresponds to the kernel (formally described as a <em>structuring element</em>). </p>
