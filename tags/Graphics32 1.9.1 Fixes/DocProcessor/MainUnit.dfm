@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 141
-  Top = 171
+  Left = 283
+  Top = 174
   Caption = 'HTML Document Processor'
   ClientHeight = 459
   ClientWidth = 842
@@ -18,7 +18,7 @@ object MainForm: TMainForm
   OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
-  object pnlLog: TPanel
+  object PnlLog: TPanel
     Left = 363
     Top = 0
     Width = 479
@@ -44,7 +44,7 @@ object MainForm: TMainForm
       TabOrder = 0
       WordWrap = False
     end
-    object pnlProgress: TPanel
+    object PnlProgress: TPanel
       Left = 0
       Top = 435
       Width = 479
@@ -55,7 +55,7 @@ object MainForm: TMainForm
       DesignSize = (
         479
         24)
-      object lblProgress: TLabel
+      object LblProgress: TLabel
         Left = 5
         Top = 5
         Width = 46
@@ -73,7 +73,7 @@ object MainForm: TMainForm
       end
     end
   end
-  object pnlControl: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 363
@@ -82,7 +82,7 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     BorderWidth = 2
     TabOrder = 1
-    object pnlProjectInfo: TPanel
+    object PnlProjectInfo: TPanel
       Left = 2
       Top = 2
       Width = 359
@@ -93,38 +93,39 @@ object MainForm: TMainForm
       DesignSize = (
         359
         157)
-      object lblVersionString: TLabel
-        Left = 244
-        Top = 103
-        Width = 70
-        Height = 13
-        Caption = '&Version String:'
-        FocusControl = edVersionString
-      end
-      object lblProjectTitle: TLabel
-        Left = 8
-        Top = 79
+      object LblProjectTitle: TLabel
+        Left = 10
+        Top = 127
         Width = 61
         Height = 13
         Caption = 'Project &Title:'
-        FocusControl = edProjectTitle
+        FocusControl = EdtProjectTitle
       end
-      object lblProjectDirectory: TLabel
-        Left = 8
-        Top = 24
+      object LblProjectDirectory: TLabel
+        Left = 10
+        Top = 72
         Width = 85
         Height = 13
         Caption = '&Project Directory:'
-        FocusControl = edProjectDirectory
+        FocusControl = EdtProjectDirectory
       end
-      object lblProjectFileName: TLabel
-        Left = 8
-        Top = 105
+      object LblVersionString: TLabel
+        Left = 246
+        Top = 23
+        Width = 70
+        Height = 13
+        Caption = '&Version String:'
+        FocusControl = EdtVersionString
+      end
+      object LblProjectFileName: TLabel
+        Left = 10
+        Top = 23
         Width = 83
         Height = 13
         Caption = 'Project &Filename:'
+        FocusControl = CmbProjectName
       end
-      object pnlProjectInfoHead: TPanel
+      object PnlProjectInfoHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -141,48 +142,48 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 4
       end
-      object edVersionString: TEdit
-        Left = 244
-        Top = 121
-        Width = 104
+      object EdtProjectTitle: TEdit
+        Left = 82
+        Top = 123
+        Width = 268
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 3
-        Text = 'v1.0'
-        OnChange = edProjectTitleChange
+        Text = 'MyProject Help'
+        OnChange = EdtProjectTitleChange
       end
-      object edProjectTitle: TEdit
-        Left = 80
-        Top = 75
-        Width = 270
+      object EdtProjectDirectory: TEdit
+        Left = 10
+        Top = 90
+        Width = 340
+        Height = 21
+        Anchors = [akLeft, akTop, akRight]
+        TabOrder = 2
+        Text = 'MyProjectDirectory'
+        OnChange = EdtProjectDirectoryChange
+      end
+      object CmbProjectName: TComboBox
+        Left = 10
+        Top = 41
+        Width = 226
+        Height = 21
+        TabOrder = 0
+        Text = 'MyProjectName'
+        OnChange = CmbProjectNameChange
+        OnClick = CmbProjectNameClick
+      end
+      object EdtVersionString: TEdit
+        Left = 246
+        Top = 41
+        Width = 104
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 1
-        Text = 'MyProject Help'
-        OnChange = edProjectTitleChange
-      end
-      object edProjectDirectory: TEdit
-        Left = 8
-        Top = 42
-        Width = 342
-        Height = 21
-        Anchors = [akLeft, akTop, akRight]
-        TabOrder = 0
-        Text = 'MyProjectDirectory'
-        OnChange = edProjectDirectoryChange
-      end
-      object cbProjectName: TComboBox
-        Left = 8
-        Top = 121
-        Width = 226
-        Height = 21
-        TabOrder = 2
-        Text = 'MyProjectName'
-        OnChange = cbProjectNameChange
-        OnClick = cbProjectNameClick
+        Text = 'v1.0'
+        OnChange = EdtProjectTitleChange
       end
     end
-    object pnlCompiler: TPanel
+    object PnlCompiler: TPanel
       Left = 2
       Top = 159
       Width = 359
@@ -193,25 +194,25 @@ object MainForm: TMainForm
       DesignSize = (
         359
         77)
-      object lblCompiler: TLabel
-        Left = 8
+      object LblCompiler: TLabel
+        Left = 10
         Top = 24
         Width = 70
         Height = 13
         Caption = 'CHM &Compiler:'
-        FocusControl = edCHMCompiler
+        FocusControl = EdtCHMCompiler
       end
-      object edCHMCompiler: TEdit
-        Left = 8
+      object EdtCHMCompiler: TEdit
+        Left = 10
         Top = 42
-        Width = 342
+        Width = 340
         Height = 21
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 0
         Text = 'C:\Program Files\HTML Help Workshop\hhc.exe'
-        OnChange = edCHMCompilerChange
+        OnChange = EdtCHMCompilerChange
       end
-      object pnlCompilerHead: TPanel
+      object PnlCompilerHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -229,7 +230,7 @@ object MainForm: TMainForm
         TabOrder = 1
       end
     end
-    object pnlTransComp: TPanel
+    object PnlTransComp: TPanel
       Left = 2
       Top = 236
       Width = 359
@@ -237,16 +238,16 @@ object MainForm: TMainForm
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 2
-      object bProcess: TButton
-        Left = 9
+      object BtnProcess: TButton
+        Left = 10
         Top = 93
         Width = 160
         Height = 24
         Caption = 'Transform && Compile (F9)'
         TabOrder = 2
-        OnClick = bProcessClick
+        OnClick = BtnProcessClick
       end
-      object pnlTransCompHead: TPanel
+      object PnlTransCompHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -263,34 +264,34 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 5
       end
-      object bTransform: TButton
-        Left = 8
+      object BtnTransform: TButton
+        Left = 10
         Top = 28
         Width = 160
         Height = 25
         Caption = 'Transform HTML only (F7)'
         TabOrder = 0
-        OnClick = bTransformClick
+        OnClick = BtnTransformClick
       end
-      object bCompile: TButton
-        Left = 8
+      object BtnCompile: TButton
+        Left = 10
         Top = 60
         Width = 160
         Height = 25
         Caption = 'Compile CHM File only (F8)'
         TabOrder = 1
-        OnClick = bCompileClick
+        OnClick = BtnCompileClick
       end
-      object cbOpenAfterProcess: TCheckBox
+      object CbxOpenAfterProcess: TCheckBox
         Left = 186
         Top = 100
         Width = 172
         Height = 17
         Caption = 'Op&en CHM File after Compiling'
         TabOrder = 4
-        OnClick = edProjectTitleChange
+        OnClick = EdtProjectTitleChange
       end
-      object cbIncludeAlphabetClasses: TCheckBox
+      object CbxIncludeAlphabetClasses: TCheckBox
         Left = 186
         Top = 28
         Width = 150
@@ -299,19 +300,19 @@ object MainForm: TMainForm
         Checked = True
         State = cbChecked
         TabOrder = 3
-        OnClick = edProjectTitleChange
+        OnClick = EdtProjectTitleChange
       end
-      object cbBrokenLinks: TCheckBox
+      object CbxBrokenLinks: TCheckBox
         Left = 186
         Top = 49
         Width = 139
         Height = 17
         Caption = 'Report &Broken Links'
         TabOrder = 6
-        OnClick = edProjectTitleChange
+        OnClick = EdtProjectTitleChange
       end
     end
-    object pnlMisc: TPanel
+    object PnlMisc: TPanel
       Left = 2
       Top = 365
       Width = 359
@@ -319,7 +320,7 @@ object MainForm: TMainForm
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 3
-      object pnlMiscHead: TPanel
+      object PnlMiscHead: TPanel
         Left = 0
         Top = 0
         Width = 359
@@ -336,35 +337,35 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 0
       end
-      object bParseMissing: TButton
-        Left = 8
+      object BtnParseMissing: TButton
+        Left = 10
         Top = 28
         Width = 160
         Height = 25
         Caption = 'Parse Missing PAS &Units ...'
         TabOrder = 1
-        OnClick = bParseMissingClick
+        OnClick = BtnParseMissingClick
       end
-      object bOpen: TButton
-        Left = 186
+      object BtnOpen: TButton
+        Left = 190
         Top = 28
         Width = 160
         Height = 24
         Caption = '&Open CHM File'
         TabOrder = 2
-        OnClick = bOpenClick
+        OnClick = BtnOpenClick
       end
-      object bClose: TButton
-        Left = 186
+      object BtnClose: TButton
+        Left = 190
         Top = 61
         Width = 160
         Height = 24
         Cancel = True
         Caption = 'E&xit'
         TabOrder = 4
-        OnClick = bCloseClick
+        OnClick = BtnCloseClick
       end
-      object bSaveProjectInfo: TButton
+      object BtnSaveProjectInfo: TButton
         Left = 10
         Top = 61
         Width = 160
@@ -373,7 +374,7 @@ object MainForm: TMainForm
         Caption = '&Save Project Information'
         Enabled = False
         TabOrder = 3
-        OnClick = bSaveProjectInfoClick
+        OnClick = BtnSaveProjectInfoClick
       end
     end
   end
