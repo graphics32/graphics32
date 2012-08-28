@@ -68,6 +68,20 @@ begin
 end;
 //------------------------------------------------------------------------------
 
+function MakeArrayOfFloatPoint(const a: array of TFloat): TArrayOfFloatPoint;
+var
+  i, len: integer;
+begin
+  len := length(a) div 2;
+  setlength(result, len);
+  for i := 0 to len -1 do
+  begin
+    result[i].X := a[i*2] +0.5;
+    result[i].Y := a[i*2 +1] +0.5;
+  end;
+end;
+//------------------------------------------------------------------------------
+
 function MakeBezierCurve(const CtrlPts: TArrayOfFloatPoint): TArrayOfFloatPoint;
 var
   Index: Integer;
@@ -100,6 +114,7 @@ end;
 
 procedure TFmArrowHeadDemo.FormCreate(Sender: TObject);
 begin
+  Randomize;
   ImgView32.SetupBitmap(True, clWhite32);
   ImgView32.Bitmap.DrawMode := dmOpaque;
 
@@ -154,9 +169,9 @@ begin
   DashLineFS(ImgView32.Bitmap, Poly, FDashes, FBitmapFiller, $FF000066, True,
     10, 1.5);
 
-  Poly := BuildPolygon([FBoxCenter[0].X + 35, FBoxCenter[0].Y,
-    FBoxCenter[0].X + 95, FBoxCenter[0].Y,
-    FBoxCenter[1].X - 95, FBoxCenter[1].Y,
+  Poly := MakeArrayOfFloatPoint([FBoxCenter[0].X + 35, FBoxCenter[0].Y,
+    FBoxCenter[0].X + 125, FBoxCenter[0].Y,
+    FBoxCenter[1].X - 125, FBoxCenter[1].Y,
     FBoxCenter[1].X - 35, FBoxCenter[1].Y]);
   Poly := MakeBezierCurve(Poly);
 
@@ -186,6 +201,7 @@ begin
   end else
     PolylineFS(ImgView32.Bitmap, Poly, clBlack32, False, 2);
 end;
+//------------------------------------------------------------------------------
 
 procedure TFmArrowHeadDemo.rgArrowStyleClick(Sender: TObject);
 begin
