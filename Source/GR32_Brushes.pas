@@ -263,7 +263,7 @@ var
 begin
   BeginUpdate;
   try
-    //Index := FItems.Add(Item);
+    {Index := } FItems.Add(Item);
     Item.FBrushCollection := Self;
     //Notify(lnLayerAdded, Item, Index);
   finally
