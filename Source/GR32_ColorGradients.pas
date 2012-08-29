@@ -202,7 +202,7 @@ type
 implementation
 
 uses
-  GR32_Math, GR32_Blend;
+  GR32_Math, GR32_Blend, GR32_Geometry;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -210,33 +210,6 @@ resourcestring
 const
   FloatTolerance = 0.001;
   clNone32: TColor32 = $00000000;
-
-{Miscellaneous functions}
-{???: consider moving to another unit}
-
-function GetAngleOfParam2FromParam1(const Point1, Point2: TFloatPoint): TFloat;
-var
-  X, Y: TFloat;
-const
-  Rad90 = pi / 2;
-  Rad270 = Rad90 * 3;
-  Rad360 = pi * 2;
-begin
-  X := Point2.X - Point1.X;
-  Y := Point2.Y - Point1.Y;
-  if X = 0 then
-  begin
-    if Y > 0 then
-      Result := Rad270 else
-      Result := Rad90;
-  end else
-  begin
-    Result := ArcTan2(-Y,X);
-    if Result < 0 then
-      Result := Result + Rad360;
-  end;
-end;
-
 
 { TGradient32 }
 
@@ -561,13 +534,13 @@ begin
     Abs(FStartPoint.X - FEndPoint.X) > Abs(FStartPoint.Y - FEndPoint.Y);
   if FUsingHorzAxis then
   begin
-    Angle := pi*2 - GetAngleOfParam2FromParam1(FStartPoint, FEndPoint);
+    Angle := pi*2 - GetAngleOfPt2FromPt1(FStartPoint, FEndPoint);
     FTanAngle := Tan(Angle);
     FStart := FStartPoint.X + FTanAngle * FStartPoint.Y;
     FEnd := FEndPoint.X + FTanAngle * FEndPoint.Y;
   end else
   begin
-    Angle := pi*3/2 + GetAngleOfParam2FromParam1(FStartPoint, FEndPoint);
+    Angle := pi*3/2 + GetAngleOfPt2FromPt1(FStartPoint, FEndPoint);
     FTanAngle := Tan(Angle);
     FStart := FStartPoint.Y + FTanAngle * FStartPoint.X;
     FEnd := FEndPoint.Y + FTanAngle * FEndPoint.X;
