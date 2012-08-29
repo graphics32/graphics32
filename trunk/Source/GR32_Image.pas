@@ -1673,7 +1673,8 @@ end;
 
 procedure TCustomImage32.InvalidateCache;
 begin
-  if FRepaintOptimizer.Enabled then FRepaintOptimizer.Reset;
+  if FRepaintOptimizer.Enabled and CacheValid then
+    FRepaintOptimizer.Reset;
   CacheValid := False;
 end;
 
@@ -2532,4 +2533,4 @@ begin
   FBitmap32Collection := Value;
 end;
 
-end.
+end.
