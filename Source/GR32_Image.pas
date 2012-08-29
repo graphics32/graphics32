@@ -847,7 +847,8 @@ begin
   inherited;
 end;
 
-procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState;
+  X, Y: Integer);
 begin
   if (pboAutoFocus in Options) and CanFocus then SetFocus;
   inherited;
@@ -1149,7 +1150,8 @@ begin
   BitmapChanged(Bitmap.Boundsrect);
 end;
 
-procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject;
+  const Area: TRect; const Info: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -1184,7 +1186,8 @@ begin
   BitmapChanged(Area);
 end;
 
-procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject;
+  const Area: TRect; const Info: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -2404,12 +2407,12 @@ begin
   else
   begin
     if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetHorz := (W - Sz.Cx) / 2
+      OffsetHorz := (W - Sz.Cx) * 0.5
     else
       OffsetHorz := -HScroll.Position + ScaledOversize;
 
     if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetVert := (H - Sz.Cy) / 2
+      OffsetVert := (H - Sz.Cy) * 0.5
     else
       OffsetVert := -VScroll.Position + ScaledOversize;
   end;
