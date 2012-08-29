@@ -4,27 +4,27 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Math, ExtCtrls, StdCtrls, GR32, GR32_Polygons, GR32_Image, GR32_Layers,
-  GR32_ColorGradients, Menus;
+  Math, ExtCtrls, StdCtrls, Menus, GR32, GR32_Polygons, GR32_Image, GR32_Layers,
+  GR32_ColorGradients;
 
 type
   TControlButton = class(TPersistent)
   private
     FCenter: TPoint;
-    FSize: TFloat;
+    FSize, FSizeSqr: TFloat;
     FOutline: TArrayOfFloatPoint;
-    FIsMoving: Boolean;
-    FControlBtnGradFiller: TRadialGradientPolygonFiller;
+    FPolygonFiller: TCustomPolygonFiller;
     procedure SetCenter(const Value: TPoint);
   public
-    Constructor Create(const Center: TPoint; Size: TFloat);
-    Destructor Destroy; override;
+    constructor Create(const Center: TPoint; Size: TFloat;
+      Filler: TCustomPolygonFiller);
     procedure Draw(const Bmp32: TBitmap32);
-    property Center: TPoint read FCenter write SetCenter;
-    property IsMoving: boolean read FIsMoving write FIsMoving;
-    property Outline: TArrayOfFloatPoint read FOutline;
-  end;
+    function TestHitPoint(X, Y: Integer): Boolean;
 
+    property Center: TPoint read FCenter write SetCenter;
+    property Outline: TArrayOfFloatPoint read FOutline;
+    property PolygonFiller: TCustomPolygonFiller read FPolygonFiller write FPolygonFiller;
+  end;
 
   TMainForm = class(TForm)
     ImgView32: TImgView32;
@@ -50,6 +50,9 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure rgEllipseFillStyleClick(Sender: TObject);
   private
+    FControlButtonFiller: TSamplerFiller;
+    FRadialGradientSampler: TRadialGradientSampler;
+    FControlButton: TControlButton;
     FLinearStartBtn: TControlButton;
     FLinearEndBtn: TControlButton;
     FRadialOriginBtn: TControlButton;
@@ -252,7 +255,7 @@ begin
     Offset := StrToFloatDef(Copy(s[i], 1, j - 1), -1);
     if (Offset < 0) then
       Continue;
-    ColorStr := Trim(Copy(s[i], j+1, 80));
+    ColorStr := Trim(Copy(s[i], j + 1, 80));
     if not IdentToInt(ColorStr, Integer(Color), Colors) then
       Color := TColor32(StrToIntDef(ColorStr, $01010101));
     if Color <> $01010101 then
@@ -262,18 +265,18 @@ end;
 
 function LoadPolysFromResource(const ResName: string): TArrayOfArrayOfFloatPoint;
 var
-  I,J, Count: integer;
+  I,J, Count: Integer;
   ResStream: TResourceStream;
 
-  function ReadInt: integer;
+  function ReadInt: Integer;
   begin
-    ResStream.Read(Result, sizeof(Result));
+    ResStream.Read(Result, SizeOf(Result));
   end;
 
   function ReadFloatPoint: TFloatPoint;
   begin
-    ResStream.Read(Result.X, sizeof(TFloat));
-    ResStream.Read(Result.Y, sizeof(TFloat));
+    ResStream.Read(Result.X, SizeOf(TFloat));
+    ResStream.Read(Result.Y, SizeOf(TFloat));
   end;
 
 begin
@@ -281,11 +284,11 @@ begin
   try
     Count := ReadInt;
     SetLength(Result, Count);
-    for I := 0 to Count -1 do
+    for I := 0 to Count - 1 do
     begin
       Count := ReadInt;
       SetLength(Result[I], Count);
-      for J := 0 to Count -1 do
+      for J := 0 to Count - 1 do
         Result[I][J] := ReadFloatPoint;
     end;
   finally
@@ -296,40 +299,39 @@ end;
 
 { TControlButton }
 
-Constructor TControlButton.Create(const Center: TPoint; Size: TFloat);
+constructor TControlButton.Create(const Center: TPoint; Size: TFloat;
+  Filler: TCustomPolygonFiller);
 begin
   inherited Create;
 
   FCenter := Center;
   FSize := Size;
+  FSizeSqr := Sqr(FSize);
   FOutline := Ellipse(Center.X, Center.Y, Size, Size);
-  FIsMoving :=  false;
-
-  FControlBtnGradFiller := TRadialGradientPolygonFiller.Create;
-  FControlBtnGradFiller.Gradient.AddColorStop(0.0, $FFFFFFFF);
-  FControlBtnGradFiller.Gradient.AddColorStop(1.0, $FFA0A0A0);
-end;
-
-Destructor TControlButton.Destroy;
-begin
-  FControlBtnGradFiller.Free;
-  inherited;
+  FPolygonFiller := Filler;
 end;
 
 procedure TControlButton.Draw(const Bmp32: TBitmap32);
 begin
-  if FIsMoving then exit;
-  with FCenter do
-    FControlBtnGradFiller.EllipseBounds := FloatRect(X -5, Y - 5, X + 1, Y + 1);
-  PolygonFS(Bmp32, FOutline, FControlBtnGradFiller, pfWinding);
+  with TRadialGradientSampler(TSamplerFiller(FPolygonFiller).Sampler) do
+  begin
+    Center := FloatPoint(Self.FCenter.X - 2.5, Self.FCenter.Y - 2.5);
+    Radius := 6;
+  end;
+  PolygonFS(Bmp32, FOutline, FPolygonFiller, pfWinding);
   PolylineFS(Bmp32, FOutline, clBlack32, False, 1.0);
 end;
 
 procedure TControlButton.SetCenter(const Value: TPoint);
 begin
-  if (FCenter.X = value.X) and (FCenter.Y = value.Y) then Exit;
+  if (FCenter.X = Value.X) and (FCenter.Y = Value.Y) then Exit;
   FCenter := Value;
   FOutline := Ellipse(Center.X, Center.Y, FSize, FSize);
+end;
+
+function TControlButton.TestHitPoint(X, Y: Integer): Boolean;
+begin
+  Result := Sqr(FCenter.X - X) + Sqr(FCenter.Y - Y) < FSizeSqr;
 end;
 
 
@@ -344,20 +346,26 @@ begin
   FLinearBounds := Rect(50, 50, 350, 200);
   FRadialBounds := Rect(50, 250, 350, 400);
 
+  FRadialGradientSampler := TRadialGradientSampler.Create;
+  FRadialGradientSampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
+  FRadialGradientSampler.Gradient.AddColorStop(1.0, $FFA0A0A0);
+  FControlButtonFiller := TSamplerFiller.Create(FRadialGradientSampler);
+  FControlButtonFiller.Sampler := FRadialGradientSampler;
+
   //These text paths only need to be gotten once ...
   TextPath := TFlattenedPath.Create;
   try
-    TextToPath(self.Font.Handle, TextPath, FloatRect(50, 10, 250, 30),
+    TextToPath(Self.Font.Handle, TextPath, FloatRect(50, 10, 250, 30),
       'nb: Click and drag control buttons to adjust gradients ...', 0);
     FTextNotesPoly := TextPath.Path;
 
     with FLinearBounds do
-      TextToPath(self.Font.Handle, TextPath,
+      TextToPath(Self.Font.Handle, TextPath,
         FloatRect(Left, Bottom, Left + 100,Bottom + 20), 'Linear gradients', 0);
     FTextTopPoly := TextPath.Path;
 
     with FRadialBounds do
-      TextToPath(self.Font.Handle, TextPath,
+      TextToPath(Self.Font.Handle, TextPath,
         FloatRect(Left, Bottom, Left + 100, Bottom + 20),
         'Radial gradients', 0);
     FTextBottomPoly := TextPath.Path;
@@ -367,14 +375,14 @@ begin
 
   FTextGR32 := LoadPolysFromResource('Graphics32');
 
-  FLinearStartBtn := TControlButton.Create(GR32.Point(100,125), 4);
-  FLinearEndBtn  := TControlButton.Create(GR32.Point(300,125), 4);
-  FRadialOriginBtn := TControlButton.Create(GR32.Point(250,350), 4);
+  FLinearStartBtn := TControlButton.Create(GR32.Point(100, 125), 4, FControlButtonFiller);
+  FLinearEndBtn  := TControlButton.Create(GR32.Point(300, 125), 4, FControlButtonFiller);
+  FRadialOriginBtn := TControlButton.Create(GR32.Point(250, 350), 4, FControlButtonFiller);
 
   with FRadialOriginBtn.Center do
   begin
-    FRadialXBtn := TControlButton.Create(GR32.Point(X - 80, Y), 4);
-    FRadialYBtn := TControlButton.Create(GR32.Point(X, Y + 40), 4);
+    FRadialXBtn := TControlButton.Create(GR32.Point(X - 80, Y), 4, FControlButtonFiller);
+    FRadialYBtn := TControlButton.Create(GR32.Point(X, Y + 40), 4, FControlButtonFiller);
   end;
 
   DrawImage;
@@ -392,81 +400,83 @@ end;
 procedure TMainForm.ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
-  with FLinearStartBtn do IsMoving := PointInPolygon(FloatPoint(X,Y), Outline);
-  if FLinearStartBtn.IsMoving then Exit;
-  with FLinearEndBtn do IsMoving := PointInPolygon(FloatPoint(X,Y), Outline);
-  if FLinearEndBtn.IsMoving then Exit;
-  with FRadialXBtn do IsMoving := PointInPolygon(FloatPoint(X,Y), Outline);
-  if FRadialXBtn.IsMoving then Exit;
-  with FRadialYBtn do IsMoving := PointInPolygon(FloatPoint(X,Y), Outline);
-  if FRadialYBtn.IsMoving then Exit;
-  with FRadialOriginBtn do IsMoving := PointInPolygon(FloatPoint(X,Y), Outline);
+  if FLinearStartBtn.TestHitPoint(X, Y) then
+    FControlButton := FLinearStartBtn;
+  if FLinearEndBtn.TestHitPoint(X, Y) then
+    FControlButton := FLinearEndBtn;
+  if FRadialXBtn.TestHitPoint(X, Y) then
+    FControlButton := FRadialXBtn;
+  if FRadialYBtn.TestHitPoint(X, Y) then
+    FControlButton := FRadialYBtn;
+  if FRadialOriginBtn.TestHitPoint(X, Y) then
+    FControlButton := FRadialOriginBtn;
 end;
 
 procedure TMainForm.ImgView32MouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer; Layer: TCustomLayer);
 var
-  DX, DY: integer;
+  Delta: TPoint;
 begin
-  if FLinearStartBtn.IsMoving then
+  if FControlButton = FLinearStartBtn then
   begin
-    X := Min(Max(X, 10), ImgView32.ClientWidth - 10);
-    Y := Min(Max(Y, 10), ImgView32.ClientHeight - 10);
+    X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
+    Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
     with FLinearEndBtn do
       if (Abs(Center.X - X) < 1) and (Abs(Center.Y - Y) < 1) then Exit;
-    FLinearStartBtn.Center := GR32.Point(X,Y);
+    FLinearStartBtn.Center := GR32.Point(X, Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FLinearEndBtn.IsMoving then
+  else if FControlButton = FLinearEndBtn then
   begin
-    X := Min(Max(X, 10), ImgView32.ClientWidth - 10);
-    Y := Min(Max(Y, 10), ImgView32.ClientHeight - 10);
+    X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
+    Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
     with FLinearStartBtn do
       if (Abs(Center.X - X) < 1) and (Abs(Center.Y - Y) < 1) then Exit;
-    FLinearEndBtn.Center := GR32.Point(X,Y);
+    FLinearEndBtn.Center := GR32.Point(X, Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FRadialOriginBtn.IsMoving then
+  else if FControlButton = FRadialOriginBtn then
   begin
-    X := Min(Max(X, FRadialBounds.Left), FRadialBounds.Right);
-    Y := Min(Max(Y, FRadialBounds.Top), FRadialBounds.Bottom);
+    X := EnsureRange(X, FRadialBounds.Left, FRadialBounds.Right);
+    Y := EnsureRange(Y, FRadialBounds.Top, FRadialBounds.Bottom);
 
-    DX := X - FRadialOriginBtn.Center.X;
-    DY := Y - FRadialOriginBtn.Center.Y;
-    FRadialOriginBtn.Center := GR32.Point(X,Y);
-    with FRadialXBtn do Center := GR32.Point(Center.X + DX, Center.Y + DY);
-    with FRadialYBtn do Center := GR32.Point(Center.X + DX, Center.Y + DY);
+    Delta.X := X - FRadialOriginBtn.Center.X;
+    Delta.Y := Y - FRadialOriginBtn.Center.Y;
+    FRadialOriginBtn.Center := GR32.Point(X, Y);
+    with FRadialXBtn do Center := OffsetPoint(Center, Delta.X, Delta.Y);
+    with FRadialYBtn do Center := OffsetPoint(Center, Delta.X, Delta.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FRadialXBtn.IsMoving then
+  else if FControlButton = FRadialXBtn then
   begin
-    X := Min(Max(X, 10), ImgView32.ClientWidth - 10);
-    DX := X - FRadialOriginBtn.Center.X;
-    if (Abs(DX) < 3) then Exit;
+    X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
+    Delta.X := X - FRadialOriginBtn.Center.X;
+    if (Abs(Delta.X) < 3) then Exit;
     with FRadialXBtn do
-      Center := GR32.Point(FRadialOriginBtn.Center.X + DX, Center.Y);
+      Center := GR32.Point(FRadialOriginBtn.Center.X + Delta.X, Center.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FRadialYBtn.IsMoving then
+  else if FControlButton = FRadialYBtn then
   begin
-    Y := Min(Max(Y, 10), ImgView32.ClientHeight - 10);
-    DY := Y - FRadialOriginBtn.Center.Y;
-    if (Abs(DY) < 3) then Exit;
+    Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
+    Delta.Y := Y - FRadialOriginBtn.Center.Y;
+    if (Abs(Delta.Y) < 3) then Exit;
     with FRadialYBtn do
-      Center := GR32.Point(Center.X, FRadialOriginBtn.Center.Y + DY);
+      Center := GR32.Point(Center.X, FRadialOriginBtn.Center.Y + Delta.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end else
   begin
-    if PointInPolygon(FloatPoint(X,Y), FLinearStartBtn.Outline) or
-      PointInPolygon(FloatPoint(X,Y), FLinearEndBtn.Outline) or
-      PointInPolygon(FloatPoint(X,Y), FRadialOriginBtn.Outline) or
-      PointInPolygon(FloatPoint(X,Y), FRadialXBtn.Outline) or
-      PointInPolygon(FloatPoint(X,Y), FRadialYBtn.Outline) then
+
+    if FLinearStartBtn.TestHitPoint(X, Y) or
+      FLinearEndBtn.TestHitPoint(X, Y) or
+      FRadialOriginBtn.TestHitPoint(X, Y) or
+      FRadialXBtn.TestHitPoint(X, Y) or
+      FRadialYBtn.TestHitPoint(X, Y) then
         Screen.Cursor := crHandPoint else
         Screen.Cursor := crDefault;
   end;
@@ -475,37 +485,13 @@ end;
 procedure TMainForm.ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
-  if FLinearStartBtn.IsMoving then
-  begin
-    FLinearStartBtn.IsMoving  := False;
-    FLinearStartBtn.Draw(ImgView32.Bitmap);
-  end
-  else if FLinearEndBtn.IsMoving then
-  begin
-    FLinearEndBtn.IsMoving  := False;
-    FLinearEndBtn.Draw(ImgView32.Bitmap);
-  end
-  else if FRadialOriginBtn.IsMoving then
-  begin
-    FRadialOriginBtn.IsMoving  := False;
-    FRadialOriginBtn.Draw(ImgView32.Bitmap);
-  end
-  else if FRadialXBtn.IsMoving then
-  begin
-    FRadialXBtn.IsMoving  := False;
-    FRadialXBtn.Draw(ImgView32.Bitmap);
-  end
-  else if FRadialYBtn.IsMoving then
-  begin
-    FRadialYBtn.IsMoving  := False;
-    FRadialYBtn.Draw(ImgView32.Bitmap);
-  end;
+  FControlButton := nil;
 end;
 
 procedure TMainForm.DrawImage;
 var
   PolygonTop, PolygonBottom: TArrayOfFloatPoint;
-  DX, DY: integer;
+  Delta: TPoint;
   LinearGradFiller: TLinearGradientPolygonFiller;
   RadialGradFiller: TRadialGradientPolygonFiller;
   SVGStyleRadGradFiller: TSVGRadialGradientPolygonFiller;
@@ -527,8 +513,8 @@ begin
     PolyLineFS(ImgView32.Bitmap, PolygonTop, ClBlack32, True, 1);
 
     //use LinearGradFiller to fill 'Graphics32' text  too ...
-    LinearGradFiller.StartPoint := FloatPoint(230,420);
-    LinearGradFiller.EndPoint := FloatPoint(430,420);
+    LinearGradFiller.StartPoint := FloatPoint(230, 420);
+    LinearGradFiller.EndPoint := FloatPoint(430, 420);
     PolyPolygonFS(ImgView32.Bitmap, FTextGR32, LinearGradFiller);
     PolyPolylineFS(ImgView32.Bitmap, FTextGR32, clBlack32, true, 1.2);
   finally
@@ -542,10 +528,10 @@ begin
     RadialGradFiller := TRadialGradientPolygonFiller.Create;
     try
       StrToArrayColor32Gradient(MemoColorStopsBottom.Lines, RadialGradFiller.Gradient);
-      DX := abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
-      DY := abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
+      Delta.X := abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
+      Delta.Y := abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
       with FRadialOriginBtn.FCenter do
-        RadialGradFiller.EllipseBounds := FloatRect(X - DX, Y - DY, X + DX, Y + DY);
+        RadialGradFiller.EllipseBounds := FloatRect(X - Delta.X, Y - Delta.Y, X + Delta.X, Y + Delta.Y);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, RadialGradFiller);
     finally
       RadialGradFiller.Free;
@@ -555,7 +541,7 @@ begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create;
     try
       StrToArrayColor32Gradient(MemoColorStopsBottom.Lines, SVGStyleRadGradFiller.Gradient);
-      SVGStyleRadGradFiller.EllipseBounds := FloatRect(100,265,300,385);
+      SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
     finally
@@ -578,7 +564,6 @@ begin
     FRadialXBtn.Draw(ImgView32.Bitmap);
     FRadialYBtn.Draw(ImgView32.Bitmap);
   end;
-
 end;
 
 procedure TMainForm.BtnExitClick(Sender: TObject);
