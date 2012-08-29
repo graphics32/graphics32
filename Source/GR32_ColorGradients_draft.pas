@@ -164,7 +164,6 @@ type
 
     FEllipseBounds: TFloatRect;
     procedure SetEllipseBounds(const Value: TFloatRect);
-    procedure InitMembers;
     procedure InitColorBuffer; //nb: a color buffer of just one quadrant
   protected
     procedure OnBeginRendering; override;
@@ -266,7 +265,7 @@ begin
   begin
     SetLength(FGradientColors, Length(GradientColors));
     for Index := 0 to Length(GradientColors) - 1 do
-      FGradientColors[Index - 1] := GradientColors[Index];
+      FGradientColors[Index] := GradientColors[Index];
     GradientColorsChanged;
   end;
 end;
@@ -640,20 +639,24 @@ end;
 {TRadialGradientPolygonFiller}
 
 procedure TRadialGradientPolygonFiller.SetEllipseBounds(const Value: TFloatRect);
+var
+  RX, RY: TFloat;
+const
+  FloatTolerance = 0.001;
 begin
-  FEllipseBounds := Value;
-  GradientFillerChanged;
-end;
-
-procedure TRadialGradientPolygonFiller.InitMembers;
-begin
-  with FEllipseBounds do
+  with Value do
   begin
     FCenter := FloatPoint((Left + Right)/2, (Top + Bottom)/2);
-    FRadiusX := Round((Right - Left)/2);
-    FRadiusY := Round((Bottom - Top)/2);
+    RX := Round((Right - Left)/2);
+    RY := Round((Bottom - Top)/2);
   end;
-  InitColorBuffer;
+  //only notify on changes to the radii ...
+  if (Abs(RX - FRadiusX) > FloatTolerance) or
+    (Abs(RY - FRadiusY) > FloatTolerance) then
+      GradientFillerChanged;
+  FRadiusX := RX;
+  FRadiusY := RY;
+  FEllipseBounds := Value;
 end;
 
 procedure TRadialGradientPolygonFiller.InitColorBuffer;
@@ -713,7 +716,6 @@ procedure TRadialGradientPolygonFiller.OnBeginRendering;
 begin
   if not Initialized then
   begin
-    InitMembers;
     InitColorBuffer;
     inherited; //sets initialized = true
   end;
@@ -784,8 +786,7 @@ begin
       y := -1 else
       y := 1;
   end else
-    GR32_Math.SinCos(ArcTan(FRadius.X / FRadius.Y * FFocalPt.Y / FFocalPt.X),
-      y, x);
+    GR32_Math.SinCos(ArcTan(FRadius.X/FRadius.Y * FFocalPt.Y/FFocalPt.X), y, x);
   if FFocalPt.X < 0 then
   begin
     x := -x;
