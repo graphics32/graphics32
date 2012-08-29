@@ -45,14 +45,19 @@ const
   DefaultBezierTolerance = 0.25;
 
 type
+  TControlPointOrigin = (cpNone, cpCubic, cpConic);
+
   { TCustomPath }
   TCustomPath = class(TThreadPersistent)
   private
     FCurrentPoint: TFloatPoint;
     FLastControlPoint: TFloatPoint;
+    FControlPointOrigin: TControlPointOrigin;
   protected
     procedure AddPoint(const Point: TFloatPoint); virtual;
   public
+    constructor Create; override;
+
     procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure MoveTo(const P: TFloatPoint); overload; virtual;
     procedure MoveToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -61,6 +66,10 @@ type
     procedure LineTo(const P: TFloatPoint); overload; virtual;
     procedure LineToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure LineToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure HorizontalLineTo(const X: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure HorizontalLineToRelative(const X: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure VerticalLineTo(const Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure VerticalLineToRelative(const Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const X2, Y2, X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure CurveTo(const C1, C2, P: TFloatPoint); overload; virtual;
@@ -87,7 +96,6 @@ type
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
-
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
 
@@ -250,6 +258,12 @@ end;
 
 { TCustomPath }
 
+constructor TCustomPath.Create;
+begin
+  inherited;
+  FControlPointOrigin := cpNone;
+end;
+
 procedure TCustomPath.AddPoint(const Point: TFloatPoint);
 begin
 end;
@@ -274,9 +288,11 @@ end;
 
 procedure TCustomPath.ConicTo(const P1, P: TFloatPoint);
 begin
-  QuadraticBezierCurve(FCurrentPoint, P1, P, LineTo, QBezierTolerance);
-  LineTo(P);
+  QuadraticBezierCurve(FCurrentPoint, P1, P, AddPoint, QBezierTolerance);
+  AddPoint(P);
   FCurrentPoint := P;
+  FLastControlPoint := P1;
+  FControlPointOrigin := cpConic;
 end;
 
 procedure TCustomPath.ConicTo(const X1, Y1, X, Y: TFloat);
@@ -293,36 +309,44 @@ procedure TCustomPath.ConicTo(const P: TFloatPoint);
 var
   P1: TFloatPoint;
 begin
-  P1.X := FCurrentPoint.X - (FLastControlPoint.X - FCurrentPoint.X);
-  P1.Y := FCurrentPoint.Y - (FLastControlPoint.Y - FCurrentPoint.Y);
+  if FControlPointOrigin = cpConic then
+  begin
+    P1.X := FCurrentPoint.X + (FCurrentPoint.X - FLastControlPoint.X);
+    P1.Y := FCurrentPoint.Y + (FCurrentPoint.Y - FLastControlPoint.Y);
+  end
+  else
+    P1 := FCurrentPoint;
   ConicTo(P1, P);
 end;
 
 procedure TCustomPath.ConicToRelative(const X, Y: TFloat);
 begin
-
+  ConicTo(FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y + Y));
 end;
 
 procedure TCustomPath.ConicToRelative(const P: TFloatPoint);
 begin
-
+  ConicTo(OffsetPoint(P, FCurrentPoint));
 end;
 
 procedure TCustomPath.ConicToRelative(const X1, Y1, X, Y: TFloat);
 begin
-
+  ConicTo(FloatPoint(FCurrentPoint.X + X1, FCurrentPoint.Y + Y1),
+    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y + Y));
 end;
 
 procedure TCustomPath.ConicToRelative(const P1, P: TFloatPoint);
 begin
-
+  ConicTo(OffsetPoint(P1, FCurrentPoint), OffsetPoint(P, FCurrentPoint));
 end;
 
 procedure TCustomPath.CurveTo(const C1, C2, P: TFloatPoint);
 begin
-  CubicBezierCurve(FCurrentPoint, C1, C2, P, LineTo, CBezierTolerance);
-  LineTo(P);
+  CubicBezierCurve(FCurrentPoint, C1, C2, P, AddPoint, CBezierTolerance);
+  AddPoint(P);
   FCurrentPoint := P;
+  FLastControlPoint := C2;
+  FControlPointOrigin := cpCubic;
 end;
 
 procedure TCustomPath.CurveTo(const X1, Y1, X2, Y2, X, Y: TFloat);
@@ -339,22 +363,27 @@ procedure TCustomPath.CurveTo(const C2, P: TFloatPoint);
 var
   C1: TFloatPoint;
 begin
-  C1.X := FCurrentPoint.X - (FLastControlPoint.X - FCurrentPoint.X);
-  C1.Y := FCurrentPoint.Y - (FLastControlPoint.Y - FCurrentPoint.Y);
+  if FControlPointOrigin = cpCubic then
+  begin
+    C1.X := FCurrentPoint.X - (FLastControlPoint.X - FCurrentPoint.X);
+    C1.Y := FCurrentPoint.Y - (FLastControlPoint.Y - FCurrentPoint.Y);
+  end
+  else
+    C1 := FCurrentPoint;
   CurveTo(C1, C2, P);
 end;
 
 procedure TCustomPath.CurveToRelative(const X1, Y1, X2, Y2, X, Y: TFloat);
 begin
-  CurveTo(FloatPoint(FCurrentPoint.X + X1, FCurrentPoint.X + Y1),
-    FloatPoint(FCurrentPoint.X + X2, FCurrentPoint.X + Y2),
-    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.X + Y));
+  CurveTo(FloatPoint(FCurrentPoint.X + X1, FCurrentPoint.Y + Y1),
+    FloatPoint(FCurrentPoint.X + X2, FCurrentPoint.Y + Y2),
+    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y + Y));
 end;
 
 procedure TCustomPath.CurveToRelative(const X2, Y2, X, Y: TFloat);
 begin
-  CurveTo(FloatPoint(FCurrentPoint.X + X2, FCurrentPoint.X + Y2),
-    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.X + Y));
+  CurveTo(FloatPoint(FCurrentPoint.X + X2, FCurrentPoint.Y + Y2),
+    FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y + Y));
 end;
 
 procedure TCustomPath.CurveToRelative(const C1, C2, P: TFloatPoint);
@@ -365,9 +394,7 @@ end;
 
 procedure TCustomPath.CurveToRelative(const C2, P: TFloatPoint);
 begin
-  CurveTo(FloatPoint(3 * FCurrentPoint.X - FLastControlPoint.X,
-    3 * FCurrentPoint.Y - FLastControlPoint.Y), OffsetPoint(C2, FCurrentPoint),
-    OffsetPoint(P, FCurrentPoint));
+  CurveTo(OffsetPoint(C2, FCurrentPoint), OffsetPoint(P, FCurrentPoint));
 end;
 
 procedure TCustomPath.Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer);
@@ -384,6 +411,16 @@ procedure TCustomPath.EndPath;
 begin
 end;
 
+procedure TCustomPath.HorizontalLineTo(const X: TFloat);
+begin
+  LineTo(FloatPoint(X, FCurrentPoint.Y));
+end;
+
+procedure TCustomPath.HorizontalLineToRelative(const X: TFloat);
+begin
+  LineTo(FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y));
+end;
+
 procedure TCustomPath.LineTo(const X, Y: TFloat);
 begin
   LineTo(FloatPoint(X, Y));
@@ -393,6 +430,7 @@ procedure TCustomPath.LineTo(const P: TFloatPoint);
 begin
   AddPoint(P);
   FCurrentPoint := P;
+  FControlPointOrigin := cpNone;
 end;
 
 procedure TCustomPath.LineToRelative(const X, Y: TFloat);
@@ -430,6 +468,16 @@ begin
   Polygon(GR32_VectorUtils.RoundRect(Rect, Radius));
 end;
 
+procedure TCustomPath.VerticalLineTo(const Y: TFloat);
+begin
+  LineTo(FloatPoint(FCurrentPoint.X, Y));
+end;
+
+procedure TCustomPath.VerticalLineToRelative(const Y: TFloat);
+begin
+  LineTo(FloatPoint(FCurrentPoint.X, FCurrentPoint.Y + Y));
+end;
+
 procedure TCustomPath.Polygon(const APoints: TArrayOfFloatPoint);
 var
   I: Integer;
@@ -445,6 +493,7 @@ end;
 procedure TCustomPath.MoveTo(const P: TFloatPoint);
 begin
   FCurrentPoint := P;
+  FControlPointOrigin := cpNone;
 end;
 
 { TFlattenedPath }
@@ -482,6 +531,7 @@ var
 begin
   if Length(FPoints) <> 0 then
   begin
+    FCurrentPoint := FPoints[0];
     N := Length(FPath);
     SetLength(FPath, N + 1);
     FPath[N] := Copy(FPoints, 0, FPointIndex);
@@ -493,7 +543,7 @@ end;
 
 procedure TFlattenedPath.MoveTo(const P: TFloatPoint);
 begin
-  FCurrentPoint := P;
+  inherited;
   if Length(FPoints) <> 0 then
     ClosePath;
   AddPoint(P);
