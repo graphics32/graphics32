@@ -127,6 +127,7 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+
     property Gradient: TGradient32 read FGradient;
   end;
 
@@ -414,13 +415,13 @@ end;
 
 procedure TCustomGradientSampler.GradientSamplerChanged;
 begin
-  FInitialized := false;
+  FInitialized := False;
 end;
 
 procedure TCustomGradientSampler.PrepareSampling;
 begin
   inherited;
-  FInitialized := true;
+  FInitialized := True;
 end;
 
 
@@ -504,13 +505,14 @@ end;
 
 procedure TCustomGradientPolygonFiller.GradientFillerChanged;
 begin
-  FInitialized := false;
+  FInitialized := False;
 end;
 
 procedure TCustomGradientPolygonFiller.OnBeginRendering;
 begin
-  FInitialized := true;
+  FInitialized := True;
 end;
+
 
 {TLinearGradientPolygonFiller}
 
@@ -534,13 +536,13 @@ begin
     Abs(FStartPoint.X - FEndPoint.X) > Abs(FStartPoint.Y - FEndPoint.Y);
   if FUsingHorzAxis then
   begin
-    Angle := pi*2 - GetAngleOfPt2FromPt1(FStartPoint, FEndPoint);
+    Angle := 2 * Pi - GetAngleOfPt2FromPt1(FStartPoint, FEndPoint);
     FTanAngle := Tan(Angle);
     FStart := FStartPoint.X + FTanAngle * FStartPoint.Y;
     FEnd := FEndPoint.X + FTanAngle * FEndPoint.Y;
   end else
   begin
-    Angle := pi*3/2 + GetAngleOfPt2FromPt1(FStartPoint, FEndPoint);
+    Angle := 1.5 * Pi + GetAngleOfPt2FromPt1(FStartPoint, FEndPoint);
     FTanAngle := Tan(Angle);
     FStart := FStartPoint.Y + FTanAngle * FStartPoint.X;
     FEnd := FEndPoint.Y + FTanAngle * FEndPoint.X;
@@ -554,7 +556,7 @@ begin
   begin
     FGradient.FillColorLookUpTable(FGradientLUT);
     InitMembers;
-    inherited; //sets initialized = true
+    inherited; //sets initialized = True
   end;
 end;
 
@@ -572,13 +574,15 @@ var
   AxisPt: TFloat;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+  Scale: TFloat;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  Scale := LUTSizeMin1 / FLength;
   for X := DstX to DstX + Length - 1 do
   begin
     AxisPt := DstY + FTanAngle * X;
     if (AxisPt > FStart) = (AxisPt < FEnd) then
-      Color32 := FGradientLUT[Round((AxisPt - FStart) * LUTSizeMin1 / FLength)]
+      Color32 := FGradientLUT[Round((AxisPt - FStart) * Scale)]
     else if (FLength > 0) <> (AxisPt > FEnd) then
       Color32 := FGradientLUT[0]
     else
@@ -597,13 +601,15 @@ var
   AxisPt: TFloat;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
+  Scale: TFloat;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  Scale := LUTSizeMin1 / FLength;
   for X := DstX to DstX + Length - 1 do
   begin
     AxisPt := X + FTanAngle * DstY;
     if (AxisPt > FStart) = (AxisPt < FEnd) then
-      Color32 := FGradientLUT[Round((AxisPt - FStart) * LUTSizeMin1 / FLength)]
+      Color32 := FGradientLUT[Round((AxisPt - FStart) * Scale)]
     else if (FLength > 0) <> (AxisPt > FEnd) then
       Color32 := FGradientLUT[0]
     else
@@ -619,27 +625,27 @@ end;
 
 procedure TRadialGradientPolygonFiller.SetEllipseBounds(const Value: TFloatRect);
 var
-  RX, RY: TFloat;
+  Radius: TFloatPoint;
 begin
   with Value do
   begin
-    FCenter := FloatPoint((Left + Right)/2, (Top + Bottom)/2);
-    RX := Round((Right - Left)/2);
-    RY := Round((Bottom - Top)/2);
+    FCenter := FloatPoint((Left + Right) * 0.5, (Top + Bottom) * 0.5);
+    Radius.X := Round((Right - Left) * 0.5);
+    Radius.Y := Round((Bottom - Top) * 0.5);
   end;
   //only notify on changes to the radii ...
-  if (Abs(RX - FRadiusX) > FloatTolerance) or
-    (Abs(RY - FRadiusY) > FloatTolerance) then
+  if (Abs(Radius.X - FRadiusX) > FloatTolerance) or
+    (Abs(Radius.Y - FRadiusY) > FloatTolerance) then
       GradientFillerChanged;
-  FRadiusX := RX;
-  FRadiusY := RY;
+  FRadiusX := Radius.X;
+  FRadiusY := Radius.Y;
   FEllipseBounds := Value;
 end;
 
 procedure TRadialGradientPolygonFiller.InitColorBuffer;
 var
   I,J, RX, RY: Integer;
-  RadiusXDivRadiusY, Rad, Rad2, X, Y: single;
+  RadiusXDivRadiusY, Rad, Rad2, X, Y: TFloat;
 begin
   if (FRadiusX = 0) or (FRadiusY = 0) then
     Exit;
@@ -694,7 +700,7 @@ begin
   if not Initialized then
   begin
     InitColorBuffer;
-    inherited; //sets initialized = true
+    inherited; //sets initialized = True
   end;
 end;
 
@@ -707,18 +713,18 @@ procedure TRadialGradientPolygonFiller.FillLine(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
-  Dx, Dy: TFloat;
+  Delta: TFloatPoint;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Dy := Abs(DstY - FCenter.Y);
+  Delta.Y := Abs(DstY - FCenter.Y);
   for X := DstX to DstX + Length - 1 do
   begin
-    Dx := Abs(X - FCenter.X);
-    if (Dx >= FRadiusX) or (Dy >= FRadiusY) then
+    Delta.X := Abs(X - FCenter.X);
+    if (Delta.X >= FRadiusX) or (Delta.Y >= FRadiusY) then
       Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FColorBuffer[trunc(Dy * FRadiusX + Dx)];
+      Color32 := FColorBuffer[Trunc(Delta.Y * FRadiusX + Delta.X)];
     BlendMemEx(Color32, Dst^, AlphaValues^);
     EMMS;
     Inc(Dst);
@@ -745,15 +751,15 @@ procedure TSVGRadialGradientPolygonFiller.InitMembers;
 var
   X, Y: TFloat;
 begin
-  FRadius.X := round((FEllipseBounds.Right - FEllipseBounds.Left) / 2);
-  FRadius.Y := round((FEllipseBounds.Bottom - FEllipseBounds.Top) / 2);
-  FOffset.X := -round(FEllipseBounds.Left);
-  FOffset.Y := -round(FEllipseBounds.Top);
+  FRadius.X := Round((FEllipseBounds.Right - FEllipseBounds.Left) * 0.5);
+  FRadius.Y := Round((FEllipseBounds.Bottom - FEllipseBounds.Top) * 0.5);
+  FOffset.X := -Round(FEllipseBounds.Left);
+  FOffset.Y := -Round(FEllipseBounds.Top);
   //make FFocalPoint relative to the ellipse midpoint ...
   FFocalPt.X :=
-    FFocalPointNative.X - (FEllipseBounds.Right + FEllipseBounds.Left) / 2;
+    FFocalPointNative.X - (FEllipseBounds.Right + FEllipseBounds.Left) * 0.5;
   FFocalPt.Y :=
-    FFocalPointNative.Y - (FEllipseBounds.Bottom + FEllipseBounds.Top) / 2;
+    FFocalPointNative.Y - (FEllipseBounds.Bottom + FEllipseBounds.Top) * 0.5;
 
   //make sure the focal point stays within the bounding ellipse ...
   if Abs(FFocalPt.X) < FloatTolerance then
@@ -801,8 +807,8 @@ begin
   //vertical line through the FocalPoint intersects with the Ellipse, and
   //store the distances from the focal point to these 2 intersections points ...
   Y2 := Sqrt(RadYSqrd - FFocalPt.X * FFocalPt.X * RadYSqrd / RadXSqrd);
-  DistYDown := abs(Y2 - FFocalPt.Y);
-  DistYUp := abs(-Y2 - FFocalPt.Y);
+  DistYDown := Abs(Y2 - FFocalPt.Y);
+  DistYUp := Abs(-Y2 - FFocalPt.Y);
 
   SetLength(FColorBuffer, DiamX * DiamY);
   for I := -FRadius.X to FRadius.X do
@@ -871,32 +877,33 @@ begin
   begin
     InitMembers;
     InitColorBuffer;
-    inherited; //sets initialized = true
+    inherited; //sets initialized = True
   end;
 end;
 
 function TSVGRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-    Result := FillLine;
+  Result := FillLine;
 end;
 
 procedure TSVGRadialGradientPolygonFiller.FillLine(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, Dx, Dy, DiamX, DiamY: Integer;
+  X, DiamX, DiamY: Integer;
+  Delta: TPoint;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Dy := DstY + FOffset.Y;
+  Delta.Y := DstY + FOffset.Y;
   DiamX := FRadius.X * 2 + 1;
   DiamY := FRadius.Y * 2 + 1;
   for X := DstX to DstX + Length - 1 do
   begin
-    Dx := X + FOffset.X;
-    if (Dx < 0) or (Dy < 0) or (Dx >= DiamX) or (Dy >= DiamY) then
+    Delta.X := X + FOffset.X;
+    if (Delta.X < 0) or (Delta.Y < 0) or (Delta.X >= DiamX) or (Delta.Y >= DiamY) then
       Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FColorBuffer[Dy * DiamX + Dx];
+      Color32 := FColorBuffer[Delta.Y * DiamX + Delta.X];
     BlendMemEx(Color32, Dst^, AlphaValues^);
     Inc(Dst);
     Inc(AlphaValues);
