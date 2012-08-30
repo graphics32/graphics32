@@ -956,7 +956,7 @@ type
     procedure Clear; virtual;
     function Empty: Boolean; virtual;
 
-    procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
+    procedure ChangeSize(out Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean = True); virtual;
 
 {$IFDEF BITS_GETTER}
     property Bits: PColor32Array read GetBits;
@@ -5023,12 +5023,12 @@ end;
 
 procedure TCustomBitmap32.ReadData(Stream: TStream);
 var
-  w, h: Integer;
+  Width, Height: Integer;
 begin
   try
-    Stream.ReadBuffer(w, 4);
-    Stream.ReadBuffer(h, 4);
-    SetSize(w, h);
+    Stream.ReadBuffer(Width, 4);
+    Stream.ReadBuffer(Height, 4);
+    SetSize(Width, Height);
     Stream.ReadBuffer(Bits[0], FWidth * FHeight * 4);
   finally
     Changed;
@@ -6029,7 +6029,7 @@ begin
 end;
 {$ENDIF}
 
-procedure TCustomBackend.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
+procedure TCustomBackend.ChangeSize(out Width, Height: Integer; NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
   try
     Changing;

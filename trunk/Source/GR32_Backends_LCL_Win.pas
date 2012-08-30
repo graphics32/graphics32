@@ -726,10 +726,10 @@ end;
 
 procedure TLCLMemoryBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 var
-  Bitmap        : HBITMAP;
-  DeviceContext : HDC;
-  Buffer        : Pointer;
-  OldObject     : HGDIOBJ;
+  Bitmap: HBITMAP;
+  DeviceContext: HDC;
+  Buffer: Pointer;
+  OldObject: HGDIOBJ;
 begin
   {$IFDEF LCLWin32}
   if SetDIBitsToDevice(hDst, DstX, DstY,
@@ -769,10 +769,10 @@ end;
 
 procedure TLCLMemoryBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
 var
-  Bitmap        : HBITMAP;
-  DeviceContext : HDC;
-  Buffer        : Pointer;
-  OldObject     : HGDIOBJ;
+  Bitmap: HBITMAP;
+  DeviceContext: HDC;
+  Buffer: Pointer;
+  OldObject: HGDIOBJ;
 begin
   {$IFDEF LCLWin32}
   if SetDIBitsToDevice(hDst, DstRect.Left, DstRect.Top,
@@ -784,6 +784,7 @@ begin
     DeviceContext := CreateCompatibleDC(hDst);
     if DeviceContext <> 0 then
     try
+      Buffer := nil;
       Bitmap := CreateDIBSection(DeviceContext, FBitmapInfo, DIB_RGB_COLORS,
         Buffer, 0, 0);
 
