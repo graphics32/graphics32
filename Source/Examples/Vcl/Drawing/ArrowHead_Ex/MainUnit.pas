@@ -3,27 +3,27 @@ unit MainUnit;
 interface
 
 uses
-  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF} Messages, SysUtils, Classes,
-  Graphics, Controls, Forms, StdCtrls, ComCtrls, ExtCtrls,
+  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF} SysUtils, Classes, Graphics,
+  Controls, Forms, StdCtrls, ExtCtrls,
   GR32, GR32_Image, GR32_Layers, GR32_Paths, GR32_Polygons, GR32_ArrowHeads;
 
 type
   TFmArrowHeadDemo = class(TForm)
     ImgView32: TImgView32;
-    pnlControl: TPanel;
-    btnClose: TButton;
-    rgArrowStyle: TRadioGroup;
-    Edit1: TEdit;
-    lblArrowSize: TLabel;
-    rgPosition: TRadioGroup;
-    CbAnimate: TCheckBox;
+    PnlControl: TPanel;
+    BtnClose: TButton;
+    RgpArrowStyle: TRadioGroup;
+    EdtArrowSize: TEdit;
+    LblArrowSize: TLabel;
+    RgpPosition: TRadioGroup;
+    CbxAnimate: TCheckBox;
     Animation: TTimer;
     procedure FormCreate(Sender: TObject);
-    procedure btnCloseClick(Sender: TObject);
-    procedure Edit1Change(Sender: TObject);
-    procedure rgArrowStyleClick(Sender: TObject);
+    procedure BtnCloseClick(Sender: TObject);
+    procedure EdtArrowSizeChange(Sender: TObject);
+    procedure RgpArrowStyleClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure CbAnimateClick(Sender: TObject);
+    procedure CbxAnimateClick(Sender: TObject);
     procedure AnimationTimer(Sender: TObject);
     procedure ImgView32Resize(Sender: TObject);
     procedure ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
@@ -203,7 +203,7 @@ var
 begin
   ImgView32.Bitmap.Clear(clWhite32);
 
-  case rgArrowStyle.ItemIndex of
+  case RgpArrowStyle.ItemIndex of
     1: Arrow := TArrowHeadSimple.Create(ArrowSize);
     2: Arrow := TArrowHeadFourPt.Create(ArrowSize);
     3: Arrow := TArrowHeadDiamond.Create(ArrowSize);
@@ -233,7 +233,7 @@ begin
   if Assigned(Arrow) then
   begin
     //shorten path at specified end(s) and draw ...
-    case rgPosition.ItemIndex of
+    case RgpPosition.ItemIndex of
       0: Poly := Shorten(Poly, ArrowSize, lpStart);
       1: Poly := Shorten(Poly, ArrowSize, lpEnd);
       2: Poly := Shorten(Poly, ArrowSize, lpBoth);
@@ -241,13 +241,13 @@ begin
     PolylineFS(ImgView32.Bitmap, Poly, clBlack32, False, 2);
 
     //draw specified arrows ...
-    if rgPosition.ItemIndex <> 1 then
+    if RgpPosition.ItemIndex <> 1 then
     begin
       ArrowPts := Arrow.GetPoints(Poly, False);
       PolygonFS(ImgView32.Bitmap, ArrowPts, $60006600);
       PolylineFS(ImgView32.Bitmap, ArrowPts, $FF006600, True, 2);
     end;
-    if rgPosition.ItemIndex <> 0 then
+    if RgpPosition.ItemIndex <> 0 then
     begin
       ArrowPts := Arrow.GetPoints(Poly, True);
       PolygonFS(ImgView32.Bitmap, ArrowPts, $60000066);
@@ -258,30 +258,30 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure TFmArrowHeadDemo.rgArrowStyleClick(Sender: TObject);
+procedure TFmArrowHeadDemo.RgpArrowStyleClick(Sender: TObject);
 begin
   ReDraw;
 end;
 
 //------------------------------------------------------------------------------
 
-procedure TFmArrowHeadDemo.Edit1Change(Sender: TObject);
+procedure TFmArrowHeadDemo.EdtArrowSizeChange(Sender: TObject);
 begin
-  ArrowSize := EnsureRange(StrToIntDef(Edit1.Text, ArrowSize), 5, 40);
+  ArrowSize := EnsureRange(StrToIntDef(EdtArrowSize.Text, ArrowSize), 5, 40);
 end;
 //------------------------------------------------------------------------------
 
-procedure TFmArrowHeadDemo.btnCloseClick(Sender: TObject);
+procedure TFmArrowHeadDemo.BtnCloseClick(Sender: TObject);
 begin
   Close;
 end;
 //------------------------------------------------------------------------------
 
-procedure TFmArrowHeadDemo.CbAnimateClick(Sender: TObject);
+procedure TFmArrowHeadDemo.CbxAnimateClick(Sender: TObject);
 begin
   FVelocity[0] := FloatPoint(2 * Random - 1, 2 * Random - 1);
   FVelocity[1] := FloatPoint(2 * Random - 1, 2 * Random - 1);
-  Animation.Enabled := CbAnimate.Checked;
+  Animation.Enabled := CbxAnimate.Checked;
 end;
 //------------------------------------------------------------------------------
 

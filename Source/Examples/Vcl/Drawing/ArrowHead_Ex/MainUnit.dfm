@@ -37,22 +37,22 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
     OnMouseUp = ImgView32MouseUp
     OnResize = ImgView32Resize
   end
-  object pnlControl: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 177
     Height = 470
     Align = alLeft
     TabOrder = 1
-    object lblArrowSize: TLabel
+    object LblArrowSize: TLabel
       Left = 15
       Top = 24
       Width = 57
       Height = 15
       Caption = '&Arrow Size'
-      FocusControl = Edit1
+      FocusControl = EdtArrowSize
     end
-    object btnClose: TButton
+    object BtnClose: TButton
       Left = 15
       Top = 411
       Width = 140
@@ -60,9 +60,9 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       Cancel = True
       Caption = '&Close'
       TabOrder = 4
-      OnClick = btnCloseClick
+      OnClick = BtnCloseClick
     end
-    object rgArrowStyle: TRadioGroup
+    object RgpArrowStyle: TRadioGroup
       Left = 15
       Top = 74
       Width = 140
@@ -76,18 +76,18 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
         'Diamond'
         'Ellipse')
       TabOrder = 1
-      OnClick = rgArrowStyleClick
+      OnClick = RgpArrowStyleClick
     end
-    object Edit1: TEdit
+    object EdtArrowSize: TEdit
       Left = 15
       Top = 41
       Width = 140
       Height = 23
       TabOrder = 0
       Text = '20'
-      OnChange = Edit1Change
+      OnChange = EdtArrowSizeChange
     end
-    object rgPosition: TRadioGroup
+    object RgpPosition: TRadioGroup
       Left = 15
       Top = 228
       Width = 140
@@ -99,16 +99,16 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
         'Arrow at end'
         'Arrow at both ends')
       TabOrder = 2
-      OnClick = rgArrowStyleClick
+      OnClick = RgpArrowStyleClick
     end
-    object CbAnimate: TCheckBox
+    object CbxAnimate: TCheckBox
       Left = 49
       Top = 359
       Width = 65
       Height = 17
       Caption = 'Ani&mate'
       TabOrder = 3
-      OnClick = CbAnimateClick
+      OnClick = CbxAnimateClick
     end
   end
   object Animation: TTimer
