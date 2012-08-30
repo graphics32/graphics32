@@ -115,4 +115,7 @@ begin
   end;
 end;
 
+initialization
+  SetGamma(0.6);
+
 end.
