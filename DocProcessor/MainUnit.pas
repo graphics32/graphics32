@@ -309,12 +309,12 @@ begin
       if Self.Components[Index].InheritsFrom(TCustomEdit) and
          not Self.Components[Index].InheritsFrom(TMemo) then
       begin
-        StrValue := Ini.ReadString('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), '');
+        StrValue := Ini.ReadString('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), '');
         if StrValue <> '' then TEdit(Self.Components[Index]).Text := StrValue;
       end
       else if Self.Components[Index].InheritsFrom(TCheckBox) then
         TCheckBox(Self.Components[Index]).Checked :=
-          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), False);
+          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), False);
   finally
     Ini.Free;
   end;
