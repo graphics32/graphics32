@@ -212,9 +212,9 @@ var
     Dist := Distance(Pts[Index], Pts[0]) - Delta;
     if Index > 1 then
     begin
-      Move(Result[Index], Result[1], SizeOf(TFloatPoint) * (HighI - Index + 1));
-      SetLength(Result, HighI - Index + 2);
       HighI := HighI - Index + 1;
+      Move(Result[Index], Result[1], SizeOf(TFloatPoint) * HighI);
+      SetLength(Result, HighI + 1);
     end;
     Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
