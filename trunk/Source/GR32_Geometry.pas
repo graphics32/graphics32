@@ -214,6 +214,7 @@ var
     begin
       Move(Result[Index], Result[1], SizeOf(TFloatPoint) * (HighI - Index + 1));
       SetLength(Result, HighI - Index + 2);
+      HighI := HighI - Index + 1;
     end;
     Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
@@ -273,7 +274,10 @@ begin
     b2 := P3.Y - m2 * P3.X;
     IntersectPoint.X := P1.X;
     IntersectPoint.Y := m2 * P1.X + b2;
-    Result := (IntersectPoint.Y < P2.Y) = (IntersectPoint.Y > P1.Y);
+    Result := (((IntersectPoint.Y < P2.Y) = (IntersectPoint.Y > P1.Y)) or
+      (IntersectPoint.Y = P2.Y) or (IntersectPoint.Y = P1.Y)) and
+      (((IntersectPoint.Y < P3.Y) = (IntersectPoint.Y > P4.Y)) or
+      (IntersectPoint.Y = P3.Y) or (IntersectPoint.Y = P4.Y));
   end
   else if (P4.X = P3.X) then
   begin
@@ -281,7 +285,10 @@ begin
     b1 := P1.Y - m1 * P1.X;
     IntersectPoint.X := P3.X;
     IntersectPoint.Y := m1 * P3.X + b1;
-    Result := (IntersectPoint.Y < P3.Y) = (IntersectPoint.Y > P4.Y);
+    Result := (((IntersectPoint.Y < P2.Y) = (IntersectPoint.Y > P1.Y)) or
+      (IntersectPoint.Y = P2.Y) or (IntersectPoint.Y = P1.Y)) and
+      (((IntersectPoint.Y < P3.Y) = (IntersectPoint.Y > P4.Y)) or
+      (IntersectPoint.Y = P3.Y) or (IntersectPoint.Y = P4.Y));
   end else
   begin
     m1 := (P2.Y - P1.Y) / (P2.X - P1.X);
@@ -291,7 +298,10 @@ begin
     if m1 = m2 then Exit; // parallel lines
     IntersectPoint.X := (b2 - b1) / (m1 - m2);
     IntersectPoint.Y := m1 * IntersectPoint.X + b1;
-    Result := ((IntersectPoint.X < P2.X) = (IntersectPoint.X > P1.X));
+    Result := (((IntersectPoint.X < P2.X) = (IntersectPoint.X > P1.X)) or
+      (IntersectPoint.X = P2.X) or (IntersectPoint.X = P1.X)) and
+      (((IntersectPoint.X < P3.X) = (IntersectPoint.X > P4.X)) or
+      (IntersectPoint.X = P3.X) or (IntersectPoint.X = P4.X));
   end;
 end;
 
@@ -425,6 +435,7 @@ var
     begin
       Move(Result[Index], Result[1], SizeOf(TFloatPoint) * (HighI - Index + 1));
       SetLength(Result, HighI - Index + 2);
+      HighI := HighI - Index + 1;
     end;
     Result[0] := OffsetPoint(Result[1], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
