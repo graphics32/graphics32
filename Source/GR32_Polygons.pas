@@ -758,8 +758,10 @@ begin
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
+    Filler.OnBeginRendering;
     Renderer.PolyPolygonFS(FixedPointToFloatPoint(Points),
       FloatRect(Bitmap.ClipRect), Transformation);
+    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -775,8 +777,10 @@ begin
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
+    Filler.OnBeginRendering;
     Renderer.PolygonFS(FixedPointToFloatPoint(Points),
       FloatRect(Bitmap.ClipRect), Transformation);
+    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
