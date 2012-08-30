@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Math, GR32, GR32_Math;
+  Math, Types, GR32, GR32_Math;
 
 type
   TLinePos = (lpStart, lpEnd, lpBoth, lpNeither);
@@ -529,7 +529,7 @@ end;
 
 function Distance(const V1, V2: TPoint): TFloat;
 begin
-  Result := Hypot(V2.X - V1.X, V2.Y - V1.Y);
+  Result := Hypot(Integer(V2.X - V1.X), Integer(V2.Y - V1.Y));
 end;
 
 function SqrDistance(const V1, V2: TPoint): Integer;

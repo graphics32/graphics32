@@ -443,7 +443,11 @@ var
   BucketIndex, ItemIndex: Integer;
 begin
   if not Exists(Item, BucketIndex, ItemIndex) then
+{$IFDEF HAS_NATIVEINT}
+    raise EListError.CreateFmt(SItemNotFound, [NativeInt(Item)])
+{$ELSE}
     raise EListError.CreateFmt(SItemNotFound, [Integer(Item)])
+{$ENDIF}
   else
     Result := FBuckets[BucketIndex].Items[ItemIndex].Data;
 end;
@@ -453,7 +457,11 @@ var
   BucketIndex, ItemIndex: Integer;
 begin
   if not Exists(Item, BucketIndex, ItemIndex) then
+{$IFDEF HAS_NATIVEINT}
+    raise EListError.CreateFmt(SItemNotFound, [NativeInt(Item)])
+{$ELSE}
     raise EListError.CreateFmt(SItemNotFound, [Integer(Item)])
+{$ENDIF}
   else
     FBuckets[BucketIndex].Items[ItemIndex].Data := Data;
 end;
@@ -835,4 +843,4 @@ begin
   end;
 end;
 
-end.
+end.

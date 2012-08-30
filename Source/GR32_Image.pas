@@ -117,7 +117,6 @@ type
     procedure WMPaint(var Message: TLMPaint); message LM_PAINT;
     procedure CMMouseEnter(var Message: TLMessage); message LM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TLMessage); message LM_MOUSELEAVE;
-    procedure CMInvalidate(var Message: TLMessage); message CM_INVALIDATE;
 {$ELSE}
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
@@ -652,16 +651,7 @@ end;
 
 { TCustomPaintBox32 }
 
-{$IFDEF FPC}
-procedure TCustomPaintBox32.CMInvalidate(var Message: TLMessage);
-begin
-  if CustomRepaint and HandleAllocated then
-    PostMessage(Handle, LM_PAINT, 0, 0)
-  else
-    inherited;
-end;
-{$ELSE}
-
+{$IFNDEF FPC}
 procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
 begin
   if CustomRepaint and HandleAllocated then
