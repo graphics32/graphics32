@@ -1,7 +1,7 @@
 object MainForm: TMainForm
   Left = 484
   Top = 101
-  Caption = 'GR32_VPR Text Rendering'
+  Caption = 'GR32 VPR Text Rendering'
   ClientHeight = 569
   ClientWidth = 597
   Color = clBtnFace
@@ -16,7 +16,7 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object pnlImage: TPanel
+  object PnlImage: TPanel
     Left = 169
     Top = 0
     Width = 428
@@ -42,7 +42,7 @@ object MainForm: TMainForm
       OnMouseMove = ImgMouseMove
     end
   end
-  object pnlControl: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 169
@@ -50,23 +50,23 @@ object MainForm: TMainForm
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
-    object btnSelectFont: TButton
+    object BtnSelectFont: TButton
       Left = 8
       Top = 8
       Width = 155
       Height = 25
       Caption = 'Select Font...'
       TabOrder = 0
-      OnClick = btnSelectFontClick
+      OnClick = BtnSelectFontClick
     end
-    object gbSettings: TGroupBox
+    object GbxSettings: TGroupBox
       Left = 10
       Top = 39
       Width = 153
       Height = 178
       Caption = 'Settings'
       TabOrder = 1
-      object lblGamma: TLabel
+      object LblGamma: TLabel
         Left = 9
         Top = 41
         Width = 36
@@ -79,7 +79,7 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
       end
-      object lblGammaValue: TLabel
+      object LblGammaValue: TLabel
         Left = 118
         Top = 41
         Width = 24
@@ -93,7 +93,7 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
       end
-      object tbGamma: TTrackBar
+      object TbrGamma: TTrackBar
         Left = 2
         Top = 58
         Width = 148
@@ -103,9 +103,9 @@ object MainForm: TMainForm
         Position = 100
         TabOrder = 0
         ThumbLength = 18
-        OnChange = tbGammaChange
+        OnChange = TbrGammaChange
       end
-      object cbHinted: TCheckBox
+      object CbxHinted: TCheckBox
         Left = 9
         Top = 19
         Width = 89
@@ -118,17 +118,17 @@ object MainForm: TMainForm
         Font.Style = []
         ParentFont = False
         TabOrder = 1
-        OnClick = cbHintedClick
+        OnClick = CbxHintedClick
       end
     end
-    object PB: TPaintBox32
+    object PaintBox32: TPaintBox32
       Left = 9
       Top = 223
       Width = 154
       Height = 154
       TabOrder = 2
     end
-    object rgMethod: TRadioGroup
+    object RgxMethod: TRadioGroup
       Left = 19
       Top = 131
       Width = 133
@@ -146,7 +146,7 @@ object MainForm: TMainForm
         'Cleartype (smooth)')
       ParentFont = False
       TabOrder = 3
-      OnClick = rgMethodClick
+      OnClick = RgxMethodClick
     end
   end
   object FontDialog: TFontDialog
