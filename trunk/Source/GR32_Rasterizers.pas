@@ -188,6 +188,7 @@ uses
 
 type
   TThreadPersistentAccess = class(TThreadPersistent);
+  TCustomBitmap32Access = class(TCustomBitmap32);
 
   TLineRasterizerData = record
     ScanLine: Integer;
@@ -292,7 +293,7 @@ var
   UpdateCount: Integer;
   R: TRect;
 begin
-  UpdateCount := TThreadPersistentAccess(Dst).UpdateCount;
+  UpdateCount := TCustomBitmap32Access(Dst).UpdateCount;
   if Assigned(FSampler) then
   begin
     FSampler.PrepareSampling;
@@ -302,8 +303,8 @@ begin
     try
       DoRasterize(Dst, R);
     finally
-      while TThreadPersistentAccess(Dst).UpdateCount > UpdateCount do
-        TThreadPersistentAccess(Dst).EndUpdate;
+      while TCustomBitmap32Access(Dst).UpdateCount > UpdateCount do
+        TCustomBitmap32Access(Dst).EndUpdate;
       FSampler.FinalizeSampling;
     end;
   end;
@@ -517,7 +518,7 @@ begin
 {$IFDEF UseInternalFill}
   Bits := Dst.Bits;
 {$ENDIF}
-  DoUpdate := (TThreadPersistentAccess(Dst).UpdateCount = 0) and Assigned(OnChanged);
+  DoUpdate := (TCustomBitmap32Access(Dst).UpdateCount = 0) and Assigned(OnChanged);
   W := DstRect.Right - DstRect.Left;
   H := DstRect.Bottom - DstRect.Top;
   J := DstRect.Top;

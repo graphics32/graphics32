@@ -126,8 +126,8 @@ var
   PPCurve: PTTPolyCurve;
   P1, P2, P3: TFloatPoint;
 begin
-  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
-    0, nil, VertFlip_mat2);
+  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting],
+    Metrics{%H-}, 0, nil, VertFlip_mat2);
   if not Assigned(Path) then Exit;
 
   PGlyphMem := StackAlloc(Res);
@@ -262,7 +262,7 @@ begin
         CHAR_SP:
           begin
             GetGlyphOutlineW(DC, CharValue, GGODefaultFlags[UseHinting],
-              GlyphMetrics, 0, nil, VertFlip_mat2);
+              GlyphMetrics{%H-}, 0, nil, VertFlip_mat2);
             X := X + GlyphMetrics.gmCellIncX;
 
             if Flags and DT_WORDBREAK <> 0 then
