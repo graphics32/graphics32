@@ -4,25 +4,23 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF} SysUtils, Classes, Graphics,
-  Controls, Forms, StdCtrls, ExtCtrls,
-  GR32, GR32_Image, GR32_Layers, GR32_Paths, GR32_Polygons, GR32_ArrowHeads,
-  ComCtrls;
+  Controls, Forms, StdCtrls, ExtCtrls, ComCtrls, GR32, GR32_Image, GR32_Layers,
+  GR32_Paths, GR32_Polygons, GR32_ArrowHeads;
 
 type
   TFmArrowHeadDemo = class(TForm)
-    ImgView32: TImgView32;
-    PnlControl: TPanel;
-    BtnClose: TButton;
-    RgpArrowStyle: TRadioGroup;
-    EdtArrowSize: TEdit;
-    LblArrowSize: TLabel;
-    RgpPosition: TRadioGroup;
     Animation: TTimer;
-    TbrLineWidth: TTrackBar;
-    Label2: TLabel;
-    LblLineWidth: TLabel;
-    TbrAnimationSpeed: TTrackBar;
+    BtnClose: TButton;
     CbxAnimate: TCheckBox;
+    EdtArrowSize: TEdit;
+    ImgView32: TImgView32;
+    LblArrowSize: TLabel;
+    LblLineWidth: TLabel;
+    PnlControl: TPanel;
+    RgpArrowStyle: TRadioGroup;
+    RgpPosition: TRadioGroup;
+    TbrAnimationSpeed: TTrackBar;
+    TbrLineWidth: TTrackBar;
     procedure FormCreate(Sender: TObject);
     procedure BtnCloseClick(Sender: TObject);
     procedure EdtArrowSizeChange(Sender: TObject);
@@ -44,7 +42,7 @@ type
     FBoxIndex: Integer;
     FLastPos: TPoint;
     FDashes: TArrayOfFloat;
-    FAnimationSpeed: integer;
+    FAnimationSpeed: Integer;
     FBoxCenter: array [0..1] of TFloatPoint;
     FVelocity: array [0..1] of TFloatPoint;
     FPattern: array [0..1] of TBitmap32;
@@ -98,12 +96,12 @@ end;
 function GetNearestPointOnBox(const Pt, BoxCenter: TFloatPoint;
   const BoxPts: array of TFloatPoint): TFloatPoint;
 var
-  I, Index: integer;
+  I, Index: Integer;
   DistSqrd, DS: single;
 begin
   Index := 0;
   DistSqrd := SqrDistance(BoxPts[0], Pt);
-  for I := 1 to high(BoxPts) do
+  for I := 1 to High(BoxPts) do
   begin
     DS := SqrDistance(BoxPts[I], Pt);
     if DS >= DistSqrd then Continue;
@@ -256,7 +254,7 @@ var
   StartPoint, EndPoint, StartOffsetPt, EndOffsetPt: TFloatPoint;
   Delta: TFloatPoint;
   Arrow: TArrowHeadAbstract;
-  gradientFiller: TLinearGradientPolygonFiller;
+  GradientFiller: TLinearGradientPolygonFiller;
 const
   StartArrowColor: TColor32 = $60009900;
   StartArrowPenColor: TColor32 = $FF339900;
@@ -282,7 +280,7 @@ begin
   DashLineFS(ImgView32.Bitmap, Box2, FDashes, FBitmapFiller, EndArrowPenColor,
     True, CBorderSize, 1.5);
 
-  //now accommodate for CBorderSize width as above ...
+  // now accommodate for CBorderSize width as above ...
   Box1 := MakeBox(FBoxCenter[0], CBoxSize + CBorderSize);
   Box2 := MakeBox(FBoxCenter[1], CBoxSize + CBorderSize);
   if BoxesOverlap(FBoxCenter[0], FBoxCenter[1], CBoxSize) then
@@ -298,13 +296,15 @@ begin
   Delta.X := StartPoint.X - FBoxCenter[0].X;
   Delta.Y := StartPoint.Y - FBoxCenter[0].Y;
   if Abs(Delta.X) > Abs(Delta.Y) then
-    StartOffsetPt := FloatPoint(StartPoint.X + Delta.X * 2, StartPoint.Y) else
+    StartOffsetPt := FloatPoint(StartPoint.X + Delta.X * 2, StartPoint.Y)
+  else
     StartOffsetPt := FloatPoint(StartPoint.X, StartPoint.Y + Delta.Y *2);
 
   Delta.X := EndPoint.X - FBoxCenter[1].X;
   Delta.Y := EndPoint.Y - FBoxCenter[1].Y;
   if Abs(Delta.X) > Abs(Delta.Y) then
-    EndOffsetPt := FloatPoint(EndPoint.X + Delta.X * 2, EndPoint.Y) else
+    EndOffsetPt := FloatPoint(EndPoint.X + Delta.X * 2, EndPoint.Y)
+  else
     EndOffsetPt := FloatPoint(EndPoint.X, EndPoint.Y + Delta.Y * 2);
 
   Poly := BuildPolygon([StartPoint.X, StartPoint.Y,
@@ -315,26 +315,26 @@ begin
 
   if Assigned(Arrow) then
   begin
-    //shorten path at specified end(s) and draw ...
+    // shorten path at specified end(s) and draw ...
     case RgpPosition.ItemIndex of
       0: Poly := Shorten(Poly, ArrowSize, lpStart);
       1: Poly := Shorten(Poly, ArrowSize, lpEnd);
       2: Poly := Shorten(Poly, ArrowSize, lpBoth);
     end;
-    //draw the connecting line ...
-    gradientFiller := TLinearGradientPolygonFiller.Create;
+    // draw the connecting line ...
+    GradientFiller := TLinearGradientPolygonFiller.Create;
     try
-      gradientFiller.Gradient.AddColorStop(0.0, StartArrowPenColor);
-      gradientFiller.Gradient.AddColorStop(1.0, EndArrowPenColor);
-      with FBoxCenter[0] do gradientFiller.StartPoint := FloatPoint(X + CRad, Y);
-      with FBoxCenter[1] do gradientFiller.EndPoint := FloatPoint(X - CRad, Y);
-      PolylineFS(ImgView32.Bitmap, Poly, gradientFiller, False,
+      GradientFiller.Gradient.AddColorStop(0.0, StartArrowPenColor);
+      GradientFiller.Gradient.AddColorStop(1.0, EndArrowPenColor);
+      with FBoxCenter[0] do GradientFiller.StartPoint := FloatPoint(X + CRad, Y);
+      with FBoxCenter[1] do GradientFiller.EndPoint := FloatPoint(X - CRad, Y);
+      PolylineFS(ImgView32.Bitmap, Poly, GradientFiller, False,
         TbrLineWidth.Position);
     finally
-      gradientFiller.Free;
+      GradientFiller.Free;
     end;
 
-    //draw specified arrows ...
+    // draw specified arrows ...
     if RgpPosition.ItemIndex <> 1 then
     begin
       ArrowPts := Arrow.GetPoints(Poly, False);
@@ -373,9 +373,9 @@ procedure TFmArrowHeadDemo.CbxAnimateClick(Sender: TObject);
 begin
   Animation.Enabled := CbxAnimate.Checked;
   Randomize;
-  FVelocity[0] := FloatPoint((2 * Random -1) * FAnimationSpeed,
+  FVelocity[0] := FloatPoint((2 * Random - 1) * FAnimationSpeed,
     (2 * Random -1) * FAnimationSpeed);
-  FVelocity[1] := FloatPoint((2 * Random -1) * FAnimationSpeed,
+  FVelocity[1] := FloatPoint((2 * Random - 1) * FAnimationSpeed,
     (2 * Random -1) * FAnimationSpeed);
 end;
 
@@ -383,8 +383,8 @@ procedure TFmArrowHeadDemo.TbrAnimationSpeedChange(Sender: TObject);
 var
   SpeedRatio: TFloat;
 begin
-  if not Animation.Enabled then exit;
-  SpeedRatio := TbrAnimationSpeed.Position/FAnimationSpeed;
+  if not Animation.Enabled then Exit;
+  SpeedRatio := TbrAnimationSpeed.Position / FAnimationSpeed;
   FAnimationSpeed := TbrAnimationSpeed.Position;
   with FVelocity[0] do
   begin
@@ -403,20 +403,20 @@ var
   Index: Integer;
   NextCenter: array [0..1] of TFloatPoint;
 begin
-  if FBoxIndex >= 0 then exit;
+  if FBoxIndex >= 0 then Exit;
 
-  //move boxes ...
+  // move boxes ...
   FBoxCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
   FBoxCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
   ReDraw;
 
-  //update velocities where there are collisions ...
+  // update velocities where there are collisions ...
 
   NextCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
   NextCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
   if BoxesOverlap(NextCenter[0], NextCenter[1], CRad * 2) then
   begin
-    //manage box collisions ...
+    //m anage box collisions ...
     if Abs(NextCenter[0].X - NextCenter[1].X) <
       Abs(NextCenter[0].Y - NextCenter[1].Y) then
         SwapVelocities(FVelocity[0].Y, FVelocity[1].Y)
@@ -426,7 +426,7 @@ begin
     NextCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
   end;
 
-  //manage wall collisions ...
+  // manage wall collisions ...
   for Index := 0 to High(FBoxCenter) do
   begin
     if (NextCenter[Index].X + CRad > ImgView32.Width) or
