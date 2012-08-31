@@ -44,7 +44,7 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
     OnMouseUp = ImgView32MouseUp
     OnResize = ImgView32Resize
   end
-  object pnlControl: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 173
