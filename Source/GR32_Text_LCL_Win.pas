@@ -114,9 +114,6 @@ begin
 end;
 
 
-{$IFDEF USESTACKALLOC}
-{$W+}
-{$ENDIF}
 procedure GlyphOutlineToPath(Handle: HDC; Path: TCustomPath; DstX, DstY: Single;
   const Glyph: Integer; out Metrics: TGlyphMetrics);
 var
@@ -130,14 +127,14 @@ begin
     Metrics{%H-}, 0, nil, VertFlip_mat2);
   if not Assigned(Path) then Exit;
 
-  PGlyphMem := StackAlloc(Res);
+  PGlyphMem := GetMem(Res);
   PBuffer := PGlyphMem;
 
   Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics, Res, PBuffer, VertFlip_mat2);
 
   if (Res = GDI_ERROR) or (PBuffer^.dwType <> TT_POLYGON_TYPE) then
   begin
-    StackFree(PGlyphMem);
+    FreeMem(PGlyphMem);
     Exit;
   end;
 
@@ -197,11 +194,8 @@ begin
     Inc(PBuffer, PBuffer.cb);
   end;
 
-  StackFree(PGlyphMem);
+  FreeMem(PGlyphMem);
 end;
-{$IFDEF USESTACKALLOC}
-{$W-}
-{$ENDIF}
 
 
 procedure InternalTextToPath(DC: HDC; Path: TCustomPath; var ARect: TFloatRect;
