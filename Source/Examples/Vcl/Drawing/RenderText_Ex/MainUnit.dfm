@@ -28,7 +28,7 @@ object FormRenderText: TFormRenderText
     TabOrder = 0
     OnResize = ImageResize
   end
-  object Panel1: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 329
@@ -45,21 +45,21 @@ object FormRenderText: TFormRenderText
     DesignSize = (
       329
       61)
-    object LbAALevel: TLabel
+    object LblAALevel: TLabel
       Left = 4
       Top = 36
       Width = 46
       Height = 13
       Caption = 'AA Level:'
     end
-    object LbEnterText: TLabel
+    object LblEnterText: TLabel
       Left = 4
       Top = 6
       Width = 78
       Height = 13
       Caption = 'Enter text here:'
     end
-    object SBTextOut: TSpeedButton
+    object BtnTextOut: TSpeedButton
       Left = 116
       Top = 32
       Width = 22
@@ -68,9 +68,9 @@ object FormRenderText: TFormRenderText
       Down = True
       Caption = '0'
       Layout = blGlyphBottom
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias1: TSpeedButton
+    object BtnAntialias1: TSpeedButton
       Tag = 1
       Left = 140
       Top = 32
@@ -79,9 +79,9 @@ object FormRenderText: TFormRenderText
       GroupIndex = 1
       Caption = '1'
       Layout = blGlyphBottom
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias2: TSpeedButton
+    object BtnAntialias2: TSpeedButton
       Tag = 2
       Left = 164
       Top = 32
@@ -90,9 +90,9 @@ object FormRenderText: TFormRenderText
       GroupIndex = 1
       Caption = '2'
       Layout = blGlyphBottom
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias3: TSpeedButton
+    object BtnAntialias3: TSpeedButton
       Tag = 3
       Left = 188
       Top = 32
@@ -101,9 +101,9 @@ object FormRenderText: TFormRenderText
       GroupIndex = 1
       Caption = '3'
       Layout = blGlyphBottom
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias4: TSpeedButton
+    object BtnAntialias4: TSpeedButton
       Tag = 4
       Left = 212
       Top = 32
@@ -112,9 +112,9 @@ object FormRenderText: TFormRenderText
       GroupIndex = 1
       Caption = '4'
       Layout = blGlyphBottom
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBClearType: TSpeedButton
+    object BtnClearType: TSpeedButton
       Tag = -1
       Left = 92
       Top = 32
@@ -123,7 +123,7 @@ object FormRenderText: TFormRenderText
       GroupIndex = 1
       Caption = '-1'
       Layout = blGlyphBottom
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
     object EditText: TEdit
       Left = 92
@@ -136,7 +136,7 @@ object FormRenderText: TFormRenderText
       Text = 'EditText'
       OnChange = EditTextChange
     end
-    object BtClickMe: TButton
+    object BtnClickMe: TButton
       Left = 253
       Top = 32
       Width = 73
@@ -144,7 +144,7 @@ object FormRenderText: TFormRenderText
       Anchors = [akTop, akRight]
       Caption = 'Click me!'
       TabOrder = 1
-      OnClick = BtClickMeClick
+      OnClick = BtnClickMeClick
     end
   end
 end
