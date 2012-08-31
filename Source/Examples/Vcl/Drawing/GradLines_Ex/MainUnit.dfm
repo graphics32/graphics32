@@ -18,10 +18,10 @@ object FormGradientLines: TFormGradientLines
     423)
   PixelsPerInch = 96
   TextHeight = 13
-  object lbTotal: TLabel
+  object LblTotal: TLabel
     Left = 510
     Top = 92
-    Width = 29
+    Width = 28
     Height = 13
     Anchors = [akTop, akRight]
     Caption = 'Total:'
@@ -34,7 +34,7 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
   end
-  object btAddOne: TButton
+  object BtnAddOne: TButton
     Left = 510
     Top = 8
     Width = 105
@@ -42,9 +42,9 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     Caption = 'Add One'
     TabOrder = 1
-    OnClick = btAddOneClick
+    OnClick = BtnAddOneClick
   end
-  object btAddTen: TButton
+  object BtnAddTen: TButton
     Left = 510
     Top = 34
     Width = 105
@@ -52,9 +52,9 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     Caption = 'Add Ten'
     TabOrder = 2
-    OnClick = btAddTenClick
+    OnClick = BtnAddTenClick
   end
-  object btClear: TButton
+  object BtnClear: TButton
     Left = 510
     Top = 60
     Width = 105
@@ -62,9 +62,9 @@ object FormGradientLines: TFormGradientLines
     Anchors = [akTop, akRight]
     Caption = 'Clear'
     TabOrder = 3
-    OnClick = btClearClick
+    OnClick = BtnClearClick
   end
-  object rgFade: TRadioGroup
+  object RgpFade: TRadioGroup
     Left = 510
     Top = 224
     Width = 105
@@ -79,9 +79,9 @@ object FormGradientLines: TFormGradientLines
       'Fast')
     ParentCtl3D = False
     TabOrder = 4
-    OnClick = rgFadeClick
+    OnClick = RgpFadeClick
   end
-  object rgDraw: TRadioGroup
+  object RgpDraw: TRadioGroup
     Left = 510
     Top = 136
     Width = 105
@@ -96,9 +96,9 @@ object FormGradientLines: TFormGradientLines
       'Fast')
     ParentCtl3D = False
     TabOrder = 5
-    OnClick = rgDrawClick
+    OnClick = RgpDrawClick
   end
-  object pnTotalLines: TPanel
+  object PnlTotalLines: TPanel
     Left = 511
     Top = 108
     Width = 104
