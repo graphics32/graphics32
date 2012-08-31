@@ -1,9 +1,9 @@
 object FmArrowHeadDemo: TFmArrowHeadDemo
   Left = 375
   Top = 138
-  Width = 575
-  Height = 497
   Caption = 'ArrowHead Demo'
+  ClientHeight = 470
+  ClientWidth = 567
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -16,13 +16,6 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 15
-  object Label2: TLabel
-    Left = 16
-    Top = 328
-    Width = 58
-    Height = 15
-    Caption = 'Line &Width'
-  end
   object ImgView32: TImgView32
     Left = 173
     Top = 0

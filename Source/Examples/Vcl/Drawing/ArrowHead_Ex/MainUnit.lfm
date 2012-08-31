@@ -16,10 +16,10 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
   OnDestroy = FormDestroy
   LCLVersion = '1.0.1.3'
   object ImgView32: TImgView32
-    Left = 177
+    Left = 173
     Height = 470
     Top = 0
-    Width = 390
+    Width = 394
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
@@ -41,34 +41,43 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
     Left = 0
     Height = 470
     Top = 0
-    Width = 177
+    Width = 173
     Align = alLeft
     ClientHeight = 470
-    ClientWidth = 177
+    ClientWidth = 173
     TabOrder = 1
     object LblArrowSize: TLabel
       Left = 15
       Height = 16
-      Top = 24
+      Top = 19
       Width = 58
       Caption = '&Arrow Size'
       FocusControl = EdtArrowSize
       ParentColor = False
     end
+    object LblLineWidth: TLabel
+      Left = 16
+      Height = 16
+      Top = 315
+      Width = 59
+      Caption = 'Line &Width'
+      FocusControl = TbrLineWidth
+      ParentColor = False
+    end
     object BtnClose: TButton
       Left = 15
       Height = 25
-      Top = 411
+      Top = 424
       Width = 140
       Cancel = True
       Caption = '&Close'
       OnClick = BtnCloseClick
-      TabOrder = 4
+      TabOrder = 6
     end
     object RgpArrowStyle: TRadioGroup
       Left = 15
-      Height = 143
-      Top = 74
+      Height = 131
+      Top = 69
       Width = 140
       AutoFill = True
       Caption = 'Arrow &Style'
@@ -80,9 +89,9 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 125
+      ClientHeight = 113
       ClientWidth = 136
-      ItemIndex = 1
+      ItemIndex = 2
       Items.Strings = (
         'None'
         '3 point'
@@ -96,7 +105,7 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
     object EdtArrowSize: TEdit
       Left = 15
       Height = 23
-      Top = 41
+      Top = 36
       Width = 140
       OnChange = EdtArrowSizeChange
       TabOrder = 0
@@ -105,7 +114,7 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
     object RgpPosition: TRadioGroup
       Left = 15
       Height = 97
-      Top = 228
+      Top = 210
       Width = 140
       AutoFill = True
       Caption = 'Arrow &Locations'
@@ -128,21 +137,44 @@ object FmArrowHeadDemo: TFmArrowHeadDemo
       OnClick = RgpArrowStyleClick
       TabOrder = 2
     end
+    object TbrLineWidth: TTrackBar
+      Left = 9
+      Height = 31
+      Top = 335
+      Width = 153
+      Max = 8
+      Min = 1
+      OnChange = TbrLineWidthChange
+      Position = 3
+      TabOrder = 3
+    end
+    object TbrAnimationSpeed: TTrackBar
+      Left = 91
+      Height = 31
+      Top = 381
+      Width = 70
+      Max = 8
+      Min = 1
+      OnChange = TbrAnimationSpeedChange
+      Position = 3
+      TickStyle = tsNone
+      TabOrder = 5
+    end
     object CbxAnimate: TCheckBox
-      Left = 49
+      Left = 15
       Height = 19
-      Top = 359
+      Top = 384
       Width = 65
       Caption = 'Ani&mate'
       OnClick = CbxAnimateClick
-      TabOrder = 3
+      TabOrder = 4
     end
   end
   object Animation: TTimer
     Enabled = False
     Interval = 30
     OnTimer = AnimationTimer
-    left = 272
-    top = 232
+    left = 184
+    top = 16
   end
 end
