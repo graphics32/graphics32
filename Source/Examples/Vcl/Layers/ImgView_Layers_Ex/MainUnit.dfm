@@ -39,7 +39,7 @@ object MainForm: TMainForm
     OnMouseWheelUp = ImgViewMouseWheelUp
     OnPaintStage = ImgViewPaintStage
   end
-  object SidePanel: TPanel
+  object PnlControl: TPanel
     Left = 656
     Top = 0
     Width = 131
@@ -47,7 +47,7 @@ object MainForm: TMainForm
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
-    object pnlImage: TPanel
+    object PnlImage: TPanel
       Left = 0
       Top = 0
       Width = 131
@@ -55,7 +55,7 @@ object MainForm: TMainForm
       Align = alTop
       TabOrder = 0
       Visible = False
-      object lbScale: TLabel
+      object LblScale: TLabel
         Left = 8
         Top = 24
         Width = 29
@@ -82,7 +82,7 @@ object MainForm: TMainForm
           '  800%'
           '1600%')
       end
-      object Panel2: TPanel
+      object PnlImageHeader: TPanel
         Left = 1
         Top = 1
         Width = 129
@@ -99,16 +99,16 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 1
       end
-      object ImageInterpolate: TCheckBox
+      object CbxImageInterpolate: TCheckBox
         Left = 16
         Top = 72
         Width = 97
         Height = 17
         Caption = 'Interpolated'
         TabOrder = 2
-        OnClick = ImageInterpolateClick
+        OnClick = CbxImageInterpolateClick
       end
-      object cbOptRedraw: TCheckBox
+      object CbxOptRedraw: TCheckBox
         Left = 16
         Top = 96
         Width = 105
@@ -117,10 +117,10 @@ object MainForm: TMainForm
         Checked = True
         State = cbChecked
         TabOrder = 3
-        OnClick = cbOptRedrawClick
+        OnClick = CbxOptRedrawClick
       end
     end
-    object pnlBitmapLayer: TPanel
+    object PnlBitmapLayer: TPanel
       Left = 0
       Top = 130
       Width = 131
@@ -128,14 +128,14 @@ object MainForm: TMainForm
       Align = alTop
       TabOrder = 1
       Visible = False
-      object lbOpacity: TLabel
+      object LblOpacity: TLabel
         Left = 8
         Top = 24
         Width = 41
         Height = 13
         Caption = 'Opacity:'
       end
-      object Panel3: TPanel
+      object PnlBitmapLayerHeader: TPanel
         Left = 1
         Top = 1
         Width = 129
@@ -152,7 +152,7 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 0
       end
-      object LayerOpacity: TGaugeBar
+      object GbrLayerOpacity: TGaugeBar
         Left = 16
         Top = 40
         Width = 105
@@ -166,44 +166,44 @@ object MainForm: TMainForm
         Position = 255
         OnChange = LayerOpacityChanged
       end
-      object LayerInterpolate: TCheckBox
+      object CbxLayerInterpolate: TCheckBox
         Left = 16
         Top = 64
         Width = 97
         Height = 17
-        Caption = 'Interpolated'
+        Caption = '&Interpolated'
         TabOrder = 2
-        OnClick = LayerInterpolateClick
+        OnClick = CbxLayerInterpolateClick
       end
-      object LayerRescale: TButton
+      object BtnLayerRescale: TButton
         Left = 16
         Top = 112
         Width = 105
         Height = 17
         Caption = 'Rescale'
         TabOrder = 3
-        OnClick = LayerRescaleClick
+        OnClick = BtnLayerRescaleClick
       end
-      object LayerResetScale: TButton
+      object BtnLayerResetScale: TButton
         Left = 16
         Top = 136
         Width = 105
         Height = 17
         Caption = 'Scale to 100%'
         TabOrder = 4
-        OnClick = LayerResetScaleClick
+        OnClick = BtnLayerResetScaleClick
       end
-      object Cropped: TCheckBox
+      object CbxCropped: TCheckBox
         Left = 16
         Top = 88
         Width = 97
         Height = 17
-        Caption = 'Cropped'
+        Caption = '&Cropped'
         TabOrder = 5
-        OnClick = CroppedClick
+        OnClick = CbxCroppedClick
       end
     end
-    object pnlMagnification: TPanel
+    object PnlMagnification: TPanel
       Left = 0
       Top = 298
       Width = 131
@@ -211,28 +211,28 @@ object MainForm: TMainForm
       Align = alTop
       TabOrder = 2
       Visible = False
-      object lbMagifierOpacity: TLabel
+      object LblMagifierOpacity: TLabel
         Left = 8
         Top = 24
         Width = 41
         Height = 13
         Caption = 'Opacity:'
       end
-      object lbMagnification: TLabel
+      object LblMagnification: TLabel
         Left = 8
         Top = 64
         Width = 67
         Height = 13
         Caption = 'Magnification:'
       end
-      object lbRotation: TLabel
+      object LblRotation: TLabel
         Left = 8
         Top = 104
         Width = 45
         Height = 13
         Caption = 'Rotation:'
       end
-      object Panel4: TPanel
+      object PnlMagnificationHeader: TPanel
         Left = 1
         Top = 1
         Width = 129
@@ -249,7 +249,7 @@ object MainForm: TMainForm
         ParentFont = False
         TabOrder = 0
       end
-      object MagnOpacity: TGaugeBar
+      object GbrMagnOpacity: TGaugeBar
         Left = 16
         Top = 40
         Width = 105
@@ -263,7 +263,7 @@ object MainForm: TMainForm
         Position = 255
         OnChange = MagnChange
       end
-      object MagnMagnification: TGaugeBar
+      object GbrMagnMagnification: TGaugeBar
         Left = 16
         Top = 80
         Width = 105
@@ -277,7 +277,7 @@ object MainForm: TMainForm
         Position = 10
         OnChange = MagnChange
       end
-      object MagnRotation: TGaugeBar
+      object GbrMagnRotation: TGaugeBar
         Left = 16
         Top = 120
         Width = 105
@@ -292,7 +292,7 @@ object MainForm: TMainForm
         Position = 0
         OnChange = MagnChange
       end
-      object MagnInterpolate: TCheckBox
+      object CbxMagnInterpolate: TCheckBox
         Left = 16
         Top = 144
         Width = 97
@@ -305,64 +305,64 @@ object MainForm: TMainForm
   end
   object MainMenu: TMainMenu
     Left = 216
-    object mnFile: TMenuItem
+    object MnuFile: TMenuItem
       Caption = 'File'
-      OnClick = mnFileClick
-      object mnFileNew: TMenuItem
+      OnClick = MnuFileClick
+      object MnuFileNew: TMenuItem
         Caption = 'New...'
-        OnClick = mnFileNewClick
+        OnClick = MnuFileNewClick
       end
-      object mnFileOpen: TMenuItem
+      object MnuFileOpen: TMenuItem
         Caption = 'Open...'
-        OnClick = mnFileOpenClick
+        OnClick = MnuFileOpenClick
       end
       object N6: TMenuItem
         Caption = '-'
       end
-      object mnPrint: TMenuItem
+      object MnuPrint: TMenuItem
         Caption = 'Print'
-        OnClick = mnPrintClick
+        OnClick = MnuPrintClick
       end
     end
-    object mnLayers: TMenuItem
+    object MnuLayers: TMenuItem
       Caption = 'Layers'
-      OnClick = mnLayersClick
-      object mnNewBitmapLayer: TMenuItem
+      OnClick = MnuLayersClick
+      object MnuNewBitmapLayer: TMenuItem
         Caption = 'New Bitmap Layer'
-        OnClick = mnNewBitmapLayerClick
+        OnClick = MnuNewBitmapLayerClick
       end
-      object mnNewBitmapRGBA: TMenuItem
+      object MnuNewBitmapRGBA: TMenuItem
         Caption = 'New Bitmap Layer with Alpha Channel'
-        OnClick = mnNewBitmapRGBAClick
+        OnClick = MnuNewBitmapRGBAClick
       end
-      object mnNewCustomLayer: TMenuItem
+      object MnuNewCustomLayer: TMenuItem
         Caption = 'New Custom Layer'
-        object mnSimpleDrawing: TMenuItem
+        object MnuSimpleDrawing: TMenuItem
           Caption = 'Simple Drawing Layer'
-          OnClick = mnSimpleDrawingClick
+          OnClick = MnuSimpleDrawingClick
         end
-        object mnMagnifier: TMenuItem
+        object MnuMagnifier: TMenuItem
           Caption = 'Magnifier'
-          OnClick = mnMagnifierClick
+          OnClick = MnuMagnifierClick
         end
       end
       object N4: TMenuItem
         Caption = '-'
       end
-      object mnFlatten: TMenuItem
+      object MnuFlatten: TMenuItem
         Caption = 'Flatten Layers'
-        OnClick = mnFlattenClick
+        OnClick = MnuFlattenClick
       end
     end
-    object mnArrange: TMenuItem
+    object MimArrange: TMenuItem
       Caption = 'Selection'
-      OnClick = mnArrangeClick
-      object mnBringFront: TMenuItem
+      OnClick = MimArrangeClick
+      object MnuBringFront: TMenuItem
         Tag = 1
         Caption = 'Bring to Front'
         OnClick = mnReorder
       end
-      object mnSendBack: TMenuItem
+      object MnuSendBack: TMenuItem
         Tag = 2
         Caption = 'Send to Back'
         OnClick = mnReorder
@@ -371,12 +371,12 @@ object MainForm: TMainForm
         Caption = '-'
         OnClick = mnReorder
       end
-      object mnLevelUp: TMenuItem
+      object MnuLevelUp: TMenuItem
         Tag = 3
         Caption = 'Up One Level'
         OnClick = mnReorder
       end
-      object mnLevelDown: TMenuItem
+      object MnuLevelDown: TMenuItem
         Tag = 4
         Caption = 'Down one Level'
         OnClick = mnReorder
@@ -384,40 +384,40 @@ object MainForm: TMainForm
       object N2: TMenuItem
         Caption = '-'
       end
-      object mnScaled: TMenuItem
+      object MnuScaled: TMenuItem
         Caption = 'Scaled'
         Checked = True
-        OnClick = mnScaledClick
+        OnClick = MnuScaledClick
       end
-      object mnDelete: TMenuItem
+      object MnuDelete: TMenuItem
         Caption = 'Delete'
-        OnClick = mnDeleteClick
+        OnClick = MnuDeleteClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
-      object mnFlipHorz: TMenuItem
+      object MnuFlipHorz: TMenuItem
         Caption = 'Flip Horizontally'
-        OnClick = mnFlipHorzClick
+        OnClick = MnuFlipHorzClick
       end
-      object mnFlipVert: TMenuItem
+      object MnuFlipVert: TMenuItem
         Caption = 'Flip Vertically'
-        OnClick = mnFlipVertClick
+        OnClick = MnuFlipVertClick
       end
       object N5: TMenuItem
         Caption = '-'
       end
-      object mnRotate90: TMenuItem
+      object MnuRotate90: TMenuItem
         Caption = 'Rotate 90'
-        OnClick = mnRotate90Click
+        OnClick = MnuRotate90Click
       end
-      object mnRotate180: TMenuItem
+      object MnuRotate180: TMenuItem
         Caption = 'Rotate 180'
-        OnClick = mnRotate180Click
+        OnClick = MnuRotate180Click
       end
-      object mnRotate270: TMenuItem
+      object MnuRotate270: TMenuItem
         Caption = 'Rotate 270'
-        OnClick = mnRotate270Click
+        OnClick = MnuRotate270Click
       end
     end
   end

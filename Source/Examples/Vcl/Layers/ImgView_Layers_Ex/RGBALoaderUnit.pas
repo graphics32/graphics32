@@ -43,34 +43,30 @@ uses
 type
   TRGBALoaderForm = class(TForm)
     Bevel1: TBevel;
-    btCancel: TButton;
-    btLoadAlpha: TButton;
-    btLoadImage: TButton;
-    btOK: TButton;
-    btResetScales: TButton;
+    BtnCancel: TButton;
+    BtnLoadAlpha: TButton;
+    BtnLoadImage: TButton;
+    BtnOK: TButton;
+    BtnResetScales: TButton;
     ImgAlpha: TImgView32;
     ImgRGB: TImgView32;
-    lbAlphaImage: TLabel;
-    lbInfo: TLabel;
-    lbNote: TLabel;
-    lbRGBImage: TLabel;
+    LblAlphaImage: TLabel;
+    LblInfo: TLabel;
+    LblNote: TLabel;
+    LblRGBImage: TLabel;
     OpenPictureDialog: TOpenPictureDialog;
-    Panel1: TPanel;
-    SpeedButton1: TSpeedButton;
-    SpeedButton2: TSpeedButton;
-    SpeedButton3: TSpeedButton;
-    SpeedButton4: TSpeedButton;
-    procedure btLoadImageClick(Sender: TObject);
-    procedure btLoadAlphaClick(Sender: TObject);
-    procedure SpeedButton1Click(Sender: TObject);
-    procedure SpeedButton2Click(Sender: TObject);
-    procedure SpeedButton3Click(Sender: TObject);
-    procedure SpeedButton4Click(Sender: TObject);
-    procedure btResetScalesClick(Sender: TObject);
-  private
-    { Private declarations }
-  public
-    { Public declarations }
+    PnlInfo: TPanel;
+    BtnZoomInImage: TSpeedButton;
+    BtnZoomOutImage: TSpeedButton;
+    BtnZoomInAlpha: TSpeedButton;
+    BtnZoomOutAlpha: TSpeedButton;
+    procedure BtnLoadImageClick(Sender: TObject);
+    procedure BtnLoadAlphaClick(Sender: TObject);
+    procedure BtnZoomInImageClick(Sender: TObject);
+    procedure BtnZoomOutImageClick(Sender: TObject);
+    procedure BtnZoomInAlphaClick(Sender: TObject);
+    procedure BtnZoomOutAlphaClick(Sender: TObject);
+    procedure BtnResetScalesClick(Sender: TObject);
   end;
 
 var
@@ -86,13 +82,13 @@ implementation
 
 { TRGBALoaderForm }
 
-procedure TRGBALoaderForm.btLoadImageClick(Sender: TObject);
+procedure TRGBALoaderForm.BtnLoadImageClick(Sender: TObject);
 begin
   with OpenPictureDialog do
     if Execute then ImgRGB.Bitmap.LoadFromFile(FileName);
 end;
 
-procedure TRGBALoaderForm.btLoadAlphaClick(Sender: TObject);
+procedure TRGBALoaderForm.BtnLoadAlphaClick(Sender: TObject);
 begin
   with OpenPictureDialog, ImgAlpha do
     if Execute then
@@ -102,27 +98,27 @@ begin
     end;
 end;
 
-procedure TRGBALoaderForm.SpeedButton1Click(Sender: TObject);
+procedure TRGBALoaderForm.BtnZoomInImageClick(Sender: TObject);
 begin
   ImgRGB.Scale := ImgRGB.Scale * 1.5;
 end;
 
-procedure TRGBALoaderForm.SpeedButton2Click(Sender: TObject);
+procedure TRGBALoaderForm.BtnZoomOutImageClick(Sender: TObject);
 begin
   ImgRGB.Scale := ImgRGB.Scale / 1.5;
 end;
 
-procedure TRGBALoaderForm.SpeedButton3Click(Sender: TObject);
+procedure TRGBALoaderForm.BtnZoomInAlphaClick(Sender: TObject);
 begin
   ImgAlpha.Scale := ImgAlpha.Scale * 1.5;
 end;
 
-procedure TRGBALoaderForm.SpeedButton4Click(Sender: TObject);
+procedure TRGBALoaderForm.BtnZoomOutAlphaClick(Sender: TObject);
 begin
   ImgAlpha.Scale := ImgAlpha.Scale / 1.5;
 end;
 
-procedure TRGBALoaderForm.btResetScalesClick(Sender: TObject);
+procedure TRGBALoaderForm.BtnResetScalesClick(Sender: TObject);
 begin
   ImgRGB.Scale := 1;
   ImgAlpha.Scale := 1;

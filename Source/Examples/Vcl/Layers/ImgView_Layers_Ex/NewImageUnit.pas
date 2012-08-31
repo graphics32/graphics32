@@ -41,26 +41,26 @@ uses
   ComCtrls, Buttons;
 
 type
-  TNewImageForm = class(TForm)
-    btCancel: TButton;
-    btOK: TButton;
-    btSelect: TButton;
-    btUpDownHeight: TUpDown;
-    btUpDownWidth: TUpDown;
+  TFrmNewImage = class(TForm)
+    BtnCancel: TButton;
+    BtnOK: TButton;
+    BtnSelect: TButton;
+    BtnUpDownHeight: TUpDown;
+    BtnUpDownWidth: TUpDown;
     ColorDialog: TColorDialog;
-    ImageHeight: TEdit;
-    ImageWidth: TEdit;
-    lbBackgroundColor: TLabel;
-    lbHeight: TLabel;
-    lbHeightUnit: TLabel;
-    lbWidth: TLabel;
-    lbWidthUnit: TLabel;
-    pnColor: TPanel;
-    procedure btSelectClick(Sender: TObject);
+    EdtImageHeight: TEdit;
+    EdtImageWidth: TEdit;
+    LblBackgroundColor: TLabel;
+    LblHeight: TLabel;
+    LblHeightUnit: TLabel;
+    LblWidth: TLabel;
+    LblWidthUnit: TLabel;
+    PnlColor: TPanel;
+    procedure BtnSelectClick(Sender: TObject);
   end;
 
 var
-  NewImageForm: TNewImageForm;
+  FrmNewImage: TFrmNewImage;
 
 implementation
 
@@ -72,12 +72,12 @@ implementation
 
 { TNewImageForm }
 
-procedure TNewImageForm.btSelectClick(Sender: TObject);
+procedure TFrmNewImage.BtnSelectClick(Sender: TObject);
 begin
   with ColorDialog do
   begin
-    Color := pnColor.Color;
-    if Execute then pnColor.Color := Color;
+    Color := PnlColor.Color;
+    if Execute then PnlColor.Color := Color;
   end;
 end;
 
