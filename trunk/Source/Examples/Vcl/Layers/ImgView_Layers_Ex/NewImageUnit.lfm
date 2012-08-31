@@ -1,38 +1,37 @@
-object NewImageForm: TNewImageForm
+object FrmNewImage: TFrmNewImage
   Left = 282
-  Height = 199
+  Height = 194
   Top = 194
-  Width = 255
-  HorzScrollBar.Page = 319
-  VertScrollBar.Page = 239
-  ActiveControl = ImageWidth
+  Width = 250
   BorderStyle = bsDialog
   Caption = 'New Image'
-  ClientHeight = 199
-  ClientWidth = 255
+  ClientHeight = 194
+  ClientWidth = 250
+  Color = clBtnFace
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
-  object lbWidth: TLabel
+  LCLVersion = '1.0.1.3'
+  object LblWidth: TLabel
     Left = 24
     Height = 14
     Top = 27
     Width = 33
     Caption = 'Width:'
-    FocusControl = ImageWidth
+    FocusControl = EdtImageWidth
     ParentColor = False
   end
-  object lbHeight: TLabel
+  object LblHeight: TLabel
     Left = 24
     Height = 14
     Top = 67
     Width = 36
     Caption = 'Height:'
-    FocusControl = ImageHeight
+    FocusControl = EdtImageHeight
     ParentColor = False
   end
-  object lbWidthUnit: TLabel
+  object LblWidthUnit: TLabel
     Left = 200
     Height = 14
     Top = 27
@@ -40,7 +39,7 @@ object NewImageForm: TNewImageForm
     Caption = 'pixels'
     ParentColor = False
   end
-  object lbHeightUnit: TLabel
+  object LblHeightUnit: TLabel
     Left = 200
     Height = 14
     Top = 67
@@ -48,7 +47,7 @@ object NewImageForm: TNewImageForm
     Caption = 'pixels'
     ParentColor = False
   end
-  object lbBackgroundColor: TLabel
+  object LblBackgroundColor: TLabel
     Left = 24
     Height = 14
     Top = 116
@@ -56,7 +55,7 @@ object NewImageForm: TNewImageForm
     Caption = 'Background Color:'
     ParentColor = False
   end
-  object ImageWidth: TEdit
+  object EdtImageWidth: TEdit
     Left = 72
     Height = 21
     Top = 24
@@ -64,19 +63,19 @@ object NewImageForm: TNewImageForm
     TabOrder = 0
     Text = '640'
   end
-  object btUpDownWidth: TUpDown
+  object BtnUpDownWidth: TUpDown
     Left = 169
     Height = 21
     Top = 24
     Width = 18
-    Associate = ImageWidth
+    Associate = EdtImageWidth
     Min = 1
     Max = 2000
     Position = 640
     TabOrder = 1
     Wrap = False
   end
-  object ImageHeight: TEdit
+  object EdtImageHeight: TEdit
     Left = 72
     Height = 21
     Top = 64
@@ -84,19 +83,19 @@ object NewImageForm: TNewImageForm
     TabOrder = 2
     Text = '480'
   end
-  object btUpDownHeight: TUpDown
+  object BtnUpDownHeight: TUpDown
     Left = 169
     Height = 21
     Top = 64
     Width = 18
-    Associate = ImageHeight
+    Associate = EdtImageHeight
     Min = 1
     Max = 2000
     Position = 480
-    TabOrder = 7
+    TabOrder = 3
     Wrap = False
   end
-  object pnColor: TPanel
+  object PnlColor: TPanel
     Left = 120
     Height = 21
     Top = 112
@@ -107,41 +106,37 @@ object NewImageForm: TNewImageForm
     ParentColor = False
     TabOrder = 4
   end
-  object btSelect: TButton
+  object BtnSelect: TButton
     Left = 192
     Height = 20
     Top = 112
     Width = 35
-    BorderSpacing.InnerBorder = 4
     Caption = 'Select'
-    OnClick = Button1Click
-    TabOrder = 3
+    OnClick = BtnSelectClick
+    TabOrder = 5
     TabStop = False
   end
-  object btOK: TButton
+  object BtnOK: TButton
     Left = 104
     Height = 22
     Top = 164
     Width = 65
-    BorderSpacing.InnerBorder = 4
     Caption = 'OK'
     Default = True
     ModalResult = 1
-    TabOrder = 5
+    TabOrder = 6
   end
-  object btCancel: TButton
+  object BtnCancel: TButton
     Left = 176
     Height = 22
     Top = 164
     Width = 65
-    BorderSpacing.InnerBorder = 4
     Cancel = True
     Caption = 'Cancel'
     ModalResult = 2
-    TabOrder = 6
+    TabOrder = 7
   end
   object ColorDialog: TColorDialog
-    Title = 'Select color'
     Color = clWhite
     CustomColors.Strings = (
       'ColorA=000000'
@@ -165,7 +160,7 @@ object NewImageForm: TNewImageForm
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
-    left = 24
-    top = 144
+    left = 196
+    top = 132
   end
 end
