@@ -49,33 +49,33 @@ uses
   {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
 
 type
-  TfmResamplersExample = class(TForm)
+  TFrmResamplersExample = class(TForm)
     CurveImage: TImage32;
     DstImg: TImage32;
     EdgecheckBox: TComboBox;
-    gbParameter: TGaugeBar;
-    gbTableSize: TGaugeBar;
+    GbrParameter: TGaugeBar;
+    GbrTableSize: TGaugeBar;
     KernelClassNamesList: TComboBox;
     KernelModeList: TComboBox;
-    lbKernelClass: TLabel;
-    lbKernelMode: TLabel;
-    lbParameter: TLabel;
-    lbPixelAccessMode: TLabel;
-    lbResamplersClass: TLabel;
-    lbTableSize: TLabel;
-    lbWrapMode: TLabel;
+    LblKernelClass: TLabel;
+    LblKernelMode: TLabel;
+    LblParameter: TLabel;
+    LblPixelAccessMode: TLabel;
+    LblResamplersClass: TLabel;
+    LblTableSize: TLabel;
+    LblWrapMode: TLabel;
     PageControl: TPageControl;
-    pnKernelProperties: TPanel;
-    pnlKernel: TPanel;
-    pnlResampler: TPanel;
-    pnResamplerProperties: TPanel;
+    PnlKernelProperties: TPanel;
+    PnlKernel: TPanel;
+    PnlResampler: TPanel;
+    PnlResamplerProperties: TPanel;
     ResamplerClassNamesList: TComboBox;
     ResamplingPaintBox: TPaintBox32;
-    ResamplingTabSheet: TTabSheet;
+    TabResampling: TTabSheet;
     SidePanel: TPanel;
     StatusBar: TStatusBar;
-    tabDetails: TTabSheet;
-    tabKernel: TTabSheet;
+    TabDetails: TTabSheet;
+    TabKernel: TTabSheet;
     WrapBox: TComboBox;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -83,10 +83,10 @@ type
       StageNum: Cardinal);
     procedure DstImgResize(Sender: TObject);
     procedure EdgecheckBoxChange(Sender: TObject);
-    procedure gbParameterChange(Sender: TObject);
-    procedure gbParameterMouseUp(Sender: TObject; Button: TMouseButton;
+    procedure GbrParameterChange(Sender: TObject);
+    procedure GbrParameterMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure gbTableSizeChange(Sender: TObject);
+    procedure GbrTableSizeChange(Sender: TObject);
     procedure KernelClassNamesListClick(Sender: TObject);
     procedure KernelModeListChange(Sender: TObject);
     procedure ResamplerClassNamesListChange(Sender: TObject);
@@ -102,7 +102,7 @@ type
   end;
 
 var
-  fmResamplersExample: TfmResamplersExample;
+  FrmResamplersExample: TFrmResamplersExample;
 
 implementation
 
@@ -122,7 +122,7 @@ uses
 
 { TfmResamplersExample }
 
-procedure TfmResamplersExample.FormCreate(Sender: TObject);
+procedure TFrmResamplersExample.FormCreate(Sender: TObject);
 var
   MediaPath: TFileName;
 begin
@@ -149,22 +149,21 @@ begin
   BuildTestBitmap(Src);
 
   with CurveImage.PaintStages[0]^ do
-  begin
     if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
-  end;
 
   ResamplingPaintBox.BufferOversize := 0;
 end;
 
-procedure TfmResamplersExample.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TFrmResamplersExample.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   Src.Free;
   ResamplingSrc.Free;
 end;
 
-procedure TfmResamplersExample.BuildTestBitmap(Bitmap: TBitmap32);
+procedure TFrmResamplersExample.BuildTestBitmap(Bitmap: TBitmap32);
 var
   I, J: Integer;
+  Clr: TColor32;
 const
   CBlackWhite32: array [0..1] of TColor32 = (clBlack32, clWhite32);
 begin
@@ -178,18 +177,20 @@ begin
 
     for I := 0 to 15 do
     begin
-      PixelX[Fixed(I), Fixed( 9)] := Gray32(I * 255 div 15);
-      PixelX[Fixed(I), Fixed(10)] := Gray32(I * 255 div 15);
+      Clr := Gray32(I * 255 div 15);
+      PixelX[Fixed(I), Fixed( 9)] := Clr;
+      PixelX[Fixed(I), Fixed(10)] := Clr;
     end;
 
     for I := 0 to 7 do
     begin
-      Pixel[I * 2, 11] := Gray32(I * 255 div 7);
-      Pixel[I * 2 + 1, 11] := Gray32(I * 255 div 7);
-      Pixel[I * 2, 12] := Gray32(I * 255 div 7);
-      Pixel[I * 2 + 1, 12] := Gray32(I * 255 div 7);
-      Pixel[I * 2, 13] := Gray32(I * 255 div 7);
-      Pixel[I * 2 + 1, 13] := Gray32(I * 255 div 7);
+      Clr := Gray32(I * 255 div 7);
+      Pixel[I * 2, 11] := Clr;
+      Pixel[I * 2 + 1, 11] := Clr;
+      Pixel[I * 2, 12] := Clr;
+      Pixel[I * 2 + 1, 12] := Clr;
+      Pixel[I * 2, 13] := Clr;
+      Pixel[I * 2 + 1, 13] := Clr;
     end;
 
     for I := 1 to 4 do
@@ -201,7 +202,7 @@ begin
   end;
 end;
 
-procedure TfmResamplersExample.KernelClassNamesListClick(Sender: TObject);
+procedure TFrmResamplersExample.KernelClassNamesListClick(Sender: TObject);
 var
   Index: Integer;
 begin
@@ -210,7 +211,7 @@ begin
     with TKernelResampler(Src.Resampler) do
     begin
       Kernel := TCustomKernelClass(KernelList[Index]).Create;
-      LbParameter.Visible := (Kernel is TAlbrechtKernel) or
+      LblParameter.Visible := (Kernel is TAlbrechtKernel) or
 {$IFDEF Ex}
         (Kernel is TGaussianKernel) or
         (Kernel is TKaiserBesselKernel) or
@@ -220,13 +221,13 @@ begin
         (Kernel is TLawreyKernel) or
 {$ENDIF}
         (Kernel is TSinshKernel);
-      gbParameter.Visible := LbParameter.Visible;
+      GbrParameter.Visible := LblParameter.Visible;
       SetKernelParameter(Kernel);
       CurveImage.Repaint;
     end;
 end;
 
-procedure TfmResamplersExample.ResamplerClassNamesListChange(Sender: TObject);
+procedure TFrmResamplersExample.ResamplerClassNamesListChange(Sender: TObject);
 var
   R: TCustomResampler;
 begin
@@ -244,13 +245,13 @@ begin
     end;
 end;
 
-procedure TfmResamplersExample.DstImgResize(Sender: TObject);
+procedure TFrmResamplersExample.DstImgResize(Sender: TObject);
 begin
   DstImg.SetupBitmap;
   SrcChanged(Self);
 end;
 
-procedure TfmResamplersExample.SrcChanged(Sender: TObject);
+procedure TFrmResamplersExample.SrcChanged(Sender: TObject);
 var
   I, J: Integer;
   sw, sh: Single;
@@ -261,7 +262,7 @@ begin
     sh := Src.Height / DstImg.Bitmap.Height;
 
     GlobalPerfTimer.Start;
-    if ResamplingTabSheet.Visible then
+    if TabResampling.Visible then
       ResamplingPaintBoxResize(Self)
     else if Src.WrapMode in [wmClamp, wmRepeat, wmMirror] then
       begin
@@ -277,7 +278,7 @@ begin
   DstImg.Repaint;
 end;
 
-procedure TfmResamplersExample.KernelModeListChange(Sender: TObject);
+procedure TFrmResamplersExample.KernelModeListChange(Sender: TObject);
 begin
   with KernelModeList, Src do
     if (ItemIndex >= 0) and (Resampler is TKernelResampler) then
@@ -287,28 +288,28 @@ begin
     end;
 end;
 
-procedure TfmResamplersExample.EdgecheckBoxChange(Sender: TObject);
+procedure TFrmResamplersExample.EdgecheckBoxChange(Sender: TObject);
 begin
   Src.WrapMode := TWrapMode(WrapBox.ItemIndex);
   TCustomResampler(Src.Resampler).PixelAccessMode := TPixelAccessMode(EdgecheckBox.ItemIndex);
 end;
 
-procedure TfmResamplersExample.gbParameterChange(Sender: TObject);
+procedure TFrmResamplersExample.GbrParameterChange(Sender: TObject);
 begin
   if Src.Resampler is TKernelResampler then
     with TKernelResampler(Src.Resampler)
       do SetKernelParameter(Kernel);
 end;
 
-procedure TfmResamplersExample.gbParameterMouseUp(Sender: TObject; Button: TMouseButton;
+procedure TFrmResamplersExample.GbrParameterMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   KernelClassNamesListClick(Sender);
 end;
 
-procedure TfmResamplersExample.gbTableSizeChange(Sender: TObject);
+procedure TFrmResamplersExample.GbrTableSizeChange(Sender: TObject);
 begin
-  lbTableSize.Caption := Format('Table Size (%d/100):', [gbTableSize.Position]);
+  LblTableSize.Caption := Format('Table Size (%d/100):', [GbrTableSize.Position]);
 end;
 
 function Sinc(Value: TFloat): TFloat;
@@ -322,29 +323,29 @@ begin
 end;
 
 
-procedure TfmResamplersExample.SetKernelParameter(Kernel : TCustomKernel);
+procedure TFrmResamplersExample.SetKernelParameter(Kernel : TCustomKernel);
 begin
   if Kernel is TAlbrechtKernel then
-    TAlbrechtKernel(Kernel).Terms := Round(gbParameter.Position * 0.1) + 1
+    TAlbrechtKernel(Kernel).Terms := Round(GbrParameter.Position * 0.1) + 1
   else if Kernel is TGaussianKernel then
-    TGaussianKernel(Kernel).Sigma := gbParameter.Position * 0.1 + 1
+    TGaussianKernel(Kernel).Sigma := GbrParameter.Position * 0.1 + 1
 {$IFDEF Ex}
   else if Kernel is TKaiserBesselKernel then
-    TKaiserBesselKernel(Kernel).Alpha := gbParameter.Position * 0.1 + 1
+    TKaiserBesselKernel(Kernel).Alpha := GbrParameter.Position * 0.1 + 1
   else if Kernel is TNutallKernel then
-    TNutallKernel(Kernel).ContinousDerivationType := TCDType(gbParameter.Position > 50)
+    TNutallKernel(Kernel).ContinousDerivationType := TCDType(GbrParameter.Position > 50)
   else if Kernel is TBurgessKernel then
-    TBurgessKernel(Kernel).BurgessOpt := TBurgessOpt(gbParameter.Position > 50)
+    TBurgessKernel(Kernel).BurgessOpt := TBurgessOpt(GbrParameter.Position > 50)
   else if Kernel is TBlackmanHarrisKernel then
-    TBlackmanHarrisKernel(Kernel).Terms := Round(gbParameter.Position * 0.1) + 1
+    TBlackmanHarrisKernel(Kernel).Terms := Round(GbrParameter.Position * 0.1) + 1
   else if Kernel is TLawreyKernel then
-    TLawreyKernel(Kernel).Terms := Round(gbParameter.Position * 0.1) + 1
+    TLawreyKernel(Kernel).Terms := Round(GbrParameter.Position * 0.1) + 1
 {$ENDIF}
   else if Kernel is TSinshKernel then
-    TSinshKernel(Kernel).Coeff := 20 / gbParameter.Position;
+    TSinshKernel(Kernel).Coeff := 20 / GbrParameter.Position;
 end;
 
-procedure TfmResamplersExample.CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
+procedure TFrmResamplersExample.CurveImagePaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
 var
   Kernel: TCustomKernel;
@@ -387,7 +388,7 @@ begin
   end;
 end;
 
-procedure TfmResamplersExample.ResamplingPaintBoxResize(Sender: TObject);
+procedure TFrmResamplersExample.ResamplingPaintBoxResize(Sender: TObject);
 var
   I, W, H, C: Integer;
   Tmp: TBitmap32;
@@ -395,7 +396,7 @@ var
   ScaleRatioX, ScaleRatioY: Single;
   CurrentBitmaps: array [0..1] of TBitmap32;
 begin
-  if not ResamplingTabSheet.Visible then Exit;
+  if not TabResampling.Visible then Exit;
   Tmp := TBitmap32.Create;
   try
     CurrentBitmaps[0] := Tmp;
@@ -410,7 +411,7 @@ begin
           Kernel := TCustomKernelClass(KernelList[KernelClassNamesList.ItemIndex]).Create;
           SetKernelParameter(Kernel);
           KernelMode := TKernelMode(KernelModeList.ItemIndex);
-          TableSize := gbTableSize.Position;
+          TableSize := GbrTableSize.Position;
         end;
     end;
 
