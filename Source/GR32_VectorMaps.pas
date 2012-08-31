@@ -248,9 +248,9 @@ begin
     WY := TFixedRec(Y).Frac;
     {$IFDEF HAS_NATIVEINT}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
-      PFixedPoint(NativeUInt(P) + Cardinal(H))^, WX), CombineVectorsReg(
-      PFixedPoint(NativeUInt(P) + Cardinal(W))^,
-      PFixedPoint(NativeUInt(P) + Cardinal(W + H))^, WX), WY);
+      PFixedPoint(NativeUInt(P) + NativeUInt(H))^, WX), CombineVectorsReg(
+      PFixedPoint(NativeUInt(P) + NativeUInt(W))^,
+      PFixedPoint(NativeUInt(P) + NativeUInt(W + H))^, WX), WY);
     {$ELSE}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
       PFixedPoint(Cardinal(P) + Cardinal(H))^, WX), CombineVectorsReg(
