@@ -50,26 +50,26 @@ const
 
 type
   TMainForm = class(TForm)
-    bAdd: TButton;
-    bBenchmark: TButton;
-    bClearAll: TButton;
+    BtnAdd: TButton;
+    BtnBenchmark: TButton;
+    BtnClearAll: TButton;
     BitmapList: TBitmap32List;
-    bRemove: TButton;
-    cbUseRepaintOpt: TCheckBox;
-    edLayerCount: TEdit;
+    BtnRemove: TButton;
+    CbxUseRepaintOpt: TCheckBox;
+    EdtLayerCount: TEdit;
     Image32: TImage32;
-    lbDimension: TLabel;
-    lbFPS: TLabel;
-    lbTotal: TLabel;
-    Memo1: TMemo;
+    LblDimension: TLabel;
+    LblFPS: TLabel;
+    LblTotal: TLabel;
+    Memo: TMemo;
     TimerFPS: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure bAddClick(Sender: TObject);
-    procedure bBenchmarkClick(Sender: TObject);
-    procedure bClearAllClick(Sender: TObject);
-    procedure bRemoveClick(Sender: TObject);
-    procedure cbUseRepaintOptClick(Sender: TObject);
+    procedure BtnAddClick(Sender: TObject);
+    procedure BtnBenchmarkClick(Sender: TObject);
+    procedure BtnClearAllClick(Sender: TObject);
+    procedure BtnRemoveClick(Sender: TObject);
+    procedure CbxUseRepaintOptClick(Sender: TObject);
     procedure Image32Resize(Sender: TObject);
     procedure TimerFPSTimer(Sender: TObject);
   public
@@ -190,7 +190,7 @@ begin
   end;
   Image32.EndUpdate;
   Image32.Changed;
-  edLayerCount.Text := IntToStr(Image32.Layers.Count) + ' layers';
+  EdtLayerCount.Text := IntToStr(Image32.Layers.Count) + ' layers';
 
   // save current seed, so we can continue at this seed later...
   LastSeed := RandSeed;
@@ -233,25 +233,25 @@ begin
   Inc(FramesDrawn);
 end;
 
-procedure TMainForm.bClearAllClick(Sender: TObject);
+procedure TMainForm.BtnClearAllClick(Sender: TObject);
 begin
   Image32.Layers.Clear;
   Velocities := nil;
-  edLayerCount.Text := '0 layers';
+  EdtLayerCount.Text := '0 layers';
 end;
 
-procedure TMainForm.bRemoveClick(Sender: TObject);
+procedure TMainForm.BtnRemoveClick(Sender: TObject);
 var
   I: Integer;
 begin
   for I := Image32.Layers.Count - 1 downto Max(0, Image32.Layers.Count - 10) do
     Image32.Layers.Delete(I);
-  edLayerCount.Text := IntToStr(Image32.Layers.Count) + ' layers';
+  EdtLayerCount.Text := IntToStr(Image32.Layers.Count) + ' layers';
 end;
 
-procedure TMainForm.cbUseRepaintOptClick(Sender: TObject);
+procedure TMainForm.CbxUseRepaintOptClick(Sender: TObject);
 begin
-  if cbUseRepaintOpt.Checked then
+  if CbxUseRepaintOpt.Checked then
     Image32.RepaintMode := rmOptimizer
   else
     Image32.RepaintMode := rmFull;
@@ -267,7 +267,7 @@ begin
   TimeElapsed := GetTickCount - LastCheck;
 
   FPS := FramesDrawn / (TimeElapsed / 1000);
-  lbFPS.Caption := Format('%.2f fps', [FPS]);
+  LblFPS.Caption := Format('%.2f fps', [FPS]);
 
   if BenchmarkMode then
   begin
@@ -291,7 +291,7 @@ begin
       Diff := 500
     else if Image32.Layers.Count >= 2000 then
     begin
-      bBenchmarkClick(nil);
+      BtnBenchmarkClick(nil);
       Exit;
     end;
 
@@ -305,15 +305,15 @@ end;
 
 procedure TMainForm.Image32Resize(Sender: TObject);
 begin
-  lbDimension.Caption := IntToStr(Image32.Width) + ' x ' + IntToStr(Image32.Height); 
+  LblDimension.Caption := IntToStr(Image32.Width) + ' x ' + IntToStr(Image32.Height);
 end;
 
-procedure TMainForm.bAddClick(Sender: TObject);
+procedure TMainForm.BtnAddClick(Sender: TObject);
 begin
   AddLayers(10);
 end;
 
-procedure TMainForm.bBenchmarkClick(Sender: TObject);
+procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 begin
   if BenchmarkMode then
   begin
@@ -322,12 +322,12 @@ begin
     SetPriorityClass(GetCurrentProcess, PriorityClass);
     {$ENDIF}
 
-    bBenchmark.Caption := 'Benchmark';
+    BtnBenchmark.Caption := 'Benchmark';
 
-    cbUseRepaintOpt.Enabled := True;
-    bAdd.Enabled := True;
-    bRemove.Enabled := True;
-    bClearAll.Enabled := True;
+    CbxUseRepaintOpt.Enabled := True;
+    BtnAdd.Enabled := True;
+    BtnRemove.Enabled := True;
+    BtnClearAll.Enabled := True;
 
     BenchmarkMode := False;
     TimerFPS.Interval := 5000;
@@ -347,16 +347,16 @@ begin
                       THREAD_PRIORITY_TIME_CRITICAL);
     {$ENDIF}
 
-    bBenchmark.Caption := 'Stop';
+    BtnBenchmark.Caption := 'Stop';
 
-    cbUseRepaintOpt.Enabled := False;
-    bAdd.Enabled := False;
-    bRemove.Enabled := False;
-    bClearAll.Enabled := False;
+    CbxUseRepaintOpt.Enabled := False;
+    BtnAdd.Enabled := False;
+    BtnRemove.Enabled := False;
+    BtnClearAll.Enabled := False;
 
     BenchmarkMode := True;
     BenchmarkList.Clear;
-    bClearAllClick(nil);
+    BtnClearAllClick(nil);
     AddLayers(10);
     LastCheck := GetTickCount;    
     TimerFPS.Interval := MAX_RUNS * 5000;

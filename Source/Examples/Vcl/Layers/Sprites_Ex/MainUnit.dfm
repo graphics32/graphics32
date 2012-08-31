@@ -18,7 +18,7 @@ object MainForm: TMainForm
     684)
   PixelsPerInch = 96
   TextHeight = 13
-  object lbTotal: TLabel
+  object LblTotal: TLabel
     Left = 12
     Top = 654
     Width = 28
@@ -26,7 +26,7 @@ object MainForm: TMainForm
     Anchors = [akLeft, akBottom]
     Caption = 'Total:'
   end
-  object lbFPS: TLabel
+  object LblFPS: TLabel
     Left = 272
     Top = 654
     Width = 81
@@ -34,7 +34,7 @@ object MainForm: TMainForm
     Anchors = [akLeft, akBottom]
     AutoSize = False
   end
-  object lbDimension: TLabel
+  object LblDimension: TLabel
     Left = 360
     Top = 654
     Width = 113
@@ -57,7 +57,7 @@ object MainForm: TMainForm
     TabOrder = 0
     OnResize = Image32Resize
   end
-  object bAdd: TButton
+  object BtnAdd: TButton
     Left = 627
     Top = 652
     Width = 69
@@ -65,9 +65,9 @@ object MainForm: TMainForm
     Anchors = [akRight, akBottom]
     Caption = 'Add 10'
     TabOrder = 1
-    OnClick = bAddClick
+    OnClick = BtnAddClick
   end
-  object edLayerCount: TEdit
+  object EdtLayerCount: TEdit
     Left = 44
     Top = 652
     Width = 65
@@ -79,7 +79,7 @@ object MainForm: TMainForm
     TabOrder = 2
     Text = '0 layers'
   end
-  object bClearAll: TButton
+  object BtnClearAll: TButton
     Left = 776
     Top = 652
     Width = 68
@@ -87,9 +87,9 @@ object MainForm: TMainForm
     Anchors = [akRight, akBottom]
     Caption = 'Clear All'
     TabOrder = 3
-    OnClick = bClearAllClick
+    OnClick = BtnClearAllClick
   end
-  object cbUseRepaintOpt: TCheckBox
+  object CbxUseRepaintOpt: TCheckBox
     Left = 120
     Top = 654
     Width = 137
@@ -97,9 +97,9 @@ object MainForm: TMainForm
     Anchors = [akLeft, akBottom]
     Caption = 'Use Repaint Optimizer'
     TabOrder = 4
-    OnClick = cbUseRepaintOptClick
+    OnClick = CbxUseRepaintOptClick
   end
-  object bRemove: TButton
+  object BtnRemove: TButton
     Left = 704
     Top = 652
     Width = 64
@@ -107,9 +107,9 @@ object MainForm: TMainForm
     Anchors = [akRight, akBottom]
     Caption = 'Remove 10'
     TabOrder = 5
-    OnClick = bRemoveClick
+    OnClick = BtnRemoveClick
   end
-  object Memo1: TMemo
+  object Memo: TMemo
     Left = 8
     Top = 6
     Width = 835
@@ -127,7 +127,7 @@ object MainForm: TMainForm
     ReadOnly = True
     TabOrder = 6
   end
-  object bBenchmark: TButton
+  object BtnBenchmark: TButton
     Left = 520
     Top = 652
     Width = 96
@@ -135,7 +135,7 @@ object MainForm: TMainForm
     Anchors = [akRight, akBottom]
     Caption = 'Benchmark'
     TabOrder = 7
-    OnClick = bBenchmarkClick
+    OnClick = BtnBenchmarkClick
   end
   object BitmapList: TBitmap32List
     Bitmaps = <
