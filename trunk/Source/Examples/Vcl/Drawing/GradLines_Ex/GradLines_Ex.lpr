@@ -1,11 +1,11 @@
 program GradLines_Ex;
 
-{$MODE Delphi}
+{$I GR32.inc}
 
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1}, GR32_L;
+  MainUnit in 'MainUnit.pas' {Form1};
 
 {$R *.res}
 

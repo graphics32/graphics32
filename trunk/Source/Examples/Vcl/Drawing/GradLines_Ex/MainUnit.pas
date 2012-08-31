@@ -63,23 +63,23 @@ type
   { TFormGradientLines }
 
   TFormGradientLines = class(TForm)
-    btAddOne: TButton;
-    btAddTen: TButton;
-    btClear: TButton;
-    lbTotal: TLabel;
+    BtnAddOne: TButton;
+    BtnAddTen: TButton;
+    BtnClear: TButton;
+    LblTotal: TLabel;
     Memo: TMemo;
     PaintBox: TPaintBox32;
-    pnTotalLines: TPanel;
-    rgDraw: TRadioGroup;
-    rgFade: TRadioGroup;
+    PnlTotalLines: TPanel;
+    RgpDraw: TRadioGroup;
+    RgpFade: TRadioGroup;
     RepaintOpt: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure RepaintOptClick(Sender: TObject);
-    procedure btAddOneClick(Sender: TObject);
-    procedure btAddTenClick(Sender: TObject);
-    procedure btClearClick(Sender: TObject);
-    procedure rgFadeClick(Sender: TObject);
-    procedure rgDrawClick(Sender: TObject);
+    procedure BtnAddOneClick(Sender: TObject);
+    procedure BtnAddTenClick(Sender: TObject);
+    procedure BtnClearClick(Sender: TObject);
+    procedure RgpFadeClick(Sender: TObject);
+    procedure RgpDrawClick(Sender: TObject);
   protected
     Lines: array of TLine;
     P: TPoint; // mouse shift
@@ -241,14 +241,14 @@ begin
   L.P2.X := Random(PaintBox.Buffer.Width div 2 - 1);
   L.P1.Y := Random(PaintBox.Buffer.Height div 2 - 1);
   L.P2.Y := Random(PaintBox.Buffer.Height div 2 - 1);
-  pnTotalLines.Caption := IntToStr(Length(Lines));
+  PnlTotalLines.Caption := IntToStr(Length(Lines));
 end;
 
 procedure TFormGradientLines.AddLines(N: Integer);
 var
-  i: Integer;
+  Index: Integer;
 begin
-  for i := 0 to N - 1 do AddLine;
+  for Index := 0 to N - 1 do AddLine;
 end;
 
 procedure TFormGradientLines.AppEventsIdle(Sender: TObject; var Done: Boolean);
@@ -286,36 +286,36 @@ begin
     PaintBox.Invalidate;
 end;
 
-procedure TFormGradientLines.btAddOneClick(Sender: TObject);
+procedure TFormGradientLines.BtnAddOneClick(Sender: TObject);
 begin
   AddLine;
 end;
 
-procedure TFormGradientLines.btAddTenClick(Sender: TObject);
+procedure TFormGradientLines.BtnAddTenClick(Sender: TObject);
 begin
   AddLines(10);
 end;
 
-procedure TFormGradientLines.btClearClick(Sender: TObject);
+procedure TFormGradientLines.BtnClearClick(Sender: TObject);
 var
-  I: Integer;
+  Index: Integer;
 begin
-  for I := High(Lines) downto 0 do Lines[I].Free;
+  for Index := High(Lines) downto 0 do Lines[Index].Free;
   Lines := nil;
   PaintBox.Buffer.Clear;
-  pnTotalLines.Caption := '0';
+  PnlTotalLines.Caption := '0';
 end;
  
-procedure TFormGradientLines.rgFadeClick(Sender: TObject);
+procedure TFormGradientLines.RgpFadeClick(Sender: TObject);
 const
   FC: array [0..2] of Integer = (0, 7, 1);
 begin
-  FadeCount := FC[rgFade.ItemIndex];
+  FadeCount := FC[RgpFade.ItemIndex];
 end;
 
-procedure TFormGradientLines.rgDrawClick(Sender: TObject);
+procedure TFormGradientLines.RgpDrawClick(Sender: TObject);
 begin
-  DrawPasses := (rgDraw.ItemIndex + 1) * 3 - 2;
+  DrawPasses := (RgpDraw.ItemIndex + 1) * 3 - 2;
 end;
 
 procedure TFormGradientLines.RepaintOptClick(Sender: TObject);
