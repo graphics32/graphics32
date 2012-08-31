@@ -45,18 +45,18 @@ uses
 type
   { TMainForm }
   TMainForm = class(TForm)
-    gbTwist: TGaugeBar;
+    GbrTwist: TGaugeBar;
     Image32: TImage32;
-    lbTwirlPower: TLabel;
-    pnlSettings: TPanel;
-    pnlTwirlDistortion: TPanel;
-    rbGetPixelFS: TRadioButton;
-    rbPixelS: TRadioButton;
+    LblTwirlPower: TLabel;
+    PnlSettings: TPanel;
+    PnlTwirlDistortion: TPanel;
+    RbxGetPixelFS: TRadioButton;
+    RbxPixelS: TRadioButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Image32PaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
-    procedure gbTwistChange(Sender: TObject);
+    procedure GbrTwistChange(Sender: TObject);
   public
     Src: TBitmap32;
     procedure TwirlDistortion(Dst, Srcb: TBitmap32; const Value: Integer);
@@ -128,7 +128,7 @@ begin
   DstR := Dst.Width - 1;
   DstB := Dst.Height - 1;
 
-  if rbGetPixelFS.Checked then
+  if RbxGetPixelFS.Checked then
    for Y := 0 to DstB do
     for X := 0 to DstR do begin
       Radius := Hypot(X - Center.X, Y - Center.Y);
@@ -138,7 +138,7 @@ begin
       Dst.Pixel[X, Y] := Srcb.PixelFS[Center.X + Radius * CosVal,
         Center.Y + Radius * SinVal];
     end
-  else if rbPixelS.Checked then
+  else if RbxPixelS.Checked then
    for Y := 0 to DstB do
     for X := 0 to DstR do begin
       Radius := Hypot(X - Center.X, Y - Center.Y);
@@ -184,12 +184,12 @@ begin
       FrameRectS(BoundsRect , $FF000000);
 end;
 
-procedure TMainForm.gbTwistChange(Sender: TObject);
+procedure TMainForm.GbrTwistChange(Sender: TObject);
 begin
  with Image32 do
   begin
-   TwirlDistortion(Bitmap, Src, gbTwist.Position);
-   gbTwist.Repaint;
+   TwirlDistortion(Bitmap, Src, GbrTwist.Position);
+   GbrTwist.Repaint;
    Repaint;
   end;
 end;
