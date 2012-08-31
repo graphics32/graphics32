@@ -2,6 +2,8 @@ unit MainUnit;
 
 interface
 
+{$I GR32.inc}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Math, ExtCtrls, StdCtrls, Menus, GR32, GR32_Polygons, GR32_Image, GR32_Layers,
@@ -75,10 +77,12 @@ implementation
 uses
   Types, GR32_Geometry, GR32_VectorUtils, GR32_Paths, GR32_Text_VCL;
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
 {$R data.res}
-
-{$I GR32_Compiler.inc}
+{$ENDIF}
 
 const
   Colors: array[0..147] of TIdentMapEntry = (
