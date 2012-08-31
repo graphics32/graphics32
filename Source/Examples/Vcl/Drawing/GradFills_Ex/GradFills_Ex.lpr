@@ -3,6 +3,7 @@ program GradFills_Ex;
 {$I GR32.inc}
 
 uses
+  Interfaces,
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm};
 
