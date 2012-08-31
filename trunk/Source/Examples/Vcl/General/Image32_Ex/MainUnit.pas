@@ -45,22 +45,18 @@ uses
 type
   TFormImage32Example = class(TForm)
     Image: TImage32;
-    Panel1: TPanel;
-    Panel2: TPanel;
-    rgScaleMode: TRadioGroup;
-    rgKernel: TRadioGroup;
-    rgBitmapAlign: TRadioGroup;
-    {$IFDEF FPC}
-    stScale: TLabel;
-    {$ELSE}
-    stScale: TStaticText;
-    {$ENDIF}
-    sbScale: TGaugeBar;
+    PnlImage: TPanel;
+    PnlControl: TPanel;
+    RgpScaleMode: TRadioGroup;
+    RgpKernel: TRadioGroup;
+    RgpBitmapAlign: TRadioGroup;
+    LblScale: TStaticText;
+    SbrScale: TGaugeBar;
     procedure FormCreate(Sender: TObject);
-    procedure rgBitmapAlignClick(Sender: TObject);
-    procedure sbScaleChange(Sender: TObject);
-    procedure rgScaleModeClick(Sender: TObject);
-    procedure rgKernelClick(Sender: TObject);
+    procedure RgpBitmapAlignClick(Sender: TObject);
+    procedure SbrScaleChange(Sender: TObject);
+    procedure RgpScaleModeClick(Sender: TObject);
+    procedure RgpKernelClick(Sender: TObject);
   public
     Time: Single;
   end;
@@ -104,37 +100,37 @@ begin
   end;
 end;
 
-procedure TFormImage32Example.rgBitmapAlignClick(Sender: TObject);
+procedure TFormImage32Example.RgpBitmapAlignClick(Sender: TObject);
 const
   BA_CONSTS: array [0..2] of TBitmapAlign = (baTopLeft, baCenter, baTile);
 begin
-  Image.BitmapAlign := BA_CONSTS[rgBitmapAlign.ItemIndex];
+  Image.BitmapAlign := BA_CONSTS[RgpBitmapAlign.ItemIndex];
 end;
 
-procedure TFormImage32Example.sbScaleChange(Sender: TObject);
+procedure TFormImage32Example.SbrScaleChange(Sender: TObject);
 begin
-  sbScale.Update;
-  Image.Scale := sbScale.Position * 0.01;
+  SbrScale.Update;
+  Image.Scale := SbrScale.Position * 0.01;
 end;
 
-procedure TFormImage32Example.rgScaleModeClick(Sender: TObject);
+procedure TFormImage32Example.RgpScaleModeClick(Sender: TObject);
 const
   SM_CONSTS: array [0..5] of TScaleMode = (smNormal, smStretch, smScale, smResize, smOptimal, smOptimalScaled);
 var
   ScaleEnabled: Boolean;
 begin
-  Image.ScaleMode := SM_CONSTS[rgScaleMode.ItemIndex];
-  ScaleEnabled := (rgScaleMode.ItemIndex = 2) or (rgScaleMode.ItemIndex = 5);
-  sbScale.Enabled := ScaleEnabled;
-  stScale.Enabled := ScaleEnabled;
+  Image.ScaleMode := SM_CONSTS[RgpScaleMode.ItemIndex];
+  ScaleEnabled := (RgpScaleMode.ItemIndex = 2) or (RgpScaleMode.ItemIndex = 5);
+  SbrScale.Enabled := ScaleEnabled;
+  SbrScale.Enabled := ScaleEnabled;
 end;
 
-procedure TFormImage32Example.rgKernelClick(Sender: TObject);
+procedure TFormImage32Example.RgpKernelClick(Sender: TObject);
 const
   K_CONSTS: array [0..4] of TCustomKernelClass =
     (TBoxKernel, TLinearKernel, TSplineKernel, TLanczosKernel, TMitchellKernel);
 begin
-  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[rgKernel.ItemIndex].Create;
+  TKernelResampler(Image.Bitmap.Resampler).Kernel := K_CONSTS[RgpKernel.ItemIndex].Create;
 end;
 
 end.

@@ -20,7 +20,7 @@ object FormImage32Example: TFormImage32Example
     418)
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object PnlImage: TPanel
     Left = 8
     Top = 8
     Width = 385
@@ -42,7 +42,7 @@ object FormImage32Example: TFormImage32Example
       TabOrder = 0
     end
   end
-  object Panel2: TPanel
+  object PnlControl: TPanel
     Left = 400
     Top = 0
     Width = 142
@@ -50,7 +50,7 @@ object FormImage32Example: TFormImage32Example
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
-    object rgScaleMode: TRadioGroup
+    object RgpScaleMode: TRadioGroup
       Left = 8
       Top = 104
       Width = 129
@@ -65,9 +65,9 @@ object FormImage32Example: TFormImage32Example
         'smOptimal'
         'smOptimalScaled')
       TabOrder = 0
-      OnClick = rgScaleModeClick
+      OnClick = RgpScaleModeClick
     end
-    object rgKernel: TRadioGroup
+    object RgpKernel: TRadioGroup
       Left = 8
       Top = 288
       Width = 129
@@ -81,9 +81,9 @@ object FormImage32Example: TFormImage32Example
         'TLanczosKernel'
         'TMitchellKernel')
       TabOrder = 1
-      OnClick = rgKernelClick
+      OnClick = RgpKernelClick
     end
-    object rgBitmapAlign: TRadioGroup
+    object RgpBitmapAlign: TRadioGroup
       Left = 8
       Top = 8
       Width = 129
@@ -95,9 +95,9 @@ object FormImage32Example: TFormImage32Example
         'baCenter'
         'baTile')
       TabOrder = 2
-      OnClick = rgBitmapAlignClick
+      OnClick = RgpBitmapAlignClick
     end
-    object stScale: TStaticText
+    object LblScale: TStaticText
       Left = 8
       Top = 242
       Width = 33
@@ -106,7 +106,7 @@ object FormImage32Example: TFormImage32Example
       Enabled = False
       TabOrder = 3
     end
-    object sbScale: TGaugeBar
+    object SbrScale: TGaugeBar
       Left = 8
       Top = 260
       Width = 129
@@ -118,7 +118,7 @@ object FormImage32Example: TFormImage32Example
       Min = 25
       ShowHandleGrip = True
       Position = 100
-      OnChange = sbScaleChange
+      OnChange = SbrScaleChange
     end
   end
 end
