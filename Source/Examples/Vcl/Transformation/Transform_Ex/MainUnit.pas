@@ -64,76 +64,69 @@ type
   { TFormTranformExample }
 
   TFormTranformExample = class(TForm)
-    Src: TImage32;
-    Dst: TImage32;
-    OpacityBar: TGaugeBar;
-    sbDx: TGaugeBar;
-    sbDy: TGaugeBar;
-    sbSx: TGaugeBar;
-    sbSy: TGaugeBar;
-    sbAlpha: TGaugeBar;
-    sbFx: TGaugeBar;
-    sbFy: TGaugeBar;
-    PageControl1: TPageControl;
-{$IFDEF FPC}
-    Page1: TPage;
-    Page2: TPage;
-    Page3: TPage;
-    Page4: TPage;
-    Page5: TPage;
-{$ENDIF}
-    Button1: TButton;
-    cbRepeat: TCheckBox;
-    CodeString: TEdit;
+    BtnClearAll: TButton;
+    CbxRepeat: TCheckBox;
+    CmbKernelClassNames: TComboBox;
+    CmbResamplerClassNames: TComboBox;
     ComboBox: TComboBox;
-    eAlpha: TEdit;
-    eCx: TEdit;
-    eCy: TEdit;
-    eDx: TEdit;
-    eDy: TEdit;
-    eFx: TEdit;
-    eFy: TEdit;
-    eSx: TEdit;
-    eSy: TEdit;
-    KernelClassNamesList: TComboBox;
-    KernelLabel: TLabel;
-    Label1: TLabel;
-    Label10: TLabel;
-    Label11: TLabel;
-    Label12: TLabel;
-    Label13: TLabel;
-    Label14: TLabel;
-    Label15: TLabel;
-    Label16: TLabel;
-    Label17: TLabel;
-    Label18: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
-    Label8: TLabel;
-    Label9: TLabel;
+    Dst: TImage32;
+    EdtAlpha: TEdit;
+    EdtCodeString: TEdit;
+    EdtCx: TEdit;
+    EdtCy: TEdit;
+    EdtDx: TEdit;
+    EdtDy: TEdit;
+    EdtFx: TEdit;
+    EdtFy: TEdit;
+    EdtSx: TEdit;
+    EdtSy: TEdit;
+    GbrAlpha: TGaugeBar;
+    GbrDx: TGaugeBar;
+    GbrDy: TGaugeBar;
+    GbrFx: TGaugeBar;
+    GbrFy: TGaugeBar;
+    GbrSx: TGaugeBar;
+    GbrSy: TGaugeBar;
+    LblAlpha: TLabel;
+    LblCodeString: TLabel;
+    LblCx: TLabel;
+    LblCy: TLabel;
+    LblDx: TLabel;
+    LblDy: TLabel;
+    LblFx: TLabel;
+    LblFy: TLabel;
+    LblInfoRotate: TLabel;
+    LblInfoSkew: TLabel;
+    LblInfoTranslate: TLabel;
+    LblKernel: TLabel;
+    LblNoOperation: TLabel;
+    LblProjectiveNote: TLabel;
+    LblResampler: TLabel;
+    LblScale: TLabel;
+    LblSx: TLabel;
+    LblSy: TLabel;
+    LblTransformationMatrix: TLabel;
+    LblType: TLabel;
     ListBox: TListBox;
     Notebook: TNotebook;
-    Panel1: TPanel;
-    Panel2: TPanel;
-    Panel3: TPanel;
-    ResamplerClassNamesList: TComboBox;
-    ResamplerLabel: TLabel;
+    OpacityBar: TGaugeBar;
+    PageControl: TPageControl;
+    PnlOpacity: TPanel;
+    PnlOperation: TPanel;
+    PnlTransformationMatrix: TPanel;
     Shape1: TShape;
     Shape2: TShape;
+    Src: TImage32;
     StringGrid: TStringGrid;
-    TabSheet1: TTabSheet;
-    TabSheet2: TTabSheet;
+    TstAffine: TTabSheet;
+    TstProjective: TTabSheet;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure BtnClearAllClick(Sender: TObject);
     procedure ComboBoxChange(Sender: TObject);
     procedure ListBoxClick(Sender: TObject);
     procedure OpacityChange(Sender: TObject);
-    procedure PageControl1Change(Sender: TObject);
+    procedure PageControlChange(Sender: TObject);
     procedure RotationChanged(Sender: TObject);
     procedure RotationScrolled(Sender: TObject);
     procedure ScaleChanged(Sender: TObject);
@@ -155,11 +148,11 @@ type
 
     procedure AppEventsIdle(Sender: TObject; var Done: Boolean);
     procedure ResamplerClassNamesListClick(Sender: TObject);
-    procedure ResamplerClassNamesListChange(Sender: TObject);
-    procedure KernelClassNamesListChange(Sender: TObject);
+    procedure CmbResamplerClassNamesChange(Sender: TObject);
+    procedure CmbKernelClassNamesChange(Sender: TObject);
     procedure DstPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
-    procedure cbRepeatClick(Sender: TObject);
+    procedure CbxRepeatClick(Sender: TObject);
   protected
     LoadingValues: Boolean;
     DraggedVertex: Integer;
@@ -255,10 +248,10 @@ begin
     end;
   end;
 
-  ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
-  KernelList.GetClassNames(KernelClassNamesList.Items);
-  ResamplerClassNamesList.ItemIndex := 0;
-  KernelClassNamesList.ItemIndex := 0;
+  ResamplerList.GetClassNames(CmbResamplerClassNames.Items);
+  KernelList.GetClassNames(CmbKernelClassNames.Items);
+  CmbResamplerClassNames.ItemIndex := 0;
+  CmbKernelClassNames.ItemIndex := 0;
 
   SrcRubberBandLayer := TRubberBandLayer.Create(Src.Layers);
   SrcRubberBandLayer.OnResizing := SrcRBResizingEvent;
@@ -298,7 +291,7 @@ end;
 procedure TFormTranformExample.PrepareSource;
 begin
   // make the border pixels transparent while keeping their RGB components
-  if not cbRepeat.Checked then
+  if not CbxRepeat.Checked then
     SetBorderTransparent(Src.Bitmap, Src.Bitmap.BoundsRect);
 end;
 
@@ -363,7 +356,7 @@ begin
       end;
     end;
     if Length(s) = 0 then s := 'Clear;';
-    CodeString.Text := s;
+    EdtCodeString.Text := s;
   end;
   Transformation.SrcRect := SrcRubberBandLayer.Location;
 end;
@@ -374,7 +367,7 @@ begin
   ProjectiveTransformation.Free;
 end;
 
-procedure TFormTranformExample.Button1Click(Sender: TObject);
+procedure TFormTranformExample.BtnClearAllClick(Sender: TObject);
 begin
   ClearTransformations;
   ShowSettings(Listbox.ItemIndex);
@@ -393,22 +386,22 @@ begin
   Current := @Operation[OperationNum];
   Combobox.ItemIndex := Ord(Current.OpType);
   NoteBook.PageIndex := Ord(Current.OpType);
-  eDx.Text := Format('%.4g', [Current.Dx]);
-  eDy.Text := Format('%.4g', [Current.Dy]);
-  sbDx.Position := Round(Current.Dx * 10);
-  sbDy.Position := Round(Current.Dy * 10);
-  eSx.Text := Format('%.4g', [Current.Sx]);
-  eSy.Text := Format('%.4g', [Current.Sy]);
-  sbSx.Position := Round(Current.Sx * 100);
-  sbSy.Position := Round(Current.Sy * 100);
-  eCx.Text := Format('%.4g', [Current.Cx]);
-  eCy.Text := Format('%.4g', [Current.Cy]);
-  eAlpha.Text := Format('%.4g', [Current.Alpha]);
-  sbAlpha.Position := Round(Current.Alpha * 2);
-  eFx.Text := Format('%.4g', [Current.Fx]);
-  eFy.Text := Format('%.4g', [Current.Fy]);
-  sbFx.Position := Round(Current.Fx * 100);
-  sbFy.Position := Round(Current.Fy * 100);
+  EdtDx.Text := Format('%.4g', [Current.Dx]);
+  EdtDy.Text := Format('%.4g', [Current.Dy]);
+  GbrDx.Position := Round(Current.Dx * 10);
+  GbrDy.Position := Round(Current.Dy * 10);
+  EdtSx.Text := Format('%.4g', [Current.Sx]);
+  EdtSy.Text := Format('%.4g', [Current.Sy]);
+  GbrSx.Position := Round(Current.Sx * 100);
+  GbrSy.Position := Round(Current.Sy * 100);
+  EdtCx.Text := Format('%.4g', [Current.Cx]);
+  EdtCy.Text := Format('%.4g', [Current.Cy]);
+  EdtAlpha.Text := Format('%.4g', [Current.Alpha]);
+  GbrAlpha.Position := Round(Current.Alpha * 2);
+  EdtFx.Text := Format('%.4g', [Current.Fx]);
+  EdtFy.Text := Format('%.4g', [Current.Fy]);
+  GbrFx.Position := Round(Current.Fx * 100);
+  GbrFy.Position := Round(Current.Fy * 100);
   LoadingValues := False;
 end;
 
@@ -424,14 +417,14 @@ var
   Tx, Ty: Extended;
 begin
   if LoadingValues then Exit;
-  if GetVal(eDx.Text, Tx) and GetVal(eDy.Text, Ty) then
+  if GetVal(EdtDx.Text, Tx) and GetVal(EdtDy.Text, Ty) then
   begin
     Current.Dx := Tx;
     Current.Dy := Ty;
     DoTransform;
     LoadingValues := True;
-    sbDx.Position := Round(Current.Dx * 10);
-    sbDy.Position := Round(Current.Dy * 10);
+    GbrDx.Position := Round(Current.Dx * 10);
+    GbrDy.Position := Round(Current.Dy * 10);
     LoadingValues := False;
   end;
 end;
@@ -439,12 +432,12 @@ end;
 procedure TFormTranformExample.TranslationScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Dx := sbDx.Position * 0.1;
-  Current.Dy := sbDy.Position * 0.1;
+  Current.Dx := GbrDx.Position * 0.1;
+  Current.Dy := GbrDy.Position * 0.1;
   DoTransform;
   LoadingValues := True;
-  eDx.Text := FloatToStr(Current.Dx);
-  eDy.Text := FloatToStr(Current.Dy);
+  EdtDx.Text := FloatToStr(Current.Dx);
+  EdtDy.Text := FloatToStr(Current.Dy);
   LoadingValues := False;
 end;
 
@@ -453,14 +446,14 @@ var
   Sx, Sy: Extended;
 begin
   if LoadingValues then Exit;
-  if GetVal(eSx.Text, Sx) and GetVal(eSy.Text, Sy) then
+  if GetVal(EdtSx.Text, Sx) and GetVal(EdtSy.Text, Sy) then
   begin
     Current.Sx := Sx;
     Current.Sy := Sy;
     DoTransform;
     LoadingValues := True;
-    sbSx.Position := Round(Current.Sx * 100);
-    sbSy.Position := Round(Current.Sy * 100);
+    GbrSx.Position := Round(Current.Sx * 100);
+    GbrSy.Position := Round(Current.Sy * 100);
     LoadingValues := False;
   end;
 end;
@@ -468,12 +461,12 @@ end;
 procedure TFormTranformExample.ScaleScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Sx := sbSx.Position * 0.01;
-  Current.Sy := sbSy.Position * 0.01;
+  Current.Sx := GbrSx.Position * 0.01;
+  Current.Sy := GbrSy.Position * 0.01;
   DoTransform;
   LoadingValues := True;
-  eSx.Text := FloatToStr(Current.Sx);
-  eSy.Text := FloatToStr(Current.Sy);
+  EdtSx.Text := FloatToStr(Current.Sx);
+  EdtSy.Text := FloatToStr(Current.Sy);
   LoadingValues := False;
 end;
 
@@ -482,15 +475,15 @@ var
   Cx, Cy, Alpha: Extended;
 begin
   if LoadingValues then Exit;
-  if GetVal(eCx.Text, Cx) and GetVal(eCy.Text, Cy) and
-    GetVal(eAlpha.Text, Alpha) then
+  if GetVal(EdtCx.Text, Cx) and GetVal(EdtCy.Text, Cy) and
+    GetVal(EdtAlpha.Text, Alpha) then
   begin
     Current.Cx := Cx;
     Current.Cy := Cy;
     Current.Alpha := Alpha;
     DoTransform;
     LoadingValues := True;
-    sbAlpha.Position := Round(Alpha * 2);
+    GbrAlpha.Position := Round(Alpha * 2);
     LoadingValues := False;
   end;
 end;
@@ -498,10 +491,10 @@ end;
 procedure TFormTranformExample.RotationScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Alpha := sbAlpha.Position * 0.5;
+  Current.Alpha := GbrAlpha.Position * 0.5;
   DoTransform;
   LoadingValues := True;
-  eAlpha.Text := FloatToStr(Current.Alpha * 0.5);
+  EdtAlpha.Text := FloatToStr(Current.Alpha * 0.5);
   LoadingValues := False;
 end;
 
@@ -510,14 +503,14 @@ var
   Fx, Fy: Extended;
 begin
   if LoadingValues then Exit;
-  if GetVal(eFx.Text, Fx) and GetVal(eFy.Text, Fy) then
+  if GetVal(EdtFx.Text, Fx) and GetVal(EdtFy.Text, Fy) then
   begin
     Current.Fx := Fx;
     Current.Fy := Fy;
     DoTransform;
     LoadingValues := True;
-    sbFx.Position := Round(Current.Fx * 10);
-    sbFy.Position := Round(Current.Fy * 10);
+    GbrFx.Position := Round(Current.Fx * 10);
+    GbrFy.Position := Round(Current.Fy * 10);
     LoadingValues := False;
   end;
 end;
@@ -525,12 +518,12 @@ end;
 procedure TFormTranformExample.SkewScrolled(Sender: TObject);
 begin
   if LoadingValues then Exit;
-  Current.Fx := sbFx.Position * 0.1;
-  Current.Fy := sbFy.Position * 0.1;
+  Current.Fx := GbrFx.Position * 0.1;
+  Current.Fy := GbrFy.Position * 0.1;
   DoTransform;
   LoadingValues := True;
-  eFx.Text := FloatToStr(Current.Fx);
-  eFy.Text := FloatToStr(Current.Fy);
+  EdtFx.Text := FloatToStr(Current.Fx);
+  EdtFy.Text := FloatToStr(Current.Fy);
   LoadingValues := False;
 end;
 
@@ -553,16 +546,16 @@ begin
   Vertices[3].Y := Src.Bitmap.Height - 1;
 end;
 
-procedure TFormTranformExample.PageControl1Change(Sender: TObject);
+procedure TFormTranformExample.PageControlChange(Sender: TObject);
 begin
-  if PageControl1.ActivePage = TabSheet1 then
+  if PageControl.ActivePage = TstAffine then
   begin
     Mode := tmAffine;
     Transformation := AffineTransformation;
-    ResamplerClassNamesList.Parent := TabSheet1;
-    ResamplerLabel.Parent := TabSheet1;
-    KernelClassNamesList.Parent := TabSheet1;
-    KernelLabel.Parent := TabSheet1;
+    CmbResamplerClassNames.Parent := TstAffine;
+    LblResampler.Parent := TstAffine;
+    CmbKernelClassNames.Parent := TstAffine;
+    LblKernel.Parent := TstAffine;
   end
   else
   begin
@@ -570,10 +563,10 @@ begin
     Mode := tmProjective;
     Transformation := ProjectiveTransformation;
     InitVertices;
-    ResamplerClassNamesList.Parent := TabSheet2;
-    ResamplerLabel.Parent := TabSheet2;
-    KernelClassNamesList.Parent := TabSheet2;
-    KernelLabel.Parent := TabSheet2;
+    CmbResamplerClassNames.Parent := TstProjective;
+    LblResampler.Parent := TstProjective;
+    CmbKernelClassNames.Parent := TstProjective;
+    LblKernel.Parent := TstProjective;
   end;
   DoTransform;
 end;
@@ -657,7 +650,7 @@ var
   end;
 
 begin
-  if PageControl1.ActivePage = TabSheet1 then Exit;
+  if PageControl.ActivePage = TstAffine then Exit;
 
   BackBuffer.SetStipple([clBlack32, clBlack32, clWhite32, clWhite32]);
   BackBuffer.StippleStep := 0.5;
@@ -678,7 +671,7 @@ end;
 
 procedure TFormTranformExample.ResamplerClassNamesListClick(Sender: TObject);
 begin
-  with ResamplerClassNamesList do
+  with CmbResamplerClassNames do
     if ItemIndex >= 0 then
       Src.Bitmap.ResamplerClassName:= Items[ ItemIndex ];
   DoTransform;
@@ -692,36 +685,36 @@ begin
   DoTransform;
 end;
 
-procedure TFormTranformExample.ResamplerClassNamesListChange(Sender: TObject);
+procedure TFormTranformExample.CmbResamplerClassNamesChange(Sender: TObject);
 var
   R: TCustomResampler;
 begin
-  with ResamplerClassNamesList do
+  with CmbResamplerClassNames do
     if ItemIndex >= 0 then
     begin
       Src.Bitmap.BeginUpdate;
       R := TCustomResamplerClass(ResamplerList[ItemIndex]).Create(Src.Bitmap);
 
-      if cbRepeat.Checked then
+      if CbxRepeat.Checked then
       begin
         Src.Bitmap.WrapMode := wmRepeat;
-        Src.Bitmap.Resampler.PixelAccessMode := CAccessMode[cbRepeat.Checked];
+        Src.Bitmap.Resampler.PixelAccessMode := CAccessMode[CbxRepeat.Checked];
       end;
 
-      KernelClassNamesListChange(nil);
+      CmbKernelClassNamesChange(nil);
       Src.Bitmap.EndUpdate;
       Src.Bitmap.Changed;
 
-      KernelClassNamesList.Visible := R is TKernelResampler;
-      KernelLabel.Visible := KernelClassNamesList.Visible;
+      CmbKernelClassNames.Visible := R is TKernelResampler;
+      LblKernel.Visible := CmbKernelClassNames.Visible;
     end;
 end;
 
-procedure TFormTranformExample.KernelClassNamesListChange(Sender: TObject);
+procedure TFormTranformExample.CmbKernelClassNamesChange(Sender: TObject);
 var
   Index: Integer;
 begin
-  Index := KernelClassNamesList.ItemIndex;
+  Index := CmbKernelClassNames.ItemIndex;
   if Src.Bitmap.Resampler is TKernelResampler then
   begin
     TKernelResampler(Src.Bitmap.Resampler).Kernel := TCustomKernelClass(KernelList[Index]).Create;
@@ -772,10 +765,10 @@ begin
   end;
 end;
 
-procedure TFormTranformExample.cbRepeatClick(Sender: TObject);
+procedure TFormTranformExample.CbxRepeatClick(Sender: TObject);
 begin
   Src.Bitmap.WrapMode := wmRepeat;
-  Src.Bitmap.Resampler.PixelAccessMode := CAccessMode[cbRepeat.Checked];
+  Src.Bitmap.Resampler.PixelAccessMode := CAccessMode[CbxRepeat.Checked];
   DoTransform;
 end;
 
