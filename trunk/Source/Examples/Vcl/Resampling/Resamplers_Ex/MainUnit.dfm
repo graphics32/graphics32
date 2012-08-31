@@ -1,4 +1,4 @@
-object fmResamplersExample: TfmResamplersExample
+object FrmResamplersExample: TFrmResamplersExample
   Left = 270
   Top = 228
   Caption = 'Resamplers Example'
@@ -25,7 +25,7 @@ object fmResamplersExample: TfmResamplersExample
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
-    object pnlResampler: TPanel
+    object PnlResampler: TPanel
       Left = 0
       Top = 0
       Width = 146
@@ -35,7 +35,7 @@ object fmResamplersExample: TfmResamplersExample
       DesignSize = (
         146
         160)
-      object lbResamplersClass: TLabel
+      object LblResamplersClass: TLabel
         Left = 12
         Top = 24
         Width = 82
@@ -43,7 +43,7 @@ object fmResamplersExample: TfmResamplersExample
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class:'
       end
-      object lbPixelAccessMode: TLabel
+      object LblPixelAccessMode: TLabel
         Left = 12
         Top = 67
         Width = 91
@@ -51,7 +51,7 @@ object fmResamplersExample: TfmResamplersExample
         Anchors = [akTop, akRight]
         Caption = 'Pixel Access Mode:'
       end
-      object lbWrapMode: TLabel
+      object LblWrapMode: TLabel
         Left = 12
         Top = 110
         Width = 59
@@ -59,7 +59,7 @@ object fmResamplersExample: TfmResamplersExample
         Anchors = [akTop, akRight]
         Caption = 'Wrap Mode:'
       end
-      object pnResamplerProperties: TPanel
+      object PnlResamplerProperties: TPanel
         Left = 1
         Top = 1
         Width = 144
@@ -115,7 +115,7 @@ object fmResamplersExample: TfmResamplersExample
           'Mirror')
       end
     end
-    object pnlKernel: TPanel
+    object PnlKernel: TPanel
       Left = 0
       Top = 160
       Width = 146
@@ -126,7 +126,7 @@ object fmResamplersExample: TfmResamplersExample
       DesignSize = (
         146
         201)
-      object lbKernelClass: TLabel
+      object LblKernelClass: TLabel
         Left = 12
         Top = 24
         Width = 62
@@ -134,7 +134,7 @@ object fmResamplersExample: TfmResamplersExample
         Anchors = [akTop, akRight]
         Caption = 'Kernel Class:'
       end
-      object lbKernelMode: TLabel
+      object LblKernelMode: TLabel
         Left = 12
         Top = 67
         Width = 63
@@ -142,14 +142,14 @@ object fmResamplersExample: TfmResamplersExample
         Anchors = [akTop, akRight]
         Caption = 'Kernel Mode:'
       end
-      object lbTableSize: TLabel
+      object LblTableSize: TLabel
         Left = 8
         Top = 116
         Width = 97
         Height = 13
         Caption = 'Table Size (32/100):'
       end
-      object lbParameter: TLabel
+      object LblParameter: TLabel
         Left = 8
         Top = 155
         Width = 54
@@ -157,7 +157,7 @@ object fmResamplersExample: TfmResamplersExample
         Caption = 'Parameter:'
         Visible = False
       end
-      object pnKernelProperties: TPanel
+      object PnlKernelProperties: TPanel
         Left = 1
         Top = 1
         Width = 144
@@ -198,7 +198,7 @@ object fmResamplersExample: TfmResamplersExample
           'Table Nearest (truncated, fastest)'
           'Table Linear (interpolated, fast)')
       end
-      object gbTableSize: TGaugeBar
+      object GbrTableSize: TGaugeBar
         Left = 16
         Top = 136
         Width = 113
@@ -210,9 +210,9 @@ object fmResamplersExample: TfmResamplersExample
         ShowHandleGrip = True
         Style = rbsMac
         Position = 32
-        OnChange = gbTableSizeChange
+        OnChange = GbrTableSizeChange
       end
-      object gbParameter: TGaugeBar
+      object GbrParameter: TGaugeBar
         Left = 16
         Top = 175
         Width = 113
@@ -225,8 +225,8 @@ object fmResamplersExample: TfmResamplersExample
         Style = rbsMac
         Visible = False
         Position = 50
-        OnChange = gbParameterChange
-        OnMouseUp = gbParameterMouseUp
+        OnChange = GbrParameterChange
+        OnMouseUp = GbrParameterMouseUp
       end
     end
   end
@@ -235,11 +235,11 @@ object fmResamplersExample: TfmResamplersExample
     Top = 0
     Width = 329
     Height = 376
-    ActivePage = tabDetails
+    ActivePage = TabDetails
     Align = alClient
     TabOrder = 0
     OnChange = ResamplerClassNamesListChange
-    object tabDetails: TTabSheet
+    object TabDetails: TTabSheet
       Caption = 'Details'
       object DstImg: TImage32
         Left = 0
@@ -259,7 +259,7 @@ object fmResamplersExample: TfmResamplersExample
         OnResize = DstImgResize
       end
     end
-    object ResamplingTabSheet: TTabSheet
+    object TabResampling: TTabSheet
       Caption = 'Resampling'
       ImageIndex = 1
       object ResamplingPaintBox: TPaintBox32
@@ -273,7 +273,7 @@ object fmResamplersExample: TfmResamplersExample
         OnResize = ResamplingPaintBoxResize
       end
     end
-    object tabKernel: TTabSheet
+    object TabKernel: TTabSheet
       Caption = 'Curve'
       ImageIndex = 2
       TabVisible = False
