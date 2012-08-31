@@ -19,7 +19,7 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object PnlMain: TPanel
     Left = 0
     Top = 52
     Width = 494
@@ -59,7 +59,7 @@ object MainForm: TMainForm
     Bands = <
       item
         Break = False
-        Control = ToolBar3
+        Control = TbrMain
         ImageIndex = -1
         MinHeight = 21
         MinWidth = 56
@@ -76,7 +76,7 @@ object MainForm: TMainForm
       item
         Break = False
         Color = clActiveCaption
-        Control = pnGR32
+        Control = PnlGR32
         FixedSize = True
         ImageIndex = -1
         MinHeight = 21
@@ -103,7 +103,7 @@ object MainForm: TMainForm
       Images = ImageList
       TabOrder = 0
       Wrapable = False
-      object bNew: TToolButton
+      object BtnNew: TToolButton
         Left = 0
         Top = 0
         Hint = 'Generate new image'
@@ -111,7 +111,7 @@ object MainForm: TMainForm
         ImageIndex = 0
         OnClick = NewClick
       end
-      object bOpen: TToolButton
+      object BtnOpen: TToolButton
         Left = 23
         Top = 0
         Hint = 'Open file'
@@ -119,7 +119,7 @@ object MainForm: TMainForm
         ImageIndex = 1
         OnClick = OpenClick
       end
-      object bSave: TToolButton
+      object BtnSave: TToolButton
         Left = 46
         Top = 0
         Hint = 'Save to file'
@@ -128,19 +128,19 @@ object MainForm: TMainForm
         ImageIndex = 2
         OnClick = SaveClick
       end
-      object ToolButton8: TToolButton
+      object BtnSeparator2: TToolButton
         Left = 69
         Top = 0
         Width = 8
-        Caption = 'ToolButton8'
+        Caption = 'BtnSeparator2'
         ImageIndex = 4
         Style = tbsSeparator
       end
-      object bCopy: TToolButton
+      object BtnCopy: TToolButton
         Left = 77
         Top = 0
         Hint = 'Copy to clipboard'
-        Caption = 'bCopy'
+        Caption = 'BtnCopy'
         Enabled = False
         ImageIndex = 3
         OnClick = CopyClick
@@ -160,7 +160,7 @@ object MainForm: TMainForm
       DesignSize = (
         481
         22)
-      object lbZoom: TLabel
+      object LblZoom: TLabel
         Left = 0
         Top = 0
         Width = 36
@@ -168,7 +168,7 @@ object MainForm: TMainForm
         Caption = ' Zoom: '
         Layout = tlCenter
       end
-      object Panel2: TPanel
+      object PnlScaleBar: TPanel
         Left = 36
         Top = 0
         Width = 111
@@ -193,26 +193,26 @@ object MainForm: TMainForm
           OnChange = ScaleChange
         end
       end
-      object bLinear: TToolButton
+      object BtnLinear: TToolButton
         Left = 147
         Top = 0
         Hint = 'Antialiasing Nearest/Linear'
         AllowAllUp = True
         AutoSize = True
-        Caption = 'bLinear'
+        Caption = 'Linear'
         ImageIndex = 4
         Style = tbsCheck
         OnClick = CheckBox1Click
       end
-      object ToolButton7: TToolButton
+      object BtnSeparator1: TToolButton
         Left = 170
         Top = 0
         Width = 8
-        Caption = 'ToolButton7'
+        Caption = 'BtnSeparator1'
         ImageIndex = 0
         Style = tbsSeparator
       end
-      object lbPalette: TLabel
+      object LblPalette: TLabel
         Left = 178
         Top = 0
         Width = 42
@@ -237,7 +237,7 @@ object MainForm: TMainForm
           'Rainbow')
       end
     end
-    object ToolBar3: TToolBar
+    object TbrMain: TToolBar
       Left = 9
       Top = 0
       Width = 56
@@ -249,7 +249,7 @@ object MainForm: TMainForm
       ShowCaptions = True
       TabOrder = 2
       Wrapable = False
-      object tbFile: TToolButton
+      object BtnFile: TToolButton
         Left = 0
         Top = 0
         AutoSize = True
@@ -257,7 +257,7 @@ object MainForm: TMainForm
         Grouped = True
         MenuItem = mnFile
       end
-      object tbEdit: TToolButton
+      object BtnEdit: TToolButton
         Left = 27
         Top = 0
         AutoSize = True
@@ -266,7 +266,7 @@ object MainForm: TMainForm
         MenuItem = mnEdit
       end
     end
-    object pnGR32: TPanel
+    object PnlGR32: TPanel
       Left = 452
       Top = 0
       Width = 38
@@ -284,7 +284,7 @@ object MainForm: TMainForm
       TabOrder = 3
     end
   end
-  object Panel4: TPanel
+  object PnlSepartator: TPanel
     Left = 0
     Top = 50
     Width = 494
@@ -303,7 +303,7 @@ object MainForm: TMainForm
     Left = 340
     Top = 40
     Bitmap = {
-      494C010105001000100010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010105000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
