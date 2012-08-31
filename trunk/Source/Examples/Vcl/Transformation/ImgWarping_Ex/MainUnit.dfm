@@ -17,16 +17,7 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
-    Left = 8
-    Top = 8
-    Width = 105
-    Height = 137
-    BevelInner = bvRaised
-    BevelOuter = bvLowered
-    TabOrder = 0
-  end
-  object MainPanel: TPanel
+  object PnlMain: TPanel
     Left = 482
     Top = 0
     Width = 141
@@ -34,16 +25,16 @@ object MainForm: TMainForm
     Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
-    Caption = 'MainPanel'
-    TabOrder = 1
-    object GeneralPanel: TPanel
+    Caption = 'PnlMain'
+    TabOrder = 0
+    object PnlGeneral: TPanel
       Left = 0
       Top = 0
       Width = 141
       Height = 73
       Align = alTop
       TabOrder = 0
-      object Label4: TLabel
+      object LblGeneral: TLabel
         Left = 1
         Top = 1
         Width = 139
@@ -62,7 +53,7 @@ object MainForm: TMainForm
         ParentFont = False
         Layout = tlCenter
       end
-      object Label5: TLabel
+      object LblRemapScale: TLabel
         Left = 8
         Top = 24
         Width = 65
@@ -84,14 +75,14 @@ object MainForm: TMainForm
         OnMouseUp = ScaleBarMouseUp
       end
     end
-    object BrushPanel: TPanel
+    object PnlBrush: TPanel
       Left = 0
       Top = 233
       Width = 141
       Height = 304
       Align = alTop
       TabOrder = 1
-      object Label6: TLabel
+      object LblBrush: TLabel
         Left = 1
         Top = 1
         Width = 139
@@ -110,28 +101,28 @@ object MainForm: TMainForm
         ParentFont = False
         Layout = tlCenter
       end
-      object FeatherLabel: TLabel
+      object LblBrushFeather: TLabel
         Left = 8
         Top = 88
         Width = 42
         Height = 13
         Caption = 'Feather:'
       end
-      object Label2: TLabel
+      object LblBrushPressure: TLabel
         Left = 8
         Top = 56
         Width = 46
         Height = 13
         Caption = 'Pressure:'
       end
-      object Label3: TLabel
+      object LblBrushPinch: TLabel
         Left = 8
         Top = 120
         Width = 29
         Height = 13
         Caption = 'Pinch:'
       end
-      object Label1: TLabel
+      object LblBrushSize: TLabel
         Left = 8
         Top = 24
         Width = 23
@@ -139,14 +130,7 @@ object MainForm: TMainForm
         Caption = 'Size:'
         Transparent = True
       end
-      object Bevel2: TBevel
-        Left = 68
-        Top = 131
-        Width = 25
-        Height = 25
-        Shape = bsLeftLine
-      end
-      object Label9: TLabel
+      object LblBrushMesh: TLabel
         Left = 8
         Top = 160
         Width = 59
@@ -222,7 +206,7 @@ object MainForm: TMainForm
       Height = 160
       Align = alTop
       TabOrder = 2
-      object Label7: TLabel
+      object LblWaroTool: TLabel
         Left = 1
         Top = 1
         Width = 139
@@ -241,7 +225,7 @@ object MainForm: TMainForm
         ParentFont = False
         Layout = tlCenter
       end
-      object ParamLabel: TLabel
+      object LblParam: TLabel
         Left = 8
         Top = 88
         Width = 30
@@ -320,7 +304,7 @@ object MainForm: TMainForm
     ScrollBars.Size = 16
     ScrollBars.Visibility = svAuto
     OverSize = 0
-    TabOrder = 2
+    TabOrder = 1
     OnMouseDown = DstImgMouseDown
     OnMouseMove = DstImgMouseMove
     OnMouseUp = DstImgMouseUp
@@ -359,106 +343,106 @@ object MainForm: TMainForm
   object MainMenu: TMainMenu
     Left = 344
     Top = 64
-    object File1: TMenuItem
+    object MimFile: TMenuItem
       Caption = 'File'
-      object mOpenImage: TMenuItem
+      object MimOpenImage: TMenuItem
         Caption = '&Open Image...'
         ShortCut = 16463
-        OnClick = mOpenImageClick
+        OnClick = MimOpenImageClick
       end
-      object mSaveImage: TMenuItem
+      object MimSaveImage: TMenuItem
         Caption = '&Save Image...'
         ShortCut = 16467
-        OnClick = mSaveImageClick
+        OnClick = MimSaveImageClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
-      object mOpenMesh: TMenuItem
+      object MimOpenMesh: TMenuItem
         Caption = 'Open Mesh...'
-        OnClick = mOpenMeshClick
+        OnClick = MimOpenMeshClick
       end
-      object mSaveMesh: TMenuItem
+      object MimSaveMesh: TMenuItem
         Caption = 'Save Mesh...'
-        OnClick = mSaveMeshClick
+        OnClick = MimSaveMeshClick
       end
-      object mResetMesh: TMenuItem
+      object MimResetMesh: TMenuItem
         Caption = 'Reset Mesh'
         ShortCut = 16466
-        OnClick = mResetMeshClick
+        OnClick = MimResetMeshClick
       end
       object N4: TMenuItem
         Caption = '-'
       end
-      object mExit: TMenuItem
+      object MimExit: TMenuItem
         Caption = 'Exit'
-        OnClick = mExitClick
+        OnClick = MimExitClick
       end
     end
-    object Sampling1: TMenuItem
+    object MimSampling: TMenuItem
       Caption = 'Sampling'
-      object mSupersampleNow: TMenuItem
+      object MimSupersampleNow: TMenuItem
         Caption = 'Supersample Now!'
-        OnClick = mSupersampleNowClick
+        OnClick = MimSupersampleNowClick
       end
       object N1: TMenuItem
         Caption = '-'
       end
-      object mSamplingKernel: TMenuItem
+      object MimSamplingKernel: TMenuItem
         Caption = 'Sampling Kernel'
       end
-      object mKernelMode: TMenuItem
+      object MimKernelMode: TMenuItem
         Caption = 'KernelMode'
-        object mKmDefault: TMenuItem
+        object MimKmDefault: TMenuItem
           Caption = 'kmDefault (slow, but exact)'
           RadioItem = True
-          OnClick = mkmDefaultClick
+          OnClick = MimKmDefaultClick
         end
-        object mKmTableNearest: TMenuItem
+        object MimKmTableNearest: TMenuItem
           Tag = 1
           Caption = 'kmTableNearest (fastest, "curve" sampling)'
           RadioItem = True
-          OnClick = mkmDefaultClick
+          OnClick = MimKmDefaultClick
         end
-        object mKmTableLinear: TMenuItem
+        object MimKmTableLinear: TMenuItem
           Tag = 2
           Caption = 'kmTableLinear (fast, "curve" approximation)'
           Checked = True
           RadioItem = True
-          OnClick = mkmDefaultClick
+          OnClick = MimKmDefaultClick
         end
       end
-      object mSamplingGrid: TMenuItem
+      object MimSamplingGrid: TMenuItem
         Caption = 'Sampling Grid'
-        object m2x2: TMenuItem
+        object Mim2x2: TMenuItem
           Tag = 2
           Caption = '2x2'
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
-        object m3x3: TMenuItem
+        object Mim3x3: TMenuItem
           Tag = 3
           Caption = '3x3'
           Checked = True
           RadioItem = True
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
-        object m5x5: TMenuItem
+        object Mim5x5: TMenuItem
           Tag = 5
           Caption = '5x5'
           RadioItem = True
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
-        object m7x7: TMenuItem
+        object Mim7x7: TMenuItem
           Tag = 7
           Caption = '7x7'
           RadioItem = True
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
       end
       object N2: TMenuItem
         Caption = '-'
       end
-      object mBilinearWarp: TMenuItem
+      object MimBilinearWarp: TMenuItem
         Caption = 'Bilinear Warp'
         Checked = True
         OnClick = Bi1Click
