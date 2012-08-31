@@ -1,43 +1,33 @@
 object MainForm: TMainForm
   Left = 254
-  Height = 563
+  Height = 623
   Top = 244
-  Width = 631
-  HorzScrollBar.Page = 630
-  VertScrollBar.Page = 649
-  ActiveControl = ToolGroup.RadioButton0
+  Width = 623
   Caption = 'Image Warping Example'
-  ClientHeight = 544
-  ClientWidth = 631
+  ClientHeight = 604
+  ClientWidth = 623
+  Color = clBtnFace
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'Tahoma'
   Menu = MainMenu
   OnClose = FormClose
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '0.9.31'
-  object Panel1: TPanel
-    Left = 8
-    Height = 529
-    Top = 8
-    Width = 481
-    BevelInner = bvRaised
-    BevelOuter = bvLowered
-    TabOrder = 0
-  end
-  object MainPanel: TPanel
-    Left = 490
-    Height = 544
+  LCLVersion = '1.0.1.3'
+  object PnlMain: TPanel
+    Left = 482
+    Height = 604
     Top = 0
     Width = 141
     Align = alRight
     BevelOuter = bvNone
     BevelWidth = 2
-    Caption = 'MainPanel'
-    ClientHeight = 544
+    Caption = 'PnlMain'
+    ClientHeight = 604
     ClientWidth = 141
-    TabOrder = 1
-    object GeneralPanel: TPanel
+    TabOrder = 0
+    object PnlGeneral: TPanel
       Left = 0
       Height = 73
       Top = 0
@@ -46,7 +36,7 @@ object MainForm: TMainForm
       ClientHeight = 73
       ClientWidth = 141
       TabOrder = 0
-      object Label4: TLabel
+      object LblGeneral: TLabel
         Left = 1
         Height = 16
         Top = 1
@@ -65,7 +55,7 @@ object MainForm: TMainForm
         ParentFont = False
         Transparent = False
       end
-      object Label5: TLabel
+      object LblRemapScale: TLabel
         Left = 8
         Height = 14
         Top = 24
@@ -83,13 +73,13 @@ object MainForm: TMainForm
         LargeChange = 10
         Max = 300
         Min = -300
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 100
         OnMouseUp = ScaleBarMouseUp
       end
     end
-    object BrushPanel: TPanel
+    object PnlBrush: TPanel
       Left = 0
       Height = 304
       Top = 233
@@ -98,7 +88,7 @@ object MainForm: TMainForm
       ClientHeight = 304
       ClientWidth = 141
       TabOrder = 1
-      object Label6: TLabel
+      object LblBrush: TLabel
         Left = 1
         Height = 16
         Top = 1
@@ -117,7 +107,7 @@ object MainForm: TMainForm
         ParentFont = False
         Transparent = False
       end
-      object FeatherLabel: TLabel
+      object LblBrushFeather: TLabel
         Left = 8
         Height = 14
         Top = 88
@@ -125,7 +115,7 @@ object MainForm: TMainForm
         Caption = 'Feather:'
         ParentColor = False
       end
-      object Label2: TLabel
+      object LblBrushPressure: TLabel
         Left = 8
         Height = 14
         Top = 56
@@ -133,7 +123,7 @@ object MainForm: TMainForm
         Caption = 'Pressure:'
         ParentColor = False
       end
-      object Label3: TLabel
+      object LblBrushPinch: TLabel
         Left = 8
         Height = 14
         Top = 120
@@ -141,7 +131,7 @@ object MainForm: TMainForm
         Caption = 'Pinch:'
         ParentColor = False
       end
-      object Label1: TLabel
+      object LblBrushSize: TLabel
         Left = 8
         Height = 14
         Top = 24
@@ -149,14 +139,7 @@ object MainForm: TMainForm
         Caption = 'Size:'
         ParentColor = False
       end
-      object Bevel2: TBevel
-        Left = 68
-        Height = 25
-        Top = 131
-        Width = 25
-        Shape = bsLeftLine
-      end
-      object Label9: TLabel
+      object LblBrushMesh: TLabel
         Left = 8
         Height = 14
         Top = 160
@@ -172,7 +155,7 @@ object MainForm: TMainForm
         Color = clScrollBar
         Backgnd = bgPattern
         LargeChange = 10
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 12
         OnChange = PressureBarChange
@@ -185,7 +168,7 @@ object MainForm: TMainForm
         Color = clScrollBar
         Backgnd = bgPattern
         LargeChange = 10
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 50
         OnChange = PressureBarChange
@@ -199,7 +182,7 @@ object MainForm: TMainForm
         Backgnd = bgPattern
         LargeChange = 10
         Min = -100
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 0
         OnChange = PressureBarChange
@@ -214,7 +197,7 @@ object MainForm: TMainForm
         LargeChange = 10
         Max = 500
         Min = 5
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 100
         OnChange = SizeBarChange
@@ -225,7 +208,7 @@ object MainForm: TMainForm
         Height = 121
         Top = 176
         Width = 121
-        TabOrder = 0
+        TabOrder = 4
         OnResize = BrushMeshPreviewResize
       end
     end
@@ -238,7 +221,7 @@ object MainForm: TMainForm
       ClientHeight = 160
       ClientWidth = 141
       TabOrder = 2
-      object Label7: TLabel
+      object LblWaroTool: TLabel
         Left = 1
         Height = 16
         Top = 1
@@ -257,7 +240,7 @@ object MainForm: TMainForm
         ParentFont = False
         Transparent = False
       end
-      object ParamLabel: TLabel
+      object LblParam: TLabel
         Left = 8
         Height = 14
         Top = 88
@@ -311,7 +294,7 @@ object MainForm: TMainForm
         Backgnd = bgPattern
         Enabled = False
         LargeChange = 10
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 20
         OnChange = PressureBarChange
@@ -327,7 +310,7 @@ object MainForm: TMainForm
         Enabled = False
         LargeChange = 10
         Max = 399
-        ShowHandleGrip = True
+        ShowHandleGrip = False
         Style = rbsMac
         Position = 350
         OnChange = RateBarChange
@@ -335,8 +318,31 @@ object MainForm: TMainForm
       end
     end
   end
+  object DstImg: TImgView32
+    Left = 0
+    Height = 604
+    Top = 0
+    Width = 482
+    Align = alClient
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsDefault
+    ScrollBars.Size = 16
+    ScrollBars.Visibility = svAuto
+    OverSize = 0
+    TabOrder = 1
+    OnMouseDown = DstImgMouseDown
+    OnMouseMove = DstImgMouseMove
+    OnMouseUp = DstImgMouseUp
+    OnPaintStage = DstImgPaintStage
+  end
   object OpenPictureDialog: TOpenPictureDialog
-    FilterIndex = 0
     left = 136
     top = 8
   end
@@ -348,14 +354,12 @@ object MainForm: TMainForm
   end
   object OpenMeshDialog: TOpenDialog
     Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
-    FilterIndex = 0
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
     left = 240
     top = 8
   end
   object SaveMeshDialog: TSaveDialog
     Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
-    FilterIndex = 0
     Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
     left = 240
     top = 64
@@ -371,106 +375,106 @@ object MainForm: TMainForm
   object MainMenu: TMainMenu
     left = 344
     top = 64
-    object File1: TMenuItem
+    object MimFile: TMenuItem
       Caption = 'File'
-      object mOpenImage: TMenuItem
+      object MimOpenImage: TMenuItem
         Caption = '&Open Image...'
         ShortCut = 16463
-        OnClick = mOpenImageClick
+        OnClick = MimOpenImageClick
       end
-      object mSaveImage: TMenuItem
+      object MimSaveImage: TMenuItem
         Caption = '&Save Image...'
         ShortCut = 16467
-        OnClick = mSaveImageClick
+        OnClick = MimSaveImageClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
-      object mOpenMesh: TMenuItem
+      object MimOpenMesh: TMenuItem
         Caption = 'Open Mesh...'
-        OnClick = mOpenMeshClick
+        OnClick = MimOpenMeshClick
       end
-      object mSaveMesh: TMenuItem
+      object MimSaveMesh: TMenuItem
         Caption = 'Save Mesh...'
-        OnClick = mSaveMeshClick
+        OnClick = MimSaveMeshClick
       end
-      object mResetMesh: TMenuItem
+      object MimResetMesh: TMenuItem
         Caption = 'Reset Mesh'
         ShortCut = 16466
-        OnClick = mResetMeshClick
+        OnClick = MimResetMeshClick
       end
       object N4: TMenuItem
         Caption = '-'
       end
-      object mExit: TMenuItem
+      object MimExit: TMenuItem
         Caption = 'Exit'
-        OnClick = mExitClick
+        OnClick = MimExitClick
       end
     end
-    object Sampling1: TMenuItem
+    object MimSampling: TMenuItem
       Caption = 'Sampling'
-      object mSupersampleNow: TMenuItem
+      object MimSupersampleNow: TMenuItem
         Caption = 'Supersample Now!'
-        OnClick = mSupersampleNowClick
+        OnClick = MimSupersampleNowClick
       end
       object N1: TMenuItem
         Caption = '-'
       end
-      object mSamplingKernel: TMenuItem
+      object MimSamplingKernel: TMenuItem
         Caption = 'Sampling Kernel'
       end
-      object mKernelMode: TMenuItem
+      object MimKernelMode: TMenuItem
         Caption = 'KernelMode'
-        object mKmDefault: TMenuItem
+        object MimKmDefault: TMenuItem
           Caption = 'kmDefault (slow, but exact)'
           RadioItem = True
-          OnClick = mkmDefaultClick
+          OnClick = MimKmDefaultClick
         end
-        object mKmTableNearest: TMenuItem
+        object MimKmTableNearest: TMenuItem
           Tag = 1
           Caption = 'kmTableNearest (fastest, "curve" sampling)'
           RadioItem = True
-          OnClick = mkmDefaultClick
+          OnClick = MimKmDefaultClick
         end
-        object mKmTableLinear: TMenuItem
+        object MimKmTableLinear: TMenuItem
           Tag = 2
           Caption = 'kmTableLinear (fast, "curve" approximation)'
           Checked = True
           RadioItem = True
-          OnClick = mkmDefaultClick
+          OnClick = MimKmDefaultClick
         end
       end
-      object mSamplingGrid: TMenuItem
+      object MimSamplingGrid: TMenuItem
         Caption = 'Sampling Grid'
-        object m2x2: TMenuItem
+        object Mim2x2: TMenuItem
           Tag = 2
           Caption = '2x2'
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
-        object m3x3: TMenuItem
+        object Mim3x3: TMenuItem
           Tag = 3
           Caption = '3x3'
           Checked = True
           RadioItem = True
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
-        object m5x5: TMenuItem
+        object Mim5x5: TMenuItem
           Tag = 5
           Caption = '5x5'
           RadioItem = True
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
-        object m7x7: TMenuItem
+        object Mim7x7: TMenuItem
           Tag = 7
           Caption = '7x7'
           RadioItem = True
-          OnClick = m3x3Click
+          OnClick = Mim3x3Click
         end
       end
       object N2: TMenuItem
         Caption = '-'
       end
-      object mBilinearWarp: TMenuItem
+      object MimBilinearWarp: TMenuItem
         Caption = 'Bilinear Warp'
         Checked = True
         OnClick = Bi1Click

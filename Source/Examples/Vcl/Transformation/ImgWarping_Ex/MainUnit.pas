@@ -56,56 +56,54 @@ type
 
   { TMainForm }
   TMainForm = class(TForm)
-    Bevel2: TBevel;
     BrushMeshPreview: TPaintBox32;
-    BrushPanel: TPanel;
     DstImg: TImgView32;
     FeatherBar: TGaugeBar;
-    FeatherLabel: TLabel;
-    File1: TMenuItem;
-    GeneralPanel: TPanel;
-    Label1: TLabel;
-    Label2: TLabel;
-    Label3: TLabel;
-    Label4: TLabel;
-    Label5: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
-    Label9: TLabel;
-    m2x2: TMenuItem;
-    m3x3: TMenuItem;
-    m5x5: TMenuItem;
-    m7x7: TMenuItem;
+    LblBrush: TLabel;
+    LblBrushFeather: TLabel;
+    LblBrushMesh: TLabel;
+    LblBrushPinch: TLabel;
+    LblBrushPressure: TLabel;
+    LblBrushSize: TLabel;
+    LblGeneral: TLabel;
+    LblRemapScale: TLabel;
+    LblWaroTool: TLabel;
     MainMenu: TMainMenu;
-    MainPanel: TPanel;
-    mBilinearWarp: TMenuItem;
-    mExit: TMenuItem;
-    mKernelMode: TMenuItem;
-    mKmDefault: TMenuItem;
-    mKmTableLinear: TMenuItem;
-    mKmTableNearest: TMenuItem;
-    mOpenImage: TMenuItem;
-    mOpenMesh: TMenuItem;
-    mResetMesh: TMenuItem;
-    mSamplingGrid: TMenuItem;
-    mSamplingKernel: TMenuItem;
-    mSaveImage: TMenuItem;
-    mSaveMesh: TMenuItem;
-    mSupersampleNow: TMenuItem;
+    Mim2x2: TMenuItem;
+    Mim3x3: TMenuItem;
+    Mim5x5: TMenuItem;
+    Mim7x7: TMenuItem;
+    MimBilinearWarp: TMenuItem;
+    MimExit: TMenuItem;
+    MimFile: TMenuItem;
+    MimKernelMode: TMenuItem;
+    MimKmDefault: TMenuItem;
+    MimKmTableLinear: TMenuItem;
+    MimKmTableNearest: TMenuItem;
+    MimOpenImage: TMenuItem;
+    MimOpenMesh: TMenuItem;
+    MimResetMesh: TMenuItem;
+    MimSampling: TMenuItem;
+    MimSamplingGrid: TMenuItem;
+    MimSamplingKernel: TMenuItem;
+    MimSaveImage: TMenuItem;
+    MimSaveMesh: TMenuItem;
+    MimSupersampleNow: TMenuItem;
     N1: TMenuItem;
     N2: TMenuItem;
     N3: TMenuItem;
     N4: TMenuItem;
     OpenMeshDialog: TOpenDialog;
     OpenPictureDialog: TOpenPictureDialog;
-    Panel1: TPanel;
     ParamBar: TGaugeBar;
-    ParamLabel: TLabel;
+    LblParam: TLabel;
     PinchBar: TGaugeBar;
+    PnlBrush: TPanel;
+    PnlGeneral: TPanel;
+    PnlMain: TPanel;
     PressureBar: TGaugeBar;
     RateBar: TGaugeBar;
     RateLabel: TLabel;
-    Sampling1: TMenuItem;
     SaveMeshDialog: TSaveDialog;
     SavePictureDialog: TSavePictureDialog;
     ScaleBar: TGaugeBar;
@@ -129,21 +127,21 @@ type
     procedure ScaleBarMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure PressureBarChange(Sender: TObject);
-    procedure mOpenImageClick(Sender: TObject);
-    procedure mSaveImageClick(Sender: TObject);
-    procedure mResetMeshClick(Sender: TObject);
-    procedure mSaveMeshClick(Sender: TObject);
-    procedure mOpenMeshClick(Sender: TObject);
-    procedure mSupersampleNowClick(Sender: TObject);
+    procedure MimOpenImageClick(Sender: TObject);
+    procedure MimSaveImageClick(Sender: TObject);
+    procedure MimResetMeshClick(Sender: TObject);
+    procedure MimSaveMeshClick(Sender: TObject);
+    procedure MimOpenMeshClick(Sender: TObject);
+    procedure MimSupersampleNowClick(Sender: TObject);
     procedure Bi1Click(Sender: TObject);
-    procedure m3x3Click(Sender: TObject);
+    procedure Mim3x3Click(Sender: TObject);
     procedure BrushMeshPreviewResize(Sender: TObject);
     procedure SizeBarChange(Sender: TObject);
     procedure ImgButtonClick(Sender: TObject);
     procedure DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
-    procedure mkmDefaultClick(Sender: TObject);
-    procedure mExitClick(Sender: TObject);
+    procedure MimKmDefaultClick(Sender: TObject);
+    procedure MimExitClick(Sender: TObject);
   public
     Src: TBitmap32;
     Remapper: TRemapTransformation;
@@ -192,7 +190,9 @@ uses
   {$ENDIF}
   GR32_LowLevel, GR32_MediaPathLocator;
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
 {$ENDIF}
 
@@ -283,12 +283,12 @@ begin
     {$ENDIF}
     Item.RadioItem := True;
     if J = KernelIndex then Item.Checked := True;
-    mSamplingKernel.Add(Item);
+    MimSamplingKernel.Add(Item);
   end;
 
   KernelMode := kmTableLinear;
   GenericBrush := TGenericBrush.Create;
-  RESAMPLERS[mBilinearWarp.Checked].Create(Src);
+  RESAMPLERS[MimBilinearWarp.Checked].Create(Src);
   BrushLayer := TBrushLayer.Create(DstImg.Layers);
   SampleClipRect := Rect(MaxInt, MaxInt, -MaxInt, -MaxInt);
   SamplingGridSize := 3;
@@ -510,7 +510,7 @@ begin
   case ToolGroup.ItemIndex of
     0:
       begin
-        ParamLabel.Enabled := False;
+        LblParam.Enabled := False;
         ParamBar.Enabled := False;
         RateLabel.Enabled := False;
         RateBar.Enabled := False;
@@ -518,7 +518,7 @@ begin
       end;
     1,2,3:
       begin
-        ParamLabel.Enabled := True;
+        LblParam.Enabled := True;
         ParamBar.Enabled := True;
         RateLabel.Enabled := True;
         RateBar.Enabled := True;
@@ -527,9 +527,9 @@ begin
   end;
 
   case ToolGroup.ItemIndex of
-    1: ParamLabel.Caption := 'Softness';
-    2: ParamLabel.Caption := 'Strength';
-    3: ParamLabel.Caption := 'Leaves Count';
+    1: LblParam.Caption := 'Softness';
+    2: LblParam.Caption := 'Strength';
+    3: LblParam.Caption := 'Leaves Count';
   end;
 
   UpdateBrush;
@@ -664,7 +664,7 @@ begin
   UpdateBrush;
 end;
 
-procedure TMainForm.mOpenImageClick(Sender: TObject);
+procedure TMainForm.MimOpenImageClick(Sender: TObject);
 begin
   if OpenPictureDialog.Execute then
   begin
@@ -677,7 +677,7 @@ begin
   end;
 end;
 
-procedure TMainForm.mSaveImageClick(Sender: TObject);
+procedure TMainForm.MimSaveImageClick(Sender: TObject);
 begin
  with SavePictureDialog do if Execute then
  begin
@@ -687,7 +687,7 @@ begin
  end
 end;
 
-procedure TMainForm.mResetMeshClick(Sender: TObject);
+procedure TMainForm.MimResetMeshClick(Sender: TObject);
 begin
   Remapper.VectorMap.Clear;
   DstImg.Bitmap.Assign(Src);
@@ -695,7 +695,7 @@ begin
   Remapper.Scale(1,1);
 end;
 
-procedure TMainForm.mSaveMeshClick(Sender: TObject);
+procedure TMainForm.MimSaveMeshClick(Sender: TObject);
 begin
  with SaveMeshDialog do if Execute then
  begin
@@ -705,7 +705,7 @@ begin
  end
 end;
 
-procedure TMainForm.mOpenMeshClick(Sender: TObject);
+procedure TMainForm.MimOpenMeshClick(Sender: TObject);
 begin
  with OpenMeshDialog do if Execute then begin
    Remapper.VectorMap.LoadFromFile(Filename);
@@ -715,7 +715,7 @@ begin
  end;
 end;
 
-procedure TMainForm.mSupersampleNowClick(Sender: TObject);
+procedure TMainForm.MimSupersampleNowClick(Sender: TObject);
 var
   Rasterizer: TRasterizer;
   Transformer: TTransformer;
@@ -746,7 +746,7 @@ begin
     Rasterizer.Free;
     SuperSampler.Free;
     Transformer.Free;
-    RESAMPLERS[mBilinearWarp.Checked].Create(Src);
+    RESAMPLERS[MimBilinearWarp.Checked].Create(Src);
     Screen.Cursor := crDefault;
     DstImg.Repaint;
   end;
@@ -754,11 +754,11 @@ end;
 
 procedure TMainForm.Bi1Click(Sender: TObject);
 begin
-  RESAMPLERS[mBilinearWarp.Checked].Create(Src);
+  RESAMPLERS[MimBilinearWarp.Checked].Create(Src);
   Transform(DstImg.Bitmap, Src, Remapper);
 end;
 
-procedure TMainForm.m3x3Click(Sender: TObject);
+procedure TMainForm.Mim3x3Click(Sender: TObject);
 begin
   if Sender is TMenuItem then SamplingGridSize := TMenuItem(Sender).Tag;
 end;
@@ -769,7 +769,7 @@ begin
   begin
     KernelIndex := TMenuItem(Sender).Tag;
     SampleClipRect := Remapper.VectorMap.GetTrimmedBounds;
-    mSuperSampleNowClick(Self);
+    MimSuperSampleNowClick(Self);
   end;
 end;
 
@@ -828,17 +828,17 @@ begin
   end;
 end;
 
-procedure TMainForm.mkmDefaultClick(Sender: TObject);
+procedure TMainForm.MimKmDefaultClick(Sender: TObject);
 begin
   if Sender is TMenuItem then
   begin
     KernelMode := TKernelMode(TMenuItem(Sender).Tag);
     SampleClipRect := Remapper.VectorMap.GetTrimmedBounds;
-    mSuperSampleNowClick(Self);
+    MimSuperSampleNowClick(Self);
   end;
 end;
 
-procedure TMainForm.mExitClick(Sender: TObject);
+procedure TMainForm.MimExitClick(Sender: TObject);
 begin
   Close;
 end;
