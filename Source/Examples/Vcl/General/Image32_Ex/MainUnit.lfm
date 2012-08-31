@@ -14,8 +14,8 @@ object FormImage32Example: TFormImage32Example
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poScreenCenter
-  LCLVersion = '0.9.31'
-  object Panel1: TPanel
+  LCLVersion = '1.0.1.3'
+  object PnlImage: TPanel
     Left = 8
     Height = 402
     Top = 8
@@ -39,7 +39,7 @@ object FormImage32Example: TFormImage32Example
       TabOrder = 0
     end
   end
-  object Panel2: TPanel
+  object PnlControl: TPanel
     Left = 400
     Height = 418
     Top = 0
@@ -49,7 +49,7 @@ object FormImage32Example: TFormImage32Example
     ClientHeight = 418
     ClientWidth = 142
     TabOrder = 1
-    object rgScaleMode: TRadioGroup
+    object RgpScaleMode: TRadioGroup
       Left = 8
       Height = 129
       Top = 104
@@ -75,10 +75,10 @@ object FormImage32Example: TFormImage32Example
         'smOptimal'
         'smOptimalScaled'
       )
-      OnClick = rgScaleModeClick
+      OnClick = RgpScaleModeClick
       TabOrder = 0
     end
-    object rgKernel: TRadioGroup
+    object RgpKernel: TRadioGroup
       Left = 8
       Height = 121
       Top = 288
@@ -103,10 +103,10 @@ object FormImage32Example: TFormImage32Example
         'TLanczosKernel'
         'TMitchellKernel'
       )
-      OnClick = rgKernelClick
+      OnClick = RgpKernelClick
       TabOrder = 1
     end
-    object rgBitmapAlign: TRadioGroup
+    object RgpBitmapAlign: TRadioGroup
       Left = 8
       Height = 89
       Top = 8
@@ -129,18 +129,18 @@ object FormImage32Example: TFormImage32Example
         'baCenter'
         'baTile'
       )
-      OnClick = rgBitmapAlignClick
+      OnClick = RgpBitmapAlignClick
       TabOrder = 2
     end
-    object stScale: TLabel
+    object LblScale: TStaticText
       Left = 8
-      Height = 14
+      Height = 17
       Top = 242
-      Width = 30
+      Width = 33
       Caption = 'Scale:'
-      ParentColor = False
+      TabOrder = 3
     end
-    object sbScale: TGaugeBar
+    object SbrScale: TGaugeBar
       Left = 8
       Height = 16
       Top = 260
@@ -153,7 +153,7 @@ object FormImage32Example: TFormImage32Example
       Min = 25
       ShowHandleGrip = True
       Position = 100
-      OnChange = sbScaleChange
+      OnChange = SbrScaleChange
     end
   end
 end
