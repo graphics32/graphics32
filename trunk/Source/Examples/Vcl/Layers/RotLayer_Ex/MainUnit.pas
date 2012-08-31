@@ -45,21 +45,21 @@ uses
 
 type
   TFormRotLayer = class(TForm)
-    cbScaled: TCheckBox;
-    gbAngle: TGaugeBar;
-    gbPositionX: TGaugeBar;
-    gbPositionY: TGaugeBar;
-    gbScale: TGaugeBar;
+    CbxScaled: TCheckBox;
+    GbrAngle: TGaugeBar;
+    GbrPositionX: TGaugeBar;
+    GbrPositionY: TGaugeBar;
+    GbrScale: TGaugeBar;
     ImgView: TImgView32;
-    lbAngle: TLabel;
-    lbPositionX: TLabel;
-    lbPositionY: TLabel;
-    lbScale: TLabel;
+    LblAngle: TLabel;
+    LblPositionX: TLabel;
+    LblPositionY: TLabel;
+    LblScale: TLabel;
     procedure FormCreate(Sender: TObject);
-    procedure gbAngleChange(Sender: TObject);
-    procedure gbPositionChange(Sender: TObject);
-    procedure gbScaleChange(Sender: TObject);
-    procedure cbScaledClick(Sender: TObject);
+    procedure GbrAngleChange(Sender: TObject);
+    procedure GbrPositionChange(Sender: TObject);
+    procedure GbrScaleChange(Sender: TObject);
+    procedure CbxScaledClick(Sender: TObject);
   public
     L: TRotLayer;
   end;
@@ -124,27 +124,27 @@ begin
   L.Position := FloatPoint(100, 100);
 end;
 
-procedure TFormRotLayer.gbAngleChange(Sender: TObject);
+procedure TFormRotLayer.GbrAngleChange(Sender: TObject);
 begin
-  L.Angle := gbAngle.Position;
+  L.Angle := GbrAngle.Position;
 end;
 
-procedure TFormRotLayer.gbPositionChange(Sender: TObject);
+procedure TFormRotLayer.GbrPositionChange(Sender: TObject);
 var
   P: TFloatPoint;
 begin
   P := L.Position;
-  P.X := gbPositionX.Position;
-  P.Y := gbPositionY.Position;
+  P.X := GbrPositionX.Position;
+  P.Y := GbrPositionY.Position;
   L.Position := P;
 end;
 
-procedure TFormRotLayer.gbScaleChange(Sender: TObject);
+procedure TFormRotLayer.GbrScaleChange(Sender: TObject);
 begin
-  ImgView.Scale := Power(10, gbScale.Position * 0.01);
+  ImgView.Scale := Power(10, GbrScale.Position * 0.01);
 end;
 
-procedure TFormRotLayer.cbScaledClick(Sender: TObject);
+procedure TFormRotLayer.CbxScaledClick(Sender: TObject);
 begin
   L.Scaled := not L.Scaled;
 end;
