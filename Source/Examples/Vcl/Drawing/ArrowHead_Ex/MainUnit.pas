@@ -11,7 +11,7 @@ uses
 type
   TFmArrowHeadDemo = class(TForm)
     ImgView32: TImgView32;
-    pnlControl: TPanel;
+    PnlControl: TPanel;
     BtnClose: TButton;
     RgpArrowStyle: TRadioGroup;
     EdtArrowSize: TEdit;
