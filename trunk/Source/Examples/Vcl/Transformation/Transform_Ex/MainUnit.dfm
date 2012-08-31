@@ -16,34 +16,34 @@ object FormTranformExample: TFormTranformExample
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object PageControl1: TPageControl
+  object PageControl: TPageControl
     Left = 0
     Top = 264
     Width = 617
     Height = 265
-    ActivePage = TabSheet1
+    ActivePage = TstAffine
     TabOrder = 2
-    OnChange = PageControl1Change
-    object TabSheet1: TTabSheet
+    OnChange = PageControlChange
+    object TstAffine: TTabSheet
       Caption = 'Affine'
       DesignSize = (
         609
         237)
-      object Label9: TLabel
+      object LblCodeString: TLabel
         Left = 8
         Top = 212
         Width = 59
         Height = 13
         Caption = 'Code string:'
       end
-      object Label10: TLabel
+      object LblTransformationMatrix: TLabel
         Left = 443
         Top = 96
         Width = 110
         Height = 13
         Caption = 'Transformation matrix:'
       end
-      object ResamplerLabel: TLabel
+      object LblResampler: TLabel
         Left = 413
         Top = 8
         Width = 78
@@ -51,7 +51,7 @@ object FormTranformExample: TFormTranformExample
         Anchors = [akTop, akRight]
         Caption = 'Resampler Class'
       end
-      object KernelLabel: TLabel
+      object LblKernel: TLabel
         Left = 413
         Top = 48
         Width = 96
@@ -60,7 +60,7 @@ object FormTranformExample: TFormTranformExample
         Caption = 'Kernel Class (if any)'
         Visible = False
       end
-      object Panel2: TPanel
+      object PnlTransformationMatrix: TPanel
         Left = 445
         Top = 112
         Width = 105
@@ -127,16 +127,16 @@ object FormTranformExample: TFormTranformExample
         TabOrder = 1
         OnClick = ListBoxClick
       end
-      object Button1: TButton
+      object BtnClearAll: TButton
         Left = 8
         Top = 178
         Width = 65
         Height = 23
         Caption = 'Clear All'
         TabOrder = 2
-        OnClick = Button1Click
+        OnClick = BtnClearAllClick
       end
-      object CodeString: TEdit
+      object EdtCodeString: TEdit
         Left = 80
         Top = 208
         Width = 521
@@ -145,13 +145,13 @@ object FormTranformExample: TFormTranformExample
         TabOrder = 3
         Text = 'Clear;'
       end
-      object Panel1: TPanel
+      object PnlOperation: TPanel
         Left = 80
         Top = 8
         Width = 321
         Height = 193
         TabOrder = 4
-        object Label1: TLabel
+        object LblType: TLabel
           Left = 8
           Top = 11
           Width = 28
@@ -178,13 +178,13 @@ object FormTranformExample: TFormTranformExample
           Top = 40
           Width = 305
           Height = 145
-          PageIndex = 4
+          PageIndex = 3
           TabOrder = 1
           object TPage
             Left = 0
             Top = 0
             Caption = 'opNone'
-            object Label2: TLabel
+            object LblNoOperation: TLabel
               Left = 16
               Top = 16
               Width = 235
@@ -198,28 +198,28 @@ object FormTranformExample: TFormTranformExample
             Left = 0
             Top = 0
             Caption = 'opTranslate'
-            object Label3: TLabel
+            object LblInfoTranslate: TLabel
               Left = 8
               Top = 8
               Width = 195
               Height = 26
               Caption = 'method declaration:'#13#10'procedure Translate(Dx, Dy: Extended);'
             end
-            object Label4: TLabel
+            object LblDx: TLabel
               Left = 16
               Top = 59
               Width = 17
               Height = 13
               Caption = 'Dx:'
             end
-            object Label5: TLabel
+            object LblDy: TLabel
               Left = 16
               Top = 91
               Width = 17
               Height = 13
               Caption = 'Dy:'
             end
-            object eDx: TEdit
+            object EdtDx: TEdit
               Left = 48
               Top = 56
               Width = 57
@@ -230,7 +230,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = TranslationChanged
             end
-            object eDy: TEdit
+            object EdtDy: TEdit
               Left = 48
               Top = 88
               Width = 57
@@ -241,7 +241,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = TranslationChanged
             end
-            object sbDx: TGaugeBar
+            object GbrDx: TGaugeBar
               Left = 120
               Top = 58
               Width = 173
@@ -253,7 +253,7 @@ object FormTranformExample: TFormTranformExample
               Position = 0
               OnUserChange = TranslationScrolled
             end
-            object sbDy: TGaugeBar
+            object GbrDy: TGaugeBar
               Left = 120
               Top = 90
               Width = 173
@@ -270,28 +270,28 @@ object FormTranformExample: TFormTranformExample
             Left = 0
             Top = 0
             Caption = 'opScale'
-            object Label6: TLabel
+            object LblSy: TLabel
               Left = 16
               Top = 91
               Width = 16
               Height = 13
               Caption = 'Sy:'
             end
-            object Label7: TLabel
+            object LblSx: TLabel
               Left = 16
               Top = 59
               Width = 16
               Height = 13
               Caption = 'Sx:'
             end
-            object Label8: TLabel
+            object LblScale: TLabel
               Left = 8
               Top = 8
               Width = 173
               Height = 26
               Caption = 'method declaration:'#13#10'procedure Scale(Sx, Sy: Extended);'
             end
-            object eSy: TEdit
+            object EdtSy: TEdit
               Left = 48
               Top = 88
               Width = 57
@@ -300,7 +300,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = ScaleChanged
             end
-            object eSx: TEdit
+            object EdtSx: TEdit
               Left = 48
               Top = 56
               Width = 57
@@ -309,7 +309,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = ScaleChanged
             end
-            object sbSx: TGaugeBar
+            object GbrSx: TGaugeBar
               Left = 116
               Top = 58
               Width = 177
@@ -321,7 +321,7 @@ object FormTranformExample: TFormTranformExample
               Position = 0
               OnUserChange = ScaleScrolled
             end
-            object sbSy: TGaugeBar
+            object GbrSy: TGaugeBar
               Left = 116
               Top = 90
               Width = 177
@@ -338,35 +338,35 @@ object FormTranformExample: TFormTranformExample
             Left = 0
             Top = 0
             Caption = 'opRotate'
-            object Label11: TLabel
+            object LblInfoRotate: TLabel
               Left = 8
               Top = 8
-              Width = 214
+              Width = 217
               Height = 26
-              Caption = 'method declaration:'#13#10'procedureRotate(Cx, Cy, Alpha: Extended);'
+              Caption = 'method declaration: '#13#10'procedure Rotate(Cx, Cy, Alpha: Extended);'
             end
-            object Label13: TLabel
+            object LblCx: TLabel
               Left = 16
               Top = 59
               Width = 17
               Height = 13
               Caption = 'Cx:'
             end
-            object Label16: TLabel
+            object LblAlpha: TLabel
               Left = 16
               Top = 91
               Width = 31
               Height = 13
               Caption = 'Alpha:'
             end
-            object Label15: TLabel
+            object LblCy: TLabel
               Left = 152
               Top = 59
               Width = 17
               Height = 13
               Caption = 'Cy:'
             end
-            object eCx: TEdit
+            object EdtCx: TEdit
               Left = 48
               Top = 56
               Width = 57
@@ -375,7 +375,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = RotationChanged
             end
-            object eAlpha: TEdit
+            object EdtAlpha: TEdit
               Left = 48
               Top = 88
               Width = 57
@@ -384,7 +384,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = RotationChanged
             end
-            object eCy: TEdit
+            object EdtCy: TEdit
               Left = 184
               Top = 56
               Width = 57
@@ -393,7 +393,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = RotationChanged
             end
-            object sbAlpha: TGaugeBar
+            object GbrAlpha: TGaugeBar
               Left = 112
               Top = 90
               Width = 181
@@ -410,28 +410,28 @@ object FormTranformExample: TFormTranformExample
             Left = 0
             Top = 0
             Caption = 'opSkew'
-            object Label12: TLabel
+            object LblInfoSkew: TLabel
               Left = 8
               Top = 8
               Width = 173
               Height = 26
               Caption = 'method declaration:'#13#10'procedure Skew(Fx, Fy: Extended);'
             end
-            object Label14: TLabel
+            object LblFx: TLabel
               Left = 16
               Top = 59
               Width = 16
               Height = 13
               Caption = 'Fx:'
             end
-            object Label17: TLabel
+            object LblFy: TLabel
               Left = 16
               Top = 91
               Width = 16
               Height = 13
               Caption = 'Fy:'
             end
-            object eFx: TEdit
+            object EdtFx: TEdit
               Left = 48
               Top = 56
               Width = 57
@@ -440,7 +440,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = SkewChanged
             end
-            object eFy: TEdit
+            object EdtFy: TEdit
               Left = 48
               Top = 88
               Width = 57
@@ -449,7 +449,7 @@ object FormTranformExample: TFormTranformExample
               Text = '0'
               OnChange = SkewChanged
             end
-            object sbFx: TGaugeBar
+            object GbrFx: TGaugeBar
               Left = 116
               Top = 58
               Width = 177
@@ -460,7 +460,7 @@ object FormTranformExample: TFormTranformExample
               Position = 0
               OnUserChange = SkewScrolled
             end
-            object sbFy: TGaugeBar
+            object GbrFy: TGaugeBar
               Left = 116
               Top = 90
               Width = 177
@@ -474,7 +474,7 @@ object FormTranformExample: TFormTranformExample
           end
         end
       end
-      object ResamplerClassNamesList: TComboBox
+      object CmbResamplerClassNames: TComboBox
         Left = 413
         Top = 24
         Width = 177
@@ -482,9 +482,9 @@ object FormTranformExample: TFormTranformExample
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 5
-        OnChange = ResamplerClassNamesListChange
+        OnChange = CmbResamplerClassNamesChange
       end
-      object KernelClassNamesList: TComboBox
+      object CmbKernelClassNames: TComboBox
         Left = 413
         Top = 64
         Width = 177
@@ -493,13 +493,13 @@ object FormTranformExample: TFormTranformExample
         Anchors = [akTop, akRight]
         TabOrder = 6
         Visible = False
-        OnChange = KernelClassNamesListChange
+        OnChange = CmbKernelClassNamesChange
       end
     end
-    object TabSheet2: TTabSheet
+    object TstProjective: TTabSheet
       Caption = 'Projective'
       ImageIndex = 1
-      object Label18: TLabel
+      object LblProjectiveNote: TLabel
         Left = 48
         Top = 24
         Width = 230
@@ -543,7 +543,7 @@ object FormTranformExample: TFormTranformExample
     OnMouseUp = RubberLayerMouseUp
     OnPaintStage = DstPaintStage
   end
-  object Panel3: TPanel
+  object PnlOpacity: TPanel
     Left = 264
     Top = 260
     Width = 281
@@ -564,13 +564,13 @@ object FormTranformExample: TFormTranformExample
       OnChange = OpacityChange
     end
   end
-  object cbRepeat: TCheckBox
+  object CbxRepeat: TCheckBox
     Left = 544
     Top = 260
     Width = 73
     Height = 20
     Caption = 'Repeat'
     TabOrder = 4
-    OnClick = cbRepeatClick
+    OnClick = CbxRepeatClick
   end
 end
