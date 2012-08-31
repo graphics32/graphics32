@@ -62,6 +62,7 @@ var
 const
   CBoxSize = 60;
   CBorderSize = 10;
+  CBoxSizePlus = CBoxSize + CBorderSize;
   CRad = (CBoxSize + CBorderSize) div 2;
 
 implementation
@@ -97,7 +98,7 @@ function GetNearestPointOnBox(const Pt, BoxCenter: TFloatPoint;
   const BoxPts: array of TFloatPoint): TFloatPoint;
 var
   I, Index: Integer;
-  DistSqrd, DS: single;
+  DistSqrd, DS: TFloat;
 begin
   Index := 0;
   DistSqrd := SqrDistance(BoxPts[0], Pt);
@@ -120,8 +121,8 @@ end;
 function BoxesOverlap(const Box1Center, Box2Center: TFloatPoint;
   CBoxSize: TFloat): boolean;
 begin
-  Result := (Abs(Box1Center.X - Box2Center.X) < CBoxSize) and
-    (Abs(Box1Center.Y - Box2Center.Y) < CBoxSize);
+  Result := (Abs(Box1Center.X - Box2Center.X) <= CBoxSize) and
+    (Abs(Box1Center.Y - Box2Center.Y) <= CBoxSize);
 end;
 
 function MakeArrayOfFloat(const Data: array of TFloat): TArrayOfFloat;
@@ -414,14 +415,13 @@ begin
 
   NextCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
   NextCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
-  if BoxesOverlap(NextCenter[0], NextCenter[1], CRad * 2) then
+  if BoxesOverlap(NextCenter[0], NextCenter[1], CBoxSizePlus) then
   begin
-    //m anage box collisions ...
-    if Abs(NextCenter[0].X - NextCenter[1].X) <
-      Abs(NextCenter[0].Y - NextCenter[1].Y) then
-        SwapVelocities(FVelocity[0].Y, FVelocity[1].Y)
-    else
+    // manage box collisions ...
+    if (Abs(FBoxCenter[0].X - FBoxCenter[1].X) > CBoxSizePlus) then
         SwapVelocities(FVelocity[0].X, FVelocity[1].X);
+    if (Abs(FBoxCenter[0].Y - FBoxCenter[1].Y) > CBoxSizePlus) then
+        SwapVelocities(FVelocity[0].Y, FVelocity[1].Y);
     NextCenter[0] := OffsetPoint(FBoxCenter[0], FVelocity[0].X, FVelocity[0].Y);
     NextCenter[1] := OffsetPoint(FBoxCenter[1], FVelocity[1].X, FVelocity[1].Y);
   end;
