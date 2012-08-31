@@ -43,15 +43,12 @@ uses
   GR32_Layers;
 
 type
-
-  { TMainForm }
-
   TMainForm = class(TForm)
-    bCopy: TToolButton;
-    bLinear: TToolButton;
-    bNew: TToolButton;
-    bOpen: TToolButton;
-    bSave: TToolButton;
+    BtnCopy: TToolButton;
+    BtnLinear: TToolButton;
+    BtnNew: TToolButton;
+    BtnOpen: TToolButton;
+    BtnSave: TToolButton;
     {$IFDEF FPC}
     CoolBar: TToolBar;
     {$ELSE}
@@ -59,8 +56,8 @@ type
     {$ENDIF}
     Image: TImgView32;
     ImageList: TImageList;
-    lbPalette: TLabel;
-    lbZoom: TLabel;
+    LblPalette: TLabel;
+    LblZoom: TLabel;
     MainMenu: TMainMenu;
     mnCopy: TMenuItem;
     mnEdit: TMenuItem;
@@ -72,19 +69,19 @@ type
     N1: TMenuItem;
     OpenPictureDialog: TOpenPictureDialog;
     PaletteCombo: TComboBox;
-    Panel1: TPanel;
-    Panel2: TPanel;
-    Panel4: TPanel;
-    pnGR32: TPanel;
+    PnlMain: TPanel;
+    PnlScaleBar: TPanel;
+    PnlSepartator: TPanel;
+    PnlGR32: TPanel;
     SavePictureDialog: TSavePictureDialog;
     ScaleBar: TGaugeBar;
-    tbEdit: TToolButton;
-    tbFile: TToolButton;
+    BtnEdit: TToolButton;
+    BtnFile: TToolButton;
     ToolBar1: TToolBar;
     ToolBar2: TToolBar;
-    ToolBar3: TToolBar;
-    ToolButton7: TToolButton;
-    ToolButton8: TToolButton;
+    TbrMain: TToolBar;
+    BtnSeparator1: TToolButton;
+    BtnSeparator2: TToolButton;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure CheckBox1Click(Sender: TObject);
@@ -208,8 +205,8 @@ begin
   PaintData;
   mnSave.Enabled := True;
   mnCopy.Enabled := True;
-  bSave.Enabled := True;
-  bCopy.Enabled := True;
+  BtnSave.Enabled := True;
+  BtnCopy.Enabled := True;
 end;
 
 procedure TMainForm.ScaleChange(Sender: TObject);
@@ -224,8 +221,10 @@ end;
 procedure TMainForm.CheckBox1Click(Sender: TObject);
 begin
   // Don't use aux. resampler setup, pass class names directly:
-  if bLinear.Down then Image.Bitmap.ResamplerClassName := 'TLinearResampler'
-  else Image.Bitmap.ResamplerClassName := 'TNearestResampler';
+  if BtnLinear.Down then
+    Image.Bitmap.ResamplerClassName := 'TLinearResampler'
+  else
+    Image.Bitmap.ResamplerClassName := 'TNearestResampler';
 end;
 
 procedure TMainForm.CopyClick(Sender: TObject);
@@ -298,8 +297,8 @@ begin
       PaintData;
       mnSave.Enabled := True;
       mnCopy.Enabled := True;
-      bSave.Enabled := True;
-      bCopy.Enabled := True;
+      BtnSave.Enabled := True;
+      BtnCopy.Enabled := True;
     end;
 end;
 
