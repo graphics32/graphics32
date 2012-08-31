@@ -1,85 +1,79 @@
 object MainForm: TMainForm
-  Left = 789
-  Height = 285
-  Top = 452
-  Width = 480
-  HorzScrollBar.Page = 479
-  VertScrollBar.Page = 284
-  ActiveControl = rbGetPixelFS
+  Left = 272
+  Top = 282
   BorderStyle = bsToolWindow
   Caption = 'PixelF Example'
-  ClientHeight = 285
-  ClientWidth = 480
+  ClientHeight = 258
+  ClientWidth = 459
+  Color = clBtnFace
   Constraints.MaxHeight = 287
-  Constraints.MaxWidth = 480
-  Constraints.MinHeight = 285
-  Constraints.MinWidth = 480
+  Constraints.MaxWidth = 467
+  Constraints.MinHeight = 280
+  Constraints.MinWidth = 465
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  OnCreate = FormCreate
-  OnDestroy = FormDestroy
+  Font.Style = []
+  OldCreateOrder = False
   Position = poScreenCenter
-  LCLVersion = '0.9.29'
-  object PnlSettings: TPanel
-    Left = 315
-    Height = 285
-    Top = 0
-    Width = 165
-    Align = alRight
-    ClientHeight = 285
-    ClientWidth = 165
+  OnCreate = FormCreate
+  DesignSize = (
+    459
+    258)
+  PixelsPerInch = 96
+  TextHeight = 13
+  object Image32: TImage32
+    Left = 8
+    Top = 8
+    Width = 300
+    Height = 244
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    AutoSize = True
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Scale = 1.000000000000000000
+    ScaleMode = smNormal
     TabOrder = 0
-    object lbTwirlPower: TLabel
+    OnPaintStage = Image32PaintStage
+  end
+  object PnlSettings: TPanel
+    Left = 316
+    Top = 0
+    Width = 143
+    Height = 258
+    Align = alRight
+    TabOrder = 1
+    object LblTwirlPower: TLabel
       Left = 8
-      Height = 14
       Top = 32
-      Width = 59
+      Width = 58
+      Height = 13
       Caption = 'Twirl Power:'
-      ParentColor = False
     end
-    object Panel4: TPanel
+    object PnlTwirlDistortion: TPanel
       Left = 1
-      Height = 16
       Top = 1
-      Width = 163
+      Width = 141
+      Height = 16
       Align = alTop
       BevelOuter = bvNone
       Caption = 'Twirl Distortion'
       Color = clBtnShadow
+      Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindow
       Font.Height = -11
       Font.Name = 'Tahoma'
-      ParentColor = False
+      Font.Style = []
       ParentFont = False
       TabOrder = 0
     end
-    object rbGetPixelFS: TRadioButton
+    object GbrTwist: TGaugeBar
       Left = 8
-      Height = 17
-      Top = 96
-      Width = 109
-      Caption = 'TBitmap32.PixelFS'
-      OnClick = gbTwistChange
-      TabOrder = 1
-      TabStop = False
-    end
-    object rbPixelS: TRadioButton
-      Left = 8
-      Height = 17
-      Top = 72
-      Width = 103
-      Caption = 'TBitmap32.PixelS'
-      Checked = True
-      OnClick = gbTwistChange
-      State = cbChecked
-      TabOrder = 2
-    end
-    object gbTwist: TGaugeBar
-      Left = 8
-      Height = 12
       Top = 48
-      Width = 149
-      Color = clScrollBar
+      Width = 129
+      Height = 12
       Backgnd = bgPattern
       HandleSize = 16
       Max = 50
@@ -88,22 +82,27 @@ object MainForm: TMainForm
       ShowHandleGrip = True
       Style = rbsMac
       Position = 0
-      OnChange = gbTwistChange
+      OnChange = GbrTwistChange
     end
-  end
-  object Image32: TImage32
-    Left = 8
-    Height = 244
-    Top = 8
-    Width = 300
-    Anchors = [akTop, akLeft, akRight, akBottom]
-    AutoSize = True
-    Bitmap.DrawMode = dmBlend
-    Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baCenter
-    Scale = 1
-    ScaleMode = smNormal
-    TabOrder = 1
-    OnPaintStage = Image32PaintStage
+    object RbxGetPixelFS: TRadioButton
+      Left = 8
+      Top = 96
+      Width = 129
+      Height = 17
+      Caption = 'TBitmap32.PixelFS'
+      TabOrder = 2
+      OnClick = GbrTwistChange
+    end
+    object RbxPixelS: TRadioButton
+      Left = 8
+      Top = 72
+      Width = 105
+      Height = 17
+      Caption = 'TBitmap32.PixelS'
+      Checked = True
+      TabOrder = 3
+      TabStop = True
+      OnClick = GbrTwistChange
+    end
   end
 end

@@ -38,21 +38,21 @@ object MainForm: TMainForm
     TabOrder = 0
     OnPaintStage = Image32PaintStage
   end
-  object pnlSettings: TPanel
+  object PnlSettings: TPanel
     Left = 316
     Top = 0
     Width = 143
     Height = 258
     Align = alRight
     TabOrder = 1
-    object lbTwirlPower: TLabel
+    object LblTwirlPower: TLabel
       Left = 8
       Top = 32
       Width = 58
       Height = 13
       Caption = 'Twirl Power:'
     end
-    object pnlTwirlDistortion: TPanel
+    object PnlTwirlDistortion: TPanel
       Left = 1
       Top = 1
       Width = 141
@@ -69,7 +69,7 @@ object MainForm: TMainForm
       ParentFont = False
       TabOrder = 0
     end
-    object gbTwist: TGaugeBar
+    object GbrTwist: TGaugeBar
       Left = 8
       Top = 48
       Width = 129
@@ -82,18 +82,18 @@ object MainForm: TMainForm
       ShowHandleGrip = True
       Style = rbsMac
       Position = 0
-      OnChange = gbTwistChange
+      OnChange = GbrTwistChange
     end
-    object rbGetPixelFS: TRadioButton
+    object RbxGetPixelFS: TRadioButton
       Left = 8
       Top = 96
       Width = 129
       Height = 17
       Caption = 'TBitmap32.PixelFS'
       TabOrder = 2
-      OnClick = gbTwistChange
+      OnClick = GbrTwistChange
     end
-    object rbPixelS: TRadioButton
+    object RbxPixelS: TRadioButton
       Left = 8
       Top = 72
       Width = 105
@@ -102,7 +102,7 @@ object MainForm: TMainForm
       Checked = True
       TabOrder = 3
       TabStop = True
-      OnClick = gbTwistChange
+      OnClick = GbrTwistChange
     end
   end
 end
