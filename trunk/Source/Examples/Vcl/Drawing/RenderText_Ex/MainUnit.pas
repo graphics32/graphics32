@@ -44,23 +44,23 @@ uses
 
 type
   TFormRenderText = class(TForm)
-    BtClickMe: TButton;
+    BtnClickMe: TButton;
     EditText: TEdit;
     Image: TImage32;
-    LbAALevel: TLabel;
-    LbEnterText: TLabel;
-    Panel1: TPanel;
-    SBAntialias1: TSpeedButton;
-    SBAntialias2: TSpeedButton;
-    SBAntialias3: TSpeedButton;
-    SBAntialias4: TSpeedButton;
-    SBClearType: TSpeedButton;
-    SBTextOut: TSpeedButton;
+    LblAALevel: TLabel;
+    LblEnterText: TLabel;
+    PnlControl: TPanel;
+    BtnAntialias1: TSpeedButton;
+    BtnAntialias2: TSpeedButton;
+    BtnAntialias3: TSpeedButton;
+    BtnAntialias4: TSpeedButton;
+    BtnClearType: TSpeedButton;
+    BtnTextOut: TSpeedButton;
     procedure FormCreate(Sender: TObject);
-    procedure BtClickMeClick(Sender: TObject);
+    procedure BtnClickMeClick(Sender: TObject);
     procedure EditTextChange(Sender: TObject);
     procedure ImageResize(Sender: TObject);
-    procedure SBTextOutClick(Sender: TObject);
+    procedure BtnTextOutClick(Sender: TObject);
   public
     AALevel: Integer;
     procedure Draw;
@@ -86,13 +86,14 @@ begin
     Size := 20;
     Style := [fsBold, fsItalic];
   end;
-  Panel1.DoubleBuffered := True;
+  PnlControl.DoubleBuffered := True;
   EditText.DoubleBuffered := True;
 end;
 
 procedure TFormRenderText.Draw;
 begin
-  with Image do begin
+  with Image do
+  begin
     Bitmap.Clear;
     Bitmap.RenderText(10, 10, EditText.Text, AALevel, $FFFFFFFF);
     Invalidate;
@@ -110,11 +111,11 @@ begin
   Draw;
 end;
 
-procedure TFormRenderText.BtClickMeClick(Sender: TObject);
+procedure TFormRenderText.BtnClickMeClick(Sender: TObject);
 var
   I: Integer;
-  A,B,C : Int64;
-  str   : string;
+  A, B, C: Int64;
+  Str: string;
 begin
   Screen.Cursor := crHourGlass;
   {$IFNDEF FPC}
@@ -149,7 +150,7 @@ begin
   Image.Invalidate;
 end;
 
-procedure TFormRenderText.SBTextOutClick(Sender: TObject);
+procedure TFormRenderText.BtnTextOutClick(Sender: TObject);
 begin
   AALevel := TControl(Sender).Tag;
   Draw;

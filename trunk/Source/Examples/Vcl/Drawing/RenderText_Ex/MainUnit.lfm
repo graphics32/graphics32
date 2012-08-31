@@ -1,151 +1,150 @@
 object FormRenderText: TFormRenderText
-  Left = 253
-  Height = 228
-  Top = 151
-  Width = 337
-  ActiveControl = EditText
+  Left = 381
+  Top = 128
   Caption = 'RenderText Example'
-  ClientHeight = 228
-  ClientWidth = 337
+  ClientHeight = 201
+  ClientWidth = 329
+  Color = clBtnFace
   Constraints.MinWidth = 256
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
   OnCreate = FormCreate
-  LCLVersion = '0.9.31'
+  PixelsPerInch = 96
+  TextHeight = 13
   object Image: TImage32
     Left = 0
-    Height = 167
     Top = 61
-    Width = 337
+    Width = 329
+    Height = 140
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baTopLeft
-    Scale = 1
+    Scale = 1.000000000000000000
     ScaleMode = smNormal
-    TabOrder = 1
+    TabOrder = 0
     OnResize = ImageResize
   end
-  object Panel1: TPanel
+  object PnlControl: TPanel
     Left = 0
-    Height = 61
     Top = 0
-    Width = 337
+    Width = 329
+    Height = 61
     Align = alTop
     BevelOuter = bvNone
-    ClientHeight = 61
-    ClientWidth = 337
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
     Font.Height = -11
     Font.Name = 'Tahoma'
+    Font.Style = []
     ParentFont = False
-    TabOrder = 0
-    object Label1: TLabel
+    TabOrder = 1
+    DesignSize = (
+      329
+      61)
+    object LblAALevel: TLabel
       Left = 4
-      Height = 14
       Top = 36
-      Width = 47
+      Width = 46
+      Height = 13
       Caption = 'AA Level:'
-      ParentColor = False
     end
-    object LbEnterText: TLabel
+    object LblEnterText: TLabel
       Left = 4
-      Height = 14
       Top = 6
-      Width = 79
+      Width = 78
+      Height = 13
       Caption = 'Enter text here:'
-      ParentColor = False
     end
-    object SBClearType: TSpeedButton
-      Tag = -1
-      Left = 92
-      Height = 22
-      Top = 32
-      Width = 22
-      Caption = '-1'
-      Down = True
-      GroupIndex = 1
-      Layout = blGlyphBottom
-      NumGlyphs = 0
-      OnClick = SBTextOutClick
-    end
-    object SBTextOut: TSpeedButton
+    object BtnTextOut: TSpeedButton
       Left = 116
-      Height = 22
       Top = 32
       Width = 22
-      Caption = '0'
+      Height = 22
       GroupIndex = 1
+      Down = True
+      Caption = '0'
       Layout = blGlyphBottom
-      NumGlyphs = 0
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias1: TSpeedButton
+    object BtnAntialias1: TSpeedButton
       Tag = 1
       Left = 140
-      Height = 22
       Top = 32
       Width = 22
-      Caption = '1'
+      Height = 22
       GroupIndex = 1
+      Caption = '1'
       Layout = blGlyphBottom
-      NumGlyphs = 0
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias2: TSpeedButton
+    object BtnAntialias2: TSpeedButton
       Tag = 2
       Left = 164
-      Height = 22
       Top = 32
       Width = 22
-      Caption = '2'
+      Height = 22
       GroupIndex = 1
+      Caption = '2'
       Layout = blGlyphBottom
-      NumGlyphs = 0
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias3: TSpeedButton
+    object BtnAntialias3: TSpeedButton
       Tag = 3
       Left = 188
-      Height = 22
       Top = 32
       Width = 22
-      Caption = '3'
+      Height = 22
       GroupIndex = 1
+      Caption = '3'
       Layout = blGlyphBottom
-      NumGlyphs = 0
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
     end
-    object SBAntialias4: TSpeedButton
+    object BtnAntialias4: TSpeedButton
       Tag = 4
       Left = 212
-      Height = 22
       Top = 32
       Width = 22
-      Caption = '4'
+      Height = 22
       GroupIndex = 1
+      Caption = '4'
       Layout = blGlyphBottom
-      NumGlyphs = 0
-      OnClick = SBTextOutClick
+      OnClick = BtnTextOutClick
+    end
+    object BtnClearType: TSpeedButton
+      Tag = -1
+      Left = 92
+      Top = 32
+      Width = 22
+      Height = 22
+      GroupIndex = 1
+      Caption = '-1'
+      Layout = blGlyphBottom
+      OnClick = BtnTextOutClick
     end
     object EditText: TEdit
       Left = 92
-      Height = 21
       Top = 4
-      Width = 242
-      Anchors = [akTop, akLeft, akRight]
-      OnChange = EditTextChange
-      TabOrder = 0
-      Text = 'Text'
-    end
-    object BtClickMe: TButton
-      Left = 261
+      Width = 234
       Height = 21
+      Anchors = [akLeft, akTop, akRight]
+      AutoSize = False
+      TabOrder = 0
+      Text = 'EditText'
+      OnChange = EditTextChange
+    end
+    object BtnClickMe: TButton
+      Left = 253
       Top = 32
       Width = 73
+      Height = 21
       Anchors = [akTop, akRight]
-      BorderSpacing.InnerBorder = 4
       Caption = 'Click me!'
-      OnClick = BtClickMeClick
       TabOrder = 1
+      OnClick = BtnClickMeClick
     end
   end
 end
