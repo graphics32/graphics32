@@ -44,26 +44,26 @@ uses
 
 type
   TMainForm = class(TForm)
-    btnSelectFont: TButton;
-    cbHinted: TCheckBox;
+    BtnSelectFont: TButton;
+    CbxHinted: TCheckBox;
     FontDialog: TFontDialog;
-    gbSettings: TGroupBox;
+    GbxSettings: TGroupBox;
     Img: TImage32;
-    lblGamma: TLabel;
-    lblGammaValue: TLabel;
-    PB: TPaintBox32;
-    pnlControl: TPanel;
-    pnlImage: TPanel;
-    rgMethod: TRadioGroup;
-    tbGamma: TTrackBar;
+    LblGamma: TLabel;
+    LblGammaValue: TLabel;
+    PaintBox32: TPaintBox32;
+    PnlControl: TPanel;
+    PnlImage: TPanel;
+    RgxMethod: TRadioGroup;
+    TbrGamma: TTrackBar;
     procedure FormCreate(Sender: TObject);
-    procedure btnSelectFontClick(Sender: TObject);
-    procedure cbHintedClick(Sender: TObject);
+    procedure BtnSelectFontClick(Sender: TObject);
+    procedure CbxHintedClick(Sender: TObject);
     procedure ImgClick(Sender: TObject);
     procedure ImgMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer;
       Layer: TCustomLayer);
-    procedure rgMethodClick(Sender: TObject);
-    procedure tbGammaChange(Sender: TObject);
+    procedure RgxMethodClick(Sender: TObject);
+    procedure TbrGammaChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
     FPath: TFlattenedPath;
@@ -149,8 +149,8 @@ begin
   BuildPolygonFromText;
   SetGamma(1);
   RenderText;
-  PB.Buffer.SetSizeFrom(PB);
-  PB.Buffer.Clear(clWhite32);
+  PaintBox32.Buffer.SetSizeFrom(PaintBox32);
+  PaintBox32.Buffer.Clear(clWhite32);
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -158,7 +158,7 @@ begin
   FPath.Free;
 end;
 
-procedure TMainForm.btnSelectFontClick(Sender: TObject);
+procedure TMainForm.BtnSelectFontClick(Sender: TObject);
 begin
   if FontDialog.Execute then
   begin
@@ -170,10 +170,10 @@ end;
 
 procedure TMainForm.ImgClick(Sender: TObject);
 begin
- if rgMethod.ItemIndex + 1 < rgMethod.Items.Count then
-   rgMethod.ItemIndex := rgMethod.ItemIndex + 1
+ if RgxMethod.ItemIndex + 1 < RgxMethod.Items.Count then
+   RgxMethod.ItemIndex := RgxMethod.ItemIndex + 1
  else
-   rgMethod.ItemIndex := 0;
+   RgxMethod.ItemIndex := 0;
 end;
 
 procedure TMainForm.ImgMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -181,9 +181,9 @@ procedure TMainForm.ImgMouseMove(Sender: TObject; Shift: TShiftState; X,
 const
   Delta = 16;
 begin
-  PB.Buffer.Draw(PB.Buffer.BoundsRect, Rect(X - Delta, Y - Delta, X + Delta,
-    Y + Delta), Img.Bitmap);
-  PB.Repaint;
+  PaintBox32.Buffer.Draw(PaintBox32.Buffer.BoundsRect,
+    Rect(X - Delta, Y - Delta, X + Delta, Y + Delta), Img.Bitmap);
+  PaintBox32.Repaint;
 end;
 
 procedure TMainForm.BuildPolygonFromText;
@@ -199,7 +199,7 @@ end;
 procedure TMainForm.RenderText;
 begin
   Img.SetupBitmap(True, clWhite32);
-  case rgMethod.ItemIndex of
+  case RgxMethod.ItemIndex of
     0: PolyPolygonFS(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
     1: PolyPolygonFS_LCD(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
     2: PolyPolygonFS_LCD2(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
@@ -208,21 +208,21 @@ begin
     ImgMouseMove(nil, [], X, Y, nil);
 end;
 
-procedure TMainForm.rgMethodClick(Sender: TObject);
+procedure TMainForm.RgxMethodClick(Sender: TObject);
 begin
   RenderText;
 end;
 
-procedure TMainForm.tbGammaChange(Sender: TObject);
+procedure TMainForm.TbrGammaChange(Sender: TObject);
 begin
-  SetGamma(tbGamma.Position * 0.01);
-  lblGammaValue.Caption := Format('(%1.2f)', [tbGamma.Position * 0.01]);
+  SetGamma(TbrGamma.Position * 0.01);
+  LblGammaValue.Caption := Format('(%1.2f)', [TbrGamma.Position * 0.01]);
   RenderText;
 end;
 
-procedure TMainForm.cbHintedClick(Sender: TObject);
+procedure TMainForm.CbxHintedClick(Sender: TObject);
 begin
-  UseHinting := cbHinted.Checked;
+  UseHinting := CbxHinted.Checked;
   BuildPolygonFromText;
   RenderText;
 end;
