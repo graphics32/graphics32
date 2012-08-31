@@ -421,7 +421,11 @@ function TPointerMap.Exists(Item: PItem; out BucketIndex, ItemIndex: Integer): B
 var
   I: Integer;
 begin
+{$IFDEF HAS_NATIVEINT}
+  BucketIndex := NativeUInt(Item) shr 8 and BUCKET_MASK; // KISS pointer hash(TM)
+{$ELSE}
   BucketIndex := Cardinal(Item) shr 8 and BUCKET_MASK; // KISS pointer hash(TM)
+{$ENDIF}
   // due to their randomness, pointers most commonly differ at byte 1, we use
   // this characteristic for our hash and just apply the mask to it.
   // Worst case scenario happens when most changes are at byte 0, which causes
