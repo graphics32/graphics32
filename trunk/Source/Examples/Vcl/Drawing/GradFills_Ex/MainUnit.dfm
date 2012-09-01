@@ -4,7 +4,7 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Filling Polygons with Color Gradients Demo'
-  ClientHeight = 446
+  ClientHeight = 445
   ClientWidth = 585
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -13,18 +13,18 @@ object MainForm: TMainForm
   Font.Name = 'Arial'
   Font.Style = []
   KeyPreview = True
-  Menu = MainMenu1
+  Menu = MainMenu
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyPress = FormKeyPress
   PixelsPerInch = 96
   TextHeight = 15
-  object Panel1: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 145
-    Height = 446
+    Height = 445
     Align = alLeft
     TabOrder = 0
     object LblColorStopsTop: TLabel
@@ -77,25 +77,25 @@ object MainForm: TMainForm
       WordWrap = False
       OnChange = MemoColorStopsTopChange
     end
-    object rgEllipseFillStyle: TRadioGroup
+    object RgpEllipseFillStyle: TRadioGroup
       Left = 14
       Top = 365
       Width = 110
-      Height = 65
+      Height = 68
       Caption = 'Radial &Fill Style'
       ItemIndex = 1
       Items.Strings = (
         'Simple'
         'SVG')
       TabOrder = 2
-      OnClick = rgEllipseFillStyleClick
+      OnClick = RgpEllipseFillStyleClick
     end
   end
   object ImgView32: TImgView32
     Left = 145
     Top = 0
     Width = 440
-    Height = 446
+    Height = 445
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
@@ -111,12 +111,12 @@ object MainForm: TMainForm
     OnMouseMove = ImgView32MouseMove
     OnMouseUp = ImgView32MouseUp
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     Left = 193
     Top = 16
-    object File1: TMenuItem
+    object MnuFile: TMenuItem
       Caption = '&File'
-      object Exit1: TMenuItem
+      object MnuExit: TMenuItem
         Caption = 'E&xit'
         ShortCut = 27
         OnClick = BtnExitClick
