@@ -7,38 +7,37 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   Math, ExtCtrls, StdCtrls, Menus, GR32, GR32_Polygons, GR32_Image, GR32_Layers,
-  GR32_ColorGradients;
+  GR32_Transforms, GR32_ColorGradients;
 
 type
   TControlButton = class(TPersistent)
   private
     FCenter: TPoint;
     FSize, FSizeSqr: TFloat;
+    FAffineTransformation: TAffineTransformation;
     FOutline: TArrayOfFloatPoint;
-    FPolygonFiller: TCustomPolygonFiller;
     procedure SetCenter(const Value: TPoint);
   public
-    constructor Create(const Center: TPoint; Size: TFloat;
-      Filler: TCustomPolygonFiller);
-    procedure Draw(const Bmp32: TBitmap32);
+    constructor Create(const Center: TPoint; Size: TFloat);
+    destructor Destroy; override;
+    procedure Draw(const Bmp32: TBitmap32; Filler: TCustomPolygonFiller);
     function TestHitPoint(X, Y: Integer): Boolean;
 
     property Center: TPoint read FCenter write SetCenter;
     property Outline: TArrayOfFloatPoint read FOutline;
-    property PolygonFiller: TCustomPolygonFiller read FPolygonFiller write FPolygonFiller;
   end;
 
   TMainForm = class(TForm)
     ImgView32: TImgView32;
     LblColorStopsBottom: TLabel;
     LblColorStopsTop: TLabel;
+    MainMenu: TMainMenu;
     MemoColorStopsBottom: TMemo;
     MemoColorStopsTop: TMemo;
-    Panel1: TPanel;
-    MainMenu1: TMainMenu;
-    File1: TMenuItem;
-    Exit1: TMenuItem;
-    rgEllipseFillStyle: TRadioGroup;
+    MnuExit: TMenuItem;
+    MnuFile: TMenuItem;
+    PnlControl: TPanel;
+    RgpEllipseFillStyle: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnExitClick(Sender: TObject);
@@ -50,7 +49,7 @@ type
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure MemoColorStopsTopChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure rgEllipseFillStyleClick(Sender: TObject);
+    procedure RgpEllipseFillStyleClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -79,6 +78,7 @@ uses
 
 {$IFDEF FPC}
 {$R *.lfm}
+{$R data.res}
 {$ELSE}
 {$R *.dfm}
 {$R data.res}
@@ -303,34 +303,44 @@ end;
 
 { TControlButton }
 
-constructor TControlButton.Create(const Center: TPoint; Size: TFloat;
-  Filler: TCustomPolygonFiller);
+constructor TControlButton.Create(const Center: TPoint; Size: TFloat);
 begin
   inherited Create;
 
   FCenter := Center;
   FSize := Size;
   FSizeSqr := Sqr(FSize);
-  FOutline := Ellipse(Center.X, Center.Y, Size, Size);
-  FPolygonFiller := Filler;
+  FOutline := Circle(0, 0, Size);
+
+  FAffineTransformation := TAffineTransformation.Create;
+  FAffineTransformation.Matrix := IdentityMatrix;
 end;
 
-procedure TControlButton.Draw(const Bmp32: TBitmap32);
+destructor TControlButton.Destroy;
 begin
-  with TRadialGradientSampler(TSamplerFiller(FPolygonFiller).Sampler) do
+  FAffineTransformation.Free;
+  inherited;
+end;
+
+procedure TControlButton.Draw(const Bmp32: TBitmap32;
+  Filler: TCustomPolygonFiller);
+begin
+  with TRadialGradientSampler(TSamplerFiller(Filler).Sampler) do
   begin
     Center := FloatPoint(Self.FCenter.X - 2.5, Self.FCenter.Y - 2.5);
     Radius := 6;
   end;
-  PolygonFS(Bmp32, FOutline, FPolygonFiller, pfWinding);
-  PolylineFS(Bmp32, FOutline, clBlack32, False, 1.0);
+  FAffineTransformation.Matrix[2, 0] := Center.X;
+  FAffineTransformation.Matrix[2, 1] := Center.Y;
+  PolygonFS(Bmp32, FOutline, Filler, pfWinding, FAffineTransformation);
+  PolylineFS(Bmp32, FOutline, clBlack32, False, 1.0, jsMiter, esButt, 4,
+    FAffineTransformation);
 end;
 
 procedure TControlButton.SetCenter(const Value: TPoint);
 begin
   if (FCenter.X = Value.X) and (FCenter.Y = Value.Y) then Exit;
   FCenter := Value;
-  FOutline := Ellipse(Center.X, Center.Y, FSize, FSize);
 end;
 
 function TControlButton.TestHitPoint(X, Y: Integer): Boolean;
@@ -379,14 +389,14 @@ begin
 
   FTextGR32 := LoadPolysFromResource('Graphics32');
 
-  FLinearStartBtn := TControlButton.Create(GR32.Point(100, 125), 4, FControlButtonFiller);
-  FLinearEndBtn  := TControlButton.Create(GR32.Point(300, 125), 4, FControlButtonFiller);
-  FRadialOriginBtn := TControlButton.Create(GR32.Point(250, 350), 4, FControlButtonFiller);
+  FLinearStartBtn := TControlButton.Create(GR32.Point(100, 125), 4);
+  FLinearEndBtn  := TControlButton.Create(GR32.Point(300, 125), 4);
+  FRadialOriginBtn := TControlButton.Create(GR32.Point(250, 350), 4);
 
   with FRadialOriginBtn.Center do
   begin
-    FRadialXBtn := TControlButton.Create(GR32.Point(X - 80, Y), 4, FControlButtonFiller);
-    FRadialYBtn := TControlButton.Create(GR32.Point(X, Y + 40), 4, FControlButtonFiller);
+    FRadialXBtn := TControlButton.Create(GR32.Point(X - 80, Y), 4);
+    FRadialYBtn := TControlButton.Create(GR32.Point(X, Y + 40), 4);
   end;
 
   DrawImage;
@@ -409,9 +419,23 @@ begin
   if FLinearEndBtn.TestHitPoint(X, Y) then
     FControlButton := FLinearEndBtn;
   if FRadialXBtn.TestHitPoint(X, Y) then
-    FControlButton := FRadialXBtn;
+    if ssCtrl in Shift then
+    begin
+      FRadialXBtn.FCenter.X := FRadialOriginBtn.Center.X -
+        Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
+      DrawImage;
+    end
+    else
+      FControlButton := FRadialXBtn;
   if FRadialYBtn.TestHitPoint(X, Y) then
-    FControlButton := FRadialYBtn;
+    if ssCtrl in Shift then
+    begin
+      FRadialYBtn.FCenter.Y := FRadialOriginBtn.Center.Y +
+        Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
+      DrawImage;
+    end
+    else
+      FControlButton := FRadialYBtn;
   if FRadialOriginBtn.TestHitPoint(X, Y) then
     FControlButton := FRadialOriginBtn;
 end;
@@ -527,13 +551,13 @@ begin
 
   //draw the bottom ellipse ...
   PolygonBottom := Ellipse(200, 325, 100, 60);
-  if rgEllipseFillStyle.ItemIndex = SimpleStyle then
+  if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
   begin
     RadialGradFiller := TRadialGradientPolygonFiller.Create;
     try
       StrToArrayColor32Gradient(MemoColorStopsBottom.Lines, RadialGradFiller.Gradient);
-      Delta.X := abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
-      Delta.Y := abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
+      Delta.X := Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
+      Delta.Y := Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
       with FRadialOriginBtn.FCenter do
         RadialGradFiller.EllipseBounds := FloatRect(X - Delta.X, Y - Delta.Y, X + Delta.X, Y + Delta.Y);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, RadialGradFiller);
@@ -560,13 +584,13 @@ begin
   PolyPolygonFS(ImgView32.Bitmap, FTextBottomPoly, clBlack32);
 
   //finally, draw the control buttons ...
-  FLinearStartBtn.Draw(ImgView32.Bitmap);
-  FLinearEndBtn.Draw(ImgView32.Bitmap);
-  FRadialOriginBtn.Draw(ImgView32.Bitmap);
-  if rgEllipseFillStyle.ItemIndex = SimpleStyle then
+  FLinearStartBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
+  FLinearEndBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
+  FRadialOriginBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
+  if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
   begin
-    FRadialXBtn.Draw(ImgView32.Bitmap);
-    FRadialYBtn.Draw(ImgView32.Bitmap);
+    FRadialXBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
+    FRadialYBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
   end;
 end;
 
@@ -586,7 +610,7 @@ begin
     Close;
 end;
 
-procedure TMainForm.rgEllipseFillStyleClick(Sender: TObject);
+procedure TMainForm.RgpEllipseFillStyleClick(Sender: TObject);
 begin
   DrawImage;
 end;

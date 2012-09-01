@@ -1,53 +1,56 @@
 object MainForm: TMainForm
   Left = 225
+  Height = 464
   Top = 177
+  Width = 585
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Filling Polygons with Color Gradients Demo'
-  ClientHeight = 446
+  ClientHeight = 445
   ClientWidth = 585
   Color = clBtnFace
-  Font.Charset = ANSI_CHARSET
+  Font.CharSet = ANSI_CHARSET
   Font.Color = clWindowText
   Font.Height = -12
   Font.Name = 'Arial'
-  Font.Style = []
   KeyPreview = True
-  Menu = MainMenu1
-  OldCreateOrder = False
+  Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyPress = FormKeyPress
-  PixelsPerInch = 96
-  TextHeight = 15
-  object Panel1: TPanel
+  LCLVersion = '1.0.1.3'
+  object PnlControl: TPanel
     Left = 0
+    Height = 445
     Top = 0
     Width = 145
-    Height = 446
     Align = alLeft
+    ClientHeight = 445
+    ClientWidth = 145
     TabOrder = 0
     object LblColorStopsTop: TLabel
       Left = 14
+      Height = 16
       Top = 15
-      Width = 99
-      Height = 15
+      Width = 100
       Caption = 'Color Stops (&Top):'
       FocusControl = MemoColorStopsTop
+      ParentColor = False
     end
     object LblColorStopsBottom: TLabel
       Left = 14
+      Height = 16
       Top = 193
-      Width = 118
-      Height = 15
+      Width = 119
       Caption = 'Color Stops (&Bottom):'
       FocusControl = MemoColorStopsBottom
+      ParentColor = False
     end
     object MemoColorStopsTop: TMemo
       Left = 14
+      Height = 137
       Top = 38
       Width = 108
-      Height = 137
       Lines.Strings = (
         '0.0: clRed32'
         '0.1: clYellow32'
@@ -55,16 +58,17 @@ object MainForm: TMainForm
         '0.5: clAqua32'
         '0.7: clBlue32'
         '0.9: clFuchsia32'
-        '1.0: clRed32')
+        '1.0: clRed32'
+      )
+      OnChange = MemoColorStopsTopChange
       TabOrder = 0
       WordWrap = False
-      OnChange = MemoColorStopsTopChange
     end
     object MemoColorStopsBottom: TMemo
       Left = 14
+      Height = 137
       Top = 216
       Width = 108
-      Height = 137
       Lines.Strings = (
         '0.0: $FFFF0000'
         '0.2: $FFFFFF00'
@@ -72,35 +76,49 @@ object MainForm: TMainForm
         '0.5: $FF00FFFF'
         '0.7: $AA0000FF'
         '0.9: $FFFF00FF'
-        '1.0: $FF00FF00')
+        '1.0: $FF00FF00'
+      )
+      OnChange = MemoColorStopsTopChange
       TabOrder = 1
       WordWrap = False
-      OnChange = MemoColorStopsTopChange
     end
-    object rgEllipseFillStyle: TRadioGroup
+    object RgpEllipseFillStyle: TRadioGroup
       Left = 14
+      Height = 68
       Top = 365
       Width = 110
-      Height = 65
+      AutoFill = True
       Caption = 'Radial &Fill Style'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 50
+      ClientWidth = 106
       ItemIndex = 1
       Items.Strings = (
         'Simple'
-        'SVG')
+        'SVG'
+      )
+      OnClick = RgpEllipseFillStyleClick
       TabOrder = 2
-      OnClick = rgEllipseFillStyleClick
     end
   end
   object ImgView32: TImgView32
     Left = 145
+    Height = 445
     Top = 0
     Width = 440
-    Height = 446
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Size = 16
@@ -111,12 +129,12 @@ object MainForm: TMainForm
     OnMouseMove = ImgView32MouseMove
     OnMouseUp = ImgView32MouseUp
   end
-  object MainMenu1: TMainMenu
-    Left = 193
-    Top = 16
-    object File1: TMenuItem
+  object MainMenu: TMainMenu
+    left = 193
+    top = 16
+    object MnuFile: TMenuItem
       Caption = '&File'
-      object Exit1: TMenuItem
+      object MnuExit: TMenuItem
         Caption = 'E&xit'
         ShortCut = 27
         OnClick = BtnExitClick
