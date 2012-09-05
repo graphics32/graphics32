@@ -372,7 +372,11 @@ begin
   try
     BitmapEditor := TBitmap32Editor.Create(nil);
     try
+      {$IFDEF FPC}
+      BitmapEditor.Bitmap32 := TBitmap32(GetObjectValue);
+      {$ELSE}
       BitmapEditor.Bitmap32 := TBitmap32(Pointer(GetOrdValue));
+      {$ENDIF}
       if BitmapEditor.Execute then
       begin
         SetOrdValue(Longint(BitmapEditor.Bitmap32));

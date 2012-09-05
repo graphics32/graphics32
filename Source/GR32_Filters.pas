@@ -88,7 +88,6 @@ const
   SEmptyBitmap = 'The bitmap is nil';
   SEmptySource = 'The source is nil';
   SEmptyDestination = 'Destination is nil';
-  SNoInPlace = 'In-place operation is not supported here';
 
 type
 { Function Prototypes }
