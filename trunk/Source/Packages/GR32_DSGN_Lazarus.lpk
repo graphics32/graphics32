@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <CONFIG>
   <Package Version="4">
-    <Name Value="GR32_DSGN_L"/>
+    <Name Value="GR32_DSGN_Lazarus"/>
     <Author Value="Team Graphics32"/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -81,7 +81,7 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
     <Type Value="DesignTime"/>
     <RequiredPkgs Count="3">
       <Item1>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item1>
       <Item2>
         <PackageName Value="LCL"/>
