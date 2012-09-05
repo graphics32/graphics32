@@ -78,10 +78,13 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
@@ -104,7 +107,7 @@
     <SearchPaths>
       <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
       <OtherUnitFiles Value="..\..\..\.."/>
-      <UnitOutputDirectory Value=".\$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

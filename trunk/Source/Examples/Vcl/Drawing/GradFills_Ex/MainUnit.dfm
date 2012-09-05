@@ -107,6 +107,7 @@ object MainForm: TMainForm
     ScrollBars.Visibility = svHidden
     OverSize = 0
     TabOrder = 1
+    OnDblClick = ImgView32DblClick
     OnMouseDown = ImgView32MouseDown
     OnMouseMove = ImgView32MouseMove
     OnMouseUp = ImgView32MouseUp
