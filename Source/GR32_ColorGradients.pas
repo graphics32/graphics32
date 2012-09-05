@@ -692,6 +692,7 @@ procedure TLinearGradientPolygonFiller.FillLinePositive(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, Index: Integer;
+  IntScale, IntValue: Integer;
   Colors: array [0..1] of TColor32;
   Scale: TFloat;
   XOffset: array [0..1] of TFloat;
@@ -737,16 +738,19 @@ begin
     if XPos[1] > XPos[0] then
     begin
       Scale := 1 / (XOffset[1] - XOffset[0]);
+      IntScale := Round($7FFFFFFF * Scale);
+      IntValue := Round($7FFFFFFF * (XPos[0] - XOffset[0]) * Scale);
 
       for X := XPos[0] to XPos[1] - 1 do
       begin
-        BlendMemEx(CombineReg(Colors[1], Colors[0],
-          Round($FF * (X - XOffset[0]) * Scale)), Dst^, AlphaValues^);
-        EMMS;
+        BlendMemEx(CombineReg(Colors[1], Colors[0], IntValue shr 23),
+          Dst^, AlphaValues^);
+        IntValue := IntValue + IntScale;
 
         Inc(Dst);
         Inc(AlphaValues);
       end;
+      EMMS;
     end;
 
     // check whether further drawing is still necessary
@@ -771,6 +775,7 @@ procedure TLinearGradientPolygonFiller.FillLineNegative(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, Index: Integer;
+  IntScale, IntValue: Integer;
   Colors: array [0..1] of TColor32;
   BlendMemEx: TBlendMemEx;
   Scale: TFloat;
@@ -817,16 +822,19 @@ begin
     if XPos[1] > XPos[0] then
     begin
       Scale := 1 / (XOffset[1] - XOffset[0]);
+      IntScale := Round($7FFFFFFF * Scale);
+      IntValue := Round($7FFFFFFF * (XPos[0] - XOffset[0]) * Scale);
 
       for X := XPos[0] to XPos[1] - 1 do
       begin
-        BlendMemEx(CombineReg(Colors[1], Colors[0],
-          Round($FF * (X - XOffset[0]) * Scale)), Dst^, AlphaValues^);
-        EMMS;
+        BlendMemEx(CombineReg(Colors[1], Colors[0], IntValue shr 23),
+          Dst^, AlphaValues^);
+        IntValue := IntValue + IntScale;
 
         Inc(Dst);
         Inc(AlphaValues);
       end;
+      EMMS;
     end;
 
     // check whether further drawing is still necessary
