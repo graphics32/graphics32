@@ -50,6 +50,7 @@ type
     procedure MemoColorStopsTopChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure RgpEllipseFillStyleClick(Sender: TObject);
+    procedure ImgView32DblClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -409,6 +410,24 @@ begin
   FRadialOriginBtn.Free;
   FRadialXBtn.Free;
   FRadialYBtn.Free;
+end;
+
+procedure TMainForm.ImgView32DblClick(Sender: TObject);
+begin
+(*
+  FLinearStartBtn.SetCenter(GR32.Point(200, 70));
+  FLinearEndBtn.SetCenter(GR32.Point(200, 170));
+*)
+
+(*
+  FLinearStartBtn.SetCenter(GR32.Point(200, 120));
+  FLinearEndBtn.SetCenter(GR32.Point(200, 120));
+*)
+
+  FLinearStartBtn.SetCenter(GR32.Point(200, 120));
+  FLinearEndBtn.SetCenter(GR32.Point(201, 120));
+
+  DrawImage;
 end;
 
 procedure TMainForm.ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
