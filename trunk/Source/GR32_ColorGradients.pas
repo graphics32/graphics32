@@ -40,7 +40,7 @@ uses
 
 const
   LUTSize = 512;
-  LUTSizeMin1 = LUTSize -1;
+  LUTSizeMin1 = LUTSize - 1;
 
 type
   TColor32Gradient = record
@@ -64,6 +64,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(const GradientColors: array of TColor32Gradient); overload;
+    constructor Create(StartColor, EndColor: TColor32); overload;
 
     procedure ClearColors;
     procedure AddColorStop(Offset: TFloat; Color: TColor32); virtual;
@@ -121,7 +122,6 @@ type
     FGradient: TGradient32;
     FInitialized: Boolean;
   protected
-    FGradientLUT: array [0..LUTSizeMin1] of TColor32;
     procedure OnBeginRendering; override; //flags initialized
     procedure GradientColorsChangedHandler(Sender: TObject);
     procedure GradientFillerChanged; virtual;
@@ -170,7 +170,12 @@ type
     property EndPoint: TFloatPoint read FEndPoint write SetEndPoint;
   end;
 
-  TRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
+  TCustomRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
+  protected
+    FGradientLUT: array [0..LUTSizeMin1] of TColor32;
+  end;
+
+  TRadialGradientPolygonFiller = class(TCustomRadialGradientPolygonFiller)
   private
     FColorBuffer: TArrayOfColor32;
     FCenter: TFloatPoint;
@@ -191,7 +196,7 @@ type
     property EllipseBounds: TFloatRect read FEllipseBounds write SetEllipseBounds;
   end;
 
-  TSVGRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
+  TSVGRadialGradientPolygonFiller = class(TCustomRadialGradientPolygonFiller)
   private
     FColorBuffer: TArrayOfColor32;
 
@@ -229,6 +234,18 @@ const
   clNone32: TColor32 = $00000000;
 
 { TGradient32 }
+
+constructor TGradient32.Create(StartColor, EndColor: TColor32);
+var
+  Temp: array of TColor32Gradient;
+begin
+  SetLength(Temp, 2);
+  Temp[0].Offset := 0;
+  Temp[0].Color32 := StartColor;
+  Temp[1].Offset := 1;
+  Temp[1].Color32 := EndColor;
+  Create(Temp);
+end;
 
 constructor TGradient32.Create(const GradientColors: array of TColor32Gradient);
 begin
@@ -295,7 +312,7 @@ begin
   if Count = 0 then
     Result := clNone32
   else
-    Result := FGradientColors[Count -1].Color32;
+    Result := FGradientColors[Count - 1].Color32;
 end;
 
 function TGradient32.GetColorAt(Fraction: TFloat): TColor32;
@@ -305,7 +322,7 @@ begin
   Count := GradientCount;
   if (Count = 0) or (Fraction <= FGradientColors[0].Offset) then
     Result := StartColor
-  else if (Fraction >= FGradientColors[Count -1].Offset) then
+  else if (Fraction >= FGradientColors[Count - 1].Offset) then
     Result := EndColor
   else
   begin
@@ -313,7 +330,7 @@ begin
     while (I < Count) and (Fraction > FGradientColors[I].Offset) do
       Inc(I);
     Fraction := (Fraction - FGradientColors[I - 1].Offset) /
-      (FGradientColors[I].Offset - FGradientColors[I-1].Offset);
+      (FGradientColors[I].Offset - FGradientColors[I - 1].Offset);
     if Fraction <= 0 then
       Result := FGradientColors[I - 1].Color32
     else if Fraction >= 1 then
@@ -355,13 +372,13 @@ begin
   end;
 
   J := 1;
-  for I := I to HighLUT -1 do
+  for I := I to HighLUT - 1 do
   begin
     while (J < Count) and (Fraction > FGradientColors[J].Offset) do
       Inc(J);
     if J = Count then
     begin
-      for J := I to HighLUT -1 do
+      for J := I to HighLUT - 1 do
         ColorLUT[J] := ColorLUT[HighLUT];
       Break;
     end;
@@ -1102,7 +1119,7 @@ begin
       //    RadXSqrd*2mb(x) + RadXSqrd*b^2 - RadXSqrd*RadYSqrd = 0
 
       //apply quadratic equation ...
-      Qa := (RadYSqrd + RadXSqrd *m*m);
+      Qa := (RadYSqrd + RadXSqrd * m * m);
       Qb := RadXSqrd * 2 * m * b;
       Qc := RadXSqrd * b * b - RadXSqrd * RadYSqrd;
       Qz := Qb * Qb - 4 * Qa * Qc;
