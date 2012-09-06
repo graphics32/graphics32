@@ -413,7 +413,7 @@ begin
    Rx.A := DivTable[Fa xor 255, Ba xor 255] xor 255;
    Wa := RcTable[Rx.A, Fa];
    Fw := @DivTable[Wa];
-   Bw := @DivTable[Wa xor $ff];
+   Bw := @DivTable[Wa xor $FF];
    Rx.R := Fw[Fx.R] + Bw[Bx.R];
    Rx.G := Fw[Fx.G] + Bw[Bx.G];
    Rx.B := Fw[Fx.B] + Bw[Bx.B];
@@ -1450,7 +1450,7 @@ asm
         LEA     EDX,[EDX+DivTable]
         // Result.A := B.A + F.A - PB[F.A];
         SHR     EAX,8
-        //ADD CL,al
+        //ADD CL,AL
         ADD     ECX,EAX
         //SUB CL,[EDX+EAX]
         SUB     ECX,[EDX+EAX]
@@ -1479,7 +1479,7 @@ asm
         AND     ECX,$000000FF
         ADD     EAX,ECX
         MOV     AL,[ESI+EAX]
-        MOV     [ESP+$0a],al
+        MOV     [ESP+$0A],AL
         JMP     @6
 @5:
         // Result.R := PR[Result.R - PF[-X]];
@@ -1489,7 +1489,7 @@ asm
         MOV     CL,[ESP+$0A]
         SUB     ECX,EAX
         MOV     AL,[ESI+ECX]
-        MOV     [ESP+$0A],al
+        MOV     [ESP+$0A],AL
 
 
   { Green component }
@@ -1545,7 +1545,7 @@ asm
         MOV     DL,CL
         ADD     EAX,EDX
         MOV     AL,[ESI+EAX]
-        MOV     [ESP+$08],al
+        MOV     [ESP+$08],AL
         JMP     @10
 @9:
   // Result.B := PR[Result.B - PF[-X]];

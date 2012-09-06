@@ -637,9 +637,7 @@ procedure TLinearGradientPolygonFiller.FillLineVertical(Dst: PColor32; DstX,
 var
   X: Integer;
   Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   Color32 := FGradient.GetColorAt((DstY - FStartPoint.Y) /
     (FEndPoint.Y - FStartPoint.Y));
 
@@ -657,9 +655,7 @@ procedure TLinearGradientPolygonFiller.FillLineVerticalExtreme(Dst: PColor32; Ds
 var
   X: Integer;
   Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   if DstY < FStartPoint.Y then
     Color32 := FGradient.StartColor
   else
@@ -709,9 +705,6 @@ begin
     FillLineSolid(Dst, DstX, DstY, Length, AlphaValues);
     Exit;
   end;
-
-  // more complex rendering necessary
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
 
   // set start color
   Colors[0] := FGradient.FGradientColors[0].Color32;
@@ -777,12 +770,10 @@ var
   X, Index: Integer;
   IntScale, IntValue: Integer;
   Colors: array [0..1] of TColor32;
-  BlendMemEx: TBlendMemEx;
   Scale: TFloat;
   XOffset: array [0..1] of TFloat;
   XPos: array [0..2] of Integer;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   Index := FGradient.GradientCount - 1;
 
   // set first offset/position
