@@ -119,10 +119,10 @@ begin
 end;
 
 function BoxesOverlap(const Box1Center, Box2Center: TFloatPoint;
-  CBoxSize: TFloat): boolean;
+  BoxSize: TFloat): Boolean;
 begin
-  Result := (Abs(Box1Center.X - Box2Center.X) <= CBoxSize) and
-    (Abs(Box1Center.Y - Box2Center.Y) <= CBoxSize);
+  Result := (Abs(Box1Center.X - Box2Center.X) <= BoxSize) and
+    (Abs(Box1Center.Y - Box2Center.Y) <= BoxSize);
 end;
 
 function MakeArrayOfFloat(const Data: array of TFloat): TArrayOfFloat;
@@ -282,9 +282,9 @@ begin
     True, CBorderSize, 1.5);
 
   // now accommodate for CBorderSize width as above ...
-  Box1 := MakeBox(FBoxCenter[0], CBoxSize + CBorderSize);
-  Box2 := MakeBox(FBoxCenter[1], CBoxSize + CBorderSize);
-  if BoxesOverlap(FBoxCenter[0], FBoxCenter[1], CBoxSize) then
+  Box1 := MakeBox(FBoxCenter[0], CBoxSizePlus);
+  Box2 := MakeBox(FBoxCenter[1], CBoxSizePlus);
+  if BoxesOverlap(FBoxCenter[0], FBoxCenter[1], CBoxSizePlus) then
   begin
     StartPoint := FBoxCenter[0];
     EndPoint := FBoxCenter[1];

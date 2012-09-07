@@ -255,7 +255,7 @@ begin
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
       PFixedPoint(Cardinal(P) + Cardinal(H))^, WX), CombineVectorsReg(
       PFixedPoint(Cardinal(P) + Cardinal(W))^,
-      PFixedPoint(Cardinal(P) + W + H)^, WX), WY);
+      PFixedPoint(Cardinal(P) + Cardinal(W) + Cardinal(H))^, WX), WY);
     {$ENDIF}
   end else
   begin
