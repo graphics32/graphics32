@@ -99,6 +99,7 @@ function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTra
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 
 function BuildPolygon(const Data: array of TFloat): TArrayOfFloatPoint;
+function OffsetPolygon(const Points: TArrayOfFloatPoint; Dx, Dy: TFloat): TArrayOfFloatPoint;
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -1178,6 +1179,20 @@ begin
   begin
     Result[Index].X := Data[Index * 2];
     Result[Index].Y := Data[Index * 2 + 1];
+  end;
+end;
+
+function OffsetPolygon(const Points: TArrayOfFloatPoint;
+  Dx, Dy: TFloat): TArrayOfFloatPoint;
+var
+  I, Len: Integer;
+begin
+  Len := Length(Points);
+  SetLength(Result, Len);
+  for I := 0 to Len - 1 do
+  begin
+    Result[I].X := Points[I].X + Dx;
+    Result[I].Y := Points[I].Y + Dy;
   end;
 end;
 
