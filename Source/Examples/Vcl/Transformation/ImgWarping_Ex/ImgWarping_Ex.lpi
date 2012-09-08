@@ -75,7 +75,7 @@
         <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item2>
       <Item3>
         <PackageName Value="LCL"/>

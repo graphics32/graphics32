@@ -73,7 +73,7 @@
         <PackageName Value="LCL"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item3>
     </RequiredPackages>
     <Units Count="2">
