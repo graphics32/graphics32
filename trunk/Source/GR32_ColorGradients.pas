@@ -188,6 +188,10 @@ type
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineVerticalPadExtreme(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
+    procedure FillLineVerticalRepeat(Dst: PColor32;
+      DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineVerticalReflect(Dst: PColor32;
+      DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineHorizontalPadPos(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineHorizontalPadNeg(Dst: PColor32; DstX, DstY,
@@ -209,7 +213,7 @@ type
 
   TRadialGradientPolygonFiller = class(TCustomRadialGradientPolygonFiller)
   private
-    FColorBuffer: TArrayOfColor32;
+    FColorBuffer: TArrayOfColor32; //nb: a color buffer of just one quadrant
     FCenter: TFloatPoint;
     FRadiusX: TFloat;
     FRadiusY: TFloat;
@@ -220,9 +224,15 @@ type
   protected
     procedure OnBeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLineCircle(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32); //nb: a color buffer of just one quadrant
-    procedure FillLineEllipse(Dst: PColor32; DstX, DstY, Length: Integer;
+    procedure FillLineCirclePad(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
+    procedure FillLineEllipsePad(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
+    procedure FillLineCircleRepeat(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
+    procedure FillLineCircleReflect(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
+    procedure FillLineEllipseReflect(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
     property EllipseBounds: TFloatRect read FEllipseBounds write SetEllipseBounds;
@@ -913,11 +923,17 @@ begin
           else
             Result := FillLineHorizontalPadNeg;
         gsReflect:
+          if FStartPoint.X = FEndPoint.X then
+            Result := FillLineVerticalReflect
+          else
           if FStartPoint.X < FEndPoint.X then
             Result := FillLineHorizontalMirrorPos
           else
             Result := FillLineHorizontalMirrorNeg;
         gsRepeat:
+          if FStartPoint.X = FEndPoint.X then
+            Result := FillLineVerticalRepeat
+          else
           if FStartPoint.X < FEndPoint.X then
             Result := FillLineHorizontalRepeatPos
           else
@@ -954,6 +970,42 @@ begin
     Color32 := FGradientLUT[0]
   else
     Color32 := FGradientLUT[LUTSizeMin1];
+
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalReflect(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Color32: TColor32;
+begin
+  Color32 := FGradientLUT[Mirror(Round(LUTSizeMin1 *
+    (DstY - FStartPoint.Y) * FIncline), LUTSizeMin1)];
+
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalRepeat(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Color32: TColor32;
+begin
+  Color32 := FGradientLUT[Wrap(Round(LUTSizeMin1 *
+    (DstY - FStartPoint.Y) * FIncline), LUTSizeMin1)];
 
   for X := DstX to DstX + Length - 1 do
   begin
@@ -1245,14 +1297,27 @@ end;
 
 function TRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-  if FRadiusX = FRadiusY then
-    Result := FillLineCircle
-  else
-    Result := FillLineEllipse;
+  case FSpread of
+    gsPad :
+      if FRadiusX = FRadiusY then
+        Result := FillLineCirclePad
+      else
+        Result := FillLineEllipsePad;
+    gsReflect :
+      if FRadiusX = FRadiusY then
+        Result := FillLineCircleReflect
+      else
+        Result := FillLineEllipseReflect;
+    gsRepeat:
+      if FRadiusX = FRadiusY then
+        Result := FillLineCircleRepeat
+      else
+        Result := FillLineEllipseReflect;
+  end;
 end;
 
-procedure TRadialGradientPolygonFiller.FillLineCircle(Dst: PColor32;
-  DstX, DstY, Length: Integer; AlphaValues: PColor32);
+procedure TRadialGradientPolygonFiller.FillLineCirclePad(Dst: PColor32; DstX,
+  DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
   RelativeRadius: TFloat;
@@ -1277,8 +1342,60 @@ begin
   end;
 end;
 
-procedure TRadialGradientPolygonFiller.FillLineEllipse(Dst: PColor32;
+procedure TRadialGradientPolygonFiller.FillLineCircleReflect(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  RelativeRadius: TFloat;
+  SqrInvRadius: TFloat;
+  YDist: TFloat;
+  Index: Integer;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+begin
+  SqrInvRadius := Sqr(1 / FRadiusX);
+  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  YDist := Sqr(DstY - FCenter.Y);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
+    Index := Mirror(Round($1FF * RelativeRadius), 0, $1FF);
+    Color32 := FGradientLUT[Index];
+    BlendMemEx(Color32 and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TRadialGradientPolygonFiller.FillLineCircleRepeat(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  RelativeRadius: TFloat;
+  SqrInvRadius: TFloat;
+  YDist: TFloat;
+  Index: Integer;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+begin
+  SqrInvRadius := Sqr(1 / FRadiusX);
+  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  YDist := Sqr(DstY - FCenter.Y);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
+    Index := Wrap(Round($1FF * RelativeRadius), 0, $1FF);
+    Color32 := FGradientLUT[Index];
+    BlendMemEx(Color32 and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TRadialGradientPolygonFiller.FillLineEllipsePad(Dst: PColor32; DstX,
+  DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
   Delta: TFloatPoint;
@@ -1300,6 +1417,28 @@ begin
   end;
 end;
 
+procedure TRadialGradientPolygonFiller.FillLineEllipseReflect(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Delta: TFloatPoint;
+  Color32: TColor32;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  Delta.Y := Abs(DstY - FCenter.Y);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    Delta.X := Abs(X - FCenter.X);
+    if (Delta.X >= FRadiusX) or (Delta.Y >= FRadiusY) then
+      Color32 := FGradientLUT[LUTSizeMin1] else
+      Color32 := FColorBuffer[Trunc(Delta.Y * FRadiusX + Delta.X)];
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
 
 {TSVGRadialGradientPolygonFiller}
 

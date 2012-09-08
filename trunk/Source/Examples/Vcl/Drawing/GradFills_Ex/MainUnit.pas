@@ -429,8 +429,13 @@ begin
   FLinearEndBtn.SetCenter(GR32.Point(200, 120));
 *)
 
+(*
   FLinearStartBtn.SetCenter(GR32.Point(200, 120));
   FLinearEndBtn.SetCenter(GR32.Point(201, 120));
+*)
+
+  FLinearStartBtn.SetCenter(GR32.Point(200, 100));
+  FLinearEndBtn.SetCenter(GR32.Point(200, 140));
 
   DrawImage;
 end;
@@ -588,6 +593,15 @@ begin
   if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
   begin
     RadialGradFiller := TRadialGradientPolygonFiller.Create;
+    if MnuPad.Checked then
+      RadialGradFiller.Spread := gsPad
+    else
+    if MnuReflect.Checked then
+      RadialGradFiller.Spread := gsReflect
+    else
+    if MnuRepeat.Checked then
+      RadialGradFiller.Spread := gsRepeat;
+
     try
       StrToArrayColor32Gradient(MemoColorStopsBottom.Lines, RadialGradFiller.Gradient);
       Delta.X := Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
@@ -641,6 +655,7 @@ end;
 procedure TMainForm.MnuSpreadClick(Sender: TObject);
 begin
   TMenuItem(Sender).Checked := True;
+  DrawImage;
 end;
 
 procedure TMainForm.FormKeyPress(Sender: TObject; var Key: Char);
