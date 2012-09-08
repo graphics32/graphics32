@@ -48,7 +48,7 @@ function GetMediaPath: TFileName;
 var
   pathRef: CFURLRef;
   pathCFStr: CFStringRef;
-  pathStr: shortstring;
+  pathStr: ShortString;
 {$ENDIF}
 begin
   if ParamStr(1) <> '' then
@@ -77,6 +77,9 @@ begin
       Result := pathStr + '/Contents/Resources/Media/';
     {$ELSE}
       Result := '../../../Media/';
+      {$IFDEF FPC}
+      Result := '../' + Result;
+      {$ENDIF}  
     {$ENDIF}
   {$ENDIF}
   end;

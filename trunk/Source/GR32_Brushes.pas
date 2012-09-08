@@ -34,7 +34,7 @@ unit GR32_Brushes;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   Classes, GR32, GR32_Polygons, GR32_Transforms;
