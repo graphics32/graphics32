@@ -1490,6 +1490,7 @@ begin
   end;
 end;
 
+{$IFDEF SUPPORT_ENHANCED_RECORDS}
 {$IFNDEF FPC}
 constructor TFloatPoint.Create(P: TPoint);
 begin
@@ -1544,7 +1545,6 @@ begin
   Result.X := 0;
   Result.Y := 0;
 end;
-
 
 {$IFNDEF FPC}
 constructor TFixedPoint.Create(P: TPointF);
@@ -1606,6 +1606,7 @@ begin
   Result.X := 0;
   Result.Y := 0;
 end;
+{$ENDIF}
 
 function FixedPoint(X, Y: Integer): TFixedPoint; overload;
 begin
