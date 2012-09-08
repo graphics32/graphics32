@@ -742,7 +742,7 @@ begin
   if Value < 0 then
     Result := Max + (Value - Max) mod (Max + 1)
   else
-    Result := (Value) mod (Max + 1);
+    Result := Value mod (Max + 1);
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}
