@@ -43,9 +43,9 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LCLType, Types, Controls, Graphics,{$ELSE}
-  Windows, Messages, Controls, Graphics,{$ENDIF}
-  Classes, SysUtils, GR32_System;
+  {$IFDEF FPC} LCLIntf, LCLType, Types, {$ELSE}
+  {$IFDEF COMPILERXE2_UP}Types, {$ENDIF} Windows, {$ENDIF}
+  Controls, Graphics, Classes, SysUtils, GR32_System;
   
 { Version Control }
 
@@ -373,6 +373,23 @@ type
   PFloatPoint = ^TFloatPoint;
   TFloatPoint = record
     X, Y: TFloat;
+  {$IFDEF SUPPORT_ENHANCED_RECORDS}
+  public
+    {$IFNDEF FPC}
+    constructor Create(P: TPointF); overload;
+    constructor Create(P: TPoint); overload;
+    constructor Create(X, Y: Integer); overload;
+    constructor Create(X, Y: Single); overload;
+    {$ENDIF}
+
+    // operator overloads
+    class operator Equal(const Lhs, Rhs: TFloatPoint): Boolean;
+    class operator NotEqual(const Lhs, Rhs: TFloatPoint): Boolean;
+    class operator Add(const Lhs, Rhs: TFloatPoint): TFloatPoint;
+    class operator Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
+
+    class function Zero: TFloatPoint; inline; static;
+  {$ENDIF}
   end;
 
   PFloatPointArray = ^TFloatPointArray;
@@ -385,6 +402,24 @@ type
   PFixedPoint = ^TFixedPoint;
   TFixedPoint = record
     X, Y: TFixed;
+  {$IFDEF SUPPORT_ENHANCED_RECORDS}
+  public
+    {$IFNDEF FPC}
+    constructor Create(P: TPointF); overload;
+    constructor Create(P: TFloatPoint); overload;
+    constructor Create(X, Y: TFixed); overload;
+    constructor Create(X, Y: Integer); overload;
+    constructor Create(X, Y: TFloat); overload;
+    {$ENDIF}
+
+    // operator overloads
+    class operator Equal(const Lhs, Rhs: TFixedPoint): Boolean;
+    class operator NotEqual(const Lhs, Rhs: TFixedPoint): Boolean;
+    class operator Add(const Lhs, Rhs: TFixedPoint): TFixedPoint;
+    class operator Subtract(const Lhs, Rhs: TFixedPoint): TFixedPoint;
+
+    class function Zero: TFixedPoint; inline; static;
+  {$ENDIF}
   end;
 
   PFixedPointArray = ^TFixedPointArray;
@@ -1447,14 +1482,129 @@ begin
 end;
 
 function FloatPoint(const FXP: TFixedPoint): TFloatPoint;
-const
-  F = 1 / 65536;
 begin
   with FXP do
   begin
-    Result.X := X * F;
-    Result.Y := Y * F;
+    Result.X := X * FixedToFloat;
+    Result.Y := Y * FixedToFloat;
   end;
+end;
+
+{$IFNDEF FPC}
+constructor TFloatPoint.Create(P: TPoint);
+begin
+  Self.X := P.X;
+  Self.Y := P.Y;
+end;
+
+constructor TFloatPoint.Create(P: TPointF);
+begin
+  Self.X := P.X;
+  Self.Y := P.Y;
+end;
+
+constructor TFloatPoint.Create(X, Y: Integer);
+begin
+  Self.X := X;
+  Self.Y := Y;
+end;
+
+constructor TFloatPoint.Create(X, Y: TFloat);
+begin
+  Self.X := X;
+  Self.Y := Y;
+end;
+{$ENDIF}
+
+// operator overloads
+class operator TFloatPoint.Equal(const Lhs, Rhs: TFloatPoint): Boolean;
+begin
+  Result := (Lhs.X = Rhs.X) and (Lhs.Y = Rhs.Y);
+end;
+
+class operator TFloatPoint.NotEqual(const Lhs, Rhs: TFloatPoint): Boolean;
+begin
+  Result := (Lhs.X <> Rhs.X) or (Lhs.Y <> Rhs.Y);
+end;
+
+class operator TFloatPoint.Add(const Lhs, Rhs: TFloatPoint): TFloatPoint;
+begin
+  Result.X := Lhs.X + Rhs.X;
+  Result.Y := Lhs.Y + Rhs.Y;
+end;
+
+class operator TFloatPoint.Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
+begin
+  Result.X := Lhs.X - Rhs.X;
+  Result.Y := Lhs.Y - Rhs.Y;
+end;
+
+class function TFloatPoint.Zero: TFloatPoint;
+begin
+  Result.X := 0;
+  Result.Y := 0;
+end;
+
+
+{$IFNDEF FPC}
+constructor TFixedPoint.Create(P: TPointF);
+begin
+  Self.X := Fixed(P.X);
+  Self.Y := Fixed(P.Y);
+end;
+
+constructor TFixedPoint.Create(P: TFloatPoint);
+begin
+  Self.X := Fixed(P.X);
+  Self.Y := Fixed(P.Y);
+end;
+
+constructor TFixedPoint.Create(X, Y: TFixed);
+begin
+  Self.X := X;
+  Self.Y := Y;
+end;
+
+constructor TFixedPoint.Create(X, Y: Integer);
+begin
+  Self.X := Fixed(X);
+  Self.Y := Fixed(Y);
+end;
+
+constructor TFixedPoint.Create(X, Y: TFloat);
+begin
+  Self.X := Fixed(X);
+  Self.Y := Fixed(Y);
+end;
+{$ENDIF}
+
+// operator overloads
+class operator TFixedPoint.Equal(const Lhs, Rhs: TFixedPoint): Boolean;
+begin
+  Result := (Lhs.X = Rhs.X) and (Lhs.Y = Rhs.Y);
+end;
+
+class operator TFixedPoint.NotEqual(const Lhs, Rhs: TFixedPoint): Boolean;
+begin
+  Result := (Lhs.X <> Rhs.X) or (Lhs.Y <> Rhs.Y);
+end;
+
+class operator TFixedPoint.Add(const Lhs, Rhs: TFixedPoint): TFixedPoint;
+begin
+  Result.X := Lhs.X + Rhs.X;
+  Result.Y := Lhs.Y + Rhs.Y;
+end;
+
+class operator TFixedPoint.Subtract(const Lhs, Rhs: TFixedPoint): TFixedPoint;
+begin
+  Result.X := Lhs.X - Rhs.X;
+  Result.Y := Lhs.Y - Rhs.Y;
+end;
+
+class function TFixedPoint.Zero: TFixedPoint;
+begin
+  Result.X := 0;
+  Result.Y := 0;
 end;
 
 function FixedPoint(X, Y: Integer): TFixedPoint; overload;

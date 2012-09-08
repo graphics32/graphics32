@@ -86,7 +86,8 @@ function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; St
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint; overload;
 function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload;
 function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer = 100): TArrayOfFloatPoint;
+function Ellipse(const P, R: TFloatPoint; Steps: Integer = 100): TArrayOfFloatPoint; overload;
+function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -471,36 +472,41 @@ begin
 end;
 
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint;
+begin
+  Ellipse(FloatPoint(X, Y), FloatPoint(Rx, Ry), Steps);
+end;
+
+function Ellipse(const P, R: TFloatPoint; Steps: Integer): TArrayOfFloatPoint;
 var
   I: Integer;
   M: TFloat;
   C, D: TFloatPoint;
 begin
   if Steps <= 0 then
-    Steps := CalculateCircleSteps(Min(Rx, Ry));
+    Steps := CalculateCircleSteps(Min(R.X, R.Y));
 
   SetLength(Result, Steps);
   M := 2 * System.Pi / Steps;
 
   // first item
-  Result[0].X := Rx + X;
-  Result[0].Y := Y;
+  Result[0].X := R.X + P.X;
+  Result[0].Y := P.Y;
 
   // calculate complex offset
   GR32_Math.SinCos(M, C.Y, C.X);
   D := C;
 
   // second item
-  Result[1].X := Rx * D.X + X;
-  Result[1].Y := Ry * D.Y + Y;
+  Result[1].X := R.X * D.X + P.X;
+  Result[1].Y := R.Y * D.Y + P.Y;
 
   // other items
   for I := 2 to Steps - 1 do
   begin
     D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
 
-    Result[I].X := Rx * D.X + X;
-    Result[I].Y := Ry * D.Y + Y;
+    Result[I].X := R.X * D.X + P.X;
+    Result[I].Y := R.Y * D.Y + P.Y;
   end;
 end;
 
