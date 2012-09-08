@@ -38,6 +38,10 @@ type
     MnuFile: TMenuItem;
     PnlControl: TPanel;
     RgpEllipseFillStyle: TRadioGroup;
+    MnuSpreadMethod: TMenuItem;
+    MnuPad: TMenuItem;
+    MnuReflect: TMenuItem;
+    MnuRepeat: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnExitClick(Sender: TObject);
@@ -51,6 +55,7 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure RgpEllipseFillStyleClick(Sender: TObject);
     procedure ImgView32DblClick(Sender: TObject);
+    procedure MnuSpreadClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -539,7 +544,7 @@ procedure TMainForm.DrawImage;
 var
   PolygonTop, PolygonBottom: TArrayOfFloatPoint;
   Delta: TPoint;
-  LinearGradFiller: TLinearGradientPolygonFiller;
+  LinearGradFiller: TCustomLinearGradientPolygonFiller;
   RadialGradFiller: TRadialGradientPolygonFiller;
   SVGStyleRadGradFiller: TSVGRadialGradientPolygonFiller;
 const
@@ -551,11 +556,21 @@ begin
 
   //draw the top ellipse ...
   PolygonTop := Ellipse(200, 125, 100, 60);
-  LinearGradFiller := TLinearGradientPolygonFiller.Create;
+  LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create;
   try
     StrToArrayColor32Gradient(MemoColorStopsTop.Lines, LinearGradFiller.Gradient);
     LinearGradFiller.StartPoint := FloatPoint(FLinearStartBtn.Center);
     LinearGradFiller.EndPoint := FloatPoint(FLinearEndBtn.Center);
+
+    if MnuPad.Checked then
+      LinearGradFiller.Spread := gsPad
+    else
+    if MnuReflect.Checked then
+      LinearGradFiller.Spread := gsReflect
+    else
+    if MnuRepeat.Checked then
+      LinearGradFiller.Spread := gsRepeat;
+
     PolygonFS(ImgView32.Bitmap, PolygonTop, LinearGradFiller);
     PolyLineFS(ImgView32.Bitmap, PolygonTop, ClBlack32, True, 1);
 
@@ -621,6 +636,11 @@ end;
 procedure TMainForm.MemoColorStopsTopChange(Sender: TObject);
 begin
   DrawImage;
+end;
+
+procedure TMainForm.MnuSpreadClick(Sender: TObject);
+begin
+  TMenuItem(Sender).Checked := True;
 end;
 
 procedure TMainForm.FormKeyPress(Sender: TObject; var Key: Char);
