@@ -387,6 +387,8 @@ type
     class operator NotEqual(const Lhs, Rhs: TFloatPoint): Boolean;
     class operator Add(const Lhs, Rhs: TFloatPoint): TFloatPoint;
     class operator Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
+    class operator Explicit(A: TPointF): TFloatPoint;
+    class operator Implicit(A: TPointF): TFloatPoint;
 
     class function Zero: TFloatPoint; inline; static;
   {$ENDIF}
@@ -1538,6 +1540,18 @@ class operator TFloatPoint.Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
 begin
   Result.X := Lhs.X - Rhs.X;
   Result.Y := Lhs.Y - Rhs.Y;
+end;
+
+class operator TFloatPoint.Explicit(A: TPointF): TFloatPoint;
+begin
+  Result.X := A.X;
+  Result.Y := A.Y;
+end;
+
+class operator TFloatPoint.Implicit(A: TPointF): TFloatPoint;
+begin
+  Result.X := A.X;
+  Result.Y := A.Y;
 end;
 
 class function TFloatPoint.Zero: TFloatPoint;
