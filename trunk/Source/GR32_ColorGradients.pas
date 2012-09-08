@@ -117,9 +117,12 @@ type
     property Center: TFloatPoint read GetCenter write SetCenter;
   end;
 
+  TColorGradientSpread = (gsPad, gsReflect, gsRepeat);
+
   TCustomGradientPolygonFiller = class(TCustomPolygonFiller)
   private
     FGradient: TGradient32;
+    FSpread: TColorGradientSpread;
     FInitialized: Boolean;
   protected
     procedure OnBeginRendering; override; //flags initialized
@@ -137,9 +140,10 @@ type
     destructor Destroy; override;
 
     property Gradient: TGradient32 read FGradient;
+    property Spread: TColorGradientSpread read FSpread write FSpread;
   end;
 
-  TLinearGradientPolygonFiller = class(TCustomGradientPolygonFiller)
+  TCustomLinearGradientPolygonFiller = class(TCustomGradientPolygonFiller)
   private
     FIncline: TFloat;
     FStartPoint: TFloatPoint;
@@ -147,14 +151,19 @@ type
     procedure SetStartPoint(const Value: TFloatPoint);
     procedure SetEndPoint(const Value: TFloatPoint);
 
-    function ColorStopToScanLine(Index: Integer; Y: Integer): TFloat;
     procedure UpdateIncline;
   protected
     procedure EndPointChanged;
     procedure StartPointChanged;
+  public
+    property StartPoint: TFloatPoint read FStartPoint write SetStartPoint;
+    property EndPoint: TFloatPoint read FEndPoint write SetEndPoint;
+  end;
 
-    procedure OnBeginRendering; override;
-
+  TLinearGradientPolygonFiller = class(TCustomLinearGradientPolygonFiller)
+  private
+    function ColorStopToScanLine(Index: Integer; Y: Integer): TFloat;
+  protected
     function GetFillLine: TFillLineEvent; override;
 
     procedure FillLineNegative(Dst: PColor32; DstX, DstY, Length: Integer;
@@ -165,9 +174,32 @@ type
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineVerticalExtreme(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
-  public
-    property StartPoint: TFloatPoint read FStartPoint write SetStartPoint;
-    property EndPoint: TFloatPoint read FEndPoint write SetEndPoint;
+  end;
+
+  TLinearGradientLookupTablePolygonFiller = class(TCustomLinearGradientPolygonFiller)
+  private
+    FGradientLUT: array [0..LUTSizeMin1] of TColor32;
+  protected
+    procedure OnBeginRendering; override;
+
+    function GetFillLine: TFillLineEvent; override;
+
+    procedure FillLineVerticalPad(Dst: PColor32;
+      DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineVerticalPadExtreme(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32);
+    procedure FillLineHorizontalPadPos(Dst: PColor32;
+      DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineHorizontalPadNeg(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32);
+    procedure FillLineHorizontalMirrorNeg(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32);
+    procedure FillLineHorizontalMirrorPos(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32);
+    procedure FillLineHorizontalRepeatNeg(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32);
+    procedure FillLineHorizontalRepeatPos(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32);
   end;
 
   TCustomRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
@@ -224,7 +256,7 @@ type
 implementation
 
 uses
-  GR32_Math, GR32_Blend, GR32_Geometry;
+  GR32_LowLevel, GR32_Math, GR32_Blend, GR32_Geometry;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -574,9 +606,9 @@ begin
 end;
 
 
-{TLinearGradientPolygonFiller}
+{ TCustomLinearGradientPolygonFiller }
 
-procedure TLinearGradientPolygonFiller.SetStartPoint(const Value: TFloatPoint);
+procedure TCustomLinearGradientPolygonFiller.SetStartPoint(const Value: TFloatPoint);
 begin
   if (FStartPoint.X <> Value.X) or (FStartPoint.Y <> Value.Y) then
   begin
@@ -585,7 +617,7 @@ begin
   end;
 end;
 
-procedure TLinearGradientPolygonFiller.SetEndPoint(const Value: TFloatPoint);
+procedure TCustomLinearGradientPolygonFiller.SetEndPoint(const Value: TFloatPoint);
 begin
   if (FEndPoint.X <> Value.X) or (FEndPoint.Y <> Value.Y) then
   begin
@@ -594,23 +626,29 @@ begin
   end;
 end;
 
-procedure TLinearGradientPolygonFiller.StartPointChanged;
+procedure TCustomLinearGradientPolygonFiller.StartPointChanged;
 begin
   GradientFillerChanged;
   UpdateIncline;
 end;
 
-procedure TLinearGradientPolygonFiller.EndPointChanged;
+procedure TCustomLinearGradientPolygonFiller.EndPointChanged;
 begin
   GradientFillerChanged;
   UpdateIncline;
 end;
 
-procedure TLinearGradientPolygonFiller.UpdateIncline;
+procedure TCustomLinearGradientPolygonFiller.UpdateIncline;
 begin
   if (FEndPoint.X - FStartPoint.X) <> 0 then
-    FIncline := (FEndPoint.Y - FStartPoint.Y) / (FEndPoint.X - FStartPoint.X);
+    FIncline := (FEndPoint.Y - FStartPoint.Y) / (FEndPoint.X - FStartPoint.X)
+  else
+  if (FEndPoint.Y - FStartPoint.Y) <> 0 then
+    FIncline := 1 / (FEndPoint.Y - FStartPoint.Y);
 end;
+
+
+{ TLinearGradientPolygonFiller }
 
 function TLinearGradientPolygonFiller.ColorStopToScanLine(Index: Integer;
   Y: Integer): TFloat;
@@ -620,14 +658,6 @@ begin
   Offset := FGradient.FGradientColors[Index].Offset;
   Result := (1 - Offset) * FStartPoint.X + Offset * FEndPoint.X +
     ((1 - Offset) * (FStartPoint.Y - Y) + Offset * (FEndPoint.Y - Y)) * FIncline;
-end;
-
-procedure TLinearGradientPolygonFiller.OnBeginRendering;
-begin
-  if not Initialized then
-  begin
-    inherited; //sets initialized = True
-  end;
 end;
 
 function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
@@ -655,8 +685,7 @@ var
   X: Integer;
   Color32: TColor32;
 begin
-  Color32 := FGradient.GetColorAt((DstY - FStartPoint.Y) /
-    (FEndPoint.Y - FStartPoint.Y));
+  Color32 := FGradient.GetColorAt((DstY - FStartPoint.Y) * FIncline);
 
   for X := DstX to DstX + Length - 1 do
   begin
@@ -862,6 +891,273 @@ begin
   FillLineAlpha(Dst, AlphaValues, XPos[2] - XPos[0], Colors[0]);
 end;
 
+
+{ TLinearGradientLookupTablePolygonFiller }
+
+function TLinearGradientLookupTablePolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  case FGradient.GradientCount of
+    0: Result := FillLineNone;
+    1: Result := FillLineSolid;
+    else
+      case FSpread of
+        gsPad:
+          if FStartPoint.X = FEndPoint.X then
+            if FStartPoint.Y = FEndPoint.Y then
+              Result := FillLineVerticalPadExtreme
+            else
+              Result := FillLineVerticalPad
+          else
+          if FStartPoint.X < FEndPoint.X then
+            Result := FillLineHorizontalPadPos
+          else
+            Result := FillLineHorizontalPadNeg;
+        gsReflect:
+          if FStartPoint.X < FEndPoint.X then
+            Result := FillLineHorizontalMirrorPos
+          else
+            Result := FillLineHorizontalMirrorNeg;
+        gsRepeat:
+          if FStartPoint.X < FEndPoint.X then
+            Result := FillLineHorizontalRepeatPos
+          else
+            Result := FillLineHorizontalRepeatNeg;
+      end;
+  end;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalPad(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Color32: TColor32;
+begin
+  Color32 := FGradientLUT[EnsureRange(Round(LUTSizeMin1 *
+    (DstY - FStartPoint.Y) * FIncline), 0, LUTSizeMin1)];
+
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalPadExtreme(Dst: PColor32; DstX,
+  DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Color32: TColor32;
+begin
+  if DstY < FStartPoint.Y then
+    Color32 := FGradientLUT[0]
+  else
+    Color32 := FGradientLUT[LUTSizeMin1];
+
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalPadPos(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X, XPos, Index, Count: Integer;
+  Scale: TFloat;
+  Reverse: Boolean;
+  XOffset: array [0..1] of TFloat;
+begin
+  XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
+  XOffset[1] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
+
+  XPos := Round(XOffset[0]);
+  Count := Round(XOffset[1]) - XPos;
+
+  // check if only a solid start color should be drawn.
+  if XPos >= DstX + Length then
+  begin
+    FillLineAlpha(Dst, AlphaValues, Length, FGradientLUT[0]);
+    Exit;
+  end;
+
+  // check if only a solid end color should be drawn.
+  if XPos + Count < DstX then
+  begin
+    FillLineAlpha(Dst, AlphaValues, Length, FGradientLUT[LUTSizeMin1]);
+    Exit;
+  end;
+
+  Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGradientLUT[EnsureRange(Round((X - XOffset[0]) * Scale), 0,
+      LUTSizeMin1)], Dst^, AlphaValues^);
+    EMMS;
+
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalPadNeg(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X, XPos, Index, Count: Integer;
+  Scale: TFloat;
+  Reverse: Boolean;
+  XOffset: array [0..1] of TFloat;
+begin
+  XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
+  XOffset[1] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
+
+  XPos := Round(XOffset[0]);
+  Count := Round(XOffset[1]) - XPos;
+
+  // check if only a solid start color should be drawn.
+  if XPos >= DstX + Length then
+  begin
+    FillLineAlpha(Dst, AlphaValues, Length, FGradientLUT[LUTSizeMin1]);
+    Exit;
+  end;
+
+  // check if only a solid end color should be drawn.
+  if XPos + Count < DstX then
+  begin
+    FillLineAlpha(Dst, AlphaValues, Length, FGradientLUT[0]);
+    Exit;
+  end;
+
+  Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGradientLUT[EnsureRange(Round((XOffset[1] - X) * Scale), 0,
+      LUTSizeMin1)], Dst^, AlphaValues^);
+    EMMS;
+
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorPos(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X, XPos, Index, Count: Integer;
+  Scale: TFloat;
+  Reverse: Boolean;
+  XOffset: array [0..1] of TFloat;
+begin
+  XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
+  XOffset[1] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
+
+  XPos := Round(XOffset[0]);
+  Count := Round(XOffset[1]) - XPos;
+
+  Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGradientLUT[Mirror(Round((X - XOffset[0]) * Scale),
+      LUTSizeMin1)], Dst^, AlphaValues^);
+    EMMS;
+
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorNeg(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X, XPos, Index, Count: Integer;
+  Scale: TFloat;
+  Reverse: Boolean;
+  XOffset: array [0..1] of TFloat;
+begin
+  XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
+  XOffset[1] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
+
+  XPos := Round(XOffset[0]);
+  Count := Round(XOffset[1]) - XPos;
+
+  Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGradientLUT[Mirror(Round((XOffset[1] - X) * Scale),
+      LUTSizeMin1)], Dst^, AlphaValues^);
+    EMMS;
+
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatPos(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X, XPos, Index, Count: Integer;
+  Scale: TFloat;
+  Reverse: Boolean;
+  XOffset: array [0..1] of TFloat;
+begin
+  XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
+  XOffset[1] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
+
+  XPos := Round(XOffset[0]);
+  Count := Round(XOffset[1]) - XPos;
+
+  Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGradientLUT[Wrap(Round((X - XOffset[0]) * Scale), LUTSizeMin1)],
+      Dst^, AlphaValues^);
+    EMMS;
+
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatNeg(
+  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X, XPos, Index, Count: Integer;
+  Scale: TFloat;
+  Reverse: Boolean;
+  XOffset: array [0..1] of TFloat;
+begin
+  XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
+  XOffset[1] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
+
+  XPos := Round(XOffset[0]);
+  Count := Round(XOffset[1]) - XPos;
+
+  Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(FGradientLUT[Wrap(Round((XOffset[1] - X) * Scale), LUTSizeMin1)],
+      Dst^, AlphaValues^);
+    EMMS;
+
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TLinearGradientLookupTablePolygonFiller.OnBeginRendering;
+begin
+  if not Initialized then
+  begin
+    FGradient.FillColorLookUpTable(FGradientLUT);
+    inherited; //sets initialized = true
+  end;
+end;
 
 
 {TRadialGradientPolygonFiller}

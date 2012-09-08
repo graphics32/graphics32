@@ -123,5 +123,23 @@ object MainForm: TMainForm
         OnClick = BtnExitClick
       end
     end
+    object MnuSpreadMethod: TMenuItem
+      Caption = '&Spread Method'
+      object MnuPad: TMenuItem
+        Caption = '&Pad'
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+      object MnuReflect: TMenuItem
+        Caption = '&Reflect'
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+      object MnuRepeat: TMenuItem
+        Caption = '&Repeat'
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+    end
   end
 end
