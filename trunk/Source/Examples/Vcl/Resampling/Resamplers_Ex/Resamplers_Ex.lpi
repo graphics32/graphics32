@@ -84,7 +84,7 @@
         <PackageName Value="ImagesForLazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item2>
       <Item3>
         <PackageName Value="LCL"/>
@@ -123,7 +123,7 @@
       </Unit2>
       <Unit3>
         <Filename Value="../../../../Packages/GR32_L.pas"/>
-        <UnitName Value="GR32_L"/>
+        <UnitName Value="GR32_Lazarus"/>
         <TopLine Value="1"/>
         <CursorPos X="1" Y="1"/>
         <UsageCount Value="8"/>

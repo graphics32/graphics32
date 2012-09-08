@@ -76,7 +76,7 @@
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item1>
       <Item2>
         <PackageName Value="ImagesForLazarus"/>
