@@ -473,7 +473,7 @@ end;
 
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint;
 begin
-  Ellipse(FloatPoint(X, Y), FloatPoint(Rx, Ry), Steps);
+  Result := Ellipse(FloatPoint(X, Y), FloatPoint(Rx, Ry), Steps);
 end;
 
 function Ellipse(const P, R: TFloatPoint; Steps: Integer): TArrayOfFloatPoint;
