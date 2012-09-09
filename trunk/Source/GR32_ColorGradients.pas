@@ -213,7 +213,6 @@ type
 
   TRadialGradientPolygonFiller = class(TCustomRadialGradientPolygonFiller)
   private
-    FColorBuffer: TArrayOfColor32; //nb: a color buffer of just one quadrant
     FCenter: TFloatPoint;
     FRadiusX: TFloat;
     FRadiusY: TFloat;
@@ -1016,9 +1015,8 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalPadPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, XPos, Index, Count: Integer;
+  X, XPos, Count: Integer;
   Scale: TFloat;
-  Reverse: Boolean;
   XOffset: array [0..1] of TFloat;
 begin
   XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
@@ -1057,9 +1055,8 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalPadNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, XPos, Index, Count: Integer;
+  X, XPos, Count: Integer;
   Scale: TFloat;
-  Reverse: Boolean;
   XOffset: array [0..1] of TFloat;
 begin
   XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
@@ -1098,16 +1095,12 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, XPos, Index, Count: Integer;
+  X: Integer;
   Scale: TFloat;
-  Reverse: Boolean;
   XOffset: array [0..1] of TFloat;
 begin
   XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
   XOffset[1] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
-
-  XPos := Round(XOffset[0]);
-  Count := Round(XOffset[1]) - XPos;
 
   Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
@@ -1124,16 +1117,12 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, XPos, Index, Count: Integer;
+  X: Integer;
   Scale: TFloat;
-  Reverse: Boolean;
   XOffset: array [0..1] of TFloat;
 begin
   XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
   XOffset[1] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
-
-  XPos := Round(XOffset[0]);
-  Count := Round(XOffset[1]) - XPos;
 
   Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
@@ -1150,16 +1139,12 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, XPos, Index, Count: Integer;
+  X: Integer;
   Scale: TFloat;
-  Reverse: Boolean;
   XOffset: array [0..1] of TFloat;
 begin
   XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
   XOffset[1] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
-
-  XPos := Round(XOffset[0]);
-  Count := Round(XOffset[1]) - XPos;
 
   Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
@@ -1176,16 +1161,12 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, XPos, Index, Count: Integer;
+  X: Integer;
   Scale: TFloat;
-  Reverse: Boolean;
   XOffset: array [0..1] of TFloat;
 begin
   XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
   XOffset[1] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
-
-  XPos := Round(XOffset[0]);
-  Count := Round(XOffset[1]) - XPos;
 
   Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
@@ -1232,56 +1213,8 @@ begin
 end;
 
 procedure TRadialGradientPolygonFiller.InitColorBuffer;
-var
-  I,J, RX, RY: Integer;
-  RadiusXDivRadiusY, Rad, Rad2, X, Y: TFloat;
 begin
-  if (FRadiusX = 0) or (FRadiusY = 0) then
-    Exit;
-
   FGradient.FillColorLookUpTable(FGradientLUT);
-
-  RX := Round(FRadiusX);
-  RY := Round(FRadiusY);
-
-  SetLength(FColorBuffer, RX * RY);
-
-  //fill the color buffer using GradientLUT ...
-  if RX = RY then
-  begin
-    for I := 0 to RX - 1 do
-      for J := 0 to RY - 1 do
-      begin
-        Rad := Math.Hypot(I, J); //nb: avoids integer Hypot() in GR32_Math
-        if Rad >= FRadiusX then
-          FColorBuffer[(J * RX) + I] := FGradientLUT[LUTSizeMin1]
-        else
-          FColorBuffer[(J * RX) + I] :=
-            FGradientLUT[Trunc(Rad * LUTSizeMin1 / RX)];
-      end;
-  end else
-  begin
-    RadiusXDivRadiusY := FRadiusX / FRadiusY;
-    for I := 0 to RX - 1 do
-      for J := 0 to RY - 1 do
-      begin
-        Rad := Math.Hypot(I, J); //nb: avoids integer Hypot() in GR32_Math
-        if I = 0 then
-          Rad2 := FRadiusY
-        else if J = 0 then
-          Rad2 := FRadiusX
-        else
-        begin
-          GR32_Math.SinCos(ArcTan(RadiusXDivRadiusY * J / I), Y, X);
-          Rad2 := Hypot(X * FRadiusX, Y * FRadiusY);
-        end;
-        if Rad >= Rad2 then
-          FColorBuffer[(J * RX) + I] := FGradientLUT[LUTSizeMin1]
-        else
-          FColorBuffer[(J * RX) + I] :=
-            FGradientLUT[Round(Rad * LUTSizeMin1 / Rad2)];
-      end;
-  end;
 end;
 
 procedure TRadialGradientPolygonFiller.OnBeginRendering;
@@ -1308,21 +1241,45 @@ end;
 procedure TRadialGradientPolygonFiller.FillLinePad(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X: Integer;
-  RelativeRadius: TFloat;
-  SqrInvRadius: TFloat;
-  YDist: TFloat;
-  Index: Integer;
+  X, Index, Count: Integer;
+  SqrRelRad, RadMax: TFloat;
+  YDist, SqrInvRadius: TFloat;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
-  SqrInvRadius := Sqr(1 / FRadiusX);
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+
+  // small optimization
+  Index := Ceil(FCenter.X - FRadiusX);
+  if Index > DstX then
+  begin
+    Count := Min((Index - DstX), Length);
+    FillLineAlpha(Dst, AlphaValues, Count, FGradientLUT[LUTSizeMin1]);
+    Length := Length - Count;
+    if Length = 0 then
+      Exit;
+    DstX := Index;
+  end;
+
+  // further optimization
+  if Abs(DstY - FCenter.Y) > FRadiusY then
+  begin
+    FillLineAlpha(Dst, AlphaValues, Length, FGradientLUT[LUTSizeMin1]);
+    Exit;
+  end;
+
+  SqrInvRadius := Sqr(1 / FRadiusX);
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
+  RadMax := (Sqr(FRadiusX) + YDist) * SqrInvRadius;
+
   for X := DstX to DstX + Length - 1 do
   begin
-    RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
-    Index := EnsureRange(Round($1FF * RelativeRadius), 0, $1FF);
+    SqrRelRad := (Sqr(X - FCenter.X) + YDist) * SqrInvRadius;
+    if SqrRelRad > RadMax then
+      Index := LUTSizeMin1
+    else
+      Index := Min(Round(LUTSizeMin1 * FastSqrt(SqrRelRad)), LUTSizeMin1);
+
     Color32 := FGradientLUT[Index];
     BlendMemEx(Color32 and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
     EMMS;
@@ -1334,11 +1291,9 @@ end;
 procedure TRadialGradientPolygonFiller.FillLineReflect(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X: Integer;
-  RelativeRadius: TFloat;
+  X, Index, DivResult: Integer;
   SqrInvRadius: TFloat;
   YDist: TFloat;
-  Index: Integer;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
@@ -1347,8 +1302,11 @@ begin
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   for X := DstX to DstX + Length - 1 do
   begin
-    RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
-    Index := Mirror(Round($1FF * RelativeRadius), 0, $1FF);
+    Index := Round(LUTSizeMin1 * FastSqrt((Sqr(X - FCenter.X) + YDist)
+      * SqrInvRadius));
+    DivResult := DivMod(Index, LUTSize, Index);
+    if Odd(DivResult) then
+      Index := LUTSizeMin1 - Index;
     Color32 := FGradientLUT[Index];
     BlendMemEx(Color32 and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
     EMMS;
@@ -1361,10 +1319,7 @@ procedure TRadialGradientPolygonFiller.FillLineRepeat(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
-  RelativeRadius: TFloat;
-  SqrInvRadius: TFloat;
-  YDist: TFloat;
-  Index: Integer;
+  YDist, SqrInvRadius: TFloat;
   Color32: TColor32;
   BlendMemEx: TBlendMemEx;
 begin
@@ -1373,9 +1328,8 @@ begin
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   for X := DstX to DstX + Length - 1 do
   begin
-    RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
-    Index := Wrap(Round($1FF * RelativeRadius), 0, $1FF);
-    Color32 := FGradientLUT[Index];
+    Color32 := FGradientLUT[Round(LUTSizeMin1 *
+      FastSqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius)) mod LUTSize];
     BlendMemEx(Color32 and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
     EMMS;
     Inc(Dst);
