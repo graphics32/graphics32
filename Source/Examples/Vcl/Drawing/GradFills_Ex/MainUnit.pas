@@ -29,11 +29,9 @@ type
 
   TMainForm = class(TForm)
     ImgView32: TImgView32;
-    LblColorStopsBottom: TLabel;
     LblColorStopsTop: TLabel;
     MainMenu: TMainMenu;
-    MemoColorStopsBottom: TMemo;
-    MemoColorStopsTop: TMemo;
+    MemoColorStops: TMemo;
     MnuExit: TMenuItem;
     MnuFile: TMenuItem;
     PnlControl: TPanel;
@@ -42,6 +40,13 @@ type
     MnuPad: TMenuItem;
     MnuReflect: TMenuItem;
     MnuRepeat: TMenuItem;
+    RgpSpreadMethod: TRadioGroup;
+    MnuFileOpen: TMenuItem;
+    N1: TMenuItem;
+    MnuFileSaveAs: TMenuItem;
+    OpenDialog: TOpenDialog;
+    SaveDialog: TSaveDialog;
+    BtnDefaults: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnExitClick(Sender: TObject);
@@ -51,11 +56,15 @@ type
       Y: Integer; Layer: TCustomLayer);
     procedure ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure MemoColorStopsTopChange(Sender: TObject);
+    procedure MemoColorStopsChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure RgpEllipseFillStyleClick(Sender: TObject);
     procedure ImgView32DblClick(Sender: TObject);
     procedure MnuSpreadClick(Sender: TObject);
+    procedure RgpSpreadMethodClick(Sender: TObject);
+    procedure MnuFileOpenClick(Sender: TObject);
+    procedure MnuFileSaveAsClick(Sender: TObject);
+    procedure BtnDefaultsClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -67,6 +76,7 @@ type
     FRadialYBtn: TControlButton;
     FLinearBounds: TRect;
     FRadialBounds: TRect;
+    FGradient: TGradient32;
     FTextNotesPoly: TArrayOfArrayOfFloatPoint;
     FTextTopPoly: TArrayOfArrayOfFloatPoint;
     FTextBottomPoly: TArrayOfArrayOfFloatPoint;
@@ -366,6 +376,9 @@ begin
   FLinearBounds := Rect(50, 50, 350, 200);
   FRadialBounds := Rect(50, 250, 350, 400);
 
+  FGradient := TGradient32.Create;
+  StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
+
   FRadialGradientSampler := TRadialGradientSampler.Create;
   FRadialGradientSampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
   FRadialGradientSampler.Gradient.AddColorStop(1.0, $FFA0A0A0);
@@ -410,6 +423,7 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
+  FGradient.Free;
   FLinearStartBtn.Free;
   FLinearEndBtn.Free;
   FRadialOriginBtn.Free;
@@ -419,23 +433,28 @@ end;
 
 procedure TMainForm.ImgView32DblClick(Sender: TObject);
 begin
-(*
-  FLinearStartBtn.SetCenter(GR32.Point(200, 70));
-  FLinearEndBtn.SetCenter(GR32.Point(200, 170));
-*)
-
-(*
-  FLinearStartBtn.SetCenter(GR32.Point(200, 120));
-  FLinearEndBtn.SetCenter(GR32.Point(200, 120));
-*)
-
-(*
-  FLinearStartBtn.SetCenter(GR32.Point(200, 120));
-  FLinearEndBtn.SetCenter(GR32.Point(201, 120));
-*)
-
-  FLinearStartBtn.SetCenter(GR32.Point(200, 100));
-  FLinearEndBtn.SetCenter(GR32.Point(200, 140));
+  case 0 of
+    0:
+      begin
+        FLinearStartBtn.SetCenter(GR32.Point(200, 70));
+        FLinearEndBtn.SetCenter(GR32.Point(200, 170));
+      end;
+    1:
+      begin
+        FLinearStartBtn.SetCenter(GR32.Point(200, 120));
+        FLinearEndBtn.SetCenter(GR32.Point(200, 120));
+      end;
+    2:
+      begin
+        FLinearStartBtn.SetCenter(GR32.Point(200, 120));
+        FLinearEndBtn.SetCenter(GR32.Point(201, 120));
+      end;
+    3:
+      begin
+        FLinearStartBtn.SetCenter(GR32.Point(200, 100));
+        FLinearEndBtn.SetCenter(GR32.Point(200, 140));
+      end;
+  end;
 
   DrawImage;
 end;
@@ -528,7 +547,6 @@ begin
     Screen.Cursor := crHandPoint;
   end else
   begin
-
     if FLinearStartBtn.TestHitPoint(X, Y) or
       FLinearEndBtn.TestHitPoint(X, Y) or
       FRadialOriginBtn.TestHitPoint(X, Y) or
@@ -561,20 +579,11 @@ begin
 
   //draw the top ellipse ...
   PolygonTop := Ellipse(200, 125, 100, 60);
-  LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create;
+  LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create(FGradient);
   try
-    StrToArrayColor32Gradient(MemoColorStopsTop.Lines, LinearGradFiller.Gradient);
     LinearGradFiller.StartPoint := FloatPoint(FLinearStartBtn.Center);
     LinearGradFiller.EndPoint := FloatPoint(FLinearEndBtn.Center);
-
-    if MnuPad.Checked then
-      LinearGradFiller.Spread := gsPad
-    else
-    if MnuReflect.Checked then
-      LinearGradFiller.Spread := gsReflect
-    else
-    if MnuRepeat.Checked then
-      LinearGradFiller.Spread := gsRepeat;
+    LinearGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
 
     PolygonFS(ImgView32.Bitmap, PolygonTop, LinearGradFiller);
     PolyLineFS(ImgView32.Bitmap, PolygonTop, ClBlack32, True, 1);
@@ -583,7 +592,7 @@ begin
     LinearGradFiller.StartPoint := FloatPoint(230, 420);
     LinearGradFiller.EndPoint := FloatPoint(430, 420);
     PolyPolygonFS(ImgView32.Bitmap, FTextGR32, LinearGradFiller);
-    PolyPolylineFS(ImgView32.Bitmap, FTextGR32, clBlack32, true, 1.2);
+    PolyPolylineFS(ImgView32.Bitmap, FTextGR32, clBlack32, True, 1.2);
   finally
     LinearGradFiller.Free;
   end;
@@ -592,18 +601,9 @@ begin
   PolygonBottom := Ellipse(200, 325, 100, 60);
   if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
   begin
-    RadialGradFiller := TRadialGradientPolygonFiller.Create;
-    if MnuPad.Checked then
-      RadialGradFiller.Spread := gsPad
-    else
-    if MnuReflect.Checked then
-      RadialGradFiller.Spread := gsReflect
-    else
-    if MnuRepeat.Checked then
-      RadialGradFiller.Spread := gsRepeat;
-
+    RadialGradFiller := TRadialGradientPolygonFiller.Create(FGradient);
     try
-      StrToArrayColor32Gradient(MemoColorStopsBottom.Lines, RadialGradFiller.Gradient);
+      RadialGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
       Delta.X := Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
       Delta.Y := Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
       with FRadialOriginBtn.FCenter do
@@ -616,7 +616,7 @@ begin
   begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create;
     try
-      StrToArrayColor32Gradient(MemoColorStopsBottom.Lines, SVGStyleRadGradFiller.Gradient);
+      StrToArrayColor32Gradient(MemoColorStops.Lines, SVGStyleRadGradFiller.Gradient);
       SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
@@ -642,18 +642,49 @@ begin
   end;
 end;
 
+procedure TMainForm.BtnDefaultsClick(Sender: TObject);
+begin
+  with MemoColorStops do
+  begin
+    Clear;
+    Lines.BeginUpdate;
+    Lines.Add('0.0: clRed32');
+    Lines.Add('0.1: clYellow32');
+    Lines.Add('0.3: clLime32');
+    Lines.Add('0.5: $AA00FFFF');
+    Lines.Add('0.7: clBlue32');
+    Lines.Add('0.9: clFuchsia32');
+    Lines.Add('1.0: $80FF0000');
+    Lines.EndUpdate;
+  end;
+end;
+
 procedure TMainForm.BtnExitClick(Sender: TObject);
 begin
   Close;
 end;
 
-procedure TMainForm.MemoColorStopsTopChange(Sender: TObject);
+procedure TMainForm.MemoColorStopsChange(Sender: TObject);
 begin
+  StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
   DrawImage;
+end;
+
+procedure TMainForm.MnuFileOpenClick(Sender: TObject);
+begin
+  if OpenDialog.Execute then
+    MemoColorStops.Lines.LoadFromFile(OpenDialog.FileName);
+end;
+
+procedure TMainForm.MnuFileSaveAsClick(Sender: TObject);
+begin
+  if SaveDialog.Execute then
+    MemoColorStops.Lines.SaveToFile(SaveDialog.FileName);
 end;
 
 procedure TMainForm.MnuSpreadClick(Sender: TObject);
 begin
+  RgpSpreadMethod.ItemIndex := TMenuItem(Sender).Tag;
   TMenuItem(Sender).Checked := True;
   DrawImage;
 end;
@@ -666,6 +697,16 @@ end;
 
 procedure TMainForm.RgpEllipseFillStyleClick(Sender: TObject);
 begin
+  DrawImage;
+end;
+
+procedure TMainForm.RgpSpreadMethodClick(Sender: TObject);
+begin
+  case RgpSpreadMethod.ItemIndex of
+    0: MnuPad.Checked := True;
+    1: MnuReflect.Checked := True;
+    2: MnuRepeat.Checked := True;
+  end;
   DrawImage;
 end;
 

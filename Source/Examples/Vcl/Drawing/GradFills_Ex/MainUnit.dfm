@@ -30,52 +30,27 @@ object MainForm: TMainForm
     object LblColorStopsTop: TLabel
       Left = 14
       Top = 15
-      Width = 99
+      Width = 68
       Height = 15
-      Caption = 'Color Stops (&Top):'
-      FocusControl = MemoColorStopsTop
+      Caption = 'Color Stops:'
+      FocusControl = MemoColorStops
     end
-    object LblColorStopsBottom: TLabel
-      Left = 14
-      Top = 193
-      Width = 118
-      Height = 15
-      Caption = 'Color Stops (&Bottom):'
-      FocusControl = MemoColorStopsBottom
-    end
-    object MemoColorStopsTop: TMemo
+    object MemoColorStops: TMemo
       Left = 14
       Top = 38
       Width = 108
-      Height = 137
+      Height = 139
       Lines.Strings = (
         '0.0: clRed32'
         '0.1: clYellow32'
         '0.3: clLime32'
-        '0.5: clAqua32'
+        '0.5: $AA00FFFF'
         '0.7: clBlue32'
         '0.9: clFuchsia32'
-        '1.0: clRed32')
+        '1.0: $80FF0000')
       TabOrder = 0
       WordWrap = False
-      OnChange = MemoColorStopsTopChange
-    end
-    object MemoColorStopsBottom: TMemo
-      Left = 14
-      Top = 216
-      Width = 108
-      Height = 137
-      Lines.Strings = (
-        '0.0: $FFFF0000'
-        '0.2: $FFFFFF00'
-        '0.3: $FF00FF00'
-        '0.5: $FF00FFFF'
-        '0.7: $AA0000FF'
-        '0.9: $FFFF00FF'
-        '1.0: $FF00FF00')
-      TabOrder = 1
-      WordWrap = False
-      OnChange = MemoColorStopsTopChange
+      OnChange = MemoColorStopsChange
     end
     object RgpEllipseFillStyle: TRadioGroup
       Left = 14
@@ -87,8 +62,31 @@ object MainForm: TMainForm
       Items.Strings = (
         'Simple'
         'SVG')
-      TabOrder = 2
+      TabOrder = 1
       OnClick = RgpEllipseFillStyleClick
+    end
+    object RgpSpreadMethod: TRadioGroup
+      Left = 14
+      Top = 264
+      Width = 110
+      Height = 95
+      Caption = 'Spread Method'
+      ItemIndex = 0
+      Items.Strings = (
+        'Pad'
+        'Reflect'
+        'Repeat')
+      TabOrder = 2
+      OnClick = RgpSpreadMethodClick
+    end
+    object BtnDefaults: TButton
+      Left = 32
+      Top = 183
+      Width = 75
+      Height = 25
+      Caption = '&Defaults'
+      TabOrder = 3
+      OnClick = BtnDefaultsClick
     end
   end
   object ImgView32: TImgView32
@@ -117,6 +115,17 @@ object MainForm: TMainForm
     Top = 16
     object MnuFile: TMenuItem
       Caption = '&File'
+      object MnuFileOpen: TMenuItem
+        Caption = 'Open...'
+        OnClick = MnuFileOpenClick
+      end
+      object MnuFileSaveAs: TMenuItem
+        Caption = 'Save As...'
+        OnClick = MnuFileSaveAsClick
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
       object MnuExit: TMenuItem
         Caption = 'E&xit'
         ShortCut = 27
@@ -127,19 +136,33 @@ object MainForm: TMainForm
       Caption = '&Spread Method'
       object MnuPad: TMenuItem
         Caption = '&Pad'
+        Checked = True
         RadioItem = True
         OnClick = MnuSpreadClick
       end
       object MnuReflect: TMenuItem
+        Tag = 1
         Caption = '&Reflect'
         RadioItem = True
         OnClick = MnuSpreadClick
       end
       object MnuRepeat: TMenuItem
+        Tag = 2
         Caption = '&Repeat'
         RadioItem = True
         OnClick = MnuSpreadClick
       end
     end
+  end
+  object OpenDialog: TOpenDialog
+    DefaultExt = '.stops.txt'
+    Left = 192
+    Top = 80
+  end
+  object SaveDialog: TSaveDialog
+    DefaultExt = '.stops.txt'
+    Filter = 'Color Stops (*.stops.txt)|*.stops.txt'
+    Left = 192
+    Top = 136
   end
 end
