@@ -100,7 +100,7 @@ function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTra
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint;
 
 function BuildPolygon(const Data: array of TFloat): TArrayOfFloatPoint;
-function OffsetPolygon(const Points: TArrayOfFloatPoint; Dx, Dy: TFloat): TArrayOfFloatPoint;
+function TranslatePolygon(const Points: TArrayOfFloatPoint; Dx, Dy: TFloat): TArrayOfFloatPoint;
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -1188,7 +1188,7 @@ begin
   end;
 end;
 
-function OffsetPolygon(const Points: TArrayOfFloatPoint;
+function TranslatePolygon(const Points: TArrayOfFloatPoint;
   Dx, Dy: TFloat): TArrayOfFloatPoint;
 var
   I, Len: Integer;
