@@ -217,6 +217,7 @@ type
     FCenter: TFloatPoint;
     FRadiusX: TFloat;
     FRadiusY: TFloat;
+    FRadScale: TFloat;
 
     FEllipseBounds: TFloatRect;
     procedure SetEllipseBounds(const Value: TFloatRect);
@@ -224,15 +225,11 @@ type
   protected
     procedure OnBeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLineCirclePad(Dst: PColor32; DstX, DstY, Length: Integer;
+    procedure FillLinePad(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
-    procedure FillLineEllipsePad(Dst: PColor32; DstX, DstY, Length: Integer;
+    procedure FillLineRepeat(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
-    procedure FillLineCircleRepeat(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32);
-    procedure FillLineCircleReflect(Dst: PColor32; DstX, DstY, Length: Integer;
-      AlphaValues: PColor32);
-    procedure FillLineEllipseReflect(Dst: PColor32; DstX, DstY, Length: Integer;
+    procedure FillLineReflect(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
     property EllipseBounds: TFloatRect read FEllipseBounds write SetEllipseBounds;
@@ -1230,6 +1227,7 @@ begin
       GradientFillerChanged;
   FRadiusX := Radius.X;
   FRadiusY := Radius.Y;
+  FRadScale := Radius.X / Radius.Y;
   FEllipseBounds := Value;
 end;
 
@@ -1299,24 +1297,15 @@ function TRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   case FSpread of
     gsPad :
-      if FRadiusX = FRadiusY then
-        Result := FillLineCirclePad
-      else
-        Result := FillLineEllipsePad;
+      Result := FillLinePad;
     gsReflect :
-      if FRadiusX = FRadiusY then
-        Result := FillLineCircleReflect
-      else
-        Result := FillLineEllipseReflect;
+      Result := FillLineReflect;
     gsRepeat:
-      if FRadiusX = FRadiusY then
-        Result := FillLineCircleRepeat
-      else
-        Result := FillLineEllipseReflect;
+      Result := FillLineRepeat;
   end;
 end;
 
-procedure TRadialGradientPolygonFiller.FillLineCirclePad(Dst: PColor32; DstX,
+procedure TRadialGradientPolygonFiller.FillLinePad(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
@@ -1329,7 +1318,7 @@ var
 begin
   SqrInvRadius := Sqr(1 / FRadiusX);
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  YDist := Sqr(DstY - FCenter.Y);
+  YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   for X := DstX to DstX + Length - 1 do
   begin
     RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
@@ -1342,7 +1331,7 @@ begin
   end;
 end;
 
-procedure TRadialGradientPolygonFiller.FillLineCircleReflect(Dst: PColor32;
+procedure TRadialGradientPolygonFiller.FillLineReflect(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
@@ -1355,7 +1344,7 @@ var
 begin
   SqrInvRadius := Sqr(1 / FRadiusX);
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  YDist := Sqr(DstY - FCenter.Y);
+  YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   for X := DstX to DstX + Length - 1 do
   begin
     RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
@@ -1368,7 +1357,7 @@ begin
   end;
 end;
 
-procedure TRadialGradientPolygonFiller.FillLineCircleRepeat(Dst: PColor32;
+procedure TRadialGradientPolygonFiller.FillLineRepeat(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
@@ -1381,7 +1370,7 @@ var
 begin
   SqrInvRadius := Sqr(1 / FRadiusX);
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  YDist := Sqr(DstY - FCenter.Y);
+  YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   for X := DstX to DstX + Length - 1 do
   begin
     RelativeRadius := Sqrt((Sqr(X - FCenter.X) + YDist) * SqrInvRadius);
@@ -1394,6 +1383,7 @@ begin
   end;
 end;
 
+(*
 procedure TRadialGradientPolygonFiller.FillLineEllipsePad(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 var
@@ -1416,29 +1406,7 @@ begin
     Inc(AlphaValues);
   end;
 end;
-
-procedure TRadialGradientPolygonFiller.FillLineEllipseReflect(Dst: PColor32;
-  DstX, DstY, Length: Integer; AlphaValues: PColor32);
-var
-  X: Integer;
-  Delta: TFloatPoint;
-  Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
-begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Delta.Y := Abs(DstY - FCenter.Y);
-  for X := DstX to DstX + Length - 1 do
-  begin
-    Delta.X := Abs(X - FCenter.X);
-    if (Delta.X >= FRadiusX) or (Delta.Y >= FRadiusY) then
-      Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FColorBuffer[Trunc(Delta.Y * FRadiusX + Delta.X)];
-    BlendMemEx(Color32, Dst^, AlphaValues^);
-    EMMS;
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-end;
+*)
 
 {TSVGRadialGradientPolygonFiller}
 
@@ -1542,7 +1510,7 @@ begin
       end;
 
       //equation of line: y = mx + b
-      m := (J - FFocalPt.Y)/(I - FFocalPt.X);
+      m := (J - FFocalPt.Y) / (I - FFocalPt.X);
       b := FFocalPt.Y - m * FFocalPt.X;
       //equation of ellipse ...
       //  x^2/RadXSqrd + y^2/RadYSqrd = 1
