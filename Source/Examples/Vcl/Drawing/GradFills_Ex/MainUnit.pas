@@ -92,6 +92,7 @@ type
     FLinearBounds: TRect;
     FRadialBounds: TRect;
     FGradient: TGradient32;
+    FGradientLUT: TColor32LookupTable;
     FTextNotesPoly: TArrayOfArrayOfFloatPoint;
     FTextTopPoly: TArrayOfArrayOfFloatPoint;
     FTextBottomPoly: TArrayOfArrayOfFloatPoint;
@@ -394,6 +395,9 @@ begin
   FGradient := TGradient32.Create;
   StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
 
+  FGradientLUT := TColor32LookupTable.Create;
+  FGradient.FillColorLookUpTable(FGradientLUT);
+
   FRadialGradientSampler := TRadialGradientSampler.Create;
   FRadialGradientSampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
   FRadialGradientSampler.Gradient.AddColorStop(1.0, $FFA0A0A0);
@@ -596,11 +600,8 @@ begin
 
   //draw the top ellipse ...
   PolygonTop := Ellipse(200, 125, 100, 60);
-  LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create(FGradient);
+  LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create(FGradientLUT);
   try
-    if LinearGradFiller is TLinearGradientLookupTablePolygonFiller then
-      with TLinearGradientLookupTablePolygonFiller(LinearGradFiller) do
-        GradientLUT.Order := 4 + CmbLUT.ItemIndex;
     LinearGradFiller.StartPoint := FloatPoint(FLinearStartBtn.Center);
     LinearGradFiller.EndPoint := FloatPoint(FLinearEndBtn.Center);
     LinearGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
@@ -621,9 +622,8 @@ begin
   PolygonBottom := Ellipse(200, 325, 100, 60);
   if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
   begin
-    RadialGradFiller := TRadialGradientPolygonFiller.Create(FGradient);
+    RadialGradFiller := TRadialGradientPolygonFiller.Create(FGradientLUT);
     try
-      RadialGradFiller.GradientLUT.Order := 4 + CmbLUT.ItemIndex;
       RadialGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
       Delta.X := Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
       Delta.Y := Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
@@ -636,10 +636,8 @@ begin
     end;
   end else
   begin
-    SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create;
+    SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create(FGradientLUT);
     try
-      SVGStyleRadGradFiller.GradientLUT.Order := 4 + CmbLUT.ItemIndex;
-      StrToArrayColor32Gradient(MemoColorStops.Lines, SVGStyleRadGradFiller.Gradient);
       SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
@@ -697,12 +695,15 @@ begin
     4: MnuOrder8.Checked := True;
     5: MnuOrder9.Checked := True;
   end;
+  FGradientLUT.Order := 4 + CmbLUT.ItemIndex;
   DrawImage;
 end;
 
 procedure TMainForm.MemoColorStopsChange(Sender: TObject);
 begin
   StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
+  FGradient.FillColorLookUpTable(FGradientLUT);
+
   DrawImage;
 end;
 
@@ -722,6 +723,7 @@ procedure TMainForm.MnuOrderClick(Sender: TObject);
 begin
   CmbLUT.ItemIndex := TMenuItem(Sender).Tag;
   TMenuItem(Sender).Checked := True;
+  FGradientLUT.Order := 4 + CmbLUT.ItemIndex;
   DrawImage;
 end;
 
