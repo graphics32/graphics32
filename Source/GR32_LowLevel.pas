@@ -171,9 +171,13 @@ uses
 function Clamp(const Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
- if Value > 255 then Result := 255
-  else if Value < 0 then Result := 0
-  else Result := Value;
+ if Value > 255 then
+   Result := 255
+ else
+ if Value < 0 then
+   Result := 0
+ else
+   Result := Value;
 {$ELSE}
 asm
 {$IFDEF TARGET_x64}

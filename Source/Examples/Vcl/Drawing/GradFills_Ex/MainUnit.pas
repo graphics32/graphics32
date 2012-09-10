@@ -29,8 +29,10 @@ type
 
   TMainForm = class(TForm)
     BtnDefaults: TButton;
+    CmbLUT: TComboBox;
     ImgView32: TImgView32;
     LblColorStopsTop: TLabel;
+    LblLookupTableOrder: TLabel;
     MainMenu: TMainMenu;
     MemoColorStops: TMemo;
     MnuExit: TMenuItem;
@@ -47,6 +49,9 @@ type
     RgpEllipseFillStyle: TRadioGroup;
     RgpSpreadMethod: TRadioGroup;
     SaveDialog: TSaveDialog;
+    MnuRadialFillStyle: TMenuItem;
+    MnuSimple: TMenuItem;
+    MnuSVG: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnExitClick(Sender: TObject);
@@ -65,6 +70,8 @@ type
     procedure MnuFileOpenClick(Sender: TObject);
     procedure MnuFileSaveAsClick(Sender: TObject);
     procedure BtnDefaultsClick(Sender: TObject);
+    procedure CmbLUTChange(Sender: TObject);
+    procedure MnuRadialFillStyleClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -583,6 +590,9 @@ begin
   PolygonTop := Ellipse(200, 125, 100, 60);
   LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create(FGradient);
   try
+    if LinearGradFiller is TLinearGradientLookupTablePolygonFiller then
+      with TLinearGradientLookupTablePolygonFiller(LinearGradFiller) do
+        GradientLUT.Order := 4 + CmbLUT.ItemIndex;
     LinearGradFiller.StartPoint := FloatPoint(FLinearStartBtn.Center);
     LinearGradFiller.EndPoint := FloatPoint(FLinearEndBtn.Center);
     LinearGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
@@ -605,11 +615,13 @@ begin
   begin
     RadialGradFiller := TRadialGradientPolygonFiller.Create(FGradient);
     try
+      RadialGradFiller.GradientLUT.Order := 4 + CmbLUT.ItemIndex;
       RadialGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
       Delta.X := Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
       Delta.Y := Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
       with FRadialOriginBtn.FCenter do
-        RadialGradFiller.EllipseBounds := FloatRect(X - Delta.X, Y - Delta.Y, X + Delta.X, Y + Delta.Y);
+        RadialGradFiller.EllipseBounds := FloatRect(X - Delta.X, Y - Delta.Y,
+          X + Delta.X, Y + Delta.Y);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, RadialGradFiller);
     finally
       RadialGradFiller.Free;
@@ -618,6 +630,7 @@ begin
   begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create;
     try
+      SVGStyleRadGradFiller.GradientLUT.Order := 4 + CmbLUT.ItemIndex;
       StrToArrayColor32Gradient(MemoColorStops.Lines, SVGStyleRadGradFiller.Gradient);
       SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
@@ -666,6 +679,11 @@ begin
   Close;
 end;
 
+procedure TMainForm.CmbLUTChange(Sender: TObject);
+begin
+  DrawImage;
+end;
+
 procedure TMainForm.MemoColorStopsChange(Sender: TObject);
 begin
   StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
@@ -684,6 +702,13 @@ begin
     MemoColorStops.Lines.SaveToFile(SaveDialog.FileName);
 end;
 
+procedure TMainForm.MnuRadialFillStyleClick(Sender: TObject);
+begin
+  RgpEllipseFillStyle.ItemIndex := TMenuItem(Sender).Tag;
+  TMenuItem(Sender).Checked := True;
+  DrawImage;
+end;
+
 procedure TMainForm.MnuSpreadClick(Sender: TObject);
 begin
   RgpSpreadMethod.ItemIndex := TMenuItem(Sender).Tag;
@@ -699,6 +724,10 @@ end;
 
 procedure TMainForm.RgpEllipseFillStyleClick(Sender: TObject);
 begin
+  case RgpEllipseFillStyle.ItemIndex of
+    0: MnuSimple.Checked := True;
+    1: MnuSVG.Checked := True;
+  end;
   DrawImage;
 end;
 
