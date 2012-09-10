@@ -129,8 +129,8 @@ type
   private
   protected
     function GetFillLine: TFillLineEvent; virtual; abstract;
-    procedure OnBeginRendering; virtual;
-    procedure OnEndRendering; virtual;
+    procedure BeginRendering; virtual;
+    procedure EndRendering; virtual;
   public
     property FillLine: TFillLineEvent read GetFillLine;
   end;
@@ -170,7 +170,7 @@ type
     FGetSample: TGetSampleInt;
     procedure SetSampler(const Value: TCustomSampler);
   protected
-    procedure OnBeginRendering; override;
+    procedure BeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
     procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
   public
@@ -532,15 +532,13 @@ procedure PolyPolygonFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoi
 var
   Renderer: TPolygonRenderer32VPR;
 begin
-  if not Assigned(Filler) then exit;
+  if not Assigned(Filler) then Exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
-    Filler.OnBeginRendering;
     Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
-    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -551,15 +549,13 @@ procedure PolygonFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
 var
   Renderer: TPolygonRenderer32VPR;
 begin
-  if not Assigned(Filler) then exit;
+  if not Assigned(Filler) then Exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
-    Filler.OnBeginRendering;
     Renderer.PolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
-    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -758,10 +754,8 @@ begin
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
-    Filler.OnBeginRendering;
     Renderer.PolyPolygonFS(FixedPointToFloatPoint(Points),
       FloatRect(Bitmap.ClipRect), Transformation);
-    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -777,10 +771,8 @@ begin
     Renderer.Bitmap := Bitmap;
     Renderer.Filler := Filler;
     Renderer.FillMode := FillMode;
-    Filler.OnBeginRendering;
     Renderer.PolygonFS(FixedPointToFloatPoint(Points),
       FloatRect(Bitmap.ClipRect), Transformation);
-    Filler.OnEndRendering;
   finally
     Renderer.Free;
   end;
@@ -1095,12 +1087,12 @@ end;
 
 { TCustomPolygonFiller }
 
-procedure TCustomPolygonFiller.OnBeginRendering;
+procedure TCustomPolygonFiller.BeginRendering;
 begin
   // implemented by descendants
 end;
 
-procedure TCustomPolygonFiller.OnEndRendering;
+procedure TCustomPolygonFiller.EndRendering;
 begin
   // implemented by descendants
 end;
@@ -1332,7 +1324,7 @@ begin
   end;
 end;
 
-procedure TSamplerFiller.OnBeginRendering;
+procedure TSamplerFiller.BeginRendering;
 begin
   if Assigned(FSampler) then
     FSampler.PrepareSampling;
@@ -1429,7 +1421,9 @@ end;
 
 { TPolygonRenderer32VPR }
 
+{$IFDEF USESTACKALLOC}
 {$W+}
+{$ENDIF}
 procedure TPolygonRenderer32VPR.FillSpan(const Span: TValueSpan; DstY: Integer);
 var
   AlphaValues: PColor32Array;
@@ -1442,7 +1436,8 @@ begin
   GetMem(AlphaValues, Count * SizeOf(TColor32));
   {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
-  FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count, PColor32(AlphaValues));
+  FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count,
+    PColor32(AlphaValues));
   EMMS;
   {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
@@ -1450,7 +1445,9 @@ begin
   FreeMem(AlphaValues);
   {$ENDIF}
 end;
+{$IFDEF USESTACKALLOC}
 {$W-}
+{$ENDIF}
 
 function TPolygonRenderer32VPR.GetRenderSpan: TRenderSpanEvent;
 begin
@@ -1468,6 +1465,9 @@ var
 {$ENDIF}
 begin
   UpdateFillProcs;
+  if Assigned(FFiller) then
+    FFiller.BeginRendering;
+
   RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
 {$IFDEF CHANGENOTIFICATIONS}
   if TBitmap32Access(Bitmap).UpdateCount = 0 then
@@ -1475,6 +1475,8 @@ begin
       if Length(Points[I]) > 0 then
         Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
 {$ENDIF}
+  if Assigned(FFiller) then
+    FFiller.EndRendering;
 end;
 
 {$W+}

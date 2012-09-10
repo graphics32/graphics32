@@ -80,6 +80,8 @@ type
     function GetGradientCount: Integer; {$IFDEF USEINLINING}inline;{$ENDIF}
     function GetStartColor: TColor32;
     function GetEndColor: TColor32;
+    procedure SetEndColor(const Value: TColor32);
+    procedure SetStartColor(const Value: TColor32);
   protected
     procedure GradientColorsChanged; virtual;
     procedure AssignTo(Dest: TPersistent); override;
@@ -101,8 +103,8 @@ type
 
     property GradientEntry[Index: Integer]: TColor32Gradient read GetGradientEntry;
     property GradientCount: Integer read GetGradientCount;
-    property StartColor: TColor32 read GetStartColor;
-    property EndColor: TColor32 read GetEndColor;
+    property StartColor: TColor32 read GetStartColor write SetStartColor;
+    property EndColor: TColor32 read GetEndColor write SetEndColor;
     property OnGradientColorsChanged: TNotifyEvent
       read FOnGradientColorsChanged write FOnGradientColorsChanged;
   end;
@@ -117,9 +119,11 @@ type
     procedure GradientSamplerChanged; //de-initializes sampler
     property Initialized: Boolean read FInitialized;
   public
-    procedure PrepareSampling; override;
     constructor Create;
     destructor Destroy; override;
+
+    procedure PrepareSampling; override;
+
     property Gradient: TGradient32 read FGradient write SetGradient;
   end;
 
@@ -204,7 +208,7 @@ type
     FOwnsLUT: Boolean;
     FGradientLUT: TColor32LookupTable;
   protected
-    procedure OnBeginRendering; override; //flags initialized
+    procedure BeginRendering; override; //flags initialized
     procedure GradientColorsChangedHandler(Sender: TObject);
     procedure GradientFillerChanged; override;
 
@@ -270,7 +274,7 @@ type
     procedure UpdateEllipseBounds;
     procedure UpdateRadiusScale;
   protected
-    procedure OnBeginRendering; override;
+    procedure BeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
     procedure FillLinePad(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
@@ -299,7 +303,7 @@ type
     procedure SetFocalPoint(const Value: TFloatPoint);
     procedure InitMembers;
   protected
-    procedure OnBeginRendering; override;
+    procedure BeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
     procedure FillLineEllipse(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
@@ -374,6 +378,24 @@ begin
       FGradientColors[Index] := GradientColors[Index];
     GradientColorsChanged;
   end;
+end;
+
+procedure TGradient32.SetStartColor(const Value: TColor32);
+begin
+  if Length(FGradientColors) = 0 then
+    SetLength(FGradientColors, 1);
+  FGradientColors[0].Offset := 0;
+  FGradientColors[0].Color32 := Value;
+  GradientColorsChanged;
+end;
+
+procedure TGradient32.SetEndColor(const Value: TColor32);
+begin
+  if Length(FGradientColors) = 1 then
+    SetLength(FGradientColors, 2);
+  FGradientColors[High(FGradientColors)].Color32 := Value;
+  FGradientColors[High(FGradientColors)].Offset := 1;
+  GradientColorsChanged;
 end;
 
 function TGradient32.GetGradientCount: Integer;
@@ -645,7 +667,7 @@ end;
 constructor TCustomGradientSampler.Create;
 begin
   inherited;
-  FGradient := TGradient32.Create;
+  FGradient := TGradient32.Create(clNone32);
 end;
 
 destructor TCustomGradientSampler.Destroy;
@@ -756,7 +778,7 @@ end;
 
 constructor TCustomGradientPolygonFiller.Create;
 begin
-  Create(TGradient32.Create);
+  Create(TGradient32.Create(clNone32));
   FOwnsGradient := True;
 end;
 
@@ -1102,6 +1124,7 @@ end;
 
 procedure TLinearGradientLookupTablePolygonFiller.GradientFillerChanged;
 begin
+  FInitialized := False;
 end;
 
 function TLinearGradientLookupTablePolygonFiller.GetFillLine: TFillLineEvent;
@@ -1411,7 +1434,7 @@ begin
   end;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.OnBeginRendering;
+procedure TLinearGradientLookupTablePolygonFiller.BeginRendering;
 begin
   if not Initialized then
   begin
@@ -1505,7 +1528,7 @@ begin
   FRadXInv := 1 / FRadius.X;
 end;
 
-procedure TRadialGradientPolygonFiller.OnBeginRendering;
+procedure TRadialGradientPolygonFiller.BeginRendering;
 begin
   if not Initialized then
   begin
@@ -1535,9 +1558,7 @@ var
   ColorLUT: PColor32Array;
   YDist, SqrInvRadius: TFloat;
   Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
 
@@ -1588,10 +1609,8 @@ var
   YDist: TFloat;
   ColorLUT: PColor32Array;
   Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
 begin
   SqrInvRadius := Sqr(FRadXInv);
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
@@ -1618,10 +1637,8 @@ var
   YDist, SqrInvRadius: TFloat;
   ColorLUT: PColor32Array;
   Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
 begin
   SqrInvRadius := Sqr(FRadXInv);
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   YDist := Sqr((DstY - FCenter.Y) * FRadScale);
   Mask := Integer(FGradientLUT.Mask);
   ColorLUT := FGradientLUT.Color32Ptr;
@@ -1699,7 +1716,7 @@ begin
   FVertDist := FRadius.Y * FastSqrtBab1(1 - Sqr(FFocalPt.X) / Sqr(FRadius.X));
 end;
 
-procedure TSVGRadialGradientPolygonFiller.OnBeginRendering;
+procedure TSVGRadialGradientPolygonFiller.BeginRendering;
 begin
   if not Initialized then
   begin
