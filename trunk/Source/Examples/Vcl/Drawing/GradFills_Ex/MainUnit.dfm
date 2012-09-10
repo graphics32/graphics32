@@ -35,10 +35,17 @@ object MainForm: TMainForm
       Caption = 'Color Stops:'
       FocusControl = MemoColorStops
     end
+    object LblLookupTableOrder: TLabel
+      Left = 14
+      Top = 225
+      Width = 111
+      Height = 15
+      Caption = 'Lookup Table Order:'
+    end
     object MemoColorStops: TMemo
       Left = 14
       Top = 38
-      Width = 108
+      Width = 114
       Height = 139
       Lines.Strings = (
         '0.0: clRed32'
@@ -55,7 +62,7 @@ object MainForm: TMainForm
     object RgpEllipseFillStyle: TRadioGroup
       Left = 14
       Top = 365
-      Width = 110
+      Width = 114
       Height = 68
       Caption = 'Radial &Fill Style'
       ItemIndex = 1
@@ -67,9 +74,9 @@ object MainForm: TMainForm
     end
     object RgpSpreadMethod: TRadioGroup
       Left = 14
-      Top = 264
-      Width = 110
-      Height = 95
+      Top = 272
+      Width = 114
+      Height = 87
       Caption = 'Spread Method'
       ItemIndex = 0
       Items.Strings = (
@@ -80,13 +87,30 @@ object MainForm: TMainForm
       OnClick = RgpSpreadMethodClick
     end
     object BtnDefaults: TButton
-      Left = 32
+      Left = 34
       Top = 183
       Width = 75
       Height = 25
       Caption = '&Defaults'
       TabOrder = 3
       OnClick = BtnDefaultsClick
+    end
+    object CmbLUT: TComboBox
+      Left = 14
+      Top = 243
+      Width = 114
+      Height = 23
+      ItemIndex = 5
+      TabOrder = 4
+      Text = '9 (= 512 Values)'
+      OnChange = CmbLUTChange
+      Items.Strings = (
+        '4 (= 16 Values)'
+        '5 (= 32 Values)'
+        '6 (= 64 Values)'
+        '7 (= 128 Values)'
+        '8 (= 256 Values)'
+        '9 (= 512 Values)')
     end
   end
   object ImgView32: TImgView32
@@ -151,6 +175,21 @@ object MainForm: TMainForm
         Caption = '&Repeat'
         RadioItem = True
         OnClick = MnuSpreadClick
+      end
+    end
+    object MnuRadialFillStyle: TMenuItem
+      Caption = 'Radial &Fill Style'
+      object MnuSimple: TMenuItem
+        Caption = '&Simple'
+        Checked = True
+        RadioItem = True
+        OnClick = MnuRadialFillStyleClick
+      end
+      object MnuSVG: TMenuItem
+        Tag = 1
+        Caption = 'S&VG'
+        RadioItem = True
+        OnClick = MnuRadialFillStyleClick
       end
     end
   end
