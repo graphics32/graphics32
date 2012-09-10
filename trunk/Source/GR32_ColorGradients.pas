@@ -251,10 +251,9 @@ type
 
   TSVGRadialGradientPolygonFiller = class(TCustomRadialGradientPolygonFiller)
   private
-    FColorBuffer: TArrayOfColor32;
-
-    FOffset: TPoint;
-    FRadius: TPoint;
+    FOffset: TFloatPoint;
+    FRadius: TFloatPoint;
+    FCenter: TFloatPoint;
     FFocalPt: TFloatPoint;
 
     FEllipseBounds: TFloatRect;
@@ -263,7 +262,6 @@ type
     procedure SetEllipseBounds(const Value: TFloatRect);
     procedure SetFocalPoint(const Value: TFloatPoint);
     procedure InitMembers;
-    procedure InitColorBuffer;
   protected
     procedure OnBeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
@@ -1496,29 +1494,31 @@ var
   X, Y: TFloat;
   Temp: TFloat;
 begin
-  FRadius.X := Round((FEllipseBounds.Right - FEllipseBounds.Left) * 0.5);
-  FRadius.Y := Round((FEllipseBounds.Bottom - FEllipseBounds.Top) * 0.5);
-  FOffset.X := -Round(FEllipseBounds.Left);
-  FOffset.Y := -Round(FEllipseBounds.Top);
+  FRadius.X := (FEllipseBounds.Right - FEllipseBounds.Left) * 0.5;
+  FRadius.Y := (FEllipseBounds.Bottom - FEllipseBounds.Top) * 0.5;
+  FCenter.X := (FEllipseBounds.Right + FEllipseBounds.Left) * 0.5;
+  FCenter.Y := (FEllipseBounds.Bottom + FEllipseBounds.Top) * 0.5;
+  FOffset.X := FEllipseBounds.Left;
+  FOffset.Y := FEllipseBounds.Top;
   //make FFocalPoint relative to the ellipse midpoint ...
-  FFocalPt.X :=
-    FFocalPointNative.X - (FEllipseBounds.Right + FEllipseBounds.Left) * 0.5;
-  FFocalPt.Y :=
-    FFocalPointNative.Y - (FEllipseBounds.Bottom + FEllipseBounds.Top) * 0.5;
+  FFocalPt.X := FFocalPointNative.X - FCenter.X;
+  FFocalPt.Y := FFocalPointNative.Y - FCenter.Y;
 
   //make sure the focal point stays within the bounding ellipse ...
   if Abs(FFocalPt.X) < FloatTolerance then
   begin
     X := 0;
     if FFocalPt.Y < 0 then
-      Y := -1 else
+      Y := -1
+    else
       Y := 1;
-  end else
-    begin
-      Temp := FRadius.X * FFocalPt.Y / (FRadius.Y * FFocalPt.X);
-      X := 1 / Sqrt(1 + Sqr(Temp));
-      Y := Temp * X;
-    end;
+  end
+  else
+  begin
+    Temp := FRadius.X * FFocalPt.Y / (FRadius.Y * FFocalPt.X);
+    X := 1 / Sqrt(1 + Sqr(Temp));
+    Y := Temp * X;
+  end;
   if FFocalPt.X < 0 then
   begin
     X := -X;
@@ -1533,98 +1533,11 @@ begin
   end;
 end;
 
-procedure TSVGRadialGradientPolygonFiller.InitColorBuffer;
-var
-  I, J, FocalPointX, RadXSqrd, RadYSqrd, DiamX, DiamY: Integer;
-  Rad, Rad2, X2, Y2, DistYDown, DistYUp: TFloat;
-  m, b, Qa, Qb, Qc, Qz: Double;
-begin
-  if (FRadius.X = 0) or (FRadius.Y = 0) then
-    Exit;
-
-  FGradient.FillColorLookUpTable(FGradientLUT);
-
-  RadXSqrd := FRadius.X * FRadius.X;
-  RadYSqrd := FRadius.Y * FRadius.Y;
-
-  DiamX := (FRadius.X * 2) + 1;
-  DiamY := (FRadius.Y * 2) + 1;
-  FocalPointX := Round(FFocalPt.X);
-
-  //Because the slope of vertical lines is infinite, we need to find where a
-  //vertical line through the FocalPoint intersects with the Ellipse, and
-  //store the distances from the focal point to these 2 intersections points ...
-  Y2 := Sqrt(RadYSqrd - Sqr(FFocalPt.X) * RadYSqrd / RadXSqrd);
-  DistYDown := Abs(Y2 - FFocalPt.Y);
-  DistYUp := Abs(-Y2 - FFocalPt.Y);
-
-  SetLength(FColorBuffer, DiamX * DiamY);
-  for I := -FRadius.X to FRadius.X do
-    for J := -FRadius.Y to FRadius.Y do
-    begin
-      Rad := Hypot(I - FFocalPt.X , J - FFocalPt.Y);
-      if I = FocalPointX then //ie on the vertical line (see above)
-      begin
-        if I * I <= RadXSqrd then
-        begin
-          if J < FFocalPt.Y then
-            Rad2 := DistYUp else
-            Rad2 := DistYDown;
-          if Rad >= Rad2 then
-            FColorBuffer[((J + FRadius.Y) * DiamX) + I + FRadius.X] :=
-              FGradientLUT[LUTSizeMin1]
-          else
-            FColorBuffer[((J + FRadius.Y) * DiamX) + i + FRadius.X] :=
-              FGradientLUT[Trunc(Rad * LUTSizeMin1 / Rad2)];
-        end else
-          FColorBuffer[((J + FRadius.Y) * DiamX) + I + FRadius.X] :=
-            FGradientLUT[LUTSizeMin1];
-        Continue;
-      end;
-
-      //equation of line: y = mx + b
-      m := (J - FFocalPt.Y) / (I - FFocalPt.X);
-      b := FFocalPt.Y - m * FFocalPt.X;
-      //equation of ellipse ...
-      //  x^2/RadXSqrd + y^2/RadYSqrd = 1
-      //  x^2*RadYSqrd/RadXSqrd + y^2 = RadYSqrd
-      //  RadYSqrd(x^2) + RadXSqrd(y^2) = RadXSqrd*RadYSqrd
-      //simultaneous equations ...
-      //  RadYSqrd(x^2) + RadXSqrd(mx + b)^2 = RadXSqrd*RadYSqrd
-      //  (RadYSqrd + RadXSqrd*m^2)(x^2) +
-      //    RadXSqrd*2mb(x) + RadXSqrd*b^2 - RadXSqrd*RadYSqrd = 0
-
-      //apply quadratic equation ...
-      Qa := (RadYSqrd + RadXSqrd * m * m);
-      Qb := RadXSqrd * 2 * m * b;
-      Qc := RadXSqrd * b * b - RadXSqrd * RadYSqrd;
-      Qz := Qb * Qb - 4 * Qa * Qc;
-      if Qz >= 0 then
-      begin
-        Qz := Sqrt(Qz);
-        X2 := (-Qb + Qz) / (2 * Qa);
-        if (FFocalPt.X > X2) = (I > FFocalPt.X) then
-          X2 := (-Qb - Qz) / (2 * Qa);
-        Y2 := m * X2 + b;
-        Rad2 := Hypot(X2 - FFocalPt.X, Y2 - FFocalPt.Y);
-      end else
-        Rad2 := Rad;
-
-      if Rad >= Rad2 then
-        FColorBuffer[((J + FRadius.Y) * DiamX) + I + FRadius.X] :=
-          FGradientLUT[LUTSizeMin1]
-      else
-        FColorBuffer[((J + FRadius.Y) * DiamX) + I + FRadius.X] :=
-          FGradientLUT[Trunc(Rad * LUTSizeMin1 / Rad2)];
-    end;
-end;
-
 procedure TSVGRadialGradientPolygonFiller.OnBeginRendering;
 begin
   if not Initialized then
   begin
     InitMembers;
-    InitColorBuffer;
     inherited; //sets initialized = True
   end;
 end;
@@ -1637,26 +1550,91 @@ end;
 procedure TSVGRadialGradientPolygonFiller.FillLineEllipse(Dst: PColor32;
   DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X, DiamX, DiamY: Integer;
-  Delta: TPoint;
+  X: Integer;
+  Rad, Rad2, X2, Y2, Dist: TFloat;
+  m, b, Qa, Qb, Qc, Qz: TFloat;
+  RelPos: TFloatPoint;
   Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Delta.Y := DstY + FOffset.Y;
-  DiamX := FRadius.X * 2 + 1;
-  DiamY := FRadius.Y * 2 + 1;
+  if (FRadius.X = 0) or (FRadius.Y = 0) then
+    Exit;
+
+  FGradient.FillColorLookUpTable(FGradientLUT);
+
+  RelPos.Y := DstY - FCenter.Y - FFocalPt.Y;
+
+  // Because the slope of vertical lines is infinite, we need to find where a
+  // vertical line through the FocalPoint intersects with the Ellipse, and
+  // store the distances from the focal point to these 2 intersections points
+  Dist := FRadius.Y * Sqrt(1 - Sqr(FFocalPt.X) / Sqr(FRadius.X));
+
+  // check if out of bounds (vertically)
+  if (DstY < FOffset.Y) or (DstY >= (FRadius.Y * 2) + 1 + FOffset.Y) then
+  begin
+    FillLineAlpha(Dst, AlphaValues, Length, FGradientLUT[LUTSizeMin1]);
+    Exit;
+  end;
+
   for X := DstX to DstX + Length - 1 do
   begin
-    Delta.X := X + FOffset.X;
-    if (Delta.X < 0) or (Delta.Y < 0) or (Delta.X >= DiamX) or (Delta.Y >= DiamY) then
-      Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FColorBuffer[Delta.Y * DiamX + Delta.X];
+    // check if out of bounds (horizontally)
+    if (X < FOffset.X) or (X >= (FRadius.X * 2) + 1 + FOffset.X) then
+      Color32 := FGradientLUT[LUTSizeMin1]
+    else
+    begin
+      RelPos.X := X - FCenter.X - FFocalPt.X;
+
+      if RelPos.X = 0 then //ie on the vertical line (see above)
+      begin
+        Assert(Abs(X - FCenter.X) <= FRadius.X);
+
+        Rad := Abs(RelPos.Y);
+        if Abs(Abs(X - FCenter.X)) <= FRadius.X then
+        begin
+          if RelPos.Y < 0 then
+            Rad2 := Abs(-Dist - FFocalPt.Y)
+          else
+            Rad2 := Abs( Dist - FFocalPt.Y);
+          if Rad >= Rad2 then
+            Color32 := FGradientLUT[LUTSizeMin1]
+          else
+            Color32 := FGradientLUT[Round(LUTSizeMin1 * Rad / Rad2)];
+        end else
+          Color32 := FGradientLUT[LUTSizeMin1];
+      end
+      else
+      begin
+        Rad := GR32_Math.Hypot(RelPos.X , RelPos.Y);
+        m := RelPos.Y / RelPos.X;
+        b := FFocalPt.Y - m * FFocalPt.X;
+
+        //apply quadratic equation ...
+        Qa := (Sqr(FRadius.Y) + Sqr(FRadius.X) * m * m);
+        Qb := Sqr(FRadius.X) * 2 * m * b;
+        Qc := Sqr(FRadius.X) * (b * b - Sqr(FRadius.Y));
+        Qz := Qb * Qb - 4 * Qa * Qc;
+        if Qz >= 0 then
+        begin
+          Qz := Sqrt(Qz);
+          X2 := (-Qb + Qz) / (2 * Qa);
+          if (FFocalPt.X > X2) = (RelPos.X > 0) then
+            X2 := (-Qb - Qz) / (2 * Qa);
+          Y2 := m * X2 + b;
+          Rad2 := Hypot(X2 - FFocalPt.X, Y2 - FFocalPt.Y);
+        end else
+          Rad2 := Rad;
+
+        if Rad >= Rad2 then
+          Color32 := FGradientLUT[LUTSizeMin1]
+        else
+          Color32 := FGradientLUT[Round(LUTSizeMin1 * Rad / Rad2)];
+      end;
+    end;
+
     BlendMemEx(Color32, Dst^, AlphaValues^);
     Inc(Dst);
     Inc(AlphaValues);
   end;
-  EMMS;
 end;
 
 end.
