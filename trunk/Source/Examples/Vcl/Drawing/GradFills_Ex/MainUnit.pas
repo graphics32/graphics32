@@ -61,25 +61,25 @@ type
     MnuOrder9: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure BtnDefaultsClick(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
+    procedure CmbLUTChange(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure ImgView32DblClick(Sender: TObject);
     procedure ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImgView32MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer; Layer: TCustomLayer);
-    procedure ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure MemoColorStopsChange(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
-    procedure RgpEllipseFillStyleClick(Sender: TObject);
-    procedure ImgView32DblClick(Sender: TObject);
-    procedure MnuSpreadClick(Sender: TObject);
-    procedure RgpSpreadMethodClick(Sender: TObject);
     procedure MnuFileOpenClick(Sender: TObject);
     procedure MnuFileSaveAsClick(Sender: TObject);
-    procedure BtnDefaultsClick(Sender: TObject);
-    procedure CmbLUTChange(Sender: TObject);
-    procedure MnuRadialFillStyleClick(Sender: TObject);
     procedure MnuOrderClick(Sender: TObject);
+    procedure MnuRadialFillStyleClick(Sender: TObject);
+    procedure MnuSpreadClick(Sender: TObject);
+    procedure RgpEllipseFillStyleClick(Sender: TObject);
+    procedure RgpSpreadMethodClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -97,6 +97,8 @@ type
     FTextTopPoly: TArrayOfArrayOfFloatPoint;
     FTextBottomPoly: TArrayOfArrayOfFloatPoint;
     FTextGR32: TArrayOfArrayOfFloatPoint;
+    procedure LUTOrderChangedHandler(Sender: TObject);
+  public
     procedure DrawImage;
   end;
 
@@ -106,7 +108,8 @@ var
 implementation
 
 uses
-  Types, GR32_Geometry, GR32_VectorUtils, GR32_Paths, GR32_Text_VCL;
+  Types, GR32_Geometry, GR32_VectorUtils, GR32_Paths, {$IFDEF FPC}
+  GR32_Text_LCL {$ELSE} GR32_Text_VCL {$ENDIF};
 
 {$IFDEF FPC}
 {$R *.lfm}
@@ -396,6 +399,7 @@ begin
   StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
 
   FGradientLUT := TColor32LookupTable.Create;
+  FGradientLUT.OnOrderChanged := LUTOrderChangedHandler;
   FGradient.FillColorLookUpTable(FGradientLUT);
 
   FRadialGradientSampler := TRadialGradientSampler.Create;
@@ -696,7 +700,6 @@ begin
     5: MnuOrder9.Checked := True;
   end;
   FGradientLUT.Order := 4 + CmbLUT.ItemIndex;
-  DrawImage;
 end;
 
 procedure TMainForm.MemoColorStopsChange(Sender: TObject);
@@ -724,7 +727,6 @@ begin
   CmbLUT.ItemIndex := TMenuItem(Sender).Tag;
   TMenuItem(Sender).Checked := True;
   FGradientLUT.Order := 4 + CmbLUT.ItemIndex;
-  DrawImage;
 end;
 
 procedure TMainForm.MnuRadialFillStyleClick(Sender: TObject);
@@ -763,6 +765,12 @@ begin
     1: MnuReflect.Checked := True;
     2: MnuRepeat.Checked := True;
   end;
+  DrawImage;
+end;
+
+procedure TMainForm.LUTOrderChangedHandler(Sender: TObject);
+begin
+  FGradient.FillColorLookUpTable(FGradientLUT);
   DrawImage;
 end;
 
