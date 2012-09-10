@@ -201,6 +201,7 @@ type
   TLinearGradientLookupTablePolygonFiller = class(TCustomLinearGradientPolygonFiller)
   private
     FInitialized: Boolean;
+    FOwnsLUT: Boolean;
     FGradientLUT: TColor32LookupTable;
   protected
     procedure OnBeginRendering; override; //flags initialized
@@ -232,7 +233,8 @@ type
 
     property Initialized: Boolean read FInitialized;
   public
-    constructor Create(ColorGradient: TGradient32); override;
+    constructor Create(ColorGradient: TGradient32); overload; override;
+    constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
     destructor Destroy; override;
 
     property GradientLUT: TColor32LookupTable read FGradientLUT;
@@ -240,13 +242,15 @@ type
 
   TCustomRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
   protected
-    FGradientLUT: TColor32LookupTable;
     FInitialized: Boolean;
+    FOwnsLUT: Boolean;
+    FGradientLUT: TColor32LookupTable;
 
     property Initialized: Boolean read FInitialized;
     procedure LUTChangedHandler(Sender: TObject);
   public
-    constructor Create(ColorGradient: TGradient32); override;
+    constructor Create(ColorGradient: TGradient32); overload; override;
+    constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
     destructor Destroy; override;
 
     property GradientLUT: TColor32LookupTable read FGradientLUT;
@@ -765,10 +769,11 @@ end;
 
 destructor TCustomGradientPolygonFiller.Destroy;
 begin
-  if FOwnsGradient then
-    FGradient.Free
-  else
-    FGradient.OnGradientColorsChanged := nil;
+  if Assigned(FGradient) then
+    if FOwnsGradient then
+      FGradient.Free
+    else
+      FGradient.OnGradientColorsChanged := nil;
   inherited;
 end;
 
@@ -1068,9 +1073,26 @@ constructor TLinearGradientLookupTablePolygonFiller.Create(
   ColorGradient: TGradient32);
 begin
   FGradientLUT := TColor32LookupTable.Create;
-  inherited;
+  FOwnsLUT := True;
+  inherited Create(ColorGradient);
   FGradient.OnGradientColorsChanged := GradientColorsChangedHandler;
   FGradientLUT.OnOrderChanged := GradientColorsChangedHandler;
+end;
+
+constructor TLinearGradientLookupTablePolygonFiller.Create(
+  LookupTable: TColor32LookupTable);
+begin
+  FGradientLUT := LookupTable;
+  FOwnsLUT := False;
+  FGradient := nil;
+  FOwnsGradient := False;
+end;
+
+destructor TLinearGradientLookupTablePolygonFiller.Destroy;
+begin
+  if FOwnsLUT then
+    FGradientLUT.Free;
+  inherited;
 end;
 
 procedure TLinearGradientLookupTablePolygonFiller.GradientColorsChangedHandler(Sender: TObject);
@@ -1083,8 +1105,15 @@ begin
 end;
 
 function TLinearGradientLookupTablePolygonFiller.GetFillLine: TFillLineEvent;
+var
+  GradientCount: Integer;
 begin
-  case FGradient.GradientCount of
+  if Assigned(FGradient) then
+    GradientCount := FGradient.GradientCount
+  else
+    GradientCount := FGradientLUT.Size;
+
+  case GradientCount of
     0: Result := FillLineNone;
     1: Result := FillLineSolid;
     else
@@ -1307,12 +1336,6 @@ begin
   end;
 end;
 
-destructor TLinearGradientLookupTablePolygonFiller.Destroy;
-begin
-  FGradientLUT.Free;
-  inherited;
-end;
-
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
@@ -1392,7 +1415,8 @@ procedure TLinearGradientLookupTablePolygonFiller.OnBeginRendering;
 begin
   if not Initialized then
   begin
-    FGradient.FillColorLookUpTable(FGradientLUT);
+    if Assigned(FGradient) then
+      FGradient.FillColorLookUpTable(FGradientLUT);
     inherited; //sets initialized = true
   end;
 end;
@@ -1408,9 +1432,19 @@ begin
   FGradientLUT.OnOrderChanged := LUTChangedHandler;
 end;
 
+constructor TCustomRadialGradientPolygonFiller.Create(
+  LookupTable: TColor32LookupTable);
+begin
+  FGradientLUT := LookupTable;
+  FOwnsLUT := False;
+  FGradient := nil;
+  FOwnsGradient := False;
+end;
+
 destructor TCustomRadialGradientPolygonFiller.Destroy;
 begin
-  FGradientLUT.Free;
+  if FOwnsLUT then
+    FGradientLUT.Free;
   inherited;
 end;
 
@@ -1475,7 +1509,8 @@ procedure TRadialGradientPolygonFiller.OnBeginRendering;
 begin
   if not Initialized then
   begin
-    FGradient.FillColorLookUpTable(FGradientLUT);
+    if Assigned(FGradient) then
+      FGradient.FillColorLookUpTable(FGradientLUT);
     FInitialized := True;
   end;
 end;
@@ -1642,7 +1677,7 @@ begin
   else
   begin
     Temp := FRadius.X * FFocalPt.Y / (FRadius.Y * FFocalPt.X);
-    X := 1 / Sqrt(1 + Sqr(Temp));
+    X := 1 / FastSqrtBab1(1 + Sqr(Temp));
     Y := Temp * X;
   end;
   if FFocalPt.X < 0 then
@@ -1661,7 +1696,7 @@ begin
   // Because the slope of vertical lines is infinite, we need to find where a
   // vertical line through the FocalPoint intersects with the Ellipse, and
   // store the distances from the focal point to these 2 intersections points
-  FVertDist := FRadius.Y * Sqrt(1 - Sqr(FFocalPt.X) / Sqr(FRadius.X));
+  FVertDist := FRadius.Y * FastSqrtBab1(1 - Sqr(FFocalPt.X) / Sqr(FRadius.X));
 end;
 
 procedure TSVGRadialGradientPolygonFiller.OnBeginRendering;
@@ -1669,6 +1704,8 @@ begin
   if not Initialized then
   begin
     InitMembers;
+    if Assigned(FGradient) then
+      FGradient.FillColorLookUpTable(FGradientLUT);
     inherited; //sets initialized = True
   end;
 end;
@@ -1691,7 +1728,6 @@ begin
   if (FRadius.X = 0) or (FRadius.Y = 0) then
     Exit;
 
-  FGradient.FillColorLookUpTable(FGradientLUT);
   ColorLUT := FGradientLUT.Color32Ptr;
 
   RelPos.Y := DstY - FCenter.Y - FFocalPt.Y;
@@ -1744,7 +1780,7 @@ begin
 
         if Qz >= 0 then
         begin
-          Qz := Sqrt(Qz);
+          Qz := FastSqrtBab2(Qz);
           Qa := 1 / Qa;
           X2 := (-Qb + Qz) * Qa;
           if (FFocalPt.X > X2) = (RelPos.X > 0) then
@@ -1756,7 +1792,7 @@ begin
           if Rad >= Rad2 then
             Color32 := ColorLUT^[Mask]
           else
-            Color32 := ColorLUT^[Round(Mask * Sqrt(Rad / Rad2))];
+            Color32 := ColorLUT^[Round(Mask * FastSqrtBab1(Rad / Rad2))];
         end else
           Color32 := ColorLUT^[Mask]
       end;
