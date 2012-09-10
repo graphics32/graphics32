@@ -1436,11 +1436,19 @@ var
   Count: Integer;
 begin
   Count := Span.X2 - Span.X1 + 1;
+  {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
+  {$ELSE}
+  GetMem(AlphaValues, Count * SizeOf(TColor32));
+  {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count, PColor32(AlphaValues));
   EMMS;
+  {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
+  {$ELSE}
+  FreeMem(AlphaValues);
+  {$ENDIF}
 end;
 {$W-}
 
@@ -1477,11 +1485,19 @@ var
   Count: Integer;
 begin
   Count := Span.X2 - Span.X1 + 1;
+  {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc(Count * SizeOf(TColor32));
+  {$ELSE}
+  GetMem(AlphaValues, Count * SizeOf(TColor32));
+  {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
   EMMS;
+  {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
+  {$ELSE}
+  FreeMem(AlphaValues);
+  {$ENDIF}
 end;
 {$W-}
 
@@ -1536,7 +1552,11 @@ begin
   X1 := DivMod(Span.X1, 3, Offset);
 
   // Left Padding + Right Padding + Filter Width = 2 + 2 + 2 = 6
+  {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc((Count + 6 + PADDING) * SizeOf(Byte));
+  {$ELSE}
+  GetMem(AlphaValues, (Count + 6 + PADDING) * SizeOf(Byte));
+  {$ENDIF}
   AlphaValues[0] := 0;
   AlphaValues[1] := 0;
   if (X1 > 0) then
@@ -1551,7 +1571,11 @@ begin
   MakeAlpha[FFillMode](Span.Values, PByteArray(@AlphaValues[PADDING]), Count, FColor);
   CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X1]), FColor, (Count + Offset + 2) div 3);
 
+  {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
+  {$ELSE}
+  FreeMem(AlphaValues);
+  {$ENDIF}
 end;
 {$W-}
 
@@ -1574,7 +1598,11 @@ begin
   X1 := DivMod(Span.X1, 3, Offset);
 
   // Left Padding + Right Padding + Filter Width = 2 + 2 + 2 = 6
+  {$IFDEF USESTACKALLOC}
   AlphaValues := StackAlloc((Count + 6 + PADDING) * SizeOf(Byte));
+  {$ELSE}
+  GetMem(AlphaValues, (Count + 6 + PADDING) * SizeOf(Byte));
+  {$ENDIF}
   AlphaValues[0] := 0;
   AlphaValues[1] := 0;
   if (X1 > 0) then
@@ -1591,7 +1619,11 @@ begin
   Inc(Count);
   CombineLineLCD(@AlphaValues[PADDING - Offset], PColor32Array(@Bitmap.ScanLine[DstY][X1]), FColor, (Count + Offset + 2) div 3);
 
+  {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
+  {$ELSE}
+  FreeMem(AlphaValues);
+  {$ENDIF}
 end;
 {$W-}
 

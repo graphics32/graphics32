@@ -67,11 +67,13 @@ procedure MoveLongword(const Source; var Dest; Count: Integer);
 {$ENDIF}
 procedure MoveWord(const Source; var Dest; Count: Integer);
 
+{$IFDEF USESTACKALLOC}
 { Allocates a 'small' block of memory on the stack }
 function StackAlloc(Size: Integer): Pointer; register;
 
 { Pops memory allocated by StackAlloc }
 procedure StackFree(P: Pointer); register;
+{$ENDIF}
 
 { Exchange two 32-bit values }
 procedure Swap(var A, B: Pointer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1124,6 +1126,7 @@ asm
 {$ENDIF}
 end;
 
+{$IFDEF USESTACKALLOC}
 {$IFDEF PUREPASCAL}
 function StackAlloc(Size: Integer): Pointer;
 begin
@@ -1226,6 +1229,7 @@ asm
         PUSH      R8                       { return to caller }
 {$ENDIF}
 end;
+{$ENDIF}
 {$ENDIF}
 
 {CPU target and feature Function templates}
