@@ -1450,31 +1450,6 @@ begin
   end;
 end;
 
-(*
-procedure TRadialGradientPolygonFiller.FillLineEllipsePad(Dst: PColor32; DstX,
-  DstY, Length: Integer; AlphaValues: PColor32);
-var
-  X: Integer;
-  Delta: TFloatPoint;
-  Color32: TColor32;
-  BlendMemEx: TBlendMemEx;
-begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
-  Delta.Y := Abs(DstY - FCenter.Y);
-  for X := DstX to DstX + Length - 1 do
-  begin
-    Delta.X := Abs(X - FCenter.X);
-    if (Delta.X >= FRadius.X) or (Delta.Y >= FRadiusY) then
-      Color32 := FGradientLUT[LUTSizeMin1] else
-      Color32 := FColorBuffer[Trunc(Delta.Y * FRadius.X + Delta.X)];
-    BlendMemEx(Color32, Dst^, AlphaValues^);
-    EMMS;
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-end;
-*)
-
 { TSVGRadialGradientPolygonFiller }
 
 procedure TSVGRadialGradientPolygonFiller.SetEllipseBounds(const Value: TFloatRect);
@@ -1528,8 +1503,8 @@ begin
   Y := Y * FRadius.Y;
   if (Y * Y + X * X) < (Sqr(FFocalPt.X) + Sqr(FFocalPt.Y)) then
   begin
-    FFocalPt.X := Trunc(X);
-    FFocalPt.Y := Trunc(Y);
+    FFocalPt.X := 0.99 * X;
+    FFocalPt.Y := 0.99 * Y;
   end;
 end;
 
@@ -1552,7 +1527,7 @@ procedure TSVGRadialGradientPolygonFiller.FillLineEllipse(Dst: PColor32;
 var
   X: Integer;
   Rad, Rad2, X2, Y2, Dist: TFloat;
-  m, b, Qa, Qb, Qc, Qz: TFloat;
+  m, b, Qa, Qb, Qc, Qz: Double;
   RelPos: TFloatPoint;
   Color32: TColor32;
 begin
@@ -1609,10 +1584,11 @@ begin
         b := FFocalPt.Y - m * FFocalPt.X;
 
         //apply quadratic equation ...
-        Qa := (Sqr(FRadius.Y) + Sqr(FRadius.X) * m * m);
+        Qa := Sqr(FRadius.Y) + Sqr(FRadius.X) * m * m;
         Qb := Sqr(FRadius.X) * 2 * m * b;
         Qc := Sqr(FRadius.X) * (b * b - Sqr(FRadius.Y));
         Qz := Qb * Qb - 4 * Qa * Qc;
+
         if Qz >= 0 then
         begin
           Qz := Sqrt(Qz);
@@ -1621,13 +1597,13 @@ begin
             X2 := (-Qb - Qz) / (2 * Qa);
           Y2 := m * X2 + b;
           Rad2 := Hypot(X2 - FFocalPt.X, Y2 - FFocalPt.Y);
-        end else
-          Rad2 := Rad;
 
-        if Rad >= Rad2 then
+          if Rad >= Rad2 then
+            Color32 := FGradientLUT[LUTSizeMin1]
+          else
+            Color32 := FGradientLUT[Round(LUTSizeMin1 * Rad / Rad2)];
+        end else
           Color32 := FGradientLUT[LUTSizeMin1]
-        else
-          Color32 := FGradientLUT[Round(LUTSizeMin1 * Rad / Rad2)];
       end;
     end;
 

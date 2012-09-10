@@ -619,7 +619,7 @@ begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create;
     try
       StrToArrayColor32Gradient(MemoColorStops.Lines, SVGStyleRadGradFiller.Gradient);
-      SVGStyleRadGradFiller.EllipseBounds := FloatRect(110, 275, 290, 375);
+      SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
     finally
