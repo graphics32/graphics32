@@ -82,32 +82,6 @@ const
     eM22: (fract: 0; Value: -1);
   );
 
-function QuadToBezier(Q0, Q1, Q2: TFloatPoint): TBezierVertex;
-// Q-spline to Bezier curve:
-// B0 = Q0
-// B1 = (Q0 + 2*Q1) / 3
-// B2 = (Q0 + 2*Q2) / 3
-begin
-  with Result do
-  begin
-    Points[0] := Q0;
-    Points[1].X := (Q0.X + 2*Q1.X) / 3;
-    Points[1].Y := (Q0.Y + 2*Q1.Y) / 3;
-    Points[2].X := (Q0.X + 2*Q2.X) / 3;
-    Points[2].Y := (Q0.Y + 2*Q2.Y) / 3;
-  end;
-end;
-
-procedure OffsetVertex(var Vertex: TBezierVertex; const Dx, Dy: Single);
-begin
-  Vertex.Points[0].X := Vertex.Points[0].X + Dx;
-  Vertex.Points[0].Y := Vertex.Points[0].Y + Dy;
-  Vertex.Points[1].X := Vertex.Points[1].X + Dx;
-  Vertex.Points[1].Y := Vertex.Points[1].Y + Dy;
-  Vertex.Points[2].X := Vertex.Points[2].X + Dx;
-  Vertex.Points[2].Y := Vertex.Points[2].Y + Dy;
-end;
-
 function PointFXtoPointF(const Point: tagPointFX): TFloatPoint;
 begin
   Result.X := Point.X.Value + Point.X.Fract * FixedToFloat;
@@ -123,94 +97,106 @@ procedure GlyphOutlineToPath(Handle: HDC; Path: TCustomPath; DstX, DstY: Single;
 var
   I, K, S: Integer;
   Res: DWORD;
-  PGlyphMem, PBuffer: PTTPolygonHeader;
-  PPCurve: PTTPolyCurve;
+  GlyphMemPtr, BufferPtr: PTTPolygonHeader;
+  CurvePtr: PTTPolyCurve;
   P1, P2, P3: TFloatPoint;
 begin
   Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
     0, nil, VertFlip_mat2);
   if not Assigned(Path) then Exit;
 
-  PGlyphMem := StackAlloc(Res);
-  PBuffer := PGlyphMem;
+  {$IFDEF USESTACKALLOC}
+  GlyphMemPtr := StackAlloc(Res);
+  {$ELSE}
+  GetMem(GlyphMemPtr, Res);
+  {$ENDIF}
+  BufferPtr := GlyphMemPtr;
 
-  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics, Res, PBuffer, VertFlip_mat2);
+  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics, Res, BufferPtr, VertFlip_mat2);
 
-  if (Res = GDI_ERROR) or (PBuffer^.dwType <> TT_POLYGON_TYPE) then
+  if (Res = GDI_ERROR) or (BufferPtr^.dwType <> TT_POLYGON_TYPE) then
   begin
-    StackFree(PGlyphMem);
+    {$IFDEF USESTACKALLOC}
+    StackFree(GlyphMemPtr);
+    {$ELSE}
+    FreeMem(GlyphMemPtr);
+    {$ENDIF}
     Exit;
   end;
 
   while Res > 0 do
   begin
-    S := PBuffer.cb - SizeOf(TTTPolygonHeader);
+    S := BufferPtr.cb - SizeOf(TTTPolygonHeader);
     {$IFDEF HAS_NATIVEINT}
-    NativeInt(PPCurve) := NativeInt(PBuffer) + SizeOf(TTTPolygonHeader);
+    NativeInt(CurvePtr) := NativeInt(BufferPtr) + SizeOf(TTTPolygonHeader);
     {$ELSE}
-    Integer(PPCurve) := Integer(PBuffer) + SizeOf(TTTPolygonHeader);
+    Integer(CurvePtr) := Integer(BufferPtr) + SizeOf(TTTPolygonHeader);
     {$ENDIF}
-    P1 := PointFXtoPointF(PBuffer.pfxStart);
+    P1 := PointFXtoPointF(BufferPtr.pfxStart);
     Path.MoveTo(P1.X + DstX, P1.Y + DstY);
     while S > 0 do
     begin
-      case PPCurve.wType of
+      case CurvePtr.wType of
         TT_PRIM_LINE:
-          for I := 0 to PPCurve.cpfx - 1 do
+          for I := 0 to CurvePtr.cpfx - 1 do
           begin
-            P1 := PointFXtoPointF(PPCurve.apfx[I]);
+            P1 := PointFXtoPointF(CurvePtr.apfx[I]);
             Path.LineTo(P1.X + DstX, P1.Y + DstY);
           end;
         TT_PRIM_QSPLINE:
           begin
-            for I := 0 to PPCurve.cpfx - 2 do
+            for I := 0 to CurvePtr.cpfx - 2 do
             begin
-              P1 := PointFXtoPointF(PPCurve.apfx[I]);
-              if I < PPCurve.cpfx - 2 then
-                with PointFXtoPointF(PPCurve.apfx[I + 1]) do
+              P1 := PointFXtoPointF(CurvePtr.apfx[I]);
+              if I < CurvePtr.cpfx - 2 then
+                with PointFXtoPointF(CurvePtr.apfx[I + 1]) do
                 begin
                   P2.x := (P1.x + x) * 0.5;
                   P2.y := (P1.y + y) * 0.5;
                 end
               else
-                P2 := PointFXtoPointF(PPCurve.apfx[I + 1]);
+                P2 := PointFXtoPointF(CurvePtr.apfx[I + 1]);
               Path.ConicTo(P1.X + DstX, P1.Y + DstY, P2.X + DstX, P2.Y + DstY);
             end;
           end;
         TT_PRIM_CSPLINE:
           begin
             I := 0;
-            while I < PPCurve.cpfx - 2 do
+            while I < CurvePtr.cpfx - 2 do
             begin
-              P1 := PointFXtoPointF(PPCurve.apfx[I]);
-              P2 := PointFXtoPointF(PPCurve.apfx[I + 1]);
-              P3 := PointFXtoPointF(PPCurve.apfx[I + 2]);
+              P1 := PointFXtoPointF(CurvePtr.apfx[I]);
+              P2 := PointFXtoPointF(CurvePtr.apfx[I + 1]);
+              P3 := PointFXtoPointF(CurvePtr.apfx[I + 2]);
               Path.CurveTo(P1.X + DstX, P1.Y + DstY, P2.X + DstX, P2.Y + DstY, P3.X + DstX, P3.Y + DstY);
               Inc(I, 2);
             end;
           end;
       end;
-      K := (PPCurve.cpfx - 1) * SizeOf(TPointFX) + SizeOf(TTPolyCurve);
+      K := (CurvePtr.cpfx - 1) * SizeOf(TPointFX) + SizeOf(TTPolyCurve);
       Dec(S, K);
 
       {$IFDEF HAS_NATIVEINT}
-      Inc(NativeInt(PPCurve), K);
+      Inc(NativeInt(CurvePtr), K);
       {$ELSE}
-      Inc(integer(PPCurve), K);
+      Inc(integer(CurvePtr), K);
       {$ENDIF}
     end;
 
     Path.ClosePath;
 
-    Dec(Res, PBuffer.cb);
+    Dec(Res, BufferPtr.cb);
     {$IFDEF HAS_NATIVEINT}
-    Inc(NativeInt(PBuffer), PBuffer.cb);
+    Inc(NativeInt(BufferPtr), BufferPtr.cb);
     {$ELSE}
-    Inc(integer(PBuffer), PBuffer.cb);
+    Inc(integer(BufferPtr), BufferPtr.cb);
     {$ENDIF}
   end;
 
-  StackFree(PGlyphMem);
+  {$IFDEF USESTACKALLOC}
+  StackFree(GlyphMemPtr);
+  {$ELSE}
+  FreeMem(GlyphMemPtr);
+  {$ENDIF}
 end;
 {$IFDEF USESTACKALLOC}
 {$W-}
