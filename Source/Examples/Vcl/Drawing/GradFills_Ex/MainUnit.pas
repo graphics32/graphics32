@@ -28,25 +28,25 @@ type
   end;
 
   TMainForm = class(TForm)
+    BtnDefaults: TButton;
     ImgView32: TImgView32;
     LblColorStopsTop: TLabel;
     MainMenu: TMainMenu;
     MemoColorStops: TMemo;
     MnuExit: TMenuItem;
     MnuFile: TMenuItem;
-    PnlControl: TPanel;
-    RgpEllipseFillStyle: TRadioGroup;
-    MnuSpreadMethod: TMenuItem;
+    MnuFileOpen: TMenuItem;
+    MnuFileSaveAs: TMenuItem;
     MnuPad: TMenuItem;
     MnuReflect: TMenuItem;
     MnuRepeat: TMenuItem;
-    RgpSpreadMethod: TRadioGroup;
-    MnuFileOpen: TMenuItem;
+    MnuSpreadMethod: TMenuItem;
     N1: TMenuItem;
-    MnuFileSaveAs: TMenuItem;
     OpenDialog: TOpenDialog;
+    PnlControl: TPanel;
+    RgpEllipseFillStyle: TRadioGroup;
+    RgpSpreadMethod: TRadioGroup;
     SaveDialog: TSaveDialog;
-    BtnDefaults: TButton;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnExitClick(Sender: TObject);
@@ -456,6 +456,8 @@ begin
       end;
   end;
 
+  FRadialOriginBtn.SetCenter(GR32.Point(331, 325));
+
   DrawImage;
 end;
 
@@ -617,7 +619,7 @@ begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create;
     try
       StrToArrayColor32Gradient(MemoColorStops.Lines, SVGStyleRadGradFiller.Gradient);
-      SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
+      SVGStyleRadGradFiller.EllipseBounds := FloatRect(110, 275, 290, 375);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
     finally
