@@ -1611,6 +1611,7 @@ begin
     Inc(Dst);
     Inc(AlphaValues);
   end;
+  EMMS;
 end;
 
 end.
