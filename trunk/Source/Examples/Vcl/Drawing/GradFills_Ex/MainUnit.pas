@@ -52,6 +52,13 @@ type
     MnuRadialFillStyle: TMenuItem;
     MnuSimple: TMenuItem;
     MnuSVG: TMenuItem;
+    MnuLookupTableOrder: TMenuItem;
+    MnuOrder4: TMenuItem;
+    MnuOrder5: TMenuItem;
+    MnuOrder6: TMenuItem;
+    MnuOrder7: TMenuItem;
+    MnuOrder8: TMenuItem;
+    MnuOrder9: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnExitClick(Sender: TObject);
@@ -72,6 +79,7 @@ type
     procedure BtnDefaultsClick(Sender: TObject);
     procedure CmbLUTChange(Sender: TObject);
     procedure MnuRadialFillStyleClick(Sender: TObject);
+    procedure MnuOrderClick(Sender: TObject);
   private
     FControlButtonFiller: TSamplerFiller;
     FRadialGradientSampler: TRadialGradientSampler;
@@ -681,6 +689,14 @@ end;
 
 procedure TMainForm.CmbLUTChange(Sender: TObject);
 begin
+  case CmbLUT.ItemIndex of
+    0: MnuOrder4.Checked := True;
+    1: MnuOrder5.Checked := True;
+    2: MnuOrder6.Checked := True;
+    3: MnuOrder7.Checked := True;
+    4: MnuOrder8.Checked := True;
+    5: MnuOrder9.Checked := True;
+  end;
   DrawImage;
 end;
 
@@ -700,6 +716,13 @@ procedure TMainForm.MnuFileSaveAsClick(Sender: TObject);
 begin
   if SaveDialog.Execute then
     MemoColorStops.Lines.SaveToFile(SaveDialog.FileName);
+end;
+
+procedure TMainForm.MnuOrderClick(Sender: TObject);
+begin
+  CmbLUT.ItemIndex := TMenuItem(Sender).Tag;
+  TMenuItem(Sender).Checked := True;
+  DrawImage;
 end;
 
 procedure TMainForm.MnuRadialFillStyleClick(Sender: TObject);

@@ -121,6 +121,7 @@ object MainForm: TMainForm
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
+    RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
@@ -181,15 +182,54 @@ object MainForm: TMainForm
       Caption = 'Radial &Fill Style'
       object MnuSimple: TMenuItem
         Caption = '&Simple'
-        Checked = True
         RadioItem = True
         OnClick = MnuRadialFillStyleClick
       end
       object MnuSVG: TMenuItem
         Tag = 1
         Caption = 'S&VG'
+        Checked = True
         RadioItem = True
         OnClick = MnuRadialFillStyleClick
+      end
+    end
+    object MnuLookupTableOrder: TMenuItem
+      Caption = '&Lookup Table Order'
+      object MnuOrder4: TMenuItem
+        Caption = '4 (= 16 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder5: TMenuItem
+        Tag = 1
+        Caption = '5 (= 32 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder6: TMenuItem
+        Tag = 2
+        Caption = '6 (=64 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder7: TMenuItem
+        Tag = 3
+        Caption = '7 (=128 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder8: TMenuItem
+        Tag = 4
+        Caption = '8 (=256 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder9: TMenuItem
+        Tag = 5
+        Caption = '9 (=512 Values)'
+        Checked = True
+        RadioItem = True
+        OnClick = MnuOrderClick
       end
     end
   end
