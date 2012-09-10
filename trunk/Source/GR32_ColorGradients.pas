@@ -40,7 +40,7 @@ uses
 
 const
   LUTSize = 512;
-  LUTSizeMin1 = LUTSize - 1;
+  LUTSizeMin1 = LUTSize -1;
 
 type
   TColor32Gradient = record
@@ -433,6 +433,7 @@ begin
     Inc(LutIndex);
   end;
 
+  Scale := 1;
   StopIndex := 1;
   RecalculateScale := True;
   for LutIndex := LutIndex to HighLUT - 1 do
@@ -1090,8 +1091,8 @@ var
   X: Integer;
   Color32: TColor32;
 begin
-  Color32 := FGradientLUT[Wrap(Round(LUTSizeMin1 *
-    (DstY - FStartPoint.Y) * FIncline), LUTSizeMin1)];
+  X := Round(LUTSizeMin1 * (DstY - FStartPoint.Y) * FIncline);
+  Color32 := FGradientLUT[Wrap(X, LUTSizeMin1)];
 
   for X := DstX to DstX + Length - 1 do
   begin
@@ -1229,7 +1230,7 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X: Integer;
+  X, ScaledX: Integer;
   Scale: TFloat;
   XOffset: array [0..1] of TFloat;
 begin
@@ -1239,8 +1240,8 @@ begin
   Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
   begin
-    BlendMemEx(FGradientLUT[Wrap(Round((X - XOffset[0]) * Scale), LUTSizeMin1)],
-      Dst^, AlphaValues^);
+    ScaledX := Round((X - XOffset[0]) * Scale);
+    BlendMemEx(FGradientLUT[Wrap(ScaledX, LUTSizeMin1)], Dst^, AlphaValues^);
     EMMS;
 
     Inc(Dst);
@@ -1251,7 +1252,7 @@ end;
 procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
-  X: Integer;
+  X, ScaledX: Integer;
   Scale: TFloat;
   XOffset: array [0..1] of TFloat;
 begin
@@ -1261,8 +1262,8 @@ begin
   Scale := LUTSizeMin1 / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
   begin
-    BlendMemEx(FGradientLUT[Wrap(Round((XOffset[1] - X) * Scale), LUTSizeMin1)],
-      Dst^, AlphaValues^);
+    ScaledX := Round((XOffset[1] - X) * Scale);
+    BlendMemEx(FGradientLUT[Wrap(ScaledX, LUTSizeMin1)], Dst^, AlphaValues^);
     EMMS;
 
     Inc(Dst);
