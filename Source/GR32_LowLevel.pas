@@ -170,7 +170,7 @@ uses
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
-function Clamp(const Value: Integer): Integer;
+function Clamp(const Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
  if Value > 255 then
@@ -207,7 +207,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword);
+procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -237,7 +237,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword);
+procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -306,7 +306,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
+procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -445,7 +445,7 @@ asm
 {$ENDIF}
 end;
 
-procedure MoveLongword(const Source; var Dest; Count: Integer);
+procedure MoveLongword(const Source; var Dest; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USEMOVE}
 begin
   Move(Source, Dest, Count shl 2);
@@ -486,7 +486,7 @@ asm
 {$ENDIF}
 end;
 
-procedure MoveWord(const Source; var Dest; Count: Integer);
+procedure MoveWord(const Source; var Dest; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USEMOVE}
 begin
   Move(Source, Dest, Count shl 1);
@@ -608,7 +608,7 @@ begin
   Result := B >= A;
 end;
 
-function Constrain(const Value, Lo, Hi: Integer): Integer;
+function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   if Value < Lo then
@@ -645,7 +645,7 @@ begin
   else Result := Value;
 end;
 
-function Max(const A, B, C: Integer): Integer;
+function Max(const A, B, C: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   if A > B then
@@ -668,7 +668,7 @@ asm
 {$ENDIF}
 end;
 
-function Min(const A, B, C: Integer): Integer;
+function Min(const A, B, C: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   if A < B then
@@ -691,7 +691,7 @@ asm
 {$ENDIF}
 end;
 
-function Clamp(Value, Max: Integer): Integer;
+function Clamp(Value, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   if Value > Max then 
@@ -720,7 +720,7 @@ asm
 {$ENDIF}
 end;
 
-function Clamp(Value, Min, Max: Integer): Integer;
+function Clamp(Value, Min, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   if Value > Max then 
@@ -742,7 +742,7 @@ asm
 {$ENDIF}
 end;
 
-function Wrap(Value, Max: Integer): Integer;
+function Wrap(Value, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   if Value < 0 then
@@ -787,7 +787,7 @@ begin
 {$ENDIF}
 end;
 
-function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Remainder := Dividend mod Divisor;
@@ -815,7 +815,7 @@ asm
 {$ENDIF}
 end;
 
-function Mirror(Value, Max: Integer): Integer;
+function Mirror(Value, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 var
   DivResult: Integer;
@@ -984,7 +984,7 @@ begin
 end;
 
 { shift right with sign conservation }
-function SAR_4(Value: Integer): Integer;
+function SAR_4(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 16;
@@ -997,7 +997,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_8(Value: Integer): Integer;
+function SAR_8(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 256;
@@ -1010,7 +1010,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_9(Value: Integer): Integer;
+function SAR_9(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 512;
@@ -1023,7 +1023,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_11(Value: Integer): Integer;
+function SAR_11(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 2048;
@@ -1036,7 +1036,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_12(Value: Integer): Integer;
+function SAR_12(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 4096;
@@ -1049,7 +1049,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_13(Value: Integer): Integer;
+function SAR_13(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 8192;
@@ -1062,7 +1062,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_14(Value: Integer): Integer;
+function SAR_14(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 16384;
@@ -1075,7 +1075,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_15(Value: Integer): Integer;
+function SAR_15(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 32768;
@@ -1088,7 +1088,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_16(Value: Integer): Integer;
+function SAR_16(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 65536;
@@ -1144,7 +1144,7 @@ end;
 
   x64 implementation by Jameel Halabi
   }
-function StackAlloc(Size: Integer): Pointer; register;
+function StackAlloc(Size: Integer): Pointer; register; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         POP       ECX          // return address
@@ -1202,7 +1202,7 @@ end;
 - Built-in sanity checks guarantee that an improper call to StackFree will not
   corrupt the stack. Worst case is that the stack block is not released until
   the calling routine exits. }
-procedure StackFree(P: Pointer); register;
+procedure StackFree(P: Pointer); register; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         POP       ECX                     { return address }
