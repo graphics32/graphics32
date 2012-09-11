@@ -1169,6 +1169,9 @@ asm
         PUSH      ECX          // return to caller
 {$ENDIF}
 {$IFDEF TARGET_x64}
+        {$IFNDEF FPC}
+        .NOFRAME
+        {$ENDIF}
         POP       R8           // return address
         MOV       RDX, RSP     // original SP
         ADD       ECX, 15
@@ -1217,6 +1220,9 @@ asm
         PUSH      ECX                     { return to caller }
 {$ENDIF}
 {$IFDEF TARGET_x64}
+        {$IFNDEF FPC}
+        .NOFRAME
+        {$ENDIF}
         POP       R8                       { return address }
         MOV       RDX, QWORD PTR [RSP]
         SUB       RCX, 16

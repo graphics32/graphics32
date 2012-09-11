@@ -789,11 +789,7 @@ asm
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
 
         POP     EBX
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     EAX,EDX
 @2:
@@ -847,11 +843,7 @@ asm
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,R9D         // EAX  <-  Za Zr Zg Zb
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     EAX,EDX
 @2:
@@ -916,11 +908,7 @@ asm
         MOV     [EDX],EAX
         POP     ESI
         POP     EBX
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     [EDX],EAX
 @2:
@@ -978,11 +966,7 @@ asm
         ADD     EAX,R8D         // EAX  <-  Za Zr Zg Zb
 
         MOV     [RDX],EAX
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     [RDX],EAX
 @2:
@@ -1048,17 +1032,12 @@ asm
         ADD     EAX,EBX         // EAX  <-  00 Zr Zg Zb
 
         POP     EBX
-{$IFDEF FPC}
-        JMP @3
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:
         POP     EBX
 
 @2:     MOV     EAX,EDX
-@3:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1105,14 +1084,9 @@ asm
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,ECX         // EAX  <-  00 Zr Zg Zb
 
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     EAX,EDX
-@2:
 {$ENDIF}
 end;
 
@@ -1566,19 +1540,11 @@ asm
         POP     EDI
         POP     ESI
         POP     EBX
-{$IFDEF FPC}
-        JMP @Exit
-{$ELSE}
         RET
-{$ENDIF}
 @blend:
         CALL    DWORD PTR [BlendReg]
         OR      EAX,$FF000000
-{$IFDEF FPC}
-        JMP @Exit
-{$ELSE}
         RET
-{$ENDIF}
 @exit0:
         MOV     EAX,EDX
 @Exit:
@@ -1635,11 +1601,7 @@ asm
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
 
         POP     EBX
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     EAX,EDX
 @2:
@@ -1688,11 +1650,7 @@ asm
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,ECX         // EAX  <-  Za Zr Zg Zb
 
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV     EAX,EDX
 @2:
@@ -1756,14 +1714,9 @@ asm
 
         POP     ESI
         POP     EBX
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
 
 @2:     MOV     [EDX],EAX
-@3:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -1948,14 +1901,8 @@ asm
         PACKUSWB  MM2,MM3
         MOVD      [EDX],MM2
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
-
 @2:     MOV       [EDX],EAX
-@3:
 end;
 
 function BlendRegEx_MMX(F, B, M: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
@@ -1992,15 +1939,10 @@ asm
         MOVD      EAX,MM1
 
         POP       EBX
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV       EAX,EDX
         POP       EBX
-@2:
 end;
 
 {$ENDIF}
@@ -2414,14 +2356,9 @@ asm
         PACKUSWB  MM1,MM0
         MOVD      [EDX],MM1
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
 
 @2:     MOV       [EDX],EAX
-@3:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -2466,14 +2403,9 @@ asm
         PACKUSWB  MM1,MM0
         MOVD      [RDX],MM1
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
 
 @2:     MOV       [RDX],RCX
-@3:
 {$ENDIF}
 end;
 
@@ -2847,14 +2779,8 @@ asm
         PACKUSWB  XMM2,XMM3
         MOVD      [EDX],XMM2
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
-
 @2:     MOV       [EDX], EAX
-@3:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -2888,14 +2814,8 @@ asm
         PACKUSWB  XMM2,XMM3
         MOVD      [RDX],XMM2
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
-
 @2:     MOV       [RDX], ECX
-@3:
 {$ENDIF}
 end;
 
@@ -2935,15 +2855,10 @@ asm
         MOVD      EAX,XMM1
 
         POP       EBX
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV       EAX,EDX
         POP       EBX
-@2:
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -2982,14 +2897,9 @@ asm
         PSRLW     XMM1,8
         PACKUSWB  XMM1,XMM0
         MOVD      EAX,XMM1
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 
 @1:     MOV       EAX,EDX
-@2:
 {$ENDIF}
 end;
 
@@ -3504,14 +3414,9 @@ asm
         PACKUSWB  XMM1,XMM0
         MOVD      [EDX],XMM1
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
 
 @2:     MOV       [EDX],EAX
-@3:
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
@@ -3556,14 +3461,9 @@ asm
         PACKUSWB  XMM1,XMM0
         MOVD      [RDX],XMM1
 
-{$IFDEF FPC}
-@1:     JMP @3
-{$ELSE}
 @1:     RET
-{$ENDIF}
 
 @2:     MOV       [RDX],ECX
-@3:
 {$ENDIF}
 end;
 
@@ -3679,15 +3579,10 @@ asm
         DEC       R8D
         JNZ       @1
 
-{$IFDEF FPC}
-@2:     JMP @4
-{$ELSE}
 @2:     RET
-{$ENDIF}
 
 @3:     SHL       R8D,2
         CALL      Move
-@4:
 {$ENDIF}
 end;
 
@@ -3756,11 +3651,7 @@ asm
         PACKUSWB  XMM0,XMM7       // XMM0  <-  Ra Rr Rg Rb
         MOVD      EAX,XMM0
 
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 @1:     MOV       EAX,EDX
 @2:
 {$ENDIF}
@@ -3803,11 +3694,7 @@ asm
         PACKUSWB  XMM0,XMM7       // XMM0  <-  Ra Rr Rg Rb
         MOVD      EAX,XMM0
 
-{$IFDEF FPC}
-        JMP @2
-{$ELSE}
         RET
-{$ENDIF}
 @1:     MOV       EAX,EDX
 @2:
 {$ENDIF}
