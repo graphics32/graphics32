@@ -147,26 +147,27 @@ type
     property Center: TFloatPoint read FCenter write FCenter;
   end;
 
-  TColorGradientSpread = (gsPad, gsReflect, gsRepeat);
-
   TCustomGradientPolygonFiller = class(TCustomPolygonFiller)
   private
     FGradient: TGradient32;
     FOwnsGradient: Boolean;
-    FSpread: TColorGradientSpread;
+    FWrapMode: TWrapMode;
+    FWrapProc: TWrapProc;
+    procedure SetWrapMode(const Value: TWrapMode);
   protected
     procedure FillLineNone(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
     procedure FillLineSolid(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
     procedure GradientFillerChanged; virtual;
+    procedure WrapModeChanged;
   public
     constructor Create; overload;
     constructor Create(ColorGradient: TGradient32); overload; virtual;
     destructor Destroy; override;
 
     property Gradient: TGradient32 read FGradient;
-    property Spread: TColorGradientSpread read FSpread write FSpread;
+    property WrapMode: TWrapMode read FWrapMode write SetWrapMode;
   end;
 
   TCustomLinearGradientPolygonFiller = class(TCustomGradientPolygonFiller)
@@ -218,21 +219,15 @@ type
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineVerticalPadExtreme(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
-    procedure FillLineVerticalRepeat(Dst: PColor32;
-      DstX, DstY, Length: Integer; AlphaValues: PColor32);
-    procedure FillLineVerticalReflect(Dst: PColor32;
+    procedure FillLineVerticalWrap(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineHorizontalPadPos(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineHorizontalPadNeg(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
-    procedure FillLineHorizontalMirrorNeg(Dst: PColor32; DstX, DstY,
+    procedure FillLineHorizontalWrapNeg(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
-    procedure FillLineHorizontalMirrorPos(Dst: PColor32; DstX, DstY,
-      Length: Integer; AlphaValues: PColor32);
-    procedure FillLineHorizontalRepeatNeg(Dst: PColor32; DstX, DstY,
-      Length: Integer; AlphaValues: PColor32);
-    procedure FillLineHorizontalRepeatPos(Dst: PColor32; DstX, DstY,
+    procedure FillLineHorizontalWrapPos(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
 
     property Initialized: Boolean read FInitialized;
@@ -786,6 +781,8 @@ constructor TCustomGradientPolygonFiller.Create;
 begin
   Create(TGradient32.Create(clNone32));
   FOwnsGradient := True;
+  FWrapMode := wmClamp;
+  FWrapProc := Clamp;
 end;
 
 constructor TCustomGradientPolygonFiller.Create(ColorGradient: TGradient32);
@@ -820,6 +817,20 @@ end;
 procedure TCustomGradientPolygonFiller.GradientFillerChanged;
 begin
   // do nothing
+end;
+
+procedure TCustomGradientPolygonFiller.SetWrapMode(const Value: TWrapMode);
+begin
+  if FWrapMode <> Value then
+  begin
+    FWrapMode := Value;
+    WrapModeChanged;
+  end;
+end;
+
+procedure TCustomGradientPolygonFiller.WrapModeChanged;
+begin
+  FWrapProc := GetWrapProc(FWrapMode);
 end;
 
 
@@ -1114,6 +1125,8 @@ begin
   FOwnsLUT := False;
   FGradient := nil;
   FOwnsGradient := False;
+  FWrapMode := wmClamp;
+  FWrapProc := Clamp;
 end;
 
 destructor TLinearGradientLookupTablePolygonFiller.Destroy;
@@ -1146,8 +1159,8 @@ begin
     0: Result := FillLineNone;
     1: Result := FillLineSolid;
     else
-      case FSpread of
-        gsPad:
+      case FWrapMode of
+        wmClamp:
           if FStartPoint.X = FEndPoint.X then
             if FStartPoint.Y = FEndPoint.Y then
               Result := FillLineVerticalPadExtreme
@@ -1158,22 +1171,14 @@ begin
             Result := FillLineHorizontalPadPos
           else
             Result := FillLineHorizontalPadNeg;
-        gsReflect:
+        wmMirror, wmRepeat:
           if FStartPoint.X = FEndPoint.X then
-            Result := FillLineVerticalReflect
+            Result := FillLineVerticalWrap
           else
           if FStartPoint.X < FEndPoint.X then
-            Result := FillLineHorizontalMirrorPos
+            Result := FillLineHorizontalWrapPos
           else
-            Result := FillLineHorizontalMirrorNeg;
-        gsRepeat:
-          if FStartPoint.X = FEndPoint.X then
-            Result := FillLineVerticalRepeat
-          else
-          if FStartPoint.X < FEndPoint.X then
-            Result := FillLineHorizontalRepeatPos
-          else
-            Result := FillLineHorizontalRepeatNeg;
+            Result := FillLineHorizontalWrapNeg;
       end;
   end;
 end;
@@ -1184,7 +1189,7 @@ var
   X: Integer;
   Color32: TColor32;
 begin
-  Color32 := FGradientLUT.Color32Ptr^[Clamp(Round(FGradientLUT.Mask *
+  Color32 := FGradientLUT.Color32Ptr^[FWrapProc(Round(FGradientLUT.Mask *
     (DstY - FStartPoint.Y) * FIncline), FGradientLUT.Mask)];
 
   for X := DstX to DstX + Length - 1 do
@@ -1216,32 +1221,14 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalReflect(
-  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-var
-  X: Integer;
-  Color32: TColor32;
-begin
-  Color32 := FGradientLUT.Color32Ptr^[Mirror(Round(FGradientLUT.Mask *
-    (DstY - FStartPoint.Y) * FIncline), FGradientLUT.Mask)];
-
-  for X := DstX to DstX + Length - 1 do
-  begin
-    BlendMemEx(Color32, Dst^, AlphaValues^);
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-  EMMS;
-end;
-
-procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalRepeat(
+procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalWrap(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
   Color32: TColor32;
 begin
   X := Round(FGradientLUT.Mask * (DstY - FStartPoint.Y) * FIncline);
-  Color32 := FGradientLUT.Color32Ptr^[Wrap(X, Integer(FGradientLUT.Mask))];
+  Color32 := FGradientLUT.Color32Ptr^[FWrapProc(X, Integer(FGradientLUT.Mask))];
 
   for X := DstX to DstX + Length - 1 do
   begin
@@ -1286,7 +1273,7 @@ begin
   Scale := Mask / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
   begin
-    BlendMemEx(ColorLUT^[Clamp(Round((X - XOffset[0]) * Scale), Mask)], Dst^,
+    BlendMemEx(ColorLUT^[FWrapProc(Round((X - XOffset[0]) * Scale), Mask)], Dst^,
       AlphaValues^);
     EMMS;
 
@@ -1330,7 +1317,7 @@ begin
   Scale := Mask / (XOffset[1] - XOffset[0]);
   for X := DstX to DstX + Length - 1 do
   begin
-    BlendMemEx(ColorLUT^[Clamp(Round((XOffset[1] - X) * Scale), Mask)], Dst^,
+    BlendMemEx(ColorLUT^[FWrapProc(Round((XOffset[1] - X) * Scale), Mask)], Dst^,
       AlphaValues^);
     EMMS;
 
@@ -1340,57 +1327,7 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorPos(
-  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-var
-  X, Mask: Integer;
-  ColorLUT: PColor32Array;
-  Scale: TFloat;
-  XOffset: array [0..1] of TFloat;
-begin
-  XOffset[0] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
-  XOffset[1] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
-  Mask := FGradientLUT.Mask;
-  ColorLUT := FGradientLUT.Color32Ptr;
-
-  Scale := Mask / (XOffset[1] - XOffset[0]);
-  for X := DstX to DstX + Length - 1 do
-  begin
-    BlendMemEx(ColorLUT^[Mirror(Round((X - XOffset[0]) * Scale),
-      Mask)], Dst^, AlphaValues^);
-    EMMS;
-
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-end;
-
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalMirrorNeg(
-  Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-var
-  X, Mask: Integer;
-  ColorLUT: PColor32Array;
-  Scale: TFloat;
-  XOffset: array [0..1] of TFloat;
-begin
-  XOffset[0] := FEndPoint.X + (FEndPoint.Y - DstY) * FIncline;
-  XOffset[1] := FStartPoint.X + (FStartPoint.Y - DstY) * FIncline;
-  Mask := Integer(FGradientLUT.Mask);
-  ColorLUT := FGradientLUT.Color32Ptr;
-
-  Scale := Mask / (XOffset[1] - XOffset[0]);
-  for X := DstX to DstX + Length - 1 do
-  begin
-    BlendMemEx(ColorLUT^[Mirror(Round((XOffset[1] - X) * Scale),
-      Mask)], Dst^, AlphaValues^);
-    EMMS;
-
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-end;
-
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatPos(
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalWrapPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, Index, Mask: Integer;
@@ -1407,7 +1344,7 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     Index := Round((X - XOffset[0]) * Scale);
-    BlendMemEx(ColorLUT^[Wrap(Index, Mask)], Dst^, AlphaValues^);
+    BlendMemEx(ColorLUT^[FWrapProc(Index, Mask)], Dst^, AlphaValues^);
     EMMS;
 
     Inc(Dst);
@@ -1415,7 +1352,7 @@ begin
   end;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalRepeatNeg(
+procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalWrapNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, Index, Mask: Integer;
@@ -1432,7 +1369,7 @@ begin
   for X := DstX to DstX + Length - 1 do
   begin
     Index := Round((XOffset[1] - X) * Scale);
-    BlendMemEx(ColorLUT^[Wrap(Index, Mask)], Dst^, AlphaValues^);
+    BlendMemEx(ColorLUT^[FWrapProc(Index, Mask)], Dst^, AlphaValues^);
     EMMS;
 
     Inc(Dst);
@@ -1468,6 +1405,8 @@ begin
   FOwnsLUT := False;
   FGradient := nil;
   FOwnsGradient := False;
+  FWrapMode := wmClamp;
+  FWrapProc := Clamp;
 end;
 
 destructor TCustomRadialGradientPolygonFiller.Destroy;
@@ -1546,12 +1485,12 @@ end;
 
 function TRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-  case FSpread of
-    gsPad :
+  case FWrapMode of
+    wmClamp:
       Result := FillLinePad;
-    gsReflect :
+    wmMirror:
       Result := FillLineReflect;
-    gsRepeat:
+    wmRepeat:
       Result := FillLineRepeat;
   end;
 end;

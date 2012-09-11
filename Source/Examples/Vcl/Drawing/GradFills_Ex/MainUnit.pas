@@ -5,28 +5,11 @@ interface
 {$I GR32.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Math, ExtCtrls, StdCtrls, Menus, GR32, GR32_Polygons, GR32_Image, GR32_Layers,
-  GR32_Transforms, GR32_ColorGradients;
+  {$IFDEF FPC} LCLIntf, {$ELSE} Windows, {$ENDIF} SysUtils, Types, Classes,
+  Graphics, Controls, Forms, Dialogs, Math, ExtCtrls, StdCtrls, Menus, GR32,
+  GR32_Polygons, GR32_Image, GR32_Layers, GR32_Transforms, GR32_ColorGradients;
 
 type
-  TControlButton = class(TPersistent)
-  private
-    FCenter: TPoint;
-    FSize, FSizeSqr: TFloat;
-    FAffineTransformation: TAffineTransformation;
-    FOutline: TArrayOfFloatPoint;
-    procedure SetCenter(const Value: TPoint);
-  public
-    constructor Create(const Center: TPoint; Size: TFloat);
-    destructor Destroy; override;
-    procedure Draw(const Bmp32: TBitmap32; Filler: TCustomPolygonFiller);
-    function TestHitPoint(X, Y: Integer): Boolean;
-
-    property Center: TPoint read FCenter write SetCenter;
-    property Outline: TArrayOfFloatPoint read FOutline;
-  end;
-
   TMainForm = class(TForm)
     BtnDefaults: TButton;
     CmbLUT: TComboBox;
@@ -39,19 +22,6 @@ type
     MnuFile: TMenuItem;
     MnuFileOpen: TMenuItem;
     MnuFileSaveAs: TMenuItem;
-    MnuPad: TMenuItem;
-    MnuReflect: TMenuItem;
-    MnuRepeat: TMenuItem;
-    MnuSpreadMethod: TMenuItem;
-    N1: TMenuItem;
-    OpenDialog: TOpenDialog;
-    PnlControl: TPanel;
-    RgpEllipseFillStyle: TRadioGroup;
-    RgpSpreadMethod: TRadioGroup;
-    SaveDialog: TSaveDialog;
-    MnuRadialFillStyle: TMenuItem;
-    MnuSimple: TMenuItem;
-    MnuSVG: TMenuItem;
     MnuLookupTableOrder: TMenuItem;
     MnuOrder4: TMenuItem;
     MnuOrder5: TMenuItem;
@@ -59,12 +29,29 @@ type
     MnuOrder7: TMenuItem;
     MnuOrder8: TMenuItem;
     MnuOrder9: TMenuItem;
+    MnuOrder10: TMenuItem;
+    MnuOrder11: TMenuItem;
+    MnuOrder12: TMenuItem;
+    MnuOrder13: TMenuItem;
+    MnuPad: TMenuItem;
+    MnuRadialFillStyle: TMenuItem;
+    MnuReflect: TMenuItem;
+    MnuRepeat: TMenuItem;
+    MnuSimple: TMenuItem;
+    MnuWrapMode: TMenuItem;
+    MnuSVG: TMenuItem;
+    N1: TMenuItem;
+    OpenDialog: TOpenDialog;
+    PnlControl: TPanel;
+    RgpEllipseFillStyle: TRadioGroup;
+    RgpWrapMode: TRadioGroup;
+    SaveDialog: TSaveDialog;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure BtnDefaultsClick(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
     procedure CmbLUTChange(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure ImgView32DblClick(Sender: TObject);
     procedure ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -79,16 +66,17 @@ type
     procedure MnuRadialFillStyleClick(Sender: TObject);
     procedure MnuSpreadClick(Sender: TObject);
     procedure RgpEllipseFillStyleClick(Sender: TObject);
-    procedure RgpSpreadMethodClick(Sender: TObject);
+    procedure RgpWrapModeClick(Sender: TObject);
   private
-    FControlButtonFiller: TSamplerFiller;
-    FRadialGradientSampler: TRadialGradientSampler;
-    FControlButton: TControlButton;
-    FLinearStartBtn: TControlButton;
-    FLinearEndBtn: TControlButton;
-    FRadialOriginBtn: TControlButton;
-    FRadialXBtn: TControlButton;
-    FRadialYBtn: TControlButton;
+    FKnobBitmap: TBitmap32;
+    FKnobRadius: Integer;
+    FControlKnob: PPoint;
+    FLinearStart: TPoint;
+    FLinearEnd: TPoint;
+    FRadialOrigin: TPoint;
+    FRadialX: TPoint;
+    FRadialY: TPoint;
+
     FLinearBounds: TRect;
     FRadialBounds: TRect;
     FGradient: TGradient32;
@@ -108,8 +96,8 @@ var
 implementation
 
 uses
-  Types, GR32_Geometry, GR32_VectorUtils, GR32_Paths, {$IFDEF FPC}
-  GR32_Text_LCL {$ELSE} GR32_Text_VCL {$ENDIF};
+  GR32_Geometry, GR32_VectorUtils, GR32_Paths, {$IFDEF FPC}
+  GR32_Text_LCL_Win {$ELSE} GR32_Text_VCL {$ENDIF};
 
 {$IFDEF FPC}
 {$R *.lfm}
@@ -336,59 +324,14 @@ begin
 end;
 
 
-{ TControlButton }
-
-constructor TControlButton.Create(const Center: TPoint; Size: TFloat);
-begin
-  inherited Create;
-
-  FCenter := Center;
-  FSize := Size;
-  FSizeSqr := Sqr(FSize);
-  FOutline := Circle(0, 0, Size);
-
-  FAffineTransformation := TAffineTransformation.Create;
-  FAffineTransformation.Matrix := IdentityMatrix;
-end;
-
-destructor TControlButton.Destroy;
-begin
-  FAffineTransformation.Free;
-  inherited;
-end;
-
-procedure TControlButton.Draw(const Bmp32: TBitmap32;
-  Filler: TCustomPolygonFiller);
-begin
-  with TRadialGradientSampler(TSamplerFiller(Filler).Sampler) do
-  begin
-    Center := FloatPoint(Self.FCenter.X - 2.5, Self.FCenter.Y - 2.5);
-    Radius := 6;
-  end;
-  FAffineTransformation.Matrix[2, 0] := Center.X;
-  FAffineTransformation.Matrix[2, 1] := Center.Y;
-  PolygonFS(Bmp32, FOutline, Filler, pfWinding, FAffineTransformation);
-  PolylineFS(Bmp32, FOutline, clBlack32, False, 1.0, jsMiter, esButt, 4,
-    FAffineTransformation);
-end;
-
-procedure TControlButton.SetCenter(const Value: TPoint);
-begin
-  if (FCenter.X = Value.X) and (FCenter.Y = Value.Y) then Exit;
-  FCenter := Value;
-end;
-
-function TControlButton.TestHitPoint(X, Y: Integer): Boolean;
-begin
-  Result := Sqr(FCenter.X - X) + Sqr(FCenter.Y - Y) < FSizeSqr;
-end;
-
-
 {TMainForm}
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
   TextPath: TFlattenedPath;
+  Outline: TArrayOfFloatPoint;
+  Filler: TSamplerFiller;
+  Sampler: TRadialGradientSampler;
 begin
   ImgView32.SetupBitmap(True);
 
@@ -401,12 +344,6 @@ begin
   FGradientLUT := TColor32LookupTable.Create;
   FGradientLUT.OnOrderChanged := LUTOrderChangedHandler;
   FGradient.FillColorLookUpTable(FGradientLUT);
-
-  FRadialGradientSampler := TRadialGradientSampler.Create;
-  FRadialGradientSampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
-  FRadialGradientSampler.Gradient.AddColorStop(1.0, $FFA0A0A0);
-  FControlButtonFiller := TSamplerFiller.Create(FRadialGradientSampler);
-  FControlButtonFiller.Sampler := FRadialGradientSampler;
 
   //These text paths only need to be gotten once ...
   TextPath := TFlattenedPath.Create;
@@ -431,14 +368,44 @@ begin
 
   FTextGR32 := LoadPolysFromResource('Graphics32');
 
-  FLinearStartBtn := TControlButton.Create(GR32.Point(100, 125), 4);
-  FLinearEndBtn  := TControlButton.Create(GR32.Point(300, 125), 4);
-  FRadialOriginBtn := TControlButton.Create(GR32.Point(250, 350), 4);
+  SetGamma(1);
+  FKnobRadius := 4;
+  FKnobBitmap := TBitmap32.Create;
+  FKnobBitmap.SetSize(2 * FKnobRadius + 2,
+    2 * FKnobRadius + 2);
+  FKnobBitmap.DrawMode := dmBlend;
+  Sampler := TRadialGradientSampler.Create;
+  try
+    Sampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
+    Sampler.Gradient.AddColorStop(1.0, $FFA0A0A0);
+    Sampler.Radius := 6;
+    Sampler.Center := FloatPoint(FKnobRadius - 1.5, FKnobRadius - 1.5);
 
-  with FRadialOriginBtn.Center do
+    Filler := TSamplerFiller.Create(Sampler);
+    try
+      Filler.Sampler := Sampler;
+
+      Outline := Circle(FKnobRadius + 1, FKnobRadius + 1,
+        FKnobRadius);
+      PolygonFS(FKnobBitmap, Outline, Filler, pfWinding);
+      PolylineFS(FKnobBitmap, Outline, clBlack32, False);
+    finally
+      Filler.Free;
+    end;
+  finally
+    Sampler.Free;
+  end;
+
+  SetGamma;
+
+  FLinearStart := GR32.Point(100, 125);
+  FLinearEnd  := GR32.Point(300, 125);
+  FRadialOrigin := GR32.Point(250, 350);
+
+  with FRadialOrigin do
   begin
-    FRadialXBtn := TControlButton.Create(GR32.Point(X - 80, Y), 4);
-    FRadialYBtn := TControlButton.Create(GR32.Point(X, Y + 40), 4);
+    FRadialX := GR32.Point(X - 80, Y);
+    FRadialY := GR32.Point(X, Y + 40);
   end;
 
   DrawImage;
@@ -447,11 +414,7 @@ end;
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   FGradient.Free;
-  FLinearStartBtn.Free;
-  FLinearEndBtn.Free;
-  FRadialOriginBtn.Free;
-  FRadialXBtn.Free;
-  FRadialYBtn.Free;
+  FKnobBitmap.Free;
 end;
 
 procedure TMainForm.ImgView32DblClick(Sender: TObject);
@@ -459,58 +422,62 @@ begin
   case 0 of
     0:
       begin
-        FLinearStartBtn.SetCenter(GR32.Point(200, 70));
-        FLinearEndBtn.SetCenter(GR32.Point(200, 170));
+        FLinearStart := GR32.Point(200, 70);
+        FLinearEnd := GR32.Point(200, 170);
       end;
     1:
       begin
-        FLinearStartBtn.SetCenter(GR32.Point(200, 120));
-        FLinearEndBtn.SetCenter(GR32.Point(200, 120));
+        FLinearStart := GR32.Point(200, 120);
+        FLinearEnd := GR32.Point(200, 120);
       end;
     2:
       begin
-        FLinearStartBtn.SetCenter(GR32.Point(200, 120));
-        FLinearEndBtn.SetCenter(GR32.Point(201, 120));
+        FLinearStart := GR32.Point(200, 120);
+        FLinearEnd := GR32.Point(201, 120);
       end;
     3:
       begin
-        FLinearStartBtn.SetCenter(GR32.Point(200, 100));
-        FLinearEndBtn.SetCenter(GR32.Point(200, 140));
+        FLinearStart := GR32.Point(200, 100);
+        FLinearEnd := GR32.Point(200, 140);
       end;
   end;
 
-  FRadialOriginBtn.SetCenter(GR32.Point(331, 325));
+  FRadialOrigin := GR32.Point(331, 325);
 
   DrawImage;
+end;
+
+function TestHitPoint(X, Y: Integer; Point: TPoint; Radius: TFloat): Boolean;
+begin
+  Result := Sqr(X - Point.X) + Sqr(Y - Point.Y) < Sqr(Radius);
 end;
 
 procedure TMainForm.ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
-  if FLinearStartBtn.TestHitPoint(X, Y) then
-    FControlButton := FLinearStartBtn;
-  if FLinearEndBtn.TestHitPoint(X, Y) then
-    FControlButton := FLinearEndBtn;
-  if FRadialXBtn.TestHitPoint(X, Y) then
+  if TestHitPoint(X, Y, FLinearStart, FKnobRadius) then
+    FControlKnob := @FLinearStart;
+  if TestHitPoint(X, Y, FLinearEnd, FKnobRadius) then
+    FControlKnob := @FLinearEnd;
+  if TestHitPoint(X, Y, FRadialX, FKnobRadius) then
     if ssCtrl in Shift then
     begin
-      FRadialXBtn.FCenter.X := FRadialOriginBtn.Center.X -
-        Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
+      FRadialX.X := FRadialOrigin.X - Abs(FRadialOrigin.Y -
+        FRadialY.Y);
       DrawImage;
     end
     else
-      FControlButton := FRadialXBtn;
-  if FRadialYBtn.TestHitPoint(X, Y) then
+      FControlKnob := @FRadialX;
+  if TestHitPoint(X, Y, FRadialY, FKnobRadius) then
     if ssCtrl in Shift then
     begin
-      FRadialYBtn.FCenter.Y := FRadialOriginBtn.Center.Y +
-        Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
+      FRadialY.Y := FRadialOrigin.Y + Abs(FRadialOrigin.X - FRadialX.X);
       DrawImage;
     end
     else
-      FControlButton := FRadialYBtn;
-  if FRadialOriginBtn.TestHitPoint(X, Y) then
-    FControlButton := FRadialOriginBtn;
+      FControlKnob := @FRadialY;
+  if TestHitPoint(X, Y, FRadialOrigin, FKnobRadius) then
+    FControlKnob := @FRadialOrigin;
 end;
 
 procedure TMainForm.ImgView32MouseMove(Sender: TObject; Shift: TShiftState;
@@ -518,74 +485,80 @@ procedure TMainForm.ImgView32MouseMove(Sender: TObject; Shift: TShiftState;
 var
   Delta: TPoint;
 begin
-  if FControlButton = FLinearStartBtn then
+  if FControlKnob = @FLinearStart then
   begin
     X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
     Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
-    with FLinearEndBtn do
-      if (Abs(Center.X - X) < 1) and (Abs(Center.Y - Y) < 1) then Exit;
-    FLinearStartBtn.Center := GR32.Point(X, Y);
+    if (Abs(FLinearEnd.X - X) < 1) and (Abs(FLinearEnd.Y - Y) < 1) then
+      Exit;
+    FLinearStart := GR32.Point(X, Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FControlButton = FLinearEndBtn then
+  else if FControlKnob = @FLinearEnd then
   begin
     X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
     Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
-    with FLinearStartBtn do
-      if (Abs(Center.X - X) < 1) and (Abs(Center.Y - Y) < 1) then Exit;
-    FLinearEndBtn.Center := GR32.Point(X, Y);
+    if (Abs(FLinearStart.X - X) < 1) and (Abs(FLinearStart.Y - Y) < 1) then
+      Exit;
+    FLinearEnd := GR32.Point(X, Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FControlButton = FRadialOriginBtn then
+  else if FControlKnob = @FRadialOrigin then
   begin
     X := EnsureRange(X, FRadialBounds.Left, FRadialBounds.Right);
     Y := EnsureRange(Y, FRadialBounds.Top, FRadialBounds.Bottom);
 
-    Delta.X := X - FRadialOriginBtn.Center.X;
-    Delta.Y := Y - FRadialOriginBtn.Center.Y;
-    FRadialOriginBtn.Center := GR32.Point(X, Y);
-    with FRadialXBtn do Center := OffsetPoint(Center, Delta.X, Delta.Y);
-    with FRadialYBtn do Center := OffsetPoint(Center, Delta.X, Delta.Y);
+    Delta.X := X - FRadialOrigin.X;
+    Delta.Y := Y - FRadialOrigin.Y;
+    FRadialOrigin := GR32.Point(X, Y);
+    FRadialX := OffsetPoint(FRadialX, Delta.X, Delta.Y);
+    FRadialY := OffsetPoint(FRadialY, Delta.X, Delta.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FControlButton = FRadialXBtn then
+  else if FControlKnob = @FRadialX then
   begin
     X := EnsureRange(X, 10, ImgView32.ClientWidth - 10);
-    Delta.X := X - FRadialOriginBtn.Center.X;
+    Delta.X := X - FRadialOrigin.X;
     if (Abs(Delta.X) < 3) then Exit;
-    with FRadialXBtn do
-      Center := GR32.Point(FRadialOriginBtn.Center.X + Delta.X, Center.Y);
+      FRadialX := GR32.Point(FRadialOrigin.X + Delta.X, FRadialX.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end
-  else if FControlButton = FRadialYBtn then
+  else if FControlKnob = @FRadialY then
   begin
     Y := EnsureRange(Y, 10, ImgView32.ClientHeight - 10);
-    Delta.Y := Y - FRadialOriginBtn.Center.Y;
+    Delta.Y := Y - FRadialOrigin.Y;
     if (Abs(Delta.Y) < 3) then Exit;
-    with FRadialYBtn do
-      Center := GR32.Point(Center.X, FRadialOriginBtn.Center.Y + Delta.Y);
+    FRadialY := GR32.Point(FRadialY.X, FRadialOrigin.Y + Delta.Y);
     DrawImage;
     Screen.Cursor := crHandPoint;
   end else
   begin
-    if FLinearStartBtn.TestHitPoint(X, Y) or
-      FLinearEndBtn.TestHitPoint(X, Y) or
-      FRadialOriginBtn.TestHitPoint(X, Y) or
-      FRadialXBtn.TestHitPoint(X, Y) or
-      FRadialYBtn.TestHitPoint(X, Y) then
-        Screen.Cursor := crHandPoint else
-        Screen.Cursor := crDefault;
+    if TestHitPoint(X, Y, FLinearStart, FKnobRadius) or
+      TestHitPoint(X, Y, FLinearEnd, FKnobRadius) or
+      TestHitPoint(X, Y, FRadialOrigin, FKnobRadius) or
+      TestHitPoint(X, Y, FRadialX, FKnobRadius) or
+      TestHitPoint(X, Y, FRadialY, FKnobRadius) or
+      Assigned(FControlKnob) then
+    begin
+      Screen.Cursor := crHandPoint;
+      ImgView32.Cursor := crHandPoint;
+    end
+    else
+    begin
+      Screen.Cursor := crDefault;
+      ImgView32.Cursor := crDefault;
+    end;
   end;
 end;
 
 procedure TMainForm.ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 begin
-  FControlButton := nil;
+  FControlKnob := nil;
 end;
 
 procedure TMainForm.DrawImage;
@@ -606,9 +579,9 @@ begin
   PolygonTop := Ellipse(200, 125, 100, 60);
   LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create(FGradientLUT);
   try
-    LinearGradFiller.StartPoint := FloatPoint(FLinearStartBtn.Center);
-    LinearGradFiller.EndPoint := FloatPoint(FLinearEndBtn.Center);
-    LinearGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
+    LinearGradFiller.StartPoint := FloatPoint(FLinearStart);
+    LinearGradFiller.EndPoint := FloatPoint(FLinearEnd);
+    LinearGradFiller.WrapMode := TWrapMode(RgpWrapMode.ItemIndex);
 
     PolygonFS(ImgView32.Bitmap, PolygonTop, LinearGradFiller);
     PolyLineFS(ImgView32.Bitmap, PolygonTop, ClBlack32, True, 1);
@@ -628,10 +601,10 @@ begin
   begin
     RadialGradFiller := TRadialGradientPolygonFiller.Create(FGradientLUT);
     try
-      RadialGradFiller.Spread := TColorGradientSpread(RgpSpreadMethod.ItemIndex);
-      Delta.X := Abs(FRadialOriginBtn.Center.X - FRadialXBtn.Center.X);
-      Delta.Y := Abs(FRadialOriginBtn.Center.Y - FRadialYBtn.Center.Y);
-      with FRadialOriginBtn.FCenter do
+      RadialGradFiller.WrapMode := TWrapMode(RgpWrapMode.ItemIndex);
+      Delta.X := Abs(FRadialOrigin.X - FRadialX.X);
+      Delta.Y := Abs(FRadialOrigin.Y - FRadialY.Y);
+      with FRadialOrigin do
         RadialGradFiller.EllipseBounds := FloatRect(X - Delta.X, Y - Delta.Y,
           X + Delta.X, Y + Delta.Y);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, RadialGradFiller);
@@ -643,7 +616,7 @@ begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create(FGradientLUT);
     try
       SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
-      SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOriginBtn.Center);
+      SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOrigin);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
     finally
       SVGStyleRadGradFiller.Free;
@@ -656,14 +629,19 @@ begin
   PolyPolygonFS(ImgView32.Bitmap, FTextTopPoly, clBlack32);
   PolyPolygonFS(ImgView32.Bitmap, FTextBottomPoly, clBlack32);
 
-  //finally, draw the control buttons ...
-  FLinearStartBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
-  FLinearEndBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
-  FRadialOriginBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
-  if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
+  with ImgView32.Bitmap do
   begin
-    FRadialXBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
-    FRadialYBtn.Draw(ImgView32.Bitmap, FControlButtonFiller);
+    Draw(FLinearStart.X - FKnobRadius, FLinearStart.Y - FKnobRadius,
+      FKnobBitmap);
+    Draw(FLinearEnd.X - FKnobRadius, FLinearEnd.Y - FKnobRadius,
+      FKnobBitmap);
+    Draw(FRadialOrigin.X - FKnobRadius, FRadialOrigin.Y - FKnobRadius,
+      FKnobBitmap);
+    if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
+    begin
+      Draw(FRadialX.X - FKnobRadius, FRadialX.Y - FKnobRadius, FKnobBitmap);
+      Draw(FRadialY.X - FKnobRadius, FRadialY.Y - FKnobRadius, FKnobBitmap);
+    end;
   end;
 end;
 
@@ -698,6 +676,10 @@ begin
     3: MnuOrder7.Checked := True;
     4: MnuOrder8.Checked := True;
     5: MnuOrder9.Checked := True;
+    6: MnuOrder10.Checked := True;
+    7: MnuOrder11.Checked := True;
+    8: MnuOrder12.Checked := True;
+    9: MnuOrder13.Checked := True;
   end;
   FGradientLUT.Order := 4 + CmbLUT.ItemIndex;
 end;
@@ -738,7 +720,7 @@ end;
 
 procedure TMainForm.MnuSpreadClick(Sender: TObject);
 begin
-  RgpSpreadMethod.ItemIndex := TMenuItem(Sender).Tag;
+  RgpWrapMode.ItemIndex := TMenuItem(Sender).Tag;
   TMenuItem(Sender).Checked := True;
   DrawImage;
 end;
@@ -758,9 +740,9 @@ begin
   DrawImage;
 end;
 
-procedure TMainForm.RgpSpreadMethodClick(Sender: TObject);
+procedure TMainForm.RgpWrapModeClick(Sender: TObject);
 begin
-  case RgpSpreadMethod.ItemIndex of
+  case RgpWrapMode.ItemIndex of
     0: MnuPad.Checked := True;
     1: MnuReflect.Checked := True;
     2: MnuRepeat.Checked := True;

@@ -72,19 +72,19 @@ object MainForm: TMainForm
       TabOrder = 1
       OnClick = RgpEllipseFillStyleClick
     end
-    object RgpSpreadMethod: TRadioGroup
+    object RgpWrapMode: TRadioGroup
       Left = 14
       Top = 272
       Width = 114
       Height = 87
-      Caption = 'Spread Method'
+      Caption = '&Wrap Mode'
       ItemIndex = 0
       Items.Strings = (
-        'Pad'
-        'Reflect'
-        'Repeat')
+        'Clamp'
+        'Repeat'
+        'Mirror')
       TabOrder = 2
-      OnClick = RgpSpreadMethodClick
+      OnClick = RgpWrapModeClick
     end
     object BtnDefaults: TButton
       Left = 34
@@ -100,7 +100,6 @@ object MainForm: TMainForm
       Top = 243
       Width = 114
       Height = 23
-      ItemIndex = 5
       TabOrder = 4
       Text = '9 (= 512 Values)'
       OnChange = CmbLUTChange
@@ -110,7 +109,11 @@ object MainForm: TMainForm
         '6 (= 64 Values)'
         '7 (= 128 Values)'
         '8 (= 256 Values)'
-        '9 (= 512 Values)')
+        '9 (= 512 Values)'
+        '10 (= 1024 Values)'
+        '11 (= 2048 Values)'
+        '12 (= 4096 Values)'
+        '13 (= 8192 Values)')
     end
   end
   object ImgView32: TImgView32
@@ -157,23 +160,23 @@ object MainForm: TMainForm
         OnClick = BtnExitClick
       end
     end
-    object MnuSpreadMethod: TMenuItem
-      Caption = '&Spread Method'
+    object MnuWrapMode: TMenuItem
+      Caption = '&Wrap Mode'
       object MnuPad: TMenuItem
-        Caption = '&Pad'
+        Caption = '&Clamp'
         Checked = True
         RadioItem = True
         OnClick = MnuSpreadClick
       end
-      object MnuReflect: TMenuItem
+      object MnuRepeat: TMenuItem
         Tag = 1
-        Caption = '&Reflect'
+        Caption = '&Repeat'
         RadioItem = True
         OnClick = MnuSpreadClick
       end
-      object MnuRepeat: TMenuItem
+      object MnuReflect: TMenuItem
         Tag = 2
-        Caption = '&Repeat'
+        Caption = '&Mirror'
         RadioItem = True
         OnClick = MnuSpreadClick
       end
@@ -208,26 +211,50 @@ object MainForm: TMainForm
       end
       object MnuOrder6: TMenuItem
         Tag = 2
-        Caption = '6 (=64 Values)'
+        Caption = '6 (= 64 Values)'
         RadioItem = True
         OnClick = MnuOrderClick
       end
       object MnuOrder7: TMenuItem
         Tag = 3
-        Caption = '7 (=128 Values)'
+        Caption = '7 (= 128 Values)'
         RadioItem = True
         OnClick = MnuOrderClick
       end
       object MnuOrder8: TMenuItem
         Tag = 4
-        Caption = '8 (=256 Values)'
+        Caption = '8 (= 256 Values)'
         RadioItem = True
         OnClick = MnuOrderClick
       end
       object MnuOrder9: TMenuItem
         Tag = 5
-        Caption = '9 (=512 Values)'
+        Caption = '9 (= 512 Values)'
         Checked = True
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder10: TMenuItem
+        Tag = 6
+        Caption = '10 (= 1024 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder11: TMenuItem
+        Tag = 7
+        Caption = '11 (= 2048 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder12: TMenuItem
+        Tag = 8
+        Caption = '12 (= 4096 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder13: TMenuItem
+        Tag = 9
+        Caption = '13 (= 8192 Values)'
         RadioItem = True
         OnClick = MnuOrderClick
       end
