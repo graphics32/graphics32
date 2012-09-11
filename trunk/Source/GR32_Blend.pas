@@ -732,7 +732,7 @@ const
   bias = $00800080;
 
 
-function BlendReg_ASM(F, B: TColor32): TColor32;
+function BlendReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
@@ -858,7 +858,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMem_ASM(F: TColor32; var B: TColor32);
+procedure BlendMem_ASM(F: TColor32; var B: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -989,7 +989,7 @@ asm
 {$ENDIF}
 end;
 
-function BlendRegEx_ASM(F, B, M: TColor32): TColor32;
+function BlendRegEx_ASM(F, B, M: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
@@ -1116,7 +1116,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMemEx_ASM(F: TColor32; var B: TColor32; M: TColor32);
+procedure BlendMemEx_ASM(F: TColor32; var B: TColor32; M: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -1239,7 +1239,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer);
+procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX <- Src
@@ -1400,7 +1400,7 @@ end;
 
 {$IFDEF TARGET_x86}
 
-function MergeReg_ASM(F, B: TColor32): TColor32;
+function MergeReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
         // EAX <- F
         // EDX <- B
@@ -1586,7 +1586,7 @@ end;
 
 {$ENDIF}
 
-function CombineReg_ASM(X, Y, W: TColor32): TColor32;
+function CombineReg_ASM(X, Y, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // combine RGBA channels of colors X and Y with the weight of X given in W
   // Result Z = W * X + (1 - W) * Y (all channels are combined, including alpha)
@@ -1699,7 +1699,7 @@ asm
 {$ENDIF}
 end;
 
-procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32);
+procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -1816,7 +1816,7 @@ asm
 {$ENDIF}
 end;
 
-procedure EMMS_ASM;
+procedure EMMS_ASM; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 end;
 
@@ -1862,7 +1862,7 @@ end;
 
 { MMX versions }
 
-function BlendReg_MMX(F, B: TColor32): TColor32;
+function BlendReg_MMX(F, B: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
@@ -1915,7 +1915,7 @@ end;
 
 {$IFDEF TARGET_x86}
 
-procedure BlendMem_MMX(F: TColor32; var B: TColor32);
+procedure BlendMem_MMX(F: TColor32; var B: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // EAX - Color X
   // [EDX] - Color Y
@@ -1954,7 +1954,7 @@ asm
 @3:
 end;
 
-function BlendRegEx_MMX(F, B, M: TColor32): TColor32;
+function BlendRegEx_MMX(F, B, M: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
@@ -2001,7 +2001,7 @@ end;
 
 {$ENDIF}
 
-procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32);
+procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // blend foreground color (F) to a background color (B),
@@ -2081,7 +2081,7 @@ asm
 {$ENDIF}
 end;
 
-function BlendRegRGB_MMX(F, B, W: TColor32): TColor32;
+function BlendRegRGB_MMX(F, B, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PXOR      MM2,MM2
@@ -2124,7 +2124,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: TColor32);
+procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PXOR      MM2,MM2
@@ -2169,7 +2169,7 @@ end;
 
 
 {$IFDEF TARGET_x86}
-procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer);
+procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -2226,7 +2226,7 @@ asm
 @4:
 end;
 
-procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: TColor32);
+procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -2290,7 +2290,7 @@ end;
 
 {$ENDIF}
 
-function CombineReg_MMX(X, Y, W: TColor32): TColor32;
+function CombineReg_MMX(X, Y, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX - Color X
@@ -2351,7 +2351,7 @@ asm
 {$ENDIF}
 end;
 
-procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: TColor32);
+procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX - Color X
@@ -2443,7 +2443,7 @@ end;
 
 {$IFDEF TARGET_x86}
 
-procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: TColor32);
+procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // EAX <- Src
   // EDX <- Dst
@@ -2501,12 +2501,12 @@ end;
 
 {$ENDIF}
 
-procedure EMMS_MMX;
+procedure EMMS_MMX; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   EMMS
 end;
 
-function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32;
+function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD    MM0,EAX
@@ -2543,7 +2543,7 @@ end;
 
 { MMX Color algebra versions }
 
-function ColorAdd_MMX(C1, C2: TColor32): TColor32;
+function ColorAdd_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      MM0,EAX
@@ -2560,7 +2560,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorSub_MMX(C1, C2: TColor32): TColor32;
+function ColorSub_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      MM0,EAX
@@ -2577,7 +2577,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorModulate_MMX(C1, C2: TColor32): TColor32;
+function ColorModulate_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      MM2,MM2
@@ -2604,7 +2604,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorMax_EMMX(C1, C2: TColor32): TColor32;
+function ColorMax_EMMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      MM0,EAX
@@ -2621,7 +2621,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorMin_EMMX(C1, C2: TColor32): TColor32;
+function ColorMin_EMMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      MM0,EAX
@@ -2638,7 +2638,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorDifference_MMX(C1, C2: TColor32): TColor32;
+function ColorDifference_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      MM0,EAX
@@ -2661,7 +2661,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorExclusion_MMX(C1, C2: TColor32): TColor32;
+function ColorExclusion_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      MM2,MM2
@@ -2694,7 +2694,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorScale_MMX(C, W: TColor32): TColor32;
+function ColorScale_MMX(C, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      MM2,MM2
@@ -2727,7 +2727,7 @@ end;
 
 {$IFNDEF OMIT_SSE2}
 
-function BlendReg_SSE2(F, B: TColor32): TColor32;
+function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
@@ -2774,7 +2774,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMem_SSE2(F: TColor32; var B: TColor32);
+procedure BlendMem_SSE2(F: TColor32; var B: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX - Color X
@@ -2851,7 +2851,7 @@ asm
 {$ENDIF}
 end;
 
-function BlendRegEx_SSE2(F, B, M: TColor32): TColor32;
+function BlendRegEx_SSE2(F, B, M: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
@@ -2937,7 +2937,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: TColor32);
+procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // blend foreground color (F) to a background color (B),
@@ -3018,7 +3018,7 @@ asm
 {$ENDIF}
 end;
 
-function BlendRegRGB_SSE2(F, B, W: TColor32): TColor32;
+function BlendRegRGB_SSE2(F, B, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PXOR      XMM2,XMM2
@@ -3061,7 +3061,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: TColor32);
+procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PXOR      XMM2,XMM2
@@ -3103,7 +3103,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer);
+procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX <- Src
@@ -3201,7 +3201,7 @@ asm
 end;
 
 
-procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32);
+procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX <- Src
@@ -3319,7 +3319,7 @@ asm
 {$ENDIF}
 end;
 
-function CombineReg_SSE2(X, Y, W: TColor32): TColor32;
+function CombineReg_SSE2(X, Y, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX - Color X
@@ -3380,7 +3380,7 @@ asm
 {$ENDIF}
 end;
 
-procedure CombineMem_SSE2(F: TColor32; var B: TColor32; W: TColor32);
+procedure CombineMem_SSE2(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX - Color X
@@ -3472,7 +3472,7 @@ asm
 end;
 
 
-procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: TColor32);
+procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX <- Src
@@ -3587,7 +3587,7 @@ asm
 {$ENDIF}
 end;
 
-function MergeReg_SSE2(F, B: TColor32): TColor32;
+function MergeReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   { This is an implementation of the merge formula, as described
     in a paper by Bruce Wallace in 1981. Merging is associative,
@@ -3709,12 +3709,12 @@ asm
 {$ENDIF}
 end;
 
-procedure EMMS_SSE2;
+procedure EMMS_SSE2; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 end;
 
 
-function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32;
+function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD    XMM0,EAX
@@ -3752,7 +3752,7 @@ end;
 
 { SSE2 Color algebra}
 
-function ColorAdd_SSE2(C1, C2: TColor32): TColor32;
+function ColorAdd_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
@@ -3769,7 +3769,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorSub_SSE2(C1, C2: TColor32): TColor32;
+function ColorSub_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
@@ -3786,7 +3786,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorModulate_SSE2(C1, C2: TColor32): TColor32;
+function ColorModulate_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM2,XMM2
@@ -3813,7 +3813,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorMax_SSE2(C1, C2: TColor32): TColor32;
+function ColorMax_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
@@ -3830,7 +3830,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorMin_SSE2(C1, C2: TColor32): TColor32;
+function ColorMin_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
@@ -3847,7 +3847,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorDifference_SSE2(C1, C2: TColor32): TColor32;
+function ColorDifference_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         MOVD      XMM0,EAX
@@ -3870,7 +3870,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorExclusion_SSE2(C1, C2: TColor32): TColor32;
+function ColorExclusion_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM2,XMM2
@@ -3903,7 +3903,7 @@ asm
 {$ENDIF}
 end;
 
-function ColorScale_SSE2(C, W: TColor32): TColor32;
+function ColorScale_SSE2(C, W: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM2,XMM2
