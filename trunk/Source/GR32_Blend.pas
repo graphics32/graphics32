@@ -1897,7 +1897,11 @@ asm
         PXOR      MM3,MM3
         MOVD      MM2,EDX
         PUNPCKLBW MM0,MM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PUNPCKLBW MM2,MM3
         MOVQ      MM1,MM0
         PUNPCKHWD MM1,MM1
@@ -2066,11 +2070,19 @@ asm
         MOVD      MM2,[RDX]
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
         PSUBW     MM1,MM2
         PMULLW    MM1,[R8]
         PSLLW     MM2,8
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PADDW     MM2,[RAX]
         PADDW     MM1,MM2
         PSRLW     MM1,8
@@ -2114,7 +2126,11 @@ asm
         MOVD      MM3,R8D
         PUNPCKLBW MM3,MM2
         PMULLW    MM0,MM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PSLLW     MM1,8
         PADDW     MM1,[RAX]
         PADDW     MM1,MM0
@@ -2157,7 +2173,11 @@ asm
         MOVD      MM3,R8D
         PUNPCKLBW MM3,MM2
         PMULLW    MM0,MM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PSLLW     MM1,8
         PADDW     MM1,[RAX]
         PADDW     MM1,MM0
@@ -2335,13 +2355,21 @@ asm
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
 
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
 
         PSUBW     MM1,MM2
         PMULLW    MM1,[R8]
         PSLLW     MM2,8
 
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
 
         PADDW     MM2,[RAX]
         PADDW     MM1,MM2
@@ -2416,13 +2444,21 @@ asm
         PUNPCKLBW MM1,MM0
         PUNPCKLBW MM2,MM0
 
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
 
         PSUBW     MM1,MM2
         PMULLW    MM1,[R8]
         PSLLW     MM2,8
 
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
 
         PADDW     MM2,[RAX]
         PADDW     MM1,MM2
@@ -2713,7 +2749,11 @@ asm
         SHL       RDX,4
         MOVD      MM0,ECX
         PUNPCKLBW MM0,MM2
+{$IFNDEF FPC}
         ADD       RDX,alpha_ptr
+{$ELSE}
+        ADD       RDX,[RIP+alpha_ptr]
+{$ENDIF}
         PMULLW    MM0,[RDX]
         PSRLW     MM0,8
         PACKUSWB  MM0,MM2
@@ -2759,7 +2799,11 @@ asm
         PXOR      XMM3,XMM3
         MOVD      XMM2,EDX
         PUNPCKLBW XMM0,XMM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
         PSHUFLW   XMM1,XMM1, $FF
@@ -2827,7 +2871,11 @@ asm
         MOVD      XMM0,ECX
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM0,XMM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
         PSHUFLW   XMM1,XMM1, $FF
@@ -2916,11 +2964,19 @@ asm
         MOVD      XMM2,EDX
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
         PSUBW     XMM1,XMM2
         PMULLW    XMM1,[R8]
         PSLLW     XMM2,8
+{$IFNDEF FPC}
         MOV       R8,bias_ptr
+{$ELSE}
+        MOV       R8,[RIP+bias_ptr]
+{$ENDIF}
         PADDW     XMM2,[R8]
         PADDW     XMM1,XMM2
         PSRLW     XMM1,8
@@ -3004,11 +3060,19 @@ asm
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
         PSUBW     XMM1,XMM2
         PMULLW    XMM1,[R8]
         PSLLW     XMM2,8
+{$IFNDEF FPC}
         MOV       R8,bias_ptr
+{$ELSE}
+        MOV       R8,[RIP+bias_ptr]
+{$ENDIF}
         PADDW     XMM2,[R8]
         PADDW     XMM1,XMM2
         PSRLW     XMM1,8
@@ -3051,7 +3115,11 @@ asm
         MOVD      XMM3,R8D
         PUNPCKLBW XMM3,XMM2
         PMULLW    XMM0,XMM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PSLLW     XMM1,8
         PADDW     XMM1,[RAX]
         PADDW     XMM1,XMM0
@@ -3173,7 +3241,11 @@ asm
         PXOR      XMM3,XMM3
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM0,XMM3
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
         PUNPCKLBW XMM1,XMM3
@@ -3296,11 +3368,19 @@ asm
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
+{$IFNDEF FPC}
         ADD       RAX,alpha_ptr
+{$ELSE}
+        ADD       RAX,[RIP+alpha_ptr]
+{$ENDIF}
         PSUBW     XMM1,XMM2
         PMULLW    XMM1,[RAX]
         PSLLW     XMM2,8
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PADDW     XMM2,[RAX]
         PADDW     XMM1,XMM2
         PSRLW     XMM1,8
@@ -3364,13 +3444,21 @@ asm
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
 
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
 
         PSUBW     XMM1,XMM2
         PMULLW    XMM1,[R8]
         PSLLW     XMM2,8
 
+{$IFNDEF FPC}
         MOV       R8,bias_ptr
+{$ELSE}
+        MOV       R8,[RIP+bias_ptr]
+{$ENDIF}
 
         PADDW     XMM2,[R8]
         PADDW     XMM1,XMM2
@@ -3446,13 +3534,21 @@ asm
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
 
+{$IFNDEF FPC}
         ADD       R8,alpha_ptr
+{$ELSE}
+        ADD       R8,[RIP+alpha_ptr]
+{$ENDIF}
 
         PSUBW     XMM1,XMM2
         PMULLW    XMM1,[R8]
         PSLLW     XMM2,8
 
+{$IFNDEF FPC}
         MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
 
         PADDW     XMM2,[RAX]
         PADDW     XMM1,XMM2
@@ -3548,9 +3644,17 @@ asm
         JZ        @3
 
         SHL       R9D,4
+{$IFNDEF FPC}
         ADD       R9,alpha_ptr
+{$ELSE}
+        ADD       R9,[RIP+alpha_ptr]
+{$ENDIF}
         MOVQ      XMM3,[R9]
+{$IFNDEF FPC}
         MOV       R9,bias_ptr
+{$ELSE}
+        MOV       R9,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         MOVQ      XMM4,[R9]
 
 @1:     MOVD      XMM1,[RCX]
@@ -3922,7 +4026,11 @@ asm
         SHL       RDX,4
         MOVD      XMM0,ECX
         PUNPCKLBW XMM0,XMM2
+{$IFNDEF FPC}
         ADD       RDX,alpha_ptr
+{$ELSE}
+        ADD       RDX,[RIP+alpha_ptr]
+{$ENDIF}
         PMULLW    XMM0,[RDX]
         PSRLW     XMM0,8
         PACKUSWB  XMM0,XMM2
