@@ -1059,15 +1059,15 @@ asm
         JZ      @SETUPLAST   // one element
 
 @ALIGNINGLOOP:
-        FLD     DWORD PTR [EAX-4]
-        FADD    DWORD PTR [EAX]
-        FSTP    DWORD PTR [EAX]
+        FLD     DWORD PTR [RAX - 4]
+        FADD    DWORD PTR [RAX]
+        FSTP    DWORD PTR [RAX]
         ADD     EAX,4
         DEC     ECX
         JNZ     @ALIGNINGLOOP
 
 @SETUPLAST:
-        MOVUPS  XMM4,[EAX-4]
+        MOVUPS  XMM4,[RAX - 4]
         PSLLDQ  XMM4,12
         PSRLDQ  XMM4,12
 
@@ -1075,7 +1075,7 @@ asm
         MOV     ECX,EDX
         SAR     ECX,2
 @LOOP:
-        MOVAPS  XMM0,[EAX]
+        MOVAPS  XMM0,[RAX]
         PXOR    XMM5,XMM5
         PCMPEQD XMM5,XMM0
         PMOVMSKB R8D,XMM5
@@ -1098,8 +1098,8 @@ asm
         PSRLDQ  XMM4,12
 
 @SKIP:
-        PREFETCHNTA [EAX + 32 * 2]
-        MOVAPS  [EAX],XMM0
+        PREFETCHNTA [RAX + 32 * 2]
+        MOVAPS  [RAX],XMM0
         ADD     EAX,16
         SUB     ECX,1
         JNZ     @LOOP
@@ -1111,9 +1111,9 @@ asm
         JZ      @END
 
 @LOOP2:
-        FLD     DWORD PTR [EAX-4]
-        FADD    DWORD PTR [EAX]
-        FSTP    DWORD PTR [EAX]
+        FLD     DWORD PTR [RAX - 4]
+        FADD    DWORD PTR [RAX]
+        FSTP    DWORD PTR [RAX]
         ADD     EAX,4
         DEC     ECX
         JNZ     @LOOP2
@@ -1124,9 +1124,9 @@ asm
         ADD     EAX,4
         DEC     ECX
 @LOOP3:
-        FLD     DWORD PTR [EAX-4]
-        FADD    DWORD PTR [EAX]
-        FSTP    DWORD PTR [EAX]
+        FLD     DWORD PTR [RAX - 4]
+        FADD    DWORD PTR [RAX]
+        FSTP    DWORD PTR [RAX]
         ADD     EAX,4
         DEC     ECX
         JNZ     @LOOP3

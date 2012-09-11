@@ -54,26 +54,16 @@ implementation
 uses
   GR32_LowLevel;
 
-// stretching factor when calling GetGlyphOutline()
-const
-  HORZSTRETCH = 16;
-
-type
-  PBezierVertex = ^TBezierVertex;
-  TBezierVertex = record
-    case Integer of
-      0: (Point: TFloatPoint; ControlPoints: array [0..1] of TFloatPoint);
-      1: (Points: array [0..2] of TFloatPoint);
-  end;
-
 const
   GGO_UNHINTED = $0100;
   GGODefaultFlags: array [Boolean] of Integer = (GGO_NATIVE or GGO_UNHINTED, GGO_NATIVE);
 
   TT_PRIM_CSPLINE = 3;
 
-const
-  FixedOne = $10000;
+{$IFDEF NOHORIZONTALHINTING}
+// stretching factor when calling GetGlyphOutline()
+  HORZSTRETCH = 16;
+{$ENDIF}
 
   VertFlip_mat2: tmat2 = (
     eM11: (fract: 0; Value: {$IFNDEF NOHORIZONTALHINTING}1{$ELSE}HORZSTRETCH{$ENDIF});
@@ -112,7 +102,8 @@ begin
   {$ENDIF}
   BufferPtr := GlyphMemPtr;
 
-  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics, Res, BufferPtr, VertFlip_mat2);
+  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
+    Res, BufferPtr, VertFlip_mat2);
 
   if (Res = GDI_ERROR) or (BufferPtr^.dwType <> TT_POLYGON_TYPE) then
   begin
@@ -167,7 +158,8 @@ begin
               P1 := PointFXtoPointF(CurvePtr.apfx[I]);
               P2 := PointFXtoPointF(CurvePtr.apfx[I + 1]);
               P3 := PointFXtoPointF(CurvePtr.apfx[I + 2]);
-              Path.CurveTo(P1.X + DstX, P1.Y + DstY, P2.X + DstX, P2.Y + DstY, P3.X + DstX, P3.Y + DstY);
+              Path.CurveTo(P1.X + DstX, P1.Y + DstY, P2.X + DstX, P2.Y + DstY,
+                P3.X + DstX, P3.Y + DstY);
               Inc(I, 2);
             end;
           end;
@@ -178,7 +170,7 @@ begin
       {$IFDEF HAS_NATIVEINT}
       Inc(NativeInt(CurvePtr), K);
       {$ELSE}
-      Inc(integer(CurvePtr), K);
+      Inc(Integer(CurvePtr), K);
       {$ENDIF}
     end;
 
@@ -219,7 +211,7 @@ var
 
   procedure NewLine;
   begin
-    X := ARect.Left{$IFDEF NOHORIZONTALHINTING}*HORZSTRETCH{$ENDIF};
+    X := ARect.Left{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
     Y := Y + TextMetric.tmHeight;
   end;
 
@@ -238,7 +230,7 @@ var
 
   procedure TestNewLine(X: Single);
   begin
-    if X > ARect.Right{$IFDEF NOHORIZONTALHINTING}*HORZSTRETCH{$ENDIF} then
+    if X > ARect.Right{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF} then
       NewLine;
   end;
 
@@ -247,7 +239,7 @@ begin
   GetTextMetrics(DC, TextMetric);
 
   TextLen := Length(Text);
-  X := ARect.Left {$IFDEF NOHORIZONTALHINTING}*HORZSTRETCH{$ENDIF};
+  X := ARect.Left {$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
   Y := ARect.Top + TextMetric.tmAscent;
   XMax := X;
   for I := 1 to TextLen do
@@ -260,7 +252,8 @@ begin
         CHAR_NL: Y := Y + TextMetric.tmHeight;
         CHAR_SP:
           begin
-            GetGlyphOutlineW(DC, CharValue, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
+            GetGlyphOutlineW(DC, CharValue, GGODefaultFlags[UseHinting],
+              GlyphMetrics, 0, nil, VertFlip_mat2);
             X := X + GlyphMetrics.gmCellIncX;
 
             if Flags and DT_WORDBREAK <> 0 then
@@ -288,9 +281,9 @@ begin
 {$IFNDEF NOHORIZONTALHINTING}
   ARect := FloatRect(ARect.Left, ARect.Top, XMax, Y);
 {$ELSE}
-  ARect := FloatRect(ARect.Left, ARect.Top, XMax/HORZSTRETCH, Y);
+  ARect := FloatRect(ARect.Left, ARect.Top, XMax / HORZSTRETCH, Y);
   if Assigned(Path) then
-    Path.Scale(1/HORZSTRETCH, 1);
+    Path.Scale(1 / HORZSTRETCH, 1);
 {$ENDIF}
   if Assigned(Path) then Path.EndPath;
 end;
