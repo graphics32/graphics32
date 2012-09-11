@@ -466,7 +466,9 @@ end;
 
 procedure TGradient32.FillColorLookUpTable(var ColorLUT: array of TColor32);
 begin
+{$WARNINGS OFF}
   FillColorLookUpTable(@ColorLUT[0], Length(ColorLUT));
+{$WARNINGS ON}
 end;
 
 procedure TGradient32.FillColorLookUpTable(ColorLUT: PColor32Array;
@@ -626,7 +628,9 @@ end;
 
 destructor TColor32LookupTable.Destroy;
 begin
+{$WARNINGS OFF}
   FreeMem(FGradientLUT);
+{$WARNINGS ON}
   inherited;
 end;
 
@@ -639,7 +643,9 @@ procedure TColor32LookupTable.OrderChanged;
 begin
   FSize := 1 shl FOrder;
   FMask := FSize - 1;
+{$WARNINGS OFF}
   GetMem(FGradientLUT, FSize * SizeOf(TColor32));
+{$WARNINGS ON}
   if Assigned(FOnOrderChanged) then
     FOnOrderChanged(Self);
 end;
@@ -1816,10 +1822,10 @@ begin
     end;
 
     BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
     Inc(Dst);
     Inc(AlphaValues);
   end;
-  EMMS;
 end;
 
 end.
