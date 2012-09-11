@@ -88,13 +88,13 @@ object MainForm: TMainForm
       OnClick = RgpEllipseFillStyleClick
       TabOrder = 1
     end
-    object RgpSpreadMethod: TRadioGroup
+    object RgpWrapMode: TRadioGroup
       Left = 14
       Height = 87
       Top = 272
       Width = 114
       AutoFill = True
-      Caption = 'Spread Method'
+      Caption = '&Wrap Mode'
       ChildSizing.LeftRightSpacing = 6
       ChildSizing.TopBottomSpacing = 6
       ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
@@ -107,11 +107,11 @@ object MainForm: TMainForm
       ClientWidth = 110
       ItemIndex = 0
       Items.Strings = (
-        'Pad'
-        'Reflect'
+        'Clamp'
         'Repeat'
+        'Mirror'
       )
-      OnClick = RgpSpreadMethodClick
+      OnClick = RgpWrapModeClick
       TabOrder = 2
     end
     object BtnDefaults: TButton
@@ -191,23 +191,23 @@ object MainForm: TMainForm
         OnClick = BtnExitClick
       end
     end
-    object MnuSpreadMethod: TMenuItem
-      Caption = '&Spread Method'
+    object MnuWrapMode: TMenuItem
+      Caption = '&Wrap Mode'
       object MnuPad: TMenuItem
-        Caption = '&Pad'
+        Caption = '&Clamp'
         Checked = True
         RadioItem = True
         OnClick = MnuSpreadClick
       end
-      object MnuReflect: TMenuItem
+      object MnuRepeat: TMenuItem
         Tag = 1
-        Caption = '&Reflect'
+        Caption = '&Repeat'
         RadioItem = True
         OnClick = MnuSpreadClick
       end
-      object MnuRepeat: TMenuItem
+      object MnuReflect: TMenuItem
         Tag = 2
-        Caption = '&Repeat'
+        Caption = '&Mirror'
         RadioItem = True
         OnClick = MnuSpreadClick
       end
