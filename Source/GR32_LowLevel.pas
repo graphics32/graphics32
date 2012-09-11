@@ -691,7 +691,7 @@ asm
 {$ENDIF}
 end;
 
-function Clamp(Value, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Clamp(Value, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if Value > Max then 
@@ -720,7 +720,7 @@ asm
 {$ENDIF}
 end;
 
-function Clamp(Value, Min, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Clamp(Value, Min, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if Value > Max then 
@@ -742,7 +742,7 @@ asm
 {$ENDIF}
 end;
 
-function Wrap(Value, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Wrap(Value, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if Value < 0 then
@@ -787,7 +787,7 @@ begin
 {$ENDIF}
 end;
 
-function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function DivMod(Dividend, Divisor: Integer; out Remainder: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Remainder := Dividend mod Divisor;
@@ -815,7 +815,7 @@ asm
 {$ENDIF}
 end;
 
-function Mirror(Value, Max: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Mirror(Value, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 var
   DivResult: Integer;
@@ -984,7 +984,7 @@ begin
 end;
 
 { shift right with sign conservation }
-function SAR_4(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_4(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 16;
@@ -997,7 +997,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_8(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_8(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 256;
@@ -1010,7 +1010,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_9(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_9(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 512;
@@ -1023,7 +1023,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_11(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_11(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 2048;
@@ -1036,7 +1036,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_12(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_12(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 4096;
@@ -1049,7 +1049,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_13(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_13(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 8192;
@@ -1062,7 +1062,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_14(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_14(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 16384;
@@ -1075,7 +1075,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_15(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_15(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 32768;
@@ -1088,7 +1088,7 @@ asm
 {$ENDIF}
 end;
 
-function SAR_16(Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function SAR_16(Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   Result := Value div 65536;
@@ -1144,7 +1144,7 @@ end;
 
   x64 implementation by Jameel Halabi
   }
-function StackAlloc(Size: Integer): Pointer; register; {$IFDEF FPC} nostackframe; {$ENDIF}
+function StackAlloc(Size: Integer): Pointer; register;
 asm
 {$IFDEF TARGET_x86}
         POP       ECX          // return address
@@ -1202,7 +1202,7 @@ end;
 - Built-in sanity checks guarantee that an improper call to StackFree will not
   corrupt the stack. Worst case is that the stack block is not released until
   the calling routine exits. }
-procedure StackFree(P: Pointer); register; {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure StackFree(P: Pointer); register;
 asm
 {$IFDEF TARGET_x86}
         POP       ECX                     { return address }
