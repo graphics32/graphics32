@@ -1169,15 +1169,14 @@ asm
         PUSH      ECX          // return to caller
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        MOV       RAX, RCX
         POP       R8           // return address
         MOV       RDX, RSP     // original SP
         ADD       ECX, 15
         AND       ECX, NOT 15  // round up to keep SP dqword aligned
-        CMP       ECX, 4092
+        CMP       ECX, 4088
         JLE       @@2
 @@1:
-        SUB       RSP, 4092
+        SUB       RSP, 4088
         PUSH      RCX          // make sure we touch guard page, to grow stack
         SUB       ECX, 4096
         JNS       @@1
@@ -1189,6 +1188,7 @@ asm
         MOV       RDX, RSP
         SUB       RDX, 8
         PUSH      RDX          // save current SP, for sanity check  (sp = [sp])
+        PUSH      R8           // return to caller
 {$ENDIF}
 end;
 
