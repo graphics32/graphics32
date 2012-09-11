@@ -664,7 +664,7 @@ asm
         MOVD    XMM1, EAX
         DIVSS   XMM0, XMM1
         ADDSS   XMM0, XMM1
-        MOVD    XMM1, CHalf
+        MOVD    XMM1, [RIP+CHalf]
         MULSS   XMM0, XMM1
 {$ENDIF}
 {$ENDIF}
