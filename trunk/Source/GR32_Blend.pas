@@ -138,15 +138,15 @@ var
 procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
+var
+  RcTable: array [Byte, Byte] of Byte;
+  DivTable: array [Byte, Byte] of Byte;
+
 implementation
 
 {$IFDEF TARGET_x86}
 uses GR32_LowLevel;
 {$ENDIF}
-
-var
-  RcTable: array [Byte, Byte] of Byte;
-  DivTable: array [Byte, Byte] of Byte;
 
 {$IFDEF OMIT_MMX}
 procedure EMMS;
@@ -3947,13 +3947,15 @@ const
   OneByteth : Double = 1 / 255;
 begin
   for J := 0 to 255 do
-    for I := 0 to 255 do
+  begin
+    DivTable[0, J] := 0;
+    RcTable[0, J] := 0;
+  end;
+  for J := 0 to 255 do
+    for I := 1 to 255 do
     begin
       DivTable[I, J] := Round(I * J * OneByteth);
-      if I > 0 then
-        RcTable[I, J] := Round(J * 255 / I)
-      else
-        RcTable[I, J] := 0;
+      RcTable[I, J] := Round(J * 255 / I)
     end;
 end;
 
