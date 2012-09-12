@@ -39,7 +39,7 @@ interface
 uses
   {$IFDEF FPC} LResources, Variants,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
-  Math, GR32, GR32_Lowlevel, GR32_Image, GR32_RangeBars, GR32_Transforms,
+  Math, GR32, GR32_LowLevel, GR32_Image, GR32_RangeBars, GR32_Transforms,
   GR32_Blend;
 
 type
