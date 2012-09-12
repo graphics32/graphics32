@@ -6,12 +6,10 @@
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
-        <MainUnitHasCreateFormStatements Value="False"/>
-        <MainUnitHasTitleStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="ArrowHeadDemo"/>
+      <Title Value="Arrow Head Demo"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
       <Icon Value="0"/>
@@ -85,7 +83,9 @@
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="FmArrowHeadDemo"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
       </Unit1>
     </Units>
@@ -124,6 +124,11 @@
       </Options>
     </Linking>
     <Other>
+      <Verbosity>
+        <ShowHints Value="False"/>
+        <ShowGenInfo Value="False"/>
+      </Verbosity>
+      <WriteFPCLogo Value="False"/>
       <CompilerMessages>
         <IgnoredMessages idx5024="True"/>
         <UseMsgFile Value="True"/>
