@@ -170,7 +170,7 @@ uses
 
 {$R-}{$Q-}  // switch off overflow and range checking
 
-function Clamp(const Value: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Clamp(const Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
  if Value > 255 then
@@ -181,6 +181,7 @@ begin
  else
    Result := Value;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         // in x64 calling convention parameters are passed in ECX, EDX, R8 & R9
@@ -412,6 +413,7 @@ begin
   for I := Count - 1 downto 0 do
     P[I] := Value;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -445,11 +447,12 @@ asm
 {$ENDIF}
 end;
 
-procedure MoveLongword(const Source; var Dest; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure MoveLongword(const Source; var Dest; Count: Integer);
 {$IFDEF USEMOVE}
 begin
   Move(Source, Dest, Count shl 2);
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = Source;   EDX = Dest;   ECX = Count
@@ -486,11 +489,12 @@ asm
 {$ENDIF}
 end;
 
-procedure MoveWord(const Source; var Dest; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure MoveWord(const Source; var Dest; Count: Integer);
 {$IFDEF USEMOVE}
 begin
   Move(Source, Dest, Count shl 1);
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -608,7 +612,7 @@ begin
   Result := B >= A;
 end;
 
-function Constrain(const Value, Lo, Hi: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Constrain(const Value, Lo, Hi: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if Value < Lo then
@@ -618,6 +622,7 @@ begin
   else
     Result := Value;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -645,7 +650,7 @@ begin
   else Result := Value;
 end;
 
-function Max(const A, B, C: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Max(const A, B, C: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if A > B then
@@ -656,6 +661,7 @@ begin
   if C > Result then
     Result := C;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       RAX,RCX
@@ -668,7 +674,7 @@ asm
 {$ENDIF}
 end;
 
-function Min(const A, B, C: Integer): Integer; {$IFDEF FPC} nostackframe; {$ENDIF}
+function Min(const A, B, C: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
   if A < B then
@@ -679,6 +685,7 @@ begin
   if C < Result then
     Result := C;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       RAX,RCX
@@ -701,6 +708,7 @@ begin
   else
     Result := Value;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX,ECX
@@ -730,6 +738,7 @@ begin
   else 
     Result := Value;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX,ECX
@@ -750,6 +759,7 @@ begin
   else
     Result := Value mod (Max + 1);
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX,ECX
@@ -793,6 +803,7 @@ begin
   Remainder := Dividend mod Divisor;
   Result := Dividend div Divisor;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -831,6 +842,7 @@ begin
   if Odd(DivResult) then
     Result := Max - Result;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -989,6 +1001,7 @@ function SAR_4(Value: Integer): Integer;
 begin
   Result := Value div 16;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1002,6 +1015,7 @@ function SAR_8(Value: Integer): Integer;
 begin
   Result := Value div 256;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1015,6 +1029,7 @@ function SAR_9(Value: Integer): Integer;
 begin
   Result := Value div 512;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1028,6 +1043,7 @@ function SAR_11(Value: Integer): Integer;
 begin
   Result := Value div 2048;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1041,6 +1057,7 @@ function SAR_12(Value: Integer): Integer;
 begin
   Result := Value div 4096;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1054,6 +1071,7 @@ function SAR_13(Value: Integer): Integer;
 begin
   Result := Value div 8192;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1067,6 +1085,7 @@ function SAR_14(Value: Integer): Integer;
 begin
   Result := Value div 16384;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1080,6 +1099,7 @@ function SAR_15(Value: Integer): Integer;
 begin
   Result := Value div 32768;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1093,6 +1113,7 @@ function SAR_16(Value: Integer): Integer;
 begin
   Result := Value div 65536;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1113,6 +1134,7 @@ begin
   REn.R := WCEn.B;
   REn.B := WCEn.R;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 // EAX = WinColor
 // this function swaps R and B bytes in ABGR
