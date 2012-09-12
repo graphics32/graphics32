@@ -1144,7 +1144,7 @@ end;
 
   x64 implementation by Jameel Halabi
   }
-function StackAlloc(Size: Integer): Pointer; register;
+function StackAlloc(Size: Integer): Pointer; register; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         POP       ECX          // return address
@@ -1208,31 +1208,31 @@ end;
 procedure StackFree(P: Pointer); register;
 asm
 {$IFDEF TARGET_x86}
-        POP       ECX                     { return address }
+        POP       ECX                     // return address
         MOV       EDX, DWORD PTR [ESP]
         SUB       EAX, 8
-        CMP       EDX, ESP                { sanity check #1 (SP = [SP]) }
+        CMP       EDX, ESP                // sanity check #1 (SP = [SP])
         JNE       @Exit
-        CMP       EDX, EAX                { sanity check #2 (P = this stack block) }
+        CMP       EDX, EAX                // sanity check #2 (P = this stack block)
         JNE       @Exit
-        MOV       ESP, DWORD PTR [ESP+4]  { restore previous SP  }
+        MOV       ESP, DWORD PTR [ESP+4]  // restore previous SP
 @Exit:
-        PUSH      ECX                     { return to caller }
+        PUSH      ECX                     // return to caller
 {$ENDIF}
 {$IFDEF TARGET_x64}
         {$IFNDEF FPC}
         .NOFRAME
         {$ENDIF}
-        POP       R8                       { return address }
+        POP       R8                       // return address
         MOV       RDX, QWORD PTR [RSP]
         SUB       RCX, 16
-        CMP       RDX, RSP                 { sanity check #1 (SP = [SP]) }
+        CMP       RDX, RSP                 // sanity check #1 (SP = [SP])
         JNE       @Exit
-        CMP       RDX, RCX                 { sanity check #2 (P = this stack block) }
+        CMP       RDX, RCX                 // sanity check #2 (P = this stack block)
         JNE       @Exit
-        MOV       RSP, QWORD PTR [RSP + 8] { restore previous SP  }
+        MOV       RSP, QWORD PTR [RSP + 8] // restore previous SP
  @Exit:
-        PUSH      R8                       { return to caller }
+        PUSH      R8                       // return to caller
 {$ENDIF}
 end;
 {$ENDIF}
