@@ -10,8 +10,8 @@ uses
 {$R *.res}
 
 begin
+  Application.Title := 'Arrow Head Demo';
   Application.Initialize;
-  Application.Title := 'ArrowHead Demo';
   Application.CreateForm(TFmArrowHeadDemo, FmArrowHeadDemo);
   Application.Run;
 end.

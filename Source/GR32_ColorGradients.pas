@@ -183,6 +183,10 @@ type
     procedure EndPointChanged;
     procedure StartPointChanged;
   public
+    procedure SimpleGradient(StartPoint: TFloatPoint; StartColor: TColor32;
+      EndPoint: TFloatPoint; EndColor: TColor32); virtual;
+    procedure SetPoints(StartPoint, EndPoint: TFloatPoint); virtual;
+
     property StartPoint: TFloatPoint read FStartPoint write SetStartPoint;
     property EndPoint: TFloatPoint read FEndPoint write SetEndPoint;
   end;
@@ -317,8 +321,23 @@ resourcestring
   RCStrWrongFormat = 'Wrong format';
 
 const
-  FloatTolerance = 0.001;
+  CFloatTolerance = 0.001;
   clNone32: TColor32 = $00000000;
+
+procedure FillLineAlpha(var Dst, AlphaValues: PColor32; Count: Integer;
+  Color: TColor32); {$IFDEF USEINLINING}inline;{$ENDIF}
+var
+  X: Integer;
+begin
+  for X := 0 to Count - 1 do
+  begin
+    BlendMemEx(Color, Dst^, AlphaValues^);
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+  EMMS;
+end;
+
 
 { TGradient32 }
 
@@ -761,20 +780,6 @@ begin
 end;
 
 
-procedure FillLineAlpha(var Dst: PColor32; var AlphaValues: PColor32;
-  Count: Integer; Color: TColor32); {$IFDEF USEINLINING}inline;{$ENDIF}
-var
-  X: Integer;
-begin
-  for X := 0 to Count - 1 do
-  begin
-    BlendMemEx(Color, Dst^, AlphaValues^);
-    Inc(Dst);
-    Inc(AlphaValues);
-  end;
-  EMMS;
-end;
-
 {TCustomGradientPolygonFiller}
 
 constructor TCustomGradientPolygonFiller.Create;
@@ -845,6 +850,19 @@ begin
   end;
 end;
 
+procedure TCustomLinearGradientPolygonFiller.SimpleGradient(
+  StartPoint: TFloatPoint; StartColor: TColor32; EndPoint: TFloatPoint;
+  EndColor: TColor32);
+begin
+  SetPoints(StartPoint, EndPoint);
+  if Assigned(FGradient) then
+  begin
+    FGradient.ClearColors;
+    FGradient.StartColor := StartColor;
+    FGradient.EndColor := EndColor;
+  end;
+end;
+
 procedure TCustomLinearGradientPolygonFiller.SetEndPoint(const Value: TFloatPoint);
 begin
   if (FEndPoint.X <> Value.X) or (FEndPoint.Y <> Value.Y) then
@@ -852,6 +870,15 @@ begin
     FEndPoint := Value;
     EndPointChanged;
   end;
+end;
+
+procedure TCustomLinearGradientPolygonFiller.SetPoints(StartPoint,
+  EndPoint: TFloatPoint);
+begin
+  FStartPoint := StartPoint;
+  FEndPoint := EndPoint;
+  GradientFillerChanged;
+  UpdateIncline;
 end;
 
 procedure TCustomLinearGradientPolygonFiller.StartPointChanged;
@@ -1628,7 +1655,7 @@ begin
   FFocalPt.Y := FFocalPointNative.Y - FCenter.Y;
 
   //make sure the focal point stays within the bounding ellipse ...
-  if Abs(FFocalPt.X) < FloatTolerance then
+  if Abs(FFocalPt.X) < CFloatTolerance then
   begin
     X := 0;
     if FFocalPt.Y < 0 then
@@ -1711,7 +1738,7 @@ begin
     begin
       RelPos.X := X - FCenter.X - FFocalPt.X;
 
-      if Abs(RelPos.X) < FloatTolerance then //ie on the vertical line (see above)
+      if Abs(RelPos.X) < CFloatTolerance then //ie on the vertical line (see above)
       begin
         Assert(Abs(X - FCenter.X) <= FRadius.X);
 
