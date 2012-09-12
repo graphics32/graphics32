@@ -34,7 +34,7 @@ unit GR32_Text_LCL_Win;
 
 interface
 
-{$I GR32.INC}
+{$I GR32.inc}
 
 uses
   Windows, Types, GR32, GR32_Paths;
@@ -107,7 +107,7 @@ begin
   while Res > 0 do
   begin
     S := BufferPtr.cb - SizeOf(TTTPolygonHeader);
-    PtrInt(CurvePtr) := PtrInt(BufferPtr) + SizeOf(TTTPolygonHeader);
+    PtrUInt(CurvePtr) := PtrUInt(BufferPtr) + SizeOf(TTTPolygonHeader);
     P1 := PointFXtoPointF(BufferPtr.pfxStart);
     Path.MoveTo(P1.X + DstX, P1.Y + DstY);
     while S > 0 do
