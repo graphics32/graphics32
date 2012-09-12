@@ -4,7 +4,6 @@ uses
   Interfaces,
   Forms,
   SysUtils,
-  GR32_L,
   MainUnit in 'MainUnit.pas' {FormLineStippling};
 
 begin
