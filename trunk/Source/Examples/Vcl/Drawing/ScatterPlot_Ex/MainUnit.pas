@@ -3,8 +3,8 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Image, GR32_Polygons, GR32_Paths, GR32_Brushes;
+  {$IFDEF FPC}LCLIntf, {$ELSE}Windows, {$ENDIF} SysUtils, Classes, Graphics,
+  Controls, Forms, Dialogs, GR32, GR32_Image, GR32_Polygons;
 
 type
   TScatterPoint = record
@@ -20,11 +20,11 @@ type
     procedure Image32Click(Sender: TObject);
   private
     FPoints: array of TScatterPoint;
-    FCanvas: TCanvas32;
-    FBrush: TSolidBrush;
     FRadius: TFloat;
     FSelection: TFloat;
+    FCircle: TArrayOfFloatPoint;
     FBounds: array [0..1] of TFloat;
+    FRenderer: TPolygonRenderer32VPR;
     procedure Generate;
     procedure Draw;
   public
@@ -43,21 +43,23 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_Math;
+  Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;
 
 procedure TFmScatterPlot.FormCreate(Sender: TObject);
 var
   NumPoints: Integer;
 begin
   Image32.Bitmap.SetSize(Image32.Width, Image32.Height);
-  FCanvas := TCanvas32.Create(Image32.Bitmap);
-  FCanvas.Brushes.Add(TSolidBrush);
-  FBrush := TSolidBrush(FCanvas.Brushes[0]);
+
+  FRenderer := TPolygonRenderer32VPR.Create;
+  FRenderer.Bitmap := Image32.Bitmap;
 
   FRadius := 2;
   FSelection := 0.5;
   FBounds[0] := 0.1;
   FBounds[1] := 0.2;
+
+  FCircle := Circle(0, 0, FRadius, 8);
 
   Application.OnIdle := ApplicationIdleHandler;
 
@@ -144,16 +146,13 @@ procedure TFmScatterPlot.Draw;
 var
   Index: Cardinal;
   Alpha: TFloat;
-  Color32: TColor32Entry;
+
 begin
   Image32.Bitmap.Clear($FFFFFFFF);
 
   for Index := 0 to Length(FPoints) - 1 do
   begin
-    Color32.ARGB := FPoints[Index].Color;
-
     Alpha := 1.0;
-
     if FBounds[1] < FBounds[0] then
     begin
       if (FPoints[Index].Z < FBounds[0]) and (FPoints[Index].Z > FBounds[1]) then
@@ -173,16 +172,15 @@ begin
         Alpha := 1.0 - (FPoints[Index].Z - FBounds[1]) * FSelection * 100.0;
     end;
 
-    if Alpha > 1.0 then
-      Alpha := 1.0;
-
     if Alpha < 0.0 then
       Continue;
 
-    Color32.A := EnsureRange(Round(Alpha * $FF), 0, $FF);
+    if Alpha > 1.0 then
+      Alpha := 1.0;
 
-    FBrush.FillColor := Color32.ARGB;
-    FCanvas.Path.Circle(FPoints[Index].X, FPoints[Index].Y, FRadius, 8);
+    FRenderer.Color := SetAlpha(FPoints[Index].Color, Round(Alpha * $FF));
+    FRenderer.PolygonFS(TranslatePolygon(FCircle, FPoints[Index].X,
+      FPoints[Index].Y));
   end;
 end;
 
