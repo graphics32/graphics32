@@ -1,9 +1,12 @@
 unit MainUnit;
 
+{$I GR32.inc}
+
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  {$IFNDEF FPC}Windows, {$ELSE} LCLIntf, LCLType, LMessages, {$ENDIF}
+  Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   GR32, GR32_Image, GR32_Polygons, GR32_ColorGradients;
 
 type
@@ -25,7 +28,7 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_VectorUtils;
+  Math, GR32_Math, GR32_VectorUtils;
 
 procedure TFrmAntiAliasingTest.PaintBox32PaintBuffer(Sender: TObject);
 var
@@ -67,7 +70,7 @@ begin
   Angle.X := 0;
   Angle.Y := 1;
   MinCenter := Min(Center.X, Center.Y);
-  SinCos(2 * CDeg2Rad, Offset.X, Offset.Y);
+  GR32_Math.SinCos(2 * CDeg2Rad, Offset.X, Offset.Y);
   Offset.X := -Offset.X;
 
   SetLength(Points, 2);
