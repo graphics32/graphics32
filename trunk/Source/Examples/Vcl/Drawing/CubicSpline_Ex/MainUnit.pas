@@ -3,8 +3,8 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Image, GR32_Polygons, GR32_Paths, GR32_Brushes;
+  {$IFDEF FPC}LCLIntf, {$ELSE}Windows, {$ENDIF} SysUtils, Classes, Graphics,
+  Controls, Forms, Dialogs, GR32, GR32_Image, GR32_Polygons, GR32_Paths;
 
 type
   TFormBezier = class(TForm)
@@ -20,11 +20,9 @@ type
     procedure PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
   private
-    FCanvas32: TCanvas32;
-    FStroke: TStrokeBrush;
-    FFill: TSolidBrush;
+    FRenderer: TPolygonRenderer32VPR;
     FCurrentIndex: Integer;
-    FPoints: array [0..5] of TFloatPoint;
+    FPoints: TArrayOfFloatPoint;
   end;
 
 var
@@ -32,17 +30,24 @@ var
 
 implementation
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
+{$ENDIF}
 
+uses
+  Math, GR32_VectorUtils;
 
 { TFormBezier }
 
 procedure TFormBezier.FormCreate(Sender: TObject);
 begin
-  FCanvas32 := TCanvas32.Create(PaintBox32.Buffer);
-  FStroke := TStrokeBrush.Create(FCanvas32.Brushes);
-  FFill := TSolidBrush.Create(FCanvas32.Brushes);
+  FRenderer := TPolygonRenderer32VPR.Create;
+  FRenderer.Bitmap := PaintBox32.Buffer;
+  FRenderer.FillMode := pfWinding;
 
+  SetLength(FPoints, 6);
   FPoints[0] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
   FPoints[1] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
   FPoints[2] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
@@ -51,17 +56,11 @@ begin
   FPoints[5] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
 
   FCurrentIndex := -1;
-  FStroke.StrokeWidth := 2;
-  FStroke.FillMode := pfWinding;
-
-  FFill.FillColor := $80000080;
-  FFill.FillMode := pfWinding;
-  FFill.Visible := False;
 end;
 
 procedure TFormBezier.FormDestroy(Sender: TObject);
 begin
-  FCanvas32.Free;
+  FRenderer.Free;
 end;
 
 function CubicInterpolation(const Fractional: TFloat;
@@ -121,47 +120,49 @@ var
   Val: Double;
   Fractional: Double;
   Indices: array [0..3] of Integer;
+  PolyCount: Integer;
+  Outline: TArrayOfArrayOfFloatPoint;
 begin
   PaintBox32.Buffer.Clear($FFFFFFFF);
 
-  FStroke.FillColor := $80000080;
-  FCanvas32.Path.BeginPath;
-  FCanvas32.Path.MoveTo(FPoints[0]);
-  for Index := 1 to Length(FPoints) - 1 do
-    FCanvas32.Path.LineTo(FPoints[Index]);
-  FCanvas32.Path.ClosePath;
-  FCanvas32.Path.EndPath;
+  Outline := BuildPolyPolyLine(PolyPolygon(FPoints), True, 2);
 
-  FFill.Visible := True;
-  FStroke.Visible := False;
+  PolyCount := Length(Outline);
+  SetLength(Outline, PolyCount + Length(FPoints));
   for Index := 0 to Length(FPoints) - 1 do
-    FCanvas32.Path.Circle(FPoints[Index].X, FPoints[Index].Y, 5, 32);
+    Outline[PolyCount + Index] := Circle(FPoints[Index].X, FPoints[Index].Y, 5, 32);
 
-  FFill.Visible := False;
-  FStroke.Visible := True;
-  FStroke.FillColor := $FF000000;
-  FCanvas32.Path.BeginPath;
-  FCanvas32.Path.MoveTo(FPoints[0]);
+  FRenderer.Color := $80000080;
+  FRenderer.PolyPolygonFS(Outline);
 
-  Val := 0;
-  while Val < Length(FPoints) do
-  begin
-    Indices[0] := (Length(FPoints) + Trunc(Val) - 2 + 1) mod Length(FPoints);
-    Indices[1] := (Indices[0] + 1) mod Length(FPoints);
-    Indices[2] := (Indices[1] + 1) mod Length(FPoints);
-    Indices[3] := (Indices[2] + 1) mod Length(FPoints);
+  FRenderer.Color := $FF000000;
+  with TFlattenedPath.Create do
+  try
+    BeginPath;
+    MoveTo(FPoints[0]);
+    Val := 0;
+    while Val < Length(FPoints) do
+    begin
+      Indices[0] := (Length(FPoints) + Trunc(Val) - 2 + 1) mod Length(FPoints);
+      Indices[1] := (Indices[0] + 1) mod Length(FPoints);
+      Indices[2] := (Indices[1] + 1) mod Length(FPoints);
+      Indices[3] := (Indices[2] + 1) mod Length(FPoints);
 
-    Fractional := Frac(Val);
+      Fractional := Frac(Val);
 
-    FCanvas32.Path.LineTo(
-      CubicInterpolation(Fractional, FPoints[Indices[0]].X,
-        FPoints[Indices[1]].X, FPoints[Indices[2]].X, FPoints[Indices[3]].X),
-      CubicInterpolation(Fractional, FPoints[Indices[0]].Y,
-        FPoints[Indices[1]].Y, FPoints[Indices[2]].Y, FPoints[Indices[3]].Y));
-    Val := Val + 0.05;
+      LineTo(
+        CubicInterpolation(Fractional, FPoints[Indices[0]].X,
+          FPoints[Indices[1]].X, FPoints[Indices[2]].X, FPoints[Indices[3]].X),
+        CubicInterpolation(Fractional, FPoints[Indices[0]].Y,
+          FPoints[Indices[1]].Y, FPoints[Indices[2]].Y, FPoints[Indices[3]].Y));
+      Val := Val + 0.03;
+    end;
+    ClosePath;
+    EndPath;
+    FRenderer.PolyPolygonFS(BuildPolyPolyline(Path, False, 2));
+  finally
+    Free;
   end;
-  FCanvas32.Path.ClosePath;
-  FCanvas32.Path.EndPath;
 end;
 
 end.
