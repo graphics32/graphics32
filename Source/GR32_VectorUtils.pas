@@ -809,8 +809,8 @@ begin
     for I := 0 to High(Points) do
     begin
       Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, StrokeWidth * 0.5, JoinStyle, true, MiterLimit);
-      P2 := Grow(Points[I], Normals, -StrokeWidth * 0.5, JoinStyle, true, MiterLimit);
+      P1 := Grow(Points[I], Normals, StrokeWidth * 0.5, JoinStyle, True, MiterLimit);
+      P2 := Grow(Points[I], Normals, -StrokeWidth * 0.5, JoinStyle, True, MiterLimit);
       Dst[I * 2] := P1;
       Dst[I * 2 + 1] := ReversePolygon(P2);
     end;

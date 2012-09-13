@@ -83,6 +83,7 @@ type
     procedure SetBitmap(const Value: TBitmap32); virtual;
   public
     procedure PolygonFS(const Points: TArrayOfFloatPoint); overload; virtual;
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint); overload; virtual;
 
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property FillMode: TPolyFillMode read FFillMode write SetFillMode;
@@ -1388,6 +1389,11 @@ end;
 procedure TPolygonRenderer32.PolygonFS(const Points: TArrayOfFloatPoint);
 begin
   PolyPolygonFS(PolyPolygon(Points), FloatRect(FBitmap.ClipRect));
+end;
+
+procedure TPolygonRenderer32.PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint);
+begin
+  PolyPolygonFS(Points, FloatRect(FBitmap.ClipRect));
 end;
 
 procedure TPolygonRenderer32.SetBitmap(const Value: TBitmap32);

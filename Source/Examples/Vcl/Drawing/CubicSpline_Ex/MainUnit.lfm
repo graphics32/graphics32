@@ -1,0 +1,29 @@
+object FormBezier: TFormBezier
+  Left = 535
+  Height = 480
+  Top = 394
+  Width = 640
+  Caption = 'Bezier Curves'
+  ClientHeight = 480
+  ClientWidth = 640
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.0.1.3'
+  object PaintBox32: TPaintBox32
+    Left = 0
+    Height = 480
+    Top = 0
+    Width = 640
+    Align = alClient
+    TabOrder = 0
+    OnDblClick = PaintBox32DblClick
+    OnMouseDown = PaintBox32MouseDown
+    OnMouseMove = PaintBox32MouseMove
+    OnMouseUp = PaintBox32MouseUp
+    OnPaintBuffer = PaintBox32PaintBuffer
+  end
+end
