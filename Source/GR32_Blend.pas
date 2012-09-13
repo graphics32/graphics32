@@ -3052,7 +3052,7 @@ asm
         MOVD      XMM3,ECX
         PUNPCKLBW XMM3,XMM2
         PMULLW    XMM0,XMM3
-        MOV       EAX, bias_ptr
+        MOV       EAX,bias_ptr
         PSLLW     XMM1,8
         PADDW     XMM1,[EAX]
         PADDW     XMM1,XMM0
@@ -3071,7 +3071,11 @@ asm
         MOVD      XMM3,R8D
         PUNPCKLBW XMM3,XMM2
         PMULLW    XMM0,XMM3
-        MOV       RAX, bias_ptr
+{$IFNDEF FPC}
+        MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         PSLLW     XMM1,8
         PADDW     XMM1,[RAX]
         PADDW     XMM1,XMM0
