@@ -1,16 +1,15 @@
 program AntiAliasing;
 
 uses
-{$IFNDEF FPC}
-{$ELSE}
   Interfaces,
-{$ENDIF}
   Forms,
   MainUnit in 'MainUnit.pas' {FrmAntiAliasingTest};
 
+{$R *.res}
+
 begin
+  Application.Title:='Anti-Aliasing Test';
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFrmAntiAliasingTest, FrmAntiAliasingTest);
   Application.Run;
 end.
