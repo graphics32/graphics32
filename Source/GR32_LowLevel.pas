@@ -369,35 +369,56 @@ asm
 
 {$IFDEF TARGET_x64}
         // RCX = X;   RDX = Count;   R8 = Value
-        TEST       EDX,EDX    // if Count = 0 then
-        JZ         @Exit      //   Exit
-        MOV        RAX, RCX   // RAX = X
 
-        PUSH       RDI        // store RDI on stack
-        MOV        R9, RDX    // R9 = Count
-        MOV        RDI, RDX   // RDI = Count
+        TEST       RDX, RDX        // if Count = 0 then
+        JZ         @Exit           //   Exit
 
-        SHR        RDI, 1     // RDI = RDI SHR 1
-        SHL        RDI, 1     // RDI = RDI SHL 1
-        SUB        R9, RDI    // check if extra fill is necessary
-        JE         @QLoopIni
+        MOV        R9, RCX         // Point R9 to destination
 
-        MOV        [RAX], R8D // eventually perform extra fill
-        ADD        RAX, 4     // Inc(X, 4)
-        DEC        RDX        // Dec(Count)
-        JZ         @ExitPOP   // if (Count = 0) then Exit
-@QLoopIni:
-        MOVD       XMM0, R8D  // XMM0 = R8D
-        PUNPCKLDQ  XMM0, XMM0 // unpack XMM0 register
-        SHR        RDX, 1     // RDX = RDX div 2
-@QLoop:
-        MOVQ       QWORD PTR [RAX], XMM0 // perform fill
-        ADD        RAX, 8     // Inc(X, 8)
-        DEC        RDX        // Dec(X);
-        JNZ        @QLoop
-        EMMS
-@ExitPOP:
-        POP        RDI
+        CMP        RDX, 32
+        JL         @SmallLoop
+
+        AND        RCX, 3          // get aligned count
+        TEST       RCX, RCX        // check if X is not dividable by 4
+        JNZ        @SmallLoop      // otherwise perform slow small loop
+
+        MOV        RCX, R9
+        SHR        RCX, 2          // bytes to count
+        AND        RCX, 3          // get aligned count
+        ADD        RCX,-4
+        NEG        RCX             // get count to advance
+        JZ         @SetupMain
+        SUB        RDX, RCX        // subtract aligning start from total count
+
+@AligningLoop:
+        MOV        [R9], R8D
+        ADD        R9, 4
+        DEC        RCX
+        JNZ        @AligningLoop
+
+@SetupMain:
+        MOV        RCX, RDX        // RCX = remaining count
+        SHR        RCX, 2
+        SHL        RCX, 2
+        SUB        RDX, RCX        // RDX = remaining count
+        SHR        RCX, 2
+
+        MOVD       XMM0, R8D
+        PUNPCKLDQ  XMM0, XMM0
+        PUNPCKLDQ  XMM0, XMM0
+@SSE2Loop:
+        MOVDQA     [R9], XMM0
+        ADD        R9, 16
+        DEC        RCX
+        JNZ        @SSE2Loop
+
+        TEST       RDX, RDX
+        JZ         @Exit
+@SmallLoop:
+        MOV        [R9], R8D
+        ADD        R9, 4
+        DEC        RDX
+        JNZ        @SmallLoop
 @Exit:
 {$ENDIF}
 end;
@@ -1227,7 +1248,7 @@ end;
 - Built-in sanity checks guarantee that an improper call to StackFree will not
   corrupt the stack. Worst case is that the stack block is not released until
   the calling routine exits. }
-procedure StackFree(P: Pointer); register;
+procedure StackFree(P: Pointer); register; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         POP       ECX                     // return address
