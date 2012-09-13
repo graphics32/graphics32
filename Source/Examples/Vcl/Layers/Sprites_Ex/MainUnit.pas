@@ -317,10 +317,8 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 begin
   if BenchmarkMode then
   begin
-    {$IFNDEF FPC}
     SetThreadPriority(GetCurrentThread, Priority);
     SetPriorityClass(GetCurrentProcess, PriorityClass);
-    {$ENDIF}
 
     BtnBenchmark.Caption := 'Benchmark';
 
@@ -338,14 +336,11 @@ begin
     'Benchmarking runs with a higher task priority. Your system might become unresponsive for several seconds.',
     mtConfirmation, [mbYes, mbNo], 0) = mrYes) then
   begin
-    {$IFNDEF FPC}
     PriorityClass := GetPriorityClass(GetCurrentProcess);
     Priority := GetThreadPriority(GetCurrentThread);
 
     SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
-    SetThreadPriority(GetCurrentThread,
-                      THREAD_PRIORITY_TIME_CRITICAL);
-    {$ENDIF}
+    SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_TIME_CRITICAL);
 
     BtnBenchmark.Caption := 'Stop';
 
