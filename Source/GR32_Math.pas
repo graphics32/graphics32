@@ -88,6 +88,32 @@ function FloatMod(x, y: Double): Double; {$IFDEF INLININGSUPPORTED} inline; {$EN
 
 function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
 
+
+{$IFDEF FPC}
+{$IFDEF TARGET_X64}
+(*
+  FPC has no similar {$EXCESSPRECISION OFF} directive,
+  but we can easily emulate that by overriding some internal math functions
+*)
+function PI: Single; [internproc: fpc_in_pi_real];
+//function Abs(D: Single): Single; [internproc: fpc_in_abs_real];
+//function Sqr(D: Single): Single; [internproc: fpc_in_sqr_real];
+function Sqrt(D: Single): Single; [internproc: fpc_in_sqrt_real];
+function ArcTan(D: Single): Single; [internproc: fpc_in_arctan_real];
+function Ln(D: Single): Single; [internproc: fpc_in_ln_real];
+function Sin(D: Single): Single; [internproc: fpc_in_sin_real];
+function Cos(D: Single): Single; [internproc: fpc_in_cos_real];
+function Exp(D: Single): Single; [internproc: fpc_in_exp_real];
+function Round(D: Single): Int64; [internproc: fpc_in_round_real];
+function Frac(D: Single): Single; [internproc: fpc_in_frac_real];
+function Int(D: Single): Single; [internproc: fpc_in_int_real];
+function Trunc(D: Single): Int64; [internproc: fpc_in_trunc_real];
+
+function Ceil(X: Single): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+function Floor(X: Single): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+{$ENDIF}
+{$ENDIF}
+
 type
   TCumSumProc = procedure(Values: PSingleArray; Count: Integer);
 
@@ -103,6 +129,26 @@ uses
 const
   FixedOneS: Single = 65536;
 {$ENDIF}
+
+
+{$IFDEF FPC}
+{$IFDEF TARGET_X64}
+function Ceil(X: Single): Integer;
+begin
+  Result := Trunc(X);
+  If Frac(X) > 0 then
+    Result := Result  1;
+end;
+
+function Floor(X: Single): Integer;
+begin
+   Result := Trunc(X);
+   If Frac(X) < 0 then
+     Result := Result - 1;
+end;
+{$ENDIF}
+{$ENDIF}
+
 
 { Fixed-point math }
 
