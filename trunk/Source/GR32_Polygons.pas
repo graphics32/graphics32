@@ -675,7 +675,7 @@ var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
   MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, MultiPoly, color, False, Width);
+  PolyPolylineFS(Bitmap, MultiPoly, Color, False, Width);
 end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;

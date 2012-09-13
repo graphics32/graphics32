@@ -6,14 +6,13 @@
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
-        <MainUnitHasCreateFormStatements Value="False"/>
-        <MainUnitHasTitleStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="AntiAliasing"/>
+      <Title Value="Anti-Aliasing Test"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
+      <Icon Value="0"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>
