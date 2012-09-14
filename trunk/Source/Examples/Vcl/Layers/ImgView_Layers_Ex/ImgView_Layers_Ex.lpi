@@ -23,9 +23,9 @@
         <CompilerOptions>
           <Version Value="11"/>
           <SearchPaths>
-            <IncludeFiles Value="../../../.."/>
+            <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="../../../.."/>
+            <OtherUnitFiles Value="..\..\..\.."/>
             <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
             <ObjectPath Value="../../.."/>
           </SearchPaths>
@@ -120,9 +120,9 @@
   <CompilerOptions>
     <Version Value="11"/>
     <SearchPaths>
-      <IncludeFiles Value="../../../.."/>
+      <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
-      <OtherUnitFiles Value="../../../.."/>
+      <OtherUnitFiles Value="..\..\..\.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="../../.."/>
     </SearchPaths>

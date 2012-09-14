@@ -136,15 +136,15 @@ const
 function Ceil(X: Single): Integer;
 begin
   Result := Trunc(X);
-  If Frac(X) > 0 then
-    Result := Result  1;
+  if Frac(X) > 0 then
+    Result := Result - 1;
 end;
 
 function Floor(X: Single): Integer;
 begin
-   Result := Trunc(X);
-   If Frac(X) < 0 then
-     Result := Result - 1;
+  Result := Trunc(X);
+  if Frac(X) < 0 then
+    Result := Result - 1;
 end;
 {$ENDIF}
 {$ENDIF}
@@ -668,7 +668,6 @@ begin
   J := (I - $3F800000) div 2 + $3F800000;
   Result := CHalf * (Result + Value / Result);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     EAX, Value

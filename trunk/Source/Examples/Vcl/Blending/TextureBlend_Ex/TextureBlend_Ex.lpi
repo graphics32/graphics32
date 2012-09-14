@@ -25,7 +25,7 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\.."/>
+            <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
             <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
             <OtherUnitFiles Value="..\..\..\.."/>
             <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
@@ -104,7 +104,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\.."/>
+      <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
       <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
       <OtherUnitFiles Value="..\..\..\.."/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
