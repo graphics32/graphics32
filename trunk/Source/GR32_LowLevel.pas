@@ -80,6 +80,7 @@ procedure Swap(var A, B: Pointer); overload;{$IFDEF USEINLINING} inline; {$ENDIF
 procedure Swap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Swap(var A, B: TFixed); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Swap(var A, B: TColor32); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Swap32(var A, B); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A }
 procedure TestSwap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -587,6 +588,15 @@ begin
   T := A;
   A := B;
   B := T;
+end;
+
+procedure Swap32(var A, B);
+var
+  T: Integer;
+begin
+  T := Integer(A);
+  Integer(A) := Integer(B);
+  Integer(B) := T;
 end;
 
 procedure TestSwap(var A, B: Integer);
