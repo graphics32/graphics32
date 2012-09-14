@@ -2634,7 +2634,8 @@ begin
   if Assigned(Src) then Src.DrawTo(Self, DstX, DstY);
 end;
 
-procedure TCustomBitmap32.Draw(DstX, DstY: Integer; const SrcRect: TRect; Src: TCustomBitmap32);
+procedure TCustomBitmap32.Draw(DstX, DstY: Integer; const SrcRect: TRect;
+  Src: TCustomBitmap32);
 begin
   if Assigned(Src) then Src.DrawTo(Self, DstX, DstY, SrcRect);
 end;
@@ -2646,27 +2647,34 @@ end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32);
 begin
-  BlockTransfer(Dst, 0, 0, Dst.ClipRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
+  BlockTransfer(Dst, 0, 0, Dst.ClipRect, Self, BoundsRect, DrawMode,
+    FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer);
 begin
-  BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, BoundsRect, DrawMode, FOnPixelCombine);
+  BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, BoundsRect, DrawMode,
+    FOnPixelCombine);
 end;
 
-procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer; const SrcRect: TRect);
+procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer;
+    const SrcRect: TRect);
 begin
-  BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, SrcRect, DrawMode, FOnPixelCombine);
+  BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, SrcRect,
+    DrawMode, FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; const DstRect: TRect);
 begin
-  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, Resampler, DrawMode, FOnPixelCombine);
+  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, Resampler,
+    DrawMode, FOnPixelCombine);
 end;
 
-procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; const DstRect, SrcRect: TRect);
+procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; const DstRect,
+  SrcRect: TRect);
 begin
-  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
+  StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, Resampler,
+    DrawMode, FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.ResetAlpha;
