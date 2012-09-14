@@ -685,9 +685,9 @@ var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
   MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, MultiPoly, FillColor, False, Width);
   MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
-  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, true, strokeWidth);
+  PolyPolygonFS(Bitmap, MultiPoly, FillColor);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
 end;
 
 procedure DashLineFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
@@ -707,9 +707,9 @@ var
   MultiPoly: TArrayOfArrayOfFloatPoint;
 begin
   MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
-  PolyPolylineFS(Bitmap, MultiPoly, Filler, False, Width);
   MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
-  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, true, StrokeWidth);
+  PolyPolygonFS(Bitmap, MultiPoly, Filler);
+  PolyPolylineFS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
 end;
 
 
