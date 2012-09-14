@@ -26,11 +26,9 @@
         <CompilerOptions>
           <Version Value="11"/>
           <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="..\..\..\..\Bin\WithoutGUI"/>
-          </Target>
           <SearchPaths>
-            <UnitOutputDirectory Value="..\..\..\..\Precompiles\$(TargetCPU)-$(TargetOS)"/>
+            <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
+            <OtherUnitFiles Value="..\..\..\.."/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
