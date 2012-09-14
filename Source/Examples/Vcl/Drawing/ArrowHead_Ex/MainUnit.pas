@@ -1,5 +1,37 @@
 unit MainUnit;
 
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
+ * The Original Code is ArrowHead Example for Graphics32
+ *
+ * The Initial Developer of the Original Code is
+ * Angus Johnson < http://www.angusj.com >
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2012
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
 interface
 
 uses
@@ -22,21 +54,21 @@ type
     TbrAnimationSpeed: TTrackBar;
     TbrLineWidth: TTrackBar;
     procedure FormCreate(Sender: TObject);
-    procedure BtnCloseClick(Sender: TObject);
-    procedure EdtArrowSizeChange(Sender: TObject);
-    procedure RgpArrowStyleClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure AnimationTimer(Sender: TObject);
-    procedure ImgView32Resize(Sender: TObject);
+    procedure BtnCloseClick(Sender: TObject);
+    procedure CbxAnimateClick(Sender: TObject);
+    procedure EdtArrowSizeChange(Sender: TObject);
     procedure ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImgView32MouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer; Layer: TCustomLayer);
     procedure ImgView32MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure TbrLineWidthChange(Sender: TObject);
+    procedure ImgView32MouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer; Layer: TCustomLayer);
+    procedure ImgView32Resize(Sender: TObject);
+    procedure RgpArrowStyleClick(Sender: TObject);
     procedure TbrAnimationSpeedChange(Sender: TObject);
-    procedure CbxAnimateClick(Sender: TObject);
+    procedure TbrLineWidthChange(Sender: TObject);
   private
     FArrowSize: Integer;
     FBoxIndex: Integer;
@@ -76,16 +108,16 @@ implementation
 {$R pattern.res}
 
 uses
-  Math, GR32_Geometry, GR32_VectorUtils, GR32_ColorGradients;
+  Math, GR32_LowLevel, GR32_Geometry, GR32_VectorUtils, GR32_ColorGradients;
 
 { Miscellaneous functions }
 
-procedure ChangeSign(var Value: TFloat);
+procedure ChangeSign(var Value: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Value := -Value;
 end;
 
-procedure SwapVelocities(var Value1, Value2: TFloat);
+procedure SwapVelocities(var Value1, Value2: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
 var
   Val: TFloat;
 begin
@@ -109,10 +141,10 @@ begin
     DistSqrd := DS;
     Index := I;
   end;
-  If Index = high(BoxPts) then I := 0 else I := Index + 1;
+  if Index = High(BoxPts) then I := 0 else I := Index + 1;
   if not SegmentIntersect(Pt, BoxCenter, BoxPts[Index], BoxPts[I], Result) then
   begin
-    If Index = 0 then I := high(BoxPts) else I := Index - 1;
+    if Index = 0 then I := High(BoxPts) else I := Index - 1;
     if not SegmentIntersect(Pt, BoxCenter, BoxPts[Index], BoxPts[I], Result) then
       Result := Pt;
   end;
@@ -247,12 +279,15 @@ end;
 procedure TFmArrowHeadDemo.ImgView32Resize(Sender: TObject);
 begin
   ImgView32.Bitmap.SetSize(ImgView32.Width, ImgView32.Height);
+  ReDraw;
 end;
 
 procedure TFmArrowHeadDemo.ReDraw;
 var
-  Box1, Box2, Poly, ArrowPts: TArrayOfFloatPoint;
+  Box : array [0..1] of TArrayOfFloatPoint;
+  Poly, ArrowPts: TArrayOfFloatPoint;
   StartPoint, EndPoint, StartOffsetPt, EndOffsetPt: TFloatPoint;
+  Outline: TArrayOfArrayOfFloatPoint;
   Delta: TFloatPoint;
   Arrow: TArrowHeadAbstract;
   GradientFiller: TLinearGradientPolygonFiller;
@@ -260,7 +295,7 @@ const
   StartArrowColor: TColor32 = $60009900;
   StartArrowPenColor: TColor32 = $FF339900;
   EndArrowColor: TColor32 = $600000AA;
-  EndArrowPenColor: TColor32 = $FF0066AA;
+  EndArrowPenColor: TColor32 = $FF0033AA;
 begin
   ImgView32.Bitmap.Clear(clWhite32);
 
@@ -272,26 +307,28 @@ begin
     else Arrow := nil;
   end;
 
-  Box1 := MakeBox(FBoxCenter[0], CBoxSize);
-  Box2 := MakeBox(FBoxCenter[1], CBoxSize);
+  Box[0] := MakeBox(FBoxCenter[0], CBoxSize);
+  Box[1] := MakeBox(FBoxCenter[1], CBoxSize);
+
   FBitmapFiller.Pattern := FPattern[0];
-  DashLineFS(ImgView32.Bitmap, Box1, FDashes, FBitmapFiller, StartArrowPenColor,
+  DashLineFS(ImgView32.Bitmap, Box[0], FDashes, FBitmapFiller, EndArrowPenColor,
     True, CBorderSize, 1.5);
+
   FBitmapFiller.Pattern := FPattern[1];
-  DashLineFS(ImgView32.Bitmap, Box2, FDashes, FBitmapFiller, EndArrowPenColor,
+  DashLineFS(ImgView32.Bitmap, Box[1], FDashes, FBitmapFiller, EndArrowPenColor,
     True, CBorderSize, 1.5);
 
   // now accommodate for CBorderSize width as above ...
-  Box1 := MakeBox(FBoxCenter[0], CBoxSizePlus);
-  Box2 := MakeBox(FBoxCenter[1], CBoxSizePlus);
+  Box[0] := MakeBox(FBoxCenter[0], CBoxSizePlus);
+  Box[1] := MakeBox(FBoxCenter[1], CBoxSizePlus);
   if BoxesOverlap(FBoxCenter[0], FBoxCenter[1], CBoxSizePlus) then
   begin
     StartPoint := FBoxCenter[0];
     EndPoint := FBoxCenter[1];
   end else
   begin
-    StartPoint := GetNearestPointOnBox(FBoxCenter[1], FBoxCenter[0], Box1);
-    EndPoint := GetNearestPointOnBox(FBoxCenter[0], FBoxCenter[1], Box2);
+    StartPoint := GetNearestPointOnBox(FBoxCenter[1], FBoxCenter[0], Box[0]);
+    EndPoint := GetNearestPointOnBox(FBoxCenter[0], FBoxCenter[1], Box[1]);
   end;
 
   Delta.X := StartPoint.X - FBoxCenter[0].X;
@@ -325,10 +362,8 @@ begin
     // draw the connecting line ...
     GradientFiller := TLinearGradientPolygonFiller.Create;
     try
-      GradientFiller.Gradient.AddColorStop(0.0, StartArrowPenColor);
-      GradientFiller.Gradient.AddColorStop(1.0, EndArrowPenColor);
-      with FBoxCenter[0] do GradientFiller.StartPoint := FloatPoint(X + CRad, Y);
-      with FBoxCenter[1] do GradientFiller.EndPoint := FloatPoint(X - CRad, Y);
+      GradientFiller.SimpleGradient(Poly[0], StartArrowPenColor,
+        Poly[High(Poly)], EndArrowPenColor);
       PolylineFS(ImgView32.Bitmap, Poly, GradientFiller, False,
         TbrLineWidth.Position);
     finally
