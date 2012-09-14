@@ -3,7 +3,6 @@
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="GR32_Lazarus"/>
-    <AddToProjectUsesSection Value="True"/>
     <Author Value="Team Graphics32"/>
     <AutoUpdate Value="Manually"/>
     <CompilerOptions>
@@ -52,7 +51,7 @@ Features Some of Graphics32 features include:
 As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Public License."/>
     <License Value="GNU Library or Lesser General Public License (LGPL)
 Mozilla Public License 1.1 (MPL 1.1)"/>
-    <Version Major="1" Minor="9"/>
+    <Version Major="2"/>
     <Files Count="19">
       <Item1>
         <Filename Value="..\GR32.pas"/>

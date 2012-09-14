@@ -54,7 +54,7 @@ Features Some of Graphics32 features include:
 As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Public License."/>
     <License Value="GNU Library or Lesser General Public License (LGPL)
 Mozilla Public License 1.1 (MPL 1.1)"/>
-    <Version Major="1" Minor="9"/>
+    <Version Major="2"/>
     <Files Count="5">
       <Item1>
         <Filename Value="../GR32_Reg.pas"/>
