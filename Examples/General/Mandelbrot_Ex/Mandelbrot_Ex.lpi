@@ -22,9 +22,9 @@
             <Filename Value="Mandelbrot_Ex.exe"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
+            <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="..\..\..\.."/>
+            <OtherUnitFiles Value="../../../Source"/>
             <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
@@ -108,9 +108,9 @@
       <Filename Value="Mandelbrot_Ex.exe"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
+      <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
-      <OtherUnitFiles Value="..\..\..\.."/>
+      <OtherUnitFiles Value="../../../Source"/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
