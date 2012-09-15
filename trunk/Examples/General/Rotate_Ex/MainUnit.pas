@@ -64,7 +64,7 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Math, GR32_MediaPathLocator,
+  GR32_Math,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -79,13 +79,22 @@ uses
 
 procedure TFormRotateExample.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
   // load example image
-  Assert(FileExists(MediaPath + 'delphi.jpg'));
-  Src.Bitmap.LoadFromFile(MediaPath + 'delphi.jpg');
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    Src.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   Dst.Bitmap.SetSize(Src.Bitmap.Width, Src.Bitmap.Height);
 
