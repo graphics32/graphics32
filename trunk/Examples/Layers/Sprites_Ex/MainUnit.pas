@@ -39,11 +39,10 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Variants, {$ENDIF}
-  {$IFNDEF FPC} AppEvnts, {$ENDIF}
-  {$IFDEF Windows}Windows,{$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, GR32, GR32_Transforms,
-  StdCtrls, GR32_Image, GR32_Layers, ExtCtrls, GR32_Containers,
-  GR32_MicroTiles, Math, Buttons;
+  {$IFNDEF FPC} AppEvnts, {$ENDIF} {$IFDEF Windows}Windows,{$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  Math, Buttons, GR32, GR32_Transforms, GR32_Image, GR32_Layers,
+  GR32_Containers, GR32_MicroTiles;
 
 const
   MAX_RUNS = 3;
@@ -99,7 +98,6 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -113,40 +111,24 @@ uses
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
-
-  procedure LoadImage(Dst: TBitmap32; const Filename, AlphaFilename: String);
-  var
-    TempBitmap: TBitmap32;
-  begin
-    TempBitmap := TBitmap32.Create;
-    try
-      Dst.LoadFromFile(Filename);
-      TempBitmap.LoadFromFile(AlphaFilename);
-      IntensityToAlpha(Dst, TempBitmap);
-    finally
-      TempBitmap.Free;
-    end;
-  end;
-
 var
-  MediaPath: TFileName;
+  TempBitmap: TBitmap32;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
-  Assert(FileExists(MediaPath + 'sprite_texture.bmp'));
-  Image32.Bitmap.LoadFromFile(MediaPath + 'sprite_texture.bmp');
-
-  Assert(FileExists(MediaPath + 'sprite1.bmp'));
-  Assert(FileExists(MediaPath + 'sprite1a.bmp'));
-  LoadImage(BitmapList.Bitmap[0], MediaPath + 'sprite1.bmp', MediaPath + 'sprite1a.bmp');
-
-  Assert(FileExists(MediaPath + 'sprite2.bmp'));
-  Assert(FileExists(MediaPath + 'sprite2a.bmp'));
-  LoadImage(BitmapList.Bitmap[1], MediaPath + 'sprite2.bmp', MediaPath + 'sprite2a.bmp');
-
-  Assert(FileExists(MediaPath + 'sprite3.bmp'));
-  Assert(FileExists(MediaPath + 'sprite3a.bmp'));
-  LoadImage(BitmapList.Bitmap[2], MediaPath + 'sprite3.bmp', MediaPath + 'sprite3a.bmp');
+  TempBitmap := TBitmap32.Create;
+  try
+    Image32.Bitmap.LoadFromResourceName(Hinstance, 'SpriteTexture');
+    BitmapList.Bitmap[0].LoadFromResourceName(Hinstance, 'Sprite1');
+    TempBitmap.LoadFromResourceName(Hinstance, 'Sprite1a');
+    IntensityToAlpha(BitmapList.Bitmap[0], TempBitmap);
+    BitmapList.Bitmap[1].LoadFromResourceName(Hinstance, 'Sprite2');
+    TempBitmap.LoadFromResourceName(Hinstance, 'Sprite2a');
+    IntensityToAlpha(BitmapList.Bitmap[1], TempBitmap);
+    BitmapList.Bitmap[2].LoadFromResourceName(Hinstance, 'Sprite3');
+    TempBitmap.LoadFromResourceName(Hinstance, 'Sprite3a');
+    IntensityToAlpha(BitmapList.Bitmap[2], TempBitmap);
+  finally
+    TempBitmap.Free;
+  end;
 
   LastSeed := 0;
   BenchmarkList := TStringList.Create;
