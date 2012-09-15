@@ -2,13 +2,13 @@ program GR32_Clipper_Demo;
 
 uses
   Forms,
-  main in 'main.pas' {Form1},
-  GR32_Clipper in '..\..\..\..\GR32_Clipper.pas';
+  MainUnit in 'MainUnit.pas' {FrmClipper},
+  GR32_Clipper in '..\..\..\Source\GR32_Clipper.pas';
 
 {$R *.res}
 
 begin
   Application.Initialize;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TFrmClipper, FrmClipper);
   Application.Run;
 end.

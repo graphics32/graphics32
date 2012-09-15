@@ -1,9 +1,9 @@
-object Form1: TForm1
+object FrmClipper: TFrmClipper
   Left = 425
   Top = 191
-  Width = 409
-  Height = 441
-  Caption = 'Form1'
+  Caption = 'Clipper Demo'
+  ClientHeight = 414
+  ClientWidth = 401
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,14 +14,14 @@ object Form1: TForm1
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Panel1: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 401
     Height = 41
     Align = alTop
     TabOrder = 0
-    object Button1: TButton
+    object BtnClose: TButton
       Left = 8
       Top = 8
       Width = 75
@@ -29,10 +29,10 @@ object Form1: TForm1
       Cancel = True
       Caption = '&Close'
       TabOrder = 0
-      OnClick = Button1Click
+      OnClick = BtnCloseClick
     end
   end
-  object ImgView321: TImgView32
+  object ImgView32: TImgView32
     Left = 0
     Top = 41
     Width = 401
@@ -45,6 +45,7 @@ object Form1: TForm1
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Size = 16
+    ScrollBars.Visibility = svAuto
     OverSize = 0
     TabOrder = 1
   end

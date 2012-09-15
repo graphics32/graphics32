@@ -46,37 +46,37 @@ type
   TFormPolygons = class(TForm)
     BitmapList: TBitmap32List;
     BtnNewLine: TButton;
+    CbxPattern: TCheckBox;
+    CbxThickOutline: TCheckBox;
     FillAlpha: TScrollBar;
     Image: TImage32;
     LblFillOpacity: TLabel;
     LblLineOpacity: TLabel;
+    LblMiterLimit: TLabel;
     LblOutlineThickness: TLabel;
     LblOutlineThicknessValue: TLabel;
     LineAlpha: TScrollBar;
     LineThickness: TScrollBar;
     MemoHint: TMemo;
-    PanelControl: TPanel;
-    CbxPattern: TCheckBox;
-    RgpFillMode: TRadioGroup;
-    CbxThickOutline: TCheckBox;
-    RgpJointMode: TRadioGroup;
-    LblMiterLimit: TLabel;
     MiterLimit: TScrollBar;
+    PanelControl: TPanel;
+    RgpFillMode: TRadioGroup;
+    RgpJointMode: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure ImageMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImageResize(Sender: TObject);
-    procedure ParamsChanged(Sender: TObject);
     procedure BtnNewLineClick(Sender: TObject);
-    procedure ThicknessChanged(Sender: TObject);
-    procedure FillModeChange(Sender: TObject);
-    procedure PatternFillingChange(Sender: TObject);
     procedure FillAlphaChange(Sender: TObject);
-    procedure LineAlphaChange(Sender: TObject);
+    procedure FillModeChange(Sender: TObject);
+    procedure ImageResize(Sender: TObject);
     procedure JointModeChange(Sender: TObject);
-    procedure ThickOutlineChange(Sender: TObject);
+    procedure LineAlphaChange(Sender: TObject);
     procedure MiterLimitChange(Sender: TObject);
+    procedure ParamsChanged(Sender: TObject);
+    procedure PatternFillingChange(Sender: TObject);
+    procedure ThicknessChanged(Sender: TObject);
+    procedure ThickOutlineChange(Sender: TObject);
   private
     FCanvas: TCanvas32;
     FFiller: TBitmapPolygonFiller;
@@ -84,7 +84,6 @@ type
     FSolid: TSolidBrush;
     FStroke: TStrokeBrush;
     procedure Draw;
-    procedure GenerateTexture;
   end;
 
 var
@@ -99,7 +98,7 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_MediaPathLocator,
+  Math,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -113,18 +112,30 @@ uses
 
 procedure TFormPolygons.FormCreate(Sender: TObject);
 var
-  PathMedia: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  PathMedia := GetMediaPath;
+  // Load the textures (note size 256x256 is implicity expected!)
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    BitmapList.Bitmap[0].Assign(JPEG);
 
-  // load example images
-  if FileExists(PathMedia + 'delphi.jpg') then
-    BitmapList.Bitmap[0].LoadFromFile(PathMedia + 'delphi.jpg');
-
-  if FileExists(PathMedia + 'texture_b.jpg') then
-    BitmapList.Bitmap[1].LoadFromFile(PathMedia + 'texture_b.jpg')
-  else
-    GenerateTexture;
+    ResStream := TResourceStream.Create(HInstance, 'TextureB', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    BitmapList.Bitmap[1].Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   Image.SetupBitmap;
 
@@ -150,30 +161,6 @@ begin
   FCanvas.Free;
   if Assigned(FFiller) then
     FFiller.Free;
-end;
-
-procedure TFormPolygons.GenerateTexture;
-var
-  X, Y: Integer;
-  G: TFloat;
-  Row: PColor32Array;
-begin
-  with BitmapList.Bitmap[1] do
-  begin
-    SetSize(400, 400);
-
-    G := 0.5;
-    for Y := 0 to Height - 1 do
-    begin
-      Row := ScanLine[Y];
-      for X := 0 to Width - 1 do
-      begin
-        G := EnsureRange(G * (0.99 + 0.02 * Random), 0.2, 0.8);
-
-        Row^[X] := Color32(0, Round($FF * G), 0)
-      end;
-    end;
-  end;
 end;
 
 procedure TFormPolygons.Draw;

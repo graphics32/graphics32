@@ -52,6 +52,7 @@ type
   TMandelbrotSampler = class(TCustomSampler)
   private
     FPalette: array of TColor32;
+    FWidthInv, FHeightInv: Single;
   protected
     procedure CalculatePalette;
   public
@@ -72,6 +73,18 @@ type
     miDefault: TMenuItem;
     miExit: TMenuItem;
     miFile: TMenuItem;
+    miMaxIterations: TMenuItem;
+    miMaxIterations160: TMenuItem;
+    miMaxIterations256: TMenuItem;
+    miMaxIterations320: TMenuItem;
+    miMaxIterations50: TMenuItem;
+    miMaxIterations512: TMenuItem;
+    miMultithreadedRegularRasterizer: TMenuItem;
+    miPalette: TMenuItem;
+    miPaletteDefault: TMenuItem;
+    miPaletteMonochrome: TMenuItem;
+    miPaletteRainbow: TMenuItem;
+    miPaletteSimple: TMenuItem;
     miPatternSampler2x: TMenuItem;
     miPatternSampler3x: TMenuItem;
     miPatternSampler4x: TMenuItem;
@@ -89,32 +102,20 @@ type
     N3: TMenuItem;
     N5: TMenuItem;
     SavePictureDialog: TSavePictureDialog;
-    miMultithreadedRegularRasterizer: TMenuItem;
-    miMaxIterations: TMenuItem;
-    miMaxIterations320: TMenuItem;
-    miMaxIterations512: TMenuItem;
-    miMaxIterations256: TMenuItem;
-    miMaxIterations160: TMenuItem;
-    miMaxIterations50: TMenuItem;
-    miPalette: TMenuItem;
-    miPaletteRainbow: TMenuItem;
-    miPaletteDefault: TMenuItem;
-    miPaletteMonochrome: TMenuItem;
-    miPaletteSimple: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure miAdaptiveClick(Sender: TObject);
     procedure miDefaultClick(Sender: TObject);
     procedure miExitClick(Sender: TObject);
-    procedure miSaveClick(Sender: TObject);
+    procedure miMaxIterationsClick(Sender: TObject);
+    procedure miPaletteClick(Sender: TObject);
     procedure miRasterizerClick(Sender: TObject);
+    procedure miSaveClick(Sender: TObject);
     procedure ImgMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure ImgMouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
-    procedure miMaxIterationsClick(Sender: TObject);
-    procedure miPaletteClick(Sender: TObject);
   private
     procedure TranslateX(Amount: TFloat);
     procedure TranslateY(Amount: TFloat);
@@ -170,8 +171,8 @@ const
 begin
   with Bounds do
   begin
-    CX := Left + X * (Right - Left) / Image.Width;
-    CY := Top + Y * (Bottom - Top) / Image.Height;
+    CX := Left + X * (Right - Left) * FWidthInv;
+    CY := Top + Y * (Bottom - Top) * FHeightInv;
   end;
 
   M := Length(FPalette) - 1;
@@ -251,6 +252,8 @@ end;
 
 procedure TMandelbrotSampler.PrepareSampling;
 begin
+  FWidthInv := 1 / Image.Width;
+  FHeightInv := 1 / Image.Height;
   SetLength(FPalette, MaxIterations + 1);
   CalculatePalette;
 end;
