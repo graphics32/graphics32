@@ -8,6 +8,8 @@ uses
   MainUnit in 'MainUnit.pas' {Form1},
   SimplePropEdit in 'SimplePropEdit.pas';
 
+{$R *.res}
+
 begin
   Application.Title:='Nested Sampling';
   Application.Initialize;
