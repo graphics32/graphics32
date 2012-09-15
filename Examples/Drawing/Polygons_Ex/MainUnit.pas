@@ -121,11 +121,9 @@ begin
   if FileExists(PathMedia + 'delphi.jpg') then
     BitmapList.Bitmap[0].LoadFromFile(PathMedia + 'delphi.jpg');
 
-(*
   if FileExists(PathMedia + 'texture_b.jpg') then
     BitmapList.Bitmap[1].LoadFromFile(PathMedia + 'texture_b.jpg')
   else
-*)
     GenerateTexture;
 
   Image.SetupBitmap;

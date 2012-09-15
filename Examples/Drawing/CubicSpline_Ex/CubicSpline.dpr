@@ -4,6 +4,8 @@ uses
   Forms,
   MainUnit in 'MainUnit.pas' {FormBezier};
 
+{$R *.res}
+
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;

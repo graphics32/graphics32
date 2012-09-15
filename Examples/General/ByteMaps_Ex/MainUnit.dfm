@@ -63,7 +63,7 @@ object MainForm: TMainForm
         ImageIndex = -1
         MinHeight = 21
         MinWidth = 56
-        Width = 124
+        Width = 69
       end
       item
         Break = False
@@ -71,7 +71,7 @@ object MainForm: TMainForm
         ImageIndex = -1
         MinHeight = 22
         MinWidth = 100
-        Width = 265
+        Width = 379
       end
       item
         Break = False
@@ -82,7 +82,7 @@ object MainForm: TMainForm
         MinHeight = 21
         MinWidth = 38
         ParentColor = False
-        Width = 97
+        Width = 38
       end
       item
         Control = ToolBar2
@@ -225,7 +225,7 @@ object MainForm: TMainForm
         Left = 220
         Top = 0
         Width = 73
-        Height = 22
+        Height = 21
         Anchors = [akTop, akRight]
         TabOrder = 1
         TabStop = False

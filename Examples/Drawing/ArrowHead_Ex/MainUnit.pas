@@ -287,7 +287,6 @@ var
   Box : array [0..1] of TArrayOfFloatPoint;
   Poly, ArrowPts: TArrayOfFloatPoint;
   StartPoint, EndPoint, StartOffsetPt, EndOffsetPt: TFloatPoint;
-  Outline: TArrayOfArrayOfFloatPoint;
   Delta: TFloatPoint;
   Arrow: TArrowHeadAbstract;
   GradientFiller: TLinearGradientPolygonFiller;
