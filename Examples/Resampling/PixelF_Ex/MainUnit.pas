@@ -74,7 +74,7 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Math, GR32_MediaPathLocator,
+  GR32_Math,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -86,13 +86,22 @@ uses
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
   // load example image
-  Assert(FileExists(MediaPath + 'stones.jpg'));
-  Image32.Bitmap.LoadFromFile(MediaPath + 'stones.jpg');
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Stones', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    Image32.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   with Image32 do
   begin

@@ -118,16 +118,15 @@ uses
   {$ELSE}
   Jpeg,
   {$ENDIF}
-  GR32_MediaPathLocator, GR32_LowLevel;
+  GR32_LowLevel;
 
 { TfmResamplersExample }
 
 procedure TFrmResamplersExample.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
   Src := TBitmap32.Create;
   Src.OuterColor := $FFFF7F7F;
   DstImg.Bitmap.OuterColor := Src.OuterColor;
@@ -137,8 +136,18 @@ begin
   ResamplingSrc := TBitmap32.Create;
 
   // load example image
-  Assert(FileExists(MediaPath + 'iceland.jpg'));
-  ResamplingSrc.LoadFromFile(MediaPath + 'iceland.jpg');
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Iceland', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    ResamplingSrc.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   ResamplerList.GetClassNames(ResamplerClassNamesList.Items);
   KernelList.GetClassNames(KernelClassNamesList.Items);
