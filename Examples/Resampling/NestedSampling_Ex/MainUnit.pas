@@ -217,7 +217,7 @@ uses
 {$ELSE}
   LazJPG,
 {$ENDIF}
-  GR32_OrdinalMaps, GR32_MediaPathLocator, GR32_LowLevel;
+  GR32_OrdinalMaps, GR32_LowLevel;
 
 procedure SetupToolBar(ToolBar: TToolBar);
 var
@@ -246,13 +246,24 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-  Assert(FileExists(MediaPath + 'stoneweed.jpg'));
-
+  // load example image
   Source := TBitmap32.Create;
-  Source.LoadFromFile(MediaPath + 'stoneweed.jpg');
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Stoneweed', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    Source.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
+
   ImgView.Bitmap.SetSizeFrom(Source);
   Rasterizer := TRegularRasterizer.Create;
   TRegularRasterizer(Rasterizer).UpdateRowCount := 16;
