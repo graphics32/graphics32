@@ -188,7 +188,7 @@ uses
   {$ELSE}
   LazJPG,
   {$ENDIF}
-  GR32_LowLevel, GR32_MediaPathLocator;
+  GR32_LowLevel;
 
 {$IFDEF FPC}
 {$R *.lfm}
@@ -237,15 +237,24 @@ var
   I : TBrushToolMode;
   J: Integer;
   Item: TMenuItem;
-var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
   Src := TBitmap32.Create;
 
-  // load example file
-  MediaPath := ExpandFileName(GetMediaPath);
-  Assert(FileExists(MediaPath + 'monalisa.jpg'));
-  Src.LoadFromFile(MediaPath + 'monalisa.jpg');
+  // load example image
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'MonaLisa', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    Src.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   Src.OuterColor := 0;
   Src.DrawMode := dmBlend;
