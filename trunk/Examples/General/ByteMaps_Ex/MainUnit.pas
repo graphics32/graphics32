@@ -97,10 +97,10 @@ type
     procedure ScaleChange(Sender: TObject);
   public
     DataSet: TByteMap;
-    palGrayscale: TPalette32;
-    palGreens: TPalette32;
-    palReds: TPalette32;
-    palRainbow: TPalette32;
+    PalGrayscale: TPalette32;
+    PalGreens: TPalette32;
+    PalReds: TPalette32;
+    PalRainbow: TPalette32;
     OldMousePos: TPoint;
     MouseDragging: Boolean;
     procedure GenPalettes;
@@ -143,22 +143,22 @@ end;
 
 procedure TMainForm.GenPalettes;
 var
-  i: Integer;
-  f: Single;
+  Index: Integer;
+  Scale: Single;
 begin
-  for i := 0 to 255 do
+  for Index := 0 to 255 do
   begin
-    f := i / 255;
-    palGrayscale[i] := HSLtoRGB(0, 0, f * 0.9 + 0.1);
-    palGreens[i] := HSLtoRGB(f * 0.4, 0.5, f * 0.4 + 0.2);
-    palReds[i] := HSLtoRGB(0.8 + f * 0.3 , 0.7 + f * 0.3, f * 0.85 + 0.1);
-    palRainbow[i] := HSLtoRGB(0.66 - f * 0.7, 1, 0.4 + 0.4 * f);
+    Scale := Index / 255;
+    PalGrayscale[Index] := HSLtoRGB(0, 0, Scale * 0.9 + 0.1);
+    PalGreens[Index] := HSLtoRGB(Scale * 0.4, 0.5, Scale * 0.4 + 0.2);
+    PalReds[Index] := HSLtoRGB(0.8 + Scale * 0.3 , 0.7 + Scale * 0.3, Scale * 0.85 + 0.1);
+    PalRainbow[Index] := HSLtoRGB(0.66 - Scale * 0.7, 1, 0.4 + 0.4 * Scale);
   end;
 end;
 
 procedure TMainForm.GenSampleData(W, H: Integer);
 var
-  i, j: Integer;
+  X, Y: Integer;
 
   function Clamp(FloatVal: Extended): Byte;
   begin
@@ -169,14 +169,14 @@ var
 
 begin
   DataSet.SetSize(W, H);
-  for j := 0 to H - 1 do
-    for i := 0 to W - 1 do
+  for Y := 0 to H - 1 do
+    for X := 0 to W - 1 do
     begin
       // just some noise
-      DataSet[i, j] := Clamp(0.5 +
-        0.5 * Sin(i + Random(10)) * 0.01 +
-        0.5 * Cos(j / 11) +
-        0.2 * Sin((i + j) / 3));
+      DataSet[X, Y] := Clamp(0.5 +
+        0.5 * Sin(X + Random(10)) * 0.01 +
+        0.5 * Cos(Y / 11) +
+        0.2 * Sin((X + Y) / 3));
     end;
 end;
 
@@ -185,11 +185,11 @@ var
   P: PPalette32;
 begin
   case PaletteCombo.ItemIndex of
-    0: P := @palGrayScale;
-    1: P := @palGreens;
-    2: P := @palReds;
+    0: P := @PalGrayscale;
+    1: P := @PalGreens;
+    2: P := @PalReds;
   else
-    P := @palRainbow;
+    P := @PalRainbow;
   end;
   DataSet.WriteTo(Image.Bitmap, P^);
 end;

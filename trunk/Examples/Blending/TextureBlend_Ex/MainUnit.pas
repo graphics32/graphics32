@@ -75,7 +75,6 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -114,15 +113,33 @@ end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
+  // Load the textures (note size 256x256 is implicity expected!)
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'TextureA', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    TexAImg.Bitmap.Assign(JPEG);
+
+    ResStream := TResourceStream.Create(HInstance, 'TextureB', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    TexBImg.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   BlendBox.ItemIndex := 0;
 
-  // Load the textures (note size 256x256 is implicity expected!)
-  TexAImg.Bitmap.LoadFromFile(MediaPath + 'texture_a.jpg');
-  TexBImg.Bitmap.LoadFromFile(MediaPath + 'texture_b.jpg');
   CombImg.Bitmap.SetSizeFrom(TexBImg.Bitmap);
 
   // Set up Weightmap and trigger generate

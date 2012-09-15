@@ -66,7 +66,7 @@ begin
 
     // Different platforms store resource files on different locations
   {$IFDEF Windows}
-    Result := '..\..\..\Media\';
+    Result := '..\..\Media\';
     {$IFDEF FPC}
     Result := '..\' + Result;
     {$ENDIF}
@@ -76,7 +76,7 @@ begin
     {$IFDEF Darwin}
       Result := pathStr + '/Contents/Resources/Media/';
     {$ELSE}
-      Result := '../../../Media/';
+      Result := '../../Media/';
       {$IFDEF FPC}
       Result := '../' + Result;
       {$ENDIF}  

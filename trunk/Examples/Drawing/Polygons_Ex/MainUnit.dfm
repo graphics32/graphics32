@@ -131,7 +131,6 @@ object FormPolygons: TFormPolygons
       Top = 284
       Width = 121
       Height = 16
-      Enabled = False
       Max = 200
       Min = 1
       PageSize = 0
@@ -196,7 +195,6 @@ object FormPolygons: TFormPolygons
       Top = 412
       Width = 121
       Height = 16
-      Enabled = False
       Max = 255
       Min = 1
       PageSize = 0
