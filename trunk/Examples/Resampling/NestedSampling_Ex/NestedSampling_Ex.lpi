@@ -24,10 +24,9 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
-            <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
-            <OtherUnitFiles Value="..\..\..\.."/>
-            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+            <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+            <OtherUnitFiles Value="../../../Source"/>
+            <UnitOutputDirectory Value="../../Binaries/$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -110,10 +109,9 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
-      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
-      <OtherUnitFiles Value="..\..\..\.."/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+      <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../../../Source"/>
+      <UnitOutputDirectory Value="../../Binaries/$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

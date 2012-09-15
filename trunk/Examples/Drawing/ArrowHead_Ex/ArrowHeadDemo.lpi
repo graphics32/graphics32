@@ -27,8 +27,8 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
-            <OtherUnitFiles Value="..\..\..\.."/>
+            <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+            <OtherUnitFiles Value="../../../Source"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -94,8 +94,8 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\..;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\.."/>
+      <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../../../Source"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
