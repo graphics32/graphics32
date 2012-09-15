@@ -1,5 +1,7 @@
 program PixelCombine_Ex;
 
+{$R Media.rc}
+
 uses
   Interfaces,
   Forms,

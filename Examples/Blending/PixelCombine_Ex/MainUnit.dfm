@@ -39,7 +39,7 @@ object FormPixelCombine: TFormPixelCombine
     Left = 394
     Top = 20
     Width = 109
-    Height = 185
+    Height = 189
     Anchors = [akTop, akRight]
     Caption = 'Operation'
     ItemIndex = 0

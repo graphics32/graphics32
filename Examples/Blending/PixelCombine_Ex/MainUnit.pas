@@ -42,6 +42,9 @@ uses
   GR32, GR32_Image, GR32_Layers, GR32_Blend, GR32_RangeBars;
 
 type
+
+  { TFormPixelCombine }
+
   TFormPixelCombine = class(TForm)
     ImgView: TImgView32;
     RadioGroup: TRadioGroup;
@@ -73,7 +76,6 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -88,47 +90,33 @@ uses
 procedure TFormPixelCombine.FormCreate(Sender: TObject);
 var
   I, J: Integer;
-{$IFDEF Darwin}
-  pathRef: CFURLRef;
-  pathCFStr: CFStringRef;
-  pathStr: shortstring;
-{$ENDIF}
-  pathMedia: TFileName;
+  SinJ: Double;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  pathMedia := ExpandFileName(GetMediaPath);
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Runner', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    ImgView.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
-  // On Lazarus we don't use design-time packages because they consume time to be installed
-{$IFDEF FPC}
-  ImgView := TImgView32.Create(Self);
-  ImgView.Parent := Self;
-  ImgView.Left := 16;
-  ImgView.Top := 20;
-  ImgView.Width := 367;
-  ImgView.Height := 309;
-  ImgView.Anchors := [akLeft, akTop, akRight, akBottom];
-  ImgView.Bitmap.ResamplerClassName := 'TNearestResampler';
-  ImgView.BitmapAlign := baCustom;
-  ImgView.Color := clBtnShadow;
-  ImgView.ParentColor := False;
-  ImgView.Scale := 1.000000000000000000;
-  ImgView.ScaleMode := smScale;
-  ImgView.ScrollBars.ShowHandleGrip := True;
-  ImgView.ScrollBars.Style := rbsDefault;
-  ImgView.OverSize := 0;
-  ImgView.TabOrder := 0;
-{$ENDIF}
-
-  // load example image
-  Assert(FileExists(pathMedia + 'runner.jpg'));
-  ImgView.Bitmap.LoadFromFile(pathMedia + 'runner.jpg');
-  
   L := TBitmapLayer.Create(ImgView.Layers);
   L.Bitmap.SetSize(200, 200);
   L.Bitmap.DrawMode := dmCustom;
   L.Location := FloatRect(20, 20, 220, 220);
   for J := 0 to 199 do
+  begin
+    SinJ := Sin(J * 0.1);
     for I := 0 to 199 do
-      L.Bitmap[I, J] := Gray32(Round(((Sin(I * 0.1) + Sin(J * 0.1)) * 0.25 + 0.5) * 255));
+      L.Bitmap[I, J] := Gray32(Round(((Sin(I * 0.1) + SinJ) * 0.25 + 0.5) * 255));
+  end;
   L.Bitmap.OnPixelCombine := nil; // none by default
 end;
 
