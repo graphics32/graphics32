@@ -192,11 +192,10 @@ uses
   MacOSAll,
 {$ENDIF}
 {$IFNDEF FPC}
-  JPEG,
+  JPEG;
 {$ELSE}
-  LazJPG,
+  LazJPG;
 {$ENDIF}
-  GR32_MediaPathLocator;
 
 const
   CAccessMode: array [Boolean] of TPixelAccessMode = (pamSafe, pamWrap);
@@ -211,13 +210,22 @@ end;
 
 procedure TFormTranformExample.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
   // load example image
-  Assert(FileExists(MediaPath + 'delphi.jpg'));
-  Src.Bitmap.LoadFromFile(MediaPath + 'delphi.jpg');
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    Src.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   //Setup custom paintstages ("checkerboard" and border)
   with Dst do
