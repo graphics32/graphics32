@@ -76,7 +76,6 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -91,12 +90,22 @@ uses
 
 procedure TFormRotLayer.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
-  Assert(FileExists(MediaPath + 'delphi.jpg'));
-  ImgView.Bitmap.LoadFromFile(MediaPath + 'delphi.jpg');
+  // load example image
+  JPEG := TJPEGImage.Create;
+  try
+    ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    ImgView.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   L := TRotLayer.Create(ImgView.Layers);
   L.Bitmap := TBitmap32.Create;
@@ -104,9 +113,7 @@ begin
   begin
     BeginUpdate;
 
-    // Different platforms store resource files on different locations
-    Assert(FileExists(MediaPath + 'sprite_texture.bmp'));
-    LoadFromFile(MediaPath + 'sprite_texture.bmp');
+    L.Bitmap.LoadFromResourceName(HInstance, 'SpriteTexture');
 
     TLinearResampler.Create(L.Bitmap);
 
