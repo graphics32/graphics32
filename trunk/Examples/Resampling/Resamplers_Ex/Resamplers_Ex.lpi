@@ -19,9 +19,6 @@
       <Item2 Name="Release">
         <CompilerOptions>
           <Version Value="11"/>
-          <Target>
-            <Filename Value="Resampler_Ex.exe"/>
-          </Target>
           <SearchPaths>
             <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
