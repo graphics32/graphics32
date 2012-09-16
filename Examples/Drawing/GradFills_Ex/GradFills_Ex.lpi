@@ -31,6 +31,7 @@
           <SearchPaths>
             <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
             <OtherUnitFiles Value="../../../Source"/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
