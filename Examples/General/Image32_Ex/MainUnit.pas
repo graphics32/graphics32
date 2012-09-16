@@ -73,7 +73,6 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_MediaPathLocator,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -85,13 +84,21 @@ uses
 
 procedure TFormImage32Example.FormCreate(Sender: TObject);
 var
-  MediaPath: TFileName;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  MediaPath := ExpandFileName(GetMediaPath);
-
-  // load example image
-  Assert(FileExists(MediaPath + 'delphi.jpg'));
-  Image.Bitmap.LoadFromFile(MediaPath + 'delphi.jpg');
+  JPEG := TJPEGImage.Create;
+  try
+	ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    try
+      JPEG.LoadFromStream(ResStream);
+    finally
+      ResStream.Free;
+    end;
+    Image.Bitmap.Assign(JPEG);
+  finally
+    JPEG.Free;
+  end;
 
   with TKernelResampler.Create(Image.Bitmap) do
   begin
