@@ -88,6 +88,10 @@ function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer = 100
 function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const P, R: TFloatPoint; Steps: Integer = 100): TArrayOfFloatPoint; overload;
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat;
+  Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Star(const X, Y, InnerRadius, OuterRadius: TFloat;
+  Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -397,19 +401,21 @@ function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat;
   Steps: Integer): TArrayOfFloatPoint;
 var
   I, N: Integer;
-  Angle, DeltaAngle: TFloat;
-  Delta: TFloatPoint;
+  C, D: TFloatPoint;
 begin
   SetLength(Result, Steps);
   N := Steps - 1;
-  DeltaAngle := (EndAngle - StartAngle) / N;
-  Angle := StartAngle;
-  for I := 0 to N do
+
+  SinCos(StartAngle, Radius, C.Y, C.X);
+  Result[0].X := P.X + C.X;
+  Result[0].Y := P.Y + C.Y;
+
+  GR32_Math.SinCos((EndAngle - StartAngle) / N, D.Y, D.X);
+  for I := 1 to Steps - 1 do
   begin
-    SinCos(Angle, Radius, Delta.Y, Delta.X);
-    Result[I].X := P.X + Delta.X;
-    Result[I].Y := P.Y + Delta.Y;
-    Angle := Angle + DeltaAngle;
+    C := FloatPoint(C.X * D.X - C.Y * D.Y, C.Y * D.X + C.X * D.Y);
+    Result[I].X := P.X + C.X;
+    Result[I].Y := P.Y + C.Y;
   end;
 end;
 
@@ -507,6 +513,52 @@ begin
 
     Result[I].X := R.X * D.X + P.X;
     Result[I].Y := R.Y * D.Y + P.Y;
+  end;
+end;
+
+function Star(const X, Y, InnerRadius, OuterRadius: TFloat;
+  Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint;
+begin
+  Result := Star(FloatPoint(X, Y), InnerRadius, OuterRadius, Vertices);
+end;
+
+function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat;
+  Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint;
+var
+  I: Integer;
+  M: TFloat;
+  C, D: TFloatPoint;
+begin
+  SetLength(Result, 2 * Vertices);
+  M := System.Pi / Vertices;
+
+  // first item
+  Result[0].X := OuterRadius + P.X;
+  Result[0].Y := P.Y;
+
+  // calculate complex offset
+  GR32_Math.SinCos(M, C.Y, C.X);
+  D := C;
+
+  // second item
+  Result[1].X := InnerRadius * D.X + P.X;
+  Result[1].Y := InnerRadius * D.Y + P.Y;
+
+  // other items
+  for I := 2 to (2 * Vertices) - 1 do
+  begin
+    D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
+
+    if I mod 2 = 0 then
+    begin
+      Result[I].X := OuterRadius * D.X + P.X;
+      Result[I].Y := OuterRadius * D.Y + P.Y;
+    end
+    else
+    begin
+      Result[I].X := InnerRadius * D.X + P.X;
+      Result[I].Y := InnerRadius * D.Y + P.Y;
+    end;
   end;
 end;
 
