@@ -400,22 +400,18 @@ end;
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat;
   Steps: Integer): TArrayOfFloatPoint;
 var
-  I, N: Integer;
+  I: Integer;
   C, D: TFloatPoint;
 begin
   SetLength(Result, Steps);
-  N := Steps - 1;
-
   SinCos(StartAngle, Radius, C.Y, C.X);
-  Result[0].X := P.X + C.X;
-  Result[0].Y := P.Y + C.Y;
+  Result[0] := OffsetPoint(P, C);
 
-  GR32_Math.SinCos((EndAngle - StartAngle) / N, D.Y, D.X);
+  GR32_Math.SinCos((EndAngle - StartAngle) / (Steps - 1), D.Y, D.X);
   for I := 1 to Steps - 1 do
   begin
     C := FloatPoint(C.X * D.X - C.Y * D.Y, C.Y * D.X + C.X * D.Y);
-    Result[I].X := P.X + C.X;
-    Result[I].Y := P.Y + C.Y;
+    Result[I] := OffsetPoint(P, C);
   end;
 end;
 
