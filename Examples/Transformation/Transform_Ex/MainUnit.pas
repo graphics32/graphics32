@@ -111,6 +111,11 @@ type
     Notebook: TNotebook;
     OpacityBar: TGaugeBar;
     PageControl: TPageControl;
+    PageNone: TPage;
+    PageTranslate: TPage;
+    PageScale: TPage;
+    PageRotate: TPage;
+    PageSkew: TPage;
     PnlOpacity: TPanel;
     PnlOperation: TPanel;
     PnlTransformationMatrix: TPanel;
