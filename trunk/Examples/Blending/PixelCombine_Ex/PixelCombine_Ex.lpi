@@ -20,7 +20,7 @@
           <SearchPaths>
             <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
             <OtherUnitFiles Value="../../../Source"/>
-            <UnitOutputDirectory Value="../../Binaries/$(TargetCPU)-$(TargetOS)"/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
             <ObjectPath Value="../../.."/>
           </SearchPaths>
           <Parsing>
@@ -95,7 +95,7 @@
     <SearchPaths>
       <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
       <OtherUnitFiles Value="../../../Source"/>
-      <UnitOutputDirectory Value="../../Binaries/$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="../../.."/>
     </SearchPaths>
     <Parsing>
