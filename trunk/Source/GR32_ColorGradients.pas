@@ -119,7 +119,8 @@ type
     procedure GradientSamplerChanged; //de-initializes sampler
     property Initialized: Boolean read FInitialized;
   public
-    constructor Create;
+    constructor Create; overload;
+    constructor Create(ColorGradient: TGradient32); overload; virtual;
     destructor Destroy; override;
 
     procedure PrepareSampling; override;
@@ -690,17 +691,25 @@ begin
   FGradient := TGradient32.Create(clNone32);
 end;
 
+constructor TCustomGradientSampler.Create(ColorGradient: TGradient32);
+begin
+  Create;
+
+  if Assigned(ColorGradient) then
+    FGradient.Assign(ColorGradient);
+end;
+
 destructor TCustomGradientSampler.Destroy;
 begin
-  FGradient.Free;
   inherited;
 end;
 
 procedure TCustomGradientSampler.SetGradient(const Value: TGradient32);
 begin
-  if not assigned(Value) then
-    FGradient.ClearColors else
-    Value.AssignTo(self);
+  if not Assigned(Value) then
+    FGradient.ClearColors
+  else
+    Value.AssignTo(Self);
   GradientSamplerChanged;
 end;
 
@@ -727,6 +736,8 @@ constructor TRadialGradientSampler.Create;
 begin
   inherited;
   FGradientLUT := TColor32LookupTable.Create;
+  FRadius := 1;
+  FSqrInvRadius := 1;
 //  FGradientLUT.OnOrderChanged :=
 end;
 
@@ -742,7 +753,8 @@ var
 begin
   RelativeRadius := Sqrt((Sqr(FixedToFloat * X - FCenter.X) +
     Sqr(FixedToFloat * Y - FCenter.Y)) * FSqrInvRadius);
-  Result := FGradientLUT.Color32Ptr^[Clamp(Round($FF * RelativeRadius), $FF)];
+  Result := FGradientLUT.Color32Ptr^[Clamp(Round(
+    FGradientLUT.Mask * RelativeRadius), FGradientLUT.Mask)];
 end;
 
 function TRadialGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
@@ -750,7 +762,8 @@ var
   RelativeRadius: TFloat;
 begin
   RelativeRadius := Sqrt((Sqr(X - FCenter.X) + Sqr(Y - FCenter.Y)) * FSqrInvRadius);
-  Result := FGradientLUT.Color32Ptr^[Clamp(Round($FF * RelativeRadius), $FF)];
+  Result := FGradientLUT.Color32Ptr^[Clamp(Round(
+    FGradientLUT.Mask * RelativeRadius), FGradientLUT.Mask)];
 end;
 
 function TRadialGradientSampler.GetSampleInt(X, Y: Integer): TColor32;
@@ -758,7 +771,8 @@ var
   RelativeRadius: TFloat;
 begin
   RelativeRadius := Sqrt((Sqr(X - FCenter.X) + Sqr(Y - FCenter.Y)) * FSqrInvRadius);
-  Result := FGradientLUT.Color32Ptr^[Clamp(Round($FF * RelativeRadius), $FF)];
+  Result := FGradientLUT.Color32Ptr^[Clamp(Round(
+    FGradientLUT.Mask * RelativeRadius), FGradientLUT.Mask)];
 end;
 
 procedure TRadialGradientSampler.PrepareSampling;
