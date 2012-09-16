@@ -174,6 +174,7 @@ type
     FGetSample: TGetSampleInt;
     procedure SetSampler(const Value: TCustomSampler);
   protected
+    procedure SamplerChanged; virtual;
     procedure BeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
     procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
@@ -310,6 +311,9 @@ implementation
 uses
   Math, SysUtils, GR32_Math, GR32_Geometry, GR32_LowLevel, GR32_Blend,
   GR32_VectorUtils;
+
+resourcestring
+  RCStrNoSamplerSpecified = 'No sampler specified!';
 
 type
   TBitmap32Access = class(TBitmap32);
@@ -1308,8 +1312,7 @@ constructor TSamplerFiller.Create(Sampler: TCustomSampler = nil);
 begin
   inherited Create;
   FSampler := Sampler;
-  if Assigned(FSampler) then
-    FGetSample := FSampler.GetSampleInt;
+  SamplerChanged;
 end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
@@ -1328,10 +1331,18 @@ begin
   end;
 end;
 
+procedure TSamplerFiller.SamplerChanged;
+begin
+  if Assigned(FSampler) then
+    FGetSample := FSampler.GetSampleInt;
+end;
+
 procedure TSamplerFiller.BeginRendering;
 begin
   if Assigned(FSampler) then
-    FSampler.PrepareSampling;
+    FSampler.PrepareSampling
+  else
+    raise Exception.Create(RCStrNoSamplerSpecified);
 end;
 
 function TSamplerFiller.GetFillLine: TFillLineEvent;
@@ -1341,8 +1352,11 @@ end;
 
 procedure TSamplerFiller.SetSampler(const Value: TCustomSampler);
 begin
-  FSampler := Value;
-  FGetSample := FSampler.GetSampleInt;
+  if FSampler <> Value then
+  begin
+    FSampler := Value;
+    SamplerChanged;
+  end;
 end;
 
 

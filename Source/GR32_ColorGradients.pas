@@ -47,7 +47,7 @@ type
 
   TLinearGradientType = (lgVertical, lgHorizontal, lgAngled);
 
-  TColor32LookupTable = class
+  TColor32LookupTable = class(TPersistent)
   private
     FGradientLUT: PColor32Array;
     FOrder: Byte;
@@ -59,6 +59,7 @@ type
     procedure SetColor32(Index: Integer; const Value: TColor32);
   protected
     procedure OrderChanged;
+    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create(Order: Byte = 9); virtual;
     destructor Destroy; override;
@@ -112,11 +113,12 @@ type
   TCustomGradientSampler = class(TCustomSampler)
   private
     FGradient: TGradient32;
-    FInitialized: Boolean;
     FWrapMode: TWrapMode;
     procedure SetGradient(const Value: TGradient32);
     procedure SetWrapMode(const Value: TWrapMode);
   protected
+    FInitialized: Boolean;
+    procedure AssignTo(Dest: TPersistent); override;
     procedure GradientChangedHandler(Sender: TObject);
     procedure GradientSamplerChanged; //de-initializes sampler
     procedure WrapModeChanged; virtual;
@@ -141,10 +143,15 @@ type
     FGradientLUT: TColor32LookupTable;
     FLutPtr: PColor32Array;
     FLutMask: Integer;
-  protected
     FWrapProc: TWrapProc;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
     procedure WrapModeChanged; override;
     procedure UpdateInternals; override;
+
+    property LutPtr: PColor32Array read FLutPtr;
+    property LutMask: Integer read FLutMask;
+    property WrapProc: TWrapProc read FWrapProc;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -153,6 +160,9 @@ type
   TCustomCenterLutGradientSampler = class(TCustomLookUpTableGradientSampler)
   private
     FCenter: TFloatPoint;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
+    procedure Transform(var X, Y: TFloat); virtual;
   public
     constructor Create; override;
 
@@ -164,6 +174,7 @@ type
     FScale: TFloat;
     FAngle: TFloat;
   protected
+    procedure AssignTo(Dest: TPersistent); override;
     procedure UpdateInternals; override;
   public
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
@@ -176,6 +187,7 @@ type
     FRadius: TFloat;
     procedure SetRadius(const Value: TFloat);
   protected
+    procedure AssignTo(Dest: TPersistent); override;
     procedure RadiusChanged; virtual;
   public
     constructor Create; override;
@@ -185,9 +197,9 @@ type
 
   TRadialGradientSampler = class(TCustomCenterRadiusLutGradientSampler)
   private
-    FSqrInvRadius: TFloat;
+    FScale: TFloat;
   protected
-    procedure RadiusChanged; override;
+    procedure UpdateInternals; override;
   public
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
@@ -195,12 +207,13 @@ type
   TCustomCenterRadiusAngleLutGradientSampler = class(TCustomCenterRadiusLutGradientSampler)
   private
     FAngle: TFloat;
-    FSinCos: array [0..1] of TFloat;
+    FSinCos: TFloatPoint;
     procedure SetAngle(const Value: TFloat);
   protected
+    procedure AssignTo(Dest: TPersistent); override;
     procedure AngleChanged; virtual;
     procedure RadiusChanged; override;
-    procedure Transform(var X, Y: TFloat);
+    procedure Transform(var X, Y: TFloat); override;
   public
     constructor Create; override;
 
@@ -208,6 +221,15 @@ type
   end;
 
   TDiamondGradientSampler = class(TCustomCenterRadiusAngleLutGradientSampler)
+  private
+    FScale: TFloat;
+  protected
+    procedure UpdateInternals; override;
+  public
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  end;
+
+  TXGradientSampler = class(TCustomCenterRadiusAngleLutGradientSampler)
   private
     FScale: TFloat;
   protected
@@ -454,7 +476,8 @@ end;
 procedure TGradient32.AssignTo(Dest: TPersistent);
 begin
   if Dest is TGradient32 then
-    TGradient32(Dest).SetColors(self.FGradientColors) else
+    TGradient32(Dest).SetColors(self.FGradientColors)
+  else
     inherited;
 end;
 
@@ -720,6 +743,19 @@ end;
 
 { TColor32LookupTable }
 
+procedure TColor32LookupTable.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TColor32LookupTable then
+    with TColor32LookupTable(Dest) do
+    begin
+      FOrder := Self.FOrder;
+      OrderChanged;
+      Move(Self.FGradientLUT^, FGradientLUT^, FSize * SizeOf(TColor32));
+    end
+  else
+    inherited;
+end;
+
 constructor TColor32LookupTable.Create(Order: Byte);
 begin
   inherited Create;
@@ -777,6 +813,19 @@ begin
   FGradient := TGradient32.Create(clNone32);
   FWrapMode := wmMirror;
   WrapModeChanged;
+end;
+
+procedure TCustomGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TCustomGradientSampler then
+    with TCustomGradientSampler(Dest) do
+    begin
+      FGradient.Assign(Self.FGradient);
+      FInitialized := False;
+      FWrapMode := Self.WrapMode;
+    end
+  else
+    inherited;
 end;
 
 constructor TCustomGradientSampler.Create(ColorGradient: TGradient32);
@@ -848,6 +897,18 @@ end;
 
 { TCustomLookUpTableGradientSampler }
 
+procedure TCustomLookUpTableGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TCustomLookUpTableGradientSampler then
+    with TCustomLookUpTableGradientSampler(Dest) do
+    begin
+      FGradientLUT.Assign(Self.FGradientLUT);
+      FWrapProc := Self.FWrapProc;
+    end
+end;
+
 constructor TCustomLookUpTableGradientSampler.Create;
 begin
   FGradientLUT := TColor32LookupTable.Create;
@@ -877,18 +938,42 @@ end;
 
 { TCustomCenterLutGradientSampler }
 
+procedure TCustomCenterLutGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TCustomCenterLutGradientSampler then
+    TCustomCenterLutGradientSampler(Dest).FCenter := Self.FCenter;
+end;
+
 constructor TCustomCenterLutGradientSampler.Create;
 begin
   inherited;
 end;
 
 
+procedure TCustomCenterLutGradientSampler.Transform(var X, Y: TFloat);
+begin
+  X := X - FCenter.X;
+  Y := Y - FCenter.Y;
+  inherited;
+end;
+
 { TConicGradientSampler }
+
+procedure TConicGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TConicGradientSampler then
+    TConicGradientSampler(Dest).FAngle := Self.FAngle;
+end;
 
 function TConicGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 begin
-  Result := FLutPtr^[FWrapProc(Round(FScale * Abs(FAngle + ArcTan2(
-    Y - FCenter.Y, X - FCenter.X))), FLutMask)];
+  Transform(X, Y);
+  Result := FLutPtr^[FWrapProc(Round(FScale * Abs(FAngle + ArcTan2(Y, X))),
+    FLutMask)];
 end;
 
 procedure TConicGradientSampler.UpdateInternals;
@@ -908,8 +993,17 @@ begin
   RadiusChanged;
 end;
 
+procedure TCustomCenterRadiusLutGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TCustomCenterRadiusLutGradientSampler then
+    TCustomCenterRadiusLutGradientSampler(Dest).FRadius := Self.FRadius;
+end;
+
 procedure TCustomCenterRadiusLutGradientSampler.RadiusChanged;
 begin
+  FInitialized := False;
 end;
 
 procedure TCustomCenterRadiusLutGradientSampler.SetRadius(
@@ -929,14 +1023,15 @@ function TRadialGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   RelativeRadius: TFloat;
 begin
-  RelativeRadius := Sqrt((Sqr(X - FCenter.X) + Sqr(Y - FCenter.Y)) * FSqrInvRadius);
-  Result := FGradientLUT.Color32Ptr^[FWrapProc(Round( FLutMask * RelativeRadius),
+  Transform(X, Y);
+  Result := FGradientLUT.Color32Ptr^[FWrapProc(Round(Sqrt(Sqr(X) + Sqr(Y)) * FScale),
     FLutMask)];
 end;
 
-procedure TRadialGradientSampler.RadiusChanged;
+procedure TRadialGradientSampler.UpdateInternals;
 begin
-  FSqrInvRadius := 1 / Sqr(FRadius);
+  inherited;
+  FScale := FLutMask / FRadius;
 end;
 
 
@@ -946,6 +1041,21 @@ constructor TCustomCenterRadiusAngleLutGradientSampler.Create;
 begin
   inherited;
   FAngle := 0;
+  FSinCos.X := 1;
+  FSinCos.Y := 0;
+end;
+
+procedure TCustomCenterRadiusAngleLutGradientSampler.AssignTo(
+  Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TCustomCenterRadiusAngleLutGradientSampler then
+    with TCustomCenterRadiusAngleLutGradientSampler(Dest) do
+    begin
+      FAngle := Self.FAngle;
+      FSinCos := Self.FSinCos;
+    end;
 end;
 
 procedure TCustomCenterRadiusAngleLutGradientSampler.RadiusChanged;
@@ -956,7 +1066,7 @@ end;
 
 procedure TCustomCenterRadiusAngleLutGradientSampler.AngleChanged;
 begin
-  GR32_Math.SinCos(FAngle, FSinCos[0], FSinCos[1]);
+  GR32_Math.SinCos(FAngle, FSinCos.X, FSinCos.Y);
 end;
 
 procedure TCustomCenterRadiusAngleLutGradientSampler.SetAngle(
@@ -977,8 +1087,8 @@ begin
   X := X - FCenter.X;
   Y := Y - FCenter.Y;
 
-  Temp := X * FSinCos[0] + Y * FSinCos[1];
-  Y := X * FSinCos[1] - Y * FSinCos[0];
+  Temp := X * FSinCos.X + Y * FSinCos.Y;
+  Y := X * FSinCos.Y - Y * FSinCos.X;
   X := Temp;
 end;
 
@@ -992,6 +1102,21 @@ begin
 end;
 
 procedure TDiamondGradientSampler.UpdateInternals;
+begin
+  inherited;
+  FScale := FLutMask / FRadius;
+end;
+
+
+{ TXGradientSampler }
+
+function TXGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+begin
+  Transform(X, Y);
+  Result := FLutPtr^[FWrapProc(Round(X * FScale), FLutMask)];
+end;
+
+procedure TXGradientSampler.UpdateInternals;
 begin
   inherited;
   FScale := FLutMask / FRadius;
