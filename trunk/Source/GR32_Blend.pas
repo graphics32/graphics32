@@ -3138,6 +3138,7 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
+(*
         CMP       R8d,2
         JL        @Small
 
@@ -3229,9 +3230,9 @@ asm
 
         DEC       R8d
         JNZ       @SmallLoop
-
+*)
 @Exit:
-(*
+
   // ECX <- Src
   // EDX <- Dst
   // R8D <- Count
@@ -3277,7 +3278,6 @@ asm
         JNZ       @1
 
 @4:
-*)
 {$ENDIF}
 end;
 
