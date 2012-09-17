@@ -1,16 +1,11 @@
 program GR32_Clipper_Demo;
 
-{$I GR32.inc}
+{$R GR32_Clipper_Demo.rc}
 
 uses
-{$IFDEF FPC}
   Interfaces,
-{$ENDIF}
   Forms,
-  MainUnit in 'MainUnit.pas' {FrmClipper},
-  GR32_Clipper in '..\..\..\Source\GR32_Clipper.pas';
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

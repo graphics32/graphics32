@@ -1,11 +1,11 @@
 program Curves;
 
+{$R Curves.rc}
+
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

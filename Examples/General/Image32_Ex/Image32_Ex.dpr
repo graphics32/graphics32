@@ -1,11 +1,10 @@
 program Image32_Ex;
 
+{$R 'Image32_Ex.res' 'Image32_Ex.rc'}
+
 uses
   Forms,
-  GR32_MediaPathLocator in '..\..\GR32_MediaPathLocator.pas',
-  MainUnit in 'MainUnit.pas' {FormImage32Example};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

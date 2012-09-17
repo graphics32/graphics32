@@ -1,13 +1,11 @@
 program ImgWarping_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'ImgWarping_Ex.res' 'ImgWarping_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm},
+  MainUnit in 'MainUnit.pas',
   BrushAuxiliaries in 'BrushAuxiliaries.pas';
-
-{$R *.res}
 
 begin
   Application.Initialize;

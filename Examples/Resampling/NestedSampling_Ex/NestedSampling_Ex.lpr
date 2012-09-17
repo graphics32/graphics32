@@ -1,18 +1,15 @@
 program NestedSampling_Ex;
 
-{$R Media.rc}
+{$R NestedSampling_Ex.rc}
 
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {Form1},
+  MainUnit in 'MainUnit.pas',
   SimplePropEdit in 'SimplePropEdit.pas';
 
-{$R *.res}
-
 begin
-  Application.Title := 'Nested Sampling';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

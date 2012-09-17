@@ -13,7 +13,6 @@
       <MainUnit Value="0"/>
       <Title Value="GR32_Clipper_Demo"/>
       <UseAppBundle Value="False"/>
-      <ResourceType Value="res"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>

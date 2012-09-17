@@ -1,14 +1,12 @@
 program Transform_Ex;
 
-{$R Media.rc}
+{$R Transform_Ex.rc}
 
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {Form1};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

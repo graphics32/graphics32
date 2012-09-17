@@ -1,12 +1,10 @@
 program Resamplers_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'Resamplers_Ex.res' 'Resamplers_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FrmResamplersExample};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

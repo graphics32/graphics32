@@ -1,10 +1,10 @@
 program Curves;
 
+{$R 'Curves.res' 'Curves.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

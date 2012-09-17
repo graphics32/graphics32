@@ -1,13 +1,11 @@
 program GradFills_Ex;
 
-{$I GR32.inc}
+{$R GradFills_Ex.rc}
 
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

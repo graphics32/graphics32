@@ -1,14 +1,13 @@
 program GammaTest_Ex;
 
-uses
-  Vcl.Forms,
-  MainUnit in 'MainUnit.pas' {FrmGammaTest};
+{$R 'GammaTest_Ex.res' 'GammaTest_Ex.rc'}
 
-{$R *.res}
+uses
+  Forms,
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFrmGammaTest, FrmGammaTest);
   Application.Run;
 end.

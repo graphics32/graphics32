@@ -1,18 +1,15 @@
 program ImgWarping_Ex;
 
-{$R Media.rc}
+{$R ImgWarping_Ex.rc}
 
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {MainForm},
+  MainUnit in 'MainUnit.pas',
   BrushAuxiliaries in 'BrushAuxiliaries.pas';
 
-{$R *.res}
-
 begin
-  Application.Title := 'Image Warping Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

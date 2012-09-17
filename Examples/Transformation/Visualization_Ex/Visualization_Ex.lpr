@@ -1,14 +1,13 @@
 program Visualization_Ex;
 
+{$R Visualization_Ex.rc}
+
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
-  Application.Title:='Visualization Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

@@ -9,8 +9,6 @@
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="PixelF Example"/>
-      <ResourceType Value="res"/>
-      <Icon Value="0"/>
     </General>
     <BuildModes Count="2">
       <Item1 Name="Release" Default="True"/>

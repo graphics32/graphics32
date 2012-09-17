@@ -1,6 +1,6 @@
 program Mandelbrot_Ex;
 
-{$MODE Delphi}
+{$R Mandelbrot_Ex.rc}
 
 uses
   {$IFDEF UNIX}
@@ -8,12 +8,9 @@ uses
   {$ENDIF}
   Interfaces,
   Forms,
-  MandelUnit in 'MandelUnit.pas' {MainForm};
-
-{$R *.res}
+  MandelUnit in 'MandelUnit.pas';
 
 begin
-  Application.Title:='Mandelbrot Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

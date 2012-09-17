@@ -1,12 +1,10 @@
 program Transform_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'Transform_Ex.res' 'Transform_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FormTranformExample};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

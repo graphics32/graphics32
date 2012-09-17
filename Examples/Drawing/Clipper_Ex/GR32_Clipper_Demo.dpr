@@ -1,11 +1,10 @@
 program GR32_Clipper_Demo;
 
+{$R 'GR32_Clipper_Demo.res' 'GR32_Clipper_Demo.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FrmClipper},
-  GR32_Clipper in '..\..\..\Source\GR32_Clipper.pas';
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

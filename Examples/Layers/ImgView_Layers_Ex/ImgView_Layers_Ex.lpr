@@ -1,17 +1,16 @@
 program ImgView_Layers_Ex;
 
+{$R ImgView_Layers_Ex.rc}
+
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {MainForm},
-  NewImageUnit in 'NewImageUnit.pas' {FrmNewImage},
-  RGBALoaderUnit in 'RGBALoaderUnit.pas' {RGBALoaderForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas',
+  NewImageUnit in 'NewImageUnit.pas',
+  RGBALoaderUnit in 'RGBALoaderUnit.pas';
 
 begin
-  Application.Title:='Image View Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TFrmNewImage, FrmNewImage);

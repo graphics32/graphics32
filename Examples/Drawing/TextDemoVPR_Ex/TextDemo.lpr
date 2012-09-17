@@ -1,13 +1,11 @@
 program TextDemo;
 
-{$I GR32.inc}
+{$R TextDemo.rc}
 
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

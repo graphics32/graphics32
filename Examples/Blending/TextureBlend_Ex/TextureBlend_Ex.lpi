@@ -10,8 +10,6 @@
       <SessionStorage Value="None"/>
       <MainUnit Value="0"/>
       <Title Value="GR32 Texture Blend Example"/>
-      <ResourceType Value="res"/>
-      <Icon Value="0"/>
     </General>
     <VersionInfo>
       <Language Value=""/>

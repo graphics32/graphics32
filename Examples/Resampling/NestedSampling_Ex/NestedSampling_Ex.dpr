@@ -1,13 +1,11 @@
 program NestedSampling_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'NestedSampling_Ex.res' 'NestedSampling_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm},
+  MainUnit in 'MainUnit.pas',
   SimplePropEdit in 'SimplePropEdit.pas';
-
-{$R *.res}
 
 begin
   Application.Initialize;

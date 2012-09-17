@@ -1,17 +1,14 @@
 program PixelF_Ex;
 
-{$R Media.rc}
+{$R PixelF_Ex.rc}
 
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
-  Application.Title := 'PixelF Example';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;

@@ -2,6 +2,8 @@ unit MainUnit;
 
 interface
 
+{$I GR32.inc}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   GR32, GR32_Image, Vcl.StdCtrls, GR32_RangeBars, Vcl.ExtCtrls;

@@ -1,13 +1,10 @@
 program TextureBlend_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'TextureBlend_Ex.res' 'TextureBlend_Ex.rc'}
 
 uses
   Forms,
-  GR32_MediaPathLocator in '..\..\GR32_MediaPathLocator.pas',
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;
