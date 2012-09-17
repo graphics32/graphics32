@@ -82,7 +82,7 @@ type
   protected
     procedure SetBitmap(const Value: TBitmap32); virtual;
   public
-    constructor Create(Bitmap: TBitmap32; Fillmode: TPolyFillMode = pfWinding); overload; virtual;
+    constructor Create(Bitmap: TBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
     procedure PolygonFS(const Points: TArrayOfFloatPoint); overload; virtual;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint); overload; virtual;
 
