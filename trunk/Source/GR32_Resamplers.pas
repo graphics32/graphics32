@@ -610,41 +610,39 @@ resourcestring
   RCStrInvalidSrcRect = 'Invalid SrcRect';
 
 const
-  CAlbrecht2    : array [0..1] of Double = (5.383553946707251E-1, 4.616446053292749E-1);
-  CAlbrecht3    : array [0..2] of Double = (3.46100822018625E-1,  4.97340635096738E-1,
-                                            1.56558542884637E-1);
-  CAlbrecht4    : array [0..3] of Double = (2.26982412792069E-1,  4.57254070828427E-1,
-                                            2.73199027957384E-1,  4.25644884221201E-2);
-  CAlbrecht5    : array [0..4] of Double = (1.48942606015830E-1,  3.86001173639176E-1,
-                                            3.40977403214053E-1,  1.139879604246E-1,
-                                            1.00908567063414E-2);
-  CAlbrecht6    : array [0..5] of Double = (9.71676200107429E-2,  3.08845222524055E-1,
-                                            3.62623371437917E-1,  1.88953325525116E-1,
-                                            4.02095714148751E-2,  2.20088908729420E-3);
-  CAlbrecht7    : array [0..6] of Double = (6.39644241143904E-2,  2.39938645993528E-1,
-                                            3.50159563238205E-1,  2.47741118970808E-1,
-                                            8.54382560558580E-2,  1.23202033692932E-2,
-                                            4.37788257917735E-4);
-  CAlbrecht8    : array [0..7] of Double = (4.21072107042137E-2,  1.82076226633776E-1,
-                                            3.17713781059942E-1,  2.84438001373442E-1,
-                                            1.36762237777383E-1,  3.34038053504025E-2,
-                                            3.41677216705768E-3,  8.19649337831348E-5);
-  CAlbrecht9    : array [0..8] of Double = (2.76143731612611E-2,  1.35382228758844E-1,
-                                            2.75287234472237E-1,  2.98843335317801E-1,
-                                            1.85319330279284E-1,  6.48884482549063E-2,
-                                            1.17641910285655E-2,  8.85987580106899E-4,
-                                            1.48711469943406E-5);
-  CAlbrecht10   : array [0..9] of Double = (1.79908225352538E-2,  9.87959586065210E-2,
-                                            2.29883817001211E-1,  2.94113019095183E-1,
-                                            2.24338977814325E-1,  1.03248806248099E-1,
-                                            2.75674109448523E-2,  3.83958622947123E-3,
-                                            2.18971708430106E-4,  2.62981665347889E-6);
-  CAlbrecht11  : array [0..10] of Double = (1.18717127796602E-2,  7.19533651951142E-2,
-                                            1.87887160922585E-1,  2.75808174097291E-1,
-                                            2.48904243244464E-1,  1.41729867200712E-1,
-                                            5.02002976228256E-2,  1.04589649084984E-2,
-                                            1.13615112741660E-3,  4.96285981703436E-5,
-                                            4.34303262685720E-7);
+  CAlbrecht2 : array [0..1] of Double = (5.383553946707251E-1,
+    4.616446053292749E-1);
+  CAlbrecht3 : array [0..2] of Double = (3.46100822018625E-1,
+    4.97340635096738E-1, 1.56558542884637E-1);
+  CAlbrecht4 : array [0..3] of Double = (2.26982412792069E-1,
+    4.57254070828427E-1, 2.73199027957384E-1, 4.25644884221201E-2);
+  CAlbrecht5 : array [0..4] of Double = (1.48942606015830E-1,
+    3.86001173639176E-1, 3.40977403214053E-1, 1.139879604246E-1,
+    1.00908567063414E-2);
+  CAlbrecht6 : array [0..5] of Double = (9.71676200107429E-2,
+    3.08845222524055E-1, 3.62623371437917E-1, 1.88953325525116E-1,
+    4.02095714148751E-2, 2.20088908729420E-3);
+  CAlbrecht7 : array [0..6] of Double = (6.39644241143904E-2,
+    2.39938645993528E-1, 3.50159563238205E-1, 2.47741118970808E-1,
+    8.54382560558580E-2, 1.23202033692932E-2, 4.37788257917735E-4);
+  CAlbrecht8 : array [0..7] of Double = (4.21072107042137E-2,
+    1.82076226633776E-1, 3.17713781059942E-1, 2.84438001373442E-1,
+    1.36762237777383E-1, 3.34038053504025E-2, 3.41677216705768E-3,
+    8.19649337831348E-5);
+  CAlbrecht9 : array [0..8] of Double = (2.76143731612611E-2,
+    1.35382228758844E-1, 2.75287234472237E-1, 2.98843335317801E-1,
+    1.85319330279284E-1, 6.48884482549063E-2, 1.17641910285655E-2,
+    8.85987580106899E-4, 1.48711469943406E-5);
+  CAlbrecht10: array [0..9] of Double = (1.79908225352538E-2,
+    9.87959586065210E-2, 2.29883817001211E-1, 2.94113019095183E-1,
+    2.24338977814325E-1, 1.03248806248099E-1, 2.75674109448523E-2,
+    3.83958622947123E-3, 2.18971708430106E-4, 2.62981665347889E-6);
+  CAlbrecht11: array [0..10] of Double = (1.18717127796602E-2,
+    7.19533651951142E-2, 1.87887160922585E-1, 2.75808174097291E-1,
+    2.48904243244464E-1, 1.41729867200712E-1, 5.02002976228256E-2,
+    1.04589649084984E-2, 1.13615112741660E-3, 4.96285981703436E-5,
+    4.34303262685720E-7);
+
 type
   TTransformationAccess = class(TTransformation);
   TCustomBitmap32Access = class(TCustomBitmap32);
@@ -659,8 +657,6 @@ type
   TCluster = array of TPointRec;
   TMappingTable = array of TCluster;
 
-
-type
   TKernelSamplerClass = class of TKernelSampler;
 
 { Auxiliary rasterization routine for kernel-based samplers }
@@ -1718,10 +1714,10 @@ begin
         begin
           C := Src.Bits[X + ClusterY[Y].Pos * Src.Width];
           ClustYW := ClusterY[Y].Weight;
-          Inc(Ca, C shr 24 * ClustYW);
-          Inc(Cr, (C and $00FF0000) shr 16 * ClustYW);
-          Inc(Cg, (C and $0000FF00) shr 8 * ClustYW);
-          Inc(Cb, (C and $000000FF) * ClustYW);
+          Inc(Ca, Integer(C shr 24) * ClustYW);
+          Inc(Cr, Integer(C and $00FF0000) shr 16 * ClustYW);
+          Inc(Cg, Integer(C and $0000FF00) shr 8 * ClustYW);
+          Inc(Cb, Integer(C and $000000FF) * ClustYW);
         end;
         with HorzBuffer[X - MapXLoPos] do
         begin
@@ -3172,9 +3168,9 @@ begin
                   Inc(HorzEntry.B, SrcP.B * W);
                 end else
                 begin
-                  Inc(HorzEntry.R, Div255(Alpha * SrcP.R) * W);
-                  Inc(HorzEntry.G, Div255(Alpha * SrcP.G) * W);
-                  Inc(HorzEntry.B, Div255(Alpha * SrcP.B) * W);
+                  Inc(HorzEntry.R, Integer(Div255(Alpha * SrcP.R)) * W);
+                  Inc(HorzEntry.G, Integer(Div255(Alpha * SrcP.G)) * W);
+                  Inc(HorzEntry.B, Integer(Div255(Alpha * SrcP.B)) * W);
                 end;
               end;
               Inc(SrcP);
@@ -3195,9 +3191,9 @@ begin
           if (Alpha <> 0) then
           begin
             // Sample premultiplied values
-            OuterPremultColorR := Div255(Alpha * TColor32Entry(FOuterColor).R);
-            OuterPremultColorG := Div255(Alpha * TColor32Entry(FOuterColor).G);
-            OuterPremultColorB := Div255(Alpha * TColor32Entry(FOuterColor).B);
+            OuterPremultColorR := Integer(Div255(Alpha * TColor32Entry(FOuterColor).R));
+            OuterPremultColorG := Integer(Div255(Alpha * TColor32Entry(FOuterColor).G));
+            OuterPremultColorB := Integer(Div255(Alpha * TColor32Entry(FOuterColor).B));
 
             for I := -KWidth to KWidth do
             begin
@@ -3558,9 +3554,11 @@ begin
   DstW := DstRect.Right - DstRect.Left;
   DstH := DstRect.Bottom - DstRect.Top;
   if (DstW > SrcW) and (DstH > SrcH) and (SrcW > 1) and (SrcH > 1) then
-    StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp, CombineCallBack)
+    StretchHorzStretchVertLinear(Dst, DstRect, DstClip, Src, SrcRect, CombineOp,
+      CombineCallBack)
   else
-    GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp, CombineCallBack);
+    GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel,
+      CombineOp, CombineCallBack);
 end;
 
 procedure TDraftResampler.Resample(
@@ -3568,7 +3566,8 @@ procedure TDraftResampler.Resample(
   Src: TCustomBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 begin
-  DraftResample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp, CombineCallBack)
+  DraftResample(Dst, DstRect, DstClip, Src, SrcRect, FLinearKernel, CombineOp,
+    CombineCallBack)
 end;
 
 { TTransformer }
@@ -3577,7 +3576,8 @@ function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
   U, V: TFixed;
 begin
-  FTransformationReverseTransformFixed(X * FixedOne + FixedHalf, Y * FixedOne + FixedHalf, U, V);
+  FTransformationReverseTransformFixed(X * FixedOne + FixedHalf,
+    Y * FixedOne + FixedHalf, U, V);
   Result := FGetSampleFixed(U - FixedHalf, V - FixedHalf);
 end;
 
