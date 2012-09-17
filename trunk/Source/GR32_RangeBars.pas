@@ -631,6 +631,7 @@ procedure TArrowBar.CMMouseLeave(var Message: TMessage);
 {$ENDIF}
 begin
   MouseLeft;
+  inherited;
 end;
 
 constructor TArrowBar.Create(AOwner: TComponent);
