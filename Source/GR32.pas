@@ -5306,10 +5306,16 @@ begin
     R := MakeRect(0, 0, Width, Height);
     OffsetRect(R, Dx, Dy);
     IntersectRect(R, R, MakeRect(0, 0, Width, Height));
-    if R.Top > 0 then FillRect(0, 0, Width, R.Top, FillColor)
-    else if R.Top = 0 then FillRect(0, R.Bottom, Width, Height, FillColor);
-    if R.Left > 0 then FillRect(0, R.Top, R.Left, R.Bottom, FillColor)
-    else if R.Left = 0 then FillRect(R.Right, R.Top, Width, R.Bottom, FillColor);
+    if R.Top > 0 then
+      FillRect(0, 0, Width, R.Top, FillColor)
+    else
+    if R.Top = 0 then
+      FillRect(0, R.Bottom, Width, Height, FillColor);
+    if R.Left > 0 then
+      FillRect(0, R.Top, R.Left, R.Bottom, FillColor)
+    else
+    if R.Left = 0 then
+      FillRect(R.Right, R.Top, Width, R.Bottom, FillColor);
   end;
 
   Changed;
