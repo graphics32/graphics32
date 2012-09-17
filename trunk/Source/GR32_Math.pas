@@ -137,14 +137,14 @@ function Ceil(X: Single): Integer;
 begin
   Result := Trunc(X);
   if (X - Result) > 0 then
-   Inc(Result);
+    Inc(Result);
 end;
 
 function Floor(X: Single): Integer;
 begin
   Result := Trunc(X);
   if (X - Result) < 0 then
-   Dec(Result);
+    Dec(Result);
 end;
 {$ENDIF}
 {$ENDIF}
