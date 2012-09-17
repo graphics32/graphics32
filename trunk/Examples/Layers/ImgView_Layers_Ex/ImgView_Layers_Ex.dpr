@@ -1,12 +1,12 @@
 program ImgView_Layers_Ex;
 
+{$R 'ImgView_Layers_Ex.res' 'ImgView_Layers_Ex.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm},
-  NewImageUnit in 'NewImageUnit.pas' {FrmNewImage},
-  RGBALoaderUnit in 'RGBALoaderUnit.pas' {RGBALoaderForm};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas',
+  NewImageUnit in 'NewImageUnit.pas',
+  RGBALoaderUnit in 'RGBALoaderUnit.pas';
 
 begin
   Application.Initialize;

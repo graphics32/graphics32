@@ -34,6 +34,8 @@ unit MainUnit;
 
 interface
 
+{$I GR32.inc}
+
 uses
   {$IFNDEF FPC}Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF} SysUtils, Classes,
   Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, GR32, GR32_Image,

@@ -5,8 +5,6 @@
     <General>
       <MainUnit Value="0"/>
       <Title Value="Resamplers Example"/>
-      <ResourceType Value="res"/>
-      <Icon Value="0"/>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
     <VersionInfo>

@@ -1,14 +1,10 @@
 program TextDemo;
 
-uses
-  FastMM4,
-{$IFNDEF CPUX64}
-//  FastMove,
-{$ENDIF}
-  Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
+{$R 'TextDemo.res' 'TextDemo.rc'}
 
-{$R *.res}
+uses
+  Forms,
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

@@ -1,15 +1,13 @@
 program LineStippling_Ex;
 
+{$R LineStippling_Ex.rc}
+
 uses
   Interfaces,
   Forms,
-  SysUtils,
-  MainUnit in 'MainUnit.pas' {FormLineStippling};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
-  Application.Title:='GR32 Line Stippling Example';
   Application.Initialize;
   Application.CreateForm(TFormLineStippling, FormLineStippling);
   Application.Run;

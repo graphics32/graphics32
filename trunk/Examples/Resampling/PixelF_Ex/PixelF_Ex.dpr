@@ -1,12 +1,10 @@
 program PixelF_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'PixelF_Ex.res' 'PixelF_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

@@ -1,12 +1,10 @@
 program Sprites_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'Sprites_Ex.res' 'Sprites_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

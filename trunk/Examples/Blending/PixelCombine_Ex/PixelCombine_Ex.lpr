@@ -1,6 +1,6 @@
 program PixelCombine_Ex;
 
-{$R Media.rc}
+{$R PixelCombine_Ex.rc}
 
 uses
   Interfaces,
@@ -9,7 +9,6 @@ uses
   MainUnit in 'MainUnit.pas';
 
 begin
-  Application.Title := 'GR32 Pixel Combine Example';
   Application.Initialize;
   Application.CreateForm(TFormPixelCombine, FormPixelCombine);
   Application.Run;

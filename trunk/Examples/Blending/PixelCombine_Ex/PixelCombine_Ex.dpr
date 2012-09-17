@@ -1,11 +1,10 @@
 program PixelCombine_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'PixelCombine_Ex.res' 'PixelCombine_Ex.rc'}
 
 uses
   Forms,
-  GR32_MediaPathLocator in '..\..\GR32_MediaPathLocator.pas',
-  MainUnit in 'MainUnit.pas' {FormPixelCombine};
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

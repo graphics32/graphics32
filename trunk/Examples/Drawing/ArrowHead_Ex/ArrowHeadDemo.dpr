@@ -1,14 +1,13 @@
 program ArrowHeadDemo;
 
+{$R 'ArrowHeadDemo.res' 'ArrowHeadDemo.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FmArrowHeadDemo};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;
-  Application.Title := 'ArrowHead Demo';
   Application.CreateForm(TFmArrowHeadDemo, FmArrowHeadDemo);
   Application.Run;
 end.

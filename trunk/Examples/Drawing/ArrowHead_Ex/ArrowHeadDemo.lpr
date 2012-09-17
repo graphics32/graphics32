@@ -1,16 +1,13 @@
 program ArrowHeadDemo;
 
-{$I GR32.inc}
+{$R ArrowHeadDemo.rc}
 
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {FmArrowHeadDemo};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
-  Application.Title := 'Arrow Head Demo';
   Application.Initialize;
   Application.CreateForm(TFmArrowHeadDemo, FmArrowHeadDemo);
   Application.Run;

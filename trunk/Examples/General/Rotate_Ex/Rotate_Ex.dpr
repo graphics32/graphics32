@@ -1,12 +1,10 @@
 program Rotate_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'Rotate_Ex.res' 'Rotate_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FormRotateExample};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

@@ -1,14 +1,13 @@
 program AntiAliasing;
 
+{$R 'AntiAliasing.res' 'AntiAliasing.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FrmAntiAliasingTest};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFrmAntiAliasingTest, FrmAntiAliasingTest);
   Application.Run;
 end.

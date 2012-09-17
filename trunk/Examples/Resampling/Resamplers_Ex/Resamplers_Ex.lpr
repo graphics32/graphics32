@@ -1,17 +1,14 @@
 program Resamplers_Ex;
 
-{$R Media.rc}
+{$R Resamplers_Ex.rc}
 
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {FrmResamplersExample};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
-  Application.Title := 'Resamplers Example';
   Application.Initialize;
   Application.CreateForm(TFrmResamplersExample, FrmResamplersExample);
   Application.Run;

@@ -13,8 +13,6 @@
       <MainUnit Value="0"/>
       <Title Value="Color Gradient Example"/>
       <UseAppBundle Value="False"/>
-      <ResourceType Value="res"/>
-      <Icon Value="0"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>

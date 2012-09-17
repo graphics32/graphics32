@@ -1,0 +1,8 @@
+MainIcon ICON "../../Media/GR32.ico"
+SpriteTexture BITMAP "../../Media/sprite_texture.bmp"
+Sprite1 BITMAP "../../Media/sprite1.bmp"
+Sprite1a BITMAP "../../Media/sprite1a.bmp"
+Sprite2 BITMAP "../../Media/sprite2.bmp"
+Sprite2a BITMAP "../../Media/sprite2a.bmp"
+Sprite3 BITMAP "../../Media/sprite3.bmp"
+Sprite3a BITMAP "../../Media/sprite3a.bmp"

@@ -1,13 +1,10 @@
 program Polygons_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'Polygons_Ex.res' 'Polygons_Ex.rc'}
 
 uses
   Forms,
-  GR32_MediaPathLocator in '..\..\GR32_MediaPathLocator.pas',
-  MainUnit in 'MainUnit.pas' {FormPolygons};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

@@ -1,10 +1,10 @@
 program LineStippling_Ex;
 
+{$R 'LineStippling_Ex.res' 'LineStippling_Ex.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FormLineStippling};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

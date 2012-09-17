@@ -1,12 +1,10 @@
 program RotLayer_Ex;
 
-{$R 'Media.res' 'Media.rc'}
+{$R 'RotLayer_Ex.res' 'RotLayer_Ex.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FormRotLayer};
-
-{$R *.RES}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

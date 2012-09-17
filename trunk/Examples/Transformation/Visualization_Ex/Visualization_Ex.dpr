@@ -1,10 +1,10 @@
 program Visualization_Ex;
 
+{$R 'Visualization_Ex.res' 'Visualization_Ex.rc'}
+
 uses
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
 
 begin
   Application.Initialize;

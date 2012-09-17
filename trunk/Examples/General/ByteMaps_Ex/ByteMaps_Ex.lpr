@@ -1,12 +1,12 @@
 program ByteMaps_Ex;
 
+{$R ByteMaps_Ex.rc}
+
 uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {MainForm};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

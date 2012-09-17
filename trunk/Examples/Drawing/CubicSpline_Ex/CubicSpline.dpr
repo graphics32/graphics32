@@ -1,14 +1,13 @@
 program CubicSpline;
 
+{$R 'CubicSpline.res' 'CubicSpline.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FormBezier};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFormBezier, FormBezier);
   Application.Run;
 end.

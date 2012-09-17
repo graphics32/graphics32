@@ -1,14 +1,13 @@
 program ScatterPlot;
 
+{$R 'ScatterPlot.res' 'ScatterPlot.rc'}
+
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {FmScatterPlot};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFmScatterPlot, FmScatterPlot);
   Application.Run;
 end.
