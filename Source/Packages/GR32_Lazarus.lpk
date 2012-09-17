@@ -4,7 +4,6 @@
     <PathDelim Value="\"/>
     <Name Value="GR32_Lazarus"/>
     <Author Value="Team Graphics32"/>
-    <AutoUpdate Value="Manually"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
@@ -17,7 +16,6 @@
         <SyntaxOptions>
           <SyntaxMode Value="Delphi"/>
           <CStyleOperator Value="False"/>
-          <CPPInline Value="False"/>
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>

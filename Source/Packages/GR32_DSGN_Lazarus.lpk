@@ -14,16 +14,9 @@
         <SyntaxOptions>
           <SyntaxMode Value="Delphi"/>
           <CStyleOperator Value="False"/>
-          <CPPInline Value="False"/>
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>
-      <CodeGeneration>
-        <SmartLinkUnit Value="True"/>
-        <Optimizations>
-          <OptimizationLevel Value="2"/>
-        </Optimizations>
-      </CodeGeneration>
       <Other>
         <CompilerMessages>
           <UseMsgFile Value="True"/>

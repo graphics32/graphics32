@@ -3138,6 +3138,100 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
+        CMP       R8d,2
+        JL        @Small
+
+        PXOR      XMM4,XMM4
+        MOV       RAX,[RIP+bias_ptr]
+        MOVDQA    XMM5,[RAX]
+
+@LargeLoop:
+        MOVQ      XMM0,[RCX]
+        MOVQ      XMM2,[RDX]
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+        PSHUFHW   XMM1,XMM1,$FF
+
+        // premultiply source pixel by its alpha
+        MOVDQA    XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+        // C' = A' + B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+
+@LLCopy:
+        MOVQ      [RDX],XMM0
+
+@LLSkip:
+        ADD       RCX,8
+        ADD       RDX,8
+
+        SUB       R8d,2
+        CMP       R8d,2
+        JNS       @LargeLoop
+        JS        @Small2
+
+@Small:
+        PXOR      XMM4,XMM4
+        MOVQ      XMM5,[RAX]
+
+@Small2:
+        TEST      R8d,R8d
+        JLE       @Exit
+
+@SmallLoop:
+        MOVD      XMM0,[RCX]
+        MOVD      XMM2,[RDX]
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+
+        // premultiply source pixel by its alpha
+        MOVQ      XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+        // C' = A' + B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+
+@SLCopy:
+        MOVD      [RDX],XMM0
+
+@SLSkip:
+        ADD       RCX,4
+        ADD       RDX,4
+
+        DEC       R8d
+        JNZ       @SmallLoop
+
+@Exit:
+(*
   // ECX <- Src
   // EDX <- Dst
   // R8D <- Count
@@ -3183,6 +3277,7 @@ asm
         JNZ       @1
 
 @4:
+*)
 {$ENDIF}
 end;
 
