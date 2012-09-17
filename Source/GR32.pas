@@ -4448,7 +4448,7 @@ begin
 
   if not FMeasuringMode then
   begin
-    If (FClipRect.Right - FClipRect.Left = 0) or
+    if (FClipRect.Right - FClipRect.Left = 0) or
        (FClipRect.Bottom - FClipRect.Top = 0) then Exit;
 
     Dx := X2 - X1; Dy := Y2 - Y1;
@@ -4672,7 +4672,6 @@ begin
           Inc(term);
       end;
 
-      Assert(term >= 0);
       while xd <> term do
       begin
         CI := EC shr 8;
