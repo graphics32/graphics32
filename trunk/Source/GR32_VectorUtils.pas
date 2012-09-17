@@ -616,7 +616,6 @@ function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoin
   const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint; overload;
 const
   BUFFSIZEINCREMENT = 128;
-  EPSILON = 0.001;
 var
   I, L, H: Integer;
   ResSize, BuffSize: integer;
