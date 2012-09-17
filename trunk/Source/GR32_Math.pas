@@ -136,15 +136,15 @@ const
 function Ceil(X: Single): Integer;
 begin
   Result := Trunc(X);
-  if Frac(X) > 0 then
-    Result := Result - 1;
+  if (X - Result) > 0 then
+   Inc(Result);
 end;
 
 function Floor(X: Single): Integer;
 begin
   Result := Trunc(X);
-  if Frac(X) < 0 then
-    Result := Result - 1;
+  if (X - Result) < 0 then
+   Dec(Result);
 end;
 {$ENDIF}
 {$ENDIF}
@@ -658,6 +658,9 @@ end;
 function FastSqrtBab1(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 // additionally one babylonian step added
+{$IFNDEF PUREPASCAL}
+{$IFDEF FPC} nostackframe; {$ENDIF}
+{$ENDIF}
 const
   CHalf : TFloat = 0.5;
 {$IFDEF PUREPASCAL}
@@ -700,6 +703,7 @@ begin
  Result := Result + Value / Result;
  Result := CQuarter * Result + Value / Result;
 {$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
 const
   CHalf : TFloat = 0.5;
 asm
