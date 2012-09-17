@@ -107,8 +107,6 @@ implementation
 {$R *.dfm}
 {$ENDIF}
 
-{$R pattern.res}
-
 uses
   Math, GR32_LowLevel, GR32_Geometry, GR32_VectorUtils, GR32_ColorGradients;
 
@@ -211,7 +209,7 @@ begin
   CbxAnimateClick(nil);
 
   FPattern[0] := TBitmap32.Create;
-  FPattern[0].LoadFromResourceName(HInstance, 'PATTERN');
+  FPattern[0].LoadFromResourceName(HInstance, 'PATTERN1');
   FPattern[1] := TBitmap32.Create;
   FPattern[1].LoadFromResourceName(HInstance, 'PATTERN2');
 
