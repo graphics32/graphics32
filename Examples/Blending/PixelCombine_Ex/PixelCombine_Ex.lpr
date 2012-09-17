@@ -6,9 +6,7 @@ uses
   Interfaces,
   Forms,
   ImagesForLazarus,
-  MainUnit in 'MainUnit.pas' {Form1};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Title := 'GR32 Pixel Combine Example';

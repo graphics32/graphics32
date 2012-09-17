@@ -42,9 +42,6 @@ uses
   GR32, GR32_Image, GR32_Layers, GR32_Blend, GR32_RangeBars;
 
 type
-
-  { TFormPixelCombine }
-
   TFormPixelCombine = class(TForm)
     ImgView: TImgView32;
     RadioGroup: TRadioGroup;
