@@ -25,7 +25,7 @@ package GR32_DSGN_RS2007;
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'Graphics32 Design Time Package'}
 {$DESIGNONLY}
-{$IMPLICITBUILD OFF}
+{$IMPLICITBUILD ON}
 
 requires
   designide,
