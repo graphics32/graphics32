@@ -307,7 +307,7 @@ var
   end;
 
 begin
-  ResStream := TResourceStream.Create(hInstance, Resname, RT_RCDATA);
+  ResStream := TResourceStream.Create(hInstance, ResName, RT_RCDATA);
   try
     Count := ReadInt;
     SetLength(Result, Count);
@@ -368,7 +368,6 @@ begin
 
   FTextGR32 := LoadPolysFromResource('Graphics32');
 
-  SetGamma(1);
   FKnobRadius := 4;
   FKnobBitmap := TBitmap32.Create;
   FKnobBitmap.SetSize(2 * FKnobRadius + 2,
@@ -395,8 +394,6 @@ begin
   finally
     Sampler.Free;
   end;
-
-  SetGamma;
 
   FLinearStart := GR32.Point(100, 125);
   FLinearEnd  := GR32.Point(300, 125);
