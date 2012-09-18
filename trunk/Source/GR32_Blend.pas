@@ -3138,17 +3138,21 @@ asm
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
-(*
-        CMP       R8d,2
-        JL        @Small
+        TEST      R8D,R8D
+        JLE       @3
 
         PXOR      XMM4,XMM4
         MOV       RAX,[RIP+bias_ptr]
         MOVDQA    XMM5,[RAX]
 
-@LargeLoop:
-        MOVQ      XMM0,[RCX]
-        MOVQ      XMM2,[RDX]
+        MOV       R9D, R8D
+        SHR       R9D, 1
+        TEST      R9D, R9D
+        JZ        @2
+
+@1:
+        MOVQ      XMM0,[RCX].QWORD
+        MOVQ      XMM2,[RDX].QWORD
 
         PUNPCKLBW XMM0,XMM4
         PUNPCKLBW XMM2,XMM4
@@ -3173,111 +3177,33 @@ asm
         PSUBW     XMM0,XMM1
 
         PACKUSWB  XMM0,XMM4
+        MOVQ      [RDX].QWORD,XMM0
 
-@LLCopy:
-        MOVQ      [RDX],XMM0
-
-@LLSkip:
         ADD       RCX,8
         ADD       RDX,8
 
-        SUB       R8d,2
-        CMP       R8d,2
-        JNS       @LargeLoop
-        JS        @Small2
+        SUB       R9D,1
+        JNZ       @1
 
-@Small:
-        PXOR      XMM4,XMM4
-        MOVQ      XMM5,[RAX]
-
-@Small2:
-        TEST      R8d,R8d
-        JLE       @Exit
-
-@SmallLoop:
+@2:
         MOVD      XMM0,[RCX]
         MOVD      XMM2,[RDX]
 
-        PUNPCKLBW XMM0,XMM4
         PUNPCKLBW XMM2,XMM4
-
-        PSHUFLW   XMM1,XMM0,$FF
-
-        // premultiply source pixel by its alpha
-        MOVQ      XMM3,XMM1
-        PSRLQ     XMM3,16
-        PMULLW    XMM0,XMM3
-        PADDW     XMM0,XMM5
-        PSRLW     XMM0,8
-        PSLLQ     XMM3,48
-        POR       XMM0,XMM3
-
-        // C' = A' + B' - aB'
-        PMULLW    XMM1,XMM2
-        PADDW     XMM1,XMM5
-        PSRLW     XMM1,8
-        PADDW     XMM0,XMM2
-        PSUBW     XMM0,XMM1
-
-        PACKUSWB  XMM0,XMM4
-
-@SLCopy:
-        MOVD      [RDX],XMM0
-
-@SLSkip:
-        ADD       RCX,4
-        ADD       RDX,4
-
-        DEC       R8d
-        JNZ       @SmallLoop
-*)
-@Exit:
-
-  // ECX <- Src
-  // EDX <- Dst
-  // R8D <- Count
-
-        TEST      R8D,R8D
-        JZ        @4
-
-@1:     MOV       EAX,[RCX]
-        TEST      EAX,$FF000000
-        JZ        @3
-        CMP       EAX,$FF000000
-        JNC       @2
-
-        MOVD      XMM0,EAX
-        PXOR      XMM3,XMM3
-        MOVD      XMM2,[RDX]
-        PUNPCKLBW XMM0,XMM3
-{$IFNDEF FPC}
-        MOV       RAX,bias_ptr
-{$ELSE}
-        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
-{$ENDIF}
-        PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
-        PUNPCKLBW XMM1,XMM3
+        PUNPCKLBW XMM1,XMM4
         PUNPCKHWD XMM1,XMM1
         PSUBW     XMM0,XMM2
         PUNPCKHDQ XMM1,XMM1
         PSLLW     XMM2,8
+
         PMULLW    XMM0,XMM1
-        PADDW     XMM2,[RAX]
+        PADDW     XMM2,XMM5
         PADDW     XMM2,XMM0
         PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM3
-        MOVD      EAX, XMM2
-
-@2:     MOV       [RDX],EAX
-
-@3:     ADD       RCX,4
-        ADD       RDX,4
-
-        DEC       R8D
-        JNZ       @1
-
-@4:
+        PACKUSWB  XMM2,XMM4
+        MOVD      [RDX], XMM2
+@3:
 {$ENDIF}
 end;
 
