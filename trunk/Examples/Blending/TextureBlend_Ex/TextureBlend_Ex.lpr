@@ -1,6 +1,6 @@
 program TextureBlend_Ex;
 
-{$R TextureBlend_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,
