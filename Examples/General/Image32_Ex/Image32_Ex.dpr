@@ -1,6 +1,6 @@
 program Image32_Ex;
 
-{$R 'Image32_Ex.res' 'Image32_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

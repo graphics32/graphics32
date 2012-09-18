@@ -1,6 +1,6 @@
 program Image32_Ex;
 
-{$R Image32_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

@@ -1,6 +1,6 @@
 program Mandelbrot_Ex;
 
-{$R 'Mandelbrot_Ex.res' 'Mandelbrot_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

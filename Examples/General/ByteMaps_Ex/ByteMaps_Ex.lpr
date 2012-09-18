@@ -1,6 +1,6 @@
 program ByteMaps_Ex;
 
-{$R ByteMaps_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

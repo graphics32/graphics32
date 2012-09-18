@@ -1,6 +1,6 @@
 program ByteMaps_Ex;
 
-{$R 'ByteMaps_Ex.res' 'ByteMaps_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
