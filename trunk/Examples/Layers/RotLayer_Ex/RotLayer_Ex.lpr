@@ -1,6 +1,6 @@
 program RotLayer_Ex;
 
-{$R RotLayer_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

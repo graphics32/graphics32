@@ -1,6 +1,6 @@
 program Sprites_Ex;
 
-{$R Sprites_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,
