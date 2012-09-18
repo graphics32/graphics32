@@ -1,6 +1,6 @@
 program Rotate_Ex;
 
-{$R 'Rotate_Ex.res' 'Rotate_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

@@ -1,6 +1,6 @@
 program Rotate_Ex;
 
-{$R Rotate_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

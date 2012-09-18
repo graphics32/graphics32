@@ -1,6 +1,6 @@
 program Mandelbrot_Ex;
 
-{$R Mandelbrot_Ex.rc}
+{$R Media.rc}
 
 uses
   {$IFDEF UNIX}
