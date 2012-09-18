@@ -4,7 +4,7 @@ program ArrowHeadDemo;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas';
+  MainUnit in 'MainUnit.pas' {FmArrowHeadDemo};
 
 begin
   Application.Initialize;
