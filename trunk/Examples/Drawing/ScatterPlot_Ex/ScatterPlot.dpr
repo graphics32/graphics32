@@ -1,6 +1,6 @@
 program ScatterPlot;
 
-{$R 'ScatterPlot.res' 'ScatterPlot.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

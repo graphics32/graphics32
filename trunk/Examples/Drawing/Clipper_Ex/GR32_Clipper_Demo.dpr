@@ -1,6 +1,6 @@
 program GR32_Clipper_Demo;
 
-{$R 'GR32_Clipper_Demo.res' 'GR32_Clipper_Demo.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

@@ -1,6 +1,6 @@
 program GradLines_Ex;
 
-{$R GradLines_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

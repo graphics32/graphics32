@@ -1,6 +1,6 @@
 program RenderText_Ex;
 
-{$R RenderText_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

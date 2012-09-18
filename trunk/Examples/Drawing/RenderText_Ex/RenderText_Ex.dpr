@@ -1,6 +1,6 @@
 program RenderText_Ex;
 
-{$R 'RenderText_Ex.res' 'RenderText_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

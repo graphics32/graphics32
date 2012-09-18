@@ -1,6 +1,6 @@
 program LineStippling_Ex;
 
-{$R 'LineStippling_Ex.res' 'LineStippling_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

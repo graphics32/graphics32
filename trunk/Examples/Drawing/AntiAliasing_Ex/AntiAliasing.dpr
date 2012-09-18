@@ -1,6 +1,6 @@
 program AntiAliasing;
 
-{$R 'AntiAliasing.res' 'AntiAliasing.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

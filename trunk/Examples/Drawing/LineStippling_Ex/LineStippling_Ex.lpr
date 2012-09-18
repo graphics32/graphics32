@@ -1,6 +1,6 @@
 program LineStippling_Ex;
 
-{$R LineStippling_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

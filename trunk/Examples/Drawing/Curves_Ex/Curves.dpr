@@ -1,6 +1,6 @@
 program Curves;
 
-{$R 'Curves.res' 'Curves.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
