@@ -1,6 +1,6 @@
 program GR32_Clipper_Demo;
 
-{$R GR32_Clipper_Demo.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

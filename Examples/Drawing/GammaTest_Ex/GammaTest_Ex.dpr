@@ -1,6 +1,6 @@
 program GammaTest_Ex;
 
-{$R 'GammaTest_Ex.res' 'GammaTest_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

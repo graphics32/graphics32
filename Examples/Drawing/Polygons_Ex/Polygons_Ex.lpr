@@ -1,6 +1,6 @@
 program Polygons_Ex;
 
-{$R Polygons_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

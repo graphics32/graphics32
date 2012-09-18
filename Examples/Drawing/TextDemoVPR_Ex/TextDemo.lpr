@@ -1,6 +1,6 @@
 program TextDemo;
 
-{$R TextDemo.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

@@ -1,6 +1,6 @@
 program CubicSpline;
 
-{$R 'CubicSpline.res' 'CubicSpline.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

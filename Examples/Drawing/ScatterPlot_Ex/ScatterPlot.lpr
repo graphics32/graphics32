@@ -1,6 +1,6 @@
 program ScatterPlot;
 
-{$R ScatterPlot.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

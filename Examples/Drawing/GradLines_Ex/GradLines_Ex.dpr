@@ -1,6 +1,6 @@
 program GradLines_Ex;
 
-{$R 'GradLines_Ex.res' 'GradLines_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

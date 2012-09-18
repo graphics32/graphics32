@@ -1,6 +1,6 @@
 program CubicSpline;
 
-{$R CubicSpline.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

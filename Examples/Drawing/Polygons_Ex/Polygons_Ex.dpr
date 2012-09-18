@@ -1,6 +1,6 @@
 program Polygons_Ex;
 
-{$R 'Polygons_Ex.res' 'Polygons_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

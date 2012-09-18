@@ -1,6 +1,6 @@
 program Curves;
 
-{$R Curves.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

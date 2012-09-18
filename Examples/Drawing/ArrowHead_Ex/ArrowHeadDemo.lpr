@@ -1,6 +1,6 @@
 program ArrowHeadDemo;
 
-{$R ArrowHeadDemo.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

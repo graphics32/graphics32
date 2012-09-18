@@ -1,6 +1,6 @@
 program ArrowHeadDemo;
 
-{$R 'ArrowHeadDemo.res' 'ArrowHeadDemo.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

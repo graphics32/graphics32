@@ -1,6 +1,6 @@
 program AntiAliasing;
 
-{$R AntiAliasing.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

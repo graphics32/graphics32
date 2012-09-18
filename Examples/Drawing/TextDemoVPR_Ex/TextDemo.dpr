@@ -1,6 +1,6 @@
 program TextDemo;
 
-{$R 'TextDemo.res' 'TextDemo.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
