@@ -1,6 +1,6 @@
 program ImgView_Layers_Ex;
 
-{$R 'ImgView_Layers_Ex.res' 'ImgView_Layers_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

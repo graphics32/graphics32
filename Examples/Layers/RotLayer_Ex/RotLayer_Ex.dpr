@@ -1,6 +1,6 @@
 program RotLayer_Ex;
 
-{$R 'RotLayer_Ex.res' 'RotLayer_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

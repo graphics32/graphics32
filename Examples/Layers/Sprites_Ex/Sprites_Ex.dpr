@@ -1,6 +1,6 @@
 program Sprites_Ex;
 
-{$R 'Sprites_Ex.res' 'Sprites_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
