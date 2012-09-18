@@ -1,6 +1,6 @@
 program PixelCombine_Ex;
 
-{$R PixelCombine_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,
