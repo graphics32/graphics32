@@ -1,6 +1,6 @@
 program ImgWarping_Ex;
 
-{$R ImgWarping_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

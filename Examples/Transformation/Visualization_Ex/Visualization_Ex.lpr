@@ -1,6 +1,6 @@
 program Visualization_Ex;
 
-{$R Visualization_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

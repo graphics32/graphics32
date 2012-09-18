@@ -1,6 +1,6 @@
 program Transform_Ex;
 
-{$R 'Transform_Ex.res' 'Transform_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

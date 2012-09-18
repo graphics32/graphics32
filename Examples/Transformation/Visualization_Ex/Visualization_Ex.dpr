@@ -1,6 +1,6 @@
 program Visualization_Ex;
 
-{$R 'Visualization_Ex.res' 'Visualization_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

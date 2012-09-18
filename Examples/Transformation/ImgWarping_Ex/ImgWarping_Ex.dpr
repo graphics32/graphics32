@@ -1,6 +1,6 @@
 program ImgWarping_Ex;
 
-{$R 'ImgWarping_Ex.res' 'ImgWarping_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

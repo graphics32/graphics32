@@ -1,6 +1,6 @@
 program Transform_Ex;
 
-{$R Transform_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,
