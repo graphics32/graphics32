@@ -3146,20 +3146,29 @@ asm
         MOVD      XMM0,[EAX]
         MOVD      XMM2,[EDX]
 
+        PUNPCKLBW XMM0,XMM4
         PUNPCKLBW XMM2,XMM4
-        MOVQ      XMM1,XMM0
-        PUNPCKLBW XMM1,XMM4
-        PUNPCKHWD XMM1,XMM1
-        PSUBW     XMM0,XMM2
-        PUNPCKHDQ XMM1,XMM1
-        PSLLW     XMM2,8
 
-        PMULLW    XMM0,XMM1
-        PADDW     XMM2,XMM5
-        PADDW     XMM2,XMM0
-        PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM4
-        MOVD      [EDX], XMM2
+        PSHUFLW   XMM1,XMM0,$FF
+
+        MOVQ      XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+        // C' = A'  B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+        MOVD      [EDX], XMM0
+
 @3:
         POP       EBX
 @4:
@@ -3170,7 +3179,11 @@ asm
         JLE       @3
 
         PXOR      XMM4,XMM4
-        MOV       RAX,[RIP+bias_ptr]
+{$IFNDEF FPC}
+        MOV       RAX,bias_ptr
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
         MOVDQA    XMM5,[RAX]
 
         MOV       R9D, R8D
@@ -3220,20 +3233,29 @@ asm
         MOVD      XMM0,[RCX]
         MOVD      XMM2,[RDX]
 
+        PUNPCKLBW XMM0,XMM4
         PUNPCKLBW XMM2,XMM4
-        MOVQ      XMM1,XMM0
-        PUNPCKLBW XMM1,XMM4
-        PUNPCKHWD XMM1,XMM1
-        PSUBW     XMM0,XMM2
-        PUNPCKHDQ XMM1,XMM1
-        PSLLW     XMM2,8
 
-        PMULLW    XMM0,XMM1
-        PADDW     XMM2,XMM5
-        PADDW     XMM2,XMM0
-        PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM4
-        MOVD      [RDX], XMM2
+        PSHUFLW   XMM1,XMM0,$FF
+
+        // premultiply source pixel by its alpha
+        MOVQ      XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+        // C' = A'  B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+        MOVD      [RDX], XMM0
 @3:
 {$ENDIF}
 end;
