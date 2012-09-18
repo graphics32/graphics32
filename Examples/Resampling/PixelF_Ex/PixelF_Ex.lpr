@@ -1,6 +1,6 @@
 program PixelF_Ex;
 
-{$R PixelF_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

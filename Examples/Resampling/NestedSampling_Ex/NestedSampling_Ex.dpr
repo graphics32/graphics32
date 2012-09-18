@@ -1,6 +1,6 @@
 program NestedSampling_Ex;
 
-{$R 'NestedSampling_Ex.res' 'NestedSampling_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

@@ -1,6 +1,6 @@
 program NestedSampling_Ex;
 
-{$R NestedSampling_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,

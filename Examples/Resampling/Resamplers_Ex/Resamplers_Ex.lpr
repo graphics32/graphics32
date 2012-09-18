@@ -1,6 +1,6 @@
 program Resamplers_Ex;
 
-{$R Resamplers_Ex.rc}
+{$R Media.rc}
 
 uses
   Interfaces,
