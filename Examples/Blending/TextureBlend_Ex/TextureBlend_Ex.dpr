@@ -1,6 +1,6 @@
 program TextureBlend_Ex;
 
-{$R 'TextureBlend_Ex.res' 'TextureBlend_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
