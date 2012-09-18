@@ -3093,21 +3093,54 @@ asm
   // ECX <- Count
 
         TEST      ECX,ECX
-        JLE       @4
+        JLE       @3
 
         PUSH      EBX
         PXOR      XMM4,XMM4
         MOV       EBX,[bias_ptr]
         MOVDQA    XMM5,[EBX]
+        POP       EBX
 
-        MOV       EBX, ECX
-        SHR       EBX, 1
-        TEST      EBX, EBX
+        TEST      ECX, 1
         JZ        @2
+        MOVD      XMM0,[EAX]
+        MOVD      XMM2,[EDX]
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM0,$FF
+
+        // premultiply source pixel by its alpha
+        MOVQ      XMM3,XMM1
+        PSRLQ     XMM3,16
+        PMULLW    XMM0,XMM3
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+        PSLLQ     XMM3,48
+        POR       XMM0,XMM3
+
+        // C' = A'  B' - aB'
+        PMULLW    XMM1,XMM2
+        PADDW     XMM1,XMM5
+        PSRLW     XMM1,8
+        PADDW     XMM0,XMM2
+        PSUBW     XMM0,XMM1
+
+        PACKUSWB  XMM0,XMM4
+        MOVD      [EDX], XMM0
+
+@2:
+        LEA       EAX, EAX + ECX * 4
+        LEA       EDX, EDX + ECX * 4
+
+        SHR       ECX,1
+        JZ        @3
+        NEG       ECX
 
 @1:
-        MOVQ      XMM0,[EAX].QWORD
-        MOVQ      XMM2,[EDX].QWORD
+        MOVQ      XMM0,[EAX + ECX * 8].QWORD
+        MOVQ      XMM2,[EDX + ECX * 8].QWORD
 
         PUNPCKLBW XMM0,XMM4
         PUNPCKLBW XMM2,XMM4
@@ -3132,46 +3165,12 @@ asm
         PSUBW     XMM0,XMM1
 
         PACKUSWB  XMM0,XMM4
-        MOVQ      [EDX].QWORD,XMM0
+        MOVQ      [EDX + ECX * 8].QWORD,XMM0
 
-        ADD       EAX,8
-        ADD       EDX,8
-
-        SUB       EBX,1
-        JNZ       @1
-
-@2:
-        AND       ECX, 1
-        JZ        @3
-        MOVD      XMM0,[EAX]
-        MOVD      XMM2,[EDX]
-
-        PUNPCKLBW XMM0,XMM4
-        PUNPCKLBW XMM2,XMM4
-
-        PSHUFLW   XMM1,XMM0,$FF
-
-        MOVQ      XMM3,XMM1
-        PSRLQ     XMM3,16
-        PMULLW    XMM0,XMM3
-        PADDW     XMM0,XMM5
-        PSRLW     XMM0,8
-        PSLLQ     XMM3,48
-        POR       XMM0,XMM3
-
-        // C' = A'  B' - aB'
-        PMULLW    XMM1,XMM2
-        PADDW     XMM1,XMM5
-        PSRLW     XMM1,8
-        PADDW     XMM0,XMM2
-        PSUBW     XMM0,XMM1
-
-        PACKUSWB  XMM0,XMM4
-        MOVD      [EDX], XMM0
-
+        ADD       ECX,1
+        JS        @1
 @3:
-        POP       EBX
-@4:
+
 {$ENDIF}
 
 {$IFDEF TARGET_X64}
