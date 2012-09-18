@@ -1,6 +1,6 @@
 program Resamplers_Ex;
 
-{$R 'Resamplers_Ex.res' 'Resamplers_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,

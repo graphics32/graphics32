@@ -1,6 +1,6 @@
 program PixelF_Ex;
 
-{$R 'PixelF_Ex.res' 'PixelF_Ex.rc'}
+{$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
