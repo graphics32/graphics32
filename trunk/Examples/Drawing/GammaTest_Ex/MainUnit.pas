@@ -5,8 +5,8 @@ interface
 {$I GR32.inc}
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Image, Vcl.StdCtrls, GR32_RangeBars, Vcl.ExtCtrls;
+  {$IFDEF FPC}LCLIntf, {$ELSE}Windows, {$ENDIF} Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  GR32, GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls;
 
 type
   TFrmGammaTest = class(TForm)
@@ -40,7 +40,11 @@ implementation
 uses
   GR32_LowLevel, GR32_VectorUtils, GR32_Polygons, GR32_Paths;
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
+{$ENDIF}
 
 procedure TFrmGammaTest.FormShow(Sender: TObject);
 begin
@@ -51,7 +55,7 @@ end;
 
 procedure TFrmGammaTest.GbrContrastChange(Sender: TObject);
 begin
-  LblContrastValue.Caption := '';
+  LblContrastValue.Caption := IntToStr(GbrContrast.Position);
   PaintBox32.Invalidate;
 end;
 
