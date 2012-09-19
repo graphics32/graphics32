@@ -3914,7 +3914,7 @@ end;
 procedure TCustomBitmap32.LineX(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean);
 var
   n, i: Integer;
-  nx, ny, hyp: Integer;
+  nx, ny, hyp, hypl: Integer;
   A: TColor32;
   h: Single;
   ChangedRect: TFixedRect;
@@ -3924,9 +3924,9 @@ begin
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := Hypot(nx, ny);
-    if L then Inc(hyp, 65536);
-    if hyp < 256 then Exit;
-    n := hyp shr 16;
+    hypl := hyp + (Integer(L) * FixedOne);
+    if hypl < 256 then Exit;
+    n := hypl shr 16;
     if n > 0 then
     begin
       h := 65536 / hyp;
@@ -3939,7 +3939,7 @@ begin
       end;
     end;
     A := Value shr 24;
-    hyp := hyp - n shl 16;
+    hyp := hypl - n shl 16;
     A := A * Cardinal(hyp) shl 8 and $FF000000;
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, Value and $00FFFFFF + A);
   finally
@@ -3956,7 +3956,7 @@ end;
 procedure TCustomBitmap32.LineXS(X1, Y1, X2, Y2: TFixed; Value: TColor32; L: Boolean);
 var
   n, i: Integer;
-  ex, ey, nx, ny, hyp: Integer;
+  ex, ey, nx, ny, hyp, hypl: Integer;
   A: TColor32;
   h: Single;
   ChangedRect: TFixedRect;
@@ -3993,9 +3993,9 @@ begin
       nx := X2 - X1; ny := Y2 - Y1;
       Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
       hyp := Hypot(nx, ny);
-      if L then Inc(Hyp, 65536);
-      if hyp < 256 then Exit;
-      n := hyp shr 16;
+      hypl := hyp + (Integer(L) * FixedOne);
+      if hypl < 256 then Exit;
+      n := hypl shr 16;
       if n > 0 then
       begin
         h := 65536 / hyp;
@@ -4008,7 +4008,7 @@ begin
         end;
       end;
       A := Value shr 24;
-      hyp := hyp - n shl 16;
+      hyp := hypl - n shl 16;
       A := A * Longword(hyp) shl 8 and $FF000000;
       SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), Value and $00FFFFFF + A);
     finally
@@ -4026,7 +4026,7 @@ end;
 procedure TCustomBitmap32.LineXP(X1, Y1, X2, Y2: TFixed; L: Boolean);
 var
   n, i: Integer;
-  nx, ny, hyp: Integer;
+  nx, ny, hyp, hypl: Integer;
   A, C: TColor32;
   ChangedRect: TRect;
 begin
@@ -4035,9 +4035,9 @@ begin
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := Hypot(nx, ny);
-    if L then Inc(hyp, 65536);
-    if hyp < 256 then Exit;
-    n := hyp shr 16;
+    hypl := hyp + (Integer(L) * FixedOne);
+    if hypl < 256 then Exit;
+    n := hypl shr 16;
     if n > 0 then
     begin
       nx := Round(nx / hyp * 65536);
@@ -4053,7 +4053,7 @@ begin
     end;
     C := GetStippleColor;
     A := C shr 24;
-    hyp := hyp - n shl 16;
+    hyp := hypl - n shl 16;
     A := A * Longword(hyp) shl 8 and $FF000000;
     SET_T256((X1 + X2 - nx) shr 9, (Y1 + Y2 - ny) shr 9, C and $00FFFFFF + A);
     EMMS;
@@ -4072,7 +4072,7 @@ const
   StippleInc: array [Boolean] of Single = (0, 1);
 var
   n, i: Integer;
-  sx, sy, ex, ey, nx, ny, hyp: Integer;
+  sx, sy, ex, ey, nx, ny, hyp, hypl: Integer;
   A, C: TColor32;
   ChangedRect: TRect;
 begin
@@ -4114,9 +4114,9 @@ begin
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := GR32_Math.Hypot(nx, ny);
-    if L then Inc(hyp, 65536);
-    if hyp < 256 then Exit;
-    n := hyp shr 16;
+    hypl := hyp + (Integer(L) * FixedOne);
+    if hypl < 256 then Exit;
+    n := hypl shr 16;
     if n > 0 then
     begin
       nx := Round(nx / hyp * 65536); ny := Round(ny / hyp * 65536);
@@ -4131,7 +4131,7 @@ begin
     end;
     C := GetStippleColor;
     A := C shr 24;
-    hyp := hyp - n shl 16;
+    hyp := hypl - n shl 16;
     A := A * Longword(hyp) shl 8 and $FF000000;
     SET_TS256(SAR_9(X1 + X2 - nx), SAR_9(Y1 + Y2 - ny), C and $00FFFFFF + A);
     EMMS;
