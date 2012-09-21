@@ -3086,6 +3086,10 @@ asm
 end;
 
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC}
+const
+  COpaque: QWORD = $FF000000FF000000;
+{$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX <- Src
@@ -3131,8 +3135,8 @@ asm
         MOVD      [EDX], XMM0
 
 @2:
-        LEA       EAX, EAX + ECX * 4
-        LEA       EDX, EDX + ECX * 4
+        LEA       EAX, [EAX + ECX * 4]
+        LEA       EDX, [EDX + ECX * 4]
 
         SHR       ECX,1
         JZ        @3
@@ -3192,6 +3196,14 @@ asm
 
 @1:
         MOVQ      XMM0,[RCX].QWORD
+        MOVQ      RAX,XMM0
+{$IFDEF FPC}
+        AND       RAX,[RIP+COpaque]
+        JZ        @1b
+        CMP       RAX,[RIP+COpaque]
+        JZ        @1a
+{$ENDIF}
+
         MOVQ      XMM2,[RDX].QWORD
 
         PUNPCKLBW XMM0,XMM4
@@ -3217,9 +3229,9 @@ asm
         PSUBW     XMM0,XMM1
 
         PACKUSWB  XMM0,XMM4
-        MOVQ      [RDX].QWORD,XMM0
+@1a:    MOVQ      [RDX].QWORD,XMM0
 
-        ADD       RCX,8
+@1b:    ADD       RCX,8
         ADD       RDX,8
 
         SUB       R9D,1
