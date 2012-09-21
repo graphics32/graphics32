@@ -4199,6 +4199,7 @@ begin
       nx := X2 - X1; ny := Y2 - Y1;
       Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
       hyp := Hypot(nx, ny);
+      if hyp = 0 then Exit;
       hypl := hyp + (Integer(L) * FixedOne);
       if hypl < 256 then Exit;
       n := hypl shr 16;
@@ -4320,6 +4321,7 @@ begin
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := GR32_Math.Hypot(nx, ny);
+    if hyp = 0 then Exit;
     hypl := hyp + (Integer(L) * FixedOne);
     if hypl < 256 then Exit;
     n := hypl shr 16;
