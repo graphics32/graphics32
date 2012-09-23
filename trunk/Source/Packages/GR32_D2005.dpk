@@ -39,7 +39,6 @@ contains
   GR32_Transforms in '..\GR32_Transforms.pas',
   GR32_OrdinalMaps in '..\GR32_OrdinalMaps.pas',
   GR32_VectorMaps in '..\GR32_VectorMaps.pas',
-  GR32_DrawingEx in '..\GR32_DrawingEx.pas',
   GR32_Filters in '..\GR32_Filters.pas',
   GR32_Layers in '..\GR32_Layers.pas',
   GR32_Image in '..\GR32_Image.pas',
