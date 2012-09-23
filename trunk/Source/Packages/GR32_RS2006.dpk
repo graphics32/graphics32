@@ -56,6 +56,6 @@ contains
   GR32_XPThemes in '..\GR32_XPThemes.pas',
   GR32_VPR in '..\GR32_VPR.pas',
   GR32_Paths in '..\GR32_Paths.pas',
-  GR32_VectorUtils;
+  GR32_VectorUtils in '..\GR32_VectorUtils';
 
 end.
