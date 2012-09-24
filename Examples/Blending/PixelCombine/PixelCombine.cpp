@@ -2,7 +2,7 @@
 
 #include <vcl.h>
 #pragma hdrstop
-USERES("PixelCombine_Ex.res");
+USERES("PixelCombine.res");
 USEFORMNS("MainUnit.pas", Mainunit, Form1);
 //---------------------------------------------------------------------------
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)

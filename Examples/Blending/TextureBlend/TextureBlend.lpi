@@ -2,24 +2,31 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="9"/>
+    <PathDelim Value="\"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
-      <SessionStorage Value="InProjectDir"/>
+      <SessionStorage Value="None"/>
       <MainUnit Value="0"/>
-      <Title Value="GR32 Pixel Combine Example"/>
+      <Title Value="GR32 Texture Blend Example"/>
     </General>
+    <VersionInfo>
+      <Language Value=""/>
+      <CharSet Value=""/>
+      <StringTable ProductVersion=""/>
+    </VersionInfo>
     <BuildModes Count="2">
       <Item1 Name="Release" Default="True"/>
       <Item2 Name="Debug">
         <CompilerOptions>
           <Version Value="11"/>
+          <PathDelim Value="\"/>
           <SearchPaths>
             <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+            <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
             <OtherUnitFiles Value="../../../Source"/>
             <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
-            <ObjectPath Value="../../.."/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -34,6 +41,9 @@
             <SmartLinkUnit Value="True"/>
           </CodeGeneration>
           <Linking>
+            <Debugging>
+              <DebugInfoType Value="dsStabs"/>
+            </Debugging>
             <LinkSmart Value="True"/>
             <Options>
               <Win32>
@@ -64,24 +74,24 @@
     </RunParams>
     <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="ImagesForLazarus"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item1>
       <Item2>
-        <PackageName Value="LCL"/>
+        <PackageName Value="ImagesForLazarus"/>
       </Item2>
       <Item3>
-        <PackageName Value="GR32_Lazarus"/>
+        <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
-        <Filename Value="PixelCombine_Ex.lpr"/>
+        <Filename Value="TextureBlend.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="FormPixelCombine"/>
+        <ComponentName Value="MainForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
@@ -90,11 +100,12 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
+    <PathDelim Value="\"/>
     <SearchPaths>
       <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+      <Libraries Value="..\..\..\..\Packages\lib\$(TargetCPU)-$(TargetOS)"/>
       <OtherUnitFiles Value="../../../Source"/>
       <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
-      <ObjectPath Value="../../.."/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -133,13 +144,16 @@
     </Other>
   </CompilerOptions>
   <Debugging>
-    <Exceptions Count="2">
+    <Exceptions Count="3">
       <Item1>
-        <Name Value="ECodetoolError"/>
+        <Name Value="EAbort"/>
       </Item1>
       <Item2>
-        <Name Value="EFOpenError"/>
+        <Name Value="ECodetoolError"/>
       </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
     </Exceptions>
   </Debugging>
 </CONFIG>
