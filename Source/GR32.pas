@@ -936,13 +936,13 @@ type
 {$ENDIF}
 
     procedure UpdateFont;
-    procedure Textout(X, Y: Integer; const Text: String); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
-    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
-    function  TextExtent(const Text: String): TSize;
-    function  TextHeight(const Text: String): Integer;
-    function  TextWidth(const Text: String): Integer;
-    procedure RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
+    procedure Textout(X, Y: Integer; const Text: string); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: string); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
+    function  TextExtent(const Text: string): TSize;
+    function  TextHeight(const Text: string): Integer;
+    function  TextWidth(const Text: string): Integer;
+    procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
     procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
@@ -5786,7 +5786,7 @@ end;
 
 // Text and Fonts //
 
-function TBitmap32.TextExtent(const Text: String): TSize;
+function TBitmap32.TextExtent(const Text: string): TSize;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text);
 end;
@@ -5798,7 +5798,7 @@ end;
 
 // -------------------------------------------------------------------
 
-procedure TBitmap32.Textout(X, Y: Integer; const Text: String);
+procedure TBitmap32.Textout(X, Y: Integer; const Text: string);
 begin
   (FBackend as ITextSupport).Textout(X, Y, Text);
 end;
@@ -5810,7 +5810,7 @@ end;
 
 // -------------------------------------------------------------------
 
-procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
+procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
   (FBackend as ITextSupport).Textout(X, Y, ClipRect, Text);
 end;
@@ -5822,7 +5822,7 @@ end;
 
 // -------------------------------------------------------------------
 
-procedure TBitmap32.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String);
+procedure TBitmap32.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   (FBackend as ITextSupport).Textout(DstRect, Flags, Text);
 end;
@@ -5834,7 +5834,7 @@ end;
 
 // -------------------------------------------------------------------
 
-function TBitmap32.TextHeight(const Text: String): Integer;
+function TBitmap32.TextHeight(const Text: string): Integer;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text).cY;
 end;
@@ -5846,7 +5846,7 @@ end;
 
 // -------------------------------------------------------------------
 
-function TBitmap32.TextWidth(const Text: String): Integer;
+function TBitmap32.TextWidth(const Text: string): Integer;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text).cX;
 end;
@@ -5886,7 +5886,7 @@ begin
     lfStrikeOut := Byte(fsStrikeOut in Font.Style);
     lfCharSet := Byte(Font.Charset);
 
-    // TODO DVT Added cast to fix TFontDataName to String warning. Need to verify is OK
+    // TODO DVT Added cast to fix TFontDataName to string warning. Need to verify is OK
     if AnsiCompareText(Font.Name, 'Default') = 0 then  // do not localize
       StrPCopy(lfFaceName, string(DefFontData.Name))
     else
@@ -5982,12 +5982,12 @@ begin
   end;
 end;
 
-procedure TBitmap32.RenderText(X, Y: Integer; const Text: String; AALevel: Integer; Color: TColor32);
+procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
 var
   B, B2: TBitmap32;
   Sz: TSize;
   Alpha: TColor32;
-  PaddedText: String;
+  PaddedText: string;
 begin
   if Empty then Exit;
 
