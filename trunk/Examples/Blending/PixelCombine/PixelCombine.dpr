@@ -1,4 +1,4 @@
-program TextureBlend_Ex;
+program PixelCombine;
 
 {$R 'Media.res' 'Media.rc'}
 
@@ -8,6 +8,6 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TMainForm, MainForm);
+  Application.CreateForm(TFormPixelCombine, FormPixelCombine);
   Application.Run;
 end.

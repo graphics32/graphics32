@@ -1,11 +1,9 @@
-program TextureBlend_Ex;
+program TextureBlend;
 
-{$R Media.rc}
+{$R 'Media.res' 'Media.rc'}
 
 uses
-  Interfaces,
   Forms,
-  ImagesForLazarus,
   MainUnit in 'MainUnit.pas';
 
 begin

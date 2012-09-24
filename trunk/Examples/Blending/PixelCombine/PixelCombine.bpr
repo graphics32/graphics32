@@ -3,9 +3,9 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="PixelCombine_Ex.exe"/>
-    <OBJFILES value="PixelCombine_Ex.obj MainUnit.obj"/>
-    <RESFILES value="PixelCombine_Ex.res"/>
+    <PROJECT value="PixelCombine.exe"/>
+    <OBJFILES value="PixelCombine.obj MainUnit.obj"/>
+    <RESFILES value="PixelCombine.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
@@ -33,7 +33,7 @@
     <LINKER value="ilink32"/>
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
-    <MAINSOURCE value="PixelCombine_Ex.cpp"/>
+    <MAINSOURCE value="PixelCombine.cpp"/>
     <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl"/>
     <LIBPATH value="$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
@@ -56,8 +56,8 @@
     <OTHERFILES value=""/>
   </LINKER>
   <FILELIST>
-      <FILE FILENAME="PixelCombine_Ex.cpp" FORMNAME="" UNITNAME="PixelCombine_Ex" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PixelCombine_Ex.res" FORMNAME="" UNITNAME="PixelCombine_Ex" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PixelCombine.cpp" FORMNAME="" UNITNAME="PixelCombine" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PixelCombine.res" FORMNAME="" UNITNAME="PixelCombine" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="MainUnit.pas" FORMNAME="Form1" UNITNAME="MainUnit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
   </FILELIST>
   <BUILDTOOLS>

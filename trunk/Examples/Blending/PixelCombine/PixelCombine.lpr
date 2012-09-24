@@ -1,4 +1,4 @@
-program PixelCombine_Ex;
+program PixelCombine;
 
 {$R Media.rc}
 
