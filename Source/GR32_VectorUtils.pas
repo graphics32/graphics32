@@ -92,6 +92,10 @@ function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat;
   Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Star(const X, Y, InnerRadius, OuterRadius: TFloat;
   Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Star(const P: TFloatPoint; const Radius: TFloat; Vertices: Integer = 5;
+  Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Star(const X, Y, Radius: TFloat; Vertices: Integer = 5;
+  Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Rectangle(const R: TFloatRect): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoint; {$IFDEF USEINLINING} inline; {$ENDIF}
 
@@ -510,6 +514,26 @@ begin
     Result[I].X := R.X * D.X + P.X;
     Result[I].Y := R.Y * D.Y + P.Y;
   end;
+end;
+
+function Star(const X, Y, Radius: TFloat; Vertices: Integer = 5;
+  Rotation: TFloat = 0): TArrayOfFloatPoint;
+var
+  Alpha, Ratio: TFloat;
+begin
+  Alpha := Pi * (Vertices - 2 * ((Vertices - 1) shr 1)) / Vertices;
+  Ratio := Sin(Alpha * 0.5) / Sin( Alpha * 0.5 + Pi / Vertices);
+  Result := Star(X, Y, Ratio * Radius, Radius, Vertices, Rotation);
+end;
+
+function Star(const P: TFloatPoint; const Radius: TFloat; Vertices: Integer = 5;
+  Rotation: TFloat = 0): TArrayOfFloatPoint;
+var
+  Alpha, Ratio: TFloat;
+begin
+  Alpha := Pi * (Vertices - 2 * ((Vertices - 1) shr 1)) / Vertices;
+  Ratio := Sin(Alpha * 0.5) / Sin(Alpha * 0.5 + Pi / Vertices);
+  Result := Star(P, Ratio * Radius, Radius, Vertices, Rotation);
 end;
 
 function Star(const X, Y, InnerRadius, OuterRadius: TFloat;
