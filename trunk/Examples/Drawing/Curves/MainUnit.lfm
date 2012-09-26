@@ -1,0 +1,48 @@
+object MainForm: TMainForm
+  Left = 833
+  Height = 560
+  Top = 165
+  Width = 527
+  Caption = 'Curves Example'
+  ClientHeight = 560
+  ClientWidth = 527
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnShow = BtnDrawCurveClick
+  LCLVersion = '1.1'
+  object Img: TImage32
+    Left = 8
+    Height = 512
+    Top = 8
+    Width = 512
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTopLeft
+    Color = 3355443
+    ParentColor = False
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 0
+  end
+  object BtnDrawCurve: TButton
+    Left = 8
+    Height = 25
+    Top = 528
+    Width = 75
+    Anchors = [akLeft, akBottom]
+    Caption = 'Draw Curve'
+    OnClick = BtnDrawCurveClick
+    TabOrder = 1
+  end
+  object CbxUpdate: TCheckBox
+    Left = 474
+    Height = 17
+    Top = 532
+    Width = 46
+    Anchors = [akRight, akBottom]
+    Caption = 'Timer'
+    OnClick = CbxUpdateClick
+    TabOrder = 2
+  end
+end
