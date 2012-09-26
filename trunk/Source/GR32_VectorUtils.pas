@@ -86,6 +86,8 @@ function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFlo
 function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint; overload;
+function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFixedPoint; overload;
+function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFixedPoint; overload;
 function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload;
 function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const P, R: TFloatPoint; Steps: Integer = 100): TArrayOfFloatPoint; overload;
@@ -114,6 +116,8 @@ function TranslatePolygon(const Points: TArrayOfFloatPoint; Dx, Dy: TFloat): TAr
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
+function FloatPointToFixedPoint(const Points: TArrayOfFloatPoint): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
+function FloatPointToFixedPoint(const Points: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 
 implementation
 
@@ -447,6 +451,35 @@ var
   Steps: Integer;
 begin
   Steps := Max(MINSTEPS, System.Round(Sqrt(Abs(Radius)) * Abs(EndAngle - StartAngle)));
+  Result := BuildArc(P, StartAngle, EndAngle, Radius, Steps);
+end;
+
+function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat;
+  Steps: Integer): TArrayOfFixedPoint;
+var
+  I: Integer;
+  C, D: TFloatPoint;
+begin
+  SetLength(Result, Steps);
+  SinCos(StartAngle, Radius, C.Y, C.X);
+  Result[0] := OffsetPoint(P, C);
+
+  GR32_Math.SinCos((EndAngle - StartAngle) / (Steps - 1), D.Y, D.X);
+  for I := 1 to Steps - 1 do
+  begin
+    C := FloatPoint(C.X * D.X - C.Y * D.Y, C.Y * D.X + C.X * D.Y);
+    Result[I] := OffsetPoint(P, FixedPoint(C));
+  end;
+end;
+
+function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFixedPoint;
+const
+  MINSTEPS = 6;
+var
+  Steps: Integer;
+begin
+  Steps := Clamp(System.Round(Sqrt(Abs(Radius)) * Abs(EndAngle - StartAngle)),
+    MINSTEPS, $100000);
   Result := BuildArc(P, StartAngle, EndAngle, Radius, Steps);
 end;
 
@@ -1345,6 +1378,44 @@ begin
       begin
         Result[Index, PointIndex].X := Points[Index, PointIndex].X * FixedToFloat;
         Result[Index, PointIndex].Y := Points[Index, PointIndex].Y * FixedToFloat;
+      end;
+    end;
+  end;
+end;
+
+// Converts an array of points in TFixed format to an array of points in TFloat format
+function FloatPointToFixedPoint(const Points: TArrayOfFloatPoint)
+  : TArrayOfFixedPoint;
+var
+  Index: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      Result[Index].X := Fixed(Points[Index].X);
+      Result[Index].Y := Fixed(Points[Index].Y);
+    end;
+  end;
+end;
+
+// Converts an array of array of points in TFixed format to an array of array of points in TFloat format
+function FloatPointToFixedPoint(const Points: TArrayOfArrayOfFloatPoint)
+  : TArrayOfArrayOfFixedPoint;
+var
+  Index, PointIndex: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      SetLength(Result[Index], Length(Points[Index]));
+      for PointIndex := 0 to Length(Points[Index]) - 1 do
+      begin
+        Result[Index, PointIndex].X := Fixed(Points[Index, PointIndex].X);
+        Result[Index, PointIndex].Y := Fixed(Points[Index, PointIndex].Y);
       end;
     end;
   end;
