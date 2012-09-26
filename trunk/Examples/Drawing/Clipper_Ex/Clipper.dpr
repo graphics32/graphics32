@@ -1,9 +1,8 @@
-program GR32_Clipper_Demo;
+program Clipper;
 
-{$R Media.rc}
+{$R 'Media.res' 'Media.rc'}
 
 uses
-  Interfaces,
   Forms,
   MainUnit in 'MainUnit.pas';
 
