@@ -2,7 +2,7 @@
 
 #include <vcl.h>
 #pragma hdrstop
-USERES("ByteMaps_Ex.res");
+USERES("ByteMaps.res");
 USEFORMNS("MainUnit.pas", Mainunit, Form1);
 //---------------------------------------------------------------------------
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)

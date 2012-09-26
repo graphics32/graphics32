@@ -1,10 +1,10 @@
-program ByteMaps_Ex;
+program Mandelbrot;
 
 {$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas';
+  MandelUnit in 'MandelUnit.pas';
 
 begin
   Application.Initialize;

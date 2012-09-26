@@ -86,7 +86,7 @@
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
-        <Filename Value="Rotate_Ex.lpr"/>
+        <Filename Value="Rotate.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>

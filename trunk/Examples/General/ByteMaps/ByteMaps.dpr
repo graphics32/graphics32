@@ -1,4 +1,4 @@
-program Rotate_Ex;
+program ByteMaps;
 
 {$R 'Media.res' 'Media.rc'}
 
@@ -8,6 +8,6 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TFormRotateExample, FormRotateExample);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

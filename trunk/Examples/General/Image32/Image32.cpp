@@ -2,7 +2,7 @@
 
 #include <vcl.h>
 #pragma hdrstop
-USERES("Rotate_Ex.res");
+USERES("Image32.res");
 USEFORMNS("MainUnit.pas", Mainunit, Form1);
 //---------------------------------------------------------------------------
 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
