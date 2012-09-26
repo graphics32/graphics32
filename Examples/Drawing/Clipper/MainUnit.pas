@@ -43,11 +43,11 @@ uses
 
 type
   TFrmClipper = class(TForm)
+    BtnClear: TButton;
     BtnExit: TButton;
     ImgView32: TImgView32;
     PnlControl: TPanel;
     rgClipping: TRadioGroup;
-    BtnClear: TButton;
     RgpObject: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
@@ -57,6 +57,7 @@ type
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure BtnClearClick(Sender: TObject);
     procedure ImgView32MouseLeave(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     Polys: TArrayOfArrayOfFixedPoint;
     OutlinePolygon: TArrayOfFixedPoint;
@@ -111,24 +112,21 @@ begin
   Bitmap.LineToXSP(Afp[0].X, Afp[0].Y);
 end;
 
-function ArrayOfFloatPointToArrayOfFixedPoint(
-  const Pts: TArrayOfFloatPoint): TArrayOfFixedPoint;
-var
-  I, Len: Integer;
-begin
-  Len := Length(Pts);
-  SetLength(Result, Len);
-  for I := 0 to Len -1 do
-    Result[I] := FixedPoint(Pts[I]);
-end;
 
 { TFrmClipper methods }
 
 procedure TFrmClipper.FormCreate(Sender: TObject);
 begin
   ImgView32.Bitmap.SetSize(640, 480);
-  AddPolygon(MakeStar(Point(125,150)));
+  AddPolygon(MakeStar(Point(125, 150)));
   ImgView32.ScrollToCenter(0, 0);
+end;
+
+procedure TFrmClipper.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = 27 then
+    Exit;
 end;
 
 procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFixedPoint);
@@ -167,7 +165,7 @@ var
 begin
   EllipseF := Ellipse(FloatPoint(NewPoint), FloatPoint(60,40));
   SetLength(Result, 1);
-  Result := ArrayOfFloatPointToArrayOfFixedPoint(EllipseF);
+  Result := FloatPointToFixedPoint(EllipseF);
 end;
 
 function TFrmClipper.MakeStar(const NewPoint: TPoint): TArrayOfFixedPoint;
@@ -176,7 +174,7 @@ var
 begin
   StarF := Star(FloatPoint(NewPoint), 40.0, 60.0, 7);
   SetLength(Result, 1);
-  Result := ArrayOfFloatPointToArrayOfFixedPoint(StarF);
+  Result := FloatPointToFixedPoint(StarF);
 end;
 
 procedure TFrmClipper.DrawPolygons;
@@ -199,7 +197,7 @@ procedure TFrmClipper.ImgView32MouseMove(Sender: TObject;
 var
   NewPt: TPoint;
 begin
-  NewPt := ImgView32.ControlToBitmap(Point(X,Y));
+  NewPt := ImgView32.ControlToBitmap(Point(X, Y));
   case RgpObject.ItemIndex of
     0: OutlinePolygon := MakeStar(NewPt);
     1: OutlinePolygon := MakeEllipse(NewPt);

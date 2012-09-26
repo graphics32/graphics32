@@ -1,9 +1,9 @@
 object FrmClipper: TFrmClipper
   Left = 272
   Top = 153
-  Width = 676
-  Height = 496
   Caption = 'Clipper'
+  ClientHeight = 469
+  ClientWidth = 668
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -12,6 +12,7 @@ object FrmClipper: TFrmClipper
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 15
   object PnlControl: TPanel
