@@ -1,0 +1,305 @@
+object MainForm: TMainForm
+  Left = 225
+  Height = 462
+  Top = 177
+  Width = 585
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Filling Polygons with Color Gradients'
+  ClientHeight = 443
+  ClientWidth = 585
+  Color = clBtnFace
+  Font.CharSet = ANSI_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Arial'
+  KeyPreview = True
+  Menu = MainMenu
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnKeyPress = FormKeyPress
+  LCLVersion = '1.0.1.3'
+  object PnlControl: TPanel
+    Left = 0
+    Height = 443
+    Top = 0
+    Width = 145
+    Align = alLeft
+    ClientHeight = 443
+    ClientWidth = 145
+    TabOrder = 0
+    object LblColorStopsTop: TLabel
+      Left = 14
+      Height = 16
+      Top = 15
+      Width = 69
+      Caption = 'Color Stops:'
+      FocusControl = MemoColorStops
+      ParentColor = False
+    end
+    object LblLookupTableOrder: TLabel
+      Left = 14
+      Height = 16
+      Top = 225
+      Width = 112
+      Caption = 'Lookup Table Order:'
+      ParentColor = False
+    end
+    object MemoColorStops: TMemo
+      Left = 14
+      Height = 139
+      Top = 38
+      Width = 114
+      Lines.Strings = (
+        '0.0: clRed32'
+        '0.1: clYellow32'
+        '0.3: clLime32'
+        '0.5: $AA00FFFF'
+        '0.7: clBlue32'
+        '0.9: clFuchsia32'
+        '1.0: $80FF0000'
+      )
+      OnChange = MemoColorStopsChange
+      TabOrder = 0
+      WordWrap = False
+    end
+    object RgpEllipseFillStyle: TRadioGroup
+      Left = 14
+      Height = 68
+      Top = 365
+      Width = 114
+      AutoFill = True
+      Caption = 'Radial &Fill Style'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 50
+      ClientWidth = 110
+      ItemIndex = 1
+      Items.Strings = (
+        'Simple'
+        'SVG'
+      )
+      OnClick = RgpEllipseFillStyleClick
+      TabOrder = 1
+    end
+    object RgpWrapMode: TRadioGroup
+      Left = 14
+      Height = 87
+      Top = 272
+      Width = 114
+      AutoFill = True
+      Caption = '&Wrap Mode'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 69
+      ClientWidth = 110
+      ItemIndex = 0
+      Items.Strings = (
+        'Clamp'
+        'Repeat'
+        'Mirror'
+      )
+      OnClick = RgpWrapModeClick
+      TabOrder = 2
+    end
+    object BtnDefaults: TButton
+      Left = 34
+      Height = 25
+      Top = 183
+      Width = 75
+      Caption = '&Defaults'
+      OnClick = BtnDefaultsClick
+      TabOrder = 3
+    end
+    object CmbLUT: TComboBox
+      Left = 14
+      Height = 21
+      Top = 243
+      Width = 114
+      ItemHeight = 15
+      Items.Strings = (
+        '4 (= 16 Values)'
+        '5 (= 32 Values)'
+        '6 (= 64 Values)'
+        '7 (= 128 Values)'
+        '8 (= 256 Values)'
+        '9 (= 512 Values)'
+        '10 (= 1024 Values)'
+        '11 (= 2048 Values)'
+        '12 (= 4096 Values)'
+        '13 (= 8192 Values)'
+      )
+      OnChange = CmbLUTChange
+      TabOrder = 4
+      Text = '9 (= 512 Values)'
+    end
+  end
+  object ImgView32: TImgView32
+    Left = 145
+    Height = 443
+    Top = 0
+    Width = 440
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    RepaintMode = rmOptimizer
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsDefault
+    ScrollBars.Size = 16
+    ScrollBars.Visibility = svHidden
+    OverSize = 0
+    TabOrder = 1
+    OnDblClick = ImgView32DblClick
+    OnMouseDown = ImgView32MouseDown
+    OnMouseMove = ImgView32MouseMove
+    OnMouseUp = ImgView32MouseUp
+  end
+  object MainMenu: TMainMenu
+    left = 193
+    top = 16
+    object MnuFile: TMenuItem
+      Caption = '&File'
+      object MnuFileOpen: TMenuItem
+        Caption = 'Open...'
+        OnClick = MnuFileOpenClick
+      end
+      object MnuFileSaveAs: TMenuItem
+        Caption = 'Save As...'
+        OnClick = MnuFileSaveAsClick
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
+      object MnuExit: TMenuItem
+        Caption = 'E&xit'
+        ShortCut = 27
+        OnClick = BtnExitClick
+      end
+    end
+    object MnuWrapMode: TMenuItem
+      Caption = '&Wrap Mode'
+      object MnuPad: TMenuItem
+        Caption = '&Clamp'
+        Checked = True
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+      object MnuRepeat: TMenuItem
+        Tag = 1
+        Caption = '&Repeat'
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+      object MnuReflect: TMenuItem
+        Tag = 2
+        Caption = '&Mirror'
+        RadioItem = True
+        OnClick = MnuSpreadClick
+      end
+    end
+    object MnuRadialFillStyle: TMenuItem
+      Caption = 'Radial &Fill Style'
+      object MnuSimple: TMenuItem
+        Caption = '&Simple'
+        RadioItem = True
+        OnClick = MnuRadialFillStyleClick
+      end
+      object MnuSVG: TMenuItem
+        Tag = 1
+        Caption = 'S&VG'
+        Checked = True
+        RadioItem = True
+        OnClick = MnuRadialFillStyleClick
+      end
+    end
+    object MnuLookupTableOrder: TMenuItem
+      Caption = '&Lookup Table Order'
+      object MnuOrder4: TMenuItem
+        Caption = '4 (= 16 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder5: TMenuItem
+        Tag = 1
+        Caption = '5 (= 32 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder6: TMenuItem
+        Tag = 2
+        Caption = '6 (= 64 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder7: TMenuItem
+        Tag = 3
+        Caption = '7 (= 128 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder8: TMenuItem
+        Tag = 4
+        Caption = '8 (= 256 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder9: TMenuItem
+        Tag = 5
+        Caption = '9 (= 512 Values)'
+        Checked = True
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder10: TMenuItem
+        Tag = 6
+        Caption = '10 (= 1024 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder11: TMenuItem
+        Tag = 7
+        Caption = '11 (= 2048 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder12: TMenuItem
+        Tag = 8
+        Caption = '12 (= 4096 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+      object MnuOrder13: TMenuItem
+        Tag = 9
+        Caption = '13 (= 8192 Values)'
+        RadioItem = True
+        OnClick = MnuOrderClick
+      end
+    end
+  end
+  object OpenDialog: TOpenDialog
+    DefaultExt = '.stops.txt'
+    left = 192
+    top = 80
+  end
+  object SaveDialog: TSaveDialog
+    DefaultExt = '.stops.txt'
+    Filter = 'Color Stops (*.stops.txt)|*.stops.txt'
+    left = 192
+    top = 136
+  end
+end
