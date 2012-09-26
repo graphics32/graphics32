@@ -86,7 +86,7 @@
     </RequiredPackages>
     <Units Count="3">
       <Unit0>
-        <Filename Value="NestedSampling_Ex.lpr"/>
+        <Filename Value="NestedSampling.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>

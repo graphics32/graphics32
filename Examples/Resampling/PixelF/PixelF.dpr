@@ -1,11 +1,10 @@
-program NestedSampling_Ex;
+program PixelF;
 
 {$R 'Media.res' 'Media.rc'}
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas',
-  SimplePropEdit in 'SimplePropEdit.pas';
+  MainUnit in 'MainUnit.pas';
 
 begin
   Application.Initialize;

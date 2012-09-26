@@ -1,4 +1,4 @@
-program NestedSampling_Ex;
+program NestedSampling;
 
 {$R Media.rc}
 

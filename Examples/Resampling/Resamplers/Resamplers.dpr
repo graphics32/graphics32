@@ -1,4 +1,4 @@
-program Resamplers_Ex;
+program Resamplers;
 
 {$R 'Media.res' 'Media.rc'}
 
