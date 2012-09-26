@@ -1,0 +1,3 @@
+MainIcon ICON "../../Media/GR32.ico"
+Pattern1 BITMAP "../../Media/Pattern1.bmp"
+Pattern2 BITMAP "../../Media/Pattern2.bmp"
