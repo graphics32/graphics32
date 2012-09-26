@@ -183,7 +183,7 @@ type
   private
     FDists: PFloatArray;
     FUsePower: Boolean;
-    FPower, FScaledPower: TFloat;
+    FPower: TFloat;
   public
     constructor Create; virtual;
     procedure PrepareSampling; override;
@@ -1240,6 +1240,7 @@ end;
 function TShepardSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   Index: Integer;
+  Temp: TFloat;
   Dists: array of TFloat;
   DistSum, Scale: TFloat;
   R, G, B, A: TFloat;
@@ -1252,21 +1253,21 @@ begin
 
   with FColorPoints[0] do
     if FUsePower then
-      FDists[0] := 1 / Max(1,
-        Math.Power(X - Point.X, FScaledPower) +
-        Math.Power(Y - Point.Y, FScaledPower))
+      Temp := Math.Power(Abs(X - Point.X), FPower) +
+        Math.Power(Abs(Y - Point.Y), FPower)
     else
-      FDists[0] := 1 / Max(1, Sqr(X - Point.X) + Sqr(Y - Point.Y));
+      Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
+  FDists[0] := 1 / Max(1, Temp);
   DistSum := FDists[0];
   for Index := 1 to Count - 1 do
     with FColorPoints[Index] do
     begin
       if FUsePower then
-        FDists[Index] := 1 / Max(1,
-          Math.Power(X - Point.X, FScaledPower) +
-          Math.Power(Y - Point.Y, FScaledPower))
+        Temp := Math.Power(Abs(X - Point.X), FPower) +
+          Math.Power(Abs(Y - Point.Y), FPower)
       else
-        FDists[Index] := 1 / Max(1, Sqr(X - Point.X) + Sqr(Y - Point.Y));
+        Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
+      FDists[Index] := 1 / Max(1, Temp);
       DistSum := DistSum + FDists[Index];
     end;
 
@@ -1294,7 +1295,6 @@ procedure TShepardSampler.PrepareSampling;
 begin
   GetMem(FDists, Count * SizeOf(TFloat));
   FUsePower := FPower <> 2;
-  FScaledPower := 0.5 * FPower;
   inherited;
 end;
 

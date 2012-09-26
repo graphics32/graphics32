@@ -183,7 +183,32 @@
   {-$DEFINE OMIT_SSE2}
 
 
-(*  Symbol: USEGR32GAMMA  --------------------    If defined the polygon rasterizer will use the GR32 gamma correction LUT.  Disable for a slight performance increase.*){$DEFINE USEGR32GAMMA}(*  Symbol: CHANGENOTIFICATIONS  ---------------------------    If defined the polygon rasterizer will trigger change notifications.  Undefining this will avoid bounding box computations, which may  improve performance slightly.*){$DEFINE CHANGENOTIFICATIONS}
+
+(*
+  Symbol: USEGR32GAMMA
+  --------------------
+
+    If defined the polygon rasterizer will use the GR32 gamma correction LUT.
+
+  Disable for a slight performance increase.
+*)
+
+{-$DEFINE USEGR32GAMMA}
+
+
+
+(*
+  Symbol: CHANGENOTIFICATIONS
+  ---------------------------
+
+    If defined the polygon rasterizer will trigger change notifications.
+
+  Undefining this will avoid bounding box computations, which may
+  improve performance slightly.
+*)
+
+{$DEFINE CHANGENOTIFICATIONS}
+
 
 
 (*
@@ -200,7 +225,7 @@
   NOTE: Undefine this symbol if you get stack overflow errors.
 *)
 
-{$DEFINE USESTACKALLOC}
+{-$DEFINE USESTACKALLOC}
 
 
 
@@ -232,3 +257,6 @@
 *)
 
 {-$DEFINE NOHORIZONTALHINTING}
+
+
+{-$DEFINE TEST_BLENDMEMRGB128SSE4}
