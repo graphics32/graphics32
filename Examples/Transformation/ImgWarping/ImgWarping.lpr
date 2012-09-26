@@ -1,4 +1,4 @@
-program ImgWarping_Ex;
+program ImgWarping;
 
 {$R Media.rc}
 

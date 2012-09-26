@@ -1,4 +1,4 @@
-program Visualization_Ex;
+program Visualization;
 
 {$R Media.rc}
 
