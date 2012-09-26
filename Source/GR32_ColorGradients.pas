@@ -110,25 +110,87 @@ type
       read FOnGradientColorsChanged write FOnGradientColorsChanged;
   end;
 
-  TTriangularGradientSampler = class(TCustomSampler)
-  private
-    function GetColor(Index: Integer): TColor32;
-    function GetPoint(Index: Integer): TFloatPoint;
-    procedure SetColor(Index: Integer; const Value: TColor32);
-    procedure SetPoint(Index: Integer; const Value: TFloatPoint);
+  TColorFloatPoint = record
+    Point: TFloatPoint;
+    Color: TColor32;
+  end;
+
+  TCustomSparsePointGradientSampler = class(TCustomSampler)
   protected
-    FTriangle: array [0 .. 2] of TFloatPoint;
-    FColors: array [0 .. 2] of TColor32;
-    FNormScale: TFloat;
-    procedure AssignTo(Dest: TPersistent); override;
+    function GetColor(Index: Integer): TColor32; virtual; abstract;
+    function GetPoint(Index: Integer): TFloatPoint; virtual; abstract;
+    procedure SetColor(Index: Integer; const Value: TColor32); virtual; abstract;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); virtual; abstract;
   public
-    procedure PrepareSampling; override;
-    function GetSampleInt(X, Y: Integer): TColor32; override;
-    function GetSampleFixed(X, Y: TFixed): TColor32; override;
-    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32;
+    function GetSampleInt(X, Y: Integer): TColor32;
 
     property Color[Index: Integer]: TColor32 read GetColor write SetColor;
     property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+  end;
+
+  TTriangularGradientSampler = class(TCustomSparsePointGradientSampler)
+  protected
+    FColorPoints: array [0 .. 2] of TColorFloatPoint;
+    FNormScale: TFloat;
+    function GetColor(Index: Integer): TColor32; override;
+    function GetPoint(Index: Integer): TFloatPoint; override;
+    procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    procedure PrepareSampling; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  end;
+
+  TQuadGradientSampler = class(TCustomSparsePointGradientSampler)
+  protected
+    FColorPoints: array [0 .. 3] of TColorFloatPoint;
+    FNormScale: TFloat;
+    function GetColor(Index: Integer): TColor32; override;
+    function GetPoint(Index: Integer): TFloatPoint; override;
+    procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    procedure PrepareSampling; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  end;
+
+  TCustomArbitrarySparsePointGradientSampler = class(TCustomSparsePointGradientSampler)
+  private
+    FColorPoints: array of TColorFloatPoint;
+    function GetCount: Integer;
+  protected
+    procedure AssignTo(Dest: TPersistent); override;
+    function GetColor(Index: Integer): TColor32; override;
+    function GetPoint(Index: Integer): TFloatPoint; override;
+    procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
+  public
+    procedure Add(Point: TFloatPoint; Color: TColor32); virtual;
+    procedure Clear; virtual;
+
+    property Count: Integer read GetCount;
+  end;
+
+  TVoronoiSampler = class(TCustomArbitrarySparsePointGradientSampler)
+  public
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  end;
+
+  TShepardSampler = class(TCustomArbitrarySparsePointGradientSampler)
+  private
+    FDists: PFloatArray;
+    FUsePower: Boolean;
+    FPower, FScaledPower: TFloat;
+  public
+    constructor Create; virtual;
+    procedure PrepareSampling; override;
+    procedure FinalizeSampling; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+
+    property Power: TFloat read FPower write FPower;
   end;
 
   TCustomGradientSampler = class(TCustomSampler)
@@ -825,19 +887,34 @@ begin
   end;
 end;
 
+{ TCustomSparsePointGradientSampler }
+
+function TCustomSparsePointGradientSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
+end;
+
+function TCustomSparsePointGradientSampler.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  Result := GetSampleFloat(X, Y);
+end;
+
 
 { TTriangularGradientSampler }
 
 procedure TTriangularGradientSampler.AssignTo(Dest: TPersistent);
 begin
-  inherited;
-
+  if Dest is TTriangularGradientSampler then
+    with TTriangularGradientSampler(Dest) do
+      FColorPoints := Self.FColorPoints
+  else
+    inherited;
 end;
 
 function TTriangularGradientSampler.GetColor(Index: Integer): TColor32;
 begin
   if Index in [0 .. 2] then
-    Result := FColors[Index]
+    Result := FColorPoints[Index].Color
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
@@ -845,19 +922,9 @@ end;
 function TTriangularGradientSampler.GetPoint(Index: Integer): TFloatPoint;
 begin
   if Index in [0 .. 2] then
-    Result := FTriangle[Index]
+    Result := FColorPoints[Index].Point
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
-end;
-
-function TTriangularGradientSampler.GetSampleInt(X, Y: Integer): TColor32;
-begin
-  Result := GetSampleFloat(X, Y);
-end;
-
-function TTriangularGradientSampler.GetSampleFixed(X, Y: TFixed): TColor32;
-begin
-  Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
 end;
 
 type
@@ -965,29 +1032,33 @@ var
   Temp: TFloatPoint;
   Barycentric: array [0..1] of TFloat;
 begin
-  Temp.X := (X - FTriangle[2].X);
-  Temp.Y := (Y - FTriangle[2].Y);
-  Barycentric[0] := FNormScale * ((FTriangle[1].Y - FTriangle[2].Y) * Temp.X +
-    (FTriangle[2].X - FTriangle[1].X) * Temp.Y);
-  Barycentric[1] := FNormScale * ((FTriangle[2].Y - FTriangle[0].Y) * Temp.X +
-    (FTriangle[0].X - FTriangle[2].X) * Temp.Y);
+  Temp.X := (X - FColorPoints[2].Point.X);
+  Temp.Y := (Y - FColorPoints[2].Point.Y);
+  Barycentric[0] := FNormScale * ((FColorPoints[1].Point.Y -
+    FColorPoints[2].Point.Y) * Temp.X + (FColorPoints[2].Point.X -
+    FColorPoints[1].Point.X) * Temp.Y);
+  Barycentric[1] := FNormScale * ((FColorPoints[2].Point.Y -
+    FColorPoints[0].Point.Y) * Temp.X + (FColorPoints[0].Point.X -
+    FColorPoints[2].Point.X) * Temp.Y);
 
-  Result := Linear3PointInterpolation(FColors[0], FColors[1], FColors[2],
+  Result := Linear3PointInterpolation(FColorPoints[0].Color,
+    FColorPoints[1].Color, FColorPoints[2].Color,
     Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
 end;
 
 procedure TTriangularGradientSampler.PrepareSampling;
 begin
-  FNormScale := 1 / ((FTriangle[1].Y - FTriangle[2].Y) *
-    (FTriangle[0].X - FTriangle[2].X) + (FTriangle[2].X - FTriangle[1].X) *
-    (FTriangle[0].Y - FTriangle[2].Y));
+  FNormScale := 1 / ((FColorPoints[1].Point.Y - FColorPoints[2].Point.Y) *
+    (FColorPoints[0].Point.X - FColorPoints[2].Point.X) +
+    (FColorPoints[2].Point.X - FColorPoints[1].Point.X) *
+    (FColorPoints[0].Point.Y - FColorPoints[2].Point.Y));
 end;
 
 procedure TTriangularGradientSampler.SetColor(Index: Integer;
   const Value: TColor32);
 begin
   if Index in [0 .. 2] then
-    FColors[Index] := Value
+    FColorPoints[Index].Color := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
@@ -996,9 +1067,235 @@ procedure TTriangularGradientSampler.SetPoint(Index: Integer;
   const Value: TFloatPoint);
 begin
   if Index in [0 .. 2] then
-    FTriangle[Index] := Value
+    FColorPoints[Index].Point := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+
+{ TQuadGradientSampler }
+
+procedure TQuadGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TQuadGradientSampler then
+    with TQuadGradientSampler(Dest) do
+      FColorPoints := Self.FColorPoints
+  else
+    inherited;
+end;
+
+function TQuadGradientSampler.GetColor(Index: Integer): TColor32;
+begin
+  if Index in [0 .. 3] then
+    Result := FColorPoints[Index].Color
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TQuadGradientSampler.GetPoint(Index: Integer): TFloatPoint;
+begin
+  if Index in [0 .. 3] then
+    Result := FColorPoints[Index].Point
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TQuadGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+begin
+
+end;
+
+procedure TQuadGradientSampler.PrepareSampling;
+begin
+  inherited;
+  raise Exception.Create('Not yet implemented');
+end;
+
+procedure TQuadGradientSampler.SetColor(Index: Integer;
+  const Value: TColor32);
+begin
+  if Index in [0 .. 3] then
+    FColorPoints[Index].Color := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TQuadGradientSampler.SetPoint(Index: Integer;
+  const Value: TFloatPoint);
+begin
+  if Index in [0 .. 3] then
+    FColorPoints[Index].Point := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+
+{ TCustomArbitrarySparsePointGradientSampler }
+
+procedure TCustomArbitrarySparsePointGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TCustomArbitrarySparsePointGradientSampler then
+    with TCustomArbitrarySparsePointGradientSampler(Dest) do
+    begin
+      FColorPoints := Self.FColorPoints;
+    end
+  else
+    inherited;
+end;
+
+procedure TCustomArbitrarySparsePointGradientSampler.Add(Point: TFloatPoint;
+  Color: TColor32);
+var
+  Index: Integer;
+begin
+  Index := Length(FColorPoints);
+  SetLength(FColorPoints, Index + 1);
+  FColorPoints[Index].Point := Point;
+  FColorPoints[Index].Color := Color;
+end;
+
+procedure TCustomArbitrarySparsePointGradientSampler.Clear;
+begin
+  SetLength(FColorPoints, 0);
+end;
+
+function TCustomArbitrarySparsePointGradientSampler.GetColor(
+  Index: Integer): TColor32;
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    Result := FColorPoints[Index].Color
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TCustomArbitrarySparsePointGradientSampler.GetCount: Integer;
+begin
+  Result := Length(FColorPoints);
+end;
+
+function TCustomArbitrarySparsePointGradientSampler.GetPoint(
+  Index: Integer): TFloatPoint;
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    Result := FColorPoints[Index].Point
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TCustomArbitrarySparsePointGradientSampler.SetColor(Index: Integer;
+  const Value: TColor32);
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    FColorPoints[Index].Color := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TCustomArbitrarySparsePointGradientSampler.SetPoint(Index: Integer;
+  const Value: TFloatPoint);
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    FColorPoints[Index].Point := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+
+{ TVoronoiSampler }
+
+function TVoronoiSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  Index, NearestIndex: Integer;
+  Distance: TFloat;
+  NearestDistance: TFloat;
+begin
+  NearestIndex := 0;
+  NearestDistance := Sqr(X - FColorPoints[0].Point.X) + Sqr(Y - FColorPoints[0].Point.Y);
+  for Index := 1 to High(FColorPoints) do
+  begin
+    Distance := Sqr(X - FColorPoints[Index].Point.X) + Sqr(Y - FColorPoints[Index].Point.Y);
+    if Distance < NearestDistance then
+    begin
+      NearestDistance := Distance;
+      NearestIndex := Index;
+    end;
+  end;
+  Result := FColorPoints[NearestIndex].Color;
+end;
+
+
+{ TShepardSampler }
+
+constructor TShepardSampler.Create;
+begin
+  FPower := 2;
+end;
+
+procedure TShepardSampler.FinalizeSampling;
+begin
+  inherited;
+  FreeMem(FDists);
+end;
+
+function TShepardSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  Index: Integer;
+  Dists: array of TFloat;
+  DistSum, Scale: TFloat;
+  R, G, B, A: TFloat;
+begin
+  if Count = 1 then
+  begin
+    Result := FColorPoints[0].Color;
+    Exit;
+  end;
+
+  with FColorPoints[0] do
+    if FUsePower then
+      FDists[0] := 1 / Max(1,
+        Math.Power(X - Point.X, FScaledPower) +
+        Math.Power(Y - Point.Y, FScaledPower))
+    else
+      FDists[0] := 1 / Max(1, Sqr(X - Point.X) + Sqr(Y - Point.Y));
+  DistSum := FDists[0];
+  for Index := 1 to Count - 1 do
+    with FColorPoints[Index] do
+    begin
+      if FUsePower then
+        FDists[Index] := 1 / Max(1,
+          Math.Power(X - Point.X, FScaledPower) +
+          Math.Power(Y - Point.Y, FScaledPower))
+      else
+        FDists[Index] := 1 / Max(1, Sqr(X - Point.X) + Sqr(Y - Point.Y));
+      DistSum := DistSum + FDists[Index];
+    end;
+
+  Assert(DistSum <> 0);
+  DistSum := 1 / DistSum;
+  Scale := FDists[0] * DistSum;
+  R := Scale * TColor32Entry(FColorPoints[0].Color).R;
+  G := Scale * TColor32Entry(FColorPoints[0].Color).G;
+  B := Scale * TColor32Entry(FColorPoints[0].Color).B;
+  A := Scale * TColor32Entry(FColorPoints[0].Color).A;
+  for Index := 1 to Count - 1 do
+  begin
+    Scale := FDists[Index] * DistSum;
+    R := R + Scale * TColor32Entry(FColorPoints[Index].Color).R;
+    G := G + Scale * TColor32Entry(FColorPoints[Index].Color).G;
+    B := B + Scale * TColor32Entry(FColorPoints[Index].Color).B;
+    A := A + Scale * TColor32Entry(FColorPoints[Index].Color).A;
+  end;
+
+  Result := Color32(Clamp(Round(R)), Clamp(Round(G)), Clamp(Round(B)),
+    Clamp(Round(A)));
+end;
+
+procedure TShepardSampler.PrepareSampling;
+begin
+  GetMem(FDists, Count * SizeOf(TFloat));
+  FUsePower := FPower <> 2;
+  FScaledPower := 0.5 * FPower;
+  inherited;
 end;
 
 
