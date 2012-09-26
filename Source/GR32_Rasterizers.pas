@@ -187,7 +187,6 @@ uses
   GR32_Containers;
 
 type
-  TThreadPersistentAccess = class(TThreadPersistent);
   TCustomBitmap32Access = class(TCustomBitmap32);
 
   TLineRasterizerData = record

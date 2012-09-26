@@ -3,9 +3,6 @@
   <ProjectOptions>
     <Version Value="9"/>
     <General>
-      <Flags>
-        <LRSInOutputDirectory Value="False"/>
-      </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="GR32 Pixel Combine Example"/>
@@ -30,9 +27,6 @@
               <UseAnsiStrings Value="False"/>
             </SyntaxOptions>
           </Parsing>
-          <CodeGeneration>
-            <SmartLinkUnit Value="True"/>
-          </CodeGeneration>
           <Linking>
             <LinkSmart Value="True"/>
             <Options>

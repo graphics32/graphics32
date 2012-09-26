@@ -7,7 +7,7 @@
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
-      <SessionStorage Value="None"/>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="GR32 Texture Blend Example"/>
     </General>
