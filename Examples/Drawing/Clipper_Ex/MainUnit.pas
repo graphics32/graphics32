@@ -39,18 +39,32 @@ interface
 uses
   {$IFNDEF FPC}Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF} SysUtils, Classes,
   Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, GR32, GR32_Image,
-  GR32_Polygons, GR32_Clipper,
-  //The following clipper unit is open source freeware and is available from
-  //SourceForge here: http://sourceforge.net/projects/polyclipping/
-  clipper;
+  GR32_Polygons, GR32_Layers, GR32_Geometry, GR32_VectorUtils, GR32_Clipper;
 
 type
   TFrmClipper = class(TForm)
-    BtnClose: TButton;
+    BtnExit: TButton;
     ImgView32: TImgView32;
     PnlControl: TPanel;
+    rgClipping: TRadioGroup;
+    BtnClear: TButton;
+    RgpObject: TRadioGroup;
     procedure FormCreate(Sender: TObject);
-    procedure BtnCloseClick(Sender: TObject);
+    procedure BtnExitClick(Sender: TObject);
+    procedure ImgView32MouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer; Layer: TCustomLayer);
+    procedure ImgView32MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure BtnClearClick(Sender: TObject);
+    procedure ImgView32MouseLeave(Sender: TObject);
+  private
+    Polys: TArrayOfArrayOfFixedPoint;
+    OutlinePolygon: TArrayOfFixedPoint;
+    procedure AddPolygon(const Pts: TArrayOfFixedPoint);
+    function MakeRectangle(const NewPoint: TPoint): TArrayOfFixedPoint;
+    function MakeEllipse(const NewPoint: TPoint): TArrayOfFixedPoint;
+    function MakeStar(const NewPoint: TPoint): TArrayOfFixedPoint;
+    procedure DrawPolygons;
   end;
 
 var
@@ -64,119 +78,151 @@ implementation
 {$R *.dfm}
 {$ENDIF}
 
-const
-  Ellipse: array [0..129] of Single = (
-    120.00, 70.00, 119.74, 75.11, 118.98, 80.08, 117.75, 84.87, 116.07,
-    89.46, 113.97, 93.83, 111.46, 97.96, 108.58, 101.80, 105.36, 105.36,
-    101.80, 108.58, 97.96, 111.46, 93.83, 113.97, 89.46, 116.07, 84.87,
-    117.75, 80.08, 118.98, 75.11, 119.74, 70.00, 120.00, 64.89, 119.74,
-    59.92, 118.98, 55.13, 117.75, 50.54, 116.07, 46.17, 113.97, 42.04,
-    111.46, 38.20, 108.58, 34.64, 105.36, 31.42, 101.80, 28.54, 97.96,
-    26.03, 93.83, 23.93, 89.46, 22.25, 84.87, 21.02, 80.08, 20.26, 75.11,
-    20.00, 70.00, 20.26, 64.89, 21.02, 59.92, 22.25, 55.13, 23.93, 50.54,
-    26.03, 46.17, 28.54, 42.04, 31.42, 38.20, 34.64, 34.64, 38.20, 31.42,
-    42.04, 28.54, 46.17, 26.03, 50.54, 23.93, 55.13, 22.25, 59.92, 21.02,
-    64.89, 20.26, 70.00, 20.00, 75.11, 20.26, 80.08, 21.02, 84.87, 22.25,
-    89.46, 23.93, 93.83, 26.03, 97.96, 28.54, 101.80, 31.42, 105.36, 34.64,
-    108.58, 38.20, 111.46, 42.04, 113.97, 46.17, 116.07, 50.54, 117.75,
-    55.13, 118.98, 59.92, 119.74, 64.89, 120.00, 70.00
-  );
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-
-function Translate(const Pts: TArrayOfArrayOfFloatPoint;
-  dx, dy: Integer): TArrayOfArrayOfFloatPoint;
+function Translate(const Pts: TArrayOfArrayOfFixedPoint;
+  dx, dy: TFixed): TArrayOfArrayOfFixedPoint;
 var
-  i, j: Integer;
+  I, J: Integer;
 begin
   SetLength(Result, Length(pts));
-  for i := 0 to High(pts) do
+  for I := 0 to High(pts) do
   begin
-    SetLength(Result[i], Length(pts[i]));
-    for j := 0 to High(pts[i]) do
+    SetLength(Result[I], Length(pts[I]));
+    for J := 0 to High(pts[I]) do
     begin
-      Result[i, j].X := pts[i, j].X + dx;
-      Result[i, j].Y := pts[i, j].Y + dy;
+      Result[I, J].X := pts[I, J].X + dx;
+      Result[I, J].Y := pts[I, J].Y + dy;
     end;
   end;
 end;
-//------------------------------------------------------------------------------
 
 procedure DrawStippled(Bitmap: TBitmap32;
-  const aafp: TArrayOfArrayOfFloatPoint;
+  const Afp: TArrayOfFixedPoint;
   StippleColors: array of TColor32; StippleStep: Single);
 var
-  i, j: Integer;
+  i: Integer;
 begin
+  if Afp = nil then Exit;
   Bitmap.StippleStep := StippleStep;
   Bitmap.SetStipple(StippleColors);
-  for i := 0 to High(aafp) do
-  begin
-    Bitmap.MoveToF(aafp[i, 0].X,aafp[i, 0].Y);
-    for j := 1 to High(aafp[i]) do
-      Bitmap.LineToFSP(aafp[i, j].X, aafp[i, j].Y);
-    Bitmap.LineToFSP(aafp[i, 0].X, aafp[i, 0].Y);
-  end;
+  Bitmap.MoveToX(Afp[0].X, Afp[0].Y);
+  for i := 1 to High(Afp) do
+    Bitmap.LineToXSP(Afp[i].X, Afp[i].Y);
+  Bitmap.LineToXSP(Afp[0].X, Afp[0].Y);
 end;
-//------------------------------------------------------------------------------
+
+function ArrayOfFloatPointToArrayOfFixedPoint(
+  const Pts: TArrayOfFloatPoint): TArrayOfFixedPoint;
+var
+  I, Len: Integer;
+begin
+  Len := Length(Pts);
+  SetLength(Result, Len);
+  for I := 0 to Len -1 do
+    Result[I] := FixedPoint(Pts[I]);
+end;
+
+{ TFrmClipper methods }
 
 procedure TFrmClipper.FormCreate(Sender: TObject);
-var
-  i, Len: Integer;
-  Circs1, Circs2: TArrayOfArrayOfFloatPoint;
 begin
-  Caption := Application.Title;
+  ImgView32.Bitmap.SetSize(640, 480);
+  AddPolygon(MakeStar(Point(125,150)));
+  ImgView32.ScrollToCenter(0, 0);
+end;
 
-  //make the first circle from the array of Ellipse coords above ...
-  Len := Length(Ellipse) div 2;
-  SetLength(Circs1, 1);
-  SetLength(Circs1[0], Len);
-  for i := 0 to Len - 1 do
-  begin
-    //*2 because the Ellipse coords were bit small
-    Circs1[0, i].X := Ellipse[i * 2] * 2;
-    Circs1[0, i].Y := Ellipse[i * 2 + 1] * 2;
-  end;
-
-  //make a second inner circle by offsetting the first ...
-  Circs2 := OffsetPolygons32(Circs1, -10);
-  //and copy Circs2[0] into Circs1[1] ...
-  SetLength(Circs1, 2);
-  Circs1[1] := copy(Circs2[0], 0, Length(Circs2[0]));
-
-  //now duplicate Circs1 and translate/move right 70px ...
-  Circs2 := Translate(Circs1, 70, 0);
-
-  ImgView32.SetupBitmap(True, clWhite32);
-  //PolyPolyLineFS(ImgView321.Bitmap, Circs1, clLightGray32, True, 0.5);
-  //PolyPolyLineFS(ImgView321.Bitmap, Circs2, clLightGray32, True, 0.5);
-
-  //get the UNION of Circs1 and Circs2 and save Result into Circs1 ...
-  with TClipper32.Create do
+procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFixedPoint);
+begin
+  with TClipper.Create do
   try
-    AddArrayOfArrayOfFloatPoint(Circs1, ptSubject);
-    AddArrayOfArrayOfFloatPoint(Circs2, ptClip);
-    Execute(ctUnion, Circs1, pftEvenOdd, pftEvenOdd);
+    //add multiple contours of existing polygons as subject polygons ...
+    AddArrayOfArrayOfFixedPoint(Polys, ptSubject);
+    //add the single contour of the new polygon as the clipping polygon ...
+    AddArrayOfFixedPoint(Pts, ptClip);
+    //do the clipping operation (result => Polys) ...
+    case rgClipping.ItemIndex of
+      0:  Execute(ctIntersection, Polys, pftNonZero);
+      1:  Execute(ctUnion, Polys, pftNonZero);
+      2:  Execute(ctDifference, Polys, pftNonZero);
+      else  Execute(ctXor, Polys, pftNonZero);
+    end;
   finally
     free;
   end;
-  //draw the union (Circs1) Result in red ...
-  PolyPolyLineFS(ImgView32.Bitmap, Circs1, clRed32, True, 2);
-  PolyPolygonFS(ImgView32.Bitmap, Circs1, $40FF0000);
-
-  //finally, offset Circs1 by 4px ...
-  Circs2 := OffsetPolygons32(Circs1, 4);
-  //and draw (stippled) this offsetted outline of Circs1 ...
-  //PolyPolyLineFS(ImgView321.Bitmap, Circs2, clGray32, True, 1.0);
-  DrawStippled(ImgView32.Bitmap, Circs2, [clBlue32, clBlue32, $000000FF], 0.25);
+  DrawPolygons;
 end;
-//------------------------------------------------------------------------------
 
-procedure TFrmClipper.BtnCloseClick(Sender: TObject);
+function TFrmClipper.MakeRectangle(const NewPoint: TPoint): TArrayOfFixedPoint;
+begin
+  SetLength(Result, 4);
+  Result[0] := FixedPoint(Integer(NewPoint.X - 50), Integer(NewPoint.Y - 30));
+  Result[1] := FixedPoint(Integer(NewPoint.X + 50), Integer(NewPoint.Y - 30));
+  Result[2] := FixedPoint(Integer(NewPoint.X + 50), Integer(NewPoint.Y + 30));
+  Result[3] := FixedPoint(Integer(NewPoint.X - 50), Integer(NewPoint.Y + 30));
+end;
+
+function TFrmClipper.MakeEllipse(const NewPoint: TPoint): TArrayOfFixedPoint;
+var
+  EllipseF: TArrayOfFloatPoint;
+begin
+  EllipseF := Ellipse(FloatPoint(NewPoint), FloatPoint(60,40));
+  SetLength(Result, 1);
+  Result := ArrayOfFloatPointToArrayOfFixedPoint(EllipseF);
+end;
+
+function TFrmClipper.MakeStar(const NewPoint: TPoint): TArrayOfFixedPoint;
+var
+  StarF: TArrayOfFloatPoint;
+begin
+  StarF := Star(FloatPoint(NewPoint), 40.0, 60.0, 7);
+  SetLength(Result, 1);
+  Result := ArrayOfFloatPointToArrayOfFixedPoint(StarF);
+end;
+
+procedure TFrmClipper.DrawPolygons;
+begin
+  ImgView32.Bitmap.FillRectS(ImgView32.Bitmap.BoundsRect, clWhite32);
+  PolyPolyLineXS(ImgView32.Bitmap, Polys, clRed32, True, Fixed(2));
+  PolyPolygonXS(ImgView32.Bitmap, Polys, $40FF0000, pfWinding);
+  DrawStippled(ImgView32.Bitmap, OutlinePolygon, [clBlue32, clBlue32, $000000FF], 0.35);
+end;
+
+procedure TFrmClipper.ImgView32MouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer;
+  Layer: TCustomLayer);
+begin
+  AddPolygon(OutlinePolygon);
+end;
+
+procedure TFrmClipper.ImgView32MouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  NewPt: TPoint;
+begin
+  NewPt := ImgView32.ControlToBitmap(Point(X,Y));
+  case RgpObject.ItemIndex of
+    0: OutlinePolygon := MakeStar(NewPt);
+    1: OutlinePolygon := MakeEllipse(NewPt);
+    else OutlinePolygon := MakeRectangle(NewPt);
+  end;
+  DrawPolygons;
+end;
+
+procedure TFrmClipper.ImgView32MouseLeave(Sender: TObject);
+begin
+  OutlinePolygon := nil;
+  DrawPolygons;
+end;
+
+procedure TFrmClipper.BtnExitClick(Sender: TObject);
 begin
   Close;
 end;
-//------------------------------------------------------------------------------
+
+procedure TFrmClipper.BtnClearClick(Sender: TObject);
+begin
+  Polys := nil;
+  DrawPolygons;
+end;
 
 end.

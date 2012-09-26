@@ -1,42 +1,78 @@
 object FrmClipper: TFrmClipper
-  Left = 425
-  Top = 191
+  Left = 272
+  Top = 153
+  Width = 676
+  Height = 496
   Caption = 'Clipper Demo'
-  ClientHeight = 414
-  ClientWidth = 401
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
+  Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
+  Font.Height = -12
+  Font.Name = 'Arial'
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
   PixelsPerInch = 96
-  TextHeight = 13
+  TextHeight = 15
   object PnlControl: TPanel
     Left = 0
     Top = 0
-    Width = 401
-    Height = 41
-    Align = alTop
+    Width = 169
+    Height = 469
+    Align = alLeft
     TabOrder = 0
-    object BtnClose: TButton
-      Left = 8
-      Top = 8
+    object BtnExit: TButton
+      Left = 36
+      Top = 420
       Width = 75
       Height = 25
       Cancel = True
-      Caption = '&Close'
+      Caption = 'Exit'
+      TabOrder = 2
+      OnClick = BtnExitClick
+    end
+    object rgClipping: TRadioGroup
+      Left = 16
+      Top = 26
+      Width = 138
+      Height = 127
+      Caption = 'Clipping Op'
+      ItemIndex = 1
+      Items.Strings = (
+        '&Intersection'
+        '&Union'
+        '&Difference'
+        '&XOR')
       TabOrder = 0
-      OnClick = BtnCloseClick
+    end
+    object BtnClear: TButton
+      Left = 35
+      Top = 384
+      Width = 75
+      Height = 25
+      Caption = '&Clear'
+      TabOrder = 1
+      OnClick = BtnClearClick
+    end
+    object RgpObject: TRadioGroup
+      Left = 15
+      Top = 176
+      Width = 138
+      Height = 98
+      Caption = 'Shape'
+      ItemIndex = 0
+      Items.Strings = (
+        '&Star'
+        '&Ellipse'
+        '&Rectangle')
+      TabOrder = 3
     end
   end
   object ImgView32: TImgView32
-    Left = 0
-    Top = 41
-    Width = 401
-    Height = 373
+    Left = 169
+    Top = 0
+    Width = 499
+    Height = 469
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
@@ -48,5 +84,8 @@ object FrmClipper: TFrmClipper
     ScrollBars.Visibility = svAuto
     OverSize = 0
     TabOrder = 1
+    OnMouseDown = ImgView32MouseDown
+    OnMouseLeave = ImgView32MouseLeave
+    OnMouseMove = ImgView32MouseMove
   end
 end
