@@ -1,4 +1,4 @@
-program Transform_Ex;
+program Transform;
 
 {$R Media.rc}
 

@@ -4,9 +4,12 @@
     <Version Value="9"/>
     <PathDelim Value="\"/>
     <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="Image Warping Example"/>
+      <Title Value="Visualization Example"/>
     </General>
     <VersionInfo>
       <Language Value=""/>
@@ -27,15 +30,13 @@
           <Parsing>
             <SyntaxOptions>
               <CStyleOperator Value="False"/>
+              <IncludeAssertionCode Value="True"/>
               <CPPInline Value="False"/>
               <UseAnsiStrings Value="False"/>
             </SyntaxOptions>
           </Parsing>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
-            <Optimizations>
-              <OptimizationLevel Value="3"/>
-            </Optimizations>
           </CodeGeneration>
           <Linking>
             <Debugging>
@@ -68,20 +69,17 @@
         <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="3">
+    <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="ImagesForLazarus"/>
+        <PackageName Value="LCL"/>
       </Item1>
       <Item2>
         <PackageName Value="GR32_Lazarus"/>
       </Item2>
-      <Item3>
-        <PackageName Value="LCL"/>
-      </Item3>
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
-        <Filename Value="ImgWarping_Ex.lpr"/>
+        <Filename Value="Visualization.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
