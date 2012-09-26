@@ -1,17 +1,44 @@
 unit MainUnit;
 
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1 or LGPL 2.1 with linking exception
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * Alternatively, the contents of this file may be used under the terms of the
+ * Free Pascal modified version of the GNU Lesser General Public License
+ * Version 2.1 (the "FPC modified LGPL License"), in which case the provisions
+ * of this license are applicable instead of those above.
+ * Please see the file LICENSE.txt for additional information concerning this
+ * license.
+ *
+ * The Original Code is Gradient Sampler Example
+ *
+ * The Initial Developer(s) of the Original Code is:
+ * Christian-W. Budde <Christian@savioursofsoul.de>
+ *
+ * Portions created by the Initial Developer are Copyright (C) 2000-2012
+ * the Initial Developer. All Rights Reserved.
+ *
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, GR32, GR32_Image, GR32_ColorGradients;
+  {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes,
+  Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
+  GR32, GR32_Image, GR32_ColorGradients;
 
 type
-  TColorPoint = record
-    X, Y: TFloat;
-    Color: TColor32;
-  end;
-
   TFrmGradientSampler = class(TForm)
     PaintBox32: TPaintBox32;
     MainMenu: TMainMenu;
@@ -29,6 +56,7 @@ type
     MnuWrapModeClamp: TMenuItem;
     MnuWrapModeRepeat: TMenuItem;
     MnuWrapModeMirror: TMenuItem;
+    Timer: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -40,6 +68,9 @@ type
     procedure MnuGradientXYClick(Sender: TObject);
     procedure MnuGradientXYSqrtClick(Sender: TObject);
     procedure MnuGradientCustomClick(Sender: TObject);
+    procedure MnuWrapModeClampClick(Sender: TObject);
+    procedure MnuWrapModeRepeatClick(Sender: TObject);
+    procedure MnuWrapModeMirrorClick(Sender: TObject);
     procedure PaintBox32PaintBuffer(Sender: TObject);
     procedure PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
@@ -47,14 +78,13 @@ type
       Y: Integer);
     procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure MnuWrapModeClampClick(Sender: TObject);
-    procedure MnuWrapModeRepeatClick(Sender: TObject);
-    procedure MnuWrapModeMirrorClick(Sender: TObject);
+    procedure TimerTimer(Sender: TObject);
   private
     FCenter: TFloatPoint;
     FWrapMode: TWrapMode;
     FGradCenter: TFloatPoint;
     FAngle, FRadius: TFloat;
+    FStarAngle: TFloat;
     FStarVertices: Integer;
     FLastPos: TFloatPoint;
     FOutline: TArrayOfFloatPoint;
@@ -159,7 +189,8 @@ begin
   FRadius := 50;
   FWrapMode := wmMirror;
   FStarVertices := 5;
-  FOutline := Star(FCenter, 180, FStarVertices);
+  FStarAngle := 0;
+  FOutline := Star(FCenter, 180, FStarVertices, FStarAngle);
 
   FTriangularGradientSampler := TTriangularGradientSampler.Create;
   for Index := 0 to 2 do
@@ -307,6 +338,12 @@ procedure TFrmGradientSampler.PaintBox32MouseDown(Sender: TObject;
 var
   Index: Integer;
 begin
+  if (ssCtrl in Shift) then
+  begin
+    Timer.Enabled := not Timer.Enabled;
+    Exit;
+  end;
+
   if (ssShift in Shift) then
   begin
     for Index := 0 to 2 do
@@ -425,6 +462,14 @@ begin
   finally
     Renderer.Free;
   end;
+end;
+
+procedure TFrmGradientSampler.TimerTimer(Sender: TObject);
+begin
+  FAngle := FAngle + 0.01;
+  FStarAngle := FStarAngle + 0.01;
+  FOutline := Star(FCenter, 180, FStarVertices, FStarAngle);
+  PaintBox32.Invalidate;
 end;
 
 end.
