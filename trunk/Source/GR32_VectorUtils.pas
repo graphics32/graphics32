@@ -552,13 +552,23 @@ begin
   SetLength(Result, 2 * Vertices);
   M := System.Pi / Vertices;
 
-  // first item
-  Result[0].X := OuterRadius + P.X;
-  Result[0].Y := P.Y;
-
   // calculate complex offset
   GR32_Math.SinCos(M, C.Y, C.X);
-  D := C;
+
+  // first item
+  if Rotation = 0 then
+  begin
+    Result[0].X := OuterRadius + P.X;
+    Result[0].Y := P.Y;
+    D := C;
+  end
+  else
+  begin
+    GR32_Math.SinCos(Rotation, D.Y, D.X);
+    Result[0].X := OuterRadius * D.X + P.X;
+    Result[0].Y := OuterRadius * D.Y + P.Y;
+    D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
+  end;
 
   // second item
   Result[1].X := InnerRadius * D.X + P.X;
