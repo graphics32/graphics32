@@ -3067,27 +3067,40 @@ asm
         MOVD      [EDX],XMM1
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        PXOR      XMM2,XMM2
-        MOVD      XMM0,ECX
-        PUNPCKLBW XMM0,XMM2
-        MOVD      XMM1,[RDX]
-        PUNPCKLBW XMM1,XMM2
-        BSWAP     R8D
-        PSUBW     XMM0,XMM1
-        MOVD      XMM3,R8D
-        PUNPCKLBW XMM3,XMM2
-        PMULLW    XMM0,XMM3
+        MOVD      XMM1,R8D
+
+        PXOR      XMM4,XMM4
 {$IFNDEF FPC}
         MOV       RAX,bias_ptr
 {$ELSE}
         MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
 {$ENDIF}
-        PSLLW     XMM1,8
-        PADDW     XMM1,[RAX]
-        PADDW     XMM1,XMM0
-        PSRLW     XMM1,8
-        PACKUSWB  XMM1,XMM2
-        MOVD      [RDX],XMM1
+        MOVQ      XMM5,[RAX]
+        MOVD      XMM0,ECX
+        MOVD      XMM2,[RDX]
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM1,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM1,$1B
+
+        // C = wA  B - wB
+        PMULLW    XMM0,XMM1
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+
+        PADDW     XMM0,XMM2
+
+        PMULLW    XMM2,XMM1
+        PADDW     XMM2,XMM5
+        PSRLW     XMM2,8
+
+        PSUBW     XMM0,XMM2
+
+        PACKUSWB  XMM0,XMM4
+
+        MOVD      [RDX],XMM0
 {$ENDIF}
 end;
 
