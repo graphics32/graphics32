@@ -1087,9 +1087,39 @@ end;
 procedure CombineLineLCD(Weights: PRGBTripleArray; Dst: PColor32Array; Color: TColor32; Count: Integer);
 var
   I: Integer;
+  {$IFDEF TEST_BLENDMEMRGB128SSE4}
+  Weights64: UInt64;
+  {$ENDIF}
 begin
-  for I := 0 to Count - 1 do
-    BlendMemRGB(Color, Dst[I], PColor32(@Weights[I])^);
+  I := 0;
+  while Count <> 0 do
+    {$IFDEF TEST_BLENDMEMRGB128SSE4}
+    if (Count shr 1) = 0 then
+    {$ENDIF}
+    begin
+      if PColor32(@Weights[I])^ = $FFFFFFFF then
+        Dst[I] := Color
+      else
+        BlendMemRGB(Color, Dst[I], PColor32(@Weights[I])^);
+      Dec(Count);
+      Inc(I);
+    end
+    {$IFDEF TEST_BLENDMEMRGB128SSE4}
+    else
+    begin
+      Weights64 := (UInt64(PColor32(@Weights[I + 1])^) shl 32) or
+        PColor32(@Weights[I])^;
+      if Weights64 = $FFFFFFFFFFFFFFFF then
+      begin
+        Dst[I] := Color;
+        Dst[I + 1] := Color;
+      end
+      else
+        BlendMemRGB128(Color, Dst[I], Weights64);
+      Dec(Count, 2);
+      Inc(I, 2);
+    end
+    {$ENDIF};
   EMMS;
 end;
 

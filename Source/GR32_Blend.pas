@@ -60,6 +60,9 @@ type
   TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
   TBlendRegRGB = function(F, B, W: TColor32): TColor32;
   TBlendMemRGB = procedure(F: TColor32; var B: TColor32; W: TColor32);
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  TBlendMemRGB128 = procedure(F: TColor32; var B: TColor32; W: UInt64);
+{$ENDIF}
   TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
   TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
   TCombineReg  = function(X, Y, W: TColor32): TColor32;
@@ -81,6 +84,9 @@ var
 
   BlendRegRGB: TBlendRegRGB;
   BlendMemRGB: TBlendMemRGB;
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  BlendMemRGB128: TBlendMemRGB128;
+{$ENDIF}
 
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
@@ -3085,6 +3091,82 @@ asm
 {$ENDIF}
 end;
 
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+procedure BlendMemRGB128_SSE4(F: TColor32; var B: TColor32; W: UInt64); {$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x86}
+        MOVQ      XMM1,W
+
+        PXOR      XMM4,XMM4
+        MOV       ECX,[bias_ptr]
+        MOVDQA    XMM5,[ECX]
+
+        MOVD      XMM0,EAX
+        PINSRD    XMM0,EAX,1
+        MOVQ      XMM2,[EDX].QWORD
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM1,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM1,$1B
+        PSHUFHW   XMM1,XMM1,$1B
+
+        // C = wA  B - wB
+        PMULLW    XMM0,XMM1
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+
+        PADDW     XMM0,XMM2
+
+        PMULLW    XMM2,XMM1
+        PADDW     XMM2,XMM5
+        PSRLW     XMM2,8
+
+        PSUBW     XMM0,XMM2
+
+        PACKUSWB  XMM0,XMM4
+
+        MOVQ      [EDX].QWORD,XMM0
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOVQ      XMM1,R8
+
+        PXOR      XMM4,XMM4
+        MOV       RAX,[RIP+bias_ptr]
+        MOVDQA    XMM5,[RAX]
+
+        MOVD      XMM0,ECX
+        PINSRD    XMM0,ECX,1
+        MOVQ      XMM2,[RDX].QWORD
+
+        PUNPCKLBW XMM0,XMM4
+        PUNPCKLBW XMM1,XMM4
+        PUNPCKLBW XMM2,XMM4
+
+        PSHUFLW   XMM1,XMM1,$1B
+        PSHUFHW   XMM1,XMM1,$1B
+
+        // C = wA  B - wB
+        PMULLW    XMM0,XMM1
+        PADDW     XMM0,XMM5
+        PSRLW     XMM0,8
+
+        PADDW     XMM0,XMM2
+
+        PMULLW    XMM2,XMM1
+        PADDW     XMM2,XMM5
+        PSRLW     XMM2,8
+
+        PSUBW     XMM0,XMM2
+
+        PACKUSWB  XMM0,XMM4
+
+        MOVQ      [RDX].QWORD,XMM0
+{$ENDIF}
+end;
+{$ENDIF}
+
 procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
 {$IFDEF FPC}
 const
@@ -4076,6 +4158,9 @@ const
 
   FID_BLENDREGRGB = 27;
   FID_BLENDMEMRGB = 28;
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  FID_BLENDMEMRGB128 = 29;
+{$ENDIF}
 
 procedure RegisterBindings;
 begin
@@ -4114,6 +4199,9 @@ begin
   BlendRegistry.RegisterBinding(FID_LIGHTEN, @@LightenReg);
   BlendRegistry.RegisterBinding(FID_BLENDREGRGB, @@BlendRegRGB);
   BlendRegistry.RegisterBinding(FID_BLENDMEMRGB, @@BlendMemRGB);
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  BlendRegistry.RegisterBinding(FID_BLENDMEMRGB128, @@BlendMemRGB128);
+{$ENDIF}
 
   // pure pascal
   BlendRegistry.Add(FID_EMMS, @EMMS_Pas);
@@ -4202,6 +4290,9 @@ begin
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
   BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_SSE2, [ciSSE2]);
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  BlendRegistry.Add(FID_BLENDMEMRGB128, @BlendMemRGB128_SSE4, [ciSSE2]);
+{$ENDIF}
 {$ENDIF}
 {$IFNDEF TARGET_x64}
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
