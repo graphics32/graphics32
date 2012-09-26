@@ -1,7 +1,7 @@
 #!/bin/sh
 # Force Bourne shell in case tcsh is default.
 #
-appname=RotLayer_Ex
+appname=ImgView_Layers
 appfolder=$appname.app
 macosfolder=$appfolder/Contents/MacOS
 plistfile=$appfolder/Contents/Info.plist

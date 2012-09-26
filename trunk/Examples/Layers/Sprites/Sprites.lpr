@@ -1,4 +1,4 @@
-program Sprites_Ex;
+program Sprites;
 
 {$R Media.rc}
 

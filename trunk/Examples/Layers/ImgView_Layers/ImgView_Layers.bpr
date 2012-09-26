@@ -3,9 +3,9 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="ImgView_Layers_Ex.exe"/>
-    <OBJFILES value="ImgView_Layers_Ex.obj MainUnit.obj NewImageUnit.obj RGBALoaderUnit.obj"/>
-    <RESFILES value="ImgView_Layers_Ex.res"/>
+    <PROJECT value="ImgView_Layers.exe"/>
+    <OBJFILES value="ImgView_Layers.obj MainUnit.obj NewImageUnit.obj RGBALoaderUnit.obj"/>
+    <RESFILES value="ImgView_Layers.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
@@ -33,7 +33,7 @@
     <LINKER value="ilink32"/>
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
-    <MAINSOURCE value="ImgView_Layers_Ex.cpp"/>
+    <MAINSOURCE value="ImgView_Layers.cpp"/>
     <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl"/>
     <LIBPATH value="$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
@@ -56,8 +56,8 @@
     <OTHERFILES value=""/>
   </LINKER>
   <FILELIST>
-      <FILE FILENAME="ImgView_Layers_Ex.cpp" FORMNAME="" UNITNAME="ImgView_Layers_Ex" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="ImgView_Layers_Ex.res" FORMNAME="" UNITNAME="ImgView_Layers_Ex" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ImgView_Layers.cpp" FORMNAME="" UNITNAME="ImgView_Layers" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="ImgView_Layers.res" FORMNAME="" UNITNAME="ImgView_Layers" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="MainUnit.pas" FORMNAME="MainForm" UNITNAME="Mainunit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="NewImageUnit.pas" FORMNAME="NewImageForm" UNITNAME="Newimageunit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="RGBALoaderUnit.pas" FORMNAME="RGBALoaderForm" UNITNAME="Rgbaloaderunit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

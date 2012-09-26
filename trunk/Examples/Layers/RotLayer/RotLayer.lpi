@@ -2,13 +2,13 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="9"/>
+    <PathDelim Value="\"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
-      <Title Value="Image View Example"/>
     </General>
     <VersionInfo>
       <Language Value=""/>
@@ -38,14 +38,12 @@
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
             <Optimizations>
-              <OptimizationLevel Value="3"/>
+              <OptimizationLevel Value="2"/>
             </Optimizations>
           </CodeGeneration>
           <Linking>
             <Debugging>
               <GenerateDebugInfo Value="False"/>
-              <DebugInfoType Value="dsStabs"/>
-              <StripSymbols Value="True"/>
             </Debugging>
             <LinkSmart Value="True"/>
             <Options>
@@ -63,6 +61,7 @@
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedproject\"/>
       <IgnoreBinaries Value="False"/>
       <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
       <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
@@ -70,7 +69,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <RequiredPackages Count="3">
@@ -84,35 +83,19 @@
         <PackageName Value="GR32_Lazarus"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="4">
+    <Units Count="2">
       <Unit0>
-        <Filename Value="ImgView_Layers_Ex.lpr"/>
+        <Filename Value="RotLayer.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="MainUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="MainForm"/>
+        <ComponentName Value="FormRotLayer"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
       </Unit1>
-      <Unit2>
-        <Filename Value="NewImageUnit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="NewImageForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="NewImageUnit"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="RGBALoaderUnit.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="RGBALoaderForm"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <UnitName Value="RGBALoaderUnit"/>
-      </Unit3>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -132,9 +115,6 @@
         <UseAnsiStrings Value="False"/>
       </SyntaxOptions>
     </Parsing>
-    <CodeGeneration>
-      <SmartLinkUnit Value="True"/>
-    </CodeGeneration>
     <Linking>
       <LinkSmart Value="True"/>
       <Options>

@@ -1,4 +1,4 @@
-program RotLayer_Ex;
+program RotLayer;
 
 {$R Media.rc}
 
