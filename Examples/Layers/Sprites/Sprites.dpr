@@ -4,7 +4,7 @@ program Sprites;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas';
+  MainUnit in 'MainUnit.pas' {MainForm};
 
 begin
   Application.Initialize;
