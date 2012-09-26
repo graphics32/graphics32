@@ -861,12 +861,12 @@ begin
 end;
 
 type
-  TTrilinearInterpolation = function (A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+  TLinear3PointInterpolation = function (A, B, C: TColor32; WA, WB, WC: Single): TColor32;
 
 var
-  TrilinearInterpolation: TTrilinearInterpolation;
+  Linear3PointInterpolation: TLinear3PointInterpolation;
 
-function TrilinearInterpolation_Native(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+function Linear3PointInterpolation_Native(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
 var
   Clr: TColor32Entry absolute Result;
 begin
@@ -889,7 +889,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-function TrilinearInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM3,XMM3
@@ -972,7 +972,7 @@ begin
   Barycentric[1] := FNormScale * ((FTriangle[2].Y - FTriangle[0].Y) * Temp.X +
     (FTriangle[0].X - FTriangle[2].X) * Temp.Y);
 
-  Result := TrilinearInterpolation(FColors[0], FColors[1], FColors[2],
+  Result := Linear3PointInterpolation(FColors[0], FColors[1], FColors[2],
     Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
 end;
 
@@ -2365,9 +2365,9 @@ end;
 initialization
 {$IFNDEF PUREPASCAL}
   if ciSSE2 in CPUFeatures then
-    TrilinearInterpolation := TrilinearInterpolation_SSE2
+    Linear3PointInterpolation := Linear3PointInterpolation_SSE2
   else
 {$ENDIF}
-    TrilinearInterpolation := TrilinearInterpolation_Native;
+    Linear3PointInterpolation := Linear3PointInterpolation_Native;
 
 end.
