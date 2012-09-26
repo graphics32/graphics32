@@ -1,0 +1,180 @@
+object FmArrowHead: TFmArrowHead
+  Left = 375
+  Height = 470
+  Top = 138
+  Width = 567
+  Caption = 'ArrowHead'
+  ClientHeight = 470
+  ClientWidth = 567
+  Color = clBtnFace
+  Font.CharSet = ANSI_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -12
+  Font.Name = 'Arial'
+  KeyPreview = True
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '1.0.1.3'
+  object ImgView32: TImgView32
+    Left = 173
+    Height = 470
+    Top = 0
+    Width = 394
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCustom
+    Scale = 1
+    ScaleMode = smScale
+    ScrollBars.Color = clScrollBar
+    ScrollBars.ShowHandleGrip = True
+    ScrollBars.Style = rbsDefault
+    ScrollBars.Size = 16
+    ScrollBars.Visibility = svHidden
+    OverSize = 0
+    TabOrder = 0
+    OnMouseDown = ImgView32MouseDown
+    OnMouseMove = ImgView32MouseMove
+    OnMouseUp = ImgView32MouseUp
+    OnResize = ImgView32Resize
+  end
+  object PnlControl: TPanel
+    Left = 0
+    Height = 470
+    Top = 0
+    Width = 173
+    Align = alLeft
+    ClientHeight = 470
+    ClientWidth = 173
+    TabOrder = 1
+    object LblArrowSize: TLabel
+      Left = 15
+      Height = 16
+      Top = 19
+      Width = 58
+      Caption = '&Arrow Size'
+      FocusControl = EdtArrowSize
+      ParentColor = False
+    end
+    object LblLineWidth: TLabel
+      Left = 16
+      Height = 16
+      Top = 315
+      Width = 59
+      Caption = 'Line &Width'
+      FocusControl = TbrLineWidth
+      ParentColor = False
+    end
+    object BtnClose: TButton
+      Left = 15
+      Height = 25
+      Top = 424
+      Width = 140
+      Cancel = True
+      Caption = '&Close'
+      OnClick = BtnCloseClick
+      TabOrder = 6
+    end
+    object RgpArrowStyle: TRadioGroup
+      Left = 15
+      Height = 131
+      Top = 69
+      Width = 140
+      AutoFill = True
+      Caption = 'Arrow &Style'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 113
+      ClientWidth = 136
+      ItemIndex = 2
+      Items.Strings = (
+        'None'
+        '3 point'
+        '4 point'
+        'Diamond'
+        'Ellipse'
+      )
+      OnClick = RgpArrowStyleClick
+      TabOrder = 1
+    end
+    object EdtArrowSize: TEdit
+      Left = 15
+      Height = 23
+      Top = 36
+      Width = 140
+      OnChange = EdtArrowSizeChange
+      TabOrder = 0
+      Text = '20'
+    end
+    object RgpPosition: TRadioGroup
+      Left = 15
+      Height = 97
+      Top = 210
+      Width = 140
+      AutoFill = True
+      Caption = 'Arrow &Locations'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 79
+      ClientWidth = 136
+      ItemIndex = 2
+      Items.Strings = (
+        'Arrow at start'
+        'Arrow at end'
+        'Arrow at both ends'
+      )
+      OnClick = RgpArrowStyleClick
+      TabOrder = 2
+    end
+    object TbrLineWidth: TTrackBar
+      Left = 9
+      Height = 31
+      Top = 335
+      Width = 153
+      Max = 8
+      Min = 1
+      OnChange = TbrLineWidthChange
+      Position = 3
+      TabOrder = 3
+    end
+    object TbrAnimationSpeed: TTrackBar
+      Left = 91
+      Height = 31
+      Top = 381
+      Width = 70
+      Max = 8
+      Min = 1
+      OnChange = TbrAnimationSpeedChange
+      Position = 3
+      TickStyle = tsNone
+      TabOrder = 5
+    end
+    object CbxAnimate: TCheckBox
+      Left = 15
+      Height = 19
+      Top = 384
+      Width = 65
+      Caption = 'Ani&mate'
+      OnClick = CbxAnimateClick
+      TabOrder = 4
+    end
+  end
+  object Animation: TTimer
+    Enabled = False
+    Interval = 30
+    OnTimer = AnimationTimer
+    left = 184
+    top = 16
+  end
+end
