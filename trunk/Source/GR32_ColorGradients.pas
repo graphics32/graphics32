@@ -836,7 +836,7 @@ end;
 
 function TTriangularGradientSampler.GetColor(Index: Integer): TColor32;
 begin
-  if Index in [0..2] then
+  if Index in [0 .. 2] then
     Result := FColors[Index]
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
@@ -844,10 +844,15 @@ end;
 
 function TTriangularGradientSampler.GetPoint(Index: Integer): TFloatPoint;
 begin
-  if Index in [0..2] then
+  if Index in [0 .. 2] then
     Result := FTriangle[Index]
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TTriangularGradientSampler.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  Result := GetSampleFloat(X, Y);
 end;
 
 function TTriangularGradientSampler.GetSampleFixed(X, Y: TFixed): TColor32;
@@ -883,21 +888,23 @@ begin
     WC * TColor32Entry(C).R));
 end;
 
+{$IFNDEF PUREPASCAL}
 function TrilinearInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
 asm
+{$IFDEF TARGET_X86}
         PXOR      XMM3,XMM3
         MOVD      XMM0,EAX
         PUNPCKLBW XMM0,XMM3
         PUNPCKLWD XMM0,XMM3
-        CVTDQ2PS  XMM0, XMM0
+        CVTDQ2PS  XMM0,XMM0
         MOVD      XMM1,EDX
         PUNPCKLBW XMM1,XMM3
         PUNPCKLWD XMM1,XMM3
-        CVTDQ2PS  XMM1, XMM1
+        CVTDQ2PS  XMM1,XMM1
         MOVD      XMM2,ECX
         PUNPCKLBW XMM2,XMM3
         PUNPCKLWD XMM2,XMM3
-        CVTDQ2PS  XMM2, XMM2
+        CVTDQ2PS  XMM2,XMM2
 
         MOV       EAX, WA
         MOV       EDX, WB
@@ -918,7 +925,40 @@ asm
         PACKSSDW  XMM0,XMM3
         PACKUSWB  XMM0,XMM3
         MOVD      EAX,XMM0
+{$ELSE}
+        MOVQ      XMM0,XMM3
+        SHUFPS    XMM0,XMM0,0
+        MOVD      XMM1,WB
+        SHUFPS    XMM1,XMM1,0
+        MOVD      XMM2,WC
+        SHUFPS    XMM2,XMM2,0
+
+        PXOR      XMM3,XMM3
+        MOVD      XMM4,ECX
+        PUNPCKLBW XMM4,XMM3
+        PUNPCKLWD XMM4,XMM3
+        CVTDQ2PS  XMM4,XMM4
+        MOVD      XMM5,EDX
+        PUNPCKLBW XMM5,XMM3
+        PUNPCKLWD XMM5,XMM3
+        CVTDQ2PS  XMM5,XMM5
+        MOVD      XMM6,R8D
+        PUNPCKLBW XMM6,XMM3
+        PUNPCKLWD XMM6,XMM3
+        CVTDQ2PS  XMM6,XMM6
+
+        MULPS     XMM0,XMM4
+        MULPS     XMM1,XMM5
+        MULPS     XMM2,XMM6
+        ADDPS     XMM0,XMM1
+        ADDPS     XMM0,XMM2
+        CVTPS2DQ  XMM0,XMM0
+        PACKSSDW  XMM0,XMM3
+        PACKUSWB  XMM0,XMM3
+        MOVD      EAX,XMM0
+{$ENDIF}
 end;
+{$ENDIF}
 
 function TTriangularGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
@@ -936,11 +976,6 @@ begin
     Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
 end;
 
-function TTriangularGradientSampler.GetSampleInt(X, Y: Integer): TColor32;
-begin
-  Result := GetSampleFloat(X, Y);
-end;
-
 procedure TTriangularGradientSampler.PrepareSampling;
 begin
   FNormScale := 1 / ((FTriangle[1].Y - FTriangle[2].Y) *
@@ -951,7 +986,7 @@ end;
 procedure TTriangularGradientSampler.SetColor(Index: Integer;
   const Value: TColor32);
 begin
-  if Index in [0..2] then
+  if Index in [0 .. 2] then
     FColors[Index] := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
@@ -960,7 +995,7 @@ end;
 procedure TTriangularGradientSampler.SetPoint(Index: Integer;
   const Value: TFloatPoint);
 begin
-  if Index in [0..2] then
+  if Index in [0 .. 2] then
     FTriangle[Index] := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
