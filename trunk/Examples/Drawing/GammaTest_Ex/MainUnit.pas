@@ -142,7 +142,7 @@ begin
 
     Renderer.Color := clWhite32;
     Outline := Ellipse(FloatPoint(W * 0.5, H * 0.5),
-      FloatPoint(Radius.X - 15, Radius.Y - 15), 150);
+      FloatPoint(Radius.X - 20, Radius.Y - 20), 150);
     Renderer.PolyPolygonFS(BuildPolyPolyLine(PolyPolygon(Outline), True,
       Thickness));
   finally
