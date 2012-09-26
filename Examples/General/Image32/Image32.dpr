@@ -1,4 +1,4 @@
-program Image32_Ex;
+program Image32;
 
 {$R 'Media.res' 'Media.rc'}
 

@@ -1,4 +1,4 @@
-program Rotate_Ex;
+program Rotate;
 
 {$R Media.rc}
 

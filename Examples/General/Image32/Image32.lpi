@@ -81,7 +81,7 @@
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
-        <Filename Value="Image32_Ex.lpr"/>
+        <Filename Value="Image32.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>

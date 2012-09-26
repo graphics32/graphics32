@@ -3,9 +3,9 @@
 <PROJECT>
   <MACROS>
     <VERSION value="BCB.06.00"/>
-    <PROJECT value="Image32_Ex.exe"/>
-    <OBJFILES value="Image32_Ex.obj MainUnit.obj"/>
-    <RESFILES value="Image32_Ex.res"/>
+    <PROJECT value="Image32.exe"/>
+    <OBJFILES value="Image32.obj MainUnit.obj"/>
+    <RESFILES value="Image32.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
@@ -33,7 +33,7 @@
     <LINKER value="ilink32"/>
     <USERDEFINES value="_DEBUG"/>
     <SYSDEFINES value="_RTLDLL;NO_STRICT;USEPACKAGES"/>
-    <MAINSOURCE value="Image32_Ex.cpp"/>
+    <MAINSOURCE value="Image32.cpp"/>
     <INCLUDEPATH value="$(BCB)\include;$(BCB)\include\vcl"/>
     <LIBPATH value="$(BCB)\Projects\Lib;$(BCB)\lib\obj;$(BCB)\lib"/>
     <WARNINGS value="-w-par"/>
@@ -56,8 +56,8 @@
     <OTHERFILES value=""/>
   </LINKER>
   <FILELIST>
-      <FILE FILENAME="Image32_Ex.cpp" FORMNAME="" UNITNAME="Image32_Ex" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="Image32_Ex.res" FORMNAME="" UNITNAME="Image32_Ex" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Image32.cpp" FORMNAME="" UNITNAME="Image32" CONTAINERID="CCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="Image32.res" FORMNAME="" UNITNAME="Image32" CONTAINERID="ResTool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="MainUnit.pas" FORMNAME="Form1" UNITNAME="Mainunit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
   </FILELIST>
   <BUILDTOOLS>

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Force Bourne shell in case tcsh is default.
 #
-appname=Image32_Ex
+appname=Image32
 appfolder=$appname.app
 macosfolder=$appfolder/Contents/MacOS
 plistfile=$appfolder/Contents/Info.plist

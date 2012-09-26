@@ -1,12 +1,14 @@
-program ByteMaps_Ex;
+program Mandelbrot;
 
 {$R Media.rc}
 
 uses
+  {$IFDEF UNIX}
+  cthreads,
+  {$ENDIF}
   Interfaces,
   Forms,
-  ImagesForLazarus,
-  MainUnit in 'MainUnit.pas';
+  MandelUnit in 'MandelUnit.pas';
 
 begin
   Application.Initialize;
