@@ -1,4 +1,4 @@
-program Resamplers_Ex;
+program PixelF;
 
 {$R Media.rc}
 
@@ -10,6 +10,6 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TFrmResamplersExample, FrmResamplersExample);
+  Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

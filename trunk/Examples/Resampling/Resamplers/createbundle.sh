@@ -1,7 +1,7 @@
 #!/bin/sh
 # Force Bourne shell in case tcsh is default.
 #
-appname=PixelF_Ex
+appname=Resamplers
 appfolder=$appname.app
 macosfolder=$appfolder/Contents/MacOS
 plistfile=$appfolder/Contents/Info.plist
