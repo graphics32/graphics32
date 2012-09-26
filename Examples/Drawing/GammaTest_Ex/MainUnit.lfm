@@ -11,7 +11,7 @@ object FrmGammaTest: TFrmGammaTest
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnShow = FormShow
-  LCLVersion = '1.1'
+  LCLVersion = '1.0.1.4'
   object PaintBox32: TPaintBox32
     Left = 0
     Height = 317
@@ -35,7 +35,7 @@ object FrmGammaTest: TFrmGammaTest
       Left = 8
       Height = 14
       Top = 8
-      Width = 48
+      Width = 43
       Caption = 'Contrast'
       ParentColor = False
     end
@@ -43,7 +43,7 @@ object FrmGammaTest: TFrmGammaTest
       Left = 8
       Height = 14
       Top = 30
-      Width = 45
+      Width = 36
       Caption = 'Gamma'
       ParentColor = False
     end
@@ -51,7 +51,7 @@ object FrmGammaTest: TFrmGammaTest
       Left = 8
       Height = 14
       Top = 52
-      Width = 55
+      Width = 47
       Caption = 'Thickness'
       ParentColor = False
     end
@@ -114,4 +114,4 @@ object FrmGammaTest: TFrmGammaTest
       OnChange = GbrThicknessChange
     end
   end
-end
+end

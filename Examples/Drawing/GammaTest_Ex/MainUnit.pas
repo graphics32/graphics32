@@ -5,8 +5,9 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, {$ELSE}Windows, {$ENDIF} Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  GR32, GR32_Image, StdCtrls, GR32_RangeBars, ExtCtrls;
+  {$IFDEF FPC}LCLIntf, {$ELSE}Windows, {$ENDIF} Messages, SysUtils, Classes,
+  Graphics, Controls, Forms, Dialogs, ExtCtrls, GR32, GR32_Image, StdCtrls,
+  GR32_RangeBars;
 
 type
   TFrmGammaTest = class(TForm)
@@ -89,7 +90,7 @@ begin
   H := PaintBox32.Height;
   Thickness := 0.01 * GbrThickness.Position;
   Radius := FloatPoint(W / 3, H / 3);
-  Renderer := TPolygonRenderer32LCD.Create;
+  Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := PaintBox32.Buffer;
 
