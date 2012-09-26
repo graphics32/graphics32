@@ -110,6 +110,27 @@ type
       read FOnGradientColorsChanged write FOnGradientColorsChanged;
   end;
 
+  TTriangularGradientSampler = class(TCustomSampler)
+  private
+    function GetColor(Index: Integer): TColor32;
+    function GetPoint(Index: Integer): TFloatPoint;
+    procedure SetColor(Index: Integer; const Value: TColor32);
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint);
+  protected
+    FTriangle: array [0 .. 2] of TFloatPoint;
+    FColors: array [0 .. 2] of TColor32;
+    FNormScale: TFloat;
+    procedure AssignTo(Dest: TPersistent); override;
+  public
+    procedure PrepareSampling; override;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+
+    property Color[Index: Integer]: TColor32 read GetColor write SetColor;
+    property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+  end;
+
   TCustomGradientSampler = class(TCustomSampler)
   private
     FGradient: TGradient32;
@@ -423,7 +444,7 @@ type
 implementation
 
 uses
-  GR32_LowLevel, GR32_Math, GR32_Blend, GR32_Geometry;
+  GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Geometry;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -805,6 +826,147 @@ begin
 end;
 
 
+{ TTriangularGradientSampler }
+
+procedure TTriangularGradientSampler.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+end;
+
+function TTriangularGradientSampler.GetColor(Index: Integer): TColor32;
+begin
+  if Index in [0..2] then
+    Result := FColors[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TTriangularGradientSampler.GetPoint(Index: Integer): TFloatPoint;
+begin
+  if Index in [0..2] then
+    Result := FTriangle[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TTriangularGradientSampler.GetSampleFixed(X, Y: TFixed): TColor32;
+begin
+  Result := GetSampleFloat(X * FixedToFloat, Y * FixedToFloat);
+end;
+
+type
+  TTrilinearInterpolation = function (A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+
+var
+  TrilinearInterpolation: TTrilinearInterpolation;
+
+function TrilinearInterpolation_Native(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+var
+  Clr: TColor32Entry absolute Result;
+begin
+  Clr.B := Clamp(Round(
+    WA * TColor32Entry(A).B +
+    WB * TColor32Entry(B).B +
+    WC * TColor32Entry(C).B));
+  Clr.G := Clamp(Round(
+    WA * TColor32Entry(A).G +
+    WB * TColor32Entry(B).G +
+    WC * TColor32Entry(C).G));
+  Clr.R := Clamp(Round(
+    WA * TColor32Entry(A).R +
+    WB * TColor32Entry(B).R +
+    WC * TColor32Entry(C).R));
+  Clr.A := Clamp(Round(
+    WA * TColor32Entry(A).R +
+    WB * TColor32Entry(B).R +
+    WC * TColor32Entry(C).R));
+end;
+
+function TrilinearInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+asm
+        PXOR      XMM3,XMM3
+        MOVD      XMM0,EAX
+        PUNPCKLBW XMM0,XMM3
+        PUNPCKLWD XMM0,XMM3
+        CVTDQ2PS  XMM0, XMM0
+        MOVD      XMM1,EDX
+        PUNPCKLBW XMM1,XMM3
+        PUNPCKLWD XMM1,XMM3
+        CVTDQ2PS  XMM1, XMM1
+        MOVD      XMM2,ECX
+        PUNPCKLBW XMM2,XMM3
+        PUNPCKLWD XMM2,XMM3
+        CVTDQ2PS  XMM2, XMM2
+
+        MOV       EAX, WA
+        MOV       EDX, WB
+        MOV       ECX, WC
+        MOVD      XMM4,EAX
+        SHUFPS    XMM4,XMM4,0
+        MOVD      XMM5,EDX
+        SHUFPS    XMM5,XMM5,0
+        MOVD      XMM6,ECX
+        SHUFPS    XMM6,XMM6,0
+
+        MULPS     XMM0,XMM4
+        MULPS     XMM1,XMM5
+        MULPS     XMM2,XMM6
+        ADDPS     XMM0,XMM1
+        ADDPS     XMM0,XMM2
+        CVTPS2DQ  XMM0,XMM0
+        PACKSSDW  XMM0,XMM3
+        PACKUSWB  XMM0,XMM3
+        MOVD      EAX,XMM0
+end;
+
+function TTriangularGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  Temp: TFloatPoint;
+  Barycentric: array [0..1] of TFloat;
+begin
+  Temp.X := (X - FTriangle[2].X);
+  Temp.Y := (Y - FTriangle[2].Y);
+  Barycentric[0] := FNormScale * ((FTriangle[1].Y - FTriangle[2].Y) * Temp.X +
+    (FTriangle[2].X - FTriangle[1].X) * Temp.Y);
+  Barycentric[1] := FNormScale * ((FTriangle[2].Y - FTriangle[0].Y) * Temp.X +
+    (FTriangle[0].X - FTriangle[2].X) * Temp.Y);
+
+  Result := TrilinearInterpolation(FColors[0], FColors[1], FColors[2],
+    Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
+end;
+
+function TTriangularGradientSampler.GetSampleInt(X, Y: Integer): TColor32;
+begin
+  Result := GetSampleFloat(X, Y);
+end;
+
+procedure TTriangularGradientSampler.PrepareSampling;
+begin
+  FNormScale := 1 / ((FTriangle[1].Y - FTriangle[2].Y) *
+    (FTriangle[0].X - FTriangle[2].X) + (FTriangle[2].X - FTriangle[1].X) *
+    (FTriangle[0].Y - FTriangle[2].Y));
+end;
+
+procedure TTriangularGradientSampler.SetColor(Index: Integer;
+  const Value: TColor32);
+begin
+  if Index in [0..2] then
+    FColors[Index] := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TTriangularGradientSampler.SetPoint(Index: Integer;
+  const Value: TFloatPoint);
+begin
+  if Index in [0..2] then
+    FTriangle[Index] := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+
 { TCustomGradientSampler }
 
 constructor TCustomGradientSampler.Create;
@@ -1020,8 +1182,6 @@ end;
 { TRadialGradientSampler }
 
 function TRadialGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
-var
-  RelativeRadius: TFloat;
 begin
   Transform(X, Y);
   Result := FGradientLUT.Color32Ptr^[FWrapProc(Round(Sqrt(Sqr(X) + Sqr(Y)) * FScale),
@@ -2166,5 +2326,13 @@ begin
     Inc(AlphaValues);
   end;
 end;
+
+initialization
+{$IFNDEF PUREPASCAL}
+  if ciSSE2 in CPUFeatures then
+    TrilinearInterpolation := TrilinearInterpolation_SSE2
+  else
+{$ENDIF}
+    TrilinearInterpolation := TrilinearInterpolation_Native;
 
 end.
