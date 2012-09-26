@@ -1,4 +1,4 @@
-program ImgView_Layers_Ex;
+program ImgView_Layers;
 
 {$R 'Media.res' 'Media.rc'}
 

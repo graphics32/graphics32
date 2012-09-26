@@ -1,4 +1,4 @@
-program Sprites_Ex;
+program RotLayer;
 
 {$R 'Media.res' 'Media.rc'}
 
@@ -8,6 +8,6 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TMainForm, MainForm);
+  Application.CreateForm(TFormRotLayer, FormRotLayer);
   Application.Run;
 end.

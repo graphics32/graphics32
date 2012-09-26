@@ -2,7 +2,7 @@
 
 #include <vcl.h>
 #pragma hdrstop
-USERES("ImgView_Layers_Ex.res");
+USERES("ImgView_Layers.res");
 USEFORMNS("MainUnit.pas", Mainunit, MainForm);
 USEFORMNS("NewImageUnit.pas", Newimageunit, NewImageForm);
 USEFORMNS("RGBALoaderUnit.pas", Rgbaloaderunit, RGBALoaderForm);
