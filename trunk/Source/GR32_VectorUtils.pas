@@ -50,6 +50,8 @@ function OverlapExclusive(const X1, X2, Y1, Y2: TFloat): Boolean; {$IFDEF USEINL
 function OverlapInclusive(const X1, X2, Y1, Y2: TFloat): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Intersect(const A1, A2, B1, B2: TFloatPoint; out P: TFloatPoint): Boolean;
 
+function FindNearestPointIndex(Point: TFloatPoint; Points: TArrayOfFloatPoint): Integer;
+
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
 
 function ClipLine(var X1, Y1, X2, Y2: Integer; MinX, MinY, MaxX, MaxY: Integer): Boolean; overload;
@@ -165,6 +167,25 @@ begin
     ta := ta / t;
     P.X := A1.X + ta * Adx;
     P.Y := A1.Y + ta * Ady;
+  end;
+end;
+
+function FindNearestPointIndex(Point: TFloatPoint; Points: TArrayOfFloatPoint): Integer;
+var
+  Index: Integer;
+  Distance: TFloat;
+  NearestDistance: TFloat;
+begin
+  Result := 0;
+  NearestDistance := SqrDistance(Point, Points[0]);
+  for Index := 1 to High(Points) do
+  begin
+    Distance := SqrDistance(Point, Points[Index]);
+    if Distance < NearestDistance then
+    begin
+      NearestDistance := Distance;
+      Result := Index;
+    end;
   end;
 end;
 
