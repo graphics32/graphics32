@@ -3190,7 +3190,11 @@ begin
     Exit;
   end;
   FStippleCounter := Wrap(FStippleCounter, L);
+  {$IFDEF FPC}
+  PrevIndex := Trunc(FStippleCounter);
+  {$ELSE}
   PrevIndex := Round(FStippleCounter - 0.5);
+  {$ENDIF}
   PrevWeight := $FF - Round($FF * (FStippleCounter - PrevIndex));
   if PrevIndex < 0 then FStippleCounter := L - 1;
   NextIndex := PrevIndex + 1;
