@@ -39,6 +39,13 @@ uses
   GR32, GR32_Image, GR32_ColorGradients;
 
 type
+  TMesh = record
+    Point: TFloatPoint;
+    Velocity: TFloatPoint;
+    Color: TColor32;
+    HueChange: Single;
+  end;
+
   TFrmGradientSampler = class(TForm)
     PaintBox32: TPaintBox32;
     MainMenu: TMainMenu;
@@ -56,7 +63,12 @@ type
     MnuWrapModeClamp: TMenuItem;
     MnuWrapModeRepeat: TMenuItem;
     MnuWrapModeMirror: TMenuItem;
-    Timer: TTimer;
+    Animation: TTimer;
+    MnuBackground: TMenuItem;
+    MnuBackgroundGradientTriangular: TMenuItem;
+    MnuBackgroundGradientVoronoi: TMenuItem;
+    MnuBackgroundGradientShepards: TMenuItem;
+    MnuBackgroundGradientCustomIDW: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -78,7 +90,12 @@ type
       Y: Integer);
     procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure TimerTimer(Sender: TObject);
+    procedure AnimationTimer(Sender: TObject);
+    procedure PaintBox32DblClick(Sender: TObject);
+    procedure MnuBackgroundGradientVoronoiClick(Sender: TObject);
+    procedure MnuBackgroundGradientTriangularClick(Sender: TObject);
+    procedure MnuBackgroundGradientShepardsClick(Sender: TObject);
+    procedure MnuBackgroundGradientCustomIDWClick(Sender: TObject);
   private
     FCenter: TFloatPoint;
     FWrapMode: TWrapMode;
@@ -88,8 +105,13 @@ type
     FStarVertices: Integer;
     FLastPos: TFloatPoint;
     FOutline: TArrayOfFloatPoint;
+    FStartColor: TColor32;
+    FEndColor: TColor32;
     FGradientSampler: TCustomGradientSampler;
-    FTriangularGradientSampler: TTriangularGradientSampler;
+    FBackgroundGradientSampler: TCustomSparsePointGradientSampler;
+    FMesh: array of TMesh;
+  public
+    procedure UpdateBackgroundGradientSampler;
   end;
 
   TMyGradient = class(TCustomLookUpTableGradientSampler)
@@ -192,20 +214,38 @@ begin
   FStarAngle := 0;
   FOutline := Star(FCenter, 180, FStarVertices, FStarAngle);
 
-  FTriangularGradientSampler := TTriangularGradientSampler.Create;
-  for Index := 0 to 2 do
+  FBackgroundGradientSampler := TTriangularGradientSampler.Create;
+  SetLength(FMesh, FBackgroundGradientSampler.Count);
+  for Index := 0 to High(FMesh) do
   begin
-    FTriangularGradientSampler.Point[Index] := FloatPoint(
-      PaintBox32.Width * Random, PaintBox32.Height * Random);
-    FTriangularGradientSampler.Color[Index] := SetAlpha(Random($FFFFFF), $FF);
+    FMesh[Index].Point := FloatPoint(PaintBox32.Width * Random,
+      PaintBox32.Height * Random);
+    FMesh[Index].Velocity := FloatPoint(2 * Random - 1, 2 * Random - 1);
+    FMesh[Index].Color := SetAlpha(Random($FFFFFF), $FF);
+    FMesh[Index].HueChange := 0.001 * (2 * Random - 1);
   end;
+  FStartColor := SetAlpha(Random($FFFFFF), $FF);
+  FEndColor := SetAlpha(Random($FFFFFF), $FF);
+
+  UpdateBackgroundGradientSampler;
 
   PaintBox32.Invalidate;
 end;
 
+procedure TFrmGradientSampler.UpdateBackgroundGradientSampler;
+var
+  Index: Integer;
+begin
+  for Index := 0 to FBackgroundGradientSampler.Count - 1 do
+  begin
+    FBackgroundGradientSampler.Point[Index] := FMesh[Index].Point;
+    FBackgroundGradientSampler.Color[Index] := FMesh[Index].Color;
+  end;
+end;
+
 procedure TFrmGradientSampler.FormDestroy(Sender: TObject);
 begin
-  FTriangularGradientSampler.Free;
+  FBackgroundGradientSampler.Free;
   FGradientSampler.Free;
 end;
 
@@ -300,6 +340,64 @@ begin
   PaintBox32.Invalidate;
 end;
 
+procedure TFrmGradientSampler.MnuBackgroundGradientCustomIDWClick(
+  Sender: TObject);
+var
+  Index: Integer;
+begin
+  if not MnuBackgroundGradientCustomIDW.Checked then
+  begin
+    MnuBackgroundGradientCustomIDW.Checked := True;
+    FBackgroundGradientSampler.Free;
+    FBackgroundGradientSampler := TShepardSampler.Create;
+    TShepardSampler(FBackgroundGradientSampler).Power := 8;
+    with TCustomArbitrarySparsePointGradientSampler(FBackgroundGradientSampler) do
+      for Index := 0 to High(FMesh) do
+        Add(FMesh[Index].Point, FMesh[Index].Color);
+  end;
+end;
+
+procedure TFrmGradientSampler.MnuBackgroundGradientShepardsClick(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if not MnuBackgroundGradientShepards.Checked then
+  begin
+    MnuBackgroundGradientShepards.Checked := True;
+    FBackgroundGradientSampler.Free;
+    FBackgroundGradientSampler := TShepardSampler.Create;
+    with TCustomArbitrarySparsePointGradientSampler(FBackgroundGradientSampler) do
+      for Index := 0 to High(FMesh) do
+        Add(FMesh[Index].Point, FMesh[Index].Color);
+  end;
+end;
+
+procedure TFrmGradientSampler.MnuBackgroundGradientTriangularClick(Sender: TObject);
+begin
+  if not MnuBackgroundGradientTriangular.Checked then
+  begin
+    MnuBackgroundGradientTriangular.Checked := True;
+    FBackgroundGradientSampler.Free;
+    FBackgroundGradientSampler := TTriangularGradientSampler.Create;
+    UpdateBackgroundGradientSampler;
+  end;
+end;
+
+procedure TFrmGradientSampler.MnuBackgroundGradientVoronoiClick(Sender: TObject);
+var
+  Index: Integer;
+begin
+  if not MnuBackgroundGradientVoronoi.Checked then
+  begin
+    MnuBackgroundGradientVoronoi.Checked := True;
+    FBackgroundGradientSampler.Free;
+    FBackgroundGradientSampler := TVoronoiSampler.Create;
+    with TCustomArbitrarySparsePointGradientSampler(FBackgroundGradientSampler) do
+      for Index := 0 to High(FMesh) do
+        Add(FMesh[Index].Point, FMesh[Index].Color);
+  end;
+end;
+
 procedure TFrmGradientSampler.MnuWrapModeClampClick(Sender: TObject);
 begin
   FWrapMode := wmClamp;
@@ -333,6 +431,11 @@ begin
   PaintBox32.Invalidate;
 end;
 
+procedure TFrmGradientSampler.PaintBox32DblClick(Sender: TObject);
+begin
+  Animation.Enabled := not Animation.Enabled;
+end;
+
 procedure TFrmGradientSampler.PaintBox32MouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
@@ -340,7 +443,7 @@ var
 begin
   if (ssCtrl in Shift) then
   begin
-    Timer.Enabled := not Timer.Enabled;
+    Animation.Enabled := not Animation.Enabled;
     Exit;
   end;
 
@@ -348,10 +451,16 @@ begin
   begin
     for Index := 0 to 2 do
     begin
-      FTriangularGradientSampler.Point[Index] := FloatPoint(
-        PaintBox32.Width * Random, PaintBox32.Height * Random);
-      FTriangularGradientSampler.Color[Index] := SetAlpha(Random($FFFFFF), $FF);
+      FMesh[Index].Point := FloatPoint(PaintBox32.Width * Random,
+        PaintBox32.Height * Random);
+      FMesh[Index].Velocity := FloatPoint(2 * Random - 1, 2 * Random - 1);
+      FMesh[Index].Color := SetAlpha(Random($FFFFFF), $FF);
+      FMesh[Index].HueChange := 0.001 * (2 * Random - 1);
     end;
+    UpdateBackgroundGradientSampler;
+
+    FStartColor := SetAlpha(Random($FFFFFF), $FF);
+    FEndColor := SetAlpha(Random($FFFFFF), $FF);
 
     PaintBox32.Invalidate;
     Exit;
@@ -412,11 +521,11 @@ var
 begin
   PaintBox32.Buffer.Clear(clWhite32);
 
-  FTriangularGradientSampler.PrepareSampling;
+  FBackgroundGradientSampler.PrepareSampling;
   with PaintBox32.Buffer do
     for Y := 0 to Height - 1 do
       for X := 0 to Width - 1 do
-        Pixel[X, Y] := FTriangularGradientSampler.GetSampleInt(X, Y);
+        Pixel[X, Y] := FBackgroundGradientSampler.GetSampleInt(X, Y);
 
   Renderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
   try
@@ -435,8 +544,8 @@ begin
     if FGradientSampler is TCustomCenterLutGradientSampler then
       TCustomCenterLutGradientSampler(FGradientSampler).Center := FGradCenter;
 
-    FGradientSampler.Gradient.StartColor := clLime32;
-    FGradientSampler.Gradient.EndColor := clGreen32;
+    FGradientSampler.Gradient.StartColor := FStartColor;
+    FGradientSampler.Gradient.EndColor := FEndColor;
     FGradientSampler.WrapMode := FWrapMode;
 
     SamplerFiller := TSamplerFiller.Create(FGradientSampler);
@@ -456,7 +565,7 @@ begin
     end;
 
     Renderer.Filler := nil;
-    Renderer.Color := clRed32;
+    Renderer.Color := clBlack32;
     Renderer.PolyPolygonFS(BuildPolyPolyline(PolyPolygon(FOutline), True, 5,
       jsRound, esRound));
   finally
@@ -464,13 +573,49 @@ begin
   end;
 end;
 
-procedure TFrmGradientSampler.TimerTimer(Sender: TObject);
+procedure TFrmGradientSampler.AnimationTimer(Sender: TObject);
+var
+  Index: Integer;
+  H, S, L: Single;
 begin
   FAngle := FAngle + 0.01;
   FStarAngle := FStarAngle + 0.01;
   FOutline := Star(FCenter, 180, FStarVertices, FStarAngle);
+
+  for Index := 0 to FBackgroundGradientSampler.Count - 1 do
+  begin
+    FMesh[Index].Point.X := FMesh[Index].Point.X + FMesh[Index].Velocity.X;
+    if FMesh[Index].Point.X < 0 then
+    begin
+      FMesh[Index].Point.X := -FMesh[Index].Point.X;
+      FMesh[Index].Velocity.X := -FMesh[Index].Velocity.X;
+    end;
+
+    if FMesh[Index].Point.X >= PaintBox32.Width then
+    begin
+      FMesh[Index].Point.X := 2 * PaintBox32.Width - FMesh[Index].Point.X;
+      FMesh[Index].Velocity.X := -FMesh[Index].Velocity.X;
+    end;
+
+    FMesh[Index].Point.Y := FMesh[Index].Point.Y + FMesh[Index].Velocity.Y;
+    if FMesh[Index].Point.Y < 0 then
+    begin
+      FMesh[Index].Point.Y := -FMesh[Index].Point.Y;
+      FMesh[Index].Velocity.Y := -FMesh[Index].Velocity.Y;
+    end;
+
+    FMesh[Index].Point.Y := FMesh[Index].Point.Y + FMesh[Index].Velocity.Y;
+    if FMesh[Index].Point.Y >= PaintBox32.Height then
+    begin
+      FMesh[Index].Point.Y := 2 * PaintBox32.Height - FMesh[Index].Point.Y;
+      FMesh[Index].Velocity.Y := -FMesh[Index].Velocity.Y;
+    end;
+    RGBtoHSL(FMesh[Index].Color, H, S, L);
+    FMesh[Index].Color := HSLtoRGB(H + FMesh[Index].HueChange, S, L);
+  end;
+  UpdateBackgroundGradientSampler;
+
   PaintBox32.Invalidate;
 end;
 
 end.
-
