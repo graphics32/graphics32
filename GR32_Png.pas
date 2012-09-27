@@ -344,8 +344,8 @@ end;
 
 function TPortableNetworkGraphic32.GR32Scanline(Bitmap: TObject; Y: Integer): Pointer;
 begin
- if Bitmap is TBitmap32
-  then Result := TBitmap32(Bitmap).ScanLine[Y]
+ if Bitmap is TCustomBitmap32
+  then Result := TCustomBitmap32(Bitmap).ScanLine[Y]
   else Result := nil;
 end;
 
