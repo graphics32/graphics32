@@ -25,6 +25,7 @@ object FrmGradientSampler: TFrmGradientSampler
     Align = alClient
     RepaintMode = rmOptimizer
     TabOrder = 0
+    OnDblClick = PaintBox32DblClick
     OnMouseDown = PaintBox32MouseDown
     OnMouseMove = PaintBox32MouseMove
     OnMouseUp = PaintBox32MouseUp
@@ -98,11 +99,35 @@ object FrmGradientSampler: TFrmGradientSampler
         OnClick = MnuWrapModeMirrorClick
       end
     end
+    object MnuBackground: TMenuItem
+      Caption = '&Background Gradient'
+      object MnuBackgroundGradientTriangular: TMenuItem
+        Caption = '&Triangular'
+        Checked = True
+        RadioItem = True
+        OnClick = MnuBackgroundGradientTriangularClick
+      end
+      object MnuBackgroundGradientShepards: TMenuItem
+        Caption = 'Shepards'
+        RadioItem = True
+        OnClick = MnuBackgroundGradientShepardsClick
+      end
+      object MnuBackgroundGradientCustomIDW: TMenuItem
+        Caption = 'Custom Inverse Distance Weighting Gradient'
+        RadioItem = True
+        OnClick = MnuBackgroundGradientCustomIDWClick
+      end
+      object MnuBackgroundGradientVoronoi: TMenuItem
+        Caption = '&Voronoi Gradient'
+        RadioItem = True
+        OnClick = MnuBackgroundGradientVoronoiClick
+      end
+    end
   end
-  object Timer: TTimer
+  object Animation: TTimer
     Enabled = False
     Interval = 30
-    OnTimer = TimerTimer
+    OnTimer = AnimationTimer
     Left = 200
     Top = 96
   end

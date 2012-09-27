@@ -117,22 +117,25 @@ type
 
   TCustomSparsePointGradientSampler = class(TCustomSampler)
   protected
+    function GetCount: Integer; virtual; abstract;
     function GetColor(Index: Integer): TColor32; virtual; abstract;
     function GetPoint(Index: Integer): TFloatPoint; virtual; abstract;
     procedure SetColor(Index: Integer; const Value: TColor32); virtual; abstract;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); virtual; abstract;
   public
-    function GetSampleFixed(X, Y: TFixed): TColor32;
-    function GetSampleInt(X, Y: Integer): TColor32;
+    function GetSampleFixed(X, Y: TFixed): TColor32; override;
+    function GetSampleInt(X, Y: Integer): TColor32; override;
 
     property Color[Index: Integer]: TColor32 read GetColor write SetColor;
     property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+    property Count: Integer read GetCount;
   end;
 
   TTriangularGradientSampler = class(TCustomSparsePointGradientSampler)
   protected
     FColorPoints: array [0 .. 2] of TColorFloatPoint;
     FNormScale: TFloat;
+    function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
@@ -147,6 +150,7 @@ type
   protected
     FColorPoints: array [0 .. 3] of TColorFloatPoint;
     FNormScale: TFloat;
+    function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
@@ -160,9 +164,9 @@ type
   TCustomArbitrarySparsePointGradientSampler = class(TCustomSparsePointGradientSampler)
   private
     FColorPoints: array of TColorFloatPoint;
-    function GetCount: Integer;
   protected
     procedure AssignTo(Dest: TPersistent); override;
+    function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
@@ -170,8 +174,6 @@ type
   public
     procedure Add(Point: TFloatPoint; Color: TColor32); virtual;
     procedure Clear; virtual;
-
-    property Count: Integer read GetCount;
   end;
 
   TVoronoiSampler = class(TCustomArbitrarySparsePointGradientSampler)
@@ -588,21 +590,51 @@ begin
 end;
 
 procedure TGradient32.SetStartColor(const Value: TColor32);
+var
+  HasChanged: Boolean;
 begin
+  HasChanged := False;
   if Length(FGradientColors) = 0 then
+  begin
     SetLength(FGradientColors, 1);
-  FGradientColors[0].Offset := 0;
-  FGradientColors[0].Color32 := Value;
-  GradientColorsChanged;
+    HasChanged := True;
+  end;
+  if FGradientColors[0].Offset <> 0 then
+  begin
+    FGradientColors[0].Offset := 0;
+    HasChanged := True;
+  end;
+  if FGradientColors[0].Color32 <> Value then
+  begin
+    FGradientColors[0].Color32 := Value;
+    HasChanged := True;
+  end;
+  if HasChanged then
+    GradientColorsChanged;
 end;
 
 procedure TGradient32.SetEndColor(const Value: TColor32);
+var
+  HasChanged: Boolean;
 begin
+  HasChanged := False;
   if Length(FGradientColors) = 1 then
+  begin
     SetLength(FGradientColors, 2);
-  FGradientColors[High(FGradientColors)].Color32 := Value;
-  FGradientColors[High(FGradientColors)].Offset := 1;
-  GradientColorsChanged;
+    HasChanged := True;
+  end;
+  if FGradientColors[High(FGradientColors)].Offset <> 1 then
+  begin
+    FGradientColors[High(FGradientColors)].Offset := 1;
+    HasChanged := True;
+  end;
+  if FGradientColors[High(FGradientColors)].Color32 <> Value then
+  begin
+    FGradientColors[High(FGradientColors)].Color32 := Value;
+    HasChanged := True;
+  end;
+  if HasChanged then
+    GradientColorsChanged;
 end;
 
 function TGradient32.GetGradientCount: Integer;
@@ -919,6 +951,11 @@ begin
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
+function TTriangularGradientSampler.GetCount: Integer;
+begin
+  Result := 3;
+end;
+
 function TTriangularGradientSampler.GetPoint(Index: Integer): TFloatPoint;
 begin
   if Index in [0 .. 2] then
@@ -1092,6 +1129,11 @@ begin
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
+function TQuadGradientSampler.GetCount: Integer;
+begin
+  Result := 4;
+end;
+
 function TQuadGradientSampler.GetPoint(Index: Integer): TFloatPoint;
 begin
   if Index in [0 .. 3] then
@@ -1241,7 +1283,6 @@ function TShepardSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   Index: Integer;
   Temp: TFloat;
-  Dists: array of TFloat;
   DistSum, Scale: TFloat;
   R, G, B, A: TFloat;
 begin
@@ -1305,8 +1346,17 @@ constructor TCustomGradientSampler.Create;
 begin
   inherited;
   FGradient := TGradient32.Create(clNone32);
+  FGradient.OnGradientColorsChanged := GradientChangedHandler;
   FWrapMode := wmMirror;
   WrapModeChanged;
+end;
+
+constructor TCustomGradientSampler.Create(ColorGradient: TGradient32);
+begin
+  Create;
+
+  if Assigned(ColorGradient) then
+    FGradient.Assign(ColorGradient);
 end;
 
 procedure TCustomGradientSampler.AssignTo(Dest: TPersistent);
@@ -1320,14 +1370,6 @@ begin
     end
   else
     inherited;
-end;
-
-constructor TCustomGradientSampler.Create(ColorGradient: TGradient32);
-begin
-  Create;
-
-  if Assigned(ColorGradient) then
-    FGradient.Assign(ColorGradient);
 end;
 
 destructor TCustomGradientSampler.Destroy;

@@ -8,6 +8,7 @@ uses
   MainUnit in 'MainUnit.pas' {FrmGradientSampler};
 
 begin
+  Application.Title:='Gradient Sampler Example';
   Application.Initialize;
   Application.CreateForm(TFrmGradientSampler, FrmGradientSampler);
   Application.Run;
