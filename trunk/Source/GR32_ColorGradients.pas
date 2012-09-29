@@ -149,7 +149,7 @@ type
   TQuadGradientSampler = class(TCustomSparsePointGradientSampler)
   protected
     FColorPoints: array [0 .. 3] of TColorFloatPoint;
-    FNormScale: TFloat;
+    FK2Sign: Integer;
     function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
@@ -508,7 +508,8 @@ type
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Geometry;
+  GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Geometry,
+  GR32_VectorUtils;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -987,9 +988,9 @@ begin
     WB * TColor32Entry(B).R +
     WC * TColor32Entry(C).R));
   Clr.A := Clamp(Round(
-    WA * TColor32Entry(A).R +
-    WB * TColor32Entry(B).R +
-    WC * TColor32Entry(C).R));
+    WA * TColor32Entry(A).A +
+    WB * TColor32Entry(B).A +
+    WC * TColor32Entry(C).A));
 end;
 
 {$IFNDEF PUREPASCAL}
@@ -1063,6 +1064,33 @@ asm
 {$ENDIF}
 end;
 {$ENDIF}
+
+function Linear4PointInterpolation(A, B, C, D: TColor32; WA, WB, WC,
+  WD: Single): TColor32;
+var
+  Clr: TColor32Entry absolute Result;
+begin
+  Clr.B := Clamp(Round(
+    WA * TColor32Entry(A).B +
+    WB * TColor32Entry(B).B +
+    WC * TColor32Entry(C).B +
+    WD * TColor32Entry(D).B));
+  Clr.G := Clamp(Round(
+    WA * TColor32Entry(A).G +
+    WB * TColor32Entry(B).G +
+    WC * TColor32Entry(C).G +
+    WD * TColor32Entry(D).G));
+  Clr.R := Clamp(Round(
+    WA * TColor32Entry(A).R +
+    WB * TColor32Entry(B).R +
+    WC * TColor32Entry(C).R +
+    WD * TColor32Entry(D).R));
+  Clr.A := Clamp(Round(
+    WA * TColor32Entry(A).A +
+    WB * TColor32Entry(B).A +
+    WC * TColor32Entry(C).A +
+    WD * TColor32Entry(D).A));
+end;
 
 function TTriangularGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
@@ -1143,14 +1171,90 @@ begin
 end;
 
 function TQuadGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  E, F, G, H: TFloatPoint;
+  u, v, t, k0, k1, k2: Double;
 begin
+  E.X := FColorPoints[1].Point.X - FColorPoints[0].Point.X;
+  E.Y := FColorPoints[1].Point.Y - FColorPoints[0].Point.Y;
+  F.X := FColorPoints[3].Point.X - FColorPoints[0].Point.X;
+  F.Y := FColorPoints[3].Point.Y - FColorPoints[0].Point.Y;
+  G.X := FColorPoints[0].Point.X - FColorPoints[1].Point.X +
+    FColorPoints[2].Point.X - FColorPoints[3].Point.X;
+  G.Y := FColorPoints[0].Point.Y - FColorPoints[1].Point.Y +
+    FColorPoints[2].Point.Y - FColorPoints[3].Point.Y;
+  H.X := X - FColorPoints[0].Point.X;
+  H.Y := Y - FColorPoints[0].Point.Y;
 
+  k2 := G.x * F.y - G.y * F.x;
+  k1 := E.x * F.y - E.y * F.x + H.x * G.y - H.y * G.x;
+  k0 := H.x * E.y - H.y * E.x;
+  t := Sqr(k1) - 4 * k0 * k2;
+
+  if k2 = 0 then
+    v := -k0 / k1
+  else
+    v := (-k1 + FK2Sign * Sqrt(Abs(t))) / (2 * k2);
+  u := (H.X - F.X * v) / (E.X + G.X * v);
+
+  Result := Linear4PointInterpolation(FColorPoints[0].Color,
+    FColorPoints[1].Color, FColorPoints[2].Color, FColorPoints[3].Color,
+    (1 - u) * (1 - v), u * (1 - v), u * v, (1 - u) * v);
 end;
 
 procedure TQuadGradientSampler.PrepareSampling;
+var
+  v, i, j: Integer;
+  Orientation: array [0 .. 3] of Boolean;
+  Indices: array [0 .. 1] of Integer;
+  TempPoint: TColorFloatPoint;
 begin
-  inherited;
-  raise Exception.Create('Not yet implemented');
+  Orientation[0] := (FColorPoints[0].Point.X - FColorPoints[3].Point.X) *
+    (FColorPoints[1].Point.Y - FColorPoints[0].Point.Y) -
+    (FColorPoints[0].Point.Y - FColorPoints[3].Point.Y) *
+    (FColorPoints[1].Point.x - FColorPoints[0].Point.x) < 0;
+  Orientation[1] := (FColorPoints[1].Point.X - FColorPoints[0].Point.X) *
+    (FColorPoints[2].Point.Y - FColorPoints[1].Point.Y) -
+    (FColorPoints[1].Point.Y - FColorPoints[0].Point.Y) *
+    (FColorPoints[2].Point.x - FColorPoints[1].Point.x) < 0;
+  Orientation[2] := (FColorPoints[2].Point.X - FColorPoints[1].Point.X) *
+    (FColorPoints[3].Point.Y - FColorPoints[2].Point.Y) -
+    (FColorPoints[2].Point.Y - FColorPoints[1].Point.Y) *
+    (FColorPoints[3].Point.x - FColorPoints[2].Point.x) < 0;
+  Orientation[3] := (FColorPoints[3].Point.X - FColorPoints[2].Point.X) *
+    (FColorPoints[0].Point.Y - FColorPoints[3].Point.Y) -
+    (FColorPoints[3].Point.Y - FColorPoints[2].Point.Y) *
+    (FColorPoints[0].Point.x - FColorPoints[3].Point.x) < 0;
+
+  if Orientation[0] then v := -1 else v := 1;
+  if Orientation[1] then Dec(v) else Inc(v);
+  if Orientation[2] then Dec(v) else Inc(v);
+  if Orientation[3] then Dec(v) else Inc(v);
+  FK2Sign := Sign(v);
+
+  if v = 0 then
+  begin
+    // correct complex case
+    i := 0;
+    j := 0;
+    repeat
+      if Orientation[j] then
+      begin
+        Indices[i] := j;
+        Inc(i);
+      end;
+      Inc(j);
+    until i = 2;
+
+    // exchange color points
+    TempPoint := FColorPoints[Indices[0]];
+    FColorPoints[Indices[0]] := FColorPoints[Indices[1]];
+    FColorPoints[Indices[1]] := TempPoint;
+
+    FK2Sign := 1;
+  end;
+
+//  raise Exception.Create('Not yet implemented');
 end;
 
 procedure TQuadGradientSampler.SetColor(Index: Integer;
