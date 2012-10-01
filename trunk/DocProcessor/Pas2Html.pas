@@ -16,7 +16,6 @@ uses
   Windows, Messages, SysUtils, Classes, Controls, DelphiParse,
   ShellApi, ShlObj, Forms;
 
-  function GetDelphiSourceFolder(const StartFolder: string): string;
   function BuildNewUnit(const PasFilename, DestUnitFolder, projectFolder: AnsiString): Integer;
   function DeleteFolder(const Foldername: AnsiString): Boolean;
 
@@ -63,12 +62,12 @@ begin
   case Tok.kind of
     tkReserved:
       if (Len > 0) and not AvoidSpace then
-        GBuffer := GBuffer + ' <b>'+ Tok.Text + '</b>' else
-        GBuffer := GBuffer + '<b>'+ Tok.Text + '</b>';
+        GBuffer := GBuffer + ' <b>' + Tok.Text + '</b>' else
+        GBuffer := GBuffer + '<b>' + Tok.Text + '</b>';
     tkText:
       if Len > 0 then
-        GBuffer := GBuffer + ' '''+ Tok.Text + '''' else
-        GBuffer := GBuffer + ''''+ Tok.Text + '''';
+        GBuffer := GBuffer + ' ''' + Tok.Text + '''' else
+        GBuffer := GBuffer + '''' + Tok.Text + '''';
     tkIdentifier, tkValue, tkAsm:
       if (Len > 0) and not AvoidSpace then
         GBuffer := GBuffer + ' '+ Tok.Text else
@@ -131,74 +130,6 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure CoTaskMemFree(pv: Pointer); stdcall; external 'ole32.dll' name 'CoTaskMemFree';
-
-//------------------------------------------------------------------------------
-
-function GetFolder(OwnerForm: TForm; const Caption: string;
-  AllowCreateNew: Boolean; var Folder: string; UseEditBox: Boolean = False)
-  : Boolean;
-var
-  DisplayName: array [0 .. MAX_PATH] of Char;
-  bi: TBrowseInfo;
-  pidl: PItemIdList;
-begin
-  if not Assigned(OwnerForm) then
-    bi.hWndOwner := 0 else
-    bi.hWndOwner := OwnerForm.Handle;
-  bi.pIDLRoot := nil;
-  bi.pszDisplayName := PChar(@DisplayName[0]);
-  bi.lpszTitle := PChar(Caption);
-  bi.ulFlags := BIF_RETURNONLYFSDIRS or BIF_STATUSTEXT or BIF_VALIDATE;
-  if AllowCreateNew then
-    bi.ulFlags := bi.ulFlags or BIF_NEWDIALOGSTYLE;
-  if UseEditBox then
-    bi.ulFlags := bi.ulFlags or BIF_EDITBOX;
-  bi.lpfn := @BrowseProc;
-  if Folder <> '' then Folder := StripSlash(Folder);
-  bi.lParam := Integer(PAnsiChar(Folder));
-  bi.iImage := 0;
-  pidl := SHBrowseForFolder(bi);
-  Result := pidl <> nil;
-  if Result then
-  try
-    Result := SHGetPathFromIDList(pidl,PChar(@DisplayName[0]));
-    Folder := DisplayName;
-  finally
-    CoTaskMemFree(pidl);
-  end;
-end;
-//------------------------------------------------------------------------------
-
-function GetSpecialFolder(FolderID: Integer): AnsiString;
-var
-  p: PItemIDList;
-  Path: array[0..MAX_PATH] of Char;
-begin
-  Result := '';
-  //nb: SHGetSpecialFolderPath requires IE 4.0 or higher
-  if Succeeded(SHGetSpecialFolderLocation(0, FolderID, p)) then
-  try
-    if SHGetPathFromIDList(p, Path) then Result := Path;
-  finally
-    CoTaskMemFree(p);
-  end;
-end;
-//------------------------------------------------------------------------------
-
-function GetDelphiSourceFolder(const StartFolder: string): string;
-const
-  CSIDL_PROGRAM_FILES = $26;
-begin
-  if (StartFolder = '') or not DirectoryExists(StartFolder) then
-    Result := GetSpecialFolder(CSIDL_PROGRAM_FILES) else
-    Result := StartFolder;
-  if not GetFolder(Application.MainForm,
-    'Location of Delphi PAS Files ...', False, Result) then
-    Result := '';
-end;
-//------------------------------------------------------------------------------
-
 function TrimSlash(const Path: string): string;
 var
   i: Integer;
@@ -206,16 +137,6 @@ begin
   Result := Path;
   i := Length(Path);
   if (i > 0) and (Path[i] = '\') then Delete(Result, i, 1);
-end;
-//------------------------------------------------------------------------------
-
-function GetParentFolder(const Path: string): string;
-var
-  i: Integer;
-begin
-  i := Length(Path) - 1;
-  while (i > 0) and (Path[i] <> '\') do Dec(i);
-  Result := Copy(Path, 1, i);
 end;
 //------------------------------------------------------------------------------
 
@@ -1135,7 +1056,7 @@ begin
       if VarList.Count > 0 then
       begin
         if not DirectoryExists(DestUnitFolder + 'Variables') then
-          MkDir(DestUnitFolder + 'Vars');
+          MkDir(DestUnitFolder + 'Variables');
         VarList.Insert(0, HtmlStart(4));
         VarList.Add(htmlEnd);
         VarList.SaveToFile(DestUnitFolder + 'Variables/vars.htm');
