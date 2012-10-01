@@ -1,0 +1,145 @@
+object FrmTriangulationDemo: TFrmTriangulationDemo
+  Left = 0
+  Top = 0
+  Caption = 'Triangulation Demo'
+  ClientHeight = 481
+  ClientWidth = 688
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Font.Style = []
+  OldCreateOrder = False
+  OnCreate = FormCreate
+  DesignSize = (
+    688
+    481)
+  PixelsPerInch = 96
+  TextHeight = 13
+  object PnlSettings: TPanel
+    Left = 511
+    Top = 0
+    Width = 177
+    Height = 481
+    Align = alRight
+    TabOrder = 0
+    DesignSize = (
+      177
+      481)
+    object LblBackgroundSampler: TLabel
+      Left = 8
+      Top = 23
+      Width = 101
+      Height = 13
+      Caption = 'Background Sampler:'
+    end
+    object LblVertexColor: TLabel
+      Left = 8
+      Top = 159
+      Width = 29
+      Height = 13
+      Caption = 'Color:'
+      Visible = False
+    end
+    object VertexColorShape: TShape
+      Left = 43
+      Top = 157
+      Width = 16
+      Height = 16
+      Visible = False
+      OnMouseDown = VertexColorShapeMouseDown
+    end
+    object LblPower: TLabel
+      Left = 8
+      Top = 68
+      Width = 34
+      Height = 13
+      Caption = 'Power:'
+    end
+    object PnlTwirlDistortion: TPanel
+      Left = 1
+      Top = 1
+      Width = 175
+      Height = 16
+      Align = alTop
+      BevelOuter = bvNone
+      Caption = 'Sampler'
+      Color = clBtnShadow
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 0
+    end
+    object CmbBackgroundSampler: TComboBox
+      Left = 8
+      Top = 39
+      Width = 161
+      Height = 21
+      Style = csDropDownList
+      Anchors = [akLeft, akTop, akRight]
+      ItemIndex = 0
+      TabOrder = 1
+      Text = 'None'
+      OnChange = CmbBackgroundSamplerChange
+      Items.Strings = (
+        'None'
+        'Voronoi'
+        'Voronoi (HQ)'
+        'Shepards'
+        'Custom IDW'
+        'Delaunay')
+    end
+    object PnlVertex: TPanel
+      Left = 1
+      Top = 129
+      Width = 175
+      Height = 16
+      BevelOuter = bvNone
+      Caption = 'Vertex'
+      Color = clBtnShadow
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 2
+    end
+    object GbrPower: TGaugeBar
+      Left = 48
+      Top = 66
+      Width = 121
+      Height = 17
+      Anchors = [akLeft, akTop, akRight]
+      Backgnd = bgPattern
+      Max = 10000
+      Min = 1
+      ShowHandleGrip = True
+      Style = rbsMac
+      Position = 10000
+      OnChange = GbrPowerChange
+    end
+  end
+  object PaintBox32: TPaintBox32
+    Left = 8
+    Top = 8
+    Width = 497
+    Height = 465
+    Anchors = [akLeft, akTop, akRight, akBottom]
+    TabOrder = 1
+    OnDblClick = SelectVertexColorClick
+    OnMouseDown = PaintBox32MouseDown
+    OnMouseMove = PaintBox32MouseMove
+    OnMouseUp = PaintBox32MouseUp
+    OnPaintBuffer = PaintBox32PaintBuffer
+  end
+  object ColorDialog: TColorDialog
+    Options = [cdFullOpen, cdAnyColor]
+    Left = 336
+    Top = 240
+  end
+end
