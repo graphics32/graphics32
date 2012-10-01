@@ -1766,7 +1766,10 @@ var
   MinIndex: Integer;
 begin
   if Length(FBarycentric) = 0 then
+  begin
+    Result := clRed32;
     Exit;
+  end;
 
   FBarycentric[0].CalculateBarycentricCoordinates(X, Y, U, V, W);
   if (U >= 0) and (V >= 0) and (W >= 0) then
@@ -1815,130 +1818,118 @@ end;
 
 procedure TDelaunaySampler.Triangulate;
 var
-  MaxVerticesCount: Integer;
-
   Complete: array of Byte;
   Edges: array of array [0 .. 1] of Integer;
-  EdgeCount: LongInt;
+  ByteIndex, Bit: Byte;
+  MaxVerticesCount, EdgeCount, MaxEdgeCount, MaxTriangleCount: Integer;
 
   // For super triangle
-  Xmin, Ymin, Xmax, Ymax: Double;
-  Xmid, Ymid, DMax3: Double;
+  ScaledDeltaMax: TFloat;
+  Mn, Mx, Mid: TFloatPoint;
 
   // General Variables
   TriangleCount, VertexCount, I, J, K: Integer;
-  Xc, Yc, R: Double;
+  CenterX, CenterY, RadSqr: TFloat;
   Inside: Boolean;
 const
   CSuperTriangleCount = 3; // -> super triangle
   CTolerance = 0.000001;
 
-  function InCircle(Xp, Yp, X1, Y1, X2, Y2, X3, Y3: Double;
-    var Xc: Double; var Yc: Double; var Rsqr: Double): Boolean;
-  // Return TRUE if the point (xp, yp) lies inside the circumcircle made up by
-  // points (x1, y1) (x2, y2) (x3, y3)
-  // The circumcircle centre is returned in (xc, yc) and the radius r
+  function InCircle(Pt, Pt1, Pt2, Pt3: TFloatPoint): Boolean;
+  // Return TRUE if the point Pt(x, y) lies inside the circumcircle made up by
+  // points Pt1(x, y) Pt2(x, y) Pt3(x, y)
+  // The circumcircle centre is returned in (CenterX, CenterY) and the radius r
   // NOTE: A point on the edge is inside the circumcircle
   var
-    M1: Double;
-    M2: Double;
-    Mx1: Double;
-    Mx2: Double;
-    My1: Double;
-    My2: Double;
-    Dx: Double;
-    Dy: Double;
-    Drsqr: Double;
+    M1, M2, MX1, MY1, MX2, MY2: Double;
+    DeltaX, DeltaY, DeltaRadSqr, AbsY1Y2, AbsY2Y3: Double;
   begin
-    Result := False;
+    AbsY1Y2 := Abs(Pt1.Y - Pt2.Y);
+    AbsY2Y3 := Abs(Pt2.Y - Pt3.Y);
 
-    if (Abs(Y1 - Y2) < CTolerance) and (Abs(Y2 - Y3) < CTolerance) then
+    // Check for coincident points
+    if (AbsY1Y2 < CTolerance) and (AbsY2Y3 < CTolerance) then
     begin
       Result := False;
       Exit;
     end;
 
-    if Abs(Y2 - Y1) < CTolerance then
+    if AbsY1Y2 < CTolerance then
     begin
-      M2 := -(X3 - X2) / (Y3 - Y2);
-      Mx2 := (X2 + X3) * 0.5;
-      My2 := (Y2 + Y3) * 0.5;
-      Xc := (X2 + X1) * 0.5;
-      Yc := M2 * (Xc - Mx2) + My2;
+      M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
+      MX2 := (Pt2.X + Pt3.X) * 0.5;
+      MY2 := (Pt2.Y + Pt3.Y) * 0.5;
+      CenterX := (Pt2.X + Pt1.X) * 0.5;
+      CenterY := M2 * (CenterX - MX2) + MY2;
     end
-    else if Abs(Y3 - Y2) < CTolerance then
+    else if AbsY2Y3 < CTolerance then
     begin
-      M1 := -(X2 - X1) / (Y2 - Y1);
-      Mx1 := (X1 + X2) * 0.5;
-      My1 := (Y1 + Y2) * 0.5;
-      Xc := (X3 + X2) * 0.5;
-      Yc := M1 * (Xc - Mx1) + My1;
+      M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
+      MX1 := (Pt1.X + Pt2.X) * 0.5;
+      MY1 := (Pt1.Y + Pt2.Y) * 0.5;
+      CenterX := (Pt3.X + Pt2.X) * 0.5;
+      CenterY := M1 * (CenterX - MX1) + MY1;
     end
     else
     begin
-      M1 := -(X2 - X1) / (Y2 - Y1);
-      M2 := -(X3 - X2) / (Y3 - Y2);
-      Mx1 := (X1 + X2) * 0.5;
-      Mx2 := (X2 + X3) * 0.5;
-      My1 := (Y1 + Y2) * 0.5;
-      My2 := (Y2 + Y3) * 0.5;
-      if (M1 - M2) <> 0 then // se
-      begin
-        Xc := (M1 * Mx1 - M2 * Mx2 + My2 - My1) / (M1 - M2);
-        Yc := M1 * (Xc - Mx1) + My1;
-      end
+      M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
+      M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
+      MX1 := (Pt1.X + Pt2.X) * 0.5;
+      MX2 := (Pt2.X + Pt3.X) * 0.5;
+      MY1 := (Pt1.Y + Pt2.Y) * 0.5;
+      MY2 := (Pt2.Y + Pt3.Y) * 0.5;
+
+      CenterX := (M1 * MX1 - M2 * Mx2 + My2 - MY1) / (M1 - M2);
+      if (AbsY1Y2 > AbsY2Y3) then
+        CenterY := M1 * (CenterX - MX1) + MY1
       else
-      begin
-        Xc := (X1 + X2 + X3) / 3;
-        Yc := (Y1 + Y2 + Y3) / 3;
-      end;
+        CenterY := M2 * (CenterX - MX2) + MY2;
     end;
 
-    Dx := X2 - Xc;
-    Dy := Y2 - Yc;
-    Rsqr := Dx * Dx + Dy * Dy;
-    Dx := Xp - Xc;
-    Dy := Yp - Yc;
-    Drsqr := Sqr(Dx) + Sqr(Dy);
+    DeltaX := Pt2.X - CenterX;
+    DeltaY := Pt2.Y - CenterY;
+    RadSqr := DeltaX * DeltaX + DeltaY * DeltaY;
+    DeltaX := Pt.X - CenterX;
+    DeltaY := Pt.Y - CenterY;
+    DeltaRadSqr := Sqr(DeltaX) + Sqr(DeltaY);
 
-    Result := Drsqr <= Rsqr;
+    Result := (DeltaRadSqr - RadSqr) <= CTolerance;
   end;
 
 begin
   VertexCount := Length(FColorPoints);
   MaxVerticesCount := VertexCount + CSuperTriangleCount;
   SetLength(FColorPoints, MaxVerticesCount);
-  SetLength(FTriangles, 2 * (MaxVerticesCount - 1));
-  SetLength(Edges, 3 * (MaxVerticesCount - 1));
-  FillChar(Edges[0], 3 * (MaxVerticesCount - 1) * 2 * SizeOf(Integer), 0);
-  SetLength(Complete, (2 * (MaxVerticesCount - 1) + 7) shr 3);
-  FillChar(Complete[0], (2 * (MaxVerticesCount - 1) + 7) shr 3, 0);
+  MaxTriangleCount := 2 * (MaxVerticesCount - 1) - CSuperTriangleCount;
+  SetLength(FTriangles, MaxTriangleCount);
+  MaxEdgeCount := 3 * (MaxVerticesCount - 1);
+  SetLength(Edges, MaxEdgeCount);
+  SetLength(Complete, (MaxTriangleCount + 7) shr 3);
 
   // Find the maximum and minimum vertex bounds.
   // This is to allow calculation of the bounding triangle
-  Xmin := FColorPoints[0].Point.X;
-  Ymin := FColorPoints[0].Point.Y;
-  Xmax := Xmin;
-  Ymax := Ymin;
+  Mn.X := FColorPoints[0].Point.X;
+  Mn.Y := FColorPoints[0].Point.Y;
+  Mx.X := Mn.X;
+  Mx.Y := Mn.Y;
   for I := 1 to Length(FColorPoints) - 1 do
   begin
-    if FColorPoints[I].Point.X < Xmin then Xmin := FColorPoints[I].Point.X;
-    if FColorPoints[I].Point.X > Xmax then Xmax := FColorPoints[I].Point.X;
-    if FColorPoints[I].Point.Y < Ymin then Ymin := FColorPoints[I].Point.Y;
-    if FColorPoints[I].Point.Y > Ymax then Ymax := FColorPoints[I].Point.Y;
+    if FColorPoints[I].Point.X < Mn.X then Mn.X := FColorPoints[I].Point.X;
+    if FColorPoints[I].Point.X > Mx.X then Mx.X := FColorPoints[I].Point.X;
+    if FColorPoints[I].Point.Y < Mn.Y then Mn.Y := FColorPoints[I].Point.Y;
+    if FColorPoints[I].Point.Y > Mx.Y then Mx.Y := FColorPoints[I].Point.Y;
   end;
 
-  DMax3 := 3 * Max(Xmax - Xmin, Ymax - Ymin);
-  Xmid := Trunc((Xmax + Xmin) * 0.5);
-  Ymid := Trunc((Ymax + Ymin) * 0.5);
+  ScaledDeltaMax := 30 * Max(Mx.X - Mn.X, Mx.Y - Mn.Y);
+  Mid := FloatPoint((Mx.X + Mn.X) * 0.5, (Mx.Y + Mn.Y) * 0.5);
 
-  // Set up the supertriangle
-  // This is a triangle which encompasses all the sample points. The
-  // supertriangle coordinates are added to the end of the vertex list.
-  // The supertriangle is the first triangle in the triangle list.
-  FColorPoints[VertexCount].Point := FloatPoint(Xmid - DMax3, Ymid - DMax3);
-  FColorPoints[VertexCount + 1].Point := FloatPoint(Xmid + DMax3, Ymid);
-  FColorPoints[VertexCount + 2].Point := FloatPoint(Xmid, Ymid + DMax3);
+  // Set up the super triangle
+  // This is a triangle which encompasses all the sample points. The super
+  // triangle coordinates are added to the end of the vertex list. The super
+  // triangle is the first triangle in the triangle list.
+  FColorPoints[VertexCount].Point := FloatPoint(Mid.X - ScaledDeltaMax, Mid.Y - ScaledDeltaMax);
+  FColorPoints[VertexCount + 1].Point := FloatPoint(Mid.X + ScaledDeltaMax, Mid.Y);
+  FColorPoints[VertexCount + 2].Point := FloatPoint(Mid.X, Mid.Y + ScaledDeltaMax);
 
   FTriangles[0, 0] := VertexCount;
   FTriangles[0, 1] := VertexCount + 1;
@@ -1951,26 +1942,24 @@ begin
   for I := 0 to VertexCount - 1 do
   begin
     EdgeCount := 0;
+
     // Set up the edge buffer.
-    // If the point (FColorPoints(i).x, FColorPoints(i).y) lies inside the circumcircle then the
-    // three edges of that triangle are added to the edge buffer.
+    // If the point [x, y] lies inside the circumcircle then the hree edges of
+    // that triangle are added to the edge buffer.
     J := 0;
     repeat
       if Complete[J shr 3] and (1 shl (J and $7)) = 0 then
       begin
-        Inside := InCircle(FColorPoints[I].Point.X, FColorPoints[I].Point.Y,
-          FColorPoints[FTriangles[J, 0]].Point.X,
-          FColorPoints[FTriangles[J, 0]].Point.Y,
-          FColorPoints[FTriangles[J, 1]].Point.X,
-          FColorPoints[FTriangles[J, 1]].Point.Y,
-          FColorPoints[FTriangles[J, 2]].Point.X,
-          FColorPoints[FTriangles[J, 2]].Point.Y, Xc, Yc, R);
-        // Include this if points are sorted by X
-        if (Xc < FColorPoints[I].Point.X) and ((Sqr(FColorPoints[I].Point.X - Xc)) > r) then
-(*
-        if (Xc + R) < FColorPoints[I].Point.X then
-*)
-          Complete[J shr 3] := Complete[J shr 3] or (1 shl (J and $7))
+        Inside := InCircle(FColorPoints[I].Point,
+          FColorPoints[FTriangles[J, 0]].Point,
+          FColorPoints[FTriangles[J, 1]].Point,
+          FColorPoints[FTriangles[J, 2]].Point);
+
+        ByteIndex := J shr 3;
+        Bit := 1 shl (J and $7);
+        if (CenterX < FColorPoints[I].Point.X) and
+          ((Sqr(FColorPoints[I].Point.X - CenterX)) > RadSqr) then
+          Complete[ByteIndex] := Complete[ByteIndex] or Bit // Complete[j] := True;
         else
           if Inside then
           begin
@@ -1981,12 +1970,15 @@ begin
             Edges[EdgeCount + 2, 0] := FTriangles[J, 2];
             Edges[EdgeCount + 2, 1] := FTriangles[J, 0];
             EdgeCount := EdgeCount + 3;
+            Assert(EdgeCount <= MaxEdgeCount);
 
             TriangleCount := TriangleCount - 1;
             FTriangles[J] := FTriangles[TriangleCount];
-            Complete[J] := Complete[TriangleCount];
 
-            J := J - 1;
+            // Complete[j] := Complete[TriangleCount];
+            Complete[ByteIndex] := (Complete[ByteIndex] and (not Bit))
+              or (Complete[TriangleCount shr 3] and Bit);
+            Continue;
           end;
       end;
       J := J + 1;
@@ -1997,12 +1989,10 @@ begin
     // interior edges are opposite pointing in direction.
     for J := 0 to EdgeCount - 2 do
     begin
-      // if not (Edges[0, j] = 0) and not (Edges[1, j] = 0) then
       if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
       begin
         for K := J + 1 to EdgeCount - 1 do
         begin
-          // if not (Edges[k, 0] = 0) and not (Edges[k, 1] = 0) then
           if (Edges[K, 0] <> -1) or (Edges[K, 1] <> -1) then
           begin
             if (Edges[J, 0] = Edges[K, 1]) and
@@ -2018,24 +2008,26 @@ begin
       end;
     end;
 
-    // Form new triangles for the current point
-    // Skipping over any tagged edges.
-    // All edges are arranged in clockwise order.
+    // Form new triangles for the current point.
+    // Skipping over any tagged edges. All edges are arranged in clockwise
+    // order.
     for J := 0 to EdgeCount - 1 do
     begin
-      // if not (Edges[0, j] = 0) and not (Edges[1, j] = 0) then
       if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
       begin
         FTriangles[TriangleCount, 0] := Edges[J, 0];
         FTriangles[TriangleCount, 1] := Edges[J, 1];
         FTriangles[TriangleCount, 2] := I;
-        Complete[TriangleCount shr 3] := Complete[TriangleCount shr 3] and not (1 shl (TriangleCount and $7));
+        ByteIndex := TriangleCount shr 3;
+        Bit := 1 shl (TriangleCount and $7);
+        Complete[ByteIndex] := Complete[ByteIndex] and not Bit;
         Inc(TriangleCount);
+        Assert(TriangleCount <= MaxTriangleCount);
       end;
     end;
   end;
 
-  // Remove triangles with supertriangle VertexCount
+  // Remove triangles with supertriangle vertices
   // These are triangles which have a vertex number greater than VertexCount
   I := 0;
   repeat
