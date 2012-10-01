@@ -214,7 +214,7 @@ begin
   FStarAngle := 0;
   FOutline := Star(FCenter, 180, FStarVertices, FStarAngle);
 
-  FBackgroundGradientSampler := TTriangularGradientSampler.Create;
+  FBackgroundGradientSampler := TBarycentricGradientSampler.Create;
   SetLength(FMesh, FBackgroundGradientSampler.Count);
   for Index := 0 to High(FMesh) do
   begin
@@ -349,11 +349,12 @@ begin
   begin
     MnuBackgroundGradientCustomIDW.Checked := True;
     FBackgroundGradientSampler.Free;
-    FBackgroundGradientSampler := TShepardSampler.Create;
-    TShepardSampler(FBackgroundGradientSampler).Power := 8;
+    FBackgroundGradientSampler := TInvertedDistanceWeightingSampler.Create;
+    TInvertedDistanceWeightingSampler(FBackgroundGradientSampler).Power := 8;
     with TCustomArbitrarySparsePointGradientSampler(FBackgroundGradientSampler) do
       for Index := 0 to High(FMesh) do
         Add(FMesh[Index].Point, FMesh[Index].Color);
+    PaintBox32.Invalidate;
   end;
 end;
 
@@ -365,10 +366,11 @@ begin
   begin
     MnuBackgroundGradientShepards.Checked := True;
     FBackgroundGradientSampler.Free;
-    FBackgroundGradientSampler := TShepardSampler.Create;
+    FBackgroundGradientSampler := TInvertedDistanceWeightingSampler.Create;
     with TCustomArbitrarySparsePointGradientSampler(FBackgroundGradientSampler) do
       for Index := 0 to High(FMesh) do
         Add(FMesh[Index].Point, FMesh[Index].Color);
+    PaintBox32.Invalidate;
   end;
 end;
 
@@ -378,8 +380,9 @@ begin
   begin
     MnuBackgroundGradientTriangular.Checked := True;
     FBackgroundGradientSampler.Free;
-    FBackgroundGradientSampler := TTriangularGradientSampler.Create;
+    FBackgroundGradientSampler := TBarycentricGradientSampler.Create;
     UpdateBackgroundGradientSampler;
+    PaintBox32.Invalidate;
   end;
 end;
 
@@ -395,6 +398,7 @@ begin
     with TCustomArbitrarySparsePointGradientSampler(FBackgroundGradientSampler) do
       for Index := 0 to High(FMesh) do
         Add(FMesh[Index].Point, FMesh[Index].Color);
+    PaintBox32.Invalidate;
   end;
 end;
 
