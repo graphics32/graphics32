@@ -120,7 +120,9 @@ type
     function GetCount: Integer; virtual; abstract;
     function GetColor(Index: Integer): TColor32; virtual; abstract;
     function GetPoint(Index: Integer): TFloatPoint; virtual; abstract;
+    function GetColorPoint(Index: Integer): TColorFloatPoint; virtual; abstract;
     procedure SetColor(Index: Integer; const Value: TColor32); virtual; abstract;
+    procedure SetColorPoint(Index: Integer; const Value: TColorFloatPoint); virtual; abstract;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); virtual; abstract;
   public
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
@@ -128,20 +130,25 @@ type
 
     property Color[Index: Integer]: TColor32 read GetColor write SetColor;
     property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+    property ColorPoint[Index: Integer]: TColorFloatPoint read GetColorPoint write SetColorPoint;
     property Count: Integer read GetCount;
   end;
 
   TBarycentricGradientSampler = class(TCustomSparsePointGradientSampler)
   protected
     FColorPoints: array [0 .. 2] of TColorFloatPoint;
-    FNormScale: TFloat;
+    FDists: array [0 .. 1] of TFloatPoint;
     function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
+    function GetColorPoint(Index: Integer): TColorFloatPoint; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetColorPoint(Index: Integer; const Value: TColorFloatPoint); override;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
     procedure AssignTo(Dest: TPersistent); override;
+    procedure CalculateBarycentricCoordinates(X, Y: TFloat; out U, V, W: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
   public
+    function IsPointInTriangle(X, Y: TFloat): Boolean;
     procedure PrepareSampling; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
@@ -149,11 +156,18 @@ type
   TBilinearGradientSampler = class(TCustomSparsePointGradientSampler)
   protected
     FColorPoints: array [0 .. 3] of TColorFloatPoint;
+    FDists: array [0 .. 2] of TFloatPoint;
+    FDot: TFloat;
+    FBiasK0: TFloat;
+    FBiasU: TFloat;
     FK2Sign: Integer;
+    FK2Value: TFloat;
     function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
+    function GetColorPoint(Index: Integer): TColorFloatPoint; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetColorPoint(Index: Integer; const Value: TColorFloatPoint); override;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
     procedure AssignTo(Dest: TPersistent); override;
   public
@@ -168,11 +182,15 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
+    function GetColorPoint(Index: Integer): TColorFloatPoint; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetColorPoint(Index: Integer; const Value: TColorFloatPoint); override;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
   public
-    procedure Add(Point: TFloatPoint; Color: TColor32); virtual;
+    procedure Add(Point: TFloatPoint; Color: TColor32); overload; virtual;
+    procedure Add(ColorPoint: TColorFloatPoint); overload; virtual;
+    procedure SetPoints(ColorPoints: array of TColorFloatPoint); overload; virtual;
     procedure Clear; virtual;
   end;
 
@@ -181,6 +199,7 @@ type
     FDists: PFloatArray;
     FUsePower: Boolean;
     FPower: TFloat;
+    FScaledPower: TFloat;
   public
     constructor Create; virtual;
     procedure PrepareSampling; override;
@@ -192,6 +211,18 @@ type
 
   TVoronoiSampler = class(TCustomArbitrarySparsePointGradientSampler)
   public
+    function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  end;
+
+  TDelaunaySampler = class(TCustomArbitrarySparsePointGradientSampler)
+  private
+    FTriangles: array of array [0 .. 2] of Integer;
+    FBarycentric: array of TBarycentricGradientSampler;
+  protected
+    procedure Triangulate;
+  public
+    procedure PrepareSampling; override;
+    procedure FinalizeSampling; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
 
@@ -339,6 +370,34 @@ type
     procedure UpdateInternals; override;
   public
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  end;
+
+  TCustomSparsePointGradientPolygonFiller = class(TCustomPolygonFiller)
+  protected
+    function GetCount: Integer; virtual; abstract;
+    function GetColor(Index: Integer): TColor32; virtual; abstract;
+    function GetPoint(Index: Integer): TFloatPoint; virtual; abstract;
+    procedure SetColor(Index: Integer; const Value: TColor32); virtual; abstract;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); virtual; abstract;
+  public
+    property Color[Index: Integer]: TColor32 read GetColor write SetColor;
+    property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+    property Count: Integer read GetCount;
+  end;
+
+  TBarycentricGradientPolygonFiller = class(TCustomSparsePointGradientPolygonFiller)
+  protected
+    FColorPoints: array [0 .. 2] of TColorFloatPoint;
+    FDists: array [0 .. 1] of TFloatPoint;
+    function GetCount: Integer; override;
+    function GetColor(Index: Integer): TColor32; override;
+    function GetPoint(Index: Integer): TFloatPoint; override;
+    procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
+    procedure BeginRendering; override;
   end;
 
   TCustomGradientPolygonFiller = class(TCustomPolygonFiller)
@@ -508,8 +567,8 @@ type
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Geometry,
-  GR32_VectorUtils;
+  GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Bindings,
+  GR32_Geometry, GR32_VectorUtils;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -932,46 +991,15 @@ begin
   Result := GetSampleFloat(X, Y);
 end;
 
-
-{ TBarycentricGradientSampler }
-
-procedure TBarycentricGradientSampler.AssignTo(Dest: TPersistent);
-begin
-  if Dest is TBarycentricGradientSampler then
-    with TBarycentricGradientSampler(Dest) do
-      FColorPoints := Self.FColorPoints
-  else
-    inherited;
-end;
-
-function TBarycentricGradientSampler.GetColor(Index: Integer): TColor32;
-begin
-  if Index in [0 .. 2] then
-    Result := FColorPoints[Index].Color
-  else
-    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
-end;
-
-function TBarycentricGradientSampler.GetCount: Integer;
-begin
-  Result := 3;
-end;
-
-function TBarycentricGradientSampler.GetPoint(Index: Integer): TFloatPoint;
-begin
-  if Index in [0 .. 2] then
-    Result := FColorPoints[Index].Point
-  else
-    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
-end;
-
 type
   TLinear3PointInterpolation = function (A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+  TLinear4PointInterpolation = function (A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32;
 
 var
   Linear3PointInterpolation: TLinear3PointInterpolation;
+  Linear4PointInterpolation: TLinear4PointInterpolation;
 
-function Linear3PointInterpolation_Native(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
+function Linear3PointInterpolation_Pas(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
 var
   Clr: TColor32Entry absolute Result;
 begin
@@ -992,6 +1020,35 @@ begin
     WB * TColor32Entry(B).A +
     WC * TColor32Entry(C).A));
 end;
+
+function Linear4PointInterpolation_Pas(A, B, C, D: TColor32; WA, WB, WC,
+  WD: Single): TColor32;
+var
+  Clr: TColor32Entry absolute Result;
+begin
+  Clr.B := Clamp(Round(
+    WA * TColor32Entry(A).B +
+    WB * TColor32Entry(B).B +
+    WC * TColor32Entry(C).B +
+    WD * TColor32Entry(D).B));
+  Clr.G := Clamp(Round(
+    WA * TColor32Entry(A).G +
+    WB * TColor32Entry(B).G +
+    WC * TColor32Entry(C).G +
+    WD * TColor32Entry(D).G));
+  Clr.R := Clamp(Round(
+    WA * TColor32Entry(A).R +
+    WB * TColor32Entry(B).R +
+    WC * TColor32Entry(C).R +
+    WD * TColor32Entry(D).R));
+  Clr.A := Clamp(Round(
+    WA * TColor32Entry(A).A +
+    WB * TColor32Entry(B).A +
+    WC * TColor32Entry(C).A +
+    WD * TColor32Entry(D).A));
+end;
+
+{$IFNDEF OMIT_SSE2}
 
 {$IFNDEF PUREPASCAL}
 function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
@@ -1030,7 +1087,8 @@ asm
         PACKSSDW  XMM0,XMM3
         PACKUSWB  XMM0,XMM3
         MOVD      EAX,XMM0
-{$ELSE}
+{$ENDIF}
+{$IFDEF TARGET_X64}
         MOVQ      XMM0,XMM3
         SHUFPS    XMM0,XMM0,0
         MOVD      XMM1,WB
@@ -1063,60 +1121,194 @@ asm
         MOVD      EAX,XMM0
 {$ENDIF}
 end;
+
+function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32;
+asm
+{$IFDEF TARGET_X86}
+        PXOR      XMM7,XMM7
+
+        MOVD      XMM0,EAX
+        PUNPCKLBW XMM0,XMM7
+        PUNPCKLWD XMM0,XMM7
+        CVTDQ2PS  XMM0,XMM0
+        MOVD      XMM1,EDX
+        PUNPCKLBW XMM1,XMM7
+        PUNPCKLWD XMM1,XMM7
+        CVTDQ2PS  XMM1,XMM1
+
+        MOV       EAX, WA
+        MOVD      XMM4,EAX
+        SHUFPS    XMM4,XMM4,0
+        MULPS     XMM0,XMM4
+
+        MOV       EDX, WB
+        MOVD      XMM5,EDX
+        SHUFPS    XMM5,XMM5,0
+        MULPS     XMM1,XMM5
+        ADDPS     XMM0,XMM1
+
+        MOVD      XMM2,ECX
+        PUNPCKLBW XMM2,XMM7
+        PUNPCKLWD XMM2,XMM7
+        CVTDQ2PS  XMM2,XMM2
+        MOVD      XMM3,D
+        PUNPCKLBW XMM3,XMM7
+        PUNPCKLWD XMM3,XMM7
+        CVTDQ2PS  XMM3,XMM3
+
+        MOV       EAX, WC
+        MOVD      XMM4,EAX
+        SHUFPS    XMM4,XMM4,0
+        MULPS     XMM2,XMM4
+
+        MOV       EDX, WD
+        MOVD      XMM5,EDX
+        SHUFPS    XMM5,XMM5,0
+        MULPS     XMM3,XMM5
+        ADDPS     XMM2,XMM3
+        ADDPS     XMM0,XMM2
+
+        CVTPS2DQ  XMM0,XMM0
+        PACKSSDW  XMM0,XMM7
+        PACKUSWB  XMM0,XMM7
+        MOVD      EAX,XMM0
+{$ENDIF}
+{$IFDEF TARGET_X64}
+        PXOR      XMM7,XMM7
+
+        MOVD      XMM0,A
+        PUNPCKLBW XMM0,XMM7
+        PUNPCKLWD XMM0,XMM7
+        CVTDQ2PS  XMM0,XMM0
+        MOVD      XMM1,B
+        PUNPCKLBW XMM1,XMM7
+        PUNPCKLWD XMM1,XMM7
+        CVTDQ2PS  XMM1,XMM1
+
+        MOV       EAX, WA
+        MOVD      XMM4,EAX
+        SHUFPS    XMM4,XMM4,0
+        MULPS     XMM0,XMM4
+
+        MOV       EDX, WB
+        MOVD      XMM5,EDX
+        SHUFPS    XMM5,XMM5,0
+        MULPS     XMM1,XMM5
+        ADDPS     XMM0,XMM1
+
+        MOVD      XMM2,C
+        PUNPCKLBW XMM2,XMM7
+        PUNPCKLWD XMM2,XMM7
+        CVTDQ2PS  XMM2,XMM2
+        MOVD      XMM3,D
+        PUNPCKLBW XMM3,XMM7
+        PUNPCKLWD XMM3,XMM7
+        CVTDQ2PS  XMM3,XMM3
+
+        MOV       EAX, WC
+        MOVD      XMM4,EAX
+        SHUFPS    XMM4,XMM4,0
+        MULPS     XMM2,XMM4
+
+        MOV       EDX, WD
+        MOVD      XMM5,EDX
+        SHUFPS    XMM5,XMM5,0
+        MULPS     XMM3,XMM5
+        ADDPS     XMM2,XMM3
+        ADDPS     XMM0,XMM2
+
+        CVTPS2DQ  XMM0,XMM0
+        PACKSSDW  XMM0,XMM7
+        PACKUSWB  XMM0,XMM7
+        MOVD      EAX,XMM0
+{$ENDIF}
+end;
+{$ENDIF}
 {$ENDIF}
 
-function Linear4PointInterpolation(A, B, C, D: TColor32; WA, WB, WC,
-  WD: Single): TColor32;
-var
-  Clr: TColor32Entry absolute Result;
+{ TBarycentricGradientSampler }
+
+procedure TBarycentricGradientSampler.AssignTo(Dest: TPersistent);
 begin
-  Clr.B := Clamp(Round(
-    WA * TColor32Entry(A).B +
-    WB * TColor32Entry(B).B +
-    WC * TColor32Entry(C).B +
-    WD * TColor32Entry(D).B));
-  Clr.G := Clamp(Round(
-    WA * TColor32Entry(A).G +
-    WB * TColor32Entry(B).G +
-    WC * TColor32Entry(C).G +
-    WD * TColor32Entry(D).G));
-  Clr.R := Clamp(Round(
-    WA * TColor32Entry(A).R +
-    WB * TColor32Entry(B).R +
-    WC * TColor32Entry(C).R +
-    WD * TColor32Entry(D).R));
-  Clr.A := Clamp(Round(
-    WA * TColor32Entry(A).A +
-    WB * TColor32Entry(B).A +
-    WC * TColor32Entry(C).A +
-    WD * TColor32Entry(D).A));
+  if Dest is TBarycentricGradientSampler then
+    with TBarycentricGradientSampler(Dest) do
+      FColorPoints := Self.FColorPoints
+  else
+    inherited;
+end;
+
+function TBarycentricGradientSampler.GetColor(Index: Integer): TColor32;
+begin
+  if Index in [0 .. 2] then
+    Result := FColorPoints[Index].Color
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TBarycentricGradientSampler.GetColorPoint(
+  Index: Integer): TColorFloatPoint;
+begin
+  if Index in [0 .. 2] then
+    Result := FColorPoints[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TBarycentricGradientSampler.GetCount: Integer;
+begin
+  Result := 3;
+end;
+
+function TBarycentricGradientSampler.GetPoint(Index: Integer): TFloatPoint;
+begin
+  if Index in [0 .. 2] then
+    Result := FColorPoints[Index].Point
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TBarycentricGradientSampler.CalculateBarycentricCoordinates(
+  X, Y: TFloat; out U, V, W: TFloat);
+var
+  Temp: TFloatPoint;
+begin
+  Temp.X := X - FColorPoints[2].Point.X;
+  Temp.Y := Y - FColorPoints[2].Point.Y;
+  U := FDists[0].Y * Temp.X + FDists[0].X * Temp.Y;
+  V := FDists[1].Y * Temp.X + FDists[1].X * Temp.Y;
+  W := 1 - U - V;
 end;
 
 function TBarycentricGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
-  Temp: TFloatPoint;
-  Barycentric: array [0..1] of TFloat;
+  U, V, W: TFloat;
 begin
-  Temp.X := (X - FColorPoints[2].Point.X);
-  Temp.Y := (Y - FColorPoints[2].Point.Y);
-  Barycentric[0] := FNormScale * ((FColorPoints[1].Point.Y -
-    FColorPoints[2].Point.Y) * Temp.X + (FColorPoints[2].Point.X -
-    FColorPoints[1].Point.X) * Temp.Y);
-  Barycentric[1] := FNormScale * ((FColorPoints[2].Point.Y -
-    FColorPoints[0].Point.Y) * Temp.X + (FColorPoints[0].Point.X -
-    FColorPoints[2].Point.X) * Temp.Y);
-
+  CalculateBarycentricCoordinates(X, Y, U, V, W);
   Result := Linear3PointInterpolation(FColorPoints[0].Color,
-    FColorPoints[1].Color, FColorPoints[2].Color,
-    Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
+    FColorPoints[1].Color, FColorPoints[2].Color, U, V, W);
+end;
+
+function TBarycentricGradientSampler.IsPointInTriangle(X, Y: TFloat): Boolean;
+var
+  U, V, W: TFloat;
+begin
+  CalculateBarycentricCoordinates(X, Y, U, V, W);
+  Result := (U >= 0) and (V >= 0) and (W >= 0);
 end;
 
 procedure TBarycentricGradientSampler.PrepareSampling;
+var
+  NormScale: TFloat;
 begin
-  FNormScale := 1 / ((FColorPoints[1].Point.Y - FColorPoints[2].Point.Y) *
+  NormScale := 1 / ((FColorPoints[1].Point.Y - FColorPoints[2].Point.Y) *
     (FColorPoints[0].Point.X - FColorPoints[2].Point.X) +
     (FColorPoints[2].Point.X - FColorPoints[1].Point.X) *
     (FColorPoints[0].Point.Y - FColorPoints[2].Point.Y));
+
+  FDists[0].X := NormScale * (FColorPoints[2].Point.X - FColorPoints[1].Point.X);
+  FDists[0].Y := NormScale * (FColorPoints[1].Point.Y - FColorPoints[2].Point.Y);
+  FDists[1].X := NormScale * (FColorPoints[0].Point.X - FColorPoints[2].Point.X);
+  FDists[1].Y := NormScale * (FColorPoints[2].Point.Y - FColorPoints[0].Point.Y);
 end;
 
 procedure TBarycentricGradientSampler.SetColor(Index: Integer;
@@ -1124,6 +1316,15 @@ procedure TBarycentricGradientSampler.SetColor(Index: Integer;
 begin
   if Index in [0 .. 2] then
     FColorPoints[Index].Color := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TBarycentricGradientSampler.SetColorPoint(Index: Integer;
+  const Value: TColorFloatPoint);
+begin
+  if Index in [0 .. 2] then
+    FColorPoints[Index] := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
@@ -1157,6 +1358,15 @@ begin
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
+function TBilinearGradientSampler.GetColorPoint(
+  Index: Integer): TColorFloatPoint;
+begin
+  if Index in [0 .. 3] then
+    Result := FColorPoints[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
 function TBilinearGradientSampler.GetCount: Integer;
 begin
   Result := 4;
@@ -1172,30 +1382,17 @@ end;
 
 function TBilinearGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
-  E, F, G, H: TFloatPoint;
-  u, v, t, k0, k1, k2: Double;
+  u, v, t, k0, k1: Double;
 begin
-  E.X := FColorPoints[1].Point.X - FColorPoints[0].Point.X;
-  E.Y := FColorPoints[1].Point.Y - FColorPoints[0].Point.Y;
-  F.X := FColorPoints[3].Point.X - FColorPoints[0].Point.X;
-  F.Y := FColorPoints[3].Point.Y - FColorPoints[0].Point.Y;
-  G.X := FColorPoints[0].Point.X - FColorPoints[1].Point.X +
-    FColorPoints[2].Point.X - FColorPoints[3].Point.X;
-  G.Y := FColorPoints[0].Point.Y - FColorPoints[1].Point.Y +
-    FColorPoints[2].Point.Y - FColorPoints[3].Point.Y;
-  H.X := X - FColorPoints[0].Point.X;
-  H.Y := Y - FColorPoints[0].Point.Y;
+  k1 := FDot + X * FDists[2].Y - Y * FDists[2].X;
+  k0 := FBiasK0 + X * FDists[0].Y - Y * FDists[0].X;
+  t := Sqr(k1) - 2 * k0 * FK2Value;
 
-  k2 := G.x * F.y - G.y * F.x;
-  k1 := E.x * F.y - E.y * F.x + H.x * G.y - H.y * G.x;
-  k0 := H.x * E.y - H.y * E.x;
-  t := Sqr(k1) - 4 * k0 * k2;
-
-  if k2 = 0 then
+  if FK2Value = 0 then
     v := -k0 / k1
   else
-    v := (-k1 + FK2Sign * Sqrt(Abs(t))) / (2 * k2);
-  u := (H.X - F.X * v) / (E.X + G.X * v);
+    v := (FK2Sign * Sqrt(Abs(t)) - k1) / FK2Value;
+  u := (X - FBiasU - FDists[1].X * v) / (FDists[0].X + FDists[2].X * v);
 
   Result := Linear4PointInterpolation(FColorPoints[0].Color,
     FColorPoints[1].Color, FColorPoints[2].Color, FColorPoints[3].Color,
@@ -1212,19 +1409,19 @@ begin
   Orientation[0] := (FColorPoints[0].Point.X - FColorPoints[3].Point.X) *
     (FColorPoints[1].Point.Y - FColorPoints[0].Point.Y) -
     (FColorPoints[0].Point.Y - FColorPoints[3].Point.Y) *
-    (FColorPoints[1].Point.x - FColorPoints[0].Point.x) < 0;
+    (FColorPoints[1].Point.X - FColorPoints[0].Point.X) < 0;
   Orientation[1] := (FColorPoints[1].Point.X - FColorPoints[0].Point.X) *
     (FColorPoints[2].Point.Y - FColorPoints[1].Point.Y) -
     (FColorPoints[1].Point.Y - FColorPoints[0].Point.Y) *
-    (FColorPoints[2].Point.x - FColorPoints[1].Point.x) < 0;
+    (FColorPoints[2].Point.X - FColorPoints[1].Point.X) < 0;
   Orientation[2] := (FColorPoints[2].Point.X - FColorPoints[1].Point.X) *
     (FColorPoints[3].Point.Y - FColorPoints[2].Point.Y) -
     (FColorPoints[2].Point.Y - FColorPoints[1].Point.Y) *
-    (FColorPoints[3].Point.x - FColorPoints[2].Point.x) < 0;
+    (FColorPoints[3].Point.X - FColorPoints[2].Point.X) < 0;
   Orientation[3] := (FColorPoints[3].Point.X - FColorPoints[2].Point.X) *
     (FColorPoints[0].Point.Y - FColorPoints[3].Point.Y) -
     (FColorPoints[3].Point.Y - FColorPoints[2].Point.Y) *
-    (FColorPoints[0].Point.x - FColorPoints[3].Point.x) < 0;
+    (FColorPoints[0].Point.X - FColorPoints[3].Point.X) < 0;
 
   if Orientation[0] then v := -1 else v := 1;
   if Orientation[1] then Dec(v) else Inc(v);
@@ -1253,6 +1450,22 @@ begin
 
     FK2Sign := 1;
   end;
+
+  FDists[0].X := FColorPoints[1].Point.X - FColorPoints[0].Point.X;
+  FDists[0].Y := FColorPoints[1].Point.Y - FColorPoints[0].Point.Y;
+  FDists[1].X := FColorPoints[3].Point.X - FColorPoints[0].Point.X;
+  FDists[1].Y := FColorPoints[3].Point.Y - FColorPoints[0].Point.Y;
+  FDists[2].X := FColorPoints[0].Point.X - FColorPoints[1].Point.X +
+    FColorPoints[2].Point.X - FColorPoints[3].Point.X;
+  FDists[2].Y := FColorPoints[0].Point.Y - FColorPoints[1].Point.Y +
+    FColorPoints[2].Point.Y - FColorPoints[3].Point.Y;
+  FK2Value := 2 * (FDists[2].X * FDists[1].Y - FDists[2].Y * FDists[1].X);
+
+  FDot := FDists[0].X * FDists[1].Y - FDists[0].Y * FDists[1].X -
+    FColorPoints[0].Point.X * FDists[2].Y + FColorPoints[0].Point.Y * FDists[2].X;
+  FBiasK0 := FColorPoints[0].Point.Y * FDists[0].X -
+    FColorPoints[0].Point.X * FDists[0].Y;
+  FBiasU := FColorPoints[0].Point.X;
 end;
 
 procedure TBilinearGradientSampler.SetColor(Index: Integer;
@@ -1260,6 +1473,15 @@ procedure TBilinearGradientSampler.SetColor(Index: Integer;
 begin
   if Index in [0 .. 3] then
     FColorPoints[Index].Color := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TBilinearGradientSampler.SetColorPoint(Index: Integer;
+  const Value: TColorFloatPoint);
+begin
+  if Index in [0 .. 3] then
+    FColorPoints[Index] := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
@@ -1298,6 +1520,17 @@ begin
   FColorPoints[Index].Color := Color;
 end;
 
+procedure TCustomArbitrarySparsePointGradientSampler.Add(
+  ColorPoint: TColorFloatPoint);
+var
+  Index: Integer;
+begin
+  Index := Length(FColorPoints);
+  SetLength(FColorPoints, Index + 1);
+  FColorPoints[Index].Point := ColorPoint.Point;
+  FColorPoints[Index].Color := ColorPoint.Color;
+end;
+
 procedure TCustomArbitrarySparsePointGradientSampler.Clear;
 begin
   SetLength(FColorPoints, 0);
@@ -1308,6 +1541,15 @@ function TCustomArbitrarySparsePointGradientSampler.GetColor(
 begin
   if (Index >= 0) and (Index < Length(FColorPoints)) then
     Result := FColorPoints[Index].Color
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TCustomArbitrarySparsePointGradientSampler.GetColorPoint(
+  Index: Integer): TColorFloatPoint;
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    Result := FColorPoints[Index]
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
@@ -1335,6 +1577,15 @@ begin
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
+procedure TCustomArbitrarySparsePointGradientSampler.SetColorPoint(
+  Index: Integer; const Value: TColorFloatPoint);
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    FColorPoints[Index] := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
 procedure TCustomArbitrarySparsePointGradientSampler.SetPoint(Index: Integer;
   const Value: TFloatPoint);
 begin
@@ -1344,12 +1595,23 @@ begin
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
+procedure TCustomArbitrarySparsePointGradientSampler.SetPoints(
+  ColorPoints: array of TColorFloatPoint);
+var
+  Index: Integer;
+begin
+  SetLength(FColorPoints, Length(ColorPoints));
+  for Index := 0 to High(FColorPoints) do
+    FColorPoints[Index] := ColorPoints[Index];
+end;
+
 
 { TInvertedDistanceWeightingSampler }
 
 constructor TInvertedDistanceWeightingSampler.Create;
 begin
   FPower := 2;
+  FDists := nil;
 end;
 
 procedure TInvertedDistanceWeightingSampler.FinalizeSampling;
@@ -1361,8 +1623,7 @@ end;
 function TInvertedDistanceWeightingSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   Index: Integer;
-  Temp: Double;
-  DistSum, Scale: TFloat;
+  Temp, DistSum, Scale: Double;
   R, G, B, A: TFloat;
 begin
   if Count = 1 then
@@ -1373,8 +1634,7 @@ begin
 
   with FColorPoints[0] do
     if FUsePower then
-      Temp := Math.Power(Abs(X - Point.X), FPower) +
-        Math.Power(Abs(Y - Point.Y), FPower)
+      Temp := Math.Power(Sqr(X - Point.X) + Sqr(Y - Point.Y), FScaledPower)
     else
       Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
   FDists[0] := 1 / Max(1, Temp);
@@ -1383,8 +1643,7 @@ begin
     with FColorPoints[Index] do
     begin
       if FUsePower then
-        Temp := Math.Power(Abs(X - Point.X), FPower) +
-          Math.Power(Abs(Y - Point.Y), FPower)
+        Temp := Math.Power(Sqr(X - Point.X) + Sqr(Y - Point.Y), FScaledPower)
       else
         Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
       FDists[Index] := 1 / Max(1, Temp);
@@ -1413,8 +1672,9 @@ end;
 
 procedure TInvertedDistanceWeightingSampler.PrepareSampling;
 begin
-  GetMem(FDists, Count * SizeOf(TFloat));
+  ReallocMem(FDists, Count * SizeOf(TFloat));
   FUsePower := FPower <> 2;
+  FScaledPower := 0.5 * FPower;
   inherited;
 end;
 
@@ -1439,6 +1699,361 @@ begin
     end;
   end;
   Result := FColorPoints[NearestIndex].Color;
+end;
+
+
+{ TDelaunaySampler }
+
+type
+  TColorFloatPointArray = array [0 .. 0] of TColorFloatPoint;
+  PColorFloatPointArray = ^TColorFloatPointArray;
+
+procedure QuickSortColorFloatPoints(Data: PColorFloatPointArray; StartIndex,
+  EndIndex: Integer);
+var
+  I, J: Integer;
+  P: TFloat;
+  T: TColorFloatPoint;
+begin
+ repeat
+  I := StartIndex;
+  J := EndIndex;
+  P := Data[(StartIndex + EndIndex) shr 1].Point.X;
+  repeat
+    while Data[I].Point.X < P do Inc(I);
+    while Data[J].Point.X > P do Dec(J);
+     if I <= J then
+      begin
+       T := Data[I];
+       Data[I] := Data[J];
+       Data[J] := T;
+       Inc(I);
+       Dec(J);
+      end;
+    until I > J;
+   if StartIndex < J then
+     QuickSortColorFloatPoints(Data, StartIndex, J);
+   StartIndex := I;
+  until I >= EndIndex;
+end;
+
+procedure TDelaunaySampler.PrepareSampling;
+var
+  Index: Integer;
+begin
+  inherited;
+
+  QuickSortColorFloatPoints(@FColorPoints[0], 0, Length(FColorPoints) - 1);
+  Triangulate;
+
+  SetLength(FBarycentric, Length(FTriangles));
+  for Index := 0 to Length(FTriangles) - 1 do
+  begin
+    FBarycentric[Index] := TBarycentricGradientSampler.Create;
+    FBarycentric[Index].ColorPoint[0] := FColorPoints[FTriangles[Index, 0]];
+    FBarycentric[Index].ColorPoint[1] := FColorPoints[FTriangles[Index, 1]];
+    FBarycentric[Index].ColorPoint[2] := FColorPoints[FTriangles[Index, 2]];
+    FBarycentric[Index].PrepareSampling;
+  end;
+  SetLength(FTriangles, 0);
+end;
+
+function TDelaunaySampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  Index: Integer;
+  U, V, W: TFloat;
+  Dist, MinDist: TFloat;
+  MinIndex: Integer;
+begin
+  if Length(FBarycentric) = 0 then
+    Exit;
+
+  FBarycentric[0].CalculateBarycentricCoordinates(X, Y, U, V, W);
+  if (U >= 0) and (V >= 0) and (W >= 0) then
+  begin
+    Result := Linear3PointInterpolation(FBarycentric[0].Color[0],
+      FBarycentric[0].Color[1], FBarycentric[0].Color[2], U, V, W);
+    Exit;
+  end;
+
+  MinDist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
+  MinIndex := 0;
+
+  for Index := 1 to High(FBarycentric) do
+  begin
+    FBarycentric[Index].CalculateBarycentricCoordinates(X, Y, U, V, W);
+    if (U >= 0) and (V >= 0) and (W >= 0) then
+    begin
+      Result := Linear3PointInterpolation(FBarycentric[Index].Color[0],
+        FBarycentric[Index].Color[1], FBarycentric[Index].Color[2], U, V, W);
+      Exit;
+    end;
+    Dist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
+    if Dist < MinDist then
+    begin
+      MinDist := Dist;
+      MinIndex := Index;
+    end;
+  end;
+
+  FBarycentric[MinIndex].CalculateBarycentricCoordinates(X, Y, U, V, W);
+  Result := Linear3PointInterpolation(FBarycentric[MinIndex].Color[0],
+    FBarycentric[MinIndex].Color[1], FBarycentric[MinIndex].Color[2], U, V, W);
+end;
+
+procedure TDelaunaySampler.FinalizeSampling;
+var
+  Index: Integer;
+begin
+  inherited;
+  for Index := 0 to Length(FBarycentric) - 1 do
+  begin
+    FBarycentric[Index].FinalizeSampling;
+    FBarycentric[Index].Free;
+  end;
+end;
+
+procedure TDelaunaySampler.Triangulate;
+var
+  MaxVerticesCount: Integer;
+
+  Complete: array of Byte;
+  Edges: array of array [0 .. 1] of Integer;
+  EdgeCount: LongInt;
+
+  // For super triangle
+  Xmin, Ymin, Xmax, Ymax: Double;
+  Xmid, Ymid, DMax3: Double;
+
+  // General Variables
+  TriangleCount, VertexCount, I, J, K: Integer;
+  Xc, Yc, R: Double;
+  Inside: Boolean;
+const
+  CSuperTriangleCount = 3; // -> super triangle
+  CTolerance = 0.000001;
+
+  function InCircle(Xp, Yp, X1, Y1, X2, Y2, X3, Y3: Double;
+    var Xc: Double; var Yc: Double; var Rsqr: Double): Boolean;
+  // Return TRUE if the point (xp, yp) lies inside the circumcircle made up by
+  // points (x1, y1) (x2, y2) (x3, y3)
+  // The circumcircle centre is returned in (xc, yc) and the radius r
+  // NOTE: A point on the edge is inside the circumcircle
+  var
+    M1: Double;
+    M2: Double;
+    Mx1: Double;
+    Mx2: Double;
+    My1: Double;
+    My2: Double;
+    Dx: Double;
+    Dy: Double;
+    Drsqr: Double;
+  begin
+    Result := False;
+
+    if (Abs(Y1 - Y2) < CTolerance) and (Abs(Y2 - Y3) < CTolerance) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    if Abs(Y2 - Y1) < CTolerance then
+    begin
+      M2 := -(X3 - X2) / (Y3 - Y2);
+      Mx2 := (X2 + X3) * 0.5;
+      My2 := (Y2 + Y3) * 0.5;
+      Xc := (X2 + X1) * 0.5;
+      Yc := M2 * (Xc - Mx2) + My2;
+    end
+    else if Abs(Y3 - Y2) < CTolerance then
+    begin
+      M1 := -(X2 - X1) / (Y2 - Y1);
+      Mx1 := (X1 + X2) * 0.5;
+      My1 := (Y1 + Y2) * 0.5;
+      Xc := (X3 + X2) * 0.5;
+      Yc := M1 * (Xc - Mx1) + My1;
+    end
+    else
+    begin
+      M1 := -(X2 - X1) / (Y2 - Y1);
+      M2 := -(X3 - X2) / (Y3 - Y2);
+      Mx1 := (X1 + X2) * 0.5;
+      Mx2 := (X2 + X3) * 0.5;
+      My1 := (Y1 + Y2) * 0.5;
+      My2 := (Y2 + Y3) * 0.5;
+      if (M1 - M2) <> 0 then // se
+      begin
+        Xc := (M1 * Mx1 - M2 * Mx2 + My2 - My1) / (M1 - M2);
+        Yc := M1 * (Xc - Mx1) + My1;
+      end
+      else
+      begin
+        Xc := (X1 + X2 + X3) / 3;
+        Yc := (Y1 + Y2 + Y3) / 3;
+      end;
+    end;
+
+    Dx := X2 - Xc;
+    Dy := Y2 - Yc;
+    Rsqr := Dx * Dx + Dy * Dy;
+    Dx := Xp - Xc;
+    Dy := Yp - Yc;
+    Drsqr := Sqr(Dx) + Sqr(Dy);
+
+    Result := Drsqr <= Rsqr;
+  end;
+
+begin
+  VertexCount := Length(FColorPoints);
+  MaxVerticesCount := VertexCount + CSuperTriangleCount;
+  SetLength(FColorPoints, MaxVerticesCount);
+  SetLength(FTriangles, 2 * (MaxVerticesCount - 1));
+  SetLength(Edges, 3 * (MaxVerticesCount - 1));
+  FillChar(Edges[0], 3 * (MaxVerticesCount - 1) * 2 * SizeOf(Integer), 0);
+  SetLength(Complete, (2 * (MaxVerticesCount - 1) + 7) shr 3);
+  FillChar(Complete[0], (2 * (MaxVerticesCount - 1) + 7) shr 3, 0);
+
+  // Find the maximum and minimum vertex bounds.
+  // This is to allow calculation of the bounding triangle
+  Xmin := FColorPoints[0].Point.X;
+  Ymin := FColorPoints[0].Point.Y;
+  Xmax := Xmin;
+  Ymax := Ymin;
+  for I := 1 to Length(FColorPoints) - 1 do
+  begin
+    if FColorPoints[I].Point.X < Xmin then Xmin := FColorPoints[I].Point.X;
+    if FColorPoints[I].Point.X > Xmax then Xmax := FColorPoints[I].Point.X;
+    if FColorPoints[I].Point.Y < Ymin then Ymin := FColorPoints[I].Point.Y;
+    if FColorPoints[I].Point.Y > Ymax then Ymax := FColorPoints[I].Point.Y;
+  end;
+
+  DMax3 := 3 * Max(Xmax - Xmin, Ymax - Ymin);
+  Xmid := Trunc((Xmax + Xmin) * 0.5);
+  Ymid := Trunc((Ymax + Ymin) * 0.5);
+
+  // Set up the supertriangle
+  // This is a triangle which encompasses all the sample points. The
+  // supertriangle coordinates are added to the end of the vertex list.
+  // The supertriangle is the first triangle in the triangle list.
+  FColorPoints[VertexCount].Point := FloatPoint(Xmid - DMax3, Ymid - DMax3);
+  FColorPoints[VertexCount + 1].Point := FloatPoint(Xmid + DMax3, Ymid);
+  FColorPoints[VertexCount + 2].Point := FloatPoint(Xmid, Ymid + DMax3);
+
+  FTriangles[0, 0] := VertexCount;
+  FTriangles[0, 1] := VertexCount + 1;
+  FTriangles[0, 2] := VertexCount + 2;
+
+  Complete[0] := 0;
+  TriangleCount := 1;
+
+  // Include each point one at a time into the existing mesh
+  for I := 0 to VertexCount - 1 do
+  begin
+    EdgeCount := 0;
+    // Set up the edge buffer.
+    // If the point (FColorPoints(i).x, FColorPoints(i).y) lies inside the circumcircle then the
+    // three edges of that triangle are added to the edge buffer.
+    J := 0;
+    repeat
+      if Complete[J shr 3] and (1 shl (J and $7)) = 0 then
+      begin
+        Inside := InCircle(FColorPoints[I].Point.X, FColorPoints[I].Point.Y,
+          FColorPoints[FTriangles[J, 0]].Point.X,
+          FColorPoints[FTriangles[J, 0]].Point.Y,
+          FColorPoints[FTriangles[J, 1]].Point.X,
+          FColorPoints[FTriangles[J, 1]].Point.Y,
+          FColorPoints[FTriangles[J, 2]].Point.X,
+          FColorPoints[FTriangles[J, 2]].Point.Y, Xc, Yc, R);
+        // Include this if points are sorted by X
+        if (Xc < FColorPoints[I].Point.X) and ((Sqr(FColorPoints[I].Point.X - Xc)) > r) then
+(*
+        if (Xc + R) < FColorPoints[I].Point.X then
+*)
+          Complete[J shr 3] := Complete[J shr 3] or (1 shl (J and $7))
+        else
+          if Inside then
+          begin
+            Edges[EdgeCount + 0, 0] := FTriangles[J, 0];
+            Edges[EdgeCount + 0, 1] := FTriangles[J, 1];
+            Edges[EdgeCount + 1, 0] := FTriangles[J, 1];
+            Edges[EdgeCount + 1, 1] := FTriangles[J, 2];
+            Edges[EdgeCount + 2, 0] := FTriangles[J, 2];
+            Edges[EdgeCount + 2, 1] := FTriangles[J, 0];
+            EdgeCount := EdgeCount + 3;
+
+            TriangleCount := TriangleCount - 1;
+            FTriangles[J] := FTriangles[TriangleCount];
+            Complete[J] := Complete[TriangleCount];
+
+            J := J - 1;
+          end;
+      end;
+      J := J + 1;
+    until J >= TriangleCount;
+
+    // Tag multiple edges
+    // Note: if all triangles are specified anticlockwise then all
+    // interior edges are opposite pointing in direction.
+    for J := 0 to EdgeCount - 2 do
+    begin
+      // if not (Edges[0, j] = 0) and not (Edges[1, j] = 0) then
+      if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
+      begin
+        for K := J + 1 to EdgeCount - 1 do
+        begin
+          // if not (Edges[k, 0] = 0) and not (Edges[k, 1] = 0) then
+          if (Edges[K, 0] <> -1) or (Edges[K, 1] <> -1) then
+          begin
+            if (Edges[J, 0] = Edges[K, 1]) and
+              (Edges[J, 1] = Edges[K, 0]) then
+            begin
+              Edges[J, 0] := -1;
+              Edges[J, 1] := -1;
+              Edges[K, 1] := -1;
+              Edges[K, 0] := -1;
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    // Form new triangles for the current point
+    // Skipping over any tagged edges.
+    // All edges are arranged in clockwise order.
+    for J := 0 to EdgeCount - 1 do
+    begin
+      // if not (Edges[0, j] = 0) and not (Edges[1, j] = 0) then
+      if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
+      begin
+        FTriangles[TriangleCount, 0] := Edges[J, 0];
+        FTriangles[TriangleCount, 1] := Edges[J, 1];
+        FTriangles[TriangleCount, 2] := I;
+        Complete[TriangleCount shr 3] := Complete[TriangleCount shr 3] and not (1 shl (TriangleCount and $7));
+        Inc(TriangleCount);
+      end;
+    end;
+  end;
+
+  // Remove triangles with supertriangle VertexCount
+  // These are triangles which have a vertex number greater than VertexCount
+  I := 0;
+  repeat
+    if (FTriangles[I, 0] >= VertexCount) or
+      (FTriangles[I, 1] >= VertexCount) or
+      (FTriangles[I, 2] >= VertexCount) then
+    begin
+      TriangleCount := TriangleCount - 1;
+      FTriangles[I, 0] := FTriangles[TriangleCount, 0];
+      FTriangles[I, 1] := FTriangles[TriangleCount, 1];
+      FTriangles[I, 2] := FTriangles[TriangleCount, 2];
+      I := I - 1;
+    end;
+    I := I + 1;
+  until I >= TriangleCount;
+
+  SetLength(FColorPoints, Length(FColorPoints) - 3);
+  SetLength(FTriangles, TriangleCount);
 end;
 
 
@@ -1845,6 +2460,98 @@ end;
 procedure TCustomGradientPolygonFiller.WrapModeChanged;
 begin
   FWrapProc := GetWrapProc(FWrapMode);
+end;
+
+
+{ TBarycentricGradientPolygonFiller }
+
+procedure TBarycentricGradientPolygonFiller.BeginRendering;
+var
+  NormScale: TFloat;
+begin
+  inherited;
+  NormScale := 1 / ((FColorPoints[1].Point.Y - FColorPoints[2].Point.Y) *
+    (FColorPoints[0].Point.X - FColorPoints[2].Point.X) +
+    (FColorPoints[2].Point.X - FColorPoints[1].Point.X) *
+    (FColorPoints[0].Point.Y - FColorPoints[2].Point.Y));
+
+  FDists[0].X := NormScale * (FColorPoints[2].Point.X - FColorPoints[1].Point.X);
+  FDists[0].Y := NormScale * (FColorPoints[1].Point.Y - FColorPoints[2].Point.Y);
+  FDists[1].X := NormScale * (FColorPoints[0].Point.X - FColorPoints[2].Point.X);
+  FDists[1].Y := NormScale * (FColorPoints[2].Point.Y - FColorPoints[0].Point.Y);
+end;
+
+procedure TBarycentricGradientPolygonFiller.FillLine(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Color32: TColor32;
+  Temp, DotY1, DotY2: TFloat;
+  Barycentric: array [0..1] of TFloat;
+begin
+  Temp := DstY - FColorPoints[2].Point.Y;
+  DotY1 := FDists[0].X * Temp;
+  DotY2 := FDists[1].X * Temp;
+  for X := DstX to DstX + Length - 1 do
+  begin
+    Temp := (X - FColorPoints[2].Point.X);
+    Barycentric[0] := FDists[0].Y * Temp + DotY1;
+    Barycentric[1] := FDists[1].Y * Temp + DotY2;
+
+    Color32 := Linear3PointInterpolation(FColorPoints[0].Color,
+      FColorPoints[1].Color, FColorPoints[2].Color,
+      Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
+
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+function TBarycentricGradientPolygonFiller.GetColor(Index: Integer): TColor32;
+begin
+  if Index in [0 .. 2] then
+    Result := FColorPoints[Index].Color
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TBarycentricGradientPolygonFiller.GetCount: Integer;
+begin
+  Result := 3;
+end;
+
+function TBarycentricGradientPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLine;
+end;
+
+function TBarycentricGradientPolygonFiller.GetPoint(
+  Index: Integer): TFloatPoint;
+begin
+  if Index in [0 .. 2] then
+    Result := FColorPoints[Index].Point
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TBarycentricGradientPolygonFiller.SetColor(Index: Integer;
+  const Value: TColor32);
+begin
+  if Index in [0 .. 2] then
+    FColorPoints[Index].Color := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TBarycentricGradientPolygonFiller.SetPoint(Index: Integer;
+  const Value: TFloatPoint);
+begin
+  if Index in [0 .. 2] then
+    FColorPoints[Index].Point := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
 
@@ -2803,12 +3510,31 @@ begin
   end;
 end;
 
-initialization
+const
+  FID_LINEAR3 = 0;
+  FID_LINEAR4 = 1;
+
+procedure RegisterBindings;
+begin
+  BlendRegistry := NewRegistry('GR32_ColorGradients bindings');
+  BlendRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolation);
+  BlendRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolation);
+
+  // pure pascal
+  BlendRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas);
+  BlendRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_Pas);
+
 {$IFNDEF PUREPASCAL}
-  if ciSSE2 in CPUFeatures then
-    Linear3PointInterpolation := Linear3PointInterpolation_SSE2
-  else
+{$IFNDEF OMIT_SSE2}
+  BlendRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_SSE2, [ciSSE2]);
 {$ENDIF}
-    Linear3PointInterpolation := Linear3PointInterpolation_Native;
+{$ENDIF}
+
+  BlendRegistry.RebindAll;
+end;
+
+initialization
+  RegisterBindings;
 
 end.
