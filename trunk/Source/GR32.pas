@@ -376,7 +376,9 @@ type
   {$IFDEF SUPPORT_ENHANCED_RECORDS}
   public
     {$IFNDEF FPC}
+    {$IFDEF COMPILERXE2_UP}
     constructor Create(P: TPointF); overload;
+    {$ENDIF}
     constructor Create(P: TPoint); overload;
     constructor Create(X, Y: Integer); overload;
     constructor Create(X, Y: Single); overload;
@@ -387,8 +389,10 @@ type
     class operator NotEqual(const Lhs, Rhs: TFloatPoint): Boolean;
     class operator Add(const Lhs, Rhs: TFloatPoint): TFloatPoint;
     class operator Subtract(const Lhs, Rhs: TFloatPoint): TFloatPoint;
+    {$IFDEF COMPILERXE2_UP}
     class operator Explicit(A: TPointF): TFloatPoint;
     class operator Implicit(A: TPointF): TFloatPoint;
+    {$ENDIF}
 
     class function Zero: TFloatPoint; inline; static;
   {$ENDIF}
@@ -407,7 +411,9 @@ type
   {$IFDEF SUPPORT_ENHANCED_RECORDS}
   public
     {$IFNDEF FPC}
+    {$IFDEF COMPILERXE2_UP}
     constructor Create(P: TPointF); overload;
+    {$ENDIF}
     constructor Create(P: TFloatPoint); overload;
     constructor Create(X, Y: TFixed); overload;
     constructor Create(X, Y: Integer); overload;
@@ -1500,11 +1506,13 @@ begin
   Self.Y := P.Y;
 end;
 
+{$IFDEF COMPILERXE2_UP}
 constructor TFloatPoint.Create(P: TPointF);
 begin
   Self.X := P.X;
   Self.Y := P.Y;
 end;
+{$ENDIF}
 
 constructor TFloatPoint.Create(X, Y: Integer);
 begin
@@ -1542,6 +1550,7 @@ begin
   Result.Y := Lhs.Y - Rhs.Y;
 end;
 
+{$IFDEF COMPILERXE2_UP}
 class operator TFloatPoint.Explicit(A: TPointF): TFloatPoint;
 begin
   Result.X := A.X;
@@ -1553,6 +1562,7 @@ begin
   Result.X := A.X;
   Result.Y := A.Y;
 end;
+{$ENDIF}
 
 class function TFloatPoint.Zero: TFloatPoint;
 begin
@@ -1561,11 +1571,13 @@ begin
 end;
 
 {$IFNDEF FPC}
+{$IFDEF COMPILERXE2_UP}
 constructor TFixedPoint.Create(P: TPointF);
 begin
   Self.X := Fixed(P.X);
   Self.Y := Fixed(P.Y);
 end;
+{$ENDIF}
 
 constructor TFixedPoint.Create(P: TFloatPoint);
 begin
