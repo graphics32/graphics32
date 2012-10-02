@@ -179,7 +179,7 @@ begin
       begin
         Sampler := TVoronoiSampler.Create;
         try
-          Sampler.SetPoints(FColorPoints);
+          Sampler.SetColorPoints(FColorPoints);
 
           if CmbBackgroundSampler.ItemIndex = 2 then
             with TAdaptiveSuperSampler.Create(Sampler) do
@@ -213,7 +213,7 @@ begin
         try
           if CmbBackgroundSampler.ItemIndex = 4 then
             TInvertedDistanceWeightingSampler(Sampler).Power := FIdwPower;
-          Sampler.SetPoints(FColorPoints);
+          Sampler.SetColorPoints(FColorPoints);
           Sampler.PrepareSampling;
           with PaintBox32 do
             for Y := 0 to Height - 1 do
@@ -227,7 +227,7 @@ begin
       begin
         Sampler := TDelaunaySampler.Create;
         try
-          Sampler.SetPoints(FColorPoints);
+          Sampler.SetColorPoints(FColorPoints);
           Sampler.PrepareSampling;
           with PaintBox32 do
             for Y := 0 to Height - 1 do
@@ -249,7 +249,7 @@ begin
     try
       Renderer.FillMode := pfWinding;
       Renderer.Filler := TSamplerFiller.Create(Delaunay);
-      Delaunay.SetPoints(FColorPoints);
+      Delaunay.SetColorPoints(FColorPoints);
       Renderer.PolygonFS(Points);
     finally
       Delaunay.Free;
