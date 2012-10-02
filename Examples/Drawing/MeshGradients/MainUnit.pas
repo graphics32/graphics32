@@ -3,14 +3,9 @@ unit MainUnit;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  ExtCtrls, StdCtrls, SyncObjs, GR32, GR32_Image, GR32_ColorGradients,
-  GR32_RangeBars;
-
-// Set these values as appropriate for your application, ff these values are
-// not sufficient, more memory will be allocated as needed
-const
-  CExPtTolerance = 0.000001;
+  {$IFDEF FPC} LCLIntf, {$ELSE} Windows, {$ENDIF} SysUtils, Classes, Graphics, 
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, SyncObjs, GR32, GR32_Image, 
+  GR32_ColorGradients, GR32_RangeBars;
 
 type
   TArrayOfColorFloatPoint = array of TColorFloatPoint;
@@ -62,7 +57,11 @@ var
 
 implementation
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
+{$ENDIF}
 
 uses
   Math, GR32_Geometry, GR32_Resamplers, GR32_Polygons, GR32_VectorUtils;
