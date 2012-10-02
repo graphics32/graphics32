@@ -15,7 +15,7 @@ const
 type
   TArrayOfColorFloatPoint = array of TColorFloatPoint;
 
-  TFrmTriangulationDemo = class(TForm)
+  TFrmMeshGradients = class(TForm)
     CmbBackgroundSampler: TComboBox;
     ColorDialog: TColorDialog;
     GbrPower: TGaugeBar;
@@ -24,9 +24,11 @@ type
     LblVertexColor: TLabel;
     PaintBox32: TPaintBox32;
     PnlSettings: TPanel;
-    PnlTwirlDistortion: TPanel;
+    PnlSampler: TPanel;
     PnlVertex: TPanel;
     VertexColorShape: TShape;
+    BtnStore: TButton;
+    BtnRecall: TButton;
     procedure FormCreate(Sender: TObject);
     procedure CbxAdaptiveSuperSamplerClick(Sender: TObject);
     procedure CmbBackgroundSamplerChange(Sender: TObject);
@@ -41,8 +43,11 @@ type
     procedure SelectVertexColorClick(Sender: TObject);
     procedure VertexColorShapeMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure BtnStoreClick(Sender: TObject);
+    procedure BtnRecallClick(Sender: TObject);
   private
     FColorPoints: TArrayOfColorFloatPoint;
+    FClipboard: TArrayOfColorFloatPoint;
     FSelected: Integer;
     FIdwPower: TFloat;
     procedure SetSelected(const Value: Integer);
@@ -53,7 +58,7 @@ type
   end;
 
 var
-  FrmTriangulationDemo: TFrmTriangulationDemo;
+  FrmMeshGradients: TFrmMeshGradients;
 
 implementation
 
@@ -62,7 +67,7 @@ implementation
 uses
   Math, GR32_Geometry, GR32_Resamplers, GR32_Polygons, GR32_VectorUtils;
 
-procedure TFrmTriangulationDemo.FormCreate(Sender: TObject);
+procedure TFrmMeshGradients.FormCreate(Sender: TObject);
 var
   Index: Integer;
 begin
@@ -78,13 +83,13 @@ begin
   FIdwPower := 16;
 end;
 
-procedure TFrmTriangulationDemo.GbrPowerChange(Sender: TObject);
+procedure TFrmMeshGradients.GbrPowerChange(Sender: TObject);
 begin
   FIdwPower := 15.9 * (Log2(1 + 0.0001 * GbrPower.Position)) + 0.1;
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmTriangulationDemo.SelectVertexColorClick(Sender: TObject);
+procedure TFrmMeshGradients.SelectVertexColorClick(Sender: TObject);
 begin
   if (FSelected >= 0) then
   begin
@@ -98,7 +103,7 @@ begin
   end;
 end;
 
-procedure TFrmTriangulationDemo.PaintBox32MouseDown(Sender: TObject;
+procedure TFrmMeshGradients.PaintBox32MouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Index: Integer;
@@ -140,7 +145,7 @@ begin
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmTriangulationDemo.PaintBox32MouseMove(Sender: TObject;
+procedure TFrmMeshGradients.PaintBox32MouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   if (ssLeft in Shift) and (Selected >= 0) then
@@ -151,13 +156,13 @@ begin
   end;
 end;
 
-procedure TFrmTriangulationDemo.PaintBox32MouseUp(Sender: TObject;
+procedure TFrmMeshGradients.PaintBox32MouseUp(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
 //  Selected := -1;
 end;
 
-procedure TFrmTriangulationDemo.PaintBox32PaintBuffer(Sender: TObject);
+procedure TFrmMeshGradients.PaintBox32PaintBuffer(Sender: TObject);
 var
   Index: Integer;
   X, Y: Integer;
@@ -269,7 +274,7 @@ begin
       end;
 end;
 
-procedure TFrmTriangulationDemo.SelectedChanged;
+procedure TFrmMeshGradients.SelectedChanged;
 begin
   LblVertexColor.Visible := FSelected >= 0;
   VertexColorShape.Visible := FSelected >= 0;
@@ -277,7 +282,7 @@ begin
     VertexColorShape.Brush.Color := WinColor(FColorPoints[FSelected].Color);
 end;
 
-procedure TFrmTriangulationDemo.SetSelected(const Value: Integer);
+procedure TFrmMeshGradients.SetSelected(const Value: Integer);
 begin
   if FSelected <> Value then
   begin
@@ -286,19 +291,36 @@ begin
   end;
 end;
 
-procedure TFrmTriangulationDemo.VertexColorShapeMouseDown(Sender: TObject;
+procedure TFrmMeshGradients.VertexColorShapeMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if Button = mbLeft then
     SelectVertexColorClick(Sender);
 end;
 
-procedure TFrmTriangulationDemo.CbxAdaptiveSuperSamplerClick(Sender: TObject);
+procedure TFrmMeshGradients.BtnRecallClick(Sender: TObject);
+begin
+  if Length(FColorPoints) > 0 then
+  begin
+    FColorPoints := Copy(FClipboard, 0, Length(FColorPoints));
+    PaintBox32.Invalidate;
+  end;
+end;
+
+procedure TFrmMeshGradients.BtnStoreClick(Sender: TObject);
+begin
+  FClipboard := Copy(FColorPoints, 0, Length(FColorPoints));
+  PaintBox32.Invalidate;
+
+  BtnRecall.Enabled := True;
+end;
+
+procedure TFrmMeshGradients.CbxAdaptiveSuperSamplerClick(Sender: TObject);
 begin
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmTriangulationDemo.CmbBackgroundSamplerChange(Sender: TObject);
+procedure TFrmMeshGradients.CmbBackgroundSamplerChange(Sender: TObject);
 begin
   LblPower.Visible := CmbBackgroundSampler.ItemIndex = 4;
   GbrPower.Visible := LblPower.Visible;

@@ -1,7 +1,7 @@
-object FrmTriangulationDemo: TFrmTriangulationDemo
+object FrmMeshGradients: TFrmMeshGradients
   Left = 0
   Top = 0
-  Caption = 'Triangulation Demo'
+  Caption = 'Mesh Gradient Demo'
   ClientHeight = 481
   ClientWidth = 688
   Color = clBtnFace
@@ -57,7 +57,7 @@ object FrmTriangulationDemo: TFrmTriangulationDemo
       Height = 13
       Caption = 'Power:'
     end
-    object PnlTwirlDistortion: TPanel
+    object PnlSampler: TPanel
       Left = 1
       Top = 1
       Width = 175
@@ -90,8 +90,7 @@ object FrmTriangulationDemo: TFrmTriangulationDemo
         'Voronoi'
         'Voronoi (HQ)'
         'Shepards'
-        'Custom IDW'
-        'Delaunay')
+        'Custom IDW')
     end
     object PnlVertex: TPanel
       Left = 1
@@ -122,6 +121,25 @@ object FrmTriangulationDemo: TFrmTriangulationDemo
       Style = rbsMac
       Position = 10000
       OnChange = GbrPowerChange
+    end
+    object BtnStore: TButton
+      Left = 14
+      Top = 417
+      Width = 147
+      Height = 25
+      Caption = '&Store Vertices'
+      TabOrder = 4
+      OnClick = BtnStoreClick
+    end
+    object BtnRecall: TButton
+      Left = 14
+      Top = 448
+      Width = 147
+      Height = 25
+      Caption = '&Recall Vertices'
+      Enabled = False
+      TabOrder = 5
+      OnClick = BtnRecallClick
     end
   end
   object PaintBox32: TPaintBox32
