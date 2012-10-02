@@ -683,11 +683,10 @@ begin
 
     dx := Points[NextI].X - Points[I].X;
     dy := Points[NextI].Y - Points[I].Y;
-    if Abs(dx) <= EPSILON then dx := 0;
-    if Abs(dy) <= EPSILON then dy := 0;
-    if (dx <> 0) or (dy <> 0) then
+    f := GR32_Math.Hypot(dx, dy);
+    if (f > EPSILON) then
     begin
-      f := 1 / GR32_Math.Hypot(dx, dy);
+      f := 1 / f;
       dx := dx * f;
       dy := dy * f;
     end;
@@ -1138,6 +1137,8 @@ end;
 function BuildDashedLine(const Points: TArrayOfFloatPoint;
   const DashArray: TArrayOfFloat; DashOffset: TFloat = 0;
   Closed: Boolean = False): TArrayOfArrayOfFloatPoint;
+const
+  EPSILON = 1E-4;
 var
   I, J, DashIndex, len1, len2: Integer;
   Offset, Dist, v: TFloat;
@@ -1165,11 +1166,13 @@ var
       Delta.Y := Points[I].Y - Points[I - 1].Y;
     end;
     Dist := GR32_Math.Hypot(Delta.X, Delta.Y);
-    if Dist = 0 then Exit;
     Offset := Offset + Dist;
-    Dist := 1 / Dist;
-    Delta.X := Delta.X * Dist;
-    Delta.Y := Delta.Y * Dist;
+    if (Dist > EPSILON) then
+    begin
+      Dist := 1 / Dist;
+      Delta.X := Delta.X * Dist;
+      Delta.Y := Delta.Y * Dist;
+    end;
     while Offset > DashOffset do
     begin
       v := Offset - DashOffset;
