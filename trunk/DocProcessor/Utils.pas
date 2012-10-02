@@ -152,9 +152,20 @@ begin
   end;
 end;
 
+function GetLinkName2(const Target: string): string;
+var
+  I: Integer;
+begin
+  I := Pos('#', Target);
+  if I > 0 then
+    Result := Copy(Target, 1, I - 1)
+  else
+    Result := Target;
+end;
+
 function CompareLinks(List: TStringList; Index1, Index2: Integer): Integer;
 begin
-  Result := AnsiCompareStr(GetLinkName(List[Index1]), GetLinkName(List[Index2]));
+  Result := AnsiCompareStr(GetLinkName2(List[Index1]), GetLinkName2(List[Index2]));
 end;
 
 function CompareElements(Item1, Item2: Pointer): Integer;
