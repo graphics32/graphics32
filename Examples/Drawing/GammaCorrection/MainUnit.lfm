@@ -1,4 +1,4 @@
-object FrmGammaTest: TFrmGammaTest
+object FrmGammaCorrection: TFrmGammaCorrection
   Left = 504
   Height = 389
   Top = 193

@@ -10,7 +10,7 @@ uses
   GR32_RangeBars;
 
 type
-  TFrmGammaTest = class(TForm)
+  TFrmGammaCorrection = class(TForm)
     GbrContrast: TGaugeBar;
     GbrGamma: TGaugeBar;
     GbrThickness: TGaugeBar;
@@ -34,7 +34,7 @@ type
   end;
 
 var
-  FrmGammaTest: TFrmGammaTest;
+  FrmGammaCorrection: TFrmGammaCorrection;
 
 implementation
 
@@ -47,20 +47,20 @@ uses
 {$R *.dfm}
 {$ENDIF}
 
-procedure TFrmGammaTest.FormShow(Sender: TObject);
+procedure TFrmGammaCorrection.FormShow(Sender: TObject);
 begin
   GbrContrastChange(Sender);
   GbrGammaChange(Sender);
   GbrThicknessChange(Sender);
 end;
 
-procedure TFrmGammaTest.GbrContrastChange(Sender: TObject);
+procedure TFrmGammaCorrection.GbrContrastChange(Sender: TObject);
 begin
   LblContrastValue.Caption := IntToStr(GbrContrast.Position);
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmGammaTest.GbrGammaChange(Sender: TObject);
+procedure TFrmGammaCorrection.GbrGammaChange(Sender: TObject);
 begin
   LblGammaValue.Caption := FloatToStrF(0.01 * GbrGamma.Position, ffFixed, 3,
     3);
@@ -68,14 +68,14 @@ begin
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmGammaTest.GbrThicknessChange(Sender: TObject);
+procedure TFrmGammaCorrection.GbrThicknessChange(Sender: TObject);
 begin
   LblThicknessValue.Caption := FloatToStrF(0.01 * GbrThickness.Position,
     ffFixed, 3, 3);
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmGammaTest.PaintBox32PaintBuffer(Sender: TObject);
+procedure TFrmGammaCorrection.PaintBox32PaintBuffer(Sender: TObject);
 var
   Renderer: TPolygonRenderer32VPR;
   W, H: Integer;
