@@ -909,7 +909,7 @@ begin
     DivResult := DivMod(Value - Min, Max - Min + 1, Result);
     Inc(Result, Min);
   end;
-  if Odd(DivResult) then Result := Max+Min-Result;
+  if Odd(DivResult) then Result := Max + Min - Result;
 end;
 
 function WrapPow2(Value, Max: Integer): Integer; overload;
