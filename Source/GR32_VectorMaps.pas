@@ -321,7 +321,7 @@ begin
     AssignFile(MeshFile, FileName);
     Reset(MeshFile, 1);
     BlockRead(MeshFile, Header, SizeOf(TPSLiquifyMeshHeader));
-    if Lowercase(String(Header.Ident)) <> Lowercase(MeshIdent) then
+    if LowerCase(string(Header.Ident)) <> LowerCase(MeshIdent) then
       Exception.Create(RCStrBadFormat);
     with Header do
     begin
@@ -627,11 +627,10 @@ begin
       Dec(Right)
     until Right <= Left;
 
-
   end;
   RightDone:
   if IsRectEmpty(Result) then
-    Result := Rect(0,0,0,0);
+    Result := Rect(0, 0, 0, 0);
 end;
 
 end.
