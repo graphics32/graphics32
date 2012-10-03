@@ -44,6 +44,7 @@ type
 
 // TFloat Overloads
 function Average(const V1, V2: TFloatPoint): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function CrossProduct(V1, V2: TFloatPoint): TFloat; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Dot(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TFloatPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -51,7 +52,7 @@ function GetPointAtAngleFromPoint(const Pt: TFloatPoint; const Dist, Radians: Si
 function GetAngleOfPt2FromPt1(const Pt1, Pt2: TFloatPoint): Single; overload;
 function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
 function GetUnitVector(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
-function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFloatPoint; DeltaX, DeltaY: TFloat): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt, Delta: TFloatPoint): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFloatPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint; overload;
@@ -61,6 +62,7 @@ function SegmentIntersect(const P1, P2, P3, P4: TFloatPoint;
 
 // TFixed Overloads
 function Average(const V1, V2: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function CrossProduct(V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Dot(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TFixedPoint): TFixed; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -68,8 +70,8 @@ function GetPointAtAngleFromPoint(const Pt: TFixedPoint; const Dist, Radians: Si
 function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single; overload;
 function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
 function GetUnitNormal(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
-function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFixed): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFixed): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFloat): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TFixedPoint; Delta: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TFixedPoint; Delta: TFloatPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFixedPoint;
@@ -80,10 +82,11 @@ function SegmentIntersect(const P1, P2, P3, P4: TFixedPoint;
 
 // Integer Overloads
 function Average(const V1, V2: TPoint): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function CrossProduct(V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Dot(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Distance(const V1, V2: TPoint): TFloat; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function SqrDistance(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function OffsetPoint(const Pt: TPoint; dx, dy: Integer): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TPoint; DeltaX, DeltaY: Integer): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt, Delta: TPoint): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 const
@@ -104,6 +107,11 @@ function Average(const V1, V2: TFloatPoint): TFloatPoint;
 begin
   Result.X := (V1.X + V2.X) * 0.5;
   Result.Y := (V1.Y + V2.Y) * 0.5;
+end;
+
+function CrossProduct(V1, V2: TFloatPoint): TFloat;
+begin
+  Result := V1.X * V2.Y - V1.Y * V2.X;
 end;
 
 function Dot(const V1, V2: TFloatPoint): TFloat;
@@ -184,10 +192,10 @@ begin
   Result.Y := -Delta.X; // the unit vector
 end;
 
-function OffsetPoint(const Pt: TFloatPoint; dx, dy: TFloat): TFloatPoint;
+function OffsetPoint(const Pt: TFloatPoint; DeltaX, DeltaY: TFloat): TFloatPoint;
 begin
-  Result.X := Pt.X + dx;
-  Result.Y := Pt.Y + dy;
+  Result.X := Pt.X + DeltaX;
+  Result.Y := Pt.Y + DeltaY;
 end;
 
 function OffsetPoint(const Pt, Delta: TFloatPoint): TFloatPoint;
@@ -225,7 +233,7 @@ var
     while (Index > 0) and (SqrDistance(Pts[Index],Pts[HighI]) < DeltaSqr) do
       Dec(Index);
     UnitVec := GetUnitVector(Pts[Index],Pts[HighI]);
-    Dist := Distance(Pts[Index],Pts[HighI]) - Delta;
+    Dist := Distance(Pts[Index], Pts[HighI]) - Delta;
     if Index + 1 < HighI then SetLength(Result, Index + 2);
     Result[Index + 1] := OffsetPoint(Result[Index], UnitVec.X * Dist, UnitVec.Y * Dist);
   end;
@@ -313,6 +321,11 @@ begin
   Result.Y := (V1.Y + V2.Y) div 2;
 end;
 
+function CrossProduct(V1, V2: TFixedPoint): TFixed;
+begin
+  Result := FixedMul(V1.X, V2.Y) - FixedMul(V1.Y, V2.X);
+end;
+
 function Dot(const V1, V2: TFixedPoint): TFixed;
 begin
   Result := FixedMul(V1.X, V2.X) + FixedMul(V1.Y, V2.Y);
@@ -343,7 +356,8 @@ function GetAngleOfPt2FromPt1(Pt1, Pt2: TFixedPoint): Single;
 begin
   with Pt2 do
   begin
-    X := X - Pt1.X; Y := Y - Pt1.Y;
+    X := X - Pt1.X;
+    Y := Y - Pt1.Y;
     if X = 0 then
     begin
      if Y > 0 then Result := CRad270 else Result := CRad90;
@@ -394,16 +408,16 @@ begin
   Result.Y := -Delta.X; // the unit vector
 end;
 
-function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFixed): TFixedPoint;
+function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFixed): TFixedPoint;
 begin
-  Result.X := Pt.X + dx;
-  Result.Y := Pt.Y + dy;
+  Result.X := Pt.X + DeltaX;
+  Result.Y := Pt.Y + DeltaY;
 end;
 
-function OffsetPoint(const Pt: TFixedPoint; dx, dy: TFloat): TFixedPoint;
+function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFloat): TFixedPoint;
 begin
-  Result.X := Pt.X + Fixed(dx);
-  Result.Y := Pt.Y + Fixed(dy);
+  Result.X := Pt.X + Fixed(DeltaX);
+  Result.Y := Pt.Y + Fixed(DeltaY);
 end;
 
 function OffsetPoint(const Pt: TFixedPoint; Delta: TFixedPoint): TFixedPoint;
@@ -522,6 +536,11 @@ begin
   Result.Y := (V1.Y + V2.Y) div 2;
 end;
 
+function CrossProduct(V1, V2: TPoint): Integer;
+begin
+  Result := V1.X * V2.Y - V1.Y * V2.X;
+end;
+
 function Dot(const V1, V2: TPoint): Integer;
 begin
   Result := V1.X * V2.X + V1.Y * V2.Y;
@@ -537,10 +556,10 @@ begin
   Result := Sqr(V2.X - V1.X) + Sqr(V2.Y - V1.Y);
 end;
 
-function OffsetPoint(const Pt: TPoint; dx, dy: Integer): TPoint;
+function OffsetPoint(const Pt: TPoint; DeltaX, DeltaY: Integer): TPoint;
 begin
-  Result.X := Pt.X + dx;
-  Result.Y := Pt.Y + dy;
+  Result.X := Pt.X + DeltaX;
+  Result.Y := Pt.Y + DeltaY;
 end;
 
 function OffsetPoint(const Pt, Delta: TPoint): TPoint;

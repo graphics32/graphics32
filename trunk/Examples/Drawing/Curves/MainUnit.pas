@@ -65,12 +65,8 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32, GR32_VectorUtils, GR32_Resamplers, GR32_LowLevel, GR32_Polygons;
-
-function CrossProd(X1, Y1, X2, Y2: TFloat): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
-begin
-  Result := X1 * Y2 - Y1 * X2;
-end;
+  Math, GR32, GR32_Geometry, GR32_VectorUtils, GR32_Resamplers, GR32_LowLevel,
+  GR32_Polygons;
 
 function MakeCurve(const Points: TArrayOfFloatPoint; Kernel: TCustomKernel;
   Closed: Boolean): TArrayOfFloatPoint;
@@ -115,7 +111,8 @@ var
     Temp := (t1 + t2) * 0.5;
     P := GetPoint(I, Temp);
 
-    if (Abs(CrossProd(P1.X - P.X, P1.Y - P.Y, P.X - P2.X, P.Y - P2.Y)) > TOLERANCE) or (t2 - t1 >= THRESHOLD) then
+    if (Abs(CrossProduct(FloatPoint(P1.X - P.X, P1.Y - P.Y),
+      FloatPoint(P.X - P2.X, P.Y - P2.Y))) > TOLERANCE) or (t2 - t1 >= THRESHOLD) then
     begin
       Recurse(I, P1, P, t1, Temp);
       Recurse(I, P, P2, Temp, t2);
