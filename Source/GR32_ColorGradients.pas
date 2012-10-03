@@ -45,8 +45,6 @@ type
   end;
   TArrayOfColor32Gradient = array of TColor32Gradient;
 
-  TLinearGradientType = (lgVertical, lgHorizontal, lgAngled);
-
   TColor32LookupTable = class(TPersistent)
   private
     FGradientLUT: PColor32Array;
@@ -75,7 +73,7 @@ type
 
   TGradient32 = class(TInterfacedPersistent, IStreamPersist)
   private
-    FGradientColors: array of TColor32Gradient;
+    FGradientColors: TArrayOfColor32Gradient;
     FOnGradientColorsChanged: TNotifyEvent;
     function GetGradientEntry(Index: Integer): TColor32Gradient;
     function GetGradientCount: Integer; {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -89,14 +87,16 @@ type
   public
     constructor Create(Color: TColor32); overload;
     constructor Create(StartColor, EndColor: TColor32); overload;
-    constructor Create(const GradientColors: array of TColor32Gradient); overload;
+    constructor Create(const GradientColors: TArrayOfColor32Gradient); overload;
 
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
 
     procedure ClearColors;
     procedure AddColorStop(Offset: TFloat; Color: TColor32); virtual;
-    procedure SetColors(const GradientColors: array of TColor32Gradient);
+    procedure SetColors(const GradientColors: TArrayOfColor32Gradient); overload;
+    procedure SetColors(const GradientColors: TArrayOfColor32); overload;
+    procedure SetColors(const Palette: TPalette32) overload;
     function GetColorAt(Fraction: TFloat): TColor32;
     procedure FillColorLookUpTable(var ColorLUT: array of TColor32); overload;
     procedure FillColorLookUpTable(ColorLUT: PColor32Array; Count: Integer); overload;
@@ -637,7 +637,7 @@ end;
 
 constructor TGradient32.Create(StartColor, EndColor: TColor32);
 var
-  Temp: array of TColor32Gradient;
+  Temp: TArrayOfColor32Gradient;
 begin
   SetLength(Temp, 2);
   Temp[0].Offset := 0;
@@ -647,7 +647,7 @@ begin
   Create(Temp);
 end;
 
-constructor TGradient32.Create(const GradientColors: array of TColor32Gradient);
+constructor TGradient32.Create(const GradientColors: TArrayOfColor32Gradient);
 begin
   inherited Create;
   SetColors(GradientColors);
@@ -656,7 +656,7 @@ end;
 procedure TGradient32.AssignTo(Dest: TPersistent);
 begin
   if Dest is TGradient32 then
-    TGradient32(Dest).SetColors(self.FGradientColors)
+    TGradient32(Dest).SetColors(Self.FGradientColors)
   else
     inherited;
 end;
@@ -667,7 +667,7 @@ begin
   GradientColorsChanged;
 end;
 
-procedure TGradient32.SetColors(const GradientColors: array of TColor32Gradient);
+procedure TGradient32.SetColors(const GradientColors: TArrayOfColor32Gradient);
 var
   Index: Integer;
 begin
@@ -682,6 +682,59 @@ begin
       FGradientColors[Index] := GradientColors[Index];
     GradientColorsChanged;
   end;
+end;
+
+procedure TGradient32.SetColors(const GradientColors: TArrayOfColor32);
+var
+  Index: Integer;
+  Scale: TFloat;
+begin
+  if Length(GradientColors) = 0 then
+  begin
+    // no colors specified
+    if Length(FGradientColors) > 0 then
+      ClearColors;
+  end else
+  begin
+    SetLength(FGradientColors, Length(GradientColors));
+
+    if Length(GradientColors) > 1 then
+    begin
+      // several colors (at least 2)
+      Scale := 1 / (Length(GradientColors) - 1);
+      for Index := 0 to Length(GradientColors) - 1 do
+      begin
+        FGradientColors[Index].Color32 := GradientColors[Index];
+        FGradientColors[Index].Offset := Index * Scale;
+      end;
+    end
+    else
+    begin
+      // only 1 color
+      FGradientColors[0].Color32 := GradientColors[0];
+      FGradientColors[0].Offset := 0;
+    end;
+
+    GradientColorsChanged;
+  end;
+end;
+
+procedure TGradient32.SetColors(const Palette: TPalette32);
+var
+  Index: Integer;
+  Scale: TFloat;
+begin
+  SetLength(FGradientColors, Length(Palette));
+
+  // several colors (at least 2)
+  Scale := 1 / (Length(Palette) - 1);
+  for Index := 0 to Length(Palette) - 1 do
+  begin
+    FGradientColors[Index].Color32 := Palette[Index];
+    FGradientColors[Index].Offset := Index * Scale;
+  end;
+
+  GradientColorsChanged;
 end;
 
 procedure TGradient32.SetStartColor(const Value: TColor32);
@@ -2301,7 +2354,7 @@ begin
   FGradient.FillColorLookUpTable(FGradientLUT);
   FLutPtr := FGradientLUT.Color32Ptr;
   FLutMask := FGradientLUT.Mask;
-  FWrapProc := GetWrapProc(WrapMode, FGradientLUT.FSize);
+  FWrapProc := GetWrapProc(WrapMode, FGradientLUT.Mask);
 end;
 
 procedure TCustomLookUpTableGradientSampler.WrapModeChanged;
