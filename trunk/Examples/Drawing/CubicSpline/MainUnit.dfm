@@ -13,6 +13,7 @@ object FormBezier: TFormBezier
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object PaintBox32: TPaintBox32

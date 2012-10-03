@@ -53,10 +53,12 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     FRenderer: TPolygonRenderer32VPR;
     FCurrentIndex: Integer;
-    FPoints: TArrayOfFloatPoint;
+    FVertices: TArrayOfFloatPoint;
+    procedure RandomizeVertices;
   end;
 
 var
@@ -71,23 +73,16 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_VectorUtils;
+  Math, GR32_LowLevel, GR32_VectorUtils;
 
 { TFormBezier }
 
 procedure TFormBezier.FormCreate(Sender: TObject);
 begin
-  FRenderer := TPolygonRenderer32VPR.Create;
-  FRenderer.Bitmap := PaintBox32.Buffer;
-  FRenderer.FillMode := pfWinding;
+  FRenderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
 
-  SetLength(FPoints, 6);
-  FPoints[0] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[1] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[2] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[3] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[4] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[5] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
+  SetLength(FVertices, 6);
+  RandomizeVertices;
 
   FCurrentIndex := -1;
 end;
@@ -95,6 +90,34 @@ end;
 procedure TFormBezier.FormDestroy(Sender: TObject);
 begin
   FRenderer.Free;
+end;
+
+procedure TFormBezier.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  case Key of
+    27: Close;
+    13:
+      begin
+        RandomizeVertices;
+        PaintBox32.Invalidate;
+      end;
+    187:
+      begin
+        SetLength(FVertices, Length(FVertices) + 1);
+        with PaintBox32 do
+          FVertices[Length(FVertices) - 1] := FloatPoint(Random * Width,
+            Random * Height);
+        PaintBox32.Invalidate;
+      end;
+    189:
+      if Length(FVertices) > 5 then
+      begin
+        SetLength(FVertices, Length(FVertices) - 1);
+        PaintBox32.Invalidate;
+      end;
+  end;
+
 end;
 
 function CubicInterpolation(const Fractional: TFloat;
@@ -105,14 +128,18 @@ begin
     (3 * (Data1 - Data2) - Data0 + Data3)));
 end;
 
+procedure TFormBezier.RandomizeVertices;
+var
+  Index: Integer;
+begin
+  with PaintBox32 do
+    for Index := 0 to High(FVertices) do
+      FVertices[Index] := FloatPoint(Random * Width, Random * Height);
+end;
+
 procedure TFormBezier.PaintBox32DblClick(Sender: TObject);
 begin
-  FPoints[0] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[1] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[2] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[3] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[4] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
-  FPoints[5] := FloatPoint(Random * PaintBox32.Width, Random * PaintBox32.Height);
+  RandomizeVertices;
   PaintBox32.Invalidate;
 end;
 
@@ -120,15 +147,46 @@ procedure TFormBezier.PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
   Index: Integer;
+  Dist, MinDist: TFloat;
+  MinDistIndex: Integer;
 begin
   FCurrentIndex := -1;
-  for Index := 0 to Length(FPoints) - 1 do
-  begin
-    if Sqr(FPoints[Index].X - X) + Sqr(FPoints[Index].Y - Y)  < 25 then
+  for Index := 0 to Length(FVertices) - 1 do
+    if Sqr(FVertices[Index].X - X) + Sqr(FVertices[Index].Y - Y)  < 25 then
     begin
-      FCurrentIndex := Index;
+      if (Length(FVertices) > 5) and (Button = mbRight) then
+      begin
+        if Index < Length(FVertices) - 1 then
+          Move(FVertices[Index + 1], FVertices[Index],
+            (Length(FVertices) - Index - 1) * SizeOf(TFloatPoint));
+        SetLength(FVertices, Length(FVertices) - 1);
+        PaintBox32.Invalidate;
+      end
+      else
+        FCurrentIndex := Index;
       Exit;
     end;
+
+  if Button = mbLeft then
+  begin
+    MinDistIndex := 0;
+    MinDist := Sqr(X - FVertices[0].X) + Sqr(Y - FVertices[0].Y);
+    for Index := 1 to High(FVertices) do
+    begin
+      Dist := Sqr(X - FVertices[Index].X) + Sqr(Y - FVertices[Index].Y);
+      if Dist < MinDist then
+      begin
+        MinDistIndex := Index;
+        MinDist := Dist;
+      end;
+    end;
+
+    SetLength(FVertices, Length(FVertices) + 1);
+    Move(FVertices[MinDistIndex], FVertices[MinDistIndex + 1],
+      (Length(FVertices) - MinDistIndex) * SizeOf(TFloatPoint));
+    FCurrentIndex := MinDistIndex;
+    FVertices[FCurrentIndex] := FloatPoint(X, Y);
+    PaintBox32.Invalidate;
   end;
 end;
 
@@ -137,15 +195,27 @@ procedure TFormBezier.PaintBox32MouseMove(Sender: TObject; Shift: TShiftState;
 begin
   if FCurrentIndex >= 0 then
   begin
-    FPoints[FCurrentIndex] := FloatPoint(X, Y);
+    FVertices[FCurrentIndex] := FloatPoint(X, Y);
     PaintBox32.Invalidate;
   end;
 end;
 
 procedure TFormBezier.PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
+var
+  Index: Integer;
 begin
+  if FCurrentIndex >= 0 then
+  with PaintBox32 do
+    begin
+      FVertices[FCurrentIndex].X := EnsureRange(FVertices[FCurrentIndex].X,
+        0, Width);
+      FVertices[FCurrentIndex].Y := EnsureRange(FVertices[FCurrentIndex].Y,
+        0, Height);
+    end;
+
   FCurrentIndex := -1;
+  PaintBox32.Invalidate;
 end;
 
 procedure TFormBezier.PaintBox32PaintBuffer(Sender: TObject);
@@ -156,47 +226,49 @@ var
   Indices: array [0..3] of Integer;
   PolyCount: Integer;
   Outline: TArrayOfArrayOfFloatPoint;
+const
+  CVertexCountStep = 64;
 begin
   PaintBox32.Buffer.Clear($FFFFFFFF);
 
-  Outline := BuildPolyPolyLine(PolyPolygon(FPoints), True, 2);
+  Outline := BuildPolyPolyLine(PolyPolygon(FVertices), True, 2);
 
   PolyCount := Length(Outline);
-  SetLength(Outline, PolyCount + Length(FPoints));
-  for Index := 0 to Length(FPoints) - 1 do
-    Outline[PolyCount + Index] := Circle(FPoints[Index].X, FPoints[Index].Y, 5, 32);
+  SetLength(Outline, PolyCount + Length(FVertices));
+  for Index := 0 to Length(FVertices) - 1 do
+    Outline[PolyCount + Index] := Circle(FVertices[Index].X, FVertices[Index].Y, 5, 32);
 
   FRenderer.Color := $80000080;
   FRenderer.PolyPolygonFS(Outline);
 
-  FRenderer.Color := $FF000000;
-  with TFlattenedPath.Create do
-  try
-    BeginPath;
-    MoveTo(FPoints[0]);
-    Val := 0;
-    while Val < Length(FPoints) do
-    begin
-      Indices[0] := (Length(FPoints) + Trunc(Val) - 2 + 1) mod Length(FPoints);
-      Indices[1] := (Indices[0] + 1) mod Length(FPoints);
-      Indices[2] := (Indices[1] + 1) mod Length(FPoints);
-      Indices[3] := (Indices[2] + 1) mod Length(FPoints);
+  SetLength(Outline, 1, CVertexCountStep);
+  Outline[0, 0] := FVertices[0];
+  Index := 0;
+  while Val < Length(FVertices) do
+  begin
+    Indices[0] := (Length(FVertices) + Trunc(Val) - 2 + 1) mod Length(FVertices);
+    Indices[1] := (Indices[0] + 1) mod Length(FVertices);
+    Indices[2] := (Indices[1] + 1) mod Length(FVertices);
+    Indices[3] := (Indices[2] + 1) mod Length(FVertices);
 
-      Fractional := Frac(Val);
+    Fractional := Frac(Val);
 
-      LineTo(
-        CubicInterpolation(Fractional, FPoints[Indices[0]].X,
-          FPoints[Indices[1]].X, FPoints[Indices[2]].X, FPoints[Indices[3]].X),
-        CubicInterpolation(Fractional, FPoints[Indices[0]].Y,
-          FPoints[Indices[1]].Y, FPoints[Indices[2]].Y, FPoints[Indices[3]].Y));
-      Val := Val + 0.03;
-    end;
-    ClosePath;
-    EndPath;
-    FRenderer.PolyPolygonFS(BuildPolyPolyline(Path, False, 2));
-  finally
-    Free;
+    Inc(Index);
+    if Index = Length(Outline[0]) then
+      SetLength(Outline[0], Length(Outline[0]) + CVertexCountStep);
+
+    Outline[0, Index] := FloatPoint(
+      CubicInterpolation(Fractional, FVertices[Indices[0]].X,
+        FVertices[Indices[1]].X, FVertices[Indices[2]].X,
+        FVertices[Indices[3]].X),
+      CubicInterpolation(Fractional, FVertices[Indices[0]].Y,
+        FVertices[Indices[1]].Y, FVertices[Indices[2]].Y,
+        FVertices[Indices[3]].Y));
+    Val := Val + 0.03;
   end;
+  SetLength(Outline[0], Index + 1);
+  FRenderer.Color := $FF000000;
+  FRenderer.PolyPolygonFS(BuildPolyPolyline(Outline, True, 2));
 end;
 
 end.
