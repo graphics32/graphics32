@@ -1,4 +1,4 @@
-program GammaTest;
+program GammaCorrection;
 
 {$R 'Media.res' 'Media.rc'}
 
@@ -8,7 +8,7 @@ uses
 
 begin
   Application.Initialize;
-  Application.CreateForm(TFrmGammaTest, FrmGammaTest);
+  Application.CreateForm(TFrmGammaCorrection, FrmGammaCorrection);
   Application.Run;
 end.
 

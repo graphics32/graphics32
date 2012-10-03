@@ -1,4 +1,4 @@
-object FrmGammaTest: TFrmGammaTest
+object FrmGammaCorrection: TFrmGammaCorrection
   Left = 0
   Top = 0
   Caption = 'Gamma Test'
