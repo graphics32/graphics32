@@ -8,8 +8,6 @@ uses
   GR32_ColorGradients, GR32_RangeBars;
 
 type
-  TArrayOfColorFloatPoint = array of TColorFloatPoint;
-
   TFrmMeshGradients = class(TForm)
     CmbBackgroundSampler: TComboBox;
     ColorDialog: TColorDialog;
