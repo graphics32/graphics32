@@ -133,9 +133,10 @@ type
   private
   protected
     function GetFillLine: TFillLineEvent; virtual; abstract;
+  public
     procedure BeginRendering; virtual;
     procedure EndRendering; virtual;
-  public
+
     property FillLine: TFillLineEvent read GetFillLine;
   end;
 
