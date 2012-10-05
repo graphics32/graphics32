@@ -2036,6 +2036,8 @@ const
   var
     M1, M2, MX1, MY1, MX2, MY2: Double;
     DeltaX, DeltaY, DeltaRadSqr, AbsY1Y2, AbsY2Y3: Double;
+  const
+    CTolerance = 0.000001;
   begin
     AbsY1Y2 := Abs(Pt1.Y - Pt2.Y);
     AbsY2Y3 := Abs(Pt2.Y - Pt3.Y);
@@ -2067,7 +2069,7 @@ const
     begin
       M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
       M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
-      if (M1 = M2) then
+      if Abs(M1 - M2) < CTolerance then
       begin
         Result := False;
         Exit;
