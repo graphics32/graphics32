@@ -2067,11 +2067,15 @@ const
     begin
       M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
       M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
+      if (M1 = M2) then
+      begin
+        Result := False;
+        Exit;
+      end;
       MX1 := (Pt1.X + Pt2.X) * 0.5;
       MX2 := (Pt2.X + Pt3.X) * 0.5;
       MY1 := (Pt1.Y + Pt2.Y) * 0.5;
       MY2 := (Pt2.Y + Pt3.Y) * 0.5;
-
       CenterX := (M1 * MX1 - M2 * Mx2 + My2 - MY1) / (M1 - M2);
       if (AbsY1Y2 > AbsY2Y3) then
         CenterY := M1 * (CenterX - MX1) + MY1
