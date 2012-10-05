@@ -176,11 +176,12 @@ type
     procedure SetSampler(const Value: TCustomSampler);
   protected
     procedure SamplerChanged; virtual;
-    procedure BeginRendering; override;
     function GetFillLine: TFillLineEvent; override;
     procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
   public
     constructor Create(Sampler: TCustomSampler = nil); reintroduce; virtual;
+    procedure BeginRendering; override;
+    procedure EndRendering; override;
     property Sampler: TCustomSampler read FSampler write SetSampler;
   end;
 
@@ -1344,6 +1345,14 @@ begin
   inherited Create;
   FSampler := Sampler;
   SamplerChanged;
+end;
+
+procedure TSamplerFiller.EndRendering;
+begin
+  if Assigned(FSampler) then
+    FSampler.FinalizeSampling
+  else
+    raise Exception.Create(RCStrNoSamplerSpecified);
 end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
