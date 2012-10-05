@@ -366,9 +366,9 @@ begin
   N := Length(Points);
   if N <= 2 then Exit;
 
-  YMin := High(Integer);
-  YMax := Low(Integer);
-  for I := 0 to N - 1 do
+  YMin := Round(Points[0].Y);
+  YMax := YMin;
+  for I := 1 to N - 1 do
   begin
     Y := Round(Points[I].Y);
     if YMin > Y then YMin := Y;
