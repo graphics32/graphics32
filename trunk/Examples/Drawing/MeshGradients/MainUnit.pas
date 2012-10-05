@@ -39,8 +39,8 @@ type
     procedure BtnStoreClick(Sender: TObject);
     procedure BtnRecallClick(Sender: TObject);
   private
-    FColorPoints: TArrayOfColorFloatPoint;
-    FClipboard: TArrayOfColorFloatPoint;
+    FColorPoints: TArrayOfColor32FloatPoint;
+    FClipboard: TArrayOfColor32FloatPoint;
     FSelected: Integer;
     FIdwPower: TFloat;
     procedure SetSelected(const Value: Integer);
@@ -124,7 +124,7 @@ begin
 
     if Selected < Length(FColorPoints) - 1 then
       Move(FColorPoints[Selected + 1], FColorPoints[Selected],
-        (Length(FColorPoints) - Selected - 1) * SizeOf(TColorFloatPoint));
+        (Length(FColorPoints) - Selected - 1) * SizeOf(TColor32FloatPoint));
     SetLength(FColorPoints, Length(FColorPoints) - 1);
     Selected := -1;
   end;
