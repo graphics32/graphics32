@@ -96,7 +96,7 @@ type
     procedure AddColorStop(Offset: TFloat; Color: TColor32); virtual;
     procedure SetColors(const GradientColors: TArrayOfColor32GradientStop); overload;
     procedure SetColors(const GradientColors: TArrayOfColor32); overload;
-    procedure SetColors(const Palette: TPalette32) overload;
+    procedure SetColors(const Palette: TPalette32); overload;
     function GetColorAt(Fraction: TFloat): TColor32;
     procedure FillColorLookUpTable(var ColorLUT: array of TColor32); overload;
     procedure FillColorLookUpTable(ColorLUT: PColor32Array; Count: Integer); overload;
