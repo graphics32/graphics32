@@ -38,8 +38,9 @@ interface
 
 uses
   {$IFNDEF FPC}Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF} SysUtils, Classes,
-  Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, GR32, GR32_Image,
-  GR32_Polygons, GR32_Layers, GR32_Geometry, GR32_VectorUtils, GR32_Clipper;
+  Types, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
+  GR32, GR32_Image, GR32_Polygons, GR32_Layers, GR32_Geometry,
+  GR32_Math, GR32_VectorUtils, GR32_Clipper;
 
 type
   TFrmClipper = class(TForm)
@@ -49,6 +50,8 @@ type
     PnlControl: TPanel;
     rgClipping: TRadioGroup;
     RgpObject: TRadioGroup;
+    BtnInflate: TButton;
+    BtnDeflate: TButton;
     procedure FormCreate(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
     procedure ImgView32MouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -58,13 +61,15 @@ type
     procedure BtnClearClick(Sender: TObject);
     procedure ImgView32MouseLeave(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure BtnInflateClick(Sender: TObject);
+    procedure BtnDeflateClick(Sender: TObject);
   private
-    Polys: TArrayOfArrayOfFixedPoint;
-    OutlinePolygon: TArrayOfFixedPoint;
-    procedure AddPolygon(const Pts: TArrayOfFixedPoint);
-    function MakeRectangle(const NewPoint: TPoint): TArrayOfFixedPoint;
-    function MakeEllipse(const NewPoint: TPoint): TArrayOfFixedPoint;
-    function MakeStar(const NewPoint: TPoint): TArrayOfFixedPoint;
+    Polys: TArrayOfArrayOfFloatPoint;
+    OutlinePolygon: TArrayOfFloatPoint;
+    procedure AddPolygon(const Pts: TArrayOfFloatPoint);
+    function MakeRectangle(const NewPoint: TPoint): TArrayOfFloatPoint;
+    function MakeEllipse(const NewPoint: TPoint): TArrayOfFloatPoint;
+    function MakeStar(const NewPoint: TPoint): TArrayOfFloatPoint;
     procedure DrawPolygons;
   end;
 
@@ -98,18 +103,18 @@ begin
 end;
 
 procedure DrawStippled(Bitmap: TBitmap32;
-  const Afp: TArrayOfFixedPoint;
-  StippleColors: array of TColor32; StippleStep: Single);
+  const Afp: TArrayOfFloatPoint;
+  StippleColors: array of TColor32; StippleStep: TFloat);
 var
   i: Integer;
 begin
   if Afp = nil then Exit;
   Bitmap.StippleStep := StippleStep;
   Bitmap.SetStipple(StippleColors);
-  Bitmap.MoveToX(Afp[0].X, Afp[0].Y);
+  Bitmap.MoveToF(Afp[0].X, Afp[0].Y);
   for i := 1 to High(Afp) do
-    Bitmap.LineToXSP(Afp[i].X, Afp[i].Y);
-  Bitmap.LineToXSP(Afp[0].X, Afp[0].Y);
+    Bitmap.LineToFSP(Afp[i].X, Afp[i].Y);
+  Bitmap.LineToFSP(Afp[0].X, Afp[0].Y);
 end;
 
 
@@ -118,7 +123,7 @@ end;
 procedure TFrmClipper.FormCreate(Sender: TObject);
 begin
   ImgView32.Bitmap.SetSize(640, 480);
-  AddPolygon(MakeStar(Point(125, 150)));
+  AddPolygon(MakeStar(GR32.Point(125, 150)));
   ImgView32.ScrollToCenter(0, 0);
 end;
 
@@ -129,14 +134,14 @@ begin
     Exit;
 end;
 
-procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFixedPoint);
+procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFloatPoint);
 begin
   with TClipper.Create do
   try
     //add multiple contours of existing polygons as subject polygons ...
-    AddArrayOfArrayOfFixedPoint(Polys, ptSubject);
+    Add(Polys, ptSubject);
     //add the single contour of the new polygon as the clipping polygon ...
-    AddArrayOfFixedPoint(Pts, ptClip);
+    Add(Pts, ptClip);
     //do the clipping operation (result => Polys) ...
     case rgClipping.ItemIndex of
       0:  Execute(ctIntersection, Polys, pftNonZero);
@@ -150,38 +155,30 @@ begin
   DrawPolygons;
 end;
 
-function TFrmClipper.MakeRectangle(const NewPoint: TPoint): TArrayOfFixedPoint;
+function TFrmClipper.MakeRectangle(const NewPoint: TPoint): TArrayOfFloatPoint;
 begin
   SetLength(Result, 4);
-  Result[0] := FixedPoint(Integer(NewPoint.X - 50), Integer(NewPoint.Y - 30));
-  Result[1] := FixedPoint(Integer(NewPoint.X + 50), Integer(NewPoint.Y - 30));
-  Result[2] := FixedPoint(Integer(NewPoint.X + 50), Integer(NewPoint.Y + 30));
-  Result[3] := FixedPoint(Integer(NewPoint.X - 50), Integer(NewPoint.Y + 30));
+  Result[0] := FloatPoint(NewPoint.X - 50, NewPoint.Y - 30);
+  Result[1] := FloatPoint(NewPoint.X + 50, NewPoint.Y - 30);
+  Result[2] := FloatPoint(NewPoint.X + 50, NewPoint.Y + 30);
+  Result[3] := FloatPoint(NewPoint.X - 50, NewPoint.Y + 30);
 end;
 
-function TFrmClipper.MakeEllipse(const NewPoint: TPoint): TArrayOfFixedPoint;
-var
-  EllipseF: TArrayOfFloatPoint;
+function TFrmClipper.MakeEllipse(const NewPoint: TPoint): TArrayOfFloatPoint;
 begin
-  EllipseF := Ellipse(FloatPoint(NewPoint), FloatPoint(60,40));
-  SetLength(Result, 1);
-  Result := FloatPointToFixedPoint(EllipseF);
+  Result := Ellipse(FloatPoint(NewPoint), FloatPoint(60,40));
 end;
 
-function TFrmClipper.MakeStar(const NewPoint: TPoint): TArrayOfFixedPoint;
-var
-  StarF: TArrayOfFloatPoint;
+function TFrmClipper.MakeStar(const NewPoint: TPoint): TArrayOfFloatPoint;
 begin
-  StarF := Star(FloatPoint(NewPoint), 40.0, 60.0, 7);
-  SetLength(Result, 1);
-  Result := FloatPointToFixedPoint(StarF);
+  Result := Star(FloatPoint(NewPoint), 40.0, 60.0, 7);
 end;
 
 procedure TFrmClipper.DrawPolygons;
 begin
   ImgView32.Bitmap.FillRectS(ImgView32.Bitmap.BoundsRect, clWhite32);
-  PolyPolyLineXS(ImgView32.Bitmap, Polys, clRed32, True, Fixed(2));
-  PolyPolygonXS(ImgView32.Bitmap, Polys, $40FF0000, pfWinding);
+  PolyPolyLineFS(ImgView32.Bitmap, Polys, clRed32, True, 2);
+  PolyPolygonFS(ImgView32.Bitmap, Polys, $40FF0000, pfWinding);
   DrawStippled(ImgView32.Bitmap, OutlinePolygon, [clBlue32, clBlue32, $000000FF], 0.35);
 end;
 
@@ -197,7 +194,7 @@ procedure TFrmClipper.ImgView32MouseMove(Sender: TObject;
 var
   NewPt: TPoint;
 begin
-  NewPt := ImgView32.ControlToBitmap(Point(X, Y));
+  NewPt := ImgView32.ControlToBitmap(GR32.Point(X, Y));
   case RgpObject.ItemIndex of
     0: OutlinePolygon := MakeStar(NewPt);
     1: OutlinePolygon := MakeEllipse(NewPt);
@@ -220,6 +217,18 @@ end;
 procedure TFrmClipper.BtnClearClick(Sender: TObject);
 begin
   Polys := nil;
+  DrawPolygons;
+end;
+
+procedure TFrmClipper.BtnInflateClick(Sender: TObject);
+begin
+  Polys := OffsetPolygons(Polys, 10, jtRound);
+  DrawPolygons;
+end;
+
+procedure TFrmClipper.BtnDeflateClick(Sender: TObject);
+begin
+  Polys := OffsetPolygons(Polys, -10, jtRound);
   DrawPolygons;
 end;
 
