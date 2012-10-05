@@ -1,9 +1,9 @@
 object FrmClipper: TFrmClipper
-  Left = 272
-  Top = 153
+  Left = 280
+  Top = 166
   Caption = 'Clipper'
-  ClientHeight = 469
-  ClientWidth = 668
+  ClientHeight = 508
+  ClientWidth = 834
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -19,7 +19,7 @@ object FrmClipper: TFrmClipper
     Left = 0
     Top = 0
     Width = 169
-    Height = 469
+    Height = 508
     Align = alLeft
     TabOrder = 0
     object BtnExit: TButton
@@ -29,7 +29,7 @@ object FrmClipper: TFrmClipper
       Height = 25
       Cancel = True
       Caption = 'Exit'
-      TabOrder = 2
+      TabOrder = 5
       OnClick = BtnExitClick
     end
     object rgClipping: TRadioGroup
@@ -52,7 +52,7 @@ object FrmClipper: TFrmClipper
       Width = 75
       Height = 25
       Caption = '&Clear'
-      TabOrder = 1
+      TabOrder = 4
       OnClick = BtnClearClick
     end
     object RgpObject: TRadioGroup
@@ -66,14 +66,32 @@ object FrmClipper: TFrmClipper
         '&Star'
         '&Ellipse'
         '&Rectangle')
+      TabOrder = 1
+    end
+    object BtnInflate: TButton
+      Left = 35
+      Top = 296
+      Width = 75
+      Height = 25
+      Caption = 'In&flate'
+      TabOrder = 2
+      OnClick = BtnInflateClick
+    end
+    object BtnDeflate: TButton
+      Left = 35
+      Top = 330
+      Width = 75
+      Height = 25
+      Caption = 'Defla&te'
       TabOrder = 3
+      OnClick = BtnDeflateClick
     end
   end
   object ImgView32: TImgView32
     Left = 169
     Top = 0
-    Width = 499
-    Height = 469
+    Width = 665
+    Height = 508
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
