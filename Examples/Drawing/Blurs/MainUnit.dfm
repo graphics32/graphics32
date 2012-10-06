@@ -1,22 +1,22 @@
 object FrmBlurs: TFrmBlurs
   Left = 283
   Top = 189
-  Width = 727
-  Height = 451
   Caption = 'Blurs'
+  ClientHeight = 405
+  ClientWidth = 719
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
   Font.Height = -12
   Font.Name = 'Arial'
   Font.Style = []
-  Menu = MainMenu1
+  Menu = MainMenu
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 15
-  object Panel1: TPanel
+  object PnlControl: TPanel
     Left = 0
     Top = 0
     Width = 154
@@ -89,7 +89,7 @@ object FrmBlurs: TFrmBlurs
       Enabled = False
       State = cbChecked
       TabOrder = 3
-      OnClick = PageControl1Change
+      OnClick = PageControlChange
     end
   end
   object SbrMain: TStatusBar
@@ -100,7 +100,7 @@ object FrmBlurs: TFrmBlurs
     Panels = <>
     SimplePanel = True
   end
-  object PageControl1: TPageControl
+  object PageControl: TPageControl
     Left = 154
     Top = 0
     Width = 565
@@ -108,7 +108,7 @@ object FrmBlurs: TFrmBlurs
     ActivePage = TabSheet1
     Align = alClient
     TabOrder = 2
-    OnChange = PageControl1Change
+    OnChange = PageControlChange
     object TabSheet1: TTabSheet
       Caption = 'Page &1'
       object ImgViewPage1: TImgView32
@@ -172,14 +172,14 @@ object FrmBlurs: TFrmBlurs
       end
     end
   end
-  object MainMenu1: TMainMenu
+  object MainMenu: TMainMenu
     Left = 116
     Top = 328
-    object File1: TMenuItem
+    object MnuFile: TMenuItem
       Caption = '&File'
-      object Open1: TMenuItem
+      object MnuOpen: TMenuItem
         Caption = '&Open ...'
-        OnClick = Open1Click
+        OnClick = MnuOpenClick
       end
       object N1: TMenuItem
         Caption = '-'
@@ -190,7 +190,7 @@ object FrmBlurs: TFrmBlurs
         OnClick = MnuExitClick
       end
     end
-    object BlurType1: TMenuItem
+    object MnuBlurType: TMenuItem
       Caption = 'Bl&ur Type'
       object MnuNone: TMenuItem
         Caption = '&None'
@@ -211,7 +211,7 @@ object FrmBlurs: TFrmBlurs
       end
     end
   end
-  object OpenDialog1: TOpenDialog
+  object OpenDialog: TOpenDialog
     DefaultExt = 'png'
     Filter = 
       'All (*.png;*.jpg;*.bmp)|*.png;*.jpg;*.bmp;|PNG Files (*.png)|*.p' +

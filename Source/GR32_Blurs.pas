@@ -40,29 +40,30 @@ uses
   {$ELSE}
     Windows, Types,
   {$ENDIF}
-    SysUtils, classes, Math, GR32;
+    SysUtils, Classes, Math, GR32;
 
 procedure GaussianBlur(Bmp32: TBitmap32; Radius: TFloat); overload;
-procedure GaussianBlur(Bmp32: TBitmap32; Radius: TFloat; const Rec: TRect); overload;
+procedure GaussianBlur(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
 procedure GaussianBlur(Bmp32: TBitmap32; Radius: TFloat;
   const BlurRegion: TArrayOfFloatPoint); overload;
 
 procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat); overload;
-procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat; const Rec: TRect); overload;
+procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
 procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat;
   const BlurRegion: TArrayOfFloatPoint); overload;
 
 procedure MotionBlur(Bmp32: TBitmap32;
-  Dist, AngleDeg: TFloat; Bidirectional: Boolean = true); overload;
+  Dist, AngleDeg: TFloat; Bidirectional: Boolean = True); overload;
 procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
-  const Rec: TRect; Bidirectional: Boolean = true); overload;
+  const Bounds: TRect; Bidirectional: Boolean = True); overload;
 procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
-  const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = true); overload;
+  const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True); overload;
 
 implementation
 
 uses
-  GR32_Blend, GR32_Polygons, GR32_LowLevel, GR32_VectorUtils, GR32_Transforms;
+  GR32_Blend, GR32_Resamplers, GR32_Polygons, GR32_LowLevel, GR32_VectorUtils,
+  GR32_Transforms;
 
 type
    TSumRecInt64 = record
@@ -77,7 +78,7 @@ type
 
 const
   ChannelSize = 256; // ie 1 byte for each of A,R,G & B in TColor32
-  ChannelSizeMin1 = ChannelSize -1;
+  ChannelSizeMin1 = ChannelSize - 1;
 
 { GaussianBlur }
 
@@ -88,7 +89,7 @@ begin
   GaussianBlur(Bmp32, Radius, Bmp32.BoundsRect);
 end;
 
-procedure GaussianBlur(Bmp32: TBitmap32; Radius: TFloat; const Rec: TRect);
+procedure GaussianBlur(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect);
 var
   Q, I, J, X, Y, ImageWidth, RowOffset, RadiusI: Integer;
   RecLeft, RecTop, RecRight, RecBottom: Integer;
@@ -127,10 +128,10 @@ begin
   SetLength(SumArray, ImageWidth * Bmp32.Height);
 
   ImagePixels := PColor32EntryArray(Bmp32.Bits);
-  RecLeft := Max(Rec.Left, 0);
-  RecTop := Max(Rec.Top, 0);
-  RecRight := Min(Rec.Right, ImageWidth -1);
-  RecBottom := Min(Rec.Bottom, Bmp32.Height -1);
+  RecLeft := Max(Bounds.Left, 0);
+  RecTop := Max(Bounds.Top, 0);
+  RecRight := Min(Bounds.Right, ImageWidth - 1);
+  RecBottom := Min(Bounds.Bottom, Bmp32.Height - 1);
 
   RowOffset := RecTop * ImageWidth;
   SetLength(PreMulArray, Bmp32.Width);
@@ -229,29 +230,29 @@ var
   Mask: TBitmap32;
   Clr, MaskClr: TColor32Entry;
   Pts: TArrayOfFloatPoint;
-  Rec: TRect;
+  Bounds: TRect;
 begin
   with PolygonBounds(BlurRegion) do
-    Rec := Rect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
-  if Rec.Left < 0 then Rec.Left := 0;
-  if Rec.Top < 0 then Rec.Top := 0;
-  if Rec.Right >= Bmp32.Width then Rec.Right := Bmp32.Width -1;
-  if Rec.Bottom >= Bmp32.Height then Rec.Bottom := Bmp32.Height -1;
+    Bounds := Rect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
+  if Bounds.Left < 0 then Bounds.Left := 0;
+  if Bounds.Top < 0 then Bounds.Top := 0;
+  if Bounds.Right >= Bmp32.Width then Bounds.Right := Bmp32.Width - 1;
+  if Bounds.Bottom >= Bmp32.Height then Bounds.Bottom := Bmp32.Height - 1;
 
   RadiusI := round(Radius);
-  if (RadiusI < 1) or (Rec.Right <= Rec.Left) or (Rec.Bottom <= Rec.Top) then
+  if (RadiusI < 1) or (Bounds.Right <= Bounds.Left) or (Bounds.Bottom <= Bounds.Top) then
     Exit
   else if RadiusI > 128 then
     RadiusI := 128; // nb: performance degrades exponentially with >> Radius
 
   Mask := TBitmap32.Create;
   try
-    Mask.SetSize(Rec.Right - Rec.Left +1, Rec.Bottom - Rec.Top +1);
+    Mask.SetSize(Bounds.Right - Bounds.Left + 1, Bounds.Bottom - Bounds.Top + 1);
     SetLength(Pts, Length(BlurRegion));
     for I := 0 to High(BlurRegion) do
     begin
-      Pts[I].X := BlurRegion[I].X - Rec.Left;
-      Pts[I].Y := BlurRegion[I].Y - Rec.Top;
+      Pts[I].X := BlurRegion[I].X - Bounds.Left;
+      Pts[I].Y := BlurRegion[I].Y - Bounds.Top;
     end;
     PolygonFS(Mask, Pts, clWhite32);
 
@@ -277,10 +278,10 @@ begin
     SetLength(SumArray, ImageWidth * Bmp32.Height);
 
     ImagePixels := PColor32EntryArray(Bmp32.Bits);
-    RecLeft := Max(Rec.Left, 0);
-    RecTop := Max(Rec.Top, 0);
-    RecRight := Min(Rec.Right, ImageWidth -1);
-    RecBottom := Min(Rec.Bottom, Bmp32.Height -1);
+    RecLeft := Max(Bounds.Left, 0);
+    RecTop := Max(Bounds.Top, 0);
+    RecRight := Min(Bounds.Right, ImageWidth - 1);
+    RecBottom := Min(Bounds.Bottom, Bmp32.Height - 1);
 
     RowOffset := RecTop * ImageWidth;
     SetLength(PreMulArray, Bmp32.Width);
@@ -386,7 +387,7 @@ begin
   FastBlur(Bmp32, Radius, Bmp32.BoundsRect);
 end;
 
-procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat; const Rec: TRect);
+procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect);
 var
   LL, RR, TT, BB, XX, YY, I, J, X, Y, RadiusI, Passes: Integer;
   RecLeft, RecTop, RecRight, RecBottom: Integer;
@@ -400,7 +401,7 @@ begin
   else if Radius > 256 then
     Radius := 256;
 
-  RadiusI := Round(Sqrt(-Radius * Radius / (2 * ln(1 / 255))));
+  RadiusI := Round(Radius / Sqrt(-2 * Ln(1 / 255)));
   if RadiusI < 2 then
   begin
     Passes := Round(Radius);
@@ -408,12 +409,12 @@ begin
   end else
     Passes := 3;
 
-  RecLeft := Max(Rec.Left, 0);
-  RecTop := Max(Rec.Top, 0);
-  RecRight := Min(Rec.Right, Bmp32.Width -1);
-  RecBottom := Min(Rec.Bottom, Bmp32.Height -1);
+  RecLeft := Max(Bounds.Left, 0);
+  RecTop := Max(Bounds.Top, 0);
+  RecRight := Min(Bounds.Right, Bmp32.Width - 1);
+  RecBottom := Min(Bounds.Bottom, Bmp32.Height - 1);
 
-  SetLength(Pixels, Max(Bmp32.Width, Bmp32.Height) +1);
+  SetLength(Pixels, Max(Bmp32.Width, Bmp32.Height) + 1);
   // pre-multiply alphas ...
   for Y := RecTop to RecBottom do
   begin
@@ -466,7 +467,7 @@ begin
       for X := RecLeft + 1 to RecRight do
       begin
         Inc(ImagePixel);
-        LL := X - RadiusI -1;
+        LL := X - RadiusI - 1;
         RR := X + RadiusI;
         if LL >= RecLeft then
           with Pixels[LL] do
@@ -533,7 +534,7 @@ begin
       for Y := RecTop + 1 to RecBottom do
       begin
         Inc(ImagePixel, Bmp32.Width);
-        TT := Y - RadiusI -1;
+        TT := Y - RadiusI - 1;
         BB := Y + RadiusI;
 
         if TT >= RecTop then
@@ -591,14 +592,14 @@ var
   Mask: TBitmap32;
   Clr, MaskClr: TColor32Entry;
   Pts: TArrayOfFloatPoint;
-  Rec: TRect;
+  Bounds: TRect;
 begin
   if Radius < 1 then
     Exit
   else if Radius > 256 then
     Radius := 256;
 
-  RadiusI := Round(Sqrt(-Radius * Radius / (2 * ln(1 / 255))));
+  RadiusI := Round(Radius / Sqrt(-2 * Ln(1 / 255)));
   if RadiusI < 2 then
   begin
     Passes := Round(Radius);
@@ -607,17 +608,17 @@ begin
     Passes := 3;
 
   with PolygonBounds(BlurRegion) do
-    Rec := Rect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
-  if Rec.Left < 0 then Rec.Left := 0;
-  if Rec.Top < 0 then Rec.Top := 0;
-  if Rec.Right >= Bmp32.Width then Rec.Right := Bmp32.Width -1;
-  if Rec.Bottom >= Bmp32.Height then Rec.Bottom := Bmp32.Height -1;
-  RecLeft := Max(Rec.Left, 0);
-  RecTop := Max(Rec.Top, 0);
-  RecRight := Min(Rec.Right, Bmp32.Width -1);
-  RecBottom := Min(Rec.Bottom, Bmp32.Height -1);
+    Bounds := Rect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
+  if Bounds.Left < 0 then Bounds.Left := 0;
+  if Bounds.Top < 0 then Bounds.Top := 0;
+  if Bounds.Right >= Bmp32.Width then Bounds.Right := Bmp32.Width - 1;
+  if Bounds.Bottom >= Bmp32.Height then Bounds.Bottom := Bmp32.Height - 1;
+  RecLeft := Max(Bounds.Left, 0);
+  RecTop := Max(Bounds.Top, 0);
+  RecRight := Min(Bounds.Right, Bmp32.Width - 1);
+  RecBottom := Min(Bounds.Bottom, Bmp32.Height - 1);
 
-  SetLength(Pixels, Max(Bmp32.Width, Bmp32.Height) +1);
+  SetLength(Pixels, Max(Bmp32.Width, Bmp32.Height) + 1);
   // pre-multiply alphas ...
   for Y := RecTop to RecBottom do
   begin
@@ -634,12 +635,12 @@ begin
 
   Mask := TBitmap32.Create;
   try
-    Mask.SetSize(Rec.Right - Rec.Left +1, Rec.Bottom - Rec.Top +1);
+    Mask.SetSize(Bounds.Right - Bounds.Left + 1, Bounds.Bottom - Bounds.Top + 1);
     SetLength(Pts, Length(BlurRegion));
     for I := 0 to High(BlurRegion) do
     begin
-      Pts[I].X := BlurRegion[I].X - Rec.Left;
-      Pts[I].Y := BlurRegion[I].Y - Rec.Top;
+      Pts[I].X := BlurRegion[I].X - Bounds.Left;
+      Pts[I].Y := BlurRegion[I].Y - Bounds.Top;
     end;
     PolygonFS(Mask, Pts, clWhite32);
 
@@ -701,7 +702,7 @@ begin
         for X := RecLeft + 1 to RecRight do
         begin
           Inc(ImagePixel);
-          LL := X - RadiusI -1;
+          LL := X - RadiusI - 1;
           RR := X + RadiusI;
           if LL >= RecLeft then
             with Pixels[LL] do
@@ -790,7 +791,7 @@ begin
         for Y := RecTop + 1 to RecBottom do
         begin
           Inc(ImagePixel, Bmp32.Width);
-          TT := Y - RadiusI -1;
+          TT := Y - RadiusI - 1;
           BB := Y + RadiusI;
 
           if TT >= RecTop then
@@ -854,12 +855,12 @@ begin
 end;
 
 procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
-  const Rec: TRect; Bidirectional: Boolean = true);
+  const Bounds: TRect; Bidirectional: Boolean = True);
 var
   Pts: TArrayOfFloatPoint;
 begin
   SetLength(Pts, 4);
-  with Rec do
+  with Bounds do
   begin
     Pts[0] := FloatPoint(Left, Top);
     Pts[1] := FloatPoint(Right, Top);
@@ -870,7 +871,7 @@ begin
 end;
 
 procedure MotionBlur(Bmp32: TBitmap32;
-  Dist, AngleDeg: TFloat; Bidirectional: Boolean = true);
+  Dist, AngleDeg: TFloat; Bidirectional: Boolean = True);
 var
   Pts: TArrayOfFloatPoint;
 begin
@@ -886,7 +887,7 @@ begin
 end;
 
 procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
-  const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = true);
+  const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True);
 var
   LL, RR, XX, I, X, Y, RadiusI, Passes: Integer;
   ImagePixel, ImagePixel2, ImagePixel3: PColor32Entry;
@@ -896,7 +897,7 @@ var
   Mask: TBitmap32;
   Clr, MaskClr: TColor32Entry;
   Pts: TArrayOfFloatPoint;
-  Rec: TRect;
+  Bounds: TRect;
   Dx, Dy: Double;
   Affine: TAffineTransformation;
   BmpCutout: TBitmap32;
@@ -908,7 +909,7 @@ begin
   else if Dist > 256 then
     Dist := 256;
 
-  RadiusI := Round(Sqrt(-Dist * Dist / (2 * ln(1 / 255))));
+  RadiusI := Round(Sqrt(-Dist * Dist / (2 * Ln(1 / 255))));
   if RadiusI < 2 then
   begin
     Passes := Round(Dist);
@@ -918,32 +919,32 @@ begin
 
 
   with PolygonBounds(BlurRegion) do
-    Rec := Rect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
-  Rec.Left := Max(Rec.Left, 0);
-  Rec.Top := Max(Rec.Top, 0);
-  Rec.Right := Min(Rec.Right, Bmp32.Width -1);
-  Rec.Bottom := Min(Rec.Bottom, Bmp32.Height -1);
+    Bounds := Rect(Floor(Left), Floor(Top), Ceil(Right), Ceil(Bottom));
+  Bounds.Left := Max(Bounds.Left, 0);
+  Bounds.Top := Max(Bounds.Top, 0);
+  Bounds.Right := Min(Bounds.Right, Bmp32.Width - 1);
+  Bounds.Bottom := Min(Bounds.Bottom, Bmp32.Height - 1);
 
   Affine := TAffineTransformation.Create;
-  BmpCutout := TBitmap32.create;
-  BmpRotated := TBitmap32.create;
-  BmpRotated.ResamplerClassName := 'TLinearResampler';
+  BmpCutout := TBitmap32.Create;
+  BmpRotated := TBitmap32.Create;
+  BmpRotated.Resampler := TLinearResampler.Create(BmpRotated);
   Mask := TBitmap32.Create;
   try
     // copy the region to be blurred into the BmpCutout image buffer ...
-    BmpCutout.SetSize(Rec.Right - Rec.Left, Rec.Bottom - Rec.Top);
-    for Y := 0 to BmpCutout.Height -1 do
+    BmpCutout.SetSize(Bounds.Right - Bounds.Left, Bounds.Bottom - Bounds.Top);
+    for Y := 0 to BmpCutout.Height - 1 do
     begin
-      ImagePixel := PColor32Entry(@Bmp32.ScanLine[Y + Rec.Top][Rec.Left]);
+      ImagePixel := PColor32Entry(@Bmp32.ScanLine[Y + Bounds.Top][Bounds.Left]);
       ImagePixel2 := PColor32Entry(BmpCutout.ScanLine[Y]);
       MoveLongword(ImagePixel^, ImagePixel2^, BmpCutout.Width);
     end;
 
     // pre-multiply alphas in BmpCutout ...
-    for Y := 0 to BmpCutout.Height -1 do
+    for Y := 0 to BmpCutout.Height - 1 do
     begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
-      for X := 0 to BmpCutout.Width -1 do
+      for X := 0 to BmpCutout.Width - 1 do
       begin
         ImagePixel.R := DivTable[ImagePixel.R, ImagePixel.A];
         ImagePixel.G := DivTable[ImagePixel.G, ImagePixel.A];
@@ -957,16 +958,16 @@ begin
     Affine.Rotate(180 - AngleDeg);
     with Affine.GetTransformedBounds do
     begin
-      Mask.SetSize(Round(Right - Left) +1, Round(Bottom - Top) +1);
+      Mask.SetSize(Round(Right - Left) + 1, Round(Bottom - Top) + 1);
       BmpRotated.SetSize(Mask.Width, Mask.Height);
       Dx := Left; Dy := Top;
       Affine.Translate(-Dx, -Dy);
     end;
-    transform(BmpRotated, BmpCutout, Affine);
+    Transform(BmpRotated, BmpCutout, Affine);
 
     // Create a rotated mask ...
     Affine.Clear;
-    Affine.Translate(-Rec.Left, -Rec.Top);
+    Affine.Translate(-Bounds.Left, -Bounds.Top);
     Affine.SrcRect := FloatRect(BmpCutout.BoundsRect);
     Affine.Rotate(180 - AngleDeg);
     Affine.Translate(-Dx, -Dy);
@@ -977,11 +978,11 @@ begin
     // Now blur horizontally the rotated image ...
     for I := 1 to Passes do
       // Horizontal blur only ...
-      for Y := 0 to BmpRotated.Height -1 do
+      for Y := 0 to BmpRotated.Height - 1 do
       begin
         ImagePixel := PColor32Entry(BmpRotated.ScanLine[Y]);
         // fill the Pixels buffer with a copy of the row's pixels ...
-        for X := 0 to BmpRotated.Width -1 do
+        for X := 0 to BmpRotated.Width - 1 do
         begin
           MaskClr.ARGB := Mask.Pixel[X, Y];
           if (MaskClr.A = 0) then
@@ -1005,7 +1006,7 @@ begin
 
         LL := 0;
         RR := RadiusI;
-        if RR >= BmpRotated.Width then RR := BmpRotated.Width -1;
+        if RR >= BmpRotated.Width then RR := BmpRotated.Width - 1;
         SumRec.A := 0; SumRec.R := 0; SumRec.G := 0;
         SumRec.B := 0; SumRec.Sum := 0;
         // update first in row ...
@@ -1031,11 +1032,11 @@ begin
           end;
 
         // update the remaining pixels in the row ...
-        for X := 1 to BmpRotated.Width -1 do
+        for X := 1 to BmpRotated.Width - 1 do
         begin
           Inc(ImagePixel);
           if Bidirectional then
-            LL := X - RadiusI -1
+            LL := X - RadiusI - 1
           else
             LL := X - 1;
           RR := X + RadiusI;
@@ -1087,13 +1088,13 @@ begin
     Affine.SrcRect := FloatRect(BmpRotated.BoundsRect);
     Affine.Translate(Dx, Dy);
     Affine.Rotate(AngleDeg + 180);
-    transform(BmpCutout, BmpRotated, Affine);
+    Transform(BmpCutout, BmpRotated, Affine);
 
     // extract alphas ...
-    for Y := 0 to BmpCutout.Height -1 do
+    for Y := 0 to BmpCutout.Height - 1 do
     begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
-      for X := 0 to BmpCutout.Width -1 do
+      for X := 0 to BmpCutout.Width - 1 do
       begin
         ImagePixel.R := RcTable[ImagePixel.A, ImagePixel.R];
         ImagePixel.G := RcTable[ImagePixel.A, ImagePixel.G];
@@ -1105,15 +1106,15 @@ begin
     // Create an un-rotated mask and copy masked pixels from BmpCutout
     // back to the original image (Bmp32) ...
     Mask.SetSize(BmpCutout.Width, BmpCutout.Height);
-    Pts := TranslatePolygon(BlurRegion, -Rec.Left, - Rec.Top);
+    Pts := TranslatePolygon(BlurRegion, -Bounds.Left, -Bounds.Top);
     PolygonFS(Mask, Pts, clWhite32);
 
-    for Y := 0 to BmpCutout.Height -1 do
+    for Y := 0 to BmpCutout.Height - 1 do
     begin
       ImagePixel := PColor32Entry(BmpCutout.ScanLine[Y]);
       ImagePixel2 := PColor32Entry(Mask.ScanLine[Y]);
-      ImagePixel3 := PColor32Entry(@Bmp32.ScanLine[Y + Rec.Top][Rec.Left]);
-      for X := 0 to BmpCutout.Width -1 do
+      ImagePixel3 := PColor32Entry(@Bmp32.ScanLine[Y + Bounds.Top][Bounds.Left]);
+      for X := 0 to BmpCutout.Width - 1 do
       begin
         if ImagePixel2.A > 0 then
           ImagePixel3.ARGB := ImagePixel.ARGB;
