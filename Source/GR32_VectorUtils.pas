@@ -61,6 +61,12 @@ function ClipLine(var P1, P2: TFloatPoint; const ClipRect: TFloatRect): Boolean;
 procedure Extract(Src: TArrayOfFloat; Indexes: TArrayOfInteger; out Dst: TArrayOfFloat);
 procedure FastMergeSort(const Values: TArrayOfFloat; out Indexes: TArrayOfInteger);
 
+type
+  TTriangleVertexIndices = array [0 .. 2] of Integer;
+  TArrayOfTriangleVertexIndices = array of TTriangleVertexIndices;
+
+function DelaunayTriangulation(Points: TArrayOfFloatPoint): TArrayOfTriangleVertexIndices;
+
 function BuildNormals(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
 function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoint;
   const Delta: TFloat; JoinStyle: TJoinStyle = jsMiter;
@@ -424,6 +430,340 @@ begin
   end;
 
   Recurse(0, High(Values));
+end;
+
+procedure FastMergeSortX(const Values: TArrayOfFloatPoint;
+  out Indexes: TArrayOfInteger; out Bounds: TFloatRect);
+var
+  Temp: TArrayOfInteger;
+
+  procedure Merge(I1, I2, J1, J2: Integer);
+  var
+    I, J, K: Integer;
+  begin
+    if Values[Indexes[I2]].X < Values[Indexes[J1]].X then Exit;
+    I := I1;
+    J := J1;
+    K := 0;
+    repeat
+      if Values[Indexes[I]].X < Values[Indexes[J]].X then
+      begin
+        Temp[K] := Indexes[I];
+        Inc(I);
+      end
+      else
+      begin
+        Temp[K] := Indexes[J];
+        Inc(J);
+      end;
+      Inc(K);
+    until (I > I2) or (J > J2);
+
+    while I <= I2 do
+    begin
+      Temp[K] := Indexes[I];
+      Inc(I); Inc(K);
+    end;
+    while J <= J2 do
+    begin
+      Temp[K] := Indexes[J];
+      Inc(J); Inc(K);
+    end;
+    for I := 0 to K - 1 do
+    begin
+      Indexes[I + I1] := Temp[I];
+    end;
+  end;
+
+  procedure Recurse(I1, I2: Integer);
+  var
+    I, IX: Integer;
+  begin
+    if I1 = I2 then
+      Indexes[I1] := I1
+    else if Indexes[I1] = Indexes[I2] then
+    begin
+      if Values[I1].X <= Values[I2].X then
+      begin
+        for I := I1 to I2 do Indexes[I] := I;
+      end
+      else
+      begin
+        IX := I1 + I2;
+        for I := I1 to I2 do Indexes[I] := IX - I;
+      end;
+    end
+    else
+    begin
+      IX := (I1 + I2) div 2;
+      Recurse(I1, IX);
+      Recurse(IX + 1, I2);
+      Merge(I1, IX, IX + 1, I2);
+    end;
+  end;
+
+var
+  I, Index, S: Integer;
+begin
+  SetLength(Temp, Length(Values));
+  SetLength(Indexes, Length(Values));
+
+  Index := 0;
+  S := Math.Sign(Values[1].X - Values[0].X);
+  if S = 0 then S := 1;
+
+  Indexes[0] := 0;
+  Bounds.Left := Values[0].X;
+  Bounds.Top := Values[0].Y;
+  Bounds.Right := Bounds.Left;
+  Bounds.Bottom := Bounds.Top;
+  for I := 1 to High(Values) do
+  begin
+    if Math.Sign(Values[I].X - Values[I - 1].X) = -S then
+    begin
+      S := -S;
+      Inc(Index);
+    end;
+
+    if Values[I].X < Bounds.Left then
+      Bounds.Left := Values[I].X;
+    if Values[I].Y < Bounds.Top then
+      Bounds.Top := Values[I].Y;
+    if Values[I].X > Bounds.Right then
+      Bounds.Right := Values[I].X;
+    if Values[I].Y > Bounds.Bottom then
+      Bounds.Bottom := Values[I].Y;
+
+    Indexes[I] := Index;
+  end;
+
+  Recurse(0, High(Values));
+end;
+
+function DelaunayTriangulation(Points: TArrayOfFloatPoint): TArrayOfTriangleVertexIndices;
+var
+  Complete: array of Byte;
+  Edges: array of array [0 .. 1] of Integer;
+  ByteIndex, Bit: Byte;
+  MaxVerticesCount, EdgeCount, MaxEdgeCount, MaxTriangleCount: Integer;
+
+  // For super triangle
+  ScaledDeltaMax: TFloat;
+  Mid: TFloatPoint;
+  Bounds: TFloatRect;
+
+  // General Variables
+  SortedVertexIndices: TArrayOfInteger;
+  TriangleCount, VertexCount, I, J, K: Integer;
+  CenterX, CenterY, RadSqr: TFloat;
+  Inside: Boolean;
+const
+  CSuperTriangleCount = 3; // -> super triangle
+  CTolerance = 0.000001;
+
+  function InCircle(Pt, Pt1, Pt2, Pt3: TFloatPoint): Boolean;
+  // Return TRUE if the point Pt(x, y) lies inside the circumcircle made up by
+  // points Pt1(x, y) Pt2(x, y) Pt3(x, y)
+  // The circumcircle centre is returned in (CenterX, CenterY) and the radius r
+  // NOTE: A point on the edge is inside the circumcircle
+  var
+    M1, M2, MX1, MY1, MX2, MY2: Double;
+    DeltaX, DeltaY, DeltaRadSqr, AbsY1Y2, AbsY2Y3: Double;
+  begin
+    AbsY1Y2 := Abs(Pt1.Y - Pt2.Y);
+    AbsY2Y3 := Abs(Pt2.Y - Pt3.Y);
+
+    // Check for coincident points
+    if (AbsY1Y2 < CTolerance) and (AbsY2Y3 < CTolerance) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    if AbsY1Y2 < CTolerance then
+    begin
+      M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
+      MX2 := (Pt2.X + Pt3.X) * 0.5;
+      MY2 := (Pt2.Y + Pt3.Y) * 0.5;
+      CenterX := (Pt2.X + Pt1.X) * 0.5;
+      CenterY := M2 * (CenterX - MX2) + MY2;
+    end
+    else if AbsY2Y3 < CTolerance then
+    begin
+      M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
+      MX1 := (Pt1.X + Pt2.X) * 0.5;
+      MY1 := (Pt1.Y + Pt2.Y) * 0.5;
+      CenterX := (Pt3.X + Pt2.X) * 0.5;
+      CenterY := M1 * (CenterX - MX1) + MY1;
+    end
+    else
+    begin
+      M1 := -(Pt2.X - Pt1.X) / (Pt2.Y - Pt1.Y);
+      M2 := -(Pt3.X - Pt2.X) / (Pt3.Y - Pt2.Y);
+      MX1 := (Pt1.X + Pt2.X) * 0.5;
+      MX2 := (Pt2.X + Pt3.X) * 0.5;
+      MY1 := (Pt1.Y + Pt2.Y) * 0.5;
+      MY2 := (Pt2.Y + Pt3.Y) * 0.5;
+
+      CenterX := (M1 * MX1 - M2 * Mx2 + My2 - MY1) / (M1 - M2);
+      if (AbsY1Y2 > AbsY2Y3) then
+        CenterY := M1 * (CenterX - MX1) + MY1
+      else
+        CenterY := M2 * (CenterX - MX2) + MY2;
+    end;
+
+    DeltaX := Pt2.X - CenterX;
+    DeltaY := Pt2.Y - CenterY;
+    RadSqr := DeltaX * DeltaX + DeltaY * DeltaY;
+    DeltaX := Pt.X - CenterX;
+    DeltaY := Pt.Y - CenterY;
+    DeltaRadSqr := Sqr(DeltaX) + Sqr(DeltaY);
+
+    Result := (DeltaRadSqr - RadSqr) <= CTolerance;
+  end;
+
+begin
+  VertexCount := Length(Points);
+  MaxVerticesCount := VertexCount + CSuperTriangleCount;
+
+  // Sort points by x value and find maximum and minimum vertex bounds.
+  FastMergeSortX(Points, SortedVertexIndices, Bounds);
+
+  // set dynamic array sizes
+  SetLength(Points, MaxVerticesCount);
+  MaxTriangleCount := 2 * (MaxVerticesCount - 1);
+  SetLength(Result, MaxTriangleCount);
+  MaxEdgeCount := 3 * (MaxVerticesCount - 1);
+  SetLength(Edges, MaxEdgeCount);
+  SetLength(Complete, (MaxTriangleCount + 7) shr 3);
+
+  // This is to allow calculation of the bounding triangle
+  with Bounds do
+  begin
+    ScaledDeltaMax := 30 * Max(Right - Left, Bottom - Top);
+    Mid := FloatPoint((Left + Right) * 0.5, (Top + Bottom) * 0.5);
+  end;
+
+  // Set up the super triangle
+  // This is a triangle which encompasses all the sample points. The super
+  // triangle coordinates are added to the end of the vertex list. The super
+  // triangle is the first triangle in the triangle list.
+  Points[VertexCount] := FloatPoint(Mid.X - ScaledDeltaMax, Mid.Y - ScaledDeltaMax);
+  Points[VertexCount + 1] := FloatPoint(Mid.X + ScaledDeltaMax, Mid.Y);
+  Points[VertexCount + 2] := FloatPoint(Mid.X, Mid.Y + ScaledDeltaMax);
+
+  Result[0, 0] := VertexCount;
+  Result[0, 1] := VertexCount + 1;
+  Result[0, 2] := VertexCount + 2;
+
+  Complete[0] := 0;
+  TriangleCount := 1;
+
+  // Include each point one at a time into the existing mesh
+  for I := 0 to VertexCount - 1 do
+  begin
+    EdgeCount := 0;
+
+    // Set up the edge buffer.
+    // If the point [x, y] lies inside the circumcircle then the hree edges of
+    // that triangle are added to the edge buffer.
+    J := 0;
+    repeat
+      if Complete[J shr 3] and (1 shl (J and $7)) = 0 then
+      begin
+        Inside := InCircle(Points[SortedVertexIndices[I]],
+          Points[Result[J, 0]], Points[Result[J, 1]], Points[Result[J, 2]]);
+
+        ByteIndex := J shr 3;
+        Bit := 1 shl (J and $7);
+        if (CenterX < Points[SortedVertexIndices[I]].X) and
+          ((Sqr(Points[SortedVertexIndices[I]].X - CenterX)) > RadSqr) then
+          Complete[ByteIndex] := Complete[ByteIndex] or Bit
+        else
+          if Inside then
+          begin
+            Edges[EdgeCount + 0, 0] := Result[J, 0];
+            Edges[EdgeCount + 0, 1] := Result[J, 1];
+            Edges[EdgeCount + 1, 0] := Result[J, 1];
+            Edges[EdgeCount + 1, 1] := Result[J, 2];
+            Edges[EdgeCount + 2, 0] := Result[J, 2];
+            Edges[EdgeCount + 2, 1] := Result[J, 0];
+            EdgeCount := EdgeCount + 3;
+            Assert(EdgeCount <= MaxEdgeCount);
+
+            TriangleCount := TriangleCount - 1;
+            Result[J] := Result[TriangleCount];
+
+            Complete[ByteIndex] := (Complete[ByteIndex] and (not Bit))
+              or (Complete[TriangleCount shr 3] and Bit);
+            Continue;
+          end;
+      end;
+      J := J + 1;
+    until J >= TriangleCount;
+
+    // Tag multiple edges
+    // Note: if all triangles are specified anticlockwise then all
+    // interior edges are opposite pointing in direction.
+    for J := 0 to EdgeCount - 2 do
+    begin
+      if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
+      begin
+        for K := J + 1 to EdgeCount - 1 do
+        begin
+          if (Edges[K, 0] <> -1) or (Edges[K, 1] <> -1) then
+          begin
+            if (Edges[J, 0] = Edges[K, 1]) and
+              (Edges[J, 1] = Edges[K, 0]) then
+            begin
+              Edges[J, 0] := -1;
+              Edges[J, 1] := -1;
+              Edges[K, 1] := -1;
+              Edges[K, 0] := -1;
+            end;
+          end;
+        end;
+      end;
+    end;
+
+    // Form new triangles for the current point.
+    // Skipping over any tagged edges. All edges are arranged in clockwise
+    // order.
+    for J := 0 to EdgeCount - 1 do
+    begin
+      if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
+      begin
+        Result[TriangleCount, 0] := Edges[J, 0];
+        Result[TriangleCount, 1] := Edges[J, 1];
+        Result[TriangleCount, 2] := SortedVertexIndices[I];
+        ByteIndex := TriangleCount shr 3;
+        Bit := 1 shl (TriangleCount and $7);
+        Complete[ByteIndex] := Complete[ByteIndex] and not Bit;
+        Inc(TriangleCount);
+        Assert(TriangleCount <= MaxTriangleCount);
+      end;
+    end;
+  end;
+
+  // Remove triangles with supertriangle vertices
+  // These are triangles which have a vertex number greater than VertexCount
+  I := 0;
+  repeat
+    if (Result[I, 0] >= VertexCount) or
+      (Result[I, 1] >= VertexCount) or
+      (Result[I, 2] >= VertexCount) then
+    begin
+      TriangleCount := TriangleCount - 1;
+      Result[I, 0] := Result[TriangleCount, 0];
+      Result[I, 1] := Result[TriangleCount, 1];
+      Result[I, 2] := Result[TriangleCount, 2];
+      I := I - 1;
+    end;
+    I := I + 1;
+  until I >= TriangleCount;
+
+  SetLength(Points, Length(Points) - 3);
+  SetLength(Result, TriangleCount);
 end;
 
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat;

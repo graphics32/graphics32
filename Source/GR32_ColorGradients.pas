@@ -36,7 +36,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, Classes, SysUtils, Math, GR32, GR32_Polygons;
+  Types, Classes, SysUtils, Math, GR32, GR32_Polygons, GR32_VectorUtils;
 
 type
   TColor32GradientStop = record
@@ -153,6 +153,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     procedure CalculateBarycentricCoordinates(X, Y: TFloat; out U, V, W: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
   public
+    constructor Create(P1, P2, P3: TColor32FloatPoint); overload; virtual;
     function IsPointInTriangle(X, Y: TFloat): Boolean;
 
     procedure SetPoints(Points: TArrayOfFloatPoint); override;
@@ -230,12 +231,10 @@ type
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
 
-  TDelaunaySampler = class(TCustomArbitrarySparsePointGradientSampler)
+  TGourandShadedDelaunayTrianglesSampler = class(TCustomArbitrarySparsePointGradientSampler)
   private
-    FTriangles: array of array [0 .. 2] of Integer;
+    FTriangles: TArrayOfTriangleVertexIndices;
     FBarycentric: array of TBarycentricGradientSampler;
-  protected
-    procedure Triangulate;
   public
     procedure PrepareSampling; override;
     procedure FinalizeSampling; override;
@@ -593,7 +592,7 @@ implementation
 
 uses
   GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Bindings,
-  GR32_Geometry, GR32_VectorUtils;
+  GR32_Geometry;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -1326,6 +1325,14 @@ end;
 
 { TBarycentricGradientSampler }
 
+constructor TBarycentricGradientSampler.Create(P1, P2, P3: TColor32FloatPoint);
+begin
+  FColorPoints[0] := P1;
+  FColorPoints[1] := P2;
+  FColorPoints[2] := P3;
+  inherited Create;
+end;
+
 procedure TBarycentricGradientSampler.AssignTo(Dest: TPersistent);
 begin
   if Dest is TBarycentricGradientSampler then
@@ -1897,119 +1904,115 @@ end;
 
 { TDelaunaySampler }
 
-type
-  TColor32FloatPointArray = array [0 .. 0] of TColor32FloatPoint;
-  PColorFloatPointArray = ^TColor32FloatPointArray;
-
-procedure QuickSortColor32FloatPoints(Data: PColorFloatPointArray; StartIndex,
-  EndIndex: Integer);
+procedure FastMergeSortX(const Values: TArrayOfColor32FloatPoint;
+  out Indexes: TArrayOfInteger; out Bounds: TFloatRect);
 var
-  I, J: Integer;
-  P: TFloat;
-  T: TColor32FloatPoint;
-begin
- repeat
-  I := StartIndex;
-  J := EndIndex;
-  P := Data[(StartIndex + EndIndex) shr 1].Point.X;
-  repeat
-    while Data[I].Point.X < P do Inc(I);
-    while Data[J].Point.X > P do Dec(J);
-     if I <= J then
+  Temp: TArrayOfInteger;
+
+  procedure Merge(I1, I2, J1, J2: Integer);
+  var
+    I, J, K: Integer;
+  begin
+    if Values[Indexes[I2]].Point.X < Values[Indexes[J1]].Point.X then Exit;
+    I := I1;
+    J := J1;
+    K := 0;
+    repeat
+      if Values[Indexes[I]].Point.X < Values[Indexes[J]].Point.X then
       begin
-       T := Data[I];
-       Data[I] := Data[J];
-       Data[J] := T;
-       Inc(I);
-       Dec(J);
+        Temp[K] := Indexes[I];
+        Inc(I);
+      end
+      else
+      begin
+        Temp[K] := Indexes[J];
+        Inc(J);
       end;
-    until I > J;
-   if StartIndex < J then
-     QuickSortColor32FloatPoints(Data, StartIndex, J);
-   StartIndex := I;
-  until I >= EndIndex;
-end;
+      Inc(K);
+    until (I > I2) or (J > J2);
 
-procedure TDelaunaySampler.PrepareSampling;
-var
-  Index: Integer;
-begin
-  inherited;
-
-  QuickSortColor32FloatPoints(@FColorPoints[0], 0, Length(FColorPoints) - 1);
-  Triangulate;
-
-  SetLength(FBarycentric, Length(FTriangles));
-  for Index := 0 to Length(FTriangles) - 1 do
-  begin
-    FBarycentric[Index] := TBarycentricGradientSampler.Create;
-    FBarycentric[Index].ColorPoint[0] := FColorPoints[FTriangles[Index, 0]];
-    FBarycentric[Index].ColorPoint[1] := FColorPoints[FTriangles[Index, 1]];
-    FBarycentric[Index].ColorPoint[2] := FColorPoints[FTriangles[Index, 2]];
-    FBarycentric[Index].PrepareSampling;
-  end;
-  SetLength(FTriangles, 0);
-end;
-
-function TDelaunaySampler.GetSampleFloat(X, Y: TFloat): TColor32;
-var
-  Index: Integer;
-  U, V, W: TFloat;
-  Dist, MinDist: TFloat;
-  MinIndex: Integer;
-begin
-  if Length(FBarycentric) = 0 then
-  begin
-    Result := clRed32;
-    Exit;
-  end;
-
-  FBarycentric[0].CalculateBarycentricCoordinates(X, Y, U, V, W);
-  if (U >= 0) and (V >= 0) and (W >= 0) then
-  begin
-    Result := Linear3PointInterpolation(FBarycentric[0].Color[0],
-      FBarycentric[0].Color[1], FBarycentric[0].Color[2], U, V, W);
-    Exit;
-  end;
-
-  MinDist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
-  MinIndex := 0;
-
-  for Index := 1 to High(FBarycentric) do
-  begin
-    FBarycentric[Index].CalculateBarycentricCoordinates(X, Y, U, V, W);
-    if (U >= 0) and (V >= 0) and (W >= 0) then
+    while I <= I2 do
     begin
-      Result := Linear3PointInterpolation(FBarycentric[Index].Color[0],
-        FBarycentric[Index].Color[1], FBarycentric[Index].Color[2], U, V, W);
-      Exit;
+      Temp[K] := Indexes[I];
+      Inc(I); Inc(K);
     end;
-    Dist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
-    if Dist < MinDist then
+    while J <= J2 do
     begin
-      MinDist := Dist;
-      MinIndex := Index;
+      Temp[K] := Indexes[J];
+      Inc(J); Inc(K);
+    end;
+    for I := 0 to K - 1 do
+    begin
+      Indexes[I + I1] := Temp[I];
     end;
   end;
 
-  FBarycentric[MinIndex].CalculateBarycentricCoordinates(X, Y, U, V, W);
-  Result := Linear3PointInterpolation(FBarycentric[MinIndex].Color[0],
-    FBarycentric[MinIndex].Color[1], FBarycentric[MinIndex].Color[2], U, V, W);
-end;
-
-procedure TDelaunaySampler.FinalizeSampling;
-var
-  Index: Integer;
-begin
-  inherited;
-  for Index := 0 to Length(FBarycentric) - 1 do
+  procedure Recurse(I1, I2: Integer);
+  var
+    I, IX: Integer;
   begin
-    FBarycentric[Index].FinalizeSampling;
-    FBarycentric[Index].Free;
+    if I1 = I2 then
+      Indexes[I1] := I1
+    else if Indexes[I1] = Indexes[I2] then
+    begin
+      if Values[I1].Point.X <= Values[I2].Point.X then
+      begin
+        for I := I1 to I2 do Indexes[I] := I;
+      end
+      else
+      begin
+        IX := I1 + I2;
+        for I := I1 to I2 do Indexes[I] := IX - I;
+      end;
+    end
+    else
+    begin
+      IX := (I1 + I2) div 2;
+      Recurse(I1, IX);
+      Recurse(IX + 1, I2);
+      Merge(I1, IX, IX + 1, I2);
+    end;
   end;
+
+var
+  I, Index, S: Integer;
+begin
+  SetLength(Temp, Length(Values));
+  SetLength(Indexes, Length(Values));
+
+  Index := 0;
+  S := Math.Sign(Values[1].Point.X - Values[0].Point.X);
+  if S = 0 then S := 1;
+
+  Indexes[0] := 0;
+  Bounds.Left := Values[0].Point.X;
+  Bounds.Top := Values[0].Point.Y;
+  Bounds.Right := Bounds.Left;
+  Bounds.Bottom := Bounds.Top;
+  for I := 1 to High(Values) do
+  begin
+    if Math.Sign(Values[I].Point.X - Values[I - 1].Point.X) = -S then
+    begin
+      S := -S;
+      Inc(Index);
+    end;
+
+    if Values[I].Point.X < Bounds.Left then
+      Bounds.Left := Values[I].Point.X;
+    if Values[I].Point.Y < Bounds.Top then
+      Bounds.Top := Values[I].Point.Y;
+    if Values[I].Point.X > Bounds.Right then
+      Bounds.Right := Values[I].Point.X;
+    if Values[I].Point.Y > Bounds.Bottom then
+      Bounds.Bottom := Values[I].Point.Y;
+
+    Indexes[I] := Index;
+  end;
+
+  Recurse(0, High(Values));
 end;
 
-procedure TDelaunaySampler.Triangulate;
+function DelaunayTriangulation(Points: TArrayOfColor32FloatPoint): TArrayOfTriangleVertexIndices;
 var
   Complete: array of Byte;
   Edges: array of array [0 .. 1] of Integer;
@@ -2018,9 +2021,11 @@ var
 
   // For super triangle
   ScaledDeltaMax: TFloat;
-  Mn, Mx, Mid: TFloatPoint;
+  Mid: TFloatPoint;
+  Bounds: TFloatRect;
 
   // General Variables
+  SortedVertexIndices: TArrayOfInteger;
   TriangleCount, VertexCount, I, J, K: Integer;
   CenterX, CenterY, RadSqr: TFloat;
   Inside: Boolean;
@@ -2094,43 +2099,37 @@ const
   end;
 
 begin
-  VertexCount := Length(FColorPoints);
+  VertexCount := Length(Points);
   MaxVerticesCount := VertexCount + CSuperTriangleCount;
-  SetLength(FColorPoints, MaxVerticesCount);
-  MaxTriangleCount := 2 * (MaxVerticesCount - 1) - CSuperTriangleCount;
-  SetLength(FTriangles, MaxTriangleCount);
+
+  // Sort points by x value and find maximum and minimum vertex bounds.
+  FastMergeSortX(Points, SortedVertexIndices, Bounds);
+
+  SetLength(Points, MaxVerticesCount);
+  MaxTriangleCount := 2 * (MaxVerticesCount - 1);
+  SetLength(Result, MaxTriangleCount);
   MaxEdgeCount := 3 * (MaxVerticesCount - 1);
   SetLength(Edges, MaxEdgeCount);
   SetLength(Complete, (MaxTriangleCount + 7) shr 3);
 
-  // Find the maximum and minimum vertex bounds.
   // This is to allow calculation of the bounding triangle
-  Mn.X := FColorPoints[0].Point.X;
-  Mn.Y := FColorPoints[0].Point.Y;
-  Mx.X := Mn.X;
-  Mx.Y := Mn.Y;
-  for I := 1 to Length(FColorPoints) - 1 do
+  with Bounds do
   begin
-    if FColorPoints[I].Point.X < Mn.X then Mn.X := FColorPoints[I].Point.X;
-    if FColorPoints[I].Point.X > Mx.X then Mx.X := FColorPoints[I].Point.X;
-    if FColorPoints[I].Point.Y < Mn.Y then Mn.Y := FColorPoints[I].Point.Y;
-    if FColorPoints[I].Point.Y > Mx.Y then Mx.Y := FColorPoints[I].Point.Y;
+    ScaledDeltaMax := 30 * Max(Right - Left, Bottom - Top);
+    Mid := FloatPoint((Left + Right) * 0.5, (Top + Bottom) * 0.5);
   end;
-
-  ScaledDeltaMax := 30 * Max(Mx.X - Mn.X, Mx.Y - Mn.Y);
-  Mid := FloatPoint((Mx.X + Mn.X) * 0.5, (Mx.Y + Mn.Y) * 0.5);
 
   // Set up the super triangle
   // This is a triangle which encompasses all the sample points. The super
   // triangle coordinates are added to the end of the vertex list. The super
   // triangle is the first triangle in the triangle list.
-  FColorPoints[VertexCount].Point := FloatPoint(Mid.X - ScaledDeltaMax, Mid.Y - ScaledDeltaMax);
-  FColorPoints[VertexCount + 1].Point := FloatPoint(Mid.X + ScaledDeltaMax, Mid.Y);
-  FColorPoints[VertexCount + 2].Point := FloatPoint(Mid.X, Mid.Y + ScaledDeltaMax);
+  Points[VertexCount].Point := FloatPoint(Mid.X - ScaledDeltaMax, Mid.Y - ScaledDeltaMax);
+  Points[VertexCount + 1].Point := FloatPoint(Mid.X + ScaledDeltaMax, Mid.Y);
+  Points[VertexCount + 2].Point := FloatPoint(Mid.X, Mid.Y + ScaledDeltaMax);
 
-  FTriangles[0, 0] := VertexCount;
-  FTriangles[0, 1] := VertexCount + 1;
-  FTriangles[0, 2] := VertexCount + 2;
+  Result[0, 0] := VertexCount;
+  Result[0, 1] := VertexCount + 1;
+  Result[0, 2] := VertexCount + 2;
 
   Complete[0] := 0;
   TriangleCount := 1;
@@ -2147,32 +2146,30 @@ begin
     repeat
       if Complete[J shr 3] and (1 shl (J and $7)) = 0 then
       begin
-        Inside := InCircle(FColorPoints[I].Point,
-          FColorPoints[FTriangles[J, 0]].Point,
-          FColorPoints[FTriangles[J, 1]].Point,
-          FColorPoints[FTriangles[J, 2]].Point);
+        Inside := InCircle(Points[SortedVertexIndices[I]].Point,
+          Points[Result[J, 0]].Point, Points[Result[J, 1]].Point,
+          Points[Result[J, 2]].Point);
 
         ByteIndex := J shr 3;
         Bit := 1 shl (J and $7);
-        if (CenterX < FColorPoints[I].Point.X) and
-          ((Sqr(FColorPoints[I].Point.X - CenterX)) > RadSqr) then
-          Complete[ByteIndex] := Complete[ByteIndex] or Bit // Complete[j] := True;
+        if (CenterX < Points[SortedVertexIndices[I]].Point.X) and
+          ((Sqr(Points[SortedVertexIndices[I]].Point.X - CenterX)) > RadSqr) then
+          Complete[ByteIndex] := Complete[ByteIndex] or Bit
         else
           if Inside then
           begin
-            Edges[EdgeCount + 0, 0] := FTriangles[J, 0];
-            Edges[EdgeCount + 0, 1] := FTriangles[J, 1];
-            Edges[EdgeCount + 1, 0] := FTriangles[J, 1];
-            Edges[EdgeCount + 1, 1] := FTriangles[J, 2];
-            Edges[EdgeCount + 2, 0] := FTriangles[J, 2];
-            Edges[EdgeCount + 2, 1] := FTriangles[J, 0];
+            Edges[EdgeCount + 0, 0] := Result[J, 0];
+            Edges[EdgeCount + 0, 1] := Result[J, 1];
+            Edges[EdgeCount + 1, 0] := Result[J, 1];
+            Edges[EdgeCount + 1, 1] := Result[J, 2];
+            Edges[EdgeCount + 2, 0] := Result[J, 2];
+            Edges[EdgeCount + 2, 1] := Result[J, 0];
             EdgeCount := EdgeCount + 3;
             Assert(EdgeCount <= MaxEdgeCount);
 
             TriangleCount := TriangleCount - 1;
-            FTriangles[J] := FTriangles[TriangleCount];
+            Result[J] := Result[TriangleCount];
 
-            // Complete[j] := Complete[TriangleCount];
             Complete[ByteIndex] := (Complete[ByteIndex] and (not Bit))
               or (Complete[TriangleCount shr 3] and Bit);
             Continue;
@@ -2212,9 +2209,9 @@ begin
     begin
       if (Edges[J, 0] <> -1) or (Edges[J, 1] <> -1) then
       begin
-        FTriangles[TriangleCount, 0] := Edges[J, 0];
-        FTriangles[TriangleCount, 1] := Edges[J, 1];
-        FTriangles[TriangleCount, 2] := I;
+        Result[TriangleCount, 0] := Edges[J, 0];
+        Result[TriangleCount, 1] := Edges[J, 1];
+        Result[TriangleCount, 2] := SortedVertexIndices[I];
         ByteIndex := TriangleCount shr 3;
         Bit := 1 shl (TriangleCount and $7);
         Complete[ByteIndex] := Complete[ByteIndex] and not Bit;
@@ -2228,21 +2225,97 @@ begin
   // These are triangles which have a vertex number greater than VertexCount
   I := 0;
   repeat
-    if (FTriangles[I, 0] >= VertexCount) or
-      (FTriangles[I, 1] >= VertexCount) or
-      (FTriangles[I, 2] >= VertexCount) then
+    if (Result[I, 0] >= VertexCount) or
+      (Result[I, 1] >= VertexCount) or
+      (Result[I, 2] >= VertexCount) then
     begin
       TriangleCount := TriangleCount - 1;
-      FTriangles[I, 0] := FTriangles[TriangleCount, 0];
-      FTriangles[I, 1] := FTriangles[TriangleCount, 1];
-      FTriangles[I, 2] := FTriangles[TriangleCount, 2];
+      Result[I, 0] := Result[TriangleCount, 0];
+      Result[I, 1] := Result[TriangleCount, 1];
+      Result[I, 2] := Result[TriangleCount, 2];
       I := I - 1;
     end;
     I := I + 1;
   until I >= TriangleCount;
 
-  SetLength(FColorPoints, Length(FColorPoints) - 3);
-  SetLength(FTriangles, TriangleCount);
+  SetLength(Points, Length(Points) - 3);
+  SetLength(Result, TriangleCount);
+end;
+
+procedure TGourandShadedDelaunayTrianglesSampler.PrepareSampling;
+var
+  Index: Integer;
+begin
+  inherited;
+
+  FTriangles := DelaunayTriangulation(FColorPoints);
+  SetLength(FBarycentric, Length(FTriangles));
+  for Index := 0 to Length(FTriangles) - 1 do
+  begin
+    FBarycentric[Index] := TBarycentricGradientSampler.Create(
+      FColorPoints[FTriangles[Index, 0]], FColorPoints[FTriangles[Index, 1]],
+      FColorPoints[FTriangles[Index, 2]]);
+    FBarycentric[Index].PrepareSampling;
+  end;
+  SetLength(FTriangles, 0);
+end;
+
+function TGourandShadedDelaunayTrianglesSampler.GetSampleFloat(X, Y: TFloat): TColor32;
+var
+  Index: Integer;
+  U, V, W: TFloat;
+  Dist, MinDist: TFloat;
+  MinIndex: Integer;
+begin
+  if Length(FBarycentric) = 0 then
+  begin
+    Result := clRed32;
+    Exit;
+  end;
+
+  FBarycentric[0].CalculateBarycentricCoordinates(X, Y, U, V, W);
+  if (U >= 0) and (V >= 0) and (W >= 0) then
+  begin
+    Result := Linear3PointInterpolation(FBarycentric[0].Color[0],
+      FBarycentric[0].Color[1], FBarycentric[0].Color[2], U, V, W);
+    Exit;
+  end;
+
+  MinDist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
+  MinIndex := 0;
+
+  for Index := 1 to High(FBarycentric) do
+  begin
+    FBarycentric[Index].CalculateBarycentricCoordinates(X, Y, U, V, W);
+    if (U >= 0) and (V >= 0) and (W >= 0) then
+    begin
+      Result := Linear3PointInterpolation(FBarycentric[Index].Color[0],
+        FBarycentric[Index].Color[1], FBarycentric[Index].Color[2], U, V, W);
+      Exit;
+    end;
+    Dist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
+    if Dist < MinDist then
+    begin
+      MinDist := Dist;
+      MinIndex := Index;
+    end;
+  end;
+
+  FBarycentric[MinIndex].CalculateBarycentricCoordinates(X, Y, U, V, W);
+  Result := Linear3PointInterpolation(FBarycentric[MinIndex].Color[0],
+    FBarycentric[MinIndex].Color[1], FBarycentric[MinIndex].Color[2], U, V, W);
+end;
+
+procedure TGourandShadedDelaunayTrianglesSampler.FinalizeSampling;
+var
+  Index: Integer;
+begin
+  inherited;
+  for Index := 0 to Length(FBarycentric) - 1 do
+  begin
+    FBarycentric[Index].FinalizeSampling;
+    FBarycentric[Index].Free;
+  end;
 end;
 
 
