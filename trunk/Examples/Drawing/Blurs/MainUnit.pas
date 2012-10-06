@@ -209,11 +209,8 @@ begin
     begin
       ImgViewPage2.BeginUpdate;
       ImgViewPage2.Bitmap.Assign(IcelandImage);
-      //5 pointed star ...
-      Pts := BuildPolygon([10, 40, 40, 40, 50, 10, 60, 40, 90, 40, 65, 60, 75, 90, 50, 70, 25, 90, 35, 60]);
-      Pts := ScalePolygon(Pts, 2, 2);
-      Pts := TranslatePolygon(Pts, 30, 50);
 
+      Pts := Star(130, 150, 90, 5, -0.5 * Pi);
       Pts2 := Ellipse(350, 250, 100, 60);
 
       FPerfTimer.Start;
@@ -230,10 +227,10 @@ begin
           end;
         3:
           begin
-            MotionBlur(ImgViewPage2.Bitmap, Radius,
-              TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
-            MotionBlur(ImgViewPage2.Bitmap, Radius,
-              TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
+            MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position,
+              Pts, CbxBidirectional.Checked);
+            MotionBlur(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position,
+              Pts2, CbxBidirectional.Checked);
           end;
       end;
       FDuration := FPerfTimer.ReadMilliseconds;
