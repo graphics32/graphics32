@@ -3983,8 +3983,8 @@ asm
         MOV     RCX, BytesPerRow
         ADD     RAX, PixelByteSize
         SUB     RCX, PixelByteSize
-        LEA     RAX, [RAX + RCX]
-        LEA     RDX, [RDX + RCX]
+        LEA     RAX, RAX + RCX
+        LEA     RDX, RDX + RCX
         NEG     RCX
         JNL     @Done
 
@@ -4001,9 +4001,9 @@ asm
 {$IFDEF Target_x86}
         ADD     EDX, 1
         MOV     EAX, EDX
-        MOV     ECX, BytesPerRow.DWORD
-        ADD     EAX, PixelByteSize.DWORD
-        SUB     ECX, PixelByteSize.DWORD
+        MOV     ECX, BytesPerRow
+        ADD     EAX, PixelByteSize
+        SUB     ECX, PixelByteSize
         LEA     EAX, EAX + ECX
         LEA     EDX, EDX + ECX
         NEG     ECX
@@ -4044,8 +4044,8 @@ asm
         MOV     RAX, RDX
         MOV     RDX, R8
         MOV     RCX, BytesPerRow
-        LEA     RAX, [RAX + RCX + 1]
-        LEA     RDX, [RDX + RCX + 1]
+        LEA     RAX, RAX + RCX + 1
+        LEA     RDX, RDX + RCX + 1
         NEG     RCX
         JNL     @Done
 
@@ -4062,7 +4062,7 @@ asm
 {$IFDEF Target_x86}
         MOV     EAX, EDX
         MOV     EDX, ECX
-        MOV     ECX, BytesPerRow.DWORD
+        MOV     ECX, BytesPerRow
         LEA     EAX, EAX + ECX + 1
         LEA     EDX, EDX + ECX + 1
         NEG     ECX
@@ -4926,7 +4926,7 @@ begin
   begin
     Stream.Read(ChunkID, 4);
     Stream.Seek(-4, soFromCurrent);
-    Result := ChunkID = '?PNG';
+    Result := ChunkID = '‰PNG';
   end;
 end;
 
@@ -4961,7 +4961,7 @@ begin
 
     // read chunk ID
     Read(ChunkName, 4);
-    if ChunkName <> #137'PNG' then
+    if ChunkName <> '‰PNG' then
       raise EPngError.Create(RCStrNotAValidPNGFile);
 
     // read PNG magic
@@ -5169,7 +5169,7 @@ begin
   with Stream do
   begin
     // write chunk ID
-    ChunkName := '?PNG';
+    ChunkName := '‰PNG';
     Write(ChunkName, 4);
 
     // write PNG magic
@@ -5534,7 +5534,8 @@ asm
         JS      @Done
         NEG     RCX
         MOV     RBX, $FFFFFFFF
-        MOV     RDI, [RIP + GCrcTable]
+
+        MOV     RDI, [GCrcTable]
 
 @Start:
         MOV     EAX, [RDX]
