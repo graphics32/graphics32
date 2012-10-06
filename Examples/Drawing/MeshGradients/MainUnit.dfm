@@ -36,7 +36,7 @@ object FrmMeshGradients: TFrmMeshGradients
     end
     object LblVertexColor: TLabel
       Left = 8
-      Top = 159
+      Top = 236
       Width = 29
       Height = 13
       Caption = 'Color:'
@@ -44,7 +44,7 @@ object FrmMeshGradients: TFrmMeshGradients
     end
     object VertexColorShape: TShape
       Left = 43
-      Top = 157
+      Top = 234
       Width = 16
       Height = 16
       Visible = False
@@ -94,7 +94,7 @@ object FrmMeshGradients: TFrmMeshGradients
     end
     object PnlVertex: TPanel
       Left = 1
-      Top = 129
+      Top = 206
       Width = 175
       Height = 16
       BevelOuter = bvNone
@@ -140,6 +140,33 @@ object FrmMeshGradients: TFrmMeshGradients
       Enabled = False
       TabOrder = 5
       OnClick = BtnRecallClick
+    end
+    object PnlDelaunayTriangulation: TPanel
+      Left = 1
+      Top = 107
+      Width = 175
+      Height = 16
+      BevelOuter = bvNone
+      Caption = 'Delaunay Triangulation'
+      Color = clBtnShadow
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 6
+    end
+    object CbxColoredPolygons: TCheckBox
+      Left = 16
+      Top = 129
+      Width = 129
+      Height = 17
+      Caption = 'Show Colored Polygon'
+      Checked = True
+      State = cbChecked
+      TabOrder = 7
+      OnClick = CbxColoredPolygonsClick
     end
   end
   object PaintBox32: TPaintBox32
