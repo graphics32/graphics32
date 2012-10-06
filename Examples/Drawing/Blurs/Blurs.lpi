@@ -68,11 +68,19 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="1">
+    <Units Count="2">
       <Unit0>
         <Filename Value="Blurs.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
+      <Unit1>
+        <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="FrmBlurs"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainUnit"/>
+      </Unit1>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

@@ -3,19 +3,11 @@ unit MainUnit;
 interface
 
 uses
-{$IFNDEF FPC}
-  Windows,
-{$ELSE}
-  LCLIntf, LCLType, LMessages, Windows,
-{$ENDIF}
-  Messages, SysUtils, Classes, Graphics, Controls, Forms, Menus, Dialogs,
-  ComCtrls, ExtCtrls, StdCtrls, Math, GR32, GR32_Image, GR32_Layers;
+  {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF}
+  SysUtils, Classes, Graphics, Controls, Forms, Menus, Dialogs, ComCtrls,
+  ExtCtrls, StdCtrls, Math, GR32, GR32_Image, GR32_Layers, GR32_System;
 
 type
-{$IFDEF FPC}
-  TLargeInteger = Int64;
-{$ENDIF}
-
   TFrmBlurs = class(TForm)
     MnuBlurType: TMenuItem;
     CbxBidirectional: TCheckBox;
@@ -53,10 +45,10 @@ type
     procedure TbrBlurAngleChange(Sender: TObject);
     procedure TbrBlurRadiusChange(Sender: TObject);
   private
-    ReDrawing: boolean;
+    FPerfTimer: TPerfTimer;
+    FDuration: string;
 
-    QPF: TLargeInteger;
-    QPCounter1, QPCounter2: TLargeInteger;
+    ReDrawing: Boolean;
 
     BalloonImage: TBitmap32;
     IcelandImage: TBitmap32;
@@ -74,7 +66,7 @@ implementation
 
 uses
   {$IFNDEF FPC} JPEG, {$ENDIF} GR32_Polygons, GR32_VectorUtils, GR32_Blurs,
-  GR32_Png, GR32_System;
+  GR32_Png;
 
 {$IFDEF FPC}
 {$R *.lfm}
@@ -159,6 +151,8 @@ begin
   IcelandImage := TBitmap32.create;
   LoadResourceImage('ICELAND', IcelandImage);
 
+  FPerfTimer := TPerfTimer.Create;
+
   Randomize;
   RandBoxImage := TBitmap32.create;
   //generate an image of full of random boxes ...
@@ -172,12 +166,12 @@ begin
   BmpLayer := TBitmapLayer(ImgViewPage3.Layers.Add(TBitmapLayer));
   BmpLayer.Bitmap.DrawMode := dmBlend;
 
-  QueryPerformanceFrequency(QPF);
   ReDraw;
 end;
 
 procedure TFrmBlurs.FormDestroy(Sender: TObject);
 begin
+  FPerfTimer.Free;
   BalloonImage.Free;
   IcelandImage.Free;
   RandBoxImage.Free;
@@ -191,7 +185,7 @@ var
 begin
   if ReDrawing then
     Exit;
-  ReDrawing := true;
+  ReDrawing := True;
   Radius := TbrBlurRadius.Position;
   Screen.Cursor := crHourGlass;
   case PageControl.ActivePageIndex of
@@ -199,14 +193,14 @@ begin
     begin
       ImgViewPage1.BeginUpdate;
       ImgViewPage1.Bitmap.Assign(BalloonImage);
-      QueryPerformanceCounter(QPCounter1);
+      FPerfTimer.Start;
       case RgpBlurType.ItemIndex of
         1: GaussianBlur(ImgViewPage1.Bitmap, Radius);
         2: FastBlur(ImgViewPage1.Bitmap, Radius);
         3: MotionBlur(ImgViewPage1.Bitmap, Radius,
              TbrBlurAngle.Position, CbxBidirectional.Checked);
       end;
-      QueryPerformanceCounter(QPCounter2);
+      FDuration := FPerfTimer.ReadMilliseconds;
       ImgViewPage1.EndUpdate;
       ImgViewPage1.Repaint;
       Application.ProcessMessages;
@@ -222,7 +216,7 @@ begin
 
       Pts2 := Ellipse(350, 250, 100, 60);
 
-      QueryPerformanceCounter(QPCounter1);
+      FPerfTimer.Start;
       case RgpBlurType.ItemIndex of
         1:
           begin
@@ -242,18 +236,18 @@ begin
               TbrBlurAngle.Position, Pts2, CbxBidirectional.Checked);
           end;
       end;
-      QueryPerformanceCounter(QPCounter2);
+      FDuration := FPerfTimer.ReadMilliseconds;
       Application.ProcessMessages;
 
-      PolylineFS(ImgViewPage2.Bitmap, Pts, clBlack32, true, 2.5);
-      PolylineFS(ImgViewPage2.Bitmap, Pts2, clBlack32, true, 2.5);
+      PolylineFS(ImgViewPage2.Bitmap, Pts, clBlack32, True, 2.5);
+      PolylineFS(ImgViewPage2.Bitmap, Pts2, clBlack32, True, 2.5);
       ImgViewPage2.EndUpdate;
       ImgViewPage2.Repaint;
     end;
     2:
     begin
       ImgViewPage3.BeginUpdate;
-      ImgViewPage3.SetupBitmap(true, Color32(clBtnFace));
+      ImgViewPage3.SetupBitmap(True, Color32(clBtnFace));
       BmpLayer.Bitmap.Clear(0);
 
       with ImgViewPage3.GetBitmapRect do
@@ -263,17 +257,17 @@ begin
       end;
       BmpLayer.Bitmap.Draw(300, 40, RandBoxImage);
 
-      Rec := Rect(40,40,240,120);
+      Rec := Rect(40, 40, 240, 120);
       DrawFramedBox(ImgViewPage3.Bitmap, Rec, clWhite32, clGray32, Radius div 2);
 
-      Rec2 := Rect(40,160,240,320);
+      Rec2 := Rect(40, 160, 240, 320);
       with Rec2 do
         BmpLayer.Bitmap.FillRect(Left, Top, Right, Bottom, clRed32);
       InflateRect(Rec2, 20, 20);
 
-      Pts := Ellipse(395,175, 60, 100);
+      Pts := Ellipse(395, 175, 60, 100);
 
-      QueryPerformanceCounter(QPCounter1);
+      FPerfTimer.Start;
       case RgpBlurType.ItemIndex of
         1:
           begin
@@ -297,25 +291,23 @@ begin
               TbrBlurAngle.Position, Pts, CbxBidirectional.Checked);
           end;
       end;
-
-      QueryPerformanceCounter(QPCounter2);
+      FDuration := FPerfTimer.ReadMilliseconds;
       Application.ProcessMessages;
 
-      PolylineFS(BmpLayer.Bitmap, Pts, clBlack32, true, 2.5);
+      PolylineFS(BmpLayer.Bitmap, Pts, clBlack32, True, 2.5);
 
       with Rec2 do
       PolylineFS(BmpLayer.Bitmap,
-        BuildPolygon([Left,Top,Right,Top,Right,Bottom,Left,Bottom]),
-        clBlack32, true, 1.0);
+        BuildPolygon([Left, Top, Right, Top, Right, Bottom, Left, Bottom]),
+        clBlack32, True, 1.0);
 
       ImgViewPage3.EndUpdate;
       ImgViewPage3.Repaint;
     end;
   end;
-  SbrMain.SimpleText := Format('  Blur drawing time: %0.2n ms',[
-    1000 * (QPCounter2 - QPCounter1) / QPF]);
+  SbrMain.SimpleText := Format('  Blur drawing time: %s ms', [FDuration]);
   Screen.Cursor := crDefault;
-  ReDrawing := false;
+  ReDrawing := False;
 end;
 
 procedure TFrmBlurs.MnuExitClick(Sender: TObject);
