@@ -61,6 +61,11 @@ type
     property Progress: TProgressEvent read FProgressEvent write FProgressEvent;
   end;
 
+procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
 implementation
 
 resourcestring
@@ -305,6 +310,43 @@ type
   TPalette24 = array of TRGB24;
 
 
+procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string);
+begin
+  with TPortableNetworkGraphic32.Create do
+  begin
+    LoadFromFile(Filename);
+    AssignTo(Bitmap);
+  end;
+end;
+
+procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream);
+begin
+  with TPortableNetworkGraphic32.Create do
+  begin
+    LoadFromStream(Stream);
+    AssignTo(Bitmap);
+  end;
+end;
+
+procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string);
+begin
+  with TPortableNetworkGraphic32.Create do
+  begin
+    Assign(Bitmap);
+    SaveToFile(Filename);
+  end;
+end;
+
+procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream);
+begin
+  with TPortableNetworkGraphic32.Create do
+  begin
+    Assign(Bitmap);
+    SaveToStream(Stream);
+  end;
+end;
+
+
 { TPortableNetworkGraphic32 }
 
 function TPortableNetworkGraphic32.GetBackgroundColor: TColor32;
@@ -344,8 +386,8 @@ end;
 
 function TPortableNetworkGraphic32.GR32Scanline(Bitmap: TObject; Y: Integer): Pointer;
 begin
- if Bitmap is TBitmap32
-  then Result := TBitmap32(Bitmap).ScanLine[Y]
+ if Bitmap is TCustomBitmap32
+  then Result := TCustomBitmap32(Bitmap).ScanLine[Y]
   else Result := nil;
 end;
 
