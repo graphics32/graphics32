@@ -4,7 +4,7 @@ interface
 
 uses
 {$IFNDEF FPC}
-  Windows, JPeg, 
+  Windows,
 {$ELSE}
   LCLIntf, LCLType, LMessages, Windows,
 {$ENDIF}
@@ -73,9 +73,15 @@ var
 implementation
 
 uses
-  GR32_Polygons, GR32_VectorUtils, GR32_Blurs, GR32_Png, GR32_System;
+  {$IFNDEF FPC} JPEG, {$ENDIF} GR32_Polygons, GR32_VectorUtils, GR32_Blurs,
+  GR32_Png, GR32_System;
 
+{$IFDEF FPC}
+{$R *.lfm}
+{$ELSE}
 {$R *.dfm}
+{$ENDIF}
+
 {$R images.res}
 
 { Miscellaneous functions }
