@@ -21,9 +21,6 @@
         <CompilerOptions>
           <Version Value="11"/>
           <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="project1"/>
-          </Target>
           <SearchPaths>
             <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
             <OtherUnitFiles Value="..\..\..\Source"/>
@@ -81,9 +78,6 @@
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
-    <Target>
-      <Filename ApplyConventions="False"/>
-    </Target>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <OtherUnitFiles Value="..\..\..\Source"/>
