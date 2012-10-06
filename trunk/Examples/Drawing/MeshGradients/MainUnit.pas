@@ -4,7 +4,7 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, {$ELSE} Windows, {$ENDIF} SysUtils, Classes, Graphics, 
-  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, SyncObjs, GR32, GR32_Image, 
+  Controls, Forms, Dialogs, ExtCtrls, StdCtrls, SyncObjs, GR32, GR32_Image,
   GR32_ColorGradients, GR32_RangeBars;
 
 type
@@ -23,6 +23,8 @@ type
     BtnStore: TButton;
     BtnRecall: TButton;
     procedure FormCreate(Sender: TObject);
+    procedure BtnStoreClick(Sender: TObject);
+    procedure BtnRecallClick(Sender: TObject);
     procedure CbxAdaptiveSuperSamplerClick(Sender: TObject);
     procedure CmbBackgroundSamplerChange(Sender: TObject);
     procedure GbrPowerChange(Sender: TObject);
@@ -36,8 +38,6 @@ type
     procedure SelectVertexColorClick(Sender: TObject);
     procedure VertexColorShapeMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
-    procedure BtnStoreClick(Sender: TObject);
-    procedure BtnRecallClick(Sender: TObject);
   private
     FColorPoints: TArrayOfColor32FloatPoint;
     FClipboard: TArrayOfColor32FloatPoint;
@@ -73,8 +73,12 @@ begin
   begin
     FColorPoints[Index].Point := FloatPoint(PaintBox32.Width * Random,
       PaintBox32.Height * Random);
-    FColorPoints[Index].Color := SetAlpha(Random($FFFFFF), $FF);
+    FColorPoints[Index].Color32 := SetAlpha(Random($FFFFFF), $FF);
   end;
+
+  FColorPoints[0].Point := FloatPoint(274, 199);
+  FColorPoints[1].Point := FloatPoint(134, 419);
+  FColorPoints[2].Point := FloatPoint(46, 146);
 
   FSelected := -1;
   FIdwPower := 16;
@@ -90,12 +94,12 @@ procedure TFrmMeshGradients.SelectVertexColorClick(Sender: TObject);
 begin
   if (FSelected >= 0) then
   begin
-    ColorDialog.Color := WinColor(FColorPoints[FSelected].Color);
+    ColorDialog.Color := WinColor(FColorPoints[FSelected].Color32);
     if ColorDialog.Execute then
     begin
-      FColorPoints[FSelected].Color := Color32(ColorDialog.Color);
+      FColorPoints[FSelected].Color32 := Color32(ColorDialog.Color);
       PaintBox32.Invalidate;
-      VertexColorShape.Brush.Color := WinColor(FColorPoints[Selected].Color);
+      VertexColorShape.Brush.Color := WinColor(FColorPoints[Selected].Color32);
     end;
   end;
 end;
@@ -134,8 +138,8 @@ begin
     Selected := Length(FColorPoints);
     SetLength(FColorPoints, Length(FColorPoints) + 1);
     FColorPoints[Selected].Point := FloatPoint(X, Y);
-    FColorPoints[Selected].Color := SetAlpha(Random($FFFFFF), $FF);
-    VertexColorShape.Brush.Color := WinColor(FColorPoints[Selected].Color);
+    FColorPoints[Selected].Color32 := SetAlpha(Random($FFFFFF), $FF);
+    VertexColorShape.Brush.Color := WinColor(FColorPoints[Selected].Color32);
     if ssShift in Shift then
       SelectVertexColorClick(Sender);
   end;
@@ -167,7 +171,7 @@ var
   Renderer: TPolygonRenderer32VPR;
   Points: TArrayOfFloatPoint;
   Sampler: TCustomArbitrarySparsePointGradientSampler;
-  Delaunay: TDelaunaySampler;
+  Delaunay: TGourandShadedDelaunayTrianglesSampler;
 begin
   // clear paint box
   PaintBox32.Buffer.Clear;
@@ -223,7 +227,7 @@ begin
       end;
     5:
       begin
-        Sampler := TDelaunaySampler.Create;
+        Sampler := TGourandShadedDelaunayTrianglesSampler.Create;
         try
           Sampler.SetColorPoints(FColorPoints);
           Sampler.PrepareSampling;
@@ -243,7 +247,7 @@ begin
 
   Renderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
   try
-    Delaunay := TDelaunaySampler.Create;
+    Delaunay := TGourandShadedDelaunayTrianglesSampler.Create;
     try
       Renderer.FillMode := pfWinding;
       Renderer.Filler := TSamplerFiller.Create(Delaunay);
@@ -265,7 +269,7 @@ begin
         else
           FrameColor := clBlack32;
         FillRectS(Round(Point.X - 4), Round(Point.Y - 4), Round(Point.X + 4),
-          Round(Point.Y + 4), Color);
+          Round(Point.Y + 4), Color32);
         FrameRectTS(Round(Point.X - 5), Round(Point.Y - 5), Round(Point.X + 5),
           Round(Point.Y + 5), FrameColor);
       end;
@@ -276,7 +280,7 @@ begin
   LblVertexColor.Visible := FSelected >= 0;
   VertexColorShape.Visible := FSelected >= 0;
   if FSelected >= 0 then
-    VertexColorShape.Brush.Color := WinColor(FColorPoints[FSelected].Color);
+    VertexColorShape.Brush.Color := WinColor(FColorPoints[FSelected].Color32);
 end;
 
 procedure TFrmMeshGradients.SetSelected(const Value: Integer);
