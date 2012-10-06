@@ -22,6 +22,8 @@ type
     VertexColorShape: TShape;
     BtnStore: TButton;
     BtnRecall: TButton;
+    PnlDelaunayTriangulation: TPanel;
+    CbxColoredPolygons: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnStoreClick(Sender: TObject);
     procedure BtnRecallClick(Sender: TObject);
@@ -38,6 +40,7 @@ type
     procedure SelectVertexColorClick(Sender: TObject);
     procedure VertexColorShapeMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure CbxColoredPolygonsClick(Sender: TObject);
   private
     FColorPoints: TArrayOfColor32FloatPoint;
     FClipboard: TArrayOfColor32FloatPoint;
@@ -245,19 +248,22 @@ begin
   for Index := 0 to High(FColorPoints) do
     Points[Index] := FColorPoints[Index].Point;
 
-  Renderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
-  try
-    Delaunay := TGourandShadedDelaunayTrianglesSampler.Create;
+  if CbxColoredPolygons.Checked then
+  begin
+    Renderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
     try
-      Renderer.FillMode := pfWinding;
-      Renderer.Filler := TSamplerFiller.Create(Delaunay);
-      Delaunay.SetColorPoints(FColorPoints);
-      Renderer.PolygonFS(Points);
+      Delaunay := TGourandShadedDelaunayTrianglesSampler.Create;
+      try
+        Renderer.FillMode := pfWinding;
+        Renderer.Filler := TSamplerFiller.Create(Delaunay);
+        Delaunay.SetColorPoints(FColorPoints);
+        Renderer.PolygonFS(Points);
+      finally
+        Delaunay.Free;
+      end;
     finally
-      Delaunay.Free;
+      Renderer.Free;
     end;
-  finally
-    Renderer.Free;
   end;
 
   with PaintBox32.Buffer do
@@ -317,6 +323,11 @@ begin
 end;
 
 procedure TFrmMeshGradients.CbxAdaptiveSuperSamplerClick(Sender: TObject);
+begin
+  PaintBox32.Invalidate;
+end;
+
+procedure TFrmMeshGradients.CbxColoredPolygonsClick(Sender: TObject);
 begin
   PaintBox32.Invalidate;
 end;

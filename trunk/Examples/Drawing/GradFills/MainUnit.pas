@@ -79,7 +79,7 @@ type
 
     FLinearBounds: TRect;
     FRadialBounds: TRect;
-    FGradient: TGradient32;
+    FGradient: TColor32Gradient;
     FGradientLUT: TColor32LookupTable;
     FTextNotesPoly: TArrayOfArrayOfFloatPoint;
     FTextTopPoly: TArrayOfArrayOfFloatPoint;
@@ -261,7 +261,7 @@ const
 
 { Miscellaneous functions }
 
-procedure StrToArrayColor32Gradient(s: TStrings; Gradient: TGradient32);
+procedure StrToArrayColor32Gradient(s: TStrings; Gradient: TColor32Gradient);
 var
   I, J: Integer;
   Offset: TFloat;
@@ -316,7 +316,7 @@ begin
       Count := ReadInt;
       SetLength(Result[I], Count);
       for J := 0 to Count - 1 do
-        Result[I][J] := ReadFloatPoint;
+        Result[I, J] := ReadFloatPoint;
     end;
   finally
     ResStream.Free;
@@ -338,7 +338,7 @@ begin
   FLinearBounds := Rect(50, 50, 350, 200);
   FRadialBounds := Rect(50, 250, 350, 400);
 
-  FGradient := TGradient32.Create;
+  FGradient := TColor32Gradient.Create;
   StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
 
   FGradientLUT := TColor32LookupTable.Create;
