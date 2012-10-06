@@ -8,9 +8,8 @@ uses
 {$ELSE}
   LCLIntf, LCLType, LMessages, Windows,
 {$ENDIF}
-  Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, GR32, GR32_Image, GR32_Layers, ExtCtrls, StdCtrls, Math,
-  Menus, ComCtrls;
+  Messages, SysUtils, Classes, Graphics, Controls, Forms, Menus, Dialogs,
+  ComCtrls, ExtCtrls, StdCtrls, Math, GR32, GR32_Image, GR32_Layers;
 
 type
 {$IFDEF FPC}
@@ -18,41 +17,41 @@ type
 {$ENDIF}
 
   TFrmBlurs = class(TForm)
-    Panel1: TPanel;
-    RgpBlurType: TRadioGroup;
-    MainMenu1: TMainMenu;
-    File1: TMenuItem;
-    MnuExit: TMenuItem;
-    LblBlurRadius: TLabel;
-    TbrBlurRadius: TTrackBar;
-    SbrMain: TStatusBar;
-    PageControl1: TPageControl;
-    TabSheet1: TTabSheet;
-    ImgViewPage1: TImgView32;
-    TabSheet2: TTabSheet;
-    ImgViewPage2: TImgView32;
-    TabSheet3: TTabSheet;
-    ImgViewPage3: TImgView32;
-    BlurType1: TMenuItem;
-    MnuGaussianType: TMenuItem;
-    MnuFastGaussian: TMenuItem;
-    Open1: TMenuItem;
-    N1: TMenuItem;
-    OpenDialog1: TOpenDialog;
-    TbrBlurAngle: TTrackBar;
-    LblBlurAngle: TLabel;
-    MnuMotion: TMenuItem;
+    MnuBlurType: TMenuItem;
     CbxBidirectional: TCheckBox;
+    MnuFile: TMenuItem;
+    ImgViewPage1: TImgView32;
+    ImgViewPage2: TImgView32;
+    ImgViewPage3: TImgView32;
+    LblBlurAngle: TLabel;
+    LblBlurRadius: TLabel;
+    MainMenu: TMainMenu;
+    MnuExit: TMenuItem;
+    MnuFastGaussian: TMenuItem;
+    MnuGaussianType: TMenuItem;
+    MnuMotion: TMenuItem;
     MnuNone: TMenuItem;
+    N1: TMenuItem;
+    MnuOpen: TMenuItem;
+    OpenDialog: TOpenDialog;
+    PageControl: TPageControl;
+    PnlControl: TPanel;
+    RgpBlurType: TRadioGroup;
+    SbrMain: TStatusBar;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    TabSheet3: TTabSheet;
+    TbrBlurAngle: TTrackBar;
+    TbrBlurRadius: TTrackBar;
     procedure FormCreate(Sender: TObject);
-    procedure MnuExitClick(Sender: TObject);
-    procedure RgpBlurTypeClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure MnuExitClick(Sender: TObject);
     procedure MnuGaussianTypeClick(Sender: TObject);
-    procedure Open1Click(Sender: TObject);
-    procedure TbrBlurRadiusChange(Sender: TObject);
+    procedure MnuOpenClick(Sender: TObject);
+    procedure PageControlChange(Sender: TObject);
+    procedure RgpBlurTypeClick(Sender: TObject);
     procedure TbrBlurAngleChange(Sender: TObject);
-    procedure PageControl1Change(Sender: TObject);
+    procedure TbrBlurRadiusChange(Sender: TObject);
   private
     ReDrawing: boolean;
 
@@ -74,7 +73,7 @@ var
 implementation
 
 uses
-  GR32_Polygons, GR32_VectorUtils, GR32_Blurs, GR32_Png;
+  GR32_Polygons, GR32_VectorUtils, GR32_Blurs, GR32_Png, GR32_System;
 
 {$R *.dfm}
 {$R images.res}
@@ -141,12 +140,12 @@ procedure TFrmBlurs.FormCreate(Sender: TObject);
 var
   I, J: Integer;
 const
-  Colors: array [0..21] of TColor32 = ( clAliceBlue32, clAquamarine32,
-  clAzure32,   clBeige32, clBlueViolet32,   clCadetblue32, clChocolate32,
-  clCoral32,   clCornFlowerBlue32,   clCornSilk32,   clCrimson32,
-  clDarkBlue32,   clDarkCyan32,   clDarkGoldenRod32,   clDarkGreen32,
-  clDarkMagenta32, clDarkOrange32,   clDarkOrchid32,   clDarkRed32,
-  clDarkSalmon32,   clDarkSeaGreen32, clDarkSlateBlue32);
+  Colors: array [0 .. 21] of TColor32 = (clAliceBlue32, clAquamarine32,
+    clAzure32, clBeige32, clBlueViolet32, clCadetblue32, clChocolate32,
+    clCoral32, clCornFlowerBlue32, clCornSilk32, clCrimson32,
+    clDarkBlue32, clDarkCyan32, clDarkGoldenRod32, clDarkGreen32,
+    clDarkMagenta32, clDarkOrange32, clDarkOrchid32, clDarkRed32,
+    clDarkSalmon32, clDarkSeaGreen32, clDarkSlateBlue32);
 begin
   BalloonImage := TBitmap32.create;
   LoadResourceImage('BALLOONS', BalloonImage);
@@ -189,7 +188,7 @@ begin
   ReDrawing := true;
   Radius := TbrBlurRadius.Position;
   Screen.Cursor := crHourGlass;
-  case PageControl1.ActivePageIndex of
+  case PageControl.ActivePageIndex of
     0:
     begin
       ImgViewPage1.BeginUpdate;
@@ -211,11 +210,11 @@ begin
       ImgViewPage2.BeginUpdate;
       ImgViewPage2.Bitmap.Assign(IcelandImage);
       //5 pointed star ...
-      Pts := BuildPolygon([10,40,40,40,50,10,60,40,90,40,65,60,75,90,50,70,25,90,35,60]);
-      Pts := ScalePolygon(Pts, 2,2);
-      Pts := TranslatePolygon(Pts, 30,50);
+      Pts := BuildPolygon([10, 40, 40, 40, 50, 10, 60, 40, 90, 40, 65, 60, 75, 90, 50, 70, 25, 90, 35, 60]);
+      Pts := ScalePolygon(Pts, 2, 2);
+      Pts := TranslatePolygon(Pts, 30, 50);
 
-      Pts2 := Ellipse(350,250, 100, 60);
+      Pts2 := Ellipse(350, 250, 100, 60);
 
       QueryPerformanceCounter(QPCounter1);
       case RgpBlurType.ItemIndex of
@@ -333,14 +332,14 @@ end;
 procedure TFrmBlurs.TbrBlurRadiusChange(Sender: TObject);
 begin
   LblBlurRadius.Caption :=
-    format('Blur &Radius (%d)', [TbrBlurRadius.Position]);
+    Format('Blur &Radius (%d)', [TbrBlurRadius.Position]);
   ReDraw;
 end;
 
 procedure TFrmBlurs.TbrBlurAngleChange(Sender: TObject);
 begin
   LblBlurAngle.Caption :=
-    format('Blur &Angle (%d)', [TbrBlurAngle.Position]);
+    Format('Blur &Angle (%d)', [TbrBlurAngle.Position]);
   ReDraw;
 end;
 
@@ -356,22 +355,22 @@ begin
     RgpBlurType.ItemIndex := 3;
 end;
 
-procedure TFrmBlurs.Open1Click(Sender: TObject);
+procedure TFrmBlurs.MnuOpenClick(Sender: TObject);
 var
   Extension: String;
 begin
-  if OpenDialog1.Execute then
+  if OpenDialog.Execute then
   begin
-    Extension := Lowercase(ExtractFileExt(OpenDialog1.FileName));
+    Extension := Lowercase(ExtractFileExt(OpenDialog.FileName));
     if Extension = '.png' then
-      LoadPNGFileImage(OpenDialog1.FileName, BalloonImage) else
-      BalloonImage.LoadFromFile(OpenDialog1.FileName);
-    PageControl1.ActivePageIndex := 0;
+      LoadPNGFileImage(OpenDialog.FileName, BalloonImage) else
+      BalloonImage.LoadFromFile(OpenDialog.FileName);
+    PageControl.ActivePageIndex := 0;
     ReDraw;
   end;
 end;
 
-procedure TFrmBlurs.PageControl1Change(Sender: TObject);
+procedure TFrmBlurs.PageControlChange(Sender: TObject);
 begin
   ReDraw;
 end;
