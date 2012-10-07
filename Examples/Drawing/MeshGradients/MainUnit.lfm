@@ -1,7 +1,7 @@
 object FrmMeshGradients: TFrmMeshGradients
-  Left = 406
+  Left = 0
   Height = 481
-  Top = 212
+  Top = 0
   Width = 688
   Caption = 'Mesh Gradient Demo'
   ClientHeight = 481
@@ -32,7 +32,7 @@ object FrmMeshGradients: TFrmMeshGradients
     object LblVertexColor: TLabel
       Left = 8
       Height = 14
-      Top = 159
+      Top = 236
       Width = 30
       Caption = 'Color:'
       ParentColor = False
@@ -41,7 +41,7 @@ object FrmMeshGradients: TFrmMeshGradients
     object VertexColorShape: TShape
       Left = 43
       Height = 16
-      Top = 157
+      Top = 234
       Width = 16
       OnMouseDown = VertexColorShapeMouseDown
       Visible = False
@@ -93,7 +93,7 @@ object FrmMeshGradients: TFrmMeshGradients
     object PnlVertex: TPanel
       Left = 1
       Height = 16
-      Top = 129
+      Top = 206
       Width = 175
       BevelOuter = bvNone
       Caption = 'Vertex'
@@ -139,6 +139,32 @@ object FrmMeshGradients: TFrmMeshGradients
       OnClick = BtnRecallClick
       TabOrder = 5
     end
+    object PnlDelaunayTriangulation: TPanel
+      Left = 1
+      Height = 16
+      Top = 107
+      Width = 175
+      BevelOuter = bvNone
+      Caption = 'Delaunay Triangulation'
+      Color = clBtnShadow
+      Font.Color = clWindow
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      ParentColor = False
+      ParentFont = False
+      TabOrder = 6
+    end
+    object CbxColoredPolygons: TCheckBox
+      Left = 16
+      Height = 17
+      Top = 129
+      Width = 127
+      Caption = 'Show Colored Polygon'
+      Checked = True
+      OnClick = CbxColoredPolygonsClick
+      State = cbChecked
+      TabOrder = 7
+    end
   end
   object PaintBox32: TPaintBox32
     Left = 8
@@ -154,7 +180,6 @@ object FrmMeshGradients: TFrmMeshGradients
     OnPaintBuffer = PaintBox32PaintBuffer
   end
   object ColorDialog: TColorDialog
-    Title = 'Select Color'
     Color = clBlack
     CustomColors.Strings = (
       'ColorA=000000'
