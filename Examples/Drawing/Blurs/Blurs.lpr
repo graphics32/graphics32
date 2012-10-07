@@ -4,6 +4,7 @@ program Blurs;
 
 uses
   Interfaces,
+  Variants,
   Forms, imagesforlazarus,
   MainUnit in 'MainUnit.pas';
 
