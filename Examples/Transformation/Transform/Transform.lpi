@@ -23,7 +23,7 @@
             <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
             <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
             <OtherUnitFiles Value="../../../Source"/>
-            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
             <ObjectPath Value="../../.."/>
           </SearchPaths>
           <Parsing>
@@ -101,7 +101,7 @@
       <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
       <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
       <OtherUnitFiles Value="../../../Source"/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
       <ObjectPath Value="../../.."/>
     </SearchPaths>
     <Parsing>
