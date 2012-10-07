@@ -146,7 +146,7 @@ begin
         PreMulArray[X].R := DivTable[R, A];
         PreMulArray[X].G := DivTable[G, A];
         PreMulArray[X].B := DivTable[B, A];
-        inc(Q);
+        Inc(Q);
       end;
 
     for X := RecLeft to RecRight do
@@ -296,7 +296,7 @@ begin
           PreMulArray[X].R := DivTable[R, A];
           PreMulArray[X].G := DivTable[G, A];
           PreMulArray[X].B := DivTable[B, A];
-          inc(Q);
+          Inc(Q);
         end;
 
       for X := RecLeft to RecRight do
@@ -334,7 +334,7 @@ begin
       for X := RecLeft to RecRight do
       begin
         MaskClr.ARGB := Mask.Pixel[X - RecLeft, Y - RecTop];
-        if (MaskClr.A = 0) then continue;
+        if (MaskClr.A = 0) then Continue;
 
         SumRec.A := 0;
         SumRec.R := 0;
@@ -426,7 +426,7 @@ begin
         R := DivTable[R, A];
         G := DivTable[G, A];
         B := DivTable[B, A];
-        inc(ImgPixel);
+        Inc(ImgPixel);
       end;
   end;
 
@@ -504,7 +504,7 @@ begin
       for J := RecTop to RecBottom do
       begin
         Pixels[J] := ImagePixel^;
-        inc(ImagePixel, Bmp32.Width);
+        Inc(ImagePixel, Bmp32.Width);
       end;
       ImagePixel := PColor32Entry(@Bmp32.ScanLine[RecTop][X]);
 
@@ -629,7 +629,7 @@ begin
       ImgPixel.R := DivTable[ImgPixel.R, ImgPixel.A];
       ImgPixel.G := DivTable[ImgPixel.G, ImgPixel.A];
       ImgPixel.B := DivTable[ImgPixel.B, ImgPixel.A];
-      inc(ImgPixel);
+      Inc(ImgPixel);
     end;
   end;
 
@@ -949,7 +949,7 @@ begin
         ImagePixel.R := DivTable[ImagePixel.R, ImagePixel.A];
         ImagePixel.G := DivTable[ImagePixel.G, ImagePixel.A];
         ImagePixel.B := DivTable[ImagePixel.B, ImagePixel.A];
-        inc(ImagePixel);
+        Inc(ImagePixel);
       end;
     end;
 
@@ -1063,7 +1063,7 @@ begin
 
           with ImagePixel^ do
             if (SumRec.Sum = 0) or (MaskClr.A = 0) then
-              continue
+              Continue
             else if (I = Passes) then
             begin
               Clr.A := SumRec.A div SumRec.Sum;
