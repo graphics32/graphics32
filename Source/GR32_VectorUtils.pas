@@ -933,7 +933,7 @@ end;
 function Star(const X, Y, InnerRadius, OuterRadius: TFloat;
   Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint;
 begin
-  Result := Star(FloatPoint(X, Y), InnerRadius, OuterRadius, Vertices);
+  Result := Star(FloatPoint(X, Y), InnerRadius, OuterRadius, Vertices, Rotation);
 end;
 
 function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat;
