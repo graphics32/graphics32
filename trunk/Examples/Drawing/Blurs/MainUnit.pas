@@ -50,7 +50,7 @@ type
 
     FReDrawFlag: Boolean;
 
-    FBalloonImage: TBitmap32;
+    FStoneWeedImage: TBitmap32;
     FIcelandImage: TBitmap32;
     FRandBoxImage: TBitmap32;
     FBmpLayer: TBitmapLayer;
@@ -63,16 +63,14 @@ var
 implementation
 
 uses
-  {$IFNDEF FPC} JPEG, {$ENDIF} GR32_Polygons, GR32_VectorUtils, GR32_Blurs,
-  GR32_Png;
+  {$IFNDEF FPC} JPEG, {$ELSE} LazJPG, {$ENDIF}
+  GR32_Polygons, GR32_VectorUtils, GR32_Blurs, GR32_Resamplers;
 
 {$IFDEF FPC}
 {$R *.lfm}
 {$ELSE}
 {$R *.dfm}
 {$ENDIF}
-
-{$R images.res}
 
 { Miscellaneous functions }
 
@@ -101,15 +99,19 @@ begin
   end;
 end;
 
-procedure LoadResourceImage(const ResName: string; Bmp32: TBitmap32);
+procedure LoadJPGResource(const ResName: string; Bmp32: TBitmap32);
 var
-  Rs: TResourceStream;
+  ResStream: TResourceStream;
+  JPEG: TJPEGImage;
 begin
-  Rs := TResourceStream.Create(hInstance, ResName, RT_RCDATA);
+  JPEG := TJPEGImage.Create;
+  ResStream := TResourceStream.Create(hInstance, ResName, 'JPG');
   try
-    LoadBitmap32FromPNG(Bmp32, Rs);
+    JPEG.LoadFromStream(ResStream);
+    Bmp32.Assign(JPEG);
   finally
-    Rs.Free;
+    ResStream.Free;
+    JPEG.Free;
   end;
 end;
 
@@ -127,11 +129,16 @@ const
     clDarkMagenta32, clDarkOrange32, clDarkOrchid32, clDarkRed32,
     clDarkSalmon32, clDarkSeaGreen32, clDarkSlateBlue32);
 begin
-  FBalloonImage := TBitmap32.create;
-  LoadResourceImage('BALLOONS', FBalloonImage);
-
+  FStoneWeedImage := TBitmap32.create;
   FIcelandImage := TBitmap32.create;
-  LoadResourceImage('ICELAND', FIcelandImage);
+
+  // Just use FStoneWeedImage momentarily to load a 600*400 image of ICELAND ...
+  LoadJPGResource('ICELAND', FStoneWeedImage);
+  FIcelandImage.SetSize(600, 400);
+  FStoneWeedImage.DrawTo(FIcelandImage, FIcelandImage.BoundsRect,
+    FStoneWeedImage.BoundsRect);
+  // Now load the real STONEWEED image ...
+  LoadJPGResource('STONEWEED', FStoneWeedImage);
 
   FPerfTimer := TPerfTimer.Create;
 
@@ -153,7 +160,7 @@ end;
 procedure TFrmBlurs.FormDestroy(Sender: TObject);
 begin
   FPerfTimer.Free;
-  FBalloonImage.Free;
+  FStoneWeedImage.Free;
   FIcelandImage.Free;
   FRandBoxImage.Free;
 end;
@@ -173,7 +180,8 @@ begin
     0:
       begin
         ImgViewPage1.BeginUpdate;
-        ImgViewPage1.Bitmap.Assign(FBalloonImage);
+        ImgViewPage1.Bitmap.Assign(FIcelandImage);
+
         FPerfTimer.Start;
         case RgpBlurType.ItemIndex of
           1: GaussianBlur(ImgViewPage1.Bitmap, Radius);
@@ -189,7 +197,7 @@ begin
     1:
       begin
         ImgViewPage2.BeginUpdate;
-        ImgViewPage2.Bitmap.Assign(FIcelandImage);
+        ImgViewPage2.Bitmap.Assign(FStoneWeedImage);
 
         Pts := Star(130, 150, 90, 5, -0.5 * Pi);
         Pts2 := Ellipse(350, 250, 100, 60);
@@ -338,10 +346,7 @@ begin
   if OpenDialog.Execute then
   begin
     Extension := Lowercase(ExtractFileExt(OpenDialog.FileName));
-    if Extension = '.png' then
-      LoadBitmap32FromPNG(FBalloonImage, OpenDialog.FileName)
-    else
-      FBalloonImage.LoadFromFile(OpenDialog.FileName);
+    FIcelandImage.LoadFromFile(OpenDialog.FileName);
     PageControl.ActivePageIndex := 0;
     ReDraw;
   end;
