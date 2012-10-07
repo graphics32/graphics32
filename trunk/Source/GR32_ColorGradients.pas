@@ -257,7 +257,7 @@ type
 
     property Initialized: Boolean read FInitialized;
   public
-    constructor Create; overload; virtual;
+    constructor Create(WrapMode: TWrapMode = wmMirror); overload; virtual;
     constructor Create(ColorGradient: TColor32Gradient); overload; virtual;
     destructor Destroy; override;
 
@@ -284,7 +284,7 @@ type
     property LutMask: Integer read FLutMask;
     property WrapProc: TWrapProc read FWrapProc;
   public
-    constructor Create; override;
+    constructor Create(WrapMode: TWrapMode = wmMirror); override;
     destructor Destroy; override;
   end;
 
@@ -295,7 +295,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     procedure Transform(var X, Y: TFloat); virtual;
   public
-    constructor Create; override;
+    constructor Create(WrapMode: TWrapMode = wmMirror); override;
 
     property Center: TFloatPoint read FCenter write FCenter;
   end;
@@ -321,7 +321,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     procedure RadiusChanged; virtual;
   public
-    constructor Create; override;
+    constructor Create(WrapMode: TWrapMode = wmMirror); override;
 
     property Radius: TFloat read FRadius write SetRadius;
   end;
@@ -346,7 +346,7 @@ type
     procedure RadiusChanged; override;
     procedure Transform(var X, Y: TFloat); override;
   public
-    constructor Create; override;
+    constructor Create(WrapMode: TWrapMode = wmMirror); override;
 
     property Angle: TFloat read FAngle write SetAngle;
   end;
@@ -366,8 +366,13 @@ type
   protected
     procedure UpdateInternals; override;
   public
+    procedure SimpleGradient(StartPoint: TFloatPoint; StartColor: TColor32;
+      EndPoint: TFloatPoint; EndColor: TColor32); virtual;
+    procedure SetPoints(StartPoint, EndPoint: TFloatPoint); virtual;
+
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
   end;
+  TLinearGradientSampler = TXGradientSampler;
 
   TXYGradientSampler = class(TCustomCenterRadiusAngleLutGradientSampler)
   private
@@ -2375,12 +2380,12 @@ end;
 
 { TCustomGradientSampler }
 
-constructor TCustomGradientSampler.Create;
+constructor TCustomGradientSampler.Create(WrapMode: TWrapMode);
 begin
-  inherited;
+  inherited Create;
   FGradient := TColor32Gradient.Create(clNone32);
   FGradient.OnGradientColorsChanged := GradientChangedHandler;
-  FWrapMode := wmMirror;
+  FWrapMode := WrapMode;
   WrapModeChanged;
 end;
 
@@ -2478,10 +2483,10 @@ begin
     end
 end;
 
-constructor TCustomLookUpTableGradientSampler.Create;
+constructor TCustomLookUpTableGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
 begin
   FGradientLUT := TColor32LookupTable.Create;
-  inherited;
+  inherited Create(WrapMode);
 end;
 
 destructor TCustomLookUpTableGradientSampler.Destroy;
@@ -2515,9 +2520,9 @@ begin
     TCustomCenterLutGradientSampler(Dest).FCenter := Self.FCenter;
 end;
 
-constructor TCustomCenterLutGradientSampler.Create;
+constructor TCustomCenterLutGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
 begin
-  inherited;
+  inherited Create(WrapMode);
 end;
 
 
@@ -2555,9 +2560,9 @@ end;
 
 { TCustomCenterRadiusLutGradientSampler }
 
-constructor TCustomCenterRadiusLutGradientSampler.Create;
+constructor TCustomCenterRadiusLutGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
 begin
-  inherited;
+  inherited Create(WrapMode);
   FRadius := 1;
   RadiusChanged;
 end;
@@ -2604,9 +2609,9 @@ end;
 
 { TCustomCenterRadiusAngleLutGradientSampler }
 
-constructor TCustomCenterRadiusAngleLutGradientSampler.Create;
+constructor TCustomCenterRadiusAngleLutGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
 begin
-  inherited;
+  inherited Create(WrapMode);
   FAngle := 0;
   FSinCos.X := 1;
   FSinCos.Y := 0;
@@ -2681,6 +2686,25 @@ function TXGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 begin
   Transform(X, Y);
   Result := FLutPtr^[FWrapProc(Round(X * FScale), FLutMask)];
+end;
+
+procedure TXGradientSampler.SetPoints(StartPoint, EndPoint: TFloatPoint);
+begin
+  FCenter := StartPoint;
+  Radius := Distance(EndPoint, StartPoint);
+  Angle := 0.5 * Pi + GetAngleOfPt2FromPt1(EndPoint, StartPoint);
+end;
+
+procedure TXGradientSampler.SimpleGradient(StartPoint: TFloatPoint;
+  StartColor: TColor32; EndPoint: TFloatPoint; EndColor: TColor32);
+begin
+  SetPoints(StartPoint, EndPoint);
+  if Assigned(FGradient) then
+  begin
+    FGradient.ClearColors;
+    FGradient.StartColor := StartColor;
+    FGradient.EndColor := EndColor;
+  end;
 end;
 
 procedure TXGradientSampler.UpdateInternals;
