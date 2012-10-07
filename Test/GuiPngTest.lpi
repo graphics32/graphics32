@@ -88,7 +88,7 @@
         <PackageName Value="FPCUnitTestRunner"/>
       </Item4>
       <Item5>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item5>
       <Item6>
         <PackageName Value="LCL"/>

@@ -78,7 +78,7 @@
     </RunParams>
     <RequiredPackages Count="2">
       <Item1>
-        <PackageName Value="GR32_L"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item1>
       <Item2>
         <PackageName Value="LCL"/>
@@ -180,7 +180,7 @@
       </Unit9>
       <Unit10>
         <Filename Value="..\..\Packages\GR32_L.pas"/>
-        <UnitName Value="GR32_L"/>
+        <UnitName Value="GR32_Lazarus"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
