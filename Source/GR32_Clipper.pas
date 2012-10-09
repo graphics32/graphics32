@@ -4,7 +4,7 @@ unit GR32_Clipper;
 *                                                                              *
 * Author    :  Angus Johnson                                                   *
 * Version   :  4.9.0                                                           *
-* Date      :  5 October 2012                                                  *
+* Date      :  9 October 2012                                                  *
 * Website   :  http://www.angusj.com                                           *
 * Copyright :  Angus Johnson 2010-2012                                         *
 *                                                                              *
@@ -3399,13 +3399,13 @@ procedure TClipper.CheckHoleLinkages1(const OutRec1, OutRec2: POutRec);
 var
   I: Integer;
 begin
-  // when A polygon is split into 2 polygons, make sure any holes the original
-  // polygon contained link to the correct polygon ...
+  //when A polygon is split into 2 polygons, make sure any holes the original
+  //polygon contained link to the correct polygon ...
+  if not OutRec1.IsHole then Exit; 
   for I := 0 to FPolyOutList.Count - 1 do
     with POutRec(fPolyOutList[I])^ do
-      if IsHole and assigned(BottomPt) and (FirstLeft = OutRec1) and
-         not PointInPolygon(BottomPt.Pt, OutRec1.Pts, FUse64BitRange) then
-          FirstLeft := OutRec2;
+      if IsHole and assigned(BottomPt) and (FirstLeft = OutRec1) then
+        FirstLeft := OutRec2;
 end;
 //------------------------------------------------------------------------------
 
@@ -3519,6 +3519,8 @@ begin
         // OutRec2 is contained by OutRec1 ...
         OutRec2.IsHole := not OutRec1.IsHole;
         OutRec2.FirstLeft := OutRec1;
+        FixupOutPolygon(OutRec1); //nb: do this before testing orientation
+        FixupOutPolygon(OutRec2);
         if (OutRec2.IsHole = FReverseOutput) xor Orientation(OutRec2, FUse64BitRange) then
           ReversePolyPtLinks(OutRec2.Pts);
       end else if PointInPolygon(OutRec1.Pts.Pt, OutRec2.Pts, FUse64BitRange) then
@@ -3528,6 +3530,8 @@ begin
         OutRec1.IsHole := not OutRec2.IsHole;
         OutRec2.FirstLeft := OutRec1.FirstLeft;
         OutRec1.FirstLeft := OutRec2;
+        FixupOutPolygon(OutRec1); //nb: do this before testing orientation
+        FixupOutPolygon(OutRec2);
         if (OutRec1.IsHole = FReverseOutput) xor Orientation(OutRec1, FUse64BitRange) then
           ReversePolyPtLinks(OutRec1.Pts);
         // make sure any contained holes now link to the correct polygon ...
@@ -3536,6 +3540,8 @@ begin
       begin
         OutRec2.IsHole := OutRec1.IsHole;
         OutRec2.FirstLeft := OutRec1.FirstLeft;
+        FixupOutPolygon(OutRec1);
+        FixupOutPolygon(OutRec2);
         // make sure any contained holes now link to the correct polygon ...
         if FixHoleLinkages then CheckHoleLinkages1(OutRec1, OutRec2);
       end;
@@ -3549,10 +3555,6 @@ begin
         if (Jr2.Poly2Idx = Jr.Poly1Idx) and PointIsVertex(Jr2.Pt2a, P2) then
           Jr2.Poly2Idx := Jr.Poly2Idx;
       end;
-
-      // cleanup edges ...
-      FixupOutPolygon(OutRec1);
-      FixupOutPolygon(OutRec2);
 
       if (Orientation(OutRec1, FUse64BitRange) <> (Area(OutRec1, FUse64BitRange) > 0)) then
         DisposeBottomPt(OutRec1);
