@@ -154,7 +154,8 @@ type
     procedure CalculateBarycentricCoordinates(X, Y: TFloat; out U, V, W: TFloat); {$IFDEF USEINLINING} inline; {$ENDIF}
   public
     constructor Create(P1, P2, P3: TColor32FloatPoint); overload; virtual;
-    function IsPointInTriangle(X, Y: TFloat): Boolean;
+    function IsPointInTriangle(X, Y: TFloat): Boolean; overload;
+    function IsPointInTriangle(Point: TFloatPoint): Boolean; overload;
 
     procedure SetPoints(Points: TArrayOfFloatPoint); override;
     procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); override;
@@ -259,7 +260,6 @@ type
   public
     constructor Create(WrapMode: TWrapMode = wmMirror); overload; virtual;
     constructor Create(ColorGradient: TColor32Gradient); overload; virtual;
-    destructor Destroy; override;
 
     procedure PrepareSampling; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
@@ -420,6 +420,8 @@ type
   public
     procedure BeginRendering; override;
     procedure SetPoints(Points: TArrayOfFloatPoint);
+    procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); overload;
+    procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); overload;
   end;
 
   TCustomGradientPolygonFiller = class(TCustomPolygonFiller)
@@ -1420,6 +1422,15 @@ begin
     FColorPoints[1].Color32, FColorPoints[2].Color32, U, V, W);
 end;
 
+function TBarycentricGradientSampler.IsPointInTriangle(
+  Point: TFloatPoint): Boolean;
+var
+  U, V, W: TFloat;
+begin
+  CalculateBarycentricCoordinates(Point.X, Point.Y, U, V, W);
+  Result := (U >= 0) and (V >= 0) and (W >= 0);
+end;
+
 function TBarycentricGradientSampler.IsPointInTriangle(X, Y: TFloat): Boolean;
 var
   U, V, W: TFloat;
@@ -2410,11 +2421,6 @@ begin
     inherited;
 end;
 
-destructor TCustomGradientSampler.Destroy;
-begin
-  inherited;
-end;
-
 procedure TCustomGradientSampler.SetGradient(const Value: TColor32Gradient);
 begin
   if not Assigned(Value) then
@@ -2512,6 +2518,12 @@ end;
 
 { TCustomCenterLutGradientSampler }
 
+constructor TCustomCenterLutGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
+begin
+  inherited Create(WrapMode);
+  FCenter := FloatPoint(0, 0);
+end;
+
 procedure TCustomCenterLutGradientSampler.AssignTo(Dest: TPersistent);
 begin
   inherited;
@@ -2519,12 +2531,6 @@ begin
   if Dest is TCustomCenterLutGradientSampler then
     TCustomCenterLutGradientSampler(Dest).FCenter := Self.FCenter;
 end;
-
-constructor TCustomCenterLutGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
-begin
-  inherited Create(WrapMode);
-end;
-
 
 procedure TCustomCenterLutGradientSampler.Transform(var X, Y: TFloat);
 begin
@@ -2883,6 +2889,28 @@ begin
     FColorPoints[Index].Color32 := Value
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TBarycentricGradientPolygonFiller.SetColorPoints(
+  ColorPoints: TArrayOfColor32FloatPoint);
+begin
+  if Length(ColorPoints) <> 3 then
+    raise Exception.Create(RCStrOnlyExactly3Point);
+
+  FColorPoints[0] := ColorPoints[0];
+  FColorPoints[1] := ColorPoints[1];
+  FColorPoints[2] := ColorPoints[2];
+end;
+
+procedure TBarycentricGradientPolygonFiller.SetColorPoints(
+  Points: TArrayOfFloatPoint; Colors: TArrayOfColor32);
+begin
+  if (Length(Points) <> 3) or (Length(Colors) <> 3) then
+    raise Exception.Create(RCStrOnlyExactly3Point);
+
+  FColorPoints[0] := Color32FloatPoint(Colors[0], Points[0]);
+  FColorPoints[1] := Color32FloatPoint(Colors[1], Points[1]);
+  FColorPoints[2] := Color32FloatPoint(Colors[2], Points[2]);
 end;
 
 procedure TBarycentricGradientPolygonFiller.SetPoint(Index: Integer;
