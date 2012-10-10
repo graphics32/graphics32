@@ -397,9 +397,15 @@ type
     function GetCount: Integer; virtual; abstract;
     function GetColor(Index: Integer): TColor32; virtual; abstract;
     function GetPoint(Index: Integer): TFloatPoint; virtual; abstract;
+    function GetColorPoint(Index: Integer): TColor32FloatPoint; virtual; abstract;
     procedure SetColor(Index: Integer; const Value: TColor32); virtual; abstract;
+    procedure SetColorPoint(Index: Integer; const Value: TColor32FloatPoint); virtual; abstract;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); virtual; abstract;
   public
+    procedure SetPoints(Points: TArrayOfFloatPoint); virtual; abstract;
+    procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); overload; virtual; abstract;
+    procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); overload; virtual; abstract;
+
     property Color[Index: Integer]: TColor32 read GetColor write SetColor;
     property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
     property Count: Integer read GetCount;
@@ -412,16 +418,53 @@ type
     function GetCount: Integer; override;
     function GetColor(Index: Integer): TColor32; override;
     function GetPoint(Index: Integer): TFloatPoint; override;
+    function GetColorPoint(Index: Integer): TColor32FloatPoint; override;
     procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetColorPoint(Index: Integer; const Value: TColor32FloatPoint); override;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
     function GetFillLine: TFillLineEvent; override;
     procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
     procedure BeginRendering; override;
-    procedure SetPoints(Points: TArrayOfFloatPoint);
-    procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); overload;
-    procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); overload;
+
+    procedure SetPoints(Points: TArrayOfFloatPoint); override;
+    procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); overload; override;
+    procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); overload; override;
+  end;
+
+  TCustomArbitrarySparsePointGradientPolygonFiller = class(TCustomSparsePointGradientPolygonFiller)
+  private
+    FColorPoints: TArrayOfColor32FloatPoint;
+  protected
+    function GetCount: Integer; override;
+    function GetColor(Index: Integer): TColor32; override;
+    function GetColorPoint(Index: Integer): TColor32FloatPoint; override;
+    function GetPoint(Index: Integer): TFloatPoint; override;
+    procedure SetColor(Index: Integer; const Value: TColor32); override;
+    procedure SetColorPoint(Index: Integer; const Value: TColor32FloatPoint); override;
+    procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
+  public
+    procedure Add(Point: TFloatPoint; Color: TColor32); overload; virtual;
+    procedure Add(ColorPoint: TColor32FloatPoint); overload; virtual;
+    procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); override;
+    procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); override;
+    procedure SetPoints(Points: TArrayOfFloatPoint); override;
+    procedure Clear; virtual;
+  end;
+
+  TGourandShadedDelaunayTrianglesPolygonFiller = class(TCustomArbitrarySparsePointGradientPolygonFiller)
+  private
+    FTriangles: TArrayOfTriangleVertexIndices;
+    FBarycentric: array of TBarycentricGradientSampler;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLine3(Dst: PColor32; DstX, DstY, Count: Integer;
+      AlphaValues: PColor32);
+    procedure FillLine(Dst: PColor32; DstX, DstY, Count: Integer;
+      AlphaValues: PColor32);
+  public
+    procedure BeginRendering; override;
   end;
 
   TCustomGradientPolygonFiller = class(TCustomPolygonFiller)
@@ -2865,6 +2908,15 @@ begin
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
 end;
 
+function TBarycentricGradientPolygonFiller.GetColorPoint(
+  Index: Integer): TColor32FloatPoint;
+begin
+  if Index in [0 .. 2] then
+    Result := FColorPoints[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
 function TBarycentricGradientPolygonFiller.GetCount: Integer;
 begin
   Result := 3;
@@ -2904,6 +2956,15 @@ begin
   FColorPoints[2] := ColorPoints[2];
 end;
 
+procedure TBarycentricGradientPolygonFiller.SetColorPoint(Index: Integer;
+  const Value: TColor32FloatPoint);
+begin
+  if Index in [0 .. 2] then
+    FColorPoints[Index] := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
 procedure TBarycentricGradientPolygonFiller.SetColorPoints(
   Points: TArrayOfFloatPoint; Colors: TArrayOfColor32);
 begin
@@ -2934,6 +2995,244 @@ begin
 
   for Index := 0 to 2 do
     FColorPoints[Index].Point := Points[Index];
+end;
+
+
+{ TCustomArbitrarySparsePointGradientPolygonFiller }
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.Add(Point: TFloatPoint;
+  Color: TColor32);
+var
+  Index: Integer;
+begin
+  Index := Length(FColorPoints);
+  SetLength(FColorPoints, Index + 1);
+  FColorPoints[Index].Point := Point;
+  FColorPoints[Index].Color32 := Color;
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.Add(
+  ColorPoint: TColor32FloatPoint);
+var
+  Index: Integer;
+begin
+  Index := Length(FColorPoints);
+  SetLength(FColorPoints, Index + 1);
+  FColorPoints[Index].Point := ColorPoint.Point;
+  FColorPoints[Index].Color32 := ColorPoint.Color32;
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.Clear;
+begin
+  SetLength(FColorPoints, 0);
+end;
+
+function TCustomArbitrarySparsePointGradientPolygonFiller.GetColor(
+  Index: Integer): TColor32;
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    Result := FColorPoints[Index].Color32
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TCustomArbitrarySparsePointGradientPolygonFiller.GetColorPoint(
+  Index: Integer): TColor32FloatPoint;
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    Result := FColorPoints[Index]
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+function TCustomArbitrarySparsePointGradientPolygonFiller.GetCount: Integer;
+begin
+  Result := Length(FColorPoints);
+end;
+
+function TCustomArbitrarySparsePointGradientPolygonFiller.GetPoint(
+  Index: Integer): TFloatPoint;
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    Result := FColorPoints[Index].Point
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.SetColor(Index: Integer;
+  const Value: TColor32);
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    FColorPoints[Index].Color32 := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.SetColorPoint(
+  Index: Integer; const Value: TColor32FloatPoint);
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    FColorPoints[Index] := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.SetPoint(Index: Integer;
+  const Value: TFloatPoint);
+begin
+  if (Index >= 0) and (Index < Length(FColorPoints)) then
+    FColorPoints[Index].Point := Value
+  else
+    raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.SetColorPoints(
+  ColorPoints: TArrayOfColor32FloatPoint);
+var
+  Index: Integer;
+begin
+  SetLength(FColorPoints, Length(ColorPoints));
+  for Index := 0 to High(FColorPoints) do
+    FColorPoints[Index] := ColorPoints[Index];
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.SetColorPoints(
+  Points: TArrayOfFloatPoint; Colors: TArrayOfColor32);
+var
+  Index: Integer;
+begin
+  if Length(Points) <> Length(Colors) then
+    raise Exception.Create(RCStrPointCountMismatch);
+
+  SetLength(FColorPoints, Length(Points));
+  for Index := 0 to High(FColorPoints) do
+  begin
+    FColorPoints[Index].Point := Points[Index];
+    FColorPoints[Index].Color32 := Colors[Index];
+  end;
+end;
+
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.SetPoints(
+  Points: TArrayOfFloatPoint);
+var
+  Index: Integer;
+begin
+  if Length(FColorPoints) <> Length(Points) then
+    raise Exception.Create(RCStrPointCountMismatch);
+
+  for Index := 0 to High(Points) do
+    FColorPoints[Index].Point := Points[Index];
+end;
+
+
+{ TGourandShadedDelaunayTrianglesPolygonFiller }
+
+procedure TGourandShadedDelaunayTrianglesPolygonFiller.BeginRendering;
+var
+  Index: Integer;
+begin
+  inherited;
+
+  // perform triangulation
+  FTriangles := DelaunayTriangulation(FColorPoints);
+
+  // setup internal barycentric samplers
+  SetLength(FBarycentric, Length(FTriangles));
+  for Index := 0 to Length(FTriangles) - 1 do
+  begin
+    FBarycentric[Index] := TBarycentricGradientSampler.Create(
+      FColorPoints[FTriangles[Index, 0]], FColorPoints[FTriangles[Index, 1]],
+      FColorPoints[FTriangles[Index, 2]]);
+    FBarycentric[Index].PrepareSampling;
+  end;
+  SetLength(FTriangles, 0);
+end;
+
+procedure TGourandShadedDelaunayTrianglesPolygonFiller.FillLine3(Dst: PColor32;
+  DstX, DstY, Count: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+begin
+  for X := DstX to DstX + Count - 1 do
+  begin
+    BlendMemEx(FBarycentric[0].GetSampleFloat(X, DstY), Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+procedure TGourandShadedDelaunayTrianglesPolygonFiller.FillLine(Dst: PColor32;
+  DstX, DstY, Count: Integer; AlphaValues: PColor32);
+var
+  Index: Integer;
+  U, V, W: TFloat;
+  Dist, MinDist: TFloat;
+  MinIndex: Integer;
+
+  X: Integer;
+  Color32: TColor32;
+
+label
+  DrawColor;
+begin
+  for X := DstX to DstX + Count - 1 do
+  begin
+    // check first barycentric interpolator
+    FBarycentric[0].CalculateBarycentricCoordinates(X, DstY, U, V, W);
+    if (U >= 0) and (V >= 0) and (W >= 0) then
+    begin
+      Color32 := Linear3PointInterpolation(FBarycentric[0].Color[0],
+        FBarycentric[0].Color[1], FBarycentric[0].Color[2], U, V, W);
+      goto DrawColor;
+    end;
+
+    // calculate minimum distance
+    MinDist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
+    MinIndex := 0;
+
+    for Index := 1 to High(FBarycentric) do
+    begin
+      // check barycentric interpolator
+      FBarycentric[Index].CalculateBarycentricCoordinates(X, DstY, U, V, W);
+      if (U >= 0) and (V >= 0) and (W >= 0) then
+      begin
+        Color32 := Linear3PointInterpolation(FBarycentric[Index].Color[0],
+          FBarycentric[Index].Color[1], FBarycentric[Index].Color[2], U, V, W);
+        goto DrawColor;
+      end;
+
+      // calculate distance and eventually update minimum distance
+      Dist := Sqr(U - 0.5) + Sqr(V - 0.5) + Sqr(W - 0.5);
+      if Dist < MinDist then
+      begin
+        MinDist := Dist;
+        MinIndex := Index;
+      end;
+    end;
+
+    FBarycentric[MinIndex].CalculateBarycentricCoordinates(X, DstY, U, V, W);
+    Color32 := Linear3PointInterpolation(FBarycentric[MinIndex].Color[0],
+      FBarycentric[MinIndex].Color[1], FBarycentric[MinIndex].Color[2], U, V, W);
+
+DrawColor:
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+function TGourandShadedDelaunayTrianglesPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  case Length(FBarycentric) of
+    0 .. 2:
+      raise Exception.Create('Too few color points available');
+    3:
+      Result := FillLine3;
+  else
+    Result := FillLine;
+  end;
 end;
 
 
