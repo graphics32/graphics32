@@ -269,7 +269,7 @@ type
     property WrapMode: TWrapMode read FWrapMode write SetWrapMode;
   end;
 
-  TCustomLookUpTableGradientSampler = class(TCustomGradientSampler)
+  TCustomGradientLookUpTableSampler = class(TCustomGradientSampler)
   private
     FGradientLUT: TColor32LookupTable;
     FLutPtr: PColor32Array;
@@ -288,7 +288,7 @@ type
     destructor Destroy; override;
   end;
 
-  TCustomCenterLutGradientSampler = class(TCustomLookUpTableGradientSampler)
+  TCustomCenterLutGradientSampler = class(TCustomGradientLookUpTableSampler)
   private
     FCenter: TFloatPoint;
   protected
@@ -2477,33 +2477,33 @@ begin
 end;
 
 
-{ TCustomLookUpTableGradientSampler }
+{ TCustomGradientLookUpTableSampler }
 
-procedure TCustomLookUpTableGradientSampler.AssignTo(Dest: TPersistent);
+procedure TCustomGradientLookUpTableSampler.AssignTo(Dest: TPersistent);
 begin
   inherited;
 
-  if Dest is TCustomLookUpTableGradientSampler then
-    with TCustomLookUpTableGradientSampler(Dest) do
+  if Dest is TCustomGradientLookUpTableSampler then
+    with TCustomGradientLookUpTableSampler(Dest) do
     begin
       FGradientLUT.Assign(Self.FGradientLUT);
       FWrapProc := Self.FWrapProc;
     end
 end;
 
-constructor TCustomLookUpTableGradientSampler.Create(WrapMode: TWrapMode = wmMirror);
+constructor TCustomGradientLookUpTableSampler.Create(WrapMode: TWrapMode = wmMirror);
 begin
   FGradientLUT := TColor32LookupTable.Create;
   inherited Create(WrapMode);
 end;
 
-destructor TCustomLookUpTableGradientSampler.Destroy;
+destructor TCustomGradientLookUpTableSampler.Destroy;
 begin
   FGradientLUT.Free;
   inherited;
 end;
 
-procedure TCustomLookUpTableGradientSampler.UpdateInternals;
+procedure TCustomGradientLookUpTableSampler.UpdateInternals;
 begin
   FGradient.FillColorLookUpTable(FGradientLUT);
   FLutPtr := FGradientLUT.Color32Ptr;
@@ -2511,7 +2511,7 @@ begin
   FWrapProc := GetWrapProc(WrapMode, FGradientLUT.Mask);
 end;
 
-procedure TCustomLookUpTableGradientSampler.WrapModeChanged;
+procedure TCustomGradientLookUpTableSampler.WrapModeChanged;
 begin
   inherited;
   FWrapProc := GetWrapProc(WrapMode);
