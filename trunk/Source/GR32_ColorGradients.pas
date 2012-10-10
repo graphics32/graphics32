@@ -437,7 +437,7 @@ type
     procedure FillLineSolid(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
     procedure GradientFillerChanged; virtual;
-    procedure WrapModeChanged;
+    procedure WrapModeChanged; virtual;
   public
     constructor Create; overload;
     constructor Create(ColorGradient: TColor32Gradient); overload; virtual;
@@ -447,7 +447,27 @@ type
     property WrapMode: TWrapMode read FWrapMode write SetWrapMode;
   end;
 
-  TCustomLinearGradientPolygonFiller = class(TCustomGradientPolygonFiller)
+  TCustomGradientLookupTablePolygonFiller = class(TCustomGradientPolygonFiller)
+  private
+    FLUTNeedsUpdate: Boolean;
+    FOwnsLUT: Boolean;
+    FGradientLUT: TColor32LookupTable;
+    FUseLookUpTable: Boolean;
+    procedure SetUseLookUpTable(const Value: Boolean);
+    function GetLUTNeedsUpdate: Boolean;
+  protected
+    procedure UseLookUpTableChanged; virtual;
+    procedure LookUpTableChangedHandler(Sender: TObject);
+
+    property LookUpTableNeedsUpdate: Boolean read GetLUTNeedsUpdate;
+  public
+    constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
+
+    property GradientLUT: TColor32LookupTable read FGradientLUT;
+    property UseLookUpTable: Boolean read FUseLookUpTable write SetUseLookUpTable;
+  end;
+
+  TCustomLinearGradientPolygonFiller = class(TCustomGradientLookupTablePolygonFiller)
   private
     FIncline: TFloat;
     FStartPoint: TFloatPoint;
@@ -472,6 +492,9 @@ type
   private
     function ColorStopToScanLine(Index: Integer; Y: Integer): TFloat;
   protected
+    procedure GradientColorsChangedHandler(Sender: TObject);
+    procedure GradientFillerChanged; override;
+
     function GetFillLine: TFillLineEvent; override;
 
     procedure FillLineNegative(Dst: PColor32; DstX, DstY, Length: Integer;
@@ -482,18 +505,6 @@ type
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
     procedure FillLineVerticalExtreme(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
-  end;
-
-  TLinearGradientLookupTablePolygonFiller = class(TCustomLinearGradientPolygonFiller)
-  private
-    FInitialized: Boolean;
-    FOwnsLUT: Boolean;
-    FGradientLUT: TColor32LookupTable;
-  protected
-    procedure GradientColorsChangedHandler(Sender: TObject);
-    procedure GradientFillerChanged; override;
-
-    function GetFillLine: TFillLineEvent; override;
 
     procedure FillLineVerticalPad(Dst: PColor32;
       DstX, DstY, Length: Integer; AlphaValues: PColor32);
@@ -510,31 +521,24 @@ type
     procedure FillLineHorizontalWrapPos(Dst: PColor32; DstX, DstY,
       Length: Integer; AlphaValues: PColor32);
 
-    property Initialized: Boolean read FInitialized;
+    procedure UseLookUpTableChanged; override;
+    procedure WrapModeChanged; override;
   public
     constructor Create(ColorGradient: TColor32Gradient); overload; override;
-    constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
+    constructor Create(ColorGradient: TColor32Gradient; UseLookupTable: Boolean); overload; virtual;
     destructor Destroy; override;
 
     procedure BeginRendering; override; //flags initialized
-
-    property GradientLUT: TColor32LookupTable read FGradientLUT;
   end;
 
-  TCustomRadialGradientPolygonFiller = class(TCustomGradientPolygonFiller)
+  TCustomRadialGradientPolygonFiller = class(TCustomGradientLookupTablePolygonFiller)
+  private
+    FEllipseBounds: TFloatRect;
+    procedure SetEllipseBounds(const Value: TFloatRect);
   protected
-    FInitialized: Boolean;
-    FOwnsLUT: Boolean;
-    FGradientLUT: TColor32LookupTable;
-
-    property Initialized: Boolean read FInitialized;
-    procedure LUTChangedHandler(Sender: TObject);
+    procedure EllipseBoundsChanged; virtual; abstract;
   public
-    constructor Create(ColorGradient: TColor32Gradient); overload; override;
-    constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
-    destructor Destroy; override;
-
-    property GradientLUT: TColor32LookupTable read FGradientLUT;
+    property EllipseBounds: TFloatRect read FEllipseBounds write SetEllipseBounds;
   end;
 
   TRadialGradientPolygonFiller = class(TCustomRadialGradientPolygonFiller)
@@ -544,14 +548,13 @@ type
     FRadScale: TFloat;
     FRadXInv: TFloat;
 
-    FEllipseBounds: TFloatRect;
-    procedure SetEllipseBounds(const Value: TFloatRect);
     procedure SetCenter(const Value: TFloatPoint);
     procedure SetRadius(const Value: TFloatPoint);
     procedure UpdateEllipseBounds;
     procedure UpdateRadiusScale;
   protected
     function GetFillLine: TFillLineEvent; override;
+    procedure EllipseBoundsChanged; override;
     procedure FillLinePad(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
     procedure FillLineRepeat(Dst: PColor32; DstX, DstY, Length: Integer;
@@ -561,7 +564,6 @@ type
   public
     procedure BeginRendering; override;
 
-    property EllipseBounds: TFloatRect read FEllipseBounds write SetEllipseBounds;
     property Radius: TFloatPoint read FRadius write SetRadius;
     property Center: TFloatPoint read FCenter write SetCenter;
   end;
@@ -574,20 +576,18 @@ type
     FFocalPt: TFloatPoint;
     FVertDist: TFloat;
 
-    FEllipseBounds: TFloatRect;
     FFocalPointNative: TFloatPoint;
 
-    procedure SetEllipseBounds(const Value: TFloatRect);
     procedure SetFocalPoint(const Value: TFloatPoint);
     procedure InitMembers;
   protected
     function GetFillLine: TFillLineEvent; override;
+    procedure EllipseBoundsChanged; override;
     procedure FillLineEllipse(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
     procedure BeginRendering; override;
 
-    property EllipseBounds: TFloatRect read FEllipseBounds write SetEllipseBounds;
     property FocalPoint: TFloatPoint read FFocalPointNative write SetFocalPoint;
   end;
 
@@ -606,6 +606,8 @@ resourcestring
   RCStrWrongFormat = 'Wrong format';
   RCStrOnlyExactly3Point = 'Only exactly 3 points expected!';
   RCStrPointCountMismatch = 'Point count mismatch';
+  RCStrNoTColor32LookupTable = 'No TColor32LookupTable object specified';
+  RCStrNoTColor32Gradient = 'No TColor32Gradient specified';
 
 const
   CFloatTolerance = 0.001;
@@ -2935,6 +2937,59 @@ begin
 end;
 
 
+{ TCustomGradientLookupTablePolygonFiller }
+
+constructor TCustomGradientLookupTablePolygonFiller.Create(
+  LookupTable: TColor32LookupTable);
+begin
+  FGradientLUT := LookupTable;
+  FUseLookUpTable := True;
+  FOwnsLUT := False;
+  FGradient := nil;
+  FOwnsGradient := False;
+  FWrapMode := wmClamp;
+  FWrapProc := Clamp;
+end;
+
+function TCustomGradientLookupTablePolygonFiller.GetLUTNeedsUpdate: Boolean;
+begin
+  Result := FLUTNeedsUpdate or (FUseLookUpTable and (not FOwnsLUT));
+end;
+
+procedure TCustomGradientLookupTablePolygonFiller.SetUseLookUpTable(
+  const Value: Boolean);
+begin
+  if FUseLookUpTable <> Value then
+  begin
+    FUseLookUpTable := Value;
+    UseLookUpTableChanged;
+  end;
+end;
+
+procedure TCustomGradientLookupTablePolygonFiller.UseLookUpTableChanged;
+begin
+  if FUseLookUpTable then
+    if not Assigned(FGradientLUT) then
+    begin
+      FGradientLUT := TColor32LookupTable.Create;
+      FOwnsLUT := True;
+    end
+    else
+  else
+    if FOwnsLUT then
+    begin
+      if Assigned(FGradientLUT) then
+        FGradientLUT.Free;
+      FOwnsLUT := False;
+    end
+end;
+
+procedure TCustomGradientLookupTablePolygonFiller.LookUpTableChangedHandler(Sender: TObject);
+begin
+  FLUTNeedsUpdate := True;
+end;
+
+
 { TCustomLinearGradientPolygonFiller }
 
 procedure TCustomLinearGradientPolygonFiller.SetStartPoint(
@@ -3003,7 +3058,34 @@ end;
 
 { TLinearGradientPolygonFiller }
 
-function TLinearGradientPolygonFiller.ColorStopToScanLine(Index: Integer;
+constructor TLinearGradientPolygonFiller.Create(
+  ColorGradient: TColor32Gradient);
+begin
+  Create(ColorGradient, True);
+end;
+
+constructor TLinearGradientPolygonFiller.Create(
+  ColorGradient: TColor32Gradient; UseLookupTable: Boolean);
+begin
+  // create lookup table (and set 'own' & 'use' flags)
+  FGradientLUT := TColor32LookupTable.Create;
+  FGradientLUT.OnOrderChanged := LookUpTableChangedHandler;
+  FOwnsLUT := True;
+  FUseLookUpTable := UseLookupTable;
+
+  inherited Create(ColorGradient);
+
+  FGradient.OnGradientColorsChanged := GradientColorsChangedHandler;
+end;
+
+destructor TLinearGradientPolygonFiller.Destroy;
+begin
+  if FOwnsLUT and Assigned(FGradientLUT) then
+    FGradientLUT.Free;
+  inherited;
+end;
+
+function TLinearGradientPolygonFiller.ColorStopToScanLine(Index,
   Y: Integer): TFloat;
 var
   Offset: array [0 .. 1] of TFloat;
@@ -3014,12 +3096,71 @@ begin
     (Offset[1] * (FStartPoint.Y - Y) + Offset[0] * (FEndPoint.Y - Y));
 end;
 
-function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
+procedure TLinearGradientPolygonFiller.GradientColorsChangedHandler(
+  Sender: TObject);
 begin
-  case FGradient.GradientCount of
+  GradientFillerChanged;
+end;
+
+procedure TLinearGradientPolygonFiller.GradientFillerChanged;
+begin
+  FLUTNeedsUpdate := True;
+end;
+
+procedure TLinearGradientPolygonFiller.UseLookUpTableChanged;
+begin
+  inherited;
+
+  // perfect gradients are only implementd for WrapMode = wmClamp
+  if (not FUseLookUpTable) and (WrapMode in [wmRepeat, wmMirror]) then
+    WrapMode := wmClamp;
+end;
+
+procedure TLinearGradientPolygonFiller.WrapModeChanged;
+begin
+  inherited;
+
+  // perfect gradients are only implementd for WrapMode = wmClamp
+  if (not FUseLookUpTable) and (WrapMode in [wmRepeat, wmMirror]) then
+    UseLookUpTable := True;
+end;
+
+function TLinearGradientPolygonFiller.GetFillLine: TFillLineEvent;
+var
+  GradientCount: Integer;
+begin
+  if Assigned(FGradient) then
+    GradientCount := FGradient.GradientCount
+  else
+    GradientCount := FGradientLUT.Size;
+
+  case GradientCount of
     0: Result := FillLineNone;
     1: Result := FillLineSolid;
     else
+      if FUseLookUpTable then
+        case FWrapMode of
+          wmClamp:
+            if FStartPoint.X = FEndPoint.X then
+              if FStartPoint.Y = FEndPoint.Y then
+                Result := FillLineVerticalPadExtreme
+              else
+                Result := FillLineVerticalPad
+            else
+            if FStartPoint.X < FEndPoint.X then
+              Result := FillLineHorizontalPadPos
+            else
+              Result := FillLineHorizontalPadNeg;
+          wmMirror, wmRepeat:
+            if FStartPoint.X = FEndPoint.X then
+              Result := FillLineVerticalWrap
+            else
+            if FStartPoint.X < FEndPoint.X then
+              Result := FillLineHorizontalWrapPos
+            else
+              Result := FillLineHorizontalWrapNeg;
+        end
+      else
       if FStartPoint.X = FEndPoint.X then
         if FStartPoint.Y = FEndPoint.Y then
           Result := FillLineVerticalExtreme
@@ -3231,86 +3372,7 @@ begin
   FillLineAlpha(Dst, AlphaValues, XPos[2] - XPos[0], Colors[0]);
 end;
 
-
-{ TLinearGradientLookupTablePolygonFiller }
-
-constructor TLinearGradientLookupTablePolygonFiller.Create(
-  ColorGradient: TColor32Gradient);
-begin
-  FGradientLUT := TColor32LookupTable.Create;
-  FOwnsLUT := True;
-  inherited Create(ColorGradient);
-  FGradient.OnGradientColorsChanged := GradientColorsChangedHandler;
-  FGradientLUT.OnOrderChanged := GradientColorsChangedHandler;
-end;
-
-constructor TLinearGradientLookupTablePolygonFiller.Create(
-  LookupTable: TColor32LookupTable);
-begin
-  FGradientLUT := LookupTable;
-  FOwnsLUT := False;
-  FGradient := nil;
-  FOwnsGradient := False;
-  FWrapMode := wmClamp;
-  FWrapProc := Clamp;
-end;
-
-destructor TLinearGradientLookupTablePolygonFiller.Destroy;
-begin
-  if FOwnsLUT then
-    FGradientLUT.Free;
-  inherited;
-end;
-
-procedure TLinearGradientLookupTablePolygonFiller.GradientColorsChangedHandler(
-  Sender: TObject);
-begin
-  GradientFillerChanged;
-end;
-
-procedure TLinearGradientLookupTablePolygonFiller.GradientFillerChanged;
-begin
-  FInitialized := False;
-end;
-
-function TLinearGradientLookupTablePolygonFiller.GetFillLine: TFillLineEvent;
-var
-  GradientCount: Integer;
-begin
-  if Assigned(FGradient) then
-    GradientCount := FGradient.GradientCount
-  else
-    GradientCount := FGradientLUT.Size;
-
-  case GradientCount of
-    0: Result := FillLineNone;
-    1: Result := FillLineSolid;
-    else
-      case FWrapMode of
-        wmClamp:
-          if FStartPoint.X = FEndPoint.X then
-            if FStartPoint.Y = FEndPoint.Y then
-              Result := FillLineVerticalPadExtreme
-            else
-              Result := FillLineVerticalPad
-          else
-          if FStartPoint.X < FEndPoint.X then
-            Result := FillLineHorizontalPadPos
-          else
-            Result := FillLineHorizontalPadNeg;
-        wmMirror, wmRepeat:
-          if FStartPoint.X = FEndPoint.X then
-            Result := FillLineVerticalWrap
-          else
-          if FStartPoint.X < FEndPoint.X then
-            Result := FillLineHorizontalWrapPos
-          else
-            Result := FillLineHorizontalWrapNeg;
-      end;
-  end;
-end;
-
-procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalPad(
+procedure TLinearGradientPolygonFiller.FillLineVerticalPad(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
@@ -3328,7 +3390,7 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalPadExtreme(
+procedure TLinearGradientPolygonFiller.FillLineVerticalPadExtreme(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
@@ -3348,7 +3410,7 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineVerticalWrap(
+procedure TLinearGradientPolygonFiller.FillLineVerticalWrap(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X: Integer;
@@ -3366,7 +3428,7 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalPadPos(
+procedure TLinearGradientPolygonFiller.FillLineHorizontalPadPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, XPos, Count, Mask: Integer;
@@ -3410,7 +3472,7 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalPadNeg(
+procedure TLinearGradientPolygonFiller.FillLineHorizontalPadNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, XPos, Count, Mask: Integer;
@@ -3454,7 +3516,7 @@ begin
   EMMS;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalWrapPos(
+procedure TLinearGradientPolygonFiller.FillLineHorizontalWrapPos(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, Index, Mask: Integer;
@@ -3479,7 +3541,7 @@ begin
   end;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.FillLineHorizontalWrapNeg(
+procedure TLinearGradientPolygonFiller.FillLineHorizontalWrapNeg(
   Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
 var
   X, Index, Mask: Integer;
@@ -3504,56 +3566,46 @@ begin
   end;
 end;
 
-procedure TLinearGradientLookupTablePolygonFiller.BeginRendering;
+procedure TLinearGradientPolygonFiller.BeginRendering;
 begin
-  if not Initialized then
+  if LookUpTableNeedsUpdate then
   begin
-    if Assigned(FGradient) then
-      FGradient.FillColorLookUpTable(FGradientLUT);
-    inherited; //sets initialized = true
+    if FUseLookUpTable then
+    begin
+      if not Assigned(FGradientLUT) then
+        raise Exception.Create(RCStrNoTColor32LookupTable);
+
+      if Assigned(FGradient) then
+        FGradient.FillColorLookUpTable(FGradientLUT);
+    end
+    else
+      if not Assigned(FGradient) then
+        raise Exception.Create(RCStrNoTColor32Gradient);
+    inherited;
   end;
 end;
 
 
 { TCustomRadialGradientPolygonFiller }
 
-constructor TCustomRadialGradientPolygonFiller.Create(
-  ColorGradient: TColor32Gradient);
+procedure TCustomRadialGradientPolygonFiller.SetEllipseBounds(
+  const Value: TFloatRect);
 begin
-  inherited;
-  FGradientLUT := TColor32LookupTable.Create;
-  FGradientLUT.OnOrderChanged := LUTChangedHandler;
-end;
-
-constructor TCustomRadialGradientPolygonFiller.Create(
-  LookupTable: TColor32LookupTable);
-begin
-  FGradientLUT := LookupTable;
-  FOwnsLUT := False;
-  FGradient := nil;
-  FOwnsGradient := False;
-  FWrapMode := wmClamp;
-  FWrapProc := Clamp;
-end;
-
-destructor TCustomRadialGradientPolygonFiller.Destroy;
-begin
-  if FOwnsLUT then
-    FGradientLUT.Free;
-  inherited;
-end;
-
-procedure TCustomRadialGradientPolygonFiller.LUTChangedHandler(Sender: TObject);
-begin
-  FInitialized := False;
+  if (FEllipseBounds.Left <> Value.Left) or (FEllipseBounds.Top <> Value.Top) or
+    (FEllipseBounds.Right <> Value.Right) or
+    (FEllipseBounds.Bottom <> Value.Bottom) then
+  begin
+    FEllipseBounds := Value;
+    EllipseBoundsChanged;
+  end;
 end;
 
 
 { TRadialGradientPolygonFiller }
 
-procedure TRadialGradientPolygonFiller.SetEllipseBounds(const Value: TFloatRect);
+procedure TRadialGradientPolygonFiller.EllipseBoundsChanged;
 begin
-  with Value do
+  with FEllipseBounds do
   begin
     FCenter := FloatPoint((Left + Right) * 0.5, (Top + Bottom) * 0.5);
     FRadius.X := Round((Right - Left) * 0.5);
@@ -3561,7 +3613,6 @@ begin
   end;
 
   UpdateRadiusScale;
-  FEllipseBounds := Value;
 end;
 
 procedure TRadialGradientPolygonFiller.SetCenter(const Value: TFloatPoint);
@@ -3602,11 +3653,20 @@ end;
 
 procedure TRadialGradientPolygonFiller.BeginRendering;
 begin
-  if not Initialized then
+  if LookUpTableNeedsUpdate then
   begin
-    if Assigned(FGradient) then
-      FGradient.FillColorLookUpTable(FGradientLUT);
-    FInitialized := True;
+    if FUseLookUpTable then
+    begin
+      if not Assigned(FGradientLUT) then
+        raise Exception.Create(RCStrNoTColor32LookupTable);
+
+      if Assigned(FGradient) then
+        FGradient.FillColorLookUpTable(FGradientLUT);
+    end
+    else
+      if not Assigned(FGradient) then
+        raise Exception.Create(RCStrNoTColor32Gradient);
+    inherited;
   end;
 end;
 
@@ -3727,9 +3787,8 @@ end;
 
 { TSVGRadialGradientPolygonFiller }
 
-procedure TSVGRadialGradientPolygonFiller.SetEllipseBounds(const Value: TFloatRect);
+procedure TSVGRadialGradientPolygonFiller.EllipseBoundsChanged;
 begin
-  FEllipseBounds := Value;
   GradientFillerChanged;
 end;
 
@@ -3790,13 +3849,22 @@ end;
 
 procedure TSVGRadialGradientPolygonFiller.BeginRendering;
 begin
-  if not Initialized then
+  if LookUpTableNeedsUpdate then
   begin
-    InitMembers;
-    if Assigned(FGradient) then
-      FGradient.FillColorLookUpTable(FGradientLUT);
-    inherited; //sets initialized = True
+    if FUseLookUpTable then
+    begin
+      if not Assigned(FGradientLUT) then
+        raise Exception.Create(RCStrNoTColor32LookupTable);
+
+      if Assigned(FGradient) then
+        FGradient.FillColorLookUpTable(FGradientLUT);
+    end
+    else
+      if not Assigned(FGradient) then
+        raise Exception.Create(RCStrNoTColor32Gradient);
+    inherited;
   end;
+  InitMembers;
 end;
 
 function TSVGRadialGradientPolygonFiller.GetFillLine: TFillLineEvent;
