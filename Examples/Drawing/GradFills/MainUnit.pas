@@ -574,14 +574,14 @@ begin
 
   //draw the top ellipse ...
   PolygonTop := Ellipse(200, 125, 100, 60);
-  LinearGradFiller := TLinearGradientLookupTablePolygonFiller.Create(FGradientLUT);
+  LinearGradFiller := TLinearGradientPolygonFiller.Create(FGradientLUT);
   try
     LinearGradFiller.StartPoint := FloatPoint(FLinearStart);
     LinearGradFiller.EndPoint := FloatPoint(FLinearEnd);
     LinearGradFiller.WrapMode := TWrapMode(RgpWrapMode.ItemIndex);
 
     PolygonFS(ImgView32.Bitmap, PolygonTop, LinearGradFiller);
-    PolyLineFS(ImgView32.Bitmap, PolygonTop, ClBlack32, True, 1);
+    PolyLineFS(ImgView32.Bitmap, PolygonTop, clBlack32, True, 1);
 
     //use LinearGradFiller to fill 'Graphics32' text  too ...
     LinearGradFiller.StartPoint := FloatPoint(230, 420);
