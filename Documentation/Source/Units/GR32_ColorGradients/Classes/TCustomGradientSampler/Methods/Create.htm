@@ -5,10 +5,13 @@
 </head>
 <body bgcolor="#FFFFFF">
 <p class="Decl"><b>constructor</b> Create; <b>overload</b>; <b>virtual</b>;</p>
-<p class="Decl"><b>constructor</b> Create(ColorGradient: TGradient32); <b>overload</b>; <b>virtual</b>;</p>
+<p class="Decl"><b>constructor</b> Create(ColorGradient: TColor32Gradient); <b>overload</b>; <b>virtual</b>;</p>
 <h2>Description</h2>
-<p class="Body">Creates and initializes an instance of <a href="../_Body.htm">TCustomCenterLutGradientSampler</a>.</p>
+<p class="Body">Creates and initializes an instance of <a href="../_Body.htm">TCustomGradientSampler</a>.</p>
 <p class="Body">After calling the inherited constructor, <span class="EmptyRef">Create</span> 
-  initializes all three color points with the given points P1, P2, P3.</p>
+  initializes:</p>
+<ul>
+  <li><a href="../Properties/Gradient.htm">Gradient</a> with a new <a href="../../TColor32Gradient/_Body.htm">TColor32Gradient</a> object</li>
+</ul>
 </body>
 </html>
