@@ -1843,9 +1843,9 @@ begin
       CuList.Free;
     end;
 
-    if length(Classes) > 0 then
+    if Length(Classes) > 0 then
       AddClassTable(TClassElementArray(Classes), 'Classes');
-    if length(Interfaces) > 0 then
+    if Length(Interfaces) > 0 then
       AddClassTable(TClassElementArray(Interfaces), 'Interfaces');
 
     // types

@@ -627,21 +627,19 @@ begin
 
       //prepare to update the menu list ...
       PasFiles[I] := fn;
-      PasFiles.Objects[I] := pointer(1); //flag as updating
-      inc(J);
+      PasFiles.Objects[I] := Pointer(1); //flag as updating
+      Inc(J);
     end;
 
     //remove skipped over files ...
     for I := PasFiles.Count - 1 downto 0 do
       if PasFiles.Objects[I] = nil then
         PasFiles.Delete(I);
-    PasFiles.Sorted := true;
+    PasFiles.Sorted := True;
     //now update the help file's dropdown menu list of units
     if (J > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
     begin
-      if J = 1 then
-        LogAdd('Adding 1 unit' + CRLF) else
-        LogAdd('Adding ' + IntToStr(J) + ' units' + CRLF);
+      LogAdd('Adding ' + IntToStr(J) + ' units' + CRLF);
 
       MenuData := TStringList.Create;
       try
@@ -653,28 +651,31 @@ begin
         if I < 0 then Exit;
 
         FileCntr := 1;
-        inc(I);
+        Inc(I);
         J := I;
+
         //add any existing files to PasFiles so the new files are
         //inserted in alphabetical order ...
         while (I < MenuData.Count) and (MenuData[I] <> '') do
         begin
-          S := Copy(MenuData[I], Pos('= "', MenuData[I]) +3, 255);
-          SetLength(S, Length(S) -1);
+          S := Copy(MenuData[I], Pos('= "', MenuData[I]) + 3, 255);
+          K := Pos('.pas"', S);
+          if K > 0 then
+            Delete(S, K, Length(S) - K);
           PasFiles.Add(S);
-          inc(FileCntr);
+          Inc(FileCntr);
           Inc(I, 2);
         end;
         //clear out and rebuild the menu ...
         for I := 1 to I - J do
           MenuData.Delete(J);
-        for I := 0 to PasFiles.count -1 do
+        for I := 0 to PasFiles.Count - 1 do
         begin
           MenuData.Insert(J, Format('td_%d_%d = "%s.pas"',
             [FileType, I + 1, PasFiles[I]]));
-          MenuData.Insert(J +1, Format('url_%d_%d = "Units/%s/_Body.htm"',
+          MenuData.Insert(J + 1, Format('url_%d_%d = "Units/%s/_Body.htm"',
             [FileType, I + 1, PasFiles[I]]));
-          inc(J, 2);
+          Inc(J, 2);
         end;
 
         LogNL;

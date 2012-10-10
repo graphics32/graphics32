@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 283
   Top = 174
-  Width = 850
-  Height = 486
   Caption = 'HTML Document Processor'
+  ClientHeight = 459
+  ClientWidth = 842
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -167,7 +167,6 @@ object MainForm: TMainForm
         Top = 41
         Width = 226
         Height = 21
-        ItemHeight = 13
         TabOrder = 0
         Text = 'MyProjectName'
         OnChange = CmbProjectNameChange
