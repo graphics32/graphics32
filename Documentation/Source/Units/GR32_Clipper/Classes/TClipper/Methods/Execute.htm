@@ -1,0 +1,65 @@
+<html>
+<head>
+<title>G32Version</title>
+<link rel="stylesheet" href="../../../../../../styles/default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+
+<p class="Decl"><b>function</b> Execute(clipType: TClipType; <b>out</b> solution: TArrayOfArrayOfFloatPoint; subjFillType: TPolyFillType = pftEvenOdd; clipFillType: TPolyFillType = pftEvenOdd): Boolean; <b>overload</b>;</p><br>
+<p class="Decl"><b>function</b> Execute(clipType: TClipType; <b>out</b> solution: TArrayOfArrayOfFixedPoint; subjFillType: TPolyFillType = pftEvenOdd; clipFillType: TPolyFillType = pftEvenOdd): Boolean; <b>overload</b>;</p><br>
+
+<p class="Body"> The Execute() method performs the specified clipping task (intersection, union, difference or xor) on the previously assigned subject and clip polygons. This method can be called multiple times without reassigning subject and clip polygons (ie when different clipping operations are required on the same polygon sets). The polygon fill methods can be Even-Odd, Non-Zero, Positive and Negative. Subject and clip polygons can use different fill types.<br><br> 
+
+The order that polygons are listed in the <b>solution</b> structure is undefined, though polygons lower down (when rendered in an image) are generally listed before those higher up. The solution will never contain overlapping polygons, nor will it contain polygons with self-intersections. Also, the <strong>filling mode</strong> for <b>solution</b> polygons is undefined since it <strong>can be either EvenOdd or NonZero</strong>. (This is because the winding depth of solution polygons will always be in the range of -1 to 1.)<br><br> 
+
+<b>Solution orientation:</b> Polygons returned in the 'solution' will always have a positive (true) <a href="../../../Routines/Orientation.htm">orientation</a> for outer 'container' polygons, and the opposite orientation for inner 'hole' polygons.
+<br><br>
+
+<table border="0"><tr>
+<th>Example</th>
+</tr><tr><td>
+<pre class="brush: delphi;">
+uses GR32, GR32_Clipper;
+	...
+	var
+	  i: integer;
+	  subj, clip, solution: TArrayOfArrayOfFloatPoint;
+	begin
+	  setlength(subj, 2);
+	  setlength(subj[0], 4);
+	  subj[0][0] := FloatPoint(180,200);
+	  subj[0][1] := FloatPoint(260,200);
+	  subj[0][2] := FloatPoint(260,150);
+	  subj[0][3] := FloatPoint(180,150);
+	  
+	  setlength(subj[1], 3);
+	  subj[1][0] := FloatPoint(215,160);
+	  subj[1][1] := FloatPoint(230,190);
+	  subj[1][2] := FloatPoint(200,190);
+
+	  setlength(clip, 1);
+	  setlength(clip[0], 4);
+	  clip[0][0] := FloatPoint(190,210);
+	  clip[0][1] := FloatPoint(240,210);
+	  clip[0][2] := FloatPoint(240,130);
+	  clip[0][3] := FloatPoint(190,130);
+	  
+	  with TClipper.Create do
+	  try
+	    Add(subj, ptSubject);
+	    Add(clip, ptClip);
+	    Execute(ctIntersection, solution, pftNonZero, pftNonZero);
+	  finally
+	    free;
+	  end;
+	  
+	  //nb: DrawPolygons is a stub for your own polygon rendering code.
+	  DrawPolygons(subj, $160000FF, $600000FF);
+	  DrawPolygons(clip, $20FFFF00, $30FF0000);
+	  DrawPolygons(solution, $3000FF00, $FF006600);</pre>
+</td></tr></table>
+
+</p>
+
+</body>
+</html>
