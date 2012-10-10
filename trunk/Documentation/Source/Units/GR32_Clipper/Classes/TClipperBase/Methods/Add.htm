@@ -1,0 +1,34 @@
+<html>
+<head>
+<title>G32Version</title>
+<link rel="stylesheet" href="../../../../../../styles/default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+
+<p class="Decl"><b>function</b> Add(<b>const</b> Polygon: TArrayOfFixedPoint; PolyType: TPolyType): Boolean; <b>overload</b>;</p><br>
+<p class="Decl"><b>function</b> Add(<b>const</b> Polygon: TArrayOfArrayOfFixedPoint; PolyType: TPolyType): Boolean; <b>overload</b>;</p><br>
+<p class="Decl"><b>function</b> Add(<b>const</b> Polygon: TArrayOfFloatPoint; PolyType: TPolyType): Boolean; <b>overload</b>;</p><br>
+<p class="Decl"><b>function</b> Add(<b>const</b> Polygon: TArrayOfArrayOfFloatPoint; PolyType: TPolyType): Boolean; <b>overload</b>;</p><br>
+
+<p class="Body">
+Any number of subject and clip polygons can be added to the TClipper object before Executing the clip operation.</p><br>
+
+<p  class="Body"><b>Polygon Orientation:</b><br> 
+Outer polygons can be either clockwise or counter-clockwise as long as any inner 'hole' polygons have the reverse orientation.</p>
+<br>
+
+<p  class="Body"><b>Polygon Coordinate range</b>:<br> 
+Polygon coordinates must be between &plusmn; <b>4.6e+15</b>, otherwise a range error will be thrown. If coordinates can be kept between &plusmn; <b>1.0e+6</b>, then a modest increase in performance can be achieved (approx. 15-20% over the larger range) by avoiding large integer math.</p>
+<br>
+
+<p  class="Body"><b>The function will return false if:</b> 
+<ul>
+	<li>there are less than 3 coordinates defining the polygon (once duplicates have been excluded).</li>
+	<li>all polygon coordinates are co-linear.</li>
+</ul>
+</p>
+
+<a href="../../../Types/TPolyType.htm" id="hidden"></a>
+
+</body>
+</html>
