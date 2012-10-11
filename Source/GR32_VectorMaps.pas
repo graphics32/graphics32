@@ -248,14 +248,14 @@ begin
     WY := TFixedRec(Y).Frac;
     {$IFDEF HAS_NATIVEINT}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
-      PFixedPoint(NativeUInt(P) + NativeUInt(H))^, WX), CombineVectorsReg(
-      PFixedPoint(NativeUInt(P) + NativeUInt(W))^,
-      PFixedPoint(NativeUInt(P) + NativeUInt(W + H))^, WX), WY);
+      PFixedPoint(NativeUInt(P) + H)^, WX), CombineVectorsReg(
+      PFixedPoint(NativeUInt(P) + W)^, PFixedPoint(NativeUInt(P) + W + H)^, WX),
+      WY);
     {$ELSE}
     Result := CombineVectorsReg(CombineVectorsReg(PFixedPoint(P)^,
-      PFixedPoint(Cardinal(P) + Cardinal(H))^, WX), CombineVectorsReg(
-      PFixedPoint(Cardinal(P) + Cardinal(W))^,
-      PFixedPoint(Cardinal(P) + Cardinal(W) + Cardinal(H))^, WX), WY);
+      PFixedPoint(Cardinal(P) + H)^, WX), CombineVectorsReg(
+      PFixedPoint(Cardinal(P) + W)^, PFixedPoint(Cardinal(P) + W + H)^, WX),
+      WY);
     {$ENDIF}
   end else
   begin
@@ -321,7 +321,7 @@ begin
     AssignFile(MeshFile, FileName);
     Reset(MeshFile, 1);
     BlockRead(MeshFile, Header, SizeOf(TPSLiquifyMeshHeader));
-    if LowerCase(string(Header.Ident)) <> LowerCase(MeshIdent) then
+    if Lowercase(String(Header.Ident)) <> Lowercase(MeshIdent) then
       Exception.Create(RCStrBadFormat);
     with Header do
     begin
@@ -593,7 +593,7 @@ begin
     TopDone: Top := Top div Width;
 
     //Find Bottom
-    Bottom := Self.Width * Self.Height - 1;
+    Bottom := Width * Height - 1;
     VectorPtr := @Vectors[Bottom];
     repeat
       if Int64(VectorPtr^) <> 0 then goto BottomDone;
@@ -601,7 +601,7 @@ begin
       Dec(Bottom);
     until Bottom < 0;
 
-    BottomDone: Bottom := Bottom div Self.Width - 1;
+    BottomDone: Bottom := Bottom div Width - 1;
 
     //Find Left
     Left := 0;
@@ -612,12 +612,12 @@ begin
         Inc(J);
       until J >= Bottom;
       Inc(Left)
-    until Left >= Self.Width;
+    until Left >= Width;
 
     LeftDone:
 
     //Find Right
-    Right := Self.Width - 1;
+    Right := Width - 1;
     repeat
       J := Bottom;
       repeat
@@ -627,10 +627,11 @@ begin
       Dec(Right)
     until Right <= Left;
 
+
   end;
   RightDone:
   if IsRectEmpty(Result) then
-    Result := Rect(0, 0, 0, 0);
+    Result := Rect(0,0,0,0);
 end;
 
 end.

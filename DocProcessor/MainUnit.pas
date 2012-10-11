@@ -46,7 +46,6 @@ type
     LblProjectFileName: TLabel;
     CmbProjectName: TComboBox;
     EdtVersionString: TEdit;
-    OpnDlgPAS: TOpenDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -310,12 +309,12 @@ begin
       if Self.Components[Index].InheritsFrom(TCustomEdit) and
          not Self.Components[Index].InheritsFrom(TMemo) then
       begin
-        StrValue := Ini.ReadString('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), '');
+        StrValue := Ini.ReadString('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), '');
         if StrValue <> '' then TEdit(Self.Components[Index]).Text := StrValue;
       end
       else if Self.Components[Index].InheritsFrom(TCheckBox) then
         TCheckBox(Self.Components[Index]).Checked :=
-          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), False);
+          Ini.ReadBool('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), False);
   finally
     Ini.Free;
   end;
@@ -501,7 +500,7 @@ begin
       LogNL;
       LogAdd(RCStrBrokenLinksFound + ':' + CRLF);
       for I := 0 to Project.BrokenLinks.Count -1 do
-        LogAdd(Project.BrokenLinks[I]);
+        LogAdd(Project.BrokenLinks[i]);
       LogNL;
       Log.Color := $E7FFFF;
     end;
@@ -563,28 +562,14 @@ end;
 
 procedure TMainForm.BtnParseMissingClick(Sender: TObject);
 var
-  I, J, K: Integer;
-  FileCntr, FileType: Integer;
+  i, j, k, m: Integer;
   DestUnitFolder, Fn: TFileName;
-  S: string;
+  s: string;
   PasFiles, MenuData: TStringList;
-const
-  NEW_MAIN_UNIT = 5;
-  NEW_ADDITIONAL_UNIT = 6;
 begin
   if SourceDir = '' then Exit;
-  OpnDlgPAS.InitialDir := DelphiSourceFolder;
-  if not OpnDlgPAS.Execute then exit;
-  DelphiSourceFolder := ExtractFilePath(OpnDlgPAS.FileName);
-
-  if OpnDlgPAS.Files.count > 1 then
-    S := 'Add files as MAIN units?' else
-    S := 'Add file as a MAIN unit?';
-  if MessageBox(Handle, PChar(S), PChar(Caption),
-    MB_ICONQUESTION or MB_YESNO or MB_DEFBUTTON2) = IDYES then
-      FileType := NEW_MAIN_UNIT else
-      FileType := NEW_ADDITIONAL_UNIT;
-
+  DelphiSourceFolder := GetDelphiSourceFolder(DelphiSourceFolder);
+  if DelphiSourceFolder = '' then Exit;
   DestUnitFolder := SourceDir + 'Units\';
 
   Log.Clear;
@@ -599,102 +584,73 @@ begin
   LogAdd(RCStrStartingPas2Html + ' ' + CDots + CRLF);
   LogNL;
   Application.ProcessMessages;
-
-  J := 0;
-  PasFiles := TStringList.Create;
+  j := 0;
+  PasFiles := GetFileList(DelphiSourceFolder, '*.pas');
   try
-    PasFiles.Duplicates := dupIgnore;
-    PasFiles.Assign(OpnDlgPAS.Files);
-    for I := 0 to PasFiles.Count - 1 do
+    PasFiles.Sort;
+    for i := 0 to PasFiles.Count - 1 do
     begin
-      Fn := ChangeFileExt(ExtractFileName(PasFiles[I]), '');
+      Fn := ChangeFileExt(ExtractFileName(PasFiles[i]), '');
       if DirectoryExists(DestUnitFolder + fn) then
       begin
-        S := Format('The file %s has already been imported into the help ' +
+        s := Format('The file %s has already been imported into the help ' +
           'source.' + #10 + 'Do you want to replace the existing contents ' +
           'with this new file?', [fn]);
-        if MessageBox(Handle, PChar(S), PChar(Caption),
-          MB_ICONWARNING or MB_YESNO or MB_DEFBUTTON2) <> IDYES then Continue;
+        if MessageBox(Self.Handle, PChar(s),
+          PChar(Caption), MB_YESNO or MB_DEFBUTTON2) <> IDYES then Continue;
         DeleteFolder(DestUnitFolder + fn);
       end;
-
-      K := BuildNewUnit(AnsiString(PasFiles[I]),
+      Inc(j);
+      k := BuildNewUnit(AnsiString(PasFiles[i]),
         AnsiString(DestUnitFolder + fn + '\'), ProjectDir);
-      LogAdd('  added: ' + PasFiles[I] + CRLF);
-      if K >= 0 then
-        LogAdd('  (parse error at line ' + IntToStr(K + 1) +')' + CRLF);
+      LogAdd('  added: ' + PasFiles[i] + CRLF);
+      if k >= 0 then
+        LogAdd('  (parse error at line ' + IntToStr(k+1) +')' + CRLF);
       Application.ProcessMessages;
 
-      //prepare to update the menu list ...
-      PasFiles[I] := fn;
-      PasFiles.Objects[I] := Pointer(1); //flag as updating
-      Inc(J);
+      //getting ready to update the menu list (ie saves redoing stuff) ...
+      PasFiles[i] := fn;
+      PasFiles.Objects[i] := pointer(1); //flags a new unit
     end;
-
-    //remove skipped over files ...
-    for I := PasFiles.Count - 1 downto 0 do
-      if PasFiles.Objects[I] = nil then
-        PasFiles.Delete(I);
-    PasFiles.Sorted := True;
     //now update the help file's dropdown menu list of units
-    if (J > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
+    if (j > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
     begin
-      LogAdd('Adding ' + IntToStr(J) + ' units' + CRLF);
-
       MenuData := TStringList.Create;
       try
         MenuData.LoadFromFile(ProjectDir + 'Scripts\menu_data.js');
-
-        if FileType = NEW_MAIN_UNIT then
-          I := MenuData.IndexOf('td_5 = "Main Units"') else
-          I := MenuData.IndexOf('td_6 = "Additional Units"');
-        if I < 0 then Exit;
-
-        FileCntr := 1;
-        Inc(I);
-        J := I;
-
-        //add any existing files to PasFiles so the new files are
-        //inserted in alphabetical order ...
-        while (I < MenuData.Count) and (MenuData[I] <> '') do
+        i := MenuData.IndexOf('td_6 = "Additional Units"');
+        if i > 0 then
         begin
-          S := Copy(MenuData[I], Pos('= "', MenuData[I]) + 3, 255);
-          K := Pos('.pas"', S);
-          if K > 0 then
-            Delete(S, K, Length(S) - K);
-          PasFiles.Add(S);
-          Inc(FileCntr);
-          Inc(I, 2);
-        end;
-        //clear out and rebuild the menu ...
-        for I := 1 to I - J do
-          MenuData.Delete(J);
-        for I := 0 to PasFiles.Count - 1 do
-        begin
-          MenuData.Insert(J, Format('td_%d_%d = "%s.pas"',
-            [FileType, I + 1, PasFiles[I]]));
-          MenuData.Insert(J + 1, Format('url_%d_%d = "Units/%s/_Body.htm"',
-            [FileType, I + 1, PasFiles[I]]));
-          Inc(J, 2);
-        end;
-
-        LogNL;
-        if FileType = NEW_MAIN_UNIT then
-          LogAdd('  ''Main Units'' menu updated.' + CRLF) else
+          while MenuData[i] <> '' do Inc(i);
+          //now append to the list of additional units ...
+          PasFiles.Sort;
+          m := j;
+          for k := PasFiles.Count -1 downto 0 do
+            if Assigned(PasFiles.Objects[k]) then
+            begin
+              MenuData.Insert(i, Format('url_6_%d = "Units/%s/_Body.htm"',[m, PasFiles[k]]));
+              MenuData.Insert(i, Format('td_6_%d = "%s.pas"',[m, PasFiles[k]]));
+              dec(m);
+            end;
+          {$IFDEF DEBUGGING}
+          //MenuData.SaveToFile('c:\temp\menu_data.txt');
+          {$ELSE}
+          MenuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
+          {$ENDIF}
+          LogNL;
           LogAdd('  ''Additional Units'' menu updated.' + CRLF);
-
-        //MenuData.SaveToFile('c:\temp\menu_data.txt'); //debugging only
-        MenuData.SaveToFile(ProjectDir + 'Scripts\menu_data.js');
+        end;
       finally
         MenuData.Free;
       end;
     end;
-    LogNL;
-    LogAdd(CDots + ' done' + CRLF);
-    Log.Color := $E7FFE7;
   finally
     PasFiles.Free;
   end;
+  LogAdd(IntToStr(j) +' units added.' + CRLF);
+  LogNL;
+  LogAdd(CDots + ' done' + CRLF);
+  Log.Color := $E7FFE7;
 end;
 
 procedure TMainForm.EdtProjectTitleChange(Sender: TObject);

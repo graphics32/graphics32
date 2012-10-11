@@ -1,0 +1,480 @@
+object MainForm: TMainForm
+  Left = 254
+  Height = 563
+  Top = 244
+  Width = 631
+  HorzScrollBar.Page = 630
+  VertScrollBar.Page = 649
+  ActiveControl = ToolGroup.RadioButton0
+  Caption = 'Image Warping Example'
+  ClientHeight = 544
+  ClientWidth = 631
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Menu = MainMenu
+  OnClose = FormClose
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '0.9.31'
+  object Panel1: TPanel
+    Left = 8
+    Height = 529
+    Top = 8
+    Width = 481
+    BevelInner = bvRaised
+    BevelOuter = bvLowered
+    TabOrder = 0
+  end
+  object MainPanel: TPanel
+    Left = 490
+    Height = 544
+    Top = 0
+    Width = 141
+    Align = alRight
+    BevelOuter = bvNone
+    BevelWidth = 2
+    Caption = 'MainPanel'
+    ClientHeight = 544
+    ClientWidth = 141
+    TabOrder = 1
+    object GeneralPanel: TPanel
+      Left = 0
+      Height = 73
+      Top = 0
+      Width = 141
+      Align = alTop
+      ClientHeight = 73
+      ClientWidth = 141
+      TabOrder = 0
+      object Label4: TLabel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 139
+        Align = alTop
+        Alignment = taCenter
+        AutoSize = False
+        Caption = 'General'
+        Color = clGray
+        Font.Color = clWhite
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentColor = False
+        ParentFont = False
+        Transparent = False
+      end
+      object Label5: TLabel
+        Left = 8
+        Height = 14
+        Top = 24
+        Width = 66
+        Caption = 'Remap Scale:'
+        ParentColor = False
+      end
+      object ScaleBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 40
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        LargeChange = 10
+        Max = 300
+        Min = -300
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 100
+        OnMouseUp = ScaleBarMouseUp
+      end
+    end
+    object BrushPanel: TPanel
+      Left = 0
+      Height = 304
+      Top = 233
+      Width = 141
+      Align = alTop
+      ClientHeight = 304
+      ClientWidth = 141
+      TabOrder = 1
+      object Label6: TLabel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 139
+        Align = alTop
+        Alignment = taCenter
+        AutoSize = False
+        Caption = 'Brush'
+        Color = clGray
+        Font.Color = clWhite
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentColor = False
+        ParentFont = False
+        Transparent = False
+      end
+      object FeatherLabel: TLabel
+        Left = 8
+        Height = 14
+        Top = 88
+        Width = 43
+        Caption = 'Feather:'
+        ParentColor = False
+      end
+      object Label2: TLabel
+        Left = 8
+        Height = 14
+        Top = 56
+        Width = 47
+        Caption = 'Pressure:'
+        ParentColor = False
+      end
+      object Label3: TLabel
+        Left = 8
+        Height = 14
+        Top = 120
+        Width = 30
+        Caption = 'Pinch:'
+        ParentColor = False
+      end
+      object Label1: TLabel
+        Left = 8
+        Height = 14
+        Top = 24
+        Width = 24
+        Caption = 'Size:'
+        ParentColor = False
+      end
+      object Bevel2: TBevel
+        Left = 68
+        Height = 25
+        Top = 131
+        Width = 25
+        Shape = bsLeftLine
+      end
+      object Label9: TLabel
+        Left = 8
+        Height = 14
+        Top = 160
+        Width = 60
+        Caption = 'Brush Mesh:'
+        ParentColor = False
+      end
+      object FeatherBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 104
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        LargeChange = 10
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 12
+        OnChange = PressureBarChange
+      end
+      object PressureBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 72
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        LargeChange = 10
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 50
+        OnChange = PressureBarChange
+      end
+      object PinchBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 136
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        LargeChange = 10
+        Min = -100
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 0
+        OnChange = PressureBarChange
+      end
+      object SizeBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 40
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        LargeChange = 10
+        Max = 500
+        Min = 5
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 100
+        OnChange = SizeBarChange
+        OnMouseUp = GaugeMouseUp
+      end
+      object BrushMeshPreview: TPaintBox32
+        Left = 8
+        Height = 121
+        Top = 176
+        Width = 121
+        TabOrder = 0
+        OnResize = BrushMeshPreviewResize
+      end
+    end
+    object ToolPanel: TPanel
+      Left = 0
+      Height = 160
+      Top = 73
+      Width = 141
+      Align = alTop
+      ClientHeight = 160
+      ClientWidth = 141
+      TabOrder = 2
+      object Label7: TLabel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 139
+        Align = alTop
+        Alignment = taCenter
+        AutoSize = False
+        Caption = 'Warp Tool'
+        Color = clGray
+        Font.Color = clWhite
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = [fsBold]
+        Layout = tlCenter
+        ParentColor = False
+        ParentFont = False
+        Transparent = False
+      end
+      object ParamLabel: TLabel
+        Left = 8
+        Height = 14
+        Top = 88
+        Width = 31
+        Caption = 'Param'
+        Enabled = False
+        ParentColor = False
+      end
+      object RateLabel: TLabel
+        Left = 8
+        Height = 14
+        Top = 120
+        Width = 28
+        Caption = 'Rate:'
+        Enabled = False
+        ParentColor = False
+      end
+      object ToolGroup: TRadioGroup
+        Left = 8
+        Height = 57
+        Top = 24
+        Width = 121
+        AutoFill = True
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.TopBottomSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 2
+        ClientHeight = 39
+        ClientWidth = 117
+        Columns = 2
+        ItemIndex = 0
+        Items.Strings = (
+          'Warp'
+          'Zoom'
+          'Twirl'
+          'Flower'
+        )
+        OnClick = ToolGroupClick
+        TabOrder = 0
+      end
+      object ParamBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 104
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        Enabled = False
+        LargeChange = 10
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 20
+        OnChange = PressureBarChange
+        OnMouseUp = GaugeMouseUp
+      end
+      object RateBar: TGaugeBar
+        Left = 8
+        Height = 15
+        Top = 136
+        Width = 121
+        Color = clScrollBar
+        Backgnd = bgPattern
+        Enabled = False
+        LargeChange = 10
+        Max = 399
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 350
+        OnChange = RateBarChange
+        OnMouseUp = GaugeMouseUp
+      end
+    end
+  end
+  object OpenPictureDialog: TOpenPictureDialog
+    FilterIndex = 0
+    left = 136
+    top = 8
+  end
+  object UpdateTimer: TTimer
+    Interval = 50
+    OnTimer = UpdateTimerTimer
+    left = 344
+    top = 8
+  end
+  object OpenMeshDialog: TOpenDialog
+    Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
+    FilterIndex = 0
+    Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
+    left = 240
+    top = 8
+  end
+  object SaveMeshDialog: TSaveDialog
+    Filter = 'Photoshop Liquify Mesh (*.msh)|*.msh'
+    FilterIndex = 0
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    left = 240
+    top = 64
+  end
+  object SavePictureDialog: TSavePictureDialog
+    DefaultExt = '.*.bmp'
+    Filter = 'Bitmaps (*.bmp)|*.bmp'
+    FilterIndex = 0
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    left = 136
+    top = 64
+  end
+  object MainMenu: TMainMenu
+    left = 344
+    top = 64
+    object File1: TMenuItem
+      Caption = 'File'
+      object mOpenImage: TMenuItem
+        Caption = '&Open Image...'
+        ShortCut = 16463
+        OnClick = mOpenImageClick
+      end
+      object mSaveImage: TMenuItem
+        Caption = '&Save Image...'
+        ShortCut = 16467
+        OnClick = mSaveImageClick
+      end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object mOpenMesh: TMenuItem
+        Caption = 'Open Mesh...'
+        OnClick = mOpenMeshClick
+      end
+      object mSaveMesh: TMenuItem
+        Caption = 'Save Mesh...'
+        OnClick = mSaveMeshClick
+      end
+      object mResetMesh: TMenuItem
+        Caption = 'Reset Mesh'
+        ShortCut = 16466
+        OnClick = mResetMeshClick
+      end
+      object N4: TMenuItem
+        Caption = '-'
+      end
+      object mExit: TMenuItem
+        Caption = 'Exit'
+        OnClick = mExitClick
+      end
+    end
+    object Sampling1: TMenuItem
+      Caption = 'Sampling'
+      object mSupersampleNow: TMenuItem
+        Caption = 'Supersample Now!'
+        OnClick = mSupersampleNowClick
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
+      object mSamplingKernel: TMenuItem
+        Caption = 'Sampling Kernel'
+      end
+      object mKernelMode: TMenuItem
+        Caption = 'KernelMode'
+        object mKmDefault: TMenuItem
+          Caption = 'kmDefault (slow, but exact)'
+          RadioItem = True
+          OnClick = mkmDefaultClick
+        end
+        object mKmTableNearest: TMenuItem
+          Tag = 1
+          Caption = 'kmTableNearest (fastest, "curve" sampling)'
+          RadioItem = True
+          OnClick = mkmDefaultClick
+        end
+        object mKmTableLinear: TMenuItem
+          Tag = 2
+          Caption = 'kmTableLinear (fast, "curve" approximation)'
+          Checked = True
+          RadioItem = True
+          OnClick = mkmDefaultClick
+        end
+      end
+      object mSamplingGrid: TMenuItem
+        Caption = 'Sampling Grid'
+        object m2x2: TMenuItem
+          Tag = 2
+          Caption = '2x2'
+          OnClick = m3x3Click
+        end
+        object m3x3: TMenuItem
+          Tag = 3
+          Caption = '3x3'
+          Checked = True
+          RadioItem = True
+          OnClick = m3x3Click
+        end
+        object m5x5: TMenuItem
+          Tag = 5
+          Caption = '5x5'
+          RadioItem = True
+          OnClick = m3x3Click
+        end
+        object m7x7: TMenuItem
+          Tag = 7
+          Caption = '7x7'
+          RadioItem = True
+          OnClick = m3x3Click
+        end
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object mBilinearWarp: TMenuItem
+        Caption = 'Bilinear Warp'
+        Checked = True
+        OnClick = Bi1Click
+      end
+    end
+  end
+end

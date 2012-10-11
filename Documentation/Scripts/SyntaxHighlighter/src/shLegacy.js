@@ -1,18 +1,31 @@
 /**
  * SyntaxHighlighter
- * http://alexgorbatchev.com/SyntaxHighlighter
+ * http://alexgorbatchev.com/
  *
  * SyntaxHighlighter is donationware. If you are using it, please donate.
- * http://alexgorbatchev.com/SyntaxHighlighter/donate.html
+ * http://alexgorbatchev.com/wiki/SyntaxHighlighter:Donate
  *
  * @version
- * 3.0.83 (July 02 2010)
+ * 2.0.320 (May 03 2009)
  * 
  * @copyright
- * Copyright (C) 2004-2010 Alex Gorbatchev.
+ * Copyright (C) 2004-2009 Alex Gorbatchev.
  *
  * @license
- * Dual licensed under the MIT and GPL licenses.
+ * This file is part of SyntaxHighlighter.
+ * 
+ * SyntaxHighlighter is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * SyntaxHighlighter is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with SyntaxHighlighter.  If not, see <http://www.gnu.org/copyleft/lesser.html>.
  */
 var dp = {
 	SyntaxHighlighter : {}
@@ -54,8 +67,8 @@ dp.SyntaxHighlighter = {
 		var parts = input.split(':'),
 			brushName = parts[0],
 			options = {},
-			straight = { 'true' : true }
-			reverse = { 'true' : false },
+			straight = { 'true' : 'true' }
+			reverse = { 'true' : 'false' },
 			result = null,
 			defaults = SyntaxHighlighter.defaults
 			;
@@ -68,15 +81,17 @@ dp.SyntaxHighlighter = {
 		collapseAll = asString(defaultValue(collapseAll, defaults.collapse)); 
 		showColumns = asString(defaultValue(showColumns, defaults.ruler));
 		firstLine = asString(defaultValue(firstLine, defaults['first-line'])); 
-
-		return {
+		
+		result = {
 			brush			: brushName,
 			gutter			: defaultValue(reverse[options.nogutter], showGutter),
 			toolbar			: defaultValue(reverse[options.nocontrols], showControls),
 			collapse		: defaultValue(straight[options.collapse], collapseAll),
-			// ruler			: defaultValue(straight[options.showcolumns], showColumns),
+			ruler			: defaultValue(straight[options.showcolumns], showColumns),
 			'first-line'	: defaultValue(getValue(parts, 'firstline'), firstLine)
 		};
+		
+		return result;
 	},
 	
 	HighlightAll: function(

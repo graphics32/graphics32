@@ -378,11 +378,4 @@ object MainForm: TMainForm
       end
     end
   end
-  object OpnDlgPAS: TOpenDialog
-    DefaultExt = 'pas'
-    Filter = 'Delphi Units (*.pas)|*.pas'
-    Options = [ofHideReadOnly, ofAllowMultiSelect, ofFileMustExist, ofEnableSizing]
-    Left = 387
-    Top = 24
-  end
 end

@@ -67,20 +67,17 @@ procedure MoveLongword(const Source; var Dest; Count: Integer);
 {$ENDIF}
 procedure MoveWord(const Source; var Dest; Count: Integer);
 
-{$IFDEF USESTACKALLOC}
 { Allocates a 'small' block of memory on the stack }
 function StackAlloc(Size: Integer): Pointer; register;
 
 { Pops memory allocated by StackAlloc }
 procedure StackFree(P: Pointer); register;
-{$ENDIF}
 
 { Exchange two 32-bit values }
 procedure Swap(var A, B: Pointer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Swap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Swap(var A, B: TFixed); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 procedure Swap(var A, B: TColor32); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-procedure Swap32(var A, B); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 
 { Exchange A <-> B only if B < A }
 procedure TestSwap(var A, B: Integer); overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -174,15 +171,10 @@ uses
 function Clamp(const Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
- if Value > 255 then
-   Result := 255
- else
- if Value < 0 then
-   Result := 0
- else
-   Result := Value;
+ if Value > 255 then Result := 255
+  else if Value < 0 then Result := 0
+  else Result := Value;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         // in x64 calling convention parameters are passed in ECX, EDX, R8 & R9
@@ -209,7 +201,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword); {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure FillLongword_ASM(var X; Count: Cardinal; Value: Longword);
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -239,7 +231,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword); {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure FillLongword_MMX(var X; Count: Cardinal; Value: Longword);
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -308,7 +300,7 @@ asm
 {$ENDIF}
 end;
 
-procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword); {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure FillLongword_SSE2(var X; Count: Integer; Value: Longword);
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -370,56 +362,35 @@ asm
 
 {$IFDEF TARGET_x64}
         // RCX = X;   RDX = Count;   R8 = Value
+        TEST       EDX,EDX    // if Count = 0 then
+        JZ         @Exit      //   Exit
+        MOV        RAX, RCX   // RAX = X
 
-        TEST       RDX, RDX        // if Count = 0 then
-        JZ         @Exit           //   Exit
+        PUSH       RDI        // store RDI on stack
+        MOV        R9, RDX    // R9 = Count
+        MOV        RDI, RDX   // RDI = Count
 
-        MOV        R9, RCX         // Point R9 to destination
+        SHR        RDI, 1     // RDI = RDI SHR 1
+        SHL        RDI, 1     // RDI = RDI SHL 1
+        SUB        R9, RDI    // check if extra fill is necessary
+        JE         @QLoopIni
 
-        CMP        RDX, 32
-        JL         @SmallLoop
-
-        AND        RCX, 3          // get aligned count
-        TEST       RCX, RCX        // check if X is not dividable by 4
-        JNZ        @SmallLoop      // otherwise perform slow small loop
-
-        MOV        RCX, R9
-        SHR        RCX, 2          // bytes to count
-        AND        RCX, 3          // get aligned count
-        ADD        RCX,-4
-        NEG        RCX             // get count to advance
-        JZ         @SetupMain
-        SUB        RDX, RCX        // subtract aligning start from total count
-
-@AligningLoop:
-        MOV        [R9], R8D
-        ADD        R9, 4
-        DEC        RCX
-        JNZ        @AligningLoop
-
-@SetupMain:
-        MOV        RCX, RDX        // RCX = remaining count
-        SHR        RCX, 2
-        SHL        RCX, 2
-        SUB        RDX, RCX        // RDX = remaining count
-        SHR        RCX, 2
-
-        MOVD       XMM0, R8D
-        PUNPCKLDQ  XMM0, XMM0
-        PUNPCKLDQ  XMM0, XMM0
-@SSE2Loop:
-        MOVDQA     [R9], XMM0
-        ADD        R9, 16
-        DEC        RCX
-        JNZ        @SSE2Loop
-
-        TEST       RDX, RDX
-        JZ         @Exit
-@SmallLoop:
-        MOV        [R9], R8D
-        ADD        R9, 4
-        DEC        RDX
-        JNZ        @SmallLoop
+        MOV        [RAX], R8D // eventually perform extra fill
+        ADD        RAX, 4     // Inc(X, 4)
+        DEC        RDX        // Dec(Count)
+        JZ         @ExitPOP   // if (Count = 0) then Exit
+@QLoopIni:
+        MOVD       XMM0, R8D  // XMM0 = R8D
+        PUNPCKLDQ  XMM0, XMM0 // unpack XMM0 register
+        SHR        RDX, 1     // RDX = RDX div 2
+@QLoop:
+        MOVQ       QWORD PTR [RAX], XMM0 // perform fill
+        ADD        RAX, 8     // Inc(X, 8)
+        DEC        RDX        // Dec(X);
+        JNZ        @QLoop
+        EMMS
+@ExitPOP:
+        POP        RDI
 @Exit:
 {$ENDIF}
 end;
@@ -435,7 +406,6 @@ begin
   for I := Count - 1 downto 0 do
     P[I] := Value;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -474,7 +444,6 @@ procedure MoveLongword(const Source; var Dest; Count: Integer);
 begin
   Move(Source, Dest, Count shl 2);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = Source;   EDX = Dest;   ECX = Count
@@ -516,7 +485,6 @@ procedure MoveWord(const Source; var Dest; Count: Integer);
 begin
   Move(Source, Dest, Count shl 1);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         // EAX = X;   EDX = Count;   ECX = Value
@@ -590,15 +558,6 @@ begin
   B := T;
 end;
 
-procedure Swap32(var A, B);
-var
-  T: Integer;
-begin
-  T := Integer(A);
-  Integer(A) := Integer(B);
-  Integer(B) := T;
-end;
-
 procedure TestSwap(var A, B: Integer);
 var
   T: Integer;
@@ -653,7 +612,6 @@ begin
   else
     Result := Value;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -692,7 +650,6 @@ begin
   if C > Result then
     Result := C;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       RAX,RCX
@@ -716,7 +673,6 @@ begin
   if C < Result then
     Result := C;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       RAX,RCX
@@ -739,7 +695,6 @@ begin
   else
     Result := Value;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX,ECX
@@ -769,7 +724,6 @@ begin
   else 
     Result := Value;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX,ECX
@@ -788,9 +742,8 @@ begin
   if Value < 0 then
     Result := Max + (Value - Max) mod (Max + 1)
   else
-    Result := Value mod (Max + 1);
+    Result := (Value) mod (Max + 1);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX,ECX
@@ -834,7 +787,6 @@ begin
   Remainder := Dividend mod Divisor;
   Result := Dividend div Divisor;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -873,7 +825,6 @@ begin
   if Odd(DivResult) then
     Result := Max - Result;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -909,7 +860,7 @@ begin
     DivResult := DivMod(Value - Min, Max - Min + 1, Result);
     Inc(Result, Min);
   end;
-  if Odd(DivResult) then Result := Max + Min - Result;
+  if Odd(DivResult) then Result := Max+Min-Result;
 end;
 
 function WrapPow2(Value, Max: Integer): Integer; overload;
@@ -1032,7 +983,6 @@ function SAR_4(Value: Integer): Integer;
 begin
   Result := Value div 16;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1046,7 +996,6 @@ function SAR_8(Value: Integer): Integer;
 begin
   Result := Value div 256;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1060,7 +1009,6 @@ function SAR_9(Value: Integer): Integer;
 begin
   Result := Value div 512;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1074,7 +1022,6 @@ function SAR_11(Value: Integer): Integer;
 begin
   Result := Value div 2048;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1088,7 +1035,6 @@ function SAR_12(Value: Integer): Integer;
 begin
   Result := Value div 4096;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1102,7 +1048,6 @@ function SAR_13(Value: Integer): Integer;
 begin
   Result := Value div 8192;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1116,7 +1061,6 @@ function SAR_14(Value: Integer): Integer;
 begin
   Result := Value div 16384;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1130,7 +1074,6 @@ function SAR_15(Value: Integer): Integer;
 begin
   Result := Value div 32768;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1144,7 +1087,6 @@ function SAR_16(Value: Integer): Integer;
 begin
   Result := Value div 65536;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV       EAX,ECX
@@ -1165,7 +1107,6 @@ begin
   REn.R := WCEn.B;
   REn.B := WCEn.R;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 // EAX = WinColor
 // this function swaps R and B bytes in ABGR
@@ -1179,7 +1120,6 @@ asm
 {$ENDIF}
 end;
 
-{$IFDEF USESTACKALLOC}
 {$IFDEF PUREPASCAL}
 function StackAlloc(Size: Integer): Pointer;
 begin
@@ -1197,7 +1137,7 @@ end;
 
   x64 implementation by Jameel Halabi
   }
-function StackAlloc(Size: Integer): Pointer; register; {$IFDEF FPC} nostackframe; {$ENDIF}
+function StackAlloc(Size: Integer): Pointer; register;
 asm
 {$IFDEF TARGET_x86}
         POP       ECX          // return address
@@ -1222,17 +1162,15 @@ asm
         PUSH      ECX          // return to caller
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        {$IFNDEF FPC}
-        .NOFRAME
-        {$ENDIF}
+        MOV       RAX, RCX
         POP       R8           // return address
         MOV       RDX, RSP     // original SP
         ADD       ECX, 15
         AND       ECX, NOT 15  // round up to keep SP dqword aligned
-        CMP       ECX, 4088
+        CMP       ECX, 4092
         JLE       @@2
 @@1:
-        SUB       RSP, 4088
+        SUB       RSP, 4092
         PUSH      RCX          // make sure we touch guard page, to grow stack
         SUB       ECX, 4096
         JNS       @@1
@@ -1244,7 +1182,6 @@ asm
         MOV       RDX, RSP
         SUB       RDX, 8
         PUSH      RDX          // save current SP, for sanity check  (sp = [sp])
-        PUSH      R8           // return to caller
 {$ENDIF}
 end;
 
@@ -1258,37 +1195,33 @@ end;
 - Built-in sanity checks guarantee that an improper call to StackFree will not
   corrupt the stack. Worst case is that the stack block is not released until
   the calling routine exits. }
-procedure StackFree(P: Pointer); register; {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure StackFree(P: Pointer); register;
 asm
 {$IFDEF TARGET_x86}
-        POP       ECX                     // return address
+        POP       ECX                     { return address }
         MOV       EDX, DWORD PTR [ESP]
         SUB       EAX, 8
-        CMP       EDX, ESP                // sanity check #1 (SP = [SP])
+        CMP       EDX, ESP                { sanity check #1 (SP = [SP]) }
         JNE       @Exit
-        CMP       EDX, EAX                // sanity check #2 (P = this stack block)
+        CMP       EDX, EAX                { sanity check #2 (P = this stack block) }
         JNE       @Exit
-        MOV       ESP, DWORD PTR [ESP+4]  // restore previous SP
+        MOV       ESP, DWORD PTR [ESP+4]  { restore previous SP  }
 @Exit:
-        PUSH      ECX                     // return to caller
+        PUSH      ECX                     { return to caller }
 {$ENDIF}
 {$IFDEF TARGET_x64}
-        {$IFNDEF FPC}
-        .NOFRAME
-        {$ENDIF}
-        POP       R8                       // return address
+        POP       R8                       { return address }
         MOV       RDX, QWORD PTR [RSP]
         SUB       RCX, 16
-        CMP       RDX, RSP                 // sanity check #1 (SP = [SP])
+        CMP       RDX, RSP                 { sanity check #1 (SP = [SP]) }
         JNE       @Exit
-        CMP       RDX, RCX                 // sanity check #2 (P = this stack block)
+        CMP       RDX, RCX                 { sanity check #2 (P = this stack block) }
         JNE       @Exit
-        MOV       RSP, QWORD PTR [RSP + 8] // restore previous SP
+        MOV       RSP, QWORD PTR [RSP + 8] { restore previous SP  }
  @Exit:
-        PUSH      R8                       // return to caller
+        PUSH      R8                       { return to caller }
 {$ENDIF}
 end;
-{$ENDIF}
 {$ENDIF}
 
 {CPU target and feature Function templates}

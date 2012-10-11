@@ -39,10 +39,9 @@ interface
 
 uses
 {$IFDEF FPC}
+  Types,
   {$IFDEF Windows}
   Windows,
-  {$ELSE}
-  Types,
   {$ENDIF}
 {$ELSE}
   Windows,
@@ -422,11 +421,7 @@ function TPointerMap.Exists(Item: PItem; out BucketIndex, ItemIndex: Integer): B
 var
   I: Integer;
 begin
-{$IFDEF HAS_NATIVEINT}
-  BucketIndex := NativeUInt(Item) shr 8 and BUCKET_MASK; // KISS pointer hash(TM)
-{$ELSE}
   BucketIndex := Cardinal(Item) shr 8 and BUCKET_MASK; // KISS pointer hash(TM)
-{$ENDIF}
   // due to their randomness, pointers most commonly differ at byte 1, we use
   // this characteristic for our hash and just apply the mask to it.
   // Worst case scenario happens when most changes are at byte 0, which causes
@@ -448,15 +443,7 @@ var
   BucketIndex, ItemIndex: Integer;
 begin
   if not Exists(Item, BucketIndex, ItemIndex) then
-{$IFDEF FPC}
-    raise EListError.CreateFmt(SItemNotFound, [Item])
-{$ELSE}
-{$IFDEF HAS_NATIVEINT}
-    raise EListError.CreateFmt(SItemNotFound, [NativeInt(Item)])
-{$ELSE}
     raise EListError.CreateFmt(SItemNotFound, [Integer(Item)])
-{$ENDIF}
-{$ENDIF}
   else
     Result := FBuckets[BucketIndex].Items[ItemIndex].Data;
 end;
@@ -466,15 +453,7 @@ var
   BucketIndex, ItemIndex: Integer;
 begin
   if not Exists(Item, BucketIndex, ItemIndex) then
-{$IFDEF FPC}
-    raise EListError.CreateFmt(SItemNotFound, [Item])
-{$ELSE}
-{$IFDEF HAS_NATIVEINT}
-    raise EListError.CreateFmt(SItemNotFound, [NativeInt(Item)])
-{$ELSE}
     raise EListError.CreateFmt(SItemNotFound, [Integer(Item)])
-{$ENDIF}
-{$ENDIF}
   else
     FBuckets[BucketIndex].Items[ItemIndex].Data := Data;
 end;
@@ -856,4 +835,4 @@ begin
   end;
 end;
 
-end.
+end.

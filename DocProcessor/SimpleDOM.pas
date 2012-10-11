@@ -781,7 +781,7 @@ end;
 procedure TDomParser.ReadStream(Dst: TDomNode; Stream: TStream);
 var
   Size: Integer;
-  s: AnsiString;
+  s: ansiString;
 begin
   Size := Stream.Size - Stream.Position;
   if Size = 0 then Exit;
@@ -814,9 +814,9 @@ procedure TDomParser.WriteStream(Src: TDomNode; Stream: TStream; Level: Integer)
 var
   I: Integer;
   TagInfo: THtmlTagInfo;
-  NLS: AnsiString;
+  NLS: ansiString;
 
-  procedure Write(const S: AnsiString);
+  procedure Write(const S: ansiString);
   begin
     if (Length(NLS) > 0) and (Stream.Position > 0) then
       Stream.WriteBuffer(Pointer(NLS)^, Length(NLS));
@@ -826,27 +826,27 @@ var
 
   procedure NewLine;
   begin
-    if Level > 0 then NLS := AnsiString(#13#10 + StringOfChar(' ', Level * 2))
-    else NLS := AnsiString(#13#10);
+    if Level > 0 then NLS := ansiString(#13#10 + StringOfChar(' ', Level * 2))
+    else NLS := ansiString(#13#10);
   end;
 begin
   case Src.NodeType of
     ntText:
       begin
-        Write(AnsiString(Src.Value));
+        Write(ansiString(Src.Value));
       end;
 
     ntComment:
       begin
         NewLine;
-        Write('<!--' + AnsiString(Src.Value) + '-->');
+        Write('<!--' + ansiString(Src.Value) + '-->');
         NewLine;
       end;
 
     ntPI:
       begin
         NewLine;
-        Write(AnsiString('<?' + Src.Name + ' ' + Src.Value + '?>'));
+        Write(ansiString('<?' + Src.Name + ' ' + Src.Value + '?>'));
         NewLine;
       end;
 
@@ -858,9 +858,9 @@ begin
         if TagInfo.ElemType = etBlock then NewLine;
 
         // opening tag
-        Write('<' + AnsiString(Src.Name));
+        Write('<' + ansiString(Src.Name));
         with Src.Attributes do for I := 0 to Count - 1 do
-          Write(AnsiString(Format(' %s="%s"', [Items[I].Name, Items[I].Value])));
+          Write(ansiString(Format(' %s="%s"', [Items[I].Name, Items[I].Value])));
 
         if Src.Count = 0 then
         begin
@@ -876,7 +876,7 @@ begin
             if TagInfo.ElemType = etBR then NewLine;
             if TagInfo.ClosingType = ctAlways then
             begin
-              Write('</' + AnsiString(Src.Name) + '>');
+              Write('</' + ansiString(Src.Name) + '>');
               if TagInfo.ElemType = etBlock then NewLine;
               if TagInfo.ElemType = etBR then NewLine;
             end;
@@ -894,7 +894,7 @@ begin
           if not TagInfo.SimpleContent then NewLine;
 
           // closing tag
-          Write('</' + AnsiString(Src.Name) + '>');
+          Write('</' + ansiString(Src.Name) + '>');
           if TagInfo.ElemType in [etBlock, etUnknown] then NewLine;
         end;
       end;

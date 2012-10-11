@@ -129,16 +129,16 @@ end;
 
 procedure TDelphiParser.NextLine;
 begin
-  if FCurrent.Y < FStrings.count - 1 then
+  Inc(FCurrent.Y);
+  if FCurrent.Y = FStrings.count then
+    FFinished := True
+  else
   begin
-    Inc(FCurrent.Y);
     FCurrent.X := 1;
     FLastX := 1;
     FCurrentLine := FStrings[FCurrent.Y];
     FCurrentLineLen := Length(FCurrentLine);
-  end
-  else
-    FFinished := True;
+  end;
 end;
 //------------------------------------------------------------------------------
 

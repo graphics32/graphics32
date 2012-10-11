@@ -1,0 +1,22 @@
+{ This is an automatically generated lazarus resource file }
+
+LazarusResources.Add('TFormRotateExample','FORMDATA',[
+  'TPF0'#18'TFormRotateExample'#17'FormRotateExample'#4'Left'#3#192#0#6'Height'
+  +#3#252#0#3'Top'#2'k'#5'Width'#3#187#1#18'HorzScrollBar.Page'#3#192#1#18'Vert'
+  +'ScrollBar.Page'#3#22#1#11'BorderIcons'#11#12'biSystemMenu'#10'biMinimize'#0
+  +#11'BorderStyle'#7#8'bsSingle'#7'Caption'#6#14'Rotate Example'#12'ClientHeig'
+  +'ht'#3#252#0#11'ClientWidth'#3#187#1#11'Font.Height'#2#245#9'Font.Name'#6#13
+  +'MS Sans Serif'#8'OnCreate'#7#10'FormCreate'#10'LCLVersion'#6#6'0.9.29'#0#8
+  +'TImage32'#3'Src'#4'Left'#2#16#6'Height'#3#192#0#3'Top'#2#16#5'Width'#3#192#0
+  +#15'Bitmap.DrawMode'#7#7'dmBlend'#25'Bitmap.ResamplerClassName'#6#16'TLinear'
+  +'Resampler'#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7'clBlack'#11'ParentCol'
+  +'or'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'#7#8'smNormal'#8'TabO'
+  +'rder'#2#0#0#0#8'TImage32'#3'Dst'#4'Left'#3#232#0#6'Height'#3#192#0#3'Top'#2
+  +#16#5'Width'#3#192#0#15'Bitmap.DrawMode'#7#7'dmBlend'#25'Bitmap.ResamplerCla'
+  +'ssName'#6#17'TNearestResampler'#11'BitmapAlign'#7#8'baCenter'#5'Color'#7#7
+  +'clBlack'#11'ParentColor'#8#5'Scale'#5#0#0#0#0#0#0#0#128#255'?'#9'ScaleMode'
+  +#7#8'smNormal'#8'TabOrder'#2#1#0#0#9'TGaugeBar'#5'Angle'#4'Left'#2#16#6'Heig'
+  +'ht'#2#18#3'Top'#3#220#0#5'Width'#3#152#1#5'Color'#7#11'clScrollBar'#7'Backg'
+  +'nd'#7#9'bgPattern'#3'Max'#3#180#0#3'Min'#3'L'#255#14'ShowHandleGrip'#9#5'St'
+  +'yle'#7#6'rbsMac'#8'Position'#2#0#8'OnChange'#7#11'AngleChange'#0#0#0
+]);

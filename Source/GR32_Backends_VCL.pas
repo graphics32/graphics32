@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, Graphics, GR32, GR32_Backends, GR32_Containers,
-  GR32_Image, GR32_Backends_Generic, GR32_Text_VCL, GR32_Paths;
+  GR32_Image, GR32_Backends_Generic;
 
 type
   { TGDIBackend }
@@ -49,7 +49,7 @@ type
 
   TGDIBackend = class(TCustomBackend, IPaintSupport,
     IBitmapContextSupport, IDeviceContextSupport,
-    ITextSupport, IFontSupport, ICanvasSupport, ITextToPathSupport)
+    ITextSupport, IFontSupport, ICanvasSupport)
   private
     procedure FontChangedHandler(Sender: TObject);
     procedure CanvasChangedHandler(Sender: TObject);
@@ -120,11 +120,6 @@ type
     procedure UpdateFont;
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
-
-    { ITextToPathSupport }
-    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: WideString); overload;
-    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
 
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
@@ -251,12 +246,6 @@ begin
     FBits := nil;
     raise Exception.Create(RCStrCannotSelectAnObjectIntoDC);
   end;
-end;
-
-function TGDIBackend.MeasureText(const DstRect: TFloatRect;
-  const Text: WideString; Flags: Cardinal): TFloatRect;
-begin
-  Result := GR32_Text_VCL.MeasureText(Font.Handle, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.FinalizeSurface;
@@ -421,21 +410,6 @@ begin
     DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
 
   FOwner.Changed(DstRect);
-end;
-
-procedure TGDIBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat;
-  const Text: WideString);
-var
-  R: TFloatRect;
-begin
-  R := FloatRect(X, Y, X, Y);
-  GR32_Text_VCL.TextToPath(Font.Handle, Path, R, Text, 0);
-end;
-
-procedure TGDIBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
-  const Text: WideString; Flags: Cardinal);
-begin
-  GR32_Text_VCL.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
 end;
 
 procedure TGDIBackend.UpdateFont;

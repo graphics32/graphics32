@@ -173,90 +173,11 @@
   Symbol OMIT_SSE2:
   ----------------
 
-    If defined SSE2 optimizations are not used (omitted)
+     If defined SSE2 optimizations are not used (omitted)
 
-  For faster pixel/color processing, SSE2 can be used which results in a huge
-  performance boost over PUREPASCAL code or native assembler code.
+   For faster pixel/color processing, SSE2 can be used which results in a huge
+   performance boost over PUREPASCAL code or native assembler code.
 
 *)
 
   {-$DEFINE OMIT_SSE2}
-
-
-
-(*
-  Symbol: USEGR32GAMMA
-  --------------------
-
-    If defined the polygon rasterizer will use the GR32 gamma correction LUT.
-
-  Disable for a slight performance increase.
-*)
-
-{-$DEFINE USEGR32GAMMA}
-
-
-
-(*
-  Symbol: CHANGENOTIFICATIONS
-  ---------------------------
-
-    If defined the polygon rasterizer will trigger change notifications.
-
-  Undefining this will avoid bounding box computations, which may
-  improve performance slightly.
-*)
-
-{$DEFINE CHANGENOTIFICATIONS}
-
-
-
-(*
-  Symbol: USESTACKALLOC
-  ---------------------
-
-    If defined stack allocation routines will be used in some functions.
-
-  Allocating memory on the stack is usually more efficient than using the
-  memory manager. If a routine uses StackAllock/StackFree then it should
-  always be wrapped inside a {$W+}...{$W-} block in order to generate
-  a stack frame.
-
-  NOTE: Undefine this symbol if you get stack overflow errors.
-*)
-
-{-$DEFINE USESTACKALLOC}
-
-
-
-(*
-  Symbol: NOHINTING
-  -----------------
-
-    Disables font hinting by default when using TextToPath() method.
-
-  It is usually preferrable to disable hinting when using a high quality
-  polygon renderer like VPR. However, hinting can sometimes improve
-  visual quality when rendering small text (text is adjusted to pixel
-  boundaries which makes it more crisp.)
-*)
-
-{$DEFINE NOHINTING}
-
-
-
-(*
-  Symbol: NOHORIZONTALHINTING
-  ---------------------------
-
-    Disables horizontal font hinting when using TextToPath() method.
-
-  The following should not be used in conjunction with NOHINTING.
-  It will attempt to address the problem of extreme font hinting in the
-  GDI by disabling horizontal, but keeping vertical hinting.
-*)
-
-{-$DEFINE NOHORIZONTALHINTING}
-
-
-{-$DEFINE TEST_BLENDMEMRGB128SSE4}

@@ -117,6 +117,7 @@ type
     procedure WMPaint(var Message: TLMPaint); message LM_PAINT;
     procedure CMMouseEnter(var Message: TLMessage); message LM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TLMessage); message LM_MOUSELEAVE;
+    procedure CMInvalidate(var Message: TLMessage); message CM_INVALIDATE;
 {$ELSE}
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
@@ -651,7 +652,16 @@ end;
 
 { TCustomPaintBox32 }
 
-{$IFNDEF FPC}
+{$IFDEF FPC}
+procedure TCustomPaintBox32.CMInvalidate(var Message: TLMessage);
+begin
+  if CustomRepaint and HandleAllocated then
+    PostMessage(Handle, LM_PAINT, 0, 0)
+  else
+    inherited;
+end;
+{$ELSE}
+
 procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
 begin
   if CustomRepaint and HandleAllocated then
@@ -837,8 +847,7 @@ begin
   inherited;
 end;
 
-procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState;
-  X, Y: Integer);
+procedure TCustomPaintBox32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if (pboAutoFocus in Options) and CanFocus then SetFocus;
   inherited;
@@ -1140,8 +1149,7 @@ begin
   BitmapChanged(Bitmap.Boundsrect);
 end;
 
-procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject;
-  const Area: TRect; const Info: Cardinal);
+procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -1176,8 +1184,7 @@ begin
   BitmapChanged(Area);
 end;
 
-procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject;
-  const Area: TRect; const Info: Cardinal);
+procedure TCustomImage32.BitmapDirectAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
@@ -1666,8 +1673,7 @@ end;
 
 procedure TCustomImage32.InvalidateCache;
 begin
-  if FRepaintOptimizer.Enabled and CacheValid then
-    FRepaintOptimizer.Reset;
+  if FRepaintOptimizer.Enabled then FRepaintOptimizer.Reset;
   CacheValid := False;
 end;
 
@@ -2397,12 +2403,12 @@ begin
   else
   begin
     if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetHorz := (W - Sz.Cx) * 0.5
+      OffsetHorz := (W - Sz.Cx) / 2
     else
       OffsetHorz := -HScroll.Position + ScaledOversize;
 
     if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetVert := (H - Sz.Cy) * 0.5
+      OffsetVert := (H - Sz.Cy) / 2
     else
       OffsetVert := -VScroll.Position + ScaledOversize;
   end;

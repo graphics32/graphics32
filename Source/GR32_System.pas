@@ -199,7 +199,7 @@ begin
   Result := FloatToStrF(1000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
 end;
 
-function TPerfTimer.ReadSeconds: string;
+function TPerfTimer.ReadSeconds: String;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);

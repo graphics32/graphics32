@@ -42,6 +42,7 @@ contains
   GR32_Transforms in '..\GR32_Transforms.pas',
   GR32_OrdinalMaps in '..\GR32_OrdinalMaps.pas',
   GR32_VectorMaps in '..\GR32_VectorMaps.pas',
+  GR32_DrawingEx in '..\GR32_DrawingEx.pas',
   GR32_Filters in '..\GR32_Filters.pas',
   GR32_Layers in '..\GR32_Layers.pas',
   GR32_Image in '..\GR32_Image.pas',
@@ -53,9 +54,6 @@ contains
   GR32_Rasterizers in '..\GR32_Rasterizers.pas',
   GR32_Resamplers in '..\GR32_Resamplers.pas',
   GR32_Bindings in '..\GR32_Bindings.pas',
-  GR32_XPThemes in '..\GR32_XPThemes.pas',
-  GR32_VPR in '..\GR32_VPR.pas',
-  GR32_Paths in '..\GR32_Paths.pas',
-  GR32_VectorUtils in '..\GR32_VectorUtils';
+  GR32_XPThemes in '..\GR32_XPThemes.pas';
 
 end.

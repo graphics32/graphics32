@@ -54,8 +54,8 @@ type
   ETransformNotImplemented = class(Exception);
 
 type
-  TFloatMatrix = array [0..2, 0..2] of TFloat;     // 3x3 TFloat precision
-  TFixedMatrix = array [0..2, 0..2] of TFixed;     // 3x3 fixed precision
+  TFloatMatrix = array[0..2, 0..2] of TFloat;     // 3x3 TFloat precision
+  TFixedMatrix = array[0..2, 0..2] of TFixed;     // 3x3 fixed precision
 
 const
   IdentityMatrix: TFloatMatrix = (
@@ -64,8 +64,8 @@ const
     (0, 0, 1));
 
 type
-  TVector3f = array [0..2] of TFloat;
-  TVector3i = array [0..2] of Integer;
+  TVector3f = array[0..2] of TFloat;
+  TVector3i = array[0..2] of Integer;
 
 // Matrix conversion routines
 function FixedMatrix(const FloatMatrix: TFloatMatrix): TFixedMatrix; overload;
@@ -640,19 +640,19 @@ end;
 
 function TTransformation.Transform(const P: TFloatPoint): TFloatPoint;
 begin
-  if not TransformValid then PrepareTransform;
+  If not TransformValid then PrepareTransform;
   TransformFloat(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.Transform(const P: TFixedPoint): TFixedPoint;
 begin
-  if not TransformValid then PrepareTransform;
+  If not TransformValid then PrepareTransform;
   TransformFixed(P.X, P.Y, Result.X, Result.Y);
 end;
 
 function TTransformation.Transform(const P: TPoint): TPoint;
 begin
-  if not TransformValid then PrepareTransform;
+  If not TransformValid then PrepareTransform;
   TransformInt(P.X, P.Y, Result.X, Result.Y);
 end;
 
@@ -827,8 +827,7 @@ begin
   M[2,0] := Dx;
   M[2,1] := Dy;
   Matrix := Mult(M, Matrix);
-
-  Changed;
+  Changed;  
 end;
 
 

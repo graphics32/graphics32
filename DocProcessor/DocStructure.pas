@@ -425,7 +425,7 @@ end;
 procedure TElement.AddSeeAlso(Body: TDomNode; Links: TStringList);
 var
   I, J: Integer;
-  S, PrevS: string;
+  S: string;
   E: TElement;
 begin
   if Links.Count = 0 then Exit;
@@ -439,9 +439,7 @@ begin
   begin
     // Attributes['id'] := 'Auto'; must be unique!
     Attributes['class'] := 'Body';
-
     Links.CustomSort(CompareLinks);
-    PrevS := '';
     for I := 0 to Links.Count - 1 do
     begin
       S := Links[I];
@@ -471,13 +469,8 @@ begin
       end
       else
         S := LinkTo(S);
-
-      if SameText(S, PrevS) then
-        Continue;
-      PrevS := S;
-
-      if I > 0 then AddText(', ');
       AddParse(S);
+      if I < Links.Count - 1 then AddText(', ');
     end;
   end;
 end;
@@ -1843,9 +1836,9 @@ begin
       CuList.Free;
     end;
 
-    if Length(Classes) > 0 then
+    if length(Classes) > 0 then
       AddClassTable(TClassElementArray(Classes), 'Classes');
-    if Length(Interfaces) > 0 then
+    if length(Interfaces) > 0 then
       AddClassTable(TClassElementArray(Interfaces), 'Interfaces');
 
     // types
