@@ -343,109 +343,118 @@ object MainForm: TMainForm
   object MainMenu: TMainMenu
     Left = 344
     Top = 64
-    object MimFile: TMenuItem
+    object MnuFile: TMenuItem
       Caption = 'File'
-      object MimOpenImage: TMenuItem
+      object MnuFileOpenImage: TMenuItem
         Caption = '&Open Image...'
         ShortCut = 16463
-        OnClick = MimOpenImageClick
+        OnClick = MnuFileOpenImageClick
       end
-      object MimSaveImage: TMenuItem
+      object MnuFileSaveImage: TMenuItem
         Caption = '&Save Image...'
         ShortCut = 16467
-        OnClick = MimSaveImageClick
+        OnClick = MnuFileSaveImageClick
       end
       object N3: TMenuItem
         Caption = '-'
       end
-      object MimOpenMesh: TMenuItem
+      object MnuFileOpenMesh: TMenuItem
         Caption = 'Open Mesh...'
-        OnClick = MimOpenMeshClick
+        OnClick = MnuFileOpenMeshClick
       end
-      object MimSaveMesh: TMenuItem
+      object MnuFileSaveMesh: TMenuItem
         Caption = 'Save Mesh...'
-        OnClick = MimSaveMeshClick
+        OnClick = MnuFileSaveMeshClick
       end
-      object MimResetMesh: TMenuItem
+      object MnuResetMesh: TMenuItem
         Caption = 'Reset Mesh'
         ShortCut = 16466
-        OnClick = MimResetMeshClick
+        OnClick = MnuResetMeshClick
       end
       object N4: TMenuItem
         Caption = '-'
       end
-      object MimExit: TMenuItem
+      object MnuFileExit: TMenuItem
         Caption = 'Exit'
-        OnClick = MimExitClick
+        OnClick = MnuFileExitClick
       end
     end
-    object MimSampling: TMenuItem
+    object MnuSampling: TMenuItem
       Caption = 'Sampling'
-      object MimSupersampleNow: TMenuItem
+      object MnuSupersampleNow: TMenuItem
         Caption = 'Supersample Now!'
-        OnClick = MimSupersampleNowClick
+        OnClick = MnuSupersampleNowClick
       end
       object N1: TMenuItem
         Caption = '-'
       end
-      object MimSamplingKernel: TMenuItem
+      object MnuSamplingKernel: TMenuItem
         Caption = 'Sampling Kernel'
       end
-      object MimKernelMode: TMenuItem
+      object MnuKernelMode: TMenuItem
         Caption = 'KernelMode'
-        object MimKmDefault: TMenuItem
+        object MnuKernelModeDefault: TMenuItem
+          AutoCheck = True
           Caption = 'kmDefault (slow, but exact)'
           RadioItem = True
-          OnClick = MimKmDefaultClick
+          OnClick = MnuKernelModeClick
         end
-        object MimKmTableNearest: TMenuItem
+        object MnuKernelModeTableNearest: TMenuItem
           Tag = 1
+          AutoCheck = True
           Caption = 'kmTableNearest (fastest, "curve" sampling)'
           RadioItem = True
-          OnClick = MimKmDefaultClick
+          OnClick = MnuKernelModeClick
         end
-        object MimKmTableLinear: TMenuItem
+        object MnuKernelModeTableLinear: TMenuItem
           Tag = 2
+          AutoCheck = True
           Caption = 'kmTableLinear (fast, "curve" approximation)'
           Checked = True
           RadioItem = True
-          OnClick = MimKmDefaultClick
+          OnClick = MnuKernelModeClick
         end
       end
-      object MimSamplingGrid: TMenuItem
+      object MnuSamplingGrid: TMenuItem
         Caption = 'Sampling Grid'
-        object Mim2x2: TMenuItem
+        object MnuSamplingGrid2x2: TMenuItem
           Tag = 2
+          AutoCheck = True
           Caption = '2x2'
-          OnClick = Mim3x3Click
+          RadioItem = True
+          OnClick = MnuSamplingGridClick
         end
-        object Mim3x3: TMenuItem
+        object MnuSamplingGrid3x3: TMenuItem
           Tag = 3
+          AutoCheck = True
           Caption = '3x3'
           Checked = True
           RadioItem = True
-          OnClick = Mim3x3Click
+          OnClick = MnuSamplingGridClick
         end
-        object Mim5x5: TMenuItem
+        object MnuSamplingGrid5x5: TMenuItem
           Tag = 5
+          AutoCheck = True
           Caption = '5x5'
           RadioItem = True
-          OnClick = Mim3x3Click
+          OnClick = MnuSamplingGridClick
         end
-        object Mim7x7: TMenuItem
+        object MnuSamplingGrid7x7: TMenuItem
           Tag = 7
+          AutoCheck = True
           Caption = '7x7'
           RadioItem = True
-          OnClick = Mim3x3Click
+          OnClick = MnuSamplingGridClick
         end
       end
       object N2: TMenuItem
         Caption = '-'
       end
-      object MimBilinearWarp: TMenuItem
+      object MnuBilinearWarp: TMenuItem
+        AutoCheck = True
         Caption = 'Bilinear Warp'
         Checked = True
-        OnClick = Bi1Click
+        OnClick = MnuBilinearWarpClick
       end
     end
   end
