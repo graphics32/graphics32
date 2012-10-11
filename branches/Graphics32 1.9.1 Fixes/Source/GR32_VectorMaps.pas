@@ -588,12 +588,12 @@ begin
       if Int64(VectorPtr^) <> 0 then goto TopDone;
       Inc(VectorPtr);
       Inc(Top);
-    until Top = Width * Height;
+    until Top = Self.Width * Self.Height;
 
-    TopDone: Top := Top div Width;
+    TopDone: Top := Top div Self.Width;
 
     //Find Bottom
-    Bottom := Width * Height - 1;
+    Bottom := Self.Width * Self.Height - 1;
     VectorPtr := @Vectors[Bottom];
     repeat
       if Int64(VectorPtr^) <> 0 then goto BottomDone;
@@ -601,7 +601,7 @@ begin
       Dec(Bottom);
     until Bottom < 0;
 
-    BottomDone: Bottom := Bottom div Width - 1;
+    BottomDone: Bottom := Bottom div Self.Width - 1;
 
     //Find Left
     Left := 0;
@@ -612,12 +612,12 @@ begin
         Inc(J);
       until J >= Bottom;
       Inc(Left)
-    until Left >= Width;
+    until Left >= Self.Width;
 
     LeftDone:
 
     //Find Right
-    Right := Width - 1;
+    Right := Self.Width - 1;
     repeat
       J := Bottom;
       repeat
