@@ -588,9 +588,9 @@ begin
       if Int64(VectorPtr^) <> 0 then goto TopDone;
       Inc(VectorPtr);
       Inc(Top);
-    until Top = Width * Height;
+    until Top = Self.Width * Self.Height;
 
-    TopDone: Top := Top div Width;
+    TopDone: Top := Top div Self.Width;
 
     //Find Bottom
     Bottom := Self.Width * Self.Height - 1;
