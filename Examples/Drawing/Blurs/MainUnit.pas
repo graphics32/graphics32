@@ -283,19 +283,20 @@ begin
         PolylineFS(FBmpLayer.Bitmap, Pts, clBlack32, True, 2.5);
 
         with Rec2 do
-			PolylineFS(	FBmpLayer.Bitmap,
-						BuildPolygon([
-							Left * FixedToFloat,
-							Top * FixedToFloat,
-							Right * FixedToFloat,
-							Top * FixedToFloat,
-							Right * FixedToFloat,
-							Bottom * FixedToFloat,
-							Left * FixedToFloat,
-							Bottom * FixedToFloat]),
-						clBlack32,
-						True,
-						1.0);
+          PolylineFS(
+            FBmpLayer.Bitmap,
+            BuildPolygon([
+              Left * FixedToFloat,
+              Top * FixedToFloat,
+              Right * FixedToFloat,
+              Top * FixedToFloat,
+              Right * FixedToFloat,
+              Bottom * FixedToFloat,
+              Left * FixedToFloat,
+              Bottom * FixedToFloat]),
+            clBlack32,
+            True,
+            1.0);
 
         ImgViewPage3.EndUpdate;
         ImgViewPage3.Repaint;
