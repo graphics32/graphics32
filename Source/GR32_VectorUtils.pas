@@ -39,7 +39,7 @@ interface
 {$BOOLEVAL OFF}
 
 uses
-  GR32, GR32_Transforms, GR32_Polygons;
+  GR32, GR32_Transforms, GR32_Polygons{$IFDEF FPC}, Types{$ENDIF};
 
 const
   DEFAULT_MITER_LIMIT = 4.0;
@@ -1329,7 +1329,7 @@ var
   R2: TFloatRect;
 begin
   R2 := R;
-  InflateRect(R2, -Radius, -Radius);
+  GR32.InflateRect(R2, -Radius, -Radius);
   Result := Grow(Rectangle(R2), Radius, jsRound, True);
 end;
 
