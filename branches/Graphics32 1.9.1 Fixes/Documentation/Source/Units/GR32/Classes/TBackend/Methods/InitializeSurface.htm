@@ -1,0 +1,18 @@
+<html>
+<head>
+<title>InitializeSurface</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><strong>procedure</strong> InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);<strong> virtual; abstract;</strong></p>
+<h2>Description</h2>
+<p class="Body">Initializes the surface with the dimensions of <strong>NewWidth</strong> x <strong>NewHeight</strong> both measured in pixels. Each pixel has to be 4 byte (ARGB) in size. The allocated memory has to be contiguous with the stride being the length of <strong>NewWidth</strong>. GR32 currently does not support stride lengths different from the width of the new surface. The pointer to the allocated memory has to be written to the protected member <strong>FBits</strong>. <br>
+The <strong>ClearBuffer</strong> parameter determines whether clearing the buffer is required or not.  <br>
+This method is  called internally by the default <a href="../../../../GR32/Classes/TBackend/Methods/ChangeSize.htm">ChangeSize</a> method implementation of <a href="../_Body.htm">TBackend</a>.<br>
+<br>
+<strong>New back-end classes need to implement this method to do their internal allocation of memory for the surface.</strong></p>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]: <a href="FinalizeSurface.htm">FinalizeSurface</a></p>
+</body>
+</html>

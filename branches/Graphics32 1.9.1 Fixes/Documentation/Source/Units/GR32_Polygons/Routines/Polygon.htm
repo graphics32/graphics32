@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Polygon</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> PolygonTS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>; 
+  Color: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Mode: 
+  <a href="../Types/TPolyFillMode.htm">TPolyFillMode</a> = pfAlternate; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> =
+  nil); <strong>overload</strong>; </p>
+<p class="Decl"><b>procedure</b> PolygonTS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>;
+  FillLineCallback: <a href="../Types/TFillLineEvent.htm">TFillLineEvent</a>; Mode: <a href="../Types/TPolyFillMode.htm">TPolyFillMode</a> =
+pfAlternate; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+<strong>overload</strong>;</p>
+<p class="Decl"><b>procedure</b> PolygonTS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>;
+  Filler: <a href="../Classes/TCustomPolygonFiller/_Body.htm">TCustomPolygonFiller</a>; Mode: <a href="../Types/TPolyFillMode.htm">TPolyFillMode</a> =
+pfAlternate; Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+<strong>overload</strong>;<br>
+</p>
+<p class="Decl"><b>procedure</b> PolygonXS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; 
+  <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>; 
+  Color: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; Mode: 
+<a href="../Types/TPolyFillMode.htm">TPolyFillMode</a> = pfAlternate;
+AAMode: <a href="../Types/TAntialiasMode.htm">TAntialiasMode</a> = <a href="../Constants/DefaultAAMode.htm">DefaultAAMode</a>;
+Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+<strong>overload</strong>;</p>
+<p class="Decl"><b>procedure</b> PolygonXS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>;
+  FillLineCallback: <a href="../Types/TFillLineEvent.htm">TFillLineEvent</a>; Mode: <a href="../Types/TPolyFillMode.htm">TPolyFillMode</a> =
+  pfAlternate; AAMode: <a href="../Types/TAntialiasMode.htm">TAntialiasMode</a> = <a href="../Constants/DefaultAAMode.htm">DefaultAAMode</a>;
+Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+<strong>overload</strong>;</p>
+<p class="Decl"><b>procedure</b> PolygonXS(Bitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; <b>const</b> Points: <a href="../../GR32/Types/Point%20Types.htm#TArrayOfFixedPoint">TArrayOfFixedPoint</a>;
+  Filler: <a href="../Classes/TCustomPolygonFiller/_Body.htm">TCustomPolygonFiller</a>; Mode: <a href="../Types/TPolyFillMode.htm">TPolyFillMode</a> =
+  pfAlternate; AAMode: <a href="../Types/TAntialiasMode.htm">TAntialiasMode</a> = <a href="../Constants/DefaultAAMode.htm">DefaultAAMode</a>;
+Transformation: <a href="../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil);
+<strong>overload</strong>;</p>
+<h2>Description</h2>
+<p class="Body">Fills the shape defined by the <b>Points</b> parameter and (optionally) transformed by the <strong>Transformation</strong> parameter
+  using one of the following options:</p>
+<ul>
+  <li> <a href="../../GR32/Types/Color%20Types.htm#TColor32">simple color</a></li>
+  <li><a href="../Types/TFillLineEvent.htm">custom fillline callback</a></li>
+  <li><a href="../Classes/TCustomPolygonFiller/_Body.htm">custom filler object</a></li>
+</ul>
+<p class="Body">Unlike GDI polygons,
+  this function allows for transparency and optional antialiasing.</p>
+<p class="Body"><span class="EmptyRef">PolygonTS</span> draws a non-antialiased 
+  polygon with optional transparency. When drawing, fixed-point coordinates of 
+  vertices are rounded.</p>
+<p class="Body"><span class="EmptyRef">PolygonXS</span> provides full antialiasing 
+and does not perform rounding of vertex coordinates. You can also specify the
+antialias mode <strong>AAMode</strong> that should be used. </p>
+<p class="Body">All functions perform clipping.</p>
+<p id="hidden">[See Also] <a href="../../../Overview/Naming%20Conventions.htm">Naming 
+  Conventions</a></p>
+</body>
+</html>

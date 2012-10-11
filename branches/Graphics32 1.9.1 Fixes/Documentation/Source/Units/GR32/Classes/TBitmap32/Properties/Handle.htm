@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>Handle</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<blockquote>
+  <p class="Comment"><strong>This following only applies to the VCL version of Graphics32:</strong></p>
+</blockquote>
+<p class="Decl"><b>property</b> Handle: HDC; <span class="Comment">// read-only</span><i> 
+  </i></p>
+<h2>Description</h2>
+<p class="Body">Provides device handle of the contained DIB. </p>
+<p class="Body">This handle may be used in low-level Windows API calls or, for 
+  example, to attach a <span class="API">TCanvas</span> object to <a href="../_Body.htm">TBitmap32</a>: 
+</p>
+<p class="Code"><b>var</b> </p>
+<p class="Code">&nbsp;&nbsp;Canvas: TCanvas; </p>
+<p class="Code"><b>begin</b> </p>
+<p class="Code">&nbsp;&nbsp;Canvas := TCanvas.Create; <span class="Comment">// 
+  create a new independent TCanvas object</span> </p>
+<p class="Code">&nbsp;&nbsp;<b>try</b> </p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;Canvas.Handle := Bitmap32.Handle; <span class="Comment">// 
+  attach it to the Bitmap32 object</span> </p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;Canvas.Pen.Color := clRed; <span class="Comment">// 
+  use standard TCanvas methods for drawing</span> </p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;Canvas.Brush.Color := clGreen; </p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;Canvas.Ellipse(10, 10, 60, 40); </p>
+<p class="Code">&nbsp;&nbsp;<b>finally</b> </p>
+<p class="Code">&nbsp;&nbsp;&nbsp;&nbsp;Canvas.Free; </p>
+<p class="Code">&nbsp;&nbsp;<b>end</b>; </p>
+<p class="Code"><b>end</b>; </p>
+<p class="Body"><span class="EmptyRef">Handle</span> contains zero, if the bitmap 
+  is empty (width or height is zero), and its <b>value can change after resizing</b>.</p>
+<p class="Body">This example is just a simple illustration of using the Handle 
+  property. For more information on using the TCanvas object with TBitmap32, see 
+  the <a href="Canvas.htm">Canvas</a> property.</p>
+<p class="Body">&nbsp;</p>
+<blockquote>
+  <p class="Comment"><strong>This following only applies to the CLX version of Graphics32:</strong></p>
+</blockquote>
+<p class="Decl"><strong>property</strong> Handle: QPainterH;<span class="Comment"> // read-only </span></p>
+<h2>Description</h2>
+<p class="Body">This provides a pointer to the current instance of the <span class="API">QPainterH</span> in TBitmap32.</p>
+<p class="Body">You can use this <span class="API">QPainter</span> instance in external functions. However please notice, that the <span class="API">QPainter</span> is not
+  associated with the <span class="API">QPixmap</span> of TBitmap32. You'll have to call QPainter_begin and QPainter_end manually to do so. See the
+  <a href="http://doc.qt-developer.org/class.php?class=QPainter" target="_blank">QT docs</a> for more information on this topic. </p>
+</body>
+</html>

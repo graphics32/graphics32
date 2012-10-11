@@ -1,0 +1,61 @@
+<html>
+<head>
+<title>Installation</title>
+<link rel="stylesheet" href="../Styles/Default.css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">Graphics32 supports Delphi 7, Delphi 2005 (Win32), 2006 (Delphi Win32 and C++), 2007 (Delphi Win32), 2009 (Delphi Win32), C++ Builder 6, Delphi XE and Delphi XE2.</p>
+<p class="Body"><strong>Note 1:</strong><em> For Delphi 2007 and up, function inlining is automatically used to improve performance. If this is undesirable, the <span class="Comment">{$DEFINE USEINLINING}</span> compiler define statement can be commented out in <strong>GR32.inc</strong>.</em></p>
+<p class="Body"><b>Note 2: </b><em>Because some properties of range bars and gauge bars have been changed, you will encounter a few error messages when opening projects compiled with earlier versions of Graphics32. These messages can safely be ignored since the Delphi compiler will automatically remove references to missing component properties in the DFM files.</em></p>
+<p class="Body">&nbsp;</p>
+
+<p class="Body">As of version 1.9, Free Pascal / Lazarus is supported for platform independent development. So far this has been tested in Win32 and in OSX 10.4, but Graphics32 is likely to run on other platforms too. Graphics32 now also uses 64 bit processors instructions in time critical code when the operating system of the target application runs 64bit processes.</p>
+<p class="Body">&nbsp;</p>
+<h2>Installation procedure for RAD Studio / Delphi:</h2>
+<ul>
+  <li>Unzip the files;</li>
+  <li>Add the location of main installation directory to <span class="Menu"><u><br>
+    T</u>ools</span> 
+    | <span class="Menu">Environment <u>O</u>ptions</span> | <span class="Menu">Library</span> 
+    | <span class="Menu">Li<u>b</u>rary Path</span> for Delphi 7 and BCB 6 <strong>or</strong> <br>
+    <span class="Menu"><u>T</u>ools</span> | <span class="Menu"><u>O</u>ptions</span> |  <span class="Menu">Environment Options</span> |<span class="Menu"> Delphi Options </span> | <span class="Menu">Library - Win32</span>  | <span class="Menu">Li<u>b</u>rary Path</span> for Delphi 2005 or higher <br> 
+    <br>
+  </li>
+  <li>Select <span class="Menu"><u>F</u><span class="Menu">ile</span></span> | 
+    <span class="Menu"><u>O</u>pen...</span> on the menu bar. Set <span class="Menu">Files 
+    of <u>t</u>ype</span> to <font face="Courier New, Courier, mono">Delphi package source</font>, locate and open one of the following design-time package that fit your IDE:<br>
+    <br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_RSXE2</font> for Embarcadero RAD Studio XE2 / Delphi XE2,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_RSXE1</font> for Embarcadero RAD Studio XE1 / Delphi XE1,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_RS2010</font> for Embarcadero RAD Studio 2010 / Delphi 2010,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_RS2009</font> for CodeGear RAD Studio 2009 / Delphi 2009,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_RS2007</font> for CodeGear RAD Studio 2007 / Delphi 2007,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_RS2006</font> for Borland Developer Studio 2006,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_D2005</font> for Delphi 2005,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_D7</font> for Delphi 7,<br>
+    <font face="Courier New, Courier, mono">GR32_DSGN_CB6</font> for C++ Builder 6 <br>
+    <br>
+  </li>
+  <li>A package editor window will appear. Click <span class="Menu">Compile</span>, 
+    then click <span class="Menu">Install</span>;</li>
+  <li>If compiler asks whether you want to save changes, usually it is a good 
+    idea to choose <b>No</b>.</li>
+</ul>
+<p class="Body">&nbsp;</p>
+<h2>Installation procedure for Lazarus:</h2>
+<ul>
+  <li>Unzip the files;</li>
+  <li>Select <span class="Menu"><u>P</u><span class="Menu">ackage</span></span> | 
+    <span class="Menu"><u>O</u>pen Package File...</span> on the menu bar. Set 
+    <span class="Menu">Files of <u>t</u>ype</span> to 
+    <font face="Courier New, Courier, mono">Lazarus package (*.lpk)</font>, 
+    locate and open <font face="Courier New, Courier, mono">GR32_DSGN_L.dpk</font></li>
+  <li>A package editor window will appear. Click <span class="Menu">Compile</span>, 
+    then click <span class="Menu">Install</span>;</li>
+  <li>Lazarus will ask to compile itself in order to make use of the library. 
+    Choose Yes to be able to use the library from the IDE. It will take several
+    minutes until the IDE is compiled completely.</li>
+  <li>After an automatic restart you are able to use GR32 in Lazarus.</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,151 @@
+object FormRenderText: TFormRenderText
+  Left = 253
+  Height = 228
+  Top = 151
+  Width = 337
+  ActiveControl = EditText
+  Caption = 'RenderText Example'
+  ClientHeight = 228
+  ClientWidth = 337
+  Constraints.MinWidth = 256
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  OnCreate = FormCreate
+  LCLVersion = '0.9.31'
+  object Image: TImage32
+    Left = 0
+    Height = 167
+    Top = 61
+    Width = 337
+    Align = alClient
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTopLeft
+    Scale = 1
+    ScaleMode = smNormal
+    TabOrder = 1
+    OnResize = ImageResize
+  end
+  object Panel1: TPanel
+    Left = 0
+    Height = 61
+    Top = 0
+    Width = 337
+    Align = alTop
+    BevelOuter = bvNone
+    ClientHeight = 61
+    ClientWidth = 337
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    ParentFont = False
+    TabOrder = 0
+    object Label1: TLabel
+      Left = 4
+      Height = 14
+      Top = 36
+      Width = 47
+      Caption = 'AA Level:'
+      ParentColor = False
+    end
+    object LbEnterText: TLabel
+      Left = 4
+      Height = 14
+      Top = 6
+      Width = 79
+      Caption = 'Enter text here:'
+      ParentColor = False
+    end
+    object SBClearType: TSpeedButton
+      Tag = -1
+      Left = 92
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '-1'
+      Down = True
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object SBTextOut: TSpeedButton
+      Left = 116
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '0'
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object SBAntialias1: TSpeedButton
+      Tag = 1
+      Left = 140
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '1'
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object SBAntialias2: TSpeedButton
+      Tag = 2
+      Left = 164
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '2'
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object SBAntialias3: TSpeedButton
+      Tag = 3
+      Left = 188
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '3'
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object SBAntialias4: TSpeedButton
+      Tag = 4
+      Left = 212
+      Height = 22
+      Top = 32
+      Width = 22
+      Caption = '4'
+      GroupIndex = 1
+      Layout = blGlyphBottom
+      NumGlyphs = 0
+      OnClick = SBTextOutClick
+    end
+    object EditText: TEdit
+      Left = 92
+      Height = 21
+      Top = 4
+      Width = 242
+      Anchors = [akTop, akLeft, akRight]
+      OnChange = EditTextChange
+      TabOrder = 0
+      Text = 'Text'
+    end
+    object BtClickMe: TButton
+      Left = 261
+      Height = 21
+      Top = 32
+      Width = 73
+      Anchors = [akTop, akRight]
+      BorderSpacing.InnerBorder = 4
+      Caption = 'Click me!'
+      OnClick = BtClickMeClick
+      TabOrder = 1
+    end
+  end
+end

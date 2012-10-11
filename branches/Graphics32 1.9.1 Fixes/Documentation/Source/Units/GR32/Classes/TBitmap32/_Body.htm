@@ -1,0 +1,25 @@
+<html>
+<head>
+<title>TBitmap32</title>
+<link rel="stylesheet" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TCustomBitmap32">
+</head>
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TBitmap32</span> extends TCustomBitmap32 with various methods and properties specific to the operating system's graphic subsystem. It provides methods for drawing on a device context (DC).</p>
+<p class="Body"><span class="EmptyRef">TBitmap32</span> does not implement its 
+  own low-level streaming or low-level file loading/saving. Instead, it uses streaming 
+  methods of temporal <span class="API">TBitmap</span> or <span class="API">TPicture</span> objects. This is an obvious performance penalty, however such approach allows 
+  using third-party libraries, which extend <span class="API">TGraphic</span> class for various image formats support (JPEG, TGA, TIFF, GIF, PNG, etc.). When 
+  you install them, <span class="EmptyRef">TBitmap32</span> will automatically 
+obtain support for new image file formats in design time and in run time.</p>
+<p class="Body"><span class="EmptyRef">TBitmap32</span> overrides <span class="API">Assign</span> 
+  and <span class="API">AssignTo</span> methods (inherited from <span class="API">TPersistent</span>) 
+  to provide compatibility with standard objects: <span class="API">TBitmap</span>, 
+  <span class="API">TPicture</span> and <span class="API">TClipboard</span> in 
+  both directions. The design-time streaming to and from *.dfm files, inherited 
+  from <span class="API">TPersistent</span>, is supported, but its realization 
+  is different from streaming with other stream types (See the source code for 
+  details).</p>
+</body>
+</html>

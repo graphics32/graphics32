@@ -1,0 +1,33 @@
+<html>
+<head>
+<title>Draw</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> Draw(DstX, DstY: Integer; Src: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>); 
+  <b>overload</b>;</p>
+<p class="Decl"><strong>procedure</strong> Draw(DstX, DstY: Integer; <strong>const</strong> SrcRect: TRect; Src: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>);<strong> overload;</strong></p>
+<p class="Decl"><b></b><b>procedure</b> Draw(<b>const</b> DstRect, SrcRect: <a href="../../../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>; 
+Src: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>); <b>overload</b>;</p>
+<h2>Description</h2>
+<p class="Body">Renders the image specified by <span class="EmptyRef">Src</span> parameter (or part of it specified by <span class="EmptyRef">SrcRect</span> parameter) at the location given by the coordinates
+  (<span class="EmptyRef">DstX</span>, 
+  <span class="EmptyRef">DstY</span>) or the <span class="EmptyRef">DstRect</span> 
+  rectangle.</p>
+<p class="Body">The method provides both: block transfer (versions with <span class="EmptyRef">DstX</span>, 
+  <span class="EmptyRef">DstY</span> parameters) and stretching (versions with 
+  <span class="EmptyRef">DstRect</span> parameter).</p>
+<p class="Body">The method uses <span class="EmptyRef">Src</span>.<a href="../../../../GR32/Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a> 
+  do determine how it should be blended with the background, and if stretching, 
+  <span class="EmptyRef">Src</span>.<a href="../../../../GR32/Classes/TCustomBitmap32/Properties/StretchFilter.htm">StretchFilter</a> 
+  specifies how the image should be stretched.</p>
+<p class="Body">The <span class="EmptyRef">Dst</span> parameter must not be necessarily 
+  some other bitmap. In fact, it is possible to copy/stretch areas inside the 
+  same bitmap that calls the <span class="EmptyRef">Draw</span> method. However, 
+  in this case, if source and destination areas intersect, the result is not specified 
+  (this is a limitation of the current version).</p>
+<p id="hidden">[See also]: <a href="../../../../GR32/Classes/TCustomBitmap32/Methods/DrawTo.htm">DrawTo</a>, <a href="../../../../GR32_Resamplers/Routines/BlockTransfer.htm">BlockTransfer</a>, 
+  <a href="../../../../GR32_Resamplers/Routines/StretchTransfer.htm">StretchTransfer</a></p>
+</body>
+</html>

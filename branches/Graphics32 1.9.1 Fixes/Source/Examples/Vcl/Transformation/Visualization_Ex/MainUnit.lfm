@@ -1,0 +1,47 @@
+object MainForm: TMainForm
+  Cursor = crCross
+  Left = 200
+  Height = 327
+  Top = 153
+  Width = 408
+  BorderIcons = [biSystemMenu, biMinimize]
+  Caption = 'Visualization Example'
+  Color = clBlack
+  Font.Height = -16
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  OnClose = FormClose
+  OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
+  OnMouseMove = FormMouseMove
+  OnResize = FormResize
+  Position = poScreenCenter
+  LCLVersion = '0.9.29'
+  object MovementTimer: TTimer
+    Enabled = False
+    Interval = 3000
+    OnTimer = MovementTimerTimer
+    left = 64
+    top = 16
+  end
+  object RenderTimer: TTimer
+    Enabled = False
+    Interval = 1
+    OnTimer = RenderTimerTimer
+    left = 96
+    top = 16
+  end
+  object ColorTimer: TTimer
+    Enabled = False
+    Interval = 200
+    OnTimer = ColorTimerTimer
+    left = 128
+    top = 16
+  end
+  object FPSTimer: TTimer
+    Enabled = False
+    OnTimer = FPSTimerTimer
+    left = 32
+    top = 16
+  end
+end

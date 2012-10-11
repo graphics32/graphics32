@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Clamp</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><strong>function</strong> Clamp(<strong>const</strong> Value: Integer): TColor32; <strong>overload</strong>;</p>
+		<p class="Decl"><strong>function</strong> Clamp(Value: Integer; Max: Integer): Integer; <strong>overload</strong>;</p>
+		<p class="Decl"><strong>function</strong> Clamp(Value: Integer; Min: Integer; Max: Integer): Integer; <strong>overload</strong>;</p>
+		<h2>Description</h2>
+		<p class="Body">First version restricts <i>Value</i> to [0..255] range.</p>
+		<p class="Body">Second version  restricts <i>Value</i> to [0..Max] range.</p>
+		<p class="Body">Third version restricts <i>Value</i> to [Min..Max] range.</p>
+		<p class="Body"></p>
+		<p class="Body">This function is used in <a href="../../GR32/Types/TWrapMode.htm">TWrapMode</a> <em>wmClamp</em>.</p>
+		<p class="Body"></p>
+		<p id="hidden">[See Also]: <a href="Mirror.htm">Mirror</a>, <a href="Wrap.htm">Wrap</a></p>
+</body>
+</html>

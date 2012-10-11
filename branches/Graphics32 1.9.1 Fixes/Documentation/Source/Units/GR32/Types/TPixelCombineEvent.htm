@@ -1,0 +1,21 @@
+<html>
+<head>
+<title>TPixelCombineEvent</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TPixelCombineEvent = <b>procedure</b>(F: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>var</b> B: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; M: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>) 
+  <b>of</b> <b>object</b>;</p>
+<h2>Desctiption</h2>
+<p class="Body"><span class="EmptyRef">TPixelCombineEvent</span> is a type for 
+  <a href="../Classes/TCustomBitmap32/Events/OnPixelCombine.htm">OnPixelCombine</a> 
+  callback function. It specifies a function which takes foreground color (<span class="EmptyRef">F</span>) 
+  and blends it with the background (<span class="EmptyRef">B</span>). This function 
+  may optionally use master alpha value (<span class="EmptyRef">M</span>). Moreover, 
+  in dmCustom mode master alpha value does not necesserely have to be in [0&#133;255] 
+  range anymore, you are free to use all its 32-bits.</p>
+<p id="hidden">[See also]: <a href="../Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a></p>
+</body>
+</html>

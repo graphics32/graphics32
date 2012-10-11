@@ -1,0 +1,995 @@
+<html>
+<head>
+<title>Changes</title>
+<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+<script src="../../Scripts/expandable.js" type="text/javascript"></script>
+<style>
+/* barebones expandable list */
+
+ul.barebones {
+    margin-left: 30px;
+    padding: 0;
+}
+
+ul.barebones ul {
+    margin: 0;
+    padding-left: 1.5em;
+}
+
+ul.barebones li {
+    list-style-type: none;
+    position: relative;
+}
+
+ul.barebones a.switch {
+	font-size: 2px;
+	text-indent: -500px;
+	background: transparent url(../../Images/buttons.gif) no-repeat top left;
+	height: 9px;
+	width: 9px;
+    left: -13px;
+	top: 2px;
+    position: absolute;
+}
+
+ul.barebones a { text-decoration: none; }
+ul.barebones a:hover { text-decoration: underline; }
+ul.barebones a.switch:hover { text-decoration: none; }
+
+ul.barebones a.on { background-position: top left; }
+ul.barebones a.off { background-position: bottom left; }
+
+ul.barebones h2 { 
+	margin: 0px;
+	padding: 0px;
+	display: inline;
+}
+
+ul.dots li {
+	list-style-type: square;
+}
+
+blockquote {
+	margin: 0px 0px 0px 20px;
+}
+</style>
+</head>
+<body bgcolor="#FFFFFF">
+<h2 class="Body">v1.9.1 (April 2012)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+	<ul>
+	  <li>
+	    <h2>Additions:</h2>
+		<ul class="dots">
+		  <li>Added XE and XE2 support;</li>
+		  <li>Added X64 platform support;</li>
+		  <li>Added GR32_Backends_LCL_CustomDrawn.pas &#8212; a new backend for the LCL CustomDrawn widget set;</li>
+		  <li>Improved FPC and Lazarus support;</li>		  
+		  <li>Added <a href="SSE2%20Optimizations.htm">SSE2 assembler routines</a>;</li>
+		  <li>Added X64 assembler routines;</li>
+		  <li>Additional predifined colors, similar to new colors in XE2;</li>
+		  <li>Restructured GR32.inc and added GR32_Compiler.inc with general compiler defines;</li>
+		  <li>Added TGDIMemoryBackend (a memory backend that offers IPaintSupport without allocating a GDI handle).</li>
+		</ul>
+	  </li>
+	  <li>
+	    <h2>Bugfixes and optimizations:</h2>
+		<ul class="dots">
+		  <li>{$EXCESSPRECISION OFF} for better X64 floating-point performance;</li>
+		  <li>Improved pascal and SSE2 implementation of MergeReg routine;</li>
+		  <li>Improved FillLongWord (important when clearing large bitmaps.);</li>
+		  <li>Fixed handling of alpha in TKernelResampler;</li>
+		  <li>Fixed wrong alpha result in integer version of HSLtoRGB;</li>
+		  <li>Added cache for TempPath;</li>
+		  <li>FPS controlled movement mechanism;</li>
+		  <li>Fixed broken Mandelbrot example;</li>
+		  <li>Fixed bugs (#3411574, #3488570, #3510129 and others);</li>
+		  <li>Fixed issue with font size changes and FPC compiler;</li>
+		  <li>Fixed and improved design-time support</li>
+		  <li>Minor tweaks, bugfixes and other optimizations.</li>
+		</ul>
+	  </li>
+	</ul>
+  </li>
+</ul>
+<h2 class="Body">v1.9.0 (March 2010)</h2>
+<ul class="barebones expandable">
+  <li>
+	<h2>General changes</h2>
+	<ul>
+	  <li>
+		<h2>Additions:</h2>
+		<ul class="dots">
+		  <li>Platform independent code</li>
+		  <li><a href="../Additional Topics/Back-Ends.htm">Switchable back-ends</a> and platform-agnostic <a href="../Units/GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a> class</li>
+		  <li>Support for memory-mapped surfaces via <a href="../Additional Topics/Back-Ends.htm">MMF back-ends</a></li>
+		  <li>Added IDE support up to Delphi 2010</li>
+		  <li>Preliminary Free Pascal/Lazarus support (Win32 and OS X Carbon)</li>
+		  <li>Kylix support officially removed as of this release.</li>
+		  <li>Added TFunctionRegistry &#8212; a class for managing run-time bindings of functions that depend on platform-dependent parameters and CPU features.</li>
+		  <li>Updated several units that previously performed conditional binding to use TFunctionRegistry for automatic binding.</li>
+		  <li>Implemented Assign/AssignTo to TCustomPaintBox32</li>
+		  <li>Added TFloat FastSqrt routine</li>
+		  <li>Added fast native support for loading and saving of 32-bit Windows bitmaps</li>
+      <li>Added fast HorzLineX/VertLineX procedures for horizontal and vertical lines</li>
+      <li>Added floatpoint overloads of TCustomImage32.BitmapToControl and ControlToBitmap</li>
+      <li><a href="License.htm">License</a> changed to a dual license with MPL and LGPL 2.1 (with linking exception)</li> 
+		</ul>
+	  </li>
+	  <li>
+		<h2>Optimizations:</h2>
+		<ul class="dots">
+		  <li>CPU feature dependent optimizations</li>
+		  <li>Rewritten Assign/AssignTo methods of TCustomBitmap32/TBitmap32, now support assignment of alpha-transparent icons</li>
+		  <li>Optimizations in AlphaToGrayscale (proposed by Andrea Campi)</li>
+		  <li>Optimizations in IntensityToAlpha</li>
+		  <li>Moved Iterator procedure from GR32 to GR32_Resamplers and merged it with LinearIterator.</li>
+		  <li>Minor tweaks and optimizations. </li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Bugfixes:</h2>
+		<ul class="dots">
+	    <li>Fixed bug related to TCustomImage32.ControlToBitmap and BitmapToControl conversions (now more precise)</li>
+	    <li>Minor bugfix in AlphaToGrayscale</li>
+	    <li>Fixed wrong enumeral type order in bitmask function template</li>
+	    <li>Fixed bug in TTransformer (inherited constructor was not called and SetTransformation only accepted non-nil values).</li>
+	    <li>Fixed SetSampler bug for TNestedSampler</li>
+	    <li>Fixed initialization issue in TRenderThread (thanks to Eray Hanoglu)</li>
+		</ul>
+	  </li>
+	</ul>
+  </li>
+</ul>
+<h2 class="Body">v1.8.3 (5 March 2007)</h2>
+<ul class="barebones expandable">
+  <li>
+	<h2>General changes</h2>
+	<ul>
+	  <li>
+		<h2>Additions:</h2>
+		<ul class="dots">
+		  <li>Added new ASM/(E)MMX optimized ApplyBitmask routine for logical (bitwise) Xor/Or/And operations using a bitmask.</li>
+		  <li>Added new TColor32Component basetypes for specifying a component or component sets (related updates to TColor32Entry).</li>
+		  <li>Added new CopyComponents routine for copying selected ARGB components btwn bitmaps.</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Optimizations:</h2>
+		<ul class="dots">
+		  <li>Optimized TBitmap32.ResetAlpha, Invert and InvertRGB.</li>
+		  <li>Optimizations in pamTransparentEdge related routines.</li>
+		  <li>TPatternSampler now supports nonrectangular sampling patterns.</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Bugfixes:</h2>
+		<ul class="dots">
+		  <li>Bugfix in MMX version of BlockAverage that caused access violations on resampling.</li>
+		  <li>Fixes for the following bugs reported on the SourceForge tracker:
+			  1560912, 1556318</li>
+		  <li>Fixed misbehvior when setting TCustomImage32.BufferOversize property. Changes now directly force resizing of the buffer.</li>
+		  <li>Fixed Kylix compilation issue introduced with new multithreading support.</li>
+		  <li>Several minor cleanups and fixes.</li>
+		</ul>
+	  </li>
+	</ul>
+  </li>
+</ul>
+<h2 class="Body">v1.8.2 (5 February 2007)</h2>
+<ul class="barebones expandable">
+  <li>
+	<h2>General changes</h2>
+	<ul>
+	  <li>
+		<h2>Additions:</h2>
+		<ul class="dots">
+		  <li>Added new TMultiThreadedRasterizer class for performing regular rasterization using multiple threads. By defining the symbol USE_MULTITHREADING this rasterizer becomes default on multi-core systems. </li>
+		  <li>Added TPolarTransformation and TPathTransformation classes. </li>
+		  <li>Added TPixelAccessMode pamTransparentEdge, useful for getting smooth edges with transformations.</li>
+		  <li>Added new optimized low-level routines to GR32_Math.pas.</li>
+		</ul>
+	  </li>
+	  <li>
+		<h2>Bugfixes:</h2>
+		<ul class="dots">
+		  <li>Fixes for various bugs reported on the SourceForge tracker:
+			  1445701, 1448030, 1486180, 1456950, 1460821, 1493697, 1610287, 1610292, 1611173</li>
+		  <li>Fixed a problem in TRenderThread that cause an AV when OnAreaChanged of the destination bitmap was unassigned. </li>
+		  <li>Fixed overflow on calculation in LineS / LineTS with big line coordinates.</li>
+		  <li>Fixed buffer overrun error in polygon rasterization.</li>
+		  <li>Fix: M_ColorMax, M_ColorMin, M_ColorAverage
+			  raised critical exception on old Celeron CPU.</li>
+		  <li>Fixed problem in TKernelResampler that caused artifacts at edges for pamSafe pixel access mode.</li>
+		  <li>Fixed installation problems in D2005. </li>
+		  <li>Minor tweaks and optimizations. </li>
+		</ul>
+	  </li>
+	</ul>
+  </li>
+</ul>
+<h2 class="Body">v1.8.1 (1 March 2006)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+    <ul>
+      <li>
+		<h2>Additions:</h2>
+        <ul class="dots">
+          <li>Reintroduced property editor features for all Delphi versions after D5.</li>
+          <li>BDS2k6 C++ personality supported.</li>
+        </ul>
+      </li>
+      <li>
+        <h2>Bugfixes:</h2>
+        <ul class="dots">
+          <li>Fixes for various bugs reported on the SourceForge tracker: 1369894, 1398880, 1403949, 1404989, 1409711, 1412953</li>
+          <li>Fixed problem in method TBitmap32.DrawTo(HDC, DstRect, SrcRect).</li>
+          <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+          <li>Removed mbLeft MouseDown filter in TCustomLayer.</li>
+          <li>TCustomLayer.Changed obeys UpdateCount.</li>
+          <li>Fixed a bug in the MicroTiles repaint optimizer where the buffer wasn't completely invalidated.</li>
+          <li>CLX and D5 compilation issues fixed (GetPropList).</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h2>Detailed changes</h2>
+    <ul style="display:none">
+      <li>
+        <h2>GR32:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>Fixed problem in method TBitmap32.DrawTo(HDC, DstRect, SrcRect).</li>
+            <li>Fixed a compilation problem when CHANGED_IN_PIXELS define was enabled.</li>
+			<li>[SF 1404989] SET_TS256/LineXS with CombineMode = cmMerge -> wrong output</li>
+            <li>[SF 1403949] Line BUG</li>
+            <li>[SF 1398880] Incorrect boundary test in TBitmap32.GET_TS256</li>
+            <li>[SF 1369894] Bug in TBitmap.Roll method</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Containers:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>GetPropList compilation issue fixed on D5.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Images:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>[SF 1412953] TImgView32 holes (repaint problems in design-time).</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Layers:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>mbLeft check removed from TCustomLayer.MouseDown.</li>
+            <li>TCustomLayer.Changed obeys UpdateCount.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_LowLevel:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>ASM version of simple Clamp added.</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_MicroTiles:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>Bug in TMicroTilesRepaintOptimizer.Reset method fixed where the buffer wasn't completely invalidated.</li>
+            <li>Enhanced debug draw</li>
+            <li>Additional inlining support</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Transforms:</h2>
+        <ul>
+          <p class="EmptyRef">Bugfixes:</p>
+          <ul class="dots">
+            <li>[SF 1409711 ] TAffineTransformation.GetTransformedBounds ignores ASrcRect.</li>
+            <li>Various CLX compilation fixes</li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">v1.8 (1 January 2006)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+    <ul>
+      <li>
+		<h2>Additions:</h2>
+        <ul class="dots">
+          <li>Global usage of new TFloat type alias instead of Single.</li>
+          <li>Area update support for TBitmapLayer added.</li>
+          <li>TTransformation changed from TPersistent to TNotifiablePersistent 
+            so as to implement a Changed method that sets TransformValid to False 
+            automatically.</li>
+          <li>Incorporated the Interlocked* functions in TBitmap32.Lock and TBitmap32.Unlock 
+            according to Jouni Airaksinen's suggestions.</li>
+          <li>Redundant code clean up + better maintainability using central protected 
+            CopyMapTo and CopyPropertiesTo methods.</li>
+          <li>Added BlockTransferX routine for bitmap transfers with fixed-point 
+            coordinates (using linear interpolation).</li>
+          <li>CLX versions of all example projects added (no guarantee that all 
+            projects are 100% CLX-compatible).</li>
+		  <li>Delphi 4 support officially dropped as of this release.</li>
+        </ul>
+      </li>
+      <li>
+        <h2>Bugfixes:</h2>
+        <ul class="dots">
+          <li>Bug in TLayerCollection.ViewportToLocal method fixed.</li>
+          <li>Misbehaviour of TCustomLayer.Visible property fixed.</li>
+          <li>TCustomLayer.Changed and TCustomLayer.Update methods fixed (NO_UPDATE 
+            problem)</li>
+          <li>TAffineTransformation.TransformFloat fixed (SF bug 1372023).</li>
+          <li>TBitmap32Item.AssignTo implemented to fix problem "Cannot assign 
+            a TBitmap32Item to a TBitmap32Item" (SF bug 1329566).</li>
+          <li>Prevent AV if user sets resampler directly (e.g. <span class="Code">Bitmap.Resampler 
+            := TLinearResampler.Create(Bitmap);</span>).</li>
+          <li>Fixed a problem in TCustomImage32 that caused performance overhead 
+            for rmDirect repaint mode.</li>
+          <li>TSyntheticImage was not automatically rasterized upon creation.</li>
+          <li>Update regions in TTesseralRaserizer were not pixel-perfect.</li>
+          <li>Fix for memory leaks in AssignFromBitmap sub-method due to thread 
+            &lt;-&gt; GDI interaction.</li>
+          <li>Fixed a problem in integer version of HSLtoRGB.</li>
+          <li>Fixed TBitmap32.GetStippleColor (the ordinary interpolation routine 
+            must be used).</li>
+          <li>Fixed TBitmap32.SET_T256 and TBitmap32.SET_TS256 for color merging. 
+            cmMerge is now handled as a separate case.</li>
+          <li>Fixed TBitmap32.FillRectT for cmMerge.</li>
+          <li>Fixed bug in _CombineMem routine. The alpha channel was not interpolated, 
+            which is contradictory to documentation.</li>
+          <li>Revised Merge routines. Merge is now based on precise lookup tables. 
+            Moreover the new version is faster than the old buggy MMX version.</li>
+          <li>D5 compilation fixes.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h2>Detailed changes</h2>
+    <ul style="display:none">
+      <li>
+        <h2>GR32:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>UnionRect</li>
+          </ul>
+          <p class="EmptyRef">New types:</p>
+          <ul class="dots">
+            <li>TFloat: alias for Single</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Blend:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>CombineLine</li>
+            <li>ColorScale</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Containers:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>SmartAssign</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Resamplers:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>BlockTransferX</li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">v1.8 beta (9 August 2005)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>General changes</h2>
+    <ul>
+      <li>
+		<h2>Major additions:</h2>
+		<ul class="dots">
+		  <li>Resampler Framework / Nested Sampling</li>
+          <li>Rasterizer Framework</li>
+          <li>Buffered transformations / Warping / Remap Transformation</li>
+          <li>Repaint optimizations (MicroTiles Repaint optimizer)</li>
+        </ul>
+      </li>
+      <li>
+        <h2>Other additions:</h2>
+        <ul class="dots">
+          <li>New transformations (Twirl, Bloat, Disturbance, FishEye)</li>
+          <li>Fast transformations using TRemapTransformation</li>
+          <li>Kernel classes (implementing reconstruction filters) for TKernelResampler</li>
+          <li>Antialiasing by using regular and irregular super sampling methods</li>
+          <li>Spatial convolution and morphological operations</li>
+          <li>Vector maps, supporting .msh fileformat (useful for rasterizing/buffering transformations)</li>
+          <li>New ordinal map classes for Boolean-, Word- and Integer-sized data elements</li>
+          <li>New WrapMode property and wrapping Pixel properties</li>
+          <li>Scrollbar visibility control and new scale modes</li>
+          <li>Independent scales in TCustomImgView32 / TImgView32</li>
+          <li>TRubberbandLayer enhancements</li>
+          <li>New BlendTransfer routine for blending two bitmaps using an arbitrary blend callback routine</li>
+          <li>New polygonal antialiasing modes for 2x and 32x antialiasing</li>
+          <li>Improved performance in TPolygon32 rasterization routines</li>
+          <li>New draw mode, dmTransparent, for color key tranparency</li>
+          <li>FastMove support</li>
+          <li>New class registration mechanism using TClassList</li>
+          <li>Help documents updated with new additional topics</li>
+          <li>Restructured examples:</li>
+          <blockquote>
+            <p><em>new examples:</em><br>
+              TextureBlend_Ex, NestedSampling_Ex, Resamplers_Ex, ImgWarping_Ex, Visualization_Ex</p>
+            <p><em>changed examples:</em><br>
+              GradLines_Ex, Polygons_Ex, ImgView_Layers_Ex, Image32_Ex, Sprites_Ex</p>
+          </blockquote>
+        </ul>
+      </li>
+      <li>
+        <h2>Bugfixes:</h2>
+        <ul class="dots">
+          <li>Fixed AV with Graphics32 usage in DLLs on WinXP</li>
+          <li>Fixed jagged lines problem in LineS, LineTS and LineAS</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <h2>Detailed changes</h2>
+    <ul style="display:none">
+      <li>
+        <h2>GR32:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>RGBtoHSL(RGB: TColor32; out H, S, L: Byte)</li>
+            <li>HSLtoRGB(H, S, L: Integer)</li>
+            <li>EqualRectSize</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TNotifiablePersistent</li>
+            <li>TThreadPersistent (changed)</li>
+            <li>TCustomSampler</li>
+            <li>TCustomResampler</li>
+          </ul>
+          <p class="EmptyRef">Changes in TBitmap32:</p>
+          <ul>
+            <p class="EmptyRef">New methods: </p>
+            <ul class="dots">
+              <li>BeginMeasuringMode</li>
+              <li>EndMeasuringMode</li>
+              <li>OnAreaChanged</li>
+            </ul>
+            <p class="EmptyRef">New properties:</p>
+            <ul class="dots">
+              <li>MeasuringMode</li>
+              <li>StretchFilter deprecated, use TBitmap32.Resampler / TBitmap32.ResamplerClassName instead</li>
+              <li>WrapMode</li>
+              <li>PixelW / TBitmap32.PixelXW / TBitmap32.PixelFW</li>
+            </ul>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Blend:</h2>
+        <ul>
+          <p class="EmptyRef">New routines: </p>
+          <ul class="dots">
+            <li>ColorAverage</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Containers (New Unit):</h2>
+        <ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TRectList</li>
+            <li>TPointerMap</li>
+            <li>TPointerMapIterator</li>
+            <li>TClassList</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Image:</h2>
+        <ul>
+          <p class="EmptyRef">Changed types:</p>
+          <ul class="dots">
+            <li>TScaleMode: new modes smOptimal and smOptimalScaled</li>
+          </ul>
+          <p class="EmptyRef">Changes in TCustomPaintBox32:</p>
+          <ul>
+            <p class="EmptyRef">New methods:</p>
+            <ul class="dots">
+              <li>ForceFullInvalidate</li>
+            </ul>
+            <p class="EmptyRef">New properties:</p>
+            <ul class="dots">
+              <li>RepaintMode</li>
+            </ul>
+          </ul>
+          <p class="EmptyRef">Changes in TCustomImage32:</p>
+          <ul>
+            <p class="EmptyRef">New properties:</p>
+            <ul class="dots">
+              <li>ScaleX</li>
+              <li>ScaleY</li>
+            </ul>
+            <p class="EmptyRef">New events:</p>
+            <ul class="dots">
+              <li>OnScaleChange</li>
+            </ul>
+          </ul>
+          <p class="EmptyRef">Changes in TIVScrollProperties:</p>
+          <ul>
+            <p class="EmptyRef">New properties:</p>
+            <ul class="dots">
+              <li>Visibility (see TCustomImgView32.Scrollbars.Visibility)</li>
+            </ul>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Layers:</h2>
+        <ul>
+          <p class="EmptyRef">Changes in TLayerCollection:</p>
+          <ul>
+            <p class="EmptyRef">New methods:</p>
+            <ul class="dots">
+              <li>ViewportToLocal, LocalToViewport</li>
+              <li>GetViewportScale, GetViewportShift</li>
+            </ul>
+          </ul>
+          <ul>
+            <p class="EmptyRef">Structural changes:</p>
+            <ul class="dots">
+              <li>CoordXForm deprecated, use ViewportToLocal, LocalToViewport, GetViewportScale, GetViewportShift instead</li>
+              <li>Owner type changed to TPersistent</li>
+            </ul>
+          </ul>
+          <p class="EmptyRef">Changes in TCustomLayer:</p>
+          <ul>
+            <p class="EmptyRef">New methods:</p>
+            <ul class="dots">
+              <li>Update</li>
+              <li>Update(Rect)</li>
+              <li>Changed(Rect) </li>
+            </ul>
+          </ul>
+          <p class="EmptyRef">Changes in TPositionedLayer:</p>
+          <ul>
+            <p class="EmptyRef">New methods: </p>
+            <ul class="dots">
+              <li>GetAdjustedRect(const R: TFloatRect): TFloatRect;</li>
+            </ul>
+          </ul>
+          <p class="EmptyRef">Changes in TRubberbandLayer:</p>
+          <ul>
+            <p class="EmptyRef">New properties:</p>
+            <ul class="dots">
+              <li>TRubberbandLayer.FrameStippleCounter</li>
+            </ul>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_LowLevel:</h2>
+        <ul>
+          <p class="EmptyRef">New routines: </p>
+          <ul class="dots">
+            <li>FillLongword MMX optimized</li>
+            <li>MoveLongword with FastCode FastMove support via GR32.inc or project define</li>
+            <li>MoveWord</li>
+          </ul>
+        </ul>
+        <ul>
+          <p class="EmptyRef">Structural changes:</p>
+          <ul class="dots">
+            <li>MulDiv moved to GR32_Math</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Math (New Unit)</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>FixedFloor, FixedCeil</li>
+            <li>FixedMul, FixedDiv</li>
+            <li>FixedRound</li>
+            <li>FixedSqr, FixedSqrtLP, FixedSqrtHP</li>
+            <li>SinCos</li>
+            <li>MulDiv (moved from GR32_LowLevel)</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_MicroTiles (New Unit)</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>many MicroTiles auxiliary routines</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TMicroTilesMap</li>
+            <li>TMicroTilesRepaintOptimizer</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_OrdinalMaps.pas (New Unit) / replaces GR32_ByteMaps.pas</h2>
+        <ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TBooleanMap</li>
+            <li>TByteMap (moved from GR32_ByteMaps)</li>
+            <li>TWordMap</li>
+            <li>TIntegerMap </li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Polygons:</h2>
+        <ul>
+          <p class="EmptyRef">Changed types:</p>
+          <ul class="dots">
+            <li>TAntialiasMode: new modes am2times and am32times</li>
+          </ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>PolygonBounds</li>
+            <li>PolyPolyBounds</li>
+          </ul>
+          <p class="EmptyRef">Miscellaneous changes:</p>
+          <ul class="dots">
+            <li>minor optimizations to polygon rendering</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Rasterizers (New Unit)</h2>
+        <ul>
+          <p class="EmptyRef">New routine:</p>
+          <ul class="dots">
+            <li>CombineInfo</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TRasterizer</li>
+            <li>TRegularRasterizer</li>
+            <li>TSwizzlingRasterizer</li>
+            <li>TProgressiveRasterizer</li>
+            <li>TTesseralRasterizer</li>
+            <li>TContourRasterizer</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_RepaintOpt (New Unit)</h2>
+        <ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TRepaintOptimizer</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Resamplers (New Unit)</h2>
+        <ul>
+          <p class="EmptyRef">New types:</p>
+          <ul class="dots">
+            <li>TKernelMode</li>
+          </ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>BlendTransfer</li>
+            <li>BlockTransfer, StretchTransfer (moved from GR32_Transforms)</li>
+            <li>Convolve, Dilate, Erode, Expand, Contract</li>
+            <li>IncBuffer, MulitplyBuffer, BufferToColor32, ShrBuffer</li>
+            <li>CreateJitteredPattern</li>
+            <li>RegisterResampler, RegisterKernel</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TCustomKernel</li>
+            <li>TNearestKernel</li>
+            <li>TLinearKernel</li>
+            <li>TCosineKernel</li>
+            <li>TSplineKernel</li>
+            <li>TMichellKernel</li>
+            <li>TCubicKernel</li>
+            <li>THermiteKernel</li>
+            <li>TWindowedSinKernel</li>
+            <li>TLanczosKernel</li>
+            <li>TGaussianKernel</li>
+            <li>TBlackmanKernel</li>
+            <li>THannKernel</li>
+            <li>THammingKernel</li>
+            <li>TSinshKernel</li>
+            <li>TBitmap32Resampler</li>
+            <li>TNearestResampler</li>
+            <li>TLinearResampler</li>
+            <li>TDraftResampler</li>
+            <li>TKernelResampler</li>
+            <li>TNestedSampler</li>
+            <li>TTransformer</li>
+            <li>TNearestTransformer</li>
+            <li>TSuperSampler</li>
+            <li>TAdaptiveSuperSampler</li>
+            <li>TPatternSampler</li>
+            <li>TKernelSampler</li>
+            <li>TConvolver</li>
+            <li>TSelectiveConvolver</li>
+            <li>TMorphologicalSampler</li>
+            <li>TDilater</li>
+            <li>TEroder</li>
+            <li>TExpander</li>
+            <li>TContracter</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_System:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>GetTickCount (for Linux)</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TPerfTimer</li>
+          </ul>
+          <p class="EmptyRef">Miscellaneous changes:</p>
+          <ul class="dots">
+            <li>EMMX/MMX2 detection added (used for MicroTiles Repaint Optimizer),</li>
+            <li>global performance timer named GlobalPerfTimer added</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_Transforms:</h2>
+        <ul>
+          <p class="EmptyRef">New routines:</p>
+          <ul class="dots">
+            <li>RasterizeTransformation</li>
+            <li>new overloaded Transform routines</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TTwirlTransformation</li>
+            <li>TBloatTransformation</li>
+            <li>TDisturbanceTransformation</li>
+            <li>TFishEyeTransformation</li>
+            <li>TRemapTransformation</li>
+          </ul>
+          <p class="EmptyRef">Structural Changes:</p>
+          <ul class="dots">
+            <li>BlockTransfer and StretchTransfer moved to GR32_Resamplers</li>
+          </ul>
+        </ul>
+      </li>
+      <li>
+        <h2>GR32_VectorMaps (New Unit)</h2>
+        <ul>
+          <p class="EmptyRef">New types:</p>
+          <ul class="dots">
+            <li>TFixedVector</li>
+          </ul>
+          <p class="EmptyRef">New classes:</p>
+          <ul class="dots">
+            <li>TVectorMap</li>
+          </ul>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">v1.7.1 (25 February 2005)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>Bugfixes</h2>
+    <ul class="dots">
+      <li>fixes for AVs in new line drawing methods (LineS, LineTS, LineAS)</li>
+      <li>replaced incorrect call of VertLineS and HorzLineS in LineTS and LineAS with VertLineTS and HorzLineTS</li>
+      <li>fix for buffer reallocation inefficiency in TCustomPaintBox32 (non-critical, long standing)<br>
+        This should improve performance on resizing for all TCustomPaintBox32 derived controls.</li>
+      <li>added missing call to inherited constructor in TPolygon32 constructor (caused big trouble on Win9x/WinME systems) </li>
+      <li>RenderText now ignores Windows-based font smoothing in VCL<br>
+        (VCL-only change because the QT version that's used in CLX doesn't support disabling font antialiasing, neither in Windows nor in Linux/X11)</li>
+      <li>CLX compilation fixes</li>
+      <li>C++ Builder compilation fixes</li>
+      <li>ColorMul removed (duplicate of ColorModulate)</li>
+      <li>minor cleanups</li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">v1.7 (16 January 2005)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>New Features</h2>
+    <ul class="dots">
+      <li>clipping rect support (all safe drawing operations are clipped to a rect)</li>
+      <li>support for custom polygon fillings (via callback or polygon filler objects)</li>
+      <li>support for polygon transformation (permanent or while drawing)</li>
+      <li>update to transformation classes to make them more suited for general usage</li>
+      <li>polygon performance enhancements</li>
+      <li>new CombineMode property in TBitmap32</li>
+      <li>TRubberbandLayer enhancements</li>
+      <li>additional color algebra functions</li>
+      <li>more versatile TBitmap32.ResetAlpha method (overloaded)</li>
+      <li>Delphi 2005 (Win32) support (optional inlining where applicable)</li>
+      <li>small speed enhancements</li>
+    </ul>
+  </li>
+</ul>
+<ul class="barebones expandable">
+  <li>
+    <h2>Bugfixes</h2>
+    <ul class="dots">
+      <li>fix for RenderText problems with letters that spread below baseline</li>
+      <li>fix for bug in TBitmap32.Rotate180</li>
+      <li>fix for problem in TBitmap32.Assign that caused transparent regions in metafiles and icons to appear in blue when they really should be white.</li>
+      <li>fix for problem where the buffer content on repaint in TPaintBox32 wasn't validated</li>
+      <li>fix for problem where C++ Builder threw linker errors (HDC methods and "hoisted overload" or E2113) in GR32.pas and GR32_Image.pas</li>
+      <li>fix for linear/draft bug with bitmaps of size 100x1 et al.</li>
+      <li>fix for bug in Transform that caused the outline of the source bitmap to appear in OuterColor</li>
+      <li>fix for the 3DNow detection (caused "external exception" on some machines when sfDraft was used)</li>
+      <li>fix for dysfunctional OnMouseEnter and OnMouseLeave in TCustomImage32 </li>
+      <li>fix for CheckParams problem in ApplyLUT</li>
+      <li>fix to preserve alpha channel in ApplyLUT and ColorToGrayscale</li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">v1.6 (21 July 2004)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>Changes</h2>
+    <ul class="dots">
+      <li> Graphics32 now fully supports CLX cross-platform development;</li>
+      <li> Example projects have been successfully converted and tested in Linux;</li>
+      <li> Fixed issues in GR32_Transforms that could potentially cause access violation;</li>
+      <li> Added sfDraft resampling filter with MMX optimization;</li>
+      <li> Added sfCosine resampling filter;</li>
+      <li> Added PixelF/X properties that read and write pixels with antialiasing;</li>
+      <li> SetPixelF/X methods have been deprecated;</li>
+      <li> Added new MMX optimized color algebra routines to GR32_Blend (Add, Subtract, Multiply etc.);</li>
+      <li> Added AntiAliasMode property to TPolygon32 for dynamically changing antialias level at runtime;</li>
+      <li> Added support for 4x supersampling antialias of polygons (significantly faster but with less quality);</li>
+      <li> Unicode support for TBitmap32.Text* and TBitmap32.Rendertext methods;</li>
+      <li> Fixed blending bug (the &quot;not fully opaque&quot; issue);</li>
+      <li> Performance optimizations (MMX) in blending routines and Transforms;</li>
+      <li> Several minor additions and optimizations.</li>
+    </ul>
+  </li>
+</ul>
+<h2 class="Body">Earlier releases (v0.9 - v1.5.1b)</h2>
+<ul class="barebones expandable">
+  <li>
+    <h2>Summary</h2>
+    <ul style="display:none">
+      <h2 class="Body">v1.5.1b (5 July 2004)</h2>
+      <p class="Body">Changed license to MPL. Everything else is identical with v1.5.1.</p>
+      <h2 class="Body">v1.5.1 (8 June 2003)</h2>
+      <p class="Body">Fixed resource leaks in TBitmap32.Canvas and TBitmap32.Font.</p>
+      <p class="Body">A small bug fix in TRubberbandLayer.MouseMove</p>
+      <p class="Body">Added a new resampling option which is controlled through the FullEdge variable in GR32_Transforms.pas. To see how it affects resampled image, see the new example in the FineResample_Ex directory. The default value of FullEdge is True; change FullEdge back to False to get resampling results as in previous versions.</p>
+      <h2 class="Body">v1.5 (15 January 2003)</h2>
+      <p class="Body">Added packages for Delphi 7. The library should also compile with C++ Builder 6.</p>
+      <h2 class="Body">v1.5 beta 2 (27 July 2002)</h2>
+      <p class="Body">Completely rewritten bitmap resampling routines: added DstClip parameter to BlockTransfer and StretchTransfer, added new resampling filters. Warning: sfLinear2 filter has been removed - use sfLinear instead. </p>
+      <p class="Body">Added new TBitamp32 methods: FlipHorz, FlipVert, Rotate90, Rotate180, and Rotate270. Added TBitmap32.Canvas. Some changes in line drawing routines. Faster implementation of TColor &lt;&gt; TColor32 conversion. Other minor bug fixes.</p>
+      <h2 class="Body">v1.4 (29 March 2002)</h2>
+      <p class="Body">Fixed a bug in TAffineTransformation. Exposed matrix transformation routines from GR32_Transforms for external use. Fixed handling of very small scales in TImage32. Fixed a bug in non-MMX blending. Fixed BCB packages. Added LoadFromResourceID and LoadFromResourceName wrappers. Some fixes in stippled lines with clipping (still not perfect, but now it should be more consistent). Added TBitmap32.HandleChanged.</p>
+      <h2 class="Body">v1.3 (12 February 2002)</h2>
+      <p class="Body">GR32_CPUid.pas is renamed to GR32_System.pas and extended to handle windows xp visual styles. New implementation for range bars and gage bars. Fixed bugs in projective transformations, polygons, and design-time TBitmap32 editor. After a few tweaks the ImgView_Layers_Ex example should work considerable faster. Removed bgMix style from TArrowBar.Bkgnd as well as glyph properties to make range bars and gage bars compatible with visual styles in WindowsXP. Added a new property TPainBox32.Options.</p>
+      <p class="Body">I established a new Kagi account, so if you would like to support development of Graphics32 and it successor G32, you are very welcome to make your donation <a href="https://order.kagi.com/?GRH" target="_blank">here</a>. Thank you in advance.</p>
+      <h2 class="Body">v1.2 (15 January 2002)</h2>
+      <p class="Body">All the units, dfm, etc. files have been renamed from G_*.* to GR_*.*</p>
+      <p class="Body">Renamed Rect() functions to MakeRect() to provide better BCB compatibility. Renamed TCustomMap.SetSize(Source: TPersistent) to TCustomMap.SetSizeFrom(Source: TPersistent)</p>
+      <h2 class="Body">v1.01 (30 December 2001)</h2>
+      <p class="Body">Bug fixes in LineA functions, and scaling 1-pixel size bitmaps. Some steps are taken towards BCB compatibility.</p>
+      <h2 class="Body">v1.0 (17 September 2001)</h2>
+      <p class="Body">A small fix in image resampling. Renamed TextOut methods to Textout (I'm not sure, but this might help in BCB compilation).</p>
+      <h2 class="Body">v0.99z (13 August 2001)</h2>
+      <p class="Body">Included Borland C++ Builder installation packages. Changed references to a new web site. Fixed bugs with polygons and PaintTo method in TImage32.</p>
+      <h2 class="Body">v0.99f (3 August 2001)</h2>
+      <p class="Body">Fixed (I hope) a last small glitch in font resource allocation. A few tune-ups in polygons. Added support for Delphi 6. Design-time and run-time packages have been separated (<b>Note</b>: deinstallation of previous version is required). </p>
+      <h2 class="Body">v0.99e (31 April 2001)</h2>
+      <p class="Body">Fixed regarding OnPixelCombine event in TBitmap32. And corresponding code in StretchTransform.</p>
+      <p class="Body">A couple of new examples added.</p>
+      <h2 class="Body">v0.99d (6 February 2001)</h2>
+      <p class="Body">Changed implementation of FillRect* and FrameRect* functions, now the right/bottom line of pixels is excluded. Inverted rectangles (with negative width or height) are considered empty, they are not drawn any more. This behavior should be more consistent with GDI and with other routines in the library.</p>
+      <p class="Body">Changed a couple of properties in TCustomRangeBar. Now Range and Increment can be of a floating point type and OnGetWindowSize event is substituted with the Window property.</p>
+      <p class="Body">Added SizeGrip property to TCustomImgView32, as well as changed the order of the repainting a little bit, now the control scale a bit smoother. </p>
+      <p class="Body">Fixed Win'98 resource leakage in RenderText function.</p>
+      <p class="Body">Changed UI in the byte maps example.</p>
+      <p class="Body">Added new example on Graphics32-based custom visual component creation. </p>
+      <p class="Body">Most likely, this is the final beta release, next one should be v1.0.</p>
+      <h2 class="Body">v0.99b</h2>
+      <p class="Body">Removed OnChanging event from all classes. Fixed a bug in TByteMap.Assign.</p>
+      <p class="Body">A faster MulDiv implementation.</p>
+      <p class="Body"></p>
+      <p class="Body">New mouse events in TCustomImage32 were implemented to simplify mouse interaction with layers. Some internal changes in layer scaling. </p>
+      <p class="Body">Added the OnDestroy event to layers. Added LOB_NO_UPDATE to layer option bits. Changed TRubberBandLayer to paint itself into the buffer instead of using GDI overlays, removed ResizeOptions and added the OnResizing event. </p>
+      <p class="Body">Added Dst parameter into layer painting functions and events to support layer flattening operation (See TCustomImage32.PaintTo). Added OnInitStages event to TCustomImage32. Also I'm thinking of replacing the GDI overlays with something more useful and less flickering. It is still in the code but their usage is not recommended.</p>
+      <p class="Body">Implemented a Sutherland-Cohen line clipping algorithm instead of slower Liang-Barsky.</p>
+      <p class="Body">Added Flush functions to TPaintBox32 for direct copying of the back buffer to the screen.</p>
+      <p class="Body">Updated some of the examples. </p>
+      <h2 class="Body">v0.99a (25 September 2000)</h2>
+      <p class="Body">Some speed-ups in resampling functions.</p>
+      <h2 class="Body">v0.99 (9 September 2000)</h2>
+      <p class="Body">New documentation is available in HTML Help format. Changed unit names. Changed implementation of TImage32 and layers (see docs). New TPaintBox32 does not support layers. TBitmapList32 is renamed to TBitmap32List and a little bit simplified. An couple of bugs fixed in TBitmap32.SetSize. One of them could lead to resource leakage. Also fixed a bug in design-time streaming. TImgView32, a new control introduced in v0.98c is improved and now it is a descendant of TImage32.</p>
+      <h2 class="Body">v0.98c (19 July 2000)</h2>
+      <p class="Body">This release is to be considered as beta for v0.99. It contains most of the features planned for v0.99. I release it mostly to check the C++ Builder compatibility, and keep you up-to-date with the current development state. Note, that documentation is not completely updated. DrawLine* functions are changed to Line*. Added an ability to customize bitmap blending equation. Better and faster buffering in TPaintBox32 and its descendants. Perspective transformations are now possible as well. Introduced a new TFixed fixed point data type. A new unit, implementing controls similar to scroll bars is available together with sample control showing how to implement scroll bars with TImage32. Sample control showing how to implement rubber-banding with layers is available as well. New 'X' postfix is introduced to some line drawing routines than operate directly over fixed point arguments.</p>
+      <h2 class="Body">v0.98b (3 June 2000)</h2>
+      <p class="Body">Just a few bug fixes.</p>
+      <h2 class="Body">v0.98a (22 May 2000)</h2>
+      <p class="Body">A little optimization in TBitmap32.RenderText. A bug in Intensity function fixed. Some fix-ups in PolygonTS.</p>
+      <h2 class="Body">v0.98 (17 May 2000) </h2>
+      <p class="Body">Delphi4 compatibility. New MMX optimization code with automatic MMX detection. A small fix in Bresenham's implementation. DrawLine* functions now have parameter controlling drawing of the last pixel. Added MoveTo*, LineTo* functions. Added text blending/antialiasing. Added polylines and polygons. DrawLineA* functions now support line opacity. Added GR32Bench.xls file with performance test results. Some other small fixes. New examples.</p>
+      <h2 class="Body">v0.97a (1 May 2000)</h2>
+      <p class="Body">A bug with FillRectS, FillRectTS fixed. Added a SmartResize property to TPaintBox32, it helps to reduce the amount of back-buffer reallocations when the control resizes.</p>
+      <h2 class="Body">v0.97 (29 Apr 2000)</h2>
+      <p class="Body">Complete redesign, no more MMX-specific code since the new integer version works just as fast, no more msimg32.dll dependence. New double buffering scheme, new change notification scheme, completely redesigned overlay layers implementation, new scaling and linear trannsformation implementation. Overall speed improevement.</p>
+      <h2 class="Body">v0.95 (5 April 2000)</h2>
+      <p class="Body">Added MMX optimization for pixel blending. It is also used to accelerate bilinear interpolation when performing linear transformations. Well, not a huge increase in performance, but still something. Alternative non-MMX code was rearranged to increase the instruction pairing. It works a bit faster now. A few bugs with color algebra were eliminated. A couple of links regarding low-level optimization is added.</p>
+      <h2 class="Body">v0.94 (31 March 2000)</h2>
+      <p class="Body">Added a new unit for byte array mapping. A little reorganization in OnChange event generation. Fixed a bug in DrawLineF/FS functions, when the last point (or part of it) was not always there it was supposed to be.</p>
+      <h2 class="Body">v0.93 (23 March 2000)</h2>
+      <p class="Body">Added baTile mode to TImage32.BitmapAlign property. Added linear transformations (See documentation). EndUpdate method of TBitmap32 now does not generate change notification. The Changed method must be called explicitly. New example on linear transformation is available. A few improvements in pixel and line antialiasing.</p>
+      <h2 class="Body">v0.92a (17March 2000)</h2>
+      <p class="Body">Win95/NT support bug fixed. This version emulates both bitmap transparency and bitmap alpha blending functions from msimg32.dll, however this emulation is not optimized and will be slower compared to msimg32.dll. Some other small bugs found and destroyed.</p>
+      <h2 class="Body">v0.92 (16 March 2000) </h2>
+      <p class="Body">Sprite scaling is added. Removed Transparent and UseAlpha from TBitmap32 properties. A new property DrawMode is introduced instead. Windows 95 and NT compatibility compiler directive is added. TImage32 example is updated and Win95/NT version is posted. See updated documentation for details. </p>
+      <h2 class="Body">v0.91 (10 March 2000)</h2>
+      <p class="Body">Some changes in TImage32 component to reduce flicker when DoubleBuffered is turned off. Fixed the multithreading example.</p>
+      <h2 class="Body">v0.9 (9 March 2000) </h2>
+      <p class="Body">First public release.</p>
+      <p class="Body">&nbsp;</p>
+    </ul>
+  </li>
+</ul>
+<p id="hidden">[See also]: <a href="Features.htm">Features</a>, <a href="License.htm">License</a>, <a href="Donate.htm">Donate</a>, <a href="Contacts.htm">Contacts</a>, <a href="Naming%20Conventions.htm">Naming Conventions</a></p>
+<img src="../../Images/buttons.gif" width="1" height="1">
+</body>
+</html>

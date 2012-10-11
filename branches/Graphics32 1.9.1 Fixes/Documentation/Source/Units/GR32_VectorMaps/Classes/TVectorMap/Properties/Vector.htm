@@ -1,0 +1,31 @@
+<html>
+<head>
+<title>Pixel</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> FixedVector[X, Y: Integer]: <a href="../../../Types/Vector%20Types.htm#TFixedVector">TFixedVector</a>; 
+  <b>default</b>;</p>
+<p class="Decl"><b>property</b> FixedVectorS[X, Y: Integer]: <a href="../../../Types/Vector%20Types.htm#TFixedVector">TFixedVector</a>;</p>
+<p class="Decl"><b>property</b> FixedVectorX[X, Y: <a href="../../../../GR32/Types/TFixed.htm">TFixed</a>]: <a href="../../../Types/Vector%20Types.htm#TFixedVector">TFixedVector</a>;</p>
+<p class="Decl"><b>property</b> FixedVectorXS[X, Y: <a href="../../../../GR32/Types/TFixed.htm">TFixed</a>]: <a href="../../../Types/Vector%20Types.htm#TFixedVector">TFixedVector</a>;</p>
+		<p class="Decl"></p>
+		<p class="Decl"><b>property</b> FloatVector[X, Y: Integer]: <a href="../../../Types/Vector%20Types.htm#TFloatVector">TFloatVector</a>; </p>
+		<p class="Decl"><b>property</b> FloatVectorS[X, Y: Integer]: <a href="../../../Types/Vector%20Types.htm#TFloatVector">TFloatVector</a>;</p>
+		<p class="Decl"><b>property</b> FloatVectorF[X, Y: Single]: <a href="../../../Types/Vector%20Types.htm#TFloatVector">TFloatVector</a>;</p>
+		<p class="Decl"><b>property</b> FloatVectorFS[X, Y: Single]: <a href="../../../Types/Vector%20Types.htm#TFloatVector">TFloatVector</a>;</p>
+		<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">FixedVector</span> property sets the value of the vector in the vectormap. Reading it, will return the vector value of the vector located at specified coordinates. This property does not validate the specified coordinates, so use it only when completely certain that the ranges provided is within the vectormap boundaries. <span class="EmptyRef">FixedVector</span> 
+  is declared as default property, you may use it as shown below: </p>
+<p class="Code">Vectormap[10, 20] := Vectormap[20, 10]; <span class="Comment">// copy a vector from (20,10) to (10,20) position</span></p>
+<p class="Body"><span class="EmptyRef">FixedVectorS</span> is a 'safe' version of the 
+  <span class="EmptyRef">FixedVector</span> property. When reading vectors from the outside the bitmap boundary, a vector of (0, 0) is returned. Writing with invalid coordinates will have no effect.</p>
+<p class="Body"><b>FixedVectorX</b> provides a method for accessing the vectors in TFixed based coordinates. The returned vector is computed by performing linear interpolation on four adjacent vectors. Similarly, when vectors are set, they are distributed weighted over four adjacent vectors.</p>
+		<p class="Body"><b>FixedVectorXS</b> is a 'safe' version of the above property.</p>
+		<p class="Body"></p>
+		<p class="Body"><b>FloatVector/S/F/FS </b>Provides floating point compatible versions of the above properties. Note that the floating point versions are provided for convenience only; coding for optimal performance, consider using fixedpoint versions (which will allow execution inside MMX enabled code segments). TVectormap stores its vectors natively in TFixedVector format, hence no extra precision is gained by using floating point versions.</p>
+		<p class="Body"></p>
+		<p id="hidden">[See also]: <a href="../../../../../Overview/Naming%20Conventions.htm">Naming Conventions</a>, <a href="../../../../GR32/Routines/Fixed%20Point%20Math.htm">Fixed Point Math</a></p>
+	</body>
+</html>

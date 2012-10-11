@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Blend</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b><a name="BlendReg"></a>function</b> BlendReg(F, B: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>): 
+  <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; </p>
+<p class="Decl"><b><a name="BlendMem"></a>procedure</b> BlendMem(F: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>; 
+  <b>var</b> B: <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>);</p>
+<h2>Description</h2>
+<p class="Body">Mixes a foregrownd (<b>F</b>) color with the background color 
+  (<b>B</b>) using the alpha component of the foreground color. </p>
+<p class="Code">S<span class="sub">RGB</span> = F<span class="sub">A</span> 
+  * F<span class="sub">RGB</span> + (1 – F<span class="sub">A</span>) 
+  * B<span class="sub">RGB</span>;</p>
+<p class="Body"><span class="EmptyRef">BlendReg</span> takes parameters and produces 
+  the result operating on CPU registers.</p>
+<p class="Body"><span class="EmptyRef">BlendMem</span> operates with the background 
+  color referenced by a memory address. </p>
+<p class="Body">Using <span class="EmptyRef">BlendMem</span> is more efficient 
+  when blending/combining data to a bitmap, since it excludes writing operation 
+  for transparent pixels and reading operation for opaque ones.</p>
+<p class="Body">Note, that after using the <span class="EmptyRef">Blend</span> 
+  function, you have to call <a href="../../GR32_Blend/Routines/EMMS.htm">EMMS</a>. Otherwise CPU will be 
+  unable to handle floating point instructions.</p>
+<p id="hidden">[See Also] <a href="../../GR32_Blend/Routines/BlendEx.htm">BlendEx</a>, <a href="Merge.htm">Merge</a>, <a href="MergeEx.htm">MergeEx</a>, <a href="../../GR32_Blend/Routines/Combine.htm">Combine</a></p>
+</body>
+</html>

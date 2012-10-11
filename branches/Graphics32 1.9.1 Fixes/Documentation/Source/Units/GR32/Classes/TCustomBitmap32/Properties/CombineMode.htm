@@ -1,0 +1,26 @@
+<html>
+<head>
+<title>CombineMode</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>property</b> CombineMode: <a href="../../../../GR32/Types/TCombineMode.htm">TCombineMode</a>; 
+</p>
+<p class="Decl"><b>type</b> TCombineMode = (cmBlend, cmMerge);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TCombineMode</span> defines how <em>drawing operations</em> on the bitmap combine
+  the foreground color with the background.<br>
+It also determines how the bitmap is combined with the background of another bitmap when <a href="DrawMode.htm">DrawMode</a> is
+set to dmBlend.</p>
+<ul>
+  <li><strong>cmBlend</strong> - Fast blending of foreground color with the background color using the supplied alpha. This
+    method is not suited for working and preserving alpha-channels. Use this if you want to blend directly to the display
+    buffer. Internally uses <a href="../../../../GR32_Blend/Routines/Blend.htm">Blend</a> and <a href="../../../../GR32_Blend/Routines/BlendEx.htm">BlendEx</a> routines. </li>
+  <li><strong>cmMerge</strong> - Uses a completely different formula that also merges the alpha-channels. This mode is slower
+    than blending but is suited for working with alpha-channels (eg. when composing in temporary buffers). Internally uses <a href="../../../../GR32_Blend/Routines/Merge.htm">Merge</a> and <a href="../../../../GR32_Blend/Routines/MergeEx.htm">MergeEx</a> routines. </li>
+</ul>
+<p class="Body">&nbsp;</p>
+<p id="hidden">[See also]: <a href="../Methods/Draw.htm">Draw</a>, <a href="../Methods/DrawTo.htm">DrawTo</a></p>
+</body>
+</html>

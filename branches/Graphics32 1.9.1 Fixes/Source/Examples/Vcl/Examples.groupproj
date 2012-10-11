@@ -1,0 +1,252 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{20C180FF-6F9D-4193-A625-00097B293694}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="Blending\PixelCombine_Ex\PixelCombine_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Blending\TextureBlend_Ex\TextureBlend_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\GradLines_Ex\GradLines_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\LineStippling_Ex\LineStippling_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\Polygons_Ex\Polygons_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\RenderText_Ex\RenderText_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="General\ByteMaps_Ex\ByteMaps_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="General\Image32_Ex\Image32_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="General\Mandelbrot_Ex\Mandelbrot_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="General\Rotate_Ex\Rotate_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Layers\ImgView_Layers_Ex\ImgView_Layers_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Layers\RotLayer_Ex\RotLayer_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Layers\Sprites_Ex\Sprites_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Resampling\NestedSampling_Ex\NestedSampling_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Resampling\PixelF_Ex\PixelF_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Resampling\Resamplers_Ex\Resamplers_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Transformation\ImgWarping_Ex\ImgWarping_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Transformation\Transform_Ex\Transform_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Transformation\Visualization_Ex\Visualization_Ex.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="PixelCombine_Ex">
+			<MSBuild Projects="Blending\PixelCombine_Ex\PixelCombine_Ex.dproj"/>
+		</Target>
+		<Target Name="PixelCombine_Ex:Clean">
+			<MSBuild Projects="Blending\PixelCombine_Ex\PixelCombine_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="PixelCombine_Ex:Make">
+			<MSBuild Projects="Blending\PixelCombine_Ex\PixelCombine_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="TextureBlend_Ex">
+			<MSBuild Projects="Blending\TextureBlend_Ex\TextureBlend_Ex.dproj"/>
+		</Target>
+		<Target Name="TextureBlend_Ex:Clean">
+			<MSBuild Projects="Blending\TextureBlend_Ex\TextureBlend_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="TextureBlend_Ex:Make">
+			<MSBuild Projects="Blending\TextureBlend_Ex\TextureBlend_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="GradLines_Ex">
+			<MSBuild Projects="Drawing\GradLines_Ex\GradLines_Ex.dproj"/>
+		</Target>
+		<Target Name="GradLines_Ex:Clean">
+			<MSBuild Projects="Drawing\GradLines_Ex\GradLines_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="GradLines_Ex:Make">
+			<MSBuild Projects="Drawing\GradLines_Ex\GradLines_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="LineStippling_Ex">
+			<MSBuild Projects="Drawing\LineStippling_Ex\LineStippling_Ex.dproj"/>
+		</Target>
+		<Target Name="LineStippling_Ex:Clean">
+			<MSBuild Projects="Drawing\LineStippling_Ex\LineStippling_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="LineStippling_Ex:Make">
+			<MSBuild Projects="Drawing\LineStippling_Ex\LineStippling_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Polygons_Ex">
+			<MSBuild Projects="Drawing\Polygons_Ex\Polygons_Ex.dproj"/>
+		</Target>
+		<Target Name="Polygons_Ex:Clean">
+			<MSBuild Projects="Drawing\Polygons_Ex\Polygons_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Polygons_Ex:Make">
+			<MSBuild Projects="Drawing\Polygons_Ex\Polygons_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="RenderText_Ex">
+			<MSBuild Projects="Drawing\RenderText_Ex\RenderText_Ex.dproj"/>
+		</Target>
+		<Target Name="RenderText_Ex:Clean">
+			<MSBuild Projects="Drawing\RenderText_Ex\RenderText_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="RenderText_Ex:Make">
+			<MSBuild Projects="Drawing\RenderText_Ex\RenderText_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="ByteMaps_Ex">
+			<MSBuild Projects="General\ByteMaps_Ex\ByteMaps_Ex.dproj"/>
+		</Target>
+		<Target Name="ByteMaps_Ex:Clean">
+			<MSBuild Projects="General\ByteMaps_Ex\ByteMaps_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="ByteMaps_Ex:Make">
+			<MSBuild Projects="General\ByteMaps_Ex\ByteMaps_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Image32_Ex">
+			<MSBuild Projects="General\Image32_Ex\Image32_Ex.dproj"/>
+		</Target>
+		<Target Name="Image32_Ex:Clean">
+			<MSBuild Projects="General\Image32_Ex\Image32_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Image32_Ex:Make">
+			<MSBuild Projects="General\Image32_Ex\Image32_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Mandelbrot_Ex">
+			<MSBuild Projects="General\Mandelbrot_Ex\Mandelbrot_Ex.dproj"/>
+		</Target>
+		<Target Name="Mandelbrot_Ex:Clean">
+			<MSBuild Projects="General\Mandelbrot_Ex\Mandelbrot_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Mandelbrot_Ex:Make">
+			<MSBuild Projects="General\Mandelbrot_Ex\Mandelbrot_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Rotate_Ex">
+			<MSBuild Projects="General\Rotate_Ex\Rotate_Ex.dproj"/>
+		</Target>
+		<Target Name="Rotate_Ex:Clean">
+			<MSBuild Projects="General\Rotate_Ex\Rotate_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Rotate_Ex:Make">
+			<MSBuild Projects="General\Rotate_Ex\Rotate_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="ImgView_Layers_Ex">
+			<MSBuild Projects="Layers\ImgView_Layers_Ex\ImgView_Layers_Ex.dproj"/>
+		</Target>
+		<Target Name="ImgView_Layers_Ex:Clean">
+			<MSBuild Projects="Layers\ImgView_Layers_Ex\ImgView_Layers_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="ImgView_Layers_Ex:Make">
+			<MSBuild Projects="Layers\ImgView_Layers_Ex\ImgView_Layers_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="RotLayer_Ex">
+			<MSBuild Projects="Layers\RotLayer_Ex\RotLayer_Ex.dproj"/>
+		</Target>
+		<Target Name="RotLayer_Ex:Clean">
+			<MSBuild Projects="Layers\RotLayer_Ex\RotLayer_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="RotLayer_Ex:Make">
+			<MSBuild Projects="Layers\RotLayer_Ex\RotLayer_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Sprites_Ex">
+			<MSBuild Projects="Layers\Sprites_Ex\Sprites_Ex.dproj"/>
+		</Target>
+		<Target Name="Sprites_Ex:Clean">
+			<MSBuild Projects="Layers\Sprites_Ex\Sprites_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Sprites_Ex:Make">
+			<MSBuild Projects="Layers\Sprites_Ex\Sprites_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="NestedSampling_Ex">
+			<MSBuild Projects="Resampling\NestedSampling_Ex\NestedSampling_Ex.dproj"/>
+		</Target>
+		<Target Name="NestedSampling_Ex:Clean">
+			<MSBuild Projects="Resampling\NestedSampling_Ex\NestedSampling_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="NestedSampling_Ex:Make">
+			<MSBuild Projects="Resampling\NestedSampling_Ex\NestedSampling_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="PixelF_Ex">
+			<MSBuild Projects="Resampling\PixelF_Ex\PixelF_Ex.dproj"/>
+		</Target>
+		<Target Name="PixelF_Ex:Clean">
+			<MSBuild Projects="Resampling\PixelF_Ex\PixelF_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="PixelF_Ex:Make">
+			<MSBuild Projects="Resampling\PixelF_Ex\PixelF_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Resamplers_Ex">
+			<MSBuild Projects="Resampling\Resamplers_Ex\Resamplers_Ex.dproj"/>
+		</Target>
+		<Target Name="Resamplers_Ex:Clean">
+			<MSBuild Projects="Resampling\Resamplers_Ex\Resamplers_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Resamplers_Ex:Make">
+			<MSBuild Projects="Resampling\Resamplers_Ex\Resamplers_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="ImgWarping_Ex">
+			<MSBuild Projects="Transformation\ImgWarping_Ex\ImgWarping_Ex.dproj"/>
+		</Target>
+		<Target Name="ImgWarping_Ex:Clean">
+			<MSBuild Projects="Transformation\ImgWarping_Ex\ImgWarping_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="ImgWarping_Ex:Make">
+			<MSBuild Projects="Transformation\ImgWarping_Ex\ImgWarping_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Transform_Ex">
+			<MSBuild Projects="Transformation\Transform_Ex\Transform_Ex.dproj"/>
+		</Target>
+		<Target Name="Transform_Ex:Clean">
+			<MSBuild Projects="Transformation\Transform_Ex\Transform_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Transform_Ex:Make">
+			<MSBuild Projects="Transformation\Transform_Ex\Transform_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Visualization_Ex">
+			<MSBuild Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj"/>
+		</Target>
+		<Target Name="Visualization_Ex:Clean">
+			<MSBuild Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Visualization_Ex:Make">
+			<MSBuild Projects="Transformation\Visualization_Ex\Visualization_Ex.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="PixelCombine_Ex;TextureBlend_Ex;GradLines_Ex;LineStippling_Ex;Polygons_Ex;RenderText_Ex;ByteMaps_Ex;Image32_Ex;Mandelbrot_Ex;Rotate_Ex;ImgView_Layers_Ex;RotLayer_Ex;Sprites_Ex;NestedSampling_Ex;PixelF_Ex;Resamplers_Ex;ImgWarping_Ex;Transform_Ex;Visualization_Ex"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="PixelCombine_Ex:Clean;TextureBlend_Ex:Clean;GradLines_Ex:Clean;LineStippling_Ex:Clean;Polygons_Ex:Clean;RenderText_Ex:Clean;ByteMaps_Ex:Clean;Image32_Ex:Clean;Mandelbrot_Ex:Clean;Rotate_Ex:Clean;ImgView_Layers_Ex:Clean;RotLayer_Ex:Clean;Sprites_Ex:Clean;NestedSampling_Ex:Clean;PixelF_Ex:Clean;Resamplers_Ex:Clean;ImgWarping_Ex:Clean;Transform_Ex:Clean;Visualization_Ex:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="PixelCombine_Ex:Make;TextureBlend_Ex:Make;GradLines_Ex:Make;LineStippling_Ex:Make;Polygons_Ex:Make;RenderText_Ex:Make;ByteMaps_Ex:Make;Image32_Ex:Make;Mandelbrot_Ex:Make;Rotate_Ex:Make;ImgView_Layers_Ex:Make;RotLayer_Ex:Make;Sprites_Ex:Make;NestedSampling_Ex:Make;PixelF_Ex:Make;Resamplers_Ex:Make;ImgWarping_Ex:Make;Transform_Ex:Make;Visualization_Ex:Make"/>
+		</Target>
+		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+	</Project>

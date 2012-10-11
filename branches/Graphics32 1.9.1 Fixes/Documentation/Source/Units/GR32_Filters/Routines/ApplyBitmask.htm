@@ -1,0 +1,67 @@
+<html>
+<head>
+<title>ApplyBitmask</title>
+<link rel="STYLESHEET" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<p class="Decl"><b>procedure</b> ApplyBitmask( <br>
+  &nbsp;&nbsp;Dst: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>;<br>
+  &nbsp;&nbsp;DstX: Integer; <br>
+  &nbsp;&nbsp;DstY: Integer;<br>
+  &nbsp;&nbsp;Src: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>;<br>
+  &nbsp;&nbsp;SrcRect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;Bitmask: <a href="../../GR32/Types/Color%20Types.htm">TColor32</a>;<br>
+  &nbsp;&nbsp;LogicalOperator: <a href="../Types/TLogicalOperator.htm">TLogicalOperator</a>;<br>);</p>  
+<p class="Decl"><b>procedure</b> ApplyBitmask( <br>
+  &nbsp;&nbsp;ABitmap: <a href="../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>;<br>
+  &nbsp;&nbsp;ARect: <a href="../../GR32/Types/Rectangle%20Types.htm#TRect">TRect</a>;<br>
+  &nbsp;&nbsp;Bitmask: <a href="../../GR32/Types/Color%20Types.htm">TColor32</a>;<br>
+  &nbsp;&nbsp;LogicalOperator: <a href="../Types/TLogicalOperator.htm">TLogicalOperator</a>;<br>);</p>  
+<h2>Description</h2>
+		<p class="Body"><span class="EmptyRef">ApplyBitmask</span> performs a logical (bitwise) operation on a bitmap fragment specified by <b>SrcRect</b> into location (<b>DstX</b>, 
+  <b>DstY</b>) or directly in-place on <strong>ABitmap</strong>. The operation is carried out in the following manner: &quot;Source Pixel [Logical Operation] Bitmask&quot; regardless of present destination or in-place operation. The logical operation is defined by the provided <a href="../Types/TLogicalOperator.htm">Logical Operator</a>. <br>
+			<br>
+			Each byte in the bitmask will be used as component corresponding operand. The following combinations illustrates different applications:</p>
+		<table width="738" border="0" cellspacing="2" cellpadding="0">
+			<tr>
+				<td width="210"><strong>Description</strong></td>
+				<td width="174"><strong>Parameter Values</strong></td>
+				<td><strong>Source</strong></td>
+				<td><strong>Result</strong></td>
+			</tr>
+			<tr>
+				<td width="210">Zero out Red and Blue components, leave the rest untouched</td>
+				<td width="174">
+					LogicalOperator = loAND<br>Bitmask = $FF00FF00</td>
+				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
+				<td><img src="../../../../Images/img_027.png" alt="" height="122" width="158" border="0"></td>
+			</tr>
+			<tr>
+				<td width="210">Invertion of Blue component, leave the rest untouched</td>
+				<td width="174"> LogicalOperator = loXOR<br>Bitmask = $000000FF</td>
+				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
+				<td><img src="../../../../Images/img_028.png" alt="" height="122" width="158" border="0"></td>
+			</tr>
+			<tr>
+				<td width="210">Full power to Red component, leave the rest untouched</td>
+				<td width="174">LogicalOperator = loOR<br>
+					Bitmask = $00FF0000</td>
+				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
+				<td><img src="../../../../Images/img_029.png" alt="" height="122" width="158" border="0"></td>
+			</tr>
+			<tr>
+				<td width="210">Weird filter</td>
+				<td width="174">LogicalOperator = loOR<br>
+					Bitmask = $BABEC0DE</td>
+				<td><img src="../../../../Images/img_031.png" alt="" height="122" width="158" border="0"></td>
+				<td><img src="../../../../Images/img_030.png" alt="" height="122" width="158" border="0"></td>
+			</tr>			
+		</table>
+		<p class="Body">As seen above, the bitmask does not necessarily have to contain 0 or $FF in each component segment - intermediate values can also be used however with limited realistic applications (read: weird filters).<br>
+			You may use auxiliary function <a href="CreateBitmask.htm">CreateBitmask</a> to create bitmasks.</p>
+		<p class="Body"></p>
+		<p id="hidden">[See Also] <a href="CopyComponents.htm">CopyComponents</a>, <a href="Invert.htm">Invert</a></p>
+	</body>
+</html>

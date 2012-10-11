@@ -1,0 +1,28 @@
+<html>
+<head>
+<title>DrawFill</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>procedure</b> DrawFill(Bitmap: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; Color: <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a>;
+  Transformation: <a href="../../../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil); overload;</p>
+<p class="Decl"><b>procedure</b> DrawFill(Bitmap: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; FillLineCallback: <a href="../../../Types/TFillLineEvent.htm">TFillLineEvent</a>;
+  Transformation: <a href="../../../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil); overload;</p>
+<p class="Decl"><b>procedure</b> DrawFill(Bitmap: <a href="../../../../GR32/Classes/TCustomBitmap32/_Body.htm">TCustomBitmap32</a>; Filler: <a href="../../../Classes/TCustomPolygonFiller/_Body.htm">TCustomPolygonFiller</a>;
+  Transformation: <a href="../../../../GR32_Transforms/Classes/TTransformation/_Body.htm">TTransformation</a> = nil); overload;</p>
+<h2>Description</h2>
+<p class="Body">Fills the polygon shape using one of the following options using the current <a href="../Properties/FillMode.htm">FillMode</a>:</p>
+<ul>
+  <li> <a href="../../../../GR32/Types/Color%20Types.htm#TColor32">simple color</a></li>
+  <li><a href="../../../Types/TFillLineEvent.htm">custom fillline callback</a></li>
+  <li><a href="../../../Classes/TCustomPolygonFiller/_Body.htm">custom filler object</a></li>
+</ul>
+<p class="Body">Optionally a <strong>Transformation</strong> is applied  while drawing.</p>
+<p class="Body">The <a href="../Properties/Closed.htm">Closed</a> property is ignored and all contours are automatically
+considered closed.</p>
+<p class="Body">The edge quality of the filling is determined by the <a href="../Properties/Antialiased.htm">Antialiased</a> 
+property.</p>
+<p id="hidden">[See also]: <a href="Draw.htm">Draw</a>, <a href="DrawEdge.htm">DrawEdge</a></p>
+</body>
+</html>

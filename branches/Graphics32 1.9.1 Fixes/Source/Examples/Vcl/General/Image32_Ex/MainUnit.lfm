@@ -1,0 +1,159 @@
+object FormImage32Example: TFormImage32Example
+  Left = 224
+  Height = 418
+  Top = 159
+  Width = 542
+  HorzScrollBar.Visible = False
+  VertScrollBar.Visible = False
+  Caption = 'TImage32 Example'
+  ClientHeight = 418
+  ClientWidth = 542
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  Position = poScreenCenter
+  LCLVersion = '0.9.31'
+  object Panel1: TPanel
+    Left = 8
+    Height = 402
+    Top = 8
+    Width = 385
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    BevelOuter = bvLowered
+    BorderWidth = 1
+    ClientHeight = 402
+    ClientWidth = 385
+    TabOrder = 0
+    object Image: TImage32
+      Left = 2
+      Height = 398
+      Top = 2
+      Width = 381
+      Align = alClient
+      Bitmap.ResamplerClassName = 'TNearestResampler'
+      BitmapAlign = baTopLeft
+      Scale = 1
+      ScaleMode = smNormal
+      TabOrder = 0
+    end
+  end
+  object Panel2: TPanel
+    Left = 400
+    Height = 418
+    Top = 0
+    Width = 142
+    Align = alRight
+    BevelOuter = bvNone
+    ClientHeight = 418
+    ClientWidth = 142
+    TabOrder = 1
+    object rgScaleMode: TRadioGroup
+      Left = 8
+      Height = 129
+      Top = 104
+      Width = 129
+      AutoFill = True
+      Caption = 'ScaleMode'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 111
+      ClientWidth = 125
+      ItemIndex = 0
+      Items.Strings = (
+        'smNormal'
+        'smStretch'
+        'smScale'
+        'smResize'
+        'smOptimal'
+        'smOptimalScaled'
+      )
+      OnClick = rgScaleModeClick
+      TabOrder = 0
+    end
+    object rgKernel: TRadioGroup
+      Left = 8
+      Height = 121
+      Top = 288
+      Width = 129
+      AutoFill = True
+      Caption = 'Kernels'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 103
+      ClientWidth = 125
+      ItemIndex = 0
+      Items.Strings = (
+        'TBoxKernel'
+        'TLinearKernel'
+        'TSplineKernel'
+        'TLanczosKernel'
+        'TMitchellKernel'
+      )
+      OnClick = rgKernelClick
+      TabOrder = 1
+    end
+    object rgBitmapAlign: TRadioGroup
+      Left = 8
+      Height = 89
+      Top = 8
+      Width = 129
+      AutoFill = True
+      Caption = 'BitmapAlign'
+      ChildSizing.LeftRightSpacing = 6
+      ChildSizing.TopBottomSpacing = 6
+      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+      ChildSizing.EnlargeVertical = crsHomogenousChildResize
+      ChildSizing.ShrinkHorizontal = crsScaleChilds
+      ChildSizing.ShrinkVertical = crsScaleChilds
+      ChildSizing.Layout = cclLeftToRightThenTopToBottom
+      ChildSizing.ControlsPerLine = 1
+      ClientHeight = 71
+      ClientWidth = 125
+      ItemIndex = 0
+      Items.Strings = (
+        'baTopLeft'
+        'baCenter'
+        'baTile'
+      )
+      OnClick = rgBitmapAlignClick
+      TabOrder = 2
+    end
+    object stScale: TLabel
+      Left = 8
+      Height = 14
+      Top = 242
+      Width = 30
+      Caption = 'Scale:'
+      ParentColor = False
+    end
+    object sbScale: TGaugeBar
+      Left = 8
+      Height = 16
+      Top = 260
+      Width = 129
+      Color = clScrollBar
+      Backgnd = bgPattern
+      BorderStyle = bsNone
+      Enabled = False
+      Max = 1000
+      Min = 25
+      ShowHandleGrip = True
+      Position = 100
+      OnChange = sbScaleChange
+    end
+  end
+end

@@ -1,0 +1,474 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="9"/>
+    <General>
+      <MainUnit Value="0"/>
+      <Title Value="Resamplers Example"/>
+      <ResourceType Value="res"/>
+      <Icon Value="0"/>
+      <ActiveWindowIndexAtStart Value="0"/>
+    </General>
+    <VersionInfo>
+      <Language Value=""/>
+      <CharSet Value=""/>
+      <StringTable ProductVersion=""/>
+    </VersionInfo>
+    <BuildModes Count="2" Active="Debug">
+      <Item1 Name="Debug" Default="True"/>
+      <Item2 Name="Release">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <Target>
+            <Filename Value="Resampler_Ex.exe"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="../../../..;$(ProjOutDir)"/>
+            <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="../../../.."/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <CStyleOperator Value="False"/>
+              <CPPInline Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="3"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <GenerateDebugInfo Value="False"/>
+              <UseLineInfoUnit Value="False"/>
+              <StripSymbols Value="True"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <LinkerOptions Value="-framework carbon"/>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+          <Other>
+            <Verbosity>
+              <ShowHints Value="False"/>
+            </Verbosity>
+            <CompilerMessages>
+              <UseMsgFile Value="True"/>
+            </CompilerMessages>
+            <CompilerPath Value="$(CompPath)"/>
+          </Other>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
+      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
+    </PublishOptions>
+    <RunParams>
+      <local>
+        <FormatVersion Value="1"/>
+        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+      </local>
+    </RunParams>
+    <RequiredPackages Count="3">
+      <Item1>
+        <PackageName Value="ImagesForLazarus"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="GR32_L"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
+    </RequiredPackages>
+    <Units Count="20">
+      <Unit0>
+        <Filename Value="Resamplers_Ex.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="0"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="16"/>
+        <UsageCount Value="44"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="MainUnit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="fmResamplersExample"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="MainUnit"/>
+        <EditorIndex Value="1"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="374"/>
+        <CursorPos X="1" Y="388"/>
+        <UsageCount Value="44"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="MainUnit.lfm"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="66"/>
+        <UsageCount Value="8"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="../../../../Packages/GR32_L.pas"/>
+        <UnitName Value="GR32_L"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="8"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="../../../../GR32_Image.pas"/>
+        <UnitName Value="GR32_Image"/>
+        <TopLine Value="33"/>
+        <CursorPos X="81" Y="47"/>
+        <UsageCount Value="8"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="../../../../../../../../Lazarus/lcl/include/control.inc"/>
+        <TopLine Value="3150"/>
+        <CursorPos X="1" Y="3167"/>
+        <UsageCount Value="8"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="../../../../../../../../../Lazarus/lcl/include/customform.inc"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="863"/>
+        <CursorPos X="1" Y="879"/>
+        <UsageCount Value="8"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="../../../../GR32.pas"/>
+        <UnitName Value="GR32"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2454"/>
+        <CursorPos X="40" Y="2490"/>
+        <UsageCount Value="23"/>
+        <Bookmarks Count="1">
+          <Item0 X="19" Y="3831" ID="3"/>
+        </Bookmarks>
+        <Loaded Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="../../../../GR32_Math.pas"/>
+        <UnitName Value="GR32_Math"/>
+        <EditorIndex Value="5"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="105"/>
+        <CursorPos X="1" Y="120"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="../../../../GR32_DrawingEx.pas"/>
+        <UnitName Value="GR32_DrawingEx"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="55"/>
+        <CursorPos X="1" Y="108"/>
+        <UsageCount Value="8"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="../../../../../../../../../Lazarus/fpc/2.5.1/source/rtl/objpas/math.pp"/>
+        <UnitName Value="math"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2418"/>
+        <CursorPos X="17" Y="2440"/>
+        <UsageCount Value="8"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="../../../../GR32_System.pas"/>
+        <UnitName Value="GR32_System"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="43"/>
+        <CursorPos X="1" Y="42"/>
+        <UsageCount Value="10"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="../../../../GR32_Filters.pas"/>
+        <UnitName Value="GR32_Filters"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="33"/>
+        <CursorPos X="8" Y="45"/>
+        <UsageCount Value="21"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <UnitName Value="GR32_Blend"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="6"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="3736"/>
+        <CursorPos X="73" Y="3777"/>
+        <UsageCount Value="22"/>
+        <Bookmarks Count="2">
+          <Item0 X="1" Y="2004" ID="2"/>
+          <Item1 X="27" Y="2548" ID="4"/>
+        </Bookmarks>
+        <Loaded Value="True"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="../../../../GR32_LowLevel.pas"/>
+        <UnitName Value="GR32_LowLevel"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="421"/>
+        <CursorPos X="1" Y="440"/>
+        <UsageCount Value="20"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="../../../../GR32_Resamplers.pas"/>
+        <UnitName Value="GR32_Resamplers"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="4114"/>
+        <CursorPos X="5" Y="4146"/>
+        <UsageCount Value="21"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="../../../../GR32_Containers.pas"/>
+        <UnitName Value="GR32_Containers"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="22"/>
+        <CursorPos X="9" Y="51"/>
+        <UsageCount Value="8"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="../../../../GR32_Backends.pas"/>
+        <UnitName Value="GR32_Backends"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
+        <UsageCount Value="8"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="../../../../GR32.inc"/>
+        <EditorIndex Value="4"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="131"/>
+        <CursorPos X="1" Y="131"/>
+        <UsageCount Value="22"/>
+        <Loaded Value="True"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <UnitName Value="GR32_Backends_LCL_Win"/>
+        <EditorIndex Value="3"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="18" Y="3"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit19>
+    </Units>
+    <JumpHistory Count="30" HistoryIndex="29">
+      <Position1>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2335" Column="1" TopLine="2308"/>
+      </Position1>
+      <Position2>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2317" Column="1" TopLine="2308"/>
+      </Position2>
+      <Position3>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2470" Column="1" TopLine="2443"/>
+      </Position3>
+      <Position4>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2481" Column="23" TopLine="2446"/>
+      </Position4>
+      <Position5>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="3365" Column="1" TopLine="3338"/>
+      </Position5>
+      <Position6>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2481" Column="12" TopLine="2446"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2483" Column="1" TopLine="2446"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2485" Column="1" TopLine="2446"/>
+      </Position8>
+      <Position9>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2487" Column="1" TopLine="2446"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2488" Column="1" TopLine="2446"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2491" Column="1" TopLine="2446"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2481" Column="18" TopLine="2446"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="808" Column="46" TopLine="783"/>
+      </Position13>
+      <Position14>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="868" Column="10" TopLine="821"/>
+      </Position14>
+      <Position15>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position15>
+      <Position16>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="605" Column="21" TopLine="557"/>
+      </Position16>
+      <Position17>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="808" Column="46" TopLine="761"/>
+      </Position17>
+      <Position18>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="923" Column="21" TopLine="876"/>
+      </Position18>
+      <Position19>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="941" Column="46" TopLine="894"/>
+      </Position19>
+      <Position20>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2380" Column="20" TopLine="2334"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position21>
+      <Position22>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="1002" Column="34" TopLine="965"/>
+      </Position22>
+      <Position23>
+        <Filename Value="../../../../GR32_Backends_LCL_Win.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position23>
+      <Position24>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2382" Column="37" TopLine="2336"/>
+      </Position24>
+      <Position25>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
+      </Position25>
+      <Position26>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="577" Column="10" TopLine="530"/>
+      </Position26>
+      <Position27>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="778" Column="44" TopLine="763"/>
+      </Position27>
+      <Position28>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="3627" Column="25" TopLine="3601"/>
+      </Position28>
+      <Position29>
+        <Filename Value="../../../../GR32.pas"/>
+        <Caret Line="2490" Column="40" TopLine="2454"/>
+      </Position29>
+      <Position30>
+        <Filename Value="../../../../GR32_Blend.pas"/>
+        <Caret Line="3764" Column="114" TopLine="3736"/>
+      </Position30>
+    </JumpHistory>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <Target>
+      <Filename Value="Resampler_Ex.exe"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="../../../..;$(ProjOutDir)"/>
+      <Libraries Value="../../../../Packages/lib/$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="../../../.."/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <CStyleOperator Value="False"/>
+        <IncludeAssertionCode Value="True"/>
+        <CPPInline Value="False"/>
+        <UseAnsiStrings Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
+      <Optimizations>
+        <OptimizationLevel Value="0"/>
+      </Optimizations>
+    </CodeGeneration>
+    <Linking>
+      <LinkSmart Value="True"/>
+      <Options>
+        <LinkerOptions Value="-framework carbon"/>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <CompilerMessages>
+        <UseMsgFile Value="True"/>
+      </CompilerMessages>
+      <CompilerPath Value="$(CompPath)"/>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <BreakPoints Count="3">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsGlobal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="../../../../GR32_Blend.pas"/>
+        <Line Value="773"/>
+      </Item1>
+      <Item2>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsGlobal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="../../../../GR32_Blend.pas"/>
+        <Line Value="701"/>
+      </Item2>
+      <Item3>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsGlobal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="../../../../GR32_Blend.pas"/>
+        <Line Value="209"/>
+      </Item3>
+    </BreakPoints>
+    <Exceptions Count="2">
+      <Item1>
+        <Name Value="ECodetoolError"/>
+      </Item1>
+      <Item2>
+        <Name Value="EFOpenError"/>
+      </Item2>
+    </Exceptions>
+  </Debugging>
+</CONFIG>

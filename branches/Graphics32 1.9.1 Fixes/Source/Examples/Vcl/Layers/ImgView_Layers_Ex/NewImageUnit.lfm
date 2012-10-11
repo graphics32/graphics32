@@ -1,0 +1,171 @@
+object NewImageForm: TNewImageForm
+  Left = 282
+  Height = 199
+  Top = 194
+  Width = 255
+  HorzScrollBar.Page = 319
+  VertScrollBar.Page = 239
+  ActiveControl = ImageWidth
+  BorderStyle = bsDialog
+  Caption = 'New Image'
+  ClientHeight = 199
+  ClientWidth = 255
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  Position = poScreenCenter
+  LCLVersion = '0.9.29'
+  object lbWidth: TLabel
+    Left = 24
+    Height = 14
+    Top = 27
+    Width = 33
+    Caption = 'Width:'
+    FocusControl = ImageWidth
+    ParentColor = False
+  end
+  object lbHeight: TLabel
+    Left = 24
+    Height = 14
+    Top = 67
+    Width = 36
+    Caption = 'Height:'
+    FocusControl = ImageHeight
+    ParentColor = False
+  end
+  object lbWidthUnit: TLabel
+    Left = 200
+    Height = 14
+    Top = 27
+    Width = 28
+    Caption = 'pixels'
+    ParentColor = False
+  end
+  object lbHeightUnit: TLabel
+    Left = 200
+    Height = 14
+    Top = 67
+    Width = 28
+    Caption = 'pixels'
+    ParentColor = False
+  end
+  object lbBackgroundColor: TLabel
+    Left = 24
+    Height = 14
+    Top = 116
+    Width = 89
+    Caption = 'Background Color:'
+    ParentColor = False
+  end
+  object ImageWidth: TEdit
+    Left = 72
+    Height = 21
+    Top = 24
+    Width = 97
+    TabOrder = 0
+    Text = '640'
+  end
+  object btUpDownWidth: TUpDown
+    Left = 169
+    Height = 21
+    Top = 24
+    Width = 18
+    Associate = ImageWidth
+    Min = 1
+    Max = 2000
+    Position = 640
+    TabOrder = 1
+    Wrap = False
+  end
+  object ImageHeight: TEdit
+    Left = 72
+    Height = 21
+    Top = 64
+    Width = 97
+    TabOrder = 2
+    Text = '480'
+  end
+  object btUpDownHeight: TUpDown
+    Left = 169
+    Height = 21
+    Top = 64
+    Width = 18
+    Associate = ImageHeight
+    Min = 1
+    Max = 2000
+    Position = 480
+    TabOrder = 7
+    Wrap = False
+  end
+  object pnColor: TPanel
+    Left = 120
+    Height = 21
+    Top = 112
+    Width = 67
+    BevelOuter = bvNone
+    BorderStyle = bsSingle
+    Color = clWhite
+    ParentColor = False
+    TabOrder = 4
+  end
+  object btSelect: TButton
+    Left = 192
+    Height = 20
+    Top = 112
+    Width = 35
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Select'
+    OnClick = Button1Click
+    TabOrder = 3
+    TabStop = False
+  end
+  object btOK: TButton
+    Left = 104
+    Height = 22
+    Top = 164
+    Width = 65
+    BorderSpacing.InnerBorder = 4
+    Caption = 'OK'
+    Default = True
+    ModalResult = 1
+    TabOrder = 5
+  end
+  object btCancel: TButton
+    Left = 176
+    Height = 22
+    Top = 164
+    Width = 65
+    BorderSpacing.InnerBorder = 4
+    Cancel = True
+    Caption = 'Cancel'
+    ModalResult = 2
+    TabOrder = 6
+  end
+  object ColorDialog: TColorDialog
+    Title = 'Select color'
+    Color = clWhite
+    CustomColors.Strings = (
+      'ColorA=000000'
+      'ColorB=000080'
+      'ColorC=008000'
+      'ColorD=008080'
+      'ColorE=800000'
+      'ColorF=800080'
+      'ColorG=808000'
+      'ColorH=808080'
+      'ColorI=C0C0C0'
+      'ColorJ=0000FF'
+      'ColorK=00FF00'
+      'ColorL=00FFFF'
+      'ColorM=FF0000'
+      'ColorN=FF00FF'
+      'ColorO=FFFF00'
+      'ColorP=FFFFFF'
+      'ColorQ=C0DCC0'
+      'ColorR=F0CAA6'
+      'ColorS=F0FBFF'
+      'ColorT=A4A0A0'
+    )
+    left = 24
+    top = 144
+  end
+end

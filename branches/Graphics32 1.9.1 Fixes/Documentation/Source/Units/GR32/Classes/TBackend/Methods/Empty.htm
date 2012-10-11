@@ -1,0 +1,13 @@
+<html>
+<head>
+<title>Empty</title>
+<link rel="stylesheet" href="../../../../../../Styles/Default.css" type="text/css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>function</b> Empty: Boolean; <b>virtual</b>; <strong>abstract</strong>; </p>
+<h2>Description</h2>
+<p class="Body">Shall return <i>True</i> if the back-end is empty. Subclasses have to implement this method to indicate whether they are empty depending on their internal state.<br>
+By design back-ends do not need to save the size of the allocated surface as this is handled by the owner bitmap. Thus, the bitmap instance will call this method to determine if there are any other conditions aside from the surface size, which is checked in <a href="../../TCustomMap/Methods/Empty.htm">TCustomMap.Empty</a>.</p>
+</body>
+</html>

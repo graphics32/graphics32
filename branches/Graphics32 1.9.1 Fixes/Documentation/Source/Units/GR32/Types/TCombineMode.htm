@@ -1,0 +1,22 @@
+<html>
+<head>
+<title>TCombineMode</title>
+<link rel="stylesheet" href="../../../../Styles/Default.css">
+</head>
+
+<body bgcolor="#FFFFFF">
+<p class="Decl"><b>type</b> TCombineMode = (cmBlend, cmMerge);</p>
+<h2>Description</h2>
+<p class="Body"><span class="EmptyRef">TCombineMode</span> defines how <em>drawing operations</em> combine the foreground color with
+  the background.<br>
+  It also determines how a bitmap is combined with the background when <a href="../Classes/TCustomBitmap32/Properties/DrawMode.htm">DrawMode</a> is
+  set to dmBlend. </p>
+<ul>
+  <li><strong>cmBlend</strong> - Fast blending of foreground color with the background color using the supplied alpha. This method is
+    not suited for working and preserving alpha-channels. Use this more if you want to blend directly to the display buffer.</li>
+  <li><strong>cmMerge</strong> - 
+Uses a completely different formula that also merges the alpha-channels. This mode is slower than blending but
+is suited for working with alpha-channels (eg. when composing in temporary buffers).</li>
+</ul>
+</body>
+</html>

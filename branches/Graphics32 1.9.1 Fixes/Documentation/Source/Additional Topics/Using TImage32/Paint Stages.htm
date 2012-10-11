@@ -1,0 +1,178 @@
+<html>
+<head>
+
+<title>Paint Stages</title>
+
+<link rel="stylesheet" href="../../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">An order in which TImage32 blends layers and bitmap image to its
+  back-buffer is specified by paint stages.</p>
+<p class="Body">For example, the default sequence of operations includes:</p>
+<ul>
+  <li>Clearing the visible area of the background, that is the parts of the buffered
+    area which are not covered by the bitmap image, or the whole buffer, if the
+    bitmap image is not in dmOpaque draw mode;</li>
+  <li>Drawing the dotted frame around the control boundaries (design-time only);</li>
+  <li>Drawing the scaled bitmap image;</li>
+  <li>Framing the area of the scaled bitmap image with the dotted frame (design-time
+    only); </li>
+  <li>Drawing layers;</li>
+</ul>
+<p class="Body">It is possible to change the order in which stages execute at
+  run-time, add new stages, delete old ones, etc., using the <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/PaintStages.htm">PaintStages</a>
+  property of TImage32, which is basically a dynamic indexed list of stages.</p>
+<h2 class="Body"><a name="TPaintStage%20Record"></a>TPaintStage Record</h2>
+<p class="Body">Each paint stage is defined with a <a href="../../Units/GR32_Image/Types/TPaintStage.htm">TPaintStage</a>
+  record:</p>
+<p class="Decl"> <b>type</b> TPaintStage = <b>record</b> <br>
+  &nbsp;&nbsp;DsgnTime: Boolean; <br>
+  &nbsp;&nbsp;RunTime: Boolean; <br>
+  &nbsp;&nbsp;Stage: Cardinal; <span class="Comment">// a PST_* constant </span><br>
+  &nbsp;&nbsp;Parameter: Cardinal;<span class="Comment"> // an optional parameter
+  </span><br>
+  <b>end</b>; </p>
+<p class="Body">where the Stage member holds one of the <a href="../../Units/GR32_Image/Constants/Paint%20Stage%20Constants.htm">Paint
+  Stage Constants</a> and defines the action associated with the stage.</p>
+<p class="Body">All stages include additional parameter, which may be ignored
+  or may be used to store additional stage options. For example, PST_DRAW_LAYERS
+  stage uses its parameter as a 32-bit mask to filter out invisible layers.</p>
+<p class="Body">By default, TImage32 contains the following stages:</p>
+<table border="1" cellspacing="0" cellpadding="0" bordercolor="#FFFFFF">
+  <tr>
+    <th>#</th>
+    <th>DsgnTime</th>
+    <th>RunTime</th>
+    <th>Stage</th>
+    <th>Parameter</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>True</td>
+    <td>True</td>
+    <td>PST_CLEAR_BACKGND</td>
+    <td>not used</td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>False</td>
+    <td>True</td>
+    <td>PST_CONTROL_FRAME</td>
+    <td>not used</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>True</td>
+    <td>True</td>
+    <td>PST_DRAW_BITMAP</td>
+    <td>not used</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>False</td>
+    <td>True</td>
+    <td>PST_BITMAP_FRAME</td>
+    <td>not used</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>True</td>
+    <td>True</td>
+    <td>PST_DRAW_LAYERS</td>
+    <td>$80000000</td>
+  </tr>
+</table>
+<p class="Body">See '<a href="Using%20Layers.htm">Using Layers</a>' for an explanation
+  of the parameter value in PST_DRAW_LAYERS stage.</p>
+<h2 class="Body"><a name="Customizing TImage32 at Run-Time">Customizing TImage32
+  at Run-Time</a></h2>
+<p class="Body">A PST_CUSTOM stage deserves a little bit deeper explanation.
+  It causes the control to issue an <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnPaintStage.htm">OnPaintStage</a>
+  event, thus allowing to change TImage32 behavior at run-time.</p>
+<p class="Body">The <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnPaintStage.htm">OnPaintStage</a>
+  event is of a TPaintStageEvent type:</p>
+<p class="Decl"><b>type</b> TPaintStageEvent = <b>procedure</b>(Sender: TObject;
+  Dest: TBitmap32; StageNum: Cardinal) <b>of</b> <b>object</b>;</p>
+<p class="Body">In the event handler, the application can perform some custom operations
+  over the back-buffer of the control.</p>
+<p class="Body">Note, that by default, TImage32 does not generate <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnPaintStage.htm">OnPaintStage</a>.
+  In order to make it do so, you have to insert a new stage in the <a href="../../Units/GR32_Image/Classes/TCustomImage32/Properties/PaintStages.htm">PaintStages</a>
+  list, and set its Stage to PST_CUSTOM, or change one of the existing stages,
+  for example:</p>
+<p class="Code"> <b>type</b> </p>
+<p class="Code"> &nbsp;&nbsp;TForm1 = <b>class</b>(TForm)</p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;Image32: TImage32;</p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;<b>procedure </b>Image32InitStages(Sender:
+  TObject); <span class="Comment">// OnInitStages </span></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;<b>procedure</b> Image32PaintStage(Sender:
+  TObject; Dest: TBitmap32; StageNum: Cardinal); <span class="Comment">// OnPaintStage</span></p>
+<p class="Code"> &nbsp;&nbsp;<b>private</b></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;<span class="Comment">{ Private declarations
+  }</span></p>
+<p class="Code"> &nbsp;&nbsp;<b>public</b> </p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;<span class="Comment">{ Public declarations
+  }</span> </p>
+<p class="Code"> <b>&nbsp;&nbsp;end</b>; </p>
+<p class="Code">&nbsp; </p>
+<p class="Code"> <b>var</b></p>
+<p class="Code"> &nbsp;&nbsp;Form1: TForm1;</p>
+<p class="Code">&nbsp;</p>
+<p class="Code"> <b>implementation</b></p>
+<p class="Code">&nbsp;</p>
+<p class="Code"> <span class="Comment">{$R *.DFM}</span> </p>
+<p class="Code"> <br>
+  <b>procedure</b> TForm1.Image32InitStages(Sender: TObject);</p>
+<p class="Code"> <b>begin</b></p>
+<p class="Code"> &nbsp;<span class="Comment">&nbsp;// change default PST_CLEAR_BACKGND
+  (0-th stage) to a custom handler</span></p>
+<p class="Code"> &nbsp;&nbsp;<b>with</b> Image32.PaintStages[0] <b>do</b> </p>
+<p class="Code">&nbsp;&nbsp;<b>begin</b></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;Stage := PST_CUSTOM; </p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;Parameter := 1;<span class="Comment">
+  // use parameter to tag the stage </span></p>
+<p class="Code"> &nbsp;&nbsp;<b>end</b>; </p>
+<p class="Code">&nbsp;</p>
+<p class="Code"> &nbsp;<span class="Comment">&nbsp;// insert another custom stage
+  after the bitmap image</span> </p>
+<p class="Code"> &nbsp;<span class="Comment">&nbsp;// was drawn, but before the
+  control starts painting layers</span></p>
+<p class="Code"> &nbsp;&nbsp;<b>with</b> Image32.PaintStages.Insert(4) <b>do</b>
+</p>
+<p class="Code"> &nbsp;&nbsp;<b>begin</b></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;<span class="Comment">// Note that for
+  new stages RunTime = True by default</span></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;Stage := PST_CUSTOM; </p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;Paramteter := 2; <span class="Comment">//
+  use parameter to tag the stage </span></p>
+<p class="Code"> &nbsp;&nbsp;<b>end</b>;</p>
+<p class="Code"> <b>end</b> ; </p>
+<p class="Code">&nbsp;</p>
+<p class="Code"> <b>procedure</b> TForm1.Image32PaintStage(Sender: TObject; Dest:
+  TBitmap32; StageNum: Cardinal); </p>
+<p class="Code"> <b>begin</b></p>
+<p class="Code"><b> </b>&nbsp;&nbsp;<span class="Comment">// OnPaintStage Handler</span></p>
+<p class="Code"> <b>&nbsp;&nbsp;case</b> Image32.PaintStages[StageNum].Parameter
+  <b>of</b></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;1: <span class="Comment">// do something
+  with the background</span></p>
+<p class="Code"> &nbsp;&nbsp;&nbsp;&nbsp;2:<span class="Comment"> // call another
+  handler</span></p>
+<p class="Code"> &nbsp;&nbsp;<b>end</b>;</p>
+<p class="Code"> <b>end</b>;</p>
+<h2 class="Body"><a name="GDI%20Overlays">GDI Overlays</a></h2>
+<p class="Body"><font color="#FF3333">[ Note: Most likely GDI Overlays will not
+  be used in future versions. Do not use them ]</font></p>
+<p class="Body">A final step in TImage32 repainting is the drawing of GDI overlays.
+  This operation is performed after the bitmap image and layers have been combined
+  in a back buffer and copied to the screen canvas.</p>
+<p class="Body">At this stage, TImage32 fires the <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnGDIOverlay.htm">OnGDIOverlay</a>
+  event, where you can perform drawing using the standard <span class="API">Canvas</span>
+  of the TImage32.</p>
+<p class="Body">The main reason for introducing this stage is that painting of
+  GDI overlays does not affect the contents of the buffer, that is changes in
+  overlay image will not cause buffer invalidation.  However, GDI overlays have
+  to be repainted each time the control repaints itself, and they are not flicker-free.<br>
+</p>
+<p id="Hidden">[See Also] </p>
+</body>
+</html>

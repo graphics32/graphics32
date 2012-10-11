@@ -1,0 +1,158 @@
+object MainForm: TMainForm
+  Left = 249
+  Height = 684
+  Top = 120
+  Width = 852
+  HorzScrollBar.Page = 851
+  VertScrollBar.Page = 683
+  ActiveControl = bAdd
+  Caption = 'Sprites Example'
+  ClientHeight = 684
+  ClientWidth = 852
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  LCLVersion = '0.9.29'
+  object lbTotal: TLabel
+    Left = 12
+    Height = 14
+    Top = 653
+    Width = 29
+    Anchors = [akLeft, akBottom]
+    Caption = 'Total:'
+    ParentColor = False
+  end
+  object lbFPS: TLabel
+    Left = 272
+    Height = 17
+    Top = 654
+    Width = 81
+    Anchors = [akLeft, akBottom]
+    AutoSize = False
+    ParentColor = False
+  end
+  object lbDimension: TLabel
+    Left = 360
+    Height = 17
+    Top = 654
+    Width = 113
+    Anchors = [akLeft, akBottom]
+    AutoSize = False
+    ParentColor = False
+  end
+  object bAdd: TButton
+    Left = 627
+    Height = 21
+    Top = 652
+    Width = 69
+    Anchors = [akRight, akBottom]
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Add 10'
+    OnClick = bAddClick
+    TabOrder = 0
+  end
+  object edLayerCount: TEdit
+    Left = 44
+    Height = 21
+    Top = 650
+    Width = 65
+    Anchors = [akLeft, akBottom]
+    ReadOnly = True
+    TabOrder = 1
+    Text = '0 layers'
+  end
+  object bClearAll: TButton
+    Left = 776
+    Height = 21
+    Top = 652
+    Width = 68
+    Anchors = [akRight, akBottom]
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Clear All'
+    OnClick = bClearAllClick
+    TabOrder = 2
+  end
+  object cbUseRepaintOpt: TCheckBox
+    Left = 120
+    Height = 17
+    Top = 657
+    Width = 126
+    Anchors = [akLeft, akBottom]
+    Caption = 'Use Repaint Optimizer'
+    OnClick = cbUseRepaintOptClick
+    TabOrder = 3
+  end
+  object bRemove: TButton
+    Left = 704
+    Height = 21
+    Top = 652
+    Width = 64
+    Anchors = [akRight, akBottom]
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Remove 10'
+    OnClick = bRemoveClick
+    TabOrder = 4
+  end
+  object Memo1: TMemo
+    Left = 8
+    Height = 35
+    Top = 6
+    Width = 835
+    Anchors = [akTop, akLeft, akRight]
+    Color = clInfoBk
+    Lines.Strings = (
+      'This demonstration animates the sprites as fast as possible. It''s a simple throughput test that is mostly limited by the bus and memory bandwidth.'
+      'Each sprite is an instance of the TBitmapLayer class. Use the checkbox below to enable or disable the repaint optimizations.'
+    )
+    ReadOnly = True
+    TabOrder = 6
+  end
+  object bBenchmark: TButton
+    Left = 520
+    Height = 21
+    Top = 652
+    Width = 96
+    Anchors = [akRight, akBottom]
+    BorderSpacing.InnerBorder = 4
+    Caption = 'Benchmark'
+    OnClick = bBenchmarkClick
+    TabOrder = 5
+  end
+  object Image32: TImage32
+    Left = 8
+    Height = 592
+    Top = 48
+    Width = 836
+    HelpType = htKeyword
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baTile
+    Color = clWhite
+    ParentColor = False
+    Scale = 2
+    ScaleMode = smNormal
+    TabOrder = 7
+    OnResize = Image32Resize
+  end
+  object TimerFPS: TTimer
+    Interval = 5000
+    OnTimer = TimerFPSTimer
+    left = 293
+    top = 213
+  end
+  object BitmapList: TBitmap32List
+    Bitmaps = <    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end    
+      item
+        Bitmap.ResamplerClassName = 'TNearestResampler'
+      end>
+    left = 360
+    top = 213
+  end
+end

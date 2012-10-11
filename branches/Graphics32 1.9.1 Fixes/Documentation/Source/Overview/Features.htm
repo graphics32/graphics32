@@ -1,0 +1,46 @@
+<html>
+<head>
+  
+<title>features</title>
+  
+<link rel="stylesheet" href="../../Styles/Default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+<p class="Body">Many features in Graphics32 are similar to those in standard <span class="API">TImage</span>, 
+  <span class="API">TBitmap</span> and <span class="API">TCanvas</span> classes, 
+  however they were rewritten to accelerate and optimize drawing on 32-bit device-independent 
+  bitmaps (DIBs). It also includes a few new options.</p>
+<p class="Body">Some of its features include:</p>
+<ul>
+  <li>Fast per-pixel access up to 100 times faster compared to standard <span class="API">TCanvas</span>/<span class="API">TBitmap</span>;</li>
+  <li>High-performance Bitmap alpha blending (including per-pixel alpha blending);</li>
+  <li>Pixel, line and polygon antialiasing with sub-pixel accuracy (combined with 
+    alpha blending);</li>
+  <li>Arbitrary polygon transformations and custom fillings;</li>
+  <li>Bitmap resampling with high quality reconstruction filters (e.g. Lanczos, 
+    Cubic, Mitchell);</li>
+  <li>A unique state-of-the-art <a href="../Additional Topics/Sampling and Rasterization.htm">rasterization 
+    system</a>;</li>
+  <li>Affine transformations of bitmaps: rotations, scaling, etc with sub-pixel 
+    accuracy;</li>
+  <li>Arbitrary projective transformations of bitmaps;</li>
+  <li>Arbitrary remapping transformations of bitmaps (e.g. for Warping, Morphing);</li>
+  <li>Flexible supersampling implementation for maximum sampling quality;</li>
+  <li>Flicker-free image displaying components with optimized double buffering 
+    via advanced <a href="../Additional Topics/Repaint Optimization.htm">MicroTiles 
+    based repaint optimizer</a>;</li>
+  <li>Multiple customizible easy-to-use overlay layers;</li>
+  <li>Locking of bitmaps for safe multithreading;</li>
+  <li>Platform independent code;</li>
+  <li>Switchable surface-managing back-ends;</li>
+  <li>A property editor for RGB and alpha channel loading;</li>
+  <li>Design-time loading of image formats supported by standard <span class="API">TPicture</span>;</li>
+</ul>
+<p class="Body">Except for extended features, Graphics32 has some important differences 
+  from the standard components. It does not heavily rely on Windows GDI, most of the 
+  functions are reimplemented and optimized specifically for 32-bit pixel format.</p>
+<p id="hidden">[See also]: <a href="Contacts.htm">Contacts</a>, <a href="License.htm">License</a>, 
+  <a href="Donate.htm">Donate</a>, <a href="Naming%20Conventions.htm">Naming Conventions</a>, 
+  <a href="Changes.htm">Changes</a></p>
+</body>
+</html>
