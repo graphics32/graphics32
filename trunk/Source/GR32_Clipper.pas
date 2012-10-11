@@ -595,7 +595,7 @@ begin
   if J = HighI then JPlus := 0
   else JPlus := J+1;
   if J = 0 then JMinus := HighI
-  else JMinus := J-1;
+  else JMinus := J - 1;
 
   // get cross product of vectors of edges adjacent the point with largest Y ...
   Vec1.X := Pts[J].X - Pts[JMinus].X;
@@ -663,7 +663,7 @@ begin
   if HighI < 2 then Exit;
   D := Pts[HighI].X * Pts[0].Y - Pts[0].X * Pts[HighI].Y;
   for I := 1 to HighI do
-    D := D + (Pts[I-1].X * Pts[I].Y) - (Pts[I].X * Pts[I-1].Y);
+    D := D + (Pts[I - 1].X * Pts[I].Y) - (Pts[I].X * Pts[I - 1].Y);
   Result := D / 2;
 end;
 //------------------------------------------------------------------------------
@@ -713,10 +713,10 @@ var
 begin
   I := length(Pts);
   SetLength(Result, I);
-  for I := 0 to I -1 do
+  for I := 0 to I - 1 do
   begin
     highJ := high(Pts[I]);
-    SetLength(Result[I], highJ+1);
+    SetLength(Result[I], highJ + 1);
     for J := 0 to highJ do
       Result[I][J] := Pts[I][highJ - J];
   end;
@@ -1121,7 +1121,7 @@ begin
   //1. check that coordinate values are within the valid range, and
   //2. remove duplicate points and co-linear points
   if FUse64BitRange then MaxVal := CHiRange else MaxVal := CLoRange;
-  for I := 1 to len-1 do
+  for I := 1 to len - 1 do
   begin
     IntPtI := FloatPointToIntPoint(FltPts[I]);
     if ((abs(FltPts[I].X) > MaxVal) or (abs(FltPts[I].Y) > MaxVal)) then
@@ -1132,9 +1132,9 @@ begin
       FUse64BitRange := True;
     end;
     if PointsEqual(Pg[J], IntPtI) then Continue
-    else if (J > 0) and SlopesEqual(Pg[J-1], Pg[J], IntPtI, FUse64BitRange) then
+    else if (J > 0) and SlopesEqual(Pg[J - 1], Pg[J], IntPtI, FUse64BitRange) then
     begin
-      if PointsEqual(Pg[J-1], IntPtI) then dec(J);
+      if PointsEqual(Pg[J - 1], IntPtI) then dec(J);
     end else inc(J);
     Pg[J] := IntPtI;
   end;
@@ -1153,10 +1153,10 @@ begin
       Pg[0] := Pg[J];
       dec(J);
     end
-    else if SlopesEqual(Pg[J-1], Pg[J], Pg[0], FUse64BitRange) then dec(J)
+    else if SlopesEqual(Pg[J - 1], Pg[J], Pg[0], FUse64BitRange) then dec(J)
     else if SlopesEqual(Pg[0], Pg[1], Pg[2], FUse64BitRange) then
     begin
-      for I := 2 to J do Pg[I-1] := Pg[I];
+      for I := 2 to J do Pg[I - 1] := Pg[I];
       dec(J);
     end
     else
@@ -1172,10 +1172,10 @@ begin
   // convert vertices to A Double-linked-list of edges and initialize ...
   Edges[0].XCurr := Pg[0].X;
   Edges[0].YCurr := Pg[0].Y;
-  InitEdge(@Edges[len-1], @Edges[0], @Edges[len-2], Pg[len-1]);
+  InitEdge(@Edges[len - 1], @Edges[0], @Edges[len - 2], Pg[len - 1]);
   for I := len-2 downto 1 do
-    InitEdge(@Edges[I], @Edges[I+1], @Edges[I-1], Pg[I]);
-  InitEdge(@Edges[0], @Edges[1], @Edges[len-1], Pg[0]);
+    InitEdge(@Edges[I], @Edges[I+1], @Edges[I - 1], Pg[I]);
+  InitEdge(@Edges[0], @Edges[1], @Edges[len - 1], Pg[0]);
   // reset XCurr & YCurr and find the 'highest' Edge. (nb: since I'm much more
   // familiar with positive downwards Y axes, 'highest' here will be the Edge
   // with the *smallest* YTop.)
@@ -1231,7 +1231,7 @@ var
   I: Integer;
 begin
   DisposeLocalMinimaList;
-  for I := 0 to FEdgeList.Count -1 do dispose(PEdgeArray(fEdgeList[I]));
+  for I := 0 to FEdgeList.Count - 1 do dispose(PEdgeArray(fEdgeList[I]));
   FEdgeList.Clear;
   FUse64BitRange := False;
 end;
@@ -1480,7 +1480,7 @@ begin
     until FScanbeam = nil;
 
     // tidy up output polygons and fix orientations where necessary ...
-    for I := 0 to FPolyOutList.Count -1 do
+    for I := 0 to FPolyOutList.Count - 1 do
     begin
       OutRec := FPolyOutList[I];
       if not assigned(OutRec.Pts) then Continue;
@@ -1584,7 +1584,7 @@ procedure TClipper.DisposeAllPolyPts;
 var
   I: Integer;
 begin
-  for I := 0 to FPolyOutList.Count -1 do DisposeOutRec(I);
+  for I := 0 to FPolyOutList.Count - 1 do DisposeOutRec(I);
   FPolyOutList.Clear;
 end;
 //------------------------------------------------------------------------------
@@ -1847,7 +1847,7 @@ procedure TClipper.ClearJoins;
 var
   I: Integer;
 begin
-  for I := 0 to FJoinList.count -1 do
+  for I := 0 to FJoinList.Count - 1 do
     Dispose(PJoinRec(fJoinList[I]));
   FJoinList.Clear;
 end;
@@ -2456,7 +2456,7 @@ begin
     E := E.NextInAEL;
   end;
 
-  for I := 0 to FJoinList.count -1 do
+  for I := 0 to FJoinList.Count - 1 do
   begin
     Jr := FJoinList[I];
     if Jr.Poly1Idx = ObsoleteIdx then Jr.Poly1Idx := OKIdx;
@@ -3173,7 +3173,7 @@ var
 begin
   K := 0;
   setLength(Result, FPolyOutList.Count);
-  for I := 0 to FPolyOutList.Count -1 do
+  for I := 0 to FPolyOutList.Count - 1 do
     if assigned(fPolyOutList[I]) then
     begin
       // make sure each polygon has at least 3 vertices ...
@@ -3184,7 +3184,7 @@ begin
       if (Cnt < 3) then Continue;
 
       setLength(Result[K], Cnt);
-      for J := 0 to Cnt -1 do
+      for J := 0 to Cnt - 1 do
       begin
         Result[K][J] := IntPointToFloatPoint(Op.Pt);
         Op := Op.Next;
@@ -3203,7 +3203,7 @@ var
 begin
   K := 0;
   setLength(Result, FPolyOutList.Count);
-  for I := 0 to FPolyOutList.Count -1 do
+  for I := 0 to FPolyOutList.Count - 1 do
     if assigned(fPolyOutList[I]) then
     begin
       // make sure each polygon has at least 3 vertices ...
@@ -3214,7 +3214,7 @@ begin
       if (Cnt < 3) then Continue;
 
       setLength(Result[K], Cnt);
-      for J := 0 to Cnt -1 do
+      for J := 0 to Cnt - 1 do
       begin
         Result[K][J] := IntPointToFixedPoint(Op.Pt);
         Op := Op.Next;
@@ -3429,7 +3429,7 @@ var
   Prev, p1, P2, p3, p4, Pp1a, Pp2a: POutPt;
   Pt1, Pt2, Pt3, Pt4: TIntPoint;
 begin
-  for I := 0 to FJoinList.count -1 do
+  for I := 0 to FJoinList.count - 1 do
   begin
     Jr := FJoinList[I];
     OutRec1 := FPolyOutList[Jr.Poly1Idx];
@@ -3547,7 +3547,7 @@ begin
       end;
 
       // now fixup any subsequent joins that match this polygon
-      for J := I+1 to FJoinList.count -1 do
+      for J := I+1 to FJoinList.count - 1 do
       begin
         Jr2 := FJoinList[J];
         if (Jr2.Poly1Idx = Jr.Poly1Idx) and PointIsVertex(Jr2.Pt1a, P2) then
@@ -3586,7 +3586,7 @@ begin
       OutRec2.AppendLink := OutRec1;
 
       // now fixup any subsequent joins ...
-      for J := I+1 to FJoinList.count -1 do
+      for J := I+1 to FJoinList.count - 1 do
       begin
         Jr2 := FJoinList[J];
         if (Jr2.Poly1Idx = ObsoleteIdx) then Jr2.Poly1Idx := OKIdx;
@@ -3703,8 +3703,8 @@ const
       A1 := ArcTan2(Normals[K].Y, Normals[K].X);
       A2 := ArcTan2(-Normals[J].Y, -Normals[J].X);
       A1 := abs(A2 - A1);
-      if A1 > pi then A1 := pi*2 - A1;
-      Dx := tan((pi - A1)/4) * abs(Delta*mul);
+      if A1 > Pi then A1 := 2 * pi - A1;
+      Dx := Tan((Pi - A1)/4) * Abs(Delta*mul);
 
       Pt1 := FloatPoint(Pt1.X -Normals[K].Y * Dx, Pt1.Y + Normals[K].X * Dx);
       AddPoint(Pt1);
@@ -3763,7 +3763,7 @@ const
         if (Delta > 0) and (A2 < A1) then A2 := A2 + pi*2
         else if (Delta < 0) and (A2 > A1) then A2 := A2 - pi*2;
         Arc := BuildArc(FltPts[I][J], A1, A2, Delta);
-        for M := 1 to high(Arc) -1 do
+        for M := 1 to high(Arc) - 1 do
           AddPoint(Arc[M]);
       end;
     end else
@@ -3774,7 +3774,7 @@ const
 begin
   // MiterLimit defaults to twice Delta's width ...
   if MiterLimit <= 1 then MiterLimit := 1;
-  RMin := 2/(sqr(MiterLimit));
+  RMin := 2 / (Sqr(MiterLimit));
 
   setLength(Result, length(FltPts));
   for I := 0 to high(FltPts) do
@@ -3788,26 +3788,27 @@ begin
 
     if (Len = 1) then
     begin
-      Result[I] := BuildArc(FltPts[I][0], 0, 2*pi, Delta);
+      Result[I] := BuildArc(FltPts[I][0], 0, 2 * pi, Delta);
       Continue;
     end;
 
     // build Normals ...
-    setLength(Normals, Len);
-    for J := 0 to Len-2 do
-      Normals[J] := GetUnitNormal(FltPts[I][J], FltPts[I][J+1]);
-    Normals[Len-1] := GetUnitNormal(FltPts[I][Len-1], FltPts[I][0]);
+    SetLength(Normals, Len);
+    for J := 0 to Len - 2 do
+      Normals[J] := GetUnitNormal(FltPts[I][J], FltPts[I][J + 1]);
+    Normals[Len - 1] := GetUnitNormal(FltPts[I][Len - 1], FltPts[I][0]);
 
     OutLen := 0;
-    K := Len -1;
-    for J := 0 to Len-1 do
+    K := Len - 1;
+    for J := 0 to Len - 1 do
     begin
       case JoinType of
         jtMiter:
         begin
-          R := 1 + (Normals[J].X*Normals[K].X + Normals[J].Y*Normals[K].Y);
+          R := 1 + (Normals[J].X * Normals[K].X + Normals[J].Y * Normals[K].Y);
           if (R >= RMin) then
-            DoMiter else
+            DoMiter
+          else
             DoSquare(MiterLimit);
         end;
         jtSquare: DoSquare;
@@ -3815,7 +3816,7 @@ begin
       end;
       K := J;
     end;
-    setLength(Result[I], OutLen);
+    SetLength(Result[I], OutLen);
   end;
 
   // finally, clean up untidy corners ...
@@ -3828,47 +3829,49 @@ begin
     end else
     begin
       Bounds := GetBounds(Result);
-      setlength(Outer, 4);
-      Outer[0] := FloatPoint(Bounds.left-10, Bounds.bottom+10);
-      Outer[1] := FloatPoint(Bounds.right+10, Bounds.bottom+10);
-      Outer[2] := FloatPoint(Bounds.right+10, Bounds.top-10);
-      Outer[3] := FloatPoint(Bounds.left-10, Bounds.top-10);
+      SetLength(Outer, 4);
+      Outer[0] := FloatPoint(Bounds.Left - 10, Bounds.Bottom + 10);
+      Outer[1] := FloatPoint(Bounds.Right + 10, Bounds.Bottom + 10);
+      Outer[2] := FloatPoint(Bounds.Right + 10, Bounds.Top - 10);
+      Outer[3] := FloatPoint(Bounds.Left - 10, Bounds.Top - 10);
       Add(Outer, ptSubject);
       Execute(ctUnion, Result, pftNegative, pftNegative);
+
       // delete the outer rectangle ...
       Len := length(Result);
-      for J := 1 to Len -1 do Result[J-1] := Result[J];
+      for J := 1 to Len - 1 do Result[J - 1] := Result[J];
       if Len > 0 then
-        setlength(Result, Len -1);
+        setlength(Result, Len - 1);
+
       // restore polygon orientation ...
       Result := ReversePolygons(Result);
     end;
   finally
-    free;
+    Free;
   end;
 end;
 //------------------------------------------------------------------------------
 
-function SimplifyPolygon(const poly: TArrayOfFloatPoint; FillType: TPolyFillType = pftEvenOdd): TArrayOfArrayOfFloatPoint;
+function SimplifyPolygon(const Poly: TArrayOfFloatPoint; FillType: TPolyFillType = pftEvenOdd): TArrayOfArrayOfFloatPoint;
 begin
   with TClipper.Create do
   try
-    Add(poly, ptSubject);
+    Add(Poly, ptSubject);
     Execute(ctUnion, Result, FillType, FillType);
   finally
-    free;
+    Free;
   end;
 end;
 //------------------------------------------------------------------------------
 
-function SimplifyPolygons(const polys: TArrayOfArrayOfFloatPoint; FillType: TPolyFillType = pftEvenOdd): TArrayOfArrayOfFloatPoint;
+function SimplifyPolygons(const Polys: TArrayOfArrayOfFloatPoint; FillType: TPolyFillType = pftEvenOdd): TArrayOfArrayOfFloatPoint;
 begin
   with TClipper.Create do
   try
-    Add(polys, ptSubject);
+    Add(Polys, ptSubject);
     Execute(ctUnion, Result, FillType, FillType);
   finally
-    free;
+    Free;
   end;
 end;
 
