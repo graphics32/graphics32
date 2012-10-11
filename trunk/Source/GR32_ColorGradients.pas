@@ -98,12 +98,14 @@ type
     procedure LoadFromStream(Stream: TStream);
     procedure SaveToStream(Stream: TStream);
 
-    procedure ClearColors;
-    procedure AddColorStop(Offset: TFloat; Color: TColor32); virtual;
+    procedure ClearColorStops; overload;
+    procedure ClearColorStops(Color: TColor32); overload;
+    procedure AddColorStop(Offset: TFloat; Color: TColor32); overload; virtual;
+    procedure AddColorStop(ColorStop: TColor32GradientStop); overload; virtual;
     procedure SetColors(const GradientColors: TArrayOfColor32GradientStop); overload;
     procedure SetColors(const GradientColors: TArrayOfColor32); overload;
     procedure SetColors(const Palette: TPalette32); overload;
-    function GetColorAt(Fraction: TFloat): TColor32;
+    function GetColorAt(Offset: TFloat): TColor32;
 
     procedure FillColorLookUpTable(var ColorLUT: array of TColor32); overload;
     procedure FillColorLookUpTable(ColorLUT: PColor32Array; Count: Integer); overload;
@@ -496,8 +498,9 @@ type
     FOwnsLUT: Boolean;
     FGradientLUT: TColor32LookupTable;
     FUseLookUpTable: Boolean;
-    procedure SetUseLookUpTable(const Value: Boolean);
     function GetLUTNeedsUpdate: Boolean;
+    procedure SetUseLookUpTable(const Value: Boolean);
+    procedure SetGradientLUT(const Value: TColor32LookupTable);
   protected
     procedure UseLookUpTableChanged; virtual;
     procedure LookUpTableChangedHandler(Sender: TObject);
@@ -505,8 +508,9 @@ type
     property LookUpTableNeedsUpdate: Boolean read GetLUTNeedsUpdate;
   public
     constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
+    destructor Destroy; override;
 
-    property GradientLUT: TColor32LookupTable read FGradientLUT;
+    property GradientLUT: TColor32LookupTable read FGradientLUT write SetGradientLUT;
     property UseLookUpTable: Boolean read FUseLookUpTable write SetUseLookUpTable;
   end;
 
@@ -569,7 +573,6 @@ type
   public
     constructor Create(ColorGradient: TColor32Gradient); overload; override;
     constructor Create(ColorGradient: TColor32Gradient; UseLookupTable: Boolean); overload; virtual;
-    destructor Destroy; override;
 
     procedure BeginRendering; override; //flags initialized
   end;
@@ -651,6 +654,7 @@ resourcestring
   RCStrPointCountMismatch = 'Point count mismatch';
   RCStrNoTColor32LookupTable = 'No TColor32LookupTable object specified';
   RCStrNoTColor32Gradient = 'No TColor32Gradient specified';
+  RCStrNoLookupTablePassed = 'No lookup table passed!';
 
 const
   CFloatTolerance = 0.001;
@@ -1025,7 +1029,45 @@ begin
     inherited;
 end;
 
-procedure TColor32Gradient.ClearColors;
+procedure TColor32Gradient.AddColorStop(ColorStop: TColor32GradientStop);
+begin
+  AddColorStop(ColorStop.Offset, ColorStop.Color32);
+end;
+
+procedure TColor32Gradient.AddColorStop(Offset: TFloat; Color: TColor32);
+var
+  Index, OldCount: Integer;
+begin
+
+  OldCount := Length(FGradientColors);
+  Index := 0;
+
+  // navigate to index where the color stop shall be inserted
+  while (Index < OldCount) and (Offset >= FGradientColors[Index].Offset) do
+    Inc(Index);
+
+  SetLength(FGradientColors, OldCount + 1);
+
+  // move existing color stops to make space for the new color stop
+  if (Index < OldCount) then
+    Move(FGradientColors[Index], FGradientColors[Index + 1],
+      (OldCount - Index) * SizeOf(TColor32GradientStop));
+
+  // finally insert new color stop
+  FGradientColors[Index].Offset := Offset;
+  FGradientColors[Index].Color32 := Color;
+  GradientColorsChanged;
+end;
+
+procedure TColor32Gradient.ClearColorStops(Color: TColor32);
+begin
+  SetLength(FGradientColors, 0);
+  FGradientColors[0].Offset := 0;
+  FGradientColors[0].Color32 := Color;
+  GradientColorsChanged;
+end;
+
+procedure TColor32Gradient.ClearColorStops;
 begin
   SetLength(FGradientColors, 0);
   GradientColorsChanged;
@@ -1038,7 +1080,7 @@ begin
   if Length(GradientColors) = 0 then
   begin
     if Length(FGradientColors) > 0 then
-      ClearColors;
+      ClearColorStops;
   end else
   begin
     SetLength(FGradientColors, Length(GradientColors));
@@ -1057,7 +1099,7 @@ begin
   begin
     // no colors specified
     if Length(FGradientColors) > 0 then
-      ClearColors;
+      ClearColorStops;
   end else
   begin
     SetLength(FGradientColors, Length(GradientColors));
@@ -1181,37 +1223,37 @@ begin
     Result := FGradientColors[Count - 1].Color32;
 end;
 
-function TColor32Gradient.GetColorAt(Fraction: TFloat): TColor32;
+function TColor32Gradient.GetColorAt(Offset: TFloat): TColor32;
 var
   Index, Count: Integer;
 begin
   Count := GradientCount;
-  if (Count = 0) or (Fraction <= FGradientColors[0].Offset) then
+  if (Count = 0) or (Offset <= FGradientColors[0].Offset) then
     Result := StartColor
-  else if (Fraction >= FGradientColors[Count - 1].Offset) then
+  else if (Offset >= FGradientColors[Count - 1].Offset) then
     Result := EndColor
   else
   begin
     Index := 1;
 
-    // find color index for a given fraction (between 0 and 1)
-    while (Index < Count) and (Fraction > FGradientColors[Index].Offset) do
+    // find color index for a given offset (between 0 and 1)
+    while (Index < Count) and (Offset > FGradientColors[Index].Offset) do
       Inc(Index);
 
-    // calculate new fraction (between two colors before and at 'Index')
-    Fraction := (Fraction - FGradientColors[Index - 1].Offset) /
+    // calculate new offset (between two colors before and at 'Index')
+    Offset := (Offset - FGradientColors[Index - 1].Offset) /
       (FGradientColors[Index].Offset - FGradientColors[Index - 1].Offset);
 
-    // check if fraction is out of bounds
-    if Fraction <= 0 then
+    // check if offset is out of bounds
+    if Offset <= 0 then
       Result := FGradientColors[Index - 1].Color32
-    else if Fraction >= 1 then
+    else if Offset >= 1 then
       Result := FGradientColors[Index].Color32
     else
     begin
       // interpolate color
       Result := CombineReg(FGradientColors[Index].Color32,
-        FGradientColors[Index - 1].Color32, Round($FF * Fraction));
+        FGradientColors[Index - 1].Color32, Round($FF * Offset));
       EMMS;
     end;
   end;
@@ -1307,31 +1349,6 @@ procedure TColor32Gradient.GradientColorsChanged;
 begin
   if Assigned(FOnGradientColorsChanged) then
     FOnGradientColorsChanged(Self);
-end;
-
-procedure TColor32Gradient.AddColorStop(Offset: TFloat; Color: TColor32);
-var
-  Index, OldCount: Integer;
-begin
-
-  OldCount := Length(FGradientColors);
-  Index := 0;
-
-  // navigate to index where the color stop shall be inserted
-  while (Index < OldCount) and (Offset >= FGradientColors[Index].Offset) do
-    Inc(Index);
-
-  SetLength(FGradientColors, OldCount + 1);
-
-  // move existing color stops to make space for the new color stop
-  if (Index < OldCount) then
-    Move(FGradientColors[Index], FGradientColors[Index + 1],
-      (OldCount - Index) * SizeOf(TColor32GradientStop));
-
-  // finally insert new color stop
-  FGradientColors[Index].Offset := Offset;
-  FGradientColors[Index].Color32 := Color;
-  GradientColorsChanged;
 end;
 
 procedure TColor32Gradient.LoadFromStream(Stream: TStream);
@@ -1893,6 +1910,7 @@ end;
 
 constructor TInvertedDistanceWeightingSampler.Create;
 begin
+  inherited;
   FPower := 2;
 end;
 
@@ -2469,7 +2487,7 @@ end;
 procedure TCustomGradientSampler.SetGradient(const Value: TColor32Gradient);
 begin
   if not Assigned(Value) then
-    FGradient.ClearColors
+    FGradient.ClearColorStops
   else
     Value.AssignTo(Self);
   GradientSamplerChanged;
@@ -2752,7 +2770,7 @@ begin
   SetPoints(StartPoint, EndPoint);
   if Assigned(FGradient) then
   begin
-    FGradient.ClearColors;
+    FGradient.ClearColorStops;
     FGradient.StartColor := StartColor;
     FGradient.EndColor := EndColor;
   end;
@@ -3241,6 +3259,9 @@ end;
 constructor TCustomGradientLookupTablePolygonFiller.Create(
   LookupTable: TColor32LookupTable);
 begin
+  if not Assigned(FGradientLUT) then
+    raise Exception.Create(RCStrNoLookupTablePassed);
+
   FGradientLUT := LookupTable;
   FUseLookUpTable := True;
   FOwnsLUT := False;
@@ -3250,9 +3271,34 @@ begin
   FWrapProc := Clamp;
 end;
 
+destructor TCustomGradientLookupTablePolygonFiller.Destroy;
+begin
+  if FOwnsLUT and Assigned(FGradientLUT) then
+    FGradientLUT.Free;
+  inherited;
+end;
+
 function TCustomGradientLookupTablePolygonFiller.GetLUTNeedsUpdate: Boolean;
 begin
   Result := FLUTNeedsUpdate or (FUseLookUpTable and (not FOwnsLUT));
+end;
+
+procedure TCustomGradientLookupTablePolygonFiller.SetGradientLUT(
+  const Value: TColor32LookupTable);
+begin
+  if FGradientLUT <> Value then
+  begin
+    // check whether current look up table is owned and eventually free it
+    if FOwnsLUT then
+      FGradientLUT.Free;
+
+    // set link to passed look up table
+    FGradientLUT := Value;
+
+    // if no look up table is specified don't use a look up table
+    if not Assigned(FGradientLUT) then
+      UseLookUpTable := False;
+  end;
 end;
 
 procedure TCustomGradientLookupTablePolygonFiller.SetUseLookUpTable(
@@ -3271,6 +3317,7 @@ begin
     if not Assigned(FGradientLUT) then
     begin
       FGradientLUT := TColor32LookupTable.Create;
+      FGradientLUT.OnOrderChanged := LookUpTableChangedHandler;
       FOwnsLUT := True;
     end
     else
@@ -3278,7 +3325,7 @@ begin
     if FOwnsLUT then
     begin
       if Assigned(FGradientLUT) then
-        FGradientLUT.Free;
+        FreeAndNil(FGradientLUT);
       FOwnsLUT := False;
     end
 end;
@@ -3308,7 +3355,7 @@ begin
   SetPoints(StartPoint, EndPoint);
   if Assigned(FGradient) then
   begin
-    FGradient.ClearColors;
+    FGradient.ClearColorStops;
     FGradient.StartColor := StartColor;
     FGradient.EndColor := EndColor;
   end;
@@ -3375,13 +3422,6 @@ begin
   inherited Create(ColorGradient);
 
   FGradient.OnGradientColorsChanged := GradientColorsChangedHandler;
-end;
-
-destructor TLinearGradientPolygonFiller.Destroy;
-begin
-  if FOwnsLUT and Assigned(FGradientLUT) then
-    FGradientLUT.Free;
-  inherited;
 end;
 
 function TLinearGradientPolygonFiller.ColorStopToScanLine(Index,
