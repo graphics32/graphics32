@@ -24,7 +24,7 @@ implementation
 uses StrUtils;
 
 const
-  htmlEnd: AnsiString = #10'</body>'#10'</html>';
+  htmlEnd: AnsiString = #10'<p class="Body"></p>'#10#10'</body>'#10'</html>';
   cr: AnsiChar = #10;
 
 //------------------------------------------------------------------------------
@@ -970,7 +970,7 @@ begin
     MkDir(DestUnitFolder);
 
   StringToFile(DestUnitFolder + '_Body.htm', HtmlStart(3) + '<b>Unit</b> ' +
-    ChangeFileExt(ExtractFileName(PasFilename),'') + htmlEnd);
+    ChangeFileExt(ExtractFileName(PasFilename),'') + #10'<br>'#10'<br>' + htmlEnd);
 
   PasLines := TStringlist.Create;
   try

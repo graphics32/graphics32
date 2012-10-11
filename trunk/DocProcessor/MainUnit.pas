@@ -661,7 +661,7 @@ begin
           S := Copy(MenuData[I], Pos('= "', MenuData[I]) + 3, 255);
           K := Pos('.pas"', S);
           if K > 0 then
-            Delete(S, K, Length(S) - K);
+            Delete(S, K, 255);
           PasFiles.Add(S);
           Inc(FileCntr);
           Inc(I, 2);
