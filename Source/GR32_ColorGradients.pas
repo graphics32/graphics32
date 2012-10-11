@@ -365,6 +365,10 @@ type
   TXGradientSampler = class(TCustomCenterRadiusAngleLutGradientSampler)
   private
     FScale: TFloat;
+    function GetEndPoint: TFloatPoint;
+    function GetStartPoint: TFloatPoint;
+    procedure SetEndPoint(const Value: TFloatPoint);
+    procedure SetStartPoint(const Value: TFloatPoint);
   protected
     procedure UpdateInternals; override;
   public
@@ -373,8 +377,12 @@ type
     procedure SetPoints(StartPoint, EndPoint: TFloatPoint); virtual;
 
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
+  public
+    property StartPoint: TFloatPoint read GetStartPoint write SetStartPoint;
+    property EndPoint: TFloatPoint read GetEndPoint write SetEndPoint;
   end;
-  TLinearGradientSampler = TXGradientSampler;
+
+  TLinearGradientSampler = class(TXGradientSampler);
 
   TXYGradientSampler = class(TCustomCenterRadiusAngleLutGradientSampler)
   private
@@ -2757,11 +2765,34 @@ begin
   Result := FLutPtr^[FWrapProc(Round(X * FScale), FLutMask)];
 end;
 
+function TXGradientSampler.GetStartPoint: TFloatPoint;
+begin
+  Result := FCenter;
+end;
+
+function TXGradientSampler.GetEndPoint: TFloatPoint;
+var
+  X, Y: TFloat;
+begin
+  GR32_Math.SinCos(Angle - 0.5 * Pi, X, Y);
+  Result := FloatPoint(FCenter.X + X, FCenter.Y + Y);
+end;
+
+procedure TXGradientSampler.SetEndPoint(const Value: TFloatPoint);
+begin
+  SetPoints(StartPoint, Value);
+end;
+
 procedure TXGradientSampler.SetPoints(StartPoint, EndPoint: TFloatPoint);
 begin
   FCenter := StartPoint;
   Radius := Distance(EndPoint, StartPoint);
   Angle := 0.5 * Pi + GetAngleOfPt2FromPt1(EndPoint, StartPoint);
+end;
+
+procedure TXGradientSampler.SetStartPoint(const Value: TFloatPoint);
+begin
+  SetPoints(Value, EndPoint);
 end;
 
 procedure TXGradientSampler.SimpleGradient(StartPoint: TFloatPoint;
