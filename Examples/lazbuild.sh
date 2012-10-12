@@ -32,6 +32,8 @@ lazbuild Drawing/GradSampler/GradSampler.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/LineStippling/LineStippling.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
+lazbuild Drawing/LineStippling/Lion.lpi
+if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/MeshGradients/MeshGradients.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/Polygons/Polygons.lpi
