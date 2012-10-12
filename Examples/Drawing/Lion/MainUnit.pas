@@ -35,26 +35,37 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes,
-  Graphics, Controls, Forms, Dialogs, GR32, GR32_Image, GR32_Polygons,
-  GR32_Paths, GR32_Brushes, GR32_Transforms, LionData;
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, GR32, GR32_Image,
+  GR32_Polygons, GR32_Paths, GR32_Brushes, GR32_Transforms, GR32_RangeBars,
+  LionData;
 
 {$I GR32.inc}
 
 type
   TFrmTiger = class(TForm)
+    CbxClearBackground: TCheckBox;
+    GbrAlpha: TGaugeBar;
+    GbrWidth: TGaugeBar;
+    LblAlpha: TLabel;
+    LblStrokeWidth: TLabel;
     PaintBox32: TPaintBox32;
-    procedure PaintBox32PaintBuffer(Sender: TObject);
+    PnlInteraction: TPanel;
+    PnlSampler: TPanel;
+    PnlSettings: TPanel;
+    RgpBrush: TRadioGroup;
+    RgpMouse: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure CbxClearBackgroundClick(Sender: TObject);
+    procedure GbrAlphaChange(Sender: TObject);
+    procedure GbrWidthChange(Sender: TObject);
+    procedure PaintBox32MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
+    procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure PaintBox32PaintBuffer(Sender: TObject);
     procedure PaintBox32Resize(Sender: TObject);
-    procedure PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
-    procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
-    procedure PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
-    procedure FormMouseWheel(Sender: TObject; Shift: TShiftState;
-      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure RgpBrushClick(Sender: TObject);
   private
     FRenderer: TPolygonRenderer32VPR;
     FTransformation: TAffineTransformation;
@@ -65,6 +76,9 @@ type
     FCurrentScale: TFloat;
     FCurrentAngle: TFloat;
     procedure UpdateTransformation;
+    procedure PaintBox32PaintAlphaBuffer(Sender: TObject);
+    procedure PaintBox32PaintOutlineAlphaBuffer(Sender: TObject);
+    procedure UpdateOnPaintBuffer;
   end;
 
 var
@@ -79,7 +93,7 @@ implementation
 {$ENDIF}
 
 uses
-  Math, Types, GR32_Math, GR32_Geometry;
+  Math, Types, GR32_Math, GR32_Geometry, GR32_VectorUtils;
 
 procedure TFrmTiger.FormCreate(Sender: TObject);
 begin
@@ -100,6 +114,17 @@ procedure TFrmTiger.FormMouseWheel(Sender: TObject; Shift: TShiftState;
 begin
   FCurrentScale := FCurrentScale * Power(2, 0.01 * WheelDelta);
   UpdateTransformation;
+end;
+
+procedure TFrmTiger.GbrAlphaChange(Sender: TObject);
+begin
+  UpdateOnPaintBuffer;
+end;
+
+procedure TFrmTiger.GbrWidthChange(Sender: TObject);
+begin
+  if RgpBrush.ItemIndex = 1 then
+    PaintBox32.Invalidate;
 end;
 
 procedure TFrmTiger.PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
@@ -153,6 +178,11 @@ begin
   PaintBox32.Invalidate;
 end;
 
+procedure TFrmTiger.CbxClearBackgroundClick(Sender: TObject);
+begin
+  UpdateOnPaintBuffer;
+end;
+
 procedure TFrmTiger.PaintBox32PaintBuffer(Sender: TObject);
 var
   Index: Integer;
@@ -167,12 +197,68 @@ begin
   end;
 end;
 
+procedure TFrmTiger.PaintBox32PaintAlphaBuffer(Sender: TObject);
+var
+  Index: Integer;
+  Alpha: Byte;
+begin
+  if CbxClearBackground.Checked then
+    PaintBox32.Buffer.Clear($FFFFFFFF);
+
+  Alpha := GbrAlpha.Position;
+  for Index := 0 to High(GLion.ColoredPolygons) do
+  begin
+    FRenderer.Color := SetAlpha(GLion.ColoredPolygons[Index].Color, Alpha);
+    FRenderer.PolyPolygonFS(GLion.ColoredPolygons[Index].Polygon,
+      FloatRect(PaintBox32.Buffer.ClipRect), FTransformation);
+  end;
+end;
+
+procedure TFrmTiger.PaintBox32PaintOutlineAlphaBuffer(Sender: TObject);
+var
+  Index: Integer;
+  Alpha: Byte;
+begin
+  if CbxClearBackground.Checked then
+    PaintBox32.Buffer.Clear($FFFFFFFF);
+
+  Alpha := GbrAlpha.Position;
+  for Index := 0 to High(GLion.ColoredPolygons) do
+    with GLion.ColoredPolygons[Index] do
+    begin
+      FRenderer.Color := SetAlpha(Color, Alpha);
+      FRenderer.PolyPolygonFS(BuildPolyPolyLine(Polygon, True,
+        0.1 * GbrWidth.Position), FloatRect(PaintBox32.Buffer.ClipRect),
+        FTransformation);
+    end;
+end;
+
 procedure TFrmTiger.PaintBox32Resize(Sender: TObject);
 begin
-  FCenter := FloatPoint(0.5 * ClientWidth, 0.5 * ClientHeight);
+  FCenter := FloatPoint(0.5 * PaintBox32.Width, 0.5 * PaintBox32.Height);
   FOffset := FloatPoint(0.5 * (GLion.Bounds.Right - GLion.Bounds.Left),
     0.5 * (GLion.Bounds.Bottom - GLion.Bounds.Top));
   FTransformation.Translate(FCenter.X - FOffset.X, FCenter.Y - FOffset.Y);
+end;
+
+procedure TFrmTiger.UpdateOnPaintBuffer;
+begin
+  case RgpBrush.ItemIndex of
+    0:
+      if CbxClearBackground.Checked and (GbrAlpha.Position = $FF) then
+        PaintBox32.OnPaintBuffer := PaintBox32PaintBuffer
+      else
+        PaintBox32.OnPaintBuffer := PaintBox32PaintAlphaBuffer;
+    1: PaintBox32.OnPaintBuffer := PaintBox32PaintOutlineAlphaBuffer;
+  end;
+  PaintBox32.Invalidate;
+end;
+
+procedure TFrmTiger.RgpBrushClick(Sender: TObject);
+begin
+  UpdateOnPaintBuffer;
+  LblStrokeWidth.Visible := RgpBrush.ItemIndex = 1;
+  GbrWidth.Visible := LblStrokeWidth.Visible;
 end;
 
 initialization
