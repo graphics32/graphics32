@@ -33,10 +33,6 @@ unit MainUnit;
 
 interface
 
-{$IFDEF FPC}
-  {$MODE Delphi}
-{$ENDIF}
-
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, GR32, GR32_Image,

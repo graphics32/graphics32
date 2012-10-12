@@ -1,6 +1,6 @@
 program Lion;
 
-{$R Media.rc}
+{$R 'Media.rc'}
 
 uses
   Interfaces,
@@ -10,7 +10,7 @@ uses
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TFrmTiger, FrmTiger);
   Application.Run;
 end.
+
