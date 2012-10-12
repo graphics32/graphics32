@@ -25,6 +25,8 @@ lazbuild.exe Drawing\GradSampler\GradSampler.lpi
 IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\LineStippling\LineStippling.lpi
 IF ERRORLEVEL 1 PAUSE
+lazbuild.exe Drawing\Lion\Lion.lpi
+IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\MeshGradients\MeshGradients.lpi
 IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\Polygons\Polygons.lpi

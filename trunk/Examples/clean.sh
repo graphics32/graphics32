@@ -12,6 +12,7 @@ rm -rf Drawing/GradFills/lib
 rm -rf Drawing/GradLines/lib
 rm -rf Drawing/GradSampler/lib
 rm -rf Drawing/LineStippling/lib
+rm -rf Drawing/Lion/lib
 rm -rf Drawing/MeshGradients/lib
 rm -rf Drawing/Polygons/lib
 rm -rf Drawing/RenderText/lib

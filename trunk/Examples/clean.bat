@@ -12,6 +12,7 @@ rmdir /S /Q Drawing\GradFills\lib
 rmdir /S /Q Drawing\GradLines\lib
 rmdir /S /Q Drawing\GradSampler\lib
 rmdir /S /Q Drawing\LineStippling\lib
+rmdir /S /Q Drawing\Lion\lib
 rmdir /S /Q Drawing\MeshGradients\lib
 rmdir /S /Q Drawing\Polygons\lib
 rmdir /S /Q Drawing\RenderText\lib
