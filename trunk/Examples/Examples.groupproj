@@ -24,7 +24,7 @@
 			<Projects Include="Drawing\Curves\Curves.dproj">
 				<Dependencies/>
 			</Projects>
-			<Projects Include="Drawing\GammaTest\GammaTest.dproj">
+			<Projects Include="Drawing\GammaCorrection\GammaCorrection.dproj">
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Drawing\GradFills\GradFills.dproj">
@@ -37,6 +37,12 @@
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Drawing\LineStippling\LineStippling.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\Lion\Lion.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="Drawing\MeshGradients\MeshGradients.dproj">
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Drawing\Polygons\Polygons.dproj">
@@ -66,7 +72,7 @@
 			<Projects Include="Layers\ImgView_Layers\ImgView_Layers.dproj">
 				<Dependencies/>
 			</Projects>
-			<Projects Include="Layers\RotLayer\RotLayer.dproj"	>
+			<Projects Include="Layers\RotLayer\RotLayer.dproj">
 				<Dependencies/>
 			</Projects>
 			<Projects Include="Layers\Sprites\Sprites.dproj">
@@ -161,14 +167,14 @@
 		<Target Name="Curves:Make">
 			<MSBuild Projects="Drawing\Curves\Curves.dproj" Targets="Make"/>
 		</Target>
-		<Target Name="GammaTest">
-			<MSBuild Projects="Drawing\GammaTest\GammaTest.dproj"/>
+		<Target Name="GammaCorrection">
+			<MSBuild Projects="Drawing\GammaCorrection\GammaCorrection.dproj"/>
 		</Target>
-		<Target Name="GammaTest:Clean">
-			<MSBuild Projects="Drawing\GammaTest\GammaTest.dproj" Targets="Clean"/>
+		<Target Name="GammaCorrection:Clean">
+			<MSBuild Projects="Drawing\GammaCorrection\GammaCorrection.dproj" Targets="Clean"/>
 		</Target>
-		<Target Name="GammaTest:Make">
-			<MSBuild Projects="Drawing\GammaTest\GammaTest.dproj" Targets="Make"/>
+		<Target Name="GammaCorrection:Make">
+			<MSBuild Projects="Drawing\GammaCorrection\GammaCorrection.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="GradFills">
 			<MSBuild Projects="Drawing\GradFills\GradFills.dproj"/>
@@ -185,8 +191,8 @@
 		<Target Name="GradLines:Clean">
 			<MSBuild Projects="Drawing\GradLines\GradLines.dproj" Targets="Clean"/>
 		</Target>
-		<Target Name="GradSampler:Make">
-			<MSBuild Projects="Drawing\GradSampler\GradSampler.dproj" Targets="Make"/>
+		<Target Name="GradLines:Make">
+			<MSBuild Projects="Drawing\GradLines\GradLines.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="GradSampler">
 			<MSBuild Projects="Drawing\GradSampler\GradSampler.dproj"/>
@@ -205,6 +211,24 @@
 		</Target>
 		<Target Name="LineStippling:Make">
 			<MSBuild Projects="Drawing\LineStippling\LineStippling.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Lion">
+			<MSBuild Projects="Drawing\Lion\Lion.dproj"/>
+		</Target>
+		<Target Name="Lion:Clean">
+			<MSBuild Projects="Drawing\Lion\Lion.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="Lion:Make">
+			<MSBuild Projects="Drawing\Lion\Lion.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="MeshGradients">
+			<MSBuild Projects="Drawing\MeshGradients\MeshGradients.dproj"/>
+		</Target>
+		<Target Name="MeshGradients:Clean">
+			<MSBuild Projects="Drawing\MeshGradients\MeshGradients.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="MeshGradients:Make">
+			<MSBuild Projects="Drawing\MeshGradients\MeshGradients.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="Polygons">
 			<MSBuild Projects="Drawing\Polygons\Polygons.dproj"/>
@@ -360,13 +384,13 @@
 			<MSBuild Projects="Transformation\Visualization\Visualization.dproj" Targets="Make"/>
 		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="PixelCombine;TextureBlend;AntiAliasing;ArrowHead;Clipper;CubicSpline;Curves;GammaTest;GradFills;GradLines;GradSampler;LineStippling;Polygons;RenderText;ScatterPlot;TextVPR;ByteMaps;Image32;Mandelbrot;Rotate;ImgView_Layers;RotLayer;Sprites;NestedSampling;PixelF;Resamplers;ImgWarping;Transform;Visualization"/>
+			<CallTarget Targets="PixelCombine;TextureBlend;AntiAliasing;ArrowHead;Clipper;CubicSpline;Curves;GammaCorrection;GradFills;GradLines;GradSampler;LineStippling;Lion;MeshGradients;Polygons;RenderText;ScatterPlot;TextVPR;ByteMaps;Image32;Mandelbrot;Rotate;ImgView_Layers;RotLayer;Sprites;NestedSampling;PixelF;Resamplers;ImgWarping;Transform;Visualization"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="PixelCombine:Clean;TextureBlend:Clean;AntiAliasing:Clean;ArrowHead:Clean;Clipper:Clean;CubicSpline:Clean;Curves:Clean;GammaTest:Clean;GradFills:Clean;GradLines:Clean;GradSampler:Clean;LineStippling:Clean;Polygons:Clean;RenderText:Clean;ScatterPlot:Clean;TextVPR:Clean;ByteMaps:Clean;Image32:Clean;Mandelbrot:Clean;Rotate:Clean;ImgView_Layers:Clean;RotLayer:Clean;Sprites:Clean;NestedSampling:Clean;PixelF:Clean;Resamplers:Clean;ImgWarping:Clean;Transform:Clean;Visualization:Clean"/>
+			<CallTarget Targets="PixelCombine:Clean;TextureBlend:Clean;AntiAliasing:Clean;ArrowHead:Clean;Clipper:Clean;CubicSpline:Clean;Curves:Clean;GammaCorrection:Clean;GradFills:Clean;GradLines:Clean;GradSampler:Clean;LineStippling:Clean;Lion:Clean;MeshGradients:Clean;Polygons:Clean;RenderText:Clean;ScatterPlot:Clean;TextVPR:Clean;ByteMaps:Clean;Image32:Clean;Mandelbrot:Clean;Rotate:Clean;ImgView_Layers:Clean;RotLayer:Clean;Sprites:Clean;NestedSampling:Clean;PixelF:Clean;Resamplers:Clean;ImgWarping:Clean;Transform:Clean;Visualization:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="PixelCombine:Make;TextureBlend:Make;AntiAliasing:Make;ArrowHead:Make;Clipper:Make;CubicSpline:Make;Curves:Make;GammaTest:Make;GradFills:Make;GradLines:Make;GradSampler:Make;LineStippling:Make;Polygons:Make;RenderText:Make;ScatterPlot:Make;TextVPR:Make;ByteMaps:Make;Image32:Make;Mandelbrot:Make;Rotate:Make;ImgView_Layers:Make;RotLayer:Make;Sprites:Make;NestedSampling:Make;PixelF:Make;Resamplers:Make;ImgWarping:Make;Transform:Make;Visualization:Make"/>
+			<CallTarget Targets="PixelCombine:Make;TextureBlend:Make;AntiAliasing:Make;ArrowHead:Make;Clipper:Make;CubicSpline:Make;Curves:Make;GammaCorrection:Make;GradFills:Make;GradLines:Make;GradSampler:Make;LineStippling:Make;Lion:Make;MeshGradients:Make;Polygons:Make;RenderText:Make;ScatterPlot:Make;TextVPR:Make;ByteMaps:Make;Image32:Make;Mandelbrot:Make;Rotate:Make;ImgView_Layers:Make;RotLayer:Make;Sprites:Make;NestedSampling:Make;PixelF:Make;Resamplers:Make;ImgWarping:Make;Transform:Make;Visualization:Make"/>
 		</Target>
 		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 	</Project>

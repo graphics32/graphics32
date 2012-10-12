@@ -202,8 +202,6 @@ end;
 
 procedure TFormBezier.PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
-var
-  Index: Integer;
 begin
   if FCurrentIndex >= 0 then
   with PaintBox32 do

@@ -114,7 +114,7 @@ type
     procedure UpdateBackgroundGradientSampler;
   end;
 
-  TMyGradient = class(TCustomLookUpTableGradientSampler)
+  TMyGradient = class(TCustomGradientLookUpTableSampler)
   private
     FPolygon: PArrayOfFloatPoint;
     FRadius: TFloat;
@@ -124,7 +124,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     procedure UpdateInternals; override;
   public
-    constructor Create; override;
+    constructor Create(WrapMode: TWrapMode = wmMirror); override;
     function GetSampleFloat(X: Single; Y: Single): TColor32; override;
 
     property Polygon: PArrayOfFloatPoint read FPolygon write FPolygon;
@@ -148,7 +148,7 @@ uses
 
 { TMyGradient }
 
-constructor TMyGradient.Create;
+constructor TMyGradient.Create(WrapMode: TWrapMode = wmMirror);
 begin
   inherited;
   FRadius := 10;

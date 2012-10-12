@@ -273,7 +273,7 @@ begin
 {$ELSE}
   DecimalSeparator := '.';
 {$ENDIF}
-  Gradient.ClearColors;
+  Gradient.ClearColorStops;
   for i := 0 to s.Count - 1 do
   begin
     j := Pos(':', s[i]);

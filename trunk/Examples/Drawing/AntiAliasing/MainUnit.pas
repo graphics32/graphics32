@@ -39,7 +39,7 @@ var
   MinCenter: TFloat;
   Temp: TFloat;
   Index: Integer;
-  LinGrad: TLinearGradientLookupTablePolygonFiller;
+  LinGrad: TLinearGradientPolygonFiller;
   Renderer: TPolygonRenderer32;
 const
   CDeg2Rad = Pi / 180;
@@ -97,7 +97,7 @@ begin
     end;
 
     // Top patterns
-    LinGrad := TLinearGradientLookupTablePolygonFiller.Create;
+    LinGrad := TLinearGradientPolygonFiller.Create;
     LinGrad.Gradient.StartColor := clWhite32;
     for Index := 1 to 20 do
     begin

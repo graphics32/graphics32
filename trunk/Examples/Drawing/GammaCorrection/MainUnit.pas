@@ -22,15 +22,11 @@ type
     LblThicknessValue: TLabel;
     PaintBox32: TPaintBox32;
     PnControl: TPanel;
-    procedure PaintBox32PaintBuffer(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure GbrContrastChange(Sender: TObject);
     procedure GbrGammaChange(Sender: TObject);
     procedure GbrThicknessChange(Sender: TObject);
-    procedure FormShow(Sender: TObject);
-  private
-    { Private-Deklarationen }
-  public
-    { Public-Deklarationen }
+    procedure PaintBox32PaintBuffer(Sender: TObject);
   end;
 
 var
@@ -39,7 +35,7 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_VectorUtils, GR32_Polygons, GR32_Paths;
+  GR32_LowLevel, GR32_VectorUtils, GR32_Polygons;
 
 {$IFDEF FPC}
 {$R *.lfm}
