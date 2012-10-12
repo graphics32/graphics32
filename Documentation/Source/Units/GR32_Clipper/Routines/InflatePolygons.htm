@@ -1,0 +1,22 @@
+<html>
+<head>
+<title>G32Version</title>
+<link rel="stylesheet" href="../../../../styles/default.css" type="text/css">
+</head>
+<body bgcolor="#FFFFFF">
+
+<p class="Decl"><b>function</b> InflatePolygons(<b>const</b> Polygons: TArrayOfArrayOfFloatPoint; <b>const</b> Delta: TFloat; JoinType: TJoinType = jtSquare; MiterLimit: TFloat = 2): TArrayOfArrayOfFloatPoint;</p>
+
+<p  class="Body">This function inflates (grows) or deflates (shrinks) Polygons by the Delta amount. Positive Delta values inflate outer polygons and deflate inner 'hole' polygons. Negative Deltas do the reverse.</p>
+<br>
+
+<p  class="Body">Edge joins may be one of three <a href="../Types/TJoinType.htm">join types</a> - jtMiter, jtSquare or jtRound. If the join type is jtMiter, then the <b>MiterLimit</b> parameter will determine the maximum distance from the original vertex that the newly offsetted vertex is allowed (in multiples of Delta) before squaring is applied.</p>
+<br>
+
+<p  class="Body">It's important that the polygons passed to this function are oriented such that <b>outer polygons have a clockwise <a href="./Orientation.htm">orientation</a></b> and <b>inner 'hole' polygons have a counter-clockwise <a href="./Orientation.htm">orientation</a></b>. If the orientations of input polygons are incorrect, the function will return unexpected results.</p>
+<br>
+
+<p class="Body" ><img src="../../../../Images/clip_jointypes.png" alt="" border="0"></p>
+
+</body>
+</html>
