@@ -1,0 +1,29 @@
+object FrmTiger: TFrmTiger
+  Left = 697
+  Height = 512
+  Top = 372
+  Width = 400
+  Caption = 'Lion'
+  ClientHeight = 512
+  ClientWidth = 400
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnMouseWheel = FormMouseWheel
+  LCLVersion = '1.0.1.4'
+  object PaintBox32: TPaintBox32
+    Left = 0
+    Height = 512
+    Top = 0
+    Width = 400
+    Align = alClient
+    TabOrder = 0
+    OnMouseDown = PaintBox32MouseDown
+    OnMouseUp = PaintBox32MouseUp
+    OnPaintBuffer = PaintBox32PaintBuffer
+    OnResize = PaintBox32Resize
+  end
+end
