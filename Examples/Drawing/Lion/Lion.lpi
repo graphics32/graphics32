@@ -4,10 +4,13 @@
     <Version Value="9"/>
     <PathDelim Value="\"/>
     <General>
+      <Flags>
+        <MainUnitHasCreateFormStatements Value="False"/>
+      </Flags>
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="Lion"/>
-      <UseXPManifest Value="True"/>
+      <UseAppBundle Value="False"/>
     </General>
     <i18n>
       <EnableI18N LFM="False"/>
@@ -22,19 +25,24 @@
           <Version Value="11"/>
           <PathDelim Value="\"/>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
+            <IncludeFiles Value="../../Source;$(ProjOutDir)"/>
             <OtherUnitFiles Value="..\..\..\Source"/>
-            <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
+              <SyntaxMode Value="Delphi"/>
               <CStyleOperator Value="False"/>
               <IncludeAssertionCode Value="True"/>
               <CPPInline Value="False"/>
               <UseAnsiStrings Value="False"/>
             </SyntaxOptions>
           </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+          </CodeGeneration>
           <Linking>
+            <LinkSmart Value="True"/>
             <Options>
               <Win32>
                 <GraphicApplication Value="True"/>
@@ -43,7 +51,7 @@
           </Linking>
           <Other>
             <CompilerMessages>
-              <MsgFileName Value=""/>
+              <UseMsgFile Value="True"/>
             </CompilerMessages>
             <CompilerPath Value="$(CompPath)"/>
           </Other>
@@ -60,13 +68,10 @@
         <FormatVersion Value="1"/>
       </local>
     </RunParams>
-    <RequiredPackages Count="2">
+    <RequiredPackages Count="1">
       <Item1>
-        <PackageName Value="ImagesForLazarus"/>
-      </Item1>
-      <Item2>
         <PackageName Value="LCL"/>
-      </Item2>
+      </Item1>
     </RequiredPackages>
     <Units Count="2">
       <Unit0>
@@ -89,10 +94,11 @@
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <OtherUnitFiles Value="..\..\..\Source"/>
-      <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
+        <SyntaxMode Value="Delphi"/>
         <CStyleOperator Value="False"/>
         <CPPInline Value="False"/>
         <UseAnsiStrings Value="False"/>
@@ -107,6 +113,7 @@
     <Linking>
       <Debugging>
         <GenerateDebugInfo Value="False"/>
+        <UseLineInfoUnit Value="False"/>
         <StripSymbols Value="True"/>
       </Debugging>
       <LinkSmart Value="True"/>
@@ -117,8 +124,14 @@
       </Options>
     </Linking>
     <Other>
+      <Verbosity>
+        <ShowNotes Value="False"/>
+        <ShowHints Value="False"/>
+        <ShowGenInfo Value="False"/>
+      </Verbosity>
+      <WriteFPCLogo Value="False"/>
       <CompilerMessages>
-        <MsgFileName Value=""/>
+        <UseMsgFile Value="True"/>
       </CompilerMessages>
       <CompilerPath Value="$(CompPath)"/>
     </Other>
