@@ -3290,7 +3290,7 @@ end;
 constructor TCustomGradientLookupTablePolygonFiller.Create(
   LookupTable: TColor32LookupTable);
 begin
-  if not Assigned(FGradientLUT) then
+  if not Assigned(LookupTable) then
     raise Exception.Create(RCStrNoLookupTablePassed);
 
   FGradientLUT := LookupTable;
