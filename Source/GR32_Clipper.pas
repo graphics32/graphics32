@@ -49,9 +49,10 @@ type
   // EvenOdd & NonZero (GDI, GDI+, XLib, OpenGL, Cairo, AGG, Quartz, SVG, Gr32)
   // Others rules include Positive, Negative and ABS_GTR_EQ_TWO (only in OpenGL)
   // see http://glprogramming.com/red/chapter11.html
-  TPolyFillType = (pftEvenOdd, pftNonZero, pftPositive, pftNegative);
+  // nb: Alternate is the same as EvenOdd and Winding is the same as NonZero.
+  TPolyFillType = (pftEvenOdd, pftNonZero, pftPositive, pftNegative, pftAlternate = 0, pftWinding);
 
-  // TJoinType - used by OffsetPolygons()
+  // TJoinType - used by InflatePolygons()
   TJoinType = (jtSquare, jtRound, jtMiter);
 
   // used internally ...
@@ -265,9 +266,9 @@ function Area(const Pts: TArrayOfFloatPoint): Double;
 function ReversePolygon(const Pts: TArrayOfFloatPoint): TArrayOfFloatPoint;
 function ReversePolygons(const Pts: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 
-// OffsetPolygons precondition: outer polygons MUST be oriented clockwise,
+// InflatePolygons precondition: outer polygons MUST be oriented clockwise,
 // and inner 'hole' polygons must be oriented counter-clockwise ...
-function OffsetPolygons(const FltPts: TArrayOfArrayOfFloatPoint; const Delta: TFloat;
+function InflatePolygons(const FltPts: TArrayOfArrayOfFloatPoint; const Delta: TFloat;
   JoinType: TJoinType = jtSquare; MiterLimit: TFloat = 2): TArrayOfArrayOfFloatPoint;
 
 // SimplifyPolygon converts A self-intersecting polygon into A simple polygon.
@@ -3598,7 +3599,7 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-// OffsetPolygons ...
+// InflatePolygons ...
 //------------------------------------------------------------------------------
 
 function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TDoublePoint;
@@ -3667,7 +3668,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-function OffsetPolygons(const FltPts: TArrayOfArrayOfFloatPoint; const Delta: TFloat;
+function InflatePolygons(const FltPts: TArrayOfArrayOfFloatPoint; const Delta: TFloat;
   JoinType: TJoinType = jtSquare; MiterLimit: TFloat = 2): TArrayOfArrayOfFloatPoint;
 var
   I, J, K, Len, OutLen: Integer;

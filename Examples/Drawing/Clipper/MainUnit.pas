@@ -222,13 +222,13 @@ end;
 
 procedure TFrmClipper.BtnInflateClick(Sender: TObject);
 begin
-  Polys := OffsetPolygons(Polys, 10, jtRound);
+  Polys := InflatePolygons(Polys, 10, jtRound);
   DrawPolygons;
 end;
 
 procedure TFrmClipper.BtnDeflateClick(Sender: TObject);
 begin
-  Polys := OffsetPolygons(Polys, -10, jtRound);
+  Polys := InflatePolygons(Polys, -10, jtRound);
   DrawPolygons;
 end;
 

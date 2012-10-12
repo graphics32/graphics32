@@ -47,7 +47,7 @@ type
   TEndStyle = (esButt, esSquare, esRound);
 
   { Polygon fill mode }
-  TPolyFillMode = (pfAlternate, pfWinding);
+  TPolyFillMode = (pfAlternate, pfWinding, pfEvenOdd = 0, pfNonZero);
 
   { TCustomPolygonRenderer }
   TCustomPolygonRenderer = class(TThreadPersistent)
