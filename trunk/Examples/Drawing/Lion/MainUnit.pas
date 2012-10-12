@@ -1,7 +1,5 @@
 unit MainUnit;
 
-{$MODE DELPHI}
-
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
  *
@@ -34,6 +32,10 @@ unit MainUnit;
  * ***** END LICENSE BLOCK ***** *)
 
 interface
+
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
 
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes,
