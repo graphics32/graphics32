@@ -111,11 +111,6 @@ type
     Notebook: TNotebook;
     OpacityBar: TGaugeBar;
     PageControl: TPageControl;
-    PageNone: TPage;
-    PageTranslate: TPage;
-    PageScale: TPage;
-    PageRotate: TPage;
-    PageSkew: TPage;
     PnlOpacity: TPanel;
     PnlOperation: TPanel;
     PnlTransformationMatrix: TPanel;
@@ -158,6 +153,7 @@ type
     procedure DstPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure CbxRepeatClick(Sender: TObject);
+    procedure SrcDblClick(Sender: TObject);
   protected
     LoadingValues: Boolean;
     DraggedVertex: Integer;
@@ -171,7 +167,7 @@ type
     AffineTransformation: TAffineTransformation;
     ProjectiveTransformation: TProjectiveTransformation;
     Transformation: TTransformation;
-    Vertices: array[0..3] of TPoint;
+    Vertices: array [0..3] of TPoint;
     Mode: TTransformMode;
     procedure ClearTransformations;
     procedure DoTransform;
@@ -688,6 +684,12 @@ begin
     if ItemIndex >= 0 then
       Src.Bitmap.ResamplerClassName:= Items[ ItemIndex ];
   DoTransform;
+end;
+
+procedure TFormTranformExample.SrcDblClick(Sender: TObject);
+begin
+  SrcRubberBandLayer.Location := FloatRect(0, 0, Src.Bitmap.Width - 1,
+    Src.Bitmap.Height - 1);
 end;
 
 procedure TFormTranformExample.SrcRBResizingEvent(Sender: TObject;

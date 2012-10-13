@@ -42,9 +42,9 @@ interface
 uses
   {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ExtCtrls, ComCtrls,
-  StdCtrls, ExtDlgs, Menus, ToolWin, Math, Variants, GR32, GR32_Image, GR32_Transforms,
-  GR32_VectorMaps, GR32_Layers, GR32_Blend, GR32_RangeBars, GR32_Rasterizers,
-  GR32_Resamplers, GR32_Math, BrushAuxiliaries;
+  StdCtrls, ExtDlgs, Menus, ToolWin, Math, Variants, GR32, GR32_Image,
+  GR32_Transforms, GR32_VectorMaps, GR32_Layers, GR32_Blend, GR32_RangeBars,
+  GR32_Rasterizers, GR32_Resamplers, GR32_Math, BrushAuxiliaries;
 
 const
   cAppName = 'Image Warping Example';
@@ -112,7 +112,6 @@ type
     UpdateTimer: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure MnuBilinearWarpClick(Sender: TObject);
     procedure BrushMeshPreviewResize(Sender: TObject);
     procedure DstImgMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -125,14 +124,15 @@ type
     procedure GaugeMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure ImgButtonClick(Sender: TObject);
-    procedure MnuSamplingGridClick(Sender: TObject);
+    procedure MnuBilinearWarpClick(Sender: TObject);
     procedure MnuFileExitClick(Sender: TObject);
-    procedure MnuKernelModeClick(Sender: TObject);
     procedure MnuFileOpenImageClick(Sender: TObject);
     procedure MnuFileOpenMeshClick(Sender: TObject);
-    procedure MnuResetMeshClick(Sender: TObject);
     procedure MnuFileSaveImageClick(Sender: TObject);
     procedure MnuFileSaveMeshClick(Sender: TObject);
+    procedure MnuKernelModeClick(Sender: TObject);
+    procedure MnuResetMeshClick(Sender: TObject);
+    procedure MnuSamplingGridClick(Sender: TObject);
     procedure MnuSupersampleNowClick(Sender: TObject);
     procedure PressureBarChange(Sender: TObject);
     procedure RateBarChange(Sender: TObject);

@@ -522,6 +522,7 @@ object FormTranformExample: TFormTranformExample
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 0
+    OnDblClick = SrcDblClick
     OnPaintStage = DstPaintStage
   end
   object Dst: TImage32
