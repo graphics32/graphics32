@@ -1,4 +1,4 @@
-object FrmTiger: TFrmTiger
+object FrmLion: TFrmLion
   Left = 539
   Height = 512
   Top = 294
