@@ -51,7 +51,7 @@ object MainForm: TMainForm
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
-    object Label1: TLabel
+    object LblGammaNote: TLabel
       Left = 16
       Top = 392
       Width = 144

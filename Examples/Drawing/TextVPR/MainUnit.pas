@@ -56,7 +56,7 @@ type
     PnlImage: TPanel;
     RgxMethod: TRadioGroup;
     TbrGamma: TTrackBar;
-    Label1: TLabel;
+    LblGammaNote: TLabel;
     BtnExit: TButton;
     procedure FormCreate(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
