@@ -180,7 +180,7 @@ object FormTranformExample: TFormTranformExample
           Height = 145
           PageIndex = 3
           TabOrder = 1
-          object TPage
+          object PageNone: TPage
             Left = 0
             Top = 0
             Caption = 'opNone'
@@ -194,7 +194,7 @@ object FormTranformExample: TFormTranformExample
                 'from the combo box above'
             end
           end
-          object TPage
+          object PageTranslate: TPage
             Left = 0
             Top = 0
             Caption = 'opTranslate'
@@ -266,7 +266,7 @@ object FormTranformExample: TFormTranformExample
               OnUserChange = TranslationScrolled
             end
           end
-          object TPage
+          object PageScale: TPage
             Left = 0
             Top = 0
             Caption = 'opScale'
@@ -334,7 +334,7 @@ object FormTranformExample: TFormTranformExample
               OnUserChange = ScaleScrolled
             end
           end
-          object TPage
+          object PageRotate: TPage
             Left = 0
             Top = 0
             Caption = 'opRotate'
@@ -406,7 +406,7 @@ object FormTranformExample: TFormTranformExample
               OnUserChange = RotationScrolled
             end
           end
-          object TPage
+          object PageSkew: TPage
             Left = 0
             Top = 0
             Caption = 'opSkew'
