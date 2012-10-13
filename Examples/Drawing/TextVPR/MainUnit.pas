@@ -111,15 +111,15 @@ const
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin sit ' +
     'amet nulla. Nam turpis nisl, faucibus ut, pulvinar eget, ' +
     'porta ac, lacus. Nam ultricies quam sed est. Mauris ' +
-    'auctor nibh ut dui. Phasellus facilisis libero sit amet urna.' +
+    'auctor nibh ut dui. Phasellus facilisis libero sit amet urna. ' +
     'Pellentesque non lorem. Donec aliquam, turpis in ornare placerat, ' +
     'risus justo rhoncus nibh, vitae commodo sem eros vitae ' +
     'massa. Donec tincidunt. Suspendisse potenti. Praesent ' +
-    'sapien augue, fermentum in, aliquet et, vestibulum vel, neque.' +
+    'sapien augue, fermentum in, aliquet et, vestibulum vel, neque. ' +
     'Vivamus diam. Suspendisse commodo odio non erat. Fusce ornare, ipsum ' +
     'et luctus eleifend, sapien lectus placerat ante, a posuere ' +
     'nibh risus nec quam. Pellentesque pretium. Etiam leo urna, ' +
-    'gravida eu, pellentesque eu, imperdiet in, enim. Nam nunc.' +
+    'gravida eu, pellentesque eu, imperdiet in, enim. Nam nunc. ' +
     'Quisque commodo.' + #13#10 + #13#10 +
 
     'In scelerisque. Mauris vitae magna. Curabitur tempor. Pellentesque ' +
