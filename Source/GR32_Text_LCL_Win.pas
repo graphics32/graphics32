@@ -79,8 +79,9 @@ begin
 end;
 
 
-procedure GlyphOutlineToPath(Handle: HDC; Path: TCustomPath; DstX, DstY: Single;
-  const Glyph: Integer; out Metrics: TGlyphMetrics);
+function GlyphOutlineToPath(Handle: HDC; Path: TCustomPath;
+  DstX, MaxX, DstY: Single;
+  const Glyph: Integer; out Metrics: TGlyphMetrics): Boolean;
 var
   I, K, S: Integer;
   Res: DWORD;
@@ -90,7 +91,8 @@ var
 begin
   Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
     0, nil, VertFlip_mat2);
-  if not Assigned(Path) then Exit;
+  Result := DstX + Metrics.gmCellIncX <= MaxX;
+  if not Result or not Assigned(Path) then Exit;
 
   GetMem(GlyphMemPtr, Res);
   BufferPtr := GlyphMemPtr;
@@ -238,9 +240,13 @@ begin
     end
     else
     begin
-      //TestNewLine(X);
-
-      GlyphOutlineToPath(DC, Path, X, Y, CharValue, GlyphMetrics);
+      if not GlyphOutlineToPath(DC, Path,
+        X, ARect.Right, Y, CharValue, GlyphMetrics) then
+      begin
+        NewLine;
+        if not GlyphOutlineToPath(DC, Path,
+          X, ARect.Right, Y, CharValue, GlyphMetrics) then Exit;
+      end;
       X := X + GlyphMetrics.gmCellIncX;
       if X > XMax then XMax := X;
     end;
