@@ -84,7 +84,7 @@ end;
 {$ENDIF}
 function GlyphOutlineToPath(Handle: HDC; Path: TCustomPath;
   DstX, MaxX, DstY: Single;
-  const Glyph: Integer; out Metrics: TGlyphMetrics): boolean;
+  const Glyph: Integer; out Metrics: TGlyphMetrics): Boolean;
 var
   I, K, S: Integer;
   Res: DWORD;
