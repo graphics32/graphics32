@@ -53,7 +53,7 @@ object MainForm: TMainForm
     ClientHeight = 596
     ClientWidth = 169
     TabOrder = 1
-    object Label1: TLabel
+    object LblGammaNote: TLabel
       Left = 9
       Height = 88
       Top = 400
