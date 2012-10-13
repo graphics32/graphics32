@@ -42,7 +42,7 @@ uses
 {$I GR32.inc}
 
 type
-  TFrmTiger = class(TForm)
+  TFrmLion = class(TForm)
     CbxClearBackground: TCheckBox;
     GbrAlpha: TGaugeBar;
     GbrWidth: TGaugeBar;
@@ -56,19 +56,23 @@ type
     RgpMouse: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure FormMouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure CbxClearBackgroundClick(Sender: TObject);
     procedure GbrAlphaChange(Sender: TObject);
     procedure GbrWidthChange(Sender: TObject);
-    procedure PaintBox32MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
-    procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+    procedure PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure PaintBox32PaintBuffer(Sender: TObject);
     procedure PaintBox32Resize(Sender: TObject);
     procedure RgpBrushClick(Sender: TObject);
   private
     FRenderer: TPolygonRenderer32VPR;
-    FTransformation: TAffineTransformation;
+    FNestedTransformation: TNestedTransformation;
     FCenter, FOffset: TFloatPoint;
     FLastSqrDistance: TFloat;
     FLastAngle: TFloat;
@@ -82,7 +86,7 @@ type
   end;
 
 var
-  FrmTiger: TFrmTiger;
+  FrmLion: TFrmLion;
 
 implementation
 
@@ -95,39 +99,51 @@ implementation
 uses
   Math, Types, GR32_Math, GR32_Geometry, GR32_VectorUtils;
 
-procedure TFrmTiger.FormCreate(Sender: TObject);
+procedure TFrmLion.FormCreate(Sender: TObject);
 begin
+  FNestedTransformation := TNestedTransformation.Create;
+  FNestedTransformation.Add(TAffineTransformation);
+
+(*
+  FNestedTransformation.Add(TBloatTransformation);
+  with TBloatTransformation(FNestedTransformation[1]) do
+  begin
+    BloatPower := 1.1;
+    SrcRect := FloatRect(0, 0, PaintBox32.Width, PaintBox32.Height);
+  end;
+*)
+
   FRenderer := TPolygonRenderer32VPR.Create(PaintBox32.Buffer);
-  FTransformation := TAffineTransformation.Create;
   FCurrentScale := 1;
   FCurrentAngle := 0;
-end;
-
-procedure TFrmTiger.FormDestroy(Sender: TObject);
-begin
-  FRenderer.Free;
-  FTransformation.Free;
-end;
-
-procedure TFrmTiger.FormMouseWheel(Sender: TObject; Shift: TShiftState;
-  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
-begin
-  FCurrentScale := FCurrentScale * Power(2, 0.01 * WheelDelta);
   UpdateTransformation;
 end;
 
-procedure TFrmTiger.GbrAlphaChange(Sender: TObject);
+procedure TFrmLion.FormDestroy(Sender: TObject);
+begin
+  FRenderer.Free;
+  FNestedTransformation.Free;
+end;
+
+procedure TFrmLion.FormMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  FCurrentScale := FCurrentScale * Power(2, -0.001 * WheelDelta);
+  UpdateTransformation;
+end;
+
+procedure TFrmLion.GbrAlphaChange(Sender: TObject);
 begin
   UpdateOnPaintBuffer;
 end;
 
-procedure TFrmTiger.GbrWidthChange(Sender: TObject);
+procedure TFrmLion.GbrWidthChange(Sender: TObject);
 begin
   if RgpBrush.ItemIndex = 1 then
     PaintBox32.Invalidate;
 end;
 
-procedure TFrmTiger.PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
+procedure TFrmLion.PaintBox32MouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   PaintBox32.OnMouseMove := PaintBox32MouseMove;
@@ -136,7 +152,7 @@ begin
   FLastPoint := GR32.Point(X, Y);
 end;
 
-procedure TFrmTiger.PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X,
+procedure TFrmLion.PaintBox32MouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
 var
   Angle, SqrDistance: TFloat;
@@ -160,30 +176,32 @@ begin
   UpdateTransformation;
 end;
 
-procedure TFrmTiger.PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
+procedure TFrmLion.PaintBox32MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   PaintBox32.OnMouseMove := nil;
 end;
 
-procedure TFrmTiger.UpdateTransformation;
+procedure TFrmLion.UpdateTransformation;
 begin
-  // update transformation
-  FTransformation.Clear;
-  FTransformation.Translate(-FOffset.X, -FOffset.Y);
-  FTransformation.Scale(FCurrentScale);
-  FTransformation.Rotate(RadToDeg(FCurrentAngle));
-  FTransformation.Translate(FCenter.X, FCenter.Y);
+  with TAffineTransformation(FNestedTransformation[0]) do
+  begin
+    Clear;
+    Translate(-FOffset.X, -FOffset.Y);
+    Scale(FCurrentScale);
+    Rotate(RadToDeg(FCurrentAngle));
+    Translate(FCenter.X, FCenter.Y);
+  end;
 
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmTiger.CbxClearBackgroundClick(Sender: TObject);
+procedure TFrmLion.CbxClearBackgroundClick(Sender: TObject);
 begin
   UpdateOnPaintBuffer;
 end;
 
-procedure TFrmTiger.PaintBox32PaintBuffer(Sender: TObject);
+procedure TFrmLion.PaintBox32PaintBuffer(Sender: TObject);
 var
   Index: Integer;
 begin
@@ -193,11 +211,11 @@ begin
   begin
     FRenderer.Color := GLion.ColoredPolygons[Index].Color;
     FRenderer.PolyPolygonFS(GLion.ColoredPolygons[Index].Polygon,
-      FloatRect(PaintBox32.Buffer.ClipRect), FTransformation);
+      FloatRect(PaintBox32.Buffer.ClipRect), FNestedTransformation);
   end;
 end;
 
-procedure TFrmTiger.PaintBox32PaintAlphaBuffer(Sender: TObject);
+procedure TFrmLion.PaintBox32PaintAlphaBuffer(Sender: TObject);
 var
   Index: Integer;
   Alpha: Byte;
@@ -210,11 +228,11 @@ begin
   begin
     FRenderer.Color := SetAlpha(GLion.ColoredPolygons[Index].Color, Alpha);
     FRenderer.PolyPolygonFS(GLion.ColoredPolygons[Index].Polygon,
-      FloatRect(PaintBox32.Buffer.ClipRect), FTransformation);
+      FloatRect(PaintBox32.Buffer.ClipRect), FNestedTransformation);
   end;
 end;
 
-procedure TFrmTiger.PaintBox32PaintOutlineAlphaBuffer(Sender: TObject);
+procedure TFrmLion.PaintBox32PaintOutlineAlphaBuffer(Sender: TObject);
 var
   Index: Integer;
   Alpha: Byte;
@@ -229,19 +247,19 @@ begin
       FRenderer.Color := SetAlpha(Color, Alpha);
       FRenderer.PolyPolygonFS(BuildPolyPolyLine(Polygon, True,
         0.1 * GbrWidth.Position), FloatRect(PaintBox32.Buffer.ClipRect),
-        FTransformation);
+        FNestedTransformation);
     end;
 end;
 
-procedure TFrmTiger.PaintBox32Resize(Sender: TObject);
+procedure TFrmLion.PaintBox32Resize(Sender: TObject);
 begin
   FCenter := FloatPoint(0.5 * PaintBox32.Width, 0.5 * PaintBox32.Height);
   FOffset := FloatPoint(0.5 * (GLion.Bounds.Right - GLion.Bounds.Left),
     0.5 * (GLion.Bounds.Bottom - GLion.Bounds.Top));
-  FTransformation.Translate(FCenter.X - FOffset.X, FCenter.Y - FOffset.Y);
+  TAffineTransformation(FNestedTransformation[0]).Translate(FCenter.X - FOffset.X, FCenter.Y - FOffset.Y);
 end;
 
-procedure TFrmTiger.UpdateOnPaintBuffer;
+procedure TFrmLion.UpdateOnPaintBuffer;
 begin
   case RgpBrush.ItemIndex of
     0:
@@ -254,15 +272,11 @@ begin
   PaintBox32.Invalidate;
 end;
 
-procedure TFrmTiger.RgpBrushClick(Sender: TObject);
+procedure TFrmLion.RgpBrushClick(Sender: TObject);
 begin
   UpdateOnPaintBuffer;
   LblStrokeWidth.Visible := RgpBrush.ItemIndex = 1;
   GbrWidth.Visible := LblStrokeWidth.Visible;
 end;
-
-initialization
-
-  SetGamma(1);
 
 end.

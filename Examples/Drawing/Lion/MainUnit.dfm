@@ -1,4 +1,4 @@
-object FrmTiger: TFrmTiger
+object FrmLion: TFrmLion
   Left = 0
   Top = 0
   Caption = 'Lion'
