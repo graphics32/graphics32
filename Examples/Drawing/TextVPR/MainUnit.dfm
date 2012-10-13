@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 484
   Top = 101
+  Width = 605
+  Height = 596
   Caption = 'GR32 VPR Text Rendering'
-  ClientHeight = 569
-  ClientWidth = 597
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -14,6 +14,7 @@ object MainForm: TMainForm
   Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnResize = FormResize
   PixelsPerInch = 96
   TextHeight = 13
   object PnlImage: TPanel
@@ -50,6 +51,22 @@ object MainForm: TMainForm
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
+    object Label1: TLabel
+      Left = 16
+      Top = 392
+      Width = 144
+      Height = 52
+      Caption = 
+        'nb: For the Gamma trackbar to work, the USEGR32GAMMA define in G' +
+        'R32.inc must be enabled.'
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clMaroon
+      Font.Height = -11
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      WordWrap = True
+    end
     object BtnSelectFont: TButton
       Left = 8
       Top = 8
@@ -69,29 +86,17 @@ object MainForm: TMainForm
       object LblGamma: TLabel
         Left = 9
         Top = 41
-        Width = 36
-        Height = 11
+        Width = 39
+        Height = 13
         Caption = 'Gamma:'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -9
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
       end
       object LblGammaValue: TLabel
         Left = 118
         Top = 41
-        Width = 24
-        Height = 11
+        Width = 30
+        Height = 13
         Alignment = taCenter
         Caption = '(1.00)'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -9
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
       end
       object TbrGamma: TTrackBar
         Left = 2
@@ -111,12 +116,6 @@ object MainForm: TMainForm
         Width = 89
         Height = 17
         Caption = 'Enable hinting'
-        Font.Charset = DEFAULT_CHARSET
-        Font.Color = clWindowText
-        Font.Height = -9
-        Font.Name = 'Tahoma'
-        Font.Style = []
-        ParentFont = False
         TabOrder = 1
         OnClick = CbxHintedClick
       end
@@ -134,19 +133,23 @@ object MainForm: TMainForm
       Width = 133
       Height = 78
       Caption = 'Rendering Method'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -9
-      Font.Name = 'Tahoma'
-      Font.Style = []
       ItemIndex = 0
       Items.Strings = (
         'Default'
         'Cleartype'
         'Cleartype (smooth)')
-      ParentFont = False
       TabOrder = 3
       OnClick = RgxMethodClick
+    end
+    object BtnExit: TButton
+      Left = 6
+      Top = 536
+      Width = 155
+      Height = 25
+      Cancel = True
+      Caption = 'E&xit'
+      TabOrder = 4
+      OnClick = BtnExitClick
     end
   end
   object FontDialog: TFontDialog
@@ -155,7 +158,7 @@ object MainForm: TMainForm
     Font.Height = -11
     Font.Name = 'MS Sans Serif'
     Font.Style = []
-    Left = 40
-    Top = 392
+    Left = 32
+    Top = 320
   end
 end
