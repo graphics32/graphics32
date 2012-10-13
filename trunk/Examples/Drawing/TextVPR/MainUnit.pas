@@ -56,6 +56,8 @@ type
     PnlImage: TPanel;
     RgxMethod: TRadioGroup;
     TbrGamma: TTrackBar;
+    Label1: TLabel;
+    BtnExit: TButton;
     procedure FormCreate(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
     procedure CbxHintedClick(Sender: TObject);
@@ -65,6 +67,8 @@ type
     procedure RgxMethodClick(Sender: TObject);
     procedure TbrGammaChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+    procedure BtnExitClick(Sender: TObject);
   private
     FPath: TFlattenedPath;
   public
@@ -105,50 +109,47 @@ uses
 const
   CLoremIpsum =
     'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin sit ' +
-    'amet nulla.' + #13#10 + 'Nam turpis nisl, faucibus ut, pulvinar eget, ' +
-    'porta ac, lacus. Nam ultricies' + #13#10 + 'quam sed est. Mauris ' +
-    'auctor nibh ut dui. Phasellus facilisis libero sit amet urna.' + #13#10 +
+    'amet nulla. Nam turpis nisl, faucibus ut, pulvinar eget, ' +
+    'porta ac, lacus. Nam ultricies quam sed est. Mauris ' +
+    'auctor nibh ut dui. Phasellus facilisis libero sit amet urna.' +
     'Pellentesque non lorem. Donec aliquam, turpis in ornare placerat, ' +
-    'risus justo' + #13#10 + 'rhoncus nibh, vitae commodo sem eros vitae ' +
-    'massa. Donec tincidunt. Suspendisse' + #13#10 + 'potenti. Praesent ' +
-    'sapien augue, fermentum in, aliquet et, vestibulum vel, neque.' + #13#10 +
+    'risus justo rhoncus nibh, vitae commodo sem eros vitae ' +
+    'massa. Donec tincidunt. Suspendisse potenti. Praesent ' +
+    'sapien augue, fermentum in, aliquet et, vestibulum vel, neque.' +
     'Vivamus diam. Suspendisse commodo odio non erat. Fusce ornare, ipsum ' +
-    'et luctus' + #13#10 + 'eleifend, sapien lectus placerat ante, a posuere ' +
-    'nibh risus nec quam. Pellentesque' + #13#10 + 'pretium. Etiam leo urna, ' +
-    'gravida eu, pellentesque eu, imperdiet in, enim. Nam nunc.' + #13#10 +
+    'et luctus eleifend, sapien lectus placerat ante, a posuere ' +
+    'nibh risus nec quam. Pellentesque pretium. Etiam leo urna, ' +
+    'gravida eu, pellentesque eu, imperdiet in, enim. Nam nunc.' +
     'Quisque commodo.' + #13#10 + #13#10 +
 
     'In scelerisque. Mauris vitae magna. Curabitur tempor. Pellentesque ' +
-    'condimentum.' + #13#10 + 'Maecenas molestie turpis sed arcu pulvinar ' +
-    'malesuada. Morbi quis metus in leo' + #13#10 + 'vestibulum mollis. ' +
-    'Ut libero arcu, molestie eget, tincidunt at, lobortis et,' + #13#10 +
+    'condimentum. Maecenas molestie turpis sed arcu pulvinar ' +
+    'malesuada. Morbi quis metus in leo vestibulum mollis. ' +
+    'Ut libero arcu, molestie eget, tincidunt at, lobortis et,' +
     'libero. Duis molestie venenatis magna. Nulla non ligula. Proin est. ' +
-    'Curabitur nisl.' + #13#10 + 'Nulla facilisi. Nam dolor nulla, mollis ' +
-    'non, tristique eu, vestibulum eget, mi.' + #13#10 + 'Donec venenatis, ' +
+    'Curabitur nisl. Nulla facilisi. Nam dolor nulla, mollis ' +
+    'non, tristique eu, vestibulum eget, mi. Donec venenatis, ' +
     'lacus adipiscing interdum laoreet, risus odio ullamcorper turpis,' +
-    #13#10 + 'at feugiat pede neque ac dui.' + #13#10 + #13#10 +
+    'at feugiat pede neque ac dui.' + #13#10 + #13#10 +
 
     'Nulla quis dolor eget justo ullamcorper consectetur. Mauris in ante. ' +
-    'Integer placerat' + #13#10 + 'dui at orci. Pellentesque at augue. Fusce ' +
-    'a turpis. Aliquam tincidunt dolor ut augue.' + #13#10 + 'Quisque ' +
+    'Integer placerat dui at orci. Pellentesque at augue. Fusce ' +
+    'a turpis. Aliquam tincidunt dolor ut augue. Quisque ' +
     'euismod mi ultrices mi. Sed pulvinar dolor sagittis mauris. Sed iaculis ' +
-    'nisl' + #13#10 + 'sed orci. Sed massa nisl, porta a, blandit vel, ' +
-    'ultrices quis, neque. Curabitur' + #13#10 + 'consequat urna id pede. ' +
+    'nisl sed orci. Sed massa nisl, porta a, blandit vel, ' +
+    'ultrices quis, neque. Curabitur consequat urna id pede. ' +
     'Suspendisse sed metus.';
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FPath := TFlattenedPath.Create;
 
-  SetGamma(0.88);
+  SetGamma(TbrGamma.Position * 0.01);
   Img.SetupBitmap(True, clWhite32);
   Img.Bitmap.Font.Name := 'Georgia';
   Img.Bitmap.Font.Size := 8;
   Img.Bitmap.Font.Style := [fsItalic];
   FontDialog.Font.Assign(Img.Bitmap.Font);
-  BuildPolygonFromText;
-  SetGamma(1);
-  RenderText;
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
 end;
@@ -189,10 +190,16 @@ end;
 procedure TMainForm.BuildPolygonFromText;
 var
   Intf: ITextToPathSupport;
+  DestRect: TFloatRect;
+const
+  DT_WORDBREAK = $10;
 begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
-    Intf.TextToPath(FPath, 10, 10, CLoremIpsum)
-  else
+  begin
+    DestRect := FloatRect(Img.BoundsRect);
+    InflateRect(DestRect, -10, -10);
+    Intf.TextToPath(FPath, DestRect, CLoremIpsum, DT_WORDBREAK);
+  end else
     raise Exception.Create(RCStrInpropriateBackend);
 end;
 
@@ -225,6 +232,17 @@ begin
   UseHinting := CbxHinted.Checked;
   BuildPolygonFromText;
   RenderText;
+end;
+
+procedure TMainForm.FormResize(Sender: TObject);
+begin
+  BuildPolygonFromText;
+  RenderText;
+end;
+
+procedure TMainForm.BtnExitClick(Sender: TObject);
+begin
+  Close;
 end;
 
 end.
