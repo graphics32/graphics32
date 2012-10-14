@@ -142,6 +142,7 @@ object FrmLion: TFrmLion
       Width = 165
       Height = 66
       Caption = 'Mouse'
+      Enabled = False
       ItemIndex = 0
       Items.Strings = (
         'Zoom / Rotate / Move'
