@@ -164,6 +164,7 @@ object FrmLion: TFrmLion
       ChildSizing.ControlsPerLine = 1
       ClientHeight = 48
       ClientWidth = 161
+      Enabled = False
       ItemIndex = 0
       Items.Strings = (
         'Zoom / Rotate / Move'
