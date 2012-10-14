@@ -111,11 +111,13 @@ type
     Notebook: TNotebook;
     OpacityBar: TGaugeBar;
     PageControl: TPageControl;
+    {$IFDEF FPC}
     PageNone: TPage;
     PageTranslate: TPage;
     PageScale: TPage;
     PageRotate: TPage;
     PageSkew: TPage;
+    {$ENDIF}
     PnlOpacity: TPanel;
     PnlOperation: TPanel;
     PnlTransformationMatrix: TPanel;
