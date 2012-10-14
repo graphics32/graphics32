@@ -62,6 +62,9 @@ function Intersect(const A1, A2, B1, B2: TFixedPoint; out P: TFixedPoint): Boole
 function FindNearestPointIndex(Point: TFloatPoint; Points: TArrayOfFloatPoint): Integer; overload;
 function FindNearestPointIndex(Point: TFixedPoint; Points: TArrayOfFixedPoint): Integer; overload;
 
+function Simplify(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
+function Simplify(Points: TArrayOfFixedPoint; Epsilon: TFixed = 1): TArrayOfFixedPoint; overload;
+
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint; overload;
 function ClosePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;
 
@@ -337,6 +340,108 @@ begin
       Result := Index;
     end;
   end;
+end;
+
+function RamerDouglasPeucker(Points: TArrayOfFloatPoint; FirstIndex,
+  LastIndex: Integer; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
+var
+  Index, DeltaMaxIndex: Integer;
+  Delta, DeltaMax: TFloat;
+  Parts: array [0 .. 1] of TArrayOfFloatPoint;
+begin
+  if LastIndex - FirstIndex > 1 then
+  begin
+    // find the point with the maximum distance
+    DeltaMax := 0;
+    DeltaMaxIndex := 0;
+    for Index := FirstIndex + 1 to LastIndex - 1 do
+    begin
+      with Points[LastIndex] do
+        Delta := Abs((Points[Index].x - x) * (Points[FirstIndex].y - y) -
+          (Points[Index].y - y) * (Points[FirstIndex].x - x));
+      if Delta > DeltaMax then
+      begin
+        DeltaMaxIndex := Index;
+        DeltaMax := Delta;
+      end;
+    end;
+
+    // if max distance is greater than epsilon, recursively simplify
+    if DeltaMax / Hypot(Points[FirstIndex].x - Points[LastIndex].x,
+      Points[FirstIndex].y - Points[LastIndex].y) >= Epsilon then
+    begin
+      // Recursive call
+      Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
+      Parts[1] := RamerDouglasPeucker(Points, DeltaMaxIndex, LastIndex, Epsilon);
+
+      // Build the result list
+      SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
+      Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
+      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) *
+        SizeOf(TFloatPoint));
+      Exit;
+    end;
+  end;
+
+  SetLength(Result, 2);
+  Result[0] := Points[FirstIndex];
+  Result[1] := Points[LastIndex];
+end;
+
+function RamerDouglasPeucker(Points: TArrayOfFixedPoint; FirstIndex,
+  LastIndex: Integer; Epsilon: TFixed = 1): TArrayOfFixedPoint; overload;
+var
+  Index, DeltaMaxIndex: Integer;
+  Delta, DeltaMax: TFixed;
+  Parts: array [0 .. 1] of TArrayOfFixedPoint;
+begin
+  if LastIndex - FirstIndex > 1 then
+  begin
+    // find the point with the maximum distance
+    DeltaMax := 0;
+    DeltaMaxIndex := 0;
+    for Index := FirstIndex + 1 to LastIndex - 1 do
+    begin
+      with Points[LastIndex] do
+        Delta := Abs((Points[Index].x - x) * (Points[FirstIndex].y - y) -
+          (Points[Index].y - y) * (Points[FirstIndex].x - x));
+      if Delta > DeltaMax then
+      begin
+        DeltaMaxIndex := Index;
+        DeltaMax := Delta;
+      end;
+    end;
+
+    // if max distance is greater than epsilon, recursively simplify
+    if DeltaMax / Hypot(Points[FirstIndex].x - Points[LastIndex].x,
+      Points[FirstIndex].y - Points[LastIndex].y) >= Epsilon then
+    begin
+      // Recursive call
+      Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
+      Parts[1] := RamerDouglasPeucker(Points, DeltaMaxIndex, LastIndex, Epsilon);
+
+      // Build the result list
+      SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
+      Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
+      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) *
+        SizeOf(TFloatPoint));
+      Exit;
+    end;
+  end;
+
+  SetLength(Result, 2);
+  Result[0] := Points[FirstIndex];
+  Result[1] := Points[LastIndex];
+end;
+
+function Simplify(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint;
+begin
+  Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
+end;
+
+function Simplify(Points: TArrayOfFixedPoint; Epsilon: TFixed = 1): TArrayOfFixedPoint;
+begin
+  Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
 end;
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
