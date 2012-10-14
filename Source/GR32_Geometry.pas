@@ -59,6 +59,8 @@ function Shorten(const Pts: TArrayOfFloatPoint;
 function PointInPolygon(const Pt: TFloatPoint; const Pts: TArrayOfFloatPoint): Boolean; overload;
 function SegmentIntersect(const P1, P2, P3, P4: TFloatPoint;
   out IntersectPoint: TFloatPoint): Boolean; overload;
+function PerpendicularDistance(const P, P1, P2: TFloatPoint): TFloat; overload;
+
 
 // TFixed Overloads
 function Average(const V1, V2: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -79,6 +81,7 @@ function Shorten(const Pts: TArrayOfFixedPoint;
 function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;
 function SegmentIntersect(const P1, P2, P3, P4: TFixedPoint;
   out IntersectPoint: TFixedPoint): Boolean; overload;
+function PerpendicularDistance(const P, P1, P2: TFixedPoint): TFixed; overload;
 
 // Integer Overloads
 function Average(const V1, V2: TPoint): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
@@ -88,6 +91,7 @@ function Distance(const V1, V2: TPoint): TFloat; overload;{$IFDEF USEINLINING} i
 function SqrDistance(const V1, V2: TPoint): Integer; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TPoint; DeltaX, DeltaY: Integer): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt, Delta: TPoint): TPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function PerpendicularDistance(const P, P1, P2: TPoint): TFloat; overload;
 
 const
   CRad01 = Pi / 180;
@@ -313,6 +317,13 @@ begin
   end;
 end;
 
+function PerpendicularDistance(const P, P1, P2: TFloatPoint): TFloat;
+begin
+  Result := Abs((P.x - P2.x) * (P1.y - P2.y) - (P.y - P2.y) * (P1.x - P2.x)) /
+    Hypot(P1.x - P2.x, P1.y - P2.y);
+end;
+
+
 // Fixed overloads
 
 function Average(const V1, V2: TFixedPoint): TFixedPoint;
@@ -529,6 +540,15 @@ begin
   end;
 end;
 
+function PerpendicularDistance(const P, P1, P2: TFixedPoint): TFixed;
+begin
+  Result := Fixed(Abs((P.x - P2.x) * (P1.y - P2.y) - (P.y - P2.y) *
+    (P1.x - P2.x)) * FixedToFloat / Hypot((P1.x - P2.x) * FixedToFloat,
+    (P1.y - P2.y) * FixedToFloat));
+end;
+
+
+// Integer overloads
 
 function Average(const V1, V2: TPoint): TPoint;
 begin
@@ -566,6 +586,12 @@ function OffsetPoint(const Pt, Delta: TPoint): TPoint;
 begin
   Result.X := Pt.X + Delta.X;
   Result.Y := Pt.Y + Delta.Y;
+end;
+
+function PerpendicularDistance(const P, P1, P2: TPoint): TFloat;
+begin
+  Result := Abs((P.x - P2.x) * (P1.y - P2.y) - (P.y - P2.y) * (P1.x - P2.x)) /
+    Hypot(P1.x - P2.x, P1.y - P2.y);
 end;
 
 end.
