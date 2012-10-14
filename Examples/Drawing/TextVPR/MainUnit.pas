@@ -51,13 +51,16 @@ type
     Img: TImage32;
     LblGamma: TLabel;
     LblGammaValue: TLabel;
-    PaintBox32: TPaintBox32;
     PnlControl: TPanel;
     PnlImage: TPanel;
-    RgxMethod: TRadioGroup;
     TbrGamma: TTrackBar;
     LblGammaNote: TLabel;
     BtnExit: TButton;
+    RgpTextAlign: TRadioGroup;
+    RgxMethod: TRadioGroup;
+    StatusBar: TStatusBar;
+    PnlZoom: TPanel;
+    PaintBox32: TPaintBox32;
     procedure FormCreate(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
     procedure CbxHintedClick(Sender: TObject);
@@ -69,11 +72,13 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
+    procedure RgpTextAlignClick(Sender: TObject);
   private
     FPath: TFlattenedPath;
   public
     procedure BuildPolygonFromText;
     procedure RenderText;
+    procedure DisplayFontInStatusbar;
   end;
 
 var
@@ -150,6 +155,7 @@ begin
   Img.Bitmap.Font.Size := 8;
   Img.Bitmap.Font.Style := [fsItalic];
   FontDialog.Font.Assign(Img.Bitmap.Font);
+  DisplayFontInStatusbar;
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
 end;
@@ -166,6 +172,7 @@ begin
     Img.Bitmap.Font.Assign(FontDialog.Font);
     BuildPolygonFromText;
     RenderText;
+    DisplayFontInStatusbar;
   end;
 end;
 
@@ -191,14 +198,13 @@ procedure TMainForm.BuildPolygonFromText;
 var
   Intf: ITextToPathSupport;
   DestRect: TFloatRect;
-const
-  DT_WORDBREAK = $10;
 begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
   begin
     DestRect := FloatRect(Img.BoundsRect);
     InflateRect(DestRect, -10, -10);
-    Intf.TextToPath(FPath, DestRect, CLoremIpsum, DT_WORDBREAK);
+    Intf.TextToPath(FPath, DestRect,
+      CLoremIpsum, DT_WORDBREAK or RgpTextAlign.ItemIndex);
   end else
     raise Exception.Create(RCStrInpropriateBackend);
 end;
@@ -213,6 +219,24 @@ begin
   end;
   with Img.ScreenToClient(Mouse.CursorPos) do
     ImgMouseMove(nil, [], X, Y, nil);
+end;
+
+function FontStylesToString(FontStyles: TFontStyles): string;
+var
+  styles: TFontStyles;
+begin
+  styles := [fsBold, fsItalic] * FontStyles;
+  if styles = [] then Result := ''
+  else if styles = [fsBold] then Result := '[Bold]'
+  else if styles = [fsItalic] then Result := '[Italic]'
+  else Result := '[Bold & Italic]';
+end;
+
+procedure TMainForm.DisplayFontInStatusbar;
+begin
+  with FontDialog.Font do
+    StatusBar.SimpleText :=
+      format('  Font: %s, %d %s',[name, size, FontStylesToString(Style)]);
 end;
 
 procedure TMainForm.RgxMethodClick(Sender: TObject);
@@ -235,6 +259,12 @@ begin
 end;
 
 procedure TMainForm.FormResize(Sender: TObject);
+begin
+  BuildPolygonFromText;
+  RenderText;
+end;
+
+procedure TMainForm.RgpTextAlignClick(Sender: TObject);
 begin
   BuildPolygonFromText;
   RenderText;

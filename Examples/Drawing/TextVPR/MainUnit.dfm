@@ -1,9 +1,9 @@
 object MainForm: TMainForm
-  Left = 484
-  Top = 101
-  Width = 605
-  Height = 596
-  Caption = 'GR32 VPR Text Rendering'
+  Left = 378
+  Top = 92
+  Width = 542
+  Height = 616
+  Caption = 'Graphics32 Text Rendering'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -20,8 +20,8 @@ object MainForm: TMainForm
   object PnlImage: TPanel
     Left = 169
     Top = 0
-    Width = 428
-    Height = 569
+    Width = 365
+    Height = 570
     Align = alClient
     BevelOuter = bvLowered
     BevelWidth = 2
@@ -29,8 +29,8 @@ object MainForm: TMainForm
     object Img: TImage32
       Left = 2
       Top = 2
-      Width = 424
-      Height = 565
+      Width = 361
+      Height = 566
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baTopLeft
@@ -47,13 +47,13 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 169
-    Height = 569
+    Height = 570
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
     object LblGammaNote: TLabel
       Left = 16
-      Top = 392
+      Top = 480
       Width = 144
       Height = 52
       Caption = 
@@ -80,7 +80,7 @@ object MainForm: TMainForm
       Left = 10
       Top = 39
       Width = 153
-      Height = 178
+      Height = 271
       Caption = 'Settings'
       TabOrder = 1
       object LblGamma: TLabel
@@ -91,7 +91,7 @@ object MainForm: TMainForm
         Caption = 'Gamma:'
       end
       object LblGammaValue: TLabel
-        Left = 118
+        Left = 112
         Top = 41
         Width = 30
         Height = 13
@@ -106,8 +106,9 @@ object MainForm: TMainForm
         Max = 240
         Frequency = 30
         Position = 100
-        TabOrder = 0
+        TabOrder = 1
         ThumbLength = 18
+        TickStyle = tsNone
         OnChange = TbrGammaChange
       end
       object CbxHinted: TCheckBox
@@ -116,30 +117,38 @@ object MainForm: TMainForm
         Width = 89
         Height = 17
         Caption = 'Enable hinting'
-        TabOrder = 1
+        TabOrder = 0
         OnClick = CbxHintedClick
       end
-    end
-    object PaintBox32: TPaintBox32
-      Left = 9
-      Top = 223
-      Width = 154
-      Height = 154
-      TabOrder = 2
-    end
-    object RgxMethod: TRadioGroup
-      Left = 19
-      Top = 131
-      Width = 133
-      Height = 78
-      Caption = 'Rendering Method'
-      ItemIndex = 0
-      Items.Strings = (
-        'Default'
-        'Cleartype'
-        'Cleartype (smooth)')
-      TabOrder = 3
-      OnClick = RgxMethodClick
+      object RgpTextAlign: TRadioGroup
+        Left = 8
+        Top = 167
+        Width = 133
+        Height = 93
+        Caption = 'Text Alignment'
+        ItemIndex = 0
+        Items.Strings = (
+          'Left'
+          'Center'
+          'Right'
+          'Justified')
+        TabOrder = 3
+        OnClick = RgpTextAlignClick
+      end
+      object RgxMethod: TRadioGroup
+        Left = 7
+        Top = 87
+        Width = 133
+        Height = 77
+        Caption = 'Rendering Method'
+        ItemIndex = 0
+        Items.Strings = (
+          'Default'
+          'Cleartype'
+          'Cleartype (smooth)')
+        TabOrder = 2
+        OnClick = RgxMethodClick
+      end
     end
     object BtnExit: TButton
       Left = 6
@@ -148,9 +157,35 @@ object MainForm: TMainForm
       Height = 25
       Cancel = True
       Caption = 'E&xit'
-      TabOrder = 4
+      TabOrder = 2
       OnClick = BtnExitClick
     end
+    object PnlZoom: TPanel
+      Left = 9
+      Top = 320
+      Width = 153
+      Height = 153
+      BevelInner = bvLowered
+      BorderWidth = 1
+      Caption = 'PnlZoom'
+      TabOrder = 3
+      object PaintBox32: TPaintBox32
+        Left = 3
+        Top = 3
+        Width = 147
+        Height = 147
+        Align = alClient
+        TabOrder = 0
+      end
+    end
+  end
+  object StatusBar: TStatusBar
+    Left = 0
+    Top = 570
+    Width = 534
+    Height = 19
+    Panels = <>
+    SimplePanel = True
   end
   object FontDialog: TFontDialog
     Font.Charset = DEFAULT_CHARSET
