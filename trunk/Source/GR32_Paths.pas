@@ -111,10 +111,8 @@ type
     function GetPoints: TArrayOfFloatPoint;
   protected
     procedure AddPoint(const Point: TFloatPoint); override;
+    procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create; override;
-    destructor Destroy; override;
-
     procedure DrawPath; virtual;
     procedure MoveTo(const P: TFloatPoint); override;
     procedure ClosePath; override;
@@ -498,18 +496,6 @@ end;
 
 { TFlattenedPath }
 
-constructor TFlattenedPath.Create;
-begin
-  inherited;
-//  FPolygonRenderer := GetPolygonRendererClass.Create;
-end;
-
-destructor TFlattenedPath.Destroy;
-begin
-//  FPolygonRenderer.Free;
-  inherited;
-end;
-
 procedure TFlattenedPath.BeginPath;
 begin
   FPath := nil;
@@ -575,6 +561,26 @@ begin
     SetLength(FPoints, L + BUFFSIZEINCREMENT);
   FPoints[FPointIndex] := Point;
   Inc(FPointIndex);
+end;
+
+procedure TFlattenedPath.AssignTo(Dest: TPersistent);
+var
+  I, J: Integer;
+begin
+  if Dest is TFlattenedPath then
+    with TFlattenedPath(Dest) do
+    begin
+      BeginPath;
+      SetLength(FPath, length(Self.FPath));
+      for I := 0 to High(Self.FPath) do
+      begin
+        SetLength(FPath[I], Length(Self.FPath[I]));
+        for J := 0 to High(Self.FPath[I]) do
+          FPath[I][J] := Self.FPath[I][J];
+      end;
+      EndPath;
+    end else
+      inherited;
 end;
 
 function TFlattenedPath.GetPoints: TArrayOfFloatPoint;

@@ -1,11 +1,11 @@
 object MainForm: TMainForm
-  Left = 484
-  Height = 596
-  Top = 101
-  Width = 605
-  Caption = 'GR32 VPR Text Rendering'
-  ClientHeight = 596
-  ClientWidth = 605
+  Left = 378
+  Height = 616
+  Top = 92
+  Width = 542
+  Caption = 'Graphics32 Text Rendering'
+  ClientHeight = 616
+  ClientWidth = 542
   Color = clBtnFace
   Font.Color = clWindowText
   Font.Height = -11
@@ -19,18 +19,18 @@ object MainForm: TMainForm
     Left = 169
     Height = 596
     Top = 0
-    Width = 436
+    Width = 373
     Align = alClient
     BevelOuter = bvLowered
     BevelWidth = 2
     ClientHeight = 596
-    ClientWidth = 436
+    ClientWidth = 373
     TabOrder = 0
     object Img: TImage32
       Left = 2
       Height = 592
       Top = 2
-      Width = 432
+      Width = 369
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baTopLeft
@@ -54,10 +54,10 @@ object MainForm: TMainForm
     ClientWidth = 169
     TabOrder = 1
     object LblGammaNote: TLabel
-      Left = 9
-      Height = 88
-      Top = 400
-      Width = 152
+      Left = 10
+      Height = 59
+      Top = 480
+      Width = 150
       AutoSize = False
       Caption = 'nb: For the Gamma trackbar to work, the USEGR32GAMMA define in GR32.inc must be enabled.'
       Font.Color = clMaroon
@@ -78,94 +78,142 @@ object MainForm: TMainForm
     end
     object GbxSettings: TGroupBox
       Left = 10
-      Height = 190
+      Height = 277
       Top = 39
       Width = 153
       Caption = 'Settings'
-      ClientHeight = 172
+      ClientHeight = 259
       ClientWidth = 149
       TabOrder = 1
       object LblGamma: TLabel
         Left = 9
         Height = 14
-        Top = 41
+        Top = 28
         Width = 40
         Caption = 'Gamma:'
         ParentColor = False
       end
       object LblGammaValue: TLabel
-        Left = 108
+        Left = 109
         Height = 14
-        Top = 41
+        Top = 28
         Width = 31
         Alignment = taCenter
         Caption = '(1.00)'
         ParentColor = False
       end
       object TbrGamma: TTrackBar
-        Left = 2
+        Left = 0
         Height = 28
-        Top = 58
+        Top = 43
         Width = 148
         Frequency = 30
         Max = 240
         OnChange = TbrGammaChange
         Position = 100
-        TabOrder = 0
+        TickStyle = tsNone
+        TabOrder = 1
       end
       object CbxHinted: TCheckBox
         Left = 9
         Height = 17
-        Top = 19
+        Top = 6
         Width = 87
         Caption = 'Enable hinting'
         OnClick = CbxHintedClick
-        TabOrder = 1
+        TabOrder = 0
+      end
+      object RgpTextAlign: TRadioGroup
+        Left = 8
+        Height = 93
+        Top = 156
+        Width = 132
+        AutoFill = True
+        Caption = 'Text Alignment'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.TopBottomSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 75
+        ClientWidth = 128
+        ItemIndex = 0
+        Items.Strings = (
+          'Left'
+          'Center'
+          'Right'
+          'Justified'
+        )
+        OnClick = RgpTextAlignClick
+        TabOrder = 3
+      end
+      object RgxMethod: TRadioGroup
+        Left = 8
+        Height = 77
+        Top = 74
+        Width = 132
+        AutoFill = True
+        Caption = 'Rendering Method'
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.TopBottomSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 59
+        ClientWidth = 128
+        ItemIndex = 0
+        Items.Strings = (
+          'Default'
+          'Cleartype'
+          'Cleartype (smooth)'
+        )
+        OnClick = RgxMethodClick
+        TabOrder = 2
       end
     end
-    object PaintBox32: TPaintBox32
-      Left = 9
-      Height = 154
-      Top = 237
-      Width = 154
-      TabOrder = 2
-    end
-    object RgxMethod: TRadioGroup
-      Left = 19
-      Height = 78
-      Top = 141
-      Width = 133
-      AutoFill = True
-      Caption = 'Rendering Method'
-      ChildSizing.LeftRightSpacing = 6
-      ChildSizing.TopBottomSpacing = 6
-      ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
-      ChildSizing.EnlargeVertical = crsHomogenousChildResize
-      ChildSizing.ShrinkHorizontal = crsScaleChilds
-      ChildSizing.ShrinkVertical = crsScaleChilds
-      ChildSizing.Layout = cclLeftToRightThenTopToBottom
-      ChildSizing.ControlsPerLine = 1
-      ClientHeight = 60
-      ClientWidth = 129
-      ItemIndex = 0
-      Items.Strings = (
-        'Default'
-        'Cleartype'
-        'Cleartype (smooth)'
-      )
-      OnClick = RgxMethodClick
-      TabOrder = 3
-    end
     object BtnExit: TButton
-      Left = 6
+      Left = 8
       Height = 25
-      Top = 536
+      Top = 546
       Width = 155
       Cancel = True
       Caption = 'E&xit'
       OnClick = BtnExitClick
-      TabOrder = 4
+      TabOrder = 2
     end
+    object PnlZoom: TPanel
+      Left = 10
+      Height = 153
+      Top = 323
+      Width = 153
+      BevelInner = bvLowered
+      BorderWidth = 1
+      Caption = 'PnlZoom'
+      ClientHeight = 153
+      ClientWidth = 153
+      TabOrder = 3
+      object PaintBox32: TPaintBox32
+        Left = 3
+        Height = 147
+        Top = 3
+        Width = 147
+        Align = alClient
+        TabOrder = 0
+      end
+    end
+  end
+  object StatusBar: TStatusBar
+    Left = 0
+    Height = 20
+    Top = 596
+    Width = 542
+    Panels = <>
   end
   object FontDialog: TFontDialog
     Font.Color = clWindowText
@@ -173,7 +221,7 @@ object MainForm: TMainForm
     Font.Name = 'MS Sans Serif'
     MinFontSize = 0
     MaxFontSize = 0
-    left = 16
-    top = 480
+    left = 32
+    top = 320
   end
 end

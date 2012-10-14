@@ -49,6 +49,13 @@ function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideStrin
 var
   UseHinting: Boolean = {$IFDEF NOHINTING}False{$ELSE}True{$ENDIF};
 
+const
+  DT_CENTER = 1;      //See also Window's DrawText() flags ...
+  DT_RIGHT = 2;       //http://msdn.microsoft.com/en-us/library/ms901121.aspx
+  DT_WORDBREAK = $10;
+  DT_JUSTIFY = 3;     //Graphics32 additions ...
+  DT_ALIGN_MASK = 3;
+
 implementation
 
 uses
@@ -175,15 +182,78 @@ const
 var
   GlyphMetrics: TGlyphMetrics;
   TextMetric: TTextMetric;
-  I, J, TextLen: Integer;
+  I, J, TextLen, SpcCount, LineStart: Integer;
   CharValue: Integer;
+  CharOffsets: TArrayOfInteger;
   X, Y, XMax: Single;
   S: WideString;
+  TmpPath: TFlattenedPath;
+
+  procedure AlignTextCenter(CurrentI: Integer);
+  var
+    M, N, PathStart, PathEnd: Integer;
+    Delta: TFloat;
+  begin
+    if not assigned(TmpPath) then Exit;
+    Delta := (ARect.Right - X)/ 2;
+    PathStart := CharOffsets[LineStart -1];
+    PathEnd := CharOffsets[CurrentI - 1];
+    for M := PathStart to PathEnd - 1 do
+      for N := 0 to High(TmpPath.Path[M]) do
+        TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + Delta;
+  end;
+
+  procedure AlignTextRight(CurrentI: Integer);
+  var
+    M, N, PathStart, PathEnd: Integer;
+    Delta: TFloat;
+  begin
+    if not assigned(TmpPath) then Exit;
+    Delta := (ARect.Right - X);
+    PathStart := CharOffsets[LineStart -1];
+    PathEnd := CharOffsets[CurrentI - 1];
+    for M := PathStart to PathEnd - 1 do
+      for N := 0 to High(TmpPath.Path[M]) do
+        TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + Delta;
+  end;
+
+  procedure AlignTextJustify(CurrentI: Integer);
+  var
+    L, M, N, PathStart, PathEnd: Integer;
+    SpcDelta, SpcDeltaInc: TFloat;
+  begin
+    if not assigned(TmpPath) or (SpcCount < 2) or
+      // Don't justify lines ending with a carriage return ...
+      (Ord(Text[CurrentI]) = CHAR_CR) then Exit;
+    SpcDelta := (ARect.Right - X)/ (SpcCount - 1);
+    SpcDeltaInc := SpcDelta;
+    for L := LineStart to CurrentI - 1 do
+      if Ord(Text[L]) = CHAR_SP then
+      begin
+        PathStart := CharOffsets[L -1];
+        M := L + 1;
+        while (M <= TextLen) and (Ord(Text[M]) <> CHAR_SP) do Inc(M);
+        if (M <= TextLen) then
+          PathEnd := CharOffsets[M - 1] else
+          PathEnd := High(TmpPath.Path);
+        for M := PathStart to PathEnd - 1 do
+          for N := 0 to High(TmpPath.Path[M]) do
+            TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + SpcDeltaInc;
+        SpcDeltaInc := SpcDeltaInc + SpcDelta;
+      end;
+  end;
 
   procedure NewLine;
   begin
+    case (Flags and DT_ALIGN_MASK) of
+      1: AlignTextCenter(I);
+      2: AlignTextRight(I);
+      3: AlignTextJustify(I);
+    end;
     X := ARect.Left{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
     Y := Y + TextMetric.tmHeight;
+    LineStart := I + 1;
+    SpcCount := 0;
   end;
 
   function MeasureTextX(const S: WideString): Integer;
@@ -194,7 +264,8 @@ var
     for I := 1 to Length(S) do
     begin
       CharValue := Ord(S[I]);
-      GetGlyphOutlineW(DC, CharValue, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
+      GetGlyphOutlineW(DC, CharValue,
+        GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
       Inc(Result, GlyphMetrics.gmCellIncX);
     end;
   end;
@@ -206,23 +277,33 @@ var
   end;
 
 begin
-  if Assigned(Path) then Path.BeginPath;
-  GetTextMetrics(DC, TextMetric);
+  SpcCount := 0;
+  LineStart := 1;
+  if Assigned(Path) then
+    TmpPath := TFlattenedPath.Create
+  else
+    TmpPath := nil;
 
+  GetTextMetrics(DC, TextMetric);
   TextLen := Length(Text);
   X := ARect.Left {$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
   Y := ARect.Top + TextMetric.tmAscent;
   XMax := X;
+  SetLength(CharOffsets, TextLen);
   for I := 1 to TextLen do
   begin
+    if Assigned(TmpPath) then
+      CharOffsets[I -1] := Length(TmpPath.Path);
+
     CharValue := Ord(Text[I]);
     if CharValue <= 32 then
     begin
       case CharValue of
-        CHAR_CR: X := ARect.Left;
-        CHAR_NL: Y := Y + TextMetric.tmHeight;
+        CHAR_CR: NewLine;
+        CHAR_NL: ;
         CHAR_SP:
           begin
+            Inc(SpcCount);
             GetGlyphOutlineW(DC, CharValue, GGODefaultFlags[UseHinting],
               GlyphMetrics{%H-}, 0, nil, VertFlip_mat2);
             X := X + GlyphMetrics.gmCellIncX;
@@ -230,8 +311,9 @@ begin
             if Flags and DT_WORDBREAK <> 0 then
             begin
               J := I + 1;
-              while (J <= TextLen) and ([Ord(Text[J])] * [CHAR_CR, CHAR_NL, CHAR_SP] = []) do
-                Inc(J);
+              while (J <= TextLen) and
+                ([Ord(Text[J])] * [CHAR_CR, CHAR_NL, CHAR_SP] = []) do
+                  Inc(J);
               S := Copy(Text, I + 1, J - I - 1);
               TestNewLine(X + MeasureTextX(S));
             end;
@@ -240,16 +322,21 @@ begin
     end
     else
     begin
-      if not GlyphOutlineToPath(DC, Path,
+      //a word may still need to be split if it fills more that a whole line ...
+      if not GlyphOutlineToPath(DC, TmpPath,
         X, ARect.Right, Y, CharValue, GlyphMetrics) then
       begin
         NewLine;
-        if not GlyphOutlineToPath(DC, Path,
+        if not GlyphOutlineToPath(DC, TmpPath,
           X, ARect.Right, Y, CharValue, GlyphMetrics) then Exit;
       end;
       X := X + GlyphMetrics.gmCellIncX;
       if X > XMax then XMax := X;
     end;
+  end;
+  case (Flags and DT_ALIGN_MASK) of
+    1: AlignTextCenter(TextLen);
+    2: AlignTextRight(TextLen);
   end;
   Y := Y + TextMetric.tmHeight - TextMetric.tmAscent;
 
@@ -257,10 +344,13 @@ begin
   ARect := FloatRect(ARect.Left, ARect.Top, XMax, Y);
 {$ELSE}
   ARect := FloatRect(ARect.Left, ARect.Top, XMax / HORZSTRETCH, Y);
-  if Assigned(Path) then
-    Path.Scale(1 / HORZSTRETCH, 1);
 {$ENDIF}
-  if Assigned(Path) then Path.EndPath;
+
+  if Assigned(TmpPath) then
+  begin
+    Path.Assign(TmpPath);
+    TmpPath.Free;
+  end;
 end;
 
 function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
@@ -318,7 +408,7 @@ begin
   DC := GetDC(0);
   try
     SavedFont := SelectObject(DC, Font);
-    R := MeasureTextDC(DC, ARect, Text, Flags);
+    R := ARect;
     InternalTextToPath(DC, Path, R, Text, Flags);
     SelectObject(DC, SavedFont);
   finally
