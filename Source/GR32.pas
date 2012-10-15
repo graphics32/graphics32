@@ -665,7 +665,7 @@ type
     procedure BackendChangingHandler(Sender: TObject); virtual;
 
 {$IFDEF BITS_GETTER}
-    function GetBits: PColor32Array;     {$IFDEF USEINLINING} inline; {$ENDIF}
+    function GetBits: PColor32Array; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
 
     function GetPixelPtr(X, Y: Integer): PColor32;
