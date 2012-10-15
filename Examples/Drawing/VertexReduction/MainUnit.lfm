@@ -1,0 +1,28 @@
+object FrmLineSimplification: TFrmLineSimplification
+  Left = 520
+  Height = 473
+  Top = 380
+  Width = 692
+  Caption = 'Line Simpification - Use the mouse to draw an arbitrary polyline; Hit [ENTER] for further reduction'
+  ClientHeight = 473
+  ClientWidth = 692
+  Color = clBtnFace
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
+  LCLVersion = '1.0.1.4'
+  object PaintBox32: TPaintBox32
+    Left = 0
+    Height = 473
+    Top = 0
+    Width = 692
+    Align = alClient
+    TabOrder = 0
+    OnMouseDown = PaintBox32MouseDown
+    OnMouseUp = PaintBox32MouseUp
+    OnPaintBuffer = PaintBox32PaintBuffer
+  end
+end
