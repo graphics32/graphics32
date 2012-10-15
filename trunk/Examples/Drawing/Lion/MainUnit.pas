@@ -33,13 +33,13 @@ unit MainUnit;
 
 interface
 
+{$I GR32.inc}
+
 uses
   {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes,
   Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, GR32, GR32_Image,
   GR32_Polygons, GR32_Paths, GR32_Brushes, GR32_Transforms, GR32_RangeBars,
   LionData;
-
-{$I GR32.inc}
 
 type
   TFrmLion = class(TForm)

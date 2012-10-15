@@ -591,7 +591,7 @@ end;
 function PerpendicularDistance(const P, P1, P2: TPoint): TFloat;
 begin
   Result := Abs((P.x - P2.x) * (P1.y - P2.y) - (P.y - P2.y) * (P1.x - P2.x)) /
-    Hypot(P1.x - P2.x, P1.y - P2.y);
+    Math.Hypot(P1.x - P2.x, P1.y - P2.y);
 end;
 
 end.
