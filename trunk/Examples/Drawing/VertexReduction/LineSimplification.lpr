@@ -1,6 +1,6 @@
 program LineSimplification;
 
-{$R 'Media.res' 'Media.rc'}
+{$R Media.rc}
 
 uses
   Interfaces,
