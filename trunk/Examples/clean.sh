@@ -18,6 +18,7 @@ rm -rf Drawing/Polygons/lib
 rm -rf Drawing/RenderText/lib
 rm -rf Drawing/ScatterPlot/lib
 rm -rf Drawing/TextVPR/lib
+rm -rf Drawing/VertexReduction/lib
 rm -rf General/ByteMaps/lib
 rm -rf General/Image32/lib
 rm -rf General/Mandelbrot/lib

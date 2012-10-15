@@ -37,6 +37,8 @@ lazbuild.exe Drawing\ScatterPlot\ScatterPlot.lpi
 IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\TextVPR\TextVPR.lpi
 IF ERRORLEVEL 1 PAUSE
+lazbuild.exe Drawing\VertexReduction\LineSimplification.lpi
+IF ERRORLEVEL 1 PAUSE
 lazbuild.exe General\ByteMaps\ByteMaps.lpi
 IF ERRORLEVEL 1 PAUSE
 lazbuild.exe General\Image32\Image32.lpi

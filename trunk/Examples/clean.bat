@@ -18,6 +18,7 @@ rmdir /S /Q Drawing\Polygons\lib
 rmdir /S /Q Drawing\RenderText\lib
 rmdir /S /Q Drawing\ScatterPlot\lib
 rmdir /S /Q Drawing\TextVPR\lib
+rmdir /S /Q Drawing\VertexReduction\lib
 rmdir /S /Q General\ByteMaps\lib
 rmdir /S /Q General\Image32\lib
 rmdir /S /Q General\Mandelbrot\lib
