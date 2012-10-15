@@ -196,7 +196,7 @@ var
   begin
     if not assigned(TmpPath) then Exit;
     Delta := (ARect.Right - X)/ 2;
-    PathStart := CharOffsets[LineStart -1];
+    PathStart := CharOffsets[LineStart - 1];
     PathEnd := CharOffsets[CurrentI - 1];
     for M := PathStart to PathEnd - 1 do
       for N := 0 to High(TmpPath.Path[M]) do
@@ -210,7 +210,7 @@ var
   begin
     if not assigned(TmpPath) then Exit;
     Delta := (ARect.Right - X);
-    PathStart := CharOffsets[LineStart -1];
+    PathStart := CharOffsets[LineStart - 1];
     PathEnd := CharOffsets[CurrentI - 1];
     for M := PathStart to PathEnd - 1 do
       for N := 0 to High(TmpPath.Path[M]) do
@@ -227,20 +227,20 @@ var
       (Ord(Text[CurrentI]) = CHAR_CR) then Exit;
     SpcDelta := (ARect.Right - X)/ (SpcCount - 1);
     SpcDeltaInc := SpcDelta;
-    for L := LineStart to CurrentI - 1 do
-      if Ord(Text[L]) = CHAR_SP then
-      begin
-        PathStart := CharOffsets[L -1];
-        M := L + 1;
-        while (M <= TextLen) and (Ord(Text[M]) <> CHAR_SP) do Inc(M);
-        if (M <= TextLen) then
-          PathEnd := CharOffsets[M - 1] else
-          PathEnd := High(TmpPath.Path);
-        for M := PathStart to PathEnd - 1 do
-          for N := 0 to High(TmpPath.Path[M]) do
-            TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + SpcDeltaInc;
-        SpcDeltaInc := SpcDeltaInc + SpcDelta;
-      end;
+    L := LineStart;
+    while (L < CurrentI) and (Ord(Text[L]) <> CHAR_SP) do Inc(L);
+    PathStart := CharOffsets[L - 1];
+    repeat
+      M := L + 1;
+      while (M < CurrentI) and (Ord(Text[M]) <> CHAR_SP) do Inc(M);
+      PathEnd := CharOffsets[M - 1];
+      L := M;
+      for M := PathStart to PathEnd - 1 do
+        for N := 0 to High(TmpPath.Path[M]) do
+          TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + SpcDeltaInc;
+      SpcDeltaInc := SpcDeltaInc + SpcDelta;
+      PathStart := PathEnd;
+    until L >= CurrentI;
   end;
 
   procedure NewLine;
@@ -293,7 +293,7 @@ begin
   for I := 1 to TextLen do
   begin
     if Assigned(TmpPath) then
-      CharOffsets[I -1] := Length(TmpPath.Path);
+      CharOffsets[I - 1] := Length(TmpPath.Path);
 
     CharValue := Ord(Text[I]);
     if CharValue <= 32 then
