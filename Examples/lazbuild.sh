@@ -44,6 +44,8 @@ lazbuild Drawing/ScatterPlot/ScatterPlot.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/TextVPR/TextVPR.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
+lazbuild Drawing/VertexReduction/LineSimplification.lpi
+if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild General/ByteMaps/ByteMaps.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild General/Image32/Image32.lpi
