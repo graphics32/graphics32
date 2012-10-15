@@ -62,8 +62,8 @@ function Intersect(const A1, A2, B1, B2: TFixedPoint; out P: TFixedPoint): Boole
 function FindNearestPointIndex(Point: TFloatPoint; Points: TArrayOfFloatPoint): Integer; overload;
 function FindNearestPointIndex(Point: TFixedPoint; Points: TArrayOfFixedPoint): Integer; overload;
 
-function Simplify(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
-function Simplify(Points: TArrayOfFixedPoint; Epsilon: TFixed = 1): TArrayOfFixedPoint; overload;
+function VertexReduction(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
+function VertexReduction(Points: TArrayOfFixedPoint; Epsilon: TFixed = FixedOne): TArrayOfFixedPoint; overload;
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint; overload;
 function ClosePolygon(const Points: TArrayOfFixedPoint): TArrayOfFixedPoint; overload;
@@ -367,8 +367,8 @@ begin
     end;
 
     // if max distance is greater than epsilon, recursively simplify
-    if DeltaMax / Hypot(Points[FirstIndex].x - Points[LastIndex].x,
-      Points[FirstIndex].y - Points[LastIndex].y) >= Epsilon then
+    if DeltaMax >= Epsilon * Hypot(Points[FirstIndex].x - Points[LastIndex].x,
+      Points[FirstIndex].y - Points[LastIndex].y) then
     begin
       // Recursive call
       Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
@@ -413,8 +413,8 @@ begin
     end;
 
     // if max distance is greater than epsilon, recursively simplify
-    if DeltaMax / Hypot(Points[FirstIndex].x - Points[LastIndex].x,
-      Points[FirstIndex].y - Points[LastIndex].y) >= Epsilon then
+    if DeltaMax >= Epsilon * Math.Hypot(Points[FirstIndex].x -
+      Points[LastIndex].x, Points[FirstIndex].y - Points[LastIndex].y) then
     begin
       // Recursive call
       Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
@@ -434,13 +434,47 @@ begin
   Result[1] := Points[LastIndex];
 end;
 
-function Simplify(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint;
+function VertexReduction(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint;
+var
+  Index: Integer;
+  SqrEpsilon: TFloat;
 begin
-  Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
+  SqrEpsilon := Sqr(Epsilon);
+  SetLength(Result, 1);
+  Result[0] := Points[0];
+  Index := 1;
+  while Index < Length(Points) do
+  begin
+    if SqrDistance(Result[Length(Result) - 1], Points[Index]) > SqrEpsilon then
+    begin
+      SetLength(Result, Length(Result) + 1);
+      Result[Length(Result) - 1] := Points[Index];
+    end;
+    Inc(Index);
+  end;
+
+  Result := RamerDouglasPeucker(Result, 0, Length(Result) - 1, Epsilon);
 end;
 
-function Simplify(Points: TArrayOfFixedPoint; Epsilon: TFixed = 1): TArrayOfFixedPoint;
+function VertexReduction(Points: TArrayOfFixedPoint; Epsilon: TFixed): TArrayOfFixedPoint;
+var
+  Index: Integer;
+  SqrEpsilon: TFixed;
 begin
+  SqrEpsilon := FixedSqr(Epsilon);
+  SetLength(Result, 1);
+  Result[0] := Points[0];
+  Index := 1;
+  while Index < Length(Points) do
+  begin
+    if SqrDistance(Result[Length(Result) - 1], Points[Index]) > SqrEpsilon then
+    begin
+      SetLength(Result, Length(Result) + 1);
+      Result[Length(Result) - 1] := Points[Index];
+    end;
+    Inc(Index);
+  end;
+
   Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
 end;
 
