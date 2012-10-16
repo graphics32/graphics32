@@ -1,8 +1,8 @@
 object MainForm: TMainForm
-  Left = 378
-  Top = 92
-  Width = 542
-  Height = 616
+  Left = 220
+  Top = 169
+  Width = 783
+  Height = 511
   Caption = 'Graphics32 Text Rendering'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -18,10 +18,10 @@ object MainForm: TMainForm
   PixelsPerInch = 96
   TextHeight = 13
   object PnlImage: TPanel
-    Left = 169
+    Left = 341
     Top = 0
-    Width = 365
-    Height = 570
+    Width = 434
+    Height = 465
     Align = alClient
     BevelOuter = bvLowered
     BevelWidth = 2
@@ -29,8 +29,8 @@ object MainForm: TMainForm
     object Img: TImage32
       Left = 2
       Top = 2
-      Width = 361
-      Height = 566
+      Width = 430
+      Height = 461
       Align = alClient
       Bitmap.ResamplerClassName = 'TNearestResampler'
       BitmapAlign = baTopLeft
@@ -46,62 +46,37 @@ object MainForm: TMainForm
   object PnlControl: TPanel
     Left = 0
     Top = 0
-    Width = 169
-    Height = 570
+    Width = 341
+    Height = 465
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
-    object LblGammaNote: TLabel
-      Left = 16
-      Top = 480
-      Width = 144
-      Height = 52
-      Caption = 
-        'nb: For the Gamma trackbar to work, the USEGR32GAMMA define in G' +
-        'R32.inc must be enabled.'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clMaroon
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      ParentFont = False
-      WordWrap = True
-    end
-    object BtnSelectFont: TButton
-      Left = 8
+    object GbxRendering: TGroupBox
+      Left = 172
       Top = 8
-      Width = 155
-      Height = 25
-      Caption = 'Select Font...'
-      TabOrder = 0
-      OnClick = BtnSelectFontClick
-    end
-    object GbxSettings: TGroupBox
-      Left = 10
-      Top = 39
       Width = 153
-      Height = 271
-      Caption = 'Settings'
-      TabOrder = 1
+      Height = 365
+      Caption = ' Rendering '
+      TabOrder = 2
       object LblGamma: TLabel
-        Left = 9
-        Top = 41
+        Left = 13
+        Top = 59
         Width = 39
         Height = 13
         Caption = 'Gamma:'
       end
       object LblGammaValue: TLabel
-        Left = 112
-        Top = 41
+        Left = 108
+        Top = 59
         Width = 30
         Height = 13
         Alignment = taCenter
         Caption = '(1.00)'
       end
       object TbrGamma: TTrackBar
-        Left = 2
-        Top = 58
-        Width = 148
+        Left = 5
+        Top = 76
+        Width = 141
         Height = 28
         Max = 240
         Frequency = 30
@@ -112,35 +87,20 @@ object MainForm: TMainForm
         OnChange = TbrGammaChange
       end
       object CbxHinted: TCheckBox
-        Left = 9
-        Top = 19
+        Left = 14
+        Top = 28
         Width = 89
         Height = 17
         Caption = 'Enable hinting'
         TabOrder = 0
         OnClick = CbxHintedClick
       end
-      object RgpTextAlign: TRadioGroup
-        Left = 8
-        Top = 167
-        Width = 133
-        Height = 93
-        Caption = 'Text Alignment'
-        ItemIndex = 0
-        Items.Strings = (
-          'Left'
-          'Center'
-          'Right'
-          'Justified')
-        TabOrder = 3
-        OnClick = RgpTextAlignClick
-      end
       object RgxMethod: TRadioGroup
-        Left = 7
-        Top = 87
-        Width = 133
-        Height = 77
-        Caption = 'Rendering Method'
+        Left = 12
+        Top = 107
+        Width = 128
+        Height = 98
+        Caption = ' Rendering Method '
         ItemIndex = 0
         Items.Strings = (
           'Default'
@@ -149,43 +109,118 @@ object MainForm: TMainForm
         TabOrder = 2
         OnClick = RgxMethodClick
       end
+      object PnlZoom: TPanel
+        Left = 12
+        Top = 219
+        Width = 128
+        Height = 128
+        BevelInner = bvLowered
+        BorderWidth = 1
+        Caption = ' Rendering '
+        TabOrder = 3
+        object PaintBox32: TPaintBox32
+          Left = 3
+          Top = 3
+          Width = 122
+          Height = 122
+          Align = alClient
+          TabOrder = 0
+        end
+      end
     end
     object BtnExit: TButton
-      Left = 6
-      Top = 536
+      Left = 8
+      Top = 412
       Width = 155
       Height = 25
       Cancel = True
       Caption = 'E&xit'
-      TabOrder = 2
+      TabOrder = 3
       OnClick = BtnExitClick
     end
-    object PnlZoom: TPanel
-      Left = 9
-      Top = 320
+    object GBxFont: TGroupBox
+      Left = 8
+      Top = 8
       Width = 153
-      Height = 153
-      BevelInner = bvLowered
-      BorderWidth = 1
-      Caption = 'PnlZoom'
-      TabOrder = 3
-      object PaintBox32: TPaintBox32
-        Left = 3
-        Top = 3
-        Width = 147
-        Height = 147
-        Align = alClient
+      Height = 72
+      Caption = ' Font '
+      TabOrder = 0
+      object LblFontInfo: TLabel
+        Left = 2
+        Top = 16
+        Width = 148
+        Height = 13
+        Alignment = taCenter
+        AutoSize = False
+        Caption = 'FontInfo'
+      end
+      object BtnSelectFont: TButton
+        Left = 11
+        Top = 35
+        Width = 133
+        Height = 25
+        Caption = 'Select Font...'
         TabOrder = 0
+        OnClick = BtnSelectFontClick
+      end
+    end
+    object GbxLayout: TGroupBox
+      Left = 8
+      Top = 88
+      Width = 155
+      Height = 284
+      Caption = ' Layout '
+      TabOrder = 1
+      object RgpHorzAlign: TRadioGroup
+        Left = 11
+        Top = 21
+        Width = 131
+        Height = 117
+        Caption = ' Horizontal '
+        ItemIndex = 0
+        Items.Strings = (
+          'Left'
+          'Center'
+          'Right'
+          'Justified')
+        TabOrder = 0
+        OnClick = RgpHorzAlignClick
+      end
+      object RgpVerticalAlign: TRadioGroup
+        Left = 11
+        Top = 144
+        Width = 131
+        Height = 92
+        Caption = ' Vertical '
+        ItemIndex = 0
+        Items.Strings = (
+          'Top'
+          'Center'
+          'Bottom')
+        TabOrder = 1
+        OnClick = RgpHorzAlignClick
+      end
+      object CbxSingleLine: TCheckBox
+        Left = 11
+        Top = 248
+        Width = 97
+        Height = 17
+        Caption = 'Single line only'
+        TabOrder = 2
+        OnClick = RgpHorzAlignClick
       end
     end
   end
   object StatusBar: TStatusBar
     Left = 0
-    Top = 570
-    Width = 534
+    Top = 465
+    Width = 775
     Height = 19
     Panels = <>
     SimplePanel = True
+    SimpleText = 
+      '  Note: For the Gamma trackbar to work, the USEGR32GAMMA define ' +
+      'in GR32.inc must be enabled.'
   end
   object FontDialog: TFontDialog
     Font.Charset = DEFAULT_CHARSET
@@ -193,7 +228,8 @@ object MainForm: TMainForm
     Font.Height = -11
     Font.Name = 'MS Sans Serif'
     Font.Style = []
-    Left = 32
-    Top = 320
+    Options = [fdTrueTypeOnly, fdEffects]
+    Left = 384
+    Top = 48
   end
 end

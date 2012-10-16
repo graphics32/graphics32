@@ -44,23 +44,27 @@ uses
 
 type
   TMainForm = class(TForm)
-    BtnSelectFont: TButton;
     CbxHinted: TCheckBox;
     FontDialog: TFontDialog;
-    GbxSettings: TGroupBox;
+    GbxRendering: TGroupBox;
     Img: TImage32;
     LblGamma: TLabel;
     LblGammaValue: TLabel;
     PnlControl: TPanel;
     PnlImage: TPanel;
     TbrGamma: TTrackBar;
-    LblGammaNote: TLabel;
     BtnExit: TButton;
-    RgpTextAlign: TRadioGroup;
     RgxMethod: TRadioGroup;
     StatusBar: TStatusBar;
+    GBxFont: TGroupBox;
+    BtnSelectFont: TButton;
+    LblFontInfo: TLabel;
+    GbxLayout: TGroupBox;
+    RgpHorzAlign: TRadioGroup;
+    RgpVerticalAlign: TRadioGroup;
     PnlZoom: TPanel;
     PaintBox32: TPaintBox32;
+    CbxSingleLine: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
     procedure CbxHintedClick(Sender: TObject);
@@ -72,13 +76,13 @@ type
     procedure FormDestroy(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
-    procedure RgpTextAlignClick(Sender: TObject);
+    procedure RgpHorzAlignClick(Sender: TObject);
   private
     FPath: TFlattenedPath;
   public
     procedure BuildPolygonFromText;
     procedure RenderText;
-    procedure DisplayFontInStatusbar;
+    procedure DisplayFontInfo;
   end;
 
 var
@@ -96,7 +100,7 @@ uses
   GR32_Backends, GR32_Polygons,
   {$IFDEF FPC}
   {$IFDEF LCLWin32}
-    GR32_Text_LCL_Win;
+    GR32_Text_LCL_Win, GR32_Text_VCL;
   {$ENDIF}
   {$IF defined(LCLGtk) or defined(LCLGtk2)}
     GR32_Text_LCL_GTK;
@@ -125,7 +129,7 @@ const
     'et luctus eleifend, sapien lectus placerat ante, a posuere ' +
     'nibh risus nec quam. Pellentesque pretium. Etiam leo urna, ' +
     'gravida eu, pellentesque eu, imperdiet in, enim. Nam nunc. ' +
-    'Quisque commodo.' + #13#10 + #13#10 +
+    'Quisque commodo.' + #10#10 +
 
     'In scelerisque. Mauris vitae magna. Curabitur tempor. Pellentesque ' +
     'condimentum. Maecenas molestie turpis sed arcu pulvinar ' +
@@ -135,7 +139,7 @@ const
     'Curabitur nisl. Nulla facilisi. Nam dolor nulla, mollis ' +
     'non, tristique eu, vestibulum eget, mi. Donec venenatis, ' +
     'lacus adipiscing interdum laoreet, risus odio ullamcorper turpis,' +
-    'at feugiat pede neque ac dui.' + #13#10 + #13#10 +
+    'at feugiat pede neque ac dui.' + #10#10 +
 
     'Nulla quis dolor eget justo ullamcorper consectetur. Mauris in ante. ' +
     'Integer placerat dui at orci. Pellentesque at augue. Fusce ' +
@@ -152,10 +156,9 @@ begin
   SetGamma(TbrGamma.Position * 0.01);
   Img.SetupBitmap(True, clWhite32);
   Img.Bitmap.Font.Name := 'Georgia';
-  Img.Bitmap.Font.Size := 8;
-  Img.Bitmap.Font.Style := [fsItalic];
+  Img.Bitmap.Font.Size := 9;
   FontDialog.Font.Assign(Img.Bitmap.Font);
-  DisplayFontInStatusbar;
+  DisplayFontInfo;
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
 end;
@@ -172,7 +175,7 @@ begin
     Img.Bitmap.Font.Assign(FontDialog.Font);
     BuildPolygonFromText;
     RenderText;
-    DisplayFontInStatusbar;
+    DisplayFontInfo;
   end;
 end;
 
@@ -190,7 +193,7 @@ const
   Delta = 16;
 begin
   PaintBox32.Buffer.Draw(PaintBox32.Buffer.BoundsRect,
-    Rect(X - Delta, Y - Delta, X + Delta, Y + Delta), Img.Bitmap);
+    Rect(X - Delta , Y - Delta, X + Delta, Y + Delta), Img.Bitmap);
   PaintBox32.Repaint;
 end;
 
@@ -198,13 +201,23 @@ procedure TMainForm.BuildPolygonFromText;
 var
   Intf: ITextToPathSupport;
   DestRect: TFloatRect;
+  HAlignFlag, VAlignFlag, SingleLineFlag: Integer;
 begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
   begin
     DestRect := FloatRect(Img.BoundsRect);
     InflateRect(DestRect, -10, -10);
+    HAlignFlag := RgpHorzAlign.ItemIndex;
+    case RgpVerticalAlign.ItemIndex of
+      0:  VAlignFlag := 0;
+      1:  VAlignFlag := DT_VCENTER;
+      else  VAlignFlag := DT_BOTTOM;
+    end;
+    if  CbxSingleLine.Checked then
+      SingleLineFlag := DT_SINGLELINE else
+      SingleLineFlag := 0;
     Intf.TextToPath(FPath, DestRect,
-      CLoremIpsum, DT_WORDBREAK or RgpTextAlign.ItemIndex);
+      CLoremIpsum, DT_WORDBREAK or HAlignFlag or VAlignFlag or SingleLineFlag);
   end else
     raise Exception.Create(RCStrInpropriateBackend);
 end;
@@ -217,6 +230,7 @@ begin
     1: PolyPolygonFS_LCD(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
     2: PolyPolygonFS_LCD2(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
   end;
+  //paint the close-up of the image around the mouse cursor ...
   with Img.ScreenToClient(Mouse.CursorPos) do
     ImgMouseMove(nil, [], X, Y, nil);
 end;
@@ -232,11 +246,11 @@ begin
   else Result := '[Bold & Italic]';
 end;
 
-procedure TMainForm.DisplayFontInStatusbar;
+procedure TMainForm.DisplayFontInfo;
 begin
   with FontDialog.Font do
-    StatusBar.SimpleText :=
-      format('  Font: %s, %d %s',[name, size, FontStylesToString(Style)]);
+    LblFontInfo.Caption :=
+      format('%s, %d %s',[name, size, FontStylesToString(Style)]);
 end;
 
 procedure TMainForm.RgxMethodClick(Sender: TObject);
@@ -264,7 +278,7 @@ begin
   RenderText;
 end;
 
-procedure TMainForm.RgpTextAlignClick(Sender: TObject);
+procedure TMainForm.RgpHorzAlignClick(Sender: TObject);
 begin
   BuildPolygonFromText;
   RenderText;
