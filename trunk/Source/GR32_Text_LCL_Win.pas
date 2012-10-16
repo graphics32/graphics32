@@ -41,6 +41,7 @@ uses
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath;
   const ARect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
+
 function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
   Flags: Cardinal): TFloatRect; overload;
 function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideString;
@@ -50,11 +51,15 @@ var
   UseHinting: Boolean = {$IFDEF NOHINTING}False{$ELSE}True{$ENDIF};
 
 const
-  DT_CENTER = 1;      //See also Window's DrawText() flags ...
-  DT_RIGHT = 2;       //http://msdn.microsoft.com/en-us/library/ms901121.aspx
-  DT_WORDBREAK = $10;
-  DT_JUSTIFY = 3;     //Graphics32 additions ...
-  DT_ALIGN_MASK = 3;
+  DT_LEFT       = 0;   //See also Window's DrawText() flags ...
+  DT_CENTER     = 1;   //http://msdn.microsoft.com/en-us/library/ms901121.aspx
+  DT_RIGHT      = 2;
+  DT_WORDBREAK  = $10;
+  DT_VCENTER    = 4;
+  DT_BOTTOM     = 8;
+  DT_SINGLELINE = $20;
+  DT_JUSTIFY         = 3;  //Graphics32 additions ...
+  DT_HORZ_ALIGN_MASK = 3;
 
 implementation
 
@@ -67,6 +72,8 @@ const
 
   TT_PRIM_CSPLINE = 3;
 
+  MaxSingle   =  3.4e+38;
+  
 {$IFDEF NOHORIZONTALHINTING}
 // stretching factor when calling GetGlyphOutline()
   HORZSTRETCH = 16;
@@ -185,7 +192,7 @@ var
   I, J, TextLen, SpcCount, LineStart: Integer;
   CharValue: Integer;
   CharOffsets: TArrayOfInteger;
-  X, Y, XMax: Single;
+  X, Y, XMax, YMax, MaxRight: Single;
   S: WideString;
   TmpPath: TFlattenedPath;
 
@@ -194,7 +201,6 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    if not assigned(TmpPath) then Exit;
     Delta := (ARect.Right - X)/ 2;
     PathStart := CharOffsets[LineStart - 1];
     PathEnd := CharOffsets[CurrentI - 1];
@@ -208,7 +214,6 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    if not assigned(TmpPath) then Exit;
     Delta := (ARect.Right - X);
     PathStart := CharOffsets[LineStart - 1];
     PathEnd := CharOffsets[CurrentI - 1];
@@ -222,9 +227,8 @@ var
     L, M, N, PathStart, PathEnd: Integer;
     SpcDelta, SpcDeltaInc: TFloat;
   begin
-    if not assigned(TmpPath) or (SpcCount < 2) or
-      // Don't justify lines ending with a carriage return ...
-      (Ord(Text[CurrentI]) = CHAR_CR) then Exit;
+    if (SpcCount < 2) or (Ord(Text[CurrentI]) = CHAR_CR) then
+      Exit;
     SpcDelta := (ARect.Right - X)/ (SpcCount - 1);
     SpcDeltaInc := SpcDelta;
     L := LineStart;
@@ -245,11 +249,13 @@ var
 
   procedure NewLine;
   begin
-    case (Flags and DT_ALIGN_MASK) of
-      1: AlignTextCenter(I);
-      2: AlignTextRight(I);
-      3: AlignTextJustify(I);
-    end;
+    if (Flags and DT_SINGLELINE <> 0) then Exit;
+    if assigned(TmpPath) then
+      case (Flags and DT_HORZ_ALIGN_MASK) of
+        DT_CENTER : AlignTextCenter(I);
+        DT_RIGHT  : AlignTextRight(I);
+        DT_JUSTIFY: AlignTextJustify(I);
+      end;
     X := ARect.Left{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
     Y := Y + TextMetric.tmHeight;
     LineStart := I + 1;
@@ -289,7 +295,18 @@ begin
   X := ARect.Left {$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
   Y := ARect.Top + TextMetric.tmAscent;
   XMax := X;
+  MaxRight := ARect.Right;
   SetLength(CharOffsets, TextLen);
+  if (Flags and DT_SINGLELINE <> 0) then
+  begin
+    //ignore justify when forcing singleline ...
+    if (Flags and DT_JUSTIFY = DT_JUSTIFY) then
+      Flags := Flags and not DT_JUSTIFY;
+    //ignore wordbreak when forcing singleline ...
+    if (Flags and DT_WORDBREAK = DT_WORDBREAK) then
+      Flags := Flags and not DT_WORDBREAK;
+    MaxRight := MaxSingle;
+  end;
   for I := 1 to TextLen do
   begin
     if Assigned(TmpPath) then
@@ -298,6 +315,8 @@ begin
     CharValue := Ord(Text[I]);
     if CharValue <= 32 then
     begin
+      if (Flags and DT_SINGLELINE = DT_SINGLELINE) then
+        CharValue := CHAR_SP;
       case CharValue of
         CHAR_CR: NewLine;
         CHAR_NL: ;
@@ -324,27 +343,44 @@ begin
     begin
       //a word may still need to be split if it fills more that a whole line ...
       if not GlyphOutlineToPath(DC, TmpPath,
-        X, ARect.Right, Y, CharValue, GlyphMetrics) then
+        X, MaxRight, Y, CharValue, GlyphMetrics) then
       begin
         NewLine;
         if not GlyphOutlineToPath(DC, TmpPath,
-          X, ARect.Right, Y, CharValue, GlyphMetrics) then Exit;
+            X, MaxRight, Y, CharValue, GlyphMetrics) then Exit;
       end;
       X := X + GlyphMetrics.gmCellIncX;
       if X > XMax then XMax := X;
     end;
   end;
-  case (Flags and DT_ALIGN_MASK) of
-    1: AlignTextCenter(TextLen);
-    2: AlignTextRight(TextLen);
-  end;
-  Y := Y + TextMetric.tmHeight - TextMetric.tmAscent;
+  if assigned(TmpPath) then
+    case (Flags and DT_HORZ_ALIGN_MASK) of
+      1: AlignTextCenter(TextLen);
+      2: AlignTextRight(TextLen);
+    end;
 
-{$IFNDEF NOHORIZONTALHINTING}
-  ARect := FloatRect(ARect.Left, ARect.Top, XMax, Y);
-{$ELSE}
-  ARect := FloatRect(ARect.Left, ARect.Top, XMax / HORZSTRETCH, Y);
+  YMax := Y + TextMetric.tmHeight - TextMetric.tmAscent;
+{$IFDEF NOHORIZONTALHINTING}
+  XMax := XMax / HORZSTRETCH;
 {$ENDIF}
+  X := ARect.Right - XMax;
+  Y := ARect.Bottom - YMax;
+  case (Flags and DT_HORZ_ALIGN_MASK) of
+    DT_LEFT   : ARect := FloatRect(ARect.Left, ARect.Top, XMax, YMax);
+    DT_CENTER : ARect := FloatRect(ARect.Left + X * 0.5, ARect.Top, XMax + X * 0.5, YMax);
+    DT_RIGHT  : ARect := FloatRect(ARect.Left + X, ARect.Top, ARect.Right, YMax);
+    DT_JUSTIFY: ARect := FloatRect(ARect.Left, ARect.Top, ARect.Right, YMax);
+  end;
+  if Flags and (DT_VCENTER or DT_BOTTOM) <> 0 then
+  begin
+    if Flags and DT_VCENTER <> 0 then
+      Y := Y * 0.5;
+    if assigned(TmpPath) then
+      for I := 0 to High(TmpPath.Path) do
+        for J := 0 to High(TmpPath.Path[I]) do
+          TmpPath.Path[I][J].Y := TmpPath.Path[I][J].Y + Y;
+    OffsetRect(ARect, 0, Y);
+  end;
 
   if Assigned(TmpPath) then
   begin
@@ -353,29 +389,29 @@ begin
   end;
 end;
 
+procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
+  const Text: WideString; Flags: Cardinal); overload;
+var
+  DC: HDC;
+  SavedFont: HFONT;
+  R: TFloatRect;
+begin
+  DC := GetDC(0);
+  try
+    SavedFont := SelectObject(DC, Font);
+    R := ARect;
+    InternalTextToPath(DC, Path, R, Text, Flags);
+    SelectObject(DC, SavedFont);
+  finally
+    ReleaseDC(0, DC);
+  end;
+end;
+
 function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
   Flags: Cardinal): TFloatRect;
 begin
   Result := ARect;
   InternalTextToPath(DC, nil, Result, Text, Flags);
-end;
-
-function MeasureTextDC(DC: HDC;
-  const ARect: TFloatRect; const Text: WideString;
-  WordWrap: Boolean; Flags: Cardinal): TFloatRect; overload;
-begin
-  Result := MeasureTextDC(DC, ARect, Text, Flags);
-
-  if Flags and DT_CENTER <> 0 then
-    OffsetRect(Result, (((ARect.Left + ARect.Right) - (Result.Left + Result.Right)) * 0.5), 0);
-  if Flags and DT_RIGHT <> 0 then
-    OffsetRect(Result, ARect.Right - Result.Right, 0);
-
-  if Flags and DT_VCENTER <> 0 then
-    OffsetRect(Result, 0, ((ARect.Top + ARect.Bottom) - (Result.Top + Result.Bottom)) * 0.5);
-  if Flags and DT_BOTTOM <> 0 then
-    OffsetRect(Result, 0, ARect.Bottom - Result.Bottom);
-
   Result.Left := Round(Result.Left);
   Result.Top := Round(Result.Top);
   Result.Right := Round(Result.Right);
@@ -392,24 +428,6 @@ begin
   try
     SavedFont := SelectObject(DC, Font);
     Result := MeasureTextDC(DC, ARect, Text, Flags);
-    SelectObject(DC, SavedFont);
-  finally
-    ReleaseDC(0, DC);
-  end;
-end;
-
-procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal); overload;
-var
-  DC: HDC;
-  SavedFont: HFONT;
-  R: TFloatRect;
-begin
-  DC := GetDC(0);
-  try
-    SavedFont := SelectObject(DC, Font);
-    R := ARect;
-    InternalTextToPath(DC, Path, R, Text, Flags);
     SelectObject(DC, SavedFont);
   finally
     ReleaseDC(0, DC);
