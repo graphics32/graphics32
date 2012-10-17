@@ -55,19 +55,19 @@ object MainForm: TMainForm
       Left = 172
       Top = 8
       Width = 153
-      Height = 365
+      Height = 376
       Caption = ' Rendering '
       TabOrder = 2
       object LblGamma: TLabel
         Left = 13
-        Top = 59
+        Top = 64
         Width = 39
         Height = 13
         Caption = 'Gamma:'
       end
       object LblGammaValue: TLabel
         Left = 108
-        Top = 59
+        Top = 64
         Width = 30
         Height = 13
         Alignment = taCenter
@@ -75,7 +75,7 @@ object MainForm: TMainForm
       end
       object TbrGamma: TTrackBar
         Left = 5
-        Top = 76
+        Top = 81
         Width = 141
         Height = 28
         Max = 240
@@ -88,7 +88,7 @@ object MainForm: TMainForm
       end
       object CbxHinted: TCheckBox
         Left = 14
-        Top = 28
+        Top = 31
         Width = 89
         Height = 17
         Caption = 'Enable hinting'
@@ -97,7 +97,7 @@ object MainForm: TMainForm
       end
       object RgxMethod: TRadioGroup
         Left = 12
-        Top = 107
+        Top = 119
         Width = 128
         Height = 98
         Caption = ' Rendering Method '
@@ -111,7 +111,7 @@ object MainForm: TMainForm
       end
       object PnlZoom: TPanel
         Left = 12
-        Top = 219
+        Top = 234
         Width = 128
         Height = 128
         BevelInner = bvLowered
@@ -129,9 +129,9 @@ object MainForm: TMainForm
       end
     end
     object BtnExit: TButton
-      Left = 8
-      Top = 412
-      Width = 155
+      Left = 172
+      Top = 410
+      Width = 153
       Height = 25
       Cancel = True
       Caption = 'E&xit'
@@ -168,7 +168,7 @@ object MainForm: TMainForm
       Left = 8
       Top = 88
       Width = 155
-      Height = 284
+      Height = 296
       Caption = ' Layout '
       TabOrder = 1
       object RgpHorzAlign: TRadioGroup
@@ -207,6 +207,17 @@ object MainForm: TMainForm
         Height = 17
         Caption = 'Single line only'
         TabOrder = 2
+        OnClick = RgpHorzAlignClick
+      end
+      object CbxWordbreak: TCheckBox
+        Left = 11
+        Top = 270
+        Width = 97
+        Height = 17
+        Caption = 'Word break'
+        Checked = True
+        State = cbChecked
+        TabOrder = 3
         OnClick = RgpHorzAlignClick
       end
     end
