@@ -55,19 +55,19 @@ object MainForm: TMainForm
       Left = 172
       Top = 8
       Width = 153
-      Height = 376
+      Height = 446
       Caption = ' Rendering '
       TabOrder = 2
       object LblGamma: TLabel
         Left = 13
-        Top = 64
+        Top = 141
         Width = 39
         Height = 13
         Caption = 'Gamma:'
       end
       object LblGammaValue: TLabel
         Left = 108
-        Top = 64
+        Top = 141
         Width = 30
         Height = 13
         Alignment = taCenter
@@ -75,29 +75,20 @@ object MainForm: TMainForm
       end
       object TbrGamma: TTrackBar
         Left = 5
-        Top = 81
+        Top = 158
         Width = 141
         Height = 28
         Max = 240
         Frequency = 30
         Position = 100
-        TabOrder = 1
+        TabOrder = 0
         ThumbLength = 18
         TickStyle = tsNone
         OnChange = TbrGammaChange
       end
-      object CbxHinted: TCheckBox
-        Left = 14
-        Top = 31
-        Width = 89
-        Height = 17
-        Caption = 'Enable hinting'
-        TabOrder = 0
-        OnClick = CbxHintedClick
-      end
       object RgxMethod: TRadioGroup
         Left = 12
-        Top = 119
+        Top = 196
         Width = 128
         Height = 98
         Caption = ' Rendering Method '
@@ -106,18 +97,18 @@ object MainForm: TMainForm
           'Default'
           'Cleartype'
           'Cleartype (smooth)')
-        TabOrder = 2
+        TabOrder = 1
         OnClick = RgxMethodClick
       end
       object PnlZoom: TPanel
         Left = 12
-        Top = 234
+        Top = 306
         Width = 128
         Height = 128
         BevelInner = bvLowered
         BorderWidth = 1
         Caption = ' Rendering '
-        TabOrder = 3
+        TabOrder = 2
         object PaintBox32: TPaintBox32
           Left = 3
           Top = 3
@@ -127,10 +118,24 @@ object MainForm: TMainForm
           TabOrder = 0
         end
       end
+      object RgpHinting: TRadioGroup
+        Left = 11
+        Top = 26
+        Width = 131
+        Height = 92
+        Caption = ' Hinting '
+        ItemIndex = 0
+        Items.Strings = (
+          'None'
+          'Hinting (No Horz)'
+          'Hinting')
+        TabOrder = 3
+        OnClick = RgpHintingClick
+      end
     end
     object BtnExit: TButton
-      Left = 172
-      Top = 410
+      Left = 8
+      Top = 429
       Width = 153
       Height = 25
       Cancel = True
@@ -142,21 +147,21 @@ object MainForm: TMainForm
       Left = 8
       Top = 8
       Width = 153
-      Height = 72
+      Height = 105
       Caption = ' Font '
       TabOrder = 0
       object LblFontInfo: TLabel
         Left = 2
-        Top = 16
+        Top = 25
         Width = 148
-        Height = 13
+        Height = 30
         Alignment = taCenter
         AutoSize = False
         Caption = 'FontInfo'
       end
       object BtnSelectFont: TButton
         Left = 11
-        Top = 35
+        Top = 62
         Width = 133
         Height = 25
         Caption = 'Select Font...'
@@ -166,9 +171,9 @@ object MainForm: TMainForm
     end
     object GbxLayout: TGroupBox
       Left = 8
-      Top = 88
+      Top = 121
       Width = 155
-      Height = 296
+      Height = 297
       Caption = ' Layout '
       TabOrder = 1
       object RgpHorzAlign: TRadioGroup
@@ -202,7 +207,7 @@ object MainForm: TMainForm
       end
       object CbxSingleLine: TCheckBox
         Left = 11
-        Top = 248
+        Top = 247
         Width = 97
         Height = 17
         Caption = 'Single line only'
@@ -211,7 +216,7 @@ object MainForm: TMainForm
       end
       object CbxWordbreak: TCheckBox
         Left = 11
-        Top = 270
+        Top = 269
         Width = 97
         Height = 17
         Caption = 'Word break'
