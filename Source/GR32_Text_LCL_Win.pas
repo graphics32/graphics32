@@ -189,7 +189,7 @@ const
 var
   GlyphMetrics: TGlyphMetrics;
   TextMetric: TTextMetric;
-  I, J, TextLen, SpcCount, LineStart: Integer;
+  I, J, TextLen, SpcCount, SpcX, LineStart: Integer;
   CharValue: Integer;
   CharOffsets: TArrayOfInteger;
   X, Y, XMax, YMax, MaxRight: Single;
@@ -201,9 +201,9 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    Delta := (ARect.Right - X)/ 2;
-    PathStart := CharOffsets[LineStart - 1];
-    PathEnd := CharOffsets[CurrentI - 1];
+    Delta := (ARect.Right - X - 1)/ 2;
+    PathStart := CharOffsets[LineStart];
+    PathEnd := CharOffsets[CurrentI];
     for M := PathStart to PathEnd - 1 do
       for N := 0 to High(TmpPath.Path[M]) do
         TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + Delta;
@@ -214,9 +214,9 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    Delta := (ARect.Right - X);
-    PathStart := CharOffsets[LineStart - 1];
-    PathEnd := CharOffsets[CurrentI - 1];
+    Delta := (ARect.Right - X - 1);
+    PathStart := CharOffsets[LineStart];
+    PathEnd := CharOffsets[CurrentI];
     for M := PathStart to PathEnd - 1 do
       for N := 0 to High(TmpPath.Path[M]) do
         TmpPath.Path[M][N].X := TmpPath.Path[M][N].X + Delta;
@@ -227,17 +227,20 @@ var
     L, M, N, PathStart, PathEnd: Integer;
     SpcDelta, SpcDeltaInc: TFloat;
   begin
-    if (SpcCount < 2) or (Ord(Text[CurrentI]) = CHAR_CR) then
+    if (SpcCount < 1) or (Ord(Text[CurrentI]) = CHAR_CR) then
       Exit;
-    SpcDelta := (ARect.Right - X)/ (SpcCount - 1);
+    SpcDelta := (ARect.Right - X - 1)/ SpcCount;
     SpcDeltaInc := SpcDelta;
     L := LineStart;
+    //Trim leading spaces ...
+    while (L < CurrentI) and (Ord(Text[L]) = CHAR_SP) do Inc(L);
+    //Now find first space char in line ...
     while (L < CurrentI) and (Ord(Text[L]) <> CHAR_SP) do Inc(L);
     PathStart := CharOffsets[L - 1];
     repeat
       M := L + 1;
       while (M < CurrentI) and (Ord(Text[M]) <> CHAR_SP) do Inc(M);
-      PathEnd := CharOffsets[M - 1];
+      PathEnd := CharOffsets[M];
       L := M;
       for M := PathStart to PathEnd - 1 do
         for N := 0 to High(TmpPath.Path[M]) do
@@ -247,18 +250,18 @@ var
     until L >= CurrentI;
   end;
 
-  procedure NewLine;
+  procedure NewLine(CurrentI: Integer);
   begin
     if (Flags and DT_SINGLELINE <> 0) then Exit;
     if assigned(TmpPath) then
       case (Flags and DT_HORZ_ALIGN_MASK) of
-        DT_CENTER : AlignTextCenter(I);
-        DT_RIGHT  : AlignTextRight(I);
-        DT_JUSTIFY: AlignTextJustify(I);
+        DT_CENTER : AlignTextCenter(CurrentI);
+        DT_RIGHT  : AlignTextRight(CurrentI);
+        DT_JUSTIFY: AlignTextJustify(CurrentI);
       end;
     X := ARect.Left{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
     Y := Y + TextMetric.tmHeight;
-    LineStart := I + 1;
+    LineStart := CurrentI;
     SpcCount := 0;
   end;
 
@@ -276,15 +279,20 @@ var
     end;
   end;
 
-  procedure TestNewLine(X: Single);
+  function NeedsNewLine(X: Single): boolean;
   begin
-    if X > ARect.Right{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF} then
-      NewLine;
+    Result := X > ARect.Right{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
+  end;
+
+  procedure AddSpace;
+  begin
+    Inc(SpcCount);
+    X := X + SpcX;
   end;
 
 begin
   SpcCount := 0;
-  LineStart := 1;
+  LineStart := 0;
   if Assigned(Path) then
     TmpPath := TFlattenedPath.Create
   else
@@ -296,7 +304,13 @@ begin
   Y := ARect.Top + TextMetric.tmAscent;
   XMax := X;
   MaxRight := ARect.Right;
-  SetLength(CharOffsets, TextLen);
+  SetLength(CharOffsets, TextLen +1);
+  CharOffsets[0] := 0;
+
+  GetGlyphOutlineW(DC, CHAR_SP, GGODefaultFlags[UseHinting],
+    GlyphMetrics, 0, nil, VertFlip_mat2);
+  SpcX := GlyphMetrics.gmCellIncX;
+
   if (Flags and DT_SINGLELINE <> 0) then
   begin
     //ignore justify when forcing singleline ...
@@ -307,57 +321,71 @@ begin
       Flags := Flags and not DT_WORDBREAK;
     MaxRight := MaxSingle;
   end;
+
   for I := 1 to TextLen do
   begin
-    if Assigned(TmpPath) then
-      CharOffsets[I - 1] := Length(TmpPath.Path);
-
     CharValue := Ord(Text[I]);
     if CharValue <= 32 then
     begin
       if (Flags and DT_SINGLELINE = DT_SINGLELINE) then
         CharValue := CHAR_SP;
+      if Assigned(TmpPath) then
+        CharOffsets[I] := Length(TmpPath.Path);
+
       case CharValue of
-        CHAR_CR: NewLine;
+        CHAR_CR: NewLine(I);
         CHAR_NL: ;
         CHAR_SP:
           begin
-            Inc(SpcCount);
-            GetGlyphOutlineW(DC, CharValue, GGODefaultFlags[UseHinting],
-              GlyphMetrics{%H-}, 0, nil, VertFlip_mat2);
-            X := X + GlyphMetrics.gmCellIncX;
-
-            if Flags and DT_WORDBREAK <> 0 then
+            if Flags and DT_WORDBREAK = DT_WORDBREAK then
             begin
               J := I + 1;
               while (J <= TextLen) and
                 ([Ord(Text[J])] * [CHAR_CR, CHAR_NL, CHAR_SP] = []) do
                   Inc(J);
-              S := Copy(Text, I + 1, J - I - 1);
-              TestNewLine(X + MeasureTextX(S));
+              S := Copy(Text, I, J - I);
+              if NeedsNewLine(X + MeasureTextX(S)) then
+                NewLine(I) else
+                AddSpace;
+            end else
+            begin
+              if NeedsNewLine(X + SpcX) then
+                NewLine(I)
+              else
+                AddSpace;
             end;
           end;
       end;
     end
     else
     begin
-      //a word may still need to be split if it fills more that a whole line ...
-      if not GlyphOutlineToPath(DC, TmpPath,
+      if GlyphOutlineToPath(DC, TmpPath,
         X, MaxRight, Y, CharValue, GlyphMetrics) then
       begin
-        NewLine;
+        if Assigned(TmpPath) then
+          CharOffsets[I] := Length(TmpPath.Path);
+      end else
+      begin
+        if Ord(Text[I -1]) = CHAR_SP then
+        begin
+          //this only happens without DT_WORDBREAK
+          X := X - SpcX;
+          Dec(SpcCount);
+        end;
+        //the current glyph doesn't fit so a word must be split since
+        //it fills more than a whole line ...
+        NewLine(I - 1);
         if not GlyphOutlineToPath(DC, TmpPath,
-            X, MaxRight, Y, CharValue, GlyphMetrics) then Exit;
+            X, MaxRight, Y, CharValue, GlyphMetrics) then Break;
+        if Assigned(TmpPath) then
+          CharOffsets[I] := Length(TmpPath.Path);
       end;
       X := X + GlyphMetrics.gmCellIncX;
       if X > XMax then XMax := X;
     end;
   end;
-  if assigned(TmpPath) then
-    case (Flags and DT_HORZ_ALIGN_MASK) of
-      1: AlignTextCenter(TextLen);
-      2: AlignTextRight(TextLen);
-    end;
+  if [(Flags and DT_HORZ_ALIGN_MASK)] * [DT_CENTER, DT_RIGHT] <> [] then
+    NewLine(TextLen);
 
   YMax := Y + TextMetric.tmHeight - TextMetric.tmAscent;
 {$IFDEF NOHORIZONTALHINTING}

@@ -65,6 +65,7 @@ type
     PnlZoom: TPanel;
     PaintBox32: TPaintBox32;
     CbxSingleLine: TCheckBox;
+    CbxWordbreak: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
     procedure CbxHintedClick(Sender: TObject);
@@ -138,7 +139,7 @@ const
     'libero. Duis molestie venenatis magna. Nulla non ligula. Proin est. ' +
     'Curabitur nisl. Nulla facilisi. Nam dolor nulla, mollis ' +
     'non, tristique eu, vestibulum eget, mi. Donec venenatis, ' +
-    'lacus adipiscing interdum laoreet, risus odio ullamcorper turpis,' +
+    'lacus adipiscing interdum laoreet, risus odio ullamcorper turpis, ' +
     'at feugiat pede neque ac dui.' + #10#10 +
 
     'Nulla quis dolor eget justo ullamcorper consectetur. Mauris in ante. ' +
@@ -201,7 +202,7 @@ procedure TMainForm.BuildPolygonFromText;
 var
   Intf: ITextToPathSupport;
   DestRect: TFloatRect;
-  HAlignFlag, VAlignFlag, SingleLineFlag: Integer;
+  HAlignFlag, VAlignFlag, SingleLineFlag, WordBreakFlag: Integer;
 begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
   begin
@@ -216,8 +217,12 @@ begin
     if  CbxSingleLine.Checked then
       SingleLineFlag := DT_SINGLELINE else
       SingleLineFlag := 0;
+    if  CbxWordbreak.Checked then
+      WordBreakFlag := DT_WORDBREAK else
+      WordBreakFlag := 0;
+
     Intf.TextToPath(FPath, DestRect,
-      CLoremIpsum, DT_WORDBREAK or HAlignFlag or VAlignFlag or SingleLineFlag);
+      CLoremIpsum, WordBreakFlag or HAlignFlag or VAlignFlag or SingleLineFlag);
   end else
     raise Exception.Create(RCStrInpropriateBackend);
 end;
@@ -233,6 +238,13 @@ begin
   //paint the close-up of the image around the mouse cursor ...
   with Img.ScreenToClient(Mouse.CursorPos) do
     ImgMouseMove(nil, [], X, Y, nil);
+    
+//  Img.Bitmap.PenColor := $80C0C0C0;
+//  Img.Bitmap.MoveToF(10,10);
+//  Img.Bitmap.LineToFS(Img.Bitmap.Width - 10, 10);
+//  Img.Bitmap.LineToFS(Img.Bitmap.Width - 10, Img.Bitmap.Height - 10);
+//  Img.Bitmap.LineToFS(10, Img.Bitmap.Height - 10);
+//  Img.Bitmap.LineToFS(10, 10);
 end;
 
 function FontStylesToString(FontStyles: TFontStyles): string;
