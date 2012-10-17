@@ -47,8 +47,11 @@ function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
 function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideString;
   Flags: Cardinal): TFloatRect;
 
-var
-  UseHinting: Boolean = {$IFDEF NOHINTING}False{$ELSE}True{$ENDIF};
+type
+  TTextHinting = (thNone, thNoHorz, thHinting);
+
+procedure SetHinting(Value: TTextHinting);
+function GetHinting: TTextHinting;
 
 const
   DT_LEFT       = 0;   //See also Window's DrawText() flags ...
@@ -66,6 +69,13 @@ implementation
 uses
   GR32_LowLevel;
 
+var
+  UseHinting: Boolean;
+  HorzStretch: Integer; // stretching factor when calling GetGlyphOutline()
+  HorzStretch_Inv: single;
+
+  VertFlip_mat2: tmat2;
+
 const
   GGO_UNHINTED = $0100;
   GGODefaultFlags: array [Boolean] of Integer = (GGO_NATIVE or GGO_UNHINTED, GGO_NATIVE);
@@ -73,18 +83,6 @@ const
   TT_PRIM_CSPLINE = 3;
 
   MaxSingle   =  3.4e+38;
-
-{$IFDEF NOHORIZONTALHINTING}
-// stretching factor when calling GetGlyphOutline()
-  HORZSTRETCH = 16;
-{$ENDIF}
-
-  VertFlip_mat2: tmat2 = (
-    eM11: (fract: 0; Value: {$IFNDEF NOHORIZONTALHINTING}1{$ELSE}HORZSTRETCH{$ENDIF});
-    eM12: (fract: 0; Value: 0);
-    eM21: (fract: 0; Value: 0);
-    eM22: (fract: 0; Value: -1);
-  );
 
 function PointFXtoPointF(const Point: tagPointFX): TFloatPoint;
 begin
@@ -232,7 +230,7 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    Delta := (ARect.Right - X - 1)/ 2;
+    Delta := (ARect.Right * HorzStretch - X - 1)/ 2;
     PathStart := CharOffsets[LineStart];
     PathEnd := CharOffsets[CurrentI];
     for M := PathStart to PathEnd - 1 do
@@ -245,7 +243,7 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    Delta := (ARect.Right - X - 1);
+    Delta := (ARect.Right * HorzStretch - X - 1);
     PathStart := CharOffsets[LineStart];
     PathEnd := CharOffsets[CurrentI];
     for M := PathStart to PathEnd - 1 do
@@ -260,7 +258,7 @@ var
   begin
     if (SpcCount < 1) or (Ord(Text[CurrentI]) = CHAR_CR) then
       Exit;
-    SpcDelta := (ARect.Right - X - 1)/ SpcCount;
+    SpcDelta := (ARect.Right * HorzStretch - X - 1)/ SpcCount;
     SpcDeltaInc := SpcDelta;
     L := LineStart;
     //Trim leading spaces ...
@@ -290,7 +288,7 @@ var
         DT_RIGHT  : AlignTextRight(CurrentI);
         DT_JUSTIFY: AlignTextJustify(CurrentI);
       end;
-    X := ARect.Left{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
+    X := ARect.Left * HorzStretch;
     Y := Y + TextMetric.tmHeight;
     LineStart := CurrentI;
     SpcCount := 0;
@@ -312,7 +310,7 @@ var
 
   function NeedsNewLine(X: Single): boolean;
   begin
-    Result := X > ARect.Right{$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
+    Result := X > ARect.Right * HorzStretch;
   end;
 
   procedure AddSpace;
@@ -331,10 +329,10 @@ begin
 
   GetTextMetrics(DC, TextMetric);
   TextLen := Length(Text);
-  X := ARect.Left {$IFDEF NOHORIZONTALHINTING} * HORZSTRETCH{$ENDIF};
+  X := ARect.Left * HorzStretch;
   Y := ARect.Top + TextMetric.tmAscent;
   XMax := X;
-  MaxRight := ARect.Right;
+  MaxRight := ARect.Right * HorzStretch;
   SetLength(CharOffsets, TextLen +1);
   CharOffsets[0] := 0;
 
@@ -419,16 +417,22 @@ begin
     NewLine(TextLen);
 
   YMax := Y + TextMetric.tmHeight - TextMetric.tmAscent;
-{$IFDEF NOHORIZONTALHINTING}
-  XMax := XMax / HORZSTRETCH;
-{$ENDIF}
+  //reverse HorzStretch (if any) ...
+  if (HorzStretch <> 1) and assigned(TmpPath) then
+    for I := 0 to High(TmpPath.Path) do
+      for J := 0 to High(TmpPath.Path[I]) do
+        TmpPath.Path[I][J].X := TmpPath.Path[I][J].X * HorzStretch_Inv;
+  XMax := XMax * HorzStretch_Inv;
+
   X := ARect.Right - XMax;
   Y := ARect.Bottom - YMax;
   case (Flags and DT_HORZ_ALIGN_MASK) of
     DT_LEFT   : ARect := FloatRect(ARect.Left, ARect.Top, XMax, YMax);
     DT_CENTER : ARect := FloatRect(ARect.Left + X * 0.5, ARect.Top, XMax + X * 0.5, YMax);
-    DT_RIGHT  : ARect := FloatRect(ARect.Left + X, ARect.Top, ARect.Right, YMax);
-    DT_JUSTIFY: ARect := FloatRect(ARect.Left, ARect.Top, ARect.Right, YMax);
+    DT_RIGHT  : ARect := FloatRect(ARect.Left + X, ARect.Top,
+      ARect.Right, YMax);
+    DT_JUSTIFY: ARect := FloatRect(ARect.Left, ARect.Top,
+      ARect.Right, YMax);
   end;
   if Flags and (DT_VCENTER or DT_BOTTOM) <> 0 then
   begin
@@ -492,5 +496,40 @@ begin
     ReleaseDC(0, DC);
   end;
 end;
+
+procedure SetHinting(Value: TTextHinting);
+begin
+  UseHinting := Value <> thNone;
+  if (Value = thNoHorz) then
+    HorzStretch := 16 else
+    HorzStretch := 1;
+  HorzStretch_Inv := 1 / HorzStretch;
+  FillChar(VertFlip_mat2, SizeOf(VertFlip_mat2), 0);
+  VertFlip_mat2.eM11.value := HorzStretch;
+  VertFlip_mat2.eM22.value := -1; //reversed Y axis
+end;
+
+function GetHinting: TTextHinting;
+begin
+  if HorzStretch <> 1 then Result := thNoHorz
+  else if UseHinting then Result := thHinting
+  else Result := thNone;
+end;
+
+procedure InitUseHinting;
+begin
+{$IFDEF NOHORIZONTALHINTING}
+  SetHinting(thNoHorz);
+{$ELSE}
+  {$IFDEF NOHINTING}
+  SetHinting(thNone);
+  {$ELSE}
+  SetHinting(thHinting);
+  {$ENDIF};
+{$ENDIF}
+end;
+
+initialization
+  InitUseHinting;
 
 end.

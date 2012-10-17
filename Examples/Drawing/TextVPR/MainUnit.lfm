@@ -55,17 +55,17 @@ object MainForm: TMainForm
     TabOrder = 1
     object GbxRendering: TGroupBox
       Left = 172
-      Height = 392
+      Height = 446
       Top = 8
       Width = 153
       Caption = ' Rendering '
-      ClientHeight = 374
+      ClientHeight = 428
       ClientWidth = 149
       TabOrder = 2
       object LblGamma: TLabel
         Left = 13
         Height = 14
-        Top = 64
+        Top = 122
         Width = 40
         Caption = 'Gamma:'
         ParentColor = False
@@ -73,7 +73,7 @@ object MainForm: TMainForm
       object LblGammaValue: TLabel
         Left = 108
         Height = 14
-        Top = 64
+        Top = 141
         Width = 31
         Alignment = taCenter
         Caption = '(1.00)'
@@ -82,28 +82,19 @@ object MainForm: TMainForm
       object TbrGamma: TTrackBar
         Left = 5
         Height = 28
-        Top = 81
+        Top = 139
         Width = 141
         Frequency = 30
         Max = 240
         OnChange = TbrGammaChange
         Position = 100
         TickStyle = tsNone
-        TabOrder = 1
-      end
-      object CbxHinted: TCheckBox
-        Left = 14
-        Height = 17
-        Top = 31
-        Width = 87
-        Caption = 'Enable hinting'
-        OnClick = CbxHintedClick
         TabOrder = 0
       end
       object RgxMethod: TRadioGroup
         Left = 12
         Height = 98
-        Top = 119
+        Top = 177
         Width = 128
         AutoFill = True
         Caption = ' Rendering Method '
@@ -124,19 +115,19 @@ object MainForm: TMainForm
           'Cleartype (smooth)'
         )
         OnClick = RgxMethodClick
-        TabOrder = 2
+        TabOrder = 1
       end
       object PnlZoom: TPanel
         Left = 12
         Height = 128
-        Top = 234
+        Top = 287
         Width = 128
         BevelInner = bvLowered
         BorderWidth = 1
         Caption = ' Rendering '
         ClientHeight = 128
         ClientWidth = 128
-        TabOrder = 3
+        TabOrder = 2
         object PaintBox32: TPaintBox32
           Left = 3
           Height = 122
@@ -146,11 +137,37 @@ object MainForm: TMainForm
           TabOrder = 0
         end
       end
+      object RgpHinting: TRadioGroup
+        Left = 11
+        Height = 92
+        Top = 7
+        Width = 131
+        AutoFill = True
+        Caption = ' Hinting '
+        ChildSizing.LeftRightSpacing = 6
+        ChildSizing.TopBottomSpacing = 6
+        ChildSizing.EnlargeHorizontal = crsHomogenousChildResize
+        ChildSizing.EnlargeVertical = crsHomogenousChildResize
+        ChildSizing.ShrinkHorizontal = crsScaleChilds
+        ChildSizing.ShrinkVertical = crsScaleChilds
+        ChildSizing.Layout = cclLeftToRightThenTopToBottom
+        ChildSizing.ControlsPerLine = 1
+        ClientHeight = 74
+        ClientWidth = 127
+        ItemIndex = 0
+        Items.Strings = (
+          'None'
+          'Hinting (No Horz)'
+          'Hinting'
+        )
+        OnClick = RgpHintingClick
+        TabOrder = 3
+      end
     end
     object BtnExit: TButton
-      Left = 172
+      Left = 8
       Height = 25
-      Top = 419
+      Top = 429
       Width = 153
       Cancel = True
       Caption = 'E&xit'
@@ -159,17 +176,17 @@ object MainForm: TMainForm
     end
     object GBxFont: TGroupBox
       Left = 8
-      Height = 78
+      Height = 105
       Top = 8
       Width = 153
       Caption = ' Font '
-      ClientHeight = 60
+      ClientHeight = 87
       ClientWidth = 149
       TabOrder = 0
       object LblFontInfo: TLabel
         Left = 2
-        Height = 13
-        Top = 7
+        Height = 30
+        Top = 10
         Width = 148
         Alignment = taCenter
         AutoSize = False
@@ -179,7 +196,7 @@ object MainForm: TMainForm
       object BtnSelectFont: TButton
         Left = 11
         Height = 25
-        Top = 27
+        Top = 49
         Width = 133
         Caption = 'Select Font...'
         OnClick = BtnSelectFontClick
@@ -188,17 +205,17 @@ object MainForm: TMainForm
     end
     object GbxLayout: TGroupBox
       Left = 8
-      Height = 307
-      Top = 93
+      Height = 297
+      Top = 121
       Width = 155
       Caption = ' Layout '
-      ClientHeight = 289
+      ClientHeight = 279
       ClientWidth = 151
       TabOrder = 1
       object RgpHorzAlign: TRadioGroup
         Left = 11
         Height = 117
-        Top = 12
+        Top = 4
         Width = 131
         AutoFill = True
         Caption = ' Horizontal '
@@ -225,7 +242,7 @@ object MainForm: TMainForm
       object RgpVerticalAlign: TRadioGroup
         Left = 11
         Height = 92
-        Top = 135
+        Top = 127
         Width = 131
         AutoFill = True
         Caption = ' Vertical '
@@ -251,7 +268,7 @@ object MainForm: TMainForm
       object CbxSingleLine: TCheckBox
         Left = 11
         Height = 17
-        Top = 239
+        Top = 230
         Width = 90
         Caption = 'Single line only'
         OnClick = RgpHorzAlignClick
@@ -260,7 +277,7 @@ object MainForm: TMainForm
       object CbxWordbreak: TCheckBox
         Left = 11
         Height = 17
-        Top = 261
+        Top = 252
         Width = 76
         Caption = 'Word break'
         Checked = True

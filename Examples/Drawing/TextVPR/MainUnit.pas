@@ -44,7 +44,6 @@ uses
 
 type
   TMainForm = class(TForm)
-    CbxHinted: TCheckBox;
     FontDialog: TFontDialog;
     GbxRendering: TGroupBox;
     Img: TImage32;
@@ -66,9 +65,9 @@ type
     PaintBox32: TPaintBox32;
     CbxSingleLine: TCheckBox;
     CbxWordbreak: TCheckBox;
+    RgpHinting: TRadioGroup;
     procedure FormCreate(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
-    procedure CbxHintedClick(Sender: TObject);
     procedure ImgClick(Sender: TObject);
     procedure ImgMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer;
       Layer: TCustomLayer);
@@ -78,6 +77,7 @@ type
     procedure FormResize(Sender: TObject);
     procedure BtnExitClick(Sender: TObject);
     procedure RgpHorzAlignClick(Sender: TObject);
+    procedure RgpHintingClick(Sender: TObject);
   private
     FPath: TFlattenedPath;
   public
@@ -101,7 +101,7 @@ uses
   GR32_Backends, GR32_Polygons,
   {$IFDEF FPC}
   {$IFDEF LCLWin32}
-    GR32_Text_LCL_Win, GR32_Text_VCL;
+    GR32_Text_LCL_Win;
   {$ENDIF}
   {$IF defined(LCLGtk) or defined(LCLGtk2)}
     GR32_Text_LCL_GTK;
@@ -162,6 +162,7 @@ begin
   DisplayFontInfo;
   PaintBox32.Buffer.SetSizeFrom(PaintBox32);
   PaintBox32.Buffer.Clear(clWhite32);
+  RgpHinting.ItemIndex := Ord(GetHinting);
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -253,16 +254,16 @@ var
 begin
   styles := [fsBold, fsItalic] * FontStyles;
   if styles = [] then Result := ''
-  else if styles = [fsBold] then Result := '[Bold]'
-  else if styles = [fsItalic] then Result := '[Italic]'
-  else Result := '[Bold & Italic]';
+  else if styles = [fsBold] then Result := ', Bold'
+  else if styles = [fsItalic] then Result := ', Italic'
+  else Result := ', Bold && Italic';
 end;
 
 procedure TMainForm.DisplayFontInfo;
 begin
   with FontDialog.Font do
     LblFontInfo.Caption :=
-      format('%s, %d %s',[name, size, FontStylesToString(Style)]);
+      format('%s'#10'%d%s',[name, size, FontStylesToString(Style)]);
 end;
 
 procedure TMainForm.RgxMethodClick(Sender: TObject);
@@ -277,9 +278,13 @@ begin
   RenderText;
 end;
 
-procedure TMainForm.CbxHintedClick(Sender: TObject);
+procedure TMainForm.RgpHintingClick(Sender: TObject);
 begin
-  UseHinting := CbxHinted.Checked;
+  case RgpHinting.ItemIndex of
+    0: SetHinting(thNone);
+    1: SetHinting(thNoHorz);
+    else SetHinting(thHinting)
+  end;
   BuildPolygonFromText;
   RenderText;
 end;
