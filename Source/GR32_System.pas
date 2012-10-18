@@ -126,48 +126,28 @@ end;
 { TPerfTimer }
 
 function TPerfTimer.ReadNanoseconds: string;
-var
-  t : timeval;
 begin
-  fpgettimeofday(@t,nil);
-   // Build a 64 bit microsecond tick from the seconds and microsecond longints
-  Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) div 1000 );
+  Result := IntToStr(ReadValue);
 end;
 
 function TPerfTimer.ReadMilliseconds: string;
-var
-  t : timeval;
 begin
-  fpgettimeofday(@t,nil);
-   // Build a 64 bit microsecond tick from the seconds and microsecond longints
-  Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) * 1000 );
+  Result := IntToStr(ReadValue div 1000);
 end;
 
 function TPerfTimer.ReadSeconds: string;
-var
-  t : timeval;
 begin
-  fpgettimeofday(@t,nil);
-   // Build a 64 bit microsecond tick from the seconds and microsecond longints
-  Result := IntToStr( ( (Int64(t.tv_sec) * 1000000) + t.tv_usec ) );
+  Result := IntToStr(ReadValue div 1000000);
 end;
 
 function TPerfTimer.ReadValue: Int64;
-var t : timeval;
 begin
-  fpgettimeofday(@t,nil);
-   // Build a 64 bit microsecond tick from the seconds and microsecond longints
-  Result := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
-  Result := Result div 1000;
+  Result := GetTickCount - FStart;
 end;
 
 procedure TPerfTimer.Start;
-var
-  t : timeval;
 begin
-  fpgettimeofday(@t,nil);
-   // Build a 64 bit microsecond tick from the seconds and microsecond longints
-  FStart := (Int64(t.tv_sec) * 1000000) + t.tv_usec;
+  FStart := GetTickCount;
 end;
 {$ENDIF}
 {$ENDIF}
@@ -199,7 +179,7 @@ begin
   Result := FloatToStrF(1000 * (FPerformanceCountStop - FPerformanceCountStart) / FFrequency, ffFixed, 15, 3);
 end;
 
-function TPerfTimer.ReadSeconds: string;
+function TPerfTimer.ReadSeconds: String;
 begin
   QueryPerformanceCounter(FPerformanceCountStop);
   QueryPerformanceFrequency(FFrequency);
@@ -440,4 +420,4 @@ initialization
 finalization
   GlobalPerfTimer.Free;
 
-end.
+end.
