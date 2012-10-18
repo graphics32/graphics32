@@ -1517,17 +1517,20 @@ var
 begin
   UpdateFillProcs;
   if Assigned(FFiller) then
+  begin
     FFiller.BeginRendering;
+    RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
+    FFiller.EndRendering;
+  end
+  else
+    RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
 
-  RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
 {$IFDEF CHANGENOTIFICATIONS}
   if TBitmap32Access(Bitmap).UpdateCount = 0 then
     for I := 0 to High(Points) do
       if Length(Points[I]) > 0 then
         Bitmap.Changed(MakeRect(PolygonBounds(Points[I])));
 {$ENDIF}
-  if Assigned(FFiller) then
-    FFiller.EndRendering;
 end;
 
 {$W+}

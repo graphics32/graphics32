@@ -1042,7 +1042,7 @@ asm
 end;
 
 function SAR_8(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 256;
 {$ELSE}
@@ -1056,7 +1056,7 @@ asm
 end;
 
 function SAR_9(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 512;
 {$ELSE}
@@ -1070,7 +1070,7 @@ asm
 end;
 
 function SAR_11(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 2048;
 {$ELSE}
@@ -1084,7 +1084,7 @@ asm
 end;
 
 function SAR_12(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 4096;
 {$ELSE}
@@ -1098,7 +1098,7 @@ asm
 end;
 
 function SAR_13(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 8192;
 {$ELSE}
@@ -1112,7 +1112,7 @@ asm
 end;
 
 function SAR_14(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 16384;
 {$ELSE}
@@ -1126,7 +1126,7 @@ asm
 end;
 
 function SAR_15(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 32768;
 {$ELSE}
@@ -1140,7 +1140,7 @@ asm
 end;
 
 function SAR_16(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 65536;
 {$ELSE}

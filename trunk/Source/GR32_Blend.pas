@@ -3678,9 +3678,9 @@ asm
         MOVQ      XMM3,[EBX]
         MOV       EBX,bias_ptr
         MOVQ      XMM4,[EBX]
+        PXOR      XMM0,XMM0
 
 @1:     MOVD      XMM1,[EAX]
-        PXOR      XMM0,XMM0
         MOVD      XMM2,[EDX]
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
@@ -3740,9 +3740,9 @@ asm
         MOV       R9,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
 {$ENDIF}
         MOVQ      XMM4,[R9]
+        PXOR      XMM0,XMM0
 
 @1:     MOVD      XMM1,[RCX]
-        PXOR      XMM0,XMM0
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
