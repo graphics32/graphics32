@@ -37,8 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes,
-  GR32_Geometry;
+  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes;
 
 const
   DefaultCircleSteps = 100;
@@ -185,7 +184,7 @@ type
 implementation
 
 uses
-  Math, GR32_Math, GR32_VectorUtils, GR32_Backends;
+  Math, GR32_Math, GR32_Geometry, GR32_VectorUtils, GR32_Backends;
 
 function CubicBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin

@@ -418,6 +418,7 @@ type
 
     property Color[Index: Integer]: TColor32 read GetColor write SetColor;
     property Point[Index: Integer]: TFloatPoint read GetPoint write SetPoint;
+    property ColorPoint[Index: Integer]: TColor32FloatPoint read GetColorPoint write SetColorPoint;
     property Count: Integer read GetCount;
   end;
 
@@ -3274,7 +3275,7 @@ end;
 
 function TGourandShadedDelaunayTrianglesPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-  case Length(FBarycentric) of
+  case Count of
     0 .. 2:
       raise Exception.Create('Too few color points available');
     3:
