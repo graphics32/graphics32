@@ -62,12 +62,10 @@ type
   TColor32Array = array [0..0] of TColor32;
   TArrayOfColor32 = array of TColor32;
 
-{.$DEFINE BGRA_FORMAT}
-
 {$IFNDEF BGRA_FORMAT}
   TColor32Component = (ccBlue, ccGreen, ccRed, ccAlpha);
 {$ELSE}
-  TColor32Component = (ccAlpha, ccRed, ccGreen, ccBlue);
+  TColor32Component = (ccRed, ccGreen, ccBlue, ccAlpha);
 {$ENDIF}
   TColor32Components = set of TColor32Component;
 
@@ -77,9 +75,9 @@ type
 {$IFNDEF BGRA_FORMAT}
       0: (B, G, R, A: Byte);
 {$ELSE}
-      0: (A, R, G, B: Byte);
+      0: (R, G, B, A: Byte);
 {$ENDIF}
-      1: (ARGB: TColor32);
+      1: (Color: TColor32);
       2: (Planes: array[0..3] of Byte);
       3: (Components: array[TColor32Component] of Byte);
   end;
@@ -272,7 +270,7 @@ function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32; {$IFDEF USEIN
 // Color space conversion
 function HSLtoRGB(H, S, L: Single): TColor32; overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
-function HSLtoRGB(H, S, L: Integer): TColor32; overload;
+function HSLtoRGB(H, S, L: Integer; A: Integer = $ff): TColor32; overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
@@ -538,10 +536,15 @@ type
     FRefCount: Integer;
   protected
     { IInterface }
-    function _AddRef: Integer; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
-    function _Release: Integer; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
-    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF}IID: TGUID; out Obj): HResult; virtual; {$IFNDEF WINDOWS}cdecl{$ELSE}stdcall{$ENDIF};
-
+{$IFDEF FPC_HAS_CONSTREF}
+    function QueryInterface(constref iid: TGuid; out obj): HResult; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function _AddRef: LongInt; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+    function _Release: LongInt; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+{$ELSE}
+    function QueryInterface(const iid: TGuid; out obj): HResult; stdcall;
+    function _AddRef: LongInt; stdcall;
+    function _Release: LongInt; stdcall;
+{$ENDIF}
     property RefCounted: Boolean read FRefCounted write FRefCounted;
   public
     procedure AfterConstruction; override;
@@ -705,7 +708,11 @@ type
     procedure FinalizeBackend; virtual;
     procedure SetBackend(const Backend: TCustomBackend); virtual;
 
-    function QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} IID: TGUID; out Obj): HResult; override;
+{$IFDEF FPC_HAS_CONSTREF}
+    function QueryInterface(constref iid: TGuid; out obj): HResult; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
+{$ELSE}
+    function QueryInterface(const iid: TGuid; out obj): HResult; stdcall;
+{$ENDIF}
 
     function  GetPixel(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  GetPixelS(X, Y: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1350,7 +1357,7 @@ begin
   end;
 end;
 
-function HSLtoRGB(H, S, L: Integer): TColor32;
+function HSLtoRGB(H, S, L, A: Integer): TColor32;
 var
   V, M, M1, M2, VSF: Integer;
 begin
@@ -1368,12 +1375,12 @@ begin
     M1 := M + VSF;
     M2 := V - VSF;
     case H shr 8 of
-      0: Result := Color32(V, M1, M);
-      1: Result := Color32(M2, V, M);
-      2: Result := Color32(M, V, M1);
-      3: Result := Color32(M, M2, V);
-      4: Result := Color32(M1, M, V);
-      5: Result := Color32(V, M, M2);
+      0: Result := Color32(V, M1, M, A);
+      1: Result := Color32(M2, V, M, A);
+      2: Result := Color32(M, V, M1, A);
+      3: Result := Color32(M, M2, V, A);
+      4: Result := Color32(M1, M, V, A);
+      5: Result := Color32(V, M, M2, A);
     else
       Result := 0;
     end;
@@ -6396,4 +6403,4 @@ initialization
 finalization
   StockBitmap.Free;
 
-end.
+end.
