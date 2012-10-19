@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 220
   Top = 169
-  Width = 783
-  Height = 511
   Caption = 'Graphics32 Text Rendering'
+  ClientHeight = 484
+  ClientWidth = 775
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -78,6 +78,7 @@ object MainForm: TMainForm
         Top = 158
         Width = 141
         Height = 28
+        Enabled = False
         Max = 240
         Frequency = 30
         Position = 100

@@ -54,8 +54,10 @@ type
     FControlPointOrigin: TControlPointOrigin;
   protected
     procedure AddPoint(const Point: TFloatPoint); virtual;
+    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create; override;
+    procedure Clear; virtual;
 
     procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure MoveTo(const P: TFloatPoint); overload; virtual;
@@ -85,6 +87,7 @@ type
     procedure ConicToRelative(const P1, P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ConicToRelative(const P: TFloatPoint); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+
     procedure BeginPath; virtual;
     procedure EndPath; virtual;
     procedure ClosePath; virtual;
@@ -112,6 +115,7 @@ type
     procedure AddPoint(const Point: TFloatPoint); override;
     procedure AssignTo(Dest: TPersistent); override;
   public
+    procedure Clear; override;
     procedure DrawPath; virtual;
     procedure MoveTo(const P: TFloatPoint); override;
     procedure ClosePath; override;
@@ -139,6 +143,7 @@ type
     procedure DoBeginPath(Sender: TObject); virtual;
     procedure DoEndPath(Sender: TObject); virtual;
     procedure DoClosePath(Sender: TObject); virtual;
+    procedure AssignTo(Dest: TPersistent); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -157,6 +162,7 @@ type
     procedure SetRendererClassName(const Value: string);
     procedure SetRenderer(ARenderer: TPolygonRenderer32);
   protected
+    procedure AssignTo(Dest: TPersistent); override;
     procedure DrawPath; override;
     class function GetPolygonRendererClass: TPolygonRenderer32Class; virtual;
     procedure BrushCollectionChangeHandler(Sender: TObject); virtual;
@@ -270,6 +276,19 @@ begin
   Polygon(BuildArc(P, StartAngle, EndAngle, Radius));
 end;
 
+procedure TCustomPath.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TCustomPath then
+    with TCustomPath(Dest) do
+    begin
+      FCurrentPoint := Self.FCurrentPoint;
+      FLastControlPoint := Self.FLastControlPoint;
+      FControlPointOrigin := Self.FControlPointOrigin;
+    end
+  else
+    inherited;
+end;
+
 procedure TCustomPath.BeginPath;
 begin
 end;
@@ -277,6 +296,11 @@ end;
 procedure TCustomPath.Circle(const Cx, Cy, Radius: TFloat; Steps: Integer);
 begin
   Polygon(GR32_VectorUtils.Circle(Cx, Cy, Radius, Steps));
+end;
+
+procedure TCustomPath.Clear;
+begin
+  FControlPointOrigin := cpNone;
 end;
 
 procedure TCustomPath.ClosePath;
@@ -510,6 +534,14 @@ begin
     FOnEndPath(Self);
 end;
 
+procedure TFlattenedPath.Clear;
+begin
+  inherited;
+  FPath := nil;
+  FPoints := nil;
+  FPointIndex := 0;
+end;
+
 procedure TFlattenedPath.ClosePath;
 var
   N: Integer;
@@ -564,22 +596,23 @@ end;
 
 procedure TFlattenedPath.AssignTo(Dest: TPersistent);
 var
-  I, J: Integer;
+  I: Integer;
 begin
+  inherited;
+
   if Dest is TFlattenedPath then
     with TFlattenedPath(Dest) do
     begin
       BeginPath;
-      SetLength(FPath, length(Self.FPath));
+      SetLength(FPath, Length(Self.FPath));
       for I := 0 to High(Self.FPath) do
       begin
         SetLength(FPath[I], Length(Self.FPath[I]));
-        for J := 0 to High(Self.FPath[I]) do
-          FPath[I][J] := Self.FPath[I][J];
+        Move(Self.FPath[I, 0], FPath[I, 0], Length(Self.FPath[I]) *
+          SizeOf(TFloatPoint));
       end;
       EndPath;
-    end else
-      inherited;
+    end;
 end;
 
 function TFlattenedPath.GetPoints: TArrayOfFloatPoint;
@@ -609,14 +642,24 @@ begin
   inherited;
 end;
 
+procedure TCustomCanvas.AssignTo(Dest: TPersistent);
+begin
+  if Dest is TCustomCanvas then
+    with TCustomCanvas(Dest) do
+    begin
+      FPath.Assign(Self.FPath);
+      FTransformation := Self.FTransformation;
+    end
+  else
+    inherited;
+end;
+
 procedure TCustomCanvas.DoBeginPath(Sender: TObject);
 begin
-
 end;
 
 procedure TCustomCanvas.DoClosePath(Sender: TObject);
 begin
-
 end;
 
 procedure TCustomCanvas.DoEndPath(Sender: TObject);
@@ -634,6 +677,19 @@ begin
 end;
 
 { TCanvas32 }
+
+procedure TCanvas32.AssignTo(Dest: TPersistent);
+begin
+  inherited;
+
+  if Dest is TCanvas32 then
+    with TCanvas32(Dest) do
+    begin
+      FBitmap := Self.Bitmap;
+      FRenderer.Assign(Self.FRenderer);
+      FBrushes.Assign(Self.FBrushes);
+    end;
+end;
 
 procedure TCanvas32.BrushCollectionChangeHandler(Sender: TObject);
 begin
