@@ -355,6 +355,7 @@ begin
     begin
       TmpPath := TFlattenedPath(Path);
       TmpPath.Clear;
+      TmpPath.BeginPath;
     end
     else
     begin
@@ -506,7 +507,9 @@ begin
   begin
     Path.Assign(TmpPath);
     TmpPath.Free;
-  end;
+  end
+  else if Assigned(Path) then
+    Path.EndPath;
 end;
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
