@@ -35,6 +35,7 @@ interface
 {$I GR32.inc}
 
 uses
+  {$IFDEF Windows}Windows,{$ENDIF}
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs,
   GR32_Image, GR32_Paths, GR32, GR32_Polygons, ExtCtrls;
 
@@ -344,8 +345,10 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // set priority class and thread priority for better accuracy
-  // SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
-  // SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
+{$IFDEF Windows}
+  SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
+  SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
+{$ENDIF}
 
   CmbTest.Items := TestRegistry;
   CmbTest.ItemIndex := 0;
