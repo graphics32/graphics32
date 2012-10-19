@@ -46,7 +46,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, GR32_Polygons;
+  Types, GR32, GR32_Polygons;
 
 type
   TPolygonRenderer32AggLite = class(TPolygonRenderer32)
@@ -80,7 +80,7 @@ type
 
   TPointWord = record
   case Byte of
-    0: (X, Y: Int16);
+    0: (X, Y: SmallInt);
     1: (PackedCoord: Integer);
   end;
 
@@ -177,8 +177,8 @@ procedure SetCell(var Cell: TCell; CX, CY: Integer); {$IFDEF PUREPASCAL} inline;
 begin
   with Cell do
   begin
-    Pnt.X := Int16(CX);
-    Pnt.Y := Int16(CY);
+    Pnt.X := SmallInt(CX);
+    Pnt.Y := SmallInt(CY);
     PackedCoord := (CY shl 16) + CX;
     Cover := 0;
     Area := 0;
@@ -664,7 +664,7 @@ asm
         SHL       EAX,4
         ADD       RAX,alpha_ptr
         PSUBW     XMM0,XMM2
-        PMULLW    XMM0,[EAX]
+        PMULLW    XMM0,[RAX]
         PSLLW     XMM2,8
         MOV       RAX,bias_ptr
         PADDW     XMM2,[RAX]
@@ -672,7 +672,7 @@ asm
         PSRLW     XMM0,8
 
 @2:     PACKUSWB  XMM0,XMM7
-        MOVD      [ECX],XMM0
+        MOVD      [RCX],XMM0
 
 @3:     ADD       ECX,4
         ADD       EDX,4
