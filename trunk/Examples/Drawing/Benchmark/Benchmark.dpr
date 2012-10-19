@@ -1,14 +1,13 @@
 program Benchmark;
 
-uses
-  Vcl.Forms,
-  Unit1 in 'Unit1.pas' {Form1};
+{$R 'Media.res' 'Media.rc'}
 
-{$R *.res}
+uses
+  Forms,
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
   Application.Initialize;
-  Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

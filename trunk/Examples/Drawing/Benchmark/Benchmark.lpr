@@ -1,14 +1,14 @@
 program Benchmark;
 
+{$R Media.rc}
+
 uses
   Forms, Interfaces,
-  Unit1 in 'Unit1.pas', GR32_L {Form1};
-
-{$R *.res}
+  MainUnit in 'MainUnit.pas' {Form1};
 
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
-end.
+end.
