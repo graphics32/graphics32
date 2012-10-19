@@ -12,7 +12,7 @@ object MainForm: TMainForm
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
   Position = poDesktopCenter
-  LCLVersion = '1.0.1.3'
+  LCLVersion = '1.0.3.0'
   object PnlTop: TPanel
     Left = 0
     Height = 364
