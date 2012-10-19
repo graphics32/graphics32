@@ -140,6 +140,12 @@ begin
   finally
     Canvas.Free;
   end;
+  Img.Repaint;
+end;
+
+function RandColor: TColor32; inline;
+begin
+  Result := Random($FFFFFF) or $ff000000;
 end;
 
 //----------------------------------------------------------------------------//
@@ -151,7 +157,7 @@ var
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random(Integer($FFFFFFFF));
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
   Canvas.Path.Ellipse(Random(W), Random(H), Random(W shr 1), Random(H shr 1));
 end;
 
@@ -169,7 +175,7 @@ begin
   with Canvas.Brushes[1] as TStrokeBrush do
   begin
     StrokeWidth := 1;
-    FillColor := Random(Integer($FFFFFFFF));
+    FillColor := RandColor;
   end;
   Canvas.Path.BeginPath;
   Canvas.Path.MoveTo(Random(W), Random(H));
@@ -191,7 +197,7 @@ begin
   with Canvas.Brushes[1] as TStrokeBrush do
   begin
     StrokeWidth := 10;
-    FillColor := Random(Integer($FFFFFFFF));
+    FillColor := RandColor;
   end;
   Canvas.Path.BeginPath;
   Canvas.Path.MoveTo(Random(W), Random(H));
@@ -238,7 +244,7 @@ var
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random(Integer($FFFFFFFF));
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
 
   I := Random(5);
   Font := Canvas.Bitmap.Font;
@@ -330,7 +336,7 @@ begin
   finally
     K.Free;
   end;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random(Integer($FFFFFFFF));
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
   Canvas.Path.Polygon(Points);
 end;
 
@@ -420,4 +426,4 @@ initialization
   if Assigned(GetPlatformBackendClass.GetInterfaceEntry(ITextToPathSupport)) then
     RegisterTest('Text', TextTest);
 
-end.
+end.
