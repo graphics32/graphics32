@@ -62,7 +62,7 @@ type
   TColor32Array = array [0..0] of TColor32;
   TArrayOfColor32 = array of TColor32;
 
-{$IFNDEF BGRA_FORMAT}
+{$IFNDEF RGBA_FORMAT}
   TColor32Component = (ccBlue, ccGreen, ccRed, ccAlpha);
 {$ELSE}
   TColor32Component = (ccRed, ccGreen, ccBlue, ccAlpha);
@@ -72,7 +72,7 @@ type
   PColor32Entry = ^TColor32Entry;
   TColor32Entry = packed record
     case Integer of
-{$IFNDEF BGRA_FORMAT}
+{$IFNDEF RGBA_FORMAT}
       0: (B, G, R, A: Byte);
 {$ELSE}
       0: (R, G, B, A: Byte);
@@ -1198,7 +1198,7 @@ asm
         MOV     EAX, ECX
 {$ENDIF}
         // the alpha channel byte is set to zero!
-        ROL     EAX, 8  // ABGR  ->  BGRA
+        ROL     EAX, 8  // ABGR  ->  RGBA
         XOR     AL, AL  // BGRA  ->  BGR0
         BSWAP   EAX     // BGR0  ->  0RGB
 {$ENDIF}
@@ -6403,4 +6403,4 @@ initialization
 finalization
   StockBitmap.Free;
 
-end.
+end.
