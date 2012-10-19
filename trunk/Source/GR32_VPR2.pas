@@ -54,7 +54,8 @@ type
     FOpacityMap: TFloatMap;
     FXSpan: array of TIntSpan;
     FYSpan: TIntSpan;
-    procedure AddLineSegment(X1, Y1, X2, Y2: TFloat);
+    procedure AddLineSegment(X1, Y1, X2, Y2: TFloat); overload;
+    procedure AddLineSegment(X1, Y1, X2, Y2: TFixed); overload;
     procedure DrawBitmap;
   public
     constructor Create; override;
@@ -172,9 +173,107 @@ begin
   end;
 end;
 
+procedure TPolygonRenderer32VPR2.AddLineSegment(X1, Y1, X2, Y2: TFixed);
+type
+  PFloatArray = ^TFloatArray;
+  TFloatArray = array [0..1] of TFloat;
+const
+  SGN: array [0..1] of Integer = (1, -1);
+  EPSILON: TFloat = 0.0001;
+var
+  Dx, Dy, DyDx, DxDy, t, tX, tY: Double;
+  Xm, Ym, Xn, Yn: TFixed;
+  X, Y: Integer;
+  StepX, StepY: TFixed;
+  P: PFloatArray;
+
+  procedure AddSegment(X1, Y1, X2, Y2: TFixed);
+  var
+    Dx, Dy: TFloat;
+  begin
+    Dx := (X1 + X2) * 0.5;
+    Dx := Dx - Round(Dx);
+    Dy := Y2 - Y1;
+    Dx := Dx * Dy;
+    P[0] := P[0] + Dy - Dx;
+    P[1] := P[1] + Dx;
+  end;
+
+begin
+  Dx := (X2 - X1) * FixedToFloat;
+  Dy := (Y2 - Y1) * FixedToFloat;
+
+  if Dy = 0 then Exit;
+
+  X := FixedFloor(X1);
+  Y := FixedFloor(Y1);
+
+  UpdateSpan(FYSpan, Y);
+
+  StepX := Ord(Dx < 0) * FixedOne;
+  StepY := Ord(Dy < 0) * FixedOne;
+
+  X1 := X1 - StepX;
+  Y1 := Y1 - StepY;
+  X2 := X2 - StepX;
+  Y2 := Y2 - StepY;
+
+  StepX := SGN[StepX];
+  StepY := SGN[StepY];
+
+  if Dx = 0 then
+  begin
+    Yn := Y1;
+    repeat
+      UpdateSpan(FXSpan[Y], X);
+      P := PFloatArray(FOpacityMap.ValPtr[X, Y]);
+      Ym := Yn;
+      Inc(Y, StepY);
+      Yn := Y;
+      AddSegment(X1, Ym, X1, Yn);
+    until Abs(Y1 - Yn) + EPSILON >= Abs(Dy);
+    AddSegment(X1, Yn, X1, Y2);
+  end
+  else
+  begin
+    DyDx := Dy / Dx;
+    DxDy := Dx / Dy;
+
+    tX := X + StepX - X1;
+    tY := (Y + StepY - Y1) * DxDy;
+
+    Xn := X1;
+    Yn := Y1;
+
+    repeat
+      Xm := Xn;
+      Ym := Yn;
+
+      UpdateSpan(FXSpan[Y], X);
+      P := PFloatArray(FOpacityMap.ValPtr[X, Y]);
+      if Abs(tX) <= Abs(tY) then
+      begin
+        Inc(X, StepX);
+        t := tX;
+        tX := tX + StepX;
+      end
+      else
+      begin
+        Inc(Y, StepY);
+        t := tY;
+        tY := tY + StepY * DxDy;
+      end;
+      Xn := X1 + Fixed(t);
+      Yn := Y1 + Fixed(t * DyDx);
+      AddSegment(Xm, Ym, Xn, Yn);
+    until Abs(t) + EPSILON >= Abs(Dx);
+    AddSegment(Xn, Yn, X2, Y2);
+  end;
+end;
+
 constructor TPolygonRenderer32VPR2.Create;
 begin
-  inherited;
+  inherited Create;
   FOpacityMap := TFloatMap.Create;
 end;
 
@@ -244,14 +343,18 @@ procedure TPolygonRenderer32VPR2.DrawBitmap;
 const
   FillProcs: array [TPolyFillMode] of TFillProc = (MakeAlphaEvenOddUP, MakeAlphaNonZeroUP);
 var
-  I, J, N: Integer;
+  I, N: Integer;
   Dst: PColor32Array;
   Src: PFloatArray;
   P: PIntSpan;
   FillProc: TFillProc;
   FG: PColor32Array;
 begin
+  {$IFDEF UseStackAlloc}
   FG := StackAlloc(Bitmap.Width * SizeOf(TColor32));
+  {$ELSE}
+  GetMem(FG, Bitmap.Width * SizeOf(TColor32));
+  {$ENDIF}
   FillProc := FillProcs[FillMode];
   FYSpan.Max := Min(FYSpan.Max, Bitmap.Height - 1);
   Assert(FYSpan.Min >= 0);
@@ -278,7 +381,11 @@ begin
     // 4. Clear opacity map
     FillLongWord(Src[P.Min], N, 0);
   end;
+  {$IFDEF UseStackAlloc}
   StackFree(FG);
+  {$ELSE}
+  FreeMem(FG);
+  {$ENDIF}
 end;
 
 procedure TPolygonRenderer32VPR2.PolyPolygonFS(
@@ -287,7 +394,6 @@ var
   APoints: TArrayOfFloatPoint;
   I, J, H: Integer;
   SavedRoundMode: TFPURoundingMode;
-  P: PIntSpan;
 begin
   FYSpan := STARTSPAN;
   SavedRoundMode := SetRoundMode(rmDown);
