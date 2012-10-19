@@ -46,7 +46,7 @@
 
 *)
 
-  {-$DEFINE PUREPASCAL}
+  {$DEFINE PUREPASCAL}
 
 
 
@@ -183,7 +183,6 @@
   {-$DEFINE OMIT_SSE2}
 
 
-
 (*
   Symbol: USEGR32GAMMA
   --------------------
@@ -227,7 +226,14 @@
 
 {-$DEFINE USESTACKALLOC}
 
+(*
+  Symbol: RGBA_FORMAT
+  -------------------
 
+     Assume RGBA pixel format instead of BGRA (used by e.g. OpenGL.)
+*)
+
+{-$DEFINE RGBA_FORMAT}
 
 (*
   Symbol: NOHINTING
