@@ -107,6 +107,9 @@
     </Parsing>
     <CodeGeneration>
       <SmartLinkUnit Value="True"/>
+      <Checks>
+        <RangeChecks Value="True"/>
+      </Checks>
     </CodeGeneration>
     <Linking>
       <LinkSmart Value="True"/>
