@@ -7,6 +7,8 @@ lazbuild.exe Drawing\AntiAliasing\AntiAliasing.lpi
 IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\ArrowHead\ArrowHead.lpi
 IF ERRORLEVEL 1 PAUSE
+lazbuild.exe Drawing\Benchmark\Benchmark.lpi
+IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\Blurs\Blurs.lpi
 IF ERRORLEVEL 1 PAUSE
 lazbuild.exe Drawing\Clipper\Clipper.lpi

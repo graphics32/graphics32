@@ -3,6 +3,7 @@ rm -rf Blending/PixelCombine/lib
 rm -rf Blending/TextureBlend/lib
 rm -rf Drawing/AntiAliasing/lib
 rm -rf Drawing/ArrowHead/lib
+rm -rf Drawing/Benchmark/lib
 rm -rf Drawing/Blurs/lib
 rm -rf Drawing/Clipper/lib
 rm -rf Drawing/CubicSpline/lib
