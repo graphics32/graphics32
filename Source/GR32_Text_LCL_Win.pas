@@ -301,7 +301,11 @@ begin
   X := ARect.Left * HorzStretch;
   Y := ARect.Top + TextMetric.tmAscent;
   XMax := X;
-  MaxRight := ARect.Right * HorzStretch;
+
+  if not Assigned(Path) or (ARect.Right = ARect.Left) then
+    MaxRight := MaxSingle //either measuring text or unbounded text
+  else
+    MaxRight := ARect.Right * HorzStretch;
   SetLength(CharOffsets, TextLen +1);
   CharOffsets[0] := 0;
 
@@ -483,7 +487,7 @@ begin
   else Result := thNone;
 end;
 
-procedure InitUseHinting;
+procedure InitHinting;
 begin
 {$IFDEF NOHORIZONTALHINTING}
   SetHinting(thNoHorz);
@@ -497,6 +501,6 @@ begin
 end;
 
 initialization
-  InitUseHinting;
+  InitHinting;
 
 end.

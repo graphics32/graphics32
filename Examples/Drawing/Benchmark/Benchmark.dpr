@@ -4,7 +4,7 @@ program Benchmark;
 
 uses
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas' {MainForm};
 
 begin
   Application.Initialize;

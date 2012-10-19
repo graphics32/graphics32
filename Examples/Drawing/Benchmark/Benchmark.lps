@@ -3,7 +3,7 @@
   <ProjectSession>
     <Version Value="9"/>
     <BuildModes Active="Debug"/>
-    <Units Count="16">
+    <Units Count="23">
       <Unit0>
         <Filename Value="Benchmark.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -11,7 +11,7 @@
         <WindowIndex Value="0"/>
         <TopLine Value="1"/>
         <CursorPos X="31" Y="16"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
@@ -25,9 +25,9 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="12"/>
-        <CursorPos X="46" Y="39"/>
-        <UsageCount Value="20"/>
+        <TopLine Value="73"/>
+        <CursorPos X="30" Y="88"/>
+        <UsageCount Value="21"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
@@ -42,7 +42,6 @@
         <TopLine Value="274"/>
         <CursorPos X="1" Y="367"/>
         <UsageCount Value="20"/>
-        <LoadedDesigner Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit2>
       <Unit3>
@@ -153,39 +152,216 @@
       <Unit15>
         <Filename Value="../../../Source/GR32_Blend.pas"/>
         <UnitName Value="GR32_Blend"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="5"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="3159"/>
-        <CursorPos X="37" Y="3186"/>
+        <TopLine Value="3317"/>
+        <CursorPos X="1" Y="3333"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit15>
+      <Unit16>
+        <Filename Value="../../../Source/GR32_PolygonsAggLite.pas"/>
+        <UnitName Value="GR32_PolygonsAggLite"/>
+        <EditorIndex Value="9"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="72"/>
+        <CursorPos X="13" Y="80"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <UnitName Value="GR32_Paths"/>
+        <EditorIndex Value="2"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="388"/>
+        <CursorPos X="1" Y="400"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="../../../Source/GR32_VectorUtils.pas"/>
+        <UnitName Value="GR32_VectorUtils"/>
+        <EditorIndex Value="7"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1332"/>
+        <CursorPos X="1" Y="1345"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="../../../Source/GR32.pas"/>
+        <UnitName Value="GR32"/>
+        <EditorIndex Value="8"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="2610"/>
+        <CursorPos X="1" Y="2622"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="../../../Source/GR32_Brushes.pas"/>
+        <UnitName Value="GR32_Brushes"/>
+        <EditorIndex Value="3"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="328"/>
+        <CursorPos X="1" Y="342"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <UnitName Value="GR32_Polygons"/>
+        <EditorIndex Value="4"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1403"/>
+        <CursorPos X="1" Y="1415"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="../../../Source/GR32_VPR.pas"/>
+        <UnitName Value="GR32_VPR"/>
+        <EditorIndex Value="6"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="522"/>
+        <CursorPos X="1" Y="537"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit22>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="5" HistoryIndex="4">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="../../../Source/GR32_Blend.pas"/>
+        <Caret Line="3333" Column="1" TopLine="3317"/>
       </Position1>
       <Position2>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="41" Column="92" TopLine="8"/>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1553" Column="1" TopLine="1538"/>
       </Position2>
       <Position3>
-        <Filename Value="../../../Source/GR32_Blend.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1557" Column="1" TopLine="1538"/>
       </Position3>
       <Position4>
-        <Filename Value="MainUnit.pas"/>
-        <Caret Line="51" Column="110" TopLine="8"/>
+        <Filename Value="../../../Source/GR32_VPR.pas"/>
+        <Caret Line="481" Column="1" TopLine="461"/>
       </Position4>
       <Position5>
-        <Filename Value="Benchmark.lpr"/>
-        <Caret Line="16" Column="94" TopLine="1"/>
+        <Filename Value="../../../Source/GR32_VPR.pas"/>
+        <Caret Line="483" Column="1" TopLine="463"/>
       </Position5>
+      <Position6>
+        <Filename Value="../../../Source/GR32_VPR.pas"/>
+        <Caret Line="518" Column="1" TopLine="506"/>
+      </Position6>
+      <Position7>
+        <Filename Value="../../../Source/GR32_VPR.pas"/>
+        <Caret Line="524" Column="1" TopLine="506"/>
+      </Position7>
+      <Position8>
+        <Filename Value="../../../Source/GR32_VPR.pas"/>
+        <Caret Line="537" Column="1" TopLine="522"/>
+      </Position8>
+      <Position9>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1529" Column="1" TopLine="1517"/>
+      </Position9>
+      <Position10>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1530" Column="1" TopLine="1517"/>
+      </Position10>
+      <Position11>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1531" Column="1" TopLine="1517"/>
+      </Position11>
+      <Position12>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1532" Column="1" TopLine="1517"/>
+      </Position12>
+      <Position13>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1534" Column="1" TopLine="1517"/>
+      </Position13>
+      <Position14>
+        <Filename Value="../../../Source/GR32_Polygons.pas"/>
+        <Caret Line="1415" Column="1" TopLine="1403"/>
+      </Position14>
+      <Position15>
+        <Filename Value="../../../Source/GR32_Brushes.pas"/>
+        <Caret Line="342" Column="1" TopLine="328"/>
+      </Position15>
+      <Position16>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="675" Column="1" TopLine="655"/>
+      </Position16>
+      <Position17>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="671" Column="1" TopLine="655"/>
+      </Position17>
+      <Position18>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="679" Column="1" TopLine="659"/>
+      </Position18>
+      <Position19>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="625" Column="1" TopLine="613"/>
+      </Position19>
+      <Position20>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="511" Column="1" TopLine="499"/>
+      </Position20>
+      <Position21>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="550" Column="1" TopLine="538"/>
+      </Position21>
+      <Position22>
+        <Filename Value="../../../Source/GR32_Paths.pas"/>
+        <Caret Line="400" Column="1" TopLine="388"/>
+      </Position22>
+      <Position23>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="156" Column="1" TopLine="136"/>
+      </Position23>
+      <Position24>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="127" Column="1" TopLine="115"/>
+      </Position24>
+      <Position25>
+        <Filename Value="../../../Source/GR32_PolygonsAggLite.pas"/>
+        <Caret Line="671" Column="28" TopLine="659"/>
+      </Position25>
+      <Position26>
+        <Filename Value="MainUnit.pas"/>
+        <Caret Line="128" Column="1" TopLine="120"/>
+      </Position26>
+      <Position27>
+        <Filename Value="../../../Source/GR32_PolygonsAggLite.pas"/>
+        <Caret Line="1" Column="26" TopLine="1"/>
+      </Position27>
+      <Position28>
+        <Filename Value="../../../Source/GR32_PolygonsAggLite.pas"/>
+        <Caret Line="671" Column="30" TopLine="659"/>
+      </Position28>
+      <Position29>
+        <Filename Value="../../../Source/GR32_PolygonsAggLite.pas"/>
+        <Caret Line="81" Column="1" TopLine="70"/>
+      </Position29>
+      <Position30>
+        <Filename Value="../../../Source/GR32_PolygonsAggLite.pas"/>
+        <Caret Line="84" Column="1" TopLine="72"/>
+      </Position30>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

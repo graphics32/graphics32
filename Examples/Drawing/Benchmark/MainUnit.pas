@@ -36,7 +36,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs,
-  GR32_Image, GR32_Paths, GR32, GR32_Polygons;
+  GR32_Image, GR32_Paths, GR32, GR32_Polygons, ExtCtrls;
 
 const
   TEST_DURATION = 4000;  // test for 4 seconds
@@ -47,19 +47,26 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    BtnBenchmark: TButton;
-    CbxAllTests: TCheckBox;
-    CbxAllRenderers: TCheckBox;
-    CmbRenderer: TComboBox;
-    CmbTest: TComboBox;
-    GbxSettings: TGroupBox;
-    GbxResults: TGroupBox;
+    PnlTop: TPanel;
     Img: TImage32;
+    PnlBottom: TPanel;
+    GbxSettings: TGroupBox;
     LblTest: TLabel;
     LblRenderer: TLabel;
+    BtnBenchmark: TButton;
+    CmbTest: TComboBox;
+    CmbRenderer: TComboBox;
+    CbxAllTests: TCheckBox;
+    CbxAllRenderers: TCheckBox;
+    GbxResults: TGroupBox;
+    PnlBenchmark: TPanel;
     MemoLog: TMemo;
+    PnlSpacer: TPanel;
+    BtnExit: TButton;
     procedure FormCreate(Sender: TObject);
     procedure BtnBenchmarkClick(Sender: TObject);
+    procedure ImgResize(Sender: TObject);
+    procedure BtnExitClick(Sender: TObject);
   private
     procedure RunTest(TestProc: TTestProc; TestTime: Int64 = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
@@ -78,7 +85,7 @@ implementation
 
 uses
   Math, GR32_System, GR32_LowLevel, GR32_Resamplers, GR32_Brushes,
-  GR32_Backends, GR32_VPR2, GR32_PolygonsAggLite;
+  GR32_Backends, GR32_VPR2;//, GR32_PolygonsAggLite;
 
 const
   GridScale: Integer = 40;
@@ -384,10 +391,25 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
   end;
 
 begin
-  if CbxAllRenderers.Checked then
-    TestAllRenderers
-  else
-    TestRenderer;
+  Screen.Cursor := crHourGlass;
+  try
+    if CbxAllRenderers.Checked then
+      TestAllRenderers
+    else
+      TestRenderer;
+  finally
+    Screen.Cursor := crDefault;
+  end;
+end;
+
+procedure TMainForm.ImgResize(Sender: TObject);
+begin
+  Img.SetupBitmap(True, clWhite32);
+end;
+
+procedure TMainForm.BtnExitClick(Sender: TObject);
+begin
+  Close;
 end;
 
 initialization

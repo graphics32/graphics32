@@ -71,7 +71,7 @@ uses
 
 { TPolygonRenderer32VPR2 }
 
-procedure UpdateSpan(var Span: TIntSpan; Value: Integer); inline;
+procedure UpdateSpan(var Span: TIntSpan; Value: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   if Value < Span.Min then Span.Min := Value;
   if Value > Span.Max then Span.Max := Value;
