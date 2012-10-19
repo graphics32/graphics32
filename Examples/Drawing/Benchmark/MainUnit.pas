@@ -36,7 +36,7 @@ interface
 
 uses
   SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs,
-  GR32_Image, GR32_Paths, GR32, GR32_Polygons, GR32_Layers;
+  GR32_Image, GR32_Paths, GR32, GR32_Polygons;
 
 const
   TEST_DURATION = 4000;  // test for 4 seconds
@@ -47,25 +47,22 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    Button1: TButton;
-    cbAllTests: TCheckBox;
-    cbAllRenderers: TCheckBox;
-    cmbRenderer: TComboBox;
-    cmbTest: TComboBox;
-    GroupBox1: TGroupBox;
-    GroupBox2: TGroupBox;
+    BtnBenchmark: TButton;
+    CbxAllTests: TCheckBox;
+    CbxAllRenderers: TCheckBox;
+    CmbRenderer: TComboBox;
+    CmbTest: TComboBox;
+    GbxSettings: TGroupBox;
+    GbxResults: TGroupBox;
     Img: TImage32;
-    Label1: TLabel;
-    Label2: TLabel;
-    Memo1: TMemo;
+    LblTest: TLabel;
+    LblRenderer: TLabel;
+    MemoLog: TMemo;
     procedure FormCreate(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure BtnBenchmarkClick(Sender: TObject);
   private
     procedure RunTest(TestProc: TTestProc; TestTime: Int64 = TEST_DURATION);
     procedure WriteTestResult(OperationsPerSecond: Integer);
-    { Private declarations }
-  public
-    { Public declarations }
   end;
 
 var
@@ -98,7 +95,7 @@ end;
 
 procedure TMainForm.WriteTestResult(OperationsPerSecond: Integer);
 begin
-  Memo1.Lines.Add(Format('[%s] %s: %d op/s', [cmbTest.Text, cmbRenderer.Text,
+  MemoLog.Lines.Add(Format('[%s] %s: %d op/s', [cmbTest.Text, cmbRenderer.Text,
     OperationsPerSecond]));
 end;
 
@@ -147,7 +144,7 @@ var
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($ffffffff);
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random(Integer($FFFFFFFF));
   Canvas.Path.Ellipse(Random(W), Random(H), Random(W shr 1), Random(H shr 1));
 end;
 
@@ -165,7 +162,7 @@ begin
   with Canvas.Brushes[1] as TStrokeBrush do
   begin
     StrokeWidth := 1;
-    FillColor := Random($ffffffff);
+    FillColor := Random(Integer($FFFFFFFF));
   end;
   Canvas.Path.BeginPath;
   Canvas.Path.MoveTo(Random(W), Random(H));
@@ -187,7 +184,7 @@ begin
   with Canvas.Brushes[1] as TStrokeBrush do
   begin
     StrokeWidth := 10;
-    FillColor := Random($ffffffff);
+    FillColor := Random(Integer($FFFFFFFF));
   end;
   Canvas.Path.BeginPath;
   Canvas.Path.MoveTo(Random(W), Random(H));
@@ -234,7 +231,7 @@ var
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($ffffffff);
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($FFFFFFFF);
 
   I := Random(5);
   Font := Canvas.Bitmap.Font;
@@ -325,7 +322,7 @@ begin
   finally
     K.Free;
   end;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($ffffffff);
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($FFFFFFFF);
   Canvas.Path.Polygon(Points);
 end;
 
@@ -345,7 +342,7 @@ begin
 end;
 
 
-procedure TMainForm.Button1Click(Sender: TObject);
+procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
   procedure PerformTest;
   begin
@@ -367,7 +364,7 @@ procedure TMainForm.Button1Click(Sender: TObject);
   procedure TestRenderer;
   begin
     DefaultPolygonRendererClass := TPolygonRenderer32Class(PolygonRendererList[cmbRenderer.ItemIndex]);
-    if cbAllTests.Checked then
+    if CbxAllTests.Checked then
       PerformAllTests
     else
       PerformTest;
@@ -385,7 +382,7 @@ procedure TMainForm.Button1Click(Sender: TObject);
   end;
 
 begin
-  if cbAllRenderers.Checked then
+  if CbxAllRenderers.Checked then
     TestAllRenderers
   else
     TestRenderer;

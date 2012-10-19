@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 242
   Top = 750
   Caption = 'Polygon Renderer Benchmark'
-  ClientHeight = 828
+  ClientHeight = 746
   ClientWidth = 714
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -12,98 +12,104 @@ object MainForm: TMainForm
   Font.Style = []
   OldCreateOrder = True
   OnCreate = FormCreate
+  DesignSize = (
+    714
+    746)
   PixelsPerInch = 96
   TextHeight = 13
   object Img: TImage32
     Left = 8
     Top = 8
-    Width = 697
-    Height = 505
+    Width = 698
+    Height = 514
+    Anchors = [akLeft, akTop, akRight, akBottom]
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baTopLeft
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 0
   end
-  object GroupBox1: TGroupBox
+  object GbxSettings: TGroupBox
     Left = 8
     Top = 528
     Width = 328
-    Height = 296
+    Height = 210
+    Anchors = [akLeft, akBottom]
     Caption = 'Benchmark Settings'
     TabOrder = 1
-    object Label1: TLabel
+    object LblTest: TLabel
       Left = 14
-      Top = 10
+      Top = 34
       Width = 25
       Height = 13
       Caption = 'Test:'
       Color = clBtnFace
       ParentColor = False
     end
-    object Label2: TLabel
+    object LblRenderer: TLabel
       Left = 14
-      Top = 42
+      Top = 61
       Width = 49
       Height = 13
       Caption = 'Renderer:'
       Color = clBtnFace
       ParentColor = False
     end
-    object Button1: TButton
-      Left = 110
-      Top = 130
+    object BtnBenchmark: TButton
+      Left = 126
+      Top = 166
       Width = 75
       Height = 25
       Caption = 'Benchmark'
       TabOrder = 0
-      OnClick = Button1Click
+      OnClick = BtnBenchmarkClick
     end
-    object cmbTest: TComboBox
+    object CmbTest: TComboBox
       Left = 78
-      Top = 2
+      Top = 31
       Width = 225
       Height = 21
       Style = csDropDownList
       TabOrder = 1
     end
-    object cmbRenderer: TComboBox
+    object CmbRenderer: TComboBox
       Left = 78
-      Top = 34
+      Top = 58
       Width = 225
       Height = 21
       Style = csDropDownList
       TabOrder = 2
     end
-    object cbAllTests: TCheckBox
+    object CbxAllTests: TCheckBox
       Left = 22
-      Top = 74
-      Width = 143
+      Top = 98
+      Width = 115
       Height = 22
       Caption = 'Benchmark all tests'
       TabOrder = 3
     end
-    object cbAllRenderers: TCheckBox
+    object CbxAllRenderers: TCheckBox
       Left = 22
-      Top = 98
-      Width = 172
+      Top = 122
+      Width = 139
       Height = 22
       Caption = 'Benchmark all renderers'
       TabOrder = 4
     end
   end
-  object GroupBox2: TGroupBox
-    Left = 352
+  object GbxResults: TGroupBox
+    Left = 342
     Top = 528
-    Width = 344
-    Height = 296
+    Width = 364
+    Height = 210
+    Anchors = [akLeft, akRight, akBottom]
     Caption = 'Benchmark Results'
     TabOrder = 2
-    object Memo1: TMemo
+    object MemoLog: TMemo
       Left = 2
       Top = 15
-      Width = 340
-      Height = 279
+      Width = 360
+      Height = 193
       Align = alClient
       TabOrder = 0
     end
