@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 340
   Top = 106
-  Width = 722
-  Height = 595
   Caption = 'Polygon Renderer Benchmark'
+  ClientHeight = 568
+  ClientWidth = 714
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -90,7 +90,6 @@ object MainForm: TMainForm
         Width = 225
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
         TabOrder = 1
       end
       object CmbRenderer: TComboBox
@@ -99,7 +98,6 @@ object MainForm: TMainForm
         Width = 225
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
         TabOrder = 2
       end
       object CbxAllTests: TCheckBox
@@ -119,9 +117,9 @@ object MainForm: TMainForm
         TabOrder = 4
       end
       object BtnExit: TButton
-        Left = 158
+        Left = 176
         Top = 158
-        Width = 139
+        Width = 127
         Height = 25
         Cancel = True
         Caption = 'E&xit'
