@@ -35,6 +35,7 @@ unit GR32_VPR2;
 interface
 
 {$I GR32.inc}
+{$ASSERTIONS ON}
 
 uses
   GR32, GR32_Polygons, GR32_OrdinalMaps;
@@ -356,6 +357,7 @@ begin
   {$ELSE}
   GetMem(FG, Bitmap.Width * SizeOf(TColor32));
   {$ENDIF}
+
   FillProc := FillProcs[FillMode];
   FYSpan.Max := Min(FYSpan.Max, Bitmap.Height - 1);
   Assert(FYSpan.Min >= 0);
@@ -382,6 +384,7 @@ begin
     // 4. Clear opacity map
     FillLongWord(Src[P.Min], N, 0);
   end;
+
   {$IFDEF UseStackAlloc}
   StackFree(FG);
   {$ELSE}
@@ -396,11 +399,17 @@ var
   APoints: TArrayOfFloatPoint;
   I, J, H: Integer;
   SavedRoundMode: TFPURoundingMode;
+  R: TFloatRect;
 begin
   FYSpan := STARTSPAN;
   SavedRoundMode := SetRoundMode(rmDown);
   try
     FOpacityMap.SetSize(Bitmap.Width + 1, Bitmap.Height);
+
+    // temporary fix for floating point rounding errors
+    R := ClipRect;
+    R.Right := R.Right - 0.0001;
+    R.Bottom := R.Bottom - 0.0001;
 
     SetLength(FXSpan, Bitmap.Height);
     for I := 0 to High(FXSpan) do
@@ -408,7 +417,7 @@ begin
 
     for I := 0 to High(Points) do
     begin
-      APoints := ClipPolygon(Points[I], ClipRect);
+      APoints := ClipPolygon(Points[I], R);
       H := High(APoints);
       if H <= 0 then Continue;
 
