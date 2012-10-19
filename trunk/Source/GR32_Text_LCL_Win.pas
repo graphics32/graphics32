@@ -192,7 +192,13 @@ var
   CharOffsets: TArrayOfInteger;
   X, Y, XMax, YMax, MaxRight: Single;
   S: WideString;
+  UseTempPath: Boolean;
   TmpPath: TFlattenedPath;
+{$IFDEF USEKERNING}
+  LastCharValue: Integer;
+  KerningPairs: PKerningPairArray;
+  KerningPairCount: Integer;
+{$ENDIF}
 
   procedure AlignTextCenter(CurrentI: Integer);
   var
@@ -289,10 +295,33 @@ var
   end;
 
 begin
+{$IFDEF USEKERNING}
+  KerningPairs := nil;
+  KerningPairCount := GetKerningPairs(DC, 0, nil);
+  if GetLastError <> 0 then
+    RaiseLastOSError;
+  if KerningPairCount > 0 then
+  begin
+    GetMem(KerningPairs, KerningPairCount * SizeOf(TKerningPair));
+    GetKerningPairs(DC, KerningPairCount, PKerningPair(KerningPairs));
+  end;
+  LastCharValue := 0;
+{$ENDIF}
   SpcCount := 0;
   LineStart := 0;
+  UseTempPath := False;
   if Assigned(Path) then
-    TmpPath := TFlattenedPath.Create
+    if (Path is TFlattenedPath) then
+    begin
+      TmpPath := TFlattenedPath(Path);
+      TmpPath.Clear;
+      TmpPath.BeginPath;
+    end
+    else
+    begin
+      UseTempPath := True;
+      TmpPath := TFlattenedPath.Create
+    end
   else
     TmpPath := nil;
 
@@ -383,6 +412,15 @@ begin
           CharOffsets[I] := Length(TmpPath.Path);
       end;
       X := X + GlyphMetrics.gmCellIncX;
+      {$IFDEF USEKERNING}
+      for J := 0 to KerningPairCount - 1 do
+      begin
+        if (KerningPairs^[J].wFirst = LastCharValue) and
+          (KerningPairs^[J].wSecond = CharValue) then
+          X := X + KerningPairs^[J].iKernAmount;
+      end;
+      LastCharValue := CharValue;
+      {$ENDIF}
       if X > XMax then XMax := X;
     end;
   end;
@@ -416,11 +454,18 @@ begin
     OffsetRect(ARect, 0, Y);
   end;
 
-  if Assigned(TmpPath) then
+{$IFDEF USEKERNING}
+  if Assigned(KerningPairs) then
+    FreeMem(KerningPairs);
+{$ENDIF}
+
+  if UseTempPath then
   begin
     Path.Assign(TmpPath);
     TmpPath.Free;
-  end;
+  end
+  else if Assigned(Path) then
+    Path.EndPath;
 end;
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
