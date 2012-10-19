@@ -193,7 +193,7 @@
   Disable for a slight performance increase.
 *)
 
-{-$DEFINE USEGR32GAMMA}
+{$DEFINE USEGR32GAMMA}
 
 
 
@@ -225,7 +225,7 @@
   NOTE: Undefine this symbol if you get stack overflow errors.
 *)
 
-{-$DEFINE USESTACKALLOC}
+{$DEFINE USESTACKALLOC}
 
 
 
