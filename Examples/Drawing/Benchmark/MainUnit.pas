@@ -140,7 +140,6 @@ begin
   finally
     Canvas.Free;
   end;
-  Img.Repaint;
 end;
 
 function RandColor: TColor32; inline;
@@ -426,4 +425,4 @@ initialization
   if Assigned(GetPlatformBackendClass.GetInterfaceEntry(ITextToPathSupport)) then
     RegisterTest('Text', TextTest);
 
-end.
+end.
