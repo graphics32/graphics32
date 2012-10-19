@@ -103,7 +103,7 @@ end;
 
 procedure TMainForm.WriteTestResult(OperationsPerSecond: Integer);
 begin
-  MemoLog.Lines.Add(Format('[%s] %s: %d op/s', [cmbTest.Text, cmbRenderer.Text,
+  MemoLog.Lines.Add(Format('%s: %d op/s', [cmbRenderer.Text,
     OperationsPerSecond]));
 end;
 
@@ -360,9 +360,32 @@ end;
 
 procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
+  procedure TestRenderer;
+  begin
+    DefaultPolygonRendererClass := TPolygonRenderer32Class(
+      PolygonRendererList[CmbRenderer.ItemIndex]);
+    RunTest(TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
+  end;
+
+  procedure TestAllRenderers;
+  var
+    I: Integer;
+  begin
+    for I := 0 to CmbRenderer.Items.Count - 1 do
+    begin
+      CmbRenderer.ItemIndex := I;
+      TestRenderer;
+    end;
+    MemoLog.Lines.Add('');
+  end;
+
   procedure PerformTest;
   begin
-    RunTest(TTestProc(cmbTest.Items.Objects[cmbTest.ItemIndex]));
+    MemoLog.Lines.Add(Format('=== Test: %s ===', [cmbTest.Text]));
+    if CbxAllRenderers.Checked then
+      TestAllRenderers
+    else
+      TestRenderer;
   end;
 
   procedure PerformAllTests;
@@ -375,36 +398,17 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
       Repaint;
       PerformTest;
     end;
-  end;
-
-  procedure TestRenderer;
-  begin
-    DefaultPolygonRendererClass := TPolygonRenderer32Class(
-      PolygonRendererList[CmbRenderer.ItemIndex]);
-    if CbxAllTests.Checked then
-      PerformAllTests
-    else
-      PerformTest;
-  end;
-
-  procedure TestAllRenderers;
-  var
-    I: Integer;
-  begin
-    for I := 0 to CmbRenderer.Items.Count - 1 do
-    begin
-      CmbRenderer.ItemIndex := I;
-      TestRenderer;
-    end;
+    MemoLog.Lines.Add('');
   end;
 
 begin
   Screen.Cursor := crHourGlass;
   try
-    if CbxAllRenderers.Checked then
-      TestAllRenderers
+    if CbxAllTests.Checked then
+      PerformAllTests
     else
-      TestRenderer;
+      PerformTest;
+
   finally
     Screen.Cursor := crDefault;
   end;
