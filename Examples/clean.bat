@@ -7,6 +7,8 @@ rmdir /S /Q Drawing\AntiAliasing\lib
 del /Q Drawing\AntiAliasing\AntiAliasing.exe;Drawing\AntiAliasing\AntiAliasing.map;Drawing\AntiAliasing\*.dcu
 rmdir /S /Q Drawing\ArrowHead\lib
 del /Q Drawing\ArrowHead\ArrowHead.exe;Drawing\ArrowHead\ArrowHead.map;Drawing\ArrowHead\*.dcu
+rmdir /S /Q Drawing\Benchmark\lib
+del /Q Drawing\Benchmark\Benchmark.exe;Drawing\Benchmark\Benchmark.map;Drawing\Benchmark\*.dcu
 rmdir /S /Q Drawing\Blurs\lib
 del /Q Drawing\Blurs\Blurs.exe;Drawing\Blurs\Blurs.map;Drawing\Blurs\*.dcu
 rmdir /S /Q Drawing\Clipper\lib

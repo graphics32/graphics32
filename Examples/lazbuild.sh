@@ -14,6 +14,8 @@ lazbuild Drawing/AntiAliasing/AntiAliasing.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/ArrowHead/ArrowHead.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
+lazbuild Drawing/Benchmark/Benchmark.lpi
+if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/Blurs/Blurs.lpi
 if [ $? -ne 0 ]; then echo 'Press ENTER key to continue...'; read -p '' nothing; fi
 lazbuild Drawing/Clipper/Clipper.lpi
