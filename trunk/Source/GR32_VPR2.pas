@@ -339,6 +339,7 @@ begin
   end;
 end;
 
+{$IFDEF UseStackAlloc}{$W+}{$ENDIF}
 procedure TPolygonRenderer32VPR2.DrawBitmap;
 const
   FillProcs: array [TPolyFillMode] of TFillProc = (MakeAlphaEvenOddUP, MakeAlphaNonZeroUP);
@@ -387,6 +388,7 @@ begin
   FreeMem(FG);
   {$ENDIF}
 end;
+{$IFDEF UseStackAlloc}{$W-}{$ENDIF}
 
 procedure TPolygonRenderer32VPR2.PolyPolygonFS(
   const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
