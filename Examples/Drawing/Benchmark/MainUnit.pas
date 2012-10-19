@@ -143,7 +143,7 @@ begin
   end;
 end;
 
-function RandColor: TColor32; inline;
+function RandColor: TColor32; {$IFDEF UseInlining} inline; {$ENDIF}
 begin
   Result := Random($FFFFFF) or $ff000000;
 end;

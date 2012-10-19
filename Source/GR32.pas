@@ -77,7 +77,7 @@ type
 {$ELSE}
       0: (R, G, B, A: Byte);
 {$ENDIF}
-      1: (Color: TColor32);
+      1: (ARGB: TColor32);
       2: (Planes: array[0..3] of Byte);
       3: (Components: array[TColor32Component] of Byte);
   end;
