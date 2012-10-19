@@ -165,7 +165,7 @@ type
     property NumCells: Cardinal read FNumCells;
   end;
 
-function Fixed8(C: TFloat): Integer; {$IFDEF UseInlining} inline; {$ENDIF}
+function Fixed8(C: TFloat): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   Result := Trunc(C * CPolyBaseSize);
 end;
@@ -173,7 +173,7 @@ end;
 
 { TCell }
 
-procedure SetCell(var Cell: TCell; CX, CY: Integer); {$IFDEF PUREPASCAL} inline; {$ENDIF}
+procedure SetCell(var Cell: TCell; CX, CY: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
   with Cell do
   begin
@@ -185,10 +185,10 @@ begin
   end;
 end;
 
-procedure PartSort(var A, B: PPCell; const Stop: PCell); {$IFDEF PUREPASCAL} inline; {$ENDIF}
+procedure PartSort(var A, B: PPCell; const Stop: PCell); {$IFDEF USEINLINING} inline; {$ENDIF}
 {$IFDEF PUREPASCAL}
 
-  procedure SwapCells(A, B: PPCell); {$IFDEF UseInlining} inline; {$ENDIF}
+  procedure SwapCells(A, B: PPCell); {$IFDEF USEINLINING} inline; {$ENDIF}
   var
     Temp: PCell;
   begin
@@ -309,7 +309,7 @@ var
   Limit, Base, I, J, Pivot: PPCell;
   Len: Integer;
 
-  procedure CheckCells(var A, B: PCell); {$IFDEF UseInlining} inline; {$ENDIF}
+  procedure CheckCells(var A, B: PCell); {$IFDEF USEINLINING} inline; {$ENDIF}
   var
     Temp: PCell;
   begin
@@ -321,7 +321,7 @@ var
     end;
   end;
 
-  procedure SwapCells(A, B: PPCell); {$IFDEF UseInlining} inline; {$ENDIF}
+  procedure SwapCells(A, B: PPCell); {$IFDEF USEINLINING} inline; {$ENDIF}
   var
     Temp: PCell;
   begin
@@ -330,7 +330,7 @@ var
     B^ := Temp;
   end;
 
-  function LessThan(A, B: PPCell): Boolean; {$IFDEF UseInlining} inline; {$ENDIF}
+  function LessThan(A, B: PPCell): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
   begin
     Result := A^^.PackedCoord < B^^.PackedCoord;
   end;
