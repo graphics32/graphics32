@@ -77,8 +77,8 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_VPR2, Math, GR32_System, GR32_Resamplers, GR32_LowLevel, GR32_Brushes,
-  GR32_Backends;
+  Math, GR32_System, GR32_LowLevel, GR32_Resamplers, GR32_Brushes,
+  GR32_Backends, GR32_VPR2, GR32_PolygonsAggLite;
 
 const
   GridScale: Integer = 40;
@@ -231,7 +231,7 @@ var
 begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($FFFFFFFF);
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random(Integer($FFFFFFFF));
 
   I := Random(5);
   Font := Canvas.Bitmap.Font;
@@ -249,7 +249,8 @@ function MakeCurve(const Points: TArrayOfFloatPoint; Kernel: TCustomKernel;
   Closed: Boolean; StepSize: Integer): TArrayOfFloatPoint;
 var
   I, J, F, H, Index, LastIndex, Steps, R: Integer;
-  K, V, W, dx, dy, X, Y: TFloat;
+  K, V, W, X, Y: TFloat;
+  Delta: TFloatPoint;
   Filter: TFilterMethod;
   WrapProc: TWrapProc;
   PPoint: PFloatPoint;
@@ -266,9 +267,9 @@ begin
   for I := 0 to LastIndex do
   begin
     Index := WrapProc(I + 1, H);
-    dx := Points[Index].X - Points[I].X;
-    dy := Points[Index].Y - Points[I].Y;
-    Inc(Steps, Floor(Hypot(dx, dy) / StepSize) + 1);
+    Delta.X := Points[Index].X - Points[I].X;
+    Delta.Y := Points[Index].Y - Points[I].Y;
+    Inc(Steps, Floor(Hypot(Delta.X, Delta.Y) / StepSize) + 1);
   end;
 
   SetLength(Result, Steps);
@@ -277,9 +278,9 @@ begin
   for I := 0 to LastIndex do
   begin
     Index := WrapProc(I + 1, H);
-    dx := Points[Index].X - Points[I].X;
-    dy := Points[Index].Y - Points[I].Y;
-    Steps := Floor(Hypot(dx, dy) / StepSize);
+    Delta.X := Points[Index].X - Points[I].X;
+    Delta.Y := Points[Index].Y - Points[I].Y;
+    Steps := Floor(Hypot(Delta.X, Delta.Y) / StepSize);
     if Steps > 0 then
     begin
       K := 1 / Steps;
@@ -322,7 +323,7 @@ begin
   finally
     K.Free;
   end;
-  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random($FFFFFFFF);
+  (Canvas.Brushes[0] as TSolidBrush).FillColor := Random(Integer($FFFFFFFF));
   Canvas.Path.Polygon(Points);
 end;
 
@@ -334,10 +335,10 @@ begin
   // SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
   // SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
 
-  cmbTest.Items := TestRegistry;
-  cmbTest.ItemIndex := 0;
-  PolygonRendererList.GetClassNames(cmbRenderer.Items);
-  cmbRenderer.ItemIndex := 0;
+  CmbTest.Items := TestRegistry;
+  CmbTest.ItemIndex := 0;
+  PolygonRendererList.GetClassNames(CmbRenderer.Items);
+  CmbRenderer.ItemIndex := 0;
   Img.SetupBitmap(True, clWhite32);
 end;
 
@@ -353,9 +354,9 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
   var
     I: Integer;
   begin
-    for I := 0 to cmbTest.Items.Count - 1 do
+    for I := 0 to CmbTest.Items.Count - 1 do
     begin
-      cmbTest.ItemIndex := I;
+      CmbTest.ItemIndex := I;
       Repaint;
       PerformTest;
     end;
@@ -363,7 +364,8 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
 
   procedure TestRenderer;
   begin
-    DefaultPolygonRendererClass := TPolygonRenderer32Class(PolygonRendererList[cmbRenderer.ItemIndex]);
+    DefaultPolygonRendererClass := TPolygonRenderer32Class(
+      PolygonRendererList[CmbRenderer.ItemIndex]);
     if CbxAllTests.Checked then
       PerformAllTests
     else
@@ -374,9 +376,9 @@ procedure TMainForm.BtnBenchmarkClick(Sender: TObject);
   var
     I: Integer;
   begin
-    for I := 0 to cmbRenderer.Items.Count - 1 do
+    for I := 0 to CmbRenderer.Items.Count - 1 do
     begin
-      cmbRenderer.ItemIndex := I;
+      CmbRenderer.ItemIndex := I;
       TestRenderer;
     end;
   end;
