@@ -14,7 +14,7 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnResize = FormResize
   Position = poScreenCenter
-  LCLVersion = '1.0.1.3'
+  LCLVersion = '1.0.3.0'
   object PnlImage: TPanel
     Left = 341
     Height = 491
@@ -89,6 +89,7 @@ object MainForm: TMainForm
         OnChange = TbrGammaChange
         Position = 100
         TickStyle = tsNone
+        Enabled = False
         TabOrder = 0
       end
       object RgxMethod: TRadioGroup

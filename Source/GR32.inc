@@ -225,7 +225,7 @@
   NOTE: Undefine this symbol if you get stack overflow errors.
 *)
 
-{$DEFINE USESTACKALLOC}
+{-$DEFINE USESTACKALLOC}
 
 
 
@@ -244,7 +244,6 @@
 {$DEFINE NOHINTING}
 
 
-
 (*
   Symbol: NOHORIZONTALHINTING
   ---------------------------
@@ -257,6 +256,21 @@
 *)
 
 {-$DEFINE NOHORIZONTALHINTING}
+
+
+(*
+  Symbol: USEKERNING
+  -----------------
+
+    Enables font kerning when using TextToPath() method.
+
+  Kerning is the process of adjusting the spacing between characters in a
+  proportional font, usually to achieve a visually pleasing result. However,
+  parsing for kerning pairs is quite expensive in terms of CPU usage while the
+  effect is often very little. Thus kerning is not enabled by default.
+*)
+
+{-$DEFINE USEKERNING}
 
 
 {-$DEFINE TEST_BLENDMEMRGB128SSE4}

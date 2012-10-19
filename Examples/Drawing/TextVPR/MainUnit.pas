@@ -206,27 +206,24 @@ procedure TMainForm.BuildPolygonFromText;
 var
   Intf: ITextToPathSupport;
   DestRect: TFloatRect;
-  HAlignFlag, VAlignFlag, SingleLineFlag, WordBreakFlag: Integer;
+  Flag: Integer;
 begin
   if Supports(Img.Bitmap.Backend, ITextToPathSupport, Intf) then
   begin
     DestRect := FloatRect(Img.BoundsRect);
     InflateRect(DestRect, -10, -10);
-    HAlignFlag := RgpHorzAlign.ItemIndex;
+    Flag := RgpHorzAlign.ItemIndex;
     case RgpVerticalAlign.ItemIndex of
-      0:  VAlignFlag := 0;
-      1:  VAlignFlag := DT_VCENTER;
-      else  VAlignFlag := DT_BOTTOM;
+      0: ;
+      1: Flag := Flag or DT_VCENTER;
+      else Flag := Flag or DT_BOTTOM;
     end;
     if  CbxSingleLine.Checked then
-      SingleLineFlag := DT_SINGLELINE else
-      SingleLineFlag := 0;
+      Flag := Flag or DT_SINGLELINE;
     if  CbxWordbreak.Checked then
-      WordBreakFlag := DT_WORDBREAK else
-      WordBreakFlag := 0;
+      Flag := Flag or DT_WORDBREAK;
 
-    Intf.TextToPath(FPath, DestRect,
-      CLoremIpsum, WordBreakFlag or HAlignFlag or VAlignFlag or SingleLineFlag);
+    Intf.TextToPath(FPath, DestRect, CLoremIpsum, Flag);
   end else
     raise Exception.Create(RCStrInpropriateBackend);
 end;
@@ -239,34 +236,32 @@ begin
     1: PolyPolygonFS_LCD(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
     2: PolyPolygonFS_LCD2(Img.Bitmap, FPath.Path, clBlack32, pfWinding);
   end;
-  //paint the close-up of the image around the mouse cursor ...
+
+  // paint the close-up of the image around the mouse cursor ...
   with Img.ScreenToClient(Mouse.CursorPos) do
     ImgMouseMove(nil, [], X, Y, nil);
-    
-//  Img.Bitmap.PenColor := $80C0C0C0;
-//  Img.Bitmap.MoveToF(10,10);
-//  Img.Bitmap.LineToFS(Img.Bitmap.Width - 10, 10);
-//  Img.Bitmap.LineToFS(Img.Bitmap.Width - 10, Img.Bitmap.Height - 10);
-//  Img.Bitmap.LineToFS(10, Img.Bitmap.Height - 10);
-//  Img.Bitmap.LineToFS(10, 10);
 end;
 
 function FontStylesToString(FontStyles: TFontStyles): string;
 var
-  styles: TFontStyles;
+  Styles: TFontStyles;
 begin
-  styles := [fsBold, fsItalic] * FontStyles;
-  if styles = [] then Result := ''
-  else if styles = [fsBold] then Result := ', Bold'
-  else if styles = [fsItalic] then Result := ', Italic'
-  else Result := ', Bold && Italic';
+  Styles := [fsBold, fsItalic] * FontStyles;
+  if Styles = [] then
+    Result := ''
+  else if Styles = [fsBold] then
+    Result := ', Bold'
+  else if Styles = [fsItalic] then
+    Result := ', Italic'
+  else
+    Result := ', Bold && Italic';
 end;
 
 procedure TMainForm.DisplayFontInfo;
 begin
   with FontDialog.Font do
     LblFontInfo.Caption :=
-      format('%s'#10'%d%s',[name, size, FontStylesToString(Style)]);
+      Format('%s'#10'%d%s', [Name, Size, FontStylesToString(Style)]);
 end;
 
 procedure TMainForm.RgxMethodClick(Sender: TObject);
