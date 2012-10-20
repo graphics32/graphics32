@@ -23,11 +23,11 @@
       <Item2 Name="Debug">
         <CompilerOptions>
           <Version Value="11"/>
-          <PathDelim Value="\"/>
+          <PathDelim Value="/"/>
           <SearchPaths>
             <IncludeFiles Value="../../Source;$(ProjOutDir)"/>
-            <OtherUnitFiles Value="..\..\..\Source"/>
-            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+            <OtherUnitFiles Value="../../../Source"/>
+            <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -90,11 +90,11 @@
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
-    <PathDelim Value="\"/>
+    <PathDelim Value="/"/>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..\..\..\Source"/>
-      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+      <IncludeFiles Value="../../../Source;$(ProjOutDir)"/>
+      <OtherUnitFiles Value="../../../Source"/>
+      <UnitOutputDirectory Value="lib/$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
