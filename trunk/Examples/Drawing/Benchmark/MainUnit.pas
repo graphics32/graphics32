@@ -116,11 +116,11 @@ begin
   RandSeed := 0;
   Img.Bitmap.Clear(clWhite32);
   Canvas := TCanvas32.Create(Img.Bitmap);
-  Canvas.Brushes.Add(TSolidBrush);
-  Canvas.Brushes.Add(TStrokeBrush);
-  Canvas.Brushes[0].Visible := True;
-  Canvas.Brushes[1].Visible := False;
-  try
+  try try
+    Canvas.Brushes.Add(TSolidBrush);
+    Canvas.Brushes.Add(TStrokeBrush);
+    Canvas.Brushes[0].Visible := True;
+    Canvas.Brushes[1].Visible := False;
     i := 0;
     GlobalPerfTimer.Start;
     repeat
@@ -138,14 +138,17 @@ begin
       Inc(i, 10);
     until t > TestTime;
     WriteTestResult((i*1000000) div t);
+  except
+      MemoLog.Lines.Add(Format('%s: Failed', [cmbRenderer.Text]));
+  end;
   finally
     Canvas.Free;
   end;
 end;
 
-function RandColor: TColor32; {$IFDEF UseInlining} inline; {$ENDIF}
+function RandColor: TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
-  Result := Random($FFFFFF) or $ff000000;
+  Result := Random($FFFFFF) or Random($ff) shl 24;
 end;
 
 //----------------------------------------------------------------------------//
