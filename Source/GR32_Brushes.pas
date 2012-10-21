@@ -478,7 +478,7 @@ end;
 constructor TStrokeBrush.Create(BrushCollection: TBrushCollection);
 begin
   inherited;
-  FStrokeWidth := 10;
+  FStrokeWidth := 1;
   FMiterLimit := DEFAULT_MITER_LIMIT;
 end;
 
