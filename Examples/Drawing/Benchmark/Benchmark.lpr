@@ -5,7 +5,7 @@ program Benchmark;
 uses
   Interfaces,
   Forms,
-  MainUnit in 'MainUnit.pas' {Form1};
+  MainUnit in 'MainUnit.pas';
 
 {$R *.res}
 
