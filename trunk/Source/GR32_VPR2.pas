@@ -35,7 +35,6 @@ unit GR32_VPR2;
 interface
 
 {$I GR32.inc}
-{$ASSERTIONS ON}
 
 uses
   GR32, GR32_Polygons, GR32_OrdinalMaps;
@@ -424,13 +423,6 @@ begin
       Xm := Xn;
       Ym := Yn;
 
-      Assert(X >= 0);
-      Assert(X < FOpacityMap.Width - 1);
-      Assert(Y >= 0);
-      Assert(Y < FOpacityMap.Height);
-//      if Y >= FOpacityMap.Height then
-//              Assert(true);
-
       UpdateSpan(FXSpan[Y], X);
       P := PFixedArray(FOpacityMap.ValPtr[X, Y]);
       if Abs(tX) <= Abs(tY) then
@@ -615,4 +607,4 @@ initialization
   RegisterPolygonRenderer(TPolygonRenderer32VPR2);
   RegisterPolygonRenderer(TPolygonRenderer32VPR2X);
 
-end.
+end.
