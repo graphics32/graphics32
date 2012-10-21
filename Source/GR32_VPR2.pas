@@ -56,6 +56,21 @@ type
     FXSpan: array of TIntSpan;
     FYSpan: TIntSpan;
     procedure AddLineSegment(X1, Y1, X2, Y2: TFloat); overload;
+    procedure DrawBitmap;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
+      const ClipRect: TFloatRect); override;
+  end;
+
+  { TPolygonRenderer32VPR2X }
+
+  TPolygonRenderer32VPR2X = class(TPolygonRenderer32)
+  private
+    FOpacityMap: TIntegerMap;
+    FXSpan: array of TIntSpan;
+    FYSpan: TIntSpan;
     procedure AddLineSegment(X1, Y1, X2, Y2: TFixed); overload;
     procedure DrawBitmap;
   public
@@ -174,103 +189,6 @@ begin
   end;
 end;
 
-procedure TPolygonRenderer32VPR2.AddLineSegment(X1, Y1, X2, Y2: TFixed);
-type
-  PFloatArray = ^TFloatArray;
-  TFloatArray = array [0..1] of TFloat;
-const
-  SGN: array [0..1] of Integer = (1, -1);
-  EPSILON: TFloat = 0.0001;
-var
-  Dx, Dy, DyDx, DxDy, t, tX, tY: Double;
-  Xm, Ym, Xn, Yn: TFixed;
-  X, Y: Integer;
-  StepX, StepY: TFixed;
-  P: PFloatArray;
-
-  procedure AddSegment(X1, Y1, X2, Y2: TFixed);
-  var
-    Dx, Dy: TFloat;
-  begin
-    Dx := (X1 + X2) * 0.5;
-    Dx := Dx - Round(Dx);
-    Dy := Y2 - Y1;
-    Dx := Dx * Dy;
-    P[0] := P[0] + Dy - Dx;
-    P[1] := P[1] + Dx;
-  end;
-
-begin
-  Dx := (X2 - X1) * FixedToFloat;
-  Dy := (Y2 - Y1) * FixedToFloat;
-
-  if Dy = 0 then Exit;
-
-  X := FixedFloor(X1);
-  Y := FixedFloor(Y1);
-
-  UpdateSpan(FYSpan, Y);
-
-  StepX := Ord(Dx < 0) * FixedOne;
-  StepY := Ord(Dy < 0) * FixedOne;
-
-  X1 := X1 - StepX;
-  Y1 := Y1 - StepY;
-  X2 := X2 - StepX;
-  Y2 := Y2 - StepY;
-
-  StepX := SGN[StepX];
-  StepY := SGN[StepY];
-
-  if Dx = 0 then
-  begin
-    Yn := Y1;
-    repeat
-      UpdateSpan(FXSpan[Y], X);
-      P := PFloatArray(FOpacityMap.ValPtr[X, Y]);
-      Ym := Yn;
-      Inc(Y, StepY);
-      Yn := Y;
-      AddSegment(X1, Ym, X1, Yn);
-    until Abs(Y1 - Yn) + EPSILON >= Abs(Dy);
-    AddSegment(X1, Yn, X1, Y2);
-  end
-  else
-  begin
-    DyDx := Dy / Dx;
-    DxDy := Dx / Dy;
-
-    tX := X + StepX - X1;
-    tY := (Y + StepY - Y1) * DxDy;
-
-    Xn := X1;
-    Yn := Y1;
-
-    repeat
-      Xm := Xn;
-      Ym := Yn;
-
-      UpdateSpan(FXSpan[Y], X);
-      P := PFloatArray(FOpacityMap.ValPtr[X, Y]);
-      if Abs(tX) <= Abs(tY) then
-      begin
-        Inc(X, StepX);
-        t := tX;
-        tX := tX + StepX;
-      end
-      else
-      begin
-        Inc(Y, StepY);
-        t := tY;
-        tY := tY + StepY * DxDy;
-      end;
-      Xn := X1 + Fixed(t);
-      Yn := Y1 + Fixed(t * DyDx);
-      AddSegment(Xm, Ym, Xn, Yn);
-    until Abs(t) + EPSILON >= Abs(Dx);
-    AddSegment(Xn, Yn, X2, Y2);
-  end;
-end;
 
 constructor TPolygonRenderer32VPR2.Create;
 begin
@@ -432,7 +350,269 @@ begin
   end;
 end;
 
+//============================================================================//
+procedure TPolygonRenderer32VPR2X.AddLineSegment(X1, Y1, X2, Y2: TFixed);
+type
+  PFixedArray = ^TFixedArray;
+  TFixedArray = array [0..1] of TFixed;
+const
+  SGN: array [0..1] of Integer = (1, -1);
+var
+  Dx, Dy, DyDx, DxDy, t, tX, tY, Xm, Ym, Xn, Yn: TFixed;
+  X, Y, StepX, StepY: Integer;
+  P: PFixedArray;
+
+  procedure AddSegment(X1, Y1, X2, Y2: TFixed);
+  var
+    Dx, Dy: TFixed;
+  begin
+    Dx := (X1 + X2) shr 1;
+    Dx := Dx and $ffff;
+    Dy := Y2 - Y1;
+    Dx := FixedMul(Dx, Dy);
+    P[0] := P[0] + Dy - Dx;
+    P[1] := P[1] + Dx;
+  end;
+
+begin
+  Dx := X2 - X1;
+  Dy := Y2 - Y1;
+
+  if Dy = 0 then Exit;
+
+  X := FixedFloor(X1);
+  Y := FixedFloor(Y1);
+
+  UpdateSpan(FYSpan, Y);
+
+  StepX := Ord(Dx < 0);
+  StepY := Ord(Dy < 0);
+
+  X1 := X1 - StepX * FixedOne;
+  Y1 := Y1 - StepY * FixedOne;
+  X2 := X2 - StepX * FixedOne;
+  Y2 := Y2 - StepY * FixedOne;
+
+  StepX := SGN[StepX];
+  StepY := SGN[StepY];
+
+  if Dx = 0 then
+  begin
+    Yn := Y1;
+    repeat
+      UpdateSpan(FXSpan[Y], X);
+      P := PFixedArray(FOpacityMap.ValPtr[X, Y]);
+      Ym := Yn;
+      Inc(Y, StepY);
+      Yn := Y * FixedOne;
+      AddSegment(X1, Ym, X1, Yn);
+    until Abs(Y1 - Yn) >= Abs(Dy);
+    AddSegment(X1, Yn, X1, Y2);
+  end
+  else
+  begin
+    DyDx := FixedDiv(Dy, Dx);
+    DxDy := FixedDiv(Dx, Dy);
+
+    tX := (X + StepX) * FixedOne - X1;
+    tY := FixedMul((Y + StepY) * FixedOne - Y1, DxDy);
+
+    Xn := X1;
+    Yn := Y1;
+
+    repeat
+      Xm := Xn;
+      Ym := Yn;
+
+      Assert(X >= 0);
+      Assert(X < FOpacityMap.Width - 1);
+      Assert(Y >= 0);
+      Assert(Y < FOpacityMap.Height);
+//      if Y >= FOpacityMap.Height then
+//              Assert(true);
+
+      UpdateSpan(FXSpan[Y], X);
+      P := PFixedArray(FOpacityMap.ValPtr[X, Y]);
+      if Abs(tX) <= Abs(tY) then
+      begin
+        Inc(X, StepX);
+        t := tX;
+        tX := tX + StepX*FixedOne;
+      end
+      else
+      begin
+        Inc(Y, StepY);
+        t := tY;
+        tY := tY + StepY * DxDy;
+      end;
+      Xn := X1 + t;
+      Yn := Y1 + FixedMul(t, DyDx);
+      AddSegment(Xm, Ym, Xn, Yn);
+    until Abs(t) >= Abs(Dx);
+    AddSegment(Xn, Yn, X2, Y2);
+  end;
+end;
+
+procedure CumSumX(PSrc: PFixedArray; N: Integer);
+var
+  I: Integer;
+begin
+  for I := 1 to N - 1 do
+    Inc(PSrc[I], PSrc[I - 1]);
+end;
+
+procedure MakeAlphaNonZeroUPX(Coverage: PFixedArray; AlphaValues: PColor32Array;
+  Count: Integer; Color: TColor32);
+var
+  I, V, M, Last: Integer;
+  C: TColor32Entry absolute Color;
+begin
+  M := C.A * $101;
+  Last := MaxInt;
+  for I := 0 to Count - 1 do
+  begin
+    if Last <> Coverage[I] then
+    begin
+      V := Abs(Coverage[I]);
+      if V > $ffff then V := $ffff;
+      V := V * M shr 24;
+{$IFDEF USEGR32GAMMA}
+      V := GAMMA_TABLE[V];
+{$ENDIF}
+      C.A := V;
+    end;
+    AlphaValues[I] := Color;
+  end;
+end;
+
+procedure MakeAlphaEvenOddUPX(Coverage: PFixedArray; AlphaValues: PColor32Array;
+  Count: Integer; Color: TColor32);
+var
+  I, V, M, Last: Integer;
+  C: TColor32Entry absolute Color;
+begin
+  M := C.A * $101;
+  Last := MaxInt;
+  for I := 0 to Count - 1 do
+  begin
+    if Last <> Coverage[I] then
+    begin
+      V := Abs(Coverage[I]);
+      V := V and $01ffff;
+      if V >= $10000 then V := V xor $1ffff;
+      V := V * M shr 24;
+{$IFDEF USEGR32GAMMA}
+      V := GAMMA_TABLE[V];
+{$ENDIF}
+      C.A := V;
+    end;
+    AlphaValues[I] := Color;
+  end;
+end;
+
+{$IFDEF UseStackAlloc}{$W+}{$ENDIF}
+procedure TPolygonRenderer32VPR2X.DrawBitmap;
+type
+  TFillProcX = procedure(Coverage: PFixedArray; AlphaValues: PColor32Array; Count: Integer; Color: TColor32);
+const
+  FillProcs: array [TPolyFillMode] of TFillProcX = (MakeAlphaEvenOddUPX, MakeAlphaNonZeroUPX);
+var
+  I, N: Integer;
+  Dst: PColor32Array;
+  Src: PFixedArray;
+  P: PIntSpan;
+  FillProc: TFillProcX;
+  FG: PColor32Array;
+begin
+  {$IFDEF UseStackAlloc}
+  FG := StackAlloc(Bitmap.Width * SizeOf(TColor32));
+  {$ELSE}
+  GetMem(FG, Bitmap.Width * SizeOf(TColor32));
+  {$ENDIF}
+
+  FillProc := FillProcs[FillMode];
+  FYSpan.Max := Min(FYSpan.Max, Bitmap.Height - 1);
+  Assert(FYSpan.Min >= 0);
+  Assert(FYSpan.Max < Bitmap.Height);
+  for I := FYSpan.Min to FYSpan.Max do
+  begin
+    P := @FXSpan[I];
+    P.Max := Min(P.Max + 1, Bitmap.Width - 1);
+    if P.Max < P.Min then Continue;
+
+    N := P.Max - P.Min + 1;
+    Dst := Bitmap.Scanline[I];
+    Src := PFixedArray(FOpacityMap.ValPtr[0, I]);
+
+    // 1. Cumulative sum
+    CumSumX(@Src[P.Min], N);
+
+    // 2. Convert opacity to colors
+    FillProc(@Src[P.Min], @FG[P.Min], N, Color);
+
+    // 3. Blend colors
+    BlendLine(@FG[P.Min], @Dst[P.Min], N);
+
+    // 4. Clear opacity map
+    FillLongWord(Src[P.Min], N, 0);
+  end;
+
+  {$IFDEF UseStackAlloc}
+  StackFree(FG);
+  {$ELSE}
+  FreeMem(FG);
+  {$ENDIF}
+end;
+{$IFDEF UseStackAlloc}{$W-}{$ENDIF}
+
+procedure TPolygonRenderer32VPR2X.PolyPolygonFS(
+  const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
+var
+  APoints: TArrayOfFloatPoint;
+  I, J, H: Integer;
+  SavedRoundMode: TFPURoundingMode;
+  R: TFloatRect;
+begin
+  FYSpan := STARTSPAN;
+
+  FOpacityMap.SetSize(Bitmap.Width + 1, Bitmap.Height);
+
+  // temporary fix for floating point rounding errors
+  R := ClipRect;
+  InflateRect(R, -0.05, -0.05);
+
+  SetLength(FXSpan, Bitmap.Height);
+  for I := 0 to High(FXSpan) do
+    FXSpan[I] := STARTSPAN;
+
+  for I := 0 to High(Points) do
+  begin
+    APoints := ClipPolygon(Points[I], R);
+    H := High(APoints);
+    if H <= 0 then Continue;
+
+    for J := 0 to H - 1 do
+      AddLineSegment(Fixed(APoints[J].X), Fixed(APoints[J].Y), Fixed(APoints[J + 1].X), Fixed(APoints[J + 1].Y));
+    AddLineSegment(Fixed(APoints[H].X), Fixed(APoints[H].Y), Fixed(APoints[0].X), Fixed(APoints[0].Y));
+  end;
+
+  DrawBitmap;
+end;
+
+constructor TPolygonRenderer32VPR2X.Create;
+begin
+  inherited Create;
+  FOpacityMap := TIntegerMap.Create;
+end;
+
+destructor TPolygonRenderer32VPR2X.Destroy;
+begin
+  FOpacityMap.Free;
+  inherited Destroy;
+end;
+
 initialization
   RegisterPolygonRenderer(TPolygonRenderer32VPR2);
+  RegisterPolygonRenderer(TPolygonRenderer32VPR2X);
 
-end.
+end.
