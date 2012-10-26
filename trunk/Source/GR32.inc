@@ -46,7 +46,7 @@
 
 *)
 
-  {$DEFINE PUREPASCAL}
+  {-$DEFINE PUREPASCAL}
 
 
 
@@ -224,7 +224,7 @@
   NOTE: Undefine this symbol if you get stack overflow errors.
 *)
 
-{-$DEFINE USESTACKALLOC}
+{$DEFINE USESTACKALLOC}
 
 (*
   Symbol: RGBA_FORMAT
