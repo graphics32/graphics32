@@ -1255,10 +1255,28 @@ end;
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint;
 const
   MINSTEPS = 6;
+  SQUAREDMINSTEPS = Sqr(MINSTEPS);
 var
+  Temp: TFloat;
   Steps: Integer;
 begin
-  Steps := Max(MINSTEPS, System.Round(Sqrt(Abs(Radius)) * Abs(EndAngle - StartAngle)));
+  // The code below was previously:
+  //
+  // Steps := Max(MINSTEPS, System.Round(Sqrt(Abs(Radius)) *
+  //   Abs(EndAngle - StartAngle)));
+  //
+  // However, for small radii, the square root calculation is performed with
+  // the result that the output is set to 6 anyway. In this case (only a few
+  // drawing operations), the performance spend for this calculation is dominant
+  // for large radii (when a lot of CPU intensive drawing takes place), the
+  // more expensive float point comparison (Temp < SQUAREDMINSTEPS) is not very
+  // significant
+
+  Temp := Abs(Radius) * Sqr(EndAngle - StartAngle);
+  if Temp < SQUAREDMINSTEPS then
+    Steps := 6
+  else
+    Steps := Round(Sqrt(Temp));
   Result := BuildArc(P, StartAngle, EndAngle, Radius, Steps);
 end;
 
@@ -1283,11 +1301,28 @@ end;
 function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFixedPoint;
 const
   MINSTEPS = 6;
+  SQUAREDMINSTEPS = Sqr(MINSTEPS);
 var
+  Temp: TFloat;
   Steps: Integer;
 begin
-  Steps := Clamp(System.Round(Sqrt(Abs(Radius)) * Abs(EndAngle - StartAngle)),
-    MINSTEPS, $100000);
+  // The code below was previously:
+  //
+  // Steps := Clamp(System.Round(Sqrt(Abs(Radius)) *
+  //   Abs(EndAngle - StartAngle)), MINSTEPS, $100000);
+  //
+  // However, for small radii, the square root calculation is performed with
+  // the result that the output is set to 6 anyway. In this case (only a few
+  // drawing operations), the performance spend for this calculation is dominant
+  // for large radii (when a lot of CPU intensive drawing takes place), the
+  // more expensive float point comparison (Temp < SQUAREDMINSTEPS) is not very
+  // significant
+
+  Temp := Abs(Radius) * Sqr(EndAngle - StartAngle);
+  if Temp < SQUAREDMINSTEPS then
+    Steps := MINSTEPS
+  else
+    Steps := Clamp(Round(Sqrt(Temp)), $100000);
   Result := BuildArc(P, StartAngle, EndAngle, Radius, Steps);
 end;
 
@@ -1543,10 +1578,12 @@ function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoin
   const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint; overload;
 const
   BUFFSIZEINCREMENT = 128;
+  MINSTEPS = 6;
+  SQUAREDMINSTEPS = Sqr(MINSTEPS);
 var
   I, L, H: Integer;
   ResSize, BuffSize: Integer;
-  PX, PY, D, RMin: TFloat;
+  PX, PY, D, RMin, MaxArcLen: TFloat;
   A, B: TFloatPoint;
 
   procedure AddPoint(const LongDeltaX, LongDeltaY: TFloat);
@@ -1556,11 +1593,7 @@ var
       Inc(BuffSize, BUFFSIZEINCREMENT);
       SetLength(Result, BuffSize);
     end;
-    with Result[ResSize] do
-    begin
-      X := PX + LongDeltaX;
-      Y := PY + LongDeltaY;
-    end;
+    Result[ResSize] := FloatPoint(PX + LongDeltaX, PY + LongDeltaY);
     Inc(ResSize);
   end;
 
@@ -1571,7 +1604,7 @@ var
     CX := X1 + X2;
     CY := Y1 + Y2;
 
-    R := X1 * CX + Y1 * CY; //(1 - cos(ß))  (range: 0 <= R <= 2)
+    R := X1 * CX + Y1 * CY; // (1 - cos(ß))  (range: 0 <= R <= 2)
     if R < RMin then
     begin
       AddPoint(D * X1, D * Y1);
@@ -1588,11 +1621,9 @@ var
   var
     R: TFloat;
   begin
-    R := X1 * Y2 - X2 * Y1; //cross product
-    if R * D <= 0 then      //ie angle is concave
-    begin
-      AddMitered(X1, Y1, X2, Y2);
-    end
+    R := X1 * Y2 - X2 * Y1; // cross product
+    if R * D <= 0 then      // ie angle is concave
+      AddMitered(X1, Y1, X2, Y2)
     else
     begin
       AddPoint(D * X1, D * Y1);
@@ -1603,33 +1634,51 @@ var
   procedure AddRoundedJoin(const X1, Y1, X2, Y2: TFloat);
   var
     R, a1, a2, da: TFloat;
-    Arc: TArrayOfFloatPoint;
-    ArcLen: Integer;
+    ArcLen, I: Integer;
+    C, OD: TFloatPoint;
   begin
     R := X1 * Y2 - X2 * Y1;
     if R * D <= 0 then
-    begin
-      AddMitered(X1, Y1, X2, Y2);
-    end
+      AddMitered(X1, Y1, X2, Y2)
     else
     begin
       a1 := ArcTan2(Y1, X1);
       a2 := ArcTan2(Y2, X2);
       da := a2 - a1;
+      OD.Y := -Abs(OD.Y);
       if da > Pi then
         a2 := a2 - TWOPI
       else if da < -Pi then
         a2 := a2 + TWOPI;
-      Arc := BuildArc(FloatPoint(PX, PY), a1, a2, D);
+      da := a2 - a1;
 
-      ArcLen := Length(Arc);
-      if ResSize + ArcLen >= BuffSize then
+      if da < 0 then
+        OD.Y := -Abs(OD.Y)
+      else
+        OD.Y := Abs(OD.Y);
+
+      if (MaxArcLen < MINSTEPS) or
+        (System.Round(Abs(D) * Sqr(da)) < SQUAREDMINSTEPS) then
+        ArcLen := MINSTEPS
+      else
+        ArcLen := System.Round(Sqrt(Abs(D)) * Abs(da));
+
+      C.X := X1 * D;
+      C.Y := Y1 * D;
+
+      // add start point
+      AddPoint(C.X, C.Y);
+
+      // calculate round points
+      GR32_Math.SinCos(da / (ArcLen - 1), OD.Y, OD.X);
+      for I := 1 to ArcLen - 2 do
       begin
-        Inc(BuffSize, ArcLen);
-        SetLength(Result, BuffSize);
+        C := FloatPoint(C.X * OD.X - C.Y * OD.Y, C.Y * OD.X + C.X * OD.Y);
+        AddPoint(C.X, C.Y);
       end;
-      Move(Arc[0], Result[ResSize], Length(Arc) * SizeOf(TFloatPoint));
-      Inc(ResSize, arcLen);
+
+      // add end point
+      AddPoint(D * X2, D * Y2);
     end;
   end;
 
@@ -1651,15 +1700,15 @@ begin
 
   D := Delta;
 
-  //MiterLimit = Sqrt(2/(1 - cos(ß)))
-  //Sqr(MiterLimit) = 2/(1 - cos(ß))
-  //1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
+  // MiterLimit = Sqrt(2/(1 - cos(ß)))
+  // Sqr(MiterLimit) = 2/(1 - cos(ß))
+  // 1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
   RMin := 2 / Sqr(MiterLimit);
 
   H := High(Points) - Ord(not Closed);
   while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do Dec(H);
 
-{** all normals zeroed => Exit }
+  // all normals zeroed => Exit
   if H < 0 then Exit;
 
   L := 0;
@@ -1673,6 +1722,9 @@ begin
   ResSize := 0;
   BuffSize := BUFFSIZEINCREMENT;
   SetLength(Result, BuffSize);
+
+  if JoinStyle = jsRound then
+    MaxArcLen := Sqrt(Abs(D) * Sqr(2 * Pi));
 
   for I := L to H do
   begin
