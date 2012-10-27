@@ -1578,13 +1578,13 @@ function Grow(const Points: TArrayOfFloatPoint; const Normals: TArrayOfFloatPoin
   const Delta: TFloat; JoinStyle: TJoinStyle; Closed: Boolean; MiterLimit: TFloat): TArrayOfFloatPoint; overload;
 const
   BUFFSIZEINCREMENT = 128;
-  MINSTEPS = 6;
-  SQUAREDMINSTEPS = Sqr(MINSTEPS);
+  MINDISTPIXEL = 1.414; // just a little bit smaller than sqrt(2),
+  // -> set to about 2.5 for a similar output with the previous version
 var
   I, L, H: Integer;
   ResSize, BuffSize: Integer;
-  PX, PY, D, RMin, MaxArcLen: TFloat;
-  A, B: TFloatPoint;
+  PX, PY, RMin, AngleInv: TFloat;
+  A, B, Dm: TFloatPoint;
 
   procedure AddPoint(const LongDeltaX, LongDeltaY: TFloat);
   begin
@@ -1604,15 +1604,15 @@ var
     CX := X1 + X2;
     CY := Y1 + Y2;
 
-    R := X1 * CX + Y1 * CY; // (1 - cos(ß))  (range: 0 <= R <= 2)
+    R := X1 * CX + Y1 * CY; //(1 - cos(ß))  (range: 0 <= R <= 2)
     if R < RMin then
     begin
-      AddPoint(D * X1, D * Y1);
-      AddPoint(D * X2, D * Y2);
+      AddPoint(Delta * X1, Delta * Y1);
+      AddPoint(Delta * X2, Delta * Y2);
     end
     else
     begin
-      R := D / R;
+      R := Delta / R;
       AddPoint(CX * R, CY * R)
     end;
   end;
@@ -1621,64 +1621,52 @@ var
   var
     R: TFloat;
   begin
-    R := X1 * Y2 - X2 * Y1; // cross product
-    if R * D <= 0 then      // ie angle is concave
-      AddMitered(X1, Y1, X2, Y2)
+    R := X1 * Y2 - X2 * Y1; //cross product
+    if R * Delta <= 0 then      //ie angle is concave
+    begin
+      AddMitered(X1, Y1, X2, Y2);
+    end
     else
     begin
-      AddPoint(D * X1, D * Y1);
-      AddPoint(D * X2, D * Y2);
+      AddPoint(Delta * X1, Delta * Y1);
+      AddPoint(Delta * X2, Delta * Y2);
     end;
   end;
 
   procedure AddRoundedJoin(const X1, Y1, X2, Y2: TFloat);
   var
-    R, a1, a2, da: TFloat;
-    ArcLen, I: Integer;
-    C, OD: TFloatPoint;
+    R, tmp, da: TFloat;
+    ArcLen: Integer;
+
+    I: Integer;
+    C: TFloatPoint;
   begin
     R := X1 * Y2 - X2 * Y1;
-    if R * D <= 0 then
+    if R * Delta <= 0 then
       AddMitered(X1, Y1, X2, Y2)
     else
     begin
-      a1 := ArcTan2(Y1, X1);
-      a2 := ArcTan2(Y2, X2);
-      da := a2 - a1;
-      OD.Y := -Abs(OD.Y);
-      if da > Pi then
-        a2 := a2 - TWOPI
-      else if da < -Pi then
-        a2 := a2 + TWOPI;
-      da := a2 - a1;
-
-      if da < 0 then
-        OD.Y := -Abs(OD.Y)
+      if R < 0 then
+        Dm.Y := -Abs(Dm.Y)
       else
-        OD.Y := Abs(OD.Y);
+        Dm.Y := Abs(Dm.Y);
 
-      if (MaxArcLen < MINSTEPS) or
-        (System.Round(Abs(D) * Sqr(da)) < SQUAREDMINSTEPS) then
-        ArcLen := MINSTEPS
-      else
-        ArcLen := System.Round(Sqrt(Abs(D)) * Abs(da));
+      tmp := 1 - 0.5 * (Sqr(X2 - X1) + Sqr(Y2 - Y1));
+      da := 0.5 * Pi - tmp * (1 + Sqr(tmp) * 0.1667); // should be ArcCos(tmp);
+      ArcLen := Round(Abs(da * AngleInv)); // should be trunc instead of round
 
-      C.X := X1 * D;
-      C.Y := Y1 * D;
-
-      // add start point
+      C.X := X1 * Delta;
+      C.Y := Y1 * Delta;
       AddPoint(C.X, C.Y);
-
-      // calculate round points
-      GR32_Math.SinCos(da / (ArcLen - 1), OD.Y, OD.X);
-      for I := 1 to ArcLen - 2 do
+      for I := 1 to ArcLen - 1 do
       begin
-        C := FloatPoint(C.X * OD.X - C.Y * OD.Y, C.Y * OD.X + C.X * OD.Y);
+        C := FloatPoint(C.X * Dm.X - C.Y * Dm.Y, C.Y * Dm.X + C.X * Dm.Y);
         AddPoint(C.X, C.Y);
       end;
 
-      // add end point
-      AddPoint(D * X2, D * Y2);
+      C.X := X2 * Delta;
+      C.Y := Y2 * Delta;
+      AddPoint(C.X, C.Y);
     end;
   end;
 
@@ -1698,17 +1686,15 @@ begin
 
   if Length(Points) <= 1 then Exit;
 
-  D := Delta;
-
-  // MiterLimit = Sqrt(2/(1 - cos(ß)))
-  // Sqr(MiterLimit) = 2/(1 - cos(ß))
-  // 1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
+  //MiterLimit = Sqrt(2/(1 - cos(ß)))
+  //Sqr(MiterLimit) = 2/(1 - cos(ß))
+  //1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
   RMin := 2 / Sqr(MiterLimit);
 
   H := High(Points) - Ord(not Closed);
   while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do Dec(H);
 
-  // all normals zeroed => Exit
+{** all normals zeroed => Exit }
   if H < 0 then Exit;
 
   L := 0;
@@ -1723,8 +1709,13 @@ begin
   BuffSize := BUFFSIZEINCREMENT;
   SetLength(Result, BuffSize);
 
+  // prepare
   if JoinStyle = jsRound then
-    MaxArcLen := Sqrt(Abs(D) * Sqr(2 * Pi));
+  begin
+    Dm.X := 1 - 0.5 * Min(3, Sqr(MINDISTPIXEL / Abs(Delta)));
+    Dm.Y := Sqrt(1 - Sqr(Dm.X));
+    AngleInv := 1 / ArcCos(Dm.X);
+  end;
 
   for I := L to H do
   begin
