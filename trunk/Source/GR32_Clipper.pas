@@ -454,20 +454,18 @@ end;
 function Int128AsDouble(val: TInt128): Double;
 const
   shift64: Double = 18446744073709551616.0;
-  bit64  : Double =  9223372036854775808.0; // ie high (sign) bit of Int64
+  shift32: Double = 4294967296.0;
+var
+  lo: Int64;
 begin
   if (val.Hi < 0) then
   begin
-    Int128Negate(val);
-    if val.Lo < 0 then
-      Result := val.Lo - bit64 - (val.Hi * shift64) else
-      Result := -val.Lo - (val.Hi * shift64);
+    lo := -val.Lo;
+    if lo = 0 then
+      Result := val.Hi * shift64 else
+      Result := -(not val.Hi * shift64 + Int64Rec(lo).Hi * shift32 + Int64Rec(lo).Lo);
   end else
-  begin
-    if val.Lo < 0 then
-      Result := -val.Lo + bit64 + (val.Hi * shift64) else
-      Result := val.Lo + (val.Hi * shift64);
-  end;
+    Result := val.Hi * shift64 + Int64Rec(val.Lo).Hi * shift32 + Int64Rec(val.Lo).Lo;
 end;
 //------------------------------------------------------------------------------
 

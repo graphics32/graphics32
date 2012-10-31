@@ -344,7 +344,7 @@ begin
   else
     EndOffsetPt := FloatPoint(EndPoint.X, EndPoint.Y + Delta.Y * 2);
 
-  Poly := BuildPolygon([StartPoint.X, StartPoint.Y,
+  Poly := BuildPolygonF([StartPoint.X, StartPoint.Y,
     StartOffsetPt.X, StartOffsetPt.Y,
     EndOffsetPt.X, EndOffsetPt.Y,
     EndPoint.X, EndPoint.Y]);

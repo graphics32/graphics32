@@ -165,8 +165,8 @@ function TransformPolygon(const Points: TArrayOfFixedPoint; Transformation: TTra
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFloatPoint; Transformation: TTransformation): TArrayOfArrayOfFloatPoint; overload;
 function TransformPolyPolygon(const Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint; overload;
 
-function BuildPolygon(const Data: array of TFloat): TArrayOfFloatPoint; overload;
-function BuildPolygon(const Data: array of TFixed): TArrayOfFixedPoint; overload;
+function BuildPolygonF(const Data: array of TFloat): TArrayOfFloatPoint; overload;
+function BuildPolygonX(const Data: array of TFixed): TArrayOfFixedPoint; overload;
 
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function PolyPolygon(const Points: TArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -2862,7 +2862,7 @@ begin
     Result[I] := TransformPolygon(Points[I], Transformation);
 end;
 
-function BuildPolygon(const Data: array of TFloat): TArrayOfFloatPoint;
+function BuildPolygonF(const Data: array of TFloat): TArrayOfFloatPoint;
 var
   Index, Count: Integer;
 begin
@@ -2876,7 +2876,7 @@ begin
   end;
 end;
 
-function BuildPolygon(const Data: array of TFixed): TArrayOfFixedPoint;
+function BuildPolygonX(const Data: array of TFixed): TArrayOfFixedPoint;
 var
   Index, Count: Integer;
 begin

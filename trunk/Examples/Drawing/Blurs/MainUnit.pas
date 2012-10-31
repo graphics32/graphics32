@@ -285,18 +285,11 @@ begin
         with Rec2 do
           PolylineFS(
             FBmpLayer.Bitmap,
-            BuildPolygon([
-              Left * FixedToFloat,
-              Top * FixedToFloat,
-              Right * FixedToFloat,
-              Top * FixedToFloat,
-              Right * FixedToFloat,
-              Bottom * FixedToFloat,
-              Left * FixedToFloat,
-              Bottom * FixedToFloat]),
+            BuildPolygonF([
+              Left, Top, Right, Top, Right, Bottom, Left, Bottom]),
             clBlack32,
             True,
-            1.0);
+            0.5);
 
         ImgViewPage3.EndUpdate;
         ImgViewPage3.Repaint;
