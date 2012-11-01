@@ -205,7 +205,7 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    Delta := (ARect.Right * HorzStretch - X - 1)/ 2;
+    Delta := Round((ARect.Right * HorzStretch - X - 1) * 0.5);
     PathStart := CharOffsets[LineStart];
     PathEnd := CharOffsets[CurrentI];
     for M := PathStart to PathEnd - 1 do
@@ -218,7 +218,7 @@ var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
   begin
-    Delta := (ARect.Right * HorzStretch - X - 1);
+    Delta := Round(ARect.Right * HorzStretch - X - 1);
     PathStart := CharOffsets[LineStart];
     PathEnd := CharOffsets[CurrentI];
     for M := PathStart to PathEnd - 1 do
@@ -233,7 +233,7 @@ var
   begin
     if (SpcCount < 1) or (Ord(Text[CurrentI]) = CHAR_CR) then
       Exit;
-    SpcDelta := (ARect.Right * HorzStretch - X - 1)/ SpcCount;
+    SpcDelta := (ARect.Right * HorzStretch - X - 1) / SpcCount;
     SpcDeltaInc := SpcDelta;
     L := LineStart;
     //Trim leading spaces ...

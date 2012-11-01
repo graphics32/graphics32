@@ -3536,11 +3536,11 @@ begin
 
       case K of
         OutRec2InOutRec1:
-          begin
-            if (OutRec2.IsHole = FReverseOutput) xor Orientation(OutRec2, FUse64BitRange) then
+          if assigned(OutRec2.Pts) and
+            (OutRec2.IsHole = FReverseOutput) xor Orientation(OutRec2, FUse64BitRange) then
               ReversePolyPtLinks(OutRec2.Pts);
-          end;
         OutRec1InOutRec2:
+          if assigned(OutRec1.Pts) then
           begin
             if (OutRec1.IsHole = FReverseOutput) xor Orientation(OutRec1, FUse64BitRange) then
               ReversePolyPtLinks(OutRec1.Pts);
@@ -3560,11 +3560,13 @@ begin
                    not PointInPolygon(BottomPt.pt, outRec1.pts, fUse64BitRange) then
                      FirstLeft := outRec2;
       end;
-
-      if (Orientation(OutRec1, FUse64BitRange) <> (Area(OutRec1, FUse64BitRange) > 0)) then
-        DisposeBottomPt(OutRec1);
-      if (Orientation(OutRec2, FUse64BitRange) <> (Area(OutRec2, FUse64BitRange) > 0)) then
-        DisposeBottomPt(OutRec2);
+      //check for self-intersection rounding artifacts and correct ...
+      if assigned(OutRec1.Pts) and
+        (Orientation(OutRec1, FUse64BitRange) <> (Area(OutRec1, FUse64BitRange) > 0)) then
+          DisposeBottomPt(OutRec1);
+      if assigned(OutRec2.Pts) and
+        (Orientation(OutRec2, FUse64BitRange) <> (Area(OutRec2, FUse64BitRange) > 0)) then
+          DisposeBottomPt(OutRec2);
     end else
     begin
       // joined 2 polygons together ...
