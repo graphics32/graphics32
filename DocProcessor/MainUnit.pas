@@ -283,9 +283,9 @@ begin
     for Index := 0 to Self.ComponentCount - 1 do
       if Self.Components[Index].InheritsFrom(TCustomEdit) and
          not Self.Components[Index].InheritsFrom(TMemo) then
-        Ini.WriteString('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), TEdit(Self.Components[Index]).Text)
+        Ini.WriteString('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), TEdit(Self.Components[Index]).Text)
       else if Self.Components[Index].InheritsFrom(TCheckBox) then
-        Ini.WriteBool('Settings', Copy(Self.Components[Index].Name, 3, MAXINT), TCheckBox(Self.Components[Index]).Checked);
+        Ini.WriteBool('Settings', Copy(Self.Components[Index].Name, 4, MAXINT), TCheckBox(Self.Components[Index]).Checked);
   finally
     Ini.Free;
   end;
