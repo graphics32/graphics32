@@ -3,8 +3,8 @@ unit GR32_Clipper;
 (*******************************************************************************
 *                                                                              *
 * Author    :  Angus Johnson                                                   *
-* Version   :  4.9.5                                                           *
-* Date      :  5 November 2012                                                 *
+* Version   :  4.9.6                                                           *
+* Date      :  9 November 2012                                                 *
 * Website   :  http://www.angusj.com                                           *
 * Copyright :  Angus Johnson 2010-2012                                         *
 *                                                                              *
@@ -471,72 +471,6 @@ begin
     Result := val.Hi * shift64 + Int64Rec(val.Lo).Hi * shift32 + Int64Rec(val.Lo).Lo;
 end;
 //------------------------------------------------------------------------------
-
-// procedure int128DivBase(val: TInt128; base: cardinal; out Result: TInt128; out remainder: Int64);
-// var
-//  I: Integer;
-//  Negate: Boolean;
-// begin
-//  Negate := (val.Hi < 0);
-//  if Negate then Int128Negate(val);
-//
-//  Result.Lo := 0;
-//  Result.Hi := 0;
-//  if (val.Hi = 0) and (val.Lo >= 0) and (base > val.Lo) then
-//  begin
-//    if Negate then remainder := -val.Lo else remainder := val.Lo;
-//    Exit;
-//  end;
-//
-//  remainder := 0;
-//  for I := 63 downto 0 do
-//  begin
-//    if (val.Hi and (Int64(1) shl I)) <> 0 then
-//      remainder := remainder * 2 + 1 else
-//      remainder := remainder * 2;
-//    if remainder >= base then
-//    begin
-//      Result.Hi := Result.Hi + (Int64(1) shl I);
-//      Dec(remainder, base);
-//    end;
-//  end;
-//  for I := 63 downto 0 do
-//  begin
-//    if (val.Lo and (Int64(1) shl I)) <> 0 then
-//      remainder := remainder * 2 + 1 else
-//      remainder := remainder * 2;
-//    if remainder >= base then
-//    begin
-//      Result.Lo := Result.Lo + (Int64(1) shl I);
-//      Dec(remainder, base);
-//    end;
-//  end;
-//  if Negate then Int128Negate(Result);
-// end;
-//------------------------------------------------------------------------------
-
-// function int128AsString(val: TInt128): string;
-// var
-//  valDiv10: TInt128;
-//  R: Int64;
-//  isNeg: Boolean;
-// begin
-//  Result := '';
-//  if val.Hi < 0 then
-//  begin
-//    Int128Negate(val);
-//    isNeg := True;
-//  end else
-//    isNeg := False;
-//  while (val.Hi <> 0) or (val.Lo <> 0) do
-//  begin
-//    int128DivBase(val, 10, valDiv10, R);
-//    Result := inttostr(R) + Result;
-//    val := valDiv10;
-//  end;
-//  if Result = '' then Result := '0';
-//  if isNeg then Result := '-' + Result;
-// end;
 {$OVERFLOWCHECKS ON}
 
 //------------------------------------------------------------------------------
@@ -866,7 +800,7 @@ end;
 function IntersectPoint(Edge1, Edge2: PEdge;
   out ip: TIntPoint; UseFullInt64Range: Boolean): Boolean; overload;
 var
-  B1,B2: Double;
+  B1, B2, Y: Double;
 begin
   if SlopesEqual(Edge1, Edge2, UseFullInt64Range) then
   begin
@@ -898,9 +832,12 @@ begin
   begin
     with Edge1^ do B1 := XBot - YBot * Dx;
     with Edge2^ do B2 := XBot - YBot * Dx;
-    B2 := (B2-B1) / (Edge1.Dx - Edge2.Dx);
-    ip.Y := round(B2);
-    ip.X := round(Edge1.Dx * B2 + B1);
+    Y := (B2-B1) / (Edge1.Dx - Edge2.Dx);
+    ip.Y := round(Y);
+    if Abs(Edge1.Dx) < Abs(Edge2.Dx) then
+      ip.X := round(Edge1.Dx * Y + B1)
+    else
+      ip.X := round(Edge2.Dx * Y + B2);
   end;
 
   // The precondition - E.TmpX > eNext.TmpX - indicates that the two edges do
@@ -3577,12 +3514,12 @@ begin
         FixupOutPolygon(OutRec1); //nb: do this BEFORE testing orientation
         FixupOutPolygon(OutRec2); //    but AFTER calling PointIsVertex()
 
-        if FixHoleLinkages then
+        if FixHoleLinkages and assigned(OutRec2.Pts) then
           for J := 0 to fPolyOutList.Count - 1 do
             with POutRec(fPolyOutList[J])^ do
-              if isHole and assigned(bottomPt) and (FirstLeft = OutRec1) and
-                 not PointInPolygon(BottomPt.pt, outRec1.pts, fUse64BitRange) then
-                   FirstLeft := outRec2;
+              if isHole and assigned(bottomPt) and (FirstLeft = OutRec1) then
+                if PointInPolygon(BottomPt.pt, outRec2.pts, fUse64BitRange) then
+                  FirstLeft := outRec2;
       end;
 
       //check for self-intersection rounding artifacts and correct ...
