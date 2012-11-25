@@ -1,5 +1,7 @@
 unit HTML_Tags;
 
+{$I DocProcessor.inc}
+
 interface
 
 type
@@ -7,7 +9,7 @@ type
   TClosingType = (ctUnknown, ctAlways, ctNever, ctAnchor);
 
   THtmlTagInfo = record
-    Name: string[32];
+    Name: string;
     ElemType: TElemType;
     ClosingType: TClosingType;
     SimpleContent: Boolean;

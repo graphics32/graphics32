@@ -6,14 +6,16 @@ unit DelphiParse;
 // Last revision : 4 July 2010.                                               //
 ////////////////////////////////////////////////////////////////////////////////
 
+{$I DocProcessor.inc}
+
 interface
 
 uses
   Windows, Messages, SysUtils, Classes;
 
 type
-  TTokenKind = (tkIdentifier, tkReserved, tkAsm,
-    tkText, tkSymbol, tkValue, tkComment, tkSpace, tkPrecompiler, tkEndLine);
+  TTokenKind = (tkIdentifier, tkReserved, tkAsm, tkText, tkSymbol, tkValue,
+    tkComment, tkSpace, tkPrecompiler, tkEndLine);
 
   PToken = ^TToken;
   TToken = record
@@ -53,6 +55,7 @@ type
   public
     constructor Create(AStrings: TStrings);
     destructor Destroy; override;
+
     procedure Reset;
     procedure NextLine;
     procedure PeekNextToken(var TOK: TToken);
@@ -68,25 +71,30 @@ const
   
 implementation
 
+uses
+  Utils;
+
 //------------------------------------------------------------------------------
 // TDelphiParser ....
 //------------------------------------------------------------------------------
 
 const
   //this list is still incomplete -
-  CResList: array[0..97] of PChar = ('absolute','abstract','and','array','as',
-    'asm','assembler','begin','case','cdecl','class','const','constructor',
-    'contains', 'destructor','default','dispid','dispinterface','div','do',
-    'downto','dynamic','else','end','except','export','exports','external',
-    'far','file','finalization','finally','for','forward','function','goto',
-    'if','implementation','in','inline','initialization','interface','is',
-    'inherited','label','library','message','mod','near','nil','not','object', 'platform',
-    'of','on','or','override','overload','out','package','packed','pascal','property',
-    'protected','private','procedure','program','public','published','read', 'reintroduce',
-    'write','raise','record','register','repeat','reintroduce','requires',
-    'resourcestring','safecall','shl','shr','set','stdcall','string','then',
-    'to','threadvar','try','type','unit','until','uses','var','virtual','with',
-    'while','xor');
+  CResList: array [0 .. 97] of PChar = ('absolute', 'abstract', 'and', 'array',
+    'as', 'asm', 'assembler', 'begin', 'case', 'cdecl', 'class', 'const',
+    'constructor', 'contains', 'destructor', 'default', 'dispid',
+    'dispinterface', 'div', 'do', 'downto', 'dynamic', 'else', 'end', 'except',
+    'export', 'exports', 'external', 'far', 'file', 'finalization', 'finally',
+    'for', 'forward', 'function', 'goto', 'if', 'implementation', 'in',
+    'inline', 'initialization', 'interface', 'is', 'inherited', 'label',
+    'library', 'message', 'mod', 'near', 'nil', 'not', 'object', 'platform',
+    'of', 'on', 'or', 'override', 'overload', 'out', 'package', 'packed',
+    'pascal', 'property', 'protected', 'private', 'procedure', 'program',
+    'public', 'published', 'read', 'reintroduce', 'write', 'raise', 'record',
+    'register', 'repeat', 'reintroduce', 'requires', 'resourcestring',
+    'safecall', 'shl', 'shr', 'set', 'stdcall', 'string', 'then', 'to',
+    'threadvar', 'try', 'type', 'unit', 'until', 'uses', 'var', 'virtual',
+    'with', 'while', 'xor');
 
 constructor TDelphiParser.Create(AStrings: TStrings);
 var
@@ -219,25 +227,25 @@ begin
     TOK.Kind := tkSpace;
   end
   //identifier
-  else if upcase(FCurrentLine[FCurrent.X]) in  ['A'..'Z','_'] then
+  else if CharInSet(UpCase(FCurrentLine[FCurrent.X]), ['A'..'Z', '_']) then
     TOK.Kind := GetIdentToken
   //Text
-  else if (FCurrentLine[FCurrent.X] in ['#',SINGLEQUOTE]) and not
+  else if CharInSet(FCurrentLine[FCurrent.X], ['#',SINGLEQUOTE]) and not
     FMultilineComment and not FCurlyBraceComment then
     TOK.Kind := GetTextToken
   //number
-  else if (FCurrentLine[FCurrent.X] in ['$','0'..'9']) then
+  else if CharInSet(FCurrentLine[FCurrent.X], ['$', '0'..'9']) then
     TOK.Kind := GetNumberToken
   //symbol
   else
     TOK.Kind := GetSymbolToken;
 
-  TOK.Text := copy(FCurrentLine,FLastX,FCurrent.X-FLastX);
+  TOK.Text := Copy(FCurrentLine, FLastX, FCurrent.X - FLastX);
 
   //check for assembler blocks ...
   if FAsmBlock and not (TOK.Kind in [tkComment,tkSpace]) then
   begin
-    if (lowercase(TOK.Text) = 'end') and not FAsmLabel then
+    if (LowerCase(TOK.Text) = 'end') and not FAsmLabel then
     begin
       TOK.Kind := tkReserved;
       FAsmBlock := False;
@@ -259,7 +267,7 @@ end;
 
 function TDelphiParser.GetIdentToken: TTokenKind;
 const
-  IdentifierChars = ['0'..'9','A'..'Z','_','a'..'z'];
+  IdentifierChars = ['0'..'9', 'A'..'Z', '_', 'a'..'z'];
 begin
   if FMultilineComment or FCurlyBraceComment then
   begin
@@ -272,7 +280,7 @@ begin
   repeat
     Inc(FCurrent.X);
   until (FCurrent.X > FCurrentLineLen) or not
-    (FCurrentLine[FCurrent.X] in IdentifierChars);
+    CharInSet(FCurrentLine[FCurrent.X], IdentifierChars);
 end;
 //------------------------------------------------------------------------------
 
@@ -292,11 +300,11 @@ begin
     Result := tkValue;
   if IsHex then
     while (FCurrent.X <= FCurrentLineLen) and
-      (FCurrentLine[FCurrent.X] in ['0'..'9','A'..'F','a'..'f']) do
+      CharInSet(FCurrentLine[FCurrent.X], ['0'..'9', 'A'..'F', 'a'..'f']) do
         Inc(FCurrent.X)
   else
     while (FCurrent.X <= FCurrentLineLen) do
-      if (FCurrentLine[FCurrent.X] in ['0'..'9']) then
+      if CharInSet(FCurrentLine[FCurrent.X], ['0'..'9']) then
         Inc(FCurrent.X)
       else if FCurrentLine[FCurrent.X] = '.' then
       begin
@@ -400,7 +408,7 @@ begin
   if (FCurrentLine[FCurrent.X - 1] = '#') then
   begin
     while (FCurrent.X <= FCurrentLineLen) and
-      (FCurrentLine[FCurrent.X] in ['0'..'9']) do Inc(FCurrent.X);
+      CharInSet(FCurrentLine[FCurrent.X], ['0'..'9']) do Inc(FCurrent.X);
   end else
   begin
     while (FCurrent.X <= FCurrentLineLen) do
