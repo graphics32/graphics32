@@ -1,5 +1,7 @@
 unit MainUnit;
 
+{$I DocProcessor.inc}
+
 {$WARN UNIT_PLATFORM OFF}
 {$WARN SYMBOL_PLATFORM OFF}
 
@@ -22,14 +24,19 @@ type
     CbxBrokenLinks: TCheckBox;
     CbxIncludeAlphabetClasses: TCheckBox;
     CbxOpenAfterProcess: TCheckBox;
+    CmbProjectName: TComboBox;
     EdtCHMCompiler: TEdit;
     EdtProjectDirectory: TEdit;
     EdtProjectTitle: TEdit;
+    EdtVersionString: TEdit;
     LblCompiler: TLabel;
     LblProgress: TLabel;
     LblProjectDirectory: TLabel;
+    LblProjectFileName: TLabel;
     LblProjectTitle: TLabel;
+    LblVersionString: TLabel;
     Log: TMemo;
+    OpnDlgPAS: TOpenDialog;
     PnlCompiler: TPanel;
     PnlCompilerHead: TPanel;
     PnlControl: TPanel;
@@ -42,11 +49,6 @@ type
     PnlTransComp: TPanel;
     PnlTransCompHead: TPanel;
     Progress: TProgressBar;
-    LblVersionString: TLabel;
-    LblProjectFileName: TLabel;
-    CmbProjectName: TComboBox;
-    EdtVersionString: TEdit;
-    OpnDlgPAS: TOpenDialog;
     procedure FormCreate(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
@@ -115,7 +117,7 @@ begin
   Result := False;
   CharCount := Length(Dir);
   if (CharCount > 0) and (Dir[CharCount] = '\') then Dir[CharCount] := #0;
-  if not DirectoryExists(Dir) then Exit;
+  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Dir) then Exit;
   FillChar(FileOpt, SizeOf(FileOpt), 0);
   FileOpt.Wnd := 0;
   FileOpt.wFunc := FO_DELETE;
@@ -168,10 +170,10 @@ end;
 procedure TMainForm.EdtProjectDirectoryChange(Sender: TObject);
 begin
   ProjectDir := EdtProjectDirectory.Text;
-  if DirectoryExists(ProjectDir) then
+  if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjectDir) then
   begin
     ProjectDir := IncludeTrailingBackslash(ProjectDir);
-    if DirectoryExists(ProjectDir + 'Source') then
+    if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjectDir + 'Source') then
     begin
       SourceDir := ProjectDir + 'Source\';
       BtnProcess.Enabled := True;
@@ -397,7 +399,8 @@ begin
   Progress.Position := 0;
   Enabled := False;
   Application.ProcessMessages;
-  if DirectoryExists(ProjectDir + 'Docs') then RemoveDir(ProjectDir + 'Docs');
+  if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjectDir + 'Docs') then
+    RemoveDir(ProjectDir + 'Docs');
   CompiledDir := (ProjectDir + 'Docs\');
   StyleFile := ProjectDir + 'Styles\Default.css';
 
@@ -435,7 +438,7 @@ begin
     Project.BuildHierarchy;
     LogAdd(CDots + ' done' + CRLF);
 
-    if DirectoryExists(CompiledDir) then
+    if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(CompiledDir) then
     begin
       LogAdd(RCStrDeletingDocFolder + ' ' + CDots);
       DeleteDirectoryTree(CompiledDir);
@@ -590,7 +593,7 @@ begin
   Log.Clear;
   Log.Color := clWhite;
 
-  if not DirectoryExists(DestUnitFolder) then
+  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(DestUnitFolder) then
   begin
     LogAdd(RCStrErrorDestinationFolderDoesNotExist + ' ' + CRLF);
     Log.Color := $E7FFE7;
@@ -608,7 +611,7 @@ begin
     for I := 0 to PasFiles.Count - 1 do
     begin
       Fn := ChangeFileExt(ExtractFileName(PasFiles[I]), '');
-      if DirectoryExists(DestUnitFolder + fn) then
+      if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(DestUnitFolder + fn) then
       begin
         S := Format('The file %s has already been imported into the help ' +
           'source.' + #10 + 'Do you want to replace the existing contents ' +
@@ -618,8 +621,8 @@ begin
         DeleteFolder(DestUnitFolder + fn);
       end;
 
-      K := BuildNewUnit(AnsiString(PasFiles[I]),
-        AnsiString(DestUnitFolder + fn + '\'), ProjectDir);
+      K := BuildNewUnit(PasFiles[I],
+        DestUnitFolder + fn + '\', ProjectDir);
       LogAdd('  added: ' + PasFiles[I] + CRLF);
       if K >= 0 then
         LogAdd('  (parse error at line ' + IntToStr(K + 1) +')' + CRLF);
@@ -650,7 +653,6 @@ begin
           I := MenuData.IndexOf('td_6 = "Additional Units"');
         if I < 0 then Exit;
 
-        FileCntr := 1;
         Inc(I);
         J := I;
 
@@ -663,7 +665,6 @@ begin
           if K > 0 then
             Delete(S, K, 255);
           PasFiles.Add(S);
-          Inc(FileCntr);
           Inc(I, 2);
         end;
         //clear out and rebuild the menu ...

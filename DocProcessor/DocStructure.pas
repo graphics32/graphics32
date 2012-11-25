@@ -1,8 +1,9 @@
 unit DocStructure;
 
-interface
-
+{$I DocProcessor.inc}
 {$WARN UNIT_PLATFORM OFF}
+
+interface
 
 uses
   Classes, SysUtils, Contnrs, Windows, FileCtrl, StrUtils, SimpleDOM;
@@ -384,7 +385,7 @@ begin
   Assert(Owner <> nil);
   Clear;
   Folder := Owner.Folder + '\' + SubDirName;
-  if not DirectoryExists(Folder) then Exit;
+  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Folder) then Exit;
   Listing := TStringList.Create;
   try
     if ElemClass.IsTopic then
@@ -495,7 +496,7 @@ begin
       Folder := ExtractFilePath(APath);
       DisplayName := FileNameNoExt(APath);
     end
-    else if DirectoryExists(APath) then
+    else if {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(APath) then
     begin
       if FileExists(APath + '\_Body.htm') then
         FileName := APath + '\_Body.htm';
@@ -516,7 +517,7 @@ begin
   else
   begin
     // A path must point to a directory with optional '_Body.htm' in it
-    if not DirectoryExists(APath) then
+    if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(APath) then
       Exception.Create(RCStrInvalidElementPath);
     if FileExists(APath + '\_Body.htm') then
       FileName := APath + '\_Body.htm';
@@ -789,7 +790,8 @@ begin
 
     DestFile := GetDstFile;
     DestPath := ExtractFilePath(DestFile);
-    if not DirectoryExists(DestPath) then ForceDirectories(DestPath);
+    if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(DestPath) then
+      {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}ForceDirectories(DestPath);
     Dom.SaveToFile(DestFile);
   finally
     Dom.Free;
@@ -1706,7 +1708,7 @@ var
 begin
   CuList.Clear;
   ProjDir := GetParentDirectory(Folder);
-  if not DirectoryExists(ProjDir + 'Scripts') or
+  if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(ProjDir + 'Scripts') or
     not FileExists(ProjDir + 'Scripts\menu_data.js') then exit;
   StrLst := TStringList.Create;
   try

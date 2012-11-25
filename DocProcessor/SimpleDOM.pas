@@ -1,8 +1,9 @@
 unit SimpleDOM;
 
-interface
-
+{$I DocProcessor.inc}
 {$WARN UNSAFE_CAST OFF}
+
+interface
 
 {-$DEFINE CODESITE}
 
