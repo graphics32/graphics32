@@ -15,8 +15,8 @@ unit Pas2Html;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Controls, DelphiParse, ShellApi,
-  ShlObj, Forms;
+  Windows, Messages, Forms, SysUtils, Classes, Controls, DelphiParse, ShellApi,
+  ShlObj;
 
   function BuildNewUnit(const PasFilename, DestUnitFolder, ProjectFolder: TFileName): Integer;
   function DeleteFolder(const FolderName: TFileName): Boolean;
@@ -593,13 +593,38 @@ var
   function DoProperty: string;
   var
     inSqrBracket, doRead, doWrite: Boolean;
+
+    function PropertyValid(Token: TToken): Boolean;
+    const
+      CValidPropertyNames: array [0..34] of string = ('absolute', 'abstract',
+        'assembler', 'cdecl', 'contains', 'default', 'dispid', 'dynamic',
+        'export', 'external', 'far', 'forward', 'message', 'near', 'platform',
+        'on', 'override', 'overload', 'out', 'package', 'pascal', 'protected',
+        'private', 'program', 'public', 'published', 'read', 'reintroduce',
+        'write', 'register', 'reintroduce', 'requires', 'safecall', 'stdcall',
+        'virtual');
+//      'label',
+    var
+      Index: Integer;
+    begin
+      Result := (Token.Kind = tkIdentifier) or (Tok.kind = tkReserved);
+      if (not Result) and (Tok.kind = tkReserved) then
+        for Index := 0 to High(CValidPropertyNames) do
+          if Token.Text = CValidPropertyNames[Index] then
+          begin
+            Result := True;
+            Exit;
+          end;
+    end;
+
   begin
     Result := '';
     ClearBuffer;
     with DelphiParser do
     begin
       GetNextToken(Tok);
-      if Tok.kind <> tkIdentifier then Exit;
+      if not PropertyValid(Tok) then
+        Exit;
       AddToBuffer(Tok);
       PeekNextToken(Tok);
       if Tok.Text = ';' then
@@ -736,7 +761,7 @@ var
               if s = '' then Exit;
               if not DirectoryExists(ClassPath + 'Methods') then
                 MkDir(ClassPath + 'Methods');
-              fn := ClassPath  + 'Methods/' +FirstWordInStr(s) + '.htm';
+              fn := ClassPath  + 'Methods/' + FirstWordInStr(s) + '.htm';
               AppendStringToFile(fn, '<p class="Decl"><b>function</b> ' +
                   s + '</p>' +MakeDescription(6, Comment));
               if RoutinesList.IndexOf(fn) < 0 then
@@ -745,26 +770,45 @@ var
             end
             else if (Tok.Text = 'class') then
             begin
+              ClearBuffer;
+              AddToBuffer(Tok);
+
               Comment := LastSpecialComment;
               GetNextToken(Tok);
-              if Tok.Text = 'procedure' then
+              if (Tok.Text = 'procedure') or (Tok.Text = 'function') then
               begin
-                s := 'procedure';
-                s2 := DoProcedure;
-              end else if Tok.Text = 'function' then
+                if Tok.Text = 'procedure' then
+                begin
+                  s := 'procedure';
+                  s2 := DoProcedure;
+                end else if Tok.Text = 'function' then
+                begin
+                  s := 'function';
+                  s2 := DoFunction;
+                end;
+                if s2 = '' then Exit;
+                if not DirectoryExists(ClassPath + 'Methods') then
+                  MkDir(ClassPath + 'Methods');
+                fn := ClassPath  + 'Methods/' + FirstWordInStr(s2) + '.htm';
+                if RoutinesList.IndexOf(fn) < 0 then
+                  RoutinesList.AddObject(fn, Pointer(6));
+
+                AppendStringToFile(fn,
+                  Format('<p class="Decl"><b>class %s</b> %s</p>'#10, [s, s2])
+                  + MakeDescription(6, Comment));
+              end
+              else if Tok.Text = 'var' then
               begin
-                s := 'function';
-                s2 := DoFunction;
-              end else Exit;
-              if s2 = '' then Exit;
-              if not DirectoryExists(ClassPath + 'Methods') then
-                MkDir(ClassPath + 'Methods');
-              fn := ClassPath  + 'Methods/' + FirstWordInStr(s2) + '.htm';
-              AppendStringToFile(fn,
-                Format('<p class="Decl"><b>class %s</b> %s</p>'#10, [s, s2])
-                + MakeDescription(6, Comment));
-              if RoutinesList.IndexOf(fn) < 0 then
-                RoutinesList.AddObject(fn, Pointer(6));
+                AddToBuffer(Tok);
+                repeat
+                  GetNextToken(Tok);
+                  AddToBuffer(Tok);
+                until Finished or (Tok.Text = ';');
+                if Tok.Text <> ';' then Break;
+                fn := ClassPath + 'Fields.htm';
+                AppendStringToFile(fn, Format('<p class="Decl">%s</p>'#10, [GBuffer]));
+              end else
+                Exit;
               GetNextToken(Tok);
             end
             else if (Tok.Text = 'property') then
@@ -816,12 +860,16 @@ var
       end;
       ClearBuffer;
       AddToBuffer(InterfaceName + ' = <b>interface</b><br>'#10);
-      repeat
-        GetNextToken(Tok);
-        AddToBuffer(Tok);
-      until Finished or (Tok.Text = ']');
-      Result := Tok.Text = ']';
-      if not Result then Exit;
+
+      if Tok.Text = '[' then
+      begin
+        repeat
+          GetNextToken(Tok);
+          AddToBuffer(Tok);
+        until Finished or (Tok.Text = ']');
+        Result := Tok.Text = ']';
+        if not Result then Exit;
+      end;
 
       if not DirectoryExists(DestUnitFolder + 'Interfaces') then
         MkDir(DestUnitFolder + 'Interfaces');
@@ -1117,7 +1165,7 @@ begin
                 Break
             end else if (Tok.Text = 'type') then
             begin
-              if not DoType  then
+              if not DoType then
                 Break
             end else if (Tok.Text = 'function') then
             begin
