@@ -567,7 +567,7 @@ end;
 procedure TMainForm.BtnParseMissingClick(Sender: TObject);
 var
   I, J, K: Integer;
-  FileCntr, FileType: Integer;
+  FileType: Integer;
   DestUnitFolder, Fn: TFileName;
   S: string;
   PasFiles, MenuData: TStringList;
