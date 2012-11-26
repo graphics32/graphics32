@@ -19,7 +19,7 @@ function CompareDirectories(List: TStringList; Index1, Index2: Integer): Integer
 function GetLinkName(const Target: string): string;
 function CompareLinks(List: TStringList; Index1, Index2: Integer): Integer;
 function CompareElements(Item1, Item2: Pointer): Integer;
-procedure RunCommandInMemo(const Command: String; AMemo: TMemo);
+procedure RunCommandInMemo(const Command: string; AMemo: TMemo);
 
 {$IFNDEF SUPPORTS_UNICODE}
 type

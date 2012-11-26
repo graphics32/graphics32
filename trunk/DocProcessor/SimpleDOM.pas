@@ -207,7 +207,7 @@ begin
   if AnsiChar(P^) in ['''', '"'] then
   begin
     Qt := P^;
-    Terminators := ['^', '<', '&', #0] + [Qt];
+    Terminators := ['^', '<', #0] + [Qt]; // removed '&' from terminator
     Inc(P);
     Start := P;
     while not (AnsiChar(P^) in Terminators) do Inc(P);
@@ -605,14 +605,21 @@ var
       begin
         // get attributes
         AttrName := GetName(Pos);
-        if AttrName = '' then DomError('Unable to get name of the attribute');
+        if AttrName = '' then
+          DomError('Unable to get name of the attribute');
+
         if DoHTML then Name := LowerCase(Name);
-        if not GetEq(Pos) then DomError('Unable to find attribute value');
+        if not GetEq(Pos) then
+          DomError('Unable to find attribute value');
+
         AttrVal := GetAttValue(Pos, Err);
-        if Err then DomError('Unable to get value of the attribute');
+        if Err then
+          DomError(Format('Unable to get value of the attribute %s', [AttrName]));
+
         Attributes.Add(AttrName, AttrVal);
         OmitWhiteSpace(Pos);
-        if Pos^ = #0 then DomError('Unexpected document end');
+        if Pos^ = #0 then
+          DomError(Format('Unexpected document end (%s)', [AttrName]));
       end;
 
       if (TagInfo.ClosingType in [ctNever]) then
