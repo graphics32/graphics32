@@ -859,6 +859,7 @@ var
     fn: TFileName;
     InterfacePath: string;
   begin
+    Result := False;
     with DelphiParser do
     begin
       PeekNextToken(Tok);
@@ -868,7 +869,19 @@ var
         Exit; //ie forward declaration only
       end;
       ClearBuffer;
-      AddToBuffer(InterfaceName + ' = <b>interface</b><br>'#10);
+      AddToBuffer(InterfaceName + ' = <b>interface</b>');
+      if Tok.Text = '(' then
+      begin
+        GetNextToken(Tok); //ie gobbles peek
+        GetNextToken(Tok);
+        s := Tok.Text;
+        AddToBuffer('(' + Tok.Text + ')');
+        GetNextToken(Tok);
+        if Tok.Text <> ')' then
+          Exit;
+        PeekNextToken(Tok);
+      end;
+      AddToBuffer('<br>'#10);
 
       if Tok.Text = '[' then
       begin
