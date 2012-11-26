@@ -55,6 +55,14 @@ end;
 var
   GBuffer: string;
 
+{$IFNDEF UNICODE}
+function CharInSet(c: AnsiChar; chrs: TSysCharSet): boolean;
+begin
+  result := c in chrs;
+end;
+//------------------------------------------------------------------------------
+{$ENDIF}
+
 procedure AddToBuffer(const Tok: TToken); overload;
 var
   Len: Integer;
@@ -336,6 +344,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 
+{$IFDEF UNICODE}
 function FirstWordInStr(const s: string): string; overload;
 var
   i, Len: Integer;
@@ -351,6 +360,7 @@ begin
   end;
 end;
 //------------------------------------------------------------------------------
+{$ENDIF}
 
 function BuildNewUnit(const PasFilename, DestUnitFolder, ProjectFolder: TFileName): Integer;
 var

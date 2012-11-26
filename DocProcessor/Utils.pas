@@ -225,7 +225,7 @@ begin
         ReadFile(ReadPipe, Buffer[0], ReadBuffer, BytesRead, nil);
         Buffer[BytesRead] := #0;
         OemToAnsi(Buffer, Buffer);
-        AMemo.Text := AMemo.Text + AnsiString(Buffer);
+        AMemo.Text := AMemo.Text + string(AnsiString(Buffer));
       until BytesRead < ReadBuffer;
     end;
 
