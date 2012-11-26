@@ -602,12 +602,11 @@ var
         'on', 'override', 'overload', 'out', 'package', 'pascal', 'protected',
         'private', 'program', 'public', 'published', 'read', 'reintroduce',
         'write', 'register', 'reintroduce', 'requires', 'safecall', 'stdcall',
-        'virtual');
-//      'label',
+        'virtual'); // label ?!
     var
       Index: Integer;
     begin
-      Result := (Token.Kind = tkIdentifier) or (Tok.kind = tkReserved);
+      Result := (Token.Kind = tkIdentifier); // or (Tok.kind = tkReserved);
       if (not Result) and (Tok.kind = tkReserved) then
         for Index := 0 to High(CValidPropertyNames) do
           if Token.Text = CValidPropertyNames[Index] then

@@ -1058,13 +1058,17 @@ var
   var
     I: Integer;
   begin
+    Assert(Assigned(Elements));
     for I := 0 to Elements.Count - 1 do
     begin
+      Assert(Assigned(Elements[I]));
+
       Project.Index.AddMember(
         DisplayName,
         Elements[I].DisplayName,
         DisplayName + '.' + Elements[I].DisplayName,
         Elements[I].FileName);
+
       Project.Index.AddMember(
         Elements[I].DisplayName,
         DisplayName,
@@ -2060,7 +2064,10 @@ begin
       Break;
     end;
   end;
-  if E = nil then E := Add(AKeyword, '');
+  if E = nil then
+    E := Add(AKeyword, '');
+
+  Assert(Assigned(E));
   E.Members.Add(AKeyword2, ATarget).Name := AName;
 end;
 
