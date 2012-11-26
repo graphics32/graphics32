@@ -642,17 +642,21 @@ begin
     //now update the help file's dropdown menu list of units
     if (J > 0) and FileExists(ProjectDir + 'Scripts\menu_data.js') then
     begin
-      LogAdd('Adding ' + IntToStr(J) + ' units' + CRLF);
-
       MenuData := TStringList.Create;
       try
         MenuData.LoadFromFile(ProjectDir + 'Scripts\menu_data.js');
-
         if FileType = NEW_MAIN_UNIT then
           I := MenuData.IndexOf('td_5 = "Main Units"') else
           I := MenuData.IndexOf('td_6 = "Additional Units"');
-        if I < 0 then Exit;
+        if I < 0 then
+        begin
+          //'Main Units'/'Additional Units' structure missing so
+          //skip updating menu structure ...
+          LogAdd('Finished adding units.' + CRLF);
+          Exit;
+        end;
 
+        LogAdd('Adding ' + IntToStr(J) + ' units' + CRLF);
         Inc(I);
         J := I;
 
