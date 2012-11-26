@@ -30,7 +30,7 @@
 						'pint64 pointer private procedure program property pshortstring pstring ' +
 						'pvariant pwidechar pwidestring protected public published raise real real48 ' +
 						'record repeat set shl shortint shortstring shr single smallint string then ' +
-						'threadvar to true try type unit until uses val var varirnt while widechar ' +
+						'threadvar to true try type unit until uses val var variant while widechar ' +
 						'widestring with word write writeln xor';
 
 		this.regexList = [
