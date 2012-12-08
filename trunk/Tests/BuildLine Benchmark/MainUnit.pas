@@ -53,7 +53,7 @@ implementation
 {$R *.dfm}
 
 uses
-  GR32_VectorUtils, GR32_Polygons, GR32_System;
+  Math, GR32_VectorUtils, GR32_Polygons, GR32_System;
 
 { TBenchmarkThread }
 
@@ -86,6 +86,7 @@ begin
       VerticesPerS := 1000000 * Count / NanoSeconds;
       if VerticesPerS > FVerticesPerS then
         FVerticesPerS := VerticesPerS;
+      if Terminated then Exit;
     end;
   finally
     Free;
@@ -104,8 +105,8 @@ var
 begin
   with FrmBuildLineBenchmark.Image32 do
     for Index := 0 to High(FPoints) do
-      FPoints[Index] := FloatPoint(FLineWidth + Random * Width -
-        2 * FLineWidth, FLineWidth + Random * (Height - 2 * FLineWidth));
+      FPoints[Index] := FloatPoint(FLineWidth + Random * (Width -
+        2 * FLineWidth), FLineWidth + Random * (Height - 2 * FLineWidth));
 end;
 
 procedure TBenchmarkThread.DrawResults;
@@ -116,7 +117,7 @@ begin
 
   with TPolygonRenderer32VPR.Create(FrmBuildLineBenchmark.Image32.Bitmap) do
   try
-    Color := SetAlpha(Random($FFFFFF), $80 + Random($7F));
+    Color := SetAlpha(Random($FFFFFF), $A0 + Random($3F));
     PolygonFS(BuildPolyline(FPoints, FLineWidth, jsRound, esRound));
   finally
     Free;
@@ -156,6 +157,7 @@ procedure TFrmBuildLineBenchmark.FormShow(Sender: TObject);
 var
   Index: Integer;
   Points: TArrayOfFloatPoint;
+  Angle, IncAngle: TFloat;
 begin
   FLineWidth := 10;
 
@@ -164,23 +166,28 @@ begin
   with Image32 do
   begin
     SetLength(Points, 3);
-    for Index := 10 downto 0 do
+(*
+    for Index := 0 to 10 do
     begin
       Points[0] := FloatPoint(3 * (Index + 1) * 2 * FLineWidth, 2 * FLineWidth);
-      Points[1] := FloatPoint(1.3 * (Index + 1) * 2 * FLineWidth, 0.5 * Height);
-      Points[2] := FloatPoint(3 * (Index + 1) * 2 * FLineWidth, Height - 2 * FLineWidth);
+      Points[1] := FloatPoint(1.3 * (Index + 1) * 2 * FLineWidth,
+        Min(5 * FLineWidth, 0.5 * Height));
+      Points[2] := FloatPoint(3 * (Index + 1) * 2 * FLineWidth,
+        Min(10 * FLineWidth, Height - 2 * FLineWidth));
 
       with TPolygonRenderer32VPR.Create(Bitmap) do
       try
-        Color := clRed32;
+        Color := HSLtoRGB(0.2 * Index, 1, 0.5);
         PolygonFS(BuildPolyline(Points, FLineWidth, jsRound, esRound));
       finally
         Free;
       end;
     end;
+*)
 
     for Index := 10 downto 0 do
     begin
+(*
       Points[0] := FloatPoint(2 * FLineWidth, 3 * (Index + 1) * 2 * FLineWidth);
       Points[1] := FloatPoint(0.5 * Width, 1.1 * (Index + 1) * 2 * FLineWidth);
       Points[2] := FloatPoint(Width - 2 * FLineWidth, 3 * (Index + 1) * 2 * FLineWidth);
@@ -192,7 +199,50 @@ begin
       finally
         Free;
       end;
+*)
     end;
+
+    SetLength(Points, 20);
+    IncAngle := 0.1;
+    Angle := 0;
+    if Random < 0  then
+    begin
+      Points[0] := FloatPoint(0.5 * Width - FLineWidth, FLineWidth);
+      for Index := 1 to High(Points) do
+      begin
+        Points[Index] := FloatPoint(Points[Index - 1].X - 1.5 * FLineWidth *
+          (0.7 + Index * Cos(Angle)), Points[Index - 1].Y + 1.5 * FLineWidth *
+          Index * Sin(Angle));
+        Angle := Angle + IncAngle;
+        IncAngle := IncAngle + 0.14;
+      end;
+    end
+    else
+    begin
+      Points[0] := FloatPoint(FLineWidth, FLineWidth);
+      for Index := 1 to High(Points) do
+      begin
+        Points[Index] := FloatPoint(Points[Index - 1].X + 1.5 * FLineWidth *
+          (0.7 + Index * Cos(Angle)), Points[Index - 1].Y + 1.5 * FLineWidth *
+          Index * Sin(Angle));
+        Angle := Angle + IncAngle;
+        IncAngle := IncAngle + 0.14;
+      end;
+    end;
+
+    Points := BuildPolyline(Points, FLineWidth, jsRound, esRound);
+    Points := ScalePolygon(Points, 2, 2);
+
+    with TPolygonRenderer32VPR.Create(Bitmap) do
+    try
+      Color := clBlack32;
+      PolygonFS(Points);
+    finally
+      Free;
+    end;
+
+    for Index := 1 to High(Points) do
+      Bitmap.PixelFS[Points[Index].X, Points[Index].Y] := clRed32;
   end;
 end;
 
@@ -257,7 +307,7 @@ begin
 
     with TPolygonRenderer32VPR.Create(Bitmap) do
     try
-      Color := SetAlpha(Random($FFFFFF), $80 + Random($7F));
+      Color := SetAlpha(Random($FFFFFF), $A0 + Random($3F));
       Points := BuildPolyline(Points, LineWidth, jsRound, esRound);
       PolygonFS(Points);
     finally
