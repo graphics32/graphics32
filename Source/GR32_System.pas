@@ -69,7 +69,8 @@ type
     procedure Start;
     function ReadNanoseconds: string;
     function ReadMilliseconds: string;
-    function ReadSeconds: String;
+    function ReadSeconds: string;
+
     function ReadValue: Int64;
   end;
 
@@ -420,4 +421,4 @@ initialization
 finalization
   GlobalPerfTimer.Free;
 
-end.
+end.
