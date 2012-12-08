@@ -185,8 +185,9 @@ begin
   end;
 end;
 
-procedure PartSort(var A, B: PPCell; const Stop: PCell); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure PartSort(var A, B: PPCell; const Stop: PCell);
 {$IFDEF PUREPASCAL}
+  {$IFDEF USEINLINING} inline; {$ENDIF}
 
   procedure SwapCells(A, B: PPCell); {$IFDEF USEINLINING} inline; {$ENDIF}
   var
