@@ -1,5 +1,7 @@
 program DocProcessor;
 
+{$R 'MainIcon.res' 'MainIcon.rc'}
+
 uses
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm},
@@ -9,8 +11,6 @@ uses
   DocStructure in 'DocStructure.pas',
   Pas2Html in 'Pas2Html.pas',
   DelphiParse in 'DelphiParse.pas';
-
-{$R *.RES}
 
 begin
   Application.Initialize;
