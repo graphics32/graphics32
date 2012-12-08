@@ -265,6 +265,7 @@ function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline
 function BlueComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function AlphaComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Intensity(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+function InvertColor(Color32: TColor32): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Color space conversion
@@ -1267,6 +1268,14 @@ begin
     (Color32 and $0000FF00) shr 8 * 174 +
     (Color32 and $000000FF) * 21
     ) shr 8;
+end;
+
+function InvertColor(Color32: TColor32): TColor32;
+begin
+  TColor32Entry(Result).R := $FF - TColor32Entry(Color32).R;
+  TColor32Entry(Result).G := $FF - TColor32Entry(Color32).G;
+  TColor32Entry(Result).B := $FF - TColor32Entry(Color32).B;
+  TColor32Entry(Result).A := TColor32Entry(Color32).A;
 end;
 
 function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
