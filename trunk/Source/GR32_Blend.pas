@@ -56,6 +56,7 @@ type
 { Function Prototypes }
   TBlendReg    = function(F, B: TColor32): TColor32;
   TBlendMem    = procedure(F: TColor32; var B: TColor32);
+  TBlendMems   = procedure(F: TColor32; B: PColor32; Count: Integer);
   TBlendRegEx  = function(F, B, M: TColor32): TColor32;
   TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
   TBlendRegRGB = function(F, B, W: TColor32): TColor32;
@@ -78,6 +79,7 @@ var
 { Function Variables }
   BlendReg: TBlendReg;
   BlendMem: TBlendMem;
+  BlendMems: TBlendMems;
 
   BlendRegEx: TBlendRegEx;
   BlendMemEx: TBlendMemEx;
@@ -218,6 +220,16 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
+  end;
+end;
+
+procedure BlendMems_Pas(F: TColor32; B: PColor32; Count: Integer);
+begin
+  while Count > 0 do
+  begin
+    BlendMem(F, B^);
+    Inc(B);
+    Dec(Count);
   end;
 end;
 
@@ -976,6 +988,151 @@ asm
 
 @1:     MOV     [RDX],EAX
 @2:
+{$ENDIF}
+end;
+
+procedure BlendMems_ASM(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x86}
+        TEST    ECX,ECX
+        JZ      @Done
+
+        PUSH    EBX
+        PUSH    ESI
+        PUSH    EDI
+
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+
+@LoopStart:
+        MOV     EAX,[ESI]
+        TEST    EAX,$FF000000
+        JZ      @NextPixel
+
+        PUSH    ECX
+
+        MOV     ECX,EAX
+        SHR     ECX,24
+
+        CMP     ECX,$FF
+        JZ      @CopyPixel
+
+        MOV     EBX,EAX
+        AND     EAX,$00FF00FF
+        AND     EBX,$FF00FF00
+        IMUL    EAX,ECX
+        SHR     EBX,8
+        IMUL    EBX,ECX
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00
+        SHR     EAX,8
+        ADD     EBX,bias
+        AND     EBX,$FF00FF00
+        OR      EAX,EBX
+
+        MOV     EDX,[EDI]
+        XOR     ECX,$000000FF
+        MOV     EBX,EDX
+        AND     EDX,$00FF00FF
+        AND     EBX,$FF00FF00
+        IMUL    EDX,ECX
+        SHR     EBX,8
+        IMUL    EBX,ECX
+        ADD     EDX,bias
+        AND     EDX,$FF00FF00
+        SHR     EDX,8
+        ADD     EBX,bias
+        AND     EBX,$FF00FF00
+        OR      EBX,EDX
+
+        ADD     EAX,EBX
+@CopyPixel:
+        OR      EAX,$FF000000
+        MOV     [EDI],EAX
+        POP     ECX
+
+@NextPixel:
+        ADD     ESI,4
+        ADD     EDI,4
+
+        DEC     ECX
+        JNZ     @LoopStart
+
+        POP     EDI
+        POP     ESI
+        POP     EBX
+
+@Done:
+        RET
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        TEST    R8D,R8D
+        JZ      @Done
+
+        PUSH    RDI
+
+        MOV     R9,RCX
+        MOV     RDI,RDX
+
+@LoopStart:
+        MOV     ECX,[RSI]
+        TEST    ECX,$FF000000
+        JZ      @NextPixel
+
+        PUSH    R8
+
+        MOV     R8D,ECX
+        SHR     R8D,24
+
+        CMP     R8D,$FF
+        JZ      @CopyPixel
+
+        MOV     EAX,ECX
+        AND     ECX,$00FF00FF
+        AND     EAX,$FF00FF00
+        IMUL    ECX,R8D
+        SHR     EAX,8
+        IMUL    EAX,R8D
+        ADD     ECX,bias
+        AND     ECX,$FF00FF00
+        SHR     ECX,8
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00
+        OR      ECX,EAX
+
+        MOV     EDX,[RDI]
+        XOR     R8D,$000000FF
+        MOV     EAX,EDX
+        AND     EDX,$00FF00FF
+        AND     EAX,$FF00FF00
+        IMUL    EDX, R8D
+        SHR     EAX,8
+        IMUL    EAX,R8D
+        ADD     EDX,bias
+        AND     EDX,$FF00FF00
+        SHR     EDX,8
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00
+        OR      EAX,EDX
+
+        ADD     ECX,EAX
+@CopyPixel:
+        OR      ECX,$FF000000
+        MOV     [RDI],ECX
+        POP     R8
+
+@NextPixel:
+        ADD     R9,4
+        ADD     RDI,4
+
+        DEC     R8D
+        JNZ     @LoopStart
+
+        POP     RDI
+
+@Done:
+        RET
 {$ENDIF}
 end;
 
@@ -2825,6 +2982,120 @@ asm
 {$ENDIF}
 end;
 
+procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x86}
+        TEST      ECX,ECX
+        JZ        @Done
+
+        TEST      EAX,$FF000000
+        JZ        @Done
+
+        PUSH      EBX
+
+        MOV       EBX,EAX
+        SHR       EBX,24
+
+        CMP       EBX,$FF
+        JZ        @CopyPixel
+
+        MOVD      XMM4,EAX
+        PXOR      XMM3,XMM3
+        PUNPCKLBW XMM4,XMM3
+        MOV       EBX,bias_ptr
+
+@LoopStart:
+        MOVD      XMM2,[EDX]
+        PUNPCKLBW XMM2,XMM3
+        MOVQ      XMM1,XMM4
+        PUNPCKLBW XMM1,XMM3
+        PUNPCKHWD XMM1,XMM1
+        MOVQ      XMM0,XMM4
+        PSUBW     XMM0,XMM2
+        PUNPCKHDQ XMM1,XMM1
+        PSLLW     XMM2,8
+        PMULLW    XMM0,XMM1
+        PADDW     XMM2,[EBX]
+        PADDW     XMM2,XMM0
+        PSRLW     XMM2,8
+        PACKUSWB  XMM2,XMM3
+        MOVD      [EDX],XMM2
+
+@NextPixel:
+        ADD       EDX,4
+
+        DEC       ECX
+        JNZ       @LoopStart
+
+        POP       EBX
+
+@Done:
+        RET
+
+@CopyPixel:
+        MOV       [EDX],EAX
+        ADD       EDX,4
+
+        DEC       ECX
+        JNZ       @CopyPixel
+
+        POP       EBX
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+        TEST      R8D,R8D
+        JZ        @Done
+
+        TEST      ECX,$FF000000
+        JZ        @Done
+
+        MOV       RAX,RCX
+        SHR       EAX,24
+
+        CMP       EAX,$FF
+        JZ        @CopyPixel
+
+        MOVD      XMM4,ECX
+        PXOR      XMM3,XMM3
+        PUNPCKLBW XMM4,XMM3
+        MOV       RAX,bias_ptr
+
+@LoopStart:
+        MOVD      XMM2,[RDX]
+        PUNPCKLBW XMM2,XMM3
+        MOVQ      XMM1,XMM4
+        PUNPCKLBW XMM1,XMM3
+        PUNPCKHWD XMM1,XMM1
+        MOVQ      XMM0,XMM4
+        PSUBW     XMM0,XMM2
+        PUNPCKHDQ XMM1,XMM1
+        PSLLW     XMM2,8
+        PMULLW    XMM0,XMM1
+        PADDW     XMM2,[RAX]
+        PADDW     XMM2,XMM0
+        PSRLW     XMM2,8
+        PACKUSWB  XMM2,XMM3
+        MOVD      [RDX], XMM2
+
+@NextPixel:
+        ADD       RDX,4
+
+        DEC       R8D
+        JNZ       @LoopStart
+
+@Done:
+        RET
+
+@CopyPixel:
+        MOV       [RDX],ECX
+        ADD       RDX,4
+
+        DEC       R8D
+        JNZ       @CopyPixel
+{$ENDIF}
+end;
+
+
 function BlendRegEx_SSE2(F, B, M: TColor32): TColor32; {$IFDEF FPC} nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
@@ -4152,27 +4423,28 @@ const
 
   FID_BLENDREG = 10;
   FID_BLENDMEM = 11;
-  FID_BLENDLINE = 12;
-  FID_BLENDREGEX = 13;
-  FID_BLENDMEMEX = 14;
-  FID_BLENDLINEEX = 15;
+  FID_BLENDMEMS = 12;
+  FID_BLENDLINE = 13;
+  FID_BLENDREGEX = 14;
+  FID_BLENDMEMEX = 15;
+  FID_BLENDLINEEX = 16;
 
-  FID_COLORMAX = 16;
-  FID_COLORMIN = 17;
-  FID_COLORAVERAGE = 18;
-  FID_COLORADD = 19;
-  FID_COLORSUB = 20;
-  FID_COLORDIV = 21;
-  FID_COLORMODULATE = 22;
-  FID_COLORDIFFERENCE = 23;
-  FID_COLOREXCLUSION = 24;
-  FID_COLORSCALE = 25;
-  FID_LIGHTEN = 26;
+  FID_COLORMAX = 17;
+  FID_COLORMIN = 18;
+  FID_COLORAVERAGE = 19;
+  FID_COLORADD = 20;
+  FID_COLORSUB = 21;
+  FID_COLORDIV = 22;
+  FID_COLORMODULATE = 23;
+  FID_COLORDIFFERENCE = 24;
+  FID_COLOREXCLUSION = 25;
+  FID_COLORSCALE = 26;
+  FID_LIGHTEN = 27;
 
-  FID_BLENDREGRGB = 27;
-  FID_BLENDMEMRGB = 28;
+  FID_BLENDREGRGB = 28;
+  FID_BLENDMEMRGB = 29;
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
-  FID_BLENDMEMRGB128 = 29;
+  FID_BLENDMEMRGB128 = 30;
 {$ENDIF}
 
 procedure RegisterBindings;
@@ -4193,6 +4465,7 @@ begin
 
   BlendRegistry.RegisterBinding(FID_BLENDREG, @@BlendReg);
   BlendRegistry.RegisterBinding(FID_BLENDMEM, @@BlendMem);
+  BlendRegistry.RegisterBinding(FID_BLENDMEMS, @@BlendMems);
   BlendRegistry.RegisterBinding(FID_BLENDLINE, @@BlendLine);
   BlendRegistry.RegisterBinding(FID_BLENDREGEX, @@BlendRegEx);
   BlendRegistry.RegisterBinding(FID_BLENDMEMEX, @@BlendMemEx);
@@ -4231,6 +4504,7 @@ begin
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_Pas);
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_Pas);
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_Pas);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_Pas);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_Pas);
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_Pas);
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_Pas);
@@ -4253,6 +4527,7 @@ begin
   BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, []);
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
@@ -4288,6 +4563,7 @@ begin
   BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
