@@ -165,7 +165,7 @@ begin
 
     // TODO: Try to find a back-end that supports the required interfaces
     //       instead of resorting to the default platform back-end class...
-    TargetBitmap.Backend := GetPlatformBackendClass.Create;
+    TargetBitmap.Backend := TargetBitmap.GetPlatformBackendClass.Create;
   end
   else
     ReleasedBackend := nil;

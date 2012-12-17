@@ -705,7 +705,7 @@ type
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
 
-    procedure InitializeBackend; virtual;
+    procedure InitializeBackend(Backend: TCustomBackendClass); virtual;
     procedure FinalizeBackend; virtual;
     procedure SetBackend(const Backend: TCustomBackend); virtual;
 
@@ -744,8 +744,11 @@ type
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
   public
-    constructor Create; override;
+    constructor Create(Backend: TCustomBackendClass); reintroduce; overload; virtual;
+    constructor Create; reintroduce; overload; virtual;
     destructor Destroy; override;
+
+    class function GetPlatformBackendClass: TCustomBackendClass; virtual;
 
     procedure Assign(Source: TPersistent); override;
     function  BoundsRect: TRect;
@@ -926,13 +929,14 @@ type
     function GetFont: TFont;
     procedure SetFont(Value: TFont);
   protected
-    procedure InitializeBackend; override;
     procedure FinalizeBackend; override;
     procedure SetBackend(const Backend: TCustomBackend); override;
-    
+
     procedure HandleChanged; virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
   public
+    class function GetPlatformBackendClass: TCustomBackendClass; override;
+
   {$IFDEF BCB}
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: Cardinal); overload;
   {$ELSE}
@@ -1062,8 +1066,6 @@ type
     property PixelAccessMode: TPixelAccessMode read FPixelAccessMode write SetPixelAccessMode default pamSafe;
   end;
   TCustomResamplerClass = class of TCustomResampler;
-
-function GetPlatformBackendClass: TCustomBackendClass;
 
 var
   StockBitmap: TBitmap;
@@ -1979,15 +1981,6 @@ begin
     GAMMA_TABLE[i] := Round($FF * Power(i * COne255th, Gamma));
 end;
 
-function GetPlatformBackendClass: TCustomBackendClass;
-begin
-{$IFDEF FPC}
-  Result := TLCLBackend;
-{$ELSE}
-  Result := TGDIBackend;
-{$ENDIF}
-end;
-
 { TSimpleInterfacedPersistent }
 
 function TPlainInterfacedPersistent._AddRef: Integer;
@@ -2155,11 +2148,11 @@ end;
 
 { TCustomBitmap32 }
 
-constructor TCustomBitmap32.Create;
+constructor TCustomBitmap32.Create(Backend: TCustomBackendClass);
 begin
-  inherited;
+  inherited Create;
 
-  InitializeBackend;
+  InitializeBackend(Backend);
 
   FOuterColor := $00000000;  // by default as full transparency black
 
@@ -2171,6 +2164,11 @@ begin
   WrapProcHorz := GetWrapProcEx(WrapMode);
   WrapProcVert := GetWrapProcEx(WrapMode);
   FResampler := TNearestResampler.Create(Self);
+end;
+
+constructor TCustomBitmap32.Create;
+begin
+  Create(GetPlatformBackendClass);
 end;
 
 destructor TCustomBitmap32.Destroy;
@@ -2187,9 +2185,9 @@ begin
   inherited;
 end;
 
-procedure TCustomBitmap32.InitializeBackend;
+procedure TCustomBitmap32.InitializeBackend(Backend: TCustomBackendClass);
 begin
-  TMemoryBackend.Create(Self);
+  Backend.Create(Self);
 end;
 
 procedure TCustomBitmap32.FinalizeBackend;
@@ -3154,6 +3152,11 @@ begin
                        CombineReg(Bits[X2 + Y1], Bits[X1 + Y1], W),
                        WordRec(TFixedRec(Y).Frac).Hi);
   EMMS;
+end;
+
+class function TCustomBitmap32.GetPlatformBackendClass: TCustomBackendClass;
+begin
+  Result := TMemoryBackend;
 end;
 
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
@@ -5644,11 +5647,6 @@ end;
 
 { TBitmap32 }
 
-procedure TBitmap32.InitializeBackend;
-begin
-  Backend := GetPlatformBackendClass.Create;
-end;
-
 procedure TBitmap32.FinalizeBackend;
 begin
   if Supports(Backend, IFontSupport) then
@@ -5710,6 +5708,15 @@ end;
 function TBitmap32.GetHDC: HDC;
 begin
   Result := (FBackend as IDeviceContextSupport).Handle;
+end;
+
+class function TBitmap32.GetPlatformBackendClass: TCustomBackendClass;
+begin
+{$IFDEF FPC}
+  Result := TLCLBackend;
+{$ELSE}
+  Result := TGDIBackend;
+{$ENDIF}
 end;
 
 function TBitmap32.GetFont: TFont;
