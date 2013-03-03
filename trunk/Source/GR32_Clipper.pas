@@ -3,8 +3,8 @@ unit GR32_Clipper;
 (*******************************************************************************
 *                                                                              *
 * Author    :  Angus Johnson                                                   *
-* Version   :  5.1.0                                                           *
-* Date      :  1 February 2013                                                 *
+* Version   :  5.1.3                                                           *
+* Date      :  3 March 2013                                                    *
 * Website   :  http://www.angusj.com                                           *
 * Copyright :  Angus Johnson 2010-2013                                         *
 *                                                                              *
@@ -71,7 +71,6 @@ type
     YCurr: Int64;
     XTop : Int64;  // top
     YTop : Int64;
-    TmpX :  Int64;
     Dx   : Double;   // the inverse of slope
     DeltaX: Int64;
     DeltaY: Int64;
@@ -308,7 +307,7 @@ resourcestring
   rsHorizontal = 'ProcessHorizontal error';
   rsInvalidInt = 'Coordinate exceeds range bounds';
   rsJoinError = 'Join Output polygons error';
-  rsHoleLinkError = 'HoleLinkage error';
+  rsIntersect = 'Intersection error';
 
 //------------------------------------------------------------------------------
 // Int128 Functions ...
@@ -321,8 +320,9 @@ const
   MulFrac = 1 shl MulExp; //1 shl 10 = 1024
   DivFrac = 1 / MulFrac;
   ScaleExp = 16 - MulExp;
-  
+
 type
+
   //nb: TInt128.Lo is typed Int64 instead of UInt64 to provide Delphi 7
   //compatability. However while UInt64 isn't a recognised type in
   //Delphi 7, it can still be used in typecasts.
@@ -514,6 +514,7 @@ begin
     Result := val.Hi * Shift64 + UInt64(val.Lo);
 end;
 //------------------------------------------------------------------------------
+
 {$OVERFLOWCHECKS ON}
 
 //------------------------------------------------------------------------------
@@ -854,6 +855,11 @@ var
 begin
   if SlopesEqual(Edge1, Edge2, UseFullInt64Range) then
   begin
+    //parallel edges, but nevertheless prepare to force the intersection
+    //since Edge2.XCurr < Edge1.XCurr ...
+    if Edge2.YBot > Edge1.YBot then
+      ip.Y := Edge2.YBot else
+      ip.Y := Edge1.YBot;
     Result := False;
     Exit;
   end;
@@ -890,7 +896,7 @@ begin
       ip.X := round(Edge2.Dx * Y + B2);
   end;
 
-  // The precondition - E.TmpX > eNext.TmpX - indicates that the two edges do
+  // The precondition - E.XCurr > eNext.XCurr - indicates that the two edges do
   // intersect below TopY (and hence below the tops of either Edge). However,
   // when edges are almost parallel, rounding errors may cause False positives -
   // indicating intersections when there really aren't any. Also, floating point
@@ -1843,7 +1849,7 @@ function GetOverlapSegment(Pt1a, Pt1b, Pt2a, Pt2b: TIntPoint;
   out Pt1, Pt2: TIntPoint): Boolean;
 begin
   // precondition: segments are colinear
-  if abs(Pt1a.X - Pt1b.X) > abs(Pt1a.Y - Pt1b.Y) then
+  if Abs(Pt1a.X - Pt1b.X) > Abs(Pt1a.Y - Pt1b.Y) then
   begin
     if Pt1a.X > Pt1b.X then SwapPoints(Pt1a, Pt1b);
     if Pt2a.X > Pt2b.X then SwapPoints(Pt2a, Pt2b);
@@ -2117,15 +2123,11 @@ begin
         DoBothEdges;
   end else if E1Contributing then
   begin
-    if ((E2Wc = 0) or (E2Wc = 1)) and
-      ((fClipType <> ctIntersection) or (E2.PolyType = ptSubject) or
-        (E2.WindCnt2 <> 0)) then DoEdge1;
+    if (E2Wc = 0) or (E2Wc = 1) then DoEdge1;
   end
   else if E2contributing then
   begin
-    if ((E1Wc = 0) or (E1Wc = 1)) and
-      ((fClipType <> ctIntersection) or (E1.PolyType = ptSubject) or
-        (E1.WindCnt2 <> 0)) then DoEdge2;
+    if (E1Wc = 0) or (E1Wc = 1) then DoEdge2;
   end
   else if  ((E1Wc = 0) or (E1Wc = 1)) and ((E2Wc = 0) or (E2Wc = 1)) and
     not E1stops and not E2stops then
@@ -2661,28 +2663,27 @@ begin
   E := GetNextInAEL(HorzEdge, Direction);
   while Assigned(E) do
   begin
+    if (E.XCurr = HorzEdge.XTop) and not Assigned(eMaxPair) then
+    begin
+      if SlopesEqual(E, HorzEdge.NextInLML, FUse64BitRange) then
+      begin
+        // if output polygons share an Edge, they'll need joining later ...
+        if (HorzEdge.OutIdx >= 0) and (E.OutIdx >= 0) then
+          AddJoin(HorzEdge.NextInLML, E, HorzEdge.OutIdx);
+        break; // we've reached the end of the horizontal line
+      end
+      else if (E.Dx < HorzEdge.NextInLML.Dx) then
+      // we really have got to the end of the intermediate horz Edge so quit.
+      // nb: More -ve slopes follow more +ve slopes ABOVE the horizontal.
+        break;
+    end;
+
     eNext := GetNextInAEL(E, Direction);
     if Assigned(eMaxPair) or
-       ((Direction = dLeftToRight) and (E.XCurr <= HorzRight)) or
-      ((Direction = dRightToLeft) and (E.XCurr >= HorzLeft)) then
+       ((Direction = dLeftToRight) and (E.XCurr < HorzRight)) or
+      ((Direction = dRightToLeft) and (E.XCurr > HorzLeft)) then
     begin
-      // ok, so far it looks like we're still in range of the horizontal Edge
-
-      if (E.XCurr = HorzEdge.XTop) and not Assigned(eMaxPair) then
-      begin
-        if SlopesEqual(E, HorzEdge.NextInLML, FUse64BitRange) then
-        begin
-          // if output polygons share an Edge, they'll need joining later ...
-          if (HorzEdge.OutIdx >= 0) and (E.OutIdx >= 0) then
-            AddJoin(HorzEdge.NextInLML, E, HorzEdge.OutIdx);
-          break; // we've reached the end of the horizontal line
-        end
-        else if (E.Dx < HorzEdge.NextInLML.Dx) then
-        // we really have got to the end of the intermediate horz Edge so quit.
-        // nb: More -ve slopes follow more +ve slopes ABOVE the horizontal.
-          break;
-      end;
-
+      // so far we're still in range of the horizontal Edge
       if (E = eMaxPair) then
       begin
         // HorzEdge is evidently A maxima horizontal and we've arrived at its end.
@@ -2714,11 +2715,9 @@ begin
           ProtectLeft[not IsTopHorz(E.XCurr)]);
       SwapPositionsInAEL(HorzEdge, E);
     end
-    else if ((Direction = dLeftToRight) and
-      (E.XCurr > HorzRight) and Assigned(fSortedEdges)) or
-      ((Direction = dRightToLeft) and
-      (E.XCurr < HorzLeft) and Assigned(fSortedEdges)) then
-        break;
+    else if ((Direction = dLeftToRight) and (E.XCurr >= HorzRight)) or
+      ((Direction = dRightToLeft) and (E.XCurr <= HorzLeft)) then
+        Break;
     E := eNext;
   end;
 
@@ -2808,7 +2807,7 @@ begin
   begin
     E.PrevInSEL := E.PrevInAEL;
     E.NextInSEL := E.NextInAEL;
-    E.TmpX := TopX(E, TopY);
+    E.XCurr := TopX(E, TopY);
     E := E.NextInAEL;
   end;
 
@@ -2822,9 +2821,11 @@ begin
       while Assigned(E.NextInSEL) do
       begin
         eNext := E.NextInSEL;
-        if (E.TmpX > eNext.TmpX) and
-          IntersectPoint(E, eNext, Pt, FUse64BitRange) then
+        if (E.XCurr > eNext.XCurr) then
         begin
+          if not IntersectPoint(E, eNext, Pt, FUse64BitRange) and
+            (E.XCurr > eNext.XCurr +1) then
+              raise Exception.Create(rsIntersect);
           if Pt.Y > BottomY then
           begin
             Pt.Y := BottomY;
@@ -2923,7 +2924,7 @@ begin
     if not Assigned(ENext) then raise exception.Create(rsDoMaxima);
     IntersectEdges(E, ENext, IntPoint(X, TopY), [ipLeft, ipRight]);
     SwapPositionsInAEL(E, ENext);
-    ENext := ENext.NextInAEL;
+    ENext := E.NextInAEL;
   end;
   if (E.OutIdx < 0) and (EMaxPair.OutIdx < 0) then
   begin
