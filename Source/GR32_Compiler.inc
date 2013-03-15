@@ -254,9 +254,6 @@
 {$IFDEF COMPILERFPC}
   {$DEFINE PLATFORM_INDEPENDENT}
   {$MODE Delphi}
-  {$IFDEF CPU386}
-    {$ASMMODE INTEL}
-  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF COMPILERXE2_UP}
@@ -308,11 +305,13 @@
     {$IFDEF CPUI386}
       // target is an Intel 80386 or later.
       {$DEFINE TARGET_x86}
+      {$ASMMODE INTEL}
     {$ENDIF}
 
     {$IFDEF CPUX86_64}
       // target is a 64-bit processor (AMD or INTEL).
       {$DEFINE TARGET_x64}
+      {$ASMMODE INTEL}
     {$ENDIF}
 
     {$IFDEF CPUPOWERPC}
@@ -326,6 +325,7 @@
   {$IFDEF CPUX86_64}
     // target is a 64-bit processor (AMD or INTEL).
     {$DEFINE TARGET_x64}
+    {$ASMMODE INTEL}
   {$ENDIF}
 
   {$IFDEF CPUARM}
@@ -533,4 +533,4 @@
 
 {$IFDEF COMPILERXE2_UP}
   {$DEFINE COMPILERXE2}
-{$ENDIF}
+{$ENDIF}
