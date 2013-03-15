@@ -254,7 +254,9 @@
 {$IFDEF COMPILERFPC}
   {$DEFINE PLATFORM_INDEPENDENT}
   {$MODE Delphi}
-  {$ASMMODE INTEL}
+  {$IFDEF CPU386}
+    {$ASMMODE INTEL}
+  {$ENDIF}
 {$ENDIF}
 
 {$IFDEF COMPILERXE2_UP}
@@ -325,6 +327,11 @@
     // target is a 64-bit processor (AMD or INTEL).
     {$DEFINE TARGET_x64}
   {$ENDIF}
+
+  {$IFDEF CPUARM}
+    // target is an ARM processor.
+    {$DEFINE TARGET_ARM}
+  {$ENDIF}
 {$ELSE}
   // check for XE2 64-Bit compiler define
   {$IFDEF CPUX64}
@@ -374,6 +381,12 @@
 
 {$IFDEF TARGET_x64}
   {-$DEFINE PUREPASCAL}
+{$ENDIF}
+
+{$IFDEF TARGET_ARM}
+  {$DEFINE PUREPASCAL}
+  {$DEFINE OMIT_MMX}
+  {$DEFINE OMIT_SSE2}
 {$ENDIF}
 
 {$IFDEF DARWIN}
@@ -520,4 +533,4 @@
 
 {$IFDEF COMPILERXE2_UP}
   {$DEFINE COMPILERXE2}
-{$ENDIF}
+{$ENDIF}
