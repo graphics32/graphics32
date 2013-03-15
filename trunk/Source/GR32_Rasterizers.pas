@@ -46,7 +46,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, GR32, GR32_Blend, GR32_OrdinalMaps;
+  Classes, GR32, GR32_Blend;
 
 type
   TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;
@@ -184,7 +184,7 @@ implementation
 
 uses
   Math, SysUtils, GR32_Math, GR32_System, GR32_LowLevel, GR32_Resamplers,
-  GR32_Containers;
+  GR32_Containers, GR32_OrdinalMaps;
 
 type
   TCustomBitmap32Access = class(TCustomBitmap32);

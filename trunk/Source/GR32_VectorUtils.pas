@@ -179,7 +179,7 @@ function FloatPointToFixedPoint(const Points: TArrayOfArrayOfFloatPoint): TArray
 implementation
 
 uses
-  Math, SysUtils, GR32_Math, GR32_Paths, GR32_Geometry, GR32_LowLevel;
+  Math, SysUtils, GR32_Math, GR32_Geometry, GR32_LowLevel;
 
 type
   TTransformationAccess = class(TTransformation);
@@ -1581,9 +1581,9 @@ const
   MINDISTPIXEL = 1.414; // just a little bit smaller than sqrt(2),
   // -> set to about 2.5 for a similar output with the previous version
 var
-  I, L, H: Integer;
   ResSize, BuffSize: Integer;
-  PX, PY, RMin, AngleInv: TFloat;
+  PX, PY: TFloat;
+  AngleInv, RMin: TFloat;
   A, B, Dm: TFloatPoint;
 
   procedure AddPoint(const LongDeltaX, LongDeltaY: TFloat);
@@ -1680,6 +1680,9 @@ var
       jsRound: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
     end;
   end;
+
+var
+  I, L, H: Integer;
 
 begin
   Result := nil;

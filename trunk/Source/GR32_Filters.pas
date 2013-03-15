@@ -49,7 +49,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, SysUtils, GR32, GR32_Blend, GR32_System, GR32_Bindings;
+  Classes, SysUtils, GR32;
 
 { Basic processing }
 type
@@ -82,7 +82,7 @@ procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 implementation
 
 uses
-  GR32_Lowlevel;
+  GR32_System, GR32_Bindings, GR32_Lowlevel;
 
 const
   SEmptyBitmap = 'The bitmap is nil';
@@ -113,7 +113,7 @@ const
     (@@LogicalMaskLineAnd),
     (@@LogicalMaskLineOr)
   );
-  
+
   LOGICAL_MASK_LINE_EX: array[TLogicalOperator] of ^TLogicalMaskLineEx = (
     (@@LogicalMaskLineXorEx),
     (@@LogicalMaskLineAndEx),

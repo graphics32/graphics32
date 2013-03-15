@@ -40,12 +40,14 @@ uses
   Windows, Types, GR32, GR32_Paths;
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath;
-  const ARect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
+  const ARect: TFloatRect; const Text: WideString; Flags: Cardinal = 0);
+function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect;
+  const Text: WideString; Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
 
 function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal): TFloatRect; overload;
+  Flags: Cardinal = 0): TFloatRect; overload;
 function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal): TFloatRect;
+  Flags: Cardinal = 0): TFloatRect;
 
 type
   TTextHinting = (thNone, thNoHorz, thHinting);
@@ -60,19 +62,17 @@ const
   DT_LEFT       = 0;   //See also Window's DrawText() flags ...
   DT_CENTER     = 1;   //http://msdn.microsoft.com/en-us/library/ms901121.aspx
   DT_RIGHT      = 2;
-  DT_WORDBREAK  = $10;
   DT_VCENTER    = 4;
   DT_BOTTOM     = 8;
+  DT_WORDBREAK  = $10;
   DT_SINGLELINE = $20;
   DT_JUSTIFY         = 3;  //Graphics32 additions ...
   DT_HORZ_ALIGN_MASK = 3;
 
-function GetKerningPairs(DC: HDC; Count: DWORD; P: PKerningPair): DWORD; stdcall;
-
 implementation
 
 uses
-  SysUtils, GR32_LowLevel;
+  SysUtils;
 
 var
   UseHinting: Boolean;
@@ -89,7 +89,9 @@ const
 
   MaxSingle   =  3.4e+38;
 
-function GetKerningPairs; external gdi32 name 'GetKerningPairs';
+// import GetKerningPairs from gdi32 library
+function GetKerningPairs(DC: HDC; Count: DWORD; P: PKerningPair): DWORD;
+  stdcall; external gdi32 name 'GetKerningPairs';
 
 function PointFXtoPointF(const Point: tagPointFX): TFloatPoint; {$IFDEF UseInlining} inline; {$ENDIF}
 begin
@@ -516,6 +518,20 @@ begin
     SelectObject(DC, SavedFont);
   finally
     ReleaseDC(0, DC);
+  end;
+end;
+
+function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect;
+  const Text: WideString; Flags: Cardinal): TArrayOfArrayOfFloatPoint; overload;
+var
+  Path: TFlattenedPath;
+begin
+  Path := TFlattenedPath.Create;
+  try
+    TextToPath(Font, Path, ARect, Text, Flags);
+    Result := Path.Path;
+  finally
+    Path.Free;
   end;
 end;
 

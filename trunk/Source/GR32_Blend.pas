@@ -47,7 +47,7 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, GR32_System, GR32_Bindings, SysUtils;
+  GR32, GR32_Bindings, SysUtils;
 
 var
   MMX_ACTIVE: Boolean;
@@ -152,9 +152,11 @@ var
 
 implementation
 
+uses
 {$IFDEF TARGET_x86}
-uses GR32_LowLevel;
+  GR32_LowLevel,
 {$ENDIF}
+  GR32_System;
 
 {$IFDEF OMIT_MMX}
 procedure EMMS;
@@ -4609,4 +4611,4 @@ finalization
     FreeAlphaTable;
 {$ENDIF}
 
-end.
+end.

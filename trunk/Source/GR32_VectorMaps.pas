@@ -117,7 +117,7 @@ type
 implementation
 
 uses
-  GR32_Lowlevel, GR32_Blend, GR32_Transforms, GR32_Math, SysUtils;
+  GR32_Lowlevel, GR32_Math, SysUtils;
 
 resourcestring
   RCStrCantAllocateVectorMap = 'Can''t allocate VectorMap!';

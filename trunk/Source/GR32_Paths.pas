@@ -37,7 +37,8 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms, GR32_Brushes;
+  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms,
+  GR32_Brushes, GR32_Geometry;
 
 const
   DefaultCircleSteps = 100;
@@ -96,7 +97,8 @@ type
     procedure Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat); virtual;
     procedure Ellipse(Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
-    procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); virtual;
+    procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
+    procedure Circle(const Center: TFloatPoint; Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
@@ -190,7 +192,7 @@ type
 implementation
 
 uses
-  Math, GR32_Math, GR32_Geometry, GR32_VectorUtils, GR32_Backends;
+  Math, GR32_Backends, GR32_VectorUtils;
 
 function CubicBezierFlatness(const P1, P2, P3, P4: TFloatPoint): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
 begin
@@ -296,6 +298,12 @@ end;
 procedure TCustomPath.Circle(const Cx, Cy, Radius: TFloat; Steps: Integer);
 begin
   Polygon(GR32_VectorUtils.Circle(Cx, Cy, Radius, Steps));
+end;
+
+procedure TCustomPath.Circle(const Center: TFloatPoint; Radius: TFloat;
+  Steps: Integer);
+begin
+  Polygon(GR32_VectorUtils.Circle(Center.X, Center.Y, Radius, Steps));
 end;
 
 procedure TCustomPath.Clear;

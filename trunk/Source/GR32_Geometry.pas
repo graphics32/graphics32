@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Math, Types, GR32, GR32_Math;
+  Math, Types, GR32;
 
 type
   TLinePos = (lpStart, lpEnd, lpBoth, lpNeither);
@@ -74,8 +74,8 @@ function GetUnitVector(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
 function GetUnitNormal(const Pt1, Pt2: TFixedPoint): TFloatPoint; overload;
 function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFixed): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFloat): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function OffsetPoint(const Pt: TFixedPoint; Delta: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
-function OffsetPoint(const Pt: TFixedPoint; Delta: TFloatPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFixedPoint; const Delta: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetPoint(const Pt: TFixedPoint; const Delta: TFloatPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFixedPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint; overload;
 function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;
@@ -106,6 +106,9 @@ const
   CRadToDeg = 180 / Pi;
 
 implementation
+
+uses
+  GR32_Math;
 
 function Average(const V1, V2: TFloatPoint): TFloatPoint;
 begin
@@ -431,13 +434,13 @@ begin
   Result.Y := Pt.Y + Fixed(DeltaY);
 end;
 
-function OffsetPoint(const Pt: TFixedPoint; Delta: TFixedPoint): TFixedPoint;
+function OffsetPoint(const Pt: TFixedPoint; const Delta: TFixedPoint): TFixedPoint;
 begin
   Result.X := Pt.X + Delta.X;
   Result.Y := Pt.Y + Delta.Y;
 end;
 
-function OffsetPoint(const Pt: TFixedPoint; Delta: TFloatPoint): TFixedPoint;
+function OffsetPoint(const Pt: TFixedPoint; const Delta: TFloatPoint): TFixedPoint;
 begin
   Result.X := Pt.X + Fixed(Delta.X);
   Result.Y := Pt.Y + Fixed(Delta.Y);
