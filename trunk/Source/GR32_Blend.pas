@@ -4609,4 +4609,4 @@ finalization
     FreeAlphaTable;
 {$ENDIF}
 
-end.
+end.
