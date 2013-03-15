@@ -61,7 +61,7 @@ uses
   Types,
 {$ENDIF}
   SysUtils, Classes,
-  GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt, GR32_Bindings;
+  GR32, GR32_System, GR32_Containers, GR32_Layers, GR32_RepaintOpt;
 
 const
   MICROTILE_SHIFT = 5;
@@ -241,7 +241,7 @@ type
 implementation
 
 uses
-  GR32_LowLevel, GR32_Math, Math;
+  GR32_Bindings, GR32_LowLevel, GR32_Math, Math;
 
 var
   MicroTilesU: procedure(var DstTiles: TMicroTiles; const SrcTiles: TMicroTiles);

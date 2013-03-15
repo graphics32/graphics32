@@ -55,11 +55,11 @@ type
 
   TBooleanMap = class(TCustomMap)
   private
-    FBits: TArrayOfByte;
     function GetValue(X, Y: Integer): Boolean;
     procedure SetValue(X, Y: Integer; const Value: Boolean);
     function GetBits: PByteArray;
   protected
+    FBits: TArrayOfByte;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
@@ -72,13 +72,13 @@ type
 
   TByteMap = class(TCustomMap)
   private
-    FBits: TArrayOfByte;
     function GetValue(X, Y: Integer): Byte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetValPtr(X, Y: Integer): PByte; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; Value: Byte); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PByteArray;
     function GetScanline(Y: Integer): PByteArray;
   protected
+    FBits: TArrayOfByte;
     procedure AssignTo(Dst: TPersistent); override;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
@@ -99,13 +99,13 @@ type
 
   TWordMap = class(TCustomMap)
   private
-    FBits: TArrayOfWord;
     function GetValPtr(X, Y: Integer): PWord; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetValue(X, Y: Integer): Word; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: Word); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PWordArray;
     function GetScanline(Y: Integer): PWordArray;
   protected
+    FBits: TArrayOfWord;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
@@ -122,13 +122,13 @@ type
 
   TIntegerMap = class(TCustomMap)
   private
-    FBits: TArrayOfInteger;
     function GetValPtr(X, Y: Integer): PInteger; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetValue(X, Y: Integer): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: Integer); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PIntegerArray;
     function GetScanline(Y: Integer): PIntegerArray;
   protected
+    FBits: TArrayOfInteger;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
@@ -143,13 +143,13 @@ type
 
   TCardinalMap = class(TCustomMap)
   private
-    FBits: TArrayOfCardinal;
     function GetValPtr(X, Y: Cardinal): PCardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetValue(X, Y: Cardinal): Cardinal; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Cardinal; const Value: Cardinal); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PCardinalArray;
     function GetScanline(Y: Integer): PCardinalArray;
   protected
+    FBits: TArrayOfCardinal;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;
@@ -164,13 +164,13 @@ type
 
   TFloatMap = class(TCustomMap)
   private
-    FBits: TArrayOfFloat;
     function GetValPtr(X, Y: Integer): PFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetValue(X, Y: Integer): TFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: TFloat); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetBits: PFloatArray;
     function GetScanline(Y: Integer): PFloatArray;
   protected
+    FBits: TArrayOfFloat;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); override;
   public
     destructor Destroy; override;

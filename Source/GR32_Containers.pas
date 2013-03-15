@@ -48,7 +48,7 @@ uses
   Windows,
 {$ENDIF}
   RTLConsts,
-  GR32, SysUtils, GR32_LowLevel, Classes, TypInfo;
+  GR32, SysUtils, Classes, TypInfo;
 
 const
   BUCKET_MASK = $FF;               
@@ -180,7 +180,7 @@ type
     function IndexOf(AClass: TClass): Integer;
     function First: TClass;
     function Last: TClass;
-    function Find(AClassName: string): TClass;
+    function Find(const AClassName: string): TClass;
     procedure GetClassNames(Strings: TStrings);
     procedure Insert(Index: Integer; AClass: TClass);
     property Items[Index: Integer]: TClass read GetItems write SetItems; default;
@@ -230,6 +230,9 @@ procedure SmartAssign(Src, Dst: TPersistent; TypeKinds: TTypeKinds = tkPropertie
 procedure Advance(var Node: PLinkedNode; Steps: Integer = 1);
 
 implementation
+
+uses
+  GR32_LowLevel;
 
 procedure SmartAssign(Src, Dst: TPersistent; TypeKinds: TTypeKinds = tkProperties);
 var
@@ -664,7 +667,7 @@ begin
   Result := TClass(inherited Extract(Item));
 end;
 
-function TClassList.Find(AClassName: string): TClass;
+function TClassList.Find(const AClassName: string): TClass;
 var
   I: Integer;
 begin

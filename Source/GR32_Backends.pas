@@ -136,9 +136,6 @@ resourcestring
 
 implementation
 
-uses
-  GR32_LowLevel;
-
 procedure RequireBackendSupport(TargetBitmap: TCustomBitmap32;
   RequiredInterfaces: array of TGUID;
   Mode: TRequireOperatorMode; UseOptimizedDestructiveSwitchMethod: Boolean;

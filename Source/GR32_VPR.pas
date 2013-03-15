@@ -65,7 +65,7 @@ procedure RenderPolygon(const Points: TArrayOfFloatPoint;
 implementation
 
 uses
-  Math, GR32_Math, GR32_LowLevel, GR32_Blend, GR32_VectorUtils, GR32_System;
+  Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;
 
 type
   TArrayOfValueSpan = array of TValueSpan;

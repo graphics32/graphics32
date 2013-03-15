@@ -311,7 +311,7 @@ var
 implementation
 
 uses
-  Math, SysUtils, GR32_Math, GR32_Geometry, GR32_LowLevel, GR32_Blend,
+  Math, SysUtils, GR32_Math, GR32_LowLevel, GR32_Blend,
   GR32_VectorUtils;
 
 resourcestring

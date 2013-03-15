@@ -48,7 +48,7 @@ interface
 {$ENDIF}
 
 uses
-  Graphics, GR32, GR32_Math, GR32_System, GR32_Bindings;
+  Graphics, GR32, GR32_Math;
 
 { Clamp function restricts value to [0..255] range }
 function Clamp(const Value: Integer): Integer; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -164,10 +164,11 @@ function ColorSwap(WinColor: TColor): TColor32;
 
 implementation
 
-{$IFDEF FPC}
 uses
-  SysUtils;
+{$IFDEF FPC}
+  SysUtils,
 {$ENDIF}
+  GR32_System, GR32_Bindings;
 
 {$R-}{$Q-}  // switch off overflow and range checking
 

@@ -36,7 +36,8 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, Classes, SysUtils, Math, GR32, GR32_Polygons, GR32_VectorUtils;
+  Types, Classes, SysUtils, Math, GR32, GR32_Polygons,
+  GR32_VectorUtils;
 
 type
   TColor32GradientStop = record
@@ -157,7 +158,7 @@ type
   public
     constructor Create(P1, P2, P3: TColor32FloatPoint); overload; virtual;
     function IsPointInTriangle(X, Y: TFloat): Boolean; overload;
-    function IsPointInTriangle(Point: TFloatPoint): Boolean; overload;
+    function IsPointInTriangle(const Point: TFloatPoint): Boolean; overload;
 
     procedure SetPoints(Points: TArrayOfFloatPoint); override;
     procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); override;
@@ -207,7 +208,7 @@ type
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
   public
     procedure Add(Point: TFloatPoint; Color: TColor32); overload; virtual;
-    procedure Add(ColorPoint: TColor32FloatPoint); overload; virtual;
+    procedure Add(const ColorPoint: TColor32FloatPoint); overload; virtual;
     procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); override;
     procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); override;
     procedure SetPoints(Points: TArrayOfFloatPoint); override;
@@ -372,9 +373,9 @@ type
   protected
     procedure UpdateInternals; override;
   public
-    procedure SimpleGradient(StartPoint: TFloatPoint; StartColor: TColor32;
-      EndPoint: TFloatPoint; EndColor: TColor32); virtual;
-    procedure SetPoints(StartPoint, EndPoint: TFloatPoint); virtual;
+    procedure SimpleGradient(const StartPoint: TFloatPoint; StartColor: TColor32;
+      const EndPoint: TFloatPoint; EndColor: TColor32); virtual;
+    procedure SetPoints(const StartPoint, EndPoint: TFloatPoint); virtual;
 
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
   public
@@ -456,8 +457,8 @@ type
     procedure SetColorPoint(Index: Integer; const Value: TColor32FloatPoint); override;
     procedure SetPoint(Index: Integer; const Value: TFloatPoint); override;
   public
-    procedure Add(Point: TFloatPoint; Color: TColor32); overload; virtual;
-    procedure Add(ColorPoint: TColor32FloatPoint); overload; virtual;
+    procedure Add(const Point: TFloatPoint; Color: TColor32); overload; virtual;
+    procedure Add(const ColorPoint: TColor32FloatPoint); overload; virtual;
     procedure SetColorPoints(ColorPoints: TArrayOfColor32FloatPoint); override;
     procedure SetColorPoints(Points: TArrayOfFloatPoint; Colors: TArrayOfColor32); override;
     procedure SetPoints(Points: TArrayOfFloatPoint); override;
@@ -536,9 +537,9 @@ type
     procedure EndPointChanged;
     procedure StartPointChanged;
   public
-    procedure SimpleGradient(StartPoint: TFloatPoint; StartColor: TColor32;
-      EndPoint: TFloatPoint; EndColor: TColor32); virtual;
-    procedure SetPoints(StartPoint, EndPoint: TFloatPoint); virtual;
+    procedure SimpleGradient(const StartPoint: TFloatPoint; StartColor: TColor32;
+      const EndPoint: TFloatPoint; EndColor: TColor32); virtual;
+    procedure SetPoints(const StartPoint, EndPoint: TFloatPoint); virtual;
 
     property StartPoint: TFloatPoint read FStartPoint write SetStartPoint;
     property EndPoint: TFloatPoint read FEndPoint write SetEndPoint;
@@ -653,7 +654,7 @@ type
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Math, GR32_Blend, GR32_Bindings,
+  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Math, GR32_Bindings,
   GR32_Geometry;
 
 resourcestring
@@ -1494,7 +1495,7 @@ begin
 end;
 
 function TBarycentricGradientSampler.IsPointInTriangle(
-  Point: TFloatPoint): Boolean;
+  const Point: TFloatPoint): Boolean;
 var
   U, V, W: TFloat;
 begin
@@ -1802,7 +1803,7 @@ begin
 end;
 
 procedure TCustomArbitrarySparsePointGradientSampler.Add(
-  ColorPoint: TColor32FloatPoint);
+  const ColorPoint: TColor32FloatPoint);
 var
   Index: Integer;
 begin
@@ -2784,7 +2785,7 @@ begin
   SetPoints(StartPoint, Value);
 end;
 
-procedure TXGradientSampler.SetPoints(StartPoint, EndPoint: TFloatPoint);
+procedure TXGradientSampler.SetPoints(const StartPoint, EndPoint: TFloatPoint);
 begin
   FCenter := StartPoint;
   Radius := Distance(EndPoint, StartPoint);
@@ -2796,8 +2797,9 @@ begin
   SetPoints(Value, EndPoint);
 end;
 
-procedure TXGradientSampler.SimpleGradient(StartPoint: TFloatPoint;
-  StartColor: TColor32; EndPoint: TFloatPoint; EndColor: TColor32);
+procedure TXGradientSampler.SimpleGradient(
+  const StartPoint: TFloatPoint; StartColor: TColor32;
+  const EndPoint: TFloatPoint; EndColor: TColor32);
 begin
   SetPoints(StartPoint, EndPoint);
   if Assigned(FGradient) then
@@ -3050,7 +3052,8 @@ end;
 
 { TCustomArbitrarySparsePointGradientPolygonFiller }
 
-procedure TCustomArbitrarySparsePointGradientPolygonFiller.Add(Point: TFloatPoint;
+procedure TCustomArbitrarySparsePointGradientPolygonFiller.Add(
+  const Point: TFloatPoint;
   Color: TColor32);
 var
   Index: Integer;
@@ -3062,7 +3065,7 @@ begin
 end;
 
 procedure TCustomArbitrarySparsePointGradientPolygonFiller.Add(
-  ColorPoint: TColor32FloatPoint);
+  const ColorPoint: TColor32FloatPoint);
 var
   Index: Integer;
 begin
@@ -3381,8 +3384,8 @@ begin
 end;
 
 procedure TCustomLinearGradientPolygonFiller.SimpleGradient(
-  StartPoint: TFloatPoint; StartColor: TColor32; EndPoint: TFloatPoint;
-  EndColor: TColor32);
+  const StartPoint: TFloatPoint; StartColor: TColor32;
+  const EndPoint: TFloatPoint; EndColor: TColor32);
 begin
   SetPoints(StartPoint, EndPoint);
   if Assigned(FGradient) then
@@ -3403,7 +3406,7 @@ begin
   end;
 end;
 
-procedure TCustomLinearGradientPolygonFiller.SetPoints(StartPoint,
+procedure TCustomLinearGradientPolygonFiller.SetPoints(const StartPoint,
   EndPoint: TFloatPoint);
 begin
   FStartPoint := StartPoint;

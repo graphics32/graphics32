@@ -45,7 +45,7 @@ interface
 uses
   {$IFDEF FPC} LCLIntf, LCLType, Types, {$ELSE}
   {$IFDEF COMPILERXE2_UP}Types, {$ENDIF} Windows, {$ENDIF}
-  Controls, Graphics, Classes, SysUtils, GR32_System;
+  Controls, Graphics, Classes, SysUtils;
   
 { Version Control }
 
@@ -685,7 +685,7 @@ type
     procedure SetClipRect(const Value: TRect);
     procedure SetResampler(Resampler: TCustomResampler);
     function GetResamplerClassName: string;
-    procedure SetResamplerClassName(Value: string);
+    procedure SetResamplerClassName(const Value: string);
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -787,8 +787,8 @@ type
     procedure SetPixelTS(X, Y: Integer; Value: TColor32);
 
     procedure DrawTo(Dst: TCustomBitmap32); overload;
-    procedure DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer; const SrcRect: TRect); overload;
     procedure DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer); overload;
+    procedure DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer; const SrcRect: TRect); overload;
     procedure DrawTo(Dst: TCustomBitmap32; const DstRect: TRect); overload;
     procedure DrawTo(Dst: TCustomBitmap32; const DstRect, SrcRect: TRect); overload;
 
@@ -948,7 +948,7 @@ type
     procedure DrawTo(hDst: Cardinal; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: Cardinal; const DstRect, SrcRect: TRect);
 {$ELSE}
-    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; DstX: Integer = 0; DstY: Integer = 0); overload;
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
     procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
 {$ENDIF}
@@ -1078,7 +1078,7 @@ resourcestring
 implementation
 
 uses
-  Math, GR32_Blend, GR32_Filters, GR32_LowLevel, GR32_Math, GR32_Resamplers,
+  Math, GR32_Blend, GR32_LowLevel, GR32_Math, GR32_Resamplers,
   GR32_Containers, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
@@ -5634,7 +5634,7 @@ begin
   Result := FResampler.ClassName;
 end;
 
-procedure TCustomBitmap32.SetResamplerClassName(Value: string);
+procedure TCustomBitmap32.SetResamplerClassName(const Value: string);
 var
   ResamplerClass: TCustomResamplerClass;
 begin

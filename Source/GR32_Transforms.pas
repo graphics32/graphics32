@@ -47,7 +47,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  SysUtils, Classes, GR32, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
+  SysUtils, Classes, GR32, GR32_VectorMaps, GR32_Rasterizers;
 
 type
   ETransformError = class(Exception);
@@ -111,8 +111,6 @@ type
   private
     FItems: TList;
     FOwner: TPersistent;
-    procedure InsertItem(Item: TTransformation);
-    procedure RemoveItem(Item: TTransformation);
     function GetCount: Integer;
     function GetItem(Index: Integer): TTransformation;
     procedure SetItem(Index: Integer; const Value: TTransformation);
@@ -217,7 +215,7 @@ type
   protected
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
-    procedure TransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat);
+    procedure TransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   public
     constructor Create; virtual;
   published
@@ -348,7 +346,8 @@ resourcestring
 implementation
 
 uses
-  Math, GR32_LowLevel, GR32_Math, GR32_System, GR32_Bindings, GR32_Resamplers;
+  Math, GR32_Blend, GR32_LowLevel, GR32_Math, GR32_Bindings,
+  GR32_Resamplers;
 
 resourcestring
   RCStrSrcRectIsEmpty = 'SrcRect is empty!';
@@ -774,38 +773,12 @@ begin
   end;
 end;
 
-procedure TNestedTransformation.InsertItem(Item: TTransformation);
-begin
-  BeginUpdate;
-  try
-    FItems.Add(Item);
-  finally
-    EndUpdate;
-  end;
-end;
-
 procedure TNestedTransformation.PrepareTransform;
 var
   Index: Integer;
 begin
   for Index := 0 to Count - 1 do
     TTransformation(FItems[Index]).PrepareTransform;
-end;
-
-procedure TNestedTransformation.RemoveItem(Item: TTransformation);
-var
-  Index: Integer;
-begin
-  BeginUpdate;
-  try
-    Index := FItems.IndexOf(Item);
-    if Index >= 0 then
-    begin
-      FItems.Delete(Index);
-    end;
-  finally
-    EndUpdate;
-  end;
 end;
 
 procedure TNestedTransformation.ReverseTransformFixed(DstX, DstY: TFixed;

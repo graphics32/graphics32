@@ -48,7 +48,7 @@ uses
 {$IFDEF USE_GUIDS_IN_MMF}
   ActiveX,
 {$ENDIF}
-  SysUtils, Classes, GR32, GR32_Backends;
+  SysUtils, Classes, GR32;
 
 type
   { TMemoryBackend }

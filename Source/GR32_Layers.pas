@@ -1233,6 +1233,9 @@ var
   end;
 
 begin
+  if Assigned(FOnMouseMove) then
+    FOnMouseMove(Self, Shift, X, Y);
+
   if not IsDragging then
   begin
     DragState := GetDragState(X, Y);

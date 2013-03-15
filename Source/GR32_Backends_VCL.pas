@@ -39,7 +39,7 @@ interface
 
 uses
   SysUtils, Classes, Windows, Graphics, GR32, GR32_Backends, GR32_Containers,
-  GR32_Image, GR32_Backends_Generic, GR32_Text_VCL, GR32_Paths;
+  GR32_Image, GR32_Backends_Generic, GR32_Paths;
 
 type
   { TGDIBackend }
@@ -183,6 +183,9 @@ type
   end;
 
 implementation
+
+uses
+  GR32_Text_VCL;
 
 var
   StockFont: HFONT;
