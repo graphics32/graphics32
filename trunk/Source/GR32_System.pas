@@ -222,7 +222,7 @@ end;
 
 {$IFNDEF PUREPASCAL}
 const
-  CPUISChecks: Array[TCPUInstructionSet] of Cardinal =
+  CPUISChecks: array [TCPUInstructionSet] of Cardinal =
     ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
     {ciMMX  ,  ciEMMX,  ciSSE   , ciSSE2  , ci3DNow ,  ci3DNowExt}
 
@@ -241,7 +241,7 @@ asm
         XOR       ECX,EAX
         JZ        @1
         MOV       EDX,True
-        @1:     PUSH      EAX
+@1:     PUSH      EAX
         POPFD
         MOV       EAX,EDX
 {$ENDIF}
@@ -426,4 +426,4 @@ initialization
 finalization
   GlobalPerfTimer.Free;
 
-end.
+end.
