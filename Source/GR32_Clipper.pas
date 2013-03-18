@@ -4,7 +4,7 @@ unit GR32_Clipper;
 *                                                                              *
 * Author    :  Angus Johnson                                                   *
 * Version   :  5.1.3                                                           *
-* Date      :  3 March 2013                                                    *
+* Date      :  14 March 2013                                                   *
 * Website   :  http://www.angusj.com                                           *
 * Copyright :  Angus Johnson 2010-2013                                         *
 *                                                                              *
@@ -275,7 +275,7 @@ function ReversePolygons(const Pts: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfF
 // InflatePolygons precondition: outer polygons MUST be oriented clockwise,
 // and inner 'hole' polygons must be oriented counter-clockwise ...
 function InflatePolygons(const FltPts: TArrayOfArrayOfFloatPoint; const Delta: TFloat;
-  JoinType: TJoinType = jtSquare; MiterLimit: TFloat = 2;
+  JoinType: TJoinType = jtSquare; Limit: TFloat = 0;
   AutoFix: Boolean = True): TArrayOfArrayOfFloatPoint;
 
 // SimplifyPolygon converts A self-intersecting polygon into A simple polygon.
@@ -3545,16 +3545,15 @@ end;
 //   ArcFrac = Abs(A2 - A1)/(2 * Pi)
 //     Steps = ArcFrac * Pi / ArcCos(1 - Q/R)
 //     Steps = Abs(A2 - A1) / (2 * ArcCos(1 - Q/R))
-function BuildArc(const Pt: TFloatPoint; A1, A2, R: Single): TArrayOfFloatPoint;
+function BuildArc(const Pt: TFloatPoint;
+  A1, A2, R: Single; Tolerance: Double): TArrayOfFloatPoint;
 var
   I: Integer;
   Steps: Int64;
   X, X2, Y: Double;
   S, C: Extended;
-const
-  Q = 0.125; //ie the maximum dist. a chord will be from the true arc
 begin
-  Steps := Trunc(Abs(A2 - A1) / (2* ArcCos(1 - Q / Abs(R))));
+  Steps := Trunc(Abs(A2 - A1) / (2* ArcCos(1 - Tolerance / Abs(R))));
   if Steps < 2 then Steps := 2;
   Math.SinCos(A1, S, C);
   X := C; Y := S;
@@ -3594,7 +3593,7 @@ end;
 //------------------------------------------------------------------------------
 
 function InflatePolygons(const FltPts: TArrayOfArrayOfFloatPoint; const Delta: TFloat;
-  JoinType: TJoinType = jtSquare; MiterLimit: TFloat = 2;
+  JoinType: TJoinType = jtSquare; Limit: TFloat = 0;
   AutoFix: Boolean = True): TArrayOfArrayOfFloatPoint;
 var
   I, J, K, Len, OutLen, BotI: Integer;
@@ -3609,12 +3608,9 @@ const
   BuffLength: Integer = 128;
 
   procedure AddPoint(const Pt: TFloatPoint);
-  var
-    Len: Integer;
   begin
-    Len := length(Result[I]);
-    if OutLen = Len then
-      SetLength(Result[I], Len + BuffLength);
+    if OutLen = length(Result[I]) then
+      SetLength(Result[I], OutLen + BuffLength);
     Result[I, OutLen] := Pt;
     Inc(OutLen);
   end;
@@ -3668,7 +3664,7 @@ const
     end;
   end;
 
-  procedure DoRound;
+  procedure DoRound(Limit: Double);
   var
     M: Integer;
     Arc: TArrayOfFloatPoint;
@@ -3693,7 +3689,7 @@ const
           A2 := A2 + Pi * 2
         else if (Delta < 0) and (A2 > A1) then
           A2 := A2 - Pi * 2;
-        Arc := BuildArc(Pts[I, J], A1, A2, Delta);
+        Arc := BuildArc(Pts[I, J], A1, A2, Delta, Limit);
         for M := 1 to High(Arc) - 1 do
           AddPoint(Arc[M]);
       end;
@@ -3750,9 +3746,14 @@ begin
   end else
     Pts := FltPts;
 
-  // MiterLimit defaults to twice Delta's width ...
-  if MiterLimit <= 1 then MiterLimit := 1;
-  RMin := 2 / (Sqr(MiterLimit));
+  case JoinType of
+    jtRound:
+      if Limit <= 0 then Limit := 0.25
+      else if Limit > abs(Delta) then Limit := abs(Delta);
+    jtMiter: if Limit < 2 then Limit := 2;
+    else Limit := 1;
+  end;
+  RMin := 2/(sqr(Limit));
 
   SetLength(Result, length(Pts));
   for I := 0 to High(Pts) do
@@ -3766,7 +3767,7 @@ begin
 
     if (Len = 1) then
     begin
-      Result[I] := BuildArc(Pts[I, 0], 0, 2 * Pi, Delta);
+      Result[I] := BuildArc(Pts[I, 0], 0, 2 * Pi, Delta, Limit);
       Continue;
     end;
 
@@ -3787,10 +3788,10 @@ begin
           if (R >= RMin) then
             DoMiter
           else
-            DoSquare(MiterLimit);
+            DoSquare(Limit);
         end;
-        jtSquare: DoSquare;
-        jtRound: DoRound;
+        jtSquare: DoSquare(1);
+        jtRound: DoRound(Limit);
       end;
       K := J;
     end;
