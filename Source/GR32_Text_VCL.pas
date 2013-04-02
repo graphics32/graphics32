@@ -72,6 +72,9 @@ const
 implementation
 
 uses
+{$IFDEF USESTACKALLOC}
+  GR32_LowLevel,
+{$ENDIF}
   SysUtils;
 
 var
