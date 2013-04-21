@@ -149,7 +149,9 @@ const
 function Div255(Value: Cardinal): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 { shift right with sign conservation }
+function SAR_3(Value: Integer): Integer;
 function SAR_4(Value: Integer): Integer;
+function SAR_6(Value: Integer): Integer;
 function SAR_8(Value: Integer): Integer;
 function SAR_9(Value: Integer): Integer;
 function SAR_11(Value: Integer): Integer;
@@ -1028,8 +1030,22 @@ begin
 end;
 
 { shift right with sign conservation }
+function SAR_3(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 8;
+{$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,3
+{$ENDIF}
+end;
+
 function SAR_4(Value: Integer): Integer;
-{$IFDEF USENATIVECODE}
+{$IFDEF PUREPASCAL}
 begin
   Result := Value div 16;
 {$ELSE}
@@ -1039,6 +1055,20 @@ asm
         MOV       EAX,ECX
 {$ENDIF}
         SAR       EAX,4
+{$ENDIF}
+end;
+
+function SAR_6(Value: Integer): Integer;
+{$IFDEF PUREPASCAL}
+begin
+  Result := Value div 64;
+{$ELSE}
+{$IFDEF FPC} nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x64}
+        MOV       EAX,ECX
+{$ENDIF}
+        SAR       EAX,6
 {$ENDIF}
 end;
 
