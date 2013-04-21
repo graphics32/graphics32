@@ -3359,8 +3359,7 @@ begin
   W := Ceil(FKernel.GetWidth);
   if FKernelMode in [kmTableNearest, kmTableLinear] then
   begin
-    FWeightTable := TIntegerMap.Create;
-    FWeightTable.SetSize(W * 2 + 1, FTableSize + 1);
+    FWeightTable := TIntegerMap.Create(W * 2 + 1, FTableSize + 1);
     for I := 0 to FTableSize do
     begin
       Fraction := I / (FTableSize - 1);
