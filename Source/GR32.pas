@@ -602,6 +602,7 @@ type
     procedure SetWidth(NewWidth: Integer); virtual;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); virtual;
   public
+    constructor Create(Width, Height: Integer); reintroduce; overload;
     procedure Delete; virtual;
     function  Empty: Boolean; virtual;
     procedure Resized; virtual;
@@ -2086,6 +2087,12 @@ end;
 
 
 { TCustomMap }
+
+constructor TCustomMap.Create(Width, Height: Integer);
+begin
+  Create;
+  SetSize(Width, Height);
+end;
 
 procedure TCustomMap.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer);
 begin
