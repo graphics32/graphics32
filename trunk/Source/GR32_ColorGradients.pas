@@ -263,6 +263,7 @@ type
   public
     constructor Create(WrapMode: TWrapMode = wmMirror); overload; virtual;
     constructor Create(ColorGradient: TColor32Gradient); overload; virtual;
+    destructor Destroy; override;
 
     procedure PrepareSampling; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
@@ -649,7 +650,7 @@ type
 
   function Color32FloatPoint(Color: TColor32; Point: TFloatPoint): TColor32FloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
   function Color32FloatPoint(Color: TColor32; X, Y: TFloat): TColor32FloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-  function Color32GradientStop(Color: TColor32; Offset: TFloat): TColor32GradientStop; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+  function Color32GradientStop(Offset: TFloat; Color: TColor32): TColor32GradientStop; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
 
@@ -696,10 +697,10 @@ begin
   Result.Color32 := Color;
 end;
 
-function Color32GradientStop(Color: TColor32; Offset: TFloat): TColor32GradientStop;
+function Color32GradientStop(Offset: TFloat; Color: TColor32): TColor32GradientStop;
 begin
-  Result.Color32 := Color;
   Result.Offset := Offset;
+  Result.Color32 := Color;
 end;
 
 type
@@ -1922,6 +1923,7 @@ constructor TInvertedDistanceWeightingSampler.Create;
 begin
   inherited;
   FPower := 2;
+  FScaledPower := 0.5 * FPower;
 end;
 
 procedure TInvertedDistanceWeightingSampler.FinalizeSampling;
@@ -2479,6 +2481,12 @@ begin
 
   if Assigned(ColorGradient) then
     FGradient.Assign(ColorGradient);
+end;
+
+destructor TCustomGradientSampler.Destroy;
+begin
+  FreeAndNil(FGradient);
+  inherited;
 end;
 
 procedure TCustomGradientSampler.AssignTo(Dest: TPersistent);
