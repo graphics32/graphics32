@@ -5535,7 +5535,11 @@ asm
         NEG     RCX
         MOV     RBX, $FFFFFFFF
 
+{$IFNDEF FPC}
         MOV     RDI, [GCrcTable]
+{$ELSE}
+        MOV     RDI, [RIP + GCrcTable]
+{$ENDIF}
 
 @Start:
         MOV     EAX, [RDX]
@@ -5563,7 +5567,11 @@ asm
         NEG     ECX
         MOV     EBX, $FFFFFFFF
 
+{$IFNDEF FPC}
         MOV     EDI, [GCrcTable]
+{$ELSE}
+        MOV     EDI, [EIP + GCrcTable]
+{$ENDIF}
 
 @Start:
         MOVZX   EAX, [EDX]

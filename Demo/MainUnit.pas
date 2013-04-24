@@ -30,52 +30,53 @@ uses
 
 procedure TFmPngDemo.FormCreate(Sender: TObject);
 begin
- if FileExists('Demo.png') then
-  with TPortableNetworkGraphic32.Create do
-   try
-    LoadFromFile('Demo.png');
-    AssignTo(ImageDisplay.Bitmap);
-   finally
-    Free;
-   end
- else raise Exception.Create('File not found: Demo.png');
+  if FileExists('Demo.png') then
+    with TPortableNetworkGraphic32.Create do
+      try
+        LoadFromFile('Demo.png');
+        AssignTo(ImageDisplay.Bitmap);
+      finally
+        Free;
+      end
+  else
+    raise Exception.Create('File not found: Demo.png');
 
- ClientWidth := ImageDisplay.Bitmap.Width + 16;
- ClientHeight := ImageDisplay.Bitmap.Height + 16;
+  ClientWidth := ImageDisplay.Bitmap.Width + 16;
+  ClientHeight := ImageDisplay.Bitmap.Height + 16;
 end;
 
 procedure TFmPngDemo.ImageDisplayClick(Sender: TObject);
 begin
- with TSaveDialog.Create(Self) do
-  try
-   Filter := 'PNG Images (*.png)|*.png';
-   DefaultExt := '.png';
-   if Execute then
-    begin
-     with TPortableNetworkGraphic32.Create do
-      try
-       AdaptiveFilterMethods := [aafmSub, aafmUp, aafmAverage];
-       Assign(ImageDisplay.Bitmap);
-       InterlaceMethod := imAdam7;
-       SaveToFile(FileName);
-      finally
-       Free;
+  with TSaveDialog.Create(Self) do
+    try
+      Filter := 'PNG Images (*.png)|*.png';
+      DefaultExt := '.png';
+      if Execute then
+      begin
+        with TPortableNetworkGraphic32.Create do
+        try
+          AdaptiveFilterMethods := [aafmSub, aafmUp, aafmAverage];
+          Assign(ImageDisplay.Bitmap);
+          InterlaceMethod := imAdam7;
+          SaveToFile(FileName);
+        finally
+          Free;
+        end;
       end;
+    finally
+      Free;
     end;
-  finally
-   Free;
-  end;
 end;
 
 procedure TFmPngDemo.ImageDisplayDblClick(Sender: TObject);
 begin
- with TPortableNetworkGraphic32.Create do
-  try
-   Assign(ImageDisplay.Bitmap);
-   SaveToFile('Test.png');
-  finally
-   Free;
-  end;
+  with TPortableNetworkGraphic32.Create do
+    try
+      Assign(ImageDisplay.Bitmap);
+      SaveToFile('Test.png');
+    finally
+      Free;
+    end;
 end;
 
 end.
