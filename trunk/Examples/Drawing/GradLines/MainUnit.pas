@@ -143,7 +143,6 @@ begin
 end;
 
 procedure TLine.Advance(DeltaT: Single);
-
 const
   COne400 : Single = 1 / 400;
   COne300 : Single = 1 / 300;
@@ -183,19 +182,20 @@ const
     if VectorLen(V) > MaxVelocity then
       V := VectorScale(V, 1 / VectorLen(V));
   end;
+
 begin
   AdvancePoint(P1, V1, DeltaT);
   AdvancePoint(P2, V2, DeltaT);
 
-  C1 := HSLtoRGB(t1, Sin(t1 / 1.8) * 0.4 + 0.6, 0.5);
+  C1 := HSLtoRGB(t1, Sin(t1 * 0.55) * 0.4 + 0.6, 0.5);
   C1 := SetAlpha(C1, Round(Sin(t1) * 25 + 50));
   t1 := t1 + Random * COne300;
 
-  C2 := HSLtoRGB(t2, Sin(t2 / 1.8) * 0.4 + 0.6, 0.5);
+  C2 := HSLtoRGB(t2, Sin(t2 * 0.55) * 0.4 + 0.6, 0.5);
   C2 := SetAlpha(C2, Round(Sin(t2) * 25 + 50));
   t2 := t2 + Random * COne400;
 
-  C3 := HSLtoRGB(t3, Sin(t3 / 1.8) * 0.4 + 0.6, 0.5);
+  C3 := HSLtoRGB(t3, Sin(t3 * 0.55) * 0.4 + 0.6, 0.5);
   C3 := SetAlpha(C3, Round(Sin(t3) * 25 + 50));
   t3 := t3 + Random * COne400;
 end;
