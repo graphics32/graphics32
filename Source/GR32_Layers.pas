@@ -433,7 +433,7 @@ begin
   for I := Count - 1 downto 0 do
   begin
     Result := Items[I];
-    if (Result.LayerOptions and OptionsMask) = 0 then Continue; // skip to the next one
+    if (Result.LayerOptions and OptionsMask) <> OptionsMask then Continue; // skip to the next one
     if Result.HitTest(X, Y) then Exit;
   end;
   Result := nil;
@@ -522,7 +522,7 @@ begin
   if Assigned(MouseListener) then
     Result := MouseListener
   else
-    Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
+    Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS or LOB_VISIBLE);
 
   if (Result <> MouseListener) and ((Result = nil) or ((Result.FLayerOptions and LOB_NO_CAPTURE) = 0)) then
     MouseListener := Result; // capture the mouse
@@ -537,7 +537,7 @@ end;
 function TLayerCollection.MouseMove(Shift: TShiftState; X, Y: Integer): TCustomLayer;
 begin
   Result := MouseListener;
-  if Result = nil then Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
+  if Result = nil then Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS or LOB_VISIBLE);
   if Assigned(Result) then Result.MouseMove(Shift, X, Y)
   else if FOwner is TControl then Screen.Cursor := TControl(FOwner).Cursor;
 end;
@@ -640,6 +640,30 @@ end;
 
 { TCustomLayer }
 
+constructor TCustomLayer.Create(ALayerCollection: TLayerCollection);
+begin
+  LayerCollection := ALayerCollection;
+  FLayerOptions := LOB_VISIBLE;
+end;
+
+destructor TCustomLayer.Destroy;
+var
+  I: Integer;
+begin
+  if Assigned(FFreeNotifies) then
+  begin
+    for I := FFreeNotifies.Count - 1 downto 0 do
+    begin
+      TCustomLayer(FFreeNotifies[I]).Notification(Self);
+      if FFreeNotifies = nil then Break;
+    end;
+    FFreeNotifies.Free;
+    FFreeNotifies := nil;
+  end;
+  SetLayerCollection(nil);
+  inherited;
+end;
+
 procedure TCustomLayer.AddNotification(ALayer: TCustomLayer);
 begin
   if not Assigned(FFreeNotifies) then FFreeNotifies := TList.Create;
@@ -687,34 +711,10 @@ end;
 
 procedure TCustomLayer.Changing;
 begin
-  if UpdateCount > 0 then Exit;
+  if (UpdateCount > 0) then Exit;
   if Visible and Assigned(FLayerCollection) and
     ((FLayerOptions and LOB_NO_UPDATE) = 0) then
     FLayerCollection.Changing;
-end;
-
-constructor TCustomLayer.Create(ALayerCollection: TLayerCollection);
-begin
-  LayerCollection := ALayerCollection;
-  FLayerOptions := LOB_VISIBLE;
-end;
-
-destructor TCustomLayer.Destroy;
-var
-  I: Integer;
-begin
-  if Assigned(FFreeNotifies) then
-  begin
-    for I := FFreeNotifies.Count - 1 downto 0 do
-    begin
-      TCustomLayer(FFreeNotifies[I]).Notification(Self);
-      if FFreeNotifies = nil then Break;
-    end;
-    FFreeNotifies.Free;
-    FFreeNotifies := nil;
-  end;
-  SetLayerCollection(nil);
-  inherited;
 end;
 
 function TCustomLayer.DoHitTest(X, Y: Integer): Boolean;
@@ -1041,7 +1041,7 @@ var
   BitmapX, BitmapY: Integer;
   LayerWidth, LayerHeight: Integer;
 begin
-  Result := inherited DoHitTest(X, Y);
+  Result := inherited DoHitTest(X, Y) and Visible;
   if Result and AlphaHit then
   begin
     with GetAdjustedRect(FLocation) do
