@@ -997,7 +997,6 @@ end;
 {$IFNDEF PUREPASCAL}
 // Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
 procedure CumSum_SSE2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
-{$IFDEF FPC} nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     ECX,EDX
