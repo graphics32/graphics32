@@ -157,7 +157,7 @@ function FixedFloor(A: TFixed): Integer;
 begin
   Result := A div FIXEDONE;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         SAR     EAX, 16
@@ -174,7 +174,7 @@ function FixedCeil(A: TFixed): Integer;
 begin
   Result := (A + $FFFF) div FIXEDONE;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         ADD     EAX, $0000FFFF
@@ -193,7 +193,7 @@ function FixedRound(A: TFixed): Integer;
 begin
   Result := (A + $7FFF) div FIXEDONE;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         ADD     EAX, $00007FFF
@@ -212,7 +212,7 @@ function FixedMul(A, B: TFixed): TFixed;
 begin
   Result := Round(A * FixedToFloat * B);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         IMUL    EDX
@@ -231,7 +231,7 @@ function FixedDiv(A, B: TFixed): TFixed;
 begin
   Result := Round(A / B * FixedOne);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     ECX, B
@@ -258,7 +258,7 @@ const
 begin
   Result := Round(Dividend / Value);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     ECX, Value
@@ -279,7 +279,7 @@ function FixedSqr(Value: TFixed): TFixed;
 begin
   Result := Round(Value * FixedToFloat * Value);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         IMUL    EAX
@@ -298,7 +298,7 @@ function FixedSqrtLP(Value: TFixed): TFixed;
 begin
   Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH    EBX
@@ -359,7 +359,7 @@ function FixedSqrtHP(Value: TFixed): TFixed;
 begin
   Result := Round(Sqrt(Value * FixedOneS));
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH    EBX
@@ -460,7 +460,7 @@ function FixedCombine(W, X, Y: TFixed): TFixed;
 begin
   Result := Round(Y + (X - Y) * FixedToFloat * W);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         SUB     EDX, ECX
@@ -586,7 +586,7 @@ function Hypot(const X, Y: TFloat): TFloat;
 begin
   Result := Sqrt(Sqr(X) + Sqr(Y));
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         FLD     X
@@ -639,7 +639,7 @@ var
 begin
   J := (I - $3F800000) div 2 + $3F800000;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     EAX, DWORD PTR Value
@@ -659,7 +659,7 @@ function FastSqrtBab1(const Value: TFloat): TFloat;
 // see http://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Approximations_that_depend_on_IEEE_representation
 // additionally one babylonian step added
 {$IFNDEF PUREPASCAL}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 {$ENDIF}
 const
   CHalf : TFloat = 0.5;
@@ -703,7 +703,7 @@ begin
  Result := Result + Value / Result;
  Result := CQuarter * Result + Value / Result;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 const
   CHalf : TFloat = 0.5;
 asm
@@ -748,7 +748,7 @@ function MulDiv(Multiplicand, Multiplier, Divisor: Integer): Integer;
 begin
   Result := Int64(Multiplicand) * Int64(Multiplier) div Divisor;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH    EBX             // Imperative save
@@ -852,7 +852,7 @@ begin
   while Value shr 1 > 0 do
     Result := Result shl 1;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         BSR     ECX, EAX
@@ -876,7 +876,7 @@ begin
   while Value shr 1 > 0 do 
     Result := Result shl 1;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         DEC     EAX
@@ -909,7 +909,7 @@ function Average(A, B: Integer): Integer;
 begin
   Result := (A and B) + (A xor B) div 2;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     ECX, EDX
@@ -935,7 +935,7 @@ begin
   //Assumes 32 bit integer
   Result := (- Value) shr 31 - (Value shr 31);
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX, Value
@@ -961,21 +961,21 @@ begin
   Result := Dividend div Divisor;
   Remainder := Dividend mod Divisor;
 {$ELSE}
-{$IFDEF FPC} nostackframe; {$ENDIF}
+{$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-{$IFDEF TARGET_x64}
-        MOV     RAX, RCX
-        MOV     R9, RDX
-        CDQ
-        IDIV    R9
-        MOV     DWORD PTR [R8], EDX
-{$ENDIF}
 {$IFDEF TARGET_x86}
         PUSH    EDX
         CDQ
         IDIV    DWORD PTR [ESP]
         ADD     ESP, $04
         MOV     DWORD PTR [ECX], edx
+{$ENDIF}
+{$IFDEF TARGET_x64}
+        MOV     RAX, RCX
+        MOV     R9, RDX
+        CDQ
+        IDIV    R9
+        MOV     DWORD PTR [R8], EDX
 {$ENDIF}
 {$ENDIF}
 end;
@@ -996,7 +996,7 @@ end;
 
 {$IFNDEF PUREPASCAL}
 // Aligned SSE2 version -- Credits: Sanyin <prevodilac@hotmail.com>
-procedure CumSum_SSE2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} nostackframe; {$ENDIF}
+procedure CumSum_SSE2(Values: PSingleArray; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV     ECX,EDX
