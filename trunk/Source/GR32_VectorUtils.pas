@@ -149,6 +149,8 @@ function RoundRect(const R: TFloatRect; const Radius: TFloat): TArrayOfFloatPoin
 
 function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect; overload;
 function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect; overload;
+function PolypolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect; overload;
+function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect; overload;
 
 function ScalePolygon(const Src: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint; overload;
 function ScalePolygon(const Src: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfFixedPoint; overload;
@@ -2681,6 +2683,7 @@ function PolygonBounds(const Points: TArrayOfFloatPoint): TFloatRect;
 var
   I: Integer;
 begin
+  Assert(Length(Points) > 0);
   Result.Left := Points[0].X;
   Result.Top := Points[0].Y;
   Result.Right := Points[0].X;
@@ -2698,6 +2701,7 @@ function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect;
 var
   I: Integer;
 begin
+  Assert(Length(Points) > 0);
   Result.Left := Points[0].X;
   Result.Top := Points[0].Y;
   Result.Right := Points[0].X;
@@ -2710,6 +2714,41 @@ begin
     Result.Bottom := Max(Result.Bottom, Points[I].Y);
   end;
 end;
+
+function PolypolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect;
+var
+  I: Integer;
+  R: TFloatRect;
+begin
+  Assert(Length(Points) > 0);
+  Result := PolygonBounds(Points[0]);
+  for I := 1 to High(Points) do
+  begin
+    R := PolygonBounds(Points[I]);
+    Result.Left := Min(Result.Left, R.Left);
+    Result.Right := Max(Result.Right, R.Right);
+    Result.Top := Min(Result.Top, R.Top);
+    Result.Bottom := Max(Result.Bottom, R.Bottom);
+  end;
+end;
+
+function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
+var
+  I: Integer;
+  R: TFixedRect;
+begin
+  Assert(Length(Points) > 0);
+  Result := PolygonBounds(Points[0]);
+  for I := 1 to High(Points) do
+  begin
+    R := PolygonBounds(Points[I]);
+    Result.Left := Min(Result.Left, R.Left);
+    Result.Right := Max(Result.Right, R.Right);
+    Result.Top := Min(Result.Top, R.Top);
+    Result.Bottom := Max(Result.Bottom, R.Bottom);
+  end;
+end;
+
 
 // Scales to a polygon (TArrayOfFloatPoint)
 function ScalePolygon(const Src: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint;
