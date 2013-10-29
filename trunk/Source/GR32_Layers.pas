@@ -110,6 +110,7 @@ type
     function MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseMove(Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
+
     property OnChanging: TNotifyEvent read FOnChanging write FOnChanging;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnListNotify: TLayerListNotifyEvent read FOnListNotify write FOnListNotify;
@@ -121,6 +122,7 @@ type
   public
     constructor Create(AOwner: TPersistent);
     destructor Destroy; override;
+
     function  Add(ItemClass: TLayerClass): TCustomLayer;
     procedure Assign(Source: TPersistent); override;
     procedure Clear;
@@ -130,6 +132,7 @@ type
     function  ViewportToLocal(const APoint: TFloatPoint; AScaled: Boolean): TFloatPoint;
     procedure GetViewportScale(out ScaleX, ScaleY: TFloat); virtual;
     procedure GetViewportShift(out ShiftX, ShiftY: TFloat); virtual;
+
     property Count: Integer read GetCount;
     property Owner: TPersistent read FOwner;
     property Items[Index: Integer]: TCustomLayer read GetItem write SetItem; default;
@@ -183,11 +186,13 @@ type
     procedure SetCursor(Value: TCursor); virtual;
     procedure SetLayerCollection(Value: TLayerCollection); virtual;
     procedure SetLayerOptions(Value: Cardinal); virtual;
+
     property Invalid: Boolean read GetInvalid write SetInvalid;
     property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;
   public
     constructor Create(ALayerCollection: TLayerCollection); virtual;
     destructor Destroy; override;
+
     procedure BeforeDestruction; override;
     procedure BringToFront;
     procedure Changed; overload; override;
@@ -197,6 +202,7 @@ type
     function  HitTest(X, Y: Integer): Boolean;
     procedure SendToBack;
     procedure SetAsMouseListener;
+
     property Cursor: TCursor read FCursor write SetCursor;
     property Index: Integer read GetIndex write SetIndex;
     property LayerCollection: TLayerCollection read FLayerCollection write SetLayerCollection;
@@ -205,6 +211,7 @@ type
     property MouseEvents: Boolean read GetMouseEvents write SetMouseEvents;
     property Tag: Integer read FTag write FTag;
     property Visible: Boolean read GetVisible write SetVisible;
+
     property OnDestroy: TNotifyEvent read FOnDestroy write FOnDestroy;
     property OnHitTest: THitTestEvent read FOnHitTest write FOnHitTest;
     property OnPaint: TPaintLayerEvent read FOnPaint write FOnPaint;
@@ -224,8 +231,10 @@ type
     procedure DoSetLocation(const NewLocation: TFloatRect); virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
+
     function GetAdjustedRect(const R: TFloatRect): TFloatRect; virtual;
     function GetAdjustedLocation: TFloatRect;
+
     property Location: TFloatRect read FLocation write SetLocation;
     property Scaled: Boolean read FScaled write SetScaled;
   end;
@@ -244,6 +253,7 @@ type
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
     destructor Destroy; override;
+
     property AlphaHit: Boolean read FAlphaHit write FAlphaHit;
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property Cropped: Boolean read FCropped write SetCropped;
@@ -292,10 +302,10 @@ type
     procedure SetOptions(const Value: TRBOptions);
     procedure SetQuantized(const Value: Integer);
   protected
-    IsDragging: Boolean;
-    DragState: TDragState;
-    OldLocation: TFloatRect;
-    MouseShift: TFloatPoint;
+    FIsDragging: Boolean;
+    FDragState: TDragState;
+    FOldLocation: TFloatRect;
+    FMouseShift: TFloatPoint;
     function  DoHitTest(X, Y: Integer): Boolean; override;
     procedure DoResizing(var OldLocation, NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState); virtual;
     procedure DoConstrain(var OldLocation, NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState); virtual;
@@ -307,6 +317,8 @@ type
     procedure Notification(ALayer: TCustomLayer); override;
     procedure Paint(Buffer: TBitmap32); override;
     procedure SetLayerOptions(Value: Cardinal); override;
+    procedure SetDragState(const Value: TDragState); overload;
+    procedure SetDragState(const Value: TDragState; const X, Y: Integer); overload;
     procedure UpdateChildLayer;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
@@ -1195,23 +1207,9 @@ begin
 end;
 
 procedure TRubberbandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-var
-  ALoc: TFloatRect;
 begin
-  if IsDragging then Exit;
-  DragState := GetDragState(X, Y);
-  IsDragging := DragState <> dsNone;
-  if IsDragging then
-  begin
-    OldLocation := Location;
-
-    ALoc := GetAdjustedRect(FLocation);
-    case DragState of
-      dsMove: MouseShift := FloatPoint(X - ALoc.Left, Y - ALoc.Top);
-    else
-      MouseShift := FloatPoint(0, 0);
-    end;
-  end;
+  if FIsDragging then Exit;
+  SetDragState(GetDragState(X, Y), X, Y);
   inherited;
 end;
 
@@ -1222,6 +1220,7 @@ const
 var
   Mx, My: TFloat;
   L, T, R, B, W, H: TFloat;
+  Quantize: Boolean;
   ALoc, NewLocation: TFloatRect;
 
   procedure IncLT(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
@@ -1239,16 +1238,18 @@ var
   end;
 
 begin
-  if not IsDragging then
+  if not FIsDragging then
   begin
-    DragState := GetDragState(X, Y);
-    if DragState = dsMove then Screen.Cursor := Cursor
-    else Screen.Cursor := CURSOR_ID[DragState];
+    FDragState := GetDragState(X, Y);
+    if FDragState = dsMove then
+      Screen.Cursor := Cursor
+    else
+      Screen.Cursor := CURSOR_ID[FDragState];
   end
   else
   begin
-    Mx := X - MouseShift.X;
-    My := Y - MouseShift.Y;
+    Mx := X - FMouseShift.X;
+    My := Y - FMouseShift.Y;
     if Scaled then
     with Location do
     begin
@@ -1258,7 +1259,7 @@ begin
       My := (My - ALoc.Top) / (ALoc.Bottom - ALoc.Top) * (Bottom - Top) + Top;
     end;
 
-    with OldLocation do
+    with FOldLocation do
     begin
       L := Left;
       T := Top;
@@ -1268,11 +1269,13 @@ begin
       H := B - T;
     end;
 
-    if DragState = dsMove then
+    Quantize := (roQuantized in Options) and not (ssAlt in Shift);
+
+    if FDragState = dsMove then
     begin
       L := Mx;
       T := My;
-      if (roQuantized in Options) then
+      if Quantize then
       begin
         L := Round(L / FQuantized) * FQuantized;
         T := Round(T / FQuantized) * FQuantized;
@@ -1282,31 +1285,31 @@ begin
     end
     else
     begin
-      if DragState in [dsSizeL, dsSizeTL, dsSizeBL] then
+      if FDragState in [dsSizeL, dsSizeTL, dsSizeBL] then
       begin
         IncLT(L, R, Mx - L, MinWidth, MaxWidth);
-        if (roQuantized in Options) then
+        if Quantize then
           L := Round(L / FQuantized) * FQuantized;
       end;
 
-      if DragState in [dsSizeR, dsSizeTR, dsSizeBR] then
+      if FDragState in [dsSizeR, dsSizeTR, dsSizeBR] then
       begin
         IncRB(L, R, Mx - R, MinWidth, MaxWidth);
-        if (roQuantized in Options) then
+        if Quantize then
           R := Round(R / FQuantized) * FQuantized;
       end;
 
-      if DragState in [dsSizeT, dsSizeTL, dsSizeTR] then
+      if FDragState in [dsSizeT, dsSizeTL, dsSizeTR] then
       begin
         IncLT(T, B, My - T, MinHeight, MaxHeight);
-        if (roQuantized in Options) then
+        if Quantize then
           T := Round(T / FQuantized) * FQuantized;
       end;
 
-      if DragState in [dsSizeB, dsSizeBL, dsSizeBR] then
+      if FDragState in [dsSizeB, dsSizeBL, dsSizeBR] then
       begin
         IncRB(T, B, My - B, MinHeight, MaxHeight);
-        if (roQuantized in Options) then
+        if Quantize then
           B := Round(B / FQuantized) * FQuantized;
       end;
     end;
@@ -1314,23 +1317,23 @@ begin
     NewLocation := FloatRect(L, T, R, B);
 
     if roConstrained in FOptions then
-      DoConstrain(OldLocation, NewLocation, DragState, Shift);
+      DoConstrain(FOldLocation, NewLocation, FDragState, Shift);
 
     if roProportional in FOptions then
     begin
-      case DragState of
+      case FDragState of
         dsSizeB, dsSizeBR:
-          NewLocation.Right := OldLocation.Left + (OldLocation.Right - OldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (OldLocation.Bottom - OldLocation.Top);
+          NewLocation.Right := FOldLocation.Left + (FOldLocation.Right - FOldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (FOldLocation.Bottom - FOldLocation.Top);
         dsSizeT, dsSizeTL:
-          NewLocation.Left := OldLocation.Right - (OldLocation.Right - OldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (OldLocation.Bottom - OldLocation.Top);
+          NewLocation.Left := FOldLocation.Right - (FOldLocation.Right - FOldLocation.Left) * (NewLocation.Bottom - NewLocation.Top) / (FOldLocation.Bottom - FOldLocation.Top);
         dsSizeR, dsSizeBL:
-          NewLocation.Bottom := OldLocation.Top + (OldLocation.Bottom - OldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (OldLocation.Right - OldLocation.Left);
+          NewLocation.Bottom := FOldLocation.Top + (FOldLocation.Bottom - FOldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (FOldLocation.Right - FOldLocation.Left);
         dsSizeL, dsSizeTR:
-          NewLocation.Top := OldLocation.Bottom - (OldLocation.Bottom - OldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (OldLocation.Right - OldLocation.Left);
+          NewLocation.Top := FOldLocation.Bottom - (FOldLocation.Bottom - FOldLocation.Top) * (NewLocation.Right - NewLocation.Left) / (FOldLocation.Right - FOldLocation.Left);
       end;
     end;
 
-    DoResizing(OldLocation, NewLocation, DragState, Shift);
+    DoResizing(FOldLocation, NewLocation, FDragState, Shift);
 
     if (NewLocation.Left <> Location.Left) or
       (NewLocation.Right <> Location.Right) or
@@ -1338,14 +1341,15 @@ begin
       (NewLocation.Bottom <> Location.Bottom) then
     begin
       Location := NewLocation;
-      if Assigned(FOnUserChange) then FOnUserChange(Self);
+      if Assigned(FOnUserChange) then
+        FOnUserChange(Self);
     end;
   end;
 end;
 
 procedure TRubberbandLayer.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  IsDragging := False;
+  FIsDragging := False;
   inherited;
 end;
 
@@ -1408,6 +1412,32 @@ begin
     Location := Value.Location;
     Scaled := Value.Scaled;
     AddNotification(FChildLayer);
+  end;
+end;
+
+procedure TRubberbandLayer.SetDragState(const Value: TDragState);
+begin
+  SetDragState(Value, 0, 0);
+end;
+
+procedure TRubberbandLayer.SetDragState(const Value: TDragState; const X, Y: Integer);
+var
+  ALoc: TFloatRect;
+begin
+  FDragState := Value;
+  FIsDragging := FDragState <> dsNone;
+
+  if FIsDragging then
+  begin
+    FOldLocation := Location;
+
+    ALoc := GetAdjustedRect(FLocation);
+
+    case FDragState of
+      dsMove: FMouseShift := FloatPoint(X - ALoc.Left, Y - ALoc.Top);
+    else
+      FMouseShift := FloatPoint(0, 0);
+    end;
   end;
 end;
 
