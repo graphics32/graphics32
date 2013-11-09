@@ -153,13 +153,16 @@ type
     FLayerCollection: TLayerCollection;
     FLayerStates: TLayerStates;
     FLayerOptions: Cardinal;
+    FTag: Integer;
+    FClicked: Boolean;
     FOnHitTest: THitTestEvent;
     FOnMouseDown: TMouseEvent;
     FOnMouseMove: TMouseMoveEvent;
     FOnMouseUp: TMouseEvent;
     FOnPaint: TPaintLayerEvent;
-    FTag: Integer;
     FOnDestroy: TNotifyEvent;
+    FOnDblClick: TNotifyEvent;
+    FOnClick: TNotifyEvent;
     function  GetIndex: Integer;
     function  GetMouseEvents: Boolean;
     function  GetVisible: Boolean;
@@ -172,6 +175,8 @@ type
   protected
     procedure AddNotification(ALayer: TCustomLayer);
     procedure Changing;
+    procedure Click;
+    procedure DblClick;
     function  DoHitTest(X, Y: Integer): Boolean; virtual;
     procedure DoPaint(Buffer: TBitmap32);
     function  GetOwner: TPersistent; override;
@@ -215,6 +220,8 @@ type
     property OnDestroy: TNotifyEvent read FOnDestroy write FOnDestroy;
     property OnHitTest: THitTestEvent read FOnHitTest write FOnHitTest;
     property OnPaint: TPaintLayerEvent read FOnPaint write FOnPaint;
+    property OnClick: TNotifyEvent read FOnClick write FOnClick;
+    property OnDblClick: TNotifyEvent read FOnDblClick write FOnDblClick;
     property OnMouseDown: TMouseEvent read FOnMouseDown write FOnMouseDown;
     property OnMouseMove: TMouseMoveEvent read FOnMouseMove write FOnMouseMove;
     property OnMouseUp: TMouseEvent read FOnMouseUp write FOnMouseUp;
@@ -259,7 +266,7 @@ type
     property Cropped: Boolean read FCropped write SetCropped;
   end;
 
-  TDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB,
+  TRBDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB,
     dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
   TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
     rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
@@ -269,7 +276,7 @@ type
     Sender: TObject;
     const OldLocation: TFloatRect;
     var NewLocation: TFloatRect;
-    DragState: TDragState;
+    DragState: TRBDragState;
     Shift: TShiftState) of object;
   TRBConstrainEvent = TRBResizingEvent;
 
@@ -303,26 +310,28 @@ type
     procedure SetQuantized(const Value: Integer);
   protected
     FIsDragging: Boolean;
-    FDragState: TDragState;
+    FDragState: TRBDragState;
     FOldLocation: TFloatRect;
     FMouseShift: TFloatPoint;
     function  DoHitTest(X, Y: Integer): Boolean; override;
-    procedure DoResizing(var OldLocation, NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState); virtual;
-    procedure DoConstrain(var OldLocation, NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState); virtual;
+    procedure DoResizing(var OldLocation, NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
+    procedure DoConstrain(var OldLocation, NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
     procedure DoSetLocation(const NewLocation: TFloatRect); override;
-    function  GetDragState(X, Y: Integer): TDragState; virtual;
+    function  GetDragState(X, Y: Integer): TRBDragState; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Notification(ALayer: TCustomLayer); override;
     procedure Paint(Buffer: TBitmap32); override;
     procedure SetLayerOptions(Value: Cardinal); override;
-    procedure SetDragState(const Value: TDragState); overload;
-    procedure SetDragState(const Value: TDragState; const X, Y: Integer); overload;
+    procedure SetDragState(const Value: TRBDragState); overload;
+    procedure SetDragState(const Value: TRBDragState; const X, Y: Integer); overload;
     procedure UpdateChildLayer;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
+
     procedure SetFrameStipple(const Value: Array of TColor32);
+    procedure Quantize;
 
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
     property Options: TRBOptions read FOptions write SetOptions;
@@ -391,18 +400,21 @@ end;
 
 procedure TLayerCollection.BeginUpdate;
 begin
-  if FUpdateCount = 0 then Changing;
+  if FUpdateCount = 0 then
+    Changing;
   Inc(FUpdateCount);
 end;
 
 procedure TLayerCollection.Changed;
 begin
-  if Assigned(FOnChange) then FOnChange(Self);
+  if Assigned(FOnChange) then
+    FOnChange(Self);
 end;
 
 procedure TLayerCollection.Changing;
 begin
-  if Assigned(FOnChanging) then FOnChanging(Self);
+  if Assigned(FOnChanging) then
+    FOnChanging(Self);
 end;
 
 procedure TLayerCollection.Clear;
@@ -431,7 +443,8 @@ end;
 destructor TLayerCollection.Destroy;
 begin
   FUpdateCount := 1; // disable update notification
-  if Assigned(FItems) then Clear;
+  if Assigned(FItems) then
+    Clear;
   FItems.Free;
   inherited;
 end;
@@ -439,7 +452,8 @@ end;
 procedure TLayerCollection.EndUpdate;
 begin
   Dec(FUpdateCount);
-  if FUpdateCount = 0 then Changed;
+  if FUpdateCount = 0 then
+    Changed;
   Assert(FUpdateCount >= 0, 'Unpaired EndUpdate');
 end;
 
@@ -450,7 +464,8 @@ begin
   for I := Count - 1 downto 0 do
   begin
     Result := Items[I];
-    if (Result.LayerOptions and OptionsMask) = 0 then Continue; // skip to the next one
+    if (Result.LayerOptions and OptionsMask) = 0 then
+      Continue; // skip to the next one
     if Result.HitTest(X, Y) then Exit;
   end;
   Result := nil;
@@ -458,7 +473,8 @@ end;
 
 procedure TLayerCollection.GDIUpdate;
 begin
-  if (FUpdateCount = 0) and Assigned(FOnGDIUpdate) then FOnGDIUpdate(Self);
+  if (FUpdateCount = 0) and Assigned(FOnGDIUpdate) then
+    FOnGDIUpdate(Self);
 end;
 
 function TLayerCollection.GetCount: Integer;
@@ -554,15 +570,20 @@ end;
 function TLayerCollection.MouseMove(Shift: TShiftState; X, Y: Integer): TCustomLayer;
 begin
   Result := MouseListener;
-  if Result = nil then Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
-  if Assigned(Result) then Result.MouseMove(Shift, X, Y)
-  else if FOwner is TControl then Screen.Cursor := TControl(FOwner).Cursor;
+  if Result = nil then
+    Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
+
+  if Assigned(Result) then
+    Result.MouseMove(Shift, X, Y)
+  else if FOwner is TControl then
+    Screen.Cursor := TControl(FOwner).Cursor;
 end;
 
 function TLayerCollection.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
 begin
   Result := MouseListener;
-  if Result = nil then Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
+  if Result = nil then
+    Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
   if Assigned(Result) then
   begin
@@ -578,7 +599,8 @@ end;
 
 procedure TLayerCollection.Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
 begin
-  if Assigned(FOnListNotify) then FOnListNotify(Self, Action, Layer, Index);
+  if Assigned(FOnListNotify) then
+    FOnListNotify(Self, Action, Layer, Index);
 end;
 
 procedure TLayerCollection.RemoveItem(Item: TCustomLayer);
@@ -623,13 +645,15 @@ end;
 
 procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
 begin
-  if Assigned(FOnAreaUpdated) then FOnAreaUpdated(Self, Rect, AREAINFO_RECT);
-  Changed;  
+  if Assigned(FOnAreaUpdated) then
+    FOnAreaUpdated(Self, Rect, AREAINFO_RECT);
+  Changed;
 end;
 
 procedure TLayerCollection.DoUpdateLayer(Layer: TCustomLayer);
 begin
-  if Assigned(FOnLayerUpdated) then FOnLayerUpdated(Self, Layer);
+  if Assigned(FOnLayerUpdated) then
+    FOnLayerUpdated(Self, Layer);
   Changed;
 end;
 
@@ -657,59 +681,6 @@ end;
 
 { TCustomLayer }
 
-procedure TCustomLayer.AddNotification(ALayer: TCustomLayer);
-begin
-  if not Assigned(FFreeNotifies) then FFreeNotifies := TList.Create;
-  if FFreeNotifies.IndexOf(ALayer) < 0 then FFreeNotifies.Add(ALayer);
-end;
-
-procedure TCustomLayer.BeforeDestruction;
-begin
-  if Assigned(FOnDestroy) then FOnDestroy(Self);
-  inherited;
-end;
-
-procedure TCustomLayer.BringToFront;
-begin
-  Index := LayerCollection.Count;
-end;
-
-procedure TCustomLayer.Changed;
-begin
-  if UpdateCount > 0 then Exit;
-  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
-  begin
-    Update;
-    if Visible then FLayerCollection.Changed
-    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
-      FLayerCollection.GDIUpdate;
-
-    inherited;
-  end;
-end;
-
-procedure TCustomLayer.Changed(const Rect: TRect);
-begin
-  if UpdateCount > 0 then Exit;
-  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
-  begin
-    Update(Rect);
-    if Visible then FLayerCollection.Changed
-    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
-      FLayerCollection.GDIUpdate;
-
-    inherited Changed;
-  end;
-end;
-
-procedure TCustomLayer.Changing;
-begin
-  if UpdateCount > 0 then Exit;
-  if Visible and Assigned(FLayerCollection) and
-    ((FLayerOptions and LOB_NO_UPDATE) = 0) then
-    FLayerCollection.Changing;
-end;
-
 constructor TCustomLayer.Create(ALayerCollection: TLayerCollection);
 begin
   LayerCollection := ALayerCollection;
@@ -734,6 +705,78 @@ begin
   inherited;
 end;
 
+procedure TCustomLayer.AddNotification(ALayer: TCustomLayer);
+begin
+  if not Assigned(FFreeNotifies) then
+    FFreeNotifies := TList.Create;
+  if FFreeNotifies.IndexOf(ALayer) < 0 then
+    FFreeNotifies.Add(ALayer);
+end;
+
+procedure TCustomLayer.BeforeDestruction;
+begin
+  if Assigned(FOnDestroy) then
+    FOnDestroy(Self);
+  inherited;
+end;
+
+procedure TCustomLayer.BringToFront;
+begin
+  Index := LayerCollection.Count;
+end;
+
+procedure TCustomLayer.Changed;
+begin
+  if UpdateCount > 0 then Exit;
+  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  begin
+    Update;
+    if Visible then
+      FLayerCollection.Changed
+    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+      FLayerCollection.GDIUpdate;
+
+    inherited;
+  end;
+end;
+
+procedure TCustomLayer.Changed(const Rect: TRect);
+begin
+  if UpdateCount > 0 then Exit;
+  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  begin
+    Update(Rect);
+    if Visible then
+      FLayerCollection.Changed
+    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+      FLayerCollection.GDIUpdate;
+
+    inherited Changed;
+  end;
+end;
+
+procedure TCustomLayer.Changing;
+begin
+  if UpdateCount > 0 then Exit;
+  if Visible and Assigned(FLayerCollection) and
+    ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+    FLayerCollection.Changing;
+end;
+
+procedure TCustomLayer.Click;
+begin
+  FClicked := False;
+  if Assigned(FOnClick) then
+    FOnClick(Self);
+end;
+
+procedure TCustomLayer.DblClick;
+begin
+  FClicked := False;
+  if Assigned(FOnDblClick) then
+    FOnDblClick(Self);
+end;
+
 function TCustomLayer.DoHitTest(X, Y: Integer): Boolean;
 begin
   Result := True;
@@ -742,7 +785,8 @@ end;
 procedure TCustomLayer.DoPaint(Buffer: TBitmap32);
 begin
   Paint(Buffer);
-  if Assigned(FOnPaint) then FOnPaint(Self, Buffer);
+  if Assigned(FOnPaint) then
+    FOnPaint(Self, Buffer);
 end;
 
 function TCustomLayer.GetIndex: Integer;
@@ -771,24 +815,37 @@ end;
 function TCustomLayer.HitTest(X, Y: Integer): Boolean;
 begin
   Result := DoHitTest(X, Y);
-  if Assigned(FOnHitTest) then FOnHitTest(Self, X, Y, Result);
+  if Assigned(FOnHitTest) then
+    FOnHitTest(Self, X, Y, Result);
 end;
 
 procedure TCustomLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
-  if Assigned(FOnMouseDown) then FOnMouseDown(Self, Button, Shift, X, Y);
+  if (Button = mbLeft) then
+  begin
+    if (ssDouble in Shift) then
+      DblClick
+    else
+      FClicked := True;
+  end;
+  if Assigned(FOnMouseDown) then
+    FOnMouseDown(Self, Button, Shift, X, Y);
 end;
 
 procedure TCustomLayer.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
   Screen.Cursor := Cursor;
-  if Assigned(FOnMouseMove) then FOnMouseMove(Self, Shift, X, Y);
+  if Assigned(FOnMouseMove) then
+    FOnMouseMove(Self, Shift, X, Y);
 end;
 
 procedure TCustomLayer.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   Screen.Cursor := crDefault;
-  if Assigned(FOnMouseUp) then FOnMouseUp(Self, Button, Shift, X, Y);
+  if (Button = mbLeft) and FClicked then
+    Click;
+  if Assigned(FOnMouseUp) then
+    FOnMouseUp(Self, Button, Shift, X, Y);
 end;
 
 procedure TCustomLayer.Notification(ALayer: TCustomLayer);
@@ -835,7 +892,8 @@ begin
   if Value <> FCursor then
   begin
     FCursor := Value;
-    if FLayerCollection.MouseListener = Self then Screen.Cursor := Value;
+    if FLayerCollection.MouseListener = Self then
+      Screen.Cursor := Value;
   end;
 end;
 
@@ -1150,14 +1208,14 @@ begin
 end;
 
 procedure TRubberbandLayer.DoResizing(var OldLocation,
-  NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
+  NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
 begin
   if Assigned(FOnResizing) then
     FOnResizing(Self, OldLocation, NewLocation, DragState, Shift);
 end;
 
 procedure TRubberbandLayer.DoConstrain(var OldLocation,
-  NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
+  NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
 begin
   if Assigned(FOnConstrain) then
     FOnConstrain(Self, OldLocation, NewLocation, DragState, Shift);
@@ -1169,7 +1227,7 @@ begin
   UpdateChildLayer;
 end;
 
-function TRubberbandLayer.GetDragState(X, Y: Integer): TDragState;
+function TRubberbandLayer.GetDragState(X, Y: Integer): TRBDragState;
 var
   R: TRect;
   dh_center, dh_sides, dh_corners: Boolean;
@@ -1215,7 +1273,7 @@ end;
 
 procedure TRubberbandLayer.MouseMove(Shift: TShiftState; X, Y: Integer);
 const
-  CURSOR_ID: array [TDragState] of TCursor = (crDefault, crDefault, crSizeWE,
+  CURSOR_ID: array [TRBDragState] of TCursor = (crDefault, crDefault, crSizeWE,
     crSizeNS, crSizeWE, crSizeNS, crSizeNWSE, crSizeNESW, crSizeNESW, crSizeNWSE);
 var
   Mx, My: TFloat;
@@ -1401,6 +1459,15 @@ begin
   end;
 end;
 
+procedure TRubberbandLayer.Quantize;
+begin
+  Location := FloatRect(
+    Round(Location.Left / Quantized) * Quantized,
+    Round(Location.Top / Quantized) * Quantized,
+    Round(Location.Right / Quantized) * Quantized,
+    Round(Location.Bottom / Quantized) * Quantized);
+end;
+
 procedure TRubberbandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
   if Assigned(FChildLayer) then
@@ -1415,12 +1482,12 @@ begin
   end;
 end;
 
-procedure TRubberbandLayer.SetDragState(const Value: TDragState);
+procedure TRubberbandLayer.SetDragState(const Value: TRBDragState);
 begin
   SetDragState(Value, 0, 0);
 end;
 
-procedure TRubberbandLayer.SetDragState(const Value: TDragState; const X, Y: Integer);
+procedure TRubberbandLayer.SetDragState(const Value: TRBDragState; const X, Y: Integer);
 var
   ALoc: TFloatRect;
 begin

@@ -2,7 +2,7 @@ object MainForm: TMainForm
   Left = 255
   Top = 121
   Caption = 'Image View Layers Example'
-  ClientHeight = 575
+  ClientHeight = 590
   ClientWidth = 787
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,7 +20,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 656
-    Height = 575
+    Height = 590
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
@@ -43,7 +43,7 @@ object MainForm: TMainForm
     Left = 656
     Top = 0
     Width = 131
-    Height = 575
+    Height = 590
     Align = alRight
     BevelOuter = bvNone
     TabOrder = 1
@@ -205,7 +205,7 @@ object MainForm: TMainForm
     end
     object PnlMagnification: TPanel
       Left = 0
-      Top = 298
+      Top = 408
       Width = 131
       Height = 168
       Align = alTop
@@ -261,7 +261,7 @@ object MainForm: TMainForm
         ShowHandleGrip = True
         Style = rbsMac
         Position = 255
-        OnChange = MagnChange
+        OnChange = PropertyChange
       end
       object GbrMagnMagnification: TGaugeBar
         Left = 16
@@ -275,7 +275,7 @@ object MainForm: TMainForm
         ShowHandleGrip = True
         Style = rbsMac
         Position = 10
-        OnChange = MagnChange
+        OnChange = PropertyChange
       end
       object GbrMagnRotation: TGaugeBar
         Left = 16
@@ -290,7 +290,7 @@ object MainForm: TMainForm
         ShowHandleGrip = True
         Style = rbsMac
         Position = 0
-        OnChange = MagnChange
+        OnChange = PropertyChange
       end
       object CbxMagnInterpolate: TCheckBox
         Left = 16
@@ -299,12 +299,83 @@ object MainForm: TMainForm
         Height = 17
         Caption = 'Interpolated'
         TabOrder = 4
-        OnClick = MagnChange
+        OnClick = PropertyChange
+      end
+    end
+    object PnlButtonMockup: TPanel
+      Left = 0
+      Top = 298
+      Width = 131
+      Height = 110
+      Align = alTop
+      TabOrder = 3
+      Visible = False
+      object LblBorderRadius: TLabel
+        Left = 8
+        Top = 24
+        Width = 71
+        Height = 13
+        Caption = 'Border Radius:'
+      end
+      object LblBorderWidth: TLabel
+        Left = 8
+        Top = 64
+        Width = 67
+        Height = 13
+        Caption = 'Border Width:'
+      end
+      object PnlButtonMockupHeader: TPanel
+        Left = 1
+        Top = 1
+        Width = 129
+        Height = 16
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Button (All) Properties'
+        Color = clBtnShadow
+        Font.Charset = DEFAULT_CHARSET
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        Font.Style = []
+        ParentFont = False
+        TabOrder = 0
+      end
+      object GbrBorderRadius: TGaugeBar
+        Left = 16
+        Top = 40
+        Width = 105
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 20
+        Min = 1
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 5
+        OnChange = PropertyChange
+      end
+      object GbrBorderWidth: TGaugeBar
+        Left = 16
+        Top = 80
+        Width = 105
+        Height = 12
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 30
+        Min = 10
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 20
+        OnChange = PropertyChange
       end
     end
   end
   object MainMenu: TMainMenu
-    Left = 216
+    Left = 64
+    Top = 8
     object MnuFile: TMenuItem
       Caption = 'File'
       OnClick = MnuFileClick
@@ -341,6 +412,10 @@ object MainForm: TMainForm
           Caption = 'Simple Drawing Layer'
           OnClick = MnuSimpleDrawingClick
         end
+        object MnuButtonMockup: TMenuItem
+          Caption = 'Button Mockup'
+          OnClick = MnuButtonMockupClick
+        end
         object MnuMagnifier: TMenuItem
           Caption = 'Magnifier'
           OnClick = MnuMagnifierClick
@@ -360,26 +435,26 @@ object MainForm: TMainForm
       object MnuBringFront: TMenuItem
         Tag = 1
         Caption = 'Bring to Front'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object MnuSendBack: TMenuItem
         Tag = 2
         Caption = 'Send to Back'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object N1: TMenuItem
         Caption = '-'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object MnuLevelUp: TMenuItem
         Tag = 3
         Caption = 'Up One Level'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object MnuLevelDown: TMenuItem
         Tag = 4
         Caption = 'Down one Level'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object N2: TMenuItem
         Caption = '-'
@@ -422,9 +497,11 @@ object MainForm: TMainForm
     end
   end
   object OpenPictureDialog: TOpenPictureDialog
-    Left = 248
+    Left = 64
+    Top = 56
   end
   object SaveDialog: TSaveDialog
-    Left = 280
+    Left = 64
+    Top = 104
   end
 end
