@@ -103,25 +103,29 @@ type
     SaveDialog: TSaveDialog;
     ScaleCombo: TComboBox;
     PnlControl: TPanel;
+    MnuButtonMockup: TMenuItem;
+    PnlButtonMockup: TPanel;
+    LblBorderRadius: TLabel;
+    PnlButtonMockupHeader: TPanel;
+    GbrBorderRadius: TGaugeBar;
+    LblBorderWidth: TLabel;
+    GbrBorderWidth: TGaugeBar;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure CbxOptRedrawClick(Sender: TObject);
     procedure CbxCroppedClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
     procedure CbxImageInterpolateClick(Sender: TObject);
-    procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState;
-      MousePos: TPoint; var Handled: Boolean);
-    procedure ImgViewMouseWheelUp(Sender: TObject; Shift: TShiftState;
-      MousePos: TPoint; var Handled: Boolean);
-    procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
-      StageNum: Cardinal);
-    procedure CbxLayerInterpolateClick(Sender: TObject);
-    procedure LayerOpacityChanged(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
     procedure BtnLayerResetScaleClick(Sender: TObject);
-    procedure MagnChange(Sender: TObject);
+    procedure CbxLayerInterpolateClick(Sender: TObject);
+    procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+    procedure ImgViewMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+    procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+    procedure LayerOpacityChanged(Sender: TObject);
+    procedure PropertyChange(Sender: TObject);
     procedure MimArrangeClick(Sender: TObject);
+    procedure MnuReorderClick(Sender: TObject);
     procedure MnuDeleteClick(Sender: TObject);
     procedure MnuFileClick(Sender: TObject);
     procedure MnuFileNewClick(Sender: TObject);
@@ -134,26 +138,31 @@ type
     procedure MnuNewBitmapLayerClick(Sender: TObject);
     procedure MnuNewBitmapRGBAClick(Sender: TObject);
     procedure MnuPrintClick(Sender: TObject);
-    procedure mnReorder(Sender: TObject);
     procedure MnuRotate180Click(Sender: TObject);
     procedure MnuRotate270Click(Sender: TObject);
     procedure MnuRotate90Click(Sender: TObject);
     procedure MnuScaledClick(Sender: TObject);
     procedure MnuSimpleDrawingClick(Sender: TObject);
     procedure ScaleComboChange(Sender: TObject);
+    procedure MnuButtonMockupClick(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
   protected
     RBLayer: TRubberbandLayer;
     function CreatePositionedLayer: TPositionedLayer;
-    procedure LayerMouseDown(Sender: TObject; Buttons: TMouseButton; Shift: TShiftState; X, Y: Integer);
-    procedure RBResizing(Sender: TObject; const OldLocation: TFloatRect; var NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
+    procedure LayerDblClick(Sender: TObject);
+    procedure LayerMouseDown(Sender: TObject; Buttons: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure RBResizing(Sender: TObject; const OldLocation: TFloatRect;
+      var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
     procedure PaintMagnifierHandler(Sender: TObject; Buffer: TBitmap32);
     procedure PaintSimpleDrawingHandler(Sender: TObject; Buffer: TBitmap32);
+    procedure PaintButtonMockupHandler(Sender: TObject; Buffer: TBitmap32);
   public
     procedure CreateNewImage(AWidth, AHeight: Integer; FillColor: TColor32);
     procedure OpenImage(const FileName: string);
+
     property Selection: TPositionedLayer read FSelection write SetSelection;
   end;
 
@@ -177,7 +186,9 @@ uses
 {$ELSE}
   LazJPG,
 {$ENDIF}
-  NewImageUnit, RGBALoaderUnit, Math, GR32_LowLevel, Printers;
+  NewImageUnit, RGBALoaderUnit, Math, Printers, GR32_LowLevel, GR32_Paths,
+  GR32_VectorUtils, GR32_Backends, GR32_Text_VCL, GR32_ColorGradients,
+  GR32_Polygons;
 
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
@@ -231,6 +242,7 @@ begin
   Result.Scaled := True;
   Result.MouseEvents := True;
   Result.OnMouseDown := LayerMouseDown;
+  Result.OnDblClick := LayerDblClick;
 end;
 
 procedure TMainForm.CbxCroppedClick(Sender: TObject);
@@ -250,6 +262,12 @@ begin
   begin
     RESAMPLER[CbxLayerInterpolate.Checked].Create(TBitmapLayer(Selection).Bitmap);
   end;
+end;
+
+procedure TMainForm.LayerDblClick(Sender: TObject);
+begin
+  if Sender is TRubberbandLayer then
+    TRubberbandLayer(Sender).Quantize;
 end;
 
 procedure TMainForm.LayerMouseDown(Sender: TObject; Buttons: TMouseButton;
@@ -302,7 +320,7 @@ begin
     end;
 end;
 
-procedure TMainForm.MagnChange(Sender: TObject);
+procedure TMainForm.PropertyChange(Sender: TObject);
 begin
   ImgView.Invalidate;
 end;
@@ -325,6 +343,16 @@ begin
   MnuRotate90.Enabled := B;
   MnuRotate180.Enabled := B;
   MnuRotate270.Enabled := B;
+end;
+
+procedure TMainForm.MnuButtonMockupClick(Sender: TObject);
+var
+  L: TPositionedLayer;
+begin
+  L := CreatePositionedLayer;
+  L.OnPaint := PaintButtonMockupHandler;
+  L.Tag := 2;
+  Selection := L;
 end;
 
 procedure TMainForm.MnuDeleteClick(Sender: TObject);
@@ -373,7 +401,7 @@ var
 begin
   L := CreatePositionedLayer;
   L.OnPaint := PaintMagnifierHandler;
-  L.Tag := 2;
+  L.Tag := 3;
   Selection := L;
 end;
 
@@ -464,13 +492,13 @@ begin
   end;
 end;
 
-procedure TMainForm.mnReorder(Sender: TObject);
+procedure TMainForm.MnuReorderClick(Sender: TObject);
 begin
   // note that the top-most layer is occupied with the rubber-banding layer
   if Selection <> nil then
     case TMenuItem(Sender).Tag of
       1: // Bring to front, do not use BringToFront here, see note above
-        Selection.Index := ImgView.Layers.Count - 2; 
+        Selection.Index := ImgView.Layers.Count - 2;
       2: Selection.SendToBack;
       3: Selection.Index := Selection.Index + 1; // up one level
       4: Selection.Index := Selection.Index - 1; // down one level
@@ -501,6 +529,64 @@ begin
   end;
 end;
 
+procedure TMainForm.PaintButtonMockupHandler(Sender: TObject;
+  Buffer: TBitmap32);
+var
+  RoundPoly: TArrayOfFloatPoint;
+  TextPoly: TArrayOfArrayOfFloatPoint;
+  Bounds, Dst: TFloatRect;
+  Path: TFlattenedPath;
+  Intf: ITextToPathSupport;
+  ColorGradient: TLinearGradientPolygonFiller;
+const
+  CScale = 1 / 200;
+begin
+  if Sender is TPositionedLayer then
+    with TPositionedLayer(Sender) do
+    begin
+      Bounds := GetAdjustedLocation;
+      InflateRect(Bounds, -1, -1);
+      RoundPoly := RoundRect(Bounds, GbrBorderRadius.Position);
+
+      ColorGradient := TLinearGradientPolygonFiller.Create;
+      try
+        ColorGradient.SetPoints(FloatPoint(0, Bounds.Top), FloatPoint(0, Bounds.Bottom));
+        ColorGradient.Gradient.StartColor := $FFE2E2E2;
+        ColorGradient.Gradient.AddColorStop(0.499, $FFD3D3D3);
+        ColorGradient.Gradient.AddColorStop(0.501, $FFDBDBDB);
+        ColorGradient.Gradient.EndColor := $FFFDFDFD;
+
+        PolygonFS(Buffer, RoundPoly, ColorGradient, pfAlternate);
+      finally
+        ColorGradient.Free;
+      end;
+      PolyPolygonFS(Buffer, BuildPolyPolyLine(PolyPolygon(RoundPoly), True,
+        0.1 * GbrBorderWidth.Position), clGray32, pfAlternate);
+
+      Path := TFlattenedPath.Create;
+      try
+    //    Buffer.Font.Assign(FFont);
+        Buffer.Font.Size := 12;
+        if Supports(Buffer.Backend, ITextToPathSupport, Intf) then
+        begin
+          Intf.TextToPath(Path, 0, 0, 'Button');
+          TextPoly := Path.Path;
+          if Length(TextPoly) > 0 then
+          begin
+            Dst := PolypolygonBounds(TextPoly);
+            TextPoly := TranslatePolyPolygon(TextPoly,
+              0.5 * (Bounds.Left + Bounds.Right - (Dst.Right - Dst.Left)),
+              0.5 * (Bounds.Bottom + Bounds.Top - Dst.Bottom));
+
+            PolyPolygonFS_LCD2(Buffer, TextPoly, clBlack32, pfAlternate);
+          end;
+        end;
+      finally
+        Path.Free;
+      end;
+   end;
+end;
+
 procedure TMainForm.PaintMagnifierHandler(Sender: TObject; Buffer: TBitmap32);
 var
   Magnification, Rotation: Single;
@@ -519,7 +605,7 @@ begin
 
       if not Buffer.MeasuringMode then
       begin
-        Magnification := Power(10, (GbrMagnMagnification.Position / 50));
+        Magnification := Power(10, (GbrMagnMagnification.Position * 0.02));
         Rotation := -GbrMagnRotation.Position;
 
         B := TBitmap32.Create;
@@ -588,6 +674,8 @@ var
   Cx, Cy: Single;
   W2, H2: Single;
   I: Integer;
+const
+  CScale = 1 / 200;
 begin
   if Sender is TPositionedLayer then
     with TPositionedLayer(Sender).GetAdjustedLocation do
@@ -596,12 +684,14 @@ begin
       H2 := (Bottom - Top) * 0.5;
       Cx := Left + W2;
       Cy := Top + H2;
+      W2 := W2 * CScale;
+      H2 := H2 * CScale;
       Buffer.PenColor := clRed32;
-      Buffer.MoveToF(Cx,Cy);
+      Buffer.MoveToF(Cx, Cy);
       for I := 0 to 240 do
-      begin
-        Buffer.LineToFS(Cx + W2 * I / 200 * Cos(I / 8), Cy + H2 * I / 200 * Sin(I / 8));
-      end;
+        Buffer.LineToFS(
+          Cx + W2 * I * Cos(I * 0.125),
+          Cy + H2 * I * Sin(I * 0.125));
     end;
 end;
 
@@ -615,8 +705,10 @@ begin
   S := StringReplace(S, ' ', '', [rfReplaceAll]);
   if S = '' then Exit;
   I := StrToIntDef(S, -1);
-  if (I < 1) or (I > 2000) then I := Round(ImgView.Scale * 100)
-  else ImgView.Scale := I * 0.01;
+  if (I < 1) or (I > 2000) then
+    I := Round(ImgView.Scale * 100)
+  else
+    ImgView.Scale := I * 0.01;
   ScaleCombo.Text := IntToStr(I) + '%';
   ScaleCombo.SelStart := Length(ScaleCombo.Text) - 1;
 end;
@@ -630,6 +722,7 @@ begin
       RBLayer.ChildLayer := nil;
       RBLayer.LayerOptions := LOB_NO_UPDATE;
       pnlBitmapLayer.Visible := False;
+      pnlButtonMockup.Visible := False;
       pnlMagnification.Visible := False;
       ImgView.Invalidate;
     end;
@@ -644,10 +737,12 @@ begin
         RBLayer.MinHeight := 1;
         RBLayer.MinWidth := 1;
       end
-      else RBLayer.BringToFront;
+      else
+        RBLayer.BringToFront;
       RBLayer.ChildLayer := Value;
       RBLayer.LayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS or LOB_NO_UPDATE;
       RBLayer.OnResizing := RBResizing;
+      RBLayer.OnDblClick := LayerDblClick;
 
       if Value is TBitmapLayer then
         with TBitmapLayer(Value) do
@@ -658,7 +753,12 @@ begin
         end
       else if Value.Tag = 2 then
       begin
-        // tag = 2 for magnifiers
+        // tag = 2 for button mockup
+        pnlButtonMockup.Visible := True;
+      end
+      else if Value.Tag = 3 then
+      begin
+        // tag = 3 for magnifiers
         pnlMagnification.Visible := True;
       end;
     end;
@@ -718,7 +818,7 @@ end;
 
 procedure TMainForm.RBResizing(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
-  DragState: TDragState; Shift: TShiftState);
+  DragState: TRBDragState; Shift: TShiftState);
 var
   w, h, cx, cy: Single;
   nw, nh: Single;

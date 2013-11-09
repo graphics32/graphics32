@@ -723,9 +723,8 @@ var
   Buffer        : Pointer;
   OldObject     : HGDIOBJ;
 begin
-  if SetDIBitsToDevice(hDst, DstX, DstY,
-    FOwner.Width, FOwner.Height, 0, 0, 0, FOwner.Height, FBits, FBitmapInfo,
-    DIB_RGB_COLORS) = 0 then
+  if SetDIBitsToDevice(hDst, DstX, DstY, FOwner.Width, FOwner.Height, 0, 0, 0,
+    FOwner.Height, FBits, FBitmapInfo, DIB_RGB_COLORS) = 0 then
   begin
     // create compatible device context
     DeviceContext := CreateCompatibleDC(hDst);

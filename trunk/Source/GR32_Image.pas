@@ -276,7 +276,6 @@ type
     procedure InitDefaultStages; virtual;
     procedure InvalidateCache;
     function  InvalidRectsAvailable: Boolean; override;
-    procedure DblClick; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
@@ -1306,13 +1305,6 @@ begin
   SetXForm(0, 0, 1, 1);
 
   InitDefaultStages;
-end;
-
-procedure TCustomImage32.DblClick;
-begin
-  Layers.MouseListener := nil;
-  MouseUp(mbLeft, [], 0, 0);
-  inherited;
 end;
 
 destructor TCustomImage32.Destroy;
