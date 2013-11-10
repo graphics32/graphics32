@@ -202,13 +202,39 @@ procedure PolyPolygonFS_LCD(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloa
   Transformation: TTransformation = nil); overload;
 procedure PolygonFS_LCD(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil);
+  Transformation: TTransformation = nil); overload;
 procedure PolyPolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
   Transformation: TTransformation = nil); overload;
 procedure PolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
   Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
-  Transformation: TTransformation = nil);
+  Transformation: TTransformation = nil); overload;
+
+procedure PolyPolygonFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_LCD(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS_LCD(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+
 
 procedure PolyPolylineFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
   Color: TColor32; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
@@ -630,6 +656,160 @@ begin
     Renderer.FillMode := FillMode;
     Renderer.Color := Color;
     Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolyPolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+  IntersectedClipRect: TRect;
+begin
+  if not Assigned(Filler) then Exit;
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolyPolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32VPR;
+  IntersectedClipRect: TRect;
+begin
+  if not Assigned(Filler) then Exit;
+  Renderer := TPolygonRenderer32VPR.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS_LCD(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32LCD.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS_LCD(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32;
+  FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32LCD.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolyPolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS_LCD2(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD2;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32LCD2.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS_LCD2(Bitmap: TBitmap32;
+  const Points: TArrayOfArrayOfFloatPoint; ClipRect: TRect; Color: TColor32;
+  FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32LCD2;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32LCD2.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.FillMode := FillMode;
+    Renderer.Color := Color;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolyPolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
   finally
     Renderer.Free;
   end;
