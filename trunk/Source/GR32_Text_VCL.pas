@@ -329,7 +329,7 @@ var
 
   function NeedsNewLine(X: Single): Boolean;
   begin
-    Result := X > ARect.Right * HorzStretch;
+    Result := (ARect.Right > ARect.Left) and (X > ARect.Right * HorzStretch);
   end;
 
   procedure AddSpace;
@@ -387,7 +387,7 @@ begin
     0, nil, VertFlip_mat2);
   SpcX := GlyphMetrics.gmCellIncX;
 
-  if (Flags and DT_SINGLELINE <> 0) then
+  if (Flags and DT_SINGLELINE <> 0) or (ARect.Left = ARect.Right) then
   begin
     // ignore justify when forcing singleline ...
     if (Flags and DT_JUSTIFY = DT_JUSTIFY) then
