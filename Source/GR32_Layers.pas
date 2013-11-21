@@ -140,6 +140,26 @@ type
     property MouseEvents: Boolean read FMouseEvents write SetMouseEvents;
   end;
 
+{$IFDEF COMPILER2009_UP}
+  TLayerEnum = class
+   private
+     FIndex: Integer;
+     FLayerCollection: TLayerCollection;
+   public
+     constructor Create(ALayerCollection: TLayerCollection);
+
+     function GetCurrent: TCustomLayer;
+     function MoveNext: Boolean;
+
+     property Current: TCustomLayer read GetCurrent;
+   end;
+
+   TLayerCollectionHelper = class Helper for TLayerCollection
+   public
+     function GetEnumerator: TLayerEnum;
+   end;
+{$ENDIF}
+
   TLayerState = (lsMouseLeft, lsMouseRight, lsMouseMiddle);
   TLayerStates = set of TLayerState;
 
@@ -678,6 +698,39 @@ begin
     ShiftY := 0;
   end;
 end;
+
+
+{$IFDEF COMPILER2009_UP}
+{ TLayerEnum }
+
+constructor TLayerEnum.Create(ALayerCollection: TLayerCollection);
+begin
+  inherited Create;
+  FLayerCollection := ALayerCollection;
+  FIndex := -1;
+end;
+
+function TLayerEnum.GetCurrent: TCustomLayer;
+begin
+  Result := FLayerCollection.Items[FIndex];
+end;
+
+function TLayerEnum.MoveNext: Boolean;
+begin
+  Result := FIndex < Pred(FLayerCollection.Count);
+  if Result then
+    Inc(FIndex);
+end;
+
+
+{ TLayerCollectionHelper }
+
+function TLayerCollectionHelper.GetEnumerator: TLayerEnum;
+begin
+  Result := TLayerEnum.Create(Self);
+end;
+{$ENDIF}
+
 
 { TCustomLayer }
 
