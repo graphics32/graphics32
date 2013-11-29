@@ -1318,7 +1318,28 @@ begin
 end;
 
 procedure TRubberbandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  I: Integer;
+  L: TCustomLayer;
 begin
+  for I := LayerCollection.Count - 1 downto 0 do
+  begin
+    L := LayerCollection.Items[I];
+    if ((L.LayerOptions and LOB_MOUSE_EVENTS) = 0) or (L = Self) or
+      not (L is TPositionedLayer) then
+      Continue; // skip to the next one
+    if L.HitTest(X, Y) then
+    begin
+      if ChildLayer <> TPositionedLayer(L) then
+      begin
+        L.MouseDown(Button, Shift, X, Y);
+        Exit;
+      end;
+
+      Break;
+    end;
+  end;
+
   if FIsDragging then Exit;
   SetDragState(GetDragState(X, Y), X, Y);
   inherited;
@@ -1532,6 +1553,13 @@ begin
     Location := Value.Location;
     Scaled := Value.Scaled;
     AddNotification(FChildLayer);
+(*
+    if (lsMouseLeft in FChildLayer.LayerStates) then
+    begin
+      FChildLayer.
+      FIsDragging := True;
+    end;
+*)
   end;
 end;
 
