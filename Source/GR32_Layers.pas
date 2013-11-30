@@ -319,6 +319,7 @@ type
     FOnConstrain: TRBConstrainEvent;
     FOptions: TRBOptions;
     FQuantized: Integer;
+    FPassMouseDownToChild: Boolean;
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
@@ -366,6 +367,7 @@ type
     property MinHeight: TFloat read FMinHeight write FMinHeight;
     property MinWidth: TFloat read FMinWidth write FMinWidth;
     property Quantized: Integer read FQuantized write SetQuantized default 8;
+    property PassMouseDownToChild: Boolean read FPassMouseDownToChild write FPassMouseDownToChild default False;
 
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
     property OnConstrain: TRBConstrainEvent read FOnConstrain write FOnConstrain;
@@ -1249,6 +1251,7 @@ begin
   FMinWidth := 10;
   FMinHeight := 10;
   FQuantized := 8;
+  FPassMouseDownToChild := False;
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
   SetFrameStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
   FFrameStippleStep := 1;
@@ -1330,7 +1333,7 @@ begin
       Continue; // skip to the next one
     if L.HitTest(X, Y) then
     begin
-      if ChildLayer <> TPositionedLayer(L) then
+      if FPassMouseDownToChild and (ChildLayer <> TPositionedLayer(L)) then
       begin
         L.MouseDown(Button, Shift, X, Y);
         Exit;
