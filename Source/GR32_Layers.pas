@@ -62,6 +62,7 @@ const
 type
   TCustomLayer = class;
   TPositionedLayer = class;
+  TRubberbandLayer = class;
   TLayerClass = class of TCustomLayer;
 
   TLayerCollection = class;
@@ -300,6 +301,24 @@ type
     Shift: TShiftState) of object;
   TRBConstrainEvent = TRBResizingEvent;
 
+  TRubberbandPassMouse = class(TPersistent)
+  private
+    FOwner: TRubberbandLayer;
+    FEnabled: Boolean;
+    FToChild: Boolean;
+    FLayerUnderCursor: Boolean;
+    FCancelIfPassed: Boolean;
+  protected
+    function GetChildUnderCursor(X, Y: Integer): TPositionedLayer;
+  public
+    constructor Create(AOwner: TRubberbandLayer);
+
+    property Enabled: Boolean read FEnabled write FEnabled default False;
+    property ToChild: Boolean read FToChild write FToChild default False;
+    property ToLayerUnderCursor: Boolean read FLayerUnderCursor write FLayerUnderCursor default False;
+    property CancelIfPassed: Boolean read FCancelIfPassed write FCancelIfPassed default False;
+  end;
+
   TRubberbandLayer = class(TPositionedLayer)
   private
     FChildLayer: TPositionedLayer;
@@ -319,7 +338,7 @@ type
     FOnConstrain: TRBConstrainEvent;
     FOptions: TRBOptions;
     FQuantized: Integer;
-    FPassMouseDownToChild: Boolean;
+    FPassMouse: TRubberbandPassMouse;
     procedure SetFrameStippleStep(const Value: TFloat);
     procedure SetFrameStippleCounter(const Value: TFloat);
     procedure SetChildLayer(Value: TPositionedLayer);
@@ -350,6 +369,7 @@ type
     procedure UpdateChildLayer;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
+    destructor Destroy; override;
 
     procedure SetFrameStipple(const Value: Array of TColor32);
     procedure Quantize;
@@ -367,7 +387,7 @@ type
     property MinHeight: TFloat read FMinHeight write FMinHeight;
     property MinWidth: TFloat read FMinWidth write FMinWidth;
     property Quantized: Integer read FQuantized write SetQuantized default 8;
-    property PassMouseDownToChild: Boolean read FPassMouseDownToChild write FPassMouseDownToChild default False;
+    property PassMouseToChild: TRubberbandPassMouse read FPassMouse;
 
     property OnUserChange: TNotifyEvent read FOnUserChange write FOnUserChange;
     property OnConstrain: TRBConstrainEvent read FOnConstrain write FOnConstrain;
@@ -1239,6 +1259,34 @@ begin
   end;
 end;
 
+
+{ TRubberbandPassMouse }
+
+constructor TRubberbandPassMouse.Create(AOwner: TRubberbandLayer);
+begin
+  FOwner := AOwner;
+  FEnabled := False;
+  FToChild := False;
+  FLayerUnderCursor := False;
+  FCancelIfPassed := False;
+end;
+
+function TRubberbandPassMouse.GetChildUnderCursor(X, Y: Integer): TPositionedLayer;
+var
+  Layer: TCustomLayer;
+  Index: Integer;
+begin
+  Result := nil;
+  for Index := FOwner.LayerCollection.Count - 1 downto 0 do
+  begin
+    Layer := FOwner.LayerCollection.Items[Index];
+    if ((Layer.LayerOptions and LOB_MOUSE_EVENTS) > 0) and
+      (Layer is TPositionedLayer) and Layer.HitTest(X, Y) then
+      Exit(TPositionedLayer(Layer));
+  end;
+end;
+
+
 { TRubberbandLayer }
 
 constructor TRubberbandLayer.Create(ALayerCollection: TLayerCollection);
@@ -1251,11 +1299,17 @@ begin
   FMinWidth := 10;
   FMinHeight := 10;
   FQuantized := 8;
-  FPassMouseDownToChild := False;
   FLayerOptions := LOB_VISIBLE or LOB_MOUSE_EVENTS;
   SetFrameStipple([clWhite32, clWhite32, clBlack32, clBlack32]);
+  FPassMouse := TRubberbandPassMouse.Create(Self);
   FFrameStippleStep := 1;
   FFrameStippleCounter := 0;
+end;
+
+destructor TRubberbandLayer.Destroy;
+begin
+  FPassMouse.Free;
+  inherited;
 end;
 
 function TRubberbandLayer.DoHitTest(X, Y: Integer): Boolean;
@@ -1322,24 +1376,27 @@ end;
 
 procedure TRubberbandLayer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
-  I: Integer;
-  L: TCustomLayer;
+  PositionedLayer: TPositionedLayer;
 begin
-  for I := LayerCollection.Count - 1 downto 0 do
+  if FPassMouse.Enabled then
   begin
-    L := LayerCollection.Items[I];
-    if ((L.LayerOptions and LOB_MOUSE_EVENTS) = 0) or (L = Self) or
-      not (L is TPositionedLayer) then
-      Continue; // skip to the next one
-    if L.HitTest(X, Y) then
-    begin
-      if FPassMouseDownToChild and (ChildLayer <> TPositionedLayer(L)) then
-      begin
-        L.MouseDown(Button, Shift, X, Y);
-        Exit;
-      end;
+    if FPassMouse.ToLayerUnderCursor then
+      PositionedLayer := FPassMouse.GetChildUnderCursor(X, Y)
+    else
+      PositionedLayer := ChildLayer;
 
-      Break;
+    if FPassMouse.ToChild and Assigned(ChildLayer) then
+    begin
+      ChildLayer.MouseDown(Button, Shift, X, Y);
+      if FPassMouse.CancelIfPassed then
+        Exit;
+    end;
+
+    if (PositionedLayer <> ChildLayer) and Assigned(PositionedLayer) then
+    begin
+      PositionedLayer.MouseDown(Button, Shift, X, Y);
+      if FPassMouse.CancelIfPassed then
+        Exit;
     end;
   end;
 
@@ -1483,7 +1540,31 @@ begin
 end;
 
 procedure TRubberbandLayer.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+var
+  PositionedLayer: TPositionedLayer;
 begin
+  if FPassMouse.Enabled then
+  begin
+    if FPassMouse.ToLayerUnderCursor then
+      PositionedLayer := FPassMouse.GetChildUnderCursor(X, Y)
+    else
+      PositionedLayer := ChildLayer;
+
+    if FPassMouse.ToChild and Assigned(ChildLayer) then
+    begin
+      ChildLayer.MouseUp(Button, Shift, X, Y);
+      if FPassMouse.CancelIfPassed then
+        Exit;
+    end;
+
+    if (PositionedLayer <> ChildLayer) and Assigned(PositionedLayer) then
+    begin
+      PositionedLayer.MouseUp(Button, Shift, X, Y);
+      if FPassMouse.CancelIfPassed then
+        Exit;
+    end;
+  end;
+
   FIsDragging := False;
   inherited;
 end;
@@ -1556,13 +1637,6 @@ begin
     Location := Value.Location;
     Scaled := Value.Scaled;
     AddNotification(FChildLayer);
-(*
-    if (lsMouseLeft in FChildLayer.LayerStates) then
-    begin
-      FChildLayer.
-      FIsDragging := True;
-    end;
-*)
   end;
 end;
 
