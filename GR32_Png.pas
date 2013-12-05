@@ -61,6 +61,7 @@ type
     property Progress: TProgressEvent read FProgressEvent write FProgressEvent;
   end;
 
+function IsValidPNG(const Filename: string): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -310,39 +311,63 @@ type
   TPalette24 = array of TRGB24;
 
 
+function IsValidPNG(const Filename: string): Boolean;
+begin
+  try
+    with TPortableNetworkGraphic32.Create do
+    try
+      LoadFromFile(Filename);
+      Result := True;
+    finally
+      Free;
+    end;
+  except
+    Result := False;
+  end;
+end;
+
+
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string);
 begin
   with TPortableNetworkGraphic32.Create do
-  begin
+  try
     LoadFromFile(Filename);
     AssignTo(Bitmap);
+  finally
+    Free;
   end;
 end;
 
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream);
 begin
   with TPortableNetworkGraphic32.Create do
-  begin
+  try
     LoadFromStream(Stream);
     AssignTo(Bitmap);
+  finally
+    Free;
   end;
 end;
 
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string);
 begin
   with TPortableNetworkGraphic32.Create do
-  begin
+  try
     Assign(Bitmap);
     SaveToFile(Filename);
+  finally
+    Free;
   end;
 end;
 
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream);
 begin
   with TPortableNetworkGraphic32.Create do
-  begin
+  try
     Assign(Bitmap);
     SaveToStream(Stream);
+  finally
+    Free;
   end;
 end;
 
