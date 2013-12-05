@@ -100,6 +100,8 @@ implementation
 uses
   Inifiles, Math, Types;
 
+{ TFmPngExplorer }
+
 procedure TFmPngExplorer.FormCreate(Sender: TObject);
 begin
   Application.OnHint := ShowHint;
@@ -486,6 +488,10 @@ begin
       DisplayGammaChunk(TChunkPngGamma(Node.Data))
     else if TObject(Node.Data) is TChunkPngTime then
       DisplayTimeChunk(TChunkPngTime(Node.Data))
+(*
+    else if TObject(Node.Data) is TChunkPngPhysicalScale then
+      DisplayPhysicalScaleChunk(TChunkPngPhysicalScale(Node.Data))
+*)
     else if TObject(Node.Data) is TCustomChunkPngText then
       DisplayTextChunk(TCustomChunkPngText(Node.Data))
     else if TObject(Node.Data) is TChunkPngStandardColorSpaceRGB then
@@ -502,6 +508,8 @@ begin
       DisplayPhysicalDimensionsChunk(TChunkPngPhysicalPixelDimensions(Node.Data))
     else if TObject(Node.Data) is TChunkPngSignificantBits then
       DisplaySignificantBitsChunk(TChunkPngSignificantBits(Node.Data))
+    else if TObject(Node.Data) is TChunkPngTransparency then
+      DisplayTransparencyChunk(TChunkPngTransparency(Node.Data))
     else
 
     // other unregistered chunks
@@ -535,28 +543,40 @@ begin
     // begin update
     Items.BeginUpdate;
 
-    // add PNG HeaderChunk chunk
+    // add PNG Header chunk
     Items.AddChildObject(Items[0], 'IHDR', FImageHeader);
 
-    // eventually add PaletteChunk chunk
+    // eventually add Palette chunk
     if Assigned(FPaletteChunk) then
       Items.AddChildObject(Items[0], 'PLTE', FPaletteChunk);
 
-    // eventually add PNG GammaChunk chunk
+    // eventually add PNG Gamma chunk
     if Assigned(FGammaChunk) then
       Items.AddChildObject(Items[0], 'gAMA', FGammaChunk);
 
-    // eventually add PNG TimeChunk chunk
+    // eventually add PNG Time chunk
     if Assigned(FTimeChunk) then
       Items.AddChildObject(Items[0], 'tIME', FTimeChunk);
+
+    // eventually add PNG Background chunk
+    if Assigned(FBackgroundChunk) then
+      Items.AddChildObject(Items[0], 'bKGD', FBackgroundChunk);
 
     // eventually add PNG Significant Bits chunk
     if Assigned(FSignificantBits) then
       Items.AddChildObject(Items[0], 'sBIT', FSignificantBits);
 
-    // eventually add PNG chroma chunk
+    // eventually add PNG Transparency chunk
+    if Assigned(FTransparencyChunk) then
+      Items.AddChildObject(Items[0], 'tRNS', FTransparencyChunk);
+
+    // eventually add PNG Chroma chunk
     if Assigned(FChromaChunk) then
       Items.AddChildObject(Items[0], 'cHRM', FChromaChunk);
+
+    // eventually add PNG Physical Pixel Dimensions chunk
+    if Assigned(FPhysicalDimensions) then
+      Items.AddChildObject(Items[0], 'pHYs', FPhysicalDimensions);
 
     // eventually add additional chunks
     for Index := 0 to FAdditionalChunkList.Count - 1 do
