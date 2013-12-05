@@ -568,7 +568,7 @@ type
   private
     FPaletteName : AnsiString;
     FData        : Pointer;
-    FCount       : Integer;
+    FCount       : Cardinal;
     FSampleDepth : Byte;
     function GetCount: Cardinal;
   protected
@@ -3701,7 +3701,8 @@ end;
 
 function TChunkPngSuggestedPalette.GetChunkSize: Cardinal;
 begin
-  Result := Length(FPaletteName) + 2 + (4 * (FSampleDepth shr 3) + 2) * Count;
+  Result := Cardinal(Length(FPaletteName)) + 2 +
+    (4 * (FSampleDepth shr 3) + 2) * Count;
 end;
 
 procedure TChunkPngSuggestedPalette.ReadFromStream(Stream: TStream;
@@ -3732,11 +3733,12 @@ begin
     // read sample depth
     Read(FSampleDepth, 1);
 
-    DataSize := (ChunkSize - Length(FPaletteName) - 2);
+    DataSize := Integer(ChunkSize) - Length(FPaletteName) - 2;
+    Assert(DataSize >= 0);
     Assert(DataSize mod 2 = 0);
     Assert(DataSize mod (4 * (FSampleDepth shr 3) + 2) = 0);
     FCount := DataSize div (4 * (FSampleDepth shr 3) + 2);
-    ReallocMem(FData, ChunkSize - Length(FPaletteName) - 2);
+    ReallocMem(FData, DataSize);
 
     if FSampleDepth = 8 then
       for Index := 0 to FCount - 1 do
