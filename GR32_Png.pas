@@ -561,7 +561,8 @@ begin
         raise EPngError.Create(RCStrUnsupportedFormat);
     end;
 
-    with DecoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+    with DecoderClass.Create(DataStream, FImageHeader, FGammaChunk,
+      FPaletteChunk, FTransparencyChunk.Transparency) do
     try
       if Assigned(FProgressEvent) then
         DecodeToScanline(Bitmap32, GR32ScanlineProgress)

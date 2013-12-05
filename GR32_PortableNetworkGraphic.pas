@@ -3945,9 +3945,9 @@ begin
 
    // eventually fill alpha table
    if FTransparency is TPngTransparencyFormat3 then
-    with TPngTransparencyFormat3(FTransparency) do
-     for Index := 0 to Count - 1
-      do FAlphaTable[Index] := Transparency[Index];
+     with TPngTransparencyFormat3(FTransparency) do
+       for Index := 0 to Count - 1 do
+         FAlphaTable[Index] := Transparency[Index];
   end
   else
   begin
