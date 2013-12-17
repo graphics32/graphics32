@@ -432,6 +432,7 @@ procedure TPortableNetworkGraphic32.DrawToBitmap32(Bitmap32: TCustomBitmap32);
 var
   DecoderClass: TCustomPngDecoderClass;
   DataStream: TMemoryStream;
+  Transparency: TCustomPngTransparency;
 begin
   DataStream := TMemoryStream.Create;
   try
@@ -561,8 +562,13 @@ begin
         raise EPngError.Create(RCStrUnsupportedFormat);
     end;
 
+    if Assigned(FTransparencyChunk) then
+      Transparency := FTransparencyChunk.Transparency
+    else
+      Transparency := nil;
+
     with DecoderClass.Create(DataStream, FImageHeader, FGammaChunk,
-      FPaletteChunk, FTransparencyChunk.Transparency) do
+      FPaletteChunk, Transparency) do
     try
       if Assigned(FProgressEvent) then
         DecodeToScanline(Bitmap32, GR32ScanlineProgress)
