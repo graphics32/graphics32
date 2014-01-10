@@ -1185,21 +1185,91 @@ end;
 
 { TPngNonInterlacedTrueColorAlpha8bitDecoder }
 
-procedure TPngNonInterlacedTrueColorAlpha8bitDecoder.TransferData(
-  Source: Pointer; Destination: PColor32);
+procedure ConvertColorNonInterlacedTrueColorAlpha8bit(Src: PRGB32;
+  Dst: PColor32Entry; Count: Integer; MappingTable: PByteArray);
+{$IFDEF PUREPASCAL} inline;
 var
   Index: Integer;
-  Src: PRGB32 absolute Source;
 begin
-  for Index := 0 to FHeader.Width - 1 do
+  for Index := 0 to Count - 1 do
   begin
-    PColor32Entry(Destination)^.R := FMappingTable[Src^.R];
-    PColor32Entry(Destination)^.G := FMappingTable[Src^.G];
-    PColor32Entry(Destination)^.B := FMappingTable[Src^.B];
-    PColor32Entry(Destination)^.A := Src^.A;
+    Dst^.R := MappingTable[Src^.R];
+    Dst^.G := MappingTable[Src^.G];
+    Dst^.B := MappingTable[Src^.B];
+    Dst^.A := Src^.A;
     Inc(Src);
-    Inc(Destination);
+    Inc(Dst);
   end;
+{$ELSE}
+asm
+{$IFDEF Target_x64}
+  LEA     RCX, RCX + 4 * R8
+  LEA     RDX, RDX + 4 * R8
+  NEG     R8
+  JNL     @Done
+
+@Start:
+  MOVZX   R10, [RCX + 4 * R8]
+  MOVZX   R10, [R9 + R10]
+  MOV     [RDX + 4 * R8 + $02], R10B
+
+  MOVZX   R10, [RCX + 4 * R8 + $01]
+  MOVZX   R10, [R9 + R10]
+  MOV     [RDX + 4 * R8 + $01], R10B
+
+  MOVZX   R10,[RCX + 4 * R8 + $02]
+  MOVZX   R10,[R9 + R10]
+  MOV     [RDX + 4 * R8], R10B
+
+  MOVZX   R10, [RCX + 4 * R8 + $03]
+  MOV     [RDX + 4 * R8 + $03], R10B
+
+  ADD     R8, 1
+  JS      @Start
+@Done:
+{$ENDIF}
+{$IFDEF Target_x86}
+  LEA     EAX, EAX + 4 * ECX
+  LEA     EDX, EDX + 4 * ECX
+  NEG     ECX
+  JNL     @Done
+
+  PUSH    EBX
+  PUSH    EDI
+
+  MOV     EDI, MappingTable;
+
+@Start:
+  MOVZX   EBX, [EAX + 4 * ECX]
+  MOVZX   EBX, [EDI + EBX]
+  MOV     [EDX + 4 * ECX + $02], BL
+
+  MOVZX   EBX, [EAX + 4 * ECX + $01]
+  MOVZX   EBX, [EDI + EBX]
+  MOV     [EDX + 4 * ECX + $01], BL
+
+  MOVZX   EBX,[EAX + 4 * ECX + $02]
+  MOVZX   EBX,[EDI + EBX]
+  MOV     [EDX + 4 * ECX], BL
+
+  MOVZX   EBX, [EAX + 4 * ECX + $03]
+  MOV     [EDX + 4 * ECX + $03], BL
+
+  ADD     ECX, 1
+  JS      @Start
+
+  POP     EDI
+  POP     EBX
+@Done:
+{$ENDIF}
+{$ENDIF}
+end;
+
+procedure TPngNonInterlacedTrueColorAlpha8bitDecoder.TransferData(
+  Source: Pointer; Destination: PColor32);
+begin
+  ConvertColorNonInterlacedTrueColorAlpha8bit(PRGB32(Source),
+    PColor32Entry(Destination), FHeader.Width, FMappingTable);
 end;
 
 
