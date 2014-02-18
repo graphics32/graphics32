@@ -243,6 +243,7 @@ const
 
   // Some semi-transparent color constants
   clTrWhite32             = TColor32($7FFFFFFF);
+  clTrGray32              = TColor32($7F7F7F7F);
   clTrBlack32             = TColor32($7F000000);
   clTrRed32               = TColor32($7FFF0000);
   clTrGreen32             = TColor32($7F00FF00);
@@ -273,6 +274,7 @@ function HSLtoRGB(H, S, L: Single): TColor32; overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
 function HSLtoRGB(H, S, L: Integer; A: Integer = $ff): TColor32; overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
+function HSVtoRGB(H, S, V: Single): TColor32;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
 // Palette conversion functions
@@ -1295,37 +1297,35 @@ const
   OneOverThree = 1 / 3;
 var
   M1, M2: Single;
-  R, G, B: Byte;
 
   function HueToColor(Hue: Single): Byte;
   var
     V: Double;
   begin
     Hue := Hue - Floor(Hue);
-    if 6 * Hue < 1 then V := M1 + (M2 - M1) * Hue * 6
-    else if 2 * Hue < 1 then V := M2
-    else if 3 * Hue < 2 then V := M1 + (M2 - M1) * (2 * OneOverThree - Hue) * 6
+    if 6 * Hue < 1 then
+      V := M1 + (M2 - M1) * Hue * 6
+    else if 2 * Hue < 1 then
+      V := M2
+    else if 3 * Hue < 2 then
+      V := M1 + (M2 - M1) * (2 * OneOverThree - Hue) * 6
     else V := M1;
     Result := Round($FF * V);
   end;
 
 begin
   if S = 0 then
-  begin
-    R := Round($FF * L);
-    G := R;
-    B := R;
-  end
+    Exit(Gray32(Round($FF * L)));
+
+  if L <= 0.5 then
+    M2 := L * (1 + S)
   else
-  begin
-    if L <= 0.5 then M2 := L * (1 + S)
-    else M2 := L + S - L * S;
-    M1 := 2 * L - M2;
-    R := HueToColor(H + OneOverThree);
-    G := HueToColor(H);
-    B := HueToColor(H - OneOverThree)
-  end;
-  Result := Color32(R, G, B);
+    M2 := L + S - L * S;
+  M1 := 2 * L - M2;
+  Result := Color32(
+    HueToColor(H + OneOverThree),
+    HueToColor(H),
+    HueToColor(H - OneOverThree));
 end;
 
 procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
@@ -1434,6 +1434,43 @@ begin
 
     if HL < 0 then HL := HL + $FF * 2;
     H := HL;
+  end;
+end;
+
+function HSVtoRGB(H, S, V: Single): TColor32;
+var
+  Tmp: TFloat;
+  Sel, Q, P: Integer;
+begin
+  V := 255 * V;
+  if S = 0 then
+    Exit(Gray32(Trunc(V)));
+
+  H := H - Floor(H);
+  Tmp := 6 * H - Floor(6 * H);
+
+  Sel := Trunc(6 * H);
+  if (Sel mod 2) = 0 then
+    Tmp := 1 - Tmp;
+
+  Q := Trunc(V * (1 - S));
+  P := Trunc(V * (1 - S * Tmp));
+
+  case Sel of
+    0:
+      Result := Color32(Trunc(V), P, Q);
+    1:
+      Result := Color32(P, Trunc(V), Q);
+    2:
+      Result := Color32(Q, Trunc(V), P);
+    3:
+      Result := Color32(Q, P, Trunc(V));
+    4:
+      Result := Color32(P, Q, Trunc(V));
+    5:
+      Result := Color32(Trunc(V), Q, P);
+  else
+    Result := Gray32(0);
   end;
 end;
 
