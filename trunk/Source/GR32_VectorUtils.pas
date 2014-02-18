@@ -124,8 +124,8 @@ function BuildDashedLine(const Points: TArrayOfFixedPoint;
 
 function ClipPolygon(const Points: TArrayOfFloatPoint; const ClipRect: TFloatRect): TArrayOfFloatPoint; overload;
 function ClipPolygon(const Points: TArrayOfFixedPoint; const ClipRect: TFixedRect): TArrayOfFixedPoint; overload;
-function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; overload;
-function CatPolygon(const P1, P2: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;
+function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; overload;
+function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;
 
 function CalculateCircleSteps(Radius: TFloat): Cardinal; {$IFDEF USEINLINING} inline; {$ENDIF}
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
@@ -369,7 +369,7 @@ begin
     end;
 
     // if max distance is greater than epsilon, recursively simplify
-    if DeltaMax >= Epsilon * Hypot(Points[FirstIndex].x - Points[LastIndex].x,
+    if DeltaMax >= Epsilon * GR32_Math.Hypot(Points[FirstIndex].x - Points[LastIndex].x,
       Points[FirstIndex].y - Points[LastIndex].y) then
     begin
       // Recursive call
@@ -2657,7 +2657,7 @@ ExitProc:
 {$ENDIF}
 end;
 
-function CatPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
+function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFloatPoint): TArrayOfArrayOfFloatPoint;
 var
   L1, L2: Integer;
 begin
@@ -2668,7 +2668,7 @@ begin
   Move(P2[0], Result[L1], L2 * SizeOf(TFloatPoint));
 end;
 
-function CatPolygon(const P1, P2: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;
+function CatPolyPolygon(const P1, P2: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload;
 var
   L1, L2: Integer;
 begin
