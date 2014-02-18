@@ -854,7 +854,7 @@ end;
 
 function TCustomLayer.DoHitTest(X, Y: Integer): Boolean;
 begin
-  Result := True;
+  Result := Visible;
 end;
 
 procedure TCustomLayer.DoPaint(Buffer: TBitmap32);
@@ -1097,7 +1097,8 @@ end;
 function TPositionedLayer.DoHitTest(X, Y: Integer): Boolean;
 begin
   with GetAdjustedRect(FLocation) do
-    Result := (X >= Left) and (X < Right) and (Y >= Top) and (Y < Bottom);
+    Result := (X >= Left) and (X < Right) and (Y >= Top) and (Y < Bottom) and
+      inherited DoHitTest(X, Y);
 end;
 
 procedure TPositionedLayer.DoSetLocation(const NewLocation: TFloatRect);
