@@ -268,6 +268,8 @@ function AlphaComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline
 function Intensity(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function InvertColor(Color32: TColor32): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure ModifyAlpha(var Color32: TColor32; NewAlpha: Byte); {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure ScaleAlpha(var Color32: TColor32; Scale: Single); {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Color space conversion
 function HSLtoRGB(H, S, L: Single): TColor32; overload;
@@ -275,6 +277,7 @@ procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
 function HSLtoRGB(H, S, L: Integer; A: Integer = $ff): TColor32; overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
 function HSVtoRGB(H, S, V: Single): TColor32;
+procedure RGBToHSV(Color: TColor32; out H, S, V: Single);
 
 {$IFNDEF PLATFORM_INDEPENDENT}
 // Palette conversion functions
@@ -1285,9 +1288,21 @@ end;
 
 function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
 begin
-  if NewAlpha < 0 then NewAlpha := 0
-  else if NewAlpha > $FF then NewAlpha := $FF;
+  if NewAlpha < 0 then
+    NewAlpha := 0
+  else if NewAlpha > $FF then
+    NewAlpha := $FF;
   Result := (Color32 and $00FFFFFF) or (TColor32(NewAlpha) shl 24);
+end;
+
+procedure ModifyAlpha(var Color32: TColor32; NewAlpha: Byte);
+begin
+  TColor32Entry(Color32).A := NewAlpha;
+end;
+
+procedure ScaleAlpha(var Color32: TColor32; Scale: Single);
+begin
+  TColor32Entry(Color32).A := Round(Scale * TColor32Entry(Color32).A);
 end;
 
 { Color space conversions }
@@ -1471,6 +1486,43 @@ begin
       Result := Color32(Trunc(V), Q, P);
   else
     Result := Gray32(0);
+  end;
+end;
+
+procedure RGBToHSV(Color: TColor32; out H, S, V: Single);
+var
+  Delta, Min, Max: Single;
+  R, G, B: Integer;
+const
+  COneSixth = 1 / 6;
+begin
+  R := RedComponent(Color);
+  G := GreenComponent(Color);
+  B := BlueComponent(Color);
+
+  Min := MinIntValue([R, G, B]);
+  Max := MaxIntValue([R, G, B]);
+  V := Max / 255;
+
+  Delta := V - Min;
+  if V = 0.0 then
+    S := 0
+  else
+    S := Delta / V;
+
+  if S = 0.0 then
+    H := 0
+  else
+  begin
+    if R = V then
+      H := COneSixth * (G - B) / Delta
+    else if G = V then
+      H := COneSixth * (2 + (B - R) / Delta)
+    else if B = V then
+      H := COneSixth + (4 + (R - G) / Delta);
+
+    if H < 0.0 then
+      H := H + 1;
   end;
 end;
 
