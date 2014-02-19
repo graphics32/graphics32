@@ -540,6 +540,10 @@ type
   public
     procedure SimpleGradient(const StartPoint: TFloatPoint; StartColor: TColor32;
       const EndPoint: TFloatPoint; EndColor: TColor32); virtual;
+    procedure SimpleGradientX(const StartX: TFloat; StartColor: TColor32;
+      const EndX: TFloat; EndColor: TColor32);
+    procedure SimpleGradientY(const StartY: TFloat; StartColor: TColor32;
+      const EndY: TFloat; EndColor: TColor32);
     procedure SetPoints(const StartPoint, EndPoint: TFloatPoint); virtual;
 
     property StartPoint: TFloatPoint read FStartPoint write SetStartPoint;
@@ -3402,6 +3406,24 @@ begin
     FGradient.StartColor := StartColor;
     FGradient.EndColor := EndColor;
   end;
+end;
+
+procedure TCustomLinearGradientPolygonFiller.SimpleGradientX(
+  const StartX: TFloat; StartColor: TColor32; const EndX: TFloat;
+  EndColor: TColor32);
+begin
+  SimpleGradient(
+    FloatPoint(StartX, 0), StartColor,
+    FloatPoint(EndX, 0), EndColor);
+end;
+
+procedure TCustomLinearGradientPolygonFiller.SimpleGradientY(
+  const StartY: TFloat; StartColor: TColor32; const EndY: TFloat;
+  EndColor: TColor32);
+begin
+  SimpleGradient(
+    FloatPoint(0, StartY), StartColor,
+    FloatPoint(0, EndY), EndColor);
 end;
 
 procedure TCustomLinearGradientPolygonFiller.SetEndPoint(
