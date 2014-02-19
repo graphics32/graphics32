@@ -150,6 +150,13 @@ type
     property FillLineEvent: TFillLineEvent read FFillLineEvent write FFillLineEvent;
   end;
 
+  { TInvertPolygonFiller }
+  TInvertPolygonFiller = class(TCustomPolygonFiller)
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  end;
+
   { TBitmapPolygonFiller }
   TBitmapPolygonFiller = class(TCustomPolygonFiller)
   private
@@ -1297,6 +1304,30 @@ end;
 function TCallbackPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   Result := FFillLineEvent;
+end;
+
+
+{ TInvertPolygonFiller }
+
+procedure TInvertPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  BlendMemEx: TBlendMemEx;
+begin
+  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  for X := DstX to DstX + Length - 1 do
+  begin
+    BlendMemEx(InvertColor(Dst^), Dst^, AlphaValues^ shr 1);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+function TInvertPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLineBlend;
 end;
 
 
