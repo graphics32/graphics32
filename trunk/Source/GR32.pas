@@ -1504,22 +1504,22 @@ begin
   Max := MaxIntValue([R, G, B]);
   V := Max / 255;
 
-  Delta := V - Min;
-  if V = 0.0 then
+  Delta := Max - Min;
+  if Max = 0 then
     S := 0
   else
-    S := Delta / V;
+    S := Delta / Max;
 
   if S = 0.0 then
     H := 0
   else
   begin
-    if R = V then
+    if R = Max then
       H := COneSixth * (G - B) / Delta
-    else if G = V then
+    else if G = Max then
       H := COneSixth * (2 + (B - R) / Delta)
-    else if B = V then
-      H := COneSixth + (4 + (R - G) / Delta);
+    else if B = Max then
+      H := COneSixth * (4 + (R - G) / Delta);
 
     if H < 0.0 then
       H := H + 1;
