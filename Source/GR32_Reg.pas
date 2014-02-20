@@ -59,13 +59,15 @@ uses
   {$ENDIF}
   GR32_Layers,
   GR32_RangeBars,
+  GR32_ColorPicker,
   GR32_Resamplers;
 
 { Registration }
 procedure Register;
 begin
   RegisterComponents('Graphics32', [TPaintBox32, TImage32, TBitmap32List,
-    TRangeBar, TGaugeBar, TImgView32{$IFDEF Windows}, TSyntheticImage32{$ENDIF}]);
+    TRangeBar, TGaugeBar, TImgView32{$IFDEF Windows}, TSyntheticImage32{$ENDIF},
+    TColorPickerHSV]);
   RegisterPropertyEditor(TypeInfo(TColor32), nil, '', TColor32Property);
   RegisterPropertyEditor(TypeInfo(TBitmap32), nil, '', TBitmap32Property);
   RegisterComponentEditor(TCustomImage32, TImage32Editor);
