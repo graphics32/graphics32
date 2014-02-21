@@ -166,6 +166,7 @@ type
 
     procedure PrepareSampling; override;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
+    function GetSampleFloatInTriangle(X, Y: TFloat): TColor32;
   end;
 
   TBilinearGradientSampler = class(TCustomSparsePointGradientSampler)
@@ -1495,6 +1496,38 @@ var
   U, V, W: TFloat;
 begin
   CalculateBarycentricCoordinates(X, Y, U, V, W);
+  Result := Linear3PointInterpolation(FColorPoints[0].Color32,
+    FColorPoints[1].Color32, FColorPoints[2].Color32, U, V, W);
+end;
+
+function TBarycentricGradientSampler.GetSampleFloatInTriangle(X,
+  Y: TFloat): TColor32;
+var
+  U, V, W: TFloat;
+begin
+  CalculateBarycentricCoordinates(X, Y, U, V, W);
+  if U < 0 then
+  begin
+    U := (V + W);
+    V := V / U;
+    W := W / U;
+    U := 0;
+  end;
+  if V < 0 then
+  begin
+    V := (U + W);
+    U := U / V;
+    W := W / V;
+    V := 0;
+  end;
+  if V < 0 then
+  begin
+    W := (U + V);
+    U := U / W;
+    V := V / W;
+    W := 0;
+  end;
+
   Result := Linear3PointInterpolation(FColorPoints[0].Color32,
     FColorPoints[1].Color32, FColorPoints[2].Color32, U, V, W);
 end;

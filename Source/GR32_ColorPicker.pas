@@ -735,7 +735,8 @@ var
   GradientFiller: TBarycentricGradientPolygonFiller;
   HueFiller: THueCirclePolygonFiller;
   InvertFiller: TInvertPolygonFiller;
-  Pos: TFloatPoint;
+  Pos, HPos: TFloatPoint;
+  Scale: Single;
 const
   CY = 1.7320508075688772935274463415059;
 begin
@@ -747,6 +748,29 @@ begin
     PolyPolygonFS(FBuffer, BuildPolyPolyline(PolyPolygon(Polygon), True, 16), HueFiller);
   finally
     HueFiller.Free;
+  end;
+
+  if vagHueLine in FVisualAid then
+  begin
+    SetLength(Polygon, 2);
+    Polygon[0] := FloatPoint(
+      FCenter.X - (FRadius - 16) * Cos(2 * Pi * FHue),
+      FCenter.Y - (FRadius - 16) * Sin(2 * Pi * FHue));
+    Polygon[1] := FloatPoint(
+      FCenter.X - FRadius * Cos(2 * Pi * FHue),
+      FCenter.Y - FRadius * Sin(2 * Pi * FHue));
+
+    if FVisualAidType = vatInvert then
+    begin
+      InvertFiller := TInvertPolygonFiller.Create;
+      try
+        PolylineFS(FBuffer, Polygon, InvertFiller, False, 2);
+      finally
+        InvertFiller.Free;
+      end;
+    end
+    else
+      PolylineFS(FBuffer, Polygon, clBlack32, False, 2);
   end;
 
   GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
@@ -774,40 +798,27 @@ begin
     GradientFiller.Free;
   end;
 
-  if vagHueLine in FVisualAid then
+  if vagSelection in FVisualAid then
   begin
-    SetLength(Polygon, 2);
-    Polygon[0] := FloatPoint(
-      FCenter.X - (FRadius - 16) * Cos(2 * Pi * FHue),
-      FCenter.Y - (FRadius - 16) * Sin(2 * Pi * FHue));
-    Polygon[1] := FloatPoint(
-      FCenter.X - FRadius * Cos(2 * Pi * FHue),
-      FCenter.Y - FRadius * Sin(2 * Pi * FHue));
+    Polygon := Circle(
+      Polygon[2].X + FValue * (Polygon[1].X + FSaturation * (Polygon[0].X - Polygon[1].X) - Polygon[2].X),
+      Polygon[2].Y + FValue * (Polygon[1].Y + FSaturation * (Polygon[0].Y - Polygon[1].Y) - Polygon[2].Y),
+      4, 12);
+
+    PolygonFS(FBuffer, Polygon, FSelectedColor);
 
     if FVisualAidType = vatInvert then
     begin
       InvertFiller := TInvertPolygonFiller.Create;
       try
-        PolylineFS(FBuffer, Polygon, InvertFiller, False, 2);
+        PolylineFS(FBuffer, Polygon, InvertFiller, True, 2);
       finally
         InvertFiller.Free;
       end;
     end
     else
-      PolylineFS(FBuffer, Polygon, clBlack32, False, 2);
+      PolylineFS(FBuffer, Polygon, clBlack32, True, 2);
   end;
-
-
-(*
-    if vaSelection in FVisualAid then
-    begin
-      Polygon := Circle(
-        FCenter.X - FSaturation * FRadius * Cos(2 * Pi * FHue),
-        FCenter.Y - FSaturation * FRadius * Sin(2 * Pi * FHue), 4, 8);
-      PolygonFS(FBuffer, Polygon, FSelectedColor);
-      PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5);
-    end;
-*)
 
   inherited;
 end;
@@ -917,8 +928,9 @@ begin
     Color[0] := HSVtoRGB(Hue, 1, 1);
     Color[1] := clWhite32;
     Color[2] := clBlack32;
+
     PrepareSampling;
-    FSelectedColor := GetSampleFloat(X, Y);
+    FSelectedColor := GetSampleFloatInTriangle(X, Y);
     RGBtoHSV(FSelectedColor, H, FSaturation, FValue);
     Invalidate;
   finally
