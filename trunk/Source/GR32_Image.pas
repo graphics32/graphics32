@@ -973,10 +973,11 @@ end;
 
 procedure TCustomPaintBox32.WMGetDlgCode(var Msg: {$IFDEF FPC}TLMessage{$ELSE}TWmGetDlgCode{$ENDIF});
 begin
-  with Msg do if pboWantArrowKeys in Options then
-    Result:= Result or DLGC_WANTARROWS
-  else
-    Result:= Result and not DLGC_WANTARROWS;
+  with Msg do
+    if pboWantArrowKeys in Options then
+      Result:= Result or DLGC_WANTARROWS
+    else
+      Result:= Result and not DLGC_WANTARROWS;
 end;
 
 procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMPaint{$ELSE}TMessage{$ENDIF});
