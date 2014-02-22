@@ -3,7 +3,8 @@ unit GR32_ColorPicker;
 interface
 
 uses
-  Classes, Controls, GR32, GR32_Image, GR32_Polygons, GR32_Containers;
+  Classes, Controls, GR32, GR32_Image, GR32_Polygons, GR32_Containers,
+  GR32_ColorGradients;
 
 type
   { THueCirclePolygonFiller }
@@ -44,6 +45,17 @@ type
     property Value: Single read FValue write FValue;
   end;
 
+  TBarycentricGradientPolygonFillerEx = class(TBarycentricGradientPolygonFiller)
+  private
+    FWebSafe: Boolean;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineWebSafe(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32);
+  public
+    property WebSafe: Boolean read FWebSafe write FWebSafe;
+  end;
+
   TVisualAidType = (vatSolid, vatInvert);
 
   { TCustomColorPicker }
@@ -56,8 +68,12 @@ type
     FSelectedColor: TColor32;
     FBufferValid: Boolean;
     FWebSafe: Boolean;
+    FVisualAidType: TVisualAidType;
+    FVisualAidColor: TColor32;
     procedure SetWebSafe(const Value: Boolean);
     procedure SetSelectedColor(const Value: TColor32);
+    procedure SetVisualAidType(const Value: TVisualAidType);
+    procedure SetVisualAidColor(const Value: TColor32);
   protected
     procedure SelectedColorChanged; virtual;
   public
@@ -67,6 +83,8 @@ type
     procedure Invalidate; override;
 
     property SelectedColor: TColor32 read FSelectedColor write SetSelectedColor;
+    property VisualAidType: TVisualAidType read FVisualAidType write SetVisualAidType;
+    property VisualAidColor: TColor32 read FVisualAidColor write SetVisualAidColor;
     property WebSafe: Boolean read FWebSafe write SetWebSafe;
   end;
 
@@ -123,7 +141,6 @@ type
     FSaturation: Single;
     FValue: Single;
     FVisualAid: TVisualAidGTK;
-    FVisualAidType: TVisualAidType;
     procedure PaintColorPicker;
     procedure PickHue(X, Y: Single);
     procedure PickSaturationValue(X, Y: Single);
@@ -131,7 +148,6 @@ type
     procedure SetSaturation(const Value: Single);
     procedure SetValue(const Value: Single);
     procedure SetVisualAid(const Value: TVisualAidGTK);
-    procedure SetVisualAidType(const Value: TVisualAidType);
   protected
     procedure Paint; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
@@ -149,7 +165,6 @@ type
     property Saturation: Single read FSaturation write SetSaturation;
     property Value: Single read FValue write SetValue;
     property VisualAid: TVisualAidGTK read FVisualAid write SetVisualAid;
-    property VisualAidType: TVisualAidType read FVisualAidType write SetVisualAidType;
   end;
 
   { TColorPickerHSV }
@@ -199,8 +214,7 @@ type
 implementation
 
 uses
-  Math, GR32_Backends, GR32_Math, GR32_ColorGradients, GR32_Blend,
-  GR32_VectorUtils;
+  Math, GR32_Backends, GR32_Math, GR32_Blend, GR32_VectorUtils;
 
 procedure RoundToWebSafe(var Color: TColor32);
 begin
@@ -211,98 +225,6 @@ begin
     B := ((B + $19) div $33) * $33;
   end;
 end;
-
-procedure DrawCircle(Center: TFloatPoint; Radius: TFloat; Bitmap: TBitmap32;
-  Value: Single);
-
-  function BranchlessClipPositive(Value: Single): Single;
-  begin
-    Result := (Value + Abs(Value)) * 0.5;
-  end;
-
-var
-  X, Y: Integer;
-  ScnLne: PColor32Array;
-  CombColor: TColor32;
-  XStart: Single;
-  YRange: array [0 .. 1] of Integer;
-  XRange: array [0 .. 1] of Integer;
-  SqrYDist: Single;
-  SqrDist, Dist: Single;
-  H, S, InvRadius: Single;
-  SqrRadMinusOne: Single;
-const
-  CTwoPiInv = 1 / (2 * Pi);
-begin
-  // calculate affected scanlines
-  YRange[0] := Round(Center.Y - Radius);
-  YRange[1] := Round(Center.Y + Radius);
-
-  with Bitmap do
-  begin
-    // check whether the bitmap needs to be drawn at all
-    if (YRange[0] >= Height) or (YRange[1] < 0) or
-      (Center.X - Radius >= Width) or (Center.X + Radius < 0) then
-      Exit;
-
-    // eventually limit range
-    if YRange[0] < 0 then
-      YRange[0] := 0;
-    if YRange[1] >= Height then
-      YRange[1] := Height - 1;
-
-    SqrRadMinusOne := Sqr(BranchlessClipPositive(Radius - 1));
-    InvRadius := 1 / Radius;
-
-    for Y := YRange[0] to YRange[1] do
-    begin
-      // calculate squared vertical distance
-      SqrYDist := Sqr(Y - Center.Y);
-
-      XStart := Sqr(Radius) - SqrYDist;
-      if XStart <= 0 then
-        Continue
-      else
-        XStart := Sqrt(XStart) - 0.5;
-
-      // calculate affected pixels within this scanline
-      XRange[0] := Round(Center.X - XStart);
-      XRange[1] := Round(Center.X + XStart);
-
-      // eventually limit range
-      if XRange[0] < 0 then
-        XRange[0] := 0;
-      if XRange[1] >= Width then
-        XRange[1] := Width - 1;
-
-      ScnLne := Scanline[Y];
-      for X := XRange[0] to XRange[1] do
-      begin
-        // calculate squared distance
-        SqrDist := Sqr(X - Center.X) + SqrYDist;
-
-        H := 0.5 + ArcTan2(Y - Center.Y, X - Center.X) * CTwoPiInv;
-        Dist := Sqrt(SqrDist);
-        S := Dist * InvRadius;
-        if S > 1 then
-          S := 1;
-
-        CombColor := HSVtoRGB(H, S, Value);
-(*
-        if FWebSafe then
-          RoundToWebSafe(CombColor);
-*)
-        if SqrDist >= SqrRadMinusOne then
-          ScaleAlpha(CombColor, (Radius - Dist));
-
-        BlendMem(CombColor, ScnLne[X]);
-        EMMS;
-      end;
-
-    end;
-  end;
-end;
-
 
 { THueCirclePolygonFiller }
 
@@ -439,6 +361,46 @@ begin
 end;
 
 
+{ TBarycentricGradientPolygonFillerEx }
+
+procedure TBarycentricGradientPolygonFillerEx.FillLineWebSafe(Dst: PColor32; DstX,
+  DstY, Length: Integer; AlphaValues: PColor32);
+var
+  X: Integer;
+  Color32: TColor32;
+  Temp, DotY1, DotY2: TFloat;
+  Barycentric: array [0..1] of TFloat;
+begin
+  Temp := DstY - FColorPoints[2].Point.Y;
+  DotY1 := FDists[0].X * Temp;
+  DotY2 := FDists[1].X * Temp;
+  for X := DstX to DstX + Length - 1 do
+  begin
+    Temp := (X - FColorPoints[2].Point.X);
+    Barycentric[0] := FDists[0].Y * Temp + DotY1;
+    Barycentric[1] := FDists[1].Y * Temp + DotY2;
+
+    Color32 := Linear3PointInterpolation(FColorPoints[0].Color32,
+      FColorPoints[1].Color32, FColorPoints[2].Color32,
+      Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
+    RoundToWebSafe(Color32);
+
+    BlendMemEx(Color32, Dst^, AlphaValues^);
+    EMMS;
+    Inc(Dst);
+    Inc(AlphaValues);
+  end;
+end;
+
+function TBarycentricGradientPolygonFillerEx.GetFillLine: TFillLineEvent;
+begin
+  if FWebSafe then
+    Result := FillLineWebSafe
+  else
+    Result := inherited;
+end;
+
+
 { TCustomColorPicker }
 
 constructor TCustomColorPicker.Create(AOwner: TComponent);
@@ -448,6 +410,7 @@ begin
   ControlStyle := ControlStyle + [csOpaque];
   FBuffer := TBitmap32.Create;
   FSelectedColor := clSalmon32;
+  FVisualAidColor := $AF000000;
 end;
 
 destructor TCustomColorPicker.Destroy;
@@ -476,6 +439,25 @@ begin
   end;
 end;
 
+procedure TCustomColorPicker.SetVisualAidColor(const Value: TColor32);
+begin
+  if FVisualAidColor <> Value then
+  begin
+    FVisualAidColor := Value;
+    if FVisualAidType = vatSolid then
+      Invalidate;
+  end;
+end;
+
+procedure TCustomColorPicker.SetVisualAidType(const Value: TVisualAidType);
+begin
+  if FVisualAidType <> Value then
+  begin
+    FVisualAidType := Value;
+    Invalidate;
+  end;
+end;
+
 procedure TCustomColorPicker.SetWebSafe(const Value: Boolean);
 begin
   if FWebSafe <> Value then
@@ -493,6 +475,7 @@ begin
   inherited Create(AOwner);
 
   FVisualAid := [vaHueLine, vaSaturationCircle, vaSelection];
+  FVisualAidType := vatInvert;
   RGBToHSV(FSelectedColor, FHue, FSaturation, FValue);
 
   { Setting a initial size here will cause the control to crash under LCL }
@@ -526,7 +509,10 @@ begin
     if vaSaturationCircle in FVisualAid then
     begin
       Polygon := Circle(FCenter, FSaturation * FRadius, -1);
-      PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5);
+      if FVisualAidType = vatInvert then
+        PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5)
+      else
+        PolylineFS(FBuffer, Polygon, FVisualAidColor, True, 1.5);
     end;
 
     if vaHueLine in FVisualAid then
@@ -536,7 +522,11 @@ begin
       Polygon[1] := FloatPoint(
         FCenter.X - FRadius * Cos(2 * Pi * FHue),
         FCenter.Y - FRadius * Sin(2 * Pi * FHue));
-      PolylineFS(FBuffer, Polygon, InvertFiller, False, 1.5);
+
+      if FVisualAidType = vatInvert then
+        PolylineFS(FBuffer, Polygon, InvertFiller, False, 1.5)
+      else
+        PolylineFS(FBuffer, Polygon, FVisualAidColor, False, 1.5);
     end;
 
     if vaSelection in FVisualAid then
@@ -545,29 +535,36 @@ begin
         FCenter.X - FSaturation * FRadius * Cos(2 * Pi * FHue),
         FCenter.Y - FSaturation * FRadius * Sin(2 * Pi * FHue), 4, 8);
       PolygonFS(FBuffer, Polygon, FSelectedColor);
-      PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5);
+
+      if FVisualAidType = vatInvert then
+        PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5)
+      else
+        PolylineFS(FBuffer, Polygon, FVisualAidColor, True, 1.5);
     end;
+
+    ValueRect := FloatRect(Width - 24, 8, Width - 8, Height - 8);
+    Polygon := Rectangle(ValueRect);
+
+    GradientFiller := TLinearGradientPolygonFiller.Create;
+    try
+      GradientFiller.SimpleGradientY(ValueRect.Top, clWhite32,
+        ValueRect.Bottom, clBlack32);
+      PolygonFS(FBuffer, Polygon, GradientFiller);
+    finally
+      GradientFiller.Free;
+    end;
+
+    SetLength(Polygon, 3);
+    Polygon[0] := FloatPoint(Width - 8, 8 + (1 - FValue) * (Height - 16));
+    Polygon[1] := FloatPoint(Polygon[0].X + 7, Polygon[0].Y - 4);
+    Polygon[2] := FloatPoint(Polygon[0].X + 7, Polygon[0].Y + 4);
+    if FVisualAidType = vatInvert then
+      PolygonFS(FBuffer, Polygon, InvertFiller)
+    else
+      PolygonFS(FBuffer, Polygon, VisualAidColor);
   finally
     InvertFiller.Free;
   end;
-
-  ValueRect := FloatRect(Width - 24, 8, Width - 8, Height - 8);
-  Polygon := Rectangle(ValueRect);
-
-  GradientFiller := TLinearGradientPolygonFiller.Create;
-  try
-    GradientFiller.SimpleGradientY(ValueRect.Top, clWhite32,
-      ValueRect.Bottom, clBlack32);
-    PolygonFS(FBuffer, Polygon, GradientFiller);
-  finally
-    GradientFiller.Free;
-  end;
-
-  SetLength(Polygon, 3);
-  Polygon[0] := FloatPoint(Width - 8, 8 + (1 - FValue) * (Height - 16));
-  Polygon[1] := FloatPoint(Polygon[0].X + 7, Polygon[0].Y - 4);
-  Polygon[2] := FloatPoint(Polygon[0].X + 7, Polygon[0].Y + 4);
-  PolygonFS(FBuffer, Polygon, clBlack32);
 
   inherited;
 end;
@@ -720,6 +717,7 @@ begin
 
   FSelectedColor := clSalmon32;
   FVisualAid := [vagHueLine, vagSelection];
+  FVisualAidType := vatSolid;
   RGBToHSV(FSelectedColor, FHue, FSaturation, FValue);
 
   { Setting a initial size here will cause the control to crash under LCL }
@@ -732,11 +730,10 @@ end;
 procedure TCustomColorPickerGTK.PaintColorPicker;
 var
   Polygon: TArrayOfFloatPoint;
-  GradientFiller: TBarycentricGradientPolygonFiller;
+  GradientFiller: TBarycentricGradientPolygonFillerEx;
   HueFiller: THueCirclePolygonFiller;
   InvertFiller: TInvertPolygonFiller;
-  Pos, HPos: TFloatPoint;
-  Scale: Single;
+  Pos: TFloatPoint;
 const
   CY = 1.7320508075688772935274463415059;
 begin
@@ -770,7 +767,7 @@ begin
       end;
     end
     else
-      PolylineFS(FBuffer, Polygon, clBlack32, False, 2);
+      PolylineFS(FBuffer, Polygon, FVisualAidColor, False, 2);
   end;
 
   GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
@@ -787,12 +784,13 @@ begin
     FCenter.X - (FRadius - 16) * Pos.X,
     FCenter.Y - (FRadius - 16) * Pos.Y);
 
-  GradientFiller := TBarycentricGradientPolygonFiller.Create;
+  GradientFiller := TBarycentricGradientPolygonFillerEx.Create;
   try
     GradientFiller.SetPoints(Polygon);
     GradientFiller.Color[0] := HSVtoRGB(Hue, 1, 1);
     GradientFiller.Color[1] := clWhite32;
     GradientFiller.Color[2] := clBlack32;
+    GradientFiller.WebSafe := FWebSafe;
     PolygonFS(FBuffer, Polygon, GradientFiller);
   finally
     GradientFiller.Free;
@@ -817,7 +815,7 @@ begin
       end;
     end
     else
-      PolylineFS(FBuffer, Polygon, clBlack32, True, 2);
+      PolylineFS(FBuffer, Polygon, FVisualAidColor, True, 2);
   end;
 
   inherited;
@@ -979,15 +977,6 @@ begin
   if FVisualAid <> Value then
   begin
     FVisualAid := Value;
-    Invalidate;
-  end;
-end;
-
-procedure TCustomColorPickerGTK.SetVisualAidType(const Value: TVisualAidType);
-begin
-  if FVisualAidType <> Value then
-  begin
-    FVisualAidType := Value;
     Invalidate;
   end;
 end;
