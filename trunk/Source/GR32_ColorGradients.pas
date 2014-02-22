@@ -439,6 +439,8 @@ type
     function GetFillLine: TFillLineEvent; override;
     procedure FillLine(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
+    class function Linear3PointInterpolation(A, B, C: TColor32;
+      WeightA, WeightB, WeightC: Single): TColor32;
   public
     procedure BeginRendering; override;
 
@@ -715,8 +717,8 @@ type
 { Linear interpolation of several (3, 4) colors }
 
 var
-  Linear3PointInterpolation: TLinear3PointInterpolation;
-  Linear4PointInterpolation: TLinear4PointInterpolation;
+  Linear3PointInterpolationProc: TLinear3PointInterpolation;
+  Linear4PointInterpolationProc: TLinear4PointInterpolation;
 
 function Linear3PointInterpolation_Pas(A, B, C: TColor32; WA, WB, WC: Single): TColor32;
 var
@@ -1496,7 +1498,7 @@ var
   U, V, W: TFloat;
 begin
   CalculateBarycentricCoordinates(X, Y, U, V, W);
-  Result := Linear3PointInterpolation(FColorPoints[0].Color32,
+  Result := Linear3PointInterpolationProc(FColorPoints[0].Color32,
     FColorPoints[1].Color32, FColorPoints[2].Color32, U, V, W);
 end;
 
@@ -1528,7 +1530,7 @@ begin
     W := 0;
   end;
 
-  Result := Linear3PointInterpolation(FColorPoints[0].Color32,
+  Result := Linear3PointInterpolationProc(FColorPoints[0].Color32,
     FColorPoints[1].Color32, FColorPoints[2].Color32, U, V, W);
 end;
 
@@ -1679,7 +1681,7 @@ begin
     v := (FK2Sign * Sqrt(Abs(t)) - k1) / FK2Value;
   u := (X - FBiasU - FDists[1].X * v) / (FDists[0].X + FDists[2].X * v);
 
-  Result := Linear4PointInterpolation(FColorPoints[0].Color32,
+  Result := Linear4PointInterpolationProc(FColorPoints[0].Color32,
     FColorPoints[1].Color32, FColorPoints[2].Color32, FColorPoints[3].Color32,
     (1 - u) * (1 - v), u * (1 - v), u * v, (1 - u) * v);
 end;
@@ -2005,7 +2007,7 @@ begin
     3:
       begin
         // optimization for 3-Point interpolation
-        Result := Linear3PointInterpolation(FColorPoints[0].Color32,
+        Result := Linear3PointInterpolationProc(FColorPoints[0].Color32,
           FColorPoints[1].Color32, FColorPoints[2].Color32, FDists[0] * DistSum,
           FDists[1] * DistSum, FDists[2] * DistSum);
         Exit;
@@ -2013,7 +2015,7 @@ begin
     4:
       begin
         // optimization for 4-Point interpolation
-        Result := Linear4PointInterpolation(FColorPoints[0].Color32,
+        Result := Linear4PointInterpolationProc(FColorPoints[0].Color32,
           FColorPoints[1].Color32, FColorPoints[2].Color32,
           FColorPoints[3].Color32, FDists[0] * DistSum, FDists[1] * DistSum,
           FDists[2] * DistSum, FDists[3] * DistSum);
@@ -2454,7 +2456,7 @@ begin
   FBarycentric[0].CalculateBarycentricCoordinates(X, Y, U, V, W);
   if (U >= 0) and (V >= 0) and (W >= 0) then
   begin
-    Result := Linear3PointInterpolation(FBarycentric[0].Color[0],
+    Result := Linear3PointInterpolationProc(FBarycentric[0].Color[0],
       FBarycentric[0].Color[1], FBarycentric[0].Color[2], U, V, W);
     Exit;
   end;
@@ -2469,7 +2471,7 @@ begin
     FBarycentric[Index].CalculateBarycentricCoordinates(X, Y, U, V, W);
     if (U >= 0) and (V >= 0) and (W >= 0) then
     begin
-      Result := Linear3PointInterpolation(FBarycentric[Index].Color[0],
+      Result := Linear3PointInterpolationProc(FBarycentric[Index].Color[0],
         FBarycentric[Index].Color[1], FBarycentric[Index].Color[2], U, V, W);
       Exit;
     end;
@@ -2484,7 +2486,7 @@ begin
   end;
 
   FBarycentric[MinIndex].CalculateBarycentricCoordinates(X, Y, U, V, W);
-  Result := Linear3PointInterpolation(FBarycentric[MinIndex].Color[0],
+  Result := Linear3PointInterpolationProc(FBarycentric[MinIndex].Color[0],
     FBarycentric[MinIndex].Color[1], FBarycentric[MinIndex].Color[2], U, V, W);
 end;
 
@@ -2986,7 +2988,7 @@ begin
     Barycentric[0] := FDists[0].Y * Temp + DotY1;
     Barycentric[1] := FDists[1].Y * Temp + DotY2;
 
-    Color32 := Linear3PointInterpolation(FColorPoints[0].Color32,
+    Color32 := Linear3PointInterpolationProc(FColorPoints[0].Color32,
       FColorPoints[1].Color32, FColorPoints[2].Color32,
       Barycentric[0], Barycentric[1], 1 - Barycentric[1] - Barycentric[0]);
 
@@ -3031,6 +3033,12 @@ begin
     Result := FColorPoints[Index].Point
   else
     raise Exception.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+end;
+
+class function TBarycentricGradientPolygonFiller.Linear3PointInterpolation(
+  A, B, C: TColor32; WeightA, WeightB, WeightC: Single): TColor32;
+begin
+  Result := Linear3PointInterpolationProc(A, B, C, WeightA, WeightB, WeightC);
 end;
 
 procedure TBarycentricGradientPolygonFiller.SetColor(Index: Integer;
@@ -3280,7 +3288,7 @@ begin
     FBarycentric[0].CalculateBarycentricCoordinates(X, DstY, U, V, W);
     if (U >= 0) and (V >= 0) and (W >= 0) then
     begin
-      Color32 := Linear3PointInterpolation(FBarycentric[0].Color[0],
+      Color32 := Linear3PointInterpolationProc(FBarycentric[0].Color[0],
         FBarycentric[0].Color[1], FBarycentric[0].Color[2], U, V, W);
       goto DrawColor;
     end;
@@ -3295,7 +3303,7 @@ begin
       FBarycentric[Index].CalculateBarycentricCoordinates(X, DstY, U, V, W);
       if (U >= 0) and (V >= 0) and (W >= 0) then
       begin
-        Color32 := Linear3PointInterpolation(FBarycentric[Index].Color[0],
+        Color32 := Linear3PointInterpolationProc(FBarycentric[Index].Color[0],
           FBarycentric[Index].Color[1], FBarycentric[Index].Color[2], U, V, W);
         goto DrawColor;
       end;
@@ -3310,7 +3318,7 @@ begin
     end;
 
     FBarycentric[MinIndex].CalculateBarycentricCoordinates(X, DstY, U, V, W);
-    Color32 := Linear3PointInterpolation(FBarycentric[MinIndex].Color[0],
+    Color32 := Linear3PointInterpolationProc(FBarycentric[MinIndex].Color[0],
       FBarycentric[MinIndex].Color[1], FBarycentric[MinIndex].Color[2], U, V, W);
 
 DrawColor:
@@ -4406,8 +4414,8 @@ const
 procedure RegisterBindings;
 begin
   BlendRegistry := NewRegistry('GR32_ColorGradients bindings');
-  BlendRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolation);
-  BlendRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolation);
+  BlendRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolationProc);
+  BlendRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc);
 
   // pure pascal
   BlendRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas);
