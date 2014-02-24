@@ -1073,10 +1073,6 @@ constructor TCustomColorPickerGTK.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
-  ControlStyle := ControlStyle + [csOpaque];
-  FBuffer := TBitmap32.Create;
-
-  FSelectedColor := clSalmon32;
   FVisualAid := [vagHueLine, vagSelection];
   FVisualAidType := vatSolid;
   RGBToHSV(FSelectedColor, FHue, FSaturation, FValue);
