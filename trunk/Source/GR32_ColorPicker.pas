@@ -177,7 +177,6 @@ type
   TCustomColorPickerHSV = class(TCustomColorPicker)
   type
     TVisualAid = set of (vaHueLine, vaSaturationCircle, vaSelection);
-//    TPreserveComponent = set of (pcHue, pcSaturation);
   private
     FCenter: TFloatPoint;
     FHue: Single;
@@ -795,8 +794,7 @@ procedure TCustomColorPickerHS.PickHue(X, Y: Single);
 begin
   FHue := EnsureRange(X / FBuffer.Width, 0, 1);
   FSaturation := EnsureRange(1 - Y / FBuffer.Height, 0, 1);
-  FSelectedColor := HSLtoRGB(FHue, FSaturation, 0.5);
-  Invalidate;
+  SelectedColor := HSLtoRGB(FHue, FSaturation, 0.5);
 end;
 
 procedure TCustomColorPickerHS.SelectedColorChanged;
@@ -1042,7 +1040,7 @@ begin
   if not (pcSaturation in FPreserveComponent) then
     FSaturation := S;
   if not (pcValue in FPreserveComponent) then
-    FValue := S;
+    FValue := V;
 
   FPreserveComponent := [];
 
@@ -1303,7 +1301,7 @@ begin
   if not (pcSaturation in FPreserveComponent) then
     FSaturation := S;
   if not (pcValue in FPreserveComponent) then
-    FValue := S;
+    FValue := V;
 
   FPreserveComponent := [];
 
