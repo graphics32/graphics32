@@ -132,6 +132,10 @@ function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat; St
 function BuildArc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFloatPoint; overload;
 function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat; Steps: Integer): TArrayOfFixedPoint; overload;
 function BuildArc(const P: TFixedPoint; StartAngle, EndAngle, Radius: TFloat): TArrayOfFixedPoint; overload;
+function Line(const P1, P2: TFloatPoint): TArrayOfFloatPoint; overload;
+function Line(const X1, Y1, X2, Y2: TFloat): TArrayOfFloatPoint; overload;
+function VertLine(const X, Y1, Y2: TFloat): TArrayOfFloatPoint;
+function HorzLine(const X1, Y, X2: TFloat): TArrayOfFloatPoint;
 function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload;
 function Circle(const X, Y, Radius: TFloat; Steps: Integer = 100): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const P, R: TFloatPoint; Steps: Integer = 100): TArrayOfFloatPoint; overload;
@@ -1326,6 +1330,34 @@ begin
   else
     Steps := Clamp(Round(Sqrt(Temp)), $100000);
   Result := BuildArc(P, StartAngle, EndAngle, Radius, Steps);
+end;
+
+function Line(const P1, P2: TFloatPoint): TArrayOfFloatPoint;
+begin
+  SetLength(Result, 2);
+  Result[0] := P1;
+  Result[1] := P2;
+end;
+
+function Line(const X1, Y1, X2, Y2: TFloat): TArrayOfFloatPoint; overload;
+begin
+  SetLength(Result, 2);
+  Result[0] := FloatPoint(X1, Y1);
+  Result[1] := FloatPoint(X2, Y2);
+end;
+
+function VertLine(const X, Y1, Y2: TFloat): TArrayOfFloatPoint;
+begin
+  SetLength(Result, 2);
+  Result[0] := FloatPoint(X, Y1);
+  Result[1] := FloatPoint(X, Y2);
+end;
+
+function HorzLine(const X1, Y, X2: TFloat): TArrayOfFloatPoint;
+begin
+  SetLength(Result, 2);
+  Result[0] := FloatPoint(X1, Y);
+  Result[1] := FloatPoint(X2, Y);
 end;
 
 function CalculateCircleSteps(Radius: TFloat): Cardinal;
