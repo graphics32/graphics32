@@ -1,4 +1,4 @@
-package GR32_RSXE1;
+package GR32_RSXE5;
 
 {$R *.res}
 {$ALIGN 8}
