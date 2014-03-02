@@ -43,9 +43,34 @@ uses
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
-  Classes, Controls, GR32, GR32_Polygons, GR32_Containers, GR32_ColorGradients;
+  Classes, Controls, Forms, GR32, GR32_Polygons, GR32_Containers,
+  GR32_ColorGradients;
 
 type
+  TScreenColorPickerForm = class(TCustomForm)
+  private
+    FSelectedColor: TColor32;
+    FOnColorSelected: TNotifyEvent;
+  protected
+    procedure CreateParams(var Params: TCreateParams); override;
+    procedure KeyDown(var Key: Word; Shift: TShiftState); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
+      Y: Integer); override;
+    procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+
+    property SelectedColor: TColor32 read FSelectedColor write FSelectedColor;
+    property OnColorSelected: TNotifyEvent read FOnColorSelected write FOnColorSelected;
+  published
+    property OnKeyUp;
+    property OnKeyPress;
+    property OnKeyDown;
+    property OnMouseMove;
+    property OnMouseUp;
+    property OnMouseDown;
+  end;
+
   { THueCirclePolygonFiller }
   THueCirclePolygonFiller = class(TCustomPolygonFiller)
   private
@@ -380,7 +405,7 @@ type
 implementation
 
 uses
-  Math, GR32_Backends, GR32_Math, GR32_Blend, GR32_VectorUtils;
+  Math, Graphics, GR32_Backends, GR32_Math, GR32_Blend, GR32_VectorUtils;
 
 procedure RoundToWebSafe(var Color: TColor32);
 begin
@@ -391,6 +416,69 @@ begin
     B := ((B + $19) div $33) * $33;
   end;
 end;
+
+function GetDesktopColor(const x, y: Integer): TColor32;
+var
+  c: TCanvas;
+begin
+  c := TCanvas.Create;
+  try
+    c.Handle := GetWindowDC(GetDesktopWindow);
+    Result := Color32(GetPixel(c.Handle, x, y));
+  finally
+    c.Free;
+  end;
+end;
+
+
+{ TScreenColorPickerForm }
+
+constructor TScreenColorPickerForm.Create(AOwner: TComponent);
+begin
+  inherited CreateNew(AOwner);
+  Align := alClient;
+  BorderIcons := [];
+  BorderStyle := bsNone;
+  Caption := 'Pick a color...';
+  FormStyle := fsStayOnTop;
+  Position := poDefault;
+  FSelectedColor := 0;
+end;
+
+procedure TScreenColorPickerForm.CreateParams(var Params: TCreateParams);
+begin
+  inherited CreateParams(Params);
+  Params.ExStyle := WS_EX_TRANSPARENT or WS_EX_TOPMOST;
+end;
+
+procedure TScreenColorPickerForm.KeyDown(var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_ESCAPE) then
+    ModalResult := mrCancel
+  else
+    inherited;
+end;
+
+procedure TScreenColorPickerForm.MouseDown(Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  if Button = mbLeft then
+  begin
+    FSelectedColor := GetDesktopColor(X, Y);
+    if Assigned(FOnColorSelected) then
+      FOnColorSelected(Self);
+    ModalResult := mrOk
+  end
+  else
+    inherited;
+end;
+
+procedure TScreenColorPickerForm.MouseMove(Shift: TShiftState; X, Y: Integer);
+begin
+  FSelectedColor := GetDesktopColor(X, Y);
+  inherited;
+end;
+
 
 { THueCirclePolygonFiller }
 
