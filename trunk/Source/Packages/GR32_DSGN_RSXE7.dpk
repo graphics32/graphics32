@@ -30,7 +30,7 @@ requires
   designide,
   vcl,
   rtl,
-  GR32_RSXE7a;
+  GR32_RSXE7;
 
 contains
   GR32_Dsgn_Bitmap in '..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
