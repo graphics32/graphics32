@@ -71,11 +71,11 @@
 {$ENDIF}
 
 {$IFDEF VER_LATEST} // adjust for newer version (always use latest version)
-  {$DEFINE COMPILERXE3}
+  {$DEFINE COMPILERXE7}
   {$IFNDEF BCB}
-    {$DEFINE DELPHIXE3}
+    {$DEFINE DELPHIXE7}
   {$ELSE}
-    {$DEFINE BCB16}
+    {$DEFINE BCBXE7}
   {$ENDIF}
   {$UNDEF VER_LATEST}
 {$ENDIF}
@@ -85,7 +85,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE7}
   {$ELSE}
-    {$DEFINE BCB21}
+    {$DEFINE BCBXE7}
   {$ENDIF}
 {$ENDIF}
 
@@ -94,7 +94,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE6}
   {$ELSE}
-    {$DEFINE BCB20}
+    {$DEFINE BCBXE6}
   {$ENDIF}
 {$ENDIF}
 
@@ -103,7 +103,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE5}
   {$ELSE}
-    {$DEFINE BCB19}
+    {$DEFINE BCBXE5}
   {$ENDIF}
 {$ENDIF}
 
@@ -112,7 +112,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE4}
   {$ELSE}
-    {$DEFINE BCB18}
+    {$DEFINE BCBXE4}
   {$ENDIF}
 {$ENDIF}
 
@@ -121,7 +121,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE3}
   {$ELSE}
-    {$DEFINE BCB17}
+    {$DEFINE BCBXE3}
   {$ENDIF}
 {$ENDIF}
 
@@ -130,7 +130,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE2}
   {$ELSE}
-    {$DEFINE BCB16}
+    {$DEFINE BCBXE2}
   {$ENDIF}
 {$ENDIF}
 
@@ -139,7 +139,7 @@
   {$IFNDEF BCB}
     {$DEFINE DELPHIXE1}
   {$ELSE}
-    {$DEFINE BCB15}
+    {$DEFINE BCBXE1}
   {$ENDIF}
 {$ENDIF}
 
