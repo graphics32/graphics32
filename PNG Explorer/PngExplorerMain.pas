@@ -20,6 +20,7 @@ type
     AcFileSaveAs: TFileSaveAs;
     ActionList: TActionList;
     CoolBar: TCoolBar;
+    ImgView32: TImgView32;
     ListView: TListView;
     MainMenu: TMainMenu;
     MIAbout: TMenuItem;
@@ -43,6 +44,7 @@ type
     PnMain: TPanel;
     PnPaintBox: TPanel;
     SpHorizontal: TSplitter;
+    SpVertical: TSplitter;
     StatusBar: TStatusBar;
     TbCopy: TToolButton;
     TbCut: TToolButton;
@@ -53,8 +55,6 @@ type
     ToolBar: TToolBar;
     ToolbarImages: TImageList;
     TreeView: TTreeView;
-    SpVertical: TSplitter;
-    ImgView32: TImgView32;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -201,6 +201,7 @@ begin
     ListViewData(['Compression Method', IntToStr(CompressionMethod)]);
     ListViewData(['Filter Method', 'Adaptive']);
     ListViewData(['Interlace Method', InterlaceMethodToString(InterlaceMethod)]);
+    ListViewData(['HasPallette', BoolToStr(HasPalette)]);
 
     ListView.BringToFront;
   end;

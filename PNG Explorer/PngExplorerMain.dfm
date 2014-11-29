@@ -44,7 +44,7 @@ object FmPngExplorer: TFmPngExplorer
     TabOrder = 1
     object SpVertical: TSplitter
       Left = 0
-      Top = 149
+      Top = 173
       Width = 484
       Height = 3
       Cursor = crVSplit
@@ -54,7 +54,7 @@ object FmPngExplorer: TFmPngExplorer
       Left = 0
       Top = 0
       Width = 484
-      Height = 149
+      Height = 173
       Align = alClient
       Columns = <>
       ReadOnly = True
@@ -63,9 +63,9 @@ object FmPngExplorer: TFmPngExplorer
     end
     object PnPaintBox: TPanel
       Left = 0
-      Top = 152
+      Top = 176
       Width = 484
-      Height = 288
+      Height = 264
       Align = alBottom
       BevelInner = bvLowered
       BevelOuter = bvNone
@@ -75,7 +75,7 @@ object FmPngExplorer: TFmPngExplorer
         Left = 1
         Top = 1
         Width = 482
-        Height = 286
+        Height = 262
         Align = alClient
         Bitmap.DrawMode = dmBlend
         Bitmap.ResamplerClassName = 'TNearestResampler'

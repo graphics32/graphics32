@@ -363,6 +363,8 @@ type
   protected
     class function GetChunkSize: Cardinal; virtual; abstract;
   public
+    constructor Create(BitDepth: Integer = 8); virtual; abstract;
+
     procedure ReadFromStream(Stream: TStream); virtual; abstract;
     procedure WriteToStream(Stream: TStream); virtual; abstract;
 
@@ -376,6 +378,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
+    constructor Create(BitDepth: Integer = 8); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -391,6 +395,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
+    constructor Create(BitDepth: Integer = 8); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -407,6 +413,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
+    constructor Create(BitDepth: Integer = 8); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -424,6 +432,8 @@ type
     class function GetChunkSize: Cardinal; override;
     procedure AssignTo(Dest: TPersistent); override;
   public
+    constructor Create(BitDepth: Integer = 8); override;
+
     procedure ReadFromStream(Stream: TStream); override;
     procedure WriteToStream(Stream: TStream); override;
 
@@ -3164,6 +3174,12 @@ end;
 
 { TPngSignificantBitsFormat0 }
 
+constructor TPngSignificantBitsFormat0.Create(BitDepth: Integer = 8);
+begin
+  inherited;
+  FGrayBits := BitDepth;
+end;
+
 procedure TPngSignificantBitsFormat0.AssignTo(Dest: TPersistent);
 begin
   if Dest is TPngSignificantBitsFormat0 then
@@ -3192,6 +3208,14 @@ end;
 
 
 { TPngSignificantBitsFormat23 }
+
+constructor TPngSignificantBitsFormat23.Create(BitDepth: Integer = 8);
+begin
+  inherited;
+  FRedBits := BitDepth;
+  FGreenBits := BitDepth;
+  FBlueBits := BitDepth;
+end;
 
 procedure TPngSignificantBitsFormat23.AssignTo(Dest: TPersistent);
 begin
@@ -3228,6 +3252,13 @@ end;
 
 { TPngSignificantBitsFormat4 }
 
+constructor TPngSignificantBitsFormat4.Create(BitDepth: Integer = 8);
+begin
+  inherited;
+  FGrayBits := BitDepth;
+  FAlphaBits := BitDepth;
+end;
+
 procedure TPngSignificantBitsFormat4.AssignTo(Dest: TPersistent);
 begin
   if Dest is TPngSignificantBitsFormat4 then
@@ -3236,6 +3267,9 @@ begin
       FGrayBits  := Self.FGrayBits;
       FAlphaBits := Self.FAlphaBits;
     end
+  else if Dest is TPngSignificantBitsFormat0 then
+    with TPngSignificantBitsFormat0(Dest) do
+      FGrayBits  := Self.FGrayBits
   else
     inherited;
 end;
@@ -3260,6 +3294,15 @@ end;
 
 { TPngSignificantBitsFormat6 }
 
+constructor TPngSignificantBitsFormat6.Create(BitDepth: Integer = 8);
+begin
+  inherited;
+  FRedBits := BitDepth;
+  FGreenBits := BitDepth;
+  FBlueBits := BitDepth;
+  FAlphaBits := BitDepth;
+end;
+
 procedure TPngSignificantBitsFormat6.AssignTo(Dest: TPersistent);
 begin
   if Dest is TPngSignificantBitsFormat6 then
@@ -3269,6 +3312,13 @@ begin
       FBlueBits  := Self.FBlueBits;
       FGreenBits := Self.FGreenBits;
       FAlphaBits := Self.FAlphaBits;
+    end
+  else if Dest is TPngSignificantBitsFormat23 then
+    with TPngSignificantBitsFormat23(Dest) do
+    begin
+      FRedBits   := Self.FRedBits;
+      FBlueBits  := Self.FBlueBits;
+      FGreenBits := Self.FGreenBits;
     end
   else
     inherited;
@@ -3315,14 +3365,14 @@ begin
 
   case Header.ColorType of
     ctGrayscale:
-      FSignificantBits := TPngSignificantBitsFormat0.Create;
+      FSignificantBits := TPngSignificantBitsFormat0.Create(Header.BitDepth);
     ctTrueColor,
     ctIndexedColor:
-      FSignificantBits := TPngSignificantBitsFormat23.Create;
+      FSignificantBits := TPngSignificantBitsFormat23.Create(Header.BitDepth);
     ctGrayscaleAlpha:
-      FSignificantBits := TPngSignificantBitsFormat4.Create;
+      FSignificantBits := TPngSignificantBitsFormat4.Create(Header.BitDepth);
     ctTrueColorAlpha:
-      FSignificantBits := TPngSignificantBitsFormat6.Create;
+      FSignificantBits := TPngSignificantBitsFormat6.Create(Header.BitDepth);
   end;
 end;
 
@@ -3353,7 +3403,7 @@ begin
     ctGrayscale:
       if not (FSignificantBits is TPngSignificantBitsFormat0) then
       begin
-        FSignificantBits := TPngSignificantBitsFormat0.Create;
+        FSignificantBits := TPngSignificantBitsFormat0.Create(FHeader.BitDepth);
         if Assigned(OldSignificantBits) then
         begin
           FSignificantBits.Assign(OldSignificantBits);
@@ -3363,7 +3413,7 @@ begin
     ctTrueColor, ctIndexedColor:
       if not (FSignificantBits is TPngSignificantBitsFormat23) then
       begin
-        FSignificantBits := TPngSignificantBitsFormat23.Create;
+        FSignificantBits := TPngSignificantBitsFormat23.Create(FHeader.BitDepth);
         if Assigned(OldSignificantBits) then
         begin
           FSignificantBits.Assign(OldSignificantBits);
@@ -3373,7 +3423,7 @@ begin
     ctTrueColorAlpha:
       if not (FSignificantBits is TPngSignificantBitsFormat4) then
       begin
-        FSignificantBits := TPngSignificantBitsFormat4.Create;
+        FSignificantBits := TPngSignificantBitsFormat4.Create(FHeader.BitDepth);
         if Assigned(OldSignificantBits) then
         begin
           FSignificantBits.Assign(OldSignificantBits);
@@ -3383,7 +3433,7 @@ begin
     ctGrayscaleAlpha :
       if not (FSignificantBits is TPngSignificantBitsFormat6) then
       begin
-        FSignificantBits := TPngSignificantBitsFormat6.Create;
+        FSignificantBits := TPngSignificantBitsFormat6.Create(FHeader.BitDepth);
         if Assigned(OldSignificantBits) then
         begin
           FSignificantBits.Assign(OldSignificantBits);

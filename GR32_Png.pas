@@ -883,6 +883,7 @@ var
   Index: Integer;
   CurrentRow: Integer;
   PixelByteSize: Integer;
+  AdaptiveFilterMethod: TAdaptiveFilterMethod;
   UsedFilters: TAvailableAdaptiveFilterMethods;
 begin
   // initialize variables
@@ -898,11 +899,15 @@ begin
     if FStream.Read(FRowBuffer[CurrentRow][0], FRowByteSize) <> FRowByteSize then
       raise EPngError.Create(RCStrDataIncomplete);
 
+    // get active filter method
+    AdaptiveFilterMethod := TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]);
+
     // filter current row
-    DecodeFilterRow(TAdaptiveFilterMethod(FRowBuffer[CurrentRow]^[0]), FRowBuffer[CurrentRow], FRowBuffer[1 - CurrentRow], FBytesPerRow, PixelByteSize);
+    DecodeFilterRow(AdaptiveFilterMethod, FRowBuffer[CurrentRow],
+      FRowBuffer[1 - CurrentRow], FBytesPerRow, PixelByteSize);
 
     // log used row pre filters
-    case TAdaptiveFilterMethod(FRowBuffer[CurrentRow]) of
+    case AdaptiveFilterMethod of
       afmSub:
         UsedFilters := UsedFilters + [aafmSub];
       afmUp:
