@@ -140,9 +140,11 @@ function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer): TAr
 function Circle(const P: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Circle(const X, Y, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Circle(const X, Y, Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
-function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Pie(const X, Y, Radius: TFloat; const Angle: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
+function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Pie(const X, Y, Radius: TFloat; const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Pie(const X, Y, Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Pie(const X, Y, Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const P, R: TFloatPoint; Steps: Integer): TArrayOfFloatPoint; overload;
 function Ellipse(const P, R: TFloatPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -165,15 +167,25 @@ function PolygonBounds(const Points: TArrayOfFixedPoint): TFixedRect; overload;
 function PolypolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect; overload;
 function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect; overload;
 
-function ScalePolygon(const Src: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint; overload;
-function ScalePolygon(const Src: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfFixedPoint; overload;
-function ScalePolyPolygon(const Src: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint; overload;
-function ScalePolyPolygon(const Src: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfArrayOfFixedPoint;  overload;
+function ScalePolygon(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint; overload;
+function ScalePolygon(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfFixedPoint; overload;
+function ScalePolyPolygon(const Points: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint; overload;
+function ScalePolyPolygon(const Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfArrayOfFixedPoint;  overload;
+
+procedure ScalePolygonInplace(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat); overload;
+procedure ScalePolygonInplace(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed); overload;
+procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint; ScaleX, ScaleY: TFloat); overload;
+procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint; ScaleX, ScaleY: TFixed);  overload;
 
 function TranslatePolygon(const Points: TArrayOfFloatPoint; OffsetX, OffsetY: TFloat): TArrayOfFloatPoint; overload;
 function TranslatePolygon(const Points: TArrayOfFixedPoint; Offsetx, OffsetY: TFixed): TArrayOfFixedPoint; overload;
 function TranslatePolyPolygon(const Points: TArrayOfArrayOfFloatPoint; OffsetX, OffsetY: TFloat): TArrayOfArrayOfFloatPoint; overload;
 function TranslatePolyPolygon(const Points: TArrayOfArrayOfFixedPoint; OffsetX, OffsetY: TFixed): TArrayOfArrayOfFixedPoint; overload;
+
+procedure TranslatePolygonInplace(const Points: TArrayOfFloatPoint; OffsetX, OffsetY: TFloat); overload;
+procedure TranslatePolygonInplace(const Points: TArrayOfFixedPoint; Offsetx, OffsetY: TFixed); overload;
+procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint; OffsetX, OffsetY: TFloat); overload;
+procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint; OffsetX, OffsetY: TFixed); overload;
 
 function TransformPolygon(const Points: TArrayOfFloatPoint; Transformation: TTransformation): TArrayOfFloatPoint; overload;
 function TransformPolygon(const Points: TArrayOfFixedPoint; Transformation: TTransformation): TArrayOfFixedPoint; overload;
@@ -1396,19 +1408,20 @@ begin
 
   // calculate complex offset
   GR32_Math.SinCos(M, C.Y, C.X);
-  D := C;
+  D.X := Radius * C.X;
+  D.Y := Radius * C.Y;
 
   // second item
-  Result[1].X := Radius * D.X + P.X;
-  Result[1].Y := Radius * D.Y + P.Y;
+  Result[1].X := D.X + P.X;
+  Result[1].Y := D.Y + P.Y;
 
   // other items
   for I := 2 to Steps - 1 do
   begin
     D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
 
-    Result[I].X := Radius * D.X + P.X;
-    Result[I].Y := Radius * D.Y + P.Y;
+    Result[I].X := D.X + P.X;
+    Result[I].Y := D.Y + P.Y;
   end;
 end;
 
@@ -1428,55 +1441,61 @@ begin
 end;
 
 function Pie(const P: TFloatPoint; const Radius: TFloat;
-  const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint;
+  const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint;
 var
   I: Integer;
-  M: TFloat;
   C, D: TFloatPoint;
 begin
   SetLength(Result, Steps + 2);
-  M := Angle / Steps;
 
-  Result[0].X := P.X;
-  Result[0].Y := P.Y;
+  Result[0] := P;
 
-  // first item
-  Result[1].X := Radius + P.X;
-  Result[1].Y := P.Y;
+  // calculate initial position
+  GR32_Math.SinCos(Offset, Radius, D.Y, D.X);
+  Result[1].X := D.X + P.X;
+  Result[1].Y := D.Y + P.Y;
 
   // calculate complex offset
-  GR32_Math.SinCos(M, C.Y, C.X);
-  D := C;
-
-  // second item
-  Result[2].X := Radius * D.X + P.X;
-  Result[2].Y := Radius * D.Y + P.Y;
+  GR32_Math.SinCos(Angle / Steps, C.Y, C.X);
 
   // other items
-  for I := 3 to Steps + 1 do
+  for I := 2 to Steps + 1 do
   begin
     D := FloatPoint(D.X * C.X - D.Y * C.Y, D.Y * C.X + D.X * C.Y);
 
-    Result[I].X := Radius * D.X + P.X;
-    Result[I].Y := Radius * D.Y + P.Y;
+    Result[I].X := D.X + P.X;
+    Result[I].Y := D.Y + P.Y;
   end;
 end;
 
 function Pie(const P: TFloatPoint; const Radius: TFloat;
-  const Angle: TFloat): TArrayOfFloatPoint;
+  const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint;
 begin
-  Result := Pie(P, Radius, Angle, CalculateCircleSteps(Radius));
+  Result := Pie(P, Radius, Angle, Offset, CalculateCircleSteps(Radius));
 end;
 
-function Pie(const X, Y, Radius: TFloat; const Angle: TFloat): TArrayOfFloatPoint;
+function Pie(const P: TFloatPoint; const Radius: TFloat;
+  const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint;
 begin
-  Result := Pie(FloatPoint(X, Y), Radius, Angle, CalculateCircleSteps(Radius));
+  Result := Pie(P, Radius, Angle, 0, Steps);
+end;
+
+function Pie(const X, Y, Radius: TFloat; const Angle: TFloat;
+  const Offset: TFloat = 0): TArrayOfFloatPoint;
+begin
+  Result := Pie(FloatPoint(X, Y), Radius, Angle, Offset, CalculateCircleSteps(Radius));
+end;
+
+function Pie(const X, Y, Radius: TFloat; const Angle, Offset: TFloat;
+  Steps: Integer): TArrayOfFloatPoint;
+begin
+  Result := Pie(FloatPoint(X, Y), Radius, Angle, Offset, Steps);
 end;
 
 function Pie(const X, Y, Radius: TFloat; const Angle: TFloat;
   Steps: Integer): TArrayOfFloatPoint;
 begin
-  Result := Pie(FloatPoint(X, Y), Radius, Angle, Steps);
+  Result := Pie(FloatPoint(X, Y), Radius, Angle, 0, Steps);
 end;
 
 function Ellipse(const P, R: TFloatPoint; Steps: Integer): TArrayOfFloatPoint;
@@ -1646,8 +1665,8 @@ begin
       dx := dx * f;
       dy := dy * f;
     end;
-
     Result[I].X := dy;
+
     Result[I].Y := -dx;
 
     Inc(I);
@@ -2862,57 +2881,102 @@ end;
 
 
 // Scales to a polygon (TArrayOfFloatPoint)
-function ScalePolygon(const Src: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint;
+function ScalePolygon(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat): TArrayOfFloatPoint;
 var
   I, L: Integer;
 begin
-  L := Length(Src);
+  L := Length(Points);
   SetLength(Result, L);
   for I := 0 to L - 1 do
   begin
-    Result[I].X := Src[I].X * ScaleX;
-    Result[I].Y := Src[I].Y * ScaleY;
+    Result[I].X := Points[I].X * ScaleX;
+    Result[I].Y := Points[I].Y * ScaleY;
   end;
 end;
 
 // Scales to a polygon (TArrayOfFixedPoint)
-function ScalePolygon(const Src: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfFixedPoint;
+function ScalePolygon(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed): TArrayOfFixedPoint;
 var
   I, L: Integer;
 begin
-  L := Length(Src);
+  L := Length(Points);
   SetLength(Result, L);
   for I := 0 to L - 1 do
   begin
-    Result[I].X := FixedMul(Src[I].X, ScaleX);
-    Result[I].Y := FixedMul(Src[I].Y, ScaleY);
+    Result[I].X := FixedMul(Points[I].X, ScaleX);
+    Result[I].Y := FixedMul(Points[I].Y, ScaleY);
   end;
 end;
 
 // Scales all sub polygons in a complex polygon (TArrayOfArrayOfFloatPoint)
-function ScalePolyPolygon(const Src: TArrayOfArrayOfFloatPoint;
+function ScalePolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   ScaleX, ScaleY: TFloat): TArrayOfArrayOfFloatPoint;
 var
   I, L: Integer;
 begin
-  L := Length(Src);
+  L := Length(Points);
   SetLength(Result, L);
   for I := 0 to L - 1 do
-    Result[I] := ScalePolygon(Src[I], ScaleX, ScaleY);
+    Result[I] := ScalePolygon(Points[I], ScaleX, ScaleY);
 end;
 
 // Scales all sub polygons in a complex polygon (TArrayOfArrayOfFixedPoint)
-function ScalePolyPolygon(const Src: TArrayOfArrayOfFixedPoint;
+function ScalePolyPolygon(const Points: TArrayOfArrayOfFixedPoint;
   ScaleX, ScaleY: TFixed): TArrayOfArrayOfFixedPoint;
 var
   I, L: Integer;
 begin
-  L := Length(Src);
+  L := Length(Points);
   SetLength(Result, L);
   for I := 0 to L - 1 do
-    Result[I] := ScalePolygon(Src[I], ScaleX, ScaleY);
+    Result[I] := ScalePolygon(Points[I], ScaleX, ScaleY);
 end;
 
+// Scales a polygon (TArrayOfFloatPoint)
+procedure ScalePolygonInplace(const Points: TArrayOfFloatPoint; ScaleX, ScaleY: TFloat);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+  begin
+    Points[I].X := Points[I].X * ScaleX;
+    Points[I].Y := Points[I].Y * ScaleY;
+  end;
+end;
+
+// Scales a polygon (TArrayOfFixedPoint)
+procedure ScalePolygonInplace(const Points: TArrayOfFixedPoint; ScaleX, ScaleY: TFixed);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+  begin
+    Points[I].X := FixedMul(Points[I].X, ScaleX);
+    Points[I].Y := FixedMul(Points[I].Y, ScaleY);
+  end;
+end;
+
+// Scales all sub polygons in a complex polygon (TArrayOfArrayOfFloatPoint)
+procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint;
+  ScaleX, ScaleY: TFloat);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+    ScalePolygonInplace(Points[I], ScaleX, ScaleY);
+end;
+
+// Scales all sub polygons in a complex polygon (TArrayOfArrayOfFixedPoint)
+procedure ScalePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint;
+  ScaleX, ScaleY: TFixed);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+    ScalePolygonInplace(Points[I], ScaleX, ScaleY);
+end;
+
+// Translates a polygon (TArrayOfFloatPoint)
 function TranslatePolygon(const Points: TArrayOfFloatPoint;
   OffsetX, OffsetY: TFloat): TArrayOfFloatPoint;
 var
@@ -2927,6 +2991,7 @@ begin
   end;
 end;
 
+// Translates a polygon (TArrayOfFixedPoint)
 function TranslatePolygon(const Points: TArrayOfFixedPoint;
   OffsetX, OffsetY: TFixed): TArrayOfFixedPoint;
 var
@@ -2963,6 +3028,50 @@ begin
   SetLength(Result, L);
   for I := 0 to L - 1 do
     Result[I] := TranslatePolygon(Points[I], OffsetX, OffsetY);
+end;
+
+procedure TranslatePolygonInplace(const Points: TArrayOfFloatPoint;
+  OffsetX, OffsetY: TFloat);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+  begin
+    Points[I].X := Points[I].X + OffsetX;
+    Points[I].Y := Points[I].Y + OffsetY;
+  end;
+end;
+
+procedure TranslatePolygonInplace(const Points: TArrayOfFixedPoint;
+  OffsetX, OffsetY: TFixed);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+  begin
+    Points[I].X := Points[I].X + OffsetX;
+    Points[I].Y := Points[I].Y + OffsetY;
+  end;
+end;
+
+// Translates all sub polygons in a complex polygon (TArrayOfArrayOfFloatPoint)
+procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFloatPoint; OffsetX,
+  OffsetY: TFloat);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+    TranslatePolygonInplace(Points[I], OffsetX, OffsetY);
+end;
+
+// Translates all sub polygons in a complex polygon (TArrayOfArrayOfFixedPoint)
+procedure TranslatePolyPolygonInplace(const Points: TArrayOfArrayOfFixedPoint;
+  OffsetX, OffsetY: TFixed);
+var
+  I: Integer;
+begin
+  for I := 0 to Length(Points) - 1 do
+    TranslatePolygonInplace(Points[I], OffsetX, OffsetY);
 end;
 
 // Applies transformation to a polygon (TArrayOfFloatPoint)
