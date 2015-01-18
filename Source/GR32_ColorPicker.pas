@@ -40,6 +40,9 @@ interface
 uses
 {$IFDEF FPC}
   LCLIntf, LCLType, LMessages, Types,
+  {$IFDEF MSWINDOWS}
+  Windows,
+  {$ENDIF}
 {$ELSE}
   Windows, Messages,
 {$ENDIF}
@@ -287,7 +290,9 @@ type
     property Enabled;
     property Hue;
     property MarkerType;
+{$IFNDEF FPC}
     property ParentBackground;
+{$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -327,7 +332,9 @@ type
     property DragKind;
     property Enabled;
     property Hue;
+{$IFNDEF FPC}
     property ParentBackground;
+{$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -369,7 +376,9 @@ type
     property DragKind;
     property Enabled;
     property Hue;
+{$IFNDEF FPC}
     property ParentBackground;
+{$ENDIF}
     property ParentColor;
     property ParentShowHint;
     property PopupMenu;
@@ -417,6 +426,7 @@ begin
   end;
 end;
 
+{$IFDEF MSWINDOWS}
 function GetDesktopColor(const x, y: Integer): TColor32;
 var
   c: TCanvas;
@@ -429,6 +439,7 @@ begin
     c.Free;
   end;
 end;
+{$ENDIF}
 
 
 { TScreenColorPickerForm }
@@ -464,9 +475,11 @@ procedure TScreenColorPickerForm.MouseDown(Button: TMouseButton;
 begin
   if Button = mbLeft then
   begin
+    {$IFDEF MSWINDOWS}
     FSelectedColor := GetDesktopColor(X, Y);
     if Assigned(FOnColorSelected) then
       FOnColorSelected(Self);
+    {$ENDIF}
     ModalResult := mrOk
   end
   else

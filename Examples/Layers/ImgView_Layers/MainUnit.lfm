@@ -13,7 +13,7 @@ object MainForm: TMainForm
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '1.0.1.3'
+  LCLVersion = '1.2.6.0'
   object ImgView: TImgView32
     Left = 0
     Height = 556
@@ -33,6 +33,7 @@ object MainForm: TMainForm
     OverSize = 0
     TabOrder = 0
     TabStop = True
+    OnKeyDown = ImgViewKeyDown
     OnMouseDown = ImgViewMouseDown
     OnMouseWheelDown = ImgViewMouseWheelDown
     OnMouseWheelUp = ImgViewMouseWheelUp
@@ -60,9 +61,9 @@ object MainForm: TMainForm
       Visible = False
       object LblScale: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 24
-        Width = 30
+        Width = 29
         Caption = 'Scale:'
         ParentColor = False
       end
@@ -137,9 +138,9 @@ object MainForm: TMainForm
       Visible = False
       object LblOpacity: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 24
-        Width = 42
+        Width = 41
         Caption = 'Opacity:'
         ParentColor = False
       end
@@ -214,7 +215,7 @@ object MainForm: TMainForm
     object PnlMagnification: TPanel
       Left = 0
       Height = 168
-      Top = 298
+      Top = 408
       Width = 131
       Align = alTop
       ClientHeight = 168
@@ -223,25 +224,25 @@ object MainForm: TMainForm
       Visible = False
       object LblMagifierOpacity: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 24
-        Width = 42
+        Width = 41
         Caption = 'Opacity:'
         ParentColor = False
       end
       object LblMagnification: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 64
-        Width = 68
+        Width = 67
         Caption = 'Magnification:'
         ParentColor = False
       end
       object LblRotation: TLabel
         Left = 8
-        Height = 14
+        Height = 13
         Top = 104
-        Width = 46
+        Width = 45
         Caption = 'Rotation:'
         ParentColor = False
       end
@@ -274,7 +275,7 @@ object MainForm: TMainForm
         ShowHandleGrip = True
         Style = rbsMac
         Position = 255
-        OnChange = MagnChange
+        OnChange = PropertyChange
       end
       object GbrMagnMagnification: TGaugeBar
         Left = 16
@@ -289,7 +290,7 @@ object MainForm: TMainForm
         ShowHandleGrip = True
         Style = rbsMac
         Position = 10
-        OnChange = MagnChange
+        OnChange = PropertyChange
       end
       object GbrMagnRotation: TGaugeBar
         Left = 16
@@ -305,7 +306,7 @@ object MainForm: TMainForm
         ShowHandleGrip = True
         Style = rbsMac
         Position = 0
-        OnChange = MagnChange
+        OnChange = PropertyChange
       end
       object CbxMagnInterpolate: TCheckBox
         Left = 16
@@ -313,8 +314,83 @@ object MainForm: TMainForm
         Top = 144
         Width = 80
         Caption = 'Interpolated'
-        OnClick = MagnChange
+        OnClick = PropertyChange
         TabOrder = 4
+      end
+    end
+    object PnlButtonMockup: TPanel
+      Left = 0
+      Height = 110
+      Top = 298
+      Width = 131
+      Align = alTop
+      ClientHeight = 110
+      ClientWidth = 131
+      TabOrder = 3
+      Visible = False
+      object LblBorderRadius: TLabel
+        Left = 8
+        Height = 13
+        Top = 24
+        Width = 71
+        Caption = 'Border Radius:'
+        ParentColor = False
+      end
+      object LblBorderWidth: TLabel
+        Left = 8
+        Height = 13
+        Top = 64
+        Width = 67
+        Caption = 'Border Width:'
+        ParentColor = False
+      end
+      object PnlButtonMockupHeader: TPanel
+        Left = 1
+        Height = 16
+        Top = 1
+        Width = 129
+        Align = alTop
+        BevelOuter = bvNone
+        Caption = 'Button (All) Properties'
+        Color = clBtnShadow
+        Font.Color = clWindow
+        Font.Height = -11
+        Font.Name = 'Tahoma'
+        ParentColor = False
+        ParentFont = False
+        TabOrder = 0
+      end
+      object GbrBorderRadius: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 40
+        Width = 105
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 20
+        Min = 1
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 5
+        OnChange = PropertyChange
+      end
+      object GbrBorderWidth: TGaugeBar
+        Left = 16
+        Height = 12
+        Top = 80
+        Width = 105
+        Color = clScrollBar
+        Backgnd = bgPattern
+        HandleSize = 16
+        Max = 30
+        Min = 10
+        ShowArrows = False
+        ShowHandleGrip = True
+        Style = rbsMac
+        Position = 20
+        OnChange = PropertyChange
       end
     end
   end
@@ -356,6 +432,10 @@ object MainForm: TMainForm
           Caption = 'Simple Drawing Layer'
           OnClick = MnuSimpleDrawingClick
         end
+        object MnuButtonMockup: TMenuItem
+          Caption = 'Button Mockup'
+          OnClick = MnuButtonMockupClick
+        end
         object MnuMagnifier: TMenuItem
           Caption = 'Magnifier'
           OnClick = MnuMagnifierClick
@@ -375,26 +455,26 @@ object MainForm: TMainForm
       object MnuBringFront: TMenuItem
         Tag = 1
         Caption = 'Bring to Front'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object MnuSendBack: TMenuItem
         Tag = 2
         Caption = 'Send to Back'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object N1: TMenuItem
         Caption = '-'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object MnuLevelUp: TMenuItem
         Tag = 3
         Caption = 'Up One Level'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object MnuLevelDown: TMenuItem
         Tag = 4
         Caption = 'Down one Level'
-        OnClick = mnReorder
+        OnClick = MnuReorderClick
       end
       object N2: TMenuItem
         Caption = '-'

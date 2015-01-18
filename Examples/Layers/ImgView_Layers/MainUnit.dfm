@@ -14,7 +14,6 @@ object MainForm: TMainForm
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnKeyDown = ImgViewKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object ImgView: TImgView32
