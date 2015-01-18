@@ -39,12 +39,15 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, LResources, {$ELSE} Windows, {$ENDIF}
+  {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
   ExtDlgs, StdCtrls, Buttons, GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
   GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
 type
+
+  { TMainForm }
+
   TMainForm = class(TForm)
     BtnLayerRescale: TButton;
     BtnLayerResetScale: TButton;

@@ -222,7 +222,7 @@ end;
 
 
 procedure InternalTextToPath(DC: HDC; Path: TCustomPath; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal);
+  const Text: WideString; Flags: Cardinal = 0);
 const
   CHAR_CR = 10;
   CHAR_NL = 13;
@@ -509,7 +509,7 @@ begin
 end;
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal); overload;
+  const Text: WideString; Flags: Cardinal = 0);
 var
   DC: HDC;
   SavedFont: HFONT;
@@ -525,7 +525,7 @@ begin
 end;
 
 function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal): TArrayOfArrayOfFloatPoint; overload;
+  const Text: WideString; Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
 var
   Path: TFlattenedPath;
 begin
