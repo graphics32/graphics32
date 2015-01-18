@@ -54,6 +54,8 @@ function GetUnitNormal(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
 function GetUnitVector(const Pt1, Pt2: TFloatPoint): TFloatPoint; overload;
 function OffsetPoint(const Pt: TFloatPoint; DeltaX, DeltaY: TFloat): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt, Delta: TFloatPoint): TFloatPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetRect(const Rct: TFloatRect; const DeltaX, DeltaY: TFloat): TFloatRect; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetRect(const Rct: TFloatRect; const Delta: TFloatPoint): TFloatRect; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFloatPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint; overload;
 function PointInPolygon(const Pt: TFloatPoint; const Pts: TArrayOfFloatPoint): Boolean; overload;
@@ -76,6 +78,10 @@ function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFixed): TFixedPoint
 function OffsetPoint(const Pt: TFixedPoint; DeltaX, DeltaY: TFloat): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TFixedPoint; const Delta: TFixedPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function OffsetPoint(const Pt: TFixedPoint; const Delta: TFloatPoint): TFixedPoint; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetRect(const Rct: TFixedRect; const DeltaX, DeltaY: TFixed): TFixedRect; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetRect(const Rct: TFixedRect; const DeltaX, DeltaY: TFloat): TFixedRect; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetRect(const Rct: TFixedRect; const Delta: TFixedPoint): TFixedRect; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
+function OffsetRect(const Rct: TFixedRect; const Delta: TFloatPoint): TFixedRect; overload;{$IFDEF USEINLINING} inline; {$ENDIF}
 function Shorten(const Pts: TArrayOfFixedPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFixedPoint; overload;
 function PointInPolygon(const Pt: TFixedPoint; const Pts: array of TFixedPoint): Boolean; overload;
@@ -128,7 +134,7 @@ end;
 
 function Distance(const V1, V2: TFloatPoint): TFloat;
 begin
-  Result := Hypot(V2.X - V1.X, V2.Y - V1.Y);
+  Result := GR32_Math.Hypot(V2.X - V1.X, V2.Y - V1.Y);
 end;
 
 function SqrDistance(const V1, V2: TFloatPoint): TFloat;
@@ -210,6 +216,19 @@ begin
   Result.X := Pt.X + Delta.X;
   Result.Y := Pt.Y + Delta.Y;
 end;
+
+function OffsetRect(const Rct: TFloatRect; const DeltaX, DeltaY: TFloat): TFloatRect;
+begin
+  Result.TopLeft := OffsetPoint(Rct.TopLeft, DeltaX, DeltaY);
+  Result.BottomRight := OffsetPoint(Rct.BottomRight, DeltaX, DeltaY);
+end;
+
+function OffsetRect(const Rct: TFloatRect; const Delta: TFloatPoint): TFloatRect;
+begin
+  Result.TopLeft := OffsetPoint(Rct.TopLeft, Delta);
+  Result.BottomRight := OffsetPoint(Rct.BottomRight, Delta);
+end;
+
 
 function Shorten(const Pts: TArrayOfFloatPoint;
   Delta: TFloat; LinePos: TLinePos): TArrayOfFloatPoint;
@@ -323,7 +342,7 @@ end;
 function PerpendicularDistance(const P, P1, P2: TFloatPoint): TFloat;
 begin
   Result := Abs((P.x - P2.x) * (P1.y - P2.y) - (P.y - P2.y) * (P1.x - P2.x)) /
-    Hypot(P1.x - P2.x, P1.y - P2.y);
+    GR32_Math.Hypot(P1.x - P2.x, P1.y - P2.y);
 end;
 
 
@@ -444,6 +463,38 @@ function OffsetPoint(const Pt: TFixedPoint; const Delta: TFloatPoint): TFixedPoi
 begin
   Result.X := Pt.X + Fixed(Delta.X);
   Result.Y := Pt.Y + Fixed(Delta.Y);
+end;
+
+function OffsetRect(const Rct: TFixedRect; const DeltaX, DeltaY: TFixed): TFixedRect;
+begin
+  Result.TopLeft := OffsetPoint(Rct.TopLeft, DeltaX, DeltaY);
+  Result.BottomRight := OffsetPoint(Rct.BottomRight, DeltaX, DeltaY);
+end;
+
+function OffsetRect(const Rct: TFixedRect; const Delta: TFixedPoint): TFixedRect;
+begin
+  Result.TopLeft := OffsetPoint(Rct.TopLeft, Delta);
+  Result.BottomRight := OffsetPoint(Rct.BottomRight, Delta);
+end;
+
+function OffsetRect(const Rct: TFixedRect; const DeltaX, DeltaY: TFloat): TFixedRect;
+var
+  DX, DY: TFixed;
+begin
+  DX := Fixed(DeltaX);
+  DY := Fixed(DeltaY);
+  Result.TopLeft := OffsetPoint(Rct.TopLeft, DX, DY);
+  Result.BottomRight := OffsetPoint(Rct.BottomRight, DX, DY);
+end;
+
+function OffsetRect(const Rct: TFixedRect; const Delta: TFloatPoint): TFixedRect;
+var
+  DX, DY: TFixed;
+begin
+  DX := Fixed(Delta.X);
+  DY := Fixed(Delta.Y);
+  Result.TopLeft := OffsetPoint(Rct.TopLeft, DX, DY);
+  Result.BottomRight := OffsetPoint(Rct.BottomRight, DX, DY);
 end;
 
 function Shorten(const Pts: TArrayOfFixedPoint;
