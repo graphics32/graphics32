@@ -14,6 +14,7 @@ object MainForm: TMainForm
   OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnKeyDown = ImgViewKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object ImgView: TImgView32
@@ -24,7 +25,6 @@ object MainForm: TMainForm
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
-    RepaintMode = rmOptimizer
     Scale = 1.000000000000000000
     ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
@@ -34,6 +34,7 @@ object MainForm: TMainForm
     OverSize = 0
     TabOrder = 0
     TabStop = True
+    OnKeyDown = ImgViewKeyDown
     OnMouseDown = ImgViewMouseDown
     OnMouseWheelDown = ImgViewMouseWheelDown
     OnMouseWheelUp = ImgViewMouseWheelUp
@@ -497,6 +498,18 @@ object MainForm: TMainForm
     end
   end
   object OpenPictureDialog: TOpenPictureDialog
+    Filter = 
+      'All (*.tga;*.dds;*.dib;*.tif;*.gif;*.png;*.png;*.gif;*.png;*.jpg' +
+      ';*.jpeg;*.bmp;*.tif;*.tiff;*.ico;*.emf;*.wmf)|*.tga;*.dds;*.dib;' +
+      '*.tif;*.gif;*.png;*.png;*.gif;*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.t' +
+      'iff;*.ico;*.emf;*.wmf|Targa (*.tga)|*.tga|Microsoft DirectDraw S' +
+      'urface (*.dds)|*.dds|Device Independent Bitmap (*.dib)|*.dib|All' +
+      ' graphics (*.tif;*.gif;*.png)|*.tif;*.gif;*.png|PNG graphics fro' +
+      'm DevExpress (*.png)|*.png|GIF Image (*.gif)|*.gif|Portable Netw' +
+      'ork Graphics (*.png)|*.png|JPEG Image File (*.jpg)|*.jpg|JPEG Im' +
+      'age File (*.jpeg)|*.jpeg|Bitmaps (*.bmp)|*.bmp|TIFF Images (*.ti' +
+      'f)|*.tif|TIFF Images (*.tiff)|*.tiff|Icons (*.ico)|*.ico|Enhance' +
+      'd Metafiles (*.emf)|*.emf|Metafiles (*.wmf)|*.wmf'
     Left = 64
     Top = 56
   end

@@ -39,33 +39,38 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
+  {$IFDEF FPC}LCLIntf, LResources, {$ELSE} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
   ExtDlgs, StdCtrls, Buttons, GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
   GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
 type
   TMainForm = class(TForm)
-    CbxOptRedraw: TCheckBox;
-    CbxCropped: TCheckBox;
-    CbxImageInterpolate: TCheckBox;
-    ImgView: TImgView32;
-    CbxLayerInterpolate: TCheckBox;
-    GbrLayerOpacity: TGaugeBar;
     BtnLayerRescale: TButton;
     BtnLayerResetScale: TButton;
+    CbxCropped: TCheckBox;
+    CbxImageInterpolate: TCheckBox;
+    CbxLayerInterpolate: TCheckBox;
+    CbxMagnInterpolate: TCheckBox;
+    CbxOptRedraw: TCheckBox;
+    GbrBorderRadius: TGaugeBar;
+    GbrBorderWidth: TGaugeBar;
+    GbrLayerOpacity: TGaugeBar;
+    GbrMagnMagnification: TGaugeBar;
+    GbrMagnOpacity: TGaugeBar;
+    GbrMagnRotation: TGaugeBar;
+    ImgView: TImgView32;
+    LblBorderRadius: TLabel;
+    LblBorderWidth: TLabel;
     LblMagifierOpacity: TLabel;
     LblMagnification: TLabel;
     LblOpacity: TLabel;
     LblRotation: TLabel;
     LblScale: TLabel;
-    CbxMagnInterpolate: TCheckBox;
-    GbrMagnMagnification: TGaugeBar;
-    GbrMagnOpacity: TGaugeBar;
-    GbrMagnRotation: TGaugeBar;
     MainMenu: TMainMenu;
     MimArrange: TMenuItem;
     MnuBringFront: TMenuItem;
+    MnuButtonMockup: TMenuItem;
     MnuDelete: TMenuItem;
     MnuFile: TMenuItem;
     MnuFileNew: TMenuItem;
@@ -94,38 +99,33 @@ type
     N5: TMenuItem;
     N6: TMenuItem;
     OpenPictureDialog: TOpenPictureDialog;
-    PnlImageHeader: TPanel;
-    PnlBitmapLayerHeader: TPanel;
-    PnlMagnificationHeader: TPanel;
     PnlBitmapLayer: TPanel;
+    PnlBitmapLayerHeader: TPanel;
+    PnlButtonMockup: TPanel;
+    PnlButtonMockupHeader: TPanel;
+    PnlControl: TPanel;
     PnlImage: TPanel;
+    PnlImageHeader: TPanel;
     PnlMagnification: TPanel;
+    PnlMagnificationHeader: TPanel;
     SaveDialog: TSaveDialog;
     ScaleCombo: TComboBox;
-    PnlControl: TPanel;
-    MnuButtonMockup: TMenuItem;
-    PnlButtonMockup: TPanel;
-    LblBorderRadius: TLabel;
-    PnlButtonMockupHeader: TPanel;
-    GbrBorderRadius: TGaugeBar;
-    LblBorderWidth: TLabel;
-    GbrBorderWidth: TGaugeBar;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure CbxOptRedrawClick(Sender: TObject);
-    procedure CbxCroppedClick(Sender: TObject);
-    procedure CbxImageInterpolateClick(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
     procedure BtnLayerResetScaleClick(Sender: TObject);
+    procedure CbxCroppedClick(Sender: TObject);
+    procedure CbxImageInterpolateClick(Sender: TObject);
     procedure CbxLayerInterpolateClick(Sender: TObject);
+    procedure CbxOptRedrawClick(Sender: TObject);
+    procedure ImgViewKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
     procedure ImgViewMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
     procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
     procedure LayerOpacityChanged(Sender: TObject);
-    procedure PropertyChange(Sender: TObject);
     procedure MimArrangeClick(Sender: TObject);
-    procedure MnuReorderClick(Sender: TObject);
+    procedure MnuButtonMockupClick(Sender: TObject);
     procedure MnuDeleteClick(Sender: TObject);
     procedure MnuFileClick(Sender: TObject);
     procedure MnuFileNewClick(Sender: TObject);
@@ -138,13 +138,14 @@ type
     procedure MnuNewBitmapLayerClick(Sender: TObject);
     procedure MnuNewBitmapRGBAClick(Sender: TObject);
     procedure MnuPrintClick(Sender: TObject);
+    procedure MnuReorderClick(Sender: TObject);
     procedure MnuRotate180Click(Sender: TObject);
     procedure MnuRotate270Click(Sender: TObject);
     procedure MnuRotate90Click(Sender: TObject);
     procedure MnuScaledClick(Sender: TObject);
     procedure MnuSimpleDrawingClick(Sender: TObject);
+    procedure PropertyChange(Sender: TObject);
     procedure ScaleComboChange(Sender: TObject);
-    procedure MnuButtonMockupClick(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -188,7 +189,7 @@ uses
 {$ENDIF}
   NewImageUnit, RGBALoaderUnit, Math, Printers, GR32_LowLevel, GR32_Paths,
   GR32_VectorUtils, GR32_Backends, GR32_Text_VCL, GR32_ColorGradients,
-  GR32_Polygons;
+  GR32_Polygons, GR32_Geometry;
 
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
@@ -207,6 +208,7 @@ begin
   end;
 
   ImgView.RepaintMode := rmOptimizer;
+  ImgView.Options := ImgView.Options + [pboWantArrowKeys];
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -769,6 +771,40 @@ procedure TMainForm.MnuScaledClick(Sender: TObject);
 begin
   if Selection <> nil then Selection.Scaled := not Selection.Scaled;
   RBLayer.Scaled := Selection.Scaled;
+end;
+
+procedure TMainForm.ImgViewKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+var
+  Location: TFloatRect;
+begin
+  if Assigned(FSelection) then
+    case Key of
+      VK_LEFT:
+        begin
+          Location := OffsetRect(FSelection.Location, -1, 0);
+          FSelection.Location := Location;
+          RBLayer.Location := Location;
+        end;
+      VK_RIGHT:
+        begin
+          Location := OffsetRect(FSelection.Location, 1, 0);
+          FSelection.Location := Location;
+          RBLayer.Location := Location;
+        end;
+      VK_UP:
+        begin
+          Location := OffsetRect(FSelection.Location, 0, -1);
+          FSelection.Location := Location;
+          RBLayer.Location := Location;
+        end;
+      VK_DOWN:
+        begin
+          Location := OffsetRect(FSelection.Location, 0, 1);
+          FSelection.Location := Location;
+          RBLayer.Location := Location;
+        end;
+    end;
 end;
 
 procedure TMainForm.ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
