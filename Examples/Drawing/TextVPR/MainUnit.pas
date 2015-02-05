@@ -44,40 +44,40 @@ uses
 
 type
   TMainForm = class(TForm)
-    FontDialog: TFontDialog;
-    GbxRendering: TGroupBox;
-    Img: TImage32;
-    LblGamma: TLabel;
-    LblGammaValue: TLabel;
-    PnlControl: TPanel;
-    PnlImage: TPanel;
-    TbrGamma: TTrackBar;
     BtnExit: TButton;
-    RgxMethod: TRadioGroup;
-    StatusBar: TStatusBar;
-    GBxFont: TGroupBox;
     BtnSelectFont: TButton;
-    LblFontInfo: TLabel;
-    GbxLayout: TGroupBox;
-    RgpHorzAlign: TRadioGroup;
-    RgpVerticalAlign: TRadioGroup;
-    PnlZoom: TPanel;
-    PaintBox32: TPaintBox32;
     CbxSingleLine: TCheckBox;
     CbxWordbreak: TCheckBox;
+    FontDialog: TFontDialog;
+    GBxFont: TGroupBox;
+    GbxLayout: TGroupBox;
+    GbxRendering: TGroupBox;
+    Img: TImage32;
+    LblFontInfo: TLabel;
+    LblGamma: TLabel;
+    LblGammaValue: TLabel;
+    PaintBox32: TPaintBox32;
+    PnlControl: TPanel;
+    PnlImage: TPanel;
+    PnlZoom: TPanel;
     RgpHinting: TRadioGroup;
+    RgpHorzAlign: TRadioGroup;
+    RgpVerticalAlign: TRadioGroup;
+    RgxMethod: TRadioGroup;
+    StatusBar: TStatusBar;
+    TbrGamma: TTrackBar;
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+    procedure BtnExitClick(Sender: TObject);
     procedure BtnSelectFontClick(Sender: TObject);
     procedure ImgClick(Sender: TObject);
     procedure ImgMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer;
       Layer: TCustomLayer);
+    procedure RgpHintingClick(Sender: TObject);
+    procedure RgpHorzAlignClick(Sender: TObject);
     procedure RgxMethodClick(Sender: TObject);
     procedure TbrGammaChange(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
-    procedure FormResize(Sender: TObject);
-    procedure BtnExitClick(Sender: TObject);
-    procedure RgpHorzAlignClick(Sender: TObject);
-    procedure RgpHintingClick(Sender: TObject);
   private
     FPath: TFlattenedPath;
   public

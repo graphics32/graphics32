@@ -36,8 +36,8 @@ interface
 
 uses
   {$IFDEF Windows}Windows,{$ENDIF}
-  SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs,
-  GR32_Image, GR32_Paths, GR32, GR32_Polygons, ExtCtrls;
+  SysUtils, Classes, Graphics, StdCtrls, Controls, Forms, Dialogs, ExtCtrls,
+  GR32_Image, GR32_Paths, GR32, GR32_Polygons;
 
 const
   TEST_DURATION = 4000;  // test for 4 seconds
@@ -48,22 +48,22 @@ type
   { TMainForm }
 
   TMainForm = class(TForm)
-    PnlTop: TPanel;
-    Img: TImage32;
-    PnlBottom: TPanel;
-    GbxSettings: TGroupBox;
-    LblTest: TLabel;
-    LblRenderer: TLabel;
     BtnBenchmark: TButton;
-    CmbTest: TComboBox;
-    CmbRenderer: TComboBox;
-    CbxAllTests: TCheckBox;
-    CbxAllRenderers: TCheckBox;
-    GbxResults: TGroupBox;
-    PnlBenchmark: TPanel;
-    MemoLog: TMemo;
-    PnlSpacer: TPanel;
     BtnExit: TButton;
+    CbxAllRenderers: TCheckBox;
+    CbxAllTests: TCheckBox;
+    CmbRenderer: TComboBox;
+    CmbTest: TComboBox;
+    GbxResults: TGroupBox;
+    GbxSettings: TGroupBox;
+    Img: TImage32;
+    LblRenderer: TLabel;
+    LblTest: TLabel;
+    MemoLog: TMemo;
+    PnlBenchmark: TPanel;
+    PnlBottom: TPanel;
+    PnlSpacer: TPanel;
+    PnlTop: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure BtnBenchmarkClick(Sender: TObject);
     procedure ImgResize(Sender: TObject);
@@ -432,7 +432,7 @@ initialization
   RegisterTest('Thin Lines', ThinLineTest);
   RegisterTest('Thick Lines', ThickLineTest);
   RegisterTest('Splines', SplinesTest);
-  if Assigned(GetPlatformBackendClass.GetInterfaceEntry(ITextToPathSupport)) then
+  if Assigned(TBitmap32.GetPlatformBackendClass.GetInterfaceEntry(ITextToPathSupport)) then
     RegisterTest('Text', TextTest);
 
 end.

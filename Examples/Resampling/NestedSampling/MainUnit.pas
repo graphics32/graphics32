@@ -99,11 +99,11 @@ type
     miTranslation: TMenuItem;
     miTwirl: TMenuItem;
     N1: TMenuItem;
-    N10: TMenuItem;
-    N11: TMenuItem;
-    N12: TMenuItem;
     N2: TMenuItem;
-    N9: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    N6: TMenuItem;
+    N7: TMenuItem;
     NewItemMenu: TPopupMenu;
     OpenPictureDialog: TOpenPictureDialog;
     Panel1: TPanel;

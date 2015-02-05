@@ -9,6 +9,9 @@ uses
 
 type
   TFrmMeshGradients = class(TForm)
+    BtnRecall: TButton;
+    BtnStore: TButton;
+    CbxColoredPolygons: TCheckBox;
     CmbBackgroundSampler: TComboBox;
     ColorDialog: TColorDialog;
     GbrPower: TGaugeBar;
@@ -16,14 +19,11 @@ type
     LblPower: TLabel;
     LblVertexColor: TLabel;
     PaintBox32: TPaintBox32;
-    PnlSettings: TPanel;
+    PnlDelaunayTriangulation: TPanel;
     PnlSampler: TPanel;
+    PnlSettings: TPanel;
     PnlVertex: TPanel;
     VertexColorShape: TShape;
-    BtnStore: TButton;
-    BtnRecall: TButton;
-    PnlDelaunayTriangulation: TPanel;
-    CbxColoredPolygons: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure BtnStoreClick(Sender: TObject);
     procedure BtnRecallClick(Sender: TObject);
