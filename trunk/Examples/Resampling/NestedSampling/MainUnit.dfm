@@ -1136,7 +1136,7 @@ object MainForm: TMainForm
         Visible = False
         OnClick = TransformationClick
       end
-      object N9: TMenuItem
+      object N4: TMenuItem
         Caption = '-'
         Visible = False
         OnClick = TransformationClick
@@ -1147,7 +1147,7 @@ object MainForm: TMainForm
         Visible = False
         OnClick = TransformationClick
       end
-      object N10: TMenuItem
+      object N5: TMenuItem
         Caption = '-'
         Visible = False
         OnClick = TransformationClick
@@ -1201,7 +1201,7 @@ object MainForm: TMainForm
         Caption = 'Selective Convolver'
         OnClick = KernelClick
       end
-      object N11: TMenuItem
+      object N6: TMenuItem
         Caption = '-'
       end
       object miDilater: TMenuItem
@@ -1214,7 +1214,7 @@ object MainForm: TMainForm
         Caption = 'Eroder'
         OnClick = KernelClick
       end
-      object N12: TMenuItem
+      object N7: TMenuItem
         Caption = '-'
         OnClick = KernelClick
       end

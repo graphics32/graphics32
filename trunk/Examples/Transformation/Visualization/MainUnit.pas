@@ -44,10 +44,10 @@ uses
 
 type
   TMainForm = class(TForm)
-    MovementTimer: TTimer;
-    RenderTimer: TTimer;
     ColorTimer: TTimer;
     FPSTimer: TTimer;
+    MovementTimer: TTimer;
+    RenderTimer: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure FormResize(Sender: TObject);
@@ -59,10 +59,7 @@ type
     procedure RenderTimerTimer(Sender: TObject);
     procedure ColorTimerTimer(Sender: TObject);
     procedure FPSTimerTimer(Sender: TObject);
-  private
-    { Private declarations }
   public
-    { Public declarations }
     CurrentBuffer : Boolean;
     Buffers: array [Boolean] of TBitmap32;
     CurrentMap : Boolean;

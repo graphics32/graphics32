@@ -44,18 +44,18 @@ uses
 
 type
   TFormRenderText = class(TForm)
-    BtnClickMe: TButton;
-    EditText: TEdit;
-    Image: TImage32;
-    LblAALevel: TLabel;
-    LblEnterText: TLabel;
-    PnlControl: TPanel;
     BtnAntialias1: TSpeedButton;
     BtnAntialias2: TSpeedButton;
     BtnAntialias3: TSpeedButton;
     BtnAntialias4: TSpeedButton;
     BtnClearType: TSpeedButton;
+    BtnClickMe: TButton;
     BtnTextOut: TSpeedButton;
+    EditText: TEdit;
+    Image: TImage32;
+    LblAALevel: TLabel;
+    LblEnterText: TLabel;
+    PnlControl: TPanel;
     procedure FormCreate(Sender: TObject);
     procedure BtnClickMeClick(Sender: TObject);
     procedure EditTextChange(Sender: TObject);

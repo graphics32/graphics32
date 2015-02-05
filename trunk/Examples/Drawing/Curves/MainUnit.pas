@@ -44,9 +44,9 @@ uses
 
 type
   TMainForm = class(TForm)
-    Img: TImage32;
     BtnDrawCurve: TButton;
     CbxUpdate: TCheckBox;
+    Img: TImage32;
     procedure BtnDrawCurveClick(Sender: TObject);
     procedure CbxUpdateClick(Sender: TObject);
     procedure ApplicationIdleHandler(Sender: TObject; var Done: Boolean);
