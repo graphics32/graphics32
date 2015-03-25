@@ -2909,6 +2909,8 @@ begin
   FOwnsGradient := False;
   FGradient := ColorGradient;
   inherited Create;
+  FWrapMode := wmClamp;
+  FWrapProc := Clamp;
 end;
 
 destructor TCustomGradientPolygonFiller.Destroy;
@@ -3914,7 +3916,6 @@ begin
     Inc(Dst);
     Inc(AlphaValues);
   end;
-  EMMS;
 end;
 
 procedure TLinearGradientPolygonFiller.FillLineHorizontalPadNeg(
@@ -3958,7 +3959,6 @@ begin
     Inc(Dst);
     Inc(AlphaValues);
   end;
-  EMMS;
 end;
 
 procedure TLinearGradientPolygonFiller.FillLineHorizontalWrapPos(
