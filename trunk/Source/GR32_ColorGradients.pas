@@ -1338,7 +1338,7 @@ begin
     if StopIndex = GradCount then
     begin
       for StopIndex := LutIndex to Count - 2 do
-        ColorLUT^[StopIndex] := ColorLUT^[Count];
+        ColorLUT^[StopIndex] := ColorLUT^[Count - 1];
       Break;
     end;
 
