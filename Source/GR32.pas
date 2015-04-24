@@ -1330,7 +1330,10 @@ var
 
 begin
   if S = 0 then
-    Exit(Gray32(Round($FF * L)));
+  begin
+    Result := Gray32(Round($FF * L));
+    Exit;
+  end;
 
   if L <= 0.5 then
     M2 := L * (1 + S)

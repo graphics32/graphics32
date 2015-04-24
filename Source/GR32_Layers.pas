@@ -1283,7 +1283,10 @@ begin
     Layer := FOwner.LayerCollection.Items[Index];
     if ((Layer.LayerOptions and LOB_MOUSE_EVENTS) > 0) and
       (Layer is TPositionedLayer) and Layer.HitTest(X, Y) then
-      Exit(TPositionedLayer(Layer));
+    begin
+      Result := TPositionedLayer(Layer);
+      Exit;
+    end;
   end;
 end;
 
