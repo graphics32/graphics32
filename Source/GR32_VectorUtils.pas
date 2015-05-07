@@ -421,6 +421,30 @@ var
   Index, DeltaMaxIndex: Integer;
   Delta, DeltaMax: TFixed;
   Parts: array [0 .. 1] of TArrayOfFixedPoint;
+
+
+  //Finds the perpendicular distance from a point to a straight line.
+  //The coordinates of the point are specified as $ptX and $ptY.
+  //The line passes through points l1 and l2, specified respectively with their
+  //coordinates $l1x and $l1y, and $l2x and $l2y
+  function PerpendicularDistance(ptX, ptY, l1x, l1y, l2x, l2y: TFixed): TFixed;
+  var
+    Slope, PassThroughY: TFixed;
+  begin
+    if (l2x = l1x) then
+    begin
+      //vertical lines - treat this case specially to avoid divide by zero
+      Result := Abs(ptX - l2x);
+    end
+    else
+    begin
+      Slope := FixedDiv(l2y-l1y, l2x-l1x);
+      PassThroughY := FixedMul(0 - l1x, Slope) + l1y;
+      Result := FixedDiv(Abs(FixedMul(Slope, ptX) - ptY + PassThroughY),
+        FixedSqrtHP(FixedSqr(Slope) + 1));
+    end;
+  end;
+
 begin
   if LastIndex - FirstIndex > 1 then
   begin
@@ -429,9 +453,10 @@ begin
     DeltaMaxIndex := 0;
     for Index := FirstIndex + 1 to LastIndex - 1 do
     begin
-      with Points[LastIndex] do
-        Delta := Abs((Points[Index].x - x) * (Points[FirstIndex].y - y) -
-          (Points[Index].y - y) * (Points[FirstIndex].x - x));
+      Delta := PerpendicularDistance(
+        Points[Index].x, Points[Index].y,
+        Points[FirstIndex].x, Points[FirstIndex].y,
+        Points[LastIndex].x, Points[LastIndex].y);
       if Delta > DeltaMax then
       begin
         DeltaMaxIndex := Index;
@@ -440,8 +465,7 @@ begin
     end;
 
     // if max distance is greater than epsilon, recursively simplify
-    if DeltaMax >= Epsilon * Math.Hypot(Points[FirstIndex].x -
-      Points[LastIndex].x, Points[FirstIndex].y - Points[LastIndex].y) then
+    if DeltaMax > Epsilon then
     begin
       // Recursive call
       Parts[0] := RamerDouglasPeucker(Points, FirstIndex, DeltaMaxIndex, Epsilon);
@@ -449,9 +473,8 @@ begin
 
       // Build the result list
       SetLength(Result, Length(Parts[0]) + Length(Parts[1]) - 1);
-      Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFloatPoint));
-      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) *
-        SizeOf(TFloatPoint));
+      Move(Parts[0, 0], Result[0], (Length(Parts[0]) - 1) * SizeOf(TFixedPoint));
+      Move(Parts[1, 0], Result[Length(Parts[0]) - 1], Length(Parts[1]) * SizeOf(TFixedPoint));
       Exit;
     end;
   end;
@@ -480,7 +503,8 @@ begin
     Inc(Index);
   end;
 
-  Result := RamerDouglasPeucker(Result, 0, Length(Result) - 1, Epsilon);
+  if Length(Result) > 2 then
+    Result := RamerDouglasPeucker(Result, 0, Length(Result) - 1, Epsilon);
 end;
 
 function VertexReduction(Points: TArrayOfFixedPoint; Epsilon: TFixed): TArrayOfFixedPoint;
