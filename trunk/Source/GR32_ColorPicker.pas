@@ -664,7 +664,7 @@ begin
   if FWebSafe then
     Result := FillLineWebSafe
   else
-    Result := inherited;
+    Result := inherited GetFillLine;
 end;
 
 
