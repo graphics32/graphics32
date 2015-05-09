@@ -1462,7 +1462,10 @@ var
 begin
   V := 255 * V;
   if S = 0 then
-    Exit(Gray32(Trunc(V)));
+  begin
+    Result := Gray32(Trunc(V));
+    Exit;
+  end;  
 
   H := H - Floor(H);
   Tmp := 6 * H - Floor(6 * H);
