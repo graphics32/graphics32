@@ -334,6 +334,9 @@ procedure DashLineXS(Bitmap: TBitmap32; const Points: TArrayOfFixedPoint;
   const Dashes: TArrayOfFixed; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
   Closed: Boolean; Width: TFixed; StrokeWidth: TFixed = $20000); overload;
 
+// fill entire bitmap with a given polygon filler
+procedure FillBitmap(Bitmap: TBitmap32; Filler: TCustomPolygonFiller);
+
 { Registration routines }
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 
@@ -1132,6 +1135,27 @@ begin
   PolyPolylineXS(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
 end;
 
+procedure FillBitmap(Bitmap: TBitmap32; Filler: TCustomPolygonFiller);
+var
+  AlphaValues: PColor32;
+  Y: Integer;
+begin
+  {$IFDEF USESTACKALLOC}
+  AlphaValues := StackAlloc(Bitmap.Width * SizeOf(TColor32));
+  {$ELSE}
+  GetMem(AlphaValues, Bitmap.Width * SizeOf(TColor32));
+  {$ENDIF}
+  FillLongword(AlphaValues^, Bitmap.Width, $FF);
+  Filler.BeginRendering;
+  for Y := 0 to Bitmap.Height - 1 do
+    Filler.FillLine(PColor32(Bitmap.ScanLine[y]), 0, y, Bitmap.Width, AlphaValues);
+  Filler.EndRendering;
+  {$IFDEF USESTACKALLOC}
+  StackFree(AlphaValues);
+  {$ELSE}
+  FreeMem(AlphaValues);
+  {$ENDIF}
+end;
 
 
 { LCD sub-pixel rendering (see http://www.grc.com/cttech.htm) }
@@ -1318,7 +1342,7 @@ begin
   BlendMemEx := BLEND_MEM_EX[cmBlend]^;
   for X := DstX to DstX + Length - 1 do
   begin
-    BlendMemEx(InvertColor(Dst^), Dst^, AlphaValues^ shr 1);
+    BlendMemEx(InvertColor(Dst^), Dst^, AlphaValues^);
     EMMS;
     Inc(Dst);
     Inc(AlphaValues);
