@@ -103,6 +103,7 @@ type
     procedure ClearColorStops(Color: TColor32); overload;
     procedure AddColorStop(Offset: TFloat; Color: TColor32); overload; virtual;
     procedure AddColorStop(ColorStop: TColor32GradientStop); overload; virtual;
+    procedure SetColors(const GradientColors: array of const); overload;
     procedure SetColors(const GradientColors: TArrayOfColor32GradientStop); overload;
     procedure SetColors(const GradientColors: TArrayOfColor32); overload;
     procedure SetColors(const Palette: TPalette32); overload;
@@ -650,7 +651,12 @@ type
     procedure FillLineEllipse(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
+    constructor Create(EllipseBounds: TFloatRect); overload;
+    constructor Create(EllipseBounds: TFloatRect; FocalPoint: TFloatPoint); overload;
     procedure BeginRendering; override;
+
+    procedure SetParameters(EllipseBounds: TFloatRect); overload;
+    procedure SetParameters(EllipseBounds: TFloatRect; FocalPoint: TFloatPoint); overload;
 
     property FocalPoint: TFloatPoint read FFocalPointNative write SetFocalPoint;
   end;
@@ -1088,6 +1094,43 @@ procedure TColor32Gradient.ClearColorStops;
 begin
   SetLength(FGradientColors, 0);
   GradientColorsChanged;
+end;
+
+procedure TColor32Gradient.SetColors(const GradientColors: array of const);
+var
+  Index: Integer;
+  Scale: TFloat;
+begin
+  if High(GradientColors) < 0 then
+  begin
+    // no colors specified
+    if Length(FGradientColors) > 0 then
+      ClearColorStops;
+  end else
+  begin
+    SetLength(FGradientColors, High(GradientColors) + 1);
+
+    if High(GradientColors) >= 1 then
+    begin
+      // several colors (at least 2)
+      Scale := 1 / (Length(GradientColors) - 1);
+      for Index := 0 to Length(GradientColors) - 1 do
+      begin
+        Assert(GradientColors[Index].VType = vtInteger);
+        FGradientColors[Index].Color32 := GradientColors[Index].VInteger;
+        FGradientColors[Index].Offset := Index * Scale;
+      end;
+    end
+    else
+    begin
+      // only 1 color
+      Assert(GradientColors[0].VType = vtInteger);
+      FGradientColors[0].Color32 := GradientColors[0].VInteger;
+      FGradientColors[0].Offset := 0;
+    end;
+
+    GradientColorsChanged;
+  end;
 end;
 
 procedure TColor32Gradient.SetColors(const GradientColors: TArrayOfColor32GradientStop);
@@ -4247,6 +4290,19 @@ end;
 
 { TSVGRadialGradientPolygonFiller }
 
+constructor TSVGRadialGradientPolygonFiller.Create(EllipseBounds: TFloatRect);
+begin
+  inherited Create;
+  SetParameters(EllipseBounds);
+end;
+
+constructor TSVGRadialGradientPolygonFiller.Create(EllipseBounds: TFloatRect;
+  FocalPoint: TFloatPoint);
+begin
+  inherited Create;
+  SetParameters(EllipseBounds, FocalPoint);
+end;
+
 procedure TSVGRadialGradientPolygonFiller.EllipseBoundsChanged;
 begin
   GradientFillerChanged;
@@ -4254,7 +4310,28 @@ end;
 
 procedure TSVGRadialGradientPolygonFiller.SetFocalPoint(const Value: TFloatPoint);
 begin
-  FFocalPointNative := Value;
+  if (FFocalPointNative.X <> Value.X) and (FFocalPointNative.Y <> Value.Y) then
+  begin
+    FFocalPointNative := Value;
+    GradientFillerChanged;
+  end;
+end;
+
+procedure TSVGRadialGradientPolygonFiller.SetParameters(
+  EllipseBounds: TFloatRect);
+begin
+  FEllipseBounds := EllipseBounds;
+  FFocalPointNative := FloatPoint(
+    0.5 * (FEllipseBounds.Left + FEllipseBounds.Right),
+    0.5 * (FEllipseBounds.Top + FEllipseBounds.Bottom));
+  GradientFillerChanged;
+end;
+
+procedure TSVGRadialGradientPolygonFiller.SetParameters(
+  EllipseBounds: TFloatRect; FocalPoint: TFloatPoint);
+begin
+  FEllipseBounds := EllipseBounds;
+  FFocalPointNative := FocalPoint;
   GradientFillerChanged;
 end;
 
@@ -4269,11 +4346,12 @@ begin
   FCenter.Y := (FEllipseBounds.Bottom + FEllipseBounds.Top) * 0.5;
   FOffset.X := FEllipseBounds.Left;
   FOffset.Y := FEllipseBounds.Top;
-  //make FFocalPoint relative to the ellipse midpoint ...
+
+  // make FFocalPoint relative to the ellipse midpoint ...
   FFocalPt.X := FFocalPointNative.X - FCenter.X;
   FFocalPt.Y := FFocalPointNative.Y - FCenter.Y;
 
-  //make sure the focal point stays within the bounding ellipse ...
+  // make sure the focal point stays within the bounding ellipse ...
   if Abs(FFocalPt.X) < CFloatTolerance then
   begin
     X := 0;
