@@ -491,6 +491,7 @@ type
     FWrapProc: TWrapProc;
     procedure SetWrapMode(const Value: TWrapMode);
   protected
+    procedure GradientColorsChangedHandler(Sender: TObject);
     procedure FillLineNone(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
     procedure FillLineSolid(Dst: PColor32; DstX, DstY, Length: Integer;
@@ -516,11 +517,13 @@ type
     procedure SetUseLookUpTable(const Value: Boolean);
     procedure SetGradientLUT(const Value: TColor32LookupTable);
   protected
+    procedure GradientFillerChanged; override;
     procedure UseLookUpTableChanged; virtual;
     procedure LookUpTableChangedHandler(Sender: TObject);
 
     property LookUpTableNeedsUpdate: Boolean read GetLUTNeedsUpdate;
   public
+    constructor Create; reintroduce; overload;
     constructor Create(LookupTable: TColor32LookupTable); overload; virtual;
     destructor Destroy; override;
 
@@ -557,9 +560,6 @@ type
   private
     function ColorStopToScanLine(Index: Integer; Y: Integer): TFloat;
   protected
-    procedure GradientColorsChangedHandler(Sender: TObject);
-    procedure GradientFillerChanged; override;
-
     function GetFillLine: TFillLineEvent; override;
 
     procedure FillLineNegative(Dst: PColor32; DstX, DstY, Length: Integer;
@@ -1056,7 +1056,6 @@ procedure TColor32Gradient.AddColorStop(Offset: TFloat; Color: TColor32);
 var
   Index, OldCount: Integer;
 begin
-
   OldCount := Length(FGradientColors);
   Index := 0;
 
@@ -2899,6 +2898,7 @@ end;
 constructor TCustomGradientPolygonFiller.Create;
 begin
   Create(TColor32Gradient.Create(clNone32));
+  FGradient.OnGradientColorsChanged := GradientColorsChangedHandler;
   FOwnsGradient := True;
   FWrapMode := wmClamp;
   FWrapProc := Clamp;
@@ -2933,6 +2933,12 @@ procedure TCustomGradientPolygonFiller.FillLineSolid(Dst: PColor32; DstX,
   DstY, Length: Integer; AlphaValues: PColor32);
 begin
   FillLineAlpha(Dst, AlphaValues, Length, FGradient.StartColor);
+end;
+
+procedure TCustomGradientPolygonFiller.GradientColorsChangedHandler(
+  Sender: TObject);
+begin
+  GradientFillerChanged;
 end;
 
 procedure TCustomGradientPolygonFiller.GradientFillerChanged;
@@ -3346,6 +3352,21 @@ end;
 
 { TCustomGradientLookupTablePolygonFiller }
 
+constructor TCustomGradientLookupTablePolygonFiller.Create;
+begin
+  inherited Create;
+
+  FUseLookUpTable := True;
+
+  // eventually create lookup table if not specified otherwise
+  if not Assigned(FGradientLUT) then
+  begin
+    FGradientLUT := TColor32LookupTable.Create;
+    FGradientLUT.OnOrderChanged := LookUpTableChangedHandler;
+    FOwnsLUT := True;
+  end;
+end;
+
 constructor TCustomGradientLookupTablePolygonFiller.Create(
   LookupTable: TColor32LookupTable);
 begin
@@ -3371,6 +3392,11 @@ end;
 function TCustomGradientLookupTablePolygonFiller.GetLUTNeedsUpdate: Boolean;
 begin
   Result := FLUTNeedsUpdate or (FUseLookUpTable and (not FOwnsLUT));
+end;
+
+procedure TCustomGradientLookupTablePolygonFiller.GradientFillerChanged;
+begin
+  FLUTNeedsUpdate := True;
 end;
 
 procedure TCustomGradientLookupTablePolygonFiller.SetGradientLUT(
@@ -3541,17 +3567,6 @@ begin
   Offset[1] := 1 - Offset[0];
   Result := Offset[1] * FStartPoint.X + Offset[0] * FEndPoint.X + FIncline *
     (Offset[1] * (FStartPoint.Y - Y) + Offset[0] * (FEndPoint.Y - Y));
-end;
-
-procedure TLinearGradientPolygonFiller.GradientColorsChangedHandler(
-  Sender: TObject);
-begin
-  GradientFillerChanged;
-end;
-
-procedure TLinearGradientPolygonFiller.GradientFillerChanged;
-begin
-  FLUTNeedsUpdate := True;
 end;
 
 procedure TLinearGradientPolygonFiller.UseLookUpTableChanged;
@@ -4323,7 +4338,7 @@ var
   X, Mask: Integer;
   ColorLUT: PColor32Array;
   Rad, Rad2, X2, Y2: TFloat;
-  m, b, Qa, Qb, Qc, Qz: Double;
+  m, b, Qa, Qb, Qc, Qz, XSqr: Double;
   RelPos: TFloatPoint;
   Color32: TColor32;
 begin
@@ -4373,11 +4388,12 @@ begin
       begin
         m := RelPos.Y / RelPos.X;
         b := FFocalPt.Y - m * FFocalPt.X;
+        XSqr := Sqr(FRadius.X);
 
-        //apply quadratic equation ...
-        Qa := 2 * (Sqr(FRadius.Y) + Sqr(FRadius.X) * m * m);
-        Qb := Sqr(FRadius.X) * 2 * m * b;
-        Qc := Sqr(FRadius.X) * (b * b - Sqr(FRadius.Y));
+        // apply quadratic equation ...
+        Qa := 2 * (Sqr(FRadius.Y) + XSqr * m * m);
+        Qb := XSqr * 2 * m * b;
+        Qc := XSqr * (b * b - Sqr(FRadius.Y));
         Qz := Qb * Qb - 2 * Qa * Qc;
 
         if Qz >= 0 then
@@ -4386,7 +4402,7 @@ begin
           Qa := 1 / Qa;
           X2 := (-Qb + Qz) * Qa;
           if (FFocalPt.X > X2) = (RelPos.X > 0) then
-            X2 := (-Qb - Qz) * Qa;
+            X2 := -(Qb + Qz) * Qa;
           Y2 := m * X2 + b;
           Rad := Sqr(RelPos.X) + Sqr(RelPos.Y);
           Rad2 := Sqr(X2 - FFocalPt.X) + Sqr(Y2 - FFocalPt.Y);
