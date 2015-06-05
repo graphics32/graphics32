@@ -627,6 +627,8 @@ type
     procedure FillLineReflect(Dst: PColor32; DstX, DstY, Length: Integer;
       AlphaValues: PColor32);
   public
+    constructor Create(Radius: TFloatPoint); overload;
+    constructor Create(Radius, Center: TFloatPoint); overload;
     procedure BeginRendering; override;
 
     property Radius: TFloatPoint read FRadius write SetRadius;
@@ -4105,6 +4107,19 @@ end;
 
 
 { TRadialGradientPolygonFiller }
+
+constructor TRadialGradientPolygonFiller.Create(Radius: TFloatPoint);
+begin
+  inherited Create;
+  FRadius := Radius;
+end;
+
+constructor TRadialGradientPolygonFiller.Create(Radius, Center: TFloatPoint);
+begin
+  inherited Create;
+  FRadius := Radius;
+  FCenter := Center;
+end;
 
 procedure TRadialGradientPolygonFiller.EllipseBoundsChanged;
 begin
