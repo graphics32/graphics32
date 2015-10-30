@@ -238,7 +238,7 @@ var
   UseTempPath: Boolean;
   TmpPath: TFlattenedPath;
 {$IFDEF USEKERNING}
-  LastCharValue: Integer;
+  NextCharValue: Integer;
   KerningPairs: PKerningPairArray;
   KerningPairCount: Integer;
 {$ENDIF}
@@ -349,7 +349,6 @@ begin
     GetMem(KerningPairs, KerningPairCount * SizeOf(TKerningPair));
     GetKerningPairs(DC, KerningPairCount, PKerningPair(KerningPairs));
   end;
-  LastCharValue := 0;
 {$ENDIF}
 
   SpcCount := 0;
@@ -460,13 +459,16 @@ begin
 
       X := X + GlyphMetrics.gmCellIncX;
       {$IFDEF USEKERNING}
-      for J := 0 to KerningPairCount - 1 do
+      if i < TextLen then NextCharValue := Ord(Text[i + 1]);
+      for J := 0 to KerningPairCount - 1 do 
       begin
-        if (KerningPairs^[J].wFirst = LastCharValue) and
-          (KerningPairs^[J].wSecond = CharValue) then
+        if (KerningPairs^[J].wFirst = CharValue) and 
+          (KerningPairs^[J].wSecond = NextCharValue) then 
+        begin
           X := X + KerningPairs^[J].iKernAmount;
+          break;
+        end;
       end;
-      LastCharValue := CharValue;
       {$ENDIF}
       if X > XMax then XMax := X;
     end;
