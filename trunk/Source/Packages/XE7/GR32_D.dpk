@@ -1,6 +1,6 @@
 package GR32_D;
 
-{$R '..\GR32_Reg.dcr'}
+{$R '..\..\GR32_Reg.dcr'}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
