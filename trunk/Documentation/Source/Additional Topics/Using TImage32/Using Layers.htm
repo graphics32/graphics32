@@ -45,7 +45,7 @@
   <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnMouseMove.htm">OnMouseMove</a> 
   and <a href="../../Units/GR32_Image/Classes/TCustomImage32/Events/OnMouseUp.htm">OnMouseUp</a> 
   events of the container (TImage32 control). Only one layer can receive a mouse 
-  message at the time. </p>
+  message at a time.</p>
 <p class="Body">Searching for the layer that receives a mouse message starts from 
   the top-most layer and ends when the first layer satisfying both of the following 
   conditions is found:</p>
@@ -57,9 +57,9 @@
 <p class="Body">There is also a possibility to disable passing of all mouse messages 
   to layers. Just set the <a href="../../Units/GR32_Layers/Classes/TLayerCollection/Properties/MouseEvents.htm">MouseEvents</a> 
   property of the layer collection to <i>False</i>, and TImage32 will generate 
-  mouse events right away, without checking for possible receiving layer.</p>
+  mouse events right away, without checking for a possible receiving layer.</p>
 <p class="Body">As stated earlier, layer should pass a hit test in order to receive 
-  mouse message. The hit test is, basically a boolean responce to a couple of 
+  mouse messages. The hit test is a boolean response to the mouse
   coordinates, accomplished by the <a href="../../Units/GR32_Layers/Classes/TCustomLayer/Methods/HitTest.htm">HitTest</a> 
   method:</p>
 <p class="Decl"><b>function</b> HitTest(X, Y: Integer): Boolean; <b>virtual</b>;</p>
@@ -73,8 +73,8 @@
 <p class="Body">Similar to standard controls, layers may also capture mouse messages. 
   By default, all mouse messages are captured automatically once the mouse is 
   pressed on top of the layer and until the mouse is released. The layer that 
-  has captured the mouse is pointed by the <a href="../../Units/GR32_Layers/Classes/TLayerCollection/Properties/MouseListener.htm">MouseListener</a> 
-  property of the layer collection. (There is a few things to work on here... 
+  has captured the mouse is pointed to by the <a href="../../Units/GR32_Layers/Classes/TLayerCollection/Properties/MouseListener.htm">MouseListener</a> 
+  property of the layer collection. (There are a few things to work on here... 
   will do it later).</p>
 <h2>Painting Layers</h2>
 <p class="Body">Layers are painted in bottom-to-top order, starting from lower 
