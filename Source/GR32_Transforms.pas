@@ -147,11 +147,17 @@ type
   end;
 
   TAffineTransformation = class(T3x3Transformation)
+  private
+    FStack: ^TFloatMatrix;
+    FStackLevel: Integer;
   public
     constructor Create; virtual;
 
     function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
-    procedure Clear;
+    procedure Push;
+    procedure Pop;
+    procedure Clear; overload;
+    procedure Clear(BaseMatrix: TFloatMatrix); overload;
     procedure Rotate(Alpha: TFloat); overload; // degrees
     procedure Rotate(Cx, Cy, Alpha: TFloat); overload; // degrees
     procedure Skew(Fx, Fy: TFloat);
@@ -352,6 +358,7 @@ uses
 resourcestring
   RCStrSrcRectIsEmpty = 'SrcRect is empty!';
   RCStrMappingRectIsEmpty = 'MappingRect is empty!';
+  RStrStackEmpty = 'Stack empty';
 
 type
   {provides access to proctected members of TCustomBitmap32 by typecasting}
@@ -895,12 +902,20 @@ end;
 
 constructor TAffineTransformation.Create;
 begin
+  FStackLevel := 0;
+  FStack := nil;
   Clear;
 end;
 
 procedure TAffineTransformation.Clear;
 begin
   FMatrix := IdentityMatrix;
+  Changed;
+end;
+
+procedure TAffineTransformation.Clear(BaseMatrix: TFloatMatrix);
+begin
+  FMatrix := BaseMatrix;
   Changed;
 end;
 
@@ -920,6 +935,23 @@ begin
   Result.Right  := Max(Max(V1[0], V2[0]), Max(V3[0], V4[0]));
   Result.Top    := Min(Min(V1[1], V2[1]), Min(V3[1], V4[1]));
   Result.Bottom := Max(Max(V1[1], V2[1]), Max(V3[1], V4[1]));
+end;
+
+procedure TAffineTransformation.Push;
+begin
+  Inc(FStackLevel);
+  ReallocMem(FStack, FStackLevel * SizeOf(TFloatMatrix));
+  Move(FMatrix, FStack^[FStackLevel - 1], SizeOf(TFloatMatrix));
+end;
+
+procedure TAffineTransformation.Pop;
+begin
+  if FStackLevel <= 0 then
+    raise Exception.Create(RStrStackEmpty);
+
+  Move(FStack^[FStackLevel - 1], FMatrix, SizeOf(TFloatMatrix));
+  Dec(FStackLevel);
+  Changed;
 end;
 
 procedure TAffineTransformation.Rotate(Alpha: TFloat);

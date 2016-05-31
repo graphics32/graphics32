@@ -1,0 +1,69 @@
+{
+	"source_folders":
+	[
+		{
+			"folder": ".",
+			"recursive": true,
+			"filter": "*"
+		}
+	],
+	
+	"projects":
+	[
+		{
+			"project": "Source\\Packages\\2010\\GR32.groupproj",
+			"compiler_min": 21,
+			"compiler_max": 21
+		},
+		{
+			"project": "Source\\Packages\\XE\\GR32.groupproj",
+			"compiler_min": 22,
+			"compiler_max": 22
+		},
+		{
+			"project": "Source\\Packages\\XE2\\GR32.groupproj",
+			"compiler_min": 23,
+			"compiler_max": 23
+		},
+		{
+			"project": "Source\\Packages\\XE3\\GR32.groupproj",
+			"compiler_min": 24,
+			"compiler_max": 24
+		},
+		{
+			"project": "Source\\Packages\\XE4\\GR32.groupproj",
+			"compiler_min": 25,
+			"compiler_max": 25
+		},
+		{
+			"project": "Source\\Packages\\XE5\\GR32.groupproj",
+			"compiler_min": 26,
+			"compiler_max": 26
+		},
+		{
+			"project": "Source\\Packages\\XE6\\GR32.groupproj",
+			"compiler_min": 27,
+			"compiler_max": 27
+		},
+		{
+			"project": "Source\\Packages\\XE7\\GR32.groupproj",
+			"compiler_min": 28,
+			"compiler_max": 28
+		},
+		{
+			"project": "Source\\Packages\\XE8\\GR32.groupproj",
+			"compiler_min": 29,
+			"compiler_max": 29
+		},
+		{
+			"project": "Source\\Packages\\RX\\GR32.groupproj",
+			"compiler_min": 30,
+			"compiler_max": 30
+		},
+		{
+			"project": "Source\\Packages\\RX1\\GR32.groupproj",
+			"compiler_min": 31,
+			"compiler_max": 31
+		}
+	]
+}

@@ -533,14 +533,14 @@ procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   with TMethod(RenderProc) do
-    RenderPolyPolygon(Points, ClipRect, Code, Data);
+    RenderPolyPolygon(Points, ClipRect, TRenderSpanProc(Code), Data);
 end;
 
 procedure RenderPolygon(const Points: TArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
   with TMethod(RenderProc) do
-    RenderPolygon(Points, ClipRect, Code, Data);
+    RenderPolygon(Points, ClipRect, TRenderSpanProc(Code), Data);
 end;
 
 end.
