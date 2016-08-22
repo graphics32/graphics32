@@ -62,7 +62,7 @@ type
 implementation
 
 uses
-  Math, GR32_Blend, GR32_LowLevel, GR32_System, GR32_Bindings;
+  Math, GR32_Blend, GR32_LowLevel, GR32_System, GR32_Bindings, GR32_VectorUtils;
 
 const
   CPolyBaseShift = 8;
@@ -1473,13 +1473,20 @@ var
   I: Integer;
   Cells: PPCell;
   OutLine: TOutline;
+  APoints: TArrayOfFloatPoint;
+  R: TFloatRect;
+
 begin
+  R := ClipRect;
+  InflateRect(R, -0.05, -0.05);
+  APoints := ClipPolygon (Points, R);
+
   OutLine := TOutline.Create;
   try
     OutLine.Reset;
-    OutLine.MoveTo(Fixed8(Points[0].X), Fixed8(Points[0].Y));
-    for I := 1 to High(Points) do
-      OutLine.LineTo(Fixed8(Points[I].X), Fixed8(Points[I].Y));
+    OutLine.MoveTo(Fixed8(APoints[0].X), Fixed8(APoints[0].Y));
+    for I := 1 to High(APoints) do
+      OutLine.LineTo(Fixed8(APoints[I].X), Fixed8(APoints[I].Y));
 
     // get cells and check count
     Cells := OutLine.Cells;
@@ -1501,11 +1508,12 @@ begin
 
   {$IFDEF CHANGENOTIFICATIONS}
     if TBitmap32Access(Bitmap).UpdateCount = 0 then
-      if Length(Points) > 0 then
+      if Length(APoints) > 0 then
         Bitmap.Changed(MakeRect(OutLine.MinX, OutLine.MinY, OutLine.MaxX,
           OutLine.MaxY));
   {$ENDIF}
   finally
+    SetLength(APoints, 0);
     OutLine.Free;
   end;
 end;
@@ -1517,23 +1525,34 @@ var
   Cells: PPCell;
   OutLine: TOutline;
   Bounds: TRect;
+  APoints: TArrayOfArrayOfFloatPoint;
+  R: TFloatRect;
+
 begin
   if Length(Points) = 0 then
     Exit;
 
+  APoints := Points;
+  // temporary fix for floating point rounding errors - corr. - to + by pws
+  R := ClipRect;
+  InflateRect(R, -0.05, -0.05);
+  for i := 0 to pred(Length(APoints)) do
+    APoints[i] := ClipPolygon(Points[I], R);
+
   OutLine := TOutline.Create;
   try
     OutLine.Reset;
-    OutLine.MoveTo(Fixed8(Points[0, 0].X), Fixed8(Points[0, 0].Y));
-    for I := 1 to High(Points[0]) do
-      OutLine.LineTo(Fixed8(Points[0, I].X), Fixed8(Points[0, I].Y));
+    OutLine.MoveTo(Fixed8(APoints[0, 0].X), Fixed8(APoints[0, 0].Y));
+    for I := 1 to High(APoints[0]) do
+      OutLine.LineTo(Fixed8(APoints[0, I].X), Fixed8(APoints[0, I].Y));
+
     Bounds := MakeRect(OutLine.MinX, OutLine.MinY, OutLine.MaxX, OutLine.MaxY);
 
-    for J := 1 to High(Points) do
+    for J := 1 to High(APoints) do
     begin
-      OutLine.MoveTo(Fixed8(Points[J, 0].X), Fixed8(Points[J, 0].Y));
-      for I := 1 to High(Points[J]) do
-        OutLine.LineTo(Fixed8(Points[J, I].X), Fixed8(Points[J, I].Y));
+      OutLine.MoveTo(Fixed8(APoints[J, 0].X), Fixed8(APoints[J, 0].Y));
+      for I := 1 to High(APoints[J]) do
+        OutLine.LineTo(Fixed8(APoints[J, I].X), Fixed8(APoints[J, I].Y));
 
       Bounds.Left := Min(Bounds.Left, OutLine.MinX);
       Bounds.Right := Max(Bounds.Right, OutLine.MaxX);
@@ -1561,12 +1580,13 @@ begin
 
 {$IFDEF CHANGENOTIFICATIONS}
     if TBitmap32Access(Bitmap).UpdateCount = 0 then
-      for I := 0 to High(Points) do
-        if Length(Points[I]) > 0 then
+      for I := 0 to High(APoints) do
+        if Length(APoints[I]) > 0 then
           Bitmap.Changed(Bounds);
 {$ENDIF}
   finally
     OutLine.Free;
+    SetLength(APoints, 0);
   end;
 end;
 
