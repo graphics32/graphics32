@@ -54,6 +54,7 @@ contains
   GR32_OrdinalMaps in '..\..\GR32_OrdinalMaps.pas',
   GR32_Paths in '..\..\GR32_Paths.pas',
   GR32_Polygons in '..\..\GR32_Polygons.pas',
+  GR32_PolygonsAggLite in '..\..\GR32_PolygonsAggLite.pas',
   GR32_RangeBars in '..\..\GR32_RangeBars.pas',
   GR32_Rasterizers in '..\..\GR32_Rasterizers.pas',
   GR32_RepaintOpt in '..\..\GR32_RepaintOpt.pas',

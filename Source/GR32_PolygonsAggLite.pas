@@ -46,7 +46,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Types, GR32, GR32_Polygons;
+  Types, GR32, GR32_Polygons, GR32_Transforms;
 
 type
   TPolygonRenderer32AggLite = class(TPolygonRenderer32)
@@ -59,10 +59,291 @@ type
       const ClipRect: TFloatRect); override;
   end;
 
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode = pfAlternate;
+  Transformation: TTransformation = nil); overload;
+procedure PolyPolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+procedure PolyPolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+procedure PolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Color: TColor32; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+procedure PolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil); overload;
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Color: TColor32;
+  Closed: Boolean = False; Width: TFloat = 1.0); overload;
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
+  Closed: Boolean = False; Width: TFloat = 1.0); overload;
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0); overload;
+
 implementation
 
 uses
   Math, GR32_Blend, GR32_LowLevel, GR32_System, GR32_Bindings, GR32_VectorUtils;
+
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+begin
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Color: TColor32; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+begin
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    Renderer.PolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+begin
+  if not Assigned(Filler) then Exit;
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    Renderer.PolyPolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; FillMode: TPolyFillMode; Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+begin
+  if not Assigned(Filler) then Exit;
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    Renderer.PolygonFS(Points, FloatRect(Bitmap.ClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolyPolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Color: TColor32; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+  IntersectedClipRect: TRect;
+begin
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Color := Color;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+  IntersectedClipRect: TRect;
+begin
+  if not Assigned(Filler) then Exit;
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolyPolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolygonFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  ClipRect: TRect; Filler: TCustomPolygonFiller; FillMode: TPolyFillMode;
+  Transformation: TTransformation);
+var
+  Renderer: TPolygonRenderer32AggLite;
+  IntersectedClipRect: TRect;
+begin
+  if not Assigned(Filler) then Exit;
+  Renderer := TPolygonRenderer32AggLite.Create;
+  try
+    Renderer.Bitmap := Bitmap;
+    Renderer.Filler := Filler;
+    Renderer.FillMode := FillMode;
+    GR32.IntersectRect(IntersectedClipRect, Bitmap.ClipRect, ClipRect);
+    Renderer.PolygonFS(Points, FloatRect(IntersectedClipRect), Transformation);
+  finally
+    Renderer.Free;
+  end;
+end;
+
+procedure PolyPolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
+  MiterLimit: TFloat; Transformation: TTransformation);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  PolyPolygonFS_AggLite(Bitmap, Dst, Color, pfWinding, Transformation);
+end;
+
+procedure PolyPolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+var
+  Dst: TArrayOfArrayOfFloatPoint;
+begin
+  Dst := BuildPolyPolyLine(Points, Closed, StrokeWidth, JoinStyle, EndStyle, MiterLimit);
+  PolyPolygonFS(Bitmap, Dst, Filler, pfWinding, Transformation);
+end;
+
+procedure PolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Color: TColor32; Closed: Boolean; StrokeWidth: TFloat;
+  JoinStyle: TJoinStyle; EndStyle: TEndStyle;
+  MiterLimit: TFloat; Transformation: TTransformation);
+begin
+  PolyPolylineFS_AggLite(Bitmap, PolyPolygon(Points), Color, Closed, StrokeWidth,
+    JoinStyle, EndStyle, MiterLimit, Transformation);
+end;
+
+procedure PolylineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  Filler: TCustomPolygonFiller; Closed: Boolean = False; StrokeWidth: TFloat = 1.0;
+  JoinStyle: TJoinStyle = jsMiter; EndStyle: TEndStyle = esButt;
+  MiterLimit: TFloat = 4.0; Transformation: TTransformation = nil);
+begin
+  PolyPolylineFS_AggLite(Bitmap, PolyPolygon(Points), Filler, Closed, StrokeWidth,
+    JoinStyle, EndStyle, MiterLimit, Transformation);
+end;
+
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Color: TColor32;
+  Closed: Boolean = False; Width: TFloat = 1.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS_AggLite(Bitmap, MultiPoly, Color, False, Width);
+end;
+
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; FillColor, StrokeColor: TColor32;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolygonFS_AggLite(Bitmap, MultiPoly, FillColor);
+  PolyPolylineFS_AggLite(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
+end;
+
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller;
+  Closed: Boolean = False; Width: TFloat = 1.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  PolyPolylineFS_AggLite(Bitmap, MultiPoly, Filler, False, Width);
+end;
+
+procedure DashLineFS_AggLite(Bitmap: TBitmap32; const Points: TArrayOfFloatPoint;
+  const Dashes: TArrayOfFloat; Filler: TCustomPolygonFiller; StrokeColor: TColor32;
+  Closed: Boolean; Width: TFloat; StrokeWidth: TFloat = 2.0);
+var
+  MultiPoly: TArrayOfArrayOfFloatPoint;
+begin
+  MultiPoly := GR32_VectorUtils.BuildDashedLine(Points, Dashes, 0, Closed);
+  MultiPoly := BuildPolyPolyLine(MultiPoly, False, Width);
+  PolyPolygonFS_AggLite(Bitmap, MultiPoly, Filler);
+  PolyPolylineFS_AggLite(Bitmap, MultiPoly, StrokeColor, True, StrokeWidth);
+end;
 
 const
   CPolyBaseShift = 8;
@@ -1475,10 +1756,9 @@ var
   OutLine: TOutline;
   APoints: TArrayOfFloatPoint;
   R: TFloatRect;
-
 begin
   R := ClipRect;
-  InflateRect(R, -0.05, -0.05);
+  InflateRect(R, 0.05, 0.05);
   APoints := ClipPolygon (Points, R);
 
   OutLine := TOutline.Create;
@@ -1527,7 +1807,6 @@ var
   Bounds: TRect;
   APoints: TArrayOfArrayOfFloatPoint;
   R: TFloatRect;
-
 begin
   if Length(Points) = 0 then
     Exit;
@@ -1535,8 +1814,8 @@ begin
   APoints := Points;
   // temporary fix for floating point rounding errors - corr. - to + by pws
   R := ClipRect;
-  InflateRect(R, -0.05, -0.05);
-  for i := 0 to pred(Length(APoints)) do
+  InflateRect(R, 0.05, 0.05);
+  for i := 0 to High(APoints) do
     APoints[i] := ClipPolygon(Points[I], R);
 
   OutLine := TOutline.Create;
