@@ -511,7 +511,7 @@ procedure TCustomPath.Polygon(const APoints: TArrayOfFloatPoint);
 var
   I: Integer;
 begin
-  BeginPath;
+  ClosePath;
   MoveTo(APoints[0]);
   for I := 1 to High(APoints) do
     LineTo(APoints[I]);
@@ -581,7 +581,7 @@ begin
   if Length(APoints) = 0 then
     Exit;
 
-  BeginPath;
+  ClosePath;
   for I := 0 to High(APoints) do
     AddPoint(APoints[I]);
   FCurrentPoint := APoints[High(APoints)];

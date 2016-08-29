@@ -1782,7 +1782,9 @@ begin
   GetMem(AlphaValues, Count * SizeOf(TColor32));
   {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
-  BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
+  if Bitmap.CombineMode = cmMerge then
+    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count) else
+    BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
   EMMS;
   {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
