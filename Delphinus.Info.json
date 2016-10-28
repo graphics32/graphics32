@@ -1,8 +1,8 @@
 {
 	"id": "{D606376C-61F9-4A84-86AA-EB85B4084574}",
-	"picture": "Examples\\Media\\GR32.ico",
-	"license_type": "MPL-2.0",
-	"license_file": "License",
+	"picture": "Examples\\Media\\GR32.png",
+	"license_type": "MPL-1.1",
+	"license_file": "Source\\License.txt",
 	"platforms": "Win32;Win64;OSX32",
 	"package_compiler_min": 21,
 	"compiler_min": 21
