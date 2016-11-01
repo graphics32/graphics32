@@ -996,7 +996,7 @@ begin
   FSize := 1 shl FOrder;
   FMask := FSize - 1;
 {$WARNINGS OFF}
-  GetMem(FGradientLUT, FSize * SizeOf(TColor32));
+  ReallocMem(FGradientLUT, FSize * SizeOf(TColor32));
 {$WARNINGS ON}
   if Assigned(FOnOrderChanged) then
     FOnOrderChanged(Self);
