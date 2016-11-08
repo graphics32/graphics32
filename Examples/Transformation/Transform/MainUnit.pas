@@ -144,7 +144,7 @@ type
     procedure TranslationScrolled(Sender: TObject);
 
     procedure SrcRBResizingEvent(Sender: TObject; const OldLocation: TFloatRect;
-      var NewLocation: TFloatRect; DragState: TDragState; Shift: TShiftState);
+      var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
 
     procedure RubberLayerMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
@@ -701,7 +701,7 @@ end;
 
 procedure TFormTranformExample.SrcRBResizingEvent(Sender: TObject;
   const OldLocation: TFloatRect; var NewLocation: TFloatRect;
-  DragState: TDragState; Shift: TShiftState);
+  DragState: TRBDragState; Shift: TShiftState);
 begin
   Src.Invalidate;
   DoTransform;
