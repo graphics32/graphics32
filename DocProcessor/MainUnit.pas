@@ -394,6 +394,7 @@ begin
   Result := False;
   VersionString := EdtVersionString.Text;
   if ProjectDir = '' then Exit;
+  ProjectDir := ExpandFileName(ProjectDir);
   Log.Clear;
   Log.Color := clWhite;
   Progress.Position := 0;
