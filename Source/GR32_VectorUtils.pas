@@ -198,6 +198,10 @@ function BuildPolygonX(const Data: array of TFixed): TArrayOfFixedPoint; overloa
 function PolyPolygon(const Points: TArrayOfFloatPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function PolyPolygon(const Points: TArrayOfFixedPoint): TArrayOfArrayOfFixedPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 
+function PointToFloatPoint(const Points: TArrayOfPoint): TArrayOfFloatPoint; overload;
+function PointToFloatPoint(const Points: TArrayOfArrayOfPoint): TArrayOfArrayOfFloatPoint; overload;
+function PointToFixedPoint(const Points: TArrayOfPoint): TArrayOfFixedPoint; overload;
+function PointToFixedPoint(const Points: TArrayOfArrayOfPoint): TArrayOfArrayOfFixedPoint; overload;
 function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint): TArrayOfArrayOfFloatPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
 function FloatPointToFixedPoint(const Points: TArrayOfFloatPoint): TArrayOfFixedPoint; overload; {$IFDEF USEINLINING}inline;{$ENDIF}
@@ -1451,7 +1455,7 @@ end;
 
 function Circle(const P: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint;
 begin
-  Circle(P, Radius, CalculateCircleSteps(Radius));
+  Result := Circle(P, Radius, CalculateCircleSteps(Radius));
 end;
 
 function Circle(const X, Y, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint;
@@ -3189,6 +3193,74 @@ function PolyPolygon(const Points: TArrayOfFixedPoint)
 begin
   SetLength(Result, 1);
   Result[0] := Points;
+end;
+
+function PointToFloatPoint(const Points: TArrayOfPoint): TArrayOfFloatPoint;
+var
+  Index: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      Result[Index].X := Points[Index].X * FixedToFloat;
+      Result[Index].Y := Points[Index].Y * FixedToFloat;
+    end;
+  end;
+end;
+
+function PointToFloatPoint(const Points: TArrayOfArrayOfPoint): TArrayOfArrayOfFloatPoint;
+var
+  Index, PointIndex: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      SetLength(Result[Index], Length(Points[Index]));
+      for PointIndex := 0 to Length(Points[Index]) - 1 do
+      begin
+        Result[Index, PointIndex].X := Points[Index, PointIndex].X * FixedToFloat;
+        Result[Index, PointIndex].Y := Points[Index, PointIndex].Y * FixedToFloat;
+      end;
+    end;
+  end;
+end;
+
+function PointToFixedPoint(const Points: TArrayOfPoint): TArrayOfFixedPoint;
+var
+  Index: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      Result[Index].X := Fixed(Points[Index].X);
+      Result[Index].Y := Fixed(Points[Index].Y);
+    end;
+  end;
+end;
+
+function PointToFixedPoint(const Points: TArrayOfArrayOfPoint): TArrayOfArrayOfFixedPoint;
+var
+  Index, PointIndex: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      SetLength(Result[Index], Length(Points[Index]));
+      for PointIndex := 0 to Length(Points[Index]) - 1 do
+      begin
+        Result[Index, PointIndex].X := Fixed(Points[Index, PointIndex].X);
+        Result[Index, PointIndex].Y := Fixed(Points[Index, PointIndex].Y);
+      end;
+    end;
+  end;
 end;
 
 // Converts an array of points in TFixed format to an array of points in TFloat format
