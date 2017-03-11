@@ -390,7 +390,7 @@ begin
       SetLength(Items, 0)
     else
     if (ItemIndex < Count) then
-      Move(Items[ItemIndex + 1], Items[ItemIndex], (Count - ItemIndex) * SizeOf(TPointerBucketItem));
+      Move(Items[ItemIndex + 1], Items[ItemIndex], (Count - ItemIndex - 1) * SizeOf(TPointerBucketItem));
   end;
   Dec(FCount);
 end;
