@@ -6232,7 +6232,7 @@ begin
   { TODO : Optimize Clipping here }
   B := TBitmap32.Create;
   try
-    if AALevel = 0 then
+    if AALevel <= 0 then
     begin
       Sz := TextExtentW(PaddedText);
       B.SetSize(Sz.cX, Sz.cY);
