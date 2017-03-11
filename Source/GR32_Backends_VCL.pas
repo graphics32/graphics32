@@ -234,7 +234,7 @@ begin
   FBitmapHandle := CreateDIBSection(0, FBitmapInfo, DIB_RGB_COLORS, Pointer(FBits), FMapHandle, 0);
 
   if FBits = nil then
-    raise Exception.Create(RCStrCannotAllocateDIBHandle);
+    raise EBackend.Create(RCStrCannotAllocateDIBHandle);
 
   FHDC := CreateCompatibleDC(0);
   if FHDC = 0 then
@@ -242,7 +242,7 @@ begin
     DeleteObject(FBitmapHandle);
     FBitmapHandle := 0;
     FBits := nil;
-    raise Exception.Create(RCStrCannotCreateCompatibleDC);
+    raise EBackend.Create(RCStrCannotCreateCompatibleDC);
   end;
 
   if SelectObject(FHDC, FBitmapHandle) = 0 then
@@ -252,7 +252,7 @@ begin
     FHDC := 0;
     FBitmapHandle := 0;
     FBits := nil;
-    raise Exception.Create(RCStrCannotSelectAnObjectIntoDC);
+    raise EBackend.Create(RCStrCannotSelectAnObjectIntoDC);
   end;
 end;
 
@@ -699,7 +699,7 @@ begin
           DeleteObject(Bitmap);
         end;
       end else
-        raise Exception.Create('Can''t create compatible DC''');
+        raise EBackend.Create(RCStrCannotCreateCompatibleDC);
     finally
       DeleteDC(DeviceContext);
     end;
@@ -711,7 +711,7 @@ begin
   if FOwner.Empty then Exit;
 
   if not FOwner.MeasuringMode then
-    raise Exception.Create('Not supported!');
+    raise EBackend.Create('Not supported!');
 
   FOwner.Changed(DstRect);
 end;
@@ -747,7 +747,7 @@ begin
           DeleteObject(Bitmap);
         end;
       end else
-        raise Exception.Create('Can''t create compatible DC''');
+        raise EBackend.Create(RCStrCannotCreateCompatibleDC);
     finally
       DeleteDC(DeviceContext);
     end;
@@ -788,7 +788,7 @@ begin
           DeleteObject(Bitmap);
         end;
       end else
-        raise Exception.Create('Can''t create compatible DC''');
+        raise EBackend.Create(RCStrCannotCreateCompatibleDC);
     finally
       DeleteDC(DeviceContext);
     end;

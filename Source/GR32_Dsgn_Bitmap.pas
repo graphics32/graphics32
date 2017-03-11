@@ -42,7 +42,7 @@ uses
   ComponentEditors,
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
-DesignEditors, VCLEditors,
+  DesignEditors, VCLEditors,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
   SysUtils, Classes, Clipbrd, GR32, GR32_Image, GR32_Layers, GR32_Filters;

@@ -46,6 +46,8 @@ uses
   Classes, SysUtils, GR32, GR32_Containers, GR32_Image, GR32_Paths;
 
 type
+  EBackend = class(Exception);
+
   ITextSupport = interface(IUnknown)
   ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']
     procedure Textout(X, Y: Integer; const Text: String); overload;
