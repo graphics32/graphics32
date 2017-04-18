@@ -3193,6 +3193,10 @@ begin
   EMMS;
 {$ELSE}
 asm
+{$IFDEF TARGET_x64}
+          PUSH    RBP
+          SUB     RSP,$30
+{$ENDIF}
           ADD     X, $7F
           ADD     Y, $7F
           SAR     X, 8
@@ -3203,6 +3207,11 @@ asm
           JZ      @Exit
           DB      $0F, $77               /// EMMS
 @Exit:
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+          LEA     RSP,[RBP+$30]
+          POP     RBP
 {$ENDIF}
 
 {$ENDIF}
