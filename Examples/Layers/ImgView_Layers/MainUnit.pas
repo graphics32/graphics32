@@ -113,6 +113,7 @@ type
     PnlMagnificationHeader: TPanel;
     SaveDialog: TSaveDialog;
     ScaleCombo: TComboBox;
+    N7: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
@@ -806,6 +807,12 @@ begin
           Location := OffsetRect(FSelection.Location, 0, 1);
           FSelection.Location := Location;
           RBLayer.Location := Location;
+        end;
+      VK_DELETE:
+        begin
+          FreeAndNil(FSelection);
+          RBLayer.ChildLayer := nil;
+          RBLayer.LayerOptions := LOB_NO_UPDATE;
         end;
     end;
 end;

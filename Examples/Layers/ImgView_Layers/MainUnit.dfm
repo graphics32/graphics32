@@ -456,17 +456,13 @@ object MainForm: TMainForm
         Caption = 'Down one Level'
         OnClick = MnuReorderClick
       end
-      object N2: TMenuItem
+      object N7: TMenuItem
         Caption = '-'
       end
       object MnuScaled: TMenuItem
         Caption = 'Scaled'
         Checked = True
         OnClick = MnuScaledClick
-      end
-      object MnuDelete: TMenuItem
-        Caption = 'Delete'
-        OnClick = MnuDeleteClick
       end
       object N3: TMenuItem
         Caption = '-'
@@ -493,6 +489,13 @@ object MainForm: TMainForm
       object MnuRotate270: TMenuItem
         Caption = 'Rotate 270'
         OnClick = MnuRotate270Click
+      end
+      object N2: TMenuItem
+        Caption = '-'
+      end
+      object MnuDelete: TMenuItem
+        Caption = 'Delete'
+        OnClick = MnuDeleteClick
       end
     end
   end

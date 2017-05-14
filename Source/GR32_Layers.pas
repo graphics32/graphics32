@@ -1006,6 +1006,7 @@ begin
     end;
     if Assigned(Value) then
       Value.InsertItem(Self);
+    FLayerCollection := Value;
   end;
 end;
 
