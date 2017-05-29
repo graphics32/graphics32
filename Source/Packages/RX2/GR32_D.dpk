@@ -1,0 +1,44 @@
+package GR32_D;
+
+{$R '..\..\GR32_Reg.dcr'}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'Graphics32 Design Time Package'}
+{$LIBSUFFIX 'RX2'}
+{$IMPLICITBUILD ON}
+
+requires
+  designide,
+  vcl,
+  rtl,
+  GR32_R;
+
+contains
+  GR32_Dsgn_Bitmap in '..\..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
+  GR32_Reg in '..\..\GR32_Reg.pas',
+  GR32_Dsgn_Color in '..\..\GR32_Dsgn_Color.pas',
+  GR32_Dsgn_Misc in '..\..\GR32_Dsgn_Misc.pas';
+
+end.
