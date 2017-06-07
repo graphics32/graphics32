@@ -125,11 +125,11 @@ type
 
   TVisualAidType = (vatSolid, vatInvert);
 
+  TAdjustCalc = procedure (X, Y: Single) of object;
+  TPreserveComponent = set of (pcHue, pcSaturation, pcLuminance, pcValue);
+
   { TCustomColorPicker }
   TCustomColorPicker = class(TCustomControl)
-  type
-    TAdjustCalc = procedure (X, Y: Single) of object;
-    TPreserveComponent = set of (pcHue, pcSaturation, pcLuminance, pcValue);
   private
     FBuffer: TBitmap32;
     FAdjustCalc: TAdjustCalc;
@@ -173,12 +173,9 @@ type
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
   end;
 
+  TMarkerType = (mtCross, mtCircle);
 
-  { TCustomColorPickerHS }
   TCustomColorPickerHS = class(TCustomColorPicker)
-  strict private
-  type
-    TMarkerType = (mtCross, mtCircle);
   private
     FHue: Single;
     FSaturation: Single;
@@ -201,10 +198,10 @@ type
     property Saturation: Single read FSaturation write SetSaturation;
   end;
 
+  TVisualAid = set of (vaHueLine, vaSaturationCircle, vaSelection);
+
   { TCustomColorPickerHSV }
   TCustomColorPickerHSV = class(TCustomColorPicker)
-  type
-    TVisualAid = set of (vaHueLine, vaSaturationCircle, vaSelection);
   private
     FCenter: TFloatPoint;
     FHue: Single;
@@ -238,10 +235,10 @@ type
     property VisualAid: TVisualAid read FVisualAid write SetVisualAid;
   end;
 
+  TVisualAidGTK = set of (vagHueLine, vagSelection);
+
   { TCustomColorPickerGTK }
   TCustomColorPickerGTK = class(TCustomColorPicker)
-  type
-    TVisualAidGTK = set of (vagHueLine, vagSelection);
   private
     FCenter: TFloatPoint;
     FHue: Single;
@@ -317,8 +314,10 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
+{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;
@@ -361,8 +360,10 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
+{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;
@@ -405,8 +406,10 @@ type
     property OnMouseWheel;
     property OnMouseWheelDown;
     property OnMouseWheelUp;
+{$IFDEF COMPILER2005_UP}
     property OnMouseEnter;
     property OnMouseLeave;
+{$ENDIF}
     property OnResize;
     property OnStartDrag;
   end;

@@ -863,9 +863,7 @@ begin
     Exit;
 
   if FRepaintOptimizer.Enabled then
-  begin
     FRepaintOptimizer.BeginPaint;
-  end;
 
   if not FBufferValid then
   begin

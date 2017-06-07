@@ -101,10 +101,10 @@ type
     property Handle: HDC read GetHandle;
 
     { ITextSupport }
-    procedure Textout(X, Y: Integer; const Text: String); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
-    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
-    function  TextExtent(const Text: String): TSize;
+    procedure Textout(X, Y: Integer; const Text: string); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: string); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
+    function  TextExtent(const Text: string): TSize;
 
     procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
     procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
@@ -305,7 +305,7 @@ begin
     FOnFontChange(Self);
 end;
 
-function TGDIBackend.TextExtent(const Text: String): TSize;
+function TGDIBackend.TextExtent(const Text: string): TSize;
 var
   DC: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
   OldFont: HGDIOBJ;
@@ -354,7 +354,7 @@ begin
   end;
 end;
 
-procedure TGDIBackend.Textout(X, Y: Integer; const Text: String);
+procedure TGDIBackend.Textout(X, Y: Integer; const Text: string);
 var
   Extent: TSize;
 begin
@@ -403,7 +403,7 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TGDIBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: String);
+procedure TGDIBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 var
   Extent: TSize;
 begin
@@ -458,7 +458,7 @@ begin
   end;
 end;
 
-procedure TGDIBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String);
+procedure TGDIBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   UpdateFont;
 

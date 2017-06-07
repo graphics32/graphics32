@@ -23,6 +23,7 @@ package GR32_D7;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'Graphics32'}
+{$RUNONLY}
 {$IMPLICITBUILD ON}
 
 requires
@@ -56,6 +57,9 @@ contains
   GR32_XPThemes in '..\GR32_XPThemes.pas',
   GR32_VPR in '..\GR32_VPR.pas',
   GR32_Paths in '..\GR32_Paths.pas',
-  GR32_VectorUtils in '..\GR32_VectorUtils.pas';
+  GR32_VectorUtils in '..\GR32_VectorUtils.pas',
+  GR32_Geometry in '..\GR32_Geometry.pas',
+  GR32_Text_VCL in '..\GR32_Text_VCL.pas',
+  GR32_Brushes in '..\GR32_Brushes.pas';
 
 end.
