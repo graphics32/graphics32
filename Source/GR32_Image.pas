@@ -363,6 +363,7 @@ type
 {$ENDIF}
     property OnClick;
     property OnChange;
+    property OnContextPopup;
     property OnDblClick;
     property OnGDIOverlay;
     property OnDragDrop;
