@@ -3204,8 +3204,8 @@ begin
     SetLength(Result, Length(Points));
     for Index := 0 to Length(Points) - 1 do
     begin
-      Result[Index].X := Points[Index].X * FixedToFloat;
-      Result[Index].Y := Points[Index].Y * FixedToFloat;
+      Result[Index].X := Points[Index].X;
+      Result[Index].Y := Points[Index].Y;
     end;
   end;
 end;
@@ -3222,8 +3222,8 @@ begin
       SetLength(Result[Index], Length(Points[Index]));
       for PointIndex := 0 to Length(Points[Index]) - 1 do
       begin
-        Result[Index, PointIndex].X := Points[Index, PointIndex].X * FixedToFloat;
-        Result[Index, PointIndex].Y := Points[Index, PointIndex].Y * FixedToFloat;
+        Result[Index, PointIndex].X := Points[Index, PointIndex].X;
+        Result[Index, PointIndex].Y := Points[Index, PointIndex].Y;
       end;
     end;
   end;
