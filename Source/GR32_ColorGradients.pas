@@ -628,6 +628,7 @@ type
       AlphaValues: PColor32);
   public
     constructor Create(Radius: TFloatPoint); overload;
+    constructor Create(BoundingBox: TFloatRect); overload;
     constructor Create(Radius, Center: TFloatPoint); overload;
     procedure BeginRendering; override;
 
@@ -4112,6 +4113,8 @@ constructor TRadialGradientPolygonFiller.Create(Radius: TFloatPoint);
 begin
   inherited Create;
   FRadius := Radius;
+  UpdateEllipseBounds;
+  UpdateRadiusScale;
 end;
 
 constructor TRadialGradientPolygonFiller.Create(Radius, Center: TFloatPoint);
@@ -4119,6 +4122,16 @@ begin
   inherited Create;
   FRadius := Radius;
   FCenter := Center;
+  UpdateEllipseBounds;
+  UpdateRadiusScale;
+end;
+
+constructor TRadialGradientPolygonFiller.Create(BoundingBox: TFloatRect);
+begin
+  Create(FloatPoint(0.5 * (BoundingBox.Right - BoundingBox.Left),
+    0.5 * (BoundingBox.Bottom - BoundingBox.Top)),
+    FloatPoint(0.5 * (BoundingBox.Right + BoundingBox.Left),
+    0.5 * (BoundingBox.Bottom + BoundingBox.Top)));
 end;
 
 procedure TRadialGradientPolygonFiller.EllipseBoundsChanged;

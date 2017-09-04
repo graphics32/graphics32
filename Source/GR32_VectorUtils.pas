@@ -140,6 +140,10 @@ function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer): TAr
 function Circle(const P: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Circle(const X, Y, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Circle(const X, Y, Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Circle(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Circle(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Circle(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Circle(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -150,6 +154,10 @@ function Ellipse(const P, R: TFloatPoint; Steps: Integer): TArrayOfFloatPoint; o
 function Ellipse(const P, R: TFloatPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const X, Y, Rx, Ry: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Ellipse(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Ellipse(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Ellipse(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Ellipse(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat;
   Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1468,6 +1476,34 @@ begin
   Result := Circle(FloatPoint(X, Y), Radius, CalculateCircleSteps(Radius));
 end;
 
+function Circle(const R: TRect): TArrayOfFloatPoint;
+begin
+  Result := Circle(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)));
+end;
+
+function Circle(const R: TRect; Steps: Integer): TArrayOfFloatPoint;
+begin
+  Result := Circle(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)), Steps);
+end;
+
+function Circle(const R: TFloatRect): TArrayOfFloatPoint;
+begin
+  Result := Circle(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)));
+end;
+
+function Circle(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint;
+begin
+  Result := Circle(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    Min(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)), Steps);
+end;
+
 function Pie(const P: TFloatPoint; const Radius: TFloat;
   const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint;
 var
@@ -1571,6 +1607,34 @@ function Ellipse(const X, Y, Rx, Ry: TFloat): TArrayOfFloatPoint;
 begin
   Result := Ellipse(FloatPoint(X, Y), FloatPoint(Rx, Ry),
     CalculateCircleSteps(Min(Rx, Ry)));
+end;
+
+function Ellipse(const R: TRect): TArrayOfFloatPoint;
+begin
+  Result := Ellipse(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    FloatPoint(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)));
+end;
+
+function Ellipse(const R: TFloatRect): TArrayOfFloatPoint;
+begin
+  Result := Ellipse(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    FloatPoint(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)));
+end;
+
+function Ellipse(const R: TRect; Steps: Integer): TArrayOfFloatPoint;
+begin
+  Result := Ellipse(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    FloatPoint(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)), Steps);
+end;
+
+function Ellipse(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint;
+begin
+  Result := Ellipse(
+    FloatPoint(0.5 * (R.Right + R.Left), 0.5 * (R.Bottom + R.Top)),
+    FloatPoint(0.5 * (R.Right - R.Left), 0.5 * (R.Bottom - R.Top)), Steps);
 end;
 
 function Star(const X, Y, Radius: TFloat; Vertices: Integer = 5;
