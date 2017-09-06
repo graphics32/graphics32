@@ -8,27 +8,27 @@ uses
 
 type
   TFormMain = class(TForm)
-    PageControlColorPicker: TPageControl;
-    TabColorPickerGTK: TTabSheet;
-    TabColorPickerHSV: TTabSheet;
-    LabelRed: TLabel;
-    LabelColor: TLabel;
-    LabelGreen: TLabel;
-    LabelBlue: TLabel;
-    LabelWebColor: TLabel;
-    SpinEditRed: TSpinEdit;
-    SpinEditGreen: TSpinEdit;
-    SpinEditBlue: TSpinEdit;
-    EditColor: TEdit;
+    ButtonFromScreen: TButton;
     ColorPickerGTK: TColorPickerGTK;
     ColorPickerHSV: TColorPickerHSV;
-    Button1: TButton;
+    EditColor: TEdit;
+    LabelBlue: TLabel;
+    LabelColor: TLabel;
+    LabelGreen: TLabel;
+    LabelRed: TLabel;
+    LabelWebColor: TLabel;
+    PageControlColorPicker: TPageControl;
+    SpinEditBlue: TSpinEdit;
+    SpinEditGreen: TSpinEdit;
+    SpinEditRed: TSpinEdit;
+    TabColorPickerGTK: TTabSheet;
+    TabColorPickerHSV: TTabSheet;
+    procedure ButtonFromScreenClick(Sender: TObject);
+    procedure ColorPickerGTKChanged(Sender: TObject);
+    procedure ColorPickerHSVChanged(Sender: TObject);
     procedure EditColorChange(Sender: TObject);
     procedure EditColorKeyPress(Sender: TObject; var Key: Char);
-    procedure ColorPickerGTKChanged(Sender: TObject);
     procedure SpinEditColorChange(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
-    procedure ColorPickerHSVChanged(Sender: TObject);
   private
     FScreenColorPickerForm: TScreenColorPickerForm;
     procedure UpdateColor(Color: TColor32);
@@ -45,7 +45,9 @@ implementation
 
 {$R *.dfm}
 
-procedure TFormMain.Button1Click(Sender: TObject);
+{ TFormMain }
+
+procedure TFormMain.ButtonFromScreenClick(Sender: TObject);
 begin
   FScreenColorPickerForm := TScreenColorPickerForm.Create(Application);
   try
@@ -68,8 +70,11 @@ begin
 end;
 
 procedure TFormMain.EditColorChange(Sender: TObject);
+var
+  Value: Integer;
 begin
-  UpdateColor(StrToInt(EditColor.Text));
+  if TryStrToInt(EditColor.Text, Value) then
+    UpdateColor(Value);
 end;
 
 procedure TFormMain.EditColorKeyPress(Sender: TObject; var Key: Char);

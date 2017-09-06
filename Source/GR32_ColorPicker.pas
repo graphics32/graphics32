@@ -123,10 +123,33 @@ type
     property WebSafe: Boolean read FWebSafe write FWebSafe;
   end;
 
-  TVisualAidType = (vatSolid, vatInvert);
+  TVisualAid = set of (vaHueLine, vaSaturationCircle, vaSelection);
+  TVisualAidRenderType = (vatSolid, vatInvert, vatBW);
 
   TAdjustCalc = procedure (X, Y: Single) of object;
   TPreserveComponent = set of (pcHue, pcSaturation, pcLuminance, pcValue);
+
+  TVisualAidOptions = class(TPersistent)
+  private
+    FOwner: TPersistent;
+    FRenderType: TVisualAidRenderType;
+    FColor: TColor32;
+    FLineWidth: Single;
+    procedure SetRenderType(const Value: TVisualAidRenderType);
+    procedure SetColor(const Value: TColor32);
+    procedure SetLineWidth(const Value: Single);
+  protected
+    function GetOwner: TPersistent; override;
+    procedure Changed; virtual;
+  public
+    constructor Create(AOwner: TPersistent); virtual;
+
+    property Owner: TPersistent read FOwner;
+  published
+    property RenderType: TVisualAidRenderType read FRenderType write SetRenderType default vatInvert;
+    property Color: TColor32 read FColor write SetColor;
+    property LineWidth: Single read FLineWidth write SetLineWidth;
+  end;
 
   { TCustomColorPicker }
   TCustomColorPicker = class(TCustomControl)
@@ -136,16 +159,11 @@ type
     FSelectedColor: TColor32;
     FBufferValid: Boolean;
     FPreserveComponent: TPreserveComponent;
+    FVisualAidOptions: TVisualAidOptions;
     FWebSafe: Boolean;
-    FVisualAidType: TVisualAidType;
-    FVisualAidColor: TColor32;
-    FVisualAidLineThickness: Single;
     FOnChanged: TNotifyEvent;
     procedure SetWebSafe(const Value: Boolean);
     procedure SetSelectedColor(const Value: TColor32);
-    procedure SetVisualAidType(const Value: TVisualAidType);
-    procedure SetVisualAidColor(const Value: TColor32);
-    procedure SetVisualAidLineThickness(const Value: Single);
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TLMessage); message LM_GETDLGCODE;
@@ -164,10 +182,8 @@ type
     procedure Invalidate; override;
     procedure Resize; override;
 
+    property VisualAidOptions: TVisualAidOptions read FVisualAidOptions;
     property SelectedColor: TColor32 read FSelectedColor write SetSelectedColor;
-    property VisualAidType: TVisualAidType read FVisualAidType write SetVisualAidType;
-    property VisualAidColor: TColor32 read FVisualAidColor write SetVisualAidColor;
-    property VisualAidLineThickness: Single read FVisualAidLineThickness write SetVisualAidLineThickness;
     property WebSafe: Boolean read FWebSafe write SetWebSafe;
 
     property OnChanged: TNotifyEvent read FOnChanged write FOnChanged;
@@ -197,8 +213,6 @@ type
     property Hue: Single read FHue write SetHue;
     property Saturation: Single read FSaturation write SetSaturation;
   end;
-
-  TVisualAid = set of (vaHueLine, vaSaturationCircle, vaSelection);
 
   { TCustomColorPickerHSV }
   TCustomColorPickerHSV = class(TCustomColorPicker)
@@ -343,6 +357,7 @@ type
     property TabStop;
     property Value;
     property VisualAid default [vaHueLine, vaSaturationCircle, vaSelection];
+    property VisualAidOptions;
     property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
@@ -389,6 +404,7 @@ type
     property TabStop;
     property Value;
     property VisualAid default [vagHueLine, vagSelection];
+    property VisualAidOptions;
     property WebSafe default False;
 
 {$IFNDEF PLATFORM_INDEPENDENT}
@@ -443,6 +459,61 @@ begin
   end;
 end;
 {$ENDIF}
+
+
+{ TVisualAidOptions }
+
+constructor TVisualAidOptions.Create(AOwner: TPersistent);
+begin
+  inherited Create;
+
+  FOwner := AOwner;
+  FColor := $AF000000;
+  FRenderType := vatInvert;
+  FLineWidth := 2;
+end;
+
+procedure TVisualAidOptions.Changed;
+begin
+  if Owner is TCustomColorPicker then
+    TCustomColorPicker(Owner).Invalidate;
+end;
+
+function TVisualAidOptions.GetOwner: TPersistent;
+begin
+  if FOwner is TPersistent then
+    Result := TPersistent(FOwner)
+  else
+    Result := nil;
+end;
+
+procedure TVisualAidOptions.SetColor(const Value: TColor32);
+begin
+  if FColor <> Value then
+  begin
+    FColor := Value;
+    if FRenderType = vatSolid then
+      Changed;
+  end;
+end;
+
+procedure TVisualAidOptions.SetLineWidth(const Value: Single);
+begin
+  if FLineWidth <> Value then
+  begin
+    FLineWidth := Value;
+    Changed;
+  end;
+end;
+
+procedure TVisualAidOptions.SetRenderType(const Value: TVisualAidRenderType);
+begin
+  if FRenderType <> Value then
+  begin
+    FRenderType := Value;
+    Changed;
+  end;
+end;
 
 
 { TScreenColorPickerForm }
@@ -681,11 +752,12 @@ begin
   FBuffer := TBitmap32.Create;
   FPreserveComponent := [];
   FSelectedColor := clSalmon32;
-  FVisualAidColor := $AF000000;
+  FVisualAidOptions := TVisualAidOptions.Create(Self);
 end;
 
 destructor TCustomColorPicker.Destroy;
 begin
+  FVisualAidOptions.Free;
   FBuffer.Free;
   inherited;
 end;
@@ -742,34 +814,6 @@ begin
   end;
 end;
 
-procedure TCustomColorPicker.SetVisualAidColor(const Value: TColor32);
-begin
-  if FVisualAidColor <> Value then
-  begin
-    FVisualAidColor := Value;
-    if FVisualAidType = vatSolid then
-      Invalidate;
-  end;
-end;
-
-procedure TCustomColorPicker.SetVisualAidLineThickness(const Value: Single);
-begin
-  if FVisualAidLineThickness <> Value then
-  begin
-    FVisualAidLineThickness := Value;
-    Invalidate;
-  end;
-end;
-
-procedure TCustomColorPicker.SetVisualAidType(const Value: TVisualAidType);
-begin
-  if FVisualAidType <> Value then
-  begin
-    FVisualAidType := Value;
-    Invalidate;
-  end;
-end;
-
 procedure TCustomColorPicker.SetWebSafe(const Value: Boolean);
 begin
   if FWebSafe <> Value then
@@ -798,7 +842,8 @@ var
   Luminance: Single;
 begin
   inherited;
-  FVisualAidColor := clBlack32;
+  FVisualAidOptions.Color := clBlack32;
+  FVisualAidOptions.LineWidth := 1.5;
   RGBtoHSL(FSelectedColor, FHue, FSaturation, Luminance);
 end;
 
@@ -861,17 +906,21 @@ begin
         VectorData[1] := HorzLine(Pos.X + 2, Pos.Y, Pos.X + 5);
         VectorData[2] := VertLine(Pos.X, Pos.Y - 5, Pos.Y - 2);
         VectorData[3] := VertLine(Pos.X, Pos.Y + 2, Pos.Y + 5);
-        if FVisualAidType = vatInvert then
-        begin
-          InvertFiller := TInvertPolygonFiller.Create;
-          try
-            PolyPolylineFS(FBuffer, VectorData, InvertFiller, False, 1.5)
-          finally
-            InvertFiller.Free;
-          end;
-        end
-        else
-          PolyPolylineFS(FBuffer, VectorData, FVisualAidColor, False, 1.5);
+        case FVisualAidOptions.RenderType of
+          vatSolid:
+            PolyPolylineFS(FBuffer, VectorData, FVisualAidOptions.Color, False, FVisualAidOptions.LineWidth);
+          vatInvert:
+            begin
+              InvertFiller := TInvertPolygonFiller.Create;
+              try
+                PolyPolylineFS(FBuffer, VectorData, InvertFiller, False, FVisualAidOptions.LineWidth)
+              finally
+                InvertFiller.Free;
+              end;
+            end;
+          vatBW:
+            PolyPolylineFS(FBuffer, VectorData, FVisualAidOptions.Color, False, FVisualAidOptions.LineWidth);
+        end;
       end;
     mtCircle:
       begin
@@ -879,18 +928,22 @@ begin
         VectorData[0] := Circle(Pos, 4, 12);
         PolygonFS(FBuffer, VectorData[0], FSelectedColor);
 
-        if FVisualAidType = vatInvert then
-        begin
-          InvertFiller := TInvertPolygonFiller.Create;
-          try
-            PolylineFS(FBuffer, VectorData[0], InvertFiller, True, 1.5)
-          finally
-            InvertFiller.Free;
-          end;
-        end
-        else
-          PolylineFS(FBuffer, VectorData[0], FVisualAidColor, True, 1.5);
+        case FVisualAidOptions.RenderType of
+          vatSolid:
+            PolylineFS(FBuffer, VectorData[0], FVisualAidOptions.Color, True, FVisualAidOptions.LineWidth);
+          vatInvert:
+            begin
+              InvertFiller := TInvertPolygonFiller.Create;
+              try
+                PolylineFS(FBuffer, VectorData[0], InvertFiller, True, 1.5)
+              finally
+                InvertFiller.Free;
+              end;
+            end;
+          vatBW:
+            PolylineFS(FBuffer, VectorData[0], FVisualAidOptions.Color, True, 1.5);
       end;
+    end;
   end;
 end;
 
@@ -953,7 +1006,7 @@ begin
   inherited Create(AOwner);
 
   FVisualAid := [vaHueLine, vaSaturationCircle, vaSelection];
-  FVisualAidType := vatInvert;
+  FVisualAidOptions.LineWidth := 1.5;
   RGBToHSV(FSelectedColor, FHue, FSaturation, FValue);
 
   { Setting a initial size here will cause the control to crash under LCL }
@@ -970,6 +1023,7 @@ var
   GradientFiller: TLinearGradientPolygonFiller;
   HueSaturationFiller: THueSaturationCirclePolygonFiller;
   InvertFiller: TInvertPolygonFiller;
+  LineWidth: Single;
 begin
   FBuffer.Clear(Color32(Color));
 
@@ -982,15 +1036,24 @@ begin
     HueSaturationFiller.Free;
   end;
 
+  LineWidth := FVisualAidOptions.LineWidth;
+
   InvertFiller := TInvertPolygonFiller.Create;
   try
     if vaSaturationCircle in FVisualAid then
     begin
       Polygon := Circle(FCenter, FSaturation * FRadius, -1);
-      if FVisualAidType = vatInvert then
-        PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5)
-      else
-        PolylineFS(FBuffer, Polygon, FVisualAidColor, True, 1.5);
+      case FVisualAidOptions.RenderType of
+        vatInvert:
+          PolylineFS(FBuffer, Polygon, InvertFiller, True, LineWidth);
+        vatBW:
+          if Intensity(FSelectedColor) < 127 then
+            PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
+          else
+            PolylineFS(FBuffer, Polygon, clBlack32, True, LineWidth);
+        else
+          PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, True, LineWidth);
+      end;
     end;
 
     if vaHueLine in FVisualAid then
@@ -1001,10 +1064,17 @@ begin
         FCenter.X - FRadius * Cos(2 * Pi * FHue),
         FCenter.Y - FRadius * Sin(2 * Pi * FHue));
 
-      if FVisualAidType = vatInvert then
-        PolylineFS(FBuffer, Polygon, InvertFiller, False, 1.5)
-      else
-        PolylineFS(FBuffer, Polygon, FVisualAidColor, False, 1.5);
+      case FVisualAidOptions.RenderType of
+        vatInvert:
+          PolylineFS(FBuffer, Polygon, InvertFiller, False, LineWidth);
+        vatBW:
+          if Intensity(FSelectedColor) < 127 then
+            PolylineFS(FBuffer, Polygon, clWhite32, False, LineWidth)
+          else
+            PolylineFS(FBuffer, Polygon, clBlack32, False, LineWidth);
+        else
+          PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, False, LineWidth);
+      end;
     end;
 
     if vaSelection in FVisualAid then
@@ -1014,10 +1084,17 @@ begin
         FCenter.Y - FSaturation * FRadius * Sin(2 * Pi * FHue), 4, 8);
       PolygonFS(FBuffer, Polygon, FSelectedColor);
 
-      if FVisualAidType = vatInvert then
-        PolylineFS(FBuffer, Polygon, InvertFiller, True, 1.5)
-      else
-        PolylineFS(FBuffer, Polygon, FVisualAidColor, True, 1.5);
+      case FVisualAidOptions.RenderType of
+        vatInvert:
+          PolylineFS(FBuffer, Polygon, InvertFiller, True, LineWidth);
+        vatBW:
+          if Intensity(FSelectedColor) < 127 then
+            PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
+          else
+            PolylineFS(FBuffer, Polygon, clBlack32, True, LineWidth);
+        else
+          PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, True, LineWidth);
+      end;
     end;
 
     ValueRect := FloatRect(Width - 24, 8, Width - 8, Height - 8);
@@ -1036,10 +1113,17 @@ begin
     Polygon[0] := FloatPoint(Width - 8, 8 + (1 - FValue) * (Height - 16));
     Polygon[1] := FloatPoint(Polygon[0].X + 7, Polygon[0].Y - 4);
     Polygon[2] := FloatPoint(Polygon[0].X + 7, Polygon[0].Y + 4);
-    if FVisualAidType = vatInvert then
-      PolygonFS(FBuffer, Polygon, InvertFiller)
-    else
-      PolygonFS(FBuffer, Polygon, VisualAidColor);
+    case FVisualAidOptions.RenderType of
+      vatInvert:
+        PolygonFS(FBuffer, Polygon, InvertFiller);
+      vatBW:
+        if Intensity(FSelectedColor) < 127 then
+          PolygonFS(FBuffer, Polygon, clWhite32)
+        else
+          PolygonFS(FBuffer, Polygon, clBlack32);
+      else
+        PolygonFS(FBuffer, Polygon, FVisualAidOptions.Color);
+    end;
   finally
     InvertFiller.Free;
   end;
@@ -1178,7 +1262,8 @@ begin
   inherited Create(AOwner);
 
   FVisualAid := [vagHueLine, vagSelection];
-  FVisualAidType := vatSolid;
+  FVisualAidOptions.RenderType := vatBW;
+  FVisualAidOptions.LineWidth := 2;
   RGBToHSV(FSelectedColor, FHue, FSaturation, FValue);
 
   { Setting a initial size here will cause the control to crash under LCL }
@@ -1195,6 +1280,8 @@ var
   HueFiller: THueCirclePolygonFiller;
   InvertFiller: TInvertPolygonFiller;
   Pos: TFloatPoint;
+  HalfInnerRadius: Single;
+  LineWidth: Single;
 const
   CY = 1.7320508075688772935274463415059;
 begin
@@ -1208,6 +1295,8 @@ begin
     HueFiller.Free;
   end;
 
+  LineWidth := FVisualAidOptions.LineWidth;
+
   if vagHueLine in FVisualAid then
   begin
     SetLength(Polygon, 2);
@@ -1218,17 +1307,19 @@ begin
       FCenter.X - FRadius * Cos(2 * Pi * FHue),
       FCenter.Y - FRadius * Sin(2 * Pi * FHue));
 
-    if FVisualAidType = vatInvert then
-    begin
-      InvertFiller := TInvertPolygonFiller.Create;
-      try
-        PolylineFS(FBuffer, Polygon, InvertFiller, False, 2);
-      finally
-        InvertFiller.Free;
-      end;
-    end
-    else
-      PolylineFS(FBuffer, Polygon, FVisualAidColor, False, 2);
+    case FVisualAidOptions.RenderType of
+      vatSolid, vatBW:
+        PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, False, LineWidth);
+      vatInvert:
+        begin
+          InvertFiller := TInvertPolygonFiller.Create;
+          try
+            PolylineFS(FBuffer, Polygon, InvertFiller, False, LineWidth);
+          finally
+            InvertFiller.Free;
+          end;
+        end;
+    end;
   end;
 
   GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
@@ -1236,14 +1327,16 @@ begin
   Polygon[0] := FloatPoint(
     FCenter.X - FInnerRadius * Pos.X,
     FCenter.Y - FInnerRadius * Pos.Y);
-  Pos := FloatPoint(-0.5 * (Pos.X + CY * Pos.Y), 0.5 * (Pos.X * CY - Pos.Y));
+  HalfInnerRadius := 0.5 * FInnerRadius;
+  Pos := FloatPoint(Pos.X + CY * Pos.Y, Pos.X * CY - Pos.Y);
   Polygon[1] := FloatPoint(
-    FCenter.X - FInnerRadius * Pos.X,
-    FCenter.Y - FInnerRadius * Pos.Y);
-  Pos := FloatPoint(-0.5 * (Pos.X + CY * Pos.Y), 0.5 * (Pos.X * CY - Pos.Y));
+    FCenter.X + HalfInnerRadius * Pos.X,
+    FCenter.Y - HalfInnerRadius * Pos.Y);
+  HalfInnerRadius := 0.5 * HalfInnerRadius;
+  Pos := FloatPoint(Pos.X - CY * Pos.Y, Pos.Y + Pos.X * CY);
   Polygon[2] := FloatPoint(
-    FCenter.X - FInnerRadius * Pos.X,
-    FCenter.Y - FInnerRadius * Pos.Y);
+    FCenter.X - HalfInnerRadius * Pos.X,
+    FCenter.Y + HalfInnerRadius * Pos.Y);
 
   GradientFiller := TBarycentricGradientPolygonFillerEx.Create;
   try
@@ -1266,17 +1359,24 @@ begin
 
     PolygonFS(FBuffer, Polygon, FSelectedColor);
 
-    if FVisualAidType = vatInvert then
-    begin
-      InvertFiller := TInvertPolygonFiller.Create;
-      try
-        PolylineFS(FBuffer, Polygon, InvertFiller, True, 2);
-      finally
-        InvertFiller.Free;
-      end;
+    case FVisualAidOptions.RenderType of
+      vatSolid:
+        PolylineFS(FBuffer, Polygon, FVisualAidOptions.Color, True, LineWidth);
+      vatInvert:
+        begin
+          InvertFiller := TInvertPolygonFiller.Create;
+          try
+            PolylineFS(FBuffer, Polygon, InvertFiller, True, LineWidth);
+          finally
+            InvertFiller.Free;
+          end;
+        end;
+      vatBW:
+        if Intensity(FSelectedColor) < 127 then
+          PolylineFS(FBuffer, Polygon, clWhite32, True, LineWidth)
+        else
+          PolylineFS(FBuffer, Polygon, clBlack32, True, LineWidth)
     end
-    else
-      PolylineFS(FBuffer, Polygon, FVisualAidColor, True, 2);
   end;
 
   inherited;

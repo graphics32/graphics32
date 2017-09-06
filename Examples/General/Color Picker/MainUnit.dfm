@@ -61,7 +61,7 @@ object FormMain: TFormMain
     Top = 8
     Width = 257
     Height = 277
-    ActivePage = TabColorPickerGTK
+    ActivePage = TabColorPickerHSV
     Anchors = [akLeft, akTop, akBottom]
     TabOrder = 0
     object TabColorPickerGTK: TTabSheet
@@ -146,13 +146,13 @@ object FormMain: TFormMain
     OnChange = EditColorChange
     OnKeyPress = EditColorKeyPress
   end
-  object Button1: TButton
+  object ButtonFromScreen: TButton
     Left = 271
     Top = 260
     Width = 79
     Height = 25
     Caption = 'from Screen'
     TabOrder = 5
-    OnClick = Button1Click
+    OnClick = ButtonFromScreenClick
   end
 end
