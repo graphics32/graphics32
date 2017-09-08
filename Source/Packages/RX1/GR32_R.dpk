@@ -42,6 +42,7 @@ contains
   GR32_Brushes in '..\..\GR32_Brushes.pas',
   GR32_ColorGradients in '..\..\GR32_ColorGradients.pas',
   GR32_ColorPicker in '..\..\GR32_ColorPicker.pas',
+  GR32_ColorSwatch in '..\..\GR32_ColorSwatch.pas',
   GR32_Containers in '..\..\GR32_Containers.pas',
   GR32_ExtImage in '..\..\GR32_ExtImage.pas',
   GR32_Filters in '..\..\GR32_Filters.pas',

@@ -262,14 +262,6 @@ object FormMain: TFormMain
     TabOrder = 5
     OnClick = ButtonFromScreenClick
   end
-  object ColorSwatch: TPaintBox32
-    Left = 296
-    Top = 215
-    Width = 25
-    Height = 25
-    TabOrder = 6
-    OnPaintBuffer = ColorSwatchPaintBuffer
-  end
   object SpinEditAlpha: TSpinEdit
     Left = 296
     Top = 116
@@ -278,8 +270,18 @@ object FormMain: TFormMain
     Anchors = [akTop, akRight]
     MaxValue = 255
     MinValue = 0
-    TabOrder = 7
+    TabOrder = 6
     Value = 0
     OnChange = SpinEditColorChange
+  end
+  object ColorSwatch: TColorSwatch
+    Left = 271
+    Top = 207
+    Width = 79
+    Height = 34
+    Border = True
+    Color = -360334
+    ParentBackground = False
+    TabOrder = 7
   end
 end

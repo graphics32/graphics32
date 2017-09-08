@@ -46,7 +46,7 @@ uses
 {$ELSE}
   Consts,
   DesignIntf, DesignEditors, VCLEditors,
-  Windows, Registry, Graphics, Dialogs, Forms,
+  Windows, Registry, Graphics, Dialogs, Forms, Controls,
 {$ENDIF}
   GR32, GR32_Image;
 
@@ -69,6 +69,21 @@ type
     procedure RegisterDefaultColors;
     procedure RemoveColor(const AName: string);
   end;
+
+{$IFDEF COMPILER2010_UP}
+  TColor32Dialog = class(TCommonDialog)
+  private
+    FColor: TColor32;
+    FCustomColors: TStrings;
+    procedure SetCustomColors(Value: TStrings);
+  public
+    function Execute(ParentWnd: HWND): Boolean; override;
+  published
+    property Color: TColor32 read FColor write FColor default clBlack32;
+    property CustomColors: TStrings read FCustomColors write SetCustomColors;
+    property Ctl3D default True;
+  end;
+{$ENDIF}
 
   { TColor32Property }
   TColor32Property = class(TIntegerProperty
@@ -105,6 +120,11 @@ procedure UnregisterColor(const AName: string);
 var ColorManager: TColorManager;
 
 implementation
+
+{$IFDEF COMPILER2010_UP}
+uses
+  GR32_Dsgn_ColorPicker;
+{$ENDIF}
 
 { TColorManager }
 
@@ -386,12 +406,41 @@ begin
 end;
 
 
+{ TColor32Dialog }
+
+{$IFDEF COMPILER2010_UP}
+procedure TColor32Dialog.SetCustomColors(Value: TStrings);
+begin
+  FCustomColors.Assign(Value);
+end;
+
+function TColor32Dialog.Execute(ParentWnd: HWND): Boolean;
+var
+  ColorPicker: TFormColorPicker;
+begin
+  ColorPicker := TFormColorPicker.Create(nil);
+  try
+    ColorPicker.Color := FColor;
+    Result := ColorPicker.ShowModal = mrOK;
+    if Result then
+      FColor := ColorPicker.Color;
+  finally
+    ColorPicker.Free;
+  end;
+end;
+{$ENDIF}
+
+
 { TColor32Property }
 
 {$IFDEF EXT_PROP_EDIT}
 procedure TColor32Property.Edit;
 var
+{$IFDEF COMPILER2010_UP}
+  ColorDialog: TColor32Dialog;
+{$ELSE}
   ColorDialog: TColorDialog;
+{$ENDIF}
   IniFile: TRegIniFile;
 
   procedure GetCustomColors;
@@ -426,14 +475,20 @@ var
 
 begin
   IniFile := nil;
+{$IFDEF COMPILER2010_UP}
+  ColorDialog := TColor32Dialog.Create(Application);
+{$ELSE}
   ColorDialog := TColorDialog.Create(Application);
+{$ENDIF}
   try
     GetCustomColors;
-    ColorDialog.Color := WinColor(GetOrdValue);
+    ColorDialog.Color := GetOrdValue;
     ColorDialog.HelpContext := 25010;
+{$IFDEF COMPILER2010_UP}
     ColorDialog.Options := [cdShowHelp];
+{$ENDIF}
     if ColorDialog.Execute then
-      SetOrdValue(Cardinal(Color32(ColorDialog.Color)));
+      SetOrdValue(Cardinal(ColorDialog.Color));
     SaveCustomColors;
   finally
     IniFile.Free;
@@ -445,7 +500,7 @@ end;
 function TColor32Property.GetAttributes: TPropertyAttributes;
 begin
   Result := [paMultiSelect, {$IFDEF EXT_PROP_EDIT}paDialog,{$ENDIF} paValueList,
-  paRevertable];
+    paRevertable];
 end;
 
 procedure TColor32Property.GetValues(Proc: TGetStrProc);

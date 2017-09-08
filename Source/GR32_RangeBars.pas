@@ -100,13 +100,13 @@ type
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
 {$ENDIF}
   protected
-    GenChange: Boolean;
-    DragZone: TRBZone;
-    HotZone: TRBZone;
-    Timer: TTimer;
-    TimerMode: Integer;
-    StoredX, StoredY: Integer;
-    PosBeforeDrag: Single;
+    FGenChange: Boolean;
+    FDragZone: TRBZone;
+    FHotZone: TRBZone;
+    FTimer: TTimer;
+    FTimerMode: Integer;
+    FStored: TPoint;
+    FPosBeforeDrag: Single;
     procedure DoChange; virtual;
     procedure DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean); virtual;
     procedure DoDrawHandle(R: TRect; Horz: Boolean; Pushed, Hot: Boolean); virtual;
@@ -642,8 +642,8 @@ begin
   Height := 16;
   ParentColor := False;
   Color := clScrollBar;
-  Timer := TTimer.Create(Self);
-  Timer.OnTimer := TimerHandler;
+  FTimer := TTimer.Create(Self);
+  FTimer.OnTimer := TimerHandler;
   FShowArrows := True;
   FBorderStyle := bsSingle;
   FHandleColor := clBtnShadow;
@@ -657,7 +657,7 @@ end;
 procedure TArrowBar.DoChange;
 begin
   if Assigned(FOnChange) then FOnChange(Self);
-  if GenChange and Assigned(FOnUserChange) then FOnUserChange(Self);
+  if FGenChange and Assigned(FOnUserChange) then FOnUserChange(Self);
 end;
 
 procedure TArrowBar.DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean);
@@ -1021,10 +1021,10 @@ procedure TArrowBar.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: In
 begin
   inherited;
   if Button <> mbLeft then Exit;
-  DragZone := GetZone(X, Y);
+  FDragZone := GetZone(X, Y);
   Invalidate;
-  StoredX := X;
-  StoredY := Y;
+  FStored.X := X;
+  FStored.Y := Y;
   StartDragTracking;
 end;
 
@@ -1038,13 +1038,13 @@ var
   NewHotZone: TRBZone;
 begin
   inherited;
-  if (DragZone = zNone) and DrawEnabled then
+  if (FDragZone = zNone) and DrawEnabled then
   begin
     NewHotZone := GetZone(X, Y);
-    if NewHotZone <> HotZone then
+    if NewHotZone <> FHotZone then
     begin
-      HotZone := NewHotZone;
-      if HotZone <> zNone then StartHotTracking;
+      FHotZone := NewHotZone;
+      if FHotZone <> zNone then StartHotTracking;
       Invalidate;
     end;
   end;
@@ -1053,7 +1053,7 @@ end;
 procedure TArrowBar.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   inherited;
-  DragZone := zNone;
+  FDragZone := zNone;
   Invalidate;
   StopDragTracking;
 end;
@@ -1078,12 +1078,12 @@ begin
     { left / top button }
     BtnRect := R;
     with BtnRect do if Horz then Right := Left + BSize else Bottom := Top + BSize;
-    DoDrawButton(BtnRect, CPrevDirs[Horz], DragZone = zBtnPrev, ShowEnabled, HotZone = zBtnPrev);
+    DoDrawButton(BtnRect, CPrevDirs[Horz], FDragZone = zBtnPrev, ShowEnabled, FHotZone = zBtnPrev);
 
     { right / bottom button }
     BtnRect := R;
     with BtnRect do if Horz then Left := Right - BSize else Top := Bottom - BSize;
-    DoDrawButton(BtnRect, CNextDirs[Horz], DragZone = zBtnNext, ShowEnabled, HotZone = zBtnNext);
+    DoDrawButton(BtnRect, CNextDirs[Horz], FDragZone = zBtnNext, ShowEnabled, FHotZone = zBtnNext);
   end;
 
   if Horz then GR32.InflateRect(R, -BSize, 0) else GR32.InflateRect(R, 0, -BSize);
@@ -1091,9 +1091,9 @@ begin
   else HandleRect := Rect(0, 0, 0, 0);
   ShowHandle := not GR32.IsRectEmpty(HandleRect);
 
-  DoDrawTrack(GetZoneRect(zTrackPrev), CPrevDirs[Horz], DragZone = zTrackPrev, ShowEnabled, HotZone = zTrackPrev);
-  DoDrawTrack(GetZoneRect(zTrackNext), CNextDirs[Horz], DragZone = zTrackNext, ShowEnabled, HotZone = zTrackNext);
-  if ShowHandle then DoDrawHandle(HandleRect, Horz, DragZone = zHandle, HotZone = zHandle);
+  DoDrawTrack(GetZoneRect(zTrackPrev), CPrevDirs[Horz], FDragZone = zTrackPrev, ShowEnabled, FHotZone = zTrackPrev);
+  DoDrawTrack(GetZoneRect(zTrackNext), CNextDirs[Horz], FDragZone = zTrackNext, ShowEnabled, FHotZone = zTrackNext);
+  if ShowHandle then DoDrawHandle(HandleRect, Horz, FDragZone = zHandle, FHotZone = zHandle);
 end;
 
 procedure TArrowBar.SetBackgnd(Value: TRBBackgnd);
@@ -1219,18 +1219,18 @@ end;
 
 procedure TArrowBar.StartDragTracking;
 begin
-  Timer.Interval := FIRST_DELAY;
-  TimerMode := tmScroll;
+  FTimer.Interval := FIRST_DELAY;
+  FTimerMode := tmScroll;
   TimerHandler(Self);
-  TimerMode := tmScrollFirst;
-  Timer.Enabled := True;
+  FTimerMode := tmScrollFirst;
+  FTimer.Enabled := True;
 end;
 
 procedure TArrowBar.StartHotTracking;
 begin
-  Timer.Interval := HOTTRACK_INTERVAL;
-  TimerMode := tmHotTrack;
-  Timer.Enabled := True;
+  FTimer.Interval := HOTTRACK_INTERVAL;
+  FTimerMode := tmHotTrack;
+  FTimer.Enabled := True;
 end;
 
 procedure TArrowBar.StopDragTracking;
@@ -1240,8 +1240,8 @@ end;
 
 procedure TArrowBar.StopHotTracking;
 begin
-  Timer.Enabled := False;
-  HotZone := zNone;
+  FTimer.Enabled := False;
+  FHotZone := zNone;
   Invalidate;
 end;
 
@@ -1249,11 +1249,11 @@ procedure TArrowBar.TimerHandler(Sender: TObject);
 var
   Pt: TPoint;
 begin
-  case TimerMode of
+  case FTimerMode of
     tmScrollFirst:
       begin
-        Timer.Interval := SCROLL_INTERVAL;
-        TimerMode := tmScroll;
+        FTimer.Interval := SCROLL_INTERVAL;
+        FTimerMode := tmScroll;
       end;
     tmHotTrack:
       begin
@@ -1431,14 +1431,14 @@ end;
 procedure TCustomRangeBar.MouseDown(Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if Range <= EffectiveWindow then DragZone := zNone
+  if Range <= EffectiveWindow then FDragZone := zNone
   else
   begin
     inherited;
-    if DragZone = zHandle then
+    if FDragZone = zHandle then
     begin
       StopDragTracking;
-      PosBeforeDrag := Position;
+      FPosBeforeDrag := Position;
     end;
   end;
 end;
@@ -1450,12 +1450,12 @@ var
   ClientSz, HandleSz: Integer;
 begin
   inherited;
-  if DragZone = zHandle then
+  if FDragZone = zHandle then
   begin
     WinSz := EffectiveWindow;
 
     if Range <= WinSz then Exit;
-    if Kind = sbHorizontal then Delta := X - StoredX else Delta := Y - StoredY;
+    if Kind = sbHorizontal then Delta := X - FStored.X else Delta := Y - FStored.Y;
 
     if Kind = sbHorizontal then ClientSz := ClientWidth  else ClientSz := ClientHeight;
     Dec(ClientSz, GetButtonSize * 2);
@@ -1465,9 +1465,9 @@ begin
     if HandleSz < MIN_SIZE then Delta := Round(Delta * (Range - WinSz) / (ClientSz - MIN_SIZE))
     else Delta := Delta * Range / ClientSz;
 
-    GenChange := True;
-    Position := PosBeforeDrag + Delta;
-    GenChange := False;
+    FGenChange := True;
+    Position := FPosBeforeDrag + Delta;
+    FGenChange := False;
   end;
 end;
 
@@ -1561,10 +1561,10 @@ var
 
 begin
   inherited;
-  GenChange := True;
+  FGenChange := True;
   OldPosition := Position;
 
-  case DragZone of
+  case FDragZone of
     zBtnPrev:
       begin
         Position := Position - Increment;
@@ -1591,7 +1591,7 @@ begin
         Position := Position - EffectiveWindow;
       end;
   end;
-  GenChange := False;
+  FGenChange := False;
 end;
 
 procedure TCustomRangeBar.UpdateEffectiveWindow;
@@ -1677,10 +1677,10 @@ end;
 procedure TCustomGaugeBar.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   inherited;
-  if DragZone = zHandle then
+  if FDragZone = zHandle then
   begin
     StopDragTracking;
-    PosBeforeDrag := Position;
+    FPosBeforeDrag := Position;
   end;
 end;
 
@@ -1691,9 +1691,9 @@ var
   ClientSz: Integer;
 begin
   inherited;
-  if DragZone = zHandle then
+  if FDragZone = zHandle then
   begin
-    if Kind = sbHorizontal then Delta := X - StoredX else Delta := Y - StoredY;
+    if Kind = sbHorizontal then Delta := X - FStored.X else Delta := Y - FStored.Y;
     R := GetTrackBoundary;
 
     if Kind = sbHorizontal then ClientSz := R.Right - R.Left
@@ -1701,9 +1701,9 @@ begin
 
     Delta := Delta * (Max - Min) / (ClientSz - GetHandleSize);
 
-    GenChange := True;
-    Position := Round(PosBeforeDrag + Delta);
-    GenChange := False;
+    FGenChange := True;
+    Position := Round(FPosBeforeDrag + Delta);
+    FGenChange := False;
   end;
 end;
 
@@ -1779,10 +1779,10 @@ var
 
 begin
   inherited;
-  GenChange := True;
+  FGenChange := True;
   OldPosition := Position;
 
-  case DragZone of
+  case FDragZone of
     zBtnPrev:
       begin
         Position := Position - SmallChange;
@@ -1809,7 +1809,7 @@ begin
         Position := Position - LargeChange;
       end;
   end;
-  GenChange := False;
+  FGenChange := False;
 end;
 
 { TArrowBarAccess }

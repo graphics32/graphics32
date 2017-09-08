@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, Spin, ComCtrls, ExtCtrls, GR32, GR32_ColorPicker, GR32_Image;
+  StdCtrls, Spin, ComCtrls, ExtCtrls, GR32, GR32_ColorPicker, GR32_ColorSwatch;
 
 type
   TFormMain = class(TForm)
@@ -16,7 +16,6 @@ type
     ColorPickerHSV: TColorPickerHSV;
     ColorPickerRed: TColorPickerComponent;
     ColorPickerRGBA: TColorPickerRGBA;
-    ColorSwatch: TPaintBox32;
     EditColor: TEdit;
     LabelAlpha: TLabel;
     LabelBlue: TLabel;
@@ -37,12 +36,12 @@ type
     TabColorPickerHSV: TTabSheet;
     TabColorPickerRGBA: TTabSheet;
     TabSheetComponents: TTabSheet;
+    ColorSwatch: TColorSwatch;
     procedure FormCreate(Sender: TObject);
     procedure ButtonFromScreenClick(Sender: TObject);
     procedure ColorPickerGTKChanged(Sender: TObject);
     procedure ColorPickerHSVChanged(Sender: TObject);
     procedure ColorPickerRGBAChanged(Sender: TObject);
-    procedure ColorSwatchPaintBuffer(Sender: TObject);
     procedure EditColorChange(Sender: TObject);
     procedure EditColorKeyPress(Sender: TObject; var Key: Char);
     procedure SpinEditColorChange(Sender: TObject);
@@ -52,7 +51,6 @@ type
     procedure ColorPickerAlphaChanged(Sender: TObject);
   private
     FColor: TColor32;
-    FEditHasFocus: Boolean;
     FScreenColorPickerForm: TScreenColorPickerForm;
     procedure UpdateColor;
     procedure ScreenColorPickerMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -132,30 +130,6 @@ begin
   end;
 end;
 
-procedure TFormMain.ColorSwatchPaintBuffer(Sender: TObject);
-var
-  Right: Integer;
-  ScanLine: PColor32Array;
-  X, Y: Integer;
-  OddY: Boolean;
-const
-  CCheckerBoardColor: array [Boolean] of TColor32 = ($FFA0A0A0, $FF5F5F5F);
-begin
-  if not (FColor and $FF000000 = $FF000000) then
-  begin
-    for Y := 0 to ColorSwatch.Height - 1 do
-    begin
-      ScanLine := ColorSwatch.Buffer.Scanline[Y];
-      OddY := Odd(Y shr 2);
-      for X := 0 to ColorSwatch.Width - 1 do
-        ScanLine[X] := CCheckerBoardColor[Odd(X shr 2) = OddY];
-    end;
-  end;
-  ColorSwatch.Buffer.FillRectT(0, 0, ColorSwatch.Width, ColorSwatch.Height, FColor);
-  ColorSwatch.Buffer.FrameRectTS(0, 0, ColorSwatch.Width, ColorSwatch.Height, $DF000000);
-  ColorSwatch.Buffer.RaiseRectTS(1, 1, ColorSwatch.Width - 1, ColorSwatch.Height - 1, 20);
-end;
-
 procedure TFormMain.EditColorChange(Sender: TObject);
 var
   ColorText: string;
@@ -208,9 +182,10 @@ begin
   ColorPickerGreen.SelectedColor := FColor;
   ColorPickerBlue.SelectedColor := FColor;
   ColorPickerAlpha.SelectedColor := FColor;
-  Color32ToRGBA(FColor, R, G, B, A);
+  ColorSwatch.Color := FColor;
 
   // update spin edits
+  Color32ToRGBA(FColor, R, G, B, A);
   SpinEditRed.Value := R;
   SpinEditGreen.Value := G;
   SpinEditBlue.Value := B;
@@ -227,9 +202,6 @@ begin
   SpinEditBlue.OnChange := SpinEditColorChange;
   SpinEditAlpha.OnChange := SpinEditColorChange;
   EditColor.OnChange := EditColorChange;
-
-  // invalidate color swatch
-  ColorSwatch.Invalidate;
 end;
 
 end.
