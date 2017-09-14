@@ -13,6 +13,7 @@ uses
   DelphiParse in 'DelphiParse.pas';
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
