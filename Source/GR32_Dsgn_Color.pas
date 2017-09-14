@@ -484,7 +484,7 @@ begin
     GetCustomColors;
     ColorDialog.Color := GetOrdValue;
     ColorDialog.HelpContext := 25010;
-{$IFDEF COMPILER2010_UP}
+{$IFNDEF COMPILER2010_UP}
     ColorDialog.Options := [cdShowHelp];
 {$ENDIF}
     if ColorDialog.Execute then
