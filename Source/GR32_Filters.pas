@@ -185,7 +185,7 @@ begin
     DstX := Clamp(DstX, 0, Width);
     DstY := Clamp(DstY, 0, Height);
 
-    DstRect.TopLeft := Point(DstX, DstY);
+    DstRect.TopLeft := GR32.Point(DstX, DstY);
     DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
     DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
 
@@ -484,7 +484,7 @@ begin
     DstX := Clamp(DstX, 0, Width);
     DstY := Clamp(DstY, 0, Height);
 
-    DstRect.TopLeft := Point(DstX, DstY);
+    DstRect.TopLeft := GR32.Point(DstX, DstY);
     DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
     DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
 

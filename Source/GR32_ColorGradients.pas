@@ -37,7 +37,7 @@ interface
 
 uses
   Types, Classes, SysUtils, Math, GR32, GR32_Polygons,
-  GR32_VectorUtils;
+  GR32_VectorUtils, GR32_Blend;
 
 type
   TColor32GradientStop = record
@@ -671,7 +671,7 @@ type
 implementation
 
 uses
-  GR32_Blend, GR32_LowLevel, GR32_System, GR32_Math, GR32_Bindings,
+  GR32_LowLevel, GR32_System, GR32_Math, GR32_Bindings,
   GR32_Geometry;
 
 resourcestring

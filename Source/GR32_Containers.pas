@@ -45,7 +45,7 @@ uses
   Types,
   {$ENDIF}
 {$ELSE}
-  Windows,
+  Types, Windows,
 {$ENDIF}
   RTLConsts,
   GR32, SysUtils, Classes, TypInfo;
