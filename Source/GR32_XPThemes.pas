@@ -228,14 +228,14 @@ var
 
 constructor TThemeNexus.Create;
 begin
-  FWindowHandle := Classes.AllocateHWnd(WndProc);
+  FWindowHandle := AllocateHWnd(WndProc);
   OpenVisualStyles;
 end;
 
 destructor TThemeNexus.Destroy;
 begin
   CloseVisualStyles;
-  Classes.DeallocateHWnd(FWindowHandle);
+  DeallocateHWnd(FWindowHandle);
   inherited;
 end;
 

@@ -5164,7 +5164,7 @@ begin
   end
   else
   begin
-    Stream.Seek(-SizeOf(TBmpHeader), soFromCurrent);
+    Stream.Seek(-SizeOf(TBmpHeader), soCurrent);
     B := TBitmap.Create;
     try
       B.LoadFromStream(Stream);
@@ -5238,7 +5238,7 @@ begin
     if Header.bfType = $4D42 then
     begin
       // if it is, use our stream read method...
-      FileStream.Seek(-SizeOf(TBmpHeader), soFromCurrent);
+      FileStream.Seek(-SizeOf(TBmpHeader), soCurrent);
       LoadFromStream(FileStream);
       Exit;
     end
@@ -5274,7 +5274,7 @@ var
 begin
   B := TBitmap.Create;
   try
-    B.LoadFromResourceID(Instance, ResID);
+//    B.LoadFromResourceID(Instance, ResID);
     Assign(B);
   finally
     B.Free;

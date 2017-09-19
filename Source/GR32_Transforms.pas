@@ -739,6 +739,9 @@ function TNestedTransformation.Add(
   ItemClass: TTransformationClass): TTransformation;
 begin
   Result := ItemClass.Create;
+  {$IFDEF NEXTGEN}
+  Result.__ObjAddRef;
+  {$ENDIF}
   FItems.Add(Result);
 end;
 

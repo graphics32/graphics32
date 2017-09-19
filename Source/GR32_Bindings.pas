@@ -115,6 +115,9 @@ begin
   if Registers = nil then
     Registers := TList.Create;
   Result := TFunctionRegistry.Create;
+  {$IFDEF NEXTGEN}
+  Result.__ObjAddRef;
+  {$ENDIF}
   Result.Name := Name;
   Registers.Add(Result);
 end;

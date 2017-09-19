@@ -46,7 +46,8 @@
 
 *)
 
-  {-$DEFINE PUREPASCAL}
+  {$DEFINE WINDOWS}
+  {$DEFINE PUREPASCAL}
 
 
 
