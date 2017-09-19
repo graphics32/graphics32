@@ -1,3 +1,6 @@
+# Graphics32 for CrossVcl
+This fork has modification which allow to use Graphics32 together with CrossVcl (http://www.crossvcl.com) to build VCL application dfor macOS and Linux using Delphi.
+
 # Graphics32
 Graphics32 is a graphics library for Delphi and Lazarus. Optimized for 32-bit pixel formats, it provides fast operations with pixels and graphic primitives. In most cases Graphics32 considerably outperforms the standard TBitmap/TCanvas methods.
 
