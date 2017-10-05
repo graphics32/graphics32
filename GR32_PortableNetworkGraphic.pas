@@ -5013,7 +5013,7 @@ begin
 
     // read chunk ID
     Read(ChunkName, 4);
-    if ChunkName <> '‰PNG' then
+    if ChunkName <> #$89+'PNG' then
       raise EPngError.Create(RCStrNotAValidPNGFile);
 
     // read PNG magic
