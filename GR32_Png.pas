@@ -595,7 +595,7 @@ end;
 procedure TPortableNetworkGraphic32.AssignPropertiesFromBitmap32(
   Bitmap32: TCustomBitmap32);
 var
-  Index: Integer;
+  Index, PalIndex: Integer;
   IsAlpha: Boolean;
   IsGrayScale: Boolean;
   IsPalette: Boolean;
@@ -620,7 +620,7 @@ begin
 
     // check every pixel in the bitmap for the use of the alpha channel,
     // whether the image is grayscale or whether the colors can be stored
-    // as a palette (and build the palette at the same time
+    // as a palette (and build the palette at the same time)
     for Index := 0 to Width * Height - 1 do
     begin
       Color := Bits[Index];
@@ -660,10 +660,11 @@ begin
           if IsPalette then
             if (Length(TempPalette) < 256) then
             begin
+              PalIndex := Length(TempPalette);
               SetLength(TempPalette, Length(TempPalette) + 1);
-              TempPalette[Length(TempPalette) - 1].R := TColor32Entry(Color).R;
-              TempPalette[Length(TempPalette) - 1].G := TColor32Entry(Color).G;
-              TempPalette[Length(TempPalette) - 1].B := TColor32Entry(Color).B;
+              TempPalette[PalIndex].R := TColor32Entry(Color).R;
+              TempPalette[PalIndex].G := TColor32Entry(Color).G;
+              TempPalette[PalIndex].B := TColor32Entry(Color).B;
               if IsGrayScale and not
                 ((TColor32Entry(Color).R = TColor32Entry(Color).G) and
                 (TColor32Entry(Color).B = TColor32Entry(Color).G)) then
