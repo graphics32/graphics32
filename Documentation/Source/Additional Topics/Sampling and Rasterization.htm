@@ -17,7 +17,7 @@
 <p class="Body">For further details about resampling, see <a href="../Examples.htm#Resamplers%20Example">Resamplers_Ex</a> example project.</p>
 <h2 class="Body">Rasterization</h2>
 <p class="Body">By <em>rasterizing</em> an image, we collect  samples for each pixel of an output bitmap. The <em>rasterizer</em> is responsible for the order in which output pixels are sampled and how the destination bitmap is updated. A rasterizer class is derived from <a href="../Units/GR32_Rasterizers/Classes/TRasterizer/_Body.htm">TRasterizer</a>, by overriding the protected <em>DoRasterize</em> method. </p>
-<p class="Body"> Instances of TRasterizer needs to be associated with a sampler and an output destination bitmap. Some rasterization schemes, such as <em>swizzling</em>, may improve cache-performance for certain applications, since samples are collected in a local neighborhood rather than row by row. Rasterizers can also provide various transition effects for creating transitions between bitmaps. </p>
+<p class="Body">Instances of TRasterizer need to be associated with a sampler and an output destination bitmap. Some rasterization schemes, such as <em>swizzling</em>, may improve cache-performance for certain applications, since samples are collected in a local neighborhood rather than row by row. Rasterizers can also provide various transition effects for creating transitions between bitmaps. </p>
 <p class="Body">Graphics32 includes the following rasterizers:</p>
 <ul>
   <li><a href="../Units/GR32_Rasterizers/Classes/TRegularRasterizer/_Body.htm">TRegularRasterizer</a> &#8212; rasterizes the bitmap row by row;</li>
