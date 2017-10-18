@@ -93,6 +93,7 @@ type
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); virtual;
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); virtual;
   public
+    constructor Create; virtual;
     procedure Changed; override;
     function HasTransformedBounds: Boolean; virtual;
     function GetTransformedBounds: TFloatRect; overload;
@@ -121,7 +122,7 @@ type
     procedure TransformFixed(SrcX, SrcY: TFixed; out DstX, DstY: TFixed); override;
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     function Add(ItemClass: TTransformationClass): TTransformation;
     procedure Clear;
@@ -151,7 +152,7 @@ type
     FStack: ^TFloatMatrix;
     FStackLevel: Integer;
   public
-    constructor Create; virtual;
+    constructor Create; override;
 
     function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
     procedure Push;
@@ -206,7 +207,7 @@ type
     procedure PrepareTransform; override;
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   public
-    constructor Create; virtual;
+    constructor Create; override;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
   published
     property Twirl: TFloat read FTwirl write SetTwirl;
@@ -223,7 +224,7 @@ type
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
     procedure TransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
   public
-    constructor Create; virtual;
+    constructor Create; override;
   published
     property BloatPower: TFloat read FBloatPower write SetBloatPower;
   end;
@@ -313,7 +314,7 @@ type
     procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
   public
-    constructor Create; virtual;
+    constructor Create; override;
     destructor Destroy; override;
     function HasTransformedBounds: Boolean; override;
     function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
@@ -609,6 +610,11 @@ procedure TTransformation.Changed;
 begin
   TransformValid := False;
   inherited;
+end;
+
+constructor TTransformation.Create;
+begin
+  // virtual constructor to be overriden in derived classes
 end;
 
 function TTransformation.GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect;
