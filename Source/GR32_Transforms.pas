@@ -663,7 +663,7 @@ end;
 procedure TTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
   out SrcX, SrcY: TFloat);
 begin
-  // ReverseTransformFloat is the top precisionlevel, all decendants must override at least this level!
+  // ReverseTransformFloat is the top precisionlevel, all descendants must override at least this level!
   raise ETransformNotImplemented.CreateFmt(RCStrReverseTransformationNotImplemented, [Self.Classname]);
 end;
 
@@ -713,7 +713,7 @@ end;
 
 procedure TTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat);
 begin
-  // TransformFloat is the top precisionlevel, all decendants must override at least this level!
+  // TransformFloat is the top precisionlevel, all descendants must override at least this level!
   raise ETransformNotImplemented.CreateFmt(RCStrForwardTransformationNotImplemented, [Self.Classname]);
 end;
 
