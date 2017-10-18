@@ -39,6 +39,7 @@ interface
 {$I GR32.inc}
 
 uses
+  FastMM4,
   {$IFDEF FPC} LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   TypInfo, SimplePropEdit, ComCtrls, Menus, ToolWin, ImgList, Buttons, ExtDlgs,
@@ -308,12 +309,19 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 var
-  I: Integer;
+  I: Integer; C: TCustomSampler;
 begin
-  for I := 0 to Samplers.Count - 1 do
-    if not Assigned(Samplers[I]) then TCustomSampler(Samplers[I]).Free;
+  for I := 0 to Samplers.Count - 1 do begin
+    C := Samplers[I];
+    if C is TTransformer then
+      (C as TTransformer).Transformation.Free;
+    C.Free;
+  end;
   Samplers.Clear;
   Samplers.Free;
+  FreeAndNil(RenderThread);
+  FreeAndNil(Rasterizer);
+  FreeAndNil(Source);
 end;
 
 procedure TMainForm.lvSamplersSelectItem(Sender: TObject; Item: TListItem;
