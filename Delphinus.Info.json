@@ -3,7 +3,7 @@
 	"picture": "Examples\\Media\\GR32.png",
 	"license_type": "MPL-1.1;LGPL-2.1",
 	"license_file": "Source/License.txt",
-	"platforms": "Win32;Win64;OSX32",
+	"platforms": "Win32;Win64",
 	"package_compiler_min": 21,
 	"compiler_min": 21
 }
