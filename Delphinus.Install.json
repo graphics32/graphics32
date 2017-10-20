@@ -64,6 +64,11 @@
 			"project": "Source\\Packages\\RX1\\GR32.groupproj",
 			"compiler_min": 31,
 			"compiler_max": 31
+		},
+		{
+			"project": "Source\\Packages\\RX2\\GR32.groupproj",
+			"compiler_min": 32,
+			"compiler_max": 32
 		}
 	]
 }
