@@ -3,6 +3,7 @@ program DocProcessorC;
 {$APPTYPE CONSOLE}
 
 uses
+  FastMM4,
   Forms,
   MainUnit in 'MainUnit.pas' {MainForm},
   HTML_Tags in 'HTML_Tags.pas',
@@ -15,6 +16,7 @@ uses
 {$R *.RES}
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
