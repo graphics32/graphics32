@@ -1,13 +1,14 @@
 *.cfg
 *.dcu
 *.dof
+*.drc
 *.dsk
 *.exe
 *.identcache
 *.local
+*.map
 *.res
-/DocProcessor/DocProcessor.drc
-/DocProcessor/*.map
+*.rsm
 /DocProcessor/Properties.ini
 /Examples/*.tvsconfig
 /Documentation/Docs
@@ -16,3 +17,5 @@
 /Documentation/graphics32.hhc
 /Documentation/graphics32.hhk
 /Documentation/graphics32.hhp
+Win32
+Win64

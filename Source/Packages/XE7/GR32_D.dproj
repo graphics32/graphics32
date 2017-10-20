@@ -43,7 +43,7 @@
         <DCC_F>false</DCC_F>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;Winapi;System.Win;$(DCC_Namespace)</DCC_Namespace>
-        <DllSuffix>XE3</DllSuffix>
+        <DllSuffix>XE7</DllSuffix>
         <GenPackage>true</GenPackage>
         <DCC_Description>Graphics32 Design Time Package</DCC_Description>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
@@ -79,13 +79,13 @@
         <DCCReference Include="Vcl.dcp"/>
         <DCCReference Include="VclSmp.dcp"/>
         <DCCReference Include="GR32_R.dcp"/>
-        <DCCReference Include="..\..\GR32_Dsgn_Bitmap.pas">
+        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_Bitmap.pas">
             <Form>PictureEditorForm</Form>
         </DCCReference>
-        <DCCReference Include="..\..\GR32_Reg.pas"/>
-        <DCCReference Include="..\..\GR32_Dsgn_Color.pas"/>
-        <DCCReference Include="..\..\GR32_Dsgn_ColorPicker.pas"/>
-        <DCCReference Include="..\..\GR32_Dsgn_Misc.pas"/>
+        <DCCReference Include="..\XE3\..\..\GR32_Reg.pas"/>
+        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_Color.pas"/>
+        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_ColorPicker.pas"/>
+        <DCCReference Include="..\XE3\..\..\GR32_Dsgn_Misc.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
