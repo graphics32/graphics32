@@ -44,9 +44,9 @@ interface
 
 uses
   {$IFDEF FPC} LCLIntf, LCLType, Types, {$ELSE}
-  {$IFDEF COMPILERXE2_UP}Types, {$ENDIF} Windows, {$ENDIF}
+  {$IFDEF COMPILERXE2_UP}UITypes, Types, {$ENDIF} Windows, {$ENDIF}
   Controls, Graphics, Classes, SysUtils;
-  
+
 { Version Control }
 
 const
@@ -1079,7 +1079,7 @@ var
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
   RCStrCannotSetSize = 'Can''t set size from ''%s''';
-  RCStrInpropriateBackend = 'Inpropriate Backend';
+  RCStrInpropriateBackend = 'Inappropriate Backend';
 
 implementation
 
