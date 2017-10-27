@@ -3895,7 +3895,7 @@ begin
           Inc(xd);
           Inc(e, Dy2);
         end;
-        CheckAux := False; // to avoid ugly labels we set this to omit the next check
+        CheckAux := False; // to avoid ugly goto we set this to omit the next check
       end;
     end;
 
@@ -3915,24 +3915,24 @@ begin
       end;
     end;
 
-    // set auxiliary var to indicate that temp is not clipped, since
-    // temp still has the unclipped value assigned at setup.
+    // set auxiliary var to indicate that term is not clipped, since
+    // term still has the unclipped value assigned at setup.
     CheckAux := False;
 
     // is the segment exiting the clipping rect?
     if Y2 > Cy2 then
     begin
-      OC := Dx2 * (Cy2 - Y1) + Dx;
+      OC := Int64(Dx2) * (Cy2 - Y1) + Dx;
       term := X1 + OC div Dy2;
       rem := OC mod Dy2;
       if rem = 0 then Dec(term);
-      CheckAux := True; // set auxiliary var to indicate that temp is clipped
+      CheckAux := True; // set auxiliary var to indicate that term is clipped
     end;
 
     if term > Cx2 then
     begin
       term := Cx2;
-      CheckAux := True; // set auxiliary var to indicate that temp is clipped
+      CheckAux := True; // set auxiliary var to indicate that term is clipped
     end;
 
     Inc(term);
@@ -3960,7 +3960,7 @@ begin
       P := @Bits[xd + yd * Width];
     end;
 
-    // do we need to skip the last pixel of the line and is temp not clipped?
+    // do we need to skip the last pixel of the line and is term not clipped?
     if not(L or CheckAux) then
     begin
       if xd < term then
@@ -4164,7 +4164,7 @@ begin
           Inc(xd);
           Inc(e, Dy2);
         end;
-        CheckAux := False; // to avoid ugly labels we set this to omit the next check
+        CheckAux := False; // to avoid ugly goto we set this to omit the next check
       end;
     end;
 
@@ -4184,8 +4184,8 @@ begin
       end;
     end;
 
-    // set auxiliary var to indicate that temp is not clipped, since
-    // temp still has the unclipped value assigned at setup.
+    // set auxiliary var to indicate that term is not clipped, since
+    // term still has the unclipped value assigned at setup.
     CheckAux := False;
 
     // is the segment exiting the clipping rect?
@@ -4195,13 +4195,13 @@ begin
       term := X1 + OC div Dy2;
       rem := OC mod Dy2;
       if rem = 0 then Dec(term);
-      CheckAux := True; // set auxiliary var to indicate that temp is clipped
+      CheckAux := True; // set auxiliary var to indicate that term is clipped
     end;
 
     if term > Cx2 then
     begin
       term := Cx2;
-      CheckAux := True; // set auxiliary var to indicate that temp is clipped
+      CheckAux := True; // set auxiliary var to indicate that term is clipped
     end;
 
     Inc(term);
@@ -4229,7 +4229,7 @@ begin
       P := @Bits[xd + yd * Width];
     end;
 
-    // do we need to skip the last pixel of the line and is temp not clipped?
+    // do we need to skip the last pixel of the line and is term not clipped?
     if not(L or CheckAux) then
     begin
       if xd < term then
@@ -4584,7 +4584,7 @@ end;
 procedure TCustomBitmap32.LineAS(X1, Y1, X2, Y2: Integer; Value: TColor32; L: Boolean);
 var
   Cx1, Cx2, Cy1, Cy2, PI, Sx, Sy, Dx, Dy, xd, yd, rem, term, tmp: Integer;
-  CheckVert, CornerAA, TempClipped: Boolean;
+  CheckVert, CornerAA, TermClipped: Boolean;
   D1, D2: PInteger;
   EC, EA, ED, D: Word;
   CI: Byte;
@@ -4748,7 +4748,7 @@ begin
 
         if Sy = -1 then yd := -yd;  // negate back
         xd := rem;  // restore old xd
-        CheckVert := False; // to avoid ugly labels we set this to omit the next check
+        CheckVert := False; // to avoid ugly goto we set this to omit the next check
       end;
     end;
 
@@ -4766,7 +4766,7 @@ begin
     end;
 
     term := X2;
-    TempClipped := False;
+    TermClipped := False;
     CheckVert := False;
 
     // horizontal exit?
@@ -4789,13 +4789,13 @@ begin
         CheckVert := True;
       end;
 
-      TempClipped := True;
+      TermClipped := True;
     end;
 
     if term > Cx2 then
     begin
       term := Cx2;
-      TempClipped := True;
+      TermClipped := True;
     end;
 
     Inc(term);
@@ -4811,8 +4811,8 @@ begin
     // draw line
     if not CornerAA then
     try
-      // do we need to skip the last pixel of the line and is temp not clipped?
-      if not(L or TempClipped) and not CheckVert then
+      // do we need to skip the last pixel of the line and is term not clipped?
+      if not(L or TermClipped) and not CheckVert then
       begin
         if xd < term then
           Dec(term)
