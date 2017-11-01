@@ -1451,7 +1451,7 @@ begin
     with Location do
     begin
       ALoc := GetAdjustedRect(FLocation);
-      if IsRectEmpty(ALoc) then Exit;
+      if GR32.IsRectEmpty(ALoc) then Exit;
       Mx := (Mx - ALoc.Left) / (ALoc.Right - ALoc.Left) * (Right - Left) + Left;
       My := (My - ALoc.Top) / (ALoc.Bottom - ALoc.Top) * (Bottom - Top) + Top;
     end;
