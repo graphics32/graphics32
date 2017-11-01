@@ -44,7 +44,7 @@ uses
   Windows,
   {$ENDIF}
 {$ELSE}
-  Windows, Messages,
+  Windows, Messages, Types,
 {$ENDIF}
   Classes, Controls, Forms, GR32, GR32_Polygons, GR32_Containers,
   GR32_ColorGradients;
@@ -1048,9 +1048,8 @@ var
   end;
 
 var
-  X, Y, Index: Integer;
+  X, Y: Integer;
   ScanLine: PColor32Array;
-  ComponentHeight: Integer;
   Value: Single;
   LeftColor, RightColor: TColor32Entry;
   OddY: Boolean;
@@ -1274,7 +1273,6 @@ var
 var
   X, Y, Index: Integer;
   ScanLine: PColor32Array;
-  ComponentHeight: Integer;
   Value: Single;
   LeftColor, RightColor: TColor32Entry;
   ValueRect: TRect;
