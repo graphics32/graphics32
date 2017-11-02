@@ -1103,7 +1103,7 @@ asm
         CMP     EDX,2       // if count < 2, exit
         JL      @END
 
-        MOV     EAX,ECX
+        MOV     RAX,RCX
         MOV     ECX,EDX
 
         CMP     ECX,32      // if count < 32, avoid SSE2 overhead
@@ -1122,7 +1122,7 @@ asm
         SAR     ECX,2        // div with 4 to get cnt
         SUB     EDX,ECX
 
-        ADD     EAX,4
+        ADD     RAX,4
         DEC     ECX
         JZ      @SETUPLAST   // one element
 
@@ -1130,7 +1130,7 @@ asm
         FLD     DWORD PTR [RAX - 4]
         FADD    DWORD PTR [RAX]
         FSTP    DWORD PTR [RAX]
-        ADD     EAX,4
+        ADD     RAX,4
         DEC     ECX
         JNZ     @ALIGNINGLOOP
 
@@ -1168,7 +1168,7 @@ asm
 @SKIP:
         PREFETCHNTA [RAX + 32 * 2]
         MOVAPS  [RAX],XMM0
-        ADD     EAX,16
+        ADD     RAX,16
         SUB     ECX,1
         JNZ     @LOOP
         MOV     ECX,EDX
@@ -1182,20 +1182,19 @@ asm
         FLD     DWORD PTR [RAX - 4]
         FADD    DWORD PTR [RAX]
         FSTP    DWORD PTR [RAX]
-        ADD     EAX,4
+        ADD     RAX,4
         DEC     ECX
         JNZ     @LOOP2
         JMP     @END
 
 @SMALL:
-        MOV     ECX,EDX
-        ADD     EAX,4
+        ADD     RAX,4
         DEC     ECX
 @LOOP3:
         FLD     DWORD PTR [RAX - 4]
         FADD    DWORD PTR [RAX]
         FSTP    DWORD PTR [RAX]
-        ADD     EAX,4
+        ADD     RAX,4
         DEC     ECX
         JNZ     @LOOP3
 {$ENDIF}
