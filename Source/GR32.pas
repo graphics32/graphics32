@@ -290,8 +290,11 @@ type
   // This type has data bits arrangement compatible with Windows.TFixed
   PFixed = ^TFixed;
   TFixed = type Integer;
+  {$NODEFINE TFixed}
 
+  {$NODEFINE PFixedRec}
   PFixedRec = ^TFixedRec;
+  {$NODEFINE TFixedRec}
   TFixedRec = packed record
     case Integer of
       0: (Fixed: TFixed);
@@ -462,13 +465,22 @@ type
 {$ENDIF}
 
   PFloatRect = ^TFloatRect;
+  {$NODEFINE TFloatRect}
+  (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
+  (*$HPPEMIT 'namespace Gr32 {'*)
+  (*$HPPEMIT 'BOOST_STRONG_TYPEDEF(int, TFixed)'*)
+  (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
+  (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
+  (*$HPPEMIT '} // namespace Gr32 '*)
   TFloatRect = packed record
     case Integer of
       0: (Left, Top, Right, Bottom: TFloat);
       1: (TopLeft, BottomRight: TFloatPoint);
   end;
 
+  {$NODEFINE PFixedRect}
   PFixedRect = ^TFixedRect;
+  {$NODEFINE TFixedRect}
   TFixedRect = packed record
     case Integer of
       0: (Left, Top, Right, Bottom: TFixed);

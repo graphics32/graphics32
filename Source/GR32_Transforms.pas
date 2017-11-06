@@ -47,7 +47,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  SysUtils, Classes, GR32, GR32_VectorMaps, GR32_Rasterizers;
+  SysUtils, Classes, Types, GR32, GR32_VectorMaps, GR32_Rasterizers;
 
 type
   ETransformError = class(Exception);
@@ -171,14 +171,10 @@ type
   private
     FQuadX: array [0..3] of TFloat;
     FQuadY: array [0..3] of TFloat;
-    procedure SetX0(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetX1(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetX2(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetX3(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetY0(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetY1(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetY2(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
-    procedure SetY3(Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetX(Index: Integer; const Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    procedure SetY(Index: Integer; const Value: TFloat); {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetX(Index: Integer): TFloat; {$IFDEF UseInlining} inline; {$ENDIF}
+    function GetY(Index: Integer): TFloat; {$IFDEF UseInlining} inline; {$ENDIF}
   protected
     procedure PrepareTransform; override;
     procedure ReverseTransformFixed(DstX, DstY: TFixed; out SrcX, SrcY: TFixed); override;
@@ -187,15 +183,17 @@ type
     procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
   public
     function GetTransformedBounds(const ASrcRect: TFloatRect): TFloatRect; override;
+    property X[Index: Integer]: TFloat read GetX write SetX;
+    property Y[index: Integer]: TFloat read GetX write SetY;
   published
-    property X0: TFloat read FQuadX[0] write SetX0;
-    property X1: TFloat read FQuadX[1] write SetX1;
-    property X2: TFloat read FQuadX[2] write SetX2;
-    property X3: TFloat read FQuadX[3] write SetX3;
-    property Y0: TFloat read FQuadY[0] write SetY0;
-    property Y1: TFloat read FQuadY[1] write SetY1;
-    property Y2: TFloat read FQuadY[2] write SetY2;
-    property Y3: TFloat read FQuadY[3] write SetY3;
+    property X0: TFloat index 0 read GetX write SetX;
+    property X1: TFloat index 1 read GetX write SetX;
+    property X2: TFloat index 2 read GetX write SetX;
+    property X3: TFloat index 3 read GetX write SetX;
+    property Y0: TFloat index 0 read GetY write SetY;
+    property Y1: TFloat index 1 read GetY write SetY;
+    property Y2: TFloat index 2 read GetY write SetY;
+    property Y3: TFloat index 3 read GetY write SetY;
   end;
 
   TTwirlTransformation = class(TTransformation)
@@ -555,7 +553,7 @@ var
   DstRect: TRect;
   Transformer: TTransformer;
 begin
-  IntersectRect(DstRect, DstClip, Dst.ClipRect);
+  GR32.IntersectRect(DstRect, DstClip, Dst.ClipRect);
 
   if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
@@ -577,7 +575,7 @@ procedure SetBorderTransparent(ABitmap: TCustomBitmap32; ARect: TRect);
 var
   I: Integer;
 begin
-  IntersectRect(ARect, ARect, ABitmap.BoundsRect);
+  GR32.IntersectRect(ARect, ARect, ABitmap.BoundsRect);
   with ARect, ABitmap do
   if (Right > Left) and (Bottom > Top) and
     (Left < ClipRect.Right) and (Top < ClipRect.Bottom) and
@@ -1046,6 +1044,16 @@ begin
   Result.Bottom := Max(Max(FQuadY[0], FQuadY[1]), Max(FQuadY[2], FQuadY[3]));
 end;
 
+function TProjectiveTransformation.GetX(Index: Integer): TFloat;
+begin
+  Result := FQuadX[Index];
+end;
+
+function TProjectiveTransformation.GetY(Index: Integer): TFloat;
+begin
+  Result := FQuadY[Index];
+end;
+
 procedure TProjectiveTransformation.PrepareTransform;
 var
   dx1, dx2, px, dy1, dy2, py: TFloat;
@@ -1116,51 +1124,15 @@ begin
   inherited;
 end;
 
-procedure TProjectiveTransformation.SetX0(Value: TFloat);
+procedure TProjectiveTransformation.SetX(Index: Integer; const Value: TFloat);
 begin
-  FQuadX[0] := Value;
+  FQuadX[Index] := Value;
   Changed;
 end;
 
-procedure TProjectiveTransformation.SetX1(Value: TFloat);
+procedure TProjectiveTransformation.SetY(Index: Integer; const Value: TFloat);
 begin
-  FQuadX[1] := Value;
-  Changed;
-end;
-
-procedure TProjectiveTransformation.SetX2(Value: TFloat);
-begin
-  FQuadX[2] := Value;
-  Changed;
-end;
-
-procedure TProjectiveTransformation.SetX3(Value: TFloat);
-begin
-  FQuadX[3] := Value;
-  Changed;
-end;
-
-procedure TProjectiveTransformation.SetY0(Value: TFloat);
-begin
-  FQuadY[0] := Value;
-  Changed;
-end;
-
-procedure TProjectiveTransformation.SetY1(Value: TFloat);
-begin
-  FQuadY[1] := Value;
-  Changed;
-end;
-
-procedure TProjectiveTransformation.SetY2(Value: TFloat);
-begin
-  FQuadY[2] := Value;
-  Changed;
-end;
-
-procedure TProjectiveTransformation.SetY3(Value: TFloat);
-begin
-  FQuadY[3] := Value;
+  FQuadY[Index] := Value;
   Changed;
 end;
 
@@ -1797,8 +1769,8 @@ var
   ProgressionX, ProgressionY: TFixed;
   MapPtr: PFixedPointArray;
 begin
-  IntersectRect(DstRect, VectorMap.BoundsRect, DstRect);
-  if IsRectEmpty(DstRect) then Exit;
+  GR32.IntersectRect(DstRect, VectorMap.BoundsRect, DstRect);
+  if GR32.IsRectEmpty(DstRect) then Exit;
 
   if not TTransformationAccess(Transformation).TransformValid then
     TTransformationAccess(Transformation).PrepareTransform;
