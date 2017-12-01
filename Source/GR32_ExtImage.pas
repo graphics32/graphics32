@@ -308,7 +308,6 @@ begin
   FRasterizer := Rasterizer;
   FDest := Dst;
   FDstRect := DstRect;
-  Priority := tpNormal;
 {$IFDEF USETHREADRESUME}
   if not Suspended then Resume;
 {$ENDIF}

@@ -55,7 +55,7 @@ object FormImage32Example: TFormImage32Example
       Top = 104
       Width = 129
       Height = 129
-      Caption = 'ScaleMode'
+      Caption = 'f'
       ItemIndex = 0
       Items.Strings = (
         'smNormal'

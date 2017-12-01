@@ -1,2 +1,2 @@
 MainIcon ICON "../../Media/GR32.ico"
-Stones JPG "../../Media/stones.jpg"
+Stones RCDATA "../../Media/stones.jpg"

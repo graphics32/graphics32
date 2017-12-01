@@ -213,8 +213,7 @@ object FrmBlurs: TFrmBlurs
   end
   object OpenDialog: TOpenDialog
     DefaultExt = 'jpg'
-    Filter = 
-      'Image Files (*.jpg;*.bmp)|*.jpg;*.bmp;'
+    Filter = 'Image Files (*.jpg;*.bmp)|*.jpg;*.bmp;'
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
     Left = 120
     Top = 288

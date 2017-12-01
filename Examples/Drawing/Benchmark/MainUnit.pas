@@ -348,7 +348,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   // set priority class and thread priority for better accuracy
-{$IFDEF Windows}
+{$IFDEF MSWindows}
   SetPriorityClass(GetCurrentProcess, HIGH_PRIORITY_CLASS);
   SetThreadPriority(GetCurrentThread, THREAD_PRIORITY_HIGHEST);
 {$ENDIF}

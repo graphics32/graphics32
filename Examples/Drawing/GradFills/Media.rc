@@ -1,2 +1,2 @@
 MainIcon ICON "../../Media/GR32.ico"
-GRAPHICS32 RCDATA "../../Media/GRAPHICS32.crv"
+GRAPHICS32_CRV RCDATA "../../Media/GRAPHICS32.crv"

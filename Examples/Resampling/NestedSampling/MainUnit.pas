@@ -43,7 +43,7 @@ uses
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   TypInfo, SimplePropEdit, ComCtrls, Menus, ToolWin, ImgList, Buttons, ExtDlgs,
   GR32, GR32_Blend, GR32_Image, GR32_Math, GR32_Rasterizers, GR32_Resamplers,
-  GR32_Transforms, GR32_Containers, GR32_ExtImage;
+  GR32_Transforms, GR32_Containers, GR32_ExtImage, System.ImageList;
   
 type
   TMainForm = class(TForm)
@@ -253,7 +253,7 @@ begin
   Source := TBitmap32.Create;
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Stoneweed', 'JPG');
+    ResStream := TResourceStream.Create(HInstance, 'Stoneweed', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally

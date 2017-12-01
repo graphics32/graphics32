@@ -105,7 +105,7 @@ var
   JPEG: TJPEGImage;
 begin
   JPEG := TJPEGImage.Create;
-  ResStream := TResourceStream.Create(hInstance, ResName, 'JPG');
+  ResStream := TResourceStream.Create(hInstance, ResName, RT_RCDATA);
   try
     JPEG.LoadFromStream(ResStream);
     Bmp32.Assign(JPEG);

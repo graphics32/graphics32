@@ -1,2 +1,2 @@
 MainIcon ICON "../../Media/GR32.ico"
-MonaLisa JPG "../../Media/monalisa.jpg"
+MonaLisa RCDATA "../../Media/monalisa.jpg"

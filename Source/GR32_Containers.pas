@@ -250,6 +250,7 @@ begin
     // ie. mimic how the Delphi form loader would set the properties.
     Count := GetPropList(Src.ClassInfo, TypeKinds, Props, False);
 
+    {$IFNDEF NEXTGEN}
     for I := 0 to Count - 1 do
     with Props^[I]^ do
     begin
@@ -265,6 +266,7 @@ begin
       else
         SetPropValue(Dst, string(Name), GetPropValue(Src, string(Name), True));
     end;
+    {$ENDIF}
   finally
     FreeMem(Props, Count * SizeOf(PPropInfo));
   end;

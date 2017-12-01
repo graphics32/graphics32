@@ -692,7 +692,9 @@ end;
 
 procedure TScreenColorPickerForm.MouseMove(Shift: TShiftState; X, Y: Integer);
 begin
+  {$IFDEF MSWINDOWS}
   FSelectedColor := GetDesktopColor(X, Y);
+  {$ENDIF}
   inherited;
 end;
 

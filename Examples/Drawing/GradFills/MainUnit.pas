@@ -366,7 +366,7 @@ begin
     TextPath.Free;
   end;
 
-  FTextGR32 := LoadPolysFromResource('Graphics32');
+  FTextGR32 := LoadPolysFromResource('Graphics32_Crv');
 
   FKnobRadius := 4;
   FKnobBitmap := TBitmap32.Create;

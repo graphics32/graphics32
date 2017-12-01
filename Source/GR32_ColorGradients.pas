@@ -1417,7 +1417,7 @@ end;
 procedure TColor32Gradient.LoadFromStream(Stream: TStream);
 var
   Index: Integer;
-  ChunkName: array [0..3] of AnsiChar;
+  ChunkName: array [0..3] of Utf8Char;
   ValueInt: Integer;
   ValueFloat: Single;
 begin
@@ -1443,7 +1443,7 @@ end;
 procedure TColor32Gradient.SaveToStream(Stream: TStream);
 var
   Index: Integer;
-  ChunkName: array [0..3] of AnsiChar;
+  ChunkName: array [0..3] of Utf8Char;
   ValueInt: Integer;
   ValueFloat: Single;
 begin

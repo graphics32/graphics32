@@ -488,7 +488,7 @@ var
   ScanLines, Temp: TScanLines;
   I: Integer;
   Poly: TArrayOfFloatPoint;
-  SavedRoundMode: TFPURoundingMode;
+  SavedRoundMode: TRoundingMode;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
 begin
