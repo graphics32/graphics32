@@ -3,7 +3,7 @@ unit LionData;
 interface
 
 uses
-  SysUtils, GR32, GR32_VectorUtils, GR32_Paths;
+  Windows, SysUtils, GR32, GR32_VectorUtils, GR32_Paths;
 
 type
   TColoredPolygon = record
