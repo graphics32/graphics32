@@ -3571,7 +3571,7 @@ begin
     // is the segment exiting the clipping rect?
     if Y2 > Cy2 then
     begin
-      OC := Dx2 * (Cy2 - Y1) + Dx;
+      OC := Int64(Dx2) * (Cy2 - Y1) + Dx;
       term := X1 + OC div Dy2;
       rem := OC mod Dy2;
       if rem = 0 then Dec(term);
