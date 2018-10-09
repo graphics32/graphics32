@@ -224,8 +224,15 @@ type
 
   TEdgePoint = Integer;
 
+  {$IFDEF COMPILER2009_UP}
+  {$POINTERMATH ON}
+  PEdgePoints = ^TEdgePoint;
+  {$POINTERMATH OFF}
+  {$ELSE}
+  //workaround for delphi versions without POINTERMATH
   PEdgePoints = ^TEdgePoints;
   TEdgePoints = array [0..MaxListSize-1] of TEdgePoint;
+  {$ENDIF}
 
   PScanLine = ^TScanLine;
   TScanLine = record
