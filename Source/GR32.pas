@@ -835,6 +835,7 @@ type
     property OnAreaChanged: TAreaChangedEvent read FOnAreaChanged write FOnAreaChanged;
     property OnResize;
   end;
+  TCustomBitmap32Class = class of TCustomBitmap32;
 
   TBitmap32 = class(TCustomBitmap32)
   private

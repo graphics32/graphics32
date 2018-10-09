@@ -232,20 +232,21 @@ type
 
   TBitmapLayer = class(TPositionedLayer)
   private
-    FBitmap: TBitmap32;
+    FBitmap: TCustomBitmap32;
     FAlphaHit: Boolean;
     FCropped: Boolean;
     procedure BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
-    procedure SetBitmap(Value: TBitmap32);
+    procedure SetBitmap(Value: TCustomBitmap32);
     procedure SetCropped(Value: Boolean);
   protected
     function DoHitTest(X, Y: Integer): Boolean; override;
     procedure Paint(Buffer: TBitmap32); override;
   public
-    constructor Create(ALayerCollection: TLayerCollection); override;
+    constructor Create(ALayerCollection: TLayerCollection); overload; override;
+    constructor Create(ALayerCollection: TLayerCollection; CustomBitmap32Class: TCustomBitmap32Class); reintroduce; overload;
     destructor Destroy; override;
     property AlphaHit: Boolean read FAlphaHit write FAlphaHit;
-    property Bitmap: TBitmap32 read FBitmap write SetBitmap;
+    property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
     property Cropped: Boolean read FCropped write SetCropped;
   end;
 
@@ -1031,8 +1032,15 @@ end;
 
 constructor TBitmapLayer.Create(ALayerCollection: TLayerCollection);
 begin
-  inherited;
-  FBitmap := TBitmap32.Create;
+  Create(ALayerCollection, nil);
+end;
+
+constructor TBitmapLayer.Create(ALayerCollection: TLayerCollection; CustomBitmap32Class: TCustomBitmap32Class);
+begin
+  inherited Create(ALayerCollection);
+  if CustomBitmap32Class=nil then
+    CustomBitmap32Class := TBitmap32;
+  FBitmap := CustomBitmap32Class.Create;
   FBitmap.OnAreaChanged := BitmapAreaChanged;
 end;
 
@@ -1095,7 +1103,7 @@ begin
     FBitmap.Resampler, FBitmap.DrawMode, FBitmap.OnPixelCombine);
 end;
 
-procedure TBitmapLayer.SetBitmap(Value: TBitmap32);
+procedure TBitmapLayer.SetBitmap(Value: TCustomBitmap32);
 begin
   FBitmap.Assign(Value);
 end;
