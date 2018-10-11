@@ -45,7 +45,8 @@ interface
 uses
   {$IFDEF FPC} LCLIntf, LCLType, Types, Controls, Graphics,{$ELSE}
   Windows, Messages, Controls, Graphics,{$ENDIF}
-  Classes, SysUtils, GR32_System;
+  {$IFDEF COMPILER2009} UITypes, {$ENDIF}
+  Classes, SysUtils, GR32_System, GR32_Types, Types;
   
 { Version Control }
 
@@ -376,7 +377,6 @@ type
   TArrayOfArrayOfFixedPoint = array of TArrayOfFixedPoint;
 
 // construction and conversion of point types
-function Point(X, Y: Integer): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Point(const FP: TFloatPoint): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Point(const FXP: TFixedPoint): TPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function FloatPoint(X, Y: Single): TFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -423,19 +423,12 @@ function FloatRect(const ARect: TRect): TFloatRect; overload; {$IFDEF USEINLININ
 function FloatRect(const FXR: TFixedRect): TFloatRect; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Some basic operations over rectangles
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean; overload;
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean; overload;
-function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean; overload;
 function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean; overload;
-function EqualRect(const R1, R2: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function EqualRect(const R1, R2: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure InflateRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure InflateRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-procedure OffsetRect(var R: TRect; Dx, Dy: Integer); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure OffsetRect(var FR: TFloatRect; Dx, Dy: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function IsRectEmpty(const R: TRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function IsRectEmpty(const FR: TFloatRect): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function PtInRect(const R: TRect; const P: TPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function PtInRect(const R: TFloatRect; const P: TPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function PtInRect(const R: TRect; const P: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function PtInRect(const R: TFloatRect; const P: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1396,13 +1389,6 @@ end;
 
 
 { Points }
-
-function Point(X, Y: Integer): TPoint;
-begin
-  Result.X := X;
-  Result.Y := Y;
-end;
-
 function Point(const FP: TFloatPoint): TPoint;
 begin
   Result.X := Round(FP.X);
@@ -1605,17 +1591,6 @@ begin
     Bottom := FXR.Bottom * FixedToFloat;
   end;
 end;
-
-function IntersectRect(out Dst: TRect; const R1, R2: TRect): Boolean;
-begin
-  if R1.Left >= R2.Left then Dst.Left := R1.Left else Dst.Left := R2.Left;
-  if R1.Right <= R2.Right then Dst.Right := R1.Right else Dst.Right := R2.Right;
-  if R1.Top >= R2.Top then Dst.Top := R1.Top else Dst.Top := R2.Top;
-  if R1.Bottom <= R2.Bottom then Dst.Bottom := R1.Bottom else Dst.Bottom := R2.Bottom;
-  Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
-  if not Result then Dst := ZERO_RECT;
-end;
-
 function IntersectRect(out Dst: TFloatRect; const FR1, FR2: TFloatRect): Boolean;
 begin
   Dst.Left   := Math.Max(FR1.Left,   FR2.Left);
@@ -1625,21 +1600,6 @@ begin
   Result := (Dst.Right >= Dst.Left) and (Dst.Bottom >= Dst.Top);
   if not Result then FillLongword(Dst, 4, 0);
 end;
-
-function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
-begin
-  Rect := R1;
-  if not IsRectEmpty(R2) then
-  begin
-    if R2.Left < R1.Left then Rect.Left := R2.Left;
-    if R2.Top < R1.Top then Rect.Top := R2.Top;
-    if R2.Right > R1.Right then Rect.Right := R2.Right;
-    if R2.Bottom > R1.Bottom then Rect.Bottom := R2.Bottom;
-  end;
-  Result := not IsRectEmpty(Rect);
-  if not Result then Rect := ZERO_RECT;
-end;
-
 function UnionRect(out Rect: TFloatRect; const R1, R2: TFloatRect): Boolean;
 begin
   Rect := R1;
@@ -1653,12 +1613,6 @@ begin
   Result := not IsRectEmpty(Rect);
   if not Result then FillLongword(Rect, 4, 0);
 end;
-
-function EqualRect(const R1, R2: TRect): Boolean;
-begin
-  Result := CompareMem(@R1, @R2, SizeOf(TRect));
-end;
-
 function EqualRect(const R1, R2: TFloatRect): Boolean;
 begin
   Result := CompareMem(@R1, @R2, SizeOf(TFloatRect));
@@ -1680,13 +1634,6 @@ begin
   Result := ((_R1.Right - _R1.Left) = (_R2.Right - _R2.Left)) and
     ((_R1.Bottom - _R1.Top) = (_R2.Bottom - _R2.Top));
 end;
-
-procedure InflateRect(var R: TRect; Dx, Dy: Integer);
-begin
-  Dec(R.Left, Dx); Dec(R.Top, Dy);
-  Inc(R.Right, Dx); Inc(R.Bottom, Dy);
-end;
-
 procedure InflateRect(var FR: TFloatRect; Dx, Dy: TFloat);
 begin
   with FR do
@@ -1695,13 +1642,6 @@ begin
     Right := Right + Dx; Bottom := Bottom + Dy;
   end;
 end;
-
-procedure OffsetRect(var R: TRect; Dx, Dy: Integer);
-begin
-  Inc(R.Left, Dx); Inc(R.Top, Dy);
-  Inc(R.Right, Dx); Inc(R.Bottom, Dy);
-end;
-
 procedure OffsetRect(var FR: TFloatRect; Dx, Dy: TFloat);
 begin
   with FR do
@@ -1711,20 +1651,10 @@ begin
   end;
 end;
 
-function IsRectEmpty(const R: TRect): Boolean;
-begin
-  Result := (R.Right <= R.Left) or (R.Bottom <= R.Top);
-end;
 
 function IsRectEmpty(const FR: TFloatRect): Boolean;
 begin
   Result := (FR.Right <= FR.Left) or (FR.Bottom <= FR.Top);
-end;
-
-function PtInRect(const R: TRect; const P: TPoint): Boolean;
-begin
-  Result := (P.X >= R.Left) and (P.X < R.Right) and
-    (P.Y >= R.Top) and (P.Y < R.Bottom);
 end;
 
 function PtInRect(const R: TFloatRect; const P: TPoint): Boolean;

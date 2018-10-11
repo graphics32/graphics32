@@ -47,7 +47,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  SysUtils, Classes, GR32, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
+  SysUtils, Classes, GR32, GR32_Types, Types, GR32_Blend, GR32_VectorMaps, GR32_Rasterizers;
 
 type
   ETransformError = class(Exception);

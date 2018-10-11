@@ -45,7 +45,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, GR32;
+  Classes, GR32, GR32_Types, Types;
 
 type
   TFixedVector = TFixedPoint;

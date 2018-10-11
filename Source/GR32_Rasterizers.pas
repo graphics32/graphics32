@@ -46,7 +46,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, GR32, GR32_Blend, GR32_OrdinalMaps;
+  Classes, GR32, GR32_Types, Types, GR32_Blend, GR32_OrdinalMaps;
 
 type
   TAssignColor = procedure(var Dst: TColor32; Src: TColor32) of object;

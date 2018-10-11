@@ -43,10 +43,10 @@ uses
   LCLIntf, LMessages, LCLType, Graphics, Controls, Forms, Dialogs, ExtCtrls,
   {$IFDEF Windows} Windows, {$ENDIF}
 {$ELSE}
-  Windows, Messages, {$IFDEF INLININGSUPPORTED}Types,{$ENDIF}
+  Windows, Messages,
   Graphics, Controls, Forms, Dialogs, ExtCtrls,
 {$ENDIF}
-  SysUtils, Classes, GR32;
+  SysUtils, Classes, GR32, GR32_Types, Types;
 
 type
   TRBDirection = (drLeft, drUp, drRight, drDown);
@@ -407,7 +407,7 @@ var
   Brush: HBRUSH;
 {$ENDIF}
 begin
-  if GR32.IsRectEmpty(R) then Exit;
+  if IsRectEmpty(R) then Exit;
 {$IFDEF FPC}
   Brush := TBrush.Create;
   try
@@ -519,7 +519,7 @@ begin
   Canvas.Brush.Color := ColorBorder;
   FrameRect(Canvas.Handle, R, Canvas.Brush.Handle);
 
-  GR32.InflateRect(R, -1, -1);
+  InflateRect(R, -1, -1);
   if Pushed then Frame3D(Canvas, R, CLo, Color)
   else Frame3D(Canvas, R, CHi, MixColors(ColorBorder, Color, 96));
   Canvas.Brush.Color := Color;
@@ -527,7 +527,7 @@ begin
 
   if ShowGrip then
   begin
-    if Pushed then GR32.OffsetRect(R, 1, 1);
+    if Pushed then OffsetRect(R, 1, 1);
     if IsHorz then
     begin
       S := R.Right - R.Left;
@@ -552,18 +552,18 @@ begin
       Dec(R.Right);
       Inc(R.Left);
 
-      GR32.OffsetRect(R, 0, -4);
+      OffsetRect(R, 0, -4);
       if S > 10 then Frame3D(Canvas, R, CHi, CLo, False);
 
-      GR32.OffsetRect(R, 0, 3);
+      OffsetRect(R, 0, 3);
       Frame3D(Canvas, R, CHi, CLo, False);
 
-      GR32.OffsetRect(R, 0, 3);
+      OffsetRect(R, 0, 3);
       Frame3D(Canvas, R, CHi, CLo, False);
 
       if S > 10 then
       begin
-        GR32.OffsetRect(R, 0, 3);
+        OffsetRect(R, 0, 3);
         Frame3D(Canvas, R, CHi, CLo, False);
       end;
     end;
@@ -725,10 +725,10 @@ begin
       DrawRectEx(Canvas, R, Edges, fShadowColor);
       Canvas.Brush.Color := fButtonColor;
       FillRect(Canvas.Handle, R, Canvas.Brush.Handle);
-      GR32.InflateRect(R, -1, -1);
-      GR32.OffsetRect(R, 1, 1);
+      InflateRect(R, -1, -1);
+      OffsetRect(R, 1, 1);
       DrawArrow(Canvas, R, Direction, fHighLightColor);
-      GR32.OffsetRect(R, -1, -1);
+      OffsetRect(R, -1, -1);
       DrawArrow(Canvas, R, Direction, fShadowColor);
     end
     else
@@ -738,8 +738,8 @@ begin
       begin
         Canvas.Brush.Color := fButtonColor;
         FillRect(Canvas.Handle, R, Canvas.Brush.Handle);
-        GR32.OffsetRect(R, 1, 1);
-        GR32.InflateRect(R, -1, -1);
+        OffsetRect(R, 1, 1);
+        InflateRect(R, -1, -1);
       end
       else
       begin
@@ -761,7 +761,7 @@ var
   Flags: Cardinal;
 {$ENDIF}
 begin
-  if GR32.IsRectEmpty(R) then Exit;
+  if IsRectEmpty(R) then Exit;
   case Style of
     rbsDefault:
     begin
@@ -827,7 +827,7 @@ begin
     Exclude(Edges, OppositeDirection[Direction]);
     DrawRectEx(Canvas, R, Edges, C);
     if Pushed then DitherRect(Canvas, R, fBorderColor,fBorderColor)
-    else if not GR32.IsRectEmpty(R) then with R do
+    else if not IsRectEmpty(R) then with R do
     begin
       if DrawEnabled then
       begin
@@ -906,8 +906,8 @@ end;
 function TArrowBar.GetTrackBoundary: TRect;
 begin
   Result := ClientRect;
-  if Kind = sbHorizontal then GR32.InflateRect(Result, -GetButtonSize, 0)
-  else GR32.InflateRect(Result, 0, -GetButtonSize);
+  if Kind = sbHorizontal then InflateRect(Result, -GetButtonSize, 0)
+  else InflateRect(Result, 0, -GetButtonSize);
 end;
 
 function TArrowBar.GetZone(X, Y: Integer): TRBZone;
@@ -920,30 +920,30 @@ begin
 
   P := Point(X, Y);
   R := ClientRect;
-  if not GR32.PtInrect(R, P) then Exit;
+  if not PtInrect(R, P) then Exit;
 
   Sz := GetButtonSize;
   R1 := R;
   if Kind = sbHorizontal then
   begin
     R1.Right := R1.Left + Sz;
-    if GR32.PtInRect(R1, P) then Result := zBtnPrev
+    if PtInRect(R1, P) then Result := zBtnPrev
     else
     begin
       R1.Right := R.Right;
       R1.Left := R.Right - Sz;
-      if GR32.PtInRect(R1, P) then Result := zBtnNext;
+      if PtInRect(R1, P) then Result := zBtnNext;
     end;
   end
   else
   begin
     R1.Bottom := R1.Top + Sz;
-    if GR32.PtInRect(R1, P) then Result := zBtnPrev
+    if PtInRect(R1, P) then Result := zBtnPrev
     else
     begin
       R1.Bottom := R.Bottom;
       R1.Top := R.Bottom - Sz;
-      if GR32.PtInRect(R1, P) then Result := zBtnNext;
+      if PtInRect(R1, P) then Result := zBtnNext;
     end;
   end;
 
@@ -951,7 +951,7 @@ begin
   begin
     R := GetHandleRect;
     P := Point(X, Y);
-    if GR32.PtInRect(R, P) then Result := zHandle
+    if PtInRect(R, P) then Result := zHandle
     else
     begin
       if Kind = sbHorizontal then
@@ -990,7 +990,7 @@ begin
       begin
         Result := GetTrackBoundary;
         R := GetHandleRect;
-        if not DrawEnabled or GR32.IsRectEmpty(R) then
+        if not DrawEnabled or IsRectEmpty(R) then
         begin
           R.Left := (Result.Left + Result.Right) div 2;
           R.Top := (Result.Top + Result.Bottom) div 2;
@@ -1086,10 +1086,10 @@ begin
     DoDrawButton(BtnRect, CNextDirs[Horz], DragZone = zBtnNext, ShowEnabled, HotZone = zBtnNext);
   end;
 
-  if Horz then GR32.InflateRect(R, -BSize, 0) else GR32.InflateRect(R, 0, -BSize);
+  if Horz then InflateRect(R, -BSize, 0) else InflateRect(R, 0, -BSize);
   if ShowEnabled then HandleRect := GetHandleRect
   else HandleRect := Rect(0, 0, 0, 0);
-  ShowHandle := not GR32.IsRectEmpty(HandleRect);
+  ShowHandle := not IsRectEmpty(HandleRect);
 
   DoDrawTrack(GetZoneRect(zTrackPrev), CPrevDirs[Horz], DragZone = zTrackPrev, ShowEnabled, HotZone = zTrackPrev);
   DoDrawTrack(GetZoneRect(zTrackNext), CNextDirs[Horz], DragZone = zTrackNext, ShowEnabled, HotZone = zTrackNext);
@@ -1258,7 +1258,7 @@ begin
     tmHotTrack:
       begin
         Pt := ScreenToClient(Mouse.CursorPos);
-        if not GR32.PtInRect(ClientRect, Pt) then
+        if not PtInRect(ClientRect, Pt) then
         begin
           StopHotTracking;
           Invalidate;
@@ -1278,7 +1278,7 @@ var
   Sz: Integer;
 begin
   Sz := GetBorderSize;
-  GR32.InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
+  InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
 end;
 
 {$IFDEF Windows}
@@ -1318,7 +1318,7 @@ var
   Sz: Integer;
 begin
   Sz := GetBorderSize;
-  GR32.InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
+  InflateRect(Message.CalcSize_Params.rgrc[0], -Sz, -Sz);
 end;
 
 procedure TArrowBar.WMNCPaint(var Message: TWMNCPaint);
@@ -1333,7 +1333,7 @@ procedure TArrowBar.WMNCPaint(var Message: TWMNCPaint);
     else DC := ADC;
     try
       GetWindowRect(Handle, R);
-      GR32.OffsetRect(R, -R.Left, -R.Top);
+      OffsetRect(R, -R.Left, -R.Top);
       DrawEdge(DC, R, BDR_SUNKENOUTER, BF_RECT);
     finally
       if ADC = 0 then ReleaseDC(Handle, DC);
@@ -1385,12 +1385,12 @@ begin
   BtnSz := GetButtonSize;
   if Horz then
   begin
-    GR32.InflateRect(R, -BtnSz, 0);
+    InflateRect(R, -BtnSz, 0);
     ClientSz := R.Right - R.Left;
   end
   else
   begin
-    GR32.InflateRect(R, 0, -BtnSz);
+    InflateRect(R, 0, -BtnSz);
     ClientSz := R.Bottom - R.Top;
   end;
   if ClientSz < 18 then

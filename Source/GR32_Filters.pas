@@ -49,7 +49,7 @@ uses
 {$ELSE}
   Windows,
 {$ENDIF}
-  Classes, SysUtils, GR32, GR32_Blend, GR32_System, GR32_Bindings;
+  Classes, SysUtils, GR32, GR32_Types, Types, GR32_Blend, GR32_System, GR32_Bindings;
 
 { Basic processing }
 type

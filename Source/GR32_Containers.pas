@@ -39,7 +39,6 @@ interface
 
 uses
 {$IFDEF FPC}
-  Types,
   {$IFDEF Windows}
   Windows,
   {$ENDIF}
@@ -47,7 +46,7 @@ uses
   Windows,
 {$ENDIF}
   RTLConsts,
-  GR32, SysUtils, GR32_LowLevel, Classes, TypInfo;
+  GR32, GR32_Types, Types, SysUtils, GR32_LowLevel, Classes, TypInfo;
 
 const
   BUCKET_MASK = $FF;               

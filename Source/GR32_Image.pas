@@ -48,7 +48,7 @@ uses
   Windows, Messages,
 {$ENDIF}
   Graphics, Controls, Forms,
-  Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_LowLevel,
+  Classes, SysUtils, GR32, GR32_Types, Types, GR32_Layers, GR32_RangeBars, GR32_LowLevel,
   GR32_System, GR32_Containers, GR32_RepaintOpt;
 
 const

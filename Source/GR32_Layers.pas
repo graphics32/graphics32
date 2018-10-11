@@ -45,7 +45,7 @@ uses
 {$ELSE}
   Windows, Controls, Graphics, Forms,
 {$ENDIF}
-  Classes, SysUtils, Math, GR32;
+  Classes, SysUtils, Math, GR32, GR32_Types, Types;
 
 const
   { Layer Options Bits }
