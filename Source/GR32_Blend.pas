@@ -106,7 +106,7 @@ var
   ColorScale: TBlendReg;
 
 { Special LUT pointers }
-  AlphaTable: Pointer;
+  AlphaTable: Pointer = nil;
   bias_ptr: Pointer;
   alpha_ptr: Pointer;
 
@@ -3928,9 +3928,7 @@ initialization
 
 finalization
 {$IFNDEF PUREPASCAL}
-{$IFNDEF OMIT_MMX}
-  if (ciMMX in CPUFeatures) then FreeAlphaTable;
-{$ENDIF}
+  FreeAlphaTable;
 {$ENDIF}
 
 end.
