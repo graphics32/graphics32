@@ -45,7 +45,7 @@ uses
 DesignEditors, VCLEditors,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
-  SysUtils, Classes, Clipbrd, GR32, GR32_Image, GR32_Layers, GR32_Filters;
+  SysUtils, Classes, Clipbrd, GR32, GR32_Types, Types, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
   TPictureEditorForm = class(TForm)
