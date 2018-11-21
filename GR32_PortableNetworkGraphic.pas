@@ -5006,6 +5006,8 @@ var
   ChunkClass   : TCustomDefinedChunkWithHeaderClass;
   Chunk        : TCustomDefinedChunkWithHeader;
   MemoryStream : TMemoryStream;
+const
+  PNG_SIG: TChunkName = (AnsiChar($89), 'P', 'N', 'G');
 begin
   with Stream do
   begin
@@ -5017,7 +5019,7 @@ begin
 
     // read chunk ID
     Read(ChunkName, 4);
-    if ChunkName <> #$89+'PNG' then
+    if not CompareMem(@ChunkName, @PNG_SIG, SizeOf(TChunkName)) then
       raise EPngError.Create(RCStrNotAValidPNGFile);
 
     // read PNG magic
