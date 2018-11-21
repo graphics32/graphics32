@@ -40,7 +40,9 @@ interface
 uses
   Classes, Graphics, SysUtils,
   {$IFDEF FPC} ZBase, ZDeflate, ZInflate; {$ELSE}
-  {$IFDEF ZLibEx}ZLibEx, ZLibExApi; {$ELSE}zlib; {$ENDIF} {$ENDIF}
+  {$IFDEF ZLibEx}ZLibEx, ZLibExApi; {$ELSE}
+  {$IFDEF COMPILERRX2_UP} System.zlib; {$ELSE} zlib;
+  {$ENDIF}{$ENDIF}{$ENDIF}
 
 type
   {$A1}
@@ -1424,12 +1426,14 @@ begin
 
   GetMem(TempBuffer, CBufferSize);
   try
-    while ZStreamRecord.avail_in > 0 do
+    ZResult := Z_OK;
+
+    while (ZStreamRecord.avail_in > 0) and (ZResult = Z_OK) do
     begin
       ZStreamRecord.next_out := TempBuffer;
       ZStreamRecord.avail_out := CBufferSize;
 
-      inflate(ZStreamRecord, Z_NO_FLUSH);
+      ZResult := inflate(ZStreamRecord, Z_NO_FLUSH);
 
       Output.Write(TempBuffer^, CBufferSize - ZStreamRecord.avail_out);
     end;
