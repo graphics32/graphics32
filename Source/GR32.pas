@@ -704,6 +704,10 @@ type
     procedure SetResampler(Resampler: TCustomResampler);
     function GetResamplerClassName: string;
     procedure SetResamplerClassName(const Value: string);
+    function GetPenPos: TPoint;
+    procedure SetPenPos(const Value: TPoint);
+    function GetPenPosF: TFixedPoint;
+    procedure SetPenPosF(const Value: TFixedPoint);
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -857,6 +861,8 @@ type
     procedure LineToFS(X, Y: Single);
     procedure LineToXSP(X, Y: TFixed);
     procedure LineToFSP(X, Y: Single);
+    property PenPos: TPoint read GetPenPos write SetPenPos;
+    property PenPosF: TFixedPoint read GetPenPosF write SetPenPosF;
 
     procedure FillRect(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure FillRectS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
@@ -2728,6 +2734,16 @@ begin
 end;
 {$ENDIF}
 
+procedure TCustomBitmap32.SetPenPos(const Value: TPoint);
+begin
+  MoveTo(Value.X, Value.Y);
+end;
+
+procedure TCustomBitmap32.SetPenPosF(const Value: TFixedPoint);
+begin
+  MoveTo(Value.X, Value.Y);
+end;
+
 procedure TCustomBitmap32.SetPixel(X, Y: Integer; Value: TColor32);
 begin
   Bits[X + Y * Width] := Value;
@@ -2748,6 +2764,18 @@ end;
 function TCustomBitmap32.GetScanLine(Y: Integer): PColor32Array;
 begin
   Result := @Bits[Y * FWidth];
+end;
+
+function TCustomBitmap32.GetPenPos: TPoint;
+begin
+  Result.X := RasterX;
+  Result.Y := RasterY;
+end;
+
+function TCustomBitmap32.GetPenPosF: TFixedPoint;
+begin
+  Result.X := RasterXF;
+  Result.Y := RasterYF;
 end;
 
 function TCustomBitmap32.GetPixel(X, Y: Integer): TColor32;
