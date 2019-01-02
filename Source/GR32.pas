@@ -768,6 +768,7 @@ type
   public
     constructor Create(Backend: TCustomBackendClass); reintroduce; overload; virtual;
     constructor Create; reintroduce; overload; virtual;
+    constructor Create(Width, Height: Integer); reintroduce; overload; virtual;
     destructor Destroy; override;
 
     class function GetPlatformBackendClass: TCustomBackendClass; virtual;
@@ -2725,6 +2726,12 @@ begin
     if Assigned(Resampler) and Assigned(Self.Resampler) then
       Resampler.Assign(Self.Resampler);
   end;
+end;
+
+constructor TCustomBitmap32.Create(Width, Height: Integer);
+begin
+  Create;
+  SetSize(Width, Height);
 end;
 
 {$IFDEF BITS_GETTER}
