@@ -939,7 +939,7 @@ type
   TBitmap32 = class(TCustomBitmap32)
   private
     FOnHandleChanged: TNotifyEvent;
-      
+
     procedure BackendChangedHandler(Sender: TObject); override;
     procedure BackendChangingHandler(Sender: TObject); override;
     
@@ -2635,7 +2635,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
     if TargetBitmap.Empty then Exit;
 
     // Check if the icon was painted with a merged alpha channel.
-    // The happens transparently for new-style 32-bit icons.
+    // That happens transparently for new-style 32-bit icons.
     // For all other bit depths GDI will reset our alpha channel to opaque.
     ReassignFromMasked := True;
     P := PColor32Entry(@TargetBitmap.Bits[0]);
@@ -2663,6 +2663,8 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
 {$IFNDEF PLATFORM_INDEPENDENT}
     else if SrcGraphic is TMetaFile then
       AssignFromGraphicMasked(TargetBitmap, SrcGraphic)
+    else if SrcGraphic is TWICImage then
+      AssignFromGraphicPlain(TargetBitmap, SrcGraphic, 0, False)
 {$ENDIF}
     else
       AssignFromGraphicPlain(TargetBitmap, SrcGraphic, clWhite32, True);
