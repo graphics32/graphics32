@@ -2668,10 +2668,10 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
 {$IFNDEF PLATFORM_INDEPENDENT}
     else if SrcGraphic is TMetaFile then
       AssignFromGraphicMasked(TargetBitmap, SrcGraphic)
-{$IFDEF COMPILER2005_UP}
+    {$IFDEF COMPILER2010_UP}
     else if SrcGraphic is TWICImage then
       AssignFromGraphicPlain(TargetBitmap, SrcGraphic, 0, False)
-{$ENDIF}
+    {$ENDIF}
 {$ENDIF}
     else
       AssignFromGraphicPlain(TargetBitmap, SrcGraphic, clWhite32, True);
