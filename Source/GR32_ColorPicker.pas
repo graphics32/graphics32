@@ -342,7 +342,7 @@ type
     property DragCursor;
     property DragKind;
     property Enabled;
-{$IFNDEF FPC}
+{$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
@@ -386,7 +386,7 @@ type
     property DragCursor;
     property DragKind;
     property Enabled;
-{$IFNDEF FPC}
+{$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
@@ -431,7 +431,7 @@ type
     property Enabled;
     property Hue;
     property MarkerType;
-{$IFNDEF FPC}
+{$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
@@ -475,7 +475,7 @@ type
     property DragKind;
     property Enabled;
     property Hue;
-{$IFNDEF FPC}
+{$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
@@ -522,7 +522,7 @@ type
     property DragKind;
     property Enabled;
     property Hue;
-{$IFNDEF FPC}
+{$IFDEF HasParentBackground}
     property ParentBackground;
 {$ENDIF}
     property ParentColor;
