@@ -4324,6 +4324,7 @@ begin
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := Hypot(nx, ny);
+    if hyp = 0 then Exit;
     hypl := hyp + (Integer(L) * FixedOne);
     if (hypl < 256) then Exit;
     n := hypl shr 16;
@@ -4437,6 +4438,7 @@ begin
     nx := X2 - X1; ny := Y2 - Y1;
     Inc(X1, 127); Inc(Y1, 127); Inc(X2, 127); Inc(Y2, 127);
     hyp := Hypot(nx, ny);
+    if hyp = 0 then Exit;
     hypl := hyp + (Integer(L) * FixedOne);
     if hypl < 256 then Exit;
     n := hypl shr 16;
@@ -4471,7 +4473,7 @@ end;
 
 procedure TCustomBitmap32.LineXSP(X1, Y1, X2, Y2: TFixed; L: Boolean);
 const
-  StippleInc: array [Boolean] of Single = (0, 1);
+  StippleInc: array [Boolean] of Integer = (0, 1);
 var
   n, i: Integer;
   sx, sy, ex, ey, nx, ny, hyp, hypl: Integer;
