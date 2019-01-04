@@ -2427,7 +2427,7 @@ begin
     end;
   end;
 
-  if Length(Result[J]) = 0 then SetLength(Result, J);
+  if (J >= 0) and (Length(Result[J]) = 0) then SetLength(Result, J);
 end;
 
 function BuildDashedLine(const Points: TArrayOfFixedPoint;
@@ -2524,7 +2524,7 @@ begin
     end;
   end;
 
-  if Length(Result[J]) = 0 then SetLength(Result, J);
+  if (J >= 0) and (Length(Result[J]) = 0) then SetLength(Result, J);
 end;
 
 function InterpolateX(X: TFloat; const P1, P2: TFloatPoint): TFloatPoint; overload;
