@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  Windows, Types, GR32, GR32_Paths;
+  Windows, Types, GR32, GR32_Paths, Math;
 
 procedure TextToPath(Font: HFONT; Path: TCustomPath;
   const ARect: TFloatRect; const Text: WideString; Flags: Cardinal = 0);
@@ -66,6 +66,7 @@ const
   DT_BOTTOM     = 8;
   DT_WORDBREAK  = $10;
   DT_SINGLELINE = $20;
+  DT_NOCLIP     = $100;
   DT_JUSTIFY         = 3;  //Graphics32 additions ...
   DT_HORZ_ALIGN_MASK = 3;
 
@@ -119,7 +120,7 @@ begin
   Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
     0, nil, VertFlip_mat2);
   Result := DstX + Metrics.gmCellIncX <= MaxX;
-  if not Result or not Assigned(Path) then Exit;
+  if not Result or not Assigned(Path) or (Res = 0){WS} then Exit;
 
   {$IFDEF USESTACKALLOC}
   GlyphMemPtr := StackAlloc(Res);
@@ -233,6 +234,7 @@ var
   I, J, TextLen, SpcCount, SpcX, LineStart: Integer;
   CharValue: Integer;
   CharOffsets: TArrayOfInteger;
+  CharWidths: TArrayOfInteger;
   X, Y, XMax, YMax, MaxRight: Single;
   S: WideString;
   UseTempPath: Boolean;
@@ -243,7 +245,9 @@ var
   KerningPairCount: Integer;
 {$ENDIF}
 
-  procedure AlignTextCenter(CurrentI: Integer);
+
+(* eredeti
+procedure AlignTextCenter(CurrentI: Integer);
   var
     M, N, PathStart, PathEnd: Integer;
     Delta: TFloat;
@@ -267,6 +271,152 @@ var
     for M := PathStart to PathEnd - 1 do
       for N := 0 to High(TmpPath.Path[M]) do
         TmpPath.Path[M, N].X := TmpPath.Path[M, N].X + Delta;
+  end;
+*)
+  procedure AlignTextCenter(CurrentI: Integer);
+  var
+    w, M, N, PathStart, PathEnd, charStart, charEnd: Integer;
+    Delta: TFloat;
+    clip: Boolean;
+    i,j: Integer;
+    minX, maxX: Single;
+
+  begin
+    Delta := Round(((ARect.Right - ARect.Left) * HorzStretch - X - 1) * 0.5);
+    PathStart:= CharOffsets[LineStart];
+    PathEnd:= CharOffsets[CurrentI] - 1;
+    if (Flags and DT_SINGLELINE <> 0) and (Flags and DT_NOCLIP <> DT_NOCLIP) then
+      begin
+        minX:= ARect.Left + Delta;
+        maxX:= ARect.Right + Delta;
+        charStart:= LineStart;
+        charEnd:= CurrentI;
+
+        w:= Round(delta);
+        for i:= LineStart to CurrentI - 1 do
+          begin
+            if w < Arect.Left then
+              begin
+                charStart:= i + 1;
+                minX:= w + CharWidths[i];
+              end;
+            w:= w + CharWidths[i];
+            if w <= ARect.Right then
+              begin
+                charEnd:= i + 1;
+                maxX:= w;
+              end;
+          end;
+
+        if (Flags and DT_WORDBREAK <> 0) then
+          begin
+            if (charStart > LineStart) and (text[charStart] <> ' ') then
+              while (text[charStart] <> ' ') and (charStart < charEnd) do
+                Inc(charStart);
+            if (charEnd < CurrentI) and (text[charEnd] <> ' ') then
+              while (text[charEnd] <> ' ') and (charEnd > charStart) do
+                Dec(charEnd);
+            minX:= Round(delta);
+            for i:= 0 to charStart - 1 do
+              minX:= minX + CharWidths[i];
+            maxX:= Round(delta);
+            for i:= 0 to charEnd - 1 do
+              maxX:= maxX + CharWidths[i];
+          end;
+
+
+        PathStart:= CharOffsets[charStart];
+        PathEnd:= CharOffsets[charEnd] - 1;
+
+        for M:= 0 to PathStart - 1 do
+          SetLength(TmpPath.Path[M], 0);
+        for M:= PathEnd + 1 to CharOffsets[CurrentI] - 1 do
+          SetLength(TmpPath.Path[M], 0);
+
+        Delta:= Delta + (((minX - ARect.Left) + (ARect.Right - maxX)) * 0.5) - minX;
+      end;
+    for M := PathStart to PathEnd do
+      begin
+        for N := 0 to High(TmpPath.Path[M]) do
+          TmpPath.Path[M, N].X := TmpPath.Path[M, N].X + Delta;
+      end;
+  end;
+
+  procedure AlignTextRight(CurrentI: Integer);
+  var
+    w, i, M, N, PathStart, PathEnd, charStart: Integer;
+    Delta: TFloat;
+
+  begin
+    Delta := Round(ARect.Right * HorzStretch - X - 1);
+    PathStart:= CharOffsets[LineStart];
+    PathEnd:= CharOffsets[CurrentI] - 1;
+
+    if (Flags and DT_SINGLELINE <> 0) and (Flags and DT_NOCLIP <> DT_NOCLIP) then
+      begin
+        charStart:= LineStart;
+
+        w:= 0;
+        for i:= LineStart to CurrentI - 1 do
+          begin
+            if w + delta < Arect.Left then
+              begin
+                charStart:= i + 1;
+              end;
+            w:= w + CharWidths[i];
+          end;
+
+        if (Flags and DT_WORDBREAK <> 0) then
+          begin
+            if (charStart > LineStart) and (text[charStart] <> ' ') then
+              while (text[charStart] <> ' ') and (charStart < CurrentI) do
+                Inc(charStart);
+          end;
+
+        PathStart:= CharOffsets[charStart];
+
+        for M:= 0 to PathStart - 1 do
+          SetLength(TmpPath.Path[M], 0);
+      end;
+    for M := PathStart to PathEnd do
+      begin
+        for N := 0 to High(TmpPath.Path[M]) do
+          TmpPath.Path[M, N].X := TmpPath.Path[M, N].X + Delta;
+      end;
+  end;
+
+  procedure AlignTextLeft(CurrentI: Integer);
+  var
+    w, i, M, PathEnd, charEnd: Integer;
+
+  begin
+    if (Flags and DT_SINGLELINE <> 0) and (Flags and DT_NOCLIP <> DT_NOCLIP) then
+      begin
+
+        charEnd:= LineStart;
+
+        w:= 0;
+        for i:= LineStart to CurrentI - 1 do
+          begin
+            w:= w + CharWidths[i];
+            if w <= (ARect.Right - ARect.Left) then
+              begin
+                charEnd:= i + 1;
+              end;
+          end;
+
+        if (Flags and DT_WORDBREAK <> 0) then
+          begin
+            if (charEnd < CurrentI) and (text[charEnd] <> ' ') then
+              while (text[charEnd] <> ' ') and (charEnd > LineStart) do
+                Dec(charEnd);
+          end;
+
+        PathEnd:= CharOffsets[charEnd] - 1;
+
+        for M:= PathEnd + 1 to CharOffsets[CurrentI] - 1 do
+          SetLength(TmpPath.Path[M], 0);
+      end;
   end;
 
   procedure AlignTextJustify(CurrentI: Integer);
@@ -298,15 +448,31 @@ var
     until L >= CurrentI;
   end;
 
-  procedure NewLine(CurrentI: Integer);
+  procedure AlignLine(CurrentI: Integer);      //WS
   begin
-    if (Flags and DT_SINGLELINE <> 0) then Exit;
-    if Assigned(TmpPath) then
+    if Assigned(TmpPath) and (Length(TmpPath.Path) > 0) then
       case (Flags and DT_HORZ_ALIGN_MASK) of
+        DT_LEFT   : AlignTextLeft(CurrentI);
         DT_CENTER : AlignTextCenter(CurrentI);
         DT_RIGHT  : AlignTextRight(CurrentI);
         DT_JUSTIFY: AlignTextJustify(CurrentI);
       end;
+  end;
+
+  procedure AddSpace;
+  begin
+    Inc(SpcCount);
+    X := X + SpcX;
+  end;
+
+  procedure NewLine(CurrentI: Integer);
+  begin
+    if (Flags and DT_SINGLELINE <> 0) then
+      begin
+        AddSpace;
+        Exit;
+      end;
+    AlignLine(CurrentI);           //WS
     X := ARect.Left * HorzStretch;
     Y := Y + TextMetric.tmHeight;
     LineStart := CurrentI;
@@ -330,12 +496,6 @@ var
   function NeedsNewLine(X: Single): Boolean;
   begin
     Result := (ARect.Right > ARect.Left) and (X > ARect.Right * HorzStretch);
-  end;
-
-  procedure AddSpace;
-  begin
-    Inc(SpcCount);
-    X := X + SpcX;
   end;
 
 begin
@@ -381,6 +541,7 @@ begin
     MaxRight := ARect.Right * HorzStretch;
   SetLength(CharOffsets, TextLen + 1);
   CharOffsets[0] := 0;
+  SetLength(CharWidths, TextLen);
 
   GetGlyphOutlineW(DC, CHAR_SP, GGODefaultFlags[UseHinting], GlyphMetrics,
     0, nil, VertFlip_mat2);
@@ -393,8 +554,8 @@ begin
       Flags := Flags and not DT_JUSTIFY;
 
     // ignore wordbreak when forcing singleline ...
-    if (Flags and DT_WORDBREAK = DT_WORDBREAK) then
-      Flags := Flags and not DT_WORDBREAK;
+    //if (Flags and DT_WORDBREAK = DT_WORDBREAK) then
+    //  Flags := Flags and not DT_WORDBREAK;
     MaxRight := MaxSingle;
   end;
 
@@ -407,7 +568,7 @@ begin
         CharValue := CHAR_SP;
       if Assigned(TmpPath) then
         CharOffsets[I] := Length(TmpPath.Path);
-
+      CharWidths[i - 1]:= SpcX;
       case CharValue of
         CHAR_CR: NewLine(I);
         CHAR_NL: ;
@@ -440,6 +601,7 @@ begin
       begin
         if Assigned(TmpPath) then
           CharOffsets[I] := Length(TmpPath.Path);
+        CharWidths[I - 1]:= GlyphMetrics.gmCellIncX;
       end else
       begin
         if Ord(Text[I - 1]) = CHAR_SP then
@@ -455,6 +617,7 @@ begin
           GlyphMetrics) then Break;
         if Assigned(TmpPath) then
           CharOffsets[I] := Length(TmpPath.Path);
+        CharWidths[I - 1]:= GlyphMetrics.gmCellIncX;
       end;
 
       X := X + GlyphMetrics.gmCellIncX;
@@ -473,8 +636,8 @@ begin
       if X > XMax then XMax := X;
     end;
   end;
-  if [(Flags and DT_HORZ_ALIGN_MASK)] * [DT_CENTER, DT_RIGHT] <> [] then
-    NewLine(TextLen);
+  if [(Flags and DT_HORZ_ALIGN_MASK)] * [DT_LEFT, DT_CENTER, DT_RIGHT] <> [] then
+    AlignLine(TextLen);         //WS
 
   YMax := Y + TextMetric.tmHeight - TextMetric.tmAscent;
   // reverse HorzStretch (if any) ...
