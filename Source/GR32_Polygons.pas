@@ -129,7 +129,6 @@ type
   TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
 
   TCustomPolygonFiller = class
-  private
   protected
     function GetFillLine: TFillLineEvent; virtual; abstract;
   public
@@ -154,6 +153,19 @@ type
   protected
     function GetFillLine: TFillLineEvent; override;
     procedure FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  end;
+
+  { TClearPolygonFiller }
+  TClearPolygonFiller = class(TCustomPolygonFiller)
+  private
+    FColor: TColor32;
+  protected
+    function GetFillLine: TFillLineEvent; override;
+    procedure FillLineClear(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+  public
+    constructor Create(Color: TColor32 = $00808080); reintroduce; virtual;
+
+    property Color: TColor32 read FColor write FColor;
   end;
 
   { TBitmapPolygonFiller }
@@ -1351,6 +1363,26 @@ end;
 function TInvertPolygonFiller.GetFillLine: TFillLineEvent;
 begin
   Result := FillLineBlend;
+end;
+
+
+{ TClearPolygonFiller }
+
+constructor TClearPolygonFiller.Create(Color: TColor32 = $00808080);
+begin
+  inherited Create;
+  FColor := Color;
+end;
+
+procedure TClearPolygonFiller.FillLineClear(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32);
+begin
+  FillLongword(Dst^, Length, FColor);
+end;
+
+function TClearPolygonFiller.GetFillLine: TFillLineEvent;
+begin
+  Result := FillLineClear;
 end;
 
 
