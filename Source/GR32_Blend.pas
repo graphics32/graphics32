@@ -66,6 +66,7 @@ type
 {$ENDIF}
   TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
   TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
+  TBlendLine1  = procedure(Src: TColor32; Dst: PColor32; Count: Integer);
   TCombineReg  = function(X, Y, W: TColor32): TColor32;
   TCombineMem  = procedure(X: TColor32; var Y: TColor32; W: TColor32);
   TCombineLine = procedure(Src, Dst: PColor32; Count: Integer; W: TColor32);
@@ -92,6 +93,7 @@ var
 
   BlendLine: TBlendLine;
   BlendLineEx: TBlendLineEx;
+  BlendLine1: TBlendLine1;
 
   CombineReg: TCombineReg;
   CombineMem: TCombineMem;
@@ -105,6 +107,7 @@ var
 
   MergeLine: TBlendLine;
   MergeLineEx: TBlendLineEx;
+  MergeLine1: TBlendLine1;
 
 { Color algebra functions }
   ColorAdd: TBlendReg;
@@ -222,6 +225,7 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
+    A := Af[FX.A] + Ab[A];
   end;
 end;
 
@@ -322,6 +326,16 @@ begin
   BX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
 end;
 
+procedure BlendLine1_Pas(Src: TColor32; Dst: PColor32; Count: Integer);
+begin
+  while Count > 0 do
+  begin
+    BlendMem(Src, Dst^);
+    Inc(Dst);
+    Dec(Count);
+  end;
+end;
+
 procedure BlendLine_Pas(Src, Dst: PColor32; Count: Integer);
 begin
   while Count > 0 do
@@ -414,30 +428,30 @@ end;
 
 function MergeReg_Pas(F, B: TColor32): TColor32;
 var
- Fa, Ba, Wa: TColor32;
- Fw, Bw: PByteArray;
- Fx: TColor32Entry absolute F;
- Bx: TColor32Entry absolute B;
- Rx: TColor32Entry absolute Result;
+  Fa, Ba, Wa: TColor32;
+  Fw, Bw: PByteArray;
+  Fx: TColor32Entry absolute F;
+  Bx: TColor32Entry absolute B;
+  Rx: TColor32Entry absolute Result;
 begin
- Fa := F shr 24;
- Ba := B shr 24;
- if Fa = $FF then
-   Result := F
- else if Fa = $0 then
-   Result := B
- else if Ba = $0 then
-   Result := F
- else
- begin
-   Rx.A := DivTable[Fa xor 255, Ba xor 255] xor 255;
-   Wa := RcTable[Rx.A, Fa];
-   Fw := @DivTable[Wa];
-   Bw := @DivTable[Wa xor $FF];
-   Rx.R := Fw[Fx.R] + Bw[Bx.R];
-   Rx.G := Fw[Fx.G] + Bw[Bx.G];
-   Rx.B := Fw[Fx.B] + Bw[Bx.B];
- end;
+  Fa := F shr 24;
+  Ba := B shr 24;
+  if Fa = $FF then
+    Result := F
+  else if Fa = $0 then
+    Result := B
+  else if Ba = $0 then
+    Result := F
+  else
+  begin
+    Rx.A := DivTable[Fa xor 255, Ba xor 255] xor 255;
+    Wa := RcTable[Rx.A, Fa];
+    Fw := @DivTable[Wa];
+    Bw := @DivTable[Wa xor $FF];
+    Rx.R := Fw[Fx.R] + Bw[Bx.R];
+    Rx.G := Fw[Fx.G] + Bw[Bx.G];
+    Rx.B := Fw[Fx.B] + Bw[Bx.B];
+  end;
 end;
 
 function MergeRegEx_Pas(F, B, M: TColor32): TColor32;
@@ -453,6 +467,16 @@ end;
 procedure MergeMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
+end;
+
+procedure MergeLine1_Pas(Src: TColor32; Dst: PColor32; Count: Integer);
+begin
+  while Count > 0 do
+  begin
+    Dst^ := MergeReg(Src, Dst^);
+    Inc(Dst);
+    Dec(Count);
+  end;
 end;
 
 procedure MergeLine_Pas(Src, Dst: PColor32; Count: Integer);
@@ -482,7 +506,7 @@ end;
 
 procedure EMMS_Pas;
 begin
-//Dummy
+  // Dummy
 end;
 
 function LightenReg_Pas(C: TColor32; Amount: Integer): TColor32;
@@ -880,7 +904,7 @@ asm
         TEST    EAX,$FF000000   // Fa = 0 ?   => do not write
         JZ      @2
 
-  // Get weight W = Fa * M
+  // Get weight W = Fa
         MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
@@ -997,7 +1021,7 @@ procedure BlendMems_ASM(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} 
 asm
 {$IFDEF TARGET_x86}
         TEST    ECX,ECX
-        JZ      @Done
+        JZ      @4
 
         PUSH    EBX
         PUSH    ESI
@@ -1006,10 +1030,10 @@ asm
         MOV     ESI,EAX
         MOV     EDI,EDX
 
-@LoopStart:
+@1:
         MOV     EAX,[ESI]
         TEST    EAX,$FF000000
-        JZ      @NextPixel
+        JZ      @3
 
         PUSH    ECX
 
@@ -1017,7 +1041,7 @@ asm
         SHR     ECX,24
 
         CMP     ECX,$FF
-        JZ      @CopyPixel
+        JZ      @2
 
         MOV     EBX,EAX
         AND     EAX,$00FF00FF
@@ -1048,39 +1072,39 @@ asm
         OR      EBX,EDX
 
         ADD     EAX,EBX
-@CopyPixel:
+@2:
         OR      EAX,$FF000000
         MOV     [EDI],EAX
         POP     ECX
 
-@NextPixel:
+@3:
         ADD     ESI,4
         ADD     EDI,4
 
         DEC     ECX
-        JNZ     @LoopStart
+        JNZ     @1
 
         POP     EDI
         POP     ESI
         POP     EBX
 
-@Done:
+@4:
         RET
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
         TEST    R8D,R8D
-        JZ      @Done
+        JZ      @4
 
         PUSH    RDI
 
         MOV     R9,RCX
         MOV     RDI,RDX
 
-@LoopStart:
+@1:
         MOV     ECX,[RSI]
         TEST    ECX,$FF000000
-        JZ      @NextPixel
+        JZ      @3
 
         PUSH    R8
 
@@ -1088,7 +1112,7 @@ asm
         SHR     R8D,24
 
         CMP     R8D,$FF
-        JZ      @CopyPixel
+        JZ      @2
 
         MOV     EAX,ECX
         AND     ECX,$00FF00FF
@@ -1119,21 +1143,21 @@ asm
         OR      EAX,EDX
 
         ADD     ECX,EAX
-@CopyPixel:
+@2:
         OR      ECX,$FF000000
         MOV     [RDI],ECX
         POP     R8
 
-@NextPixel:
+@3:
         ADD     R9,4
         ADD     RDI,4
 
         DEC     R8D
-        JNZ     @LoopStart
+        JNZ     @1
 
         POP     RDI
 
-@Done:
+@4:
         RET
 {$ENDIF}
 end;
@@ -1431,12 +1455,12 @@ asm
         MOV     EBX,EDX         // EBX  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // ESI  <-  00 Br 00 Bb
         AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
-        IMUL    EDX,ECX         // ESI  <-  Qr ** Qb **
+        IMUL    EDX,ECX         // EDX  <-  Qr ** Qb **
         SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
         IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
         ADD     EDX,bias
-        AND     EDX,$FF00FF00   // ESI  <-  Qr 00 Qb 00
-        SHR     EDX,8           // ESI  <-  00 Qr ** Qb
+        AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
+        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
         OR      EBX,EDX         // EBX  <-  Qa Qr Qg Qb
@@ -1508,14 +1532,14 @@ asm
         MOV     EDX,[R11]
         XOR     R9D,$000000FF   // R9D  <-  1 - R9D
         MOV     R8D,EDX         // R8D  <-  Ba Br Bg Bb
-        AND     EDX,$00FF00FF   // ESI  <-  00 Br 00 Bb
+        AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
         AND     R8D,$FF00FF00   // R8D  <-  Ba 00 Bg 00
-        IMUL    EDX,R9D         // ESI  <-  Qr ** Qb **
+        IMUL    EDX,R9D         // EDX  <-  Qr ** Qb **
         SHR     R8D,8           // R8D  <-  00 Ba 00 Bg
         IMUL    R8D,R9D         // R8D  <-  Qa ** Qg **
         ADD     EDX,bias
-        AND     EDX,$FF00FF00   // ESI  <-  Qr 00 Qb 00
-        SHR     EDX,8           // ESI  <-  00 Qr ** Qb
+        AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
+        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
         ADD     R8D,bias
         AND     R8D,$FF00FF00   // R8D  <-  Qa 00 Qg 00
         OR      R8D,EDX         // R8D  <-  Qa Qr Qg Qb
@@ -1534,6 +1558,179 @@ asm
         JNZ     @1
 
 @4:
+{$ENDIF}
+end;
+
+procedure BlendLine1_ASM(Src: TColor32; Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+asm
+{$IFDEF TARGET_x86}
+  // EAX <- Src
+  // EDX <- Dst
+  // ECX <- Count
+
+  // test the counter for zero or negativity
+        TEST    ECX,ECX
+        JS      @4
+
+  // test if source if fully transparent
+        TEST    EAX, $FF000000
+        JZ      @4
+
+        PUSH    EBX
+        PUSH    ESI
+        PUSH    EDI
+
+        MOV     ESI,EAX         // ESI <- Src
+        MOV     EDI,EDX         // EDI <- Dst
+        SHR     ESI, 24         // ESI <- W
+
+  // test if source is fully opaque
+        CMP     ESI, $FF
+        JZ      @4
+
+  // P = W * F
+        MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
+        AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
+        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
+        IMUL    EAX,ESI         // EAX  <-  Pr ** Pb **
+        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
+        IMUL    EBX,ESI         // EBX  <-  Pa ** Pg **
+        ADD     EAX,bias
+        AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
+        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        ADD     EBX,bias
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
+        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
+        XOR     ESI,$000000FF   // ESI  <-  1 - Fa
+
+  // loop start
+@1:
+        MOV     EDX,[EDI]
+        MOV     EBX,EDX         // EBX  <-  Ba Br Bg Bb
+        AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
+        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
+        IMUL    EDX,ESI         // EDX  <-  Qr ** Qb **
+        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
+        IMUL    EBX,ESI         // EBX  <-  Qa ** Qg **
+        ADD     EDX,bias
+        AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
+        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
+        ADD     EBX,bias
+        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
+        OR      EBX,EDX         // EBX  <-  Qa Qr Qg Qb
+
+  // Z = P + Q (assuming no overflow at each byte)
+        ADD     EBX,EAX         // EAX  <-  Za Zr Zg Zb
+
+        OR      EBX,$FF000000
+        MOV     [EDI],EBX
+
+        ADD     EDI,4
+
+        DEC     ECX
+        JNZ     @1
+
+        POP     EDI
+        POP     ESI
+        POP     EBX
+
+@3:
+        RET
+
+@4:
+        MOV     [EDI],EAX
+        ADD     EDI,4
+
+        DEC     ECX
+        JNZ     @4
+
+        POP     EDI
+        POP     ESI
+        POP     EBX
+
+{$ENDIF}
+
+{$IFDEF TARGET_x64}
+  // RCX <- Src
+  // RDX <- Dst
+  // R8 <- Count
+
+  // test the counter for zero or negativity
+        TEST    R8D,R8D          // R8D <- Count
+        JZ      @2
+
+  // test if source if fully transparent
+        TEST    ECX,$FF000000
+        JZ      @2
+
+        PUSH    RDI
+        MOV     RDI,RDX           // RDI <- Dst
+
+  // Get weight W = Fa * M
+        MOV     R9D,ECX           // R9D <- Src
+        SHR     R9D,24            // R9D <- W
+
+  // Test Fa = 255 ?
+        CMP     R9D,$FF
+        JZ      @3                // complete opaque,copy source
+
+  // P = W * F
+        MOV     EAX,ECX           // EAX  <-  Fa Fr Fg Fb
+        AND     ECX,$00FF00FF     // ECX  <-  00 Fr 00 Fb
+        AND     EAX,$FF00FF00     // EAX  <-  Fa 00 Fg 00
+        IMUL    ECX,R9D           // ECX  <-  Pr ** Pb **
+        SHR     EAX,8             // EAX  <-  00 Fa 00 Fg
+        IMUL    EAX,R9D           // EAX  <-  Pa ** Pg **
+        ADD     ECX,CBias
+        AND     ECX,$FF00FF00     // ECX  <-  Pr 00 Pb 00
+        SHR     ECX,8             // ECX  <-  00 Pr ** Pb
+        ADD     EAX,CBias
+        AND     EAX,$FF00FF00     // EAX  <-  Pa 00 Pg 00
+        OR      ECX,EAX           // ECX  <-  Pa Pr Pg Pb
+        XOR     R9D,$000000FF     // R9D  <-  1 - Fa
+
+@1:
+  // W = 1 - W; Q = W * B
+        MOV     EDX,[RDI]
+        MOV     EAX,EDX           // EAX  <-  Ba Br Bg Bb
+        AND     EDX,$00FF00FF     // EDX  <-  00 Br 00 Bb
+        AND     EAX,$FF00FF00     // EAX  <-  Ba 00 Bg 00
+        IMUL    EDX,R9D           // EDX  <-  Qr ** Qb **
+        SHR     EAX,8             // EAX  <-  00 Ba 00 Bg
+        IMUL    EAX,R9D           // EAX  <-  Qa ** Qg **
+        ADD     EDX,CBias
+        AND     EDX,$FF00FF00     // EDX  <-  Qr 00 Qb 00
+        SHR     EDX,8             // EDX  <-  00 Qr ** Qb
+        ADD     EAX,CBias
+        AND     EAX,$FF00FF00     // EAX  <-  Qa 00 Qg 00
+        OR      EAX,EDX           // EAX  <-  Qa Qr Qg Qb
+
+  // Z = P + Q (assuming no overflow at each byte)
+        ADD     EAX,ECX
+
+        OR      EAX,$FF000000
+        MOV     [RDI],EAX
+
+        ADD     RDI,4
+
+  // loop end
+        DEC     R8D
+        JNZ     @1
+
+        POP     RDI
+
+@2:
+        RET
+
+@3:
+  // just copy source
+        MOV     [RDI],ECX
+        ADD     RDI,4
+
+        DEC     R8D
+        JNZ     @3
+
+        POP     RDI
 {$ENDIF}
 end;
 
@@ -2988,10 +3185,10 @@ procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC}
 asm
 {$IFDEF TARGET_x86}
         TEST      ECX,ECX
-        JZ        @Done
+        JZ        @2
 
         TEST      EAX,$FF000000
-        JZ        @Done
+        JZ        @2
 
         PUSH      EBX
 
@@ -2999,14 +3196,14 @@ asm
         SHR       EBX,24
 
         CMP       EBX,$FF
-        JZ        @CopyPixel
+        JZ        @3
 
         MOVD      XMM4,EAX
         PXOR      XMM3,XMM3
         PUNPCKLBW XMM4,XMM3
         MOV       EBX,bias_ptr
 
-@LoopStart:
+@1:
         MOVD      XMM2,[EDX]
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM4
@@ -3023,30 +3220,29 @@ asm
         PACKUSWB  XMM2,XMM3
         MOVD      [EDX],XMM2
 
-@NextPixel:
         ADD       EDX,4
 
         DEC       ECX
-        JNZ       @LoopStart
+        JNZ       @1
 
         POP       EBX
 
-@Done:
+@2:
         RET
 
-@CopyPixel:
+@3:
         MOV       [EDX],EAX
         ADD       EDX,4
 
         DEC       ECX
-        JNZ       @CopyPixel
+        JNZ       @3
 
         POP       EBX
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
         TEST      R8D,R8D
-        JZ        @Done
+        JZ        @2
 
         TEST      ECX,$FF000000
         JZ        @Done
@@ -3055,14 +3251,14 @@ asm
         SHR       EAX,24
 
         CMP       EAX,$FF
-        JZ        @CopyPixel
+        JZ        @3
 
         MOVD      XMM4,ECX
         PXOR      XMM3,XMM3
         PUNPCKLBW XMM4,XMM3
         MOV       RAX,bias_ptr
 
-@LoopStart:
+@1:
         MOVD      XMM2,[RDX]
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM4
@@ -3079,21 +3275,20 @@ asm
         PACKUSWB  XMM2,XMM3
         MOVD      [RDX], XMM2
 
-@NextPixel:
         ADD       RDX,4
 
         DEC       R8D
-        JNZ       @LoopStart
+        JNZ       @1
 
-@Done:
+@2:
         RET
 
-@CopyPixel:
+@3:
         MOV       [RDX],ECX
         ADD       RDX,4
 
         DEC       R8D
-        JNZ       @CopyPixel
+        JNZ       @3
 {$ENDIF}
 end;
 
@@ -4416,37 +4611,39 @@ const
   FID_MERGEREG = 1;
   FID_MERGEMEM = 2;
   FID_MERGELINE = 3;
-  FID_MERGEREGEX = 4;
-  FID_MERGEMEMEX = 5;
-  FID_MERGELINEEX = 6;
-  FID_COMBINEREG = 7;
-  FID_COMBINEMEM = 8;
-  FID_COMBINELINE = 9;
+  FID_MERGELINE1 = 4;
+  FID_MERGEREGEX = 5;
+  FID_MERGEMEMEX = 6;
+  FID_MERGELINEEX = 7;
+  FID_COMBINEREG = 8;
+  FID_COMBINEMEM = 9;
+  FID_COMBINELINE = 10;
 
-  FID_BLENDREG = 10;
-  FID_BLENDMEM = 11;
-  FID_BLENDMEMS = 12;
-  FID_BLENDLINE = 13;
-  FID_BLENDREGEX = 14;
-  FID_BLENDMEMEX = 15;
-  FID_BLENDLINEEX = 16;
+  FID_BLENDREG = 11;
+  FID_BLENDMEM = 12;
+  FID_BLENDMEMS = 13;
+  FID_BLENDLINE = 14;
+  FID_BLENDREGEX = 15;
+  FID_BLENDMEMEX = 16;
+  FID_BLENDLINEEX = 17;
+  FID_BLENDLINE1 = 18;
 
-  FID_COLORMAX = 17;
-  FID_COLORMIN = 18;
-  FID_COLORAVERAGE = 19;
-  FID_COLORADD = 20;
-  FID_COLORSUB = 21;
-  FID_COLORDIV = 22;
-  FID_COLORMODULATE = 23;
-  FID_COLORDIFFERENCE = 24;
-  FID_COLOREXCLUSION = 25;
-  FID_COLORSCALE = 26;
-  FID_LIGHTEN = 27;
+  FID_COLORMAX = 19;
+  FID_COLORMIN = 20;
+  FID_COLORAVERAGE = 21;
+  FID_COLORADD = 22;
+  FID_COLORSUB = 23;
+  FID_COLORDIV = 24;
+  FID_COLORMODULATE = 25;
+  FID_COLORDIFFERENCE = 26;
+  FID_COLOREXCLUSION = 27;
+  FID_COLORSCALE = 28;
+  FID_LIGHTEN = 29;
 
-  FID_BLENDREGRGB = 28;
-  FID_BLENDMEMRGB = 29;
+  FID_BLENDREGRGB = 29;
+  FID_BLENDMEMRGB = 30;
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
-  FID_BLENDMEMRGB128 = 30;
+  FID_BLENDMEMRGB128 = 31;
 {$ENDIF}
 
 procedure RegisterBindings;
@@ -4472,6 +4669,7 @@ begin
   BlendRegistry.RegisterBinding(FID_BLENDREGEX, @@BlendRegEx);
   BlendRegistry.RegisterBinding(FID_BLENDMEMEX, @@BlendMemEx);
   BlendRegistry.RegisterBinding(FID_BLENDLINEEX, @@BlendLineEx);
+  BlendRegistry.RegisterBinding(FID_BLENDLINE1, @@BlendLine1);
 
   BlendRegistry.RegisterBinding(FID_COLORMAX, @@ColorMax);
   BlendRegistry.RegisterBinding(FID_COLORMIN, @@ColorMin);
@@ -4499,6 +4697,7 @@ begin
   BlendRegistry.Add(FID_MERGEREGEX, @MergeRegEx_Pas);
   BlendRegistry.Add(FID_MERGELINE, @MergeLine_Pas);
   BlendRegistry.Add(FID_MERGELINEEX, @MergeLineEx_Pas);
+  BlendRegistry.Add(FID_MERGELINE1, @MergeLine1_Pas);
   BlendRegistry.Add(FID_COLORDIV, @ColorDiv_Pas);
   BlendRegistry.Add(FID_COLORAVERAGE, @ColorAverage_Pas);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_Pas);
@@ -4511,6 +4710,7 @@ begin
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_Pas);
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_Pas);
   BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_Pas);
+  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_Pas);
   BlendRegistry.Add(FID_COLORMAX, @ColorMax_Pas);
   BlendRegistry.Add(FID_COLORMIN, @ColorMin_Pas);
   BlendRegistry.Add(FID_COLORADD, @ColorAdd_Pas);
@@ -4533,7 +4733,10 @@ begin
   BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
   BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
   BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas, []);   // no ASM version available
+  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, []);
+{$IFNDEF TARGET_x64}
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
+{$ENDIF}
 {$IFNDEF OMIT_MMX}
   BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
   BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
@@ -4584,9 +4787,6 @@ begin
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
   BlendRegistry.Add(FID_BLENDMEMRGB128, @BlendMemRGB128_SSE4, [ciSSE2]);
 {$ENDIF}
-{$ENDIF}
-{$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
 {$ENDIF}
 {$ENDIF}
 
