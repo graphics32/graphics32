@@ -52,6 +52,7 @@ type
     procedure TestBlendMemEx; virtual;
     procedure TestBlendLine; virtual;
     procedure TestBlendLineEx; virtual;
+    procedure TestBlendLine1; virtual;
     procedure TestCombineReg; virtual;
     procedure TestCombineMem; virtual;
     procedure TestCombineLine; virtual;
@@ -77,6 +78,7 @@ type
     procedure TestBlendMemEx; override;
     procedure TestBlendLine; override;
     procedure TestBlendLineEx; override;
+    procedure TestBlendLine1; override;
     procedure TestCombineReg; override;
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
@@ -99,6 +101,7 @@ type
     procedure TestBlendMemEx; override;
     procedure TestBlendLine; override;
     procedure TestBlendLineEx; override;
+    procedure TestBlendLine1; override;
     procedure TestCombineReg; override;
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
@@ -121,6 +124,7 @@ type
     procedure TestBlendMemEx; override;
     procedure TestBlendLine; override;
     procedure TestBlendLineEx; override;
+    procedure TestBlendLine1; override;
     procedure TestCombineReg; override;
     procedure TestCombineMem; override;
     procedure TestCombineLine; override;
@@ -147,30 +151,40 @@ const
   FID_MERGEREG = 1;
   FID_MERGEMEM = 2;
   FID_MERGELINE = 3;
-  FID_MERGEREGEX = 4;
-  FID_MERGEMEMEX = 5;
-  FID_MERGELINEEX = 6;
-  FID_COMBINEREG = 7;
-  FID_COMBINEMEM = 8;
-  FID_COMBINELINE = 9;
+  FID_MERGELINE1 = 4;
+  FID_MERGEREGEX = 5;
+  FID_MERGEMEMEX = 6;
+  FID_MERGELINEEX = 7;
+  FID_COMBINEREG = 8;
+  FID_COMBINEMEM = 9;
+  FID_COMBINELINE = 10;
 
-  FID_BLENDREG = 10;
-  FID_BLENDMEM = 11;
-  FID_BLENDLINE = 12;
-  FID_BLENDREGEX = 13;
-  FID_BLENDMEMEX = 14;
-  FID_BLENDLINEEX = 15;
+  FID_BLENDREG = 11;
+  FID_BLENDMEM = 12;
+  FID_BLENDMEMS = 13;
+  FID_BLENDLINE = 14;
+  FID_BLENDREGEX = 15;
+  FID_BLENDMEMEX = 16;
+  FID_BLENDLINEEX = 17;
+  FID_BLENDLINE1 = 18;
 
-  FID_COLORMAX = 16;
-  FID_COLORMIN = 17;
-  FID_COLORAVERAGE = 18;
-  FID_COLORADD = 19;
-  FID_COLORSUB = 20;
-  FID_COLORDIV = 21;
-  FID_COLORMODULATE = 22;
-  FID_COLORDIFFERENCE = 23;
-  FID_COLOREXCLUSION = 24;
-  FID_COLORSCALE = 25;
+  FID_COLORMAX = 19;
+  FID_COLORMIN = 20;
+  FID_COLORAVERAGE = 21;
+  FID_COLORADD = 22;
+  FID_COLORSUB = 23;
+  FID_COLORDIV = 24;
+  FID_COLORMODULATE = 25;
+  FID_COLORDIFFERENCE = 26;
+  FID_COLOREXCLUSION = 27;
+  FID_COLORSCALE = 28;
+  FID_LIGHTEN = 29;
+
+  FID_BLENDREGRGB = 29;
+  FID_BLENDMEMRGB = 30;
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  FID_BLENDMEMRGB128 = 31;
+{$ENDIF}
 
 
 function CompareColors(Expected, Actual: TColor32Entry; Difference: Byte = 1): Boolean;
@@ -365,6 +379,39 @@ begin
     ExpectedColor32.ARGB := (Index shl 16) or (Index shl 8) or Index;
     CombinedColor32.ARGB := FBackground^[Index];
     CombinedColor32.A := 0;
+    CheckTrue(CompareColors(ExpectedColor32, CombinedColor32, FColorDiff),
+      'Color should be: ' + IntToHex(ExpectedColor32.ARGB, 8) +
+      ', but was: ' + IntToHex(CombinedColor32.ARGB, 8));
+  end;
+end;
+
+procedure TCustomTestBlendModes.TestBlendLine1;
+var
+  CombinedColor32 : TColor32Entry;
+  ExpectedColor32 : TColor32Entry;
+  Index           : Integer;
+begin
+  for Index := 0 to High(Byte) do
+  begin
+    FBackground^[Index] := clBlack32;
+    TColor32Entry(FBackground^[Index]).R := Index;
+    TColor32Entry(FBackground^[Index]).G := High(Byte) - Index;
+  end;
+
+  BlendLine1(clTrWhite32, PColor32(FBackground), 256);
+  EMMS;
+
+  for Index := 0 to High(Byte) do
+  begin
+    CombinedColor32.ARGB := clBlack32;
+    TColor32Entry(CombinedColor32).R := Index;
+    TColor32Entry(CombinedColor32).G := High(Byte) - Index;
+    ExpectedColor32.ARGB := BlendReg(clTrWhite32, CombinedColor32.ARGB);
+    ExpectedColor32.A := $FF;
+
+    CombinedColor32.ARGB := FBackground^[Index];
+    CombinedColor32.A := $FF;
+
     CheckTrue(CompareColors(ExpectedColor32, CombinedColor32, FColorDiff),
       'Color should be: ' + IntToHex(ExpectedColor32.ARGB, 8) +
       ', but was: ' + IntToHex(CombinedColor32.ARGB, 8));
@@ -873,6 +920,14 @@ begin
   inherited;
 end;
 
+procedure TTestBlendModesNative.TestBlendLine1;
+begin
+  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
+  BlendRegistry.Rebind(FID_BLENDLINE1, NativePriorityProc);
+  FColorDiff := 1;
+  inherited;
+end;
+
 procedure TTestBlendModesNative.TestBlendLineEx;
 begin
   BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
@@ -1013,6 +1068,14 @@ begin
   inherited;
 end;
 
+procedure TTestBlendModesMMX.TestBlendLine1;
+begin
+  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
+  BlendRegistry.Rebind(FID_BLENDLINE1, MMXPriorityProc);
+  FColorDiff := 1;
+  inherited;
+end;
+
 procedure TTestBlendModesMMX.TestBlendLineEx;
 begin
   BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
@@ -1141,6 +1204,13 @@ procedure TTestBlendModesSSE2.TestBlendLine;
 begin
   BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
   BlendRegistry.Rebind(FID_BLENDLINE, SSE2PriorityProc);
+  inherited;
+end;
+
+procedure TTestBlendModesSSE2.TestBlendLine1;
+begin
+  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
+  BlendRegistry.Rebind(FID_BLENDLINE1, SSE2PriorityProc);
   inherited;
 end;
 
