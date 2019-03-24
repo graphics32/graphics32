@@ -971,11 +971,17 @@ type
 {$IFDEF BCB}
     procedure DrawTo(hDst: Cardinal; DstX, DstY: Integer); overload;
     procedure DrawTo(hDst: Cardinal; const DstRect, SrcRect: TRect); overload;
-    procedure TileTo(hDst: Cardinal; const DstRect, SrcRect: TRect);
+    procedure TileTo(hDst: Cardinal; const DstRect, SrcRect: TRect); overload;
 {$ELSE}
     procedure DrawTo(hDst: HDC; DstX: Integer = 0; DstY: Integer = 0); overload;
     procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
-    procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect);
+    procedure TileTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
+{$ENDIF}
+
+{$IFDEF COMPILER2009_UP}
+    procedure DrawTo(Dst: TControlCanvas; DstX: Integer = 0; DstY: Integer = 0); overload;
+    procedure DrawTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect); overload;
+    procedure TileTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect); overload;
 {$ENDIF}
 
     procedure UpdateFont;
@@ -5979,6 +5985,23 @@ begin
     Buffer.Free;
   end;
 end;
+
+{$IFDEF COMPILER2009_UP}
+procedure TBitmap32.DrawTo(Dst: TControlCanvas; DstX, DstY: Integer);
+begin
+  DrawTo(Dst.Handle, DstX, DstY);
+end;
+
+procedure TBitmap32.DrawTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect);
+begin
+  DrawTo(Dst.Handle, DstRect, SrcRect);
+end;
+
+procedure TBitmap32.TileTo(Dst: TControlCanvas; const DstRect, SrcRect: TRect);
+begin
+  TileTo(Dst.Handle, DstRect, SrcRect);
+end;
+{$ENDIF}
 
 procedure TBitmap32.UpdateFont;
 begin
