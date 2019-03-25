@@ -98,7 +98,7 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Backends, GR32_Polygons,
+  GR32_Backends, GR32_Gamma, GR32_Polygons,
   {$IFDEF FPC}
   {$IFDEF LCLWin32}
     GR32_Text_LCL_Win;

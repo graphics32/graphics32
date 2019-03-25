@@ -537,13 +537,6 @@ type
     sfLanczos, sfMitchell);
 {$ENDIF}
 
-{ Gamma bias for line/pixel antialiasing }
-
-var
-  GAMMA_TABLE: array [Byte] of Byte;
-
-procedure SetGamma(Gamma: Single = 1.6);
-
 type
   { TPlainInterfacedPersistent }
   { TPlainInterfacedPersistent provides simple interface support with
@@ -1110,7 +1103,7 @@ implementation
 
 uses
   Math, GR32_Blend, GR32_LowLevel, GR32_Math, GR32_Resamplers,
-  GR32_Containers, GR32_Backends, GR32_Backends_Generic,
+  GR32_Containers, GR32_Gamma, GR32_Backends, GR32_Backends_Generic,
 {$IFDEF FPC}
   Clipbrd,
   {$IFDEF LCLWin32}
@@ -2090,16 +2083,6 @@ function PtInRect(const R: TFloatRect; const P: TFloatPoint): Boolean;
 begin
   Result := (P.X >= R.Left) and (P.X < R.Right) and
     (P.Y >= R.Top) and (P.Y < R.Bottom);
-end;
-
-{ Gamma / Pixel Shape Correction table }
-
-procedure SetGamma(Gamma: Single);
-var
-  i: Integer;
-begin
-  for i := 0 to $FF do
-    GAMMA_TABLE[i] := Round($FF * Power(i * COne255th, Gamma));
 end;
 
 { TSimpleInterfacedPersistent }

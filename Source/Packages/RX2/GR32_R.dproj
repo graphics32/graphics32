@@ -1,137 +1,171 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{AA13AB30-823B-4E0A-809C-30E0A0B4FF2B}</ProjectGuid>
-        <MainSource>GR32_R.dpk</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
-        <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Package</AppType>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <FrameworkType>VCL</FrameworkType>
-        <ProjectVersion>14.4</ProjectVersion>
+        <MainSource>GR32_R.dpk</MainSource>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
+        <ProjectGuid>{AA13AB30-823B-4E0A-809C-30E0A0B4FF2B}</ProjectGuid>
+        <ProjectVersion>18.3</ProjectVersion>
+        <TargetedPlatforms>3</TargetedPlatforms>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
-        <Base_Win32>true</Base_Win32>
-        <CfgParent>Base</CfgParent>
         <Base>true</Base>
+        <CfgParent>Base</CfgParent>
+        <Base_Win32>true</Base_Win32>
     </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
-        <Base_Win64>true</Base_Win64>
-        <CfgParent>Base</CfgParent>
         <Base>true</Base>
+        <CfgParent>Base</CfgParent>
+        <Base_Win64>true</Base_Win64>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
-        <Cfg_1>true</Cfg_1>
-        <CfgParent>Base</CfgParent>
         <Base>true</Base>
+        <CfgParent>Base</CfgParent>
+        <Cfg_1>true</Cfg_1>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
+        <Base>true</Base>
+        <CfgParent>Cfg_1</CfgParent>
+        <Cfg_1>true</Cfg_1>
+        <Cfg_1_Win32>true</Cfg_1_Win32>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win64)'!=''">
+        <Base>true</Base>
+        <CfgParent>Cfg_1</CfgParent>
+        <Cfg_1>true</Cfg_1>
+        <Cfg_1_Win64>true</Cfg_1_Win64>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
-        <Cfg_2>true</Cfg_2>
-        <CfgParent>Base</CfgParent>
         <Base>true</Base>
+        <CfgParent>Base</CfgParent>
+        <Cfg_2>true</Cfg_2>
     </PropertyGroup>
-    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
-        <Cfg_2_Win64>true</Cfg_2_Win64>
+    <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win32)'!=''">
+        <Base>true</Base>
         <CfgParent>Cfg_2</CfgParent>
         <Cfg_2>true</Cfg_2>
+        <Cfg_2_Win32>true</Cfg_2_Win32>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Cfg_2)'=='true') or '$(Cfg_2_Win64)'!=''">
         <Base>true</Base>
+        <CfgParent>Cfg_2</CfgParent>
+        <Cfg_2>true</Cfg_2>
+        <Cfg_2_Win64>true</Cfg_2_Win64>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <SanitizedProjectName>GR32_R</SanitizedProjectName>
         <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
-        <DCC_K>false</DCC_K>
-        <DCC_S>false</DCC_S>
-        <GenDll>true</GenDll>
-        <DCC_N>false</DCC_N>
-        <DCC_E>false</DCC_E>
-        <VerInfo_Locale>1031</VerInfo_Locale>
-        <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
-        <DCC_ImageBase>00400000</DCC_ImageBase>
-        <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
-        <DllSuffix>RX2</DllSuffix>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
-        <DCC_F>false</DCC_F>
-        <GenPackage>true</GenPackage>
         <DCC_Description>Graphics32</DCC_Description>
+        <DCC_E>false</DCC_E>
+        <DCC_F>false</DCC_F>
+        <DCC_ImageBase>00400000</DCC_ImageBase>
+        <DCC_K>false</DCC_K>
+        <DCC_N>false</DCC_N>
+        <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_S>false</DCC_S>
+        <DllSuffix>RX2</DllSuffix>
+        <GenDll>true</GenDll>
+        <GenPackage>true</GenPackage>
+        <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
+        <VerInfo_Locale>1031</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
-        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
-        <DCC_DebugInformation>false</DCC_DebugInformation>
+        <DCC_DebugInformation>0</DCC_DebugInformation>
         <DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
         <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Locale>1033</VerInfo_Locale>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
-        <DCC_Optimize>false</DCC_Optimize>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+        <DCC_Optimize>false</DCC_Optimize>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win64)'!=''">
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="vcl.dcp"/>
-        <DCCReference Include="..\XE3\..\..\GR32.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Backends.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Backends_Generic.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Backends_VCL.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Bindings.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Blend.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Brushes.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ColorGradients.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ColorPicker.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ColorSwatch.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Containers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_ExtImage.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Filters.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Geometry.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Image.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Layers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_LowLevel.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Math.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_MicroTiles.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_OrdinalMaps.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Paths.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Polygons.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_PolygonsAggLite.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_RangeBars.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Rasterizers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_RepaintOpt.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Resamplers.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_System.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Transforms.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_VectorMaps.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_VectorUtils.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_VPR.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_Text_VCL.pas"/>
-        <DCCReference Include="..\XE3\..\..\GR32_XPThemes.pas"/>
-        <BuildConfiguration Include="Debug">
-            <Key>Cfg_2</Key>
-            <CfgParent>Base</CfgParent>
-        </BuildConfiguration>
+        <DCCReference Include="..\..\GR32.pas"/>
+        <DCCReference Include="..\..\GR32_Backends.pas"/>
+        <DCCReference Include="..\..\GR32_Backends_Generic.pas"/>
+        <DCCReference Include="..\..\GR32_Backends_VCL.pas"/>
+        <DCCReference Include="..\..\GR32_Bindings.pas"/>
+        <DCCReference Include="..\..\GR32_Blend.pas"/>
+        <DCCReference Include="..\..\GR32_Brushes.pas"/>
+        <DCCReference Include="..\..\GR32_ColorGradients.pas"/>
+        <DCCReference Include="..\..\GR32_ColorPicker.pas"/>
+        <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
+        <DCCReference Include="..\..\GR32_Containers.pas"/>
+        <DCCReference Include="..\..\GR32_ExtImage.pas"/>
+        <DCCReference Include="..\..\GR32_Filters.pas"/>
+        <DCCReference Include="..\..\GR32_Geometry.pas"/>
+        <DCCReference Include="..\..\GR32_Image.pas"/>
+        <DCCReference Include="..\..\GR32_Layers.pas"/>
+        <DCCReference Include="..\..\GR32_LowLevel.pas"/>
+        <DCCReference Include="..\..\GR32_Math.pas"/>
+        <DCCReference Include="..\..\GR32_MicroTiles.pas"/>
+        <DCCReference Include="..\..\GR32_OrdinalMaps.pas"/>
+        <DCCReference Include="..\..\GR32_Paths.pas"/>
+        <DCCReference Include="..\..\GR32_Polygons.pas"/>
+        <DCCReference Include="..\..\GR32_PolygonsAggLite.pas"/>
+        <DCCReference Include="..\..\GR32_RangeBars.pas"/>
+        <DCCReference Include="..\..\GR32_Rasterizers.pas"/>
+        <DCCReference Include="..\..\GR32_RepaintOpt.pas"/>
+        <DCCReference Include="..\..\GR32_Resamplers.pas"/>
+        <DCCReference Include="..\..\GR32_System.pas"/>
+        <DCCReference Include="..\..\GR32_Transforms.pas"/>
+        <DCCReference Include="..\..\GR32_VectorMaps.pas"/>
+        <DCCReference Include="..\..\GR32_VectorUtils.pas"/>
+        <DCCReference Include="..\..\GR32_VPR.pas"/>
+        <DCCReference Include="..\..\GR32_Text_VCL.pas"/>
+        <DCCReference Include="..\..\GR32_XPThemes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
         <BuildConfiguration Include="Release">
             <Key>Cfg_1</Key>
+            <CfgParent>Base</CfgParent>
+        </BuildConfiguration>
+        <BuildConfiguration Include="Debug">
+            <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
         </BuildConfiguration>
     </ItemGroup>
@@ -178,12 +212,6 @@
                     <VersionInfoKeys Name="CFBundleAllowMixedLocalizations"/>
                     <VersionInfoKeys Name="CFBundleExecutable"/>
                 </VersionInfoKeys>
-                <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k170.bpl">Embarcadero C++Builder-Package für Office 2000-Server</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp170.bpl">Embarcadero C++Builder-Package für Office XP-Server</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k170.bpl">Microsoft Office 2000 Beispiele für gekapselte Komponenten für Automatisierungsserver</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp170.bpl">Microsoft Office XP Beispiele für gekapselte Komponenten für Automation Server</Excluded_Packages>
-                </Excluded_Packages>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Win32">True</Platform>

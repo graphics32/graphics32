@@ -63,7 +63,7 @@ implementation
 {$ENDIF}
 
 uses
-  GR32_Math;
+  GR32_Gamma, GR32_Math;
 
 { TFormLineStippling }
 

@@ -604,7 +604,8 @@ resourcestring
 implementation
 
 uses
-  GR32_System, GR32_Bindings, GR32_LowLevel, GR32_Rasterizers, GR32_Math, Math;
+  GR32_System, GR32_Bindings, GR32_LowLevel, GR32_Rasterizers, GR32_Math,
+  GR32_Gamma, Math;
 
 resourcestring
   RCStrInvalidSrcRect = 'Invalid SrcRect';

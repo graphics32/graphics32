@@ -159,9 +159,7 @@ var
 implementation
 
 uses
-{$IFDEF TARGET_x86}
   GR32_LowLevel,
-{$ENDIF}
   GR32_System;
 
 {$IFDEF OMIT_MMX}

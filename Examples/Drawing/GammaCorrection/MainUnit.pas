@@ -35,7 +35,7 @@ var
 implementation
 
 uses
-  GR32_LowLevel, GR32_VectorUtils, GR32_Polygons;
+  GR32_LowLevel, GR32_Gamma, GR32_VectorUtils, GR32_Polygons;
 
 {$IFDEF FPC}
 {$R *.lfm}
@@ -58,8 +58,7 @@ end;
 
 procedure TFrmGammaCorrection.GbrGammaChange(Sender: TObject);
 begin
-  LblGammaValue.Caption := FloatToStrF(0.01 * GbrGamma.Position, ffFixed, 3,
-    3);
+  LblGammaValue.Caption := FloatToStrF(0.01 * GbrGamma.Position, ffFixed, 3, 3);
   SetGamma(0.01 * GbrGamma.Position);
   PaintBox32.Invalidate;
 end;

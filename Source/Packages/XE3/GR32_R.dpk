@@ -48,6 +48,7 @@ contains
   GR32_Containers in '..\..\GR32_Containers.pas',
   GR32_ExtImage in '..\..\GR32_ExtImage.pas',
   GR32_Filters in '..\..\GR32_Filters.pas',
+  GR32_Gamma in '..\..\GR32_Gamma.pas',
   GR32_Geometry in '..\..\GR32_Geometry.pas',
   GR32_Image in '..\..\GR32_Image.pas',
   GR32_Layers in '..\..\GR32_Layers.pas',
