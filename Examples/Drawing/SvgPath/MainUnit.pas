@@ -239,23 +239,6 @@ var
         StartAngle := StartAngle - 2 * Pi;
       if (SweepFlag = True) and (StartAngle < 0) then
         StartAngle := StartAngle + 2 * Pi;
-
-(*
-      FCanvas32.Transformation.
-      Strings.Add('Canvas.Translate(' + FloatToStr(Center.X) + ', ' +
-        FloatToStr(Center.Y) + ');');
-      if Angle <> 0 then
-        Strings.Add('Canvas.Rotate(' + FloatToStr(Angle) + ');');
-
-      Strings.Add('Canvas.ArcToF(0, 0, ' + FloatToStr(MaxRadius) + ', ' +
-        FloatToStr(StartAngle) + ', ' + FloatToStr(DeltaAngle) + ', ' +
-          BoolToStr(not SweepFlag) + ');');
-
-      if Angle <> 0 then
-        Strings.Add('Canvas.Rotate(' + FloatToStr(-Angle) + ');');
-      Strings.Add('Canvas.Translate(' + FloatToStr(-Center.X) + ', ' +
-        FloatToStr(-Center.Y) + ');');
-*)
     end
     else
     begin
@@ -309,28 +292,6 @@ var
         Scale.x := Radius.x / Radius.y;
         Scale.y := 1;
       end;
-
-(*
-      Strings.Add('Canvas.Translate(' + FloatToStr(Center.X) + ', ' +
-        FloatToStr(Center.Y) + ');');
-      if Angle <> 0 then
-        Strings.Add('Canvas.Rotate(' + FloatToStr(Angle) + ');');
-      if (Scale.X <> Scale.Y) or (Scale.X <> 1) then
-        Strings.Add('Canvas.Scale(' + FloatToStr(Scale.X) + ', ' +
-          FloatToStr(Scale.Y) + ');');
-
-      Strings.Add('Canvas.ArcToF(0, 0, ' + FloatToStr(MaxRadius) + ', ' +
-        FloatToStr(StartAngle) + ', ' + FloatToStr(DeltaAngle) + ', ' +
-          BoolToStr(not SweepFlag) + ');');
-
-      if (Scale.X <> Scale.Y) or (Scale.X <> 1) then
-        Strings.Add('Canvas.Scale(' + FloatToStr(1 / Scale.X) + ', ' +
-          FloatToStr(1 / Scale.Y) + ');');
-      if Angle <> 0 then
-        Strings.Add('Canvas.Rotate(' + FloatToStr(-Angle) + ');');
-      Strings.Add('Canvas.Translate(' + FloatToStr(-Center.X) + ', ' +
-        FloatToStr(-Center.Y) + ');');
-*)
     end;
   end;
 
@@ -497,17 +458,10 @@ begin
             Control[1].Y, Current.X, Current.Y);
       pcArcTo:
         begin
+          raise Exception.Create(RCStrNotYetImplemented);
 //          FCanvas32.Path.Arc(Radius.X, Radius.Y, );
           //ArcEndpointToCenterParameterization;
           //raise Exception.Create(RCStrNotYetImplemented);
-
-
-(*
-        Strings.Add('Canvas.ArcToF(' + FloatToStr(Control.X) + ', ' +
-          FloatToStr(Control.Y) + ', ' + FloatToStr(LastControl.X) + ', ' +
-          FloatToStr(LastControl.Y) + ', ' + FloatToStr(LastPos.X) + ', ' +
-          FloatToStr(LastPos.Y) + ');');
-*)
         end;
       pcClosePath:
         begin

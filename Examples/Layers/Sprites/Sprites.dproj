@@ -47,6 +47,7 @@
         <SanitizedProjectName>Sprites</SanitizedProjectName>
         <DCC_DcuOutput>..\..\..\Unit Cache\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_E>false</DCC_E>
+        <DCC_ExeOutput>..\..\..\Binaries\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_F>false</DCC_F>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <DCC_K>false</DCC_K>
