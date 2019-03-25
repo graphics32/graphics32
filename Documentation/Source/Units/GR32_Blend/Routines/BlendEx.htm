@@ -13,9 +13,9 @@
 <h2>Description</h2>
 <p class="Body">Mixes a foreground color with the background color using alpha 
   of the foreground color scaled by the master alpha value <b>M</b>. </p>
-<p class="Code">S<span class="sub">RGB</span> = (M * F<span class="sub">A</span>) 
-  * F<span class="sub">RGB</span> + (1 – (M * F<span class="sub">A</span>)) * 
-  B<span class="sub">RGB</span>; </p>
+<p class="Code">S<span class="sub">ARGB</span> = (M * F<span class="sub">A</span>) 
+  * F<span class="sub">ARGB</span> + (1 – (M * F<span class="sub">A</span>)) * 
+  B<span class="sub">ARGB</span>; </p>
 <p class="Body"><b>M</b> is defined as <a href="../../GR32/Types/Color%20Types.htm#TColor32">TColor32</a> 
   to avoid unnecessary type conversions, it must store only values in [0..255] 
   range, the function does not perform range checking and the result in case <b>M</b> 

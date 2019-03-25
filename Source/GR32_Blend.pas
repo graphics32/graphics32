@@ -120,6 +120,9 @@ var
   ColorAverage: TBlendReg;
   ColorExclusion: TBlendReg;
   ColorScale: TBlendReg;
+  ColorScreen: TBlendReg;
+  ColorDodge: TBlendReg;
+  ColorBurn: TBlendReg;
 
 { Special LUT pointers }
   AlphaTable: Pointer;
@@ -197,6 +200,7 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
+    A := Af[FX.A] + Ab[A];
   end;
   Result := B;
 end;
@@ -268,6 +272,7 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
+    A := Af[FX.A] + Ab[A];
   end;
   Result := B;
 end;
@@ -300,6 +305,7 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
+    A := Af[FX.A] + Ab[A];
   end;
 end;
 
@@ -383,6 +389,7 @@ begin
     R := Ab[Ye.R] + Af[R];
     G := Ab[Ye.G] + Af[G];
     B := Ab[Ye.B] + Af[B];
+    A := Ab[Ye.A] + Af[A];
   end;
   Result := X;
 end;
@@ -411,6 +418,7 @@ begin
     R := Ab[Ye.R] + Af[R];
     G := Ab[Ye.G] + Af[G];
     B := Ab[Ye.B] + Af[B];
+    A := Ab[Ye.A] + Af[A];
   end;
   Y := X;
 end;
@@ -511,11 +519,10 @@ end;
 
 function LightenReg_Pas(C: TColor32; Amount: Integer): TColor32;
 var
-  r, g, b, a: Integer;
+  r, g, b: Integer;
   CX: TColor32Entry absolute C;
   RX: TColor32Entry absolute Result;
 begin
-  a := CX.A;
   r := CX.R;
   g := CX.G;
   b := CX.B;
@@ -528,7 +535,8 @@ begin
   if g > 255 then g := 255 else if g < 0 then g := 0;
   if b > 255 then b := 255 else if b < 0 then b := 0;
 
-  RX.A := a;
+  // preserve alpha
+  RX.A := CX.A;
   RX.R := r;
   RX.G := g;
   RX.B := b;
@@ -538,30 +546,14 @@ end;
 
 function ColorAdd_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: Integer;
-  r2, g2, b2, a2: Integer;
+  Xe: TColor32Entry absolute C1;
+  Ye: TColor32Entry absolute C2;
+  R: TColor32Entry absolute Result;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  a1 := a1 + a2;
-  r1 := r1 + r2;
-  g1 := g1 + g2;
-  b1 := b1 + b2;
-
-  if a1 > $FF then a1 := $FF;
-  if r1 > $FF0000 then r1 := $FF0000;
-  if g1 > $FF00 then g1 := $FF00;
-  if b1 > $FF then b1 := $FF;
-
-  Result := a1 shl 24 + r1 + g1 + b1;
+  R.A := Clamp(Xe.A + Ye.A, 255);
+  R.R := Clamp(Xe.R + Ye.R, 255);
+  R.G := Clamp(Xe.G + Ye.G, 255);
+  R.B := Clamp(Xe.B + Ye.B, 255);
 end;
 
 function ColorSub_Pas(C1, C2: TColor32): TColor32;
@@ -613,13 +605,13 @@ begin
   g2 := (C2 and $0000FF00) shr 8;
   b2 := C2 and $000000FF;
 
-  if a1 = 0 then a1:=$FF
+  if a1 = 0 then a1 := $FF
   else a1 := (a2 shl 8) div a1;
-  if r1 = 0 then r1:=$FF
+  if r1 = 0 then r1 := $FF
   else r1 := (r2 shl 8) div r1;
-  if g1 = 0 then g1:=$FF
+  if g1 = 0 then g1 := $FF
   else g1 := (g2 shl 8) div g1;
-  if b1 = 0 then b1:=$FF
+  if b1 = 0 then b1 := $FF
   else b1 := (b2 shl 8) div b1;
 
   if a1 > $FF then a1 := $FF;
@@ -674,60 +666,26 @@ end;
 
 function ColorDifference_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: TColor32;
-  r2, g2, b2, a2: TColor32;
+  Xe: TColor32Entry absolute C1;
+  Ye: TColor32Entry absolute C2;
+  R: TColor32Entry absolute Result;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  r1 := r1 shr 16;
-  g1 := g1 shr 8;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  r2 := r2 shr 16;
-  g2 := g2 shr 8;
-
-  a1 := abs(a2 - a1);
-  r1 := abs(r2 - r1);
-  g1 := abs(g2 - g1);
-  b1 := abs(b2 - b1);
-
-  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+  R.A := Abs(Xe.A - Ye.A);
+  R.R := Abs(Xe.R - Ye.R);
+  R.G := Abs(Xe.G - Ye.G);
+  R.B := Abs(Xe.B - Ye.B);
 end;
 
 function ColorExclusion_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: TColor32;
-  r2, g2, b2, a2: TColor32;
+  Xe: TColor32Entry absolute C1;
+  Ye: TColor32Entry absolute C2;
+  R: TColor32Entry absolute Result;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  r1 := r1 shr 16;
-  g1 := g1 shr 8;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  r2 := r2 shr 16;
-  g2 := g2 shr 8;
-
-  a1 := a1 + a2 - (a1 * a2 shr 7);
-  r1 := r1 + r2 - (r1 * r2 shr 7);
-  g1 := g1 + g2 - (g1 * g2 shr 7);
-  b1 := b1 + b2 - (b1 * b2 shr 7);
-
-  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+  R.A := Xe.A + Ye.A - ((Xe.A * Ye.A) shl 7);
+  R.R := Xe.R + Ye.R - ((Xe.R * Ye.R) shr 7);
+  R.G := Xe.G + Ye.G - ((Xe.G * Ye.G) shr 7);
+  R.B := Xe.B + Ye.B - ((Xe.B * Ye.B) shr 7);
 end;
 
 function ColorAverage_Pas(C1, C2: TColor32): TColor32;
@@ -768,6 +726,67 @@ begin
   Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
 end;
 
+function ColorScreen_Pas(B, S: TColor32): TColor32;
+var
+  Be: TColor32Entry absolute B;
+  Se: TColor32Entry absolute S;
+  R: TColor32Entry absolute Result;
+begin
+  R.A := Be.A + Se.A - (Be.A * Se.A) div 255;
+  R.R := Be.R + Se.R - (Be.R * Se.R) div 255;
+  R.G := Be.G + Se.G - (Be.G * Se.G) div 255;
+  R.B := Be.B + Se.B - (Be.B * Se.B) div 255;
+end;
+
+function ColorDodge_Pas(B, S: TColor32): TColor32;
+
+  function Dodge(B, S: Byte): Byte;
+  begin
+    if B = 0 then
+      Result := 0
+    else
+    if S = 255 then
+      Result := 255
+    else
+      Result := Clamp(Round(255 * B / (255 - S)), 255);
+  end;
+
+var
+  Be: TColor32Entry absolute B;
+  Se: TColor32Entry absolute S;
+  R: TColor32Entry absolute Result;
+begin
+  R.A := Dodge(Be.A, Se.A);
+  R.R := Dodge(Be.R, Se.R);
+  R.G := Dodge(Be.G, Se.G);
+  R.B := Dodge(Be.B, Se.B);
+end;
+
+function ColorBurn_Pas(B, S: TColor32): TColor32;
+
+  function Burn(B, S: Byte): Byte;
+  begin
+    if B = 255 then
+      Result := 255
+    else
+    if S = 0 then
+      Result := 0
+    else
+      Result := 255 - Clamp(Round(255 * (255 - B) / S), 255);
+  end;
+
+var
+  Be: TColor32Entry absolute B;
+  Se: TColor32Entry absolute S;
+  R: TColor32Entry absolute Result;
+begin
+  R.A := Burn(Be.A, Se.A);
+  R.R := Burn(Be.R, Se.R);
+  R.G := Burn(Be.G, Se.G);
+  R.B := Burn(Be.B, Se.B);
+end;
+
+
 {$IFNDEF PUREPASCAL}
 
 { Assembler versions }
@@ -780,7 +799,8 @@ function BlendReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostack
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
-  // Result Z = Fa * Frgb + (1 - Fa) * Brgb
+  // Result Z = Fa * Fargb + (1 - Fa) * Bargb
+  // Result Z =    P      +        Q
 
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -794,7 +814,7 @@ asm
         TEST    EAX,$FF000000   // Fa = 0 ?   => Result = EDX
         JZ      @1
 
-  // Get weight W = Fa * M
+  // Get weight W = Fa
         MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
@@ -814,8 +834,9 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     EBX,EDX         // EBX  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
         AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
@@ -852,7 +873,7 @@ asm
         TEST    EAX,$FF000000   // Fa = 0 ?   => Result = EDX
         JZ      @1
 
-  // Get weight W = Fa * M
+  // Get weight W = Fa
         MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
@@ -870,8 +891,9 @@ asm
         AND     R9D,$FF00FF00   // R9D  <-  Pa 00 Pg 00
         OR      EAX,R9D         // EAX  <-  Pa Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     R9D,EDX         // R9D  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
         AND     R9D,$FF00FF00   // R9D  <-  Ba 00 Bg 00
@@ -931,8 +953,9 @@ asm
 
         MOV     ESI,[EDX]
 
-// W = 1 - W; Q = W * B
+  // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
         AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
@@ -968,7 +991,7 @@ asm
 
         MOV     EAX, ECX        // EAX  <-  Fa Fr Fg Fb
 
-        // Get weight W = Fa * M
+  // Get weight W = Fa
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
         // Test Fa = 255 ?
@@ -991,8 +1014,9 @@ asm
 
         MOV     R9D,[RDX]
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     R8D,R9D         // R8D  <-  Ba Br Bg Bb
         AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
         AND     R8D,$FF00FF00   // R8D  <-  Ba 00 Bg 00
@@ -1167,14 +1191,15 @@ asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
   // no checking for M = $FF, in this case Graphics32 uses BlendReg
-  // Result Z = Fa * M * Frgb + (1 - Fa * M) * Brgb
+  // Result Z = Fa * M * Fargb + (1 - Fa * M) * Bargb
+  // Result Z =      P        +        Q
   // EAX <- F
   // EDX <- B
   // ECX <- M
 
 {$IFDEF TARGET_x86}
 
-// Check Fa > 0 ?
+  // Check Fa > 0 ?
         TEST    EAX,$FF000000   // Fa = 0? => Result := EDX
         JZ      @2
 
@@ -1202,8 +1227,9 @@ asm
         AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
         OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     EBX,EDX         // EBX  <-  00 Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
         AND     EBX,$0000FF00   // EBX  <-  00 00 Bg 00
@@ -1255,8 +1281,9 @@ asm
         AND     ECX,$0000FF00   // ECX  <-  00 00 Pg 00
         OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         XOR     R8D,$000000FF   // R8D  <-  1 - R8D
+  // Q = W * B
         MOV     ECX,EDX         // ECX  <-  00 Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
         AND     ECX,$0000FF00   // ECX  <-  00 00 Bg 00
@@ -1316,9 +1343,10 @@ asm
         AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
         OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W;
         MOV     ESI,[EDX]
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     EBX,ESI         // EBX  <-  00 Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
         AND     EBX,$0000FF00   // EBX  <-  00 00 Bg 00
@@ -1377,9 +1405,10 @@ asm
         AND     EAX,$0000FF00   // EAX  <-  00 00 Pg 00
         OR      ECX,EAX         // ECX  <-  00 Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         MOV     R9D,[RDX]
         XOR     R8D,$000000FF   // R8D  <-  1 - R8
+  // Q = W * B
         MOV     EAX,R9D         // EAX  <-  00 Br Bg Bb
         AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
         AND     EAX,$0000FF00   // EAX  <-  00 00 Bg 00
@@ -1427,7 +1456,7 @@ asm
 
         PUSH    ECX             // store counter
 
-  // Get weight W = Fa * M
+  // Get weight W = Fa
         MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
         SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
@@ -1449,9 +1478,10 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W;
         MOV     EDX,[EDI]
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     EBX,EDX         // EBX  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // ESI  <-  00 Br 00 Bb
         AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
@@ -1506,7 +1536,7 @@ asm
         TEST    EAX,$FF000000
         JZ      @3              // complete transparency, proceed to next point
 
-  // Get weight W = Fa * M
+  // Get weight W = Fa
         MOV     R9D,EAX        // R9D  <-  Fa Fr Fg Fb
         SHR     R9D,24         // R9D  <-  00 00 00 Fa
 
@@ -1528,9 +1558,10 @@ asm
         AND     R8D,$FF00FF00   // R8D  <-  Pa 00 Pg 00
         OR      EAX,R8D         // EAX  <-  Pa Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W;
         MOV     EDX,[R11]
         XOR     R9D,$000000FF   // R9D  <-  1 - R9D
+  // Q = W * B
         MOV     R8D,EDX         // R8D  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
         AND     R8D,$FF00FF00   // R8D  <-  Ba 00 Bg 00
@@ -1582,6 +1613,8 @@ asm
 
         MOV     ESI,EAX         // ESI <- Src
         MOV     EDI,EDX         // EDI <- Dst
+
+  // Get weight W = Fa
         SHR     ESI, 24         // ESI <- W
 
   // test if source is fully opaque
@@ -1664,10 +1697,11 @@ asm
         JZ      @2
 
         PUSH    RDI
-        MOV     RDI,RDX           // RDI <- Dst
 
-  // Get weight W = Fa * M
+        MOV     RDI,RDX           // RDI <- Dst
         MOV     R9D,ECX           // R9D <- Src
+
+  // Get weight W = Fa
         SHR     R9D,24            // R9D <- W
 
   // Test Fa = 255 ?
@@ -1689,8 +1723,8 @@ asm
         OR      ECX,EAX           // ECX  <-  Pa Pr Pg Pb
         XOR     R9D,$000000FF     // R9D  <-  1 - Fa
 
+  // loop start
 @1:
-  // W = 1 - W; Q = W * B
         MOV     EDX,[RDI]
         MOV     EAX,EDX           // EAX  <-  Ba Br Bg Bb
         AND     EDX,$00FF00FF     // EDX  <-  00 Br 00 Bb
@@ -1738,22 +1772,39 @@ end;
 
 function MergeReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
-        // EAX <- F
-        // EDX <- B
+  { This is an implementation of the merge formula, as described
+    in a paper by Bruce Wallace in 1981. Merging is associative,
+    that is, A over (B over C) = (A over B) over C. The formula is,
 
-        // if F.A = 0 then
+      Ra = Fa + Ba * (1 - Fa)
+      Rc = (Fa * (Fc - Bc * Ba) + Bc * Ba) / Ra
+
+    where
+
+      Rc is the resultant color,
+      Ra is the resultant alpha,
+      Fc is the foreground color,
+      Fa is the foreground alpha,
+      Bc is the background color,
+      Ba is the background alpha.
+  }
+
+  // EAX <- F
+  // EDX <- B
+
+  // if F.A = 0 then
         TEST    EAX,$FF000000
         JZ      @exit0
 
-        // else if B.A = 255 then
+  // else if B.A = 255 then
         CMP     EDX,$FF000000
         JNC     @blend
 
-        // else if F.A = 255 then
+  // else if F.A = 255 then
         CMP     EAX,$FF000000
         JNC     @Exit
 
-        // else if B.A = 0 then
+  // else if B.A = 0 then
         TEST    EDX,$FF000000
         JZ      @Exit
 
@@ -1765,8 +1816,8 @@ asm
         MOV     [ESP+$04],EDX
         MOV     [ESP],EAX
 
-        // AH <- F.A
-        // DL, CL <- B.A
+  // AH <- F.A
+  // DL, CL <- B.A
         SHR     EAX,16
         AND     EAX,$0000FF00
         SHR     EDX,24
@@ -1775,42 +1826,41 @@ asm
         NOP
         NOP
 
-        // EDI <- PF
-        // EDX <- PB
-        // ESI <- PR
+  // EDI <- PF
+  // EDX <- PB
+  // ESI <- PR
 
-        // PF := @DivTable[F.A];
+  // PF := @DivTable[F.A];
         LEA     EDI,[EAX+DivTable]
-        // PB := @DivTable[B.A];
+  // PB := @DivTable[B.A];
         SHL     EDX,$08
         LEA     EDX,[EDX+DivTable]
-        // Result.A := B.A + F.A - PB[F.A];
+
+  // Result.A := B.A + F.A - PB[F.A];
         SHR     EAX,8
-        //ADD CL,AL
         ADD     ECX,EAX
-        //SUB CL,[EDX+EAX]
         SUB     ECX,[EDX+EAX]
         MOV     [ESP+$0B],CL
-        // PR := @RcTable[Result.A];
+  // PR := @RcTable[Result.A];
         SHL     ECX,$08
         AND     ECX,$0000FFFF
         LEA     ESI,[ECX+RcTable]
 
   { Red component }
 
-        // Result.R := PB[B.R];
+  // Result.R := PB[B.R];
         XOR     EAX,EAX
         MOV     AL,[ESP+$06]
         MOV     CL,[EDX+EAX]
         MOV     [ESP+$0a],CL
-        // X := F.R - Result.R;
+  // X := F.R - Result.R;
         MOV     AL,[ESP+$02]
         XOR     EBX,EBX
         MOV     BL,CL
         SUB     EAX,EBX
-        // if X >= 0 then
+  // if X >= 0 then
         JL      @5
-        // Result.R := PR[PF[X] + Result.R]
+  // Result.R := PR[PF[X] + Result.R]
         MOVZX   EAX,BYTE PTR[EDI+EAX]
         AND     ECX,$000000FF
         ADD     EAX,ECX
@@ -1818,7 +1868,7 @@ asm
         MOV     [ESP+$0A],AL
         JMP     @6
 @5:
-        // Result.R := PR[Result.R - PF[-X]];
+  // Result.R := PR[Result.R - PF[-X]];
         NEG     EAX
         MOVZX   EAX,BYTE PTR[EDI+EAX]
         XOR     ECX,ECX
@@ -1944,9 +1994,10 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
-  // W = 1 - W; Q = W * Y
+  // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
         MOV     EBX,EDX         // EBX  <-  Ya Yr Yg Yb
+  // Q = W * Y
         AND     EDX,$00FF00FF   // EDX  <-  00 Yr 00 Yb
         AND     EBX,$FF00FF00   // EBX  <-  Ya 00 Yg 00
         IMUL    EDX,ECX         // EDX  <-  Qr ** Qb **
@@ -1994,9 +2045,10 @@ asm
         AND     ECX,$FF00FF00   // ECX  <-  Pa 00 Pg 00
         OR      EAX,ECX         // EAX  <-  Pa Pr Pg Pb
 
-  // W = 1 - W; Q = W * Y
+  // W = 1 - W
         XOR     R8D,$000000FF   // R8D  <-  1 - R8D
         MOV     ECX,EDX         // ECX  <-  Ya Yr Yg Yb
+  // Q = W * Y
         AND     EDX,$00FF00FF   // EDX  <-  00 Yr 00 Yb
         AND     ECX,$FF00FF00   // ECX  <-  Ya 00 Yg 00
         IMUL    EDX,R8D         // EDX  <-  Qr ** Qb **
@@ -2053,9 +2105,10 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         MOV     ESI,[EDX]
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+  // Q = W * B
         MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
         AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
@@ -2106,9 +2159,10 @@ asm
         AND     ECX,$FF00FF00   // ECX  <-  Pa 00 Pg 00
         OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
 
-  // W = 1 - W; Q = W * B
+  // W = 1 - W
         MOV     R9D,[RDX]
         XOR     R8D,$000000FF   // R8D  <-  1 - R8D
+  // Q = W * B
         MOV     ECX,R9D         // ECX  <-  Ba Br Bg Bb
         AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
         AND     ECX,$FF00FF00   // ECX  <-  Ba 00 Bg 00
@@ -2184,7 +2238,7 @@ asm
 {$IFDEF TARGET_x86}
   // EAX <- F
   // EDX <- B
-  // Result := Fa * (Frgb - Brgb) + Brgb
+  // Result := Fa * (Fargb - Bargb) + Bargb
         MOVD      MM0,EAX
         PXOR      MM3,MM3
         MOVD      MM2,EDX
@@ -2207,7 +2261,7 @@ asm
 {$IFDEF TARGET_x64}
   // ECX <- F
   // EDX <- B
-  // Result := Fa * (Frgb - Brgb) + Brgb
+  // Result := Fa * (Fargb - Bargb) + Bargb
         MOVD      MM0,ECX
         PXOR      MM3,MM3
         MOVD      MM2,EDX
@@ -2274,7 +2328,7 @@ asm
   // EAX <- F
   // EDX <- B
   // ECX <- M
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
+  // Result := M * Fa * (Fargb - Bargb) + Bargb
         PUSH      EBX
         MOV       EBX,EAX
         SHR       EBX,24
@@ -2317,7 +2371,7 @@ asm
   // EAX <- F
   // [EDX] <- B
   // ECX <- M
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
+  // Result := M * Fa * (Fargb - Bargb) + Bargb
         TEST      EAX,$FF000000
         JZ        @2
 
@@ -2357,7 +2411,7 @@ asm
   // ECX <- F
   // [EDX] <- B
   // R8 <- M
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
+  // Result := M * Fa * (Fargb - Bargb) + Bargb
         TEST      ECX,$FF000000
         JZ        @1
 
@@ -3067,7 +3121,7 @@ asm
   // using alpha channel value of F
   // EAX <- F
   // EDX <- B
-  // Result := Fa * (Frgb - Brgb) + Brgb
+  // Result := Fa * (Fargb - Bargb) + Bargb
 
 {$IFDEF TARGET_x86}
         MOVD      XMM0,EAX
@@ -3297,7 +3351,7 @@ function BlendRegEx_SSE2(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; n
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
+  // Result := M * Fa * (Fargb - Bargb) + Bargb
 
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -3385,7 +3439,7 @@ asm
   // EAX <- F
   // [EDX] <- B
   // ECX <- M
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
+  // Result := M * Fa * (Fargb - Bargb) + Bargb
         TEST      EAX,$FF000000
         JZ        @2
 
@@ -3426,7 +3480,7 @@ asm
   // RCX <- F
   // [RDX] <- B
   // R8 <- M
-  // Result := M * Fa * (Frgb - Brgb) + Brgb
+  // Result := M * Fa * (Fargb - Bargb) + Bargb
 
         TEST      ECX, $FF000000
         JZ        @1
@@ -3553,7 +3607,7 @@ asm
 
         PSHUFLW   XMM1,XMM1,$1B
 
-        // C = wA  B - wB
+  // C = wA  B - wB
         PMULLW    XMM0,XMM1
         PADDW     XMM0,XMM5
         PSRLW     XMM0,8
@@ -3593,7 +3647,7 @@ asm
         PSHUFLW   XMM1,XMM1,$1B
         PSHUFHW   XMM1,XMM1,$1B
 
-        // C = wA  B - wB
+  // C = wA  B - wB
         PMULLW    XMM0,XMM1
         PADDW     XMM0,XMM5
         PSRLW     XMM0,8
@@ -3628,7 +3682,7 @@ asm
         PSHUFLW   XMM1,XMM1,$1B
         PSHUFHW   XMM1,XMM1,$1B
 
-        // C = wA  B - wB
+  // C = wA  B - wB
         PMULLW    XMM0,XMM1
         PADDW     XMM0,XMM5
         PSRLW     XMM0,8
@@ -3678,7 +3732,7 @@ asm
 
         PSHUFLW   XMM1,XMM0,$FF
 
-        // premultiply source pixel by its alpha
+  // premultiply source pixel by its alpha
         MOVQ      XMM3,XMM1
         PSRLQ     XMM3,16
         PMULLW    XMM0,XMM3
@@ -3687,7 +3741,7 @@ asm
         PSLLQ     XMM3,48
         POR       XMM0,XMM3
 
-        // C' = A'  B' - aB'
+  // C' = A'  B' - aB'
         PMULLW    XMM1,XMM2
         PADDW     XMM1,XMM5
         PSRLW     XMM1,8
@@ -3715,7 +3769,7 @@ asm
         PSHUFLW   XMM1,XMM0,$FF
         PSHUFHW   XMM1,XMM1,$FF
 
-        // premultiply source pixel by its alpha
+  // premultiply source pixel by its alpha
         MOVDQA    XMM3,XMM1
         PSRLQ     XMM3,16
         PMULLW    XMM0,XMM3
@@ -3724,7 +3778,7 @@ asm
         PSLLQ     XMM3,48
         POR       XMM0,XMM3
 
-        // C' = A' + B' - aB'
+  // C' = A' + B' - aB'
         PMULLW    XMM1,XMM2
         PADDW     XMM1,XMM5
         PSRLW     XMM1,8
@@ -3775,7 +3829,7 @@ asm
         PSHUFLW   XMM1,XMM0,$FF
         PSHUFHW   XMM1,XMM1,$FF
 
-        // premultiply source pixel by its alpha
+  // premultiply source pixel by its alpha
         MOVDQA    XMM3,XMM1
         PSRLQ     XMM3,16
         PMULLW    XMM0,XMM3
@@ -3784,7 +3838,7 @@ asm
         PSLLQ     XMM3,48
         POR       XMM0,XMM3
 
-        // C' = A' + B' - aB'
+  // C' = A' + B' - aB'
         PMULLW    XMM1,XMM2
         PADDW     XMM1,XMM5
         PSRLW     XMM1,8
@@ -3812,7 +3866,7 @@ asm
 
         PSHUFLW   XMM1,XMM0,$FF
 
-        // premultiply source pixel by its alpha
+  // premultiply source pixel by its alpha
         MOVQ      XMM3,XMM1
         PSRLQ     XMM3,16
         PMULLW    XMM0,XMM3
@@ -3821,7 +3875,7 @@ asm
         PSLLQ     XMM3,48
         POR       XMM0,XMM3
 
-        // C' = A'  B' - aB'
+  // C' = A'  B' - aB'
         PMULLW    XMM1,XMM2
         PADDW     XMM1,XMM5
         PSRLW     XMM1,8
@@ -4244,8 +4298,8 @@ asm
     in a paper by Bruce Wallace in 1981. Merging is associative,
     that is, A over (B over C) = (A over B) over C. The formula is,
 
-      Ra = Fa + Ba - Fa * Ba
-      Rc = (Fa (Fc - Bc * Ba) + Bc * Ba) / Ra
+      Ra = Fa + Ba * (1 - Fa)
+      Rc = (Fa * (Fc - Bc * Ba) + Bc * Ba) / Ra
 
     where
 
@@ -4261,7 +4315,6 @@ asm
       Ra := 1 - (1 - Fa) * (1 - Ba);
       Wa := Fa / Ra;
       Rc := Bc + Wa * (Fc - Bc);
-      // Rc := Bc + Wa * (Fc - Bc)
 
       (1 - Fa) * (1 - Ba) = 1 - Fa - Ba + Fa * Ba = (1 - Ra)
   }
@@ -4638,12 +4691,15 @@ const
   FID_COLORDIFFERENCE = 26;
   FID_COLOREXCLUSION = 27;
   FID_COLORSCALE = 28;
-  FID_LIGHTEN = 29;
+  FID_COLORSCREEN = 29;
+  FID_COLORDODGE = 30;
+  FID_COLORBURN = 31;
+  FID_LIGHTEN = 32;
 
-  FID_BLENDREGRGB = 29;
-  FID_BLENDMEMRGB = 30;
+  FID_BLENDREGRGB = 33;
+  FID_BLENDMEMRGB = 34;
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
-  FID_BLENDMEMRGB128 = 31;
+  FID_BLENDMEMRGB128 = 35;
 {$ENDIF}
 
 procedure RegisterBindings;
@@ -4681,6 +4737,9 @@ begin
   BlendRegistry.RegisterBinding(FID_COLORDIFFERENCE, @@ColorDifference);
   BlendRegistry.RegisterBinding(FID_COLOREXCLUSION, @@ColorExclusion);
   BlendRegistry.RegisterBinding(FID_COLORSCALE, @@ColorScale);
+  BlendRegistry.RegisterBinding(FID_COLORSCREEN, @@ColorScreen);
+  BlendRegistry.RegisterBinding(FID_COLORDODGE, @@ColorDodge);
+  BlendRegistry.RegisterBinding(FID_COLORBURN, @@ColorBurn);
 
   BlendRegistry.RegisterBinding(FID_LIGHTEN, @@LightenReg);
   BlendRegistry.RegisterBinding(FID_BLENDREGRGB, @@BlendRegRGB);
@@ -4719,6 +4778,9 @@ begin
   BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_Pas);
   BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_Pas);
   BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
+  BlendRegistry.Add(FID_COLORSCREEN, @ColorScreen_Pas);
+  BlendRegistry.Add(FID_COLORDODGE, @ColorDodge_Pas);
+  BlendRegistry.Add(FID_COLORBURN, @ColorBurn_Pas);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas);
   BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_Pas);
   BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_Pas);

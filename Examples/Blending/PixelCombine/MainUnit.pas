@@ -53,6 +53,9 @@ type
     procedure PC_Modulate(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Min(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Max(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_Screen(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_ColorBurn(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_ColorDodge(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
@@ -148,6 +151,21 @@ begin
   B := ColorSub(F, B);
 end;
 
+procedure TFormPixelCombine.PC_Screen(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := ColorScreen(F, B);
+end;
+
+procedure TFormPixelCombine.PC_ColorDodge(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := ColorDodge(F, B);
+end;
+
+procedure TFormPixelCombine.PC_ColorBurn(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := ColorBurn(F, B);
+end;
+
 procedure TFormPixelCombine.PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
 begin
   B := ColorDifference(F, B);
@@ -161,15 +179,30 @@ end;
 procedure TFormPixelCombine.RadioGroupClick(Sender: TObject);
 begin
   case RadioGroup.ItemIndex of
-    0: L.Bitmap.OnPixelCombine := nil;
-    1: L.Bitmap.OnPixelCombine := PC_Add;
-    2: L.Bitmap.OnPixelCombine := PC_Sub;
-    3: L.Bitmap.OnPixelCombine := PC_Modulate;
-    4: L.Bitmap.OnPixelCombine := PC_Min;
-    5: L.Bitmap.OnPixelCombine := PC_Max;
-    6: L.Bitmap.OnPixelCombine := PC_Difference;
-    7: L.Bitmap.OnPixelCombine := PC_Exclusion;
-    8: L.Bitmap.OnPixelCombine := PC_Pattern;
+    0:
+      L.Bitmap.OnPixelCombine := nil;
+    1:
+      L.Bitmap.OnPixelCombine := PC_Add;
+    2:
+      L.Bitmap.OnPixelCombine := PC_Sub;
+    3:
+      L.Bitmap.OnPixelCombine := PC_Modulate;
+    4:
+      L.Bitmap.OnPixelCombine := PC_Min;
+    5:
+      L.Bitmap.OnPixelCombine := PC_Max;
+    6:
+      L.Bitmap.OnPixelCombine := PC_Screen;
+    7:
+      L.Bitmap.OnPixelCombine := PC_ColorDodge;
+    8:
+      L.Bitmap.OnPixelCombine := PC_ColorBurn;
+    9:
+      L.Bitmap.OnPixelCombine := PC_Difference;
+    10:
+      L.Bitmap.OnPixelCombine := PC_Exclusion;
+    11:
+      L.Bitmap.OnPixelCombine := PC_Pattern;
   end;
   L.Bitmap.Changed;
 end;

@@ -101,12 +101,14 @@ begin
     {$IFDEF UseLookupTables}
     AlphaForeground := @GDivTable[ForegroundColor.A];
     AlphaBackground := @GDivTable[not ForegroundColor.A];
+    A := AlphaForeground[ForegroundColor.A] + AlphaBackground[A];
     R := AlphaForeground[ForegroundColor.R] + AlphaBackground[R];
     G := AlphaForeground[ForegroundColor.G] + AlphaBackground[G];
     B := AlphaForeground[ForegroundColor.B] + AlphaBackground[B];
     {$ELSE}
     Scale[0] := ForegroundColor.A * COne255th;
     Scale[1] := 1 - Scale[0];
+    A := EnsureRange(Round(Scale[1] * A + Scale[0] * ForegroundColor.A), 0, $FF);
     R := EnsureRange(Round(Scale[1] * R + Scale[0] * ForegroundColor.R), 0, $FF);
     G := EnsureRange(Round(Scale[1] * G + Scale[0] * ForegroundColor.G), 0, $FF);
     B := EnsureRange(Round(Scale[1] * B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -139,12 +141,14 @@ begin
     {$IFDEF UseLookupTables}
     AlphaForeground := @GDivTable[Foreground.A];
     AlphaBackground := @GDivTable[not Foreground.A];
+    A := AlphaForeground[Foreground.A] + AlphaBackground[A];
     R := AlphaForeground[Foreground.R] + AlphaBackground[R];
     G := AlphaForeground[Foreground.G] + AlphaBackground[G];
     B := AlphaForeground[Foreground.B] + AlphaBackground[B];
     {$ELSE}
     Scale[0] := ForegroundColor.A * COne255th;
     Scale[1] := 1 - Scale[0];
+    A := EnsureRange(Round(Scale[1] * A + Scale[0] * ForegroundColor.A), 0, $FF);
     R := EnsureRange(Round(Scale[1] * R + Scale[0] * ForegroundColor.R), 0, $FF);
     G := EnsureRange(Round(Scale[1] * G + Scale[0] * ForegroundColor.G), 0, $FF);
     B := EnsureRange(Round(Scale[1] * B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -182,12 +186,14 @@ begin
     AlphaForeground := @GDivTable[Master.A];
     AlphaBackground := @GDivTable[not AlphaForeground.A];
     AlphaForeground := @GDivTable[AlphaForeground.A];
+    A := AlphaForeground[ForegroundColor.A] + AlphaBackground[A];
     R := AlphaForeground[ForegroundColor.R] + AlphaBackground[R];
     G := AlphaForeground[ForegroundColor.G] + AlphaBackground[G];
     B := AlphaForeground[ForegroundColor.B] + AlphaBackground[B];
     {$ELSE}
     Scale[0] := MasterAlpha * ForegroundColor.A * Sqr(COne255th);
     Scale[1] := 1 - Scale[0];
+    A := EnsureRange(Round(Scale[1] * A + Scale[0] * ForegroundColor.A), 0, $FF);
     R := EnsureRange(Round(Scale[1] * R + Scale[0] * ForegroundColor.R), 0, $FF);
     G := EnsureRange(Round(Scale[1] * G + Scale[0] * ForegroundColor.G), 0, $FF);
     B := EnsureRange(Round(Scale[1] * B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -224,12 +230,14 @@ begin
     AlphaForeground := @GDivTable[Master.A];
     AlphaBackground := @GDivTable[not AlphaForeground.A];
     AlphaForeground := @GDivTable[AlphaForeground.A];
+    A := AlphaForeground[ForegroundColor.A] + AlphaBackground[A];
     R := AlphaForeground[ForegroundColor.R] + AlphaBackground[R];
     G := AlphaForeground[ForegroundColor.G] + AlphaBackground[G];
     B := AlphaForeground[ForegroundColor.B] + AlphaBackground[B];
     {$ELSE}
     Scale[0] := MasterAlpha * ForegroundColor.A * Sqr(COne255th);
     Scale[1] := 1 - Scale[0];
+    A := EnsureRange(Round(Scale[1] * A + Scale[0] * ForegroundColor.A), 0, $FF);
     R := EnsureRange(Round(Scale[1] * R + Scale[0] * ForegroundColor.R), 0, $FF);
     G := EnsureRange(Round(Scale[1] * G + Scale[0] * ForegroundColor.G), 0, $FF);
     B := EnsureRange(Round(Scale[1] * B + Scale[0] * ForegroundColor.B), 0, $FF);
