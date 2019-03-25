@@ -2996,7 +2996,7 @@ begin
     cely := GAMMA_TABLE[flry xor $FF];
     flrx := GAMMA_TABLE[flrx];
     flry := GAMMA_TABLE[flry];
-    
+
     CombineMem(MergeReg(C, P^), P^, celx * cely shr 8); Inc(P);
     CombineMem(MergeReg(C, P^), P^, flrx * cely shr 8); Inc(P, FWidth);
     CombineMem(MergeReg(C, P^), P^, flrx * flry shr 8); Dec(P);
