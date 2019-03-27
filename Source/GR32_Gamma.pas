@@ -19,14 +19,14 @@ const
   DEFAULT_GAMMA: Double = 1.6;
 
 // set gamma
-procedure SetGamma; overload; // (default)
-procedure SetGamma(Gamma: Double); overload; // (default)
-procedure SetGamma(Gamma: Double; GammaTable: TGammaTable8Bit); overload;
+procedure SetGamma; overload;  {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure SetGamma(Gamma: Double); overload;  {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure SetGamma(Gamma: Double; var GammaTable: TGammaTable8Bit); overload;
 
 // apply gamma
-function ApplyGamma(Color: TColor32): TColor32; overload;
-function ApplyInvGamma(Color: TColor32): TColor32; overload;
-function ApplyCustomGamma(Color: TColor32; GammaTable: TGammaTable8Bit): TColor32; overload;
+function ApplyGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function ApplyInvGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function ApplyCustomGamma(Color: TColor32; GammaTable: TGammaTable8Bit): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 procedure ApplyGamma(Color: PColor32Array; Length: Integer); overload;
 procedure ApplyInvGamma(Color: PColor32Array; Length: Integer); overload;
@@ -79,9 +79,9 @@ var
 begin
   for Index := 0 to Length - 1 do
   begin
-    PColor32Entry(Color^).R := GAMMA_TABLE[PColor32Entry(Color^).R];
-    PColor32Entry(Color^).G := GAMMA_TABLE[PColor32Entry(Color^).G];
-    PColor32Entry(Color^).B := GAMMA_TABLE[PColor32Entry(Color^).B];
+    PColor32Entry(Color)^.R := GAMMA_TABLE[PColor32Entry(Color)^.R];
+    PColor32Entry(Color)^.G := GAMMA_TABLE[PColor32Entry(Color)^.G];
+    PColor32Entry(Color)^.B := GAMMA_TABLE[PColor32Entry(Color)^.B];
     Inc(Color);
   end;
 end;
@@ -92,9 +92,9 @@ var
 begin
   for Index := 0 to Length - 1 do
   begin
-    PColor32Entry(Color^).R := GAMMA_INV_TABLE[PColor32Entry(Color^).R];
-    PColor32Entry(Color^).G := GAMMA_INV_TABLE[PColor32Entry(Color^).G];
-    PColor32Entry(Color^).B := GAMMA_INV_TABLE[PColor32Entry(Color^).B];
+    PColor32Entry(Color)^.R := GAMMA_INV_TABLE[PColor32Entry(Color)^.R];
+    PColor32Entry(Color)^.G := GAMMA_INV_TABLE[PColor32Entry(Color)^.G];
+    PColor32Entry(Color)^.B := GAMMA_INV_TABLE[PColor32Entry(Color)^.B];
     Inc(Color);
   end;
 end;
@@ -106,9 +106,9 @@ var
 begin
   for Index := 0 to Length - 1 do
   begin
-    PColor32Entry(Color^).R := GammaTable[PColor32Entry(Color^).R];
-    PColor32Entry(Color^).G := GammaTable[PColor32Entry(Color^).G];
-    PColor32Entry(Color^).B := GammaTable[PColor32Entry(Color^).B];
+    PColor32Entry(Color)^.R := GammaTable[PColor32Entry(Color)^.R];
+    PColor32Entry(Color)^.G := GammaTable[PColor32Entry(Color)^.G];
+    PColor32Entry(Color)^.B := GammaTable[PColor32Entry(Color)^.B];
     Inc(Color);
   end;
 end;
@@ -162,7 +162,7 @@ begin
   SetGamma(1 / Gamma, GAMMA_INV_TABLE);
 end;
 
-procedure SetGamma(Gamma: Double; GammaTable: TGammaTable8Bit);
+procedure SetGamma(Gamma: Double; var GammaTable: TGammaTable8Bit);
 var
   i: Integer;
   InvGamma: Double;

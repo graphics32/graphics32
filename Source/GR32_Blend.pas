@@ -556,80 +556,95 @@ end;
 
 function ColorSub_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: Integer;
-  r2, g2, b2, a2: Integer;
+  Xe: TColor32Entry absolute C1;
+  Ye: TColor32Entry absolute C2;
+  R: TColor32Entry absolute Result;
+  Temp: SmallInt;
 begin
-  a1 := C1 shr 24;
-  r1 := C1 and $00FF0000;
-  g1 := C1 and $0000FF00;
-  b1 := C1 and $000000FF;
-
-  r1 := r1 shr 16;
-  g1 := g1 shr 8;
-
-  a2 := C2 shr 24;
-  r2 := C2 and $00FF0000;
-  g2 := C2 and $0000FF00;
-  b2 := C2 and $000000FF;
-
-  r2 := r2 shr 16;
-  g2 := g2 shr 8;
-
-  a1 := a1 - a2;
-  r1 := r1 - r2;
-  g1 := g1 - g2;
-  b1 := b1 - b2;
-
-  if a1 < 0 then a1 := 0;
-  if r1 < 0 then r1 := 0;
-  if g1 < 0 then g1 := 0;
-  if b1 < 0 then b1 := 0;
-
-  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+  Temp := Xe.A - Ye.A;
+  if Temp < 0 then
+    R.A := 0
+  else
+    R.A := Temp;
+  Temp := Xe.R - Ye.R;
+  if Temp < 0 then
+    R.R := 0
+  else
+    R.R := Temp;
+  Temp := Xe.G - Ye.G;
+  if Temp < 0 then
+    R.G := 0
+  else
+    R.G := Temp;
+  Temp := Xe.B - Ye.B;
+  if Temp < 0 then
+    R.B := 0
+  else
+    R.B := Temp;
 end;
 
 function ColorDiv_Pas(C1, C2: TColor32): TColor32;
 var
-  r1, g1, b1, a1: Integer;
-  r2, g2, b2, a2: Integer;
+  C1e: TColor32Entry absolute C1;
+  C2e: TColor32Entry absolute C2;
+  Re: TColor32Entry absolute Result;
+  Temp: Word;
 begin
-  a1 := C1 shr 24;
-  r1 := (C1 and $00FF0000) shr 16;
-  g1 := (C1 and $0000FF00) shr 8;
-  b1 := C1 and $000000FF;
+  if C1e.A = 0 then
+    Re.A := $FF
+  else
+  begin
+    Temp := (C2e.A shl 8) div C1e.A;
+    if Temp > $FF then
+      Re.A := $FF
+    else
+      Re.A := Temp;
+  end;
 
-  a2 := C2 shr 24;
-  r2 := (C2 and $00FF0000) shr 16;
-  g2 := (C2 and $0000FF00) shr 8;
-  b2 := C2 and $000000FF;
+  if C1e.R = 0 then
+    Re.R := $FF
+  else
+  begin
+    Temp := (C2e.R shl 8) div C1e.R;
+    if Temp > $FF then
+      Re.R := $FF
+    else
+      Re.R := Temp;
+  end;
 
-  if a1 = 0 then a1 := $FF
-  else a1 := (a2 shl 8) div a1;
-  if r1 = 0 then r1 := $FF
-  else r1 := (r2 shl 8) div r1;
-  if g1 = 0 then g1 := $FF
-  else g1 := (g2 shl 8) div g1;
-  if b1 = 0 then b1 := $FF
-  else b1 := (b2 shl 8) div b1;
+  if C1e.G = 0 then
+    Re.G := $FF
+  else
+  begin
+    Temp := (C2e.G shl 8) div C1e.G;
+    if Temp > $FF then
+      Re.G := $FF
+    else
+      Re.G := Temp;
+  end;
 
-  if a1 > $FF then a1 := $FF;
-  if r1 > $FF then r1 := $FF;
-  if g1 > $FF then g1 := $FF;
-  if b1 > $FF then b1 := $FF;
-
-  Result := a1 shl 24 + r1 shl 16 + g1 shl 8 + b1;
+  if C1e.B = 0 then
+    Re.B := $FF
+  else
+  begin
+    Temp := (C2e.B shl 8) div C1e.B;
+    if Temp > $FF then
+      Re.B := $FF
+    else
+      Re.B := Temp;
+  end;
 end;
 
 function ColorModulate_Pas(C1, C2: TColor32): TColor32;
 var
-  REnt: TColor32Entry absolute Result;
-  C2Ent: TColor32Entry absolute C2;
+  C1e: TColor32Entry absolute C2;
+  C2e: TColor32Entry absolute C2;
+  Re: TColor32Entry absolute Result;
 begin
-  Result := C1;
-  REnt.A := (C2Ent.A * REnt.A) shr 8;
-  REnt.R := (C2Ent.R * REnt.R) shr 8;
-  REnt.G := (C2Ent.G * REnt.G) shr 8;
-  REnt.B := (C2Ent.B * REnt.B) shr 8;
+  Re.A := (C2e.A * C1e.A + $80) shr 8;
+  Re.R := (C2e.R * C1e.R + $80) shr 8;
+  Re.G := (C2e.G * C1e.G + $80) shr 8;
+  Re.B := (C2e.B * C1e.B + $80) shr 8;
 end;
 
 function ColorMax_Pas(C1, C2: TColor32): TColor32;
@@ -1713,10 +1728,10 @@ asm
         IMUL    ECX,R9D           // ECX  <-  Pr ** Pb **
         SHR     EAX,8             // EAX  <-  00 Fa 00 Fg
         IMUL    EAX,R9D           // EAX  <-  Pa ** Pg **
-        ADD     ECX,CBias
+        ADD     ECX,Bias
         AND     ECX,$FF00FF00     // ECX  <-  Pr 00 Pb 00
         SHR     ECX,8             // ECX  <-  00 Pr ** Pb
-        ADD     EAX,CBias
+        ADD     EAX,Bias
         AND     EAX,$FF00FF00     // EAX  <-  Pa 00 Pg 00
         OR      ECX,EAX           // ECX  <-  Pa Pr Pg Pb
         XOR     R9D,$000000FF     // R9D  <-  1 - Fa
@@ -1730,10 +1745,10 @@ asm
         IMUL    EDX,R9D           // EDX  <-  Qr ** Qb **
         SHR     EAX,8             // EAX  <-  00 Ba 00 Bg
         IMUL    EAX,R9D           // EAX  <-  Qa ** Qg **
-        ADD     EDX,CBias
+        ADD     EDX,Bias
         AND     EDX,$FF00FF00     // EDX  <-  Qr 00 Qb 00
         SHR     EDX,8             // EDX  <-  00 Qr ** Qb
-        ADD     EAX,CBias
+        ADD     EAX,Bias
         AND     EAX,$FF00FF00     // EAX  <-  Qa 00 Qg 00
         OR      EAX,EDX           // EAX  <-  Qa Qr Qg Qb
 
@@ -3297,7 +3312,7 @@ asm
         JZ        @2
 
         TEST      ECX,$FF000000
-        JZ        @Done
+        JZ        @2
 
         MOV       RAX,RCX
         SHR       EAX,24
