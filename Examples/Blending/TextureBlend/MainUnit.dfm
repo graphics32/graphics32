@@ -115,7 +115,7 @@ object MainForm: TMainForm
   end
   object LabelBlendmode: TLabel
     Left = 272
-    Top = 56
+    Top = 59
     Width = 53
     Height = 13
     Caption = 'Blendmode'
@@ -169,7 +169,10 @@ object MainForm: TMainForm
       'Color Min'
       'Color Difference'
       'Color Average'
-      'Color Exclusion')
+      'Color Exclusion'
+      'Color Screen'
+      'Color Dodge'
+      'Color Burn')
   end
   object CombImg: TImage32
     Left = 272

@@ -716,20 +716,14 @@ end;
 
 function ColorScale_Pas(C, W: TColor32): TColor32;
 var
+  Ce: TColor32Entry absolute C;
+var
   r1, g1, b1, a1: Cardinal;
 begin
-  a1 := C shr 24;
-  r1 := C and $00FF0000;
-  g1 := C and $0000FF00;
-  b1 := C and $000000FF;
-
-  r1 := r1 shr 16;
-  g1 := g1 shr 8;
-
-  a1 := a1 * W shr 8;
-  r1 := r1 * W shr 8;
-  g1 := g1 * W shr 8;
-  b1 := b1 * W shr 8;
+  a1 := Ce.A * W shr 8;
+  r1 := Ce.R * W shr 8;
+  g1 := Ce.G * W shr 8;
+  b1 := Ce.B * W shr 8;
 
   if a1 > 255 then a1 := 255;
   if r1 > 255 then r1 := 255;
