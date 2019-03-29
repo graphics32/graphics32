@@ -1,0 +1,135 @@
+object MainForm: TMainForm
+  Left = 296
+  Top = 97
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'Blend vs. Merge Example'
+  ClientHeight = 366
+  ClientWidth = 272
+  Color = clBtnFace
+  Font.Charset = DEFAULT_CHARSET
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  Font.Style = []
+  OldCreateOrder = False
+  Position = poScreenCenter
+  OnCreate = FormCreate
+  DesignSize = (
+    272
+    366)
+  PixelsPerInch = 96
+  TextHeight = 13
+  object LabelWeightmap: TLabel
+    Left = 8
+    Top = 79
+    Width = 256
+    Height = 17
+    Anchors = [akLeft, akBottom]
+    AutoSize = False
+    Caption = ' Weightmap'
+    Color = clAppWorkSpace
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+    Layout = tlCenter
+    ExplicitTop = 187
+  end
+  object LabelBlendSettings: TLabel
+    Left = 8
+    Top = 8
+    Width = 154
+    Height = 17
+    AutoSize = False
+    Caption = ' Blend Settings'
+    Color = clAppWorkSpace
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+    Layout = tlCenter
+  end
+  object LabelVisible: TLabel
+    Left = 168
+    Top = 8
+    Width = 96
+    Height = 17
+    AutoSize = False
+    Caption = ' Visible Layer'
+    Color = clAppWorkSpace
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWhite
+    Font.Height = -11
+    Font.Name = 'Tahoma'
+    Font.Style = [fsBold]
+    ParentColor = False
+    ParentFont = False
+    Layout = tlCenter
+  end
+  object DstImg: TImage32
+    Left = 8
+    Top = 102
+    Width = 256
+    Height = 256
+    Anchors = [akLeft, akBottom]
+    Bitmap.DrawMode = dmBlend
+    Bitmap.ResamplerClassName = 'TNearestResampler'
+    BitmapAlign = baCenter
+    Color = clBlack
+    ParentColor = False
+    Scale = 1.000000000000000000
+    ScaleMode = smNormal
+    TabOrder = 0
+    OnPaintStage = DstImgPaintStage
+    ExplicitTop = 210
+  end
+  object RadioButtonBlend: TRadioButton
+    Left = 8
+    Top = 31
+    Width = 154
+    Height = 17
+    Caption = '&Blend'
+    Checked = True
+    TabOrder = 1
+    TabStop = True
+    OnClick = RadioButtonBlendClick
+  end
+  object RadioButtonMerge: TRadioButton
+    Left = 8
+    Top = 54
+    Width = 154
+    Height = 17
+    Caption = '&Merge'
+    TabOrder = 2
+    OnClick = RadioButtonMergeClick
+  end
+  object CheckBoxForeground: TCheckBox
+    Left = 168
+    Top = 31
+    Width = 81
+    Height = 17
+    Caption = '&Foreground'
+    Checked = True
+    State = cbChecked
+    TabOrder = 3
+    OnClick = CheckBoxForegroundClick
+  end
+  object CheckBoxBackground: TCheckBox
+    Left = 168
+    Top = 54
+    Width = 81
+    Height = 17
+    Caption = 'Back&ground'
+    Checked = True
+    State = cbChecked
+    TabOrder = 4
+    OnClick = CheckBoxBackgroundClick
+  end
+end

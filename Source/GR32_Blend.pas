@@ -755,7 +755,7 @@ function ColorDodge_Pas(B, S: TColor32): TColor32;
     if S = 255 then
       Result := 255
     else
-      Result := Clamp(Round(255 * B / (255 - S)), 255);
+      Result := Clamp((255 * B) div (255 - S), 255);
   end;
 
 var
@@ -779,7 +779,7 @@ function ColorBurn_Pas(B, S: TColor32): TColor32;
     if S = 0 then
       Result := 0
     else
-      Result := 255 - Clamp(Round(255 * (255 - B) / S), 255);
+      Result := 255 - Clamp(255 * (255 - B) div S, 255);
   end;
 
 var
