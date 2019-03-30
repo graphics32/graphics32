@@ -25,6 +25,7 @@ procedure SetGamma(Gamma: Double; var GammaTable: TGammaTable8Bit); overload;
 
 procedure Set_sRGB; overload;
 procedure Set_sRGB(var GammaTable: TGammaTable8Bit); overload;
+procedure SetInv_sRGB(var GammaTable: TGammaTable8Bit);
 
 // apply gamma
 function ApplyGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -177,6 +178,7 @@ end;
 procedure Set_sRGB;
 begin
   Set_sRGB(GAMMA_TABLE);
+  Set_sRGBInv(GAMMA_INV_TABLE);
 end;
 
 procedure Set_sRGB(var GammaTable: TGammaTable8Bit);
@@ -193,6 +195,21 @@ begin
         GammaTable[i] := Round($FF * Value * 12.92)
     else
         GammaTable[i] := Round($FF * (1.055 * Power(Value, CExp) - 0.055));
+  end;
+end;
+
+procedure SetInv_sRGB(var GammaTable: TGammaTable8Bit);
+var
+  i: Integer;
+  Value: Double;
+begin
+  for i := 0 to $FF do
+  begin
+    Value := i * COne255th;
+    if (Value < 0.004045) then
+        GammaTable[i] := Round($FF * Value / 12.92)
+    else
+        GammaTable[i] := Round($FF * Power((Value + 0.055) / 1.055, 2.4)));
   end;
 end;
 
