@@ -12,9 +12,14 @@
 <h2>Description</h2>
 <p class="Body">Mixes a foregrownd (<b>F</b>) color with the background color 
   (<b>B</b>) using the alpha component of the foreground color. </p>
-<p class="Code">S<span class="sub">ARGB</span> = F<span class="sub">A</span> 
-  * F<span class="sub">ARGB</span> + (1 – F<span class="sub">A</span>) 
-  * B<span class="sub">ARGB</span>;</p>
+<p class="Code">S<span class="sub">RGB</span> = F<span class="sub">A</span> 
+  * F<span class="sub">RGB</span> + (1 – F<span class="sub">A</span>) 
+  * B<span class="sub">RGB</span>;</p>
+<p class="Body">The blend mode is a simplification of the <a href="Merge.htm">merge</a> mode assuming that the background is fully opaque (with an alpha value A = 255). If the background is not opaque, the alpha values will get mixed linearly in the same way as the colors do. In that case the output transparency will be:</p>
+<p class="Code">S<span class="sub">A</span> = F<span class="sub">A</span> 
+  * F<span class="sub">A</span> + (1 – F<span class="sub">A</span>) 
+  * B<span class="sub">A</span>;</p>
+<p class="Body">Typically this alpha calculation doesn't make much sense in most cases (other than the fully opaque background). It is the result of an optimisation (avoiding the division)</p>
 <p class="Body"><span class="EmptyRef">BlendReg</span> takes parameters and produces 
   the result operating on CPU registers.</p>
 <p class="Body"><span class="EmptyRef">BlendMem</span> operates with the background 
