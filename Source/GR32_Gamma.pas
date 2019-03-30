@@ -183,14 +183,16 @@ procedure Set_sRGB(var GammaTable: TGammaTable8Bit);
 var
   i: Integer;
   Value: Double;
+const
+  CExp = 1 / 2.4;
 begin
   for i := 0 to $FF do
   begin
     Value := i * COne255th;
     if (Value < 0.0031308) then
-        GammaTable[i] := Round($FF * Value * Value * 12.92)
+        GammaTable[i] := Round($FF * Value * 12.92)
     else
-        GammaTable[i] := Round($FF * (1.055 * Power(Value, 1/2.4) - 0.055));
+        GammaTable[i] := Round($FF * (1.055 * Power(Value, CExp) - 0.055));
   end;
 end;
 
