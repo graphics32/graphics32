@@ -12,11 +12,11 @@ type
 
 var
   GAMMA_VALUE: Double;
-  GAMMA_TABLE: TGammaTable8Bit;
-  GAMMA_INV_TABLE: TGammaTable8Bit;
+  GAMMA_ENCODING_TABLE: TGammaTable8Bit;
+  GAMMA_DECODING_TABLE: TGammaTable8Bit;
 
 const
-  DEFAULT_GAMMA: Double = 1.6;
+  DEFAULT_GAMMA: Double = 2.2;
 
 // set gamma
 procedure SetGamma; overload;  {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -51,9 +51,9 @@ var
   C: TColor32Entry absolute Color;
   R: TColor32Entry absolute Result;
 begin
-  C.R := GAMMA_TABLE[C.R];
-  C.G := GAMMA_TABLE[C.G];
-  C.B := GAMMA_TABLE[C.B];
+  C.R := GAMMA_ENCODING_TABLE[C.R];
+  C.G := GAMMA_ENCODING_TABLE[C.G];
+  C.B := GAMMA_ENCODING_TABLE[C.B];
 end;
 
 function ApplyInvGamma(Color: TColor32): TColor32;
@@ -61,9 +61,9 @@ var
   C: TColor32Entry absolute Color;
   R: TColor32Entry absolute Result;
 begin
-  C.R := GAMMA_INV_TABLE[C.R];
-  C.G := GAMMA_INV_TABLE[C.G];
-  C.B := GAMMA_INV_TABLE[C.B];
+  C.R := GAMMA_DECODING_TABLE[C.R];
+  C.G := GAMMA_DECODING_TABLE[C.G];
+  C.B := GAMMA_DECODING_TABLE[C.B];
 end;
 
 function ApplyCustomGamma(Color: TColor32; GammaTable: TGammaTable8Bit): TColor32;
@@ -83,9 +83,9 @@ var
 begin
   for Index := 0 to Length - 1 do
   begin
-    PColor32Entry(Color)^.R := GAMMA_TABLE[PColor32Entry(Color)^.R];
-    PColor32Entry(Color)^.G := GAMMA_TABLE[PColor32Entry(Color)^.G];
-    PColor32Entry(Color)^.B := GAMMA_TABLE[PColor32Entry(Color)^.B];
+    PColor32Entry(Color)^.R := GAMMA_ENCODING_TABLE[PColor32Entry(Color)^.R];
+    PColor32Entry(Color)^.G := GAMMA_ENCODING_TABLE[PColor32Entry(Color)^.G];
+    PColor32Entry(Color)^.B := GAMMA_ENCODING_TABLE[PColor32Entry(Color)^.B];
     Inc(Color);
   end;
 end;
@@ -96,9 +96,9 @@ var
 begin
   for Index := 0 to Length - 1 do
   begin
-    PColor32Entry(Color)^.R := GAMMA_INV_TABLE[PColor32Entry(Color)^.R];
-    PColor32Entry(Color)^.G := GAMMA_INV_TABLE[PColor32Entry(Color)^.G];
-    PColor32Entry(Color)^.B := GAMMA_INV_TABLE[PColor32Entry(Color)^.B];
+    PColor32Entry(Color)^.R := GAMMA_DECODING_TABLE[PColor32Entry(Color)^.R];
+    PColor32Entry(Color)^.G := GAMMA_DECODING_TABLE[PColor32Entry(Color)^.G];
+    PColor32Entry(Color)^.B := GAMMA_DECODING_TABLE[PColor32Entry(Color)^.B];
     Inc(Color);
   end;
 end;
@@ -155,21 +155,17 @@ begin
 end;
 
 procedure SetGamma(Gamma: Double);
-var
-  i: Integer;
-  InvGamma: Double;
 begin
   GAMMA_VALUE := Gamma;
 
   // calculate default gamma tables
-  SetGamma(Gamma, GAMMA_TABLE);
-  SetGamma(1 / Gamma, GAMMA_INV_TABLE);
+  SetGamma(1 / Gamma, GAMMA_ENCODING_TABLE);
+  SetGamma(Gamma, GAMMA_DECODING_TABLE);
 end;
 
 procedure SetGamma(Gamma: Double; var GammaTable: TGammaTable8Bit);
 var
   i: Integer;
-  InvGamma: Double;
 begin
   for i := 0 to $FF do
     GammaTable[i] := Round($FF * Power(i * COne255th, Gamma));
@@ -177,8 +173,8 @@ end;
 
 procedure Set_sRGB;
 begin
-  Set_sRGB(GAMMA_TABLE);
-  Set_sRGBInv(GAMMA_INV_TABLE);
+  Set_sRGB(GAMMA_ENCODING_TABLE);
+  SetInv_sRGB(GAMMA_DECODING_TABLE);
 end;
 
 procedure Set_sRGB(var GammaTable: TGammaTable8Bit);
@@ -209,7 +205,7 @@ begin
     if (Value < 0.004045) then
         GammaTable[i] := Round($FF * Value / 12.92)
     else
-        GammaTable[i] := Round($FF * Power((Value + 0.055) / 1.055, 2.4)));
+        GammaTable[i] := Round($FF * Power((Value + 0.055) / 1.055, 2.4));
   end;
 end;
 

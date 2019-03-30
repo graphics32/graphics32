@@ -62,7 +62,7 @@ var
 begin
   GammaValue := 0.001 * GbrGamma.Position;
   LblGammaValue.Caption := FloatToStrF(GammaValue, ffFixed, 4, 3);
-  SetGamma(0.001 * GbrGamma.Position);
+  SetGamma(GammaValue);
   PaintBox32.Invalidate;
 end;
 
@@ -110,7 +110,7 @@ begin
     SetLength(Outline, 256);
     for Index := 0 to High(Byte) do
     begin
-      DeltaY := GAMMA_TABLE[Index];
+      DeltaY := GAMMA_ENCODING_TABLE[Index];
 
       Outline[Index] := FloatPoint(StartPnt.X + Index, StartPnt.Y + 255 - DeltaY)
     end;
@@ -148,9 +148,5 @@ begin
     Renderer.Free;
   end;
 end;
-
-initialization
-
-  SetGamma(1);
 
 end.

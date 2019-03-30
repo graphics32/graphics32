@@ -59,6 +59,9 @@ type
     procedure PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
     procedure PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_Blend(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_BlendAdd(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_BlendModulate(F: TColor32; var B: TColor32; M: TColor32);
   public
     PatCount: Integer;
     L: TBitmapLayer;
@@ -115,7 +118,7 @@ begin
   begin
     SinJ := Sin(J * 0.1);
     for I := 0 to 199 do
-      L.Bitmap[I, J] := Gray32(Round(((Sin(I * 0.1) + SinJ) * 0.25 + 0.5) * 255));
+      L.Bitmap[I, J] := SetAlpha(Gray32(Round(((Sin(I * 0.1) + SinJ) * 0.25 + 0.5) * 255)), 255 * J div 199);
   end;
   L.Bitmap.OnPixelCombine := nil; // none by default
 end;
@@ -176,6 +179,21 @@ begin
   B := ColorExclusion(F, B);
 end;
 
+procedure TFormPixelCombine.PC_Blend(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := BlendReg(F, B);
+end;
+
+procedure TFormPixelCombine.PC_BlendAdd(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := BlendColorAdd(F, B);
+end;
+
+procedure TFormPixelCombine.PC_BlendModulate(F: TColor32; var B: TColor32; M: TColor32);
+begin
+  B := BlendColorModulate(F, B);
+end;
+
 procedure TFormPixelCombine.RadioGroupClick(Sender: TObject);
 begin
   case RadioGroup.ItemIndex of
@@ -203,6 +221,12 @@ begin
       L.Bitmap.OnPixelCombine := PC_Exclusion;
     11:
       L.Bitmap.OnPixelCombine := PC_Pattern;
+    12:
+      L.Bitmap.OnPixelCombine := PC_Blend;
+    13:
+      L.Bitmap.OnPixelCombine := PC_BlendAdd;
+    14:
+      L.Bitmap.OnPixelCombine := PC_BlendModulate;
   end;
   L.Bitmap.Changed;
 end;

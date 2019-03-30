@@ -52,6 +52,11 @@ procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect); overl
 procedure FastBlur(Bmp32: TBitmap32; Radius: TFloat;
   const BlurRegion: TArrayOfFloatPoint); overload;
 
+procedure GaussianBlurGamma(Bmp32: TBitmap32; Radius: TFloat); overload;
+procedure GaussianBlurGamma(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
+procedure FastBlurGamma(Bmp32: TBitmap32; Radius: TFloat); overload;
+procedure FastBlurGamma(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect); overload;
+
 procedure MotionBlur(Bmp32: TBitmap32;
   Dist, AngleDeg: TFloat; Bidirectional: Boolean = True); overload;
 procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
@@ -62,8 +67,8 @@ procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
 implementation
 
 uses
-  GR32_Blend, GR32_Resamplers, GR32_Polygons, GR32_LowLevel, GR32_VectorUtils,
-  GR32_Transforms;
+  GR32_Blend, GR32_Gamma, GR32_Resamplers, GR32_Polygons, GR32_LowLevel,
+  GR32_VectorUtils, GR32_Transforms;
 
 type
    TSumRecInt64 = record
@@ -401,7 +406,7 @@ begin
   else if Radius > 256 then
     Radius := 256;
 
-  RadiusI := Round(Radius / Sqrt(-2 * Ln(1 / 255)));
+  RadiusI := Round(Radius / Sqrt(-2 * Ln(COne255th)));
   if RadiusI < 2 then
   begin
     Passes := Round(Radius);
@@ -599,7 +604,7 @@ begin
   else if Radius > 256 then
     Radius := 256;
 
-  RadiusI := Round(Radius / Sqrt(-2 * Ln(1 / 255)));
+  RadiusI := Round(Radius / Sqrt(-2 * Ln(COne255th)));
   if RadiusI < 2 then
   begin
     Passes := Round(Radius);
@@ -854,6 +859,334 @@ begin
   end;
 end;
 
+procedure GaussianBlurGamma(Bmp32: TBitmap32; Radius: TFloat);
+begin
+  GaussianBlurGamma(Bmp32, Radius, Bmp32.BoundsRect);
+end;
+
+procedure GaussianBlurGamma(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect);
+var
+  Q, I, J, X, Y, ImageWidth, RowOffset, RadiusI: Integer;
+  RecLeft, RecTop, RecRight, RecBottom: Integer;
+  ImagePixels: PColor32EntryArray;
+  RadiusSq, RadiusRevSq, KernelSize: Integer;
+  SumRec: TSumRecInt64;
+  PreMulArray: array of TColor32Entry;
+  SumArray: array of TSumRecInt64;
+  GaussLUT: array of array of Cardinal;
+begin
+  RadiusI := Round(Radius);
+  if RadiusI < 1 then
+    Exit
+  else if RadiusI > 128 then
+    RadiusI := 128; // nb: performance degrades exponentially with >> Radius
+
+  // initialize the look-up-table ...
+  KernelSize := RadiusI * 2 + 1;
+  SetLength(GaussLUT, KernelSize);
+  for I := 0 to KernelSize - 1 do
+    SetLength(GaussLUT[I], ChannelSize);
+  for I := 1 to RadiusI do
+  begin
+    RadiusRevSq := Round((Radius + 1 - I) * (Radius + 1 - I));
+    for J := 0 to ChannelSizeMin1 do
+    begin
+      GaussLUT[RadiusI - I][J] := RadiusRevSq * J;
+      GaussLUT[RadiusI + I][J] := GaussLUT[RadiusI - I][J];
+    end;
+  end;
+  RadiusSq := Round((Radius + 1) * (Radius + 1));
+  for J := 0 to ChannelSizeMin1 do
+    GaussLUT[RadiusI][J] := RadiusSq * J;
+
+  ImageWidth := Bmp32.Width;
+  SetLength(SumArray, ImageWidth * Bmp32.Height);
+
+  ImagePixels := PColor32EntryArray(Bmp32.Bits);
+  RecLeft := Max(Bounds.Left, 0);
+  RecTop := Max(Bounds.Top, 0);
+  RecRight := Min(Bounds.Right, ImageWidth - 1);
+  RecBottom := Min(Bounds.Bottom, Bmp32.Height - 1);
+
+  RowOffset := RecTop * ImageWidth;
+  SetLength(PreMulArray, Bmp32.Width);
+  for Y := RecTop to RecBottom do
+  begin
+    // initialize PreMulArray for the row ...
+    Q := (Y * ImageWidth) + RecLeft;
+    for X := RecLeft to RecRight do
+      with ImagePixels[Q] do
+      begin
+        PreMulArray[X].A := A;
+        PreMulArray[X].R := GAMMA_DECODING_TABLE[DivTable[R, A]];
+        PreMulArray[X].G := GAMMA_DECODING_TABLE[DivTable[G, A]];
+        PreMulArray[X].B := GAMMA_DECODING_TABLE[DivTable[B, A]];
+        Inc(Q);
+      end;
+
+    for X := RecLeft to RecRight do
+    begin
+      SumRec.A := 0;
+      SumRec.R := 0;
+      SumRec.G := 0;
+      SumRec.B := 0;
+      SumRec.Sum := 0;
+
+      I := Max(X - RadiusI, RecLeft);
+      Q := I - (X - RadiusI);
+      for I := I to Min(X + RadiusI, RecRight) do
+        with PreMulArray[I] do
+        begin
+          Inc(SumRec.A, GaussLUT[Q][A]);
+          Inc(SumRec.R, GaussLUT[Q][R]);
+          Inc(SumRec.G, GaussLUT[Q][G]);
+          Inc(SumRec.B, GaussLUT[Q][B]);
+          Inc(SumRec.Sum, GaussLUT[Q][1]);
+          Inc(Q);
+        end;
+      Q := RowOffset + X;
+      SumArray[Q].A := SumRec.A div SumRec.Sum;
+      SumArray[Q].R := SumRec.R div SumRec.Sum;
+      SumArray[Q].G := SumRec.G div SumRec.Sum;
+      SumArray[Q].B := SumRec.B div SumRec.Sum;
+    end;
+    Inc(RowOffset, ImageWidth);
+  end;
+
+  RowOffset := RecTop * ImageWidth;
+  for Y := RecTop to RecBottom do
+  begin
+    for X := RecLeft to RecRight do
+    begin
+      SumRec.A := 0;
+      SumRec.R := 0;
+      SumRec.G := 0;
+      SumRec.B := 0;
+      SumRec.Sum := 0;
+
+      I := Max(Y - RadiusI, RecTop);
+      Q := I - (Y - RadiusI);
+      for I := I to Min(Y + RadiusI, RecBottom) do
+        with SumArray[X + I * ImageWidth] do
+        begin
+          Inc(SumRec.A, GaussLUT[Q][A]);
+          Inc(SumRec.R, GaussLUT[Q][R]);
+          Inc(SumRec.G, GaussLUT[Q][G]);
+          Inc(SumRec.B, GaussLUT[Q][B]);
+          Inc(SumRec.Sum, GaussLUT[Q][1]);
+          Inc(Q);
+        end;
+
+      with ImagePixels[RowOffset + X] do
+      begin
+        A := (SumRec.A div SumRec.Sum);
+        R := GAMMA_ENCODING_TABLE[RcTable[A, (SumRec.R div SumRec.Sum)]];
+        G := GAMMA_ENCODING_TABLE[RcTable[A, (SumRec.G div SumRec.Sum)]];
+        B := GAMMA_ENCODING_TABLE[RcTable[A, (SumRec.B div SumRec.Sum)]];
+      end;
+    end;
+    Inc(RowOffset, ImageWidth);
+  end;
+end;
+
+procedure FastBlurGamma(Bmp32: TBitmap32; Radius: TFloat);
+begin
+  FastBlurGamma(Bmp32, Radius, Bmp32.BoundsRect);
+end;
+
+procedure FastBlurGamma(Bmp32: TBitmap32; Radius: TFloat; const Bounds: TRect);
+var
+  LL, RR, TT, BB, XX, YY, I, J, X, Y, RadiusI, Passes: Integer;
+  RecLeft, RecTop, RecRight, RecBottom: Integer;
+  ImagePixel: PColor32Entry;
+  SumRec: TSumRecord;
+  ImgPixel: PColor32Entry;
+  Pixels: array of TColor32Entry;
+begin
+  if Radius < 1 then
+    Exit
+  else if Radius > 256 then
+    Radius := 256;
+
+  RadiusI := Round(Radius / Sqrt(-2 * Ln(COne255th)));
+  if RadiusI < 2 then
+  begin
+    Passes := Round(Radius);
+    RadiusI := 1;
+  end else
+    Passes := 3;
+
+  RecLeft := Max(Bounds.Left, 0);
+  RecTop := Max(Bounds.Top, 0);
+  RecRight := Min(Bounds.Right, Bmp32.Width - 1);
+  RecBottom := Min(Bounds.Bottom, Bmp32.Height - 1);
+
+  SetLength(Pixels, Max(Bmp32.Width, Bmp32.Height) + 1);
+  // pre-multiply alphas ...
+  for Y := RecTop to RecBottom do
+  begin
+    ImgPixel := PColor32Entry(Bmp32.ScanLine[Y]);
+    Inc(ImgPixel, RecLeft);
+    for X := RecLeft to RecRight do
+      with ImgPixel^ do
+      begin
+        R := GAMMA_DECODING_TABLE[DivTable[R, A]];
+        G := GAMMA_DECODING_TABLE[DivTable[G, A]];
+        B := GAMMA_DECODING_TABLE[DivTable[B, A]];
+        Inc(ImgPixel);
+      end;
+  end;
+
+  for I := 1 to Passes do
+  begin
+
+    // horizontal pass...
+    for Y := RecTop to RecBottom do
+    begin
+      ImagePixel := PColor32Entry(@Bmp32.ScanLine[Y][RecLeft]);
+      // fill the Pixels buffer with a copy of the row's pixels ...
+      MoveLongword(ImagePixel^, Pixels[RecLeft], RecRight - RecLeft + 1);
+
+      SumRec.A := 0; SumRec.R := 0; SumRec.G := 0;
+      SumRec.B := 0; SumRec.Sum := 0;
+
+      LL := RecLeft;
+      RR := RecLeft + RadiusI;
+      if RR > RecRight then RR := RecRight;
+      // update first in row ...
+      for XX := LL to RR do
+        with Pixels[XX] do
+        begin
+          Inc(SumRec.A, A);
+          Inc(SumRec.R, R);
+          Inc(SumRec.G, G);
+          Inc(SumRec.B, B);
+          Inc(SumRec.Sum);
+        end;
+      with ImagePixel^ do
+      begin
+        A := SumRec.A div SumRec.Sum;
+        R := SumRec.R div SumRec.Sum;
+        G := SumRec.G div SumRec.Sum;
+        B := SumRec.B div SumRec.Sum;
+      end;
+      // update the remaining pixels in the row ...
+      for X := RecLeft + 1 to RecRight do
+      begin
+        Inc(ImagePixel);
+        LL := X - RadiusI - 1;
+        RR := X + RadiusI;
+        if LL >= RecLeft then
+          with Pixels[LL] do
+          begin
+            Dec(SumRec.A, A);
+            Dec(SumRec.R, R);
+            Dec(SumRec.G, G);
+            Dec(SumRec.B, B);
+            Dec(SumRec.Sum);
+          end;
+        if RR <= RecRight then
+          with Pixels[RR] do
+          begin
+            Inc(SumRec.A, A);
+            Inc(SumRec.R, R);
+            Inc(SumRec.G, G);
+            Inc(SumRec.B, B);
+            Inc(SumRec.Sum);
+          end;
+        with ImagePixel^ do
+        begin
+          A := SumRec.A div SumRec.Sum;
+          R := SumRec.R div SumRec.Sum;
+          G := SumRec.G div SumRec.Sum;
+          B := SumRec.B div SumRec.Sum;
+        end;
+      end;
+    end;
+
+    // vertical pass...
+    for X := RecLeft to RecRight do
+    begin
+      ImagePixel := PColor32Entry(@Bmp32.ScanLine[RecTop][X]);
+      for J := RecTop to RecBottom do
+      begin
+        Pixels[J] := ImagePixel^;
+        Inc(ImagePixel, Bmp32.Width);
+      end;
+      ImagePixel := PColor32Entry(@Bmp32.ScanLine[RecTop][X]);
+
+      TT := RecTop;
+      BB := RecTop + RadiusI;
+      if BB > RecBottom then BB := RecBottom;
+      SumRec.A := 0; SumRec.R := 0; SumRec.G := 0;
+      SumRec.B := 0; SumRec.Sum := 0;
+      // update first in col ...
+      for YY := TT to BB do
+        with Pixels[YY] do
+        begin
+          Inc(SumRec.A, A);
+          Inc(SumRec.R, R);
+          Inc(SumRec.G, G);
+          Inc(SumRec.B, B);
+          Inc(SumRec.Sum);
+        end;
+      with ImagePixel^ do
+      begin
+        A := SumRec.A div SumRec.Sum;
+        R := SumRec.R div SumRec.Sum;
+        G := SumRec.G div SumRec.Sum;
+        B := SumRec.B div SumRec.Sum;
+      end;
+      // update remainder in col ...
+      for Y := RecTop + 1 to RecBottom do
+      begin
+        Inc(ImagePixel, Bmp32.Width);
+        TT := Y - RadiusI - 1;
+        BB := Y + RadiusI;
+
+        if TT >= RecTop then
+          with Pixels[TT] do
+          begin
+            Dec(SumRec.A, A);
+            Dec(SumRec.R, R);
+            Dec(SumRec.G, G);
+            Dec(SumRec.B, B);
+            Dec(SumRec.Sum);
+          end;
+        if BB <= RecBottom then
+          with Pixels[BB] do
+          begin
+            Inc(SumRec.A, A);
+            Inc(SumRec.R, R);
+            Inc(SumRec.G, G);
+            Inc(SumRec.B, B);
+            Inc(SumRec.Sum);
+          end;
+        with ImagePixel^ do
+        begin
+          A := SumRec.A div SumRec.Sum;
+          R := SumRec.R div SumRec.Sum;
+          G := SumRec.G div SumRec.Sum;
+          B := SumRec.B div SumRec.Sum;
+        end;
+      end;
+    end;
+  end;
+
+  // extract alphas ...
+  for Y := RecTop to RecBottom do
+  begin
+    ImgPixel := PColor32Entry(@Bmp32.ScanLine[Y][RecLeft]);
+    for X := RecLeft to RecRight do
+    begin
+      ImgPixel.R := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.R]];
+      ImgPixel.G := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.G]];
+      ImgPixel.B := GAMMA_ENCODING_TABLE[RcTable[ImgPixel.A, ImgPixel.B]];
+      Inc(ImgPixel);
+    end;
+  end;
+end;
+
 procedure MotionBlur(Bmp32: TBitmap32; Dist, AngleDeg: TFloat;
   const Bounds: TRect; Bidirectional: Boolean = True);
 var
@@ -909,7 +1242,7 @@ begin
   else if Dist > 256 then
     Dist := 256;
 
-  RadiusI := Round(Sqrt(-Dist * Dist / (2 * Ln(1 / 255))));
+  RadiusI := Round(Sqrt(-Dist * Dist / (2 * Ln(COne255th))));
   if RadiusI < 2 then
   begin
     Passes := Round(Dist);

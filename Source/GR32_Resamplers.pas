@@ -3514,10 +3514,10 @@ begin
         C4 := C4 and $00FFFFFF;
       end;
 
-      WX := GAMMA_TABLE[((X shr 8) and $FF) xor $FF];
+      WX := GAMMA_ENCODING_TABLE[((X shr 8) and $FF) xor $FF];
       Result := CombineReg(CombineReg(C1, C2, WX),
                            CombineReg(C3, C4, WX),
-                           GAMMA_TABLE[((Y shr 8) and $FF) xor $FF]);
+                           GAMMA_ENCODING_TABLE[((Y shr 8) and $FF) xor $FF]);
       EMMS;  
     end  
     else  

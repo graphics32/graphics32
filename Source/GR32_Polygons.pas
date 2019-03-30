@@ -394,7 +394,7 @@ begin
       if V > $10000 then V := $10000;
       V := V * M shr 24;
 {$IFDEF USEGR32GAMMA}
-      V := GAMMA_TABLE[V];
+      V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
       C.A := V;
     end;
@@ -416,7 +416,7 @@ begin
     V := Abs(Round(Coverage[I] * $10000));
     if V > $10000 then V := $10000;
 {$IFDEF USEGR32GAMMA}
-    V := GAMMA_TABLE[V * M shr 24];
+    V := GAMMA_ENCODING_TABLE[V * M shr 24];
     AlphaValues[I] := (V shl 24) or C;
 {$ELSE}
     AlphaValues[I] := (V * M and $ff000000) or C;
@@ -446,7 +446,7 @@ begin
         V := V xor $1ffff;
       V := V * M shr 24;
 {$IFDEF USEGR32GAMMA}
-      V := GAMMA_TABLE[V];
+      V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
       C.A := V;
     end;
@@ -465,7 +465,7 @@ begin
   if V > $10000 then V := $10000;
   V := V * M shr 24;
 {$IFDEF USEGR32GAMMA}
-  V := GAMMA_TABLE[V];
+  V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
   C.A := V;
   FillLongWord(AlphaValues[0], Count, Color);
@@ -483,7 +483,7 @@ begin
   if V > $10000 then V := V xor $1ffff;
   V := V * M shr 24;
 {$IFDEF USEGR32GAMMA}
-  V := GAMMA_TABLE[V];
+  V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
   C.A := V;
   FillLongWord(AlphaValues[0], Count, Color);
@@ -502,7 +502,7 @@ begin
   begin
     V := Clamp(Round(Abs(Coverage[I]) * 256));
 {$IFDEF USEGR32GAMMA}
-    V := GAMMA_TABLE[V];
+    V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
     AlphaValues[I] := V;
   end;
@@ -520,7 +520,7 @@ begin
     V := V and $000001ff;
     if V >= $100 then V := V xor $1ff;
 {$IFDEF USEGR32GAMMA}
-    V := GAMMA_TABLE[V];
+    V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
     AlphaValues[I] := V;
   end;
@@ -533,7 +533,7 @@ var
 begin
   V := Clamp(Round(Abs(Value) * 256));
 {$IFDEF USEGR32GAMMA}
-    V := GAMMA_TABLE[V];
+    V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
   FillLongWord(AlphaValues[0], Count, V);
 end;
@@ -547,7 +547,7 @@ begin
   V := V and $000001ff;
   if V >= $100 then V := V xor $1ff;
 {$IFDEF USEGR32GAMMA}
-    V := GAMMA_TABLE[V];
+    V := GAMMA_ENCODING_TABLE[V];
 {$ENDIF}
   FillLongWord(AlphaValues[0], Count, V);
 end;
@@ -1208,7 +1208,7 @@ begin
     end;
     Inc(AlphaValues[I], V);
 {$IFDEF USEGR32GAMMA}
-    AlphaValues[I] := GAMMA_TABLE[AlphaValues[I]];
+    AlphaValues[I] := GAMMA_ENCODING_TABLE[AlphaValues[I]];
 {$ENDIF}
     Inc(AlphaValues[I + 1], V);
     AlphaValues[I + 2] := V;
@@ -1242,7 +1242,7 @@ begin
     end;
     Inc(AlphaValues[I], V);
 {$IFDEF USEGR32GAMMA}
-    AlphaValues[I] := GAMMA_TABLE[AlphaValues[I]];
+    AlphaValues[I] := GAMMA_ENCODING_TABLE[AlphaValues[I]];
 {$ENDIF}
     Inc(AlphaValues[I + 1], V);
     AlphaValues[I + 2] := V;

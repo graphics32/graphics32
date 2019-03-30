@@ -198,7 +198,4 @@ begin
   end;
 end;
 
-initialization
-  SetGamma(1 / 1.6);
-
 end.

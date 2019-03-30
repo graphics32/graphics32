@@ -39,7 +39,7 @@ object FormPixelCombine: TFormPixelCombine
     Left = 415
     Top = 20
     Width = 141
-    Height = 245
+    Height = 285
     Anchors = [akTop, akRight]
     Caption = 'Operation'
     ItemIndex = 0
@@ -55,7 +55,10 @@ object FormPixelCombine: TFormPixelCombine
       'Color-Burn'
       'Difference'
       'Exclusion'
-      'Pattern')
+      'Pattern'
+      'Blend'
+      'Blend Add'
+      'Blend Modulate')
     TabOrder = 1
     OnClick = RadioGroupClick
   end
