@@ -6,7 +6,7 @@ interface
 
 uses
   {$IFDEF FPC}LCLIntf, {$ELSE}Windows, {$ENDIF} Messages, SysUtils, Classes,
-  Graphics, Controls, Forms, Dialogs, ExtCtrls, GR32, GR32_Image, StdCtrls,
+  Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, GR32, GR32_Image,
   GR32_RangeBars;
 
 type
@@ -57,9 +57,12 @@ begin
 end;
 
 procedure TFrmGammaCorrection.GbrGammaChange(Sender: TObject);
+var
+  GammaValue: Double;
 begin
-  LblGammaValue.Caption := FloatToStrF(0.01 * GbrGamma.Position, ffFixed, 3, 3);
-  SetGamma(0.01 * GbrGamma.Position);
+  GammaValue := 0.001 * GbrGamma.Position;
+  LblGammaValue.Caption := FloatToStrF(GammaValue, ffFixed, 4, 3);
+  SetGamma(0.001 * GbrGamma.Position);
   PaintBox32.Invalidate;
 end;
 

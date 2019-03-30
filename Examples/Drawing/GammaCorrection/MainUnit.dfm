@@ -84,14 +84,15 @@ object FrmGammaCorrection: TFrmGammaCorrection
     end
     object GbrGamma: TGaugeBar
       Left = 56
-      Top = 28
+      Top = 30
       Width = 377
       Height = 16
       Backgnd = bgPattern
-      Max = 300
-      Min = 50
+      LargeChange = 100
+      Max = 3000
+      Min = 300
       ShowHandleGrip = True
-      Position = 100
+      Position = 1000
       OnChange = GbrGammaChange
     end
     object GbrThickness: TGaugeBar
