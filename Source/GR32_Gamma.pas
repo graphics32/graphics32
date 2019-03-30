@@ -23,6 +23,9 @@ procedure SetGamma; overload;  {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure SetGamma(Gamma: Double); overload;  {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure SetGamma(Gamma: Double; var GammaTable: TGammaTable8Bit); overload;
 
+procedure Set_sRGB; overload;
+procedure Set_sRGB(var GammaTable: TGammaTable8Bit); overload;
+
 // apply gamma
 function ApplyGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function ApplyInvGamma(Color: TColor32): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -169,6 +172,26 @@ var
 begin
   for i := 0 to $FF do
     GammaTable[i] := Round($FF * Power(i * COne255th, Gamma));
+end;
+
+procedure Set_sRGB;
+begin
+  Set_sRGB(GAMMA_TABLE);
+end;
+
+procedure Set_sRGB(var GammaTable: TGammaTable8Bit);
+var
+  i: Integer;
+  Value: Double;
+begin
+  for i := 0 to $FF do
+  begin
+    Value := i * COne255th;
+    if (Value < 0.0031308) then
+        GammaTable[i] := Round($FF * Value * Value * 12.92)
+    else
+        GammaTable[i] := Round($FF * (1.055 * Power(Value, 1/2.4) - 0.055));
+  end;
 end;
 
 end.
