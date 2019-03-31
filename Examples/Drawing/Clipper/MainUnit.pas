@@ -38,7 +38,7 @@ interface
 
 uses
   {$IFNDEF FPC}Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF} SysUtils, Classes,
-  Types, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls,
+  Types, Graphics, Controls, Forms, Dialogs, ExtCtrls, StdCtrls, Math,
   GR32, GR32_Image, GR32_Polygons, GR32_Layers, GR32_Geometry,
   GR32_Math, GR32_VectorUtils, GR32_Clipper;
 
@@ -84,24 +84,6 @@ implementation
 {$R *.dfm}
 {$ENDIF}
 
-
-function Translate(const Pts: TArrayOfArrayOfFixedPoint;
-  dx, dy: TFixed): TArrayOfArrayOfFixedPoint;
-var
-  I, J: Integer;
-begin
-  SetLength(Result, Length(pts));
-  for I := 0 to High(pts) do
-  begin
-    SetLength(Result[I], Length(pts[I]));
-    for J := 0 to High(pts[I]) do
-    begin
-      Result[I, J].X := pts[I, J].X + dx;
-      Result[I, J].Y := pts[I, J].Y + dy;
-    end;
-  end;
-end;
-
 procedure DrawStippled(Bitmap: TBitmap32;
   const Afp: TArrayOfFloatPoint;
   StippleColors: array of TColor32; StippleStep: TFloat);
@@ -122,7 +104,7 @@ end;
 
 procedure TFrmClipper.FormCreate(Sender: TObject);
 begin
-  ImgView32.Bitmap.SetSize(640, 480);
+  ImgView32.SetupBitmap(true);
   AddPolygon(MakeStar(GR32.Point(125, 150)));
   ImgView32.ScrollToCenter(0, 0);
 end;
@@ -135,20 +117,23 @@ begin
 end;
 
 procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFloatPoint);
+var
+  ct: TClipType;
 begin
   with TClipper.Create do
   try
     //add multiple contours of existing polygons as subject polygons ...
-    Add(Polys, ptSubject);
+    AddPaths(Polys, ptSubject);
     //add the single contour of the new polygon as the clipping polygon ...
-    Add(Pts, ptClip);
+    AddPath(Pts, ptClip);
     //do the clipping operation (result => Polys) ...
     case rgClipping.ItemIndex of
-      0:  Execute(ctIntersection, Polys, pftNonZero);
-      1:  Execute(ctUnion, Polys, pftNonZero);
-      2:  Execute(ctDifference, Polys, pftNonZero);
-      else  Execute(ctXor, Polys, pftNonZero);
+      0: ct := ctIntersection;
+      1:  ct := ctUnion;
+      2:  ct := ctDifference;
+      else  ct := ctXor;
     end;
+    Execute(ct, frNonZero, Polys);
   finally
     free;
   end;
@@ -179,7 +164,8 @@ begin
   ImgView32.Bitmap.FillRectS(ImgView32.Bitmap.BoundsRect, clWhite32);
   PolyPolyLineFS(ImgView32.Bitmap, Polys, clRed32, True, 2);
   PolyPolygonFS(ImgView32.Bitmap, Polys, $40FF0000, pfWinding);
-  DrawStippled(ImgView32.Bitmap, OutlinePolygon, [clBlue32, clBlue32, $000000FF], 0.35);
+  DrawStippled(ImgView32.Bitmap,
+    OutlinePolygon, [clBlue32, clBlue32, $000000FF], 0.35);
 end;
 
 procedure TFrmClipper.ImgView32MouseDown(Sender: TObject;
@@ -222,13 +208,13 @@ end;
 
 procedure TFrmClipper.BtnInflateClick(Sender: TObject);
 begin
-  Polys := InflatePolygons(Polys, 10, jtRound);
+  Polys := InflatePaths(Polys, 10, jtRound, etPolygon);
   DrawPolygons;
 end;
 
 procedure TFrmClipper.BtnDeflateClick(Sender: TObject);
 begin
-  Polys := InflatePolygons(Polys, -10, jtRound);
+  Polys := InflatePaths(Polys, -10, jtRound, etPolygon);
   DrawPolygons;
 end;
 
