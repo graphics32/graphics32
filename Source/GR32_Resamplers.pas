@@ -580,6 +580,11 @@ procedure MultiplyBuffer(var Buffer: TBufferEntry; W: Integer); {$IFDEF USEINLIN
 function BufferToColor32(const Buffer: TBufferEntry; Shift: Integer): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure ShrBuffer(var Buffer: TBufferEntry; Shift: Integer); {$IFDEF USEINLINING} inline; {$ENDIF}
 
+{ Downsample byte map }
+procedure DownsampleByteMap2x(Source, Dest: TByteMap);
+procedure DownsampleByteMap3x(Source, Dest: TByteMap);
+procedure DownsampleByteMap4x(Source, Dest: TByteMap);
+
 { Registration routines }
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
@@ -2486,6 +2491,73 @@ begin
 end;
 {$WARNINGS ON}
 
+
+{ TByteMap downsample functions }
+
+procedure DownsampleByteMap2x(Source, Dest: TByteMap);
+var
+  X, Y: Integer;
+  ScnLn: array [0 .. 2] of PByteArray;
+begin
+  for Y := 0 to (Source.Height div 2) - 1 do
+  begin
+    ScnLn[0] := Dest.ScanLine[Y];
+    ScnLn[1] := Source.ScanLine[Y * 2];
+    ScnLn[2] := Source.ScanLine[Y * 2 + 1];
+    for X := 0 to (Source.Width div 2) - 1 do
+      ScnLn[0, X] := (
+        ScnLn[1, 2 * X] + ScnLn[1, 2 * X + 1] +
+        ScnLn[2, 2 * X] + ScnLn[2, 2 * X + 1]) div 4;
+  end;
+end;
+
+procedure DownsampleByteMap3x(Source, Dest: TByteMap);
+var
+  X, Y: Integer;
+  x3: Integer;
+  ScnLn: array [0 .. 3] of PByteArray;
+begin
+  for Y := 0 to (Source.Height div 3) - 1 do
+  begin
+    ScnLn[0] := Dest.ScanLine[Y];
+    ScnLn[1] := Source.ScanLine[3 * Y];
+    ScnLn[2] := Source.ScanLine[3 * Y + 1];
+    ScnLn[3] := Source.ScanLine[3 * Y + 2];
+    for X := 0 to (Source.Width div 3) - 1 do
+    begin
+      x3 := 3 * X;
+      ScnLn[0, X] := (
+        ScnLn[1, x3] + ScnLn[1, x3 + 1] + ScnLn[1, x3 + 2] +
+        ScnLn[2, x3] + ScnLn[2, x3 + 1] + ScnLn[2, x3 + 2] +
+        ScnLn[3, x3] + ScnLn[3, x3 + 1] + ScnLn[3, x3 + 2]) div 9;
+    end;
+  end;
+end;
+
+procedure DownsampleByteMap4x(Source, Dest: TByteMap);
+var
+  X, Y: Integer;
+  x4: Integer;
+  ScnLn: array [0 .. 4] of PByteArray;
+begin
+  for Y := 0 to (Source.Height div 4) - 1 do
+  begin
+    ScnLn[0] := Dest.ScanLine[Y];
+    ScnLn[1] := Source.ScanLine[Y * 4];
+    ScnLn[2] := Source.ScanLine[Y * 4 + 1];
+    ScnLn[3] := Source.ScanLine[Y * 4 + 2];
+    ScnLn[4] := Source.ScanLine[Y * 4 + 3];
+    for X := 0 to (Source.Width div 4) - 1 do
+    begin
+      x4 := 4 * X;
+      ScnLn[0, X] := (
+        ScnLn[1, x4] + ScnLn[1, x4 + 1] + ScnLn[1, x4 + 2] + ScnLn[1, x4 + 3] +
+        ScnLn[2, x4] + ScnLn[2, x4 + 1] + ScnLn[2, x4 + 2] + ScnLn[2, x4 + 3] +
+        ScnLn[3, x4] + ScnLn[3, x4 + 1] + ScnLn[3, x4 + 2] + ScnLn[3, x4 + 3] +
+        ScnLn[4, x4] + ScnLn[4, x4 + 1] + ScnLn[4, x4 + 2] + ScnLn[4, x4 + 3]) div 16;
+    end;
+  end;
+end;
 
 
 { TCustomKernel }

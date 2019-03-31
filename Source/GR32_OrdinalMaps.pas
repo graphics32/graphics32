@@ -63,6 +63,7 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     function Empty: Boolean; override;
     procedure Clear(FillValue: Byte);
     procedure ToggleBit(X, Y: Integer);
@@ -84,12 +85,20 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     procedure Assign(Source: TPersistent); override;
-    function  Empty: Boolean; override;
+    function Empty: Boolean; override;
     procedure Clear(FillValue: Byte);
+
     procedure ReadFrom(Source: TCustomBitmap32; Conversion: TConversionType);
     procedure WriteTo(Dest: TCustomBitmap32; Conversion: TConversionType); overload;
     procedure WriteTo(Dest: TCustomBitmap32; const Palette: TPalette32); overload;
+
+    procedure DrawTo(Dest: TCustomBitmap32; Color: TColor32; X, Y: Integer); overload;
+    procedure DrawTo(Dest: TCustomBitmap32; Color: TColor32; Rect: TRect); overload;
+
+    procedure Downsample(Factor: Byte); overload;
+    procedure Downsample(Dest: TByteMap; Factor: Byte); overload;
 
     property Bits: PByteArray read FBits;
     property Scanline[Y: Integer]: PByteArray read GetScanline;
@@ -111,6 +120,7 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear(FillValue: Word);
@@ -135,6 +145,7 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear(FillValue: Integer = 0);
@@ -159,6 +170,7 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear(FillValue: Cardinal = 0);
@@ -183,6 +195,7 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear; overload;
@@ -208,6 +221,7 @@ type
   public
     constructor Create; overload; override;
     destructor Destroy; override;
+
     procedure Assign(Source: TPersistent); override;
     function Empty: Boolean; override;
     procedure Clear; overload;
@@ -222,7 +236,7 @@ type
 implementation
 
 uses
-  GR32_LowLevel;
+  Math, GR32_LowLevel, GR32_Blend, GR32_Resamplers;
 
 function Bytes(Bits: Integer): Integer;
 begin
@@ -294,6 +308,108 @@ destructor TByteMap.Destroy;
 begin
   FreeMem(FBits);
   inherited;
+end;
+
+procedure TByteMap.Downsample(Factor: Byte);
+begin
+  // downsample inplace
+  case Factor of
+    2:
+      DownsampleByteMap2x(Self, Self);
+    3:
+      DownsampleByteMap3x(Self, Self);
+    4:
+      DownsampleByteMap4x(Self, Self);
+    6:
+      begin
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap2x(Self, Self);
+      end;
+    8:
+      begin
+        DownsampleByteMap4x(Self, Self);
+        DownsampleByteMap2x(Self, Self);
+      end;
+    9:
+      begin
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap3x(Self, Self);
+      end;
+    12:
+      begin
+        DownsampleByteMap4x(Self, Self);
+        DownsampleByteMap3x(Self, Self);
+      end;
+    16:
+      begin
+        DownsampleByteMap4x(Self, Self);
+        DownsampleByteMap4x(Self, Self);
+      end;
+    18:
+      begin
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap2x(Self, Self);
+      end;
+    24:
+      begin
+        DownsampleByteMap4x(Self, Self);
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap2x(Self, Self);
+      end;
+    27:
+      begin
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap3x(Self, Self);
+        DownsampleByteMap3x(Self, Self);
+      end;
+    32:
+      begin
+        DownsampleByteMap4x(Self, Self);
+        DownsampleByteMap4x(Self, Self);
+        DownsampleByteMap2x(Self, Self);
+      end;
+  end;
+end;
+
+procedure TByteMap.Downsample(Dest: TByteMap; Factor: Byte);
+var
+  Temp: TByteMap;
+  Y: Integer;
+begin
+  // downsample inplace
+  case Factor of
+    2:
+      begin
+        // downsample directly
+        Dest.SetSize(Width div 2, Height div 2);
+        DownsampleByteMap2x(Self, Dest);
+      end;
+    3:
+      begin
+        // downsample directly
+        Dest.SetSize(Width div 3, Height div 3);
+        DownsampleByteMap3x(Self, Dest);
+      end;
+    4:
+      begin
+        // downsample directly
+        Dest.SetSize(Width div 4, Height div 4);
+        DownsampleByteMap4x(Self, Dest);
+      end;
+    else
+      begin
+        // clone destination and downsample inplace
+        Temp := TByteMap.Create;
+        Temp.Assign(Self);
+        Temp.Downsample(Factor);
+
+        // copy downsampled result
+        Dest.SetSize(Width div Factor, Height div Factor);
+        for Y := 0 to Dest.Height - 1 do
+          Move(Temp.Bits[0], Dest.Bits[0], Dest.Width);
+      end;
+  end;
 end;
 
 procedure TByteMap.Assign(Source: TPersistent);
@@ -560,6 +676,95 @@ begin
   finally
     Dest.EndUpdate;
     Dest.Changed;
+  end;
+end;
+
+procedure TByteMap.DrawTo(Dest: TCustomBitmap32; Color: TColor32;
+  X, Y: Integer);
+var
+  ClipRect: TRect;
+  IX, IY: Integer;
+  RGB: Cardinal;
+  NewColor: TColor32;
+  ScnLn: PColor32Array;
+  ByteLine: PByteArray;
+  Alpha: Byte;
+begin
+  with ClipRect do
+  begin
+    Left := X;
+    if Left < 0 then
+      Left := 0;
+    Top := Y;
+    if Top < 0 then
+      Top := 0;
+    Right := X + Self.Width;
+    if Right > Self.Width then
+      Right := Self.Width;
+    Bottom := Y + Self.Height;
+    if Bottom > Self.Height then
+      Bottom := Self.Height;
+
+    // split RGB and alpha
+    RGB := Color and $FFFFFF;
+    Alpha := Color shr 24;
+
+    // blend scanlines
+    for IY := Top to Bottom - 1 do
+    begin
+      ScnLn := Dest.ScanLine[IY];
+      ByteLine := Self.ScanLine[IY - Y];
+      for IX := Left to Right - 1 do
+      begin
+        NewColor := (((ByteLine^[IX - X] * Alpha) shl 16) and $FF000000) or RGB;
+        MergeMem(NewColor, ScnLn^[IX]);
+      end;
+    end;
+    EMMS;
+  end;
+end;
+
+procedure TByteMap.DrawTo(Dest: TCustomBitmap32; Color: TColor32; Rect: TRect);
+var
+  ClipRect: TRect;
+  IX, IY: Integer;
+  RGB: Cardinal;
+  NewColor: TColor32;
+  ScnLn: PColor32Array;
+  ByteLine: PByteArray;
+  Alpha: Byte;
+begin
+  with ClipRect do
+  begin
+    Left := Rect.Left;
+    if Left < 0 then
+      Left := 0;
+    Top := Rect.Top;
+    if Top < 0 then
+      Top := 0;
+    Right := Math.Min(Rect.Left + Self.Width, Rect.Right);
+    if Right > Self.Width then
+      Right := Self.Width;
+    Bottom := Math.Min(Rect.Top + Self.Height, Rect.Bottom);
+    if Bottom > Self.Height then
+      Bottom := Self.Height;
+
+    // split RGB and alpha
+    RGB := Color and $FFFFFF;
+    Alpha := Color shr 24;
+
+    // blend scanlines
+    for IY := Top to Bottom - 1 do
+    begin
+      ScnLn := Dest.ScanLine[IY];
+      ByteLine := Self.ScanLine[IY - Rect.Top];
+      for IX := Left to Right - 1 do
+      begin
+        NewColor := (((ByteLine^[IX - Rect.Left] * Alpha) shl 16) and $FF000000) or RGB;
+        MergeMem(NewColor, ScnLn^[IX]);
+      end;
+    end;
+    EMMS;
   end;
 end;
 
