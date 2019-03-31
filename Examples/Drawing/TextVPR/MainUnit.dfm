@@ -79,9 +79,10 @@ object MainForm: TMainForm
         Width = 141
         Height = 28
         Enabled = False
-        Max = 240
-        Frequency = 30
-        Position = 100
+        Max = 3000
+        Min = 30
+        Frequency = 300
+        Position = 1000
         TabOrder = 0
         ThumbLength = 18
         TickStyle = tsNone

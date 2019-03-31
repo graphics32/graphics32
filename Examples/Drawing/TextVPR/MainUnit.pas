@@ -154,7 +154,7 @@ procedure TMainForm.FormCreate(Sender: TObject);
 begin
   FPath := TFlattenedPath.Create;
 
-  SetGamma(TbrGamma.Position * 0.01);
+  SetGamma(TbrGamma.Position * 0.001);
   Img.SetupBitmap(True, clWhite32);
   Img.Bitmap.Font.Name := 'Georgia';
   Img.Bitmap.Font.Size := 9;
@@ -271,8 +271,8 @@ end;
 
 procedure TMainForm.TbrGammaChange(Sender: TObject);
 begin
-  SetGamma(TbrGamma.Position * 0.01);
-  LblGammaValue.Caption := Format('(%1.2f)', [TbrGamma.Position * 0.01]);
+  SetGamma(TbrGamma.Position * 0.001);
+  LblGammaValue.Caption := Format('(%1.2f)', [TbrGamma.Position * 0.001]);
   RenderText;
 end;
 

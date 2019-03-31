@@ -77,7 +77,6 @@ object FormGammaBlur: TFormGammaBlur
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 0
     OnPaintBuffer = PaintBoxIncorrectPaintBuffer
-    ExplicitWidth = 249
   end
   object PaintBoxCorrect: TPaintBox32
     Left = 8
@@ -87,7 +86,6 @@ object FormGammaBlur: TFormGammaBlur
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 1
     OnPaintBuffer = PaintBoxCorrectPaintBuffer
-    ExplicitWidth = 602
   end
   object GaugeBarGamma: TGaugeBar
     Left = 82
@@ -100,7 +98,7 @@ object FormGammaBlur: TFormGammaBlur
     Max = 3000
     Min = 300
     ShowHandleGrip = True
-    Position = 480
+    Position = 2200
     OnChange = GaugeBarGammaChange
   end
   object GaugeBarBlurRadius: TGaugeBar
