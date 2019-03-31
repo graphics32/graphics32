@@ -43,24 +43,25 @@ uses
 type
   TMainForm = class(TForm)
     LabelBlendSettings: TLabel;
-    LabelWeightmap: TLabel;
+    LabelOverlay: TLabel;
     DstImg: TImage32;
     RadioButtonBlend: TRadioButton;
     RadioButtonMerge: TRadioButton;
     LabelVisible: TLabel;
     CheckBoxForeground: TCheckBox;
     CheckBoxBackground: TCheckBox;
+    CheckBoxTransparent: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure RadioButtonBlendClick(Sender: TObject);
     procedure RadioButtonMergeClick(Sender: TObject);
     procedure DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
     procedure RadioButtonNoneClick(Sender: TObject);
-    procedure CheckBoxForegroundClick(Sender: TObject);
-    procedure CheckBoxBackgroundClick(Sender: TObject);
+    procedure CheckBoxImageClick(Sender: TObject);
   private
     FForeground: TBitmap32;
     FBackground: TBitmap32;
+    FBackgroundOpaque: TBitmap32;
     FBlendFunc: TBlendReg;
     procedure ModifyAlphaValues;
     procedure DrawBitmap;
@@ -128,10 +129,12 @@ begin
     JPEG.Free;
   end;
 
+  FBackgroundOpaque := TBitmap32.Create;
+  FBackgroundOpaque.Assign(FBackground);
   ModifyAlphaValues;
 
   DstImg.Bitmap.SetSize(FForeground.Width, FForeground.Height);
-  FBlendFunc := BlendReg;
+  FBlendFunc := MergeReg;
   DrawBitmap;
 end;
 
@@ -187,7 +190,7 @@ begin
       for I := 0 to TilesHorz do
       begin
         Buffer.FillRectS(TileX, TileY, TileX + TileWidth, TileY +
-          TileHeight,Colors[I and $1 = OddY]);
+          TileHeight, Colors[I and $1 = OddY]);
         Inc(TileX, TileWidth);
       end;
       Inc(TileY, TileHeight);
@@ -218,12 +221,7 @@ begin
   DrawBitmap;
 end;
 
-procedure TMainForm.CheckBoxBackgroundClick(Sender: TObject);
-begin
-  DrawBitmap;
-end;
-
-procedure TMainForm.CheckBoxForegroundClick(Sender: TObject);
+procedure TMainForm.CheckBoxImageClick(Sender: TObject);
 begin
   DrawBitmap;
 end;
@@ -232,14 +230,20 @@ procedure TMainForm.DrawBitmap;
 var
   X, Y: Integer;
   PSrcF, PSrcB, PDst: PColor32Array;
+  Background: TBitmap32;
 begin
+  if CheckBoxTransparent.Checked then
+    Background := FBackground
+  else
+    Background := FBackgroundOpaque;
+
   if CheckBoxForeground.Checked then
   begin
     if CheckBoxBackground.Checked then
       for Y := 0 to FForeground.Height - 1 do
       begin
         PSrcF := PColor32Array(FForeground.ScanLine[Y]);
-        PSrcB := PColor32Array(FBackground.ScanLine[Y]);
+        PSrcB := PColor32Array(Background.ScanLine[Y]);
         PDst := PColor32Array(DstImg.Bitmap.ScanLine[Y]);
         for X := 0 to FForeground.Width - 1 do
           PDst[X] := FBlendFunc(PSrcF[X], PSrcB[X]);
@@ -258,7 +262,7 @@ begin
     if CheckBoxBackground.Checked then
       for Y := 0 to FForeground.Height - 1 do
       begin
-        PSrcB := PColor32Array(FBackground.ScanLine[Y]);
+        PSrcB := PColor32Array(Background.ScanLine[Y]);
         PDst := PColor32Array(DstImg.Bitmap.ScanLine[Y]);
         for X := 0 to FForeground.Width - 1 do
           PDst[X] := PSrcB[X];

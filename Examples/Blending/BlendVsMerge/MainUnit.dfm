@@ -4,7 +4,7 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Blend vs. Merge Example'
-  ClientHeight = 366
+  ClientHeight = 456
   ClientWidth = 272
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -17,17 +17,17 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   DesignSize = (
     272
-    366)
+    456)
   PixelsPerInch = 96
   TextHeight = 13
-  object LabelWeightmap: TLabel
+  object LabelOverlay: TLabel
     Left = 8
-    Top = 79
+    Top = 169
     Width = 256
     Height = 17
     Anchors = [akLeft, akBottom]
     AutoSize = False
-    Caption = ' Weightmap'
+    Caption = ' Overlay'
     Color = clAppWorkSpace
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWhite
@@ -41,8 +41,8 @@ object MainForm: TMainForm
   end
   object LabelBlendSettings: TLabel
     Left = 8
-    Top = 8
-    Width = 154
+    Top = 88
+    Width = 256
     Height = 17
     AutoSize = False
     Caption = ' Blend Settings'
@@ -57,9 +57,9 @@ object MainForm: TMainForm
     Layout = tlCenter
   end
   object LabelVisible: TLabel
-    Left = 168
+    Left = 8
     Top = 8
-    Width = 96
+    Width = 256
     Height = 17
     AutoSize = False
     Caption = ' Visible Layer'
@@ -75,7 +75,7 @@ object MainForm: TMainForm
   end
   object DstImg: TImage32
     Left = 8
-    Top = 102
+    Top = 192
     Width = 256
     Height = 256
     Anchors = [akLeft, akBottom]
@@ -88,48 +88,59 @@ object MainForm: TMainForm
     ScaleMode = smNormal
     TabOrder = 0
     OnPaintStage = DstImgPaintStage
-    ExplicitTop = 210
+    ExplicitTop = 102
   end
   object RadioButtonBlend: TRadioButton
     Left = 8
-    Top = 31
-    Width = 154
+    Top = 134
+    Width = 57
     Height = 17
     Caption = '&Blend'
-    Checked = True
     TabOrder = 1
-    TabStop = True
     OnClick = RadioButtonBlendClick
   end
   object RadioButtonMerge: TRadioButton
     Left = 8
-    Top = 54
-    Width = 154
+    Top = 111
+    Width = 57
     Height = 17
     Caption = '&Merge'
+    Checked = True
     TabOrder = 2
+    TabStop = True
     OnClick = RadioButtonMergeClick
   end
   object CheckBoxForeground: TCheckBox
-    Left = 168
-    Top = 31
+    Left = 8
+    Top = 54
     Width = 81
     Height = 17
     Caption = '&Foreground'
     Checked = True
     State = cbChecked
     TabOrder = 3
-    OnClick = CheckBoxForegroundClick
+    OnClick = CheckBoxImageClick
   end
   object CheckBoxBackground: TCheckBox
-    Left = 168
-    Top = 54
-    Width = 81
+    Left = 8
+    Top = 31
+    Width = 105
     Height = 17
-    Caption = 'Back&ground'
+    Caption = 'Back&ground  --->'
     Checked = True
     State = cbChecked
     TabOrder = 4
-    OnClick = CheckBoxBackgroundClick
+    OnClick = CheckBoxImageClick
+  end
+  object CheckBoxTransparent: TCheckBox
+    Left = 112
+    Top = 31
+    Width = 113
+    Height = 17
+    Caption = 'with transparency'
+    Checked = True
+    State = cbChecked
+    TabOrder = 5
+    OnClick = CheckBoxImageClick
   end
 end

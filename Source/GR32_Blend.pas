@@ -124,6 +124,10 @@ var
   ColorDodge: TBlendReg;
   ColorBurn: TBlendReg;
 
+{ Blended color algebra functions }
+  BlendColorAdd: TBlendReg;
+  BlendColorModulate: TBlendReg;
+
 { Special LUT pointers }
   AlphaTable: Pointer;
   bias_ptr: Pointer;
@@ -198,7 +202,7 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
-    A := Af[FX.A] + Ab[A];
+    A := $FF;
   end;
   Result := B;
 end;
@@ -227,7 +231,7 @@ begin
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
-    A := Af[FX.A] + Ab[A];
+    A := $FF;
   end;
 end;
 
@@ -794,6 +798,38 @@ begin
 end;
 
 
+{ Blended color algebra }
+
+function BlendColorAdd_Pas(C1, C2: TColor32): TColor32;
+var
+  Xe: TColor32Entry absolute C1;
+  Ye: TColor32Entry absolute C2;
+  R: TColor32Entry absolute Result;
+  Af, Ab: PByteArray;
+begin
+  Af := @DivTable[Xe.A];
+  Ab := @DivTable[not Xe.A];
+  R.A := Af[Clamp(Xe.A + Ye.A, 255)] + Ab[Ye.A];
+  R.R := Af[Clamp(Xe.R + Ye.R, 255)] + Ab[Ye.R];
+  R.G := Af[Clamp(Xe.G + Ye.G, 255)] + Ab[Ye.G];
+  R.B := Af[Clamp(Xe.B + Ye.B, 255)] + Ab[Ye.B];
+end;
+
+function BlendColorModulate_Pas(C1, C2: TColor32): TColor32;
+var
+  C1e: TColor32Entry absolute C1;
+  C2e: TColor32Entry absolute C2;
+  R: TColor32Entry absolute Result;
+  Af, Ab: PByteArray;
+begin
+  Af := @DivTable[C1e.A];
+  Ab := @DivTable[not C1e.A];
+  R.A := Af[(C2e.A * C1e.A + $80) shr 8] + Ab[C2e.A];
+  R.R := Af[(C2e.R * C1e.R + $80) shr 8] + Ab[C2e.R];
+  R.G := Af[(C2e.G * C1e.G + $80) shr 8] + Ab[C2e.G];
+  R.B := Af[(C2e.B * C1e.B + $80) shr 8] + Ab[C2e.B];
+end;
+
 {$IFNDEF PUREPASCAL}
 
 { Assembler versions }
@@ -836,7 +872,7 @@ asm
         IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
@@ -852,13 +888,14 @@ asm
         IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
-        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
+        SHR     EDX,8           // EDX  <-  00 Qr 00 Qb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
         OR      EBX,EDX         // EBX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         POP     EBX
         RET
@@ -893,7 +930,7 @@ asm
         IMUL    R9D,ECX         // R9D  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     R9D,bias
         AND     R9D,$FF00FF00   // R9D  <-  Pa 00 Pg 00
         OR      EAX,R9D         // EAX  <-  Pa Pr Pg Pb
@@ -909,13 +946,14 @@ asm
         IMUL    R9D,ECX         // R9D  <-  Qa ** Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
-        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
+        SHR     EDX,8           // EDX  <-  00 Qr 00 Qb
         ADD     R9D,bias
         AND     R9D,$FF00FF00   // R9D  <-  Qa 00 Qg 00
         OR      R9D,EDX         // R9D  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,R9D         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
         RET
 
 @1:     MOV     EAX,EDX
@@ -953,7 +991,7 @@ asm
         IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
@@ -971,13 +1009,14 @@ asm
         IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
         ADD     ESI,bias
         AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
-        SHR     ESI,8           // ESI  <-  00 Qr ** Qb
+        SHR     ESI,8           // ESI  <-  00 Qr 00 Qb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
         OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         MOV     [EDX],EAX
         POP     ESI
@@ -1014,7 +1053,7 @@ asm
         IMUL    R8D,ECX         // R8D  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     R8D,bias
         AND     R8D,$FF00FF00   // R8D  <-  Pa 00 Pg 00
         OR      EAX,R8D         // EAX  <-  Pa Pr Pg Pb
@@ -1032,13 +1071,14 @@ asm
         IMUL    R8D,ECX         // R8D  <-  Qa ** Qg **
         ADD     R9D,bias
         AND     R9D,$FF00FF00   // R9D  <-  Qr 00 Qb 00
-        SHR     R9D,8           // R9D  <-  00 Qr ** Qb
+        SHR     R9D,8           // R9D  <-  00 Qr 00 Qb
         ADD     R8D,bias
         AND     R8D,$FF00FF00   // R8D  <-  Qa 00 Qg 00
         OR      R8D,R9D         // R8D  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,R8D         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         MOV     [RDX],EAX
         RET
@@ -1229,7 +1269,7 @@ asm
         IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
         OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
@@ -1245,7 +1285,7 @@ asm
         IMUL    EBX,ECX         // EBX  <-  00 00 Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
-        SHR     EDX,8           // EDX  <-  00 Qr ** Qb
+        SHR     EDX,8           // EDX  <-  00 Qr 00 Qb
         ADD     EBX,bias
         AND     EBX,$0000FF00   // EBX  <-  00 00 Qg 00
         OR      EBX,EDX         // EBX  <-  00 Qr Qg Qb
@@ -1283,7 +1323,7 @@ asm
         IMUL    ECX,R8D         // ECX  <-  00 00 Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     ECX,bias
         AND     ECX,$0000FF00   // ECX  <-  00 00 Pg 00
         OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
@@ -1331,6 +1371,7 @@ asm
         INC     ECX             // 255:256 range bias
         SHR     EBX,24          // EBX  <-  00 00 00 Fa
         IMUL    ECX,EBX         // ECX  <-  00 00  W **
+        ADD     ECX,bias
         SHR     ECX,8           // ECX  <-  00 00 00  W
         JZ      @1              // W = 0 ?  => write nothing
 
@@ -1345,7 +1386,7 @@ asm
         IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
         OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
@@ -1395,6 +1436,7 @@ asm
         INC     R8D             // 255:256 range bias
         SHR     EAX,24          // EAX  <-  00 00 00 Fa
         IMUL    R8D,EAX         // R8D <-  00 00  W **
+        ADD     R8D,bias
         SHR     R8D,8           // R8D <-  00 00 00  W
         JZ      @1              // W = 0 ?  => write nothing
 
@@ -1407,7 +1449,7 @@ asm
         IMUL    EAX,R8D         // EAX  <-  00 00 Pg **
         ADD     ECX,bias
         AND     ECX,$FF00FF00   // ECX  <-  Pr 00 Pb 00
-        SHR     ECX,8           // ECX  <-  00 Pr ** Pb
+        SHR     ECX,8           // ECX  <-  00 Pr 00 Pb
         ADD     EAX,bias
         AND     EAX,$0000FF00   // EAX  <-  00 00 Pg 00
         OR      ECX,EAX         // ECX  <-  00 Pr Pg Pb
@@ -1480,7 +1522,7 @@ asm
         IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
@@ -1504,6 +1546,7 @@ asm
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 @2:
         MOV     [EDI],EAX
 
@@ -1560,7 +1603,7 @@ asm
         IMUL    R8D,R9D         // R8D  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     R8D,bias
         AND     R8D,$FF00FF00   // R8D  <-  Pa 00 Pg 00
         OR      EAX,R8D         // EAX  <-  Pa Pr Pg Pb
@@ -1584,6 +1627,7 @@ asm
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EAX,R8D         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 @2:
         MOV     [R11],EAX
 
@@ -1611,7 +1655,7 @@ asm
         JS      @4
 
   // test if source if fully transparent
-        TEST    EAX, $FF000000
+        TEST    EAX,$FF000000
         JZ      @4
 
         PUSH    EBX
@@ -1625,7 +1669,7 @@ asm
         SHR     ESI, 24         // ESI <- W
 
   // test if source is fully opaque
-        CMP     ESI, $FF
+        CMP     ESI,$FF
         JZ      @4
 
   // P = W * F
@@ -1637,7 +1681,7 @@ asm
         IMUL    EBX,ESI         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
-        SHR     EAX,8           // EAX  <-  00 Pr ** Pb
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
@@ -1661,6 +1705,7 @@ asm
 
   // Z = P + Q (assuming no overflow at each byte)
         ADD     EBX,EAX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         OR      EBX,$FF000000
         MOV     [EDI],EBX
@@ -1724,7 +1769,7 @@ asm
         IMUL    EAX,R9D           // EAX  <-  Pa ** Pg **
         ADD     ECX,Bias
         AND     ECX,$FF00FF00     // ECX  <-  Pr 00 Pb 00
-        SHR     ECX,8             // ECX  <-  00 Pr ** Pb
+        SHR     ECX,8             // ECX  <-  00 Pr 00 Pb
         ADD     EAX,Bias
         AND     EAX,$FF00FF00     // EAX  <-  Pa 00 Pg 00
         OR      ECX,EAX           // ECX  <-  Pa Pr Pg Pb
@@ -1747,7 +1792,8 @@ asm
         OR      EAX,EDX           // EAX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,ECX
+        ADD     EAX,ECX           // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000     // EAX  <-  FF Zr Zg Zb
 
         OR      EAX,$FF000000
         MOV     [RDI],EAX
@@ -2089,7 +2135,7 @@ asm
         JCXZ    @1              // W = 0 ?  => write nothing
         CMP     ECX,$FF         // W = 255? => write F
 {$IFDEF FPC}
-        DB      $74,$76         //Prob with FPC 2.2.2 and below
+        DB      $74,$76         // Prob with FPC 2.2.2 and below
 {$ELSE}
         JZ      @2
 {$ENDIF}
@@ -2263,6 +2309,7 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM3
         MOVD      EAX,MM2
+        OR        EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
@@ -2290,6 +2337,7 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM3
         MOVD      EAX,MM2
+        OR        EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 {$ENDIF}
 end;
 
@@ -2323,6 +2371,7 @@ asm
         PSRLW     MM2,8
         PACKUSWB  MM2,MM3
         MOVD      [EDX],MM2
+        OR        [EDX],$FF000000
 
 @1:     RET
 @2:     MOV       [EDX],EAX
@@ -2589,12 +2638,13 @@ asm
         PSUBW     MM0,MM2         // MM0  <-  00 Da 00 Dr 00 Dg 00 Db
         PUNPCKHDQ MM1,MM1         // MM1  <-  00 Fa 00 Fa 00 Fa 00 Fa
         PSLLW     MM2,8           // MM2  <-  Ba 00 Br 00 Bg 00 Bb 00
-        PMULLW    MM0,MM1         // MM2  <-  Pa ** Pr ** Pg ** Pb **
+        PMULLW    MM0,MM1         // MM0  <-  Pa ** Pr ** Pg ** Pb **
         PADDW     MM2,[EAX]       // add bias
         PADDW     MM2,MM0         // MM2  <-  Qa ** Qr ** Qg ** Qb **
         PSRLW     MM2,8           // MM2  <-  00 Qa 00 Qr 00 Qg 00 Qb
         PACKUSWB  MM2,MM3         // MM2  <-  00 00 00 00 Qa Qr Qg Qb
-        MOVD      EAX,MM2
+        MOVD      EAX,MM2         // EAX  <-  Qa Qr Qg Qb
+        OR        EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
 @2:     MOV       [EDI],EAX
 
@@ -3131,45 +3181,47 @@ asm
   // Result := Fa * (Fargb - Bargb) + Bargb
 
 {$IFDEF TARGET_x86}
-        MOVD      XMM0,EAX
-        PXOR      XMM3,XMM3
-        MOVD      XMM2,EDX
-        PUNPCKLBW XMM0,XMM3
-        MOV       ECX,bias_ptr
-        PUNPCKLBW XMM2,XMM3
-        MOVQ      XMM1,XMM0
-        PSHUFLW   XMM1,XMM1, $FF
-        PSUBW     XMM0,XMM2
-        PSLLW     XMM2,8
-        PMULLW    XMM0,XMM1
-        PADDW     XMM2,[ECX]
-        PADDW     XMM2,XMM0
-        PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM3
-        MOVD      EAX,XMM2
+        MOVD      XMM0,EAX           // XMM0  <-  00 00 00 00 00 00 00 00 00 00 00 00 Fa Fr Fg Fb
+        PXOR      XMM3,XMM3          // XMM3  <-  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        MOVD      XMM2,EDX           // XMM2  <-  00 00 00 00 00 00 00 00 00 00 00 00 Ba Br Bg Bb
+        PUNPCKLBW XMM0,XMM3          // XMM0  <-  00 00 00 00 00 00 00 00 00 Fa 00 Fr 00 Fg 00 Fb
+        MOV       ECX,bias_ptr       // ECX   <-  Pointer to Bias
+        PUNPCKLBW XMM2,XMM3          // XMM2  <-  00 00 00 00 00 00 00 00 00 Ba 00 Br 00 Bg 00 Bb
+        MOVQ      XMM1,XMM0          // XMM1  <-  00 00 00 00 00 00 00 00 00 Fa 00 Fr 00 Fg 00 Fb
+        PSHUFLW   XMM1,XMM1,$FF      // XMM1  <-  00 00 00 00 00 00 00 00 00 Fa 00 Fa 00 Fa 00 Fa
+        PSUBW     XMM0,XMM2          // XMM0  <-  00 00 00 00 00 00 00 00 00 Da 00 Dr 00 Dg 00 Db
+        PSLLW     XMM2,8             // XMM2  <-  00 00 00 00 00 00 00 00 Ba 00 Br 00 Bg 00 Bb 00
+        PMULLW    XMM0,XMM1          // XMM0  <-  00 00 00 00 00 00 00 00 Pa ** Pr ** Pg ** Pb **
+        PADDW     XMM2,[ECX]         // add bias
+        PADDW     XMM2,XMM0          // XMM2  <-  00 00 00 00 00 00 00 00 Qa ** Qr ** Qg ** Qb **
+        PSRLW     XMM2,8             // XMM2  <-  00 00 00 00 00 00 00 00 00 Qa ** Qr ** Qg ** Qb
+        PACKUSWB  XMM2,XMM3          // XMM2  <-  00 00 00 00 00 00 00 00 00 00 00 00 Qa Qr Qg Qb
+        MOVD      EAX,XMM2           // EAX   <-  Za Zr Zg Zb
+        OR        EAX,$FF000000      // EAX   <-  FF Zr Zg Zb
 {$ENDIF}
 
 {$IFDEF TARGET_x64}
-        MOVD      XMM0,ECX
-        PXOR      XMM3,XMM3
-        MOVD      XMM2,EDX
-        PUNPCKLBW XMM0,XMM3
+        MOVD      XMM0,ECX           // XMM0  <-  00 00 00 00 00 00 00 00 00 00 00 00 Fa Fr Fg Fb
+        PXOR      XMM3,XMM3          // XMM3  <-  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        MOVD      XMM2,EDX           // XMM2  <-  00 00 00 00 00 00 00 00 00 00 00 00 Ba Br Bg Bb
+        PUNPCKLBW XMM0,XMM3          // XMM0  <-  00 00 00 00 00 00 00 00 00 Fa 00 Fr 00 Fg 00 Fb
 {$IFNDEF FPC}
-        MOV       RAX,bias_ptr
+        MOV       RAX,bias_ptr       // RAX   <-  Pointer to Bias
 {$ELSE}
         MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
 {$ENDIF}
-        PUNPCKLBW XMM2,XMM3
-        MOVQ      XMM1,XMM0
-        PSHUFLW   XMM1,XMM1, $FF
-        PSUBW     XMM0,XMM2
-        PSLLW     XMM2,8
-        PMULLW    XMM0,XMM1
-        PADDW     XMM2,[RAX]
-        PADDW     XMM2,XMM0
-        PSRLW     XMM2,8
-        PACKUSWB  XMM2,XMM3
-        MOVD      EAX,XMM2
+        PUNPCKLBW XMM2,XMM3          // XMM2  <-  00 00 00 00 00 00 00 00 00 Ba 00 Br 00 Bg 00 Bb
+        MOVQ      XMM1,XMM0          // XMM1  <-  00 00 00 00 00 00 00 00 00 Fa 00 Fr 00 Fg 00 Fb
+        PSHUFLW   XMM1,XMM1,$FF      // XMM1  <-  00 00 00 00 00 00 00 00 00 Fa 00 Fa 00 ** 00 **
+        PSUBW     XMM0,XMM2          // XMM0  <-  00 00 00 00 00 00 00 00 00 Da 00 Dr 00 Dg 00 Db
+        PSLLW     XMM2,8             // XMM2  <-  00 00 00 00 00 00 00 00 Ba 00 Br 00 Bg 00 Bb 00
+        PMULLW    XMM0,XMM1          // XMM2  <-  00 00 00 00 00 00 00 00 Pa ** Pr ** Pg ** Pb **
+        PADDW     XMM2,[RAX]         // add bias
+        PADDW     XMM2,XMM0          // XMM2  <-  00 00 00 00 00 00 00 00 Qa ** Qr ** Qg ** Qb **
+        PSRLW     XMM2,8             // XMM2  <-  00 00 00 00 00 00 00 00 00 Qa ** Qr ** Qg ** Qb
+        PACKUSWB  XMM2,XMM3          // XMM2  <-  00 00 00 00 00 00 00 00 00 00 00 00 Qa Qr Qg Qb
+        MOVD      EAX,XMM2           // EAX   <-  Za Zr Zg Zb
+        OR        EAX,$FF000000      // EAX   <-  FF Zr Zg Zb
 {$ENDIF}
 end;
 
@@ -3192,7 +3244,7 @@ asm
         MOV       ECX,bias_ptr
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
-        PSHUFLW   XMM1,XMM1, $FF
+        PSHUFLW   XMM1,XMM1,$FF
         PSUBW     XMM0,XMM2
         PSLLW     XMM2,8
         PMULLW    XMM0,XMM1
@@ -3227,7 +3279,7 @@ asm
 {$ENDIF}
         PUNPCKLBW XMM2,XMM3
         MOVQ      XMM1,XMM0
-        PSHUFLW   XMM1,XMM1, $FF
+        PSHUFLW   XMM1,XMM1,$FF
         PSUBW     XMM0,XMM2
         PSLLW     XMM2,8
         PMULLW    XMM0,XMM1
@@ -3489,7 +3541,7 @@ asm
   // R8 <- M
   // Result := M * Fa * (Fargb - Bargb) + Bargb
 
-        TEST      ECX, $FF000000
+        TEST      ECX,$FF000000
         JZ        @1
 
         MOV       R9D,ECX
@@ -4701,12 +4753,14 @@ const
   FID_COLORSCREEN = 29;
   FID_COLORDODGE = 30;
   FID_COLORBURN = 31;
-  FID_LIGHTEN = 32;
+  FID_BLENDCOLORADD = 32;
+  FID_BLENDCOLORMODULATE = 33;
+  FID_LIGHTEN = 34;
 
-  FID_BLENDREGRGB = 33;
-  FID_BLENDMEMRGB = 34;
+  FID_BLENDREGRGB = 35;
+  FID_BLENDMEMRGB = 36;
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
-  FID_BLENDMEMRGB128 = 35;
+  FID_BLENDMEMRGB128 = 37;
 {$ENDIF}
 
 procedure RegisterBindings;
@@ -4748,6 +4802,9 @@ begin
   BlendRegistry.RegisterBinding(FID_COLORDODGE, @@ColorDodge);
   BlendRegistry.RegisterBinding(FID_COLORBURN, @@ColorBurn);
 
+  BlendRegistry.RegisterBinding(FID_BLENDCOLORADD, @@BlendColorAdd);
+  BlendRegistry.RegisterBinding(FID_BLENDCOLORMODULATE, @@BlendColorModulate);
+
   BlendRegistry.RegisterBinding(FID_LIGHTEN, @@LightenReg);
   BlendRegistry.RegisterBinding(FID_BLENDREGRGB, @@BlendRegRGB);
   BlendRegistry.RegisterBinding(FID_BLENDMEMRGB, @@BlendMemRGB);
@@ -4788,6 +4845,8 @@ begin
   BlendRegistry.Add(FID_COLORSCREEN, @ColorScreen_Pas);
   BlendRegistry.Add(FID_COLORDODGE, @ColorDodge_Pas);
   BlendRegistry.Add(FID_COLORBURN, @ColorBurn_Pas);
+  BlendRegistry.Add(FID_BLENDCOLORADD, @BlendColorAdd_Pas);
+  BlendRegistry.Add(FID_BLENDCOLORMODULATE, @BlendColorModulate_Pas);
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas);
   BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_Pas);
   BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_Pas);
@@ -4863,6 +4922,8 @@ begin
 end;
 
 initialization
+  BlendColorAdd := BlendColorAdd_Pas;
+
   RegisterBindings;
   MakeMergeTables;
 
