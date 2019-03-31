@@ -2,8 +2,8 @@ object FrmClipper: TFrmClipper
   Left = 280
   Top = 166
   Caption = 'Clipper'
-  ClientHeight = 508
-  ClientWidth = 834
+  ClientHeight = 470
+  ClientWidth = 710
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -18,14 +18,15 @@ object FrmClipper: TFrmClipper
   object PnlControl: TPanel
     Left = 0
     Top = 0
-    Width = 169
-    Height = 508
+    Width = 173
+    Height = 470
     Align = alLeft
     TabOrder = 0
+    ExplicitHeight = 508
     object BtnExit: TButton
-      Left = 36
+      Left = 16
       Top = 420
-      Width = 75
+      Width = 138
       Height = 25
       Cancel = True
       Caption = 'Exit'
@@ -47,16 +48,16 @@ object FrmClipper: TFrmClipper
       TabOrder = 0
     end
     object BtnClear: TButton
-      Left = 35
+      Left = 16
       Top = 384
-      Width = 75
+      Width = 138
       Height = 25
       Caption = '&Clear'
       TabOrder = 4
       OnClick = BtnClearClick
     end
     object RgpObject: TRadioGroup
-      Left = 15
+      Left = 16
       Top = 176
       Width = 138
       Height = 98
@@ -69,18 +70,18 @@ object FrmClipper: TFrmClipper
       TabOrder = 1
     end
     object BtnInflate: TButton
-      Left = 35
+      Left = 16
       Top = 296
-      Width = 75
+      Width = 138
       Height = 25
       Caption = 'In&flate'
       TabOrder = 2
       OnClick = BtnInflateClick
     end
     object BtnDeflate: TButton
-      Left = 35
+      Left = 16
       Top = 330
-      Width = 75
+      Width = 138
       Height = 25
       Caption = 'Defla&te'
       TabOrder = 3
@@ -88,23 +89,28 @@ object FrmClipper: TFrmClipper
     end
   end
   object ImgView32: TImgView32
-    Left = 169
+    Left = 173
     Top = 0
-    Width = 665
-    Height = 508
+    Width = 537
+    Height = 470
     Align = alClient
+    AutoSize = True
     Bitmap.ResamplerClassName = 'TNearestResampler'
-    BitmapAlign = baCustom
+    BitmapAlign = baCenter
     Scale = 1.000000000000000000
     ScaleMode = smScale
     ScrollBars.ShowHandleGrip = True
     ScrollBars.Style = rbsDefault
     ScrollBars.Size = 16
-    ScrollBars.Visibility = svAuto
+    ScrollBars.Visibility = svHidden
+    SizeGrip = sgAlways
     OverSize = 0
     TabOrder = 1
     OnMouseDown = ImgView32MouseDown
     OnMouseLeave = ImgView32MouseLeave
     OnMouseMove = ImgView32MouseMove
+    ExplicitLeft = 169
+    ExplicitWidth = 665
+    ExplicitHeight = 508
   end
 end
