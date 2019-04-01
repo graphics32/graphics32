@@ -23,12 +23,20 @@ type
     LabelBlurType: TLabel;
     RadioButtonGaussianBlur: TRadioButton;
     RadioButtonFastBlur: TRadioButton;
+    LabelTestImage: TLabel;
+    RadioButtonRedGreen: TRadioButton;
+    RadioButtonCircles: TRadioButton;
     procedure PaintBoxIncorrectPaintBuffer(Sender: TObject);
     procedure PaintBoxCorrectPaintBuffer(Sender: TObject);
     procedure GaugeBarGammaChange(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure GaugeBarBlurRadiusChange(Sender: TObject);
+    procedure PaintBoxResize(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure RadioButtonTestImageClick(Sender: TObject);
   private
+    FTestBitmap: TBitmap32;
+    procedure ComposeTestImage;
   end;
 
 var
@@ -51,6 +59,12 @@ uses
 procedure TFormGammaBlur.FormCreate(Sender: TObject);
 begin
   GaugeBarGammaChange(nil);
+  FTestBitmap := TBitmap32.Create;
+end;
+
+procedure TFormGammaBlur.FormDestroy(Sender: TObject);
+begin
+  FTestBitmap.Free;
 end;
 
 procedure TFormGammaBlur.GaugeBarBlurRadiusChange(Sender: TObject);
@@ -73,12 +87,32 @@ begin
   PaintBoxCorrect.Invalidate;
 end;
 
+procedure ComposeTestImageRedGreen(Bitmap: TBitmap32);
+begin
+  Bitmap.Clear(clRed32);
+  Bitmap.FillRect(0, 0, Bitmap.Width, Bitmap.Height div 2, clLime32);
+end;
+
+procedure ComposeTestImageCircles(Bitmap: TBitmap32);
+var
+  Points: TArrayOfFloatPoint;
+  Index: Integer;
+begin
+  Bitmap.Clear(clBlack32);
+  RandSeed := $DEADBABE;
+  for Index := 0 to 70 do
+  begin
+    Points := Circle(Bitmap.Width * Random, Bitmap.Height * Random,
+      0.5 * Min(Bitmap.Width, Bitmap.Height) * Random);
+    PolygonFS(Bitmap, Points, HSLtoRGB(Random, 1, 0.5));
+  end;
+end;
+
 procedure TFormGammaBlur.PaintBoxCorrectPaintBuffer(Sender: TObject);
 begin
   with PaintBoxCorrect do
   begin
-    Buffer.Clear(clRed32);
-    Buffer.FillRect(0, 0, Buffer.Width, Height div 2, clLime32);
+    Buffer.Draw(0, 0, FTestBitmap);
     if RadioButtonGaussianBlur.Checked then
       GaussianBlurGamma(Buffer, 0.1 * GaugeBarBlurRadius.Position)
     else
@@ -86,12 +120,35 @@ begin
   end;
 end;
 
+procedure TFormGammaBlur.ComposeTestImage;
+begin
+  if RadioButtonCircles.Checked then
+    ComposeTestImageCircles(FTestBitmap)
+  else
+    ComposeTestImageRedGreen(FTestBitmap);
+end;
+
+procedure TFormGammaBlur.PaintBoxResize(Sender: TObject);
+begin
+  FTestBitmap.SetSize(
+    Max(PaintBoxCorrect.Width, PaintBoxIncorrect.Width),
+    Max(PaintBoxCorrect.Height, PaintBoxIncorrect.Height)
+    );
+  ComposeTestImage;
+end;
+
+procedure TFormGammaBlur.RadioButtonTestImageClick(Sender: TObject);
+begin
+  ComposeTestImage;
+  PaintBoxCorrect.Invalidate;
+  PaintBoxIncorrect.Invalidate;
+end;
+
 procedure TFormGammaBlur.PaintBoxIncorrectPaintBuffer(Sender: TObject);
 begin
   with PaintBoxIncorrect do
   begin
-    Buffer.Clear(clRed32);
-    Buffer.FillRect(0, 0, Buffer.Width, Height div 2, clLime32);
+    Buffer.Draw(0, 0, FTestBitmap);
     if RadioButtonGaussianBlur.Checked then
       GaussianBlur(Buffer, 0.1 * GaugeBarBlurRadius.Position)
     else
