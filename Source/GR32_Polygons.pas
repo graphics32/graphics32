@@ -126,7 +126,8 @@ type
 
   { TCustomPolygonFiller }
 
-  TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32) of object;
+  TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer;
+    AlphaValues: PColor32; CombineMode: TCombineMode) of object;
 
   TCustomPolygonFiller = class
   protected
@@ -152,7 +153,8 @@ type
   TInvertPolygonFiller = class(TCustomPolygonFiller)
   protected
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32; CombineMode: TCombineMode);
   end;
 
   { TClearPolygonFiller }
@@ -161,7 +163,8 @@ type
     FColor: TColor32;
   protected
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLineClear(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineClear(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
   public
     constructor Create(Color: TColor32 = $00808080); reintroduce; virtual;
 
@@ -176,10 +179,14 @@ type
     FOffsetX: Integer;
   protected
     function GetFillLine: TFillLineEvent; override;
-    procedure FillLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-    procedure FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-    procedure FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
-    procedure FillLineCustomCombine(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure FillLineOpaque(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineBlend(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
+    procedure FillLineCustomCombine(Dst: PColor32; DstX, DstY,
+      Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
   public
     property Pattern: TCustomBitmap32 read FPattern write FPattern;
     property OffsetX: Integer read FOffsetX write FOffsetX;
@@ -195,7 +202,8 @@ type
   protected
     procedure SamplerChanged; virtual;
     function GetFillLine: TFillLineEvent; override;
-    procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+    procedure SampleLineOpaque(Dst: PColor32; DstX, DstY, Length: Integer;
+      AlphaValues: PColor32; CombineMode: TCombineMode);
   public
     constructor Create(Sampler: TCustomSampler = nil); reintroduce; virtual;
     procedure BeginRendering; override;
@@ -1159,7 +1167,8 @@ begin
   FillLongword(AlphaValues^, Bitmap.Width, $FF);
   Filler.BeginRendering;
   for Y := 0 to Bitmap.Height - 1 do
-    Filler.FillLine(PColor32(Bitmap.ScanLine[y]), 0, y, Bitmap.Width, AlphaValues);
+    Filler.FillLine(PColor32(Bitmap.ScanLine[y]), 0, y, Bitmap.Width,
+      AlphaValues, Bitmap.CombineMode);
   Filler.EndRendering;
   {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
@@ -1345,12 +1354,12 @@ end;
 { TInvertPolygonFiller }
 
 procedure TInvertPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X: Integer;
   BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
   for X := DstX to DstX + Length - 1 do
   begin
     BlendMemEx(InvertColor(Dst^), Dst^, AlphaValues^);
@@ -1375,7 +1384,7 @@ begin
 end;
 
 procedure TClearPolygonFiller.FillLineClear(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 begin
   FillLongword(Dst^, Length, FColor);
 end;
@@ -1389,7 +1398,7 @@ end;
 { TBitmapPolygonFiller }
 
 procedure TBitmapPolygonFiller.FillLineOpaque(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   PatternX, PatternY, X: Integer;
   OpaqueAlpha: TColor32;
@@ -1432,7 +1441,8 @@ begin
     end;
 end;
 
-procedure TBitmapPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY, Length: Integer; AlphaValues: PColor32);
+procedure TBitmapPolygonFiller.FillLineBlend(Dst: PColor32; DstX, DstY,
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   PatternX, PatternY, X: Integer;
   Src: PColor32;
@@ -1477,8 +1487,9 @@ begin
   end;
 end;
 
-procedure TBitmapPolygonFiller.FillLineBlendMasterAlpha(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+procedure TBitmapPolygonFiller.FillLineBlendMasterAlpha(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32;
+  CombineMode: TCombineMode);
 var
   PatternX, PatternY, X: Integer;
   Src: PColor32;
@@ -1518,8 +1529,9 @@ begin
     end;
 end;
 
-procedure TBitmapPolygonFiller.FillLineCustomCombine(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+procedure TBitmapPolygonFiller.FillLineCustomCombine(Dst: PColor32;
+  DstX, DstY, Length: Integer; AlphaValues: PColor32;
+  CombineMode: TCombineMode);
 var
   PatternX, PatternY, X: Integer;
   Src: PColor32;
@@ -1597,12 +1609,12 @@ begin
 end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
-  Length: Integer; AlphaValues: PColor32);
+  Length: Integer; AlphaValues: PColor32; CombineMode: TCombineMode);
 var
   X: Integer;
   BlendMemEx: TBlendMemEx;
 begin
-  BlendMemEx := BLEND_MEM_EX[cmBlend]^;
+  BlendMemEx := BLEND_MEM_EX[CombineMode]^;
   for X := DstX to DstX + Length - 1 do
   begin
     BlendMemEx(FGetSample(X, DstY) and $00FFFFFF or $FF000000, Dst^, AlphaValues^);
@@ -1749,7 +1761,7 @@ begin
   {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   FFiller.FillLine(@Bitmap.ScanLine[DstY][Span.X1], Span.X1, DstY, Count,
-    PColor32(AlphaValues));
+    PColor32(AlphaValues), Bitmap.CombineMode);
   EMMS;
   {$IFDEF USESTACKALLOC}
   StackFree(AlphaValues);
@@ -1809,7 +1821,8 @@ begin
   {$ENDIF}
   FFillProc(Span.Values, AlphaValues, Count, FColor);
   if Bitmap.CombineMode = cmMerge then
-    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count) else
+    MergeLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count)
+  else
     BlendLine(@AlphaValues[0], @Bitmap.ScanLine[DstY][Span.X1], Count);
   EMMS;
   {$IFDEF USESTACKALLOC}

@@ -1107,7 +1107,9 @@ begin
             for X := 3 to Width - 4 do
               ScanLine^[X] := CCheckerBoardColor[Odd(X shr 3) = OddY];
           end;
-        end;
+        end
+      else
+        Exit;
     end;
 
     GradientFiller := TLinearGradientPolygonFiller.Create;
