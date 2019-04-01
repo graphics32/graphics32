@@ -195,10 +195,10 @@ begin
     Exit;
   end;
 
+  Af := @DivTable[FA];
+  Ab := @DivTable[not FA];
   with BX do
   begin
-    Af := @DivTable[FA];
-    Ab := @DivTable[not FA];
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
@@ -224,10 +224,10 @@ begin
     Exit;
   end;
 
+  Af := @DivTable[FA];
+  Ab := @DivTable[not FA];
   with BX do
   begin
-    Af := @DivTable[FA];
-    Ab := @DivTable[not FA];
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
@@ -267,14 +267,13 @@ begin
     Exit;
   end;
 
+  Ab := @DivTable[255 - M];
   with BX do
   begin
-    Af := @DivTable[M];
-    Ab := @DivTable[255 - M];
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
-    A := Af[FX.A] + Ab[A];
+    A := $FF;
   end;
   Result := B;
 end;
@@ -300,14 +299,13 @@ begin
     Exit;
   end;
 
+  Ab := @DivTable[255 - M];
   with BX do
   begin
-    Af := @DivTable[M];
-    Ab := @DivTable[255 - M];
     R := Af[FX.R] + Ab[R];
     G := Af[FX.G] + Ab[G];
     B := Af[FX.B] + Ab[B];
-    A := Af[FX.A] + Ab[A];
+    A := $FF;
   end;
 end;
 
@@ -384,10 +382,10 @@ begin
     Exit;
   end;
 
+  Af := @DivTable[W];
+  Ab := @DivTable[255 - W];
   with Xe do
   begin
-    Af := @DivTable[W];
-    Ab := @DivTable[255 - W];
     R := Ab[Ye.R] + Af[R];
     G := Ab[Ye.G] + Af[G];
     B := Ab[Ye.B] + Af[B];
@@ -413,10 +411,10 @@ begin
     Exit;
   end;
 
+  Af := @DivTable[W];
+  Ab := @DivTable[255 - W];
   with Xe do
   begin
-    Af := @DivTable[W];
-    Ab := @DivTable[255 - W];
     R := Ab[Ye.R] + Af[R];
     G := Ab[Ye.G] + Af[G];
     B := Ab[Ye.B] + Af[B];
@@ -989,10 +987,10 @@ asm
         IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
         SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
         IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
-        ADD     EAX,bias
+        ADD     EAX,bias        // add bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
-        ADD     EBX,bias
+        ADD     EBX,bias        // add bias
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
         OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
@@ -1000,6 +998,7 @@ asm
 
   // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+
   // Q = W * B
         MOV     EBX,ESI         // EBX  <-  Ba Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
@@ -1007,10 +1006,10 @@ asm
         IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
         SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
         IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
-        ADD     ESI,bias
+        ADD     ESI,bias        // add bias
         AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
         SHR     ESI,8           // ESI  <-  00 Qr 00 Qb
-        ADD     EBX,bias
+        ADD     EBX,bias        // add bias
         AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
         OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
 
@@ -1102,47 +1101,58 @@ asm
         MOV     EDI,EDX
 
 @1:
+  // Test Fa = 0 ?
         MOV     EAX,[ESI]
         TEST    EAX,$FF000000
         JZ      @3
 
         PUSH    ECX
 
-        MOV     ECX,EAX
-        SHR     ECX,24
+  // Get weight W = Fa
+        MOV     ECX,EAX         // ECX  <-  Fa Fr Fg Fb
+        SHR     ECX,24          // ECX  <-  00 00 00 Fa
 
+  // Test Fa = 255 ?
         CMP     ECX,$FF
         JZ      @2
 
-        MOV     EBX,EAX
-        AND     EAX,$00FF00FF
-        AND     EBX,$FF00FF00
-        IMUL    EAX,ECX
-        SHR     EBX,8
-        IMUL    EBX,ECX
-        ADD     EAX,bias
-        AND     EAX,$FF00FF00
-        SHR     EAX,8
-        ADD     EBX,bias
-        AND     EBX,$FF00FF00
-        OR      EAX,EBX
+  // P = W * F
+        MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
+        AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
+        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
+        IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
+        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
+        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
+        ADD     EAX,bias        // add bias
+        AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
+        SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
+        ADD     EBX,bias        // add bias
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
+        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
         MOV     EDX,[EDI]
-        XOR     ECX,$000000FF
-        MOV     EBX,EDX
-        AND     EDX,$00FF00FF
-        AND     EBX,$FF00FF00
-        IMUL    EDX,ECX
-        SHR     EBX,8
-        IMUL    EBX,ECX
-        ADD     EDX,bias
-        AND     EDX,$FF00FF00
-        SHR     EDX,8
-        ADD     EBX,bias
-        AND     EBX,$FF00FF00
-        OR      EBX,EDX
 
-        ADD     EAX,EBX
+  // W = 1 - W
+        XOR     ECX,$000000FF   // ECX  <-  1 - ECX
+
+  // Q = W * B
+        MOV     EBX,EDX         // EBX  <-  Ba Br Bg Bb
+        AND     EDX,$00FF00FF   // ESI  <-  00 Br 00 Bb
+        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
+        IMUL    EDX,ECX         // ESI  <-  Qr ** Qb **
+        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
+        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
+        ADD     EDX,bias        // add bias
+        AND     EDX,$FF00FF00   // ESI  <-  Qr 00 Qb 00
+        SHR     EDX,8           // ESI  <-  00 Qr 00 Qb
+        ADD     EBX,bias        // add bias
+        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
+        OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
+
+  // Z = P + Q (assuming no overflow at each byte)
+        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
+
 @2:
         OR      EAX,$FF000000
         MOV     [EDI],EAX
@@ -1263,35 +1273,36 @@ asm
   // P = W * F
         MOV     EBX,EAX         // EBX  <-  ** Fr Fg Fb
         AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Fg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Fg 00
         IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
         SHR     EBX,8           // EBX  <-  00 00 00 Fg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
+        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
-        OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
+        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W
         XOR     ECX,$000000FF   // ECX  <-  1 - ECX
   // Q = W * B
         MOV     EBX,EDX         // EBX  <-  00 Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Bg 00
+        AND     EBX,$FF00FF00   // EBX  <-  00 00 Bg 00
         IMUL    EDX,ECX         // EDX  <-  Qr ** Qb **
         SHR     EBX,8           // EBX  <-  00 00 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Qg **
+        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
         SHR     EDX,8           // EDX  <-  00 Qr 00 Qb
         ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Qg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
         OR      EBX,EDX         // EBX  <-  00 Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,EBX         // EAX  <-  00 Zr Zg Zb
+        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         POP     EBX
         RET
@@ -1317,35 +1328,36 @@ asm
   // P = W * F
         MOV     ECX,EAX         // ECX  <-  ** Fr Fg Fb
         AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     ECX,$0000FF00   // ECX  <-  00 00 Fg 00
+        AND     ECX,$FF00FF00   // ECX  <-  Fa 00 Fg 00
         IMUL    EAX,R8D         // EAX  <-  Pr ** Pb **
-        SHR     ECX,8           // ECX  <-  00 00 00 Fg
-        IMUL    ECX,R8D         // ECX  <-  00 00 Pg **
+        SHR     ECX,8           // ECX  <-  00 Fa 00 Fg
+        IMUL    ECX,R8D         // ECX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     ECX,bias
-        AND     ECX,$0000FF00   // ECX  <-  00 00 Pg 00
-        OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
+        AND     ECX,$FF00FF00   // ECX  <-  Pa 00 Pg 00
+        OR      EAX,ECX         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W
         XOR     R8D,$000000FF   // R8D  <-  1 - R8D
   // Q = W * B
         MOV     ECX,EDX         // ECX  <-  00 Br Bg Bb
         AND     EDX,$00FF00FF   // EDX  <-  00 Br 00 Bb
-        AND     ECX,$0000FF00   // ECX  <-  00 00 Bg 00
+        AND     ECX,$FF00FF00   // ECX  <-  Ba 00 Bg 00
         IMUL    EDX,R8D         // EDX  <-  Qr ** Qb **
-        SHR     ECX,8           // ECX  <-  00 00 00 Bg
-        IMUL    ECX,R8D         // ECX  <-  00 00 Qg **
+        SHR     ECX,8           // ECX  <-  00 Ba 00 Bg
+        IMUL    ECX,R8D         // ECX  <-  Qa ** Qg **
         ADD     EDX,bias
         AND     EDX,$FF00FF00   // EDX  <-  Qr 00 Qb 00
         SHR     EDX,8           // EDX  <-  00 Qr ** Qb
         ADD     ECX,bias
-        AND     ECX,$0000FF00   // ECX  <-  00 00 Qg 00
-        OR      ECX,EDX         // ECX  <-  00 Qr Qg Qb
+        AND     ECX,$FF00FF00   // ECX  <-  Qa 00 Qg 00
+        OR      ECX,EDX         // ECX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,ECX         // EAX  <-  00 Zr Zg Zb
+        ADD     EAX,ECX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         RET
 
@@ -1380,16 +1392,16 @@ asm
   // P = W * F
         MOV     EBX,EAX         // EBX  <-  ** Fr Fg Fb
         AND     EAX,$00FF00FF   // EAX  <-  00 Fr 00 Fb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Fg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
         IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
-        SHR     EBX,8           // EBX  <-  00 00 00 Fg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
+        SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
+        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Pg 00
-        OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
+        AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
+        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W;
         MOV     ESI,[EDX]
@@ -1397,19 +1409,20 @@ asm
   // Q = W * B
         MOV     EBX,ESI         // EBX  <-  00 Br Bg Bb
         AND     ESI,$00FF00FF   // ESI  <-  00 Br 00 Bb
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Bg 00
+        AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
         IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
-        SHR     EBX,8           // EBX  <-  00 00 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Qg **
+        SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
+        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
         ADD     ESI,bias
         AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
         SHR     ESI,8           // ESI  <-  00 Qr ** Qb
         ADD     EBX,bias
-        AND     EBX,$0000FF00   // EBX  <-  00 00 Qg 00
-        OR      EBX,ESI         // EBX  <-  00 Qr Qg Qb
+        AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
+        OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,EBX         // EAX  <-  00 Zr Zg Zb
+        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
+        OR      EAX,$FF000000   // EAX  <-  FF Zr Zg Zb
 
         MOV     [EDX],EAX
         POP     ESI
@@ -1443,16 +1456,16 @@ asm
   // P = W * F
         MOV     EAX,ECX         // EAX  <-  ** Fr Fg Fb
         AND     ECX,$00FF00FF   // ECX  <-  00 Fr 00 Fb
-        AND     EAX,$0000FF00   // EAX  <-  00 00 Fg 00
+        AND     EAX,$FF00FF00   // EAX  <-  Fa 00 Fg 00
         IMUL    ECX,R8D         // ECX  <-  Pr ** Pb **
-        SHR     EAX,8           // EAX  <-  00 00 00 Fg
-        IMUL    EAX,R8D         // EAX  <-  00 00 Pg **
+        SHR     EAX,8           // EAX  <-  00 Fa 00 Fg
+        IMUL    EAX,R8D         // EAX  <-  Pa 00 Pg **
         ADD     ECX,bias
         AND     ECX,$FF00FF00   // ECX  <-  Pr 00 Pb 00
         SHR     ECX,8           // ECX  <-  00 Pr 00 Pb
         ADD     EAX,bias
-        AND     EAX,$0000FF00   // EAX  <-  00 00 Pg 00
-        OR      ECX,EAX         // ECX  <-  00 Pr Pg Pb
+        AND     EAX,$FF00FF00   // EAX  <-  Pa 00 Pg 00
+        OR      ECX,EAX         // ECX  <-  Pa Pr Pg Pb
 
   // W = 1 - W
         MOV     R9D,[RDX]
@@ -1460,7 +1473,7 @@ asm
   // Q = W * B
         MOV     EAX,R9D         // EAX  <-  00 Br Bg Bb
         AND     R9D,$00FF00FF   // R9D  <-  00 Br 00 Bb
-        AND     EAX,$0000FF00   // EAX  <-  00 00 Bg 00
+        AND     EAX,$FF00FF00   // EAX  <-  Ba 00 Bg 00
         IMUL    R9D,R8D         // R9D  <-  Qr ** Qb **
         SHR     EAX,8           // EAX  <-  00 00 00 Bg
         IMUL    EAX,R8D         // EAX  <-  00 00 Qg **
@@ -1468,7 +1481,7 @@ asm
         AND     R9D,$FF00FF00   // R9D  <-  Qr 00 Qb 00
         SHR     R9D,8           // R9D  <-  00 Qr ** Qb
         ADD     EAX,bias
-        AND     EAX,$0000FF00   // EAX  <-  00 00 Qg 00
+        AND     EAX,$FF00FF00   // EAX  <-  Qa 00 Qg 00
         OR      EAX,R9D         // EAX  <-  00 Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
@@ -2150,13 +2163,13 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Fa 00 Fg 00
         IMUL    EAX,ECX         // EAX  <-  Pr ** Pb **
         SHR     EBX,8           // EBX  <-  00 Fa 00 Fg
-        IMUL    EBX,ECX         // EBX  <-  00 00 Pg **
+        IMUL    EBX,ECX         // EBX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Pa 00 Pg 00
-        OR      EAX,EBX         // EAX  <-  00 Pr Pg Pb
+        OR      EAX,EBX         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W
         MOV     ESI,[EDX]
@@ -2167,16 +2180,16 @@ asm
         AND     EBX,$FF00FF00   // EBX  <-  Ba 00 Bg 00
         IMUL    ESI,ECX         // ESI  <-  Qr ** Qb **
         SHR     EBX,8           // EBX  <-  00 Ba 00 Bg
-        IMUL    EBX,ECX         // EBX  <-  Qa 00 Qg **
+        IMUL    EBX,ECX         // EBX  <-  Qa ** Qg **
         ADD     ESI,bias
         AND     ESI,$FF00FF00   // ESI  <-  Qr 00 Qb 00
         SHR     ESI,8           // ESI  <-  00 Qr ** Qb
         ADD     EBX,bias
         AND     EBX,$FF00FF00   // EBX  <-  Qa 00 Qg 00
-        OR      EBX,ESI         // EBX  <-  00 Qr Qg Qb
+        OR      EBX,ESI         // EBX  <-  Qa Qr Qg Qb
 
   // Z = P + Q (assuming no overflow at each byte)
-        ADD     EAX,EBX         // EAX  <-  00 Zr Zg Zb
+        ADD     EAX,EBX         // EAX  <-  Za Zr Zg Zb
 
         MOV     [EDX],EAX
 
@@ -2204,13 +2217,13 @@ asm
         AND     ECX,$FF00FF00   // ECX  <-  Fa 00 Fg 00
         IMUL    EAX,R8D         // EAX  <-  Pr ** Pb **
         SHR     ECX,8           // ECX  <-  00 Fa 00 Fg
-        IMUL    ECX,R8D         // ECX  <-  00 00 Pg **
+        IMUL    ECX,R8D         // ECX  <-  Pa ** Pg **
         ADD     EAX,bias
         AND     EAX,$FF00FF00   // EAX  <-  Pr 00 Pb 00
         SHR     EAX,8           // EAX  <-  00 Pr 00 Pb
         ADD     ECX,bias
         AND     ECX,$FF00FF00   // ECX  <-  Pa 00 Pg 00
-        OR      EAX,ECX         // EAX  <-  00 Pr Pg Pb
+        OR      EAX,ECX         // EAX  <-  Pa Pr Pg Pb
 
   // W = 1 - W
         MOV     R9D,[RDX]
@@ -2221,7 +2234,7 @@ asm
         AND     ECX,$FF00FF00   // ECX  <-  Ba 00 Bg 00
         IMUL    R9D,R8D         // R9D  <-  Qr ** Qb **
         SHR     ECX,8           // ECX  <-  00 Ba 00 Bg
-        IMUL    ECX,R8D         // ECX  <-  Qa 00 Qg **
+        IMUL    ECX,R8D         // ECX  <-  Qa ** Qg **
         ADD     R9D,bias
         AND     R9D,$FF00FF00   // R9D  <-  Qr 00 Qb 00
         SHR     R9D,8           // R9D  <-  00 Qr ** Qb
