@@ -226,7 +226,7 @@ begin
          8: ColorAlgebraReg := ColorDifference;
          9: ColorAlgebraReg := ColorAverage;
          10: ColorAlgebraReg := ColorExclusion;
-         11: ColorAlgebraReg := ColorScale;
+         11: ColorAlgebraReg := ColorScreen;
          12: ColorAlgebraReg := ColorScreen;
          13: ColorAlgebraReg := ColorDodge;
          14: ColorAlgebraReg := ColorBurn;
