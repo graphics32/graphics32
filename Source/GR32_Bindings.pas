@@ -79,7 +79,8 @@ type
     destructor Destroy; override;
     procedure Clear;
 
-    procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures = []; Flags: Integer = 0);
+    procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures = [];
+      Flags: Integer = 0);
 
     // function rebinding support
     procedure RegisterBinding(FunctionID: Integer; BindVariable: PPointer);
@@ -260,4 +261,4 @@ initialization
 finalization
   FreeRegisters;
 
-end.
+end.
