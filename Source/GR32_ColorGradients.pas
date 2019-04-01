@@ -37,7 +37,7 @@ interface
 
 uses
   Types, Classes, SysUtils, Math, GR32, GR32_Polygons,
-  GR32_VectorUtils, GR32_Blend;
+  GR32_VectorUtils, GR32_Bindings;
 
 type
   TColor32GradientStop = record
@@ -668,11 +668,17 @@ type
   function Color32FloatPoint(Color: TColor32; X, Y: TFloat): TColor32FloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
   function Color32GradientStop(Offset: TFloat; Color: TColor32): TColor32GradientStop; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
+const
+  FID_LINEAR3 = 0;
+  FID_LINEAR4 = 1;
+
+var
+  GradientRegistry: TFunctionRegistry;
+
 implementation
 
 uses
-  GR32_LowLevel, GR32_System, GR32_Math, GR32_Bindings,
-  GR32_Geometry;
+  GR32_LowLevel, GR32_System, GR32_Math, GR32_Geometry, GR32_Blend;
 
 resourcestring
   RCStrIndexOutOfBounds = 'Index out of bounds (%d)';
@@ -4529,28 +4535,24 @@ begin
   end;
 end;
 
-const
-  FID_LINEAR3 = 0;
-  FID_LINEAR4 = 1;
-
 procedure RegisterBindings;
 begin
-  BlendRegistry := NewRegistry('GR32_ColorGradients bindings');
-  BlendRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolationProc);
-  BlendRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc);
+  GradientRegistry := NewRegistry('GR32_ColorGradients bindings');
+  GradientRegistry.RegisterBinding(FID_LINEAR3, @@Linear3PointInterpolationProc);
+  GradientRegistry.RegisterBinding(FID_LINEAR4, @@Linear4PointInterpolationProc);
 
   // pure pascal
-  BlendRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas);
-  BlendRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_Pas);
+  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_Pas);
+  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_Pas);
 
 {$IFNDEF PUREPASCAL}
 {$IFNDEF OMIT_SSE2}
-  BlendRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_SSE2, [ciSSE2]);
+  GradientRegistry.Add(FID_LINEAR3, @Linear3PointInterpolation_SSE2, [ciSSE2]);
+  GradientRegistry.Add(FID_LINEAR4, @Linear4PointInterpolation_SSE2, [ciSSE2]);
 {$ENDIF}
 {$ENDIF}
 
-  BlendRegistry.RebindAll;
+  GradientRegistry.RebindAll;
 end;
 
 initialization
