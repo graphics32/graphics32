@@ -825,6 +825,12 @@ begin
 {$IFDEF USEFLOATMOD}
   Result := FloatMod(Value, Max);
 {$ELSE}
+  if Max = 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
   Result := Value;
   while Result >= Max do Result := Result - Max;
   while Result < 0 do Result := Result + Max;
