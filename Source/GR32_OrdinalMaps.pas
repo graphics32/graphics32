@@ -90,15 +90,25 @@ type
     function Empty: Boolean; override;
     procedure Clear(FillValue: Byte);
 
+    procedure Multiply(Value: Byte);
+    procedure Add(Value: Byte);
+    procedure Sub(Value: Byte);
+
     procedure ReadFrom(Source: TCustomBitmap32; Conversion: TConversionType);
     procedure WriteTo(Dest: TCustomBitmap32; Conversion: TConversionType); overload;
     procedure WriteTo(Dest: TCustomBitmap32; const Palette: TPalette32); overload;
 
-    procedure DrawTo(Dest: TCustomBitmap32; Color: TColor32; X, Y: Integer); overload;
-    procedure DrawTo(Dest: TCustomBitmap32; Color: TColor32; Rect: TRect); overload;
+    procedure DrawTo(Dest: TCustomBitmap32; X, Y: Integer; Color: TColor32); overload;
+    procedure DrawTo(Dest: TCustomBitmap32; Rect: TRect; Color: TColor32); overload;
 
     procedure Downsample(Factor: Byte); overload;
     procedure Downsample(Dest: TByteMap; Factor: Byte); overload;
+
+    procedure FlipHorz(Dst: TByteMap = nil);
+    procedure FlipVert(Dst: TByteMap = nil);
+    procedure Rotate90(Dst: TByteMap = nil);
+    procedure Rotate180(Dst: TByteMap = nil);
+    procedure Rotate270(Dst: TByteMap = nil);
 
     property Bits: PByteArray read FBits;
     property Scanline[Y: Integer]: PByteArray read GetScanline;
@@ -373,15 +383,34 @@ begin
 end;
 
 procedure TByteMap.Downsample(Dest: TByteMap; Factor: Byte);
-var
-  Temp: TByteMap;
-  Y: Integer;
+
+  procedure DownsampleAndMove;
+  var
+    Temp: TByteMap;
+    Y: Integer;
+  begin
+    // clone destination and downsample inplace
+    Temp := TByteMap.Create;
+    Temp.Assign(Self);
+    Temp.Downsample(Factor);
+
+    // copy downsampled result
+    Dest.SetSize(Width div Factor, Height div Factor);
+    for Y := 0 to Dest.Height - 1 do
+      Move(Temp.Scanline[Y]^, Dest.Scanline[Y]^, Dest.Width);
+  end;
+
 begin
-  // downsample inplace
+  // downsample directly
+  if (Dest = Self) or not (Factor in [2, 3, 4]) then
+  begin
+    DownsampleAndMove;
+    Exit;
+  end;
+
   case Factor of
     2:
       begin
-        // downsample directly
         Dest.SetSize(Width div 2, Height div 2);
         DownsampleByteMap2x(Self, Dest);
       end;
@@ -396,18 +425,6 @@ begin
         // downsample directly
         Dest.SetSize(Width div 4, Height div 4);
         DownsampleByteMap4x(Self, Dest);
-      end;
-    else
-      begin
-        // clone destination and downsample inplace
-        Temp := TByteMap.Create;
-        Temp.Assign(Self);
-        Temp.Downsample(Factor);
-
-        // copy downsampled result
-        Dest.SetSize(Width div Factor, Height div Factor);
-        for Y := 0 to Dest.Height - 1 do
-          Move(Temp.Bits[0], Dest.Bits[0], Dest.Width);
       end;
   end;
 end;
@@ -456,6 +473,95 @@ begin
   if (Width = 0) or (Height = 0) or (FBits = nil) then Result := True;
 end;
 
+procedure TByteMap.FlipHorz(Dst: TByteMap);
+var
+  i, j: Integer;
+  P1, P2: PByte;
+  tmp: Byte;
+  W, W2: Integer;
+begin
+  W := Width;
+  if (Dst = nil) or (Dst = Self) then
+  begin
+    { In-place flipping }
+    P1 := PByte(Bits);
+    P2 := P1;
+    Inc(P2, Width - 1);
+    W2 := Width shr 1;
+    for J := 0 to Height - 1 do
+    begin
+      for I := 0 to W2 - 1 do
+      begin
+        tmp := P1^;
+        P1^ := P2^;
+        P2^ := tmp;
+        Inc(P1);
+        Dec(P2);
+      end;
+      Inc(P1, W - W2);
+      Inc(P2, W + W2);
+    end;
+    Changed;
+  end
+  else
+  begin
+    { Flip to Dst }
+    Dst.BeginUpdate;
+    Dst.SetSize(W, Height);
+    P1 := PByte(Bits);
+    P2 := PByte(Dst.Bits);
+    Inc(P2, W - 1);
+    for J := 0 to Height - 1 do
+    begin
+      for I := 0 to W - 1 do
+      begin
+        P2^ := P1^;
+        Inc(P1);
+        Dec(P2);
+      end;
+      Inc(P2, W shl 1);
+    end;
+    Dst.EndUpdate;
+    Dst.Changed;
+  end;
+end;
+
+procedure TByteMap.FlipVert(Dst: TByteMap);
+var
+  J, J2: Integer;
+  Buffer: PByteArray;
+  P1, P2: PByte;
+begin
+  if (Dst = nil) or (Dst = Self) then
+  begin
+    { in-place }
+    J2 := Height - 1;
+    GetMem(Buffer, Width);
+    for J := 0 to Height div 2 - 1 do
+    begin
+      P1 := PByte(ScanLine[J]);
+      P2 := PByte(ScanLine[J2]);
+      Move(P1^, Buffer^, Width);
+      Move(P2^, P1^, Width);
+      Move(Buffer^, P2^, Width);
+      Dec(J2);
+    end;
+    FreeMem(Buffer);
+    Changed;
+  end
+  else
+  begin
+    Dst.SetSize(Width, Height);
+    J2 := Height - 1;
+    for J := 0 to Height - 1 do
+    begin
+      Move(ScanLine[J]^, Dst.ScanLine[J2]^, Width);
+      Dec(J2);
+    end;
+    Dst.Changed;
+  end;
+end;
+
 function TByteMap.GetScanline(Y: Integer): PByteArray;
 begin
   Result := @FBits^[Y * Width];
@@ -469,6 +575,30 @@ end;
 function TByteMap.GetValue(X, Y: Integer): Byte;
 begin
   Result := FBits^[X + Y * Width];
+end;
+
+procedure TByteMap.Multiply(Value: Byte);
+var
+  Index: Integer;
+begin
+  for Index := 0 to FWidth * FHeight - 1 do
+    FBits^[Index] := ((FBits^[Index] * Value + $80) shr 8);
+end;
+
+procedure TByteMap.Add(Value: Byte);
+var
+  Index: Integer;
+begin
+  for Index := 0 to FWidth * FHeight - 1 do
+    FBits^[Index] := Min(FBits^[Index] + Value, 255);
+end;
+
+procedure TByteMap.Sub(Value: Byte);
+var
+  Index: Integer;
+begin
+  for Index := 0 to FWidth * FHeight - 1 do
+    FBits^[Index] := Max(FBits^[Index] + Value, 0);
 end;
 
 procedure TByteMap.ReadFrom(Source: TCustomBitmap32; Conversion: TConversionType);
@@ -561,6 +691,127 @@ begin
   finally
     EndUpdate;
     Changed;
+  end;
+end;
+
+procedure TByteMap.Rotate180(Dst: TByteMap);
+var
+  Src: PByteArray;
+  S, D: PByte;
+  X, Y: Integer;
+  T: Byte;
+begin
+  if (Dst = nil) or (Dst = Self) then
+  begin
+    for Y := 0 to FHeight - 1 do
+    begin
+      Src := Scanline[Y];
+      for X := 0 to (FWidth div 2) - 1 do
+      begin
+        T := Src^[X];
+        Src^[X] := Src^[Width - 1 - X];
+        Src^[Width - 1 - X] := T;
+      end;
+    end;
+  end
+  else
+  begin
+    S := PByte(FBits);
+    D := PByte(Dst.Bits[FHeight * FWidth - 1]);
+    for X := 0 to FHeight * FWidth - 1 do
+    begin
+      D^ := S^;
+      Dec(D);
+      Inc(S);
+    end;
+  end;
+end;
+
+procedure TByteMap.Rotate270(Dst: TByteMap);
+var
+  Src: PByteArray;
+  Current: PByte;
+  X, Y, W, H: Integer;
+begin
+  if (Dst = nil) or (Dst = Self) then
+  begin
+    W := FWidth;
+    H := FHeight;
+
+     // inplace replace
+    GetMem(Src, W * H);
+
+    // copy bits
+    Move(Bits^, Src^, W * H);
+
+    SetSize(H, W);
+
+    Current := PByte(Src);
+    for Y := 0 to H - 1 do
+      for X := 0 to W - 1 do
+      begin
+        Bits^[(W - 1 - X) * H + Y] := Current^;
+        Inc(Current);
+      end;
+
+    // dispose old data pointer
+    FreeMem(Src);
+  end
+  else
+  begin
+    // exchange dimensions
+    Dst.SetSize(Height, Width);
+
+    for Y := 0 to FHeight - 1 do
+    begin
+      Src := Scanline[Y];
+      for X := 0 to FWidth - 1 do
+        Dst.Bits^[X * FHeight + FHeight - 1 - Y] := Src^[X];
+    end;
+  end;
+end;
+
+procedure TByteMap.Rotate90(Dst: TByteMap);
+var
+  Src: PByteArray;
+  Current: PByte;
+  X, Y, W, H: Integer;
+begin
+  if (Dst = nil) or (Dst = Self) then
+  begin
+    W := FWidth;
+    H := FHeight;
+
+     // inplace replace
+    GetMem(Src, W * H);
+
+    // copy bits
+    Move(Bits^, Src^, W * H);
+
+    SetSize(H, W);
+
+    Current := PByte(Src);
+    for Y := 0 to H - 1 do
+      for X := 0 to W - 1 do
+      begin
+        Bits^[X * H + (H - 1 - Y)] := Current^;
+        Inc(Current);
+      end;
+
+    // dispose old data pointer
+    FreeMem(Src);
+  end
+  else
+  begin
+    // exchange dimensions
+    Dst.SetSize(Height, Width);
+
+    for Y := 0 to FHeight - 1 do
+    begin
+      Src := Scanline[Y];
+      for X := 0 to FWidth - 1 do
+        Dst.Bits^[(FWidth - 1 - X) * FHeight + Y] := Src^[X];
+    end;
   end;
 end;
 
@@ -679,8 +930,7 @@ begin
   end;
 end;
 
-procedure TByteMap.DrawTo(Dest: TCustomBitmap32; Color: TColor32;
-  X, Y: Integer);
+procedure TByteMap.DrawTo(Dest: TCustomBitmap32; X, Y: Integer; Color: TColor32);
 var
   ClipRect: TRect;
   IX, IY: Integer;
@@ -724,7 +974,7 @@ begin
   end;
 end;
 
-procedure TByteMap.DrawTo(Dest: TCustomBitmap32; Color: TColor32; Rect: TRect);
+procedure TByteMap.DrawTo(Dest: TCustomBitmap32; Rect: TRect; Color: TColor32);
 var
   ClipRect: TRect;
   IX, IY: Integer;
@@ -743,11 +993,7 @@ begin
     if Top < 0 then
       Top := 0;
     Right := Math.Min(Rect.Left + Self.Width, Rect.Right);
-    if Right > Self.Width then
-      Right := Self.Width;
     Bottom := Math.Min(Rect.Top + Self.Height, Rect.Bottom);
-    if Bottom > Self.Height then
-      Bottom := Self.Height;
 
     // split RGB and alpha
     RGB := Color and $FFFFFF;

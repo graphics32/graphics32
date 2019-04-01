@@ -613,11 +613,13 @@ type
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); virtual;
   public
     constructor Create(Width, Height: Integer); reintroduce; overload;
+
     procedure Delete; virtual;
     function  Empty: Boolean; virtual;
     procedure Resized; virtual;
     function SetSizeFrom(Source: TPersistent): Boolean;
     function SetSize(NewWidth, NewHeight: Integer): Boolean; virtual;
+
     property Height: Integer read FHeight write SetHeight;
     property Width: Integer read FWidth write SetWidth;
     property OnResize: TNotifyEvent read FOnResize write FOnResize;
@@ -5254,7 +5256,7 @@ begin
   begin
     W := Width shl 2;
     for I := Height - 1 downto 0 do
-      Stream.WriteBuffer(PixelPtr[0, I]^, W);
+      Stream.WriteBuffer(ScanLine[I]^, W);
   end
   else
   begin
@@ -5574,8 +5576,8 @@ begin
     GetMem(Buffer, Width shl 2);
     for J := 0 to Height div 2 - 1 do
     begin
-      P1 := PixelPtr[0, J];
-      P2 := PixelPtr[0, J2];
+      P1 := PColor32(ScanLine[J]);
+      P2 := PColor32(ScanLine[J2]);
       MoveLongword(P1^, Buffer^, Width);
       MoveLongword(P2^, P1^, Width);
       MoveLongword(Buffer^, P2^, Width);
@@ -5590,7 +5592,7 @@ begin
     J2 := Height - 1;
     for J := 0 to Height - 1 do
     begin
-      MoveLongword(PixelPtr[0, J]^, Dst.PixelPtr[0, J2]^, Width);
+      MoveLongword(ScanLine[J]^, Dst.ScanLine[J2]^, Width);
       Dec(J2);
     end;
     Dst.Changed;
@@ -6165,7 +6167,7 @@ var
   Dst: PColor32;
 begin
   Sz := 1 shl N - 1;
-  Dst := B.PixelPtr[0, 0];
+  Dst := PColor32(B.ScanLine[0]);
   for J := 0 to B.Height - 1 do
   begin
     Y := J shl N;
