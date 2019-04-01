@@ -1714,7 +1714,7 @@ begin
               RenderSpan;
             ScanLine.ResetSpans;
           end;
-          ScanLine.AddCell(X, Y, GAMMA_TABLE[Alpha]);
+          ScanLine.AddCell(X, Y, GAMMA_ENCODING_TABLE[Alpha]);
         end;
         Inc(X);
       end;
@@ -1733,7 +1733,7 @@ begin
               RenderSpan;
             ScanLine.ResetSpans;
           end;
-          ScanLine.AddSpan(X, Y, CurCell^.Pnt.X - X, GAMMA_TABLE[Alpha]);
+          ScanLine.AddSpan(X, Y, CurCell^.Pnt.X - X, GAMMA_ENCODING_TABLE[Alpha]);
         end;
       end;
     end;
