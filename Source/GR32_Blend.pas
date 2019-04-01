@@ -4763,6 +4763,10 @@ const
   FID_BLENDMEMRGB128 = 37;
 {$ENDIF}
 
+const
+  BlendBindingFlagPascal = $0001;
+
+
 procedure RegisterBindings;
 begin
   BlendRegistry := NewRegistry('GR32_Blend bindings');
@@ -4813,43 +4817,43 @@ begin
 {$ENDIF}
 
   // pure pascal
-  BlendRegistry.Add(FID_EMMS, @EMMS_Pas);
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_Pas);
-  BlendRegistry.Add(FID_MERGEMEM, @MergeMem_Pas);
-  BlendRegistry.Add(FID_MERGEMEMEX, @MergeMemEx_Pas);
-  BlendRegistry.Add(FID_MERGEREGEX, @MergeRegEx_Pas);
-  BlendRegistry.Add(FID_MERGELINE, @MergeLine_Pas);
-  BlendRegistry.Add(FID_MERGELINEEX, @MergeLineEx_Pas);
-  BlendRegistry.Add(FID_MERGELINE1, @MergeLine1_Pas);
-  BlendRegistry.Add(FID_COLORDIV, @ColorDiv_Pas);
-  BlendRegistry.Add(FID_COLORAVERAGE, @ColorAverage_Pas);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_Pas);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_Pas);
-  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_Pas);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_Pas);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_Pas);
-  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_Pas);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_Pas);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_Pas);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_Pas);
-  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_Pas);
-  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_Pas);
-  BlendRegistry.Add(FID_COLORMAX, @ColorMax_Pas);
-  BlendRegistry.Add(FID_COLORMIN, @ColorMin_Pas);
-  BlendRegistry.Add(FID_COLORADD, @ColorAdd_Pas);
-  BlendRegistry.Add(FID_COLORSUB, @ColorSub_Pas);
-  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_Pas);
-  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_Pas);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_Pas);
-  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas);
-  BlendRegistry.Add(FID_COLORSCREEN, @ColorScreen_Pas);
-  BlendRegistry.Add(FID_COLORDODGE, @ColorDodge_Pas);
-  BlendRegistry.Add(FID_COLORBURN, @ColorBurn_Pas);
-  BlendRegistry.Add(FID_BLENDCOLORADD, @BlendColorAdd_Pas);
-  BlendRegistry.Add(FID_BLENDCOLORMODULATE, @BlendColorModulate_Pas);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas);
-  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_Pas);
-  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_Pas);
+  BlendRegistry.Add(FID_EMMS, @EMMS_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGEMEM, @MergeMem_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGEMEMEX, @MergeMemEx_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGEREGEX, @MergeRegEx_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGELINE, @MergeLine_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGELINEEX, @MergeLineEx_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_MERGELINE1, @MergeLine1_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORDIV, @ColorDiv_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORAVERAGE, @ColorAverage_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORMAX, @ColorMax_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORMIN, @ColorMin_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORADD, @ColorAdd_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORSUB, @ColorSub_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORSCREEN, @ColorScreen_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORDODGE, @ColorDodge_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_COLORBURN, @ColorBurn_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDCOLORADD, @BlendColorAdd_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDCOLORMODULATE, @BlendColorModulate_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_Pas, [], BlendBindingFlagPascal);
+  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_Pas, [], BlendBindingFlagPascal);
 
 {$IFNDEF PUREPASCAL}
   BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
