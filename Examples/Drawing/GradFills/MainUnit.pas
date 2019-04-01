@@ -96,7 +96,7 @@ var
 implementation
 
 uses
-  GR32_Geometry, GR32_VectorUtils, GR32_Paths, {$IFDEF FPC}
+  GR32_Geometry, GR32_VectorUtils, GR32_Gamma, GR32_Paths, {$IFDEF FPC}
   GR32_Text_LCL_Win {$ELSE} GR32_Text_VCL {$ENDIF};
 
 {$IFDEF FPC}
@@ -324,7 +324,7 @@ begin
 end;
 
 
-{TMainForm}
+{ TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
 var
@@ -370,24 +370,23 @@ begin
 
   FKnobRadius := 4;
   FKnobBitmap := TBitmap32.Create;
-  FKnobBitmap.SetSize(2 * FKnobRadius + 2,
-    2 * FKnobRadius + 2);
+  FKnobBitmap.SetSize(2 * FKnobRadius + 2, 2 * FKnobRadius + 2);
   FKnobBitmap.DrawMode := dmBlend;
+  FKnobBitmap.CombineMode := cmMerge;
   Sampler := TRadialGradientSampler.Create;
   try
     Sampler.Gradient.AddColorStop(0.0, $FFFFFFFF);
     Sampler.Gradient.AddColorStop(1.0, $FFA0A0A0);
-    Sampler.Radius := 6;
+    Sampler.Radius := FKnobRadius + FKnobRadius div 2;
     Sampler.Center := FloatPoint(FKnobRadius - 1.5, FKnobRadius - 1.5);
 
     Filler := TSamplerFiller.Create(Sampler);
     try
       Filler.Sampler := Sampler;
 
-      Outline := Circle(FKnobRadius + 1, FKnobRadius + 1,
-        FKnobRadius);
+      Outline := Circle(FKnobRadius + 1, FKnobRadius + 1, FKnobRadius);
       PolygonFS(FKnobBitmap, Outline, Filler, pfWinding);
-      PolylineFS(FKnobBitmap, Outline, clBlack32, False);
+      PolylineFS(FKnobBitmap, Outline, clBlack32, True);
     finally
       Filler.Free;
     end;
@@ -628,12 +627,9 @@ begin
 
   with ImgView32.Bitmap do
   begin
-    Draw(FLinearStart.X - FKnobRadius, FLinearStart.Y - FKnobRadius,
-      FKnobBitmap);
-    Draw(FLinearEnd.X - FKnobRadius, FLinearEnd.Y - FKnobRadius,
-      FKnobBitmap);
-    Draw(FRadialOrigin.X - FKnobRadius, FRadialOrigin.Y - FKnobRadius,
-      FKnobBitmap);
+    Draw(FLinearStart.X - FKnobRadius, FLinearStart.Y - FKnobRadius, FKnobBitmap);
+    Draw(FLinearEnd.X - FKnobRadius, FLinearEnd.Y - FKnobRadius, FKnobBitmap);
+    Draw(FRadialOrigin.X - FKnobRadius, FRadialOrigin.Y - FKnobRadius, FKnobBitmap);
     if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
     begin
       Draw(FRadialX.X - FKnobRadius, FRadialX.Y - FKnobRadius, FKnobBitmap);
@@ -752,5 +748,8 @@ begin
   FGradient.FillColorLookUpTable(FGradientLUT);
   DrawImage;
 end;
+
+initialization
+  SetGamma(1);
 
 end.
