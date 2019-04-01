@@ -129,6 +129,9 @@
         <DCCReference Include="..\..\GR32_Backends_VCL.pas"/>
         <DCCReference Include="..\..\GR32_Bindings.pas"/>
         <DCCReference Include="..\..\GR32_Blend.pas"/>
+        <DCCReference Include="..\..\GR32_BlendASM.pas"/>
+        <DCCReference Include="..\..\GR32_BlendMMX.pas"/>
+        <DCCReference Include="..\..\GR32_BlendSSE2.pas"/>
         <DCCReference Include="..\..\GR32_Brushes.pas"/>
         <DCCReference Include="..\..\GR32_ColorGradients.pas"/>
         <DCCReference Include="..\..\GR32_ColorPicker.pas"/>
@@ -158,7 +161,6 @@
         <DCCReference Include="..\..\GR32_VPR.pas"/>
         <DCCReference Include="..\..\GR32_Text_VCL.pas"/>
         <DCCReference Include="..\..\GR32_XPThemes.pas"/>
-        <DCCReference Include="..\..\GR32_BlendMMX.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
