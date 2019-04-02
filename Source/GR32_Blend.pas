@@ -144,13 +144,21 @@ function Lighten(C: TColor32; Amount: Integer): TColor32; {$IFDEF USEINLINING} i
 
 { Access to alpha composite functions corresponding to a combine mode }
 
+type
+  TBlendRegCombineModeArray = array[TCombineMode] of ^TBlendReg;
+  TBlendMemCombineModeArray = array[TCombineMode] of ^TBlendMem;
+  TBlendRegExCombineModeArray = array[TCombineMode] of ^TBlendRegEx;
+  TBlendMemExCombineModeArray = array[TCombineMode] of ^TBlendMemEx;
+  TBlendLineCombineModeArray = array[TCombineMode] of ^TBlendLine;
+  TBlendLineExCombineModeArray = array[TCombineMode] of ^TBlendLineEx;
+
 const
-  BLEND_REG: array[TCombineMode] of ^TBlendReg = ((@@BlendReg),(@@MergeReg));
-  BLEND_MEM: array[TCombineMode] of ^TBlendMem = ((@@BlendMem),(@@MergeMem));
-  BLEND_REG_EX: array[TCombineMode] of ^TBlendRegEx = ((@@BlendRegEx),(@@MergeRegEx));
-  BLEND_MEM_EX: array[TCombineMode] of ^TBlendMemEx = ((@@BlendMemEx),(@@MergeMemEx));
-  BLEND_LINE: array[TCombineMode] of ^TBlendLine = ((@@BlendLine),(@@MergeLine));
-  BLEND_LINE_EX: array[TCombineMode] of ^TBlendLineEx = ((@@BlendLineEx),(@@MergeLineEx));
+  BLEND_REG: TBlendRegCombineModeArray = ((@@BlendReg),(@@MergeReg));
+  BLEND_MEM: TBlendMemCombineModeArray = ((@@BlendMem),(@@MergeMem));
+  BLEND_REG_EX: TBlendRegExCombineModeArray = ((@@BlendRegEx),(@@MergeRegEx));
+  BLEND_MEM_EX: TBlendMemExCombineModeArray = ((@@BlendMemEx),(@@MergeMemEx));
+  BLEND_LINE: TBlendLineCombineModeArray = ((@@BlendLine),(@@MergeLine));
+  BLEND_LINE_EX: TBlendLineExCombineModeArray = ((@@BlendLineEx),(@@MergeLineEx));
 
 var
   BlendRegistry: TFunctionRegistry;
