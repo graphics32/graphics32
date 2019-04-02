@@ -82,7 +82,8 @@ procedure CheckParams(Dst, Src: TCustomBitmap32; ResizeDst: Boolean = True);
 implementation
 
 uses
-  GR32_System, GR32_Bindings, GR32_Lowlevel;
+  {$IFDEF COMPILERXE2_UP}Types, {$ENDIF} GR32_System, GR32_Bindings,
+  GR32_Lowlevel;
 
 const
   SEmptyBitmap = 'The bitmap is nil';
@@ -179,7 +180,7 @@ begin
 
   with Dst do
   begin
-    IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+    GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
     if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then Exit;
 
     DstX := Clamp(DstX, 0, Width);
@@ -189,8 +190,8 @@ begin
     DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
     DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
 
-    IntersectRect(DstRect, DstRect, BoundsRect);
-    IntersectRect(DstRect, DstRect, ClipRect);
+    GR32.IntersectRect(DstRect, DstRect, BoundsRect);
+    GR32.IntersectRect(DstRect, DstRect, ClipRect);
     if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
 
     if not MeasuringMode then
@@ -478,7 +479,7 @@ begin
   if Assigned(MaskProc) then
   with Dst do
   begin
-    IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
+    GR32.IntersectRect(SrcRect, SrcRect, Src.BoundsRect);
     if (SrcRect.Right < SrcRect.Left) or (SrcRect.Bottom < SrcRect.Top) then Exit;
 
     DstX := Clamp(DstX, 0, Width);
@@ -488,10 +489,10 @@ begin
     DstRect.Right := DstX + SrcRect.Right - SrcRect.Left;
     DstRect.Bottom := DstY + SrcRect.Bottom - SrcRect.Top;
 
-    IntersectRect(DstRect, DstRect, Dst.BoundsRect);
-    IntersectRect(DstRect, DstRect, Dst.ClipRect);
-    if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then Exit;
-
+    GR32.IntersectRect(DstRect, DstRect, Dst.BoundsRect);
+    GR32.IntersectRect(DstRect, DstRect, Dst.ClipRect);
+    if (DstRect.Right < DstRect.Left) or (DstRect.Bottom < DstRect.Top) then
+      Exit;
 
     if not MeasuringMode then
     begin
@@ -528,8 +529,8 @@ begin
   if Assigned(MaskProc) then
   with ABitmap do
   begin
-    IntersectRect(ARect, ARect, BoundsRect);
-    IntersectRect(ARect, ARect, ClipRect);
+    GR32.IntersectRect(ARect, ARect, BoundsRect);
+    GR32.IntersectRect(ARect, ARect, ClipRect);
     if (ARect.Right < ARect.Left) or (ARect.Bottom < ARect.Top) then Exit;
 
     if not MeasuringMode then
