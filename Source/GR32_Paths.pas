@@ -99,6 +99,7 @@ type
     procedure Ellipse(const Cx, Cy, Rx, Ry: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Center: TFloatPoint; Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
+    procedure PolyLine(const APoints: TArrayOfFloatPoint); virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
@@ -111,7 +112,6 @@ type
     FPointIndex: Integer;
     FOnBeginPath: TNotifyEvent;
     FOnEndPath: TNotifyEvent;
-    FOnClosePath: TNotifyEvent;
     function GetPoints: TArrayOfFloatPoint;
   protected
     procedure AddPoint(const Point: TFloatPoint); override;
@@ -131,7 +131,6 @@ type
 
     property OnBeginPath: TNotifyEvent read FOnBeginPath write FOnBeginPath;
     property OnEndPath: TNotifyEvent read FOnEndPath write FOnEndPath;
-    property OnClosePath: TNotifyEvent read FOnClosePath write FOnClosePath;
   end;
 
   { TCustomCanvas }
@@ -275,7 +274,7 @@ end;
 
 procedure TCustomPath.Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
 begin
-  Polygon(BuildArc(P, StartAngle, EndAngle, Radius));
+  PolyLine(BuildArc(P, StartAngle, EndAngle, Radius));
 end;
 
 procedure TCustomPath.AssignTo(Dest: TPersistent);
@@ -511,12 +510,19 @@ procedure TCustomPath.Polygon(const APoints: TArrayOfFloatPoint);
 var
   I: Integer;
 begin
-  ClosePath;
+  BeginPath;
   MoveTo(APoints[0]);
   for I := 1 to High(APoints) do
     LineTo(APoints[I]);
-  ClosePath;
   EndPath;
+end;
+
+procedure TCustomPath.PolyLine(const APoints: TArrayOfFloatPoint);
+var
+  I: Integer;
+begin
+  for I := 0 to High(APoints) do
+    LineTo(APoints[I]);
 end;
 
 procedure TCustomPath.MoveTo(const P: TFloatPoint);
@@ -529,28 +535,12 @@ end;
 
 procedure TFlattenedPath.BeginPath;
 begin
-  FPath := nil;
-  FPoints := nil;
-  FPointIndex := 0;
+  EndPath; //implicitly finish a prior path
   if Assigned(FOnBeginPath) then
     FOnBeginPath(Self);
 end;
 
 procedure TFlattenedPath.EndPath;
-begin
-  if Assigned(FOnEndPath) then
-    FOnEndPath(Self);
-end;
-
-procedure TFlattenedPath.Clear;
-begin
-  inherited;
-  FPath := nil;
-  FPoints := nil;
-  FPointIndex := 0;
-end;
-
-procedure TFlattenedPath.ClosePath;
 var
   N: Integer;
 begin
@@ -562,31 +552,44 @@ begin
     FPath[N] := Copy(FPoints, 0, FPointIndex);
     FPoints := nil;
     FPointIndex := 0;
+
+    if Assigned(FOnEndPath) then
+      FOnEndPath(Self);
   end;
-  if Assigned(FOnClosePath) then FOnClosePath(Self);
+end;
+
+procedure TFlattenedPath.Clear;
+begin
+  inherited;
+  FPath := nil;
+  FPoints := nil;
+  FPointIndex := 0;
+end;
+
+procedure TFlattenedPath.ClosePath;
+begin
+  if Length(FPoints) <> 0 then
+    AddPoint(FPoints[0]);
+  EndPath; //implicitly finish a prior path
 end;
 
 procedure TFlattenedPath.MoveTo(const P: TFloatPoint);
 begin
   inherited;
   if Length(FPoints) <> 0 then
-    ClosePath;
+    BeginPath; //implicitly start a new path
   AddPoint(P);
 end;
 
 procedure TFlattenedPath.Polygon(const APoints: TArrayOfFloatPoint);
-var
-  I: Integer;
 begin
   if Length(APoints) = 0 then
     Exit;
 
+  BeginPath;
+  PolyLine(APoints);
   ClosePath;
-  for I := 0 to High(APoints) do
-    AddPoint(APoints[I]);
   FCurrentPoint := APoints[High(APoints)];
-  ClosePath;
-  EndPath;
 end;
 
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
@@ -641,7 +644,6 @@ begin
   FPath := TFlattenedPath.Create;
   FPath.OnBeginPath := DoBeginPath;
   FPath.OnEndPath := DoEndPath;
-  FPath.OnClosePath := DoClosePath;
 end;
 
 destructor TCustomCanvas.Destroy;
