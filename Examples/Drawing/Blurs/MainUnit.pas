@@ -171,12 +171,14 @@ var
   Radius: Integer;
   Rec, Rec2: TRect;
   Pts, Pts2: TArrayOfFloatPoint;
+  WithGamma: Boolean;
 begin
   if FReDrawFlag then
     Exit;
   FReDrawFlag := True;
   Radius := TbrBlurRadius.Position;
   Screen.Cursor := crHourGlass;
+  WithGamma := CheckBoxCorrectGamma.Checked;
   case PageControl.ActivePageIndex of
     0:
       begin
@@ -186,17 +188,11 @@ begin
         FPerfTimer.Start;
         case RgpBlurType.ItemIndex of
           1:
-            if CheckBoxCorrectGamma.Checked then
-              GaussianBlurGamma(ImgViewPage1.Bitmap, Radius)
-            else
-              GaussianBlur(ImgViewPage1.Bitmap, Radius);
+            GaussianBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
           2:
-            if CheckBoxCorrectGamma.Checked then
-              FastBlurGamma(ImgViewPage1.Bitmap, Radius)
-            else
-              FastBlur(ImgViewPage1.Bitmap, Radius);
+            FastBlurSimple[WithGamma](ImgViewPage1.Bitmap, Radius);
           3:
-            if CheckBoxCorrectGamma.Checked then
+            if WithGamma then
               MotionBlurGamma(ImgViewPage1.Bitmap, Radius,
                TbrBlurAngle.Position, CbxBidirectional.Checked)
             else
@@ -219,29 +215,17 @@ begin
         FPerfTimer.Start;
         case RgpBlurType.ItemIndex of
           1:
-            if CheckBoxCorrectGamma.Checked then
             begin
-              GaussianBlurGamma(ImgViewPage2.Bitmap, Radius, Pts);
-              GaussianBlurGamma(ImgViewPage2.Bitmap, Radius, Pts2);
-            end
-            else
-            begin
-              GaussianBlur(ImgViewPage2.Bitmap, Radius, Pts);
-              GaussianBlur(ImgViewPage2.Bitmap, Radius, Pts2);
+              GaussianBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts);
+              GaussianBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts2);
             end;
           2:
-            if CheckBoxCorrectGamma.Checked then
             begin
-              FastBlurGamma(ImgViewPage2.Bitmap, Radius, Pts);
-              FastBlurGamma(ImgViewPage2.Bitmap, Radius, Pts2);
-            end
-            else
-            begin
-              FastBlur(ImgViewPage2.Bitmap, Radius, Pts);
-              FastBlur(ImgViewPage2.Bitmap, Radius, Pts2);
+              FastBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts);
+              FastBlurRegion[WithGamma](ImgViewPage2.Bitmap, Radius, Pts2);
             end;
           3:
-            if CheckBoxCorrectGamma.Checked then
+            if WithGamma then
             begin
               MotionBlurGamma(ImgViewPage2.Bitmap, Radius, TbrBlurAngle.Position,
                 Pts, CbxBidirectional.Checked);
@@ -290,33 +274,19 @@ begin
         FPerfTimer.Start;
         case RgpBlurType.ItemIndex of
           1:
-            if CheckBoxCorrectGamma.Checked then
             begin
-              GaussianBlurGamma(ImgViewPage3.Bitmap, Radius, Rec);
-              GaussianBlurGamma(FBmpLayer.Bitmap, Radius, Rec2);
-              GaussianBlurGamma(FBmpLayer.Bitmap, Radius, Pts);
-            end
-            else
-            begin
-              GaussianBlur(ImgViewPage3.Bitmap, Radius, Rec);
-              GaussianBlur(FBmpLayer.Bitmap, Radius, Rec2);
-              GaussianBlur(FBmpLayer.Bitmap, Radius, Pts);
+              GaussianBlurBounds[WithGamma](ImgViewPage3.Bitmap, Radius, Rec);
+              GaussianBlurBounds[WithGamma](FBmpLayer.Bitmap, Radius, Rec2);
+              GaussianBlurRegion[WithGamma](FBmpLayer.Bitmap, Radius, Pts);
             end;
           2:
-            if CheckBoxCorrectGamma.Checked then
             begin
-              FastBlurGamma(ImgViewPage3.Bitmap, Radius, Rec);
-              FastBlurGamma(FBmpLayer.Bitmap, Radius, Rec2);
-              FastBlurGamma(FBmpLayer.Bitmap, Radius, Pts);
-            end
-            else
-            begin
-              FastBlur(ImgViewPage3.Bitmap, Radius, Rec);
-              FastBlur(FBmpLayer.Bitmap, Radius, Rec2);
-              FastBlur(FBmpLayer.Bitmap, Radius, Pts);
+              FastBlurBounds[WithGamma](ImgViewPage3.Bitmap, Radius, Rec);
+              FastBlurBounds[WithGamma](FBmpLayer.Bitmap, Radius, Rec2);
+              FastBlurRegion[WithGamma](FBmpLayer.Bitmap, Radius, Pts);
             end;
           3:
-            if CheckBoxCorrectGamma.Checked then
+            if WithGamma then
             begin
               MotionBlurGamma(ImgViewPage3.Bitmap, Radius,
                 TbrBlurAngle.Position, Rec, CbxBidirectional.Checked);
@@ -420,4 +390,3 @@ begin
 end;
 
 end.
-

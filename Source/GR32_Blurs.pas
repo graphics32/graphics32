@@ -83,6 +83,14 @@ procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
 procedure MotionBlurGamma(Bitmap32: TBitmap32; Dist, AngleDeg: TFloat;
   const BlurRegion: TArrayOfFloatPoint; Bidirectional: Boolean = True); overload;
 
+const
+  GaussianBlurSimple: array [Boolean] of TBlurFunction = (GaussianBlur, GaussianBlurGamma);
+  GaussianBlurBounds: array [Boolean] of TBlurFunctionBounds = (GaussianBlur, GaussianBlurGamma);
+  GaussianBlurRegion: array [Boolean] of TBlurFunctionRegion = (GaussianBlur, GaussianBlurGamma);
+  FastBlurSimple: array [Boolean] of TBlurFunction = (FastBlur, FastBlurGamma);
+  FastBlurBounds: array [Boolean] of TBlurFunctionBounds = (FastBlur, FastBlurGamma);
+  FastBlurRegion: array [Boolean] of TBlurFunctionRegion = (FastBlur, FastBlurGamma);
+
 implementation
 
 uses
