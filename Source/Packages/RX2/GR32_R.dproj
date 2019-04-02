@@ -60,7 +60,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <SanitizedProjectName>GR32_R</SanitizedProjectName>
         <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
-        <DCC_DcuOutput>.\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_DcuOutput>..\..\..\Unit Cache\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_Description>Graphics32</DCC_Description>
         <DCC_E>false</DCC_E>
         <DCC_F>false</DCC_F>
