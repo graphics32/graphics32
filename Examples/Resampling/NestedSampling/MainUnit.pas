@@ -39,7 +39,6 @@ interface
 {$I GR32.inc}
 
 uses
-  FastMM4,
   {$IFDEF FPC} LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   TypInfo, SimplePropEdit, ComCtrls, Menus, ToolWin, ImgList, Buttons, ExtDlgs,
