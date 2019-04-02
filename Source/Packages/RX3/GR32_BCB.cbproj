@@ -86,7 +86,7 @@
         <ILINK_WinAppType>Package</ILINK_WinAppType>
         <TASM_AdditionalSwitches> /w2</TASM_AdditionalSwitches>
         <AllPackageLibs>rtl.lib;vcldb.lib;adortl.lib;vcldbx.lib;dsnap.lib;dsnapcon.lib;teeui.lib;teedb.lib;tee.lib;dsnapcon.lib;bcbsmp.lib;inetdbbde.lib;inetdbxpress.lib;dbexpress.lib;bcbie.lib;soaprtl.lib;dbxcds.lib;indycore.lib;indysystem.lib;bcboffice2k.lib</AllPackageLibs>
-        <ILINK_Description>Graphics32 Design Time Package</ILINK_Description>
+        <ILINK_Description>Graphics32 CBuilder Package</ILINK_Description>
         <ILINK_LibraryPath>..\..\Source\;$(BDS)\include\vcl;$(BDS)\lib\obj;$(BDS)\lib;$(BDS)\Source\Toolsapi;$(BDS)\lib\psdk;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <Multithreaded>true</Multithreaded>
         <DCC_AdditionalSwitches> -M -LUDesignIDE</DCC_AdditionalSwitches>

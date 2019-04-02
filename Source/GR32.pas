@@ -466,9 +466,15 @@ type
 
   PFloatRect = ^TFloatRect;
   {$NODEFINE TFloatRect}
+{$IFNDEF SupportsBoost}
   (*$HPPEMIT '#include <boost/strong_typedef.hpp>'*)
+{$ENDIF}
   (*$HPPEMIT 'namespace Gr32 {'*)
+{$IFNDEF SupportsBoost}
   (*$HPPEMIT 'BOOST_STRONG_TYPEDEF(int, TFixed)'*)
+{$ELSE}
+  (*$HPPEMIT 'typedef int TFixed;'*)
+{$ENDIF}
   (*$HPPEMIT 'struct TFloatRect { float Left, Top, Right, Bottom; }; typedef struct TFloatRect TFloatRect;'*)
   (*$HPPEMIT 'struct TFixedRect { TFixed Left, Top, Right, Bottom; }; typedef struct TFixedRect TFixedRect;'*)
   (*$HPPEMIT '} // namespace Gr32 '*)
