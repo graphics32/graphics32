@@ -25,7 +25,7 @@ object FrmBlurs: TFrmBlurs
     TabOrder = 0
     object LblBlurRadius: TLabel
       Left = 12
-      Top = 171
+      Top = 196
       Width = 90
       Height = 15
       Caption = 'Blur &Radius (10)'
@@ -33,7 +33,7 @@ object FrmBlurs: TFrmBlurs
     end
     object LblBlurAngle: TLabel
       Left = 12
-      Top = 251
+      Top = 276
       Width = 80
       Height = 15
       Caption = 'Blur &Angle (45)'
@@ -57,7 +57,7 @@ object FrmBlurs: TFrmBlurs
     end
     object TbrBlurRadius: TTrackBar
       Left = 8
-      Top = 195
+      Top = 220
       Width = 137
       Height = 31
       Max = 50
@@ -68,7 +68,7 @@ object FrmBlurs: TFrmBlurs
     end
     object TbrBlurAngle: TTrackBar
       Left = 8
-      Top = 275
+      Top = 300
       Width = 137
       Height = 31
       Enabled = False
@@ -81,7 +81,7 @@ object FrmBlurs: TFrmBlurs
     end
     object CbxBidirectional: TCheckBox
       Left = 12
-      Top = 307
+      Top = 332
       Width = 136
       Height = 17
       Caption = 'Bi&directional motion'
@@ -89,6 +89,17 @@ object FrmBlurs: TFrmBlurs
       Enabled = False
       State = cbChecked
       TabOrder = 3
+      OnClick = PageControlChange
+    end
+    object CheckBoxCorrectGamma: TCheckBox
+      Left = 16
+      Top = 150
+      Width = 105
+      Height = 17
+      Caption = '&Correct Gamma'
+      Checked = True
+      State = cbChecked
+      TabOrder = 4
       OnClick = PageControlChange
     end
   end
@@ -132,6 +143,10 @@ object FrmBlurs: TFrmBlurs
     object TabSheet2: TTabSheet
       Caption = 'Page &2'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object ImgViewPage2: TImgView32
         Left = 0
         Top = 0
@@ -153,6 +168,10 @@ object FrmBlurs: TFrmBlurs
     object TabSheet3: TTabSheet
       Caption = 'Page &3'
       ImageIndex = 2
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object ImgViewPage3: TImgView32
         Left = 0
         Top = 0
@@ -213,8 +232,7 @@ object FrmBlurs: TFrmBlurs
   end
   object OpenDialog: TOpenDialog
     DefaultExt = 'jpg'
-    Filter = 
-      'Image Files (*.jpg;*.bmp)|*.jpg;*.bmp;'
+    Filter = 'Image Files (*.jpg;*.bmp)|*.jpg;*.bmp;'
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
     Left = 120
     Top = 288

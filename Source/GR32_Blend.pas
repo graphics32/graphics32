@@ -891,8 +891,6 @@ end;
 procedure MakeMergeTables;
 var
   I, J: Integer;
-const
-  OneByteth : Double = 1 / 255;
 begin
   for J := 0 to 255 do
   begin
@@ -902,7 +900,7 @@ begin
   for J := 0 to 255 do
     for I := 1 to 255 do
     begin
-      DivTable[I, J] := Round(I * J * OneByteth);
+      DivTable[I, J] := Round(I * J * COne255th);
       RcTable[I, J] := Round(J * 255 / I)
     end;
 end;
