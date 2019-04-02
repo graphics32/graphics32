@@ -75,6 +75,10 @@ object FormMain: TFormMain
     TabOrder = 0
     object TabColorPickerGTK: TTabSheet
       Caption = 'GTK like'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object ColorPickerGTK: TColorPickerGTK
         Left = 3
         Top = 3
@@ -93,6 +97,10 @@ object FormMain: TFormMain
     object TabColorPickerHSV: TTabSheet
       Caption = 'HSV'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object ColorPickerHSV: TColorPickerHSV
         Left = 0
         Top = 0
@@ -111,6 +119,10 @@ object FormMain: TFormMain
     object TabColorPickerRGBA: TTabSheet
       Caption = 'RGBA'
       ImageIndex = 2
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object ColorPickerRGBA: TColorPickerRGBA
         Left = 0
         Top = 0

@@ -145,12 +145,19 @@ function Lighten(C: TColor32; Amount: Integer): TColor32; {$IFDEF USEINLINING} i
 { Access to alpha composite functions corresponding to a combine mode }
 
 type
-  TBlendRegCombineModeArray = array[TCombineMode] of ^TBlendReg;
-  TBlendMemCombineModeArray = array[TCombineMode] of ^TBlendMem;
-  TBlendRegExCombineModeArray = array[TCombineMode] of ^TBlendRegEx;
-  TBlendMemExCombineModeArray = array[TCombineMode] of ^TBlendMemEx;
-  TBlendLineCombineModeArray = array[TCombineMode] of ^TBlendLine;
-  TBlendLineExCombineModeArray = array[TCombineMode] of ^TBlendLineEx;
+  PBlendReg = ^TBlendReg;
+  PBlendMem = ^TBlendMem;
+  PBlendRegEx = ^TBlendRegEx;
+  PBlendMemEx = ^TBlendMemEx;
+  PBlendLine = ^TBlendLine;
+  PBlendLineEx = ^TBlendLineEx;
+
+  TBlendRegCombineModeArray = array[TCombineMode] of PBlendReg;
+  TBlendMemCombineModeArray = array[TCombineMode] of PBlendMem;
+  TBlendRegExCombineModeArray = array[TCombineMode] of PBlendRegEx;
+  TBlendMemExCombineModeArray = array[TCombineMode] of PBlendMemEx;
+  TBlendLineCombineModeArray = array[TCombineMode] of PBlendLine;
+  TBlendLineExCombineModeArray = array[TCombineMode] of PBlendLineEx;
 
 const
   BLEND_REG: TBlendRegCombineModeArray = ((@@BlendReg),(@@MergeReg));

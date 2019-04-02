@@ -1845,11 +1845,9 @@ var
   var
     R: TFloat;
   begin
-    R := X1 * Y2 - X2 * Y1; //cross product
-    if R * Delta <= 0 then      //ie angle is concave
-    begin
-      AddMitered(X1, Y1, X2, Y2);
-    end
+    R := X1 * Y2 - X2 * Y1; // cross product
+    if R * Delta <= 0 then  // ie angle is concave
+      AddMitered(X1, Y1, X2, Y2)
     else
     begin
       AddPoint(Delta * X1, Delta * Y1);
@@ -1865,9 +1863,12 @@ var
     I: Integer;
     C: TFloatPoint;
   begin
-    R := X1 * Y2 - X2 * Y1;
-    if R * Delta <= 0 then
-      AddMitered(X1, Y1, X2, Y2)
+    R := X1 * Y2 - X2 * Y1; // cross product
+    if R * Delta <= 0 then  // ie angle is concave
+    begin
+      AddPoint(Delta * X1, Delta * Y1);
+      AddPoint(Delta * X2, Delta * Y2);
+    end
     else
     begin
       if R < 0 then
