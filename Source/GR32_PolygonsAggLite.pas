@@ -1633,7 +1633,7 @@ var
           Continue;
       end;
 
-      Filler.FillLine(@Row^[CurX], CurX, ScanLine.Y, NumPix, Covers)
+      Filler.FillLine(@Row^[CurX], CurX, ScanLine.Y, NumPix, Covers, Bitmap.CombineMode);
     until NumSpans = 0
     else
     repeat
