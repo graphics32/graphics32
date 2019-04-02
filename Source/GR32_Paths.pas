@@ -568,7 +568,7 @@ end;
 
 procedure TFlattenedPath.ClosePath;
 begin
-  if Length(FPoints) <> 0 then
+  if Length(FPoints) > 1 then
     AddPoint(FPoints[0]);
   EndPath; //implicitly finish a prior path
 end;
@@ -577,7 +577,7 @@ procedure TFlattenedPath.MoveTo(const P: TFloatPoint);
 begin
   inherited;
   if Length(FPoints) <> 0 then
-    BeginPath; //implicitly start a new path
+    EndPath; //not BeginPath as could call OnBeginPath event (again)
   AddPoint(P);
 end;
 
