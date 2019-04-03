@@ -39,7 +39,8 @@ interface
 {$BOOLEVAL OFF}
 
 uses
-  Math, GR32, GR32_Transforms, GR32_Polygons{$IFDEF FPC}, Types{$ENDIF};
+  Math, {$IFDEF FPC}Types, {$ENDIF} {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
+  GR32, GR32_Transforms, GR32_Polygons;
 
 const
   DEFAULT_MITER_LIMIT = 4.0;
