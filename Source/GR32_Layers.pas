@@ -328,7 +328,7 @@ type
     FHandleFrame: TColor32;
     FHandleFill: TColor32;
     FHandles: TRBHandles;
-    FHandleSize: Integer;
+    FHandleSize: TFloat;
     FMinWidth: TFloat;
     FMaxHeight: TFloat;
     FMinHeight: TFloat;
@@ -345,7 +345,7 @@ type
     procedure SetHandleFill(Value: TColor32);
     procedure SetHandleFrame(Value: TColor32);
     procedure SetHandles(Value: TRBHandles);
-    procedure SetHandleSize(Value: Integer);
+    procedure SetHandleSize(Value: TFloat);
     procedure SetOptions(const Value: TRBOptions);
     procedure SetQuantized(const Value: Integer);
   protected
@@ -367,6 +367,7 @@ type
     procedure SetDragState(const Value: TRBDragState); overload;
     procedure SetDragState(const Value: TRBDragState; const X, Y: Integer); overload;
     procedure UpdateChildLayer;
+    procedure DrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
     destructor Destroy; override;
@@ -377,7 +378,7 @@ type
     property ChildLayer: TPositionedLayer read FChildLayer write SetChildLayer;
     property Options: TRBOptions read FOptions write SetOptions;
     property Handles: TRBHandles read FHandles write SetHandles;
-    property HandleSize: Integer read FHandleSize write SetHandleSize;
+    property HandleSize: TFloat read FHandleSize write SetHandleSize;
     property HandleFill: TColor32 read FHandleFill write SetHandleFill;
     property HandleFrame: TColor32 read FHandleFrame write SetHandleFrame;
     property FrameStippleStep: TFloat read FFrameStippleStep write SetFrameStippleStep;
@@ -1348,9 +1349,11 @@ var
   dh_center, dh_sides, dh_corners: Boolean;
   dl, dt, dr, db, dx, dy: Boolean;
   Sz: Integer;
+const
+  DragZone = 1;
 begin
   Result := dsNone;
-  Sz := FHandleSize + 1;
+  Sz := Ceil(FHandleSize + DragZone);
   dh_center := rhCenter in FHandles;
   dh_sides := rhSides in FHandles;
   dh_corners := rhCorners in FHandles;
@@ -1580,17 +1583,29 @@ begin
     FChildLayer := nil;
 end;
 
-procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
+procedure TRubberbandLayer.DrawHandle(Buffer: TBitmap32; X, Y: TFloat);
 var
-  Cx, Cy: Integer;
+  HandleRect: TRect;
+begin
+  // Coordinate specifies exact center of handle. I.e. center of
+  // pixel if handle is odd number of pixels wide.
+
+  HandleRect.Left := Floor(X - FHandleSize);
+  HandleRect.Right := HandleRect.Left + Ceil(FHandleSize*2);
+  HandleRect.Top := Floor(Y - FHandleSize);
+  HandleRect.Bottom := HandleRect.Top + Ceil(FHandleSize*2);
+
+  Buffer.FrameRectTS(HandleRect, FHandleFrame);
+
+  GR32.InflateRect(HandleRect, -1, -1);
+  Buffer.FillRectTS(HandleRect, FHandleFill);
+end;
+
+procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
+
+var
+  CenterX, CenterY: TFloat;
   R: TRect;
-
-  procedure DrawHandle(X, Y: Integer);
-  begin
-    Buffer.FillRectTS(X - FHandleSize, Y - FHandleSize, X + FHandleSize, Y + FHandleSize, FHandleFill);
-    Buffer.FrameRectTS(X - FHandleSize, Y - FHandleSize, X + FHandleSize, Y + FHandleSize, FHandleFrame);
-  end;
-
 begin
   R := MakeRect(GetAdjustedRect(FLocation));
   with R do
@@ -1605,19 +1620,19 @@ begin
     end;
     if rhCorners in FHandles then
     begin
-      if not(rhNotTLCorner in FHandles) then DrawHandle(Left, Top);
-      if not(rhNotTRCorner in FHandles) then DrawHandle(Right, Top);
-      if not(rhNotBLCorner in FHandles) then DrawHandle(Left, Bottom);
-      if not(rhNotBRCorner in FHandles) then DrawHandle(Right, Bottom);
+      if not(rhNotTLCorner in FHandles) then DrawHandle(Buffer, Left+0.5, Top+0.5);
+      if not(rhNotTRCorner in FHandles) then DrawHandle(Buffer, Right-0.5, Top+0.5);
+      if not(rhNotBLCorner in FHandles) then DrawHandle(Buffer, Left+0.5, Bottom-0.5);
+      if not(rhNotBRCorner in FHandles) then DrawHandle(Buffer, Right-0.5, Bottom-0.5);
     end;
     if rhSides in FHandles then
     begin
-      Cx := (Left + Right) div 2;
-      Cy := (Top + Bottom) div 2;
-      if not(rhNotTopSide in FHandles) then DrawHandle(Cx, Top);
-      if not(rhNotLeftSide in FHandles) then DrawHandle(Left, Cy);
-      if not(rhNotRightSide in FHandles) then DrawHandle(Right, Cy);
-      if not(rhNotBottomSide in FHandles) then DrawHandle(Cx, Bottom);
+      CenterX := (Left + Right) / 2;
+      CenterY := (Top + Bottom) / 2;
+      if not(rhNotTopSide in FHandles) then DrawHandle(Buffer, CenterX, Top+0.5);
+      if not(rhNotLeftSide in FHandles) then DrawHandle(Buffer, Left+0.5, CenterY);
+      if not(rhNotRightSide in FHandles) then DrawHandle(Buffer, Right-0.5, CenterY);
+      if not(rhNotBottomSide in FHandles) then DrawHandle(Buffer, CenterX, Bottom-0.5);
     end;
   end;
 end;
@@ -1698,9 +1713,10 @@ begin
   end;
 end;
 
-procedure TRubberbandLayer.SetHandleSize(Value: Integer);
+procedure TRubberbandLayer.SetHandleSize(Value: TFloat);
 begin
-  if Value < 1 then Value := 1;
+  if Value < 1 then
+    Value := 1;
   if Value <> FHandleSize then
   begin
     FHandleSize := Value;
