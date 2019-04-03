@@ -3,16 +3,17 @@
 #include <vcl.h>
 #pragma hdrstop
 USERES("GradLines.res");
-USEFORMNS("MainUnit.pas", Mainunit, Form1);
+USEFORMNS("MainUnit.pas", Mainunit, FormGradientLines);
 //---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {
-        try
-        {
-                 Application->Initialize();
-                 Application->CreateForm(__classid(TForm1), &Form1);
-                 Application->Run();
-        }
+	try
+	{
+		Application->Initialize();
+		Application->MainFormOnTaskBar = true;
+		Application->CreateForm(__classid(TFormGradientLines), &FormGradientLines);
+		Application->Run();
+	}
 	catch (Exception &exception)
 	{
 		Application->ShowException(&exception);
