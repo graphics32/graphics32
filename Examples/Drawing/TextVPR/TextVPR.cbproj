@@ -75,8 +75,8 @@
         <Icon_MainIcon>$(BDS)\bin\cbuilder_PROJECTICON.ico</Icon_MainIcon>
         <UWP_CppLogo44>$(BDS)\bin\Artwork\Windows\UWP\cppreg_UwpDefault_44.png</UWP_CppLogo44>
         <UWP_CppLogo150>$(BDS)\bin\Artwork\Windows\UWP\cppreg_UwpDefault_150.png</UWP_CppLogo150>
-        <IncludePath>..\..\..\..\RadStudioComponents\Graphics32\Examples\General\TextVPR\;$(IncludePath)</IncludePath>
-        <ILINK_LibraryPath>..\..\..\..\RadStudioComponents\Graphics32\Examples\General\TextVPR\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
+        <IncludePath>$(IncludePath)</IncludePath>
+        <ILINK_LibraryPath>$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <SanitizedProjectName>TextVPR</SanitizedProjectName>
         <DCC_UnitSearchPath>..\..\..\Unit Cache;..\..\..\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Locale>1033</VerInfo_Locale>
