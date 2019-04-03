@@ -37,8 +37,9 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
-  SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
+  {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF} SysUtils, Classes, 
+  Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls, 
+  {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
   GR32, GR32_Blend, GR32_Image, GR32_LowLevel;
 
 type
