@@ -95,8 +95,8 @@ type
     function GetHandle: HDC;
 
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
-    procedure DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer); overload;
-    procedure DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
 
     property Handle: HDC read GetHandle;
 
@@ -162,7 +162,7 @@ type
   private
     procedure DoPaintRect(ABuffer: TBitmap32; ARect: TRect; ACanvas: TCanvas);
 
-    function GetHandle: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; // Dummy
+    function GetHandle: HDC; // Dummy
   protected
     FBitmapInfo: TBitmapInfo;
 
@@ -177,9 +177,9 @@ type
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 
     { IDeviceContextSupport }
-    procedure Draw(const DstRect, SrcRect: TRect; hSrc: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}); overload;
-    procedure DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer); overload;
-    procedure DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect); overload;
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
   end;
 
 implementation
@@ -307,7 +307,7 @@ end;
 
 function TGDIBackend.TextExtent(const Text: string): TSize;
 var
-  DC: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+  DC: HDC;
   OldFont: HGDIOBJ;
 begin
   UpdateFont;
@@ -331,7 +331,7 @@ end;
 
 function TGDIBackend.TextExtentW(const Text: Widestring): TSize;
 var
-  DC: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+  DC: HDC;
   OldFont: HGDIOBJ;
 begin
   UpdateFont;
@@ -468,14 +468,14 @@ begin
   FOwner.Changed(DstRect);
 end;
 
-procedure TGDIBackend.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
+procedure TGDIBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 begin
   StretchDIBits(
     hDst, DstX, DstY, FOwner.Width, FOwner.Height,
     0, 0, FOwner.Width, FOwner.Height, Bits, FBitmapInfo, DIB_RGB_COLORS, SRCCOPY);
 end;
 
-procedure TGDIBackend.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect);
+procedure TGDIBackend.DrawTo(hDst: HDC; const DstRect, SrcRect: TRect);
 begin
   StretchBlt(
     hDst,
@@ -514,7 +514,7 @@ begin
   Result := FFont;
 end;
 
-function TGDIBackend.GetHandle: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+function TGDIBackend.GetHandle: HDC;
 begin
   Result := FHDC;
 end;
@@ -540,7 +540,7 @@ begin
   FOnFontChange := Handler;
 end;
 
-procedure TGDIBackend.Draw(const DstRect, SrcRect: TRect; hSrc: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF});
+procedure TGDIBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
   if FOwner.Empty then Exit;
 
@@ -670,7 +670,7 @@ procedure TGDIMemoryBackend.DoPaintRect(ABuffer: TBitmap32;
   ARect: TRect; ACanvas: TCanvas);
 var
   Bitmap        : HBITMAP;
-  DeviceContext : {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+  DeviceContext : HDC;
   Buffer        : Pointer;
   OldObject     : HGDIOBJ;
 begin
@@ -706,7 +706,7 @@ begin
   end;
 end;
 
-procedure TGDIMemoryBackend.Draw(const DstRect, SrcRect: TRect; hSrc: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF});
+procedure TGDIMemoryBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
   if FOwner.Empty then Exit;
 
@@ -716,10 +716,10 @@ begin
   FOwner.Changed(DstRect);
 end;
 
-procedure TGDIMemoryBackend.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
+procedure TGDIMemoryBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
 var
   Bitmap        : HBITMAP;
-  DeviceContext : {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+  DeviceContext : HDC;
   Buffer        : Pointer;
   OldObject     : HGDIOBJ;
 begin
@@ -754,11 +754,11 @@ begin
   end;
 end;
 
-procedure TGDIMemoryBackend.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; 
+procedure TGDIMemoryBackend.DrawTo(hDst: HDC; 
   const DstRect, SrcRect: TRect);
 var
   Bitmap        : HBITMAP;
-  DeviceContext : {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+  DeviceContext : HDC;
   Buffer        : Pointer;
   OldObject     : HGDIOBJ;
 begin
@@ -795,7 +795,7 @@ begin
   end;
 end;
 
-function TGDIMemoryBackend.GetHandle: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF};
+function TGDIMemoryBackend.GetHandle: HDC;
 begin
   Result := 0;
 end;

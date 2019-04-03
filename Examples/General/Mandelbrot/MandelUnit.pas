@@ -39,8 +39,8 @@ interface
 
 uses
   {$IFDEF FPC}LCLIntf, {$ENDIF} SysUtils, Classes, Graphics, Controls, Forms,
-  ExtCtrls, Menus, ExtDlgs, Dialogs, GR32, GR32_Image, GR32_ExtImage,
-  GR32_Resamplers, GR32_Rasterizers;
+  ExtCtrls, Menus, ExtDlgs, Dialogs, {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
+  GR32, GR32_Image, GR32_ExtImage, GR32_Resamplers, GR32_Rasterizers;
 
 type
   TRasterizerKind = (rkRegular, rkProgressive, rkSwizzling, rkTesseral,
@@ -426,8 +426,10 @@ procedure TMainForm.ImgMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   case Button of
-    mbLeft: Zoom(Point(X, Y), 0.5);
-    mbRight: Zoom(Point(X, Y), 2);
+    mbLeft: 
+      Zoom(GR32.Point(X, Y), 0.5);
+    mbRight: 
+      Zoom(GR32.Point(X, Y), 2);
   else
     // reset
     MandelSampler.Bounds := FloatRect(-2, -2, 2, 2);
