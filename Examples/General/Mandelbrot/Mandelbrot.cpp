@@ -2,8 +2,7 @@
 
 #include <vcl.h>
 #pragma hdrstop
-#include <tchar.h>
-#include "MandelUnit.hpp"
+USEFORMNS("MainUnit.pas", Mandelunit, MainForm);
 //---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {
