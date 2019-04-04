@@ -41,37 +41,37 @@ interface
 uses
   GR32;
 
-function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMem_SSE2(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMem_SSE2(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMems_SSE2(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
 
-function BlendRegEx_SSE2(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendRegEx_SSE2(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMemEx_SSE2(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 
-function BlendRegRGB_SSE2(F, B, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendRegRGB_SSE2(F, B, W: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMemRGB_SSE2(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 
-procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure BlendLine_SSE2(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 
-function CombineReg_SSE2(X, Y, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineMem_SSE2(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function CombineReg_SSE2(X, Y, W: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure CombineMem_SSE2(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
+procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 
-function MergeReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function MergeReg_SSE2(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 
-procedure EMMS_SSE2; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure EMMS_SSE2; {$IFDEF FPC} assembler; {$ENDIF}
 
-function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function LightenReg_SSE2(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 
-function ColorAdd_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorSub_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorModulate_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorMax_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorMin_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorDifference_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorExclusion_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorScale_SSE2(C, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function ColorAdd_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorSub_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorModulate_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorMax_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorMin_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorDifference_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorExclusion_SSE2(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+function ColorScale_SSE2(C, W: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
 
 implementation
 

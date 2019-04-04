@@ -41,24 +41,24 @@ interface
 uses
   GR32;
 
-function BlendReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMem_ASM(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMems_ASM(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMem_ASM(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMems_ASM(F: TColor32; B: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
 
-function BlendRegEx_ASM(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMemEx_ASM(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendRegEx_ASM(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendMemEx_ASM(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 
-procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendLine1_ASM(Src: TColor32; Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
+procedure BlendLine1_ASM(Src: TColor32; Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; {$ENDIF}
 
-function CombineReg_ASM(X, Y, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function CombineReg_ASM(X, Y, W: TColor32): TColor32; {$IFDEF FPC} assembler; {$ENDIF}
+procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32); {$IFDEF FPC} assembler; {$ENDIF}
 
 {$IFDEF TARGET_x86}
 function MergeReg_ASM(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 {$ENDIF}
 
-procedure EMMS_ASM; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure EMMS_ASM; {$IFDEF FPC} assembler; {$ENDIF}
 
 implementation
 

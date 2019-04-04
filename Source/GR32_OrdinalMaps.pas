@@ -53,6 +53,10 @@ type
   TConversionType = (ctRed, ctGreen, ctBlue, ctAlpha, ctUniformRGB,
     ctWeightedRGB);
 
+{$IFDEF FPC}
+  PInteger = ^Integer;
+{$ENDIF}
+
   TBooleanMap = class(TCustomMap)
   private
     function GetValue(X, Y: Integer): Boolean;
@@ -195,7 +199,7 @@ type
 
   TFloatMap = class(TCustomMap)
   private
-    function GetValPtr(X, Y: Integer): PFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
+    function GetValPtr(X, Y: Integer): GR32.PFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetValue(X, Y: Integer): TFloat; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     procedure SetValue(X, Y: Integer; const Value: TFloat); {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
     function GetScanline(Y: Integer): PFloatArray;
@@ -717,7 +721,7 @@ begin
   else
   begin
     S := PByte(FBits);
-    D := PByte(Dst.Bits[FHeight * FWidth - 1]);
+    D := PByte(@Dst.Bits[FHeight * FWidth - 1]);
     for X := 0 to FHeight * FWidth - 1 do
     begin
       D^ := S^;
@@ -1300,7 +1304,7 @@ begin
   Result := @FBits^[Y * Width];
 end;
 
-function TFloatMap.GetValPtr(X, Y: Integer): PFloat;
+function TFloatMap.GetValPtr(X, Y: Integer): GR32.PFloat;
 begin
   Result := @FBits^[X + Y * Width];
 end;

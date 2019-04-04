@@ -73,7 +73,6 @@ type
     FOnChange: TNotifyEvent;
     FOnUserChange: TNotifyEvent;
     procedure SetButtonSize(Value: Integer);
-    procedure SetBorderStyle(Value: TBorderStyle); {$IFDEF FPC} override; {$ENDIF}
     procedure SetHandleColor(Value: TColor);
     procedure SetHighLightColor(Value: TColor);
     procedure SetShadowColor(Value: TColor);
@@ -123,6 +122,7 @@ type
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure Paint; override;
+    procedure SetBorderStyle(Value: TBorderStyle); {$IFDEF FPC} override; {$ENDIF}
     procedure StartDragTracking;
     procedure StartHotTracking;
     procedure StopDragTracking;

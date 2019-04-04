@@ -56,7 +56,7 @@ type
     FBufferValid: Boolean;
     FBorder: Boolean;
     procedure SetBorder(const Value: Boolean);
-    procedure SetColor(const Value: TColor32);
+    procedure SetColor(const Value: TColor32); reintroduce;
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TLMessage); message LM_GETDLGCODE;
