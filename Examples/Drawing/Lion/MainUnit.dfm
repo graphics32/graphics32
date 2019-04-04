@@ -114,12 +114,13 @@ object FrmLion: TFrmLion
       Height = 16
       BevelOuter = bvNone
       Caption = 'Interaction'
-      Color = clBtnShadow
+      Color = clBtnText
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindow
       Font.Height = -11
       Font.Name = 'Tahoma'
       Font.Style = []
+      ParentBackground = False
       ParentFont = False
       TabOrder = 4
     end

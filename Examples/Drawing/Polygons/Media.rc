@@ -1,3 +1,3 @@
 MainIcon ICON "../../Media/GR32.ico"
-Delphi JPG "../../Media/delphi.jpg"
-TextureB JPG "../../Media/texture_b.jpg"
+Delphi RCDATA "../../Media/delphi.jpg"
+TextureB RCDATA "../../Media/texture_b.jpg"

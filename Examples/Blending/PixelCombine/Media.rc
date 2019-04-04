@@ -1,2 +1,2 @@
 MainIcon ICON "../../Media/GR32.ico"
-Runner JPG "../../Media/runner.jpg"
+Runner RCDATA "../../Media/runner.jpg"

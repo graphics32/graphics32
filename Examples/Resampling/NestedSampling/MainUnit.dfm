@@ -60,38 +60,38 @@ object MainForm: TMainForm
         Style = tbsDropDown
       end
       object tbSplitter2: TToolButton
-        Left = 36
+        Left = 38
         Top = 0
         Width = 8
         ImageIndex = 1
         Style = tbsSeparator
       end
       object tbCut: TToolButton
-        Left = 44
+        Left = 46
         Top = 0
         ImageIndex = 1
         OnClick = Cut1Click
       end
       object tbCopy: TToolButton
-        Left = 67
+        Left = 69
         Top = 0
         ImageIndex = 2
         OnClick = Copy2Click
       end
       object tbPaste: TToolButton
-        Left = 90
+        Left = 92
         Top = 0
         ImageIndex = 3
         OnClick = Paste1Click
       end
       object tbDelete: TToolButton
-        Left = 113
+        Left = 115
         Top = 0
         ImageIndex = 4
         OnClick = tbDeleteClick
       end
       object tbSplitter1: TToolButton
-        Left = 136
+        Left = 138
         Top = 0
         Width = 8
         ImageIndex = 5
@@ -99,14 +99,14 @@ object MainForm: TMainForm
       end
       object tbUp: TToolButton
         Tag = -1
-        Left = 144
+        Left = 146
         Top = 0
         ImageIndex = 5
         OnClick = tbUpDownClick
       end
       object tbDown: TToolButton
         Tag = 1
-        Left = 167
+        Left = 169
         Top = 0
         ImageIndex = 6
         OnClick = tbUpDownClick
@@ -259,7 +259,7 @@ object MainForm: TMainForm
     Left = 216
     Top = 16
     Bitmap = {
-      494C010107000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010107000900080010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -558,7 +558,7 @@ object MainForm: TMainForm
     Left = 280
     Top = 16
     Bitmap = {
-      494C010107000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010107000900080010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000
@@ -833,7 +833,7 @@ object MainForm: TMainForm
     Left = 248
     Top = 16
     Bitmap = {
-      494C010107000900040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
+      494C010107000900080010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000002000000001002000000000000020
       0000000000000000000000000000000000000000000000000000000000000000
       0000000000000000000000000000000000000000000000000000000000000000

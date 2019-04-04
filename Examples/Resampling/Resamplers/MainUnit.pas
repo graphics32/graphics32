@@ -43,7 +43,7 @@ interface
 {.$DEFINE Ex}
 
 uses
-  {$IFDEF FPC} LCLIntf, LResources, {$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls, GR32_Image, GR32_System, GR32_RangeBars, GR32, GR32_Resamplers
   {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};
@@ -138,7 +138,7 @@ begin
   // load example image
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Iceland', 'JPG');
+    ResStream := TResourceStream.Create(HInstance, 'Iceland', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally

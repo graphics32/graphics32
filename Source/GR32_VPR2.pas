@@ -315,7 +315,7 @@ procedure TPolygonRenderer32VPR2.PolyPolygonFS(
 var
   APoints: TArrayOfFloatPoint;
   I, J, H: Integer;
-  SavedRoundMode: TFPURoundingMode;
+  SavedRoundMode: TRoundingMode;
   R: TFloatRect;
 begin
   FYSpan := STARTSPAN;
@@ -562,7 +562,7 @@ procedure TPolygonRenderer32VPR2X.PolyPolygonFS(
 var
   APoints: TArrayOfFloatPoint;
   I, J, H: Integer;
-  SavedRoundMode: TFPURoundingMode;
+  SavedRoundMode: TRoundingMode;
   R: TFloatRect;
 begin
   FYSpan := STARTSPAN;

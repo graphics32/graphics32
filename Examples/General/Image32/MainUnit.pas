@@ -38,7 +38,7 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   GR32, GR32_Image, GR32_Resamplers, GR32_RangeBars;
 
@@ -89,7 +89,7 @@ var
 begin
   JPEG := TJPEGImage.Create;
   try
-	ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+	ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally

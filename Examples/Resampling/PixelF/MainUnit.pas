@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LResources, Variants,{$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} LResources, Variants,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   Math, GR32, GR32_LowLevel, GR32_Image, GR32_RangeBars, GR32_Transforms,
   GR32_Blend;
@@ -92,7 +92,7 @@ begin
   // load example image
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Stones', 'JPG');
+    ResStream := TResourceStream.Create(HInstance, 'Stones', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally

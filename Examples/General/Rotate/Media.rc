@@ -1,2 +1,2 @@
 MainIcon ICON "../../Media/GR32.ico"
-Delphi JPG "../../Media/delphi.jpg"
+Delphi RCDATA "../../Media/delphi.jpg"

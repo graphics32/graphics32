@@ -38,7 +38,7 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LResources, {$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, ComCtrls, Grids,
   ExtCtrls, StdCtrls, Buttons, GR32, GR32_Image, GR32_Transforms,
   GR32_Resamplers, GR32_Layers, GR32_RangeBars;
@@ -224,7 +224,7 @@ begin
   // load example image
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally
@@ -564,6 +564,8 @@ end;
 
 procedure TFormTranformExample.PageControlChange(Sender: TObject);
 begin
+  if Src = nil then
+    Exit;
   if PageControl.ActivePage = TstAffine then
   begin
     Mode := tmAffine;

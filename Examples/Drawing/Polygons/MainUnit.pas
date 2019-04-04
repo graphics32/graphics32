@@ -38,7 +38,7 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LResources, Buttons, {$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LResources, Buttons, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   GR32, GR32_Image, GR32_Layers, GR32_Polygons, GR32_Paths, GR32_Brushes;
 
@@ -118,7 +118,7 @@ begin
   // Load the textures (note size 256x256 is implicity expected!)
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Delphi', 'JPG');
+    ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally
@@ -126,7 +126,7 @@ begin
     end;
     BitmapList.Bitmap[0].Assign(JPEG);
 
-    ResStream := TResourceStream.Create(HInstance, 'TextureB', 'JPG');
+    ResStream := TResourceStream.Create(HInstance, 'TextureB', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally
