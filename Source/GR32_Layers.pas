@@ -1320,7 +1320,10 @@ end;
 
 function TRubberbandLayer.DoHitTest(X, Y: Integer): Boolean;
 begin
-  Result := GetDragState(X, Y) <> dsNone;
+  if (Visible) then
+    Result := (GetDragState(X, Y) <> dsNone)
+  else
+    Result := False;
 end;
 
 procedure TRubberbandLayer.DoResizing(var OldLocation,
