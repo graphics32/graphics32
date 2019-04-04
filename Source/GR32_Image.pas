@@ -1676,7 +1676,7 @@ begin
   inherited;
 
   if TabStop and CanFocus then SetFocus;
-  
+
   if Layers.MouseEvents then
     Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
   else
@@ -1705,14 +1705,17 @@ end;
 procedure TCustomImage32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   Layer: TCustomLayer;
+  MouseListener: TCustomLayer;
 begin
+  MouseListener := TLayerCollectionAccess(Layers).MouseListener;
+
   if Layers.MouseEvents then
     Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
   else
     Layer := nil;
 
   // unlock the capture using same criteria as was used to acquire it
-  if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+  if (Button = mbLeft) or ((MouseListener <> nil) and (TLayerCollectionAccess(Layers).MouseListener = nil)) then
     MouseCapture := False;
 
   MouseUp(Button, Shift, X, Y, Layer);
