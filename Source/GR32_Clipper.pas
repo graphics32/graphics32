@@ -2928,11 +2928,10 @@ begin
   begin
     // get steps per 360 degrees (see offset_triginometry2.svg)
     steps := PI / ArcCos(1 - arcTol / absDelta);
-    // avoid excessive precision ...
-    if (steps > absDelta * Pi) then
-      steps := absDelta * Pi;
-    FStepsPerRad := steps / Two_Pi;
 
+    // avoid excessive precision ...
+    if (steps > absDelta * Pi) then steps := absDelta * Pi;
+    FStepsPerRad := steps / Two_Pi;
     Math.SinCos(Two_Pi / steps, FStepSizeSin, FStepSizeCos);
     if FDelta < 0 then FStepSizeSin := -FStepSizeSin;
   end;
@@ -3147,9 +3146,11 @@ begin
   end;
 
   if FEndType <> etPolygon then
-    FDelta := Abs(delta) /2 else
+    FDelta := Abs(delta) else
     FDelta := delta;
   OffsetPaths;
+
+//  solution := FSolution;
 
   // clean up self-intersections ...
   with TClipper.Create do

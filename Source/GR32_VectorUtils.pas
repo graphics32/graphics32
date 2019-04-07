@@ -49,19 +49,8 @@ const
 
 function InSignedRange(const X, X1, X2: TFloat): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function InSignedRange(const X, X1, X2: TFixed): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapExclusive(const X1, X2, Y1, Y2: TFloat): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapExclusive(const Pt1, Pt2: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapExclusive(const X1, X2, Y1, Y2: TFixed): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapExclusive(const Pt1, Pt2: TFixedPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapInclusive(const X1, X2, Y1, Y2: TFloat): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapInclusive(const Pt1, Pt2: TFloatPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapInclusive(const X1, X2, Y1, Y2: TFixed): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function OverlapInclusive(const Pt1, Pt2: TFixedPoint): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Intersect(const A1, A2, B1, B2: TFloatPoint; out P: TFloatPoint): Boolean; overload;
 function Intersect(const A1, A2, B1, B2: TFixedPoint; out P: TFixedPoint): Boolean; overload;
-
-function FindNearestPointIndex(Point: TFloatPoint; Points: TArrayOfFloatPoint): Integer; overload;
-function FindNearestPointIndex(Point: TFixedPoint; Points: TArrayOfFixedPoint): Integer; overload;
 
 function VertexReduction(Points: TArrayOfFloatPoint; Epsilon: TFloat = 1): TArrayOfFloatPoint; overload;
 function VertexReduction(Points: TArrayOfFixedPoint; Epsilon: TFixed = FixedOne): TArrayOfFixedPoint; overload;
@@ -75,11 +64,6 @@ function ClipLine(var X1, Y1, X2, Y2: TFixed; MinX, MinY, MaxX, MaxY: TFixed): B
 function ClipLine(var P1, P2: TPoint; const ClipRect: TRect): Boolean; overload;
 function ClipLine(var P1, P2: TFloatPoint; const ClipRect: TFloatRect): Boolean; overload;
 function ClipLine(var P1, P2: TFixedPoint; const ClipRect: TFixedRect): Boolean; overload;
-
-procedure Extract(Src: TArrayOfFloat; Indexes: TArrayOfInteger; out Dst: TArrayOfFloat); overload;
-procedure Extract(Src: TArrayOfFixed; Indexes: TArrayOfInteger; out Dst: TArrayOfFixed); overload;
-procedure FastMergeSort(const Values: TArrayOfFloat; out Indexes: TArrayOfInteger); overload;
-procedure FastMergeSort(const Values: TArrayOfFixed; out Indexes: TArrayOfInteger); overload;
 
 type
   TTriangleVertexIndices = array [0 .. 2] of Integer;
@@ -236,58 +220,6 @@ begin
   Result := (X < X1) xor (X < X2);
 end;
 
-// Returns True if the intervals (X1, X2) and (Y1, Y2) overlap
-function OverlapExclusive(const X1, X2, Y1, Y2: TFloat): Boolean;
-begin
-  Result := Abs((X1 + X2) - (Y1 + Y2)) < Abs(X1 - X2) + Abs(Y1 - Y2);
-end;
-
-// Returns True if the intervals (X1, X2) and (Y1, Y2) overlap
-function OverlapExclusive(const Pt1, Pt2: TFloatPoint): Boolean;
-begin
-  Result := Abs((Pt1.X + Pt2.X) - (Pt1.Y + Pt2.Y)) < Abs(Pt1.X - Pt2.X) +
-    Abs(Pt1.Y - Pt2.Y);
-end;
-
-// Returns True if the intervals (X1, X2) and (Y1, Y2) overlap
-function OverlapExclusive(const X1, X2, Y1, Y2: TFixed): Boolean;
-begin
-  Result := Abs((X1 + X2) - (Y1 + Y2)) < Abs(X1 - X2) + Abs(Y1 - Y2);
-end;
-
-// Returns True if the intervals (X1, X2) and (Y1, Y2) overlap
-function OverlapExclusive(const Pt1, Pt2: TFixedPoint): Boolean;
-begin
-  Result := Abs((Pt1.X + Pt2.X) - (Pt1.Y + Pt2.Y)) < Abs(Pt1.X - Pt2.X) +
-    Abs(Pt1.Y - Pt2.Y);
-end;
-
-// Returns True if the intervals [X1, X2] and [Y1, Y2] overlap
-function OverlapInclusive(const X1, X2, Y1, Y2: TFloat): Boolean;
-begin
-  Result := Abs((X1 + X2) - (Y1 + Y2)) <= Abs(X1 - X2) + Abs(Y1 - Y2);
-end;
-
-// Returns True if the intervals [X1, X2] and [Y1, Y2] overlap
-function OverlapInclusive(const Pt1, Pt2: TFloatPoint): Boolean;
-begin
-  Result := Abs((Pt1.X + Pt2.X) - (Pt1.Y + Pt2.Y)) <= Abs(Pt1.X - Pt2.X) +
-    Abs(Pt1.Y - Pt2.Y);
-end;
-
-// Returns True if the intervals [X1, X2] and [Y1, Y2] overlap
-function OverlapInclusive(const X1, X2, Y1, Y2: TFixed): Boolean;
-begin
-  Result := Abs((X1 + X2) - (Y1 + Y2)) <= Abs(X1 - X2) + Abs(Y1 - Y2);
-end;
-
-// Returns True if the intervals [X1, X2] and [Y1, Y2] overlap
-function OverlapInclusive(const Pt1, Pt2: TFixedPoint): Boolean;
-begin
-  Result := Abs((Pt1.X + Pt2.X) - (Pt1.Y + Pt2.Y)) <= Abs(Pt1.X - Pt2.X) +
-    Abs(Pt1.Y - Pt2.Y);
-end;
-
 // Returns True if the line segments (A1, A2) and (B1, B2) intersects
 // P is the point of intersection
 function Intersect(const A1, A2, B1, B2: TFloatPoint; out P: TFloatPoint): Boolean;
@@ -341,44 +273,6 @@ begin
     ta := FixedDiv(ta, t);
     P.X := A1.X + ta * Adx;
     P.Y := A1.Y + ta * Ady;
-  end;
-end;
-
-function FindNearestPointIndex(Point: TFloatPoint; Points: TArrayOfFloatPoint): Integer;
-var
-  Index: Integer;
-  Distance: TFloat;
-  NearestDistance: TFloat;
-begin
-  Result := 0;
-  NearestDistance := SqrDistance(Point, Points[0]);
-  for Index := 1 to High(Points) do
-  begin
-    Distance := SqrDistance(Point, Points[Index]);
-    if Distance < NearestDistance then
-    begin
-      NearestDistance := Distance;
-      Result := Index;
-    end;
-  end;
-end;
-
-function FindNearestPointIndex(Point: TFixedPoint; Points: TArrayOfFixedPoint): Integer;
-var
-  Index: Integer;
-  Distance: TFixed;
-  NearestDistance: TFixed;
-begin
-  Result := 0;
-  NearestDistance := SqrDistance(Point, Points[0]);
-  for Index := 1 to High(Points) do
-  begin
-    Distance := SqrDistance(Point, Points[Index]);
-    if Distance < NearestDistance then
-    begin
-      NearestDistance := Distance;
-      Result := Index;
-    end;
   end;
 end;
 
@@ -748,220 +642,6 @@ function ClipLine(var P1, P2: TFixedPoint; const ClipRect: TFixedRect): Boolean;
 begin
   Result := ClipLine(P1.X, P1.Y, P2.X, P2.Y, ClipRect.Left, ClipRect.Top,
     ClipRect.Right, ClipRect.Bottom);
-end;
-
-procedure Extract(Src: TArrayOfFloat; Indexes: TArrayOfInteger; out Dst: TArrayOfFloat);
-var
-  I: Integer;
-begin
-  SetLength(Dst, Length(Indexes));
-  for I := 0 to High(Indexes) do
-    Dst[I] := Src[Indexes[I]];
-end;
-
-procedure Extract(Src: TArrayOfFixed; Indexes: TArrayOfInteger; out Dst: TArrayOfFixed);
-var
-  I: Integer;
-begin
-  SetLength(Dst, Length(Indexes));
-  for I := 0 to High(Indexes) do
-    Dst[I] := Src[Indexes[I]];
-end;
-
-// A modified implementation of merge sort
-// - returns the indexes of the sorted elements
-// - use Extract(Indexes, Output) to return the sorted values
-// - complexity when input is already sorted: O(n)
-// - worst case complexity: O(n log n)
-procedure FastMergeSort(const Values: TArrayOfFloat; out Indexes: TArrayOfInteger);
-var
-  Temp: TArrayOfInteger;
-
-  procedure Merge(I1, I2, J1, J2: Integer);
-  var
-    I, J, K: Integer;
-  begin
-    if Values[Indexes[I2]] < Values[Indexes[J1]] then Exit;
-    I := I1;
-    J := J1;
-    K := 0;
-    repeat
-      if Values[Indexes[I]] < Values[Indexes[J]] then
-      begin
-        Temp[K] := Indexes[I];
-        Inc(I);
-      end
-      else
-      begin
-        Temp[K] := Indexes[J];
-        Inc(J);
-      end;
-      Inc(K);
-    until (I > I2) or (J > J2);
-
-    while I <= I2 do
-    begin
-      Temp[K] := Indexes[I];
-      Inc(I); Inc(K);
-    end;
-    while J <= J2 do
-    begin
-      Temp[K] := Indexes[J];
-      Inc(J); Inc(K);
-    end;
-    for I := 0 to K - 1 do
-    begin
-      Indexes[I + I1] := Temp[I];
-    end;
-  end;
-
-  procedure Recurse(I1, I2: Integer);
-  var
-    I, IX: Integer;
-  begin
-    if I1 = I2 then
-      Indexes[I1] := I1
-    else if Indexes[I1] = Indexes[I2] then
-    begin
-      if Values[I1] <= Values[I2] then
-      begin
-        for I := I1 to I2 do Indexes[I] := I;
-      end
-      else
-      begin
-        IX := I1 + I2;
-        for I := I1 to I2 do Indexes[I] := IX - I;
-      end;
-    end
-    else
-    begin
-      IX := (I1 + I2) div 2;
-      Recurse(I1, IX);
-      Recurse(IX + 1, I2);
-      Merge(I1, IX, IX + 1, I2);
-    end;
-  end;
-
-var
-  I, Index, S: Integer;
-begin
-  SetLength(Temp, Length(Values));
-  SetLength(Indexes, Length(Values));
-
-  Index := 0;
-  S := Math.Sign(Values[1] - Values[0]);
-  if S = 0 then S := 1;
-
-  Indexes[0] := 0;
-  for I := 1 to High(Values) do
-  begin
-    if Math.Sign(Values[I] - Values[I - 1]) = -S then
-    begin
-      S := -S;
-      Inc(Index);
-    end;
-    Indexes[I] := Index;
-  end;
-
-  Recurse(0, High(Values));
-end;
-
-// A modified implementation of merge sort
-// - returns the indexes of the sorted elements
-// - use Extract(Indexes, Output) to return the sorted values
-// - complexity when input is already sorted: O(n)
-// - worst case complexity: O(n log n)
-procedure FastMergeSort(const Values: TArrayOfFixed; out Indexes: TArrayOfInteger);
-var
-  Temp: TArrayOfInteger;
-
-  procedure Merge(I1, I2, J1, J2: Integer);
-  var
-    I, J, K: Integer;
-  begin
-    if Values[Indexes[I2]] < Values[Indexes[J1]] then Exit;
-    I := I1;
-    J := J1;
-    K := 0;
-    repeat
-      if Values[Indexes[I]] < Values[Indexes[J]] then
-      begin
-        Temp[K] := Indexes[I];
-        Inc(I);
-      end
-      else
-      begin
-        Temp[K] := Indexes[J];
-        Inc(J);
-      end;
-      Inc(K);
-    until (I > I2) or (J > J2);
-
-    while I <= I2 do
-    begin
-      Temp[K] := Indexes[I];
-      Inc(I); Inc(K);
-    end;
-    while J <= J2 do
-    begin
-      Temp[K] := Indexes[J];
-      Inc(J); Inc(K);
-    end;
-    for I := 0 to K - 1 do
-    begin
-      Indexes[I + I1] := Temp[I];
-    end;
-  end;
-
-  procedure Recurse(I1, I2: Integer);
-  var
-    I, IX: Integer;
-  begin
-    if I1 = I2 then
-      Indexes[I1] := I1
-    else if Indexes[I1] = Indexes[I2] then
-    begin
-      if Values[I1] <= Values[I2] then
-      begin
-        for I := I1 to I2 do Indexes[I] := I;
-      end
-      else
-      begin
-        IX := I1 + I2;
-        for I := I1 to I2 do Indexes[I] := IX - I;
-      end;
-    end
-    else
-    begin
-      IX := (I1 + I2) div 2;
-      Recurse(I1, IX);
-      Recurse(IX + 1, I2);
-      Merge(I1, IX, IX + 1, I2);
-    end;
-  end;
-
-var
-  I, Index, S: Integer;
-begin
-  SetLength(Temp, Length(Values));
-  SetLength(Indexes, Length(Values));
-
-  Index := 0;
-  S := Math.Sign(Values[1] - Values[0]);
-  if S = 0 then S := 1;
-
-  Indexes[0] := 0;
-  for I := 1 to High(Values) do
-  begin
-    if Math.Sign(Values[I] - Values[I - 1]) = -S then
-    begin
-      S := -S;
-      Inc(Index);
-    end;
-    Indexes[I] := Index;
-  end;
-
-  Recurse(0, High(Values));
 end;
 
 procedure FastMergeSortX(const Values: TArrayOfFloatPoint;
@@ -1806,6 +1486,7 @@ const
   MINDISTPIXEL = 1.414; // just a little bit smaller than sqrt(2),
   // -> set to about 2.5 for a similar output with the previous version
 var
+  I, L, H: Integer;
   ResSize, BuffSize: Integer;
   PX, PY: TFloat;
   AngleInv, RMin: TFloat;
@@ -1858,41 +1539,96 @@ var
 
   procedure AddRoundedJoin(const X1, Y1, X2, Y2: TFloat);
   var
-    R, tmp, da: TFloat;
-    ArcLen: Integer;
-
-    I: Integer;
-    C: TFloatPoint;
+    sinA, cosA, A, d: TFloat;
+    steps: Integer;
+    ii, m,n: Integer;
+    C, C2, C3: TFloatPoint;
   begin
-    R := X1 * Y2 - X2 * Y1; // cross product
-    if R * Delta <= 0 then  // ie angle is concave
+    sinA := X1 * Y2 - X2 * Y1;
+    cosA := X1 * X2 + Y1 * Y2;
+    A := ArcTan2(sinA, cosA);
+    steps := Round(Abs(A * AngleInv));
+
+    if sinA < 0 then
+      Dm.Y := -Abs(Dm.Y) else
+      Dm.Y := Abs(Dm.Y);
+
+    if sinA * Delta < 0 then  // ie angle is concave
     begin
-      AddPoint(Delta * X1, Delta * Y1);
-      AddPoint(Delta * X2, Delta * Y2);
+      A := Delta / (cosA +1);
+      //C = offset pt of concave vertex ...
+      C.X := PX + (X1 + X2) * A;
+      C.Y := PY + (Y1 + Y2) * A;
+
+      if (I = 0) then m := H else m := I -1;
+      if I = H then n := 0 else n := I +1;
+      A := Min(SqrDistance(Points[m], Points[I]),
+        SqrDistance(Points[n], Points[I]));
+
+      if SqrDistance(C, Points[I]) > A then
+      begin
+        //there's no room to draw anything ...
+        //now get the perpendic. offset from pt2 ...
+        C2.X := X1 * Delta;
+        C2.Y := Y1 * Delta;
+        C3.X := X2 * Delta;
+        C3.Y := Y2 * Delta;
+        //this will create a self-intersection but it also ensures that
+        //the offset will be maintained beyond this intersection ...
+        AddPoint(C2.X, C2.Y);
+        AddPoint(C3.X, C3.Y);
+        Exit;
+      end;
+      A := Sqrt(A);
+
+      //get the point on the both edges that's same distance from
+      //the concave vertex as its closest adjacent vertex.
+      //nb: using unit normals as unit vectors here ...
+      C2.X := PX + Y1 * A;
+      C2.Y := PY - X1 * A;
+      C3.X := PX - Y2 * A;
+      C3.Y := PY + X2 * A;
+
+      //now Delta offset these points ...
+      C2.X := C2.X + X1 * Delta;
+      C2.Y := C2.Y + Y1 * Delta;
+      C3.X := C3.X + X2 * Delta;
+      C3.Y := C3.Y + Y2 * Delta;
+
+      //this will do Delta/MiterLimit radius rounding of concavities ...
+      if SqrDistance(C2, C3) < Sqr(Delta *2/MiterLimit) then
+        d := Sqrt(SqrDistance(C2, C3))/2 else
+        d := Delta/MiterLimit;
+
+      //move point(PX,PY) across the offset path so the
+      //rounding path will curve around this new point ...
+      A := (d + Delta) / (cosA +1);
+      PX := PX + (X1 + X2) * A;
+      PY := PY + (Y1 + Y2) * A;
+
+      C2.X := -X1 * d;
+      C2.Y := -Y1 * d;
+      AddPoint(C2.X, C2.Y);
+      for ii := 1 to steps -1 do
+      begin
+        C2 := FloatPoint(
+          C2.X * Dm.X - Dm.Y * C2.Y,
+          C2.X * Dm.Y + C2.Y * Dm.X);
+        AddPoint(C2.X, C2.Y);
+      end;
     end
     else
     begin
-      if R < 0 then
-        Dm.Y := -Abs(Dm.Y)
-      else
-        Dm.Y := Abs(Dm.Y);
-
-      tmp := 1 - 0.5 * (Sqr(X2 - X1) + Sqr(Y2 - Y1));
-      da := 0.5 * Pi - tmp * (1 + Sqr(tmp) * 0.1667); // should be ArcCos(tmp);
-      ArcLen := Round(Abs(da * AngleInv)); // should be trunc instead of round
-
       C.X := X1 * Delta;
       C.Y := Y1 * Delta;
       AddPoint(C.X, C.Y);
-      for I := 1 to ArcLen - 1 do
+      for ii := 1 to steps - 1 do
       begin
-        C := FloatPoint(C.X * Dm.X - C.Y * Dm.Y, C.Y * Dm.X + C.X * Dm.Y);
+        C := FloatPoint(
+          C.X * Dm.X - C.Y * Dm.Y,
+          C.Y * Dm.X + C.X * Dm.Y);
         AddPoint(C.X, C.Y);
       end;
-
-      C.X := X2 * Delta;
-      C.Y := Y2 * Delta;
-      AddPoint(C.X, C.Y);
     end;
   end;
 
@@ -1903,21 +1639,17 @@ var
     case JoinStyle of
       jsMiter: AddMitered(A.X, A.Y, B.X, B.Y);
       jsBevel: AddBevelled(A.X, A.Y, B.X, B.Y);
-      jsRound: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
+      jsRoundEx: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
+      else if (X1 * Y2 - X2 * Y1) * Delta < 0 then //miter when concave
+        AddMitered(A.X, A.Y, B.X, B.Y) else
+        AddRoundedJoin(A.X, A.Y, B.X, B.Y);
     end;
   end;
-
-var
-  I, L, H: Integer;
 
 begin
   Result := nil;
 
   if Length(Points) <= 1 then Exit;
-
-  //MiterLimit = Sqrt(2/(1 - cos(ß)))
-  //Sqr(MiterLimit) = 2/(1 - cos(ß))
-  //1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
   RMin := 2 / Sqr(MiterLimit);
 
   H := High(Points) - Ord(not Closed);
@@ -1939,7 +1671,7 @@ begin
   SetLength(Result, BuffSize);
 
   // prepare
-  if JoinStyle = jsRound then
+  if JoinStyle in [jsRound, jsRoundEx] then
   begin
     Dm.X := 1 - 0.5 * Min(3, Sqr(MINDISTPIXEL / Abs(Delta)));
     Dm.Y := Sqrt(1 - Sqr(Dm.X));
@@ -1950,13 +1682,11 @@ begin
   begin
     B := Normals[I];
     if (B.X = 0) and (B.Y = 0) then Continue;
-
     with Points[I] do AddJoin(X, Y, A.X, A.Y, B.X, B.Y);
     A := B;
   end;
   if not Closed then
     with Points[High(Points)] do AddJoin(X, Y, A.X, A.Y, A.X, A.Y);
-
   SetLength(Result, ResSize);
 end;
 
@@ -1973,152 +1703,12 @@ end;
 function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint;
   const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter;
   Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
-const
-  BUFFSIZEINCREMENT = 128;
 var
-  I, L, H: Integer;
-  ResSize, BuffSize: Integer;
-  PX, PY, D, RMin: TFixed;
-  A, B: TFixedPoint;
-
-  procedure AddPoint(const LongDeltaX, LongDeltaY: TFixed);
-  begin
-    if ResSize = BuffSize then
-    begin
-      Inc(BuffSize, BUFFSIZEINCREMENT);
-      SetLength(Result, BuffSize);
-    end;
-    with Result[ResSize] do
-    begin
-      X := PX + LongDeltaX;
-      Y := PY + LongDeltaY;
-    end;
-    Inc(ResSize);
-  end;
-
-  procedure AddMitered(const X1, Y1, X2, Y2: TFixed);
-  var
-    R, CX, CY: TFixed;
-  begin
-    CX := X1 + X2;
-    CY := Y1 + Y2;
-
-    R := FixedMul(X1, CX) + FixedMul(Y1, CY); //(1 - cos(ß))  (range: 0 <= R <= 2)
-    if R < RMin then
-    begin
-      AddPoint(FixedMul(D, X1), FixedMul(D, Y1));
-      AddPoint(FixedMul(D, X2), FixedMul(D, Y2));
-    end
-    else
-    begin
-      R := FixedDiv(D, R);
-      AddPoint(FixedMul(CX, R), FixedMul(CY, R));
-    end;
-  end;
-
-  procedure AddBevelled(const X1, Y1, X2, Y2: TFixed);
-  var
-    R: TFixed;
-  begin
-    R := X1 * Y2 - X2 * Y1; //cross product
-    if R * D <= 0 then      //ie angle is concave
-    begin
-      AddMitered(X1, Y1, X2, Y2);
-    end
-    else
-    begin
-      AddPoint(FixedMul(D, X1), FixedMul(D, Y1));
-      AddPoint(FixedMul(D, X2), FixedMul(D, Y2));
-    end;
-  end;
-
-  procedure AddRoundedJoin(const X1, Y1, X2, Y2: TFixed);
-  var
-    R: TFixed;
-    a1, a2, da: TFloat;
-    Arc: TArrayOfFixedPoint;
-    ArcLen: Integer;
-  begin
-    R := FixedMul(X1, Y2) - FixedMul(X2, Y1);
-    if R * D <= 0 then
-      AddMitered(X1, Y1, X2, Y2)
-    else
-    begin
-      a1 := ArcTan2(Y1, X1) * FixedToFloat;
-      a2 := ArcTan2(Y2, X2) * FixedToFloat;
-      da := a2 - a1;
-      if da > Pi then
-        a2 := a2 - TWOPI
-      else if da < -Pi then
-        a2 := a2 + TWOPI;
-      Arc := BuildArc(FixedPoint(PX, PY), a1, a2, D);
-
-      ArcLen := Length(Arc);
-      if ResSize + ArcLen >= BuffSize then
-      begin
-        Inc(BuffSize, ArcLen);
-        SetLength(Result, BuffSize);
-      end;
-      Move(Arc[0], Result[ResSize], Length(Arc) * SizeOf(TFixedPoint));
-      Inc(ResSize, ArcLen);
-    end;
-  end;
-
-  procedure AddJoin(const X, Y, X1, Y1, X2, Y2: TFixed);
-  begin
-    PX := X;
-    PY := Y;
-    case JoinStyle of
-      jsMiter: AddMitered(A.X, A.Y, B.X, B.Y);
-      jsBevel: AddBevelled(A.X, A.Y, B.X, B.Y);
-      jsRound: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
-    end;
-  end;
-
+  tmp: TArrayOfFloatPoint;
 begin
-  raise Exception.Create('Not yet fully implemented');
-
-  Result := nil;
-
-  if Length(Points) <= 1 then Exit;
-
-  D := Delta;
-
-  //MiterLimit = Sqrt(2/(1 - cos(ß)))
-  //Sqr(MiterLimit) = 2/(1 - cos(ß))
-  //1 - cos(ß) = 2/Sqr(MiterLimit) = RMin;
-  RMin := FixedDiv($20000, FixedSqr(MiterLimit));
-
-  H := High(Points) - Ord(not Closed);
-  while (H >= 0) and (Normals[H].X = 0) and (Normals[H].Y = 0) do Dec(H);
-
-{** all normals zeroed => Exit }
-  if H < 0 then Exit;
-
-  L := 0;
-  while (Normals[L].X = 0) and (Normals[L].Y = 0) do Inc(L);
-
-  if Closed then
-    A := Normals[H]
-  else
-    A := Normals[L];
-
-  ResSize := 0;
-  BuffSize := BUFFSIZEINCREMENT;
-  SetLength(Result, BuffSize);
-
-  for I := L to H do
-  begin
-    B := Normals[I];
-    if (B.X = 0) and (B.Y = 0) then Continue;
-
-    with Points[I] do AddJoin(X, Y, A.X, A.Y, B.X, B.Y);
-    A := B;
-  end;
-  if not Closed then
-    with Points[High(Points)] do AddJoin(X, Y, A.X, A.Y, A.X, A.Y);
-
-  SetLength(Result, ResSize);
+  tmp := Grow(FixedPointToFloatPoint(Points), FixedPointToFloatPoint(Normals),
+    Delta * FixedToFloat, JoinStyle, Closed, MiterLimit * FixedToFloat);
+  result := FloatPointToFixedPoint(tmp);
 end;
 
 function Grow(const Points: TArrayOfFixedPoint;

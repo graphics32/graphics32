@@ -40,8 +40,11 @@ uses
   Types, GR32, GR32_Containers, GR32_VPR, GR32_Transforms, GR32_Resamplers;
 
 type
-  { Polygon join style }
-  TJoinStyle = (jsMiter, jsBevel, jsRound);
+  { Polygon join style - used by GR32_VectorUtils.Grow(). }
+  { nb: jsRoundEx rounds both convex and concave joins unlike jsRound which
+    only rounds convex joins. The depth of convex join rounding is controlled
+    by Grow's MiterLimit parameter }
+  TJoinStyle = (jsMiter, jsBevel, jsRound, jsRoundEx);
 
   { Polygon end style }
   TEndStyle = (esButt, esSquare, esRound);
