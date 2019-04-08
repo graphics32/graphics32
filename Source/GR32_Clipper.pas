@@ -293,7 +293,7 @@ type
     procedure DoRound(j, k: Integer);
     procedure OffsetPoint(j,k: Integer);
 
-    procedure CheckPaths;
+    function CheckPaths: boolean;
     function GetLowestPolygonIdx: integer;
     procedure OffsetPaths;
     procedure BuildNormals;
@@ -2870,11 +2870,12 @@ begin
 end;
 //------------------------------------------------------------------------------
 
-procedure TClipperOffset.CheckPaths;
+function TClipperOffset.CheckPaths: boolean;
 var
   i,len, minLen: Integer;
   openPaths: Boolean;
 begin
+  Result := False;
   openPaths := not (FEndType in [etPolygon, etOpenJoined]);
   if openPaths then minLen := 1 else minLen := 3;
   for i := 0 to high(FPathsIn) do
@@ -2887,7 +2888,10 @@ begin
       setlength(FPathsIn[i], len -1);
       dec(len);
     end;
-    if len < minLen then FPathsIn[i] := nil;
+    if len < minLen then
+      FPathsIn[i] := nil
+    else
+      Result := True;
   end;
 end;
 //------------------------------------------------------------------------------
@@ -3133,7 +3137,9 @@ begin
   FJoinType := jt;
   FEndType := et;
 
-  CheckPaths;
+  if (not CheckPaths) then
+    exit;
+
   negate := false;
   if (et = etPolygon) then
   begin
