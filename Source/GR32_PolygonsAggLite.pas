@@ -1808,6 +1808,7 @@ var
   Bounds: TRect;
   APoints: TArrayOfArrayOfFloatPoint;
   R: TFloatRect;
+  FirstValid: integer;
 begin
   if Length(Points) = 0 then
     Exit;
@@ -1816,20 +1817,30 @@ begin
   // temporary fix for floating point rounding errors - corr. - to + by pws
   R := ClipRect;
   InflateRect(R, 0.05, 0.05);
+  FirstValid := -1;
   for i := 0 to High(APoints) do
+  begin
     APoints[i] := ClipPolygon(Points[I], R);
+    if (FirstValid = -1) and (Length(APoints[i]) > 0) then
+      FirstValid := i;
+  end;
+
+  if (FirstValid = -1) then
+    exit; // All were clipped
 
   OutLine := TOutline.Create;
   try
     OutLine.Reset;
-    OutLine.MoveTo(Fixed8(APoints[0, 0].X), Fixed8(APoints[0, 0].Y));
-    for I := 1 to High(APoints[0]) do
-      OutLine.LineTo(Fixed8(APoints[0, I].X), Fixed8(APoints[0, I].Y));
+    OutLine.MoveTo(Fixed8(APoints[FirstValid, 0].X), Fixed8(APoints[FirstValid, 0].Y));
+    for I := 1 to High(APoints[FirstValid]) do
+      OutLine.LineTo(Fixed8(APoints[FirstValid, I].X), Fixed8(APoints[FirstValid, I].Y));
 
     Bounds := MakeRect(OutLine.MinX, OutLine.MinY, OutLine.MaxX, OutLine.MaxY);
 
-    for J := 1 to High(APoints) do
+    for J := FirstValid+1 to High(APoints) do
     begin
+      if (Length(APoints[J]) = 0) then
+        continue;
       OutLine.MoveTo(Fixed8(APoints[J, 0].X), Fixed8(APoints[J, 0].Y));
       for I := 1 to High(APoints[J]) do
         OutLine.LineTo(Fixed8(APoints[J, I].X), Fixed8(APoints[J, I].Y));
