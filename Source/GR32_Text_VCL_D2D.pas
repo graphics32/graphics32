@@ -235,7 +235,6 @@ end;
 procedure TTextGeometrySink.BeginFigure(startPoint: D2D1_POINT_2F;
   figureBegin: D2D1_FIGURE_BEGIN);
 begin
-//  FPath.BeginPath;
   FPath.MoveTo(FDstX + startPoint.x, FDstY + startPoint.Y);
 end;
 
@@ -246,8 +245,7 @@ end;
 
 procedure TTextGeometrySink.EndFigure(figureEnd: D2D1_FIGURE_END);
 begin
-  FPath.ClosePath;
-//  FPath.EndPath;
+  FPath.EndPath(True);
 end;
 
 procedure TTextGeometrySink.SetFillMode(fillMode: D2D1_FILL_MODE);
@@ -309,7 +307,8 @@ var
   X, Y, XMax, YMax, MaxRight: Single;
   S: WideString;
   UseTempPath: Boolean;
-  TmpPath: TFlattenedPath;
+  TextPath: TFlattenedPath;
+  OwnedPath: TFlattenedPath;
   EmSize, PixelPerDip: Single;
 
   GDIInterop: IDWriteGdiInterop;
@@ -374,15 +373,15 @@ var
         PathEnd := CharOffsets[CharEnd] - 1;
 
         for M := 0 to PathStart - 1 do
-          SetLength(TmpPath.Path[M], 0);
+          SetLength(TextPath.Path[M], 0);
         for M := PathEnd + 1 to CharOffsets[CurrentI] - 1 do
-          SetLength(TmpPath.Path[M], 0);
+          SetLength(TextPath.Path[M], 0);
 
         Delta := Delta + (((MinX - ARect.Left) + (ARect.Right - MaxX)) * 0.5) - MinX;
       end;
     for M := PathStart to PathEnd do
-      for N := 0 to High(TmpPath.Path[M]) do
-        TmpPath.Path[M, N].X := TmpPath.Path[M, N].X + Delta;
+      for N := 0 to High(TextPath.Path[M]) do
+        TextPath.Path[M, N].X := TextPath.Path[M, N].X + Delta;
   end;
 
   procedure AlignTextRight(CurrentI: Integer);
@@ -414,12 +413,12 @@ var
       PathStart := CharOffsets[CharStart];
 
       for M := 0 to PathStart - 1 do
-        SetLength(TmpPath.Path[M], 0);
+        SetLength(TextPath.Path[M], 0);
     end;
 
     for M := PathStart to PathEnd do
-      for N := 0 to High(TmpPath.Path[M]) do
-        TmpPath.Path[M, N].X := TmpPath.Path[M, N].X + Delta;
+      for N := 0 to High(TextPath.Path[M]) do
+        TextPath.Path[M, N].X := TextPath.Path[M, N].X + Delta;
   end;
 
   procedure AlignTextLeft(CurrentI: Integer);
@@ -446,7 +445,7 @@ var
       PathEnd := CharOffsets[CharEnd] - 1;
 
       for M := PathEnd + 1 to CharOffsets[CurrentI] - 1 do
-        SetLength(TmpPath.Path[M], 0);
+        SetLength(TextPath.Path[M], 0);
     end;
   end;
 
@@ -472,8 +471,8 @@ var
       PathEnd := CharOffsets[M];
       L := M;
       for M := PathStart to PathEnd - 1 do
-        for N := 0 to High(TmpPath.Path[M]) do
-          TmpPath.Path[M, N].X := TmpPath.Path[M, N].X + SpcDeltaInc;
+        for N := 0 to High(TextPath.Path[M]) do
+          TextPath.Path[M, N].X := TextPath.Path[M, N].X + SpcDeltaInc;
       SpcDeltaInc := SpcDeltaInc + SpcDelta;
       PathStart := PathEnd;
     until L >= CurrentI;
@@ -481,7 +480,7 @@ var
 
   procedure AlignLine(CurrentI: Integer);
   begin
-    if Assigned(TmpPath) and (Length(TmpPath.Path) > 0) then
+    if Assigned(TextPath) and (Length(TextPath.Path) > 0) then
       case (Flags and DT_HORZ_ALIGN_MASK) of
         DT_LEFT   : AlignTextLeft(CurrentI);
         DT_CENTER : AlignTextCenter(CurrentI);
@@ -544,21 +543,21 @@ begin
 
   SpcCount := 0;
   LineStart := 0;
-  UseTempPath := False;
-  if Assigned(Path) then
+  OwnedPath := nil;
+  if (Path <> nil) then
+  begin
     if (Path is TFlattenedPath) then
     begin
-      TmpPath := TFlattenedPath(Path);
-      TmpPath.Clear;
-      TmpPath.BeginPath;
+      TextPath := TFlattenedPath(Path);
+      TextPath.Clear;
     end
     else
     begin
-      UseTempPath := True;
-      TmpPath := TFlattenedPath.Create
+      OwnedPath := TFlattenedPath.Create;
+      TextPath := OwnedPath;
     end
-  else
-    TmpPath := nil;
+  end else
+    TextPath := nil;
 
   TextLen := Length(Text);
   X := ARect.Left;
@@ -590,6 +589,11 @@ begin
     MaxRight := MaxSingle;
   end;
 
+  // Batch whole path construction so we can be sure that the path isn't rendered
+  // while we're still modifying it.
+  if (TextPath <> nil) then
+    TextPath.BeginUpdate;
+
   for I := 1 to TextLen do
   begin
     CharValue := Ord(Text[I]);
@@ -597,8 +601,8 @@ begin
     begin
       if (Flags and DT_SINGLELINE = DT_SINGLELINE) then
         CharValue := CHAR_SP;
-      if Assigned(TmpPath) then
-        CharOffsets[I] := Length(TmpPath.Path);
+      if Assigned(TextPath) then
+        CharOffsets[I] := Length(TextPath.Path);
       CharWidths[i - 1]:= SpcX;
       case CharValue of
         CHAR_CR: NewLine(I);
@@ -638,7 +642,7 @@ begin
 
       if X + CharAdvance <= MaxRight then
       begin
-        TextGeometrySink := TTextGeometrySink.Create(TmpPath, X, Y);
+        TextGeometrySink := TTextGeometrySink.Create(TextPath, X, Y);
         try
           HR := FontFace.GetGlyphRunOutline(EmSize, @GlyphIndex, nil, nil, 1,
             False, False, TextGeometrySink);
@@ -647,8 +651,8 @@ begin
           TextGeometrySink.Free;
         end;
 
-        if Assigned(TmpPath) then
-          CharOffsets[I] := Length(TmpPath.Path);
+        if Assigned(TextPath) then
+          CharOffsets[I] := Length(TextPath.Path);
         CharWidths[I - 1] := Round(CharAdvance);
       end
       else
@@ -663,7 +667,7 @@ begin
         // it fills more than a whole line ...
         NewLine(I - 1);
 
-        TextGeometrySink := TTextGeometrySink.Create(TmpPath, X, Y);
+        TextGeometrySink := TTextGeometrySink.Create(TextPath, X, Y);
         try
           HR := FontFace.GetGlyphRunOutline(EmSize, @GlyphIndex, nil, nil, 1,
             False, False, TextGeometrySink);
@@ -672,8 +676,8 @@ begin
           TextGeometrySink.Free;
         end;
 
-        if Assigned(TmpPath) then
-          CharOffsets[I] := Length(TmpPath.Path);
+        if Assigned(TextPath) then
+          CharOffsets[I] := Length(TextPath.Path);
         CharWidths[I - 1] := Round(CharAdvance);
       end;
 
@@ -692,19 +696,23 @@ begin
   begin
     if Flags and DT_VCENTER <> 0 then
       Y := Y * 0.5;
-    if Assigned(TmpPath) then
-      for I := 0 to High(TmpPath.Path) do
-        for J := 0 to High(TmpPath.Path[I]) do
-          TmpPath.Path[I, J].Y := TmpPath.Path[I, J].Y + Y;
+    if Assigned(TextPath) then
+      for I := 0 to High(TextPath.Path) do
+        for J := 0 to High(TextPath.Path[I]) do
+          TextPath.Path[I, J].Y := TextPath.Path[I, J].Y + Y;
   end;
 
-  if UseTempPath then
+  if (Path <> nil) then
   begin
-    Path.Assign(TmpPath);
-    TmpPath.Free;
-  end
-  else if Assigned(Path) then
-    Path.EndPath;
+    TextPath.EndPath; // TODO : Why is this needed?
+
+    if (Path <> TextPath) then
+      Path.Assign(TextPath);
+
+    TextPath.EndUpdate;
+
+    OwnedPath.Free;
+  end;
 end;
 
 procedure TextToPath(Font: HFONT; const FontHeight: Integer; Path: TCustomPath;
