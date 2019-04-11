@@ -115,6 +115,7 @@ begin
   TestTime := TestTime * 1000;
   RandSeed := 0;
   Img.Bitmap.Clear(clWhite32);
+  Update;
   Canvas := TCanvas32.Create(Img.Bitmap);
   try try
     Canvas.Brushes.Add(TSolidBrush);
@@ -144,6 +145,7 @@ begin
   finally
     Canvas.Free;
   end;
+  Img.Invalidate; // VPR2 and VPR2X doesn't call TBitmap32.Changed when they draw
 end;
 
 function RandColor: TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
