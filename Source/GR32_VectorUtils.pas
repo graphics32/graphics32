@@ -1808,6 +1808,7 @@ var
   V: TFloat;
   P: PFloatPoint;
 begin
+  Result := nil;
   V := StrokeWidth * 0.5;
   Normals := BuildNormals(Points);
 
@@ -1870,6 +1871,7 @@ var
   V: TFixed;
   P: PFixedPoint;
 begin
+  Result := nil;
   V := StrokeWidth shr 1;
   Normals := BuildNormals(Points);
 
@@ -1979,6 +1981,7 @@ var
   end;
 
 begin
+  Result := nil;
   if Length(Points) <= 0 then Exit;
   DashIndex := -1;
   Offset := 0;
@@ -2076,6 +2079,7 @@ var
   end;
 
 begin
+  Result := nil;
   if Length(Points) <= 0 then Exit;
   DashIndex := -1;
   Offset := 0;
