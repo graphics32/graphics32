@@ -151,7 +151,6 @@ type
 
     // MoveTo* implicitly ends the current path.
     procedure MoveTo(const P: TFloatPoint); override;
-    procedure Polygon(const APoints: TArrayOfFloatPoint); override;
 
     property Path: TArrayOfArrayOfFloatPoint read FPath;
     property PathClosed: TBooleanArray read FClosed;
@@ -560,18 +559,15 @@ begin
 end;
 
 procedure TCustomPath.Polygon(const APoints: TArrayOfFloatPoint);
-var
-  i: Integer;
 begin
   if (Length(APoints) = 0) then
     Exit;
 
   BeginUpdate;
 
-  MoveTo(APoints[0]);
-  for i := 1 to High(APoints) do
-    LineTo(APoints[i]);
-  EndPath(True); // TODO : Was EndPath with no ClosePath...
+  MoveTo(APoints[0]); // Implicitly ends any current path
+  PolyLine(APoints);
+  EndPath(True);
 
   EndUpdate;
 end;
@@ -708,21 +704,6 @@ begin
   inherited;
 
   AddPoint(P);
-end;
-
-procedure TFlattenedPath.Polygon(const APoints: TArrayOfFloatPoint);
-begin
-  if (Length(APoints) = 0) then
-    Exit;
-
-  BeginUpdate;
-
-  PolyLine(APoints);
-  EndPath(True);
-
-  CurrentPoint := APoints[High(APoints)];
-
-  EndUpdate;
 end;
 
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
