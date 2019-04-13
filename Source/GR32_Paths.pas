@@ -48,8 +48,8 @@ type
   TControlPointOrigin = (cpNone, cpCubic, cpConic);
 
   { TCustomPath }
-  TCustomPath = class abstract(TThreadPersistent)
-  strict private
+  TCustomPath = class(TThreadPersistent)
+  private
     FCurrentPoint: TFloatPoint;
     FLastControlPoint: TFloatPoint;
     FControlPointOrigin: TControlPointOrigin;
@@ -66,9 +66,9 @@ type
     procedure EndUpdate; override;
     procedure Changed; override;
 
-    procedure BeginPath; deprecated 'BeginPath is no longer needed';
+    procedure BeginPath; deprecated; // No longer necessary
     procedure EndPath(Close: boolean = False); virtual;
-    procedure ClosePath; deprecated 'Use EndPath(True) instead';
+    procedure ClosePath; deprecated; // Use EndPath(True) instead
 
     // Movement
     procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -151,7 +151,7 @@ type
   end;
 
   { TCustomCanvas }
-  TCustomCanvas = class abstract(TFlattenedPath)
+  TCustomCanvas = class(TFlattenedPath)
   private
     FTransformation: TTransformation;
   protected
@@ -162,7 +162,7 @@ type
     procedure DrawPath(const Path: TFlattenedPath); virtual; abstract;
   public
     property Transformation: TTransformation read FTransformation write SetTransformation;
-    function Path: TFlattenedPath; deprecated 'Path property is no longer needed';
+    function Path: TFlattenedPath; deprecated; // No longer necessary
   end;
 
   { TCanvas32 }
