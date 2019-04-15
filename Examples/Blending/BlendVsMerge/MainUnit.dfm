@@ -73,6 +73,23 @@ object MainForm: TMainForm
     ParentFont = False
     Layout = tlCenter
   end
+  object LabelMergeHint: TLabel
+    Left = 71
+    Top = 112
+    Width = 174
+    Height = 13
+    Caption = 'Alpha values will be merged correctly'
+  end
+  object LabelBlendHint: TLabel
+    Left = 71
+    Top = 134
+    Width = 172
+    Height = 26
+    Caption = 
+      'Alpha values of the background are assumed to be opaque -> faste' +
+      'r!'
+    WordWrap = True
+  end
   object DstImg: TImage32
     Left = 8
     Top = 192
@@ -88,7 +105,6 @@ object MainForm: TMainForm
     ScaleMode = smNormal
     TabOrder = 0
     OnPaintStage = DstImgPaintStage
-    ExplicitTop = 102
   end
   object RadioButtonBlend: TRadioButton
     Left = 8

@@ -30,19 +30,6 @@ uses
   Math, GR32_Math, GR32_Gamma, GR32_VectorUtils;
 
 procedure TFrmAntiAliasingTest.PaintBox32PaintBuffer(Sender: TObject);
-var
-  W, H: Integer;
-  Center: TFloatPoint;
-  Offset, Angle: TFloatPoint;
-  Points: TArrayOfFloatPoint;
-  Outline: TArrayOfFloatPoint;
-  MinCenter: TFloat;
-  Temp: TFloat;
-  Index: Integer;
-  LinGrad: TLinearGradientPolygonFiller;
-  Renderer: TPolygonRenderer32;
-const
-  CDeg2Rad = Pi / 180;
 
   function ArrayOfFloat(Values: array of TFloat): TArrayOfFloat;
   var
@@ -53,38 +40,51 @@ const
       Result[Index] := Values[Index];
   end;
 
-  function IndexToColor32: TColor32;
+  function IndexToColor32(Index: Integer): TColor32;
   begin
-    Result := Color32($FF * (Index mod 2), ($FF * (Index mod 3)) shr 1,
-      ($FF * (Index mod 5)) shr 2);
+    Result := Color32(
+       $FF * (Index mod 2),         // red
+      ($FF * (Index mod 3)) shr 1,  // green
+      ($FF * (Index mod 5)) shr 2   // blue
+    );
   end;
 
-begin
-  Paintbox32.Buffer.Clear($FF000000);
+var
+  W, H: Integer;
+  Center: TFloatPoint;
+  Points: TArrayOfFloatPoint;
+  Outline: TArrayOfFloatPoint;
+  Temp, MinCenter: TFloat;
+  Index: Integer;
+  LinGrad: TLinearGradientPolygonFiller;
+  Renderer: TPolygonRenderer32;
 
-  W := Paintbox32.Width;
-  H := Paintbox32.Height;
-  Center.X := 0.5 * W;
-  Center.Y := 0.5 * H;
+const
+  CDeg2Rad = Pi / 180;
 
-  Angle.X := 0;
-  Angle.Y := 1;
-  MinCenter := Min(Center.X, Center.Y);
-  GR32_Math.SinCos(2 * CDeg2Rad, Offset.X, Offset.Y);
-  Offset.X := -Offset.X;
+  procedure DrawCircleLine;
+  var
+    Index: Integer;
+    Offset, Angle: TFloatPoint;
+  begin
+    // setup an efficient quadrature oscillator algorithm
+    Angle.X := 0;
+    Angle.Y := 1;
+    GR32_Math.SinCos(2 * CDeg2Rad, Offset.X, Offset.Y);
+    Offset.X := -Offset.X;
 
-  SetLength(Points, 2);
+    // set color
+    Renderer.Color := $33FFFFFF;
 
-  Renderer := TPolygonRenderer32VPR.Create;
-  Renderer.Bitmap := PaintBox32.Buffer;
-  try
+    // keep the same center
+    Points[0] := FloatPoint(Center.X, Center.Y);
+
     for Index := 180 downto 1 do
     begin
-      Points[0] := FloatPoint(Center.X + MinCenter * Angle.X,
+      // specify line end around the circle
+      Points[1] := FloatPoint(Center.X + MinCenter * Angle.X,
         Center.Y + MinCenter * Angle.Y);
-      Points[1] := FloatPoint(Center.X, Center.Y);
 
-      Renderer.Color := $33FFFFFF;
       if Index < 90 then
         Renderer.PolyPolygonFS(BuildPolyPolyline(BuildDashedLine(Points,
           ArrayOfFloat([Index, Index])), False, 1))
@@ -95,6 +95,46 @@ begin
       Angle.X := Angle.X * Offset.Y + Angle.Y * Offset.X;
       Angle.Y := Temp;
     end;
+  end;
+
+  procedure DrawTriangles;
+  var
+    Index: Integer;
+  begin
+    // Triangles
+    SetLength(Points, 3);
+    Renderer.Filler := LinGrad;
+    for Index := 1 to 13 do
+    begin
+      Points[0] := FloatPoint(W - 150, H - 20 - Index * (Index + 1.5));
+      Points[1] := FloatPoint(W -  20, H - 20 - Index * (Index + 1));
+      Points[2] := FloatPoint(W -  20, H - 20 - Index * (Index + 2));
+
+      LinGrad.SimpleGradient(Points[0], clWhite32, Points[1], IndexToColor32(Index));
+      Renderer.PolygonFS(Points);
+    end;
+  end;
+
+begin
+  Paintbox32.Buffer.Clear($FF000000);
+
+  // cache width (W) and height (H) for faster access
+  W := Paintbox32.Width;
+  H := Paintbox32.Height;
+
+  // calculate the center point for a faster access
+  Center.X := 0.5 * W;
+  Center.Y := 0.5 * H;
+
+  // initialize some variables for a fast quadrature oscillator algorithm
+  MinCenter := Min(Center.X, Center.Y);
+
+  SetLength(Points, 2);
+
+  Renderer := TPolygonRenderer32VPR.Create;
+  Renderer.Bitmap := PaintBox32.Buffer;
+  try
+    DrawCircleLine;
 
     // Top patterns
     LinGrad := TLinearGradientPolygonFiller.Create;
@@ -119,7 +159,7 @@ begin
       Renderer.Filler := LinGrad;
       Points[0] := FloatPoint(20 + Index * (Index + 1), 40.5);
       Points[1] := FloatPoint(20 + Index * (Index + 1) + (Index - 1) * 4, 100.5);
-      LinGrad.SimpleGradient(Points[0], clWhite32, Points[1], IndexToColor32);
+      LinGrad.SimpleGradient(Points[0], clWhite32, Points[1], IndexToColor32(Index));
       Outline := BuildPolyline(Points, Index, jsRound, esRound);
       Renderer.PolygonFS(Outline);
 
@@ -181,18 +221,7 @@ begin
       Renderer.PolygonFS(BuildPolyline(Points, 0.1 * Index));
     end;
 
-    // Triangles
-    SetLength(Points, 3);
-    Renderer.Filler := LinGrad;
-    for Index := 1 to 13 do
-    begin
-      Points[0] := FloatPoint(W - 150, H - 20 - Index * (Index + 1.5));
-      Points[1] := FloatPoint(W - 20, H - 20 - Index * (Index + 1));
-      Points[2] := FloatPoint(W - 20, H - 20 - Index * (Index + 2));
-
-      LinGrad.SimpleGradient(Points[0], clWhite32, Points[1], IndexToColor32);
-      Renderer.PolygonFS(Points);
-    end;
+    DrawTriangles;
   finally
     Renderer.Free;
   end;

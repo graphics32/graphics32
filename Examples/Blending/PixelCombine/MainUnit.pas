@@ -97,6 +97,7 @@ var
   ResStream: TResourceStream;
   JPEG: TJPEGImage;
 begin
+  // Load background picture 'Runner'
   JPEG := TJPEGImage.Create;
   try
     ResStream := TResourceStream.Create(HInstance, 'Runner', RT_RCDATA);
@@ -110,15 +111,21 @@ begin
     JPEG.Free;
   end;
 
+  // Create foreground bitmap layer
   L := TBitmapLayer.Create(ImgView.Layers);
   L.Bitmap.SetSize(200, 200);
   L.Bitmap.DrawMode := dmCustom;
   L.Location := FloatRect(20, 20, 220, 220);
+
+  // Generate Bitmap
   for J := 0 to 199 do
   begin
     SinJ := Sin(J * 0.1);
     for I := 0 to 199 do
-      L.Bitmap[I, J] := SetAlpha(Gray32(Round(((Sin(I * 0.1) + SinJ) * 0.25 + 0.5) * 255)), 255 * J div 199);
+      L.Bitmap[I, J] := SetAlpha(
+        Gray32(Round(((Sin(I * 0.1) + SinJ) * 0.25 + 0.5) * 255)),
+        255 * J div 199  // alpha value
+      );
   end;
   L.Bitmap.OnPixelCombine := nil; // none by default
 end;

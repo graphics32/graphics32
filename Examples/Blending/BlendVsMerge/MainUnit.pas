@@ -42,28 +42,31 @@ uses
 
 type
   TMainForm = class(TForm)
-    LabelBlendSettings: TLabel;
-    LabelOverlay: TLabel;
+    CheckBoxBackground: TCheckBox;
+    CheckBoxForeground: TCheckBox;
+    CheckBoxTransparent: TCheckBox;
     DstImg: TImage32;
+    LabelBlendHint: TLabel;
+    LabelBlendSettings: TLabel;
+    LabelMergeHint: TLabel;
+    LabelOverlay: TLabel;
+    LabelVisible: TLabel;
     RadioButtonBlend: TRadioButton;
     RadioButtonMerge: TRadioButton;
-    LabelVisible: TLabel;
-    CheckBoxForeground: TCheckBox;
-    CheckBoxBackground: TCheckBox;
-    CheckBoxTransparent: TCheckBox;
     procedure FormCreate(Sender: TObject);
-    procedure RadioButtonBlendClick(Sender: TObject);
-    procedure RadioButtonMergeClick(Sender: TObject);
+    procedure CheckBoxImageClick(Sender: TObject);
     procedure DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
       StageNum: Cardinal);
+    procedure RadioButtonBlendClick(Sender: TObject);
+    procedure RadioButtonMergeClick(Sender: TObject);
     procedure RadioButtonNoneClick(Sender: TObject);
-    procedure CheckBoxImageClick(Sender: TObject);
   private
     FForeground: TBitmap32;
     FBackground: TBitmap32;
     FBackgroundOpaque: TBitmap32;
     FBlendFunc: TBlendReg;
     procedure ModifyAlphaValues;
+    procedure UpdateBlendModeEnabled;
     procedure DrawBitmap;
   end;
 
@@ -96,6 +99,7 @@ var
   ResStream: TResourceStream;
   JPEG: TJPEGImage;
 begin
+  // setup custom checker board paint stage
   with DstImg do
   begin
     with PaintStages[0]^ do //Set up custom paintstage to draw checkerboard
@@ -129,8 +133,11 @@ begin
     JPEG.Free;
   end;
 
+  // clone background (= store original background without transparency)
   FBackgroundOpaque := TBitmap32.Create;
   FBackgroundOpaque.Assign(FBackground);
+
+  // apply transparency to both background and foreground
   ModifyAlphaValues;
 
   DstImg.Bitmap.SetSize(FForeground.Width, FForeground.Height);
@@ -143,28 +150,26 @@ var
   X, Y: Integer;
   Line: PColor32EntryArray;
 begin
+  // apply a linear alpha gradient from left (transparent) to right (opaque)
   for Y := 0 to FForeground.Height - 1 do
   begin
     Line := PColor32EntryArray(FForeground.ScanLine[Y]);
     for X := 0 to FForeground.Width - 1 do
-    begin
       Line^[X].A := X;
-    end;
   end;
 
+  // apply a linear alpha gradient from top (transparent) to bottom (opaque)
   for Y := 0 to FBackground.Height - 1 do
   begin
     Line := PColor32EntryArray(FBackground.ScanLine[Y]);
     for X := 0 to FBackground.Width - 1 do
-    begin
       Line^[X].A := Y;
-    end;
   end;
 end;
 
 procedure TMainForm.DstImgPaintStage(Sender: TObject; Buffer: TBitmap32;
   StageNum: Cardinal);
-const            //0..1
+const
   Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
 var
   R: TRect;
@@ -174,6 +179,7 @@ var
   TileX, TileY: Integer;
   TileHeight, TileWidth: Integer;
 begin
+  // draw checker board
   with TImgView32(Sender) do
   begin
     BeginUpdate;
@@ -224,6 +230,16 @@ end;
 procedure TMainForm.CheckBoxImageClick(Sender: TObject);
 begin
   DrawBitmap;
+  UpdateBlendModeEnabled;
+end;
+
+procedure TMainForm.UpdateBlendModeEnabled;
+var
+  Value: Boolean;
+begin
+  Value := CheckBoxForeground.Checked and CheckBoxBackground.Checked;
+  RadioButtonBlend.Enabled := Value;
+  RadioButtonMerge.Enabled := Value;
 end;
 
 procedure TMainForm.DrawBitmap;
@@ -232,6 +248,7 @@ var
   PSrcF, PSrcB, PDst: PColor32Array;
   Background: TBitmap32;
 begin
+  // select whether the opaque or transparent image shall be used
   if CheckBoxTransparent.Checked then
     Background := FBackground
   else
@@ -242,6 +259,7 @@ begin
     if CheckBoxBackground.Checked then
       for Y := 0 to FForeground.Height - 1 do
       begin
+        // blend lines according to the blend function (blend or merge)
         PSrcF := PColor32Array(FForeground.ScanLine[Y]);
         PSrcB := PColor32Array(Background.ScanLine[Y]);
         PDst := PColor32Array(DstImg.Bitmap.ScanLine[Y]);
@@ -251,10 +269,10 @@ begin
     else
       for Y := 0 to FForeground.Height - 1 do
       begin
+        // copy lines from the foreground image
         PSrcF := PColor32Array(FForeground.ScanLine[Y]);
         PDst := PColor32Array(DstImg.Bitmap.ScanLine[Y]);
-        for X := 0 to FForeground.Width - 1 do
-          PDst[X] := PSrcF[X];
+        MoveLongword(PSrcF^, PDst^, FForeground.Width);
       end
   end
   else
@@ -262,10 +280,10 @@ begin
     if CheckBoxBackground.Checked then
       for Y := 0 to FForeground.Height - 1 do
       begin
+        // copy lines from the background image
         PSrcB := PColor32Array(Background.ScanLine[Y]);
         PDst := PColor32Array(DstImg.Bitmap.ScanLine[Y]);
-        for X := 0 to FForeground.Width - 1 do
-          PDst[X] := PSrcB[X];
+        MoveLongword(PSrcB^, PDst^, FForeground.Width);
       end
     else
       DstImg.Bitmap.Clear(0);
