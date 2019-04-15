@@ -482,6 +482,11 @@ begin
   end;
 end;
 
+{$ifndef COMPILERXE2_UP}
+type
+  TRoundingMode = Math.TFPURoundingMode;
+{$endif COMPILERXE2_UP}
+
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 var
