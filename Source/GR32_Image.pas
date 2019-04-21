@@ -705,8 +705,7 @@ begin
 
   { Setting a initial size here will cause the control to crash under LCL }
 {$IFNDEF FPC}
-  Height := 192;
-  Width := 192;
+  SetBounds(0, 0, 192, 192);
 {$ENDIF}
 end;
 
@@ -833,6 +832,7 @@ end;
 
 procedure TCustomPaintBox32.Loaded;
 begin
+  ResizeBuffer;
   FBufferValid := False;
   inherited;
 end;
@@ -897,7 +897,8 @@ end;
 
 procedure TCustomPaintBox32.Resize;
 begin
-  ResizeBuffer;
+  if (not (csLoading in ComponentState)) then
+    ResizeBuffer;
   BufferValid := False;
   inherited;
 end;
@@ -950,7 +951,8 @@ end;
 procedure TCustomPaintBox32.SetBounds(ALeft, ATop, AWidth, AHeight: Integer);
 begin
   inherited;
-  if csDesigning in ComponentState then ResizeBuffer;
+  if (not (csLoading in ComponentState)) then
+    ResizeBuffer;
   FBufferValid := False;
 end;
 
