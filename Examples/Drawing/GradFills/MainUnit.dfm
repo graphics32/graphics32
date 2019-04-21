@@ -4,8 +4,8 @@ object MainForm: TMainForm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Filling Polygons with Color Gradients'
-  ClientHeight = 445
-  ClientWidth = 585
+  ClientHeight = 449
+  ClientWidth = 502
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -24,9 +24,10 @@ object MainForm: TMainForm
     Left = 0
     Top = 0
     Width = 145
-    Height = 445
+    Height = 449
     Align = alLeft
     TabOrder = 0
+    ExplicitHeight = 445
     object LblColorStopsTop: TLabel
       Left = 14
       Top = 15
@@ -119,8 +120,8 @@ object MainForm: TMainForm
   object ImgView32: TImgView32
     Left = 145
     Top = 0
-    Width = 440
-    Height = 445
+    Width = 357
+    Height = 449
     Align = alClient
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCustom
@@ -137,6 +138,8 @@ object MainForm: TMainForm
     OnMouseDown = ImgView32MouseDown
     OnMouseMove = ImgView32MouseMove
     OnMouseUp = ImgView32MouseUp
+    ExplicitWidth = 440
+    ExplicitHeight = 445
   end
   object MainMenu: TMainMenu
     Left = 193

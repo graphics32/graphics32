@@ -1,6 +1,7 @@
 program GradFills;
 
 {$R 'Media.res' 'Media.rc'}
+{$R ..\..\manifest.res}
 
 uses
   Forms,

@@ -68,6 +68,7 @@ type
     procedure RgpEllipseFillStyleClick(Sender: TObject);
     procedure RgpWrapModeClick(Sender: TObject);
   private
+    FDpiScale: single;
     FKnobBitmap: TBitmap32;
     FKnobRadius: Integer;
     FControlKnob: PPoint;
@@ -323,6 +324,54 @@ begin
   end;
 end;
 
+function DPIScale(value: integer): integer; overload;
+begin
+  result := mulDiv(value, screen.PixelsPerInch, 96);
+end;
+
+function DPIScale(value: single): single; overload;
+begin
+  result := value * screen.PixelsPerInch / 96;
+end;
+
+function DpiAwarePoint(const x, y: integer): TPoint;
+begin
+  result := Gr32.Point(DPIScale(x), DPIScale(y));
+end;
+
+function DpiAwareRect(const l, t, r, b: integer): TRect;
+begin
+  result := Rect(DPIScale(l), DPIScale(t), DPIScale(r), DPIScale(b));
+end;
+
+function DpiAwareFloatPoint(const x, y: integer): TFloatPoint;
+begin
+  result := FloatPoint(DPIScale(x), DPIScale(y));
+end;
+
+function DpiAwareFloatRect(const l, t, r, b: single): TFloatRect;
+begin
+  result := FloatRect(DPIScale(l), DPIScale(t), DPIScale(r), DPIScale(b));
+end;
+
+procedure OffsetPolygon(var polygon: TArrayOfFloatPoint; dx, dy: single);
+var
+  i: integer;
+begin
+  for i := 0 to high(polygon) do
+  begin
+    polygon[i].X := polygon[i].X + dx;
+    polygon[i].Y := polygon[i].Y + dy;
+  end;
+end;
+
+procedure OffsetPolyPolygon(var polygons: TArrayOfArrayOfFloatPoint; dx, dy: single);
+var
+  i: integer;
+begin
+  for i := 0 to high(polygons) do
+    OffsetPolygon(polygons[i], dx, dy);
+end;
 
 { TMainForm }
 
@@ -333,10 +382,18 @@ var
   Filler: TSamplerFiller;
   Sampler: TRadialGradientSampler;
 begin
-  ImgView32.SetupBitmap(True);
 
-  FLinearBounds := Rect(50, 50, 350, 200);
-  FRadialBounds := Rect(50, 250, 350, 400);
+  if Screen.PixelsPerInch > 96 then
+    FDpiScale := Screen.PixelsPerInch/ 96 else
+    FDpiScale := 1;
+
+  ClientWidth := PnlControl.Width + DPIScale(400);
+  ClientHeight := DPIScale(450);
+
+  ImgView32.SetupBitmap(true, clCream32);
+
+  FLinearBounds := DpiAwareRect(50, 50, 350, 200);
+  FRadialBounds := DpiAwareRect(50, 250, 350, 400);
 
   FGradient := TColor32Gradient.Create;
   StrToArrayColor32Gradient(MemoColorStops.Lines, FGradient);
@@ -348,18 +405,19 @@ begin
   //These text paths only need to be gotten once ...
   TextPath := TFlattenedPath.Create;
   try
-    TextToPath(Self.Font.Handle, TextPath, FloatRect(50, 10, 250, 30),
-      'nb: Click and drag control buttons to adjust gradients ...', 0);
+    TextToPath(Self.Font.Handle, TextPath, DpiAwareFloatRect(50, 10, 450, 30),
+      'Click & drag control buttons to adjust gradients', 0);
     FTextNotesPoly := TextPath.Path;
 
     with FLinearBounds do
       TextToPath(Self.Font.Handle, TextPath,
-        FloatRect(Left, Bottom, Left + 100,Bottom + 20), 'Linear gradients', 0);
+        FloatRect(Left, Bottom, Left + DPIScale(150),Bottom + DPIScale(20)),
+        'Linear gradients', 0);
     FTextTopPoly := TextPath.Path;
 
     with FRadialBounds do
       TextToPath(Self.Font.Handle, TextPath,
-        FloatRect(Left, Bottom, Left + 100, Bottom + 20),
+        FloatRect(Left, Bottom, Left + DPIScale(150), Bottom + DPIScale(20)),
         'Radial gradients', 0);
     FTextBottomPoly := TextPath.Path;
   finally
@@ -367,8 +425,11 @@ begin
   end;
 
   FTextGR32 := LoadPolysFromResource('Graphics32_Crv');
+  OffsetPolyPolygon(FTextGR32, DPIScale(-42), 0);
+  if FDpiScale > 1 then
+    FTextGR32 := ScalePolyPolygon(FTextGR32, FDpiScale, FDpiScale);
 
-  FKnobRadius := 4;
+  FKnobRadius := DPIScale(4);
   FKnobBitmap := TBitmap32.Create;
   FKnobBitmap.SetSize(2 * FKnobRadius + 2, 2 * FKnobRadius + 2);
   FKnobBitmap.DrawMode := dmBlend;
@@ -394,14 +455,14 @@ begin
     Sampler.Free;
   end;
 
-  FLinearStart := GR32.Point(100, 125);
-  FLinearEnd  := GR32.Point(300, 125);
-  FRadialOrigin := GR32.Point(250, 350);
+  FLinearStart := DpiAwarePoint(100, 125);
+  FLinearEnd  := DpiAwarePoint(300, 125);
+  FRadialOrigin := DpiAwarePoint(250, 350);
 
   with FRadialOrigin do
   begin
-    FRadialX := GR32.Point(X - 80, Y);
-    FRadialY := GR32.Point(X, Y + 40);
+    FRadialX := GR32.Point(X - DPIScale(80), Y);
+    FRadialY := GR32.Point(X, Y + DPIScale(40));
   end;
 
   DrawImage;
@@ -418,27 +479,27 @@ begin
   case 0 of
     0:
       begin
-        FLinearStart := GR32.Point(200, 70);
-        FLinearEnd := GR32.Point(200, 170);
+        FLinearStart := DpiAwarePoint(200, 70);
+        FLinearEnd := DpiAwarePoint(200, 170);
       end;
     1:
       begin
-        FLinearStart := GR32.Point(200, 120);
-        FLinearEnd := GR32.Point(200, 120);
+        FLinearStart := DpiAwarePoint(200, 120);
+        FLinearEnd := DpiAwarePoint(200, 120);
       end;
     2:
       begin
-        FLinearStart := GR32.Point(200, 120);
-        FLinearEnd := GR32.Point(201, 120);
+        FLinearStart := DpiAwarePoint(200, 120);
+        FLinearEnd := DpiAwarePoint(201, 120);
       end;
     3:
       begin
-        FLinearStart := GR32.Point(200, 100);
-        FLinearEnd := GR32.Point(200, 140);
+        FLinearStart := DpiAwarePoint(200, 100);
+        FLinearEnd := DpiAwarePoint(200, 140);
       end;
   end;
 
-  FRadialOrigin := GR32.Point(331, 325);
+  FRadialOrigin := DpiAwarePoint(331, 325);
 
   DrawImage;
 end;
@@ -564,6 +625,7 @@ var
   LinearGradFiller: TCustomLinearGradientPolygonFiller;
   RadialGradFiller: TRadialGradientPolygonFiller;
   SVGStyleRadGradFiller: TSVGRadialGradientPolygonFiller;
+  rec: TRect;
 const
   SimpleStyle = 0;
 begin
@@ -573,6 +635,9 @@ begin
 
   //draw the top ellipse ...
   PolygonTop := Ellipse(200, 125, 100, 60);
+  if FDpiScale > 1 then
+    PolygonTop := ScalePolygon(PolygonTop, FDpiScale, FDpiScale);
+
   LinearGradFiller := TLinearGradientPolygonFiller.Create(FGradientLUT);
   try
     LinearGradFiller.StartPoint := FloatPoint(FLinearStart);
@@ -583,8 +648,8 @@ begin
     PolyLineFS(ImgView32.Bitmap, PolygonTop, clBlack32, True, 1);
 
     //use LinearGradFiller to fill 'Graphics32' text  too ...
-    LinearGradFiller.StartPoint := FloatPoint(230, 420);
-    LinearGradFiller.EndPoint := FloatPoint(430, 420);
+    LinearGradFiller.StartPoint := DpiAwareFloatPoint(230, 420);
+    LinearGradFiller.EndPoint := DpiAwareFloatPoint(430, 420);
     PolyPolygonFS(ImgView32.Bitmap, FTextGR32, LinearGradFiller);
     PolyPolylineFS(ImgView32.Bitmap, FTextGR32, clBlack32, True, 1.2);
   finally
@@ -593,6 +658,9 @@ begin
 
   //draw the bottom ellipse ...
   PolygonBottom := Ellipse(200, 325, 100, 60);
+  if FDpiScale > 1 then
+    PolygonBottom := ScalePolygon(PolygonBottom, FDpiScale, FDpiScale);
+
   if RgpEllipseFillStyle.ItemIndex = SimpleStyle then
   begin
     RadialGradFiller := TRadialGradientPolygonFiller.Create(FGradientLUT);
@@ -611,7 +679,7 @@ begin
   begin
     SVGStyleRadGradFiller := TSVGRadialGradientPolygonFiller.Create(FGradientLUT);
     try
-      SVGStyleRadGradFiller.EllipseBounds := FloatRect(100, 265, 300, 385);
+      SVGStyleRadGradFiller.EllipseBounds := DpiAwareFloatRect(100, 265, 300, 385);
       SVGStyleRadGradFiller.FocalPoint := FloatPoint(FRadialOrigin);
       PolygonFS(ImgView32.Bitmap, PolygonBottom, SVGStyleRadGradFiller);
     finally
