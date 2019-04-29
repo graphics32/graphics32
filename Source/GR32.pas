@@ -2159,6 +2159,7 @@ end;
 
 procedure TNotifiablePersistent.Beforedestruction;
 begin
+  inherited;
   inc(FUpdateCount);
 end;
 
