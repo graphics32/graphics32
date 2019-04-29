@@ -582,6 +582,7 @@ type
   protected
     property UpdateCount: Integer read FUpdateCount;
   public
+    procedure BeforeDestruction; override;
     procedure Changed; virtual;
     procedure BeginUpdate; virtual;
     procedure EndUpdate; virtual;
@@ -2156,6 +2157,11 @@ end;
 
 { TNotifiablePersistent }
 
+procedure TNotifiablePersistent.Beforedestruction;
+begin
+  inc(FUpdateCount);
+end;
+
 procedure TNotifiablePersistent.BeginUpdate;
 begin
   Inc(FUpdateCount);
@@ -2293,7 +2299,6 @@ end;
 
 destructor TCustomBitmap32.Destroy;
 begin
-  BeginUpdate;
   Lock;
   try
     SetSize(0, 0);
