@@ -242,6 +242,7 @@ begin
   SetLength(Outline, 1, CVertexCountStep);
   Outline[0, 0] := FVertices[0];
   Index := 0;
+  Val := 0;
   while Val < Length(FVertices) do
   begin
     Indices[0] := (Length(FVertices) + Trunc(Val) - 2 + 1) mod Length(FVertices);
