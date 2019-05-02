@@ -1,0 +1,4 @@
+[bugtraq]
+	url = https://github.com/graphics32/graphics32/issues/%BUGID%
+	number = true
+	logregex = "#(\\d+)\n\\d+"
