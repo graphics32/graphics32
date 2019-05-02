@@ -108,7 +108,7 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32_LowLevel, GR32_Geometry, GR32_VectorUtils, GR32_ColorGradients;
+  Math, GR32_LowLevel, GR32_Geometry, GR32_VectorUtils, GR32_ColorGradients, Types;
 
 { Miscellaneous functions }
 
@@ -234,9 +234,9 @@ begin
   for Index := 0 to High(FBoxCenter) do
     if PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
       FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad,
-      FBoxCenter[Index].Y + CRad), Point(X, Y)) then
+      FBoxCenter[Index].Y + CRad), GR32.Point(X, Y)) then
     begin
-      FLastPos := Point(X, Y);
+      FLastPos := GR32.Point(X, Y);
       FBoxIndex := Index;
       Exit;
     end;
@@ -254,14 +254,14 @@ begin
     FBoxCenter[FBoxIndex].Y := EnsureRange(FBoxCenter[FBoxIndex].Y + Y -
       FLastPos.Y, CRad, ImgView32.Height - CRad);
     ReDraw;
-    FLastPos := Point(X, Y);
+    FLastPos := GR32.Point(X, Y);
   end
   else
   begin
     for Index := 0 to High(FBoxCenter) do
       if PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
         FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad,
-        FBoxCenter[Index].Y + CRad), Point(X, Y)) then
+        FBoxCenter[Index].Y + CRad), GR32.Point(X, Y)) then
       begin
         ImgView32.Cursor := crHandPoint;
         Exit;
