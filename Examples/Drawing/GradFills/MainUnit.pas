@@ -625,7 +625,6 @@ var
   LinearGradFiller: TCustomLinearGradientPolygonFiller;
   RadialGradFiller: TRadialGradientPolygonFiller;
   SVGStyleRadGradFiller: TSVGRadialGradientPolygonFiller;
-  rec: TRect;
 const
   SimpleStyle = 0;
 begin
