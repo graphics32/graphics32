@@ -53,16 +53,16 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <SanitizedProjectName>SvgPath</SanitizedProjectName>
-        <DCC_DcuOutput>..\..\..\Unit Cache\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_DcuOutput>lib</DCC_DcuOutput>
         <DCC_E>false</DCC_E>
-        <DCC_ExeOutput>..\..\..\Binaries\$(Platform)\$(Config)</DCC_ExeOutput>
+        <DCC_ExeOutput>bin</DCC_ExeOutput>
         <DCC_F>false</DCC_F>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <DCC_K>false</DCC_K>
         <DCC_N>false</DCC_N>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
         <DCC_S>false</DCC_S>
-        <DCC_UnitSearchPath>..\..\..\Unit Cache;..\..\..\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\..\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
         <VerInfo_Locale>1031</VerInfo_Locale>
     </PropertyGroup>
