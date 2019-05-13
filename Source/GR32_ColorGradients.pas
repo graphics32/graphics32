@@ -232,9 +232,23 @@ type
     property Power: TFloat read FPower write FPower;
   end;
 
+  TVoronoiMetric = (vmEuclidean, vmManhattan, vmCustom);
+
+  TVoronoiMetricFunc = function (X, Y: TFloat; Point: TFloatPoint): TFloat;
+
   TVoronoiSampler = class(TCustomArbitrarySparsePointGradientSampler)
+  private
+    FMetric: TVoronoiMetric;
+    FMetricFunc: TVoronoiMetricFunc;
+    procedure SetMetric(const Value: TVoronoiMetric);
+    procedure MetricChanged;
+    procedure SetMetricFunc(const Value: TVoronoiMetricFunc);
   public
+    constructor Create(Metric: TVoronoiMetric = vmEuclidean); virtual;
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
+
+    property Metric: TVoronoiMetric read FMetric write SetMetric;
+    property MetricFunc: TVoronoiMetricFunc read FMetricFunc write SetMetricFunc;
   end;
 
   TGourandShadedDelaunayTrianglesSampler = class(TCustomArbitrarySparsePointGradientSampler)
@@ -2114,7 +2128,32 @@ begin
 end;
 
 
+function EuclideanMetric(X, Y: TFloat; Point: TFloatPoint): TFloat;
+begin
+  Result := Sqr(X - Point.X) + Sqr(Y - Point.Y);
+end;
+
+function ManhattanMetric(X, Y: TFloat; Point: TFloatPoint): TFloat;
+begin
+  Result := Abs(X - Point.X) + Abs(Y - Point.Y);
+end;
+
+
 { TVoronoiSampler }
+
+constructor TVoronoiSampler.Create(Metric: TVoronoiMetric = vmEuclidean);
+begin
+  FMetric := Metric;
+  FMetricFunc := EuclideanMetric;
+  case FMetric of
+    vmEuclidean:
+      FMetricFunc := @EuclideanMetric;
+    vmManhattan:
+      FMetricFunc := @ManhattanMetric;
+    vmCustom:
+      raise Exception.Create('Invalid metric');
+  end;
+end;
 
 function TVoronoiSampler.GetSampleFloat(X, Y: TFloat): TColor32;
 var
@@ -2123,10 +2162,10 @@ var
   NearestDistance: TFloat;
 begin
   NearestIndex := 0;
-  NearestDistance := Sqr(X - FColorPoints[0].Point.X) + Sqr(Y - FColorPoints[0].Point.Y);
+  NearestDistance := FMetricFunc(X, Y, FColorPoints[0].Point);
   for Index := 1 to High(FColorPoints) do
   begin
-    Distance := Sqr(X - FColorPoints[Index].Point.X) + Sqr(Y - FColorPoints[Index].Point.Y);
+    Distance := FMetricFunc(X, Y, FColorPoints[Index].Point);
     if Distance < NearestDistance then
     begin
       NearestDistance := Distance;
@@ -2134,6 +2173,32 @@ begin
     end;
   end;
   Result := FColorPoints[NearestIndex].Color32;
+end;
+
+procedure TVoronoiSampler.SetMetric(const Value: TVoronoiMetric);
+begin
+  if FMetric <> Value then
+  begin
+    FMetric := Value;
+    case FMetric of
+      vmEuclidean:
+        FMetricFunc := @EuclideanMetric;
+      vmManhattan:
+        FMetricFunc := @ManhattanMetric;
+    end;
+    MetricChanged;
+  end;
+end;
+
+procedure TVoronoiSampler.SetMetricFunc(const Value: TVoronoiMetricFunc);
+begin
+  FMetricFunc := Value;
+  Metric := vmCustom;
+end;
+
+procedure TVoronoiSampler.MetricChanged;
+begin
+  Changed;
 end;
 
 
