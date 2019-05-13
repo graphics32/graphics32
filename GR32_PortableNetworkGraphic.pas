@@ -4945,9 +4945,10 @@ begin
     FImageHeader.CompressionMethod := 0;
 
     // compress Stream to DataStream
-    if Stream is TMemoryStream
-     then ZCompress(TMemoryStream(Stream), DataStream, FCompressionLevel)
-     else raise EPngError.Create(RCStrNotYetImplemented);
+    if Stream is TMemoryStream then
+      ZCompress(TMemoryStream(Stream), DataStream, FCompressionLevel)
+    else
+      raise EPngError.Create(RCStrNotYetImplemented);
 
     // reset data stream position to zero
     DataStream.Seek(0, soFromBeginning);

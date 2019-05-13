@@ -55,6 +55,7 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     procedure Assign(Source: TPersistent); override;
 
+    function IsPremultiplied: Boolean;
     procedure DrawToBitmap32(Bitmap32: TCustomBitmap32); virtual;
 
     property Background: TColor32 read GetBackgroundColor;
@@ -426,6 +427,32 @@ begin
     FProgressEvent(Self, 100 * Y / FImageHeader.Height)
   else
     FProgressEvent(Self, 100);
+end;
+
+function TPortableNetworkGraphic32.IsPremultiplied: Boolean;
+var
+  TempBitmap: TBitmap32;
+  Pointer: PColor32EntryArray;
+  Value: TColor32Entry;
+  Index: Integer;
+begin
+  // this code checks whether the bitmap is *NOT* premultiplied
+  // unfortunately this is just a weak check and might fail
+
+  Result := True;
+  TempBitmap := TBitmap32.Create;
+  try
+    AssignTo(TempBitmap);
+    Pointer := PColor32EntryArray(TempBitmap.Bits);
+    for Index := 0 to TempBitmap.Width * TempBitmap.Height - 1 do
+    begin
+      Value := Pointer^[Index];
+      if (Value.R > Value.A) or (Value.G > Value.A) or (Value.B > Value.A) then
+        Exit(False);
+    end;
+  finally
+    TempBitmap.Free;
+  end;
 end;
 
 procedure TPortableNetworkGraphic32.DrawToBitmap32(Bitmap32: TCustomBitmap32);
