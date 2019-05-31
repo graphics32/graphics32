@@ -1982,7 +1982,17 @@ var
 
 begin
   Result := nil;
-  if Length(Points) <= 0 then Exit;
+
+  if (Length(Points) = 0) then
+    Exit;
+
+  if (Length(DashArray) = 0) then
+  begin
+    Setlength(Result, 1);
+    Result[0] := Points;
+    Exit;
+  end;
+
   DashIndex := -1;
   Offset := 0;
 
@@ -2080,7 +2090,17 @@ var
 
 begin
   Result := nil;
-  if Length(Points) <= 0 then Exit;
+
+  if (Length(Points) = 0) then
+    Exit;
+
+  if (Length(DashArray) = 0) then
+  begin
+    Setlength(Result, 1);
+    Result[0] := Points;
+    Exit;
+  end;
+
   DashIndex := -1;
   Offset := 0;
 
