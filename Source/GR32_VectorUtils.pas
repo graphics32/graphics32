@@ -1857,7 +1857,7 @@ begin
   begin
     SetLength(Dst, Length(Points));
     for I := 0 to High(Points) do
-      Dst[I] := BuildPolyline(Points[I], StrokeWidth, JoinStyle, EndStyle);
+      Dst[I] := BuildPolyline(Points[I], StrokeWidth, JoinStyle, EndStyle, MiterLimit);
   end;
   Result := Dst;
 end;
