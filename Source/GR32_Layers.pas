@@ -366,7 +366,7 @@ type
     procedure SetLayerOptions(Value: Cardinal); override;
     procedure SetDragState(const Value: TRBDragState); overload;
     procedure SetDragState(const Value: TRBDragState; const X, Y: Integer); overload;
-    procedure UpdateChildLayer;
+    procedure UpdateChildLayer; virtual;
     procedure DrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
