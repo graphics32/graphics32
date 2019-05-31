@@ -640,9 +640,8 @@ begin
   begin
     AddPoint(FPoints[0]);
     Inc(FClosedCount);
+    CurrentPoint := FPoints[0];
   end;
-
-  CurrentPoint := FPoints[0];
 
   // Grow path list
   n := Length(FPath);
