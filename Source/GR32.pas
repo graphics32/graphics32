@@ -4982,20 +4982,19 @@ var
   j: Integer;
   P: PColor32Array;
 begin
-  if Assigned(FBits) then
+  if (FBits <> nil) then
     for j := Y1 to Y2 - 1 do
     begin
       P := Pointer(@Bits[j * FWidth]);
       FillLongword(P[X1], X2 - X1, Value);
     end;
-    
+
   Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TCustomBitmap32.FillRectS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (X2 > X1) and (Y2 > Y1) and
+  if (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -5003,9 +5002,8 @@ begin
     if Y1 < FClipRect.Top then Y1 := FClipRect.Top;
     if X2 > FClipRect.Right then X2 := FClipRect.Right;
     if Y2 > FClipRect.Bottom then Y2 := FClipRect.Bottom;
-    FillRect(X1, Y1, X2, Y2, Value);
+    FillRect(X1, Y1, X2, Y2, Value); // Calls Changed()
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TCustomBitmap32.FillRectT(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -5049,8 +5047,7 @@ end;
 
 procedure TCustomBitmap32.FillRectTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 begin
-  if not FMeasuringMode and
-    (X2 > X1) and (Y2 > Y1) and
+  if (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
@@ -5058,9 +5055,12 @@ begin
     if Y1 < FClipRect.Top then Y1 := FClipRect.Top;
     if X2 > FClipRect.Right then X2 := FClipRect.Right;
     if Y2 > FClipRect.Bottom then Y2 := FClipRect.Bottom;
-    FillRectT(X1, Y1, X2, Y2, Value);
+
+    if (FMeasuringMode) then
+      Changed(MakeRect(X1, Y1, X2, Y2))
+    else
+      FillRectT(X1, Y1, X2, Y2, Value); // Calls Changed()
   end;
-  Changed(MakeRect(X1, Y1, X2, Y2));
 end;
 
 procedure TCustomBitmap32.FillRectS(const ARect: TRect; Value: TColor32);
