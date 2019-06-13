@@ -261,7 +261,7 @@ begin
   for K := 0 to M do
   begin
     N := High(Points[K]);
-    if N <= 2 then Exit;
+    if N <= 2 then Continue;
     for I := 0 to N do
     begin
       Y := Round(Points[K][I].Y);
@@ -278,7 +278,7 @@ begin
   for K := 0 to M do
   begin
     N := High(Points[K]);
-    if N <= 2 then Exit;
+    if N <= 2 then Continue;
     J0 := Round(Points[K][N].Y);
     S1 := @Points[K][0].Y;
     for I := 0 to N do
@@ -312,7 +312,7 @@ begin
   for K := 0 to M do
   begin
     N := High(Points[K]);
-    if N < 3 then Continue;
+    if N < 2 then Continue;
     Pt1 := @Points[K][N];
     Pt2 := @Points[K][0];
     for I := 0 to N do
