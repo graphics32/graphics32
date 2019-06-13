@@ -155,9 +155,9 @@ begin
   Span.X1 := High(Integer);
   Span.X2 := Low(Integer);
 
-  P := @Points[0];
   for I := 0 to N - 1 do
   begin
+    P := @Points[I];
     X := Round(P.X);
     if X < Span.X1 then Span.X1 := X;
     if P.Y = 1 then
@@ -175,7 +175,6 @@ begin
       end;
     end;
     if X > Span.X2 then Span.X2 := X;
-    inc(P);
   end;
 
   CumSum(@SpanData[Span.X1], Span.X2 - Span.X1 + 1);
@@ -188,6 +187,118 @@ begin
 
   Span.Values := @SpanData[Span.X1];
 end;
+
+(*
+procedure ExtractPackedSpans(const ScanLine: TScanLine; out Spans: PValueSpanArray;
+  out Count: Integer);
+const
+  SpanDelta = 16;  {** N: this constant adjusts the span subdivision size }
+var
+  I, J, X, J1, J2: Integer;
+  Values: PSingleArray;
+  SpanData: PSingleArray;
+  P: TFloatPoint;
+  S: PLineSegment;
+  V, fracX: TFloat;
+  Points: PFloatPointArray;
+  N, SpanWidth: Integer;
+  X1, X2: Integer;
+  Span: PValueSpan;
+begin
+  N := ScanLine.Count * 2;
+  Points := @ScanLine.Segments[0];
+  X1 := ScanLine.X1;
+  X2 := ScanLine.X2;
+  SpanWidth := X2 - X1 + 1;
+
+  FillLongWord(ScanLine.SpanData[0], SpanWidth + 1, 0);
+
+  Count := (SpanWidth - 1) div SpanDelta + 1;
+  GetMem(Spans, Count * SizeOf(TValueSpan));
+
+  for I := 0 to Count - 1 do
+  begin
+    Spans[I].SpanMode := smPacked;
+  end;
+
+  for I := 0 to ScanLine.Count - 1 do
+  begin
+    S := @ScanLine.Segments[I];
+    J1 := (Round(S[0].X) - X1) div SpanDelta;
+    J2 := (Round(S[1].X) - X1) div SpanDelta;
+    if J1 > J2 then Swap(J1, J2);
+    for J := J1 to J2 do Spans[J].SpanMode := smUnpacked;
+  end;
+
+  SpanData := ScanLine.SpanData;
+  Values := @SpanData[-X1];
+
+  for I := 0 to N - 1 do
+  begin
+    P := Points[I];
+    if P.Y = 1 then
+    begin
+      X := Round(P.X);
+      fracX := P.X - X;
+      if Odd(I) then
+      begin
+        Values[X] := Values[X] + (1 - fracX);
+        Inc(X);
+        Values[X] := Values[X] + fracX;
+      end
+      else
+      begin
+        Values[X] := Values[X] - (1 - fracX);
+        Inc(X);
+        Values[X] := Values[X] - fracX;
+      end;
+    end;
+  end;
+
+  Span := @Spans[0];
+  Span.X1 := X1;
+  Span.Values := @SpanData[0];
+  for I := 1 to Count - 1 do
+  begin
+    if Spans[I].SpanMode <> Span.SpanMode then
+    begin
+      X := I * SpanDelta;
+      Span.X2 := X1 + X - 1;
+      Inc(Span);
+      Span^ := Spans[I];
+      Span.Values := @SpanData[X];
+      Span.X1 := X1 + X;
+    end
+    else
+      Dec(Count);
+  end;
+  Span.X2 := X2;
+
+  V := 0;
+  Span := @Spans[0];
+  if Span.SpanMode = smPacked then Span.Values[0] := V;
+  for I := 0 to Count - 1 do
+  begin
+    if Span.SpanMode = smPacked then
+    begin
+      V := Span.Values[0];
+      Span.Value := V;
+    end
+    else
+    begin
+      Span.Values[0] := Span.Values[0] + V;
+      CumSum(Span.Values, Span.X2 - Span.X1 + 2);
+    end;
+    Inc(Span);
+  end;
+
+  for I := 0 to ScanLine.Count - 1 do
+  begin
+    S := @ScanLine.Segments[I];
+    IntegrateSegment(S[0], S[1], Values);
+  end;
+end;
+*)
 
 procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine); {$IFDEF USEINLINING} inline; {$ENDIF}
 var
@@ -246,56 +357,42 @@ begin
   end;
 end;
 
-procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint;
+procedure BuildScanLines(const Points: TArrayOfFloatPoint;
   out ScanLines: TScanLines);
 var
-  I,J,K, M,N, J0, J1, Y, YMin, YMax: Integer;
-  S1: PSingle;
-  Pt1,Pt2: PFloatPoint;
+  I, J, N, J0, J1, Y, YMin, YMax: Integer;
   PScanLines: PScanLineArray;
 begin
+  N := Length(Points);
+  if N <= 2 then Exit;
 
-  YMin := MaxInt;
-  YMax := -MaxInt;
-  M := High(Points);
-  for K := 0 to M do
+  YMin := Round(Points[0].Y);
+  YMax := YMin;
+  for I := 1 to N - 1 do
   begin
-    N := High(Points[K]);
-    if N <= 2 then Continue;
-    for I := 0 to N do
-    begin
-      Y := Round(Points[K][I].Y);
-      if YMin > Y then YMin := Y;
-      if YMax < Y then YMax := Y;
-    end;
+    Y := Round(Points[I].Y);
+    if YMin > Y then YMin := Y;
+    if YMax < Y then YMax := Y;
   end;
 
-  if YMin > YMax then Exit;
   SetLength(ScanLines, YMax - YMin + 2);
   PScanLines := @ScanLines[-YMin];
 
   {** compute array sizes for each scanline }
-  for K := 0 to M do
+  J0 := Round(Points[0].Y);
+  for I := 1 to N - 1 do
   begin
-    N := High(Points[K]);
-    if N <= 2 then Continue;
-    J0 := Round(Points[K][N].Y);
-    S1 := @Points[K][0].Y;
-    for I := 0 to N do
+    J1 := J0;
+    J0 := Round(Points[I].Y);
+    if J0 <= J1 then
     begin
-      J1 := Round(S1^);
-      if J0 <= J1 then
-      begin
-        Inc(PScanLines[J0].Count);
-        Dec(PScanLines[J1 + 1].Count);
-      end
-      else
-      begin
-        Inc(PScanLines[J1].Count);
-        Dec(PScanLines[J0 + 1].Count);
-      end;
-      J0 := J1;
-      inc(S1, 2); //skips X value
+      Inc(PScanLines[J0].Count);
+      Dec(PScanLines[J1 + 1].Count);
+    end
+    else
+    begin
+      Inc(PScanLines[J1].Count);
+      Dec(PScanLines[J0 + 1].Count);
     end;
   end;
 
@@ -309,19 +406,63 @@ begin
     ScanLines[I].Y := YMin + I;
   end;
 
-  for K := 0 to M do
+  for I := 0 to N - 2 do
   begin
-    N := High(Points[K]);
-    if N < 2 then Continue;
-    Pt1 := @Points[K][N];
-    Pt2 := @Points[K][0];
-    for I := 0 to N do
-    begin
-      DivideSegment(Pt1^, Pt2^, PScanLines);
-      Pt1 := Pt2;
-      Inc(Pt2);
-    end;
+    DivideSegment(Points[I], Points[I + 1], PScanLines);
   end;
+end;
+
+procedure MergeScanLines(const Src: TScanLines; var Dst: TScanLines);
+var
+  Temp: TScanLines;
+  I, J, K, SrcCount, DstCount: Integer;
+begin
+  if Length(Src) = 0 then Exit;
+  SetLength(Temp, Length(Src) + Length(Dst));
+
+  I := 0;
+  J := 0;
+  K := 0;
+  while (I <= High(Src)) and (J <= High(Dst)) do
+  begin
+    if Src[I].Y = Dst[J].Y then
+    begin
+      SrcCount := Src[I].Count;
+      DstCount := Dst[J].Count;
+      Temp[K].Count := SrcCount + DstCount;
+      Temp[K].Y := Src[I].Y;
+      GetMem(Temp[K].Segments, Temp[K].Count * SizeOf(TLineSegment));
+
+      Move(Src[I].Segments[0], Temp[K].Segments[0], SrcCount * SizeOf(TLineSegment));
+      Move(Dst[J].Segments[0], Temp[K].Segments[SrcCount], DstCount * SizeOf(TLineSegment));
+      FreeMem(Src[I].Segments);
+      FreeMem(Dst[J].Segments);
+      Inc(I);
+      Inc(J);
+    end
+    else if Src[I].Y < Dst[J].Y then
+    begin
+      Temp[K] := Src[I];
+      Inc(I);
+    end
+    else
+    begin
+      Temp[K] := Dst[J];
+      Inc(J);
+    end;
+    Inc(K);
+  end;
+  while I <= High(Src) do
+  begin
+    Temp[K] := Src[I];
+    Inc(I); Inc(K);
+  end;
+  while J <= High(Dst) do
+  begin
+    Temp[K] := Dst[J];
+    Inc(J); Inc(K);
+  end;
+  Dst := Copy(Temp, 0, K);
 end;
 
 procedure RenderScanline(var ScanLine: TScanLine;
@@ -350,20 +491,24 @@ procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 var
   ScanLines, Temp: TScanLines;
-  I, Len: Integer;
-  Poly: TArrayOfArrayOfFloatPoint;
+  I: Integer;
+  Poly: TArrayOfFloatPoint;
   SavedRoundMode: TRoundingMode;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
 begin
-  Len := Length(Points);
-  if Len = 0 then Exit;
+  if Length(Points) = 0 then Exit;
   SavedRoundMode := SetRoundMode(rmDown);
   try
-    SetLength(Poly, Len);
-    for i := 0 to Len -1 do
-      Poly[i] := ClipPolygon(Points[i], ClipRect);
+    Poly := ClosePolygon(ClipPolygon(Points[0], ClipRect));
     BuildScanLines(Poly, ScanLines);
+    for I := 1 to High(Points) do
+    begin
+      Poly := ClosePolygon(ClipPolygon(Points[I], ClipRect));
+      BuildScanLines(Poly, Temp);
+      MergeScanLines(Temp, ScanLines);
+      Temp := nil;
+    end;
 
     CX1 := Round(ClipRect.Left);
     CX2 := -Round(-ClipRect.Right) - 1;
