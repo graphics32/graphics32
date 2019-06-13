@@ -40,11 +40,8 @@ uses
   GR32;
 
 type
-  PInteger = ^Integer;
   PSingleArray = GR32.PSingleArray;
-  TSingleArray = GR32.TSingleArray;
 
-  PValueSpan = ^TValueSpan;
   TValueSpan = record
     X1, X2: Integer;
     Values: PSingleArray;
@@ -68,14 +65,8 @@ uses
   Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;
 
 type
-  TArrayOfValueSpan = array of TValueSpan;
-
-  PValueSpanArray = ^TValueSpanArray;
-  TValueSpanArray = array [0..0] of TValueSpan;
-
   PLineSegment = ^TLineSegment;
   TLineSegment = array [0..1] of TFloatPoint;
-  TArrayOfLineSegment = array of TLineSegment;
 
   PLineSegmentArray = ^TLineSegmentArray;
   TLineSegmentArray = array [0..0] of TLineSegment;
@@ -249,9 +240,9 @@ end;
 procedure BuildScanLines(const Points: TArrayOfArrayOfFloatPoint;
   out ScanLines: TScanLines);
 var
-  I,J,K, M,N, J0, J1, Y, YMin, YMax: Integer;
-  S1: PSingle;
-  Pt1,Pt2: PFloatPoint;
+  I,J,K, M,N, Y0,Y1,Y, YMin,YMax: Integer;
+  PY: PSingle;
+  PPt1, PPt2: PFloatPoint;
   PScanLines: PScanLineArray;
 begin
 
@@ -262,11 +253,13 @@ begin
   begin
     N := High(Points[K]);
     if N < 2 then Continue;
+    PY := @Points[K][0].Y;
     for I := 0 to N do
     begin
-      Y := Round(Points[K][I].Y);
+      Y := Round(PY^);
       if YMin > Y then YMin := Y;
       if YMax < Y then YMax := Y;
+      inc(PY, 2); // skips X value
     end;
   end;
 
@@ -279,23 +272,23 @@ begin
   begin
     N := High(Points[K]);
     if N < 2 then Continue;
-    J0 := Round(Points[K][N].Y);
-    S1 := @Points[K][0].Y;
+    Y0 := Round(Points[K][N].Y);
+    PY := @Points[K][0].Y;
     for I := 0 to N do
     begin
-      J1 := Round(S1^);
-      if J0 <= J1 then
+      Y1 := Round(PY^);
+      if Y0 <= Y1 then
       begin
-        Inc(PScanLines[J0].Count);
-        Dec(PScanLines[J1 + 1].Count);
+        Inc(PScanLines[Y0].Count);
+        Dec(PScanLines[Y1 + 1].Count);
       end
       else
       begin
-        Inc(PScanLines[J1].Count);
-        Dec(PScanLines[J0 + 1].Count);
+        Inc(PScanLines[Y1].Count);
+        Dec(PScanLines[Y0 + 1].Count);
       end;
-      J0 := J1;
-      inc(S1, 2); //skips X value
+      Y0 := Y1;
+      inc(PY, 2); // skips X value
     end;
   end;
 
@@ -313,13 +306,13 @@ begin
   begin
     N := High(Points[K]);
     if N < 2 then Continue;
-    Pt1 := @Points[K][N];
-    Pt2 := @Points[K][0];
+    PPt1 := @Points[K][N];
+    PPt2 := @Points[K][0];
     for I := 0 to N do
     begin
-      DivideSegment(Pt1^, Pt2^, PScanLines);
-      Pt1 := Pt2;
-      Inc(Pt2);
+      DivideSegment(PPt1^, PPt2^, PScanLines);
+      PPt1 := PPt2;
+      Inc(PPt2);
     end;
   end;
 end;
@@ -349,7 +342,7 @@ type
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanProc; Data: Pointer);
 var
-  ScanLines, Temp: TScanLines;
+  ScanLines: TScanLines;
   I, Len: Integer;
   Poly: TArrayOfArrayOfFloatPoint;
   SavedRoundMode: TRoundingMode;
