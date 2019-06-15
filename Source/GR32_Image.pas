@@ -287,6 +287,8 @@ type
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     procedure UpdateCache; virtual;
+    function GetLayerCollectionClass: TLayerCollectionClass; virtual;
+    function CreateLayerCollection: TLayerCollection; virtual;
     property  UpdateCount: Integer read FUpdateCount;
   public
     constructor Create(AOwner: TComponent); override;
@@ -1049,14 +1051,7 @@ begin
   FBitmap := TBitmap32.Create;
   FBitmap.OnResize := BitmapResizeHandler;
 
-  FLayers := TLayerCollection.Create(Self);
-  with TLayerCollectionAccess(FLayers) do
-  begin
-    OnChange := LayerCollectionChangeHandler;
-    OnGDIUpdate := LayerCollectionGDIUpdateHandler;
-    OnGetViewportScale := LayerCollectionGetViewportScaleHandler;
-    OnGetViewportShift := LayerCollectionGetViewportShiftHandler;
-  end;
+  FLayers := CreateLayerCollection;
 
   FRepaintOptimizer.RegisterLayerCollection(FLayers);
   RepaintMode := rmFull;
@@ -1077,6 +1072,21 @@ begin
   FLayers.Free;
   FBitmap.Free;
   inherited;
+end;
+
+function TCustomImage32.GetLayerCollectionClass: TLayerCollectionClass;
+begin
+  Result := TLayerCollection;
+end;
+
+function TCustomImage32.CreateLayerCollection: TLayerCollection;
+begin
+  Result := GetLayerCollectionClass.Create(Self);
+
+  TLayerCollectionAccess(Result).OnChange := LayerCollectionChangeHandler;
+  TLayerCollectionAccess(Result).OnGDIUpdate := LayerCollectionGDIUpdateHandler;
+  TLayerCollectionAccess(Result).OnGetViewportScale := LayerCollectionGetViewportScaleHandler;
+  TLayerCollectionAccess(Result).OnGetViewportShift := LayerCollectionGetViewportShiftHandler;
 end;
 
 procedure TCustomImage32.BeginUpdate;

@@ -121,7 +121,7 @@ type
     property OnGetViewportScale: TGetScaleEvent read FOnGetViewportScale write FOnGetViewportScale;
     property OnGetViewportShift: TGetShiftEvent read FOnGetViewportShift write FOnGetViewportShift;
   public
-    constructor Create(AOwner: TPersistent);
+    constructor Create(AOwner: TPersistent); virtual;
     destructor Destroy; override;
 
     function  Add(ItemClass: TLayerClass): TCustomLayer;
@@ -140,6 +140,8 @@ type
     property MouseListener: TCustomLayer read FMouseListener write SetMouseListener;
     property MouseEvents: Boolean read FMouseEvents write SetMouseEvents;
   end;
+
+  TLayerCollectionClass = class of TLayerCollection;
 
 {$IFDEF COMPILER2009_UP}
   TLayerEnum = class
@@ -473,6 +475,8 @@ end;
 
 constructor TLayerCollection.Create(AOwner: TPersistent);
 begin
+  inherited Create;
+
   FOwner := AOwner;
   FItems := TList.Create;
   FMouseEvents := True;
