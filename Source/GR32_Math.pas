@@ -38,7 +38,8 @@ interface
 
 {$I GR32.inc}
 
-uses GR32;
+uses
+  GR32, GR32_Bindings;
 
 { Fixed point math routines }
 function FixedFloor(A: TFixed): Integer;
@@ -119,6 +120,9 @@ type
 
 var
   CumSum: TCumSumProc;
+
+var
+  MathRegistry: TFunctionRegistry;
 
 implementation
 
@@ -1203,12 +1207,31 @@ end;
 {$ENDIF}
 
 
-initialization
-{$IFNDEF PUREPASCAL}
-  if HasInstructionSet(ciSSE2) then
-    CumSum := CumSum_SSE2
-  else
-{$ENDIF}
-    CumSum := CumSum_Pas;
+const
+  FID_CUMSUM = 0;
 
+const
+  MathBindingFlagPascal = $0001;
+
+procedure RegisterBindings;
+begin
+  MathRegistry := NewRegistry('GR32_Math bindings');
+
+  MathRegistry.RegisterBinding(FID_CUMSUM, @@CumSum);
+
+  // pure pascal
+  MathRegistry.Add(FID_CUMSUM, @CumSum_Pas, [], MathBindingFlagPascal);
+
+{$IFNDEF PUREPASCAL}
+{$IFNDEF OMIT_SSE2}
+  // SSE2
+  MathRegistry.Add(FID_CUMSUM, @CumSum_SSE2, [ciSSE2]);
+{$ENDIF}
+{$ENDIF}
+
+  MathRegistry.RebindAll;
+end;
+
+initialization
+  RegisterBindings;
 end.
