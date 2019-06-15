@@ -2555,36 +2555,72 @@ end;
 
 function PolypolygonBounds(const Points: TArrayOfArrayOfFloatPoint): TFloatRect;
 var
-  I: Integer;
+  i: Integer;
   R: TFloatRect;
+  AnyValid: boolean;
 begin
   Assert(Length(Points) > 0);
-  Result := PolygonBounds(Points[0]);
-  for I := 1 to High(Points) do
+
+  AnyValid := False;
+
+  for i := 0 to High(Points) do
   begin
-    R := PolygonBounds(Points[I]);
-    Result.Left := Min(Result.Left, R.Left);
-    Result.Right := Max(Result.Right, R.Right);
-    Result.Top := Min(Result.Top, R.Top);
-    Result.Bottom := Max(Result.Bottom, R.Bottom);
+    if (Length(Points[i]) = 0) then
+      continue;
+
+    if (not AnyValid) then
+    begin
+      Result := PolygonBounds(Points[i]);
+      AnyValid := True;
+    end else
+    begin
+      R := PolygonBounds(Points[i]);
+      if (Result.Left > R.Left) then
+        Result.Left := R.Left;
+      if (Result.Right < R.Right) then
+        Result.Right := R.Right;
+      if (Result.Top >  R.Top) then
+        Result.Top := R.Top;
+      if (Result.Bottom < R.Bottom) then
+        Result.Bottom := R.Bottom;
+    end;
   end;
+  Assert(AnyValid);
 end;
 
 function PolypolygonBounds(const Points: TArrayOfArrayOfFixedPoint): TFixedRect;
 var
-  I: Integer;
+  i: Integer;
   R: TFixedRect;
+  AnyValid: boolean;
 begin
   Assert(Length(Points) > 0);
-  Result := PolygonBounds(Points[0]);
-  for I := 1 to High(Points) do
+
+  AnyValid := False;
+
+  for i := 0 to High(Points) do
   begin
-    R := PolygonBounds(Points[I]);
-    Result.Left := Min(Result.Left, R.Left);
-    Result.Right := Max(Result.Right, R.Right);
-    Result.Top := Min(Result.Top, R.Top);
-    Result.Bottom := Max(Result.Bottom, R.Bottom);
+    if (Length(Points[i]) = 0) then
+      continue;
+
+    if (not AnyValid) then
+    begin
+      Result := PolygonBounds(Points[i]);
+      AnyValid := True;
+    end else
+    begin
+      R := PolygonBounds(Points[i]);
+      if (Result.Left > R.Left) then
+        Result.Left := R.Left;
+      if (Result.Right < R.Right) then
+        Result.Right := R.Right;
+      if (Result.Top >  R.Top) then
+        Result.Top := R.Top;
+      if (Result.Bottom < R.Bottom) then
+        Result.Bottom := R.Bottom;
+    end;
   end;
+  Assert(AnyValid);
 end;
 
 
