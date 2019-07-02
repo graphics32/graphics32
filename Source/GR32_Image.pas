@@ -2150,6 +2150,12 @@ end;
 
 function TCustomImgView32.GetScrollBarsVisible: Boolean;
 begin
+  if AutoSize then
+  begin
+    Result := False;
+    Exit;
+  end;
+
   Result := True;
   if Assigned(FScrollBars) and Assigned(HScroll) and Assigned(VScroll) then
   case FScrollBars.Visibility of
@@ -2158,8 +2164,9 @@ begin
     svHidden:
       Result := False;
     svAuto:
-      Result := (HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
-                (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height));
+      Result := (BitmapAlign = baCustom) and (ScaleMode in [smScale,smNormal]) and
+                ((HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
+                 (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height)));
   end;
 end;
 
