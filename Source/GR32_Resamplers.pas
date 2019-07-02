@@ -484,6 +484,7 @@ type
     FCenterX: Integer;
     FCenterY: Integer;
   protected
+    procedure SetKernel(const Value: TIntegerMap);
     procedure UpdateBuffer(var Buffer: TBufferEntry; Color: TColor32;
       Weight: Integer); virtual; abstract;
     function ConvertBuffer(var Buffer: TBufferEntry): TColor32; virtual;
@@ -493,7 +494,7 @@ type
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
   published
-    property Kernel: TIntegerMap read FKernel write FKernel;
+    property Kernel: TIntegerMap read FKernel write SetKernel;
     property CenterX: Integer read FCenterX write FCenterX;
     property CenterY: Integer read FCenterY write FCenterY;
   end;
@@ -4035,6 +4036,11 @@ begin
       UpdateBuffer(Buffer, FGetSampleInt(X - I, Y - J), FKernel[I, J]);
 
   Result := ConvertBuffer(Buffer);
+end;
+
+procedure TKernelSampler.SetKernel(const Value: TIntegerMap);
+begin
+  FKernel.Assign(Value);
 end;
 
 { TConvolver }
