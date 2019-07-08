@@ -157,6 +157,7 @@ object MainForm: TMainForm
         Top = 90
         Width = 340
         Height = 21
+        Hint = 'must contain '#39#39'source'#39#39' folder'
         Anchors = [akLeft, akTop, akRight]
         TabOrder = 2
         Text = 'MyProjectDirectory'

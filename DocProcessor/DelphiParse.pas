@@ -63,6 +63,7 @@ type
     property Finished: Boolean read FFinished;
     property CurrentPt: TPoint read FCurrent;
     property ReservedList: TStringList read FReservedList;
+    property LatestCommentLine: integer read FLatestCommentLine;
     property LastSpecialComment: string read GetLastSpecialComment;
   end;
 

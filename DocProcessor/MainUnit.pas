@@ -528,7 +528,8 @@ begin
     Lines.Add('Compiled file=' + CmbProjectName.Text + '.chm');
     Lines.Add('Contents file=' + CmbProjectName.Text + '.hhc');
     Lines.Add('Default Window=Main Window');
-    Lines.Add('Default topic=Docs\Overview\_Body.htm');
+    Lines.Add('Default topic=Docs\Overview.htm');
+    //Lines.Add('Default topic=Docs\Overview\_Body.htm');
     Lines.Add('Display compile progress=No');
     Lines.Add('Full-text search=Yes');
     Lines.Add('Index file=' + CmbProjectName.Text + '.hhk');
@@ -536,9 +537,12 @@ begin
     Lines.Add('Title=' + EdtProjectTitle.Text);
     Lines.Add('');
     Lines.Add('[WINDOWS]');
-    Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm",' +
-      '"Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
+    Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview.htm",' +
+      '"Docs\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
       [EdtProjectTitle.Text, CmbProjectName.Text + '.hhc', CmbProjectName.Text + '.hhk']));
+    //Lines.Add(Format('Main Window="%s","%s","%s","Docs\Overview\_Body.htm",' +
+    //  '"Docs\Overview\_Body.htm",,,,,0x63520,600,0x10384e,[0,0,900,680],0xb0000,,,1,,,0',
+    //  [EdtProjectTitle.Text, CmbProjectName.Text + '.hhc', CmbProjectName.Text + '.hhk']));
     Lines.Add('');
     Lines.Add('[INFOTYPES]');
     Lines.SaveToFile(FileName);
