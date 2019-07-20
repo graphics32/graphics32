@@ -55,6 +55,8 @@ type
     procedure AssignTo(Dest: TPersistent); override;
     procedure Assign(Source: TPersistent); override;
 
+    procedure MakeIndexColored(MaxColorCount: Integer);
+
     function IsPremultiplied: Boolean;
     procedure DrawToBitmap32(Bitmap32: TCustomBitmap32); virtual;
 
@@ -69,6 +71,9 @@ procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string); overload; {$IF
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 
 implementation
+
+uses
+  Math;
 
 resourcestring
   RCStrUnsupportedFormat = 'Unsupported Format';
@@ -311,6 +316,65 @@ type
 
   TPalette24 = array of TRGB24;
 
+  TPngHistogramEntry = class
+  private
+    FColor: TColor32;
+    FCount: Integer;
+  public
+    constructor Create(Key: TColor32);
+    procedure Advance;
+
+    property Count: Integer read FCount write FCount;
+    property Color: TColor32 read FColor;
+  end;
+
+  TPngPalette = class
+  private
+    FItems: array of TColor32;
+    FCount: Integer;
+    procedure Remove(Index: Integer);
+  protected
+    function GetItem(index: Integer): TColor32;
+    function Find(const item: TColor32; var index: Integer): Boolean;
+    function Compare(const item1, item2: TColor32): Integer;
+    procedure InsertItem(index: Integer; const anItem: TColor32);
+  public
+    function Add(const Item: TColor32): Integer; overload;
+    function IndexOf(const Value: TColor32): Integer;
+    procedure GetNearest(var Value: TColor32);
+
+    procedure Clear;
+    procedure LimitTo(Count: Integer);
+
+    property Items[index: Integer]: TColor32 read GetItem; default;
+    property Count: Integer read FCount;
+  end;
+
+  TPngHistogram = class
+  private
+    FItems: array of TPngHistogramEntry;
+    FCount: Integer;
+    procedure Remove(Index: Integer);
+  protected
+    function GetItem(index: Integer): TPngHistogramEntry;
+    function Find(const item: TColor32; var index: Integer): Boolean;
+    function Compare(const item1, item2: TColor32): Integer;
+    procedure InsertItem(index: Integer; const anItem: TPngHistogramEntry);
+  public
+    function Add(const anItem: TPngHistogramEntry): Integer; overload;
+    function IndexOf(const Value: TColor32): Integer;
+
+    function Add(Value: TColor32): Integer; overload;
+    procedure Advance(Value: TColor32); overload;
+
+    procedure Clear;
+    procedure Clean;
+    function GetPalette(MaxColors: Integer = 256): TPngPalette;
+
+    property Items[index: Integer]: TPngHistogramEntry read GetItem; default;
+    property Count: Integer read FCount;
+  end;
+
 
 function IsValidPNG(const Filename: string): Boolean;
 begin
@@ -448,10 +512,158 @@ begin
     begin
       Value := Pointer^[Index];
       if (Value.R > Value.A) or (Value.G > Value.A) or (Value.B > Value.A) then
-        Exit(False);
+      begin
+        Result := False;
+        Exit;
+      end;
     end;
   finally
     TempBitmap.Free;
+  end;
+end;
+
+procedure TPortableNetworkGraphic32.MakeIndexColored(MaxColorCount: Integer);
+var
+  Index: Integer;
+  Histogram: TPngHistogram;
+  Palette: TPngPalette;
+  Bitmap: TBitmap32;
+  Bits: PColor32;
+  PixelCount: Integer;
+  InvPixelCount: TFloat;
+  RGB24: TRGB24;
+  EncoderClass: TCustomPngEncoderClass;
+  DataStream: TMemoryStream;
+begin
+  if ColorType in [ctIndexedColor, ctGrayscale, ctGrayscaleAlpha] then
+    raise Exception.Create('Color type not suitable');
+
+  Bitmap := TBitmap32.Create;
+  try
+    AssignTo(Bitmap);
+
+    Histogram := TPngHistogram.Create;
+    try
+      Bits := PColor32(Bitmap.Bits);
+      PixelCount := Bitmap.Height * Bitmap.Width;
+      InvPixelCount := 100 / (PixelCount - 1);
+      if Assigned(Progress) then
+        for Index := 0 to PixelCount - 1 do
+        begin
+          Histogram.Advance(Bits^);
+          Inc(Bits);
+          Progress(Self, 0.5 * Index * InvPixelCount);
+        end
+      else
+        for Index := 0 to PixelCount - 1 do
+        begin
+          Histogram.Advance(Bits^);
+          Inc(Bits);
+        end;
+
+      Palette := Histogram.GetPalette(MaxColorCount);
+    finally
+      Histogram.Free;
+    end;
+
+    Bits := PColor32(Bitmap.Bits);
+    if Assigned(Progress) then
+      for Index := 0 to PixelCount - 1 do
+      begin
+        Palette.GetNearest(Bits^);
+        Inc(Bits);
+
+        Progress(Self, 50 + 0.5 * Index * InvPixelCount);
+      end
+    else
+      for Index := 0 to PixelCount - 1 do
+      begin
+        Palette.GetNearest(Bits^);
+        Inc(Bits);
+      end;
+
+    // basic properties
+    ImageHeader.Width := Width;
+    ImageHeader.Height := Height;
+    ImageHeader.CompressionMethod := 0;
+    ImageHeader.InterlaceMethod := imNone;
+
+    ImageHeader.ColorType := ctIndexedColor;
+    if Palette.Count <= 2 then
+      ImageHeader.BitDepth := 1
+    else
+    if Palette.Count <= 4 then
+      ImageHeader.BitDepth := 2
+    else
+    if Palette.Count <= 16 then
+      ImageHeader.BitDepth := 4
+    else
+      ImageHeader.BitDepth := 8;
+
+    if not Assigned(FPaletteChunk) then
+      FPaletteChunk := TChunkPngPalette.Create(ImageHeader);
+
+    FPaletteChunk.Count := Palette.Count;
+    for Index := 0 to Palette.Count - 1 do
+    begin
+      RGB24.R := TColor32Entry(Palette.Items[Index]).R;
+      RGB24.G := TColor32Entry(Palette.Items[Index]).G;
+      RGB24.B := TColor32Entry(Palette.Items[Index]).B;
+      FPaletteChunk.PaletteEntry[Index] := RGB24;
+    end;
+
+    {$IFDEF StoreGamma}
+    // add linear gamma chunk
+    if not Assigned(FGammaChunk) then
+      FGammaChunk := TChunkPngGamma.Create(ImageHeader);
+    FGammaChunk.GammaAsSingle := 1;
+    {$ELSE}
+    // delete any gama correction table
+    if Assigned(FGammaChunk) then
+      FreeAndNil(FGammaChunk);
+    {$ENDIF}
+
+    case ImageHeader.ColorType of
+      ctIndexedColor:
+        case ImageHeader.BitDepth of
+          1 :
+            EncoderClass := TPngNonInterlacedPalette1bitEncoder;
+          2 :
+            EncoderClass := TPngNonInterlacedPalette2bitEncoder;
+          4 :
+            EncoderClass := TPngNonInterlacedPalette4bitEncoder;
+          8 :
+            EncoderClass := TPngNonInterlacedPalette8bitEncoder;
+         else
+           raise EPngError.Create(RCStrUnsupportedFormat);
+        end;
+      else
+        raise EPngError.Create(RCStrUnsupportedFormat);
+    end;
+
+    DataStream := TMemoryStream.Create;
+    with DataStream do
+      try
+        with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+          try
+            if Assigned(FProgressEvent) then
+              EncodeFromScanline(Bitmap, GR32ScanlineProgress)
+            else
+              EncodeFromScanline(Bitmap, GR32Scanline);
+          finally
+            Free;
+          end;
+
+        // reset data stream position
+        DataStream.Seek(0, soFromBeginning);
+
+        // compress image data from data stream
+        CompressImageDataFromStream(DataStream);
+      finally
+        FreeAndNil(DataStream);
+      end;
+  finally
+    Bitmap.Free;
   end;
 end;
 
@@ -722,20 +934,20 @@ begin
           ColorType := ctGrayscaleAlpha;
           BitDepth := 8;
         end
-      else
-      begin
-        ColorType := ctIndexedColor; // ctGrayscale
-        if Length(TempPalette) <= 2 then
-          BitDepth := 1
         else
-        if Length(TempPalette) <= 4 then
-          BitDepth := 2
-        else
-        if Length(TempPalette) <= 16 then
-          BitDepth := 4
-        else
-          BitDepth := 8;
-      end
+        begin
+          ColorType := ctIndexedColor; // ctGrayscale
+          if Length(TempPalette) <= 2 then
+            BitDepth := 1
+          else
+          if Length(TempPalette) <= 4 then
+            BitDepth := 2
+          else
+          if Length(TempPalette) <= 16 then
+            BitDepth := 4
+          else
+            BitDepth := 8;
+        end
       else
       if IsPalette then
       begin
@@ -812,51 +1024,51 @@ begin
             else
               raise EPngError.Create(RCStrUnsupportedFormat);
          end;
-       ctTrueColor:
-         EncoderClass := TPngNonInterlacedTrueColor8bitEncoder;
-       ctIndexedColor:
-         case ImageHeader.BitDepth of
-           1 :
-             EncoderClass := TPngNonInterlacedPalette1bitEncoder;
-           2 :
-             EncoderClass := TPngNonInterlacedPalette2bitEncoder;
-           4 :
-             EncoderClass := TPngNonInterlacedPalette4bitEncoder;
-           8 :
-             EncoderClass := TPngNonInterlacedPalette8bitEncoder;
-          else
-            raise EPngError.Create(RCStrUnsupportedFormat);
-         end;
-       ctGrayscaleAlpha:
-         EncoderClass := TPngNonInterlacedGrayscaleAlpha8bitEncoder;
-       ctTrueColorAlpha:
-         EncoderClass := TPngNonInterlacedTrueColorAlpha8bitEncoder;
-       else
-         raise EPngError.Create(RCStrUnsupportedFormat);
-    end;
-
-    DataStream := TMemoryStream.Create;
-    with DataStream do
-      try
-        with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
-          try
-            if Assigned(FProgressEvent) then
-              EncodeFromScanline(TCustomBitmap32(Source), GR32ScanlineProgress)
-            else
-              EncodeFromScanline(TCustomBitmap32(Source), GR32Scanline);
-          finally
-            Free;
+        ctTrueColor:
+          EncoderClass := TPngNonInterlacedTrueColor8bitEncoder;
+        ctIndexedColor:
+          case ImageHeader.BitDepth of
+            1 :
+              EncoderClass := TPngNonInterlacedPalette1bitEncoder;
+            2 :
+              EncoderClass := TPngNonInterlacedPalette2bitEncoder;
+            4 :
+              EncoderClass := TPngNonInterlacedPalette4bitEncoder;
+            8 :
+              EncoderClass := TPngNonInterlacedPalette8bitEncoder;
+           else
+             raise EPngError.Create(RCStrUnsupportedFormat);
           end;
-
-        // reset data stream position
-        DataStream.Seek(0, soFromBeginning);
-
-        // compress image data from data stream
-        CompressImageDataFromStream(DataStream);
-      finally
-        FreeAndNil(DataStream);
+        ctGrayscaleAlpha:
+          EncoderClass := TPngNonInterlacedGrayscaleAlpha8bitEncoder;
+        ctTrueColorAlpha:
+          EncoderClass := TPngNonInterlacedTrueColorAlpha8bitEncoder;
+        else
+          raise EPngError.Create(RCStrUnsupportedFormat);
       end;
-  end
+
+      DataStream := TMemoryStream.Create;
+      with DataStream do
+        try
+          with EncoderClass.Create(DataStream, FImageHeader, FGammaChunk, FPaletteChunk) do
+            try
+              if Assigned(FProgressEvent) then
+                EncodeFromScanline(TCustomBitmap32(Source), GR32ScanlineProgress)
+              else
+                EncodeFromScanline(TCustomBitmap32(Source), GR32Scanline);
+            finally
+              Free;
+            end;
+
+          // reset data stream position
+          DataStream.Seek(0, soFromBeginning);
+
+          // compress image data from data stream
+          CompressImageDataFromStream(DataStream);
+        finally
+          FreeAndNil(DataStream);
+        end;
+    end
   else
     inherited;
 end;
@@ -2160,6 +2372,259 @@ begin
     Inc(Dest);
     Inc(Source);
   end;
+end;
+
+{ TPngPalette }
+
+function TPngPalette.Add(const Item: TColor32): Integer;
+begin
+  Find(Item, Result{%H-});
+  InsertItem(Result, Item);
+end;
+
+procedure TPngPalette.Clear;
+begin
+  SetLength(FItems, 0);
+  FCount := 0;
+end;
+
+function TPngPalette.Compare(const item1, item2: TColor32): Integer;
+begin
+  Result := item1 - item2;
+end;
+
+function TPngPalette.Find(const item: TColor32; var index: Integer): Boolean;
+var
+  lo, hi, mid, compResult: Integer;
+begin
+  Result := False;
+  lo := 0;
+  hi := FCount - 1;
+  while lo <= hi do
+  begin
+    mid := (lo + hi) shr 1;
+    compResult := Compare(FItems[mid], item);
+    if compResult < 0 then
+      lo := mid + 1
+    else
+    begin
+      hi := mid - 1;
+      if compResult = 0 then
+        Result:=True;
+    end;
+  end;
+
+  index := lo;
+end;
+
+function TPngPalette.GetItem(index: Integer): TColor32;
+begin
+  Result := FItems[index];
+end;
+
+procedure TPngPalette.GetNearest(var Value: TColor32);
+var
+  Index, MinIndex: Integer;
+  Distance, MinDistance: Integer;
+begin
+  if IndexOf(Value) < 0 then
+  begin
+    MinDistance :=
+      Sqr(TColor32Entry(Value).R - TColor32Entry(FItems[0]).R) +
+      Sqr(TColor32Entry(Value).G - TColor32Entry(FItems[0]).G) +
+      Sqr(TColor32Entry(Value).B - TColor32Entry(FItems[0]).B);
+    MinIndex := 0;
+    for Index := 1 to Count - 1 do
+    begin
+      Distance :=
+        Sqr(TColor32Entry(Value).R - TColor32Entry(FItems[Index]).R) +
+        Sqr(TColor32Entry(Value).G - TColor32Entry(FItems[Index]).G) +
+        Sqr(TColor32Entry(Value).B - TColor32Entry(FItems[Index]).B);
+      if Distance < MinDistance then
+      begin
+        Distance := MinDistance;
+        MinIndex := Index;
+      end;
+    end;
+
+    Value := FItems[MinIndex];
+  end;
+end;
+
+function TPngPalette.IndexOf(const Value: TColor32): Integer;
+begin
+  if not Find(Value, Result{%H-}) then
+    Result := -1;
+end;
+
+procedure TPngPalette.InsertItem(index: Integer; const anItem: TColor32);
+begin
+  if Count = Length(FItems) then
+    SetLength(FItems, Count + 8 + (Count shr 4));
+
+  if index < Count then
+    System.Move(FItems[Index], FItems[Index + 1], (Count - Index) * SizeOf(TColor32));
+
+  Inc(FCount);
+  FItems[index] := anItem;
+end;
+
+procedure TPngPalette.LimitTo(Count: Integer);
+begin
+  SetLength(FItems, Count);
+  FCount := Count;
+end;
+
+procedure TPngPalette.Remove(Index: Integer);
+var
+  n: Integer;
+begin
+  Dec(FCount);
+  n := FCount - index;
+  if n > 0 then
+    System.Move(FItems[Index + 1], FItems[Index], n * SizeOf(TColor32));
+  SetLength(FItems, FCount);
+end;
+
+
+{ TPngHistogramEntry }
+
+constructor TPngHistogramEntry.Create(Key: TColor32);
+begin
+  FColor := Key;
+end;
+
+procedure TPngHistogramEntry.Advance;
+begin
+  Inc(FCount);
+end;
+
+
+{ TPngHistogram }
+
+function TPngHistogram.GetItem(index: Integer): TPngHistogramEntry;
+begin
+  Result := FItems[index];
+end;
+
+function TPngHistogram.Find(const item: TColor32; var index: Integer): Boolean;
+var
+  lo, hi, mid, compResult: Integer;
+begin
+  Result := False;
+  lo := 0;
+  hi := FCount - 1;
+  while lo <= hi do
+  begin
+    mid := (lo + hi) shr 1;
+    compResult := Compare(FItems[mid].Color, item);
+    if compResult < 0 then
+      lo := mid + 1
+    else
+    begin
+      hi := mid - 1;
+      if compResult = 0 then
+        Result:=True;
+    end;
+  end;
+
+  index := lo;
+end;
+
+procedure TPngHistogram.InsertItem(index: Integer; const anItem: TPngHistogramEntry);
+begin
+  if Count = Length(FItems) then
+    SetLength(FItems, Count + 8 + (Count shr 4));
+
+  if index < Count then
+    System.Move(FItems[index], FItems[index+1], (Count-index)*SizeOf(Pointer));
+
+  Inc(FCount);
+  FItems[index] := anItem;
+end;
+
+function TPngHistogram.Add(Value: TColor32): Integer;
+begin
+  Add(TPngHistogramEntry.Create(Value));
+end;
+
+function TPngHistogram.Add(const anItem: TPngHistogramEntry): Integer;
+begin
+  Find(anItem.Color, Result{%H-});
+  InsertItem(Result, anItem);
+end;
+
+procedure TPngHistogram.Advance(Value: TColor32);
+var
+  Index: Integer;
+begin
+  Index := IndexOf(Value);
+  if Index < 0 then
+    Add(Value)
+  else
+    FItems[Index].Advance;
+end;
+
+function TPngHistogram.IndexOf(const Value: TColor32): Integer;
+begin
+  if not Find(Value, Result{%H-}) then
+    Result := -1;
+end;
+
+procedure TPngHistogram.Remove(Index: Integer);
+var
+  n: Integer;
+begin
+  Dec(FCount);
+  n := FCount - index;
+  if n > 0 then
+    System.Move(FItems[Index + 1], FItems[Index], n * SizeOf(TPngHistogramEntry));
+  SetLength(FItems, FCount);
+end;
+
+function TPngHistogram.GetPalette(MaxColors: Integer = 256): TPngPalette;
+var
+  PaletteIndex, Index, LastIndex: Integer;
+  ColorCount: Integer;
+begin
+  Result := TPngPalette.Create;
+
+  for PaletteIndex := 0 to Min(Count, MaxColors) - 1 do
+  begin
+    ColorCount := FItems[0].Count;
+    LastIndex := 0;
+    for Index := 1 to FCount - 1 do
+    begin
+      if (FItems[Index].Count > ColorCount) then
+      begin
+        LastIndex := Index;
+        ColorCount := FItems[Index].Count;
+      end;
+    end;
+
+    Result.Add(FItems[LastIndex].FColor);
+    Remove(LastIndex);
+  end;
+end;
+
+procedure TPngHistogram.Clear;
+begin
+  SetLength(FItems, 0);
+  FCount := 0;
+end;
+
+function TPngHistogram.Compare(const item1, item2: TColor32): Integer;
+begin
+  Result := item1 - item2;
+end;
+
+procedure TPngHistogram.Clean;
+var
+  i: Integer;
+begin
+  for i := 0 to FCount - 1 do
+    FItems[i].Free;
+  Clear;
 end;
 
 end.
