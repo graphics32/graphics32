@@ -364,6 +364,7 @@ end;
 
 constructor TElements.Create(AOwner: TElement; AElemClass: TGroupElementClass; const ADirName: string);
 begin
+  OwnsObjects := true;                           //!! IMPORTANT
   Owner := AOwner;
   ElemClass := AElemClass;
   SubDirName := ADirName;
@@ -386,7 +387,7 @@ begin
   Clear;
   Folder := Owner.Folder + '\' + SubDirName;
   if not {$IFDEF COMPILERXE2_UP}SysUtils.{$ENDIF}DirectoryExists(Folder) then Exit;
-  Listing := TStringList.Create;
+  Listing := nil;
   try
     if ElemClass.IsTopic then
     begin
@@ -469,6 +470,10 @@ begin
       begin
         S := Format('<a href="%s">%s</a>',
           [PathTo(S), E.Parent.DisplayName + '.' + GetLinkName(S)]);
+      end
+      else if (E <> nil) and (E = E.Project) then
+      begin
+        S := Format('<a href="%s"><b>Home</b></a>', [PathTo(S)]);
       end
       else
         S := LinkTo(S);
@@ -933,7 +938,8 @@ destructor TGroupElement.Destroy;
 var
   I: Integer;
 begin
-  for I := 0 to ChildLists.Count - 1 do TElements(ChildLists.Last).Free;
+  for I := ChildLists.Count - 1 downto 0 do
+    TElements(ChildLists[I]).Free;
   ChildLists.Free;
   inherited;
 end;
@@ -1661,6 +1667,7 @@ begin
   Topics := nil;
   Interfaces := nil;
   Classes := nil;
+  Units := nil;
   inherited;
 end;
 
@@ -1838,6 +1845,7 @@ var
 begin
   Elems := TElements.Create(nil, TTopicElement, Folder);
   try
+    Elems.OwnsObjects := false;                  //!! IMPORTANT
 
     //overview items ...
     CuList := TCaptionUrlList.Create;

@@ -63,12 +63,16 @@ begin
     Head := Dom.FindNode('head', True);
     if Head = nil then Exit;
     Nodes := Head.FindNodes('meta', False);
-    for I := 0 to Nodes.Count - 1 do
-      if SameText(Nodes.Items[I].Attributes['name'], Name) then
-      begin
-        Result := Nodes.Items[I].Attributes['content'];
-        Exit;
-      end;
+    try
+      for I := 0 to Nodes.Count - 1 do
+        if SameText(Nodes.Items[I].Attributes['name'], Name) then
+        begin
+          Result := Nodes.Items[I].Attributes['content'];
+          Exit;
+        end;
+    finally
+      Nodes.Free;
+    end;
   finally
     Dom.Free;
   end;
