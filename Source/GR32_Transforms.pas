@@ -285,6 +285,30 @@ type
     property BottomCurve: TArrayOfFloatPoint read FBottomCurve write SetBottomCurve;
   end;
 
+  TRadialDistortionTransformation = class(TTransformation)
+  protected
+    FCoefficient1, FCoefficient2: TFloat;
+    FFocalPoint: TPointF;
+    r_0, r_tgt_max, r_tgt_min: Single;
+    FMapElements: Integer;
+    Map: Array of TFloat;
+    function LookUpReverseMap(const r_tgt: TFloat): TFloat;
+    procedure SetCoefficient1(const Value: TFloat);
+    procedure SetCoefficient2(const Value: TFloat);
+    procedure SetMapElements(const Value: Integer);
+    procedure PrepareReverseMap;
+    procedure PrepareTransform; override;
+    procedure ReverseTransformFloat(DstX, DstY: TFloat; out SrcX, SrcY: TFloat); override;
+    procedure TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat); override;
+  public
+    constructor Create; override;
+    function HasTransformedBounds: Boolean; override;
+  published
+    property Coefficient1: TFloat read FCoefficient1 write SetCoefficient1;
+    property Coefficient2: TFloat read FCoefficient2 write SetCoefficient2;
+    property MapElements: Integer read FMapElements write SetMapElements;
+  end;
+
   TRemapTransformation = class(TTransformation)
   private
     FVectorMap : TVectorMap;
@@ -1616,6 +1640,162 @@ procedure TDisturbanceTransformation.SetDisturbance(const Value: TFloat);
 begin
   FDisturbance := Value;
   Changed;  
+end;
+
+constructor TRadialDistortionTransformation.Create;
+begin
+  FCoefficient1 := 0;
+  FCoefficient2 := 0;
+  FMapElements := 0;
+end;
+
+function TRadialDistortionTransformation.HasTransformedBounds: Boolean;
+begin
+  Result := False;
+end;
+
+procedure TRadialDistortionTransformation.PrepareReverseMap;
+var i, j, jmax, unset, LowerI, UpperI, interpolated, mapToSameIndex, IndexOutOfRange: Integer;
+  r_src, r_tgt, LowerValue, UpperValue: TFloat;
+begin
+  if MapElements <= 1 then MapElements := Trunc(r_0);
+  r_tgt_max := 2;
+  r_tgt_min := -0.5;
+  SetLength(Map, MapElements);
+  for i := 0 to High(Map) do Map[i] := -1;
+
+  jmax := 1000;
+  mapToSameIndex := 0;
+  IndexOutOfRange := 0;
+  for j := 0 to jmax do begin
+    r_src := j/jmax*2;
+    r_tgt := (1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4));
+    Assert(InRange(r_tgt, r_tgt_min, r_tgt_max));
+    i := Trunc((r_tgt*r_src-r_tgt_min)/(r_tgt_max-r_tgt_min)*(High(Map)-1));
+    if Not InRange(i, 0, High(Map)) then begin
+      Inc(IndexOutOfRange);
+      //OutputDebugString(PChar(Format('PrepareReverseMap: i=%d out of range (0, MapElements=%d), r_tgt=%f', [ i, MapElements, r_tgt ])))
+    end
+    else if Map[i]<>-1 then begin
+      Inc(mapToSameIndex);
+      // OutputDebugString(PChar(Format('PrepareReverseMap: Map[i=%d] already has value %f (wanted to put %f there)', [ i, Map[i], r_tgt ])))
+    end
+    else Map[i] := r_tgt;
+  end;
+
+  unset := 0;
+  for i := 0 to High(Map) do begin
+    if Map[i] = -1 then Inc(unset);
+  end;
+
+  // linear interpolation where Map[i] == -1 (but no extrapolation)
+  i := 0;
+  LowerI := -1;
+  LowerValue := -1;
+  interpolated := 0;
+  repeat
+    if Map[i] = -1 then begin
+      if LowerI <> -1 then begin
+        UpperI := i+1;
+        while (UpperI<=High(Map)) and (Map[UpperI] = -1) do Inc(UpperI);
+        if UpperI<=High(Map) then begin
+          UpperValue := Map[UpperI];
+          for j := LowerI+1 to UpperI-1 do begin
+            Map[j] := LowerValue + (UpperValue-LowerValue) * (j-LowerI) / (UpperI - LowerI);
+            Inc(interpolated);
+          end;// for j
+        end;// if
+      end;// if
+    end// if
+    else begin
+      LowerI := i;
+      LowerValue := Map[i];
+    end;
+    Inc(i);
+  until i > High(Map);
+{$IFDEF DEBUG}
+  OutputDebugString(PChar(Format(
+    'TRadialDistortionTransformation.PrepareReverseMap: mapToSameIndex=%d. IndexOutOfRange=%d. %d out of %d map elements were uninitialized, %d of these were interpolated',
+    [ mapToSameIndex, IndexOutOfRange, unset, High(Map), interpolated ])));
+{$ENDIF}
+
+  for i := 0 to High(Map) do begin
+    if Map[i] = -1 then Map[i] := 1;
+  end;
+{$IFDEF DEBUG}
+  OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
+{$ENDIF}
+end;
+
+procedure TRadialDistortionTransformation.PrepareTransform;
+var r: TRect;
+begin
+  r := MakeRect(SrcRect);
+  TransformValid := Not r.isEmpty;
+  if Not TransformValid then Exit;
+
+  // center / focal point relative to which all (un)distortions are calculated
+  FFocalPoint := TPointF.Create(
+    (SrcRect.Right + SrcRect.Left) / 2,
+    (SrcRect.Bottom + SrcRect.Top) / 2);
+
+  r_0 := Sqrt(2*Sqr(Min(r.Width, r.Height)))/2;
+
+  PrepareReverseMap;
+end;
+
+function TRadialDistortionTransformation.LookUpReverseMap(const r_tgt: TFloat): TFloat;
+var index: Integer;
+begin
+  index := Trunc((r_tgt-r_tgt_min) / (r_tgt_max-r_tgt_min) * High(Map));
+  if Not InRange(index, 0, High(Map)) then
+    raise Exception.Create(Format('TRadialDistortionTransformation.LookUpReverseMap: Index %d out of range (0..%d)', [ index, MapElements ]));
+  Result := Map[index];
+end;
+
+procedure TRadialDistortionTransformation.ReverseTransformFloat(DstX, DstY: TFloat;
+  out SrcX, SrcY: TFloat);
+var
+  r_tgt, r_src: Single;
+  d: TPointF;
+begin
+  d := TPointF.Create(DstX, DstY);
+  r_tgt := FFocalPoint.Distance(d)/r_0;
+
+  r_src := LookUpReverseMap(r_tgt);
+
+  SrcX := FFocalPoint.X + (d.X-FFocalPoint.X) / r_src;
+  SrcY := FFocalPoint.Y + (d.Y-FFocalPoint.Y) / r_src;
+end;
+
+procedure TRadialDistortionTransformation.SetCoefficient1(const Value: TFloat);
+begin
+  FCoefficient1 := Value;
+  Changed;
+end;
+
+procedure TRadialDistortionTransformation.SetCoefficient2(const Value: TFloat);
+begin
+  FCoefficient2 := Value;
+  Changed;
+end;
+
+procedure TRadialDistortionTransformation.SetMapElements(const Value: Integer);
+begin
+  FMapElements := Value;
+  Changed;
+end;
+
+procedure TRadialDistortionTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat);
+var
+  r_tgt, r_src: Single;
+  d: TPointF;
+begin
+  d := TPointF.Create(SrcX, SrcY);
+  r_src := FFocalPoint.Distance(d)/r_0;
+  r_tgt := 1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4);
+  DstX := FFocalPoint.X + (d.X-FFocalPoint.X) * r_tgt;
+  DstY := FFocalPoint.Y + (d.Y-FFocalPoint.Y) * r_tgt;
 end;
 
 { TRemapTransformation }
