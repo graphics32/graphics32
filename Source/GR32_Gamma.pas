@@ -47,33 +47,24 @@ uses
   Math;
 
 function ApplyGamma(Color: TColor32): TColor32;
-var
-  C: TColor32Entry absolute Color;
-  R: TColor32Entry absolute Result;
 begin
-  C.R := GAMMA_ENCODING_TABLE[C.R];
-  C.G := GAMMA_ENCODING_TABLE[C.G];
-  C.B := GAMMA_ENCODING_TABLE[C.B];
+  TColor32Entry(Result).R := GAMMA_ENCODING_TABLE[TColor32Entry(Color).R];
+  TColor32Entry(Result).G := GAMMA_ENCODING_TABLE[TColor32Entry(Color).G];
+  TColor32Entry(Result).B := GAMMA_ENCODING_TABLE[TColor32Entry(Color).B];
 end;
 
 function ApplyInvGamma(Color: TColor32): TColor32;
-var
-  C: TColor32Entry absolute Color;
-  R: TColor32Entry absolute Result;
 begin
-  C.R := GAMMA_DECODING_TABLE[C.R];
-  C.G := GAMMA_DECODING_TABLE[C.G];
-  C.B := GAMMA_DECODING_TABLE[C.B];
+  TColor32Entry(Result).R := GAMMA_DECODING_TABLE[TColor32Entry(Color).R];
+  TColor32Entry(Result).G := GAMMA_DECODING_TABLE[TColor32Entry(Color).G];
+  TColor32Entry(Result).B := GAMMA_DECODING_TABLE[TColor32Entry(Color).B];
 end;
 
 function ApplyCustomGamma(Color: TColor32; GammaTable: TGammaTable8Bit): TColor32;
-var
-  C: TColor32Entry absolute Color;
-  R: TColor32Entry absolute Result;
 begin
-  C.R := GammaTable[C.R];
-  C.G := GammaTable[C.G];
-  C.B := GammaTable[C.B];
+  TColor32Entry(Result).R := GammaTable[TColor32Entry(Color).R];
+  TColor32Entry(Result).G := GammaTable[TColor32Entry(Color).G];
+  TColor32Entry(Result).B := GammaTable[TColor32Entry(Color).B];
 end;
 
 
@@ -103,8 +94,7 @@ begin
   end;
 end;
 
-procedure ApplyCustomGamma(Color: PColor32Array; Length: Integer;
-  GammaTable: TGammaTable8Bit);
+procedure ApplyCustomGamma(Color: PColor32Array; Length: Integer; GammaTable: TGammaTable8Bit);
 var
   Index: Integer;
 begin
@@ -188,9 +178,9 @@ begin
   begin
     Value := i * COne255th;
     if (Value < 0.0031308) then
-        GammaTable[i] := Round($FF * Value * 12.92)
+      GammaTable[i] := Round($FF * Value * 12.92)
     else
-        GammaTable[i] := Round($FF * (1.055 * Power(Value, CExp) - 0.055));
+      GammaTable[i] := Round($FF * (1.055 * Power(Value, CExp) - 0.055));
   end;
 end;
 
@@ -203,9 +193,9 @@ begin
   begin
     Value := i * COne255th;
     if (Value < 0.004045) then
-        GammaTable[i] := Round($FF * Value / 12.92)
+      GammaTable[i] := Round($FF * Value / 12.92)
     else
-        GammaTable[i] := Round($FF * Power((Value + 0.055) / 1.055, 2.4));
+      GammaTable[i] := Round($FF * Power((Value + 0.055) / 1.055, 2.4));
   end;
 end;
 
