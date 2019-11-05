@@ -16,7 +16,7 @@ var
   GAMMA_DECODING_TABLE: TGammaTable8Bit;
 
 const
-  DEFAULT_GAMMA: Double = 2.2;
+  DEFAULT_GAMMA: Double = 1.6;
 
 // set gamma
 procedure SetGamma; overload;  {$IFDEF USEINLINING} inline; {$ENDIF}
