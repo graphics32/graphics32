@@ -1038,7 +1038,7 @@ var
   NewHotZone: TRBZone;
 begin
   inherited;
-  if (FDragZone = zNone) and DrawEnabled then
+  if (FDragZone = zNone) and (DrawEnabled) and (MouseCapture) then
   begin
     NewHotZone := GetZone(X, Y);
     if NewHotZone <> FHotZone then
@@ -1450,7 +1450,7 @@ var
   ClientSz, HandleSz: Integer;
 begin
   inherited;
-  if FDragZone = zHandle then
+  if (FDragZone = zHandle) and (MouseCapture) then
   begin
     WinSz := EffectiveWindow;
 
@@ -1465,9 +1465,23 @@ begin
     if HandleSz < MIN_SIZE then Delta := Round(Delta * (Range - WinSz) / (ClientSz - MIN_SIZE))
     else Delta := Delta * Range / ClientSz;
 
-    FGenChange := True;
-    Position := FPosBeforeDrag + Delta;
-    FGenChange := False;
+    try
+      FGenChange := True;
+      try
+        Position := FPosBeforeDrag + Delta;
+      finally
+        FGenChange := False;
+      end;
+    except
+      // Propagation of exception will cause loss of mouse capture, so we need
+      // to emulate mouse release in order to restore internal state.
+      if (MouseCapture) then
+      begin
+        MouseCapture := False;
+        MouseUp(mbLeft, Shift, X, Y);
+      end;
+      raise;
+    end;
   end;
 end;
 
@@ -1561,37 +1575,42 @@ var
 
 begin
   inherited;
+  if (not MouseCapture) then
+    Exit;
   FGenChange := True;
-  OldPosition := Position;
+  try
+    OldPosition := Position;
 
-  case FDragZone of
-    zBtnPrev:
-      begin
-        Position := Position - Increment;
-        if Position = OldPosition then StopDragTracking;
-      end;
+    case FDragZone of
+      zBtnPrev:
+        begin
+          Position := Position - Increment;
+          if Position = OldPosition then StopDragTracking;
+        end;
 
-    zBtnNext:
-      begin
-        Position := Position + Increment;
-        if Position = OldPosition then StopDragTracking;
-      end;
+      zBtnNext:
+        begin
+          Position := Position + Increment;
+          if Position = OldPosition then StopDragTracking;
+        end;
 
-    zTrackNext:
-      begin
-        Pt := MousePos;
-        if GetZone(Pt.X, Pt.Y) in [zTrackNext, zBtnNext] then
-        Position := Position + EffectiveWindow;
-      end;
+      zTrackNext:
+        begin
+          Pt := MousePos;
+          if GetZone(Pt.X, Pt.Y) in [zTrackNext, zBtnNext] then
+          Position := Position + EffectiveWindow;
+        end;
 
-    zTrackPrev:
-      begin
-        Pt := MousePos;
-        if GetZone(Pt.X, Pt.Y) in [zTrackPrev, zBtnPrev] then
-        Position := Position - EffectiveWindow;
-      end;
+      zTrackPrev:
+        begin
+          Pt := MousePos;
+          if GetZone(Pt.X, Pt.Y) in [zTrackPrev, zBtnPrev] then
+          Position := Position - EffectiveWindow;
+        end;
+    end;
+  finally
+    FGenChange := False;
   end;
-  FGenChange := False;
 end;
 
 procedure TCustomRangeBar.UpdateEffectiveWindow;
@@ -1691,7 +1710,7 @@ var
   ClientSz: Integer;
 begin
   inherited;
-  if FDragZone = zHandle then
+  if (FDragZone = zHandle) and (MouseCapture) then
   begin
     if Kind = sbHorizontal then Delta := X - FStored.X else Delta := Y - FStored.Y;
     R := GetTrackBoundary;
@@ -1701,9 +1720,23 @@ begin
 
     Delta := Delta * (Max - Min) / (ClientSz - GetHandleSize);
 
-    FGenChange := True;
-    Position := Round(FPosBeforeDrag + Delta);
-    FGenChange := False;
+    try
+      FGenChange := True;
+      try
+        Position := Round(FPosBeforeDrag + Delta);
+      finally
+        FGenChange := False;
+      end;
+    except
+      // Propagation of exception will cause loss of mouse capture, so we need
+      // to emulate mouse release in order to restore internal state.
+      if (MouseCapture) then
+      begin
+        MouseCapture := False;
+        MouseUp(mbLeft, Shift, X, Y);
+      end;
+      raise;
+    end;
   end;
 end;
 
@@ -1779,37 +1812,42 @@ var
 
 begin
   inherited;
+  if (not MouseCapture) then
+    Exit;
   FGenChange := True;
-  OldPosition := Position;
+  try
+    OldPosition := Position;
 
-  case FDragZone of
-    zBtnPrev:
-      begin
-        Position := Position - SmallChange;
-        if Position = OldPosition then StopDragTracking;
-      end;
+    case FDragZone of
+      zBtnPrev:
+        begin
+          Position := Position - SmallChange;
+          if Position = OldPosition then StopDragTracking;
+        end;
 
-    zBtnNext:
-      begin
-        Position := Position + SmallChange;
-        if Position = OldPosition then StopDragTracking;
-      end;
+      zBtnNext:
+        begin
+          Position := Position + SmallChange;
+          if Position = OldPosition then StopDragTracking;
+        end;
 
-    zTrackNext:
-      begin
-        Pt := MousePos;
-        if GetZone(Pt.X, Pt.Y) in [zTrackNext, zBtnNext] then
-        Position := Position + LargeChange;
-      end;
+      zTrackNext:
+        begin
+          Pt := MousePos;
+          if GetZone(Pt.X, Pt.Y) in [zTrackNext, zBtnNext] then
+          Position := Position + LargeChange;
+        end;
 
-    zTrackPrev:
-      begin
-        Pt := MousePos;
-        if GetZone(Pt.X, Pt.Y) in [zTrackPrev, zBtnPrev] then
-        Position := Position - LargeChange;
-      end;
+      zTrackPrev:
+        begin
+          Pt := MousePos;
+          if GetZone(Pt.X, Pt.Y) in [zTrackPrev, zBtnPrev] then
+          Position := Position - LargeChange;
+        end;
+    end;
+  finally
+    FGenChange := False;
   end;
-  FGenChange := False;
 end;
 
 { TArrowBarAccess }
