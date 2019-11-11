@@ -37,7 +37,7 @@ type
     FReservedList: TStringList;
     FCurrent: TPoint;
     FLastX: Integer;
-    FCurrentLine: string; //line containing next token to be read
+    FCurrentLine: AnsiString; //line containing next token to be read
     FCurrentLineLen: Integer;
     FLastSpecialComment: string;
     FLatestCommentLine: Integer;
