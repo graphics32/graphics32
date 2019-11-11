@@ -1,0 +1,31 @@
+<html>
+<head>
+<title>TRadialDistortionTransformation</title>
+<link rel="STYLESHEET" href="../../../../../Styles/Default.css">
+<meta name="Ancestor" content="TTransformation">
+</head>
+
+<body bgcolor="#FFFFFF">
+<h2>Description</h2>
+<p class="Body">The radial distortion transformation can be used to correct or create a kind of distortion created by optical lenses.  This kind of distortion is normally visible as barrel distortion, pincushion distortion or a blend between those types.</p>
+<p class="Body">This transformation uses the formula of the <a href="https://en.wikipedia.org/wiki/Distortion_(optics)">Brown-Conrady model</a>:</p>
+<p class="Body">
+	<tt>
+		p_dst = p_center + (p_src - p_center) * (Coefficient1 * sqr(r) + Coefficient2 * sqr(sqr(r)))<br>
+		r = abs(p_src - p_center)
+	</tt>
+</p>
+<p class="Body">Where:</p>
+<ul>
+	<li><tt>p_center</tt> is the focal point of the distortion, normally in the middle of the source image (in the current implementation it is fixed to the middle)</li>
+	<li><tt>p_src</tt> is a point of the source image and</li>
+	<li><tt>p_dst</tt> is the transformed point</li>
+	<li>The two coefficients <a href="Properties/Coefficient1.htm">Coefficient1</a> and <a href="Properties/Coefficient2.htm">Coefficient2</a> depend on the zoom and physical characteristics of the optical lenses used.  They are usually determined such that straight lines in the scene seen through the lenses, which appear as bent lines because of the distortion, map to straight lines again after applying this transformation.</li>
+</ul>
+
+<p class="Body">This transformation implements the forward and backward transform.  The forward transform is given by the formula above.  The backward transform requires to invert a 4th degree polynomial, which is a nonlinear function.  Because of that a discrete map is used.  The number of elements of this map can be set using <a href="Properties/MapElements.htm">MapElements</a>. </p>
+<p class="Body">Only the float transform level is implemented.  Speedups could still be gained by implementing fixed and integer transforms.</p>
+<p class="Body"></p>
+<p id="hidden">[See Also] <a href="../TFishEyeTransformation/_Body.htm">TFishEyeTransformation</a></p>
+</body>
+</html>
