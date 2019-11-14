@@ -1788,7 +1788,7 @@ begin
 
   // center / focal point relative to which all (un)distortions are calculated
   FFocalPoint.x := (SrcRect.Right + SrcRect.Left) / 2;
-  FFocalPoint.x := (SrcRect.Right + SrcRect.Left) / 2;
+  FFocalPoint.y := (SrcRect.Right + SrcRect.Left) / 2;
 
   r := MakeRect(SrcRect);
   r_0 := Sqrt(2*Sqr(Min(r.Width, r.Height)))/2;
