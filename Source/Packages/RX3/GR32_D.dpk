@@ -27,7 +27,7 @@ package GR32_D;
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Graphics32 Design Time Package'}
-{$LIBSUFFIX 'RX2'}
+{$LIBSUFFIX 'RX3'}
 {$IMPLICITBUILD ON}
 
 requires
