@@ -1143,7 +1143,7 @@ begin
     GR32.IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
 
     GR32.OffsetRect(SrcRectF, -SrcFX, -SrcFY);
-    GR32.OffsetRect(SrcRectB, -SrcBX, -SrcFY);
+    GR32.OffsetRect(SrcRectB, -SrcBX, -SrcBY);
 
     GR32.IntersectRect(DstClip, DstClip, SrcRectF);
     GR32.IntersectRect(DstClip, DstClip, SrcRectB);
@@ -1192,7 +1192,7 @@ begin
     GR32.IntersectRect(SrcRectB, SrcRectB, SrcB.BoundsRect);
 
     GR32.OffsetRect(SrcRectF, -SrcFX, -SrcFY);
-    GR32.OffsetRect(SrcRectB, -SrcBX, -SrcFY);
+    GR32.OffsetRect(SrcRectB, -SrcBX, -SrcBY);
 
     GR32.IntersectRect(DstClip, DstClip, SrcRectF);
     GR32.IntersectRect(DstClip, DstClip, SrcRectB);
