@@ -1249,8 +1249,7 @@ begin
     GR32.IntersectRect(ClipRect, ClipRect, ImageRect);
   end;
   StretchTransfer(Buffer, DstRect, ClipRect, FBitmap, SrcRect,
-    FBitmap.Resampler, FBitmap.DrawMode, FBitmap.CombineMode, FBitmap.MasterAlpha,
-    FBitmap.OuterColor, FBitmap.OnPixelCombine);
+    FBitmap.Resampler, FBitmap.DrawMode, FBitmap.OnPixelCombine);
 end;
 
 procedure TBitmapLayer.SetBitmap(Value: TBitmap32);

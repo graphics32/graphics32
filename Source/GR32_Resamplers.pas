@@ -54,11 +54,8 @@ uses
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode = cmMerge;
-  MasterAlpha: Cardinal = 255;
-  OuterColor: TColor32 = 0;
-  CombineCallBack: TPixelCombineEvent = nil); overload;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil); overload;
+  {$IFDEF USEINLINING} inline; {$ENDIF}
 
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
@@ -72,20 +69,14 @@ procedure BlockTransfer(
 procedure BlockTransferX(
   Dst: TCustomBitmap32; DstX, DstY: TFixed;
   Src: TCustomBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode = cmMerge;
-  MasterAlpha: Cardinal = 255;
-  CombineCallBack: TPixelCombineEvent = nil);
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
 procedure StretchTransfer(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
   Resampler: TCustomResampler;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode = cmMerge;
-  MasterAlpha: Cardinal = 255;
-  OuterColor: TColor32 = 0;
-  CombineCallBack: TPixelCombineEvent = nil); overload;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil); overload;
+  {$IFDEF USEINLINING} inline; {$ENDIF}
 
 procedure StretchTransfer(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
@@ -318,11 +309,8 @@ type
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-      OuterColor: TColor32;
-      CombineOp: TDrawMode;
-      CombineMode: TCombineMode;
-      MasterAlpha: Cardinal;
-      CombineCallBack: TPixelCombineEvent); override;
+      CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+      OuterColor: TColor32; CombineCallBack: TPixelCombineEvent); override;
   public
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
@@ -341,11 +329,8 @@ type
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-      OuterColor: TColor32;
-      CombineOp: TDrawMode;
-      CombineMode: TCombineMode;
-      MasterAlpha: Cardinal;
-      CombineCallBack: TPixelCombineEvent); override;
+      CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+      OuterColor: TColor32; CombineCallBack: TPixelCombineEvent); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -360,11 +345,8 @@ type
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-      OuterColor: TColor32;
-      CombineOp: TDrawMode;
-      CombineMode: TCombineMode;
-      MasterAlpha: Cardinal;
-      CombineCallBack: TPixelCombineEvent); override;
+      CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+      OuterColor: TColor32; CombineCallBack: TPixelCombineEvent); override;
   end;
 
   { TKernelResampler }
@@ -395,12 +377,13 @@ type
     function GetSampleFloat(X, Y: TFloat): TColor32; override;
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TCustomBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); overload;
+    procedure Resample(
+      Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-      OuterColor: TColor32;
-      CombineOp: TDrawMode;
-      CombineMode: TCombineMode;
-      MasterAlpha: Cardinal;
-      CombineCallBack: TPixelCombineEvent); override;
+      CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+      OuterColor: TColor32; CombineCallBack: TPixelCombineEvent); override;
     procedure PrepareSampling; override;
     procedure FinalizeSampling; override;
   published
@@ -898,15 +881,11 @@ end;
 procedure BlockTransfer(
   Dst: TCustomBitmap32; DstX: Integer; DstY: Integer; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  OuterColor: TColor32;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 begin
   CheckBitmaps(Dst, Src);
   BlockTransfer(Dst, DstX, DstY, DstClip, Src.Bits, Src.Width, Src.Height,
-    SrcRect, CombineOp, CombineMode, MasterAlpha, OuterColor, CombineCallBack);
+    SrcRect, CombineOp, Src.CombineMode, Src.MasterAlpha, Src.OuterColor, CombineCallBack);
 end;
 
 procedure BlockTransfer(
@@ -959,10 +938,7 @@ end;
 procedure BlockTransferX(
   Dst: TCustomBitmap32; DstX, DstY: TFixed;
   Src: TCustomBitmap32; SrcRect: TRect;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 type
   TColor32Array = array [0..1] of TColor32;
   PColor32Array = ^TColor32Array;
@@ -980,7 +956,7 @@ var
   BlendMemEx: TBlendMemEx;
 begin
   CheckBitmaps(Dst, Src);
-  if Dst.Empty or Src.Empty or ((CombineOp = dmBlend) and (MasterAlpha = 0)) then Exit;
+  if Dst.Empty or Src.Empty or ((CombineOp = dmBlend) and (Src.MasterAlpha = 0)) then Exit;
 
   SrcRectW := SrcRect.Right - SrcRect.Left - 1;
   SrcRectH := SrcRect.Bottom - SrcRect.Top - 1;
@@ -994,7 +970,7 @@ begin
   DstW := Dst.Width;
   DstH := Dst.Height;
 
-  MA := MasterAlpha;
+  MA := Src.MasterAlpha;
 
   if (DstX >= DstW) or (DstY >= DstH) or (MA = 0) then Exit;
 
@@ -1026,8 +1002,8 @@ begin
     SetLength(Buffer[0], SrcRectW + 1);
     SetLength(Buffer[1], SrcRectW + 1);
 
-    BlendLineEx := BLEND_LINE_EX[CombineMode]^;
-    BlendMemEx := BLEND_MEM_EX[CombineMode]^;
+    BlendLineEx := BLEND_LINE_EX[Src.CombineMode]^;
+    BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^;
 
     try
       SrcP := PColor32Array(Src.PixelPtr[SrcRect.Left, SrcRect.Top - 1]);
@@ -2509,15 +2485,11 @@ procedure StretchTransfer(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
   Resampler: TCustomResampler;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  OuterColor: TColor32;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
 begin
   CheckBitmaps(Dst, Src);
   StretchTransfer(Dst, DstRect, DstClip, Src.Bits, Src.Width, Src.Height,
-    SrcRect, Resampler, CombineOp, CombineMode, MasterAlpha, OuterColor,
+    SrcRect, Resampler, CombineOp, Src.CombineMode, Src.MasterAlpha, Src.OuterColor,
     CombineCallBack);
 end;
 
@@ -2601,8 +2573,7 @@ begin
       else
         TCustomResamplerAccess(Resampler).Resample(
           Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight, SrcRect,
-          OuterColor, CombineOp, CombineMode,
-          MasterAlpha, CombineCallBack);
+          CombineOp, CombineMode, MasterAlpha, OuterColor, CombineCallBack);
     finally
       EMMS;
     end;
@@ -3150,18 +3121,24 @@ begin
   end;
 end;
 
-procedure TKernelResampler.Resample(Dst: TCustomBitmap32; DstRect,
-  DstClip: TRect;
+procedure TKernelResampler.Resample(
+  Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
+  Src: TCustomBitmap32; SrcRect: TRect;
+  CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent);
+begin
+  GR32_Resamplers.Resample(Dst, DstRect, DstClip, Src.Bits, Src.Width, Src.Height,
+    SrcRect, FKernel, Src.OuterColor, CombineOp, Src.CombineMode, Src.MasterAlpha,
+    CombineCallBack);
+end;
+
+procedure TKernelResampler.Resample(
+  Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-  OuterColor: TColor32;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+  OuterColor: TColor32; CombineCallBack: TPixelCombineEvent);
 begin
   GR32_Resamplers.Resample(Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight,
-    SrcRect, FKernel, OuterColor,
-    CombineOp, CombineMode, MasterAlpha, CombineCallBack);
+    SrcRect, FKernel, OuterColor, CombineOp, CombineMode, MasterAlpha, CombineCallBack);
 end;
 
 {$WARNINGS OFF}
@@ -3628,17 +3605,12 @@ end;
 procedure TNearestResampler.Resample(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-  OuterColor: TColor32;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+  OuterColor: TColor32; CombineCallBack: TPixelCombineEvent);
 begin
   StretchNearest(Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight, SrcRect,
-    OuterColor, CombineOp, CombineMode,
-    MasterAlpha, CombineCallBack)
+    OuterColor, CombineOp, CombineMode, MasterAlpha, CombineCallBack)
 end;
-
 
 { TCustomBitmap32LinearResampler }
 
@@ -3750,11 +3722,8 @@ end;
 procedure TLinearResampler.Resample(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-  OuterColor: TColor32;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+  OuterColor: TColor32; CombineCallBack: TPixelCombineEvent);
 var
   SrcW, SrcH: TFloat;
   DstW, DstH: Integer;
@@ -3764,8 +3733,8 @@ begin
   DstW := DstRect.Right - DstRect.Left;
   DstH := DstRect.Bottom - DstRect.Top;
   if (DstW > SrcW) and (DstH > SrcH) and (SrcW > 1) and (SrcH > 1) then
-    StretchHorzStretchVertLinear(Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight,
-      SrcRect, OuterColor, CombineOp,
+    StretchHorzStretchVertLinear(Dst, DstRect, DstClip, SrcBits, SrcWidth,
+      SrcHeight, SrcRect, OuterColor, CombineOp,
       CombineMode, MasterAlpha, CombineCallBack)
   else
     GR32_Resamplers.Resample(Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight,
@@ -3773,19 +3742,16 @@ begin
       CombineOp, CombineMode, MasterAlpha, CombineCallBack);
 end;
 
+{ TDraftResampler }
+
 procedure TDraftResampler.Resample(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-  OuterColor: TColor32;
-  CombineOp: TDrawMode;
-  CombineMode: TCombineMode;
-  MasterAlpha: Cardinal;
-  CombineCallBack: TPixelCombineEvent);
+  CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+  OuterColor: TColor32; CombineCallBack: TPixelCombineEvent);
 begin
-  DraftResample(
-    Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight, SrcRect,
-    FLinearKernel, OuterColor, CombineOp,
-    CombineMode, MasterAlpha, CombineCallBack)
+  DraftResample(Dst, DstRect, DstClip, SrcBits, SrcWidth, SrcHeight, SrcRect,
+    FLinearKernel, OuterColor, CombineOp, CombineMode, MasterAlpha, CombineCallBack)
 end;
 
 { TTransformer }

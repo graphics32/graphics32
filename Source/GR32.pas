@@ -1084,12 +1084,13 @@ type
     function GetWidth: TFloat; virtual;
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
+      Src: TCustomBitmap32; SrcRect: TRect;
+      CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure Resample(
+      Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       SrcBits: PColor32Array; SrcWidth, SrcHeight: Integer; SrcRect: TRect;
-      OuterColor: TColor32;
-      CombineOp: TDrawMode;
-      CombineMode: TCombineMode;
-      MasterAlpha: Cardinal;
-      CombineCallBack: TPixelCombineEvent); virtual; abstract;
+      CombineOp: TDrawMode; CombineMode: TCombineMode; MasterAlpha: Cardinal;
+      OuterColor: TColor32; CombineCallBack: TPixelCombineEvent); overload; virtual; abstract;
     procedure AssignTo(Dst: TPersistent); override;
     property ClipRect: TRect read FClipRect;
   public
@@ -2836,33 +2837,33 @@ end;
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32);
 begin
   BlockTransfer(Dst, 0, 0, Dst.ClipRect, Self, BoundsRect, DrawMode,
-    CombineMode, MasterAlpha, OuterColor, FOnPixelCombine);
+    FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer);
 begin
   BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, BoundsRect, DrawMode,
-    CombineMode, MasterAlpha, OuterColor, FOnPixelCombine);
+    FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; DstX, DstY: Integer;
     const SrcRect: TRect);
 begin
   BlockTransfer(Dst, DstX, DstY, Dst.ClipRect, Self, SrcRect,
-    DrawMode, CombineMode, MasterAlpha, OuterColor, FOnPixelCombine);
+    DrawMode, FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; const DstRect: TRect);
 begin
   StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, BoundsRect, Resampler,
-    DrawMode, CombineMode, MasterAlpha, OuterColor, FOnPixelCombine);
+    DrawMode, FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32; const DstRect,
   SrcRect: TRect);
 begin
   StretchTransfer(Dst, DstRect, Dst.ClipRect, Self, SrcRect, Resampler,
-    DrawMode, CombineMode, MasterAlpha, OuterColor, FOnPixelCombine);
+    DrawMode, FOnPixelCombine);
 end;
 
 procedure TCustomBitmap32.ResetAlpha;
@@ -5978,7 +5979,7 @@ begin
         R := DstRect;
         OffsetRect(R, -X - DstRect.Left, -Y - DstRect.Top);
         Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
-        StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, CombineMode, MasterAlpha, OuterColor, FOnPixelCombine);
+        StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
 
         (Buffer.Backend as IDeviceContextSupport).DrawTo(hDst,
           MakeRect(X + DstRect.Left, Y + DstRect.Top, X + ClipRect.Right,
@@ -6588,6 +6589,15 @@ end;
 procedure TCustomResampler.PrepareSampling;
 begin
   FClipRect := FBitmap.ClipRect;
+end;
+
+procedure TCustomResampler.Resample(Dst: TCustomBitmap32; DstRect,
+  DstClip: TRect; Src: TCustomBitmap32; SrcRect: TRect; CombineOp: TDrawMode;
+  CombineCallBack: TPixelCombineEvent);
+begin
+  Self.Resample(Dst, DstRect, DstClip, Src.Bits, Src.Width,
+    Src.Height, SrcRect, CombineOp, Src.CombineMode, Src.MasterAlpha,
+    Src.OuterColor, CombineCallBack);
 end;
 
 procedure TCustomResampler.SetPixelAccessMode(
