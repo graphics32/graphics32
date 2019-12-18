@@ -288,7 +288,7 @@ type
   TRadialDistortionTransformation = class(TTransformation)
   protected
     FCoefficient1, FCoefficient2: TFloat;
-    FFocalPoint: TPointF;
+    FFocalPoint: TFloatPoint;
     r_0, r_tgt_max, r_tgt_min: Single;
     FMapElements: Integer;
     Map: Array of TFloat;
@@ -376,7 +376,7 @@ implementation
 
 uses
   Math, GR32_Blend, GR32_LowLevel, GR32_Math, GR32_Bindings,
-  GR32_Resamplers;
+  GR32_Resamplers, GR32_Geometry;
 
 resourcestring
   RCStrSrcRectIsEmpty = 'SrcRect is empty!';
@@ -1810,11 +1810,11 @@ procedure TRadialDistortionTransformation.ReverseTransformFloat(DstX, DstY: TFlo
   out SrcX, SrcY: TFloat);
 var
   r_tgt, r_src: Single;
-  d: TPointF;
+  d: TFloatPoint;
 begin
   d.x := DstX;
   d.y := DstY;
-  r_tgt := FFocalPoint.Distance(d)/r_0;
+  r_tgt := Distance(FFocalPoint, d)/r_0;
 
   r_src := LookUpReverseMap(r_tgt);
 
@@ -1847,7 +1847,7 @@ var
 begin
   d.x := SrcX;
   d.y := SrcY;
-  r_src := FFocalPoint.Distance(d)/r_0;
+  r_src := Distance(FFocalPoint, d)/r_0;
   r_tgt := 1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4);
   DstX := FFocalPoint.X + (d.X-FFocalPoint.X) * r_tgt;
   DstY := FFocalPoint.Y + (d.Y-FFocalPoint.Y) * r_tgt;
