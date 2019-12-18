@@ -1791,7 +1791,7 @@ begin
   FFocalPoint.y := (SrcRect.Bottom + SrcRect.Top) / 2;
 
   r := MakeRect(SrcRect);
-  r_0 := Sqrt(2*Sqr(Min(r.Width, r.Height)))/2;
+  r_0 := Sqrt(2*Sqr(Min(r.Right - r.Left, r.Bottom - r.Top)))/2;
 
   PrepareReverseMap;
 end;
@@ -1843,7 +1843,7 @@ end;
 procedure TRadialDistortionTransformation.TransformFloat(SrcX, SrcY: TFloat; out DstX, DstY: TFloat);
 var
   r_tgt, r_src: Single;
-  d: TPointF;
+  d: TFloatPoint;
 begin
   d.x := SrcX;
   d.y := SrcY;
