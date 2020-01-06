@@ -1710,13 +1710,11 @@ begin
     if not InRange(i, 0, High(Map)) then
     begin
       Inc(IndexOutOfRange);
-      //OutputDebugString(PChar(Format('PrepareReverseMap: i=%d out of range (0, MapElements=%d), r_tgt=%f', [ i, MapElements, r_tgt ])))
     end
     else
     if Map[i]<>-1 then
     begin
       Inc(mapToSameIndex);
-      // OutputDebugString(PChar(Format('PrepareReverseMap: Map[i=%d] already has value %f (wanted to put %f there)', [ i, Map[i], r_tgt ])))
     end
     else
       Map[i] := r_tgt;
@@ -1760,20 +1758,12 @@ begin
     end;
     Inc(i);
   until i > High(Map);
-{$IFDEF DEBUG}
-  OutputDebugString(PChar(Format(
-    'TRadialDistortionTransformation.PrepareReverseMap: mapToSameIndex=%d. IndexOutOfRange=%d. %d out of %d map elements were uninitialized, %d of these were interpolated',
-    [ mapToSameIndex, IndexOutOfRange, unset, High(Map), interpolated ])));
-{$ENDIF}
 
   for i := 0 to High(Map) do
   begin
     if Map[i] = -1 then
       Map[i] := 1;
   end;
-{$IFDEF DEBUG}
-  OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
-{$ENDIF}
 end;
 
 procedure TRadialDistortionTransformation.PrepareTransform;
