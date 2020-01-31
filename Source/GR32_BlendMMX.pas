@@ -42,34 +42,34 @@ uses
   GR32;
 
 {$IFNDEF OMIT_MMX}
-function BlendReg_MMX(F, B: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMem_MMX(F: TColor32; var B: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendReg_MMX(F, B: TColor32): TColor32;
+procedure BlendMem_MMX(F: TColor32; var B: TColor32);
 
-function BlendRegEx_MMX(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendRegEx_MMX(F, B, M: TColor32): TColor32;
+procedure BlendMemEx_MMX(F: TColor32; var B:TColor32; M: TColor32);
 
-function BlendRegRGB_MMX(F, B, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendRegRGB_MMX(F, B, W: TColor32): TColor32;
+procedure BlendMemRGB_MMX(F: TColor32; var B: TColor32; W: TColor32);
 
-procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure BlendLine_MMX(Src, Dst: PColor32; Count: Integer);
+procedure BlendLineEx_MMX(Src, Dst: PColor32; Count: Integer; M: TColor32);
 
-function CombineReg_MMX(X, Y, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function CombineReg_MMX(X, Y, W: TColor32): TColor32;
+procedure CombineMem_MMX(F: TColor32; var B: TColor32; W: TColor32);
+procedure CombineLine_MMX(Src, Dst: PColor32; Count: Integer; W: TColor32);
 
-procedure EMMS_MMX; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure EMMS_MMX;
 
-function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function LightenReg_MMX(C: TColor32; Amount: Integer): TColor32;
 
-function ColorAdd_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorSub_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorModulate_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorMax_EMMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorMin_EMMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorDifference_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorExclusion_MMX(C1, C2: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
-function ColorScale_MMX(C, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function ColorAdd_MMX(C1, C2: TColor32): TColor32;
+function ColorSub_MMX(C1, C2: TColor32): TColor32;
+function ColorModulate_MMX(C1, C2: TColor32): TColor32;
+function ColorMax_EMMX(C1, C2: TColor32): TColor32;
+function ColorMin_EMMX(C1, C2: TColor32): TColor32;
+function ColorDifference_MMX(C1, C2: TColor32): TColor32;
+function ColorExclusion_MMX(C1, C2: TColor32): TColor32;
+function ColorScale_MMX(C, W: TColor32): TColor32;
 {$ENDIF}
 
 implementation

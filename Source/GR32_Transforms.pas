@@ -405,7 +405,7 @@ begin
 end;
 
 {$IFNDEF PUREPASCAL}
-function DET32_ASM(a1, a2, b1, b2: Single): Single; overload;
+function DET32_ASM(a1, a2, b1, b2: Single): Single; overload; {$IFDEF FPC}assembler; {$IFDEF CPU64}nostackframe;{$ENDIF}{$ENDIF}
 asm
 {$IFDEF CPU64}
         MULSS   XMM0, XMM3

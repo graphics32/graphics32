@@ -1231,6 +1231,7 @@ begin
              (Color32 and $0000FF00) or
             ((Color32 and $000000FF) shl 16);
 {$ELSE}
+{$IFDEF FPC}assembler; nostackframe;{$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         MOV     EAX, ECX
@@ -3248,6 +3249,7 @@ begin
   Result := GET_TS256(X, Y);
   EMMS;
 {$ELSE}
+{$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x64}
           PUSH    RBP

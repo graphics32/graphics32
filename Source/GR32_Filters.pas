@@ -600,7 +600,7 @@ end;
 
 {$IFNDEF PUREPASCAL}
 
-procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer);
+procedure XorLine_ASM(Dst: PColor32; Mask: TColor32; Count: Integer); {$IFDEF FPC}assembler;{$ENDIF}
 // No speedup achieveable using MMX
 asm
 {$IFDEF TARGET_x86}
@@ -1003,7 +1003,7 @@ end;
 
 {$IFNDEF PUREPASCAL}
 
-procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32);
+procedure XorLineEx_ASM(Src, Dst: PColor32; Count: Integer; Mask: TColor32); {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH    EBX
