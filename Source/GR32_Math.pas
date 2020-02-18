@@ -616,6 +616,7 @@ begin
   Result := Round(Math.Hypot(X, Y));
 (*
 {$ELSE}
+{$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x64}
         IMUL    RAX, RCX, RDX

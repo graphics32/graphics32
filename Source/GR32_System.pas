@@ -226,7 +226,7 @@ const
     ($800000,  $400000, $2000000, $4000000, $80000000, $40000000);
     {ciMMX  ,  ciEMMX,  ciSSE   , ciSSE2  , ci3DNow ,  ci3DNowExt}
 
-function CPUID_Available: Boolean;
+function CPUID_Available: Boolean; {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         MOV       EDX,False
@@ -264,7 +264,7 @@ asm
 {$ENDIF}
 end;
 
-function CPU_Signature: Integer;
+function CPU_Signature: Integer; {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -284,7 +284,7 @@ asm
 {$ENDIF}
 end;
 
-function CPU_Features: Integer;
+function CPU_Features: Integer; {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -306,7 +306,7 @@ asm
 {$ENDIF}
 end;
 
-function CPU_ExtensionsAvailable: Boolean;
+function CPU_ExtensionsAvailable: Boolean; {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
@@ -340,7 +340,7 @@ asm
 {$ENDIF}
 end;
 
-function CPU_ExtFeatures: Integer;
+function CPU_ExtFeatures: Integer; {$IFDEF FPC}assembler;{$ENDIF}
 asm
 {$IFDEF TARGET_x86}
         PUSH      EBX
