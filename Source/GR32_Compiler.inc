@@ -58,7 +58,7 @@
     COMPILERRX1  - Delphi RX1
 	  COMPILERRX2  - Delphi RX2 (10.2 Tokyo)
     COMPILERRX3  - Delphi RX3 (10.3 Rio)
-    COMPILERRX4  - Delphi RX4 (10.3 Sydney)
+    COMPILERRX4  - Delphi RX4 (10.4 Sydney)
 
 
   Available Targets:
