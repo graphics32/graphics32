@@ -99,9 +99,9 @@ type
     procedure ScreenColorPickerMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
 
-    procedure SetColor(const Value: TColor32);
+    procedure SetColor32(const Value: TColor32);
   public
-    property Color: TColor32 read FColor write SetColor;
+    property Color: TColor32 read FColor write SetColor32;
   end;
 
 implementation
@@ -133,7 +133,12 @@ end;
 
 procedure TFormColorPicker.ColorPickerChanged(Sender: TObject);
 begin
-  Color := TCustomColorPicker(Sender).SelectedColor;
+  if (Sender = ColorPickerGTK)
+    then Color := ColorPickerGTK.SelectedColor or ColorPickerAlpha.SelectedColor
+    else Color := (ColorPickerRed.SelectedColor and $00FF0000) or
+                  (ColorPickerGreen.SelectedColor and $0000FF00) or
+                  (ColorPickerBlue.SelectedColor and $000000FF) or
+                  (ColorPickerAlpha.SelectedColor and $FF000000);
 end;
 
 procedure TFormColorPicker.ColorSwatchClick(Sender: TObject);
@@ -157,7 +162,7 @@ begin
   Color := FScreenColorPickerForm.SelectedColor;
 end;
 
-procedure TFormColorPicker.SetColor(const Value: TColor32);
+procedure TFormColorPicker.SetColor32(const Value: TColor32);
 begin
   if FColor <> Value then
   begin
@@ -188,13 +193,11 @@ begin
   SpinEditGreen.OnChange := nil;
   SpinEditBlue.OnChange := nil;
   SpinEditAlpha.OnChange := nil;
-
-  ColorPickerGTK.SelectedColor := FColor;
-  ColorPickerRed.SelectedColor := FColor;
-  ColorPickerGreen.SelectedColor := FColor;
-  ColorPickerBlue.SelectedColor := FColor;
-  ColorPickerAlpha.SelectedColor := FColor;
-  ColorSwatch.Color := FColor;
+  ColorPickerGTK.OnChanged := nil;
+  ColorPickerAlpha.OnChanged := nil;
+  ColorPickerRed.OnChanged := nil;
+  ColorPickerGreen.OnChanged := nil;
+  ColorPickerBlue.OnChanged := nil;
 
   // update spin edits
   Color32ToRGBA(FColor, R, G, B, A);
@@ -205,10 +208,22 @@ begin
 
   // update color edit
   SelStart := EditColor.SelStart;
-  EditColor.Text := '#' + IntToHex(A, 2) + IntToHex(R, 2) + IntToHex(G, 2) + IntToHex(B, 2);
+  EditColor.Text := '#' + IntToHex(FColor, 8);
   EditColor.SelStart := SelStart;
 
+  ColorPickerRed.SelectedColor := FColor and $00FF0000;
+  ColorPickerGreen.SelectedColor := FColor and $0000FF00;
+  ColorPickerBlue.SelectedColor := FColor and $000000FF;
+  ColorPickerAlpha.SelectedColor := FColor and $FF000000;
+  ColorPickerGTK.SelectedColor := FColor;
+  ColorSwatch.Color := FColor;
+
   // re-enable OnChange handler
+  ColorPickerBlue.OnChanged := ColorPickerChanged;
+  ColorPickerGreen.OnChanged := ColorPickerChanged;
+  ColorPickerRed.OnChanged := ColorPickerChanged;
+  ColorPickerAlpha.OnChanged := ColorPickerChanged;
+  ColorPickerGTK.OnChanged := ColorPickerChanged;
   SpinEditRed.OnChange := SpinEditColorChange;
   SpinEditGreen.OnChange := SpinEditColorChange;
   SpinEditBlue.OnChange := SpinEditColorChange;
