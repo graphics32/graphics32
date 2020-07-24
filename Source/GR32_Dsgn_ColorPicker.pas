@@ -41,7 +41,7 @@ uses
   Classes, SysUtils,
 {$IFDEF FPC}
   RTLConsts, LazIDEIntf, PropEdits, Graphics, Dialogs, Forms, Spin, ExtCtrls,
-  StdCtrls, Controls, 
+  StdCtrls, Controls,
   {$IFDEF Windows}
     Windows, Registry,
   {$ENDIF}
@@ -94,6 +94,7 @@ type
   private
     FColor: TColor32;
     FScreenColorPickerForm: TScreenColorPickerForm;
+    FLockChanged: integer;
 
     procedure UpdateColor;
     procedure ScreenColorPickerMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -133,12 +134,21 @@ end;
 
 procedure TFormColorPicker.ColorPickerChanged(Sender: TObject);
 begin
-  if (Sender = ColorPickerGTK)
-    then Color := ColorPickerGTK.SelectedColor or ColorPickerAlpha.SelectedColor
-    else Color := (ColorPickerRed.SelectedColor and $00FF0000) or
-                  (ColorPickerGreen.SelectedColor and $0000FF00) or
-                  (ColorPickerBlue.SelectedColor and $000000FF) or
-                  (ColorPickerAlpha.SelectedColor and $FF000000);
+  if (FLockChanged > 0) then
+    exit;
+
+  Inc(FLockChanged);
+  try
+    if (Sender = ColorPickerGTK) then
+      Color := ColorPickerGTK.SelectedColor or ColorPickerAlpha.SelectedColor
+    else
+      Color := (ColorPickerRed.SelectedColor and $00FF0000) or
+               (ColorPickerGreen.SelectedColor and $0000FF00) or
+               (ColorPickerBlue.SelectedColor and $000000FF) or
+               (ColorPickerAlpha.SelectedColor and $FF000000);
+  finally
+    Dec(FLockChanged);
+  end;
 end;
 
 procedure TFormColorPicker.ColorSwatchClick(Sender: TObject);
@@ -151,9 +161,19 @@ var
   ColorText: string;
   Value: Integer;
 begin
-  ColorText := StringReplace(EditColor.Text, '#', '$', []);
-  if TryStrToInt(ColorText, Value) then
-    Color := Value;
+  if (FLockChanged > 0) then
+    exit;
+
+  Inc(FLockChanged);
+  try
+    ColorText := StringReplace(EditColor.Text, '#', '$', []);
+
+    if TryStrToInt(ColorText, Value) then
+      Color := Value;
+
+  finally
+    Dec(FLockChanged);
+  end;
 end;
 
 procedure TFormColorPicker.ScreenColorPickerMouseMove(Sender: TObject;
@@ -173,13 +193,20 @@ end;
 
 procedure TFormColorPicker.SpinEditColorChange(Sender: TObject);
 begin
-  EditColor.OnChange := nil;
-  Color :=
-    SpinEditAlpha.Value shl 24 +
-    SpinEditRed.Value shl 16 +
-    SpinEditGreen.Value shl 8 +
-    SpinEditBlue.Value;
-  EditColor.OnChange := EditColorChange;
+  if (FLockChanged > 0) then
+    exit;
+
+  Inc(FLockChanged);
+  try
+    Color :=
+      SpinEditAlpha.Value shl 24 +
+      SpinEditRed.Value   shl 16 +
+      SpinEditGreen.Value shl 8 +
+      SpinEditBlue.Value;
+
+  finally
+    Dec(FLockChanged);
+  end;
 end;
 
 procedure TFormColorPicker.UpdateColor;
@@ -188,47 +215,33 @@ var
   SelStart: Integer;
 begin
   // disable OnChange handler
-  EditColor.OnChange := nil;
-  SpinEditRed.OnChange := nil;
-  SpinEditGreen.OnChange := nil;
-  SpinEditBlue.OnChange := nil;
-  SpinEditAlpha.OnChange := nil;
-  ColorPickerGTK.OnChanged := nil;
-  ColorPickerAlpha.OnChanged := nil;
-  ColorPickerRed.OnChanged := nil;
-  ColorPickerGreen.OnChanged := nil;
-  ColorPickerBlue.OnChanged := nil;
+  Inc(FLockChanged);
+  try
 
-  // update spin edits
-  Color32ToRGBA(FColor, R, G, B, A);
-  SpinEditRed.Value := R;
-  SpinEditGreen.Value := G;
-  SpinEditBlue.Value := B;
-  SpinEditAlpha.Value := A;
+    // update spin edits
+    Color32ToRGBA(FColor, R, G, B, A);
+    SpinEditRed.Value := R;
+    SpinEditGreen.Value := G;
+    SpinEditBlue.Value := B;
+    SpinEditAlpha.Value := A;
 
-  // update color edit
-  SelStart := EditColor.SelStart;
-  EditColor.Text := '#' + IntToHex(FColor, 8);
-  EditColor.SelStart := SelStart;
+    // update color edit
+    SelStart := EditColor.SelStart;
+    EditColor.Text := '#' + IntToHex(FColor, 8);
+    EditColor.SelStart := SelStart;
 
-  ColorPickerRed.SelectedColor := FColor and $00FF0000;
-  ColorPickerGreen.SelectedColor := FColor and $0000FF00;
-  ColorPickerBlue.SelectedColor := FColor and $000000FF;
-  ColorPickerAlpha.SelectedColor := FColor and $FF000000;
-  ColorPickerGTK.SelectedColor := FColor;
-  ColorSwatch.Color := FColor;
+    ColorPickerRed.SelectedColor := FColor and $00FF0000;
+    ColorPickerGreen.SelectedColor := FColor and $0000FF00;
+    ColorPickerBlue.SelectedColor := FColor and $000000FF;
+    ColorPickerAlpha.SelectedColor := FColor and $FF000000;
+    ColorPickerGTK.SelectedColor := FColor;
+    ColorSwatch.Color := FColor;
 
-  // re-enable OnChange handler
-  ColorPickerBlue.OnChanged := ColorPickerChanged;
-  ColorPickerGreen.OnChanged := ColorPickerChanged;
-  ColorPickerRed.OnChanged := ColorPickerChanged;
-  ColorPickerAlpha.OnChanged := ColorPickerChanged;
-  ColorPickerGTK.OnChanged := ColorPickerChanged;
-  SpinEditRed.OnChange := SpinEditColorChange;
-  SpinEditGreen.OnChange := SpinEditColorChange;
-  SpinEditBlue.OnChange := SpinEditColorChange;
-  SpinEditAlpha.OnChange := SpinEditColorChange;
-  EditColor.OnChange := EditColorChange;
+
+  finally
+    // re-enable OnChange handler
+    Dec(FLockChanged);
+  end;
 end;
 
 end.
