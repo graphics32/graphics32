@@ -1701,6 +1701,44 @@ begin
   Result := Grow(Points, Normals, Delta, JoinStyle, Closed, MiterLimit);
 end;
 
+// Converts an array of points in TFixed format to an array of points in TFloat format
+function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint)
+  : TArrayOfFloatPoint;
+var
+  Index: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      Result[Index].X := Points[Index].X * FixedToFloat;
+      Result[Index].Y := Points[Index].Y * FixedToFloat;
+    end;
+  end;
+end;
+
+// Converts an array of array of points in TFixed format to an array of array of points in TFloat format
+function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint)
+  : TArrayOfArrayOfFloatPoint;
+var
+  Index, PointIndex: Integer;
+begin
+  if Length(Points) > 0 then
+  begin
+    SetLength(Result, Length(Points));
+    for Index := 0 to Length(Points) - 1 do
+    begin
+      SetLength(Result[Index], Length(Points[Index]));
+      for PointIndex := 0 to Length(Points[Index]) - 1 do
+      begin
+        Result[Index, PointIndex].X := Points[Index, PointIndex].X * FixedToFloat;
+        Result[Index, PointIndex].Y := Points[Index, PointIndex].Y * FixedToFloat;
+      end;
+    end;
+  end;
+end;
+
 function Grow(const Points: TArrayOfFixedPoint; const Normals: TArrayOfFixedPoint;
   const Delta: TFixed; JoinStyle: TJoinStyle = jsMiter;
   Closed: Boolean = True; MiterLimit: TFixed = DEFAULT_MITER_LIMIT_FIXED): TArrayOfFixedPoint; overload;
@@ -2975,44 +3013,6 @@ begin
       begin
         Result[Index, PointIndex].X := Fixed(Points[Index, PointIndex].X);
         Result[Index, PointIndex].Y := Fixed(Points[Index, PointIndex].Y);
-      end;
-    end;
-  end;
-end;
-
-// Converts an array of points in TFixed format to an array of points in TFloat format
-function FixedPointToFloatPoint(const Points: TArrayOfFixedPoint)
-  : TArrayOfFloatPoint;
-var
-  Index: Integer;
-begin
-  if Length(Points) > 0 then
-  begin
-    SetLength(Result, Length(Points));
-    for Index := 0 to Length(Points) - 1 do
-    begin
-      Result[Index].X := Points[Index].X * FixedToFloat;
-      Result[Index].Y := Points[Index].Y * FixedToFloat;
-    end;
-  end;
-end;
-
-// Converts an array of array of points in TFixed format to an array of array of points in TFloat format
-function FixedPointToFloatPoint(const Points: TArrayOfArrayOfFixedPoint)
-  : TArrayOfArrayOfFloatPoint;
-var
-  Index, PointIndex: Integer;
-begin
-  if Length(Points) > 0 then
-  begin
-    SetLength(Result, Length(Points));
-    for Index := 0 to Length(Points) - 1 do
-    begin
-      SetLength(Result[Index], Length(Points[Index]));
-      for PointIndex := 0 to Length(Points[Index]) - 1 do
-      begin
-        Result[Index, PointIndex].X := Points[Index, PointIndex].X * FixedToFloat;
-        Result[Index, PointIndex].Y := Points[Index, PointIndex].Y * FixedToFloat;
       end;
     end;
   end;
