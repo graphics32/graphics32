@@ -349,6 +349,12 @@ begin
   ReallocMem(MicroTiles.Tiles, 0);
 end;
 
+procedure MicroTilesClear(var MicroTiles: TMicroTiles; const Value: TMicroTile);
+begin
+  MicroTiles.BoundsUsedTiles := MakeRect(MicroTiles.Columns, MicroTiles.Rows, 0, 0);
+  FillLongword(MicroTiles.Tiles^[0], MicroTiles.Count, Value);
+end;
+
 procedure MicroTilesSetSize(var MicroTiles: TMicroTiles; const DstRect: TRect);
 begin
   MicroTiles.BoundsRect := DstRect;
@@ -359,12 +365,6 @@ begin
   ReallocMem(MicroTiles.Tiles, MicroTiles.Count * SizeOf(TMicroTile));
 
   MicroTilesClear(MicroTiles)
-end;
-
-procedure MicroTilesClear(var MicroTiles: TMicroTiles; const Value: TMicroTile);
-begin
-  MicroTiles.BoundsUsedTiles := MakeRect(MicroTiles.Columns, MicroTiles.Rows, 0, 0);
-  FillLongword(MicroTiles.Tiles^[0], MicroTiles.Count, Value);
 end;
 
 procedure MicroTilesClearUsed(var MicroTiles: TMicroTiles; const Value: TMicroTile);
