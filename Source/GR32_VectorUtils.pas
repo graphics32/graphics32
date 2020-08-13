@@ -433,7 +433,8 @@ begin
     Inc(Index);
   end;
 
-  Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
+  if Length(Result) > 2 then
+    Result := RamerDouglasPeucker(Points, 0, Length(Points) - 1, Epsilon);
 end;
 
 function ClosePolygon(const Points: TArrayOfFloatPoint): TArrayOfFloatPoint;
