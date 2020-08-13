@@ -77,11 +77,11 @@
 {$ENDIF}
 
 {$IFDEF VER_LATEST} // adjust for newer version (always use latest version)
-  {$DEFINE COMPILERRX3}
+  {$DEFINE COMPILERRX4}
   {$IFNDEF BCB}
-    {$DEFINE DELPHIRX3}
+    {$DEFINE DELPHIRX4}
   {$ELSE}
-    {$DEFINE BCBRX3}
+    {$DEFINE BCBRX4}
   {$ENDIF}
   {$UNDEF VER_LATEST}
 {$ENDIF}
