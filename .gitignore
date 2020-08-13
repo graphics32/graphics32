@@ -25,3 +25,4 @@ lib
 Win32
 Win64
 *.ficfg
+*.~*~
