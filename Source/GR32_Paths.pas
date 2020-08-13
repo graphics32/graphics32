@@ -486,16 +486,16 @@ begin
   LineTo(FloatPoint(X, FCurrentPoint.Y));
 end;
 
-procedure TCustomPath.HorizontalLineToRelative(const X: TFloat);
-begin
-  LineTo(FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y));
-end;
-
 procedure TCustomPath.LineTo(const P: TFloatPoint);
 begin
   AddPoint(P);
   FCurrentPoint := P;
   FControlPointOrigin := cpNone;
+end;
+
+procedure TCustomPath.HorizontalLineToRelative(const X: TFloat);
+begin
+  LineTo(FloatPoint(FCurrentPoint.X + X, FCurrentPoint.Y));
 end;
 
 procedure TCustomPath.LineTo(const X, Y: TFloat);
