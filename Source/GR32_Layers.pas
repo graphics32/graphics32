@@ -1427,7 +1427,7 @@ const
 var
   Mx, My: TFloat;
   L, T, R, B, W, H: TFloat;
-  Quantize: Boolean;
+  LQuantize: Boolean;
   ALoc, NewLocation: TFloatRect;
 
   procedure IncLT(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
@@ -1476,13 +1476,13 @@ begin
       H := B - T;
     end;
 
-    Quantize := (roQuantized in Options) and not (ssAlt in Shift);
+    LQuantize := (roQuantized in Options) and not (ssAlt in Shift);
 
     if FDragState = dsMove then
     begin
       L := Mx;
       T := My;
-      if Quantize then
+      if LQuantize then
       begin
         L := Round(L / FQuantized) * FQuantized;
         T := Round(T / FQuantized) * FQuantized;
@@ -1495,28 +1495,28 @@ begin
       if FDragState in [dsSizeL, dsSizeTL, dsSizeBL] then
       begin
         IncLT(L, R, Mx - L, MinWidth, MaxWidth);
-        if Quantize then
+        if LQuantize then
           L := Round(L / FQuantized) * FQuantized;
       end;
 
       if FDragState in [dsSizeR, dsSizeTR, dsSizeBR] then
       begin
         IncRB(L, R, Mx - R, MinWidth, MaxWidth);
-        if Quantize then
+        if LQuantize then
           R := Round(R / FQuantized) * FQuantized;
       end;
 
       if FDragState in [dsSizeT, dsSizeTL, dsSizeTR] then
       begin
         IncLT(T, B, My - T, MinHeight, MaxHeight);
-        if Quantize then
+        if LQuantize then
           T := Round(T / FQuantized) * FQuantized;
       end;
 
       if FDragState in [dsSizeB, dsSizeBL, dsSizeBR] then
       begin
         IncRB(T, B, My - B, MinHeight, MaxHeight);
-        if Quantize then
+        if LQuantize then
           B := Round(B / FQuantized) * FQuantized;
       end;
     end;

@@ -610,7 +610,7 @@ var
   W, H, I, N: Integer;
   SrcC: PColor32;
   SrcB, DstB: PByte;
-  Value: TColor32;
+  LValue: TColor32;
 begin
   BeginUpdate;
   try
@@ -672,11 +672,11 @@ begin
         begin
           for I := 0 to N do
           begin
-            Value := SrcC^;
-            Value := (Value and $00FF0000) shr 16 + (Value and $0000FF00) shr 8 +
-              (Value and $000000FF);
-            Value := Value div 3;
-            DstB^ := Value;
+            LValue := SrcC^;
+            LValue := (LValue and $00FF0000) shr 16 + (LValue and $0000FF00) shr 8 +
+              (LValue and $000000FF);
+            LValue := LValue div 3;
+            DstB^ := LValue;
             Inc(DstB);
             Inc(SrcC);
           end;

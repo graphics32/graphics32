@@ -1978,6 +1978,16 @@ begin
   if not Result then FillLongword(Dst, 4, 0);
 end;
 
+function IsRectEmpty(const R: TRect): Boolean;
+begin
+  Result := (R.Right <= R.Left) or (R.Bottom <= R.Top);
+end;
+
+function IsRectEmpty(const FR: TFloatRect): Boolean;
+begin
+  Result := (FR.Right <= FR.Left) or (FR.Bottom <= FR.Top);
+end;
+
 function UnionRect(out Rect: TRect; const R1, R2: TRect): Boolean;
 begin
   Rect := R1;
@@ -2061,16 +2071,6 @@ begin
     Left := Left + Dx; Top := Top + Dy;
     Right := Right + Dx; Bottom := Bottom + Dy;
   end;
-end;
-
-function IsRectEmpty(const R: TRect): Boolean;
-begin
-  Result := (R.Right <= R.Left) or (R.Bottom <= R.Top);
-end;
-
-function IsRectEmpty(const FR: TFloatRect): Boolean;
-begin
-  Result := (FR.Right <= FR.Left) or (FR.Bottom <= FR.Top);
 end;
 
 function PtInRect(const R: TRect; const P: TPoint): Boolean;
