@@ -24,5 +24,4 @@ lib
 /Documentation/graphics32.hhp
 Win32
 Win64
-*.ficfg
 *.~*~
