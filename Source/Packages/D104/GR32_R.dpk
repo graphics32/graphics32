@@ -40,12 +40,17 @@ contains
   GR32_Backends_VCL in '..\..\GR32_Backends_VCL.pas',
   GR32_Bindings in '..\..\GR32_Bindings.pas',
   GR32_Blend in '..\..\GR32_Blend.pas',
+  GR32_BlendASM in '..\..\GR32_BlendASM.pas',
+  GR32_BlendMMX in '..\..\GR32_BlendMMX.pas',
+  GR32_BlendSSE2 in '..\..\GR32_BlendSSE2.pas',
+  GR32_Blurs in '..\..\GR32_Blurs.pas',
   GR32_Brushes in '..\..\GR32_Brushes.pas',
   GR32_ColorGradients in '..\..\GR32_ColorGradients.pas',
   GR32_ColorPicker in '..\..\GR32_ColorPicker.pas',
   GR32_Containers in '..\..\GR32_Containers.pas',
   GR32_ExtImage in '..\..\GR32_ExtImage.pas',
   GR32_Filters in '..\..\GR32_Filters.pas',
+  GR32_Gamma in '..\..\GR32_Gamma.pas',
   GR32_Geometry in '..\..\GR32_Geometry.pas',
   GR32_Image in '..\..\GR32_Image.pas',
   GR32_Layers in '..\..\GR32_Layers.pas',
@@ -65,6 +70,7 @@ contains
   GR32_VectorUtils in '..\..\GR32_VectorUtils.pas',
   GR32_VPR in '..\..\GR32_VPR.pas',
   GR32_Text_VCL in '..\..\GR32_Text_VCL.pas',
+  GR32_Text_VCL_D2D in '..\..\GR32_Text_VCL_D2D.pas',
   GR32_XPThemes in '..\..\GR32_XPThemes.pas';
 
 end.

@@ -84,11 +84,13 @@
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="GR32_R.dcp"/>
+        <DCCReference Include="..\..\GR32_ColorSwatch.pas"/>
         <DCCReference Include="..\..\GR32_Dsgn_Bitmap.pas">
             <Form>PictureEditorForm</Form>
         </DCCReference>
         <DCCReference Include="..\..\GR32_Reg.pas"/>
         <DCCReference Include="..\..\GR32_Dsgn_Color.pas"/>
+        <DCCReference Include="..\..\GR32_Dsgn_ColorPicker.pas"/>
         <DCCReference Include="..\..\GR32_Dsgn_Misc.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>

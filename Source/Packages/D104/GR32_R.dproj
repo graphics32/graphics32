@@ -87,12 +87,17 @@
         <DCCReference Include="..\..\GR32_Backends_VCL.pas"/>
         <DCCReference Include="..\..\GR32_Bindings.pas"/>
         <DCCReference Include="..\..\GR32_Blend.pas"/>
+        <DCCReference Include="..\..\GR32_BlendASM.pas"/>
+        <DCCReference Include="..\..\GR32_BlendMMX.pas"/>
+        <DCCReference Include="..\..\GR32_BlendSSE2.pas"/>
+        <DCCReference Include="..\..\GR32_Blurs.pas"/>
         <DCCReference Include="..\..\GR32_Brushes.pas"/>
         <DCCReference Include="..\..\GR32_ColorGradients.pas"/>
         <DCCReference Include="..\..\GR32_ColorPicker.pas"/>
         <DCCReference Include="..\..\GR32_Containers.pas"/>
         <DCCReference Include="..\..\GR32_ExtImage.pas"/>
         <DCCReference Include="..\..\GR32_Filters.pas"/>
+        <DCCReference Include="..\..\GR32_Gamma.pas"/>
         <DCCReference Include="..\..\GR32_Geometry.pas"/>
         <DCCReference Include="..\..\GR32_Image.pas"/>
         <DCCReference Include="..\..\GR32_Layers.pas"/>
@@ -112,6 +117,7 @@
         <DCCReference Include="..\..\GR32_VectorUtils.pas"/>
         <DCCReference Include="..\..\GR32_VPR.pas"/>
         <DCCReference Include="..\..\GR32_Text_VCL.pas"/>
+        <DCCReference Include="..\..\GR32_Text_VCL_D2D.pas"/>
         <DCCReference Include="..\..\GR32_XPThemes.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
@@ -133,7 +139,10 @@
                 <Source>
                     <Source Name="MainSource">GR32_R.dpk</Source>
                 </Source>
-                <Excluded_Packages/>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k270.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp270.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                </Excluded_Packages>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Win32">True</Platform>
