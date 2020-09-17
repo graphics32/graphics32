@@ -5208,19 +5208,25 @@ begin
   // bitmap data that ought to be loaded...
   if (Header.bfType = $4D42) and
     (Header.biBitCount = 32) and (Header.biPlanes = 1) and
-    (Header.biCompression = 0) then
+    (Header.biCompression = 0) and
+    (Header.biSize >= 40) then // SizeOf(BITMAPINFOHEADER)
   begin
     SetSize(Header.biWidth, Abs(Header.biHeight));
 
-    // Check whether the bitmap is saved top-down
+    // Skip extended header fields and color table
+    Stream.Seek(Header.bfOffBits - SizeOf(TBmpHeader), soFromCurrent);
+
+    // Check whether the bitmap is saved top-down or bottom-up:
+    // - Negavive height: top-down
+    // - Positive height: bottom-up
     if Header.biHeight > 0 then
     begin
-      W := Width shl 2;
+      W := Width * SizeOf(DWORD);
       for I := Height - 1 downto 0 do
         Stream.ReadBuffer(Scanline[I]^, W);
     end
     else
-      Stream.ReadBuffer(Bits^, Width * Height shl 2);
+      Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD));
   end
   else
   begin
@@ -5243,25 +5249,27 @@ var
   BitmapSize: Integer;
   I, W: Integer;
 begin
-  BitmapSize := Width * Height shl 2;
+  BitmapSize := Width * Height * SizeOf(DWORD);
 
+  // BITMAPFILEHEADER
   Header.bfType := $4D42; // Magic bytes for Windows Bitmap
   Header.bfSize := BitmapSize + SizeOf(TBmpHeader);
-  Header.bfReserved := 0;
-  // Save offset relative. However, the spec says it has to be file absolute,
-  // which we can not do properly within a stream...
-  Header.bfOffBits := SizeOf(TBmpHeader);
-  Header.biSize := $28;
+  Header.bfReserved := $32335247; // Actual value doesn't matter.
+  // The offset, in bytes, from the beginning of the BITMAPFILEHEADER structure to the bitmap bits.
+  Header.bfOffBits := SizeOf(TBmpHeader); // SizeOf(BITMAPFILEHEADER) + SizeOf(BITMAPINFOHEADER) = 14 + 40
+
+  // BITMAPINFO.BITMAPINFOHEADER
+  Header.biSize := 40; // SizeOf(BITMAPINFOHEADER)
   Header.biWidth := Width;
 
   if SaveTopDown then
-    Header.biHeight := Height
+    Header.biHeight := -Height
   else
-    Header.biHeight := -Height;
+    Header.biHeight := Height;
 
   Header.biPlanes := 1;
   Header.biBitCount := 32;
-  Header.biCompression := 0; // bi_rgb
+  Header.biCompression := 0; // BI_RGB
   Header.biSizeImage := BitmapSize;
   Header.biXPelsPerMeter := 0;
   Header.biYPelsPerMeter := 0;
@@ -5270,17 +5278,18 @@ begin
 
   Stream.WriteBuffer(Header, SizeOf(TBmpHeader));
 
+  // Pixel array
   if SaveTopDown then
-  begin
-    W := Width shl 2;
-    for I := Height - 1 downto 0 do
-      Stream.WriteBuffer(ScanLine[I]^, W);
-  end
-  else
   begin
     // NOTE: We can save the whole buffer in one run because
     // we do not support scanline strides (yet).
     Stream.WriteBuffer(Bits^, BitmapSize);
+  end
+  else
+  begin
+    W := Width * SizeOf(DWORD);
+    for I := Height - 1 downto 0 do
+      Stream.WriteBuffer(ScanLine[I]^, W);
   end;
 end;
 
