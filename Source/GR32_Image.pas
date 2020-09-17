@@ -609,13 +609,13 @@ end;
 
 procedure TPaintStages.Delete(Index: Integer);
 var
-  Count: Integer;
+  LCount: Integer;
 begin
   if (Index < 0) or (Index > High(FItems)) then
     raise EListError.Create(RCStrInvalidStageIndex);
-  Count := Length(FItems) - Index - 1;
-  if Count > 0 then
-    Move(FItems[Index + 1], FItems[Index], Count * SizeOf(TPaintStage));
+  LCount := Length(FItems) - Index - 1;
+  if LCount > 0 then
+    Move(FItems[Index + 1], FItems[Index], LCount * SizeOf(TPaintStage));
   SetLength(FItems, High(FItems));
 end;
 
@@ -632,14 +632,14 @@ end;
 
 function TPaintStages.Insert(Index: Integer): PPaintStage;
 var
-  Count: Integer;
+  LCount: Integer;
 begin
   if Index < 0 then Index := 0
   else if Index > Length(FItems) then Index := Length(FItems);
-  Count := Length(FItems) - Index;
+  LCount := Length(FItems) - Index;
   SetLength(FItems, Length(FItems) + 1);
-  if Count > 0 then
-    Move(FItems[Index], FItems[Index + 1], Count * SizeOf(TPaintStage));
+  if LCount > 0 then
+    Move(FItems[Index], FItems[Index + 1], LCount * SizeOf(TPaintStage));
   Result := @FItems[Index];
   with Result^ do
   begin
