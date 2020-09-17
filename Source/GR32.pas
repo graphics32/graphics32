@@ -6252,7 +6252,7 @@ begin
     begin
       Sz := Self.TextExtent(PaddedText);
       if Sz.cX > Self.Width then Sz.cX := Self.Width;
-      if Sz.cY > Self.Height then Sz.cX := Self.Height;
+      if Sz.cY > Self.Height then Sz.cY := Self.Height;
       SetSize(Sz.cX, Sz.cY);
       Font := Self.Font;
       Clear(0);
