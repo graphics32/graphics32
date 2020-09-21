@@ -3846,7 +3846,7 @@ end;
 
 destructor TPatternSampler.Destroy;
 begin
-  if Assigned(FPattern) then FPattern := nil;
+  FPattern := nil;
   inherited;
 end;
 
@@ -3879,7 +3879,6 @@ procedure TPatternSampler.SetPattern(const Value: TFixedSamplePattern);
 begin
   if Assigned(Value) then
   begin
-    FPattern := nil;
     FPattern := Value;
     WrapProcVert := GetOptimalWrap(High(FPattern));
   end;
