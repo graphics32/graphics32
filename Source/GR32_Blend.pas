@@ -666,7 +666,7 @@ end;
 
 function ColorModulate_Pas(C1, C2: TColor32): TColor32;
 var
-  C1e: TColor32Entry absolute C2;
+  C1e: TColor32Entry absolute C1;
   C2e: TColor32Entry absolute C2;
   Re: TColor32Entry absolute Result;
 begin
