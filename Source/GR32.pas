@@ -5204,7 +5204,7 @@ procedure TCustomBitmap32.LoadFromStream(Stream: TStream);
 var
   I, W: integer;
   Header: TBmpHeader;
-  B: TBitmap;
+  P: TPicture;
 begin
   Stream.ReadBuffer(Header, SizeOf(TBmpHeader));
 
@@ -5233,14 +5233,15 @@ begin
       Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD));
   end
   else
+  // if we got here, use the fallback approach via TPicture...
   begin
     Stream.Seek(-SizeOf(TBmpHeader), soFromCurrent);
-    B := TBitmap.Create;
+    P := TPicture.Create;
     try
-      B.LoadFromStream(Stream);
-      Assign(B);
+      P.LoadFromStream(Stream);
+      Assign(P);
     finally
-      B.Free;
+      P.Free;
     end;
   end;
 
@@ -5300,32 +5301,12 @@ end;
 procedure TCustomBitmap32.LoadFromFile(const FileName: string);
 var
   FileStream: TFileStream;
-  Header: TBmpHeader;
-  P: TPicture;
 begin
   FileStream := TFileStream.Create(Filename, fmOpenRead or fmShareDenyWrite);
   try
-    FileStream.ReadBuffer(Header, SizeOf(TBmpHeader));
-
-    // Check for Windows bitmap magic bytes...
-    if Header.bfType = $4D42 then
-    begin
-      // if it is, use our stream read method...
-      FileStream.Seek(-SizeOf(TBmpHeader), soFromCurrent);
-      LoadFromStream(FileStream);
-      Exit;
-    end
+    LoadFromStream(FileStream);
   finally
     FileStream.Free;
-  end;
-
-  // if we got here, use the fallback approach via TPicture...
-  P := TPicture.Create;
-  try
-    P.LoadFromFile(FileName);
-    Assign(P);
-  finally
-    P.Free;
   end;
 end;
 
