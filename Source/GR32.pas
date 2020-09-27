@@ -2577,7 +2577,11 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
       Exit;
     end;
 
-    TempBitmap := TCustomBitmap32.Create;
+    if TargetBitmap.Backend <> nil then
+      // Use the same backend type as the target. See Issue #127
+      TempBitmap := TCustomBitmap32.Create(TCustomBackendClass(TargetBitmap.Backend.ClassType))
+    else
+      TempBitmap := TCustomBitmap32.Create;
     try
       AssignFromGraphicPlain(TempBitmap, SrcGraphic, clRed32, False); // mask on red
 
