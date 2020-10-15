@@ -5656,7 +5656,11 @@ end;
 procedure TCustomBitmap32.LoadFromStream(Stream: TStream);
 var
   SavePos: Int64;
+{$ifdef COMPILERRX2_UP}
   P: TPicture;
+{$else COMPILERRX2_UP}
+  B: TBitmap;
+{$endif COMPILERRX2_UP}
 begin
   SavePos := Stream.Position;
 
@@ -5664,6 +5668,10 @@ begin
   begin
     Stream.Position := SavePos;
 
+{$ifdef COMPILERRX2_UP}
+
+    // TPicture.LoadFromStream requires TGraphic.CanLoadFromStream. Introduced in Delphi 10.2
+    // See issue #145
     P := TPicture.Create;
     try
       P.LoadFromStream(Stream);
@@ -5671,6 +5679,19 @@ begin
     finally
       P.Free;
     end;
+
+{$else COMPILERRX2_UP}
+
+    // Fallback to TBitmap for Delphi 10.1 and older
+    B := TBitmap.Create;
+    try
+      B.LoadFromStream(Stream);
+      Assign(B);
+    finally
+      B.Free;
+    end;
+
+{$endif COMPILERRX2_UP}
   end;
 
   Changed;
@@ -5738,13 +5759,42 @@ end;
 procedure TCustomBitmap32.LoadFromFile(const FileName: string);
 var
   FileStream: TFileStream;
+{$ifndef COMPILERRX2_UP}
+  P: TPicture;
+{$endif COMPILERRX2_UP}
 begin
-  FileStream := TFileStream.Create(Filename, fmOpenRead or fmShareDenyWrite);
+  FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
   try
+
+{$ifdef COMPILERRX2_UP}
+
     LoadFromStream(FileStream);
+
+{$else COMPILERRX2_UP}
+
+    if (LoadFromBMPStream(FileStream, FileStream.Size)) then
+    begin
+      Changed;
+      exit;
+    end;
+
+{$endif COMPILERRX2_UP}
+
   finally
     FileStream.Free;
   end;
+
+{$ifndef COMPILERRX2_UP}
+  // Fallback to determing file format based on file type for Delphi 10.1. and older
+  // See issue #145
+  P := TPicture.Create;
+  try
+    P.LoadFromFile(FileName);
+    Assign(P);
+  finally
+    P.Free;
+  end;
+{$endif COMPILERRX2_UP}
 end;
 
 procedure TCustomBitmap32.SaveToFile(const FileName: string; SaveTopDown: Boolean = False);
