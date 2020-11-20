@@ -1227,7 +1227,7 @@ type
     bV4BlueMask: DWORD;
     bV4AlphaMask: DWORD;
     bV4CSType: DWORD;
-    bV4Endpoints: TCIEXYZTriple;
+    bV4Endpoints: array[0..35] of byte; // TCIEXYZTriple
     bV4GammaRed: DWORD;
     bV4GammaGreen: DWORD;
     bV4GammaBlue: DWORD;
@@ -1251,7 +1251,7 @@ type
     bV5BlueMask: DWORD;
     bV5AlphaMask: DWORD;
     bV5CSType: DWORD;
-    bV5Endpoints: TCIEXYZTriple;
+    bV5Endpoints: array[0..35] of byte; // TCIEXYZTriple
     bV5GammaRed: DWORD;
     bV5GammaGreen: DWORD;
     bV5GammaBlue: DWORD;
