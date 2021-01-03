@@ -6661,11 +6661,10 @@ begin
     lfStrikeOut := Byte(fsStrikeOut in Font.Style);
     lfCharSet := Byte(Font.Charset);
 
-    // TODO DVT Added cast to fix TFontDataName to string warning. Need to verify is OK
     if AnsiCompareText(Font.Name, 'Default') = 0 then  // do not localize
-      StrPCopy(lfFaceName, string(DefFontData.Name))
+      StrPLCopy(lfFaceName, DefFontData.Name, LF_FACESIZE-1)
     else
-      StrPCopy(lfFaceName, Font.Name);
+      StrPLCopy(lfFaceName, Font.Name, LF_FACESIZE-1);
 
     lfQuality := Quality;
 
