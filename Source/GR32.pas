@@ -2602,7 +2602,13 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
   begin
     RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
     try
-      Bmp.HandleType := bmDIB;
+{$IFDEF COMPILER2009_UP}
+      Bmp.SetSize(0, 0);
+{$ELSE}
+      Bmp.Width := 0;
+      Bmp.Height := 0;
+{$ENDIF}
+
       Bmp.PixelFormat := pf32Bit;
 
 {$IFDEF COMPILER2009_UP}
