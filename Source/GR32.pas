@@ -2598,6 +2598,7 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
   procedure AssignToBitmap(Bmp: TBitmap; SrcBitmap: TCustomBitmap32);
   var
     SavedBackend: TCustomBackend;
+    FontSupport: IFontSupport;
   begin
     RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
     try
@@ -2611,8 +2612,11 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
       Bmp.Height := SrcBitmap.Height;
 {$ENDIF}
 
-      if Supports(SrcBitmap.Backend, IFontSupport) then // this is optional
-        Bmp.Canvas.Font.Assign((SrcBitmap.Backend as IFontSupport).Font);
+      if Supports(SrcBitmap.Backend, IFontSupport, FontSupport) then // this is optional
+      begin
+        Bmp.Canvas.Font.Assign(FontSupport.Font);
+        FontSupport := nil;
+      end;
 
       if SrcBitmap.Empty then Exit;
 
@@ -2656,6 +2660,8 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
   var
     SavedBackend: TCustomBackend;
     Canvas: TCanvas;
+    DeviceContextSupport: IDeviceContextSupport;
+    CanvasSupport: ICanvasSupport;
   begin
     if not Assigned(SrcGraphic) then
       Exit;
@@ -2666,13 +2672,14 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
 
       TargetBitmap.Clear(FillColor);
 
-      if Supports(TargetBitmap.Backend, IDeviceContextSupport) then
+      if Supports(TargetBitmap.Backend, IDeviceContextSupport, DeviceContextSupport) then
       begin
         Canvas := TCanvas.Create;
         try
           Canvas.Lock;
           try
-            Canvas.Handle := (TargetBitmap.Backend as IDeviceContextSupport).Handle;
+            Canvas.Handle := DeviceContextSupport.Handle;
+
             TGraphicAccess(SrcGraphic).Draw(Canvas,
               MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
           finally
@@ -2681,11 +2688,15 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
         finally
           Canvas.Free;
         end;
+        DeviceContextSupport := nil;
       end else
-      if Supports(TargetBitmap.Backend, ICanvasSupport) then
-        TGraphicAccess(SrcGraphic).Draw((TargetBitmap.Backend as ICanvasSupport).Canvas,
-          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height))
-      else raise Exception.Create(RCStrInpropriateBackend);
+      if Supports(TargetBitmap.Backend, ICanvasSupport, CanvasSupport) then
+      begin
+        TGraphicAccess(SrcGraphic).Draw(CanvasSupport.Canvas,
+          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
+        CanvasSupport := nil;
+      end else
+        raise Exception.Create(RCStrInpropriateBackend);
 
       if ResetAlphaAfterDrawing then
         ResetAlpha;
@@ -2745,6 +2756,7 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
     DstP: PColor32;
     I: integer;
     DstColor: TColor32;
+    FontSupport: IFontSupport;
   begin
     AssignFromGraphicPlain(TargetBitmap, SrcBmp, 0, SrcBmp.PixelFormat <> pf32bit);
     if TargetBitmap.Empty then Exit;
@@ -2762,8 +2774,8 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
       end;
     end;
 
-    if Supports(TargetBitmap.Backend, IFontSupport) then // this is optional
-      (TargetBitmap.Backend as IFontSupport).Font.Assign(SrcBmp.Canvas.Font);
+    if Supports(TargetBitmap.Backend, IFontSupport, FontSupport) then // this is optional
+      FontSupport.Font.Assign(SrcBmp.Canvas.Font);
   end;
 
   procedure AssignFromIcon(TargetBitmap: TCustomBitmap32; SrcIcon: TIcon);
@@ -6301,7 +6313,8 @@ procedure TCustomBitmap32.SetResampler(Resampler: TCustomResampler);
 begin
   if Assigned(Resampler) and (FResampler <> Resampler) then
   begin
-    if Assigned(FResampler) then FResampler.Free;
+    if Assigned(FResampler) then
+      FResampler.Free;
     FResampler := Resampler;
     Changed;
   end;
@@ -6319,19 +6332,29 @@ begin
   if (Value <> '') and (FResampler.ClassName <> Value) and Assigned(ResamplerList) then
   begin
     ResamplerClass := TCustomResamplerClass(ResamplerList.Find(Value));
-    if Assigned(ResamplerClass) then ResamplerClass.Create(Self);
+    if Assigned(ResamplerClass) then
+      ResamplerClass.Create(Self);
   end;
 end;
 
 { TBitmap32 }
 
 procedure TBitmap32.FinalizeBackend;
+var
+  FontSupport: IFontSupport;
+  CanvasSupport: ICanvasSupport;
 begin
-  if Supports(Backend, IFontSupport) then
-    (Backend as IFontSupport).OnFontChange := nil;
+  if Supports(Backend, IFontSupport, FontSupport) then
+  begin
+    FontSupport.OnFontChange := nil;
+    FontSupport := nil;
+  end;
 
-  if Supports(Backend, ICanvasSupport) then
-    (Backend as ICanvasSupport).OnCanvasChange := nil;
+  if Supports(Backend, ICanvasSupport, CanvasSupport) then
+  begin
+    CanvasSupport.OnCanvasChange := nil;
+    CanvasSupport := nil;
+  end;
 
   inherited;
 end;
@@ -6360,12 +6383,14 @@ begin
 end;
 
 procedure TBitmap32.CopyPropertiesTo(Dst: TCustomBitmap32);
+var
+  FontSupport, DstFontSupport: IFontSupport;
 begin
   inherited;
 
   if (Dst is TBitmap32) and
-    Supports(Dst.Backend, IFontSupport) and Supports(Self.Backend, IFontSupport) then
-    TBitmap32(Dst).Font.Assign(Self.Font);
+    Supports(Dst.Backend, IFontSupport, DstFontSupport) and Supports(Self.Backend, IFontSupport, FontSupport) then
+    DstFontSupport.Font.Assign(FontSupport.Font);
 end;
 
 function TBitmap32.GetCanvas: TCanvas;
@@ -6426,7 +6451,8 @@ end;
 
 procedure TBitmap32.HandleChanged;
 begin
-  if Assigned(FOnHandleChanged) then FOnHandleChanged(Self);
+  if Assigned(FOnHandleChanged) then
+    FOnHandleChanged(Self);
 end;
 
 {$IFDEF BCB}
@@ -6440,14 +6466,14 @@ end;
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
 begin
-  if Empty then Exit;
-  (FBackend as IDeviceContextSupport).DrawTo(hDst, DstX, DstY);
+  if not Empty then
+    (FBackend as IDeviceContextSupport).DrawTo(hDst, DstX, DstY);
 end;
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect);
 begin
-  if Empty then Exit;
-  (FBackend as IDeviceContextSupport).DrawTo(hDst, DstRect, SrcRect);
+  if not Empty then
+    (FBackend as IDeviceContextSupport).DrawTo(hDst, DstRect, SrcRect);
 end;
 
 procedure TBitmap32.TileTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect);
@@ -6460,6 +6486,7 @@ var
   I, J: Integer;
   ClipRect, R: TRect;
   X, Y: Integer;
+  DeviceContextSupport: IDeviceContextSupport;
 begin
   DstW := DstRect.Right - DstRect.Left;
   DstH := DstRect.Bottom - DstRect.Top;
@@ -6467,29 +6494,37 @@ begin
   TilesY := (DstH + MaxTileSize - 1) div MaxTileSize;
   Buffer := TBitmap32.Create;
   try
-    for J := 0 to TilesY - 1 do
-    begin
-      for I := 0 to TilesX - 1 do
+    DeviceContextSupport := Buffer.Backend as IDeviceContextSupport;
+    try
+      for J := 0 to TilesY - 1 do
       begin
-        ClipRect.Left := I * MaxTileSize;
-        ClipRect.Top := J * MaxTileSize;
-        ClipRect.Right := (I + 1) * MaxTileSize;
-        ClipRect.Bottom := (J + 1) * MaxTileSize;
-        if ClipRect.Right > DstW then ClipRect.Right := DstW;
-        if ClipRect.Bottom > DstH then ClipRect.Bottom := DstH;
-        X := ClipRect.Left;
-        Y := ClipRect.Top;
-        OffsetRect(ClipRect, -X, -Y);
-        R := DstRect;
-        OffsetRect(R, -X - DstRect.Left, -Y - DstRect.Top);
-        Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
-        StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
+        for I := 0 to TilesX - 1 do
+        begin
+          ClipRect.Left := I * MaxTileSize;
+          ClipRect.Top := J * MaxTileSize;
+          ClipRect.Right := (I + 1) * MaxTileSize;
+          ClipRect.Bottom := (J + 1) * MaxTileSize;
+          if ClipRect.Right > DstW then
+            ClipRect.Right := DstW;
+          if ClipRect.Bottom > DstH then
+            ClipRect.Bottom := DstH;
+          X := ClipRect.Left;
+          Y := ClipRect.Top;
+          OffsetRect(ClipRect, -X, -Y);
+          R := DstRect;
+          OffsetRect(R, -X - DstRect.Left, -Y - DstRect.Top);
+          Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
+          StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
 
-        (Buffer.Backend as IDeviceContextSupport).DrawTo(hDst,
-          MakeRect(X + DstRect.Left, Y + DstRect.Top, X + ClipRect.Right,
-          Y + ClipRect.Bottom), MakeRect(0, 0, Buffer.Width, Buffer.Height)
-        );
+          DeviceContextSupport.DrawTo(hDst,
+            MakeRect(X + DstRect.Left, Y + DstRect.Top, X + ClipRect.Right,
+            Y + ClipRect.Bottom), MakeRect(0, 0, Buffer.Width, Buffer.Height)
+          );
+        end;
       end;
+
+    finally
+      DeviceContextSupport := nil;
     end;
   finally
     Buffer.Free;
@@ -6886,14 +6921,18 @@ end;
 // -------------------------------------------------------------------
 
 function TBitmap32.CanvasAllocated: Boolean;
+var
+  CanvasSupport: ICanvasSupport;
 begin
-  Result := (FBackend as ICanvasSupport).CanvasAllocated;
+  Result := Supports(Backend, ICanvasSupport, CanvasSupport) and CanvasSupport.CanvasAllocated;
 end;
 
 procedure TBitmap32.DeleteCanvas;
+var
+  CanvasSupport: ICanvasSupport;
 begin
-  if Supports(Backend, ICanvasSupport) then
-    (FBackend as ICanvasSupport).DeleteCanvas;
+  if Supports(Backend, ICanvasSupport, CanvasSupport) then
+    CanvasSupport.DeleteCanvas;
 end;
 
 
@@ -6910,7 +6949,7 @@ constructor TCustomBackend.Create(Owner: TCustomBitmap32);
 begin
   FOwner := Owner;
   Create;
-   if Assigned(Owner) then
+  if Assigned(Owner) then
     Owner.Backend := Self;
 end;
 
