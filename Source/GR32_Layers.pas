@@ -1017,9 +1017,12 @@ end;
 
 procedure TCustomLayer.SetLayerOptions(Value: Cardinal);
 begin
-  Changing;
-  FLayerOptions := Value;
-  Changed;
+  if (FLayerOptions <> Value) then
+  begin
+    Changing;
+    FLayerOptions := Value;
+    Changed;
+  end;
 end;
 
 procedure TCustomLayer.SetMouseEvents(Value: Boolean);
