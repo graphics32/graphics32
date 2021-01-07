@@ -123,7 +123,6 @@ type
     procedure WMPaint(var Message: TMessage); message WM_PAINT;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
-    procedure CMInvalidate(var Message: TMessage); message CM_INVALIDATE;
 {$ENDIF}
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
@@ -652,19 +651,6 @@ end;
 
 
 { TCustomPaintBox32 }
-
-{$IFNDEF FPC}
-procedure TCustomPaintBox32.CMInvalidate(var Message: TMessage);
-begin
-  if CustomRepaint and HandleAllocated then
-    // we might have invalid rects, so just go ahead without invalidating
-    // the whole client area...
-    PostMessage(Handle, WM_PAINT, 0, 0)
-  else
-    // no invalid rects, so just invalidate the whole client area...
-    inherited;
-end;
-{$ENDIF}
 
 procedure TCustomPaintBox32.AssignTo(Dest: TPersistent);
 begin
