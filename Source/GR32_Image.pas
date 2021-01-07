@@ -2011,25 +2011,38 @@ end;
 procedure TCustomImgView32.AlignAll;
 var
   ScrollbarVisible: Boolean;
+  ViewPort: TRect;
+  NeedResize: boolean;
 begin
-  if (Width > 0) and (Height > 0) then
-  with GetViewportRect do
+  if (Width <= 0) or (Height <= 0) then
+    Exit;
+
+  NeedResize := False;
+  ViewPort := GetViewportRect;
+  ScrollbarVisible := GetScrollBarsVisible;
+
+  if (HScroll <> nil) then
   begin
-    ScrollbarVisible := GetScrollBarsVisible;
+    NeedResize := (HScroll.Visible <> ScrollbarVisible);
 
-    if Assigned(HScroll) then
-    begin
-      HScroll.BoundsRect := Rect(Left, Bottom, Right, Self.Height);
-      HScroll.Visible := ScrollbarVisible;
-      HScroll.Repaint;
-    end;
+    HScroll.BoundsRect := Rect(ViewPort.Left, ViewPort.Bottom, ViewPort.Right, Self.Height);
+    HScroll.Visible := ScrollbarVisible;
+  end;
 
-    if Assigned(VScroll) then
-    begin
-      VScroll.BoundsRect := Rect(Right, Top, Self.Width, Bottom);
-      VScroll.Visible := ScrollbarVisible;
-      VScroll.Repaint;
-    end;
+  if (VScroll <> nil) then
+  begin
+    NeedResize := NeedResize or (VScroll.Visible <> ScrollbarVisible);
+
+    VScroll.BoundsRect := Rect(ViewPort.Right, ViewPort.Top, Self.Width, ViewPort.Bottom);
+    VScroll.Visible := ScrollbarVisible;
+  end;
+
+  if (NeedResize) then
+  begin
+    // Scrollbars has been shown or hidden. Buffer must resize to align with new viewport.
+    // This will automatically lead to the viewport being redrawn.
+    ResizeBuffer;
+    FBufferValid := False
   end;
 end;
 
