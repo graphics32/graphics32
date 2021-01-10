@@ -3407,6 +3407,7 @@ asm
 {$IFDEF TARGET_x64}
           PUSH    RBP
           SUB     RSP,$30
+          MOV     RBP,RSP
 {$ENDIF}
           ADD     X, $7F
           ADD     Y, $7F
