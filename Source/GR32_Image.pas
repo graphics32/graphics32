@@ -1146,11 +1146,14 @@ var
   NewInfo: Cardinal;
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
+  OffsetX, OffsetY: Integer;
+  WidthX, WidthY: Integer;
 begin
   if Sender = FBitmap then
   begin
     T := Area;
 
+    UpdateCache; // Ensure CachedScaleXY is up to date
     NewInfo := Info;
     if (NewInfo and AREAINFO_LINE <> 0) then
     begin
@@ -1161,7 +1164,6 @@ begin
       Width := integer(NewInfo and (not AREAINFO_MASK));
 
       // Add line and resampler width and scale value to viewport
-      UpdateCache;
       Width := Ceil((Width + FBitmap.Resampler.Width) * CachedScaleX);
 
       // Pack width into Info param again
@@ -1185,8 +1187,8 @@ begin
     begin
       // Line coordinates specify the center of the pixel.
       // For example the rect (0, 0, 0, 1) is a one pixel long line while (0, 0, 0, 0) is empty.
-      var OffsetX := Round(CachedScaleX / 2);
-      var OffsetY := Round(CachedScaleY / 2);
+      OffsetX := Round(CachedScaleX / 2);
+      OffsetY := Round(CachedScaleY / 2);
       T.Offset(OffsetX, OffsetY);
     end else
     begin
@@ -1197,8 +1199,8 @@ begin
       Dec(T.Right);
       Dec(T.Bottom);
 
-      var WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
-      var WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
+      WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
+      WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
 
       InflateArea(T, WidthX, WidthY);
     end;
