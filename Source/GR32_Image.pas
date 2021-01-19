@@ -298,6 +298,7 @@ type
     procedure Changed; virtual;
     procedure Update(const Rect: TRect); reintroduce; overload; virtual;
     function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
+    function  ControlToBitmap(const ARect: TRect): TRect;  overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
     procedure EndUpdate; virtual;
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
@@ -1293,6 +1294,35 @@ begin
   begin
     Invalidate;
     if Assigned(FOnChange) then FOnChange(Self);
+  end;
+end;
+
+function TCustomImage32.ControlToBitmap(const ARect: TRect): TRect;
+begin
+  // Top/Left rounded down, Bottom/Right rounded up
+  // It is assumed that ARect.Top<=ARect.Bottom and ARect.Left<=ARect.Right
+  UpdateCache;
+  with ARect do
+  begin
+    if (CachedRecScaleX = 0) then
+    begin
+      Result.Left := High(Result.Left);
+      Result.Right := High(Result.Right);
+    end else
+    begin
+      Result.Left := Floor((Left - CachedShiftX) * CachedRecScaleX);
+      Result.Right := Ceil((Right - CachedShiftX) * CachedRecScaleX);
+    end;
+
+    if (CachedRecScaleY = 0) then
+    begin
+      Result.Top := High(Result.Top);
+      Result.Bottom := High(Result.Bottom);
+    end else
+    begin
+      Result.Top := Floor((Top - CachedShiftY) * CachedRecScaleY);
+      Result.Bottom := Ceil((Bottom - CachedShiftY) * CachedRecScaleY);
+    end;
   end;
 end;
 
