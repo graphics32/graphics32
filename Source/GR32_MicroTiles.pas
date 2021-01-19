@@ -412,81 +412,85 @@ end;
 
 procedure MicroTilesAddLine(var MicroTiles: TMicroTiles; X1, Y1, X2, Y2: Integer; LineWidth: Integer; RoundToWholeTiles: Boolean = False);
 var
-  I: Integer;
-  Dx, Dy: Integer;
-  Sx, Sy: Integer;
+  i: Integer;
   DeltaX, DeltaY: Integer;
+  SignX, SignY: Integer;
   Rects: Integer;
   NewX, NewY: Integer;
   TempRect: TRect;
-  Swapped: Boolean;
 begin
-  Dx := X2 - X1;
-  Dy := Y2 - Y1;
+  LineWidth := (LineWidth + 1) shr 1; // Half line width rounded up
 
-  LineWidth := LineWidth shl 1;
+  DeltaX := X2 - X1;
 
-  if Dx > 0 then
-    Sx := 1
-  else if Dx < 0 then
+  if DeltaX < 0 then
   begin
-    Dx := -Dx;
-    Sx := -1;
-  end
-  else // Dx = 0
+    // Make sure DeltaX*Sign is positive
+    Swap(X1, X2);
+    Swap(Y1, Y2);
+    DeltaX := -DeltaX;
+    SignX := 1
+  end else
+  if DeltaX > 0 then
+    SignX := 1
+  else // DeltaX = 0
   begin
     TempRect := MakeRect(X1, Y1, X2, Y2);
     InflateArea(TempRect, LineWidth, LineWidth);
     MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+
     Exit;
   end;
 
-  if Dy > 0 then
-    Sy := 1
-  else if Dy < 0 then
+  DeltaY := Y2 - Y1;
+
+  if DeltaY > 0 then
+    SignY := 1
+  else
+  if DeltaY < 0 then
   begin
-    Dy := -Dy;
-    Sy := -1;
-  end
-  else // Dy = 0
+    DeltaY := -DeltaY;
+    SignY := -1;
+  end else // DeltaY = 0
   begin
     TempRect := MakeRect(X1, Y1, X2, Y2);
     InflateArea(TempRect, LineWidth, LineWidth);
     MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
+
     Exit;
   end;
 
   X1 := X1 * FixedOne;
   Y1 := Y1 * FixedOne;
 
-  Dx := Dx * FixedOne;
-  Dy := Dy * FixedOne;
+  DeltaX := DeltaX * FixedOne;
+  DeltaY := DeltaY * FixedOne;
 
-  if Dx < Dy then
+  if DeltaX >= DeltaY then
   begin
-    Swapped := True;
-    Swap(Dx, Dy);
-  end
-  else
-    Swapped := False;
+    Rects := DeltaX div MICROTILE_SIZE;
 
-  Rects := Dx div MICROTILE_SIZE;
+    DeltaX := SignX * MICROTILE_SIZE * FixedOne;
+    DeltaY := SignY * FixedDiv(DeltaY, Rects);
+  end else
+  begin
+    Rects := DeltaY div MICROTILE_SIZE;
 
-  DeltaX := MICROTILE_SIZE * FixedOne;
-  DeltaY := FixedDiv(Dy, Rects);
+    DeltaY := SignY * MICROTILE_SIZE * FixedOne;
+    DeltaX := SignX * FixedDiv(DeltaX, Rects);
+  end;
 
-  if Swapped then
-    Swap(DeltaX, DeltaY);
-
-  DeltaX := Sx * DeltaX;
-  DeltaY := Sy * DeltaY;
-
-  for I := 1 to FixedCeil(Rects) do
+  for i := 1 to FixedCeil(Rects) do
   begin
     NewX := X1 + DeltaX;
     NewY := Y1 + DeltaY;
 
-    TempRect := MakeRect(FixedRect(X1, Y1, NewX, NewY));
+    // Make sure rect is positive or MakeRect will not round correctly
+    if (SignY >= 0) then
+      TempRect := MakeRect(FixedRect(X1, Y1, NewX, NewY), rrOutside)
+    else
+      TempRect := MakeRect(FixedRect(X1, NewY, NewX, Y1), rrOutside);
+
     InflateArea(TempRect, LineWidth, LineWidth);
     MicroTilesAddRect(MicroTiles, TempRect, RoundToWholeTiles);
 
@@ -515,7 +519,7 @@ begin
     if Right > Temp then Right := Temp;
     Temp := MicroTiles.Rows shl MICROTILE_SHIFT;
     if Bottom > Temp then Bottom := Temp;
-    
+
     if (Left > Right) or (Top > Bottom) then Exit;
   end;
 
@@ -1167,14 +1171,11 @@ procedure TMicroTilesRepaintOptimizer.AddArea(var Tiles: TMicroTiles; const Area
   const Info: Cardinal);
 var
   LineWidth: Integer;
-  TempRect: TRect;
 begin
   if Info and AREAINFO_LINE <> 0 then
   begin
     LineWidth := Info and $00FFFFFF;
-    TempRect := Area;
-    InflateArea(TempRect, LineWidth, LineWidth);
-    with TempRect do
+    with Area do
       MicroTilesAddLine(Tiles, Left, Top, Right, Bottom, LineWidth, FPerformanceLevel > PL_MICROTILES);
   end
   else

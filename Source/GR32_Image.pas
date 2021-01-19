@@ -565,7 +565,7 @@ type
 implementation
 
 uses
-  Math, TypInfo, GR32_MicroTiles, GR32_Backends, GR32_XPThemes;
+  Math, TypInfo, GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel;
 
 type
   TLayerAccess = class(TCustomLayer);
@@ -1143,19 +1143,68 @@ end;
 procedure TCustomImage32.BitmapAreaChangeHandler(Sender: TObject;
   const Area: TRect; const Info: Cardinal);
 var
+  NewInfo: Cardinal;
   T, R: TRect;
   Width, Tx, Ty, I, J: Integer;
 begin
   if Sender = FBitmap then
   begin
     T := Area;
-    Width := Trunc(FBitmap.Resampler.Width) + 1;
-    InflateArea(T, Width, Width);
+
+    NewInfo := Info;
+    if (NewInfo and AREAINFO_LINE <> 0) then
+    begin
+      if (T.Left = T.Right) and (T.Top = T.Bottom) then
+        Exit; // Zero length line
+
+      // Unpack line width from Info param
+      Width := integer(NewInfo and (not AREAINFO_MASK));
+
+      // Add line and resampler width and scale value to viewport
+      UpdateCache;
+      Width := Ceil((Width + FBitmap.Resampler.Width) * CachedScaleX);
+
+      // Pack width into Info param again
+      NewInfo := AREAINFO_LINE or Width;
+    end else
+    if (T.Left = T.Right) or (T.Top = T.Bottom) then
+      Exit; // Empty rect
+
+    // Make sure rect is positive (i.e. dX >= 0)
+    if (T.Left > T.Right) then
+    begin
+      Swap(T.Left, T.Right);
+      Swap(T.Top, T.Bottom);
+    end;
+
+    // Translate the coordinates from bitmap to viewport
     T.TopLeft := BitmapToControl(T.TopLeft);
     T.BottomRight := BitmapToControl(T.BottomRight);
 
+    if (NewInfo and AREAINFO_LINE <> 0) then
+    begin
+      // Line coordinates specify the center of the pixel.
+      // For example the rect (0, 0, 0, 1) is a one pixel long line while (0, 0, 0, 0) is empty.
+      var OffsetX := Round(CachedScaleX / 2);
+      var OffsetY := Round(CachedScaleY / 2);
+      T.Offset(OffsetX, OffsetY);
+    end else
+    begin
+      // Rect coordinates specify the pixel corners.
+      // It is assumed that (Top, Left) specify the top/left corner of the top/left pixel and
+      // that (Right, Bottom) specify the bottom/right corner of the bottom/right pixel.
+      // For example the rect (0, 0, 1, 1) covers just one pixel while (0, 0, 0, 1) is empty.
+      Dec(T.Right);
+      Dec(T.Bottom);
+
+      var WidthX := Ceil(FBitmap.Resampler.Width * CachedScaleX);
+      var WidthY := Ceil(FBitmap.Resampler.Width * CachedScaleY);
+
+      InflateArea(T, WidthX, WidthY);
+    end;
+
     if FBitmapAlign <> baTile then
-      FRepaintOptimizer.AreaUpdateHandler(Self, T, AREAINFO_RECT)
+      FRepaintOptimizer.AreaUpdateHandler(Self, T, NewInfo)
     else
     begin
       with CachedBitmapRect do
@@ -1167,7 +1216,7 @@ begin
           begin
             R := T;
             OffsetRect(R, Right * I, Bottom * J);
-            FRepaintOptimizer.AreaUpdateHandler(Self, R, AREAINFO_RECT);
+            FRepaintOptimizer.AreaUpdateHandler(Self, R, NewInfo);
           end;
       end;
     end;
