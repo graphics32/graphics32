@@ -45,7 +45,7 @@ uses
 {$IFDEF FPC}
   LCLIntf, LCLType, LMessages, Types,
 {$ELSE}
-  Windows, Messages,
+  Windows, Messages, {$IFDEF COMPILERXE2_UP}Types,{$ENDIF}
 {$ENDIF}
   Graphics, Controls, Forms,
   Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_Containers,
@@ -1190,7 +1190,7 @@ begin
       // For example the rect (0, 0, 0, 1) is a one pixel long line while (0, 0, 0, 0) is empty.
       OffsetX := Round(CachedScaleX / 2);
       OffsetY := Round(CachedScaleY / 2);
-      T.Offset(OffsetX, OffsetY);
+      GR32.OffsetRect(T, OffsetX, OffsetY);
     end else
     begin
       // Rect coordinates specify the pixel corners.
@@ -1218,7 +1218,7 @@ begin
           for I := 0 to Tx do
           begin
             R := T;
-            OffsetRect(R, Right * I, Bottom * J);
+            GR32.OffsetRect(R, Right * I, Bottom * J);
             FRepaintOptimizer.AreaUpdateHandler(Self, R, NewInfo);
           end;
       end;
@@ -1254,7 +1254,7 @@ begin
           for I := 0 to Tx do
           begin
             R := T;
-            OffsetRect(R, Right * I, Bottom * J);
+            GR32.OffsetRect(R, Right * I, Bottom * J);
             InvalidRects.Add(R);
           end;
       end;
@@ -1514,7 +1514,7 @@ var
   I, J, Tx, Ty: Integer;
   R: TRect;
 begin
-  if Bitmap.Empty or IsRectEmpty(CachedBitmapRect) then Exit;
+  if Bitmap.Empty or GR32.IsRectEmpty(CachedBitmapRect) then Exit;
   Bitmap.Lock;
   try
     if BitmapAlign <> baTile then Bitmap.DrawTo(Dest, CachedBitmapRect)
@@ -1526,7 +1526,7 @@ begin
         for I := 0 to Tx do
         begin
           R := CachedBitmapRect;
-          OffsetRect(R, Right * I, Bottom * J);
+          GR32.OffsetRect(R, Right * I, Bottom * J);
           Bitmap.DrawTo(Dest, R);
         end;
     end;
@@ -1563,9 +1563,9 @@ begin
     Size := GetBitmapSize;
     Result := Rect(0, 0, Size.Cx, Size.Cy);
     if BitmapAlign = baCenter then
-      OffsetRect(Result, (Width - Size.Cx) div 2, (Height - Size.Cy) div 2)
+      GR32.OffsetRect(Result, (Width - Size.Cx) div 2, (Height - Size.Cy) div 2)
     else if BitmapAlign = baCustom then
-      OffsetRect(Result, Round(OffsetHorz), Round(OffsetVert));
+      GR32.OffsetRect(Result, Round(OffsetHorz), Round(OffsetVert));
   end;
 end;
 
@@ -2328,7 +2328,7 @@ begin
   if IsSizeGripVisible and (Owner is TCustomForm) then
   begin
     P.X := X; P.Y := Y;
-    if PtInRect(GetSizeGripRect, P) then
+    if GR32.PtInRect(GetSizeGripRect, P) then
     begin
       Action := HTBOTTOMRIGHT;
       Application.ProcessMessages;
@@ -2351,7 +2351,7 @@ begin
   if IsSizeGripVisible then
   begin
     P.X := X; P.Y := Y;
-    if PtInRect(GetSizeGripRect, P) then Screen.Cursor := crSizeNWSE;
+    if GR32.PtInRect(GetSizeGripRect, P) then Screen.Cursor := crSizeNWSE;
   end;
 end;
 
