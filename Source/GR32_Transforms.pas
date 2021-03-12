@@ -1773,7 +1773,7 @@ begin
   end;
 {$IFDEF DEBUG}
 {$IFDEF COMPILER2009_UP}
-  OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
+  OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(TArrayOfDouble(Map)), MaxValue(TArrayOfDouble(Map)) ])));
 {$ENDIF}
 {$ENDIF}
 end;

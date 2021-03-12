@@ -348,6 +348,8 @@ type
   PArrayOfFloat = ^TArrayOfFloat;
   TArrayOfFloat = array of TFloat;
 
+  TArrayOfDouble = array of Double;
+
 const
   // Fixed point math constants
   FixedOne = $10000;
