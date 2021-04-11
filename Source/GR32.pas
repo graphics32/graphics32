@@ -888,6 +888,9 @@ type
     procedure RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer); overload;
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
+    procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+    procedure FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
+
     procedure Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
     procedure FlipHorz(Dst: TCustomBitmap32 = nil);
     procedure FlipVert(Dst: TCustomBitmap32 = nil);
@@ -1397,7 +1400,7 @@ begin
   R := (Color32 and $00FF0000) shr 16;
   G := (Color32 and $0000FF00) shr 8;
   B := Color32 and $000000FF;
-end; 
+end;
 
 function Color32Components(R, G, B, A: Boolean): TColor32Components;
 const
@@ -1626,7 +1629,7 @@ begin
   begin
     Result := Gray32(Trunc(V));
     Exit;
-  end;  
+  end;
 
   H := H - Floor(H);
   Tmp := 6 * H - Floor(6 * H);
@@ -2532,7 +2535,7 @@ begin
     FBackend.OnChanging := BackendChangingHandler;
 
     EndUpdate;
-    
+
     FBackend.Changed;
     Changed;
   end;
@@ -5603,6 +5606,185 @@ end;
 procedure TCustomBitmap32.RaiseRectTS(const ARect: TRect; Contrast: Integer);
 begin
   RaiseRectTS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Contrast);
+end;
+
+function QuaterEllipsePoints(W, H: Integer): TArrayOfPoint;
+var
+  A, B: Integer;
+  A2, B2: Integer;
+  X, Y: Integer;
+  Crit1, Crit2, Crit3: Integer;
+  T, Dxt, Dyt, D2xt, D2yt: Integer;
+begin
+  SetLength(Result, 0);
+  if (W <= 0) or (H <= 0) then
+    Exit;
+
+  A := (W - 1) div 2;
+  B := (H - 1) div 2;
+  A2 := A * A;
+  B2 := B * B;
+  X := 0;
+  Y := B;
+
+  Crit1 := -(A2 div 4 + A mod 2 + B2);
+  Crit2 := -(B2 div 4 + B mod 2 + A2);
+  Crit3 := -(B2 div 4 + B mod 2);
+  T := -A2 * Y;
+  Dxt := 2 * B2 * X;
+  Dyt := -2 * A2 * Y;
+  D2xt := 2 * B2;
+  D2yt := 2 * A2;
+
+  while (Y >= 0) and (X <= A) do
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[High(Result)].X := X;
+    Result[High(Result)].Y := Y;
+    if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
+    begin
+      Inc(X);
+      Inc(Dxt, D2xt);
+      Inc(T, Dxt);
+    end
+    else if (T - A2 * Y > Crit2) then
+    begin
+      Dec(Y);
+      Inc(Dyt, D2yt);
+      Inc(T, Dyt);
+    end
+    else
+    begin
+      Inc(X);
+      Inc(Dxt, D2xt);
+      Inc(T, Dxt);
+      Dec(Y);
+      Inc(Dyt, D2yt);
+      Inc(T, Dyt);
+    end;
+  end;
+end;
+
+// EllipseArea returns a list of consecutive point pairs. Each pair lies on a
+// horizontal line (i.e. both points have the same y position) and if you draw
+// horizontal pixels lines for all pairs, you will have the requested ellipse.
+//
+//         c---d
+//      g---------h
+//     i-----------j
+//      e---------f
+//         a---b
+//
+function EllipseArea(X, Y, W, H: Integer): TArrayOfPoint;
+var
+  Quarter: TArrayOfPoint;
+  XPivot, YPivot: Integer;
+  Dx, Dy: Integer;
+  I, N: Integer;
+
+  procedure AppendPoint(X, Y: Integer);
+  begin
+    SetLength(Result, Length(Result) + 1);
+    Result[High(Result)].X := X;
+    Result[High(Result)].Y := Y;
+  end;
+
+begin
+  Quarter := QuaterEllipsePoints(W, H);
+  XPivot := 1 - W mod 2;
+  YPivot := 1 - H mod 2;
+  Dx := X + W div 2;
+  Dy := Y + H div 2;
+  for I := 0 to High(Quarter) do
+  begin
+    if (I = High(Quarter)) or (Quarter[I].Y <> Quarter[I + 1].Y) then
+    begin
+      // This line.
+      AppendPoint(-Quarter[I].X - XPivot + Dx, Quarter[I].Y + Dy);
+      AppendPoint(Quarter[I].X + Dx, Quarter[I].Y + Dy);
+      // The line mirrored vertically.
+      AppendPoint(-Quarter[I].X - XPivot + Dx, -Quarter[I].Y - YPivot + Dy);
+      AppendPoint(Quarter[I].X + Dx, -Quarter[I].Y - YPivot + Dy);
+    end;
+  end;
+  // Remove the last line if it is contained twice at the end.
+  N := Length(Result);
+  if (N >= 4) and (Result[N - 1] = Result[N - 3]) then
+    SetLength(Result, N - 2);
+end;
+
+procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  Area: TArrayOfPoint;
+  I: Integer;
+  A, B: TPoint;
+  P: PColor32Array;
+begin
+  if not FMeasuringMode then
+  begin
+    Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
+    I := 0;
+    while I < Length(Area) do
+    begin
+      A := Area[I];
+      B := Area[I + 1];
+      P := Pointer(@Bits[A.Y * FWidth]);
+      FillLongword(P[A.X], B.X - A.X + 1, Value);
+      Inc(I, 2);
+    end;
+  end;
+
+  Changed(MakeRect(X1, Y1, X2+1, Y2+1));
+end;
+
+procedure TCustomBitmap32.FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  Alpha: Integer;
+  Area: TArrayOfPoint;
+  I, j: Integer;
+  A, B: TPoint;
+  P: PColor32;
+begin
+  Alpha := Value shr 24;
+
+  if Alpha = $FF then
+    FillEllipse(X1, Y1, X2, Y2, Value) // calls Changed...
+  else
+  if Alpha <> 0 then
+  begin
+    if not FMeasuringMode then
+    begin
+      Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
+      I := 0;
+      while I < Length(Area) do
+      begin
+        A := Area[I];
+        B := Area[I + 1];
+        P := GetPixelPtr(A.X, A.Y);
+        if CombineMode = cmBlend then
+        begin
+          for j := A.X to B.X do
+          begin
+            CombineMem(Value, P^, Alpha);
+            Inc(P);
+          end;
+        end
+        else
+        begin
+          for j := A.X to B.X do
+          begin
+            MergeMem(Value, P^);
+            Inc(P);
+          end;
+        end;
+        Inc(I, 2);
+      end;
+
+      EMMS;
+    end;
+
+    Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
+  end;
 end;
 
 function TCustomBitmap32.LoadFromBMPStream(Stream: TStream; Size: Int64): boolean;
