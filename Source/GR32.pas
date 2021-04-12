@@ -646,7 +646,6 @@ const
   // common cases
   AREAINFO_RECT         = $80000000;
   AREAINFO_LINE         = $40000000; // 24 bits for line width in pixels...
-  AREAINFO_ELLIPSE      = $20000000;
   AREAINFO_ABSOLUTE     = $10000000;
 
   AREAINFO_MASK         = $FF000000;
@@ -889,7 +888,11 @@ type
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+    procedure FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
     procedure FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
+    procedure FillEllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
+    procedure FillEllipseS(const ARect: TRect; Value: TColor32); overload;
+    procedure FillEllipseTS(const ARect: TRect; Value: TColor32); overload;
 
     procedure Roll(Dx, Dy: Integer; FillBack: Boolean; FillColor: TColor32);
     procedure FlipHorz(Dst: TCustomBitmap32 = nil);
@@ -5720,7 +5723,7 @@ var
   A, B: TPoint;
   P: PColor32Array;
 begin
-  if not FMeasuringMode then
+  if (not FMeasuringMode) and (FBits <> nil) then
   begin
     Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
     I := 0;
@@ -5737,11 +5740,55 @@ begin
   Changed(MakeRect(X1, Y1, X2+1, Y2+1));
 end;
 
+procedure TCustomBitmap32.FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  Area: TArrayOfPoint;
+  I: Integer;
+  A, B: TPoint;
+  P: PColor32Array;
+begin
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
+  begin
+    if (not FMeasuringMode) and (FBits <> nil) then
+    begin
+      Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
+      I := 0;
+      while I < Length(Area) do
+      begin
+        A := Area[I];
+        if (FClipRect.Top <= A.Y) and (A.Y < FClipRect.Bottom) then
+        begin
+          B := Area[I + 1];
+          P := Pointer(@Bits[A.Y * FWidth]);
+          if A.X < FClipRect.Left then
+            A.X := FClipRect.Left;
+          if B.X >= FClipRect.Right then
+            B.X := FClipRect.Right - 1;
+          FillLongword(P[A.X], B.X - A.X + 1, Value);
+        end;
+        Inc(I, 2);
+      end;
+    end;
+
+    if X1 < FClipRect.Left then
+      X1 := FClipRect.Left;
+    if Y1 < FClipRect.Top then
+      Y1 := FClipRect.Top;
+    if X2 > FClipRect.Right then
+      X2 := FClipRect.Right;
+    if Y2 > FClipRect.Bottom then
+      Y2 := FClipRect.Bottom;
+    Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
+  end;
+end;
+
 procedure TCustomBitmap32.FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
   Area: TArrayOfPoint;
-  I, j: Integer;
+  i, j: Integer;
   A, B: TPoint;
   P: PColor32;
 begin
@@ -5752,18 +5799,18 @@ begin
   else
   if Alpha <> 0 then
   begin
-    if not FMeasuringMode then
+    if (not FMeasuringMode) and (FBits <> nil) then
     begin
       Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
-      I := 0;
-      while I < Length(Area) do
+      j := 0;
+      while j < Length(Area) do
       begin
-        A := Area[I];
-        B := Area[I + 1];
+        A := Area[j];
+        B := Area[j + 1];
         P := GetPixelPtr(A.X, A.Y);
         if CombineMode = cmBlend then
         begin
-          for j := A.X to B.X do
+          for i := A.X to B.X do
           begin
             CombineMem(Value, P^, Alpha);
             Inc(P);
@@ -5771,13 +5818,13 @@ begin
         end
         else
         begin
-          for j := A.X to B.X do
+          for i := A.X to B.X do
           begin
             MergeMem(Value, P^);
             Inc(P);
           end;
         end;
-        Inc(I, 2);
+        Inc(j, 2);
       end;
 
       EMMS;
@@ -5785,6 +5832,87 @@ begin
 
     Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
   end;
+end;
+
+procedure TCustomBitmap32.FillEllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  Alpha: Integer;
+  Area: TArrayOfPoint;
+  I, j: Integer;
+  A, B: TPoint;
+  P: PColor32;
+begin
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
+  begin
+    Alpha := Value shr 24;
+
+    if Alpha = $FF then
+      FillEllipseS(X1, Y1, X2, Y2, Value) // calls Changed...
+    else
+    if Alpha <> 0 then
+    begin
+      if (not FMeasuringMode) and (FBits <> nil) then
+      begin
+        Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
+        j := 0;
+        while j < Length(Area) do
+        begin
+          A := Area[j];
+          if (FClipRect.Top <= A.Y) and (A.Y < FClipRect.Bottom) then
+          begin
+            B := Area[j + 1];
+            if A.X < FClipRect.Left then
+              A.X := FClipRect.Left;
+            if B.X >= FClipRect.Right then
+              B.X := FClipRect.Right - 1;
+            P := GetPixelPtr(A.X, A.Y);
+            if CombineMode = cmBlend then
+            begin
+              for I := A.X to B.X do
+              begin
+                CombineMem(Value, P^, Alpha);
+                Inc(P);
+              end;
+            end
+            else
+            begin
+              for I := A.X to B.X do
+              begin
+                MergeMem(Value, P^);
+                Inc(P);
+              end;
+            end;
+          end;
+
+          Inc(j, 2);
+        end;
+
+        EMMS;
+      end;
+
+      if X1 < FClipRect.Left then
+        X1 := FClipRect.Left;
+      if Y1 < FClipRect.Top then
+        Y1 := FClipRect.Top;
+      if X2 > FClipRect.Right then
+        X2 := FClipRect.Right;
+      if Y2 > FClipRect.Bottom then
+        Y2 := FClipRect.Bottom;
+      Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
+    end;
+  end;
+end;
+
+procedure TCustomBitmap32.FillEllipseS(const ARect: TRect; Value: TColor32);
+begin
+  FillEllipseS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Value);
+end;
+
+procedure TCustomBitmap32.FillEllipseTS(const ARect: TRect; Value: TColor32);
+begin
+  FillEllipseTS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Value);
 end;
 
 function TCustomBitmap32.LoadFromBMPStream(Stream: TStream; Size: Int64): boolean;
