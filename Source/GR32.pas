@@ -887,6 +887,7 @@ type
     procedure RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer); overload;
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
+    // FillEllipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
     procedure FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -5611,7 +5612,7 @@ begin
   RaiseRectTS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Contrast);
 end;
 
-function QuaterEllipsePoints(W, H: Integer): TArrayOfPoint;
+function QuarterEllipsePoints(W, H: Integer): TArrayOfPoint;
 var
   A, B: Integer;
   A2, B2: Integer;
@@ -5693,7 +5694,7 @@ var
   end;
 
 begin
-  Quarter := QuaterEllipsePoints(W, H);
+  Quarter := QuarterEllipsePoints(W, H);
   XPivot := 1 - W mod 2;
   YPivot := 1 - H mod 2;
   Dx := X + W div 2;
@@ -5718,23 +5719,81 @@ end;
 
 procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
-  Area: TArrayOfPoint;
-  I: Integer;
-  A, B: TPoint;
+  A, B: Integer;
+  A2, B2: Integer;
+  X, Y: Integer;
+  Crit1, Crit2, Crit3: Integer;
+  T, Dxt, Dyt, D2xt, D2yt: Integer;
+  LastX, LastY: Integer;
   P: PColor32Array;
+  XOffset: Integer;
+  WidthOffset: Integer;
+  TopOffset: Integer;
+  BottomOffset: Integer;
 begin
   if (not FMeasuringMode) and (FBits <> nil) then
   begin
-    Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
-    I := 0;
-    while I < Length(Area) do
+    A := (X2 - X1 - 1) div 2;
+    B := (Y2 - Y1 - 1) div 2;
+    A2 := A * A;
+    B2 := B * B;
+    X := 0;
+    Y := B;
+    XOffset := X1 + A;
+    WidthOffset := 1 + (1 - (X2 - X1) mod 2);
+    TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
+    BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+
+    Crit1 := -(A2 div 4 + A mod 2 + B2);
+    Crit2 := -(B2 div 4 + B mod 2 + A2);
+    Crit3 := -(B2 div 4 + B mod 2);
+    T := -A2 * Y;
+    Dxt := 2 * B2 * X;
+    Dyt := -2 * A2 * Y;
+    D2xt := 2 * B2;
+    D2yt := 2 * A2;
+    LastX := X;
+    LastY := Y;
+
+    while (Y >= 0) and (X <= A) do
     begin
-      A := Area[I];
-      B := Area[I + 1];
-      P := Pointer(@Bits[A.Y * FWidth]);
-      FillLongword(P[A.X], B.X - A.X + 1, Value);
-      Inc(I, 2);
+      if Y <> LastY then
+      begin
+        P := Pointer(@Bits[(TopOffset - LastY) * FWidth]);
+        FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+        P := Pointer(@Bits[(LastY + BottomOffset) * FWidth]);
+        FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+      end;
+      LastX := X;
+      LastY := Y;
+      if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
+      begin
+        Inc(X);
+        Inc(Dxt, D2xt);
+        Inc(T, Dxt);
+      end
+      else if (T - A2 * Y > Crit2) then
+      begin
+        Dec(Y);
+        Inc(Dyt, D2yt);
+        Inc(T, Dyt);
+      end
+      else
+      begin
+        Inc(X);
+        Inc(Dxt, D2xt);
+        Inc(T, Dxt);
+        Dec(Y);
+        Inc(Dyt, D2yt);
+        Inc(T, Dyt);
+      end;
     end;
+
+    // The last iteration is missing from the above loop.
+    P := Pointer(@Bits[(TopOffset - LastY) * FWidth]);
+    FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+    P := Pointer(@Bits[(LastY + BottomOffset) * FWidth]);
+    FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
   end;
 
   Changed(MakeRect(X1, Y1, X2+1, Y2+1));
