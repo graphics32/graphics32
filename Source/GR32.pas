@@ -6100,10 +6100,19 @@ end;
 procedure TCustomBitmap32.FillEllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
-  Area: TArrayOfPoint;
-  I, j: Integer;
-  A, B: TPoint;
+  A, B: Integer;
+  A2, B2: Integer;
+  X, Y: Integer;
+  Crit1, Crit2, Crit3: Integer;
+  T, Dxt, Dyt, D2xt, D2yt: Integer;
+  LastX, LastY: Integer;
   P: PColor32;
+  XOffset: Integer;
+  WidthOffset: Integer;
+  TopOffset: Integer;
+  BottomOffset: Integer;
+  Left, Right, Top, Bottom: Integer;
+  I: Integer;
 begin
   if (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
@@ -6118,22 +6127,129 @@ begin
     begin
       if (not FMeasuringMode) and (FBits <> nil) then
       begin
-        Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
-        j := 0;
-        while j < Length(Area) do
+        A := (X2 - X1 - 1) div 2;
+        B := (Y2 - Y1 - 1) div 2;
+        A2 := A * A;
+        B2 := B * B;
+        X := 0;
+        Y := B;
+        XOffset := X1 + A;
+        WidthOffset := 1 + (1 - (X2 - X1) mod 2);
+        TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
+        BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+
+        Crit1 := -(A2 div 4 + A mod 2 + B2);
+        Crit2 := -(B2 div 4 + B mod 2 + A2);
+        Crit3 := -(B2 div 4 + B mod 2);
+        T := -A2 * Y;
+        Dxt := 2 * B2 * X;
+        Dyt := -2 * A2 * Y;
+        D2xt := 2 * B2;
+        D2yt := 2 * A2;
+        LastX := X;
+        LastY := Y;
+
+        while (Y >= 0) and (X <= A) do
         begin
-          A := Area[j];
-          if (FClipRect.Top <= A.Y) and (A.Y < FClipRect.Bottom) then
+          if Y <> LastY then
           begin
-            B := Area[j + 1];
-            if A.X < FClipRect.Left then
-              A.X := FClipRect.Left;
-            if B.X >= FClipRect.Right then
-              B.X := FClipRect.Right - 1;
-            P := GetPixelPtr(A.X, A.Y);
+            Left := XOffset - LastX;
+            Right := Left + 2 * LastX + WidthOffset;
+            if Left < FClipRect.Left then
+              Left := FClipRect.Left;
+            if Right >= FClipRect.Right then
+              Right := FClipRect.Right; // TODO -1 ? This differs from others.
+            if Left < Right then
+            begin
+              Top := TopOffset - LastY;
+              Bottom := LastY + BottomOffset;
+
+              if (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
+              begin
+                P := GetPixelPtr(Left, Top);
+                if CombineMode = cmBlend then
+                begin
+                  for I := Left + 1 to Right do
+                  begin
+                    CombineMem(Value, P^, Alpha);
+                    Inc(P);
+                  end;
+                end
+                else
+                begin
+                  for I := Left + 1 to Right do
+                  begin
+                    MergeMem(Value, P^);
+                    Inc(P);
+                  end;
+                end;
+              end;
+
+              if (FClipRect.Top <= Bottom) and (Bottom < FClipRect.Bottom) then
+              begin
+                P := GetPixelPtr(Left, Bottom);
+                if CombineMode = cmBlend then
+                begin
+                  for I := Left + 1 to Right do
+                  begin
+                    CombineMem(Value, P^, Alpha);
+                    Inc(P);
+                  end;
+                end
+                else
+                begin
+                  for I := Left + 1 to Right do
+                  begin
+                    MergeMem(Value, P^);
+                    Inc(P);
+                  end;
+                end;
+              end;
+            end;
+          end;
+          LastX := X;
+          LastY := Y;
+          if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
+          begin
+            Inc(X);
+            Inc(Dxt, D2xt);
+            Inc(T, Dxt);
+          end
+          else if (T - A2 * Y > Crit2) then
+          begin
+            Dec(Y);
+            Inc(Dyt, D2yt);
+            Inc(T, Dyt);
+          end
+          else
+          begin
+            Inc(X);
+            Inc(Dxt, D2xt);
+            Inc(T, Dxt);
+            Dec(Y);
+            Inc(Dyt, D2yt);
+            Inc(T, Dyt);
+          end;
+        end;
+
+        // The last iteration is missing from the above loop.
+        Left := XOffset - LastX;
+        Right := Left + 2 * LastX + WidthOffset;
+        if Left < FClipRect.Left then
+          Left := FClipRect.Left;
+        if Right >= FClipRect.Right then
+          Right := FClipRect.Right;
+        if Left < Right then
+        begin
+          Top := TopOffset - LastY;
+          Bottom := LastY + BottomOffset;
+
+          if (Top <> Bottom) and (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
+          begin
+            P := GetPixelPtr(Left, Top);
             if CombineMode = cmBlend then
             begin
-              for I := A.X to B.X do
+              for I := Left + 1 to Right do
               begin
                 CombineMem(Value, P^, Alpha);
                 Inc(P);
@@ -6141,7 +6257,7 @@ begin
             end
             else
             begin
-              for I := A.X to B.X do
+              for I := Left + 1 to Right do
               begin
                 MergeMem(Value, P^);
                 Inc(P);
@@ -6149,7 +6265,26 @@ begin
             end;
           end;
 
-          Inc(j, 2);
+          if (FClipRect.Top <= Bottom) and (Bottom < FClipRect.Bottom) then
+          begin
+            P := GetPixelPtr(Left, Bottom);
+            if CombineMode = cmBlend then
+            begin
+              for I := Left + 1 to Right do
+              begin
+                CombineMem(Value, P^, Alpha);
+                Inc(P);
+              end;
+            end
+            else
+            begin
+              for I := Left + 1 to Right do
+              begin
+                MergeMem(Value, P^);
+                Inc(P);
+              end;
+            end;
+          end;
         end;
 
         EMMS;
