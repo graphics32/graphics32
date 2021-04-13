@@ -5,7 +5,7 @@ interface
 uses
   TestFrameWork, GR32;
 
-// {$DEFINE RUN_BENCHMARKS}
+{$DEFINE RUN_BENCHMARKS}
 
 type
   TTestEllipse = class(TTestCase)
@@ -49,6 +49,7 @@ type
     procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
     procedure TCavas32_Ellipse_Benchmark;
+    procedure FillEllipseT_Benchmark;
 
   private
     // TODO Find out how to fill an ellipse with TCanvas32.
@@ -703,6 +704,32 @@ begin
   C.Free;
 
   CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.FillEllipseT_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := 0 to 100 - 10 do
+    for X := 0 to 100 - 10 do
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $55FF00FF);
+
+  for Y := 0 to 100 - 5 do
+    for X := 0 to 100 - 5 do
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
+
+  for Y := 0 to 100 - 1 do
+    for X := 0 to 100 - 1 do
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
+
+  Watch.Stop;
+  Have.SaveToFile('FillEllipseT_Benchmark.bmp');
+  Fail(Format('FillEllipseT took %d ms', [Watch.ElapsedMilliseconds]));
+  // 318 ms
 end;
 
 initialization
