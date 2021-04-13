@@ -59,6 +59,7 @@ type
     procedure FillEllipseS_Benchmark;
     procedure FillEllipseTS_Benchmark;
     procedure TCavas32_Ellipse_Benchmark;
+    procedure BenchmarkLargeEllipse;
 
   private
     // This test case show the difference between the TCanvas32.Ellipse version
@@ -814,40 +815,6 @@ begin
   Fail(Format('FillEllipseT took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
-procedure TTestEllipse.TCavas32_Ellipse_Benchmark;
-var
-  Watch: TStopwatch;
-  C: TCanvas32;
-  Brush: TSolidBrush;
-  X, Y: Integer;
-begin
-  Have.SetSize(1000, 1000);
-  C := TCanvas32.Create(Have);
-  Brush := C.Brushes.Add(TSolidBrush) as TSolidBrush;
-
-  Watch := TStopwatch.StartNew;
-
-  Brush.FillColor := clFuchsia32;
-  for Y := 0 to 100 - 10 do
-    for X := 0 to 100 - 10 do
-      C.Ellipse(X * 10 + 50, Y * 10 + 50, 50, 50, 50);
-
-  Brush.FillColor := clRed32;
-  for Y := 0 to 100 - 5 do
-    for X := 0 to 100 - 5 do
-      C.Ellipse(X * 10 + 25, Y * 10 + 25, 25, 25, 25);
-
-  Brush.FillColor := clBlue32;
-  for Y := 0 to 100 - 1 do
-    for X := 0 to 100 - 1 do
-      C.Ellipse(X * 10 + 5, Y * 10 + 5, 5, 5, 5);
-
-  Watch.Stop;
-  Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
-  C.Free;
-  Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
-end;
-
 procedure TTestEllipse.FillEllipseS_Benchmark;
 var
   Watch: TStopwatch;
@@ -896,6 +863,65 @@ begin
   Watch.Stop;
   Have.SaveToFile('FillEllipseTS_Benchmark.bmp');
   Fail(Format('FillEllipseTS took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.TCavas32_Ellipse_Benchmark;
+var
+  Watch: TStopwatch;
+  C: TCanvas32;
+  Brush: TSolidBrush;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  C := TCanvas32.Create(Have);
+  Brush := C.Brushes.Add(TSolidBrush) as TSolidBrush;
+
+  Watch := TStopwatch.StartNew;
+
+  Brush.FillColor := clFuchsia32;
+  for Y := 0 to 100 - 10 do
+    for X := 0 to 100 - 10 do
+      C.Ellipse(X * 10 + 50, Y * 10 + 50, 50, 50, 50);
+
+  Brush.FillColor := clRed32;
+  for Y := 0 to 100 - 5 do
+    for X := 0 to 100 - 5 do
+      C.Ellipse(X * 10 + 25, Y * 10 + 25, 25, 25, 25);
+
+  Brush.FillColor := clBlue32;
+  for Y := 0 to 100 - 1 do
+    for X := 0 to 100 - 1 do
+      C.Ellipse(X * 10 + 5, Y * 10 + 5, 5, 5, 5);
+
+  Watch.Stop;
+  Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
+  C.Free;
+  Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.BenchmarkLargeEllipse;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(20, 20);
+  Watch := TStopwatch.StartNew;
+
+  // TODO There is potential here to shortcut ellipses that are so large that they cover
+  // the whole clip rect. We can use a FillRect instead in that case. We have to look at
+  // the center of the ellipse, the x and y radius and see if they are outside the clip
+  // rect, minus some rounding errors due to drawing pixels and not floating point
+  // accurate ellipses.
+  // A more complicated case is a very large ellipse that is neither outside the clip rect
+  // nor covers the whole screen. Say that only the ellipse's left edge is visible. Now we
+  // might have to still trace the whole ellipse. Or maybe trace the 90 degree rotated
+  // ellipse instead, starting the algorithm from the center to the upper and lower edges.
+  // Right now the algorithm works its way inward, from top and bottom to the center.
+  Have.FillEllipseS(-1000000, -1000000, 1000000, 1000000, clRed32);
+
+  Watch.Stop;
+  Have.SaveToFile('LargeEllipse_Benchmark.bmp');
+  Fail(Format('Large Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;
