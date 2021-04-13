@@ -5822,6 +5822,13 @@ begin
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
+    if (X1 >= FClipRect.Left) and (Y1 >= FClipRect.Top) and (X2 <= FClipRect.Right) and
+      (Y2 <= FClipRect.Bottom) then
+    begin
+      FillEllipse(X1, Y1, X2, Y2, Value);
+      Exit;
+    end;
+
     if (not FMeasuringMode) and (FBits <> nil) then
     begin
       A := (X2 - X1 - 1) div 2;
@@ -6118,6 +6125,11 @@ begin
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
     (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
   begin
+    // Early exiting here to FillEllipseT when the ellipse is inside the clip rect seems
+    // like a good idea but the benchmark drops from 240 ms to 260 ms. This suggests that
+    // the compiler might not generate the best code with that if in place. Or the
+    // benchmark is wrong. But for now we leave this "optimization" out.
+
     Alpha := Value shr 24;
 
     if Alpha = $FF then
