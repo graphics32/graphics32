@@ -44,6 +44,7 @@ type
     procedure FillEllipseTS_HasOverloadTakingRectangle;
 
     procedure Compare_FillEllipse_And_TCanvas_Ellipse;
+    procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
     procedure TCavas32_Ellipse_Benchmark;
   protected
@@ -611,6 +612,31 @@ begin
   C.Free;
 
   CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.FillRect_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := 0 to 100 - 10 do
+    for X := 0 to 100 - 10 do
+      Have.FillRect(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, clFuchsia32);
+
+  for Y := 0 to 100 - 5 do
+    for X := 0 to 100 - 5 do
+      Have.FillRect(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, clRed32);
+
+  for Y := 0 to 100 - 1 do
+    for X := 0 to 100 - 1 do
+      Have.FillRect(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, clBlue32);
+
+  Watch.Stop;
+  Have.SaveToFile('FillRect_Benchmark.bmp');
+  Fail(Format('FillRect took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.FillEllipse_Benchmark;
