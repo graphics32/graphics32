@@ -887,6 +887,9 @@ type
     procedure RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer); overload;
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
+    // All FillEllipse variants handle ellipses of a size up to about 2,500,000 pixels in
+    // width or height. Larger ellipses are not rendered correctly.
+
     // FillEllipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
@@ -5720,17 +5723,17 @@ end;
 
 procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
-  A, B: Integer;
-  A2, B2: Integer;
-  X, Y: Integer;
-  Crit1, Crit2, Crit3: Integer;
-  T, Dxt, Dyt, D2xt, D2yt: Integer;
-  LastX, LastY: Integer;
+  A, B: Int64;
+  A2, B2: Int64;
+  X, Y: Int64;
+  Crit1, Crit2, Crit3: Int64;
+  T, Dxt, Dyt, D2xt, D2yt: Int64;
+  LastX, LastY: Int64;
   P: PColor32Array;
-  XOffset: Integer;
-  WidthOffset: Integer;
-  TopOffset: Integer;
-  BottomOffset: Integer;
+  XOffset: Int64;
+  WidthOffset: Int64;
+  TopOffset: Int64;
+  BottomOffset: Int64;
 begin
   if (not FMeasuringMode) and (FBits <> nil) then
   begin
@@ -5805,18 +5808,18 @@ end;
 
 procedure TCustomBitmap32.FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
-  A, B: Integer;
-  A2, B2: Integer;
-  X, Y: Integer;
-  Crit1, Crit2, Crit3: Integer;
-  T, Dxt, Dyt, D2xt, D2yt: Integer;
-  LastX, LastY: Integer;
+  A, B: Int64;
+  A2, B2: Int64;
+  X, Y: Int64;
+  Crit1, Crit2, Crit3: Int64;
+  T, Dxt, Dyt, D2xt, D2yt: Int64;
+  LastX, LastY: Int64;
   P: PColor32Array;
-  XOffset: Integer;
-  WidthOffset: Integer;
-  TopOffset: Integer;
-  BottomOffset: Integer;
-  Left, Right, Top, Bottom: Integer;
+  XOffset: Int64;
+  WidthOffset: Int64;
+  TopOffset: Int64;
+  BottomOffset: Int64;
+  Left, Right, Top, Bottom: Int64;
 begin
   if (X2 > X1) and (Y2 > Y1) and
     (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
@@ -5947,17 +5950,17 @@ end;
 procedure TCustomBitmap32.FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
-  A, B: Integer;
-  A2, B2: Integer;
-  X, Y: Integer;
-  Crit1, Crit2, Crit3: Integer;
-  T, Dxt, Dyt, D2xt, D2yt: Integer;
-  LastX, LastY: Integer;
+  A, B: Int64;
+  A2, B2: Int64;
+  X, Y: Int64;
+  Crit1, Crit2, Crit3: Int64;
+  T, Dxt, Dyt, D2xt, D2yt: Int64;
+  LastX, LastY: Int64;
   P: PColor32;
-  XOffset: Integer;
-  WidthOffset: Integer;
-  TopOffset: Integer;
-  BottomOffset: Integer;
+  XOffset: Int64;
+  WidthOffset: Int64;
+  TopOffset: Int64;
+  BottomOffset: Int64;
   I: Integer;
 begin
   Alpha := Value shr 24;
@@ -6107,18 +6110,18 @@ end;
 procedure TCustomBitmap32.FillEllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
-  A, B: Integer;
-  A2, B2: Integer;
-  X, Y: Integer;
-  Crit1, Crit2, Crit3: Integer;
-  T, Dxt, Dyt, D2xt, D2yt: Integer;
-  LastX, LastY: Integer;
+  A, B: Int64;
+  A2, B2: Int64;
+  X, Y: Int64;
+  Crit1, Crit2, Crit3: Int64;
+  T, Dxt, Dyt, D2xt, D2yt: Int64;
+  LastX, LastY: Int64;
   P: PColor32;
-  XOffset: Integer;
-  WidthOffset: Integer;
-  TopOffset: Integer;
-  BottomOffset: Integer;
-  Left, Right, Top, Bottom: Integer;
+  XOffset: Int64;
+  WidthOffset: Int64;
+  TopOffset: Int64;
+  BottomOffset: Int64;
+  Left, Right, Top, Bottom: Int64;
   I: Integer;
 begin
   if (X2 > X1) and (Y2 > Y1) and

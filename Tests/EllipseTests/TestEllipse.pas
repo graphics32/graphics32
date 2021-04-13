@@ -15,6 +15,7 @@ type
     procedure FillEllipse_HandlesBackendBitsBeingNil;
     procedure FillEllipse_InMeasuringModeDrawsNothing;
     procedure FillEllipse_InMeasuringModeChangesBoundingRectangle;
+    procedure FillEllipse_HandlesLargeEllipses;
 
     procedure FillEllipseT_WorksForArbitrarySizes;
     procedure FillEllipseT_CanBlendEllipses;
@@ -24,6 +25,7 @@ type
     procedure FillEllipseT_HandlesBackendBitsBeingNil;
     procedure FillEllipseT_InMeasuringModeDrawsNothing;
     procedure FillEllipseT_InMeasuringModeChangesBoundingRectangle;
+    procedure FillEllipseT_HandlesLargeEllipses;
 
     procedure FillEllipseS_WorksForArbitrarySizes;
     procedure FillEllipseS_ClipsEllipses;
@@ -34,6 +36,7 @@ type
     procedure FillEllipseS_InMeasuringModeChangesBoundingRectangle;
     procedure FillEllipseS_MeasuresOnlyClippedRectangle;
     procedure FillEllipseS_HasOverloadTakingRectangle;
+    procedure FillEllipseS_HandlesLargeEllipses;
 
     procedure FillEllipseTS_WorksForArbitrarySizes;
     procedure FillEllipseTS_ClipsBlendedEllipses;
@@ -47,6 +50,7 @@ type
     procedure FillEllipseTS_InMeasuringModeChangesBoundingRectangle;
     procedure FillEllipseTS_MeasuresOnlyClippedRectangle;
     procedure FillEllipseTS_HasOverloadTakingRectangle;
+    procedure FillEllipseTS_HandlesLargeEllipses;
 
 {$IFDEF RUN_BENCHMARKS} published {$ELSE} private {$ENDIF}
     procedure FillRect_Benchmark;
@@ -248,6 +252,16 @@ begin
   CheckEquals(11, ChangeArea.Bottom);
 end;
 
+procedure TTestEllipse.FillEllipse_HandlesLargeEllipses;
+begin
+  Have.SetSize(4000, 4000);
+  Have.FillEllipse(0, 0, 4000, 4000, clRed32);
+  // There was a bug when using 32 bit integers in the calculation (which contains
+  // squares) the ellipse would only draw the top and bottom parts, the center line would
+  // be missing. Thus we assure that the center contains a pixel of the ellipse.
+  CheckEquals(clRed32, Have.Pixel[2000, 2000]);
+end;
+
 procedure TTestEllipse.FillEllipseT_WorksForArbitrarySizes;
 const
   MaxSize = 15;
@@ -371,6 +385,17 @@ begin
   CheckEquals(2, ChangeCount); // Same as before.
 end;
 
+procedure TTestEllipse.FillEllipseT_HandlesLargeEllipses;
+begin
+  Have.SetSize(4000, 4000);
+  Have.CombineMode := cmMerge;
+  Have.FillEllipseT(0, 0, 4000, 4000, $80FF0000);
+  // There was a bug when using 32 bit integers in the calculation (which contains
+  // squares) the ellipse would only draw the top and bottom parts, the center line would
+  // be missing. Thus we assure that the center contains a pixel of the ellipse.
+  CheckEquals($80FF0000, Have.Pixel[2000, 2000]);
+end;
+
 procedure TTestEllipse.FillEllipseS_WorksForArbitrarySizes;
 const
   MaxSize = 15;
@@ -492,6 +517,17 @@ begin
 
   Have.SetSize(20, 20);
   Have.FillEllipseS(MakeRect(5, 5, 30, 30), clRed32);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.FillEllipseS_HandlesLargeEllipses;
+begin
+  Want.SetSize(20, 20);
+  Want.Clear(clRed32);
+
+  Have.SetSize(20, 20);
+  Have.FillEllipseS(-1000000, -1000000, 1000000, 1000000, clRed32);
 
   CheckBitmapsEqual(Want, Have);
 end;
@@ -687,6 +723,18 @@ begin
 
   Have.SetSize(20, 20);
   Have.FillEllipseTS(MakeRect(5, 5, 30, 30), $88FF0000);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.FillEllipseTS_HandlesLargeEllipses;
+begin
+  Want.SetSize(20, 20);
+  Want.Clear(clRed32);
+
+  Have.SetSize(20, 20);
+  Have.CombineMode := cmMerge;
+  Have.FillEllipseTS(-1000000, -1000000, 1000000, 1000000, $80FF0000);
 
   CheckBitmapsEqual(Want, Have);
 end;
