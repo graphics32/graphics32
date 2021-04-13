@@ -48,8 +48,8 @@ type
 {$IFDEF RUN_BENCHMARKS} published {$ELSE} private {$ENDIF}
     procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
-    procedure TCavas32_Ellipse_Benchmark;
     procedure FillEllipseT_Benchmark;
+    procedure TCavas32_Ellipse_Benchmark;
 
   private
     // This test case show the difference between the TCanvas32.Ellipse version
@@ -655,6 +655,31 @@ begin
   Fail(Format('FillEllipse took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
+procedure TTestEllipse.FillEllipseT_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := 0 to 100 - 10 do
+    for X := 0 to 100 - 10 do
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $55FF00FF);
+
+  for Y := 0 to 100 - 5 do
+    for X := 0 to 100 - 5 do
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
+
+  for Y := 0 to 100 - 1 do
+    for X := 0 to 100 - 1 do
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
+
+  Watch.Stop;
+  Have.SaveToFile('FillEllipseT_Benchmark.bmp');
+  Fail(Format('FillEllipseT took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
 procedure TTestEllipse.TCavas32_Ellipse_Benchmark;
 var
   Watch: TStopwatch;
@@ -687,31 +712,6 @@ begin
   Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
   C.Free;
   Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
-end;
-
-procedure TTestEllipse.FillEllipseT_Benchmark;
-var
-  Watch: TStopwatch;
-  X, Y: Integer;
-begin
-  Have.SetSize(1000, 1000);
-  Watch := TStopwatch.StartNew;
-
-  for Y := 0 to 100 - 10 do
-    for X := 0 to 100 - 10 do
-      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $55FF00FF);
-
-  for Y := 0 to 100 - 5 do
-    for X := 0 to 100 - 5 do
-      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
-
-  for Y := 0 to 100 - 1 do
-    for X := 0 to 100 - 1 do
-      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
-
-  Watch.Stop;
-  Have.SaveToFile('FillEllipseT_Benchmark.bmp');
-  Fail(Format('FillEllipseT took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;
