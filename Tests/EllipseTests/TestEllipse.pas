@@ -53,6 +53,7 @@ type
     procedure FillEllipse_Benchmark;
     procedure FillEllipseT_Benchmark;
     procedure FillEllipseS_Benchmark;
+    procedure FillEllipseTS_Benchmark;
     procedure TCavas32_Ellipse_Benchmark;
 
   private
@@ -750,7 +751,7 @@ begin
 
   for Y := 0 to 100 - 10 do
     for X := 0 to 100 - 10 do
-      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $55FF00FF);
+      Have.FillEllipseT(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $66FF00FF);
 
   for Y := 0 to 100 - 5 do
     for X := 0 to 100 - 5 do
@@ -822,6 +823,31 @@ begin
   Watch.Stop;
   Have.SaveToFile('FillEllipseS_Benchmark.bmp');
   Fail(Format('FillEllipseS took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.FillEllipseTS_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.FillEllipseTS(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $66FF00FF);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.FillEllipseTS(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.FillEllipseTS(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
+
+  Watch.Stop;
+  Have.SaveToFile('FillEllipseTS_Benchmark.bmp');
+  Fail(Format('FillEllipseTS took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;
