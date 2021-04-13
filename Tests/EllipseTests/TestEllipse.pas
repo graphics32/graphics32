@@ -42,6 +42,10 @@ type
     procedure FillEllipseTS_InMeasuringModeChangesBoundingRectangle;
     procedure FillEllipseTS_MeasuresOnlyClippedRectangle;
     procedure FillEllipseTS_HasOverloadTakingRectangle;
+
+    procedure Compare_FillEllipse_And_TCanvas_Ellipse;
+    procedure FillEllipse_Benchmark;
+    procedure TCavas32_Ellipse_Benchmark;
   protected
     procedure SetUp; override;
     procedure TearDown; override;
@@ -57,7 +61,8 @@ type
 implementation
 
 uses
-  Bitmap32CompareDialogUnit, System.Classes;
+  Bitmap32CompareDialogUnit, System.Classes, System.Diagnostics, System.SysUtils,
+  System.Types, GR32_Paths, GR32_Brushes, GR32_Polygons;
 
 procedure TTestEllipse.SetUp;
 begin
@@ -91,8 +96,6 @@ begin
     end;
     Inc(Y, H + 1);
   end;
-
-  Have.FillEllipse(1, 1, 1, 1, clRed32);
 
   CheckBitmapsEqual(Want, Have);
 end;
@@ -590,6 +593,83 @@ begin
   Have.FillEllipseTS(MakeRect(5, 5, 30, 30), $88FF0000);
 
   CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.Compare_FillEllipse_And_TCanvas_Ellipse;
+var
+  C: TCanvas32;
+  Brush: TStrokeBrush;
+begin
+  Have.SetSize(20, 20);
+  Have.FillEllipse(1, 1, 19, 19, clRed32);
+
+  Want.SetSize(20, 20);
+  C := TCanvas32.Create(Want);
+  Brush := C.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+  Brush.FillColor := clRed32;
+  C.Ellipse(10, 10, 8.5, 8.5);
+  C.Free;
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.FillEllipse_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := 0 to 100 - 10 do
+    for X := 0 to 100 - 10 do
+      Have.FillEllipse(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, clFuchsia32);
+
+  for Y := 0 to 100 - 5 do
+    for X := 0 to 100 - 5 do
+      Have.FillEllipse(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, clRed32);
+
+  for Y := 0 to 100 - 1 do
+    for X := 0 to 100 - 1 do
+      Have.FillEllipse(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, clBlue32);
+
+  Watch.Stop;
+  Have.SaveToFile('FillEllipse_Benchmark.bmp');
+  Fail(Format('FillEllipse took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.TCavas32_Ellipse_Benchmark;
+var
+  Watch: TStopwatch;
+  C: TCanvas32;
+  Brush: TStrokeBrush;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  C := TCanvas32.Create(Have);
+  Brush := C.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+
+  Watch := TStopwatch.StartNew;
+
+  Brush.FillColor := clFuchsia32;
+  for Y := 0 to 100 - 10 do
+    for X := 0 to 100 - 10 do
+      C.Ellipse(X * 10 + 50, Y * 10 + 50, 50, 50, 50);
+
+  Brush.FillColor := clRed32;
+  for Y := 0 to 100 - 5 do
+    for X := 0 to 100 - 5 do
+      C.Ellipse(X * 10 + 25, Y * 10 + 25, 25, 25, 25);
+
+  Brush.FillColor := clBlue32;
+  for Y := 0 to 100 - 1 do
+    for X := 0 to 100 - 1 do
+      C.Ellipse(X * 10 + 5, Y * 10 + 5, 5, 5, 5);
+
+  Watch.Stop;
+  Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
+  C.Free;
+  Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 initialization
