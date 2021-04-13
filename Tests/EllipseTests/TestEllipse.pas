@@ -52,8 +52,9 @@ type
     procedure FillEllipseT_Benchmark;
 
   private
-    // TODO Find out how to fill an ellipse with TCanvas32.
-    procedure Compare_FillEllipse_And_TCanvas_Ellipse;
+    // This test case show the difference between the TCanvas32.Ellipse version
+    // (anti-aliased) and FillEllipse. Make it published to see the difference.
+    procedure Compare_FillEllipse_And_TCanvas32_Ellipse;
 
   protected
     procedure SetUp; override;
@@ -658,12 +659,12 @@ procedure TTestEllipse.TCavas32_Ellipse_Benchmark;
 var
   Watch: TStopwatch;
   C: TCanvas32;
-  Brush: TStrokeBrush;
+  Brush: TSolidBrush;
   X, Y: Integer;
 begin
   Have.SetSize(1000, 1000);
   C := TCanvas32.Create(Have);
-  Brush := C.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+  Brush := C.Brushes.Add(TSolidBrush) as TSolidBrush;
 
   Watch := TStopwatch.StartNew;
 
@@ -686,24 +687,6 @@ begin
   Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
   C.Free;
   Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
-end;
-
-procedure TTestEllipse.Compare_FillEllipse_And_TCanvas_Ellipse;
-var
-  C: TCanvas32;
-  Brush: TStrokeBrush;
-begin
-  Have.SetSize(20, 20);
-  Have.FillEllipse(1, 1, 19, 19, clRed32);
-
-  Want.SetSize(20, 20);
-  C := TCanvas32.Create(Want);
-  Brush := C.Brushes.Add(TStrokeBrush) as TStrokeBrush;
-  Brush.FillColor := clRed32;
-  C.Ellipse(10, 10, 8.5, 8.5);
-  C.Free;
-
-  CheckBitmapsEqual(Want, Have);
 end;
 
 procedure TTestEllipse.FillEllipseT_Benchmark;
@@ -729,6 +712,24 @@ begin
   Watch.Stop;
   Have.SaveToFile('FillEllipseT_Benchmark.bmp');
   Fail(Format('FillEllipseT took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;
+var
+  C: TCanvas32;
+  Brush: TSolidBrush;
+begin
+  Have.SetSize(20, 20);
+  Have.FillEllipse(1, 1, 19, 19, clRed32);
+
+  Want.SetSize(20, 20);
+  C := TCanvas32.Create(Want);
+  Brush := C.Brushes.Add(TSolidBrush) as TSolidBrush;
+  Brush.FillColor := clRed32;
+  C.Ellipse(10, 10, 9, 9);
+  C.Free;
+
+  CheckBitmapsEqual(Want, Have);
 end;
 
 initialization
