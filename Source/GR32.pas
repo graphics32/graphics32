@@ -890,6 +890,7 @@ type
     // FillEllipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
+    // FillEllipseT only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure FillEllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
     procedure FillEllipseS(const ARect: TRect; Value: TColor32); overload;
@@ -5790,8 +5791,11 @@ begin
     end;
 
     // The last iteration is missing from the above loop.
-    P := Pointer(@Bits[(TopOffset - LastY) * FWidth]);
-    FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+    if (Y2 - Y1) mod 2 = 0 then
+    begin
+      P := Pointer(@Bits[(TopOffset - LastY) * FWidth]);
+      FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+    end;
     P := Pointer(@Bits[(LastY + BottomOffset) * FWidth]);
     FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
   end;
@@ -5846,10 +5850,18 @@ end;
 procedure TCustomBitmap32.FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
-  Area: TArrayOfPoint;
-  i, j: Integer;
-  A, B: TPoint;
+  A, B: Integer;
+  A2, B2: Integer;
+  X, Y: Integer;
+  Crit1, Crit2, Crit3: Integer;
+  T, Dxt, Dyt, D2xt, D2yt: Integer;
+  LastX, LastY: Integer;
   P: PColor32;
+  XOffset: Integer;
+  WidthOffset: Integer;
+  TopOffset: Integer;
+  BottomOffset: Integer;
+  I: Integer;
 begin
   Alpha := Value shr 24;
 
@@ -5860,16 +5872,119 @@ begin
   begin
     if (not FMeasuringMode) and (FBits <> nil) then
     begin
-      Area := EllipseArea(X1, Y1, X2 - X1, Y2 - Y1);
-      j := 0;
-      while j < Length(Area) do
+      A := (X2 - X1 - 1) div 2;
+      B := (Y2 - Y1 - 1) div 2;
+      A2 := A * A;
+      B2 := B * B;
+      X := 0;
+      Y := B;
+      XOffset := X1 + A;
+      WidthOffset := 1 + (1 - (X2 - X1) mod 2);
+      TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
+      BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+
+      Crit1 := -(A2 div 4 + A mod 2 + B2);
+      Crit2 := -(B2 div 4 + B mod 2 + A2);
+      Crit3 := -(B2 div 4 + B mod 2);
+      T := -A2 * Y;
+      Dxt := 2 * B2 * X;
+      Dyt := -2 * A2 * Y;
+      D2xt := 2 * B2;
+      D2yt := 2 * A2;
+      LastX := X;
+      LastY := Y;
+
+      while (Y >= 0) and (X <= A) do
       begin
-        A := Area[j];
-        B := Area[j + 1];
-        P := GetPixelPtr(A.X, A.Y);
+        if Y <> LastY then
+        begin
+          if CombineMode = cmBlend then
+          begin
+            P := GetPixelPtr(XOffset - LastX, TopOffset - LastY);
+            for I := 1 to 2 * LastX + WidthOffset do
+            begin
+              CombineMem(Value, P^, Alpha);
+              Inc(P);
+            end;
+
+            P := GetPixelPtr(XOffset - LastX, LastY + BottomOffset);
+            for I := 1 to 2 * LastX + WidthOffset do
+            begin
+              CombineMem(Value, P^, Alpha);
+              Inc(P);
+            end;
+          end
+          else
+          begin
+            P := GetPixelPtr(XOffset - LastX, TopOffset - LastY);
+            for I := 1 to 2 * LastX + WidthOffset do
+            begin
+              MergeMem(Value, P^);
+              Inc(P);
+            end;
+
+            P := GetPixelPtr(XOffset - LastX, LastY + BottomOffset);
+            for I := 1 to 2 * LastX + WidthOffset do
+            begin
+              MergeMem(Value, P^);
+              Inc(P);
+            end;
+          end;
+        end;
+
+        LastX := X;
+        LastY := Y;
+
+        if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
+        begin
+          Inc(X);
+          Inc(Dxt, D2xt);
+          Inc(T, Dxt);
+        end
+        else if (T - A2 * Y > Crit2) then
+        begin
+          Dec(Y);
+          Inc(Dyt, D2yt);
+          Inc(T, Dyt);
+        end
+        else
+        begin
+          Inc(X);
+          Inc(Dxt, D2xt);
+          Inc(T, Dxt);
+          Dec(Y);
+          Inc(Dyt, D2yt);
+          Inc(T, Dyt);
+        end;
+      end;
+
+      // The last iteration is missing from the above loop.
+      begin
+        if (Y2 - Y1) mod 2 = 0 then
+        begin
+          P := GetPixelPtr(XOffset - LastX, TopOffset - LastY);
+          if CombineMode = cmBlend then
+          begin
+            for I := 1 to 2 * LastX + WidthOffset do
+            begin
+              CombineMem(Value, P^, Alpha);
+              Inc(P);
+            end;
+          end
+          else
+          begin
+            for I := 1 to 2 * LastX + WidthOffset do
+            begin
+              MergeMem(Value, P^);
+              Inc(P);
+            end;
+          end;
+        end;
+
+        P := GetPixelPtr(XOffset - LastX, LastY + BottomOffset);
         if CombineMode = cmBlend then
         begin
-          for i := A.X to B.X do
+          for I := 1 to 2 * LastX + WidthOffset do
           begin
             CombineMem(Value, P^, Alpha);
             Inc(P);
@@ -5877,13 +5992,12 @@ begin
         end
         else
         begin
-          for i := A.X to B.X do
+          for I := 1 to 2 * LastX + WidthOffset do
           begin
             MergeMem(Value, P^);
             Inc(P);
           end;
         end;
-        Inc(j, 2);
       end;
 
       EMMS;

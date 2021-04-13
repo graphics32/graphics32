@@ -729,7 +729,6 @@ begin
   Watch.Stop;
   Have.SaveToFile('FillEllipseT_Benchmark.bmp');
   Fail(Format('FillEllipseT took %d ms', [Watch.ElapsedMilliseconds]));
-  // 318 ms
 end;
 
 initialization
