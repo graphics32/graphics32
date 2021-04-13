@@ -16,6 +16,7 @@ type
     procedure FillEllipse_InMeasuringModeDrawsNothing;
     procedure FillEllipse_InMeasuringModeChangesBoundingRectangle;
 
+    procedure FillEllipseT_WorksForArbitrarySizes;
     procedure FillEllipseT_CanBlendEllipses;
     procedure FillEllipseT_CanMergeEllipses;
     procedure FillEllipseT_WithFullOpacityBehavesLikeFillEllipse;
@@ -24,6 +25,7 @@ type
     procedure FillEllipseT_InMeasuringModeDrawsNothing;
     procedure FillEllipseT_InMeasuringModeChangesBoundingRectangle;
 
+    procedure FillEllipseS_WorksForArbitrarySizes;
     procedure FillEllipseS_ClipsEllipses;
     procedure FillEllipseS_OnZeroSizedBitmapDoesNothing;
     procedure FillEllipseS_HandlesBackendBitsBeingNil;
@@ -33,6 +35,7 @@ type
     procedure FillEllipseS_MeasuresOnlyClippedRectangle;
     procedure FillEllipseS_HasOverloadTakingRectangle;
 
+    procedure FillEllipseTS_WorksForArbitrarySizes;
     procedure FillEllipseTS_ClipsBlendedEllipses;
     procedure FillEllipseTS_ClipsMrgedEllipses;
     procedure FillEllipseTS_OnZeroSizedBitmapDoesNothing;
@@ -244,6 +247,33 @@ begin
   CheckEquals(11, ChangeArea.Bottom);
 end;
 
+procedure TTestEllipse.FillEllipseT_WorksForArbitrarySizes;
+const
+  MaxSize = 15;
+var
+  X, Y, W, H: Integer;
+begin
+  Want.LoadFromFile('gold_ellipses_in_all_sizes.bmp');
+  Have.SetSize(Want.Width, Want.Height);
+  // The cmMerge mode makes the half-transparent red on black background appear full red,
+  // thus we can use the same gold bitmap for comparison.
+  Have.CombineMode := cmMerge;
+
+  Y := 1;
+  for H := 1 to MaxSize do
+  begin
+    X := 1;
+    for W := 1 to MaxSize do
+    begin
+      Have.FillEllipseT(X, Y, X + W, Y + H, $80FF0000);
+      Inc(X, W + 1);
+    end;
+    Inc(Y, H + 1);
+  end;
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
 procedure TTestEllipse.FillEllipseT_CanBlendEllipses;
 begin
   Want.LoadFromFile('gold_blend_ellipses.bmp');
@@ -338,6 +368,30 @@ begin
   Have.FillEllipseT(3, 4, 13, 8, $00FF0000);
   Have.EndMeasuring;
   CheckEquals(2, ChangeCount); // Same as before.
+end;
+
+procedure TTestEllipse.FillEllipseS_WorksForArbitrarySizes;
+const
+  MaxSize = 15;
+var
+  X, Y, W, H: Integer;
+begin
+  Want.LoadFromFile('gold_ellipses_in_all_sizes.bmp');
+  Have.SetSize(Want.Width, Want.Height);
+
+  Y := 1;
+  for H := 1 to MaxSize do
+  begin
+    X := 1;
+    for W := 1 to MaxSize do
+    begin
+      Have.FillEllipseS(X, Y, X + W, Y + H, clRed32);
+      Inc(X, W + 1);
+    end;
+    Inc(Y, H + 1);
+  end;
+
+  CheckBitmapsEqual(Want, Have);
 end;
 
 procedure TTestEllipse.FillEllipseS_ClipsEllipses;
@@ -437,6 +491,33 @@ begin
 
   Have.SetSize(20, 20);
   Have.FillEllipseS(MakeRect(5, 5, 30, 30), clRed32);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.FillEllipseTS_WorksForArbitrarySizes;
+const
+  MaxSize = 15;
+var
+  X, Y, W, H: Integer;
+begin
+  Want.LoadFromFile('gold_ellipses_in_all_sizes.bmp');
+  Have.SetSize(Want.Width, Want.Height);
+  // The cmMerge mode makes the half-transparent red on black background appear full red,
+  // thus we can use the same gold bitmap for comparison.
+  Have.CombineMode := cmMerge;
+
+  Y := 1;
+  for H := 1 to MaxSize do
+  begin
+    X := 1;
+    for W := 1 to MaxSize do
+    begin
+      Have.FillEllipseTS(X, Y, X + W, Y + H, $80FF0000);
+      Inc(X, W + 1);
+    end;
+    Inc(Y, H + 1);
+  end;
 
   CheckBitmapsEqual(Want, Have);
 end;
