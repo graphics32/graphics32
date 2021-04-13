@@ -49,6 +49,7 @@ type
     procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
     procedure FillEllipseT_Benchmark;
+    procedure FillEllipseS_Benchmark;
     procedure TCavas32_Ellipse_Benchmark;
 
   private
@@ -372,6 +373,9 @@ procedure TTestEllipse.FillEllipseS_DoesNotDrawInvalidEllipses;
 begin
   Have.SetSize(20, 20);
   Want.SetSize(20, 20);
+
+  // Regression: this ellipse provokes a bug from the past.
+  Have.FillEllipseS(-90, -90, 10, 10, clFuchsia32);
 
   Have.FillEllipseS(1, 1, 1, 5, clRed32); // 0 wide.
   Have.FillEllipseS(1, 1, 5, 1, clRed32); // 0 high.
@@ -712,6 +716,31 @@ begin
   Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
   C.Free;
   Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.FillEllipseS_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.FillEllipseS(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, clFuchsia32);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.FillEllipseS(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, clRed32);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.FillEllipseS(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, clBlue32);
+
+  Watch.Stop;
+  Have.SaveToFile('FillEllipseS_Benchmark.bmp');
+  Fail(Format('FillEllipseS took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;

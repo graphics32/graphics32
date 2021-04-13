@@ -5829,7 +5829,8 @@ begin
             A.X := FClipRect.Left;
           if B.X >= FClipRect.Right then
             B.X := FClipRect.Right - 1;
-          FillLongword(P[A.X], B.X - A.X + 1, Value);
+          if A.X <= B.X then
+            FillLongword(P[A.X], B.X - A.X + 1, Value);
         end;
         Inc(I, 2);
       end;
