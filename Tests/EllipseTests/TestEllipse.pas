@@ -5,6 +5,8 @@ interface
 uses
   TestFrameWork, GR32;
 
+// {$DEFINE RUN_BENCHMARKS}
+
 type
   TTestEllipse = class(TTestCase)
   published
@@ -43,10 +45,15 @@ type
     procedure FillEllipseTS_MeasuresOnlyClippedRectangle;
     procedure FillEllipseTS_HasOverloadTakingRectangle;
 
-    procedure Compare_FillEllipse_And_TCanvas_Ellipse;
+{$IFDEF RUN_BENCHMARKS} published {$ELSE} private {$ENDIF}
     procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
     procedure TCavas32_Ellipse_Benchmark;
+
+  private
+    // TODO Find out how to fill an ellipse with TCanvas32.
+    procedure Compare_FillEllipse_And_TCanvas_Ellipse;
+
   protected
     procedure SetUp; override;
     procedure TearDown; override;
@@ -596,24 +603,6 @@ begin
   CheckBitmapsEqual(Want, Have);
 end;
 
-procedure TTestEllipse.Compare_FillEllipse_And_TCanvas_Ellipse;
-var
-  C: TCanvas32;
-  Brush: TStrokeBrush;
-begin
-  Have.SetSize(20, 20);
-  Have.FillEllipse(1, 1, 19, 19, clRed32);
-
-  Want.SetSize(20, 20);
-  C := TCanvas32.Create(Want);
-  Brush := C.Brushes.Add(TStrokeBrush) as TStrokeBrush;
-  Brush.FillColor := clRed32;
-  C.Ellipse(10, 10, 8.5, 8.5);
-  C.Free;
-
-  CheckBitmapsEqual(Want, Have);
-end;
-
 procedure TTestEllipse.FillRect_Benchmark;
 var
   Watch: TStopwatch;
@@ -696,6 +685,24 @@ begin
   Have.SaveToFile('TCavas32_Ellipse_Benchmark.bmp');
   C.Free;
   Fail(Format('TCavas32.Ellipse took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.Compare_FillEllipse_And_TCanvas_Ellipse;
+var
+  C: TCanvas32;
+  Brush: TStrokeBrush;
+begin
+  Have.SetSize(20, 20);
+  Have.FillEllipse(1, 1, 19, 19, clRed32);
+
+  Want.SetSize(20, 20);
+  C := TCanvas32.Create(Want);
+  Brush := C.Brushes.Add(TStrokeBrush) as TStrokeBrush;
+  Brush.FillColor := clRed32;
+  C.Ellipse(10, 10, 8.5, 8.5);
+  C.Free;
+
+  CheckBitmapsEqual(Want, Have);
 end;
 
 initialization
