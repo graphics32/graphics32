@@ -2545,7 +2545,7 @@ end;
 
 function TPngHistogram.Add(Value: TColor32): Integer;
 begin
-  Add(TPngHistogramEntry.Create(Value));
+  Result := Add(TPngHistogramEntry.Create(Value));
 end;
 
 function TPngHistogram.Add(const anItem: TPngHistogramEntry): Integer;
