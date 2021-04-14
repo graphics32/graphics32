@@ -2442,7 +2442,7 @@ begin
         Sqr(TColor32Entry(Value).B - TColor32Entry(FItems[Index]).B);
       if Distance < MinDistance then
       begin
-        Distance := MinDistance;
+        MinDistance := Distance;
         MinIndex := Index;
       end;
     end;
