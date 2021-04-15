@@ -771,6 +771,26 @@ type
     procedure SetPixelX(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
+
+  private type
+    EllipseState = record
+      A, B: Int64;
+      A2, B2: Int64;
+      X, Y: Int64;
+      Crit1, Crit2, Crit3: Int64;
+      T, Dxt, Dyt, D2xt, D2yt: Int64;
+      LeftOffset: Int64;
+      RightOffset: Int64;
+      TopOffset: Int64;
+      BottomOffset: Int64;
+      procedure Setup(X1, Y1, X2, Y2: Integer); inline;
+      procedure Step; inline;
+    end;
+
+    procedure CombineEllipse_LeftAndCheckYMirror(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineEllipse_LeftAndRight(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineEllipse(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineEllipse_CheckYMirror(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
   public
     constructor Create(Backend: TCustomBackendClass); reintroduce; overload; virtual;
     constructor Create; reintroduce; overload; virtual;
@@ -5725,21 +5745,7 @@ begin
     SetLength(Result, N - 2);
 end;
 
-type EllipseState = record
-  A, B: Int64;
-  A2, B2: Int64;
-  X, Y: Int64;
-  Crit1, Crit2, Crit3: Int64;
-  T, Dxt, Dyt, D2xt, D2yt: Int64;
-  LeftOffset: Int64;
-  RightOffset: Int64;
-  TopOffset: Int64;
-  BottomOffset: Int64;
-  procedure Setup(X1, Y1, X2, Y2: Integer); inline;
-  procedure Step; inline;
-end;
-
-procedure EllipseState.Setup(X1, Y1, X2, Y2: Integer);
+procedure TCustomBitmap32.EllipseState.Setup(X1, Y1, X2, Y2: Integer);
 begin
   A := (X2 - X1 - 1) div 2;
   B := (Y2 - Y1 - 1) div 2;
@@ -5762,7 +5768,7 @@ begin
   D2yt := 2 * A2;
 end;
 
-procedure EllipseState.Step;
+procedure TCustomBitmap32.EllipseState.Step;
 begin
   if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
   begin
@@ -5808,6 +5814,82 @@ begin
   Changed(MakeRect(X1, Y1, X2+1, Y2+1));
 end;
 
+procedure TCustomBitmap32.CombineEllipse_LeftAndCheckYMirror(var E: EllipseState;
+  Value: TColor32; Alpha: Integer);
+begin
+  if FCombineMode = cmBlend then
+  begin
+    CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+    if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+      CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
+  end
+  else
+  begin
+    MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+    if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+      MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
+  end;
+end;
+
+procedure TCustomBitmap32.CombineEllipse_LeftAndRight(var E: EllipseState;
+  Value: TColor32; Alpha: Integer);
+begin
+  if FCombineMode = cmBlend then
+  begin
+    CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+    CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
+  end
+  else
+  begin
+    MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+    MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
+  end;
+end;
+
+procedure TCustomBitmap32.CombineEllipse(var E: EllipseState; Value: TColor32;
+  Alpha: Integer);
+begin
+  if FCombineMode = cmBlend then
+  begin
+    CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+    CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
+    CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
+    CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^, Alpha);
+  end
+  else
+  begin
+    MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+    MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
+    MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
+    MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^);
+  end;
+end;
+
+procedure TCustomBitmap32.CombineEllipse_CheckYMirror(var E: EllipseState;
+  Value: TColor32; Alpha: Integer);
+begin
+  if FCombineMode = cmBlend then
+  begin
+    CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+    CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
+    if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+    begin
+      CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
+      CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^, Alpha);
+    end;
+  end
+  else
+  begin
+    MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+    MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
+    if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+    begin
+      MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
+      MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^);
+    end;
+  end;
+end;
+
 procedure TCustomBitmap32.EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
@@ -5824,79 +5906,40 @@ begin
     begin
       E.Setup(X1, Y1, X2, Y2);
 
+      // For a transparent ellipse we must make sure not to draw a pixel twice (combining
+      // two semi-transparent pixels changes them). That is why we four slighlty different
+      // loops, the Ellipse function has only one instead.
+      // The 1st and 2nd loops handle ellipses that are very small in one direction, e.g.
+      // 1 pixel wide or 1 pixel high ellipses. They also make sure the first two pixels,
+      // the one at the horizontal center top and bottom, are not drawn twice.
+      // The 3rd loop is the meat of the function. For most ellipses it will run most
+      // often. It does not contain any checks for left/right or top/bottom duplication.
+      // Avoiding checks in this loop makes this algorithm run faster than having a single
+      // loop and doing all of the checks all the time.
+      // The 4th and last loop handles the vertically centered pixels left and right and
+      // makes sure they are not drawn twice.
+
       while (E.Y >= 0) and (E.X <= E.A) and (E.LeftOffset - E.X = E.RightOffset + E.X) do
       begin
-        if FCombineMode = cmBlend then
-        begin
-          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
-          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
-            CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
-        end
-        else
-        begin
-          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
-          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
-            MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
-        end;
+        CombineEllipse_LeftAndCheckYMirror(E, Value, Alpha);
         E.Step;
       end;
 
       while (E.Y >= 0) and (E.X <= E.A) and (E.TopOffset - E.Y = E.BottomOffset + E.Y) do
       begin
-        if FCombineMode = cmBlend then
-        begin
-          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
-          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
-        end
-        else
-        begin
-          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
-          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
-        end;
+        CombineEllipse_LeftAndRight(E, Value, Alpha);
         E.Step;
       end;
 
       while (E.Y > 0) and (E.X <= E.A) do
       begin
-        if FCombineMode = cmBlend then
-        begin
-          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
-          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
-          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
-          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^, Alpha);
-        end
-        else
-        begin
-          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
-          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
-          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
-          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^);
-        end;
+        CombineEllipse(E, Value, Alpha);
         E.Step;
       end;
 
       while (E.Y >= 0) and (E.X <= E.A) do
       begin
-        if FCombineMode = cmBlend then
-        begin
-          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
-          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
-          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
-          begin
-            CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
-            CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^, Alpha);
-          end;
-        end
-        else
-        begin
-          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
-          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
-          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
-          begin
-            MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
-            MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^);
-          end;
-        end;
+        CombineEllipse_CheckYMirror(E, Value, Alpha);
         E.Step;
       end;
 
