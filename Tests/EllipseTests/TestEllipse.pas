@@ -113,7 +113,7 @@ type
     procedure EllipseTS_Benchmark;
 
   private
-    // This test case show the difference between the TCanvas32.Ellipse version
+    // This test case shows the difference between the TCanvas32.Ellipse version
     // (anti-aliased) and FillEllipse. Make it published to see the difference.
     procedure Compare_FillEllipse_And_TCanvas32_Ellipse;
 
