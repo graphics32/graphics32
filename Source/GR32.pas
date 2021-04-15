@@ -916,6 +916,7 @@ type
 
     // Ellipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure Ellipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+    // EllipseT only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure EllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
     procedure EllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
@@ -5646,111 +5647,6 @@ end;
 procedure TCustomBitmap32.RaiseRectTS(const ARect: TRect; Contrast: Integer);
 begin
   RaiseRectTS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Contrast);
-end;
-
-function QuarterEllipsePoints(W, H: Integer): TArrayOfPoint;
-var
-  A, B: Integer;
-  A2, B2: Integer;
-  X, Y: Integer;
-  Crit1, Crit2, Crit3: Integer;
-  T, Dxt, Dyt, D2xt, D2yt: Integer;
-begin
-  SetLength(Result, 0);
-  if (W <= 0) or (H <= 0) then
-    Exit;
-
-  A := (W - 1) div 2;
-  B := (H - 1) div 2;
-  A2 := A * A;
-  B2 := B * B;
-  X := 0;
-  Y := B;
-
-  Crit1 := -(A2 div 4 + A mod 2 + B2);
-  Crit2 := -(B2 div 4 + B mod 2 + A2);
-  Crit3 := -(B2 div 4 + B mod 2);
-  T := -A2 * Y;
-  Dxt := 2 * B2 * X;
-  Dyt := -2 * A2 * Y;
-  D2xt := 2 * B2;
-  D2yt := 2 * A2;
-
-  while (Y >= 0) and (X <= A) do
-  begin
-    SetLength(Result, Length(Result) + 1);
-    Result[High(Result)].X := X;
-    Result[High(Result)].Y := Y;
-    if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
-    begin
-      Inc(X);
-      Inc(Dxt, D2xt);
-      Inc(T, Dxt);
-    end
-    else if (T - A2 * Y > Crit2) then
-    begin
-      Dec(Y);
-      Inc(Dyt, D2yt);
-      Inc(T, Dyt);
-    end
-    else
-    begin
-      Inc(X);
-      Inc(Dxt, D2xt);
-      Inc(T, Dxt);
-      Dec(Y);
-      Inc(Dyt, D2yt);
-      Inc(T, Dyt);
-    end;
-  end;
-end;
-
-// EllipseArea returns a list of consecutive point pairs. Each pair lies on a
-// horizontal line (i.e. both points have the same y position) and if you draw
-// horizontal pixels lines for all pairs, you will have the requested ellipse.
-//
-//         c---d
-//      g---------h
-//     i-----------j
-//      e---------f
-//         a---b
-//
-function EllipseArea(X, Y, W, H: Integer): TArrayOfPoint;
-var
-  Quarter: TArrayOfPoint;
-  XPivot, YPivot: Integer;
-  Dx, Dy: Integer;
-  I, N: Integer;
-
-  procedure AppendPoint(X, Y: Integer);
-  begin
-    SetLength(Result, Length(Result) + 1);
-    Result[High(Result)].X := X;
-    Result[High(Result)].Y := Y;
-  end;
-
-begin
-  Quarter := QuarterEllipsePoints(W, H);
-  XPivot := 1 - W mod 2;
-  YPivot := 1 - H mod 2;
-  Dx := X + W div 2;
-  Dy := Y + H div 2;
-  for I := 0 to High(Quarter) do
-  begin
-    if (I = High(Quarter)) or (Quarter[I].Y <> Quarter[I + 1].Y) then
-    begin
-      // This line.
-      AppendPoint(-Quarter[I].X - XPivot + Dx, Quarter[I].Y + Dy);
-      AppendPoint(Quarter[I].X + Dx, Quarter[I].Y + Dy);
-      // The line mirrored vertically.
-      AppendPoint(-Quarter[I].X - XPivot + Dx, -Quarter[I].Y - YPivot + Dy);
-      AppendPoint(Quarter[I].X + Dx, -Quarter[I].Y - YPivot + Dy);
-    end;
-  end;
-  // Remove the last line if it is contained twice at the end.
-  N := Length(Result);
-  if (N >= 4) and (Result[N - 1] = Result[N - 3]) then
-    SetLength(Result, N - 2);
 end;
 
 procedure TCustomBitmap32.EllipseState.Setup(X1, Y1, X2, Y2: Integer);
