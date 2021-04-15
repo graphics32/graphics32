@@ -71,6 +71,18 @@ type
     procedure EllipseT_InMeasuringModeDrawsNothing;
     procedure EllipseT_InMeasuringModeChangesBoundingRectangle;
 
+    procedure EllipseS_WorksForArbitrarySizes;
+    procedure EllipseS_ClipsEllipses;
+    procedure EllipseS_OnZeroSizedBitmapDoesNothing;
+    procedure EllipseS_HandlesBackendBitsBeingNil;
+    procedure EllipseS_DoesNotDrawInvalidEllipses;
+    procedure EllipseS_InMeasuringModeDrawsNothing;
+    procedure EllipseS_InMeasuringModeChangesBoundingRectangle;
+    procedure EllipseS_MeasuresOnlyClippedRectangle;
+    procedure EllipseS_MeasuresNothingForInvalidEllipse;
+    procedure EllipseS_HasOverloadTakingRectangle;
+    procedure EllipseS_HandlesLargeEllipses;
+
 {$IFDEF RUN_BENCHMARKS} published {$ELSE} private {$ENDIF}
     procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
@@ -82,6 +94,7 @@ type
 
     procedure Ellipse_Benchmark;
     procedure EllipseT_Benchmark;
+    procedure EllipseS_Benchmark;
 
   private
     // This test case show the difference between the TCanvas32.Ellipse version
@@ -977,6 +990,133 @@ begin
   CheckEquals(2, ChangeCount); // Same as before.
 end;
 
+procedure TTestEllipse.EllipseS_WorksForArbitrarySizes;
+begin
+  CheckEllipsesOfAllSizes('gold_ellipse_outlines_in_all_sizes.bmp',
+    Have.EllipseS, clRed32);
+end;
+
+procedure TTestEllipse.EllipseS_ClipsEllipses;
+begin
+  Want.LoadFromFile('gold_clip_rect_ellipse_outlines.bmp');
+
+  Have.SetSize(22, 20);
+  Have.ClipRect := MakeRect(1, 2, 20, 16);
+  Have.EllipseS(-6, -6, 9, 9, clRed32);
+  Have.EllipseS(14, -6, 29, 9, clRed32);
+  Have.EllipseS(-6, 12, 9, 27, clRed32);
+  Have.EllipseS(14, 12, 29, 27, clRed32);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseS_OnZeroSizedBitmapDoesNothing;
+begin
+  Want.SetSize(0, 0);
+  Have.SetSize(0, 0);
+  Have.EllipseS(-10, -10, 10, 10, clRed32);
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseS_HandlesBackendBitsBeingNil;
+begin
+  Have.SetSize(20, 20);
+  Have.Backend := NilBackend.Create;
+  Have.EllipseS(1, 1, 19, 19, clRed32);
+end;
+
+procedure TTestEllipse.EllipseS_DoesNotDrawInvalidEllipses;
+begin
+  Have.SetSize(20, 20);
+  Want.SetSize(20, 20);
+
+  // Regression: this ellipse provokes a bug from the past.
+  Have.EllipseS(-90, -90, 10, 10, clFuchsia32);
+
+  Have.EllipseS(1, 1, 1, 5, clRed32); // 0 wide.
+  Have.EllipseS(1, 1, 5, 1, clRed32); // 0 high.
+  Have.EllipseS(1, 1, 0, 5, clRed32); // Negative width.
+  Have.EllipseS(1, 1, 5, 0, clRed32); // Negative height.
+
+  // Ellipses outside the clipping rectangle.
+  Have.ClipRect := MakeRect(5, 6, 10, 11);
+  Have.EllipseS(0, 0, 5, 20, clRed32);
+  Have.EllipseS(0, 0, 20, 6, clRed32);
+  Have.EllipseS(10, 0, 20, 20, clRed32);
+  Have.EllipseS(0, 11, 20, 20, clRed32);
+end;
+
+procedure TTestEllipse.EllipseS_InMeasuringModeDrawsNothing;
+begin
+  Want.SetSize(20, 20);
+
+  Have.SetSize(20, 20);
+  Have.BeginMeasuring(nil);
+  Have.EllipseS(1, 1, 10, 10, clRed32);
+  Have.EndMeasuring;
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseS_InMeasuringModeChangesBoundingRectangle;
+begin
+  Have.SetSize(20, 20);
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseS(1, 2, 15, 10, clRed32);
+  Have.EndMeasuring;
+  CheckEquals(1, ChangeCount);
+  CheckEquals(AREAINFO_RECT, ChangeInfo);
+  CheckEquals(1, ChangeArea.Left);
+  CheckEquals(2, ChangeArea.Top);
+  CheckEquals(16, ChangeArea.Right);
+  CheckEquals(11, ChangeArea.Bottom);
+end;
+
+procedure TTestEllipse.EllipseS_MeasuresOnlyClippedRectangle;
+begin
+  Have.SetSize(20, 20);
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseS(-10, -10, 30, 30, clRed32);
+  Have.EndMeasuring;
+  CheckEquals(1, ChangeCount);
+  CheckEquals(AREAINFO_RECT, ChangeInfo);
+  CheckEquals(0, ChangeArea.Left);
+  CheckEquals(0, ChangeArea.Top);
+  CheckEquals(21, ChangeArea.Right);
+  CheckEquals(21, ChangeArea.Bottom);
+end;
+
+procedure TTestEllipse.EllipseS_MeasuresNothingForInvalidEllipse;
+begin
+  Have.SetSize(20, 20);
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseS(5, 5, 5, 5, clRed32);
+  Have.EndMeasuring;
+  CheckEquals(0, ChangeCount);
+end;
+
+procedure TTestEllipse.EllipseS_HasOverloadTakingRectangle;
+begin
+  Want.SetSize(20, 20);
+  Want.EllipseS(5, 5, 30, 30, clRed32);
+
+  Have.SetSize(20, 20);
+  Have.EllipseS(MakeRect(5, 5, 30, 30), clRed32);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseS_HandlesLargeEllipses;
+begin
+  Want.SetSize(20, 20);
+  Want.LineS(10, 0, 10, 20, clRed32);
+
+  Have.SetSize(20, 20);
+  Have.EllipseS(10, -1000000, 2000000, 1000000, clRed32);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
 procedure TTestEllipse.FillRect_Benchmark;
 var
   Watch: TStopwatch;
@@ -1208,6 +1348,31 @@ begin
   Watch.Stop;
   Have.SaveToFile('EllipseT_Benchmark.bmp');
   Fail(Format('EllipseT took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.EllipseS_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.EllipseS(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $66FF00FF);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.EllipseT(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.EllipseT(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
+
+  Watch.Stop;
+  Have.SaveToFile('EllipseS_Benchmark.bmp');
+  Fail(Format('EllipseS took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;

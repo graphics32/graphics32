@@ -913,6 +913,8 @@ type
     // Ellipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure Ellipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
+    procedure EllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
+    procedure EllipseS(const ARect: TRect; Value: TColor32); overload;
 
     // FillEllipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -5948,6 +5950,73 @@ begin
 
     Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
   end;
+end;
+
+procedure TCustomBitmap32.EllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  E: EllipseState;
+  X, Y: Integer;
+begin
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
+  begin
+    if (not FMeasuringMode) and (FBits <> nil) then
+    begin
+      if (X1 >= FClipRect.Left) and (Y1 >= FClipRect.Top) and (X2 <= FClipRect.Right) and
+        (Y2 <= FClipRect.Bottom) then
+      begin
+        Ellipse(X1, Y1, X2, Y2, Value);
+        Exit;
+      end;
+
+      E.Setup(X1, Y1, X2, Y2);
+
+      while (E.Y >= 0) and (E.X <= E.A) do
+      begin
+        Y := E.TopOffset - E.Y;
+        if (FClipRect.Top <= Y) and (Y < FClipRect.Bottom) then
+        begin
+          X := E.LeftOffset - E.X;
+          if (FClipRect.Left <= X) and (X < FClipRect.Right) then
+            GetPixelPtr(X, Y)^ := Value;
+
+          X := E.RightOffset + E.X;
+          if (FClipRect.Left <= X) and (X < FClipRect.Right) then
+            GetPixelPtr(X, Y)^ := Value;
+        end;
+
+        Y := E.BottomOffset + E.Y;
+        if (FClipRect.Top <= Y) and (Y < FClipRect.Bottom) then
+        begin
+          X := E.LeftOffset - E.X;
+          if (FClipRect.Left <= X) and (X < FClipRect.Right) then
+            GetPixelPtr(X, Y)^ := Value;
+
+          X := E.RightOffset + E.X;
+          if (FClipRect.Left <= X) and (X < FClipRect.Right) then
+            GetPixelPtr(X, Y)^ := Value;
+        end;
+
+        E.Step;
+      end;
+    end;
+
+    if X1 < FClipRect.Left then
+      X1 := FClipRect.Left;
+    if Y1 < FClipRect.Top then
+      Y1 := FClipRect.Top;
+    if X2 > FClipRect.Right then
+      X2 := FClipRect.Right;
+    if Y2 > FClipRect.Bottom then
+      Y2 := FClipRect.Bottom;
+    Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
+  end;
+end;
+
+procedure TCustomBitmap32.EllipseS(const ARect: TRect; Value: TColor32);
+begin
+  EllipseS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Value);
 end;
 
 procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
