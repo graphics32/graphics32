@@ -887,8 +887,12 @@ type
     procedure RaiseRectTS(X1, Y1, X2, Y2: Integer; Contrast: Integer); overload;
     procedure RaiseRectTS(const ARect: TRect; Contrast: Integer); overload;
 
-    // All FillEllipse variants handle ellipses of a size up to about 2,500,000 pixels in
-    // width or height. Larger ellipses are not rendered correctly.
+    // All Ellipse and FillEllipse variants handle ellipses of a size up to about
+    // 2,500,000 pixels in width or height. Larger ellipses are not rendered correctly.
+
+    // Ellipse only handles ellipses that are >= 1 in size. No clipping is performed.
+    procedure Ellipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+    procedure EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 
     // FillEllipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -5719,6 +5723,188 @@ begin
   N := Length(Result);
   if (N >= 4) and (Result[N - 1] = Result[N - 3]) then
     SetLength(Result, N - 2);
+end;
+
+type EllipseState = record
+  A, B: Int64;
+  A2, B2: Int64;
+  X, Y: Int64;
+  Crit1, Crit2, Crit3: Int64;
+  T, Dxt, Dyt, D2xt, D2yt: Int64;
+  LeftOffset: Int64;
+  RightOffset: Int64;
+  TopOffset: Int64;
+  BottomOffset: Int64;
+  procedure Setup(X1, Y1, X2, Y2: Integer); inline;
+  procedure Step; inline;
+end;
+
+procedure EllipseState.Setup(X1, Y1, X2, Y2: Integer);
+begin
+  A := (X2 - X1 - 1) div 2;
+  B := (Y2 - Y1 - 1) div 2;
+  A2 := A * A;
+  B2 := B * B;
+  X := 0;
+  Y := B;
+  LeftOffset := X1 + A;
+  RightOffset := LeftOffset + 1 - (X2 - X1) mod 2;
+  TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
+  BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+
+  Crit1 := -(A2 div 4 + A mod 2 + B2);
+  Crit2 := -(B2 div 4 + B mod 2 + A2);
+  Crit3 := -(B2 div 4 + B mod 2);
+  T := -A2 * Y;
+  Dxt := 2 * B2 * X;
+  Dyt := -2 * A2 * Y;
+  D2xt := 2 * B2;
+  D2yt := 2 * A2;
+end;
+
+procedure EllipseState.Step;
+begin
+  if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
+  begin
+    Inc(X);
+    Inc(Dxt, D2xt);
+    Inc(T, Dxt);
+  end
+  else if (T - A2 * Y > Crit2) then
+  begin
+    Dec(Y);
+    Inc(Dyt, D2yt);
+    Inc(T, Dyt);
+  end
+  else
+  begin
+    Inc(X);
+    Inc(Dxt, D2xt);
+    Inc(T, Dxt);
+    Dec(Y);
+    Inc(Dyt, D2yt);
+    Inc(T, Dyt);
+  end;
+end;
+
+procedure TCustomBitmap32.Ellipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  E: EllipseState;
+begin
+  if (not FMeasuringMode) and (FBits <> nil) then
+  begin
+    E.Setup(X1, Y1, X2, Y2);
+
+    while (E.Y >= 0) and (E.X <= E.A) do
+    begin
+      GetPixelPtr( E.LeftOffset - E.X,    E.TopOffset - E.Y)^ := Value;
+      GetPixelPtr(E.RightOffset + E.X,    E.TopOffset - E.Y)^ := Value;
+      GetPixelPtr( E.LeftOffset - E.X, E.BottomOffset + E.Y)^ := Value;
+      GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^ := Value;
+      E.Step;
+    end;
+  end;
+
+  Changed(MakeRect(X1, Y1, X2+1, Y2+1));
+end;
+
+procedure TCustomBitmap32.EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  Alpha: Integer;
+  E: EllipseState;
+begin
+  Alpha := Value shr 24;
+
+  if Alpha = $FF then
+    Ellipse(X1, Y1, X2, Y2, Value) // calls Changed...
+  else
+  if Alpha <> 0 then
+  begin
+    if (not FMeasuringMode) and (FBits <> nil) then
+    begin
+      E.Setup(X1, Y1, X2, Y2);
+
+      while (E.Y >= 0) and (E.X <= E.A) and (E.LeftOffset - E.X = E.RightOffset + E.X) do
+      begin
+        if FCombineMode = cmBlend then
+        begin
+          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+            CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
+        end
+        else
+        begin
+          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+            MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
+        end;
+        E.Step;
+      end;
+
+      while (E.Y >= 0) and (E.X <= E.A) and (E.TopOffset - E.Y = E.BottomOffset + E.Y) do
+      begin
+        if FCombineMode = cmBlend then
+        begin
+          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
+        end
+        else
+        begin
+          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
+        end;
+        E.Step;
+      end;
+
+      while (E.Y > 0) and (E.X <= E.A) do
+      begin
+        if FCombineMode = cmBlend then
+        begin
+          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
+          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
+          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^, Alpha);
+        end
+        else
+        begin
+          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
+          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
+          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^);
+        end;
+        E.Step;
+      end;
+
+      while (E.Y >= 0) and (E.X <= E.A) do
+      begin
+        if FCombineMode = cmBlend then
+        begin
+          CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^, Alpha);
+          CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^, Alpha);
+          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+          begin
+            CombineMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^, Alpha);
+            CombineMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^, Alpha);
+          end;
+        end
+        else
+        begin
+          MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.TopOffset - E.Y)^);
+          MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.TopOffset - E.Y)^);
+          if E.TopOffset - E.Y <> E.BottomOffset + E.Y then
+          begin
+            MergeMem(Value, GetPixelPtr(E.LeftOffset - E.X, E.BottomOffset + E.Y)^);
+            MergeMem(Value, GetPixelPtr(E.RightOffset + E.X, E.BottomOffset + E.Y)^);
+          end;
+        end;
+        E.Step;
+      end;
+
+      EMMS;
+    end;
+
+    Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
+  end;
 end;
 
 procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
