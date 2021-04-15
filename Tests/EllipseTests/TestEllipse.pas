@@ -83,6 +83,21 @@ type
     procedure EllipseS_HasOverloadTakingRectangle;
     procedure EllipseS_HandlesLargeEllipses;
 
+    procedure EllipseTS_WorksForArbitrarySizes;
+    procedure EllipseTS_ClipsBlendedEllipses;
+    procedure EllipseTS_ClipsMrgedEllipses;
+    procedure EllipseTS_OnZeroSizedBitmapDoesNothing;
+    procedure EllipseTS_WithFullOpacityBehavesLike_FillEllipseS;
+    procedure EllipseTS_WithFullTransparencyDrawsNothing;
+    procedure EllipseTS_HandlesBackendBitsBeingNil;
+    procedure EllipseTS_DoesNotDrawInvalidEllipses;
+    procedure EllipseTS_InMeasuringModeDrawsNothing;
+    procedure EllipseTS_InMeasuringModeChangesBoundingRectangle;
+    procedure EllipseTS_MeasuresOnlyClippedRectangle;
+    procedure EllipseTS_MeasuresNothingForInvalidEllipse;
+    procedure EllipseTS_HasOverloadTakingRectangle;
+    procedure EllipseTS_HandlesLargeEllipses;
+
 {$IFDEF RUN_BENCHMARKS} published {$ELSE} private {$ENDIF}
     procedure FillRect_Benchmark;
     procedure FillEllipse_Benchmark;
@@ -95,6 +110,7 @@ type
     procedure Ellipse_Benchmark;
     procedure EllipseT_Benchmark;
     procedure EllipseS_Benchmark;
+    procedure EllipseTS_Benchmark;
 
   private
     // This test case show the difference between the TCanvas32.Ellipse version
@@ -1117,6 +1133,204 @@ begin
   CheckBitmapsEqual(Want, Have);
 end;
 
+procedure TTestEllipse.EllipseTS_WorksForArbitrarySizes;
+begin
+  // The cmMerge mode makes the half-transparent red on black background appear fully red,
+  // thus we can use the same gold bitmap for comparison.
+  Have.CombineMode := cmMerge;
+  CheckEllipsesOfAllSizes('gold_ellipse_outlines_in_all_sizes.bmp', Have.EllipseTS,
+    $80FF0000);
+end;
+
+procedure TTestEllipse.EllipseTS_ClipsBlendedEllipses;
+begin
+  Want.LoadFromFile('gold_blend_clipped_ellipse_outlines.bmp');
+
+  Have.SetSize(24, 17);
+  Have.ClipRect := MakeRect(2, 3, 2 + 17, 3 + 12);
+  Have.CombineMode := cmBlend;
+  Have.EllipseTS(1, 1, 16, 16, $80FF0000);
+  Have.EllipseTS(8, 1, 24, 16, $800000FF);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_ClipsMrgedEllipses;
+begin
+  Want.LoadFromFile('gold_merge_clipped_ellipse_outlines.bmp');
+
+  Have.SetSize(24, 17);
+  Have.ClipRect := MakeRect(2, 3, 2 + 17, 3 + 12);
+  Have.CombineMode := cmMerge;
+  Have.EllipseTS(1, 1, 16, 16, $80FF0000);
+  Have.EllipseTS(8, 1, 24, 16, $800000FF);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_OnZeroSizedBitmapDoesNothing;
+begin
+  Want.SetSize(0, 0);
+  Have.SetSize(0, 0);
+  Have.EllipseTS(-10, -10, 10, 10, $88FF0000);
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_WithFullOpacityBehavesLike_FillEllipseS;
+begin
+  Want.SetSize(20, 20);
+  Have.SetSize(20, 20);
+  Have.EllipseTS(5, 5, 30, 30, $FFFF0000);
+  Want.EllipseS(5, 5, 30, 30, $FFFF0000);
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_WithFullTransparencyDrawsNothing;
+begin
+  Want.SetSize(20, 20);
+  Have.SetSize(20, 20);
+  Have.EllipseTS(10, 10, 30, 30, $00FF0000);
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_HandlesBackendBitsBeingNil;
+begin
+  Have.SetSize(20, 20);
+  Have.Backend := NilBackend.Create;
+  Have.EllipseTS(1, 1, 19, 19, $88FF0000);
+end;
+
+procedure TTestEllipse.EllipseTS_DoesNotDrawInvalidEllipses;
+begin
+  Have.SetSize(20, 20);
+  Want.SetSize(20, 20);
+
+  Have.EllipseTS(1, 1, 1, 5, $88FF0000); // 0 wide.
+  Have.EllipseTS(1, 1, 5, 1, $88FF0000); // 0 high.
+  Have.EllipseTS(1, 1, 0, 5, $88FF0000); // Negative width.
+  Have.EllipseTS(1, 1, 5, 0, $88FF0000); // Negative height.
+
+  // Ellipses outside the clipping rectangle.
+  Have.ClipRect := MakeRect(5, 6, 10, 11);
+  Have.EllipseTS(0, 0, 5, 20, $88FF0000);
+  Have.EllipseTS(0, 0, 20, 6, $88FF0000);
+  Have.EllipseTS(10, 0, 20, 20, $88FF0000);
+  Have.EllipseTS(0, 11, 20, 20, $88FF0000);
+end;
+
+procedure TTestEllipse.EllipseTS_InMeasuringModeDrawsNothing;
+begin
+  Want.SetSize(20, 20);
+
+  Have.SetSize(20, 20);
+  Have.BeginMeasuring(nil);
+  // Use different alpha values.
+  Have.EllipseTS(5, 5, 30, 30, $FFFF0000);
+  Have.EllipseTS(10, 10, 40, 40, $80FF0000);
+  Have.EllipseTS(15, 15, 50, 50, $00FF0000);
+  Have.EndMeasuring;
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_InMeasuringModeChangesBoundingRectangle;
+begin
+  Have.SetSize(20, 20);
+
+  // Fully opaque.
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(1, 2, 15, 10, $FFFF0000);
+  Have.EndMeasuring;
+  CheckEquals(1, ChangeCount);
+  CheckEquals(AREAINFO_RECT, ChangeInfo);
+  CheckEquals(1, ChangeArea.Left);
+  CheckEquals(2, ChangeArea.Top);
+  CheckEquals(16, ChangeArea.Right);
+  CheckEquals(11, ChangeArea.Bottom);
+
+  // Semi transparent.
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(2, 3, 14, 9, $88FF0000);
+  Have.EndMeasuring;
+  CheckEquals(2, ChangeCount);
+  CheckEquals(AREAINFO_RECT, ChangeInfo);
+  CheckEquals(2, ChangeArea.Left);
+  CheckEquals(3, ChangeArea.Top);
+  CheckEquals(15, ChangeArea.Right);
+  CheckEquals(10, ChangeArea.Bottom);
+
+  // Fully transparent ellipses do not change anything.
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(3, 4, 13, 8, $00FF0000);
+  Have.EndMeasuring;
+  CheckEquals(2, ChangeCount); // Same as before.
+end;
+
+procedure TTestEllipse.EllipseTS_MeasuresOnlyClippedRectangle;
+begin
+  Have.SetSize(20, 20);
+
+  // Fully opaque.
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(-10, -10, 30, 30, $FFFF0000);
+  Have.EndMeasuring;
+  CheckEquals(1, ChangeCount);
+  CheckEquals(AREAINFO_RECT, ChangeInfo);
+  CheckEquals(0, ChangeArea.Left);
+  CheckEquals(0, ChangeArea.Top);
+  CheckEquals(21, ChangeArea.Right);
+  CheckEquals(21, ChangeArea.Bottom);
+
+  // Semi transparent.
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(-10, -10, 30, 30, $88FF0000);
+  Have.EndMeasuring;
+  CheckEquals(2, ChangeCount);
+  CheckEquals(AREAINFO_RECT, ChangeInfo);
+  CheckEquals(0, ChangeArea.Left);
+  CheckEquals(0, ChangeArea.Top);
+  CheckEquals(21, ChangeArea.Right);
+  CheckEquals(21, ChangeArea.Bottom);
+
+  // Fully transparent ellipses do not change anything.
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(-10, -10, 30, 30, $00FF0000);
+  Have.EndMeasuring;
+  CheckEquals(2, ChangeCount); // Same as before.
+end;
+
+procedure TTestEllipse.EllipseTS_MeasuresNothingForInvalidEllipse;
+begin
+  Have.SetSize(20, 20);
+  Have.BeginMeasuring(RememberLastChangeEvent);
+  Have.EllipseTS(5, 5, 5, 5, $80FF0000);
+  Have.EndMeasuring;
+  CheckEquals(0, ChangeCount);
+end;
+
+procedure TTestEllipse.EllipseTS_HasOverloadTakingRectangle;
+begin
+  Want.SetSize(20, 20);
+  Want.EllipseTS(5, 5, 30, 30, $88FF0000);
+
+  Have.SetSize(20, 20);
+  Have.EllipseTS(MakeRect(5, 5, 30, 30), $88FF0000);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
+procedure TTestEllipse.EllipseTS_HandlesLargeEllipses;
+begin
+  Want.SetSize(20, 20);
+  Want.LineS(10, 0, 10, 20, clRed32);
+
+  Have.SetSize(20, 20);
+  Have.CombineMode := cmMerge;
+  Have.EllipseTS(10, -1000000, 2000000, 1000000, $80FF0000);
+
+  CheckBitmapsEqual(Want, Have);
+end;
+
 procedure TTestEllipse.FillRect_Benchmark;
 var
   Watch: TStopwatch;
@@ -1364,15 +1578,40 @@ begin
 
   for Y := -10 to 100 do
     for X := -10 to 100 do
-      Have.EllipseT(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
+      Have.EllipseS(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
 
   for Y := -10 to 100 do
     for X := -10 to 100 do
-      Have.EllipseT(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
+      Have.EllipseS(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
 
   Watch.Stop;
   Have.SaveToFile('EllipseS_Benchmark.bmp');
   Fail(Format('EllipseS took %d ms', [Watch.ElapsedMilliseconds]));
+end;
+
+procedure TTestEllipse.EllipseTS_Benchmark;
+var
+  Watch: TStopwatch;
+  X, Y: Integer;
+begin
+  Have.SetSize(1000, 1000);
+  Watch := TStopwatch.StartNew;
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.EllipseTS(X * 10, Y * 10, X * 10 + 100, Y * 10 + 100, $66FF00FF);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.EllipseTS(X * 10, Y * 10, X * 10 + 50, Y * 10 + 50, $55FF0000);
+
+  for Y := -10 to 100 do
+    for X := -10 to 100 do
+      Have.EllipseTS(X * 10, Y * 10, X * 10 + 10, Y * 10 + 10, $440000FF);
+
+  Watch.Stop;
+  Have.SaveToFile('EllipseTS_Benchmark.bmp');
+  Fail(Format('EllipseTS took %d ms', [Watch.ElapsedMilliseconds]));
 end;
 
 procedure TTestEllipse.Compare_FillEllipse_And_TCanvas32_Ellipse;

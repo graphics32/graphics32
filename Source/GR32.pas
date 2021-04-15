@@ -791,6 +791,10 @@ type
     procedure CombineEllipse_LeftAndRight(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
     procedure CombineEllipse(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
     procedure CombineEllipse_CheckYMirror(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineClippedEllipse_LeftAndCheckYMirror(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineClippedEllipse_LeftAndRight(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineClippedEllipse(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
+    procedure CombineClippedEllipse_CheckYMirror(var E: EllipseState; Value: TColor32; Alpha: Integer); inline;
   public
     constructor Create(Backend: TCustomBackendClass); reintroduce; overload; virtual;
     constructor Create; reintroduce; overload; virtual;
@@ -914,7 +918,9 @@ type
     procedure Ellipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
     procedure EllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
+    procedure EllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32); overload;
     procedure EllipseS(const ARect: TRect; Value: TColor32); overload;
+    procedure EllipseTS(const ARect: TRect; Value: TColor32); overload;
 
     // FillEllipse only handles ellipses that are >= 1 in size. No clipping is performed.
     procedure FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
@@ -5892,6 +5898,166 @@ begin
   end;
 end;
 
+procedure TCustomBitmap32.CombineClippedEllipse_LeftAndCheckYMirror(var E: EllipseState;
+  Value: TColor32; Alpha: Integer);
+var
+  X, Top, Bottom: Int64;
+begin
+  X := E.LeftOffset - E.X;
+  if (FClipRect.Left <= X) and (X < FClipRect.Right) then
+  begin
+    Top := E.TopOffset - E.Y;
+    Bottom := E.BottomOffset + E.Y;
+    if FCombineMode = cmBlend then
+    begin
+      if (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
+        CombineMem(Value, GetPixelPtr(X, E.TopOffset - E.Y)^, Alpha);
+      if (Top <> Bottom) and (FClipRect.Top <= Bottom) and (Bottom < FClipRect.Bottom)
+      then
+        CombineMem(Value, GetPixelPtr(X, Bottom)^, Alpha);
+    end
+    else
+    begin
+      if (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
+        MergeMem(Value, GetPixelPtr(X, Top)^);
+      if (Top <> Bottom) and (FClipRect.Top <= Bottom) and (Bottom < FClipRect.Bottom)
+      then
+        MergeMem(Value, GetPixelPtr(X, Bottom)^);
+    end;
+  end;
+end;
+
+procedure TCustomBitmap32.CombineClippedEllipse_LeftAndRight(var E: EllipseState;
+  Value: TColor32; Alpha: Integer);
+var
+  Y, Left, Right: Int64;
+begin
+  Y := E.TopOffset - E.Y;
+  if (FClipRect.Top <= Y) and (Y < FClipRect.Bottom) then
+  begin
+    Left := E.LeftOffset - E.X;
+    Right := E.RightOffset + E.X;
+    if FCombineMode = cmBlend then
+    begin
+      if (FClipRect.Left <= Left) and (Left < FClipRect.Right) then
+        CombineMem(Value, GetPixelPtr(Left, Y)^, Alpha);
+      if (FClipRect.Left <= Right) and (Right < FClipRect.Right) then
+        CombineMem(Value, GetPixelPtr(Right, Y)^, Alpha);
+    end
+    else
+    begin
+      if (FClipRect.Left <= Left) and (Left < FClipRect.Right) then
+        MergeMem(Value, GetPixelPtr(Left, Y)^);
+      if (FClipRect.Left <= Right) and (Right < FClipRect.Right) then
+        MergeMem(Value, GetPixelPtr(Right, Y)^);
+    end;
+  end;
+end;
+
+procedure TCustomBitmap32.CombineClippedEllipse(var E: EllipseState; Value: TColor32;
+  Alpha: Integer);
+var
+  Left, Right, Top, Bottom: Int64;
+  LeftGood, RightGood, TopGood, BottomGood: Boolean;
+begin
+  Left := E.LeftOffset - E.X;
+  Right := E.RightOffset + E.X;
+  Top := E.TopOffset - E.Y;
+  Bottom := E.BottomOffset + E.Y;
+  LeftGood := (FClipRect.Left <= Left) and (Left < FClipRect.Right);
+  RightGood := (FClipRect.Left <= Right) and (Right < FClipRect.Right);
+  TopGood := (FClipRect.Top <= Top) and (Top < FClipRect.Bottom);
+  BottomGood := (FClipRect.Top <= Bottom) and (Bottom < FClipRect.Bottom);
+  if FCombineMode = cmBlend then
+  begin
+    if TopGood then
+    begin
+      if LeftGood then
+        CombineMem(Value, GetPixelPtr(Left, Top)^, Alpha);
+      if RightGood then
+        CombineMem(Value, GetPixelPtr(Right, Top)^, Alpha);
+    end;
+
+    if BottomGood then
+    begin
+      if LeftGood then
+        CombineMem(Value, GetPixelPtr(Left, Bottom)^, Alpha);
+      if RightGood then
+        CombineMem(Value, GetPixelPtr(Right, Bottom)^, Alpha);
+    end;
+  end
+  else
+  begin
+    if TopGood then
+    begin
+      if LeftGood then
+        MergeMem(Value, GetPixelPtr(Left, Top)^);
+      if RightGood then
+        MergeMem(Value, GetPixelPtr(Right, Top)^);
+    end;
+
+    if BottomGood then
+    begin
+      if LeftGood then
+        MergeMem(Value, GetPixelPtr(Left, Bottom)^);
+      if RightGood then
+        MergeMem(Value, GetPixelPtr(Right, Bottom)^);
+    end;
+  end;
+end;
+
+procedure TCustomBitmap32.CombineClippedEllipse_CheckYMirror(var E: EllipseState;
+  Value: TColor32; Alpha: Integer);
+var
+  Left, Right, Top, Bottom: Int64;
+  LeftGood, RightGood, TopGood, BottomGood: Boolean;
+begin
+  Left := E.LeftOffset - E.X;
+  Right := E.RightOffset + E.X;
+  Top := E.TopOffset - E.Y;
+  Bottom := E.BottomOffset + E.Y;
+  LeftGood := (FClipRect.Left <= Left) and (Left < FClipRect.Right);
+  RightGood := (FClipRect.Left <= Right) and (Right < FClipRect.Right);
+  TopGood := (FClipRect.Top <= Top) and (Top < FClipRect.Bottom);
+  BottomGood := (FClipRect.Top <= Bottom) and (Bottom < FClipRect.Bottom);
+  if FCombineMode = cmBlend then
+  begin
+    if TopGood then
+    begin
+      if LeftGood then
+        CombineMem(Value, GetPixelPtr(Left, Top)^, Alpha);
+      if RightGood then
+        CombineMem(Value, GetPixelPtr(Right, Top)^, Alpha);
+    end;
+
+    if (Top <> Bottom) and BottomGood then
+    begin
+      if LeftGood then
+        CombineMem(Value, GetPixelPtr(Left, Bottom)^, Alpha);
+      if RightGood then
+        CombineMem(Value, GetPixelPtr(Right, Bottom)^, Alpha);
+    end;
+  end
+  else
+  begin
+    if TopGood then
+    begin
+      if LeftGood then
+        MergeMem(Value, GetPixelPtr(Left, Top)^);
+      if RightGood then
+        MergeMem(Value, GetPixelPtr(Right, Top)^);
+    end;
+
+    if (Top <> Bottom) and BottomGood then
+    begin
+      if LeftGood then
+        MergeMem(Value, GetPixelPtr(Left, Bottom)^);
+      if RightGood then
+        MergeMem(Value, GetPixelPtr(Right, Bottom)^);
+    end;
+  end;
+end;
+
 procedure TCustomBitmap32.EllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
@@ -5963,8 +6129,8 @@ begin
   begin
     if (not FMeasuringMode) and (FBits <> nil) then
     begin
-      if (X1 >= FClipRect.Left) and (Y1 >= FClipRect.Top) and (X2 <= FClipRect.Right) and
-        (Y2 <= FClipRect.Bottom) then
+      if (X1 >= FClipRect.Left) and (Y1 >= FClipRect.Top) and
+        (X2 <= FClipRect.Right) and (Y2 <= FClipRect.Bottom) then
       begin
         Ellipse(X1, Y1, X2, Y2, Value);
         Exit;
@@ -6014,9 +6180,84 @@ begin
   end;
 end;
 
+procedure TCustomBitmap32.EllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  Alpha: Integer;
+  E: EllipseState;
+begin
+  if (X2 > X1) and (Y2 > Y1) and
+    (X1 < FClipRect.Right) and (Y1 < FClipRect.Bottom) and
+    (X2 > FClipRect.Left) and (Y2 > FClipRect.Top) then
+  begin
+    Alpha := Value shr 24;
+
+    if Alpha = $FF then
+      EllipseS(X1, Y1, X2, Y2, Value) // calls Changed...
+    else if Alpha <> 0 then
+    begin
+      if (not FMeasuringMode) and (FBits <> nil) then
+      begin
+        if (X1 >= FClipRect.Left) and (Y1 >= FClipRect.Top) and
+          (X2 <= FClipRect.Right) and (Y2 <= FClipRect.Bottom) then
+        begin
+          EllipseT(X1, Y1, X2, Y2, Value);
+          Exit;
+        end;
+
+        E.Setup(X1, Y1, X2, Y2);
+
+        // See EllipseT for a comment on how this function works.
+
+        while (E.Y >= 0) and (E.X <= E.A) and
+          (E.LeftOffset - E.X = E.RightOffset + E.X) do
+        begin
+          CombineClippedEllipse_LeftAndCheckYMirror(E, Value, Alpha);
+          E.Step;
+        end;
+
+        while (E.Y >= 0) and (E.X <= E.A) and
+          (E.TopOffset - E.Y = E.BottomOffset + E.Y) do
+        begin
+          CombineClippedEllipse_LeftAndRight(E, Value, Alpha);
+          E.Step;
+        end;
+
+        while (E.Y > 0) and (E.X <= E.A) do
+        begin
+          CombineClippedEllipse(E, Value, Alpha);
+          E.Step;
+        end;
+
+        while (E.Y >= 0) and (E.X <= E.A) do
+        begin
+          CombineClippedEllipse_CheckYMirror(E, Value, Alpha);
+          E.Step;
+        end;
+
+        EMMS;
+      end;
+
+      if X1 < FClipRect.Left then
+        X1 := FClipRect.Left;
+      if Y1 < FClipRect.Top then
+        Y1 := FClipRect.Top;
+      if X2 > FClipRect.Right then
+        X2 := FClipRect.Right;
+      if Y2 > FClipRect.Bottom then
+        Y2 := FClipRect.Bottom;
+      Changed(MakeRect(X1, Y1, X2 + 1, Y2 + 1));
+    end;
+  end;
+end;
+
 procedure TCustomBitmap32.EllipseS(const ARect: TRect; Value: TColor32);
 begin
   EllipseS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Value);
+end;
+
+procedure TCustomBitmap32.EllipseTS(const ARect: TRect; Value: TColor32);
+begin
+  EllipseTS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Value);
 end;
 
 procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
