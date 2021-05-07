@@ -6156,86 +6156,102 @@ begin
   EllipseTS(ARect.Left, ARect.Top, ARect.Right, ARect.Bottom, Value);
 end;
 
-procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
-var
+type FillEllipseState = record
   A, B: Int64;
   A2, B2: Int64;
   X, Y: Int64;
   Crit1, Crit2, Crit3: Int64;
   T, Dxt, Dyt, D2xt, D2yt: Int64;
   LastX, LastY: Int64;
-  P: PColor32Array;
   XOffset: Int64;
   WidthOffset: Int64;
   TopOffset: Int64;
   BottomOffset: Int64;
+  procedure Setup(X1, Y1, X2, Y2: Integer); inline;
+  procedure Step; inline;
+end;
+
+procedure FillEllipseState.Setup(X1, Y1, X2, Y2: Integer);
+begin
+  A := (X2 - X1 - 1) div 2;
+  B := (Y2 - Y1 - 1) div 2;
+  A2 := A * A;
+  B2 := B * B;
+  X := 0;
+  Y := B;
+  XOffset := X1 + A;
+  WidthOffset := 1 + (1 - (X2 - X1) mod 2);
+  TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
+  BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+  Crit1 := -(A2 div 4 + A mod 2 + B2);
+  Crit2 := -(B2 div 4 + B mod 2 + A2);
+  Crit3 := -(B2 div 4 + B mod 2);
+  T := -A2 * Y;
+  Dxt := 2 * B2 * X;
+  Dyt := -2 * A2 * Y;
+  D2xt := 2 * B2;
+  D2yt := 2 * A2;
+  LastX := X;
+  LastY := Y;
+end;
+
+procedure FillEllipseState.Step;
+begin
+  LastX := X;
+  LastY := Y;
+  if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
+  begin
+    Inc(X);
+    Inc(Dxt, D2xt);
+    Inc(T, Dxt);
+  end
+  else if (T - A2 * Y > Crit2) then
+  begin
+    Dec(Y);
+    Inc(Dyt, D2yt);
+    Inc(T, Dyt);
+  end
+  else
+  begin
+    Inc(X);
+    Inc(Dxt, D2xt);
+    Inc(T, Dxt);
+    Dec(Y);
+    Inc(Dyt, D2yt);
+    Inc(T, Dyt);
+  end;
+end;
+
+procedure TCustomBitmap32.FillEllipse(X1, Y1, X2, Y2: Integer; Value: TColor32);
+var
+  E: FillEllipseState;
+  P: PColor32Array;
 begin
   if (not FMeasuringMode) and (FBits <> nil) then
   begin
-    A := (X2 - X1 - 1) div 2;
-    B := (Y2 - Y1 - 1) div 2;
-    A2 := A * A;
-    B2 := B * B;
-    X := 0;
-    Y := B;
-    XOffset := X1 + A;
-    WidthOffset := 1 + (1 - (X2 - X1) mod 2);
-    TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
-    BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+    E.Setup(X1, Y1, X2, Y2);
 
-    Crit1 := -(A2 div 4 + A mod 2 + B2);
-    Crit2 := -(B2 div 4 + B mod 2 + A2);
-    Crit3 := -(B2 div 4 + B mod 2);
-    T := -A2 * Y;
-    Dxt := 2 * B2 * X;
-    Dyt := -2 * A2 * Y;
-    D2xt := 2 * B2;
-    D2yt := 2 * A2;
-    LastX := X;
-    LastY := Y;
-
-    while (Y >= 0) and (X <= A) do
+    while (E.Y >= 0) and (E.X <= E.A) do
     begin
-      if Y <> LastY then
+      if E.Y <> E.LastY then
       begin
-        P := Pointer(@Bits[(TopOffset - LastY) * FWidth]);
-        FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
-        P := Pointer(@Bits[(LastY + BottomOffset) * FWidth]);
-        FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+        P := Pointer(@Bits[(E.TopOffset - E.LastY) * FWidth]);
+        FillLongword(P[E.XOffset - E.LastX], 2 * E.LastX + E.WidthOffset, Value);
+        P := Pointer(@Bits[(E.LastY + E.BottomOffset) * FWidth]);
+        FillLongword(P[E.XOffset - E.LastX], 2 * E.LastX + E.WidthOffset, Value);
       end;
-      LastX := X;
-      LastY := Y;
-      if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
-      begin
-        Inc(X);
-        Inc(Dxt, D2xt);
-        Inc(T, Dxt);
-      end
-      else if (T - A2 * Y > Crit2) then
-      begin
-        Dec(Y);
-        Inc(Dyt, D2yt);
-        Inc(T, Dyt);
-      end
-      else
-      begin
-        Inc(X);
-        Inc(Dxt, D2xt);
-        Inc(T, Dxt);
-        Dec(Y);
-        Inc(Dyt, D2yt);
-        Inc(T, Dyt);
-      end;
+
+      E.Step;
     end;
 
     // The last iteration is missing from the above loop.
     if (Y2 - Y1) mod 2 = 0 then
     begin
-      P := Pointer(@Bits[(TopOffset - LastY) * FWidth]);
-      FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+      P := Pointer(@Bits[(E.TopOffset - E.LastY) * FWidth]);
+      FillLongword(P[E.XOffset - E.LastX], 2 * E.LastX + E.WidthOffset, Value);
     end;
-    P := Pointer(@Bits[(LastY + BottomOffset) * FWidth]);
-    FillLongword(P[XOffset - LastX], 2 * LastX + WidthOffset, Value);
+    P := Pointer(@Bits[(E.LastY + E.BottomOffset) * FWidth]);
+    FillLongword(P[E.XOffset - E.LastX], 2 * E.LastX + E.WidthOffset, Value);
   end;
 
   Changed(MakeRect(X1, Y1, X2+1, Y2+1));
@@ -6243,17 +6259,8 @@ end;
 
 procedure TCustomBitmap32.FillEllipseS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
-  A, B: Int64;
-  A2, B2: Int64;
-  X, Y: Int64;
-  Crit1, Crit2, Crit3: Int64;
-  T, Dxt, Dyt, D2xt, D2yt: Int64;
-  LastX, LastY: Int64;
+  E: FillEllipseState;
   P: PColor32Array;
-  XOffset: Int64;
-  WidthOffset: Int64;
-  TopOffset: Int64;
-  BottomOffset: Int64;
   Left, Right, Top, Bottom: Int64;
 begin
   if (X2 > X1) and (Y2 > Y1) and
@@ -6269,42 +6276,22 @@ begin
 
     if (not FMeasuringMode) and (FBits <> nil) then
     begin
-      A := (X2 - X1 - 1) div 2;
-      B := (Y2 - Y1 - 1) div 2;
-      A2 := A * A;
-      B2 := B * B;
-      X := 0;
-      Y := B;
-      XOffset := X1 + A;
-      WidthOffset := 1 + (1 - (X2 - X1) mod 2);
-      TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
-      BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+      E.Setup(X1, Y1, X2, Y2);
 
-      Crit1 := -(A2 div 4 + A mod 2 + B2);
-      Crit2 := -(B2 div 4 + B mod 2 + A2);
-      Crit3 := -(B2 div 4 + B mod 2);
-      T := -A2 * Y;
-      Dxt := 2 * B2 * X;
-      Dyt := -2 * A2 * Y;
-      D2xt := 2 * B2;
-      D2yt := 2 * A2;
-      LastX := X;
-      LastY := Y;
-
-      while (Y >= 0) and (X <= A) do
+      while (E.Y >= 0) and (E.X <= E.A) do
       begin
-        if Y <> LastY then
+        if E.Y <> E.LastY then
         begin
-          Left := XOffset - LastX;
-          Right := Left + 2 * LastX + WidthOffset;
+          Left := E.XOffset - E.LastX;
+          Right := Left + 2 * E.LastX + E.WidthOffset;
           if Left < FClipRect.Left then
             Left := FClipRect.Left;
           if Right >= FClipRect.Right then
             Right := FClipRect.Right;
           if Left < Right then
           begin
-            Top := TopOffset - LastY;
-            Bottom := LastY + BottomOffset;
+            Top := E.TopOffset - E.LastY;
+            Bottom := E.LastY + E.BottomOffset;
 
             if (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
             begin
@@ -6319,42 +6306,21 @@ begin
             end;
           end;
         end;
-        LastX := X;
-        LastY := Y;
-        if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
-        begin
-          Inc(X);
-          Inc(Dxt, D2xt);
-          Inc(T, Dxt);
-        end
-        else if (T - A2 * Y > Crit2) then
-        begin
-          Dec(Y);
-          Inc(Dyt, D2yt);
-          Inc(T, Dyt);
-        end
-        else
-        begin
-          Inc(X);
-          Inc(Dxt, D2xt);
-          Inc(T, Dxt);
-          Dec(Y);
-          Inc(Dyt, D2yt);
-          Inc(T, Dyt);
-        end;
+
+        E.Step;
       end;
 
       // The last iteration is missing from the above loop.
-      Left := XOffset - LastX;
-      Right := Left + 2 * LastX + WidthOffset;
+      Left := E.XOffset - E.LastX;
+      Right := Left + 2 * E.LastX + E.WidthOffset;
       if Left < FClipRect.Left then
         Left := FClipRect.Left;
       if Right >= FClipRect.Right then
         Right := FClipRect.Right;
       if Left < Right then
       begin
-        Top := TopOffset - LastY;
-        Bottom := LastY + BottomOffset;
+        Top := E.TopOffset - E.LastY;
+        Bottom := E.LastY + E.BottomOffset;
 
         if (Top <> Bottom) and (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
         begin
@@ -6385,17 +6351,8 @@ end;
 procedure TCustomBitmap32.FillEllipseT(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
-  A, B: Int64;
-  A2, B2: Int64;
-  X, Y: Int64;
-  Crit1, Crit2, Crit3: Int64;
-  T, Dxt, Dyt, D2xt, D2yt: Int64;
-  LastX, LastY: Int64;
+  E: FillEllipseState;
   P: PColor32;
-  XOffset: Int64;
-  WidthOffset: Int64;
-  TopOffset: Int64;
-  BottomOffset: Int64;
   I: Integer;
 begin
   Alpha := Value shr 24;
@@ -6407,43 +6364,23 @@ begin
   begin
     if (not FMeasuringMode) and (FBits <> nil) then
     begin
-      A := (X2 - X1 - 1) div 2;
-      B := (Y2 - Y1 - 1) div 2;
-      A2 := A * A;
-      B2 := B * B;
-      X := 0;
-      Y := B;
-      XOffset := X1 + A;
-      WidthOffset := 1 + (1 - (X2 - X1) mod 2);
-      TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
-      BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+      E.Setup(X1, Y1, X2, Y2);
 
-      Crit1 := -(A2 div 4 + A mod 2 + B2);
-      Crit2 := -(B2 div 4 + B mod 2 + A2);
-      Crit3 := -(B2 div 4 + B mod 2);
-      T := -A2 * Y;
-      Dxt := 2 * B2 * X;
-      Dyt := -2 * A2 * Y;
-      D2xt := 2 * B2;
-      D2yt := 2 * A2;
-      LastX := X;
-      LastY := Y;
-
-      while (Y >= 0) and (X <= A) do
+      while (E.Y >= 0) and (E.X <= E.A) do
       begin
-        if Y <> LastY then
+        if E.Y <> E.LastY then
         begin
           if CombineMode = cmBlend then
           begin
-            P := GetPixelPtr(XOffset - LastX, TopOffset - LastY);
-            for I := 1 to 2 * LastX + WidthOffset do
+            P := GetPixelPtr(E.XOffset - E.LastX, E.TopOffset - E.LastY);
+            for I := 1 to 2 * E.LastX + E.WidthOffset do
             begin
               CombineMem(Value, P^, Alpha);
               Inc(P);
             end;
 
-            P := GetPixelPtr(XOffset - LastX, LastY + BottomOffset);
-            for I := 1 to 2 * LastX + WidthOffset do
+            P := GetPixelPtr(E.XOffset - E.LastX, E.LastY + E.BottomOffset);
+            for I := 1 to 2 * E.LastX + E.WidthOffset do
             begin
               CombineMem(Value, P^, Alpha);
               Inc(P);
@@ -6451,15 +6388,15 @@ begin
           end
           else
           begin
-            P := GetPixelPtr(XOffset - LastX, TopOffset - LastY);
-            for I := 1 to 2 * LastX + WidthOffset do
+            P := GetPixelPtr(E.XOffset - E.LastX, E.TopOffset - E.LastY);
+            for I := 1 to 2 * E.LastX + E.WidthOffset do
             begin
               MergeMem(Value, P^);
               Inc(P);
             end;
 
-            P := GetPixelPtr(XOffset - LastX, LastY + BottomOffset);
-            for I := 1 to 2 * LastX + WidthOffset do
+            P := GetPixelPtr(E.XOffset - E.LastX, E.LastY + E.BottomOffset);
+            for I := 1 to 2 * E.LastX + E.WidthOffset do
             begin
               MergeMem(Value, P^);
               Inc(P);
@@ -6467,40 +6404,17 @@ begin
           end;
         end;
 
-        LastX := X;
-        LastY := Y;
-
-        if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
-        begin
-          Inc(X);
-          Inc(Dxt, D2xt);
-          Inc(T, Dxt);
-        end
-        else if (T - A2 * Y > Crit2) then
-        begin
-          Dec(Y);
-          Inc(Dyt, D2yt);
-          Inc(T, Dyt);
-        end
-        else
-        begin
-          Inc(X);
-          Inc(Dxt, D2xt);
-          Inc(T, Dxt);
-          Dec(Y);
-          Inc(Dyt, D2yt);
-          Inc(T, Dyt);
-        end;
+        E.Step;
       end;
 
       // The last iteration is missing from the above loop.
       begin
         if (Y2 - Y1) mod 2 = 0 then
         begin
-          P := GetPixelPtr(XOffset - LastX, TopOffset - LastY);
+          P := GetPixelPtr(E.XOffset - E.LastX, E.TopOffset - E.LastY);
           if CombineMode = cmBlend then
           begin
-            for I := 1 to 2 * LastX + WidthOffset do
+            for I := 1 to 2 * E.LastX + E.WidthOffset do
             begin
               CombineMem(Value, P^, Alpha);
               Inc(P);
@@ -6508,7 +6422,7 @@ begin
           end
           else
           begin
-            for I := 1 to 2 * LastX + WidthOffset do
+            for I := 1 to 2 * E.LastX + E.WidthOffset do
             begin
               MergeMem(Value, P^);
               Inc(P);
@@ -6516,10 +6430,10 @@ begin
           end;
         end;
 
-        P := GetPixelPtr(XOffset - LastX, LastY + BottomOffset);
+        P := GetPixelPtr(E.XOffset - E.LastX, E.LastY + E.BottomOffset);
         if CombineMode = cmBlend then
         begin
-          for I := 1 to 2 * LastX + WidthOffset do
+          for I := 1 to 2 * E.LastX + E.WidthOffset do
           begin
             CombineMem(Value, P^, Alpha);
             Inc(P);
@@ -6527,7 +6441,7 @@ begin
         end
         else
         begin
-          for I := 1 to 2 * LastX + WidthOffset do
+          for I := 1 to 2 * E.LastX + E.WidthOffset do
           begin
             MergeMem(Value, P^);
             Inc(P);
@@ -6545,17 +6459,8 @@ end;
 procedure TCustomBitmap32.FillEllipseTS(X1, Y1, X2, Y2: Integer; Value: TColor32);
 var
   Alpha: Integer;
-  A, B: Int64;
-  A2, B2: Int64;
-  X, Y: Int64;
-  Crit1, Crit2, Crit3: Int64;
-  T, Dxt, Dyt, D2xt, D2yt: Int64;
-  LastX, LastY: Int64;
+  E: FillEllipseState;
   P: PColor32;
-  XOffset: Int64;
-  WidthOffset: Int64;
-  TopOffset: Int64;
-  BottomOffset: Int64;
   Left, Right, Top, Bottom: Int64;
   I: Integer;
 begin
@@ -6577,42 +6482,22 @@ begin
     begin
       if (not FMeasuringMode) and (FBits <> nil) then
       begin
-        A := (X2 - X1 - 1) div 2;
-        B := (Y2 - Y1 - 1) div 2;
-        A2 := A * A;
-        B2 := B * B;
-        X := 0;
-        Y := B;
-        XOffset := X1 + A;
-        WidthOffset := 1 + (1 - (X2 - X1) mod 2);
-        TopOffset := Y2 - B - 1 - (1 - (Y2 - Y1) mod 2);
-        BottomOffset := Y1 + B + (1 - (Y2 - Y1) mod 2);
+        E.Setup(X1, Y1, X2, Y2);
 
-        Crit1 := -(A2 div 4 + A mod 2 + B2);
-        Crit2 := -(B2 div 4 + B mod 2 + A2);
-        Crit3 := -(B2 div 4 + B mod 2);
-        T := -A2 * Y;
-        Dxt := 2 * B2 * X;
-        Dyt := -2 * A2 * Y;
-        D2xt := 2 * B2;
-        D2yt := 2 * A2;
-        LastX := X;
-        LastY := Y;
-
-        while (Y >= 0) and (X <= A) do
+        while (E.Y >= 0) and (E.X <= E.A) do
         begin
-          if Y <> LastY then
+          if E.Y <> E.LastY then
           begin
-            Left := XOffset - LastX;
-            Right := Left + 2 * LastX + WidthOffset;
+            Left := E.XOffset - E.LastX;
+            Right := Left + 2 * E.LastX + E.WidthOffset;
             if Left < FClipRect.Left then
               Left := FClipRect.Left;
             if Right >= FClipRect.Right then
               Right := FClipRect.Right; // TODO -1 ? This differs from others.
             if Left < Right then
             begin
-              Top := TopOffset - LastY;
-              Bottom := LastY + BottomOffset;
+              Top := E.TopOffset - E.LastY;
+              Bottom := E.LastY + E.BottomOffset;
 
               if (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
               begin
@@ -6657,42 +6542,21 @@ begin
               end;
             end;
           end;
-          LastX := X;
-          LastY := Y;
-          if (T + B2 * X <= Crit1) or (T + A2 * Y <= Crit3) then
-          begin
-            Inc(X);
-            Inc(Dxt, D2xt);
-            Inc(T, Dxt);
-          end
-          else if (T - A2 * Y > Crit2) then
-          begin
-            Dec(Y);
-            Inc(Dyt, D2yt);
-            Inc(T, Dyt);
-          end
-          else
-          begin
-            Inc(X);
-            Inc(Dxt, D2xt);
-            Inc(T, Dxt);
-            Dec(Y);
-            Inc(Dyt, D2yt);
-            Inc(T, Dyt);
-          end;
+
+          E.Step;
         end;
 
         // The last iteration is missing from the above loop.
-        Left := XOffset - LastX;
-        Right := Left + 2 * LastX + WidthOffset;
+        Left := E.XOffset - E.LastX;
+        Right := Left + 2 * E.LastX + E.WidthOffset;
         if Left < FClipRect.Left then
           Left := FClipRect.Left;
         if Right >= FClipRect.Right then
           Right := FClipRect.Right;
         if Left < Right then
         begin
-          Top := TopOffset - LastY;
-          Bottom := LastY + BottomOffset;
+          Top := E.TopOffset - E.LastY;
+          Bottom := E.LastY + E.BottomOffset;
 
           if (Top <> Bottom) and (FClipRect.Top <= Top) and (Top < FClipRect.Bottom) then
           begin
