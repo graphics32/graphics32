@@ -45,6 +45,11 @@ interface
 
 {$I GR32.inc}
 
+{$IFDEF FPC}
+{$DEFINE PUREPASCAL}
+{$ENDIF}
+
+
 uses
   Types, GR32, GR32_Polygons, GR32_Transforms;
 
@@ -763,6 +768,7 @@ begin
   until Count = 0;
 end;
 
+{$IFNDEF PUREPASCAL}
 procedure FillSpan_ASM(Ptr: PColor32Array; Covers: PColor32; Count: Cardinal;
   const C: TColor32);
 asm
@@ -1028,6 +1034,7 @@ asm
 @4:
 {$ENDIF}
 end;
+{$ENDIF}
 {$ENDIF}
 
 function CalculateAlpha(FillMode: TPolyFillMode; Area: Integer): Cardinal;
