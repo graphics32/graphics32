@@ -4,14 +4,23 @@
 
 unit GR32_Lazarus;
 
+{$warn 5023 off : no warning about unused units}
 interface
 
 uses
-  GR32, GR32_Blend, GR32_Containers, GR32_ExtImage, GR32_Filters, GR32_Image, 
-  GR32_Layers, GR32_LowLevel, GR32_Math, GR32_MicroTiles, GR32_OrdinalMaps, 
-  GR32_Polygons, GR32_RangeBars, GR32_Rasterizers, GR32_RepaintOpt, 
-  GR32_Resamplers, GR32_System, GR32_Transforms, GR32_VectorMaps;
+  GR32, GR32_Blend, GR32_BlendASM, GR32_BlendMMX, GR32_BlendSSE2, 
+  GR32_Containers, GR32_ExtImage, GR32_Filters, GR32_Image, GR32_Layers, 
+  GR32_LowLevel, GR32_Math, GR32_MicroTiles, GR32_OrdinalMaps, GR32_Polygons, 
+  GR32_RangeBars, GR32_Rasterizers, GR32_RepaintOpt, GR32_Resamplers, 
+  GR32_System, GR32_Transforms, GR32_VectorMaps, GR32_Backends, 
+  GR32_Backends_Generic, LazarusPackageIntf;
 
 implementation
 
+procedure Register;
+begin
+end;
+
+initialization
+  RegisterPackage('GR32_Lazarus', @Register);
 end.
