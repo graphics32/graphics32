@@ -9,7 +9,6 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..;."/>
-        <Libraries Value="..;."/>
         <OtherUnitFiles Value="..;."/>
         <UnitOutputDirectory Value="..\..\Unit Cache\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
       </SearchPaths>
@@ -45,7 +44,7 @@ As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Publi
     <License Value="GNU Library or Lesser General Public License (LGPL)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="2"/>
-    <Files Count="48">
+    <Files Count="45">
       <Item1>
         <Filename Value="..\GR32.inc"/>
         <Type Value="Include"/>
@@ -135,114 +134,102 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32_Containers"/>
       </Item21>
       <Item22>
-        <Filename Value="..\GR32_Dsgn_Bitmap.pas"/>
-        <UnitName Value="GR32_Dsgn_Bitmap"/>
-      </Item22>
-      <Item23>
-        <Filename Value="..\GR32_Dsgn_Color.pas"/>
-        <UnitName Value="GR32_Dsgn_Color"/>
-      </Item23>
-      <Item24>
-        <Filename Value="..\GR32_Dsgn_Misc.pas"/>
-        <UnitName Value="GR32_Dsgn_Misc"/>
-      </Item24>
-      <Item25>
         <Filename Value="..\GR32_ExtImage.pas"/>
         <UnitName Value="GR32_ExtImage"/>
-      </Item25>
-      <Item26>
+      </Item22>
+      <Item23>
         <Filename Value="..\GR32_Filters.pas"/>
         <UnitName Value="GR32_Filters"/>
-      </Item26>
-      <Item27>
+      </Item23>
+      <Item24>
         <Filename Value="..\GR32_Gamma.pas"/>
         <UnitName Value="GR32_Gamma"/>
-      </Item27>
-      <Item28>
+      </Item24>
+      <Item25>
         <Filename Value="..\GR32_Geometry.pas"/>
         <UnitName Value="GR32_Geometry"/>
-      </Item28>
-      <Item29>
+      </Item25>
+      <Item26>
         <Filename Value="..\GR32_Image.pas"/>
         <UnitName Value="GR32_Image"/>
-      </Item29>
-      <Item30>
+      </Item26>
+      <Item27>
         <Filename Value="..\GR32_Layers.pas"/>
         <UnitName Value="GR32_Layers"/>
-      </Item30>
-      <Item31>
+      </Item27>
+      <Item28>
         <Filename Value="..\GR32_LowLevel.pas"/>
         <UnitName Value="GR32_LowLevel"/>
-      </Item31>
-      <Item32>
+      </Item28>
+      <Item29>
         <Filename Value="..\GR32_Math.pas"/>
         <UnitName Value="GR32_Math"/>
-      </Item32>
-      <Item33>
+      </Item29>
+      <Item30>
         <Filename Value="..\GR32_MicroTiles.pas"/>
         <UnitName Value="GR32_MicroTiles"/>
-      </Item33>
-      <Item34>
+      </Item30>
+      <Item31>
         <Filename Value="..\GR32_OrdinalMaps.pas"/>
         <UnitName Value="GR32_OrdinalMaps"/>
-      </Item34>
-      <Item35>
+      </Item31>
+      <Item32>
         <Filename Value="..\GR32_Polygons.pas"/>
         <UnitName Value="GR32_Polygons"/>
-      </Item35>
-      <Item36>
+      </Item32>
+      <Item33>
         <Filename Value="..\GR32_PolygonsAggLite.pas"/>
         <UnitName Value="GR32_PolygonsAggLite"/>
-      </Item36>
-      <Item37>
+      </Item33>
+      <Item34>
         <Filename Value="..\GR32_RangeBars.pas"/>
         <UnitName Value="GR32_RangeBars"/>
-      </Item37>
-      <Item38>
+      </Item34>
+      <Item35>
         <Filename Value="..\GR32_Rasterizers.pas"/>
         <UnitName Value="GR32_Rasterizers"/>
-      </Item38>
-      <Item39>
+      </Item35>
+      <Item36>
         <Filename Value="..\GR32_RepaintOpt.pas"/>
         <UnitName Value="GR32_RepaintOpt"/>
-      </Item39>
-      <Item40>
+      </Item36>
+      <Item37>
         <Filename Value="..\GR32_Resamplers.pas"/>
         <UnitName Value="GR32_Resamplers"/>
-      </Item40>
-      <Item41>
+      </Item37>
+      <Item38>
         <Filename Value="..\GR32_System.pas"/>
         <UnitName Value="GR32_System"/>
-      </Item41>
-      <Item42>
+      </Item38>
+      <Item39>
         <Filename Value="..\GR32_Text_LCL_Win.pas"/>
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="GR32_Text_LCL_Win"/>
-      </Item42>
-      <Item43>
+      </Item39>
+      <Item40>
         <Filename Value="..\GR32_Transforms.pas"/>
         <UnitName Value="GR32_Transforms"/>
-      </Item43>
-      <Item44>
+      </Item40>
+      <Item41>
         <Filename Value="..\GR32_VectorMaps.pas"/>
         <UnitName Value="GR32_VectorMaps"/>
-      </Item44>
-      <Item45>
+      </Item41>
+      <Item42>
         <Filename Value="..\GR32_VectorUtils.pas"/>
         <UnitName Value="GR32_VectorUtils"/>
-      </Item45>
-      <Item46>
+      </Item42>
+      <Item43>
         <Filename Value="..\GR32_VPR.pas"/>
         <UnitName Value="GR32_VPR"/>
-      </Item46>
-      <Item47>
+      </Item43>
+      <Item44>
         <Filename Value="..\GR32_VPR2.pas"/>
         <UnitName Value="GR32_VPR2"/>
-      </Item47>
-      <Item48>
+      </Item44>
+      <Item45>
         <Filename Value="..\GR32_XPThemes.pas"/>
         <UnitName Value="GR32_XPThemes"/>
-      </Item48>
+      </Item45>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

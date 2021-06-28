@@ -14,7 +14,7 @@ object FmArrowHead: TFmArrowHead
   KeyPreview = True
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '1.0.1.3'
+  LCLVersion = '2.0.12.0'
   object ImgView32: TImgView32
     Left = 173
     Height = 470
@@ -48,18 +48,18 @@ object FmArrowHead: TFmArrowHead
     TabOrder = 1
     object LblArrowSize: TLabel
       Left = 15
-      Height = 16
+      Height = 15
       Top = 19
-      Width = 58
+      Width = 57
       Caption = '&Arrow Size'
       FocusControl = EdtArrowSize
       ParentColor = False
     end
     object LblLineWidth: TLabel
       Left = 16
-      Height = 16
+      Height = 15
       Top = 315
-      Width = 59
+      Width = 58
       Caption = 'Line &Width'
       FocusControl = TbrLineWidth
       ParentColor = False
@@ -89,7 +89,7 @@ object FmArrowHead: TFmArrowHead
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 113
+      ClientHeight = 111
       ClientWidth = 136
       ItemIndex = 2
       Items.Strings = (
@@ -126,7 +126,7 @@ object FmArrowHead: TFmArrowHead
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 79
+      ClientHeight = 77
       ClientWidth = 136
       ItemIndex = 2
       Items.Strings = (
@@ -174,7 +174,7 @@ object FmArrowHead: TFmArrowHead
     Enabled = False
     Interval = 30
     OnTimer = AnimationTimer
-    left = 184
-    top = 16
+    Left = 184
+    Top = 16
   end
 end

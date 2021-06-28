@@ -830,17 +830,17 @@ asm
         POP     EBX
 {$ENDIF}
 {$IFDEF CPUX64}
-        LEA     R10, RDX + 4 * R8              // R10 = Covers
-        LEA     R11, RCX + 4 * R8              // R11 = P
+        LEA     R10, [RDX + 4 * R8]            // R10 = Covers
+        LEA     R11, [RCX + 4 * R8]            // R11 = P
         NEG     R8D
 
 @LoopStart:
-        MOVZX   R9D, [R10 + 4 * R8]
-        MOVZX   ECX, [EBP + $0B]               // ECX = C.A
+        MOVZX   R9D, [R10 + 4 * R8].QWORD
+        MOVZX   ECX, [EBP + $0B].QWORD         // ECX = C.A
         IMUL    R9D, ECX                       // R9D = Alpha
 
-        MOVZX   ECX, [R11 + 4 * R8]
-        MOVZX   EDX, [EBP + $08]               // EDX = C.R
+        MOVZX   ECX, [R11 + 4 * R8].QWORD
+        MOVZX   EDX, [EBP + $08].QWORD         // EDX = C.R
         SUB     EDX, ECX
         IMUL    EDX, R9D
         SHL     ECX, $10
@@ -848,8 +848,8 @@ asm
         SHR     EDX, $10
         MOV     [R11 + 4 * R8], DL             // store to pointer
 
-        MOVZX   ECX, [R11 + 4 * R8 + 1]
-        MOVZX   EDX, [EBP + $09]               // EDX = C.G
+        MOVZX   ECX, [R11 + 4 * R8 + 1].QWORD
+        MOVZX   EDX, [EBP + $09].QWORD         // EDX = C.G
         SUB     EDX, ECX
         IMUL    EDX, R9D
         SHL     ECX, $10
@@ -857,8 +857,8 @@ asm
         SHR     EDX, $10
         MOV     [R11 + 4 * R8 + 1], DL         // store to pointer
 
-        MOVZX   ECX, [R11 + 4 * R8 + 2]
-        MOVZX   EDX, [EBP + $0A]               // EDX = C.B
+        MOVZX   ECX, [R11 + 4 * R8 + 2].QWORD
+        MOVZX   EDX, [EBP + $0A].QWORD         // EDX = C.B
         SUB     EDX, ECX
         IMUL    EDX, R9D
         SHL     ECX, $10
@@ -866,8 +866,8 @@ asm
         SHR     EDX, $10
         MOV     [R11 + 4 * R8 + 2], DL         // store to pointer
 
-        MOVZX   ECX, [R11 + 4 * R8 + 3]
-        MOVZX   EDX, [EBP + $0B]               // EDX = C.A
+        MOVZX   ECX, [R11 + 4 * R8 + 3].QWORD
+        MOVZX   EDX, [EBP + $0B].QWORD         // EDX = C.A
         SUB     EDX, ECX
         IMUL    EDX, R9D
         SHL     ECX, $10

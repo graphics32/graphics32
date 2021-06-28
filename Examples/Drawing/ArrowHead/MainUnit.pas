@@ -232,7 +232,7 @@ var
 begin
   FBoxIndex := -1;
   for Index := 0 to High(FBoxCenter) do
-    if PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
+    if GR32.PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
       FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad,
       FBoxCenter[Index].Y + CRad), GR32.Point(X, Y)) then
     begin
@@ -259,7 +259,7 @@ begin
   else
   begin
     for Index := 0 to High(FBoxCenter) do
-      if PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
+      if GR32.PtInRect(FloatRect(FBoxCenter[Index].X - CRad,
         FBoxCenter[Index].Y - CRad, FBoxCenter[Index].X + CRad,
         FBoxCenter[Index].Y + CRad), GR32.Point(X, Y)) then
       begin
