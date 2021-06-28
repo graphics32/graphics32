@@ -279,7 +279,11 @@ asm
         MOVD      XMM4,ECX
         PXOR      XMM3,XMM3
         PUNPCKLBW XMM4,XMM3
-        MOV       RAX,bias_ptr
+{$IFNDEF FPC}
+        MOV       RAX,bias_ptr       // RAX   <-  Pointer to Bias
+{$ELSE}
+        MOV       RAX,[RIP+bias_ptr] // XXX : Enabling PIC by relative offsetting for x64
+{$ENDIF}
 
 @1:
         MOVD      XMM2,[RDX]

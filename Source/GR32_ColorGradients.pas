@@ -814,7 +814,7 @@ end;
 {$IFNDEF OMIT_SSE2}
 
 {$IFNDEF PUREPASCAL}
-function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$IFDEF FPC}assembler;{$ENDIF}
+function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$IFDEF FPC}assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM3,XMM3
@@ -854,7 +854,12 @@ asm
 {$IFDEF TARGET_X64}
         MOVQ      XMM0,XMM3
         SHUFPS    XMM0,XMM0,0
+
+{$IFNDEF FPC}
         MOVD      XMM1,WB
+{$ELSE}
+        MOVD      XMM1,WB
+{$ENDIF}
         SHUFPS    XMM1,XMM1,0
         MOVD      XMM2,WC
         SHUFPS    XMM2,XMM2,0
