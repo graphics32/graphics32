@@ -814,7 +814,7 @@ end;
 {$IFNDEF OMIT_SSE2}
 
 {$IFNDEF PUREPASCAL}
-function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$IFDEF FPC}assembler; nostackframe; {$ENDIF}
+function Linear3PointInterpolation_SSE2(A, B, C: TColor32; WA, WB, WC: Single): TColor32; {$IFDEF FPC}assembler; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM3,XMM3
@@ -855,13 +855,9 @@ asm
         MOVQ      XMM0,XMM3
         SHUFPS    XMM0,XMM0,0
 
-{$IFNDEF FPC}
-        MOVD      XMM1,WB
-{$ELSE}
-        MOVD      XMM1,WB
-{$ENDIF}
+        MOVD      XMM1,[WB] // probably use [RBP + $30] for FPC, otherwise load WB to EAX first and then to XMM1 (see implementation in the function below)
         SHUFPS    XMM1,XMM1,0
-        MOVD      XMM2,WC
+        MOVD      XMM2,[WC]
         SHUFPS    XMM2,XMM2,0
 
         PXOR      XMM3,XMM3
@@ -890,7 +886,7 @@ asm
 {$ENDIF}
 end;
 
-function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32;
+function Linear4PointInterpolation_SSE2(A, B, C, D: TColor32; WA, WB, WC, WD: Single): TColor32; {$IFDEF FPC}assembler; {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
         PXOR      XMM7,XMM7
