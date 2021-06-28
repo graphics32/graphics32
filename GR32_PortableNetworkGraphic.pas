@@ -4039,8 +4039,8 @@ asm
         MOV     RCX, BytesPerRow
         ADD     RAX, PixelByteSize
         SUB     RCX, PixelByteSize
-        LEA     RAX, RAX + RCX
-        LEA     RDX, RDX + RCX
+        LEA     RAX, [RAX + RCX]
+        LEA     RDX, [RDX + RCX]
         NEG     RCX
         JNL     @Done
 
@@ -4100,8 +4100,8 @@ asm
         MOV     RAX, RDX
         MOV     RDX, R8
         MOV     RCX, BytesPerRow
-        LEA     RAX, RAX + RCX + 1
-        LEA     RDX, RDX + RCX + 1
+        LEA     RAX, [RAX + RCX + 1]
+        LEA     RDX, [RDX + RCX + 1]
         NEG     RCX
         JNL     @Done
 
@@ -4176,7 +4176,7 @@ asm
         // R8  = c
 
         // calculate DistA = Abs(b - c)
-        MOVZX   RAX, b           // RAX = b
+        MOVZX   RAX, DL          // RAX = b
         SUB     RAX, R8          // RAX = b - c
         MOV     R10, RAX         // R10 = b - c
         JAE     @PositiveDistA   // if  R10 >= 0 then
@@ -4186,7 +4186,7 @@ asm
         @PositiveDistA:
 
         // calculate DistB = Abs(a - c)
-        MOVZX   R11, a           // R11 = a
+        MOVZX   R11, CL          // R11 = a
         SUB     R11, R8          // R11 = a - c
         MOV     R9, R11          // R9 = a - c
         JAE     @PositiveDistB   // if  R9 >= 0 then

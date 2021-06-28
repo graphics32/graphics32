@@ -5,7 +5,7 @@ program PNG_GR32_Demo;
 uses
   Interfaces,
   Forms,
-  GR32_L,
+  GR32_Lazarus,
   GR32_PortableNetworkGraphic,
   GR32_Png,
   MainUnit;

@@ -1448,25 +1448,25 @@ begin
 {$ELSE}
 asm
 {$IFDEF Target_x64}
-  LEA     RCX, RCX + 4 * R8
-  LEA     RDX, RDX + 4 * R8
+  LEA     RCX, [RCX + 4 * R8]
+  LEA     RDX, [RDX + 4 * R8]
   NEG     R8
   JNL     @Done
 
 @Start:
-  MOVZX   R10, [RCX + 4 * R8]
-  MOVZX   R10, [R9 + R10]
+  MOVZX   R10, [RCX + 4 * R8].BYTE
+  MOVZX   R10, [R9 + R10].BYTE
   MOV     [RDX + 4 * R8 + $02], R10B
 
-  MOVZX   R10, [RCX + 4 * R8 + $01]
-  MOVZX   R10, [R9 + R10]
+  MOVZX   R10, [RCX + 4 * R8 + $01].BYTE
+  MOVZX   R10, [R9 + R10].BYTE
   MOV     [RDX + 4 * R8 + $01], R10B
 
-  MOVZX   R10,[RCX + 4 * R8 + $02]
-  MOVZX   R10,[R9 + R10]
+  MOVZX   R10,[RCX + 4 * R8 + $02].BYTE
+  MOVZX   R10,[R9 + R10].BYTE
   MOV     [RDX + 4 * R8], R10B
 
-  MOVZX   R10, [RCX + 4 * R8 + $03]
+  MOVZX   R10, [RCX + 4 * R8 + $03].BYTE
   MOV     [RDX + 4 * R8 + $03], R10B
 
   ADD     R8, 1
