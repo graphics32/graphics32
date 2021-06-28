@@ -3,21 +3,20 @@
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="GR32_Lazarus"/>
-    <Type Value="RunAndDesignTime"/>
     <Author Value="Team Graphics32"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value=".."/>
-        <OtherUnitFiles Value=".."/>
+        <IncludeFiles Value="..;."/>
+        <Libraries Value="..;."/>
+        <OtherUnitFiles Value="..;."/>
         <UnitOutputDirectory Value="..\..\Unit Cache\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
       </SearchPaths>
       <Parsing>
         <SyntaxOptions>
           <SyntaxMode Value="Delphi"/>
           <CStyleOperator Value="False"/>
-          <CPPInline Value="False"/>
           <UseAnsiStrings Value="False"/>
         </SyntaxOptions>
       </Parsing>

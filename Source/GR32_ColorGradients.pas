@@ -855,9 +855,17 @@ asm
         MOVQ      XMM0,XMM3
         SHUFPS    XMM0,XMM0,0
 
-        MOVD      XMM1,[WB] // probably use [RBP + $30] for FPC, otherwise load WB to EAX first and then to XMM1 (see implementation in the function below)
+{$IFDEF FPC}
+        MOVD      XMM1,[RBP + $30]
+{$ELSE}
+        MOVD      XMM1,WB
+{$ENDIF}
         SHUFPS    XMM1,XMM1,0
-        MOVD      XMM2,[WC]
+{$IFDEF FPC}
+        MOVD      XMM2,[RBP + $38]
+{$ELSE}
+        MOVD      XMM2,WC
+{$ENDIF}
         SHUFPS    XMM2,XMM2,0
 
         PXOR      XMM3,XMM3
@@ -949,12 +957,20 @@ asm
         PUNPCKLWD XMM1,XMM7
         CVTDQ2PS  XMM1,XMM1
 
+{$IFDEF FPC}
+        MOV       EAX, [RBP + $30]
+{$ELSE}
         MOV       EAX, WA
+{$ENDIF}
         MOVD      XMM4,EAX
         SHUFPS    XMM4,XMM4,0
         MULPS     XMM0,XMM4
 
+{$IFDEF FPC}
+        MOV       EDX, [RBP + $38]
+{$ELSE}
         MOV       EDX, WB
+{$ENDIF}
         MOVD      XMM5,EDX
         SHUFPS    XMM5,XMM5,0
         MULPS     XMM1,XMM5
@@ -969,12 +985,20 @@ asm
         PUNPCKLWD XMM3,XMM7
         CVTDQ2PS  XMM3,XMM3
 
+{$IFDEF FPC}
+        MOV       EAX, [RBP + $40]
+{$ELSE}
         MOV       EAX, WC
+{$ENDIF}
         MOVD      XMM4,EAX
         SHUFPS    XMM4,XMM4,0
         MULPS     XMM2,XMM4
 
+{$IFDEF FPC}
+        MOV       EDX, [RBP + $48]
+{$ELSE}
         MOV       EDX, WD
+{$ENDIF}
         MOVD      XMM5,EDX
         SHUFPS    XMM5,XMM5,0
         MULPS     XMM3,XMM5

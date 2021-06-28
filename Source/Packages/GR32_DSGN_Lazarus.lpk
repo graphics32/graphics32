@@ -7,8 +7,9 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <IncludeFiles Value=".."/>
-        <OtherUnitFiles Value="..;../Packages"/>
+        <IncludeFiles Value="..;."/>
+        <Libraries Value="..;."/>
+        <OtherUnitFiles Value="..;."/>
         <UnitOutputDirectory Value="../../Unit Cache/$(TargetCPU)-$(TargetOS)/$(LCLWidgetType)"/>
       </SearchPaths>
       <Parsing>
