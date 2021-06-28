@@ -176,7 +176,7 @@ type
     FLayerCollection: TLayerCollection;
     FLayerStates: TLayerStates;
     FLayerOptions: Cardinal;
-    FTag: Integer;
+    FTag: NativeInt;
     FClicked: Boolean;
     FOnHitTest: THitTestEvent;
     FOnMouseDown: TMouseEvent;
@@ -237,7 +237,7 @@ type
     property LayerOptions: Cardinal read FLayerOptions write SetLayerOptions;
     property LayerStates: TLayerStates read FLayerStates;
     property MouseEvents: Boolean read GetMouseEvents write SetMouseEvents;
-    property Tag: Integer read FTag write FTag;
+    property Tag: NativeInt read FTag write FTag;
     property Visible: Boolean read GetVisible write SetVisible;
 
     property OnDestroy: TNotifyEvent read FOnDestroy write FOnDestroy;
