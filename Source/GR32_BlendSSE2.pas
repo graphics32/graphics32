@@ -417,17 +417,17 @@ asm
         JZ        @2
 
         PUSH      EBX
-        MOV       EBX,EAX
-        SHR       EBX,24
+        MOV       EBX,EAX         // EBX  <-  Fa Fr Fg Fb
+        SHR       EBX,24          // EBX  <-  00 00 00 Fa
         INC       ECX             // 255:256 range bias
-        IMUL      ECX,EBX
-        SHR       ECX,8
+        IMUL      ECX,EBX         // ECX  <-  00 00  W **
+        SHR       ECX,8           // ECX  <-  00 00 00  W
         JZ        @1
 
-        PXOR      XMM0,XMM0
-        MOVD      XMM1,EAX
+        PXOR      XMM0,XMM0       // XMM0 <-  00 00 00 00 00 00 00 00
+        MOVD      XMM1,EAX        // XMM1 <-  00 00 00 00 Fa Fr Fg Fb
         SHL       ECX,4
-        MOVD      XMM2,[EDX]
+        MOVD      XMM2,[EDX]      // XMM2 <-  00 00 00 00 Ba Br Bg Bb
         PUNPCKLBW XMM1,XMM0
         PUNPCKLBW XMM2,XMM0
         ADD       ECX,alpha_ptr
