@@ -1,135 +1,156 @@
 object MainForm: TMainForm
   Left = 296
+  Height = 456
   Top = 97
+  Width = 272
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Blend vs. Merge Example'
-  ClientHeight = 366
+  ClientHeight = 456
   ClientWidth = 272
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
-  OldCreateOrder = False
-  Position = poScreenCenter
   OnCreate = FormCreate
-  DesignSize = (
-    272
-    366)
-  PixelsPerInch = 96
-  TextHeight = 13
-  object LabelWeightmap: TLabel
+  Position = poScreenCenter
+  LCLVersion = '2.0.12.0'
+  object LabelOverlay: TLabel
     Left = 8
-    Top = 79
-    Width = 256
     Height = 17
+    Top = 169
+    Width = 256
     Anchors = [akLeft, akBottom]
     AutoSize = False
-    Caption = ' Weightmap'
-    Color = clAppWorkSpace
-    Font.Charset = DEFAULT_CHARSET
+    Caption = ' Overlay'
+    Color = clAppWorkspace
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = [fsBold]
+    Layout = tlCenter
     ParentColor = False
     ParentFont = False
-    Layout = tlCenter
-    ExplicitTop = 187
+    Transparent = False
   end
   object LabelBlendSettings: TLabel
     Left = 8
-    Top = 8
-    Width = 154
     Height = 17
+    Top = 88
+    Width = 256
     AutoSize = False
     Caption = ' Blend Settings'
-    Color = clAppWorkSpace
-    Font.Charset = DEFAULT_CHARSET
+    Color = clAppWorkspace
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = [fsBold]
+    Layout = tlCenter
     ParentColor = False
     ParentFont = False
-    Layout = tlCenter
+    Transparent = False
   end
   object LabelVisible: TLabel
-    Left = 168
-    Top = 8
-    Width = 96
+    Left = 8
     Height = 17
+    Top = 8
+    Width = 256
     AutoSize = False
     Caption = ' Visible Layer'
-    Color = clAppWorkSpace
-    Font.Charset = DEFAULT_CHARSET
+    Color = clAppWorkspace
     Font.Color = clWhite
     Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = [fsBold]
+    Layout = tlCenter
     ParentColor = False
     ParentFont = False
-    Layout = tlCenter
+    Transparent = False
+  end
+  object LabelMergeHint: TLabel
+    Left = 71
+    Height = 13
+    Top = 112
+    Width = 174
+    Caption = 'Alpha values will be merged correctly'
+    ParentColor = False
+  end
+  object LabelBlendHint: TLabel
+    Left = 71
+    Height = 13
+    Top = 134
+    Width = 324
+    Caption = 'Alpha values of the background are assumed to be opaque -> faster!'
+    ParentColor = False
+    WordWrap = True
   end
   object DstImg: TImage32
     Left = 8
-    Top = 102
-    Width = 256
     Height = 256
+    Top = 192
+    Width = 256
     Anchors = [akLeft, akBottom]
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
     BitmapAlign = baCenter
     Color = clBlack
     ParentColor = False
-    Scale = 1.000000000000000000
+    Scale = 1
     ScaleMode = smNormal
     TabOrder = 0
     OnPaintStage = DstImgPaintStage
-    ExplicitTop = 210
   end
   object RadioButtonBlend: TRadioButton
     Left = 8
-    Top = 31
-    Width = 154
-    Height = 17
+    Height = 19
+    Top = 134
+    Width = 47
     Caption = '&Blend'
-    Checked = True
-    TabOrder = 1
-    TabStop = True
     OnClick = RadioButtonBlendClick
+    TabOrder = 1
   end
   object RadioButtonMerge: TRadioButton
     Left = 8
-    Top = 54
-    Width = 154
-    Height = 17
+    Height = 19
+    Top = 111
+    Width = 50
     Caption = '&Merge'
-    TabOrder = 2
+    Checked = True
     OnClick = RadioButtonMergeClick
+    TabOrder = 2
+    TabStop = True
   end
   object CheckBoxForeground: TCheckBox
-    Left = 168
-    Top = 31
-    Width = 81
-    Height = 17
+    Left = 8
+    Height = 19
+    Top = 54
+    Width = 74
     Caption = '&Foreground'
     Checked = True
+    OnClick = CheckBoxImageClick
     State = cbChecked
     TabOrder = 3
-    OnClick = CheckBoxForegroundClick
   end
   object CheckBoxBackground: TCheckBox
-    Left = 168
-    Top = 54
-    Width = 81
-    Height = 17
-    Caption = 'Back&ground'
+    Left = 8
+    Height = 19
+    Top = 31
+    Width = 99
+    Caption = 'Back&ground  --->'
     Checked = True
+    OnClick = CheckBoxImageClick
     State = cbChecked
     TabOrder = 4
-    OnClick = CheckBoxBackgroundClick
+  end
+  object CheckBoxTransparent: TCheckBox
+    Left = 112
+    Height = 19
+    Top = 31
+    Width = 103
+    Caption = 'with transparency'
+    Checked = True
+    OnClick = CheckBoxImageClick
+    State = cbChecked
+    TabOrder = 5
   end
 end
