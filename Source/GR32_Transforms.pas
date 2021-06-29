@@ -311,7 +311,7 @@ type
 
   TRemapTransformation = class(TTransformation)
   private
-    FVectorMap : TVectorMap;
+    FVectorMap: TVectorMap;
     FScalingFixed: TFixedVector;
     FScalingFloat: TFloatVector;
     FCombinedScalingFixed: TFixedVector;

@@ -39,7 +39,8 @@ interface
 {$I GR32.inc}
 
 uses
-  GR32, GR32_Bindings;
+  GR32, GR32_Bindings
+  {$IFDEF FPC}{$IFDEF TARGET_X64}, GR32_Math_FPC{$ENDIF}{$ENDIF};
 
 { Fixed point math routines }
 function FixedFloor(A: TFixed): Integer;
@@ -88,32 +89,6 @@ function Sign(Value: Integer): Integer;
 function FloatMod(x, y: Double): Double; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
 
 function DivMod(Dividend, Divisor: Integer; var Remainder: Integer): Integer;
-
-
-{$IFDEF FPC}
-{$IFDEF TARGET_X64}
-(*
-  FPC has no similar {$EXCESSPRECISION OFF} directive,
-  but we can easily emulate that by overriding some internal math functions
-*)
-function PI: Single; [internproc: fpc_in_pi_real];
-//function Abs(D: Single): Single; [internproc: fpc_in_abs_real];
-//function Sqr(D: Single): Single; [internproc: fpc_in_sqr_real];
-function Sqrt(D: Single): Single; [internproc: fpc_in_sqrt_real];
-function ArcTan(D: Single): Single; [internproc: fpc_in_arctan_real];
-function Ln(D: Single): Single; [internproc: fpc_in_ln_real];
-function Sin(D: Single): Single; [internproc: fpc_in_sin_real];
-function Cos(D: Single): Single; [internproc: fpc_in_cos_real];
-function Exp(D: Single): Single; [internproc: fpc_in_exp_real];
-function Round(D: Single): Int64; [internproc: fpc_in_round_real];
-function Frac(D: Single): Single; [internproc: fpc_in_frac_real];
-function Int(D: Single): Single; [internproc: fpc_in_int_real];
-function Trunc(D: Single): Int64; [internproc: fpc_in_trunc_real];
-
-function Ceil(X: Single): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-function Floor(X: Single): Integer; {$IFDEF INLININGSUPPORTED} inline; {$ENDIF}
-{$ENDIF}
-{$ENDIF}
 
 type
   TCumSumProc = procedure(Values: PSingleArray; Count: Integer);
