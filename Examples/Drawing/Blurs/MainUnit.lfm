@@ -4,7 +4,7 @@ object FrmBlurs: TFrmBlurs
   Top = 189
   Width = 719
   Caption = 'Blurs'
-  ClientHeight = 386
+  ClientHeight = 385
   ClientWidth = 719
   Color = clBtnFace
   Font.CharSet = ANSI_CHARSET
@@ -14,30 +14,30 @@ object FrmBlurs: TFrmBlurs
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  LCLVersion = '1.0.1.4'
+  LCLVersion = '2.0.12.0'
   object PnlControl: TPanel
     Left = 0
-    Height = 366
+    Height = 362
     Top = 0
     Width = 154
     Align = alLeft
-    ClientHeight = 366
+    ClientHeight = 362
     ClientWidth = 154
     TabOrder = 0
     object LblBlurRadius: TLabel
       Left = 12
-      Height = 16
+      Height = 15
       Top = 171
-      Width = 91
+      Width = 90
       Caption = 'Blur &Radius (10)'
       FocusControl = TbrBlurRadius
       ParentColor = False
     end
     object LblBlurAngle: TLabel
       Left = 12
-      Height = 16
+      Height = 15
       Top = 251
-      Width = 81
+      Width = 80
       Caption = 'Blur &Angle (45)'
       Enabled = False
       FocusControl = TbrBlurAngle
@@ -58,7 +58,7 @@ object FrmBlurs: TFrmBlurs
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 1
-      ClientHeight = 98
+      ClientHeight = 96
       ClientWidth = 126
       ItemIndex = 1
       Items.Strings = (
@@ -109,14 +109,14 @@ object FrmBlurs: TFrmBlurs
   end
   object SbrMain: TStatusBar
     Left = 0
-    Height = 20
-    Top = 366
+    Height = 23
+    Top = 362
     Width = 719
     Panels = <>
   end
   object PageControl: TPageControl
     Left = 154
-    Height = 366
+    Height = 362
     Top = 0
     Width = 565
     ActivePage = TabSheet1
@@ -126,11 +126,11 @@ object FrmBlurs: TFrmBlurs
     OnChange = PageControlChange
     object TabSheet1: TTabSheet
       Caption = 'Page &1'
-      ClientHeight = 338
+      ClientHeight = 334
       ClientWidth = 557
       object ImgViewPage1: TImgView32
         Left = 0
-        Height = 338
+        Height = 334
         Top = 0
         Width = 557
         Align = alClient
@@ -196,9 +196,20 @@ object FrmBlurs: TFrmBlurs
       end
     end
   end
+  object CheckBoxCorrectGamma: TCheckBox
+    Left = 13
+    Height = 19
+    Top = 328
+    Width = 108
+    Caption = '&Correct Gamma'
+    Checked = True
+    OnClick = PageControlChange
+    State = cbChecked
+    TabOrder = 3
+  end
   object MainMenu: TMainMenu
-    left = 240
-    top = 56
+    Left = 240
+    Top = 56
     object MnuFile: TMenuItem
       Caption = '&File'
       object MnuOpen: TMenuItem
@@ -239,7 +250,7 @@ object FrmBlurs: TFrmBlurs
     DefaultExt = '.jpg'
     Filter = 'Image Files (*.jpg;*.bmp)|*.jpg;*.bmp;'
     Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
-    left = 168
-    top = 56
+    Left = 168
+    Top = 56
   end
 end
