@@ -11,7 +11,7 @@ object FrmMeshGradients: TFrmMeshGradients
   Font.Height = -11
   Font.Name = 'Tahoma'
   OnCreate = FormCreate
-  LCLVersion = '1.0.1.4'
+  LCLVersion = '2.0.12.0'
   object PnlSettings: TPanel
     Left = 511
     Height = 481
@@ -23,17 +23,17 @@ object FrmMeshGradients: TFrmMeshGradients
     TabOrder = 0
     object LblBackgroundSampler: TLabel
       Left = 8
-      Height = 14
+      Height = 13
       Top = 23
-      Width = 102
+      Width = 101
       Caption = 'Background Sampler:'
       ParentColor = False
     end
     object LblVertexColor: TLabel
       Left = 8
-      Height = 14
+      Height = 13
       Top = 236
-      Width = 30
+      Width = 29
       Caption = 'Color:'
       ParentColor = False
       Visible = False
@@ -48,9 +48,9 @@ object FrmMeshGradients: TFrmMeshGradients
     end
     object LblPower: TLabel
       Left = 8
-      Height = 14
+      Height = 13
       Top = 68
-      Width = 35
+      Width = 34
       Caption = 'Power:'
       ParentColor = False
     end
@@ -117,7 +117,7 @@ object FrmMeshGradients: TFrmMeshGradients
       Min = 1
       ShowHandleGrip = True
       Style = rbsMac
-      Position = 10000
+      Position = 5000
       OnChange = GbrPowerChange
     end
     object BtnStore: TButton
@@ -156,7 +156,7 @@ object FrmMeshGradients: TFrmMeshGradients
     end
     object CbxColoredPolygons: TCheckBox
       Left = 16
-      Height = 17
+      Height = 19
       Top = 129
       Width = 127
       Caption = 'Show Colored Polygon'
@@ -203,7 +203,7 @@ object FrmMeshGradients: TFrmMeshGradients
       'ColorS=F0FBFF'
       'ColorT=A4A0A0'
     )
-    left = 336
-    top = 240
+    Left = 336
+    Top = 240
   end
 end

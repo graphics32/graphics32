@@ -7,6 +7,8 @@ uses
   Forms,
   MainUnit in 'MainUnit.pas' {FrmMeshGradients};
 
+{$R *.res}
+
 begin
   Application.Initialize;
   Application.CreateForm(TFrmMeshGradients, FrmMeshGradients);

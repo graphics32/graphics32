@@ -84,7 +84,9 @@ begin
   FColorPoints[2].Point := FloatPoint(46, 146);
 
   FSelected := -1;
-  FIdwPower := 16;
+  FIdwPower := 8;
+
+  GbrPowerChange(GbrPower);
 end;
 
 procedure TFrmMeshGradients.GbrPowerChange(Sender: TObject);

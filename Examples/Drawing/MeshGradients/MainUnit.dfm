@@ -119,7 +119,7 @@ object FrmMeshGradients: TFrmMeshGradients
       Min = 1
       ShowHandleGrip = True
       Style = rbsMac
-      Position = 10000
+      Position = 5000
       OnChange = GbrPowerChange
     end
     object BtnStore: TButton
