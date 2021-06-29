@@ -4,7 +4,7 @@ program GammaCorrection;
 
 uses
   Interfaces,
-  Forms,
+  Forms, imagesforlazarus,
   MainUnit in 'MainUnit.pas';
 
 begin
