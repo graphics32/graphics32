@@ -37,7 +37,7 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFNDEF FPC} Windows, {$ELSE} LResources, Variants,{$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} LResources, LCLType, Variants,{$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   Math, GR32, GR32_LowLevel, GR32_Image, GR32_RangeBars, GR32_Transforms,
   GR32_Blend;

@@ -43,7 +43,7 @@ interface
 {.$DEFINE Ex}
 
 uses
-  {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LResources, {$ENDIF}
+  {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, LResources, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, StdCtrls, ExtCtrls,
   ComCtrls, GR32_Image, GR32_System, GR32_RangeBars, GR32, GR32_Resamplers
   {$IFDEF Ex},GR32_ResamplersEx {$ENDIF};

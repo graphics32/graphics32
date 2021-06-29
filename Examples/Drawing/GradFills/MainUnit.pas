@@ -5,9 +5,10 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, {$ELSE} Windows, {$ENDIF} SysUtils, Types, Classes,
-  Graphics, Controls, Forms, Dialogs, Math, ExtCtrls, StdCtrls, Menus, GR32,
-  GR32_Polygons, GR32_Image, GR32_Layers, GR32_Transforms, GR32_ColorGradients;
+  {$IFDEF FPC} LCLIntf, LCLType, {$ELSE} Windows, {$ENDIF} SysUtils, Types,
+  Classes, Graphics, Controls, Forms, Dialogs, Math, ExtCtrls, StdCtrls, Menus,
+  GR32, GR32_Polygons, GR32_Image, GR32_Layers, GR32_Transforms,
+  GR32_ColorGradients;
 
 type
   TMainForm = class(TForm)
