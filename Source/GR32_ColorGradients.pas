@@ -1593,7 +1593,7 @@ begin
   Temp.Y := Y - FColorPoints[2].Point.Y;
   U := FDists[0].Y * Temp.X + FDists[0].X * Temp.Y;
   V := FDists[1].Y * Temp.X + FDists[1].X * Temp.Y;
-  W := 1 - U - V;
+  W := 1.0 - U - V;
 end;
 
 function TBarycentricGradientSampler.GetSampleFloat(X, Y: TFloat): TColor32;
@@ -1786,7 +1786,7 @@ begin
 
   Result := Linear4PointInterpolationProc(FColorPoints[0].Color32,
     FColorPoints[1].Color32, FColorPoints[2].Color32, FColorPoints[3].Color32,
-    (1 - u) * (1 - v), u * (1 - v), u * v, (1 - u) * v);
+    (1.0 - u) * (1.0 - v), u * (1.0 - v), u * v, (1.0 - u) * v);
 end;
 
 procedure TBilinearGradientSampler.PrepareSampling;
@@ -2090,20 +2090,26 @@ begin
     Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
   if FUsePower then
     Temp := Math.Power(Temp, FScaledPower);
-  FDists[0] := 1 / Max(1, Temp);
+  if Abs(Temp) > MaxSingle then
+    FDists[0] := 0
+  else
+    FDists[0] := 1 / Max(1.0, Temp);
   DistSum := FDists[0];
+
   for Index := 1 to Count - 1 do
     with FColorPoints[Index] do
     begin
       Temp := Sqr(X - Point.X) + Sqr(Y - Point.Y);
       if FUsePower then
         Temp := Math.Power(Temp, FScaledPower);
-      FDists[Index] := 1 / Max(1, Temp);
+      if Abs(Temp) > MaxSingle then
+        FDists[Index] := 0
+      else
+        FDists[Index] := 1 / Max(1.0, Temp);
       DistSum := DistSum + FDists[Index];
     end;
 
-  Assert(DistSum <> 0);
-  DistSum := 1 / DistSum;
+  DistSum := 1.0 / (1E-30 + DistSum);
   Scale := FDists[0] * DistSum;
 
   case Count of
@@ -3725,7 +3731,7 @@ var
   Offset: array [0 .. 1] of TFloat;
 begin
   Offset[0] := FGradient.FGradientColors[Index].Offset;
-  Offset[1] := 1 - Offset[0];
+  Offset[1] := 1.0 - Offset[0];
   Result := Offset[1] * FStartPoint.X + Offset[0] * FEndPoint.X + FIncline *
     (Offset[1] * (FStartPoint.Y - Y) + Offset[0] * (FEndPoint.Y - Y));
 end;
@@ -4564,7 +4570,7 @@ begin
   // Because the slope of vertical lines is infinite, we need to find where a
   // vertical line through the FocalPoint intersects with the Ellipse, and
   // store the distances from the focal point to these 2 intersections points
-  FVertDist := FRadius.Y * FastSqrtBab1(1 - Sqr(FFocalPt.X) / Sqr(FRadius.X));
+  FVertDist := FRadius.Y * FastSqrtBab1(1.0 - Sqr(FFocalPt.X) / Sqr(FRadius.X));
 end;
 
 procedure TSVGRadialGradientPolygonFiller.BeginRendering;
