@@ -295,14 +295,10 @@ begin
   end;
 
   Ab := @DivTable[255 - M];
-  with BX do
-  begin
-    R := Af[FX.R] + Ab[R];
-    G := Af[FX.G] + Ab[G];
-    B := Af[FX.B] + Ab[B];
-    A := $FF;
-  end;
-  Result := B;
+  TColor32Entry(Result).R := Af[FX.R] + Ab[BX.R];
+  TColor32Entry(Result).G := Af[FX.G] + Ab[BX.G];
+  TColor32Entry(Result).B := Af[FX.B] + Ab[BX.B];
+  TColor32Entry(Result).A := $FF;
 end;
 
 procedure BlendMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
@@ -316,9 +312,7 @@ begin
   M := Af[FX.A];
 
   if M = 0 then
-  begin
     Exit;
-  end;
 
   if M = $FF then
   begin
@@ -327,13 +321,10 @@ begin
   end;
 
   Ab := @DivTable[255 - M];
-  with BX do
-  begin
-    R := Af[FX.R] + Ab[R];
-    G := Af[FX.G] + Ab[G];
-    B := Af[FX.B] + Ab[B];
-    A := $FF;
-  end;
+  BX.R := Af[FX.R] + Ab[BX.R];
+  BX.G := Af[FX.G] + Ab[BX.G];
+  BX.B := Af[FX.B] + Ab[BX.B];
+  BX.A := $FF;
 end;
 
 function BlendRegRGB_Pas(F, B, W: TColor32): TColor32;
@@ -479,7 +470,7 @@ begin
     Result := F
   else
   begin
-    Rx.A := DivTable[Fa xor 255, Ba xor 255] xor 255;
+    Rx.A := not DivTable[Fa xor 255, Ba xor 255]; // "xor 255" is faster than "not" for the indices because the asm is shorter
     Wa := RcTable[Rx.A, Fa];
     Fw := @DivTable[Wa];
     Bw := @DivTable[Wa xor $FF];
