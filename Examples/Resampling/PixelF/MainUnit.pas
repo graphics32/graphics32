@@ -92,7 +92,7 @@ begin
   // load example image
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Stones', RT_RCDATA);
+    ResStream := TResourceStream.Create(HInstance, 'STONES', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally
