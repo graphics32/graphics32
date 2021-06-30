@@ -253,7 +253,7 @@ begin
   Source := TBitmap32.Create;
   JPEG := TJPEGImage.Create;
   try
-    ResStream := TResourceStream.Create(HInstance, 'Stoneweed', RT_RCDATA);
+    ResStream := TResourceStream.Create(HInstance, 'STONEWEED', RT_RCDATA);
     try
       JPEG.LoadFromStream(ResStream);
     finally

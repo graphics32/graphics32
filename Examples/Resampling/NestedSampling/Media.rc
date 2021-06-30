@@ -1,2 +1,2 @@
 MainIcon ICON "../../Media/GR32.ico"
-Stoneweed RCDATA "../../Media/stoneweed.jpg"
+STONEWEED RCDATA "../../Media/stoneweed.jpg"
