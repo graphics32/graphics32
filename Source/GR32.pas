@@ -2547,8 +2547,7 @@ begin
   Result := FBackend;
 end;
 
-function TCustomBitmap32.QueryInterface(constref iid: TGuid; out obj): HResult;
-  stdcall;
+function TCustomBitmap32.QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} IID: TGUID; out Obj): HResult;
 begin
   Result := FBackend.QueryInterface(IID, Obj);
   if Result <> S_OK then
