@@ -619,7 +619,7 @@ asm
 
   // Get weight W = Fa * M
         MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
-        INC     ECX             // 255:256 range bias
+        INC     ECX             // 255:256 range bias for M
         SHR     EBX,24          // EBX  <-  00 00 00 Fa
         IMUL    ECX,EBX         // ECX  <-  00 00  W **
         ADD     ECX,bias
