@@ -661,6 +661,8 @@ type
   TCustomBackend = class;
   TCustomBackendClass = class of TCustomBackend;
 
+  { TCustomBitmap32 }
+
   TCustomBitmap32 = class(TCustomMap)
   private
     FBackend: TCustomBackend;
@@ -712,6 +714,7 @@ type
     procedure SetPenPos(const Value: TPoint);
     function GetPenPosF: TFixedPoint;
     procedure SetPenPosF(const Value: TFixedPoint);
+    procedure SwapRB;
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -2544,7 +2547,8 @@ begin
   Result := FBackend;
 end;
 
-function TCustomBitmap32.QueryInterface({$IFDEF FPC_HAS_CONSTREF}constref{$ELSE}const{$ENDIF} IID: TGUID; out Obj): HResult;
+function TCustomBitmap32.QueryInterface(constref iid: TGuid; out obj): HResult;
+  stdcall;
 begin
   Result := FBackend.QueryInterface(IID, Obj);
   if Result <> S_OK then
@@ -2917,6 +2921,19 @@ end;
 procedure TCustomBitmap32.SetPenPosF(const Value: TFixedPoint);
 begin
   MoveTo(Value.X, Value.Y);
+end;
+
+procedure TCustomBitmap32.SwapRB;
+var
+  Index : Integer;
+  Temp: Byte;
+begin
+  for Index := 0 to FHeight * FWidth - 1 do
+  begin
+    Temp := TColor32Entry(FBits[Index]).R;
+    TColor32Entry(FBits[Index]).R := TColor32Entry(FBits[Index]).B;
+    TColor32Entry(FBits[Index]).B := Temp;
+  end;
 end;
 
 procedure TCustomBitmap32.SetPixel(X, Y: Integer; Value: TColor32);
@@ -5882,8 +5899,8 @@ begin
       EnsureAlpha;
 
 {$IFDEF RGBA_FORMAT}
-    // TODO : Swap R and B channels
-    // We can't use ColorSwap since it resets the A channel
+    // swap R and B channels
+    SwapRB;
 {$ENDIF RGBA_FORMAT}
   end else
   begin
