@@ -5751,8 +5751,8 @@ begin
   if (BitmapHeader.InfoHeader.biCompression <> BI_RGB) and (BitmapHeader.InfoHeader.biCompression <> BI_BITFIELDS) then
     exit;
 
-  // We only support 32-bit bitmaps
-  if (BitmapHeader.InfoHeader.biBitCount <> 32 ) then
+  // We only support 24-bit and 32-bit bitmaps
+  if not (BitmapHeader.InfoHeader.biBitCount in [24, 32]) then
     exit;
 
   // Planes must be 1
@@ -5834,7 +5834,8 @@ begin
   end;
 
   // Make sure there's enough data left for the pixels
-  Dec(Size, BitmapHeader.InfoHeader.biWidth * Abs(BitmapHeader.InfoHeader.biHeight) * SizeOf(DWORD));
+  with BitmapHeader.InfoHeader do
+    Dec(Size, biWidth * Abs(biHeight) * biBitCount shr 3);
   if (Size < 0) then
     exit;
 
@@ -5846,16 +5847,36 @@ begin
     // Check whether the bitmap is saved top-down or bottom-up:
     // - Negavive height: top-down
     // - Positive height: bottom-up
-    if (BitmapHeader.InfoHeader.biHeight > 0) then
-    begin
-      // Bitmap is stored bottom-up: Read one row at a time
-      ChunkSize := Width * SizeOf(DWORD);
-      for i := Height - 1 downto 0 do
-        Stream.ReadBuffer(Scanline[i]^, ChunkSize);
-    end
-    else
-      // Bitmap is stored top-down: Read all rows in one go
-      Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD));
+    case BitmapHeader.InfoHeader.biBitCount of
+      24:
+        if (BitmapHeader.InfoHeader.biHeight > 0) then
+        begin
+          // Bitmap is stored bottom-up: Read one row at a time
+          ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
+          for i := Height - 1 downto 0 do
+            for j := 0 to Width - 1 do
+              Stream.ReadBuffer(Scanline[i]^[j], 3);
+        end
+        else
+        begin
+          // Bitmap is stored top-down: Read one row at a time
+          ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
+          for i := 0 to Height - 1 do
+            for j := 0 to Width - 1 do
+              Stream.ReadBuffer(Scanline[i]^[j], 3);
+        end;
+      32:
+        if (BitmapHeader.InfoHeader.biHeight > 0) then
+        begin
+          // Bitmap is stored bottom-up: Read one row at a time
+          ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
+          for i := Height - 1 downto 0 do
+            Stream.ReadBuffer(Scanline[i]^, ChunkSize);
+        end
+        else
+          // Bitmap is stored top-down: Read all rows in one go
+          Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD))
+    end;
 
     if (InfoHeaderVersion < InfoHeaderVersion3) then
       EnsureAlpha;
@@ -5944,7 +5965,8 @@ begin
 
 {$ifdef LOADFROMSTREAM}
 
-    // TPicture.LoadFromStream requires TGraphic.CanLoadFromStream. Introduced in Delphi 10.2
+    // TPicture.LoadFromStream requires TGraphic.CanLoadFromStream.
+    // Introduced in Delphi 10.2 and present in FPC as well
     // See issue #145
     P := TPicture.Create;
     try
