@@ -45,7 +45,8 @@ uses
 {$ELSE}
   gdk, gdkpixbuf, glib, gtkdef,
 {$ENDIF}
-  Graphics, GR32, GR32_Backends, GR32_Containers, GR32_Image;
+  Graphics, GraphType, FPImage, IntfGraphics,
+  GR32, GR32_Backends, GR32_Containers, GR32_Image;
 
 type
 
@@ -79,6 +80,8 @@ type
     procedure WidgetSetStretchDrawRGB32Bitmap(Dest: HDC; DstX, DstY, DstWidth,
       DstHeight: Integer; SrcX, SrcY, SrcWidth, SrcHeight: Integer;
       SrcBitmap: TBitmap32);
+
+    procedure CanvasChanged;
   public
     constructor Create; override;
     destructor Destroy; override;
