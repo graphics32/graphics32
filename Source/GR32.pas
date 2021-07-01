@@ -5782,6 +5782,9 @@ begin
   // Validate compression and fetch RGBA masks
   if (BitmapHeader.InfoHeader.biCompression = BI_BITFIELDS) then
   begin
+    // reject invalid 24-bit bitfields
+    if BitmapHeader.InfoHeader.biBitCount = 24 then
+      exit;
 
     // For version > v1 the RGB color mask is part of the header so it has already
     // been read as part of the header. For version = v1 it is stored just after
@@ -5871,7 +5874,11 @@ begin
           ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
           for i := Height - 1 downto 0 do
             for j := 0 to Width - 1 do
+            begin
+              // read RGB data and reset alpha
               Stream.ReadBuffer(Scanline[i]^[j], 3);
+              TColor32Entry(Scanline[i]^[j]).A := $FF;
+            end;
         end
         else
         begin
@@ -5879,7 +5886,11 @@ begin
           ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
           for i := 0 to Height - 1 do
             for j := 0 to Width - 1 do
+            begin
+              // read RGB data and reset alpha
               Stream.ReadBuffer(Scanline[i]^[j], 3);
+              TColor32Entry(Scanline[i]^[j]).A := $FF;
+            end;
         end;
       32:
         if (BitmapHeader.InfoHeader.biHeight > 0) then
