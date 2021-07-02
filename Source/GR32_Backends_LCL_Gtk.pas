@@ -121,6 +121,7 @@ type
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
     { IInteroperabilitySupport }
+    function CopyFrom(ImageBitmap: TFPImageBitmap): Boolean; overload;
     function CopyFrom(Graphic: TGraphic): Boolean; overload;
 
     { ICanvasSupport }
@@ -387,9 +388,73 @@ end;
 type
   TGraphicAccess = class(TGraphic);
 
+function TLCLBackend.CopyFrom(ImageBitmap: TFPImageBitmap): Boolean;
+var
+  Src: TLazIntfImage;
+  Dest: TLazIntfImage;
+  X, Y: Integer;
+  SrcLine: PCardinalArray;
+  DestLine: PByte;
+begin
+  Src := ImageBitmap.CreateIntfImage;
+  Dest := FBitmap.CreateIntfImage;
+  try
+    if ImageBitmap.Transparent then
+    begin
+      for Y := 0 to Src.Height - 1 do
+      begin
+        SrcLine := Src.GetDataLineStart(Y);
+        DestLine := FRawImage.GetLineStart(Y);
+        for X := 0 to Src.Width - 1 do
+        begin
+          DestLine^ := Blue(SrcLine^[X]);
+          Inc(DestLine);
+          DestLine^ := Green(SrcLine^[X]);
+          Inc(DestLine);
+          DestLine^ := Red(SrcLine^[X]);
+          Inc(DestLine);
+          DestLine^ := SrcLine^[X] shr 24;
+          Inc(DestLine);
+        end;
+      end;
+    end
+    else
+    begin
+      for Y := 0 to Src.Height - 1 do
+      begin
+        SrcLine := Src.GetDataLineStart(Y);
+        DestLine := FRawImage.GetLineStart(Y);
+        for X := 0 to Src.Width - 1 do
+        begin
+          DestLine^ := Blue(SrcLine^[X]);
+          Inc(DestLine);
+          DestLine^ := Green(SrcLine^[X]);
+          Inc(DestLine);
+          DestLine^ := Red(SrcLine^[X]);
+          Inc(DestLine);
+          DestLine^ := $FF;
+          Inc(DestLine);
+        end;
+      end;
+    end;
+  finally
+    Src.Free;
+  end;
+
+  Result := True;
+end;
+
+
 function TLCLBackend.CopyFrom(Graphic: TGraphic): Boolean;
 begin
-  TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Canvas.Width, Canvas.Height));
+  if Graphic is TFPImageBitmap then
+    Result := CopyFrom(TFPImageBitmap(Graphic));
+
+  if not Result then
+  begin
+    TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Canvas.Width, Canvas.Height));
+    Result := True;
+  end;
 end;
 
 

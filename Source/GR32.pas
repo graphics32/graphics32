@@ -5993,7 +5993,7 @@ var
 begin
   SavePos := Stream.Position;
 
-  if (not LoadFromBMPStream(Stream, Stream.Size)) then
+//  if (not LoadFromBMPStream(Stream, Stream.Size)) then
   begin
     Stream.Position := SavePos;
 
