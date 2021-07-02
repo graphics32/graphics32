@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="GR32_PNG_Lazarus"/>
+    <Author Value="Team Graphics32"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..;."/>
+        <OtherUnitFiles Value="..;."/>
+        <UnitOutputDirectory Value="..\..\Unit Cache\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
+          <CStyleOperator Value="False"/>
+          <UseAnsiStrings Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+    </CompilerOptions>
+    <Description Value="PNG library for reading and writing of PNG images in combination with a TBitmap32 class from the GR32 library."/>
+    <License Value="GNU Library or Lesser General Public License (LGPL)
+Mozilla Public License 1.1 (MPL 1.1)"/>
+    <Version Major="2"/>
+    <Files Count="45">
+      <Item1>
+        <Filename Value="..\GR32_Png.pas"/>
+        <UnitName Value="GR32_Png"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <UnitName Value="GR32_PortableNetworkGraphic"/>
+      </Item2>
+    </Files>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="GR32_Lazarus"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="IDEIntf"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <DestinationDirectory Value="$(TestDir)\publishedpackage\"/>
+    </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
+  </Package>
+</CONFIG>

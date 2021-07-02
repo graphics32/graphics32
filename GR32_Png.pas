@@ -64,7 +64,8 @@ type
     property Progress: TProgressEvent read FProgressEvent write FProgressEvent;
   end;
 
-function IsValidPNG(const Filename: string): Boolean; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IsValidPNG(Stream: TStream): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function IsValidPNG(const Filename: string): Boolean; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; const Filename: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure LoadBitmap32FromPNG(Bitmap: TBitmap32; Stream: TStream); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 procedure SaveBitmap32ToPNG(Bitmap: TBitmap32; FileName: string); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -375,20 +376,14 @@ type
     property Count: Integer read FCount;
   end;
 
+function IsValidPNG(Stream: TStream): Boolean;
+begin
+  Result := TPortableNetworkGraphic32.CanLoad(Stream);
+end;
 
 function IsValidPNG(const Filename: string): Boolean;
 begin
-  try
-    with TPortableNetworkGraphic32.Create do
-    try
-      LoadFromFile(Filename);
-      Result := True;
-    finally
-      Free;
-    end;
-  except
-    Result := False;
-  end;
+  Result := TPortableNetworkGraphic32.CanLoad(Filename);
 end;
 
 
