@@ -2676,16 +2676,29 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
     Canvas: TCanvas;
     DeviceContextSupport: IDeviceContextSupport;
     CanvasSupport: ICanvasSupport;
+    InteroperabilitySupport: IInteroperabilitySupport;
   begin
     if not Assigned(SrcGraphic) then
       Exit;
-    RequireBackendSupport(TargetBitmap, [IDeviceContextSupport, ICanvasSupport], romOr, True, SavedBackend);
+    RequireBackendSupport(TargetBitmap, [IDeviceContextSupport, ICanvasSupport,
+      IInteroperabilitySupport], romOr, True, SavedBackend);
     try
       TargetBitmap.SetSize(SrcGraphic.Width, SrcGraphic.Height);
       if TargetBitmap.Empty then Exit;
 
       TargetBitmap.Clear(FillColor);
 
+      if Supports(TargetBitmap.Backend, IInteroperabilitySupport, InteroperabilitySupport) then
+      begin
+        InteroperabilitySupport.CopyFrom(SrcGraphic);
+        InteroperabilitySupport := nil;
+      end else
+      if Supports(TargetBitmap.Backend, ICanvasSupport, CanvasSupport) then
+      begin
+        TGraphicAccess(SrcGraphic).Draw(CanvasSupport.Canvas,
+          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
+        CanvasSupport := nil;
+      end else
       if Supports(TargetBitmap.Backend, IDeviceContextSupport, DeviceContextSupport) then
       begin
         Canvas := TCanvas.Create;
@@ -2703,12 +2716,6 @@ procedure TCustomBitmap32.Assign(Source: TPersistent);
           Canvas.Free;
         end;
         DeviceContextSupport := nil;
-      end else
-      if Supports(TargetBitmap.Backend, ICanvasSupport, CanvasSupport) then
-      begin
-        TGraphicAccess(SrcGraphic).Draw(CanvasSupport.Canvas,
-          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
-        CanvasSupport := nil;
       end else
         raise Exception.Create(RCStrInpropriateBackend);
 

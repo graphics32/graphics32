@@ -124,6 +124,9 @@ type
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
+    { IInteroperabilitySupport }
+    function CopyFrom(Graphic: TGraphic): Boolean; overload;
+
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
     procedure SetCanvasChange(Handler: TNotifyEvent);
@@ -582,6 +585,18 @@ begin
 
   if Assigned(FCanvas) then FCanvas.Font := FFont;
 end;
+
+
+{ IInteroperabilitySupport }
+
+type
+  TGraphicAccess = class(TGraphic);
+
+function TLCLBackend.CopyFrom(Graphic: TGraphic): Boolean;
+begin
+  TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, FCanvas.Width, FCanvas.Height));
+end;
+
 
 { ICanvasSupport }
 

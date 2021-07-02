@@ -48,9 +48,9 @@ type
   { This backend uses the LCL to manage and provide the buffer and additional
     graphics sub system features. The backing buffer is kept in memory. }
 
-  TLCLBackend = class(TCustomBackend, IPaintSupport,
-    IBitmapContextSupport, IDeviceContextSupport,
-    ITextSupport, IFontSupport, ITextToPathSupport, ICanvasSupport)
+  TLCLBackend = class(TCustomBackend, IPaintSupport, IBitmapContextSupport,
+    IDeviceContextSupport, ITextSupport, IFontSupport, ITextToPathSupport,
+    ICanvasSupport, IInteroperabilitySupport)
   private
     procedure FontChangedHandler(Sender: TObject);
     procedure CanvasChangedHandler(Sender: TObject);
@@ -128,6 +128,9 @@ type
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
 
+    { IInteroperabilitySupport }
+    function CopyFrom(Graphic: TGraphic): Boolean; overload;
+
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
     procedure SetCanvasChange(Handler: TNotifyEvent);
@@ -160,6 +163,8 @@ type
   { A backend that keeps the backing buffer entirely in memory and offers
     IPaintSupport without allocating a GDI handle }
 
+  { TLCLMemoryBackend }
+
   TLCLMemoryBackend = class(TMemoryBackend, IPaintSupport, IDeviceContextSupport)
   private
     procedure DoPaintRect(ABuffer: TBitmap32; ARect: TRect; ACanvas: TCanvas);
@@ -177,6 +182,9 @@ type
     procedure ImageNeeded;
     procedure CheckPixmap;
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+
+    { IInteroperabilitySupport }
+    function CopyFrom(Graphic: TGraphic): Boolean; overload;
 
     { IDeviceContextSupport }
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
@@ -267,16 +275,6 @@ begin
   FBits := nil;
 end;
 
-procedure TLCLBackend.DeleteCanvas;
-begin
-  if Assigned(FCanvas) then
-  begin
-    FCanvas.Handle := 0;
-    FCanvas.Free;
-    FCanvas := nil;
-  end;
-end;
-
 procedure TLCLBackend.PrepareFileMapping(NewWidth, NewHeight: Integer);
 begin
   // to be implemented by descendants
@@ -288,16 +286,138 @@ begin
   inherited;
 end;
 
-procedure TLCLBackend.CanvasChanged;
+function TLCLBackend.Empty: Boolean;
 begin
-  if Assigned(FOnCanvasChange) then
-    FOnCanvasChange(Self);
+  Result := FBitmapHandle = 0;
+end;
+
+
+{ IPaintSupport }
+
+procedure TLCLBackend.ImageNeeded;
+begin
+
+end;
+
+procedure TLCLBackend.CheckPixmap;
+begin
+
+end;
+
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
+  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  i: Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      with AInvalidRects[i]^ do
+        Windows.BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
+  else
+    with APaintBox.GetViewportRect do
+      Windows.BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
+end;
+
+
+{ IFontSupport }
+
+function TLCLBackend.GetOnFontChange: TNotifyEvent;
+begin
+  Result := FOnFontChange;
+end;
+
+function TLCLBackend.GetFont: TFont;
+begin
+  Result := FFont;
+end;
+
+procedure TLCLBackend.SetFont(const Font: TFont);
+begin
+  FFont.Assign(Font);
+  FontChanged;
+end;
+
+procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);
+begin
+  FOnFontChange := Handler;
+end;
+
+procedure TLCLBackend.UpdateFont;
+begin
+  if (FFontHandle = 0) and (Handle <> 0) then
+  begin
+    SelectObject(Handle, Font.Handle);
+    SetTextColor(Handle, ColorToRGB(Font.Color));
+    SetBkMode(Handle, TRANSPARENT);
+    FFontHandle := Font.Handle;
+  end
+  else
+  begin
+    SelectObject(Handle, FFontHandle);
+    SetTextColor(Handle, ColorToRGB(Font.Color));
+    SetBkMode(Handle, TRANSPARENT);
+  end;
 end;
 
 procedure TLCLBackend.FontChanged;
 begin
   if Assigned(FOnFontChange) then
     FOnFontChange(Self);
+end;
+
+procedure TLCLBackend.FontChangedHandler(Sender: TObject);
+begin
+  if FFontHandle <> 0 then
+  begin
+    if Handle <> 0 then SelectObject(Handle, StockFont);
+    FFontHandle := 0;
+  end;
+
+  FontChanged;
+end;
+
+
+{ ITextSupport }
+
+procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
+var
+  Extent: TSize;
+begin
+  UpdateFont;
+
+  if not FOwner.MeasuringMode then
+  begin
+    if FOwner.Clipping then
+      ExtTextout(Handle, X, Y, ETO_CLIPPED, @FOwner.ClipRect, PChar(Text), Length(Text), nil)
+    else
+      ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
+  end;
+
+  Extent := TextExtent(Text);
+  FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
+end;
+
+procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
+var
+  Extent: TSize;
+begin
+  UpdateFont;
+
+  if not FOwner.MeasuringMode then
+    ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+
+  Extent := TextExtent(Text);
+  FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
+end;
+
+procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
+begin
+  UpdateFont;
+
+  if not FOwner.MeasuringMode then
+    DrawText(Handle, PChar(Text), Length(Text), DstRect, Flags);
+
+  FOwner.Changed(DstRect);
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
@@ -322,49 +442,6 @@ begin
       StockBitmap.Canvas.Unlock;
     end;
   end;
-end;
-
-function TLCLBackend.TextExtentW(const Text: Widestring): TSize;
-var
-  DC: HDC;
-  OldFont: HGDIOBJ;
-begin
-  UpdateFont;
-  Result.cX := 0;
-  Result.cY := 0;
-
-  if Handle <> 0 then
-    GetTextExtentPoint32W(Handle, PWideChar(Text), Length(Text), Result)
-  else
-  begin
-    StockBitmap.Canvas.Lock;
-    try
-      DC := StockBitmap.Canvas.Handle;
-      OldFont := SelectObject(DC, Font.Handle);
-      GetTextExtentPoint32W(DC, PWideChar(Text), Length(Text), Result);
-      SelectObject(DC, OldFont);
-    finally
-      StockBitmap.Canvas.Unlock;
-    end;
-  end;
-end;
-
-procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
-var
-  Extent: TSize;
-begin
-  UpdateFont;
-
-  if not FOwner.MeasuringMode then
-  begin
-    if FOwner.Clipping then
-      ExtTextout(Handle, X, Y, ETO_CLIPPED, @FOwner.ClipRect, PChar(Text), Length(Text), nil)
-    else
-      ExtTextout(Handle, X, Y, 0, nil, PChar(Text), Length(Text), nil);
-  end;
-
-  Extent := TextExtent(Text);
-  FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
 procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
@@ -398,19 +475,6 @@ begin
   FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
 end;
 
-procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
-var
-  Extent: TSize;
-begin
-  UpdateFont;
-
-  if not FOwner.MeasuringMode then
-    ExtTextout(Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
-
-  Extent := TextExtent(Text);
-  FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
-end;
-
 procedure TLCLBackend.TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
 begin
   UpdateFont;
@@ -421,22 +485,33 @@ begin
   FOwner.Changed(DstRect);
 end;
 
-procedure TLCLBackend.UpdateFont;
+function TLCLBackend.TextExtentW(const Text: Widestring): TSize;
+var
+  DC: HDC;
+  OldFont: HGDIOBJ;
 begin
-  if (FFontHandle = 0) and (Handle <> 0) then
-  begin
-    SelectObject(Handle, Font.Handle);
-    SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, TRANSPARENT);
-    FFontHandle := Font.Handle;
-  end
+  UpdateFont;
+  Result.cX := 0;
+  Result.cY := 0;
+
+  if Handle <> 0 then
+    GetTextExtentPoint32W(Handle, PWideChar(Text), Length(Text), Result)
   else
   begin
-    SelectObject(Handle, FFontHandle);
-    SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, TRANSPARENT);
+    StockBitmap.Canvas.Lock;
+    try
+      DC := StockBitmap.Canvas.Handle;
+      OldFont := SelectObject(DC, Font.Handle);
+      GetTextExtentPoint32W(DC, PWideChar(Text), Length(Text), Result);
+      SelectObject(DC, OldFont);
+    finally
+      StockBitmap.Canvas.Unlock;
+    end;
   end;
 end;
+
+
+{ ITextToPathSupport }
 
 procedure TLCLBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat;
   const Text: WideString);
@@ -457,16 +532,6 @@ function TLCLBackend.MeasureText(const DstRect: TFloatRect;
   const Text: WideString; Flags: Cardinal): TFloatRect;
 begin
   Result := GR32_Text_LCL_Win.MeasureText(Font.Handle, DstRect, Text, Flags);
-end;
-
-procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
-begin
-  UpdateFont;
-
-  if not FOwner.MeasuringMode then
-    DrawText(Handle, PChar(Text), Length(Text), DstRect, Flags);
-
-  FOwner.Changed(DstRect);
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
@@ -497,6 +562,41 @@ begin
   Result := FBitmapInfo;
 end;
 
+
+{ IInteroperabilitySupport }
+
+type
+  TGraphicAccess = class(TGraphic);
+
+function TLCLBackend.CopyFrom(Graphic: TGraphic): Boolean;
+begin
+  TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Canvas.Width, Canvas.Height));
+end;
+
+
+{ ICanvasSupport }
+
+procedure TLCLBackend.DeleteCanvas;
+begin
+  if Assigned(FCanvas) then
+  begin
+    FCanvas.Handle := 0;
+    FCanvas.Free;
+    FCanvas := nil;
+  end;
+end;
+
+function TLCLBackend.CanvasAllocated: Boolean;
+begin
+  Result := Assigned(FCanvas);
+end;
+
+procedure TLCLBackend.CanvasChanged;
+begin
+  if Assigned(FOnCanvasChange) then
+    FOnCanvasChange(Self);
+end;
+
 function TLCLBackend.GetCanvas: TCanvas;
 begin
   if not Assigned(FCanvas) then
@@ -513,35 +613,22 @@ begin
   Result := FOnCanvasChange;
 end;
 
-function TLCLBackend.GetFont: TFont;
+procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
 begin
-  Result := FFont;
+  CanvasChanged;
 end;
+
+
+{ IDeviceContextSupport }
 
 function TLCLBackend.GetHandle: HDC;
 begin
   Result := FHDC;
 end;
 
-function TLCLBackend.GetOnFontChange: TNotifyEvent;
-begin
-  Result := FOnFontChange;
-end;
-
 procedure TLCLBackend.SetCanvasChange(Handler: TNotifyEvent);
 begin
   FOnCanvasChange := Handler;
-end;
-
-procedure TLCLBackend.SetFont(const Font: TFont);
-begin
-  FFont.Assign(Font);
-  FontChanged;
-end;
-
-procedure TLCLBackend.SetOnFontChange(Handler: TNotifyEvent);
-begin
-  FOnFontChange := Handler;
 end;
 
 procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
@@ -554,58 +641,6 @@ begin
       SrcRect.Right - SrcRect.Left, SrcRect.Bottom - SrcRect.Top, SRCCOPY);
 
   FOwner.Changed(DstRect);
-end;
-
-function TLCLBackend.CanvasAllocated: Boolean;
-begin
-  Result := Assigned(FCanvas);
-end;
-
-function TLCLBackend.Empty: Boolean;
-begin
-  Result := FBitmapHandle = 0;
-end;
-
-procedure TLCLBackend.FontChangedHandler(Sender: TObject);
-begin
-  if FFontHandle <> 0 then
-  begin
-    if Handle <> 0 then SelectObject(Handle, StockFont);
-    FFontHandle := 0;
-  end;
-
-  FontChanged;
-end;
-
-procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
-begin
-  CanvasChanged;
-end;
-
-{ IPaintSupport }
-
-procedure TLCLBackend.ImageNeeded;
-begin
-
-end;
-
-procedure TLCLBackend.CheckPixmap;
-begin
-
-end;
-
-procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
-  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-var
-  i: Integer;
-begin
-  if AInvalidRects.Count > 0 then
-    for i := 0 to AInvalidRects.Count - 1 do
-      with AInvalidRects[i]^ do
-        Windows.BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY)
-  else
-    with APaintBox.GetViewportRect do
-      Windows.BitBlt(ACanvas.Handle, Left, Top, Right - Left, Bottom - Top, ABuffer.Handle, Left, Top, SRCCOPY);
 end;
 
 
@@ -649,8 +684,8 @@ begin
   end;
 end;
 
-procedure TLCLMemoryBackend.InitializeSurface(NewWidth, NewHeight: Integer;
-  ClearBuffer: Boolean);
+procedure TLCLMemoryBackend.InitializeSurface(NewWidth: Integer;
+  NewHeight: Integer; ClearBuffer: Boolean);
 begin
   inherited;
   with FBitmapInfo.bmiHeader do
@@ -659,6 +694,9 @@ begin
     biHeight := -NewHeight;
   end;
 end;
+
+
+{ IPaintSupport }
 
 procedure TLCLMemoryBackend.ImageNeeded;
 begin
@@ -713,6 +751,29 @@ begin
   raise Exception.Create('"SetDIBitsToDevice" is only included in windows unit!')
   {$ENDIF}
 end;
+
+procedure TLCLMemoryBackend.DoPaint(ABuffer: TBitmap32;
+  AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  i : Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      DoPaintRect(ABuffer, AInvalidRects[i]^, ACanvas)
+  else
+    DoPaintRect(ABuffer, APaintBox.GetViewportRect, ACanvas);
+end;
+
+
+{ IInteroperabilitySupport }
+
+function TLCLMemoryBackend.CopyFrom(Graphic: TGraphic): Boolean;
+begin
+  // yet todo
+end;
+
+
+{ IDeviceContextSupport }
 
 procedure TLCLMemoryBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
@@ -815,18 +876,6 @@ end;
 function TLCLMemoryBackend.GetHandle: HDC;
 begin
   Result := 0;
-end;
-
-procedure TLCLMemoryBackend.DoPaint(ABuffer: TBitmap32;
-  AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-var
-  i : Integer;
-begin
-  if AInvalidRects.Count > 0 then
-    for i := 0 to AInvalidRects.Count - 1 do
-      DoPaintRect(ABuffer, AInvalidRects[i]^, ACanvas)
-  else
-    DoPaintRect(ABuffer, APaintBox.GetViewportRect, ACanvas);
 end;
 
 initialization

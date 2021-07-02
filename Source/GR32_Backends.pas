@@ -93,6 +93,11 @@ type
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
   end;
 
+  IInteroperabilitySupport = interface(IUnknown)
+  ['{B86229E8-228F-4FDA-A47D-2E9BD9F78D1E}']
+    function CopyFrom(Graphic: TGraphic): Boolean; overload;
+  end;
+
   IDeviceContextSupport = interface(IUnknown)
   ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
     function GetHandle: HDC;

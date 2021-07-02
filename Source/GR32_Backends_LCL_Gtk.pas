@@ -52,8 +52,9 @@ type
 
   { TLCLBackend }
 
-  TLCLBackend = class(TCustomBackend,
-    IPaintSupport, ITextSupport, IFontSupport, ICanvasSupport)
+  TLCLBackend = class(TCustomBackend, IPaintSupport, ITextSupport,
+    IFontSupport, ICanvasSupport, IDeviceContextSupport,
+    IInteroperabilitySupport)
   private
     FFont: TFont;
     FCanvas: TCanvas;
@@ -124,6 +125,9 @@ type
 
     property Font: TFont read GetFont write SetFont;
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
+
+    { IInteroperabilitySupport }
+    function CopyFrom(Graphic: TGraphic): Boolean; overload;
 
     { ICanvasSupport }
     function GetCanvasChange: TNotifyEvent;
@@ -414,6 +418,17 @@ begin
   FFont.OnChange := FOnFontChange;
 
   if Assigned(FCanvas) then FCanvas.Font := FFont;
+end;
+
+
+{ IInteroperabilitySupport }
+
+type
+  TGraphicAccess = class(TGraphic);
+
+function TLCLBackend.CopyFrom(Graphic: TGraphic): Boolean;
+begin
+  TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, FCanvas.Width, FCanvas.Height));
 end;
 
 
