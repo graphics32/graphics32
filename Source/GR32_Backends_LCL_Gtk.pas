@@ -53,11 +53,9 @@ type
   { TLCLBackend }
 
   TLCLBackend = class(TCustomBackend,
-    IPaintSupport, ITextSupport, IFontSupport, ICanvasSupport)
+    IDeviceContextSupport, IPaintSupport, ITextSupport, IFontSupport, ICanvasSupport)
   private
     FFont: TFont;
-    FCanvas: TCanvas;
-    FCanvasHandle: TGtkDeviceContext;
     FOnFontChange: TNotifyEvent;
     FOnCanvasChange: TNotifyEvent;
 
@@ -67,19 +65,11 @@ type
 
     procedure CanvasChangedHandler(Sender: TObject);
   protected
-    FFontHandle: HFont;
-    FBitmapInfo: TBitmapInfo;
-    FHDC: HDC;
-
     { BITS_GETTER }
     function GetBits: PColor32Array; override;
 
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
-
-    procedure WidgetSetStretchDrawRGB32Bitmap(Dest: HDC; DstX, DstY, DstWidth,
-      DstHeight: Integer; SrcX, SrcY, SrcWidth, SrcHeight: Integer;
-      SrcBitmap: TBitmap32);
 
     procedure CanvasChanged;
   public
@@ -143,15 +133,12 @@ implementation
 uses
   GR32_LowLevel;
 
-resourcestring
-  RCStrCannotAllocateMemory = 'Can''t allocate memory for the DIB';
-  RCStrCannotAllocateThePixBuf = 'Can''t allocate the Pixbuf';
-
 { TLCLBackend }
 
 constructor TLCLBackend.Create;
 begin
   inherited;
+
   FBitmap := TBitmap.Create;
   FBitmap.Canvas.OnChange := CanvasChangedHandler;
   FFont := TFont.Create;
@@ -183,11 +170,9 @@ end;
 
 procedure TLCLBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 var
-  CDBitmap: TBitmap;
   LazImage: TLazIntfImage;
 begin
   { We allocate our own memory for the image }
-
   FRawImage.Description.Init_BPP32_B8G8R8A8_BIO_TTB(NewWidth, NewHeight);
 
   FRawImage.CreateData(ClearBuffer);
@@ -197,18 +182,13 @@ begin
     raise Exception.Create('[TLCLBackend.InitializeSurface] ERROR FBits = nil');
 
   LazImage := TLazIntfImage.Create(FRawImage, False);
+  try
+    FBitmap.LoadFromIntfImage(LazImage);
 
-  if FBitmap=nil then
-   begin
-     FBitmap := TBitmap.Create;
-   end;
-
-  FBitmap.LoadFromIntfImage(LazImage);
-
-  FWidth := NewWidth;
-  FHeight := NewHeight;
-
-  LazImage.Free;
+    FWidth := NewWidth;
+    FHeight := NewHeight;
+  finally
+  end;
 end;
 
 procedure TLCLBackend.FinalizeSurface;
@@ -218,7 +198,7 @@ begin
     FRawImage.FreeData;
     FBits := nil;
 
-    FBitmap.Handle := HBITMAP(0);
+    FBitmap.ReleaseHandle;
   end;
   FBits := nil;
 end;
@@ -245,29 +225,17 @@ begin
   // empty by purpose
 end;
 
-procedure TLCLBackend.WidgetSetStretchDrawRGB32Bitmap(Dest: HDC;
-  DstX, DstY, DstWidth, DstHeight: Integer;
-  SrcX, SrcY, SrcWidth, SrcHeight: Integer; SrcBitmap: TBitmap32);
+procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
+  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 var
   P: TPoint;
 begin
-  P := TGtkDeviceContext(Dest).Offset;
+  P := TGtkDeviceContext(ACanvas.Handle).Offset;
 
-  Inc(DstX, P.X);
-  Inc(DstY, P.Y);
-
-  gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable,
-    TGtkDeviceContext(Dest).GC, DstX, DstY, SrcWidth, SrcHeight,
-    GDK_RGB_DITHER_NONE, pguchar(SrcBitmap.Bits), SrcBitmap.Width * 4
-  );
-end;
-
-procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
-  ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-begin
-  WidgetSetStretchDrawRGB32Bitmap(ACanvas.Handle,
-    0, 0, ABuffer.Width, ABuffer.Height,
-    0, 0, ABuffer.Width, ABuffer.Height, ABuffer
+  gdk_draw_rgb_32_image(TGtkDeviceContext(ACanvas.Handle).Drawable,
+    TGtkDeviceContext(ACanvas.Handle).GC, P.X, P.Y,
+    ABuffer.Width, ABuffer.Height,
+    GDK_RGB_DITHER_NONE, pguchar(ABuffer.Bits), ABuffer.Width * 4
   );
 end;
 
@@ -325,30 +293,24 @@ end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
-  if not Assigned(FCanvas) then GetCanvas;
-
   UpdateFont;
 
-  if FCanvas = nil then exit;
-
   if not FOwner.MeasuringMode then
-    FCanvas.TextOut(X, Y, Text);
+    Canvas.TextOut(X, Y, Text);
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
-  if not Assigned(FCanvas) then GetCanvas;
-
   UpdateFont;
 
-  LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
 end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   UpdateFont;
 
-  LCLIntf.DrawText(FCanvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
+  LCLIntf.DrawText(Canvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
@@ -356,13 +318,9 @@ begin
   Result.cx := 0;
   Result.cy := 0;
 
-  if not Assigned(FCanvas) then GetCanvas;
-
   UpdateFont;
 
-  if FCanvas = nil then exit;
-
-  Result := FCanvas.TextExtent(Text);
+  Result := Canvas.TextExtent(Text);
 end;
 
 procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
@@ -413,7 +371,7 @@ procedure TLCLBackend.UpdateFont;
 begin
   FFont.OnChange := FOnFontChange;
 
-  if Assigned(FCanvas) then FCanvas.Font := FFont;
+  Canvas.Font := FFont;
 end;
 
 
@@ -431,31 +389,16 @@ end;
 
 function TLCLBackend.GetCanvas: TCanvas;
 begin
-  if not Assigned(FCanvas) then
-  begin
-    FCanvas := TCanvas.Create;
-
-    FCanvasHandle := TGtkDeviceContext.Create;
-
-    FCanvas.Handle := HDC(FCanvasHandle);
-    FCanvas.OnChange := CanvasChangedHandler;
-  end;
-  Result := FCanvas;
+  Result := FBitmap.Canvas;
 end;
 
 procedure TLCLBackend.DeleteCanvas;
 begin
-  if Assigned(FCanvas) then
-  begin
-    FCanvas.Handle := 0;
-    FCanvas.Free;
-    FCanvas := nil;
-  end;
 end;
 
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
-  Result := Assigned(FCanvas);
+  Result := Canvas <> nil;
 end;
 
 end.
