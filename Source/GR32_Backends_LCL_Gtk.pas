@@ -57,8 +57,6 @@ type
     IInteroperabilitySupport)
   private
     FFont: TFont;
-    FCanvas: TCanvas;
-    FCanvasHandle: TGtkDeviceContext;
     FOnFontChange: TNotifyEvent;
     FOnCanvasChange: TNotifyEvent;
 
@@ -77,10 +75,6 @@ type
 
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
-
-    procedure WidgetSetStretchDrawRGB32Bitmap(Dest: HDC; DstX, DstY, DstWidth,
-      DstHeight: Integer; SrcX, SrcY, SrcWidth, SrcHeight: Integer;
-      SrcBitmap: TBitmap32);
 
     procedure CanvasChanged;
   public
@@ -241,6 +235,8 @@ end;
 
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+var
+  P: TPoint;
 begin
   P := TGtkDeviceContext(ACanvas.Handle).Offset;
 
@@ -305,30 +301,24 @@ end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
-  if not Assigned(FCanvas) then GetCanvas;
-
   UpdateFont;
 
-  if FCanvas = nil then exit;
-
   if not FOwner.MeasuringMode then
-    FCanvas.TextOut(X, Y, Text);
+    Canvas.TextOut(X, Y, Text);
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
-  if not Assigned(FCanvas) then GetCanvas;
-
   UpdateFont;
 
-  LCLIntf.ExtTextOut(FCanvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
 end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   UpdateFont;
 
-  LCLIntf.DrawText(FCanvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
+  LCLIntf.DrawText(Canvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
@@ -336,13 +326,9 @@ begin
   Result.cx := 0;
   Result.cy := 0;
 
-  if not Assigned(FCanvas) then GetCanvas;
-
   UpdateFont;
 
-  if FCanvas = nil then exit;
-
-  Result := FCanvas.TextExtent(Text);
+  Result := Canvas.TextExtent(Text);
 end;
 
 procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
@@ -392,8 +378,7 @@ end;
 procedure TLCLBackend.UpdateFont;
 begin
   FFont.OnChange := FOnFontChange;
-
-  if Assigned(FCanvas) then FCanvas.Font := FFont;
+  Canvas.Font := FFont;
 end;
 
 
@@ -404,7 +389,7 @@ type
 
 function TLCLBackend.CopyFrom(Graphic: TGraphic): Boolean;
 begin
-  TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, FCanvas.Width, FCanvas.Height));
+  TGraphicAccess(Graphic).Draw(Canvas, MakeRect(0, 0, Canvas.Width, Canvas.Height));
 end;
 
 
@@ -422,31 +407,16 @@ end;
 
 function TLCLBackend.GetCanvas: TCanvas;
 begin
-  if not Assigned(FCanvas) then
-  begin
-    FCanvas := TCanvas.Create;
-
-    FCanvasHandle := TGtkDeviceContext.Create;
-
-    FCanvas.Handle := HDC(FCanvasHandle);
-    FCanvas.OnChange := CanvasChangedHandler;
-  end;
-  Result := FCanvas;
+  Result := FBitmap.Canvas;
 end;
 
 procedure TLCLBackend.DeleteCanvas;
 begin
-  if Assigned(FCanvas) then
-  begin
-    FCanvas.Handle := 0;
-    FCanvas.Free;
-    FCanvas := nil;
-  end;
 end;
 
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
-  Result := Assigned(FCanvas);
+  Result := Canvas <> nil;
 end;
 
 end.
