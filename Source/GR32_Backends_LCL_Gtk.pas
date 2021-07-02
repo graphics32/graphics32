@@ -147,10 +147,6 @@ implementation
 uses
   GR32_LowLevel;
 
-resourcestring
-  RCStrCannotAllocateMemory = 'Can''t allocate memory for the DIB';
-  RCStrCannotAllocateThePixBuf = 'Can''t allocate the Pixbuf';
-
 { TLCLBackend }
 
 constructor TLCLBackend.Create;
@@ -187,11 +183,9 @@ end;
 
 procedure TLCLBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 var
-  CDBitmap: TBitmap;
   LazImage: TLazIntfImage;
 begin
   { We allocate our own memory for the image }
-
   FRawImage.Description.Init_BPP32_B8G8R8A8_BIO_TTB(NewWidth, NewHeight);
 
   FRawImage.CreateData(ClearBuffer);
@@ -201,18 +195,14 @@ begin
     raise Exception.Create('[TLCLBackend.InitializeSurface] ERROR FBits = nil');
 
   LazImage := TLazIntfImage.Create(FRawImage, False);
+  try
+    FBitmap.LoadFromIntfImage(LazImage);
 
-  if FBitmap=nil then
-   begin
-     FBitmap := TBitmap.Create;
-   end;
-
-  FBitmap.LoadFromIntfImage(LazImage);
-
-  FWidth := NewWidth;
-  FHeight := NewHeight;
-
-  LazImage.Free;
+    FWidth := NewWidth;
+    FHeight := NewHeight;
+  finally
+    LazImage.Free;
+  end;
 end;
 
 procedure TLCLBackend.FinalizeSurface;
@@ -222,7 +212,7 @@ begin
     FRawImage.FreeData;
     FBits := nil;
 
-    FBitmap.Handle := HBITMAP(0);
+    FBitmap.ReleaseHandle;
   end;
   FBits := nil;
 end;
@@ -249,29 +239,15 @@ begin
   // empty by purpose
 end;
 
-procedure TLCLBackend.WidgetSetStretchDrawRGB32Bitmap(Dest: HDC;
-  DstX, DstY, DstWidth, DstHeight: Integer;
-  SrcX, SrcY, SrcWidth, SrcHeight: Integer; SrcBitmap: TBitmap32);
-var
-  P: TPoint;
-begin
-  P := TGtkDeviceContext(Dest).Offset;
-
-  Inc(DstX, P.X);
-  Inc(DstY, P.Y);
-
-  gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable,
-    TGtkDeviceContext(Dest).GC, DstX, DstY, SrcWidth, SrcHeight,
-    GDK_RGB_DITHER_NONE, pguchar(SrcBitmap.Bits), SrcBitmap.Width * 4
-  );
-end;
-
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 begin
-  WidgetSetStretchDrawRGB32Bitmap(ACanvas.Handle,
-    0, 0, ABuffer.Width, ABuffer.Height,
-    0, 0, ABuffer.Width, ABuffer.Height, ABuffer
+  P := TGtkDeviceContext(ACanvas.Handle).Offset;
+
+  gdk_draw_rgb_32_image(TGtkDeviceContext(ACanvas.Handle).Drawable,
+    TGtkDeviceContext(ACanvas.Handle).GC, P.X, P.Y,
+    ABuffer.Width, ABuffer.Height,
+    GDK_RGB_DITHER_NONE, pguchar(ABuffer.Bits), ABuffer.Width * 4
   );
 end;
 
