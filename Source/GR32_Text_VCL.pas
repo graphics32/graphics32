@@ -117,6 +117,8 @@ var
   CurvePtr: PTTPolyCurve;
   P1, P2, P3: TFloatPoint;
 begin
+  Result := False;
+
   Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
     0, nil, VertFlip_mat2);
   if (Res = 0) then Exit;
