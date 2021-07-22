@@ -714,7 +714,9 @@ type
     procedure SetPenPos(const Value: TPoint);
     function GetPenPosF: TFixedPoint;
     procedure SetPenPosF(const Value: TFixedPoint);
+{$IFDEF RGBA_FORMAT}
     procedure SwapRB;
+{$ENDIF}
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -2929,6 +2931,7 @@ begin
   MoveTo(Value.X, Value.Y);
 end;
 
+{$IFDEF RGBA_FORMAT}
 procedure TCustomBitmap32.SwapRB;
 var
   Index : Integer;
@@ -2941,6 +2944,7 @@ begin
     TColor32Entry(FBits[Index]).B := Temp;
   end;
 end;
+{$ENDIF}
 
 procedure TCustomBitmap32.SetPixel(X, Y: Integer; Value: TColor32);
 begin
@@ -5878,7 +5882,7 @@ begin
         if (BitmapHeader.InfoHeader.biHeight > 0) then
         begin
           // Bitmap is stored bottom-up: Read one row at a time
-          ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
+          // ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
           for i := Height - 1 downto 0 do
             for j := 0 to Width - 1 do
             begin
@@ -5890,7 +5894,7 @@ begin
         else
         begin
           // Bitmap is stored top-down: Read one row at a time
-          ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
+          // ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
           for i := 0 to Height - 1 do
             for j := 0 to Width - 1 do
             begin
@@ -7017,7 +7021,7 @@ begin
     lfCharSet := Byte(Font.Charset);
 
     if AnsiCompareText(Font.Name, 'Default') = 0 then  // do not localize
-      StrPLCopy(lfFaceName, DefFontData.Name, LF_FACESIZE-1)
+      StrPLCopy(lfFaceName, string(DefFontData.Name), LF_FACESIZE-1)
     else
       StrPLCopy(lfFaceName, Font.Name, LF_FACESIZE-1);
 
