@@ -1687,17 +1687,27 @@ end;
 
 procedure TRadialDistortionTransformation.PrepareReverseMap;
 var
-  i, j, jmax, unset, LowerI, UpperI, interpolated, mapToSameIndex, IndexOutOfRange: Integer;
-  r_src, r_tgt, LowerValue, UpperValue: TFloat;
+  i, j, LowerI, UpperI: Integer;
+{$IFDEF DEBUG}
+  interpolated: Integer;
+  unset: Integer;
+  jmax: Integer;
+  mapToSameIndex, IndexOutOfRange: Integer;
+   r_src, r_tgt: TFloat;
+{$ENDIF}
+ LowerValue, UpperValue: TFloat;
 begin
   if MapElements <= 1 then
     MapElements := Trunc(r_0);
+
   r_tgt_max := 2;
   r_tgt_min := -0.5;
+
   SetLength(Map, MapElements);
   for i := 0 to High(Map) do
     Map[i] := -1;
 
+{$IFDEF DEBUG}
   jmax := 1000;
   mapToSameIndex := 0;
   IndexOutOfRange := 0;
@@ -1710,7 +1720,7 @@ begin
     if not InRange(i, 0, High(Map)) then
     begin
       Inc(IndexOutOfRange);
-      //OutputDebugString(PChar(Format('PrepareReverseMap: i=%d out of range (0, MapElements=%d), r_tgt=%f', [ i, MapElements, r_tgt ])))
+      // OutputDebugString(PChar(Format('PrepareReverseMap: i=%d out of range (0, MapElements=%d), r_tgt=%f', [ i, MapElements, r_tgt ])))
     end
     else
     if Map[i]<>-1 then
@@ -1728,12 +1738,15 @@ begin
     if Map[i] = -1 then
       Inc(unset);
   end;
+{$ENDIF}
 
   // linear interpolation where Map[i] == -1 (but no extrapolation)
   i := 0;
   LowerI := -1;
   LowerValue := -1;
+{$IFDEF DEBUG}
   interpolated := 0;
+{$ENDIF}
   repeat
     if Map[i] = -1 then
     begin
@@ -1748,7 +1761,9 @@ begin
           for j := LowerI+1 to UpperI-1 do
           begin
             Map[j] := LowerValue + (UpperValue-LowerValue) * (j-LowerI) / (UpperI - LowerI);
+{$IFDEF DEBUG}
             Inc(interpolated);
+{$ENDIF}
           end;
         end;
       end;
@@ -1772,9 +1787,9 @@ begin
       Map[i] := 1;
   end;
 {$IFDEF DEBUG}
-{$IFDEF COMPILER2009_UP}
+  {$IFDEF COMPILER2009_UP}
   OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
-{$ENDIF}
+  {$ENDIF}
 {$ENDIF}
 end;
 
