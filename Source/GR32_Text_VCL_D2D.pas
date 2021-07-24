@@ -306,7 +306,7 @@ var
   CharWidths: TArrayOfInteger;
   X, Y, XMax, YMax, MaxRight: Single;
   S: WideString;
-  UseTempPath: Boolean;
+  // UseTempPath: Boolean;
   TextPath: TFlattenedPath;
   OwnedPath: TFlattenedPath;
   EmSize, PixelPerDip: Single;
