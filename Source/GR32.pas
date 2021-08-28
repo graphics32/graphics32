@@ -1623,39 +1623,40 @@ end;
 
 function HSVtoRGB(H, S, V: Single): TColor32;
 var
-  Tmp: TFloat;
+  Fraction: Single;
   Sel, Q, P: Integer;
 begin
   V := 255 * V;
+
   if S = 0 then
   begin
     Result := Gray32(Trunc(V));
     Exit;
-  end;  
+  end;
 
-  H := H - Floor(H);
-  Tmp := 6 * H - Floor(6 * H);
+  H := (H - Floor(H)) * 6; // 0 <= H < 6
+  Fraction := H - Floor(H);
 
-  Sel := Trunc(6 * H);
+  Sel := Trunc(H);
   if (Sel mod 2) = 0 then
-    Tmp := 1 - Tmp;
+    Fraction := 1 - Fraction;
 
-  Q := Trunc(V * (1 - S));
-  P := Trunc(V * (1 - S * Tmp));
+  P := Round(V * (1 - S));
+  Q := Round(V * (1 - S * Fraction));
 
   case Sel of
     0:
-      Result := Color32(Trunc(V), P, Q);
-    1:
-      Result := Color32(P, Trunc(V), Q);
-    2:
-      Result := Color32(Q, Trunc(V), P);
-    3:
-      Result := Color32(Q, P, Trunc(V));
-    4:
-      Result := Color32(P, Q, Trunc(V));
-    5:
       Result := Color32(Trunc(V), Q, P);
+    1:
+      Result := Color32(Q, Trunc(V), P);
+    2:
+      Result := Color32(P, Trunc(V), Q);
+    3:
+      Result := Color32(P, Q, Trunc(V));
+    4:
+      Result := Color32(Q, P, Trunc(V));
+    5:
+      Result := Color32(Trunc(V), P, Q);
   else
     Result := Gray32(0);
   end;
@@ -1663,7 +1664,7 @@ end;
 
 procedure RGBToHSV(Color: TColor32; out H, S, V: Single);
 var
-  Delta, Min, Max: Single;
+  Delta, RGBMin, RGBMax: integer;
   R, G, B: Integer;
 const
   COneSixth = 1 / 6;
@@ -1672,25 +1673,27 @@ begin
   G := GreenComponent(Color);
   B := BlueComponent(Color);
 
-  Min := MinIntValue([R, G, B]);
-  Max := MaxIntValue([R, G, B]);
-  V := Max / 255;
+  RGBMin := Min(R, Min(G, B));
+  RGBMax := Max(R, Max(G, B));
+  V := RGBMax * COne255th;
 
-  Delta := Max - Min;
-  if Max = 0 then
+  Delta := RGBMax - RGBMin;
+  if RGBMax = 0 then
     S := 0
   else
-    S := Delta / Max;
+    S := Delta / RGBMax;
 
   if S = 0.0 then
     H := 0
   else
   begin
-    if R = Max then
+    if R = RGBMax then
       H := COneSixth * (G - B) / Delta
-    else if G = Max then
+    else
+    if G = RGBMax then
       H := COneSixth * (2 + (B - R) / Delta)
-    else if B = Max then
+    else
+    if B = RGBMax then
       H := COneSixth * (4 + (R - G) / Delta);
 
     if H < 0.0 then
