@@ -125,7 +125,6 @@ type
   TVisualAidRenderType = (vatSolid, vatInvert, vatBW);
 
   TAdjustCalc = procedure (X, Y: Single) of object;
-  TPreserveComponent = set of (pcHue, pcSaturation, pcLuminance, pcValue);
 
   TVisualAidOptions = class(TPersistent)
   private
@@ -155,7 +154,6 @@ type
     FAdjustCalc: TAdjustCalc;
     FSelectedColor: TColor32;
     FBufferValid: Boolean;
-    FPreserveComponent: TPreserveComponent;
     FVisualAidOptions: TVisualAidOptions;
     FWebSafe: Boolean;
     FBorder: Boolean;
@@ -239,11 +237,13 @@ type
   private
     FHue: Single;
     FSaturation: Single;
+    FLockValues: integer;
     FMarkerType: TMarkerType;
     procedure PickHue(X, Y: Single);
     procedure SetHue(const Value: Single);
     procedure SetSaturation(const Value: Single);
     procedure SetMarkerType(const Value: TMarkerType);
+    procedure ApplyHS;
   protected
     procedure PaintColorPicker; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
@@ -260,12 +260,13 @@ type
 
   TCustomColorPickerHSV = class(TCustomColorPicker)
   private
-    FCenter: TFloatPoint;
     FHue: Single;
-    FRadius: TFloat;
-    FCircleSteps: Integer;
     FSaturation: Single;
     FValue: Single;
+    FLockValues: integer;
+    FCenter: TFloatPoint;
+    FRadius: TFloat;
+    FCircleSteps: Integer;
     FVisualAid: TVisualAid;
     procedure PickHue(X, Y: Single);
     procedure PickValue(X, Y: Single);
@@ -273,6 +274,7 @@ type
     procedure SetSaturation(const Value: Single);
     procedure SetValue(const Value: Single);
     procedure SetVisualAid(const Value: TVisualAid);
+    procedure ApplyHSV;
   protected
     procedure PaintColorPicker; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
@@ -296,13 +298,14 @@ type
 
   TCustomColorPickerGTK = class(TCustomColorPicker)
   private
-    FCenter: TFloatPoint;
     FHue: Single;
+    FSaturation: Single;
+    FValue: Single;
+    FLockValues: integer;
+    FCenter: TFloatPoint;
     FRadius: TFloat;
     FInnerRadius: TFloat;
     FCircleSteps: Integer;
-    FSaturation: Single;
-    FValue: Single;
     FVisualAid: TVisualAidGTK;
     procedure PickHue(X, Y: Single);
     procedure PickSaturationValue(X, Y: Single);
@@ -311,6 +314,7 @@ type
     procedure SetValue(const Value: Single);
     procedure SetVisualAid(const Value: TVisualAidGTK);
     procedure SetRadius(const Value: TFloat);
+    procedure ApplyHSV;
   protected
     procedure PaintColorPicker; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
@@ -884,7 +888,6 @@ begin
 
   ControlStyle := ControlStyle + [csOpaque];
   FBuffer := TBitmap32.Create;
-  FPreserveComponent := [];
   FSelectedColor := clSalmon32;
   FVisualAidOptions := TVisualAidOptions.Create(Self);
 end;
@@ -1511,24 +1514,38 @@ begin
   end;
 end;
 
+procedure TCustomColorPickerHS.ApplyHS;
+var
+  H, S, L: Single;
+begin
+  RGBtoHSL(FSelectedColor, H, S, L);
+
+  Inc(FLockValues);
+  try
+    SelectedColor := HSLtoRGB(FHue, FSaturation, L, SelectedColor shr 24);
+  finally
+    Dec(FLockValues);
+  end;
+end;
+
 procedure TCustomColorPickerHS.PickHue(X, Y: Single);
 begin
   FHue := EnsureRange(X / FBuffer.Width, 0, 1);
   FSaturation := EnsureRange(1 - Y / FBuffer.Height, 0, 1);
-  SelectedColor := SetAlpha(HSLtoRGB(FHue, FSaturation, 0.5), SelectedColor shr 24);
+  ApplyHS;
 end;
 
 procedure TCustomColorPickerHS.SelectedColorChanged;
 var
   H, S, L: Single;
 begin
-  RGBtoHSL(FSelectedColor, H, S, L);
-  if not (pcHue in FPreserveComponent) then
-    FHue := H;
-  if not (pcSaturation in FPreserveComponent) then
-    FSaturation := S;
+  if (FLockValues = 0) then
+  begin
+    RGBtoHSL(FSelectedColor, H, S, L);
 
-  FPreserveComponent := [];
+    FHue := H;
+    FSaturation := S;
+  end;
 
   inherited;
 end;
@@ -1538,8 +1555,7 @@ begin
   if FHue <> Value then
   begin
     FHue := Value;
-    FPreserveComponent := FPreserveComponent + [pcHue];
-    SelectedColor := SetAlpha(HSLtoRGB(FHue, FSaturation, 1), SelectedColor shr 24);
+    ApplyHS;
   end;
 end;
 
@@ -1548,8 +1564,7 @@ begin
   if FSaturation <> Value then
   begin
     FSaturation := Value;
-    FPreserveComponent := FPreserveComponent + [pcSaturation];
-    SelectedColor := SetAlpha(HSLtoRGB(FHue, FSaturation, 1), SelectedColor shr 24);
+    ApplyHS;
   end;
 end;
 
@@ -1754,6 +1769,16 @@ begin
   end;
 end;
 
+procedure TCustomColorPickerHSV.ApplyHSV;
+begin
+  Inc(FLockValues);
+  try
+    SelectedColor := HSVtoRGB(FHue, FSaturation, FValue, SelectedColor shr 24);
+  finally
+    Dec(FLockValues);
+  end;
+end;
+
 procedure TCustomColorPickerHSV.PickHue(X, Y: Single);
 const
   CTwoPiInv = 1 / (2 * Pi);
@@ -1763,8 +1788,7 @@ begin
   if FSaturation > 1 then
     FSaturation := 1;
 
-  FPreserveComponent := FPreserveComponent + [pcSaturation, pcHue];
-  SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+  ApplyHSV;
 end;
 
 procedure TCustomColorPickerHSV.PickValue(X, Y: Single);
@@ -1777,8 +1801,7 @@ begin
   if FHue <> Value then
   begin
     FHue := Value;
-    FPreserveComponent := FPreserveComponent + [pcHue];
-    SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+    ApplyHSV;
   end;
 end;
 
@@ -1787,8 +1810,7 @@ begin
   if FSaturation <> Value then
   begin
     FSaturation := Value;
-    FPreserveComponent := FPreserveComponent + [pcSaturation];
-    SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+    ApplyHSV;
   end;
 end;
 
@@ -1796,15 +1818,13 @@ procedure TCustomColorPickerHSV.SelectedColorChanged;
 var
   H, S, V: Single;
 begin
-  RGBtoHSV(FSelectedColor, H, S, V);
-  if not (pcHue in FPreserveComponent) then
+  if (FLockValues = 0) then
+  begin
+    RGBtoHSV(FSelectedColor, H, S, V);
     FHue := H;
-  if not (pcSaturation in FPreserveComponent) then
     FSaturation := S;
-  if not (pcValue in FPreserveComponent) then
     FValue := V;
-
-  FPreserveComponent := [];
+  end;
 
   inherited;
 end;
@@ -1814,8 +1834,7 @@ begin
   if FValue <> Value then
   begin
     FValue := Value;
-    FPreserveComponent := FPreserveComponent + [pcValue];
-    SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+    ApplyHSV;
   end;
 end;
 
@@ -2008,44 +2027,62 @@ begin
   Center := FloatPoint(0.5 * Width, 0.5 * Height);
 end;
 
+procedure TCustomColorPickerGTK.ApplyHSV;
+begin
+  Inc(FLockValues);
+  try
+    SelectedColor := HSVtoRGB(FHue, FSaturation, FValue, SelectedColor shr 24);
+  finally
+    Dec(FLockValues);
+  end;
+end;
+
 procedure TCustomColorPickerGTK.PickHue(X, Y: Single);
 const
   CTwoPiInv = 1 / (2 * Pi);
 begin
   Hue := 0.5 + ArcTan2(Y - FCenter.Y, X - FCenter.X) * CTwoPiInv;
-  FPreserveComponent := FPreserveComponent + [pcHue];
 end;
 
 procedure TCustomColorPickerGTK.PickSaturationValue(X, Y: Single);
 var
+  Sampler: TBarycentricGradientSampler;
   Pos: TFloatPoint;
+  Color: TColor32;
+  H: Single;
 const
   CY = 1.7320508075688772935274463415059;
 begin
-  with TBarycentricGradientSampler.Create do
+  Sampler := TBarycentricGradientSampler.Create;
   try
-    GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
-    Point[0] := FloatPoint(
-      FCenter.X - FInnerRadius * Pos.X,
-      FCenter.Y - FInnerRadius * Pos.Y);
-    Pos := FloatPoint(-0.5 * (Pos.X + CY * Pos.Y), 0.5 * (Pos.X * CY - Pos.Y));
-    Point[1] := FloatPoint(
-      FCenter.X - FInnerRadius * Pos.X,
-      FCenter.Y - FInnerRadius * Pos.Y);
-    Pos := FloatPoint(-0.5 * (Pos.X + CY * Pos.Y), 0.5 * (Pos.X * CY - Pos.Y));
-    Point[2] := FloatPoint(
-      FCenter.X - FInnerRadius * Pos.X,
-      FCenter.Y - FInnerRadius * Pos.Y);
-    Color[0] := HSVtoRGB(Hue, 1, 1);
-    Color[1] := clWhite32;
-    Color[2] := clBlack32;
 
-    PrepareSampling;
-    FPreserveComponent := FPreserveComponent + [pcHue];
-    SelectedColor := SetAlpha(GetSampleFloatInTriangle(X, Y), SelectedColor shr 24);
+    GR32_Math.SinCos(2 * Pi * FHue, Pos.Y, Pos.X);
+    Sampler.Point[0] := FloatPoint(
+      FCenter.X - FInnerRadius * Pos.X,
+      FCenter.Y - FInnerRadius * Pos.Y);
+    Pos := FloatPoint(-0.5 * (Pos.X + CY * Pos.Y), 0.5 * (Pos.X * CY - Pos.Y));
+    Sampler.Point[1] := FloatPoint(
+      FCenter.X - FInnerRadius * Pos.X,
+      FCenter.Y - FInnerRadius * Pos.Y);
+    Pos := FloatPoint(-0.5 * (Pos.X + CY * Pos.Y), 0.5 * (Pos.X * CY - Pos.Y));
+    Sampler.Point[2] := FloatPoint(
+      FCenter.X - FInnerRadius * Pos.X,
+      FCenter.Y - FInnerRadius * Pos.Y);
+
+    Sampler.Color[0] := HSVtoRGB(FHue, 1, 1);
+    Sampler.Color[1] := clWhite32;
+    Sampler.Color[2] := clBlack32;
+
+    Sampler.PrepareSampling;
+
+    Color := Sampler.GetSampleFloatInTriangle(X, Y);
+
   finally
-    Free;
+    Sampler.Free;
   end;
+
+  RGBtoHSV(Color, H, FSaturation, FValue);
+  ApplyHSV;
 end;
 
 procedure TCustomColorPickerGTK.SetHue(const Value: Single);
@@ -2053,8 +2090,7 @@ begin
   if FHue <> Value then
   begin
     FHue := Value;
-    FPreserveComponent := FPreserveComponent + [pcHue];
-    SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+    ApplyHSV;
   end;
 end;
 
@@ -2073,8 +2109,7 @@ begin
   if FSaturation <> Value then
   begin
     FSaturation := Value;
-    FPreserveComponent := FPreserveComponent + [pcSaturation];
-    SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+    ApplyHSV;
   end;
 end;
 
@@ -2082,15 +2117,13 @@ procedure TCustomColorPickerGTK.SelectedColorChanged;
 var
   H, S, V: Single;
 begin
-  RGBtoHSV(FSelectedColor, H, S, V);
-  if not (pcHue in FPreserveComponent) then
+  if (FLockValues = 0) then
+  begin
+    RGBtoHSV(FSelectedColor, H, S, V);
     FHue := H;
-  if not (pcSaturation in FPreserveComponent) then
     FSaturation := S;
-  if not (pcValue in FPreserveComponent) then
     FValue := V;
-
-  FPreserveComponent := [];
+  end;
 
   inherited;
 end;
@@ -2100,8 +2133,7 @@ begin
   if FValue <> Value then
   begin
     FValue := Value;
-    FPreserveComponent := FPreserveComponent + [pcValue];
-    SelectedColor := SetAlpha(HSVtoRGB(FHue, FSaturation, FValue), SelectedColor shr 24);
+    ApplyHSV;
   end;
 end;
 
