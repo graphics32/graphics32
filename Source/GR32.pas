@@ -5728,6 +5728,8 @@ var
   ChannelMasks: array[TColor32Component] of TChannelMask;
   Channel: TColor32Component;
   Value, NewValue: DWORD;
+  Padding: integer;
+  ScanlineRow: PColor32Array;
 const
 {$IFNDEF RGBA_FORMAT}
   Masks: array[TColor32Component] of DWORD = ($000000FF, $0000FF00, $00FF0000, $FF000000); // BGRA
@@ -5867,57 +5869,68 @@ begin
     Stream.Seek(BitmapHeader.InfoHeader.biClrUsed * SizeOf(DWORD), soCurrent);
   end;
 
+  // Pad input rows to 32 bits
+  Padding := (SizeOf(DWORD) - (((BitmapHeader.InfoHeader.biBitCount shr 3) * BitmapHeader.InfoHeader.biWidth) and (SizeOf(DWORD)-1))) and (SizeOf(DWORD)-1);
+
   // Make sure there's enough data left for the pixels
-  with BitmapHeader.InfoHeader do
-    Dec(Size, biWidth * Abs(biHeight) * biBitCount shr 3);
+  Dec(Size, ((BitmapHeader.InfoHeader.biBitCount shr 3) * BitmapHeader.InfoHeader.biWidth + Padding) * Abs(BitmapHeader.InfoHeader.biHeight));
   if (Size < 0) then
     exit;
 
   SetSize(BitmapHeader.InfoHeader.biWidth, Abs(BitmapHeader.InfoHeader.biHeight));
 
+  // Check whether the bitmap is saved top-down or bottom-up:
+  // - Negavive height: top-down
+  // - Positive height: bottom-up
+  if (BitmapHeader.InfoHeader.biHeight > 0) then
+  begin
+    // Bitmap is stored bottom-up
+    Row := Height-1;
+    DeltaRow := -1;
+  end else
+  begin
+    // Bitmap is stored top-down
+    Row := 0;
+    DeltaRow := 1;
+  end;
+
   if (BitmapHeader.InfoHeader.biCompression = BI_RGB) then
   begin
 
-    // Check whether the bitmap is saved top-down or bottom-up:
-    // - Negavive height: top-down
-    // - Positive height: bottom-up
     case BitmapHeader.InfoHeader.biBitCount of
       24:
-        if (BitmapHeader.InfoHeader.biHeight > 0) then
+        // Read one RGB pixel at a time
+        for i := 0 to Height - 1 do
         begin
-          // Bitmap is stored bottom-up: Read one row at a time
-          // ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
-          for i := Height - 1 downto 0 do
-            for j := 0 to Width - 1 do
-            begin
-              // read RGB data and reset alpha
-              Stream.ReadBuffer(Scanline[i]^[j], 3);
-              TColor32Entry(Scanline[i]^[j]).A := $FF;
-            end;
-        end
-        else
-        begin
-          // Bitmap is stored top-down: Read one row at a time
-          // ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
-          for i := 0 to Height - 1 do
-            for j := 0 to Width - 1 do
-            begin
-              // read RGB data and reset alpha
-              Stream.ReadBuffer(Scanline[i]^[j], 3);
-              TColor32Entry(Scanline[i]^[j]).A := $FF;
-            end;
+          ScanlineRow := Scanline[Row];
+          for j := 0 to Width - 1 do
+          begin
+            // Read RGB data and reset alpha
+            Stream.ReadBuffer(ScanlineRow[j], 3);
+            TColor32Entry(ScanlineRow[j]).A := $FF;
+          end;
+
+          if (Padding > 0) then
+            Stream.Seek(Padding, soCurrent);
+
+          Inc(Row, DeltaRow);
         end;
+
       32:
-        if (BitmapHeader.InfoHeader.biHeight > 0) then
         begin
-          // Bitmap is stored bottom-up: Read one row at a time
-          ChunkSize := Width * BitmapHeader.InfoHeader.biBitCount shr 3;
-          for i := Height - 1 downto 0 do
-            Stream.ReadBuffer(Scanline[i]^, ChunkSize);
-        end
-        else
-          // Bitmap is stored top-down: Read all rows in one go
-          Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD))
+          Assert(Padding = 0);
+
+          if (BitmapHeader.InfoHeader.biHeight > 0) then
+          begin
+            // Bitmap is stored bottom-up: Read one row at a time
+            ChunkSize := Width * SizeOf(DWORD);
+            for i := Height - 1 downto 0 do
+              Stream.ReadBuffer(Scanline[i]^, ChunkSize);
+          end
+          else
+            // Bitmap is stored top-down: Read all rows in one go
+            Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD))
+        end;
     end;
 
     if (InfoHeaderVersion < InfoHeaderVersion3) then
@@ -5929,6 +5942,7 @@ begin
 {$ENDIF RGBA_FORMAT}
   end else
   begin
+    Assert(Padding = 0);
 
     // Determine how much we need to shift the masked color values in order
     // to get them into the desired position.
@@ -5937,18 +5951,6 @@ begin
       ChannelMasks[Channel].Shift := GetShift(BitmapHeader.Header.bmiColors[ChannelToIndex[Channel]], Masks[Channel]);
       ChannelMasks[Channel].Mask := Masks[Channel];
       ChannelMasks[Channel].Enabled := (Channel <> ccAlpha) or (InfoHeaderVersion >= InfoHeaderVersion3);
-    end;
-
-    if (BitmapHeader.InfoHeader.biHeight > 0) then
-    begin
-      // Bitmap is stored bottom-up
-      Row := Height-1;
-      DeltaRow := -1;
-    end else
-    begin
-      // Bitmap is stored top-down
-      Row := 0;
-      DeltaRow := 1;
     end;
 
     // Read one row at a time into our bitmap and then decode it in place.
