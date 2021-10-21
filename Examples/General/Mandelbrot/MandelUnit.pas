@@ -193,7 +193,7 @@ begin
     Exit;
   end;
 
-  { Mandelbrot iteration: Z(n+1) = Z(n+1)^2 + C }
+  { Mandelbrot iteration: Z(n+1) = Z(n)^2 + C }
   ZX := 0;
   ZY := 0;
   ZXSqr := 0;
