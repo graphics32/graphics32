@@ -1793,7 +1793,9 @@ begin
       Map[i] := 1;
   end;
 {$IFDEF DEBUG}
-  {$IFDEF COMPILER2009_UP}
+  // Delphi 2010 doesn't have overloads for Min/MaxValue(array of single)
+  // https://github.com/graphics32/graphics32/issues/153
+  {$IFDEF COMPILERXE1_UP}
   OutputDebugString(PChar(Format('TRadialDistortionTransformation.PrepareReverseMap: MinValue(Map)=%f MaxValue(Map)=%f', [ MinValue(Map), MaxValue(Map) ])));
   {$ENDIF}
 {$ENDIF}
