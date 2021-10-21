@@ -287,7 +287,7 @@ type
 
   TRadialDistortionTransformation = class(TTransformation)
   protected
-    FCoefficient1, FCoefficient2: TFloat;
+    FCoefficient1, FCoefficient2, FScale: TFloat;
     FFocalPoint: TFloatPoint;
     r_0, r_tgt_max, r_tgt_min: Single;
     FMapElements: Integer;
@@ -295,6 +295,7 @@ type
     function LookUpReverseMap(const r_tgt: TFloat): TFloat;
     procedure SetCoefficient1(const Value: TFloat);
     procedure SetCoefficient2(const Value: TFloat);
+    procedure SetScale(const Value: TFloat);
     procedure SetMapElements(const Value: Integer);
     procedure PrepareReverseMap;
     procedure PrepareTransform; override;
@@ -306,6 +307,7 @@ type
   published
     property Coefficient1: TFloat read FCoefficient1 write SetCoefficient1;
     property Coefficient2: TFloat read FCoefficient2 write SetCoefficient2;
+    property Scale: TFloat read FScale write SetScale;
     property MapElements: Integer read FMapElements write SetMapElements;
   end;
 
@@ -1677,6 +1679,7 @@ constructor TRadialDistortionTransformation.Create;
 begin
   FCoefficient1 := 0;
   FCoefficient2 := 0;
+  FScale := 1;
   FMapElements := 0;
 end;
 
@@ -1687,15 +1690,12 @@ end;
 
 procedure TRadialDistortionTransformation.PrepareReverseMap;
 var
-  i, j, LowerI, UpperI: Integer;
+  i, j, LowerI, UpperI, jmax: Integer;
+  r_src, r_tgt, LowerValue, UpperValue: TFloat;
 {$IFDEF DEBUG}
-  interpolated: Integer;
-  unset: Integer;
-  jmax: Integer;
-  mapToSameIndex, IndexOutOfRange: Integer;
-   r_src, r_tgt: TFloat;
+  // some counters to evaluate the mapping
+  interpolated, unset, mapToSameIndex, IndexOutOfRange: Integer;
 {$ENDIF}
- LowerValue, UpperValue: TFloat;
 begin
   if MapElements <= 1 then
     MapElements := Trunc(r_0);
@@ -1707,31 +1707,37 @@ begin
   for i := 0 to High(Map) do
     Map[i] := -1;
 
-{$IFDEF DEBUG}
   jmax := 1000;
+{$IFDEF DEBUG}
   mapToSameIndex := 0;
   IndexOutOfRange := 0;
+{$ENDIF}
   for j := 0 to jmax do
   begin
     r_src := j/jmax*2;
-    r_tgt := (1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4));
+    r_tgt := Scale*(1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4));
     Assert(InRange(r_tgt, r_tgt_min, r_tgt_max));
     i := Trunc((r_tgt*r_src-r_tgt_min)/(r_tgt_max-r_tgt_min)*(High(Map)-1));
     if not InRange(i, 0, High(Map)) then
     begin
+{$IFDEF DEBUG}
       Inc(IndexOutOfRange);
       // OutputDebugString(PChar(Format('PrepareReverseMap: i=%d out of range (0, MapElements=%d), r_tgt=%f', [ i, MapElements, r_tgt ])))
+{$ENDIF}
     end
     else
     if Map[i]<>-1 then
     begin
+{$IFDEF DEBUG}
       Inc(mapToSameIndex);
       // OutputDebugString(PChar(Format('PrepareReverseMap: Map[i=%d] already has value %f (wanted to put %f there)', [ i, Map[i], r_tgt ])))
+{$ENDIF}
     end
     else
       Map[i] := r_tgt;
   end;
 
+{$IFDEF DEBUG}
   unset := 0;
   for i := 0 to High(Map) do
   begin
@@ -1851,6 +1857,12 @@ begin
   Changed;
 end;
 
+procedure TRadialDistortionTransformation.SetScale(const Value: TFloat);
+begin
+  FScale := Value;
+  Changed;
+end;
+
 procedure TRadialDistortionTransformation.SetMapElements(const Value: Integer);
 begin
   FMapElements := Value;
@@ -1865,7 +1877,7 @@ begin
   d.x := SrcX;
   d.y := SrcY;
   r_src := Distance(FFocalPoint, d)/r_0;
-  r_tgt := 1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4);
+  r_tgt := Scale*(1 + FCoefficient1 * Sqr(r_src) + FCoefficient2 * Power(r_src, 4));
   DstX := FFocalPoint.X + (d.X-FFocalPoint.X) * r_tgt;
   DstY := FFocalPoint.Y + (d.Y-FFocalPoint.Y) * r_tgt;
 end;
