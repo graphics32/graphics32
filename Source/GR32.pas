@@ -273,8 +273,8 @@ procedure ScaleAlpha(var Color32: TColor32; Scale: Single); {$IFDEF USEINLINING}
 
 // Color space conversion
 function HSLtoRGB(H, S, L: Single; A: Integer = 255): TColor32; overload;
-procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
 function HSLtoRGB(H, S, L: Integer; A: Integer = 255): TColor32; overload;
+procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single); overload;
 procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte); overload;
 function HSVtoRGB(H, S, V: Single; A: Integer = 255): TColor32;
 procedure RGBToHSV(Color: TColor32; out H, S, V: Single);
@@ -1315,11 +1315,14 @@ begin
 {$IFDEF WIN_COLOR_FIX}
   Result := $FF000000;
   I := (WinColor and $00FF0000) shr 16;
-  if I <> 0 then Result := Result or TColor32(Integer(I) - 1);
+  if I <> 0 then
+    Result := Result or TColor32(Integer(I) - 1);
   I := WinColor and $0000FF00;
-  if I <> 0 then Result := Result or TColor32(Integer(I) - $00000100);
+  if I <> 0 then
+    Result := Result or TColor32(Integer(I) - $00000100);
   I := WinColor and $000000FF;
-  if I <> 0 then Result := Result or TColor32(Integer(I) - 1) shl 16;
+  if I <> 0 then
+    Result := Result or TColor32(Integer(I) - 1) shl 16;
 {$ELSE}
 {$IFDEF USENATIVECODE}
   Result := $FF shl 24 + (WinColor and $FF0000) shr 16 + (WinColor and $FF00) +
@@ -1436,7 +1439,7 @@ end;
 
 function Intensity(Color32: TColor32): Integer;
 begin
-// (R * 61 + G * 174 + B * 21) / 256
+  // (R * 61 + G * 174 + B * 21) / 256
   Result := (
     (Color32 and $00FF0000) shr 16 * 61 +
     (Color32 and $0000FF00) shr 8 * 174 +
@@ -1456,7 +1459,8 @@ function SetAlpha(Color32: TColor32; NewAlpha: Integer): TColor32;
 begin
   if NewAlpha < 0 then
     NewAlpha := 0
-  else if NewAlpha > $FF then
+  else
+  if NewAlpha > $FF then
     NewAlpha := $FF;
   Result := (Color32 and $00FFFFFF) or (TColor32(NewAlpha) shl 24);
 end;
@@ -1486,11 +1490,14 @@ var
     Hue := Hue - Floor(Hue);
     if 6 * Hue < 1 then
       V := M1 + (M2 - M1) * Hue * 6
-    else if 2 * Hue < 1 then
+    else
+    if 2 * Hue < 1 then
       V := M2
-    else if 3 * Hue < 2 then
+    else
+    if 3 * Hue < 2 then
       V := M1 + (M2 - M1) * (2 * OneOverThree - Hue) * 6
-    else V := M1;
+    else
+      V := M1;
     Result := Round($FF * V);
   end;
 
@@ -1517,13 +1524,13 @@ procedure RGBtoHSL(RGB: TColor32; out H, S, L : Single);
 const
   // reciprocal mul. opt.
   R6 = 1 / 6;
-
 var
   R, G, B, D, Cmax, Cmin: Single;
 begin
   R := RedComponent(RGB) * COne255th;
   G := GreenComponent(RGB) * COne255th;
   B := BlueComponent(RGB) * COne255th;
+
   Cmax := Max(R, Max(G, B));
   Cmin := Min(R, Min(G, B));
   L := (Cmax + Cmin) * 0.5;
@@ -1532,8 +1539,7 @@ begin
   begin
     H := 0;
     S := 0
-  end
-  else
+  end else
   begin
     D := Cmax - Cmin;
     if L < 0.5 then
@@ -1544,13 +1550,15 @@ begin
     if R = Cmax then
       H := (G - B) / D
     else
-      if G = Cmax then
-        H := 2 + (B - R) / D
-      else
-        H := 4 + (R - G) / D;
+    if G = Cmax then
+      H := 2 + (B - R) / D
+    else
+      H := 4 + (R - G) / D;
 
     H := H * R6;
-    if H < 0 then H := H + 1
+
+    if H < 0 then
+      H := H + 1
   end;
 end;
 
@@ -1600,8 +1608,7 @@ begin
   begin
     H := 0;
     S := 0
-  end
-  else
+  end else
   begin
     D := (Cmax - Cmin) * $FF;
     if L <= $7F then
@@ -1612,12 +1619,15 @@ begin
     D := D * 6;
     if R = Cmax then
       HL := (G - B) * $FF * $FF div D
-    else if G = Cmax then
+    else
+    if G = Cmax then
       HL := $FF * 2 div 6 + (B - R) * $FF * $FF div D
     else
       HL := $FF * 4 div 6 + (R - G) * $FF * $FF div D;
 
-    if HL < 0 then HL := HL + $FF * 2;
+    if HL < 0 then
+      HL := HL + $FF * 2;
+
     H := HL;
   end;
 end;
@@ -1646,18 +1656,12 @@ begin
   Q := Round(V * (1 - S * Fraction));
 
   case Sel of
-    0:
-      Result := Color32(Trunc(V), Q, P, A);
-    1:
-      Result := Color32(Q, Trunc(V), P, A);
-    2:
-      Result := Color32(P, Trunc(V), Q, A);
-    3:
-      Result := Color32(P, Q, Trunc(V), A);
-    4:
-      Result := Color32(Q, P, Trunc(V), A);
-    5:
-      Result := Color32(Trunc(V), P, Q, A);
+    0: Result := Color32(Trunc(V), Q, P, A);
+    1: Result := Color32(Q, Trunc(V), P, A);
+    2: Result := Color32(P, Trunc(V), Q, A);
+    3: Result := Color32(P, Q, Trunc(V), A);
+    4: Result := Color32(Q, P, Trunc(V), A);
+    5: Result := Color32(Trunc(V), P, Q, A);
   else
     Result := Gray32(0, A);
   end;
