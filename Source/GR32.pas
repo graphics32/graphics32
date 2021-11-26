@@ -1563,7 +1563,7 @@ begin
   else
     V := L + S - Integer(Div255(L * S));
   if V <= 0 then
-    Result := $FF000000
+    Result := Gray32(L, A)
   else
   begin
     M := L * 2 - V;
