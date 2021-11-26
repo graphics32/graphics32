@@ -6046,8 +6046,8 @@ begin
 
   FileHeader.bfType := $4D42; // Magic bytes for Windows Bitmap
   FileHeader.bfSize := BitmapSize + SizeOf(TBitmapFileHeader) + SizeOf(TBitmapInfoHeader); // Size of file
-  FileHeader.bfReserved1 := $5247; // Actual value doesn't matter.
-  FileHeader.bfReserved2 := $3233; //   -
+  FileHeader.bfReserved1 := 0;
+  FileHeader.bfReserved2 := 0;
   // The offset, in bytes, from the beginning of the BITMAPFILEHEADER structure to the bitmap bits.
   FileHeader.bfOffBits := SizeOf(TBitmapFileHeader) + SizeOf(TBitmapInfoHeader); // = 14 + 40
 
