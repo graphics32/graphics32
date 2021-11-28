@@ -170,6 +170,9 @@ const
 var
   BlendRegistry: TFunctionRegistry;
 
+const
+  BlendBindingFlagPascal = $0001;
+
 {$IFDEF OMIT_MMX}
 procedure EMMS; {$IFDEF USEINLINING} inline; {$ENDIF}
 {$ENDIF}
@@ -955,9 +958,6 @@ const
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
   FID_BLENDMEMRGB128 = 37;
 {$ENDIF}
-
-const
-  BlendBindingFlagPascal = $0001;
 
 
 procedure RegisterBindings;
