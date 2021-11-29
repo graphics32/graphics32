@@ -69,6 +69,9 @@ uses
 
 { ASM versions }
 
+const
+  BlendRegistryPriorityASM = -256;
+
 { Assembler versions }
 
 const
@@ -1497,18 +1500,18 @@ end;
 procedure RegisterBindingFunctions;
 begin
 {$IFNDEF PUREPASCAL}
-  BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
-  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, []);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
-  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, []);
+  BlendRegistry.Add(FID_EMMS, @EMMS_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, [], 0, BlendRegistryPriorityASM);
 {$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, [], 0, BlendRegistryPriorityASM);
 {$ENDIF}
 {$ENDIF}
 end;
