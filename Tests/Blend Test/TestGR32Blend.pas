@@ -40,7 +40,7 @@ uses
   GR32, GR32_Blend, GR32_Bindings;
 
 type
-  TCustomTestBlendModes = class(TTestCase)
+  TCustomTestBlendModes = class abstract(TTestCase)
   strict private
     FForeground : PColor32Array;
     FBackground : PColor32Array;
@@ -50,6 +50,9 @@ type
 
     procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte = 1); overload;
     procedure CheckColor(ExpectedColor32, ActualColor32: TColor32Entry; Difference: Byte; const AExtra: string; const AExtraParams: array of const); overload;
+
+    function Rebind(FunctionID: Integer): boolean;
+    class function PriorityProc: TFunctionPriority; virtual; abstract;
 
     procedure TestBlendReg; virtual;
     procedure TestBlendRegEx; virtual;
@@ -67,15 +70,20 @@ type
     procedure TestMergeMemEx; virtual;
     procedure TestMergeLine; virtual;
     procedure TestMergeLineEx; virtual;
-    {$IFNDEF FPC}
-    procedure PerformanceTest; virtual;
-    {$ENDIF}
   public
     procedure SetUp; override;
     procedure TearDown; override;
+  published
+{$IFNDEF FPC}
+    procedure PerformanceTest; virtual;
+{$ENDIF}
   end;
 
-  TTestBlendModesNative = class(TCustomTestBlendModes)
+  TTestBlendModesPas = class(TCustomTestBlendModes)
+  private
+    class function PriorityProcPas(Info: PFunctionInfo): Integer; static;
+  protected
+    class function PriorityProc: TFunctionPriority; override;
   published
     procedure TestBlendReg; override;
     procedure TestBlendRegEx; override;
@@ -93,12 +101,13 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
-    {$IFNDEF FPC}
-    procedure PerformanceTest; override;
-    {$ENDIF}
   end;
 
   TTestBlendModesAsm = class(TCustomTestBlendModes)
+  private
+    class function PriorityProcAsm(Info: PFunctionInfo): Integer; static;
+  protected
+    class function PriorityProc: TFunctionPriority; override;
   published
     procedure TestBlendReg; override;
     procedure TestBlendRegEx; override;
@@ -116,12 +125,13 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
-    {$IFNDEF FPC}
-    procedure PerformanceTest; override;
-    {$ENDIF}
   end;
 
   TTestBlendModesMMX = class(TCustomTestBlendModes)
+  private
+    class function PriorityProcMMX(Info: PFunctionInfo): Integer; static;
+  protected
+    class function PriorityProc: TFunctionPriority; override;
   published
     procedure TestBlendReg; override;
     procedure TestBlendRegEx; override;
@@ -139,12 +149,13 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
-    {$IFNDEF FPC}
-    procedure PerformanceTest; override;
-    {$ENDIF}
   end;
 
   TTestBlendModesSSE2 = class(TCustomTestBlendModes)
+  private
+    class function PriorityProcSSE2(Info: PFunctionInfo): Integer; static;
+  protected
+    class function PriorityProc: TFunctionPriority; override;
   published
     procedure TestBlendReg; override;
     procedure TestBlendRegEx; override;
@@ -162,31 +173,12 @@ type
     procedure TestMergeMemEx; override;
     procedure TestMergeLine; override;
     procedure TestMergeLineEx; override;
-    {$IFNDEF FPC}
-    procedure PerformanceTest; override;
-    {$ENDIF}
   end;
 
 implementation
 
 uses
   Math, GR32_System, GR32_BlendReference;
-
-
-function CompareColors(Expected, Actual: TColor32Entry; Difference: Byte = 1): Boolean;
-begin
-  Result := False;
-  if Abs(Expected.A - Actual.A) > Difference then
-    Exit;
-  if Abs(Expected.R - Actual.R) > Difference then
-    Exit;
-  if Abs(Expected.G - Actual.G) > Difference then
-    Exit;
-  if Abs(Expected.B - Actual.B) > Difference then
-    Exit;
-  Result := True;
-end;
-
 
 { TTestBlendModes }
 
@@ -215,6 +207,13 @@ var
   ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDREG)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   // static test
   BlendColor32.A := $1A;
   BlendColor32.B := $2B;
@@ -258,6 +257,13 @@ var
   RefIndex, Index : Integer;
   MasterIndex     : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDREGEX)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   // static test
   BlendColor32.A := $F8;
   BlendColor32.B := $A1;
@@ -303,6 +309,13 @@ var
   ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDMEM)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for RefIndex := 0 to High(Byte) do
   begin
     BlendColor32.B := RefIndex;
@@ -340,6 +353,13 @@ var
   RefIndex, Index : Integer;
   MasterIndex     : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDMEMEX)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for RefIndex := 0 to High(Byte) do
   begin
     BlendColor32.B := RefIndex;
@@ -379,6 +399,13 @@ var
   ExpectedColor32 : TColor32Entry;
   Index           : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDLINE)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for Index := 0 to High(Byte) do
   begin
     FBackground^[Index] := clBlack32;
@@ -405,6 +432,13 @@ var
   ExpectedColor32 : TColor32Entry;
   Index           : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDLINE1)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for Index := 0 to High(Byte) do
   begin
     FBackground^[Index] := clBlack32;
@@ -438,6 +472,13 @@ var
   ExpectedColor32    : TColor32Entry;
   Index, MasterIndex : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_BLENDLINEEX)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for Index := 0 to High(Byte) do
   begin
     FForeground^[Index] := clWhite32;
@@ -477,6 +518,13 @@ var
   ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_COMBINEREG)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   BlendColor32.ARGB := $FF000000;
   ExpectedColor32.ARGB := CombineReg_Reference(BlendColor32.ARGB, clBlack32, 2);
   CombinedColor32.ARGB := CombineReg(BlendColor32.ARGB, clBlack32, 2);
@@ -517,6 +565,13 @@ var
   ExpectedColor32 : TColor32Entry;
   RefIndex, Index : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_COMBINEMEM)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for RefIndex := 0 to High(Byte) do
   begin
     BlendColor32.A := $FF;
@@ -542,6 +597,13 @@ var
   ExpectedColor32 : TColor32Entry;
   Index           : Integer;
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_COMBINELINE)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for Index := 0 to High(Byte) do
   begin
     FBackground^[Index] := clBlack32;
@@ -572,6 +634,13 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_MERGEREG)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   // static test
   MergeColor32.ARGB := clBlack32;
   MergeColor32.A := 3;
@@ -584,7 +653,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Blend Color: %.8X Merge Color: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
+  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Blend color: %.8X Merge color: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
 
   // sample test
   MergeColor32.ARGB := clBlack32;
@@ -606,7 +675,7 @@ begin
         EMMS;
 
         CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-          '(RefIndex: %d, AlphaIndex: %d, Blend Color: %.8X Merge Color: %.8X)', [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
+          '(RefIndex: %d, AlphaIndex: %d, Blend color: %.8X Merge color: %.8X)', [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
       end;
     end;
   end;
@@ -624,6 +693,14 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
+  Rebind(FID_EMMS);
+  Rebind(FID_MERGEREG);
+  if (not Rebind(FID_MERGEREGEX)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   BlendColor32.ARGB := TColor32($1002050B);
   MergeColor32.ARGB := TColor32($01000000);
   ExpectedColor32.ARGB := MergeRegEx_Reference(BlendColor32.ARGB, MergeColor32.ARGB, 128);
@@ -631,7 +708,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Blend Color: %.8X, Merge Color: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
+  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Blend color: %.8X, Merge color: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
 
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
@@ -653,7 +730,7 @@ begin
           EMMS;
 
           CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-            '(RefIndex: %d, Alpha Index: %d, Master: %.8X, Blend Color: %.8X, Merge Color: %.8X)',
+            '(RefIndex: %d, Alpha Index: %d, Master: %.8X, Blend color: %.8X, Merge color: %.8X)',
             [RefIndex, AlphaIndex, MasterIndex shl 5, BlendColor32.ARGB, MergeColor32.ARGB]);
         end;
       end;
@@ -672,6 +749,13 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_MERGEMEM)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   // sample test
   for RefIndex := 0 to High(Byte) do
   begin
@@ -693,7 +777,7 @@ begin
         EMMS;
 
         CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-          '(RefIndex: %d, Alpha Index: %d, Blend Color: %.8X, Merge Color: %.8X)',
+          '(RefIndex: %d, Alpha Index: %d, Blend color: %.8X, Merge color: %.8X)',
           [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
       end;
     end;
@@ -712,6 +796,15 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
+  Rebind(FID_EMMS);
+  Rebind(FID_MERGEREG);
+  Rebind(FID_MERGEMEM);
+  if (not Rebind(FID_MERGEMEMEX)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
   begin
@@ -735,7 +828,7 @@ begin
           EMMS;
 
           CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-            '(RefIndex: %d, Alpha Index: %d, Blend Color: %.8X, Merge Color: %.8X)',
+            '(RefIndex: %d, Alpha Index: %d, Blend color: %.8X, Merge color: %.8X)',
             [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
         end;
       end;
@@ -754,6 +847,14 @@ const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F,
     $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
+  Rebind(FID_EMMS);
+  Rebind(FID_MERGEREG);
+  if (not Rebind(FID_MERGELINE)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   for RefIndex := 0 to High(Byte) do
   begin
     for AlphaIndex := 0 to Length(CAlphaValues) - 1 do
@@ -799,6 +900,13 @@ var
 const
   CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
+  Rebind(FID_EMMS);
+  if (not Rebind(FID_MERGELINEEX)) then
+  begin
+    Check(True);
+    Exit;
+  end;
+
   // static test
 
   // sample test
@@ -833,7 +941,7 @@ begin
           EMMS;
 
           CheckColor(ExpectedColor32, MergedColor32, FColorDiff,
-            '(RefIndex: %d, Alpha Index: %d, Master: %d, Blend Color: %.8X, Merge Color: %.8X)',
+            '(RefIndex: %d, Alpha Index: %d, Master: %d, Blend color: %.8X, Merge color: %.8X)',
             [RefIndex, AlphaIndex, MasterIndex shl 5, BlendColor32.ARGB, MergedColor32.ARGB]);
         end;
       end;
@@ -880,6 +988,8 @@ var
   BlendColor32      : TColor32Entry;
   Index             : Integer;
 begin
+  BlendRegistry.RebindAll(pointer(PriorityProc));
+
   BlendColor32.ARGB := clWhite32;
   BlendColor32.A := $5A;
 
@@ -902,12 +1012,25 @@ begin
   Status('Performance: ' + FloatToStr(1000 * (Stop - Start) / Freq));
   Check(True);
 end;
+
+function TCustomTestBlendModes.Rebind(FunctionID: Integer): boolean;
+begin
+  Result := BlendRegistry.Rebind(FunctionID, pointer(PriorityProc));
+  if (not Result) then
+    Fail('Not implemented');
+end;
+
 {$ENDIF}
 
 
-{ TTestBlendModesNative }
+{ TTestBlendModesPas }
 
-function NativePriorityProc(Info: PFunctionInfo): Integer;
+class function TTestBlendModesPas.PriorityProc: TFunctionPriority;
+begin
+  Result := PriorityProcPas;
+end;
+
+class function TTestBlendModesPas.PriorityProcPas(Info: PFunctionInfo): Integer;
 begin
   if (Info^.Flags and BlendBindingFlagPascal <> 0) then
     Result := 0
@@ -915,572 +1038,426 @@ begin
     Result := INVALID_PRIORITY;
 end;
 
-procedure TTestBlendModesNative.TestBlendReg;
+procedure TTestBlendModesPas.TestBlendReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREG, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestBlendRegEx;
+procedure TTestBlendModesPas.TestBlendRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREGEX, NativePriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestBlendMem;
+procedure TTestBlendModesPas.TestBlendMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEM, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestBlendMemEx;
+procedure TTestBlendModesPas.TestBlendMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEMEX, NativePriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestBlendLine;
+procedure TTestBlendModesPas.TestBlendLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestBlendLine1;
+procedure TTestBlendModesPas.TestBlendLine1;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE1, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestBlendLineEx;
+procedure TTestBlendModesPas.TestBlendLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINEEX, NativePriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestCombineReg;
+procedure TTestBlendModesPas.TestCombineReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEREG, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestCombineMem;
+procedure TTestBlendModesPas.TestCombineMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEMEM, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestCombineLine;
+procedure TTestBlendModesPas.TestCombineLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_COMBINELINE, NativePriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestMergeReg;
+procedure TTestBlendModesPas.TestMergeReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, NativePriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestMergeRegEx;
+procedure TTestBlendModesPas.TestMergeRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREGEX, NativePriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestMergeMem;
+procedure TTestBlendModesPas.TestMergeMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEM, NativePriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestMergeMemEx;
+procedure TTestBlendModesPas.TestMergeMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEM, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEMEX, NativePriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestMergeLine;
+procedure TTestBlendModesPas.TestMergeLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINE, NativePriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
-procedure TTestBlendModesNative.TestMergeLineEx;
+procedure TTestBlendModesPas.TestMergeLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, NativePriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINEEX, NativePriorityProc);
   FColorDiff := 9;
   inherited;
 end;
-
-{$IFNDEF FPC}
-procedure TTestBlendModesNative.PerformanceTest;
-begin
-  BlendRegistry.RebindAll(NativePriorityProc);
-  inherited;
-end;
-{$ENDIF}
-
 
 { TTestBlendModesAsm }
 
-function AsmPriorityProc(Info: PFunctionInfo): Integer;
+class function TTestBlendModesAsm.PriorityProc: TFunctionPriority;
 begin
-  Result := IfThen(Info^.CPUFeatures <= [], 0, INVALID_PRIORITY);
+  Result := PriorityProcAsm;
+end;
+
+class function TTestBlendModesAsm.PriorityProcAsm(Info: PFunctionInfo): Integer;
+begin
+  if (Info^.CPUFeatures = []) then
+    Result := 0
+  else
+    Result := INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesAsm.TestBlendReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREG, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREGEX, AsmPriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEM, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEMEX, AsmPriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendLine1;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE1, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestBlendLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINEEX, AsmPriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestCombineReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEREG, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestCombineMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEMEM, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestCombineLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_COMBINELINE, AsmPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, AsmPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREGEX, AsmPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEM, AsmPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEM, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEMEX, AsmPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINE, AsmPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesAsm.TestMergeLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, AsmPriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINEEX, AsmPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
-{$IFNDEF FPC}
-procedure TTestBlendModesAsm.PerformanceTest;
-begin
-  BlendRegistry.RebindAll(AsmPriorityProc);
-  inherited;
-end;
-{$ENDIF}
-
 
 { TTestBlendModesMMX }
 
-function MMXPriorityProc(Info: PFunctionInfo): Integer;
+class function TTestBlendModesMMX.PriorityProc: TFunctionPriority;
 begin
-  Result := IfThen(Info^.CPUFeatures <= [ciMMX], 0, INVALID_PRIORITY);
+  Result := PriorityProcMMX;
+end;
+
+class function TTestBlendModesMMX.PriorityProcMMX(Info: PFunctionInfo): Integer;
+begin
+  if (ciMMX in Info^.CPUFeatures) then
+    Result := 0
+  else
+    Result := INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesMMX.TestBlendReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREG, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREGEX, MMXPriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEM, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEMEX, MMXPriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendLine1;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE1, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestBlendLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINEEX, MMXPriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestCombineReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEREG, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestCombineMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEMEM, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestCombineLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_COMBINELINE, MMXPriorityProc);
   FColorDiff := 1;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, MMXPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREGEX, MMXPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEM, MMXPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEMEX, MMXPriorityProc);
   FColorDiff := 9;
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINE, MMXPriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesMMX.TestMergeLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, MMXPriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINEEX, MMXPriorityProc);
   inherited;
 end;
-
-{$IFNDEF FPC}
-procedure TTestBlendModesMMX.PerformanceTest;
-begin
-  BlendRegistry.RebindAll(MMXPriorityProc);
-  inherited;
-end;
-{$ENDIF}
 
 
 { TTestBlendModesSSE2 }
 
-function SSE2PriorityProc(Info: PFunctionInfo): Integer;
+class function TTestBlendModesSSE2.PriorityProc: TFunctionPriority;
 begin
-  Result := IfThen(Info^.CPUFeatures <= [ciSSE2], 0, INVALID_PRIORITY);
+  Result := PriorityProcSSE2;
+end;
+
+class function TTestBlendModesSSE2.PriorityProcSSE2(Info: PFunctionInfo): Integer;
+begin
+  if (ciSSE2 in Info^.CPUFeatures) then
+    Result := 0
+  else
+    Result := INVALID_PRIORITY;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREG, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDREGEX, SSE2PriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEM, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDMEMEX, SSE2PriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendLine1;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINE1, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestBlendLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_BLENDLINEEX, SSE2PriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestCombineReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEREG, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestCombineMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_COMBINEMEM, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestCombineLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_COMBINELINE, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestMergeReg;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREG, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestMergeRegEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_MERGEREGEX, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestMergeMem;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEM, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestMergeMemEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_MERGEMEMEX, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestMergeLine;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINE, SSE2PriorityProc);
   inherited;
 end;
 
 procedure TTestBlendModesSSE2.TestMergeLineEx;
 begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.Rebind(FID_MERGELINEEX, SSE2PriorityProc);
   FColorDiff := 2;
   inherited;
 end;
 
-{$IFNDEF FPC}
-procedure TTestBlendModesSSE2.PerformanceTest;
-begin
-  BlendRegistry.Rebind(FID_EMMS, SSE2PriorityProc);
-  BlendRegistry.RebindAll(SSE2PriorityProc);
-  inherited;
-end;
-{$ENDIF}
-
 
 initialization
-  RegisterTest(TTestBlendModesNative.Suite);
+  RegisterTest(TTestBlendModesPas.Suite);
   RegisterTest(TTestBlendModesAsm.Suite);
   if ciMMX in CPUFeatures then
     RegisterTest(TTestBlendModesMMX.Suite);
