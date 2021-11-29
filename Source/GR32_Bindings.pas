@@ -50,6 +50,7 @@ type
     Proc: Pointer;
     CPUFeatures: TCPUFeatures;
     Flags: Integer;
+    Priority: Integer; // Smaller is better
   end;
 
   TFunctionPriority = function (Info: PFunctionInfo): Integer;
@@ -81,7 +82,7 @@ type
     procedure Clear;
 
     procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures = [];
-      Flags: Integer = 0);
+      Flags: Integer = 0; Priority: Integer = 0);
 
     // function rebinding support
     procedure RegisterBinding(FunctionID: Integer; BindVariable: PPointer);
@@ -127,13 +128,16 @@ end;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
-  Result := IfThen(Info^.CPUFeatures <= GR32_System.CPUFeatures, 0, INVALID_PRIORITY);
+  if (Info^.CPUFeatures <= GR32_System.CPUFeatures) then
+    Result := Info^.Priority
+  else
+    Result := INVALID_PRIORITY;
 end;
 
 { TFunctionRegistry }
 
 procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer;
-  CPUFeatures: TCPUFeatures; Flags: Integer);
+  CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
 var
   Info: PFunctionInfo;
 begin
@@ -142,6 +146,7 @@ begin
   Info^.Proc := Proc;
   Info^.CPUFeatures := CPUFeatures;
   Info^.Flags := Flags;
+  Info^.Priority := Priority;
   FItems.Add(Info);
 
   FNeedRebind := True;
