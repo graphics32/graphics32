@@ -943,18 +943,24 @@ end;
 
 procedure MakeMergeTables;
 var
-  I, J: Integer;
+  i, j: Integer;
 begin
-  for J := 0 to 255 do
+  for i := 0 to 255 do
   begin
-    DivTable[0, J] := 0;
-    RcTable[0, J] := 0;
+    DivTable[0, i] := 0; // Yes, [0,0] is set twice but who cares
+    DivTable[i, 0] := 0;
+    RcTable[0, i] := 0;
+    RcTable[i, 0] := 0;
   end;
-  for J := 0 to 255 do
-    for I := 1 to 255 do
+
+  for j := 1 to 255 do
+    for i := 1 to 255 do
     begin
-      DivTable[I, J] := Round(I * J * COne255th);
-      RcTable[I, J] := Round(J * 255 / I)
+      DivTable[i, j] := Round(i * j * COne255th);
+      if i > j then
+        RcTable[i, j] := Round(j * 255 / i)
+      else
+        RcTable[i, j] := 255;
     end;
 end;
 
