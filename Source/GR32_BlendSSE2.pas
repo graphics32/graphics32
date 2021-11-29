@@ -1603,4 +1603,40 @@ asm
 {$ENDIF}
 end;
 
+procedure RegisterBindingFunctions;
+begin
+{$IFNDEF PUREPASCAL}
+{$IFNDEF OMIT_SSE2}
+  BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORMAX, @ColorMax_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORMIN, @ColorMin_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORADD, @ColorAdd_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORSUB, @ColorSub_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
+  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_SSE2, [ciSSE2]);
+  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_SSE2, [ciSSE2]);
+{$IFDEF TEST_BLENDMEMRGB128SSE4}
+  BlendRegistry.Add(FID_BLENDMEMRGB128, @BlendMemRGB128_SSE4, [ciSSE2]);
+{$ENDIF}
+{$ENDIF}
+{$ENDIF}
+end;
+
+initialization
+  RegisterBindingFunctions;
 end.

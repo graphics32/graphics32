@@ -1493,4 +1493,26 @@ procedure EMMS_ASM; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 end;
 
+
+procedure RegisterBindingFunctions;
+begin
+{$IFNDEF PUREPASCAL}
+  BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, []);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
+  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, []);
+{$IFNDEF TARGET_x64}
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
+{$ENDIF}
+{$ENDIF}
+end;
+
+initialization
+  RegisterBindingFunctions;
 end.

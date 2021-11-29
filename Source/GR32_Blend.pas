@@ -167,8 +167,7 @@ const
   BLEND_LINE: TBlendLineCombineModeArray = ((@@BlendLine),(@@MergeLine));
   BLEND_LINE_EX: TBlendLineExCombineModeArray = ((@@BlendLineEx),(@@MergeLineEx));
 
-var
-  BlendRegistry: TFunctionRegistry;
+function BlendRegistry: TFunctionRegistry;
 
 const
   FID_EMMS = 0;
@@ -961,7 +960,6 @@ end;
 
 procedure RegisterBindings;
 begin
-  BlendRegistry := NewRegistry('GR32_Blend bindings');
 {$IFNDEF OMIT_MMX}
   BlendRegistry.RegisterBinding(FID_EMMS, @@EMMS);
 {$ENDIF}
@@ -1007,7 +1005,10 @@ begin
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
   BlendRegistry.RegisterBinding(FID_BLENDMEMRGB128, @@BlendMemRGB128);
 {$ENDIF}
+end;
 
+procedure RegisterBindingFunctions;
+begin
   // pure pascal
   BlendRegistry.Add(FID_EMMS, @EMMS_Pas, [], BlendBindingFlagPascal);
   BlendRegistry.Add(FID_MERGEREG, @MergeReg_Pas, [], BlendBindingFlagPascal);
@@ -1046,81 +1047,27 @@ begin
   BlendRegistry.Add(FID_LIGHTEN, @LightenReg_Pas, [], BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_Pas, [], BlendBindingFlagPascal);
   BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_Pas, [], BlendBindingFlagPascal);
+end;
 
-{$IFNDEF PUREPASCAL}
-  BlendRegistry.Add(FID_EMMS, @EMMS_ASM, []);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, []);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, []);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, []);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, []);
-  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, []);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, []);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, []);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, []);
-  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, []);
-{$IFNDEF TARGET_x64}
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, []);
-{$ENDIF}
-{$IFNDEF OMIT_MMX}
-  BlendRegistry.Add(FID_EMMS, @EMMS_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORMAX, @ColorMax_EMMX, [ciEMMX]);
-  BlendRegistry.Add(FID_COLORMIN, @ColorMin_EMMX, [ciEMMX]);
-  BlendRegistry.Add(FID_COLORADD, @ColorAdd_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORSUB, @ColorSub_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_MMX, [ciMMX]);
-  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_MMX, [ciMMX]);
-{$ENDIF}
-{$IFNDEF OMIT_SSE2}
-  BlendRegistry.Add(FID_EMMS, @EMMS_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_MERGEREG, @MergeReg_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COMBINELINE, @CombineLine_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDREG, @BlendReg_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDLINEEX, @BlendLineEx_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORMAX, @ColorMax_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORMIN, @ColorMin_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORADD, @ColorAdd_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORSUB, @ColorSub_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORMODULATE, @ColorModulate_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORDIFFERENCE, @ColorDifference_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLOREXCLUSION, @ColorExclusion_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_COLORSCALE, @ColorScale_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_LIGHTEN, @LightenReg_SSE2, [ciSSE]);
-  BlendRegistry.Add(FID_BLENDREGRGB, @BlendRegRGB_SSE2, [ciSSE2]);
-  BlendRegistry.Add(FID_BLENDMEMRGB, @BlendMemRGB_SSE2, [ciSSE2]);
-{$IFDEF TEST_BLENDMEMRGB128SSE4}
-  BlendRegistry.Add(FID_BLENDMEMRGB128, @BlendMemRGB128_SSE4, [ciSSE2]);
-{$ENDIF}
-{$ENDIF}
-{$ENDIF}
+var
+  FBlendRegistry: TFunctionRegistry = nil;
 
-  BlendRegistry.RebindAll;
+function BlendRegistry: TFunctionRegistry;
+begin
+  if (FBlendRegistry = nil) then
+  begin
+    FBlendRegistry := NewRegistry('GR32_Blend bindings');
+    RegisterBindings;
+  end;
+  Result := FBlendRegistry;
 end;
 
 initialization
   BlendColorAdd := BlendColorAdd_Pas;
 
-  RegisterBindings;
+  RegisterBindingFunctions;
+  BlendRegistry.RebindAll;
+
   MakeMergeTables;
 
 {$IFNDEF PUREPASCAL}
