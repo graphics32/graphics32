@@ -6892,8 +6892,8 @@ begin
           StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
 
           DeviceContextSupport.DrawTo(hDst,
-            MakeRect(X + DstRect.Left, Y + DstRect.Top, X + ClipRect.Right,
-            Y + ClipRect.Bottom), MakeRect(0, 0, Buffer.Width, Buffer.Height)
+            MakeRect(X + DstRect.Left, Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
+            Buffer.BoundsRect
           );
         end;
       end;
