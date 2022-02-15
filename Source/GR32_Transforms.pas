@@ -350,13 +350,13 @@ type
 
 function TransformPoints(Points: TArrayOfArrayOfFixedPoint; Transformation: TTransformation): TArrayOfArrayOfFixedPoint;
 
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation); overload;
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Reverse: boolean = True); overload;
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  const DstClip: TRect); overload;
+  const DstClip: TRect; Reverse: boolean = True); overload;
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer); overload;
+  Rasterizer: TRasterizer; Reverse: boolean = True); overload;
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer; const DstClip: TRect); overload;
+  Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean = True); overload;
 
 procedure RasterizeTransformation(Vectormap: TVectormap;
   Transformation: TTransformation; DstRect: TRect;
@@ -544,38 +544,38 @@ begin
   end;
 end;
 
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation);
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; Reverse: boolean);
 var
   Rasterizer: TRasterizer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
   try
-    Transform(Dst, Src, Transformation, Rasterizer);
+    Transform(Dst, Src, Transformation, Rasterizer, Reverse);
   finally
     Rasterizer.Free;
   end;
 end;
 
-procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect);
+procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation; const DstClip: TRect; Reverse: boolean);
 var
   Rasterizer: TRasterizer;
 begin
   Rasterizer := DefaultRasterizerClass.Create;
   try
-    Transform(Dst, Src, Transformation, Rasterizer, DstClip);
+    Transform(Dst, Src, Transformation, Rasterizer, DstClip, Reverse);
   finally
     Rasterizer.Free;
   end;
 end;
 
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer);
+  Rasterizer: TRasterizer; Reverse: boolean);
 begin
-  Transform(Dst, Src, Transformation, Rasterizer, Dst.BoundsRect);
+  Transform(Dst, Src, Transformation, Rasterizer, Dst.BoundsRect, Reverse);
 end;
 
 procedure Transform(Dst, Src: TCustomBitmap32; Transformation: TTransformation;
-  Rasterizer: TRasterizer; const DstClip: TRect);
+  Rasterizer: TRasterizer; const DstClip: TRect; Reverse: boolean);
 var
   DstRect: TRect;
   Transformer: TTransformer;
@@ -587,7 +587,7 @@ begin
 
   if not Dst.MeasuringMode then
   begin
-    Transformer := TTransformer.Create(Src.Resampler, Transformation);
+    Transformer := TTransformer.Create(Src.Resampler, Transformation, Reverse);
     try
       Rasterizer.Sampler := Transformer;
       Rasterizer.Rasterize(Dst, DstRect, Src);

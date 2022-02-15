@@ -95,6 +95,7 @@ type
   EBitmapException = class(Exception);
   ESrcInvalidException = class(Exception);
   ENestedException = class(Exception);
+  ETransformerException = class(Exception);
 
   TGetSampleInt = function(X, Y: Integer): TColor32 of object;
   TGetSampleFloat = function(X, Y: TFloat): TColor32 of object;
@@ -375,7 +376,7 @@ type
   protected
     procedure AssignTo(Dst: TPersistent); override;
   public
-    constructor Create(ASampler: TCustomSampler); reintroduce; virtual; 
+    constructor Create(ASampler: TCustomSampler); reintroduce; virtual;
     procedure PrepareSampling; override;
     procedure FinalizeSampling; override;
     function HasBounds: Boolean; override;
@@ -385,19 +386,19 @@ type
   end;
 
   { TTransformer }
-  TReverseTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
-  TReverseTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
-  TReverseTransformFloat = procedure(DstX, DstY: TFloat; out SrcX, SrcY: TFloat) of object;
+  TTransformInt = procedure(DstX, DstY: Integer; out SrcX, SrcY: Integer) of object;
+  TTransformFixed = procedure(DstX, DstY: TFixed; out SrcX, SrcY: TFixed) of object;
+  TTransformFloat = procedure(DstX, DstY: TFloat; out SrcX, SrcY: TFloat) of object;
 
   TTransformer = class(TNestedSampler)
   private
     FTransformation: TTransformation;
-    FTransformationReverseTransformInt: TReverseTransformInt;
-    FTransformationReverseTransformFixed: TReverseTransformFixed;
-    FTransformationReverseTransformFloat: TReverseTransformFloat;
-    procedure SetTransformation(const Value: TTransformation);
+    FTransformInt: TTransformInt; // Unused
+    FTransformFixed: TTransformFixed;
+    FTransformFloat: TTransformFloat;
+    FReverse: boolean;
   public
-    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation); reintroduce;
+    constructor Create(ASampler: TCustomSampler; ATransformation: TTransformation; AReverse: boolean = True); reintroduce;
     procedure PrepareSampling; override;
     function GetSampleInt(X, Y: Integer): TColor32; override;
     function GetSampleFixed(X, Y: TFixed): TColor32; override;
@@ -405,7 +406,8 @@ type
     function HasBounds: Boolean; override;
     function GetSampleBounds: TFloatRect; override;
   published
-    property Transformation: TTransformation read FTransformation write SetTransformation;
+    property Transformation: TTransformation read FTransformation write FTransformation;
+    property ReverseTransform: boolean read FReverse write FReverse;
   end;
 
   { TSuperSampler }
@@ -606,6 +608,7 @@ resourcestring
   SSrcNil = 'Source bitmap is nil';
   SSrcInvalid = 'Source rectangle is invalid';
   SSamplerNil = 'Nested sampler is nil';
+  STransformationNil = 'Transformation is nil';
 
 implementation
 
@@ -3649,8 +3652,7 @@ function TTransformer.GetSampleInt(X, Y: Integer): TColor32;
 var
   U, V: TFixed;
 begin
-  FTransformationReverseTransformFixed(X * FixedOne + FixedHalf,
-    Y * FixedOne + FixedHalf, U, V);
+  FTransformFixed(X * FixedOne + FixedHalf, Y * FixedOne + FixedHalf, U, V);
   Result := FGetSampleFixed(U - FixedHalf, V - FixedHalf);
 end;
 
@@ -3658,7 +3660,7 @@ function TTransformer.GetSampleFixed(X, Y: TFixed): TColor32;
 var
   U, V: TFixed;
 begin
-  FTransformationReverseTransformFixed(X + FixedHalf, Y + FixedHalf, U, V);
+  FTransformFixed(X + FixedHalf, Y + FixedHalf, U, V);
   Result := FGetSampleFixed(U - FixedHalf, V - FixedHalf);
 end;
 
@@ -3666,33 +3668,38 @@ function TTransformer.GetSampleFloat(X, Y: TFloat): TColor32;
 var
   U, V: TFloat;
 begin
-  FTransformationReverseTransformFloat(X + 0.5, Y + 0.5, U, V);
+  FTransformFloat(X + 0.5, Y + 0.5, U, V);
   Result := FGetSampleFloat(U - 0.5, V - 0.5);
 end;
 
-procedure TTransformer.SetTransformation(const Value: TTransformation);
-begin
-  FTransformation := Value;
-  if Assigned(Value) then
-  begin
-    FTransformationReverseTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
-    FTransformationReverseTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
-    FTransformationReverseTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
-  end;
-end;
-
-constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTransformation);
+constructor TTransformer.Create(ASampler: TCustomSampler; ATransformation: TTransformation; AReverse: boolean);
 begin
   inherited Create(ASampler);
-  Transformation := ATransformation;
+  FTransformation := ATransformation;
+  FReverse := AReverse;
 end;
 
 procedure TTransformer.PrepareSampling;
 begin
   inherited;
-  with TTransformationAccess(FTransformation) do
-    if not TransformValid then
-      PrepareTransform;
+
+  if (FTransformation = nil) then
+    raise ETransformerException.Create(STransformationNil);
+
+  if (FReverse) then
+  begin
+    FTransformInt := TTransformationAccess(FTransformation).ReverseTransformInt;
+    FTransformFixed := TTransformationAccess(FTransformation).ReverseTransformFixed;
+    FTransformFloat := TTransformationAccess(FTransformation).ReverseTransformFloat;
+  end else
+  begin
+    FTransformInt := TTransformationAccess(FTransformation).TransformInt;
+    FTransformFixed := TTransformationAccess(FTransformation).TransformFixed;
+    FTransformFloat := TTransformationAccess(FTransformation).TransformFloat;
+  end;
+
+  if not TTransformationAccess(FTransformation).TransformValid then
+    TTransformationAccess(FTransformation).PrepareTransform;
 end;
 
 function TTransformer.GetSampleBounds: TFloatRect;
@@ -3877,7 +3884,7 @@ end;
 
 procedure TPatternSampler.SetPattern(const Value: TFixedSamplePattern);
 begin
-  if Assigned(Value) then
+  if (Value <> nil) then
   begin
     FPattern := Value;
     WrapProcVert := GetOptimalWrap(High(FPattern));
@@ -3910,14 +3917,16 @@ end;
 
 procedure RegisterResampler(ResamplerClass: TCustomResamplerClass);
 begin
-  if not Assigned(ResamplerList) then ResamplerList := TClassList.Create;
-  ResamplerList.ADD(ResamplerClass);
+  if (ResamplerList = nil) then
+    ResamplerList := TClassList.Create;
+  ResamplerList.Add(ResamplerClass);
 end;
 
 procedure RegisterKernel(KernelClass: TCustomKernelClass);
 begin
-  if not Assigned(KernelList) then KernelList := TClassList.Create;
-  KernelList.ADD(KernelClass);
+  if (KernelList = nil) then
+    KernelList := TClassList.Create;
+  KernelList.Add(KernelClass);
 end;
 
 { TNestedSampler }
@@ -3938,42 +3947,38 @@ end;
 
 procedure TNestedSampler.FinalizeSampling;
 begin
-  if not Assigned(FSampler) then
-    raise ENestedException.Create(SSamplerNil)
-  else
-    FSampler.FinalizeSampling;
+  if (FSampler = nil) then
+    raise ENestedException.Create(SSamplerNil);
+  FSampler.FinalizeSampling;
 end;
 
 {$WARNINGS OFF}
 function TNestedSampler.GetSampleBounds: TFloatRect;
 begin
-  if not Assigned(FSampler) then
-    raise ENestedException.Create(SSamplerNil)
-  else
-    Result := FSampler.GetSampleBounds;
+  if (FSampler = nil) then
+    raise ENestedException.Create(SSamplerNil);
+  Result := FSampler.GetSampleBounds;
 end;
 
 function TNestedSampler.HasBounds: Boolean;
 begin
-  if not Assigned(FSampler) then
-    raise ENestedException.Create(SSamplerNil)
-  else
-    Result := FSampler.HasBounds;
+  if (FSampler = nil) then
+    raise ENestedException.Create(SSamplerNil);
+  Result := FSampler.HasBounds;
 end;
 {$WARNINGS ON}
 
 procedure TNestedSampler.PrepareSampling;
 begin
-  if not Assigned(FSampler) then
-    raise ENestedException.Create(SSamplerNil)
-  else
-    FSampler.PrepareSampling;
+  if (FSampler = nil) then
+    raise ENestedException.Create(SSamplerNil);
+  FSampler.PrepareSampling;
 end;
 
 procedure TNestedSampler.SetSampler(const Value: TCustomSampler);
 begin
   FSampler := Value;
-  if Assigned(Value) then
+  if (Value <> nil) then
   begin
     FGetSampleInt := FSampler.GetSampleInt;
     FGetSampleFixed := FSampler.GetSampleFixed;
@@ -4126,7 +4131,8 @@ begin
   for I := 0 to FKernel.Width - 1 do
     for J := 0 to FKernel.Height - 1 do
       W := Max(W, FKernel[I, J]);
-  if W > 255 then W := 255;
+  if W > 255 then
+    W := 255;
   FMaxWeight := Gray32(W, W);
 end;
 
