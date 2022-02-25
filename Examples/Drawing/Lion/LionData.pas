@@ -437,8 +437,7 @@ begin
         C := ReadHexValue(Ptr);
 
         // New color. Every new color creates new path in the path object.
-        Path.ClosePath;
-        Path.EndPath;
+        Path.EndPath(True);
         with GLion do
         begin
           if Length(ColoredPolygons) > 0 then
@@ -449,7 +448,6 @@ begin
           ColoredPolygons[Index].Color := SetAlpha(TColor32(C), $FF);
         end;
 
-        Path.BeginPath;
         while (Ptr^ <> #0) and (Ptr^ <> #13) do
           Inc(Ptr);
 
@@ -473,7 +471,7 @@ begin
           case Cmd of
             'M':
               begin
-                Path.ClosePath;
+                Path.EndPath(True);
                 Path.MoveTo(X, Y);
               end;
             'L':
@@ -498,8 +496,7 @@ begin
         if Ptr^ = #13 then
           Inc(Ptr);
       end;
-    Path.ClosePath;
-    Path.EndPath;
+    Path.EndPath(True);
 
     with GLion do
       if Length(ColoredPolygons) > 0 then

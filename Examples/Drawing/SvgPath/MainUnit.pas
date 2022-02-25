@@ -158,7 +158,7 @@ var
     if Path[Index] in ['+', '-'] then
     begin
       // actually read sign
-      FloatStr := Path[Index];
+      FloatStr := string(Path[Index]);
       Inc(Index);
     end
     else
@@ -180,7 +180,7 @@ var
       // eventually read exponent sign
       if (Index < Length(Path)) and (Path[Index] in ['+', '-']) then
       begin
-        FloatStr := FloatStr + Path[Index];
+        FloatStr := FloatStr + string(Path[Index]);
         Inc(Index);
       end;
 
@@ -322,8 +322,7 @@ begin
 
   // ToDo: Evaluate 'Relative', implement subsequent LineTo commands!
 
-  FCanvas32.Path.BeginPath;
-  FCanvas32.Path.MoveTo(LastPos.X, LastPos.Y);
+  FCanvas32.MoveTo(LastPos.X, LastPos.Y);
 
   while Index <= Length(Path) do
   begin
@@ -357,26 +356,31 @@ begin
           Current.X := ReadNumber;
           SkipWhitespaces;
         end;
+
       pcVerticalLineTo:
         begin
           Current.Y := ReadNumber;
           SkipWhitespaces;
         end;
+
       pcMoveTo, pcLineTo, pcSmoothQuadTo:
         begin
           ReadPoint(Current);
         end;
+
       pcSmoothCubicTo, pcQuadTo:
         begin
           ReadPoint(Control[0]);
           ReadPoint(Current);
         end;
+
       pcCubicTo:
         begin
           ReadPoint(Control[0]);
           ReadPoint(Control[1]);
           ReadPoint(Current);
         end;
+
       pcArcTo:
         begin
           ReadPoint(Radius);
@@ -400,72 +404,72 @@ begin
 
     case Command of
       pcMoveTo:
-      begin
-        FCanvas32.Path.EndPath;
-        FCanvas32.Path.BeginPath;
-        if Relative then
-          FCanvas32.Path.MoveToRelative(Current.X, Current.Y)
-        else
-          FCanvas32.Path.MoveTo(Current.X, Current.Y);
+        begin
+          // MoveTo performs an implicit EndPath;
+          if Relative then
+            FCanvas32.MoveToRelative(Current.X, Current.Y)
+          else
+            FCanvas32.MoveTo(Current.X, Current.Y);
 
-        Command := pcLineTo; // all subsequent coordinates are LineTo segments!
-      end;
+          Command := pcLineTo; // all subsequent coordinates are LineTo segments!
+        end;
+
       pcLineTo:
         if Relative then
-          FCanvas32.Path.LineToRelative(Current.X, Current.Y)
+          FCanvas32.LineToRelative(Current.X, Current.Y)
         else
-          FCanvas32.Path.LineTo(Current.X, Current.Y);
+          FCanvas32.LineTo(Current.X, Current.Y);
+
       pcHorizontalLineTo:
         if Relative then
-          FCanvas32.Path.HorizontalLineToRelative(Current.X)
+          FCanvas32.HorizontalLineToRelative(Current.X)
         else
-          FCanvas32.Path.HorizontalLineTo(Current.X);
+          FCanvas32.HorizontalLineTo(Current.X);
+
       pcVerticalLineTo:
         if Relative then
-          FCanvas32.Path.VerticalLineToRelative(Current.Y)
+          FCanvas32.VerticalLineToRelative(Current.Y)
         else
-          FCanvas32.Path.VerticalLineTo(Current.Y);
+          FCanvas32.VerticalLineTo(Current.Y);
+
       pcSmoothQuadTo:
         begin
           if Relative then
-            FCanvas32.Path.ConicToRelative(Current.X, Current.Y)
+            FCanvas32.ConicToRelative(Current.X, Current.Y)
           else
-            FCanvas32.Path.ConicTo(Current.X, Current.Y)
+            FCanvas32.ConicTo(Current.X, Current.Y)
         end;
+
       pcQuadTo:
         begin
           if Relative then
-            FCanvas32.Path.ConicToRelative(Control[0].X, Control[0].Y,
-              Current.X, Current.Y)
+            FCanvas32.ConicToRelative(Control[0].X, Control[0].Y, Current.X, Current.Y)
           else
-            FCanvas32.Path.ConicTo(Control[0].X, Control[0].Y,
-              Current.X, Current.Y);
+            FCanvas32.ConicTo(Control[0].X, Control[0].Y, Current.X, Current.Y);
         end;
+
       pcSmoothCubicTo:
         if Relative then
-          FCanvas32.Path.CurveToRelative(Control[0].X,
-            Control[0].Y, Current.X, Current.Y)
+          FCanvas32.CurveToRelative(Control[0].X, Control[0].Y, Current.X, Current.Y)
         else
-          FCanvas32.Path.CurveTo(Control[0].X,
-            Control[0].Y, Current.X, Current.Y);
-//        raise Exception.Create(RCStrNotYetImplemented);
+          FCanvas32.CurveTo(Control[0].X, Control[0].Y, Current.X, Current.Y);
+
       pcCubicTo:
         if Relative then
-          FCanvas32.Path.CurveToRelative(Control[0].X, Control[0].Y,
-            Control[1].X, Control[1].Y, Current.X, Current.Y)
+          FCanvas32.CurveToRelative(Control[0].X, Control[0].Y, Control[1].X, Control[1].Y, Current.X, Current.Y)
         else
-          FCanvas32.Path.CurveTo(Control[0].X, Control[0].Y, Control[1].X,
-            Control[1].Y, Current.X, Current.Y);
+          FCanvas32.CurveTo(Control[0].X, Control[0].Y, Control[1].X, Control[1].Y, Current.X, Current.Y);
+
       pcArcTo:
         begin
           raise Exception.Create(RCStrNotYetImplemented);
-//          FCanvas32.Path.Arc(Radius.X, Radius.Y, );
+//          FCanvas32.Arc(Radius.X, Radius.Y, );
           //ArcEndpointToCenterParameterization;
-          //raise Exception.Create(RCStrNotYetImplemented);
         end;
+
       pcClosePath:
         begin
-          FCanvas32.Path.ClosePath;
+          FCanvas32.EndPath(True);
           Current := FirstPoint;
         end;
     end;
@@ -473,7 +477,7 @@ begin
     LastPos := Current;
   end;
 
-  FCanvas32.Path.EndPath;
+  FCanvas32.EndPath;
 end;
 
 procedure TFrmSvgPathRenderer.ShpFillColorMouseDown(Sender: TObject;

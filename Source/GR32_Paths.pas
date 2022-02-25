@@ -37,8 +37,12 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms,
-  GR32_Brushes, GR32_Geometry;
+  Classes, SysUtils,
+  GR32,
+  GR32_Polygons,
+  GR32_Transforms,
+  GR32_Brushes,
+  GR32_Geometry;
 
 const
   DefaultCircleSteps = 100;
@@ -66,9 +70,9 @@ type
     procedure EndUpdate; override;
     procedure Changed; override;
 
-    procedure BeginPath; deprecated; // No longer necessary
+    procedure BeginPath; deprecated 'No longer necessary. Path is started automatically';
     procedure EndPath(Close: boolean = False); virtual;
-    procedure ClosePath; deprecated; // Use EndPath(True) instead
+    procedure ClosePath; deprecated 'Use EndPath(True) instead';
 
     // Movement
     procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -105,6 +109,7 @@ type
     // Polylines
     procedure Arc(const P: TFloatPoint; StartAngle, EndAngle, Radius: TFloat);
     procedure PolyLine(const APoints: TArrayOfFloatPoint); virtual;
+    procedure PolyPolyLine(const APoints: TArrayOfArrayOfFloatPoint); virtual;
 
     // Closed Polygons
     procedure Rectangle(const Rect: TFloatRect); virtual;
@@ -114,14 +119,19 @@ type
     procedure Circle(const Cx, Cy, Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Circle(const Center: TFloatPoint; Radius: TFloat; Steps: Integer = DefaultCircleSteps); overload; virtual;
     procedure Polygon(const APoints: TArrayOfFloatPoint); virtual;
+    procedure PolyPolygon(const APoints: TArrayOfArrayOfFloatPoint); virtual;
 
     property CurrentPoint: TFloatPoint read FCurrentPoint write FCurrentPoint;
   end;
 
   { TFlattenedPath }
+  TBooleanArray = array of boolean;
+
   TFlattenedPath = class(TCustomPath)
   private
     FPath: TArrayOfArrayOfFloatPoint;
+    FClosed: TBooleanArray;
+    FClosedCount: integer;
     FPoints: TArrayOfFloatPoint;
     FPointIndex: Integer;
     FOnBeginPath: TNotifyEvent;
@@ -134,6 +144,10 @@ type
     procedure DoBeginPath; virtual;
     procedure DoEndPath; virtual;
     procedure ClearPoints;
+
+    // Points temporarily holds the vertices used to build a path. Cleared after path has been constructed.
+    property Points: TArrayOfFloatPoint read GetPoints;
+    property ClosedCount: integer read FClosedCount;
   public
     procedure Clear; override;
 
@@ -141,10 +155,9 @@ type
 
     // MoveTo* implicitly ends the current path.
     procedure MoveTo(const P: TFloatPoint); override;
-    procedure Polygon(const APoints: TArrayOfFloatPoint); override;
 
-    property Points: TArrayOfFloatPoint read GetPoints;
     property Path: TArrayOfArrayOfFloatPoint read FPath;
+    property PathClosed: TBooleanArray read FClosed;
 
     property OnBeginPath: TNotifyEvent read FOnBeginPath write FOnBeginPath;
     property OnEndPath: TNotifyEvent read FOnEndPath write FOnEndPath;
@@ -162,7 +175,7 @@ type
     procedure DrawPath(const Path: TFlattenedPath); virtual; abstract;
   public
     property Transformation: TTransformation read FTransformation write SetTransformation;
-    function Path: TFlattenedPath; deprecated; // No longer necessary
+    function Path: TFlattenedPath; deprecated 'No longer necessary - Just reference the Canvas itself instead';
   end;
 
   { TCanvas32 }
@@ -204,7 +217,7 @@ type
 implementation
 
 uses
-  Math,
+  Math, {$IFDEF FPC}Types, {$ENDIF} {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
   GR32_Backends,
   GR32_VectorUtils;
 
@@ -352,6 +365,7 @@ end;
 procedure TCustomPath.Clear;
 begin
   FControlPointOrigin := cpNone;
+  FChanged := False;
 end;
 
 procedure TCustomPath.ClosePath;
@@ -549,16 +563,32 @@ begin
 end;
 
 procedure TCustomPath.Polygon(const APoints: TArrayOfFloatPoint);
-var
-  i: Integer;
 begin
   if (Length(APoints) = 0) then
     Exit;
 
-  MoveTo(APoints[0]);
-  for i := 1 to High(APoints) do
-    LineTo(APoints[i]);
-  EndPath(True); // TODO : Was EndPath with no ClosePath...
+  BeginUpdate;
+
+  MoveTo(APoints[0]); // Implicitly ends any current path
+  PolyLine(APoints);
+  EndPath(True);
+
+  EndUpdate;
+end;
+
+procedure TCustomPath.PolyPolygon(const APoints: TArrayOfArrayOfFloatPoint);
+var
+  i: Integer;
+begin
+  if Length(APoints) = 0 then
+    Exit;
+
+  BeginUpdate;
+
+  for i := 0 to High(APoints) do
+    Polygon(APoints[i]);
+
+  EndUpdate;
 end;
 
 procedure TCustomPath.PolyLine(const APoints: TArrayOfFloatPoint);
@@ -572,6 +602,25 @@ begin
 
   for i := 0 to High(APoints) do
     LineTo(APoints[i]);
+
+  EndUpdate;
+end;
+
+procedure TCustomPath.PolyPolyline(const APoints: TArrayOfArrayOfFloatPoint);
+var
+  i: Integer;
+begin
+  if Length(APoints) = 0 then
+    Exit;
+
+  BeginUpdate;
+
+  for i := 0 to High(APoints) do
+  begin
+    if (i > 0) then
+      EndPath;
+    Polyline(APoints[i]);
+  end;
 
   EndUpdate;
 end;
@@ -592,16 +641,20 @@ begin
     exit;
 
   if (Close) then
+  begin
     AddPoint(FPoints[0]);
-
-  CurrentPoint := FPoints[0];
+    Inc(FClosedCount);
+    CurrentPoint := FPoints[0];
+  end;
 
   // Grow path list
   n := Length(FPath);
   SetLength(FPath, n + 1);
+  SetLength(FClosed, n + 1);
 
   // Save vertex buffer in path list
   FPath[n] := Copy(FPoints, 0, FPointIndex);
+  FClosed[n] := Close;
 
   ClearPoints;
 
@@ -614,6 +667,8 @@ begin
 
   // Clear path list
   FPath := nil;
+  FClosed := nil;
+  FClosedCount := 0;
   // ...and vertex buffer
   ClearPoints;
 end;
@@ -654,21 +709,6 @@ begin
   AddPoint(P);
 end;
 
-procedure TFlattenedPath.Polygon(const APoints: TArrayOfFloatPoint);
-begin
-  if (Length(APoints) = 0) then
-    Exit;
-
-  BeginUpdate;
-
-  PolyLine(APoints);
-  EndPath(True);
-
-  CurrentPoint := APoints[High(APoints)];
-
-  EndUpdate;
-end;
-
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
 var
   n: Integer;
@@ -703,6 +743,8 @@ begin
         SetLength(TFlattenedPath(Dest).FPath[i], Length(FPath[i]));
         Move(FPath[i, 0], TFlattenedPath(Dest).FPath[i, 0], Length(FPath[i]) * SizeOf(TFloatPoint));
       end;
+      TFlattenedPath(Dest).FClosed := FClosed;
+      TFlattenedPath(Dest).FClosedCount := FClosedCount;
       TFlattenedPath(Dest).DoEndPath;
 
       TFlattenedPath(Dest).Changed;
@@ -803,7 +845,9 @@ end;
 procedure TCanvas32.DrawPath(const Path: TFlattenedPath);
 var
   ClipRect: TFloatRect;
-  i: Integer;
+  i, j, k: Integer;
+  Buffer: TArrayOfArrayOfFloatPoint;
+  Closed: boolean;
 begin
   if (Length(Path.Path) = 0) then
     exit;
@@ -811,9 +855,41 @@ begin
   ClipRect := FloatRect(Bitmap.ClipRect);
   Renderer.Bitmap := Bitmap;
 
-  for i := 0 to FBrushes.Count-1 do
-    if FBrushes[i].Visible then
-      FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, True);
+  // Simple case: All paths are closed or all paths are open
+  if (Path.ClosedCount = 0) or (Path.ClosedCount = Length(Path.Path)) then
+  begin
+    for i := 0 to FBrushes.Count-1 do
+      if FBrushes[i].Visible then
+        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, (Path.ClosedCount = Length(Path.Path)));
+  end else
+  // Not so simple case: Some paths are closed, some are open
+  begin
+    j := 0;
+    // Find contiguous chunks of path with same "closedness"
+    while (j < Length(Path.Path)) do
+    begin
+      Closed := Path.PathClosed[j];
+      // Find a run of same "closedness"
+      k := j+1;
+      while (k < Length(Path.Path)) and (Path.PathClosed[k] = Closed) do
+        Inc(k);
+
+      // Run goes from j to k-1
+      SetLength(Buffer, k-j);
+      i := 0;
+      while (j < k) do
+      begin
+        Buffer[i] := Path.Path[j];
+        Inc(j);
+        Inc(i);
+      end;
+
+      // Render this run
+      for i := 0 to FBrushes.Count-1 do
+        if FBrushes[i].Visible then
+          FBrushes[i].PolyPolygonFS(Renderer, Buffer, ClipRect, Transformation, Closed);
+    end;
+  end;
 end;
 
 

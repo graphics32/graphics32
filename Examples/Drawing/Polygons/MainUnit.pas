@@ -165,7 +165,6 @@ end;
 
 procedure TFormPolygons.Draw;
 var
-  MyFiller: TBitmapPolygonFiller;
   Index, PointIndex: Integer;
 begin
   Image.Bitmap.BeginUpdate;
@@ -178,12 +177,12 @@ begin
       if Length(FPoints[Index]) = 0 then
         Continue;
 
-      FCanvas.Path.BeginPath;
-      FCanvas.Path.MoveTo(FPoints[Index, 0].X, FPoints[Index, 0].Y);
+      FCanvas.MoveTo(FPoints[Index, 0].X, FPoints[Index, 0].Y);
+
       for PointIndex := 1 to Length(FPoints[Index]) - 1 do
-        FCanvas.Path.LineTo(FPoints[Index, PointIndex].X, FPoints[Index, PointIndex].Y);
-      FCanvas.Path.ClosePath;
-      FCanvas.Path.EndPath;
+        FCanvas.LineTo(FPoints[Index, PointIndex].X, FPoints[Index, PointIndex].Y);
+
+      FCanvas.EndPath(True);
     end;
   finally
     Image.Bitmap.EndUpdate;
