@@ -4,9 +4,9 @@
         <AppType>Application</AppType>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <FrameworkType>VCL</FrameworkType>
-        <MainSource>Blurs.dpr</MainSource>
+        <MainSource>Template.dpr</MainSource>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
-        <ProjectGuid>{8f3c0339-6d95-461b-8a3d-8a0edbe5d967}</ProjectGuid>
+        <ProjectGuid>{F980AE13-88F3-439D-BB9B-F298B018C921}</ProjectGuid>
         <ProjectVersion>18.8</ProjectVersion>
         <TargetedPlatforms>3</TargetedPlatforms>
     </PropertyGroup>
@@ -52,7 +52,7 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
-        <SanitizedProjectName>Blurs</SanitizedProjectName>
+        <SanitizedProjectName>Template</SanitizedProjectName>
         <BRCC_CompilerToUse>rc</BRCC_CompilerToUse>
         <DCC_DcuOutput>.\Lib\$(Platform)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>.\Bin\$(Platform)\$(Config)</DCC_ExeOutput>
@@ -101,10 +101,10 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <RcCompile Include="Media.rc"><Form>Media.res</Form></RcCompile>
-
+        <RcCompile Include="Media.rc">
+            <Form>Media.res</Form>
+        </RcCompile>
         <DCCReference Include="MainUnit.pas"/>
-
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -123,7 +123,7 @@
         <BorlandProject>
             <Delphi.Personality>
                 <Source>
-                    <Source Name="MainSource">Blurs.dpr</Source>
+                    <Source Name="MainSource">Template.dpr</Source>
                 </Source>
                 <Excluded_Packages/>
                 <VersionInfo>
@@ -164,4 +164,3 @@
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
 </Project>
-

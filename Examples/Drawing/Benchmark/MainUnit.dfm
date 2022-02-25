@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 324
   Top = 77
-  Width = 730
-  Height = 625
   Caption = 'Polygon Renderer Benchmark'
+  ClientHeight = 587
+  ClientWidth = 714
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -18,12 +18,14 @@ object MainForm: TMainForm
   object PnlTop: TPanel
     Left = 0
     Top = 0
-    Width = 722
-    Height = 364
+    Width = 714
+    Height = 353
     Align = alClient
     BevelOuter = bvNone
     BorderWidth = 10
     TabOrder = 0
+    ExplicitWidth = 722
+    ExplicitHeight = 364
     object Img: TImage32
       Left = 10
       Top = 10
@@ -40,13 +42,15 @@ object MainForm: TMainForm
   end
   object PnlBottom: TPanel
     Left = 0
-    Top = 364
-    Width = 722
+    Top = 353
+    Width = 714
     Height = 234
     Align = alBottom
     BevelOuter = bvNone
     BorderWidth = 10
     TabOrder = 1
+    ExplicitTop = 364
+    ExplicitWidth = 722
     object GbxSettings: TGroupBox
       Left = 10
       Top = 10
@@ -92,7 +96,6 @@ object MainForm: TMainForm
         Width = 225
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
         TabOrder = 0
       end
       object CmbRenderer: TComboBox
@@ -101,7 +104,6 @@ object MainForm: TMainForm
         Width = 225
         Height = 21
         Style = csDropDownList
-        ItemHeight = 13
         TabOrder = 1
       end
       object CbxAllTests: TCheckBox
@@ -134,11 +136,12 @@ object MainForm: TMainForm
     object GbxResults: TGroupBox
       Left = 348
       Top = 10
-      Width = 364
+      Width = 356
       Height = 214
       Align = alClient
       Caption = 'Benchmark Res&ults'
       TabOrder = 1
+      ExplicitWidth = 364
       object PnlBenchmark: TPanel
         Left = 2
         Top = 15
