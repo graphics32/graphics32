@@ -163,7 +163,7 @@ begin
   W := Canvas.Bitmap.Width;
   H := Canvas.Bitmap.Height;
   (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
-  Canvas.Path.Ellipse(Random(W), Random(H), Random(W shr 1), Random(H shr 1));
+  Canvas.Ellipse(Random(W), Random(H), Random(W shr 1), Random(H shr 1));
 end;
 
 //----------------------------------------------------------------------------//
@@ -182,10 +182,9 @@ begin
     StrokeWidth := 1;
     FillColor := RandColor;
   end;
-  Canvas.Path.BeginPath;
-  Canvas.Path.MoveTo(Random(W), Random(H));
-  Canvas.Path.LineTo(Random(W), Random(H));
-  Canvas.Path.EndPath;
+  Canvas.MoveTo(Random(W), Random(H));
+  Canvas.LineTo(Random(W), Random(H));
+  Canvas.EndPath;
 end;
 
 //----------------------------------------------------------------------------//
@@ -204,10 +203,9 @@ begin
     StrokeWidth := 10;
     FillColor := RandColor;
   end;
-  Canvas.Path.BeginPath;
-  Canvas.Path.MoveTo(Random(W), Random(H));
-  Canvas.Path.LineTo(Random(W), Random(H));
-  Canvas.Path.EndPath;
+  Canvas.MoveTo(Random(W), Random(H));
+  Canvas.LineTo(Random(W), Random(H));
+  Canvas.EndPath;
 end;
 
 //----------------------------------------------------------------------------//
@@ -342,7 +340,7 @@ begin
     K.Free;
   end;
   (Canvas.Brushes[0] as TSolidBrush).FillColor := RandColor;
-  Canvas.Path.Polygon(Points);
+  Canvas.Polygon(Points);
 end;
 
 //----------------------------------------------------------------------------//

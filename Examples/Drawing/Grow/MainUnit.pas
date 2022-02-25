@@ -203,7 +203,6 @@ end;
 
 procedure TFormGrow.Refresh1Click(Sender: TObject);
 var
-  i: integer;
   polyPts: TArrayOfArrayOfFloatPoint;
 begin
   Image.Bitmap.Clear(clWhite32);

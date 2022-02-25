@@ -37,8 +37,12 @@ interface
 {$I GR32.inc}
 
 uses
-  Classes, SysUtils, GR32, GR32_Polygons, GR32_Transforms,
-  GR32_Brushes, GR32_Geometry;
+  Classes, SysUtils,
+  GR32,
+  GR32_Polygons,
+  GR32_Transforms,
+  GR32_Brushes,
+  GR32_Geometry;
 
 const
   DefaultCircleSteps = 100;
@@ -66,9 +70,9 @@ type
     procedure EndUpdate; override;
     procedure Changed; override;
 
-    procedure BeginPath; deprecated; // No longer necessary
+    procedure BeginPath; deprecated 'No longer necessary. Path is started automatically';
     procedure EndPath(Close: boolean = False); virtual;
-    procedure ClosePath; deprecated; // Use EndPath(True) instead
+    procedure ClosePath; deprecated 'Use EndPath(True) instead';
 
     // Movement
     procedure MoveTo(const X, Y: TFloat); overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -141,7 +145,7 @@ type
     procedure DoEndPath; virtual;
     procedure ClearPoints;
 
-    // Points temporarily holds the vertices used to build a path. Cleared after path has been constrcted.
+    // Points temporarily holds the vertices used to build a path. Cleared after path has been constructed.
     property Points: TArrayOfFloatPoint read GetPoints;
     property ClosedCount: integer read FClosedCount;
   public
@@ -171,7 +175,7 @@ type
     procedure DrawPath(const Path: TFlattenedPath); virtual; abstract;
   public
     property Transformation: TTransformation read FTransformation write SetTransformation;
-    function Path: TFlattenedPath; deprecated; // No longer necessary
+    function Path: TFlattenedPath; deprecated 'No longer necessary - Just reference the Canvas itself instead';
   end;
 
   { TCanvas32 }
@@ -213,7 +217,7 @@ type
 implementation
 
 uses
-  Math,
+  Math, {$IFDEF FPC}Types, {$ENDIF} {$IFDEF COMPILERXE2_UP}Types, {$ENDIF}
   GR32_Backends,
   GR32_VectorUtils;
 

@@ -157,29 +157,20 @@ begin
     (Abs(Box1Center.Y - Box2Center.Y) <= BoxSize);
 end;
 
-function MakeArrayOfFloat(const Data: array of TFloat): TArrayOfFloat;
-var
-  Index, Len: Integer;
-begin
-  Len := Length(Data);
-  SetLength(Result, Len);
-  for Index := 0 to Len - 1
-    do Result[Index] := Data[Index];
-end;
-
 function MakeBezierCurve(const CtrlPts: TArrayOfFloatPoint): TArrayOfFloatPoint;
 var
   Index: Integer;
+  Path: TFlattenedPath;
 begin
-  with TFlattenedPath.Create do
+  Path := TFlattenedPath.Create;
   try
-    MoveTo(CtrlPts[0]);
+    Path.MoveTo(CtrlPts[0]);
     for Index := 0 to (High(CtrlPts) - 3) div 3 do
-      CurveTo(CtrlPts[Index * 3 + 1], CtrlPts[Index * 3 + 2],
-        CtrlPts[Index * 3 + 3]);
-    Result := Points;
+      Path.CurveTo(CtrlPts[Index * 3 + 1], CtrlPts[Index * 3 + 2], CtrlPts[Index * 3 + 3]);
+    Path.EndPath;
+    Result := Path.Path[0];
   finally
-    Free;
+    Path.Free;
   end;
 end;
 
@@ -202,7 +193,7 @@ begin
 
   FBoxIndex := -1;
   FArrowSize := 20;
-  FDashes := MakeArrayOfFloat([14, 3, 3, 3, 3, 3]);
+  FDashes := [14, 3, 3, 3, 3, 3];
   FBoxCenter[0] := FloatPoint(120, 100);
   FBoxCenter[1] := FloatPoint(240, 300);
   FAnimationSpeed := TbrAnimationSpeed.Position;

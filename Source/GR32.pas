@@ -1121,10 +1121,17 @@ resourcestring
 implementation
 
 uses
-  Math, GR32_Blend, GR32_LowLevel, GR32_Math, GR32_Resamplers,
-  GR32_Containers, GR32_Gamma, GR32_Backends, GR32_Backends_Generic,
-{$IFDEF FPC}
+  Math,
   Clipbrd,
+  GR32_Blend,
+  GR32_LowLevel,
+  GR32_Math,
+  GR32_Resamplers,
+  GR32_Containers,
+  GR32_Gamma,
+  GR32_Backends,
+  GR32_Backends_Generic,
+{$IFDEF FPC}
   {$IFDEF LCLWin32}
     GR32_Backends_LCL_Win,
   {$ENDIF}
@@ -1138,7 +1145,7 @@ uses
     GR32_Backends_LCL_CustomDrawn,
   {$ENDIF}
 {$ELSE}
-  Clipbrd, GR32_Backends_VCL,
+  GR32_Backends_VCL,
 {$ENDIF}
   GR32_VectorUtils;
 
