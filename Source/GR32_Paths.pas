@@ -197,9 +197,9 @@ type
     constructor Create(ABitmap: TBitmap32); reintroduce; virtual;
     destructor Destroy; override;
 
-    procedure RenderText(X, Y: TFloat; const Text: WideString); overload;
-    procedure RenderText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+    procedure RenderText(X, Y: TFloat; const Text: string); overload;
+    procedure RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 
     property Bitmap: TBitmap32 read FBitmap;
     property Renderer: TPolygonRenderer32 read FRenderer write SetRenderer;
@@ -903,7 +903,7 @@ begin
   Result := FRenderer.ClassName;
 end;
 
-function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+function TCanvas32.MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 var
   TextToPath: ITextToPathSupport;
 begin
@@ -913,7 +913,7 @@ begin
   Result := TextToPath.MeasureText(DstRect, Text, Flags);
 end;
 
-procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal);
+procedure TCanvas32.RenderText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal);
 var
   TextToPath: ITextToPathSupport;
 begin
@@ -923,7 +923,7 @@ begin
   TextToPath.TextToPath(Self, DstRect, Text, Flags);
 end;
 
-procedure TCanvas32.RenderText(X, Y: TFloat; const Text: WideString);
+procedure TCanvas32.RenderText(X, Y: TFloat; const Text: string);
 var
   TextToPath: ITextToPathSupport;
 begin

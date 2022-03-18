@@ -39,15 +39,11 @@ interface
 uses
   Windows, Types, GR32, GR32_Paths, Math;
 
-procedure TextToPath(Font: HFONT; Path: TCustomPath;
-  const ARect: TFloatRect; const Text: WideString; Flags: Cardinal = 0);
-function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
+procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0);
+function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
 
-function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal = 0): TFloatRect; overload;
-function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal = 0): TFloatRect;
+function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0): TFloatRect; overload;
+function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0): TFloatRect;
 
 type
   TTextHinting = (thNone, thNoHorz, thHinting);
@@ -119,7 +115,7 @@ var
 begin
   Result := False;
 
-  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
+  Res := GetGlyphOutline(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
     0, nil, VertFlip_mat2);
   if (Res = 0) then Exit;
 
@@ -133,7 +129,7 @@ begin
   {$ENDIF}
   BufferPtr := GlyphMemPtr;
 
-  Res := GetGlyphOutlineW(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
+  Res := GetGlyphOutline(Handle, Glyph, GGODefaultFlags[UseHinting], Metrics,
     Res, BufferPtr, VertFlip_mat2);
 
   if (Res = GDI_ERROR) or (BufferPtr^.dwType <> TT_POLYGON_TYPE) then
@@ -234,8 +230,7 @@ end;
 {$ENDIF}
 
 
-procedure InternalTextToPath(DC: HDC; Path: TCustomPath; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal = 0);
+procedure InternalTextToPath(DC: HDC; Path: TCustomPath; const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0);
 const
   CHAR_CR = 10;
   CHAR_NL = 13;
@@ -248,7 +243,7 @@ var
   CharOffsets: TArrayOfInteger;
   CharWidths: TArrayOfInteger;
   X, Y, XMax, YMax, MaxRight: Single;
-  S: WideString;
+  S: string;
   TextPath: TFlattenedPath;
   OwnedPath: TFlattenedPath;
 {$IFDEF USEKERNING}
@@ -449,7 +444,7 @@ var
     SpcCount := 0;
   end;
 
-  function MeasureTextX(const S: WideString): Integer;
+  function MeasureTextX(const S: string): Integer;
   var
     I: Integer;
   begin
@@ -457,8 +452,7 @@ var
     for I := 1 to Length(S) do
     begin
       CharValue := Ord(S[I]);
-      GetGlyphOutlineW(DC, CharValue,
-        GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
+      GetGlyphOutline(DC, CharValue, GGODefaultFlags[UseHinting], GlyphMetrics, 0, nil, VertFlip_mat2);
       Inc(Result, GlyphMetrics.gmCellIncX);
     end;
   end;
@@ -513,7 +507,7 @@ begin
   CharOffsets[0] := 0;
   SetLength(CharWidths, TextLen);
 
-  GetGlyphOutlineW(DC, CHAR_SP, GGODefaultFlags[UseHinting], GlyphMetrics,
+  GetGlyphOutline(DC, CHAR_SP, GGODefaultFlags[UseHinting], GlyphMetrics,
     0, nil, VertFlip_mat2);
   SpcX := GlyphMetrics.gmCellIncX;
 
@@ -655,8 +649,7 @@ begin
   end;
 end;
 
-procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal = 0);
+procedure TextToPath(Font: HFONT; Path: TCustomPath; const ARect: TFloatRect; const Text: string; Flags: Cardinal);
 var
   DC: HDC;
   SavedFont: HFONT;
@@ -671,8 +664,7 @@ begin
   end;
 end;
 
-function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
+function TextToPolyPolygon(Font: HFONT; const ARect: TFloatRect; const Text: string; Flags: Cardinal): TArrayOfArrayOfFloatPoint;
 var
   Path: TFlattenedPath;
 begin
@@ -685,8 +677,7 @@ begin
   end;
 end;
 
-function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: WideString;
-  Flags: Cardinal): TFloatRect;
+function MeasureTextDC(DC: HDC; const ARect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 begin
   Result := ARect;
   InternalTextToPath(DC, nil, Result, Text, Flags);
@@ -696,8 +687,7 @@ begin
   Result.Bottom := Round(Result.Bottom);
 end;
 
-function MeasureText(Font: HFONT; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal): TFloatRect;
+function MeasureText(Font: HFONT; const ARect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 var
   DC: HDC;
   SavedFont: HFONT;

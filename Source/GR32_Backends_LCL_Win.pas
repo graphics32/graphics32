@@ -108,11 +108,6 @@ type
     procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
     function  TextExtent(const Text: string): TSize;
 
-    procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
-    procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
-    function  TextExtentW(const Text: Widestring): TSize;
-
     { IFontSupport }
     function GetOnFontChange: TNotifyEvent;
     procedure SetOnFontChange(Handler: TNotifyEvent);
@@ -124,9 +119,9 @@ type
     property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
 
     { ITextToPathSupport }
-    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: WideString); overload;
-    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string); overload;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 
     { IInteroperabilitySupport }
     function CopyFrom(Graphic: TGraphic): Boolean; overload;
@@ -444,77 +439,10 @@ begin
   end;
 end;
 
-procedure TLCLBackend.TextoutW(X, Y: Integer; const Text: Widestring);
-var
-  Extent: TSize;
-begin
-  UpdateFont;
-
-  if not FOwner.MeasuringMode then
-  begin
-    if FOwner.Clipping then
-      ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @FOwner.ClipRect, PWideChar(Text), Length(Text), nil)
-    else
-      ExtTextoutW(Handle, X, Y, 0, nil, PWideChar(Text), Length(Text), nil);
-  end;
-
-  Extent := TextExtentW(Text);
-  FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
-end;
-
-procedure TLCLBackend.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
-var
-  Extent: TSize;
-begin
-  UpdateFont;
-
-  if not FOwner.MeasuringMode then
-    ExtTextoutW(Handle, X, Y, ETO_CLIPPED, @ClipRect, PWideChar(Text), Length(Text), nil);
-
-  Extent := TextExtentW(Text);
-  FOwner.Changed(MakeRect(X, Y, X + Extent.cx + 1, Y + Extent.cy + 1));
-end;
-
-procedure TLCLBackend.TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
-begin
-  UpdateFont;
-
-  if not FOwner.MeasuringMode then
-    DrawTextW(Handle, PWideChar(Text), Length(Text), DstRect, Flags);
-
-  FOwner.Changed(DstRect);
-end;
-
-function TLCLBackend.TextExtentW(const Text: Widestring): TSize;
-var
-  DC: HDC;
-  OldFont: HGDIOBJ;
-begin
-  UpdateFont;
-  Result.cX := 0;
-  Result.cY := 0;
-
-  if Handle <> 0 then
-    GetTextExtentPoint32W(Handle, PWideChar(Text), Length(Text), Result)
-  else
-  begin
-    StockBitmap.Canvas.Lock;
-    try
-      DC := StockBitmap.Canvas.Handle;
-      OldFont := SelectObject(DC, Font.Handle);
-      GetTextExtentPoint32W(DC, PWideChar(Text), Length(Text), Result);
-      SelectObject(DC, OldFont);
-    finally
-      StockBitmap.Canvas.Unlock;
-    end;
-  end;
-end;
-
-
 { ITextToPathSupport }
 
 procedure TLCLBackend.TextToPath(Path: TCustomPath; const X, Y: TFloat;
-  const Text: WideString);
+  const Text: string);
 var
   R: TFloatRect;
 begin
@@ -523,13 +451,13 @@ begin
 end;
 
 procedure TLCLBackend.TextToPath(Path: TCustomPath; const DstRect: TFloatRect;
-  const Text: WideString; Flags: Cardinal);
+  const Text: string; Flags: Cardinal);
 begin
   GR32_Text_LCL_Win.TextToPath(Font.Handle, Path, DstRect, Text, Flags);
 end;
 
 function TLCLBackend.MeasureText(const DstRect: TFloatRect;
-  const Text: WideString; Flags: Cardinal): TFloatRect;
+  const Text: string; Flags: Cardinal): TFloatRect;
 begin
   Result := GR32_Text_LCL_Win.MeasureText(Font.Handle, DstRect, Text, Flags);
 end;

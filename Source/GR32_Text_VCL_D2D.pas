@@ -40,16 +40,16 @@ uses
   Windows, Types, Math, D2D1, GR32, GR32_Paths;
 
 procedure TextToPath(Font: HFONT; const FontHeight: Integer; Path: TCustomPath;
-  const ARect: TFloatRect; const Text: WideString; Flags: Cardinal = 0);
+  const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0);
 function TextToPolyPolygon(Font: HFONT; const FontHeight: Integer;
-  const ARect: TFloatRect; const Text: WideString;
+  const ARect: TFloatRect; const Text: string;
   Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
 
 function MeasureTextDC(DC: HDC; const FontHeight: Integer;
-  const ARect: TFloatRect; const Text: WideString;
+  const ARect: TFloatRect; const Text: string;
   Flags: Cardinal = 0): TFloatRect; overload;
 function MeasureText(Font: HFONT; const FontHeight: Integer;
-  const ARect: TFloatRect; const Text: WideString;
+  const ARect: TFloatRect; const Text: string;
   Flags: Cardinal = 0): TFloatRect;
 
 type
@@ -293,7 +293,7 @@ end;
 
 procedure InternalTextToPath(DC: HDC; FontHeight: Integer;
   Path: TCustomPath; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal = 0);
+  const Text: string; Flags: Cardinal = 0);
 const
   CHAR_CR = 10;
   CHAR_NL = 13;
@@ -305,7 +305,7 @@ var
   CharOffsets: TArrayOfInteger;
   CharWidths: TArrayOfInteger;
   X, Y, XMax, YMax, MaxRight: Single;
-  S: WideString;
+  S: string;
   // UseTempPath: Boolean;
   TextPath: TFlattenedPath;
   OwnedPath: TFlattenedPath;
@@ -509,7 +509,7 @@ var
     SpcCount := 0;
   end;
 
-  function MeasureTextX(const S: WideString): Integer;
+  function MeasureTextX(const S: string): Integer;
   var
     I: Integer;
   begin
@@ -716,7 +716,7 @@ begin
 end;
 
 procedure TextToPath(Font: HFONT; const FontHeight: Integer; Path: TCustomPath;
-  const ARect: TFloatRect; const Text: WideString; Flags: Cardinal = 0);
+  const ARect: TFloatRect; const Text: string; Flags: Cardinal = 0);
 var
   DC: HDC;
   SavedFont: HFONT;
@@ -732,7 +732,7 @@ begin
 end;
 
 function TextToPolyPolygon(Font: HFONT; const FontHeight: Integer;
-  const ARect: TFloatRect; const Text: WideString;
+  const ARect: TFloatRect; const Text: string;
   Flags: Cardinal = 0): TArrayOfArrayOfFloatPoint;
 var
   Path: TFlattenedPath;
@@ -747,7 +747,7 @@ begin
 end;
 
 function MeasureTextDC(DC: HDC; const FontHeight: Integer; const ARect: TFloatRect;
-  const Text: WideString; Flags: Cardinal): TFloatRect;
+  const Text: string; Flags: Cardinal): TFloatRect;
 begin
   Result := ARect;
   InternalTextToPath(DC, FontHeight, nil, Result, Text, Flags);
@@ -758,7 +758,7 @@ begin
 end;
 
 function MeasureText(Font: HFONT; const FontHeight: Integer;
-  const ARect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+  const ARect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
 var
   DC: HDC;
   SavedFont: HFONT;

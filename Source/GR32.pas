@@ -1004,12 +1004,6 @@ type
     function  TextHeight(const Text: string): Integer;
     function  TextWidth(const Text: string): Integer;
     procedure RenderText(X, Y: Integer; const Text: string; AALevel: Integer; Color: TColor32);
-    procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
-    procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
-    function  TextExtentW(const Text: Widestring): TSize;
-    function  TextHeightW(const Text: Widestring): Integer;
-    function  TextWidthW(const Text: Widestring): Integer;
 
     property  Canvas: TCanvas read GetCanvas;
     function  CanvasAllocated: Boolean;
@@ -6939,21 +6933,11 @@ begin
   Result := (FBackend as ITextSupport).TextExtent(Text);
 end;
 
-function TBitmap32.TextExtentW(const Text: Widestring): TSize;
-begin
-  Result := (FBackend as ITextSupport).TextExtentW(Text);
-end;
-
 // -------------------------------------------------------------------
 
 procedure TBitmap32.Textout(X, Y: Integer; const Text: string);
 begin
   (FBackend as ITextSupport).Textout(X, Y, Text);
-end;
-
-procedure TBitmap32.TextoutW(X, Y: Integer; const Text: Widestring);
-begin
-  (FBackend as ITextSupport).TextoutW(X, Y, Text);
 end;
 
 // -------------------------------------------------------------------
@@ -6963,21 +6947,11 @@ begin
   (FBackend as ITextSupport).Textout(X, Y, ClipRect, Text);
 end;
 
-procedure TBitmap32.TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring);
-begin
-  (FBackend as ITextSupport).TextoutW(X, Y, ClipRect, Text);
-end;
-
 // -------------------------------------------------------------------
 
 procedure TBitmap32.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
   (FBackend as ITextSupport).Textout(DstRect, Flags, Text);
-end;
-
-procedure TBitmap32.TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring);
-begin
-  (FBackend as ITextSupport).TextoutW(DstRect, Flags, Text);
 end;
 
 // -------------------------------------------------------------------
@@ -6987,21 +6961,11 @@ begin
   Result := (FBackend as ITextSupport).TextExtent(Text).cY;
 end;
 
-function TBitmap32.TextHeightW(const Text: Widestring): Integer;
-begin
-  Result := (FBackend as ITextSupport).TextExtentW(Text).cY;
-end;
-
 // -------------------------------------------------------------------
 
 function TBitmap32.TextWidth(const Text: string): Integer;
 begin
   Result := (FBackend as ITextSupport).TextExtent(Text).cX;
-end;
-
-function TBitmap32.TextWidthW(const Text: Widestring): Integer;
-begin
-  Result := (FBackend as ITextSupport).TextExtentW(Text).cX;
 end;
 
 // -------------------------------------------------------------------

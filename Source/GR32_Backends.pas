@@ -54,11 +54,6 @@ type
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
     procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
     function  TextExtent(const Text: String): TSize;
-
-    procedure TextoutW(X, Y: Integer; const Text: Widestring); overload;
-    procedure TextoutW(X, Y: Integer; const ClipRect: TRect; const Text: Widestring); overload;
-    procedure TextoutW(var DstRect: TRect; const Flags: Cardinal; const Text: Widestring); overload;
-    function  TextExtentW(const Text: Widestring): TSize;
   end;
 
   IFontSupport = interface(IUnknown)
@@ -75,9 +70,9 @@ type
 
   ITextToPathSupport = interface(IUnknown)
   ['{6C4037E4-FF4D-4EE2-9C20-B9DB9C64B42D}']
-    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: WideString); overload;
-    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal); overload;
-    function MeasureText(const DstRect: TFloatRect; const Text: WideString; Flags: Cardinal): TFloatRect;
+    procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string); overload;
+    procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
+    function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
   end;
 
   ICanvasSupport = interface(IUnknown)
