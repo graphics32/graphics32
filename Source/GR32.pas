@@ -7061,7 +7061,7 @@ begin
 end;
 {$ENDIF}
 
-procedure TextBlueToAlpha(const B: TCustomBitmap32; const Color: TColor32);
+procedure TextBlueToAlpha(const B: TCustomBitmap32; Color: TColor32);
 (*
 asm
     PUSH    EDI
@@ -7081,19 +7081,16 @@ end;
 var
   I: Integer;
   P: PColor32;
-  C: TColor32;
 begin
   // convert blue channel to alpha and fill the color
+  Color := Color and $00FFFFFF;
   P := @B.Bits[0];
   for I := 0 to B.Width * B.Height - 1 do
   begin
-    C := P^;
-    if C <> 0 then
-    begin
-      C := P^ shl 24; // transfer blue channel to alpha
-      C := C + Color;
-      P^ := C;
-    end;
+    if P^ <> 0 then
+      P^ := ((P^ and $FF) shl 24) or Color
+    else
+      P^ := 0;
     Inc(P);
   end;
 end;
@@ -7194,7 +7191,7 @@ begin
           B2.Clear(0);
           B2.Font := StockCanvas.Font;
           B2.Font.Color := clWhite;
-          B2.TextoutW(0, 0, Text);
+          B2.Textout(0, 0, Text);
           B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
           TextScaleDown(B, B2, AALevel, Color);
         finally
