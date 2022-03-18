@@ -1010,7 +1010,6 @@ type
     function  TextExtentW(const Text: Widestring): TSize;
     function  TextHeightW(const Text: Widestring): Integer;
     function  TextWidthW(const Text: Widestring): Integer;
-    procedure RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
 
     property  Canvas: TCanvas read GetCanvas;
     function  CanvasAllocated: Boolean;
@@ -7012,6 +7011,7 @@ procedure SetFontAntialiasing(const Font: TFont; Quality: Cardinal);
 var
   LogFont: TLogFont;
 begin
+  LogFont := Default(TLogFont);
   with LogFont do
   begin
     lfHeight := Font.Height;
@@ -7036,9 +7036,9 @@ begin
     lfCharSet := Byte(Font.Charset);
 
     if AnsiCompareText(Font.Name, 'Default') = 0 then  // do not localize
-      StrPLCopy(lfFaceName, string(DefFontData.Name), LF_FACESIZE-1)
+      StrLCopy(lfFaceName, @DefFontData.Name[1], LF_FACESIZE-1)
     else
-      StrPLCopy(lfFaceName, Font.Name, LF_FACESIZE-1);
+      StrLCopy(lfFaceName, @Font.Name[1], LF_FACESIZE-1);
 
     lfQuality := Quality;
 
@@ -7134,95 +7134,18 @@ procedure TBitmap32.RenderText(X, Y: Integer; const Text: string; AALevel: Integ
 var
   B, B2: TBitmap32;
   Sz: TSize;
-  Alpha: TColor32;
-  PaddedText: string;
-begin
-  if Empty then Exit;
-
-  Alpha := Color shr 24;
-  Color := Color and $00FFFFFF;
-  AALevel := Constrain(AALevel, -1, 4);
-  PaddedText := Text + ' ';
-
-  {$IFDEF FPC}
-  if AALevel > -1 then
-    Font.Quality := fqNonAntialiased
-  else
-    Font.Quality := fqAntialiased;
-  {$ELSE}
-  if AALevel > -1 then
-    SetFontAntialiasing(Font, NONANTIALIASED_QUALITY)
-  else
-    SetFontAntialiasing(Font, ANTIALIASED_QUALITY);
-  {$ENDIF}
-
-  { TODO : Optimize Clipping here }
-  B := TBitmap32.Create;
-  with B do
-  try
-    if AALevel <= 0 then
-    begin
-      Sz := Self.TextExtent(PaddedText);
-      if Sz.cX > Self.Width then Sz.cX := Self.Width;
-      if Sz.cY > Self.Height then Sz.cY := Self.Height;
-      SetSize(Sz.cX, Sz.cY);
-      Font := Self.Font;
-      Clear(0);
-      Font.Color := clWhite;
-      Textout(0, 0, Text);
-      TextBlueToAlpha(B, Color);
-    end
-    else
-    begin
-      B2 := TBitmap32.Create;
-      with B2 do
-      try
-        Font := Self.Font;
-        Font.Size := Self.Font.Size shl AALevel;
-        Font.Color := clWhite;
-        Sz := TextExtent(PaddedText);
-        Sz.Cx := Sz.cx + 1 shl AALevel;
-        Sz.Cy := Sz.cy + 1 shl AALevel;
-        SetSize(Sz.Cx, Sz.Cy);
-        Clear(0);
-        Textout(0, 0, Text);
-        B.SetSize(Sz.cx shr AALevel, Sz.cy shr AALevel);
-        TextScaleDown(B, B2, AALevel, Color);
-      finally
-        Free;
-      end;
-    end;
-
-    DrawMode := dmBlend;
-    MasterAlpha := Alpha;
-    CombineMode := CombineMode;
-
-    DrawTo(Self, X, Y);
-  finally
-    Free;
-  end;
-
-  {$IFDEF FPC}
-  Font.Quality := fqDefault;
-  {$ELSE}
-  SetFontAntialiasing(Font, DEFAULT_QUALITY);
-  {$ENDIF}
-end;
-
-procedure TBitmap32.RenderTextW(X, Y: Integer; const Text: Widestring; AALevel: Integer; Color: TColor32);
-var
-  B, B2: TBitmap32;
-  Sz: TSize;
+{$IFNDEF PLATFORM_INDEPENDENT}
+  SzSpace: TSize;
+{$ENDIF}
   Alpha: TColor32;
   StockCanvas: TCanvas;
-  PaddedText: Widestring;
 begin
-  if Empty then Exit;
+  if Empty then
+    Exit;
 
   Alpha := Color shr 24;
   Color := Color and $00FFFFFF;
   AALevel := Constrain(AALevel, -1, 4);
-  PaddedText := Text + ' ';
 
   {$IFDEF FPC}
   if AALevel > -1 then
@@ -7241,12 +7164,12 @@ begin
   try
     if AALevel <= 0 then
     begin
-      Sz := TextExtentW(PaddedText);
+      Sz := Self.TextExtent(Text) + Self.TextExtent(' ');
       B.SetSize(Sz.cX, Sz.cY);
       B.Font := Font;
       B.Clear(0);
       B.Font.Color := clWhite;
-      B.TextoutW(0, 0, Text);
+      B.Textout(0, 0, Text);
       TextBlueToAlpha(B, Color);
     end
     else
@@ -7257,10 +7180,11 @@ begin
         StockCanvas.Font := Font;
         StockCanvas.Font.Size := Font.Size shl AALevel;
 {$IFDEF PLATFORM_INDEPENDENT}
-        Sz := StockCanvas.TextExtent(PaddedText);
+        Sz := StockCanvas.TextExtent(Text) + StockCanvas.TextExtent(' ');
 {$ELSE}
-        Windows.GetTextExtentPoint32W(StockCanvas.Handle, PWideChar(PaddedText),
-          Length(PaddedText), Sz);
+        Windows.GetTextExtentPoint32(StockCanvas.Handle, PChar(Text), Length(Text), Sz);
+        Windows.GetTextExtentPoint32(StockCanvas.Handle, PChar(string(' ')), 1, SzSpace);
+        Sz := Sz + SzSpace;
 {$ENDIF}
         Sz.Cx := (Sz.cx shr AALevel + 1) shl AALevel;
         Sz.Cy := (Sz.cy shr AALevel + 1) shl AALevel;
