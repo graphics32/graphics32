@@ -77,6 +77,11 @@ implementation
 {$R *.dfm}
 {$ENDIF}
 
+{$IFNDEF FPC}
+uses
+  Diagnostics;
+{$ENDIF}
+
 procedure TFormRenderText.FormCreate(Sender: TObject);
 begin
   Image.SetupBitmap;
@@ -114,31 +119,29 @@ end;
 procedure TFormRenderText.BtnClickMeClick(Sender: TObject);
 var
   I: Integer;
-  A, B, C: Int64;
   Str: string;
 begin
   Screen.Cursor := crHourGlass;
-  {$IFNDEF FPC}
-  QueryPerformanceFrequency(C);
-  QueryPerformanceCounter(A);
-  {$ENDIF}
+{$IFNDEF FPC}
+  var StopWatch := TStopWatch.StartNew;
+{$ENDIF}
   with Image.Bitmap do
-    for I := 0 to 100 do
+    for I := 0 to 10000 do
       RenderText(
         Random(Width - 40),
         Random(Height - 40),
         IntToStr(Random(100)),
         AALevel,
         Color32(Random(255), Random(255), Random(255), Random(255)));
-  {$IFNDEF FPC}
-  QueryPerformanceCounter(B);
+{$IFNDEF FPC}
+  StopWatch.Stop;
   with TBitmap32.Create do
   try
     Font.Color := clWhite;
     Font.Size := 8;
     Font.Style := [];
     SetSize(100,8);
-    str := FloatToStrF(1000 * (B - A) / C, ffFixed, 4, 4) + ' ms';
+    str := '  '+StopWatch.ElapsedMilliseconds.ToString + ' ms';
     SetSize(TextWidth(str),TextHeight(str));
     Textout(0, 0, str);
     DrawTo(Image.Bitmap, Image.Bitmap.Width - Width, Image.Bitmap.Height-Height);
