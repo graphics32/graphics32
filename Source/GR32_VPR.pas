@@ -253,12 +253,11 @@ procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine); {$I
 var
   S: PLineSegment;
 begin
-  if (Y1 = 0) and (Y2 = 0) then Exit;  {** needed for proper clipping }
-  with ScanLine do
-  begin
-    S := @Segments[Count];
-    Inc(Count);
-  end;
+  if (Y1 = 0) and (Y2 = 0) then
+    Exit;  {** needed for proper clipping }
+
+  S := @ScanLine.Segments[ScanLine.Count];
+  Inc(ScanLine.Count);
 
   S[0].X := X1;
   S[0].Y := Y1;
@@ -318,32 +317,49 @@ var
   PScanLines: PScanLineArray;
 begin
 
+  (*
+  ** Determine range of Y values (i.e. scanlines)
+  *)
   YMin := MaxInt;
   YMax := -MaxInt;
   M := High(Points);
   for K := 0 to M do
   begin
     N := High(Points[K]);
-    if N < 2 then Continue;
+    if N < 2 then
+      Continue;
+
     PY := @Points[K][0].Y;
     for I := 0 to N do
     begin
       Y := Round(PY^);
-      if YMin > Y then YMin := Y;
-      if YMax < Y then YMax := Y;
+
+      if YMin > Y then
+        YMin := Y;
+      if YMax < Y then
+        YMax := Y;
+
       inc(PY, 2); // skips X value
     end;
   end;
 
-  if YMin > YMax then Exit;
+  if YMin > YMax then
+    Exit;
+
   SetLength(ScanLines, YMax - YMin + 2);
+
+  // Offset scanline pointer so we don't have to offset the Y coordinate
   PScanLines := @ScanLines[-YMin];
 
-  {** compute array sizes for each scanline }
+  (*
+  ** compute array sizes for each scanline
+  *)
   for K := 0 to M do
   begin
     N := High(Points[K]);
-    if N < 2 then Continue;
+    if N < 2 then
+      Continue;
+
     Y0 := Round(Points[K][N].Y);
     PY := @Points[K][0].Y;
     for I := 0 to N do
@@ -364,7 +380,9 @@ begin
     end;
   end;
 
-  {** allocate memory }
+  (*
+  ** Allocate memory
+  *)
   J := 0;
   for I := 0 to High(ScanLines) do
   begin
@@ -377,7 +395,9 @@ begin
   for K := 0 to M do
   begin
     N := High(Points[K]);
-    if N < 2 then Continue;
+    if N < 2 then
+      Continue;
+
     PPt1 := @Points[K][N];
     PPt2 := @Points[K][0];
     for I := 0 to N do
@@ -431,7 +451,7 @@ begin
   if Len = 0 then
     Exit;
 
-  SavedRoundMode := SetRoundMode(rmDown);
+  SavedRoundMode := SetRoundMode(rmDown); // TODO : Not thread safe. Another thread can modify the mode
   try
     SetLength(Poly, Len);
     for i := 0 to Len -1 do
@@ -466,15 +486,13 @@ end;
 procedure RenderPolyPolygon(const Points: TArrayOfArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
-  with TMethod(RenderProc) do
-    RenderPolyPolygon(Points, ClipRect, TRenderSpanProc(Code), Data);
+  RenderPolyPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
 end;
 
 procedure RenderPolygon(const Points: TArrayOfFloatPoint;
   const ClipRect: TFloatRect; const RenderProc: TRenderSpanEvent);
 begin
-  with TMethod(RenderProc) do
-    RenderPolygon(Points, ClipRect, TRenderSpanProc(Code), Data);
+  RenderPolygon(Points, ClipRect, TRenderSpanProc(TMethod(RenderProc).Code), TMethod(RenderProc).Data);
 end;
 
 end.
