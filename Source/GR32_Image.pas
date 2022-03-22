@@ -444,6 +444,7 @@ type
     procedure Recenter;
     procedure SetScaleMode(Value: TScaleMode); override;
     procedure ScrollHandler(Sender: TObject); virtual;
+    procedure ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
     procedure UpdateImage; virtual;
     procedure UpdateScrollBars; virtual;
   public
@@ -453,11 +454,12 @@ type
     procedure Loaded; override;
     procedure Resize; override;
     procedure ScrollToCenter(X, Y: Integer);
-    procedure Scroll(Dx, Dy: Integer);
+    procedure Scroll(Dx, Dy: Integer); overload;
+    procedure Scroll(Dx, Dy: Single); overload; virtual;
     property Centered: Boolean read FCentered write SetCentered default True;
     property ScrollBars: TIVScrollProperties read FScrollBars write SetScrollBars;
     property SizeGrip: TSizeGripStyle read FSizeGrip write SetSizeGrip default sgAuto;
-    property OverSize: Integer read FOverSize write SetOverSize;    
+    property OverSize: Integer read FOverSize write SetOverSize;
     property OnScroll: TNotifyEvent read FOnScroll write FOnScroll;
   end;
 
@@ -566,7 +568,8 @@ type
 implementation
 
 uses
-  Math, TypInfo, GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel;
+  Math, TypInfo,
+  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel;
 
 type
   TLayerAccess = class(TCustomLayer);
@@ -2155,6 +2158,7 @@ begin
     BorderStyle := bsNone;
     Centered := True;
     OnUserChange := ScrollHandler;
+    OnUserChanging := ScrollChangingHandler;
   end;
 
   with VScroll do
@@ -2164,6 +2168,7 @@ begin
     Centered := True;
     Kind := sbVertical;
     OnUserChange := ScrollHandler;
+    OnUserChanging := ScrollChangingHandler;
   end;
 
   FCentered := True;
@@ -2214,7 +2219,8 @@ end;
 
 procedure TCustomImgView32.DoScroll;
 begin
-  if Assigned(FOnScroll) then FOnScroll(Self);
+  if Assigned(FOnScroll) then
+    FOnScroll(Self);
 end;
 
 function TCustomImgView32.GetScrollBarSize: Integer;
@@ -2394,21 +2400,59 @@ end;
 
 procedure TCustomImgView32.Scroll(Dx, Dy: Integer);
 begin
-  DisableScrollUpdate := True;
-  HScroll.Position := HScroll.Position + Dx;
-  VScroll.Position := VScroll.Position + Dy;
-  DisableScrollUpdate := False;
+  if (Dx = 0) and (Dy = 0) then
+    Exit;
+
+  Scroll(Single(Dx), Single(Dy));
+end;
+
+procedure TCustomImgView32.Scroll(Dx, Dy: Single);
+begin
+  if (IsZero(Dx)) and (IsZero(Dy)) then
+    Exit;
+
+  BeginUpdate;
+  try
+
+    DisableScrollUpdate := True;
+    HScroll.Position := HScroll.Position + Dx;
+    VScroll.Position := VScroll.Position + Dy;
+    DisableScrollUpdate := False;
+
+  finally
+    EndUpdate;
+  end;
+
   UpdateImage;
 end;
 
 procedure TCustomImgView32.ScrollHandler(Sender: TObject);
 begin
-  if DisableScrollUpdate then Exit;
-  if Sender = HScroll then HScroll.Repaint;
-  if Sender = VScroll then VScroll.Repaint;
+  if DisableScrollUpdate then
+    Exit;
+
+  if (Sender = HScroll) then
+    HScroll.Repaint
+  else
+  if (Sender = VScroll) then
+    VScroll.Repaint;
+
   UpdateImage;
   DoScroll;
   Repaint;
+end;
+
+procedure TCustomImgView32.ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
+begin
+  if (Sender = HScroll) then
+    Scroll(ANewPosition - HScroll.Position, 0)
+  else
+  if (Sender = VScroll) then
+    Scroll(0, ANewPosition - VScroll.Position);
+
+  Handled := True;
+
+  DoScroll;
 end;
 
 procedure TCustomImgView32.ScrollToCenter(X, Y: Integer);
@@ -2436,8 +2480,7 @@ begin
   UpdateScrollBars;
   UpdateImage;
   if FCentered then
-    with Bitmap do
-      ScrollToCenter(Width div 2, Height div 2)
+    ScrollToCenter(Bitmap.Width div 2, Bitmap.Height div 2)
   else
     ScrollToCenter(0, 0);
 end;

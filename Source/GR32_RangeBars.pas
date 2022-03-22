@@ -72,6 +72,7 @@ type
     FStyle: TRBStyle;
     FOnChange: TNotifyEvent;
     FOnUserChange: TNotifyEvent;
+    FLockUpdate: integer;
     procedure SetButtonSize(Value: Integer);
     procedure SetHandleColor(Value: TColor);
     procedure SetHighLightColor(Value: TColor);
@@ -106,6 +107,10 @@ type
     FTimerMode: Integer;
     FStored: TPoint;
     FPosBeforeDrag: Single;
+    procedure BeginLockUpdate;
+    procedure EndLockUpdate;
+    property LockUpdate: integer read FLockUpdate;
+
     procedure DoChange; virtual;
     procedure DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean); virtual;
     procedure DoDrawHandle(R: TRect; Horz: Boolean; Pushed, Hot: Boolean); virtual;
@@ -149,6 +154,8 @@ type
 
   TRBIncrement = 1..32768;
 
+  TRangeBarChangingEvent = procedure(Sender: TObject; ANewPosition: Single; var Handled: boolean) of object;
+
   TCustomRangeBar = class(TArrowBar)
   private
     FCentered: Boolean;
@@ -157,12 +164,15 @@ type
     FPosition: Single;
     FRange: Integer;
     FWindow: Integer;
+    FOnUserChanging: TRangeBarChangingEvent;
     function IsPositionStored: Boolean;
     procedure SetPosition(Value: Single);
     procedure SetRange(Value: Integer);
     procedure SetWindow(Value: Integer);
   protected
-    procedure AdjustPosition;
+    procedure DoChanging(ANewPosition: Single; var Handled: boolean); virtual;
+    procedure AdjustPosition; overload;
+    procedure AdjustPosition(var APosition: Single); overload;
     function  DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
       MousePos: TPoint): Boolean; override;
     function  DrawEnabled: Boolean; override;
@@ -181,6 +191,7 @@ type
     property Position: Single read FPosition write SetPosition stored IsPositionStored;
     property Range: Integer read FRange write SetRange default 0;
     property Window: Integer read FWindow write SetWindow default 0;
+    property OnUserChanging: TRangeBarChangingEvent read FOnUserChanging write FOnUserChanging;
   end;
 
   TRangeBar = class(TCustomRangeBar)
@@ -218,7 +229,10 @@ type
     property OnMouseWheelDown;
     property OnStartDrag;
     property OnUserChange;
+    property OnUserChanging;
   end;
+
+  TGaugeBarChangingEvent = procedure(Sender: TObject; ANewPosition: integer; var Handled: boolean) of object;
 
   TCustomGaugeBar = class(TArrowBar)
   private
@@ -228,6 +242,7 @@ type
     FMin: Integer;
     FPosition: Integer;
     FSmallChange: Integer;
+    FOnUserChanging: TGaugeBarChangingEvent;
     procedure SetHandleSize(Value: Integer);
     procedure SetMax(Value: Integer);
     procedure SetMin(Value: Integer);
@@ -235,7 +250,9 @@ type
     procedure SetLargeChange(Value: Integer);
     procedure SetSmallChange(Value: Integer);
   protected
-    procedure AdjustPosition;
+    procedure DoChanging(ANewPosition: integer; var Handled: boolean); virtual;
+    procedure AdjustPosition; overload;
+    procedure AdjustPosition(var APosition: integer); overload;
     function  DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
       MousePos: TPoint): Boolean; override;
     function  GetHandleRect: TRect; override;
@@ -253,6 +270,7 @@ type
     property SmallChange: Integer read FSmallChange write SetSmallChange default 1;
     property OnChange;
     property OnUserChange;
+    property OnUserChanging: TGaugeBarChangingEvent read FOnUserChanging write FOnUserChanging;
   end;
 
   TGaugeBar = class(TCustomGaugeBar)
@@ -654,10 +672,31 @@ begin
   FShowHandleGrip := True;
 end;
 
+procedure TArrowBar.BeginLockUpdate;
+begin
+  Inc(FLockUpdate);
+end;
+
+procedure TArrowBar.EndLockUpdate;
+begin
+  Dec(FLockUpdate);
+end;
+
 procedure TArrowBar.DoChange;
 begin
-  if Assigned(FOnChange) then FOnChange(Self);
-  if FGenChange and Assigned(FOnUserChange) then FOnUserChange(Self);
+  if (LockUpdate > 0) then
+    Exit;
+
+  BeginLockUpdate;
+  try
+    if Assigned(FOnChange) then
+      FOnChange(Self);
+
+    if FGenChange and Assigned(FOnUserChange) then
+      FOnUserChange(Self);
+  finally
+    EndLockUpdate;
+  end;
 end;
 
 procedure TArrowBar.DoDrawButton(R: TRect; Direction: TRBDirection; Pushed, Enabled, Hot: Boolean);
@@ -1349,14 +1388,38 @@ end;
 
 procedure TCustomRangeBar.AdjustPosition;
 begin
-  if FPosition > Range - EffectiveWindow then FPosition := Range - EffectiveWindow;
-  if FPosition < 0 then FPosition := 0;
+  AdjustPosition(FPosition);
+end;
+
+procedure TCustomRangeBar.AdjustPosition(var APosition: Single);
+begin
+  if (APosition > Range - EffectiveWindow) then
+    APosition := Range - EffectiveWindow;
+
+  if (APosition < 0) then
+    APosition := 0;
 end;
 
 constructor TCustomRangeBar.Create(AOwner: TComponent);
 begin
   inherited;
   FIncrement := 8;
+end;
+
+procedure TCustomRangeBar.DoChanging(ANewPosition: Single; var Handled: boolean);
+begin
+  if (LockUpdate > 0) then
+    Exit;
+
+  BeginLockUpdate;
+  try
+
+    if FGenChange and Assigned(FOnUserChanging) then
+      FOnUserChanging(Self, ANewPosition, Handled);
+
+  finally
+    EndLockUpdate;
+  end;
 end;
 
 function TCustomRangeBar.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
@@ -1489,19 +1552,28 @@ procedure TCustomRangeBar.Resize;
 var
   OldWindow: Integer;
   Center: Single;
+  NewPosition: Single;
 begin
+  NewPosition := FPosition;
+
   if Centered then
   begin
     OldWindow := EffectiveWindow;
     UpdateEffectiveWindow;
-    if Range > EffectiveWindow then
+
+    if (Range > EffectiveWindow) then
     begin
-      if (Range > OldWindow) and (Range <> 0) then Center := (FPosition + OldWindow * 0.5) / Range
-      else Center := 0.5;
-      FPosition := Center * Range - EffectiveWindow * 0.5;
+      if (Range > OldWindow) and (Range <> 0) then
+        Center := (FPosition + OldWindow * 0.5) / Range
+      else
+        Center := 0.5;
+
+      NewPosition := Center * Range - EffectiveWindow * 0.5;
     end;
   end;
-  AdjustPosition;
+
+  Position := NewPosition;
+
   inherited;
 end;
 
@@ -1509,44 +1581,61 @@ procedure TCustomRangeBar.SetParams(NewRange, NewWindow: Integer);
 var
   OldWindow, OldRange: Integer;
   Center: Single;
+  NewPosition: Single;
 begin
-  if NewRange < 0 then NewRange := 0;
-  if NewWindow < 0 then NewWindow := 0;
-  if (NewRange <> FRange) or (NewWindow <> EffectiveWindow) then
+  if (NewRange < 0) then
+    NewRange := 0;
+  if (NewWindow < 0) then
+    NewWindow := 0;
+
+  if (NewRange = FRange) and (NewWindow = EffectiveWindow) then
+    exit;
+
+  OldWindow := EffectiveWindow;
+  OldRange := Range;
+  FRange := NewRange;
+  FWindow := NewWindow;
+  UpdateEffectiveWindow;
+  NewPosition := FPosition;
+
+  if Centered and (Range > EffectiveWindow) then
   begin
-    OldWindow := EffectiveWindow;
-    OldRange := Range;
-    FRange := NewRange;
-    FWindow := NewWindow;
-    UpdateEffectiveWindow;
-    if Centered and (Range > EffectiveWindow) then
-    begin
-      if (OldRange > OldWindow) and (OldRange <> 0) then
-        Center := (FPosition + OldWindow * 0.5) / OldRange
-      else
-        Center := 0.5;
-      FPosition := Center * Range - EffectiveWindow * 0.5;
-    end;
-    AdjustPosition;
-    Invalidate;
+    if (OldRange > OldWindow) and (OldRange <> 0) then
+      Center := (FPosition + OldWindow * 0.5) / OldRange
+    else
+      Center := 0.5;
+
+    NewPosition := Center * Range - EffectiveWindow * 0.5;
   end;
+
+  Position := NewPosition;
+  Invalidate;
 end;
 
 procedure TCustomRangeBar.SetPosition(Value: Single);
 var
-  OldPosition: Single;
+  NewPosition: Single;
+  Handled: boolean;
 begin
-  if Value <> FPosition then
-  begin
-    OldPosition := FPosition;
-    FPosition := Value;
-    AdjustPosition;
-    if OldPosition <> FPosition then
-    begin
-      Invalidate;
-      DoChange;
-    end;
-  end;
+  if (Value = FPosition) then
+    exit;
+
+  NewPosition := Value;
+  AdjustPosition(NewPosition);
+
+  if (NewPosition = FPosition) then
+    exit;
+
+  Handled := False;
+  DoChanging(NewPosition, Handled);
+
+  if (Handled) then
+    exit;
+
+  FPosition := NewPosition;
+
+  Invalidate;
+  DoChange;
 end;
 
 procedure TCustomRangeBar.SetRange(Value: Integer);
@@ -1615,11 +1704,14 @@ end;
 
 procedure TCustomRangeBar.UpdateEffectiveWindow;
 begin
-  if FWindow > 0 then FEffectiveWindow := FWindow
+  if (FWindow > 0) then
+    FEffectiveWindow := FWindow
   else
   begin
-    if Kind = sbHorizontal then FEffectiveWindow := Width
-    else FEffectiveWindow := Height;
+    if (Kind = sbHorizontal) then
+      FEffectiveWindow := Width
+    else
+      FEffectiveWindow := Height;
   end;
 end;
 
@@ -1629,8 +1721,16 @@ end;
 
 procedure TCustomGaugeBar.AdjustPosition;
 begin
-  if Position < Min then Position := Min
-  else if Position > Max then Position := Max;
+  AdjustPosition(FPosition);
+end;
+
+procedure TCustomGaugeBar.AdjustPosition(var APosition: integer);
+begin
+  if (APosition < Min) then
+    APosition := Min
+  else
+  if (APosition > Max) then
+    APosition := Max;
 end;
 
 constructor TCustomGaugeBar.Create(AOwner: TComponent);
@@ -1639,6 +1739,22 @@ begin
   FLargeChange := 1;
   FMax := 100;
   FSmallChange := 1;
+end;
+
+procedure TCustomGaugeBar.DoChanging(ANewPosition: integer; var Handled: boolean);
+begin
+  if (LockUpdate > 0) then
+    Exit;
+
+  BeginLockUpdate;
+  try
+
+    if FGenChange and Assigned(FOnUserChanging) then
+      FOnUserChanging(Self, ANewPosition, Handled);
+
+  finally
+    EndLockUpdate;
+  end;
 end;
 
 function TCustomGaugeBar.DoMouseWheel(Shift: TShiftState;
@@ -1758,36 +1874,49 @@ end;
 
 procedure TCustomGaugeBar.SetMax(Value: Integer);
 begin
-  if (Value <= FMin) and not (csLoading in ComponentState) then Value := FMin + 1;
+  if (Value <= FMin) and not (csLoading in ComponentState) then
+    Value := FMin + 1;
+
   if Value <> FMax then
   begin
     FMax := Value;
-    AdjustPosition;
+    Position := FPosition;
     Invalidate;
   end;
 end;
 
 procedure TCustomGaugeBar.SetMin(Value: Integer);
 begin
-  if (Value >= FMax) and not (csLoading in ComponentState) then Value := FMax - 1;
+  if (Value >= FMax) and not (csLoading in ComponentState) then
+    Value := FMax - 1;
+
   if Value <> FMin then
   begin
     FMin := Value;
-    AdjustPosition;
+    Position := FPosition;
     Invalidate;
   end;
 end;
 
 procedure TCustomGaugeBar.SetPosition(Value: Integer);
+var
+  Handled: boolean;
 begin
-  if Value < Min then Value := Min
-  else if Value > Max then Value := Max;
-  if Round(FPosition) <> Value then
-  begin
-    FPosition := Value;
-    Invalidate;
-    DoChange;
-  end;
+  AdjustPosition(Value);
+
+  if (Value = FPosition) then
+    exit;
+
+  Handled := False;
+  DoChanging(Value, Handled);
+
+  if (Handled) then
+    exit;
+
+  FPosition := Value;
+
+  Invalidate;
+  DoChange;
 end;
 
 procedure TCustomGaugeBar.SetSmallChange(Value: Integer);
