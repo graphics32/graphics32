@@ -69,6 +69,9 @@ uses
 
 { ASM versions }
 
+const
+  BlendRegistryPriorityASM = -256;
+
 { Assembler versions }
 
 const
@@ -619,10 +622,9 @@ asm
 
   // Get weight W = Fa * M
         MOV     EBX,EAX         // EBX  <-  Fa Fr Fg Fb
-        INC     ECX             // 255:256 range bias for M
         SHR     EBX,24          // EBX  <-  00 00 00 Fa
+        INC     ECX             // 255:256 range bias for M
         IMUL    ECX,EBX         // ECX  <-  00 00  W **
-        ADD     ECX,bias
         SHR     ECX,8           // ECX  <-  00 00 00  W
         JZ      @1              // W = 0 ?  => write nothing
 
@@ -1494,4 +1496,26 @@ procedure EMMS_ASM; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 end;
 
+
+procedure RegisterBindingFunctions;
+begin
+{$IFNDEF PUREPASCAL}
+  BlendRegistry.Add(FID_EMMS, @EMMS_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEREG, @CombineReg_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_COMBINEMEM, @CombineMem_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREG, @BlendReg_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEM, @BlendMem_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMS, @BlendMems_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDREGEX, @BlendRegEx_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDMEMEX, @BlendMemEx_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE, @BlendLine_ASM, [], 0, BlendRegistryPriorityASM);
+  BlendRegistry.Add(FID_BLENDLINE1, @BlendLine1_ASM, [], 0, BlendRegistryPriorityASM);
+{$IFNDEF TARGET_x64}
+  BlendRegistry.Add(FID_MERGEREG, @MergeReg_ASM, [], 0, BlendRegistryPriorityASM);
+{$ENDIF}
+{$ENDIF}
+end;
+
+initialization
+  RegisterBindingFunctions;
 end.

@@ -50,6 +50,7 @@ type
     Proc: Pointer;
     CPUFeatures: TCPUFeatures;
     Flags: Integer;
+    Priority: Integer; // Smaller is better
   end;
 
   TFunctionPriority = function (Info: PFunctionInfo): Integer;
@@ -71,6 +72,7 @@ type
     FItems: TList;
     FBindings: TList;
     FName: string;
+    FNeedRebind: boolean;
     procedure SetName(const Value: string);
     function GetItems(Index: Integer): PFunctionInfo;
     procedure SetItems(Index: Integer; const Value: PFunctionInfo);
@@ -80,12 +82,13 @@ type
     procedure Clear;
 
     procedure Add(FunctionID: Integer; Proc: Pointer; CPUFeatures: TCPUFeatures = [];
-      Flags: Integer = 0);
+      Flags: Integer = 0; Priority: Integer = 0);
 
     // function rebinding support
     procedure RegisterBinding(FunctionID: Integer; BindVariable: PPointer);
-    procedure RebindAll(PriorityCallback: TFunctionPriority = nil);
-    procedure Rebind(FunctionID: Integer; PriorityCallback: TFunctionPriority = nil);
+    procedure RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority = nil); overload;
+    procedure RebindAll(PriorityCallback: TFunctionPriority = nil); overload;
+    function Rebind(FunctionID: Integer; PriorityCallback: TFunctionPriority = nil): boolean;
 
     function FindFunction(FunctionID: Integer; PriorityCallback: TFunctionPriority = nil): Pointer;
     property Items[Index: Integer]: PFunctionInfo read GetItems write SetItems;
@@ -125,13 +128,16 @@ end;
 
 function DefaultPriorityProc(Info: PFunctionInfo): Integer;
 begin
-  Result := IfThen(Info^.CPUFeatures <= GR32_System.CPUFeatures, 0, INVALID_PRIORITY);
+  if (Info^.CPUFeatures <= GR32_System.CPUFeatures) then
+    Result := Info^.Priority
+  else
+    Result := INVALID_PRIORITY;
 end;
 
 { TFunctionRegistry }
 
 procedure TFunctionRegistry.Add(FunctionID: Integer; Proc: Pointer;
-  CPUFeatures: TCPUFeatures; Flags: Integer);
+  CPUFeatures: TCPUFeatures; Flags: Integer; Priority: Integer);
 var
   Info: PFunctionInfo;
 begin
@@ -140,7 +146,10 @@ begin
   Info^.Proc := Proc;
   Info^.CPUFeatures := CPUFeatures;
   Info^.Flags := Flags;
+  Info^.Priority := Priority;
   FItems.Add(Info);
+
+  FNeedRebind := True;
 end;
 
 procedure TFunctionRegistry.Clear;
@@ -175,7 +184,8 @@ var
   I, MinPriority, P: Integer;
   Info: PFunctionInfo;
 begin
-  if not Assigned(PriorityCallback) then PriorityCallback := DefaultPriority;
+  if not Assigned(PriorityCallback) then
+    PriorityCallback := DefaultPriority;
   Result := nil;
   MinPriority := INVALID_PRIORITY;
   for I := FItems.Count - 1 downto 0 do
@@ -198,18 +208,30 @@ begin
   Result := FItems[Index];
 end;
 
-procedure TFunctionRegistry.Rebind(FunctionID: Integer;
-  PriorityCallback: TFunctionPriority);
+function TFunctionRegistry.Rebind(FunctionID: Integer;
+  PriorityCallback: TFunctionPriority): boolean;
 var
   P: PFunctionBinding;
   I: Integer;
 begin
+  Result := False;
   for I := 0 to FBindings.Count - 1 do
   begin
     P := PFunctionBinding(FBindings[I]);
     if P^.FunctionID = FunctionID then
+    begin
       P^.BindVariable^ := FindFunction(FunctionID, PriorityCallback);
+      Result := (P^.BindVariable^ <> nil);
+      break;
+    end;
   end;
+end;
+
+procedure TFunctionRegistry.RebindAll(AForce: boolean; PriorityCallback: TFunctionPriority);
+begin
+  if AForce then
+    FNeedRebind := True;
+  RebindAll(PriorityCallback);
 end;
 
 procedure TFunctionRegistry.RebindAll(PriorityCallback: TFunctionPriority);
@@ -217,11 +239,16 @@ var
   I: Integer;
   P: PFunctionBinding;
 begin
+  if (not Assigned(PriorityCallback)) and (not FNeedRebind) then
+    exit;
+
   for I := 0 to FBindings.Count - 1 do
   begin
     P := PFunctionBinding(FBindings[I]);
     P^.BindVariable^ := FindFunction(P^.FunctionID, PriorityCallback);
   end;
+
+  FNeedRebind := False;
 end;
 
 procedure TFunctionRegistry.RegisterBinding(FunctionID: Integer;
@@ -233,12 +260,15 @@ begin
   Binding^.FunctionID := FunctionID;
   Binding^.BindVariable := BindVariable;
   FBindings.Add(Binding);
+
+  FNeedRebind := True;
 end;
 
 procedure TFunctionRegistry.SetItems(Index: Integer;
   const Value: PFunctionInfo);
 begin
   FItems[Index] := Value;
+  FNeedRebind := True;
 end;
 
 procedure TFunctionRegistry.SetName(const Value: string);
