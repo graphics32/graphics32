@@ -948,6 +948,9 @@ type
     property OnResize;
   end;
 
+  TCustomBitmap32Class = class of TCustomBitmap32;
+
+
   TBitmap32 = class(TCustomBitmap32)
   private
     FOnHandleChanged: TNotifyEvent;
