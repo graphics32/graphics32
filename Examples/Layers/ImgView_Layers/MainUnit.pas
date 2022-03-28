@@ -41,7 +41,8 @@ interface
 uses
   {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
-  ExtDlgs, StdCtrls, Buttons, GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
+  ExtDlgs, StdCtrls, Buttons, Types,
+  GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
   GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
 type
@@ -150,6 +151,14 @@ type
     procedure MnuSimpleDrawingClick(Sender: TObject);
     procedure PropertyChange(Sender: TObject);
     procedure ScaleComboChange(Sender: TObject);
+    procedure ImgViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImgViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+  private
+    FPanning: boolean;
+    FStartPos: TPoint;
+  private
+    FLockZoom: integer;
+    procedure SetScale(AScale: Double);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -191,28 +200,39 @@ uses
 {$ELSE}
   LazJPG,
 {$ENDIF}
-  NewImageUnit, RGBALoaderUnit, Math, Printers, GR32_LowLevel, GR32_Paths,
-  GR32_VectorUtils, GR32_Backends, GR32_Text_VCL, GR32_ColorGradients,
-  GR32_Polygons, GR32_Geometry;
+  Math, Printers,
+  GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends, GR32_Text_VCL,
+  GR32_ColorGradients, GR32_Polygons, GR32_Geometry,
+  NewImageUnit, RGBALoaderUnit;
 
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
 
+const
+  ZoomLevels: array[0..9] of Double = (0.1, 0.25, 0.50, 0.75, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0);
+
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
+var
+  i: integer;
 begin
   // by default, PST_CLEAR_BACKGND is executed at this stage,
   // which, in turn, calls ExecClearBackgnd method of ImgView.
   // Here I substitute PST_CLEAR_BACKGND with PST_CUSTOM, so force ImgView
   // to call the OnPaintStage event instead of performing default action.
-  with ImgView.PaintStages[0]^ do
-  begin
-    if Stage = PST_CLEAR_BACKGND then Stage := PST_CUSTOM;
-  end;
+  if (ImgView.PaintStages[0].Stage = PST_CLEAR_BACKGND) then
+    ImgView.PaintStages[0].Stage := PST_CUSTOM;
 
   ImgView.RepaintMode := rmOptimizer;
   ImgView.Options := ImgView.Options + [pboWantArrowKeys];
+
+  // Fill scale combobox with predefined zoom levels
+  ScaleCombo.Items.Clear;
+  for i := 0 to High(ZoomLevels) do
+    ScaleCombo.Items.Add(Format('%.0n%%', [ZoomLevels[i] * 100]));
+
+  SetScale(1);
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -223,25 +243,25 @@ end;
 
 procedure TMainForm.CreateNewImage(AWidth, AHeight: Integer; FillColor: TColor32);
 begin
-  with ImgView do
-  begin
-    Selection := nil;
-    RBLayer := nil;
-    Layers.Clear;
-    Scale := 1;
-    Bitmap.SetSize(AWidth, AHeight);
-    Bitmap.Clear(FillColor);
-    pnlImage.Visible := not Bitmap.Empty;
-  end;
+  Selection := nil;
+  RBLayer := nil;
+
+  ImgView.Layers.Clear;
+  ImgView.Scale := 1;
+  ImgView.Bitmap.SetSize(AWidth, AHeight);
+  ImgView.Bitmap.Clear(FillColor);
+
+  pnlImage.Visible := not ImgView.Bitmap.Empty;
 end;
 
 function TMainForm.CreatePositionedLayer: TPositionedLayer;
 var
+  R: TRect;
   P: TPoint;
 begin
   // get coordinates of the center of viewport
-  with ImgView.GetViewportRect do
-    P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
+  R := ImgView.GetViewportRect;
+  P := ImgView.ControlToBitmap(R.CenterPoint);
 
   Result := TPositionedLayer.Create(ImgView.Layers);
   Result.Location := FloatRect(P.X - 32, P.Y - 32, P.X + 32, P.Y + 32);
@@ -265,9 +285,7 @@ end;
 procedure TMainForm.CbxLayerInterpolateClick(Sender: TObject);
 begin
   if Selection is TBitmapLayer then
-  begin
     RESAMPLER[CbxLayerInterpolate.Checked].Create(TBitmapLayer(Selection).Bitmap);
-  end;
 end;
 
 procedure TMainForm.LayerDblClick(Sender: TObject);
@@ -279,7 +297,8 @@ end;
 procedure TMainForm.LayerMouseDown(Sender: TObject; Buttons: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if Sender <> nil then Selection := TPositionedLayer(Sender);
+  if Sender <> nil then
+    Selection := TPositionedLayer(Sender);
 end;
 
 procedure TMainForm.LayerOpacityChanged(Sender: TObject);
@@ -291,21 +310,30 @@ end;
 procedure TMainForm.BtnLayerRescaleClick(Sender: TObject);
 var
   T: TBitmap32;
+  BitmapLayer: TBitmapLayer;
+  R: TRect;
 begin
   // resize the layer's bitmap to the size of the layer
   if Selection is TBitmapLayer then
-    with TBitmapLayer(Selection) do
-    begin
-      T := TBitmap32.Create;
-      T.Assign(Bitmap);
-      with MakeRect(Location) do
-        Bitmap.SetSize(Right - Left, Bottom - Top);
+  begin
+    BitmapLayer := TBitmapLayer(Selection);
+
+    T := TBitmap32.Create;
+    try
+      T.Assign(BitmapLayer.Bitmap);
+
+      R := MakeRect(BitmapLayer.Location);
+      BitmapLayer.Bitmap.SetSize(R.Width, R.Height);
+
       T.Resampler := TNearestResampler.Create(T);
       T.DrawMode := dmOpaque;
-      T.DrawTo(Bitmap, Classes.Rect(0, 0, Bitmap.Width, Bitmap.Height));
+
+      T.DrawTo(BitmapLayer.Bitmap, Classes.Rect(0, 0, BitmapLayer.Bitmap.Width, BitmapLayer.Bitmap.Height));
+    finally
       T.Free;
-      BtnLayerResetScaleClick(Self);
     end;
+    BtnLayerResetScaleClick(Self);
+  end;
 
   ImgView.GetBitmapRect
 end;
@@ -316,14 +344,13 @@ var
 begin
   // resize the layer to the size of its bitmap
   if Selection is TBitmapLayer then
-    with RBLayer, TBitmapLayer(Selection).Bitmap do
-    begin
-      L := Location;
-      L.Right := L.Left + Width;
-      L.Bottom := L.Top + Height;
-      Location := L;
-      Changed;
-    end;
+  begin
+    L := RBLayer.Location;
+    L.Right := L.Left + TBitmapLayer(Selection).Bitmap.Width;
+    L.Bottom := L.Top + TBitmapLayer(Selection).Bitmap.Height;
+    RBLayer.Location := L;
+    RBLayer.Changed;
+  end;
 end;
 
 procedure TMainForm.PropertyChange(Sender: TObject);
@@ -333,22 +360,23 @@ end;
 
 procedure TMainForm.MimArrangeClick(Sender: TObject);
 var
-  B: Boolean;
+  HasSelection: Boolean;
 begin
-  B := Selection <> nil;
-  MnuBringFront.Enabled := B and (Selection.Index < ImgView.Layers.Count - 2);
-  MnuSendBack.Enabled := B and (Selection.Index > 0);
-  MnuLevelUp.Enabled := B and (Selection.Index < ImgView.Layers.Count - 2);
-  MnuLevelDown.Enabled := B and (Selection.Index > 0);
-  MnuScaled.Enabled := B;
-  MnuScaled.Checked := B and Selection.Scaled;
-  MnuDelete.Enabled := B;
-  B := B and (Selection is TBitmapLayer);
-  MnuFlipHorz.Enabled := B;
-  MnuFlipVert.Enabled := B;
-  MnuRotate90.Enabled := B;
-  MnuRotate180.Enabled := B;
-  MnuRotate270.Enabled := B;
+  HasSelection := (Selection <> nil);
+
+  MnuBringFront.Enabled := HasSelection and (Selection.Index < ImgView.Layers.Count - 2);
+  MnuSendBack.Enabled := HasSelection and (Selection.Index > 0);
+  MnuLevelUp.Enabled := HasSelection and (Selection.Index < ImgView.Layers.Count - 2);
+  MnuLevelDown.Enabled := HasSelection and (Selection.Index > 0);
+  MnuScaled.Enabled := HasSelection;
+  MnuScaled.Checked := HasSelection and Selection.Scaled;
+  MnuDelete.Enabled := HasSelection;
+  HasSelection := HasSelection and (Selection is TBitmapLayer);
+  MnuFlipHorz.Enabled := HasSelection;
+  MnuFlipVert.Enabled := HasSelection;
+  MnuRotate90.Enabled := HasSelection;
+  MnuRotate180.Enabled := HasSelection;
+  MnuRotate270.Enabled := HasSelection;
 end;
 
 procedure TMainForm.MnuButtonMockupClick(Sender: TObject);
@@ -375,30 +403,31 @@ end;
 
 procedure TMainForm.MnuFileNewClick(Sender: TObject);
 begin
-  with FrmNewImage do
-  begin
-    ShowModal;
-    if ModalResult = mrOK then
-      CreateNewImage(BtnUpDownWidth.Position, BtnUpDownHeight.Position,
-        Color32(PnlColor.Color));
-  end;
+  FrmNewImage.ShowModal;
+
+  if FrmNewImage.ModalResult <> mrOK then
+    exit;
+
+  CreateNewImage(FrmNewImage.BtnUpDownWidth.Position, FrmNewImage.BtnUpDownHeight.Position,
+    Color32(FrmNewImage.PnlColor.Color));
 end;
 
 procedure TMainForm.MnuFileOpenClick(Sender: TObject);
 begin
-  with OpenPictureDialog do
-    if Execute then OpenImage(FileName);
+  if OpenPictureDialog.Execute then
+    OpenImage(OpenPictureDialog.FileName);
 end;
 
 procedure TMainForm.MnuLayersClick(Sender: TObject);
 var
-  B: Boolean;
+  HasBitmap: Boolean;
 begin
-  B := not ImgView.Bitmap.Empty;
-  MnuNewBitmapLayer.Enabled := B;
-  MnuNewBitmapRGBA.Enabled := B;
-  MnuNewCustomLayer.Enabled := B;
-  MnuFlatten.Enabled := B and (ImgView.Layers.Count > 0);
+  HasBitmap := not ImgView.Bitmap.Empty;
+
+  MnuNewBitmapLayer.Enabled := HasBitmap;
+  MnuNewBitmapRGBA.Enabled := HasBitmap;
+  MnuNewCustomLayer.Enabled := HasBitmap;
+  MnuFlatten.Enabled := HasBitmap and (ImgView.Layers.Count > 0);
 end;
 
 procedure TMainForm.MnuMagnifierClick(Sender: TObject);
@@ -413,102 +442,101 @@ end;
 
 procedure TMainForm.MnuNewBitmapLayerClick(Sender: TObject);
 var
-  B: TBitmapLayer;
+  BitmapLayer: TBitmapLayer;
+  R: TRect;
   P: TPoint;
   W, H: Single;
 begin
-  with OpenPictureDialog do
-    if Execute then
-    begin
-      B := TBitmapLayer.Create(ImgView.Layers);
-      with B do
-      try
-        Bitmap.LoadFromFile(FileName);
-        Bitmap.DrawMode := dmBlend;
+  if not OpenPictureDialog.Execute then
+    exit;
 
-        with ImgView.GetViewportRect do
-          P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
+  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
+  try
+    BitmapLayer.Bitmap.LoadFromFile(OpenPictureDialog.FileName);
+    BitmapLayer.Bitmap.DrawMode := dmBlend;
 
-        W := Bitmap.Width * 0.5;
-        H := Bitmap.Height * 0.5;
+    R := ImgView.GetViewportRect;
+    P := ImgView.ControlToBitmap(R.CenterPoint);
 
-        with ImgView.Bitmap do
-          Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
+    W := BitmapLayer.Bitmap.Width * 0.5;
+    H := BitmapLayer.Bitmap.Height * 0.5;
 
-        Scaled := True;
-        OnMouseDown := LayerMouseDown;
-      except
-        Free;
-        raise;
-      end;
-      Selection := B;
-    end;
+    with ImgView.Bitmap do
+      BitmapLayer.Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
+
+    BitmapLayer.Scaled := True;
+    BitmapLayer.OnMouseDown := LayerMouseDown;
+  except
+    BitmapLayer.Free;
+    raise;
+  end;
+  Selection := BitmapLayer;
 end;
 
 procedure TMainForm.MnuNewBitmapRGBAClick(Sender: TObject);
 var
-  B: TBitmapLayer;
+  BitmapLayer: TBitmapLayer;
+  R: TRect;
   P: TPoint;
   Tmp: TBitmap32;
   W, H: Single;
 begin
-  with RGBALoaderForm do
+  RGBALoaderForm.ImgRGB.Bitmap.Delete;
+  RGBALoaderForm.ImgRGB.Scale := 1;
+  RGBALoaderForm.ImgAlpha.Bitmap.Delete;
+  RGBALoaderForm.ImgAlpha.Scale := 1;
+  RGBALoaderForm.ShowModal;
+  if (RGBALoaderForm.ModalResult <> mrOK) then
+    exit;
+
+  if (RGBALoaderForm.ImgRGB.Bitmap.Empty) then
+    exit;
+
+  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
+  BitmapLayer.Bitmap := RGBALoaderForm.ImgRGB.Bitmap;
+  BitmapLayer.Bitmap.DrawMode := dmBlend;
+
+  if not RGBALoaderForm.ImgAlpha.Bitmap.Empty then
   begin
-    ImgRGB.Bitmap.Delete;
-    ImgRGB.Scale := 1;
-    ImgAlpha.Bitmap.Delete;
-    ImgAlpha.Scale := 1;
-    ShowModal;
-    if (ModalResult = mrOK) and not ImgRGB.Bitmap.Empty then
-    begin
-      B := TBitmapLayer.Create(ImgView.Layers);
-      B.Bitmap := ImgRGB.Bitmap;
-      B.Bitmap.DrawMode := dmBlend; 
+    Tmp := TBitmap32.Create;
+    try
+      Tmp.SetSize(BitmapLayer.Bitmap.Width, BitmapLayer.Bitmap.Height);
+      RGBALoaderForm.ImgAlpha.Bitmap.DrawTo(Tmp, Classes.Rect(0, 0, Tmp.Width, Tmp.Height));
 
-      if not ImgAlpha.Bitmap.Empty then
-      begin
-        Tmp := TBitmap32.Create;
-        try
-          Tmp.SetSize(B.Bitmap.Width, B.Bitmap.Height);
-          ImgAlpha.Bitmap.DrawTo(Tmp, Classes.Rect(0, 0, Tmp.Width, Tmp.Height));
-
-          // combine Alpha into already loaded RGB colors
-          IntensityToAlpha(B.Bitmap, Tmp);
-        finally
-          Tmp.Free;
-        end;
-      end;
-
-      with ImgView.GetViewportRect do
-        P := ImgView.ControlToBitmap(GR32.Point((Right + Left) div 2, (Top + Bottom) div 2));
-
-      with B do
-      begin
-        W := Bitmap.Width * 0.5;
-        H := Bitmap.Height * 0.5;
-
-        with ImgView.Bitmap do
-          Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
-
-        Scaled := True;
-        OnMouseDown := LayerMouseDown;
-      end;
-      Selection := B;
+      // combine Alpha into already loaded RGB colors
+      IntensityToAlpha(BitmapLayer.Bitmap, Tmp);
+    finally
+      Tmp.Free;
     end;
   end;
+
+  R := ImgView.GetViewportRect;
+  P := ImgView.ControlToBitmap(R.CenterPoint);
+
+  W := BitmapLayer.Bitmap.Width * 0.5;
+  H := BitmapLayer.Bitmap.Height * 0.5;
+
+  BitmapLayer.Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
+
+  BitmapLayer.Scaled := True;
+  BitmapLayer.OnMouseDown := LayerMouseDown;
+
+  Selection := BitmapLayer;
 end;
 
 procedure TMainForm.MnuReorderClick(Sender: TObject);
 begin
   // note that the top-most layer is occupied with the rubber-banding layer
-  if Selection <> nil then
-    case TMenuItem(Sender).Tag of
-      1: // Bring to front, do not use BringToFront here, see note above
-        Selection.Index := ImgView.Layers.Count - 2;
-      2: Selection.SendToBack;
-      3: Selection.Index := Selection.Index + 1; // up one level
-      4: Selection.Index := Selection.Index - 1; // down one level
-    end;
+  if Selection = nil then
+    exit;
+
+  case TMenuItem(Sender).Tag of
+    1: // Bring to front, do not use BringToFront here, see note above
+      Selection.Index := ImgView.Layers.Count - 2;
+    2: Selection.SendToBack;
+    3: Selection.Index := Selection.Index + 1; // up one level
+    4: Selection.Index := Selection.Index - 1; // down one level
+  end;
 end;
 
 procedure TMainForm.MnuSimpleDrawingClick(Sender: TObject);
@@ -523,21 +551,21 @@ end;
 
 procedure TMainForm.OpenImage(const FileName: string);
 begin
-  with ImgView do
   try
     Selection := nil;
     RBLayer := nil;
-    Layers.Clear;
-    Scale := 1;
-    Bitmap.LoadFromFile(FileName);
+    ImgView.Layers.Clear;
+    ImgView.Scale := 1;
+    ImgView.Bitmap.LoadFromFile(FileName);
   finally
-    pnlImage.Visible := not Bitmap.Empty;
+    pnlImage.Visible := not ImgView.Bitmap.Empty;
   end;
 end;
 
 procedure TMainForm.PaintButtonMockupHandler(Sender: TObject;
   Buffer: TBitmap32);
 var
+  Layer: TPositionedLayer;
   RoundPoly: TArrayOfFloatPoint;
   TextPoly: TArrayOfArrayOfFloatPoint;
   Bounds, Dst: TFloatRect;
@@ -547,54 +575,56 @@ var
 const
   CScale = 1 / 200;
 begin
-  if Sender is TPositionedLayer then
-    with TPositionedLayer(Sender) do
+  if not(Sender is TPositionedLayer) then
+    exit;
+
+  Layer := TPositionedLayer(Sender);
+
+  Bounds := Layer.GetAdjustedLocation;
+  InflateRect(Bounds, -1, -1);
+  RoundPoly := RoundRect(Bounds, GbrBorderRadius.Position);
+
+  ColorGradient := TLinearGradientPolygonFiller.Create;
+  try
+    ColorGradient.SetPoints(FloatPoint(0, Bounds.Top), FloatPoint(0, Bounds.Bottom));
+    ColorGradient.Gradient.StartColor := $FFE2E2E2;
+    ColorGradient.Gradient.AddColorStop(0.499, $FFD3D3D3);
+    ColorGradient.Gradient.AddColorStop(0.501, $FFDBDBDB);
+    ColorGradient.Gradient.EndColor := $FFFDFDFD;
+
+    PolygonFS(Buffer, RoundPoly, ColorGradient, pfAlternate);
+  finally
+    ColorGradient.Free;
+  end;
+  PolyPolygonFS(Buffer, BuildPolyPolyLine(PolyPolygon(RoundPoly), True,
+    0.1 * GbrBorderWidth.Position), clGray32, pfAlternate);
+
+  Path := TFlattenedPath.Create;
+  try
+//    Buffer.Font.Assign(FFont);
+    Buffer.Font.Size := 12;
+    if Supports(Buffer.Backend, ITextToPathSupport, Intf) then
     begin
-      Bounds := GetAdjustedLocation;
-      InflateRect(Bounds, -1, -1);
-      RoundPoly := RoundRect(Bounds, GbrBorderRadius.Position);
+      Intf.TextToPath(Path, 0, 0, 'Button');
+      TextPoly := Path.Path;
+      if Length(TextPoly) > 0 then
+      begin
+        Dst := PolypolygonBounds(TextPoly);
+        TextPoly := TranslatePolyPolygon(TextPoly,
+          0.5 * (Bounds.Left + Bounds.Right - (Dst.Right - Dst.Left)),
+          0.5 * (Bounds.Bottom + Bounds.Top - Dst.Bottom));
 
-      ColorGradient := TLinearGradientPolygonFiller.Create;
-      try
-        ColorGradient.SetPoints(FloatPoint(0, Bounds.Top), FloatPoint(0, Bounds.Bottom));
-        ColorGradient.Gradient.StartColor := $FFE2E2E2;
-        ColorGradient.Gradient.AddColorStop(0.499, $FFD3D3D3);
-        ColorGradient.Gradient.AddColorStop(0.501, $FFDBDBDB);
-        ColorGradient.Gradient.EndColor := $FFFDFDFD;
-
-        PolygonFS(Buffer, RoundPoly, ColorGradient, pfAlternate);
-      finally
-        ColorGradient.Free;
+        PolyPolygonFS_LCD2(Buffer, TextPoly, clBlack32, pfAlternate);
       end;
-      PolyPolygonFS(Buffer, BuildPolyPolyLine(PolyPolygon(RoundPoly), True,
-        0.1 * GbrBorderWidth.Position), clGray32, pfAlternate);
-
-      Path := TFlattenedPath.Create;
-      try
-    //    Buffer.Font.Assign(FFont);
-        Buffer.Font.Size := 12;
-        if Supports(Buffer.Backend, ITextToPathSupport, Intf) then
-        begin
-          Intf.TextToPath(Path, 0, 0, 'Button');
-          TextPoly := Path.Path;
-          if Length(TextPoly) > 0 then
-          begin
-            Dst := PolypolygonBounds(TextPoly);
-            TextPoly := TranslatePolyPolygon(TextPoly,
-              0.5 * (Bounds.Left + Bounds.Right - (Dst.Right - Dst.Left)),
-              0.5 * (Bounds.Bottom + Bounds.Top - Dst.Bottom));
-
-            PolyPolygonFS_LCD2(Buffer, TextPoly, clBlack32, pfAlternate);
-          end;
-        end;
-      finally
-        Path.Free;
-      end;
-   end;
+    end;
+  finally
+    Path.Free;
+  end;
 end;
 
 procedure TMainForm.PaintMagnifierHandler(Sender: TObject; Buffer: TBitmap32);
 var
+  Layer: TPositionedLayer;
   Magnification, Rotation: Single;
   SrcRect, DstRect: TFloatRect;
   R: TRect;
@@ -603,120 +633,157 @@ var
   W2, H2: Single;
   I: Integer;
 begin
-  if Sender is TPositionedLayer then
-    with TPositionedLayer(Sender) do
-    begin
-      DstRect := GetAdjustedLocation;
-      R := MakeRect(DstRect);
+  if not(Sender is TPositionedLayer) then
+    exit;
 
-      if not Buffer.MeasuringMode then
-      begin
-        Magnification := Power(10, (GbrMagnMagnification.Position * 0.02));
-        Rotation := -GbrMagnRotation.Position;
+  Layer := TPositionedLayer(Sender);
 
-        B := TBitmap32.Create;
-        try
-          with R do
-          begin
-            B.SetSize(Right - Left, Bottom - Top);
-            W2 := (Right - Left) * 0.5;
-            H2 := (Bottom - Top) * 0.5;
-          end;
+  DstRect := Layer.GetAdjustedLocation;
+  R := MakeRect(DstRect);
 
-          SrcRect := DstRect;
-          with SrcRect do
-          begin
-            Left := Left - H2;
-            Right := Right + H2;
-            Top := Top - W2;
-            Bottom := Bottom + W2;
-          end;
+  if not Buffer.MeasuringMode then
+  begin
+    Magnification := Power(10, (GbrMagnMagnification.Position * 0.02));
+    Rotation := -GbrMagnRotation.Position;
 
-          T := TAffineTransformation.Create;
-          try
-            T.SrcRect := SrcRect;
-            T.Translate(-R.Left, -R.Top);
+    B := TBitmap32.Create;
+    try
+      B.SetSize(R.Width, R.Height);
+      W2 := R.Width * 0.5;
+      H2 := R.Height * 0.5;
 
-            T.Translate(-W2, -H2);
-            T.Scale(Magnification, Magnification);
-            T.Rotate(0, 0, Rotation);
-            T.Translate(W2, H2);
+      SrcRect := DstRect;
+      SrcRect.Left := SrcRect.Left - H2;
+      SrcRect.Right := SrcRect.Right + H2;
+      SrcRect.Top := SrcRect.Top - W2;
+      SrcRect.Bottom := SrcRect.Bottom + W2;
 
-            if CbxMagnInterpolate.Checked then
-            begin
-              TLinearResampler.Create(Buffer);
-              Transform(B, Buffer, T);
-            end
-            else
-            begin
-              TNearestResampler.Create(Buffer);
-              Transform(B, Buffer, T);
-            end;
+      T := TAffineTransformation.Create;
+      try
+        T.SrcRect := SrcRect;
+        T.Translate(-R.Left, -R.Top);
 
-            B.ResetAlpha;
-            B.DrawMode := dmBlend;
-            B.MasterAlpha := GbrMagnOpacity.Position;
-            B.DrawTo(Buffer, R);
+        T.Translate(-W2, -H2);
+        T.Scale(Magnification, Magnification);
+        T.Rotate(0, 0, Rotation);
+        T.Translate(W2, H2);
 
-            // draw frame
-            for I := 0 to 4 do
-            begin
-               with R do Buffer.RaiseRectTS(Left, Top, Right, Bottom, 35 - I * 8);
-               InflateRect(R, -1, -1);
-            end;
-          finally
-            T.Free;
-          end;
-        finally
-          B.Free;
+        if CbxMagnInterpolate.Checked then
+        begin
+          TLinearResampler.Create(Buffer);
+          Transform(B, Buffer, T);
+        end
+        else
+        begin
+          TNearestResampler.Create(Buffer);
+          Transform(B, Buffer, T);
         end;
+
+        B.ResetAlpha;
+        B.DrawMode := dmBlend;
+        B.MasterAlpha := GbrMagnOpacity.Position;
+        B.DrawTo(Buffer, R);
+
+        // draw frame
+        for I := 0 to 4 do
+        begin
+          Buffer.RaiseRectTS(R, 35 - I * 8);
+          GR32.InflateRect(R, -1, -1);
+        end;
+      finally
+        T.Free;
       end;
-      Buffer.Changed;
+    finally
+      B.Free;
     end;
+  end;
+  Buffer.Changed;
 end;
 
 procedure TMainForm.PaintSimpleDrawingHandler(Sender: TObject; Buffer: TBitmap32);
 var
+  Layer: TPositionedLayer;
+  R: TFloatRect;
   Cx, Cy: Single;
   W2, H2: Single;
   I: Integer;
 const
   CScale = 1 / 200;
 begin
-  if Sender is TPositionedLayer then
-    with TPositionedLayer(Sender).GetAdjustedLocation do
-    begin
-      W2 := (Right - Left) * 0.5;
-      H2 := (Bottom - Top) * 0.5;
-      Cx := Left + W2;
-      Cy := Top + H2;
-      W2 := W2 * CScale;
-      H2 := H2 * CScale;
-      Buffer.PenColor := clRed32;
-      Buffer.MoveToF(Cx, Cy);
-      for I := 0 to 240 do
-        Buffer.LineToFS(
-          Cx + W2 * I * Cos(I * 0.125),
-          Cy + H2 * I * Sin(I * 0.125));
-    end;
+  if not(Sender is TPositionedLayer) then
+    exit;
+
+  Layer := TPositionedLayer(Sender);
+
+  R := Layer.GetAdjustedLocation;
+
+  W2 := (R.Right - R.Left) * 0.5;
+  H2 := (R.Bottom - R.Top) * 0.5;
+  Cx := R.Left + W2;
+  Cy := R.Top + H2;
+  W2 := W2 * CScale;
+  H2 := H2 * CScale;
+  Buffer.PenColor := clRed32;
+
+  Buffer.MoveToF(Cx, Cy);
+  for I := 0 to 240 do
+    Buffer.LineToFS(
+      Cx + W2 * I * Cos(I * 0.125),
+      Cy + H2 * I * Sin(I * 0.125));
 end;
 
 procedure TMainForm.ScaleComboChange(Sender: TObject);
 var
-  S: string;
-  I: Integer;
+  NewScale: Double;
+  ScaleStr: string;
+  i: integer;
 begin
-  S := ScaleCombo.Text;
-  S := StringReplace(S, '%', '', [rfReplaceAll]);
-  S := StringReplace(S, ' ', '', [rfReplaceAll]);
-  if S = '' then Exit;
-  I := StrToIntDef(S, -1);
-  if (I < 1) or (I > 2000) then
-    I := Round(ImgView.Scale * 100)
+  if (ScaleCombo.ItemIndex <> -1) then
+  begin
+    // Predefined scale selected
+    NewScale := ZoomLevels[ScaleCombo.ItemIndex];
+  end else
+  begin
+    // Custom zoom manually entered
+    ScaleStr := ScaleCombo.Text;
+
+    // Remove junk from start
+    while (ScaleStr <> '') and ((ScaleStr[1] < '0') or (ScaleStr[1] > '9')) do
+      Delete(ScaleStr, 1, 1);
+
+    // Remove junk from end
+    i := 1;
+    while (i <= Length(ScaleStr)) and ((ScaleStr[i] >= '0') or (ScaleStr[i] <= '9')) do
+      inc(i);
+    SetLength(ScaleStr, i-1);
+
+    NewScale := StrToFloatDef(ScaleStr, 100) / 100;
+  end;
+  SetScale(NewScale);
+end;
+
+procedure TMainForm.SetScale(AScale: Double);
+begin
+  if (FLockZoom > 0) then
+    exit;
+
+  if AScale < ZoomLevels[Low(ZoomLevels)] then
+    AScale := ZoomLevels[Low(ZoomLevels)]
   else
-    ImgView.Scale := I * 0.01;
-  ScaleCombo.Text := IntToStr(I) + '%';
-  ScaleCombo.SelStart := Length(ScaleCombo.Text) - 1;
+  if AScale > ZoomLevels[High(ZoomLevels)] then
+    AScale := ZoomLevels[High(ZoomLevels)];
+
+  Inc(FLockZoom);
+  try
+
+    ImgView.Scale := AScale;
+
+    ScaleCombo.Text := Format('%.0n%%', [ImgView.Scale * 100]);
+    ScaleCombo.SelStart := Length(ScaleCombo.Text) - 1;
+
+  finally
+    Dec(FLockZoom);
+  end;
 end;
 
 procedure TMainForm.SetSelection(Value: TPositionedLayer);
@@ -751,18 +818,17 @@ begin
       RBLayer.OnDblClick := LayerDblClick;
 
       if Value is TBitmapLayer then
-        with TBitmapLayer(Value) do
-        begin
-          pnlBitmapLayer.Visible := True;
-          GbrLayerOpacity.Position := Bitmap.MasterAlpha;
-          CbxLayerInterpolate.Checked := Bitmap.Resampler.ClassType = TDraftResampler;
-        end
-      else if Value.Tag = 2 then
+      begin
+        pnlBitmapLayer.Visible := True;
+        GbrLayerOpacity.Position := TBitmapLayer(Value).Bitmap.MasterAlpha;
+        CbxLayerInterpolate.Checked := (TBitmapLayer(Value).Bitmap.Resampler.ClassType = TDraftResampler);
+      end else
+      if Value.Tag = 2 then
       begin
         // tag = 2 for button mockup
         pnlButtonMockup.Visible := True;
-      end
-      else if Value.Tag = 3 then
+      end else
+      if Value.Tag = 3 then
       begin
         // tag = 3 for magnifiers
         pnlMagnification.Visible := True;
@@ -773,7 +839,8 @@ end;
 
 procedure TMainForm.MnuScaledClick(Sender: TObject);
 begin
-  if Selection <> nil then Selection.Scaled := not Selection.Scaled;
+  if Selection <> nil then
+    Selection.Scaled := not Selection.Scaled;
   RBLayer.Scaled := Selection.Scaled;
 end;
 
@@ -782,39 +849,45 @@ procedure TMainForm.ImgViewKeyDown(Sender: TObject; var Key: Word;
 var
   Location: TFloatRect;
 begin
-  if Assigned(FSelection) then
-    case Key of
-      VK_LEFT:
-        begin
-          Location := OffsetRect(FSelection.Location, -1, 0);
-          FSelection.Location := Location;
-          RBLayer.Location := Location;
-        end;
-      VK_RIGHT:
-        begin
-          Location := OffsetRect(FSelection.Location, 1, 0);
-          FSelection.Location := Location;
-          RBLayer.Location := Location;
-        end;
-      VK_UP:
-        begin
-          Location := OffsetRect(FSelection.Location, 0, -1);
-          FSelection.Location := Location;
-          RBLayer.Location := Location;
-        end;
-      VK_DOWN:
-        begin
-          Location := OffsetRect(FSelection.Location, 0, 1);
-          FSelection.Location := Location;
-          RBLayer.Location := Location;
-        end;
-      VK_DELETE:
-        begin
-          FreeAndNil(FSelection);
-          RBLayer.ChildLayer := nil;
-          RBLayer.LayerOptions := LOB_NO_UPDATE;
-        end;
-    end;
+  if (FSelection = nil) then
+    exit;
+
+  case Key of
+    VK_LEFT:
+      begin
+        Location := OffsetRect(FSelection.Location, -1, 0);
+        FSelection.Location := Location;
+        RBLayer.Location := Location;
+      end;
+
+    VK_RIGHT:
+      begin
+        Location := OffsetRect(FSelection.Location, 1, 0);
+        FSelection.Location := Location;
+        RBLayer.Location := Location;
+      end;
+
+    VK_UP:
+      begin
+        Location := OffsetRect(FSelection.Location, 0, -1);
+        FSelection.Location := Location;
+        RBLayer.Location := Location;
+      end;
+
+    VK_DOWN:
+      begin
+        Location := OffsetRect(FSelection.Location, 0, 1);
+        FSelection.Location := Location;
+        RBLayer.Location := Location;
+      end;
+
+    VK_DELETE:
+      begin
+        FreeAndNil(FSelection);
+        RBLayer.ChildLayer := nil;
+        RBLayer.LayerOptions := LOB_NO_UPDATE;
+      end;
+  end;
 end;
 
 procedure TMainForm.ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
@@ -823,7 +896,43 @@ begin
   if Layer = nil then
   begin
     Selection := nil;
+
+    // Left mouse = Pan
+    if (Button = mbLeft) then
+    begin
+      FPanning := True;
+      ImgView.Cursor := crSizeAll;
+      // Remember start point
+      FStartPos := GR32.Point(X, Y);
+    end else
+    // Middle mouse = Reset zoom to 100%
+    if (Button = mbMiddle) then
+      SetScale(1);
   end;
+end;
+
+procedure TMainForm.ImgViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  Delta: TPoint;
+begin
+  if (not FPanning) then
+    Exit;
+
+  // If we're panning then calculate how far mouse has moved since last and
+  // scroll image the same amount.
+  var NewPos := GR32.Point(X, Y);
+  Delta := FStartPos - NewPos;
+
+  FStartPos := NewPos; // Remember new start point
+
+  if (Delta.X <> 0) or (Delta.Y <> 0) then
+    ImgView.Scroll(Delta.X, Delta.Y);
+end;
+
+procedure TMainForm.ImgViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+begin
+  ImgView.Cursor := crDefault;
+  FPanning := False;
 end;
 
 procedure TMainForm.ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
@@ -870,8 +979,10 @@ var
   nw, nh: Single;
 
 begin
-  if DragState = dsMove then Exit; // we are interested only in scale operations
-  if Shift = [] then Exit; // special processing is not required
+  if DragState = dsMove then
+    Exit; // we are interested only in scale operations
+  if Shift = [] then
+    Exit; // special processing is not required
 
   if ssCtrl in Shift then
   begin
@@ -1004,24 +1115,16 @@ end;
 
 procedure TMainForm.ImgViewMouseWheelUp(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-var
-  s: Single;
 begin
-  s := ImgView.Scale / 1.1;
-  if s < 0.2 then s := 0.2;
-  ImgView.Scale := s;
-  ScaleCombo.Text := IntToStr(Round(s * 100)) + '%';
+  // -10%
+  SetScale(ImgView.Scale / 1.1);
 end;
 
 procedure TMainForm.ImgViewMouseWheelDown(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-var
-  s: Single;
 begin
-  s := ImgView.Scale * 1.1;
-  if s > 20 then s := 20;
-  ImgView.Scale := s;
-  ScaleCombo.Text := IntToStr(Round(s * 100)) + '%';
+  // +10%
+  SetScale(ImgView.Scale * 1.1);
 end;
 
 procedure TMainForm.MnuFlipHorzClick(Sender: TObject);

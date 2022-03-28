@@ -35,6 +35,8 @@ object MainForm: TMainForm
     TabStop = True
     OnKeyDown = ImgViewKeyDown
     OnMouseDown = ImgViewMouseDown
+    OnMouseMove = ImgViewMouseMove
+    OnMouseUp = ImgViewMouseUp
     OnMouseWheelDown = ImgViewMouseWheelDown
     OnMouseWheelUp = ImgViewMouseWheelUp
     OnPaintStage = ImgViewPaintStage
@@ -71,16 +73,6 @@ object MainForm: TMainForm
         TabOrder = 0
         Text = '100%'
         OnChange = ScaleComboChange
-        Items.Strings = (
-          '    25%'
-          '    50%'
-          '    75%'
-          '  100%'
-          '  200%'
-          '  300%'
-          '  400%'
-          '  800%'
-          '1600%')
       end
       object PnlImageHeader: TPanel
         Left = 1
