@@ -64,6 +64,7 @@ var
 implementation
 
 uses
+  Types,
   {$IFNDEF FPC} JPEG, {$ELSE} LazJPG, {$ENDIF}
   GR32_Polygons, GR32_VectorUtils, GR32_Blurs, GR32_Resamplers;
 
@@ -267,7 +268,7 @@ begin
         Rec2 := Rect(40, 160, 240, 320);
         with Rec2 do
           FBmpLayer.Bitmap.FillRect(Left, Top, Right, Bottom, clRed32);
-        InflateRect(Rec2, 20, 20);
+        GR32.InflateRect(Rec2, 20, 20);
 
         Pts := Ellipse(395, 175, 60, 100);
 

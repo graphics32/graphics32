@@ -456,6 +456,9 @@ begin
       end
       else
       begin
+        X := GLion.Bounds.Left; // Eliminates compiler warning
+        Y := GLion.Bounds.Top;
+
         while (Ptr^ <> #0) and (Ptr^ <> #13) do
         begin
           Cmd := Ptr^;

@@ -99,7 +99,7 @@ var
   Index: Integer;
 begin
   Bitmap.Clear(clBlack32);
-  RandSeed := $DEADBABE;
+  RandSeed := integer($DEADBABE);
   for Index := 0 to 70 do
   begin
     Points := Circle(Bitmap.Width * Random, Bitmap.Height * Random,

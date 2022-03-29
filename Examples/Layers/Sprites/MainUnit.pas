@@ -98,6 +98,7 @@ implementation
 {$ENDIF}
 
 uses
+  UITypes,
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
@@ -312,8 +313,8 @@ begin
     BenchmarkMode := False;
     TimerFPS.Interval := 5000;
     BenchmarkList.SaveToFile('Results.txt');
-  end
-  else if (MessageDlg('Do you really want to start benchmarking? ' +
+  end else
+  if (MessageDlg('Do you really want to start benchmarking? ' +
     'This will take a considerable amount of time.' + #13#10 +
     'Benchmarking runs with a higher task priority. Your system might become unresponsive for several seconds.',
     mtConfirmation, [mbYes, mbNo], 0) = mrYes) then

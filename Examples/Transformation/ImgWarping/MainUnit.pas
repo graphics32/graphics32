@@ -182,6 +182,7 @@ var
 implementation
 
 uses
+  Types,
   {$IFNDEF FPC}
   JPEG,
   {$ELSE}
@@ -340,12 +341,11 @@ procedure TMainForm.DstImgMouseMove(Sender: TObject; Shift: TShiftState; X,
   end;
 
 begin
-  BrushLayer.Center := Point(X, Y);
-  with DstImg.ControlToBitmap(Point(X, Y)) do Caption := cAppName + ' [' + Color32ToStr(DstImg.Bitmap.PixelS[X,Y]) + ']';
+  BrushLayer.Center := GR32.Point(X, Y);
+  with DstImg.ControlToBitmap(GR32.Point(X, Y)) do Caption := cAppName + ' [' + Color32ToStr(DstImg.Bitmap.PixelS[X,Y]) + ']';
   if SetBrushMode(Shift) then
-    with DstImg.ControlToBitmap(Point(X, Y)) do
-      DrawMappedBrush(Point(X - CurrentBrush[BrushMode].Width div 2,
-        Y - CurrentBrush[BrushMode].Height div 2));
+    with DstImg.ControlToBitmap(GR32.Point(X, Y)) do
+      DrawMappedBrush(GR32.Point(X - CurrentBrush[BrushMode].Width div 2, Y - CurrentBrush[BrushMode].Height div 2));
 end;
 
 
@@ -379,14 +379,14 @@ var
 begin
   MouseDown := True;
   if SetBrushMode(Shift) then
-    with DstImg.ControlToBitmap(Point(X, Y)) do
+    with DstImg.ControlToBitmap(GR32.Point(X, Y)) do
     begin
       P := CurrentBrush[BrushMode].Width div 2;
       Q := CurrentBrush[BrushMode].Height div 2;
-      LastPos := Point(X - P, Y - Q);
+      LastPos := GR32.Point(X - P, Y - Q);
       LastDelta := FixedPoint(0,0);
       with LastPos do
-        UnionRect(SampleClipRect, SampleClipRect, Rect(X, Y, X + P, Y + Q));
+        GR32.UnionRect(SampleClipRect, SampleClipRect, Rect(X, Y, X + P, Y + Q));
     end;
 end;
 
@@ -449,8 +449,8 @@ begin
   DstImg.Bitmap.FillRectS(DstClip, 0);
   Transform(DstImg.Bitmap, Src, Remapper, DstClip);
   DstImg.Repaint;
-  UnionRect(SampleClipRect, SampleClipRect, DstClip);
-  LastPos := Point(X, Y);
+  GR32.UnionRect(SampleClipRect, SampleClipRect, DstClip);
+  LastPos := GR32.Point(X, Y);
 end;
 
 procedure TMainForm.PrecalcCurrentBrush;
@@ -789,7 +789,7 @@ procedure TMainForm.SizeBarChange(Sender: TObject);
 begin
   DstImg.Repaint;
   BrushLayer.Radius := SizeBar.Position div 2;
-  BrushLayer.Center := Point(DstImg.Width div 2, DstImg.Height div 2);
+  BrushLayer.Center := GR32.Point(DstImg.Width div 2, DstImg.Height div 2);
 end;
 
 procedure TMainForm.ImgButtonClick(Sender: TObject);

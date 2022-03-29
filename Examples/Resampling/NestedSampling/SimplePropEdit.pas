@@ -61,13 +61,13 @@ type
     FSelectedObject: TPersistent;
     FProps: PPropList;
     FCaption: string;
-    function GetControlClass(Kind: TTypeKind): TPersistentClass;
     procedure ButtonHandler(Sender: TObject);
     procedure TrackBarHandler(Sender: TObject);
     procedure ComboBoxHandler(Sender: TObject);
     procedure StringGridEditHandler(Sender: TObject; ACol, ARow: Longint; const Value: string);
     procedure WMSelectObject(var Msg: TWMSelectObject); message WM_SELECTOBJECT;
   protected
+    function GetControlClass(Kind: TTypeKind): TPersistentClass; // TODO : Unused. What is its purpose?
     procedure Paint; override;
   public
     constructor Create(AOwner: TComponent); override;

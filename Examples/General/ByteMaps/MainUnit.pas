@@ -120,6 +120,7 @@ implementation
 {$ENDIF}
 
 uses
+  Types,
 {$IFNDEF FPC}
   Windows,
   JPEG;
@@ -244,7 +245,7 @@ procedure TMainForm.ImageMouseDown(Sender: TObject; Button: TMouseButton;
 begin
   if Button = mbLeft then
   begin
-    OldMousePos := Point(X, Y);
+    OldMousePos := GR32.Point(X, Y);
     MouseDragging := True;
     Image.Cursor := crSizeAll;
   end
@@ -257,7 +258,7 @@ begin
   if MouseDragging then
   begin
     Image.Scroll(OldMousePos.X - X, OldMousePos.Y - Y);
-    OldMousePos := Point(X, Y);
+    OldMousePos := GR32.Point(X, Y);
     Image.Update;
   end;
 end;
