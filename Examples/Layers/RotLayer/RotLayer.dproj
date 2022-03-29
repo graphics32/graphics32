@@ -101,11 +101,11 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <RcCompile Include="Media.rc"><Form>Media.res</Form></RcCompile>
-
+        <RcCompile Include="Media.rc">
+            <Form>Media.res</Form>
+        </RcCompile>
         <DCCReference Include="GR32_RotLayer.pas"/>
-<DCCReference Include="MainUnit.pas"/>
-
+        <DCCReference Include="MainUnit.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -165,4 +165,3 @@
     <Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
     <Import Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj" Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')"/>
 </Project>
-
