@@ -1575,8 +1575,8 @@ begin
   begin
     Result := nil;
     Exit;
-  end
-  else if SrcW = 1 then
+  end else
+  if SrcW = 1 then
   begin
     SetLength(Result, ClipW);
     for I := 0 to ClipW - 1 do
@@ -1588,10 +1588,13 @@ begin
     Exit;
   end;
   SetLength(Result, ClipW);
-  if ClipW = 0 then Exit;
+  if ClipW = 0 then
+    Exit;
 
-  if FullEdge then Scale := DstW / SrcW
-  else Scale := (DstW - 1) / (SrcW - 1);
+  if FullEdge then
+    Scale := DstW / SrcW
+  else
+    Scale := (DstW - 1) / (SrcW - 1);
 
   Filter := Kernel.Filter;
   FilterWidth := Kernel.GetWidth;
@@ -1603,8 +1606,8 @@ begin
     SetLength(Result[0], 1);
     Result[0][0].Pos := (SrcLo + SrcHi) div 2;
     Result[0][0].Weight := 256;
-  end
-  else if Scale < 1 then
+  end else
+  if Scale < 1 then
   begin
     OldScale := Scale;
     Scale := 1 / Scale;
@@ -1630,13 +1633,14 @@ begin
           Result[I][K].Weight := Weight;
         end;
       end;
+
       if Length(Result[I]) = 0 then
       begin
         SetLength(Result[I], 1);
         Result[I][0].Pos := Floor(Center);
         Result[I][0].Weight := 256;
-      end
-      else if Count <> 0 then
+      end else
+      if Count <> 0 then
         Dec(Result[I][K div 2].Weight, Count);
     end;
   end
@@ -1670,7 +1674,6 @@ begin
   end;
 end;
 
-{$WARNINGS OFF}
 procedure Resample(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -1683,18 +1686,21 @@ var
   MapXLoPos, MapXHiPos: Integer;
   HorzBuffer: array of TBufferEntry;
   ClusterX, ClusterY: TCluster;
-  Wt, Cr, Cg, Cb, Ca: Integer;
+  Cr, Cg, Cb, Ca: Integer;
   C: Cardinal;
-  ClustYW: Integer;
+  ClusterWeight: Integer;
   DstLine: PColor32Array;
   RangeCheck: Boolean;
   BlendMemEx: TBlendMemEx;
+  SourceColor: PColor32Entry;
+  BufferEntry: PBufferEntry;
 begin
   if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
     CombineOp := dmOpaque;
 
   { check source and destination }
-  if (CombineOp = dmBlend) and (Src.MasterAlpha = 0) then Exit;
+  if (CombineOp = dmBlend) and (Src.MasterAlpha = 0) then
+    Exit;
 
   BlendMemEx := BLEND_MEM_EX[Src.CombineMode]^; // store in local variable
 
@@ -1703,97 +1709,159 @@ begin
   // mapping tables
   MapX := BuildMappingTable(DstRect.Left, DstRect.Right, DstClip.Left, DstClip.Right, SrcRect.Left, SrcRect.Right, Kernel);
   MapY := BuildMappingTable(DstRect.Top, DstRect.Bottom, DstClip.Top, DstClip.Bottom, SrcRect.Top, SrcRect.Bottom, Kernel);
+  if (MapX = nil) or (MapY = nil) then
+    Exit;
+
   ClusterX := nil;
   ClusterY := nil;
+
+  RangeCheck := Kernel.RangeCheck; //StretchFilter in [sfLanczos, sfMitchell];
+
+  MapXLoPos := MapX[0][0].Pos;
+  MapXHiPos := MapX[DstClipW - 1][High(MapX[DstClipW - 1])].Pos;
+  SetLength(HorzBuffer, MapXHiPos - MapXLoPos + 1);
+
   try
-    RangeCheck := Kernel.RangeCheck; //StretchFilter in [sfLanczos, sfMitchell];
-    if (MapX = nil) or (MapY = nil) then Exit;
-
-    MapXLoPos := MapX[0][0].Pos;
-    MapXHiPos := MapX[DstClipW - 1][High(MapX[DstClipW - 1])].Pos;
-    SetLength(HorzBuffer, MapXHiPos - MapXLoPos + 1);
-
     { transfer pixels }
     for J := DstClip.Top to DstClip.Bottom - 1 do
     begin
       ClusterY := MapY[J - DstClip.Top];
-      for X := MapXLoPos to MapXHiPos do
+      ClusterWeight := ClusterY[0].Weight;
+
+      SourceColor := @Src.Bits[ClusterY[0].Pos * Src.Width];
+      BufferEntry := @HorzBuffer[0];
+      X := MapXHiPos - MapXLoPos; // for X := MapXLoPos to MapXHiPos do
+      while (X >= 0) do
       begin
-        Ca := 0; Cr := 0; Cg := 0; Cb := 0;
-        for Y := 0 to Length(ClusterY) - 1 do
+{$if defined(WIN32)} // For Delphi, only the Win32 compiler is able to optimize this properly
+        BufferEntry.B := SourceColor.B * ClusterWeight;
+        BufferEntry.G := SourceColor.G * ClusterWeight;
+        BufferEntry.R := SourceColor.R * ClusterWeight;
+        BufferEntry.A := SourceColor.A * ClusterWeight;
+{$else}
+        with BufferEntry^ do
         begin
-          C := Src.Bits[X + ClusterY[Y].Pos * Src.Width];
-          ClustYW := ClusterY[Y].Weight;
-          Inc(Ca, Integer(C shr 24) * ClustYW);
-          Inc(Cr, Integer(C and $00FF0000) shr 16 * ClustYW);
-          Inc(Cg, Integer(C and $0000FF00) shr 8 * ClustYW);
-          Inc(Cb, Integer(C and $000000FF) * ClustYW);
+          B := Integer(SourceColor.ARGB and $000000FF) * ClusterWeight;
+          G := Integer(SourceColor.ARGB and $0000FF00) shr 8 * ClusterWeight;
+          R := Integer(SourceColor.ARGB and $00FF0000) shr 16 * ClusterWeight;
+          A := Integer(SourceColor.ARGB shr 24) * ClusterWeight;
         end;
-        with HorzBuffer[X - MapXLoPos] do
+{$ifend}
+        Inc(SourceColor);
+        Inc(BufferEntry);
+        Dec(X);
+      end;
+
+      Y := Length(ClusterY) - 1; // for Y := 1 to Length(ClusterY) - 1 do
+      while (Y > 0) do
+      begin
+        ClusterWeight := ClusterY[Y].Weight;
+        SourceColor := @Src.Bits[ClusterY[Y].Pos * Src.Width];
+        BufferEntry := @HorzBuffer[0];
+        X := MapXHiPos - MapXLoPos;
+        while (X >= 0) do // for X := MapXLoPos to MapXHiPos do
         begin
-          R := Cr;
-          G := Cg;
-          B := Cb;
-          A := Ca;
+{$if defined(WIN32)}
+          Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
+          Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
+          Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
+          Inc(BufferEntry.A, SourceColor.A * ClusterWeight);
+{$else}
+          with BufferEntry^ do
+          begin
+            Inc(B, Integer(SourceColor.ARGB and $000000FF) * ClusterWeight);
+            Inc(G, Integer(SourceColor.ARGB and $0000FF00) shr 8 * ClusterWeight);
+            Inc(R, Integer(SourceColor.ARGB and $00FF0000) shr 16 * ClusterWeight);
+            Inc(A, Integer(SourceColor.ARGB shr 24) * ClusterWeight);
+          end;
+{$ifend}
+          Inc(SourceColor);
+          Inc(BufferEntry);
+          Dec(X);
         end;
+        Dec(Y);
       end;
 
       DstLine := Dst.ScanLine[J];
       for I := DstClip.Left to DstClip.Right - 1 do
       begin
+        Cb := 0; Cg := Cb; Cr := Cb; Ca := Cb;
         ClusterX := MapX[I - DstClip.Left];
-        Ca := 0; Cr := 0; Cg := 0; Cb := 0;
-        for X := 0 to Length(ClusterX) - 1 do
+        X := Length(ClusterX) - 1; // for X := 0 to Length(ClusterX) - 1 do
+        while (X >= 0) do
         begin
-          Wt := ClusterX[X].Weight;
+          ClusterWeight := ClusterX[X].Weight;
           with HorzBuffer[ClusterX[X].Pos - MapXLoPos] do
           begin
-            Inc(Ca, A * Wt);
-            Inc(Cr, R * Wt);
-            Inc(Cg, G * Wt);
-            Inc(Cb, B * Wt);
+            Inc(Cb, B * ClusterWeight);
+            Inc(Cg, G * ClusterWeight);
+            Inc(Cr, R * ClusterWeight);
+            Inc(Ca, A * ClusterWeight);
           end;
+          Dec(X);
         end;
 
         if RangeCheck then
         begin
-          if Ca > $FF0000 then Ca := $FF0000
-          else if Ca < 0 then Ca := 0
-          else Ca := Ca and $00FF0000;
+          if Ca > $00FF0000 then
+            Ca := $00FF0000
+          else
+          if Ca < 0 then
+            Ca := 0
+          else
+            Ca := Ca and $00FF0000;
 
-          if Cr > $FF0000 then Cr := $FF0000
-          else if Cr < 0 then Cr := 0
-          else Cr := Cr and $00FF0000;
+          if Cr > $00FF0000 then
+            Cr := $00FF0000
+          else
+          if Cr < 0 then
+            Cr := 0
+          else
+            Cr := Cr and $00FF0000;
 
-          if Cg > $FF0000 then Cg := $FF0000
-          else if Cg < 0 then Cg := 0
-          else Cg := Cg and $00FF0000;
+          if Cg > $00FF0000 then
+            Cg := $00FF0000
+          else
+          if Cg < 0 then
+            Cg := 0
+          else
+            Cg := Cg and $00FF0000;
 
-          if Cb > $FF0000 then Cb := $FF0000
-          else if Cb < 0 then Cb := 0
-          else Cb := Cb and $00FF0000;
+          if Cb > $00FF0000 then
+            Cb := $00FF0000
+          else
+          if Cb < 0 then
+            Cb := 0
+          else
+            Cb := Cb and $00FF0000;
 
           C := (Ca shl 8) or Cr or (Cg shr 8) or (Cb shr 16);
         end
         else
           C := ((Ca and $00FF0000) shl 8) or (Cr and $00FF0000) or ((Cg and $00FF0000) shr 8) or ((Cb and $00FF0000) shr 16);
 
-        // combine it with the background
+        // Combine it with the background
         case CombineOp of
-          dmOpaque: DstLine[I] := C;
-          dmBlend: BlendMemEx(C, DstLine[I], Src.MasterAlpha);
-          dmTransparent: if C <> Src.OuterColor then DstLine[I] := C;
-          dmCustom: CombineCallBack(C, DstLine[I], Src.MasterAlpha);
+          dmOpaque:
+            DstLine[I] := C;
+
+          dmBlend:
+            BlendMemEx(C, DstLine[I], Src.MasterAlpha);
+
+          dmTransparent:
+            if C <> Src.OuterColor then
+              DstLine[I] := C;
+
+          dmCustom:
+            CombineCallBack(C, DstLine[I], Src.MasterAlpha);
         end;
       end;
     end;
   finally
-    EMMS;
-    MapX := nil;
-    MapY := nil;
+    if (CombineOp in [dmBlend, dmCustom]) then
+      EMMS;
   end;
 end;
-{$WARNINGS ON}
 
 { Draft Resample Routines }
 
