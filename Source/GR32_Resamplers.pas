@@ -2667,7 +2667,7 @@ end;
 
 function TBoxKernel.GetWidth: TFloat;
 begin
-  Result := 1;
+  Result := 0.5;
 end;
 
 { TLinearKernel }
