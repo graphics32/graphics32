@@ -1,4 +1,4 @@
-unit GR32_Resamplers;
+﻿unit GR32_Resamplers;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -661,7 +661,7 @@ type
   PPointRec = ^TPointRec;
   TPointRec = record
     Pos: Integer;
-    Weight: Cardinal;
+    Weight: Integer;
   end;
 
   TCluster = array of TPointRec;
@@ -1542,7 +1542,7 @@ begin
           SrcIndex := MapHorz[I].Pos;    
           SrcPtr1 := @SrcLine[SrcIndex];    
           SrcPtr2 := @SrcLine[SrcIndex + SrcW];    
-        end;    
+        end;
         C := Interpolator(MapHorz[I].Weight, WY, SrcPtr1, SrcPtr2);
         CombineCallBack(C, DstLine[I], Src.MasterAlpha);
       end;
@@ -1552,21 +1552,29 @@ begin
   EMMS;
 end;
 
-function BuildMappingTable(
-  DstLo, DstHi: Integer;
-  ClipLo, ClipHi: Integer;
-  SrcLo, SrcHi: Integer;
-  Kernel: TCustomKernel): TMappingTable;
+// Precision of TMappingTable[][].Weight.
+// Totals Cb,Cg,Cr,Ca in Resample need to be unscaled by (1 shl MappingTablePrecicionShift2).
+const
+  MappingTablePrecicionShift = 11; // Fixed precision [21:11]
+  MappingTablePrecicionShift2 = 2 * MappingTablePrecicionShift;
+  MappingTablePrecicion = 1 shl MappingTablePrecicionShift;
+  MappingTablePrecicionRound = (1 shl MappingTablePrecicionShift2) div 2 - 1;
+  MappingTablePrecicionMax2 = 255 shl MappingTablePrecicionShift2;
+
+function BuildMappingTable(DstLo, DstHi: Integer; ClipLo, ClipHi: Integer;
+  SrcLo, SrcHi: Integer; Kernel: TCustomKernel): TMappingTable;
 var
   SrcW, DstW, ClipW: Integer;
   Filter: TFilterMethod;
   FilterWidth: TFloat;
-  Scale, OldScale: TFloat;
+  Scale, InvScale: TFloat;
   Center: TFloat;
   Count: Integer;
   Left, Right: Integer;
   I, J, K: Integer;
   Weight: Integer;
+  FilterWidthOrg: TFloat;
+  x0, x1, x2, x3: TFloat;
 begin
   SrcW := SrcHi - SrcLo;
   DstW := DstHi - DstLo;
@@ -1583,7 +1591,7 @@ begin
     begin
       SetLength(Result[I], 1);
       Result[I][0].Pos := SrcLo;
-      Result[I][0].Weight := 256;
+      Result[I][0].Weight := MappingTablePrecicion;
     end;
     Exit;
   end;
@@ -1598,6 +1606,7 @@ begin
 
   Filter := Kernel.Filter;
   FilterWidth := Kernel.GetWidth;
+  FilterWidthOrg := FilterWidth;
   K := 0;
 
   if Scale = 0 then
@@ -1605,11 +1614,11 @@ begin
     Assert(Length(Result) = 1);
     SetLength(Result[0], 1);
     Result[0][0].Pos := (SrcLo + SrcHi) div 2;
-    Result[0][0].Weight := 256;
+    Result[0][0].Weight := MappingTablePrecicion;
   end else
   if Scale < 1 then
   begin
-    OldScale := Scale;
+    InvScale := Scale;
     Scale := 1 / Scale;
     FilterWidth := FilterWidth * Scale;
     for I := 0 to ClipW - 1 do
@@ -1618,12 +1627,42 @@ begin
         Center := SrcLo - 0.5 + (I - DstLo + ClipLo + 0.5) * Scale
       else
         Center := SrcLo + (I - DstLo + ClipLo) * Scale;
+
       Left := Floor(Center - FilterWidth);
       Right := Ceil(Center + FilterWidth);
-      Count := -256;
+
+      Count := -MappingTablePrecicion;
       for J := Left to Right do
       begin
-        Weight := Round(256 * Filter((Center - J) * OldScale) * OldScale);
+        //
+        // Compute the intergral for the convolution with the filter using the midpoint-rule:
+        //
+        // Assume that f(x) is continuous on [a, b], n is a positive integer and
+        //
+        //         b - a
+        //   ∆x = -------
+        //           n
+        //
+        // If [a,b] is divided into n subintervals, each of length ∆x, and m{i} is the midpoint
+        // of the i'th subinterval, set
+        //
+        //   M{n} = ∑ f(m{i}) ∆x
+        //
+        // then
+        //
+        //   M{n} ≈ ∫ f(x)dx
+        //
+        // In other words, the integral from x1 to x2 of f(x) dx is approximately:
+        //
+        //   f((x1+x2)/2)*(x2-x1). ﻿
+        //
+        x0 := J - Center;
+        x1 := Max(x0 - 0.5, -FilterWidth);
+        x2 := Min(x0 + 0.5, FilterWidth);
+        x3 := (x2 + x1) * 0.5; // Center of [x1, x2]
+
+        Weight := Round(MappingTablePrecicion * Filter(x3 * InvScale) * (x2 - x1) * InvScale);
+
         if Weight <> 0 then
         begin
           Inc(Count, Weight);
@@ -1638,7 +1677,7 @@ begin
       begin
         SetLength(Result[I], 1);
         Result[I][0].Pos := Floor(Center);
-        Result[I][0].Weight := 256;
+        Result[I][0].Weight := MappingTablePrecicion;
       end else
       if Count <> 0 then
         Dec(Result[I][K div 2].Weight, Count);
@@ -1653,18 +1692,26 @@ begin
         Center := SrcLo - 0.5 + (I - DstLo + ClipLo + 0.5) * Scale
       else
         Center := SrcLo + (I - DstLo + ClipLo) * Scale;
+
       Left := Floor(Center - FilterWidth);
       Right := Ceil(Center + FilterWidth);
-      Count := -256;
+
+      Count := -MappingTablePrecicion;
       for J := Left to Right do
       begin
-        Weight := Round(256 * Filter(Center - j));
+        x0 := J - Center;
+        x1 := Max(x0 - 0.5, -FilterWidth);
+        x2 := Min(x0 + 0.5, FilterWidth);
+        x3 := (x1 + x2) * 0.5;
+
+        Weight := Round(MappingTablePrecicion * Filter(x3) * (x2 - x1));
+
         if Weight <> 0 then
         begin
           Inc(Count, Weight);
           K := Length(Result[I]);
-          SetLength(Result[I], k + 1);
-          Result[I][K].Pos := Constrain(j, SrcLo, SrcHi - 1);
+          SetLength(Result[I], K + 1);
+          Result[I][K].Pos := Constrain(J, SrcLo, SrcHi - 1);
           Result[I][K].Weight := Weight;
         end;
       end;
@@ -1686,8 +1733,8 @@ var
   MapXLoPos, MapXHiPos: Integer;
   HorzBuffer: array of TBufferEntry;
   ClusterX, ClusterY: TCluster;
-  Cr, Cg, Cb, Ca: Integer;
-  C: Cardinal;
+  Cb, Cg, Cr, Ca: Integer;
+  C: TColor32Entry;
   ClusterWeight: Integer;
   DstLine: PColor32Array;
   RangeCheck: Boolean;
@@ -1706,7 +1753,7 @@ begin
 
   DstClipW := DstClip.Right - DstClip.Left;
 
-  // mapping tables
+  // Mapping tables
   MapX := BuildMappingTable(DstRect.Left, DstRect.Right, DstClip.Left, DstClip.Right, SrcRect.Left, SrcRect.Right, Kernel);
   MapY := BuildMappingTable(DstRect.Top, DstRect.Bottom, DstClip.Top, DstClip.Bottom, SrcRect.Top, SrcRect.Bottom, Kernel);
   if (MapX = nil) or (MapY = nil) then
@@ -1793,7 +1840,7 @@ begin
           ClusterWeight := ClusterX[X].Weight;
           with HorzBuffer[ClusterX[X].Pos - MapXLoPos] do
           begin
-            Inc(Cb, B * ClusterWeight);
+            Inc(Cb, B * ClusterWeight); // Note: Fixed precision multiplication done here
             Inc(Cg, G * ClusterWeight);
             Inc(Cr, R * ClusterWeight);
             Inc(Ca, A * ClusterWeight);
@@ -1801,59 +1848,36 @@ begin
           Dec(X);
         end;
 
+        // Unscale and round
         if RangeCheck then
         begin
-          if Ca > $00FF0000 then
-            Ca := $00FF0000
-          else
-          if Ca < 0 then
-            Ca := 0
-          else
-            Ca := Ca and $00FF0000;
-
-          if Cr > $00FF0000 then
-            Cr := $00FF0000
-          else
-          if Cr < 0 then
-            Cr := 0
-          else
-            Cr := Cr and $00FF0000;
-
-          if Cg > $00FF0000 then
-            Cg := $00FF0000
-          else
-          if Cg < 0 then
-            Cg := 0
-          else
-            Cg := Cg and $00FF0000;
-
-          if Cb > $00FF0000 then
-            Cb := $00FF0000
-          else
-          if Cb < 0 then
-            Cb := 0
-          else
-            Cb := Cb and $00FF0000;
-
-          C := (Ca shl 8) or Cr or (Cg shr 8) or (Cb shr 16);
+          C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.A := (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
         end
         else
-          C := ((Ca and $00FF0000) shl 8) or (Cr and $00FF0000) or ((Cg and $00FF0000) shr 8) or ((Cb and $00FF0000) shr 16);
+        begin
+          C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          C.A := (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+        end;
 
         // Combine it with the background
         case CombineOp of
           dmOpaque:
-            DstLine[I] := C;
+            DstLine[I] := C.ARGB;
 
           dmBlend:
-            BlendMemEx(C, DstLine[I], Src.MasterAlpha);
+            BlendMemEx(C.ARGB, DstLine[I], Src.MasterAlpha);
 
           dmTransparent:
-            if C <> Src.OuterColor then
-              DstLine[I] := C;
+            if C.ARGB <> Src.OuterColor then
+              DstLine[I] := C.ARGB;
 
           dmCustom:
-            CombineCallBack(C, DstLine[I], Src.MasterAlpha);
+            CombineCallBack(C.ARGB, DstLine[I], Src.MasterAlpha);
         end;
       end;
     end;
