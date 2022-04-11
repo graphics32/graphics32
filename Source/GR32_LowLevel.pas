@@ -177,13 +177,12 @@ uses
 function Clamp(const Value: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
- if Value > 255 then
+ Result := Value;
+ if Result > 255 then
    Result := 255
  else
- if Value < 0 then
-   Result := 0
- else
-   Result := Value;
+ if Result < 0 then
+   Result := 0;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -649,12 +648,12 @@ end;
 function Constrain(const Value, Lo, Hi: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
-  if Value < Lo then
+  Result := Value;
+  if Result < Lo then
     Result := Lo
-  else if Value > Hi then
-    Result := Hi
   else
-    Result := Value;
+  if Result > Hi then
+    Result := Hi;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -671,17 +670,23 @@ end;
 
 function Constrain(const Value, Lo, Hi: Single): Single; overload;
 begin
-  if Value < Lo then Result := Lo
-  else if Value > Hi then Result := Hi
-  else Result := Value;
+  Result := Value;
+  if Result < Lo then
+    Result := Lo
+  else
+  if Result > Hi then
+    Result := Hi;
 end;
 
 function SwapConstrain(const Value: Integer; Constrain1, Constrain2: Integer): Integer;
 begin
   TestSwap(Constrain1, Constrain2);
-  if Value < Constrain1 then Result := Constrain1
-  else if Value > Constrain2 then Result := Constrain2
-  else Result := Value;
+  Result := Value;
+  if Result < Constrain1 then
+    Result := Constrain1
+  else
+  if Result > Constrain2 then
+    Result := Constrain2;
 end;
 
 function Max(const A, B, C: Integer): Integer;
@@ -735,12 +740,12 @@ end;
 function Clamp(Value, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
-  if Value > Max then 
+  Result := Value;
+  if Result > Max then
     Result := Max
-  else if Value < 0 then 
-    Result := 0
   else
-    Result := Value;
+  if Result < 0 then
+    Result := 0;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -765,12 +770,12 @@ end;
 function Clamp(Value, Min, Max: Integer): Integer;
 {$IFDEF USENATIVECODE}
 begin
-  if Value > Max then 
+  Result := Value;
+  if Result > Max then
     Result := Max
-  else if Value < Min then
-    Result := Min
-  else 
-    Result := Value;
+  else
+  if Result < Min then
+    Result := Min;
 {$ELSE}
 {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
@@ -832,8 +837,10 @@ begin
   end;
 
   Result := Value;
-  while Result >= Max do Result := Result - Max;
-  while Result < 0 do Result := Result + Max;
+  while Result >= Max do
+    Result := Result - Max;
+  while Result < 0 do
+    Result := Result + Max;
 {$ENDIF}
 end;
 
