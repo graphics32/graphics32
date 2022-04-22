@@ -38,6 +38,12 @@ interface
 
 {$I GR32.inc}
 
+// Define PREMULTIPLY to have TKernelResampler handle alpha correctly.
+// The downside of the alpha handling is that the performance and
+// precision of the resampler suffers slightly.
+{$define PREMULTIPLY}
+
+
 {$IFNDEF FPC}
 {-$IFDEF USE_3DNOW}
 {$ENDIF}
@@ -57,7 +63,7 @@ procedure BlockTransfer(
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
 procedure BlockTransferX(
-  Dst: TCustomBitmap32; DstX, DstY: TFixed; 
+  Dst: TCustomBitmap32; DstX, DstY: TFixed;
   Src: TCustomBitmap32; SrcRect: TRect;
   CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent = nil);
 
@@ -1555,16 +1561,35 @@ end;
 // Precision of TMappingTable[][].Weight.
 // Totals Cb,Cg,Cr,Ca in Resample need to be unscaled by (1 shl MappingTablePrecicionShift2).
 const
+  // Weight precision
+{$ifdef PREMULTIPLY}
+  MappingTablePrecicionShift = 8; // Fixed precision [24:8]
+{$else PREMULTIPLY}
   MappingTablePrecicionShift = 11; // Fixed precision [21:11]
+{$endif PREMULTIPLY}
   MappingTablePrecicionShift2 = 2 * MappingTablePrecicionShift;
   MappingTablePrecicion = 1 shl MappingTablePrecicionShift;
+  MappingTablePrecicion2 = 1 shl MappingTablePrecicionShift2;
   MappingTablePrecicionRound = (1 shl MappingTablePrecicionShift2) div 2 - 1;
   MappingTablePrecicionMax2 = 255 shl MappingTablePrecicionShift2;
+
+{$ifdef PREMULTIPLY}
+const
+  // Premultiplication
+  // Max error across all value[0..255]/alpha[1..255] combinations:
+  //   Shift=1: +/-1
+  //   Shift=2: +/-3
+  //   Shift=3: +/-7     in other words: error = +/- 2^(shift-1)
+  //   Shift=4: +/-15
+  //   Shift=5: +/-31
+  MappingTablePremultPrecicionShift = 2; // [0..7]
+  MappingTablePremultPrecicion = 1 shl MappingTablePremultPrecicionShift;
+{$endif PREMULTIPLY}
 
 function BuildMappingTable(DstLo, DstHi: Integer; ClipLo, ClipHi: Integer;
   SrcLo, SrcHi: Integer; Kernel: TCustomKernel): TMappingTable;
 var
-  SrcW, DstW, ClipW: Integer;
+  SrcWidth, DstWidth, ClipWidth: Integer;
   Filter: TFilterMethod;
   FilterWidth: TFloat;
   Scale, InvScale: TFloat;
@@ -1573,40 +1598,41 @@ var
   Left, Right: Integer;
   I, J, K: Integer;
   Weight: Integer;
-  FilterWidthOrg: TFloat;
   x0, x1, x2, x3: TFloat;
 begin
-  SrcW := SrcHi - SrcLo;
-  DstW := DstHi - DstLo;
-  ClipW := ClipHi - ClipLo;
-  if SrcW = 0 then
+  SrcWidth := SrcHi - SrcLo;
+  DstWidth := DstHi - DstLo;
+  ClipWidth := ClipHi - ClipLo;
+
+  if SrcWidth = 0 then
   begin
     Result := nil;
     Exit;
-  end else
-  if SrcW = 1 then
+  end;
+
+  if SrcWidth = 1 then
   begin
-    SetLength(Result, ClipW);
-    for I := 0 to ClipW - 1 do
+    SetLength(Result, ClipWidth);
+    for I := 0 to ClipWidth - 1 do
     begin
       SetLength(Result[I], 1);
       Result[I][0].Pos := SrcLo;
-      Result[I][0].Weight := MappingTablePrecicion;
+      Result[I][0].Weight := MappingTablePrecicion; // Weight=1
     end;
     Exit;
   end;
-  SetLength(Result, ClipW);
-  if ClipW = 0 then
+
+  SetLength(Result, ClipWidth);
+  if ClipWidth = 0 then
     Exit;
 
   if FullEdge then
-    Scale := DstW / SrcW
+    Scale := DstWidth / SrcWidth
   else
-    Scale := (DstW - 1) / (SrcW - 1);
+    Scale := (DstWidth - 1) / (SrcWidth - 1);
 
   Filter := Kernel.Filter;
   FilterWidth := Kernel.GetWidth;
-  FilterWidthOrg := FilterWidth;
   K := 0;
 
   if Scale = 0 then
@@ -1614,14 +1640,14 @@ begin
     Assert(Length(Result) = 1);
     SetLength(Result[0], 1);
     Result[0][0].Pos := (SrcLo + SrcHi) div 2;
-    Result[0][0].Weight := MappingTablePrecicion;
+    Result[0][0].Weight := MappingTablePrecicion; // Weight=1
   end else
   if Scale < 1 then
   begin
     InvScale := Scale;
     Scale := 1 / Scale;
     FilterWidth := FilterWidth * Scale;
-    for I := 0 to ClipW - 1 do
+    for I := 0 to ClipWidth - 1 do
     begin
       if FullEdge then
         Center := SrcLo - 0.5 + (I - DstLo + ClipLo + 0.5) * Scale
@@ -1686,7 +1712,7 @@ begin
   else // scale > 1
   begin
     Scale := 1 / Scale;
-    for I := 0 to ClipW - 1 do
+    for I := 0 to ClipWidth - 1 do
     begin
       if FullEdge then
         Center := SrcLo - 0.5 + (I - DstLo + ClipLo + 0.5) * Scale
@@ -1721,6 +1747,35 @@ begin
   end;
 end;
 
+{$ifdef PREMULTIPLY}
+function Premultiply(Value, Alpha: integer): integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+begin
+  // Instead of performing a full traditional premultiplication:
+  //
+  //   RGBp = RGB * Alpha / 255
+  //
+  // we try to lessen the rounding error, which is normally
+  // introduced when this is done in integer precision, by
+  // using a smaller divisor. Additionally we use a power of 2
+  // divisor so the division can be done with a simple shift:
+  //
+  //   RGBp = RGB * Alpha >> X
+  //
+  // We need to use "div" for division instead of a direct "shr" as
+  // "shr" performs a logical shift and not an arithmetic shift.
+  // The compiler will optimize a "div" with a power of 2 constant
+  // divisor to an arithmetic shift, so it's a very cheap operation.
+  Result := (Value * Alpha) div MappingTablePremultPrecicion;
+end;
+
+function Unpremultiply(Value, Alpha: integer): integer; {$IFDEF USEINLINING} inline; {$ENDIF}
+begin
+  // It would be best if we could do the multiplication before the division
+  // but unfortunately that overflows the fixed precision.
+  Result := (Value div Alpha) * MappingTablePremultPrecicion;
+end;
+{$endif PREMULTIPLY}
+
 procedure Resample(
   Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
   Src: TCustomBitmap32; SrcRect: TRect;
@@ -1741,6 +1796,10 @@ var
   BlendMemEx: TBlendMemEx;
   SourceColor: PColor32Entry;
   BufferEntry: PBufferEntry;
+{$ifdef PREMULTIPLY}
+  Alpha: integer;
+  DoPremultiply: boolean;
+{$endif PREMULTIPLY}
 begin
   if (CombineOp = dmCustom) and not Assigned(CombineCallBack) then
     CombineOp := dmOpaque;
@@ -1759,10 +1818,46 @@ begin
   if (MapX = nil) or (MapY = nil) then
     Exit;
 
+{$ifdef PREMULTIPLY}
+  // Scan bitmap for alpha
+  DoPremultiply := False;
+  SourceColor := PColor32Entry(Src.Bits);
+  I := Src.Height*Src.Width;
+  while (I > 0) do
+  begin
+    if (SourceColor.A <> 255) and (SourceColor.A <> 0) then
+    begin
+      // We only need to do alpha-premultiplication if Alpha exist in range [1..254]
+      DoPremultiply := True;
+      break;
+    end;
+    Inc(SourceColor);
+    Dec(I);
+  end;
+{$endif PREMULTIPLY}
+
   ClusterX := nil;
   ClusterY := nil;
 
-  RangeCheck := Kernel.RangeCheck; //StretchFilter in [sfLanczos, sfMitchell];
+{$ifdef PREMULTIPLY}
+  // If we're doing premultiplication then we always need to clamp the unpremultiplied
+  // values. Why? Well, premult/unpremult normally goes like this:
+  //
+  //   RGBp = RGB * Alpha / 255
+  //   RGB = RGBp * 255 / Alpha
+  //
+  // or in this particular case:
+  //
+  //   RGBp = RGB * Alpha / 255
+  //   RGB = ∑RGBp * 255 / ∑Alpha
+  //
+  // Now in case the rounding of the RGB or Alpha values leads to (∑RGBp > RGBp) or
+  // (Alpha > ∑Alpha) then we will get RGB values out of bounds (i.e. > 255).
+
+  RangeCheck := DoPremultiply or Kernel.RangeCheck;
+{$else PREMULTIPLY}
+  RangeCheck := Kernel.RangeCheck;
+{$endif PREMULTIPLY}
 
   MapXLoPos := MapX[0][0].Pos;
   MapXHiPos := MapX[DstClipW - 1][High(MapX[DstClipW - 1])].Pos;
@@ -1775,53 +1870,96 @@ begin
       ClusterY := MapY[J - DstClip.Top];
       ClusterWeight := ClusterY[0].Weight;
 
-      SourceColor := @Src.Bits[ClusterY[0].Pos * Src.Width];
+      SourceColor := @Src.Bits[ClusterY[0].Pos * Src.Width + MapXLoPos];
       BufferEntry := @HorzBuffer[0];
-      X := MapXHiPos - MapXLoPos; // for X := MapXLoPos to MapXHiPos do
-      while (X >= 0) do
+
+      X := MapXHiPos - MapXLoPos;
+      while (X >= 0) do // for X := MapXLoPos to MapXHiPos do
       begin
-{$if defined(WIN32)} // For Delphi, only the Win32 compiler is able to optimize this properly
-        BufferEntry.B := SourceColor.B * ClusterWeight;
-        BufferEntry.G := SourceColor.G * ClusterWeight;
-        BufferEntry.R := SourceColor.R * ClusterWeight;
-        BufferEntry.A := SourceColor.A * ClusterWeight;
-{$else}
-        with BufferEntry^ do
+{$ifdef PREMULTIPLY}
+        // Alpha=0 should not contribute to sample.
+        Alpha := SourceColor.A;
+        if (Alpha <> 0) then
         begin
-          B := Integer(SourceColor.ARGB and $000000FF) * ClusterWeight;
-          G := Integer(SourceColor.ARGB and $0000FF00) shr 8 * ClusterWeight;
-          R := Integer(SourceColor.ARGB and $00FF0000) shr 16 * ClusterWeight;
-          A := Integer(SourceColor.ARGB shr 24) * ClusterWeight;
-        end;
-{$ifend}
+          Alpha := Alpha * ClusterWeight;
+          if (DoPremultiply) then
+          begin
+            // Sample premultiplied values
+            // RGB is multiplied with Alpha during premultiplication so instead of
+            //   BufferEntry.RGB := Premultiply(SourceColor.RGB * ClusterWeight, Alpha);
+            // we're doing
+            //   Alpha := Alpha * ClusterWeight;
+            //   BufferEntry.RGB := Premultiply(SourceColor.RGB, Alpha);
+            // and saving 3 multiplications.
+            BufferEntry.B := Premultiply(SourceColor.B, Alpha);
+            BufferEntry.G := Premultiply(SourceColor.G, Alpha);
+            BufferEntry.R := Premultiply(SourceColor.R, Alpha);
+          end else
+          begin
+            BufferEntry.B := SourceColor.B * ClusterWeight;
+            BufferEntry.G := SourceColor.G * ClusterWeight;
+            BufferEntry.R := SourceColor.R * ClusterWeight;
+          end;
+          BufferEntry.A := Alpha;
+        end else
+          BufferEntry^ := Default(TBufferEntry);
+{$else PREMULTIPLY}
+        // Alpha=0 should not contribute to sample.
+        if (SourceColor.A <> 0) then
+        begin
+          BufferEntry.B := SourceColor.B * ClusterWeight;
+          BufferEntry.G := SourceColor.G * ClusterWeight;
+          BufferEntry.R := SourceColor.R * ClusterWeight;
+          BufferEntry.A := SourceColor.A * ClusterWeight;
+        end else
+          BufferEntry^ := Default(TBufferEntry);
+{$endif PREMULTIPLY}
         Inc(SourceColor);
         Inc(BufferEntry);
         Dec(X);
       end;
 
-      Y := Length(ClusterY) - 1; // for Y := 1 to Length(ClusterY) - 1 do
-      while (Y > 0) do
+      Y := Length(ClusterY) - 1;
+      while (Y > 0) do // for Y := 1 to Length(ClusterY) - 1 do
       begin
         ClusterWeight := ClusterY[Y].Weight;
-        SourceColor := @Src.Bits[ClusterY[Y].Pos * Src.Width];
+
+        SourceColor := @Src.Bits[ClusterY[Y].Pos * Src.Width + MapXLoPos];
         BufferEntry := @HorzBuffer[0];
+
         X := MapXHiPos - MapXLoPos;
         while (X >= 0) do // for X := MapXLoPos to MapXHiPos do
         begin
-{$if defined(WIN32)}
-          Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
-          Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
-          Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
-          Inc(BufferEntry.A, SourceColor.A * ClusterWeight);
-{$else}
-          with BufferEntry^ do
+{$ifdef PREMULTIPLY}
+          // Alpha=0 should not contribute to sample.
+          Alpha := SourceColor.A;
+          if (Alpha <> 0) then
           begin
-            Inc(B, Integer(SourceColor.ARGB and $000000FF) * ClusterWeight);
-            Inc(G, Integer(SourceColor.ARGB and $0000FF00) shr 8 * ClusterWeight);
-            Inc(R, Integer(SourceColor.ARGB and $00FF0000) shr 16 * ClusterWeight);
-            Inc(A, Integer(SourceColor.ARGB shr 24) * ClusterWeight);
+            Alpha := Alpha * ClusterWeight;
+            if (DoPremultiply) then
+            begin
+              // Sample premultiplied values
+              Inc(BufferEntry.B, Premultiply(SourceColor.B, Alpha));
+              Inc(BufferEntry.G, Premultiply(SourceColor.G, Alpha));
+              Inc(BufferEntry.R, Premultiply(SourceColor.R, Alpha));
+            end else
+            begin
+              Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
+              Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
+              Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
+            end;
+            Inc(BufferEntry.A, Alpha);
           end;
-{$ifend}
+{$else PREMULTIPLY}
+          // Alpha=0 should not contribute to sample.
+          if (SourceColor.A <> 0) then
+          begin
+            Inc(BufferEntry.B, SourceColor.B * ClusterWeight);
+            Inc(BufferEntry.G, SourceColor.G * ClusterWeight);
+            Inc(BufferEntry.R, SourceColor.R * ClusterWeight);
+            Inc(BufferEntry.A, SourceColor.A * ClusterWeight);
+          end;
+{$endif PREMULTIPLY}
           Inc(SourceColor);
           Inc(BufferEntry);
           Dec(X);
@@ -1833,35 +1971,78 @@ begin
       for I := DstClip.Left to DstClip.Right - 1 do
       begin
         Cb := 0; Cg := Cb; Cr := Cb; Ca := Cb;
+
         ClusterX := MapX[I - DstClip.Left];
-        X := Length(ClusterX) - 1; // for X := 0 to Length(ClusterX) - 1 do
-        while (X >= 0) do
+
+        X := Length(ClusterX) - 1;
+        while (X >= 0) do // for X := 0 to Length(ClusterX) - 1 do
         begin
-          ClusterWeight := ClusterX[X].Weight;
           with HorzBuffer[ClusterX[X].Pos - MapXLoPos] do
-          begin
-            Inc(Cb, B * ClusterWeight); // Note: Fixed precision multiplication done here
-            Inc(Cg, G * ClusterWeight);
-            Inc(Cr, R * ClusterWeight);
-            Inc(Ca, A * ClusterWeight);
-          end;
+            if (A <> 0) then // If Alpha=0 then RGB=0
+            begin
+              ClusterWeight := ClusterX[X].Weight;
+              Inc(Cb, B * ClusterWeight); // Note: Fixed precision multiplication done here
+              Inc(Cg, G * ClusterWeight);
+              Inc(Cr, R * ClusterWeight);
+              Inc(Ca, A * ClusterWeight);
+            end;
           Dec(X);
         end;
 
-        // Unscale and round
+        // Unpremultiply, unscale and round
         if RangeCheck then
         begin
-          C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.A := (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-        end
-        else
+{$ifdef PREMULTIPLY}
+          Alpha:= (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          if (Alpha <> 0) then
+          begin
+            if (DoPremultiply) then
+            begin
+              C.B := (Clamp(Unpremultiply(Cb, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+              C.G := (Clamp(Unpremultiply(Cg, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+              C.R := (Clamp(Unpremultiply(Cr, Alpha), 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+              C.A := Alpha;
+            end else
+            begin
+              C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+              C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+              C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+              C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
+            end;
+          end else
+            C.ARGB := 0;
+{$else PREMULTIPLY}
+          if (Ca <> 0) then
+          begin
+            C.B := (Clamp(Cb, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.G := (Clamp(Cg, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.R := (Clamp(Cr, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.A := (Clamp(Ca, 0, MappingTablePrecicionMax2) + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          end else
+            C.ARGB := 0;
+{$endif PREMULTIPLY}
+        end else
         begin
-          C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
-          C.A := (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+{$ifdef PREMULTIPLY}
+          Alpha:= (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          if (Alpha <> 0) then
+          begin
+            C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.A := 255; // We know Alpha=255 because RangeCheck is True otherwise
+          end else
+            C.ARGB := 0;
+{$else PREMULTIPLY}
+          if (Ca <> 0) then
+          begin
+            C.B := (Cb + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.G := (Cg + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.R := (Cr + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+            C.A := (Ca + MappingTablePrecicionRound) shr MappingTablePrecicionShift2;
+          end else
+            C.ARGB := 0;
+{$endif PREMULTIPLY}
         end;
 
         // Combine it with the background
@@ -1881,6 +2062,7 @@ begin
         end;
       end;
     end;
+
   finally
     if (CombineOp in [dmBlend, dmCustom]) then
       EMMS;
