@@ -602,7 +602,7 @@ var
   Index: Integer;
 begin
   for Index := 0 to FWidth * FHeight - 1 do
-    FBits^[Index] := Max(FBits^[Index] + Value, 0);
+    FBits^[Index] := Max(FBits^[Index] - Value, 0);
 end;
 
 procedure TByteMap.ReadFrom(Source: TCustomBitmap32; Conversion: TConversionType);
