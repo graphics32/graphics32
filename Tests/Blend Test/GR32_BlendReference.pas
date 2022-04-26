@@ -136,12 +136,12 @@ begin
   end;
 
 {$IFDEF UseLookupTables}
-  AlphaForeground := @GDivTable[Foreground.A];
-  AlphaBackground := @GDivTable[not Foreground.A];
-  BackgroundColor.A := AlphaForeground[Foreground.A] + AlphaBackground[BackgroundColor.A];
-  BackgroundColor.R := AlphaForeground[Foreground.R] + AlphaBackground[BackgroundColor.R];
-  BackgroundColor.G := AlphaForeground[Foreground.G] + AlphaBackground[BackgroundColor.G];
-  BackgroundColor.B := AlphaForeground[Foreground.B] + AlphaBackground[BackgroundColor.B];
+  AlphaForeground := @GDivTable[ForegroundColor.A];
+  AlphaBackground := @GDivTable[not ForegroundColor.A];
+  BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
+  BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
+  BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
+  BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[BackgroundColor.B];
 {$ELSE}
   Scale[0] := ForegroundColor.A * COne255th;
   Scale[1] := 1.0 - Scale[0];
@@ -177,9 +177,11 @@ begin
   end;
 
 {$IFDEF UseLookupTables}
-  AlphaForeground := @GDivTable[Master.A];
-  AlphaBackground := @GDivTable[not AlphaForeground.A];
-  AlphaForeground := @GDivTable[AlphaForeground.A];
+  AlphaForeground := @GDivTable[MasterAlpha];
+  MasterAlpha := AlphaForeground[ForegroundColor.A];
+  AlphaForeground := @GDivTable[MasterAlpha];
+  AlphaBackground := @GDivTable[not MasterAlpha];
+
   BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
   BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
   BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
@@ -218,13 +220,15 @@ begin
   end;
 
 {$IFDEF UseLookupTables}
-  AlphaForeground := @GDivTable[Master.A];
-  AlphaBackground := @GDivTable[not AlphaForeground.A];
-  AlphaForeground := @GDivTable[AlphaForeground.A];
-  BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[A];
-  BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[R];
-  BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[G];
-  BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[B];
+  AlphaForeground := @GDivTable[MasterAlpha];
+  MasterAlpha := AlphaForeground[ForegroundColor.A];
+  AlphaForeground := @GDivTable[MasterAlpha];
+  AlphaBackground := @GDivTable[not MasterAlpha];
+
+  BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
+  BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
+  BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
+  BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[BackgroundColor.B];
 {$ELSE}
   Scale[0] := MasterAlpha * ForegroundColor.A * Sqr(COne255th);
   Scale[1] := 1.0 - Scale[0];
@@ -284,10 +288,10 @@ begin
     {$IFDEF UseLookupTables}
     AlphaForeground := @GDivTable[Weight];
     AlphaBackground := @GDivTable[255 - Weight];
-    R := AlphaBackground[Background.R] + AlphaForeground[R];
-    G := AlphaBackground[Background.G] + AlphaForeground[G];
-    B := AlphaBackground[Background.B] + AlphaForeground[B];
-    A := AlphaBackground[Background.A] + AlphaForeground[A];
+    R := AlphaBackground[BackgroundColor.R] + AlphaForeground[R];
+    G := AlphaBackground[BackgroundColor.G] + AlphaForeground[G];
+    B := AlphaBackground[BackgroundColor.B] + AlphaForeground[B];
+    A := AlphaBackground[BackgroundColor.A] + AlphaForeground[A];
     {$ELSE}
     Scale[0] := Weight * COne255th;
     Scale[1] := 1 - Scale[0];
@@ -324,10 +328,10 @@ begin
     {$IFDEF UseLookupTables}
     AlphaForeground := @GDivTable[Weight];
     AlphaBackground := @GDivTable[255 - Weight];
-    R := AlphaBackground[Background.R] + AlphaForeground[R];
-    G := AlphaBackground[Background.G] + AlphaForeground[G];
-    B := AlphaBackground[Background.B] + AlphaForeground[B];
-    A := AlphaBackground[Background.A] + AlphaForeground[A];
+    R := AlphaBackground[BackgroundColor.R] + AlphaForeground[R];
+    G := AlphaBackground[BackgroundColor.G] + AlphaForeground[G];
+    B := AlphaBackground[BackgroundColor.B] + AlphaForeground[B];
+    A := AlphaBackground[BackgroundColor.A] + AlphaForeground[A];
     {$ELSE}
     Scale[0] := Weight * COne255th;
     Scale[1] := 1 - Scale[0];
@@ -376,13 +380,13 @@ begin
     with BackgroundColor do
     begin
       {$IFDEF UseLookupTables}
-      Result.A := GDivTable[Foreground.A xor 255, Background.A xor 255] xor 255;
-      WeightAlpha := GRcTable[Result.A, Foreground.A];
+      ResultColor.A := GDivTable[ForegroundColor.A xor 255, BackgroundColor.A xor 255] xor 255;
+      WeightAlpha := GRcTable[ResultColor.A, ForegroundColor.A];
       ForegroundWeight := @GDivTable[WeightAlpha];
       BackgroundWeight := @GDivTable[WeightAlpha xor $FF];
-      Result.R := ForegroundWeight[ForegroundColor.R] + BackgroundWeight[R];
-      Result.G := ForegroundWeight[ForegroundColor.G] + BackgroundWeight[G];
-      Result.B := ForegroundWeight[ForegroundColor.B] + BackgroundWeight[B];
+      ResultColor.R := ForegroundWeight[ForegroundColor.R] + BackgroundWeight[R];
+      ResultColor.G := ForegroundWeight[ForegroundColor.G] + BackgroundWeight[G];
+      ResultColor.B := ForegroundWeight[ForegroundColor.B] + BackgroundWeight[B];
       {$ELSE}
       Temp := $FF - ($FF - ForegroundColor.A) * (1 - A * COne255th);
       ResultColor.A := Round(Temp);

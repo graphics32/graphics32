@@ -326,22 +326,23 @@ var
   Af, Ab: PByteArray;
 begin
   Af := @DivTable[M];
-
   M := Af[FX.A];
 
-  if M = 0 then
+  if (M = 0) then
   begin
     Result := B;
     Exit;
   end;
 
-  if M = $FF then
+  if (M = $FF) then
   begin
     Result := F;
     Exit;
   end;
 
+  Af := @DivTable[M];
   Ab := @DivTable[255 - M];
+
   TColor32Entry(Result).R := Af[FX.R] + Ab[BX.R];
   TColor32Entry(Result).G := Af[FX.G] + Ab[BX.G];
   TColor32Entry(Result).B := Af[FX.B] + Ab[BX.B];
@@ -355,19 +356,20 @@ var
   Af, Ab: PByteArray;
 begin
   Af := @DivTable[M];
+  M := Af[FX.A]; // M = (M / 255) * (FX.A / 255)
 
-  M := Af[FX.A];
-
-  if M = 0 then
+  if (M = 0) then
     Exit;
 
-  if M = $FF then
+  if (M = $FF) then
   begin
     B := F;
     Exit;
   end;
 
+  Af := @DivTable[M];
   Ab := @DivTable[255 - M];
+
   BX.R := Af[FX.R] + Ab[BX.R];
   BX.G := Af[FX.G] + Ab[BX.G];
   BX.B := Af[FX.B] + Ab[BX.B];
