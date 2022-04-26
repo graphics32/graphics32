@@ -865,7 +865,7 @@ asm
 end;
 
 
-procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure BlendLineEx_SSE2(Src, Dst: PColor32; Count: Integer; M: TColor32); {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX <- Src
@@ -1150,7 +1150,7 @@ asm
 end;
 
 
-procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure CombineLine_SSE2(Src, Dst: PColor32; Count: Integer; W: TColor32); {$IFDEF FPC} assembler; {$IFDEF TARGET_X64}nostackframe;{$ENDIF} {$ENDIF}
 asm
 {$IFDEF TARGET_X86}
   // EAX <- Src
