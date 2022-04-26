@@ -652,7 +652,7 @@ const
   AREAINFO_MASK         = $FF000000;
 
 type
-  TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: TColor32) of object;
+  TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: Cardinal) of object;
   TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect;
     const Info: Cardinal) of object;
 

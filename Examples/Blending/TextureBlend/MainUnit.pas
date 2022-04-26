@@ -88,13 +88,13 @@ uses
 var
   ColorAlgebraReg: TBlendReg;
 
-function ColorAlgebraEx(F, B, M: TColor32): TColor32;
+function ColorAlgebraEx(F, B: TColor32; M: Cardinal): TColor32;
 begin
   // Call the coloralgebra routine in action, restore foreground alpha and blend
   Result := BlendRegEx(ColorAlgebraReg(F, B) and $FFFFFF or F and $FF000000, B, M);
 end;
 
-function SoftMaskedEx(F, B, M: TColor32): TColor32;
+function SoftMaskedEx(F, B: TColor32; M: Cardinal): TColor32;
 var
    X: Integer;
 begin

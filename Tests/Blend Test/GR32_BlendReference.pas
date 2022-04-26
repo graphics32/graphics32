@@ -45,19 +45,19 @@ uses
 
 function BlendReg_Reference(Foreground, Background: TColor32): TColor32;
 procedure BlendMem_Reference(Foreground: TColor32; var Background: TColor32);
-function BlendRegEx_Reference(Foreground, Background, Master: TColor32): TColor32;
-procedure BlendMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: TColor32);
+function BlendRegEx_Reference(Foreground, Background: TColor32; Master: Cardinal): TColor32;
+procedure BlendMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: Cardinal);
 procedure BlendLine_Reference(Source, Destination: PColor32; Count: Integer);
-procedure BlendLineEx_Reference(Source, Destination: PColor32; Count: Integer; Master: TColor32);
+procedure BlendLineEx_Reference(Source, Destination: PColor32; Count: Integer; Master: Cardinal);
 function CombineReg_Reference(ForeGround, Background: TColor32; Weight: Cardinal): TColor32;
 procedure CombineMem_Reference(ForeGround: TColor32; var Background: TColor32; Weight: Cardinal);
 procedure CombineLine_Reference(Source, Destination: PColor32; Count: Integer; Weight: Cardinal);
 function MergeReg_Reference(Foreground, Background: TColor32): TColor32;
 procedure MergeMem_Reference(Foreground: TColor32; var Background: TColor32);
-function MergeRegEx_Reference(Foreground, Background, Master: TColor32): TColor32;
-procedure MergeMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: TColor32);
+function MergeRegEx_Reference(Foreground, Background: TColor32; Master: Cardinal): TColor32;
+procedure MergeMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: Cardinal);
 procedure MergeLine_Reference(Source, Destination: PColor32; Count: Cardinal);
-procedure MergeLineEx_Reference(Source, Destination: PColor32; Count: Cardinal; Master: TColor32);
+procedure MergeLineEx_Reference(Source, Destination: PColor32; Count: Cardinal; Master: Cardinal);
 
 implementation
 
@@ -152,7 +152,7 @@ begin
 {$ENDIF}
 end;
 
-function BlendRegEx_Reference(Foreground, Background, Master: TColor32): TColor32;
+function BlendRegEx_Reference(Foreground, Background: TColor32; Master: Cardinal): TColor32;
 var
   ForegroundColor : TColor32Entry absolute Foreground;
   BackgroundColor : TColor32Entry absolute Background;
@@ -197,8 +197,7 @@ begin
   Result := Background;
 end;
 
-procedure BlendMemEx_Reference(Foreground: TColor32; var Background: TColor32;
-  Master: TColor32);
+procedure BlendMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: Cardinal);
 var
   ForegroundColor : TColor32Entry absolute Foreground;
   BackgroundColor : TColor32Entry absolute Background;
@@ -249,7 +248,7 @@ begin
   end;
 end;
 
-procedure BlendLineEx_Reference(Source, Destination: PColor32; Count: Integer; Master: TColor32);
+procedure BlendLineEx_Reference(Source, Destination: PColor32; Count: Integer; Master: Cardinal);
 begin
   while Count > 0 do
   begin
@@ -418,8 +417,7 @@ begin
   end;
 end;
 
-procedure MergeLineEx_Reference(Source, Destination: PColor32; Count: Cardinal;
-  Master: TColor32);
+procedure MergeLineEx_Reference(Source, Destination: PColor32; Count: Cardinal; Master: Cardinal);
 begin
   while Count > 0 do
   begin
@@ -430,7 +428,7 @@ begin
   end;
 end;
 
-function MergeRegEx_Reference(Foreground, Background, Master: TColor32): TColor32;
+function MergeRegEx_Reference(Foreground, Background: TColor32; Master: Cardinal): TColor32;
 var
   TempColor       : TColor32Entry;
   ForegroundColor : TColor32Entry absolute Foreground;
@@ -441,8 +439,7 @@ begin
   Result := MergeReg_Reference(TempColor.ARGB, Background);
 end;
 
-procedure MergeMemEx_Reference(Foreground: TColor32; var Background: TColor32;
-  Master: TColor32);
+procedure MergeMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: Cardinal);
 var
   TempColor       : TColor32Entry;
   ForegroundColor : TColor32Entry absolute Foreground;
