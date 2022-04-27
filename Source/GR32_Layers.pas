@@ -305,16 +305,20 @@ type
 
   TRBDragState = (dsNone, dsMove, dsSizeL, dsSizeT, dsSizeR, dsSizeB,
     dsSizeTL, dsSizeTR, dsSizeBL, dsSizeBR);
+
   TRBHandles = set of (rhCenter, rhSides, rhCorners, rhFrame,
     rhNotLeftSide, rhNotRightSide, rhNotTopSide, rhNotBottomSide,
     rhNotTLCorner, rhNotTRCorner, rhNotBLCorner, rhNotBRCorner);
+
   TRBOptions = set of (roProportional, roConstrained, roQuantized);
+
   TRBResizingEvent = procedure(
     Sender: TObject;
     const OldLocation: TFloatRect;
     var NewLocation: TFloatRect;
     DragState: TRBDragState;
     Shift: TShiftState) of object;
+
   TRBConstrainEvent = TRBResizingEvent;
 
   TRubberbandPassMouse = class(TPersistent)
@@ -374,6 +378,7 @@ type
     procedure DoConstrain(var OldLocation, NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState); virtual;
     procedure DoSetLocation(const NewLocation: TFloatRect); override;
     function  GetDragState(X, Y: Integer): TRBDragState; virtual;
+    function GetHandleCursor(DragState: TRBDragState; Angle: integer): TCursor; virtual;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
@@ -410,6 +415,18 @@ type
     property OnConstrain: TRBConstrainEvent read FOnConstrain write FOnConstrain;
     property OnResizing: TRBResizingEvent read FOnResizing write FOnResizing;
   end;
+
+type
+  // Compas directions, counter clockwise, from 0 degress to 360.
+  // Each one direction covers 45 degrees.
+  // Used inside TRubberbandLayer.GetCursor instead of the poorly ordered TRBDragState enum.
+  TResizeDirection = (ResizeDirectionE, ResizeDirectionNE, ResizeDirectionN, ResizeDirectionNW,
+    ResizeDirectionW, ResizeDirectionSW, ResizeDirectionS, ResizeDirectionSE);
+
+var
+  // The TRubberbandLayer resize handle cursors.
+  // These are the values returned by TRubberbandLayer.GetCursor
+  DirectionCursors: array[TResizeDirection] of TCursor = (crSizeWE, crSizeNESW, crSizeNS, crSizeNWSE, crSizeWE, crSizeNESW, crSizeNS, crSizeNWSE);
 
 implementation
 
@@ -1400,6 +1417,28 @@ begin
   UpdateChildLayer;
 end;
 
+function SnapAngleTo45(Angle: integer): integer;
+begin
+  Result := (((Angle + 45 div 2) div 45) * 45 + 360) mod 360;
+end;
+
+function AngleToDirection(Angle: integer): TResizeDirection;
+begin
+  Result := TResizeDirection(SnapAngleTo45(Angle) div 45);
+end;
+
+function TRubberbandLayer.GetHandleCursor(DragState: TRBDragState; Angle: integer): TCursor;
+var
+  Direction: TResizeDirection;
+begin
+  if (DragState in [dsNone, dsMove]) then
+    Exit(Cursor);
+
+  Direction := AngleToDirection(Angle);
+
+  Result := DirectionCursors[Direction];
+end;
+
 function TRubberbandLayer.GetDragState(X, Y: Integer): TRBDragState;
 var
   R: TRect;
@@ -1471,37 +1510,41 @@ begin
 end;
 
 procedure TRubberbandLayer.MouseMove(Shift: TShiftState; X, Y: Integer);
-const
-  CURSOR_ID: array [TRBDragState] of TCursor = (crDefault, crDefault, crSizeWE,
-    crSizeNS, crSizeWE, crSizeNS, crSizeNWSE, crSizeNESW, crSizeNESW, crSizeNWSE);
-var
-  Mx, My: TFloat;
-  L, T, R, B, W, H: TFloat;
-  LQuantize: Boolean;
-  ALoc, NewLocation: TFloatRect;
 
   procedure IncLT(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
   begin
     LT := LT + Delta;
-    if RB - LT < MinSize then LT := RB - MinSize;
-    if MaxSize >= MinSize then if RB - LT > MaxSize then LT := RB - MaxSize;
+    if RB - LT < MinSize then
+      LT := RB - MinSize;
+    if MaxSize >= MinSize then
+      if RB - LT > MaxSize then
+        LT := RB - MaxSize;
   end;
 
   procedure IncRB(var LT, RB: TFloat; Delta, MinSize, MaxSize: TFloat);
   begin
     RB := RB + Delta;
-    if RB - LT < MinSize then RB := LT + MinSize;
-    if MaxSize >= MinSize then if RB - LT > MaxSize then RB := LT + MaxSize;
+    if RB - LT < MinSize then
+      RB := LT + MinSize;
+    if MaxSize >= MinSize then
+      if RB - LT > MaxSize then
+        RB := LT + MaxSize;
   end;
 
+var
+  Mx, My: TFloat;
+  L, T, R, B, W, H: TFloat;
+  LQuantize: Boolean;
+  ALoc, NewLocation: TFloatRect;
+  Angle: integer;
+const
+  DragStateToAngle: array[TRBDragState] of integer = (-1, -1, 180, 90, 0, 270, 135, 45, 225, 315);
 begin
   if not FIsDragging then
   begin
     FDragState := GetDragState(X, Y);
-    if FDragState = dsMove then
-      Screen.Cursor := Cursor
-    else
-      Screen.Cursor := CURSOR_ID[FDragState];
+    Angle := DragStateToAngle[FDragState];
+    Screen.Cursor := GetHandleCursor(FDragState, Angle);
   end
   else
   begin
