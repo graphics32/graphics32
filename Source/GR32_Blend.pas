@@ -60,19 +60,19 @@ type
   TBlendReg    = function(F, B: TColor32): TColor32;
   TBlendMem    = procedure(F: TColor32; var B: TColor32);
   TBlendMems   = procedure(F: TColor32; B: PColor32; Count: Integer);
-  TBlendRegEx  = function(F, B, M: TColor32): TColor32;
-  TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: TColor32);
-  TBlendRegRGB = function(F, B, W: TColor32): TColor32;
-  TBlendMemRGB = procedure(F: TColor32; var B: TColor32; W: TColor32);
+  TBlendRegEx  = function(F, B: TColor32; M: Cardinal): TColor32;
+  TBlendMemEx  = procedure(F: TColor32; var B: TColor32; M: Cardinal);
+  TBlendRegRGB = function(F, B: TColor32; W: Cardinal): TColor32;
+  TBlendMemRGB = procedure(F: TColor32; var B: TColor32; W: Cardinal);
 {$IFDEF TEST_BLENDMEMRGB128SSE4}
   TBlendMemRGB128 = procedure(F: TColor32; var B: TColor32; W: UInt64);
 {$ENDIF}
   TBlendLine   = procedure(Src, Dst: PColor32; Count: Integer);
-  TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: TColor32);
+  TBlendLineEx = procedure(Src, Dst: PColor32; Count: Integer; M: Cardinal);
   TBlendLine1  = procedure(Src: TColor32; Dst: PColor32; Count: Integer);
-  TCombineReg  = function(X, Y, W: TColor32): TColor32;
-  TCombineMem  = procedure(X: TColor32; var Y: TColor32; W: TColor32);
-  TCombineLine = procedure(Src, Dst: PColor32; Count: Integer; W: TColor32);
+  TCombineReg  = function(X, Y: TColor32; W: Cardinal): TColor32;
+  TCombineMem  = procedure(X: TColor32; var Y: TColor32; W: Cardinal);
+  TCombineLine = procedure(Src, Dst: PColor32; Count: Integer; W: Cardinal);
   TLightenReg  = function(C: TColor32; Amount: Integer): TColor32;
 
 var
@@ -319,62 +319,64 @@ begin
   end;
 end;
 
-function BlendRegEx_Pas(F, B, M: TColor32): TColor32;
+function BlendRegEx_Pas(F, B: TColor32; M: Cardinal): TColor32;
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
   Af, Ab: PByteArray;
 begin
   Af := @DivTable[M];
-
   M := Af[FX.A];
 
-  if M = 0 then
+  if (M = 0) then
   begin
     Result := B;
     Exit;
   end;
 
-  if M = $FF then
+  if (M = $FF) then
   begin
     Result := F;
     Exit;
   end;
 
+  Af := @DivTable[M];
   Ab := @DivTable[255 - M];
+
   TColor32Entry(Result).R := Af[FX.R] + Ab[BX.R];
   TColor32Entry(Result).G := Af[FX.G] + Ab[BX.G];
   TColor32Entry(Result).B := Af[FX.B] + Ab[BX.B];
   TColor32Entry(Result).A := $FF;
 end;
 
-procedure BlendMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
+procedure BlendMemEx_Pas(F: TColor32; var B: TColor32; M: Cardinal);
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
   Af, Ab: PByteArray;
 begin
   Af := @DivTable[M];
+  M := Af[FX.A]; // M = (M / 255) * (FX.A / 255)
 
-  M := Af[FX.A];
-
-  if M = 0 then
+  if (M = 0) then
     Exit;
 
-  if M = $FF then
+  if (M = $FF) then
   begin
     B := F;
     Exit;
   end;
 
+  Af := @DivTable[M];
   Ab := @DivTable[255 - M];
+
   BX.R := Af[FX.R] + Ab[BX.R];
   BX.G := Af[FX.G] + Ab[BX.G];
   BX.B := Af[FX.B] + Ab[BX.B];
   BX.A := $FF;
 end;
 
-function BlendRegRGB_Pas(F, B, W: TColor32): TColor32;
+function BlendRegRGB_Pas(F, B: TColor32; W: Cardinal): TColor32;
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -386,7 +388,7 @@ begin
   RX.B := (FX.B - BX.B) * WX.R div 255 + BX.B;
 end;
 
-procedure BlendMemRGB_Pas(F: TColor32; var B: TColor32; W: TColor32);
+procedure BlendMemRGB_Pas(F: TColor32; var B: TColor32; W: Cardinal);
 var
   FX: TColor32Entry absolute F;
   BX: TColor32Entry absolute B;
@@ -418,7 +420,7 @@ begin
   end;
 end;
 
-procedure BlendLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: TColor32);
+procedure BlendLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 begin
   while Count > 0 do
   begin
@@ -429,7 +431,7 @@ begin
   end;
 end;
 
-function CombineReg_Pas(X, Y, W: TColor32): TColor32;
+function CombineReg_Pas(X, Y: TColor32; W: Cardinal): TColor32;
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
@@ -459,7 +461,7 @@ begin
   Result := X;
 end;
 
-procedure CombineMem_Pas(X: TColor32; var Y: TColor32; W: TColor32);
+procedure CombineMem_Pas(X: TColor32; var Y: TColor32; W: Cardinal);
 var
   Xe: TColor32Entry absolute X;
   Ye: TColor32Entry absolute Y;
@@ -488,7 +490,7 @@ begin
   Y := X;
 end;
 
-procedure CombineLine_Pas(Src, Dst: PColor32; Count: Integer; W: TColor32);
+procedure CombineLine_Pas(Src, Dst: PColor32; Count: Integer; W: Cardinal);
 begin
   while Count > 0 do
   begin
@@ -527,7 +529,7 @@ begin
   end;
 end;
 
-function MergeRegEx_Pas(F, B, M: TColor32): TColor32;
+function MergeRegEx_Pas(F, B: TColor32; M: Cardinal): TColor32;
 begin
   Result := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
@@ -537,7 +539,7 @@ begin
   B := MergeReg(F, B);
 end;
 
-procedure MergeMemEx_Pas(F: TColor32; var B: TColor32; M: TColor32);
+procedure MergeMemEx_Pas(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := MergeReg(DivTable[M, F shr 24] shl 24 or F and $00FFFFFF, B);
 end;
@@ -563,9 +565,9 @@ begin
   end;
 end;
 
-procedure MergeLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: TColor32);
+procedure MergeLineEx_Pas(Src, Dst: PColor32; Count: Integer; M: Cardinal);
 var
-  PM: PByteArray absolute M;
+  PM: PByteArray;
 begin
   PM := @DivTable[M];
   while Count > 0 do
@@ -781,7 +783,7 @@ begin
   Result := C3 + C1;
 end;
 
-function ColorScale_Pas(C, W: TColor32): TColor32;
+function ColorScale_Pas(C: TColor32; W: Cardinal): TColor32;
 var
   Ce: TColor32Entry absolute C;
 var

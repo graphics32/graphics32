@@ -48,20 +48,20 @@ type
     procedure FormCreate(Sender: TObject);
     procedure RadioGroupClick(Sender: TObject);
   protected
-    procedure PC_Add(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Sub(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Modulate(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Min(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Max(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Screen(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_ColorBurn(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_ColorDodge(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_Blend(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_BlendAdd(F: TColor32; var B: TColor32; M: TColor32);
-    procedure PC_BlendModulate(F: TColor32; var B: TColor32; M: TColor32);
+    procedure PC_Add(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Sub(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Modulate(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Min(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Max(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Screen(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_ColorBurn(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_ColorDodge(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Difference(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Exclusion(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Pattern(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_Blend(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_BlendAdd(F: TColor32; var B: TColor32; M: Cardinal);
+    procedure PC_BlendModulate(F: TColor32; var B: TColor32; M: Cardinal);
   public
     PatCount: Integer;
     L: TBitmapLayer;
@@ -130,73 +130,73 @@ begin
   L.Bitmap.OnPixelCombine := nil; // none by default
 end;
 
-procedure TFormPixelCombine.PC_Add(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Add(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorAdd(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Max(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Max(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorMax(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Min(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Min(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorMin(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Modulate(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Modulate(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorModulate(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Pattern(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Pattern(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   PatCount := 1 - PatCount;
   if PatCount = 0 then B := F;
 end;
 
-procedure TFormPixelCombine.PC_Sub(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Sub(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorSub(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Screen(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Screen(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorScreen(F, B);
 end;
 
-procedure TFormPixelCombine.PC_ColorDodge(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_ColorDodge(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorDodge(F, B);
 end;
 
-procedure TFormPixelCombine.PC_ColorBurn(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_ColorBurn(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorBurn(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Difference(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Difference(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorDifference(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Exclusion(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Exclusion(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := ColorExclusion(F, B);
 end;
 
-procedure TFormPixelCombine.PC_Blend(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_Blend(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := BlendReg(F, B);
 end;
 
-procedure TFormPixelCombine.PC_BlendAdd(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_BlendAdd(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := BlendColorAdd(F, B);
 end;
 
-procedure TFormPixelCombine.PC_BlendModulate(F: TColor32; var B: TColor32; M: TColor32);
+procedure TFormPixelCombine.PC_BlendModulate(F: TColor32; var B: TColor32; M: Cardinal);
 begin
   B := BlendColorModulate(F, B);
 end;

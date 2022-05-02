@@ -45,14 +45,14 @@ function BlendReg_ASM(F, B: TColor32): TColor32;
 procedure BlendMem_ASM(F: TColor32; var B: TColor32);
 procedure BlendMems_ASM(F: TColor32; B: PColor32; Count: Integer);
 
-function BlendRegEx_ASM(F, B, M: TColor32): TColor32;
-procedure BlendMemEx_ASM(F: TColor32; var B:TColor32; M: TColor32);
+function BlendRegEx_ASM(F, B: TColor32; M: Cardinal): TColor32;
+procedure BlendMemEx_ASM(F: TColor32; var B:TColor32; M: Cardinal);
 
 procedure BlendLine_ASM(Src, Dst: PColor32; Count: Integer);
 procedure BlendLine1_ASM(Src: TColor32; Dst: PColor32; Count: Integer);
 
-function CombineReg_ASM(X, Y, W: TColor32): TColor32;
-procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32);
+function CombineReg_ASM(X, Y: TColor32; W: Cardinal): TColor32;
+procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: Cardinal);
 
 {$IFDEF TARGET_x86}
 function MergeReg_ASM(F, B: TColor32): TColor32;
@@ -485,7 +485,7 @@ asm
 {$ENDIF}
 end;
 
-function BlendRegEx_ASM(F, B, M: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function BlendRegEx_ASM(F, B: TColor32; M: Cardinal): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // blend foreground color (F) to a background color (B),
   // using alpha channel value of F multiplied by master alpha (M)
@@ -607,7 +607,7 @@ asm
 {$ENDIF}
 end;
 
-procedure BlendMemEx_ASM(F: TColor32; var B: TColor32; M: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure BlendMemEx_ASM(F: TColor32; var B: TColor32; M: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX <- F
@@ -1271,7 +1271,7 @@ end;
 
 {$ENDIF}
 
-function CombineReg_ASM(X, Y, W: TColor32): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+function CombineReg_ASM(X, Y: TColor32; W: Cardinal): TColor32; {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
   // combine RGBA channels of colors X and Y with the weight of X given in W
   // Result Z = W * X + (1 - W) * Y (all channels are combined, including alpha)
@@ -1378,7 +1378,7 @@ asm
 {$ENDIF}
 end;
 
-procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: TColor32); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
+procedure CombineMem_ASM(X: TColor32; var Y: TColor32; W: Cardinal); {$IFDEF FPC} assembler; nostackframe; {$ENDIF}
 asm
 {$IFDEF TARGET_x86}
   // EAX <- F
