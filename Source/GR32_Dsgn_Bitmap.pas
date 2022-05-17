@@ -372,21 +372,25 @@ begin
   try
     BitmapEditor := TBitmap32Editor.Create(nil);
     try
-      {$IFDEF FPC}
+{$IFDEF FPC}
       BitmapEditor.Bitmap32 := TBitmap32(GetObjectValue);
-      {$ELSE}
+{$ELSE}
       BitmapEditor.Bitmap32 := TBitmap32(Pointer(GetOrdValue));
-      {$ENDIF}
+{$ENDIF}
       if BitmapEditor.Execute then
       begin
+{$IFDEF FPC}
+        SetPtrValue(BitmapEditor.Bitmap32);
+{$ELSE}
         SetOrdValue(Longint(BitmapEditor.Bitmap32));
-        {$IFNDEF FPC} Designer.Modified; {$ENDIF}
+{$ENDIF}
       end;
     finally
       BitmapEditor.Free;
     end;
   except
-    on E: Exception do ShowMessage(E.Message);
+    on E: Exception do
+      ShowMessage(E.Message);
   end;
 end;
 
@@ -400,11 +404,18 @@ var
   Bitmap: TBitmap32;
 begin
   try
+{$IFDEF FPC}
+    Bitmap := TBitmap32(GetObjectValue);
+{$ELSE}
     Bitmap := TBitmap32(GetOrdValue);
-    if (Bitmap = nil) or Bitmap.Empty then Result := srNone
-    else Result := Format('%s [%d,%d]', [Bitmap.ClassName, Bitmap.Width, Bitmap.Height]);
+{$ENDIF}
+    if (Bitmap = nil) or Bitmap.Empty then
+      Result := srNone
+    else
+      Result := Format('%s [%d,%d]', [Bitmap.ClassName, Bitmap.Width, Bitmap.Height]);
   except
-    on E: Exception do ShowMessage(E.Message);
+    on E: Exception do
+      ShowMessage(E.Message);
   end;
 end;
 
