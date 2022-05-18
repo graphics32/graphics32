@@ -1125,6 +1125,7 @@ uses
   GR32_Resamplers,
   GR32_Containers,
   GR32_Gamma,
+  GR32_Clipboard,
   GR32_Backends,
   GR32_Backends_Generic,
 {$IFDEF FPC}
@@ -2659,24 +2660,14 @@ procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
     end;
   end;
 
-var
-  Bmp: TBitmap;
 begin
-  if Dst is TPicture then
+  if (Dst is TPicture) then
     AssignToBitmap(TPicture(Dst).Bitmap, Self)
-  else if Dst is TBitmap then
-    AssignToBitmap(TBitmap(Dst), Self)
-  else if Dst is TClipboard then
-  begin
-    Bmp := TBitmap.Create;
-    try
-      AssignToBitmap(Bmp, Self);
-      TClipboard(Dst).Assign(Bmp);
-    finally
-      Bmp.Free;
-    end;
-  end
   else
+  if (Dst is TBitmap) then
+    AssignToBitmap(TBitmap(Dst), Self)
+  else
+  if (not ((Dst is TClipboard) and (CopyBitmap32ToClipboard(Self)))) then
     inherited;
 end;
 
@@ -2864,29 +2855,37 @@ var
 begin
   BeginUpdate;
   try
-    if not Assigned(Source) then
+
+    if (not Assigned(Source)) then
       SetSize(0, 0)
-    else if Source is TCustomBitmap32 then
+    else
+    if (Source is TCustomBitmap32) then
     begin
       TCustomBitmap32(Source).CopyMapTo(Self);
       TCustomBitmap32(Source).CopyPropertiesTo(Self);
-    end
-    else if Source is TGraphic then
+    end else
+    if (Source is TGraphic) then
       AssignFromGraphic(Self, TGraphic(Source))
-    else if Source is TPicture then
-      AssignFromGraphic(Self, TPicture(Source).Graphic)
-    else if Source is TClipboard then
-    begin
-      Picture := TPicture.Create;
-      try
-        Picture.Assign(TClipboard(Source));
-        AssignFromGraphic(Self, Picture.Graphic);
-      finally
-        Picture.Free;
-      end;
-    end
     else
+    if (Source is TPicture) then
+      AssignFromGraphic(Self, TPicture(Source).Graphic)
+    else
+    if (Source is TClipboard) then
+    begin
+      if (not PasteBitmap32FromClipboard(Self)) then
+      begin
+        // Fallback to TPicture
+        Picture := TPicture.Create;
+        try
+          Picture.Assign(TClipboard(Source));
+          AssignFromGraphic(Self, Picture.Graphic);
+        finally
+          Picture.Free;
+        end;
+      end;
+    end else
       inherited; // default handler
+
   finally;
     EndUpdate;
     Changed;
