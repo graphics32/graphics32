@@ -45,47 +45,55 @@ uses
   DesignEditors, VCLEditors,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
-  SysUtils, Classes, Clipbrd, GR32, GR32_Image, GR32_Layers, GR32_Filters;
+  SysUtils, Classes, Clipbrd, ImageList, Actions, ActnList,
+  GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
   TPictureEditorForm = class(TForm)
-    AlphaSheet: TTabSheet;
+    TabSheetAlpha: TTabSheet;
     Bevel1: TBevel;
     Cancel: TButton;
-    Clear: TToolButton;
-    Copy: TToolButton;
+    ButtonClear: TToolButton;
+    ButtonCopy: TToolButton;
     ImageList: TImageList;
-    ImageSheet: TTabSheet;
+    TabSheetRGB: TTabSheet;
     Label1: TLabel;
-    Load: TToolButton;
+    ButtonLoad: TToolButton;
     MagnCombo: TComboBox;
-    mnClear: TMenuItem;
-    mnCopy: TMenuItem;
-    mnInvert: TMenuItem;
-    mnLoad: TMenuItem;
-    mnPaste: TMenuItem;
-    mnSave: TMenuItem;
+    MenuItemClear: TMenuItem;
+    MenuItemCopy: TMenuItem;
+    MenuItemInvert: TMenuItem;
+    MenuItemLoad: TMenuItem;
+    MenuItemPaste: TMenuItem;
+    MenuItemSave: TMenuItem;
     mnSeparator: TMenuItem;
     mnSeparator2: TMenuItem;
     OKButton: TButton;
     PageControl: TPageControl;
     Panel1: TPanel;
-    Panel2: TPanel;
-    Paste: TToolButton;
+    ButtonPaste: TToolButton;
     PopupMenu: TPopupMenu;
-    Save: TToolButton;
-    Timer: TTimer;
+    ButtonSave: TToolButton;
     ToolBar: TToolBar;
     ToolButton2: TToolButton;
-    procedure LoadClick(Sender: TObject);
-    procedure SaveClick(Sender: TObject);
-    procedure ClearClick(Sender: TObject);
-    procedure CopyClick(Sender: TObject);
-    procedure PasteClick(Sender: TObject);
-    procedure TimerTimer(Sender: TObject);
-    procedure PopupMenuPopup(Sender: TObject);
-    procedure mnInvertClick(Sender: TObject);
+    ActionList: TActionList;
+    ActionLoad: TAction;
+    ActionSave: TAction;
+    ActionClear: TAction;
+    ActionCopy: TAction;
+    ActionPaste: TAction;
+    ActionInvert: TAction;
+    TabSheetRGBA: TTabSheet;
+    StatusBar: TStatusBar;
     procedure MagnComboChange(Sender: TObject);
+    procedure ActionLoadExecute(Sender: TObject);
+    procedure ActionSaveExecute(Sender: TObject);
+    procedure ActionHasBitmapUpdate(Sender: TObject);
+    procedure ActionClearExecute(Sender: TObject);
+    procedure ActionPasteUpdate(Sender: TObject);
+    procedure ActionCopyExecute(Sender: TObject);
+    procedure ActionPasteExecute(Sender: TObject);
+    procedure ActionInvertExecute(Sender: TObject);
   protected
 {$IFDEF PLATFORM_INDEPENDENT}
     OpenDialog: TOpenDialog;
@@ -94,19 +102,20 @@ type
     OpenDialog: TOpenPictureDialog;
     SaveDialog: TSavePictureDialog;
 {$ENDIF}
-    AlphaChannel: TImage32;
-    RGBChannels: TImage32;
-    procedure AlphaChannelMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure RGBChannelsMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    ImageAllChannels: TImage32;
+    ImageRGBChannels: TImage32;
+    ImageAlphaChannel: TImage32;
+    procedure ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImagePaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
     function CurrentImage: TImage32;
   public
     constructor Create(AOwner: TComponent); override;
+    procedure LoadFromImage(Source: TPersistent);
   end;
 
   TBitmap32Editor = class(TComponent)
   private
     FBitmap32: TBitmap32;
-    FPicDlg: TPictureEditorForm;
     procedure SetBitmap32(Value: TBitmap32);
   public
     constructor Create(AOwner: TComponent); override;
@@ -117,8 +126,7 @@ type
 
   TBitmap32Property = class(TClassProperty
 {$IFDEF EXT_PROP_EDIT}
-    , ICustomPropertyDrawing
-    {$IFDEF COMPILER2005_UP}, ICustomPropertyDrawing80{$ENDIF}
+    , ICustomPropertyDrawing, ICustomPropertyDrawing80
 {$ENDIF}
   )
   public
@@ -130,11 +138,9 @@ type
     { ICustomPropertyDrawing }
     procedure PropDrawName(ACanvas: TCanvas; const ARect: TRect; ASelected: Boolean);
     procedure PropDrawValue(Canvas: TCanvas; const ARect: TRect; ASelected: Boolean);
-  {$IFDEF COMPILER2005_UP}
     { ICustomPropertyDrawing80 }
     function PropDrawNameRect(const ARect: TRect): TRect;
     function PropDrawValueRect(const ARect: TRect): TRect;
-  {$ENDIF}
 {$ENDIF}
   end;
 
@@ -158,114 +164,111 @@ uses
 
 { TPictureEditorForm }
 
-procedure TPictureEditorForm.LoadClick(Sender: TObject);
-var
-  Picture: TPicture;
-  DoAlpha: Boolean;
-  S: string;
-begin
-  if OpenDialog.Execute then
-  begin
-    Picture := TPicture.Create;
-    try
-      Picture.LoadFromFile(OpenDialog.Filename);
-      DoAlpha := False;
-      if (Picture.Graphic is TBitmap) and (Picture.Bitmap.PixelFormat = pf32Bit) then
-      begin
-        S := ExtractFileName(OpenDialog.FileName);
-        S := '''' + S + ''' file contains RGB and Alpha channels.'#13#10 +
-          'Do you want to load all channels?';
-        case MessageDlg(S, mtConfirmation, mbYesNoCancel, 0) of
-          mrYes: DoAlpha := True;
-          mrCancel: Exit;
-        end;
-      end;
-
-      if DoAlpha then
-      begin
-        RGBChannels.Bitmap.Assign(Picture.Bitmap);
-        AlphaToGrayscale(AlphaChannel.Bitmap, RGBChannels.Bitmap);
-        RGBChannels.Bitmap.ResetAlpha;
-      end
-      else with CurrentImage do
-      begin
-        Bitmap.Assign(Picture);
-        if CurrentImage = AlphaChannel then ColorToGrayscale(Bitmap, Bitmap);
-      end;
-    finally
-      Picture.Free;
-    end;
-  end;
-end;
-
-procedure TPictureEditorForm.SaveClick(Sender: TObject);
-var
-  Picture: TPicture;
-begin
-  Picture := TPicture.Create;
-  try
-    Picture.Bitmap.Assign(CurrentImage.Bitmap);
-    Picture.Bitmap.PixelFormat := pf24Bit;
-
-    if Picture.Graphic <> nil then
-    begin
-      with SaveDialog do
-      begin
-        DefaultExt := GraphicExtension(TGraphicClass(Picture.Graphic.ClassType));
-        Filter := GraphicFilter(TGraphicClass(Picture.Graphic.ClassType));
-        if Execute then Picture.SaveToFile(Filename);
-      end;
-    end;
-  finally
-    Picture.Free;
-  end;
-end;
-
-procedure TPictureEditorForm.ClearClick(Sender: TObject);
-begin
-  CurrentImage.Bitmap.Delete;
-end;
-
-procedure TPictureEditorForm.CopyClick(Sender: TObject);
-begin
-  Clipboard.Assign(CurrentImage.Bitmap);
-end;
-
-procedure TPictureEditorForm.PasteClick(Sender: TObject);
-begin
-  if Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_PICTURE) then
-    CurrentImage.Bitmap.Assign(Clipboard);
-  if CurrentImage = AlphaChannel then
-    ColorToGrayscale(CurrentImage.Bitmap, CurrentImage.Bitmap);
-end;
-
-procedure TPictureEditorForm.TimerTimer(Sender: TObject);
-begin
-  Save.Enabled := not CurrentImage.Bitmap.Empty;
-  Clear.Enabled := Save.Enabled;
-  Copy.Enabled := Save.Enabled;
-
-  Paste.Enabled := Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_PICTURE);
-end;
-
 function TPictureEditorForm.CurrentImage: TImage32;
 begin
-  if PageControl.ActivePage = ImageSheet then Result := RGBChannels
-  else Result := AlphaChannel;
+  if PageControl.ActivePage = TabSheetRGBA then
+    Result := ImageAllChannels
+  else
+  if PageControl.ActivePage = TabSheetRGB then
+    Result := ImageRGBChannels
+  else
+    Result := ImageAlphaChannel;
 end;
 
-procedure TPictureEditorForm.PopupMenuPopup(Sender: TObject);
+procedure TPictureEditorForm.ImagePaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+const            //0..1
+  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
+var
+  R: TRect;
+  I, J: Integer;
+  OddY: Integer;
+  TilesHorz, TilesVert: Integer;
+  TileX, TileY: Integer;
+  TileHeight, TileWidth: Integer;
 begin
-  mnSave.Enabled := not CurrentImage.Bitmap.Empty;
-  mnClear.Enabled := Save.Enabled;
-  mnCopy.Enabled := Save.Enabled;
-  mnInvert.Enabled := Save.Enabled;
-  mnPaste.Enabled := Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_PICTURE);
+  TileHeight := 13;
+  TileWidth := 13;
+
+  TilesHorz := Buffer.Width div TileWidth;
+  TilesVert := Buffer.Height div TileHeight;
+  TileY := 0;
+
+  for J := 0 to TilesVert do
+  begin
+    TileX := 0;
+    OddY := J and $1;
+    for I := 0 to TilesHorz do
+    begin
+      R.Left := TileX;
+      R.Top := TileY;
+      R.Right := TileX + TileWidth;
+      R.Bottom := TileY + TileHeight;
+      Buffer.FillRectS(R, Colors[I and $1 = OddY]);
+      Inc(TileX, TileWidth);
+    end;
+    Inc(TileY, TileHeight);
+  end;
 end;
 
-procedure TPictureEditorForm.mnInvertClick(Sender: TObject);
+procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);
 begin
-  InvertRGB(CurrentImage.Bitmap, CurrentImage.Bitmap);
+  if CurrentImage = ImageAllChannels then
+  begin
+    // Load RGBA bitmap, separate into RGB and A
+
+    // Load RGBA
+    ImageAllChannels.Bitmap.Assign(Source);
+    ImageAllChannels.Bitmap.DrawMode := dmBlend;
+
+    // Separate RGB
+    ImageRGBChannels.Bitmap.Assign(ImageAllChannels.Bitmap);
+    ImageRGBChannels.Bitmap.ResetAlpha;
+
+    // Separate A
+    AlphaToGrayscale(ImageAlphaChannel.Bitmap, ImageAllChannels.Bitmap);
+    ImageAlphaChannel.Bitmap.ResetAlpha;
+  end else
+  if CurrentImage = ImageRGBChannels then
+  begin
+    // Load RGB bitmap, keep existing A
+
+    // Load RGB
+    if (Source <> nil) then
+    begin
+      ImageRGBChannels.Bitmap.Assign(Source);
+      ImageRGBChannels.Bitmap.ResetAlpha;
+    end else
+      ImageRGBChannels.Bitmap.Clear($FF000000);
+
+    // Merge A and RGB into RGBA
+    ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
+    ImageAllChannels.Bitmap.DrawMode := dmBlend;
+    if (not ImageAlphaChannel.Bitmap.Empty) then
+      IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap)
+    else
+      ImageAllChannels.Bitmap.ResetAlpha;
+  end else
+  if CurrentImage = ImageAlphaChannel then
+  begin
+    // Load A bitmap, keep existing RGB
+    if (Source <> nil) then
+      ImageAlphaChannel.Bitmap.Assign(Source)
+    else
+      ImageAlphaChannel.Bitmap.Clear($FFFFFFFF);
+    ColorToGrayscale(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+
+    // Merge A and RGB into RGBA
+    if (not ImageRGBChannels.Bitmap.Empty) then
+    begin
+      ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
+      ImageAllChannels.Bitmap.DrawMode := dmBlend;
+    end else
+    begin
+      ImageAllChannels.Bitmap.SetSizeFrom(ImageAlphaChannel.Bitmap);
+      ImageAllChannels.Bitmap.Clear;
+    end;
+    IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap);
+  end;
 end;
 
 procedure TPictureEditorForm.MagnComboChange(Sender: TObject);
@@ -277,29 +280,44 @@ begin
   S := MAGN[MagnCombo.ItemIndex];
   if S = -1 then
   begin
-    RGBChannels.ScaleMode := smResize;
-    AlphaChannel.ScaleMode := smResize;
-  end
-  else
+    ImageAllChannels.ScaleMode := smResize;
+    ImageRGBChannels.ScaleMode := smResize;
+    ImageAlphaChannel.ScaleMode := smResize;
+  end else
   begin
-    RGBChannels.ScaleMode := smScale;
-    RGBChannels.Scale := S / 100;
-    AlphaChannel.ScaleMode := smScale;
-    AlphaChannel.Scale := S / 100;
+    ImageAllChannels.ScaleMode := smScale;
+    ImageAllChannels.Scale := S / 100;
+    ImageRGBChannels.ScaleMode := smScale;
+    ImageRGBChannels.Scale := S / 100;
+    ImageAlphaChannel.ScaleMode := smScale;
+    ImageAlphaChannel.Scale := S / 100;
   end;
 end;
 
 constructor TPictureEditorForm.Create(AOwner: TComponent);
+
+  function CreateImage32(AParent: TWinControl): TImage32;
+  begin
+    Result := TImage32.Create(Self);
+    Result.Parent := AParent;
+    Result.Align := alClient;
+    Result.BitmapAlign := baCenter;
+    Result.Cursor := crCross;
+    Result.PopupMenu := PopupMenu;
+    Result.OnMouseMove := ImageMouseMove;
+    Result.OnPaintStage := ImagePaintStage;
+    if (Result.PaintStages[0].Stage = PST_CLEAR_BACKGND) then
+      Result.PaintStages[0].Stage := PST_CUSTOM;
+  end;
+
 begin
   inherited;
-  RGBChannels := TImage32.Create(Self);
-  RGBChannels.Parent := ImageSheet;
-  RGBChannels.Align := alClient;
-  RGBChannels.OnMouseMove := RGBChannelsMouseMove;
-  AlphaChannel := TImage32.Create(Self);
-  AlphaChannel.Parent := AlphaSheet;
-  AlphaChannel.Align := alClient;
-  AlphaChannel.OnMouseMove := AlphaChannelMouseMove;
+
+  ImageAllChannels := CreateImage32(TabSheetRGBA);
+  ImageAllChannels.Bitmap.DrawMode := dmBlend;
+  ImageRGBChannels := CreateImage32(TabSheetRGB);
+  ImageAlphaChannel := CreateImage32(TabSheetAlpha);
+
 {$IFDEF PLATFORM_INDEPENDENT}
   OpenDialog := TOpenDialog.Create(Self);
   SaveDialog := TSaveDialog.Create(Self);
@@ -319,47 +337,40 @@ constructor TBitmap32Editor.Create(AOwner: TComponent);
 begin
   inherited;
   FBitmap32 := TBitmap32.Create;
-  FPicDlg := TPictureEditorForm.Create(Self);
 end;
 
 destructor TBitmap32Editor.Destroy;
 begin
   FBitmap32.Free;
-  FPicDlg.Free;
   inherited;
 end;
 
 function TBitmap32Editor.Execute: Boolean;
 var
-  B: TBitmap32;
+  PictureEditorForm: TPictureEditorForm;
 begin
-  FPicDlg.RGBChannels.Bitmap := FBitmap32;
-  AlphaToGrayscale(FPicDlg.AlphaChannel.Bitmap, FBitmap32);
-  Result := (FPicDlg.ShowModal = mrOK);
-  if Result then
-  begin
-    FBitmap32.Assign(FPicDlg.RGBChannels.Bitmap);
-    FBitmap32.ResetAlpha;
-    if not FBitmap32.Empty and not FPicDlg.AlphaChannel.Bitmap.Empty then
-    begin
-      B := TBitmap32.Create;
-      try
-        B.SetSize(FBitmap32.Width, FBitmap32.Height);
-        FPicDlg.AlphaChannel.Bitmap.DrawTo(B, Rect(0, 0, B.Width, B.Height));
-        IntensityToAlpha(FBitmap32, B);
-      finally
-        B.Free;
-      end;
-    end;
+  PictureEditorForm := TPictureEditorForm.Create(Self);
+  try
+
+    PictureEditorForm.LoadFromImage(FBitmap32);
+
+    Result := (PictureEditorForm.ShowModal = mrOK);
+
+    if Result then
+      FBitmap32.Assign(PictureEditorForm.ImageAllChannels.Bitmap);
+
+  finally
+    PictureEditorForm.Free;
   end;
 end;
 
 procedure TBitmap32Editor.SetBitmap32(Value: TBitmap32);
 begin
   try
-  FBitmap32.Assign(Value);
+    FBitmap32.Assign(Value);
   except
-    on E: Exception do ShowMessage(E.Message);
+    on E: Exception do
+      ShowMessage(E.Message);
   end;
 end;
 
@@ -372,21 +383,25 @@ begin
   try
     BitmapEditor := TBitmap32Editor.Create(nil);
     try
-      {$IFDEF FPC}
+{$IFDEF FPC}
       BitmapEditor.Bitmap32 := TBitmap32(GetObjectValue);
-      {$ELSE}
+{$ELSE}
       BitmapEditor.Bitmap32 := TBitmap32(Pointer(GetOrdValue));
-      {$ENDIF}
+{$ENDIF}
       if BitmapEditor.Execute then
       begin
+{$IFDEF FPC}
+        SetPtrValue(BitmapEditor.Bitmap32);
+{$ELSE}
         SetOrdValue(Longint(BitmapEditor.Bitmap32));
-        {$IFNDEF FPC} Designer.Modified; {$ENDIF}
+{$ENDIF}
       end;
     finally
       BitmapEditor.Free;
     end;
   except
-    on E: Exception do ShowMessage(E.Message);
+    on E: Exception do
+      ShowMessage(E.Message);
   end;
 end;
 
@@ -400,11 +415,18 @@ var
   Bitmap: TBitmap32;
 begin
   try
+{$IFDEF FPC}
+    Bitmap := TBitmap32(GetObjectValue);
+{$ELSE}
     Bitmap := TBitmap32(GetOrdValue);
-    if (Bitmap = nil) or Bitmap.Empty then Result := srNone
-    else Result := Format('%s [%d,%d]', [Bitmap.ClassName, Bitmap.Width, Bitmap.Height]);
+{$ENDIF}
+    if (Bitmap = nil) or Bitmap.Empty then
+      Result := srNone
+    else
+      Result := Format('%s [%d,%d]', [Bitmap.ClassName, Bitmap.Width, Bitmap.Height]);
   except
-    on E: Exception do ShowMessage(E.Message);
+    on E: Exception do
+      ShowMessage(E.Message);
   end;
 end;
 
@@ -443,7 +465,6 @@ begin
   DefaultPropertyDrawName(Self, ACanvas, ARect);
 end;
 
-{$IFDEF COMPILER2005_UP}
 function TBitmap32Property.PropDrawNameRect(const ARect: TRect): TRect;
 begin
   Result := ARect;
@@ -456,13 +477,13 @@ begin
   else
     Result := Rect(ARect.Left, ARect.Top, (ARect.Bottom - ARect.Top) + ARect.Left, ARect.Bottom);
 end;
-{$ENDIF}
 
 {$ENDIF}
 
 procedure TBitmap32Property.SetValue(const Value: string);
 begin
-  if Value = '' then SetOrdValue(0);
+  if Value = '' then
+    SetOrdValue(0);
 end;
 
 { TImage32Editor }
@@ -491,7 +512,8 @@ end;
 
 function TImage32Editor.GetVerb(Index: Integer): string;
 begin
-  if Index = 0 then Result := 'Bitmap32 Editor...';
+  if Index = 0 then
+    Result := 'Bitmap32 Editor...';
 end;
 
 function TImage32Editor.GetVerbCount: Integer;
@@ -499,46 +521,162 @@ begin
   Result := 1;
 end;
 
-procedure TPictureEditorForm.AlphaChannelMouseMove(Sender: TObject;
-  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-var
-  P: TPoint;
+procedure TPictureEditorForm.ActionClearExecute(Sender: TObject);
 begin
-  if AlphaChannel.Bitmap <> nil then
-  begin
-    P := AlphaChannel.ControlToBitmap(Point(X, Y));
-    X := P.X;
-    Y := P.Y;
-    if (X >= 0) and (Y >= 0) and (X < AlphaChannel.Bitmap.Width) and
-      (Y < AlphaChannel.Bitmap.Height) then
-      Panel2.Caption := 'Alpha: $' +
-        IntToHex(AlphaChannel.Bitmap[X, Y] and $FF, 2) +
-        Format('     '#9'X: %d'#9'Y: %d', [X, Y])
-    else
-      Panel2.Caption := '';
-  end
-  else Panel2.Caption := '';
+  LoadFromImage(nil);
 end;
 
-procedure TPictureEditorForm.RGBChannelsMouseMove(Sender: TObject;
-  Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+procedure TPictureEditorForm.ActionLoadExecute(Sender: TObject);
 var
-  P: TPoint;
+  Picture: TPicture;
 begin
-  if RGBChannels.Bitmap <> nil then
+  if not OpenDialog.Execute then
+    exit;
+
+  Picture := TPicture.Create;
+  try
+    Picture.LoadFromFile(OpenDialog.Filename);
+    LoadFromImage(Picture);
+  finally
+    Picture.Free;
+  end;
+end;
+
+procedure TPictureEditorForm.ActionPasteExecute(Sender: TObject);
+var
+  Picture: TPicture;
+begin
+  Picture := TPicture.Create;
+  try
+    Picture.Assign(Clipboard);
+    LoadFromImage(Picture);
+  finally
+    Picture.Free;
+  end;
+end;
+
+procedure TPictureEditorForm.ActionPasteUpdate(Sender: TObject);
+begin
+  try
+    TAction(Sender).Enabled := Clipboard.HasFormat(CF_PICTURE);
+  except
+    on E: EOSError do
+      if (E.ErrorCode = ERROR_ACCESS_DENIED) then
+        TAction(Sender).Enabled := False // Something else has the clipboard open
+      else
+        raise;
+  end;
+end;
+
+procedure TPictureEditorForm.ActionSaveExecute(Sender: TObject);
+var
+  Bitmap: TBitmap;
+begin
+  if (CurrentImage.Bitmap.Empty) then
+    exit;
+
+  SaveDialog.DefaultExt := GraphicExtension(TBitmap);
+  SaveDialog.Filter := GraphicFilter(TBitmap);
+
+  if not SaveDialog.Execute then
+    exit;
+
+  if (CurrentImage = ImageAllChannels) then
+    // Save in 32-bit RGBA bitmap
+    ImageAllChannels.Bitmap.SaveToFile(SaveDialog.Filename)
+  else
   begin
-    P := RGBChannels.ControlToBitmap(Point(X, Y));
-    X := P.X;
-    Y := P.Y;
-    if (X >= 0) and (Y >= 0) and (X < RGBChannels.Bitmap.Width) and
-      (Y < RGBChannels.Bitmap.Height) then
-      Panel2.Caption := 'RGB: $' +
-        IntToHex(RGBChannels.Bitmap[X, Y] and $00FFFFFF, 6) +
-        Format(#9'X: %d'#9'Y: %d', [X, Y])
-    else
-      Panel2.Caption := '';
-  end
-  else Panel2.Caption := '';
+    // Save 24-bit RGB bitmap
+    Bitmap := TBitmap.Create;
+    try
+      Bitmap.Assign(CurrentImage.Bitmap);
+      Bitmap.PixelFormat := pf24Bit;
+
+      Bitmap.SaveToFile(SaveDialog.Filename)
+    finally
+      Bitmap.Free;
+    end;
+  end;
+end;
+
+procedure TPictureEditorForm.ActionCopyExecute(Sender: TObject);
+begin
+  Clipboard.Assign(CurrentImage.Bitmap);
+end;
+
+procedure TPictureEditorForm.ActionHasBitmapUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (CurrentImage <> nil) and (not CurrentImage.Bitmap.Empty);
+end;
+
+procedure TPictureEditorForm.ActionInvertExecute(Sender: TObject);
+begin
+  if (CurrentImage = ImageAllChannels) then
+  begin
+    Invert(ImageAllChannels.Bitmap, ImageAllChannels.Bitmap);
+    InvertRGB(ImageRGBChannels.Bitmap, ImageRGBChannels.Bitmap);
+    InvertRGB(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+  end else
+  if (CurrentImage = ImageRGBChannels) then
+  begin
+    InvertRGB(ImageAllChannels.Bitmap, ImageAllChannels.Bitmap);
+    InvertRGB(ImageRGBChannels.Bitmap, ImageRGBChannels.Bitmap);
+  end else
+  begin
+    Invert(ImageAllChannels.Bitmap, ImageAllChannels.Bitmap, [ccAlpha]);
+    InvertRGB(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+  end;
+end;
+
+procedure TPictureEditorForm.ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  Image: TImage32;
+  P: TPoint;
+  Color: TColor32Entry;
+  ColorHex: string;
+  ColorChannels: string;
+begin
+  Image := TImage32(Sender);
+
+  if (Image.Bitmap = nil) or (Image.Bitmap.Empty) then
+  begin
+    StatusBar.Panels[0].Text := '';
+    StatusBar.Panels[1].Text := '';
+    StatusBar.Panels[2].Text := '';
+    exit;
+  end;
+
+  P := Image.ControlToBitmap(Point(X, Y));
+
+  if (P.X >= 0) and (P.Y >= 0) and
+    (P.X < Image.Bitmap.Width) and (P.Y < Image.Bitmap.Height) then
+  begin
+    Color := TColor32Entry(Image.Bitmap[P.X, P.Y]);
+
+    if (Image = ImageAllChannels) then
+    begin
+      ColorHex := Format('ARGB: $%.8X', [Color.ARGB]);
+      ColorChannels := Format('A:%-3d R:%-3d G:%-3d B:%-3d', [Color.A, Color.R, Color.G, Color.B]);
+    end else
+    if (Image = ImageRGBChannels) then
+    begin
+      ColorHex := Format('RGB: $%.6X', [Color.ARGB and $00FFFFFF]);
+      ColorChannels := Format('R:%-3d G:%-3d B:%-3d', [Color.R, Color.G, Color.B]);
+    end else
+    begin
+      ColorHex := Format('Alpha: $%.2X', [Color.R]);
+      ColorChannels := Format('A:%-3d', [Color.R]);
+    end;
+
+    StatusBar.Panels[0].Text := ColorHex;
+    StatusBar.Panels[1].Text := ColorChannels;
+    StatusBar.Panels[2].Text := Format('X:%-2d Y:%-2d', [P.X, P.Y])
+  end else
+  begin
+    StatusBar.Panels[0].Text := '';
+    StatusBar.Panels[1].Text := '';
+    StatusBar.Panels[2].Text := '';
+  end;
 end;
 
 end.
