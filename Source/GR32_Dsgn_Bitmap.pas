@@ -562,7 +562,7 @@ procedure TPictureEditorForm.ActionPasteExecute(Sender: TObject);
 var
   Bitmap: TBitmap32;
 begin
-  Bitmap := TBitmap32.Create(TMemoryBackend);
+  Bitmap := TBitmap32.Create;
   try
     Bitmap.Assign(Clipboard);
     LoadFromImage(Bitmap);

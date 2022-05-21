@@ -2672,7 +2672,11 @@ begin
   if (Dst is TBitmap) then
     AssignToBitmap(TBitmap(Dst), Self)
   else
-  if (not ((Dst is TClipboard) and (CopyBitmap32ToClipboard(Self)))) then
+  if (Dst is TClipboard) then
+  begin
+    if (not CopyBitmap32ToClipboard(Self)) then
+      inherited;
+  end else
     inherited;
 end;
 
@@ -6085,6 +6089,10 @@ type
     InfoHeaderVersion5: (V5Header: TBitmapV5Header);             // 124
   end;
 
+{$IFDEF FPC}
+const
+  LCS_GM_IMAGES = 4;
+{$ENDIF}
 var
   InfoHeaderVersion: TInfoHeaderVersion;
   Header: TDIBHeader;

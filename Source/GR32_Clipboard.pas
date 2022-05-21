@@ -35,6 +35,8 @@ unit GR32_Clipboard;
 
 interface
 
+{$WARN SYMBOL_PLATFORM OFF}
+
 uses
   GR32;
 
@@ -56,15 +58,24 @@ function CanPasteBitmap32Alpha: boolean;
 implementation
 
 uses
-  Classes,
+{$IFDEF FPC}
+  LCLType,
+  LCLIntf,
+{$ELSE FPC}
   Windows,
+{$ENDIF FPC}
+  Classes,
   Graphics,
   Clipbrd,
   SysUtils,
-  GR32_Backends_Generic,
   GR32_Resamplers;
 
+{$IFDEF FPC}
+const
+  CF_DIBV5 = 17;
+{$ENDIF}
 
+{$IFNDEF FPC}
 type
   TGlobalMemoryStream = class(TCustomMemoryStream)
   private
@@ -128,6 +139,7 @@ begin
     end;
   end;
 end;
+{$ENDIF FPC}
 
 //------------------------------------------------------------------------------
 //
@@ -140,11 +152,13 @@ type
 
 function CopyBitmap32ToClipboard(const Source: TCustomBitmap32): boolean;
 var
+  Stream: TStream;
+{$IFNDEF FPC}
   Matte: TBitmap32;
   Bitmap: TBitmap;
-  Handle: HGlobal;
   Size: integer;
-  Stream: TStream;
+  Handle: HGlobal;
+{$ENDIF FPC}
 begin
   Result := True;
 
@@ -188,13 +202,14 @@ begin
     if (Source.Empty) then
       exit(False);
 
+{$IFNDEF FPC}
     // Render the bitmap onto a white background and copy it as CF_BITMAP.
     // Note: In some older versions of Windows it appears that the
     // clipboard gives priority to the synthesized CF_BITMAP over the
     // explicit CF_BITMAP.
     Bitmap := TBitmap.Create;
     try
-      Matte := TBitmap32.Create(TMemoryBackend);
+      Matte := TBitmap32.Create;
       try
         Matte.SetSize(Source.Width, Source.Height);
         Matte.Clear(clWhite32);
@@ -235,6 +250,16 @@ begin
         GlobalFree(Handle);
       raise;
     end;
+{$ELSE FPC}
+    Stream := TMemoryStream.Create;
+    try
+      Source.SaveToStream(Stream);
+      Clipboard.AddFormat(PredefinedClipboardFormat(pcfBitmap), Stream);
+    finally
+      Stream.Free;
+    end;
+{$ENDIF FPC}
+
   finally
     Clipboard.Close;
   end;
@@ -244,10 +269,13 @@ end;
 
 function PasteBitmap32FromClipboard(const Dest: TCustomBitmap32): boolean;
 var
-  Handle: HGlobal;
   Stream: TStream;
+{$IFNDEF FPC}
+  Handle: HGlobal;
   Bitmap: TBitmap;
+{$ENDIF FPC}
 begin
+{$IFNDEF FPC}
   Result := False;
 
   if (Clipboard.HasFormat(CF_DIBV5)) then
@@ -303,20 +331,49 @@ begin
 
     Result := True;
   end;
+{$ELSE FPC}
+  Stream := TMemoryStream.Create;
+  try
+    Clipboard.GetFormat(PredefinedClipboardFormat(pcfBitmap), Stream);
+    Stream.Position := 0;
+    Dest.LoadFromStream(Stream);
+  finally
+    Stream.Free;
+  end;
+  Result := True;
+{$ENDIF FPC}
 end;
 
 //------------------------------------------------------------------------------
 
 function CanPasteBitmap32: boolean;
 begin
-  Result:= Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_DIBV5);
+{$IFNDEF FPC}
+  try
+    Result:= Clipboard.HasFormat(CF_BITMAP) or Clipboard.HasFormat(CF_DIBV5);
+  except
+    on E: EClipboardException do
+      Result := False; // Something else has the clipboard open
+  end;
+{$ELSE FPC}
+  Result := Clipboard.HasFormat(PredefinedClipboardFormat(pcfBitmap));
+{$ENDIF FPC}
 end;
 
 //------------------------------------------------------------------------------
 
 function CanPasteBitmap32Alpha: boolean;
 begin
-  Result:= Clipboard.HasFormat(CF_DIBV5);
+{$IFNDEF FPC}
+  try
+    Result:= Clipboard.HasFormat(CF_DIBV5);
+  except
+    on E: EClipboardException do
+      Result := False; // Something else has the clipboard open
+  end;
+{$ELSE FPC}
+  Result := Clipboard.HasFormat(PredefinedClipboardFormat(pcfBitmap));
+{$ENDIF FPC}
 end;
 
 //------------------------------------------------------------------------------
