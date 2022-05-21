@@ -729,7 +729,7 @@ type
     procedure AssignTo(Dst: TPersistent); override;
     function LoadFromBMPStream(Stream: TStream; Size: Int64): boolean;
     function LoadFromDIBStream(Stream: TStream; Size: Int64): boolean;
-    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean = False);
+    procedure SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean = False; HeaderSize: integer = 0);
     function  Equal(B: TCustomBitmap32): Boolean;
     procedure SET_T256(X, Y: Integer; C: TColor32);
     procedure SET_TS256(X, Y: Integer; C: TColor32);
@@ -1108,6 +1108,11 @@ type
 
 var
   StockBitmap: TBitmap;
+
+var
+  // Default size of the BMP info header.
+  // Controls the file format version of BMPs written by SaveToStream/SaveToFile.
+  DefaultBitmapHeaderSize: integer = 108; // SizeOf(TBitmapV4Header)
 
 resourcestring
   RCStrUnmatchedReferenceCounting = 'Unmatched reference counting.';
@@ -5662,6 +5667,9 @@ begin
 end;
 
 
+type
+  TInfoHeaderVersion = (InfoHeaderVersion1, InfoHeaderVersion2, InfoHeaderVersion3, InfoHeaderVersion4, InfoHeaderVersion5);
+
 function TCustomBitmap32.LoadFromDIBStream(Stream: TStream; Size: Int64): boolean;
 
   function GetShift(Mask, TargetMask: DWORD): integer;
@@ -5715,8 +5723,6 @@ function TCustomBitmap32.LoadFromDIBStream(Stream: TStream; Size: Int64): boolea
   end;
 
 type
-  TInfoHeaderVersion = (InfoHeaderVersion1, InfoHeaderVersion2, InfoHeaderVersion3, InfoHeaderVersion4, InfoHeaderVersion5);
-
   TChannelMask = record
     Shift: integer;
     Mask: DWORD;
@@ -5805,20 +5811,27 @@ begin
   // Validate compression and fetch RGBA masks
   if (BitmapHeader.InfoHeader.biCompression = BI_BITFIELDS) then
   begin
-    // reject invalid 24-bit bitfields
+    // Reject invalid 24-bit bitfields
     if BitmapHeader.InfoHeader.biBitCount = 24 then
       exit;
 
     // For version > v1 the RGB color mask is part of the header so it has already
     // been read as part of the header. For version = v1 it is stored just after
     // the header, before the color table.
-    if (InfoHeaderVersion = InfoHeaderVersion1) then
+    // Note: It seems that the above is not true in practice; The three mask values
+    // are present even when they are already part of the header.
+    // if (InfoHeaderVersion = InfoHeaderVersion1) then
     begin
       // Read the RGB mask into the v2 header RGB mask fields
       ChunkSize := 3 * SizeOf(DWORD);
       Dec(Size, ChunkSize);
       if (Size < 0) then
         exit;
+
+      if (BitmapHeader.V2Header.bV2RedMask <> 0) and (BitmapHeader.V2Header.bV2GreenMask <> 0) and (BitmapHeader.V2Header.bV2BlueMask <> 0) then
+        // The header already has mask values so skip these
+        Stream.Seek(ChunkSize, soFromCurrent)
+      else
       if (Stream.Read(BitmapHeader.V2Header.bV2RedMask, ChunkSize) <> ChunkSize) then
         exit;
     end;
@@ -5932,8 +5945,7 @@ begin
             ChunkSize := Width * SizeOf(DWORD);
             for i := Height - 1 downto 0 do
               Stream.ReadBuffer(Scanline[i]^, ChunkSize);
-          end
-          else
+          end else
             // Bitmap is stored top-down: Read all rows in one go
             Stream.ReadBuffer(Bits^, Width * Height * SizeOf(DWORD))
         end;
@@ -6062,37 +6074,97 @@ begin
   SaveToDIBStream(Stream, SaveTopDown);
 end;
 
-procedure TCustomBitmap32.SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean);
+procedure TCustomBitmap32.SaveToDIBStream(Stream: TStream; SaveTopDown: Boolean; HeaderSize: integer);
+type
+  TDIBHeader = packed record
+  case TInfoHeaderVersion of
+    InfoHeaderVersion1: (InfoHeader: TBitmapInfoHeader);         // 40
+    InfoHeaderVersion2: (V2Header: TBitmapV2Header);             // 52
+    InfoHeaderVersion3: (V3Header: TBitmapV3Header);             // 56
+    InfoHeaderVersion4: (V4Header: TBitmapV4Header);             // 108
+    InfoHeaderVersion5: (V5Header: TBitmapV5Header);             // 124
+  end;
+
 var
-  InfoHeader: TBitmapInfoHeader;
+  InfoHeaderVersion: TInfoHeaderVersion;
+  Header: TDIBHeader;
   i: Integer;
   W: Integer;
 begin
-  InfoHeader.biSize := SizeOf(TBitmapInfoHeader); // = 40
-  InfoHeader.biWidth := Width;
+  // Validate info header size and determine header version
+  // Note: Formats lower than InfoHeaderVersion3 doesn't formally
+  // support alpha but that doesn't mean that we can't store the alpha
+  // anyway.
+  if (HeaderSize = 0) then
+    HeaderSize := DefaultBitmapHeaderSize;
+  case HeaderSize of
+    SizeOf(TBitmapInfoHeader): InfoHeaderVersion := InfoHeaderVersion1;
+    SizeOf(TBitmapV2Header):   InfoHeaderVersion := InfoHeaderVersion2;
+    SizeOf(TBitmapV3Header):   InfoHeaderVersion := InfoHeaderVersion3;
+    SizeOf(TBitmapV4Header):   InfoHeaderVersion := InfoHeaderVersion4;
+    SizeOf(TBitmapV5Header):   InfoHeaderVersion := InfoHeaderVersion5;
+  else
+    raise Exception.Create('Invalid header size');
+  end;
+
+  Header := Default(TDIBHeader);
+  Header.InfoHeader.biSize := HeaderSize;
+  Header.InfoHeader.biWidth := Width;
 
   if SaveTopDown then
-    InfoHeader.biHeight := -Height
+    Header.InfoHeader.biHeight := -Height
   else
-    InfoHeader.biHeight := Height;
+    Header.InfoHeader.biHeight := Height;
 
-  InfoHeader.biPlanes := 1;
-  InfoHeader.biBitCount := 32;
-  InfoHeader.biCompression := BI_RGB;
-  InfoHeader.biSizeImage := Width * Height * SizeOf(DWORD);
-  InfoHeader.biXPelsPerMeter := 0;
-  InfoHeader.biYPelsPerMeter := 0;
-  InfoHeader.biClrUsed := 0;
-  InfoHeader.biClrImportant := 0;
+  Header.InfoHeader.biPlanes := 1;
+  Header.InfoHeader.biBitCount := 32; // This implementation only support 32-bit format
+  Header.InfoHeader.biCompression := BI_RGB; // BI_RGB or BI_BITFIELDS
+  Header.InfoHeader.biSizeImage := Width * Height * SizeOf(DWORD);
+  Header.InfoHeader.biXPelsPerMeter := 0;
+  Header.InfoHeader.biYPelsPerMeter := 0;
+  Header.InfoHeader.biClrUsed := 0; // No palette
+  Header.InfoHeader.biClrImportant := 0;
 
-  Stream.WriteBuffer(InfoHeader, SizeOf(InfoHeader));
+  if (InfoHeaderVersion >= InfoHeaderVersion2) then
+  begin
+    // We only support the bit masks that correspond directly to the ARGB format
+    Header.V2Header.bV2RedMask := $00FF0000;
+    Header.V2Header.bV2GreenMask := $0000FF00;
+    Header.V2Header.bV2BlueMask := $000000FF;
+  end;
+
+  if (InfoHeaderVersion >= InfoHeaderVersion3) then
+  begin
+    // First header version to formally support Alpha. But this requires that we use
+    // BI_BITFIELDS compression.
+    Header.V3Header.InfoHeader.biCompression := BI_BITFIELDS; // Switch from BI_RGB
+    Header.V3Header.bV3AlphaMask := $FF000000;
+  end;
+
+  if (InfoHeaderVersion >= InfoHeaderVersion4) then
+    Header.V4Header.bV4CSType := $73524742;// LCS_sRGB
+
+  if (InfoHeaderVersion >= InfoHeaderVersion4) then
+    Header.V5Header.bV5Intent := LCS_GM_IMAGES;
+
+  Stream.WriteBuffer(Header, HeaderSize);
+
+  // Even though headers > V2 explicitly contain the masks it seems we need to
+  // write the RGB mask (known as bmiColors in the specs) anyway. The documentation
+  // (and all other reputable sources) is very unclear with regard to this.
+  if (Header.InfoHeader.biCompression = BI_BITFIELDS) then
+  begin
+    Stream.WriteBuffer(Header.V2Header.bV2RedMask, SizeOf(Header.V2Header.bV2RedMask));
+    Stream.WriteBuffer(Header.V2Header.bV2GreenMask, SizeOf(Header.V2Header.bV2GreenMask));
+    Stream.WriteBuffer(Header.V2Header.bV2BlueMask, SizeOf(Header.V2Header.bV2BlueMask));
+  end;
 
   // Pixel array
   if SaveTopDown then
   begin
     // NOTE: We can save the whole buffer in one run because
     // we do not support scanline strides (yet).
-    Stream.WriteBuffer(Bits^, InfoHeader.biSizeImage);
+    Stream.WriteBuffer(Bits^, Header.InfoHeader.biSizeImage);
   end
   else
   begin
