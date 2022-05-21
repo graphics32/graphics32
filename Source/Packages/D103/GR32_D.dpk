@@ -28,13 +28,15 @@ package GR32_D;
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Graphics32 Design Time Package'}
 {$LIBSUFFIX 'D103'}
+{$DESIGNONLY}
 {$IMPLICITBUILD ON}
 
 requires
   designide,
   vcl,
   rtl,
-  GR32_R;
+  GR32_R,
+  VclSmp;
 
 contains
   GR32_Dsgn_Bitmap in '..\..\GR32_Dsgn_Bitmap.pas' {PictureEditorForm},
