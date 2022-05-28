@@ -450,7 +450,7 @@ end;
 
 procedure TTestPngGR32File.InternalTestInvalidFile(FileName: TFileName);
 begin
- if not FileExists(FileName) then 
+ if not FileExists(FileName) then
    Fail(Format(RCStrTestFileNotFound, [FileName]));
 
  FPortableNetworkGraphic.LoadFromFile(FileName);
