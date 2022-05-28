@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{6528A2FB-748F-4861-BDE3-D7B4B8CF95E6}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Demo\PNG_GR32_Demo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="PNG Explorer\PngExplorer.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Test\GuiPngTest.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="PNG_GR32_Demo">
+        <MSBuild Projects="Demo\PNG_GR32_Demo.dproj"/>
+    </Target>
+    <Target Name="PNG_GR32_Demo:Clean">
+        <MSBuild Projects="Demo\PNG_GR32_Demo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PNG_GR32_Demo:Make">
+        <MSBuild Projects="Demo\PNG_GR32_Demo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="PngExplorer">
+        <MSBuild Projects="PNG Explorer\PngExplorer.dproj"/>
+    </Target>
+    <Target Name="PngExplorer:Clean">
+        <MSBuild Projects="PNG Explorer\PngExplorer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="PngExplorer:Make">
+        <MSBuild Projects="PNG Explorer\PngExplorer.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="GuiPngTest">
+        <MSBuild Projects="Test\GuiPngTest.dproj"/>
+    </Target>
+    <Target Name="GuiPngTest:Clean">
+        <MSBuild Projects="Test\GuiPngTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="GuiPngTest:Make">
+        <MSBuild Projects="Test\GuiPngTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="PNG_GR32_Demo;PngExplorer;GuiPngTest"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="PNG_GR32_Demo:Clean;PngExplorer:Clean;GuiPngTest:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="PNG_GR32_Demo:Make;PngExplorer:Make;GuiPngTest:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
