@@ -20,7 +20,7 @@ unit GR32_PNG;
  * Please see the file LICENSE.txt for additional information concerning this
  * license.
  *
- * The Original Code is Graphics32
+ * The Original Code is GR32PNG for Graphics32
  *
  * The Initial Developer of the Original Code is
  * Christian-W. Budde

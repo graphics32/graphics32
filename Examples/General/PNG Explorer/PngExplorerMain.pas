@@ -4,8 +4,12 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList, StdActns, AppEvnts,
-  ImgList, GR32, GR32_PortableNetworkGraphic, GR32_PNG, GR32_Image;
+  Menus, ComCtrls, StdCtrls, ExtCtrls, ToolWin, ActnList, StdActns,
+  ImgList, System.ImageList, System.Actions,
+  GR32,
+  GR32_PortableNetworkGraphic,
+  GR32_PNG,
+  GR32_Image;
 
 type
   TMyPortableNetworkGraphic = class(TPortableNetworkGraphic32);
@@ -604,118 +608,119 @@ var
   Start, Stop, Freq : Int64;
   MemoryFileStream  : TMemoryStream;
 begin
- if FileExists(FileName) then
+  if FileExists(FileName) then
   begin
-   // initialize listview
-   InitializeDefaultListView;
+    // initialize listview
+    InitializeDefaultListView;
 
-   // create temporary memory strem
-   MemoryFileStream := TMemoryStream.Create;
-   try
+    // create temporary memory strem
+    MemoryFileStream := TMemoryStream.Create;
+    try
+      // query start
+      QueryPerformanceCounter(Start);
+
+      // load data from file
+      MemoryFileStream.LoadFromFile(Filename);
+
+      // query stop
+      QueryPerformanceCounter(Stop);
+
+      // query performance frequency
+      QueryPerformanceFrequency(Freq);
+
+      // add loading TimeChunk
+      ListViewData(['loading time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
+
+      // query start
+      QueryPerformanceCounter(Start);
+
+      // load PNG file
+      FPngFile.LoadFromStream(MemoryFileStream);
+
+      // query stop
+      QueryPerformanceCounter(Stop);
+
+      // query performance frequency
+      QueryPerformanceFrequency(Freq);
+
+      // add loading TimeChunk
+      ListViewData(['interpreting time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
+
+    finally
+      FreeAndNil(MemoryFileStream);
+    end;
+
+    // clear existing items on treeview
+    TreeView.Items.Clear;
+
+    // add root item on treeview
+    TreeView.Items.AddChild(nil, ExtractFileName(FileName));
+
     // query start
     QueryPerformanceCounter(Start);
 
-    // load data from file
-    MemoryFileStream.LoadFromFile(Filename);
+    PNGChanged;
 
     // query stop
     QueryPerformanceCounter(Stop);
 
-    // query performance frequency
-    QueryPerformanceFrequency(Freq);
+    // add building tree TimeChunk
+    ListViewData(['building tree time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
 
-    // add loading TimeChunk
-    ListViewData(['loading time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
+    ListView.BringToFront;
 
-    // query start
-    QueryPerformanceCounter(Start);
-
-    // load PNG file
-    FPngFile.LoadFromStream(MemoryFileStream);
-
-    // query stop
-    QueryPerformanceCounter(Stop);
-
-    // query performance frequency
-    QueryPerformanceFrequency(Freq);
-
-    // add loading TimeChunk
-    ListViewData(['interpreting time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
-
-   finally
-    FreeAndNil(MemoryFileStream);
-   end;
-
-   // clear existing items on treeview
-   TreeView.Items.Clear;
-
-   // add root item on treeview
-   TreeView.Items.AddChild(nil, ExtractFileName(FileName));
-
-   // query start
-   QueryPerformanceCounter(Start);
-
-   PNGChanged;
-
-   // query stop
-   QueryPerformanceCounter(Stop);
-
-   // add building tree TimeChunk
-   ListViewData(['building tree time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
-
-   ListView.BringToFront;
-
-   Caption := 'PNG Explorer [' + ExtractFileName(Filename) + ']';
+    Caption := 'PNG Explorer [' + ExtractFileName(Filename) + ']';
   end
- else raise Exception.Create('File does not exists');
+  else
+    raise Exception.Create('File does not exists');
 end;
 
 procedure TFmPngExplorer.LoadFromStream(Stream: TStream);
 var
   Start, Stop, Freq : Int64;
 begin
- // reset stream position
- Stream.Position := 0;
+  // reset stream position
+  Stream.Position := 0;
 
- // query start
- QueryPerformanceCounter(Start);
+  // query start
+  QueryPerformanceCounter(Start);
 
- // load PNG file
- FPNGFile.LoadFromStream(Stream);
+  // load PNG file
+  FPNGFile.LoadFromStream(Stream);
 
- // query stop
- QueryPerformanceCounter(Stop);
+  // query stop
+  QueryPerformanceCounter(Stop);
 
- // query performance frequency
- QueryPerformanceFrequency(Freq);
+  // query performance frequency
+  QueryPerformanceFrequency(Freq);
 
- // initialize listview
- InitializeDefaultListView;
+  // initialize listview
+  InitializeDefaultListView;
 
- // add loading TimeChunk
- ListViewData(['loading time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
+  // add loading TimeChunk
+  ListViewData(['loading time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
 
- // clear existing items on treeview
- TreeView.Items.Clear;
+  // clear existing items on treeview
+  TreeView.Items.Clear;
 
- // add root item on treeview
- TreeView.Items.AddChild(nil, '(internal PNG)');
+  // add root item on treeview
+  TreeView.Items.AddChild(nil, '(internal PNG)');
 
- // query start
- QueryPerformanceCounter(Start);
+  // query start
+  QueryPerformanceCounter(Start);
 
- PNGChanged;
+  PNGChanged;
 
- // query stop
- QueryPerformanceCounter(Stop);
+  // query stop
+  QueryPerformanceCounter(Stop);
 
- // add building tree TimeChunk
- ListViewData(['building tree time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
+  // add building tree TimeChunk
+  ListViewData(['building tree time', FloatToStrF((Stop - Start) * 1000 / Freq, ffGeneral, 4, 4) + ' ms']);
 
- ListView.BringToFront;
+  ListView.BringToFront;
 
- // change caption
- Caption := 'PNG Explorer';
+  // change caption
+  Caption := 'PNG Explorer';
 end;
 
 end.
