@@ -1922,15 +1922,17 @@ var
   P1, P2: TArrayOfFloatPoint;
   Dst: TArrayOfArrayOfFloatPoint;
   Normals: TArrayOfFloatPoint;
+  HalfStrokeWidth: TFloat;
 begin
   if Closed then
   begin
     SetLength(Dst, Length(Points) * 2);
+    HalfStrokeWidth := StrokeWidth * 0.5;
     for I := 0 to High(Points) do
     begin
       Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, StrokeWidth * 0.5, JoinStyle, True, MiterLimit);
-      P2 := Grow(Points[I], Normals, -StrokeWidth * 0.5, JoinStyle, True, MiterLimit);
+      P1 := Grow(Points[I], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      P2 := Grow(Points[I], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
       Dst[I * 2] := P1;
       Dst[I * 2 + 1] := ReversePolygon(P2);
     end;
@@ -1985,15 +1987,17 @@ var
   P1, P2: TArrayOfFixedPoint;
   Dst: TArrayOfArrayOfFixedPoint;
   Normals: TArrayOfFixedPoint;
+  HalfStrokeWidth: TFixed;
 begin
   if Closed then
   begin
     SetLength(Dst, Length(Points) * 2);
+    HalfStrokeWidth := StrokeWidth shr 1;
     for I := 0 to High(Points) do
     begin
       Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, StrokeWidth shr 1, JoinStyle, True, MiterLimit);
-      P2 := Grow(Points[I], Normals, -StrokeWidth shr 1, JoinStyle, True, MiterLimit);
+      P1 := Grow(Points[I], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      P2 := Grow(Points[I], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
       Dst[I * 2] := P1;
       Dst[I * 2 + 1] := ReversePolygon(P2);
     end;
