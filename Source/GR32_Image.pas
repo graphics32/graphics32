@@ -2472,7 +2472,7 @@ begin
   if (Dx = 0) and (Dy = 0) then
     Exit;
 
-  Scroll(Single(Dx), Single(Dy));
+  Scroll(Dx+0.0, Dy+0.0);
 end;
 
 procedure TCustomImgView32.Scroll(Dx, Dy: Single);
@@ -2490,7 +2490,7 @@ begin
 
   finally
     EndUpdate;
-    end;
+  end;
 
   UpdateImage;
 end;
