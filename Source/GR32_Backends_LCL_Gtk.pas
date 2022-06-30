@@ -63,7 +63,10 @@ type
     FWidth, FHeight: Cardinal;
     FRawImage: TRawImage;
     FBitmap: TBitmap;
+    FPixBuf: PGdkPixbuf;
 
+    procedure CanvasToPixBuf;
+    procedure PixBufToCanvas;
     procedure CanvasChangedHandler(Sender: TObject);
   protected
     FFontHandle: HFont;
@@ -143,6 +146,7 @@ constructor TLCLBackend.Create;
 begin
   inherited;
   FBitmap := TBitmap.Create;
+  FBitmap.Canvas.Brush.Style := bsClear;  // otherwise it drawn opaque
   FBitmap.Canvas.OnChange := CanvasChangedHandler;
   FFont := TFont.Create;
 end;
@@ -176,7 +180,11 @@ var
   LazImage: TLazIntfImage;
 begin
   { We allocate our own memory for the image }
-  FRawImage.Description.Init_BPP32_B8G8R8A8_BIO_TTB(NewWidth, NewHeight);
+  {$ifdef RGBA_FORMAT}
+    FRawImage.Description.Init_BPP32_R8G8B8A8_BIO_TTB(NewWidth, NewHeight);
+  {$else RGBA_FORMAT}
+    FRawImage.Description.Init_BPP32_B8G8R8A8_BIO_TTB(NewWidth, NewHeight);
+  {$endif RGBA_FORMAT}
 
   FRawImage.CreateData(ClearBuffer);
   FBits := PColor32Array(FRawImage.Data);
@@ -197,6 +205,9 @@ end;
 
 procedure TLCLBackend.FinalizeSurface;
 begin
+  if Assigned(FPixBuf) then
+    g_object_unref(FPixBuf);
+
   if Assigned(FBits) then
   begin
     FRawImage.FreeData;
@@ -295,26 +306,65 @@ end;
 
 { ITextSupport }
 
+procedure TLCLBackend.CanvasToPixBuf;
+var
+  P: TPoint;
+begin
+  if not assigned(FPixBuf) then
+    FPixBuf := gdk_pixbuf_new(GDK_COLORSPACE_RGB, True, 8, FWidth, FHeight);
+
+  P:=TGtkDeviceContext(Canvas.Handle).Offset;
+  if (gdk_pixbuf_get_from_drawable(FPixBuf, 
+    TGtkDeviceContext(Canvas.Handle).Drawable, nil, 
+    P.X,P.Y, 0,0, FOwner.Width, FOwner.Height) = nil) then
+    raise Exception.Create('[TLCLBackend.Textout(X, Y: Integer; const Text: string)] ERROR gdk_pixbuf_get_from_drawable failed');
+
+  FBits:=PColor32Array(gdk_pixbuf_get_pixels(FPixBuf));
+end;
+
+procedure TLCLBackend.PixBufToCanvas;
+var
+  P: TPoint;
+begin
+  P := TGtkDeviceContext(Canvas.Handle).Offset;
+
+  gdk_draw_rgb_32_image(TGtkDeviceContext(Canvas.Handle).Drawable,
+    TGtkDeviceContext(Canvas.Handle).GC, P.X, P.Y, FOwner.Width, FOwner.Height,
+    GDK_RGB_DITHER_NONE, pguchar(FBits), FOwner.Width * 4);
+end;
+
+
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
+  if Empty then Exit;
   UpdateFont;
 
   if not FOwner.MeasuringMode then
+  begin
+    PixBufToCanvas;
     Canvas.TextOut(X, Y, Text);
+    CanvasToPixBuf;
+  end;
 end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
+  if Empty then Exit;
   UpdateFont;
 
+  PixBufToCanvas;
   LCLIntf.ExtTextOut(Canvas.Handle, X, Y, ETO_CLIPPED, @ClipRect, PChar(Text), Length(Text), nil);
+  CanvasToPixBuf;
 end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
+  if Empty then Exit;
   UpdateFont;
 
+  PixBufToCanvas;
   LCLIntf.DrawText(Canvas.Handle, PChar(Text), Length(Text), DstRect, Flags);
+  CanvasToPixBuf;
 end;
 
 function TLCLBackend.TextExtent(const Text: string): TSize;
