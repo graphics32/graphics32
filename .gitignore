@@ -25,3 +25,8 @@ lib
 Win32
 Win64
 *.~*~
+
+# Lazarus
+*.lps
+backup/
+Unit Cache/
