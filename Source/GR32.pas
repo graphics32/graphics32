@@ -1334,8 +1334,12 @@ begin
     Result := Result or TColor32(Integer(I) - 1) shl 16;
 {$ELSE}
 {$IFDEF USENATIVECODE}
-  Result := $FF shl 24 + (WinColor and $FF0000) shr 16 + (WinColor and $FF00) +
-    (WinColor and $FF) shl 16;
+  {$IFNDEF RGBA_FORMAT}
+    Result := ($FF shl 24) + ((WinColor and $FF0000) shr 16) + (WinColor and $FF00) +
+      ((WinColor and $FF) shl 16);
+  {$ELSE}
+    Result := $FF shl 24 + (WinColor and $FFFFFF);
+  {$ENDIF RGBA_FORMAT}
 {$ELSE}
   asm
         MOV     EAX,WinColor
