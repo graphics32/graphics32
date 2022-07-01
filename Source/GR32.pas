@@ -1314,25 +1314,9 @@ const
 {$ENDIF}
 
 function Color32(WinColor: TColor): TColor32; overload;
-{$IFDEF WIN_COLOR_FIX}
-var
-  I: Longword;
-{$ENDIF}
 begin
   if WinColor < 0 then WinColor := GetSysColor(WinColor and $000000FF);
 
-{$IFDEF WIN_COLOR_FIX}
-  Result := $FF000000;
-  I := (WinColor and $00FF0000) shr 16;
-  if I <> 0 then
-    Result := Result or TColor32(Integer(I) - 1);
-  I := WinColor and $0000FF00;
-  if I <> 0 then
-    Result := Result or TColor32(Integer(I) - $00000100);
-  I := WinColor and $000000FF;
-  if I <> 0 then
-    Result := Result or TColor32(Integer(I) - 1) shl 16;
-{$ELSE}
 {$IFDEF USENATIVECODE}
   {$IFNDEF RGBA_FORMAT}
     Result := ($FF shl 24) + ((WinColor and $FF0000) shr 16) + (WinColor and $FF00) +
@@ -1348,7 +1332,6 @@ begin
         ROR     EAX,8
         MOV     Result,EAX
   end;
-{$ENDIF}
 {$ENDIF}
 end;
 
