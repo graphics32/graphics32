@@ -1626,9 +1626,9 @@ procedure RGBtoHSL(RGB: TColor32; out H, S, L: Byte);
 var
   R, G, B, D, Cmax, Cmin, HL: Integer;
 begin
-  R := (RGB shr 16) and $ff;
-  G := (RGB shr 8) and $ff;
-  B := RGB and $ff;
+  R := RedComponent(RGB);
+  G := GreenComponent(RGB);
+  B := BlueComponent(RGB);
 
   Cmax := Max(R, G, B);
   Cmin := Min(R, G, B);
