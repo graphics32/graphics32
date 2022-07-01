@@ -1306,23 +1306,16 @@ const
 
 { Color construction and conversion functions }
 
-{$IFDEF PUREPASCAL}
-{$DEFINE USENATIVECODE}
-{$ENDIF}
-{$IFDEF TARGET_X64}
-{$DEFINE USENATIVECODE}
-{$ENDIF}
-
 function Color32(WinColor: TColor): TColor32; overload;
 begin
-  if WinColor < 0 then WinColor := GetSysColor(WinColor and $000000FF);
+  if (WinColor < 0) then
+    WinColor := GetSysColor(WinColor and $000000FF);
 
-{$IFDEF USENATIVECODE}
+{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
   {$IFNDEF RGBA_FORMAT}
-    Result := ($FF shl 24) + ((WinColor and $FF0000) shr 16) + (WinColor and $FF00) +
-      ((WinColor and $FF) shl 16);
+    Result := $FF000000 + ((WinColor and $FF0000) shr 16) + (WinColor and $FF00) + ((WinColor and $FF) shl 16);
   {$ELSE}
-    Result := $FF shl 24 + (WinColor and $FFFFFF);
+    Result := $FF000000 + (WinColor and $FFFFFF);
   {$ENDIF RGBA_FORMAT}
 {$ELSE}
   asm
@@ -1332,11 +1325,11 @@ begin
         ROR     EAX,8
         MOV     Result,EAX
   end;
-{$ENDIF}
+{$IFEND}
 end;
 
 function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
-{$IFDEF USENATIVECODE}
+{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
 begin
   Result := (A shl 24) or (R shl 16) or (G shl  8) or B;
 {$ELSE}
@@ -1345,7 +1338,7 @@ asm
         SHL     EAX, 16
         MOV     AH, DL
         MOV     AL, CL
-{$ENDIF}
+{$IFEND}
 end;
 
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
@@ -3176,15 +3169,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFDEF USENATIVECODE}
+{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
   X := X div 256;
   Y := Y div 256;
-  {$ELSE}
+{$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
-  {$ENDIF}
+{$IFEND}
 
   P := @Bits[X + Y * FWidth];
   if FCombineMode = cmBlend then
@@ -3229,15 +3222,15 @@ begin
   flrx := X and $FF;
   flry := Y and $FF;
 
-  {$IFDEF USENATIVECODE}
+{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
   X := X div 256;
   Y := Y div 256;
-  {$ELSE}
+{$ELSE}
   asm
     SAR X, 8
     SAR Y, 8
   end;
-  {$ENDIF}
+{$IFEND}
 
   P := @Bits[X + Y * FWidth];
   if FCombineMode = cmBlend then
@@ -3343,20 +3336,22 @@ begin
   if not FMeasuringMode then
   begin
 {$ENDIF}
-    {$IFDEF USENATIVECODE}
+
+{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
     X := (X + $7F) div 256;
     Y := (Y + $7F) div 256;
-    {$ELSE}
+{$ELSE}
     asm
           ADD X, $7F
           ADD Y, $7F
           SAR X, 8
           SAR Y, 8
     end;
-    {$ENDIF}
+{$IFEND}
 
     SET_TS256(X, Y, Value);
     EMMS;
+
 {$IFDEF CHANGED_IN_PIXELS}
   end;
   Changed(MakeRect(X, Y, X + 1, Y + 1));
@@ -3522,17 +3517,17 @@ end;
 
 procedure TCustomBitmap32.SetPixelXW(X, Y: TFixed; Value: TColor32);
 begin
-  {$IFDEF USENATIVECODE}
+{$IF Defined(PUREPASCAL) or Defined(TARGET_X64)}
   X := (X + $7F) div 256;
   Y := (Y + $7F) div 256;
-  {$ELSE}
+{$ELSE}
   asm
         ADD X, $7F
         ADD Y, $7F
         SAR X, 8
         SAR Y, 8
   end;
-  {$ENDIF}
+{$IFEND}
 
   with F256ClipRect do
     SET_T256(WrapProcHorz(X, Left, Right - 128), WrapProcVert(Y, Top, Bottom - 128), Value);
