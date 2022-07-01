@@ -1417,7 +1417,7 @@ begin
   A := Color32 shr 24;
   R := (Color32 and $000000FF) shr 16;
   G := (Color32 and $0000FF00) shr 8;
-  B := /Color32 and $00FF0000);
+  B := (Color32 and $00FF0000);
 {$ENDIF RGBA_FORMAT}
 end;
 
