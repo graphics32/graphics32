@@ -146,7 +146,7 @@ constructor TLCLBackend.Create;
 begin
   inherited;
   FBitmap := TBitmap.Create;
-  FBitmap.Canvas.Brush.Style := bsClear;  // otherwise it drawn opaque
+  FBitmap.Canvas.Brush.Style := bsClear; // Otherwise text is drawn opaque
   FBitmap.Canvas.OnChange := CanvasChangedHandler;
   FFont := TFont.Create;
 end;
@@ -180,17 +180,17 @@ var
   LazImage: TLazIntfImage;
 begin
   { We allocate our own memory for the image }
-  {$ifdef RGBA_FORMAT}
-    FRawImage.Description.Init_BPP32_R8G8B8A8_BIO_TTB(NewWidth, NewHeight);
-  {$else RGBA_FORMAT}
-    FRawImage.Description.Init_BPP32_B8G8R8A8_BIO_TTB(NewWidth, NewHeight);
-  {$endif RGBA_FORMAT}
+{$ifdef RGBA_FORMAT}
+  FRawImage.Description.Init_BPP32_R8G8B8A8_BIO_TTB(NewWidth, NewHeight);
+{$else RGBA_FORMAT}
+  FRawImage.Description.Init_BPP32_B8G8R8A8_BIO_TTB(NewWidth, NewHeight);
+{$endif RGBA_FORMAT}
 
   FRawImage.CreateData(ClearBuffer);
   FBits := PColor32Array(FRawImage.Data);
 
-  if FBits = nil then
-    raise Exception.Create('[TLCLBackend.InitializeSurface] ERROR FBits = nil');
+  if (FBits = nil) then
+    raise Exception.Create('[TLCLBackend.InitializeSurface] FBits = nil');
 
   LazImage := TLazIntfImage.Create(FRawImage, False);
   try
@@ -205,17 +205,16 @@ end;
 
 procedure TLCLBackend.FinalizeSurface;
 begin
-  if Assigned(FPixBuf) then
+  if (FPixBuf <> nil) then
     g_object_unref(FPixBuf);
 
-  if Assigned(FBits) then
+  if (FBits <> nil) then
   begin
     FRawImage.FreeData;
     FBits := nil;
 
     FBitmap.ReleaseHandle;
   end;
-  FBits := nil;
 end;
 
 procedure TLCLBackend.Changed;
@@ -225,7 +224,7 @@ end;
 
 function TLCLBackend.Empty: Boolean;
 begin
-  Result := FBits = nil;
+  Result := (FBits = nil);
 end;
 
 { IPaintSupport }
@@ -310,16 +309,17 @@ procedure TLCLBackend.CanvasToPixBuf;
 var
   P: TPoint;
 begin
-  if not assigned(FPixBuf) then
+  if (FPixBuf <> nil) then
     FPixBuf := gdk_pixbuf_new(GDK_COLORSPACE_RGB, True, 8, FWidth, FHeight);
 
-  P:=TGtkDeviceContext(Canvas.Handle).Offset;
-  if (gdk_pixbuf_get_from_drawable(FPixBuf, 
-    TGtkDeviceContext(Canvas.Handle).Drawable, nil, 
-    P.X,P.Y, 0,0, FOwner.Width, FOwner.Height) = nil) then
-    raise Exception.Create('[TLCLBackend.Textout(X, Y: Integer; const Text: string)] ERROR gdk_pixbuf_get_from_drawable failed');
+  P := TGtkDeviceContext(Canvas.Handle).Offset;
 
-  FBits:=PColor32Array(gdk_pixbuf_get_pixels(FPixBuf));
+  if (gdk_pixbuf_get_from_drawable(FPixBuf,
+    TGtkDeviceContext(Canvas.Handle).Drawable, nil,
+    P.X,P.Y, 0,0, FOwner.Width, FOwner.Height) = nil) then
+    raise Exception.Create('[TLCLBackend.CanvasToPixBuf] gdk_pixbuf_get_from_drawable failed');
+
+  FBits := PColor32Array(gdk_pixbuf_get_pixels(FPixBuf));
 end;
 
 procedure TLCLBackend.PixBufToCanvas;
@@ -333,10 +333,11 @@ begin
     GDK_RGB_DITHER_NONE, pguchar(FBits), FOwner.Width * 4);
 end;
 
-
 procedure TLCLBackend.Textout(X, Y: Integer; const Text: string);
 begin
-  if Empty then Exit;
+  if Empty then
+    Exit;
+
   UpdateFont;
 
   if not FOwner.MeasuringMode then
@@ -349,7 +350,9 @@ end;
 
 procedure TLCLBackend.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
-  if Empty then Exit;
+  if Empty then
+    Exit;
+
   UpdateFont;
 
   PixBufToCanvas;
@@ -359,7 +362,9 @@ end;
 
 procedure TLCLBackend.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
-  if Empty then Exit;
+  if Empty then
+    Exit;
+
   UpdateFont;
 
   PixBufToCanvas;
@@ -436,7 +441,7 @@ begin
           Inc(DestLine);
           DestLine^ := Red(SrcLine^[X]);
           Inc(DestLine);
-          DestLine^ := SrcLine^[X] shr 24;
+          DestLine^ := Alpha(SrcLine^[X]);
           Inc(DestLine);
         end;
       end;
@@ -504,7 +509,7 @@ end;
 
 function TLCLBackend.CanvasAllocated: Boolean;
 begin
-  Result := Canvas <> nil;
+  Result := (Canvas <> nil);
 end;
 
 end.
