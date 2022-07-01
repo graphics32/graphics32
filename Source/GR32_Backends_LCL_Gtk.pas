@@ -73,13 +73,54 @@ type
     FBitmapInfo: TBitmapInfo;
     FHDC: HDC;
 
-    { BITS_GETTER }
+{$IFDEF BITS_GETTER}
     function GetBits: PColor32Array; override;
+{$ENDIF}
 
     procedure InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean); override;
     procedure FinalizeSurface; override;
 
     procedure CanvasChanged;
+  protected
+    // IPaintSupport
+    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure ImageNeeded;
+    procedure CheckPixmap;
+  protected
+    // IDeviceContextSupport
+    function GetHandle: HDC;
+    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
+    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
+    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
+  protected
+    // ITextSupport
+    procedure Textout(X, Y: Integer; const Text: string); overload;
+    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: string); overload;
+    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
+    function  TextExtent(const Text: string): TSize;
+  protected
+    // IFontSupport
+    function GetOnFontChange: TNotifyEvent;
+    procedure SetOnFontChange(Handler: TNotifyEvent);
+    function GetFont: TFont;
+    procedure SetFont(const Font: TFont);
+    procedure UpdateFont;
+  protected
+    // IInteroperabilitySupport
+    function CopyFrom(ImageBitmap: TFPImageBitmap): Boolean; overload;
+    function CopyFrom(Graphic: TGraphic): Boolean; overload;
+  protected
+    // ICanvasSupport
+    function GetCanvasChange: TNotifyEvent;
+    procedure SetCanvasChange(Handler: TNotifyEvent);
+    function GetCanvas: TCanvas;
+  protected
+    // TODO : These three can probably be deleted
+    procedure DeleteCanvas;
+    function CanvasAllocated: Boolean;
+    property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
+
+    property Canvas: TCanvas read GetCanvas;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -87,52 +128,6 @@ type
     procedure Changed; override;
 
     function Empty: Boolean; override;
-  public
-    { IPaintSupport }
-    procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
-    procedure ImageNeeded;
-    procedure CheckPixmap;
-
-    { IDeviceContextSupport }
-    function GetHandle: HDC;
-
-    procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC); overload;
-    procedure DrawTo(hDst: HDC; DstX, DstY: Integer); overload;
-    procedure DrawTo(hDst: HDC; const DstRect, SrcRect: TRect); overload;
-
-    property Handle: HDC read GetHandle;
-
-    { ITextSupport }
-    procedure Textout(X, Y: Integer; const Text: string); overload;
-    procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: string); overload;
-    procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string); overload;
-    function  TextExtent(const Text: string): TSize;
-
-    { IFontSupport }
-    function GetOnFontChange: TNotifyEvent;
-    procedure SetOnFontChange(Handler: TNotifyEvent);
-    function GetFont: TFont;
-    procedure SetFont(const Font: TFont);
-    procedure UpdateFont;
-
-    property Font: TFont read GetFont write SetFont;
-    property OnFontChange: TNotifyEvent read FOnFontChange write FOnFontChange;
-
-    { IInteroperabilitySupport }
-    function CopyFrom(ImageBitmap: TFPImageBitmap): Boolean; overload;
-    function CopyFrom(Graphic: TGraphic): Boolean; overload;
-
-    { ICanvasSupport }
-    function GetCanvasChange: TNotifyEvent;
-    procedure SetCanvasChange(Handler: TNotifyEvent);
-    function GetCanvas: TCanvas;
-
-    procedure DeleteCanvas;
-    function CanvasAllocated: Boolean;
-
-    property Canvas: TCanvas read GetCanvas;
-    property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
-
   end;
 
 implementation
@@ -159,10 +154,12 @@ begin
   inherited;
 end;
 
+{$IFDEF BITS_GETTER}
 function TLCLBackend.GetBits: PColor32Array;
 begin
   Result := FBits;
 end;
+{$ENDIF}
 
 procedure TLCLBackend.CanvasChangedHandler(Sender: TObject);
 begin
@@ -192,6 +189,9 @@ begin
   if (FBits = nil) then
     raise Exception.Create('[TLCLBackend.InitializeSurface] FBits = nil');
 
+  // TODO : What is the purpose of this?
+  // FRawImage is empty so loading it into FBitmap (via a TLazIntfImage) does nothing
+  // but set the size of FBitmap...
   LazImage := TLazIntfImage.Create(FRawImage, False);
   try
     FBitmap.LoadFromIntfImage(LazImage);
@@ -310,15 +310,21 @@ var
   P: TPoint;
 begin
   if (FPixBuf <> nil) then
+    // Create a new GdkPixbuf structure and allocate a buffer for it.
     FPixBuf := gdk_pixbuf_new(GDK_COLORSPACE_RGB, True, 8, FWidth, FHeight);
 
   P := TGtkDeviceContext(Canvas.Handle).Offset;
 
+  // Transfer image data from the Gdk drawable (Canvas.Handle) and convert it to
+  // an RGBA representation inside the GdkPixbuf (FPixBuf).
   if (gdk_pixbuf_get_from_drawable(FPixBuf,
     TGtkDeviceContext(Canvas.Handle).Drawable, nil,
     P.X,P.Y, 0,0, FOwner.Width, FOwner.Height) = nil) then
     raise Exception.Create('[TLCLBackend.CanvasToPixBuf] gdk_pixbuf_get_from_drawable failed');
 
+  // Get a pointer to the pixbuf pixel data.
+  // Note: Causes an implicit copy of the pixbuf data if the pixbuf was created
+  // from read-only data.
   FBits := PColor32Array(gdk_pixbuf_get_pixels(FPixBuf));
 end;
 
@@ -328,6 +334,12 @@ var
 begin
   P := TGtkDeviceContext(Canvas.Handle).Offset;
 
+  // TODO : gdk_draw_rgb_32_image is deprecated since GDK2. Isn't there something newer we can use?
+  // ...or maybe that's what the LCL_Carbon is for?
+  // TODO : As far as I can tell from the documentation, gdk_draw_rgb_32_image doesn't handle
+  // alpha. Isn't this a problem?
+
+  // Draw the pixbuf data onto the canvas.
   gdk_draw_rgb_32_image(TGtkDeviceContext(Canvas.Handle).Drawable,
     TGtkDeviceContext(Canvas.Handle).GC, P.X, P.Y, FOwner.Width, FOwner.Height,
     GDK_RGB_DITHER_NONE, pguchar(FBits), FOwner.Width * 4);
