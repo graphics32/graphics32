@@ -115,6 +115,8 @@ type
     function GetCanvasChange: TNotifyEvent;
     procedure SetCanvasChange(Handler: TNotifyEvent);
     function GetCanvas: TCanvas;
+    function CanvasAllocated: Boolean;
+    procedure DeleteCanvas;
   protected
     property Canvas: TCanvas read GetCanvas;
   public
@@ -174,6 +176,8 @@ end;
 
 procedure TLCLBackend.CopyCanvasToPixmap;
 begin
+  NeedCanvas; // avoid error: FBitmap is nil.
+
   // Copy data from the canvas
   FBitmap.BeginUpdate;
   MoveLongword(FBitmap.RawImage.Data^, FBits^, FWidth*FHeight);
@@ -252,7 +256,7 @@ begin
     FRawImage.FreeData;
     FBits := nil;
 
-    FreeAndNill(FBitmap);
+    FreeAndNil(FBitmap);
   end;
 end;
 
@@ -446,13 +450,13 @@ begin
         DestLine := FRawImage.GetLineStart(Y);
         for X := 0 to Src.Width - 1 do
         begin
-          DestLine^ := Blue(SrcLine^[X]);
+          DestLine^ := BlueComponent(SrcLine^[X]);
           Inc(DestLine);
-          DestLine^ := Green(SrcLine^[X]);
+          DestLine^ := GreenComponent(SrcLine^[X]);
           Inc(DestLine);
-          DestLine^ := Red(SrcLine^[X]);
+          DestLine^ := RedComponent(SrcLine^[X]);
           Inc(DestLine);
-          DestLine^ := Alpha(SrcLine^[X]);
+          DestLine^ := AlphaComponent(SrcLine^[X]);
           Inc(DestLine);
         end;
       end;
@@ -465,11 +469,11 @@ begin
         DestLine := FRawImage.GetLineStart(Y);
         for X := 0 to Src.Width - 1 do
         begin
-          DestLine^ := Blue(SrcLine^[X]);
+          DestLine^ := BlueComponent(SrcLine^[X]);
           Inc(DestLine);
-          DestLine^ := Green(SrcLine^[X]);
+          DestLine^ := GreenComponent(SrcLine^[X]);
           Inc(DestLine);
-          DestLine^ := Red(SrcLine^[X]);
+          DestLine^ := RedComponent(SrcLine^[X]);
           Inc(DestLine);
           DestLine^ := $FF;
           Inc(DestLine);
@@ -514,6 +518,16 @@ begin
   NeedCanvas;
 
   Result := FBitmap.Canvas;
+end;
+
+function TLCLBackend.CanvasAllocated: Boolean;
+begin
+  result := GetCanvas() <> nil;
+end;
+
+procedure TLCLBackend.DeleteCanvas;
+begin
+
 end;
 
 end.
