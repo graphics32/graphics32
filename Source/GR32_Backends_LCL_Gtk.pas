@@ -176,8 +176,6 @@ end;
 
 procedure TLCLBackend.CopyCanvasToPixmap;
 begin
-  NeedCanvas; // avoid error: FBitmap is nil.
-
   // Copy data from the canvas
   FBitmap.BeginUpdate;
   MoveLongword(FBitmap.RawImage.Data^, FBits^, FWidth*FHeight);
