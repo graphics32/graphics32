@@ -7159,8 +7159,7 @@ begin
   for I := 0 to B.Width * B.Height - 1 do
   begin
     if P^ <> 0 then
-        //P^ := ((P^ and $FF) shl 24) or Color
-        P^ := $ff888888
+        P^ := ((P^ and $FF) shl 24) or Color
     else
       P^ := 0;
     Inc(P);
