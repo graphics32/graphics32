@@ -417,7 +417,9 @@
   {$DEFINE HAS_NATIVEINT}
   {$DEFINE NATIVE_SINCOS}
   {$DEFINE USESTACKALLOC}
-  {$DEFINE RGBA_FORMAT}
+  {$IFNDEF WINDOWS}
+    {$DEFINE RGBA_FORMAT}
+  {$ENDIF}
 
   {$IF DEFINED(CPUx86_64)}
     {$DEFINE PUREPASCAL}
@@ -515,20 +517,6 @@
   {$ENDIF}
 
 {$ENDIF COMPILERFPC}
-
-
-(*
-  Symbol BITS_GETTER:
-  -------------------
-
-*)
-
-{$IFDEF COMPILERFPC}
-  // Widgetsets other then Windows will want to implement BITS_GETTER
-  {$IFNDEF LCLWin32}
-    {$DEFINE BITS_GETTER}
-  {$ENDIF}
-{$ENDIF}
 
 
 (*
