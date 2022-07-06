@@ -175,11 +175,36 @@ begin
 end;
 
 procedure TLCLBackend.CopyCanvasToPixmap;
+var
+  PixBuf: PGdkPixbuf;
+  P: TPoint;
+  SourceBits: pointer;
 begin
-  // Copy data from the canvas
-  FBitmap.BeginUpdate;
-  MoveLongword(FBitmap.RawImage.Data^, FBits^, FWidth*FHeight);
-  FBitmap.EndUpdate;
+  // Allocate a new pixbuf, 8 bits per channel with alpha.
+  PixBuf := gdk_pixbuf_new(GDK_COLORSPACE_RGB, True, 8, FWidth, FHeight);
+  try
+
+    P := TGtkDeviceContext(Canvas.Handle).Offset;
+
+    // Fill the pixbuf with the canvas pixel data
+    if (gdk_pixbuf_get_from_drawable(PixBuf,
+      TGtkDeviceContext(Canvas.Handle).Drawable, nil,
+      P.X,P.Y, 0,0, FWidth, FHeight) = nil) then
+      raise Exception.Create('[TLCLBackend.CopyCanvasToPixmap] gdk_pixbuf_get_from_drawable failed');
+
+    // Note: we cant directly assign data pointer to FBits here, 
+    // because the pointer will be soon disposed (see 'finally' below).
+    // Instead, we should do copy the pixels (pointer content) to FBits to keep it accesible later.
+
+    // Get a pointer to the pixbuf pixel data
+    SourceBits := gdk_pixbuf_get_pixels(PixBuf);
+
+    // Copy data (pointer content) from pixbuf to pixmap
+    MoveLongword(SourceBits^, FBits^, FWidth*FHeight);
+
+  finally
+    g_object_unref(PixBuf);
+  end;
 
   FPixmapDirty := False;
   FCanvasDirty := False;
