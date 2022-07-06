@@ -1400,9 +1400,9 @@ begin
   G := (Color32 and $0000FF00) shr 8;
   B := (Color32 and $000000FF);
 {$ELSE RGBA_FORMAT}
-  R := (Color32 and $000000FF) shr 16;
+  R := (Color32 and $000000FF);
   G := (Color32 and $0000FF00) shr 8;
-  B := (Color32 and $00FF0000);
+  B := (Color32 and $00FF0000) shr 16;
 {$ENDIF RGBA_FORMAT}
 end;
 
@@ -1415,9 +1415,9 @@ begin
   B := (Color32 and $000000FF);
 {$ELSE RGBA_FORMAT}
   A := Color32 shr 24;
-  R := (Color32 and $000000FF) shr 16;
+  R := (Color32 and $000000FF);
   G := (Color32 and $0000FF00) shr 8;
-  B := (Color32 and $00FF0000);
+  B := (Color32 and $00FF0000) shr 16;
 {$ENDIF RGBA_FORMAT}
 end;
 
@@ -1436,7 +1436,7 @@ begin
 {$IFNDEF RGBA_FORMAT}
   Result := (Color32 and $00FF0000) shr 16;
 {$ELSE RGBA_FORMAT}
-  Result := (Color32 and $000000FF) shr 16;
+  Result := Color32 and $000000FF;
 {$ENDIF RGBA_FORMAT}
 end;
 
@@ -1450,7 +1450,7 @@ begin
 {$IFNDEF RGBA_FORMAT}
   Result := Color32 and $000000FF;
 {$ELSE RGBA_FORMAT}
-  Result := Color32 and $00FF0000;
+  Result := (Color32 and $00FF0000) shr 16;
 {$ENDIF RGBA_FORMAT}
 end;
 
@@ -1470,9 +1470,9 @@ begin
     ) shr 8;
 {$ELSE RGBA_FORMAT}
   Result := (
-    (Color32 and $000000FF) shr 16 * 61 +
+    (Color32 and $000000FF) * 61 +
     (Color32 and $0000FF00) shr 8 * 174 +
-    (Color32 and $00FF0000) * 21
+    (Color32 and $00FF0000) shr 16 * 21
     ) shr 8;
 {$ENDIF RGBA_FORMAT}
 end;
@@ -7159,7 +7159,7 @@ begin
   for I := 0 to B.Width * B.Height - 1 do
   begin
     if P^ <> 0 then
-      P^ := ((P^ and $FF) shl 24) or Color
+        P^ := ((P^ and $FF) shl 24) or Color
     else
       P^ := 0;
     Inc(P);
