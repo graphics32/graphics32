@@ -255,11 +255,26 @@ function Color32(R, G, B: Byte; A: Byte = $FF): TColor32; overload;
 function Color32(Index: Byte; var Palette: TPalette32): TColor32; overload;
 function Gray32(Intensity: Byte; Alpha: Byte = $FF): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
 function WinColor(Color32: TColor32): TColor;
-function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
+function ArrayOfColor32(const Colors: array of TColor32): TArrayOfColor32;
+
+// Unconditionally swap R & B channel, leave rest alone
+function SwapRedBlue(Color32: TColor32): TColor32;
+procedure SwapRedBlueMem(var Color32: TColor32);
+
+// Conditional swaps. Depends on RGBA_FORMAT define.
+function Color32ToBGRA(Color32: TColor32): DWORD; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Color32ToBGRAMem(var Color32: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+function Color32ToRGBA(Color32: TColor32): DWORD; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure Color32ToRGBAMem(var Color32: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+
+function BGRAToColor32(BGRA: DWORD): TColor32; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure BGRAToColor32Mem(var BGRA: DWORD); {$IFDEF USEINLINING} inline; {$ENDIF}
+function RGBAToColor32(RGBA: DWORD): TColor32; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+procedure RGBAToColor32mem(var RGBA: DWORD); {$IFDEF USEINLINING} inline; {$ENDIF}
 
 // Color component access
 procedure Color32ToRGB(Color32: TColor32; var R, G, B: Byte);
-procedure Color32ToRGBA(Color32: TColor32; var R, G, B, A: Byte);
+procedure Color32ToRGBA(Color32: TColor32; var R, G, B, A: Byte); overload;
 function Color32Components(R, G, B, A: Boolean): TColor32Components;
 function RedComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
 function GreenComponent(Color32: TColor32): Integer; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -716,9 +731,6 @@ type
     procedure SetPenPos(const Value: TPoint);
     function GetPenPosF: TFixedPoint;
     procedure SetPenPosF(const Value: TFixedPoint);
-{$IFDEF RGBA_FORMAT}
-    procedure SwapRB;
-{$ENDIF}
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -1359,17 +1371,16 @@ begin
 end;
 
 function WinColor(Color32: TColor32): TColor;
-{$IFDEF PUREPASCAL}
+{$IFDEF RGBA_FORMAT}
 begin
-  {$IFNDEF RGBA_FORMAT}
+  Result := Color32 and $00FFFFFF;
+end;
+{$ELSE RGBA_FORMAT}
+{$IF Defined(PUREPASCAL)}
+begin
   Result := ((Color32 and $00FF0000) shr 16) or
              (Color32 and $0000FF00) or
             ((Color32 and $000000FF) shl 16);
-  {$ELSE RGBA_FORMAT}
-  Result := ((Color32 and $000000FF) shr 16) or
-             (Color32 and $0000FF00) or
-            ((Color32 and $00FF0000) shl 16);
-  {$ENDIF RGBA_FORMAT}
 {$ELSE}
 {$IFDEF FPC}assembler; nostackframe;{$ENDIF}
   asm
@@ -1377,20 +1388,117 @@ begin
         MOV     EAX, ECX
 {$ENDIF}
         // the alpha channel byte is set to zero!
-        ROL     EAX, 8  // ABGR  ->  RGBA
+        ROL     EAX, 8  // ABGR  ->  BGRA
         XOR     AL, AL  // BGRA  ->  BGR0
         BSWAP   EAX     // BGR0  ->  0RGB
-{$ENDIF}
+{$IFEND}
 end;
+{$ENDIF RGBA_FORMAT}
 
-function ArrayOfColor32(Colors: array of TColor32): TArrayOfColor32;
+function ArrayOfColor32(const Colors: array of TColor32): TArrayOfColor32;
 var
   L: Integer;
 begin
   // build a dynamic color array from specified colors
-  L := High(Colors) + 1;
+  L := Length(Colors);
   SetLength(Result, L);
   MoveLongword(Colors[0], Result[0], L);
+end;
+
+procedure SwapRedBlueMem(var Color32: TColor32);
+{$IF Defined(PUREPASCAL)}
+var
+  Temp: Byte;
+begin
+  Temp := TColor32Entry(Color32).R;
+  TColor32Entry(Color32).R := TColor32Entry(Color32).B;
+  TColor32Entry(Color32).B := Temp;
+{$ELSE}
+  asm
+        MOV     EDX, DWORD PTR [Color32]
+        ROL     EDX, 8  // ARGB  ->  RGBA
+        BSWAP   EDX     // RGBA  ->  ABGR
+        MOV     DWORD PTR [Color32], EDX
+{$IFEND}
+end;
+
+function SwapRedBlue(Color32: TColor32): TColor32;
+{$IF Defined(PUREPASCAL)}
+begin
+  Result := Color32;
+  SwapRedBlueMem(Result);
+{$ELSE}
+  asm
+{$IFDEF TARGET_x64}
+        MOV     EAX, ECX
+{$ENDIF}
+        ROL     EAX, 8  // ARGB  ->  RGBA
+        BSWAP   EAX     // RGBA  ->  ABGR
+{$IFEND}
+end;
+
+function Color32ToBGRA(Color32: TColor32): DWORD;
+begin
+{$IFNDEF RGBA_FORMAT}
+  Result := Color32;
+{$ELSE RGBA_FORMAT}
+  Result := SwapRedBlue(Color32);
+{$ENDIF RGBA_FORMAT}
+end;
+
+procedure Color32ToBGRAMem(var Color32: TColor32);
+begin
+{$IFDEF RGBA_FORMAT}
+  SwapRedBlueMem(Color32);
+{$ENDIF RGBA_FORMAT}
+end;
+
+function Color32ToRGBA(Color32: TColor32): DWORD;
+begin
+{$IFDEF RGBA_FORMAT}
+  Result := Color32;
+{$ELSE RGBA_FORMAT}
+  Result := SwapRedBlue(Color32);
+{$ENDIF RGBA_FORMAT}
+end;
+
+procedure Color32ToRGBAMem(var Color32: TColor32); {$IFDEF USEINLINING} inline; {$ENDIF}
+begin
+{$IFNDEF RGBA_FORMAT}
+  SwapRedBlueMem(Color32);
+{$ENDIF RGBA_FORMAT}
+end;
+
+function BGRAToColor32(BGRA: DWORD): TColor32;
+begin
+{$IFNDEF RGBA_FORMAT}
+  Result := BGRA;
+{$ELSE RGBA_FORMAT}
+  Result := SwapRedBlue(BGRA);
+{$ENDIF RGBA_FORMAT}
+end;
+
+procedure BGRAToColor32Mem(var BGRA: DWORD); {$IFDEF USEINLINING} inline; {$ENDIF}
+begin
+{$IFDEF RGBA_FORMAT}
+  SwapRedBlueMem(TColor32(BGRA));
+{$ENDIF RGBA_FORMAT}
+end;
+
+function RGBAToColor32(RGBA: DWORD): TColor32;
+begin
+{$IFDEF RGBA_FORMAT}
+  Result := RGBA;
+{$ELSE RGBA_FORMAT}
+  Result := SwapRedBlue(RGBA);
+{$ENDIF RGBA_FORMAT}
+end;
+
+procedure RGBAToColor32mem(var RGBA: DWORD); {$IFDEF USEINLINING} inline; {$ENDIF}
+begin
+{$IFNDEF RGBA_FORMAT}
+  SwapRedBlueMem(TColor32(RGBA));
+{$ENDIF RGBA_FORMAT}
 end;
 
 procedure Color32ToRGB(Color32: TColor32; var R, G, B: Byte);
@@ -2972,21 +3080,6 @@ procedure TCustomBitmap32.SetPenPosF(const Value: TFixedPoint);
 begin
   MoveTo(Value.X, Value.Y);
 end;
-
-{$IFDEF RGBA_FORMAT}
-procedure TCustomBitmap32.SwapRB;
-var
-  Index : Integer;
-  Temp: Byte;
-begin
-  for Index := 0 to FHeight * FWidth - 1 do
-  begin
-    Temp := TColor32Entry(FBits[Index]).R;
-    TColor32Entry(FBits[Index]).R := TColor32Entry(FBits[Index]).B;
-    TColor32Entry(FBits[Index]).B := Temp;
-  end;
-end;
-{$ENDIF}
 
 procedure TCustomBitmap32.SetPixel(X, Y: Integer; Value: TColor32);
 begin
@@ -5984,9 +6077,12 @@ begin
       EnsureAlpha;
 
 {$IFDEF RGBA_FORMAT}
-    // swap R and B channels
-    SwapRB;
-{$ENDIF RGBA_FORMAT}
+    // BMP stores pixels in ABGR order but we need them in ARGB order.
+    // Swap R and B channels
+    for i := 0 to FHeight * FWidth - 1 do
+      SwapRedBlueMem(FBits[i]);
+{$ENDIF}
+
   end else
   begin
     Assert(Padding = 0);
@@ -6034,6 +6130,10 @@ begin
       Inc(Row, DeltaRow);
     end;
 
+{$IFDEF RGBA_FORMAT}
+    // For BI_BITFIELDS we do not need to swap the R and B channels at the end because
+    // we have already done it by adjusting the Masks and ChannelToIndex arrays.
+{$ENDIF}
   end;
 
   Result := True;
@@ -6160,7 +6260,7 @@ begin
 
   if (InfoHeaderVersion >= InfoHeaderVersion2) then
   begin
-    // We only support the bit masks that correspond directly to the ARGB format
+    // We only support the bit masks that correspond directly to the ABGR format
     Header.V2Header.bV2RedMask := $00FF0000;
     Header.V2Header.bV2GreenMask := $0000FF00;
     Header.V2Header.bV2BlueMask := $000000FF;
@@ -6193,6 +6293,7 @@ begin
   end;
 
   // Pixel array
+{$IFNDEF RGBA_FORMAT}
   if SaveTopDown then
   begin
     // NOTE: We can save the whole buffer in one run because
@@ -6205,6 +6306,20 @@ begin
     for i := Height - 1 downto 0 do
       Stream.WriteBuffer(ScanLine[i]^, W);
   end;
+{$ELSE RGBA_FORMAT}
+  // Bits are in RGBA format but we need to write BGRA
+  if SaveTopDown then
+  begin
+    for i := 0 to Width*Height-1 do
+      Stream.WriteData(SwapRedBlue(Bits[i]));
+  end
+  else
+  begin
+    for i := Height - 1 downto 0 do
+      for W := 0 to Width-1 do
+        Stream.WriteData(SwapRedBlue(ScanLine[i][W]));
+  end;
+{$ENDIF RGBA_FORMAT}
 end;
 
 procedure TCustomBitmap32.LoadFromFile(const FileName: string);
