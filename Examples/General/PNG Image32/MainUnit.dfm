@@ -11,22 +11,15 @@ object FmPngDemo: TFmPngDemo
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  Padding.Left = 8
-  Padding.Top = 8
-  Padding.Right = 8
-  Padding.Bottom = 8
   OldCreateOrder = False
   OnCreate = FormCreate
-  DesignSize = (
-    475
-    279)
   PixelsPerInch = 96
   TextHeight = 13
   object ImageDisplay: TImage32
-    Left = 8
-    Top = 8
-    Width = 459
-    Height = 262
+    Left = 0
+    Top = 38
+    Width = 475
+    Height = 241
     Align = alClient
     Bitmap.DrawMode = dmBlend
     Bitmap.ResamplerClassName = 'TNearestResampler'
@@ -34,7 +27,43 @@ object FmPngDemo: TFmPngDemo
     Scale = 1.000000000000000000
     ScaleMode = smNormal
     TabOrder = 0
-    OnClick = ImageDisplayClick
-    OnDblClick = ImageDisplayDblClick
+    ExplicitTop = 8
+    ExplicitHeight = 262
+  end
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 475
+    Height = 38
+    Align = alTop
+    BevelOuter = bvNone
+    TabOrder = 1
+    object CheckBoxFit: TCheckBox
+      Left = 184
+      Top = 11
+      Width = 97
+      Height = 19
+      Caption = 'Scale to fit'
+      TabOrder = 0
+      OnClick = CheckBoxFitClick
+    end
+  end
+  object ButtonLoad: TButton
+    Left = 8
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Load...'
+    TabOrder = 2
+    OnClick = ButtonLoadClick
+  end
+  object ButtonSave: TButton
+    Left = 89
+    Top = 8
+    Width = 75
+    Height = 25
+    Caption = 'Save...'
+    TabOrder = 3
+    OnClick = ButtonSaveClick
   end
 end

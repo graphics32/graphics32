@@ -83,8 +83,6 @@
         <DCCReference Include="MainUnit.pas">
             <Form>FmPngDemo</Form>
         </DCCReference>
-        <DCCReference Include="..\GR32_Png.pas"/>
-        <DCCReference Include="..\GR32_PortableNetworkGraphic.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
