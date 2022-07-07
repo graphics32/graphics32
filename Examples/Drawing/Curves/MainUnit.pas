@@ -123,6 +123,8 @@ var
 const
   WRAP_PROC: array[Boolean] of TWrapProc = (Clamp, Wrap);
 begin
+  SetLength(Result, 0);
+
   WrapProc := Wrap_PROC[Closed];
   Filter := Kernel.Filter;
   R := Ceil(Kernel.GetWidth);

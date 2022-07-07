@@ -198,9 +198,17 @@ begin
 end;
 
 procedure DivideSegment(var P1, P2: TFloatPoint; const ScanLines: PScanLineArray);
+
+  // Limit precision to something reasonable. We don't need better than 0.01 of a pixel...
+  // This also gets rid of the remaining rounding errors in issue #51.
+  function LimitPrec(Value: TFLoat): TFloat; {$IFDEF USEINLINING} inline; {$ENDIF}
+  begin
+    Result := Int(Value * 100.0) * 0.01;
+  end;
+
 var
   Y, Y1, Y2: Integer;
-  k, X: TFloat;
+  k, X, X2: TFloat;
 begin
   Y1 := Round(P1.Y);
   Y2 := Round(P2.Y);
@@ -212,27 +220,33 @@ begin
   else
   begin
     k := (P2.X - P1.X) / (P2.Y - P1.Y);
+    // k is expanded below to work around rounding errors that caused issue #51.
+    // X could become a very small negative value which when later rounded down
+    // became -1. This in turn caused a range check error when the value was
+    // used as an index into an array.
     if Y1 < Y2 then
     begin
-      X := P1.X + (Y1 + 1 - P1.Y) * k;
-      AddSegment(P1.X, P1.Y - Y1, X, 1, ScanLines[Y1]);
+      X := P1.X + (Y1 + 1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
+      AddSegment(P1.X, P1.Y - Y1, LimitPrec(X), 1, ScanLines[Y1]);
       for Y := Y1 + 1 to Y2 - 1 do
       begin
-        AddSegment(X, 0, X + k, 1, ScanLines[Y]);
-        X := X + k;
+        X2 := X + k;
+        AddSegment(LimitPrec(X), 0, LimitPrec(X2), 1, ScanLines[Y]);
+        X := X2;
       end;
-      AddSegment(X, 0, P2.X, P2.Y - Y2, ScanLines[Y2]);
+      AddSegment(LimitPrec(X), 0, P2.X, P2.Y - Y2, ScanLines[Y2]);
     end
     else
     begin
-      X := P1.X + (Y1 - P1.Y) * k;
+      X := P1.X + (Y1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
       AddSegment(P1.X, P1.Y - Y1, X, 0, ScanLines[Y1]);
       for Y := Y1 - 1 downto Y2 + 1 do
       begin
-        AddSegment(X, 1, X - k, 0, ScanLines[Y]);
-        X := X - k
+        X2 := X - k;
+        AddSegment(LimitPrec(X), 1, LimitPrec(X2), 0, ScanLines[Y]);
+        X := X2;
       end;
-      AddSegment(X, 1, P2.X, P2.Y - Y2, ScanLines[Y2]);
+      AddSegment(LimitPrec(X), 1, P2.X, P2.Y - Y2, ScanLines[Y2]);
     end;
   end;
 end;
@@ -348,15 +362,38 @@ var
   SavedRoundMode: TRoundingMode;
   CX1, CX2: Integer;
   SpanData: PSingleArray;
+{$ifdef DEBUG}
+  j: integer;
+{$endif DEBUG}
 begin
   Len := Length(Points);
-  if Len = 0 then Exit;
+  if Len = 0 then
+    Exit;
+
   SavedRoundMode := SetRoundMode(rmDown);
   try
     SetLength(Poly, Len);
     for i := 0 to Len -1 do
       Poly[i] := ClipPolygon(Points[i], ClipRect);
+
     BuildScanLines(Poly, ScanLines);
+
+{$ifdef DEBUG}
+    // Quite expensive. So only enabled in debug builds.
+    // Used to catch the error that caused issue #51.
+    for I := 0 to High(ScanLines) do
+      for j := 0 to ScanLines[I].Count-1 do
+      begin
+        Assert(ScanLines[I].Segments[j][0].X >= ClipRect.Left);
+        Assert(ScanLines[I].Segments[j][0].X <= ClipRect.Right);
+        Assert(ScanLines[I].Segments[j][1].X >= ClipRect.Left);
+        Assert(ScanLines[I].Segments[j][1].X <= ClipRect.Right);
+        Assert(ScanLines[I].Segments[j][0].Y >= ClipRect.Top);
+        Assert(ScanLines[I].Segments[j][0].Y <= ClipRect.Bottom);
+        Assert(ScanLines[I].Segments[j][1].Y >= ClipRect.Top);
+        Assert(ScanLines[I].Segments[j][1].Y <= ClipRect.Bottom);
+      end;
+{$endif DEBUG}
 
     CX1 := Round(ClipRect.Left);
     CX2 := -Round(-ClipRect.Right) - 1;
