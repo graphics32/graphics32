@@ -29,6 +29,8 @@ unit GR32_Backends_LCL_Gtk;
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Anders Melander <anders@melander.dk>
+ * Fathony Luthfillah (x2nie)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -84,6 +86,7 @@ type
   protected
     // IPaintSupport
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+    procedure DoPaintRect(ABuffer: TBitmap32; ARect: TRect; ACanvas: TCanvas; WholeBits:Boolean);
     procedure ImageNeeded;
     procedure CheckPixmap;
   protected
@@ -308,15 +311,58 @@ end;
 procedure TLCLBackend.DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList;
   ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
 var
-  P: TPoint;
+  i: Integer;
+begin
+  if AInvalidRects.Count > 0 then
+    for i := 0 to AInvalidRects.Count - 1 do
+      DoPaintRect(ABuffer, AInvalidRects[i]^, ACanvas, False)
+  else
+    DoPaintRect(ABuffer, APaintBox.GetViewportRect, ACanvas, True);
+end;
+
+procedure TLCLBackend.DoPaintRect(ABuffer: TBitmap32; ARect: TRect;
+  ACanvas: TCanvas; WholeBits: Boolean);
+var
+  P: TPoint; 
+  i, rW,rH: integer;
+  SrcP, DstP: PColor32;
+  RectBits: PColor32Array;
 begin
   P := TGtkDeviceContext(ACanvas.Handle).Offset;
 
+  if WholeBits then
+  begin
+    RectBits :=  ABuffer.Bits;
+    // We can't assume that TCustomPaintBox32.Width = its.Buffer.Width,
+    // because by default it has addtional 40 pixel width of its.BufferOversize.
+    // So, since we are using Bits here, we shouldn't rely on PaintBox.ClientRect.width
+    rW := ABuffer.Width;
+    rH := ABuffer.Height;
+  end
+  else
+  begin
+    GetMem(RectBits, ARect.Width * ARect.Height * SizeOf(TColor32) );
+    DstP := PColor32(@RectBits[0]);
+    for i := 0 to ARect.Height - 1 do
+    begin
+      SrcP := ABuffer.PixelPtr[ARect.Left, ARect.Top];
+      MoveLongword(SrcP^, DstP^, Arect.Width);
+      inc(DstP, Arect.Width);
+    end;
+    rW := ARect.Width;
+    rH := ARect.Height;
+    inc(P.X, ARect.Left);
+    inc(P.Y, ARect.Top);
+  end;
+
   gdk_draw_rgb_32_image(TGtkDeviceContext(ACanvas.Handle).Drawable,
-    TGtkDeviceContext(ACanvas.Handle).GC, P.X, P.Y,
-    ABuffer.Width, ABuffer.Height,
-    GDK_RGB_DITHER_NONE, pguchar(ABuffer.Bits), ABuffer.Width * SizeOf(TColor32)
+    TGtkDeviceContext(ACanvas.Handle).GC, 
+    P.X, P.Y, rW, rH,
+    GDK_RGB_DITHER_NONE, pguchar(RectBits), rW * SizeOf(TColor32)
   );
+
+  if RectBits <> ABuffer.Bits then
+    FreeMem(RectBits);
 end;
 
 
@@ -329,12 +375,16 @@ end;
 
 procedure TLCLBackend.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 begin
+  if FOwner.Empty then Exit;
   NeedCanvas;
 
-  StretchMaskBlt(FBitmap.Canvas.Handle, DstRect.Left, DstRect.Top,
-    DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
-    hSrc, SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left,
-    SrcRect.Bottom - SrcRect.Top, 0, 0, 0, FBitmap.Canvas.CopyMode);
+  if not FOwner.MeasuringMode then
+    StretchMaskBlt(FBitmap.Canvas.Handle, DstRect.Left, DstRect.Top,
+      DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
+      hSrc, SrcRect.Left, SrcRect.Top, SrcRect.Right - SrcRect.Left,
+      SrcRect.Bottom - SrcRect.Top, 0, 0, 0, FBitmap.Canvas.CopyMode);
+
+  FOwner.Changed(DstRect);
 end;
 
 procedure TLCLBackend.DrawTo(hDst: HDC; DstX, DstY: Integer);
