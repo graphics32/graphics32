@@ -42,10 +42,13 @@ interface
 {$I GR32.inc}
 
 uses
+{$if defined(WINDOWS)}
+  Windows,
+{$ifend}
 {$IFDEF FPC}
   LCLIntf, LCLType, LMessages, Types,
 {$ELSE}
-  Windows, Messages, {$IFDEF COMPILERXE2_UP}Types,{$ENDIF}
+  Messages, {$IFDEF COMPILERXE2_UP}Types,{$ENDIF}
 {$ENDIF}
   Graphics, Controls, Forms,
   Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_Containers,
@@ -108,6 +111,7 @@ type
     FBufferValid: Boolean;
     FRepaintMode: TRepaintMode;
     FInvalidRects: TRectList;
+    FUpdateRects: TRectList;
     FForceFullRepaint: Boolean;
     FRepaintOptimizer: TCustomRepaintOptimizer;
     FOptions: TPaintBoxOptions;
@@ -125,7 +129,7 @@ type
 {$ELSE}
     procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure WMGetDlgCode(var Msg: TWmGetDlgCode); message WM_GETDLGCODE;
-    procedure WMPaint(var Message: TMessage); message WM_PAINT;
+    procedure WMPaint(var Message: TWMPaint); message WM_PAINT;
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
 {$ENDIF}
@@ -147,6 +151,7 @@ type
     property  RepaintOptimizer: TCustomRepaintOptimizer read FRepaintOptimizer;
     property  BufferValid: Boolean read FBufferValid write FBufferValid;
     property  InvalidRects: TRectList read FInvalidRects;
+    property  UpdateRects: TRectList read FUpdateRects;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -877,6 +882,7 @@ begin
   FBufferOversize := 40;
   FForceFullRepaint := True;
   FInvalidRects := TRectList.Create;
+  FUpdateRects := TRectList.Create;
   FRepaintOptimizer := DefaultRepaintOptimizerClass.Create(Buffer, InvalidRects);
 
   { Setting a initial size here will cause the control to crash under LCL }
@@ -889,6 +895,7 @@ destructor TCustomPaintBox32.Destroy;
 begin
   FRepaintOptimizer.Free;
   FInvalidRects.Free;
+  UpdateRects.Free;
   FBuffer.Free;
   inherited;
 end;
@@ -997,7 +1004,13 @@ end;
 procedure TCustomPaintBox32.Invalidate;
 begin
   FBufferValid := False;
+{$if defined(xCOMPILERFPC) and defined(WINDOWS)}
+  // LCL TWinControl.Invalidate doesn't take csOpaque in account when calling InvalidateRect.
+  if (HandleAllocated) then
+    InvalidateRect(Handle, nil, not(csOpaque in ControlStyle));
+{$else}
   inherited;
+{$ifend}
 end;
 
 procedure TCustomPaintBox32.ForceFullInvalidate;
@@ -1058,10 +1071,18 @@ begin
 
   FBuffer.Lock;
   try
-    PaintSupport.DoPaint(FBuffer, FInvalidRects, Canvas, Self);
+    PaintSupport.DoPaint(FBuffer, FUpdateRects, Canvas, Self);
   finally
     FBuffer.Unlock;
   end;
+
+{-$define DEBUG_UPDATERECTS}
+{$ifdef DEBUG_UPDATERECTS} // See issue # 202
+  Canvas.Brush.Color := clRed;
+  Canvas.Brush.Style := bsSolid;
+  for var i := 0 to FUpdateRects.Count-1 do
+    Canvas.FrameRect(FUpdateRects[i]^);
+{$endif DEBUG_UPDATERECTS}
 
   DoPaintGDIOverlay;
 
@@ -1170,27 +1191,97 @@ begin
     Msg.Result:= Msg.Result and not DLGC_WANTARROWS;
 end;
 
-procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMPaint{$ELSE}TMessage{$ENDIF});
+procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMPaint{$ELSE}TWMPaint{$ENDIF});
+var
+  RegionType: integer;
+  UpdateRegion: HRGN;
+  RegionSize: integer;
+  RegionData: PRgnData;
+  r: TRect;
+  i: integer;
+  Tiles: TMicroTiles;
 begin
+  // Update the InvalidRects
   if CustomRepaint then
-  begin
-    if InvalidRectsAvailable then
-      // BeginPaint deeper might set invalid clipping, so we call Paint here
-      // to force repaint of our invalid rects...
-    {$IFNDEF FPC}
-      Paint
-    {$ENDIF}
+    DoPrepareInvalidRects;
+
+  // Get a list of update rects
+  UpdateRegion := CreateRectRgn(0,0,0,0);
+  try
+    RegionType := GetUpdateRgn(Handle, UpdateRegion, False);
+
+    case RegionType of
+
+      COMPLEXREGION:
+        begin
+
+          RegionSize := GetRegionData(UpdateRegion, 0, nil);
+
+          if (RegionSize > 0) then
+          begin
+            GetMem(RegionData, RegionSize);
+            try
+
+              RegionSize := GetRegionData(UpdateRegion, RegionSize, RegionData);
+              Assert(RegionSize <> 0);
+
+              // Final count is known so set capacity to avoid reallocation
+              FUpdateRects.Capacity := Max(FUpdateRects.Capacity, FUpdateRects.Count + FInvalidRects.Count + integer(RegionData.rdh.nCount));
+
+              for i := 0 to RegionData.rdh.nCount-1 do
+                FUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
+
+            finally
+              FreeMem(RegionData);
+            end;
+          end;
+        end;
+
+      NULLREGION:
+        begin
+          FUpdateRects.Capacity := Max(FUpdateRects.Capacity, FUpdateRects.Count + FInvalidRects.Count + 1);
+          FUpdateRects.Add(ClientRect);
+        end;
+
+      SIMPLEREGION:
+        begin
+          FUpdateRects.Capacity := Max(FUpdateRects.Capacity, FUpdateRects.Count + FInvalidRects.Count + 1);
+          GetUpdateRect(Handle, r, False);
+          FUpdateRects.Add(r);
+        end
+
     else
-      // no invalid rects available? Invalidate the whole client area
-      InvalidateRect(Handle, nil, False);
+      // Error - Ignore it
+    end;
+  finally
+    DeleteObject(UpdateRegion);
   end;
 
-  {$IFDEF FPC}
+  // Merge FInvalidRects into FUpdateRects
+  for i := 0 to FInvalidRects.Count-1 do
+    FUpdateRects.Add(FInvalidRects[i]^);
+
+  // Consolidate potentially overlapping areas into as few separate
+  // non-overlapping areas as possible.
+{$define CONSOLIDATE_UPDATERECTS}
+{$ifdef CONSOLIDATE_UPDATERECTS} // See issue # 202
+  MicroTilesCreate(Tiles);
+  MicroTilesSetSize(Tiles, ClientRect);
+  for i := 0 to FUpdateRects.Count-1 do
+    MicroTilesAddRect(Tiles, FUpdateRects[i]^, True);
+  FUpdateRects.Count := 0;
+  MicroTilesCalcRects(Tiles, FUpdateRects, False, True);
+  MicroTilesDestroy(Tiles);
+{$endif CONSOLIDATE_UPDATERECTS}
+
+{$IFDEF FPC}
   { On FPC we need to specify the name of the ancestor here }
   inherited WMPaint(Message);
-  {$ELSE}
+{$ELSE}
   inherited;
-  {$ENDIF}
+{$ENDIF}
+
+  FUpdateRects.Count := 0;
 end;
 
 procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject;
