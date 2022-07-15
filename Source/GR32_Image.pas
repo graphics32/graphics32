@@ -1193,11 +1193,8 @@ end;
 
 procedure TCustomPaintBox32.WMPaint(var Message: {$IFDEF FPC}TLMPaint{$ELSE}TWMPaint{$ENDIF});
 var
-  RegionType: integer;
-  UpdateRegion: HRGN;
-  RegionSize: integer;
-  RegionData: PRgnData;
-  r: TRect;
+  FullRepaint: boolean;
+  UpdateRectSupport: IUpdateRectSupport;
   i: integer;
   Tiles: TMicroTiles;
 begin
@@ -1206,73 +1203,36 @@ begin
     DoPrepareInvalidRects;
 
   // Get a list of update rects
-  UpdateRegion := CreateRectRgn(0,0,0,0);
-  try
-    RegionType := GetUpdateRgn(Handle, UpdateRegion, False);
+  if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
+  begin
+    FullRepaint := False;
+    UpdateRectSupport.GetUpdateRects(Self, FUpdateRects, FInvalidRects.Count, FullRepaint);
+  end else
+    FullRepaint := True;
 
-    case RegionType of
+  if (not FullRepaint) then
+  begin
+    // Merge FInvalidRects into FUpdateRects
+    for i := 0 to FInvalidRects.Count-1 do
+      FUpdateRects.Add(FInvalidRects[i]^);
 
-      COMPLEXREGION:
-        begin
-
-          RegionSize := GetRegionData(UpdateRegion, 0, nil);
-
-          if (RegionSize > 0) then
-          begin
-            GetMem(RegionData, RegionSize);
-            try
-
-              RegionSize := GetRegionData(UpdateRegion, RegionSize, RegionData);
-              Assert(RegionSize <> 0);
-
-              // Final count is known so set capacity to avoid reallocation
-              FUpdateRects.Capacity := Max(FUpdateRects.Capacity, FUpdateRects.Count + FInvalidRects.Count + integer(RegionData.rdh.nCount));
-
-              for i := 0 to RegionData.rdh.nCount-1 do
-                FUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
-
-            finally
-              FreeMem(RegionData);
-            end;
-          end;
-        end;
-
-      NULLREGION:
-        begin
-          FUpdateRects.Capacity := Max(FUpdateRects.Capacity, FUpdateRects.Count + FInvalidRects.Count + 1);
-          FUpdateRects.Add(ClientRect);
-        end;
-
-      SIMPLEREGION:
-        begin
-          FUpdateRects.Capacity := Max(FUpdateRects.Capacity, FUpdateRects.Count + FInvalidRects.Count + 1);
-          GetUpdateRect(Handle, r, False);
-          FUpdateRects.Add(r);
-        end
-
-    else
-      // Error - Ignore it
-    end;
-  finally
-    DeleteObject(UpdateRegion);
-  end;
-
-  // Merge FInvalidRects into FUpdateRects
-  for i := 0 to FInvalidRects.Count-1 do
-    FUpdateRects.Add(FInvalidRects[i]^);
-
-  // Consolidate potentially overlapping areas into as few separate
-  // non-overlapping areas as possible.
+    // Consolidate potentially overlapping areas into as few separate
+    // non-overlapping areas as possible.
 {$define CONSOLIDATE_UPDATERECTS}
 {$ifdef CONSOLIDATE_UPDATERECTS} // See issue # 202
-  MicroTilesCreate(Tiles);
-  MicroTilesSetSize(Tiles, ClientRect);
-  for i := 0 to FUpdateRects.Count-1 do
-    MicroTilesAddRect(Tiles, FUpdateRects[i]^, True);
-  FUpdateRects.Count := 0;
-  MicroTilesCalcRects(Tiles, FUpdateRects, False, True);
-  MicroTilesDestroy(Tiles);
+    MicroTilesCreate(Tiles);
+    MicroTilesSetSize(Tiles, ClientRect);
+    for i := 0 to FUpdateRects.Count-1 do
+      MicroTilesAddRect(Tiles, FUpdateRects[i]^, True);
+    FUpdateRects.Count := 0;
+    MicroTilesCalcRects(Tiles, FUpdateRects, False, True);
+    MicroTilesDestroy(Tiles);
 {$endif CONSOLIDATE_UPDATERECTS}
+  end;
+
+  FullRepaint := FullRepaint or ((FUpdateRects.Count = 1) and (GR32.EqualRect(FUpdateRects[0]^, ClientRect)));
+  if (FullRepaint) then
+    FUpdateRects.Count := 0;
 
 {$IFDEF FPC}
   { On FPC we need to specify the name of the ancestor here }

@@ -43,13 +43,18 @@ uses
 {$ELSE}
   Windows, Messages, Controls, Graphics,
 {$ENDIF}
-  Classes, SysUtils, GR32, GR32_Containers, GR32_Image, GR32_Paths;
+  Classes,
+  SysUtils,
+  GR32,
+  GR32_Containers,
+  GR32_Image,
+  GR32_Paths;
 
 type
   EBackend = class(Exception);
 
   ITextSupport = interface(IUnknown)
-  ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']
+    ['{225997CC-958A-423E-8B60-9EDE0D3B53B5}']
     procedure Textout(X, Y: Integer; const Text: String); overload;
     procedure Textout(X, Y: Integer; const ClipRect: TRect; const Text: String); overload;
     procedure Textout(var DstRect: TRect; const Flags: Cardinal; const Text: String); overload;
@@ -57,7 +62,7 @@ type
   end;
 
   IFontSupport = interface(IUnknown)
-  ['{67C73044-1EFF-4FDE-AEA2-56BFADA50A48}']
+    ['{67C73044-1EFF-4FDE-AEA2-56BFADA50A48}']
     function GetOnFontChange: TNotifyEvent;
     procedure SetOnFontChange(Handler: TNotifyEvent);
     function GetFont: TFont;
@@ -69,14 +74,14 @@ type
   end;
 
   ITextToPathSupport = interface(IUnknown)
-  ['{6C4037E4-FF4D-4EE2-9C20-B9DB9C64B42D}']
+    ['{6C4037E4-FF4D-4EE2-9C20-B9DB9C64B42D}']
     procedure TextToPath(Path: TCustomPath; const X, Y: TFloat; const Text: string); overload;
     procedure TextToPath(Path: TCustomPath; const DstRect: TFloatRect; const Text: string; Flags: Cardinal); overload;
     function MeasureText(const DstRect: TFloatRect; const Text: string; Flags: Cardinal): TFloatRect;
   end;
 
   ICanvasSupport = interface(IUnknown)
-  ['{5ACFEEC7-0123-4AD8-8AE6-145718438E01}']
+    ['{5ACFEEC7-0123-4AD8-8AE6-145718438E01}']
     function GetCanvasChange: TNotifyEvent;
     procedure SetCanvasChange(Handler: TNotifyEvent);
     function GetCanvas: TCanvas;
@@ -89,12 +94,12 @@ type
   end;
 
   IInteroperabilitySupport = interface(IUnknown)
-  ['{B86229E8-228F-4FDA-A47D-2E9BD9F78D1E}']
+    ['{B86229E8-228F-4FDA-A47D-2E9BD9F78D1E}']
     function CopyFrom(Graphic: TGraphic): Boolean; overload;
   end;
 
   IDeviceContextSupport = interface(IUnknown)
-  ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
+    ['{DD1109DA-4019-4A5C-A450-3631A73CF288}']
     function GetHandle: HDC;
 
     procedure Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
@@ -105,7 +110,7 @@ type
   end;
 
   IBitmapContextSupport = interface(IUnknown)
-  ['{DF0F9475-BA13-4C6B-81C3-D138624C4D08}']
+    ['{DF0F9475-BA13-4C6B-81C3-D138624C4D08}']
     function GetBitmapInfo: TBitmapInfo;
     function GetBitmapHandle: THandle;
 
@@ -114,10 +119,15 @@ type
   end;
 
   IPaintSupport = interface(IUnknown)
-  ['{CE64DBEE-C4A9-4E8E-ABCA-1B1FD6F45924}']
+    ['{CE64DBEE-C4A9-4E8E-ABCA-1B1FD6F45924}']
     procedure ImageNeeded;
     procedure CheckPixmap;
     procedure DoPaint(ABuffer: TBitmap32; AInvalidRects: TRectList; ACanvas: TCanvas; APaintBox: TCustomPaintBox32);
+  end;
+
+  IUpdateRectSupport = interface(IUnknown)
+    ['{BC19CD02-0ACB-4545-A65A-1317C8E9E7F5}']
+    procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 
   TRequireOperatorMode = (romAnd, romOr);

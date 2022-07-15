@@ -48,9 +48,17 @@ type
   { This backend uses the LCL to manage and provide the buffer and additional
     graphics sub system features. The backing buffer is kept in memory. }
 
-  TLCLBackend = class(TCustomBackend, IPaintSupport, IBitmapContextSupport,
-    IDeviceContextSupport, ITextSupport, IFontSupport, ITextToPathSupport,
-    ICanvasSupport, IInteroperabilitySupport)
+  TLCLBackend = class(TCustomBackend,
+      IPaintSupport,
+      IBitmapContextSupport,
+      IDeviceContextSupport,
+      ITextSupport,
+      IFontSupport,
+      ITextToPathSupport,
+      ICanvasSupport,
+      IInteroperabilitySupport,
+      IUpdateRectSupport
+    )
   private
     procedure FontChangedHandler(Sender: TObject);
     procedure CanvasChangedHandler(Sender: TObject);
@@ -136,6 +144,9 @@ type
 
     property Canvas: TCanvas read GetCanvas;
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
+
+    { IUpdateRectSupport }
+    procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 
   { TLCLGDIMMFBackend }
@@ -319,6 +330,69 @@ end;
 function TLCLBackend.GetOnFontChange: TNotifyEvent;
 begin
   Result := FOnFontChange;
+end;
+
+procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
+var
+  RegionType: integer;
+  UpdateRegion: HRGN;
+  RegionSize: integer;
+  RegionData: PRgnData;
+  r: TRect;
+  i: integer;
+begin
+  UpdateRegion := CreateRectRgn(0,0,0,0);
+  try
+    RegionType := GetUpdateRgn(AControl.Handle, UpdateRegion, False);
+
+    case RegionType of
+
+      COMPLEXREGION:
+        begin
+          RegionSize := GetRegionData(UpdateRegion, 0, nil);
+
+          if (RegionSize > 0) then
+          begin
+            GetMem(RegionData, RegionSize);
+            try
+
+              RegionSize := GetRegionData(UpdateRegion, RegionSize, RegionData);
+              Assert(RegionSize <> 0);
+
+              // Final count is known so set capacity to avoid reallocation
+              AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + integer(RegionData.rdh.nCount));
+
+              for i := 0 to RegionData.rdh.nCount-1 do
+                AUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
+
+            finally
+              FreeMem(RegionData);
+            end;
+          end;
+        end;
+
+      NULLREGION:
+        AFullUpdate := True;
+
+      SIMPLEREGION:
+        begin
+          GetUpdateRect(AControl.Handle, r, False);
+          if (GR32.EqualRect(r, FOwner.BoundsRect)) then
+            AFullUpdate := True
+          else
+          begin
+            AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + 1);
+            AUpdateRects.Add(r);
+          end;
+        end
+
+    else
+      // Error - Ignore it
+      AFullUpdate := True
+    end;
+  finally
+    DeleteObject(UpdateRegion);
+  end;
 end;
 
 function TLCLBackend.GetFont: TFont;
