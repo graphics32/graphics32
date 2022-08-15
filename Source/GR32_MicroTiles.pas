@@ -1452,17 +1452,14 @@ begin
       FInvalidLayers.Clear;
     end;
 
+    // Create union of global invalid tiles and forced invalid tiles
+    MicroTilesUnion(FInvalidTiles, FForcedInvalidTiles);
+    // Calculate optimized rectangles from combined tiles
+    MicroTilesCalcRects(FInvalidTiles, InvalidRects, False, UseWholeTiles);
+
 {$IFDEF MICROTILES_DEBUGDRAW}
-    MicroTilesCalcRects(FInvalidTiles, InvalidRects, False, UseWholeTiles);
-    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects, False, UseWholeTiles);
     MicroTilesCopy(FDebugMicroTiles, FInvalidTiles);
-    MicroTilesUnion(FDebugMicroTiles, FForcedInvalidTiles);
     FDebugWholeTiles := UseWholeTiles;
-{$ELSE}
-    // Calculate optimized rectangles from global invalid tiles
-    MicroTilesCalcRects(FInvalidTiles, InvalidRects, False, UseWholeTiles);
-    // Calculate optimized rectangles from forced invalid tiles
-    MicroTilesCalcRects(FForcedInvalidTiles, InvalidRects, False, UseWholeTiles);
 {$ENDIF}
   end;
 
