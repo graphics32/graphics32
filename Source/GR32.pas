@@ -2469,7 +2469,8 @@ end;
 
 procedure TNotifiablePersistent.Changed;
 begin
-  if (FUpdateCount = 0) and Assigned(FOnChange) then FOnChange(Self);
+  if (FUpdateCount = 0) and Assigned(FOnChange) then
+    FOnChange(Self);
 end;
 
 procedure TNotifiablePersistent.EndUpdate;

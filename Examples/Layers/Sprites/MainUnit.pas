@@ -47,6 +47,10 @@ uses
 const
   MAX_RUNS = 3;
 
+// Note: The tiled background is scaled on purpose in order to make
+// it expensive to draw. This exacerbate the penalty of drawing too
+// much and thus better demonstrate the gains offered by the redraw
+// optimizations.
 type
   TMainForm = class(TForm)
     BtnAdd: TButton;
@@ -138,10 +142,9 @@ end;
 
 procedure TMainForm.AddLayers(Count: Integer);
 var
-  X: Integer;
-  ALayer: TBitmapLayer;
+  Layer: TBitmapLayer;
   L: TFloatRect;
-  I: Integer;
+  i: Integer;
 begin
   TimerFPS.Enabled := False;
 
@@ -149,30 +152,27 @@ begin
   RandSeed := LastSeed;
 
   Image32.BeginUpdate;
-  for X := 1 to Count do
+  for i := 1 to Count do
   begin
     // create a new layer...
-    ALayer := TBitmapLayer.Create(Image32.Layers);
-    with ALayer do
-    begin
-      Bitmap := BitmapList.Bitmaps[System.Random(BitmapList.Bitmaps.Count)].Bitmap;
-      Bitmap.DrawMode := dmBlend;
-      Bitmap.MasterAlpha := System.Random(255);
+    Layer := TBitmapLayer.Create(Image32.Layers);
 
-      // put it somethere
-      L.Left := System.Random(Image32.Width);
-      L.Top := System.Random(Image32.Height);
-      L.Right := L.Left + Bitmap.Width;
-      L.Bottom := L.Top + Bitmap.Height;
-      ALayer.Location := L;
+    Layer.Bitmap := BitmapList.Bitmaps[System.Random(BitmapList.Bitmaps.Count)].Bitmap;
+    Layer.Bitmap.DrawMode := dmBlend;
+    Layer.Bitmap.MasterAlpha := System.Random(255);
 
-      I := Length(Velocities);
-      SetLength(Velocities, I + 1);
-      Velocities[I] := FloatPoint(Random - 0.5, Random - 0.5);
-    end;
+    // put it somethere
+    L.Left := System.Random(Image32.Width);
+    L.Top := System.Random(Image32.Height);
+    L.Right := L.Left + Layer.Bitmap.Width;
+    L.Bottom := L.Top + Layer.Bitmap.Height;
+    Layer.Location := L;
+
+    SetLength(Velocities, Length(Velocities) + 1);
+    Velocities[High(Velocities)] := FloatPoint(Random - 0.5, Random - 0.5);
   end;
   Image32.EndUpdate;
-  Image32.Changed;
+
   EdtLayerCount.Text := IntToStr(Image32.Layers.Count) + ' layers';
 
   // save current seed, so we can continue at this seed later...
@@ -184,35 +184,39 @@ end;
 
 procedure TMainForm.IdleHandler(Sender: TObject; var Done: Boolean);
 var
-  I: Integer;
+  i: Integer;
   R: TFloatRect;
+  Layer: TBitmapLayer;
 begin
-  if Image32.Layers.Count = 0 then Exit;
+  if Image32.Layers.Count = 0 then
+    Exit;
+
   Image32.BeginUpdate;
-  for I := 0 to Image32.Layers.Count - 1 do
+  for i := 0 to Image32.Layers.Count - 1 do
   begin
-    with TBitmapLayer(Image32.Layers[I]) do
+    Layer := TBitmapLayer(Image32.Layers[i]);
+
+    Layer.Bitmap.MasterAlpha := (Layer.Bitmap.MasterAlpha + 1) mod 256;
+
+    R := Layer.Location;
+    with Velocities[i] do
     begin
-      Bitmap.MasterAlpha := (Bitmap.MasterAlpha + 1) mod 256;
-      R := Location;
-      with Velocities[I] do
-      begin
-        GR32.OffsetRect(R, X, Y);
-        X := X + (Random - 0.5) * 0.9;
-        Y := Y + (Random - 0.5) * 0.9;
-        if (R.Left < 0) and (X < 0) then X := 1;
-        if (R.Top < 0) and (Y < 0) then Y := 1;
-        if (R.Right > Image32.Width) and (X > 0) then X := -1;
-        if (R.Bottom > Image32.Height) and (Y > 0) then Y := -1;
-      end;
-      Location := R;
+      GR32.OffsetRect(R, X, Y);
+      X := X + (Random - 0.5) * 0.9;
+      Y := Y + (Random - 0.5) * 0.9;
+      if (R.Left < 0) and (X < 0) then X := 1;
+      if (R.Top < 0) and (Y < 0) then Y := 1;
+      if (R.Right > Image32.Width) and (X > 0) then X := -1;
+      if (R.Bottom > Image32.Height) and (Y > 0) then Y := -1;
     end;
+    Layer.Location := R;
   end;
   Image32.EndUpdate;
-  Image32.Invalidate;
+
   // because we're doing Invalidate in the IdleHandler and Invalidate has
   // higher priority, we can count the frames here, because we can be sure that
   // the deferred repaint is triggered once this method is exited.
+
   Inc(FramesDrawn);
 end;
 

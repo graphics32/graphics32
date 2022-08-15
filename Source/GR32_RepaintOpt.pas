@@ -43,26 +43,24 @@ uses
 {$ELSE}
   Types, Windows,
 {$ENDIF}
+  Generics.Defaults,
+  Generics.Collections,
   Classes, SysUtils, GR32, GR32_Containers, GR32_Layers;
 
 type
   { TCustomRepaintOptimizer }
-  TCustomRepaintOptimizer = class
+  TCustomRepaintOptimizer = class(TSingletonImplementation)
   private
     FEnabled: Boolean;
-    FLayerCollections: TList;
+    FLayerCollections: TList<TLayerCollection>;
     FInvalidRects: TRectList;
     FBuffer: TBitmap32;
   protected
     function GetEnabled: Boolean; virtual;
     procedure SetEnabled(const Value: Boolean); virtual;
-    property LayerCollections: TList read FLayerCollections write FLayerCollections;
+    property LayerCollections: TList<TLayerCollection> read FLayerCollections;
     property Buffer: TBitmap32 read FBuffer write FBuffer;
     property InvalidRects: TRectList read FInvalidRects write FInvalidRects;
-
-    // LayerCollection handler
-    procedure LayerCollectionNotifyHandler(Sender: TLayerCollection;
-      Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer); virtual; abstract;
   public
     constructor Create(Buffer: TBitmap32; InvalidRects: TRectList); virtual;
     destructor Destroy; override;
@@ -80,8 +78,6 @@ type
     procedure PerformOptimization; virtual; abstract;
 
     // handlers
-    procedure AreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal); virtual; abstract;
-    procedure LayerUpdateHandler(Sender: TObject; Layer: TCustomLayer); virtual; abstract;
     procedure BufferResizedHandler(const NewWidth, NewHeight: Integer); virtual; abstract;
 
     property Enabled: Boolean read GetEnabled write SetEnabled;
@@ -113,17 +109,17 @@ type
 
 constructor TCustomRepaintOptimizer.Create(Buffer: TBitmap32; InvalidRects: TRectList);
 begin
-  FLayerCollections := TList.Create;
+  inherited Create;
   FInvalidRects := InvalidRects;
   FBuffer := Buffer;
 end;
 
 destructor TCustomRepaintOptimizer.Destroy;
 var
-  I: Integer;
+  i: Integer;
 begin
-  for I := 0 to FLayerCollections.Count - 1 do
-    UnregisterLayerCollection(TLayerCollection(FLayerCollections[I]));
+  for i := FLayerCollections.Count-1 downto 0 do
+    UnregisterLayerCollection(FLayerCollections[i]);
 
   FLayerCollections.Free;
   inherited;
@@ -141,17 +137,23 @@ end;
 
 procedure TCustomRepaintOptimizer.RegisterLayerCollection(Layers: TLayerCollection);
 begin
-  if FLayerCollections.IndexOf(Layers) = -1 then
+  if (FLayerCollections = nil) then
+    FLayerCollections := TList<TLayerCollection>.Create;
+
+  if not FLayerCollections.Contains(Layers) then
   begin
     FLayerCollections.Add(Layers);
-    TLayerCollectionAccess(Layers).OnListNotify := LayerCollectionNotifyHandler;
+    Layers.Subscribe(Self);
   end;
 end;
 
 procedure TCustomRepaintOptimizer.UnregisterLayerCollection(Layers: TLayerCollection);
 begin
-  TLayerCollectionAccess(Layers).OnListNotify := nil;
-  FLayerCollections.Remove(Layers);
+  if (FLayerCollections <> nil) and FLayerCollections.Contains(Layers) then
+  begin
+    Layers.Unsubscribe(Self);
+    FLayerCollections.Remove(Layers);
+  end;
 end;
 
 procedure TCustomRepaintOptimizer.BeginPaint;

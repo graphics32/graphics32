@@ -45,6 +45,7 @@ uses
 {$ELSE}
   Windows, Controls, Graphics, Forms,
 {$ENDIF}
+  Generics.Collections,
   Classes, SysUtils, Math, GR32;
 
 const
@@ -75,6 +76,28 @@ type
   TGetScaleEvent = procedure(Sender: TObject; out ScaleX, ScaleY: TFloat) of object;
   TGetShiftEvent = procedure(Sender: TObject; out ShiftX, ShiftY: TFloat) of object;
 
+  ILayerNotification = interface
+    ['{5549DE7E-778E-4500-9F20-6455EC3BC574}']
+    procedure LayerUpdated(ALayer: TCustomLayer);
+    procedure LayerAreaUpdated(ALayer: TCustomLayer; const AArea: TRect; const AInfo: Cardinal);
+    procedure LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer);
+  end;
+
+  IUpdateRectNotification = interface
+    ['{457C0840-F4C3-48CE-8440-C790CC2CA103}']
+    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+  end;
+
+  ILayerUpdateNotification = interface
+    ['{FE142F0F-D009-4B6A-8874-6F7BF2208E84}']
+    procedure LayerUpdated(ALayer: TCustomLayer);
+  end;
+
+  ILayerListNotification = interface
+    ['{7E8F0FC3-F9B7-4E38-9CF4-5B1A38901849}']
+    procedure LayerListNotify(ALayer: TCustomLayer; AAction: TLayerListNotification; AIndex: Integer);
+  end;
+
   TLayerCollection = class(TPersistent)
   private
     FItems: TList;
@@ -82,6 +105,7 @@ type
     FMouseListener: TCustomLayer;
     FUpdateCount: Integer;
     FOwner: TPersistent;
+    FSubscribers: TList<IInterface>;
     FOnChanging: TNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnGDIUpdate: TNotifyEvent;
@@ -123,6 +147,9 @@ type
   public
     constructor Create(AOwner: TPersistent); virtual;
     destructor Destroy; override;
+
+    procedure Subscribe(const ASubscriber: IInterface);
+    procedure Unsubscribe(const ASubscriber: IInterface);
 
     function  Add(ItemClass: TLayerClass): TCustomLayer;
     procedure Assign(Source: TPersistent); override;
@@ -542,6 +569,7 @@ begin
   if Assigned(FItems) then
     Clear;
   FItems.Free;
+  FSubscribers.Free;
   inherited;
 end;
 
@@ -694,7 +722,15 @@ begin
 end;
 
 procedure TLayerCollection.Notify(Action: TLayerListNotification; Layer: TCustomLayer; Index: Integer);
+var
+  i: integer;
+  LayerListNotification: ILayerListNotification;
 begin
+  if (FSubscribers <> nil) then
+    for i := FSubscribers.Count-1 downto 0 do
+      if (Supports(FSubscribers[i], ILayerListNotification, LayerListNotification)) then
+        LayerListNotification.LayerListNotify(Layer, Action, Index);
+
   if Assigned(FOnListNotify) then
     FOnListNotify(Self, Action, Layer, Index);
 end;
@@ -739,17 +775,49 @@ begin
   end;
 end;
 
-procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
+procedure TLayerCollection.Subscribe(const ASubscriber: IInterface);
 begin
+  if (FSubscribers = nil) then
+    FSubscribers := TList<IInterface>.Create;
+
+  FSubscribers.Add(ASubscriber);
+end;
+
+procedure TLayerCollection.Unsubscribe(const ASubscriber: IInterface);
+begin
+  if (FSubscribers <> nil) then
+    FSubscribers.Remove(ASubscriber);
+end;
+
+procedure TLayerCollection.DoUpdateArea(const Rect: TRect);
+var
+  i: integer;
+  UpdateRectNotification: IUpdateRectNotification;
+begin
+  if (FSubscribers <> nil) then
+    for i := FSubscribers.Count-1 downto 0 do
+      if (Supports(FSubscribers[i], IUpdateRectNotification, UpdateRectNotification)) then
+        UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
+
   if Assigned(FOnAreaUpdated) then
     FOnAreaUpdated(Self, Rect, AREAINFO_RECT);
+
   Changed;
 end;
 
 procedure TLayerCollection.DoUpdateLayer(Layer: TCustomLayer);
+var
+  i: integer;
+  LayerUpdateNotification: ILayerUpdateNotification;
 begin
+  if (FSubscribers <> nil) then
+    for i := FSubscribers.Count-1 downto 0 do
+      if (Supports(FSubscribers[i], ILayerUpdateNotification, LayerUpdateNotification)) then
+        LayerUpdateNotification.LayerUpdated(Layer);
+
   if Assigned(FOnLayerUpdated) then
     FOnLayerUpdated(Self, Layer);
+
   Changed;
 end;
 
@@ -856,13 +924,15 @@ end;
 
 procedure TCustomLayer.Changed;
 begin
-  if UpdateCount > 0 then Exit;
-  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if UpdateCount > 0 then
+    Exit;
+  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update;
     if Visible then
       FLayerCollection.Changed
-    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+    else
+    if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
 
     inherited;
@@ -871,8 +941,9 @@ end;
 
 procedure TCustomLayer.Changed(const Rect: TRect);
 begin
-  if UpdateCount > 0 then Exit;
-  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if UpdateCount > 0 then
+    Exit;
+  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update(Rect);
     if Visible then
@@ -886,9 +957,9 @@ end;
 
 procedure TCustomLayer.Changing;
 begin
-  if UpdateCount > 0 then Exit;
-  if Visible and Assigned(FLayerCollection) and
-    ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if UpdateCount > 0 then
+    Exit;
+  if Visible and (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
     FLayerCollection.Changing;
 end;
 
@@ -920,7 +991,7 @@ end;
 
 function TCustomLayer.GetIndex: Integer;
 begin
-  if Assigned(FLayerCollection) then
+  if (FLayerCollection <> nil) then
     Result := FLayerCollection.FItems.IndexOf(Self)
   else
     Result := -1;
@@ -1052,7 +1123,7 @@ procedure TCustomLayer.SetLayerCollection(Value: TLayerCollection);
 begin
   if FLayerCollection <> Value then
   begin
-    if Assigned(FLayerCollection) then
+    if (FLayerCollection <> nil) then
     begin
       if FLayerCollection.MouseListener = Self then
         FLayerCollection.MouseListener := nil;
@@ -1096,14 +1167,13 @@ end;
 
 procedure TCustomLayer.Update;
 begin
-  if Assigned(FLayerCollection) and
-    (Visible or (LayerOptions and LOB_FORCE_UPDATE <> 0)) then
+  if (FLayerCollection <> nil) and (Visible or (LayerOptions and LOB_FORCE_UPDATE <> 0)) then
     FLayerCollection.DoUpdateLayer(Self);
 end;
 
 procedure TCustomLayer.Update(const Rect: TRect);
 begin
-  if Assigned(FLayerCollection) then
+  if (FLayerCollection <> nil) then
     FLayerCollection.DoUpdateArea(Rect);
 end;
 
@@ -1173,7 +1243,7 @@ function TPositionedLayer.GetAdjustedRect(const R: TFloatRect): TFloatRect;
 var
   ScaleX, ScaleY, ShiftX, ShiftY: TFloat;
 begin
-  if Scaled and Assigned(FLayerCollection) then
+  if Scaled and (FLayerCollection <> nil) then
   begin
     FLayerCollection.GetViewportShift(ShiftX, ShiftY);
     FLayerCollection.GetViewportScale(ScaleX, ScaleY);

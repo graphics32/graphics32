@@ -39,6 +39,10 @@ unit GR32_Image;
 
 interface
 
+// Define CONSOLIDATE_UPDATERECTS to consolidate potentially overlapping
+// update areas into as few separate non-overlapping areas as possible.
+{$define CONSOLIDATE_UPDATERECTS}
+
 {$I GR32.inc}
 
 uses
@@ -134,6 +138,7 @@ type
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
 {$ENDIF}
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+    procedure OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
     function  CustomRepaint: Boolean; virtual;
@@ -356,7 +361,7 @@ type
     property Animate: boolean read FAnimate write FAnimate default False;
   end;
 
-  TCustomImage32 = class(TCustomPaintBox32)
+  TCustomImage32 = class(TCustomPaintBox32, IUpdateRectNotification)
   private
     FBitmap: TBitmap32;
     FBitmapAlign: TBitmapAlign;
@@ -443,6 +448,9 @@ type
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
     property UpdateCount: Integer read FUpdateCount;
+  protected
+    // IUpdateRectNotification
+    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -1218,7 +1226,6 @@ begin
 
     // Consolidate potentially overlapping areas into as few separate
     // non-overlapping areas as possible.
-{$define CONSOLIDATE_UPDATERECTS}
 {$ifdef CONSOLIDATE_UPDATERECTS} // See issue # 202
     MicroTilesCreate(Tiles);
     MicroTilesSetSize(Tiles, ClientRect);
@@ -1252,24 +1259,34 @@ begin
     Repaint;
 end;
 
+procedure TCustomPaintBox32.OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+var
+  UpdateRectNotification: IUpdateRectNotification;
+begin
+  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+    UpdateRectNotification.AreaUpdated(Area, Info);
+end;
+
 procedure TCustomPaintBox32.SetRepaintMode(const Value: TRepaintMode);
 begin
-  if Assigned(FRepaintOptimizer) then
-  begin
-    // setup event handler on change of area
-    if (Value = rmOptimizer) and not(Self is TCustomImage32) then
-      FBuffer.OnAreaChanged := FRepaintOptimizer.AreaUpdateHandler
-    else
-    if (Value = rmDirect) then
-      FBuffer.OnAreaChanged := DirectAreaUpdateHandler
-    else
-      FBuffer.OnAreaChanged := nil;
+  if (FRepaintOptimizer = nil) then
+    exit;
 
-    FRepaintOptimizer.Enabled := Value = rmOptimizer;
+  // setup event handler on change of area
+  FBuffer.OnAreaChanged := nil;
+  case Value of
+    rmOptimizer:
+      if not(Self is TCustomImage32) then
+        FBuffer.OnAreaChanged := OptimizedAreaUpdateHandler;
 
-    FRepaintMode := Value;
-    Invalidate;
+    rmDirect:
+      FBuffer.OnAreaChanged := DirectAreaUpdateHandler;
   end;
+
+  FRepaintOptimizer.Enabled := (Value = rmOptimizer);
+
+  FRepaintMode := Value;
+  Invalidate;
 end;
 
 
@@ -1508,6 +1525,7 @@ begin
   FBitmap.OnResize := BitmapResizeHandler;
 
   FLayers := CreateLayerCollection;
+  FLayers.Subscribe(Self);
 
   FRepaintOptimizer.RegisterLayerCollection(FLayers);
   RepaintMode := rmFull;
@@ -1531,6 +1549,7 @@ begin
   BeginUpdate;
   FPaintStages.Free;
   FRepaintOptimizer.UnregisterLayerCollection(FLayers);
+  FLayers.Unsubscribe(Self);
   FLayers.Free;
   FBitmap.Free;
   FBackgroundOptions.Free;
@@ -1552,6 +1571,18 @@ begin
   TLayerCollectionAccess(Result).OnGDIUpdate := LayerCollectionGDIUpdateHandler;
   TLayerCollectionAccess(Result).OnGetViewportScale := LayerCollectionGetViewportScaleHandler;
   TLayerCollectionAccess(Result).OnGetViewportShift := LayerCollectionGetViewportShiftHandler;
+end;
+
+procedure TCustomImage32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+var
+  UpdateRectSupport: IUpdateRectSupport;
+begin
+  if (Supports(Bitmap.Backend, IUpdateRectSupport, UpdateRectSupport)) then
+    UpdateRectSupport.InvalidateRect(Self, AArea)
+  else
+    Invalidate;
+
+  BufferValid := False;
 end;
 
 procedure TCustomImage32.BeginUpdate;
@@ -1637,6 +1668,7 @@ var
   Width, Tx, Ty, I, J: Integer;
   OffsetX, OffsetY: Integer;
   WidthX, WidthY: Integer;
+  UpdateRectNotification: IUpdateRectNotification;
 begin
   if Sender = FBitmap then
   begin
@@ -1694,21 +1726,24 @@ begin
       InflateArea(T, WidthX, WidthY);
     end;
 
-    if FBitmapAlign <> baTile then
-      FRepaintOptimizer.AreaUpdateHandler(Self, T, NewInfo)
-    else
+    if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
     begin
-      with CachedBitmapRect do
+      if FBitmapAlign <> baTile then
+        UpdateRectNotification.AreaUpdated(T, NewInfo)
+      else
       begin
-        Tx := Buffer.Width div Right;
-        Ty := Buffer.Height div Bottom;
-        for J := 0 to Ty do
-          for I := 0 to Tx do
-          begin
-            R := T;
-            GR32.OffsetRect(R, Right * I, Bottom * J);
-            FRepaintOptimizer.AreaUpdateHandler(Self, R, NewInfo);
-          end;
+        with CachedBitmapRect do
+        begin
+          Tx := Buffer.Width div Right;
+          Ty := Buffer.Height div Bottom;
+          for J := 0 to Ty do
+            for I := 0 to Tx do
+            begin
+              R := T;
+              GR32.OffsetRect(R, Right * I, Bottom * J);
+              UpdateRectNotification.AreaUpdated(R, NewInfo);
+            end;
+        end;
       end;
     end;
   end;
@@ -2976,9 +3011,11 @@ begin
 end;
 
 procedure TCustomImage32.Update(const Rect: TRect);
+var
+  UpdateRectNotification: IUpdateRectNotification;
 begin
-  if FRepaintOptimizer.Enabled then
-    FRepaintOptimizer.AreaUpdateHandler(Self, Rect, AREAINFO_RECT);
+  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+    UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
 end;
 
 procedure TCustomImage32.UpdateCache;

@@ -145,6 +145,7 @@ type
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
 
     { IUpdateRectSupport }
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 
@@ -466,6 +467,11 @@ end;
 function TGDIBackend.GetOnFontChange: TNotifyEvent;
 begin
   Result := FOnFontChange;
+end;
+
+procedure TGDIBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+begin
+  Windows.InvalidateRect(AControl.Handle, @ARect, False);
 end;
 
 procedure TGDIBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);

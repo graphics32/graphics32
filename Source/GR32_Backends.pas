@@ -127,6 +127,7 @@ type
 
   IUpdateRectSupport = interface(IUnknown)
     ['{BC19CD02-0ACB-4545-A65A-1317C8E9E7F5}']
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
     procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
   end;
 
