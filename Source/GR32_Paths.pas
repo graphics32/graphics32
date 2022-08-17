@@ -125,8 +125,6 @@ type
   end;
 
   { TFlattenedPath }
-  TBooleanArray = array of boolean;
-
   TFlattenedPath = class(TCustomPath)
   private
     FPath: TArrayOfArrayOfFloatPoint;
@@ -845,9 +843,7 @@ end;
 procedure TCanvas32.DrawPath(const Path: TFlattenedPath);
 var
   ClipRect: TFloatRect;
-  i, j, k: Integer;
-  Buffer: TArrayOfArrayOfFloatPoint;
-  Closed: boolean;
+  i: Integer;
 begin
   if (Length(Path.Path) = 0) then
     exit;
@@ -860,35 +856,12 @@ begin
   begin
     for i := 0 to FBrushes.Count-1 do
       if FBrushes[i].Visible then
-        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, (Path.ClosedCount = Length(Path.Path)));
+        FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, (Path.ClosedCount > 0));
   end else
   // Not so simple case: Some paths are closed, some are open
   begin
-    j := 0;
-    // Find contiguous chunks of path with same "closedness"
-    while (j < Length(Path.Path)) do
-    begin
-      Closed := Path.PathClosed[j];
-      // Find a run of same "closedness"
-      k := j+1;
-      while (k < Length(Path.Path)) and (Path.PathClosed[k] = Closed) do
-        Inc(k);
-
-      // Run goes from j to k-1
-      SetLength(Buffer, k-j);
-      i := 0;
-      while (j < k) do
-      begin
-        Buffer[i] := Path.Path[j];
-        Inc(j);
-        Inc(i);
-      end;
-
-      // Render this run
-      for i := 0 to FBrushes.Count-1 do
-        if FBrushes[i].Visible then
-          FBrushes[i].PolyPolygonFS(Renderer, Buffer, ClipRect, Transformation, Closed);
-    end;
+    for i := 0 to FBrushes.Count-1 do
+      FBrushes[i].PolyPolygonFS(Renderer, Path.Path, ClipRect, Transformation, Path.PathClosed);
   end;
 end;
 

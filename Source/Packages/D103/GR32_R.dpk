@@ -65,7 +65,8 @@ contains
   GR32_VectorUtils in '..\..\GR32_VectorUtils.pas',
   GR32_VPR in '..\..\GR32_VPR.pas',
   GR32_Text_VCL in '..\..\GR32_Text_VCL.pas',
-  GR32_XPThemes in '..\..\GR32_XPThemes.pas';
+  GR32_XPThemes in '..\..\GR32_XPThemes.pas',
+  GR32_Clipboard in '..\..\GR32_Clipboard.pas';
 
 end.
 

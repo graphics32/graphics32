@@ -41,7 +41,7 @@ interface
 uses
   {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Windows, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
-  ExtDlgs, StdCtrls, Buttons, Types,
+  ExtDlgs, StdCtrls, Buttons, Types, Actions, ActnList,
   GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
   GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
@@ -115,6 +115,14 @@ type
     SaveDialog: TSaveDialog;
     ScaleCombo: TComboBox;
     N7: TMenuItem;
+    MenuItemEdit: TMenuItem;
+    MenuItemCopy: TMenuItem;
+    ActionList: TActionList;
+    ActionCopy: TAction;
+    ActionPasteNew: TAction;
+    MenuItemPasteNew: TMenuItem;
+    ActionPasteInto: TAction;
+    MenuItemPasteInto: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
@@ -153,6 +161,12 @@ type
     procedure ScaleComboChange(Sender: TObject);
     procedure ImgViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ImgViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ActionCopyUpdate(Sender: TObject);
+    procedure ActionPasteIntoUpdate(Sender: TObject);
+    procedure ActionPasteNewUpdate(Sender: TObject);
+    procedure ActionCopyExecute(Sender: TObject);
+    procedure ActionPasteIntoExecute(Sender: TObject);
+    procedure ActionPasteNewExecute(Sender: TObject);
   private
     FPanning: boolean;
     FStartPos: TPoint;
@@ -200,9 +214,9 @@ uses
 {$ELSE}
   LazJPG,
 {$ENDIF}
-  Math, Printers,
+  Math, Printers, ClipBrd,
   GR32_LowLevel, GR32_Paths, GR32_VectorUtils, GR32_Backends, GR32_Text_VCL,
-  GR32_ColorGradients, GR32_Polygons, GR32_Geometry,
+  GR32_ColorGradients, GR32_Polygons, GR32_Geometry, GR32_Clipboard,
   NewImageUnit, RGBALoaderUnit;
 
 const
@@ -305,6 +319,67 @@ procedure TMainForm.LayerOpacityChanged(Sender: TObject);
 begin
   if Selection is TBitmapLayer then
     TBitmapLayer(Selection).Bitmap.MasterAlpha := GbrLayerOpacity.Position;
+end;
+
+procedure TMainForm.ActionCopyExecute(Sender: TObject);
+begin
+  if (Selection is TBitmapLayer) then
+    Clipboard.Assign(TBitmapLayer(Selection).Bitmap)
+  else
+    Clipboard.Assign(ImgView.Bitmap);
+end;
+
+procedure TMainForm.ActionCopyUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := (Selection is TBitmapLayer) or (not ImgView.Bitmap.Empty);
+end;
+
+procedure TMainForm.ActionPasteIntoExecute(Sender: TObject);
+begin
+  if (Selection is TBitmapLayer) then
+    TBitmapLayer(Selection).Bitmap.Assign(Clipboard)
+  else
+    ImgView.Bitmap.Assign(Clipboard);
+end;
+
+procedure TMainForm.ActionPasteIntoUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := CanPasteBitmap32;
+end;
+
+procedure TMainForm.ActionPasteNewExecute(Sender: TObject);
+var
+  BitmapLayer: TBitmapLayer;
+  R: TRect;
+  P: TPoint;
+  W, H: Single;
+begin
+  BitmapLayer := TBitmapLayer.Create(ImgView.Layers);
+  try
+    BitmapLayer.Bitmap.Assign(Clipboard);
+    BitmapLayer.Bitmap.DrawMode := dmBlend;
+
+    R := ImgView.GetViewportRect;
+    P := ImgView.ControlToBitmap(R.CenterPoint);
+
+    W := BitmapLayer.Bitmap.Width * 0.5;
+    H := BitmapLayer.Bitmap.Height * 0.5;
+
+    with ImgView.Bitmap do
+      BitmapLayer.Location := GR32.FloatRect(P.X - W, P.Y - H, P.X + W, P.Y + H);
+
+    BitmapLayer.Scaled := True;
+    BitmapLayer.OnMouseDown := LayerMouseDown;
+  except
+    BitmapLayer.Free;
+    raise;
+  end;
+  Selection := BitmapLayer;
+end;
+
+procedure TMainForm.ActionPasteNewUpdate(Sender: TObject);
+begin
+  TAction(Sender).Enabled := CanPasteBitmap32;
 end;
 
 procedure TMainForm.BtnLayerRescaleClick(Sender: TObject);

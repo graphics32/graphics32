@@ -39,8 +39,14 @@
 (* Symbol PUREPASCAL:
    ------------------
 
-      Forces GR32 into pure pascal mode. Should be used only for testing and
-      debugging purposes.
+      Forces GR32 into pure pascal mode. Should generally only be used for
+      testing and debugging purposes.
+      The library makes use of x86 assembler optimizations. While this
+      results in a performance boost it also makes the library platform
+      dependent.
+      By enabling the PUREPASCAL switch, only pascal code is used, avoiding
+      any assmbler code. The code is slower, but probably more platform
+      independent.
 
       (Defined by default for FPC and DARWIN targets in GR32_Compilers.INC.)
 
@@ -87,6 +93,9 @@
     {$DEFINE USEINLINING}
   {$ENDIF}
 
+  {$IF DEFINED(INLININGSUPPORTED) AND DEFINED(SUPPORT_ENHANCED_RECORDS) }
+    {$DEFINE INLINING_ENHANCED_RECORDS}
+  {$IFEND}
 
 
 (* Symbol USE_GUIDS_IN_MMF :

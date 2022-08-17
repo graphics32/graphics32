@@ -280,7 +280,7 @@ type
   protected
     procedure BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
     function GetBitmap: TCustomBitmap32;
-    procedure SetBitmap(Value: TCustomBitmap32);
+    procedure SetBitmap(Value: TCustomBitmap32); virtual;
     procedure SetCropped(Value: Boolean);
     function CreateBitmap: TCustomBitmap32; virtual;
     function GetBitmapClass: TCustomBitmap32Class; virtual; abstract;
@@ -298,7 +298,7 @@ type
   protected
     function GetBitmapClass: TCustomBitmap32Class; override;
     function GetBitmap: TBitmap32;
-    procedure SetBitmap(Value: TBitmap32);
+    procedure SetBitmap(Value: TBitmap32); reintroduce;
   public
     property Bitmap: TBitmap32 read GetBitmap write SetBitmap;
   end;

@@ -42,10 +42,10 @@ uses
   ComponentEditors,
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
-  DesignEditors, VCLEditors,
+  DesignEditors, VCLEditors, Actions, ImageList,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
-  SysUtils, Classes, Clipbrd, ImageList, Actions, ActnList,
+  SysUtils, Classes, Clipbrd, ActnList,
   GR32, GR32_Image, GR32_Layers, GR32_Filters;
 
 type
@@ -154,7 +154,8 @@ type
 implementation
 
 uses
-  GR32_Resamplers;
+  GR32_Resamplers,
+  GR32_Backends_Generic;
 
 {$IFDEF FPC}
 {$R *.lfm}
@@ -529,29 +530,44 @@ end;
 procedure TPictureEditorForm.ActionLoadExecute(Sender: TObject);
 var
   Picture: TPicture;
+  Bitmap: TBitmap32;
 begin
   if not OpenDialog.Execute then
     exit;
 
-  Picture := TPicture.Create;
-  try
-    Picture.LoadFromFile(OpenDialog.Filename);
-    LoadFromImage(Picture);
-  finally
-    Picture.Free;
+  // Load bitmap directly if file is a BMP
+  // (this works around alleged bug in TBitmap->TBitmap32 conversion with LCL-Gtk backend)
+  if (SameText(ExtractFileExt(OpenDialog.Filename), '.bmp')) then
+  begin
+    Bitmap := TBitmap32.Create(TMemoryBackend);
+    try
+      Bitmap.LoadFromFile(OpenDialog.Filename);
+      LoadFromImage(Bitmap);
+    finally
+      Bitmap.Free;
+    end;
+  end else
+  begin
+    Picture := TPicture.Create;
+    try
+      Picture.LoadFromFile(OpenDialog.Filename);
+      LoadFromImage(Picture);
+    finally
+      Picture.Free;
+    end;
   end;
 end;
 
 procedure TPictureEditorForm.ActionPasteExecute(Sender: TObject);
 var
-  Picture: TPicture;
+  Bitmap: TBitmap32;
 begin
-  Picture := TPicture.Create;
+  Bitmap := TBitmap32.Create;
   try
-    Picture.Assign(Clipboard);
-    LoadFromImage(Picture);
+    Bitmap.Assign(Clipboard);
+    LoadFromImage(Bitmap);
   finally
-    Picture.Free;
+    Bitmap.Free;
   end;
 end;
 
@@ -560,11 +576,12 @@ begin
   try
     TAction(Sender).Enabled := Clipboard.HasFormat(CF_PICTURE);
   except
-    on E: EOSError do
-      if (E.ErrorCode = ERROR_ACCESS_DENIED) then
-        TAction(Sender).Enabled := False // Something else has the clipboard open
-      else
-        raise;
+{$IFDEF FPC}
+    TAction(Sender).Enabled := False;
+{$ELSE FPC}
+    on E: EClipboardException do
+      TAction(Sender).Enabled := False; // Something else has the clipboard open
+{$ENDIF FPC}
   end;
 end;
 

@@ -123,14 +123,14 @@ function Line(const P1, P2: TFloatPoint): TArrayOfFloatPoint; overload;
 function Line(const X1, Y1, X2, Y2: TFloat): TArrayOfFloatPoint; overload;
 function VertLine(const X, Y1, Y2: TFloat): TArrayOfFloatPoint;
 function HorzLine(const X1, Y, X2: TFloat): TArrayOfFloatPoint;
-function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
-function Circle(const P: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Circle(const X, Y, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Circle(const X, Y, Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Circle(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Circle(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Circle(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Circle(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Circle(const P: TFloatPoint; const Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const P: TFloatPoint; const Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const X, Y, Radius: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const X, Y, Radius: TFloat): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Circle(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
 function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle, Offset: TFloat; Steps: Integer): TArrayOfFloatPoint; overload;
 function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Pie(const P: TFloatPoint; const Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -138,13 +138,13 @@ function Pie(const X, Y, Radius: TFloat; const Angle, Offset: TFloat; Steps: Int
 function Pie(const X, Y, Radius: TFloat; const Angle: TFloat; const Offset: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Pie(const X, Y, Radius: TFloat; const Angle: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
 function Ellipse(const P, R: TFloatPoint; Steps: Integer): TArrayOfFloatPoint; overload;
-function Ellipse(const P, R: TFloatPoint): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const X, Y, Rx, Ry: TFloat): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
-function Ellipse(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
+function Ellipse(const P, R: TFloatPoint): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Ellipse(const X, Y, Rx, Ry: TFloat; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Ellipse(const X, Y, Rx, Ry: TFloat): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Ellipse(const R: TRect): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Ellipse(const R: TFloatRect): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Ellipse(const R: TRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
+function Ellipse(const R: TFloatRect; Steps: Integer): TArrayOfFloatPoint; overload; {$IFDEF INLINING_ENHANCED_RECORDS} inline; {$ENDIF}
 
 function Star(const P: TFloatPoint; const InnerRadius, OuterRadius: TFloat;
   Vertices: Integer = 5; Rotation: TFloat = 0): TArrayOfFloatPoint; overload; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -1516,7 +1516,7 @@ var
     CX := X1 + X2;
     CY := Y1 + Y2;
 
-    R := X1 * CX + Y1 * CY; //(1 - cos(ß))  (range: 0 <= R <= 2)
+    R := X1 * CX + Y1 * CY; //(1 - cos(ï¿½))  (range: 0 <= R <= 2)
     if R < RMin then
     begin
       AddPoint(Delta * X1, Delta * Y1);
@@ -1922,15 +1922,17 @@ var
   P1, P2: TArrayOfFloatPoint;
   Dst: TArrayOfArrayOfFloatPoint;
   Normals: TArrayOfFloatPoint;
+  HalfStrokeWidth: TFloat;
 begin
   if Closed then
   begin
     SetLength(Dst, Length(Points) * 2);
+    HalfStrokeWidth := StrokeWidth * 0.5;
     for I := 0 to High(Points) do
     begin
       Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, StrokeWidth * 0.5, JoinStyle, True, MiterLimit);
-      P2 := Grow(Points[I], Normals, -StrokeWidth * 0.5, JoinStyle, True, MiterLimit);
+      P1 := Grow(Points[I], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      P2 := Grow(Points[I], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
       Dst[I * 2] := P1;
       Dst[I * 2 + 1] := ReversePolygon(P2);
     end;
@@ -1985,15 +1987,17 @@ var
   P1, P2: TArrayOfFixedPoint;
   Dst: TArrayOfArrayOfFixedPoint;
   Normals: TArrayOfFixedPoint;
+  HalfStrokeWidth: TFixed;
 begin
   if Closed then
   begin
     SetLength(Dst, Length(Points) * 2);
+    HalfStrokeWidth := StrokeWidth shr 1;
     for I := 0 to High(Points) do
     begin
       Normals := BuildNormals(Points[I]);
-      P1 := Grow(Points[I], Normals, StrokeWidth shr 1, JoinStyle, True, MiterLimit);
-      P2 := Grow(Points[I], Normals, -StrokeWidth shr 1, JoinStyle, True, MiterLimit);
+      P1 := Grow(Points[I], Normals, HalfStrokeWidth, JoinStyle, True, MiterLimit);
+      P2 := Grow(Points[I], Normals, -HalfStrokeWidth, JoinStyle, True, MiterLimit);
       Dst[I * 2] := P1;
       Dst[I * 2 + 1] := ReversePolygon(P2);
     end;

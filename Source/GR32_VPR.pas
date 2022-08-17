@@ -61,6 +61,14 @@ procedure RenderPolygon(const Points: TArrayOfFloatPoint;
 
 implementation
 
+{$if Defined(COMPILERFPC) and Defined(CPUx86_64) }
+// Must apply work around for negative array index on FPC 64-bit.
+// See:
+//   - https://github.com/graphics32/graphics32/issues/51
+//   - https://forum.lazarus.freepascal.org/index.php/topic,44655.0.html
+  {$define NEGATIVE_INDEX_64}
+{$ifend}
+
 uses
   Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;
 
@@ -83,7 +91,12 @@ type
 
 procedure IntegrateSegment(var P1, P2: TFloatPoint; Values: PSingleArray);
 var
-  X1, X2, I: Integer;
+{$if Defined(NEGATIVE_INDEX_64) }
+  X1, X2: Int64;
+{$else}
+  X1, X2: Integer;
+{$ifend}
+  I: Integer;
   Dx, Dy, DyDx, Sx, Y, fracX1, fracX2: TFloat;
 begin
   X1 := Round(P1.X);
@@ -134,7 +147,12 @@ end;
 procedure ExtractSingleSpan(const ScanLine: TScanLine; out Span: TValueSpan;
   SpanData: PSingleArray);
 var
-  I, X: Integer;
+  I: Integer;
+{$if Defined(NEGATIVE_INDEX_64) }
+  X: Int64;
+{$else}
+  X: Integer;
+{$ifend}
   P: PFloatPoint;
   S: PLineSegment;
   fracX: TFloat;
@@ -169,15 +187,16 @@ begin
     inc(P);
   end;
 
-  CumSum(@SpanData[Span.X1], Span.X2 - Span.X1 + 1);
+  X := Span.X1; // Use X so NEGATIVE_INDEX_64 is handled
+  Span.Values := @SpanData[X];
+
+  CumSum(Span.Values, Span.X2 - Span.X1 + 1);
 
   for I := 0 to ScanLine.Count - 1 do
   begin
     S := @ScanLine.Segments[I];
     IntegrateSegment(S[0], S[1], SpanData);
   end;
-
-  Span.Values := @SpanData[Span.X1];
 end;
 
 procedure AddSegment(const X1, Y1, X2, Y2: TFloat; var ScanLine: TScanLine); {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -200,7 +219,7 @@ end;
 procedure DivideSegment(var P1, P2: TFloatPoint; const ScanLines: PScanLineArray);
 var
   Y, Y1, Y2: Integer;
-  k, X: TFloat;
+  k, X, X2: TFloat;
 begin
   Y1 := Round(P1.Y);
   Y2 := Round(P2.Y);
@@ -212,25 +231,28 @@ begin
   else
   begin
     k := (P2.X - P1.X) / (P2.Y - P1.Y);
+    // k is expanded below to limit rounding errors.
     if Y1 < Y2 then
     begin
-      X := P1.X + (Y1 + 1 - P1.Y) * k;
+      X := P1.X + (Y1 + 1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
       AddSegment(P1.X, P1.Y - Y1, X, 1, ScanLines[Y1]);
       for Y := Y1 + 1 to Y2 - 1 do
       begin
-        AddSegment(X, 0, X + k, 1, ScanLines[Y]);
-        X := X + k;
+        X2 := X + k;
+        AddSegment(X, 0, X2, 1, ScanLines[Y]);
+        X := X2;
       end;
       AddSegment(X, 0, P2.X, P2.Y - Y2, ScanLines[Y2]);
     end
     else
     begin
-      X := P1.X + (Y1 - P1.Y) * k;
+      X := P1.X + (Y1 - P1.Y) * { k } (P2.X - P1.X) / (P2.Y - P1.Y);
       AddSegment(P1.X, P1.Y - Y1, X, 0, ScanLines[Y1]);
       for Y := Y1 - 1 downto Y2 + 1 do
       begin
-        AddSegment(X, 1, X - k, 0, ScanLines[Y]);
-        X := X - k
+        X2 := X - k;
+        AddSegment(X, 1, X2, 0, ScanLines[Y]);
+        X := X2;
       end;
       AddSegment(X, 1, P2.X, P2.Y - Y2, ScanLines[Y2]);
     end;
@@ -321,6 +343,11 @@ procedure RenderScanline(var ScanLine: TScanLine;
   RenderProc: TRenderSpanProc; Data: Pointer; SpanData: PSingleArray; X1, X2: Integer);
 var
   Span: TValueSpan;
+{$if Defined(NEGATIVE_INDEX_64) }
+  X: Int64;
+{$else}
+  X: Integer;
+{$ifend}
 begin
   if ScanLine.Count > 0 then
   begin
@@ -330,7 +357,8 @@ begin
     if Span.X2 < Span.X1 then Exit;
 
     RenderProc(Data, Span, ScanLine.Y);
-    FillLongWord(SpanData[Span.X1], Span.X2 - Span.X1 + 1, 0);
+    X := Span.X1;
+    FillLongWord(SpanData[X], Span.X2 - Span.X1 + 1, 0);
   end;
 end;
 
@@ -350,12 +378,15 @@ var
   SpanData: PSingleArray;
 begin
   Len := Length(Points);
-  if Len = 0 then Exit;
+  if Len = 0 then
+    Exit;
+
   SavedRoundMode := SetRoundMode(rmDown);
   try
     SetLength(Poly, Len);
     for i := 0 to Len -1 do
       Poly[i] := ClipPolygon(Points[i], ClipRect);
+
     BuildScanLines(Poly, ScanLines);
 
     CX1 := Round(ClipRect.Left);

@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectOptions>
+    <Version Value="12"/>
+    <PathDelim Value="\"/>
+    <General>
+      <Flags>
+        <LRSInOutputDirectory Value="False"/>
+        <CompatibilityMode Value="True"/>
+      </Flags>
+      <Title Value="GR32 PNG Demo"/>
+      <ResourceType Value="res"/>
+      <UseXPManifest Value="True"/>
+    </General>
+    <i18n>
+      <EnableI18N LFM="False"/>
+    </i18n>
+    <BuildModes Count="2" Active="Debug">
+      <Item1 Name="Release" Default="True"/>
+      <Item2 Name="Debug">
+        <CompilerOptions>
+          <Version Value="11"/>
+          <PathDelim Value="\"/>
+          <Target>
+            <Filename Value=".\bin\PNG_GR32_Demo.exe"/>
+          </Target>
+          <SearchPaths>
+            <IncludeFiles Value="..\..\..\Source"/>
+            <OtherUnitFiles Value="..;..\..;..\..\..\Source"/>
+            <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+          </SearchPaths>
+          <Parsing>
+            <SyntaxOptions>
+              <SyntaxMode Value="Delphi"/>
+              <CStyleOperator Value="False"/>
+              <UseAnsiStrings Value="False"/>
+            </SyntaxOptions>
+          </Parsing>
+          <CodeGeneration>
+            <SmartLinkUnit Value="True"/>
+            <Optimizations>
+              <OptimizationLevel Value="0"/>
+            </Optimizations>
+          </CodeGeneration>
+          <Linking>
+            <Debugging>
+              <DebugInfoType Value="dsDwarf2"/>
+            </Debugging>
+            <LinkSmart Value="True"/>
+            <Options>
+              <Win32>
+                <GraphicApplication Value="True"/>
+              </Win32>
+            </Options>
+          </Linking>
+        </CompilerOptions>
+      </Item2>
+    </BuildModes>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default"/>
+      </Modes>
+    </RunParams>
+    <RequiredPackages Count="2">
+      <Item1>
+        <PackageName Value="GR32_Lazarus"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="LCL"/>
+      </Item2>
+    </RequiredPackages>
+    <Units Count="20">
+      <Unit0>
+        <Filename Value="PNG_GR32_Demo.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="5" Y="11"/>
+        <UsageCount Value="39"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="4166"/>
+        <CursorPos X="6" Y="4181"/>
+        <UsageCount Value="16"/>
+        <Bookmarks Count="1">
+          <Item0 Y="5159" ID="1"/>
+        </Bookmarks>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="..\GR32_PngCompilerSwitches.inc"/>
+        <UsageCount Value="8"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPng.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1995"/>
+        <CursorPos X="13" Y="2022"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPngClasses.pas"/>
+        <TopLine Value="119"/>
+        <CursorPos X="38" Y="146"/>
+        <UsageCount Value="8"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\GR32_Png.pas"/>
+        <UnitName Value="GR32_PNG"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1442"/>
+        <CursorPos X="41" Y="1469"/>
+        <UsageCount Value="16"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="MainUnit.pas"/>
+        <ComponentName Value="FmPngDemo"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="70"/>
+        <CursorPos Y="103"/>
+        <UsageCount Value="17"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="C:\Lazarus\lcl\graphics.pp"/>
+        <UnitName Value="Graphics"/>
+        <TopLine Value="191"/>
+        <CursorPos X="39" Y="194"/>
+        <UsageCount Value="8"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPngChunks.pas"/>
+        <TopLine Value="40"/>
+        <UsageCount Value="9"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\..\..\..\VSTPack\Source\GUI\DAV_GuiPngCoder.pas"/>
+        <TopLine Value="649"/>
+        <CursorPos Y="657"/>
+        <UsageCount Value="9"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="..\..\Packages\GR32_L.pas"/>
+        <UnitName Value="GR32_Lazarus"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="5" Y="10"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="..\..\GR32_Math.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="33"/>
+        <CursorPos Y="44"/>
+        <UsageCount Value="10"/>
+        <Bookmarks Count="1">
+          <Item0 Y="110" ID="1"/>
+        </Bookmarks>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="..\..\GR32.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2691"/>
+        <CursorPos X="9" Y="2708"/>
+        <UsageCount Value="10"/>
+        <Bookmarks Count="1">
+          <Item0 Y="2702" ID="2"/>
+        </Bookmarks>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="..\..\GR32_Resamplers.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2137"/>
+        <CursorPos X="19" Y="2137"/>
+        <UsageCount Value="9"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit13>
+      <Unit14>
+        <Filename Value="..\..\..\Source\GR32.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1373"/>
+        <CursorPos X="67" Y="1388"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit14>
+      <Unit15>
+        <Filename Value="..\..\..\Source\Packages\GR32_Lazarus.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit15>
+      <Unit16>
+        <Filename Value="MainUnit.dfm"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="106" Y="7"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="LFM"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="D:\Development\Lazarus\lcl\interfaces\win32\interfaces.pp"/>
+        <UnitName Value="Interfaces"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="PNG_GR32_Demo.dpr"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="..\..\..\Source\GR32_PolygonsAggLite.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="1600"/>
+        <CursorPos X="39" Y="1617"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit19>
+    </Units>
+    <JumpHistory HistoryIndex="-1"/>
+  </ProjectOptions>
+  <CompilerOptions>
+    <Version Value="11"/>
+    <PathDelim Value="\"/>
+    <Target>
+      <Filename Value=".\bin\PNG_GR32_Demo.exe"/>
+    </Target>
+    <SearchPaths>
+      <IncludeFiles Value="..\..\..\Source"/>
+      <OtherUnitFiles Value="..;..\..;..\..\..\Source"/>
+      <UnitOutputDirectory Value="$(TargetCPU)-$(TargetOS)"/>
+    </SearchPaths>
+    <Parsing>
+      <SyntaxOptions>
+        <SyntaxMode Value="Delphi"/>
+        <CStyleOperator Value="False"/>
+        <AllowLabel Value="False"/>
+        <UseAnsiStrings Value="False"/>
+      </SyntaxOptions>
+    </Parsing>
+    <CodeGeneration>
+      <SmartLinkUnit Value="True"/>
+    </CodeGeneration>
+    <Linking>
+      <Debugging>
+        <GenerateDebugInfo Value="False"/>
+        <DebugInfoType Value="dsDwarf2"/>
+        <UseLineInfoUnit Value="False"/>
+        <StripSymbols Value="True"/>
+      </Debugging>
+      <LinkSmart Value="True"/>
+      <Options>
+        <Win32>
+          <GraphicApplication Value="True"/>
+        </Win32>
+      </Options>
+    </Linking>
+    <Other>
+      <Verbosity>
+        <ShowHints Value="False"/>
+      </Verbosity>
+    </Other>
+  </CompilerOptions>
+  <Debugging>
+    <BreakPoints Count="1">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="..\GR32_PortableNetworkGraphic.pas"/>
+        <Line Value="4181"/>
+      </Item1>
+    </BreakPoints>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
+</CONFIG>
