@@ -2712,8 +2712,10 @@ end;
 
 procedure TCustomImage32.ExecDrawBitmap(Dest: TBitmap32; StageNum: Integer);
 var
-  I, J, Tx, Ty: Integer;
-  R: TRect;
+  i, j: Integer;
+  TileCountX, TileCountY: Integer;
+  TileX, TileY: integer;
+  Buffer, SourceBitmap: TBitmap32;
 begin
   if Bitmap.Empty or GR32.IsRectEmpty(CachedBitmapRect) then
     Exit;
@@ -2723,17 +2725,39 @@ begin
     if (BitmapAlign <> baTile) then
       Bitmap.DrawTo(Dest, CachedBitmapRect)
     else
-    with CachedBitmapRect do
     begin
-      Tx := Dest.Width div Right;
-      Ty := Dest.Height div Bottom;
-      for J := 0 to Ty do
-        for I := 0 to Tx do
+      TileCountX := Dest.Width div CachedBitmapRect.Right;
+      TileCountY := Dest.Height div CachedBitmapRect.Bottom;
+
+      Buffer := nil;
+      try
+        // Stretching the bitmap is very expensive so only do it once and then tile the streched bitmap
+        if (CachedBitmapRect.Width <> Bitmap.Width) or (CachedBitmapRect.Height <> Bitmap.Height) then
         begin
-          R := CachedBitmapRect;
-          GR32.OffsetRect(R, Right * I, Bottom * J);
-          Bitmap.DrawTo(Dest, R);
+          Buffer := TBitmap32.Create(TMemoryBackend);
+          Buffer.SetSize(CachedBitmapRect.Width, CachedBitmapRect.Height);
+          StretchTransfer(Buffer, Buffer.BoundsRect, Buffer.BoundsRect, Bitmap, Bitmap.BoundsRect, Bitmap.Resampler, dmOpaque, nil);
+          SourceBitmap := Buffer;
+        end else
+          SourceBitmap := Bitmap;
+
+        TileY := CachedBitmapRect.Top;
+        for j := 0 to TileCountY do
+        begin
+          TileX := CachedBitmapRect.Left;
+          for i := 0 to TileCountX do
+          begin
+            SourceBitmap.DrawTo(Dest, TileX, TileY);
+
+            Inc(TileX, CachedBitmapRect.Width);
+          end;
+
+          Inc(TileY, CachedBitmapRect.Height);
         end;
+
+      finally
+        Buffer.Free;
+      end;
     end;
   finally
     Bitmap.Unlock;
