@@ -146,7 +146,8 @@ type
     property OnCanvasChange: TNotifyEvent read GetCanvasChange write SetCanvasChange;
 
     { IUpdateRectSupport }
-    procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
+    procedure InvalidateRect(AControl: TWinControl; const ARect: TRect);
+    procedure GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean); overload;
   end;
 
   { TLCLGDIMMFBackend }
@@ -332,22 +333,39 @@ begin
   Result := FOnFontChange;
 end;
 
+procedure TLCLBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
+begin
+  Windows.InvalidateRect(AControl.Handle, ARect, False);
+end;
+
 procedure TLCLBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
 var
+  DC: HDC;
   RegionType: integer;
   UpdateRegion: HRGN;
   RegionSize: integer;
   RegionData: PRgnData;
+  Offset: TPoint;
   r: TRect;
   i: integer;
 begin
   UpdateRegion := CreateRectRgn(0,0,0,0);
   try
-    RegionType := GetUpdateRgn(AControl.Handle, UpdateRegion, False);
+    DC := GetDC(AControl.Handle);
+    try
+
+      // On Lazarus the WM_PAINT handler is called from within the BeginPaint/EndPaint
+      // block so we cannot use GetUpdateRgb (BeginPaint) clears it. Instead we use
+      // GetRandomRgn which can be used within BeginPaint/EndPaint.
+      RegionType := GetRandomRgn(DC, UpdateRegion, SYSRGN);
+
+    finally
+      ReleaseDC(AControl.Handle, DC);
+    end;
 
     case RegionType of
 
-      COMPLEXREGION:
+      1: // Complex region
         begin
           RegionSize := GetRegionData(UpdateRegion, 0, nil);
 
@@ -359,11 +377,23 @@ begin
               RegionSize := GetRegionData(UpdateRegion, RegionSize, RegionData);
               Assert(RegionSize <> 0);
 
-              // Final count is known so set capacity to avoid reallocation
-              AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + integer(RegionData.rdh.nCount));
-
+              // GetRandomRgn returns coordinates relative to the screen.
+              // Make them relative to the control.
+              Offset := Point(0, 0);
+              MapWindowPoints(0, AControl.Handle, Offset, 1);
               for i := 0 to RegionData.rdh.nCount-1 do
-                AUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
+                OffsetRect(PPolyRects(@RegionData.Buffer)[i], Offset.X, Offset.Y);
+
+              if (RegionData.rdh.nCount = 1) and (GR32.EqualRect(PPolyRects(@RegionData.Buffer)[0], AControl.ClientRect)) then
+                AFullUpdate := True
+              else
+              begin
+                  // Final count is known so set capacity to avoid reallocation
+                AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + integer(RegionData.rdh.nCount));
+
+                for i := 0 to RegionData.rdh.nCount-1 do
+                  AUpdateRects.Add(PPolyRects(@RegionData.Buffer)[i]);
+              end;
 
             finally
               FreeMem(RegionData);
@@ -371,20 +401,8 @@ begin
           end;
         end;
 
-      NULLREGION:
+      0: // Null region
         AFullUpdate := True;
-
-      SIMPLEREGION:
-        begin
-          GetUpdateRect(AControl.Handle, r, False);
-          if (GR32.EqualRect(r, FOwner.BoundsRect)) then
-            AFullUpdate := True
-          else
-          begin
-            AUpdateRects.Capacity := Max(AUpdateRects.Capacity, AUpdateRects.Count + AReservedCapacity + 1);
-            AUpdateRects.Add(r);
-          end;
-        end
 
     else
       // Error - Ignore it

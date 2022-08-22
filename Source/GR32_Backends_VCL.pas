@@ -519,7 +519,7 @@ begin
       SIMPLEREGION:
         begin
           GetUpdateRect(AControl.Handle, r, False);
-          if (GR32.EqualRect(r, FOwner.BoundsRect)) then
+          if (GR32.EqualRect(r, AControl.ClientRect)) then
             AFullUpdate := True
           else
           begin
