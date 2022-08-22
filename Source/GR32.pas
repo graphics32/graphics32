@@ -6360,7 +6360,11 @@ var
   P: TPicture;
 {$endif LOADFROMSTREAM}
 begin
+{$ifndef FPC}
+  FileStream := TBufferedFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+{$else FPC}
   FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+{$endif FPC}
   try
 
 {$ifdef LOADFROMSTREAM}
