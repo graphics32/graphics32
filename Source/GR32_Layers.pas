@@ -252,7 +252,7 @@ type
     procedure BringToFront;
     procedure Changed; overload; override;
     procedure Changed(const Rect: TRect); reintroduce; overload;
-    procedure Update; overload;
+    procedure Update; overload; virtual;
     procedure Update(const Rect: TRect); overload;
     function  HitTest(X, Y: Integer): Boolean;
     procedure SendToBack;
@@ -288,6 +288,8 @@ type
     procedure DoSetLocation(const NewLocation: TFloatRect); virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
+
+    procedure Update; override;
 
     function GetAdjustedRect(const R: TFloatRect): TFloatRect; virtual;
     function GetAdjustedLocation: TFloatRect;
@@ -926,9 +928,11 @@ procedure TCustomLayer.Changed;
 begin
   if UpdateCount > 0 then
     Exit;
+
   if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update;
+
     if Visible then
       FLayerCollection.Changed
     else
@@ -943,12 +947,15 @@ procedure TCustomLayer.Changed(const Rect: TRect);
 begin
   if UpdateCount > 0 then
     Exit;
+
   if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update(Rect);
+
     if Visible then
       FLayerCollection.Changed
-    else if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
+    else
+    if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
 
     inherited Changed;
@@ -959,6 +966,7 @@ procedure TCustomLayer.Changing;
 begin
   if UpdateCount > 0 then
     Exit;
+
   if Visible and (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
     FLayerCollection.Changing;
 end;
@@ -1262,8 +1270,18 @@ end;
 
 procedure TPositionedLayer.SetLocation(const Value: TFloatRect);
 begin
+  if (GR32.EqualRect(Value, FLocation)) then
+    exit;
+
   Changing;
+
+  // Invalidate old location
+  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+    Update;
+
   DoSetLocation(Value);
+
+  // Invalidate new location
   Changed;
 end;
 
@@ -1275,6 +1293,11 @@ begin
     FScaled := Value;
     Changed;
   end;
+end;
+
+procedure TPositionedLayer.Update;
+begin
+  Update(MakeRect(GetAdjustedLocation, rrOutside));
 end;
 
 { TCustomIndirectBitmapLayer }
