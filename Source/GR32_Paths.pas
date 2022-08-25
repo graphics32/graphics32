@@ -39,6 +39,7 @@ interface
 uses
   Classes, SysUtils,
   GR32,
+  GR32_Math,
   GR32_Polygons,
   GR32_Transforms,
   GR32_Brushes,
