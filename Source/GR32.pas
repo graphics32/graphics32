@@ -6361,7 +6361,11 @@ var
 {$endif LOADFROMSTREAM}
 begin
 {$ifndef FPC}
+  {$if CompilerVersion >= 31.0}
   FileStream := TBufferedFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  {$else}
+  FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+  {$endif}
 {$else FPC}
   FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
 {$endif FPC}
