@@ -6362,9 +6362,9 @@ var
 begin
 {$if (not defined(FPC)) and (CompilerVersion >= 31.0)} // TBufferedFileStream was introduced in Delphi 10.1
   FileStream := TBufferedFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-{$else FPC}
+{$else}
   FileStream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-{$endif FPC}
+{$ifend}
   try
 
 {$ifdef LOADFROMSTREAM}
