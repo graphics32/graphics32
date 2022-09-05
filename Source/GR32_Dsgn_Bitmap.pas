@@ -42,7 +42,7 @@ uses
   ComponentEditors,
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
-  DesignEditors, VCLEditors, Actions, ImageList,
+  DesignEditors, VCLEditors, Actions,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
   SysUtils, Classes, Clipbrd, ActnList,
