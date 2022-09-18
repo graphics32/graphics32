@@ -76,7 +76,7 @@ object FrmResamplersExample: TFrmResamplersExample
         ParentFont = False
         TabOrder = 0
       end
-      object ResamplerClassNamesList: TComboBox
+      object ComboBoxResamplerClassName: TComboBox
         Left = 16
         Top = 40
         Width = 119
@@ -84,9 +84,9 @@ object FrmResamplersExample: TFrmResamplersExample
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 1
-        OnChange = ResamplerClassNamesListChange
+        OnChange = ComboBoxResamplerClassNameChange
       end
-      object EdgecheckBox: TComboBox
+      object ComboBoxPixelAccessMode: TComboBox
         Left = 16
         Top = 83
         Width = 119
@@ -94,13 +94,13 @@ object FrmResamplersExample: TFrmResamplersExample
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 2
-        OnChange = EdgecheckBoxChange
+        OnChange = ComboBoxPixelAccessModeChange
         Items.Strings = (
           'Unsafe'
           'Safe'
           'Wrap')
       end
-      object WrapBox: TComboBox
+      object ComboBoxWrapMode: TComboBox
         Left = 16
         Top = 126
         Width = 119
@@ -108,14 +108,14 @@ object FrmResamplersExample: TFrmResamplersExample
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 3
-        OnChange = EdgecheckBoxChange
+        OnChange = ComboBoxPixelAccessModeChange
         Items.Strings = (
           'Clamp'
           'Repeat'
           'Mirror')
       end
     end
-    object PnlKernel: TPanel
+    object PanelKernel: TPanel
       Left = 0
       Top = 160
       Width = 146
@@ -174,7 +174,7 @@ object FrmResamplersExample: TFrmResamplersExample
         ParentFont = False
         TabOrder = 0
       end
-      object KernelClassNamesList: TComboBox
+      object ComboBoxKernelClassName: TComboBox
         Left = 16
         Top = 40
         Width = 119
@@ -184,7 +184,7 @@ object FrmResamplersExample: TFrmResamplersExample
         TabOrder = 1
         OnChange = KernelClassNamesListClick
       end
-      object KernelModeList: TComboBox
+      object ComboBoxKernelMode: TComboBox
         Left = 16
         Top = 83
         Width = 119
@@ -192,13 +192,13 @@ object FrmResamplersExample: TFrmResamplersExample
         Style = csDropDownList
         Anchors = [akTop, akRight]
         TabOrder = 2
-        OnChange = KernelModeListChange
+        OnChange = ComboBoxKernelModeChange
         Items.Strings = (
           'Default (precise, slow)'
           'Table Nearest (truncated, fastest)'
           'Table Linear (interpolated, fast)')
       end
-      object GbrTableSize: TGaugeBar
+      object GaugeBarTableSize: TGaugeBar
         Left = 16
         Top = 136
         Width = 113
@@ -210,9 +210,9 @@ object FrmResamplersExample: TFrmResamplersExample
         ShowHandleGrip = True
         Style = rbsMac
         Position = 32
-        OnChange = GbrTableSizeChange
+        OnChange = GaugeBarTableSizeChange
       end
-      object GbrParameter: TGaugeBar
+      object GaugeBarParameter: TGaugeBar
         Left = 16
         Top = 175
         Width = 113
@@ -225,8 +225,8 @@ object FrmResamplersExample: TFrmResamplersExample
         Style = rbsMac
         Visible = False
         Position = 50
-        OnChange = GbrParameterChange
-        OnMouseUp = GbrParameterMouseUp
+        OnChange = GaugeBarParameterChange
+        OnMouseUp = GaugeBarParameterMouseUp
       end
     end
   end
@@ -235,13 +235,13 @@ object FrmResamplersExample: TFrmResamplersExample
     Top = 0
     Width = 329
     Height = 376
-    ActivePage = TabDetails
+    ActivePage = TabManual
     Align = alClient
     TabOrder = 0
-    OnChange = ResamplerClassNamesListChange
-    object TabDetails: TTabSheet
-      Caption = 'Details'
-      object DstImg: TImage32
+    OnChange = ComboBoxResamplerClassNameChange
+    object TabManual: TTabSheet
+      Caption = 'Manual'
+      object ImagePattern: TImage32
         Left = 0
         Top = 0
         Width = 321
@@ -256,7 +256,7 @@ object FrmResamplersExample: TFrmResamplersExample
         Scale = 1.000000000000000000
         ScaleMode = smStretch
         TabOrder = 0
-        OnResize = DstImgResize
+        OnResize = ImagePatternResize
       end
     end
     object TabResampling: TTabSheet
@@ -277,18 +277,14 @@ object FrmResamplersExample: TFrmResamplersExample
       Caption = 'Curve'
       ImageIndex = 2
       TabVisible = False
-      object CurveImage: TImage32
+      object PaintBoxCurve: TPaintBox32
         Left = 0
         Top = 0
         Width = 321
         Height = 348
         Align = alClient
-        Bitmap.ResamplerClassName = 'TNearestResampler'
-        BitmapAlign = baTopLeft
-        Scale = 1.000000000000000000
-        ScaleMode = smNormal
         TabOrder = 0
-        OnPaintStage = CurveImagePaintStage
+        OnPaintBuffer = PaintBoxCurvePaintBuffer
       end
     end
   end
