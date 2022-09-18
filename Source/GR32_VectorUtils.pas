@@ -1,4 +1,4 @@
-unit GR32_VectorUtils;
+﻿unit GR32_VectorUtils;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
@@ -1516,7 +1516,7 @@ var
     CX := X1 + X2;
     CY := Y1 + Y2;
 
-    R := X1 * CX + Y1 * CY; //(1 - cos(�))  (range: 0 <= R <= 2)
+    R := X1 * CX + Y1 * CY; //(1 - cos(Θ))  (range: 0 <= R <= 2)
     if R < RMin then
     begin
       AddPoint(Delta * X1, Delta * Y1);
@@ -1642,14 +1642,18 @@ var
   begin
     PX := X;
     PY := Y;
-    case JoinStyle of
-      jsMiter: AddMitered(A.X, A.Y, B.X, B.Y);
-      jsBevel: AddBevelled(A.X, A.Y, B.X, B.Y);
-      jsRoundEx: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
-      else if (X1 * Y2 - X2 * Y1) * Delta < 0 then //miter when concave
-        AddMitered(A.X, A.Y, B.X, B.Y) else
-        AddRoundedJoin(A.X, A.Y, B.X, B.Y);
-    end;
+
+    if (JoinStyle <> jsRoundEx) and ((X1 * Y2 - X2 * Y1) * Delta < 0)  then
+    begin
+      AddPoint(Delta * X1, Delta * Y1);
+      AddPoint(Delta * X2, Delta * Y2);
+    end else
+      case JoinStyle of
+        jsMiter: AddMitered(A.X, A.Y, B.X, B.Y);
+        jsBevel: AddBevelled(A.X, A.Y, B.X, B.Y);
+        jsRound: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
+        jsRoundEx: AddRoundedJoin(A.X, A.Y, B.X, B.Y);
+      end;
   end;
 
 begin
