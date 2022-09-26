@@ -2092,7 +2092,7 @@ begin
   DashOffset := Wrap(DashOffset, V);
 
   DashOffset := DashOffset - V;
-  while DashOffset < 0 do
+  while (DashIndex+1 < Length(DashArray)) and (DashOffset < 0) do
   begin
     Inc(DashIndex);
     DashOffset := DashOffset + DashArray[DashIndex];
