@@ -2092,7 +2092,7 @@ begin
   DashOffset := Wrap(DashOffset, V);
 
   DashOffset := DashOffset - V;
-  while DashOffset < 0 do
+  while (DashOffset < 0) and (DashIndex < High(DashArray)) do
   begin
     Inc(DashIndex);
     DashOffset := DashOffset + DashArray[DashIndex];
@@ -2112,7 +2112,8 @@ begin
     AddDash(0);
     len1 := Length(Result[0]);
     len2 := Length(Result[J]);
-    if (len1 > 0) and (len2 > 0) then
+    // Only merge if the first and last points are contributing on a dash
+    if (len1 > 0) and (len2 > 0) and (Result[0][0] = Result[J][len2 - 1]) then
     begin
       SetLength(Result[0], len1 + len2 -1);
       Move(Result[0][0], Result[0][len2 - 1], SizeOf(TFloatPoint) * len1);
