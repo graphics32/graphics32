@@ -6342,13 +6342,13 @@ begin
   if SaveTopDown then
   begin
     for i := 0 to Width*Height-1 do
-      Stream.WriteData(SwapRedBlue(Bits[i]));
+      Stream.Write(SwapRedBlue(Bits[i]), SizeOf(TColor32));
   end
   else
   begin
     for i := Height - 1 downto 0 do
       for W := 0 to Width-1 do
-        Stream.WriteData(SwapRedBlue(ScanLine[i][W]));
+        Stream.Write(SwapRedBlue(ScanLine[i][W]), SizeOf(TColor32));
   end;
 {$ENDIF RGBA_FORMAT}
 end;
