@@ -2113,7 +2113,7 @@ begin
     len1 := Length(Result[0]);
     len2 := Length(Result[J]);
     // Only merge if the first and last points are contributing on a dash
-    if (len1 > 0) and (len2 > 0) and (Result[0][0].X= Result[J][len2 - 1].X) and (Result[0][0].Y= Result[J][len2 - 1].Y)then
+    if (len1 > 0) and (len2 > 0) and (Result[0][0].X = Result[J][len2 - 1].X) and (Result[0][0].Y = Result[J][len2 - 1].Y) then
     begin
       SetLength(Result[0], len1 + len2 -1);
       Move(Result[0][0], Result[0][len2 - 1], SizeOf(TFloatPoint) * len1);
