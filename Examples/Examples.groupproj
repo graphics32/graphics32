@@ -21,7 +21,7 @@
         <Projects Include="Drawing\Blurs\Blurs.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="Drawing\Clipper\Clipper.dproj">
+        <Projects Include="Drawing\Clipper\ClipperDemo.dproj">
             <Dependencies/>
         </Projects>
         <Projects Include="Drawing\CubicSpline\CubicSpline.dproj">
@@ -188,14 +188,14 @@
     <Target Name="Blurs:Make">
         <MSBuild Projects="Drawing\Blurs\Blurs.dproj" Targets="Make"/>
     </Target>
-    <Target Name="Clipper">
-        <MSBuild Projects="Drawing\Clipper\Clipper.dproj"/>
+    <Target Name="ClipperDemo">
+        <MSBuild Projects="Drawing\Clipper\ClipperDemo.dproj"/>
     </Target>
-    <Target Name="Clipper:Clean">
-        <MSBuild Projects="Drawing\Clipper\Clipper.dproj" Targets="Clean"/>
+    <Target Name="ClipperDemo:Clean">
+        <MSBuild Projects="Drawing\Clipper\ClipperDemo.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="Clipper:Make">
-        <MSBuild Projects="Drawing\Clipper\Clipper.dproj" Targets="Make"/>
+    <Target Name="ClipperDemo:Make">
+        <MSBuild Projects="Drawing\Clipper\ClipperDemo.dproj" Targets="Make"/>
     </Target>
     <Target Name="CubicSpline">
         <MSBuild Projects="Drawing\CubicSpline\CubicSpline.dproj"/>
@@ -504,13 +504,13 @@
         <MSBuild Projects="General\PNG Image32\PNG_GR32_Demo.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="BlendVsMerge;PixelCombine;TextureBlend;AntiAliasing;ArrowHead;Blurs;Clipper;CubicSpline;Curves;GammaCorrection;GammaBlur;GradFills;GradLines;GradSampler;LineStippling;Lion;MeshGradients;Polygons;RenderText;SvgPath;ScatterPlot;TextVPR;ByteMaps;ColorPicker;Image32;Mandelbrot;Rotate;ImgView_Layers;RotLayer;Sprites;NestedSampling;PixelF;Resamplers;ImgWarping;Transform;Visualization;LineSimplification;Grow;Benchmark;PngExplorer;PNG_GR32_Demo"/>
+        <CallTarget Targets="BlendVsMerge;PixelCombine;TextureBlend;AntiAliasing;ArrowHead;Blurs;ClipperDemo;CubicSpline;Curves;GammaCorrection;GammaBlur;GradFills;GradLines;GradSampler;LineStippling;Lion;MeshGradients;Polygons;RenderText;SvgPath;ScatterPlot;TextVPR;ByteMaps;ColorPicker;Image32;Mandelbrot;Rotate;ImgView_Layers;RotLayer;Sprites;NestedSampling;PixelF;Resamplers;ImgWarping;Transform;Visualization;LineSimplification;Grow;Benchmark;PngExplorer;PNG_GR32_Demo"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="BlendVsMerge:Clean;PixelCombine:Clean;TextureBlend:Clean;AntiAliasing:Clean;ArrowHead:Clean;Blurs:Clean;Clipper:Clean;CubicSpline:Clean;Curves:Clean;GammaCorrection:Clean;GammaBlur:Clean;GradFills:Clean;GradLines:Clean;GradSampler:Clean;LineStippling:Clean;Lion:Clean;MeshGradients:Clean;Polygons:Clean;RenderText:Clean;SvgPath:Clean;ScatterPlot:Clean;TextVPR:Clean;ByteMaps:Clean;ColorPicker:Clean;Image32:Clean;Mandelbrot:Clean;Rotate:Clean;ImgView_Layers:Clean;RotLayer:Clean;Sprites:Clean;NestedSampling:Clean;PixelF:Clean;Resamplers:Clean;ImgWarping:Clean;Transform:Clean;Visualization:Clean;LineSimplification:Clean;Grow:Clean;Benchmark:Clean;PngExplorer:Clean;PNG_GR32_Demo:Clean"/>
+        <CallTarget Targets="BlendVsMerge:Clean;PixelCombine:Clean;TextureBlend:Clean;AntiAliasing:Clean;ArrowHead:Clean;Blurs:Clean;ClipperDemo:Clean;CubicSpline:Clean;Curves:Clean;GammaCorrection:Clean;GammaBlur:Clean;GradFills:Clean;GradLines:Clean;GradSampler:Clean;LineStippling:Clean;Lion:Clean;MeshGradients:Clean;Polygons:Clean;RenderText:Clean;SvgPath:Clean;ScatterPlot:Clean;TextVPR:Clean;ByteMaps:Clean;ColorPicker:Clean;Image32:Clean;Mandelbrot:Clean;Rotate:Clean;ImgView_Layers:Clean;RotLayer:Clean;Sprites:Clean;NestedSampling:Clean;PixelF:Clean;Resamplers:Clean;ImgWarping:Clean;Transform:Clean;Visualization:Clean;LineSimplification:Clean;Grow:Clean;Benchmark:Clean;PngExplorer:Clean;PNG_GR32_Demo:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="BlendVsMerge:Make;PixelCombine:Make;TextureBlend:Make;AntiAliasing:Make;ArrowHead:Make;Blurs:Make;Clipper:Make;CubicSpline:Make;Curves:Make;GammaCorrection:Make;GammaBlur:Make;GradFills:Make;GradLines:Make;GradSampler:Make;LineStippling:Make;Lion:Make;MeshGradients:Make;Polygons:Make;RenderText:Make;SvgPath:Make;ScatterPlot:Make;TextVPR:Make;ByteMaps:Make;ColorPicker:Make;Image32:Make;Mandelbrot:Make;Rotate:Make;ImgView_Layers:Make;RotLayer:Make;Sprites:Make;NestedSampling:Make;PixelF:Make;Resamplers:Make;ImgWarping:Make;Transform:Make;Visualization:Make;LineSimplification:Make;Grow:Make;Benchmark:Make;PngExplorer:Make;PNG_GR32_Demo:Make"/>
+        <CallTarget Targets="BlendVsMerge:Make;PixelCombine:Make;TextureBlend:Make;AntiAliasing:Make;ArrowHead:Make;Blurs:Make;ClipperDemo:Make;CubicSpline:Make;Curves:Make;GammaCorrection:Make;GammaBlur:Make;GradFills:Make;GradLines:Make;GradSampler:Make;LineStippling:Make;Lion:Make;MeshGradients:Make;Polygons:Make;RenderText:Make;SvgPath:Make;ScatterPlot:Make;TextVPR:Make;ByteMaps:Make;ColorPicker:Make;Image32:Make;Mandelbrot:Make;Rotate:Make;ImgView_Layers:Make;RotLayer:Make;Sprites:Make;NestedSampling:Make;PixelF:Make;Resamplers:Make;ImgWarping:Make;Transform:Make;Visualization:Make;LineSimplification:Make;Grow:Make;Benchmark:Make;PngExplorer:Make;PNG_GR32_Demo:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
