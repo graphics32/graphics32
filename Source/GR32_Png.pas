@@ -1,4 +1,4 @@
-unit GR32_PNG;
+unit GR32_Png;
 
 (* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1 or LGPL 2.1 with linking exception
