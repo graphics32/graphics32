@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <PathDelim Value="\"/>
     <Name Value="GR32_Lazarus"/>
     <Author Value="Team Graphics32"/>
@@ -44,7 +44,7 @@ As of version 1.5.1b Graphics32 is licensed under the terms of the Mozilla Publi
     <License Value="GNU Library or Lesser General Public License (LGPL)
 Mozilla Public License 1.1 (MPL 1.1)"/>
     <Version Major="2"/>
-    <Files Count="45">
+    <Files Count="46">
       <Item1>
         <Filename Value="..\GR32.inc"/>
         <Type Value="Include"/>
@@ -230,7 +230,12 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <Filename Value="..\GR32_XPThemes.pas"/>
         <UnitName Value="GR32_XPThemes"/>
       </Item45>
+      <Item46>
+        <Filename Value="..\GR32_Png.pas"/>
+        <UnitName Value="GR32_PNG"/>
+      </Item46>
     </Files>
+    <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">
       <Item1>
         <PackageName Value="IDEIntf"/>

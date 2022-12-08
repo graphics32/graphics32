@@ -119,13 +119,15 @@ end;
 procedure TFrmClipper.AddPolygon(const Pts: TArrayOfFloatPoint);
 var
   ct: TClipType;
+  Clipper: TClipper;
 begin
-  with TClipper.Create do
+  Clipper := TClipper.Create;
   try
     //add multiple contours of existing polygons as subject polygons ...
-    AddPaths(Polys, ptSubject);
+    Clipper.AddPaths(Polys, ptSubject);
     //add the single contour of the new polygon as the clipping polygon ...
-    AddPath(Pts, ptClip);
+    Clipper.AddPath(Pts, ptClip);
+
     //do the clipping operation (result => Polys) ...
     case rgClipping.ItemIndex of
       0: ct := ctIntersection;
@@ -133,9 +135,9 @@ begin
       2:  ct := ctDifference;
       else  ct := ctXor;
     end;
-    Execute(ct, frNonZero, Polys);
+    Clipper.Execute(ct, frNonZero, Polys);
   finally
-    free;
+    Clipper.Free;
   end;
   DrawPolygons;
 end;
