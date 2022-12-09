@@ -35,9 +35,11 @@ interface
 {$I ..\..\Source\GR32.inc}
 
 uses
-  {$IFDEF FPC} fpcunit, testregistry, {$ELSE} TestFramework, Windows,
-  {$ENDIF} Controls, Types, Classes, SysUtils, Messages, Graphics,
-  GR32, GR32_Blend, GR32_Bindings;
+  {$IFDEF FPC} fpcunit, testregistry, {$ELSE} TestFramework, Windows, {$ENDIF}
+  Controls, Types, Classes, SysUtils, Messages, Graphics,
+  GR32,
+  GR32_Blend,
+  GR32_Bindings;
 
 type
   TCustomTestBlendModes = class abstract(TTestCase)
@@ -178,7 +180,9 @@ type
 implementation
 
 uses
-  Math, GR32_System, GR32_BlendReference;
+  Math,
+  GR32_System,
+  GR32_BlendReference;
 
 { TTestBlendModes }
 
@@ -653,7 +657,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Blend color: %.8X Merge color: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
+  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, 'MergeReg(FG: %.8X, BG: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
 
   // sample test
   MergeColor32.ARGB := clBlack32;
@@ -675,7 +679,7 @@ begin
         EMMS;
 
         CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-          '(RefIndex: %d, AlphaIndex: %d, Blend color: %.8X Merge color: %.8X)', [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
+          '(RefIndex: %d, Alpha Index: %d, MergeReg(FG: %.8X, BG: %.8X) )', [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
       end;
     end;
   end;
@@ -708,7 +712,7 @@ begin
 
   EMMS;
 
-  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, '(Blend color: %.8X, Merge color: %.8X)', [BlendColor32.ARGB, MergeColor32.ARGB]);
+  CheckColor(ExpectedColor32, CombinedColor32, FColorDiff, 'MergeRegEx(FG: %.8X, BG: %.8X, Master: %d)', [BlendColor32.ARGB, MergeColor32.ARGB, 128]);
 
   MergeColor32.ARGB := clBlack32;
   for RefIndex := 0 to High(Byte) do
@@ -730,8 +734,8 @@ begin
           EMMS;
 
           CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-            '(RefIndex: %d, Alpha Index: %d, Master: %.8X, Blend color: %.8X, Merge color: %.8X)',
-            [RefIndex, AlphaIndex, MasterIndex shl 5, BlendColor32.ARGB, MergeColor32.ARGB]);
+            '(RefIndex: %d, Alpha Index: %d, MergeRegEx(FG: %.8X, BG: %.8X, Master: %d) )',
+            [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB, MasterIndex shl 5]);
         end;
       end;
     end;
@@ -777,7 +781,7 @@ begin
         EMMS;
 
         CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-          '(RefIndex: %d, Alpha Index: %d, Blend color: %.8X, Merge color: %.8X)',
+          '(RefIndex: %d, Alpha Index: %d, MergeMem(FG: %.8X, BG: %.8X) )',
           [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
       end;
     end;
@@ -828,8 +832,8 @@ begin
           EMMS;
 
           CheckColor(ExpectedColor32, CombinedColor32, FColorDiff,
-            '(RefIndex: %d, Alpha Index: %d, Blend color: %.8X, Merge color: %.8X)',
-            [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB]);
+            '(RefIndex: %d, Alpha Index: %d, MergeMemEx(FG: %.8X, BG: %.8X, %d) )',
+            [RefIndex, AlphaIndex, BlendColor32.ARGB, MergeColor32.ARGB, MasterIndex shl 5]);
         end;
       end;
     end;
@@ -844,8 +848,7 @@ var
   RefIndex, Index : Integer;
   AlphaIndex      : Integer;
 const
-  CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F,
-    $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
+  CAlphaValues : array [0..14] of Byte = ($00, $01, $20, $40, $41, $60, $7F, $80, $9F, $BF, $C0, $C1, $DF, $FE, $FF);
 begin
   Rebind(FID_EMMS);
   Rebind(FID_MERGEREG);
@@ -941,8 +944,8 @@ begin
           EMMS;
 
           CheckColor(ExpectedColor32, MergedColor32, FColorDiff,
-            '(RefIndex: %d, Alpha Index: %d, Master: %d, Blend color: %.8X, Merge color: %.8X)',
-            [RefIndex, AlphaIndex, MasterIndex shl 5, BlendColor32.ARGB, MergedColor32.ARGB]);
+            '(Index: %d, RefIndex: %d, Alpha Index: %d, MergeRegEx(FG: %.8X, BG: %.8X, Master: %d))',
+            [Index, RefIndex, AlphaIndex, FForeground^[Index], BlendColor32.ARGB, MasterIndex shl 5]);
         end;
       end;
     end;
@@ -1017,6 +1020,7 @@ function TCustomTestBlendModes.Rebind(FunctionID: Integer): boolean;
 begin
   Result := BlendRegistry.Rebind(FunctionID, pointer(PriorityProc));
   if (not Result) then
+    // Not really an error but we need to indicate that nothing was tested
     Fail('Not implemented');
 end;
 
@@ -1426,6 +1430,7 @@ end;
 
 procedure TTestBlendModesSSE2.TestMergeReg;
 begin
+  FColorDiff := 4;
   inherited;
 end;
 
