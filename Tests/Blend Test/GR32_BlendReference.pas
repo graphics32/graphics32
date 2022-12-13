@@ -38,10 +38,17 @@ unit GR32_BlendReference;
 interface
 
 {$I ..\..\Source\GR32.inc}
+
 {-$DEFINE UseLookupTables}
 
+// Contrary to the documentation the result alpha of a Blend operation is either left as-is or set to $FF
+{$DEFINE BlendAlpha255}
+
 uses
-  SysUtils, GR32, GR32_Bindings, GR32_Blend;
+  SysUtils,
+  GR32,
+  GR32_Bindings,
+  GR32_Blend;
 
 function BlendReg_Reference(Foreground, Background: TColor32): TColor32;
 procedure BlendMem_Reference(Foreground: TColor32; var Background: TColor32);
@@ -49,9 +56,11 @@ function BlendRegEx_Reference(Foreground, Background: TColor32; Master: Cardinal
 procedure BlendMemEx_Reference(Foreground: TColor32; var Background: TColor32; Master: Cardinal);
 procedure BlendLine_Reference(Source, Destination: PColor32; Count: Integer);
 procedure BlendLineEx_Reference(Source, Destination: PColor32; Count: Integer; Master: Cardinal);
+
 function CombineReg_Reference(ForeGround, Background: TColor32; Weight: Cardinal): TColor32;
 procedure CombineMem_Reference(ForeGround: TColor32; var Background: TColor32; Weight: Cardinal);
 procedure CombineLine_Reference(Source, Destination: PColor32; Count: Integer; Weight: Cardinal);
+
 function MergeReg_Reference(Foreground, Background: TColor32): TColor32;
 procedure MergeMem_Reference(Foreground: TColor32; var Background: TColor32);
 function MergeRegEx_Reference(Foreground, Background: TColor32; Master: Cardinal): TColor32;
@@ -84,7 +93,7 @@ var
   Scale : array [0..1] of Double;
 {$ENDIF}
 begin
-  if ForegroundColor.A =   0 then
+  if ForegroundColor.A = 0 then
   begin
     Result := Background;
     Exit;
@@ -99,14 +108,22 @@ begin
 {$IFDEF UseLookupTables}
   AlphaForeground := @GDivTable[ForegroundColor.A];
   AlphaBackground := @GDivTable[not ForegroundColor.A];
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
+{$endif BlendAlpha255}
   BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
   BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
   BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[BackgroundColor.B];
 {$ELSE}
   Scale[0] := ForegroundColor.A * COne255th;
   Scale[1] := 1 - Scale[0];
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$endif BlendAlpha255}
   BackgroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
   BackgroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
   BackgroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -138,14 +155,22 @@ begin
 {$IFDEF UseLookupTables}
   AlphaForeground := @GDivTable[ForegroundColor.A];
   AlphaBackground := @GDivTable[not ForegroundColor.A];
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
+{$endif BlendAlpha255}
   BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
   BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
   BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[BackgroundColor.B];
 {$ELSE}
   Scale[0] := ForegroundColor.A * COne255th;
   Scale[1] := 1.0 - Scale[0];
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$endif BlendAlpha255}
   BackgroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
   BackgroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
   BackgroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -182,14 +207,22 @@ begin
   AlphaForeground := @GDivTable[MasterAlpha];
   AlphaBackground := @GDivTable[not MasterAlpha];
 
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
+{$endif BlendAlpha255}
   BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
   BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
   BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[BackgroundColor.B];
 {$ELSE}
   Scale[0] := MasterAlpha * ForegroundColor.A * Sqr(COne255th);
   Scale[1] := 1 - Scale[0];
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$endif BlendAlpha255}
   BackgroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
   BackgroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
   BackgroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -224,14 +257,22 @@ begin
   AlphaForeground := @GDivTable[MasterAlpha];
   AlphaBackground := @GDivTable[not MasterAlpha];
 
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := AlphaForeground[ForegroundColor.A] + AlphaBackground[BackgroundColor.A];
+{$endif BlendAlpha255}
   BackgroundColor.R := AlphaForeground[ForegroundColor.R] + AlphaBackground[BackgroundColor.R];
   BackgroundColor.G := AlphaForeground[ForegroundColor.G] + AlphaBackground[BackgroundColor.G];
   BackgroundColor.B := AlphaForeground[ForegroundColor.B] + AlphaBackground[BackgroundColor.B];
 {$ELSE}
   Scale[0] := MasterAlpha * ForegroundColor.A * Sqr(COne255th);
   Scale[1] := 1.0 - Scale[0];
+{$ifdef BlendAlpha255}
+  BackgroundColor.A := $FF;
+{$else BlendAlpha255}
   BackgroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$endif BlendAlpha255}
   BackgroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
   BackgroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
   BackgroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
@@ -240,7 +281,8 @@ end;
 
 procedure BlendLine_Reference(Source, Destination: PColor32; Count: Integer);
 begin
-  while Count > 0 do begin
+  while Count > 0 do
+  begin
     BlendMem_Reference(Source^, Destination^);
     Inc(Source);
     Inc(Destination);
@@ -283,23 +325,22 @@ begin
     Exit;
   end;
 
-  with ForegroundColor do begin
-    {$IFDEF UseLookupTables}
-    AlphaForeground := @GDivTable[Weight];
-    AlphaBackground := @GDivTable[255 - Weight];
-    R := AlphaBackground[BackgroundColor.R] + AlphaForeground[R];
-    G := AlphaBackground[BackgroundColor.G] + AlphaForeground[G];
-    B := AlphaBackground[BackgroundColor.B] + AlphaForeground[B];
-    A := AlphaBackground[BackgroundColor.A] + AlphaForeground[A];
-    {$ELSE}
-    Scale[0] := Weight * COne255th;
-    Scale[1] := 1 - Scale[0];
-    R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * R), 0, $FF);
-    G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * G), 0, $FF);
-    B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * B), 0, $FF);
-    A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * A), 0, $FF);
-    {$ENDIF}
-  end;
+{$IFDEF UseLookupTables}
+  AlphaForeground := @GDivTable[Weight];
+  AlphaBackground := @GDivTable[255 - Weight];
+  ForegroundColor.R := AlphaBackground[BackgroundColor.R] + AlphaForeground[ForegroundColor.R];
+  ForegroundColor.G := AlphaBackground[BackgroundColor.G] + AlphaForeground[ForegroundColor.G];
+  ForegroundColor.B := AlphaBackground[BackgroundColor.B] + AlphaForeground[ForegroundColor.B];
+  ForegroundColor.A := AlphaBackground[BackgroundColor.A] + AlphaForeground[ForegroundColor.A];
+{$ELSE}
+  Scale[0] := Weight * COne255th;
+  Scale[1] := 1 - Scale[0];
+  ForegroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
+  ForegroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
+  ForegroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
+  ForegroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$ENDIF}
+
   Result := ForeGround;
 end;
 
@@ -315,7 +356,8 @@ var
   Scale : array [0..1] of Double;
 {$ENDIF}
 begin
-  if Weight = 0 then Exit;
+  if Weight = 0 then
+    Exit;
 
   if Weight >= $FF then
   begin
@@ -323,30 +365,30 @@ begin
     Exit;
   end;
 
-  with ForegroundColor do begin
-    {$IFDEF UseLookupTables}
-    AlphaForeground := @GDivTable[Weight];
-    AlphaBackground := @GDivTable[255 - Weight];
-    R := AlphaBackground[BackgroundColor.R] + AlphaForeground[R];
-    G := AlphaBackground[BackgroundColor.G] + AlphaForeground[G];
-    B := AlphaBackground[BackgroundColor.B] + AlphaForeground[B];
-    A := AlphaBackground[BackgroundColor.A] + AlphaForeground[A];
-    {$ELSE}
-    Scale[0] := Weight * COne255th;
-    Scale[1] := 1 - Scale[0];
-    R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * R), 0, $FF);
-    G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * G), 0, $FF);
-    B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * B), 0, $FF);
-    A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * A), 0, $FF);
-    {$ENDIF}
-  end;
+{$IFDEF UseLookupTables}
+  AlphaForeground := @GDivTable[Weight];
+  AlphaBackground := @GDivTable[255 - Weight];
+  ForegroundColor.R := AlphaBackground[BackgroundColor.R] + AlphaForeground[ForegroundColor.R];
+  ForegroundColor.G := AlphaBackground[BackgroundColor.G] + AlphaForeground[ForegroundColor.G];
+  ForegroundColor.B := AlphaBackground[BackgroundColor.B] + AlphaForeground[ForegroundColor.B];
+  ForegroundColor.A := AlphaBackground[BackgroundColor.A] + AlphaForeground[ForegroundColor.A];
+{$ELSE}
+  Scale[0] := Weight * COne255th;
+  Scale[1] := 1 - Scale[0];
+  ForegroundColor.R := EnsureRange(Round(Scale[1] * BackgroundColor.R + Scale[0] * ForegroundColor.R), 0, $FF);
+  ForegroundColor.G := EnsureRange(Round(Scale[1] * BackgroundColor.G + Scale[0] * ForegroundColor.G), 0, $FF);
+  ForegroundColor.B := EnsureRange(Round(Scale[1] * BackgroundColor.B + Scale[0] * ForegroundColor.B), 0, $FF);
+  ForegroundColor.A := EnsureRange(Round(Scale[1] * BackgroundColor.A + Scale[0] * ForegroundColor.A), 0, $FF);
+{$ENDIF}
+
   Background := ForeGround;
 end;
 
 procedure CombineLine_Reference(Source, Destination: PColor32; Count: Integer;
   Weight: Cardinal);
 begin
-  while Count > 0 do begin
+  while Count > 0 do
+  begin
     CombineMem(Source^, Destination^, Weight);
     Inc(Source);
     Inc(Destination);
@@ -366,39 +408,77 @@ var
   WeightAlpha      : Byte;
 {$ELSE}
 var
-  Temp  : Double;
+  Alpha : Double;
   Scale : Double;
+  AlphaFG : Double;
+//  AlphaBG : Double;
 {$ENDIF}
 begin
-  if ForegroundColor.A = $FF then Result := Foreground else
-  if ForegroundColor.A = $0  then Result := Background else
-  if BackgroundColor.A = $0  then Result := Foreground else
+  if ForegroundColor.A = $FF then
+    Result := Foreground
+  else
+  if ForegroundColor.A = $0 then
+    Result := Background
+  else
+  if BackgroundColor.A = $0 then
+    Result := Foreground
+  else
   if BackgroundColor.A = $FF then
     Result := BlendReg_Reference(Foreground, Background)
   else
-    with BackgroundColor do
-    begin
-      {$IFDEF UseLookupTables}
-      ResultColor.A := GDivTable[ForegroundColor.A xor 255, BackgroundColor.A xor 255] xor 255;
-      WeightAlpha := GRcTable[ResultColor.A, ForegroundColor.A];
-      ForegroundWeight := @GDivTable[WeightAlpha];
-      BackgroundWeight := @GDivTable[WeightAlpha xor $FF];
-      ResultColor.R := ForegroundWeight[ForegroundColor.R] + BackgroundWeight[R];
-      ResultColor.G := ForegroundWeight[ForegroundColor.G] + BackgroundWeight[G];
-      ResultColor.B := ForegroundWeight[ForegroundColor.B] + BackgroundWeight[B];
-      {$ELSE}
-      Temp := $FF - ($FF - ForegroundColor.A) * (1 - A * COne255th);
-      ResultColor.A := Round(Temp);
-      if ForegroundColor.A = 0 then
-        Scale := 0
-      else
-        Scale := ForegroundColor.A / Temp;
+  begin
+{$IFDEF UseLookupTables}
+    ResultColor.A := GDivTable[ForegroundColor.A xor 255, BackgroundColor.A xor 255] xor 255;
+    WeightAlpha := GRcTable[ResultColor.A, ForegroundColor.A];
+    ForegroundWeight := @GDivTable[WeightAlpha];
+    BackgroundWeight := @GDivTable[WeightAlpha xor $FF];
+    ResultColor.R := ForegroundWeight[ForegroundColor.R] + BackgroundWeight[BackgroundColor.R];
+    ResultColor.G := ForegroundWeight[ForegroundColor.G] + BackgroundWeight[BackgroundColor.G];
+    ResultColor.B := ForegroundWeight[ForegroundColor.B] + BackgroundWeight[BackgroundColor.B];
+{$ELSE}
+    Alpha := 1.0 - (1.0 - ForegroundColor.A * COne255th) * (1.0 - BackgroundColor.A * COne255th);
+    ResultColor.A := Round(255 * Alpha);
 
-      ResultColor.R := Round(R + Scale * (ForegroundColor.R - R));
-      ResultColor.G := Round(G + Scale * (ForegroundColor.G - G));
-      ResultColor.B := Round(B + Scale * (ForegroundColor.B - B));
-      {$ENDIF}
-    end;
+    if ResultColor.A = 0 then
+      Scale := 0 // Even though we test for FG.A=BG.A=0 above this can occur due to rounding
+    else
+      Scale := 1 / Alpha;
+
+    AlphaFG := ForegroundColor.A * COne255th;
+
+    (*
+      Given that:
+
+        Ra = Fa + Ba * (1 - Fa)
+        Rc = (Fa * (Fc - Bc * Ba) + Bc * Ba) / Ra
+
+      ...can be rewritten as:
+
+        Ra := 1 - (1 - Fa) * (1 - Ba);
+        Wa := Fa / Ra;
+        Rc := Bc + Wa * (Fc - Bc);
+
+    *)
+
+    (*
+    This:
+
+    AlphaBG := BackgroundColor.A * COne255th;
+    ResultColor.R := Round(((AlphaFG * ForegroundColor.R) + (AlphaBG * (1 - AlphaFG) * BackgroundColor.R)) * Scale);
+    ResultColor.G := Round(((AlphaFG * ForegroundColor.G) + (AlphaBG * (1 - AlphaFG) * BackgroundColor.G)) * Scale);
+    ResultColor.B := Round(((AlphaFG * ForegroundColor.B) + (AlphaBG * (1 - AlphaFG) * BackgroundColor.B)) * Scale);
+
+    becomes:
+    *)
+
+    Scale := AlphaFG * Scale;
+
+    ResultColor.R := BackgroundColor.R + Round((ForegroundColor.R - BackgroundColor.R) * Scale);
+    ResultColor.G := BackgroundColor.G + Round((ForegroundColor.G - BackgroundColor.G) * Scale);
+    ResultColor.B := BackgroundColor.B + Round((ForegroundColor.B - BackgroundColor.B) * Scale);
+
+{$ENDIF}
+  end;
 end;
 
 procedure MergeMem_Reference(Foreground: TColor32; var Background: TColor32);
@@ -435,7 +515,7 @@ var
   MasterAlpha     : Byte absolute Master;
 begin
   TempColor.ARGB := Foreground;
-  TempColor.A := (TempColor.A * MasterAlpha) div 255;
+  TempColor.A := Round(TempColor.A * MasterAlpha / 255);
   Result := MergeReg_Reference(TempColor.ARGB, Background);
 end;
 
@@ -446,7 +526,7 @@ var
   MasterAlpha     : Byte absolute Master;
 begin
   TempColor.ARGB := Foreground;
-  TempColor.A := (TempColor.A * MasterAlpha) div 255;
+  TempColor.A := Round(TempColor.A * MasterAlpha / 255);
   Background := MergeReg_Reference(TempColor.ARGB, Background);
 end;
 
