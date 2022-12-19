@@ -7,7 +7,7 @@
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Package</AppType>
         <FrameworkType>VCL</FrameworkType>
-        <ProjectVersion>19.3</ProjectVersion>
+        <ProjectVersion>19.5</ProjectVersion>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
@@ -54,7 +54,7 @@
         <SanitizedProjectName>GR32_D</SanitizedProjectName>
         <GenPackage>true</GenPackage>
         <DCC_S>false</DCC_S>
-        <DCC_DcuOutput>$(STSRC)\BUILD\components\units\$(Platform)\$(Config)</DCC_DcuOutput>
+        <DCC_DcuOutput>.\Lib\$(Platform)\$(Config)</DCC_DcuOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <DCC_UsePackage>rtl;vcl;GR32_R;VclSmp;$(DCC_UsePackage)</DCC_UsePackage>
