@@ -3025,42 +3025,42 @@ end;
 
 function TChunkPngPrimaryChromaticities.GetBlueX: Single;
 begin
-  Result := FBlueX * 1E-6;
+  Result := FBlueX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetBlueY: Single;
 begin
-  Result := FBlueY * 1E-6;
+  Result := FBlueY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetGreenX: Single;
 begin
-  Result := FGreenX * 1E-6;
+  Result := FGreenX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetGreenY: Single;
 begin
-  Result := FGreenY * 1E-6;
+  Result := FGreenY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetRedX: Single;
 begin
-  Result := FRedX * 1E-6;
+  Result := FRedX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetRedY: Single;
 begin
-  Result := FRedY * 1E-6;
+  Result := FRedY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetWhiteX: Single;
 begin
-  Result := FWhiteX * 1E-6;
+  Result := FWhiteX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetWhiteY: Single;
 begin
-  Result := FWhiteY * 1E-6;
+  Result := FWhiteY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetChunkSize: Cardinal;
@@ -3137,42 +3137,42 @@ end;
 
 procedure TChunkPngPrimaryChromaticities.SetBlueX(const Value: Single);
 begin
-  FBlueX := Round(Value * 1E6);
+  FBlueX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetBlueY(const Value: Single);
 begin
-  FBlueY := Round(Value * 1E6);
+  FBlueY := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetGreenX(const Value: Single);
 begin
-  FGreenX := Round(Value * 1E6);
+  FGreenX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetGreenY(const Value: Single);
 begin
-  FGreenY := Round(Value * 1E6);
+  FGreenY := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetRedX(const Value: Single);
 begin
-  FRedX := Round(Value * 1E6);
+  FRedX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetRedY(const Value: Single);
 begin
-  FRedY := Round(Value * 1E6);
+  FRedY := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetWhiteX(const Value: Single);
 begin
-  FWhiteX := Round(Value * 1E6);
+  FWhiteX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetWhiteY(const Value: Single);
 begin
-  FWhiteY := Round(Value * 1E6);
+  FWhiteY := Round(Value * 1E5);
 end;
 
 
