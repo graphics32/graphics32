@@ -11,15 +11,16 @@ uses
   TestFramework,
   GUITestRunner,
   TextTestRunner,
-  GR32_TestGuiPng in 'GR32_TestGuiPng.pas',
-  GR32_TestGuiPngDisplay in 'GR32_TestGuiPngDisplay.pas' {FmDisplay};
+  FileTestFramework in '..\DUnit\FileTestFramework.pas',
+  GR32_TestGuiPng in 'GR32_TestGuiPng.pas';
 
 {$R *.RES}
 
 begin
   Application.Initialize;
-  if IsConsole
-   then TextTestRunner.RunRegisteredTests
-   else GUITestRunner.RunRegisteredTests;
+  if IsConsole then
+    TextTestRunner.RunRegisteredTests
+  else
+    GUITestRunner.RunRegisteredTests;
 end.
 
