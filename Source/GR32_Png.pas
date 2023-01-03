@@ -49,10 +49,10 @@ type
     procedure AssignPropertiesFromBitmap32(Bitmap32: TCustomBitmap32);
     function GetBackgroundColor: TColor32;
   protected
+    procedure AssignTo(Dest: TPersistent); override;
     function GR32Scanline(Bitmap: TObject; Y: Integer): Pointer; virtual;
     function GR32ScanlineProgress(Bitmap: TObject; Y: Integer): Pointer; virtual;
   public
-    procedure AssignTo(Dest: TPersistent); override;
     procedure Assign(Source: TPersistent); override;
 
     procedure MakeIndexColored(MaxColorCount: Integer);

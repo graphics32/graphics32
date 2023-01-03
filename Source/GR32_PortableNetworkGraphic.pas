@@ -1078,6 +1078,7 @@ resourcestring
   RCStrSeveralPhysicalPixelDimensionChunks = 'Several physical pixel dimenson chunks found';
   RCStrSeveralSignificantBitsChunksFound = 'Several significant bits chunks found';
   RCStrSeveralTimeChunks = 'Time chunk appears twice!';
+  RCStrMissingIDATChunk = 'IDAT chunk missing';
   RCStrUnknownColorType = 'Unknown color type!';
   RCStrUnspecifiedPixelUnit = 'Unspecified unit';
   RCStrUnsupportedCompressionMethod = 'Compression method not supported!';
@@ -1085,6 +1086,7 @@ resourcestring
   RCStrUnsupportedFilter = 'Unsupported Filter';
   RCStrUnsupportedFilterMethod = 'Unsupported filter method';
   RCStrUnsupportedInterlaceMethod = 'Unsupported interlace method';
+  RCStrUnsupportedColorType = 'Unsupported color type';
   RCStrWrongBitdepth = 'Wrong Bitdepth';
   RCStrWrongInterlaceMethod = 'Wrong interlace method';
   RCStrWrongPixelPerUnit = 'Pixel per unit may not be zero!';
@@ -1660,6 +1662,8 @@ begin
         if not (FBitDepth in [8, 16]) then raise EPngError.Create(RCStrWrongBitdepth);
       ctIndexedColor:
         if not (FBitDepth in [1, 2, 4, 8]) then raise EPngError.Create(RCStrWrongBitdepth);
+    else
+      raise EPngError.Create(RCStrUnsupportedColorType);
     end;
 
     // read compression method
@@ -3025,42 +3029,42 @@ end;
 
 function TChunkPngPrimaryChromaticities.GetBlueX: Single;
 begin
-  Result := FBlueX * 1E-6;
+  Result := FBlueX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetBlueY: Single;
 begin
-  Result := FBlueY * 1E-6;
+  Result := FBlueY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetGreenX: Single;
 begin
-  Result := FGreenX * 1E-6;
+  Result := FGreenX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetGreenY: Single;
 begin
-  Result := FGreenY * 1E-6;
+  Result := FGreenY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetRedX: Single;
 begin
-  Result := FRedX * 1E-6;
+  Result := FRedX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetRedY: Single;
 begin
-  Result := FRedY * 1E-6;
+  Result := FRedY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetWhiteX: Single;
 begin
-  Result := FWhiteX * 1E-6;
+  Result := FWhiteX * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetWhiteY: Single;
 begin
-  Result := FWhiteY * 1E-6;
+  Result := FWhiteY * 1E-5;
 end;
 
 function TChunkPngPrimaryChromaticities.GetChunkSize: Cardinal;
@@ -3137,42 +3141,42 @@ end;
 
 procedure TChunkPngPrimaryChromaticities.SetBlueX(const Value: Single);
 begin
-  FBlueX := Round(Value * 1E6);
+  FBlueX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetBlueY(const Value: Single);
 begin
-  FBlueY := Round(Value * 1E6);
+  FBlueY := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetGreenX(const Value: Single);
 begin
-  FGreenX := Round(Value * 1E6);
+  FGreenX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetGreenY(const Value: Single);
 begin
-  FGreenY := Round(Value * 1E6);
+  FGreenY := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetRedX(const Value: Single);
 begin
-  FRedX := Round(Value * 1E6);
+  FRedX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetRedY(const Value: Single);
 begin
-  FRedY := Round(Value * 1E6);
+  FRedY := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetWhiteX(const Value: Single);
 begin
-  FWhiteX := Round(Value * 1E6);
+  FWhiteX := Round(Value * 1E5);
 end;
 
 procedure TChunkPngPrimaryChromaticities.SetWhiteY(const Value: Single);
 begin
-  FWhiteY := Round(Value * 1E6);
+  FWhiteY := Round(Value * 1E5);
 end;
 
 
@@ -5007,6 +5011,7 @@ var
   ChunkClass   : TCustomDefinedChunkWithHeaderClass;
   Chunk        : TCustomDefinedChunkWithHeader;
   MemoryStream : TMemoryStream;
+  GotIDAT      : boolean;
 const
   PNG_SIG: TChunkName = (AnsiChar($89), 'P', 'N', 'G');
 begin
@@ -5090,65 +5095,68 @@ begin
 
         if ChunkName = 'IHDR' then
           raise EPngError.Create(RCStrNotAValidPNGFile)
-        else if ChunkName = 'IDAT' then
-          ReadImageDataChunk(MemoryStream, ChunkSize)
-        else if ChunkName = 'gAMA' then
+        else
+        if ChunkName = 'IDAT' then
         begin
-          if Assigned(FGammaChunk)
-           then raise EPngError.Create(RCStrSeveralGammaChunks);
+          ReadImageDataChunk(MemoryStream, ChunkSize);
+          GotIDAT := True;
+        end else
+        if ChunkName = 'gAMA' then
+        begin
+          if Assigned(FGammaChunk) then
+            raise EPngError.Create(RCStrSeveralGammaChunks);
           FGammaChunk := TChunkPngGamma.Create(FImageHeader);
           FGammaChunk.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'cHRM' then
+        end else
+        if ChunkName = 'cHRM' then
         begin
           if Assigned(FChromaChunk) then
             raise EPngError.Create(RCStrSeveralChromaChunks);
           FChromaChunk := TChunkPngPrimaryChromaticities.Create(FImageHeader);
           FChromaChunk.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'tIME' then
+        end else
+        if ChunkName = 'tIME' then
         begin
           if Assigned(FTimeChunk) then
             raise EPngError.Create(RCStrSeveralTimeChunks);
           FTimeChunk := TChunkPngTime.Create(FImageHeader);
           FTimeChunk.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'sBIT' then
+        end else
+        if ChunkName = 'sBIT' then
         begin
           if Assigned(FSignificantBits) then
             raise EPngError.Create(RCStrSeveralSignificantBitsChunksFound);
           FSignificantBits := TChunkPngSignificantBits.Create(FImageHeader);
           FSignificantBits.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'pHYs' then
+        end else
+        if ChunkName = 'pHYs' then
         begin
           if Assigned(FPhysicalDimensions) then
             raise EPngError.Create(RCStrSeveralPhysicalPixelDimensionChunks);
           FPhysicalDimensions := TChunkPngPhysicalPixelDimensions.Create(FImageHeader);
           FPhysicalDimensions.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'PLTE' then
+        end else
+        if ChunkName = 'PLTE' then
         begin
           if Assigned(FPaletteChunk) then
             raise EPngError.Create(RCStrSeveralPaletteChunks);
           FPaletteChunk := TChunkPngPalette.Create(FImageHeader);
           FPaletteChunk.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'tRNS' then
+        end else
+        if ChunkName = 'tRNS' then
         begin
           if Assigned(FTransparencyChunk) then
             raise EPngError.Create(RCStrSeveralTransparencyChunks);
           FTransparencyChunk := TChunkPngTransparency.Create(FImageHeader);
           FTransparencyChunk.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else if ChunkName = 'bKGD' then
+        end else
+        if ChunkName = 'bKGD' then
         begin
           if Assigned(FBackgroundChunk) then
             raise EPngError.Create(RCStrSeveralBackgroundChunks);
           FBackgroundChunk := TChunkPngBackgroundColor.Create(FImageHeader);
           FBackgroundChunk.ReadFromStream(MemoryStream, ChunkSize);
-        end
-        else
+        end else
         begin
           ChunkClass := FindPngChunkByChunkName(ChunkName);
           if ChunkClass <> nil then
@@ -5178,6 +5186,9 @@ begin
       FreeAndNil(MemoryStream);
     end;
   end;
+
+  if (not GotIDAT) then
+    raise EPngError.Create(RCStrMissingIDATChunk);
 end;
 
 procedure TPortableNetworkGraphic.SaveToFile(Filename: TFilename);

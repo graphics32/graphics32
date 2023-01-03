@@ -17,6 +17,11 @@ program BitmapTest;
 {$R 'bitmaps.res' 'bitmaps.rc'}
 
 uses
+  madExcept,
+  madLinkDisAsm,
+  madListHardware,
+  madListProcesses,
+  madListModules,
   TestFramework,
   GUITestRunner,
   TextTestRunner,
@@ -24,7 +29,7 @@ uses
   Forms,
   TestBitmapLoadSave in 'TestBitmapLoadSave.pas',
   GR32 in '..\..\Source\GR32.pas',
-  FileTestFramework in 'FileTestFramework.pas';
+  FileTestFramework in '..\DUnit\FileTestFramework.pas';
 
 {$R *.RES}
 

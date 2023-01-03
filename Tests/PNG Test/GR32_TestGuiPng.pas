@@ -39,11 +39,13 @@ interface
 uses
   {$IFDEF FPC}fpcunit, testregistry, {$ELSE} TestFramework, {$ENDIF}
   Classes, SysUtils, {$IFDEF FPC} LazPNG, {$ELSE} pngimage, {$ENDIF}
-  GR32, GR32_Png, GR32_PortableNetworkGraphic,
-  GR32_TestGuiPngDisplay;
+  FileTestFramework,
+  GR32,
+  GR32_Png,
+  GR32_PortableNetworkGraphic;
 
 type
-  TCustomTestPngGR32 = class(TTestCase)
+  TCustomTestPngGR32 = class abstract(TTestCase)
   protected
     FPortableNetworkGraphic: TPortableNetworkGraphic32;
   public
@@ -51,227 +53,82 @@ type
     procedure TearDown; override;
   end;
 
-  TTestPngGR32File = class(TCustomTestPngGR32)
-  private
-    procedure InternalTestInvalidFile(FileName: TFileName);
+  TTestGR32PngBasics = class(TCustomTestPngGR32)
   published
-    procedure TestScanning;
     procedure TestBasicAssign;
     procedure TestBasicWriting;
     procedure TestAdvancedWriting;
     procedure TestCompressionTranscoding;
-    procedure TestInterlaceTranscoding;
     procedure TestPerformanceTest;
+  end;
+
+type
+  TCustomGR32FileTest = class abstract(TFileTestCase)
+  protected
+    FPortableNetworkGraphic: TPortableNetworkGraphic32;
+  protected
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
+    class function HandlesFiles(const AFilename: string): boolean; override;
+  end;
+
+  TGR32FileTest = class(TCustomGR32FileTest)
+  protected
+  public
+  published
+    procedure TestLoadFromFile;
+  end;
+
+  TGR32InvalidFileTest = class(TCustomGR32FileTest)
+  protected
+  public
+    class function HandlesFiles(const AFilename: string): boolean; override;
+  published
     procedure TestInvalidFiles;
   end;
 
-  TCustomTestPngGR32Drawing = class(TCustomTestPngGR32)
+type
+  TTestPngToBitmap32 = class(TCustomGR32FileTest)
   private
-    procedure InternalTestDrawing(FileName: TFileName);
-  end;
-
-  TTestPngGR32Drawing = class(TCustomTestPngGR32Drawing)
   published
-    procedure TestDrawingGrayscale1bit;
-    procedure TestDrawingGrayscale2bit;
-    procedure TestDrawingGrayscale4bit;
-    procedure TestDrawingGrayscale8bit;
-    procedure TestDrawingIndex1bit;
-    procedure TestDrawingIndex2bit;
-    procedure TestDrawingIndex4bit;
-    procedure TestDrawingIndex8bit;
-    procedure TestDrawingTrueColor24;
-    procedure TestDrawingTrueColor32;
-    procedure TestDrawingAdam7Grayscale1bit;
-    procedure TestDrawingAdam7Grayscale2bit;
-    procedure TestDrawingAdam7Grayscale4bit;
-    procedure TestDrawingAdam7Grayscale8bit;
-    procedure TestDrawingAdam7Index1bit;
-    procedure TestDrawingAdam7Index2bit;
-    procedure TestDrawingAdam7Index4bit;
-    procedure TestDrawingAdam7Index8bit;
-    procedure TestDrawingAdam7TrueColor24;
-    procedure TestDrawingAdam7TrueColor32;
-    procedure TestDrawingLarge;
+    procedure TestPngToBitmap32;
   end;
 
-  // Test methods for class TPortableNetworkGraphic
-  TTestPngGR32DrawingSuiteBasicNonInterlaced = class(TCustomTestPngGR32Drawing)
+type
+  TTestPngBitmap32Roundtrip = class(TCustomTestPngGR32)
+  protected
+    procedure TestRoundtrip(const AFilename: string; AColorType: TColorType; ABitDepth: integer);
   published
-     procedure TestDrawingBlackAndWhite;
-     procedure TestDrawingGrayscale2bit;
-     procedure TestDrawingGrayscale4bit;
-     procedure TestDrawingGrayscale8bit;
-     procedure TestDrawingGrayscale16bit;
-     procedure TestDrawingRGB8bits;
-     procedure TestDrawingRGB16bits;
-     procedure TestDrawingIndexed1bit;
-     procedure TestDrawingIndexed2bit;
-     procedure TestDrawingIndexed4bit;
-     procedure TestDrawingIndexed8bit;
-     procedure TestDrawingGrayscaleAlpha8bit;
-     procedure TestDrawingGrayscaleAlpha16bit;
-     procedure TestDrawingRGBA8bits;
-     procedure TestDrawingRGBA16bits;
+    procedure TestRoundtripBlackAndWhite;
+    procedure TestRoundtripGrayscale2bit;
+    procedure TestRoundtripGrayscale4bit;
+    procedure TestRoundtripGrayscale8bit;
+    procedure TestRoundtripRGB8bits;
+    procedure TestRoundtripRGB16bits;
+    procedure TestRoundtripIndexed1bit;
+    procedure TestRoundtripIndexed2bit;
+    procedure TestRoundtripIndexed4bit;
+    procedure TestRoundtripIndexed8bit;
+    procedure TestRoundtripGrayscaleAlpha8bit;
+    procedure TestRoundtripGrayscaleAlpha16bit;
+    procedure TestRoundtripRGBA8bits;
+    procedure TestRoundtripRGBA16bits;
   end;
 
-  TTestPngGR32DrawingSuiteBasicAdam7 = class(TCustomTestPngGR32Drawing)
-  published
-     procedure TestDrawingBlackAndWhite;
-     procedure TestDrawingGrayscale2bit;
-     procedure TestDrawingGrayscale4bit;
-     procedure TestDrawingGrayscale8bit;
-     procedure TestDrawingGrayscale16bit;
-     procedure TestDrawingRGB8bits;
-     procedure TestDrawingRGB16bits;
-     procedure TestDrawingIndexed1bit;
-     procedure TestDrawingIndexed2bit;
-     procedure TestDrawingIndexed4bit;
-     procedure TestDrawingIndexed8bit;
-     procedure TestDrawingGrayscaleAlpha8bit;
-     procedure TestDrawingGrayscaleAlpha16bit;
-     procedure TestDrawingRGBA8bits;
-     procedure TestDrawingRGBA16bits;
-  end;
-
-  TTestPngGR32DrawingSuiteSizeTest = class(TCustomTestPngGR32Drawing)
-  published
-     procedure TestDrawingPalette1x1;
-     procedure TestDrawingPalette2x2;
-     procedure TestDrawingPalette3x3;
-     procedure TestDrawingPalette4x4;
-     procedure TestDrawingPalette5x5;
-     procedure TestDrawingPalette6x6;
-     procedure TestDrawingPalette7x7;
-     procedure TestDrawingPalette8x8;
-     procedure TestDrawingPalette9x9;
-     procedure TestDrawingPalette32x32;
-     procedure TestDrawingPalette33x33;
-     procedure TestDrawingPalette34x34;
-     procedure TestDrawingPalette35x35;
-     procedure TestDrawingPalette36x36;
-     procedure TestDrawingPalette37x37;
-     procedure TestDrawingPalette38x38;
-     procedure TestDrawingPalette39x39;
-     procedure TestDrawingPalette40x40;
-     procedure TestDrawingPalette1x1Adam7;
-     procedure TestDrawingPalette2x2Adam7;
-     procedure TestDrawingPalette3x3Adam7;
-     procedure TestDrawingPalette4x4Adam7;
-     procedure TestDrawingPalette5x5Adam7;
-     procedure TestDrawingPalette6x6Adam7;
-     procedure TestDrawingPalette7x7Adam7;
-     procedure TestDrawingPalette8x8Adam7;
-     procedure TestDrawingPalette9x9Adam7;
-     procedure TestDrawingPalette32x32Adam7;
-     procedure TestDrawingPalette33x33Adam7;
-     procedure TestDrawingPalette34x34Adam7;
-     procedure TestDrawingPalette35x35Adam7;
-     procedure TestDrawingPalette36x36Adam7;
-     procedure TestDrawingPalette37x37Adam7;
-     procedure TestDrawingPalette38x38Adam7;
-     procedure TestDrawingPalette39x39Adam7;
-     procedure TestDrawingPalette40x40Adam7;
-  end;
-
-  TTestPngGR32DrawingSuiteBackgroundTest = class(TCustomTestPngGR32Drawing)
-  published
-    procedure TestDrawingGrayscaleAlpha8bitBlack;
-    procedure TestDrawingGrayscaleAlpha16bitGray;
-    procedure TestDrawingRGBA8bitWhite;
-    procedure TestDrawingRGBA16bitYellow;
-    procedure TestDrawingGrayscaleAlpha8bitNoBackground;
-    procedure TestDrawingGrayscaleAlpha16bitNoBackground;
-    procedure TestDrawingRGBA8bitNoBackground;
-    procedure TestDrawingRGBA16bitNoBackground;
-  end;
-
-  TTestPngGR32DrawingSuiteGammaTest = class(TCustomTestPngGR32Drawing)
-  published
-    procedure TestDrawingGammaGrayscaleA;
-    procedure TestDrawingGammaGrayscaleB;
-    procedure TestDrawingGammaGrayscaleC;
-    procedure TestDrawingGammaGrayscaleD;
-    procedure TestDrawingGammaGrayscaleE;
-    procedure TestDrawingGammaGrayscaleF;
-    procedure TestDrawingGammaColorA;
-    procedure TestDrawingGammaColorB;
-    procedure TestDrawingGammaColorC;
-    procedure TestDrawingGammaColorD;
-    procedure TestDrawingGammaColorE;
-    procedure TestDrawingGammaColorF;
-    procedure TestDrawingGammaIndexedA;
-    procedure TestDrawingGammaIndexedB;
-    procedure TestDrawingGammaIndexedC;
-    procedure TestDrawingGammaIndexedD;
-    procedure TestDrawingGammaIndexedE;
-    procedure TestDrawingGammaIndexedF;
-  end;
-
-  TTestPngGR32DrawingSuiteFilteringTest = class(TCustomTestPngGR32Drawing)
-  published
-    procedure TestDrawingGrayscaleFilterType0;
-    procedure TestDrawingGrayscaleFilterType1;
-    procedure TestDrawingGrayscaleFilterType2;
-    procedure TestDrawingGrayscaleFilterType3;
-    procedure TestDrawingGrayscaleFilterType4;
-    procedure TestDrawingColorFilterType0;
-    procedure TestDrawingColorFilterType1;
-    procedure TestDrawingColorFilterType2;
-    procedure TestDrawingColorFilterType3;
-    procedure TestDrawingColorFilterType4;
-  end;
-
-  TTestPngGR32DrawingSuiteAdditionalPaletteTest = class(TCustomTestPngGR32Drawing)
-  published
-    procedure TestDrawingTrueColor;
-    procedure TestDrawingTrueColorAlpha;
-    procedure TestDrawingSuggestedPalette1bitGrayScale;
-    procedure TestDrawingSuggestedPalette1bitTrueColor;
-    procedure TestDrawingSuggestedPalette2bitGrayScale;
-    procedure TestDrawingSuggestedPalette2bitTrueColor;
-  end;
-
-  TTestPngGR32DrawingSuiteAncillaryChunksTest = class(TCustomTestPngGR32Drawing)
+  TTestPngGR32AncillaryChunks = class(TCustomTestPngGR32)
   published
     procedure TestDrawingTrueColor5bits;
-    procedure TestDrawingTrueColor8bits;
     procedure TestDrawingTrueColor13bits;
     procedure TestDrawingPalette3bits;
     procedure TestDrawingPalette5bits;
-    procedure TestDrawingPalette8bits;
     procedure TestPhysicalDimensions8x32FlatPixels;
     procedure TestPhysicalDimensions32x8HighPixels;
     procedure TestPhysicalDimensions8x8SquarePixels;
     procedure TestPhysicalDimensions1000PixelsPerMeter;
     procedure TestChromaChunkPalette;
     procedure TestChromaChunkTrueColor;
-    procedure TestHistogramChunk15colors;
-    procedure TestHistogramChunk256colors;
     procedure TestModificationTime;
-    procedure TestNoTextualData;
-    procedure TestWithTextualData;
-    procedure TestWithCompressedTextualData;
-  end;
-
-  TTestPngGR32DrawingSuiteChunkOrdering = class(TCustomTestPngGR32Drawing)
-  published
-    procedure TestDrawingGrayscale1IDAT;
-    procedure TestDrawingGrayscale2IDAT;
-    procedure TestDrawingGrayscale4IDAT;
-    procedure TestDrawingGrayscaleAllIDATs;
-    procedure TestDrawingTrueColor1IDAT;
-    procedure TestDrawingTrueColor2IDAT;
-    procedure TestDrawingTrueColor4IDAT;
-    procedure TestDrawingTrueColorAllIDATs;
-  end;
-
-  TTestPngGR32DrawingSuiteCompressionLevel = class(TCustomTestPngGR32Drawing)
-  published
-    procedure TestDrawingTrueColorCompressionLevel0;
-    procedure TestDrawingTrueColorCompressionLevel3;
-    procedure TestDrawingTrueColorCompressionLevel6;
-    procedure TestDrawingTrueColorCompressionLevel9;
   end;
 
 
@@ -279,10 +136,15 @@ procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; SrcStream: TStream); overloa
 procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; Filename: string); overload;
 procedure InitializeGR32PngTests;
 
+procedure TestPngAgainstReferenceBmp(TestCase: TTestCase; const PNGFileName, BMPFilename: TFileName);
+
 implementation
 
 uses
-  Dialogs, Controls;
+  IOUtils,
+  StrUtils,
+  Dialogs,
+  Controls;
 
 resourcestring
   RCStrWrongDisplay = 'PNG was not displayed correctly!';
@@ -295,15 +157,48 @@ const
   CPngSuiteDir = '..\Resources\PNG Suite Images\';
   CTestPngDir = '..\Resources\Test\';
 
+procedure TestPngAgainstReferenceBmp(TestCase: TTestCase; const PNGFileName, BMPFilename: TFileName);
 var
-  TestPngSuite : TTestSuite;
+  Png: TPortableNetworkGraphic32;
+  Bitmap: TBitmap32;
+  ReferenceBitmap: TBitmap32;
+begin
+  Bitmap := TBitmap32.Create;
+  try
+    Png := TPortableNetworkGraphic32.Create;
+    try
+      Png.LoadFromFile(PNGFilename);
+      Bitmap.Assign(Png);
+      TestCase.CheckEquals(Bitmap.Width, Png.Width);
+      TestCase.CheckEquals(Bitmap.Height, Png.Height);
+    finally
+      Png.Free;
+    end;
+
+    // Enable the following line to generate the reference Bitmap files
+    // Bitmap.SaveToFile(BMPFilename, False, InfoHeaderVersion5);
+
+    ReferenceBitmap := TBitmap32.Create;
+    try
+      ReferenceBitmap.LoadFromFile(BMPFilename);
+
+      TestCase.CheckEquals(Bitmap.Width, ReferenceBitmap.Width);
+      TestCase.CheckEquals(Bitmap.Height, ReferenceBitmap.Height);
+      TestCase.CheckEqualsMem(Bitmap.Bits, ReferenceBitmap.Bits, Bitmap.Width * Bitmap.Height * SizeOf(TColor32));
+    finally
+      ReferenceBitmap.Free;
+    end;
+  finally
+    Bitmap.Free;
+  end;
+end;
 
 procedure LoadPNGintoBitmap32(DstBitmap: TBitmap32; SrcStream: TStream);
 var
   {$IFDEF FPC}
   PNGObject: TPNGImage;
   {$ELSE}
-  PNGObject: TPNGObject;
+  PNGObject: TPNGImage;
   {$ENDIF}
   TransparentColor: TColor32;
   PixelPtr: PColor32;
@@ -315,7 +210,7 @@ begin
     {$IFDEF FPC}
     PNGObject := TPngImage.Create;
     {$ELSE}
-    PNGObject := TPngObject.Create;
+    PNGObject := TPNGImage.Create;
     {$ENDIF}
     PNGObject.LoadFromStream(SrcStream);
 
@@ -389,144 +284,114 @@ begin
 end;
 
 
-{ TTestPngGR32File }
+{ TCustomGR32FileTest }
 
-procedure TTestPngGR32File.TestScanning;
+class function TCustomGR32FileTest.HandlesFiles(const AFilename: string): boolean;
 var
-  SR      : TSearchRec;
-  Succeed : Boolean;
+  Name: string;
 begin
-  if FindFirst('*.png*', faAnyFile, SR) = 0 then
-  try
-    repeat
-      Succeed := True;
-      try
-        // ignore corrupted files
-        if (SR.Name = 'x00n0g01.png') or
-          (SR.Name = 'xcrn0g04.png') or
-          (SR.Name = 'xlfn0g04.png') then 
-          Continue;
-      
-        FPortableNetworkGraphic.LoadFromFile(SR.Name)
-      except
-        on e: EPngError do MessageDlg(SR.Name + ': ' + e.Message, mtError, [mbOK], 0);
-        else Succeed := False;
-      end;
-      Check(Succeed, 'Error loading file: ' + SR.Name);
-    until FindNext(SR) <> 0;
-  finally
-    // Must free up resources used by these successful finds
-    FindClose(SR);
-  end;
+  Name := TPath.GetFileName(AFileName);
+
+  // Ignore corrupted files
+  Result := (not StartsText('x', Name));
 end;
 
-procedure TTestPngGR32File.TestInvalidFiles;
+procedure TCustomGR32FileTest.SetUp;
 begin
-  // empty 0x0 grayscale file
-  InternalTestInvalidFile(CPngSuiteDir + 'x00n0g01.png');
-
-  // added cr bytes
-  try
-    InternalTestInvalidFile(CPngSuiteDir + 'xcrn0g04.png');
-    Fail('Wrong header is ignored!');
-  except
-  end;
-
-  // converted cr bytes to lf and removed all NULs
-  try
-    InternalTestInvalidFile(CPngSuiteDir + 'xlfn0g04.png');
-    Fail('Wrong header is ignored!');
-  except
-  end;
+  FPortableNetworkGraphic := TPortableNetworkGraphic32.Create;
 end;
 
-procedure TTestPngGR32File.TestPerformanceTest;
+procedure TCustomGR32FileTest.TearDown;
+begin
+  FreeAndNil(FPortableNetworkGraphic);
+end;
+
+
+{ TTestGR32PngBasics }
+
+procedure TTestGR32PngBasics.TestPerformanceTest;
 begin
   if FileExists(CTestPngDir + 'PerformanceTest.png') then 
     FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'PerformanceTest.png')
-  else 
-    Fail('File ' + CTestPngDir + 'PerformanceTest.png does not exist!');
+  else
+    Check(True, 'File ' + CTestPngDir + 'PerformanceTest.png does not exist!');
 end;
 
-procedure TTestPngGR32File.InternalTestInvalidFile(FileName: TFileName);
-begin
- if not FileExists(FileName) then
-   Fail(Format(RCStrTestFileNotFound, [FileName]));
-
- FPortableNetworkGraphic.LoadFromFile(FileName);
-end;
-
-procedure TTestPngGR32File.TestBasicAssign;
+procedure TTestGR32PngBasics.TestBasicAssign;
 var
-  TempStream : array [0..1] of TMemoryStream;
-  TempPng    : TPortableNetworkGraphic32;
+  SourceStream: TMemoryStream;
+  TargetStream: TMemoryStream;
+  TempPng: TPortableNetworkGraphic32;
 begin
+
+  SourceStream := TMemoryStream.Create;
+  TargetStream := TMemoryStream.Create;
   try
-    TempStream[0] := TMemoryStream.Create;
-    TempStream[1] := TMemoryStream.Create;
-    with FPortableNetworkGraphic do
-    begin
-      FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
-      FPortableNetworkGraphic.SaveToStream(TempStream[0]);
-      TempPng := TPortableNetworkGraphic32.Create;
+    FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+    FPortableNetworkGraphic.SaveToStream(SourceStream);
+
+    TempPng := TPortableNetworkGraphic32.Create;
+    try
       TempPng.Assign(FPortableNetworkGraphic);
-      TempStream[0].Seek(0, soFromBeginning);
-      TempPng.SaveToStream(TempStream[1]);
-      CheckEquals(TempStream[0].Size, TempStream[1].Size);
-      CompareMem(TempStream[0].Memory, TempStream[1].Memory, TempStream[0].Size);
+      TempPng.SaveToStream(TargetStream);
+    finally
+      TempPng.Free;
     end;
+
+    CheckEquals(SourceStream.Size, TargetStream.Size);
+    CheckEqualsMem(SourceStream.Memory, TargetStream.Memory, SourceStream.Size);
   finally
-    if Assigned(TempStream[0]) then FreeAndNil(TempStream[0]);
-    if Assigned(TempStream[1]) then FreeAndNil(TempStream[1]);
-    if Assigned(TempPng) then FreeAndNil(TempPng);
+    SourceStream.Free;
+    TargetStream.Free;
   end;
 end;
 
-procedure TTestPngGR32File.TestBasicWriting;
+procedure TTestGR32PngBasics.TestBasicWriting;
 var
-  OriginalStream : TMemoryStream;
-  TempStream     : TMemoryStream;
+  OriginalStream: TMemoryStream;
+  TempStream: TMemoryStream;
 begin
- TempStream := TMemoryStream.Create;
- with TempStream do
+  TempStream := TMemoryStream.Create;
   try
-   OriginalStream := TMemoryStream.Create;
-   with FPortableNetworkGraphic do
+    OriginalStream := TMemoryStream.Create;
     try
      OriginalStream.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
-     OriginalStream.Seek(0, soFromBeginning);
+
+     OriginalStream.Position := 0;
      FPortableNetworkGraphic.LoadFromStream(OriginalStream);
+
      FPortableNetworkGraphic.SaveToFile('Test.png');
+     TFile.Delete('test.png');
      FPortableNetworkGraphic.SaveToStream(TempStream);
-     TempStream.Seek(0, soFromBeginning);
+
+     TempStream.Position := 0;
      FPortableNetworkGraphic.LoadFromStream(TempStream);
 
      if TempStream.Size < (OriginalStream.Size div 10) then
-       Fail('Size of written stream is likely to be too small! (' +
-         IntToStr(TempStream.Size) + ')');
+       Fail(Format('Size of written stream is likely to be too small! (%.0n)', [TempStream.Size * 1.0]));
 
 (*
      CheckEquals(OriginalStream.Size, TempStream.Size);
      CompareMem(OriginalStream.Memory, TempStream.Memory, TempStream.Size);
-*)    finally
-     FreeAndNil(OriginalStream);
+*)
+    finally
+      OriginalStream.Free;
     end;
   finally
-   Free;
+    TempStream.Free;
   end;
+  Check(True);
 end;
 
-procedure TTestPngGR32File.TestAdvancedWriting;
+procedure TTestGR32PngBasics.TestAdvancedWriting;
 var
-  OriginalStream : TMemoryStream;
-  Bitmap32       : TBitmap32;
-  TempStream     : TMemoryStream;
+  OriginalStream: TMemoryStream;
+  Bitmap32: TBitmap32;
+  TempStream: TMemoryStream;
 begin
- TempStream := TMemoryStream.Create;
- with TempStream do
+  TempStream := TMemoryStream.Create;
   try
-   OriginalStream := TMemoryStream.Create;
-   with FPortableNetworkGraphic do
+    OriginalStream := TMemoryStream.Create;
     try
      OriginalStream.LoadFromFile(CPngSuiteDir + 'basi6a08.png');
      OriginalStream.Seek(0, soFromBeginning);
@@ -537,1454 +402,395 @@ begin
        Bitmap32.Clear;
        FPortableNetworkGraphic.Assign(Bitmap32);
      finally
-       FreeAndNil(Bitmap32);
+       Bitmap32.Free;
      end;
      FPortableNetworkGraphic.SaveToStream(TempStream);
      TempStream.Seek(0, soFromBeginning);
      FPortableNetworkGraphic.LoadFromStream(TempStream);
      if TempStream.Size < (OriginalStream.Size div 10) then
-       Fail('Size of written stream is likely to be too small! (' +
-         IntToStr(TempStream.Size) + ')');
+       Fail(Format('Size of written stream is likely to be too small! (%.0n)', [TempStream.Size * 1.0]));
     finally
-     FreeAndNil(OriginalStream);
+      FreeAndNil(OriginalStream);
     end;
   finally
-   Free;
+    TempStream.Free;
   end;
+  Check(True);
 end;
 
-procedure TTestPngGR32File.TestCompressionTranscoding;
+procedure TTestGR32PngBasics.TestCompressionTranscoding;
 var
   Index      : Integer;
   RecentSize : Integer;
   TempStream : TMemoryStream;
 begin
- TempStream := TMemoryStream.Create;
- try
-  with FPortableNetworkGraphic do
-   begin
-    LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
-    CompressionLevel := 1;
-    SaveToStream(TempStream);
+  TempStream := TMemoryStream.Create;
+  try
+    FPortableNetworkGraphic.LoadFromFile(CTestPngDir + 'TestTrueColor32bit.png');
+    FPortableNetworkGraphic.CompressionLevel := 1;
+    FPortableNetworkGraphic.SaveToStream(TempStream);
     RecentSize := TempStream.Size;
 
     for Index := 2 to 9 do
-     begin
+    begin
       TempStream.Clear;
-      CompressionLevel := Index;
-      SaveToStream(TempStream);
+      FPortableNetworkGraphic.CompressionLevel := Index;
+      FPortableNetworkGraphic.SaveToStream(TempStream);
 
       CheckTrue(TempStream.Size <= RecentSize, 'TempStream.Size is greater than RecentSize');
       RecentSize := TempStream.Size;
-     end;
-   end;
- finally
-  FreeAndNil(TempStream);
- end;
-end;
-
-procedure TTestPngGR32File.TestInterlaceTranscoding;
-begin
- with FPortableNetworkGraphic do
-  begin
-   LoadFromFile(CPngSuiteDir + 'basn6a08.png');
-
-   with TFmDisplay.Create(nil) do
-    try
-     Image32.Bitmap.Width := FPortableNetworkGraphic.Width;
-     Image32.Bitmap.Height := FPortableNetworkGraphic.Height;
-
-     ClientWidth := FPortableNetworkGraphic.Width + 16;
-     ClientHeight := FPortableNetworkGraphic.Height + LbRenderer.Height + BtYes.Height + 24;
-
-     Reference.Assign(FPortableNetworkGraphic);
-     Assert(InterlaceMethod = GR32_PortableNetworkGraphic.imNone);
-     InterlaceMethod := GR32_PortableNetworkGraphic.imAdam7;
-     Internal.Assign(FPortableNetworkGraphic);
-
-     {$IFDEF VisualVerification}
-     if ShowModal <> mrYes
-      then Fail(RCStrWrongDisplay);
-     {$ENDIF}
-
-     InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
-     Internal.Assign(FPortableNetworkGraphic);
-
-     {$IFDEF VisualVerification}
-     if ShowModal <> mrYes
-      then Fail(RCStrWrongDisplay);
-     {$ENDIF}
-    finally
-     Free;
     end;
-
-
-   LoadFromFile(CPngSuiteDir + 'basi6a08.png');
-
-   with TFmDisplay.Create(nil) do
-    try
-     Image32.Bitmap.Width := FPortableNetworkGraphic.Width;
-     Image32.Bitmap.Height := FPortableNetworkGraphic.Height;
-
-     ClientWidth := FPortableNetworkGraphic.Width + 16;
-     ClientHeight := FPortableNetworkGraphic.Height + LbRenderer.Height + BtYes.Height + 24;
-
-     Reference.Assign(FPortableNetworkGraphic);
-     InterlaceMethod := GR32_PortableNetworkGraphic.imNone;
-     Internal.Assign(FPortableNetworkGraphic);
-
-     {$IFDEF VisualVerification}
-     if ShowModal <> mrYes
-      then Fail(RCStrWrongDisplay);
-     {$ENDIF}
-
-     InterlaceMethod := GR32_PortableNetworkGraphic.imAdam7;
-     Internal.Assign(FPortableNetworkGraphic);
-
-     {$IFDEF VisualVerification}
-     if ShowModal <> mrYes
-      then Fail(RCStrWrongDisplay);
-     {$ENDIF}
-    finally
-     Free;
-    end;
+  finally
+    TempStream.Free;
   end;
 end;
 
+{ TGR32InvalidFileTest }
 
-{ TCustomTestPngGR32Drawing }
-
-procedure TCustomTestPngGR32Drawing.InternalTestDrawing(FileName: TFileName);
+class function TGR32InvalidFileTest.HandlesFiles(const AFilename: string): boolean;
+var
+  Name: string;
 begin
- if not FileExists(FileName)
-  then Fail(Format(RCStrTestFileNotFound, [FileName]));
+  Name := TPath.GetFileName(AFileName);
 
- with TFmDisplay.Create(nil) do
+  // Only handle corrupted files
+  Result := (StartsText('x', Name));
+end;
+
+procedure TGR32InvalidFileTest.TestInvalidFiles;
+begin
+  // x00n0g01.png: empty 0x0 grayscale file
+  // xcrn0g04.png: added cr bytes
+  // xlfn0g04.png: converted cr bytes to lf and removed all NULs
+
+  Check(FileExists(TestFileName), Format(RCStrTestFileNotFound, [TestFileName]));
+
   try
-   LoadPNGintoBitmap32(Reference, FileName);
 
-   FPortableNetworkGraphic.LoadFromFile(FileName);
+    FPortableNetworkGraphic.LoadFromFile(TestFileName);
 
-   Image32.Bitmap.Width := FPortableNetworkGraphic.Width;
-   Image32.Bitmap.Height := FPortableNetworkGraphic.Height;
+  except
+    on E: EPngError do
+    begin
+      Check(True);
+      exit;
+    end;
+  end;
+  Fail('Invalid file didn''t fail');
+end;
 
-   ClientWidth := FPortableNetworkGraphic.Width + 16;
-   ClientHeight := FPortableNetworkGraphic.Height + LbRenderer.Height + BtYes.Height + 24;
+{ TGR32FileTest }
 
-   Internal.Assign(FPortableNetworkGraphic);
+procedure TGR32FileTest.TestLoadFromFile;
+begin
+  FPortableNetworkGraphic.LoadFromFile(TestFileName);
 
-   {$IFDEF VisualVerification}
-   if ShowModal <> mrYes
-    then Fail(RCStrWrongDisplay);
-   {$ENDIF}
+  Check(True);
+end;
+
+
+{ TTestPngToBitmap32 }
+
+procedure TTestPngToBitmap32.TestPngToBitmap32;
+var
+  ReferenceFilename: string;
+begin
+  ReferenceFilename := TPath.ChangeExtension(TestFileName, '.bmp');
+
+  TestPngAgainstReferenceBmp(Self, TestFileName, ReferenceFilename);
+end;
+
+{ TTestPngBitmap32Roundtrip }
+
+procedure TTestPngBitmap32Roundtrip.TestRoundtrip(const AFilename: string; AColorType: TColorType; ABitDepth: integer);
+var
+  Filename: string;
+  Filename2: string;
+  Bitmap: TBitmap32;
+begin
+  Filename := CPngSuiteDir + AFilename;
+  FPortableNetworkGraphic.LoadFromFile(Filename);
+
+  // check if format for saving can be determined correctly
+  Bitmap := TBitmap32.Create;
+  try
+    Bitmap.Assign(FPortableNetworkGraphic);
+    FPortableNetworkGraphic.Assign(Bitmap);
+  finally
+    Bitmap.Free;
+  end;
+
+  Check(FPortableNetworkGraphic.ColorType = AColorType);
+  Check(FPortableNetworkGraphic.BitDepth = ABitDepth);
+
+  Filename2 := TPath.ChangeExtension(Filename, '.test.png');
+  FPortableNetworkGraphic.SaveToFile(Filename2);
+  try
+
+    TestPngAgainstReferenceBmp(Self, Filename2, TPath.ChangeExtension(Filename, '.bmp'));
 
   finally
-   Free;
+    TFile.Delete(Filename2);
   end;
 end;
 
-
-{ TTestPngGR32Drawing }
-
-procedure TTestPngGR32Drawing.TestDrawingGrayscale1bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestGrayscale1bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingGrayscale2bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestGrayscale2bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingGrayscale4bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestGrayscale4bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingGrayscale8bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestGrayscale8bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingIndex1bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestIndex1bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingIndex2bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestIndex2bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingIndex4bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestIndex4bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingIndex8bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestIndex8bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingLarge;
-begin
- InternalTestDrawing(CTestPngDir + 'PerformanceTest.png')
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingTrueColor24;
-begin
- InternalTestDrawing(CTestPngDir + 'TestTrueColor24bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingTrueColor32;
-begin
- InternalTestDrawing(CTestPngDir + 'TestTrueColor32bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale1bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale1bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale2bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale2bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale4bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale4bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Grayscale8bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Grayscale8bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Index1bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Index1bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Index2bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Index2bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Index4bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Index4bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7Index8bit;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7Index8bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7TrueColor24;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7TrueColor24bit.png');
-end;
-
-procedure TTestPngGR32Drawing.TestDrawingAdam7TrueColor32;
-begin
- InternalTestDrawing(CTestPngDir + 'TestAdam7TrueColor32bit.png');
-end;
-
-{ TTestPngGR32DrawingSuiteBasicNonInterlaced }
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingBlackAndWhite;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn0g01.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor); // ctGrayscale
-    Check(BitDepth = 1);
-    SaveToFile('basn0g01.x.png');
-    InternalTestDrawing('basn0g01.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale2bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn0g02.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor); // ctGrayscale
-    Check(BitDepth = 2);
-    SaveToFile('basn0g02.x.png');
-    InternalTestDrawing('basn0g02.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale4bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn0g04.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor); // ctGrayscale
-    Check(BitDepth = 4);
-    SaveToFile('basn0g04.x.png');
-    InternalTestDrawing('basn0g04.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale8bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn0g08.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor); // ctGrayscale
-    Check(BitDepth = 8);
-    SaveToFile('basn0g08.x.png');
-    InternalTestDrawing('basn0g08.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscale16bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn0g16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed1bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing('basn3p01.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor);
-    Check(BitDepth = 1);
-
-    SaveToFile('basn3p01.x.png');
-    InternalTestDrawing('basn3p01.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed2bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn3p02.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor);
-    Check(BitDepth = 2);
-
-    SaveToFile('basn3p02.x.png');
-    InternalTestDrawing('basn3p02.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed4bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn3p04.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor);
-    Check(BitDepth = 4);
-
-    SaveToFile('basn3p04.x.png');
-    InternalTestDrawing('basn3p04.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingIndexed8bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn3p08.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctIndexedColor);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn3p08.x.png');
-    InternalTestDrawing('basn3p08.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGB8bits;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn2c08.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctTrueColor);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn2c08.x.png');
-    InternalTestDrawing('basn2c08.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGB16bits;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn2c16.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctTrueColor);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn2c16.x.png');
-    InternalTestDrawing('basn2c16.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscaleAlpha8bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn4a08.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctGrayscaleAlpha);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn4a08.x.png');
-    InternalTestDrawing('basn4a08.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingGrayscaleAlpha16bit;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn4a16.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctGrayscaleAlpha);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn4a16.x.png');
-    InternalTestDrawing('basn4a16.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGBA8bits;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn6a08.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctTrueColorAlpha);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn6a08.x.png');
-    InternalTestDrawing('basn6a08.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicNonInterlaced.TestDrawingRGBA16bits;
-var
-  Bitmap32 : TBitmap32;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basn6a16.png');
-
- // check if format for saving can be determined correctly
- Bitmap32 := TBitmap32.Create;
- try
-  Bitmap32.Assign(FPortableNetworkGraphic);
-  with TPortableNetworkGraphic32.Create do
-   try
-    Assign(Bitmap32);
-    Check(ColorType = ctTrueColorAlpha);
-    Check(BitDepth = 8);
-
-    SaveToFile('basn6a16.x.png');
-    InternalTestDrawing('basn6a16.x.png');
-   finally
-    Free;
-   end;
- finally
-  FreeAndNil(Bitmap32);
- end;
-end;
-
-
-{ TTestPngGR32DrawingSuiteBasicAdam7 }
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingBlackAndWhite;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi0g01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale2bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi0g02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale4bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi0g04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale8bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscale16bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi0g16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGB8bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi2c08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGB16bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi2c16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed1bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed2bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed4bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingIndexed8bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi3p08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscaleAlpha8bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi4a08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingGrayscaleAlpha16bit;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi4a16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGBA8bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi6a08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBasicAdam7.TestDrawingRGBA16bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'basi6a16.png');
-end;
-
-
-{ TTestPngGR32DrawingSuiteSizeTest }
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette1x1;
-begin
- InternalTestDrawing(CPngSuiteDir + 's01n3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette2x2;
-begin
- InternalTestDrawing(CPngSuiteDir + 's02n3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette3x3;
-begin
- InternalTestDrawing(CPngSuiteDir + 's03n3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette4x4;
-begin
- InternalTestDrawing(CPngSuiteDir + 's04n3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette5x5;
-begin
- InternalTestDrawing(CPngSuiteDir + 's05n3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette6x6;
-begin
- InternalTestDrawing(CPngSuiteDir + 's06n3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette7x7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's07n3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette8x8;
-begin
- InternalTestDrawing(CPngSuiteDir + 's08n3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette9x9;
-begin
- InternalTestDrawing(CPngSuiteDir + 's09n3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette32x32;
-begin
- InternalTestDrawing(CPngSuiteDir + 's32n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette33x33;
-begin
- InternalTestDrawing(CPngSuiteDir + 's33n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette34x34;
-begin
- InternalTestDrawing(CPngSuiteDir + 's34n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette35x35;
-begin
- InternalTestDrawing(CPngSuiteDir + 's35n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette36x36;
-begin
- InternalTestDrawing(CPngSuiteDir + 's36n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette37x37;
-begin
- InternalTestDrawing(CPngSuiteDir + 's37n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette38x38;
-begin
- InternalTestDrawing(CPngSuiteDir + 's38n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette39x39;
-begin
- InternalTestDrawing(CPngSuiteDir + 's39n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette40x40;
-begin
- InternalTestDrawing(CPngSuiteDir + 's40n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette1x1Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's01i3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette2x2Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's02i3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette3x3Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's03i3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette4x4Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's04i3p01.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette5x5Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's05i3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette6x6Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's06i3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette7x7Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's07i3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette8x8Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's08i3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette9x9Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's09i3p02.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette32x32Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's32i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette33x33Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's33i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette34x34Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's34i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette35x35Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's35i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette36x36Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's36i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette37x37Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's37i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette38x38Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's38i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette39x39Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's39i3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteSizeTest.TestDrawingPalette40x40Adam7;
-begin
- InternalTestDrawing(CPngSuiteDir + 's40i3p04.png');
-end;
-
-
-{ TTestPngGR32DrawingSuiteBackgroundTest }
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha8bitBlack;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgbn4a08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha16bitGray;
-begin
-  InternalTestDrawing(CPngSuiteDir + 'bggn4a16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha16bitNoBackground;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgai4a16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingGrayscaleAlpha8bitNoBackground;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgai4a08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA16bitNoBackground;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgan6a16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA16bitYellow;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgyn6a16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA8bitNoBackground;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgan6a08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteBackgroundTest.TestDrawingRGBA8bitWhite;
-begin
- InternalTestDrawing(CPngSuiteDir + 'bgwn6a08.png');
-end;
-
-
-{ TTestPngGR32DrawingSuiteGammaTest }
-
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleA;
-begin
- InternalTestDrawing(CPngSuiteDir + 'g03n0g16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleB;
-begin
- InternalTestDrawing(CPngSuiteDir + 'g04n0g16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleC;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripBlackAndWhite;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g05n0g16.png');
+  TestRoundtrip('basn0g01.png', ctIndexedColor, 1);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleD;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripGrayscale2bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g07n0g16.png');
+  TestRoundtrip('basn0g02.png', ctIndexedColor, 2);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleE;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripGrayscale4bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g10n0g16.png');
+  TestRoundtrip('basn0g04.png', ctIndexedColor, 4);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaGrayscaleF;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripGrayscale8bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g25n0g16.png');
+  TestRoundtrip('basn0g08.png', ctIndexedColor, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorA;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripIndexed1bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g03n2c08.png');
+  TestRoundtrip('basn3p01.png', ctIndexedColor, 1);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorB;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripIndexed2bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g04n2c08.png');
+  TestRoundtrip('basn3p02.png', ctIndexedColor, 2);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorC;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripIndexed4bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g05n2c08.png');
+  TestRoundtrip('basn3p04.png', ctIndexedColor, 4);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorD;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripIndexed8bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g07n2c08.png');
+  TestRoundtrip('basn3p08.png', ctIndexedColor, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorE;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripRGB8bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g10n2c08.png');
+  TestRoundtrip('basn2c08.png', ctTrueColor, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaColorF;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripRGB16bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g25n2c08.png');
+  TestRoundtrip('basn2c16.png', ctTrueColor, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedA;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripGrayscaleAlpha8bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g03n3p04.png');
+  TestRoundtrip('basn4a08.png', ctGrayscaleAlpha, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedB;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripGrayscaleAlpha16bit;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g04n3p04.png');
+  TestRoundtrip('basn4a16.png', ctGrayscaleAlpha, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedC;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripRGBA8bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g05n3p04.png');
+  TestRoundtrip('basn6a08.png', ctTrueColorAlpha, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedD;
+procedure TTestPngBitmap32Roundtrip.TestRoundtripRGBA16bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'g07n3p04.png');
+  TestRoundtrip('basn6a16.png', ctTrueColorAlpha, 8);
 end;
 
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedE;
-begin
- InternalTestDrawing(CPngSuiteDir + 'g10n3p04.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteGammaTest.TestDrawingGammaIndexedF;
-begin
- InternalTestDrawing(CPngSuiteDir + 'g25n3p04.png');
-end;
-
-
-{ TTestPngGR32DrawingSuiteFilteringTest }
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType0;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f00n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType1;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f01n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType2;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f02n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType3;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f03n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingGrayscaleFilterType4;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f04n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType0;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f00n2c08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType1;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f01n2c08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType2;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f02n2c08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType3;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f03n2c08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteFilteringTest.TestDrawingColorFilterType4;
-begin
- InternalTestDrawing(CPngSuiteDir + 'f04n2c08.png');
-end;
-
-
-{ TTestPngGR32DrawingSuiteAdditionalPaletteTest }
-
-procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingTrueColor;
-begin
- InternalTestDrawing(CPngSuiteDir + 'pp0n2c16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingTrueColorAlpha;
-begin
- InternalTestDrawing(CPngSuiteDir + 'pp0n6a08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette1bitGrayScale;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ps1n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette1bitTrueColor;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ps1n2c16.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette2bitGrayScale;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ps2n0g08.png');
-end;
-
-procedure TTestPngGR32DrawingSuiteAdditionalPaletteTest.TestDrawingSuggestedPalette2bitTrueColor;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ps2n2c16.png');
-end;
-
-
-{ TTestPngGR32DrawingSuiteAncillaryChunksTest }
-
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingTrueColor5bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cs5n2c08.png');
-
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
-  then Fail(RCStrSignificantBitsChunkMissing);
-
- // check information stored in the chunk
- with FPortableNetworkGraphic.SignificantBitsChunk do
-  begin
-   if SignificantBits is TPngSignificantBitsFormat23 then
-    with TPngSignificantBitsFormat23(SignificantBits) do
-     begin
-      Check(RedBits = 5);
-      Check(GreenBits = 5);
-      Check(BlueBits = 5);
-     end
-    else Fail(RCStrWrongSignificantBitsFormat);
-  end;
-end;
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingTrueColor8bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cs8n2c08.png');
-end;
+{ TTestPngGR32AncillaryChunks }
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingTrueColor13bits;
+procedure TTestPngGR32AncillaryChunks.TestDrawingTrueColor5bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'cs3n2c16.png');
-
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
-  then Fail(RCStrSignificantBitsChunkMissing);
-
- // check information stored in the chunk
- with FPortableNetworkGraphic.SignificantBitsChunk do
-  begin
-   if SignificantBits is TPngSignificantBitsFormat23 then
-    with TPngSignificantBitsFormat23(SignificantBits) do
-     begin
-      Check(RedBits = 13);
-      Check(GreenBits = 13);
-      Check(BlueBits = 13);
-     end
-    else Fail(RCStrWrongSignificantBitsFormat);
-  end;
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cs5n2c08.png');
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingPalette3bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cs3n3p08.png');
-
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
-  then Fail(RCStrSignificantBitsChunkMissing);
-
- // check information stored in the chunk
- with FPortableNetworkGraphic.SignificantBitsChunk do
-  begin
-   if SignificantBits is TPngSignificantBitsFormat23 then
-    with TPngSignificantBitsFormat23(SignificantBits) do
-     begin
-      Check(RedBits = 3);
-      Check(GreenBits = 3);
-      Check(BlueBits = 3);
-     end
-    else Fail(RCStrWrongSignificantBitsFormat);
-  end;
-end;
+  // test if chunk is present
+  CheckNotNull(FPortableNetworkGraphic.SignificantBitsChunk, RCStrSignificantBitsChunkMissing);
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingPalette5bits;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cs5n3p08.png');
-
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.SignificantBitsChunk)
-  then Fail(RCStrSignificantBitsChunkMissing);
-
- // check information stored in the chunk
- with FPortableNetworkGraphic.SignificantBitsChunk do
-  begin
-   if SignificantBits is TPngSignificantBitsFormat23 then
-    with TPngSignificantBitsFormat23(SignificantBits) do
-     begin
-      Check(RedBits = 5);
-      Check(GreenBits = 5);
-      Check(BlueBits = 5);
-     end
-    else Fail(RCStrWrongSignificantBitsFormat);
-  end;
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits is TPngSignificantBitsFormat23, RCStrWrongSignificantBitsFormat);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).RedBits = 5);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).GreenBits = 5);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).BlueBits = 5);
 end;
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestDrawingPalette8bits;
+procedure TTestPngGR32AncillaryChunks.TestDrawingTrueColor13bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'cs8n3p08.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cs3n2c16.png');
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions8x32FlatPixels;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cdfn2c08.png');
-
- // check information stored in the chunk
- with FPortableNetworkGraphic do
-  begin
-   Check(PixelsPerUnitX = 1);
-   Check(PixelsPerUnitY = 4);
-   Check(PixelUnit = 0);
-  end;
-end;
+  // test if chunk is present
+  CheckNotNull(FPortableNetworkGraphic.SignificantBitsChunk, RCStrSignificantBitsChunkMissing);
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions32x8HighPixels;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cdhn2c08.png');
-
- // check information stored in the chunk
- with FPortableNetworkGraphic do
-  begin
-   Check(PixelsPerUnitX = 4);
-   Check(PixelsPerUnitY = 1);
-   Check(PixelUnit = 0);
-  end;
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits is TPngSignificantBitsFormat23, RCStrWrongSignificantBitsFormat);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).RedBits = 13);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).GreenBits = 13);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).BlueBits = 13);
 end;
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions8x8SquarePixels;
+procedure TTestPngGR32AncillaryChunks.TestDrawingPalette3bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'cdsn2c08.png');
-
- // check information stored in the chunk
- with FPortableNetworkGraphic do
-  begin
-   Check(PixelsPerUnitX = 1);
-   Check(PixelsPerUnitY = 1);
-   Check(PixelUnit = 0);
-  end;
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cs3n3p08.png');
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestPhysicalDimensions1000PixelsPerMeter;
-begin
- InternalTestDrawing(CPngSuiteDir + 'cdun2c08.png');
-
- // check information stored in the chunk
- with FPortableNetworkGraphic do
-  begin
-   Check(PixelsPerUnitX = 1000);
-   Check(PixelsPerUnitY = 1000);
-   Check(PixelUnit = 1);
-  end;
-end;
+  // test if chunk is present
+  CheckNotNull(FPortableNetworkGraphic.SignificantBitsChunk, RCStrSignificantBitsChunkMissing);
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestChromaChunkPalette;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ccwn3p08.png');
-
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.PrimaryChromaticitiesChunk)
-  then Fail(RCStrPhysicalPixelDimensionChunkMissing);
-
- // check information stored in the chunk
- with FPortableNetworkGraphic.PrimaryChromaticitiesChunk do
-  begin
-   CheckEquals(0.3127, WhiteXAsSingle, 1E-3);
-   CheckEquals(0.3290, WhiteYAsSingle, 1E-3);
-   CheckEquals(0.64, RedXAsSingle, 1E-3);
-   CheckEquals(0.33, RedYAsSingle, 1E-3);
-   CheckEquals(0.30, GreenXAsSingle, 1E-3);
-   CheckEquals(0.60, GreenYAsSingle, 1E-3);
-   CheckEquals(0.15, BlueXAsSingle, 1E-3);
-   CheckEquals(0.06, BlueYAsSingle, 1E-3);
-  end;
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits is TPngSignificantBitsFormat23, RCStrWrongSignificantBitsFormat);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).RedBits = 3);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).GreenBits = 3);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).BlueBits = 3);
 end;
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestChromaChunkTrueColor;
+procedure TTestPngGR32AncillaryChunks.TestDrawingPalette5bits;
 begin
- InternalTestDrawing(CPngSuiteDir + 'ccwn2c08.png');
-
- // test if chunk is present
- if not Assigned(FPortableNetworkGraphic.PrimaryChromaticitiesChunk)
-  then Fail(RCStrPhysicalPixelDimensionChunkMissing);
-
- // check information stored in the chunk
- with FPortableNetworkGraphic.PrimaryChromaticitiesChunk do
-  begin
-   CheckEquals(0.3127, WhiteXAsSingle, 1E-3);
-   CheckEquals(0.3290, WhiteYAsSingle, 1E-3);
-   CheckEquals(0.64, RedXAsSingle, 1E-3);
-   CheckEquals(0.33, RedYAsSingle, 1E-3);
-   CheckEquals(0.30, GreenXAsSingle, 1E-3);
-   CheckEquals(0.60, GreenYAsSingle, 1E-3);
-   CheckEquals(0.15, BlueXAsSingle, 1E-3);
-   CheckEquals(0.06, BlueYAsSingle, 1E-3);
-  end;
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cs5n3p08.png');
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestHistogramChunk15colors;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ch1n3p04.png');
-end;
+  // test if chunk is present
+  CheckNotNull(FPortableNetworkGraphic.SignificantBitsChunk, RCStrSignificantBitsChunkMissing);
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestHistogramChunk256colors;
-begin
- InternalTestDrawing(CPngSuiteDir + 'ch2n3p08.png');
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits is TPngSignificantBitsFormat23, RCStrWrongSignificantBitsFormat);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).RedBits = 5);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).GreenBits = 5);
+  Check(TPngSignificantBitsFormat23(FPortableNetworkGraphic.SignificantBitsChunk.SignificantBits).BlueBits = 5);
 end;
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestModificationTime;
+procedure TTestPngGR32AncillaryChunks.TestPhysicalDimensions8x32FlatPixels;
 begin
- with FPortableNetworkGraphic do
-  begin
-   LoadFromFile(CPngSuiteDir + 'cm7n0g04.png');
-   CheckEquals(EncodeDate(1970, 1, 1) + EncodeTime(0, 0, 0, 0), ModifiedTime);
-
-   LoadFromFile(CPngSuiteDir + 'cm9n0g04.png');
-   CheckEquals(EncodeDate(1999, 12, 31) + EncodeTime(23, 59, 59, 0), ModifiedTime);
-
-   LoadFromFile(CPngSuiteDir + 'cm0n0g04.png');
-   CheckEquals(EncodeDate(2000, 1, 1) + EncodeTime(12, 34, 56, 0), ModifiedTime);
-  end;
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cdfn2c08.png');
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestNoTextualData;
-begin
- FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ct0n0g04.png');
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.PixelsPerUnitX = 1);
+  Check(FPortableNetworkGraphic.PixelsPerUnitY = 4);
+  Check(FPortableNetworkGraphic.PixelUnit = 0);
 end;
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestWithCompressedTextualData;
+procedure TTestPngGR32AncillaryChunks.TestPhysicalDimensions32x8HighPixels;
 begin
- FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ctzn0g04.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cdhn2c08.png');
 
-procedure TTestPngGR32DrawingSuiteAncillaryChunksTest.TestWithTextualData;
-begin
- FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ct1n0g04.png');
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.PixelsPerUnitX = 4);
+  Check(FPortableNetworkGraphic.PixelsPerUnitY = 1);
+  Check(FPortableNetworkGraphic.PixelUnit = 0);
 end;
 
-
-{ TTestPngGR32DrawingSuiteChunkOrdering }
-
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscale1IDAT;
+procedure TTestPngGR32AncillaryChunks.TestPhysicalDimensions8x8SquarePixels;
 begin
- InternalTestDrawing(CPngSuiteDir + 'oi1n0g16.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cdsn2c08.png');
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscale2IDAT;
-begin
- InternalTestDrawing(CPngSuiteDir + 'oi2n0g16.png');
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.PixelsPerUnitX = 1);
+  Check(FPortableNetworkGraphic.PixelsPerUnitY = 1);
+  Check(FPortableNetworkGraphic.PixelUnit = 0);
 end;
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscale4IDAT;
+procedure TTestPngGR32AncillaryChunks.TestPhysicalDimensions1000PixelsPerMeter;
 begin
- InternalTestDrawing(CPngSuiteDir + 'oi4n0g16.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cdun2c08.png');
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingGrayscaleAllIDATs;
-begin
- InternalTestDrawing(CPngSuiteDir + 'oi9n0g16.png');
+  // check information stored in the chunk
+  Check(FPortableNetworkGraphic.PixelsPerUnitX = 1000);
+  Check(FPortableNetworkGraphic.PixelsPerUnitY = 1000);
+  Check(FPortableNetworkGraphic.PixelUnit = 1);
 end;
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColor1IDAT;
+procedure TTestPngGR32AncillaryChunks.TestChromaChunkPalette;
 begin
- InternalTestDrawing(CPngSuiteDir + 'oi1n2c16.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ccwn3p08.png');
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColor2IDAT;
-begin
- InternalTestDrawing(CPngSuiteDir + 'oi2n2c16.png');
-end;
+  // test if chunk is present
+  CheckNotNull(FPortableNetworkGraphic.PrimaryChromaticitiesChunk, RCStrPhysicalPixelDimensionChunkMissing);
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColor4IDAT;
-begin
- InternalTestDrawing(CPngSuiteDir + 'oi4n2c16.png');
+  // check information stored in the chunk
+  CheckEquals(0.3127, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.WhiteXAsSingle, 1E-3);
+  CheckEquals(0.3290, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.WhiteYAsSingle, 1E-3);
+  CheckEquals(0.64, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.RedXAsSingle, 1E-3);
+  CheckEquals(0.33, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.RedYAsSingle, 1E-3);
+  CheckEquals(0.30, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.GreenXAsSingle, 1E-3);
+  CheckEquals(0.60, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.GreenYAsSingle, 1E-3);
+  CheckEquals(0.15, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.BlueXAsSingle, 1E-3);
+  CheckEquals(0.06, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.BlueYAsSingle, 1E-3);
 end;
 
-procedure TTestPngGR32DrawingSuiteChunkOrdering.TestDrawingTrueColorAllIDATs;
+procedure TTestPngGR32AncillaryChunks.TestChromaChunkTrueColor;
 begin
- InternalTestDrawing(CPngSuiteDir + 'oi9n2c16.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'ccwn2c08.png');
 
+  // test if chunk is present
+  CheckNotNull(FPortableNetworkGraphic.PrimaryChromaticitiesChunk, RCStrPhysicalPixelDimensionChunkMissing);
 
-{ TTestPngGR32DrawingSuiteCompressionLevel }
-
-procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel0;
-begin
- InternalTestDrawing(CPngSuiteDir + 'z00n2c08.png');
+  // check information stored in the chunk
+  CheckEquals(0.3127, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.WhiteXAsSingle, 1E-3);
+  CheckEquals(0.3290, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.WhiteYAsSingle, 1E-3);
+  CheckEquals(0.64, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.RedXAsSingle, 1E-3);
+  CheckEquals(0.33, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.RedYAsSingle, 1E-3);
+  CheckEquals(0.30, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.GreenXAsSingle, 1E-3);
+  CheckEquals(0.60, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.GreenYAsSingle, 1E-3);
+  CheckEquals(0.15, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.BlueXAsSingle, 1E-3);
+  CheckEquals(0.06, FPortableNetworkGraphic.PrimaryChromaticitiesChunk.BlueYAsSingle, 1E-3);
 end;
 
-procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel3;
+procedure TTestPngGR32AncillaryChunks.TestModificationTime;
 begin
-  InternalTestDrawing(CPngSuiteDir + 'z03n2c08.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cm7n0g04.png');
+  CheckEquals(EncodeDate(1970, 1, 1) + EncodeTime(0, 0, 0, 0), FPortableNetworkGraphic.ModifiedTime, 1 / 24 / 60 / 60 / 1000);
 
-procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel6;
-begin
-  InternalTestDrawing(CPngSuiteDir + 'z06n2c08.png');
-end;
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cm9n0g04.png');
+  CheckEquals(EncodeDate(1999, 12, 31) + EncodeTime(23, 59, 59, 0), FPortableNetworkGraphic.ModifiedTime, 1 / 24 / 60 / 60 / 1000);
 
-procedure TTestPngGR32DrawingSuiteCompressionLevel.TestDrawingTrueColorCompressionLevel9;
-begin
-  InternalTestDrawing(CPngSuiteDir + 'z09n2c08.png');
+  FPortableNetworkGraphic.LoadFromFile(CPngSuiteDir + 'cm0n0g04.png');
+  CheckEquals(EncodeDate(2000, 1, 1) + EncodeTime(12, 34, 56, 0), FPortableNetworkGraphic.ModifiedTime, 1 / 24 / 60 / 60 / 1000);
 end;
 
 procedure InitializeGR32PngTests;
+var
+{$IFDEF FPC}
+  TestPngSuite: TTestSuite;
+{$ELSE}
+  FileTestSuite: TTestSuite;
+{$ENDIF}
 begin
-  {$IFDEF FPC}
-  RegisterTest(TTestPngGR32File);
-  RegisterTest(TTestPngGR32Drawing);
+{$IFDEF FPC}
+  RegisterTest(TTestGR32PngBasics);
+  RegisterTest(TTestPngToBitmap32);
 
   TestPngSuite := TTestSuite.Create('PNG Suite Tests');
   with TestPngSuite do
   begin
-    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteBasicNonInterlaced);
+    AddTestSuiteFromClass(TTestPngBitmap32Roundtrip);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteBasicAdam7);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteSizeTest);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteBackgroundTest);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteGammaTest);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteFilteringTest);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteAdditionalPaletteTest);
-    AddTestSuiteFromClass(TTestPngGR32DrawingSuiteAncillaryChunksTest);
+    AddTestSuiteFromClass(TTestPngGR32AncillaryChunks);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteChunkOrdering);
     AddTestSuiteFromClass(TTestPngGR32DrawingSuiteCompressionLevel);
   end;
   RegisterTest('TestPngSuite', TestPngSuite);
-  {$ELSE}
-  RegisterTest(TTestPngGR32File.Suite);
-  RegisterTest(TTestPngGR32Drawing.Suite);
+{$ELSE}
 
-  TestPngSuite := TTestSuite.Create('PNG Suite Tests');
-  with TestPngSuite do
-  begin
-    AddTest(TTestPngGR32DrawingSuiteBasicNonInterlaced.Suite);
-    AddTest(TTestPngGR32DrawingSuiteBasicAdam7.Suite);
-    AddTest(TTestPngGR32DrawingSuiteSizeTest.Suite);
-    AddTest(TTestPngGR32DrawingSuiteBackgroundTest.Suite);
-    AddTest(TTestPngGR32DrawingSuiteGammaTest.Suite);
-    AddTest(TTestPngGR32DrawingSuiteFilteringTest.Suite);
-    AddTest(TTestPngGR32DrawingSuiteAdditionalPaletteTest.Suite);
-    AddTest(TTestPngGR32DrawingSuiteAncillaryChunksTest.Suite);
-    AddTest(TTestPngGR32DrawingSuiteChunkOrdering.Suite);
-    AddTest(TTestPngGR32DrawingSuiteCompressionLevel.Suite);
-  end;
-  RegisterTest(TestPngSuite);
-  {$ENDIF}
+  FileTestSuite := TFolderTestSuite.Create('PNG Suite Tests', TGR32FileTest, CPngSuiteDir, '*.png', True);
+  FileTestSuite.AddTests(TGR32InvalidFileTest);
+  FileTestSuite.AddTests(TTestPngToBitmap32);
+
+  RegisterTest(FileTestSuite);
+
+  RegisterTest(TTestGR32PngBasics.Suite);
+  RegisterTest(TTestPngBitmap32Roundtrip.Suite);
+  RegisterTest(TTestPngGR32AncillaryChunks.Suite);
+
+{$ENDIF}
 end;
 
 {$IFNDEF FPC}
