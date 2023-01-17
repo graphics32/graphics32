@@ -333,8 +333,8 @@ type
   private
     FItems: array of TColor32;
     FCount: Integer;
-    procedure Remove(Index: Integer);
   protected
+    procedure Remove(Index: Integer);
     function GetItem(index: Integer): TColor32;
     function Find(const item: TColor32; var index: Integer): Boolean;
     function Compare(const item1, item2: TColor32): Integer;
@@ -1480,19 +1480,19 @@ asm
   MOV     EDI, MappingTable;
 
 @Start:
-  MOVZX   EBX, [EAX + 4 * ECX]
-  MOVZX   EBX, [EDI + EBX]
+  MOVZX   EBX, [EAX + 4 * ECX].BYTE
+  MOVZX   EBX, [EDI + EBX].BYTE
   MOV     [EDX + 4 * ECX + $02], BL
 
-  MOVZX   EBX, [EAX + 4 * ECX + $01]
-  MOVZX   EBX, [EDI + EBX]
+  MOVZX   EBX, [EAX + 4 * ECX + $01].BYTE
+  MOVZX   EBX, [EDI + EBX].BYTE
   MOV     [EDX + 4 * ECX + $01], BL
 
-  MOVZX   EBX,[EAX + 4 * ECX + $02]
-  MOVZX   EBX,[EDI + EBX]
+  MOVZX   EBX, [EAX + 4 * ECX + $02].BYTE
+  MOVZX   EBX, [EDI + EBX].BYTE
   MOV     [EDX + 4 * ECX], BL
 
-  MOVZX   EBX, [EAX + 4 * ECX + $03]
+  MOVZX   EBX, [EAX + 4 * ECX + $03].BYTE
   MOV     [EDX + 4 * ECX + $03], BL
 
   ADD     ECX, 1
@@ -1566,7 +1566,6 @@ var
 begin
   // initialize variables
   CurrentRow := 0;
-  RowByteSize := 0;
   UsedFilters := [];
   PixelByteSize := FHeader.PixelByteSize;
 
