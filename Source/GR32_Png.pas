@@ -1469,8 +1469,8 @@ asm
 @Done:
 {$ENDIF}
 {$IFDEF Target_x86}
-  LEA     EAX, EAX + 4 * ECX
-  LEA     EDX, EDX + 4 * ECX
+  LEA     EAX, [EAX + 4 * ECX]
+  LEA     EDX, [EDX + 4 * ECX]
   NEG     ECX
   JNL     @Done
 

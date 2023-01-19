@@ -4123,8 +4123,8 @@ asm
         MOV     EAX, EDX
         MOV     EDX, ECX
         MOV     ECX, BytesPerRow.DWORD
-        LEA     EAX, EAX + ECX + 1
-        LEA     EDX, EDX + ECX + 1
+        LEA     EAX, [EAX + ECX + 1]
+        LEA     EDX, [EDX + ECX + 1]
         NEG     ECX
         JNL     @Done
 
