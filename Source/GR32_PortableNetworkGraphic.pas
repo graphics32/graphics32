@@ -4064,8 +4064,8 @@ asm
         MOV     ECX, BytesPerRow.DWORD
         ADD     EAX, PixelByteSize.DWORD
         SUB     ECX, PixelByteSize.DWORD
-        LEA     EAX, EAX + ECX
-        LEA     EDX, EDX + ECX
+        LEA     EAX, [EAX + ECX]
+        LEA     EDX, [EDX + ECX]
         NEG     ECX
         JNL     @Done
 
@@ -4123,8 +4123,8 @@ asm
         MOV     EAX, EDX
         MOV     EDX, ECX
         MOV     ECX, BytesPerRow.DWORD
-        LEA     EAX, EAX + ECX + 1
-        LEA     EDX, EDX + ECX + 1
+        LEA     EAX, [EAX + ECX + 1]
+        LEA     EDX, [EDX + ECX + 1]
         NEG     ECX
         JNL     @Done
 
@@ -5015,6 +5015,7 @@ var
 const
   PNG_SIG: TChunkName = (AnsiChar($89), 'P', 'N', 'G');
 begin
+  GotIDAT := False;
   with Stream do
   begin
     Clear;
@@ -5612,7 +5613,7 @@ asm
 {$ENDIF}
 
 @Start:
-        MOV     EAX, [RDX]
+        MOVZX   EAX, [RDX].BYTE
         XOR     EAX, EBX
         AND     EAX, $FF
         MOV     EAX, [RDI + 4 * RAX]
@@ -5637,14 +5638,10 @@ asm
         NEG     ECX
         MOV     EBX, $FFFFFFFF
 
-{$IFNDEF FPC}
         MOV     EDI, [GCrcTable]
-{$ELSE}
-        MOV     EDI, [EIP + GCrcTable]
-{$ENDIF}
 
 @Start:
-        MOVZX   EAX, [EDX]
+        MOVZX   EAX, [EDX].BYTE
         XOR     EAX, EBX
         AND     EAX, $FF
         MOV     EAX, [EDI + 4 * EAX]
@@ -5847,7 +5844,6 @@ var
 begin
   // initialize variables
   CurrentRow := 0;
-  RowByteSize := 0;
   PixelByteSize := FHeader.PixelByteSize;
 
   GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
@@ -5897,7 +5893,8 @@ begin
           ctTrueColor      : RowByteSize := (PixelPerRow * BitDepth * 3) div 8;
           ctGrayscaleAlpha : RowByteSize := (PixelPerRow * BitDepth * 2) div 8;
           ctTrueColorAlpha : RowByteSize := (PixelPerRow * BitDepth * 4) div 8;
-          else Continue;
+        else
+          Continue;
         end;
 
       PassRow := CRowStart[CurrentPass];
@@ -5996,7 +5993,6 @@ var
 begin
   // initialize variables
   CurrentRow := 0;
-  RowByteSize := 0;
   PixelByteSize := FHeader.PixelByteSize;
 
   GetMem(TempData, FHeader.Height * FHeader.BytesPerRow);
