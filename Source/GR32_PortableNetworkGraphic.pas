@@ -3110,8 +3110,6 @@ procedure TChunkPngPrimaryChromaticities.WriteToStream(Stream: TStream);
 begin
   with Stream do
   begin
-    if (ChunkSize > Size) or (GetChunkSize > ChunkSize) then
-      raise EPngError.Create(RCStrChunkSizeTooSmall);
 
     // write white point x
     WriteSwappedCardinal(Stream, FWhiteX);
