@@ -76,6 +76,11 @@ type
   TGR32FileTest = class(TCustomGR32FileTest)
   protected
   public
+    // The following tests are currently disabled:
+    // - We fail (by design) when saving the iTXt chunk as we only support reading it right now.
+    // - The ctzn0g04.pn fail with a CRC error.
+    procedure TestSaveToStream;
+    procedure TestSaveToStreamRountrip;
   published
     procedure TestLoadFromFile;
   end;
@@ -486,6 +491,48 @@ begin
   FPortableNetworkGraphic.LoadFromFile(TestFileName);
 
   Check(True);
+end;
+
+procedure TGR32FileTest.TestSaveToStream;
+var
+  Stream: TMemoryStream;
+begin
+  FPortableNetworkGraphic.LoadFromFile(TestFileName);
+
+  Stream := TMemoryStream.Create;
+  try
+    FPortableNetworkGraphic.SaveToStream(Stream);
+
+    // No validation of content. We only test the ability to save.
+    Check(Stream.Size > 0);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TGR32FileTest.TestSaveToStreamRountrip;
+var
+  Stream1: TMemoryStream;
+  Stream2: TMemoryStream;
+begin
+  FPortableNetworkGraphic.LoadFromFile(TestFileName);
+
+  Stream1 := TMemoryStream.Create;
+  Stream2 := TMemoryStream.Create;
+  try
+    FPortableNetworkGraphic.SaveToStream(Stream1);
+
+    Stream1.Position := 0;
+    FPortableNetworkGraphic.LoadFromStream(Stream1);
+
+    FPortableNetworkGraphic.SaveToStream(Stream2);
+
+    CheckEquals(Stream1.Size, Stream2.Size);
+    CheckEqualsMem(Stream1.Memory, Stream2.Memory, Stream1.Size);
+  finally
+    Stream1.Free;
+    Stream2.Free;
+  end;
 end;
 
 
