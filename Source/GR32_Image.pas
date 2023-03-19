@@ -217,6 +217,66 @@ type
     X, Y: Integer; Layer: TCustomLayer) of object;
   TPaintStageHandler = procedure(Dest: TBitmap32; StageNum: Integer) of object;
 
+  TCheckerStyle = (csCustom, csNone, csLight, csMedium, csDark);
+
+  TBackgroundOptions = class(TNotifiablePersistent)
+  private type
+    TCheckersColors = array[0..1] of TColor32;
+  private
+    FPatternBitmap: TBitmap32;
+    FOuterBorderColor: TColor;
+    FInnerBorderWidth: integer;
+    FInnerBorderColor: TColor;
+    FDropShadowBitmap: TBitmap32;
+    FDropShadowOffset: integer;
+    FDropShadowSize: integer;
+    FDropShadowColor: TColor32;
+    FCheckersColors: TCheckersColors;
+    FCheckersStyle: TCheckerStyle;
+    FCheckersExponent: integer;
+  protected
+    procedure SetPatternBitmap(const Value: TBitmap32);
+    procedure SetDropShadowBitmap(const Value: TBitmap32);
+    procedure SetDropShadowColor(const Value: TColor32);
+    procedure SetDropShadowOffset(const Value: integer);
+    procedure SetDropShadowSize(const Value: integer);
+    procedure SetInnerBorderColor(const Value: TColor);
+    procedure SetInnerBorderWidth(const Value: integer);
+    procedure SetOuterBorderColor(const Value: TColor);
+    procedure SetCheckersStyle(const Value: TCheckerStyle);
+    function GetCheckersColor(const Index: Integer): TColor;
+    procedure SetCheckersColor(Index: integer; const Value: TColor);
+    procedure SetCheckersExponent(const Value: integer);
+
+    function IsCheckersColorsStored(Index: integer): boolean;
+    function IsDropShadowBitmapStored: boolean;
+    function IsPatternBitmapStored: boolean;
+
+    procedure ChangeHandler(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property CheckersColors: TCheckersColors read FCheckersColors;
+  published
+    property PatternBitmap: TBitmap32 read FPatternBitmap write SetPatternBitmap stored IsPatternBitmapStored;
+
+    property OuterBorderColor: TColor read FOuterBorderColor write SetOuterBorderColor default clNone;
+
+    property InnerBorderWidth: integer read FInnerBorderWidth write SetInnerBorderWidth default 0;
+    property InnerBorderColor: TColor read FInnerBorderColor write SetInnerBorderColor default clNone;
+
+    property DropShadowColor: TColor32 read FDropShadowColor write SetDropShadowColor default 0;
+    property DropShadowOffset: integer read FDropShadowOffset write SetDropShadowOffset default 0;
+    property DropShadowSize: integer read FDropShadowSize write SetDropShadowSize default 0;
+    property DropShadowBitmap: TBitmap32 read FDropShadowBitmap write SetDropShadowBitmap stored IsDropShadowBitmapStored;
+
+    property CheckersStyle: TCheckerStyle read FCheckersStyle write SetCheckersStyle default csNone;
+    property CheckersColorOdd: TColor index 0 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    property CheckersColorEven: TColor index 1 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    property CheckersExponent: integer read FCheckersExponent write SetCheckersExponent default 3;
+  end;
+
   TCustomImage32 = class(TCustomPaintBox32)
   private
     FBitmap: TBitmap32;
@@ -230,6 +290,7 @@ type
     FScaleX: TFloat;
     FScaleY: TFloat;
     FScaleMode: TScaleMode;
+    FBackgroundOptions: TBackgroundOptions;
     FUpdateCount: Integer;
     FOnBitmapResize: TNotifyEvent;
     FOnChange: TNotifyEvent;
@@ -239,6 +300,7 @@ type
     FOnMouseUp: TImgMouseEvent;
     FOnPaintStage: TPaintStageEvent;
     FOnScaleChange: TNotifyEvent;
+    procedure BackgroundOptionsChangeHandler(Sender: TObject);
     procedure BitmapResizeHandler(Sender: TObject);
     procedure BitmapChangeHandler(Sender: TObject);
     procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
@@ -257,6 +319,7 @@ type
     procedure SetScaleX(Value: TFloat);
     procedure SetScaleY(Value: TFloat);
     procedure SetOnPixelCombine(Value: TPixelCombineEvent);
+    procedure SetBackgroundOptions(const Value: TBackgroundOptions);
   protected
     CachedBitmapRect: TRect;
     CachedShiftX, CachedShiftY,
@@ -326,6 +389,7 @@ type
     property ScaleX: TFloat read FScaleX write SetScaleX;
     property ScaleY: TFloat read FScaleY write SetScaleY;
     property ScaleMode: TScaleMode read FScaleMode write SetScaleMode;
+    property Background: TBackgroundOptions read FBackgroundOptions write SetBackgroundOptions;
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -355,6 +419,7 @@ type
     property RepaintMode;
     property Scale;
     property ScaleMode;
+    property Background;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -481,6 +546,7 @@ type
     property RepaintMode;
     property Scale;
     property ScaleMode;
+    property Background;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
@@ -565,11 +631,20 @@ type
     property Bitmaps: TBitmap32Collection read FBitmap32Collection write SetBitmap32Collection;
   end;
 
+var
+  DefaultCheckersColors: array[TCheckerStyle] of TBackgroundOptions.TCheckersColors =
+    (($FFFFFFFF, $FF000000),
+     ($FFFFFFFF, $FFFFFFFF),
+     ($FFFFFFFF, $FFEBEBEB),
+     ($FFFFFFFF, $FFD0D0D0),
+     ($FFFFFFFF, $FFB0B0B0));
+
 implementation
 
 uses
   Math, TypInfo,
-  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel;
+  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel,
+  GR32_Resamplers, GR32_Backends_Generic;
 
 type
   TLayerAccess = class(TCustomLayer);
@@ -1051,6 +1126,155 @@ begin
   inherited;
 end;
 
+
+{ TBackgroundOptions }
+
+procedure TBackgroundOptions.ChangeHandler(Sender: TObject);
+begin
+  Changed;
+end;
+
+constructor TBackgroundOptions.Create;
+begin
+  inherited Create;
+
+  FPatternBitmap := TBitmap32.Create(TMemoryBackend);
+  FPatternBitmap.DrawMode := dmOpaque;
+  FPatternBitmap.OnChange := ChangeHandler;
+
+  FDropShadowBitmap := TBitmap32.Create(TMemoryBackend);
+  FDropShadowBitmap.DrawMode := dmBlend;
+  FDropShadowBitmap.OnChange := ChangeHandler;
+
+  FOuterBorderColor := clNone;
+  FInnerBorderColor := clNone;
+  SetCheckersStyle(csNone); // We need to go via the property setter
+  FCheckersExponent := 3;
+end;
+
+destructor TBackgroundOptions.Destroy;
+begin
+  FPatternBitmap.Free;
+  FDropShadowBitmap.Free;
+  inherited;
+end;
+
+function TBackgroundOptions.GetCheckersColor(const Index: Integer): TColor;
+begin
+  Result := WinColor(FCheckersColors[Index]);
+end;
+
+function TBackgroundOptions.IsCheckersColorsStored(Index: integer): boolean;
+begin
+  Result := (FCheckersStyle = csCustom);
+end;
+
+function TBackgroundOptions.IsDropShadowBitmapStored: boolean;
+begin
+  Result := (not FDropShadowBitmap.Empty);
+end;
+
+function TBackgroundOptions.IsPatternBitmapStored: boolean;
+begin
+  Result := (not FPatternBitmap.Empty);
+end;
+
+procedure TBackgroundOptions.SetPatternBitmap(const Value: TBitmap32);
+begin
+  FPatternBitmap.Assign(Value);
+end;
+
+procedure TBackgroundOptions.SetCheckersColor(Index: integer; const Value: TColor);
+begin
+  if (FCheckersStyle <> csCustom) or (Color32(Value) <> FCheckersColors[Index]) then
+  begin
+    FCheckersColors[Index] := Color32(Value);
+    FCheckersStyle := csCustom;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetCheckersExponent(const Value: integer);
+begin
+  if (Value <> FCheckersExponent) then
+  begin;
+    // There's no technical reason to limit the size, but there's also no
+    // practical reason to allow larger values.
+    FCheckersExponent := Min(10, Max(0, Value));
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetCheckersStyle(const Value: TCheckerStyle);
+begin
+  if (FCheckersStyle <> Value) then
+  begin
+    FCheckersStyle := Value;
+    if (FCheckersStyle <> csCustom) then
+      FCheckersColors := DefaultCheckersColors[FCheckersStyle];
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetDropShadowBitmap(const Value: TBitmap32);
+begin
+  FDropShadowBitmap.Assign(Value);
+end;
+
+procedure TBackgroundOptions.SetDropShadowColor(const Value: TColor32);
+begin
+  if (Value <> FDropShadowColor) then
+  begin
+    FDropShadowColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetDropShadowOffset(const Value: integer);
+begin
+  if (Value <> FDropShadowOffset) then
+  begin
+    FDropShadowOffset := Max(1, Value);
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetDropShadowSize(const Value: integer);
+begin
+  if (Value <> FDropShadowSize) then
+  begin
+    FDropShadowSize := Max(1, Value);
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetInnerBorderColor(const Value: TColor);
+begin
+  if (Value <> FInnerBorderColor) then
+  begin
+    FInnerBorderColor := Value;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetInnerBorderWidth(const Value: integer);
+begin
+  if (Value <> FInnerBorderWidth) then
+  begin
+    FInnerBorderWidth := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetOuterBorderColor(const Value: TColor);
+begin
+  if (Value <> FOuterBorderColor) then
+  begin
+    FOuterBorderColor := Value;
+    Changed;
+  end;
+end;
+
 { TCustomImage32 }
 
 constructor TCustomImage32.Create(AOwner: TComponent);
@@ -1070,6 +1294,9 @@ begin
   FScaleY := 1;
   SetXForm(0, 0, 1, 1);
 
+  FBackgroundOptions := TBackgroundOptions.Create;
+  FBackgroundOptions.OnChange := BackgroundOptionsChangeHandler;
+
   InitDefaultStages;
 end;
 
@@ -1080,6 +1307,7 @@ begin
   FRepaintOptimizer.UnregisterLayerCollection(FLayers);
   FLayers.Free;
   FBitmap.Free;
+  FBackgroundOptions.Free;
   inherited;
 end;
 
@@ -1155,6 +1383,11 @@ begin
     Result.X := X * CachedScaleX + CachedShiftX;
     Result.Y := Y * CachedScaleY + CachedShiftY;
   end;
+end;
+
+procedure TCustomImage32.BackgroundOptionsChangeHandler(Sender: TObject);
+begin
+  Invalidate;
 end;
 
 procedure TCustomImage32.BitmapResizeHandler(Sender: TObject);
@@ -1504,31 +1737,228 @@ end;
 
 procedure TCustomImage32.ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer);
 var
+  OuterBorder: integer;
+  InnerBorder: integer;
+  Width: integer;
+  OddRow, EvenRow: TArrayOfColor32;
+  ColorEven, ColorOdd: PColor32;
+  X, Y: integer;
+  i: Integer;
+  Parity: integer;
+  ViewportRect: TRect;
+  r: TRect;
+  Tile: TRect;
   C: TColor32;
-  I: Integer;
+  TileX, TileY: integer;
+  DrawFancyStuff: boolean;
+  DrawBitmapBackground: boolean;
 begin
-  C := Color32(Color);
-  if FInvalidRects.Count > 0 then
+  ViewportRect := GetViewportRect;
+
+  if (not Bitmap.Empty) and (Bitmap.DrawMode = dmOpaque) then
   begin
-    for I := 0 to FInvalidRects.Count - 1 do
-      with FInvalidRects[I]^ do
-        Dest.FillRectS(Left, Top, Right, Bottom, C);
-  end
+    // No need to draw background if bitmap covers everything
+    if (BitmapAlign = baTile) or (CachedBitmapRect.Contains(ViewportRect)) then
+      exit;
+  end;
+
+
+  // Background (from inside out/top down):
+  // - Checkers
+  // - white border
+  // - 1px black/dark border
+  // - bump map/solid color
+  // - alpha drop shadow
+
+  if (FBackgroundOptions.OuterBorderColor <> clNone) then
+    OuterBorder := 1
   else
+    OuterBorder := 0;
+
+  if (FBackgroundOptions.InnerBorderWidth > 0) and (FBackgroundOptions.InnerBorderColor <> clNone) then
+    InnerBorder := FBackgroundOptions.InnerBorderWidth
+  else
+    InnerBorder := 0;
+
+  // If the bitmap is empty or if we're tiling it, or if the borders and dropshadow
+  // is disabled, then we only need to do a simple clear of the whole background.
+  DrawFancyStuff := (not Bitmap.Empty) and (BitmapAlign <> baTile) and
+    ((not FBackgroundOptions.DropShadowBitmap.Empty) or (FBackgroundOptions.DropShadowSize <> 0) or
+     (OuterBorder <> 0) or (InnerBorder <> 0));
+
+     // Do we need to clear the area below the bitmap?
+  DrawBitmapBackground := (not Bitmap.Empty) and (BitmapAlign <> baTile) and (Bitmap.DrawMode <> dmOpaque);
+
+  r := CachedBitmapRect;
+  if (DrawFancyStuff) then
+    GR32.InflateRect(r, OuterBorder+InnerBorder, OuterBorder+InnerBorder);
+
+  (*
+  ** Background (pattern or solid color)
+  *)
+  if (not FBackgroundOptions.PatternBitmap.Empty) then
   begin
-    if ((Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque)) and assigned(Dest) then
-      Dest.Clear(C)
-    else
-    with CachedBitmapRect do
-    begin
-      if (Left > 0) or (Right < Self.Width) or (Top > 0) or (Bottom < Self.Height) and
-        not (BitmapAlign = baTile) then
+    TileX := (ViewportRect.Width + FBackgroundOptions.PatternBitmap.Width - 1) div FBackgroundOptions.PatternBitmap.Width;
+    TileY := (ViewportRect.Height + FBackgroundOptions.PatternBitmap.Height - 1) div FBackgroundOptions.PatternBitmap.Height;
+    for Y := 0 to TileY-1 do
+      for X := 0 to TileX-1 do
       begin
-        // clean only the part of the buffer lying around image edges
-        Dest.FillRectS(0, 0, Self.Width, Top, C);          // top
-        Dest.FillRectS(0, Bottom, Self.Width, Self.Height, C);  // bottom
-        Dest.FillRectS(0, Top, Left, Bottom, C);      // left
-        Dest.FillRectS(Right, Top, Self.Width, Bottom, C); // right
+        Tile := Rect(0, 0, FBackgroundOptions.PatternBitmap.Width, FBackgroundOptions.PatternBitmap.Height);
+        GR32.OffsetRect(Tile, X * FBackgroundOptions.PatternBitmap.Width, Y * FBackgroundOptions.PatternBitmap.Height);
+
+        if (DrawBitmapBackground) and (CachedBitmapRect.Contains(Tile)) then
+          // Tile would have been obscured by bitmap/checkers
+          continue;
+
+        BlockTransfer(Dest,
+          Tile.Left, Tile.Top, Dest.ClipRect,
+          FBackgroundOptions.PatternBitmap, FBackgroundOptions.PatternBitmap.BoundsRect, dmOpaque);
+      end;
+
+    // CheckersStyle=csNone doesn't clear the area under the bitmap so we need todo it here
+    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = csNone) then
+    begin
+      C := Color32(Color);
+      Dest.FillRectS(CachedBitmapRect, C);
+    end;
+  end else
+  begin
+    C := Color32(Color);
+
+    if FInvalidRects.Count > 0 then
+    begin
+      for i := 0 to FInvalidRects.Count-1 do
+      begin
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> csNone) and (CachedBitmapRect.Contains(FInvalidRects[i]^)) then
+          continue;
+
+        with FInvalidRects[i]^ do
+          Dest.FillRectS(Left, Top, Right, Bottom, C);
+      end;
+    end else
+    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> csNone) then
+    begin
+      Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
+      Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
+      Dest.FillRectS(Rect(r.Right, r.Top, ViewportRect.Right, r.Bottom), C);
+      Dest.FillRectS(Rect(ViewportRect.Left, r.Bottom, ViewportRect.Right, ViewportRect.Bottom), C);
+    end else
+      Dest.Clear(C);
+  end;
+
+  if (DrawFancyStuff) then
+  begin
+    (*
+    ** Drop shadow
+    *)
+    if (not FBackgroundOptions.DropShadowBitmap.Empty) then
+    begin
+      (*
+      The drop shadow tile is partitioned into 5 segments
+
+                                       +
+        +-------+                     1|#
+        |       |#
+        |       |#   ->               2|#
+        |       |#
+        +-------+#           3    4   5|
+         #########           +-   -   -+
+                              #   #     #
+
+      *)
+
+      X := FBackgroundOptions.DropShadowBitmap.Width div 2;
+      Y := FBackgroundOptions.DropShadowBitmap.Height div 2;
+      // Segment 1
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        r.Right, r.Top+FBackgroundOptions.DropShadowOffset,
+        Rect(X, 0, FBackgroundOptions.DropShadowBitmap.Width-1, Y));
+
+      // Segment 2 (stretched)
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        Rect(r.Right, r.Top+FBackgroundOptions.DropShadowOffset+Y, r.Right+X, r.Bottom),
+        Rect(X, Y, FBackgroundOptions.DropShadowBitmap.Width, Y+1));
+
+      // Segment 3
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        r.Left+FBackgroundOptions.DropShadowOffset, r.Bottom,
+        Rect(0, Y, X, FBackgroundOptions.DropShadowBitmap.Height-1));
+
+      // Segment 4 (stretched)
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        Rect(r.Left+FBackgroundOptions.DropShadowOffset+X, r.Bottom, r.Right, r.Bottom+Y),
+        Rect(X, Y, X+1, FBackgroundOptions.DropShadowBitmap.Height));
+
+      // Segment 5
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        r.Right, r.Bottom,
+        Rect(X, Y, FBackgroundOptions.DropShadowBitmap.Width-1, FBackgroundOptions.DropShadowBitmap.Height-1));
+    end else
+    if (FBackgroundOptions.DropShadowSize <> 0) then
+    begin
+      // Note: Transparent
+      Dest.FillRectTS(Rect(r.Right, r.Top+FBackgroundOptions.DropShadowOffset, r.Right+FBackgroundOptions.DropShadowSize, r.Bottom), FBackgroundOptions.DropShadowColor);
+      Dest.FillRectTS(Rect(r.Left+FBackgroundOptions.DropShadowOffset, r.Bottom, r.Right+FBackgroundOptions.DropShadowSize, r.Bottom+FBackgroundOptions.DropShadowSize), FBackgroundOptions.DropShadowColor);
+    end;
+
+    (*
+    ** Outer dark border
+    *)
+    if (OuterBorder <> 0) then
+    begin
+      Dest.FrameRectS(r, Color32(FBackgroundOptions.OuterBorderColor));
+      GR32.InflateRect(r, -OuterBorder, -OuterBorder);
+    end;
+
+    (*
+    ** Inner light border
+    *)
+    if (InnerBorder <> 0) then
+    begin
+      C := Color32(FBackgroundOptions.InnerBorderColor);
+      if (InnerBorder > 1) then
+      begin
+        Dest.FillRectS(Rect(r.Left, r.Top, r.Right, CachedBitmapRect.Top), C);
+        Dest.FillRectS(Rect(r.Left, CachedBitmapRect.Top, CachedBitmapRect.Left, CachedBitmapRect.Bottom), C);
+        Dest.FillRectS(Rect(CachedBitmapRect.Right, CachedBitmapRect.Top, r.Right, CachedBitmapRect.Bottom), C);
+        Dest.FillRectS(Rect(r.Left, CachedBitmapRect.Bottom, r.Right, r.Bottom), C);
+      end else
+        Dest.FrameRectS(r, C);
+    end;
+  end;
+
+  (*
+  ** Checkers
+  *)
+  if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> csNone) then
+  begin
+    GR32.IntersectRect(r, CachedBitmapRect, Dest.ClipRect);
+
+    Width := r.Width;
+
+    if (Width > 0) then
+    begin
+      SetLength(OddRow, Width);
+      SetLength(EvenRow, Width);
+
+      ColorEven := @EvenRow[0];
+      ColorOdd := @OddRow[0];
+      for X := 0 to Width-1 do
+      begin
+        Parity := ((r.Left+X) shr FBackgroundOptions.CheckersExponent) and $1;
+        ColorEven^ := FBackgroundOptions.CheckersColors[Parity];
+        ColorOdd^ := FBackgroundOptions.CheckersColors[1-Parity];
+        inc(ColorEven);
+        inc(ColorOdd);
+      end;
+
+      for Y := r.Top to r.Bottom-1 do
+      begin
+        Parity := (Y shr FBackgroundOptions.CheckersExponent) and $1;
+        if (Parity = 0) then
+          MoveLongword(EvenRow[0], Dest.PixelPtr[r.Left, Y]^, Width)
+        else
+          MoveLongword(OddRow[0], Dest.PixelPtr[r.Left, Y]^, Width);
       end;
     end;
   end;
@@ -1926,6 +2356,11 @@ procedure TCustomImage32.Resize;
 begin
   InvalidateCache;
   inherited;
+end;
+
+procedure TCustomImage32.SetBackgroundOptions(const Value: TBackgroundOptions);
+begin
+  FBackgroundOptions.Assign(Value);
 end;
 
 procedure TCustomImage32.SetBitmap(Value: TBitmap32);

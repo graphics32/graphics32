@@ -126,6 +126,9 @@
         <Projects Include="General\PNG Image32\PNG_GR32_Demo.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="General\Image32 background\BackgroundExample.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -502,6 +505,15 @@
     </Target>
     <Target Name="PNG_GR32_Demo:Make">
         <MSBuild Projects="General\PNG Image32\PNG_GR32_Demo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="BackgroundExample">
+        <MSBuild Projects="General\Image32 background\BackgroundExample.dproj"/>
+    </Target>
+    <Target Name="BackgroundExample:Clean">
+        <MSBuild Projects="General\Image32 background\BackgroundExample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="BackgroundExample:Make">
+        <MSBuild Projects="General\Image32 background\BackgroundExample.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
         <CallTarget Targets="BlendVsMerge;PixelCombine;TextureBlend;AntiAliasing;ArrowHead;Blurs;ClipperDemo;CubicSpline;Curves;GammaCorrection;GammaBlur;GradFills;GradLines;GradSampler;LineStippling;Lion;MeshGradients;Polygons;RenderText;SvgPath;ScatterPlot;TextVPR;ByteMaps;ColorPicker;Image32;Mandelbrot;Rotate;ImgView_Layers;RotLayer;Sprites;NestedSampling;PixelF;Resamplers;ImgWarping;Transform;Visualization;LineSimplification;Grow;Benchmark;PngExplorer;PNG_GR32_Demo"/>
