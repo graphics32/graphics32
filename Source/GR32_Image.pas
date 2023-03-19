@@ -217,7 +217,8 @@ type
     X, Y: Integer; Layer: TCustomLayer) of object;
   TPaintStageHandler = procedure(Dest: TBitmap32; StageNum: Integer) of object;
 
-  TCheckerStyle = (csCustom, csNone, csLight, csMedium, csDark);
+  TBackgroundCheckerStyle = (bcsCustom, bcsNone, bcsLight, bcsMedium, bcsDark);
+  TBackgroundFillStyle = (bfsColor, bfsCheckers, bfsPattern);
 
   TBackgroundOptions = class(TNotifiablePersistent)
   private type
@@ -232,9 +233,11 @@ type
     FDropShadowSize: integer;
     FDropShadowColor: TColor32;
     FCheckersColors: TCheckersColors;
-    FCheckersStyle: TCheckerStyle;
+    FCheckersStyle: TBackgroundCheckerStyle;
     FCheckersExponent: integer;
+    FFillStyle: TBackgroundFillStyle;
   protected
+    procedure SetFillStyle(const Value: TBackgroundFillStyle);
     procedure SetPatternBitmap(const Value: TBitmap32);
     procedure SetDropShadowBitmap(const Value: TBitmap32);
     procedure SetDropShadowColor(const Value: TColor32);
@@ -243,14 +246,17 @@ type
     procedure SetInnerBorderColor(const Value: TColor);
     procedure SetInnerBorderWidth(const Value: integer);
     procedure SetOuterBorderColor(const Value: TColor);
-    procedure SetCheckersStyle(const Value: TCheckerStyle);
+    procedure SetCheckersStyle(const Value: TBackgroundCheckerStyle);
     function GetCheckersColor(const Index: Integer): TColor;
     procedure SetCheckersColor(Index: integer; const Value: TColor);
     procedure SetCheckersExponent(const Value: integer);
 
+    function IsFillStyleStored: Boolean;
     function IsCheckersColorsStored(Index: integer): boolean;
     function IsDropShadowBitmapStored: boolean;
     function IsPatternBitmapStored: boolean;
+
+    procedure CheckFillStyle;
 
     procedure ChangeHandler(Sender: TObject);
   public
@@ -271,10 +277,14 @@ type
     property DropShadowSize: integer read FDropShadowSize write SetDropShadowSize default 0;
     property DropShadowBitmap: TBitmap32 read FDropShadowBitmap write SetDropShadowBitmap stored IsDropShadowBitmapStored;
 
-    property CheckersStyle: TCheckerStyle read FCheckersStyle write SetCheckersStyle default csNone;
+    property CheckersStyle: TBackgroundCheckerStyle read FCheckersStyle write SetCheckersStyle default bcsNone;
     property CheckersColorOdd: TColor index 0 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
     property CheckersColorEven: TColor index 1 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
     property CheckersExponent: integer read FCheckersExponent write SetCheckersExponent default 3;
+
+    // Last property! We need it to be set last when loading from the DFM so the
+    // fill style rules isn't applied against incomplete property values.
+    property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle stored IsFillStyleStored;
   end;
 
   TCustomImage32 = class(TCustomPaintBox32)
@@ -632,7 +642,7 @@ type
   end;
 
 var
-  DefaultCheckersColors: array[TCheckerStyle] of TBackgroundOptions.TCheckersColors =
+  DefaultCheckersColors: array[TBackgroundCheckerStyle] of TBackgroundOptions.TCheckersColors =
     (($FFFFFFFF, $FF000000),
      ($FFFFFFFF, $FFFFFFFF),
      ($FFFFFFFF, $FFEBEBEB),
@@ -1131,6 +1141,7 @@ end;
 
 procedure TBackgroundOptions.ChangeHandler(Sender: TObject);
 begin
+  CheckFillStyle;
   Changed;
 end;
 
@@ -1148,7 +1159,7 @@ begin
 
   FOuterBorderColor := clNone;
   FInnerBorderColor := clNone;
-  SetCheckersStyle(csNone); // We need to go via the property setter
+  SetCheckersStyle(bcsNone); // We need to go via the property setter
   FCheckersExponent := 3;
 end;
 
@@ -1159,6 +1170,35 @@ begin
   inherited;
 end;
 
+procedure TBackgroundOptions.CheckFillStyle;
+begin
+  case FFillStyle of
+    bfsColor:
+      if (not FPatternBitmap.Empty) then
+        FFillStyle := bfsPattern;
+
+    bfsCheckers:
+      if (not FPatternBitmap.Empty) then
+        FFillStyle := bfsPattern
+      else
+      if (FCheckersStyle = bcsNone) then
+        FFillStyle := bfsColor
+      else
+      if (FInnerBorderColor <> clNone) and (FInnerBorderWidth <> 0) then
+        FFillStyle := bfsColor
+      else
+      if (FOuterBorderColor <> clNone) then
+        FFillStyle := bfsColor
+      else
+      if (not FDropShadowBitmap.Empty) or (FDropShadowSize <> 0) then
+        FFillStyle := bfsColor;
+
+    bfsPattern:
+      if (FPatternBitmap.Empty) then
+        FFillStyle := bfsColor;
+  end;
+end;
+
 function TBackgroundOptions.GetCheckersColor(const Index: Integer): TColor;
 begin
   Result := WinColor(FCheckersColors[Index]);
@@ -1166,12 +1206,31 @@ end;
 
 function TBackgroundOptions.IsCheckersColorsStored(Index: integer): boolean;
 begin
-  Result := (FCheckersStyle = csCustom);
+  Result := (FCheckersStyle = bcsCustom);
 end;
 
 function TBackgroundOptions.IsDropShadowBitmapStored: boolean;
 begin
   Result := (not FDropShadowBitmap.Empty);
+end;
+
+function TBackgroundOptions.IsFillStyleStored: Boolean;
+begin
+  case FFillStyle of
+    bfsColor:
+      Result := (FCheckersStyle <> bcsNone) and
+        ((FInnerBorderColor = clNone) or (FInnerBorderWidth = 0)) and
+        (FOuterBorderColor = clNone) and
+        (FDropShadowBitmap.Empty) and (FDropShadowSize = 0);
+
+    bfsCheckers:
+      Result := True;
+
+    bfsPattern:
+      Result := False;
+  else
+    Result := True;
+  end;
 end;
 
 function TBackgroundOptions.IsPatternBitmapStored: boolean;
@@ -1186,10 +1245,10 @@ end;
 
 procedure TBackgroundOptions.SetCheckersColor(Index: integer; const Value: TColor);
 begin
-  if (FCheckersStyle <> csCustom) or (Color32(Value) <> FCheckersColors[Index]) then
+  if (FCheckersStyle <> bcsCustom) or (Color32(Value) <> FCheckersColors[Index]) then
   begin
     FCheckersColors[Index] := Color32(Value);
-    FCheckersStyle := csCustom;
+    FCheckersStyle := bcsCustom;
     Changed;
   end;
 end;
@@ -1205,13 +1264,17 @@ begin
   end;
 end;
 
-procedure TBackgroundOptions.SetCheckersStyle(const Value: TCheckerStyle);
+procedure TBackgroundOptions.SetCheckersStyle(const Value: TBackgroundCheckerStyle);
 begin
   if (FCheckersStyle <> Value) then
   begin
     FCheckersStyle := Value;
-    if (FCheckersStyle <> csCustom) then
+
+    if (FCheckersStyle <> bcsCustom) then
       FCheckersColors := DefaultCheckersColors[FCheckersStyle];
+
+    CheckFillStyle;
+
     Changed;
   end;
 end;
@@ -1226,6 +1289,7 @@ begin
   if (Value <> FDropShadowColor) then
   begin
     FDropShadowColor := Value;
+    CheckFillStyle;
     Changed;
   end;
 end;
@@ -1234,7 +1298,7 @@ procedure TBackgroundOptions.SetDropShadowOffset(const Value: integer);
 begin
   if (Value <> FDropShadowOffset) then
   begin
-    FDropShadowOffset := Max(1, Value);
+    FDropShadowOffset := Max(0, Value);
     Changed;
   end;
 end;
@@ -1243,7 +1307,17 @@ procedure TBackgroundOptions.SetDropShadowSize(const Value: integer);
 begin
   if (Value <> FDropShadowSize) then
   begin
-    FDropShadowSize := Max(1, Value);
+    FDropShadowSize := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetFillStyle(const Value: TBackgroundFillStyle);
+begin
+  if (Value <> FFillStyle) then
+  begin
+    FFillStyle := Value;
+    CheckFillStyle;
     Changed;
   end;
 end;
@@ -1253,6 +1327,7 @@ begin
   if (Value <> FInnerBorderColor) then
   begin
     FInnerBorderColor := Value;
+    CheckFillStyle;
     Changed;
   end;
 end;
@@ -1262,6 +1337,7 @@ begin
   if (Value <> FInnerBorderWidth) then
   begin
     FInnerBorderWidth := Max(0, Value);
+    CheckFillStyle;
     Changed;
   end;
 end;
@@ -1271,6 +1347,7 @@ begin
   if (Value <> FOuterBorderColor) then
   begin
     FOuterBorderColor := Value;
+    CheckFillStyle;
     Changed;
   end;
 end;
@@ -1796,8 +1873,10 @@ begin
   (*
   ** Background (pattern or solid color)
   *)
-  if (not FBackgroundOptions.PatternBitmap.Empty) then
+  if (FBackgroundOptions.FillStyle = bfsPattern) then
   begin
+    Assert(not FBackgroundOptions.PatternBitmap.Empty);
+
     TileX := (ViewportRect.Width + FBackgroundOptions.PatternBitmap.Width - 1) div FBackgroundOptions.PatternBitmap.Width;
     TileY := (ViewportRect.Height + FBackgroundOptions.PatternBitmap.Height - 1) div FBackgroundOptions.PatternBitmap.Height;
     for Y := 0 to TileY-1 do
@@ -1815,13 +1894,14 @@ begin
           FBackgroundOptions.PatternBitmap, FBackgroundOptions.PatternBitmap.BoundsRect, dmOpaque);
       end;
 
-    // CheckersStyle=csNone doesn't clear the area under the bitmap so we need todo it here
-    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = csNone) then
+    // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
+    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
     begin
       C := Color32(Color);
       Dest.FillRectS(CachedBitmapRect, C);
     end;
   end else
+  if (FBackgroundOptions.FillStyle = bfsColor) then
   begin
     C := Color32(Color);
 
@@ -1829,14 +1909,14 @@ begin
     begin
       for i := 0 to FInvalidRects.Count-1 do
       begin
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> csNone) and (CachedBitmapRect.Contains(FInvalidRects[i]^)) then
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (CachedBitmapRect.Contains(FInvalidRects[i]^)) then
           continue;
 
         with FInvalidRects[i]^ do
           Dest.FillRectS(Left, Top, Right, Bottom, C);
       end;
     end else
-    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> csNone) then
+    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
     begin
       Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
       Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
@@ -1930,36 +2010,45 @@ begin
   (*
   ** Checkers
   *)
-  if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> csNone) then
+  if (FBackgroundOptions.CheckersStyle <> bcsNone) and
+    ((DrawBitmapBackground) or ((FBackgroundOptions.FillStyle = bfsCheckers) and (Bitmap.Empty)))then
   begin
-    GR32.IntersectRect(r, CachedBitmapRect, Dest.ClipRect);
+    if (FBackgroundOptions.FillStyle = bfsCheckers) then
+      r := Dest.ClipRect
+    else
+      GR32.IntersectRect(r, CachedBitmapRect, Dest.ClipRect);
 
     Width := r.Width;
 
     if (Width > 0) then
     begin
-      SetLength(OddRow, Width);
-      SetLength(EvenRow, Width);
-
-      ColorEven := @EvenRow[0];
-      ColorOdd := @OddRow[0];
-      for X := 0 to Width-1 do
+      if (FBackgroundOptions.CheckersStyle <> bcsCustom) or (FBackgroundOptions.CheckersColors[0] <> FBackgroundOptions.CheckersColors[1]) then
       begin
-        Parity := ((r.Left+X) shr FBackgroundOptions.CheckersExponent) and $1;
-        ColorEven^ := FBackgroundOptions.CheckersColors[Parity];
-        ColorOdd^ := FBackgroundOptions.CheckersColors[1-Parity];
-        inc(ColorEven);
-        inc(ColorOdd);
-      end;
+        SetLength(OddRow, Width);
+        SetLength(EvenRow, Width);
 
-      for Y := r.Top to r.Bottom-1 do
-      begin
-        Parity := (Y shr FBackgroundOptions.CheckersExponent) and $1;
-        if (Parity = 0) then
-          MoveLongword(EvenRow[0], Dest.PixelPtr[r.Left, Y]^, Width)
-        else
-          MoveLongword(OddRow[0], Dest.PixelPtr[r.Left, Y]^, Width);
-      end;
+        ColorEven := @EvenRow[0];
+        ColorOdd := @OddRow[0];
+        for X := 0 to Width-1 do
+        begin
+          Parity := ((r.Left+X) shr FBackgroundOptions.CheckersExponent) and $1;
+          ColorEven^ := FBackgroundOptions.CheckersColors[Parity];
+          ColorOdd^ := FBackgroundOptions.CheckersColors[1-Parity];
+          inc(ColorEven);
+          inc(ColorOdd);
+        end;
+
+        for Y := r.Top to r.Bottom-1 do
+        begin
+          Parity := (Y shr FBackgroundOptions.CheckersExponent) and $1;
+          if (Parity = 0) then
+            MoveLongword(EvenRow[0], Dest.PixelPtr[r.Left, Y]^, Width)
+          else
+            MoveLongword(OddRow[0], Dest.PixelPtr[r.Left, Y]^, Width);
+        end;
+      end else
+        // Odd color = Even color -> Just clear with the color
+        Dest.FillRectS(r, FBackgroundOptions.CheckersColors[0]);
     end;
   end;
 end;
