@@ -30,6 +30,9 @@ uses
 
 {$R *.dfm}
 
+const
+  sMediaFolder = '..\..\..\Media';
+
 procedure TFmPngDemo.ButtonLoadClick(Sender: TObject);
 var
   OpenDialog: TOpenDialog;
@@ -45,7 +48,7 @@ begin
     PNG := TPortableNetworkGraphic32.Create;
     try
       PNG.LoadFromFile(OpenDialog.FileName);
-      PNG.AssignTo(ImageDisplay.Bitmap);
+      ImageDisplay.Bitmap.Assign(PNG);
     finally
       PNG.Free;
     end;
@@ -103,14 +106,8 @@ begin
   ImageDisplay.AlignWithMargins := True;
 {$ENDIF}
 
-  if FileExists('..\Demo.png') then
-    with TPortableNetworkGraphic32.Create do
-      try
-        LoadFromFile('..\Demo.png');
-        AssignTo(ImageDisplay.Bitmap);
-      finally
-        Free;
-      end;
+  if FileExists(sMediaFolder+'\Dice.png') then
+    LoadBitmap32FromPNG(ImageDisplay.Bitmap, sMediaFolder+'\Dice.png');
 end;
 
 end.
