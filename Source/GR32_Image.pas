@@ -317,6 +317,7 @@ type
     FSteps: integer;
     FZoomFactor: Double;
     FShiftState: TMouseShiftState;
+    FAnimate: boolean;
   protected
     procedure SetMaxScale(const Value: Single);
     procedure SetMinScale(const Value: Single);
@@ -342,6 +343,7 @@ type
     property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
     property Steps: integer read FSteps write SetSteps default 12;
     property ZoomFactor: Double read FZoomFactor write SetZoomFactor stored False;
+    property Animate: boolean read FAnimate write FAnimate default False;
   end;
 
   TCustomImage32 = class(TCustomPaintBox32)
@@ -425,7 +427,8 @@ type
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     procedure DoZoom(APivot: TFloatPoint; AScale: TFloat);
-    procedure DoSetPivot(APivot: TFloatPoint); virtual;
+    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+    procedure DoSetPivot(const APivot: TFloatPoint); virtual;
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
@@ -595,7 +598,7 @@ type
     procedure Paint; override;
     procedure Recenter;
     procedure SetScaleMode(Value: TScaleMode); override;
-    procedure DoSetPivot(APivot: TFloatPoint); override;
+    procedure DoSetPivot(const APivot: TFloatPoint); override;
     procedure ScrollHandler(Sender: TObject); virtual;
     procedure ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
     procedure UpdateImage; virtual;
@@ -728,10 +731,16 @@ var
      ($FFFFFFFF, $FFD0D0D0),
      ($FFFFFFFF, $FFB0B0B0));
 
+  // Maximum duration of animated zoom
+  ZoomAnimateTime: integer = 300; // mS
+  // Time between each zoom step. 1000 / ZoomAnimateDeltaTime = frame rate
+  ZoomAnimateDeltaTime: integer = 5; // mS
+
 implementation
 
 uses
   Math, TypInfo,
+  amEasing,
   GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel,
   GR32_Resamplers, GR32_Backends_Generic;
 
@@ -1933,25 +1942,20 @@ begin
     FOnScaleChange(Self);
 end;
 
-procedure TCustomImage32.DoSetPivot(APivot: TFloatPoint);
+procedure TCustomImage32.DoSetPivot(const APivot: TFloatPoint);
 begin
   OffsetHorz := APivot.X;
   OffsetVert := APivot.Y;
 end;
 
-procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
 var
   OldScale: TFloat;
   OldOfsX: TFloat;
   OldOfsY: TFloat;
 begin
-  AScale := Constrain(AScale, FMouseZoomOptions.MinScale, FMouseZoomOptions.MaxScale);
   if (AScale = Scale) then
     exit;
-
-  // Clamp pivot to bitmap
-  APivot.X := Constrain(APivot.X, 0, Bitmap.Width);
-  APivot.Y := Constrain(APivot.Y, 0, Bitmap.Height);
 
   OldScale := Scale;
   OldOfsX := OffsetHorz;
@@ -1967,6 +1971,47 @@ begin
     EndUpdate;
   end;
   Changed;
+end;
+
+procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+var
+  StartValue, DeltaValue: TFloat;
+const
+  MinZoomDelta = 0.01;
+begin
+  AScale := Constrain(AScale, FMouseZoomOptions.MinScale, FMouseZoomOptions.MaxScale);
+  if (AScale = Scale) then
+    exit;
+
+  // Clamp pivot to bitmap
+  APivot.X := Constrain(APivot.X, 0, Bitmap.Width);
+  APivot.Y := Constrain(APivot.Y, 0, Bitmap.Height);
+
+  if (FMouseZoomOptions.Animate) and (Showing) then
+  begin
+    StartValue := Scale;
+    DeltaValue := AScale-StartValue;
+
+    // Ease between old and new scale
+    AnimatedTween(TEaseCubic.EaseInOut, ZoomAnimateTime,
+      procedure(Value: Double; var Continue: boolean)
+      var
+        NewValue: Single;
+      begin
+        NewValue := StartValue + Value*DeltaValue;
+
+        if (Abs(StartValue-NewValue) >= MinZoomDelta) and
+          (Abs(AScale-NewValue) >= MinZoomDelta) and
+          (Scale <> NewValue) then
+        begin
+          DoSetZoom(APivot, NewValue);
+
+          // Paint immediately or user will not see animation
+          Repaint;
+        end;
+      end, ZoomAnimateDeltaTime);
+  end;
+  DoSetZoom(APivot, AScale);
 
   ForceFullInvalidate;
 end;
@@ -3059,7 +3104,7 @@ begin
     FOnScroll(Self);
 end;
 
-procedure TCustomImgView32.DoSetPivot(APivot: TFloatPoint);
+procedure TCustomImgView32.DoSetPivot(const APivot: TFloatPoint);
 begin
   inherited;
 
