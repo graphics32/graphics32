@@ -2500,7 +2500,18 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
-  if (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
+  if Layers.MouseEvents then
+    Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
+  else
+    Layer := nil;
+
+  // lock the capture only if mbLeft was pushed or any mouse listener was activated
+  if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+    MouseCapture := True;
+
+  MouseDown(Button, Shift, X, Y, Layer);
+
+  if (Layer = nil) and (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
   begin
     FIsMousePanning := True;
     if (FMousePanOptions.PanCursor <> crDefault) then
@@ -2509,18 +2520,6 @@ begin
     // Remember start point
     FMousePanStartPos.X := X;
     FMousePanStartPos.Y := Y;
-  end else
-  begin
-    if Layers.MouseEvents then
-      Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
-    else
-      Layer := nil;
-
-    // lock the capture only if mbLeft was pushed or any mouse listener was activated
-    if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
-      MouseCapture := True;
-
-    MouseDown(Button, Shift, X, Y, Layer);
   end;
 end;
 
@@ -2562,25 +2561,24 @@ var
   Layer: TCustomLayer;
   MouseListener: TCustomLayer;
 begin
+  MouseListener := TLayerCollectionAccess(Layers).MouseListener;
+
+  if Layers.MouseEvents then
+    Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
+  else
+    Layer := nil;
+
+  // unlock the capture using same criteria as was used to acquire it
+  if (Button = mbLeft) or ((MouseListener <> nil) and (TLayerCollectionAccess(Layers).MouseListener = nil)) then
+    MouseCapture := False;
+
+  MouseUp(Button, Shift, X, Y, Layer);
+
   if (FIsMousePanning) and (Button = FMousePanOptions.MouseButton) then
   begin
     FIsMousePanning := False;
     if (FMousePanOptions.PanCursor <> crDefault) then
       Screen.Cursor := crDefault;
-  end else
-  begin
-    MouseListener := TLayerCollectionAccess(Layers).MouseListener;
-
-    if Layers.MouseEvents then
-      Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
-    else
-      Layer := nil;
-
-    // unlock the capture using same criteria as was used to acquire it
-    if (Button = mbLeft) or ((MouseListener <> nil) and (TLayerCollectionAccess(Layers).MouseListener = nil)) then
-      MouseCapture := False;
-
-    MouseUp(Button, Shift, X, Y, Layer);
   end;
 end;
 
