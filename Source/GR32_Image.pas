@@ -287,21 +287,25 @@ type
     property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle stored IsFillStyleStored;
   end;
 
+  TMouseShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
+
   TMousePanOptions = class(TNotifiablePersistent)
   private
     FPanCursor: TCursor;
     FEnabled: boolean;
     FMouseButton: TMouseButton;
+    FShiftState: TMouseShiftState;
   protected
   public
     constructor Create;
+
+    function MatchShiftState(AShiftState: TShiftState): boolean;
   published
     property Enabled: boolean read FEnabled write FEnabled default False;
     property MouseButton: TMouseButton read FMouseButton write FMouseButton default mbLeft;
+    property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
     property PanCursor: TCursor read FPanCursor write FPanCursor default crSizeAll;
   end;
-
-  TMouseZoomShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
 
   TMouseZoomOptions = class(TNotifiablePersistent)
   private
@@ -312,7 +316,7 @@ type
     FMaxScale: Single;
     FSteps: integer;
     FZoomFactor: Double;
-    FShiftState: TMouseZoomShiftState;
+    FShiftState: TMouseShiftState;
   protected
     procedure SetMaxScale(const Value: Single);
     procedure SetMinScale(const Value: Single);
@@ -332,7 +336,7 @@ type
   published
     property Enabled: boolean read FEnabled write FEnabled default False;
     property Invert: boolean read FInvert write FInvert default False;
-    property ShiftState: TMouseZoomShiftState read FShiftState write FShiftState default [];
+    property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
     property MaintainPivot: boolean read FMaintainPivot write FMaintainPivot default True;
     property MinScale: Single read FMinScale write SetMinScale stored IsMinScaleStored;
     property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
@@ -2495,7 +2499,7 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
-  if (CanMousePan) and (Button = FMousePanOptions.MouseButton) then
+  if (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
   begin
     FIsMousePanning := True;
     if (FMousePanOptions.PanCursor <> crDefault) then
@@ -3525,6 +3529,11 @@ begin
   inherited Create;
   FMouseButton := mbLeft;
   FPanCursor := crSizeAll;
+end;
+
+function TMousePanOptions.MatchShiftState(AShiftState: TShiftState): boolean;
+begin
+  Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
 end;
 
 { TMouseZoomOptions }
