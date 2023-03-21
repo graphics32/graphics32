@@ -1817,6 +1817,7 @@ var
   r: TRect;
   Pivot: TFloatPoint;
   NewScale: TFloat;
+  ZoomIn: boolean;
   ZoomFactor: TFloat;
 begin
   Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
@@ -1833,14 +1834,14 @@ begin
     Pivot.X := (MousePos.X - r.Left) / ScaleX;
     Pivot.Y := (MousePos.Y - r.Top) / ScaleY;
 
-    if (FMouseZoomOptions.Invert) then
-      WheelDelta := -WheelDelta;
+    ZoomIn := (WheelDelta > 0) xor (FMouseZoomOptions.Invert);
+    WheelDelta := Abs(WheelDelta);
 
      // WheelDelta is expressed as 120 per step
-    ZoomFactor := FMouseZoomOptions.ZoomFactor * (WheelDelta div 120);
+    ZoomFactor := Power(FMouseZoomOptions.ZoomFactor, WheelDelta div 120);
 
-    if (ZoomFactor < 0) then
-      ZoomFactor := 1 / -ZoomFactor;
+    if (not ZoomIn) then
+      ZoomFactor := 1 / ZoomFactor;
 
     NewScale := Scale * ZoomFactor;
 
