@@ -287,6 +287,59 @@ type
     property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle stored IsFillStyleStored;
   end;
 
+  TMousePanOptions = class(TNotifiablePersistent)
+  private
+    FPanCursor: TCursor;
+    FEnabled: boolean;
+    FMouseButton: TMouseButton;
+  protected
+  public
+    constructor Create;
+  published
+    property Enabled: boolean read FEnabled write FEnabled default False;
+    property MouseButton: TMouseButton read FMouseButton write FMouseButton default mbLeft;
+    property PanCursor: TCursor read FPanCursor write FPanCursor default crSizeAll;
+  end;
+
+  TMouseZoomShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
+
+  TMouseZoomOptions = class(TNotifiablePersistent)
+  private
+    FEnabled: boolean;
+    FInvert: boolean;
+    FMaintainPivot: boolean;
+    FMinScale: Single;
+    FMaxScale: Single;
+    FSteps: integer;
+    FZoomFactor: Double;
+    FShiftState: TMouseZoomShiftState;
+  protected
+    procedure SetMaxScale(const Value: Single);
+    procedure SetMinScale(const Value: Single);
+    procedure SetSteps(const Value: integer);
+    procedure SetZoomFactor(const Value: Double);
+
+    function IsMaxScaleStored: Boolean;
+    function IsMinScaleStored: Boolean;
+
+    procedure UpdateZoomFactor;
+  public
+    constructor Create;
+
+    function ScaleToLevel(AScale: Single): integer;
+    function LevelToScale(ALevel: integer): Single;
+    function MatchShiftState(AShiftState: TShiftState): boolean;
+  published
+    property Enabled: boolean read FEnabled write FEnabled default False;
+    property Invert: boolean read FInvert write FInvert default False;
+    property ShiftState: TMouseZoomShiftState read FShiftState write FShiftState default [];
+    property MaintainPivot: boolean read FMaintainPivot write FMaintainPivot default True;
+    property MinScale: Single read FMinScale write SetMinScale stored IsMinScaleStored;
+    property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
+    property Steps: integer read FSteps write SetSteps default 12;
+    property ZoomFactor: Double read FZoomFactor write SetZoomFactor stored False;
+  end;
+
   TCustomImage32 = class(TCustomPaintBox32)
   private
     FBitmap: TBitmap32;
@@ -301,6 +354,10 @@ type
     FScaleY: TFloat;
     FScaleMode: TScaleMode;
     FBackgroundOptions: TBackgroundOptions;
+    FMousePanOptions: TMousePanOptions;
+    FMouseZoomOptions: TMouseZoomOptions;
+    FIsMousePanning: boolean;
+    FMousePanStartPos: TPoint;
     FUpdateCount: Integer;
     FOnBitmapResize: TNotifyEvent;
     FOnChange: TNotifyEvent;
@@ -330,6 +387,8 @@ type
     procedure SetScaleY(Value: TFloat);
     procedure SetOnPixelCombine(Value: TPixelCombineEvent);
     procedure SetBackgroundOptions(const Value: TBackgroundOptions);
+    procedure SetMousePanOptions(const Value: TMousePanOptions);
+    procedure SetMouseZoomOptions(const Value: TMouseZoomOptions);
   protected
     CachedBitmapRect: TRect;
     CachedShiftX, CachedShiftY,
@@ -340,28 +399,33 @@ type
     PaintToMode: Boolean;
     procedure BitmapResized; virtual;
     procedure BitmapChanged(const Area: TRect); reintroduce; virtual;
-    function  CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
+    function CanMousePan: boolean; virtual;
+    function CanMouseZoom: boolean; virtual;
+    function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
     procedure DoInitStages; virtual;
     procedure DoPaintBuffer; override;
     procedure DoPaintGDIOverlay; override;
     procedure DoScaleChange; virtual;
     procedure InitDefaultStages; virtual;
     procedure InvalidateCache;
-    function  InvalidRectsAvailable: Boolean; override;
+    function InvalidRectsAvailable: Boolean; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
+    function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
     procedure MouseLeave; override;
     procedure SetRepaintMode(const Value: TRepaintMode); override;
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
+    procedure DoZoom(APivot: TFloatPoint; AScale: TFloat);
+    procedure DoSetPivot(APivot: TFloatPoint); virtual;
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
-    property  UpdateCount: Integer read FUpdateCount;
+    property UpdateCount: Integer read FUpdateCount;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -388,6 +452,8 @@ type
     procedure PaintTo(Dest: TBitmap32; DestRect: TRect); virtual;
     procedure Resize; override;
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
+    procedure Scroll(Dx, Dy: Integer); overload;
+    procedure Scroll(Dx, Dy: Single); overload; virtual;
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
     property Canvas;
@@ -400,6 +466,9 @@ type
     property ScaleY: TFloat read FScaleY write SetScaleY;
     property ScaleMode: TScaleMode read FScaleMode write SetScaleMode;
     property Background: TBackgroundOptions read FBackgroundOptions write SetBackgroundOptions;
+    property MousePan: TMousePanOptions read FMousePanOptions write SetMousePanOptions;
+    property MouseZoom: TMouseZoomOptions read FMouseZoomOptions write SetMouseZoomOptions;
+    property IsMousePanning: boolean read FIsMousePanning;
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -430,6 +499,8 @@ type
     property Scale;
     property ScaleMode;
     property Background;
+    property MousePan;
+    property MouseZoom;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -508,6 +579,7 @@ type
     procedure BitmapResized; override;
     procedure DoDrawSizeGrip(R: TRect);
     procedure DoScaleChange; override;
+    function CanMousePan: boolean; override;
     procedure DoScroll; virtual;
     function  GetScrollBarsVisible: Boolean;
     function  GetScrollBarSize: Integer;
@@ -515,9 +587,11 @@ type
     function  IsSizeGripVisible: Boolean;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); override;
     procedure Paint; override;
     procedure Recenter;
     procedure SetScaleMode(Value: TScaleMode); override;
+    procedure DoSetPivot(APivot: TFloatPoint); override;
     procedure ScrollHandler(Sender: TObject); virtual;
     procedure ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
     procedure UpdateImage; virtual;
@@ -529,8 +603,7 @@ type
     procedure Loaded; override;
     procedure Resize; override;
     procedure ScrollToCenter(X, Y: Integer);
-    procedure Scroll(Dx, Dy: Integer); overload;
-    procedure Scroll(Dx, Dy: Single); overload; virtual;
+    procedure Scroll(Dx, Dy: Single); override;
     property Centered: Boolean read FCentered write SetCentered default True;
     property ScrollBars: TIVScrollProperties read FScrollBars write SetScrollBars;
     property SizeGrip: TSizeGripStyle read FSizeGrip write SetSizeGrip default sgAuto;
@@ -543,7 +616,7 @@ type
     property Anchors;
     property AutoSize;
     property Bitmap;
-    property BitmapAlign;    
+    property BitmapAlign;
     property Centered;
     property Color;
     property Constraints;
@@ -557,6 +630,8 @@ type
     property Scale;
     property ScaleMode;
     property Background;
+    property MousePan;
+    property MouseZoom;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
@@ -1374,6 +1449,9 @@ begin
   FBackgroundOptions := TBackgroundOptions.Create;
   FBackgroundOptions.OnChange := BackgroundOptionsChangeHandler;
 
+  FMousePanOptions := TMousePanOptions.Create;
+  FMouseZoomOptions := TMouseZoomOptions.Create;
+
   InitDefaultStages;
 end;
 
@@ -1385,6 +1463,8 @@ begin
   FLayers.Free;
   FBitmap.Free;
   FBackgroundOptions.Free;
+  FMousePanOptions.Free;
+  FMouseZoomOptions.Free;
   inherited;
 end;
 
@@ -1635,6 +1715,16 @@ begin
   end;
 end;
 
+function TCustomImage32.CanMousePan: boolean;
+begin
+  Result := (BitmapAlign = baCustom) and (FMousePanOptions.Enabled);
+end;
+
+function TCustomImage32.CanMouseZoom: boolean;
+begin
+  Result := (ScaleMode in [smScale, smOptimalScaled]) and (FMouseZoomOptions.Enabled);
+end;
+
 procedure TCustomImage32.Changed;
 begin
   if FUpdateCount = 0 then
@@ -1715,6 +1805,45 @@ procedure TCustomImage32.DoInitStages;
 begin
   if Assigned(FOnInitStages) then
     FOnInitStages(Self);
+end;
+
+function TCustomImage32.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
+  MousePos: TPoint): Boolean;
+var
+  r: TRect;
+  Pivot: TFloatPoint;
+  NewScale: TFloat;
+  ZoomFactor: TFloat;
+begin
+  Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
+
+  if (not Result) and (CanMouseZoom) and (FMouseZoomOptions.MatchShiftState(Shift)) then
+  begin
+    MousePos := ScreenToClient(MousePos);
+    r := GetBitmapRect;
+
+    if (FMouseZoomOptions.MaintainPivot) and (not r.Contains(MousePos)) then
+      // We can't (or rather, won't) maintain a pivot outside the bitmap
+      exit;
+
+    Pivot.X := (MousePos.X - r.Left) / ScaleX;
+    Pivot.Y := (MousePos.Y - r.Top) / ScaleY;
+
+    if (FMouseZoomOptions.Invert) then
+      WheelDelta := -WheelDelta;
+
+     // WheelDelta is expressed as 120 per step
+    ZoomFactor := FMouseZoomOptions.ZoomFactor * (WheelDelta div 120);
+
+    if (ZoomFactor < 0) then
+      ZoomFactor := 1 / -ZoomFactor;
+
+    NewScale := Scale * ZoomFactor;
+
+    DoZoom(Pivot, NewScale);
+
+    Result := True;
+  end;
 end;
 
 procedure TCustomImage32.DoPaintBuffer;
@@ -1798,6 +1927,44 @@ procedure TCustomImage32.DoScaleChange;
 begin
   if Assigned(FOnScaleChange) then
     FOnScaleChange(Self);
+end;
+
+procedure TCustomImage32.DoSetPivot(APivot: TFloatPoint);
+begin
+  OffsetHorz := APivot.X;
+  OffsetVert := APivot.Y;
+end;
+
+procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+var
+  OldScale: TFloat;
+  OldOfsX: TFloat;
+  OldOfsY: TFloat;
+begin
+  AScale := Constrain(AScale, FMouseZoomOptions.MinScale, FMouseZoomOptions.MaxScale);
+  if (AScale = Scale) then
+    exit;
+
+  // Clamp pivot to bitmap
+  APivot.X := Constrain(APivot.X, 0, Bitmap.Width);
+  APivot.Y := Constrain(APivot.Y, 0, Bitmap.Height);
+
+  OldScale := Scale;
+  OldOfsX := OffsetHorz;
+  OldOfsY := OffsetVert;
+
+  BeginUpdate;
+  try
+    Scale := AScale;
+
+    if (FMouseZoomOptions.MaintainPivot) and (BitmapAlign = baCustom) then
+      DoSetPivot(FloatPoint(OldOfsX + (OldScale - Scale) * APivot.X, OldOfsY + (OldScale - Scale) * APivot.Y));
+  finally
+    EndUpdate;
+  end;
+  Changed;
+
+  ForceFullInvalidate;
 end;
 
 procedure TCustomImage32.EndUpdate;
@@ -2328,29 +2495,61 @@ begin
   if TabStop and CanFocus then
     SetFocus;
 
-  if Layers.MouseEvents then
-    Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
-  else
-    Layer := nil;
+  if (CanMousePan) and (Button = FMousePanOptions.MouseButton) then
+  begin
+    FIsMousePanning := True;
+    if (FMousePanOptions.PanCursor <> crDefault) then
+      Screen.Cursor := FMousePanOptions.PanCursor;
 
-  // lock the capture only if mbLeft was pushed or any mouse listener was activated
-  if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
-    MouseCapture := True;
+    // Remember start point
+    FMousePanStartPos.X := X;
+    FMousePanStartPos.Y := Y;
+  end else
+  begin
+    if Layers.MouseEvents then
+      Layer := TLayerCollectionAccess(Layers).MouseDown(Button, Shift, X, Y)
+    else
+      Layer := nil;
 
-  MouseDown(Button, Shift, X, Y, Layer);
+    // lock the capture only if mbLeft was pushed or any mouse listener was activated
+    if (Button = mbLeft) or (TLayerCollectionAccess(Layers).MouseListener <> nil) then
+      MouseCapture := True;
+
+    MouseDown(Button, Shift, X, Y, Layer);
+  end;
 end;
 
 procedure TCustomImage32.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
   Layer: TCustomLayer;
+  Delta: TPoint;
 begin
   inherited;
-  if Layers.MouseEvents then
-    Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
-  else
-    Layer := nil;
 
-  MouseMove(Shift, X, Y, Layer);
+  // If we're panning then calculate how far mouse has moved since last and
+  // scroll image the same amount.
+  if (FIsMousePanning) then
+  begin
+    Delta.X := FMousePanStartPos.X - X;
+    Delta.Y := FMousePanStartPos.Y - Y;
+
+    FMousePanStartPos.X := X;
+    FMousePanStartPos.Y := Y;
+
+    if (Delta.X <> 0) or (Delta.Y <> 0) then
+      Scroll(Delta.X, Delta.Y);
+
+    if (FMousePanOptions.PanCursor <> crDefault) then
+      Screen.Cursor := FMousePanOptions.PanCursor;
+  end else
+  begin
+    if Layers.MouseEvents then
+      Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
+    else
+      Layer := nil;
+
+    MouseMove(Shift, X, Y, Layer);
+  end;
 end;
 
 procedure TCustomImage32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -2358,18 +2557,26 @@ var
   Layer: TCustomLayer;
   MouseListener: TCustomLayer;
 begin
-  MouseListener := TLayerCollectionAccess(Layers).MouseListener;
+  if (FIsMousePanning) and (Button = FMousePanOptions.MouseButton) then
+  begin
+    FIsMousePanning := False;
+    if (FMousePanOptions.PanCursor <> crDefault) then
+      Screen.Cursor := crDefault;
+  end else
+  begin
+    MouseListener := TLayerCollectionAccess(Layers).MouseListener;
 
-  if Layers.MouseEvents then
-    Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
-  else
-    Layer := nil;
+    if Layers.MouseEvents then
+      Layer := TLayerCollectionAccess(Layers).MouseUp(Button, Shift, X, Y)
+    else
+      Layer := nil;
 
-  // unlock the capture using same criteria as was used to acquire it
-  if (Button = mbLeft) or ((MouseListener <> nil) and (TLayerCollectionAccess(Layers).MouseListener = nil)) then
-    MouseCapture := False;
+    // unlock the capture using same criteria as was used to acquire it
+    if (Button = mbLeft) or ((MouseListener <> nil) and (TLayerCollectionAccess(Layers).MouseListener = nil)) then
+      MouseCapture := False;
 
-  MouseUp(Button, Shift, X, Y, Layer);
+    MouseUp(Button, Shift, X, Y, Layer);
+  end;
 end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton;
@@ -2447,6 +2654,30 @@ begin
   inherited;
 end;
 
+procedure TCustomImage32.Scroll(Dx, Dy: Single);
+begin
+  if (IsZero(Dx)) and (IsZero(Dy)) then
+    Exit;
+
+  BeginUpdate;
+  try
+
+    OffsetHorz := OffsetHorz - Dx;
+    OffsetVert := OffsetVert - Dy;
+
+  finally
+    EndUpdate;
+  end;
+
+  Changed;
+end;
+
+procedure TCustomImage32.Scroll(Dx, Dy: Integer);
+begin
+  if (Dx <> 0) or (Dy <> 0) then
+    Scroll(Single(Dx), Single(Dy));
+end;
+
 procedure TCustomImage32.SetBackgroundOptions(const Value: TBackgroundOptions);
 begin
   FBackgroundOptions.Assign(Value);
@@ -2494,6 +2725,16 @@ procedure TCustomImage32.SetOnPixelCombine(Value: TPixelCombineEvent);
 begin
   FBitmap.OnPixelCombine := Value;
   Changed;
+end;
+
+procedure TCustomImage32.SetMousePanOptions(const Value: TMousePanOptions);
+begin
+  FMousePanOptions.Assign(Value);
+end;
+
+procedure TCustomImage32.SetMouseZoomOptions(const Value: TMouseZoomOptions);
+begin
+  FMouseZoomOptions.Assign(Value);
 end;
 
 procedure TCustomImage32.SetScale(Value: TFloat);
@@ -2727,6 +2968,14 @@ begin
   end;
 end;
 
+function TCustomImgView32.CanMousePan: boolean;
+begin
+  Result := (inherited CanMousePan) and
+    (ScaleMode in [smScale,smNormal]) and
+    ((HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
+     (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height)));
+end;
+
 constructor TCustomImgView32.Create(AOwner: TComponent);
 begin
   inherited;
@@ -2804,6 +3053,14 @@ procedure TCustomImgView32.DoScroll;
 begin
   if Assigned(FOnScroll) then
     FOnScroll(Self);
+end;
+
+procedure TCustomImgView32.DoSetPivot(APivot: TFloatPoint);
+begin
+  inherited;
+
+  HScroll.Position := Round(Oversize * Scale)-APivot.X;
+  VScroll.Position := Round(Oversize * Scale)-APivot.Y;
 end;
 
 function TCustomImgView32.GetScrollBarSize: Integer;
@@ -2916,27 +3173,27 @@ end;
 procedure TCustomImgView32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 {$IFNDEF PLATFORM_INDEPENDENT}
 var
+  P: TPoint;
   Action: Cardinal;
   Msg: TMessage;
-  P: TPoint;
 {$ENDIF}
 begin
 {$IFNDEF PLATFORM_INDEPENDENT}
-  if IsSizeGripVisible and (Owner is TCustomForm) then
+  P.X := X;
+  P.Y := Y;
+
+  if IsSizeGripVisible and (Owner is TCustomForm) and GR32.PtInRect(GetSizeGripRect, P) then
   begin
-    P.X := X; P.Y := Y;
-    if GR32.PtInRect(GetSizeGripRect, P) then
-    begin
-      Action := HTBOTTOMRIGHT;
-      Application.ProcessMessages;
-      Msg.Msg := WM_NCLBUTTONDOWN;
-      Msg.WParam := Action;
-      SetCaptureControl(nil);
-      SendMessage(TCustomForm(Owner).Handle, Msg.Msg, Msg.wParam, Msg.lParam);
-      Exit;
-    end;
+    Action := HTBOTTOMRIGHT;
+    Application.ProcessMessages;
+    Msg.Msg := WM_NCLBUTTONDOWN;
+    Msg.WParam := Action;
+    SetCaptureControl(nil);
+    SendMessage(TCustomForm(Owner).Handle, Msg.Msg, Msg.wParam, Msg.lParam);
+    Exit;
   end;
 {$ENDIF}
+
   inherited;
 end;
 
@@ -2945,13 +3202,21 @@ var
   P: TPoint;
 begin
   inherited;
+
   if IsSizeGripVisible then
   begin
     P.X := X;
     P.Y := Y;
+
     if GR32.PtInRect(GetSizeGripRect, P) then
       Screen.Cursor := crSizeNWSE;
   end;
+end;
+
+procedure TCustomImgView32.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
+  Y: Integer; Layer: TCustomLayer);
+begin
+  inherited;
 end;
 
 procedure TCustomImgView32.Paint;
@@ -2989,14 +3254,6 @@ begin
   UpdateImage;
   Invalidate;
   inherited;
-end;
-
-procedure TCustomImgView32.Scroll(Dx, Dy: Integer);
-begin
-  if (Dx = 0) and (Dy = 0) then
-    Exit;
-
-  Scroll(Dx+0.0, Dy+0.0);
 end;
 
 procedure TCustomImgView32.Scroll(Dx, Dy: Single);
@@ -3259,6 +3516,106 @@ end;
 procedure TBitmap32List.SetBitmap32Collection(Value: TBitmap32Collection);
 begin
   FBitmap32Collection := Value;
+end;
+
+{ TMousePanOptions }
+
+constructor TMousePanOptions.Create;
+begin
+  inherited Create;
+  FMouseButton := mbLeft;
+  FPanCursor := crSizeAll;
+end;
+
+{ TMouseZoomOptions }
+
+constructor TMouseZoomOptions.Create;
+begin
+  inherited Create;
+  FSteps := 12;
+  FMinScale := 0.0625;
+  FMaxScale := 128.0;
+  FMaintainPivot := True;
+  UpdateZoomFactor;
+end;
+
+procedure TMouseZoomOptions.SetSteps(const Value: integer);
+begin
+  FSteps := Min(100, Max(2, Value));
+  UpdateZoomFactor;
+end;
+
+procedure TMouseZoomOptions.SetZoomFactor(const Value: Double);
+begin
+  FZoomFactor := Min(100, Max(1.001, Value));
+
+  // Calculate steps and recalculate FZoomFactor
+  Steps := Ceil(Ln(FMaxScale / FMinScale) / Ln(FZoomFactor)) + 1;
+end;
+
+procedure TMouseZoomOptions.UpdateZoomFactor;
+begin
+  FZoomFactor := Power(FMaxScale / FMinScale, 1/(FSteps-1));
+end;
+
+function TMouseZoomOptions.IsMaxScaleStored: Boolean;
+begin
+  Result := (FMinScale <> 0.0625);
+end;
+
+function TMouseZoomOptions.IsMinScaleStored: Boolean;
+begin
+  Result := (FMaxScale <> 128.0);
+end;
+
+function TMouseZoomOptions.LevelToScale(ALevel: integer): Single;
+var
+  LogMinZoom: Double;
+  LogMaxZoom: Double;
+  LogZoom: Double;
+begin
+  ALevel := Max(0, Min(ALevel, FSteps-1));
+  // Work in log space...
+  LogMinZoom := Ln(FMinScale);
+  LogMaxZoom := Ln(FMaxScale);
+  // Linear interpolation in log space:
+  LogZoom := LogMinZoom + (LogMaxZoom-LogMinZoom) / (FSteps-1) * ALevel;
+  // Back to linear space
+  Result := Exp(LogZoom);
+end;
+
+function TMouseZoomOptions.MatchShiftState(AShiftState: TShiftState): boolean;
+begin
+  Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
+end;
+
+function TMouseZoomOptions.ScaleToLevel(AScale: Single): integer;
+var
+  LogMinZoom: Double;
+  LogMaxZoom: Double;
+  Step: Double;
+begin
+  AScale := Max(FMinScale, Min(AScale, FMaxScale));
+  // Work in log space...
+  LogMinZoom := Ln(FMinScale);
+  LogMaxZoom := Ln(FMaxScale);
+  // Linear interpolation in log space:
+  Step := (FSteps-1) / (LogMaxZoom-LogMinZoom) * (Ln(AScale)-LogMinZoom);
+  // Back to linear space
+  Result := Ceil(Step);
+  Result := Max(0, Min(Result, FSteps-1));
+end;
+
+procedure TMouseZoomOptions.SetMaxScale(const Value: Single);
+begin
+  FMaxScale := Max(FMinScale+0.001, Value);
+  UpdateZoomFactor;
+end;
+
+procedure TMouseZoomOptions.SetMinScale(const Value: Single);
+begin
+  FMinScale := Min(FMaxScale-0.002, Max(0.001, Value));
+  UpdateZoomFactor;
 end;
 
 end.
