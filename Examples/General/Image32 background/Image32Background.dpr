@@ -1,4 +1,4 @@
-program BackgroundExample;
+program Image32Background;
 
 uses
   Vcl.Forms,
