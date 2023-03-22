@@ -1825,12 +1825,12 @@ begin
   if (not Result) and (CanMouseZoom) and (FMouseZoomOptions.MatchShiftState(Shift)) then
   begin
     MousePos := ScreenToClient(MousePos);
-    r := GetBitmapRect;
 
-    if (FMouseZoomOptions.MaintainPivot) and (not r.Contains(MousePos)) then
-      // We can't (or rather, won't) maintain a pivot outside the bitmap
+    if (FMouseZoomOptions.MaintainPivot) and (not ClientRect.Contains(MousePos)) then
+      // We can't (or rather, won't) maintain a pivot outside the viewport
       exit;
 
+    r := GetBitmapRect;
     Pivot.X := (MousePos.X - r.Left) / ScaleX;
     Pivot.Y := (MousePos.Y - r.Top) / ScaleY;
 
@@ -1942,28 +1942,30 @@ end;
 
 procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
 var
-  OldScale: TFloat;
-  OldOfsX: TFloat;
-  OldOfsY: TFloat;
+  DeltaScale: TFloat;
+  NewOffset: TFloatPoint;
 begin
   AScale := Constrain(AScale, FMouseZoomOptions.MinScale, FMouseZoomOptions.MaxScale);
   if (AScale = Scale) then
     exit;
 
-  // Clamp pivot to bitmap
-  APivot.X := Constrain(APivot.X, 0, Bitmap.Width);
-  APivot.Y := Constrain(APivot.Y, 0, Bitmap.Height);
-
-  OldScale := Scale;
-  OldOfsX := OffsetHorz;
-  OldOfsY := OffsetVert;
+  DeltaScale := Scale;
+  NewOffset.X := OffsetHorz;
+  NewOffset.Y := OffsetVert;
 
   BeginUpdate;
   try
     Scale := AScale;
 
     if (FMouseZoomOptions.MaintainPivot) and (BitmapAlign = baCustom) then
-      DoSetPivot(FloatPoint(OldOfsX + (OldScale - Scale) * APivot.X, OldOfsY + (OldScale - Scale) * APivot.Y));
+    begin
+      DeltaScale := DeltaScale - Scale;
+
+      NewOffset.X := NewOffset.X + DeltaScale * APivot.X;
+      NewOffset.Y := NewOffset.Y + DeltaScale * APivot.Y;
+
+      DoSetPivot(NewOffset);
+    end;
   finally
     EndUpdate;
   end;
