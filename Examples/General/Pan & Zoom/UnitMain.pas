@@ -65,6 +65,8 @@ begin
 
   ImgView.MouseZoom.Enabled := True;
   Image.MouseZoom.Enabled := True;
+  ImgView.MouseZoom.Animate := True;
+  Image.MouseZoom.Animate := True;
 
   // MouseWheel events aren't sent to the control unless TabStop=True
   ImgView.TabStop := True;
