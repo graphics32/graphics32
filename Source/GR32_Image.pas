@@ -51,6 +51,11 @@ uses
   Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_Containers,
   GR32_RepaintOpt;
 
+{$IFNDEF FPC}
+// Animated zoom relies on amEasing which relies on the System.Diagnostics unit (TStopwatch)
+{$define AnimatedZoom}
+{$ENDIF}
+
 const
   { Paint Stage Constants }
   PST_CUSTOM            = 1;   // Calls OnPaint with # of current stage in parameter
@@ -740,7 +745,9 @@ implementation
 
 uses
   Math, TypInfo,
+{$if defined(AnimatedZoom)}
   amEasing,
+{$ifend}
   GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel,
   GR32_Resamplers, GR32_Backends_Generic;
 
@@ -1974,19 +1981,18 @@ begin
 end;
 
 procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+{$if defined(AnimatedZoom)}
 var
   StartValue, DeltaValue: TFloat;
 const
   MinZoomDelta = 0.01;
+{$ifend}
 begin
   AScale := Constrain(AScale, FMouseZoomOptions.MinScale, FMouseZoomOptions.MaxScale);
   if (AScale = Scale) then
     exit;
 
-  // Clamp pivot to bitmap
-  APivot.X := Constrain(APivot.X, 0, Bitmap.Width);
-  APivot.Y := Constrain(APivot.Y, 0, Bitmap.Height);
-
+{$if defined(AnimatedZoom)}
   if (FMouseZoomOptions.Animate) and (Showing) then
   begin
     StartValue := Scale;
@@ -2011,6 +2017,7 @@ begin
         end;
       end, ZoomAnimateDeltaTime);
   end;
+{$ifend}
   DoSetZoom(APivot, AScale);
 
   ForceFullInvalidate;
