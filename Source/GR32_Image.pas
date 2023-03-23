@@ -2241,11 +2241,15 @@ begin
   ** Checkers
   *)
   if (FBackgroundOptions.CheckersStyle <> bcsNone) and
-    ((DrawBitmapBackground) or ((FBackgroundOptions.FillStyle = bfsCheckers) and (Bitmap.Empty)))then
+    ((DrawBitmapBackground) or
+     ((FBackgroundOptions.FillStyle = bfsCheckers) and
+      ((Bitmap.Empty) or (Bitmap.DrawMode = dmOpaque)))) then
   begin
     if (FBackgroundOptions.FillStyle = bfsCheckers) then
+      // Fill the whole viewport
       r := Dest.ClipRect
     else
+      // Fill the area under the bitmap
       GR32.IntersectRect(r, CachedBitmapRect, Dest.ClipRect);
 
     Width := r.Width;
@@ -2267,6 +2271,10 @@ begin
           inc(ColorEven);
           inc(ColorOdd);
         end;
+
+        // Note: For ((DrawMode<>dmOpaque) and (FillStyle=bfsCheckers)) we should
+        // exclude filling the area covered by the bitmap. For simplicity we're
+        // not doing that.
 
         for Y := r.Top to r.Bottom-1 do
         begin
