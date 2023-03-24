@@ -369,7 +369,7 @@ var
 implementation
 
 uses
-  Math, SysUtils, GR32_Math, GR32_LowLevel, GR32_Blend, GR32_Gamma,
+  Math, SysUtils, GR32_Math, GR32_LowLevel, GR32_Blend,
   GR32_VectorUtils;
 
 resourcestring
@@ -404,9 +404,6 @@ begin
       V := Abs(Round(Last * $10000));
       if V > $10000 then V := $10000;
       V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-      V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
       C.A := V;
     end;
     AlphaValues[I] := Color;
@@ -426,12 +423,7 @@ begin
   begin
     V := Abs(Round(Coverage[I] * $10000));
     if V > $10000 then V := $10000;
-{$IFDEF USEGR32GAMMA}
-    V := GAMMA_ENCODING_TABLE[V * M shr 24];
-    AlphaValues[I] := (V shl 24) or C;
-{$ELSE}
     AlphaValues[I] := (V * M and $ff000000) or C;
-{$ENDIF}
   end;
 end;
 *)
@@ -456,9 +448,6 @@ begin
       if V >= $10000 then
         V := V xor $1ffff;
       V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-      V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
       C.A := V;
     end;
     AlphaValues[I] := Color;
@@ -475,9 +464,6 @@ begin
   V := Abs(Round(Value * $10000));
   if V > $10000 then V := $10000;
   V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-  V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
   C.A := V;
   FillLongWord(AlphaValues[0], Count, Color);
 end;
@@ -493,9 +479,6 @@ begin
   V := V and $01ffff;
   if V > $10000 then V := V xor $1ffff;
   V := V * M shr 24;
-{$IFDEF USEGR32GAMMA}
-  V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
   C.A := V;
   FillLongWord(AlphaValues[0], Count, Color);
 end;
@@ -512,9 +495,6 @@ begin
   for I := 0 to Count - 1 do
   begin
     V := Clamp(Round(Abs(Coverage[I]) * 256));
-{$IFDEF USEGR32GAMMA}
-    V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
     AlphaValues[I] := V;
   end;
 end;
@@ -530,9 +510,6 @@ begin
     V := Round(Abs(Coverage[I]) * 256);
     V := V and $000001ff;
     if V >= $100 then V := V xor $1ff;
-{$IFDEF USEGR32GAMMA}
-    V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
     AlphaValues[I] := V;
   end;
 end;
@@ -543,9 +520,6 @@ var
   V: Integer;
 begin
   V := Clamp(Round(Abs(Value) * 256));
-{$IFDEF USEGR32GAMMA}
-    V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
   FillLongWord(AlphaValues[0], Count, V);
 end;
 
@@ -557,9 +531,6 @@ begin
   V := Round(Abs(Value) * 256);
   V := V and $000001ff;
   if V >= $100 then V := V xor $1ff;
-{$IFDEF USEGR32GAMMA}
-    V := GAMMA_ENCODING_TABLE[V];
-{$ENDIF}
   FillLongWord(AlphaValues[0], Count, V);
 end;
 
@@ -1219,9 +1190,6 @@ begin
       V := V * M shr 24;
     end;
     Inc(AlphaValues[I], V);
-{$IFDEF USEGR32GAMMA}
-    AlphaValues[I] := GAMMA_ENCODING_TABLE[AlphaValues[I]];
-{$ENDIF}
     Inc(AlphaValues[I + 1], V);
     AlphaValues[I + 2] := V;
   end;
@@ -1253,9 +1221,6 @@ begin
       V := V * M shr 24;
     end;
     Inc(AlphaValues[I], V);
-{$IFDEF USEGR32GAMMA}
-    AlphaValues[I] := GAMMA_ENCODING_TABLE[AlphaValues[I]];
-{$ENDIF}
     Inc(AlphaValues[I + 1], V);
     AlphaValues[I + 2] := V;
   end;
