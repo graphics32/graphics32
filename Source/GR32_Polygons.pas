@@ -53,12 +53,13 @@ type
   TPolyFillMode = (pfAlternate, pfWinding, pfEvenOdd = 0, pfNonZero);
 
   { TCustomPolygonRenderer }
-  TCustomPolygonRenderer = class(TThreadPersistent)
+  TCustomPolygonRenderer = class abstract(TThreadPersistent)
   public
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
+      const ClipRect: TFloatRect); overload; virtual; abstract;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint;
-      const ClipRect: TFloatRect); overload; virtual;
+      const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
+
     procedure PolygonFS(const Points: TArrayOfFloatPoint;
       const ClipRect: TFloatRect; Transformation: TTransformation); overload; virtual;
     procedure PolygonFS(const Points: TArrayOfFloatPoint;
@@ -72,7 +73,7 @@ type
   TCustomPolygonFiller = class;
 
   { TPolygonRenderer32 }
-  TPolygonRenderer32 = class(TCustomPolygonRenderer)
+  TPolygonRenderer32 = class abstract(TCustomPolygonRenderer)
   private
     FBitmap: TCustomBitmap32;
     FFillMode: TPolyFillMode;
@@ -85,6 +86,7 @@ type
     procedure SetBitmap(const Value: TCustomBitmap32); virtual;
   public
     constructor Create(Bitmap: TCustomBitmap32; Fillmode: TPolyFillMode = pfWinding); reintroduce; overload;
+
     procedure PolygonFS(const Points: TArrayOfFloatPoint); overload; virtual;
     procedure PolyPolygonFS(const Points: TArrayOfArrayOfFloatPoint); overload; virtual;
 
@@ -132,7 +134,7 @@ type
   TFillLineEvent = procedure(Dst: PColor32; DstX, DstY, Length: Integer;
     AlphaValues: PColor32; CombineMode: TCombineMode) of object;
 
-  TCustomPolygonFiller = class
+  TCustomPolygonFiller = class abstract
   protected
     function GetFillLine: TFillLineEvent; virtual; abstract;
   public
@@ -380,7 +382,8 @@ type
 
 procedure RegisterPolygonRenderer(PolygonRendererClass: TCustomPolygonRendererClass);
 begin
-  if not Assigned(PolygonRendererList) then PolygonRendererList := TClassList.Create;
+  if (PolygonRendererList = nil) then
+    PolygonRendererList := TClassList.Create;
   PolygonRendererList.Add(PolygonRendererClass);
 end;
 
@@ -398,11 +401,14 @@ begin
   Last := Infinity;
   for I := 0 to Count - 1 do
   begin
-    if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then
+    // Reuse last computed value if coverage is the same
+    if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then // TODO : Unsafe. Assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
     begin
       Last := Coverage[I];
+      // V := Coverage * Alpha
       V := Abs(Round(Last * $10000));
-      if V > $10000 then V := $10000;
+      if V > $10000 then
+        V := $10000;
       V := V * M shr 24;
       C.A := V;
     end;
@@ -462,7 +468,8 @@ var
 begin
   M := C.A * $101;
   V := Abs(Round(Value * $10000));
-  if V > $10000 then V := $10000;
+  if V > $10000 then
+    V := $10000;
   V := V * M shr 24;
   C.A := V;
   FillLongWord(AlphaValues[0], Count, Color);
@@ -477,7 +484,8 @@ begin
   M := C.A * $101;
   V := Abs(Round(Value * $10000));
   V := V and $01ffff;
-  if V > $10000 then V := V xor $1ffff;
+  if V > $10000 then
+    V := V xor $1ffff;
   V := V * M shr 24;
   C.A := V;
   FillLongWord(AlphaValues[0], Count, Color);
@@ -509,7 +517,8 @@ begin
   begin
     V := Round(Abs(Coverage[I]) * 256);
     V := V and $000001ff;
-    if V >= $100 then V := V xor $1ff;
+    if V >= $100 then
+      V := V xor $1ff;
     AlphaValues[I] := V;
   end;
 end;
@@ -530,7 +539,8 @@ var
 begin
   V := Round(Abs(Value) * 256);
   V := V and $000001ff;
-  if V >= $100 then V := V xor $1ff;
+  if V >= $100 then
+    V := V xor $1ff;
   FillLongWord(AlphaValues[0], Count, V);
 end;
 
@@ -571,7 +581,8 @@ procedure PolyPolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfArrayOfFl
 var
   Renderer: TPolygonRenderer32VPR;
 begin
-  if not Assigned(Filler) then Exit;
+  if (Filler = nil) then
+    Exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
@@ -588,7 +599,8 @@ procedure PolygonFS(Bitmap: TCustomBitmap32; const Points: TArrayOfFloatPoint;
 var
   Renderer: TPolygonRenderer32VPR;
 begin
-  if not Assigned(Filler) then Exit;
+  if (Filler = nil) then
+    Exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
@@ -709,7 +721,8 @@ var
   Renderer: TPolygonRenderer32VPR;
   IntersectedClipRect: TRect;
 begin
-  if not Assigned(Filler) then Exit;
+  if (Filler = nil) then
+    Exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
@@ -729,7 +742,8 @@ var
   Renderer: TPolygonRenderer32VPR;
   IntersectedClipRect: TRect;
 begin
-  if not Assigned(Filler) then Exit;
+  if (Filler = nil) then
+    Exit;
   Renderer := TPolygonRenderer32VPR.Create;
   try
     Renderer.Bitmap := Bitmap;
@@ -1186,7 +1200,8 @@ begin
     begin
       Last := Coverage[I];
       V := Abs(Round(Last * $10000));
-      if V > $10000 then V := $10000;
+      if V > $10000 then
+        V := $10000;
       V := V * M shr 24;
     end;
     Inc(AlphaValues[I], V);
@@ -1217,7 +1232,8 @@ begin
       Last := Coverage[I];
       V := Abs(Round(Coverage[I] * $10000));
       V := V and $01ffff;
-      if V >= $10000 then V := V xor $1ffff;
+      if V >= $10000 then
+        V := V xor $1ffff;
       V := V * M shr 24;
     end;
     Inc(AlphaValues[I], V);
@@ -1374,13 +1390,15 @@ var
   BlendMemEx: TBlendMemEx;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then
+    PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then
+    PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  if Assigned(AlphaValues) then
+  if (AlphaValues <> nil) then
   begin
     OpaqueAlpha := TColor32($FF shl 24);
     BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode]^;
@@ -1394,7 +1412,7 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
       Inc(AlphaValues);
-    end
+    end;
   end
   else
     for X := DstX to DstX + Length - 1 do
@@ -1418,13 +1436,15 @@ var
   BlendMem: TBlendMem;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then
+    PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then
+    PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  if Assigned(AlphaValues) then
+  if (AlphaValues <> nil) then
   begin
     BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode]^;
     for X := DstX to DstX + Length - 1 do
@@ -1437,7 +1457,7 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
       Inc(AlphaValues);
-    end
+    end;
   end
   else
   begin
@@ -1464,15 +1484,18 @@ var
   BlendMemEx: TBlendMemEx;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then
+    PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then
+    PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
   BlendMemEx := BLEND_MEM_EX[FPattern.CombineMode]^;
 
-  if Assigned(AlphaValues) then
+  if (AlphaValues <> nil) then
+  begin
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMemEx(Src^, Dst^, Div255(AlphaValues^ * FPattern.MasterAlpha));
@@ -1483,8 +1506,9 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
       Inc(AlphaValues);
-    end
-  else
+    end;
+  end else
+  begin
     for X := DstX to DstX + Length - 1 do
     begin
       BlendMemEx(Src^, Dst^, FPattern.MasterAlpha);
@@ -1495,6 +1519,7 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
     end;
+  end;
 end;
 
 procedure TBitmapPolygonFiller.FillLineCustomCombine(Dst: PColor32;
@@ -1505,13 +1530,16 @@ var
   Src: PColor32;
 begin
   PatternX := (DstX - OffsetX) mod FPattern.Width;
-  if PatternX < 0 then PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
+  if PatternX < 0 then
+    PatternX := (FPattern.Width + PatternX) mod FPattern.Width;
   PatternY := (DstY - OffsetY) mod FPattern.Height;
-  if PatternY < 0 then PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
+  if PatternY < 0 then
+    PatternY := (FPattern.Height + PatternY) mod FPattern.Height;
 
   Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
 
-  if Assigned(AlphaValues) then
+  if (AlphaValues <> nil) then
+  begin
     for X := DstX to DstX + Length - 1 do
     begin
       FPattern.OnPixelCombine(Src^, Dst^, Div255(AlphaValues^ * FPattern.MasterAlpha));
@@ -1522,8 +1550,9 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
       Inc(AlphaValues);
-    end
-  else
+    end;
+  end else
+  begin
     for X := DstX to DstX + Length - 1 do
     begin
       FPattern.OnPixelCombine(Src^, Dst^, FPattern.MasterAlpha);
@@ -1534,27 +1563,26 @@ begin
         Src := @FPattern.Bits[PatternX + PatternY * FPattern.Width];
       end;
     end;
+  end;
 end;
 
 function TBitmapPolygonFiller.GetFillLine: TFillLineEvent;
 begin
-  if not Assigned(FPattern) then
-  begin
-    Result := nil;
-  end
-  else if FPattern.DrawMode = dmOpaque then
+  if (FPattern = nil) then
+    Result := nil
+  else
+  if FPattern.DrawMode = dmOpaque then
     Result := FillLineOpaque
-  else if FPattern.DrawMode = dmBlend then
+  else
+  if FPattern.DrawMode = dmBlend then
   begin
     if FPattern.MasterAlpha = 255 then
       Result := FillLineBlend
     else
       Result := FillLineBlendMasterAlpha;
-  end
-  else if (FPattern.DrawMode = dmCustom) and Assigned(FPattern.OnPixelCombine) then
-  begin
-    Result := FillLineCustomCombine;
-  end
+  end else
+  if (FPattern.DrawMode = dmCustom) and Assigned(FPattern.OnPixelCombine) then
+    Result := FillLineCustomCombine
   else
     Result := nil;
 end;
@@ -1570,10 +1598,9 @@ end;
 
 procedure TSamplerFiller.EndRendering;
 begin
-  if Assigned(FSampler) then
-    FSampler.FinalizeSampling
-  else
+  if (FSampler = nil) then
     raise Exception.Create(RCStrNoSamplerSpecified);
+  FSampler.FinalizeSampling;
 end;
 
 procedure TSamplerFiller.SampleLineOpaque(Dst: PColor32; DstX, DstY,
@@ -1594,16 +1621,15 @@ end;
 
 procedure TSamplerFiller.SamplerChanged;
 begin
-  if Assigned(FSampler) then
+  if (FSampler <> nil) then
     FGetSample := FSampler.GetSampleInt;
 end;
 
 procedure TSamplerFiller.BeginRendering;
 begin
-  if Assigned(FSampler) then
-    FSampler.PrepareSampling
-  else
+  if (FSampler = nil) then
     raise Exception.Create(RCStrNoSamplerSpecified);
+  FSampler.PrepareSampling;
 end;
 
 function TSamplerFiller.GetFillLine: TFillLineEvent;
@@ -1637,18 +1663,12 @@ begin
 end;
 
 procedure TCustomPolygonRenderer.PolyPolygonFS(
-  const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect);
-begin
-  // implemented by descendants
-end;
-
-procedure TCustomPolygonRenderer.PolyPolygonFS(
   const Points: TArrayOfArrayOfFloatPoint; const ClipRect: TFloatRect;
   Transformation: TTransformation);
 var
   APoints: TArrayOfArrayOfFloatPoint;
 begin
-  if Assigned(Transformation) then
+  if (Transformation <> nil) then
     APoints := TransformPolyPolygon(Points, Transformation)
   else
     APoints := Points;
@@ -1743,7 +1763,7 @@ end;
 
 function TPolygonRenderer32VPR.GetRenderSpan: TRenderSpanEvent;
 begin
-  if Assigned(FFiller) then
+  if (FFiller <> nil) then
     Result := FillSpan
   else
     Result := RenderSpan;
@@ -1757,7 +1777,7 @@ var
 {$ENDIF}
 begin
   UpdateFillProcs;
-  if Assigned(FFiller) then
+  if (FFiller <> nil) then
   begin
     FFiller.BeginRendering;
     RenderPolyPolygon(Points, ClipRect, GetRenderSpan());
@@ -1808,7 +1828,7 @@ const
     (MakeAlphaEvenOddUPF, MakeAlphaNonZeroUPF)
   );
 begin
-  FFillProc := FillProcs[Assigned(FFiller), FillMode];
+  FFillProc := FillProcs[(FFiller <> nil), FillMode];
 end;
 
 { TPolygonRenderer32LCD }
