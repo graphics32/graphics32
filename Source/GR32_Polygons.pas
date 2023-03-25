@@ -397,16 +397,61 @@ var
   Last: TFloat;
   C: TColor32Entry absolute Color;
 begin
-  M := C.A * $101;
+  (* Mattias Andersson (from gm4iqo$87i$1@news.graphics32.org):
+  **
+  ** What is passed in the Coverage[] array is *not* the actual coverages and I
+  ** agree that using this terminology is ambiguous. The array contains the
+  ** "winding numbers" which are then processed according to either the even-odd
+  ** or non-zero rule.
+  ** An example of how this works can be seen here:
+  **   http://www.w3.org/TR/SVG11/painting.html#FillProperties
+  *)
+
+
+  (*
+
+    Compute V = Alpha (A) scaled with coverage value (M).
+    The range of all values are [0..255].
+
+      V = A * M / 255
+
+    Since we're operating in integers this becomes:
+
+      V = A * M div 255
+
+    Divisions are expensive and shifts are cheap, so a normal approximation is:
+
+      V = (A * M) div 256 ->
+      V = (A * M) shr 8
+
+    If we use the range [0..256] for the coverage value M instead, this can be
+    improved with the more precise:
+
+      V = (A * M * 257) shr 16
+
+    Since the coverage is really a floating point value [0..+/-1] the actual
+    calculation is this:
+
+      M = Abs([Coverage * 256])
+      V = (A * M * 257) shr 16
+
+    We can improve the precision even more by calculating M in 9:8 fixed point
+    format instead of 9:0
+
+      M = Abs([Coverage * 256 * 256])
+      V = (A * M * 257) shr 24
+
+  *)
+  M := C.A * $101; // $101 = 257
   Last := Infinity;
   for I := 0 to Count - 1 do
   begin
     // Reuse last computed value if coverage is the same
+    // Note: Cast to integer to avoid slower floating point comparison
     if PInteger(@Last)^ <> PInteger(@Coverage[I])^ then // TODO : Unsafe. Assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
     begin
       Last := Coverage[I];
-      // V := Coverage * Alpha
-      V := Abs(Round(Last * $10000));
+      V := Abs(Round(Last * $10000)); // $10000 = 256 * 256
       if V > $10000 then
         V := $10000;
       V := V * M shr 24;
@@ -1948,6 +1993,10 @@ end;
 {$W-}
 
 initialization
+  // Optimization in MakeAlpha* assumes SizeOf(TFloat)=SizeOf(integer)=SizeOf(Single)
+  Assert(SizeOf(TFloat) = SizeOf(Single));
+  Assert(SizeOf(integer) = SizeOf(Single));
+
   RegisterPolygonRenderer(TPolygonRenderer32VPR);
   RegisterPolygonRenderer(TPolygonRenderer32LCD);
   RegisterPolygonRenderer(TPolygonRenderer32LCD2);
