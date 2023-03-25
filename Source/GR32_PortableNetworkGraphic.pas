@@ -37,6 +37,13 @@ interface
 {$I GR32.inc}
 {$I GR32_PngCompilerSwitches.inc}
 
+// The following defines controls if the corresponding incomplete chunk
+// implementations should be enabled. They are disabled by default because
+// a complete implementation is required in order to pass the roundtrip unit
+// tests.
+{-$define PNG_CHUNK_SUGGESTED_PALETTE}
+{-$define PNG_CHUNK_INTERNATIONAL_TEXT}
+
 uses
   Classes, Graphics, SysUtils,
   {$IFDEF FPC} ZBase, ZDeflate, ZInflate; {$ELSE}
@@ -109,7 +116,7 @@ type
 
   {$A4}
 
-  TCustomChunk = class(TPersistent)
+  TCustomChunk = class abstract(TPersistent)
   protected
     function GetChunkNameAsString: AnsiString; virtual; abstract;
     function GetChunkName: TChunkName; virtual; abstract;
@@ -123,7 +130,7 @@ type
     property ChunkSize: Cardinal read GetChunkSize;
   end;
 
-  TCustomDefinedChunk = class(TCustomChunk)
+  TCustomDefinedChunk = class abstract(TCustomChunk)
   protected
     function GetChunkNameAsString: AnsiString; override;
     function GetChunkName: TChunkName; override;
@@ -361,7 +368,7 @@ type
     property CompressionMethod: Byte read FCompressionMethod write FCompressionMethod;
   end;
 
-  TCustomPngSignificantBits = class(TPersistent)
+  TCustomPngSignificantBits = class abstract(TPersistent)
   protected
     class function GetChunkSize: Cardinal; virtual; abstract;
   public
@@ -465,7 +472,7 @@ type
     property SignificantBits: TCustomPngSignificantBits read FSignificantBits;
   end;
 
-  TCustomPngBackgroundColor = class(TPersistent)
+  TCustomPngBackgroundColor = class abstract(TPersistent)
   protected
     class function GetChunkSize: Cardinal; virtual; abstract;
   public
@@ -576,6 +583,7 @@ type
   TSuggestedPalette16ByteArray = array [0..0] of TSuggestedPalette16ByteEntry;
   PSuggestedPalette16ByteArray = ^TSuggestedPalette16ByteArray;
 
+{$ifdef PNG_CHUNK_SUGGESTED_PALETTE}
   TChunkPngSuggestedPalette = class(TCustomDefinedChunkWithHeader)
   private
     FPaletteName : AnsiString;
@@ -594,8 +602,9 @@ type
 
     property Count: Cardinal read GetCount;
   end;
+{$endif PNG_CHUNK_SUGGESTED_PALETTE}
 
-  TCustomPngTransparency = class(TPersistent)
+  TCustomPngTransparency = class abstract(TPersistent)
   protected
     function GetChunkSize: Cardinal; virtual; abstract;
   public
@@ -787,6 +796,7 @@ type
     property CompressionMethod: Byte read FCompressionMethod write FCompressionMethod;
   end;
 
+{$ifdef PNG_CHUNK_INTERNATIONAL_TEXT}
   TChunkPngInternationalText = class(TCustomChunkPngText)
   private
     FCompressionMethod : Byte;
@@ -807,6 +817,7 @@ type
     property LanguageString: AnsiString read FLanguageString write FLanguageString;
     property TranslatedKeyword: string read FTranslatedKeyword write FTranslatedKeyword;
   end;
+{$endif PNG_CHUNK_INTERNATIONAL_TEXT}
 
   TChunkPngUnknown = class(TCustomChunk)
   private
@@ -851,7 +862,7 @@ type
     property Chunks[Index: Integer]: TCustomChunk read GetChunk; default;
   end;
 
-  TCustomPngCoder = class
+  TCustomPngCoder = class abstract
   protected
     FStream       : TStream;
     FHeader       : TChunkPngImageHeader;
@@ -885,7 +896,7 @@ type
 
   TScanLineCallback = function(Bitmap: TObject; Y: Integer): Pointer of object;
 
-  TCustomPngDecoder = class(TCustomPngCoder)
+  TCustomPngDecoder = class abstract(TCustomPngCoder)
   protected
     procedure EncodeFilterRow(CurrentRow, PreviousRow, OutputRow, TempBuffer: PByteArray; BytesPerRow, PixelByteSize: Integer); override;
     procedure DecodeFilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer); override;
@@ -894,7 +905,7 @@ type
   end;
   TCustomPngDecoderClass = class of TCustomPngDecoder;
 
-  TCustomPngEncoder = class(TCustomPngCoder)
+  TCustomPngEncoder = class abstract(TCustomPngCoder)
   protected
     procedure EncodeFilterRow(CurrentRow, PreviousRow, OutputRow, TempBuffer: PByteArray; BytesPerRow, PixelByteSize: Integer); override;
     procedure DecodeFilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer); override;
@@ -903,7 +914,7 @@ type
   end;
   TCustomPngEncoderClass = class of TCustomPngEncoder;
 
-  TCustomPngTranscoder = class(TCustomPngCoder)
+  TCustomPngTranscoder = class abstract(TCustomPngCoder)
   protected
     procedure EncodeFilterRow(CurrentRow, PreviousRow, OutputRow, TempBuffer: PByteArray; BytesPerRow, PixelByteSize: Integer); override;
     procedure DecodeFilterRow(FilterMethod: TAdaptiveFilterMethod; CurrentRow, PreviousRow: PByteArray; BytesPerRow, PixelByteSize: Integer); override;
@@ -2550,7 +2561,7 @@ end;
 
 
 { TChunkPngInternationalText }
-
+{$ifdef PNG_CHUNK_INTERNATIONAL_TEXT}
 procedure TChunkPngInternationalText.AssignTo(Dest: TPersistent);
 begin
   if Dest is TChunkPngInternationalText then
@@ -2622,9 +2633,10 @@ end;
 
 procedure TChunkPngInternationalText.WriteToStream(Stream: TStream);
 begin
+  // TODO
   raise EPngError.CreateFmt(RCStrChunkNotImplemented, [ChunkNameAsString]);
 end;
-
+{$endif PNG_CHUNK_INTERNATIONAL_TEXT}
 
 { TChunkPngImageData }
 
@@ -3628,7 +3640,7 @@ end;
 
 
 { TChunkPngSuggestedPalette }
-
+{$ifdef PNG_CHUNK_SUGGESTED_PALETTE}
 constructor TChunkPngSuggestedPalette.Create(Header: TChunkPngImageHeader);
 begin
   inherited;
@@ -3709,10 +3721,10 @@ end;
 
 procedure TChunkPngSuggestedPalette.WriteToStream(Stream: TStream);
 begin
+  // TODO
   raise EPngError.CreateFmt(RCStrChunkNotImplemented, [ChunkNameAsString]);
-
-  // yet todo
 end;
+{$endif PNG_CHUNK_SUGGESTED_PALETTE}
 
 
 { TChunkList }
@@ -5979,10 +5991,16 @@ initialization
   RegisterPngChunks([TChunkPngImageData, TChunkPngPalette, TChunkPngGamma,
     TChunkPngStandardColorSpaceRGB, TChunkPngPrimaryChromaticities,
     TChunkPngTime, TChunkPngTransparency, TChunkPngEmbeddedIccProfile,
-    TChunkPngPhysicalPixelDimensions, TChunkPngText, //TChunkPngSuggestedPalette,
-    TChunkPngCompressedText, TChunkPngInternationalText,
+    TChunkPngPhysicalPixelDimensions,
+    TChunkPngText, TChunkPngCompressedText,
     TChunkPngImageHistogram, TChunkPngBackgroundColor,
     TChunkPngSignificantBits, TChunkPngImageOffset, TChunkPngPixelCalibrator]);
+{$ifdef PNG_CHUNK_SUGGESTED_PALETTE}
+  RegisterPngChunks([TChunkPngSuggestedPalette]);
+{$endif PNG_CHUNK_SUGGESTED_PALETTE}
+{$ifdef PNG_CHUNK_INTERNATIONAL_TEXT}
+  RegisterPngChunks([TChunkPngInternationalText]);
+{$endif PNG_CHUNK_INTERNATIONAL_TEXT}
 
 finalization
   if (GCrcTable <> nil) then

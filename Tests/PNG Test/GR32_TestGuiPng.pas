@@ -79,10 +79,10 @@ type
     // The following tests are currently disabled:
     // - We fail (by design) when saving the iTXt chunk as we only support reading it right now.
     // - The ctzn0g04.pn fail with a CRC error.
-    procedure TestSaveToStream;
-    procedure TestSaveToStreamRountrip;
   published
     procedure TestLoadFromFile;
+    procedure TestSaveToStream;
+    procedure TestSaveToStreamRountrip;
   end;
 
   TGR32InvalidFileTest = class(TCustomGR32FileTest)
