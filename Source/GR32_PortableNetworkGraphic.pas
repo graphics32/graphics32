@@ -1516,13 +1516,12 @@ end;
 
 procedure TChunkPngUnknown.AssignTo(Dest: TPersistent);
 begin
-  inherited;
-
   if Dest is TChunkPngUnknown then
   begin
     TChunkPngUnknown(Dest).FDataStream.CopyFrom(FDataStream, FDataStream.Size);
     TChunkPngUnknown(Dest).FChunkName := FChunkName;
-  end;
+  end else
+    inherited AssignTo(Dest);
 end;
 
 function TChunkPngUnknown.GetData(Index: Integer): Byte;
