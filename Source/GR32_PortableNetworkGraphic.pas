@@ -787,13 +787,14 @@ type
   protected
     class function GetClassChunkName: TChunkName; override;
     function GetChunkSize: Cardinal; override;
+    procedure SetCompressionMethod(const Value: Byte);
 
     procedure AssignTo(Dest: TPersistent); override;
   public
     procedure ReadFromStream(Stream: TStream; ChunkSize: Cardinal); override;
     procedure WriteToStream(Stream: TStream); override;
 
-    property CompressionMethod: Byte read FCompressionMethod write FCompressionMethod;
+    property CompressionMethod: Byte read FCompressionMethod write SetCompressionMethod;
   end;
 
 {$ifdef PNG_CHUNK_INTERNATIONAL_TEXT}
@@ -1068,6 +1069,7 @@ resourcestring
   RCStrAncillaryUnknownChunk = 'Unknown chunk is marked as ancillary';
   RCStrChunkSizeTooSmall = 'Chunk size too small!';
   RCStrDataIncomplete = 'Data not complete';
+  RCStrChunkInvalid = 'Invalid chunk data';
   RCStrDirectCompressionMethodSetError = 'Compression Method may not be specified directly yet!';
   RCStrDirectFilterMethodSetError = 'Filter Method may not be specified directly yet!';
   RCStrDirectGammaSetError = 'Gamma may not be specified directly yet!';
@@ -1502,16 +1504,15 @@ begin
 end;
 
 function TChunkPngUnknown.CalculateChecksum: Integer;
+type
+  PByteArray = ^TByteArray;
+  TByteArray = array[0..MaxInt-1] of Byte;
 var
-  b : Byte;
+  i: integer;
 begin
-  FDataStream.Position := 0;
   Result := 0;
-  while FDataStream.Position < FDataStream.Size do
-  begin
-    FDataStream.Read(b, 1);
-    Result := Result + b;
-  end;
+  for i := 0 to FDataStream.Size-1 do
+    Inc(Result, PByteArray(FDataStream.Memory)[i]);
 end;
 
 procedure TChunkPngUnknown.AssignTo(Dest: TPersistent);
@@ -1525,13 +1526,14 @@ begin
 end;
 
 function TChunkPngUnknown.GetData(Index: Integer): Byte;
+type
+  PByteArray = ^TByteArray;
+  TByteArray = array[0..MaxInt-1] of Byte;
 begin
-  if (Index >= 0) and (Index < FDataStream.Size) then
-  begin
-    FDataStream.Position := Index;
-    FDataStream.Read(Result, 1);
-  end else
+  if (Index < 0) or (Index >= FDataStream.Size) then
     raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [index]);
+
+  Result := PByteArray(FDataStream.Memory)[Index];
 end;
 
 function TChunkPngUnknown.GetChunkSize: Cardinal;
@@ -1551,7 +1553,7 @@ end;
 
 procedure TChunkPngUnknown.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 begin
-  Assert(ChunkSize <= Stream.Size);
+  Assert(Stream.Position+ChunkSize <= Stream.Size);
 
   FDataStream.Clear;
   FDataStream.Position := 0;
@@ -1562,17 +1564,18 @@ end;
 procedure TChunkPngUnknown.WriteToStream(Stream: TStream);
 begin
   FDataStream.Position := 0;
-  Stream.CopyFrom(FDataStream, FDataStream.Position);
+  Stream.CopyFrom(FDataStream, 0);
 end;
 
 procedure TChunkPngUnknown.SetData(Index: Integer; const Value: Byte);
+type
+  PByteArray = ^TByteArray;
+  TByteArray = array[0..MaxInt-1] of Byte;
 begin
-  if (Index >= 0) and (Index < FDataStream.Size) then
-  begin
-    FDataStream.Position := Index;
-    FDataStream.Write(Value, 1);
-  end else
+  if (Index < 0) or (Index >= FDataStream.Size) then
     raise EPngError.CreateFmt(RCStrIndexOutOfBounds, [Index]);
+
+  PByteArray(FDataStream.Memory)[Index] := Value;
 end;
 
 
@@ -1636,7 +1639,7 @@ end;
 
 procedure TChunkPngImageHeader.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read width
@@ -2142,7 +2145,7 @@ end;
 procedure TChunkPngPhysicalPixelDimensions.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read pixels per unit, X axis
@@ -2196,7 +2199,7 @@ end;
 procedure TChunkPngPhysicalScale.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read unit specifier
@@ -2239,7 +2242,7 @@ end;
 
 procedure TChunkPngImageOffset.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read image positions
@@ -2400,8 +2403,7 @@ begin
   Result := Length(FKeyword) + Length(FText) + 1;
 end;
 
-procedure TChunkPngText.ReadFromStream(Stream: TStream;
-  ChunkSize: Cardinal);
+procedure TChunkPngText.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 var
   Index : Integer;
 begin
@@ -2417,16 +2419,14 @@ begin
       Break;
     end;
     Inc(Index);
+    if (Index > High(FKeyword)) then
+      raise EPngError.Create(RCStrChunkInvalid);
   end;
 
   // read text
-  Index := 1;
   SetLength(FText, Stream.Size - Stream.Position);
-  while (Stream.Position < Stream.Size) do
-  begin
-    Stream.Read(FText[Index], SizeOf(Byte));
-    Inc(Index);
-  end;
+  if (Stream.Position < Stream.Size) then
+    Stream.Read(FText[1], SizeOf(Byte)*(Stream.Size-Stream.Position));
 end;
 
 procedure TChunkPngText.WriteToStream(Stream: TStream);
@@ -2441,7 +2441,8 @@ begin
   Stream.Write(Temp, 1);
 
   // write text
-  Stream.Write(FText[1], Length(FText));
+  if (Length(FText) > 0) then
+    Stream.Write(FText[1], Length(FText));
 end;
 
 
@@ -2467,15 +2468,20 @@ function TChunkPngCompressedText.GetChunkSize: Cardinal;
 var
   OutputStream: TMemoryStream;
 begin
-  OutputStream := TMemoryStream.Create;
-  try
-    // compress text
-    ZCompress(@FText[1], Length(FText), OutputStream);
+  // calculate chunk size
+  Result := Length(FKeyword) + 1 + 1; // +1 = separator, +1 = compression method
 
-    // calculate chunk size
-    Result := Length(FKeyword) + OutputStream.Size + 1;
-  finally
-    OutputStream.Free;
+  if (Length(FText) > 0) then
+  begin
+    OutputStream := TMemoryStream.Create;
+    try
+      // compress text
+      ZCompress(@FText[1], Length(FText), OutputStream);
+
+      Inc(Result, OutputStream.Size);
+    finally
+      OutputStream.Free;
+    end;
   end;
 end;
 
@@ -2489,7 +2495,7 @@ var
 begin
   inherited;
 
-  // read keyword
+  // read keyword and null separator
   Index := 1;
   SetLength(FKeyword, 80);
   while (Stream.Position < Stream.Size) do
@@ -2501,31 +2507,40 @@ begin
       Break;
     end;
     Inc(Index);
+    if (Index > High(FKeyword)) then
+      raise EPngError.Create(RCStrChunkInvalid);
   end;
 
   // read compression method
   Stream.Read(FCompressionMethod, SizeOf(Byte));
+  if FCompressionMethod <> 0 then
+    raise EPngError.Create(RCStrUnsupportedCompressMethod);
 
   // read text
-  if FCompressionMethod = 0 then
-  begin
-    DataInSize := Stream.Size - Stream.Position;
-    GetMem(DataIn, DataInSize);
-    try
-      Stream.Read(DataIn^, DataInSize);
+  DataInSize := Stream.Size - Stream.Position;
+  GetMem(DataIn, DataInSize);
+  try
+    Stream.Read(DataIn^, DataInSize);
 
-      Output := TMemoryStream.Create;
-      try
-        ZDecompress(DataIn, DataInSize, Output);
-        SetLength(FText, Output.Size);
-        Move(Output.Memory^, FText[1], Output.Size);
-      finally
-        Output.Free;
-      end;
+    Output := TMemoryStream.Create;
+    try
+      ZDecompress(DataIn, DataInSize, Output);
+      SetLength(FText, Output.Size);
+      Move(Output.Memory^, FText[1], Output.Size);
     finally
-      FreeMem(DataIn);
+      Output.Free;
     end;
+  finally
+    FreeMem(DataIn);
   end;
+end;
+
+procedure TChunkPngCompressedText.SetCompressionMethod(const Value: Byte);
+begin
+  if Value <> 0 then
+    raise EPngError.Create(RCStrUnsupportedCompressMethod);
+
+  FCompressionMethod := Value;
 end;
 
 procedure TChunkPngCompressedText.WriteToStream(Stream: TStream);
@@ -2533,28 +2548,31 @@ var
   OutputStream: TMemoryStream;
   Temp         : Byte;
 begin
-  OutputStream := TMemoryStream.Create;
-  try
-    // compress text
-    ZCompress(@FText[1], Length(FText), OutputStream);
+  if (Length(FKeyword) = 0) then
+    raise EPngError.Create(RCStrChunkInvalid);
 
-    // write keyword
-    Stream.Write(FKeyword[1], Length(FKeyword));
+  // write keyword
+  Stream.Write(FKeyword[1], Length(FKeyword));
 
-    // write separator
-    Temp := 0;
-    Stream.Write(Temp, 1);
+  // write separator
+  Temp := 0;
+  Stream.Write(Temp, 1);
 
-    // write text
-    Stream.Write(FText[1], Length(FText));
+  // write compression method
+  Stream.Write(FCompressionMethod, SizeOf(Byte));
 
-    // write compression method
-    Stream.Write(FCompressionMethod, SizeOf(Byte));
+  if (Length(FText) > 0) then
+  begin
+    OutputStream := TMemoryStream.Create;
+    try
+      // compress text
+      ZCompress(@FText[1], Length(FText), OutputStream);
 
-    // write text
-    Stream.Write(OutputStream.Memory^, OutputStream.Size);
-  finally
-    OutputStream.Free;
+      // write text
+      Stream.Write(OutputStream.Memory^, OutputStream.Size);
+    finally
+      OutputStream.Free;
+    end;
   end;
 end;
 
@@ -2724,7 +2742,7 @@ end;
 
 procedure TChunkPngTime.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read year
@@ -2886,7 +2904,7 @@ end;
 
 procedure TChunkPngGamma.ReadFromStream(Stream: TStream; ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read gamma
@@ -2926,7 +2944,7 @@ end;
 procedure TChunkPngStandardColorSpaceRGB.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read rendering intent
@@ -3013,7 +3031,7 @@ end;
 procedure TChunkPngPrimaryChromaticities.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read white point x
@@ -3377,13 +3395,11 @@ end;
 procedure TChunkPngSignificantBits.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
-  if (FSignificantBits <> nil) then
-  begin
-    if Stream.Size < FSignificantBits.ChunkSize then
-      raise EPngError.Create(RCStrChunkSizeTooSmall);
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+    raise EPngError.Create(RCStrChunkSizeTooSmall);
 
+  if (FSignificantBits <> nil) then
     FSignificantBits.ReadFromStream(Stream);
-  end;
 end;
 
 procedure TChunkPngSignificantBits.WriteToStream(Stream: TStream);
@@ -3571,13 +3587,11 @@ end;
 procedure TChunkPngBackgroundColor.ReadFromStream(Stream: TStream;
   ChunkSize: Cardinal);
 begin
-  if (FBackground <> nil) then
-  begin
-    if Stream.Size < FBackground.ChunkSize then
-      raise EPngError.Create(RCStrChunkSizeTooSmall);
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+    raise EPngError.Create(RCStrChunkSizeTooSmall);
 
+  if (FBackground <> nil) then
     FBackground.ReadFromStream(Stream);
-  end;
 end;
 
 procedure TChunkPngBackgroundColor.WriteToStream(Stream: TStream);
@@ -3617,7 +3631,7 @@ var
   Index : Integer;
 begin
   // check size
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // adjust histogram array size
@@ -3669,7 +3683,7 @@ var
   Index      : Integer;
   DataSize   : Integer;
 begin
-  if (ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
+  if (Stream.Position+ChunkSize > Stream.Size) or (GetChunkSize > ChunkSize) then
     raise EPngError.Create(RCStrChunkSizeTooSmall);
 
   // read palette name
@@ -4893,6 +4907,7 @@ var
   Chunk        : TCustomDefinedChunkWithHeader;
   MemoryStream : TMemoryStream;
   GotIDAT      : boolean;
+  SavePos, SavePos2: UInt64;
 const
   PNG_SIG: TChunkName = (AnsiChar($89), 'P', 'N', 'G');
 begin
@@ -4921,14 +4936,15 @@ begin
       raise EPngError.Create(RCStrNotAValidPNGFile);
 
     // read image header chunk ID
+    SavePos := Stream.Position;
     Stream.Read(ChunkName, 4);
     if ChunkName <> 'IHDR' then
       raise EPngError.Create(RCStrNotAValidPNGFile);
 
     // reset position to the chunk start and copy stream to memory
-    Stream.Seek(-4, soCurrent);
+    Stream.Position := SavePos;
     MemoryStream.CopyFrom(Stream, ChunkSize + 4);
-    MemoryStream.Seek(4, soFromBeginning);
+    MemoryStream.Position := 4;
 
     // load image header
     FImageHeader.ReadFromStream(MemoryStream, ChunkSize);
@@ -4945,10 +4961,11 @@ begin
     begin
       // read image header chunk size
       ChunkSize := ReadSwappedCardinal(Stream);
-      if ChunkSize > Stream.Size - Stream.Position - 4 then
+      if Stream.Position+ChunkSize+4 > Stream.Size then
         raise EPngError.Create(RCStrNotAValidPNGFile);
 
       // read chunk ID
+      SavePos := Stream.Position;
       Stream.Read(ChunkName, 4);
 
       // check for stream end
@@ -4966,7 +4983,7 @@ begin
       end;
 
       // reset position to the chunk start and copy stream to memory
-      Stream.Seek(-4, soCurrent);
+      Stream.Position := SavePos;
       MemoryStream.Clear;
       MemoryStream.CopyFrom(Stream, ChunkSize + 4);
 
@@ -4975,6 +4992,7 @@ begin
 
       if ChunkName = 'IHDR' then
         raise EPngError.Create(RCStrNotAValidPNGFile);
+
       if ChunkName = 'IDAT' then
       begin
         ReadImageDataChunk(MemoryStream, ChunkSize);
@@ -5047,10 +5065,9 @@ begin
         else
         begin
           // check if chunk is ancillary
-          if (Byte(ChunkName[0]) and $80) = 0 then
-            ReadUnknownChunk(MemoryStream, ChunkName, ChunkSize)
-          else
+          if (Byte(ChunkName[0]) and $80) <> 0 then
             raise EPngError.Create(RCStrAncillaryUnknownChunk);
+          ReadUnknownChunk(MemoryStream, ChunkName, ChunkSize);
         end;
       end;
 
@@ -5105,8 +5122,8 @@ var
     Chunk.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
-    MemoryStream.Seek(0, soFromBeginning);
-    Stream.CopyFrom(MemoryStream, MemoryStream.Size);
+    MemoryStream.Position := 0;
+    Stream.CopyFrom(MemoryStream, 0);
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
@@ -5136,8 +5153,8 @@ begin
     FImageHeader.WriteToStream(MemoryStream);
 
     // copy memory stream to stream
-    MemoryStream.Seek(0, soFromBeginning);
-    Stream.CopyFrom(MemoryStream, MemoryStream.Size);
+    MemoryStream.Position := 0;;
+    Stream.CopyFrom(MemoryStream, 0);
 
     // calculate and write CRC
     CRC := Swap32(CalculateCRC(MemoryStream));
@@ -5425,7 +5442,7 @@ begin
     Result := CalculateCRC(TMemoryStream(Stream).Memory, Stream.Size)
   else
   begin
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
 
     // initialize CRC
     CrcValue := $FFFFFFFF;
@@ -5442,7 +5459,7 @@ begin
 
     Result := (CrcValue xor $FFFFFFFF);
 
-    Stream.Seek(0, soFromBeginning);
+    Stream.Position := 0;
   end;
 end;
 
