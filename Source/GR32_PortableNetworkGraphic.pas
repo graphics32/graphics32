@@ -4907,7 +4907,7 @@ var
   Chunk        : TCustomDefinedChunkWithHeader;
   MemoryStream : TMemoryStream;
   GotIDAT      : boolean;
-  SavePos, SavePos2: UInt64;
+  SavePos      : UInt64;
 const
   PNG_SIG: TChunkName = (AnsiChar($89), 'P', 'N', 'G');
 begin
