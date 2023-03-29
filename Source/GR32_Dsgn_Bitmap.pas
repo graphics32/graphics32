@@ -154,6 +154,7 @@ type
 implementation
 
 uses
+  GR32.ImageFormats,
   GR32_Resamplers,
   GR32_Backends_Generic;
 
@@ -529,32 +530,20 @@ end;
 
 procedure TPictureEditorForm.ActionLoadExecute(Sender: TObject);
 var
-  Picture: TPicture;
   Bitmap: TBitmap32;
 begin
+  OpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True) +
+    '|' + SDefaultFilter;
+
   if not OpenDialog.Execute then
     exit;
 
-  // Load bitmap directly if file is a BMP
-  // (this works around alleged bug in TBitmap->TBitmap32 conversion with LCL-Gtk backend)
-  if (SameText(ExtractFileExt(OpenDialog.Filename), '.bmp')) then
-  begin
-    Bitmap := TBitmap32.Create(TMemoryBackend);
-    try
-      Bitmap.LoadFromFile(OpenDialog.Filename);
-      LoadFromImage(Bitmap);
-    finally
-      Bitmap.Free;
-    end;
-  end else
-  begin
-    Picture := TPicture.Create;
-    try
-      Picture.LoadFromFile(OpenDialog.Filename);
-      LoadFromImage(Picture);
-    finally
-      Picture.Free;
-    end;
+  Bitmap := TBitmap32.Create(TMemoryBackend);
+  try
+    Bitmap.LoadFromFile(OpenDialog.Filename);
+    LoadFromImage(Bitmap);
+  finally
+    Bitmap.Free;
   end;
 end;
 
@@ -593,13 +582,15 @@ begin
     exit;
 
   SaveDialog.DefaultExt := GraphicExtension(TBitmap);
-  SaveDialog.Filter := GraphicFilter(TBitmap);
+  SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter) +
+    '|' + SDefaultFilter;
 
   if not SaveDialog.Execute then
     exit;
 
-  if (CurrentImage = ImageAllChannels) then
-    // Save in 32-bit RGBA bitmap
+  if (CurrentImage = ImageAllChannels) or
+    (not SameText(ExtractFileExt(SaveDialog.Filename), GraphicExtension(TBitmap))) then
+    // Save in 32-bit RGBA bitmap (or whatever format we have chosen)
     ImageAllChannels.Bitmap.SaveToFile(SaveDialog.Filename)
   else
   begin
