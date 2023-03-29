@@ -77,8 +77,10 @@ uses
   GR32.ImageFormats.PNG32,
   GR32.ImageFormats.TClipboard,
   GR32.ImageFormats.TBitmap,
+{$IFNDEF PLATFORM_INDEPENDENT}
   GR32.ImageFormats.TWICImage,
   GR32.ImageFormats.TMetaFile,
+{$ENDIF}
   GR32.ImageFormats.TIcon,
   GR32.ImageFormats.TPicture;
 

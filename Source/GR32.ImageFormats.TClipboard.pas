@@ -80,9 +80,11 @@ end;
 function TImageFormatAdapterTClipboard.AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean;
 var
   Picture: TPicture;
-  Data: THandle;
   Format: Word;
+{$ifndef FPC}
+  Data: THandle;
   Palette: HPALETTE;
+{$endif FPC}
 begin
   if (not (Source is TClipboard)) then
     Exit(False);
@@ -101,9 +103,13 @@ begin
       begin
         if TPicture.SupportsClipboardFormat(Format) then
         begin
+{$ifdef FPC}
+          Picture.LoadFromClipboardFormat(Format);
+{$else FPC}
           Data := GetClipboardData(Format);
           Palette := GetClipboardData(CF_PALETTE);
           Picture.LoadFromClipboardFormat(Format, Data, Palette);
+{$endif FPC}
           // Recurse and try again with pasted TGraphic
           Result := ImageFormatManager.Adapters.AssignFrom(Dest, Picture.Graphic);
           break;

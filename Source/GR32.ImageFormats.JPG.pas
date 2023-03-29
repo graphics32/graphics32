@@ -43,10 +43,19 @@ interface
 implementation
 
 uses
+{$ifdef FPC}
+  Graphics,
+{$else FPC}
   Jpeg,
   JConsts,
+{$endif FPC}
   GR32.ImageFormats,
   GR32.ImageFormats.TGraphic;
+
+{$ifdef FPC}
+resourcestring
+  sJPEGImageFile = 'JPEG Image File';
+{$endif FPC}
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------

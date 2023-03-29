@@ -43,21 +43,39 @@ interface
 implementation
 
 uses
+{$ifdef FPC}
+  Graphics,
+{$else FPC}
   GIFImg,
   GIFConsts,
+{$endif FPC}
   GR32.ImageFormats,
   GR32.ImageFormats.TGraphic;
 
 // This is a minimal implementation.
 // TODO : Extend to handle GIF transparency, color reduction, etc.
 
+{$ifdef FPC}
+resourcestring
+  sGIFImageFile	= 'GIF Image';
+{$endif FPC}
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+type
+{$ifdef FPC}
+  // FPC TGIFImage is read-only
+  TImageFormatAdapterTGIFImage = TImageFormatReaderTGraphic;
+{$else FPC}
+  TImageFormatAdapterTGIFImage = TImageFormatReaderWriterTGraphic;
+{$endif FPC}
+
+
 initialization
   ImageFormatManager.RegisterImageFormat(
-    TImageFormatReaderWriterTGraphic.Create(TGIFImage, sGIFImageFile, ['gif']),
+    TImageFormatAdapterTGIFImage.Create(TGIFImage, sGIFImageFile, ['gif']),
     ImageFormatPriorityNormal);
 end.
 

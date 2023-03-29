@@ -38,9 +38,17 @@ interface
 
 uses
   Classes,
+{$ifdef FPC}
+  Graphics,
+{$endif FPC}
   Generics.Defaults,
   Generics.Collections,
   GR32;
+
+{$ifndef FPC}
+{$define ANONYMOUS_METHODS}
+{$endif FPC}
+
 
 //------------------------------------------------------------------------------
 //
@@ -275,6 +283,19 @@ function CheckFileSignatureComposite(Stream: TStream; const Signature: UnicodeSt
 resourcestring
   sUnknownImageFormat = 'Unknown image format';
 
+
+//------------------------------------------------------------------------------
+//
+//      FPC compatibility
+//
+//------------------------------------------------------------------------------
+{$ifdef FPC}
+type
+  TGraphicHelper = class helper for TGraphic
+    class function CanLoadFromStream(Stream: TStream): Boolean;
+  end;
+{$endif FPC}
+
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
@@ -282,9 +303,37 @@ resourcestring
 implementation
 
 uses
+{$ifndef FPC}
   Consts,
   IOUtils,
+{$endif FPC}
   SysUtils;
+
+//------------------------------------------------------------------------------
+//
+//      FPC compatibility
+//
+//------------------------------------------------------------------------------
+{$ifdef FPC}
+resourcestring
+  sAllFilter = 'All';
+
+type
+  TPath = class
+  public
+    class function GetExtension(const APath: string): string; static;
+  end;
+
+class function TPath.GetExtension(const APath: string): string;
+begin
+  Result := ExtractFileExt(APath);
+end;
+
+class function TGraphicHelper.CanLoadFromStream(Stream: TStream): Boolean;
+begin
+  Result := IsStreamFormatSupported(Stream);
+end;
+{$endif FPC}
 
 //------------------------------------------------------------------------------
 //
@@ -422,13 +471,28 @@ type
     IImageFormatAdapter,
     IImageFormatReaders,
     IImageFormatWriters)
+{$ifdef ANONYMOUS_METHODS}
   strict private type
+{$else ANONYMOUS_METHODS}
+  private type
+{$endif ANONYMOUS_METHODS}
     TImageFormatItem = record
       Priority: integer;
       ImageFormat: IImageFormat;
     end;
 
+{$ifdef FPC}
+    // FPC's TList<T>.BinarySearch doesn't return insertion point and doesn't handle search in empty list...
+    TImageFormatList = class(TList<TImageFormatItem>)
+    private
+      FComparer: IComparer<TImageFormatItem>;
+    public
+      constructor Create(const AComparer: IComparer<TImageFormatItem>);
+      function BinarySearch(const Item: TImageFormatItem; out FoundIndex: Integer): Boolean;
+    end;
+{$else FPC}
     TImageFormatList = TList<TImageFormatItem>;
+{$endif FPC}
 
     TImageFormatEnumerator = class(TInterfacedObject, IImageFormats, IImageFormatEnumerator)
     private
@@ -800,17 +864,31 @@ begin
   Result := TImageFormatEnumerator.Create(FFormats, Intf);
 end;
 
+{$ifndef ANONYMOUS_METHODS}
+function ImageFormatItemComparer(const A, B: TImageFormatManager.TImageFormatItem): integer;
+begin
+  Result := A.Priority - B.Priority;
+end;
+{$endif ANONYMOUS_METHODS}
+
 procedure TImageFormatManager.RegisterImageFormat(const AImageFormat: IImageFormat; APriority: integer);
 var
   Index: integer;
   Item: TImageFormatItem;
 begin
   if (FFormats = nil) then
+  begin
     FFormats := TImageFormatList.Create(TComparer<TImageFormatItem>.Construct(
+{$ifdef ANONYMOUS_METHODS}
       function(const A, B: TImageFormatItem): integer
       begin
         Result := A.Priority - B.Priority;
-      end));
+      end
+{$else ANONYMOUS_METHODS}
+      @ImageFormatItemComparer
+{$endif ANONYMOUS_METHODS}
+      ));
+  end;
 
   Item.Priority := APriority;
   Item.ImageFormat := AImageFormat;
@@ -818,6 +896,59 @@ begin
   FFormats.BinarySearch(Item, Index);
   FFormats.Insert(Index, Item);
 end;
+
+{$ifdef FPC}
+constructor TImageFormatManager.TImageFormatList.Create(const AComparer: IComparer<TImageFormatItem>);
+begin
+  inherited Create;
+  FComparer := AComparer;
+end;
+
+function DoBinarySearch<T>(const Values: array of T; const Item: T;
+  out FoundIndex: Integer; const Comparer: IComparer<T>; Index, Count: Integer): Boolean;
+var
+  L, H: Integer;
+  mid, cmp: Integer;
+begin
+  if (Index < Low(Values)) or ((Index > High(Values)) and (Count > 0))
+     or (Index + Count - 1 > High(Values)) or (Count < 0)
+     or (Index + Count < 0) then
+    Assert(False);
+
+  if Count = 0 then
+  begin
+    FoundIndex := Index;
+    Exit(False);
+  end;
+
+  Result := False;
+  L := Index;
+  H := Index + Count - 1;
+  while L <= H do
+  begin
+    mid := L + (H - L) shr 1;
+    cmp := Comparer.Compare(Values[mid], Item);
+    if cmp < 0 then
+      L := mid + 1
+    else if cmp > 0 then
+      H := mid - 1
+    else
+    begin
+      repeat
+        Dec(mid);
+      until (mid < Index) or (Comparer.Compare(Values[mid], Item) <> 0);
+      FoundIndex := mid + 1;
+      Exit(True);
+    end;
+  end;
+  FoundIndex := L;
+end;
+
+function TImageFormatManager.TImageFormatList.BinarySearch(const Item: TImageFormatManager.TImageFormatItem; out FoundIndex: Integer): Boolean;
+begin
+  Result := DoBinarySearch<TImageFormatManager.TImageFormatItem>(FItems, Item, FoundIndex, FComparer, 0, Count);
+end;
+{$endif FPC}
 
 //------------------------------------------------------------------------------
 // TImageFormatManager.TImageFormatEnumerator

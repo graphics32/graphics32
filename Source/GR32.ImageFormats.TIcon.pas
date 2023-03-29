@@ -46,10 +46,22 @@ uses
   Classes,
   Graphics,
   SysUtils,
+{$ifndef FPC}
   Consts,
+{$endif FPC}
   GR32,
   GR32.ImageFormats.TGraphic,
   GR32.ImageFormats;
+
+//------------------------------------------------------------------------------
+//
+//      FPC compatibility
+//
+//------------------------------------------------------------------------------
+{$ifdef FPC}
+resourcestring
+  SVIcons = 'Icons';
+{$endif FPC}
 
 //------------------------------------------------------------------------------
 //
