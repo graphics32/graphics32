@@ -42,7 +42,7 @@ uses
   ComponentEditors,
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
-  DesignEditors, VCLEditors, Actions,
+  DesignEditors, VCLEditors, Actions, System.ImageList,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
   SysUtils, Classes, Clipbrd, ActnList,
@@ -85,6 +85,7 @@ type
     ActionInvert: TAction;
     TabSheetRGBA: TTabSheet;
     StatusBar: TStatusBar;
+    Bitmap32List: TBitmap32List;
     procedure MagnComboChange(Sender: TObject);
     procedure ActionLoadExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
@@ -158,11 +159,7 @@ uses
   GR32_Resamplers,
   GR32_Backends_Generic;
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 { TPictureEditorForm }
 
@@ -312,8 +309,34 @@ constructor TPictureEditorForm.Create(AOwner: TComponent);
       Result.PaintStages[0].Stage := PST_CUSTOM;
   end;
 
+  procedure LoadGlyphs;
+  var
+    i: integer;
+    Bitmap: TBitmap;
+  begin
+    // We're not storing bitmaps in the imagelist in order to support FPC.
+    // FPC's TImageList doesn't have the ColorDepth property.
+    ImageList.Clear;
+{$ifndef FPC}
+    ImageList.ColorDepth := cd32bit;
+{$endif FPC}
+    Bitmap := TBitmap.Create;
+    try
+      for i := 0 to Bitmap32List.Bitmaps.Count-1 do
+      begin
+        Bitmap.Assign(Bitmap32List.Bitmaps[i].Bitmap);
+        ImageList.AddMasked(Bitmap, -1);
+      end;
+    finally
+      Bitmap.Free;
+    end;
+    Bitmap32List.Bitmaps.Clear;
+  end;
+
 begin
   inherited;
+
+  LoadGlyphs;
 
   ImageAllChannels := CreateImage32(TabSheetRGBA);
   ImageAllChannels.Bitmap.DrawMode := dmBlend;
@@ -327,9 +350,12 @@ begin
   OpenDialog := TOpenPictureDialog.Create(Self);
   SaveDialog := TSavePictureDialog.Create(Self);
 {$ENDIF}
+  OpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True) +
+    '|' + SDefaultFilter;
+  SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter) +
+    '|' + SDefaultFilter;
+
   MagnCombo.ItemIndex := 2;
-  OpenDialog.Filter := GraphicFilter(TGraphic);
-  SaveDialog.Filter := GraphicFilter(TGraphic);
 end;
 
 
@@ -532,9 +558,6 @@ procedure TPictureEditorForm.ActionLoadExecute(Sender: TObject);
 var
   Bitmap: TBitmap32;
 begin
-  OpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True) +
-    '|' + SDefaultFilter;
-
   if not OpenDialog.Execute then
     exit;
 
@@ -563,7 +586,7 @@ end;
 procedure TPictureEditorForm.ActionPasteUpdate(Sender: TObject);
 begin
   try
-    TAction(Sender).Enabled := Clipboard.HasFormat(CF_PICTURE);
+    TAction(Sender).Enabled := ImageFormatManager.ClipboardFormats.CanPasteFromClipboard;
   except
 {$IFDEF FPC}
     TAction(Sender).Enabled := False;
@@ -582,8 +605,6 @@ begin
     exit;
 
   SaveDialog.DefaultExt := GraphicExtension(TBitmap);
-  SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter) +
-    '|' + SDefaultFilter;
 
   if not SaveDialog.Execute then
     exit;
