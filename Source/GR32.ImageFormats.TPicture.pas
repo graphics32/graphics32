@@ -45,6 +45,7 @@ implementation
 uses
   Classes,
   Graphics,
+  Clipbrd,
   GR32,
   GR32.ImageFormats;
 
@@ -112,7 +113,8 @@ end;
 type
   TImageFormatReaderTPicture = class(TCustomImageFormat,
     IImageFormatReader,
-    IImageFormatFileReader)
+    IImageFormatFileReader,
+    IImageFormatClipboardFormat)
   strict private
     // IImageFormatReader
     function CanLoadFromStream(AStream: TStream): boolean;
@@ -120,33 +122,19 @@ type
   strict private
     // IImageFormatFileReader
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
+  strict private
+    // IImageFormatClipboardFormat
+    function SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+    function PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+    function LoadFromClipboardFormat(ADest: TCustomBitmap32; AFormat: TClipboardFormat; AData: THandle; APalette: THandle): boolean;
   end;
 
 //------------------------------------------------------------------------------
-// IImageFormatAdapter
+// IImageFormatReader
 //------------------------------------------------------------------------------
 function TImageFormatReaderTPicture.CanLoadFromStream(AStream: TStream): boolean;
 begin
   // TPicture does not have a CanLoadFromStream so this is a last-ditch effort.
-  Result := True;
-end;
-
-function TImageFormatReaderTPicture.LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
-var
-  Picture: TPicture;
-begin
-  Picture := TPicture.Create;
-  try
-    try
-      Picture.LoadFromFile(AFilename);
-    except
-      on E: EInvalidGraphic do
-        Exit(False);
-    end;
-    ADest.Assign(Picture.Graphic);
-  finally
-    Picture.Free;
-  end;
   Result := True;
 end;
 
@@ -177,6 +165,68 @@ begin
 {$else LOADFROMSTREAM}
   Result := False;
 {$endif LOADFROMSTREAM}
+end;
+
+//------------------------------------------------------------------------------
+// IImageFormatFileReader
+//------------------------------------------------------------------------------
+function TImageFormatReaderTPicture.LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
+var
+  Picture: TPicture;
+begin
+  Picture := TPicture.Create;
+  try
+    try
+      Picture.LoadFromFile(AFilename);
+    except
+      on E: EInvalidGraphic do
+        Exit(False);
+    end;
+    ADest.Assign(Picture.Graphic);
+  finally
+    Picture.Free;
+  end;
+  Result := True;
+end;
+
+//------------------------------------------------------------------------------
+// IImageFormatClipboard
+//------------------------------------------------------------------------------
+function TImageFormatReaderTPicture.SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+begin
+  Result := TPicture.SupportsClipboardFormat(AFormat);
+end;
+
+function TImageFormatReaderTPicture.PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+var
+  Picture: TPicture;
+begin
+  Picture := TPicture.Create;
+  try
+    Picture.Assign(Clipboard);
+    ADest.Assign(Picture.Graphic);
+  finally
+    Picture.Free;
+  end;
+  Result := True;
+end;
+
+function TImageFormatReaderTPicture.LoadFromClipboardFormat(ADest: TCustomBitmap32; AFormat: TClipboardFormat; AData: THandle; APalette: THandle): boolean;
+var
+  Picture: TPicture;
+begin
+  Picture := TPicture.Create;
+  try
+{$ifdef FPC}
+    Picture.LoadFromClipboardFormat(AFormat);
+{$else FPC}
+    Picture.LoadFromClipboardFormat(AFormat, AData, APalette);
+{$endif FPC}
+    ADest.Assign(Picture.Graphic);
+  finally
+    Picture.Free;
+  end;
+  Result := True;
 end;
 
 //------------------------------------------------------------------------------

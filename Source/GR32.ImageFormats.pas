@@ -40,6 +40,7 @@ uses
   Classes,
 {$ifdef FPC}
   Graphics,
+  LCLType,
 {$endif FPC}
   Generics.Defaults,
   Generics.Collections,
@@ -49,6 +50,11 @@ uses
 {$define ANONYMOUS_METHODS}
 {$endif FPC}
 
+(*******************************************************************************
+**
+**              Interfaces implemented by the individual image formats
+**
+*******************************************************************************)
 
 //------------------------------------------------------------------------------
 //
@@ -99,6 +105,35 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      IImageFormatClipboardFormat
+//
+//------------------------------------------------------------------------------
+// Reads data from the clipboard.
+//------------------------------------------------------------------------------
+// When data is read from the clipboard, we iterate all image formats that
+// IImageFormatClipboardFormat; We first try calling PasteFromClipboard on the
+// image format and if that isn't sucessful, we then iterate the available
+// clipboard formats and call LoadFromClipboardFormat on each in turn.
+// If both of the above methods return False, we fall back to using the
+// IImageFormatReader interface to try and read the data.
+//------------------------------------------------------------------------------
+type
+{$ifdef FPC}
+  TClipboardFormat = LCLType.TClipboardFormat;
+{$else FPC}
+  TClipboardFormat = Word;
+{$endif FPC}
+
+  IImageFormatClipboardFormat = interface
+    ['{E5550CCE-5D78-46C7-8714-11E0CF44561B}']
+    function SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+    function PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+    function LoadFromClipboardFormat(ADest: TCustomBitmap32; AFormat: TClipboardFormat; AData: THandle; APalette: THandle): boolean;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      IImageFormatReader
 //
 //------------------------------------------------------------------------------
@@ -110,6 +145,7 @@ type
     function CanLoadFromStream(AStream: TStream): boolean;
     function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
   end;
+
 
 //------------------------------------------------------------------------------
 //
@@ -123,6 +159,42 @@ type
   IImageFormatFileReader = interface
     ['{F255F49D-E49A-47CE-AC7A-485FC5A4B2CE}']
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
+//      IImageFormatWriter
+//
+//------------------------------------------------------------------------------
+// Writes TBitmap32 as an image format.
+//------------------------------------------------------------------------------
+type
+  IImageFormatWriter = interface
+    ['{78358E48-60E3-4119-88D1-CB0CFADEE5CF}']
+    procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
+  end;
+
+
+(*******************************************************************************
+**
+**              Interfaces implemented by the Image Format Manager
+**
+*******************************************************************************)
+
+//------------------------------------------------------------------------------
+//
+//      IImageFormatClipboardFormats
+//
+//------------------------------------------------------------------------------
+// Perform clipboard related stuff on all the registered image format adapters.
+//------------------------------------------------------------------------------
+type
+  IImageFormatClipboardFormats = interface
+    ['{EC307484-A5D2-455D-AD4A-D96263A8E775}']
+    function SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+    function CanPasteFromClipboard: boolean;
+    function PasteFromClipboard(ADest: TCustomBitmap32): boolean;
   end;
 
 
@@ -148,20 +220,6 @@ type
     // Note: LoadFromFile only uses readers that implement IImageFormatFileReader
     // it does not fall back to IImageFormatReader.LoadFromStream
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
-  end;
-
-
-//------------------------------------------------------------------------------
-//
-//      IImageFormatWriter
-//
-//------------------------------------------------------------------------------
-// Writes TBitmap32 as an image format.
-//------------------------------------------------------------------------------
-type
-  IImageFormatWriter = interface
-    ['{78358E48-60E3-4119-88D1-CB0CFADEE5CF}']
-    procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
   end;
 
 
@@ -217,6 +275,9 @@ type
 
     function GetWriters: IImageFormatWriters;
     property Writers: IImageFormatWriters read GetWriters;
+
+    function GetClipboardFormats: IImageFormatClipboardFormats;
+    property ClipboardFormats: IImageFormatClipboardFormats read GetClipboardFormats;
 
     function BuildFileFilter(Intf: TGUID; IncludeAll: boolean = False): string;
   end;
@@ -307,7 +368,10 @@ uses
   Consts,
   IOUtils,
 {$endif FPC}
-  SysUtils;
+  ClipBrd,
+  Windows,
+  SysUtils,
+  GR32_Clipboard;
 
 //------------------------------------------------------------------------------
 //
@@ -317,6 +381,10 @@ uses
 {$ifdef FPC}
 resourcestring
   sAllFilter = 'All';
+
+
+type
+  EClipboardException = Exception;
 
 type
   TPath = class
@@ -470,7 +538,8 @@ type
   TImageFormatManager = class(TInterfacedObject, IImageFormatManager,
     IImageFormatAdapter,
     IImageFormatReaders,
-    IImageFormatWriters)
+    IImageFormatWriters,
+    IImageFormatClipboardFormats)
 {$ifdef ANONYMOUS_METHODS}
   strict private type
 {$else ANONYMOUS_METHODS}
@@ -520,6 +589,7 @@ type
     function GetAdapters: IImageFormatAdapter;
     function GetReaders: IImageFormatReaders;
     function GetWriters: IImageFormatWriters;
+    function GetClipboardFormats: IImageFormatClipboardFormats;
     function BuildFileFilter(Intf: TGUID; IncludeAll: boolean): string;
   private
     // IImageFormatAdapter
@@ -538,6 +608,11 @@ type
   private
     // IImageFormatWriters
     function FindWriter(const AFileType: string): IImageFormatWriter;
+  private
+    // IImageFormatClipboardFormats
+    function SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+    function CanPasteFromClipboard: boolean;
+    function PasteFromClipboard(ADest: TCustomBitmap32): boolean;
   public
     destructor Destroy; override;
   end;
@@ -583,71 +658,6 @@ begin
       exit(True);
 
   Result := False;
-end;
-
-function TImageFormatManager.BuildFileFilter(Intf: TGUID; IncludeAll: boolean): string;
-var
-  ImageFormat: IImageFormat;
-  FileInfo: IImageFormatFileInfo;
-  AllFilter: string;
-  Extensions: TDictionary<string, boolean>;
-  FileType: string;
-  Count: integer;
-  FileTypeCount: integer;
-  FileTypes: string;
-begin
-  Result := '';
-  AllFilter := '';
-  Count := 0;
-
-  Extensions := TDictionary<string, boolean>.Create;
-  try
-
-    for ImageFormat in ImageFormats(Intf) do
-      if (Supports(ImageFormat, IImageFormatFileInfo, FileInfo)) then
-      begin
-        FileTypeCount := 0;
-        FileTypes := '';
-        for FileType in FileInfo.ImageFormatFileTypes do
-        begin
-          if (FileType = '') then
-            continue;
-
-          // Avoid duplicate extensions
-          if (Extensions.ContainsKey(FileType.ToUpper)) then
-            continue;
-          Extensions.Add(FileType.ToUpper, False);
-
-          if (FileTypeCount > 0) then
-            FileTypes := FileTypes + ';';
-          FileTypes := FileTypes + '*.' + FileType;
-          Inc(FileTypeCount);
-        end;
-
-        if (FileTypeCount = 0) then
-          continue;
-
-        Result := Result + Format('%0:s (%1:s)|%1:s|', [FileInfo.ImageFormatDescription, FileTypes]);
-
-        Inc(Count);
-
-        if (IncludeAll) then
-        begin
-          if (AllFilter <> '') then
-            AllFilter := AllFilter + ';';
-          AllFilter := AllFilter + Format('%s', [FileTypes]);
-        end;
-      end;
-
-    if (Result <> '') then
-      SetLength(Result, Length(Result)-1);
-
-  finally
-    Extensions.Free;
-  end;
-
-  if (AllFilter <> '') and (Count > 1) then
-    Result := Format('%0:s (%1:s)|%1:s|', [sAllFilter, AllFilter]) + Result;
 end;
 
 function TImageFormatManager.CanAssignFrom(Source: TPersistent): boolean;
@@ -836,10 +846,166 @@ begin
 end;
 
 //------------------------------------------------------------------------------
+// IImageFormatClipboardFormat
+//------------------------------------------------------------------------------
+
+function TImageFormatManager.SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+var
+  Item: TImageFormatItem;
+  ImageFormatClipboard: IImageFormatClipboardFormat;
+begin
+  Result := False;
+
+  if (FFormats = nil) then
+    exit;
+
+  for Item in FFormats do
+    if (Supports(Item.ImageFormat, IImageFormatClipboardFormat, ImageFormatClipboard)) and
+      (Supports(Item.ImageFormat, IImageFormatReader)) then
+      if (ImageFormatClipboard.SupportsClipboardFormat(AFormat)) then
+        Exit(True);
+end;
+
+function TImageFormatManager.CanPasteFromClipboard: boolean;
+var
+  i: integer;
+begin
+  Result := False;
+
+  try
+    // FPC doesn't actually read from the clipboard within Open and Close so we
+    // can't acquire it while we're reading from it. This is clearly a bug.
+{$ifndef FPC}
+    Clipboard.Open;
+{$endif FPC}
+  except
+    on E: EClipboardException do
+      exit; // Something else has the clipboard open
+  end;
+  try
+    // For some reason EnumClipboardFormats doesn't work with FPC, so we have to
+    // use the incredibly inefficient (but more portable) Clipboard.Formats[]
+    for i := 0 to Clipboard.FormatCount-1 do
+      if (SupportsClipboardFormat(Clipboard.Formats[i])) then
+        Exit(True);
+  finally
+{$ifndef FPC}
+    Clipboard.Close;
+{$endif FPC}
+  end;
+end;
+
+function TImageFormatManager.PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+var
+  Item: TImageFormatItem;
+  ImageFormatClipboard: IImageFormatClipboardFormat;
+  Reader: IImageFormatReader;
+  ClipboardFormat: TClipboardFormat;
+  Stream: TStream;
+  i: integer;
+{$ifndef FPC}
+var
+  Data: HGlobal;
+  Palette: HPALETTE;
+{$else FPC}
+const
+  Palette = 0;
+  Data = 0;
+{$endif FPC}
+begin
+  Result := False;
+
+  if (FFormats = nil) then
+    exit;
+
+  // Attempt to paste from clipboard in image format order instead of clipboard
+  // format order; We want to give priority to the most important image formats.
+
+  try
+    // FPC doesn't actually read from the clipboard within Open and Close so we
+    // can't acquire it while we're reading from it. This is clearly a bug.
+{$ifndef FPC}
+    Clipboard.Open;
+{$endif FPC}
+  except
+    on E: EClipboardException do
+      exit; // Something else has the clipboard open
+  end;
+  try
+{$ifndef FPC}
+    Palette := GetClipboardData(CF_PALETTE);
+{$endif FPC}
+
+    for Item in FFormats do
+      if (Supports(Item.ImageFormat, IImageFormatClipboardFormat, ImageFormatClipboard)) then
+      begin
+        // First let image format give it a go directly...
+        if (ImageFormatClipboard.PasteFromClipboard(ADest)) then
+          exit(True);
+
+        // ...then try to load the individual formats
+        for i := 0 to Clipboard.FormatCount-1 do
+        begin
+          ClipboardFormat := Clipboard.Formats[i];
+          if (ImageFormatClipboard.SupportsClipboardFormat(ClipboardFormat)) then
+          begin
+{$ifndef FPC}
+            Data := GetClipboardData(ClipboardFormat);
+            if (Data = 0) then
+              RaiseLastOSError;
+{$endif FPC}
+            if (ImageFormatClipboard.LoadFromClipboardFormat(ADest, ClipboardFormat, Data, Palette)) then
+              Exit(True)
+          end;
+        end;
+      end;
+
+    // ...finally give it a last go with the individual formats via a stream
+    for Item in FFormats do
+      if (Supports(Item.ImageFormat, IImageFormatReader, Reader)) then
+      begin
+        for i := 0 to Clipboard.FormatCount-1 do
+        begin
+          ClipboardFormat := Clipboard.Formats[i];
+          if (ImageFormatClipboard.SupportsClipboardFormat(ClipboardFormat)) then
+          begin
+{$ifndef FPC}
+            Stream := TClipboardMemoryStream.Create(ClipboardFormat);
+            try
+{$else FPC}
+            Stream := TMemoryStream.Create;
+            try
+              if (not Clipboard.GetFormat(ClipboardFormat, Stream)) then
+                continue;
+{$endif FPC}
+
+              Result := Reader.LoadFromStream(ADest, Stream);
+              if (Result) then
+                exit;
+            finally
+              Stream.Free;
+            end;
+          end;
+        end;
+      end;
+
+  finally
+{$ifndef FPC}
+    Clipboard.Close;
+{$endif FPC}
+  end;
+end;
+
+//------------------------------------------------------------------------------
 // IImageFormatManager
 //------------------------------------------------------------------------------
 
 function TImageFormatManager.GetAdapters: IImageFormatAdapter;
+begin
+  Result := Self;
+end;
+
+function TImageFormatManager.GetClipboardFormats: IImageFormatClipboardFormats;
 begin
   Result := Self;
 end;
@@ -949,6 +1115,71 @@ begin
   Result := DoBinarySearch<TImageFormatManager.TImageFormatItem>(FItems, Item, FoundIndex, FComparer, 0, Count);
 end;
 {$endif FPC}
+
+function TImageFormatManager.BuildFileFilter(Intf: TGUID; IncludeAll: boolean): string;
+var
+  ImageFormat: IImageFormat;
+  FileInfo: IImageFormatFileInfo;
+  AllFilter: string;
+  Extensions: TDictionary<string, boolean>;
+  FileType: string;
+  Count: integer;
+  FileTypeCount: integer;
+  FileTypes: string;
+begin
+  Result := '';
+  AllFilter := '';
+  Count := 0;
+
+  Extensions := TDictionary<string, boolean>.Create;
+  try
+
+    for ImageFormat in ImageFormats(Intf) do
+      if (Supports(ImageFormat, IImageFormatFileInfo, FileInfo)) then
+      begin
+        FileTypeCount := 0;
+        FileTypes := '';
+        for FileType in FileInfo.ImageFormatFileTypes do
+        begin
+          if (FileType = '') then
+            continue;
+
+          // Avoid duplicate extensions
+          if (Extensions.ContainsKey(FileType.ToUpper)) then
+            continue;
+          Extensions.Add(FileType.ToUpper, False);
+
+          if (FileTypeCount > 0) then
+            FileTypes := FileTypes + ';';
+          FileTypes := FileTypes + '*.' + FileType;
+          Inc(FileTypeCount);
+        end;
+
+        if (FileTypeCount = 0) then
+          continue;
+
+        Result := Result + Format('%0:s (%1:s)|%1:s|', [FileInfo.ImageFormatDescription, FileTypes]);
+
+        Inc(Count);
+
+        if (IncludeAll) then
+        begin
+          if (AllFilter <> '') then
+            AllFilter := AllFilter + ';';
+          AllFilter := AllFilter + Format('%s', [FileTypes]);
+        end;
+      end;
+
+    if (Result <> '') then
+      SetLength(Result, Length(Result)-1);
+
+  finally
+    Extensions.Free;
+  end;
+
+  if (AllFilter <> '') and (Count > 1) then
+    Result := Format('%0:s (%1:s)|%1:s|', [sAllFilter, AllFilter]) + Result;
+end;
 
 //------------------------------------------------------------------------------
 // TImageFormatManager.TImageFormatEnumerator

@@ -44,9 +44,7 @@ implementation
 
 uses
   Classes,
-  Graphics,
   ClipBrd,
-  Windows,
   GR32,
   GR32_Clipboard,
   GR32.ImageFormats;
@@ -74,54 +72,15 @@ type
 //------------------------------------------------------------------------------
 function TImageFormatAdapterTClipboard.CanAssignFrom(Source: TPersistent): boolean;
 begin
-  Result := (Source is TClipboard) and CanPasteBitmap32;
+  Result := (Source is TClipboard) and (ImageFormatManager.ClipboardFormats.CanPasteFromClipboard);
 end;
 
 function TImageFormatAdapterTClipboard.AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean;
-var
-  Picture: TPicture;
-  Format: Word;
-{$ifndef FPC}
-  Data: THandle;
-  Palette: HPALETTE;
-{$endif FPC}
 begin
   if (not (Source is TClipboard)) then
     Exit(False);
 
-  if PasteBitmap32FromClipboard(Dest) then
-    Exit(True);
-
-  // Try to load via TPicture
-  Result := False;
-  Clipboard.Open;
-  try
-    Picture := TPicture.Create;
-    try
-      Format := EnumClipboardFormats(0);
-      while Format <> 0 do
-      begin
-        if TPicture.SupportsClipboardFormat(Format) then
-        begin
-{$ifdef FPC}
-          Picture.LoadFromClipboardFormat(Format);
-{$else FPC}
-          Data := GetClipboardData(Format);
-          Palette := GetClipboardData(CF_PALETTE);
-          Picture.LoadFromClipboardFormat(Format, Data, Palette);
-{$endif FPC}
-          // Recurse and try again with pasted TGraphic
-          Result := ImageFormatManager.Adapters.AssignFrom(Dest, Picture.Graphic);
-          break;
-        end;
-        Format := EnumClipboardFormats(Format);
-      end;
-    finally
-      Picture.Free;
-    end;
-  finally
-    Clipboard.Close;
-  end;
+  Result := ImageFormatManager.ClipboardFormats.PasteFromClipboard(Dest);
 end;
 
 //------------------------------------------------------------------------------

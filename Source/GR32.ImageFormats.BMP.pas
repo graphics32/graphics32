@@ -44,15 +44,18 @@ implementation
 
 uses
   Classes,
+  Windows,
   Graphics,
+{$ifdef FPC}
+  LCLType,
+{$endif FPC}
   GR32,
+  GR32_Clipboard,
   GR32.ImageFormats;
 
-{$ifndef LOADFROMSTREAM}
 const
   FileSignatureBMP : AnsiString    = #$42#$4d;//#$00#$00#$00#$00#$00#$00#$00#$00;  // BM...and then some
   FileSignatureBMPMask: AnsiString = #$ff#$ff;//#$00#$00#$00#$00#$ff#$ff#$ff#$ff;
-{$endif LOADFROMSTREAM}
 
 resourcestring
   sImageFormatBMPName = 'Bitmaps';
@@ -70,18 +73,24 @@ type
     IImageFormat,
     IImageFormatFileInfo,
     IImageFormatReader,
-    IImageFormatWriter)
-  private
+    IImageFormatWriter,
+    IImageFormatClipboardFormat)
+  strict private
     // IImageFormatFileInfo
     function ImageFormatDescription: string;
     function ImageFormatFileTypes: TFileTypes;
-  private
+  strict private
     // IImageFormatReader
     function CanLoadFromStream(AStream: TStream): boolean;
     function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
-  private
+  strict private
     // IImageFormatWriter
     procedure SaveToStream(ASource: TCustomBitmap32; AStream: TStream);
+  strict private
+    // IImageFormatClipboardFormat
+    function SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+    function PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+    function LoadFromClipboardFormat(ADest: TCustomBitmap32; AFormat: TClipboardFormat; AData: THandle; APalette: THandle): boolean;
   end;
 
   TBitmap32Cracker = class(TCustomBitmap32);
@@ -105,11 +114,7 @@ end;
 //------------------------------------------------------------------------------
 function TImageFormatAdapterBMP.CanLoadFromStream(AStream: TStream): boolean;
 begin
-{$ifdef LOADFROMSTREAM}
-  Result := TBitmap.CanLoadFromStream(AStream);
-{$else LOADFROMSTREAM}
   Result := CheckFileSignature(AStream, FileSignatureBMP, FileSignatureBMPMask);
-{$endif LOADFROMSTREAM}
 end;
 
 function TImageFormatAdapterBMP.LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean;
@@ -126,6 +131,27 @@ begin
   ASource.SaveToStream(AStream);
 end;
 
+//------------------------------------------------------------------------------
+// IImageFormatClipboard
+//------------------------------------------------------------------------------
+function TImageFormatAdapterBMP.SupportsClipboardFormat(AFormat: TClipboardFormat): Boolean;
+begin
+{$ifdef FPC}
+  Result := (TPredefinedClipboardFormat(AFormat) = pcfBitmap);
+{$else FPC}
+  Result := (AFormat in [CF_BITMAP, CF_DIBV5]);
+{$endif FPC}
+end;
+
+function TImageFormatAdapterBMP.PasteFromClipboard(ADest: TCustomBitmap32): boolean;
+begin
+  Result := PasteBitmap32FromClipboard(ADest);
+end;
+
+function TImageFormatAdapterBMP.LoadFromClipboardFormat(ADest: TCustomBitmap32; AFormat: TClipboardFormat; AData: THandle; APalette: THandle): boolean;
+begin
+  Result := False;
+end;
 
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
