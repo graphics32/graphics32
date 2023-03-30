@@ -26,7 +26,7 @@ package GR32_R;
 {$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Graphics32'}
-{$LIBSUFFIX 'D110'}
+{$LIBSUFFIX AUTO}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
 
@@ -71,7 +71,10 @@ contains
   GR32_VPR in '..\..\GR32_VPR.pas',
   GR32_Text_VCL in '..\..\GR32_Text_VCL.pas',
   GR32_Text_VCL_D2D in '..\..\GR32_Text_VCL_D2D.pas',
-  GR32_XPThemes in '..\..\GR32_XPThemes.pas';
+  GR32_XPThemes in '..\..\GR32_XPThemes.pas',
+  GR32_Clipboard in '..\..\GR32_Clipboard.pas',
+  GR32_Png in '..\..\GR32_Png.pas',
+  GR32_PortableNetworkGraphic in '..\..\GR32_PortableNetworkGraphic.pas';
 
 end.
 
