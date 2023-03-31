@@ -173,6 +173,7 @@ begin
 
       BitmapStream.Write(BitmapFileHeader, SizeOf(TBitmapFileHeader));
       BitmapStream.CopyFrom(AStream, 0);
+      BitmapStream.Position := 0;
 
       Bitmap := TBitmap.Create;
       try
