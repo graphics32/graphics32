@@ -38,9 +38,9 @@ unit GR32.ImageFormats.BMP;
 
 interface
 
-implementation
-
 {$I GR32.inc}
+
+implementation
 
 uses
   Classes,

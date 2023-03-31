@@ -671,11 +671,6 @@ const
 
   AREAINFO_MASK         = $FF000000;
 
-{$ifndef FPC}
-type
-  TResourceType = PChar;
-{$endif FPC}
-
 type
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: Cardinal) of object;
   TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect;
@@ -685,6 +680,12 @@ type
 
   TCustomBackend = class;
   TCustomBackendClass = class of TCustomBackend;
+
+{$ifndef FPC}
+  TResourceType = PChar;
+{$else FPC}
+  TResourceType = LCLType.TResourceType;
+{$endif FPC}
 
   { TCustomBitmap32 }
 
@@ -6152,8 +6153,20 @@ begin
 end;
 
 procedure TCustomBitmap32.LoadFromResourceName(Instance: THandle; const ResName: string; ResType: TResourceType);
+var
+  Stream: TStream;
 begin
-  LoadFromResourceID(Instance, integer(PChar(ResName)), ResType);
+  Stream := TResourceStream.Create(Instance, ResName, ResType);
+  try
+
+    if (not ImageFormatManager.Readers.LoadFromResource(Self, ResType, Stream)) then
+      raise Exception.Create(sUnknownImageFormat);
+
+    Changed;
+
+  finally
+    Stream.Free;
+  end;
 end;
 
 function TCustomBitmap32.Equal(B: TCustomBitmap32): Boolean;
