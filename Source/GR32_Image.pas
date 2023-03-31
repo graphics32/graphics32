@@ -380,6 +380,8 @@ type
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
     FUpdateCount: Integer;
+    FPartialRepaintQueued: boolean;
+    FModified: boolean;
     FOnBitmapResize: TNotifyEvent;
     FOnChange: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
@@ -447,22 +449,23 @@ type
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
-    property UpdateCount: Integer read FUpdateCount;
+    property  UpdateCount: Integer read FUpdateCount;
+    procedure DoChanged; virtual;
   protected
     // IUpdateRectNotification
     procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure BeginUpdate; virtual;
     function  BitmapToControl(const APoint: TPoint): TPoint; overload;
     function  BitmapToControl(const APoint: TFloatPoint): TFloatPoint; overload;
-    procedure Changed; virtual;
     function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
     function  ControlToBitmap(const ARect: TRect): TRect;  overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
-    procedure EndUpdate; virtual;
+    procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure Changed; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure Update(const Rect: TRect); reintroduce; overload; virtual;
+    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
     procedure ExecClearBuffer(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_CLEAR_BUFFER
     procedure ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer); virtual;  // PST_CLEAR_BACKGND
@@ -1578,8 +1581,10 @@ var
   UpdateRectSupport: IUpdateRectSupport;
 begin
   if (Supports(Bitmap.Backend, IUpdateRectSupport, UpdateRectSupport)) then
-    UpdateRectSupport.InvalidateRect(Self, AArea)
-  else
+  begin
+    FPartialRepaintQueued := True;
+    UpdateRectSupport.InvalidateRect(Self, AArea);
+  end else
     Invalidate;
 
   BufferValid := False;
@@ -1589,6 +1594,38 @@ procedure TCustomImage32.BeginUpdate;
 begin
   // disable OnChange & OnChanging generation
   Inc(FUpdateCount);
+end;
+
+procedure TCustomImage32.EndUpdate;
+begin
+  Assert(FUpdateCount > 0, 'Unpaired EndUpdate call');
+  // re-enable OnChange & OnChanging generation
+  if (FUpdateCount = 1) then
+  begin
+    if (FModified) then
+    begin
+      DoChanged;
+      FModified := False;
+    end;
+  end;
+
+  Dec(FUpdateCount);
+end;
+
+procedure TCustomImage32.Changed;
+begin
+  BeginUpdate;
+  FModified := True;
+  EndUpdate;
+end;
+
+procedure TCustomImage32.DoChanged;
+begin
+  // If partial repaints hasn't been queued then we need to do a full repaint
+  if (not FPartialRepaintQueued) then
+    Invalidate;
+  if Assigned(FOnChange) then
+    FOnChange(Self);
 end;
 
 procedure TCustomImage32.Update(const Rect: TRect);
@@ -1839,16 +1876,6 @@ begin
   Result := (ScaleMode in [smScale, smOptimalScaled]) and (FMouseZoomOptions.Enabled);
 end;
 
-procedure TCustomImage32.Changed;
-begin
-  if FUpdateCount = 0 then
-  begin
-    Invalidate;
-    if Assigned(FOnChange) then
-      FOnChange(Self);
-  end;
-end;
-
 function TCustomImage32.ControlToBitmap(const ARect: TRect): TRect;
 begin
   // Top/Left rounded down, Bottom/Right rounded up
@@ -2028,6 +2055,7 @@ begin
 
   // avoid calling inherited, we have a totally different behaviour here...
   FBufferValid := True;
+  FPartialRepaintQueued := False;
 end;
 
 procedure TCustomImage32.DoPaintGDIOverlay;
@@ -2124,13 +2152,6 @@ begin
   DoSetZoom(APivot, AScale);
 
   ForceFullInvalidate;
-end;
-
-procedure TCustomImage32.EndUpdate;
-begin
-  // re-enable OnChange & OnChanging generation
-  Dec(FUpdateCount);
-  Assert(FUpdateCount >= 0, 'Unpaired EndUpdate call');
 end;
 
 procedure TCustomImage32.ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer);
