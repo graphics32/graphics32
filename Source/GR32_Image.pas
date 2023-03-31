@@ -51,6 +51,11 @@ uses
   Classes, SysUtils, GR32, GR32_Layers, GR32_RangeBars, GR32_Containers,
   GR32_RepaintOpt;
 
+{$IFNDEF FPC}
+// Animated zoom relies on amEasing which relies on the System.Diagnostics unit (TStopwatch)
+{$define AnimatedZoom}
+{$ENDIF}
+
 const
   { Paint Stage Constants }
   PST_CUSTOM            = 1;   // Calls OnPaint with # of current stage in parameter
@@ -217,6 +222,135 @@ type
     X, Y: Integer; Layer: TCustomLayer) of object;
   TPaintStageHandler = procedure(Dest: TBitmap32; StageNum: Integer) of object;
 
+  TBackgroundCheckerStyle = (bcsCustom, bcsNone, bcsLight, bcsMedium, bcsDark);
+  TBackgroundFillStyle = (bfsColor, bfsCheckers, bfsPattern);
+
+  TBackgroundOptions = class(TNotifiablePersistent)
+  private type
+    TCheckersColors = array[0..1] of TColor32;
+  private
+    FPatternBitmap: TBitmap32;
+    FOuterBorderColor: TColor;
+    FInnerBorderWidth: integer;
+    FInnerBorderColor: TColor;
+    FDropShadowBitmap: TBitmap32;
+    FDropShadowOffset: integer;
+    FDropShadowSize: integer;
+    FDropShadowColor: TColor32;
+    FCheckersColors: TCheckersColors;
+    FCheckersStyle: TBackgroundCheckerStyle;
+    FCheckersExponent: integer;
+    FFillStyle: TBackgroundFillStyle;
+  protected
+    procedure SetFillStyle(const Value: TBackgroundFillStyle);
+    procedure SetPatternBitmap(const Value: TBitmap32);
+    procedure SetDropShadowBitmap(const Value: TBitmap32);
+    procedure SetDropShadowColor(const Value: TColor32);
+    procedure SetDropShadowOffset(const Value: integer);
+    procedure SetDropShadowSize(const Value: integer);
+    procedure SetInnerBorderColor(const Value: TColor);
+    procedure SetInnerBorderWidth(const Value: integer);
+    procedure SetOuterBorderColor(const Value: TColor);
+    procedure SetCheckersStyle(const Value: TBackgroundCheckerStyle);
+    function GetCheckersColor(const Index: Integer): TColor;
+    procedure SetCheckersColor(Index: integer; const Value: TColor);
+    procedure SetCheckersExponent(const Value: integer);
+
+    function IsFillStyleStored: Boolean;
+    function IsCheckersColorsStored(Index: integer): boolean;
+    function IsDropShadowBitmapStored: boolean;
+    function IsPatternBitmapStored: boolean;
+
+    procedure CheckFillStyle;
+
+    procedure ChangeHandler(Sender: TObject);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    property CheckersColors: TCheckersColors read FCheckersColors;
+  published
+    property PatternBitmap: TBitmap32 read FPatternBitmap write SetPatternBitmap stored IsPatternBitmapStored;
+
+    property OuterBorderColor: TColor read FOuterBorderColor write SetOuterBorderColor default clNone;
+
+    property InnerBorderWidth: integer read FInnerBorderWidth write SetInnerBorderWidth default 0;
+    property InnerBorderColor: TColor read FInnerBorderColor write SetInnerBorderColor default clNone;
+
+    property DropShadowColor: TColor32 read FDropShadowColor write SetDropShadowColor default 0;
+    property DropShadowOffset: integer read FDropShadowOffset write SetDropShadowOffset default 0;
+    property DropShadowSize: integer read FDropShadowSize write SetDropShadowSize default 0;
+    property DropShadowBitmap: TBitmap32 read FDropShadowBitmap write SetDropShadowBitmap stored IsDropShadowBitmapStored;
+
+    property CheckersStyle: TBackgroundCheckerStyle read FCheckersStyle write SetCheckersStyle default bcsNone;
+    property CheckersColorOdd: TColor index 0 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    property CheckersColorEven: TColor index 1 read GetCheckersColor write SetCheckersColor stored IsCheckersColorsStored;
+    property CheckersExponent: integer read FCheckersExponent write SetCheckersExponent default 3;
+
+    // Last property! We need it to be set last when loading from the DFM so the
+    // fill style rules isn't applied against incomplete property values.
+    property FillStyle: TBackgroundFillStyle read FFillStyle write SetFillStyle stored IsFillStyleStored;
+  end;
+
+  TMouseShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
+
+  TMousePanOptions = class(TNotifiablePersistent)
+  private
+    FPanCursor: TCursor;
+    FEnabled: boolean;
+    FMouseButton: TMouseButton;
+    FShiftState: TMouseShiftState;
+  protected
+  public
+    constructor Create;
+
+    function MatchShiftState(AShiftState: TShiftState): boolean;
+  published
+    property Enabled: boolean read FEnabled write FEnabled default False;
+    property MouseButton: TMouseButton read FMouseButton write FMouseButton default mbLeft;
+    property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
+    property PanCursor: TCursor read FPanCursor write FPanCursor default crSizeAll;
+  end;
+
+  TMouseZoomOptions = class(TNotifiablePersistent)
+  private
+    FEnabled: boolean;
+    FInvert: boolean;
+    FMaintainPivot: boolean;
+    FMinScale: Single;
+    FMaxScale: Single;
+    FSteps: integer;
+    FZoomFactor: Double;
+    FShiftState: TMouseShiftState;
+    FAnimate: boolean;
+  protected
+    procedure SetMaxScale(const Value: Single);
+    procedure SetMinScale(const Value: Single);
+    procedure SetSteps(const Value: integer);
+    procedure SetZoomFactor(const Value: Double);
+
+    function IsMaxScaleStored: Boolean;
+    function IsMinScaleStored: Boolean;
+
+    procedure UpdateZoomFactor;
+  public
+    constructor Create;
+
+    function ScaleToLevel(AScale: Single): integer;
+    function LevelToScale(ALevel: integer): Single;
+    function MatchShiftState(AShiftState: TShiftState): boolean;
+  published
+    property Enabled: boolean read FEnabled write FEnabled default False;
+    property Invert: boolean read FInvert write FInvert default False;
+    property ShiftState: TMouseShiftState read FShiftState write FShiftState default [];
+    property MaintainPivot: boolean read FMaintainPivot write FMaintainPivot default True;
+    property MinScale: Single read FMinScale write SetMinScale stored IsMinScaleStored;
+    property MaxScale: Single read FMaxScale write SetMaxScale stored IsMaxScaleStored;
+    property Steps: integer read FSteps write SetSteps default 12;
+    property ZoomFactor: Double read FZoomFactor write SetZoomFactor stored False;
+    property Animate: boolean read FAnimate write FAnimate default False;
+  end;
+
   TCustomImage32 = class(TCustomPaintBox32)
   private
     FBitmap: TBitmap32;
@@ -230,6 +364,11 @@ type
     FScaleX: TFloat;
     FScaleY: TFloat;
     FScaleMode: TScaleMode;
+    FBackgroundOptions: TBackgroundOptions;
+    FMousePanOptions: TMousePanOptions;
+    FMouseZoomOptions: TMouseZoomOptions;
+    FIsMousePanning: boolean;
+    FMousePanStartPos: TPoint;
     FUpdateCount: Integer;
     FOnBitmapResize: TNotifyEvent;
     FOnChange: TNotifyEvent;
@@ -239,6 +378,7 @@ type
     FOnMouseUp: TImgMouseEvent;
     FOnPaintStage: TPaintStageEvent;
     FOnScaleChange: TNotifyEvent;
+    procedure BackgroundOptionsChangeHandler(Sender: TObject);
     procedure BitmapResizeHandler(Sender: TObject);
     procedure BitmapChangeHandler(Sender: TObject);
     procedure BitmapAreaChangeHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
@@ -257,6 +397,9 @@ type
     procedure SetScaleX(Value: TFloat);
     procedure SetScaleY(Value: TFloat);
     procedure SetOnPixelCombine(Value: TPixelCombineEvent);
+    procedure SetBackgroundOptions(const Value: TBackgroundOptions);
+    procedure SetMousePanOptions(const Value: TMousePanOptions);
+    procedure SetMouseZoomOptions(const Value: TMouseZoomOptions);
   protected
     CachedBitmapRect: TRect;
     CachedShiftX, CachedShiftY,
@@ -267,28 +410,34 @@ type
     PaintToMode: Boolean;
     procedure BitmapResized; virtual;
     procedure BitmapChanged(const Area: TRect); reintroduce; virtual;
-    function  CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
+    function CanMousePan: boolean; virtual;
+    function CanMouseZoom: boolean; virtual;
+    function CanAutoSize(var NewWidth, NewHeight: Integer): Boolean; override;
     procedure DoInitStages; virtual;
     procedure DoPaintBuffer; override;
     procedure DoPaintGDIOverlay; override;
     procedure DoScaleChange; virtual;
     procedure InitDefaultStages; virtual;
     procedure InvalidateCache;
-    function  InvalidRectsAvailable: Boolean; override;
+    function InvalidRectsAvailable: Boolean; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); overload; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
+    function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
     procedure MouseLeave; override;
     procedure SetRepaintMode(const Value: TRepaintMode); override;
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
+    procedure DoZoom(APivot: TFloatPoint; AScale: TFloat);
+    procedure DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+    procedure DoSetPivot(const APivot: TFloatPoint); virtual;
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
-    property  UpdateCount: Integer read FUpdateCount;
+    property UpdateCount: Integer read FUpdateCount;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -315,6 +464,8 @@ type
     procedure PaintTo(Dest: TBitmap32; DestRect: TRect); virtual;
     procedure Resize; override;
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
+    procedure Scroll(Dx, Dy: Integer); overload;
+    procedure Scroll(Dx, Dy: Single); overload; virtual;
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
     property Canvas;
@@ -326,6 +477,10 @@ type
     property ScaleX: TFloat read FScaleX write SetScaleX;
     property ScaleY: TFloat read FScaleY write SetScaleY;
     property ScaleMode: TScaleMode read FScaleMode write SetScaleMode;
+    property Background: TBackgroundOptions read FBackgroundOptions write SetBackgroundOptions;
+    property MousePan: TMousePanOptions read FMousePanOptions write SetMousePanOptions;
+    property MouseZoom: TMouseZoomOptions read FMouseZoomOptions write SetMouseZoomOptions;
+    property IsMousePanning: boolean read FIsMousePanning;
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -355,6 +510,9 @@ type
     property RepaintMode;
     property Scale;
     property ScaleMode;
+    property Background;
+    property MousePan;
+    property MouseZoom;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -433,6 +591,7 @@ type
     procedure BitmapResized; override;
     procedure DoDrawSizeGrip(R: TRect);
     procedure DoScaleChange; override;
+    function CanMousePan: boolean; override;
     procedure DoScroll; virtual;
     function  GetScrollBarsVisible: Boolean;
     function  GetScrollBarSize: Integer;
@@ -440,9 +599,11 @@ type
     function  IsSizeGripVisible: Boolean;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X, Y: Integer); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); override;
     procedure Paint; override;
     procedure Recenter;
     procedure SetScaleMode(Value: TScaleMode); override;
+    procedure DoSetPivot(const APivot: TFloatPoint); override;
     procedure ScrollHandler(Sender: TObject); virtual;
     procedure ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
     procedure UpdateImage; virtual;
@@ -454,8 +615,7 @@ type
     procedure Loaded; override;
     procedure Resize; override;
     procedure ScrollToCenter(X, Y: Integer);
-    procedure Scroll(Dx, Dy: Integer); overload;
-    procedure Scroll(Dx, Dy: Single); overload; virtual;
+    procedure Scroll(Dx, Dy: Single); override;
     property Centered: Boolean read FCentered write SetCentered default True;
     property ScrollBars: TIVScrollProperties read FScrollBars write SetScrollBars;
     property SizeGrip: TSizeGripStyle read FSizeGrip write SetSizeGrip default sgAuto;
@@ -468,7 +628,7 @@ type
     property Anchors;
     property AutoSize;
     property Bitmap;
-    property BitmapAlign;    
+    property BitmapAlign;
     property Centered;
     property Color;
     property Constraints;
@@ -481,6 +641,9 @@ type
     property RepaintMode;
     property Scale;
     property ScaleMode;
+    property Background;
+    property MousePan;
+    property MouseZoom;
     property ScrollBars;
     property ShowHint;
     property SizeGrip;
@@ -565,11 +728,28 @@ type
     property Bitmaps: TBitmap32Collection read FBitmap32Collection write SetBitmap32Collection;
   end;
 
+var
+  DefaultCheckersColors: array[TBackgroundCheckerStyle] of TBackgroundOptions.TCheckersColors =
+    (($FFFFFFFF, $FF000000),
+     ($FFFFFFFF, $FFFFFFFF),
+     ($FFFFFFFF, $FFEBEBEB),
+     ($FFFFFFFF, $FFD0D0D0),
+     ($FFFFFFFF, $FFB0B0B0));
+
+  // Maximum duration of animated zoom
+  ZoomAnimateTime: integer = 300; // mS
+  // Time between each zoom step. 1000 / ZoomAnimateDeltaTime = frame rate
+  ZoomAnimateDeltaTime: integer = 5; // mS
+
 implementation
 
 uses
   Math, TypInfo,
-  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel;
+{$if defined(AnimatedZoom)}
+  amEasing,
+{$ifend}
+  GR32_MicroTiles, GR32_Backends, GR32_XPThemes, GR32_LowLevel,
+  GR32_Resamplers, GR32_Backends_Generic;
 
 type
   TLayerAccess = class(TCustomLayer);
@@ -1051,6 +1231,222 @@ begin
   inherited;
 end;
 
+
+{ TBackgroundOptions }
+
+procedure TBackgroundOptions.ChangeHandler(Sender: TObject);
+begin
+  CheckFillStyle;
+  Changed;
+end;
+
+constructor TBackgroundOptions.Create;
+begin
+  inherited Create;
+
+  FPatternBitmap := TBitmap32.Create(TMemoryBackend);
+  FPatternBitmap.DrawMode := dmOpaque;
+  FPatternBitmap.OnChange := ChangeHandler;
+
+  FDropShadowBitmap := TBitmap32.Create(TMemoryBackend);
+  FDropShadowBitmap.DrawMode := dmBlend;
+  FDropShadowBitmap.OnChange := ChangeHandler;
+
+  FOuterBorderColor := clNone;
+  FInnerBorderColor := clNone;
+  SetCheckersStyle(bcsNone); // We need to go via the property setter
+  FCheckersExponent := 3;
+end;
+
+destructor TBackgroundOptions.Destroy;
+begin
+  FPatternBitmap.Free;
+  FDropShadowBitmap.Free;
+  inherited;
+end;
+
+procedure TBackgroundOptions.CheckFillStyle;
+begin
+  case FFillStyle of
+    bfsColor:
+      if (not FPatternBitmap.Empty) then
+        FFillStyle := bfsPattern;
+
+    bfsCheckers:
+      if (not FPatternBitmap.Empty) then
+        FFillStyle := bfsPattern
+      else
+      if (FCheckersStyle = bcsNone) then
+        FFillStyle := bfsColor
+      else
+      if (FInnerBorderColor <> clNone) and (FInnerBorderWidth <> 0) then
+        FFillStyle := bfsColor
+      else
+      if (FOuterBorderColor <> clNone) then
+        FFillStyle := bfsColor
+      else
+      if (not FDropShadowBitmap.Empty) or (FDropShadowSize <> 0) then
+        FFillStyle := bfsColor;
+
+    bfsPattern:
+      if (FPatternBitmap.Empty) then
+        FFillStyle := bfsColor;
+  end;
+end;
+
+function TBackgroundOptions.GetCheckersColor(const Index: Integer): TColor;
+begin
+  Result := WinColor(FCheckersColors[Index]);
+end;
+
+function TBackgroundOptions.IsCheckersColorsStored(Index: integer): boolean;
+begin
+  Result := (FCheckersStyle = bcsCustom);
+end;
+
+function TBackgroundOptions.IsDropShadowBitmapStored: boolean;
+begin
+  Result := (not FDropShadowBitmap.Empty);
+end;
+
+function TBackgroundOptions.IsFillStyleStored: Boolean;
+begin
+  case FFillStyle of
+    bfsColor:
+      Result := (FCheckersStyle <> bcsNone) and
+        ((FInnerBorderColor = clNone) or (FInnerBorderWidth = 0)) and
+        (FOuterBorderColor = clNone) and
+        (FDropShadowBitmap.Empty) and (FDropShadowSize = 0);
+
+    bfsCheckers:
+      Result := True;
+
+    bfsPattern:
+      Result := False;
+  else
+    Result := True;
+  end;
+end;
+
+function TBackgroundOptions.IsPatternBitmapStored: boolean;
+begin
+  Result := (not FPatternBitmap.Empty);
+end;
+
+procedure TBackgroundOptions.SetPatternBitmap(const Value: TBitmap32);
+begin
+  FPatternBitmap.Assign(Value);
+end;
+
+procedure TBackgroundOptions.SetCheckersColor(Index: integer; const Value: TColor);
+begin
+  if (FCheckersStyle <> bcsCustom) or (Color32(Value) <> FCheckersColors[Index]) then
+  begin
+    FCheckersColors[Index] := Color32(Value);
+    FCheckersStyle := bcsCustom;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetCheckersExponent(const Value: integer);
+begin
+  if (Value <> FCheckersExponent) then
+  begin;
+    // There's no technical reason to limit the size, but there's also no
+    // practical reason to allow larger values.
+    FCheckersExponent := Min(10, Max(0, Value));
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetCheckersStyle(const Value: TBackgroundCheckerStyle);
+begin
+  if (FCheckersStyle <> Value) then
+  begin
+    FCheckersStyle := Value;
+
+    if (FCheckersStyle <> bcsCustom) then
+      FCheckersColors := DefaultCheckersColors[FCheckersStyle];
+
+    CheckFillStyle;
+
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetDropShadowBitmap(const Value: TBitmap32);
+begin
+  FDropShadowBitmap.Assign(Value);
+end;
+
+procedure TBackgroundOptions.SetDropShadowColor(const Value: TColor32);
+begin
+  if (Value <> FDropShadowColor) then
+  begin
+    FDropShadowColor := Value;
+    CheckFillStyle;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetDropShadowOffset(const Value: integer);
+begin
+  if (Value <> FDropShadowOffset) then
+  begin
+    FDropShadowOffset := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetDropShadowSize(const Value: integer);
+begin
+  if (Value <> FDropShadowSize) then
+  begin
+    FDropShadowSize := Max(0, Value);
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetFillStyle(const Value: TBackgroundFillStyle);
+begin
+  if (Value <> FFillStyle) then
+  begin
+    FFillStyle := Value;
+    CheckFillStyle;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetInnerBorderColor(const Value: TColor);
+begin
+  if (Value <> FInnerBorderColor) then
+  begin
+    FInnerBorderColor := Value;
+    CheckFillStyle;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetInnerBorderWidth(const Value: integer);
+begin
+  if (Value <> FInnerBorderWidth) then
+  begin
+    FInnerBorderWidth := Max(0, Value);
+    CheckFillStyle;
+    Changed;
+  end;
+end;
+
+procedure TBackgroundOptions.SetOuterBorderColor(const Value: TColor);
+begin
+  if (Value <> FOuterBorderColor) then
+  begin
+    FOuterBorderColor := Value;
+    CheckFillStyle;
+    Changed;
+  end;
+end;
+
 { TCustomImage32 }
 
 constructor TCustomImage32.Create(AOwner: TComponent);
@@ -1070,6 +1466,12 @@ begin
   FScaleY := 1;
   SetXForm(0, 0, 1, 1);
 
+  FBackgroundOptions := TBackgroundOptions.Create;
+  FBackgroundOptions.OnChange := BackgroundOptionsChangeHandler;
+
+  FMousePanOptions := TMousePanOptions.Create;
+  FMouseZoomOptions := TMouseZoomOptions.Create;
+
   InitDefaultStages;
 end;
 
@@ -1080,6 +1482,9 @@ begin
   FRepaintOptimizer.UnregisterLayerCollection(FLayers);
   FLayers.Free;
   FBitmap.Free;
+  FBackgroundOptions.Free;
+  FMousePanOptions.Free;
+  FMouseZoomOptions.Free;
   inherited;
 end;
 
@@ -1155,6 +1560,11 @@ begin
     Result.X := X * CachedScaleX + CachedShiftX;
     Result.Y := Y * CachedScaleY + CachedShiftY;
   end;
+end;
+
+procedure TCustomImage32.BackgroundOptionsChangeHandler(Sender: TObject);
+begin
+  Invalidate;
 end;
 
 procedure TCustomImage32.BitmapResizeHandler(Sender: TObject);
@@ -1325,6 +1735,16 @@ begin
   end;
 end;
 
+function TCustomImage32.CanMousePan: boolean;
+begin
+  Result := (BitmapAlign = baCustom) and (FMousePanOptions.Enabled);
+end;
+
+function TCustomImage32.CanMouseZoom: boolean;
+begin
+  Result := (ScaleMode in [smScale, smOptimalScaled]) and (FMouseZoomOptions.Enabled);
+end;
+
 procedure TCustomImage32.Changed;
 begin
   if FUpdateCount = 0 then
@@ -1405,6 +1825,48 @@ procedure TCustomImage32.DoInitStages;
 begin
   if Assigned(FOnInitStages) then
     FOnInitStages(Self);
+end;
+
+function TCustomImage32.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer;
+  MousePos: TPoint): Boolean;
+var
+  r: TRect;
+  Pivot: TFloatPoint;
+  NewScale: TFloat;
+  ZoomIn: boolean;
+  ZoomFactor: TFloat;
+begin
+  Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
+
+  if (not Result) and (CanMouseZoom) and (FMouseZoomOptions.MatchShiftState(Shift)) then
+  begin
+{$ifndef FPC} // On FPC the mouse position is in client coordinates. WTF?
+    MousePos := ScreenToClient(MousePos);
+{$endif FPC}
+
+    if (FMouseZoomOptions.MaintainPivot) and (not ClientRect.Contains(MousePos)) then
+      // We can't (or rather, won't) maintain a pivot outside the viewport
+      exit;
+
+    r := GetBitmapRect;
+    Pivot.X := (MousePos.X - r.Left) / ScaleX;
+    Pivot.Y := (MousePos.Y - r.Top) / ScaleY;
+
+    ZoomIn := (WheelDelta > 0) xor (FMouseZoomOptions.Invert);
+    WheelDelta := Abs(WheelDelta);
+
+     // WheelDelta is expressed as 120 per step
+    ZoomFactor := Power(FMouseZoomOptions.ZoomFactor, WheelDelta div 120);
+
+    if (not ZoomIn) then
+      ZoomFactor := 1 / ZoomFactor;
+
+    NewScale := Scale * ZoomFactor;
+
+    DoZoom(Pivot, NewScale);
+
+    Result := True;
+  end;
 end;
 
 procedure TCustomImage32.DoPaintBuffer;
@@ -1490,6 +1952,86 @@ begin
     FOnScaleChange(Self);
 end;
 
+procedure TCustomImage32.DoSetPivot(const APivot: TFloatPoint);
+begin
+  OffsetHorz := APivot.X;
+  OffsetVert := APivot.Y;
+end;
+
+procedure TCustomImage32.DoSetZoom(const APivot: TFloatPoint; AScale: TFloat);
+var
+  DeltaScale: TFloat;
+  NewOffset: TFloatPoint;
+begin
+  if (AScale = Scale) then
+    exit;
+
+  DeltaScale := Scale;
+  NewOffset.X := OffsetHorz;
+  NewOffset.Y := OffsetVert;
+
+  BeginUpdate;
+  try
+    Scale := AScale;
+
+    if (FMouseZoomOptions.MaintainPivot) and (BitmapAlign = baCustom) then
+    begin
+      DeltaScale := DeltaScale - Scale;
+
+      NewOffset.X := NewOffset.X + DeltaScale * APivot.X;
+      NewOffset.Y := NewOffset.Y + DeltaScale * APivot.Y;
+
+      DoSetPivot(NewOffset);
+    end;
+  finally
+    EndUpdate;
+  end;
+  Changed;
+end;
+
+procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
+{$if defined(AnimatedZoom)}
+var
+  StartValue, DeltaValue: TFloat;
+const
+  MinZoomDelta = 0.01;
+{$ifend}
+begin
+  AScale := Constrain(AScale, FMouseZoomOptions.MinScale, FMouseZoomOptions.MaxScale);
+  if (AScale = Scale) then
+    exit;
+
+{$if defined(AnimatedZoom)}
+  if (FMouseZoomOptions.Animate) and (Showing) then
+  begin
+    StartValue := Scale;
+    DeltaValue := AScale-StartValue;
+
+    // Ease between old and new scale
+    AnimatedTween(TEaseCubic.EaseInOut, ZoomAnimateTime,
+      procedure(Value: Double; var Continue: boolean)
+      var
+        NewValue: Single;
+      begin
+        NewValue := StartValue + Value*DeltaValue;
+
+        if (Abs(StartValue-NewValue) >= MinZoomDelta) and
+          (Abs(AScale-NewValue) >= MinZoomDelta) and
+          (Scale <> NewValue) then
+        begin
+          DoSetZoom(APivot, NewValue);
+
+          // Paint immediately or user will not see animation
+          Repaint;
+        end;
+      end, ZoomAnimateDeltaTime);
+  end;
+{$ifend}
+  DoSetZoom(APivot, AScale);
+
+  ForceFullInvalidate;
+end;
+
 procedure TCustomImage32.EndUpdate;
 begin
   // re-enable OnChange & OnChanging generation
@@ -1504,32 +2046,249 @@ end;
 
 procedure TCustomImage32.ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer);
 var
+  OuterBorder: integer;
+  InnerBorder: integer;
+  Width: integer;
+  OddRow, EvenRow: TArrayOfColor32;
+  ColorEven, ColorOdd: PColor32;
+  X, Y: integer;
+  i: Integer;
+  Parity: integer;
+  ViewportRect: TRect;
+  r: TRect;
+  Tile: TRect;
   C: TColor32;
-  I: Integer;
+  TileX, TileY: integer;
+  DrawFancyStuff: boolean;
+  DrawBitmapBackground: boolean;
 begin
-  C := Color32(Color);
-  if FInvalidRects.Count > 0 then
+  ViewportRect := GetViewportRect;
+
+  if (not Bitmap.Empty) and (Bitmap.DrawMode = dmOpaque) then
   begin
-    for I := 0 to FInvalidRects.Count - 1 do
-      with FInvalidRects[I]^ do
-        Dest.FillRectS(Left, Top, Right, Bottom, C);
-  end
+    // No need to draw background if bitmap covers everything
+    if (BitmapAlign = baTile) or (CachedBitmapRect.Contains(ViewportRect)) then
+      exit;
+  end;
+
+
+  // Background (from inside out/top down):
+  // - Checkers
+  // - white border
+  // - 1px black/dark border
+  // - bump map/solid color
+  // - alpha drop shadow
+
+  if (FBackgroundOptions.OuterBorderColor <> clNone) then
+    OuterBorder := 1
   else
+    OuterBorder := 0;
+
+  if (FBackgroundOptions.InnerBorderWidth > 0) and (FBackgroundOptions.InnerBorderColor <> clNone) then
+    InnerBorder := FBackgroundOptions.InnerBorderWidth
+  else
+    InnerBorder := 0;
+
+  // If the bitmap is empty or if we're tiling it, or if the borders and dropshadow
+  // is disabled, then we only need to do a simple clear of the whole background.
+  DrawFancyStuff := (not Bitmap.Empty) and (BitmapAlign <> baTile) and
+    ((not FBackgroundOptions.DropShadowBitmap.Empty) or (FBackgroundOptions.DropShadowSize <> 0) or
+     (OuterBorder <> 0) or (InnerBorder <> 0));
+
+     // Do we need to clear the area below the bitmap?
+  DrawBitmapBackground := (not Bitmap.Empty) and (BitmapAlign <> baTile) and (Bitmap.DrawMode <> dmOpaque);
+
+  r := CachedBitmapRect;
+  if (DrawFancyStuff) then
+    GR32.InflateRect(r, OuterBorder+InnerBorder, OuterBorder+InnerBorder);
+
+  (*
+  ** Background (pattern or solid color)
+  *)
+  if (FBackgroundOptions.FillStyle = bfsPattern) then
   begin
-    if ((Bitmap.Empty) or (Bitmap.DrawMode <> dmOpaque)) and assigned(Dest) then
-      Dest.Clear(C)
-    else
-    with CachedBitmapRect do
-    begin
-      if (Left > 0) or (Right < Self.Width) or (Top > 0) or (Bottom < Self.Height) and
-        not (BitmapAlign = baTile) then
+    Assert(not FBackgroundOptions.PatternBitmap.Empty);
+
+    TileX := (ViewportRect.Width + FBackgroundOptions.PatternBitmap.Width - 1) div FBackgroundOptions.PatternBitmap.Width;
+    TileY := (ViewportRect.Height + FBackgroundOptions.PatternBitmap.Height - 1) div FBackgroundOptions.PatternBitmap.Height;
+    for Y := 0 to TileY-1 do
+      for X := 0 to TileX-1 do
       begin
-        // clean only the part of the buffer lying around image edges
-        Dest.FillRectS(0, 0, Self.Width, Top, C);          // top
-        Dest.FillRectS(0, Bottom, Self.Width, Self.Height, C);  // bottom
-        Dest.FillRectS(0, Top, Left, Bottom, C);      // left
-        Dest.FillRectS(Right, Top, Self.Width, Bottom, C); // right
+        Tile := Rect(0, 0, FBackgroundOptions.PatternBitmap.Width, FBackgroundOptions.PatternBitmap.Height);
+        GR32.OffsetRect(Tile, X * FBackgroundOptions.PatternBitmap.Width, Y * FBackgroundOptions.PatternBitmap.Height);
+
+        if (DrawBitmapBackground) and (CachedBitmapRect.Contains(Tile)) then
+          // Tile would have been obscured by bitmap/checkers
+          continue;
+
+        BlockTransfer(Dest,
+          Tile.Left, Tile.Top, Dest.ClipRect,
+          FBackgroundOptions.PatternBitmap, FBackgroundOptions.PatternBitmap.BoundsRect, dmOpaque);
       end;
+
+    // CheckersStyle=bcsNone doesn't clear the area under the bitmap so we need to do it here
+    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle = bcsNone) then
+    begin
+      C := Color32(Color);
+      Dest.FillRectS(CachedBitmapRect, C);
+    end;
+  end else
+  if (FBackgroundOptions.FillStyle = bfsColor) then
+  begin
+    C := Color32(Color);
+
+    if FInvalidRects.Count > 0 then
+    begin
+      for i := 0 to FInvalidRects.Count-1 do
+      begin
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (CachedBitmapRect.Contains(FInvalidRects[i]^)) then
+          continue;
+
+        with FInvalidRects[i]^ do
+          Dest.FillRectS(Left, Top, Right, Bottom, C);
+      end;
+    end else
+    if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) then
+    begin
+      Dest.FillRectS(Rect(ViewportRect.Left, ViewportRect.Top, ViewportRect.Right, r.Top), C);
+      Dest.FillRectS(Rect(ViewportRect.Left, r.Top, r.Left, r.Bottom), C);
+      Dest.FillRectS(Rect(r.Right, r.Top, ViewportRect.Right, r.Bottom), C);
+      Dest.FillRectS(Rect(ViewportRect.Left, r.Bottom, ViewportRect.Right, ViewportRect.Bottom), C);
+    end else
+      Dest.Clear(C);
+  end;
+
+  if (DrawFancyStuff) then
+  begin
+    (*
+    ** Drop shadow
+    *)
+    if (not FBackgroundOptions.DropShadowBitmap.Empty) then
+    begin
+      (*
+      The drop shadow tile is partitioned into 5 segments
+
+                                       +
+        +-------+                     1|#
+        |       |#
+        |       |#   ->               2|#
+        |       |#
+        +-------+#           3    4   5|
+         #########           +-   -   -+
+                              #   #     #
+
+      *)
+
+      X := FBackgroundOptions.DropShadowBitmap.Width div 2;
+      Y := FBackgroundOptions.DropShadowBitmap.Height div 2;
+      // Segment 1
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        r.Right, r.Top+FBackgroundOptions.DropShadowOffset,
+        Rect(X, 0, FBackgroundOptions.DropShadowBitmap.Width-1, Y));
+
+      // Segment 2 (stretched)
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        Rect(r.Right, r.Top+FBackgroundOptions.DropShadowOffset+Y, r.Right+X, r.Bottom),
+        Rect(X, Y, FBackgroundOptions.DropShadowBitmap.Width, Y+1));
+
+      // Segment 3
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        r.Left+FBackgroundOptions.DropShadowOffset, r.Bottom,
+        Rect(0, Y, X, FBackgroundOptions.DropShadowBitmap.Height-1));
+
+      // Segment 4 (stretched)
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        Rect(r.Left+FBackgroundOptions.DropShadowOffset+X, r.Bottom, r.Right, r.Bottom+Y),
+        Rect(X, Y, X+1, FBackgroundOptions.DropShadowBitmap.Height));
+
+      // Segment 5
+      FBackgroundOptions.DropShadowBitmap.DrawTo(Dest,
+        r.Right, r.Bottom,
+        Rect(X, Y, FBackgroundOptions.DropShadowBitmap.Width-1, FBackgroundOptions.DropShadowBitmap.Height-1));
+    end else
+    if (FBackgroundOptions.DropShadowSize <> 0) then
+    begin
+      // Note: Transparent
+      Dest.FillRectTS(Rect(r.Right, r.Top+FBackgroundOptions.DropShadowOffset, r.Right+FBackgroundOptions.DropShadowSize, r.Bottom), FBackgroundOptions.DropShadowColor);
+      Dest.FillRectTS(Rect(r.Left+FBackgroundOptions.DropShadowOffset, r.Bottom, r.Right+FBackgroundOptions.DropShadowSize, r.Bottom+FBackgroundOptions.DropShadowSize), FBackgroundOptions.DropShadowColor);
+    end;
+
+    (*
+    ** Outer dark border
+    *)
+    if (OuterBorder <> 0) then
+    begin
+      Dest.FrameRectS(r, Color32(FBackgroundOptions.OuterBorderColor));
+      GR32.InflateRect(r, -OuterBorder, -OuterBorder);
+    end;
+
+    (*
+    ** Inner light border
+    *)
+    if (InnerBorder <> 0) then
+    begin
+      C := Color32(FBackgroundOptions.InnerBorderColor);
+      if (InnerBorder > 1) then
+      begin
+        Dest.FillRectS(Rect(r.Left, r.Top, r.Right, CachedBitmapRect.Top), C);
+        Dest.FillRectS(Rect(r.Left, CachedBitmapRect.Top, CachedBitmapRect.Left, CachedBitmapRect.Bottom), C);
+        Dest.FillRectS(Rect(CachedBitmapRect.Right, CachedBitmapRect.Top, r.Right, CachedBitmapRect.Bottom), C);
+        Dest.FillRectS(Rect(r.Left, CachedBitmapRect.Bottom, r.Right, r.Bottom), C);
+      end else
+        Dest.FrameRectS(r, C);
+    end;
+  end;
+
+  (*
+  ** Checkers
+  *)
+  if (FBackgroundOptions.CheckersStyle <> bcsNone) and
+    ((DrawBitmapBackground) or
+     ((FBackgroundOptions.FillStyle = bfsCheckers) and
+      ((Bitmap.Empty) or (Bitmap.DrawMode = dmOpaque)))) then
+  begin
+    if (FBackgroundOptions.FillStyle = bfsCheckers) then
+      // Fill the whole viewport
+      r := Dest.ClipRect
+    else
+      // Fill the area under the bitmap
+      GR32.IntersectRect(r, CachedBitmapRect, Dest.ClipRect);
+
+    Width := r.Width;
+
+    if (Width > 0) then
+    begin
+      if (FBackgroundOptions.CheckersStyle <> bcsCustom) or (FBackgroundOptions.CheckersColors[0] <> FBackgroundOptions.CheckersColors[1]) then
+      begin
+        SetLength(OddRow, Width);
+        SetLength(EvenRow, Width);
+
+        ColorEven := @EvenRow[0];
+        ColorOdd := @OddRow[0];
+        for X := 0 to Width-1 do
+        begin
+          Parity := ((r.Left+X) shr FBackgroundOptions.CheckersExponent) and $1;
+          ColorEven^ := FBackgroundOptions.CheckersColors[Parity];
+          ColorOdd^ := FBackgroundOptions.CheckersColors[1-Parity];
+          inc(ColorEven);
+          inc(ColorOdd);
+        end;
+
+        // Note: For ((DrawMode<>dmOpaque) and (FillStyle=bfsCheckers)) we should
+        // exclude filling the area covered by the bitmap. For simplicity we're
+        // not doing that.
+
+        for Y := r.Top to r.Bottom-1 do
+        begin
+          Parity := (Y shr FBackgroundOptions.CheckersExponent) and $1;
+          if (Parity = 0) then
+            MoveLongword(EvenRow[0], Dest.PixelPtr[r.Left, Y]^, Width)
+          else
+            MoveLongword(OddRow[0], Dest.PixelPtr[r.Left, Y]^, Width);
+        end;
+      end else
+        // Odd color = Even color -> Just clear with the color
+        Dest.FillRectS(r, FBackgroundOptions.CheckersColors[0]);
     end;
   end;
 end;
@@ -1819,19 +2578,50 @@ begin
     MouseCapture := True;
 
   MouseDown(Button, Shift, X, Y, Layer);
+
+  if (Layer = nil) and (CanMousePan) and (Button = FMousePanOptions.MouseButton) and (FMousePanOptions.MatchShiftState(Shift)) then
+  begin
+    FIsMousePanning := True;
+    if (FMousePanOptions.PanCursor <> crDefault) then
+      Screen.Cursor := FMousePanOptions.PanCursor;
+
+    // Remember start point
+    FMousePanStartPos.X := X;
+    FMousePanStartPos.Y := Y;
+  end;
 end;
 
 procedure TCustomImage32.MouseMove(Shift: TShiftState; X, Y: Integer);
 var
   Layer: TCustomLayer;
+  Delta: TPoint;
 begin
   inherited;
-  if Layers.MouseEvents then
-    Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
-  else
-    Layer := nil;
 
-  MouseMove(Shift, X, Y, Layer);
+  // If we're panning then calculate how far mouse has moved since last and
+  // scroll image the same amount.
+  if (FIsMousePanning) then
+  begin
+    Delta.X := FMousePanStartPos.X - X;
+    Delta.Y := FMousePanStartPos.Y - Y;
+
+    FMousePanStartPos.X := X;
+    FMousePanStartPos.Y := Y;
+
+    if (Delta.X <> 0) or (Delta.Y <> 0) then
+      Scroll(Delta.X, Delta.Y);
+
+    if (FMousePanOptions.PanCursor <> crDefault) then
+      Screen.Cursor := FMousePanOptions.PanCursor;
+  end else
+  begin
+    if Layers.MouseEvents then
+      Layer := TLayerCollectionAccess(Layers).MouseMove(Shift, X, Y)
+    else
+      Layer := nil;
+
+    MouseMove(Shift, X, Y, Layer);
+  end;
 end;
 
 procedure TCustomImage32.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -1851,6 +2641,13 @@ begin
     MouseCapture := False;
 
   MouseUp(Button, Shift, X, Y, Layer);
+
+  if (FIsMousePanning) and (Button = FMousePanOptions.MouseButton) then
+  begin
+    FIsMousePanning := False;
+    if (FMousePanOptions.PanCursor <> crDefault) then
+      Screen.Cursor := crDefault;
+  end;
 end;
 
 procedure TCustomImage32.MouseDown(Button: TMouseButton;
@@ -1928,6 +2725,39 @@ begin
   inherited;
 end;
 
+procedure TCustomImage32.Scroll(Dx, Dy: Single);
+begin
+  if (IsZero(Dx)) and (IsZero(Dy)) then
+    Exit;
+
+  BeginUpdate;
+  try
+
+    OffsetHorz := OffsetHorz - Dx;
+    OffsetVert := OffsetVert - Dy;
+
+  finally
+    EndUpdate;
+  end;
+
+  Changed;
+end;
+
+procedure TCustomImage32.Scroll(Dx, Dy: Integer);
+begin
+  if (Dx <> 0) or (Dy <> 0) then
+{$ifndef FPC} // FPC chokes on the float conversion with an exception
+  Scroll(Single(Dx), Single(Dy));
+{$else FPC}
+  Scroll(Dx * 1.0, Dy * 1.0);
+{$endif FPC}
+end;
+
+procedure TCustomImage32.SetBackgroundOptions(const Value: TBackgroundOptions);
+begin
+  FBackgroundOptions.Assign(Value);
+end;
+
 procedure TCustomImage32.SetBitmap(Value: TBitmap32);
 begin
   InvalidateCache;
@@ -1970,6 +2800,16 @@ procedure TCustomImage32.SetOnPixelCombine(Value: TPixelCombineEvent);
 begin
   FBitmap.OnPixelCombine := Value;
   Changed;
+end;
+
+procedure TCustomImage32.SetMousePanOptions(const Value: TMousePanOptions);
+begin
+  FMousePanOptions.Assign(Value);
+end;
+
+procedure TCustomImage32.SetMouseZoomOptions(const Value: TMouseZoomOptions);
+begin
+  FMouseZoomOptions.Assign(Value);
 end;
 
 procedure TCustomImage32.SetScale(Value: TFloat);
@@ -2203,6 +3043,14 @@ begin
   end;
 end;
 
+function TCustomImgView32.CanMousePan: boolean;
+begin
+  Result := (inherited CanMousePan) and
+    (ScaleMode in [smScale,smNormal]) and
+    ((HScroll.Range > (TRangeBarAccess(HScroll).EffectiveWindow + VScroll.Width)) or
+     (VScroll.Range > (TRangeBarAccess(VScroll).EffectiveWindow + HScroll.Height)));
+end;
+
 constructor TCustomImgView32.Create(AOwner: TComponent);
 begin
   inherited;
@@ -2280,6 +3128,14 @@ procedure TCustomImgView32.DoScroll;
 begin
   if Assigned(FOnScroll) then
     FOnScroll(Self);
+end;
+
+procedure TCustomImgView32.DoSetPivot(const APivot: TFloatPoint);
+begin
+  inherited;
+
+  HScroll.Position := Round(Oversize * Scale)-APivot.X;
+  VScroll.Position := Round(Oversize * Scale)-APivot.Y;
 end;
 
 function TCustomImgView32.GetScrollBarSize: Integer;
@@ -2392,27 +3248,27 @@ end;
 procedure TCustomImgView32.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 {$IFNDEF PLATFORM_INDEPENDENT}
 var
+  P: TPoint;
   Action: Cardinal;
   Msg: TMessage;
-  P: TPoint;
 {$ENDIF}
 begin
 {$IFNDEF PLATFORM_INDEPENDENT}
-  if IsSizeGripVisible and (Owner is TCustomForm) then
+  P.X := X;
+  P.Y := Y;
+
+  if IsSizeGripVisible and (Owner is TCustomForm) and GR32.PtInRect(GetSizeGripRect, P) then
   begin
-    P.X := X; P.Y := Y;
-    if GR32.PtInRect(GetSizeGripRect, P) then
-    begin
-      Action := HTBOTTOMRIGHT;
-      Application.ProcessMessages;
-      Msg.Msg := WM_NCLBUTTONDOWN;
-      Msg.WParam := Action;
-      SetCaptureControl(nil);
-      SendMessage(TCustomForm(Owner).Handle, Msg.Msg, Msg.wParam, Msg.lParam);
-      Exit;
-    end;
+    Action := HTBOTTOMRIGHT;
+    Application.ProcessMessages;
+    Msg.Msg := WM_NCLBUTTONDOWN;
+    Msg.WParam := Action;
+    SetCaptureControl(nil);
+    SendMessage(TCustomForm(Owner).Handle, Msg.Msg, Msg.wParam, Msg.lParam);
+    Exit;
   end;
 {$ENDIF}
+
   inherited;
 end;
 
@@ -2421,13 +3277,21 @@ var
   P: TPoint;
 begin
   inherited;
+
   if IsSizeGripVisible then
   begin
     P.X := X;
     P.Y := Y;
+
     if GR32.PtInRect(GetSizeGripRect, P) then
       Screen.Cursor := crSizeNWSE;
   end;
+end;
+
+procedure TCustomImgView32.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
+  Y: Integer; Layer: TCustomLayer);
+begin
+  inherited;
 end;
 
 procedure TCustomImgView32.Paint;
@@ -2465,14 +3329,6 @@ begin
   UpdateImage;
   Invalidate;
   inherited;
-end;
-
-procedure TCustomImgView32.Scroll(Dx, Dy: Integer);
-begin
-  if (Dx = 0) and (Dy = 0) then
-    Exit;
-
-  Scroll(Dx+0.0, Dy+0.0);
 end;
 
 procedure TCustomImgView32.Scroll(Dx, Dy: Single);
@@ -2735,6 +3591,125 @@ end;
 procedure TBitmap32List.SetBitmap32Collection(Value: TBitmap32Collection);
 begin
   FBitmap32Collection := Value;
+end;
+
+{ TMousePanOptions }
+
+constructor TMousePanOptions.Create;
+begin
+  inherited Create;
+  FMouseButton := mbLeft;
+  FPanCursor := crSizeAll;
+end;
+
+function TMousePanOptions.MatchShiftState(AShiftState: TShiftState): boolean;
+begin
+{$ifdef FPC}
+  {-$push}
+  {-$packset 4} // The FPC TShiftState does not fit in a word
+  Result := (DWord(AShiftState * [ssShift, ssAlt, ssCtrl]) = DWord(Byte(FShiftState)));
+  {-$pop}
+{$else FPC}
+  Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
+{$endif FPC}
+end;
+
+{ TMouseZoomOptions }
+
+constructor TMouseZoomOptions.Create;
+begin
+  inherited Create;
+  FSteps := 12;
+  FMinScale := 0.0625;
+  FMaxScale := 128.0;
+  FMaintainPivot := True;
+  UpdateZoomFactor;
+end;
+
+procedure TMouseZoomOptions.SetSteps(const Value: integer);
+begin
+  FSteps := Min(100, Max(2, Value));
+  UpdateZoomFactor;
+end;
+
+procedure TMouseZoomOptions.SetZoomFactor(const Value: Double);
+begin
+  FZoomFactor := Min(100, Max(1.001, Value));
+
+  // Calculate steps and recalculate FZoomFactor
+  Steps := Ceil(Ln(FMaxScale / FMinScale) / Ln(FZoomFactor)) + 1;
+end;
+
+procedure TMouseZoomOptions.UpdateZoomFactor;
+begin
+  FZoomFactor := Power(FMaxScale / FMinScale, 1/(FSteps-1));
+end;
+
+function TMouseZoomOptions.IsMaxScaleStored: Boolean;
+begin
+  Result := (FMinScale <> 0.0625);
+end;
+
+function TMouseZoomOptions.IsMinScaleStored: Boolean;
+begin
+  Result := (FMaxScale <> 128.0);
+end;
+
+function TMouseZoomOptions.LevelToScale(ALevel: integer): Single;
+var
+  LogMinZoom: Double;
+  LogMaxZoom: Double;
+  LogZoom: Double;
+begin
+  ALevel := Max(0, Min(ALevel, FSteps-1));
+  // Work in log space...
+  LogMinZoom := Ln(FMinScale);
+  LogMaxZoom := Ln(FMaxScale);
+  // Linear interpolation in log space:
+  LogZoom := LogMinZoom + (LogMaxZoom-LogMinZoom) / (FSteps-1) * ALevel;
+  // Back to linear space
+  Result := Exp(LogZoom);
+end;
+
+function TMouseZoomOptions.MatchShiftState(AShiftState: TShiftState): boolean;
+begin
+  {$ifdef FPC}
+    {-$push}
+    {-$packset 4} // The FPC TShiftState does not fit in a word
+    Result := (DWord(AShiftState * [ssShift, ssAlt, ssCtrl]) = DWord(Byte(FShiftState)));
+    {-$pop}
+  {$else FPC}
+    Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
+  {$endif FPC}
+end;
+
+function TMouseZoomOptions.ScaleToLevel(AScale: Single): integer;
+var
+  LogMinZoom: Double;
+  LogMaxZoom: Double;
+  Step: Double;
+begin
+  AScale := Max(FMinScale, Min(AScale, FMaxScale));
+  // Work in log space...
+  LogMinZoom := Ln(FMinScale);
+  LogMaxZoom := Ln(FMaxScale);
+  // Linear interpolation in log space:
+  Step := (FSteps-1) / (LogMaxZoom-LogMinZoom) * (Ln(AScale)-LogMinZoom);
+  // Back to linear space
+  Result := Ceil(Step);
+  Result := Max(0, Min(Result, FSteps-1));
+end;
+
+procedure TMouseZoomOptions.SetMaxScale(const Value: Single);
+begin
+  FMaxScale := Max(FMinScale+0.001, Value);
+  UpdateZoomFactor;
+end;
+
+procedure TMouseZoomOptions.SetMinScale(const Value: Single);
+begin
+  FMinScale := Min(FMaxScale-0.002, Max(0.001, Value));
+  UpdateZoomFactor;
 end;
 
 end.
