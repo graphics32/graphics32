@@ -46,7 +46,9 @@ uses
   Windows, Controls, Graphics, Forms,
 {$ENDIF}
   Generics.Collections,
-  Classes, SysUtils, Math, GR32;
+  Classes, SysUtils, Math,
+  GR32,
+  GR32_Layers.RubberBand;
 
 const
   { Layer Options Bits }
@@ -286,6 +288,7 @@ type
   protected
     function DoHitTest(X, Y: Integer): Boolean; override;
     procedure DoSetLocation(const NewLocation: TFloatRect); virtual;
+    function GetUpdateRect: TRect; virtual;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
 
@@ -386,6 +389,10 @@ type
     property CancelIfPassed: Boolean read FCancelIfPassed write FCancelIfPassed default False;
   end;
 
+  // TODO : Replace these with anonymous methods once FPC catches up (expected for FPC 4)
+  TRBPaintFrameHandler = procedure(Buffer: TBitmap32; const r: TRect) of object;
+  TRBPaintHandleHandler = procedure(Buffer: TBitmap32; X, Y: TFloat) of object;
+
   TRubberbandLayer = class(TPositionedLayer)
   private
     FChildLayer: TPositionedLayer;
@@ -436,9 +443,15 @@ type
     procedure SetDragState(const Value: TRBDragState; const X, Y: Integer); overload;
     procedure UpdateChildLayer; virtual;
     procedure DrawHandle(Buffer: TBitmap32; X, Y: TFloat); virtual;
+    procedure DrawFrame(Buffer: TBitmap32; const R: TRect);
+    procedure UpdateHandle(Buffer: TBitmap32; X, Y: TFloat);
+    procedure UpdateFrame(Buffer: TBitmap32; const R: TRect);
+    procedure DoHandles(Buffer: TBitmap32; const R: TRect; DoFrame: TRBPaintFrameHandler; DoHandle: TRBPaintHandleHandler);
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
     destructor Destroy; override;
+
+    procedure Update; override;
 
     procedure SetFrameStipple(const Value: Array of TColor32);
     procedure Quantize;
@@ -1181,6 +1194,7 @@ end;
 
 procedure TCustomLayer.Update(const Rect: TRect);
 begin
+  // Note: Rect is in ViewPort coordinates
   if (FLayerCollection <> nil) then
     FLayerCollection.DoUpdateArea(Rect);
 end;
@@ -1268,6 +1282,12 @@ begin
     Result := R;
 end;
 
+function TPositionedLayer.GetUpdateRect: TRect;
+begin
+  // Note: Result is in ViewPort coordinates
+  Result := MakeRect(GetAdjustedLocation, rrOutside);
+end;
+
 procedure TPositionedLayer.SetLocation(const Value: TFloatRect);
 begin
   if (GR32.EqualRect(Value, FLocation)) then
@@ -1297,7 +1317,7 @@ end;
 
 procedure TPositionedLayer.Update;
 begin
-  Update(MakeRect(GetAdjustedLocation, rrOutside));
+  Update(GetUpdateRect);
 end;
 
 { TCustomIndirectBitmapLayer }
@@ -1862,40 +1882,60 @@ begin
   Buffer.FillRectTS(HandleRect, FHandleFill);
 end;
 
-procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
-
+procedure TRubberbandLayer.DoHandles(Buffer: TBitmap32; const R: TRect;
+  DoFrame: TRBPaintFrameHandler;
+  DoHandle: TRBPaintHandleHandler);
 var
   CenterX, CenterY: TFloat;
-  R: TRect;
 begin
-  R := MakeRect(GetAdjustedRect(FLocation));
   with R do
   begin
     if rhFrame in FHandles then
-    begin
-      Buffer.SetStipple(FFrameStipplePattern);
-      Buffer.StippleCounter := 0;
-      Buffer.StippleStep := FFrameStippleStep;
-      Buffer.StippleCounter := FFrameStippleCounter;
-      Buffer.FrameRectTSP(Left, Top, Right, Bottom);
-    end;
+      DoFrame(Buffer, R);
+
     if rhCorners in FHandles then
     begin
-      if not(rhNotTLCorner in FHandles) then DrawHandle(Buffer, Left+0.5, Top+0.5);
-      if not(rhNotTRCorner in FHandles) then DrawHandle(Buffer, Right-0.5, Top+0.5);
-      if not(rhNotBLCorner in FHandles) then DrawHandle(Buffer, Left+0.5, Bottom-0.5);
-      if not(rhNotBRCorner in FHandles) then DrawHandle(Buffer, Right-0.5, Bottom-0.5);
+      if not(rhNotTLCorner in FHandles) then
+        DoHandle(Buffer, Left+0.5, Top+0.5);
+      if not(rhNotTRCorner in FHandles) then
+        DoHandle(Buffer, Right-0.5, Top+0.5);
+      if not(rhNotBLCorner in FHandles) then
+        DoHandle(Buffer, Left+0.5, Bottom-0.5);
+      if not(rhNotBRCorner in FHandles) then
+        DoHandle(Buffer, Right-0.5, Bottom-0.5);
     end;
     if rhSides in FHandles then
     begin
       CenterX := (Left + Right) / 2;
       CenterY := (Top + Bottom) / 2;
-      if not(rhNotTopSide in FHandles) then DrawHandle(Buffer, CenterX, Top+0.5);
-      if not(rhNotLeftSide in FHandles) then DrawHandle(Buffer, Left+0.5, CenterY);
-      if not(rhNotRightSide in FHandles) then DrawHandle(Buffer, Right-0.5, CenterY);
-      if not(rhNotBottomSide in FHandles) then DrawHandle(Buffer, CenterX, Bottom-0.5);
+      if not(rhNotTopSide in FHandles) then
+        DoHandle(Buffer, CenterX, Top+0.5);
+      if not(rhNotLeftSide in FHandles) then
+        DoHandle(Buffer, Left+0.5, CenterY);
+      if not(rhNotRightSide in FHandles) then
+        DoHandle(Buffer, Right-0.5, CenterY);
+      if not(rhNotBottomSide in FHandles) then
+        DoHandle(Buffer, CenterX, Bottom-0.5);
     end;
   end;
+end;
+
+procedure TRubberbandLayer.DrawFrame(Buffer: TBitmap32; const R: TRect);
+begin
+  Buffer.SetStipple(FFrameStipplePattern);
+  Buffer.StippleCounter := 0;
+  Buffer.StippleStep := FFrameStippleStep;
+  Buffer.StippleCounter := FFrameStippleCounter;
+  Buffer.FrameRectTSP(R.Left, R.Top, R.Right, R.Bottom);
+end;
+
+procedure TRubberbandLayer.Paint(Buffer: TBitmap32);
+var
+  R: TRect;
+begin
+  R := MakeRect(GetAdjustedRect(FLocation));
+
+  DoHandles(Buffer, R, DrawFrame, DrawHandle);
 end;
 
 procedure TRubberbandLayer.Quantize;
@@ -2001,6 +2041,48 @@ begin
     FFrameStippleStep := Value;
     FLayerCollection.GDIUpdate;
   end;
+end;
+
+procedure TRubberbandLayer.UpdateFrame(Buffer: TBitmap32; const R: TRect);
+begin
+  // Left
+  Update(Rect(R.Left, R.Top, R.Left+1, R.Bottom));
+  // Right
+  Update(Rect(R.Right-1, R.Top, R.Right, R.Bottom));
+  // Top
+  Update(Rect(R.Left+1, R.Top, R.Right-1, R.Top+1));
+  // Bottom
+  Update(Rect(R.Left+1, R.Bottom-1, R.Right-1, R.Bottom));
+end;
+
+procedure TRubberbandLayer.UpdateHandle(Buffer: TBitmap32; X, Y: TFloat);
+var
+  HandleRect: TRect;
+begin
+  HandleRect.Left := Floor(X - FHandleSize);
+  HandleRect.Right := HandleRect.Left + Ceil(FHandleSize*2);
+  HandleRect.Top := Floor(Y - FHandleSize);
+  HandleRect.Bottom := HandleRect.Top + Ceil(FHandleSize*2);
+  Update(HandleRect);
+end;
+
+procedure TRubberbandLayer.Update;
+var
+  R: TRect;
+begin
+  // Since the handles are partially outside the layer rect we need to
+  // invalidate the area covered by those.
+  // We could just inflate the rect being invalidated by the size of the handles
+  //
+  //   InflateRect(R, Ceil(FHandleSize), Ceil(FHandleSize));
+  //   Update(R);
+  //
+  // ...but instead we go for the "slightly" more complex and correct solution
+  // of only invalidating the area actually covered by the frame and the handles.
+
+  R := MakeRect(GetAdjustedRect(FLocation));
+
+  DoHandles(nil, R, UpdateFrame, UpdateHandle);
 end;
 
 procedure TRubberbandLayer.UpdateChildLayer;
