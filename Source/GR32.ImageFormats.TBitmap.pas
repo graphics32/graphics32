@@ -44,6 +44,7 @@ implementation
 
 uses
   Classes,
+  Windows,
   Graphics,
   SysUtils,
   GR32,
@@ -60,11 +61,15 @@ uses
 //------------------------------------------------------------------------------
 type
   TImageFormatAdapterTBitmap = class(TCustomImageFormatAdapterTGraphic,
-    IImageFormatAdapter)
+    IImageFormatAdapter,
+    IImageFormatResourceReader)
   strict protected
     // IImageFormatAdapter
     function AssignFrom(Dest: TCustomBitmap32; Source: TPersistent): boolean; override;
     function AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean; override;
+  strict private
+    // IImageFormatResourceReader
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
   end;
 
 //------------------------------------------------------------------------------
@@ -144,6 +149,45 @@ begin
   finally
     RestoreBackend(Source, SavedBackend);
   end;
+end;
+
+//------------------------------------------------------------------------------
+// IImageFormatResourceReader
+//------------------------------------------------------------------------------
+function TImageFormatAdapterTBitmap.LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar;
+  AStream: TStream): boolean;
+var
+  Bitmap: TBitmap;
+  BitmapFileHeader: TBitmapFileHeader;
+  BitmapStream: TStream;
+begin
+  if (AResourceType = RT_BITMAP) then
+  begin
+    // TBitmap does not have any (accesible) methods to read a DIB, so we have to
+    // "make believe" that the stream contains a BMP file.
+    BitmapFileHeader := Default(TBitmapFileHeader);
+    BitmapFileHeader.bfType := $4D42;
+    BitmapStream := TMemoryStream.Create;
+    try
+      TMemoryStream(BitmapStream).Size := AStream.Size + SizeOf(TBitmapFileHeader);
+
+      BitmapStream.Write(BitmapFileHeader, SizeOf(TBitmapFileHeader));
+      BitmapStream.CopyFrom(AStream, 0);
+
+      Bitmap := TBitmap.Create;
+      try
+        Bitmap.LoadFromStream(BitmapStream);
+        ADest.Assign(Bitmap);
+      finally
+        Bitmap.Free;
+      end;
+
+    finally
+      BitmapStream.Free;
+    end;
+    Result := True;
+  end else
+    Result := False;
 end;
 
 //------------------------------------------------------------------------------

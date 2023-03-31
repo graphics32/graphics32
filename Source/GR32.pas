@@ -6136,7 +6136,7 @@ begin
   Stream := TResourceStream.CreateFromID(Instance, ResID, ResType);
   try
 
-    if (not ImageFormatManager.Readers.LoadFromStream(Self, Stream)) then
+    if (not ImageFormatManager.Readers.LoadFromResource(Self, ResType, Stream)) then
       raise Exception.Create(sUnknownImageFormat);
 
     Changed;

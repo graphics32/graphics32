@@ -164,6 +164,22 @@ type
 
 //------------------------------------------------------------------------------
 //
+//      IImageFormatResourceReader
+//
+//------------------------------------------------------------------------------
+// Reads from an image format into TBitmap32.
+// The ResourceType and Stream parameters should be used to determine the image
+// format.
+//------------------------------------------------------------------------------
+type
+  IImageFormatResourceReader = interface
+    ['{7DB70759-6079-4C5D-96FB-55905BE9FBEC}']
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
+  end;
+
+
+//------------------------------------------------------------------------------
+//
 //      IImageFormatWriter
 //
 //------------------------------------------------------------------------------
@@ -220,6 +236,7 @@ type
     // Note: LoadFromFile only uses readers that implement IImageFormatFileReader
     // it does not fall back to IImageFormatReader.LoadFromStream
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
   end;
 
 
@@ -605,6 +622,7 @@ type
     function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean; overload;
     function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream; const AFilename: string): boolean; overload;
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
   private
     // IImageFormatWriters
     function FindWriter(const AFileType: string): IImageFormatWriter;
@@ -760,6 +778,26 @@ begin
     begin
       if (Reader.LoadFromFile(ADest, AFilename)) then
         exit(True);
+    end;
+
+  Result := False;
+end;
+
+function TImageFormatManager.LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar;
+  AStream: TStream): boolean;
+var
+  Item: TImageFormatItem;
+  Reader: IImageFormatResourceReader;
+  SavePos: Int64;
+begin
+  SavePos := AStream.Position;
+
+  for Item in FFormats do
+    if (Supports(Item.ImageFormat, IImageFormatResourceReader, Reader)) then
+    begin
+      if (Reader.LoadFromResource(ADest, AResourceType, AStream)) then
+        exit(True);
+      AStream.Position := SavePos;  // Restore pos after LoadFromResource
     end;
 
   Result := False;
