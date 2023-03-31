@@ -458,11 +458,11 @@ type
     function  BitmapToControl(const APoint: TPoint): TPoint; overload;
     function  BitmapToControl(const APoint: TFloatPoint): TFloatPoint; overload;
     procedure Changed; virtual;
-    procedure Update(const Rect: TRect); reintroduce; overload; virtual;
     function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
     function  ControlToBitmap(const ARect: TRect): TRect;  overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
     procedure EndUpdate; virtual;
+    procedure Update(const Rect: TRect); reintroduce; overload; virtual;
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
     procedure ExecClearBuffer(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_CLEAR_BUFFER
     procedure ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer); virtual;  // PST_CLEAR_BACKGND
@@ -1589,6 +1589,14 @@ procedure TCustomImage32.BeginUpdate;
 begin
   // disable OnChange & OnChanging generation
   Inc(FUpdateCount);
+end;
+
+procedure TCustomImage32.Update(const Rect: TRect);
+var
+  UpdateRectNotification: IUpdateRectNotification;
+begin
+  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+    UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
 end;
 
 procedure TCustomImage32.BitmapResized;
@@ -3008,14 +3016,6 @@ begin
     FBitmap.OnAreaChanged := nil;
     FBitmap.OnChange := BitmapChangeHandler;
   end;
-end;
-
-procedure TCustomImage32.Update(const Rect: TRect);
-var
-  UpdateRectNotification: IUpdateRectNotification;
-begin
-  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
-    UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
 end;
 
 procedure TCustomImage32.UpdateCache;
