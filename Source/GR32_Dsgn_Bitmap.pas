@@ -42,7 +42,7 @@ uses
   ComponentEditors,
 {$ELSE}
   Windows, ExtDlgs, ToolWin, Registry, ImgList, Consts, DesignIntf,
-  DesignEditors, VCLEditors, Actions,
+  DesignEditors, VCLEditors, Actions, System.ImageList,
 {$ENDIF}
   Forms, Controls, ComCtrls, ExtCtrls, StdCtrls, Graphics, Dialogs, Menus,
   SysUtils, Classes, Clipbrd, ActnList,
@@ -57,9 +57,7 @@ type
     ButtonCopy: TToolButton;
     ImageList: TImageList;
     TabSheetRGB: TTabSheet;
-    Label1: TLabel;
     ButtonLoad: TToolButton;
-    MagnCombo: TComboBox;
     MenuItemClear: TMenuItem;
     MenuItemCopy: TMenuItem;
     MenuItemInvert: TMenuItem;
@@ -85,7 +83,12 @@ type
     ActionInvert: TAction;
     TabSheetRGBA: TTabSheet;
     StatusBar: TStatusBar;
-    procedure MagnComboChange(Sender: TObject);
+    LabelZoom: TLabel;
+    ToolButton1: TToolButton;
+    ButtonHelp: TToolButton;
+    ActionHelp: TAction;
+    ButtonGrid: TToolButton;
+    ActionGrid: TAction;
     procedure ActionLoadExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure ActionHasBitmapUpdate(Sender: TObject);
@@ -94,6 +97,9 @@ type
     procedure ActionCopyExecute(Sender: TObject);
     procedure ActionPasteExecute(Sender: TObject);
     procedure ActionInvertExecute(Sender: TObject);
+    procedure ActionHelpExecute(Sender: TObject);
+    procedure ActionGridExecute(Sender: TObject);
+    procedure ActionGridUpdate(Sender: TObject);
   protected
 {$IFDEF PLATFORM_INDEPENDENT}
     OpenDialog: TOpenDialog;
@@ -105,9 +111,13 @@ type
     ImageAllChannels: TImage32;
     ImageRGBChannels: TImage32;
     ImageAlphaChannel: TImage32;
+    LayerPixelGrid: TCustomLayer;
     procedure ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImagePaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
+    procedure ImageMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+    procedure ImageChanged(Sender: TObject);
     function CurrentImage: TImage32;
+    procedure ResetZoomAndCenter(Image: TImage32);
+    procedure SyncZoomAndPan;
   public
     constructor Create(AOwner: TComponent); override;
     procedure LoadFromImage(Source: TPersistent);
@@ -154,6 +164,7 @@ type
 implementation
 
 uses
+  Math,
   GR32_Resamplers,
   GR32_Backends_Generic;
 
@@ -163,136 +174,383 @@ uses
 {$R *.dfm}
 {$ENDIF}
 
+//------------------------------------------------------------------------------
+//
+//      TPixelGridLayer
+//
+//------------------------------------------------------------------------------
+// Displays a pixel grid on top of the image
+//------------------------------------------------------------------------------
+type
+  TPixelGridLayer = class(TCustomLayer)
+  private
+    FImage: TCustomImage32;
+    FNeedStipple: array[0..1] of boolean;
+    FStipple: array[0..1] of TArrayOfColor32;
+    FPattern: array[0..1] of DWORD;
+    FColorOn: array[0..1] of TColor32;
+    FColorOff: array[0..1] of TColor32;
+    procedure SetColorOff(const Index: Integer; const Value: TColor32);
+    procedure SetColorOn(const Index: Integer; const Value: TColor32);
+    procedure SetPattern(const Index: Integer; const Value: DWORD);
+    procedure SetStipple(const Index: Integer; const Value: TArrayOfColor32);
+    function GetStipple(const Index: Integer): TArrayOfColor32;
+  protected
+    procedure Paint(Buffer: TBitmap32); override;
+  public
+    constructor Create(ALayerCollection: TLayerCollection; AImage: TCustomImage32); reintroduce;
+
+    class procedure CreateStipple(var Stipple: TArrayOfColor32; Pattern: DWORD; ColorOn, ColorOff: TColor32);
+
+    property MajorStipple: TArrayOfColor32 index 0 read GetStipple write SetStipple;
+    property MajorPattern: DWORD index 0 read FPattern[0] write SetPattern;
+    property MajorColorOn: TColor32 index 0 read FColorOn[0] write SetColorOn;
+    property MajorColorOff: TColor32 index 0 read FColorOff[0] write SetColorOff;
+
+    property MinorStipple: TArrayOfColor32 index 1 read GetStipple write SetStipple;
+    property MinorPattern: DWORD index 1 read FPattern[1] write SetPattern;
+    property MinorColorOn: TColor32 index 1 read FColorOn[1] write SetColorOn;
+    property MinorColorOff: TColor32 index 1 read FColorOff[1] write SetColorOff;
+  end;
+
+//------------------------------------------------------------------------------
+//
+//      TPixelGridLayer
+//
+//------------------------------------------------------------------------------
+constructor TPixelGridLayer.Create(ALayerCollection: TLayerCollection;
+  AImage: TCustomImage32);
+begin
+  inherited Create(ALayerCollection);
+  FImage := AImage;
+
+  FNeedStipple[0] := True;
+  FNeedStipple[1] := True;
+
+  FPattern[0] := $55555555;
+  FColorOn[0] := $ff353535;
+  FColorOff[0] := $ffa0a0a0;
+
+  FPattern[1] := $55555555;
+  FColorOn[1] := $ffa0a0a0;
+  FColorOff[1] := $ffbfbfbf;
+end;
+
+class procedure TPixelGridLayer.CreateStipple(var Stipple: TArrayOfColor32; Pattern: DWORD; ColorOn, ColorOff: TColor32);
+var
+  i: integer;
+  Mask: DWORD;
+begin
+  SetLength(Stipple, 32);
+  Mask := $80000000;
+  i := 0;
+  while (Mask <> 0) do
+  begin
+    if (Pattern and Mask = 0) then
+      Stipple[i] := ColorOff
+    else
+      Stipple[i] := ColorOn;
+
+    Mask := Mask shr 1;
+    inc(i);
+  end;
+end;
+
+function TPixelGridLayer.GetStipple(const Index: Integer): TArrayOfColor32;
+begin
+  if (FNeedStipple[Index]) then
+    CreateStipple(FStipple[Index], FPattern[Index], FColorOn[Index], FColorOff[Index]);
+  Result := FStipple[Index];
+end;
+
+procedure TPixelGridLayer.Paint(Buffer: TBitmap32);
+var
+  i: integer;
+  Step: integer;
+  MinStep: integer;
+  Lines: integer;
+  Rect: TRect;
+  Size: TSize;
+  p: TPoint;
+begin
+  try
+    if (Abs(FImage.Scale) >= 4) then
+      Step := 1
+    else
+      Step := 4;
+
+    // Enforce minimal grid of 4 pixels
+    MinStep := Ceil(4 / Abs(FImage.Scale));
+
+    Step := Max(Step, MinStep);
+
+    Rect := FImage.GetBitmapRect;
+    Size.cx := FImage.Bitmap.Width;
+    Size.cy := FImage.Bitmap.Height;
+
+    // Minor grid
+    Buffer.StippleStep := 1;
+    Buffer.SetStipple(MinorStipple);
+    i := Step;
+    Lines := 1;
+    while (i < Size.cx) or (i < Size.cy) do
+    begin
+      if (Abs(FImage.Scale) <= 4) or (Lines mod 8 <> 0) then
+      begin
+        p := FImage.BitmapToControl(Point(i, i));
+
+        // Vertical line
+        if (i < Size.cx) then
+        begin
+          Buffer.StippleCounter := 0;
+          Buffer.VertLineTSP(p.X, Rect.Top+1, Rect.Bottom-1);
+        end;
+        // Horizontal line
+        if (i < Size.cy) then
+        begin
+          Buffer.StippleCounter := 0;
+          Buffer.HorzLineTSP(Rect.Left+1, p.Y, Rect.Right-1);
+        end;
+      end;
+      inc(i, Step);
+      inc(Lines);
+    end;
+
+    // Major grid
+    Buffer.SetStipple(MajorStipple);
+    i := Step*8;
+    if (Abs(FImage.Scale) > 4) then
+      while (i < Size.cx) or (i < Size.cy) do
+      begin
+        p := FImage.BitmapToControl(Point(i, i));
+
+        // Vertical line
+        if (i < Size.cx) then
+        begin
+          Buffer.StippleCounter := 0;
+          Buffer.VertLineTSP(p.X, Rect.Top+1, Rect.Bottom-1);
+        end;
+        // Horizontal line
+        if (i < Size.cy) then
+        begin
+          Buffer.StippleCounter := 0;
+          Buffer.HorzLineTSP(Rect.Left+1, p.Y, Rect.Right-1);
+        end;
+
+        inc(i, Step*8);
+      end;
+
+    // Vertical border kines
+    Buffer.StippleCounter := 1;
+    Buffer.VertLineTSP(Rect.Left, Rect.Top, Rect.Bottom);
+    Buffer.StippleCounter := 1;
+    Buffer.VertLineTSP(Rect.Right, Rect.Top, Rect.Bottom);
+    // Horizontal border lines
+    Buffer.StippleCounter := 0;
+    Buffer.HorzLineTSP(Rect.Left+1, Rect.Top, Rect.Right-1);
+    Buffer.StippleCounter := 0;
+    Buffer.HorzLineTSP(Rect.Left+1, Rect.Bottom, Rect.Right-1);
+  except
+    // Prevent AV flood due to repaint
+    Visible := False;
+    raise;
+  end;
+end;
+
+procedure TPixelGridLayer.SetColorOff(const Index: Integer; const Value: TColor32);
+begin
+  FColorOff[Index] := Value;
+  FNeedStipple[Index] := True;
+end;
+
+procedure TPixelGridLayer.SetColorOn(const Index: Integer; const Value: TColor32);
+begin
+  FColorOn[Index] := Value;
+  FNeedStipple[Index] := True;
+end;
+
+procedure TPixelGridLayer.SetPattern(const Index: Integer; const Value: DWORD);
+begin
+  FPattern[Index] := Value;
+  FNeedStipple[Index] := True;
+end;
+
+procedure TPixelGridLayer.SetStipple(const Index: Integer;
+  const Value: TArrayOfColor32);
+begin
+  FStipple[Index] := Value;
+  FNeedStipple[Index] := False;
+end;
+
 { TPictureEditorForm }
 
 function TPictureEditorForm.CurrentImage: TImage32;
 begin
-  if PageControl.ActivePage = TabSheetRGBA then
-    Result := ImageAllChannels
-  else
   if PageControl.ActivePage = TabSheetRGB then
     Result := ImageRGBChannels
   else
-    Result := ImageAlphaChannel;
-end;
-
-procedure TPictureEditorForm.ImagePaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
-const            //0..1
-  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
-var
-  R: TRect;
-  I, J: Integer;
-  OddY: Integer;
-  TilesHorz, TilesVert: Integer;
-  TileX, TileY: Integer;
-  TileHeight, TileWidth: Integer;
-begin
-  TileHeight := 13;
-  TileWidth := 13;
-
-  TilesHorz := Buffer.Width div TileWidth;
-  TilesVert := Buffer.Height div TileHeight;
-  TileY := 0;
-
-  for J := 0 to TilesVert do
-  begin
-    TileX := 0;
-    OddY := J and $1;
-    for I := 0 to TilesHorz do
-    begin
-      R.Left := TileX;
-      R.Top := TileY;
-      R.Right := TileX + TileWidth;
-      R.Bottom := TileY + TileHeight;
-      Buffer.FillRectS(R, Colors[I and $1 = OddY]);
-      Inc(TileX, TileWidth);
-    end;
-    Inc(TileY, TileHeight);
-  end;
+  if PageControl.ActivePage = TabSheetAlpha then
+    Result := ImageAlphaChannel
+  else
+    Result := ImageAllChannels
 end;
 
 procedure TPictureEditorForm.LoadFromImage(Source: TPersistent);
-begin
-  if CurrentImage = ImageAllChannels then
+
+  procedure UpdateImageBackground(Image: TImage32);
   begin
-    // Load RGBA bitmap, separate into RGB and A
-
-    // Load RGBA
-    ImageAllChannels.Bitmap.Assign(Source);
-    ImageAllChannels.Bitmap.DrawMode := dmBlend;
-
-    // Separate RGB
-    ImageRGBChannels.Bitmap.Assign(ImageAllChannels.Bitmap);
-    ImageRGBChannels.Bitmap.ResetAlpha;
-
-    // Separate A
-    AlphaToGrayscale(ImageAlphaChannel.Bitmap, ImageAllChannels.Bitmap);
-    ImageAlphaChannel.Bitmap.ResetAlpha;
-  end else
-  if CurrentImage = ImageRGBChannels then
-  begin
-    // Load RGB bitmap, keep existing A
-
-    // Load RGB
-    if (Source <> nil) then
+    if (Image.Bitmap.Empty) then
     begin
-      ImageRGBChannels.Bitmap.Assign(Source);
-      ImageRGBChannels.Bitmap.ResetAlpha;
+      Image.Background.OuterBorderColor := clNone;
+      Image.Background.InnerBorderColor := clNone;
+      Image.Background.InnerBorderWidth := 0;
+      Image.Background.FillStyle := bfsCheckers;
     end else
-      ImageRGBChannels.Bitmap.Clear($FF000000);
-
-    // Merge A and RGB into RGBA
-    ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
-    ImageAllChannels.Bitmap.DrawMode := dmBlend;
-    if (not ImageAlphaChannel.Bitmap.Empty) then
-      IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap)
-    else
-      ImageAllChannels.Bitmap.ResetAlpha;
-  end else
-  if CurrentImage = ImageAlphaChannel then
-  begin
-    // Load A bitmap, keep existing RGB
-    if (Source <> nil) then
-      ImageAlphaChannel.Bitmap.Assign(Source)
-    else
-      ImageAlphaChannel.Bitmap.Clear($FFFFFFFF);
-    ColorToGrayscale(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
-
-    // Merge A and RGB into RGBA
-    if (not ImageRGBChannels.Bitmap.Empty) then
     begin
+      Image.Background.OuterBorderColor := clGray;
+      Image.Background.InnerBorderColor := clWhite;
+      Image.Background.InnerBorderWidth := 8;
+      Image.Background.FillStyle := bfsColor;
+    end;
+  end;
+
+resourcestring
+  sInfo = 'Width: %.0n, Height: %.0n';
+  sInfoEmpty = '(empty)';
+begin
+  ImageAllChannels.BeginUpdate;
+  ImageRGBChannels.BeginUpdate;
+  ImageAlphaChannel.BeginUpdate;
+  try
+    if CurrentImage = ImageAllChannels then
+    begin
+      // Load RGBA bitmap, separate into RGB and A
+
+      // Load RGBA
+      ImageAllChannels.Bitmap.Assign(Source);
+      ImageAllChannels.Bitmap.DrawMode := dmBlend;
+
+      // Separate RGB
+      ImageRGBChannels.Bitmap.Assign(ImageAllChannels.Bitmap);
+      ImageRGBChannels.Bitmap.ResetAlpha;
+
+      // Separate A
+      AlphaToGrayscale(ImageAlphaChannel.Bitmap, ImageAllChannels.Bitmap);
+      ImageAlphaChannel.Bitmap.ResetAlpha;
+    end else
+    if CurrentImage = ImageRGBChannels then
+    begin
+      // Load RGB bitmap, keep existing A
+
+      // Load RGB
+      if (Source <> nil) then
+      begin
+        ImageRGBChannels.Bitmap.Assign(Source);
+        ImageRGBChannels.Bitmap.ResetAlpha;
+      end else
+        ImageRGBChannels.Bitmap.Clear($FF000000);
+
+      // Merge A and RGB into RGBA
       ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
       ImageAllChannels.Bitmap.DrawMode := dmBlend;
+      if (not ImageAlphaChannel.Bitmap.Empty) then
+        IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap)
+      else
+        ImageAllChannels.Bitmap.ResetAlpha;
     end else
+    if CurrentImage = ImageAlphaChannel then
     begin
-      ImageAllChannels.Bitmap.SetSizeFrom(ImageAlphaChannel.Bitmap);
-      ImageAllChannels.Bitmap.Clear;
+      // Load A bitmap, keep existing RGB
+      if (Source <> nil) then
+        ImageAlphaChannel.Bitmap.Assign(Source)
+      else
+        ImageAlphaChannel.Bitmap.Clear($FFFFFFFF);
+      ColorToGrayscale(ImageAlphaChannel.Bitmap, ImageAlphaChannel.Bitmap);
+
+      // Merge A and RGB into RGBA
+      if (not ImageRGBChannels.Bitmap.Empty) then
+      begin
+        ImageAllChannels.Bitmap.Assign(ImageRGBChannels.Bitmap);
+        ImageAllChannels.Bitmap.DrawMode := dmBlend;
+      end else
+      begin
+        ImageAllChannels.Bitmap.SetSizeFrom(ImageAlphaChannel.Bitmap);
+        ImageAllChannels.Bitmap.Clear;
+      end;
+      IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap);
     end;
-    IntensityToAlpha(ImageAllChannels.Bitmap, ImageAlphaChannel.Bitmap);
+
+    ResetZoomAndCenter(ImageAllChannels);
+    ResetZoomAndCenter(ImageRGBChannels);
+    ResetZoomAndCenter(ImageAlphaChannel);
+
+    UpdateImageBackground(ImageAllChannels);
+    UpdateImageBackground(ImageRGBChannels);
+    UpdateImageBackground(ImageAlphaChannel);
+  finally
+    ImageAllChannels.EndUpdate;
+    ImageRGBChannels.EndUpdate;
+    ImageAlphaChannel.EndUpdate;
   end;
+  ImageAllChannels.Changed;
+  ImageRGBChannels.Changed;
+  ImageAlphaChannel.Changed;
+
+  if (ImageAllChannels.Bitmap.Empty) then
+    StatusBar.Panels[3].Text := sInfoEmpty
+  else
+    StatusBar.Panels[3].Text := Format(sInfo, [1.0*ImageAllChannels.Bitmap.Width, 1.0*ImageAllChannels.Bitmap.Height]);
 end;
 
-procedure TPictureEditorForm.MagnComboChange(Sender: TObject);
-const
-  MAGN: array[0..6] of Integer = (25, 50, 100, 200, 400, 800, -1);
+procedure TPictureEditorForm.ResetZoomAndCenter(Image: TImage32);
 var
-  S: Integer;
+  Size: TSize;
 begin
-  S := MAGN[MagnCombo.ItemIndex];
-  if S = -1 then
-  begin
-    ImageAllChannels.ScaleMode := smResize;
-    ImageRGBChannels.ScaleMode := smResize;
-    ImageAlphaChannel.ScaleMode := smResize;
-  end else
-  begin
-    ImageAllChannels.ScaleMode := smScale;
-    ImageAllChannels.Scale := S / 100;
-    ImageRGBChannels.ScaleMode := smScale;
-    ImageRGBChannels.Scale := S / 100;
-    ImageAlphaChannel.ScaleMode := smScale;
-    ImageAlphaChannel.Scale := S / 100;
+  Image.BeginUpdate;
+  try
+    // Reset Zoom...
+    Image.Scale := 1;
+
+    // ...and Center image
+    Size := Image.GetBitmapSize;
+    Image.OffsetHorz := (Image.Width-Size.cx) div 2;
+    Image.OffsetVert := (Image.Height-Size.cy) div 2;
+  finally
+    Image.EndUpdate;
   end;
+  Image.Changed;
+end;
+
+procedure TPictureEditorForm.SyncZoomAndPan;
+
+  procedure DoSync(Image: TImage32);
+  begin
+    if (Image = CurrentImage) then
+      exit;
+
+    Image.BeginUpdate; // Avoid recursion
+    try
+      Image.Scale := CurrentImage.Scale;
+      Image.OffsetHorz := CurrentImage.OffsetHorz;
+      Image.OffsetVert := CurrentImage.OffsetVert;
+    finally
+      Image.EndUpdate;
+    end;
+    // Invalidate without firing OnChange
+    Image.ForceFullInvalidate;
+  end;
+
+resourcestring
+  sZoom = 'Zoom: %.0n%%';
+begin
+  if (CurrentImage = nil) then
+    exit;
+
+  LabelZoom.Caption := Format(sZoom, [CurrentImage.Scale * 100]);
+
+  DoSync(ImageAllChannels);
+  DoSync(ImageRGBChannels);
+  DoSync(ImageAlphaChannel);
 end;
 
 constructor TPictureEditorForm.Create(AOwner: TComponent);
@@ -302,22 +560,37 @@ constructor TPictureEditorForm.Create(AOwner: TComponent);
     Result := TImage32.Create(Self);
     Result.Parent := AParent;
     Result.Align := alClient;
-    Result.BitmapAlign := baCenter;
+    Result.BitmapAlign := baCustom;
     Result.Cursor := crCross;
     Result.PopupMenu := PopupMenu;
+    Result.Background.CheckersStyle := bcsMedium;
+    Result.Background.OuterBorderColor := clGray;
+    Result.Background.InnerBorderColor := clWhite;
+    Result.Background.InnerBorderWidth := 8;
+    Result.Background.FillStyle := bfsCheckers;
+    Result.MousePan.Enabled := True;
+    Result.MousePan.PanCursor := crSizeAll;
+    Result.MouseZoom.Enabled := True;
+    Result.MouseZoom.Animate := True;
+    Result.TabStop := True; // Required for mouse wheel
+    Result.Scale := 1;
+    Result.ScaleMode := smScale;
     Result.OnMouseMove := ImageMouseMove;
-    Result.OnPaintStage := ImagePaintStage;
-    if (Result.PaintStages[0].Stage = PST_CLEAR_BACKGND) then
-      Result.PaintStages[0].Stage := PST_CUSTOM;
+    Result.OnMouseDown := ImageMouseDown;
+    Result.OnChange := ImageChanged;
   end;
 
 begin
   inherited;
 
   ImageAllChannels := CreateImage32(TabSheetRGBA);
-  ImageAllChannels.Bitmap.DrawMode := dmBlend;
   ImageRGBChannels := CreateImage32(TabSheetRGB);
   ImageAlphaChannel := CreateImage32(TabSheetAlpha);
+
+  ImageAllChannels.Bitmap.DrawMode := dmBlend;
+
+  LayerPixelGrid := TPixelGridLayer.Create(ImageAllChannels.Layers, ImageAllChannels);
+  LayerPixelGrid.Visible := False;
 
 {$IFDEF PLATFORM_INDEPENDENT}
   OpenDialog := TOpenDialog.Create(Self);
@@ -326,7 +599,6 @@ begin
   OpenDialog := TOpenPictureDialog.Create(Self);
   SaveDialog := TSavePictureDialog.Create(Self);
 {$ENDIF}
-  MagnCombo.ItemIndex := 2;
   OpenDialog.Filter := GraphicFilter(TGraphic);
   SaveDialog.Filter := GraphicFilter(TGraphic);
 end;
@@ -621,9 +893,28 @@ begin
   Clipboard.Assign(CurrentImage.Bitmap);
 end;
 
+procedure TPictureEditorForm.ActionGridExecute(Sender: TObject);
+begin
+  LayerPixelGrid.Visible := TAction(Sender).Checked;
+end;
+
+procedure TPictureEditorForm.ActionGridUpdate(Sender: TObject);
+begin
+  TAction(Sender).Checked := LayerPixelGrid.Visible;
+end;
+
 procedure TPictureEditorForm.ActionHasBitmapUpdate(Sender: TObject);
 begin
   TAction(Sender).Enabled := (CurrentImage <> nil) and (not CurrentImage.Bitmap.Empty);
+end;
+
+procedure TPictureEditorForm.ActionHelpExecute(Sender: TObject);
+resourcestring
+  sHelp = 'Pan by clicking and dragging.'#13+
+    'Zoom with the mouse wheel.'#13+
+    'Reset zoom and center with the middle mouse button.';
+begin
+  ShowMessage(sHelp);
 end;
 
 procedure TPictureEditorForm.ActionInvertExecute(Sender: TObject);
@@ -645,6 +936,18 @@ begin
   end;
 end;
 
+procedure TPictureEditorForm.ImageChanged(Sender: TObject);
+begin
+  SyncZoomAndPan;
+end;
+
+procedure TPictureEditorForm.ImageMouseDown(Sender: TObject;
+  Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+begin
+  if (Button = mbMiddle) then
+    ResetZoomAndCenter(TImage32(Sender));
+end;
+
 procedure TPictureEditorForm.ImageMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
 var
   Image: TImage32;
@@ -654,6 +957,9 @@ var
   ColorChannels: string;
 begin
   Image := TImage32(Sender);
+
+  if (Image.IsMousePanning) then
+    exit;
 
   if (Image.Bitmap = nil) or (Image.Bitmap.Empty) then
   begin
