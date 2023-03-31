@@ -1840,7 +1840,9 @@ begin
 
   if (not Result) and (CanMouseZoom) and (FMouseZoomOptions.MatchShiftState(Shift)) then
   begin
+{$ifndef FPC} // On FPC the mouse position is in client coordinates. WTF?
     MousePos := ScreenToClient(MousePos);
+{$endif FPC}
 
     if (FMouseZoomOptions.MaintainPivot) and (not ClientRect.Contains(MousePos)) then
       // We can't (or rather, won't) maintain a pivot outside the viewport
@@ -2744,7 +2746,11 @@ end;
 procedure TCustomImage32.Scroll(Dx, Dy: Integer);
 begin
   if (Dx <> 0) or (Dy <> 0) then
-    Scroll(Single(Dx), Single(Dy));
+{$ifndef FPC} // FPC chokes on the float conversion with an exception
+  Scroll(Single(Dx), Single(Dy));
+{$else FPC}
+  Scroll(Dx * 1.0, Dy * 1.0);
+{$endif FPC}
 end;
 
 procedure TCustomImage32.SetBackgroundOptions(const Value: TBackgroundOptions);
@@ -3598,7 +3604,14 @@ end;
 
 function TMousePanOptions.MatchShiftState(AShiftState: TShiftState): boolean;
 begin
+{$ifdef FPC}
+  {-$push}
+  {-$packset 4} // The FPC TShiftState does not fit in a word
+  Result := (DWord(AShiftState * [ssShift, ssAlt, ssCtrl]) = DWord(Byte(FShiftState)));
+  {-$pop}
+{$else FPC}
   Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
+{$endif FPC}
 end;
 
 { TMouseZoomOptions }
@@ -3660,7 +3673,14 @@ end;
 
 function TMouseZoomOptions.MatchShiftState(AShiftState: TShiftState): boolean;
 begin
-  Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
+  {$ifdef FPC}
+    {-$push}
+    {-$packset 4} // The FPC TShiftState does not fit in a word
+    Result := (DWord(AShiftState * [ssShift, ssAlt, ssCtrl]) = DWord(Byte(FShiftState)));
+    {-$pop}
+  {$else FPC}
+    Result := (Word(AShiftState * [ssShift, ssAlt, ssCtrl]) = Word(Byte(FShiftState)));
+  {$endif FPC}
 end;
 
 function TMouseZoomOptions.ScaleToLevel(AScale: Single): integer;
