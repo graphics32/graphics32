@@ -89,6 +89,7 @@ type
     ActionHelp: TAction;
     ButtonGrid: TToolButton;
     ActionGrid: TAction;
+    Bitmap32List: TBitmap32List;
     procedure ActionLoadExecute(Sender: TObject);
     procedure ActionSaveExecute(Sender: TObject);
     procedure ActionHasBitmapUpdate(Sender: TObject);
@@ -165,14 +166,11 @@ implementation
 
 uses
   Math,
+  GR32.ImageFormats,
   GR32_Resamplers,
   GR32_Backends_Generic;
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 //------------------------------------------------------------------------------
 //
@@ -580,8 +578,34 @@ constructor TPictureEditorForm.Create(AOwner: TComponent);
     Result.OnChange := ImageChanged;
   end;
 
+  procedure LoadGlyphs;
+  var
+    i: integer;
+    Bitmap: TBitmap;
+begin
+    // We're not storing bitmaps in the imagelist in order to support FPC.
+    // FPC's TImageList doesn't have the ColorDepth property.
+    ImageList.Clear;
+{$ifndef FPC}
+    ImageList.ColorDepth := cd32bit;
+{$endif FPC}
+    Bitmap := TBitmap.Create;
+    try
+      for i := 0 to Bitmap32List.Bitmaps.Count-1 do
+      begin
+        Bitmap.Assign(Bitmap32List.Bitmaps[i].Bitmap);
+        ImageList.AddMasked(Bitmap, -1);
+      end;
+    finally
+      Bitmap.Free;
+    end;
+    Bitmap32List.Bitmaps.Clear;
+  end;
+
 begin
   inherited;
+
+  LoadGlyphs;
 
   ImageAllChannels := CreateImage32(TabSheetRGBA);
   ImageRGBChannels := CreateImage32(TabSheetRGB);
@@ -599,8 +623,10 @@ begin
   OpenDialog := TOpenPictureDialog.Create(Self);
   SaveDialog := TSavePictureDialog.Create(Self);
 {$ENDIF}
-  OpenDialog.Filter := GraphicFilter(TGraphic);
-  SaveDialog.Filter := GraphicFilter(TGraphic);
+  OpenDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatReader, True) +
+    '|' + SDefaultFilter;
+  SaveDialog.Filter := ImageFormatManager.BuildFileFilter(IImageFormatWriter) +
+    '|' + SDefaultFilter;
 end;
 
 
@@ -801,32 +827,17 @@ end;
 
 procedure TPictureEditorForm.ActionLoadExecute(Sender: TObject);
 var
-  Picture: TPicture;
   Bitmap: TBitmap32;
 begin
   if not OpenDialog.Execute then
     exit;
 
-  // Load bitmap directly if file is a BMP
-  // (this works around alleged bug in TBitmap->TBitmap32 conversion with LCL-Gtk backend)
-  if (SameText(ExtractFileExt(OpenDialog.Filename), '.bmp')) then
-  begin
-    Bitmap := TBitmap32.Create(TMemoryBackend);
-    try
-      Bitmap.LoadFromFile(OpenDialog.Filename);
-      LoadFromImage(Bitmap);
-    finally
-      Bitmap.Free;
-    end;
-  end else
-  begin
-    Picture := TPicture.Create;
-    try
-      Picture.LoadFromFile(OpenDialog.Filename);
-      LoadFromImage(Picture);
-    finally
-      Picture.Free;
-    end;
+  Bitmap := TBitmap32.Create(TMemoryBackend);
+  try
+    Bitmap.LoadFromFile(OpenDialog.Filename);
+    LoadFromImage(Bitmap);
+  finally
+    Bitmap.Free;
   end;
 end;
 
@@ -846,7 +857,7 @@ end;
 procedure TPictureEditorForm.ActionPasteUpdate(Sender: TObject);
 begin
   try
-    TAction(Sender).Enabled := Clipboard.HasFormat(CF_PICTURE);
+    TAction(Sender).Enabled := ImageFormatManager.ClipboardFormats.CanPasteFromClipboard;
   except
 {$IFDEF FPC}
     TAction(Sender).Enabled := False;
@@ -865,13 +876,13 @@ begin
     exit;
 
   SaveDialog.DefaultExt := GraphicExtension(TBitmap);
-  SaveDialog.Filter := GraphicFilter(TBitmap);
 
   if not SaveDialog.Execute then
     exit;
 
-  if (CurrentImage = ImageAllChannels) then
-    // Save in 32-bit RGBA bitmap
+  if (CurrentImage = ImageAllChannels) or
+    (not SameText(ExtractFileExt(SaveDialog.Filename), GraphicExtension(TBitmap))) then
+    // Save in 32-bit RGBA bitmap (or whatever format we have chosen)
     ImageAllChannels.Bitmap.SaveToFile(SaveDialog.Filename)
   else
   begin

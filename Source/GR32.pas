@@ -43,8 +43,11 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC} LCLIntf, LCLType, Types, {$ELSE}
-  {$IFDEF COMPILERXE2_UP}UITypes, Types, {$ENDIF} Windows, {$ENDIF}
+{$IFDEF FPC}
+  LCLIntf, LCLType, Types,
+{$ELSE}
+  UITypes, Types, Windows,
+{$ENDIF}
   Controls, Graphics, Classes, SysUtils;
 
 { Version Control }
@@ -826,8 +829,8 @@ type
     procedure SaveToFile(const FileName: string; SaveTopDown: Boolean = False); overload; virtual;
     procedure SaveToFile(const FileName: string; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload; virtual;
 
-    procedure LoadFromResourceID(Instance: THandle; ResID: Integer);
-    procedure LoadFromResourceName(Instance: THandle; const ResName: string);
+    procedure LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: PChar = RT_BITMAP);
+    procedure LoadFromResourceName(Instance: THandle; const ResName: string; ResType: PChar = RT_BITMAP);
 
     procedure ResetAlpha; overload;
     procedure ResetAlpha(const AlphaValue: Byte); overload;
@@ -1167,7 +1170,9 @@ uses
 {$ELSE}
   GR32_Backends_VCL,
 {$ENDIF}
-  GR32_VectorUtils;
+  GR32_VectorUtils,
+  GR32.ImageFormats,
+  GR32.ImageFormats.Default;
 
 type
   { We can not use the Win32 defined records and constants here since we are cross-platform. }
@@ -2756,251 +2761,17 @@ begin
 end;
 
 procedure TCustomBitmap32.AssignTo(Dst: TPersistent);
-
-  procedure AssignToBitmap(Bmp: TBitmap; SrcBitmap: TCustomBitmap32);
-  var
-    SavedBackend: TCustomBackend;
-    FontSupport: IFontSupport;
-  begin
-    RequireBackendSupport(SrcBitmap, [IDeviceContextSupport], romOr, False, SavedBackend);
-    try
-{$IFDEF COMPILER2009_UP}
-      Bmp.SetSize(0, 0);
-{$ELSE}
-      Bmp.Width := 0;
-      Bmp.Height := 0;
-{$ENDIF}
-
-      Bmp.PixelFormat := pf32Bit;
-
-{$IFDEF COMPILER2009_UP}
-      Bmp.SetSize(SrcBitmap.Width, SrcBitmap.Height);
-{$ELSE}
-      Bmp.Width := SrcBitmap.Width;
-      Bmp.Height := SrcBitmap.Height;
-{$ENDIF}
-
-      if Supports(SrcBitmap.Backend, IFontSupport, FontSupport) then // this is optional
-      begin
-        Bmp.Canvas.Font.Assign(FontSupport.Font);
-        FontSupport := nil;
-      end;
-
-      if SrcBitmap.Empty then Exit;
-
-      Bmp.Canvas.Lock;
-      try
-        (SrcBitmap.Backend as IDeviceContextSupport).DrawTo(Bmp.Canvas.Handle,
-          BoundsRect, BoundsRect)
-      finally
-        Bmp.Canvas.UnLock;
-      end;
-    finally
-      RestoreBackend(SrcBitmap, SavedBackend);
-    end;
-  end;
-
 begin
-  if (Dst is TPicture) then
-    AssignToBitmap(TPicture(Dst).Bitmap, Self)
-  else
-  if (Dst is TBitmap) then
-    AssignToBitmap(TBitmap(Dst), Self)
-  else
-  if (Dst is TClipboard) then
-  begin
-    if (not CopyBitmap32ToClipboard(Self)) then
-      inherited;
-  end else
+  if (not ImageFormatManager.Adapters.AssignTo(Self, Dst)) then
     inherited;
 end;
 
 procedure TCustomBitmap32.Assign(Source: TPersistent);
-
-  procedure AssignFromGraphicPlain(TargetBitmap: TCustomBitmap32;
-    SrcGraphic: TGraphic; FillColor: TColor32; ResetAlphaAfterDrawing: Boolean);
-  var
-    SavedBackend: TCustomBackend;
-    Canvas: TCanvas;
-    DeviceContextSupport: IDeviceContextSupport;
-    CanvasSupport: ICanvasSupport;
-    InteroperabilitySupport: IInteroperabilitySupport;
-  begin
-    if not Assigned(SrcGraphic) then
-      Exit;
-    RequireBackendSupport(TargetBitmap, [IDeviceContextSupport, ICanvasSupport,
-      IInteroperabilitySupport], romOr, True, SavedBackend);
-    try
-      TargetBitmap.SetSize(SrcGraphic.Width, SrcGraphic.Height);
-      if TargetBitmap.Empty then Exit;
-
-      TargetBitmap.Clear(FillColor);
-
-      if Supports(TargetBitmap.Backend, IInteroperabilitySupport, InteroperabilitySupport) then
-      begin
-        InteroperabilitySupport.CopyFrom(SrcGraphic);
-        InteroperabilitySupport := nil;
-      end else
-      if Supports(TargetBitmap.Backend, ICanvasSupport, CanvasSupport) then
-      begin
-        TGraphicAccess(SrcGraphic).Draw(CanvasSupport.Canvas,
-          MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
-        CanvasSupport := nil;
-      end else
-      if Supports(TargetBitmap.Backend, IDeviceContextSupport, DeviceContextSupport) then
-      begin
-        Canvas := TCanvas.Create;
-        try
-          Canvas.Lock;
-          try
-            Canvas.Handle := DeviceContextSupport.Handle;
-
-            TGraphicAccess(SrcGraphic).Draw(Canvas,
-              MakeRect(0, 0, TargetBitmap.Width, TargetBitmap.Height));
-          finally
-            Canvas.Unlock;
-          end;
-        finally
-          Canvas.Free;
-        end;
-        DeviceContextSupport := nil;
-      end else
-        raise Exception.Create(RCStrInpropriateBackend);
-
-      if ResetAlphaAfterDrawing then
-        ResetAlpha;
-    finally
-      RestoreBackend(TargetBitmap, SavedBackend);
-    end;
-  end;
-
-  procedure AssignFromGraphicMasked(TargetBitmap: TCustomBitmap32; SrcGraphic: TGraphic);
-  var
-    TempBitmap: TCustomBitmap32;
-    I: integer;
-    DstP, SrcP: PColor32;
-    DstColor: TColor32;
-  begin
-    AssignFromGraphicPlain(TargetBitmap, SrcGraphic, clWhite32, False); // mask on white
-    if TargetBitmap.Empty then
-    begin
-      TargetBitmap.Clear;
-      Exit;
-    end;
-
-    if TargetBitmap.Backend <> nil then
-      // Use the same backend type as the target. See Issue #127
-      TempBitmap := TCustomBitmap32.Create(TCustomBackendClass(TargetBitmap.Backend.ClassType))
-    else
-      TempBitmap := TCustomBitmap32.Create;
-    try
-      AssignFromGraphicPlain(TempBitmap, SrcGraphic, clRed32, False); // mask on red
-
-      DstP := @TargetBitmap.Bits[0];
-      SrcP := @TempBitmap.Bits[0];
-      for I := 0 to TargetBitmap.Width * TargetBitmap.Height - 1 do
-      begin
-        DstColor := DstP^ and $00FFFFFF;
-        // this checks for transparency by comparing the pixel-color of the
-        // temporary bitmap (red masked) with the pixel of our
-        // bitmap (white masked). if they match, make that pixel opaque
-        if DstColor = (SrcP^ and $00FFFFFF) then
-          DstP^ := DstColor or $FF000000
-        else
-        // if the colors do not match (that is the case if there is a
-        // match "is clRed32 = clWhite32 ?"), just make that pixel
-        // transparent:
-          DstP^ := DstColor;
-
-         Inc(SrcP); Inc(DstP);
-      end;
-    finally
-      TempBitmap.Free;
-    end;
-  end;
-
-  procedure AssignFromBitmap(TargetBitmap: TCustomBitmap32; SrcBmp: TBitmap);
-  var
-    TransparentColor: TColor32;
-    DstP: PColor32;
-    I: integer;
-    DstColor: TColor32;
-    FontSupport: IFontSupport;
-  begin
-    AssignFromGraphicPlain(TargetBitmap, SrcBmp, 0, SrcBmp.PixelFormat <> pf32bit);
-    if TargetBitmap.Empty then Exit;
-
-    if SrcBmp.Transparent then
-    begin
-      TransparentColor := Color32(SrcBmp.TransparentColor) and $00FFFFFF;
-      DstP := @TargetBitmap.Bits[0];
-      for I := 0 to TargetBitmap.Width * TargetBitmap.Height - 1 do
-      begin
-        DstColor := DstP^ and $00FFFFFF;
-        if DstColor = TransparentColor then
-          DstP^ := DstColor;
-        Inc(DstP);
-      end;
-    end;
-
-    if Supports(TargetBitmap.Backend, IFontSupport, FontSupport) then // this is optional
-      FontSupport.Font.Assign(SrcBmp.Canvas.Font);
-  end;
-
-  procedure AssignFromIcon(TargetBitmap: TCustomBitmap32; SrcIcon: TIcon);
-  var
-    I: Integer;
-    P: PColor32Entry;
-    ReassignFromMasked: Boolean;
-  begin
-    AssignFromGraphicPlain(TargetBitmap, SrcIcon, 0, False);
-    if TargetBitmap.Empty then Exit;
-
-    // Check if the icon was painted with a merged alpha channel.
-    // That happens transparently for new-style 32-bit icons.
-    // For all other bit depths GDI will reset our alpha channel to opaque.
-    ReassignFromMasked := True;
-    P := PColor32Entry(@TargetBitmap.Bits[0]);
-    for I := 0 to TargetBitmap.Height * TargetBitmap.Width - 1 do
-    begin
-      if P.A > 0 then
-      begin
-        ReassignFromMasked := False;
-        Break;
-      end;
-      Inc(P);
-    end;
-
-    // No alpha values found? Use masked approach...
-    if ReassignFromMasked then
-      AssignFromGraphicMasked(TargetBitmap, SrcIcon);
-  end;
-
-  procedure AssignFromGraphic(TargetBitmap: TCustomBitmap32; SrcGraphic: TGraphic);
-  begin
-    if SrcGraphic is TBitmap then
-      AssignFromBitmap(TargetBitmap, TBitmap(SrcGraphic))
-    else if SrcGraphic is TIcon then
-      AssignFromIcon(TargetBitmap, TIcon(SrcGraphic))
-{$IFNDEF PLATFORM_INDEPENDENT}
-    else if SrcGraphic is TMetaFile then
-      AssignFromGraphicMasked(TargetBitmap, SrcGraphic)
-    {$IFDEF COMPILER2010_UP}
-    else if SrcGraphic is TWICImage then
-      AssignFromGraphicPlain(TargetBitmap, SrcGraphic, 0, False)
-    {$ENDIF}
-{$ENDIF}
-    else
-      AssignFromGraphicPlain(TargetBitmap, SrcGraphic, clWhite32, True);
-  end;
-
-var
-  Picture: TPicture;
 begin
   BeginUpdate;
   try
 
-    if (not Assigned(Source)) then
+    if (Source = nil) then
       SetSize(0, 0)
     else
     if (Source is TCustomBitmap32) then
@@ -3008,32 +2779,13 @@ begin
       TCustomBitmap32(Source).CopyMapTo(Self);
       TCustomBitmap32(Source).CopyPropertiesTo(Self);
     end else
-    if (Source is TGraphic) then
-      AssignFromGraphic(Self, TGraphic(Source))
-    else
-    if (Source is TPicture) then
-      AssignFromGraphic(Self, TPicture(Source).Graphic)
-    else
-    if (Source is TClipboard) then
-    begin
-      if (not PasteBitmap32FromClipboard(Self)) then
-      begin
-        // Fallback to TPicture
-        Picture := TPicture.Create;
-        try
-          Picture.Assign(TClipboard(Source));
-          AssignFromGraphic(Self, Picture.Graphic);
-        finally
-          Picture.Free;
-        end;
-      end;
-    end else
+    if (not ImageFormatManager.Adapters.AssignFrom(Self, Source)) then
       inherited; // default handler
 
   finally;
     EndUpdate;
-    Changed;
   end;
+  Changed;
 end;
 
 procedure TCustomBitmap32.CopyMapTo(Dst: TCustomBitmap32);
@@ -6154,43 +5906,13 @@ end;
 procedure TCustomBitmap32.LoadFromStream(Stream: TStream);
 var
   SavePos: Int64;
-{$ifdef LOADFROMSTREAM}
-  P: TPicture;
-{$else LOADFROMSTREAM}
-  B: TBitmap;
-{$endif LOADFROMSTREAM}
 begin
   SavePos := Stream.Position;
 
-  if (not LoadFromBMPStream(Stream, Stream.Size)) then
+  if (not ImageFormatManager.Readers.LoadFromStream(Self, Stream)) then
   begin
     Stream.Position := SavePos;
-
-{$ifdef LOADFROMSTREAM}
-
-    // TPicture.LoadFromStream requires TGraphic.CanLoadFromStream.
-    // Introduced in Delphi 10.2 and present in FPC as well
-    // See issue #145
-    P := TPicture.Create;
-    try
-      P.LoadFromStream(Stream);
-      Assign(P);
-    finally
-      P.Free;
-    end;
-
-{$else LOADFROMSTREAM}
-
-    // Fallback to TBitmap for Delphi 10.1 and older
-    B := TBitmap.Create;
-    try
-      B.LoadFromStream(Stream);
-      Assign(B);
-    finally
-      B.Free;
-    end;
-
-{$endif LOADFROMSTREAM}
+    raise Exception.Create(sUnknownImageFormat);
   end;
 
   Changed;
@@ -6356,9 +6078,6 @@ end;
 procedure TCustomBitmap32.LoadFromFile(const FileName: string);
 var
   FileStream: TFileStream;
-{$ifndef LOADFROMSTREAM}
-  P: TPicture;
-{$endif LOADFROMSTREAM}
 begin
 {$if (not defined(FPC)) and (CompilerVersion >= 31.0)} // TBufferedFileStream was introduced in Delphi 10.1
   FileStream := TBufferedFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
@@ -6367,39 +6086,34 @@ begin
 {$ifend}
   try
 
-{$ifdef LOADFROMSTREAM}
-
-    LoadFromStream(FileStream);
-
-{$else LOADFROMSTREAM}
-
-    if (LoadFromBMPStream(FileStream, FileStream.Size)) then
+    if (ImageFormatManager.Readers.LoadFromStream(Self, FileStream, FileName)) then
+    begin
+      Changed;
+      exit;
+    end else
+    if (ImageFormatManager.Readers.LoadFromStream(Self, FileStream)) then
     begin
       Changed;
       exit;
     end;
 
-{$endif LOADFROMSTREAM}
-
   finally
     FileStream.Free;
   end;
 
-{$ifndef LOADFROMSTREAM}
-  // Fallback to determing file format based on file type for Delphi 10.1. and older
-  // See issue #145
-  P := TPicture.Create;
-  try
-    P.LoadFromFile(FileName);
-    Assign(P);
-  finally
-    P.Free;
+  if (ImageFormatManager.Readers.LoadFromFile(Self, FileName)) then
+  begin
+    Changed;
+    exit;
   end;
-{$endif LOADFROMSTREAM}
+
+  raise Exception.Create(sUnknownImageFormat);
 end;
 
 procedure TCustomBitmap32.SaveToFile(const FileName: string; SaveTopDown: Boolean);
 begin
+  // TODO : Should we go through ImageFormatManager here?
+
   SaveToFile(FileName, SaveTopDown, DefaultBitmapHeaderVersion);
 end;
 
@@ -6415,58 +6129,26 @@ begin
   end;
 end;
 
-procedure TCustomBitmap32.LoadFromResourceID(Instance: THandle; ResID: Integer);
+procedure TCustomBitmap32.LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: PChar);
 var
   Stream: TStream;
-  B: TBitmap;
 begin
-  Stream := TResourceStream.CreateFromID(Instance, ResID, RT_BITMAP);
+  Stream := TResourceStream.CreateFromID(Instance, ResID, ResType);
   try
-    if (LoadFromDIBStream(Stream, Stream.Size)) then
-    begin
-      Changed;
-      exit;
-    end;
+
+    if (not ImageFormatManager.Readers.LoadFromStream(Self, Stream)) then
+      raise Exception.Create(sUnknownImageFormat);
+
+    Changed;
+
   finally
     Stream.Free;
   end;
-
-  // Fall back to TBitmap
-  B := TBitmap.Create;
-  try
-    B.LoadFromResourceID(Instance, ResID);
-    Assign(B);
-  finally
-    B.Free;
-  end;
-  Changed;
 end;
 
-procedure TCustomBitmap32.LoadFromResourceName(Instance: THandle; const ResName: string);
-var
-  Stream: TStream;
-  B: TBitmap;
+procedure TCustomBitmap32.LoadFromResourceName(Instance: THandle; const ResName: string; ResType: PChar);
 begin
-  Stream := TResourceStream.Create(Instance, ResName, RT_BITMAP);
-  try
-    if (LoadFromDIBStream(Stream, Stream.Size)) then
-    begin
-      Changed;
-      exit;
-    end;
-  finally
-    Stream.Free;
-  end;
-
-  // Fall back to TBitmap
-  B := TBitmap.Create;
-  try
-    B.LoadFromResourceName(Instance, ResName);
-    Assign(B);
-  finally
-    B.Free;
-  end;
-  Changed;
+  LoadFromResourceID(Instance, integer(PChar(ResName)), ResType);
 end;
 
 function TCustomBitmap32.Equal(B: TCustomBitmap32): Boolean;

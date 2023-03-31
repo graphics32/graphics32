@@ -24,6 +24,9 @@ unit amEasing;
 //   http://easings.net
 // -----------------------------------------------------------------------------
 
+// WEAKPACKAGEUNIT so we can include the unit in a design time package.
+{$WEAKPACKAGEUNIT ON}
+
 interface
 
 type
