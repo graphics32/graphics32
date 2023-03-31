@@ -94,7 +94,7 @@ type
     function LoadFromClipboardFormat(ADest: TCustomBitmap32; AFormat: TClipboardFormat; AData: THandle; APalette: THandle): boolean;
   strict private
     // IImageFormatResourceReader
-    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType; AStream: TStream): boolean;
   end;
 
   TBitmap32Cracker = class(TCustomBitmap32);
@@ -161,7 +161,7 @@ end;
 //------------------------------------------------------------------------------
 // IImageFormatResourceReader
 //------------------------------------------------------------------------------
-function TImageFormatAdapterBMP.LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar;
+function TImageFormatAdapterBMP.LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType;
   AStream: TStream): boolean;
 begin
   Result := TBitmap32Cracker(ADest).LoadFromDIBStream(AStream, AStream.Size);

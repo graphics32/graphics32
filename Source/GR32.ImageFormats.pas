@@ -236,7 +236,7 @@ type
     // Note: LoadFromFile only uses readers that implement IImageFormatFileReader
     // it does not fall back to IImageFormatReader.LoadFromStream
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
-    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType; AStream: TStream): boolean;
   end;
 
 
@@ -622,7 +622,7 @@ type
     function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream): boolean; overload;
     function LoadFromStream(ADest: TCustomBitmap32; AStream: TStream; const AFilename: string): boolean; overload;
     function LoadFromFile(ADest: TCustomBitmap32; const AFilename: string): boolean;
-    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType; AStream: TStream): boolean;
   private
     // IImageFormatWriters
     function FindWriter(const AFileType: string): IImageFormatWriter;
@@ -783,7 +783,7 @@ begin
   Result := False;
 end;
 
-function TImageFormatManager.LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar;
+function TImageFormatManager.LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType;
   AStream: TStream): boolean;
 var
   Item: TImageFormatItem;

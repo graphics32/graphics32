@@ -69,7 +69,7 @@ type
     function AssignTo(Source: TCustomBitmap32; Dest: TPersistent): boolean; override;
   strict private
     // IImageFormatResourceReader
-    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar; AStream: TStream): boolean;
+    function LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType; AStream: TStream): boolean;
   end;
 
 //------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ end;
 //------------------------------------------------------------------------------
 // IImageFormatResourceReader
 //------------------------------------------------------------------------------
-function TImageFormatAdapterTBitmap.LoadFromResource(ADest: TCustomBitmap32; AResourceType: PChar;
+function TImageFormatAdapterTBitmap.LoadFromResource(ADest: TCustomBitmap32; AResourceType: TResourceType;
   AStream: TStream): boolean;
 var
   Bitmap: TBitmap;

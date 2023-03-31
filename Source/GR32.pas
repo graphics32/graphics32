@@ -671,6 +671,11 @@ const
 
   AREAINFO_MASK         = $FF000000;
 
+{$ifndef FPC}
+type
+  TResourceType = PChar;
+{$endif FPC}
+
 type
   TPixelCombineEvent = procedure(F: TColor32; var B: TColor32; M: Cardinal) of object;
   TAreaChangedEvent = procedure(Sender: TObject; const Area: TRect;
@@ -829,8 +834,8 @@ type
     procedure SaveToFile(const FileName: string; SaveTopDown: Boolean = False); overload; virtual;
     procedure SaveToFile(const FileName: string; SaveTopDown: Boolean; InfoHeaderVersion: TInfoHeaderVersion); overload; virtual;
 
-    procedure LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: PChar = RT_BITMAP);
-    procedure LoadFromResourceName(Instance: THandle; const ResName: string; ResType: PChar = RT_BITMAP);
+    procedure LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: TResourceType = RT_BITMAP);
+    procedure LoadFromResourceName(Instance: THandle; const ResName: string; ResType: TResourceType = RT_BITMAP);
 
     procedure ResetAlpha; overload;
     procedure ResetAlpha(const AlphaValue: Byte); overload;
@@ -6129,7 +6134,7 @@ begin
   end;
 end;
 
-procedure TCustomBitmap32.LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: PChar);
+procedure TCustomBitmap32.LoadFromResourceID(Instance: THandle; ResID: Integer; ResType: TResourceType);
 var
   Stream: TStream;
 begin
@@ -6146,7 +6151,7 @@ begin
   end;
 end;
 
-procedure TCustomBitmap32.LoadFromResourceName(Instance: THandle; const ResName: string; ResType: PChar);
+procedure TCustomBitmap32.LoadFromResourceName(Instance: THandle; const ResName: string; ResType: TResourceType);
 begin
   LoadFromResourceID(Instance, integer(PChar(ResName)), ResType);
 end;
