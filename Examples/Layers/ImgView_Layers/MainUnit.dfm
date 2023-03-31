@@ -11,10 +11,8 @@ object MainForm: TMainForm
   Font.Name = 'Tahoma'
   Font.Style = []
   Menu = MainMenu
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  PixelsPerInch = 96
   TextHeight = 13
   object ImgView: TImgView32
     Left = 0
@@ -31,16 +29,11 @@ object MainForm: TMainForm
     ScrollBars.Style = rbsDefault
     ScrollBars.Size = 16
     SizeGrip = sgNone
-    OverSize = 0
+    OverSize = 20
     TabOrder = 0
     TabStop = True
     OnKeyDown = ImgViewKeyDown
     OnMouseDown = ImgViewMouseDown
-    OnMouseMove = ImgViewMouseMove
-    OnMouseUp = ImgViewMouseUp
-    OnMouseWheelDown = ImgViewMouseWheelDown
-    OnMouseWheelUp = ImgViewMouseWheelUp
-    OnPaintStage = ImgViewPaintStage
   end
   object PnlControl: TPanel
     Left = 656
@@ -54,27 +47,10 @@ object MainForm: TMainForm
       Left = 0
       Top = 0
       Width = 131
-      Height = 130
+      Height = 77
       Align = alTop
       TabOrder = 0
       Visible = False
-      object LblScale: TLabel
-        Left = 8
-        Top = 24
-        Width = 29
-        Height = 13
-        Caption = 'Scale:'
-      end
-      object ScaleCombo: TComboBox
-        Left = 16
-        Top = 40
-        Width = 105
-        Height = 21
-        DropDownCount = 9
-        TabOrder = 0
-        Text = '100%'
-        OnChange = ScaleComboChange
-      end
       object PnlImageHeader: TPanel
         Left = 1
         Top = 1
@@ -90,32 +66,32 @@ object MainForm: TMainForm
         Font.Name = 'Tahoma'
         Font.Style = []
         ParentFont = False
-        TabOrder = 1
+        TabOrder = 0
       end
       object CbxImageInterpolate: TCheckBox
         Left = 16
-        Top = 72
+        Top = 23
         Width = 97
         Height = 17
         Caption = 'Interpolated'
-        TabOrder = 2
+        TabOrder = 1
         OnClick = CbxImageInterpolateClick
       end
       object CbxOptRedraw: TCheckBox
         Left = 16
-        Top = 96
+        Top = 47
         Width = 105
         Height = 17
         Caption = 'Optimize Repaints'
         Checked = True
         State = cbChecked
-        TabOrder = 3
+        TabOrder = 2
         OnClick = CbxOptRedrawClick
       end
     end
     object PnlBitmapLayer: TPanel
       Left = 0
-      Top = 130
+      Top = 77
       Width = 131
       Height = 168
       Align = alTop
@@ -198,7 +174,7 @@ object MainForm: TMainForm
     end
     object PnlMagnification: TPanel
       Left = 0
-      Top = 408
+      Top = 355
       Width = 131
       Height = 168
       Align = alTop
@@ -297,7 +273,7 @@ object MainForm: TMainForm
     end
     object PnlButtonMockup: TPanel
       Left = 0
-      Top = 298
+      Top = 245
       Width = 131
       Height = 110
       Align = alTop
