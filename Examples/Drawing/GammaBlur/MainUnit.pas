@@ -20,12 +20,14 @@ type
     GaugeBarBlurRadius: TGaugeBar;
     LabelBlur: TLabel;
     LabelBlurValue: TLabel;
-    LabelBlurType: TLabel;
-    RadioButtonGaussianBlur: TRadioButton;
-    RadioButtonFastBlur: TRadioButton;
+    Panel1: TPanel;
     LabelTestImage: TLabel;
     RadioButtonRedGreen: TRadioButton;
     RadioButtonCircles: TRadioButton;
+    Panel2: TPanel;
+    LabelBlurType: TLabel;
+    RadioButtonGaussianBlur: TRadioButton;
+    RadioButtonFastBlur: TRadioButton;
     procedure PaintBoxIncorrectPaintBuffer(Sender: TObject);
     procedure PaintBoxCorrectPaintBuffer(Sender: TObject);
     procedure GaugeBarGammaChange(Sender: TObject);
