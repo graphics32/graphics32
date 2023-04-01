@@ -1307,17 +1307,18 @@ begin
   begin
     ValidateWorkingTiles;
 
-    for I := 0 to LayerCollections.Count - 1 do
-    with LayerCollections[I] do
-      for J := 0 to Count - 1 do
-      begin
-        Layer := Items[J];
-        TilesPtr := FOldInvalidTilesMap.Add(Layer)^;
+    if (LayerCollections <> nil) then
+      for I := 0 to LayerCollections.Count - 1 do
+      with LayerCollections[I] do
+        for J := 0 to Count - 1 do
+        begin
+          Layer := Items[J];
+          TilesPtr := FOldInvalidTilesMap.Add(Layer)^;
 
-        MicroTilesSetSize(TilesPtr^, FBufferBounds);
-        DrawLayerToMicroTiles(TilesPtr^, Layer);
-        TCustomLayerAccess(Layer).Invalid := False;
-      end;
+          MicroTilesSetSize(TilesPtr^, FBufferBounds);
+          DrawLayerToMicroTiles(TilesPtr^, Layer);
+          TCustomLayerAccess(Layer).Invalid := False;
+        end;
 
     FInvalidLayers.Clear;
 
