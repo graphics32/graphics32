@@ -118,8 +118,9 @@ destructor TCustomRepaintOptimizer.Destroy;
 var
   i: Integer;
 begin
-  for i := FLayerCollections.Count-1 downto 0 do
-    UnregisterLayerCollection(FLayerCollections[i]);
+  if (FLayerCollections <> nil) then
+    for i := FLayerCollections.Count-1 downto 0 do
+      UnregisterLayerCollection(FLayerCollections[i]);
 
   FLayerCollections.Free;
   inherited;
