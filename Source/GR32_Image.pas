@@ -137,9 +137,17 @@ type
     procedure CMMouseEnter(var Message: TMessage); message CM_MOUSEENTER;
     procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
 {$ENDIF}
+  protected
+    procedure BitmapChangeHandler(Sender: TObject);
     procedure DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
     procedure OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
   protected
+    // IUpdateRectNotification
+    procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+  protected
+    procedure CreateBuffer; virtual;
+    function CreateRepaintOptimizer(ABuffer: TBitmap32; AInvalidRects: TRectList): TCustomRepaintOptimizer; virtual;
+    procedure RepaintModeChanged; virtual;
     procedure SetRepaintMode(const Value: TRepaintMode); virtual;
     function  CustomRepaint: Boolean; virtual;
     function  InvalidRectsAvailable: Boolean; virtual;
@@ -150,6 +158,7 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer); override;
     procedure MouseEnter; {$IFDEF FPC} override; {$ELSE} virtual; {$ENDIF}
     procedure MouseLeave; {$IFDEF FPC} override; {$ELSE} virtual; {$ENDIF}
+    procedure AssignTo(Dest: TPersistent); override;
     procedure Paint; override;
     procedure ResetInvalidRects;
     procedure ResizeBuffer;
@@ -160,6 +169,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     function  GetViewportRect: TRect; virtual;
     procedure Flush; overload;
     procedure Flush(const SrcRect: TRect); overload;
@@ -168,7 +178,6 @@ type
     procedure Loaded; override;
     procedure Resize; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
-    procedure AssignTo(Dest: TPersistent); override;
     property Buffer: TBitmap32 read FBuffer;
     property BufferOversize: Integer read FBufferOversize write SetBufferOversize;
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
@@ -420,6 +429,9 @@ type
     CacheValid: Boolean;
     OldSzX, OldSzY: Integer;
     PaintToMode: Boolean;
+  protected
+    procedure CreateBuffer; override;
+    procedure RepaintModeChanged; override;
     procedure BitmapResized; virtual;
     procedure BitmapChanged(const Area: TRect); reintroduce; virtual;
     function CanMousePan: boolean; virtual;
@@ -440,7 +452,6 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer); reintroduce; overload; virtual;
     function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
     procedure MouseLeave; override;
-    procedure SetRepaintMode(const Value: TRepaintMode); override;
     procedure SetScaleMode(Value: TScaleMode); virtual;
     procedure SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
     procedure DoZoom(APivot: TFloatPoint; AScale: TFloat);
@@ -856,6 +867,58 @@ end;
 
 { TCustomPaintBox32 }
 
+constructor TCustomPaintBox32.Create(AOwner: TComponent);
+begin
+  inherited;
+
+  CreateBuffer;
+
+  FBufferOversize := 40;
+  FForceFullRepaint := True;
+  FInvalidRects := TRectList.Create;
+  FUpdateRects := TRectList.Create;
+  FRepaintOptimizer := CreateRepaintOptimizer(Buffer, FInvalidRects);
+
+  // RepaintModeChanged hooks up the bitmap event handlers according to the
+  // repaint mode.
+  RepaintModeChanged;
+
+  { Setting a initial size here will cause the control to crash under LCL }
+{$IFNDEF FPC}
+  SetBounds(0, 0, 192, 192);
+{$ENDIF}
+end;
+
+destructor TCustomPaintBox32.Destroy;
+begin
+  FRepaintOptimizer.Free;
+  FInvalidRects.Free;
+  UpdateRects.Free;
+  FBuffer.Free;
+  inherited;
+end;
+
+procedure TCustomPaintBox32.CreateBuffer;
+begin
+  FBuffer := TBitmap32.Create;
+end;
+
+function TCustomPaintBox32.CreateRepaintOptimizer(ABuffer: TBitmap32;
+  AInvalidRects: TRectList): TCustomRepaintOptimizer;
+begin
+  Result := DefaultRepaintOptimizerClass.Create(ABuffer, AInvalidRects);
+end;
+
+procedure TCustomPaintBox32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
+var
+  UpdateRectSupport: IUpdateRectSupport;
+begin
+  if (Supports(FBuffer.Backend, IUpdateRectSupport, UpdateRectSupport)) then
+    UpdateRectSupport.InvalidateRect(Self, AArea)
+  else
+    inherited Invalidate;
+end;
+
 procedure TCustomPaintBox32.AssignTo(Dest: TPersistent);
 begin
   inherited AssignTo(Dest);
@@ -883,31 +946,6 @@ end;
 procedure TCustomPaintBox32.CMMouseLeave(var Message: {$IFDEF FPC}TLMessage{$ELSE}TMessage{$ENDIF});
 begin
   MouseLeave;
-  inherited;
-end;
-
-constructor TCustomPaintBox32.Create(AOwner: TComponent);
-begin
-  inherited;
-  FBuffer := TBitmap32.Create;
-  FBufferOversize := 40;
-  FForceFullRepaint := True;
-  FInvalidRects := TRectList.Create;
-  FUpdateRects := TRectList.Create;
-  FRepaintOptimizer := DefaultRepaintOptimizerClass.Create(Buffer, InvalidRects);
-
-  { Setting a initial size here will cause the control to crash under LCL }
-{$IFNDEF FPC}
-  SetBounds(0, 0, 192, 192);
-{$ENDIF}
-end;
-
-destructor TCustomPaintBox32.Destroy;
-begin
-  FRepaintOptimizer.Free;
-  FInvalidRects.Free;
-  UpdateRects.Free;
-  FBuffer.Free;
   inherited;
 end;
 
@@ -1254,42 +1292,76 @@ begin
   FUpdateRects.Count := 0;
 end;
 
-procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject;
-  const Area: TRect; const Info: Cardinal);
+procedure TCustomPaintBox32.BitmapChangeHandler(Sender: TObject);
 begin
-  FInvalidRects.Add(Area);
+  FRepaintOptimizer.Reset;
+  // Request that everything be repainted
+  inherited Invalidate;;
+end;
+
+procedure TCustomPaintBox32.DirectAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
+begin
+  // Request that the area be repainted...
+  AreaUpdated(Area, Info);
+
   if not(csCustomPaint in ControlState) then
-    Repaint;
+    // ...and process pending updates
+    Update;
 end;
 
 procedure TCustomPaintBox32.OptimizedAreaUpdateHandler(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   UpdateRectNotification: IUpdateRectNotification;
 begin
+  // Add the area to the optimizer
   if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
     UpdateRectNotification.AreaUpdated(Area, Info);
+
+  // Request that the area be repainted
+  AreaUpdated(Area, Info);
+end;
+
+procedure TCustomPaintBox32.RepaintModeChanged;
+begin
+  // Setup event handler on change of area
+  if (FBuffer <> nil) then
+  begin
+    case FRepaintMode of
+      rmOptimizer:
+        begin
+          FBuffer.OnAreaChanged := OptimizedAreaUpdateHandler;
+          FBuffer.OnChange := nil;
+        end;
+
+      rmDirect:
+        begin
+          FBuffer.OnAreaChanged := DirectAreaUpdateHandler;
+          FBuffer.OnChange := nil;
+        end;
+
+      rmFull:
+        begin
+          FBuffer.OnAreaChanged := nil;
+          FBuffer.OnChange := BitmapChangeHandler;
+        end
+    end;
+  end;
 end;
 
 procedure TCustomPaintBox32.SetRepaintMode(const Value: TRepaintMode);
 begin
-  if (FRepaintOptimizer = nil) then
-    exit;
+  if (Value <> FRepaintMode) then
+  begin
+    FRepaintMode := Value;
 
-  // setup event handler on change of area
-  FBuffer.OnAreaChanged := nil;
-  case Value of
-    rmOptimizer:
-      if not(Self is TCustomImage32) then
-        FBuffer.OnAreaChanged := OptimizedAreaUpdateHandler;
+    if (FRepaintOptimizer <> nil) then
+      FRepaintOptimizer.Enabled := (FRepaintMode = rmOptimizer);
 
-    rmDirect:
-      FBuffer.OnAreaChanged := DirectAreaUpdateHandler;
+    // Update buffer event handlers according to repaint mode
+    RepaintModeChanged;
+
+    Invalidate;
   end;
-
-  FRepaintOptimizer.Enabled := (Value = rmOptimizer);
-
-  FRepaintMode := Value;
-  Invalidate;
 end;
 
 
@@ -1524,14 +1596,11 @@ constructor TCustomImage32.Create(AOwner: TComponent);
 begin
   inherited;
   ControlStyle := [csAcceptsControls, csCaptureMouse, csClickEvents, csDoubleClicks, csReplicatable, csOpaque];
-  FBitmap := TBitmap32.Create;
-  FBitmap.OnResize := BitmapResizeHandler;
 
   FLayers := CreateLayerCollection;
   FLayers.Subscribe(Self);
 
   FRepaintOptimizer.RegisterLayerCollection(FLayers);
-  RepaintMode := rmFull;
 
   FPaintStages := TPaintStages.Create;
   FScaleX := 1;
@@ -1559,6 +1628,48 @@ begin
   FMousePanOptions.Free;
   FMouseZoomOptions.Free;
   inherited;
+end;
+
+procedure TCustomImage32.CreateBuffer;
+begin
+  inherited;
+
+  FBitmap := TBitmap32.Create;
+  FBitmap.OnResize := BitmapResizeHandler;
+end;
+
+procedure TCustomImage32.RepaintModeChanged;
+begin
+  // Beware! This is called from TCustomPaintBox32.Create
+
+  // Note: We don't really need to call inherited here since we don't want the
+  // paintbox buffer event handlers set. However, since we're supressing the
+  // buffer change events in derived classes with BeginUpdate/EndUpdate there's
+  // no harm in doing it.
+  inherited;
+
+  if (FBitmap <> nil) then
+  begin
+    case RepaintMode of
+      rmOptimizer:
+        begin
+          FBitmap.OnAreaChanged := BitmapAreaChangeHandler;
+          FBitmap.OnChange := nil;
+        end;
+
+      rmDirect:
+        begin
+          FBitmap.OnAreaChanged := BitmapDirectAreaChangeHandler;
+          FBitmap.OnChange := nil;
+        end;
+
+      rmFull:
+        begin
+          FBitmap.OnAreaChanged := nil;
+          FBitmap.OnChange := BitmapChangeHandler;
+        end;
+    end;
+  end;
 end;
 
 function TCustomImage32.GetLayerCollectionClass: TLayerCollectionClass;
@@ -3030,28 +3141,6 @@ begin
     CachedRecScaleY := 1 / ScaleY
   else
     CachedRecScaleY := 0;
-end;
-
-procedure TCustomImage32.SetRepaintMode(const Value: TRepaintMode);
-begin
-  inherited;
-
-  case Value of
-    rmOptimizer:
-      begin
-        FBitmap.OnAreaChanged := BitmapAreaChangeHandler;
-        FBitmap.OnChange := nil;
-      end;
-
-    rmDirect:
-      begin
-        FBitmap.OnAreaChanged := BitmapDirectAreaChangeHandler;
-        FBitmap.OnChange := nil;
-      end;
-  else
-    FBitmap.OnAreaChanged := nil;
-    FBitmap.OnChange := BitmapChangeHandler;
-  end;
 end;
 
 procedure TCustomImage32.UpdateCache;

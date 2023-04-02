@@ -653,10 +653,14 @@ begin
 
   with MicroTiles.BoundsUsedTiles do
   begin
-    if LeftTile < Left then Left := LeftTile;
-    if TopTile < Top then Top := TopTile;
-    if RightTile > Right then Right := RightTile;
-    if BottomTile > Bottom then Bottom := BottomTile;
+    if LeftTile < Left then
+      Left := LeftTile;
+    if TopTile < Top then
+      Top := TopTile;
+    if RightTile > Right then
+      Right := RightTile;
+    if BottomTile > Bottom then
+      Bottom := BottomTile;
   end;
 end;
 
@@ -842,8 +846,8 @@ begin
   Result := 0;
 
   if (MicroTiles.Count = 0) or
-     (MicroTiles.BoundsUsedTiles.Right - MicroTiles.BoundsUsedTiles.Left < 0) or
-     (MicroTiles.BoundsUsedTiles.Bottom - MicroTiles.BoundsUsedTiles.Top < 0) then Exit;
+     (MicroTiles.BoundsUsedTiles.Right < MicroTiles.BoundsUsedTiles.Left) or
+     (MicroTiles.BoundsUsedTiles.Bottom < MicroTiles.BoundsUsedTiles.Top) then Exit;
 
   SetLength(Rects, MicroTiles.Columns * MicroTiles.Rows);
   SetLength(CombLUT, MicroTiles.Columns * MicroTiles.Rows);
