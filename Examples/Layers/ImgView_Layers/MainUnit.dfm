@@ -522,4 +522,10 @@ object MainForm: TMainForm
       OnUpdate = ActionPasteIntoUpdate
     end
   end
+  object TimerMarchingAnts: TTimer
+    Interval = 50
+    OnTimer = TimerMarchingAntsTimer
+    Left = 388
+    Top = 312
+  end
 end

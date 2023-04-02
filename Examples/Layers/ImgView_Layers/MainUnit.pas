@@ -121,6 +121,7 @@ type
     MenuItemPasteNew: TMenuItem;
     ActionPasteInto: TAction;
     MenuItemPasteInto: TMenuItem;
+    TimerMarchingAnts: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnLayerRescaleClick(Sender: TObject);
@@ -159,6 +160,7 @@ type
     procedure ActionCopyExecute(Sender: TObject);
     procedure ActionPasteIntoExecute(Sender: TObject);
     procedure ActionPasteNewExecute(Sender: TObject);
+    procedure TimerMarchingAntsTimer(Sender: TObject);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -800,6 +802,7 @@ begin
         RBLayer := TRubberBandLayer.Create(ImgView.Layers);
         RBLayer.MinHeight := 1;
         RBLayer.MinWidth := 1;
+        RBLayer.SetFrameStipple([clWhite32, clWhite32, clWhite32, clWhite32, clBlack32, clBlack32, clBlack32, clBlack32]);
       end
       else
         RBLayer.BringToFront;
@@ -826,6 +829,26 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TMainForm.TimerMarchingAntsTimer(Sender: TObject);
+const
+  StippleSize = 8; // The size of our stipple pattern. The default pattern has a size of 4
+begin
+  if (RBLayer = nil) or (not RBLayer.Visible) then
+    exit;
+
+  // Only animate when our application is active
+  if (not Application.Active) then
+    exit;
+
+  var NewStippleCounter := RBLayer.FrameStippleCounter+1.5;
+
+  // Handle overflow
+  if (NewStippleCounter >= StippleSize) then
+    NewStippleCounter := NewStippleCounter - StippleSize;
+
+  RBLayer.FrameStippleCounter := NewStippleCounter;
 end;
 
 procedure TMainForm.MnuScaledClick(Sender: TObject);
