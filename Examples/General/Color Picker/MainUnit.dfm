@@ -1,6 +1,7 @@
 object FormMain: TFormMain
   Left = 0
   Top = 0
+  BorderStyle = bsDialog
   Caption = 'Color Picker'
   ClientHeight = 293
   ClientWidth = 358
@@ -11,6 +12,7 @@ object FormMain: TFormMain
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  Position = poOwnerFormCenter
   OnCreate = FormCreate
   DesignSize = (
     358

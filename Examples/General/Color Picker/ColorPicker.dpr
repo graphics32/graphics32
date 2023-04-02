@@ -1,7 +1,10 @@
 program ColorPicker;
 
 uses
-  Vcl.Forms,
+{$ifdef FPC}
+  Interfaces,
+{$endif FPC}
+  Forms,
   MainUnit in 'MainUnit.pas' {FormMain};
 
 {$R *.res}

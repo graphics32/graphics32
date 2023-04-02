@@ -79,7 +79,8 @@ begin
   FScreenColorPickerForm := TScreenColorPickerForm.Create(Application);
   try
     FScreenColorPickerForm.OnMouseMove := ScreenColorPickerMouseMove;
-    if FScreenColorPickerForm.ShowModal = mrOk then
+
+    if FScreenColorPickerForm.Execute then
       Color := FScreenColorPickerForm.SelectedColor;
   finally
     FreeAndNil(FScreenColorPickerForm);
