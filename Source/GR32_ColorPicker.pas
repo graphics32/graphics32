@@ -60,8 +60,11 @@ type
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X: Integer;
       Y: Integer); override;
     procedure MouseMove(Shift: TShiftState; X: Integer; Y: Integer); override;
+    procedure WMEraseBkgnd(var Message: TWmEraseBkgnd); message WM_ERASEBKGND;
   public
     constructor Create(AOwner: TComponent); override;
+
+    function Execute: boolean;
 
     property SelectedColor: TColor32 read FSelectedColor write FSelectedColor;
     property OnColorSelected: TNotifyEvent read FOnColorSelected write FOnColorSelected;
@@ -655,12 +658,14 @@ end;
 constructor TScreenColorPickerForm.Create(AOwner: TComponent);
 begin
   inherited CreateNew(AOwner);
-  Align := alClient;
+  ControlStyle := ControlStyle + [csOpaque];
   BorderIcons := [];
   BorderStyle := bsNone;
   Caption := 'Pick a color...';
   FormStyle := fsStayOnTop;
-  Position := poDefault;
+  Position := poDesigned;
+  WindowState := wsMaximized;
+  Cursor := crHandPoint;
   FSelectedColor := 0;
 end;
 
@@ -668,6 +673,14 @@ procedure TScreenColorPickerForm.CreateParams(var Params: TCreateParams);
 begin
   inherited CreateParams(Params);
   Params.ExStyle := WS_EX_TRANSPARENT or WS_EX_TOPMOST;
+  // Theoretically this should make Windows use a null brush when clearing the
+  // background (i.e. do nothing), but unfortunately it doesn't seem to work.
+  Params.WindowClass.hbrBackground := NULL_BRUSH;
+end;
+
+function TScreenColorPickerForm.Execute: boolean;
+begin
+  Result := (ShowModal = mrOK);
 end;
 
 procedure TScreenColorPickerForm.KeyDown(var Key: Word; Shift: TShiftState);
@@ -702,6 +715,14 @@ begin
   inherited;
 end;
 
+
+procedure TScreenColorPickerForm.WMEraseBkgnd(var Message: TWmEraseBkgnd);
+begin
+  // Do not erase window background
+  Message.Result := 1;
+
+  // Note: Does not work with FPC. The message is processed but the background is still cleared.
+end;
 
 { THueCirclePolygonFiller }
 
