@@ -709,16 +709,13 @@ begin
 end;
 
 procedure TFlattenedPath.AddPoint(const Point: TFloatPoint);
-var
-  n: Integer;
 begin
   if (FPointIndex = 0) then
     DoBeginPath;
 
   // Grow buffer if required
-  n := Length(FPoints);
-  if (FPointIndex >= n) then
-    SetLength(FPoints, n + VertexBufferSizeGrow);
+  if (FPointIndex > High(FPoints)) then
+    SetLength(FPoints, FPointIndex + VertexBufferSizeGrow);
 
   // Add vertex to buffer
   FPoints[FPointIndex] := Point;
