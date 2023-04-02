@@ -2009,8 +2009,13 @@ procedure TRubberbandLayer.SetHandles(Value: TRBHandles);
 begin
   if Value <> FHandles then
   begin
+    // Erase old
+    Update;
+
     FHandles := Value;
-    FLayerCollection.GDIUpdate;
+
+    // Paint new
+    Update;
   end;
 end;
 
@@ -2018,10 +2023,16 @@ procedure TRubberbandLayer.SetHandleSize(Value: TFloat);
 begin
   if Value < 1 then
     Value := 1;
+
   if Value <> FHandleSize then
   begin
+    // Erase old
+    Update;
+
     FHandleSize := Value;
-    FLayerCollection.GDIUpdate;
+
+    // Paint new
+    Update;
   end;
 end;
 
@@ -2039,7 +2050,9 @@ begin
   if Value <> FFrameStippleStep then
   begin
     FFrameStippleStep := Value;
-    FLayerCollection.GDIUpdate;
+
+    // Repaint
+    Update;
   end;
 end;
 
@@ -2095,7 +2108,8 @@ begin
   if Value <> FFrameStippleCounter then
   begin
     FFrameStippleCounter := Value;
-    FLayerCollection.GDIUpdate;
+    // Repaint
+    Update;
   end;
 end;
 
