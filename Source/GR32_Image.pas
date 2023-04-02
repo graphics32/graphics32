@@ -119,10 +119,14 @@ type
     FForceFullRepaint: Boolean;
     FRepaintOptimizer: TCustomRepaintOptimizer;
     FOptions: TPaintBoxOptions;
-    FOnGDIOverlay: TNotifyEvent;
+    FUpdateCount: Integer;
+    FLockUpdateCount: Integer;
+    FModified: boolean;
     FMouseInControl: Boolean;
+    FOnGDIOverlay: TNotifyEvent;
     FOnMouseEnter: TNotifyEvent;
     FOnMouseLeave: TNotifyEvent;
+    FOnChange: TNotifyEvent;
     procedure SetBufferOversize(Value: Integer);
 {$IFDEF FPC}
     procedure WMEraseBkgnd(var Message: TLMEraseBkgnd); message LM_ERASEBKGND;
@@ -162,13 +166,24 @@ type
     procedure Paint; override;
     procedure ResetInvalidRects;
     procedure ResizeBuffer;
+    procedure DoChanged; virtual;
     property  RepaintOptimizer: TCustomRepaintOptimizer read FRepaintOptimizer;
     property  BufferValid: Boolean read FBufferValid write FBufferValid;
     property  InvalidRects: TRectList read FInvalidRects;
     property  UpdateRects: TRectList read FUpdateRects;
+    property UpdateCount: Integer read FUpdateCount;
+    property LockUpdateCount: Integer read FLockUpdateCount;
+    property Modified: boolean read FModified;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
+    procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure Changed; {$IFDEF USEINLINING} inline; {$ENDIF}
+
+    procedure BeginLockUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure EndLockUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
 
     function  GetViewportRect: TRect; virtual;
     procedure Flush; overload;
@@ -178,11 +193,14 @@ type
     procedure Loaded; override;
     procedure Resize; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
+
     property Buffer: TBitmap32 read FBuffer;
     property BufferOversize: Integer read FBufferOversize write SetBufferOversize;
     property Options: TPaintBoxOptions read FOptions write FOptions default [];
     property MouseInControl: Boolean read FMouseInControl;
     property RepaintMode: TRepaintMode read FRepaintMode write SetRepaintMode default rmFull;
+
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnMouseEnter: TNotifyEvent read FOnMouseEnter write FOnMouseEnter;
     property OnMouseLeave: TNotifyEvent read FOnMouseLeave write FOnMouseLeave;
     property OnGDIOverlay: TNotifyEvent read FOnGDIOverlay write FOnGDIOverlay;
@@ -215,6 +233,7 @@ type
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
+    property OnChange;
     property OnClick;
     property OnDblClick;
     property OnDragDrop;
@@ -388,11 +407,8 @@ type
     FMouseZoomOptions: TMouseZoomOptions;
     FIsMousePanning: boolean;
     FMousePanStartPos: TPoint;
-    FUpdateCount: Integer;
     FPartialRepaintQueued: boolean;
-    FModified: boolean;
     FOnBitmapResize: TNotifyEvent;
-    FOnChange: TNotifyEvent;
     FOnInitStages: TNotifyEvent;
     FOnMouseDown: TImgMouseEvent;
     FOnMouseMove: TImgMouseMoveEvent;
@@ -460,23 +476,20 @@ type
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
-    property  UpdateCount: Integer read FUpdateCount;
-    procedure DoChanged; virtual;
+    procedure DoChanged; override;
   protected
     // IUpdateRectNotification
     procedure AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     function  BitmapToControl(const APoint: TPoint): TPoint; overload;
     function  BitmapToControl(const APoint: TFloatPoint): TFloatPoint; overload;
     function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
     function  ControlToBitmap(const ARect: TRect): TRect;  overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
-    procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
-    procedure Changed; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure Update(const Rect: TRect); reintroduce; overload; virtual;
-    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
     procedure ExecClearBuffer(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_CLEAR_BUFFER
     procedure ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer); virtual;  // PST_CLEAR_BACKGND
@@ -493,6 +506,7 @@ type
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
     procedure Scroll(Dx, Dy: Integer); overload;
     procedure Scroll(Dx, Dy: Single); overload; virtual;
+
     property Bitmap: TBitmap32 read FBitmap write SetBitmap;
     property BitmapAlign: TBitmapAlign read FBitmapAlign write SetBitmapAlign;
     property Canvas;
@@ -508,9 +522,9 @@ type
     property MousePan: TMousePanOptions read FMousePanOptions write SetMousePanOptions;
     property MouseZoom: TMouseZoomOptions read FMouseZoomOptions write SetMouseZoomOptions;
     property IsMousePanning: boolean read FIsMousePanning;
+
     property OnBitmapResize: TNotifyEvent read FOnBitmapResize write FOnBitmapResize;
     property OnBitmapPixelCombine: TPixelCombineEvent read GetOnPixelCombine write SetOnPixelCombine;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property OnInitStages: TNotifyEvent read FOnInitStages write FOnInitStages;
     property OnMouseDown: TImgMouseEvent read FOnMouseDown write FOnMouseDown;
     property OnMouseMove: TImgMouseMoveEvent read FOnMouseMove write FOnMouseMove;
@@ -548,8 +562,8 @@ type
 {$IFNDEF PLATFORM_INDEPENDENT}
     property OnCanResize;
 {$ENDIF}
-    property OnClick;
     property OnChange;
+    property OnClick;
     property OnContextPopup;
     property OnDblClick;
     property OnGDIOverlay;
@@ -907,6 +921,54 @@ function TCustomPaintBox32.CreateRepaintOptimizer(ABuffer: TBitmap32;
   AInvalidRects: TRectList): TCustomRepaintOptimizer;
 begin
   Result := DefaultRepaintOptimizerClass.Create(ABuffer, AInvalidRects);
+end;
+
+procedure TCustomPaintBox32.BeginUpdate;
+begin
+  // Defer OnChange notifications
+  Inc(FUpdateCount);
+end;
+
+procedure TCustomPaintBox32.EndUpdate;
+begin
+  Assert(FUpdateCount > 0, 'Unpaired EndUpdate call');
+  // Re-enable OnChange generation
+  if (FUpdateCount = 1) then
+  begin
+    if (FModified) then
+    begin
+      DoChanged;
+      FModified := False;
+    end;
+  end;
+
+  Dec(FUpdateCount);
+end;
+
+procedure TCustomPaintBox32.BeginLockUpdate;
+begin
+  Inc(FLockUpdateCount);
+end;
+
+procedure TCustomPaintBox32.EndLockUpdate;
+begin
+  Assert(FLockUpdateCount > 0, 'Unpaired UnlockUpdate call');
+  Dec(FLockUpdateCount);
+end;
+
+procedure TCustomPaintBox32.Changed;
+begin
+  if (FLockUpdateCount > 0) then
+    exit;
+  BeginUpdate;
+  FModified := True;
+  EndUpdate;
+end;
+
+procedure TCustomPaintBox32.DoChanged;
+begin
+  if Assigned(FOnChange) then
+    FOnChange(Self);
 end;
 
 procedure TCustomPaintBox32.AreaUpdated(const AArea: TRect; const AInfo: Cardinal);
@@ -1618,7 +1680,7 @@ end;
 
 destructor TCustomImage32.Destroy;
 begin
-  BeginUpdate;
+  BeginLockUpdate; // Block further notifications
   FPaintStages.Free;
   FRepaintOptimizer.UnregisterLayerCollection(FLayers);
   FLayers.Unsubscribe(Self);
@@ -1701,42 +1763,13 @@ begin
   BufferValid := False;
 end;
 
-procedure TCustomImage32.BeginUpdate;
-begin
-  // disable OnChange & OnChanging generation
-  Inc(FUpdateCount);
-end;
-
-procedure TCustomImage32.EndUpdate;
-begin
-  Assert(FUpdateCount > 0, 'Unpaired EndUpdate call');
-  // re-enable OnChange & OnChanging generation
-  if (FUpdateCount = 1) then
-  begin
-    if (FModified) then
-    begin
-      DoChanged;
-      FModified := False;
-    end;
-  end;
-
-  Dec(FUpdateCount);
-end;
-
-procedure TCustomImage32.Changed;
-begin
-  BeginUpdate;
-  FModified := True;
-  EndUpdate;
-end;
-
 procedure TCustomImage32.DoChanged;
 begin
   // If partial repaints hasn't been queued then we need to do a full repaint
   if (not FPartialRepaintQueued) then
     Invalidate;
-  if Assigned(FOnChange) then
-    FOnChange(Self);
+
+  inherited;
 end;
 
 procedure TCustomImage32.Update(const Rect: TRect);
@@ -1940,14 +1973,9 @@ begin
     end;
   end;
 
-  if FUpdateCount = 0 then
-  begin
-    if not(csCustomPaint in ControlState) then
-      Repaint;
-
-    if Assigned(FOnChange) then
-      FOnChange(Self);
-  end;
+  Changed;
+  if not(csCustomPaint in ControlState) then
+    Update;
 end;
 
 function TCustomImage32.CanAutoSize(var NewWidth, NewHeight: Integer): Boolean;
@@ -2216,10 +2244,11 @@ begin
 
       DoSetPivot(NewOffset);
     end;
+
+    Changed;
   finally
     EndUpdate;
   end;
-  Changed;
 end;
 
 procedure TCustomImage32.DoZoom(APivot: TFloatPoint; AScale: TFloat);
@@ -2980,8 +3009,6 @@ begin
   finally
     EndUpdate;
   end;
-
-  Changed;
 end;
 
 procedure TCustomImage32.Scroll(Dx, Dy: Integer);
@@ -3668,26 +3695,28 @@ begin
   end;
 
   BeginUpdate;
-  if not Centered then
-  begin
-    OffsetHorz := -HScroll.Position + ScaledOversize;
-    OffsetVert := -VScroll.Position + ScaledOversize;
-  end
-  else
-  begin
-    if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetHorz := (W - Sz.Cx) * 0.5
-    else
-      OffsetHorz := -HScroll.Position + ScaledOversize;
+  try
+    if Centered then
+    begin
+      if W > Sz.Cx + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
+        OffsetHorz := (W - Sz.Cx) * 0.5
+      else
+        OffsetHorz := -HScroll.Position + ScaledOversize;
 
-    if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
-      OffsetVert := (H - Sz.Cy) * 0.5
-    else
+      if H > Sz.Cy + 2 * ScaledOversize then // Viewport is bigger than scaled Bitmap
+        OffsetVert := (H - Sz.Cy) * 0.5
+      else
+        OffsetVert := -VScroll.Position + ScaledOversize;
+    end else
+    begin
+      OffsetHorz := -HScroll.Position + ScaledOversize;
       OffsetVert := -VScroll.Position + ScaledOversize;
+    end;
+
+    InvalidateCache;
+  finally
+    EndUpdate;
   end;
-  InvalidateCache;
-  EndUpdate;
-  Changed;
 end;
 
 procedure TCustomImgView32.UpdateScrollBars;
