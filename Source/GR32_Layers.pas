@@ -106,6 +106,8 @@ type
     FMouseEvents: Boolean;
     FMouseListener: TCustomLayer;
     FUpdateCount: Integer;
+    FLockUpdateCount: Integer;
+    FModified: boolean;
     FOwner: TPersistent;
     FSubscribers: TList<IInterface>;
     FOnChanging: TNotifyEvent;
@@ -122,10 +124,12 @@ type
     procedure SetMouseEvents(Value: Boolean);
     procedure SetMouseListener(Value: TCustomLayer);
   protected
-    procedure BeginUpdate;
-    procedure Changed;
-    procedure Changing;
-    procedure EndUpdate;
+    procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure BeginLockUpdate;
+    procedure EndLockUpdate;
+    procedure Changed; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure Changing; {$IFDEF USEINLINING} inline; {$ENDIF}
     function  FindLayerAtPos(X, Y: Integer; OptionsMask: Cardinal): TCustomLayer;
     function  GetItem(Index: Integer): TCustomLayer;
     function  GetOwner: TPersistent; override;
@@ -137,6 +141,10 @@ type
     function MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseMove(Shift: TShiftState; X, Y: Integer): TCustomLayer;
     function MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
+
+    property UpdateCount: Integer read FUpdateCount;
+    property LockUpdateCount: Integer read FLockUpdateCount;
+    property Modified: boolean read FModified;
 
     property OnChanging: TNotifyEvent read FOnChanging write FOnChanging;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
@@ -243,6 +251,7 @@ type
     procedure SetCursor(Value: TCursor); virtual;
     procedure SetLayerCollection(Value: TLayerCollection); virtual;
     procedure SetLayerOptions(Value: Cardinal); virtual;
+    procedure DoChanged; overload; override;
 
     property Invalid: Boolean read GetInvalid write SetInvalid;
     property ForceUpdate: Boolean read GetForceUpdate write SetForceUpdate;
@@ -252,7 +261,6 @@ type
 
     procedure BeforeDestruction; override;
     procedure BringToFront;
-    procedure Changed; overload; override;
     procedure Changed(const Rect: TRect); reintroduce; overload;
     procedure Update; overload; virtual;
     procedure Update(const Rect: TRect); overload;
@@ -510,6 +518,25 @@ type
 
 { TLayerCollection }
 
+constructor TLayerCollection.Create(AOwner: TPersistent);
+begin
+  inherited Create;
+
+  FOwner := AOwner;
+  FItems := TList.Create;
+  FMouseEvents := True;
+end;
+
+destructor TLayerCollection.Destroy;
+begin
+  FUpdateCount := 1; // disable update notification
+  if (FItems <> nil) then
+    Clear;
+  FItems.Free;
+  FSubscribers.Free;
+  inherited;
+end;
+
 function TLayerCollection.Add(ItemClass: TLayerClass): TCustomLayer;
 begin
   Result := ItemClass.Create(Self);
@@ -532,12 +559,12 @@ begin
         Item := TLayerCollection(Source).Items[I];
         Add(TLayerClass(Item.ClassType)).Assign(Item);
       end;
+      Changed;
     finally
       EndUpdate;
     end;
-    Exit;
-  end;
-  inherited Assign(Source);
+  end else
+    inherited Assign(Source);
 end;
 
 procedure TLayerCollection.BeginUpdate;
@@ -547,10 +574,35 @@ begin
   Inc(FUpdateCount);
 end;
 
+procedure TLayerCollection.EndUpdate;
+begin
+  Assert(FUpdateCount > 0, 'Unpaired EndUpdate');
+  if FUpdateCount = 1 then
+  begin
+    if (FModified) and (Assigned(FOnChange)) then
+      FOnChange(Self);
+    FModified := False;
+  end;
+  Dec(FUpdateCount);
+end;
+
+procedure TLayerCollection.BeginLockUpdate;
+begin
+  Inc(FLockUpdateCount);
+end;
+
+procedure TLayerCollection.EndLockUpdate;
+begin
+  Dec(FLockUpdateCount);
+end;
+
 procedure TLayerCollection.Changed;
 begin
-  if Assigned(FOnChange) then
-    FOnChange(Self);
+  if (FLockUpdateCount > 0) then
+    exit;
+  BeginUpdate;
+  FModified := True;
+  EndUpdate;
 end;
 
 procedure TLayerCollection.Changing;
@@ -563,43 +615,18 @@ procedure TLayerCollection.Clear;
 begin
   BeginUpdate;
   try
-    while FItems.Count > 0 do TCustomLayer(FItems.Last).Free;
+    while FItems.Count > 0 do
+      TCustomLayer(FItems.Last).Free;
     Notify(lnCleared, nil, 0);
+    Changed;
   finally
     EndUpdate;
   end;
 end;
 
-constructor TLayerCollection.Create(AOwner: TPersistent);
-begin
-  inherited Create;
-
-  FOwner := AOwner;
-  FItems := TList.Create;
-  FMouseEvents := True;
-end;
-
 procedure TLayerCollection.Delete(Index: Integer);
 begin
   TCustomLayer(FItems[Index]).Free;
-end;
-
-destructor TLayerCollection.Destroy;
-begin
-  FUpdateCount := 1; // disable update notification
-  if Assigned(FItems) then
-    Clear;
-  FItems.Free;
-  FSubscribers.Free;
-  inherited;
-end;
-
-procedure TLayerCollection.EndUpdate;
-begin
-  Dec(FUpdateCount);
-  if FUpdateCount = 0 then
-    Changed;
-  Assert(FUpdateCount >= 0, 'Unpaired EndUpdate');
 end;
 
 function TLayerCollection.FindLayerAtPos(X, Y: Integer; OptionsMask: Cardinal): TCustomLayer;
@@ -644,6 +671,7 @@ begin
     Result := Add(ItemClass);
     Result.Index := Index;
     Notify(lnLayerInserted, Result, Index);
+    Changed;
   finally
     EndUpdate;
   end;
@@ -658,6 +686,7 @@ begin
     Index := FItems.Add(Item);
     Item.FLayerCollection := Self;
     Notify(lnLayerAdded, Item, Index);
+    Changed;
   finally
     EndUpdate;
   end;
@@ -697,7 +726,7 @@ end;
 
 function TLayerCollection.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Integer): TCustomLayer;
 begin
-  if Assigned(MouseListener) then
+  if (MouseListener <> nil) then
     Result := MouseListener
   else
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
@@ -705,7 +734,7 @@ begin
   if (Result <> MouseListener) and ((Result = nil) or ((Result.FLayerOptions and LOB_NO_CAPTURE) = 0)) then
     MouseListener := Result; // capture the mouse
 
-  if Assigned(MouseListener) then
+  if (MouseListener <> nil) then
   begin
     Include(MouseListener.FLayerStates, CStateMap[Button]);
     MouseListener.MouseDown(Button, Shift, X, Y);
@@ -718,9 +747,10 @@ begin
   if Result = nil then
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
-  if Assigned(Result) then
+  if (Result <> nil) then
     Result.MouseMove(Shift, X, Y)
-  else if FOwner is TControl then
+  else
+  if FOwner is TControl then
     Screen.Cursor := TControl(FOwner).Cursor;
 end;
 
@@ -730,15 +760,14 @@ begin
   if Result = nil then
     Result := FindLayerAtPos(X, Y, LOB_MOUSE_EVENTS);
 
-  if Assigned(Result) then
+  if (Result <> nil) then
   begin
     Exclude(Result.FLayerStates, CStateMap[Button]);
     Result.MouseUp(Button, Shift, X, Y);
   end;
 
-  if Assigned(MouseListener) and
-    (MouseListener.FLayerStates *
-      [lsMouseLeft, lsMouseRight, lsMouseMiddle] = []) then
+  if (MouseListener <> nil) and
+    (MouseListener.FLayerStates * [lsMouseLeft, lsMouseRight, lsMouseMiddle] = []) then
     MouseListener := nil; // reset mouse capture
 end;
 
@@ -769,6 +798,7 @@ begin
       Item.FLayerCollection := nil;
       Notify(lnLayerDeleted, Item, Index);
     end;
+    Changed;
   finally
     EndUpdate;
   end;
@@ -789,9 +819,8 @@ procedure TLayerCollection.SetMouseListener(Value: TCustomLayer);
 begin
   if Value <> FMouseListener then
   begin
-    if Assigned(FMouseListener) then
-      FMouseListener.FLayerStates := FMouseListener.FLayerStates -
-        [lsMouseLeft, lsMouseRight, lsMouseMiddle];
+    if (FMouseListener <> nil) then
+      FMouseListener.FLayerStates := FMouseListener.FLayerStates - [lsMouseLeft, lsMouseRight, lsMouseMiddle];
     FMouseListener := Value;
   end;
 end;
@@ -909,12 +938,13 @@ destructor TCustomLayer.Destroy;
 var
   I: Integer;
 begin
-  if Assigned(FFreeNotifies) then
+  if (FFreeNotifies <> nil) then
   begin
     for I := FFreeNotifies.Count - 1 downto 0 do
     begin
       TCustomLayer(FFreeNotifies[I]).Notification(Self);
-      if FFreeNotifies = nil then Break;
+      if FFreeNotifies = nil then
+        Break;
     end;
     FFreeNotifies.Free;
     FFreeNotifies := nil;
@@ -925,7 +955,7 @@ end;
 
 procedure TCustomLayer.AddNotification(ALayer: TCustomLayer);
 begin
-  if not Assigned(FFreeNotifies) then
+  if (FFreeNotifies = nil) then
     FFreeNotifies := TList.Create;
   if FFreeNotifies.IndexOf(ALayer) < 0 then
     FFreeNotifies.Add(ALayer);
@@ -943,11 +973,8 @@ begin
   Index := LayerCollection.Count;
 end;
 
-procedure TCustomLayer.Changed;
+procedure TCustomLayer.DoChanged;
 begin
-  if UpdateCount > 0 then
-    Exit;
-
   if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
     Update;
@@ -977,12 +1004,15 @@ begin
     if (FLayerOptions and LOB_GDI_OVERLAY) <> 0 then
       FLayerCollection.GDIUpdate;
 
-    inherited Changed;
+    inherited DoChanged;
   end;
 end;
 
 procedure TCustomLayer.Changing;
 begin
+  if LockUpdateCount > 0 then
+    Exit;
+
   if UpdateCount > 0 then
     Exit;
 
@@ -1092,7 +1122,7 @@ end;
 
 procedure TCustomLayer.RemoveNotification(ALayer: TCustomLayer);
 begin
-  if Assigned(FFreeNotifies) then
+  if (FFreeNotifies <> nil) then
   begin
     FFreeNotifies.Remove(ALayer);
     if FFreeNotifies.Count = 0 then
@@ -1129,21 +1159,26 @@ var
   CurIndex: Integer;
 begin
   CurIndex := GetIndex;
-  if (CurIndex >= 0) and (CurIndex <> Value) then
-    with FLayerCollection do
-    begin
-      if Value < 0 then Value := 0;
-      if Value >= Count then Value := Count - 1;
-      if Value <> CurIndex then
-      begin
-        if Visible then BeginUpdate;
-        try
-          FLayerCollection.FItems.Move(CurIndex, Value);
-        finally
-          if Visible then EndUpdate;
-        end;
-      end;
+  if (CurIndex < 0) or (CurIndex = Value) then
+    exit;
+
+  if Value < 0 then
+    Value := 0;
+  if Value >= FLayerCollection.Count then
+    Value := FLayerCollection.Count - 1;
+
+  if Value <> CurIndex then
+  begin
+    FLayerCollection.BeginUpdate;
+    try
+      FLayerCollection.FItems.Move(CurIndex, Value);
+
+      if Visible then
+        FLayerCollection.Changed;
+    finally
+      FLayerCollection.EndUpdate;
     end;
+  end;
 end;
 
 procedure TCustomLayer.SetLayerCollection(Value: TLayerCollection);
@@ -1156,7 +1191,7 @@ begin
         FLayerCollection.MouseListener := nil;
       FLayerCollection.RemoveItem(Self);
     end;
-    if Assigned(Value) then
+    if (Value <> nil) then
       Value.InsertItem(Self);
     FLayerCollection := Value;
   end;
@@ -1684,14 +1719,14 @@ begin
     else
       PositionedLayer := ChildLayer;
 
-    if FPassMouse.ToChild and Assigned(ChildLayer) then
+    if FPassMouse.ToChild and (ChildLayer <> nil) then
     begin
       ChildLayer.MouseDown(Button, Shift, X, Y);
       if FPassMouse.CancelIfPassed then
         Exit;
     end;
 
-    if (PositionedLayer <> ChildLayer) and Assigned(PositionedLayer) then
+    if (PositionedLayer <> ChildLayer) and (PositionedLayer <> nil) then
     begin
       PositionedLayer.MouseDown(Button, Shift, X, Y);
       if FPassMouse.CancelIfPassed then
@@ -1853,14 +1888,14 @@ begin
     else
       PositionedLayer := ChildLayer;
 
-    if FPassMouse.ToChild and Assigned(ChildLayer) then
+    if FPassMouse.ToChild and (ChildLayer <> nil) then
     begin
       ChildLayer.MouseUp(Button, Shift, X, Y);
       if FPassMouse.CancelIfPassed then
         Exit;
     end;
 
-    if (PositionedLayer <> ChildLayer) and Assigned(PositionedLayer) then
+    if (PositionedLayer <> ChildLayer) and (PositionedLayer <> nil) then
     begin
       PositionedLayer.MouseUp(Button, Shift, X, Y);
       if FPassMouse.CancelIfPassed then
@@ -1963,14 +1998,20 @@ end;
 
 procedure TRubberbandLayer.SetChildLayer(Value: TPositionedLayer);
 begin
-  if Assigned(FChildLayer) then
+  if (FChildLayer <> nil) then
     RemoveNotification(FChildLayer);
     
   FChildLayer := Value;
-  if Assigned(Value) then
+
+  if (FChildLayer <> nil) then
   begin
-    Location := Value.Location;
-    Scaled := Value.Scaled;
+    BeginUpdate;
+    try
+      Location := FChildLayer.Location;
+      Scaled := FChildLayer.Scaled;
+    finally
+      EndUpdate;
+    end;
     AddNotification(FChildLayer);
   end;
 end;
@@ -2114,7 +2155,8 @@ end;
 
 procedure TRubberbandLayer.UpdateChildLayer;
 begin
-  if Assigned(FChildLayer) then FChildLayer.Location := Location;
+  if (FChildLayer <> nil) then
+    FChildLayer.Location := Location;
 end;
 
 procedure TRubberbandLayer.SetFrameStippleCounter(const Value: TFloat);

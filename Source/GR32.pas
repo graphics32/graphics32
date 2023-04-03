@@ -570,7 +570,7 @@ type
   { TPlainInterfacedPersistent provides simple interface support with
     optional reference-counting operation. }
   TPlainInterfacedPersistent = class(TPersistent, IInterface)
-  private
+  strict private
     FRefCounted: Boolean;
     FRefCount: Integer;
   protected
@@ -596,16 +596,26 @@ type
   { TNotifiablePersistent }
   { TNotifiablePersistent provides a change notification mechanism }
   TNotifiablePersistent = class(TPlainInterfacedPersistent)
-  private
+  strict private
     FUpdateCount: Integer;
+    FLockUpdateCount: Integer;
+    FModified: boolean;
     FOnChange: TNotifyEvent;
+  strict protected
+    procedure DoChanged; virtual;
   protected
     property UpdateCount: Integer read FUpdateCount;
+    property LockUpdateCount: Integer read FLockUpdateCount;
+    property Modified: boolean read FModified;
   public
     procedure BeforeDestruction; override;
+    procedure BeginUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure EndUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
     procedure Changed; virtual;
-    procedure BeginUpdate; virtual;
-    procedure EndUpdate; virtual;
+
+    procedure BeginLockUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+    procedure EndLockUpdate; {$IFDEF USEINLINING} inline; {$ENDIF}
+
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   end;
 
@@ -613,9 +623,9 @@ type
   { TThreadPersistent is an ancestor for TBitmap32 object. In addition to
     TPersistent methods, it provides thread-safe locking and change notification }
   TThreadPersistent = class(TNotifiablePersistent)
-  private
+  strict private
     FLockCount: Integer;
-  protected
+  strict protected
     {$IFDEF FPC}
     FLock: TCriticalSection;
     {$ELSE}
@@ -636,12 +646,14 @@ type
   protected
     FHeight: Integer;
     FWidth: Integer;
+  strict protected
     FOnResize: TNotifyEvent;
     procedure SetHeight(NewHeight: Integer); virtual;
     procedure SetWidth(NewWidth: Integer); virtual;
     procedure ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer); virtual;
   public
     constructor Create(Width, Height: Integer); reintroduce; overload;
+    destructor Destroy; override;
 
     procedure Delete; virtual;
     function  Empty: Boolean; virtual;
@@ -690,7 +702,7 @@ type
   { TCustomBitmap32 }
 
   TCustomBitmap32 = class(TCustomMap)
-  private
+  strict private
     FBackend: TCustomBackend;
     FBits: PColor32Array;
     FClipRect: TRect;
@@ -715,8 +727,6 @@ type
     FOldOnAreaChanged: TAreaChangedEvent;
     FMeasuringMode: Boolean;
     FResampler: TCustomResampler;
-    procedure BackendChangedHandler(Sender: TObject); virtual;
-    procedure BackendChangingHandler(Sender: TObject); virtual;
 
 {$IFDEF BITS_GETTER}
     function GetBits: PColor32Array; {$IFDEF USEINLINING} inline; {$ENDIF}
@@ -733,7 +743,7 @@ type
     procedure SetStretchFilter(Value: TStretchFilter);
 {$ENDIF}
     procedure SetClipRect(const Value: TRect);
-    procedure SetResampler(Resampler: TCustomResampler);
+    procedure SetResampler(AResampler: TCustomResampler);
     function GetResamplerClassName: string;
     procedure SetResamplerClassName(const Value: string);
     function GetPenPos: TPoint;
@@ -742,6 +752,9 @@ type
     procedure SetPenPosF(const Value: TFixedPoint);
   public type
     TInfoHeaderVersion = (InfoHeaderVersion1, InfoHeaderVersion2, InfoHeaderVersion3, InfoHeaderVersion4, InfoHeaderVersion5);
+  strict protected
+    procedure BackendChangedHandler(Sender: TObject); virtual;
+    procedure BackendChangingHandler(Sender: TObject); virtual;
   protected
     WrapProcHorz: TWrapProcEx;
     WrapProcVert: TWrapProcEx;
@@ -765,9 +778,9 @@ type
     procedure WriteData(Stream: TStream); virtual;
     procedure DefineProperties(Filer: TFiler); override;
 
-    procedure InitializeBackend(Backend: TCustomBackendClass); virtual;
+    procedure InitializeBackend(ABackendClass: TCustomBackendClass); virtual;
     procedure FinalizeBackend; virtual;
-    procedure SetBackend(const Backend: TCustomBackend); virtual;
+    procedure SetBackend(const ABackend: TCustomBackend); virtual;
 
 {$IFDEF FPC_HAS_CONSTREF}
     function QueryInterface(constref iid: TGuid; out obj): HResult; {$IFDEF WINDOWS}stdcall{$ELSE}cdecl{$ENDIF};
@@ -804,12 +817,15 @@ type
     procedure SetPixelXS(X, Y: TFixed; Value: TColor32);
     procedure SetPixelXW(X, Y: TFixed; Value: TColor32);
   public
-    constructor Create(Backend: TCustomBackendClass); reintroduce; overload; virtual;
+    constructor Create(ABackendClass: TCustomBackendClass); reintroduce; overload; virtual;
     constructor Create; reintroduce; overload; virtual;
     constructor Create(Width, Height: Integer); reintroduce; overload; virtual;
     destructor Destroy; override;
 
     class function GetPlatformBackendClass: TCustomBackendClass; virtual;
+
+    procedure Changed; overload; override;
+    procedure Changed(const Area: TRect; const Info: Cardinal = AREAINFO_RECT); reintroduce; overload; virtual;
 
     procedure Assign(Source: TPersistent); override;
     function  BoundsRect: TRect;
@@ -824,8 +840,6 @@ type
     function ReleaseBackend: TCustomBackend;
 
     procedure PropertyChanged; virtual;
-    procedure Changed; overload; override;
-    procedure Changed(const Area: TRect; const Info: Cardinal = AREAINFO_RECT); reintroduce; overload; virtual;
 
     procedure LoadFromStream(Stream: TStream); virtual;
     procedure SaveToStream(Stream: TStream; SaveTopDown: Boolean = False); overload; virtual;
@@ -980,11 +994,8 @@ type
 
 
   TBitmap32 = class(TCustomBitmap32)
-  private
+  strict private
     FOnHandleChanged: TNotifyEvent;
-
-    procedure BackendChangedHandler(Sender: TObject); override;
-    procedure BackendChangingHandler(Sender: TObject); override;
 
     procedure FontChanged(Sender: TObject);
     procedure CanvasChanged(Sender: TObject);
@@ -996,9 +1007,11 @@ type
 
     function GetFont: TFont;
     procedure SetFont(Value: TFont);
-  protected
+  strict protected
+    procedure BackendChangedHandler(Sender: TObject); override;
+    procedure BackendChangingHandler(Sender: TObject); override;
     procedure FinalizeBackend; override;
-    procedure SetBackend(const Backend: TCustomBackend); override;
+    procedure SetBackend(const ABackend: TCustomBackend); override;
 
     procedure HandleChanged; virtual;
     procedure CopyPropertiesTo(Dst: TCustomBitmap32); override;
@@ -1055,12 +1068,14 @@ type
     graphics subsystem specific features.}
 
   TCustomBackend = class(TThreadPersistent)
-  protected
+  strict protected
     FBits: PColor32Array;
     FOwner: TCustomBitmap32;
     FOnChanging: TNotifyEvent;
+  protected
 
     procedure Changing; virtual;
+    procedure SetOwner(AOwner: TCustomBitmap32);
 
 {$IFDEF BITS_GETTER}
     function GetBits: PColor32Array; virtual;
@@ -1107,23 +1122,24 @@ type
   { TCustomResampler }
   { Base class for TCustomBitmap32 specific resamplers. }
   TCustomResampler = class(TCustomSampler)
-  private
+  strict private
     FBitmap: TCustomBitmap32;
     FClipRect: TRect;
     FPixelAccessMode: TPixelAccessMode;
     procedure SetPixelAccessMode(const Value: TPixelAccessMode);
-  protected
+  strict protected
     function GetWidth: TFloat; virtual;
+    procedure AssignTo(Dst: TPersistent); override;
+    procedure DoChanged; override;
+    property ClipRect: TRect read FClipRect;
+  protected
     procedure Resample(
       Dst: TCustomBitmap32; DstRect: TRect; DstClip: TRect;
       Src: TCustomBitmap32; SrcRect: TRect;
       CombineOp: TDrawMode; CombineCallBack: TPixelCombineEvent); virtual; abstract;
-    procedure AssignTo(Dst: TPersistent); override;
-    property ClipRect: TRect read FClipRect;
   public
     constructor Create; overload; virtual;
     constructor Create(ABitmap: TCustomBitmap32); overload; virtual;
-    procedure Changed; override;
     procedure PrepareSampling; override;
     function HasBounds: Boolean; override;
     function GetSampleBounds: TFloatRect; override;
@@ -2460,7 +2476,18 @@ end;
 procedure TNotifiablePersistent.Beforedestruction;
 begin
   inherited;
-  inc(FUpdateCount);
+  Inc(FLockUpdateCount);
+  Inc(FUpdateCount);
+end;
+
+procedure TNotifiablePersistent.BeginLockUpdate;
+begin
+  Inc(FLockUpdateCount);
+end;
+
+procedure TNotifiablePersistent.EndLockUpdate;
+begin
+  Dec(FLockUpdateCount);
 end;
 
 procedure TNotifiablePersistent.BeginUpdate;
@@ -2468,16 +2495,30 @@ begin
   Inc(FUpdateCount);
 end;
 
-procedure TNotifiablePersistent.Changed;
-begin
-  if (FUpdateCount = 0) and Assigned(FOnChange) then
-    FOnChange(Self);
-end;
-
 procedure TNotifiablePersistent.EndUpdate;
 begin
   Assert(FUpdateCount > 0, 'Unpaired TThreadPersistent.EndUpdate');
+  if (FUpdateCount = 1) and (FModified) then
+  begin
+    DoChanged;
+    FModified := False;
+  end;
   Dec(FUpdateCount);
+end;
+
+procedure TNotifiablePersistent.Changed;
+begin
+  if (FLockUpdateCount > 0) then
+    exit;
+  BeginUpdate;
+  FModified := True;
+  EndUpdate;
+end;
+
+procedure TNotifiablePersistent.DoChanged;
+begin
+  if (Assigned(FOnChange)) then
+    FOnChange(Self);
 end;
 
 
@@ -2511,8 +2552,14 @@ end;
 
 constructor TCustomMap.Create(Width, Height: Integer);
 begin
-  Create;
+  inherited Create;
   SetSize(Width, Height);
+end;
+
+destructor TCustomMap.Destroy;
+begin
+  FOnResize := nil;
+  inherited;
 end;
 
 procedure TCustomMap.ChangeSize(var Width, Height: Integer; NewWidth, NewHeight: Integer);
@@ -2533,7 +2580,8 @@ end;
 
 procedure TCustomMap.Resized;
 begin
-  if Assigned(FOnResize) then FOnResize(Self);
+  if Assigned(FOnResize) then
+    FOnResize(Self);
 end;
 
 procedure TCustomMap.SetHeight(NewHeight: Integer);
@@ -2543,13 +2591,22 @@ end;
 
 function TCustomMap.SetSize(NewWidth, NewHeight: Integer): Boolean;
 begin
-  if NewWidth < 0 then NewWidth := 0;
-  if NewHeight < 0 then NewHeight := 0;
+  if NewWidth < 0 then
+    NewWidth := 0;
+  if NewHeight < 0 then
+    NewHeight := 0;
+
   Result := (NewWidth <> FWidth) or (NewHeight <> FHeight);
+
   if Result then
   begin
-    ChangeSize(FWidth, FHeight, NewWidth, NewHeight);
-    Changed;
+    BeginUpdate;
+    try
+      ChangeSize(FWidth, FHeight, NewWidth, NewHeight);
+      Changed;
+    finally
+      EndUpdate;
+    end;
     Resized;
   end;
 end;
@@ -2558,11 +2615,14 @@ function TCustomMap.SetSizeFrom(Source: TPersistent): Boolean;
 begin
   if Source is TCustomMap then
     Result := SetSize(TCustomMap(Source).Width, TCustomMap(Source).Height)
-  else if Source is TGraphic then
+  else
+  if Source is TGraphic then
     Result := SetSize(TGraphic(Source).Width, TGraphic(Source).Height)
-  else if Source is TControl then
+  else
+  if Source is TControl then
     Result := SetSize(TControl(Source).Width, TControl(Source).Height)
-  else if Source = nil then
+  else
+  if Source = nil then
     Result := SetSize(0, 0)
   else
     raise Exception.CreateFmt(RCStrCannotSetSize, [Source.ClassName]);
@@ -2576,11 +2636,11 @@ end;
 
 { TCustomBitmap32 }
 
-constructor TCustomBitmap32.Create(Backend: TCustomBackendClass);
+constructor TCustomBitmap32.Create(ABackendClass: TCustomBackendClass);
 begin
   inherited Create;
 
-  InitializeBackend(Backend);
+  InitializeBackend(ABackendClass);
 
   FOuterColor := $00000000;  // by default as full transparency black
 
@@ -2601,8 +2661,10 @@ end;
 
 destructor TCustomBitmap32.Destroy;
 begin
+  BeginLockUpdate;
   Lock;
   try
+    FOnAreaChanged := nil; // Avoid notification during destruction
     SetSize(0, 0);
     FResampler.Free;
     FinalizeBackend;
@@ -2612,16 +2674,16 @@ begin
   inherited;
 end;
 
-procedure TCustomBitmap32.InitializeBackend(Backend: TCustomBackendClass);
+procedure TCustomBitmap32.InitializeBackend(ABackendClass: TCustomBackendClass);
 begin
-  Backend.Create(Self);
+  ABackendClass.Create(Self);
 end;
 
 procedure TCustomBitmap32.FinalizeBackend;
 begin
   // Drop ownership of backend now:
   // It's a zombie now.
-  FBackend.FOwner := nil;
+  FBackend.SetOwner(nil);
   FBackend.OnChange := nil;
   FBackend.OnChanging := nil;
 
@@ -2682,28 +2744,31 @@ begin
   FBackend := nil;
 end;
 
-procedure TCustomBitmap32.SetBackend(const Backend: TCustomBackend);
+procedure TCustomBitmap32.SetBackend(const ABackend: TCustomBackend);
 begin
-  if Assigned(Backend) and (Backend <> FBackend) then
-  begin
-    BeginUpdate;
+  if (ABackend = nil) or (ABackend = FBackend) then
+    exit;
 
-    Backend.FOwner := Self;
+  BeginUpdate;
+  try
 
-    if Assigned(FBackend) then
+    ABackend.SetOwner(Self);
+
+    if (FBackend <> nil) then
     begin
-      Backend.Assign(FBackend);
+      ABackend.Assign(FBackend);
       FinalizeBackend;
     end;
 
-    FBackend := Backend;
+    FBackend := ABackend;
     FBackend.OnChange := BackendChangedHandler;
     FBackend.OnChanging := BackendChangingHandler;
 
-    EndUpdate;
-    
     FBackend.Changed;
+
     Changed;
+  finally
+    EndUpdate;
   end;
 end;
 
@@ -2787,38 +2852,42 @@ begin
       TCustomBitmap32(Source).CopyPropertiesTo(Self);
     end else
     if (not ImageFormatManager.Adapters.AssignFrom(Self, Source)) then
-      inherited; // default handler
+      inherited; // defer to Source.AssignTo
 
+    Changed;
   finally;
     EndUpdate;
   end;
-  Changed;
 end;
 
 procedure TCustomBitmap32.CopyMapTo(Dst: TCustomBitmap32);
 begin
-  Dst.SetSize(Width, Height);
-  if not Empty then
-    MoveLongword(Bits[0], Dst.Bits[0], Width * Height);
+  Dst.BeginUpdate;
+  try
+    Dst.SetSize(Width, Height);
+    if not Empty then
+      MoveLongword(Bits[0], Dst.Bits[0], Width * Height);
+
+    Dst.Changed;
+  finally
+    Dst.EndUpdate;
+  end;
 end;
 
 procedure TCustomBitmap32.CopyPropertiesTo(Dst: TCustomBitmap32);
 begin
-  with Dst do
-  begin
-    DrawMode := Self.DrawMode;
-    CombineMode := Self.CombineMode;
-    WrapMode := Self.WrapMode;
-    MasterAlpha := Self.MasterAlpha;
-    OuterColor := Self.OuterColor;
+  Dst.DrawMode := DrawMode;
+  Dst.CombineMode := CombineMode;
+  Dst.WrapMode := WrapMode;
+  Dst.MasterAlpha := MasterAlpha;
+  Dst.OuterColor := OuterColor;
 
 {$IFDEF DEPRECATEDMODE}
-    StretchFilter := Self.StretchFilter;
+  Dst.StretchFilter := StretchFilter;
 {$ENDIF}
-    ResamplerClassName := Self.ResamplerClassName;
-    if Assigned(Resampler) and Assigned(Self.Resampler) then
-      Resampler.Assign(Self.Resampler);
-  end;
+  Dst.ResamplerClassName := ResamplerClassName;
+  if (Dst.Resampler <> nil) and (Resampler <> nil) then
+    Dst.Resampler.Assign(Resampler);
 end;
 
 constructor TCustomBitmap32.Create(Width, Height: Integer);
@@ -2899,18 +2968,21 @@ end;
 
 procedure TCustomBitmap32.Draw(DstX, DstY: Integer; Src: TCustomBitmap32);
 begin
-  if Assigned(Src) then Src.DrawTo(Self, DstX, DstY);
+  if (Src <> nil) then
+    Src.DrawTo(Self, DstX, DstY);
 end;
 
 procedure TCustomBitmap32.Draw(DstX, DstY: Integer; const SrcRect: TRect;
   Src: TCustomBitmap32);
 begin
-  if Assigned(Src) then Src.DrawTo(Self, DstX, DstY, SrcRect);
+  if (Src <> nil) then
+    Src.DrawTo(Self, DstX, DstY, SrcRect);
 end;
 
 procedure TCustomBitmap32.Draw(const DstRect, SrcRect: TRect; Src: TCustomBitmap32);
 begin
-  if Assigned(Src) then Src.DrawTo(Self, DstRect, SrcRect);
+  if (Src <> nil) then
+    Src.DrawTo(Self, DstRect, SrcRect);
 end;
 
 procedure TCustomBitmap32.DrawTo(Dst: TCustomBitmap32);
@@ -6386,10 +6458,10 @@ begin
   end
   else
   begin
+    Dst.BeginUpdate;
     { Flip to Dst }
     if not FMeasuringMode then
     begin
-      Dst.BeginUpdate;
       Dst.SetSize(W, Height);
       P1 := PColor32(Bits);
       P2 := PColor32(Dst.Bits);
@@ -6404,9 +6476,9 @@ begin
         end;
         Inc(P2, W shl 1);
       end;
-      Dst.EndUpdate;
     end;
     Dst.Changed;
+    Dst.EndUpdate;
   end;
 end;
 
@@ -6460,42 +6532,41 @@ var
 begin
   if not FMeasuringMode then
   begin
-    if Dst = nil then
+    if (Dst = nil) or (Dst = Self) then
     begin
       Tmp := TCustomBitmap32.Create; // TODO : Use TMemoryBackend
       Dst := Tmp;
-    end
-    else
-    begin
+    end else
       Tmp := nil;
-      Dst.BeginUpdate;
-    end;
 
-    Dst.SetSize(Height, Width);
-    I := 0;
-    for Y := 0 to Height - 1 do
-    begin
-      J := Height - 1 - Y;
-      for X := 0 to Width - 1 do
+    Dst.BeginUpdate;
+    try
+
+      Dst.SetSize(Height, Width);
+      I := 0;
+      for Y := 0 to Height - 1 do
       begin
-        Dst.Bits[J] := Bits[I];
-        Inc(I);
-        Inc(J, Height);
+        J := Height - 1 - Y;
+        for X := 0 to Width - 1 do
+        begin
+          Dst.Bits[J] := Bits[I];
+          Inc(I);
+          Inc(J, Height);
+        end;
       end;
-    end;
 
-    if Tmp <> nil then
-    begin
-      Tmp.CopyMapTo(Self);
-      Tmp.Free;
-    end
-    else
-    begin
-      Dst.EndUpdate;
+      if Tmp <> nil then
+      begin
+        Tmp.CopyMapTo(Self);
+        Tmp.Free;
+      end;
+
       Dst.Changed;
+    finally
+      Dst.EndUpdate;
     end;
   end else
-  if Dst = nil then
+  if (Dst = nil) or (Dst = Self) then
     Changed
   else
     Dst.Changed;
@@ -6506,7 +6577,7 @@ var
   I, I2: Integer;
   Tmp: TColor32;
 begin
-  if Dst <> nil then
+  if (Dst <> nil) and (Dst <> Self) then
   begin
     if not FMeasuringMode then
     begin
@@ -6544,43 +6615,42 @@ var
 begin
   if not FMeasuringMode then
   begin
-    if Dst = nil then
+    if (Dst = nil) or (Dst = Self) then
     begin
       Tmp := TCustomBitmap32.Create; { TODO : Revise creating of temporary bitmaps here... }
        // TODO : Use TMemoryBackend
       Dst := Tmp;
-    end
-    else
-    begin
+    end else
       Tmp := nil;
-      Dst.BeginUpdate;
-    end;
 
-    Dst.SetSize(Height, Width);
-    I := 0;
-    for Y := 0 to Height - 1 do
-    begin
-      J := (Width - 1) * Height + Y;
-      for X := 0 to Width - 1 do
+    Dst.BeginUpdate;
+    try
+
+      Dst.SetSize(Height, Width);
+      I := 0;
+      for Y := 0 to Height - 1 do
       begin
-        Dst.Bits[J] := Bits[I];
-        Inc(I);
-        Dec(J, Height);
+        J := (Width - 1) * Height + Y;
+        for X := 0 to Width - 1 do
+        begin
+          Dst.Bits[J] := Bits[I];
+          Inc(I);
+          Dec(J, Height);
+        end;
       end;
-    end;
 
-    if Tmp <> nil then
-    begin
-      Tmp.CopyMapTo(Self);
-      Tmp.Free;
-    end
-    else
-    begin
-      Dst.EndUpdate;
+      if Tmp <> nil then
+      begin
+        Tmp.CopyMapTo(Self);
+        Tmp.Free;
+      end;
+
       Dst.Changed;
+    finally
+      Dst.EndUpdate;
     end;
   end else
-  if Dst = nil then
+  if (Dst = nil) or (Dst = Self) then
     Changed
   else
     Dst.Changed;
@@ -6631,7 +6701,7 @@ end;
 
 procedure TCustomBitmap32.Changed;
 begin
-  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
     FOnAreaChanged(Self, BoundsRect, AREAINFO_RECT);
 
   if not FMeasuringMode then
@@ -6640,20 +6710,19 @@ end;
 
 procedure TCustomBitmap32.Changed(const Area: TRect; const Info: Cardinal);
 begin
-  if ((FUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
+  if ((LockUpdateCount = 0) or FMeasuringMode) and Assigned(FOnAreaChanged) then
     FOnAreaChanged(Self, Area, Info);
 
   if not FMeasuringMode then
     inherited Changed;
 end;
 
-procedure TCustomBitmap32.SetResampler(Resampler: TCustomResampler);
+procedure TCustomBitmap32.SetResampler(AResampler: TCustomResampler);
 begin
-  if Assigned(Resampler) and (FResampler <> Resampler) then
+  if (AResampler <> nil) and (FResampler <> AResampler) then
   begin
-    if Assigned(FResampler) then
-      FResampler.Free;
-    FResampler := Resampler;
+    FResampler.Free;
+    FResampler := AResampler;
     Changed;
   end;
 end;
@@ -6667,10 +6736,10 @@ procedure TCustomBitmap32.SetResamplerClassName(const Value: string);
 var
   ResamplerClass: TCustomResamplerClass;
 begin
-  if (Value <> '') and (FResampler.ClassName <> Value) and Assigned(ResamplerList) then
+  if (Value <> '') and (FResampler.ClassName <> Value) and (ResamplerList <> nil) then
   begin
     ResamplerClass := TCustomResamplerClass(ResamplerList.Find(Value));
-    if Assigned(ResamplerClass) then
+    if (ResamplerClass <> nil) then
       ResamplerClass.Create(Self);
   end;
 end;
@@ -6733,22 +6802,22 @@ end;
 
 function TBitmap32.GetCanvas: TCanvas;
 begin
-  Result := (FBackend as ICanvasSupport).Canvas;
+  Result := (Backend as ICanvasSupport).Canvas;
 end;
 
 function TBitmap32.GetBitmapInfo: TBitmapInfo;
 begin
-  Result := (FBackend as IBitmapContextSupport).BitmapInfo;
+  Result := (Backend as IBitmapContextSupport).BitmapInfo;
 end;
 
 function TBitmap32.GetHandle: HBITMAP;
 begin
-  Result := (FBackend as IBitmapContextSupport).BitmapHandle;
+  Result := (Backend as IBitmapContextSupport).BitmapHandle;
 end;
 
 function TBitmap32.GetHDC: HDC;
 begin
-  Result := (FBackend as IDeviceContextSupport).Handle;
+  Result := (Backend as IDeviceContextSupport).Handle;
 end;
 
 class function TBitmap32.GetPlatformBackendClass: TCustomBackendClass;
@@ -6762,20 +6831,20 @@ end;
 
 function TBitmap32.GetFont: TFont;
 begin
-  Result := (FBackend as IFontSupport).Font;
+  Result := (Backend as IFontSupport).Font;
 end;
 
-procedure TBitmap32.SetBackend(const Backend: TCustomBackend);
+procedure TBitmap32.SetBackend(const ABackend: TCustomBackend);
 var
   FontSupport: IFontSupport;
   CanvasSupport: ICanvasSupport;
 begin
-  if Assigned(Backend) and (Backend <> FBackend) then
+  if (ABackend <> nil) and (Backend <> ABackend) then
   begin
-    if Supports(Backend, IFontSupport, FontSupport) then
+    if Supports(ABackend, IFontSupport, FontSupport) then
       FontSupport.OnFontChange := FontChanged;
 
-    if Supports(Backend, ICanvasSupport, CanvasSupport) then
+    if Supports(ABackend, ICanvasSupport, CanvasSupport) then
       CanvasSupport.OnCanvasChange := CanvasChanged;
 
     inherited;
@@ -6784,7 +6853,7 @@ end;
 
 procedure TBitmap32.SetFont(Value: TFont);
 begin
-  (FBackend as IFontSupport).Font := Value;
+  (Backend as IFontSupport).Font := Value;
 end;
 
 procedure TBitmap32.HandleChanged;
@@ -6799,19 +6868,19 @@ procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: Cardinal);
 procedure TBitmap32.Draw(const DstRect, SrcRect: TRect; hSrc: HDC);
 {$ENDIF}
 begin
-  (FBackend as IDeviceContextSupport).Draw(DstRect, SrcRect, hSrc);
+  (Backend as IDeviceContextSupport).Draw(DstRect, SrcRect, hSrc);
 end;
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; DstX, DstY: Integer);
 begin
   if not Empty then
-    (FBackend as IDeviceContextSupport).DrawTo(hDst, DstX, DstY);
+    (Backend as IDeviceContextSupport).DrawTo(hDst, DstX, DstY);
 end;
 
 procedure TBitmap32.DrawTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect);
 begin
   if not Empty then
-    (FBackend as IDeviceContextSupport).DrawTo(hDst, DstRect, SrcRect);
+    (Backend as IDeviceContextSupport).DrawTo(hDst, DstRect, SrcRect);
 end;
 
 procedure TBitmap32.TileTo(hDst: {$IFDEF BCB}Cardinal{$ELSE}HDC{$ENDIF}; const DstRect, SrcRect: TRect; MaxTileSize: integer);
@@ -6850,7 +6919,7 @@ begin
           R := DstRect;
           OffsetRect(R, -X - DstRect.Left, -Y - DstRect.Top);
           Buffer.SetSize(ClipRect.Right, ClipRect.Bottom);
-          StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, FOnPixelCombine);
+          StretchTransfer(Buffer, R, ClipRect, Self, SrcRect, Resampler, DrawMode, OnPixelCombine);
 
           DeviceContextSupport.DrawTo(hDst,
             MakeRect(X + DstRect.Left, Y + DstRect.Top, X + DstRect.Left+ClipRect.Right, Y + DstRect.Top+ClipRect.Bottom),
@@ -6886,49 +6955,49 @@ end;
 
 procedure TBitmap32.UpdateFont;
 begin
-  (FBackend as IFontSupport).UpdateFont;
+  (Backend as IFontSupport).UpdateFont;
 end;
 
 // Text and Fonts //
 
 function TBitmap32.TextExtent(const Text: string): TSize;
 begin
-  Result := (FBackend as ITextSupport).TextExtent(Text);
+  Result := (Backend as ITextSupport).TextExtent(Text);
 end;
 
 // -------------------------------------------------------------------
 
 procedure TBitmap32.Textout(X, Y: Integer; const Text: string);
 begin
-  (FBackend as ITextSupport).Textout(X, Y, Text);
+  (Backend as ITextSupport).Textout(X, Y, Text);
 end;
 
 // -------------------------------------------------------------------
 
 procedure TBitmap32.Textout(X, Y: Integer; const ClipRect: TRect; const Text: string);
 begin
-  (FBackend as ITextSupport).Textout(X, Y, ClipRect, Text);
+  (Backend as ITextSupport).Textout(X, Y, ClipRect, Text);
 end;
 
 // -------------------------------------------------------------------
 
 procedure TBitmap32.Textout(var DstRect: TRect; const Flags: Cardinal; const Text: string);
 begin
-  (FBackend as ITextSupport).Textout(DstRect, Flags, Text);
+  (Backend as ITextSupport).Textout(DstRect, Flags, Text);
 end;
 
 // -------------------------------------------------------------------
 
 function TBitmap32.TextHeight(const Text: string): Integer;
 begin
-  Result := (FBackend as ITextSupport).TextExtent(Text).cY;
+  Result := (Backend as ITextSupport).TextExtent(Text).cY;
 end;
 
 // -------------------------------------------------------------------
 
 function TBitmap32.TextWidth(const Text: string): Integer;
 begin
-  Result := (FBackend as ITextSupport).TextExtent(Text).cX;
+  Result := (Backend as ITextSupport).TextExtent(Text).cX;
 end;
 
 // -------------------------------------------------------------------
@@ -7176,8 +7245,8 @@ constructor TCustomBackend.Create(Owner: TCustomBitmap32);
 begin
   FOwner := Owner;
   Create;
-  if Assigned(Owner) then
-    Owner.Backend := Self;
+  if (FOwner <> nil) then
+    FOwner.Backend := Self;
 end;
 
 destructor TCustomBackend.Destroy;
@@ -7190,7 +7259,7 @@ procedure TCustomBackend.Clear;
 var
   Width, Height: Integer;
 begin
-  if Assigned(FOwner) then
+  if (FOwner <> nil) then
     ChangeSize(FOwner.FWidth, FOwner.FHeight, 0, 0, False)
   else
     ChangeSize(Width, Height, 0, 0, False);
@@ -7235,7 +7304,7 @@ var
 begin
   if Source is TCustomBackend then
   begin
-    if Assigned(FOwner) then
+    if (FOwner <> nil) then
     begin
       SrcBackend := TCustomBackend(Source);
 
@@ -7251,8 +7320,7 @@ begin
           SrcBackend.FOwner.Width * SrcBackend.FOwner.Height
         );
     end;
-  end
-  else
+  end else
     inherited;
 end;
 
@@ -7269,6 +7337,11 @@ end;
 procedure TCustomBackend.InitializeSurface(NewWidth, NewHeight: Integer; ClearBuffer: Boolean);
 begin
   // descendants override this method
+end;
+
+procedure TCustomBackend.SetOwner(AOwner: TCustomBitmap32);
+begin
+  FOwner := AOwner;
 end;
 
 { TCustomSampler }
@@ -7313,19 +7386,6 @@ end;
 
 { TCustomResampler }
 
-procedure TCustomResampler.AssignTo(Dst: TPersistent);
-begin
-  if Dst is TCustomResampler then
-    SmartAssign(Self, Dst)
-  else
-    inherited;
-end;
-
-procedure TCustomResampler.Changed;
-begin
-  if Assigned(FBitmap) then FBitmap.Changed;
-end;
-
 constructor TCustomResampler.Create;
 begin
   inherited;
@@ -7336,7 +7396,22 @@ constructor TCustomResampler.Create(ABitmap: TCustomBitmap32);
 begin
   Create;
   FBitmap := ABitmap;
-  if Assigned(ABitmap) then ABitmap.Resampler := Self;
+  if (FBitmap <> nil) then
+    FBitmap.Resampler := Self;
+end;
+
+procedure TCustomResampler.DoChanged;
+begin
+  if (FBitmap <> nil) then
+    FBitmap.Changed;
+end;
+
+procedure TCustomResampler.AssignTo(Dst: TPersistent);
+begin
+  if Dst is TCustomResampler then
+    SmartAssign(Self, Dst)
+  else
+    inherited;
 end;
 
 function TCustomResampler.GetSampleBounds: TFloatRect;

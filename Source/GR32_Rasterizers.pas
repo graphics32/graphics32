@@ -337,9 +337,9 @@ begin
       SetCombineInfo(CombineInfo(TCustomBitmap32(Source)))
     else
       inherited;
+    Changed;
   finally
     EndUpdate;
-    Changed;
   end;
 end;
 

@@ -109,7 +109,7 @@ type
 
   { TCustomPaintBox32 }
   TCustomPaintBox32 = class(TCustomControl)
-  private
+  strict private
     FBuffer: TBitmap32;
     FBufferOversize: Integer;
     FBufferValid: Boolean;
@@ -163,6 +163,7 @@ type
     procedure MouseEnter; {$IFDEF FPC} override; {$ELSE} virtual; {$ENDIF}
     procedure MouseLeave; {$IFDEF FPC} override; {$ELSE} virtual; {$ENDIF}
     procedure AssignTo(Dest: TPersistent); override;
+    procedure Loaded; override;
     procedure Paint; override;
     procedure ResetInvalidRects;
     procedure ResizeBuffer;
@@ -190,7 +191,6 @@ type
     procedure Flush(const SrcRect: TRect); overload;
     procedure Invalidate; override;
     procedure ForceFullInvalidate; virtual;
-    procedure Loaded; override;
     procedure Resize; override;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: Integer); override;
 
@@ -208,7 +208,7 @@ type
 
   { TPaintBox32 }
   TPaintBox32 = class(TCustomPaintBox32)
-  private
+  strict private
     FOnPaintBuffer: TNotifyEvent;
   protected
     procedure DoPaintBuffer; override;
@@ -266,7 +266,7 @@ type
   TBackgroundOptions = class(TNotifiablePersistent)
   private type
     TCheckersColors = array[0..1] of TColor32;
-  private
+  strict private
     FPatternBitmap: TBitmap32;
     FOuterBorderColor: TColor;
     FInnerBorderWidth: integer;
@@ -333,7 +333,7 @@ type
   TMouseShiftState = set of (mssShift, mssAlt, mssCtrl); // Order must be same as TShiftState
 
   TMousePanOptions = class(TNotifiablePersistent)
-  private
+  strict private
     FPanCursor: TCursor;
     FEnabled: boolean;
     FMouseButton: TMouseButton;
@@ -351,7 +351,7 @@ type
   end;
 
   TMouseZoomOptions = class(TNotifiablePersistent)
-  private
+  strict private
     FEnabled: boolean;
     FInvert: boolean;
     FMaintainPivot: boolean;
@@ -390,7 +390,7 @@ type
   end;
 
   TCustomImage32 = class(TCustomPaintBox32, IUpdateRectNotification)
-  private
+  strict private
     FBitmap: TBitmap32;
     FBitmapAlign: TBitmapAlign;
     FLayers: TLayerCollection;
@@ -448,6 +448,7 @@ type
   protected
     procedure CreateBuffer; override;
     procedure RepaintModeChanged; override;
+    procedure DoBitmapResized; virtual;
     procedure BitmapResized; virtual;
     procedure BitmapChanged(const Area: TRect); reintroduce; virtual;
     function CanMousePan: boolean; virtual;
@@ -476,6 +477,7 @@ type
     procedure UpdateCache; virtual;
     function GetLayerCollectionClass: TLayerCollectionClass; virtual;
     function CreateLayerCollection: TLayerCollection; virtual;
+    procedure Loaded; override;
     procedure DoChanged; override;
   protected
     // IUpdateRectNotification
@@ -489,7 +491,11 @@ type
     function  ControlToBitmap(const APoint: TPoint): TPoint;  overload;
     function  ControlToBitmap(const ARect: TRect): TRect;  overload;
     function  ControlToBitmap(const APoint: TFloatPoint): TFloatPoint; overload;
-    procedure Update(const Rect: TRect); reintroduce; overload; virtual;
+
+    procedure Update(const Rect: TRect); reintroduce; overload; virtual; deprecated 'Use Invalidate(Rect) instead';
+    procedure Invalidate; overload; override;
+    procedure Invalidate(const Rect: TRect); reintroduce; overload; virtual;
+
     procedure ExecBitmapFrame(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_BITMAP_FRAME
     procedure ExecClearBuffer(Dest: TBitmap32; StageNum: Integer); virtual;   // PST_CLEAR_BUFFER
     procedure ExecClearBackgnd(Dest: TBitmap32; StageNum: Integer); virtual;  // PST_CLEAR_BACKGND
@@ -497,10 +503,10 @@ type
     procedure ExecCustom(Dest: TBitmap32; StageNum: Integer); virtual;        // PST_CUSTOM
     procedure ExecDrawBitmap(Dest: TBitmap32; StageNum: Integer); virtual;    // PST_DRAW_BITMAP
     procedure ExecDrawLayers(Dest: TBitmap32; StageNum: Integer); virtual;    // PST_DRAW_LAYERS
+
     function  GetBitmapRect: TRect; virtual;
     function  GetBitmapSize: TSize; virtual;
-    procedure Invalidate; override;
-    procedure Loaded; override;
+
     procedure PaintTo(Dest: TBitmap32; DestRect: TRect); virtual;
     procedure Resize; override;
     procedure SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000); virtual;
@@ -612,7 +618,7 @@ type
 
   { TCustomImgView32 }
   TCustomImgView32 = class(TCustomImage32)
-  private
+  strict private
     FCentered: Boolean;
     FScrollBarSize: Integer;
     FScrollBarVisibility: TScrollBarVisibility;
@@ -625,7 +631,7 @@ type
     procedure SetSizeGrip(Value: TSizeGripStyle);
     procedure SetOverSize(const Value: Integer);
   protected
-    DisableScrollUpdate: Boolean;
+    FScrollLock: integer;
     HScroll: TCustomRangeBar;
     VScroll: TCustomRangeBar;
     procedure AlignAll;
@@ -649,9 +655,14 @@ type
     procedure ScrollChangingHandler(Sender: TObject; ANewPosition: Single; var Handled: boolean);
     procedure UpdateImage; virtual;
     procedure UpdateScrollBars; virtual;
+    // Properties for use by TIVScrollProperties
+    // TODO : Replace by interface: IScrollPropertiesOwner
+    property ScrollBarSize: Integer read FScrollBarSize write FScrollBarSize;
+    property ScrollBarVisibility: TScrollBarVisibility read FScrollBarVisibility write FScrollBarVisibility;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     function  GetViewportRect: TRect; override;
     procedure Loaded; override;
     procedure Resize; override;
@@ -905,10 +916,10 @@ end;
 
 destructor TCustomPaintBox32.Destroy;
 begin
-  FRepaintOptimizer.Free;
-  FInvalidRects.Free;
-  UpdateRects.Free;
-  FBuffer.Free;
+  FreeAndNil(FRepaintOptimizer);
+  FreeAndNil(FInvalidRects);
+  FreeAndNil(UpdateRects);
+  FreeAndNil(FBuffer);
   inherited;
 end;
 
@@ -1115,7 +1126,7 @@ end;
 procedure TCustomPaintBox32.Invalidate;
 begin
   FBufferValid := False;
-{$if defined(xCOMPILERFPC) and defined(WINDOWS)}
+{$if defined(COMPILERFPC) and defined(WINDOWS)}
   // LCL TWinControl.Invalidate doesn't take csOpaque in account when calling InvalidateRect.
   if (HandleAllocated) then
     InvalidateRect(Handle, nil, not(csOpaque in ControlStyle));
@@ -1165,7 +1176,7 @@ procedure TCustomPaintBox32.Paint;
 var
   PaintSupport: IPaintSupport;
 begin
-  if not Assigned(Parent) then
+  if (Parent = nil) then
     Exit;
 
   if FRepaintOptimizer.Enabled then
@@ -1662,7 +1673,7 @@ begin
   FLayers := CreateLayerCollection;
   FLayers.Subscribe(Self);
 
-  FRepaintOptimizer.RegisterLayerCollection(FLayers);
+  RepaintOptimizer.RegisterLayerCollection(FLayers);
 
   FPaintStages := TPaintStages.Create;
   FScaleX := 1;
@@ -1681,14 +1692,17 @@ end;
 destructor TCustomImage32.Destroy;
 begin
   BeginLockUpdate; // Block further notifications
-  FPaintStages.Free;
-  FRepaintOptimizer.UnregisterLayerCollection(FLayers);
+
+  Bitmap.OnResize := nil;
+
+  FreeAndNil(FPaintStages);
+  RepaintOptimizer.UnregisterLayerCollection(FLayers);
   FLayers.Unsubscribe(Self);
-  FLayers.Free;
-  FBitmap.Free;
-  FBackgroundOptions.Free;
-  FMousePanOptions.Free;
-  FMouseZoomOptions.Free;
+  FreeAndNil(FLayers);
+  FreeAndNil(FBitmap);
+  FreeAndNil(FBackgroundOptions);
+  FreeAndNil(FMousePanOptions);
+  FreeAndNil(FMouseZoomOptions);
   inherited;
 end;
 
@@ -1772,12 +1786,10 @@ begin
   inherited;
 end;
 
-procedure TCustomImage32.Update(const Rect: TRect);
-var
-  UpdateRectNotification: IUpdateRectNotification;
+procedure TCustomImage32.DoBitmapResized;
 begin
-  if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
-    UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
+  if Assigned(FOnBitmapResize) then
+    FOnBitmapResize(Self);
 end;
 
 procedure TCustomImage32.BitmapResized;
@@ -1799,8 +1811,8 @@ begin
       SetBounds(Left, Top, W, H);
   end;
 
-  if (FUpdateCount = 0) and Assigned(FOnBitmapResize) then
-    FOnBitmapResize(Self);
+  if (UpdateCount = 0) then
+    DoBitmapResized;
 
   InvalidateCache;
   ForceFullInvalidate;
@@ -1845,7 +1857,7 @@ end;
 
 procedure TCustomImage32.BitmapChangeHandler(Sender: TObject);
 begin
-  FRepaintOptimizer.Reset;
+  RepaintOptimizer.Reset;
   BitmapChanged(Bitmap.Boundsrect);
 end;
 
@@ -1915,7 +1927,7 @@ begin
       InflateArea(T, WidthX, WidthY);
     end;
 
-    if (FRepaintOptimizer.Enabled) and (Supports(FRepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+    if (RepaintOptimizer.Enabled) and (Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
     begin
       if FBitmapAlign <> baTile then
         UpdateRectNotification.AreaUpdated(T, NewInfo)
@@ -2135,8 +2147,8 @@ var
   I, J: Integer;
   DT, RT: Boolean;
 begin
-  if FRepaintOptimizer.Enabled then
-    FRepaintOptimizer.BeginPaintBuffer;
+  if RepaintOptimizer.Enabled then
+    RepaintOptimizer.BeginPaintBuffer;
 
   UpdateCache;
 
@@ -2169,8 +2181,8 @@ begin
       end;
   end;
 
-  Buffer.BeginUpdate;
-  if FInvalidRects.Count = 0 then
+  Buffer.BeginLockUpdate;
+  if InvalidRects.Count = 0 then
   begin
     Buffer.ClipRect := GetViewportRect;
     for I := 0 to PaintStageHandlerCount - 1 do
@@ -2178,22 +2190,22 @@ begin
   end
   else
   begin
-    for J := 0 to FInvalidRects.Count - 1 do
+    for J := 0 to InvalidRects.Count - 1 do
     begin
-      Buffer.ClipRect := FInvalidRects[J]^;
+      Buffer.ClipRect := InvalidRects[J]^;
       for I := 0 to PaintStageHandlerCount - 1 do
         FPaintStageHandlers[I](Buffer, FPaintStageNum[I]);
     end;
 
     Buffer.ClipRect := GetViewportRect;
   end;
-  Buffer.EndUpdate;
+  Buffer.EndLockUpdate;
 
-  if FRepaintOptimizer.Enabled then
-    FRepaintOptimizer.EndPaintBuffer;
+  if RepaintOptimizer.Enabled then
+    RepaintOptimizer.EndPaintBuffer;
 
   // avoid calling inherited, we have a totally different behaviour here...
-  FBufferValid := True;
+  BufferValid := True;
   FPartialRepaintQueued := False;
 end;
 
@@ -2392,14 +2404,14 @@ begin
   begin
     C := Color32(Color);
 
-    if FInvalidRects.Count > 0 then
+    if InvalidRects.Count > 0 then
     begin
-      for i := 0 to FInvalidRects.Count-1 do
+      for i := 0 to InvalidRects.Count-1 do
       begin
-        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (CachedBitmapRect.Contains(FInvalidRects[i]^)) then
+        if (DrawBitmapBackground) and (FBackgroundOptions.CheckersStyle <> bcsNone) and (CachedBitmapRect.Contains(InvalidRects[i]^)) then
           continue;
 
-        with FInvalidRects[i]^ do
+        with InvalidRects[i]^ do
           Dest.FillRectS(Left, Top, Right, Bottom, C);
       end;
     end else
@@ -2767,10 +2779,23 @@ begin
   inherited;
 end;
 
+procedure TCustomImage32.Update(const Rect: TRect);
+begin
+  Invalidate(Rect);
+end;
+
+procedure TCustomImage32.Invalidate(const Rect: TRect);
+var
+  UpdateRectNotification: IUpdateRectNotification;
+begin
+  if (RepaintOptimizer.Enabled) and (Supports(RepaintOptimizer, IUpdateRectNotification, UpdateRectNotification)) then
+    UpdateRectNotification.AreaUpdated(Rect, AREAINFO_RECT);
+end;
+
 procedure TCustomImage32.InvalidateCache;
 begin
-  if FRepaintOptimizer.Enabled and CacheValid then
-    FRepaintOptimizer.Reset;
+  if RepaintOptimizer.Enabled and CacheValid then
+    RepaintOptimizer.Reset;
 
   CacheValid := False;
 end;
@@ -2779,7 +2804,7 @@ function TCustomImage32.InvalidRectsAvailable: Boolean;
 begin
   // avoid calling inherited, we have a totally different behaviour here...
   DoPrepareInvalidRects;
-  Result := (FInvalidRects.Count > 0);
+  Result := (InvalidRects.Count > 0);
 end;
 
 procedure TCustomImage32.LayerCollectionChangeHandler(Sender: TObject);
@@ -2953,7 +2978,7 @@ var
   OldRepaintMode: TRepaintMode;
   I: Integer;
 begin
-  if not assigned(Dest) then
+  if (Dest = nil) then
     exit;
 
   OldRepaintMode := RepaintMode;
@@ -3143,14 +3168,19 @@ end;
 
 procedure TCustomImage32.SetupBitmap(DoClear: Boolean = False; ClearColor: TColor32 = $FF000000);
 begin
-  FBitmap.BeginUpdate;
-  with GetViewPortRect do
-    FBitmap.SetSize(Right - Left, Bottom - Top);
-  if DoClear then
-    FBitmap.Clear(ClearColor);
-  FBitmap.EndUpdate;
-  InvalidateCache;
-  Changed;
+  BeginUpdate;
+  try
+    FBitmap.BeginUpdate;
+    with GetViewPortRect do
+      FBitmap.SetSize(Right - Left, Bottom - Top);
+    if DoClear then
+      FBitmap.Clear(ClearColor);
+    FBitmap.EndUpdate;
+    InvalidateCache;
+    Changed;
+  finally
+    EndUpdate;
+  end;
 end;
 
 procedure TCustomImage32.SetXForm(ShiftX, ShiftY, ScaleX, ScaleY: TFloat);
@@ -3199,12 +3229,12 @@ end;
 
 function TIVScrollProperties.GetSize: Integer;
 begin
-  Result := ImgView.FScrollBarSize;
+  Result := ImgView.ScrollBarSize;
 end;
 
 function TIVScrollProperties.GetVisibility: TScrollbarVisibility;
 begin
-  Result := ImgView.FScrollBarVisibility;
+  Result := ImgView.ScrollBarVisibility;
 end;
 
 procedure TIVScrollProperties.SetIncrement(Value: Integer);
@@ -3215,16 +3245,16 @@ end;
 
 procedure TIVScrollProperties.SetSize(Value: Integer);
 begin
-  ImgView.FScrollBarSize := Value;
+  ImgView.ScrollBarSize := Value;
   ImgView.AlignAll;
   ImgView.UpdateImage;
 end;
 
 procedure TIVScrollProperties.SetVisibility(const Value: TScrollbarVisibility);
 begin
-  if Value <> ImgView.FScrollBarVisibility then
+  if Value <> ImgView.ScrollBarVisibility then
   begin
-    ImgView.FScrollBarVisibility := Value;
+    ImgView.ScrollBarVisibility := Value;
     ImgView.Resize;
   end;
 end;
@@ -3265,7 +3295,7 @@ begin
     // Scrollbars has been shown or hidden. Buffer must resize to align with new viewport.
     // This will automatically lead to the viewport being redrawn.
     ResizeBuffer;
-    FBufferValid := False
+    BufferValid := False
   end;
 end;
 
@@ -3294,6 +3324,7 @@ end;
 constructor TCustomImgView32.Create(AOwner: TComponent);
 begin
   inherited;
+
   FScrollBarSize := GetSystemMetrics(SM_CYHSCROLL);
 
   HScroll := TCustomRangeBar.Create(Self);
@@ -3399,7 +3430,7 @@ begin
   end;
 
   Result := True;
-  if Assigned(FScrollBars) and Assigned(HScroll) and Assigned(VScroll) then
+  if (FScrollBars <> nil) and (HScroll <> nil) and (VScroll <> nil) then
     case FScrollBars.Visibility of
       svAlways:
         Result := True;
@@ -3420,7 +3451,7 @@ var
 begin
   Sz := GetScrollBarSize;
 
-  if not Assigned(Parent) then
+  if (Parent = nil) then
     Result := BoundsRect
   else
     Result := ClientRect;
@@ -3460,7 +3491,7 @@ begin
             Result := True;
             Break;
           end else
-          if (not Assigned(P)) or (P.Align <> alClient) then
+          if (P = nil) or (P.Align <> alClient) then
             Exit;
 
           P := P.Parent;
@@ -3536,7 +3567,7 @@ end;
 
 procedure TCustomImgView32.Paint;
 begin
-  if not Assigned(Parent) then
+  if (Parent = nil) then
     Exit;
 
   if IsSizeGripVisible then
@@ -3553,7 +3584,7 @@ procedure TCustomImgView32.Resize;
 begin
   AlignAll;
 
-  if Assigned(Parent) then
+  if (Parent <> nil) then
   begin
     if IsSizeGripVisible then
       DoDrawSizeGrip(GetSizeGripRect)
@@ -3579,10 +3610,10 @@ begin
   BeginUpdate;
   try
 
-    DisableScrollUpdate := True;
+    Inc(FScrollLock);
     HScroll.Position := HScroll.Position + Dx;
     VScroll.Position := VScroll.Position + Dy;
-    DisableScrollUpdate := False;
+    Dec(FScrollLock);
 
   finally
     EndUpdate;
@@ -3593,7 +3624,7 @@ end;
 
 procedure TCustomImgView32.ScrollHandler(Sender: TObject);
 begin
-  if DisableScrollUpdate then
+  if (FScrollLock > 0) then
     Exit;
 
   if (Sender = HScroll) then
@@ -3624,7 +3655,7 @@ procedure TCustomImgView32.ScrollToCenter(X, Y: Integer);
 var
   ScaledDOversize: Integer;
 begin
-  DisableScrollUpdate := True;
+  Inc(FScrollLock);
   AlignAll;
 
   ScaledDOversize := Round(FOversize * Scale);
@@ -3633,7 +3664,7 @@ begin
     HScroll.Position := X * Scale - (Right - Left) * 0.5 + ScaledDOversize;
     VScroll.Position := Y * Scale - (Bottom - Top) * 0.5 + ScaledDOversize;
   end;
-  DisableScrollUpdate := False;
+  Dec(FScrollLock);
   UpdateImage;
 end;
 
@@ -3724,7 +3755,7 @@ var
   Sz: TSize;
   ScaledDOversize: Integer;
 begin
-  if Assigned(HScroll) and Assigned(VScroll) then
+  if (HScroll <> nil) and (VScroll <> nil) then
   begin
     Sz := GetBitmapSize;
     ScaledDOversize := Round(2 * FOversize * Scale);
