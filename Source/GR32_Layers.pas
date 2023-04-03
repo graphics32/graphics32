@@ -279,16 +279,20 @@ type
     property OnMouseUp: TMouseEvent read FOnMouseUp write FOnMouseUp;
   end;
 
+  TLayerGetUpdateRectEvent = procedure(Sender: TObject; var UpdateRect: TRect) of object;
+
   TPositionedLayer = class(TCustomLayer)
   private
     FLocation: TFloatRect;
     FScaled: Boolean;
+    FOnGetUpdateRect: TLayerGetUpdateRectEvent;
     procedure SetLocation(const Value: TFloatRect);
     procedure SetScaled(Value: Boolean);
   protected
     function DoHitTest(X, Y: Integer): Boolean; override;
     procedure DoSetLocation(const NewLocation: TFloatRect); virtual;
-    function GetUpdateRect: TRect; virtual;
+    function DoGetUpdateRect: TRect; virtual;
+    function GetUpdateRect: TRect;
   public
     constructor Create(ALayerCollection: TLayerCollection); override;
 
@@ -299,6 +303,8 @@ type
 
     property Location: TFloatRect read FLocation write SetLocation;
     property Scaled: Boolean read FScaled write SetScaled;
+
+    property OnGetUpdateRect: TLayerGetUpdateRectEvent read FOnGetUpdateRect write FOnGetUpdateRect;
   end;
 
   TCustomIndirectBitmapLayer = class(TPositionedLayer)
@@ -1282,10 +1288,18 @@ begin
     Result := R;
 end;
 
-function TPositionedLayer.GetUpdateRect: TRect;
+function TPositionedLayer.DoGetUpdateRect: TRect;
 begin
   // Note: Result is in ViewPort coordinates
   Result := MakeRect(GetAdjustedLocation, rrOutside);
+end;
+
+function TPositionedLayer.GetUpdateRect: TRect;
+begin
+  Result := DoGetUpdateRect;
+
+  if (Assigned(FOnGetUpdateRect)) then
+    FOnGetUpdateRect(Self, Result);
 end;
 
 procedure TPositionedLayer.SetLocation(const Value: TFloatRect);
