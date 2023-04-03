@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
-  <Package Version="4">
+  <Package Version="5">
     <Name Value="GR32_DSGN_Lazarus"/>
     <Type Value="DesignTime"/>
     <Author Value="Team Graphics32"/>
@@ -59,14 +59,15 @@ Mozilla Public License 1.1 (MPL 1.1)"/>
         <UnitName Value="GR32_Dsgn_Color"/>
       </Item3>
       <Item4>
-        <Filename Value="../GR32_Dsgn_Bitmap.lfm"/>
-        <Type Value="LFM"/>
-      </Item4>
-      <Item5>
         <Filename Value="../GR32_Dsgn_Bitmap.pas"/>
         <UnitName Value="GR32_Dsgn_Bitmap"/>
+      </Item4>
+      <Item5>
+        <Filename Value="../GR32_Dsgn_Bitmap.dfm"/>
+        <Type Value="Text"/>
       </Item5>
     </Files>
+    <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="3">
       <Item1>
         <PackageName Value="GR32_Lazarus"/>

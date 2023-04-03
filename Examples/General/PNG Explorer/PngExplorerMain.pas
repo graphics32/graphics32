@@ -82,7 +82,9 @@ type
     procedure DisplayGammaChunk(GammaChunk: TChunkPngGamma);
     procedure DisplayPhysicalDimensionsChunk(PhysicalDimensionsChunk: TChunkPngPhysicalPixelDimensions);
     procedure DisplayTextChunk(TextChunk: TCustomChunkPngText);
+{$if defined(TChunkPngSuggestedPalette)} // TChunkPngSuggestedPalette is incomplete and has been disabled
     procedure DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
+{$ifend}
     procedure DisplaySignificantBitsChunk(SignificantBitsChunk: TChunkPngSignificantBits);
     procedure DisplayStandardColorSpaceRGBChunk(StandardColorSpaceRGB: TChunkPngStandardColorSpaceRGB);
     procedure DisplayBackgroundColorChunk(BackgroundColor: TChunkPngBackgroundColor);
@@ -257,6 +259,7 @@ begin
   end;
 end;
 
+{$if defined(TChunkPngSuggestedPalette)}
 procedure TFmPngExplorer.DisplaySuggestedPaletteChunk(SuggestedPaletteChunk: TChunkPngSuggestedPalette);
 begin
   with SuggestedPaletteChunk do
@@ -268,6 +271,7 @@ begin
     ListView.BringToFront;
   end;
 end;
+{$ifend}
 
 procedure TFmPngExplorer.DisplaySignificantBitsChunk(
   SignificantBitsChunk: TChunkPngSignificantBits);
@@ -505,8 +509,10 @@ begin
       DisplayHistogramChunk(TChunkPngImageHistogram(Node.Data))
     else if TObject(Node.Data) is TChunkPngBackgroundColor then
       DisplayBackgroundColorChunk(TChunkPngBackgroundColor(Node.Data))
+{$if defined(TChunkPngSuggestedPalette)}
     else if TObject(Node.Data) is TChunkPngSuggestedPalette then
       DisplaySuggestedPaletteChunk(TChunkPngSuggestedPalette(Node.Data))
+{$ifend}
     else if TObject(Node.Data) is TChunkPngPrimaryChromaticities then
       DisplayChromaticitiesChunk(TChunkPngPrimaryChromaticities(Node.Data))
     else if TObject(Node.Data) is TChunkPngPhysicalPixelDimensions then

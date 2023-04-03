@@ -39,9 +39,9 @@ interface
 {$I GR32.inc}
 
 uses
-  {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Windows, {$ENDIF}
+  {$IFDEF FPC}LCLIntf, LResources, LCLType, {$ELSE} Windows, Actions, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Dialogs, Menus, ExtCtrls,
-  ExtDlgs, StdCtrls, Buttons, Types, Actions, ActnList,
+  ExtDlgs, StdCtrls, Buttons, Types, ActnList,
   GR32, GR32_Image, GR32_Layers, GR32_RangeBars,
   GR32_Filters, GR32_Transforms, GR32_Resamplers;
 
@@ -70,7 +70,6 @@ type
     LblMagnification: TLabel;
     LblOpacity: TLabel;
     LblRotation: TLabel;
-    LblScale: TLabel;
     MainMenu: TMainMenu;
     MimArrange: TMenuItem;
     MnuBringFront: TMenuItem;
@@ -113,7 +112,6 @@ type
     PnlMagnification: TPanel;
     PnlMagnificationHeader: TPanel;
     SaveDialog: TSaveDialog;
-    ScaleCombo: TComboBox;
     N7: TMenuItem;
     MenuItemEdit: TMenuItem;
     MenuItemCopy: TMenuItem;
@@ -133,9 +131,6 @@ type
     procedure CbxOptRedrawClick(Sender: TObject);
     procedure ImgViewKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure ImgViewMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImgViewMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-    procedure ImgViewMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-    procedure ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32; StageNum: Cardinal);
     procedure LayerOpacityChanged(Sender: TObject);
     procedure MimArrangeClick(Sender: TObject);
     procedure MnuButtonMockupClick(Sender: TObject);
@@ -158,21 +153,12 @@ type
     procedure MnuScaledClick(Sender: TObject);
     procedure MnuSimpleDrawingClick(Sender: TObject);
     procedure PropertyChange(Sender: TObject);
-    procedure ScaleComboChange(Sender: TObject);
-    procedure ImgViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-    procedure ImgViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
     procedure ActionCopyUpdate(Sender: TObject);
     procedure ActionPasteIntoUpdate(Sender: TObject);
     procedure ActionPasteNewUpdate(Sender: TObject);
     procedure ActionCopyExecute(Sender: TObject);
     procedure ActionPasteIntoExecute(Sender: TObject);
     procedure ActionPasteNewExecute(Sender: TObject);
-  private
-    FPanning: boolean;
-    FStartPos: TPoint;
-  private
-    FLockZoom: integer;
-    procedure SetScale(AScale: Double);
   private
     FSelection: TPositionedLayer;
     procedure SetSelection(Value: TPositionedLayer);
@@ -199,11 +185,7 @@ var
 
 implementation
 
-{$IFDEF FPC}
-{$R *.lfm}
-{$ELSE}
 {$R *.dfm}
-{$ENDIF}
 
 uses
 {$IFDEF Darwin}
@@ -222,31 +204,19 @@ uses
 const
   RESAMPLER: array [Boolean] of TCustomResamplerClass = (TNearestResampler, TDraftResampler);
 
-const
-  ZoomLevels: array[0..9] of Double = (0.1, 0.25, 0.50, 0.75, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0);
-
 { TMainForm }
 
 procedure TMainForm.FormCreate(Sender: TObject);
-var
-  i: integer;
 begin
-  // by default, PST_CLEAR_BACKGND is executed at this stage,
-  // which, in turn, calls ExecClearBackgnd method of ImgView.
-  // Here I substitute PST_CLEAR_BACKGND with PST_CUSTOM, so force ImgView
-  // to call the OnPaintStage event instead of performing default action.
-  if (ImgView.PaintStages[0].Stage = PST_CLEAR_BACKGND) then
-    ImgView.PaintStages[0].Stage := PST_CUSTOM;
-
-  ImgView.RepaintMode := rmOptimizer;
+  ImgView.Background.CheckersStyle := bcsMedium;
+  ImgView.Background.FillStyle := bfsCheckers;
+  ImgView.MousePan.Enabled := True;
+  ImgView.MousePan.PanCursor := crSizeAll;
+  ImgView.MouseZoom.Enabled := True;
+  ImgView.MouseZoom.Animate := True;
+  ImgView.MouseZoom.MaintainPivot := True;
+  ImgView.RepaintMode := rmOptimizer;;
   ImgView.Options := ImgView.Options + [pboWantArrowKeys];
-
-  // Fill scale combobox with predefined zoom levels
-  ScaleCombo.Items.Clear;
-  for i := 0 to High(ZoomLevels) do
-    ScaleCombo.Items.Add(Format('%.0n%%', [ZoomLevels[i] * 100]));
-
-  SetScale(1);
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -807,60 +777,6 @@ begin
       Cy + H2 * I * Sin(I * 0.125));
 end;
 
-procedure TMainForm.ScaleComboChange(Sender: TObject);
-var
-  NewScale: Double;
-  ScaleStr: string;
-  i: integer;
-begin
-  if (ScaleCombo.ItemIndex <> -1) then
-  begin
-    // Predefined scale selected
-    NewScale := ZoomLevels[ScaleCombo.ItemIndex];
-  end else
-  begin
-    // Custom zoom manually entered
-    ScaleStr := ScaleCombo.Text;
-
-    // Remove junk from start
-    while (ScaleStr <> '') and ((ScaleStr[1] < '0') or (ScaleStr[1] > '9')) do
-      Delete(ScaleStr, 1, 1);
-
-    // Remove junk from end
-    i := 1;
-    while (i <= Length(ScaleStr)) and ((ScaleStr[i] >= '0') or (ScaleStr[i] <= '9')) do
-      inc(i);
-    SetLength(ScaleStr, i-1);
-
-    NewScale := StrToFloatDef(ScaleStr, 100) / 100;
-  end;
-  SetScale(NewScale);
-end;
-
-procedure TMainForm.SetScale(AScale: Double);
-begin
-  if (FLockZoom > 0) then
-    exit;
-
-  if AScale < ZoomLevels[Low(ZoomLevels)] then
-    AScale := ZoomLevels[Low(ZoomLevels)]
-  else
-  if AScale > ZoomLevels[High(ZoomLevels)] then
-    AScale := ZoomLevels[High(ZoomLevels)];
-
-  Inc(FLockZoom);
-  try
-
-    ImgView.Scale := AScale;
-
-    ScaleCombo.Text := Format('%.0n%%', [ImgView.Scale * 100]);
-    ScaleCombo.SelStart := Length(ScaleCombo.Text) - 1;
-
-  finally
-    Dec(FLockZoom);
-  end;
-end;
-
 procedure TMainForm.SetSelection(Value: TPositionedLayer);
 begin
   if Value <> FSelection then
@@ -967,82 +883,27 @@ end;
 
 procedure TMainForm.ImgViewMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
+var
+  Size: TSize;
 begin
   if Layer = nil then
-  begin
     Selection := nil;
 
-    // Left mouse = Pan
-    if (Button = mbLeft) then
-    begin
-      FPanning := True;
-      ImgView.Cursor := crSizeAll;
-      // Remember start point
-      FStartPos := GR32.Point(X, Y);
-    end else
-    // Middle mouse = Reset zoom to 100%
-    if (Button = mbMiddle) then
-      SetScale(1);
-  end;
-end;
-
-procedure TMainForm.ImgViewMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-var
-  Delta: TPoint;
-begin
-  if (not FPanning) then
-    Exit;
-
-  // If we're panning then calculate how far mouse has moved since last and
-  // scroll image the same amount.
-  var NewPos := GR32.Point(X, Y);
-  Delta := FStartPos - NewPos;
-
-  FStartPos := NewPos; // Remember new start point
-
-  if (Delta.X <> 0) or (Delta.Y <> 0) then
-    ImgView.Scroll(Delta.X, Delta.Y);
-end;
-
-procedure TMainForm.ImgViewMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer; Layer: TCustomLayer);
-begin
-  ImgView.Cursor := crDefault;
-  FPanning := False;
-end;
-
-procedure TMainForm.ImgViewPaintStage(Sender: TObject; Buffer: TBitmap32;
-  StageNum: Cardinal);
-const            //0..1
-  Colors: array [Boolean] of TColor32 = ($FFFFFFFF, $FFB0B0B0);
-var
-  R: TRect;
-  I, J: Integer;
-  OddY: Integer;
-  TilesHorz, TilesVert: Integer;
-  TileX, TileY: Integer;
-  TileHeight, TileWidth: Integer;
-begin
-  TileHeight := 13;
-  TileWidth := 13;
-
-  TilesHorz := Buffer.Width div TileWidth;
-  TilesVert := Buffer.Height div TileHeight;
-  TileY := 0;
-
-  for J := 0 to TilesVert do
+  if (Button = mbMiddle) then
   begin
-    TileX := 0;
-    OddY := J and $1;
-    for I := 0 to TilesHorz do
-    begin
-      R.Left := TileX;
-      R.Top := TileY;
-      R.Right := TileX + TileWidth;
-      R.Bottom := TileY + TileHeight;
-      Buffer.FillRectS(R, Colors[I and $1 = OddY]);
-      Inc(TileX, TileWidth);
+    ImgView.BeginUpdate;
+    try
+      // Reset Zoom...
+      ImgView.Scale := 1;
+
+      // ...and Center ImgView
+      Size := ImgView.GetBitmapSize;
+      ImgView.OffsetHorz := (ImgView.Width-Size.cx) div 2;
+      ImgView.OffsetVert := (ImgView.Height-Size.cy) div 2;
+    finally
+      ImgView.EndUpdate;
     end;
-    Inc(TileY, TileHeight);
+    ImgView.Changed;
   end;
 end;
 
@@ -1186,20 +1047,6 @@ begin
     B.Free;
     Screen.Cursor := crDefault;
   end;
-end;
-
-procedure TMainForm.ImgViewMouseWheelUp(Sender: TObject;
-  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-begin
-  // -10%
-  SetScale(ImgView.Scale / 1.1);
-end;
-
-procedure TMainForm.ImgViewMouseWheelDown(Sender: TObject;
-  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
-begin
-  // +10%
-  SetScale(ImgView.Scale * 1.1);
 end;
 
 procedure TMainForm.MnuFlipHorzClick(Sender: TObject);

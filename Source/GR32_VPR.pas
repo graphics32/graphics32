@@ -72,6 +72,46 @@ implementation
 uses
   Math, GR32_Math, GR32_LowLevel, GR32_VectorUtils;
 
+(* Mattias Andersson (from glmhlg$rf3$1@news.graphics32.org):
+
+> Which algorithm are you using for coverage calculation?
+
+I don't have any references, since it's entirely my own design. Here is
+a basic outline of how I compute the coverage values:
+
+1. split each line segment into smaller segments in a vertical buffer,
+   such that y-values are between 0 and 1;
+
+2. poly-polygons involves a merge step for vertical buffers;
+
+3. Extract spans of coverage values for each scanline:
+    (a) set the length of the span to the horizontal range of that row;
+    (b) if a line segment goes from row Y to row Y + 1 then we need to add
+        or subtract 1 from the (X, X + 1) indexes at the crossing (depending on
+        line orientation);
+    (c) compute cumulative sum of span values (expensive!);
+    (d) integrate each line segment and accumulate span buffer.
+
+The rendering step takes the coverage values and transforms that into an
+alpha buffer that is blended onto the target bitmap (here we use the
+non-zero and even-odd fill rules).
+
+Initially I was sorting the crossing points of each scanline, but I
+realized that by performing a cumulative sum, this would be completely
+redundant.
+
+Currently I only compute a single span of coverage values for each
+scanline, but I think I should also implement a case where I compute
+multiple RLE encoded spans (which I think could be faster in some cases).
+
+There is a tricky case that might not always yield an accurate coverage
+value (when we have positively and negatively oriented lines of two
+different polygons/faces in the same pixel). The only way to overcome
+this would be by preprocessing the polygons and remove intersections. I
+believe this very problem exists in AGG and FreeType too.
+
+*)
+
 type
   PLineSegment = ^TLineSegment;
   TLineSegment = array [0..1] of TFloatPoint;

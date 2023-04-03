@@ -269,28 +269,46 @@ type
     property Scaled: Boolean read FScaled write SetScaled;
   end;
 
-  TCustomBitmapLayer = class abstract(TPositionedLayer)
-  private
-    FBitmap: TCustomBitmap32;
+  TCustomIndirectBitmapLayer = class(TPositionedLayer)
+  strict private
     FAlphaHit: Boolean;
     FCropped: Boolean;
+  strict protected
+    FBitmap: TCustomBitmap32;
+    function OwnsBitmap: boolean; virtual;
+  private
+    procedure DoSetBitmap(Value: TCustomBitmap32);
   protected
     function DoHitTest(X, Y: Integer): Boolean; override;
     procedure Paint(Buffer: TBitmap32); override;
   protected
     procedure BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
-    function GetBitmap: TCustomBitmap32;
     procedure SetBitmap(Value: TCustomBitmap32); virtual;
     procedure SetCropped(Value: Boolean);
-    function CreateBitmap: TCustomBitmap32; virtual;
-    function GetBitmapClass: TCustomBitmap32Class; virtual; abstract;
     property Bitmap: TCustomBitmap32 read FBitmap write SetBitmap;
   public
-    constructor Create(ALayerCollection: TLayerCollection); override;
+    constructor Create(ALayerCollection: TLayerCollection); overload; override;
+    constructor Create(ALayerCollection: TLayerCollection; ABitmap: TCustomBitmap32); reintroduce; overload;
     destructor Destroy; override;
 
     property AlphaHit: Boolean read FAlphaHit write FAlphaHit;
     property Cropped: Boolean read FCropped write SetCropped;
+  end;
+
+  TIndirectBitmapLayer = class(TCustomIndirectBitmapLayer)
+  public
+    property Bitmap;
+  end;
+
+  TCustomBitmapLayer = class abstract(TCustomIndirectBitmapLayer)
+  strict protected
+    function OwnsBitmap: boolean; override;
+  protected
+    procedure SetBitmap(Value: TCustomBitmap32); override;
+    function GetBitmapClass: TCustomBitmap32Class; virtual; abstract;
+    function CreateBitmap: TCustomBitmap32; virtual;
+  public
+    constructor Create(ALayerCollection: TLayerCollection); override;
   end;
 
   TBitmapLayer = class(TCustomBitmapLayer)
@@ -1189,30 +1207,50 @@ begin
   end;
 end;
 
-{ TCustomBitmapLayer }
+{ TCustomIndirectBitmapLayer }
 
-procedure TCustomBitmapLayer.BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
+constructor TCustomIndirectBitmapLayer.Create(ALayerCollection: TLayerCollection);
+begin
+  inherited Create(ALayerCollection);
+end;
+
+constructor TCustomIndirectBitmapLayer.Create(ALayerCollection: TLayerCollection; ABitmap: TCustomBitmap32);
+begin
+  inherited Create(ALayerCollection);
+  DoSetBitmap(ABitmap);
+end;
+
+destructor TCustomIndirectBitmapLayer.Destroy;
+begin
+  if (OwnsBitmap) then
+    FreeAndNil(FBitmap)
+  else
+    DoSetBitmap(nil);
+  inherited;
+end;
+
+procedure TCustomIndirectBitmapLayer.BitmapAreaChanged(Sender: TObject; const Area: TRect; const Info: Cardinal);
 var
   T: TRect;
   ScaleX, ScaleY: TFloat;
   Width: Integer;
+  r: TFloatRect;
 begin
-  if FBitmap.Empty then
+  if (FBitmap.Empty) then
     Exit;
 
-  if Assigned(FLayerCollection) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
+  if (FLayerCollection <> nil) and ((FLayerOptions and LOB_NO_UPDATE) = 0) then
   begin
-    with GetAdjustedLocation do
-    begin
-      { TODO : Optimize me! }
-      ScaleX := (Right - Left) / FBitmap.Width;
-      ScaleY := (Bottom - Top) / FBitmap.Height;
+    r := GetAdjustedLocation;
 
-      T.Left := Floor(Left + Area.Left * ScaleX);
-      T.Top := Floor(Top + Area.Top * ScaleY);
-      T.Right := Ceil(Left + Area.Right * ScaleX);
-      T.Bottom := Ceil(Top + Area.Bottom * ScaleY);
-    end;
+    { TODO : Optimize me! }
+    ScaleX := (r.Right - r.Left) / FBitmap.Width;
+    ScaleY := (r.Bottom - r.Top) / FBitmap.Height;
+
+    T.Left := Floor(r.Left + Area.Left * ScaleX);
+    T.Top := Floor(r.Top + Area.Top * ScaleY);
+    T.Right := Ceil(r.Left + Area.Right * ScaleX);
+    T.Bottom := Ceil(r.Top + Area.Bottom * ScaleY);
 
     Width := Trunc(FBitmap.Resampler.Width) + 1;
     InflateArea(T, Width, Width);
@@ -1221,61 +1259,41 @@ begin
   end;
 end;
 
-constructor TCustomBitmapLayer.Create(ALayerCollection: TLayerCollection);
-begin
-  inherited;
-  FBitmap := CreateBitmap;
-  FBitmap.OnAreaChanged := BitmapAreaChanged;
-end;
-
-function TCustomBitmapLayer.CreateBitmap: TCustomBitmap32;
-begin
-  Result := GetBitmapClass.Create;
-end;
-
-function TCustomBitmapLayer.DoHitTest(X, Y: Integer): Boolean;
+function TCustomIndirectBitmapLayer.DoHitTest(X, Y: Integer): Boolean;
 var
   BitmapX, BitmapY: Integer;
   LayerWidth, LayerHeight: Integer;
+  r: TFloatRect;
 begin
   Result := inherited DoHitTest(X, Y);
 
-  if Result and AlphaHit then
+  if (Result) and (AlphaHit) and (FBitmap <> nil) then
   begin
-    with GetAdjustedRect(FLocation) do
+    r := GetAdjustedRect(FLocation);
+
+    LayerWidth := Round(r.Right - r.Left);
+    LayerHeight := Round(r.Bottom - r.Top);
+
+    if (LayerWidth < 0.5) or (LayerHeight < 0.5) then
+      Result := False
+    else
     begin
-      LayerWidth := Round(Right - Left);
-      LayerHeight := Round(Bottom - Top);
-      if (LayerWidth < 0.5) or (LayerHeight < 0.5) then Result := False
-      else
-      begin
-        // check the pixel alpha at (X, Y) position
-        BitmapX := Round((X - Left) * FBitmap.Width / LayerWidth);
-        BitmapY := Round((Y - Top) * FBitmap.Height / LayerHeight);
-        if FBitmap.PixelS[BitmapX, BitmapY] and $FF000000 = 0 then Result := False;
-      end;
+      // check the pixel alpha at (X, Y) position
+      BitmapX := Round((X - r.Left) * FBitmap.Width / LayerWidth);
+      BitmapY := Round((Y - r.Top) * FBitmap.Height / LayerHeight);
+      if (FBitmap.PixelS[BitmapX, BitmapY] and $FF000000 = 0) then
+        Result := False;
     end;
   end;
 end;
 
-function TCustomBitmapLayer.GetBitmap: TCustomBitmap32;
-begin
-  Result := FBitmap;
-end;
-
-destructor TCustomBitmapLayer.Destroy;
-begin
-  FBitmap.Free;
-  inherited;
-end;
-
-procedure TCustomBitmapLayer.Paint(Buffer: TBitmap32);
+procedure TCustomIndirectBitmapLayer.Paint(Buffer: TBitmap32);
 var
   SrcRect, DstRect, ClipRect, TempRect: TRect;
   ImageRect: TRect;
   LayerWidth, LayerHeight: TFloat;
 begin
-  if FBitmap.Empty then
+  if (FBitmap = nil) or (FBitmap.Empty) then
     Exit;
 
   DstRect := MakeRect(GetAdjustedRect(FLocation));
@@ -1288,11 +1306,8 @@ begin
   if Cropped and (LayerCollection.FOwner is TCustomImage32) and
     not (TImage32Access(LayerCollection.FOwner).PaintToMode) then
   begin
-    with DstRect do
-    begin
-      LayerWidth := Right - Left;
-      LayerHeight := Bottom - Top;
-    end;
+    LayerWidth := DstRect.Right - DstRect.Left;
+    LayerHeight := DstRect.Bottom - DstRect.Top;
     if (LayerWidth < 0.5) or (LayerHeight < 0.5) then
       Exit;
     ImageRect := TCustomImage32(LayerCollection.FOwner).GetBitmapRect;
@@ -1301,20 +1316,73 @@ begin
   StretchTransfer(Buffer, DstRect, ClipRect, FBitmap, SrcRect, FBitmap.Resampler, FBitmap.DrawMode, FBitmap.OnPixelCombine);
 end;
 
-procedure TCustomBitmapLayer.SetBitmap(Value: TCustomBitmap32);
+procedure TCustomIndirectBitmapLayer.DoSetBitmap(Value: TCustomBitmap32);
 begin
-  FBitmap.Assign(Value);
+  if (Value = FBitmap) then
+    exit;
+
+  if (FBitmap <> nil) then
+    FBitmap.OnAreaChanged := nil;
+
+  FBitmap := Value;
+
+  if (FBitmap <> nil) then
+    FBitmap.OnAreaChanged := BitmapAreaChanged;
 end;
 
-procedure TCustomBitmapLayer.SetCropped(Value: Boolean);
+function TCustomIndirectBitmapLayer.OwnsBitmap: boolean;
 begin
-  if Value <> FCropped then
+  Result := False;
+end;
+
+procedure TCustomIndirectBitmapLayer.SetBitmap(Value: TCustomBitmap32);
+begin
+  DoSetBitmap(Value);
+  Changed;
+end;
+
+procedure TCustomIndirectBitmapLayer.SetCropped(Value: Boolean);
+begin
+  if (Value <> FCropped) then
   begin
     FCropped := Value;
     Changed;
   end;
 end;
 
+
+{ TCustomBitmapLayer }
+
+constructor TCustomBitmapLayer.Create(ALayerCollection: TLayerCollection);
+var
+  LayerBitmap: TCustomBitmap32;
+begin
+  LayerBitmap := CreateBitmap;
+  try
+
+    inherited Create(ALayerCollection, LayerBitmap);
+
+  except
+    if (Bitmap = nil) then
+      LayerBitmap.Free; // Free if we didn't take ownership of the bitmap
+    raise;
+  end;
+end;
+
+function TCustomBitmapLayer.OwnsBitmap: boolean;
+begin
+  Result := True;
+end;
+
+function TCustomBitmapLayer.CreateBitmap: TCustomBitmap32;
+begin
+  Result := GetBitmapClass.Create;
+end;
+
+procedure TCustomBitmapLayer.SetBitmap(Value: TCustomBitmap32);
+begin
+  Bitmap.Assign(Value);
+end;
 
 { TBitmapLayer }
 
