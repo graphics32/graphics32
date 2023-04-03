@@ -65,7 +65,13 @@ implementation
 {$ENDIF}
 
 uses
-  Math, GR32, GR32_Geometry, GR32_VectorUtils, GR32_Resamplers, GR32_LowLevel,
+  Math,
+  GR32,
+  GR32_Math,
+  GR32_Geometry,
+  GR32_VectorUtils,
+  GR32_Resamplers,
+  GR32_LowLevel,
   GR32_Polygons;
 
 function MakeCurve(const Points: TArrayOfFloatPoint; Kernel: TCustomKernel;

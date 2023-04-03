@@ -25,9 +25,6 @@ implementation
 
 {$R *.dfm}
 
-uses
-  GR32_PNG;
-
 const
   sMediaFolder = '..\..\..\..\Media';
 
@@ -37,7 +34,7 @@ const
 
 procedure TFormMain.FormCreate(Sender: TObject);
 begin
-  LoadBitmap32FromPNG(ImgView.Bitmap, sMediaFolder+'\coffee.png');
+  ImgView.Bitmap.LoadFromFile(sMediaFolder+'\coffee.png');
 
   ImgView.Background.CheckersStyle := bcsMedium;
   ImgView.Background.CheckersExponent := 3; // Size of each tile becomes 2^3 = 8 pixels

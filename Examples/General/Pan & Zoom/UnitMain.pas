@@ -43,8 +43,7 @@ implementation
 {$R *.dfm}
 
 uses
-  GR32,
-  GR32_PNG;
+  GR32;
 
 const
   sMediaFolder = '..\..\..\..\Media';
@@ -57,8 +56,8 @@ begin
   ImgView.Bitmap.DrawMode := dmBlend;
   Image.Bitmap.DrawMode := dmBlend;
 
-  LoadBitmap32FromPNG(ImgView.Bitmap, sMediaFolder+'\coffee.png');
-  LoadBitmap32FromPNG(Image.Bitmap, sMediaFolder+'\coffee.png');
+  ImgView.Bitmap.LoadFromFile(sMediaFolder+'\coffee.png');
+  Image.Bitmap.LoadFromFile(sMediaFolder+'\coffee.png');
 
   ImgView.MousePan.Enabled := True;
   Image.MousePan.Enabled := True;

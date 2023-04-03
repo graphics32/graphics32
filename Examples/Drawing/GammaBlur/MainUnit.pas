@@ -5,8 +5,8 @@ interface
 uses
   {$IFNDEF FPC} Windows, {$ELSE} LCLIntf, LCLType, {$ENDIF}
   SysUtils, Classes, Graphics, Controls, Forms, Menus, Dialogs, ComCtrls,
-  ExtCtrls, StdCtrls, Math, GR32, GR32_Image, GR32_Layers, GR32_System,
-  GR32_RangeBars;
+  ExtCtrls, StdCtrls, Math,
+  GR32, GR32_Image, GR32_Layers, GR32_System, GR32_RangeBars;
 
 type
   TFormGammaBlur = class(TForm)
@@ -47,8 +47,12 @@ var
 implementation
 
 uses
-  {$IFNDEF FPC} JPEG, {$ELSE} LazJPG, {$ENDIF}
-  GR32_Polygons, GR32_VectorUtils, GR32_Gamma, GR32_Blurs, GR32_Resamplers;
+  GR32_Math,
+  GR32_Polygons,
+  GR32_VectorUtils,
+  GR32_Gamma,
+  GR32_Blurs,
+  GR32_Resamplers;
 
 {$IFDEF FPC}
 {$R *.lfm}

@@ -98,6 +98,8 @@ implementation
 {$ENDIF}
 
 uses
+  System.Types,
+  System.UITypes,
   GR32_Backends, GR32_Gamma, GR32_Polygons,
   {$IFDEF FPC}
   {$IFDEF LCLWin32}
