@@ -926,7 +926,6 @@ begin
     finally
       ImgView.EndUpdate;
     end;
-    ImgView.Changed;
   end;
 end;
 

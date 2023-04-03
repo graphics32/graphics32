@@ -106,7 +106,6 @@ begin
     finally
       TImage32(Sender).EndUpdate;
     end;
-    TImage32(Sender).Changed;
   end;
 end;
 
@@ -130,7 +129,6 @@ begin
     finally
       TImgView32(Sender).EndUpdate;
     end;
-    TImgView32(Sender).Changed;
   end;
 end;
 
