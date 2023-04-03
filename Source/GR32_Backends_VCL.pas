@@ -38,7 +38,9 @@ interface
 {$I GR32.inc}
 
 uses
-  SysUtils, Classes, Windows, Graphics, Controls,
+  System.SysUtils, System.Classes,
+  WinAPI.Windows,
+  VCL.Graphics, VCL.Controls,
   GR32,
   GR32_Backends,
   GR32_Containers,
@@ -196,8 +198,9 @@ type
 implementation
 
 uses
-  GR32_Text_VCL,
-  Math;
+  System.Math,
+  System.Types,
+  GR32_Text_VCL;
 
 var
   StockFont: HFONT;
@@ -326,14 +329,14 @@ begin
   Result.cX := 0;
   Result.cY := 0;
   if Handle <> 0 then
-    Windows.GetTextExtentPoint32(Handle, PChar(Text), Length(Text), Result)
+    WinAPI.Windows.GetTextExtentPoint32(Handle, PChar(Text), Length(Text), Result)
   else
   begin
     StockBitmap.Canvas.Lock;
     try
       DC := StockBitmap.Canvas.Handle;
       OldFont := SelectObject(DC, Font.Handle);
-      Windows.GetTextExtentPoint32(DC, PChar(Text), Length(Text), Result);
+      WinAPI.Windows.GetTextExtentPoint32(DC, PChar(Text), Length(Text), Result);
       SelectObject(DC, OldFont);
     finally
       StockBitmap.Canvas.Unlock;
@@ -392,14 +395,14 @@ begin
   begin
     SelectObject(Handle, Font.Handle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT);
+    SetBkMode(Handle, WinAPI.Windows.TRANSPARENT);
     FFontHandle := Font.Handle;
   end
   else
   begin
     SelectObject(Handle, FFontHandle);
     SetTextColor(Handle, ColorToRGB(Font.Color));
-    SetBkMode(Handle, Windows.TRANSPARENT);
+    SetBkMode(Handle, WinAPI.Windows.TRANSPARENT);
   end;
 end;
 
@@ -472,7 +475,7 @@ end;
 procedure TGDIBackend.InvalidateRect(AControl: TWinControl; const ARect: TRect);
 begin
   if (AControl.HandleAllocated) then
-    Windows.InvalidateRect(AControl.Handle, @ARect, False);
+    WinAPI.Windows.InvalidateRect(AControl.Handle, @ARect, False);
 end;
 
 procedure TGDIBackend.GetUpdateRects(AControl: TWinControl; AUpdateRects: TRectList; AReservedCapacity: integer; var AFullUpdate: boolean);
