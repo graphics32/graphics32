@@ -183,7 +183,7 @@ end;
 
 procedure RestoreBackend(TargetBitmap: TCustomBitmap32; const SavedBackend: TCustomBackend);
 begin
-  if Assigned(SavedBackend) then
+  if (SavedBackend <> nil) then
     TargetBitmap.Backend := SavedBackend;
 end;
 

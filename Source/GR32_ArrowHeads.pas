@@ -35,7 +35,12 @@ unit GR32_ArrowHeads;
 interface
 
 uses
-  SysUtils, GR32, GR32_Polygons, GR32_VectorUtils, GR32_Geometry;
+  System.SysUtils,
+  GR32,
+  GR32_Polygons,
+  GR32_VectorUtils,
+  GR32_Math,
+  GR32_Geometry;
 
 type
   TArrowHeadAbstract = class
@@ -77,6 +82,9 @@ resourcestring
   RCStrInsufficientPointsInArray = 'Insufficient points in array';
 
 implementation
+
+uses
+  System.Math;
 
 constructor TArrowHeadAbstract.Create(Size: TFloat);
 begin

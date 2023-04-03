@@ -98,8 +98,16 @@ var
 implementation
 
 uses
-  GR32_Geometry, GR32_VectorUtils, GR32_Gamma, GR32_Paths, {$IFDEF FPC}
-  GR32_Text_LCL_Win {$ELSE} GR32_Text_VCL {$ENDIF};
+  GR32_Math,
+  GR32_Geometry,
+  GR32_VectorUtils,
+  GR32_Gamma,
+  GR32_Paths,
+{$IFDEF FPC}
+  GR32_Text_LCL_Win
+{$ELSE}
+  GR32_Text_VCL
+{$ENDIF};
 
 {$IFDEF FPC}
 {$R *.lfm}

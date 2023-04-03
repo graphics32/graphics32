@@ -58,18 +58,13 @@ type
     FCurrentPoint: TFloatPoint;
     FLastControlPoint: TFloatPoint;
     FControlPointOrigin: TControlPointOrigin;
-    FChanged: boolean;
   protected
     procedure AddPoint(const Point: TFloatPoint); virtual;
     procedure AssignTo(Dest: TPersistent); override;
-    procedure DoChanged; virtual;
   public
     constructor Create; override;
-    procedure Clear; virtual;
 
-    procedure BeginUpdate; override;
-    procedure EndUpdate; override;
-    procedure Changed; override;
+    procedure Clear; virtual;
 
     procedure BeginPath; deprecated 'No longer necessary. Path is started automatically';
     procedure EndPath(Close: boolean = False); virtual;
@@ -297,35 +292,6 @@ begin
   FControlPointOrigin := cpNone;
 end;
 
-procedure TCustomPath.BeginUpdate;
-begin
-  inherited BeginUpdate;
-end;
-
-procedure TCustomPath.EndUpdate;
-begin
-  inherited EndUpdate;
-
-  if (UpdateCount = 0) and (FChanged) then
-  begin
-    FChanged := False;
-    DoChanged;
-  end;
-end;
-
-procedure TCustomPath.Changed;
-begin
-  BeginUpdate;
-  FChanged := True;
-  EndUpdate;
-end;
-
-procedure TCustomPath.DoChanged;
-begin
-  // Execute OnChange event
-  inherited Changed;
-end;
-
 procedure TCustomPath.AddPoint(const Point: TFloatPoint);
 begin
 end;
@@ -364,7 +330,6 @@ end;
 procedure TCustomPath.Clear;
 begin
   FControlPointOrigin := cpNone;
-  FChanged := False;
 end;
 
 procedure TCustomPath.ClosePath;
@@ -802,7 +767,10 @@ begin
   begin
     TCanvas32(Dest).BeginUpdate;
     inherited;
-    TCanvas32(Dest).FBitmap := FBitmap; // TODO : Shouldn't this be .FBitmap.Assign(FBitmap)?
+    // DONE : Shouldn't this be .FBitmap.Assign(FBitmap)?
+    // No, because TCanvas32 doesn't own the bitmap; It just references it.
+    TCanvas32(Dest).FBitmap := FBitmap;
+
     TCanvas32(Dest).FRenderer.Assign(FRenderer);
     TCanvas32(Dest).FBrushes.Assign(FBrushes);
     TCanvas32(Dest).Changed;

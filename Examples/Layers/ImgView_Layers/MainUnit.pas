@@ -174,6 +174,7 @@ type
       var NewLocation: TFloatRect; DragState: TRBDragState; Shift: TShiftState);
     procedure PaintMagnifierHandler(Sender: TObject; Buffer: TBitmap32);
     procedure PaintSimpleDrawingHandler(Sender: TObject; Buffer: TBitmap32);
+    procedure PaintSimpleDrawingGetUpdateRectHandler(Sender: TObject; var UpdateRect: TRect);
     procedure PaintButtonMockupHandler(Sender: TObject; Buffer: TBitmap32);
   public
     procedure CreateNewImage(AWidth, AHeight: Integer; FillColor: TColor32);
@@ -592,6 +593,7 @@ var
 begin
   L := CreatePositionedLayer;
   L.OnPaint := PaintSimpleDrawingHandler;
+  L.OnGetUpdateRect := PaintSimpleDrawingGetUpdateRectHandler;
   L.Tag := 1;
   Selection := L;
 end;
@@ -619,6 +621,7 @@ var
   Path: TFlattenedPath;
   Intf: ITextToPathSupport;
   ColorGradient: TLinearGradientPolygonFiller;
+  BorderWidth: Double;
 const
   CScale = 1 / 200;
 begin
@@ -628,9 +631,17 @@ begin
   Layer := TPositionedLayer(Sender);
 
   Bounds := Layer.GetAdjustedLocation;
-  InflateRect(Bounds, -1, -1);
+
+  BorderWidth := 0.1 * GbrBorderWidth.Position;
+
+  // Make sure that we stay within bounds.
+  // The fill is done inside the bounds rect while the border is centered on the
+  // bounds rect. I.e. half of the border is "outside" the bounds rect.
+  InflateRect(Bounds, -(BorderWidth / 2), -(BorderWidth / 2));
+
   RoundPoly := RoundRect(Bounds, GbrBorderRadius.Position);
 
+  // Button fill
   ColorGradient := TLinearGradientPolygonFiller.Create;
   try
     ColorGradient.SetPoints(FloatPoint(0, Bounds.Top), FloatPoint(0, Bounds.Bottom));
@@ -643,12 +654,15 @@ begin
   finally
     ColorGradient.Free;
   end;
-  PolyPolygonFS(Buffer, BuildPolyPolyLine(PolyPolygon(RoundPoly), True,
-    0.1 * GbrBorderWidth.Position), clGray32, pfAlternate);
 
+  // Button border
+  PolyPolygonFS(Buffer,
+    BuildPolyPolyLine(PolyPolygon(RoundPoly), True, BorderWidth),
+    clGray32, pfAlternate);
+
+  // Button text
   Path := TFlattenedPath.Create;
   try
-//    Buffer.Font.Assign(FFont);
     Buffer.Font.Size := 12;
     if Supports(Buffer.Backend, ITextToPathSupport, Intf) then
     begin
@@ -777,6 +791,18 @@ begin
     Buffer.LineToFS(
       Cx + W2 * I * Cos(I * 0.125),
       Cy + H2 * I * Sin(I * 0.125));
+end;
+
+procedure TMainForm.PaintSimpleDrawingGetUpdateRectHandler(Sender: TObject;
+  var UpdateRect: TRect);
+begin
+  // Since we're drawing outside the layer bounds rect, we need to expand the
+  // update rect or else the layer repaint mechanism will not be able to update
+  // the correct area when the layer is moved or resized.
+
+  // Instead of trying to calculate the precise extent of the figure drawn, we
+  // just increase the update rect about 15%.
+  GR32.InflateRect(UpdateRect, UpdateRect.Width div 6, UpdateRect.Height div 6);
 end;
 
 procedure TMainForm.SetSelection(Value: TPositionedLayer);
@@ -926,7 +952,6 @@ begin
     finally
       ImgView.EndUpdate;
     end;
-    ImgView.Changed;
   end;
 end;
 

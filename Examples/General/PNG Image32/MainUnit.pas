@@ -26,7 +26,9 @@ var
 implementation
 
 uses
-  GR32_PNG, GR32_PortableNetworkGraphic;
+  GR32,
+  GR32_PNG,
+  GR32_PortableNetworkGraphic;
 
 {$R *.dfm}
 
