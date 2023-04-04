@@ -176,6 +176,9 @@ function TImageFormatAdapterPNG32.LoadFromStream(ADest: TCustomBitmap32; AStream
 var
   PNG32: TPortableNetworkGraphic32;
 begin
+  if (not IsValidPNG(AStream)) then
+    Exit(False);
+
   PNG32 := TPortableNetworkGraphic32.Create;
   try
     PNG32.LoadFromStream(AStream);
