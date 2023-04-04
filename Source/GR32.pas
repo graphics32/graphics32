@@ -5779,7 +5779,9 @@ begin
   // Work around BMPs with an extra color mask after the header:
   // If there's exactly 12 bytes too many then we assume that these are an extra
   // color mask and skip it.
-  if (BitmapHeader.InfoHeader.biCompression = BI_BITFIELDS) and (InfoHeaderVersion >= InfoHeaderVersion1) then
+  // For example the Windows resource compiler will add these 12 bytes to the header
+  // of RT_BITMAP resources. This goes for both BI_RGB and BI_BITFIELDS.
+  if (InfoHeaderVersion >= InfoHeaderVersion1) then
   begin
     ChunkSize := 3 * SizeOf(DWORD);
     if (Size = ChunkSize) then
