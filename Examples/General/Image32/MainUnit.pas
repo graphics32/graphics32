@@ -76,29 +76,11 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-{$IFNDEF FPC}
-  JPEG;
-{$ELSE}
-  LazJPG;
-{$ENDIF}
+  GR32.ImageFormats.JPG;
 
 procedure TFormImage32Example.FormCreate(Sender: TObject);
-var
-  ResStream: TResourceStream;
-  JPEG: TJPEGImage;
 begin
-  JPEG := TJPEGImage.Create;
-  try
-	ResStream := TResourceStream.Create(HInstance, 'Delphi', RT_RCDATA);
-    try
-      JPEG.LoadFromStream(ResStream);
-    finally
-      ResStream.Free;
-    end;
-    Image.Bitmap.Assign(JPEG);
-  finally
-    JPEG.Free;
-  end;
+  Image.Bitmap.LoadFromResourceName(HInstance, 'Delphi', RT_RCDATA);
 
   with TKernelResampler.Create(Image.Bitmap) do
   begin

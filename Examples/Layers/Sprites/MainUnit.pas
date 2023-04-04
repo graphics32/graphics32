@@ -106,7 +106,9 @@ uses
 {$IFDEF Darwin}
   MacOSAll,
 {$ENDIF}
-  GR32_Filters, GR32_System;
+  GR32_Filters,
+  GR32_System,
+  GR32.ImageFormats.PNG32;
 
 { TMainForm }
 
@@ -116,16 +118,11 @@ var
 begin
   TempBitmap := TBitmap32.Create;
   try
-    Image32.Bitmap.LoadFromResourceName(Hinstance, 'SpriteTexture');
+    Image32.Bitmap.LoadFromResourceName(Hinstance, 'SpriteTexture', 'PNG');
+
     BitmapList.Bitmap[0].LoadFromResourceName(Hinstance, 'Sprite1');
-    TempBitmap.LoadFromResourceName(Hinstance, 'Sprite1a');
-    IntensityToAlpha(BitmapList.Bitmap[0], TempBitmap);
     BitmapList.Bitmap[1].LoadFromResourceName(Hinstance, 'Sprite2');
-    TempBitmap.LoadFromResourceName(Hinstance, 'Sprite2a');
-    IntensityToAlpha(BitmapList.Bitmap[1], TempBitmap);
     BitmapList.Bitmap[2].LoadFromResourceName(Hinstance, 'Sprite3');
-    TempBitmap.LoadFromResourceName(Hinstance, 'Sprite3a');
-    IntensityToAlpha(BitmapList.Bitmap[2], TempBitmap);
   finally
     TempBitmap.Free;
   end;
